@@ -3,11 +3,18 @@
 
   const q=v=>String(v==null?'':v).trim();
   const arr=v=>Array.isArray(v)?v:[];
+  const obj=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
   let remembered=[];
   let timer=0;
   let lastRememberSignature='';
   let lastMutationAt=0;
   root.__EXPORTHUB_RC1091_SHIPMENT_OVERVIEW_STABLE__=true;
+  root.__EXPORTHUB_RC1259_CONTAINER_DOCUMENTATION__=true;
+
+  function state(){
+    try{if(typeof root.__EXPORTHUB_GET_STATE__==='function')return root.__EXPORTHUB_GET_STATE__()||{}}catch(_){}
+    return root.ExportHUBClean&&root.ExportHUBClean.state||root.appState||{};
+  }
 
   function positiveNumber(value){
     const n=Number(value);
@@ -69,10 +76,19 @@
     return rows.reduce((sum,row)=>sum+rowQuantity(row),0);
   }
 
+  function containerMeta(shipment){
+    const sh=shipment||{},photos=arr(sh.containerPhotos);
+    const mode=q(sh.transportMode||sh.transportType||sh.shippingMode||sh.shipmentMode).toLowerCase();
+    const required=sh.containerDocumentationRequired===true||sh.seaContainerDocumentationRequired===true;
+    const seal=q(sh.sealNumber||sh.containerSealNumber||sh.siegelnummer);
+    return{mode,required,seal,photos,count:photos.length,complete:['loaded','number','sealed'].every(kind=>photos.some(p=>q(p&&p.kind).toLowerCase()===kind))};
+  }
+
   function shipmentMeta(shipment){
     const created=shipmentCreatedDate(shipment);
     const colli=shipmentColliCount(shipment);
     const customerPickup=customerPickupMeta(shipment);
+    const container=containerMeta(shipment);
     return {
       created,
       colli,
@@ -81,7 +97,8 @@
       customerPickupTimeTo:customerPickup.timeTo,
       createdLabel:`Erfasst: ${created}`,
       colliLabel:`Colli: ${colli}`,
-      customerPickupLabel:customerPickup.label
+      customerPickupLabel:customerPickup.label,
+      container
     };
   }
 
@@ -92,7 +109,7 @@
 
   function shipmentReference(shipment){
     const sh=shipment||{};
-    return q(sh.reference||sh.ref||sh.shipmentRef||sh.id||sh.shipmentId).toUpperCase();
+    return q(sh.reference||sh.ref||sh.shipmentRef||sh.referenceNumber||sh.id||sh.shipmentId).toUpperCase();
   }
 
   function cardShipment(card,shipments){
@@ -109,10 +126,20 @@
     })||null;
   }
 
+  function currentEnvironment(){
+    try{return /-testservice\./i.test(String(root.location&&root.location.hostname||''))?'testservice':'production'}catch(_){return'production'}
+  }
+
   function inShipmentOverview(doc){
     const body=doc&&doc.body;
     if(!body||typeof body.getAttribute!=='function')return false;
     return q(body.getAttribute('data-exporthub-view')).toLowerCase()==='shipmentoverview';
+  }
+
+  function inShipmentView(doc){
+    const body=doc&&doc.body;
+    if(!body||typeof body.getAttribute!=='function')return false;
+    return q(body.getAttribute('data-exporthub-view')).toLowerCase()==='shipment';
   }
 
   function createMeta(doc,meta){
@@ -135,6 +162,49 @@
       row.appendChild(pickup);
     }
     return row;
+  }
+
+  function photoUrl(shipment,photo,download){
+    const ref=shipmentReference(shipment),id=q(photo&&photo.id);
+    if(!ref||!id)return'';
+    return '/api/container-document?reference='+encodeURIComponent(ref)+'&file='+encodeURIComponent(id)+'&environment='+encodeURIComponent(currentEnvironment())+(download?'&download=1':'');
+  }
+
+  function createContainerCard(doc,shipment){
+    const meta=containerMeta(shipment),wrap=doc.createElement('div');
+    wrap.className='rc1259-container-docs';
+    wrap.setAttribute('data-rc1259-container-docs','1');
+    const head=doc.createElement('div');head.className='rc1259-container-head';
+    const title=doc.createElement('strong');title.textContent='🚢 Container-Dokumentation';
+    const status=doc.createElement('span');status.className='rc1259-container-status';status.textContent=(meta.required?'Pflicht · ':'')+'Fotos '+meta.count+'/3'+(meta.seal?' · Siegel '+meta.seal:'');
+    head.appendChild(title);head.appendChild(status);wrap.appendChild(head);
+    if(meta.seal){
+      const seal=doc.createElement('div');seal.className='rc1259-seal-search';seal.textContent='Siegelnummer: '+meta.seal;seal.setAttribute('data-container-seal',meta.seal);wrap.appendChild(seal);
+    }
+    if(meta.photos.length){
+      const grid=doc.createElement('div');grid.className='rc1259-photo-grid';
+      meta.photos.forEach(photo=>{
+        const item=doc.createElement('div');item.className='rc1259-photo-item';
+        const img=doc.createElement('img');img.alt=q(photo.label||photo.name)||'Containerfoto';img.loading='lazy';img.src=photoUrl(shipment,photo,false);
+        const label=doc.createElement('b');label.textContent=q(photo.label||photo.name)||'Containerfoto';
+        const actions=doc.createElement('div');actions.className='rc1259-photo-actions';
+        const open=doc.createElement('a');open.href=photoUrl(shipment,photo,false);open.target='_blank';open.rel='noopener';open.textContent='Ansehen';
+        const down=doc.createElement('a');down.href=photoUrl(shipment,photo,true);down.textContent='Herunterladen';
+        actions.appendChild(open);actions.appendChild(down);item.appendChild(img);item.appendChild(label);item.appendChild(actions);grid.appendChild(item);
+      });
+      wrap.appendChild(grid);
+    }
+    return wrap;
+  }
+
+  function enhanceContainerCard(card,shipment,doc){
+    const meta=containerMeta(shipment);
+    let panel=card.querySelector&&card.querySelector('[data-rc1259-container-docs]');
+    const shouldShow=meta.required||meta.seal||meta.photos.length;
+    if(!shouldShow){if(panel&&typeof panel.remove==='function'){panel.remove();lastMutationAt=Date.now()}return false}
+    if(panel&&typeof panel.remove==='function')panel.remove();
+    if(typeof card.appendChild!=='function'||typeof doc.createElement!=='function')return false;
+    panel=createContainerCard(doc,shipment);card.appendChild(panel);lastMutationAt=Date.now();return true;
   }
 
   function enhanceShipmentOverview(shipments=remembered){
@@ -169,6 +239,7 @@
         card.appendChild(row);
         lastMutationAt=Date.now();
       }
+      enhanceContainerCard(card,shipment,doc);
       if(row){
         card.setAttribute&&card.setAttribute('data-rc1014-shipment-enhanced','1');
         enhanced++;
@@ -177,15 +248,68 @@
     return enhanced;
   }
 
+  function activeShipment(s){
+    s=s||state();
+    if(obj(s.shipment))return s.shipment;
+    try{if(typeof root.__EXPORTHUB_GET_ACTIVE_SHIPMENT__==='function'){const sh=root.__EXPORTHUB_GET_ACTIVE_SHIPMENT__();if(obj(sh))return sh}}catch(_){}
+    for(const sh of [s.currentShipment,s.selectedShipment,root.ExportHUBClean&&root.ExportHUBClean.runtime&&root.ExportHUBClean.runtime.shipment])if(obj(sh))return sh;
+    return null;
+  }
+
+  function shipmentTargets(s,active){
+    const ref=shipmentReference(active),out=[];
+    [active,s&&s.shipment,s&&s.currentShipment,s&&s.selectedShipment,root.ExportHUBClean&&root.ExportHUBClean.runtime&&root.ExportHUBClean.runtime.shipment].forEach(sh=>{
+      if(!obj(sh)||out.includes(sh))return;
+      if(sh===active||sh===(s&&s.shipment)||(ref&&shipmentReference(sh)===ref))out.push(sh);
+    });
+    return out;
+  }
+
+  function writeContainerConfig(mode,required){
+    const s=state(),active=activeShipment(s);if(!active)return false;
+    mode=q(mode).toLowerCase();required=mode==='sea'&&required===true;
+    shipmentTargets(s,active).forEach(sh=>{
+      sh.transportMode=mode;
+      sh.transportType=mode;
+      sh.containerDocumentationRequired=required;
+      sh.containerDocumentationUpdatedAt=new Date().toISOString();
+    });
+    try{root.dispatchEvent(new CustomEvent('exporthub:shipment-updated',{detail:{reference:shipmentReference(active),containerDocumentation:true}}))}catch(_){}
+    return true;
+  }
+
+  function createConfigPanel(doc){
+    const panel=doc.createElement('div');
+    panel.className='rc1259-container-config';
+    panel.setAttribute('data-rc1259-container-config','1');
+    panel.innerHTML='<div class="rc1259-config-title"><strong>🚢 Luft / See & Container</strong><span>Container-Nachweise werden über den Abhol-QR erfasst.</span></div><div class="rc1259-config-grid"><label>Transportart<select data-rc1259-transport><option value="">Nicht festgelegt</option><option value="road">Straße</option><option value="air">Luftfracht</option><option value="sea">Seefracht</option></select></label><label class="rc1259-required-label"><input type="checkbox" data-rc1259-required> Container-Dokumentation verpflichtend</label></div><div class="rc1259-config-help">Bei Seefracht nur aktivieren, wenn ein Container dokumentiert werden muss. Dann verlangt die QR-Abholung Siegelnummer sowie 3 Fotos: geladen, Container-Nummer innen und versiegelt mit Kennzeichen/Papieren.</div>';
+    const select=panel.querySelector('[data-rc1259-transport]'),check=panel.querySelector('[data-rc1259-required]');
+    if(select)select.addEventListener('change',()=>{const sea=select.value==='sea';if(check){check.disabled=!sea;if(!sea)check.checked=false}writeContainerConfig(select.value,check&&check.checked)});
+    if(check)check.addEventListener('change',()=>writeContainerConfig(select&&select.value,check.checked));
+    return panel;
+  }
+
+  function enhanceShipmentConfig(){
+    const doc=root.document;if(!doc||!inShipmentView(doc)||typeof doc.getElementById!=='function')return false;
+    const host=doc.getElementById('rc363BlockShipment');if(!host)return false;
+    let panel=host.querySelector&&host.querySelector('[data-rc1259-container-config]');
+    if(!panel){if(typeof doc.createElement!=='function')return false;panel=createConfigPanel(doc);const target=host.querySelector&&host.querySelector('.rc363-process-body')||host;target.appendChild(panel);lastMutationAt=Date.now()}
+    const sh=activeShipment(state());if(!sh)return true;
+    const meta=containerMeta(sh),select=panel.querySelector&&panel.querySelector('[data-rc1259-transport]'),check=panel.querySelector&&panel.querySelector('[data-rc1259-required]');
+    if(select&&doc.activeElement!==select&&select.value!==meta.mode)select.value=meta.mode||'';
+    if(check){check.disabled=(select?select.value:meta.mode)!=='sea';if(doc.activeElement!==check)check.checked=meta.required===true;if(check.disabled&&check.checked)check.checked=false}
+    return true;
+  }
+
   function scheduleEnhance(){
     if(!root.document||timer)return false;
     const schedule=typeof root.setTimeout==='function'?root.setTimeout:(fn=>{fn();return 1});
-    timer=schedule(()=>{timer=0;enhanceShipmentOverview();},0);
+    timer=schedule(()=>{timer=0;enhanceShipmentOverview();enhanceShipmentConfig();},0);
     return true;
   }
 
   function signatureOf(shipments){
-    return arr(shipments).map(sh=>{const meta=shipmentMeta(sh);return [shipmentId(sh),shipmentReference(sh),meta.createdLabel,meta.colliLabel,meta.customerPickupLabel].join('|')}).join('||');
+    return arr(shipments).map(sh=>{const meta=shipmentMeta(sh),cm=meta.container;return [shipmentId(sh),shipmentReference(sh),meta.createdLabel,meta.colliLabel,meta.customerPickupLabel,cm.mode,cm.required?'1':'0',cm.seal,cm.photos.map(p=>q(p&&p.kind)+':'+q(p&&p.uploadedAt)).join(',')].join('|')}).join('||');
   }
 
   function remember(shipments){
@@ -197,13 +321,13 @@
   }
 
   function onRendered(){
-    if(Date.now()-lastMutationAt<750)return false;
+    if(Date.now()-lastMutationAt<300)return false;
     return scheduleEnhance();
   }
 
   if(root.addEventListener){
     root.addEventListener('exporthub:rendered',onRendered);
-    ['exporthub:viewchange','exporthub:shipment-updated','exporthub:overview-updated'].forEach(name=>root.addEventListener(name,scheduleEnhance));
+    ['exporthub:viewchange','exporthub:shipment-updated','exporthub:overview-updated','exporthub:state-loaded','exporthub:shipment-saved'].forEach(name=>root.addEventListener(name,scheduleEnhance));
   }
 
   root.ExportHUBRC1014ShipmentOverview=Object.freeze({
@@ -211,8 +335,11 @@
     shipmentColliCount,
     formatPickupDate,
     customerPickupMeta,
+    containerMeta,
     shipmentMeta,
     remember,
-    enhanceShipmentOverview
+    enhanceShipmentOverview,
+    enhanceShipmentConfig,
+    writeContainerConfig
   });
 })(globalThis);
