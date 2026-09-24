@@ -864,5 +864,6 @@
   "container.requiredDocumentation": "Container documentation required",
   "container.configHelp": "For sea freight, enable only when a container must be documented. The QR pickup then requires a seal number and 3 photos: loaded container, container number from inside, and sealed container with plate/documents.",
   "stowplan.orientationCrosswise": "crosswise",
-  "stowplan.orientationLengthwise": "lengthwise"
+  "stowplan.orientationLengthwise": "lengthwise",
+  "shipmentOverview.colli": "Packages: {{count}}"
 }
