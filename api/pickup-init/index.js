@@ -30,6 +30,6 @@ module.exports=async function(context,req){
     r.registrationVersion='RC1259';r.metadataVersion=19;r.updatedAt=store.now();return r
    });
   }else await store.writeJson(store.recordBlob(c.records,accessKey,issued.environment),record,null);
-  context.res=store.json(200,Object.assign({ok:true,registered:true,token:issued.token,environment:issued.environment,oneTime:false,reused:issued.reused===true,compatibility:'stable-qr-v1',version:'RC1259'},store.publicRecord(record,issued.token)));
+  context.res=store.json(200,Object.assign({ok:true,registered:true,token:issued.token,environment:issued.environment,oneTime:false,reused:issued.reused===true,compatibility:'stable-qr-v1',version:'RC1014'},store.publicRecord(record,issued.token)));
  }catch(e){context.log&&context.log.error&&context.log.error('pickup-init RC1259',e&&e.code,e&&e.message);context.res=store.json(e.status||e.statusCode||500,{ok:false,code:e.code||'INIT_FAILED',message:e.message||'QR-Code konnte nicht registriert werden.'})}
 };
