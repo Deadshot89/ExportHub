@@ -262,5 +262,12 @@
   "portal.manage": "administrar",
   "portal.adminHasBoth": "Global Admin dispone automáticamente de ambos permisos.",
   "portal.rightsSaved": "Permisos del portal de cliente guardados.",
-  "portal.rightsSaveFailed": "No se pudieron guardar los permisos."
+  "portal.rightsSaveFailed": "No se pudieron guardar los permisos.",
+  "common.active": "Activo",
+  "common.inactive": "Inactivo",
+  "portal.portalName": "Nombre del portal",
+  "portal.httpsAddress": "Dirección HTTPS",
+  "portal.internalNote": "Nota interna",
+  "portal.loadFailed": "No se pudo cargar el portal de cliente.",
+  "portal.userRightsLoadFailed": "No se pudieron cargar los permisos de usuario."
 }
