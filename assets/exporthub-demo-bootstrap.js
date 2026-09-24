@@ -6,6 +6,7 @@ window.__EXPORTHUB_DEMO_MODE__=true;
 document.documentElement.setAttribute('data-exporthub-demo','1');
 
 const PREFIX='exporthub-demo:';
+const tr=(key,vars)=>{try{if(window.ExportHUBI18n&&typeof window.ExportHUBI18n.t==='function')return window.ExportHUBI18n.t(key,vars)}catch(_){}return'';};
 const now=new Date();
 const iso=(days=0,h=10)=>{const d=new Date(now);d.setDate(d.getDate()+days);d.setHours(h,0,0,0);return d.toISOString();};
 const demoUser={id:'DEMO-USER-1',user:'demo.admin',login:'demo.admin',username:'demo.admin',name:'Demo Administrator',role:'Globaler Administrator',globalAdmin:true,permissions:['*'],rights:{},active:true,status:'Aktiv',mustChange:false};
@@ -25,13 +26,17 @@ const tasks=[
   {id:'DEMO-TASK-3',title:'Ladeliste DEMO02 vorbereiten',name:'Ladeliste DEMO02 vorbereiten',status:'Offen',priority:'Normal',dueAt:iso(1,9),linkedShipmentRef:'DEMO02',linkedCustomer:'Fake Kunde Benelux B.V.',assignedTo:'Demo Administrator'}
 ];
 const notifications=[
-  {id:'DEMO-NOTICE-1',type:'Aufgabe',title:'Fake Aufgabe fällig',message:'ABD für DEMO03 prüfen',createdAt:iso(0,9),read:false},
-  {id:'DEMO-NOTICE-2',type:'Aufgabe',title:'Fake Abholerinnerung',message:'DEMO01 ist heute zur Abholung geplant.',createdAt:iso(0,9),read:false}
+  {id:'DEMO-NOTICE-1',type:'task',title:'',message:'',_i18nTitleKey:'demo.noticeTaskTitle',_i18nMessageKey:'demo.noticeTaskMessage',createdAt:iso(0,9),read:false},
+  {id:'DEMO-NOTICE-2',type:'task',title:'',message:'',_i18nTitleKey:'demo.noticePickupTitle',_i18nMessageKey:'demo.noticePickupMessage',createdAt:iso(0,9),read:false}
 ];
 const warnings=[
-  {id:'DEMO-WARN-1',type:'Dokumente',title:'Fake Warnung: ABD fehlt',message:'Für DEMO03 ist ein ABD erforderlich.',shipmentRef:'DEMO03',severity:'hoch'},
-  {id:'DEMO-WARN-2',type:'Abholung',title:'Fake Warnung: Abholung heute',message:'DEMO01 ist bereit zur Abholung.',shipmentRef:'DEMO01',severity:'mittel'}
+  {id:'DEMO-WARN-1',type:'documents',title:'',message:'',_i18nTitleKey:'demo.warningAbdTitle',_i18nMessageKey:'demo.warningAbdMessage',shipmentRef:'DEMO03',severity:'high'},
+  {id:'DEMO-WARN-2',type:'pickup',title:'',message:'',_i18nTitleKey:'demo.warningPickupTitle',_i18nMessageKey:'demo.warningPickupMessage',shipmentRef:'DEMO01',severity:'medium'}
 ];
+function localizeDemoRecords(){
+  notifications.concat(warnings).forEach(row=>{if(row._i18nTitleKey)row.title=tr(row._i18nTitleKey)||row.title;if(row._i18nMessageKey)row.message=tr(row._i18nMessageKey)||row.message;});
+  const banner=document.getElementById('eh996-demo-banner');if(banner)banner.textContent=tr('demo.banner')||'';
+}
 const state={
   customers,shipments,savedShipments:shipments,tasks,notifications,warnings,
   currentUser:demoUser,activeUser:demoUser,
@@ -90,9 +95,9 @@ window.fetch=async function(input,init){
     return json({ok:true,demo:true,environment:'demo',revision:team.revision+1,updatedAt:new Date().toISOString(),state:state,users:[demoUser],simulated:true});
   }
   if(/pickup|customer-avis|pod-backup|mail|email|outlook|send/i.test(path)){
-    return json({ok:false,demo:true,code:'DEMO_EXTERNAL_BLOCKED',message:'Diese Außenwirkung ist in der Fake-Demo absichtlich deaktiviert.'},403);
+    return json({ok:false,demo:true,code:'DEMO_EXTERNAL_BLOCKED',message:tr('demo.externalBlocked')},403);
   }
-  if(path.includes('/api/'))return json({ok:true,demo:true,simulated:true,message:'Fake Demo-Aktion lokal simuliert.'});
+  if(path.includes('/api/'))return json({ok:true,demo:true,simulated:true,message:tr('demo.simulated')});
   return originalFetch(input,init);
 };
 
@@ -106,9 +111,10 @@ try{
 
 function banner(){
   if(!document.body||document.getElementById('eh996-demo-banner'))return;
-  const b=document.createElement('div');b.id='eh996-demo-banner';b.textContent='DEMO · ausschließlich Fake-Daten · keine echten Mails, QR-/Avis-Tokens oder Azure-Schreibvorgänge';
+  const b=document.createElement('div');b.id='eh996-demo-banner';b.setAttribute('data-i18n','demo.banner');b.textContent=tr('demo.banner')||'';
   b.style.cssText='position:fixed;left:50%;top:8px;transform:translateX(-50%);z-index:2147482600;max-width:calc(100vw - 20px);padding:8px 12px;border-radius:999px;background:#7c3aed;color:#fff;font:700 12px/1.2 system-ui,-apple-system,Segoe UI,sans-serif;box-shadow:0 8px 25px rgba(76,29,149,.25);pointer-events:none;text-align:center';
   document.body.appendChild(b);
 }
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',banner,{once:true});else banner();
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{localizeDemoRecords();banner()},{once:true});else{localizeDemoRecords();banner()}
+try{window.addEventListener('exporthub:i18n-ready',()=>{localizeDemoRecords();banner()});window.addEventListener('exporthub:language-changed',()=>{localizeDemoRecords();banner()})}catch(_){}
 })();
