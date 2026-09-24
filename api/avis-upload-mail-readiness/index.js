@@ -75,9 +75,12 @@ module.exports=async function(context,req){
   }
   const authProbe=await graphMail.verifyAuthentication();
   if(!authProbe.authenticated){
-   context.res=json(503,{ok:false,configured:true,authenticated:false,environment,recipientConfigured:true,code:authProbe.code||'GRAPH_AUTH_FAILED',upstreamStatus:Number(authProbe.upstreamStatus||0),version:'RC1270'});return
+   context.res=json(503,{ok:false,configured:true,authenticated:false,audienceOk:false,mailSendGranted:false,environment,recipientConfigured:true,code:authProbe.code||'GRAPH_AUTH_FAILED',upstreamStatus:Number(authProbe.upstreamStatus||0),version:'RC1271'});return
   }
-  context.res=json(200,{ok:true,configured:true,authenticated:true,audienceOk:authProbe.audienceOk===true,environment,recipient,version:'RC1270'})
+  if(authProbe.audienceOk!==true||authProbe.mailSendGranted!==true){
+   context.res=json(503,{ok:false,configured:true,authenticated:true,audienceOk:authProbe.audienceOk===true,mailSendGranted:authProbe.mailSendGranted===true,environment,recipientConfigured:true,code:authProbe.audienceOk!==true?'GRAPH_AUDIENCE_INVALID':'GRAPH_MAIL_PERMISSION_MISSING',upstreamStatus:Number(authProbe.upstreamStatus||0),version:'RC1271'});return
+  }
+  context.res=json(200,{ok:true,configured:true,authenticated:true,audienceOk:true,mailSendGranted:true,environment,recipient,version:'RC1271'})
  }catch(e){
   context.res=json(Number(e&&e.status||e&&e.statusCode||500),{ok:false,configured:false,code:e&&e.code||'SERVER_ERROR',message:e&&e.message||'AVIS-Mail-Readiness fehlgeschlagen.',version:'RC1249'})
  }
