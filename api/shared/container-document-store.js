@@ -1,5 +1,6 @@
 'use strict';
 const {BlobServiceClient}=require('@azure/storage-blob');
+const referenceFolder=require('./reference-folder-upload');
 
 const DOCUMENT_CONTAINER=process.env.EXPORTHUB_DOCUMENT_CONTAINER||'exporthub-documents';
 const KINDS=Object.freeze({
@@ -50,7 +51,8 @@ async function savePhoto({environment,reference,kind,dataUrl,shipmentId,subShipm
   blobHTTPHeaders:{blobContentType:parsed.mimeType,blobCacheControl:'private, no-store'},
   metadata:{reference:ref,kind:k,shipmentid:text(shipmentId).slice(0,120),subshipmentid:text(subShipmentId).slice(0,120),uploadedat:iso}
  });
- return{id:'container-'+k,kind:k,label:KINDS[k].label,name,type:parsed.mimeType,size:parsed.buffer.length,uploadedAt:iso,blobName:path,storage:'blob',reference:ref};
+ const referenceFile=await referenceFolder.upload(ref,name,parsed.buffer,parsed.mimeType);
+ return{id:'container-'+k,kind:k,label:KINDS[k].label,name,type:parsed.mimeType,size:parsed.buffer.length,uploadedAt:iso,blobName:path,storage:'blob',reference:ref,referenceFolderSaved:true,referenceFolderItemId:text(referenceFile.id),referenceFolderPath:text(referenceFile.folderPath),referenceFolderWebUrl:text(referenceFile.webUrl)};
 }
 async function readPhoto(photo){
  const path=text(photo&&photo.blobName);
@@ -67,7 +69,7 @@ async function readPhoto(photo){
 }
 function publicPhoto(photo){
  if(!photo||typeof photo!=='object')return null;
- return{id:text(photo.id),kind:text(photo.kind),label:text(photo.label)||KINDS[text(photo.kind)]&&KINDS[text(photo.kind)].label||'',name:text(photo.name),type:text(photo.type),size:Math.max(0,Number(photo.size)||0),uploadedAt:text(photo.uploadedAt)};
+ return{id:text(photo.id),kind:text(photo.kind),label:text(photo.label)||KINDS[text(photo.kind)]&&KINDS[text(photo.kind)].label||'',name:text(photo.name),type:text(photo.type),size:Math.max(0,Number(photo.size)||0),uploadedAt:text(photo.uploadedAt),referenceFolderSaved:photo.referenceFolderSaved===true};
 }
 function completePhotos(list){
  const kinds=new Set((Array.isArray(list)?list:[]).map(x=>text(x&&x.kind).toLowerCase()).filter(Boolean));
