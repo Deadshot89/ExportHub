@@ -163,7 +163,7 @@ function schedule(force){
  if(v==='shipment'&&c)renderShipment(c,r);
  if((v==='rights'||v==='benutzer'||v==='users')&&globalAdmin(user()))renderRights()
 }
-['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded','exporthub:customer-changed'].forEach(function(name){try{w.addEventListener(name,function(){schedule(true)})}catch(_){}});
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded','exporthub:customer-changed','exporthub:language-changed'].forEach(function(name){try{w.addEventListener(name,function(){schedule(true)})}catch(_){}});
 w.addEventListener('pagehide',clearRevealedSecrets);w.addEventListener('beforeunload',clearRevealedSecrets);
 d.addEventListener('click',function(e){var t=e.target&&e.target.closest&&e.target.closest('button,a');if(t&&/abmelden|logout|konto wechseln/i.test(q(t.textContent)))clearRevealedSecrets()},true);
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',function(){schedule(true)},{once:true});else schedule(true);
