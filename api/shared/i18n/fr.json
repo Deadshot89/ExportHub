@@ -167,5 +167,17 @@
   "api.avis.mailStored": "Contrôlé et enregistré : {{time}}",
   "api.avis.mailPassed": "Le fichier a réussi l’analyse antivirus et le contrôle d’affectation à l’expédition.",
   "api.avis.mailAction": "Ouvrez ExportHUB → Notifications et sélectionnez « Ouvrir / imprimer le PDF ».",
-  "api.auth.unknownAction": "Action d’authentification inconnue."
+  "api.auth.unknownAction": "Action d’authentification inconnue.",
+  "api.avis.documentTypeInvalid": "Sélectionnez un type de document valide.",
+  "api.avis.textUnreadable": "Le contenu du PDF n’est pas suffisamment lisible par machine. Importez un PDF avec texte interrogeable.",
+  "api.avis.shipmentMismatch": "Le PDF n’a pas pu être affecté sans ambiguïté à l’expédition. Il ne sera pas enregistré.",
+  "api.avis.documentTypeMismatch": "Le contenu du PDF ne correspond pas clairement au type de document sélectionné {{type}}. Il ne sera pas enregistré.",
+  "api.avis.contentValid": "Le contenu du PDF correspond à l’expédition.",
+  "api.avis.textExtractionFailed": "Le contenu du PDF n’a pas pu être lu de manière sûre ni affecté à l’expédition. Le fichier ne sera pas enregistré.",
+  "api.avis.docType.cmr": "CMR / lettre de voiture",
+  "api.avis.docType.delivery_note": "Bon de livraison",
+  "api.avis.docType.invoice": "Facture / Commercial Invoice",
+  "api.avis.docType.packing_list": "Liste de colisage",
+  "api.avis.docType.other": "Autre",
+  "api.avis.attachment": "Pièce jointe"
 }
