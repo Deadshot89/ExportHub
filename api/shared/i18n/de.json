@@ -167,5 +167,17 @@
   "api.avis.mailStored": "Geprüft und gespeichert: {{time}}",
   "api.avis.mailPassed": "Die Datei hat die Virenprüfung und die fachliche Sendungszuordnung bestanden.",
   "api.avis.mailAction": "Bitte ExportHUB → Benachrichtigungen öffnen und „PDF öffnen / drucken“ auswählen.",
-  "api.auth.unknownAction": "Unbekannte Anmeldeaktion."
+  "api.auth.unknownAction": "Unbekannte Anmeldeaktion.",
+  "api.avis.documentTypeInvalid": "Bitte eine gültige Dokumentart auswählen.",
+  "api.avis.textUnreadable": "Der PDF-Inhalt ist nicht ausreichend maschinenlesbar. Bitte ein durchsuchbares PDF hochladen.",
+  "api.avis.shipmentMismatch": "Das PDF konnte der Sendung nicht eindeutig zugeordnet werden. Es wird nicht gespeichert.",
+  "api.avis.documentTypeMismatch": "Der PDF-Inhalt passt nicht eindeutig zur ausgewählten Dokumentart {{type}}. Es wird nicht gespeichert.",
+  "api.avis.contentValid": "PDF-Inhalt passt zur Sendung.",
+  "api.avis.textExtractionFailed": "Der PDF-Inhalt konnte nicht sicher gelesen und der Sendung nicht zugeordnet werden. Die Datei wird nicht gespeichert.",
+  "api.avis.docType.cmr": "CMR / Frachtbrief",
+  "api.avis.docType.delivery_note": "Lieferschein",
+  "api.avis.docType.invoice": "Rechnung / Commercial Invoice",
+  "api.avis.docType.packing_list": "Packliste / Packing List",
+  "api.avis.docType.other": "Sonstiges",
+  "api.avis.attachment": "Anhang"
 }
