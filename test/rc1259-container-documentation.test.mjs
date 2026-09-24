@@ -42,6 +42,19 @@ test('RC1259: drei definierte Containerfotos werden unter der Referenz gespeiche
   if(previousStorage===undefined)delete process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;else process.env.EXPORTHUB_STORAGE_CONNECTION_STRING=previousStorage;
 });
 
+test('RC1263: Container-Dokumentmodul lädt ohne Azure Blob SDK bis zum echten Speicherzugriff',()=>{
+  const absolute=path.resolve(ROOT,'api/shared/container-document-store.js'),original=Module._load;
+  Module._load=function(request,parent,isMain){
+    if(request==='@azure/storage-blob')throw new Error('Azure SDK darf beim reinen Modulimport nicht geladen werden');
+    return original.call(this,request,parent,isMain);
+  };
+  delete require.cache[require.resolve(absolute)];
+  try{
+    const docs=require(absolute);
+    assert.equal(docs.completePhotos([{kind:'loaded'},{kind:'number'},{kind:'sealed'}]),true);
+  }finally{Module._load=original;delete require.cache[require.resolve(absolute)]}
+});
+
 test('RC1259: genau alle drei Fotoarten ergeben vollständige Containerdokumentation',()=>{
   const docs=loadWithMocks('api/shared/container-document-store.js',{
     '@azure/storage-blob':{BlobServiceClient:{}},
