@@ -21,12 +21,15 @@ function rc1252RenderMfa(){
  var login=d.getElementById('login');if(!login)return;
  var old=d.getElementById('rc1252MfaPanel');if(!rc1252Mfa){if(old&&old.parentNode)old.parentNode.removeChild(old);return}
  var target=login.querySelector&&login.querySelector('form')||login;
+ var signature=[rc1252Mfa.mode,rc1252Mfa.challenge,rc1252Mfa.secret,rc1252Mfa.uri].map(q).join('|');
  if(old&&old.parentNode!==target){old.parentNode.removeChild(old);old=null}
+ if(old&&old.getAttribute('data-rc1252-signature')===signature)return;
  if(!old){
   old=d.createElement('div');old.id='rc1252MfaPanel';old.setAttribute('data-rc1252-mfa','1');
   old.style.cssText='margin-top:14px;padding:14px;border:1px solid #93c5fd;border-radius:12px;background:#eff6ff;color:#0f172a;text-align:left';
   target.appendChild(old)
  }
+ old.setAttribute('data-rc1252-signature',signature);
  while(old.firstChild)old.removeChild(old.firstChild);
  var title=rc1252Text('strong',rc1252Mfa.mode==='enroll'?'Zweiten Faktor einrichten':'Zweiten Faktor bestätigen');title.style.display='block';title.style.marginBottom='8px';old.appendChild(title);
  if(rc1252Mfa.mode==='enroll'){
