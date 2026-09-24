@@ -5,6 +5,7 @@ import {execFileSync} from 'node:child_process';
 
 const read=p=>fs.readFileSync(p,'utf8');
 const runtime=read('assets/rc1092-customer-mail-contacts.js');
+const i18nDe=JSON.parse(read('assets/i18n/de.json'));
 
 function block(start,end){
  const a=runtime.indexOf(start);assert.ok(a>=0,start+' fehlt');
@@ -13,8 +14,10 @@ function block(start,end){
 }
 
 test('RC1092 trennt Person speichern und Zur Mail hinzufügen fachlich',()=>{
- assert.match(runtime,/Person speichern/);
- assert.match(runtime,/Zur Mail hinzufügen/);
+ assert.match(runtime,/customerContacts\.savePerson/);
+ assert.match(runtime,/customerContacts\.addToMail/);
+ assert.equal(i18nDe['customerContacts.savePerson'],'Person speichern');
+ assert.equal(i18nDe['customerContacts.addToMail'],'Zur Mail hinzufügen');
  const save=block('async function savePerson','function customerFieldsSnapshot');
  const add=block('async function addToMail','async function removeFromMail');
  assert.match(save,/upsertLibrary\(/,'Person speichern muss die Kontaktbibliothek pflegen');
@@ -26,7 +29,7 @@ test('RC1092 trennt Person speichern und Zur Mail hinzufügen fachlich',()=>{
 test('RC1092 speichert beide Aktionen dauerhaft über den bestätigten Azure-Pfad',()=>{
  assert.match(runtime,/queueSave\(reason\)/);
  assert.match(runtime,/flushSave\(reason,\{force:true,userInitiated:true\}\)/);
- assert.match(runtime,/Die Azure-Speicherung wurde nicht bestätigt/);
+ assert.match(runtime,/customerContacts\.storageUnconfirmed/);
 });
 
 test('RC1092 hält Sales und CC getrennt und bewahrt Legacy-Mailfelder',()=>{
@@ -35,14 +38,15 @@ test('RC1092 hält Sales und CC getrennt und bewahrt Legacy-Mailfelder',()=>{
  assert.match(runtime,/ccContacts/);
  assert.match(runtime,/customerCcContacts/);
  for(const field of ['salesMail','salesEmail','salesPersonMail','salesPersonEmail','salesContactMail','salesContactEmail','rc385SalesMail','salesCc','cc','mailCc','rc385Cc'])assert.ok(runtime.includes(field),field+' fehlt');
- assert.match(runtime,/Aus der Mail entfernt\. Die Person bleibt gespeichert\./);
+ assert.match(runtime,/customerContacts\.removed/);
 });
 
 test('RC1092 Kundenordner-UI besitzt getrennte Aktionen auf Desktop und Mobile',()=>{
  assert.match(runtime,/data-rc1092-save/);
  assert.match(runtime,/data-rc1092-add/);
  assert.match(runtime,/@media\(max-width:760px\)/);
- assert.match(runtime,/Ein gespeicherter Kontakt wird nicht allein durch die Auswahl zur Mail hinzugefügt/);
+ assert.match(runtime,/customerContacts\.intro\.note/);
+ assert.equal(i18nDe['customerContacts.intro.note'],'Ein gespeicherter Kontakt wird nicht allein durch die Auswahl zur Mail hinzugefügt.');
 });
 
 test('RC1092 wird in alle drei RC1048 Umgebungen ausgeliefert',()=>{
