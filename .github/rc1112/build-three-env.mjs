@@ -224,6 +224,24 @@ function patchTaskDetailTab(html,file){
   return out;
 }
 
+function patchRc1259ContainerSearch(html,file){
+  const overviewNeedle="attachmentFiles(x).join(' ')].join(' '))}";
+  const overviewReplacement="attachmentFiles(x).join(' '),x&&x.sealNumber,x&&x.containerSealNumber,x&&x.siegelnummer].join(' '))}";
+  const overviewCount=html.split(overviewNeedle).length-1;
+  if(overviewCount<1)throw new Error(file+': RC1259 Sendungsübersicht-Suchanker fehlt');
+  html=html.split(overviewNeedle).join(overviewReplacement);
+
+  const viewNeedle="location&&location.name,location&&location.address,docs.map(function(d){return d.name+' '+d.group}).join(' ')].join(' '))}";
+  const viewReplacement="location&&location.name,location&&location.address,sh&&sh.sealNumber,sh&&sh.containerSealNumber,sh&&sh.siegelnummer,docs.map(function(d){return d.name+' '+d.group}).join(' ')].join(' '))}";
+  const viewCount=html.split(viewNeedle).length-1;
+  if(viewCount<1)throw new Error(file+': RC1259 Sendungsansicht-Suchanker fehlt');
+  html=html.split(viewNeedle).join(viewReplacement);
+
+  html=html.replace(/Referenz, Kunde, DNC, POD oder ABD suchen/g,'Referenz, Kunde, Siegel, DNC, POD oder ABD suchen');
+  html=html.replace(/Kunde, Referenz, Kundennummer oder Anhang suchen …/g,'Kunde, Referenz, Siegelnummer, Kundennummer oder Anhang suchen …');
+  return html;
+}
+
 function patchHtml(file){
   const target=path.join(OUT,file);
   let html=fs.readFileSync(target,'utf8');
@@ -234,6 +252,7 @@ function patchHtml(file){
   html=patchNotificationTasks(html,file);
   html=patchTaskMasterSaveScope(html,file);
   html=patchTaskDetailTab(html,file);
+  html=patchRc1259ContainerSearch(html,file);
   html=patchDeckblattHighVisibility(html,file);
   html=patchRc1203ActualDeckblatt(html,file);
   html=patchShipmentSuspendSave(html,file);
@@ -264,10 +283,15 @@ function patchHtml(file){
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1165-pod-backup-status" defer src="/assets/rc1165-pod-backup-status.js?v=1165"></script>','exporthub-rc1165-pod-backup-status');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1166-avis-reminder" defer src="/assets/rc1166-avis-reminder-overview.js?v=1207"></script>','exporthub-rc1166-avis-reminder');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1176-shipment-location" defer src="/assets/rc1176-shipment-location.js?v=1202"></script>','exporthub-rc1176-shipment-location');
+  html=injectDeferredRuntimeInHead(html,'<link id="exporthub-rc1259-container-ui" rel="stylesheet" href="/assets/rc1014-shipment-overview.css?v=1259">','exporthub-rc1259-container-ui');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1259-container-runtime" defer src="/assets/rc1014-shipment-overview.js?v=1259"></script>','exporthub-rc1259-container-runtime');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1203-deckblatt-print" defer src="/assets/rc1203-deckblatt-print.js?v=1205"></script>','exporthub-rc1203-deckblatt-print');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1207-pallet-account-fix" defer src="/assets/rc1207-pallet-account-fix.js?v=1246"></script>','exporthub-rc1207-pallet-account-fix');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1193-visible-release" defer src="/assets/rc1193-visible-release.js?v=1231"></script>','exporthub-rc1193-visible-release');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1177-release-notes" defer src="/assets/rc1177-release-notes.js?v=1231"></script>','exporthub-rc1177-release-notes');
+  if(!html.includes('assets/rc1014-shipment-overview.css?v=1259'))throw new Error(file+': RC1259 Container-CSS fehlt');
+  if(!html.includes('assets/rc1014-shipment-overview.js?v=1259'))throw new Error(file+': RC1259 Container-Runtime fehlt');
+  if(!html.includes('x&&x.sealNumber')||!html.includes('sh&&sh.sealNumber'))throw new Error(file+': RC1259 Siegelnummer ist nicht in beiden Sendungssuchen');
   if(html.includes(LEGACY_TESTSERVICE_HOST))throw new Error(file+': alter TESTSERVICE-Endpunkt ist noch aktiv');
   if(!html.includes(CURRENT_TESTSERVICE_HOST))throw new Error(file+': aktueller TESTSERVICE-Endpunkt fehlt');
   if(!html.includes(`version:'${VERSION}'`))throw new Error(file+': BUILD '+VERSION+' fehlt');
