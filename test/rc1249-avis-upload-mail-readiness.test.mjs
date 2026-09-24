@@ -26,6 +26,16 @@ test('RC1249: AVIS-Mail-Readiness prüft Graph-Konfiguration und Despatch-Empfä
   assert.doesNotMatch(source,/sendTextMail/,'Readiness darf keine Testmail senden');
 });
 
+test('RC1270: Readiness fordert einen echten Graph-Token an ohne Testmail oder Secret-Ausgabe',()=>{
+  assert.match(source,/graphMail\.verifyAuthentication\(\)/);
+  assert.match(source,/authenticated:false/);
+  assert.match(source,/upstreamStatus/);
+  assert.doesNotMatch(source,/access_token|clientSecret/,'Readiness darf weder Graph-Token noch Client-Secret ausgeben');
+  assert.doesNotMatch(source,/sendTextMail/,'Auth-Probe darf keine Testmail senden');
+  assert.match(workflow,/v\.authenticated!==true/);
+  assert.match(workflow,/v\.audienceOk!==true/);
+});
+
 test('RC1249: finaler Build verlangt den Readiness-Endpunkt',()=>{
   assert.match(build,/avis-upload-mail-readiness\/index\.js/);
   assert.match(build,/avis-upload-mail-readiness\/function\.json/);
