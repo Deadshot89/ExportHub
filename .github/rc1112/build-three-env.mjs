@@ -224,11 +224,54 @@ function patchTaskDetailTab(html,file){
   return out;
 }
 
+function patchMfaLoginFlow(html,file){
+  let out=html;
+  const authBefore=" const body=Object.assign({action:action},payload||{});\n if(t)body.sessionToken=t;";
+  const authAfter=" let body=Object.assign({action:action},payload||{});\n if(action==='login'&&window.ExportHUBRC1252Mfa&&typeof window.ExportHUBRC1252Mfa.prepare==='function')body=window.ExportHUBRC1252Mfa.prepare(body);\n if(t)body.sessionToken=t;";
+  if(!out.includes(authAfter)){
+    if(!out.includes(authBefore))throw new Error(file+': RC1254 authCall Login-Payload-Anker fehlt');
+    out=out.replace(authBefore,authAfter);
+  }
+
+  const tsBefore="body:JSON.stringify({action:'login',username:String(username||''),password:String(password||''),deviceId:runtime.deviceId,recoveryRequested:recoveryRequested===true})";
+  const tsAfter="body:JSON.stringify(window.ExportHUBRC1252Mfa&&typeof window.ExportHUBRC1252Mfa.prepare==='function'?window.ExportHUBRC1252Mfa.prepare({action:'login',username:String(username||''),password:String(password||''),deviceId:runtime.deviceId,recoveryRequested:recoveryRequested===true}):{action:'login',username:String(username||''),password:String(password||''),deviceId:runtime.deviceId,recoveryRequested:recoveryRequested===true})";
+  if(!out.includes(tsAfter)){
+    if(!out.includes(tsBefore))throw new Error(file+': RC1254 TESTSERVICE Login-Payload-Anker fehlt');
+    out=out.replace(tsBefore,tsAfter);
+  }
+
+  const tsErrBefore="err.code=data.code||('HTTP_'+response.status);err.status=response.status;throw err";
+  const tsErrAfter="err.code=data.code||('HTTP_'+response.status);err.status=response.status;err.data=data;throw err";
+  if(!out.includes(tsErrAfter)){
+    if(!out.includes(tsErrBefore))throw new Error(file+': RC1254 TESTSERVICE MFA-Fehlerdaten-Anker fehlt');
+    out=out.replace(tsErrBefore,tsErrAfter);
+  }
+
+  const successBefore="if(testLogin)await rejectTestserviceNonGlobal(d.user,d.token);stopLoginProgress();";
+  const successAfter="if(testLogin)await rejectTestserviceNonGlobal(d.user,d.token);if(window.ExportHUBRC1252Mfa&&typeof window.ExportHUBRC1252Mfa.clear==='function')window.ExportHUBRC1252Mfa.clear();stopLoginProgress();";
+  if(!out.includes(successAfter)){
+    if(!out.includes(successBefore))throw new Error(file+': RC1254 MFA-Erfolg-Anker fehlt');
+    out=out.replace(successBefore,successAfter);
+  }
+
+  const catchBefore="catch(e){stopLoginProgress();hideProgress();var message=e.message||'Anmeldung fehlgeschlagen.';";
+  const catchAfter="catch(e){stopLoginProgress();hideProgress();if(window.ExportHUBRC1252Mfa&&typeof window.ExportHUBRC1252Mfa.handleError==='function'&&window.ExportHUBRC1252Mfa.handleError(e)){var mfaMode=e&&e.data&&e.data.mfaMode;status(mfaMode==='enroll'?'Zweiten Faktor einrichten: Schlüssel unten in der Authenticator-App hinzufügen, 6-stelligen Code eingeben und erneut anmelden.':'Bitte den 6-stelligen Code aus der Authenticator-App eingeben und erneut anmelden.','');setLoginEnabled(true);return false}var message=e.message||'Anmeldung fehlgeschlagen.';";
+  if(!out.includes(catchAfter)){
+    if(!out.includes(catchBefore))throw new Error(file+': RC1254 MFA-Login-Catch-Anker fehlt');
+    out=out.replace(catchBefore,catchAfter);
+  }
+
+  if(!out.includes("ExportHUBRC1252Mfa.prepare(body)"))throw new Error(file+': RC1254 MFA-Payload-Hook fehlt');
+  if(!out.includes("ExportHUBRC1252Mfa.handleError(e)"))throw new Error(file+': RC1254 MFA-Fehler-Hook fehlt');
+  return out;
+}
+
 function patchHtml(file){
   const target=path.join(OUT,file);
   let html=fs.readFileSync(target,'utf8');
   html=patchDemoTestPortalIsolation(html,file);
   html=patchAuthSessionTimeout(html,file);
+  html=patchMfaLoginFlow(html,file);
   html=patchMainCountryDetection(html,file);
   html=patchRc1206ShippingRules(html,file);
   html=patchNotificationTasks(html,file);
