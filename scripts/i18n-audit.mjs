@@ -107,6 +107,9 @@ else{
   console.log('Leere Übersetzungen:',report.emptyTranslationCount);
   console.log('Sichtbare Translation-Key-Literale:',report.visibleTranslationKeyCount);
   console.log('Hardcodierte deutsche UI-Kandidaten:',report.hardcodedGermanUiCount);
+  const byFile=Object.entries(hardcoded.reduce((acc,row)=>{acc[row.file]=(acc[row.file]||0)+1;return acc},{})).sort((a,b)=>b[1]-a[1]);
+  console.log('Hardcoded nach Datei:');
+  for(const [file,count] of byFile.slice(0,40))console.log('  '+String(count).padStart(4,' ')+'  '+file);
   for(const row of hardcoded.slice(0,80))console.log('  HARD '+row.file+':'+row.line+' '+row.text);
   for(const row of visibleKeys.slice(0,40))console.log('  KEY  '+row.file+':'+row.line+' '+row.text);
 }
