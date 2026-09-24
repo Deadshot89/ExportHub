@@ -86,7 +86,11 @@ function buildAvisBody(body,url,reference,target,lang){
  lang=normalizedLanguage(lang)||'de';target=q(target).toLowerCase();var parts=mailEnvelope(stripShipmentDetails(body),lang),carrier=target==='carrier',line='────────────────────────────',u=localizedAvisUrl(url,lang),meta=LANG_META[lang];
  return[parts.greeting,line,carrier?meta.avisPickup:meta.avis,carrier?meta.avisPickupIntro:meta.avisIntro,carrier?meta.requestPickup:meta.request,meta.access+':\n'+u,meta.reference+': '+q(reference),carrier?meta.followupPickup:meta.followup,meta.validity,meta.questions,line,parts.closing].filter(Boolean).join('\n\n')
 }
-function stripCompactAvisLink(text){\n text=normalizeText(text);\n text=text.replace(/(?:^|\\n)(?:Lieferavis|Collection notice|Awizo|Aviso|Avis|Avviso):[ \\t]*(?:\\n[ \\t]*)?https?:\\/\\/[^\\s]+(?=\\n|$)/gi,'');\n return normalizeText(text)\n}
+function stripCompactAvisLink(text){
+ text=normalizeText(text);
+ text=text.replace(/(?:^|\n)(?:Lieferavis|Collection notice|Awizo|Aviso|Avis|Avviso):[ \t]*(?:\n[ \t]*)?https?:\/\/[^\s]+(?=\n|$)/gi,'');
+ return normalizeText(text)
+}
 function buildOwnAvisBody(body,url,lang){
  lang=normalizedLanguage(lang)||'de';var clean=stripCompactAvisLink(body),details=buildDetailsBody(clean,'own',lang),parts=mailEnvelope(details,lang),u=localizedAvisUrl(url,lang),label=LANG_META[lang].access;
  return[parts.greeting,parts.content,label+': '+u,parts.closing].filter(Boolean).join('\n\n')
