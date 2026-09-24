@@ -213,9 +213,9 @@ const manifest={
   retainedReleaseAssets:{multiTruck:'assets/rc1017-multi-truck.js'},
   synchronizedRuntime:{shipmentController:SHIPMENT_CONTROLLER_ID,multiTruck:true,multiTruckSaveBridge:true,mainAddressWithLocations:true},
   sop:{systemImages:'assets/sop/rc1018-sop-system-images.js',screenshotDirectory:'assets/sop/screenshots'},
-  mail:{runtime:'assets/rc1018-mail-language-standard.js',targets:['customer','carrier'],languages:['de','en'],exclusiveModes:['details','avis']},
-  publicLanguage:{runtime:'assets/rc1018-public-language.js',pages:['customer-avis.html','pickup.html','location.html'],languages:['de','en']},
+  mail:{runtime:'assets/rc1018-mail-language-standard.js',targets:['customer','carrier'],languages:['de','en','pl','es','fr','it'],exclusiveModes:['details','avis']},
+  publicLanguage:{runtime:'assets/rc1018-public-language.js',pages:['customer-avis.html','pickup.html','location.html'],languages:['de','en','pl','es','fr','it']},
   environments:{production:'index.html',testservice:'TESTVERSION.html',demo:'demo.html'}
 };
 write('rc1018-manifest.json',JSON.stringify(manifest,null,2)+'\n');
-console.log('RC1018 build ready: Mehr-LKW-Speicherbrücke, Hauptadresse plus Zusatzstandorte, Lieferavis-Draft, Mailvorlagen, SOP-Systembilder, stabiler Kunden-Avis und DE/EN in Produktion, TESTSERVICE und Demo.');
+console.log('RC1018 build ready: Mehr-LKW-Speicherbrücke, Hauptadresse plus Zusatzstandorte, Lieferavis-Draft, Mailvorlagen, SOP-Systembilder, stabiler Kunden-Avis und DE/EN/PL/ES/FR/IT in Produktion, TESTSERVICE und Demo.');
