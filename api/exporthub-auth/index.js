@@ -21,6 +21,10 @@ function findByIdOrName(users, value) {
   return (users || []).find((u) => auth.text(u.id) === auth.text(value) || auth.usernameOf(u) === key);
 }
 function activeAdminCount(users) { return auth.adminCount(users); }
+function normalizeProfileLanguage(value, fallback = 'de') {
+  const match = auth.lower(value).replace('_', '-').match(/^(de|en|pl|es|fr|it)(?:-|$)/);
+  return match ? match[1] : fallback;
+}
 function normalizedSetting(value, fallback = '') {
   let out = String(value == null ? '' : value).trim();
   if (out.length >= 2 && ((out[0] === '"' && out[out.length - 1] === '"') || (out[0] === "'" && out[out.length - 1] === "'"))) out = out.slice(1, -1).trim();
@@ -455,9 +459,9 @@ async function updateProfile(req, payload) {
   const nextName = auth.text(payload.name || payload.displayName || current.user.name || current.user.user).replace(/\s+/g, ' ').slice(0, 80);
   if (!nextName) throw auth.error('DISPLAY_NAME_REQUIRED', 'Der Anzeigename darf nicht leer sein.', 400);
   const previousName = auth.text(current.user.name || current.user.user);
-  const previousLanguage = auth.lower(current.user.language || 'de') === 'en' ? 'en' : 'de';
-  const requestedLanguage = auth.lower(payload.language || payload.uiLanguage || previousLanguage);
-  const nextLanguage = requestedLanguage === 'en' ? 'en' : 'de';
+  const previousLanguage = normalizeProfileLanguage(current.user.language || 'de');
+  const requestedLanguage = payload.language || payload.uiLanguage || previousLanguage;
+  const nextLanguage = normalizeProfileLanguage(requestedLanguage, previousLanguage);
   const changed = await auth.mutateTeam((team) => {
     const user = findByIdOrName(team.users, current.user.id || current.user.user);
     if (!user) throw auth.error('USER_NOT_FOUND', 'Benutzer wurde nicht gefunden.', 404);
