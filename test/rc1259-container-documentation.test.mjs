@@ -1,0 +1,132 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import {createRequire} from 'node:module';
+import {fileURLToPath} from 'node:url';
+
+const require=createRequire(import.meta.url);
+const Module=require('node:module');
+const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
+const read=p=>fs.readFileSync(path.join(ROOT,p),'utf8');
+
+function loadWithMocks(relativeFile,mocks){
+  const absolute=path.resolve(ROOT,relativeFile),original=Module._load;
+  Module._load=function(request,parent,isMain){
+    if(Object.prototype.hasOwnProperty.call(mocks,request))return mocks[request];
+    return original.call(this,request,parent,isMain);
+  };
+  delete require.cache[require.resolve(absolute)];
+  try{return require(absolute)}finally{Module._load=original}
+}
+
+test('RC1259: drei definierte Containerfotos werden unter der Referenz gespeichert und zusätzlich in den echten Ref-Ordner kopiert',async()=>{
+  const uploaded=[],referenceUploads=[];
+  const container={
+    async createIfNotExists(){},
+    getBlockBlobClient(name){return{async uploadData(buffer,options){uploaded.push({name,size:buffer.length,options})}}}
+  };
+  const docs=loadWithMocks('api/shared/container-document-store.js',{
+    '@azure/storage-blob':{BlobServiceClient:{fromConnectionString(){return{getContainerClient(){return container}}}}},
+    './reference-folder-upload':{async upload(reference,name,buffer,mimeType){referenceUploads.push({reference,name,size:buffer.length,mimeType});return{id:'graph-1',name,size:buffer.length,folderPath:'003 Export/ExportHub/Sendungen/'+reference,webUrl:'https://example.invalid/'+reference+'/'+name}}}
+  });
+  const dataUrl='data:image/jpeg;base64,'+Buffer.alloc(2048,1).toString('base64');
+  const saved=await docs.savePhoto({environment:'production',reference:'ABC123',kind:'loaded',dataUrl,shipmentId:'S1'});
+  assert.equal(uploaded[0].name,'production/ABC123/Containerdokumentation/01_Geladener_Container_ABC123.jpg');
+  assert.equal(referenceUploads[0].reference,'ABC123');
+  assert.equal(referenceUploads[0].name,'01_Geladener_Container_ABC123.jpg');
+  assert.equal(saved.referenceFolderSaved,true);
+  assert.equal(saved.referenceFolderPath,'003 Export/ExportHub/Sendungen/ABC123');
+});
+
+test('RC1259: genau alle drei Fotoarten ergeben vollständige Containerdokumentation',()=>{
+  const docs=loadWithMocks('api/shared/container-document-store.js',{
+    '@azure/storage-blob':{BlobServiceClient:{}},
+    './reference-folder-upload':{}
+  });
+  assert.equal(docs.completePhotos([{kind:'loaded'},{kind:'number'}]),false);
+  assert.equal(docs.completePhotos([{kind:'loaded'},{kind:'number'},{kind:'sealed'}]),true);
+  assert.equal(docs.fileName('ABC123','sealed','jpg'),'03_Versiegelt_Siegel_Kennzeichen_Papiere_ABC123.jpg');
+});
+
+test('RC1259: QR-Abholung bietet Siegelnummer, drei Kameraaufnahmen und sofortigen Upload',()=>{
+  const page=read('pickup.html');
+  assert.match(page,/id="sealNumber"/);
+  for(const id of ['containerPhotoLoaded','containerPhotoNumber','containerPhotoSealed']){
+    assert.match(page,new RegExp('id="'+id+'"[^>]*type="file"[^>]*accept="image/\\*"[^>]*capture="environment"'));
+  }
+  assert.match(page,/pickup-container-document/);
+  assert.match(page,/Für diese Sendung müssen alle 3 Containerfotos gespeichert sein/);
+  assert.match(page,/Foto wurde im Referenzordner der Sendung gespeichert/);
+  assert.match(page,/containerSealNumber:seal/);
+});
+
+test('RC1259: vollständige Abholung ist bei Containerpflicht serverseitig ohne Siegel oder Fotos gesperrt',()=>{
+  const confirm=read('api/pickup-confirm-v2/index.js');
+  assert.match(confirm,/mode==='complete'&&containerRequired&&!sealNumber/);
+  assert.match(confirm,/CONTAINER_SEAL_REQUIRED/);
+  assert.match(confirm,/mode==='complete'&&containerRequired&&!containerDocs\.completePhotos\(containerPhotos\)/);
+  assert.match(confirm,/CONTAINER_PHOTOS_REQUIRED/);
+  assert.match(confirm,/r\.sealNumber=sealNumber/);
+  assert.match(confirm,/updateTeamContainerDocumentation/);
+});
+
+test('RC1259: Pickup-Status veröffentlicht Containerdaten und bestehende QR-Codes laden die aktuelle Pflicht aus dem Team-State',()=>{
+  const store=read('api/shared/pickup-store.js'),status=read('api/pickup-status/index.js'),init=read('api/pickup-init/index.js');
+  assert.match(store,/containerDocumentationRequired:containerRequired/);
+  assert.match(store,/sealNumber:sanitizeText/);
+  assert.match(store,/containerPhotos,containerPhotoCount:containerPhotos\.length/);
+  assert.match(status,/resolveShipmentContainerConfig/);
+  assert.match(init,/containerDocumentationRequired:snapshot\.containerDocumentationRequired===true/);
+});
+
+test('RC1259: Sendungsansicht zeigt Siegel und Fotos mit authentifiziertem Ansehen und Download',()=>{
+  const ui=read('assets/rc1014-shipment-overview.js');
+  assert.match(ui,/Siegelnummer: /);
+  assert.match(ui,/Ansehen/);
+  assert.match(ui,/Herunterladen/);
+  assert.match(ui,/enhanceShipmentDetailedView/);
+  assert.match(ui,/rc786ReferenceFilesCard/);
+  assert.match(ui,/Authorization':'Bearer '/);
+  assert.match(ui,/fetchContainerBlob/);
+  assert.match(ui,/queueSave\('container-documentation-config'\)/);
+  assert.match(ui,/Transportart/);
+  assert.match(ui,/Seefracht/);
+});
+
+test('RC1259: Siegelnummer wird in Sendungsübersicht und Sendungsansicht als Suchfeld gebaut',()=>{
+  const build=read('.github/rc1112/build-three-env.mjs');
+  assert.match(build,/x&&x\.sealNumber/);
+  assert.match(build,/sh&&sh\.sealNumber/);
+  assert.match(build,/Siegelnummer, Kundennummer/);
+  assert.match(build,/exporthub-rc1259-container-runtime/);
+  assert.match(build,/rc1014-shipment-overview\.js\?v=1259/);
+});
+
+test('RC1259: stale Browser-Saves dürfen serverseitige Siegel- und Fotodaten nicht verlieren',()=>{
+  const merge=read('api/shared/merge.js');
+  assert.match(merge,/mergeContainerPhotosProtected/);
+  assert.match(merge,/protectContainerDocumentation/);
+  assert.match(merge,/meaningfulValue\(serverItem&&serverItem\.sealNumber\)/);
+  assert.match(merge,/containerDocumentationUpdatedAt/);
+  assert.match(merge,/containerPhotos/);
+});
+
+test('RC1259: neue Browser- und Serverdateien sind syntaktisch prüfbar',()=>{
+  for(const file of [
+    'assets/rc1014-shipment-overview.js',
+    'api/shared/container-document-store.js',
+    'api/shared/reference-folder-upload.js',
+    'api/pickup-container-document/index.js',
+    'api/container-document/index.js',
+    'api/shared/pickup-store.js',
+    'api/pickup-init/index.js',
+    'api/pickup-status/index.js',
+    'api/pickup-confirm-v2/index.js'
+  ])new Function(read(file));
+
+  const page=read('pickup.html');
+  for(const match of page.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)){
+    if(match[1].trim())new Function(match[1]);
+  }
+});
