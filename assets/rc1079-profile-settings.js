@@ -8,7 +8,7 @@ function q(v){return String(v==null?'':v).trim()}
 function low(v){return q(v).toLowerCase()}
 var SUPPORTED_LANGUAGES=['de','en','pl','es','fr','it'];
 function normalizeLanguage(v){var x=low(v).replace('_','-'),m=x.match(/^(de|en|pl|es|fr|it)(?:-|$)/);return m?m[1]:'de'}
-function tr(key,fallback){try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.t==='function'){var value=w.ExportHUBI18n.t(key);if(value&&value!==key)return value}}catch(_){}return fallback}
+function tr(key){try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.t==='function')return w.ExportHUBI18n.t(key)}catch(_){}return key}
 function state(){try{if(typeof w.__EXPORTHUB_GET_STATE__==='function')return w.__EXPORTHUB_GET_STATE__()||{}}catch(_){}return w.ExportHUBClean&&w.ExportHUBClean.state||w.appState||{}}
 function user(){
  try{if(typeof w.__EXPORTHUB_GET_CURRENT_USER__==='function'){var u=w.__EXPORTHUB_GET_CURRENT_USER__();if(u)return u}}catch(_){}
@@ -87,7 +87,7 @@ function install(){
  ensureStyle();
  var host=d.getElementById('content')||d.querySelector('main')||d.body;if(!host)return false;
  var box=d.createElement('section');box.id='rc1079ProfileSettings';box.className='card rc1079-profile';
- box.innerHTML='<div><span class="pill blue" data-i18n="profile.badge">PROFIL</span><h3 data-i18n="profile.title">Mein Profil</h3><p data-i18n="profile.help">Der Benutzername bleibt für die Anmeldung unverändert. Anzeigename und Programmsprache gehören zu deinem persönlichen Profil.</p></div><div class="rc1079-profile-grid"><label><span data-i18n="profile.username">Benutzername</span><input data-rc1079-user readonly></label><label><span data-i18n="profile.displayName">Anzeigename</span><input data-rc1079-name maxlength="80" autocomplete="name"></label><label><span data-i18n="profile.programLanguage">Programmsprache</span><select data-rc1079-language aria-label="Programmsprache"><option value="de">Deutsch</option><option value="en">English</option><option value="pl">Polski</option><option value="es">Español</option><option value="fr">Français</option><option value="it">Italiano</option></select></label><button type="button" class="btn" data-rc1079-save data-i18n="profile.save">Profil speichern</button></div><div class="rc1079-note" data-i18n="profile.note">Dein Profil ist standardmäßig Deutsch. Die Mailsprache einer Sendung bleibt davon unabhängig. Bereits gespeicherte Historie-Einträge behalten aus Nachvollziehbarkeitsgründen den damaligen Anzeigenamen.</div><div data-rc1079-status></div>'
+ box.innerHTML='<div><span class="pill blue">'+tr('profile.badge')+'</span><h3>'+tr('profile.title')+'</h3><p>'+tr('profile.help')+'</p></div><div class="rc1079-profile-grid"><label><span>'+tr('profile.username')+'</span><input data-rc1079-user readonly></label><label><span>'+tr('profile.displayName')+'</span><input data-rc1079-name maxlength="80" autocomplete="name"></label><label><span>'+tr('profile.programLanguage')+'</span><select data-rc1079-language aria-label="'+tr('profile.programLanguage')+'"><option value="de">Deutsch</option><option value="en">English</option><option value="pl">Polski</option><option value="es">Español</option><option value="fr">Français</option><option value="it">Italiano</option></select></label><button type="button" class="btn" data-rc1079-save>'+tr('profile.save')+'</button></div><div class="rc1079-note">'+tr('profile.note')+'</div><div data-rc1079-status></div>'
  host.appendChild(box);
  box.querySelector('[data-rc1079-user]').value=q(u.user||u.username||u.login);
  box.querySelector('[data-rc1079-name]').value=q(u.name||u.displayName||u.user||u.username||u.login);
@@ -95,19 +95,19 @@ function install(){
  applyProfileLanguage();
  box.querySelector('[data-rc1079-save]').addEventListener('click',async function(){
    var btn=this,input=box.querySelector('[data-rc1079-name]'),languageInput=box.querySelector('[data-rc1079-language]'),name=q(input.value).replace(/\s+/g,' ').slice(0,80),language=normalizeLanguage(languageInput&&languageInput.value);
-   if(!name){status(box,tr('profile.displayNameRequired','Der Anzeigename darf nicht leer sein.'),'error');return}
-   btn.disabled=true;status(box,tr('profile.saving','Profil wird gespeichert …'),'info');
+   if(!name){status(box,tr('profile.displayNameRequired'),'error');return}
+   btn.disabled=true;status(box,tr('profile.saving'),'info');
    try{
      var data=await saveProfile(name,language);syncUser(data.user);input.value=q(data.user&&data.user.name)||name;if(languageInput)languageInput.value=normalizeLanguage(data.user&&data.user.language);
-     status(box,tr('profile.saved','Profil wurde gespeichert.'),'ok')
-   }catch(e){status(box,tr('profile.saveFailed','Speichern fehlgeschlagen')+': '+q(e&&e.message||e),'error')}
+     status(box,tr('profile.saved'),'ok')
+   }catch(e){status(box,tr('profile.saveFailed')+': '+q(e&&e.message||e),'error')}
    finally{btn.disabled=false}
  });
  return true
 }
 function schedule(){try{w.setTimeout(install,0)}catch(_){}}
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
-['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded','exporthub:user-profile-updated'].forEach(function(n){try{w.addEventListener(n,function(){applyProfileLanguage();schedule()})}catch(_){}});
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded','exporthub:user-profile-updated','exporthub:language-changed'].forEach(function(n){try{w.addEventListener(n,function(){applyProfileLanguage();schedule()})}catch(_){}});
 try{d.addEventListener('click',function(){schedule()},true)}catch(_){}
 try{w.addEventListener('change',function(e){var el=e&&e.target;if(!el||el.id!=='languageSelect')return;var u=user();if(!u||!q(u.id||u.user||u.username||u.login))return;var language=normalizeLanguage(el.value),name=q(u.name||u.displayName||u.user||u.username||u.login);saveProfile(name,language).then(function(data){syncUser(data.user)}).catch(function(){})},true)}catch(_){}
 w.ExportHUBRC1079Profile=Object.freeze({version:'RC1100',install:install,saveProfile:saveProfile,saveName:function(name){return saveProfile(name,(user()||{}).language||'de')},syncUser:syncUser,applyProfileLanguage:applyProfileLanguage});
