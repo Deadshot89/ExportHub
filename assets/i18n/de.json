@@ -864,5 +864,6 @@
   "container.requiredDocumentation": "Container-Dokumentation verpflichtend",
   "container.configHelp": "Bei Seefracht nur aktivieren, wenn ein Container dokumentiert werden muss. Dann verlangt die QR-Abholung Siegelnummer sowie 3 Fotos: geladen, Container-Nummer innen und versiegelt mit Kennzeichen/Papieren.",
   "stowplan.orientationCrosswise": "quer",
-  "stowplan.orientationLengthwise": "längs"
+  "stowplan.orientationLengthwise": "längs",
+  "shipmentOverview.colli": "Colli: {{count}}"
 }
