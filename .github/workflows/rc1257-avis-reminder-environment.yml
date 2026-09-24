@@ -1,0 +1,36 @@
+name: RC1257 AVIS Reminder Environment
+
+on:
+  push:
+    branches: [rc1257-avis-reminder-environment]
+  pull_request:
+    branches: [main]
+    paths:
+      - 'assets/rc1166-avis-reminder-overview.js'
+      - 'api/avis-reminder-mail/index.js'
+      - 'test/rc1166-avis-reminder-overview.test.mjs'
+      - 'test/rc1207-avis-reminder-mail.test.mjs'
+      - 'test/rc1257-avis-reminder-environment.test.mjs'
+      - '.github/workflows/rc1257-avis-reminder-environment.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: RC1257 targeted regression
+        run: node --test --test-concurrency=1 test/rc1166-avis-reminder-overview.test.mjs test/rc1207-avis-reminder-mail.test.mjs test/rc1257-avis-reminder-environment.test.mjs
+      - name: Full Node regression
+        run: npm test
+      - name: Three-environment build
+        run: |
+          node .github/rc1112/build-three-env.mjs
+          node .github/rc1121/verify-final-html.mjs
