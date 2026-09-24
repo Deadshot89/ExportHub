@@ -2,7 +2,7 @@
 
 const crypto = require('crypto');
 const { BlobServiceClient } = require('@azure/storage-blob');
-const { applyUserPolicy, isAdmin, normalizeRights, publicUser } = require('./user-policy');
+const { applyUserPolicy, isAdmin, isPrivilegedUser, normalizeRights, publicUser } = require('./user-policy');
 
 const TEAM_CONTAINER = process.env.EXPORTHUB_STORAGE_CONTAINER || process.env.EXPORTHUB_CONTAINER || 'exporthub-data';
 const TEAM_BLOB = process.env.EXPORTHUB_STORAGE_BLOB || process.env.EXPORTHUB_STATE_BLOB || 'team-state.json';
@@ -294,6 +294,7 @@ function createSignedSessionToken(session) {
     environment: lower(session && session.environment) === 'testservice' ? 'testservice' : '',
     authVersion: Number(session && session.authVersion || 0),
     mustChange: Boolean(session && session.mustChange),
+    mfaVerifiedAt: session && session.mfaVerifiedAt ? (Date.parse(session.mfaVerifiedAt) || Date.now()) : 0,
     deviceId: text(session && session.deviceId).slice(0, 120),
     iat: Date.parse(session && session.createdAt || '') || Date.now(),
     exp: Date.parse(session && session.expiresAt || '') || (Date.now() + SESSION_DAYS * 86400000),
@@ -329,6 +330,7 @@ function resolveSession(token, authDocument) {
       expiresAt: new Date(Number(signed.exp)).toISOString(),
       authVersion: Number(signed.authVersion || 0),
       mustChange: signed.mustChange === true,
+      mfaVerifiedAt: Number(signed.mfaVerifiedAt || 0) > 0 ? new Date(Number(signed.mfaVerifiedAt)).toISOString() : null,
       signedFallback: true,
       environment: lower(signed.environment) === 'testservice' ? 'testservice' : ''
     }
@@ -365,7 +367,7 @@ function bearer(req) {
   const match = String(value).match(/^Bearer\s+(.+)$/i);
   return match ? match[1].trim() : '';
 }
-async function createSession(user, deviceId, mustChange) {
+async function createSession(user, deviceId, mustChange, options = {}) {
   const session = {
     id: randomId('SES'),
     tokenHash: '',
@@ -376,7 +378,8 @@ async function createSession(user, deviceId, mustChange) {
     createdAt: now(),
     expiresAt: new Date(Date.now() + SESSION_DAYS * 86400000).toISOString(),
     authVersion: Number(user.authVersion || 0),
-    mustChange: mustChange === true
+    mustChange: mustChange === true,
+    mfaVerifiedAt: options.mfaVerified === true ? now() : null
   };
   const token = createSignedSessionToken(session);
   session.tokenHash = tokenHash(token);
@@ -405,6 +408,9 @@ async function validateSession(req, options = {}) {
   const user = (team.users || []).find((u) => text(u.id) === text(session.userId) || usernameOf(u) === lower(session.username));
   if (!user || !isActive(user)) throw error('ACCOUNT_DISABLED', 'Das Benutzerkonto ist deaktiviert.', 403);
   if (Number(session.authVersion || 0) !== Number(user.authVersion || 0)) throw error('SESSION_REVOKED', 'Die Sitzung wurde beendet. Bitte erneut anmelden.', 401);
+  if (!testserviceE2E && isPrivilegedUser(user) && !session.mfaVerifiedAt && !options.allowUnverifiedMfa) {
+    throw error('MFA_REAUTH_REQUIRED', 'Für dieses Administratorkonto ist eine erneute Anmeldung mit zweitem Faktor erforderlich.', 401);
+  }
   if ((session.mustChange || user.mustChange) && !options.allowPasswordChange) throw error('PASSWORD_CHANGE_REQUIRED', 'Vor der Nutzung muss das Startpasswort geändert werden.', 403);
   return { token, session, user, team, teamEtag: teamDoc.etag };
 }
@@ -438,7 +444,7 @@ async function revokeUserSessions(userId, reason, exceptSessionId) {
 module.exports = {
   TEAM_CONTAINER, TEAM_BLOB, TEST_TEAM_BLOB, AUTH_BLOB, PBKDF2_ITERATIONS,
   clone, text, lower, now, json, error, body, clients, testserviceClients, clientsForEnvironment, environmentFromRequest, parseStoredJson, readJson, writeJson,
-  emptyTeam, emptyAuth, usernameOf, isAdmin, isActive, lockInfo, publicUser, publicUsers,
+  emptyTeam, emptyAuth, usernameOf, isAdmin, isPrivilegedUser, isActive, lockInfo, publicUser, publicUsers,
   sessionSigningSecret, createSignedSessionToken, verifySignedSessionToken, resolveSession,
   applyUserPolicy, normalizeRights, credentialOf, credentialFromPassword, verifyCredential,
   passwordPolicy, passwordWasUsed, setPassword, generatedPassword, addAudit,
