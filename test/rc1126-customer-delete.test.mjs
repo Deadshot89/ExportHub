@@ -8,6 +8,7 @@ const merge=require('../api/shared/merge.js');
 const runtime=fs.readFileSync('assets/rc1126-customer-delete.js','utf8');
 const audit=fs.readFileSync('assets/rc1081-audit-history.js','utf8');
 const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
+const historyDe=JSON.parse(fs.readFileSync('assets/i18n/de.json','utf8'));
 
 test('RC1126: Kundenlöschung ist nur für Kunden-Admins sichtbar und zweistufig bestätigt',()=>{
   assert.match(runtime,/function canDelete\(\)/);
