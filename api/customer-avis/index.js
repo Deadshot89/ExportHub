@@ -137,7 +137,8 @@ function uploadMessageKey(entry){
  for(const key of legacy)if(value&&value===apiI18n.tLang('de',key))return key;
  return''
 }
-function publicCustomerUploads(sh,language){return customerUploadQueue(sh).slice(-20).map(x=>{const key=uploadMessageKey(x);return{id:text(x.id),name:text(x.name),size:Number(x.size||0)||0,status:text(x.status)||'scanning',documentType:text(x.documentType),uploadedAt:text(x.uploadedAt),completedAt:text(x.completedAt),message:key?apiI18n.tLang(language,key):text(x.message),scanResult:text(x.scanResult),scanTime:text(x.scanTime),contentCode:text(x.contentCode),contentMatched:arr(x.contentMatched)}})}
+function localizedUploadEntry(x,language){x=obj(x)?x:{};const key=uploadMessageKey(x);return{id:text(x.id),name:text(x.name),size:Number(x.size||0)||0,status:text(x.status)||'scanning',documentType:text(x.documentType),uploadedAt:text(x.uploadedAt),completedAt:text(x.completedAt),message:key?apiI18n.tLang(language,key):text(x.message),scanResult:text(x.scanResult),scanTime:text(x.scanTime),contentCode:text(x.contentCode),contentMatched:arr(x.contentMatched),provider:text(x.provider)||'Microsoft Defender for Storage'}}
+function publicCustomerUploads(sh,language){return customerUploadQueue(sh).slice(-20).map(x=>localizedUploadEntry(x,language))}
 function assertCustomerUploadQuota(sh){
  const queue=customerUploadQueue(sh),saved=customerUploadAttachments(sh).length,pending=queue.filter(x=>text(x&&x.status)==='scanning').length,cutoff=Date.now()-60*60*1000,recent=queue.filter(x=>{const t=Date.parse(text(x&&x.uploadedAt));return Number.isFinite(t)&&t>=cutoff}).length;
  if(saved>=MAX_CUSTOMER_PDF_FILES)throw error('CUSTOMER_PDF_LIMIT','api.avis.limit',409,{count:MAX_CUSTOMER_PDF_FILES});
@@ -259,7 +260,7 @@ async function blockCustomerPdf(teamBlob,sessionInfo,session,quarantineBlob,uplo
 async function customerPdfScanStatus(teamBlob,sessionInfo,session,sh,uploadId,state,language){
  if(!/^[a-f0-9]{64}$/.test(uploadId))throw error('UPLOAD_ID_INVALID','api.avis.uploadIdInvalid',400);
  const saved=customerUploadFile(sh,uploadId);if(saved)return{ok:true,status:'saved',upload:{id:uploadId,name:fileName(saved,apiI18n.tLang('de','api.avis.customerDocument')),size:Number(saved.size||0)||0,status:'saved'},shipment:publicShipment(sh,session,state,language)};
- const queueEntry=customerUploadQueueEntry(sh,uploadId);if(queueEntry&&text(queueEntry.status)==='blocked')return{ok:false,status:'blocked',code:'PDF_SCAN_BLOCKED',message:(()=>{const raw=text(queueEntry.message);return /^api\./.test(raw)?apiI18n.tLang(language,raw):raw||apiI18n.tLang(language,'api.avis.notSaved')})(),upload:queueEntry,shipment:publicShipment(sh,session,state,language)};
+ const queueEntry=customerUploadQueueEntry(sh,uploadId);if(queueEntry&&text(queueEntry.status)==='blocked')return{ok:false,status:'blocked',code:'PDF_SCAN_BLOCKED',message:(()=>{const raw=text(queueEntry.message);return /^api\./.test(raw)?apiI18n.tLang(language,raw):raw||apiI18n.tLang(language,'api.avis.notSaved')})(),upload:localizedUploadEntry(queueEntry,language),shipment:publicShipment(sh,session,state,language)};
  const container=await ensureQuarantineContainerReady(),qName=pdfSecurity.quarantineBlobName(sessionInfo.environment,customerUploadScope(sessionInfo),uploadId),qBlob=container.getBlockBlobClient(qName);
  let tagsResponse;try{tagsResponse=await qBlob.getTags()}catch(e){if(Number(e&&e.statusCode||e&&e.status)===404)throw error('UPLOAD_NOT_FOUND','api.avis.uploadNotFound',404);throw e}
  const scan=pdfSecurity.scanResultFromTags(tagsResponse&&tagsResponse.tags||tagsResponse||{});
@@ -334,7 +335,7 @@ module.exports=async function(context,req){
     if(dateTimeOf(sh))throw error('AVIS_CLOSED','api.avis.closed',410);
     const docType=contentCheck.documentType(payload.documentType),validated=pdfSecurity.validatePdfUpload(payload.file),already=customerUploadFile(sh,validated.sha256),queued=customerUploadQueueEntry(sh,validated.sha256);
     if(already){context.res=json(200,{ok:true,status:'saved',upload:{id:validated.sha256,name:fileName(already,validated.name),size:Number(already.size||validated.size),status:'saved'},shipment:publicShipment(sh,session,state,language)});return}
-    if(queued&&text(queued.status)==='scanning'){context.res=json(202,{ok:true,status:'scanning',upload:queued,shipment:publicShipment(sh,session,state,language)});return}
+    if(queued&&text(queued.status)==='scanning'){context.res=json(202,{ok:true,status:'scanning',upload:localizedUploadEntry(queued,language),shipment:publicShipment(sh,session,state,language)});return}
     assertCustomerUploadQuota(sh);
     const quarantine=await uploadQuarantinePdf(sessionInfo,session,validated);
     try{
