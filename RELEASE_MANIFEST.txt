@@ -78,3 +78,12 @@ Dateien dieses historischen Snapshots:
 - pod-notfall.html
 - production-version.js
 - staticwebapp.config.json
+
+- assets/rc1014-shipment-overview.js
+- assets/rc1014-shipment-overview.css
+- api/shared/container-document-store.js
+- api/shared/reference-folder-upload.js
+- api/pickup-container-document/index.js
+- api/pickup-container-document/function.json
+- api/container-document/index.js
+- api/container-document/function.json
