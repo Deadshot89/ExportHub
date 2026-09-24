@@ -78,10 +78,11 @@ function closed(sh){
 }
 function avisLink(sh){
  if(!sh||exception(sh)||closed(sh))return'';
+ var direct=q(sh.customerAvisUrl||sh.avisUrl||sh.customerAvisLink||sh.avisLink);
+ if(/^https:\/\//i.test(direct))return direct;
  var api=w.ExportHUBCustomerAvis706||w.ExportHUBCustomerAvis705;
  try{if(api&&typeof api.link==='function'){var u=q(api.link(sh));if(/^https:\/\//i.test(u))return u}}catch(_){}
- var direct=q(sh.customerAvisUrl||sh.avisUrl||sh.customerAvisLink||sh.avisLink);
- return /^https:\/\//i.test(direct)?direct:''
+ return''
 }
 function localizedLink(url,lang){
  try{var u=new URL(url,w.location&&w.location.href||'https://exporthub.invalid/');u.searchParams.set('lang',lang==='en'?'en':'de');return u.toString()}catch(_){return url}
