@@ -1,5 +1,9 @@
 'use strict';
-const {BlobServiceClient}=require('@azure/storage-blob');
+let BlobServiceClient=null;
+function blobServiceClient(){
+ if(!BlobServiceClient)({BlobServiceClient}=require('@azure/storage-blob'));
+ return BlobServiceClient;
+}
 const referenceFolder=require('./reference-folder-upload');
 
 const DOCUMENT_CONTAINER=process.env.EXPORTHUB_DOCUMENT_CONTAINER||'exporthub-documents';
@@ -33,7 +37,7 @@ function connectionString(){return process.env.EXPORTHUB_STORAGE_CONNECTION_STRI
 function containerClient(){
  const cs=connectionString();
  if(!cs){const e=new Error('App-Einstellung EXPORTHUB_STORAGE_CONNECTION_STRING fehlt.');e.code='STORAGE_NOT_CONFIGURED';e.status=503;throw e}
- return BlobServiceClient.fromConnectionString(cs).getContainerClient(DOCUMENT_CONTAINER);
+ return blobServiceClient().fromConnectionString(cs).getContainerClient(DOCUMENT_CONTAINER);
 }
 function fileName(reference,kind,extension){
  const ref=safeRef(reference),k=kindOf(kind),ext=text(extension).toLowerCase().replace(/[^a-z0-9]/g,'')||'jpg';
