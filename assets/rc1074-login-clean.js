@@ -21,12 +21,15 @@ function rc1252RenderMfa(){
  var login=d.getElementById('login');if(!login)return;
  var old=d.getElementById('rc1252MfaPanel');if(!rc1252Mfa){if(old&&old.parentNode)old.parentNode.removeChild(old);return}
  var target=login.querySelector&&login.querySelector('form')||login;
+ var signature=[rc1252Mfa.mode,rc1252Mfa.challenge,rc1252Mfa.secret,rc1252Mfa.uri].map(q).join('|');
  if(old&&old.parentNode!==target){old.parentNode.removeChild(old);old=null}
+ if(old&&old.getAttribute('data-rc1252-signature')===signature)return;
  if(!old){
   old=d.createElement('div');old.id='rc1252MfaPanel';old.setAttribute('data-rc1252-mfa','1');
   old.style.cssText='margin-top:14px;padding:14px;border:1px solid #93c5fd;border-radius:12px;background:#eff6ff;color:#0f172a;text-align:left';
   target.appendChild(old)
  }
+ old.setAttribute('data-rc1252-signature',signature);
  while(old.firstChild)old.removeChild(old.firstChild);
  var title=rc1252Text('strong',rc1252Mfa.mode==='enroll'?'Zweiten Faktor einrichten':'Zweiten Faktor bestätigen');title.style.display='block';title.style.marginBottom='8px';old.appendChild(title);
  if(rc1252Mfa.mode==='enroll'){
@@ -43,6 +46,12 @@ function rc1252Capture(data){
  rc1252Mfa={mode:q(data.mfaMode)==='enroll'?'enroll':'verify',challenge:q(data.mfaChallenge),secret:q(data.mfaEnrollmentSecret),uri:q(data.mfaEnrollmentUri)};
  rc1252RenderMfa();return true
 }
+function rc1252Prepare(body){
+ var next=Object.assign({},body||{});
+ if(rc1252Mfa&&rc1252Mfa.challenge){var code=rc1252Code();if(code){next.mfaChallenge=rc1252Mfa.challenge;next.mfaCode=code}}
+ return next
+}
+function rc1252HandleError(error){var data=error&&error.data;return !!(data&&data.mfaRequired===true&&rc1252Capture(data))}
 function rc1252InstallFetch(){
  if(!rc1252NativeFetch||w.__EXPORTHUB_RC1252_FETCH__)return;
  w.__EXPORTHUB_RC1252_FETCH__=true;
@@ -83,6 +92,6 @@ function rc1109Schedule(){if(rc1109RenderTimer&&w.clearTimeout)w.clearTimeout(rc
 function install(){cleanLoginStatus();rc1252InstallFetch();rc1252RenderMfa();rc1109Schedule();if(!d.documentElement||w.__EXPORTHUB_RC1074_LOGIN_OBSERVER__)return;w.__EXPORTHUB_RC1074_LOGIN_OBSERVER__=new MutationObserver(function(){cleanLoginStatus();rc1252RenderMfa();rc1109Schedule()});w.__EXPORTHUB_RC1074_LOGIN_OBSERVER__.observe(d.documentElement,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['class','hidden','style']})}
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',install,{once:true});else install();
 w.addEventListener('exporthub:ready',cleanLoginStatus);['exporthub:rendered','exporthub:viewchange','exporthub:tasks-updated'].forEach(function(n){w.addEventListener(n,rc1109Schedule)});
-w.ExportHUBRC1252Mfa=Object.freeze({version:'RC1252',render:rc1252RenderMfa,clear:rc1252Clear});
+w.ExportHUBRC1252Mfa=Object.freeze({version:'RC1254',render:rc1252RenderMfa,clear:rc1252Clear,capture:rc1252Capture,prepare:rc1252Prepare,handleError:rc1252HandleError});
 w.ExportHUBRC1109AbdDashboardCustomer=Object.freeze({resolveCustomer:rc1109ResolveCustomer,enrichRequests:rc1109EnrichRequests,enhanceDashboard:rc1109EnhanceDashboard,persistEnrichment:rc1109Persist});
 })(window,document);
