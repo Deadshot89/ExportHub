@@ -39,6 +39,20 @@ async function accessToken(force){
  const token=text(r.body&&r.body.access_token);if(!token)throw error('GRAPH_TOKEN_MISSING','Microsoft Graph hat kein Zugriffstoken geliefert.',502);
  tokenCache={token,expiresAt:Date.now()+Math.max(300,Number(r.body&&r.body.expires_in||3600))*1000};return token
 }
+async function verifyAuthentication(){
+ const cfg=readiness();
+ if(!cfg.configured)return{configured:false,authenticated:false,code:'GRAPH_MAIL_NOT_CONFIGURED',upstreamStatus:0};
+ try{
+  const token=await accessToken(true);
+  let claims={};
+  try{const parts=String(token||'').split('.');if(parts.length>=2)claims=JSON.parse(Buffer.from(parts[1],'base64url').toString('utf8'))||{}}catch(_){}
+  const aud=text(claims.aud),exp=Number(claims.exp||0),nowSec=Math.floor(Date.now()/1000);
+  return{configured:true,authenticated:!!token,audienceOk:aud==='https://graph.microsoft.com'||aud==='00000003-0000-0000-c000-000000000000',expiresInSec:exp>nowSec?exp-nowSec:0,code:'OK',upstreamStatus:200}
+ }catch(e){
+  tokenCache=null;
+  return{configured:true,authenticated:false,audienceOk:false,expiresInSec:0,code:'GRAPH_AUTH_FAILED',upstreamStatus:Number(e&&e.statusCode||0)||0}
+ }
+}
 function transient(e){return[408,429,500,502,503,504].includes(Number(e&&e.statusCode||0))||['GRAPH_TIMEOUT','GRAPH_NETWORK_ERROR','ECONNRESET','ETIMEDOUT'].includes(e&&e.code)}
 function delay(e,n){const h=e&&e.responseHeaders||{},ra=Number(h['retry-after']||0);return ra>0?Math.min(5000,ra*1000):Math.min(2500,350*Math.pow(2,n-1))}
 function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
@@ -64,4 +78,4 @@ async function sendTextMail({to,subject,body,sender}){
  }
  throw last||error('GRAPH_MAIL_FAILED','E-Mail konnte nicht versendet werden.',502)
 }
-module.exports={readiness,sendTextMail};
+module.exports={readiness,verifyAuthentication,sendTextMail};
