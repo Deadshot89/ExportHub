@@ -110,6 +110,9 @@ test('RC1267: Workflow läuft täglich und kann Monats-/Jahresbackups determinis
   assert.match(source,/tiers\+=\(monthly\)/);
   assert.match(source,/tiers\+=\(yearly\)/);
   assert.match(source,/scheduled-backup/);
+  assert.match(source,/JSON\.stringify\(\{action:'scheduled-backup',environment:process\.argv\[1\],tier:process\.argv\[2\]\}\)/,'JSON-Payload muss strukturiert erzeugt werden');
+  assert.match(source,/--data "\$payload"/,'curl muss den erzeugten JSON-Body unverändert senden');
+  assert.doesNotMatch(source,/-d "\{"action"/,'roher, shell-brechender JSON-String darf nicht zurückkehren');
   assert.match(source,/backupReadBackVerified/);
   assert.match(source,/minimumRetentionDays/);
   assert.match(source,/production/);
