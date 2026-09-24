@@ -167,5 +167,17 @@
   "api.avis.mailStored": "Checked and saved: {{time}}",
   "api.avis.mailPassed": "The file passed the malware scan and shipment assignment check.",
   "api.avis.mailAction": "Open ExportHUB → Notifications and select “Open / print PDF”.",
-  "api.auth.unknownAction": "Unknown authentication action."
+  "api.auth.unknownAction": "Unknown authentication action.",
+  "api.avis.documentTypeInvalid": "Select a valid document type.",
+  "api.avis.textUnreadable": "The PDF content is not sufficiently machine-readable. Upload a searchable PDF.",
+  "api.avis.shipmentMismatch": "The PDF could not be assigned unambiguously to the shipment and will not be saved.",
+  "api.avis.documentTypeMismatch": "The PDF content does not clearly match the selected document type {{type}} and will not be saved.",
+  "api.avis.contentValid": "PDF content matches the shipment.",
+  "api.avis.textExtractionFailed": "The PDF content could not be read safely and assigned to the shipment. The file will not be saved.",
+  "api.avis.docType.cmr": "CMR / consignment note",
+  "api.avis.docType.delivery_note": "Delivery note",
+  "api.avis.docType.invoice": "Invoice / Commercial Invoice",
+  "api.avis.docType.packing_list": "Packing list",
+  "api.avis.docType.other": "Other",
+  "api.avis.attachment": "Attachment"
 }
