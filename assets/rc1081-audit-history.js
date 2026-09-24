@@ -172,6 +172,7 @@ function systemActor(v){
 }
 function actorDisplay(v){
  var raw=typeof v==='object'?actorName(v):q(v);
+ if(raw==='System')return tr('history.entity.system');
  return /^history\.actor\./.test(raw)?tr(raw):raw
 }
 function taskEntityId(t){return q(t&&(t.sourceRef||t.linkedShipmentRef||t.shipmentRef||t.reference||t.ref||t.id))||tr('history.entity.task')}
