@@ -36,7 +36,8 @@ test('RC1163: Erstmeldung wird immer erfasst, unveränderte Wiederholung erzeugt
 
 test('RC1163: Historie zeigt alten und neuen Termin lesbar an',()=>{
   assert.match(audit,/x\.oldDate\|\|x\.newDate/);
-  assert.match(audit,/Abholtermin:/);
+  assert.match(audit,/field\('pickupAppointment'/);
+  assert.match(audit,/history\.field\.pickupAppointment/);
   assert.match(audit,/x\.oldPlate\|\|x\.newPlate/);
 });
 
