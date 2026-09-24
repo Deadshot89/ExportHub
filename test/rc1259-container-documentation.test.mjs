@@ -28,18 +28,30 @@ test('RC1259: drei definierte Containerfotos werden unter der Referenz gespeiche
     async createIfNotExists(){},
     getBlockBlobClient(name){return{async uploadData(buffer,options){uploaded.push({name,size:buffer.length,options})}}}
   };
-  const docs=loadWithMocks('api/shared/container-document-store.js',{
+  const mocks={
     '@azure/storage-blob':{BlobServiceClient:{fromConnectionString(){return{getContainerClient(){return container}}}}},
     './reference-folder-upload':{async upload(reference,name,buffer,mimeType){referenceUploads.push({reference,name,size:buffer.length,mimeType});return{id:'graph-1',name,size:buffer.length,folderPath:'003 Export/ExportHub/Sendungen/'+reference,webUrl:'https://example.invalid/'+reference+'/'+name}}}
-  });
-  const dataUrl='data:image/jpeg;base64,'+Buffer.alloc(2048,1).toString('base64');
-  const saved=await docs.savePhoto({environment:'production',reference:'ABC123',kind:'loaded',dataUrl,shipmentId:'S1'});
+  };
+  const absolute=path.resolve(ROOT,'api/shared/container-document-store.js'),originalLoad=Module._load;
+  Module._load=function(request,parent,isMain){
+    if(Object.prototype.hasOwnProperty.call(mocks,request))return mocks[request];
+    return originalLoad.call(this,request,parent,isMain);
+  };
+  let saved;
+  try{
+    delete require.cache[require.resolve(absolute)];
+    const docs=require(absolute);
+    const dataUrl='data:image/jpeg;base64,'+Buffer.alloc(2048,1).toString('base64');
+    saved=await docs.savePhoto({environment:'production',reference:'ABC123',kind:'loaded',dataUrl,shipmentId:'S1'});
+  }finally{
+    Module._load=originalLoad;
+    if(previousStorage===undefined)delete process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;else process.env.EXPORTHUB_STORAGE_CONNECTION_STRING=previousStorage;
+  }
   assert.equal(uploaded[0].name,'production/ABC123/Containerdokumentation/01_Geladener_Container_ABC123.jpg');
   assert.equal(referenceUploads[0].reference,'ABC123');
   assert.equal(referenceUploads[0].name,'01_Geladener_Container_ABC123.jpg');
   assert.equal(saved.referenceFolderSaved,true);
   assert.equal(saved.referenceFolderPath,'003 Export/ExportHub/Sendungen/ABC123');
-  if(previousStorage===undefined)delete process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;else process.env.EXPORTHUB_STORAGE_CONNECTION_STRING=previousStorage;
 });
 
 test('RC1263: Container-Dokumentmodul lädt ohne Azure Blob SDK bis zum echten Speicherzugriff',()=>{
