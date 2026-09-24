@@ -24,7 +24,7 @@ test('RC1126: Löschen setzt Kunden-Tombstone und protokolliert die Aktion',()=>
   assert.match(runtime,/explicitUserAction:true/);
   assert.match(runtime,/reason:'duplicate-or-invalid-customer'/);
   assert.match(runtime,/type:'CUSTOMER_DELETED'/);
-  assert.match(audit,/CUSTOMER_DELETED:'Kunde gelöscht'/);
+  assert.match(audit,/CUSTOMER_DELETED:'history\.audit\.CUSTOMER_DELETED'/);
   assert.match(audit,/subtype==='CUSTOMER_DELETED'/);
 });
 
