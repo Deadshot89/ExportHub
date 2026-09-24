@@ -166,5 +166,6 @@
   "api.avis.mailDocumentType": "Tipo documento: {{type}}",
   "api.avis.mailStored": "Controllato e salvato: {{time}}",
   "api.avis.mailPassed": "Il file ha superato la scansione malware e il controllo di associazione alla spedizione.",
-  "api.avis.mailAction": "Apri ExportHUB → Notifiche e seleziona “Apri / stampa PDF”."
+  "api.avis.mailAction": "Apri ExportHUB → Notifiche e seleziona “Apri / stampa PDF”.",
+  "api.auth.unknownAction": "Azione di autenticazione sconosciuta."
 }
