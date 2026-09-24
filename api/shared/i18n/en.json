@@ -166,5 +166,6 @@
   "api.avis.mailDocumentType": "Document type: {{type}}",
   "api.avis.mailStored": "Checked and saved: {{time}}",
   "api.avis.mailPassed": "The file passed the malware scan and shipment assignment check.",
-  "api.avis.mailAction": "Open ExportHUB → Notifications and select “Open / print PDF”."
+  "api.avis.mailAction": "Open ExportHUB → Notifications and select “Open / print PDF”.",
+  "api.auth.unknownAction": "Unknown authentication action."
 }
