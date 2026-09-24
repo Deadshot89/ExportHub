@@ -6,6 +6,15 @@ import {execFileSync} from 'node:child_process';
 
 const source=fs.readFileSync('assets/rc1071-shipment-history.js','utf8');
 const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
+const historyDe=JSON.parse(fs.readFileSync('assets/i18n/de.json','utf8'));
+function historyI18n(){
+  return {
+    language(){return 'de'},
+    t(key,vars){let value=historyDe[key]||key;if(vars)for(const [name,v] of Object.entries(vars))value=value.replaceAll('{{'+name+'}}',String(v));return value},
+    formatDate(value,options){return new Intl.DateTimeFormat('de-DE',options||{}).format(value)}
+  };
+}
+
 
 function setup(){
   const docEvents=new Map(),winEvents=new Map();
@@ -17,6 +26,7 @@ function setup(){
     getElementById(){return null},querySelector(){return null},querySelectorAll(){return[]}
   };
   const window={
+    ExportHUBI18n:historyI18n(),
     document,console,
     __EXPORTHUB_GET_STATE__:()=>state,
     __EXPORTHUB_GET_CURRENT_USER__:()=>state.currentUser,
