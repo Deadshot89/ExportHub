@@ -179,5 +179,6 @@
   "api.avis.docType.invoice": "Rechnung / Commercial Invoice",
   "api.avis.docType.packing_list": "Packliste / Packing List",
   "api.avis.docType.other": "Sonstiges",
-  "api.avis.attachment": "Anhang"
+  "api.avis.attachment": "Anhang",
+  "api.state.saveFailed": "Azure Storage konnte den Teamstand nicht speichern: {{error}}"
 }
