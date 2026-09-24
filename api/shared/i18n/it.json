@@ -157,5 +157,14 @@
   "api.avis.writeForbidden": "Mancano i permessi di modifica per l’AVIS cliente.",
   "api.avis.unknownAction": "Azione AVIS sconosciuta.",
   "api.avis.scanSaved": "Scansione malware e associazione alla spedizione riuscite. PDF salvato.",
-  "api.avis.flagSaveFailed": "Impossibile salvare l’AVIS cliente."
+  "api.avis.flagSaveFailed": "Impossibile salvare l’AVIS cliente.",
+  "api.avis.mailSubject": "Nuovo documento AVIS · {{reference}} · {{customer}}",
+  "api.avis.mailIntro": "Un cliente ha caricato un nuovo documento tramite il link AVIS di ExportHUB.",
+  "api.avis.mailReference": "Riferimento spedizione: {{reference}}",
+  "api.avis.mailCustomer": "Cliente: {{customer}}",
+  "api.avis.mailDocument": "Documento: {{document}}",
+  "api.avis.mailDocumentType": "Tipo documento: {{type}}",
+  "api.avis.mailStored": "Controllato e salvato: {{time}}",
+  "api.avis.mailPassed": "Il file ha superato la scansione malware e il controllo di associazione alla spedizione.",
+  "api.avis.mailAction": "Apri ExportHUB → Notifiche e seleziona “Apri / stampa PDF”."
 }
