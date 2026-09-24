@@ -65,6 +65,7 @@ async function validateSession(req, options = {}){
   const user = (team.users || []).find((candidate) => auth.text(candidate.id) === auth.text(session.userId) || auth.usernameOf(candidate) === auth.lower(session.username));
   if (!user || !auth.isActive(user)) throw auth.error('ACCOUNT_DISABLED', 'Das Benutzerkonto ist deaktiviert.', 403);
   if (Number(session.authVersion || 0) !== Number(user.authVersion || 0)) throw auth.error('SESSION_REVOKED', 'Die Sitzung wurde beendet. Bitte erneut anmelden.', 401);
+  if (auth.isPrivilegedUser(user) && !session.mfaVerifiedAt && !options.allowUnverifiedMfa) throw auth.error('MFA_REAUTH_REQUIRED', 'Für dieses Administratorkonto ist eine erneute Anmeldung mit zweitem Faktor erforderlich.', 401);
   if ((session.mustChange || user.mustChange) && !options.allowPasswordChange) throw auth.error('PASSWORD_CHANGE_REQUIRED', 'Vor der Nutzung muss das Startpasswort geändert werden.', 403);
   return { token, session, user, team, source: resolved.source, authDoc, teamDoc };
 }
