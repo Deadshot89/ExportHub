@@ -166,5 +166,6 @@
   "api.avis.mailDocumentType": "Type de document : {{type}}",
   "api.avis.mailStored": "Contrôlé et enregistré : {{time}}",
   "api.avis.mailPassed": "Le fichier a réussi l’analyse antivirus et le contrôle d’affectation à l’expédition.",
-  "api.avis.mailAction": "Ouvrez ExportHUB → Notifications et sélectionnez « Ouvrir / imprimer le PDF »."
+  "api.avis.mailAction": "Ouvrez ExportHUB → Notifications et sélectionnez « Ouvrir / imprimer le PDF ».",
+  "api.auth.unknownAction": "Action d’authentification inconnue."
 }
