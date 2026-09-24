@@ -81,7 +81,7 @@ function portalRows(customer,portals,canManage,configured){
 function openPortal(p){if(!p||!/^https:\/\//i.test(q(p.url)))return;var win=w.open(p.url,'_blank','noopener,noreferrer');try{if(win)win.opener=null}catch(_){}}
 function modal(html){clearRevealedSecrets();var box=d.createElement('div');box.id='rc1160RevealDialog';box.className='rc1160-dialog';box.innerHTML='<div class="rc1160-dialog-card">'+html+'</div>';box.addEventListener('click',function(e){if(e.target===box||e.target.closest('[data-rc1160-close]')){e.preventDefault();clearRevealedSecrets()}});d.body.appendChild(box);return box}
 function copyText(value){if(!value)return Promise.resolve(false);if(navigator.clipboard&&navigator.clipboard.writeText)return navigator.clipboard.writeText(value).then(function(){return true});return Promise.resolve(false)}
-async async function reveal(customer,p){
+async function reveal(customer,p){
  var box=modal('<h3>'+th('portal.showTitle')+'</h3><p class="rc1160-muted">'+th('portal.reauthHelp')+'</p><label>'+th('portal.exporthubPassword')+'<input type="password" autocomplete="current-password" data-rc1160-reauth></label><div class="rc1160-status" data-rc1160-status></div><div class="rc1160-actions"><button class="btn" data-rc1160-close>'+th('common.cancel')+'</button><button class="btn primary" data-rc1160-confirm>'+th('portal.show')+'</button></div>');
  var input=box.querySelector('[data-rc1160-reauth]'),out=box.querySelector('[data-rc1160-status]');
  input.focus();
@@ -111,7 +111,7 @@ function portalForm(customer,existing,onDone){
   }catch(e){status(out,e.message||tr('portal.saveFailed'),'bad');this.disabled=false}
  })
 }
-async async function deletePortal(customer,p,onDone){
+async function deletePortal(customer,p,onDone){
  if(!w.confirm(tr('portal.confirmDelete',{name:p.name})))return;
  try{await portalApi('delete',{customerId:customerId(customer),portalId:p.id});if(onDone)onDone()}
  catch(e){w.alert(e.message||tr('portal.deleteFailed'))}
@@ -122,7 +122,7 @@ function wirePortalBox(box,customer,portals,canManage,reload){
  box.querySelectorAll('[data-rc1160-edit]').forEach(function(btn){btn.addEventListener('click',function(){var p=portals.find(function(x){return x.id===btn.getAttribute('data-rc1160-edit')});if(p)portalForm(customer,p,reload)})});
  box.querySelectorAll('[data-rc1160-delete]').forEach(function(btn){btn.addEventListener('click',function(){var p=portals.find(function(x){return x.id===btn.getAttribute('data-rc1160-delete')});if(p)deletePortal(customer,p,reload)})});
 }
-async async function renderCustomerFolder(customer,r){
+async function renderCustomerFolder(customer,r){
  var root=d.getElementById('content');if(!root)return;
  var old=d.getElementById('rc1160CustomerFolderPortal');if(old)old.remove();
  var box=d.createElement('section');box.id='rc1160CustomerFolderPortal';box.className='rc1160-box';box.innerHTML='<div class="rc1160-head"><div><h3>'+th('portal.title')+'</h3><div class="rc1160-muted">'+th('portal.storageHelp')+'</div></div><span data-rc1162-readiness><span class="rc1160-badge">'+th('portal.checking')+'</span></span>'+(r.manage?'<button class="btn primary" data-add>'+th('portal.add')+'</button>':'')+'</div><div data-ready-hint></div><div data-body class="rc1160-muted">'+th('portal.loading')+'</div>';root.appendChild(box);
@@ -130,7 +130,7 @@ async async function renderCustomerFolder(customer,r){
  try{var results=await Promise.all([portalApi('list',{customerId:customerId(customer)}),portalApi('status',{})]),data=results[0],ready=results[1];if(seq!==loadSeq||customerId(customer)!==customerId(selectedCustomer()))return;var portals=arr(data.portals),body=box.querySelector('[data-body]'),badge=box.querySelector('[data-rc1162-readiness]'),hint=box.querySelector('[data-ready-hint]');if(badge)badge.innerHTML=readinessBadge(ready,r.manage);if(hint)hint.innerHTML=readinessHint(ready,r.manage);body.className='';body.innerHTML=portalRows(customer,portals,r.manage,ready.configured===true);wirePortalBox(box,customer,portals,r.manage,function(){schedule(true)});var add=box.querySelector('[data-add]');if(add){add.disabled=ready.configured!==true;if(add.disabled)add.title=tr('portal.encryptionNotReady');add.addEventListener('click',function(){portalForm(customer,null,function(){schedule(true)})})}}
  catch(e){var body=box.querySelector('[data-body]');if(body)body.textContent=e.message||tr('portal.loadFailed')}
 }
-async async function renderShipment(customer,r){
+async function renderShipment(customer,r){
  var host=d.getElementById('rc363BlockCustomer')||d.getElementById('content');if(!host)return;
  var old=d.getElementById('rc1160ShipmentPortal');if(old)old.remove();
  var box=d.createElement('section');box.id='rc1160ShipmentPortal';box.className='rc1160-box';box.innerHTML='<div class="rc1160-head"><div><h3>'+th('portal.title')+'</h3><div class="rc1160-muted">'+th('portal.shipmentHelp')+'</div></div><span data-rc1162-readiness><span class="rc1160-badge">'+th('portal.checking')+'</span></span></div><div data-ready-hint></div><div data-body class="rc1160-muted">'+th('portal.loading')+'</div>';host.appendChild(box);
@@ -138,7 +138,7 @@ async async function renderShipment(customer,r){
  try{var results=await Promise.all([portalApi('list',{customerId:customerId(customer)}),portalApi('status',{})]),data=results[0],ready=results[1];if(seq!==loadSeq||customerId(customer)!==customerId(selectedCustomer()))return;var portals=arr(data.portals).filter(function(p){return p.active!==false}),body=box.querySelector('[data-body]'),badge=box.querySelector('[data-rc1162-readiness]'),hint=box.querySelector('[data-ready-hint]');if(badge)badge.innerHTML=readinessBadge(ready,false);if(hint)hint.innerHTML=readinessHint(ready,false);body.className='';body.innerHTML=portalRows(customer,portals,false,ready.configured===true);wirePortalBox(box,customer,portals,false,function(){schedule(true)})}
  catch(e){var body=box.querySelector('[data-body]');if(body)body.textContent=e.message||tr('portal.loadFailed')}
 }
-async async function renderRights(){
+async function renderRights(){
  var root=d.getElementById('content');if(!root||!globalAdmin(user()))return;
  var old=d.getElementById('rc1160PortalRights');if(old)old.remove();
  var box=d.createElement('section');box.id='rc1160PortalRights';box.className='rc1160-box';box.innerHTML='<div class="rc1160-head"><div><h3>'+th('portal.rightsTitle')+'</h3><div class="rc1160-muted">'+th('portal.rightsHelp')+'</div></div><span data-rc1162-readiness><span class="rc1160-badge">'+th('portal.checking')+'</span></span></div><div data-ready-hint></div><div data-body class="rc1160-muted">'+th('portal.loadingUsers')+'</div>';root.appendChild(box);
