@@ -202,7 +202,7 @@ function documentActionFileName(el,contextText,doc){
  add(contextText);
  for(var i=0;i<vals.length;i++){var exact=cleanDocumentFileName(vals[i]);if(exact)return exact}
  var stored=documentFilesFor(sh,doc);if(stored.length===1)return stored[0];
- var reference=ref(sh);if(doc&&doc!=='Dokument'&&doc!=='PDF')return doc.replace(/\s+/g,'_')+(reference?'_'+reference:'')+'.pdf';
+ var reference=ref(sh);if(doc&&doc!==de('shipmentHistory.document.generic')&&doc!=='PDF')return doc.replace(/\s+/g,'_')+(reference?'_'+reference:'')+'.pdf';
  return''
 }
 function recordDocumentAction(sh,action,doc,file){
@@ -219,7 +219,7 @@ function recordMailSent(sh,contextText){var mailMeta=LAST_MAIL_META[identity(sh)
 function printFromElement(el){
  var sh=currentShipment();if(!el||!sh)return false;
  var text=q(el.textContent)+' '+q(el.getAttribute&&el.getAttribute('title'))+' '+q(el.getAttribute&&el.getAttribute('data-action')),actionText=low(text),contextText=elementContext(el,text);
- var doc=documentLabel(contextText),knownDoc=doc!=='Dokument',file=documentActionFileName(el,contextText,doc);
+ var doc=documentLabel(contextText),knownDoc=doc!==de('shipmentHistory.document.generic'),file=documentActionFileName(el,contextText,doc);
  if(!knownDoc||!/druck|print|gesamtausgabe/.test(actionText))return false;
  var key='print|'+identity(sh)+'|'+doc+'|'+file;
  if(!actionOnce(key,1800))return true;
@@ -246,7 +246,7 @@ function click(ev){
  if(/anmeld|registrier|versandbestät/.test(l)&&!/login|anmeldung erforderlich/.test(l)){
    if(actionOnce('registration|'+identity(sh),2500))append(sh,{type:'registration',label:de('shipmentHistory.action.registrationStarted'),actor:actorFrom(currentUser()),details:{reference:ref(sh),action:q(el.textContent)}});return
  }
- var doc=documentLabel(contextText),knownDoc=doc!=='Dokument',file=documentActionFileName(el,contextText,doc);
+ var doc=documentLabel(contextText),knownDoc=doc!==de('shipmentHistory.document.generic'),file=documentActionFileName(el,contextText,doc);
  if(knownDoc&&/druck|print|gesamtausgabe/.test(actionText)){
    printFromElement(el);return
  }
@@ -265,7 +265,7 @@ function click(ev){
 }
 function fileChange(ev){var input=ev.target;if(!input||String(input.type||'').toLowerCase()!=='file'||!input.files||!input.files.length)return;var sh=currentShipment();if(!sh)return;var ctx=low((input.id||'')+' '+(input.name||'')+' '+(input.closest&&input.closest('label,.field,.card')&&input.closest('label,.field,.card').textContent||'')),kind=/pod/.test(ctx)?'POD':/abd/.test(ctx)?'ABD':/liefer|delivery/.test(ctx)?de('shipmentHistory.document.deliveryNote'):de('shipmentHistory.document.generic');append(sh,{type:kind==='POD'?'pod':kind==='ABD'?'abd':'document',label:de('shipmentHistory.action.uploadSelected',{document:kind}),actor:actorFrom(currentUser()),details:{files:Array.from(input.files).map(function(f){return q(f.name)}).join(', '),documentType:kind}})}
 function avisUpdated(ev){var sh=currentShipment();if(!sh)return;var d=ev&&ev.detail||{},enabled=d.enabled!==false;append(sh,{type:'avis',label:enabled?de('shipmentHistory.action.avisCreated'):de('shipmentHistory.action.avisDisabled'),actor:actorFrom(currentUser()),details:{reference:q(d.reference)||ref(sh)}})}
-function documentActionEvent(ev){var sh=currentShipment();if(!sh)return;var d=ev&&ev.detail||{},action=q(d.action),doc=q(d.document)||'Dokument',file=q(d.fileName);if(action!=='open'&&action!=='download'&&action!=='print')return;var key=(action==='print'?'print':'document-event|'+action)+'|'+identity(sh)+'|'+doc+'|'+file;if(actionOnce(key,action==='print'?1800:1200))recordDocumentAction(sh,action,doc,file)}
+function documentActionEvent(ev){var sh=currentShipment();if(!sh)return;var d=ev&&ev.detail||{},action=q(d.action),doc=q(d.document)||de('shipmentHistory.document.generic'),file=q(d.fileName);if(action!=='open'&&action!=='download'&&action!=='print')return;var key=(action==='print'?'print':'document-event|'+action)+'|'+identity(sh)+'|'+doc+'|'+file;if(actionOnce(key,action==='print'?1800:1200))recordDocumentAction(sh,action,doc,file)}
 function markWorkStarted(){
  var sh=currentShipment();if(!sh||!shipmentView())return false;
  var actor=actorFrom(currentUser()),events=mergedHistory(sh),cutoff=Date.now()-4*60*60*1000;
