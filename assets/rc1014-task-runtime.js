@@ -31,11 +31,11 @@
 
   function currentUserId(ctx){
     const u=(ctx&&ctx.currentUser)||{};
-    return q((ctx&&ctx.currentUserId)||u.id||u.userId||u.username||u.login||u.name);
+    return q((ctx&&ctx.currentUserId)||u.id||u.userId||u.user||u.username||u.login||u.name);
   }
 
   function taskContext(ctx={}){
-    return {companyId:q(ctx.companyId),environment:q(ctx.environment),currentUserId:currentUserId(ctx),now:ctx.now,absences:arr(ctx.absences||(ctx.state&&ctx.state.absences))};
+    const state=ctx.state||{};return {companyId:q(ctx.companyId||state.companyId||state.currentCompanyId||root.__EXPORTHUB_COMPANY_ID__),environment:q(ctx.environment||state.environment||root.__EXPORTHUB_FORCED_ENVIRONMENT__||environmentName()),currentUserId:currentUserId(ctx)||q(state.currentUserId||state.userId||state.currentUser&&((state.currentUser.id||state.currentUser.userId||state.currentUser.user||state.currentUser.username||state.currentUser.login||state.currentUser.name))),now:ctx.now,absences:arr(ctx.absences||state.absences)};
   }
 
   function localDay(value){
@@ -149,7 +149,7 @@
       const isSystem=SYSTEM_GROUPS.has(q(task&&task.group))&&type!=='manual';
       const currentSystem=isSystem&&systemTaskIsCurrent(task,state);
       const wasRemoved=tombstoned.has(q(task&&task.id).toLowerCase());
-      if(managedCurrent||currentSystem||(!managed&&!isSystem&&!initialCleanup&&!wasRemoved))kept.push(task);
+      if(managedCurrent||currentSystem||(!managed&&!isSystem&&!wasRemoved))kept.push(task);
       else removed.push(task);
     });
     if(removed.length){
