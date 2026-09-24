@@ -95,3 +95,16 @@ test('RC1253: Produktionsruntime trägt den P0-MFA-Enrollment-Rolloutmarker',()=
   assert.match(runtime,/mfaEnrollmentUri/);
   assert.match(runtime,/6-stelliger Authenticator-Code/);
 });
+
+
+test('RC1254: nativer Login-Pfad verarbeitet MFA-Ersteinrichtung direkt',()=>{
+  const runtime=fs.readFileSync('assets/rc1074-login-clean.js','utf8');
+  const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
+  assert.match(runtime,/function rc1252Prepare\(body\)/);
+  assert.match(runtime,/function rc1252HandleError\(error\)/);
+  assert.match(runtime,/capture:rc1252Capture,prepare:rc1252Prepare,handleError:rc1252HandleError/);
+  assert.match(build,/function patchMfaLoginFlow\(html,file\)/);
+  assert.match(build,/ExportHUBRC1252Mfa\.prepare\(body\)/);
+  assert.match(build,/ExportHUBRC1252Mfa\.handleError\(e\)/);
+  assert.match(build,/err\.data=data/);
+});
