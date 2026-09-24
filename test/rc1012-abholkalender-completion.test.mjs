@@ -2,6 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
+const calendarDe=JSON.parse(fs.readFileSync('assets/i18n/de.json','utf8'));
+globalThis.ExportHUBI18n={
+  language(){return 'de'},
+  t(key,vars){let value=calendarDe[key]||key;if(vars)for(const [name,v] of Object.entries(vars))value=value.replaceAll('{{'+name+'}}',String(v));return value},
+  formatDate(value,options){return new Intl.DateTimeFormat('de-DE',options||{}).format(value)},
+  localized(record,key){return record&&record[key]!=null?record[key]:''}
+};
 await import('../assets/abholkalender.js');
 const calendar = globalThis.ExportHubPickupCalendar;
 
