@@ -4,6 +4,16 @@ import fs from 'node:fs';
 
 const read=p=>fs.readFileSync(p,'utf8');
 
+test('RC1251 Security: Produktion und TESTSERVICE verbieten Einbettung in fremde Frames',()=>{
+  for(const file of ['staticwebapp.config.json','staticwebapp.testservice.config.json']){
+    const config=JSON.parse(read(file));
+    assert.ok(config.globalHeaders,file+': globalHeaders fehlen');
+    assert.equal(config.globalHeaders['Content-Security-Policy'],"frame-ancestors 'none'",file+': CSP frame-ancestors fehlt');
+    assert.equal(config.globalHeaders['X-Frame-Options'],'DENY',file+': X-Frame-Options fehlt');
+    assert.equal(config.globalHeaders['X-Content-Type-Options'],'nosniff',file+': nosniff muss erhalten bleiben');
+  }
+});
+
 test('RC1088 Security: öffentliche Zugriffe bleiben tokengebunden und ohne Cache',()=>{
   const config=JSON.parse(read('staticwebapp.config.json'));
   for(const route of ['/pickup','/pickup.html','/customer-avis','/customer-avis.html']){
