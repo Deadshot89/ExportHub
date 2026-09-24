@@ -157,5 +157,14 @@
   "api.avis.writeForbidden": "Faltan permisos de edición para el AVIS del cliente.",
   "api.avis.unknownAction": "Acción de AVIS desconocida.",
   "api.avis.scanSaved": "Análisis de malware y asignación al envío correctos. PDF guardado.",
-  "api.avis.flagSaveFailed": "No se pudo guardar el AVIS del cliente."
+  "api.avis.flagSaveFailed": "No se pudo guardar el AVIS del cliente.",
+  "api.avis.mailSubject": "Nuevo documento AVIS · {{reference}} · {{customer}}",
+  "api.avis.mailIntro": "Un cliente ha subido un nuevo documento mediante el enlace AVIS de ExportHUB.",
+  "api.avis.mailReference": "Referencia de envío: {{reference}}",
+  "api.avis.mailCustomer": "Cliente: {{customer}}",
+  "api.avis.mailDocument": "Documento: {{document}}",
+  "api.avis.mailDocumentType": "Tipo de documento: {{type}}",
+  "api.avis.mailStored": "Comprobado y guardado: {{time}}",
+  "api.avis.mailPassed": "El archivo superó el análisis de malware y la comprobación de asignación al envío.",
+  "api.avis.mailAction": "Abre ExportHUB → Notificaciones y selecciona «Abrir / imprimir PDF»."
 }
