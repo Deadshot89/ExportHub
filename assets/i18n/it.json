@@ -864,5 +864,6 @@
   "container.requiredDocumentation": "Documentazione container obbligatoria",
   "container.configHelp": "Per il trasporto marittimo, attiva solo se è necessario documentare un container. Il ritiro QR richiederà quindi il numero del sigillo e 3 foto: container caricato, numero del container dall’interno e container sigillato con targa/documenti.",
   "stowplan.orientationCrosswise": "trasversale",
-  "stowplan.orientationLengthwise": "longitudinale"
+  "stowplan.orientationLengthwise": "longitudinale",
+  "shipmentOverview.colli": "Colli: {{count}}"
 }
