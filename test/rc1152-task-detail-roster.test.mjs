@@ -21,7 +21,7 @@ function load(){
   return window.ExportHUBRC1014TaskRuntime;
 }
 
-test('RC1152: Mittwoch erzeugt nur den besprochenen Wochenplan plus Schweizer Bereich und erhält Systemaufgaben',()=>{
+test('RC1266: Mittwoch erzeugt den freigegebenen Wochenplan, erhält System- und bestehende manuelle Aufgaben',()=>{
   const api=load();
   const state={
     tasks:[
@@ -41,9 +41,9 @@ test('RC1152: Mittwoch erzeugt nur den besprochenen Wochenplan plus Schweizer Be
     assert.ok(titles.includes(title),title+' fehlt');
   }
   for(const title of ['Italien anmelden','BSH anmelden','Gaggenau anmelden','FAURECIA anmelden','Polen anmelden','Frankreich anmelden','Neff anmelden'])assert.ok(!titles.includes(title),title+' darf nicht mehr automatisch erzeugt werden');
-  assert.ok(!titles.includes('Alte Aufgabe die nicht besprochen wurde'));
+  assert.ok(titles.includes('Alte Aufgabe die nicht besprochen wurde'),'bestehende manuelle Aufgabe darf bei fehlendem Roster-Marker nicht gelöscht werden');
   assert.ok(state.rc1152TaskRosterAt);
-  assert.ok(state._teamSyncMeta.tombstones.some(t=>t.collection==='tasks'&&t.id==='ALT-1'));
+  assert.ok(!state._teamSyncMeta.tombstones.some(t=>t.collection==='tasks'&&t.id==='ALT-1'),'manuelle Aufgabe darf keinen Lösch-Tombstone bekommen');
   const ohare=out.find(t=>t.title==='O’Hare anmelden');
   assert.match(ohare.dueAt,/T12:00:00$/);
 });
