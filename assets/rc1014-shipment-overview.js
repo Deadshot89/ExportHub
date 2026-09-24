@@ -256,6 +256,16 @@
     return null;
   }
 
+  function viewShipment(s){
+    s=s||state();
+    const wanted=q(s.shipmentViewId||s.selectedShipmentId||s.activeShipmentId).toUpperCase();
+    if(wanted){
+      const hit=arr(s.shipments).find(sh=>[shipmentId(sh),shipmentReference(sh)].includes(wanted));
+      if(hit)return hit;
+    }
+    return activeShipment(s);
+  }
+
   function shipmentTargets(s,active){
     const ref=shipmentReference(active),out=[];
     [active,s&&s.shipment,s&&s.currentShipment,s&&s.selectedShipment,root.ExportHUBClean&&root.ExportHUBClean.runtime&&root.ExportHUBClean.runtime.shipment].forEach(sh=>{
@@ -274,7 +284,29 @@
       sh.containerDocumentationRequired=required;
       sh.containerDocumentationUpdatedAt=new Date().toISOString();
     });
+    try{
+      const api=root.ExportHUBClean;
+      if(api&&typeof api.queueSave==='function')Promise.resolve(api.queueSave('container-documentation-config')).catch(()=>{});
+    }catch(_){}
     try{root.dispatchEvent(new CustomEvent('exporthub:shipment-updated',{detail:{reference:shipmentReference(active),containerDocumentation:true}}))}catch(_){}
+    return true;
+  }
+
+  function enhanceShipmentDetailedView(){
+    const doc=root.document;if(!doc||!inShipmentView(doc))return false;
+    const sh=viewShipment(state());if(!sh)return false;
+    const meta=containerMeta(sh),shouldShow=meta.required||meta.seal||meta.photos.length;
+    const old=doc.querySelector&&doc.querySelector('[data-rc1259-container-detail]');
+    if(!shouldShow){if(old&&typeof old.remove==='function'){old.remove();lastMutationAt=Date.now()}return false}
+    const docsCard=doc.getElementById&&doc.getElementById('rc786ReferenceFilesCard');
+    const host=docsCard&&docsCard.parentNode;
+    if(!host||typeof host.insertBefore!=='function')return false;
+    if(old&&typeof old.remove==='function')old.remove();
+    const panel=createContainerCard(doc,sh);
+    panel.classList.add('rc1259-container-detail');
+    panel.setAttribute('data-rc1259-container-detail','1');
+    if(docsCard.nextSibling)host.insertBefore(panel,docsCard.nextSibling);else host.appendChild(panel);
+    lastMutationAt=Date.now();
     return true;
   }
 
@@ -304,7 +336,7 @@
   function scheduleEnhance(){
     if(!root.document||timer)return false;
     const schedule=typeof root.setTimeout==='function'?root.setTimeout:(fn=>{fn();return 1});
-    timer=schedule(()=>{timer=0;enhanceShipmentOverview();enhanceShipmentConfig();},0);
+    timer=schedule(()=>{timer=0;enhanceShipmentOverview();enhanceShipmentConfig();enhanceShipmentDetailedView();},0);
     return true;
   }
 
@@ -340,6 +372,7 @@
     remember,
     enhanceShipmentOverview,
     enhanceShipmentConfig,
+    enhanceShipmentDetailedView,
     writeContainerConfig
   });
 })(globalThis);
