@@ -88,5 +88,8 @@
   "api.pod.fileNotStored": "POD file has no stored blob reference.",
   "api.pod.signatureStorageMissing": "Driver signature was not found in storage.",
   "api.pod.fileStorageMissing": "POD file was not found in storage.",
-  "api.pod.loadFailed": "Le POD n’a pas pu être chargé."
+  "api.pod.loadFailed": "Le POD n’a pas pu être chargé.",
+  "api.common.postOnly": "Seule la méthode POST est autorisée.",
+  "api.auth.adminRequired": "Seuls les administrateurs globaux peuvent effectuer cette action.",
+  "api.auth.adminLocked": "Le compte est verrouillé et seul un administrateur global peut le déverrouiller."
 }
