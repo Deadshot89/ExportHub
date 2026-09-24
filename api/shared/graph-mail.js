@@ -31,6 +31,8 @@ function request(method,url,headers,body,timeoutMs){
  })
 }
 let tokenCache=null;
+function tokenClaims(token){try{const parts=String(token||'').split('.');if(parts.length<2)return{};return JSON.parse(Buffer.from(parts[1],'base64url').toString('utf8'))||{}}catch(_){return{}}}
+function mailSendGranted(claims){return Array.isArray(claims&&claims.roles)&&claims.roles.some(r=>text(r).toLowerCase()==='mail.send')}
 async function accessToken(force){
  const cfg=readiness();if(!cfg.configured)throw error('GRAPH_MAIL_NOT_CONFIGURED','Microsoft Graph Mailversand ist noch nicht vollständig konfiguriert.',503);
  if(!force&&tokenCache&&tokenCache.expiresAt>Date.now()+60000)return tokenCache.token;
@@ -44,13 +46,11 @@ async function verifyAuthentication(){
  if(!cfg.configured)return{configured:false,authenticated:false,code:'GRAPH_MAIL_NOT_CONFIGURED',upstreamStatus:0};
  try{
   const token=await accessToken(true);
-  let claims={};
-  try{const parts=String(token||'').split('.');if(parts.length>=2)claims=JSON.parse(Buffer.from(parts[1],'base64url').toString('utf8'))||{}}catch(_){}
-  const aud=text(claims.aud),exp=Number(claims.exp||0),nowSec=Math.floor(Date.now()/1000);
-  return{configured:true,authenticated:!!token,audienceOk:aud==='https://graph.microsoft.com'||aud==='00000003-0000-0000-c000-000000000000',expiresInSec:exp>nowSec?exp-nowSec:0,code:'OK',upstreamStatus:200}
+  const claims=tokenClaims(token),aud=text(claims.aud),exp=Number(claims.exp||0),nowSec=Math.floor(Date.now()/1000);
+  return{configured:true,authenticated:!!token,audienceOk:aud==='https://graph.microsoft.com'||aud==='00000003-0000-0000-c000-000000000000',mailSendGranted:mailSendGranted(claims),expiresInSec:exp>nowSec?exp-nowSec:0,code:'OK',upstreamStatus:200}
  }catch(e){
   tokenCache=null;
-  return{configured:true,authenticated:false,audienceOk:false,expiresInSec:0,code:'GRAPH_AUTH_FAILED',upstreamStatus:Number(e&&e.statusCode||0)||0}
+  return{configured:true,authenticated:false,audienceOk:false,mailSendGranted:false,expiresInSec:0,code:'GRAPH_AUTH_FAILED',upstreamStatus:Number(e&&e.statusCode||0)||0}
  }
 }
 function transient(e){return[408,429,500,502,503,504].includes(Number(e&&e.statusCode||0))||['GRAPH_TIMEOUT','GRAPH_NETWORK_ERROR','ECONNRESET','ETIMEDOUT'].includes(e&&e.code)}
@@ -66,7 +66,8 @@ async function sendTextMail({to,subject,body,sender}){
  let force=false,last=null;
  for(let attempt=1;attempt<=3;attempt++){
   try{
-   const token=await accessToken(force);
+   const token=await accessToken(force),claims=tokenClaims(token);
+   if(!mailSendGranted(claims))throw error('GRAPH_MAIL_PERMISSION_MISSING','Microsoft Graph Mail.Send ist für die ExportHUB-App nicht als Application-Berechtigung freigegeben.',503);
    await request('POST','https://graph.microsoft.com/v1.0/users/'+encodeURIComponent(actualSender)+'/sendMail',{Authorization:'Bearer '+token,'Content-Type':'application/json','Content-Length':payload.length,Accept:'application/json'},payload,12000);
    return{ok:true,sender:actualSender,to:email,attempts:attempt}
   }catch(e){
