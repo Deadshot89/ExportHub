@@ -179,5 +179,6 @@
   "api.avis.docType.invoice": "Factura / Commercial Invoice",
   "api.avis.docType.packing_list": "Lista de empaque",
   "api.avis.docType.other": "Otros",
-  "api.avis.attachment": "Adjunto"
+  "api.avis.attachment": "Adjunto",
+  "api.state.saveFailed": "Azure Storage no pudo guardar el estado del equipo: {{error}}"
 }
