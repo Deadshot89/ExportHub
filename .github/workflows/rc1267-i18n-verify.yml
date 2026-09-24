@@ -57,6 +57,9 @@ jobs:
         run: npm test
       - name: Three-environment release build
         run: node .github/rc1112/build-three-env.mjs
+      - name: Full i18n audit JSON
+        if: always()
+        run: node scripts/i18n-audit.mjs --json
       - name: Strict i18n release gate
         if: always()
         run: npm run i18n:audit:strict
