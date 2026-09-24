@@ -72,7 +72,7 @@ test('RC1166: Kunde und Spedition erhalten getrennte hinterlegte Empfänger',()=
   for(const e of ['sped@example.com','dispo@example.com','fracht@example.com','sendung-sped@example.com'])assert.ok(carrier.includes(e),e+' fehlt bei Spedition');
 });
 
-test('RC1166: Deutsch und Englisch sowie Kunde und Spedition haben eigene Erinnerungsmails',()=>{
+test('RC1267: sechs Sprachen sowie Kunde und Spedition haben eigene Erinnerungsmails',()=>{
   const api=load(),sh={reference:'ABC123'},url='https://example.test/customer-avis.html?token=abc';
   assert.match(api.subject(sh,'customer','de'),/Erinnerung – Lieferavis ABC123/);
   assert.match(api.subject(sh,'carrier','de'),/Lieferavis Abholung ABC123/);
@@ -80,6 +80,11 @@ test('RC1166: Deutsch und Englisch sowie Kunde und Spedition haben eigene Erinne
   assert.match(api.body(sh,'carrier','de',url),/Abholdatum/);
   assert.match(api.body(sh,'carrier','en',url),/pickup date/i);
   assert.match(api.body(sh,'customer','en',url),/lang=en/);
+  assert.match(api.subject(sh,'customer','pl'),/Przypomnienie/);
+  assert.match(api.subject(sh,'customer','es'),/Recordatorio/);
+  assert.match(api.subject(sh,'customer','fr'),/Rappel/);
+  assert.match(api.subject(sh,'customer','it'),/Promemoria/);
+  for(const lang of ['de','en','pl','es','fr','it'])assert.match(api.body(sh,'customer',lang,url),new RegExp('lang='+lang));
 });
 
 test('RC1207: Direktversand übergibt nur strukturierte Felder an den Mail-Endpunkt',()=>{
@@ -87,7 +92,7 @@ test('RC1207: Direktversand übergibt nur strukturierte Felder an den Mail-Endpu
   assert.match(runtime,/reference:refOf\(sh\)/);
   assert.match(runtime,/recipient:q\(email\)/);
   assert.match(runtime,/target:target==='carrier'\?'carrier':'customer'/);
-  assert.match(runtime,/language:lang==='en'\?'en':'de'/);
+  assert.match(runtime,/language:normalizeLanguage\(lang\)/);
   assert.match(runtime,/avisUrl:url/);
   assert.doesNotMatch(runtime,/function\s+mailto\s*\(|href\s*=\s*['\"]?mailto:|\.href\s*=\s*mailto/i);
 });
