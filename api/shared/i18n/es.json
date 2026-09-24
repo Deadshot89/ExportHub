@@ -167,5 +167,17 @@
   "api.avis.mailStored": "Comprobado y guardado: {{time}}",
   "api.avis.mailPassed": "El archivo superó el análisis de malware y la comprobación de asignación al envío.",
   "api.avis.mailAction": "Abre ExportHUB → Notificaciones y selecciona «Abrir / imprimir PDF».",
-  "api.auth.unknownAction": "Acción de autenticación desconocida."
+  "api.auth.unknownAction": "Acción de autenticación desconocida.",
+  "api.avis.documentTypeInvalid": "Selecciona un tipo de documento válido.",
+  "api.avis.textUnreadable": "El contenido del PDF no es suficientemente legible por máquina. Sube un PDF con texto buscable.",
+  "api.avis.shipmentMismatch": "No se pudo asignar el PDF de forma inequívoca al envío. No se guardará.",
+  "api.avis.documentTypeMismatch": "El contenido del PDF no coincide claramente con el tipo de documento seleccionado {{type}}. No se guardará.",
+  "api.avis.contentValid": "El contenido del PDF coincide con el envío.",
+  "api.avis.textExtractionFailed": "No se pudo leer de forma segura el contenido del PDF ni asignarlo al envío. El archivo no se guardará.",
+  "api.avis.docType.cmr": "CMR / carta de porte",
+  "api.avis.docType.delivery_note": "Albarán",
+  "api.avis.docType.invoice": "Factura / Commercial Invoice",
+  "api.avis.docType.packing_list": "Lista de empaque",
+  "api.avis.docType.other": "Otros",
+  "api.avis.attachment": "Adjunto"
 }
