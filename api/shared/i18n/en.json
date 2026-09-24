@@ -157,5 +157,14 @@
   "api.avis.writeForbidden": "Edit permissions for customer AVIS are missing.",
   "api.avis.unknownAction": "Unknown AVIS action.",
   "api.avis.scanSaved": "Malware scan and shipment assignment successful. PDF saved.",
-  "api.avis.flagSaveFailed": "Customer AVIS could not be saved."
+  "api.avis.flagSaveFailed": "Customer AVIS could not be saved.",
+  "api.avis.mailSubject": "New AVIS document · {{reference}} · {{customer}}",
+  "api.avis.mailIntro": "A customer uploaded a new document through the ExportHUB AVIS link.",
+  "api.avis.mailReference": "Shipment reference: {{reference}}",
+  "api.avis.mailCustomer": "Customer: {{customer}}",
+  "api.avis.mailDocument": "Document: {{document}}",
+  "api.avis.mailDocumentType": "Document type: {{type}}",
+  "api.avis.mailStored": "Checked and saved: {{time}}",
+  "api.avis.mailPassed": "The file passed the malware scan and shipment assignment check.",
+  "api.avis.mailAction": "Open ExportHUB → Notifications and select “Open / print PDF”."
 }
