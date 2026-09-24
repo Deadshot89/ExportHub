@@ -91,5 +91,18 @@
   "api.pod.loadFailed": "POD konnte nicht geladen werden.",
   "api.common.postOnly": "Nur POST ist erlaubt.",
   "api.auth.adminRequired": "Nur globale Administratoren dürfen diese Aktion ausführen.",
-  "api.auth.adminLocked": "Das Konto ist gesperrt und kann nur durch einen globalen Administrator entsperrt werden."
+  "api.auth.adminLocked": "Das Konto ist gesperrt und kann nur durch einen globalen Administrator entsperrt werden.",
+  "api.common.environmentInvalid": "Unbekannte ExportHUB-Umgebung.",
+  "api.autofix.environmentMismatch": "Die angeforderte Diagnoseumgebung passt nicht zur Website.",
+  "api.autofix.sessionInvalid": "Die ExportHUB-Sitzung ist nicht mehr gültig.",
+  "api.autofix.sessionRevoked": "Die ExportHUB-Sitzung wurde beendet.",
+  "api.autofix.adminRequired": "Die automatische Fehlerbehebung ist nur für globale Administratoren verfügbar.",
+  "api.autofix.diagnosticNotFound": "Der Diagnoseeintrag wurde nicht gefunden.",
+  "api.autofix.diagnosticConcurrent": "Der Diagnoseeintrag wurde gleichzeitig geändert.",
+  "api.autofix.jobNotFound": "Autofix-Auftrag wurde nicht gefunden.",
+  "api.autofix.githubDispatchFailed": "GitHub-Autofix konnte nicht gestartet werden (HTTP {{status}}).",
+  "api.autofix.githubTokenMissing": "GitHub-Autofix-Token ist serverseitig noch nicht eingerichtet.",
+  "api.autofix.disabledReason": "Automatische Fehlerbehebung ist derzeit bewusst deaktiviert. Es wird kein externer KI-Auftrag gestartet.",
+  "api.autofix.diagnosticIdRequired": "Diagnose-ID fehlt.",
+  "api.autofix.alreadyRunning": "Für diesen Fehler läuft bereits eine automatische Behebung."
 }
