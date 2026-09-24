@@ -71,7 +71,14 @@ jobs:
             local base="$1"
             local env="$2"
             local tier="$3"
-            curl -fsSL               -H "Content-Type: application/json"               -H "x-exporthub-github-oidc: $oidc_token"               -H "x-exporthub-environment: $env"               -d "{"action":"scheduled-backup","environment":"$env","tier":"$tier"}"               "$base/api/state-maintenance"
+            local payload
+            payload="$(node -e "process.stdout.write(JSON.stringify({action:'scheduled-backup',environment:process.argv[1],tier:process.argv[2]}))" "$env" "$tier")"
+            curl -fsSL \
+              -H "Content-Type: application/json" \
+              -H "x-exporthub-github-oidc: $oidc_token" \
+              -H "x-exporthub-environment: $env" \
+              --data "$payload" \
+              "$base/api/state-maintenance"
           }
 
           verify_backup() {
