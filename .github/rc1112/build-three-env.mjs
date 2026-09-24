@@ -239,6 +239,10 @@ function patchRc1259ContainerSearch(html,file){
 
   html=html.replace(/Referenz, Kunde, DNC, POD oder ABD suchen/g,'Referenz, Kunde, Siegel, DNC, POD oder ABD suchen');
   html=html.replace(/Kunde, Referenz, Kundennummer oder Anhang suchen …/g,'Kunde, Referenz, Siegelnummer, Kundennummer oder Anhang suchen …');
+
+  const subPayloadNeedle="plannedPickupDate:q(main.plannedPickupDate||main.pickupDate),subShipmentId:key";
+  const subPayloadReplacement="plannedPickupDate:q(main.plannedPickupDate||main.pickupDate),transportMode:q(main.transportMode||main.transportType||main.shippingMode),containerDocumentationRequired:main.containerDocumentationRequired===true,subShipmentId:key";
+  if(html.includes(subPayloadNeedle))html=html.split(subPayloadNeedle).join(subPayloadReplacement);
   return html;
 }
 
