@@ -619,5 +619,8 @@
   "pickupCalendar.subtitle": "Les enlèvements fixes et les expéditions enregistrées restent séparés et sont présentés ensemble de façon claire.",
   "pickupCalendar.updating": "Actualisation …",
   "pickupCalendar.error.fixedLoad": "Les enlèvements fixes n’ont pas pu être chargés.",
-  "pickupCalendar.error.fixedSave": "L’enlèvement fixe n’a pas pu être enregistré."
+  "pickupCalendar.error.fixedSave": "L’enlèvement fixe n’a pas pu être enregistré.",
+  "pickupCalendar.accessDeniedTitle": "Aucun droit de lecture",
+  "pickupCalendar.accessDeniedText": "Le calendrier d’enlèvement n’est pas autorisé pour votre utilisateur.",
+  "pickupCalendar.loadError": "Le calendrier n’a pas pu être chargé."
 }
