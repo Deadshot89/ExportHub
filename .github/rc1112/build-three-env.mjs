@@ -7,7 +7,7 @@ const SRC=path.join(ROOT,'dist-rc1048');
 const OUT=path.join(ROOT,'dist-rc1112');
 const VERSION='RC1112';
 const NUMBER='1112';
-const DEFAULT_VISIBLE_VERSION='RC1231';
+const DEFAULT_VISIBLE_VERSION='RC1112';
 function resolveVisibleVersion(){
   const explicit=String(process.env.EXPORTHUB_VISIBLE_RELEASE_VERSION||'').trim().toUpperCase();
   if(/^RC\d+$/.test(explicit))return explicit;
