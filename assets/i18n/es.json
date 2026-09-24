@@ -862,5 +862,7 @@
   "container.air": "Carga aérea",
   "container.sea": "Carga marítima",
   "container.requiredDocumentation": "Documentación del contenedor obligatoria",
-  "container.configHelp": "Para carga marítima, actívalo solo si es necesario documentar un contenedor. La recogida QR exigirá entonces el número de precinto y 3 fotos: contenedor cargado, número del contenedor desde el interior y contenedor precintado con matrícula/documentos."
+  "container.configHelp": "Para carga marítima, actívalo solo si es necesario documentar un contenedor. La recogida QR exigirá entonces el número de precinto y 3 fotos: contenedor cargado, número del contenedor desde el interior y contenedor precintado con matrícula/documentos.",
+  "stowplan.orientationCrosswise": "transversal",
+  "stowplan.orientationLengthwise": "longitudinal"
 }
