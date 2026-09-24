@@ -677,7 +677,7 @@ module.exports = async function (context, req) {
     else if (action === 'admin-reset-password') result = await adminResetPassword(req, payload);
     else if (action === 'admin-unlock') result = await adminUnlock(req, payload);
     else if (action === 'admin-terminate-sessions') result = await adminTerminateSessions(req, payload);
-    else throw auth.error('UNKNOWN_ACTION', apiI18n.t(req,'api.release.invalidAction'), 400);
+    else throw auth.error('UNKNOWN_ACTION', apiI18n.t(req,'api.auth.unknownAction'), 400);
     const responseHeaders = {};
     if (result && result.token) responseHeaders['Set-Cookie'] = auth.sessionCookie(result.token, false);
     if (action === 'logout') responseHeaders['Set-Cookie'] = auth.sessionCookie('', true);
