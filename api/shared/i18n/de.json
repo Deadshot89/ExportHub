@@ -157,5 +157,14 @@
   "api.avis.writeForbidden": "Für Kunden-Avis fehlen Bearbeitungsrechte.",
   "api.avis.unknownAction": "Unbekannte Avis-Aktion.",
   "api.avis.scanSaved": "Virenprüfung und fachliche Sendungszuordnung erfolgreich. PDF gespeichert.",
-  "api.avis.flagSaveFailed": "Kunden-Avis konnte nicht gespeichert werden."
+  "api.avis.flagSaveFailed": "Kunden-Avis konnte nicht gespeichert werden.",
+  "api.avis.mailSubject": "Neues AVIS-Dokument · {{reference}} · {{customer}}",
+  "api.avis.mailIntro": "Ein Kunde hat über den ExportHUB-AVIS-Link ein neues Dokument hochgeladen.",
+  "api.avis.mailReference": "Sendungsreferenz: {{reference}}",
+  "api.avis.mailCustomer": "Kunde: {{customer}}",
+  "api.avis.mailDocument": "Dokument: {{document}}",
+  "api.avis.mailDocumentType": "Dokumentart: {{type}}",
+  "api.avis.mailStored": "Geprüft und gespeichert: {{time}}",
+  "api.avis.mailPassed": "Die Datei hat die Virenprüfung und die fachliche Sendungszuordnung bestanden.",
+  "api.avis.mailAction": "Bitte ExportHUB → Benachrichtigungen öffnen und „PDF öffnen / drucken“ auswählen."
 }
