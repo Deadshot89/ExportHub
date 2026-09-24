@@ -92,9 +92,14 @@ function e2eRights(){
  }
  return rights;
 }
+function e2eReminderRecipient(){
+ const sender=text(process.env.EXPORTHUB_MAIL_SENDER||process.env.EXPORTHUB_POD_DRIVE_USER);
+ if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sender))throw error('E2E_MAIL_SENDER_NOT_CONFIGURED','Für den RC1255 AVIS-Erinnerungs-E2E ist kein gültiger ExportHUB-Mail-Absender konfiguriert.',503);
+ return sender;
+}
 function e2eCustomer(runId){
  const suffix=crypto.createHash('sha256').update(runId).digest('hex').slice(0,8).toUpperCase();
- const id='E2E-CUSTOMER-'+suffix,locationId='E2E-LOC-'+suffix;
+ const id='E2E-CUSTOMER-'+suffix,locationId='E2E-LOC-'+suffix,reminderRecipient=e2eReminderRecipient();
  return{
   id,
   account:'E2E'+suffix.slice(0,5),
@@ -102,6 +107,9 @@ function e2eCustomer(runId){
   customerNo:'E2E'+suffix.slice(0,5),
   name:'E2E TEST CUSTOMER '+suffix,
   customerName:'E2E TEST CUSTOMER '+suffix,
+  customerEmail:reminderRecipient,
+  email:reminderRecipient,
+  contactDirectory:[{name:'ExportHUB E2E Reminder Mailbox',email:reminderRecipient,role:'avis',_e2eRunId:runId}],
   country:'DE',
   active:true,
   locations:[{
