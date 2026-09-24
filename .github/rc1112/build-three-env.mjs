@@ -224,6 +224,28 @@ function patchTaskDetailTab(html,file){
   return out;
 }
 
+function patchRc1259ContainerSearch(html,file){
+  const overviewNeedle="attachmentFiles(x).join(' ')].join(' '))}";
+  const overviewReplacement="attachmentFiles(x).join(' '),x&&x.sealNumber,x&&x.containerSealNumber,x&&x.siegelnummer].join(' '))}";
+  const overviewCount=html.split(overviewNeedle).length-1;
+  if(overviewCount<1)throw new Error(file+': RC1259 Sendungsübersicht-Suchanker fehlt');
+  html=html.split(overviewNeedle).join(overviewReplacement);
+
+  const viewNeedle="location&&location.name,location&&location.address,docs.map(function(d){return d.name+' '+d.group}).join(' ')].join(' '))}";
+  const viewReplacement="location&&location.name,location&&location.address,sh&&sh.sealNumber,sh&&sh.containerSealNumber,sh&&sh.siegelnummer,docs.map(function(d){return d.name+' '+d.group}).join(' ')].join(' '))}";
+  const viewCount=html.split(viewNeedle).length-1;
+  if(viewCount<1)throw new Error(file+': RC1259 Sendungsansicht-Suchanker fehlt');
+  html=html.split(viewNeedle).join(viewReplacement);
+
+  html=html.replace(/Referenz, Kunde, DNC, POD oder ABD suchen/g,'Referenz, Kunde, Siegel, DNC, POD oder ABD suchen');
+  html=html.replace(/Kunde, Referenz, Kundennummer oder Anhang suchen …/g,'Kunde, Referenz, Siegelnummer, Kundennummer oder Anhang suchen …');
+
+  const subPayloadNeedle="plannedPickupDate:q(main.plannedPickupDate||main.pickupDate),subShipmentId:key";
+  const subPayloadReplacement="plannedPickupDate:q(main.plannedPickupDate||main.pickupDate),transportMode:q(main.transportMode||main.transportType||main.shippingMode),containerDocumentationRequired:main.containerDocumentationRequired===true,subShipmentId:key";
+  if(html.includes(subPayloadNeedle))html=html.split(subPayloadNeedle).join(subPayloadReplacement);
+  return html;
+}
+
 function patchHtml(file){
   const target=path.join(OUT,file);
   let html=fs.readFileSync(target,'utf8');
@@ -234,6 +256,7 @@ function patchHtml(file){
   html=patchNotificationTasks(html,file);
   html=patchTaskMasterSaveScope(html,file);
   html=patchTaskDetailTab(html,file);
+  html=patchRc1259ContainerSearch(html,file);
   html=patchDeckblattHighVisibility(html,file);
   html=patchRc1203ActualDeckblatt(html,file);
   html=patchShipmentSuspendSave(html,file);
@@ -264,10 +287,15 @@ function patchHtml(file){
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1165-pod-backup-status" defer src="/assets/rc1165-pod-backup-status.js?v=1165"></script>','exporthub-rc1165-pod-backup-status');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1166-avis-reminder" defer src="/assets/rc1166-avis-reminder-overview.js?v=1207"></script>','exporthub-rc1166-avis-reminder');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1176-shipment-location" defer src="/assets/rc1176-shipment-location.js?v=1202"></script>','exporthub-rc1176-shipment-location');
+  html=injectDeferredRuntimeInHead(html,'<link id="exporthub-rc1259-container-ui" rel="stylesheet" href="/assets/rc1014-shipment-overview.css?v=1259">','exporthub-rc1259-container-ui');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1259-container-runtime" defer src="/assets/rc1014-shipment-overview.js?v=1259"></script>','exporthub-rc1259-container-runtime');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1203-deckblatt-print" defer src="/assets/rc1203-deckblatt-print.js?v=1205"></script>','exporthub-rc1203-deckblatt-print');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1207-pallet-account-fix" defer src="/assets/rc1207-pallet-account-fix.js?v=1246"></script>','exporthub-rc1207-pallet-account-fix');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1193-visible-release" defer src="/assets/rc1193-visible-release.js?v=1231"></script>','exporthub-rc1193-visible-release');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1177-release-notes" defer src="/assets/rc1177-release-notes.js?v=1231"></script>','exporthub-rc1177-release-notes');
+  if(!html.includes('assets/rc1014-shipment-overview.css?v=1259'))throw new Error(file+': RC1259 Container-CSS fehlt');
+  if(!html.includes('assets/rc1014-shipment-overview.js?v=1259'))throw new Error(file+': RC1259 Container-Runtime fehlt');
+  if(!html.includes('x&&x.sealNumber')||!html.includes('sh&&sh.sealNumber'))throw new Error(file+': RC1259 Siegelnummer ist nicht in beiden Sendungssuchen');
   if(html.includes(LEGACY_TESTSERVICE_HOST))throw new Error(file+': alter TESTSERVICE-Endpunkt ist noch aktiv');
   if(!html.includes(CURRENT_TESTSERVICE_HOST))throw new Error(file+': aktueller TESTSERVICE-Endpunkt fehlt');
   if(!html.includes(`version:'${VERSION}'`))throw new Error(file+': BUILD '+VERSION+' fehlt');
@@ -312,6 +340,8 @@ if(!fs.existsSync(currentApi))throw new Error('Aktuelles API-Verzeichnis fehlt')
 fs.mkdirSync(builtApi,{recursive:true});
 fs.cpSync(currentApi,builtApi,{recursive:true,force:true});
 for(const rel of [
+  'assets/rc1014-shipment-overview.js',
+  'assets/rc1014-shipment-overview.css',
   'assets/rc1027-lieferavis-immediate.js',
   'assets/rc1037-lieferavis-timing-diagnostics.js',
   'assets/rc1049-abd-avis-policy.js',
@@ -334,7 +364,7 @@ for(const rel of [
   fs.copyFileSync(src,dst);
   if(!fs.existsSync(dst)||fs.statSync(dst).size===0)throw new Error('RC1124 Pflicht-Runtime wurde nicht gebaut: '+rel);
 }
-for(const requiredApi of ['shared/pod-archive.js','shared/graph-drive.js','shared/customer-portal-store.js','customer-portal-credentials/index.js','customer-portal-credentials/function.json','customer-portal-readiness/index.js','customer-portal-readiness/function.json','avis-upload-mail-readiness/index.js','avis-upload-mail-readiness/function.json','pickup-confirm-v2/index.js','pod-backup/index.js','avis-reminder-mail/index.js','avis-reminder-mail/function.json','shared/graph-mail.js','package.json']){
+for(const requiredApi of ['shared/pod-archive.js','shared/graph-drive.js','shared/container-document-store.js','shared/reference-folder-upload.js','shared/customer-portal-store.js','customer-portal-credentials/index.js','customer-portal-credentials/function.json','customer-portal-readiness/index.js','customer-portal-readiness/function.json','avis-upload-mail-readiness/index.js','avis-upload-mail-readiness/function.json','pickup-confirm-v2/index.js','pickup-container-document/index.js','pickup-container-document/function.json','container-document/index.js','container-document/function.json','pod-backup/index.js','avis-reminder-mail/index.js','avis-reminder-mail/function.json','shared/graph-mail.js','package.json']){
   if(!fs.existsSync(path.join(builtApi,requiredApi)))throw new Error('RC1114 API-Datei fehlt im Build: '+requiredApi);
 }
 const rc1114PickupSource=path.join(ROOT,'pickup.html');
@@ -377,6 +407,7 @@ fs.writeFileSync(path.join(OUT,'rc1112-manifest.json'),JSON.stringify({
     podBackupStatusUi:'RC1220 shipment overview Azure/archive backup status',
     podTargetedProof:'RC1220 targeted archive proof: found/already-saved/saved-now/not-found/pending',
     podArchiveIntegrity:'RC1226 archive read-back + scheduled integrity verification',
+    containerDocumentation:'RC1259 sea freight container seal + 3 QR photos + reference-folder storage + shipment overview download',
     avisReminderOverview:'RC1207 DE/EN customer/carrier reminder via stored contacts + secure avis link',
     avisUploadNotifications:'RC1133 secure customer PDF notice + open/print action',
     documentActionHistory:'RC1178 print/open/download + user + filename, including resumed print flow',

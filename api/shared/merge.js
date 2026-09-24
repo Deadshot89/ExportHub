@@ -366,6 +366,7 @@ function rc1017SubShipmentOperationalTimestamp(sub) {
     sub && sub.lastPartialPickupAt,
     sub && sub.podUpdatedAt,
     sub && sub.signatureStoredAt,
+    sub && sub.containerDocumentationUpdatedAt,
     sub && sub.updatedAt
   ];
   if (Array.isArray(sub && sub.pickupHistory)) {
@@ -393,7 +394,8 @@ const RC1017_SUBSHIPMENT_OPERATIONAL_FIELDS = [
   'status','pickupStatus','processStatus','locked','pickupHistory',
   'collectedPickupCollis','pickupCollectedColliCount','remainingPickupCollis','pickupRemainingColliCount',
   'confirmedAt','lastPartialPickupAt','podFiles','podUpdatedAt','signatureBlobName','signatureStoredAt',
-  'pickupRegistered','pickupAccessKeyHash'
+  'pickupRegistered','pickupAccessKeyHash',
+  'transportMode','containerDocumentationRequired','sealNumber','containerPhotos','containerDocumentationUpdatedAt'
 ];
 
 function rc1017ProtectSubShipments(out, serverItem, incomingItem) {
@@ -441,6 +443,30 @@ function rc1017ProtectSubShipments(out, serverItem, incomingItem) {
   return out;
 }
 
+function mergeContainerPhotosProtected(serverList,incomingList){
+  const map=new Map();
+  const ingest=(list)=>{
+    for(const raw of (Array.isArray(list)?list:[])){
+      if(!raw||typeof raw!=='object')continue;
+      const item=clone(raw);
+      const key=text(item.subShipmentId||'main')+'|'+text(item.kind||item.id||item.blobName).toLowerCase();
+      if(!key.endsWith('|'))map.set(key,item);
+    }
+  };
+  ingest(incomingList);
+  ingest(serverList);
+  return Array.from(map.values());
+}
+
+function protectContainerDocumentation(out,serverItem,incomingItem){
+  const serverPhotos=Array.isArray(serverItem&&serverItem.containerPhotos)?serverItem.containerPhotos:[],
+        incomingPhotos=Array.isArray(incomingItem&&incomingItem.containerPhotos)?incomingItem.containerPhotos:[];
+  if(serverPhotos.length||incomingPhotos.length)out.containerPhotos=mergeContainerPhotosProtected(serverPhotos,incomingPhotos);
+  if(meaningfulValue(serverItem&&serverItem.sealNumber))out.sealNumber=clone(serverItem.sealNumber);
+  if(meaningfulValue(serverItem&&serverItem.containerDocumentationUpdatedAt))out.containerDocumentationUpdatedAt=clone(serverItem.containerDocumentationUpdatedAt);
+  return out;
+}
+
 function mergeShipmentHistory(a,b){
   const map=new Map();
   const ingest=(list)=>{
@@ -480,7 +506,7 @@ function mergeShipmentProtected(serverItem, incomingItem) {
   }
 
   // Rows/documents are additive-protective. Empty arrays can never wipe existing content.
-  ['rows','colli','collis','packages','packagingRows','deliveryFiles','deliveryNotesFiles','podFiles','abdFiles','documents','generatedDocuments','files','attachments','mailHistory','pickupHistory','shipmentHistory'].forEach((key) => {
+  ['rows','colli','collis','packages','packagingRows','deliveryFiles','deliveryNotesFiles','podFiles','abdFiles','documents','generatedDocuments','files','attachments','mailHistory','pickupHistory','shipmentHistory','containerPhotos'].forEach((key) => {
     const a = Array.isArray(serverItem[key]) ? serverItem[key] : [];
     const b = Array.isArray(incomingItem[key]) ? incomingItem[key] : [];
     if (key === 'shipmentHistory') out[key] = mergeShipmentHistory(a,b);
@@ -493,6 +519,7 @@ function mergeShipmentProtected(serverItem, incomingItem) {
   // A later save from a stale browser may not roll them back.
   rc1016ProtectAvis(out, serverItem, incomingItem);
   rc1017ProtectSubShipments(out, serverItem, incomingItem);
+  protectContainerDocumentation(out, serverItem, incomingItem);
 
   // Status may only follow the newer persisted record; no rank-based auto-promotion here.
   const newerStatus = newer.status || newer.processStatus;

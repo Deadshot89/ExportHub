@@ -41,10 +41,10 @@ button:disabled{opacity:.55;cursor:wait}
 canvas{display:block;width:100%;height:min(42vh,360px);touch-action:none;background:#fff}
 .actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:12px}
 .actions .secondary{background:#fff;color:#334155;border:1px solid #cbd5e1}
-.pickup-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.pickup-actions .partial{background:#fff;color:#1d4ed8;border:2px solid #60a5fa}.pickup-actions button{min-height:52px}.pickup-stepbar{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:18px 0 8px}.pickup-step{padding:10px 8px;border-radius:12px;background:#e2e8f0;color:#475569;text-align:center;font-size:12px;font-weight:800}.pickup-step.active{background:#dbeafe;color:#1d4ed8;box-shadow:inset 0 0 0 2px #60a5fa}.pickup-step.done{background:#dcfce7;color:#166534}
+.pickup-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.pickup-actions .partial{background:#fff;color:#1d4ed8;border:2px solid #60a5fa}.pickup-actions button{min-height:52px}.container-photo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.container-photo-card{border:1px solid #bfdbfe;border-radius:16px;background:#fff;padding:10px;display:grid;gap:8px;align-content:start}.container-photo-card input[type=file]{font-size:13px;padding:8px}.container-photo-card img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;border:1px solid #cbd5e1}.container-photo-card .photo-state{font-size:11px;font-weight:800;color:#64748b}.container-photo-card .photo-state.ok{color:#166534}.container-required{color:#991b1b}.container-optional{color:#64748b}.pickup-stepbar{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:18px 0 8px}.pickup-step{padding:10px 8px;border-radius:12px;background:#e2e8f0;color:#475569;text-align:center;font-size:12px;font-weight:800}.pickup-step.active{background:#dbeafe;color:#1d4ed8;box-shadow:inset 0 0 0 2px #60a5fa}.pickup-step.done{background:#dcfce7;color:#166534}
 .success{text-align:center;padding:26px 10px}.success .icon{width:74px;height:74px;border-radius:50%;margin:0 auto 16px;background:#dcfce7;color:#166534;display:grid;place-items:center;font-size:38px;font-weight:1000}.success h2{font-size:28px;margin:0 0 10px;color:#166534}
 button:focus-visible,input:focus-visible{outline:3px solid #1d4ed8;outline-offset:3px}
-@media(max-width:620px){main{padding:10px}.card{padding:18px;border-radius:20px}.info-grid,.grid{grid-template-columns:1fr}}
+@media(max-width:620px){main{padding:10px}.card{padding:18px;border-radius:20px}.info-grid,.grid,.container-photo-grid{grid-template-columns:1fr}}
 </style>
 <script id="exporthub-rc1018-public-language" defer src="/assets/rc1018-public-language.js?v=1018"></script>
 </head>
@@ -76,6 +76,18 @@ button:focus-visible,input:focus-visible{outline:3px solid #1d4ed8;outline-offse
 <div id="details"></div>
 
 <div id="driverStep" hidden>
+<section id="containerSection" class="section">
+<h2>🚢 Container-Dokumentation <span id="containerModeLabel" class="help container-optional">(optional)</span></h2>
+<div class="help">Bei Seefracht mit verpflichtender Container-Dokumentation müssen vor der vollständigen Abholung die Siegelnummer und genau diese drei Nachweise gespeichert sein. Bei anderen Sendungen können die Angaben freiwillig genutzt werden.</div>
+<label>Siegelnummer <span id="sealRequiredLabel" class="help">(optional)</span><input id="sealNumber" autocomplete="off" maxlength="120" placeholder="z. B. ABCD123456"></label>
+<div class="container-photo-grid">
+<label class="container-photo-card"><strong>1 · Geladener Container</strong><input id="containerPhotoLoaded" type="file" accept="image/*" capture="environment"><img id="containerPreviewLoaded" alt="Vorschau geladener Container" hidden><span id="containerStateLoaded" class="photo-state">Noch kein Foto gespeichert</span></label>
+<label class="container-photo-card"><strong>2 · Container-Nummer von innen</strong><input id="containerPhotoNumber" type="file" accept="image/*" capture="environment"><img id="containerPreviewNumber" alt="Vorschau Container-Nummer" hidden><span id="containerStateNumber" class="photo-state">Noch kein Foto gespeichert</span></label>
+<label class="container-photo-card"><strong>3 · Versiegelt + Kennzeichen + Papiere</strong><input id="containerPhotoSealed" type="file" accept="image/*" capture="environment"><img id="containerPreviewSealed" alt="Vorschau versiegelter Container" hidden><span id="containerStateSealed" class="photo-state">Noch kein Foto gespeichert</span></label>
+</div>
+<div id="containerResult" class="help">Fotos werden sofort sicher mit dieser Sendungsreferenz gespeichert.</div>
+</section>
+
 <section class="section">
 <h2>Fahrer und Fahrzeug</h2>
 <div class="grid">
@@ -163,7 +175,7 @@ if(env!=='production'&&env!=='testservice'){
 var statusEl=document.getElementById('status');
 var details=document.getElementById('details');
 var form=document.getElementById('form');
-var expected=0,collectedBefore=0,remainingBefore=0,colliOk=false,signatureSaved='',submitting=false;
+var expected=0,collectedBefore=0,remainingBefore=0,colliOk=false,signatureSaved='',submitting=false,containerRequired=false,containerPhotos={},containerUploadBusy=false;
 var canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d',{alpha:false}),drawing=false,drawn=false;
 
 function status(text,kind){statusEl.className='status '+(kind||'info');statusEl.textContent=text}
@@ -226,6 +238,59 @@ function blockMissingColli(){
   if(out){out.textContent='Die erwartete Colli-Anzahl fehlt in der Sendung. Die Abholung ist gesperrt, bis die Sendungsdaten korrigiert wurden.';out.style.color='#991b1b'}
   setDriverStepUnlocked(false);
 }
+function containerPhotoMap(list){
+  var out={};(Array.isArray(list)?list:[]).forEach(function(p){var k=q(p&&p.kind).toLowerCase();if(k)out[k]=p});return out
+}
+function renderContainerState(){
+  var config=[
+    ['loaded','containerStateLoaded'],
+    ['number','containerStateNumber'],
+    ['sealed','containerStateSealed']
+  ];
+  config.forEach(function(row){var p=containerPhotos[row[0]],el=document.getElementById(row[1]);if(!el)return;el.textContent=p?'✓ Gespeichert'+(p.uploadedAt?' · '+new Date(p.uploadedAt).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}):''):'Noch kein Foto gespeichert';el.className='photo-state'+(p?' ok':'')});
+  var mode=document.getElementById('containerModeLabel'),sealLabel=document.getElementById('sealRequiredLabel');
+  if(mode){mode.textContent=containerRequired?'(Pflicht für diese Sendung)':'(optional)';mode.className='help '+(containerRequired?'container-required':'container-optional')}
+  if(sealLabel){sealLabel.textContent=containerRequired?'(Pflicht)':'(optional)';sealLabel.className='help '+(containerRequired?'container-required':'container-optional')}
+}
+function compressContainerPhoto(file){
+  return new Promise(function(resolve,reject){
+    if(!file){reject(new Error('Kein Foto ausgewählt.'));return}
+    var reader=new FileReader();
+    reader.onerror=function(){reject(new Error('Foto konnte nicht gelesen werden.'))};
+    reader.onload=function(){
+      var img=new Image();
+      img.onerror=function(){reject(new Error('Foto konnte nicht verarbeitet werden.'))};
+      img.onload=function(){
+        var max=1600,scale=Math.min(1,max/Math.max(img.naturalWidth||img.width,img.naturalHeight||img.height)),w=Math.max(1,Math.round((img.naturalWidth||img.width)*scale)),h=Math.max(1,Math.round((img.naturalHeight||img.height)*scale)),canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+        var cx=canvas.getContext('2d',{alpha:false});cx.fillStyle='#fff';cx.fillRect(0,0,w,h);cx.drawImage(img,0,0,w,h);
+        resolve(canvas.toDataURL('image/jpeg',0.78))
+      };
+      img.src=reader.result
+    };
+    reader.readAsDataURL(file)
+  })
+}
+function uploadContainerPhoto(kind,input,previewId,stateId){
+  var file=input&&input.files&&input.files[0];if(!file)return;
+  if(containerUploadBusy){status('Bitte den laufenden Foto-Upload zuerst abschließen.','bad');input.value='';return}
+  containerUploadBusy=true;
+  var stateEl=document.getElementById(stateId),result=document.getElementById('containerResult');
+  if(stateEl){stateEl.textContent='Foto wird vorbereitet …';stateEl.className='photo-state'}
+  compressContainerPhoto(file).then(function(dataUrl){
+    var preview=document.getElementById(previewId);if(preview){preview.src=dataUrl;preview.hidden=false}
+    if(stateEl)stateEl.textContent='Foto wird gespeichert …';
+    return request('pickup-container-document',{method:'POST',body:JSON.stringify({token:token,kind:kind,dataUrl:dataUrl,environment:env}),timeout:90000})
+  }).then(function(data){
+    containerPhotos=containerPhotoMap(data&&data.containerPhotos||[]);
+    renderContainerState();
+    if(result)result.textContent='✓ Foto wurde im Referenzordner der Sendung gespeichert.';
+    status('Containerfoto gespeichert.','ok')
+  }).catch(function(err){
+    if(stateEl){stateEl.textContent='Upload fehlgeschlagen – bitte erneut aufnehmen';stateEl.className='photo-state'}
+    if(result)result.textContent='Foto konnte nicht gespeichert werden: '+q(err&&err.message||err);
+    status('Containerfoto konnte nicht gespeichert werden: '+q(err&&err.message||err),'bad')
+  }).finally(function(){containerUploadBusy=false})
+}
 function show(data){
   if(confirmed(data)){status('Diese Abholung wurde bereits bestätigt.','ok');form.hidden=true;return}
   var ref=q(data.reference||data.ref||data.shipmentRef)||'—';
@@ -233,6 +298,9 @@ function show(data){
   var address=q(deep(data,['recipientAddress','deliveryAddress','shipToAddress','destinationAddress','consigneeAddress','formattedAddress','fullAddress','addressText','address']));
   if(/^[-–—]+$/.test(address)||/^(?:n\/?a|none|null|undefined)$/i.test(address))address='';
   var carrier=q(deep(data,['carrierName','speditionName','carrier','spedition']));
+  containerRequired=data&&data.containerDocumentationRequired===true;
+  containerPhotos=containerPhotoMap(data&&data.containerPhotos||[]);
+  var seal=q(data&&data.sealNumber);if(seal)document.getElementById('sealNumber').value=seal;renderContainerState();
   expected=expectedCollis(data);
   collectedBefore=Math.max(0,Math.round(Number(deep(data,['collectedPickupCollis','pickupCollectedColliCount']))||0));
   var explicitRemaining=deep(data,['remainingPickupCollis','pickupRemainingColliCount']);
@@ -281,6 +349,13 @@ function checkColli(mode){
 document.getElementById('checkColli').addEventListener('click',function(){var n=colliNumber(document.getElementById('colli').value),open=remainingBefore||expected;checkColli(n>0&&n<open?'partial':'complete')});
 document.getElementById('colli').addEventListener('input',function(){colliOk=false;setDriverStepUnlocked(false);this.readOnly=false;document.getElementById('colliResult').textContent='Colli-Anzahl geändert. Bitte erneut bestätigen, bevor Fahrerdaten erfasst werden.'});
 
+[
+ ['loaded','containerPhotoLoaded','containerPreviewLoaded','containerStateLoaded'],
+ ['number','containerPhotoNumber','containerPreviewNumber','containerStateNumber'],
+ ['sealed','containerPhotoSealed','containerPreviewSealed','containerStateSealed']
+].forEach(function(row){var input=document.getElementById(row[1]);if(input)input.addEventListener('change',function(){uploadContainerPhoto(row[0],input,row[2],row[3])})});
+document.getElementById('sealNumber').addEventListener('input',function(){this.value=this.value.toUpperCase().replace(/[\r\n]/g,' ').slice(0,120)});
+
 ctx.lineCap='round';ctx.lineJoin='round';ctx.lineWidth=5;ctx.strokeStyle='#0f172a';
 function clearSig(){ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);drawn=false}
 clearSig();
@@ -309,16 +384,19 @@ document.getElementById('plate').addEventListener('input',function(){this.value=
 form.addEventListener('submit',function(e){
   e.preventDefault();
   var mode=e.submitter&&e.submitter.dataset&&e.submitter.dataset.mode==='partial'?'partial':'complete';
-  var pin=q(document.getElementById('pin').value),driver=q(document.getElementById('driver').value),plate=q(document.getElementById('plate').value),carrier=q(document.getElementById('carrier').value),sig=q(document.getElementById('signatureData').value),returned=Math.max(0,Math.round(Number(document.getElementById('returned').value||0))),entered=colliNumber(document.getElementById('colli').value),btn=mode==='partial'?document.getElementById('confirmPartial'):document.getElementById('confirm');
+  var pin=q(document.getElementById('pin').value),driver=q(document.getElementById('driver').value),plate=q(document.getElementById('plate').value),carrier=q(document.getElementById('carrier').value),sig=q(document.getElementById('signatureData').value),seal=q(document.getElementById('sealNumber').value),returned=Math.max(0,Math.round(Number(document.getElementById('returned').value||0))),entered=colliNumber(document.getElementById('colli').value),btn=mode==='partial'?document.getElementById('confirmPartial'):document.getElementById('confirm');
   if(!(expected>0)||!colliOk){setDriverStepUnlocked(false);status('Bitte zuerst die Collis prüfen und bestätigen. Fahrerdaten werden erst danach freigeschaltet.','bad');document.getElementById('colli').focus();return}
   if(!plate){status('Bitte das Kennzeichen eingeben.','bad');return}
   if(!carrier){status('Bitte den Speditionsnamen eingeben.','bad');return}
   if(expected>0&&!checkColli(mode)){status(mode==='partial'?'Die Teilabholung konnte mit dieser Colli-Anzahl nicht bestätigt werden.':'Die eingegebene Rest-Colli-Anzahl stimmt nicht.','bad');return}
+  if(containerUploadBusy){status('Bitte den laufenden Containerfoto-Upload zuerst abschließen.','bad');return}
+  if(mode==='complete'&&containerRequired&&!seal){status('Für diese Sendung ist die Siegelnummer verpflichtend.','bad');document.getElementById('sealNumber').focus();return}
+  if(mode==='complete'&&containerRequired&&(!containerPhotos.loaded||!containerPhotos.number||!containerPhotos.sealed)){status('Für diese Sendung müssen alle 3 Containerfotos gespeichert sein.','bad');return}
   if(!/^\d{4}$/.test(pin)){status('Der persönliche Verlader-PIN muss genau vier Ziffern enthalten.','bad');return}
   if(!/^data:image\/jpeg;base64,/i.test(sig)){status('Bitte die Unterschrift des Fahrers erfassen.','bad');return}
   if(submitting)return;
   submitting=true;document.getElementById('confirmPartial').disabled=true;document.getElementById('confirm').disabled=true;status(mode==='partial'?'Teilabholung wird übertragen …':'Abholung und POD werden übertragen …','info');
-  var body={token:token,pin:pin,loaderPin:pin,personalLoaderPin:pin,driverName:driver,licensePlate:plate,carrierName:carrier,speditionName:carrier,carrier:carrier,spedition:carrier,signatureDataUrl:sig,returnedEuroPallets:returned,enteredColliCount:entered,colliCount:entered,expectedColliCount:expected,colliConfirmed:expected>0?colliOk:true,colliCountConfirmed:expected>0?colliOk:true,pickupMode:mode,environment:env};
+  var body={token:token,pin:pin,loaderPin:pin,personalLoaderPin:pin,driverName:driver,licensePlate:plate,carrierName:carrier,speditionName:carrier,carrier:carrier,spedition:carrier,signatureDataUrl:sig,returnedEuroPallets:returned,enteredColliCount:entered,colliCount:entered,expectedColliCount:expected,colliConfirmed:expected>0?colliOk:true,colliCountConfirmed:expected>0?colliOk:true,pickupMode:mode,sealNumber:seal,containerSealNumber:seal,siegelnummer:seal,environment:env};
   request('pickup-confirm-v2',{method:'POST',body:JSON.stringify(body),timeout:90000}).then(function(data){
     submitting=false;
     var card=document.querySelector('.card');
@@ -326,6 +404,7 @@ form.addEventListener('submit',function(e){
     var podText=data&&data.podAzureSaved?(data.podArchiveSaved?'POD wurde sicher in ExportHUB und zusätzlich im geschützten Archiv gespeichert.':'POD wurde sicher in ExportHUB gespeichert. Die zusätzliche Archivkopie ist noch offen.'):'Abholung und Fahrerunterschrift wurden gespeichert. Der Archivstatus konnte nicht bestätigt werden.';card.innerHTML='<div class="success"><div class="icon">✓</div><h2>Abholung erfolgreich übertragen</h2><p>'+esc(podText)+'</p><div class="status ok">Die vollständige Abholung ist abgeschlossen. Dieses Fenster kann geschlossen werden.</div></div>';
   }).catch(function(err){
     submitting=false;document.getElementById('confirmPartial').disabled=false;document.getElementById('confirm').disabled=false;
+    if(err.code==='CONTAINER_SEAL_REQUIRED'||err.code==='CONTAINER_PHOTOS_REQUIRED'){status(q(err.message||err),'bad');return}
     if(err.code==='COLLI_MISMATCH'||err.code==='COLLI_REQUIRED'||err.code==='COLLI_EXPECTED_MISSING'||err.code==='COLLI_EXCEEDS_REMAINING'){colliOk=false;setDriverStepUnlocked(false);status('Die Colli-Anzahl wurde vom Server nicht akzeptiert. Bitte offene Restmenge prüfen und erneut bestätigen.','bad');return}
     status((err.status===401||err.status===403?'Verlader-PIN wurde vom Server nicht akzeptiert: ':'Abholung konnte nicht bestätigt werden: ')+q(err.message||err),'bad');
   });
