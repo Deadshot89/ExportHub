@@ -1,11 +1,45 @@
-name: RC1251 Frame Protection Live
+name: RC1251 Frame Protection
 on:
+  push:
+    branches: ['fix/rc1251-*']
+    paths:
+      - 'staticwebapp.config.json'
+      - 'staticwebapp.testservice.config.json'
+      - 'test/rc1088-release-hardening.test.mjs'
+      - '.github/workflows/rc1251-frame-protection.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'staticwebapp.config.json'
+      - 'staticwebapp.testservice.config.json'
+      - 'test/rc1088-release-hardening.test.mjs'
+      - '.github/workflows/rc1251-frame-protection.yml'
   workflow_run:
     workflows: ['ExportHUB RC1112 Drei-Umgebungen Deploy']
     types: [completed]
 jobs:
-  verify:
-    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
+  contract:
+    if: ${{ github.event_name != 'workflow_run' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: RC1251 Security regression
+        run: |
+          set -euo pipefail
+          node --test --test-name-pattern='Security' test/rc1088-release-hardening.test.mjs
+          node -e "for(const f of ['staticwebapp.config.json','staticwebapp.testservice.config.json']){const c=require('./'+f);if(c.globalHeaders?.['Content-Security-Policy']!==\"frame-ancestors 'none'\"||c.globalHeaders?.['X-Frame-Options']!=='DENY')process.exit(1)}"
+      - name: RC1251 Three-environment build
+        run: |
+          set -euo pipefail
+          node .github/rc1112/build-three-env.mjs
+          node .github/rc1121/verify-final-html.mjs
+  live:
+    if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
