@@ -1,3 +1,4 @@
+# RC1261 emergency redeploy trigger after complete MFA removal; no runtime logic change.
 name: ExportHUB RC1112 Drei-Umgebungen Deploy
 on:
   workflow_dispatch:
