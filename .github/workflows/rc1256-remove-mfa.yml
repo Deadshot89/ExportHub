@@ -1,0 +1,40 @@
+name: RC1256 Remove MFA
+
+on:
+  push:
+    branches: [rc1256-remove-mfa]
+  pull_request:
+    branches: [main]
+    paths:
+      - 'api/exporthub-auth/**'
+      - 'api/exporthub-state/**'
+      - 'api/shared/auth-store.js'
+      - 'api/shared/fast-auth-store.js'
+      - 'api/shared/user-policy.js'
+      - 'api/shared/mfa-totp.js'
+      - 'assets/rc1074-login-clean.js'
+      - '.github/rc1112/build-three-env.mjs'
+      - 'test/rc1252-*.test.mjs'
+      - '.github/workflows/rc1256-remove-mfa.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: RC1256 targeted auth regression
+        run: node --test --test-concurrency=1 test/rc1252-auth-mfa-flow.test.mjs test/rc1252-privileged-mfa.test.mjs
+      - name: Full Node regression
+        run: npm test
+      - name: Three-environment build
+        run: |
+          node .github/rc1112/build-three-env.mjs
+          node .github/rc1121/verify-final-html.mjs
