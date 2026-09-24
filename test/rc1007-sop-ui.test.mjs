@@ -54,11 +54,12 @@ test('CSS ist auf das SOP-Modul begrenzt und besitzt responsive Grundstruktur',(
 });
 
 test('RC1267: feste SOP-UI kann auf Englisch gerendert werden ohne Workflow-Daten zu verändern',()=>{
+  const statusBefore=catalog.documents[0].status;
   activeLocale='en';
   try{
     const html=ui.renderOverview({documents:catalog.documents,rights:{read:true,edit:true,admin:true}});
     for(const term of ['SOP handbook','Search SOP','All areas','All statuses','Valid from','Next review','Open']) assert.match(html,new RegExp(term,'i'),term+' fehlt');
     assert.match(html,/Released/i);
-    assert.equal(catalog.documents[0].status,'Freigegeben');
+    assert.equal(catalog.documents[0].status,statusBefore);
   } finally { activeLocale='de'; }
 });
