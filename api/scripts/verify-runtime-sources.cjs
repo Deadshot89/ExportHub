@@ -11,6 +11,7 @@ const runtimeSources = [
   'shared/graph-drive.js',
   'shared/pod-archive.js',
   'shared/container-document-store.js',
+  'shared/reference-folder-upload.js',
   'shared/customer-avis-pdf-security.js',
   'shared/customer-avis-document-content.js',
   'pickup-init/index.js',
