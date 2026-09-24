@@ -294,7 +294,6 @@ function createSignedSessionToken(session) {
     environment: lower(session && session.environment) === 'testservice' ? 'testservice' : '',
     authVersion: Number(session && session.authVersion || 0),
     mustChange: Boolean(session && session.mustChange),
-    mfaVerifiedAt: session && session.mfaVerifiedAt ? (Date.parse(session.mfaVerifiedAt) || Date.now()) : 0,
     deviceId: text(session && session.deviceId).slice(0, 120),
     iat: Date.parse(session && session.createdAt || '') || Date.now(),
     exp: Date.parse(session && session.expiresAt || '') || (Date.now() + SESSION_DAYS * 86400000),
@@ -330,7 +329,6 @@ function resolveSession(token, authDocument) {
       expiresAt: new Date(Number(signed.exp)).toISOString(),
       authVersion: Number(signed.authVersion || 0),
       mustChange: signed.mustChange === true,
-      mfaVerifiedAt: Number(signed.mfaVerifiedAt || 0) > 0 ? new Date(Number(signed.mfaVerifiedAt)).toISOString() : null,
       signedFallback: true,
       environment: lower(signed.environment) === 'testservice' ? 'testservice' : ''
     }
@@ -367,7 +365,7 @@ function bearer(req) {
   const match = String(value).match(/^Bearer\s+(.+)$/i);
   return match ? match[1].trim() : '';
 }
-async function createSession(user, deviceId, mustChange, options = {}) {
+async function createSession(user, deviceId, mustChange) {
   const session = {
     id: randomId('SES'),
     tokenHash: '',
@@ -378,8 +376,7 @@ async function createSession(user, deviceId, mustChange, options = {}) {
     createdAt: now(),
     expiresAt: new Date(Date.now() + SESSION_DAYS * 86400000).toISOString(),
     authVersion: Number(user.authVersion || 0),
-    mustChange: mustChange === true,
-    mfaVerifiedAt: options.mfaVerified === true ? now() : null
+    mustChange: mustChange === true
   };
   const token = createSignedSessionToken(session);
   session.tokenHash = tokenHash(token);
@@ -408,9 +405,6 @@ async function validateSession(req, options = {}) {
   const user = (team.users || []).find((u) => text(u.id) === text(session.userId) || usernameOf(u) === lower(session.username));
   if (!user || !isActive(user)) throw error('ACCOUNT_DISABLED', 'Das Benutzerkonto ist deaktiviert.', 403);
   if (Number(session.authVersion || 0) !== Number(user.authVersion || 0)) throw error('SESSION_REVOKED', 'Die Sitzung wurde beendet. Bitte erneut anmelden.', 401);
-  if (!testserviceE2E && isPrivilegedUser(user) && !session.mfaVerifiedAt && !options.allowUnverifiedMfa) {
-    throw error('MFA_REAUTH_REQUIRED', 'Für dieses Administratorkonto ist eine erneute Anmeldung mit zweitem Faktor erforderlich.', 401);
-  }
   if ((session.mustChange || user.mustChange) && !options.allowPasswordChange) throw error('PASSWORD_CHANGE_REQUIRED', 'Vor der Nutzung muss das Startpasswort geändert werden.', 403);
   return { token, session, user, team, teamEtag: teamDoc.etag };
 }
