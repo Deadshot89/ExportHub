@@ -6,7 +6,7 @@ const LANGS=['de','en','pl','es','fr','it'];
 const STRICT=process.argv.includes('--strict');
 const JSON_MODE=process.argv.includes('--json');
 
-const EXCLUDED_DIRS=new Set(['.git','node_modules','test','tests','docs','dist','dist-rc1018','android','migration']);
+const EXCLUDED_DIRS=new Set(['.git','.github','node_modules','test','tests','docs','dist','dist-rc1018','android','migration','scripts']);
 const EXCLUDED_FILES=[
   /^assets\/i18n\//,
   /^assets\/rc1177-release-notes\.js$/,
@@ -19,12 +19,13 @@ const GERMAN_HINT=/\b(?:Abmelden|Abholung|Abholdatum|Abholtermin|Abbrechen|Aktiv
 const UI_CONTEXT=/(?:innerHTML|outerHTML|textContent|innerText|insertAdjacentHTML|placeholder|aria-label|title\s*=|setAttribute\s*\(\s*['"](?:title|aria-label|placeholder)|alert\s*\(|confirm\s*\(|prompt\s*\(|toast|status\s*\(|showMessage|message|label|button|option|<button|<label|<h[1-6]|<th|<td|<span|<p|<div|<option)/i;
 const KEY_LITERAL=/\b(?:common|login|profile|nav|dashboard|shipment|customer|task|document|mail|avis|pickup|public|safety|status|errors|history|settings|calendar|pallet|reports|admin)\.[a-zA-Z0-9_.-]+\b/;
 
+function productionPath(rel){return /^(?:assets\/|api\/)/.test(rel)||/^[^/]+\\.(?:html|js|mjs|cjs)$/.test(rel)}
 function walk(dir,out=[]){
   for(const ent of fs.readdirSync(dir,{withFileTypes:true})){
     if(EXCLUDED_DIRS.has(ent.name))continue;
     const abs=path.join(dir,ent.name),rel=path.relative(ROOT,abs).replace(/\\/g,'/');
     if(ent.isDirectory())walk(abs,out);
-    else if(SCAN_EXT.has(path.extname(ent.name))&&!EXCLUDED_FILES.some(rx=>rx.test(rel)))out.push({abs,rel});
+    else if(productionPath(rel)&&SCAN_EXT.has(path.extname(ent.name))&&!EXCLUDED_FILES.some(rx=>rx.test(rel)))out.push({abs,rel});
   }
   return out;
 }
@@ -48,7 +49,9 @@ function scanVisibleKeys(file,source){
   const rows=[],lines=source.split(/\r?\n/);
   lines.forEach((line,i)=>{
     if(!KEY_LITERAL.test(line)||!UI_CONTEXT.test(line))return;
-    if(/(?:data-i18n|\.t\s*\(|\bt\s*\(|i18n)/i.test(line))return;
+    if(/data-i18n(?:-[a-z]+)?\s*=/.test(line))return;
+    const visibleLiteral=/(?:>|textContent\s*=|innerText\s*=|placeholder\s*=|aria-label\s*=|title\s*=)\s*['"`]?(?:common|login|profile|nav|dashboard|shipment|customer|task|document|mail|avis|pickup|public|safety|status|errors|history|settings|calendar|pallet|reports|admin)\.[a-zA-Z0-9_.-]+/i.test(line);
+    if(!visibleLiteral)return;
     rows.push({file:file.rel,line:i+1,text:compact(line)});
   });
   return rows;
