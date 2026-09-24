@@ -335,7 +335,11 @@ test('RC1255 P2: AVIS-Erinnerung läuft über TESTSERVICE UI, echte Mail, AVIS-L
   await expect(dialog).toBeVisible();
   const recipient=dialog.locator('[data-recipient]');
   await expect(recipient).toHaveValue(prepared.email);
+  const mailResponsePromise=page.waitForResponse(response=>response.url().includes('/api/avis-reminder-mail')&&response.request().method()==='POST',{timeout:45_000});
   await dialog.locator('[data-open]').click();
+  const mailResponse=await mailResponsePromise;
+  const mailDiagnostic=await mailResponse.json().catch(()=>({}));
+  console.log('RC1255 AVIS mail response',JSON.stringify({status:mailResponse.status(),code:String(mailDiagnostic&&mailDiagnostic.code||''),version:String(mailDiagnostic&&mailDiagnostic.version||'')}));
   const sendStatus=dialog.locator('[data-send-status]');
   await expect(sendStatus).toHaveAttribute('data-kind','ok',{timeout:45_000});
   await expect(sendStatus).toContainText(/Erinnerungsmail erfolgreich/i);
