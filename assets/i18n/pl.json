@@ -262,5 +262,12 @@
   "portal.manage": "zarządzać",
   "portal.adminHasBoth": "Global Admin automatycznie ma oba uprawnienia.",
   "portal.rightsSaved": "Uprawnienia portalu klienta zapisane.",
-  "portal.rightsSaveFailed": "Nie udało się zapisać uprawnień."
+  "portal.rightsSaveFailed": "Nie udało się zapisać uprawnień.",
+  "common.active": "Aktywny",
+  "common.inactive": "Nieaktywny",
+  "portal.portalName": "Nazwa portalu",
+  "portal.httpsAddress": "Adres HTTPS",
+  "portal.internalNote": "Notatka wewnętrzna",
+  "portal.loadFailed": "Nie udało się załadować portalu klienta.",
+  "portal.userRightsLoadFailed": "Nie udało się załadować uprawnień użytkownika."
 }
