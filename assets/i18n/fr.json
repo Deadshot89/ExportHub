@@ -864,5 +864,6 @@
   "container.requiredDocumentation": "Documentation conteneur obligatoire",
   "container.configHelp": "Pour le fret maritime, activez uniquement si un conteneur doit être documenté. L’enlèvement QR exige alors le numéro de scellé et 3 photos : conteneur chargé, numéro de conteneur vu de l’intérieur et conteneur scellé avec plaque/documents.",
   "stowplan.orientationCrosswise": "transversal",
-  "stowplan.orientationLengthwise": "longitudinal"
+  "stowplan.orientationLengthwise": "longitudinal",
+  "shipmentOverview.colli": "Colis : {{count}}"
 }
