@@ -6,6 +6,7 @@ const api=fs.readFileSync('api/customer-avis/index.js','utf8');
 const page=fs.readFileSync('customer-avis.html','utf8');
 const audit=fs.readFileSync('assets/rc1081-audit-history.js','utf8');
 const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
+const historyDe=JSON.parse(fs.readFileSync('assets/i18n/de.json','utf8'));
 
 test('RC1163: Lieferavis erlaubt Terminänderung bis zur tatsächlichen Abholung',()=>{
   assert.match(page,/value="'\+esc\(a\.date\|\|''\)\+'"/);
@@ -37,7 +38,7 @@ test('RC1163: Erstmeldung wird immer erfasst, unveränderte Wiederholung erzeugt
 test('RC1163: Historie zeigt alten und neuen Termin lesbar an',()=>{
   assert.match(audit,/x\.oldDate\|\|x\.newDate/);
   assert.match(audit,/field\('pickupAppointment'/);
-  assert.match(audit,/history\.field\.pickupAppointment/);
+  assert.equal(historyDe['history.field.pickupAppointment'],'Abholtermin');
   assert.match(audit,/x\.oldPlate\|\|x\.newPlate/);
 });
 
