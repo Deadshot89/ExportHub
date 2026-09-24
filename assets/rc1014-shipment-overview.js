@@ -395,7 +395,7 @@
   }
 
   function onRendered(){
-    if(Date.now()-lastMutationAt<300)return false;
+    if(Date.now()-lastMutationAt<750)return false;
     return scheduleEnhance();
   }
 
