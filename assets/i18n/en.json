@@ -211,5 +211,10 @@
   "reports.print": "Print report",
   "admin.users": "Users",
   "admin.rolesRights": "Roles and permissions",
-  "admin.sessions": "Sessions"
+  "admin.sessions": "Sessions",
+  "profile.badge": "PROFILE",
+  "profile.note": "Your profile defaults to German. A shipment's email language remains independent. Existing history entries keep the display name used at that time for traceability.",
+  "profile.saving": "Saving profile …",
+  "profile.saveFailed": "Save failed",
+  "profile.displayNameRequired": "The display name must not be empty."
 }
