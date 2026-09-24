@@ -586,7 +586,7 @@ jobs:
               "$base/api/avis-upload-mail-readiness"
           )"
           if [ "$status" != "200" ]; then cat "$response"; exit 1; fi
-          node -e "const fs=require('fs');const v=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));if(!v.ok||v.configured!==true||v.authenticated!==true||v.audienceOk!==true||v.environment!=='testservice'||v.recipient!=='DespatchNettetal@essentra.onmicrosoft.com')process.exit(1)" "$response"
+          node -e "const fs=require('fs');const v=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));if(!v.ok||v.configured!==true||v.authenticated!==true||v.audienceOk!==true||v.mailSendGranted!==true||v.environment!=='testservice'||v.recipient!=='DespatchNettetal@essentra.onmicrosoft.com')process.exit(1)" "$response"
 
       - name: Deploy ExportHUB production
         uses: Azure/static-web-apps-deploy@4d27395796ac319302594769cfe812bd207490b1
@@ -644,7 +644,7 @@ jobs:
               "$base/api/avis-upload-mail-readiness"
           )"
           if [ "$status" != "200" ]; then cat "$response"; exit 1; fi
-          node -e "const fs=require('fs');const v=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));if(!v.ok||v.configured!==true||v.authenticated!==true||v.audienceOk!==true||v.environment!=='production'||v.recipient!=='DespatchNettetal@essentra.onmicrosoft.com')process.exit(1)" "$response"
+          node -e "const fs=require('fs');const v=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));if(!v.ok||v.configured!==true||v.authenticated!==true||v.audienceOk!==true||v.mailSendGranted!==true||v.environment!=='production'||v.recipient!=='DespatchNettetal@essentra.onmicrosoft.com')process.exit(1)" "$response"
 
       - name: RC1233 QR-Abholung und POD-Ladelisten-Viewer live prüfen
         shell: bash
