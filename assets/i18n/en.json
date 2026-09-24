@@ -262,5 +262,12 @@
   "portal.manage": "manage",
   "portal.adminHasBoth": "Global Admin automatically has both permissions.",
   "portal.rightsSaved": "Customer portal permissions saved.",
-  "portal.rightsSaveFailed": "Permissions could not be saved."
+  "portal.rightsSaveFailed": "Permissions could not be saved.",
+  "common.active": "Active",
+  "common.inactive": "Inactive",
+  "portal.portalName": "Portal name",
+  "portal.httpsAddress": "HTTPS address",
+  "portal.internalNote": "Internal note",
+  "portal.loadFailed": "Customer portal could not be loaded.",
+  "portal.userRightsLoadFailed": "User permissions could not be loaded."
 }
