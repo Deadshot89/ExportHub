@@ -22,6 +22,14 @@ function isAdmin(user) {
   ));
 }
 
+function isPrivilegedUser(user) {
+  if (isAdmin(user)) return true;
+  const rights = user && user.rights && typeof user.rights === 'object' ? user.rights : {};
+  return Object.values(rights).some((right) => right && typeof right === 'object' && (
+    right.admin === true || right.functionAdmin === true || right.level === 'admin' || right.manage === true
+  ));
+}
+
 function normalizeCustomerPortalRights(value, admin) {
   const source = value && typeof value === 'object' ? value : {};
   const manage = admin || source.manage === true;
@@ -139,6 +147,8 @@ function publicUser(user, adminView = false) {
     active: u.active !== false,
     disabled: u.disabled === true,
     mustChange: u.mustChange === true,
+    mfaEnabled: Boolean(u.mfa && u.mfa.enabled === true),
+    mfaEnrolledAt: u.mfa && u.mfa.enabled === true ? (u.mfa.enrolledAt || null) : null,
     createdAt: u.createdAt || null,
     updatedAt: u.updatedAt || u._syncUpdatedAt || null
   };
@@ -179,6 +189,7 @@ module.exports = {
   normalizeCustomerPortalRights,
   dedupeUsers,
   isAdmin,
+  isPrivilegedUser,
   countAdmins,
   defaultRights,
   publicUser
