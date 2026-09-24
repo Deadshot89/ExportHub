@@ -6,6 +6,7 @@ import vm from 'node:vm';
 const runtime=fs.readFileSync('assets/rc1075-loader-pin-admin.js','utf8');
 const build=fs.readFileSync('.github/rc1048/build-three-env.mjs','utf8');
 const api=fs.readFileSync('api/loader-pins-admin/index.js','utf8');
+const i18nDe=JSON.parse(fs.readFileSync('assets/i18n/de.json','utf8'));
 
 test('RC1075: Verlader-PIN Verwaltung nutzt ausschließlich den geschützten Admin-Endpunkt',()=>{
   assert.match(runtime,/ENDPOINT='\/api\/loader-pins-admin'/);
@@ -19,7 +20,8 @@ test('RC1075: PIN-Verwaltung wird nur globalen Administratoren in Einstellungen 
   assert.match(runtime,/function globalAdmin\(\)/);
   assert.match(runtime,/function settingsVisible\(\)/);
   assert.match(runtime,/if\(!globalAdmin\(\)\|\|!settingsVisible\(\)\)/);
-  assert.match(runtime,/Persönliche vierstellige PINs für QR-Abholung und Location-Buchung verwalten/);
+  assert.match(runtime,/loaderPin\.subtitle/);
+  assert.equal(i18nDe['loaderPin.subtitle'],'Persönliche vierstellige PINs für QR-Abholung und Location-Buchung verwalten.');
   assert.match(api,/Nur globale Administratoren dürfen Verlader-PINs verwalten/);
 });
 
@@ -48,7 +50,7 @@ test('RC1075: PINs sind vierstellig und standardmäßig verdeckt',()=>{
   assert.equal(client.validPin('123'),false);
   assert.equal(client.validPin('12a4'),false);
   assert.match(runtime,/input\.type='password'/);
-  assert.match(runtime,/Anzeigen/);
+  assert.match(runtime,/loaderPin\.show/);
 });
 
 test('RC1075: finaler Release bindet Admin-UI nur in Produktion und TESTSERVICE ein',()=>{
@@ -73,9 +75,9 @@ test('RC1087: Verlader-PIN Änderungen werden serverseitig auditiert ohne PIN-We
 
 
 test('RC1087: fehlgeschlagenes Historien-Audit wird nach PIN-Änderungen sichtbar gemeldet',()=>{
-  assert.match(runtime,/function mutationStatus\(box,data,successMessage\)/);
+  assert.match(runtime,/function mutationStatus\(box,data,successKey\)/);
   assert.match(runtime,/data\.auditStored===false/);
-  assert.match(runtime,/Historieneintrag konnte nicht gespeichert werden/);
-  assert.match(runtime,/Fehlerdiagnose prüfen/);
+  assert.match(runtime,/loaderPin\.auditWarning/);
+  assert.match(i18nDe['loaderPin.auditWarning'],/Fehlerdiagnose prüfen/);
   assert.match(runtime,/data-kind="warning"/);
 });
