@@ -864,5 +864,6 @@
   "container.requiredDocumentation": "Dokumentacja kontenera obowiązkowa",
   "container.configHelp": "Dla frachtu morskiego włącz tylko wtedy, gdy kontener musi być udokumentowany. Odbiór QR wymaga wtedy numeru plomby i 3 zdjęć: załadowanego kontenera, numeru kontenera od wewnątrz oraz zaplombowanego kontenera z tablicą/dokumentami.",
   "stowplan.orientationCrosswise": "poprzecznie",
-  "stowplan.orientationLengthwise": "wzdłużnie"
+  "stowplan.orientationLengthwise": "wzdłużnie",
+  "shipmentOverview.colli": "Sztuki: {{count}}"
 }
