@@ -11,7 +11,7 @@ function tr(key,vars,language){try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.t=
 function lang(){try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.language==='function')return w.ExportHUBI18n.language()}catch(_){}return'de'}
 function locale(){return({de:'de-DE',en:'en-GB',pl:'pl-PL',es:'es-ES',fr:'fr-FR',it:'it-IT'})[lang()]||'de-DE'}
 function de(key,vars){return tr(key,vars,'de')}
-function escRe(v){return q(v).replace(/[.*+?^${}()|[\]\\]/g,'\\function low(v){return q(v).toLocaleLowerCase('de-DE')}
+function escRe(v){return q(v).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}
 function arr(v){return Array.isArray(v)?v:[]}')}
 function arr(v){return Array.isArray(v)?v:[]}
 function obj(v){return v&&typeof v==='object'&&!Array.isArray(v)}
