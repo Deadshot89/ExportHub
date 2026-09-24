@@ -89,7 +89,16 @@ async function azureTranslateBatch(items,source,fetchImpl=globalThis.fetch){
  const query=['api-version=3.0','from='+encodeURIComponent(source)].concat(targets.map(lang=>'to='+encodeURIComponent(lang))).join('&');
  const headers={'Content-Type':'application/json','Ocp-Apim-Subscription-Key':cfg.key,'X-ClientTraceId':crypto.randomUUID()};
  if(cfg.region)headers['Ocp-Apim-Subscription-Region']=cfg.region;
- const response=await fetchImpl(cfg.endpoint+'/translate?'+query,{method:'POST',headers,body:JSON.stringify(items.map(Text=>({Text})))});
+ const timeoutMs=Math.max(500,Math.min(10000,Number(process.env.EXPORTHUB_TRANSLATOR_TIMEOUT_MS||2500)||2500));
+ const controller=typeof AbortController!=='undefined'?new AbortController():null;
+ const timer=controller?setTimeout(()=>controller.abort(),timeoutMs):null;
+ let response;
+ try{
+  response=await fetchImpl(cfg.endpoint+'/translate?'+query,{method:'POST',headers,body:JSON.stringify(items.map(Text=>({Text}))),signal:controller&&controller.signal});
+ }catch(e){
+  if(e&&e.name==='AbortError')throw Object.assign(new Error('Übersetzungsdienst Timeout nach '+timeoutMs+' ms.'),{code:'TRANSLATOR_TIMEOUT'});
+  throw e
+ }finally{if(timer)clearTimeout(timer)}
  const raw=await response.text();let data;
  try{data=raw?JSON.parse(raw):[]}catch(_){data=[]}
  if(!response.ok)throw Object.assign(new Error('Übersetzungsdienst HTTP '+response.status),{code:'TRANSLATOR_HTTP_'+response.status,detail:data});
