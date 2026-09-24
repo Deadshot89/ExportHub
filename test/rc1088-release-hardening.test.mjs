@@ -42,7 +42,8 @@ test('RC1088 Rechte: serverseitige Global-Admin-Prüfungen verwenden die gemeins
   const company=read('api/shared/company-context.js');
   const policy=read('api/shared/user-policy.js');
   assert.match(policy,/GLOBAL_ADMIN_ROLES = new Set\(\['global admin','global administrator','globaler administrator','globaler admin','administrator','admin','vollzugriff'\]\)/);
-  assert.match(state,/const \{ isAdmin \} = require\('\.\.\/shared\/user-policy'\)/);
+  assert.match(state,/const \{ isAdmin, isPrivilegedUser \} = require\('\.\.\/shared\/user-policy'\)/);
+  assert.match(policy,/function isPrivilegedUser\(user\)/);
   assert.match(diagnostic,/const \{ isAdmin \} = require\('\.\.\/shared\/user-policy'\)/);
   assert.match(loader,/const \{ isAdmin \} = require\('\.\.\/shared\/user-policy'\)/);
   assert.match(company,/const \{ isAdmin: isGlobalAdmin \} = require\('\.\/user-policy'\)/);
