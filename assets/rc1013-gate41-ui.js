@@ -2,18 +2,19 @@
 'use strict';
 if(window.__EXPORTHUB_RC1013_GATE41_UI__)return;window.__EXPORTHUB_RC1013_GATE41_UI__=true;
 function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim();}
+function tr(key,vars){try{if(window.ExportHUBI18n&&typeof window.ExportHUBI18n.t==='function')return window.ExportHUBI18n.t(key,vars)}catch(_){}return key;}
 function num(v){var n=Number(String(v==null?'':v).replace(',','.').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?n:0;}
 function germanCountry(v){var s=q(v).toLowerCase();return s==='de'||s==='deutsch'||s==='deutschland'||s==='germany';}
 function diagnosticMessage(data){
   var d=data||{},country=q(d.country),pallets=num(d.pallets),weight=num(d.weight),kgPer=num(d.kgPer),base=num(d.base),origin=q(d.origin),destination=q(d.destination),total=q(d.total),message='',ok=false,national=germanCountry(country);
-  if(!origin||!destination)message='Gate41: Start- und Zielort müssen vollständig angegeben sein, bevor ein belastbarer Preis angezeigt werden kann.';
-  else if(!country)message='Gate41: Zielland fehlt. Die automatische Gate41-Berechnung ist derzeit nur für nationalen Versand innerhalb Deutschlands freigegeben.';
-  else if(!national)message='Gate41: Die automatische Versandkostenberechnung ist derzeit nur für nationalen Versand innerhalb Deutschlands freigegeben. Für '+country+' wird aktuell kein Gate41-Preis berechnet.';
-  else if(!(pallets>0))message='Gate41: Palettenanzahl fehlt oder ist 0.';
-  else if(!(weight>0))message='Gate41: Gesamtgewicht fehlt oder ist 0 kg.';
-  else if(kgPer>800)message='Gate41: Kein automatischer Grundtarif für mehr als 800 kg je Palette hinterlegt. Für diese nationale Sendung ist aktuell keine automatische Gate41-Berechnung möglich.';
-  else if(base>0){message='Gate41-Preis Deutschland berechnet'+(total?' · Gesamt: '+total:'')+'. Grundlage: '+pallets+' Palette(n), '+kgPer.toFixed(2)+' kg je Palette.';ok=true;}
-  else message='Gate41: Für Deutschland konnte trotz gültiger Paletten- und Gewichtsdaten kein Grundtarif berechnet werden. Berechnung aktualisieren; bleibt der Wert 0 €, bitte die Fehlerdiagnose öffnen.';
+  if(!origin||!destination)message=tr('gate41.missingLocations');
+  else if(!country)message=tr('gate41.missingCountry');
+  else if(!national)message=tr('gate41.international',{country:country});
+  else if(!(pallets>0))message=tr('gate41.palletsMissing');
+  else if(!(weight>0))message=tr('gate41.weightMissing');
+  else if(kgPer>800)message=tr('gate41.overweight');
+  else if(base>0){message=tr('gate41.calculated',{total:total?' · '+total:'',pallets:pallets,kg:kgPer.toFixed(2)});ok=true;}
+  else message=tr('gate41.noRate');
   return{message:message,ok:ok,national:national};
 }
 function field(name){return document.querySelector('#rc626Shipping [data-section="gate"][data-rc501-field="'+name+'"]');}
@@ -33,7 +34,7 @@ function applyNationalScope(national){
 function markUnavailable(result){
   if(result&&result.ok)return false;
   var total=document.getElementById('rc501GateTotal');
-  if(total&&q(total.textContent)!=='nicht berechenbar')total.textContent='nicht berechenbar';
+  if(total&&q(total.textContent)!==tr('gate41.unavailable'))total.textContent=tr('gate41.unavailable');
   var base=document.getElementById('rc501GateBase');
   if(base&&!(num(base.value)>0)&&base.value!=='')base.value='';
   return true;
@@ -58,7 +59,7 @@ function update(){
 }
 window.ExportHUBRC1041Gate41Diagnostics=Object.freeze({diagnosticMessage:diagnosticMessage,nationalOnly:true});
 var timer=0;function schedule(){clearTimeout(timer);timer=setTimeout(update,80);}
-window.addEventListener('click',schedule,true);window.addEventListener('input',schedule,true);window.addEventListener('change',schedule,true);['exporthub:ready','exporthub:rendered','exporthub:viewchange'].forEach(n=>window.addEventListener(n,schedule));
+window.addEventListener('click',schedule,true);window.addEventListener('input',schedule,true);window.addEventListener('change',schedule,true);['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:language-changed'].forEach(n=>window.addEventListener(n,schedule));
 if(window.MutationObserver){var mo=new MutationObserver(()=>{if(document.getElementById('rc626Shipping'))schedule();});mo.observe(document.documentElement,{subtree:true,childList:true});}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
 })();
