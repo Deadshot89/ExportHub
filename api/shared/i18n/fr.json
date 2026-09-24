@@ -179,5 +179,6 @@
   "api.avis.docType.invoice": "Facture / Commercial Invoice",
   "api.avis.docType.packing_list": "Liste de colisage",
   "api.avis.docType.other": "Autre",
-  "api.avis.attachment": "Pièce jointe"
+  "api.avis.attachment": "Pièce jointe",
+  "api.state.saveFailed": "Azure Storage n’a pas pu enregistrer l’état d’équipe : {{error}}"
 }
