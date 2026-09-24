@@ -1,17 +1,23 @@
-name: RC1253 Emergency MFA Production Deploy
+name: RC1254 Emergency MFA Production Deploy
 
 on:
   push:
     branches: [main]
     paths:
-      - '.github/workflows/rc1253-emergency-mfa-production.yml'
+      - '.github/workflows/rc1254-emergency-mfa-production.yml'
+      - 'assets/rc1074-login-clean.js'
+      - '.github/rc1112/build-three-env.mjs'
+      - 'test/rc1252-privileged-mfa.test.mjs'
+      - 'api/exporthub-auth/**'
+      - 'api/shared/auth-store.js'
+      - 'api/shared/fast-auth-store.js'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: exporthub-rc1253-emergency-mfa-production
+  group: exporthub-rc1254-emergency-mfa-production
   cancel-in-progress: true
 
 jobs:
@@ -26,47 +32,52 @@ jobs:
           node-version: '20'
           package-manager-cache: false
 
-      - name: RC1253 MFA-Vertrag prüfen
+      - name: RC1254 MFA-Vertrag prüfen
         shell: bash
         run: |
           set -euo pipefail
           node --test --test-concurrency=1 test/rc1252-auth-mfa-flow.test.mjs test/rc1252-privileged-mfa.test.mjs
           grep -q '__EXPORTHUB_RC1253_MFA_ENROLLMENT_UI__' assets/rc1074-login-clean.js
+          grep -q 'function rc1252Prepare(body)' assets/rc1074-login-clean.js
+          grep -q 'function rc1252HandleError(error)' assets/rc1074-login-clean.js
+          grep -q 'patchMfaLoginFlow' .github/rc1112/build-three-env.mjs
           grep -q 'mfaEnrollmentSecret' assets/rc1074-login-clean.js
           grep -q 'mfaEnrollmentUri' assets/rc1074-login-clean.js
           grep -q '6-stelliger Authenticator-Code' assets/rc1074-login-clean.js
 
-      - name: RC1253 Produktionspaket bauen
+      - name: RC1254 Produktionspaket bauen
         shell: bash
         run: |
           set -euo pipefail
           node .github/rc1112/build-three-env.mjs
           node .github/rc1121/verify-final-html.mjs
-          rm -rf .rc1253_production_app
-          mkdir -p .rc1253_production_app
-          cp dist-rc1112/pickup.html dist-rc1112/customer-avis.html dist-rc1112/location.html dist-rc1112/pod-notfall.html dist-rc1112/migration-recovery.html .rc1253_production_app/
-          cp dist-rc1112/production-version.js .rc1253_production_app/production-version.js
-          cp -R assets .rc1253_production_app/assets
-          cp -R dist-rc1112/assets/. .rc1253_production_app/assets/
-          cp staticwebapp.config.json .rc1253_production_app/staticwebapp.config.json
-          cp dist-rc1112/index.html .rc1253_production_app/index.html
-          test -s .rc1253_production_app/index.html
-          test -s .rc1253_production_app/assets/rc1074-login-clean.js
-          grep -q 'assets/rc1074-login-clean.js?v=1112' .rc1253_production_app/index.html
-          grep -q '__EXPORTHUB_RC1253_MFA_ENROLLMENT_UI__' .rc1253_production_app/assets/rc1074-login-clean.js
+          rm -rf .rc1254_production_app
+          mkdir -p .rc1254_production_app
+          cp dist-rc1112/pickup.html dist-rc1112/customer-avis.html dist-rc1112/location.html dist-rc1112/pod-notfall.html dist-rc1112/migration-recovery.html .rc1254_production_app/
+          cp dist-rc1112/production-version.js .rc1254_production_app/production-version.js
+          cp -R assets .rc1254_production_app/assets
+          cp -R dist-rc1112/assets/. .rc1254_production_app/assets/
+          cp staticwebapp.config.json .rc1254_production_app/staticwebapp.config.json
+          cp dist-rc1112/index.html .rc1254_production_app/index.html
+          test -s .rc1254_production_app/index.html
+          test -s .rc1254_production_app/assets/rc1074-login-clean.js
+          grep -q 'assets/rc1074-login-clean.js?v=1112' .rc1254_production_app/index.html
+          grep -q '__EXPORTHUB_RC1253_MFA_ENROLLMENT_UI__' .rc1254_production_app/assets/rc1074-login-clean.js
+          grep -q 'ExportHUBRC1252Mfa.prepare(body)' .rc1254_production_app/index.html
+          grep -q 'ExportHUBRC1252Mfa.handleError(e)' .rc1254_production_app/index.html
 
-      - name: RC1253 direkt nach Produktion deployen
+      - name: RC1254 direkt nach Produktion deployen
         uses: Azure/static-web-apps-deploy@4d27395796ac319302594769cfe812bd207490b1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_FOREST_0F315E310 }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: upload
-          app_location: .rc1253_production_app
+          app_location: .rc1254_production_app
           api_location: api
           output_location: ''
           skip_app_build: true
 
-      - name: RC1253 MFA-Runtime live prüfen
+      - name: RC1254 MFA-Runtime live prüfen
         shell: bash
         run: |
           set -euo pipefail
@@ -74,8 +85,8 @@ jobs:
           for attempt in {1..24}; do
             page="$(mktemp)"
             asset="$(mktemp)"
-            pc="$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1253=$GITHUB_SHA-$attempt" || true)"
-            ac="$(curl -sS -L -o "$asset" -w '%{http_code}' --max-time 20 "$base/assets/rc1074-login-clean.js?rc1253=$GITHUB_SHA-$attempt" || true)"
+            pc="$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1254=$GITHUB_SHA-$attempt" || true)"
+            ac="$(curl -sS -L -o "$asset" -w '%{http_code}' --max-time 20 "$base/assets/rc1074-login-clean.js?rc1254=$GITHUB_SHA-$attempt" || true)"
             if [ "$pc" = '200' ] && [ "$ac" = '200' ] \
               && grep -q 'assets/rc1074-login-clean.js?v=1112' "$page" \
               && grep -q '__EXPORTHUB_RC1253_MFA_ENROLLMENT_UI__' "$asset" \
@@ -83,11 +94,11 @@ jobs:
               && grep -q 'mfaEnrollmentUri' "$asset" \
               && grep -q '6-stelliger Authenticator-Code' "$asset"; then
               rm -f "$page" "$asset"
-              echo 'RC1253 MFA-Enrollment-Runtime ist live auf Produktion.'
+              echo 'RC1254 MFA-Enrollment-Runtime ist live auf Produktion.'
               exit 0
             fi
             rm -f "$page" "$asset"
             sleep 5
           done
-          echo 'RC1253 MFA-Enrollment-Runtime konnte live nicht bestätigt werden.' >&2
+          echo 'RC1254 MFA-Enrollment-Runtime konnte live nicht bestätigt werden.' >&2
           exit 1
