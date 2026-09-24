@@ -1,0 +1,26 @@
+name: RC1251 Frame Protection Live
+on:
+  workflow_run:
+    workflows: ['ExportHUB RC1112 Drei-Umgebungen Deploy']
+    types: [completed]
+jobs:
+  verify:
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Verify TESTSERVICE and PRODUCTION frame protection
+        shell: bash
+        run: |
+          set -euo pipefail
+          for base in \
+            'https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net' \
+            'https://wonderful-forest-0f315e310.7.azurestaticapps.net'; do
+            for route in / /pickup.html /customer-avis.html; do
+              headers="$(mktemp)"
+              curl -sS -D "$headers" -o /dev/null --max-time 20 "$base$route?rc1251=${{ github.event.workflow_run.head_sha }}"
+              grep -Eqi "^content-security-policy:[[:space:]]*frame-ancestors 'none'[[:space:]]*\\r?$" "$headers"
+              grep -Eqi '^x-frame-options:[[:space:]]*DENY[[:space:]]*\r?$' "$headers"
+              rm -f "$headers"
+            done
+          done
