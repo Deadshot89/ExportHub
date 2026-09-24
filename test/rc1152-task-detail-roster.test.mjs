@@ -96,6 +96,29 @@ test('RC1152: gezielte Altbereinigung läuft nur einmal und löscht spätere neu
   assert.ok(out.some(t=>t.id==='NEW-MANUAL'));
 });
 
+
+test('RC1266: fehlender Roster-Marker darf vorhandene manuelle Aufgaben nicht löschen',()=>{
+  const api=load(),state={
+    tasks:[{id:'KEEP-MANUAL',title:'Manuelle Aufgabe behalten',sourceType:'manual',status:'open',owner:'tobias'}],
+    _teamSyncMeta:{fields:{},tombstones:[]}
+  };
+  const out=api.prepareTasks(state.tasks,{companyId:'essentra',environment:'production',currentUser:{user:'tobias'},now:'2026-09-24T10:00:00+02:00',state,persist(next){state.tasks=next}});
+  assert.ok(out.some(t=>t.id==='KEEP-MANUAL'),'manuelle Aufgabe wurde fälschlich entfernt');
+  assert.ok(!state._teamSyncMeta.tombstones.some(t=>t.collection==='tasks'&&t.id==='KEEP-MANUAL'),'manuelle Aufgabe darf keinen Lösch-Tombstone bekommen');
+  assert.ok(out.some(t=>t.title==='Würth Industrie anmelden'),'Donnerstags-Aufgabe muss selbstheilend vorhanden sein');
+  assert.ok(out.some(t=>t.title==='Schweizer Kunden prüfen'),'Schweizer Bereich muss selbstheilend vorhanden sein');
+});
+
+test('RC1266: Benutzerkennung user und State-Kontext werden für Aufgaben übernommen',()=>{
+  const api=load(),state={companyId:'essentra',environment:'production',currentUser:{user:'tobias'},tasks:[],_teamSyncMeta:{fields:{},tombstones:[]}};
+  const out=api.prepareTasks(state.tasks,{currentUser:state.currentUser,now:'2026-09-24T10:00:00+02:00',state,persist(next){state.tasks=next}});
+  const managed=out.find(t=>t.title==='Würth Industrie anmelden');
+  assert.ok(managed);
+  assert.equal(managed.owner,'tobias');
+  assert.equal(managed.companyId,'essentra');
+  assert.equal(managed.environment,'production');
+});
+
 test('RC1152: Runtime enthält echte Aufgabenansicht statt Direktöffnung der Sendung',()=>{
   assert.match(runtimeSource,/function\s+openTaskDetail\s*\(/);
   assert.match(runtimeSource,/id='rc1152TaskDetail'|panel\.id='rc1152TaskDetail'/);
