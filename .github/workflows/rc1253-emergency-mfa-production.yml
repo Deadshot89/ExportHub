@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - '.github/workflows/rc1254-emergency-mfa-production.yml'
+      - '.github/workflows/rc1253-emergency-mfa-production.yml'
       - 'assets/rc1074-login-clean.js'
       - '.github/rc1112/build-three-env.mjs'
       - 'test/rc1252-privileged-mfa.test.mjs'
@@ -89,6 +89,8 @@ jobs:
             ac="$(curl -sS -L -o "$asset" -w '%{http_code}' --max-time 20 "$base/assets/rc1074-login-clean.js?rc1254=$GITHUB_SHA-$attempt" || true)"
             if [ "$pc" = '200' ] && [ "$ac" = '200' ] \
               && grep -q 'assets/rc1074-login-clean.js?v=1112' "$page" \
+              && grep -q 'ExportHUBRC1252Mfa.prepare(body)' "$page" \
+              && grep -q 'ExportHUBRC1252Mfa.handleError(e)' "$page" \
               && grep -q '__EXPORTHUB_RC1253_MFA_ENROLLMENT_UI__' "$asset" \
               && grep -q 'mfaEnrollmentSecret' "$asset" \
               && grep -q 'mfaEnrollmentUri' "$asset" \
