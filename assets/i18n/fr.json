@@ -211,5 +211,10 @@
   "reports.print": "Imprimer le rapport",
   "admin.users": "Utilisateurs",
   "admin.rolesRights": "Rôles et autorisations",
-  "admin.sessions": "Sessions"
+  "admin.sessions": "Sessions",
+  "profile.badge": "PROFIL",
+  "profile.note": "Le profil utilise l’allemand par défaut. La langue des e-mails d’une expédition reste indépendante. Les entrées d’historique existantes conservent le nom affiché utilisé à ce moment-là.",
+  "profile.saving": "Enregistrement du profil …",
+  "profile.saveFailed": "Échec de l’enregistrement",
+  "profile.displayNameRequired": "Le nom affiché ne doit pas être vide."
 }
