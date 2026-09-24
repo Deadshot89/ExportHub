@@ -7,6 +7,15 @@ import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
 const merge=require('../api/shared/merge.js');
 const source=fs.readFileSync('assets/rc1071-shipment-history.js','utf8');
+const historyDe=JSON.parse(fs.readFileSync('assets/i18n/de.json','utf8'));
+function historyI18n(){
+  return {
+    language(){return 'de'},
+    t(key,vars){let value=historyDe[key]||key;if(vars)for(const [name,v] of Object.entries(vars))value=value.replaceAll('{{'+name+'}}',String(v));return value},
+    formatDate(value,options){return new Intl.DateTimeFormat('de-DE',options||{}).format(value)}
+  };
+}
+
 const builder=fs.readFileSync('.github/rc1048/build-three-env.mjs','utf8');
 
 function runtime(shipment){
@@ -17,6 +26,7 @@ function runtime(shipment){
     addEventListener(){},getElementById(){return null},querySelector(){return null}
   };
   const window={
+    ExportHUBI18n:historyI18n(),
     __EXPORTHUB_GET_STATE__:()=>state,
     __EXPORTHUB_GET_CURRENT_USER__:()=>state.currentUser,
     ExportHUBClean:{state,queueSave(reason){calls.push(['queue',reason]);return true},flushSave(reason,opt){calls.push(['flush',reason,opt]);return Promise.resolve(true)}},
