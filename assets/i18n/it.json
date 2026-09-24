@@ -619,5 +619,8 @@
   "pickupCalendar.subtitle": "I ritiri fissi e le spedizioni registrate restano separati e vengono mostrati insieme in modo chiaro.",
   "pickupCalendar.updating": "Aggiornamento …",
   "pickupCalendar.error.fixedLoad": "Impossibile caricare i ritiri fissi.",
-  "pickupCalendar.error.fixedSave": "Impossibile salvare il ritiro fisso."
+  "pickupCalendar.error.fixedSave": "Impossibile salvare il ritiro fisso.",
+  "pickupCalendar.accessDeniedTitle": "Nessun diritto di lettura",
+  "pickupCalendar.accessDeniedText": "Il calendario ritiri non è abilitato per il tuo utente.",
+  "pickupCalendar.loadError": "Impossibile caricare il calendario."
 }
