@@ -91,5 +91,18 @@
   "api.pod.loadFailed": "Nie udało się załadować POD.",
   "api.common.postOnly": "Dozwolone jest tylko POST.",
   "api.auth.adminRequired": "Tylko administratorzy globalni mogą wykonać tę akcję.",
-  "api.auth.adminLocked": "Konto jest zablokowane i może je odblokować tylko administrator globalny."
+  "api.auth.adminLocked": "Konto jest zablokowane i może je odblokować tylko administrator globalny.",
+  "api.common.environmentInvalid": "Nieznane środowisko ExportHUB.",
+  "api.autofix.environmentMismatch": "Żądane środowisko diagnostyczne nie pasuje do strony internetowej.",
+  "api.autofix.sessionInvalid": "Sesja ExportHUB nie jest już ważna.",
+  "api.autofix.sessionRevoked": "Sesja ExportHUB została zakończona.",
+  "api.autofix.adminRequired": "Automatyczna naprawa jest dostępna tylko dla administratorów globalnych.",
+  "api.autofix.diagnosticNotFound": "Nie znaleziono wpisu diagnostycznego.",
+  "api.autofix.diagnosticConcurrent": "Wpis diagnostyczny został zmieniony równocześnie.",
+  "api.autofix.jobNotFound": "Nie znaleziono zadania autofix.",
+  "api.autofix.githubDispatchFailed": "Nie udało się uruchomić GitHub autofix (HTTP {{status}}).",
+  "api.autofix.githubTokenMissing": "Token GitHub autofix nie jest jeszcze skonfigurowany na serwerze.",
+  "api.autofix.disabledReason": "Automatyczna naprawa jest obecnie celowo wyłączona. Nie jest uruchamiane zewnętrzne zadanie AI.",
+  "api.autofix.diagnosticIdRequired": "Brak identyfikatora diagnostyki.",
+  "api.autofix.alreadyRunning": "Dla tego błędu trwa już automatyczna naprawa."
 }
