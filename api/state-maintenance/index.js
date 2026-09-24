@@ -13,6 +13,7 @@ const TEAM_BLOB=process.env.EXPORTHUB_STORAGE_BLOB||process.env.EXPORTHUB_STATE_
 const TEST_TEAM_BLOB=process.env.EXPORTHUB_TEST_STORAGE_BLOB||('testservice/'+String(TEAM_BLOB).replace(/^\/+/,'')); 
 const REPO='Deadshot89/ExportHub';
 const WORKFLOW='rc1137-state-compaction.yml';
+const BACKUP_WORKFLOW='rc1267-state-backup-lifecycle.yml';
 const OIDC_ISSUER='https://token.actions.githubusercontent.com';
 const OIDC_JWKS_URL='https://token.actions.githubusercontent.com/.well-known/jwks';
 const OIDC_AUDIENCE='exporthub-state-compaction';
@@ -73,8 +74,13 @@ async function githubOidcAuthorized(req){
   if(jose.alg!=='RS256'||!text(jose.kid))return false;
   const at=Math.floor(Date.now()/1000),aud=Array.isArray(claims.aud)?claims.aud:[claims.aud];
   if(claims.iss!==OIDC_ISSUER||!aud.includes(OIDC_AUDIENCE))return false;
-  if(claims.repository!==REPO||claims.ref!=='refs/heads/main'||claims.event_name!=='workflow_run')return false;
-  if(claims.workflow_ref!==REPO+'/.github/workflows/'+WORKFLOW+'@refs/heads/main')return false;
+  if(claims.repository!==REPO||claims.ref!=='refs/heads/main')return false;
+  const workflowRef=text(claims.workflow_ref),eventName=text(claims.event_name);
+  const maintenanceRef=REPO+'/.github/workflows/'+WORKFLOW+'@refs/heads/main';
+  const backupRef=REPO+'/.github/workflows/'+BACKUP_WORKFLOW+'@refs/heads/main';
+  const maintenanceAllowed=workflowRef===maintenanceRef&&eventName==='workflow_run';
+  const backupAllowed=workflowRef===backupRef&&(eventName==='schedule'||eventName==='workflow_dispatch');
+  if(!maintenanceAllowed&&!backupAllowed)return false;
   if(!Number(claims.exp)||Number(claims.exp)<=at-30)return false;
   if(Number(claims.nbf||0)>at+60||Number(claims.iat||0)>at+60||Number(claims.iat||0)<at-900)return false;
   if(!oidcCache.keys.length||oidcCache.expiresAt<Date.now()){
@@ -96,6 +102,21 @@ async function createVerifiedBackup(container,env,current,options={}){
  const readBack=await readBuffer(blob),readBackHash=crypto.createHash('sha256').update(readBack.buffer).digest('hex');
  if(!uploaded||!uploaded.etag||!properties||!properties.etag||storedHash!==hash||readBack.buffer.length!==bytes||readBackHash!==hash)throw error('BACKUP_VERIFY_FAILED','Das Sicherungsbackup konnte nicht vollständig zurückgelesen und verifiziert werden.',500);
  return{name,bytes,sha256:hash,readBackVerified:true};
+}
+function lifecycleBackupPrefix(env,tier){
+ const safeTier=lower(tier);
+ if(!['daily','monthly','yearly'].includes(safeTier))throw error('BACKUP_TIER_INVALID','Erlaubt sind daily, monthly und yearly.',400);
+ return recoveryPrefix(env)+'lifecycle/'+safeTier+'/';
+}
+async function createLifecycleBackup(container,env,current,tier){
+ const safeTier=lower(tier),prefix=lifecycleBackupPrefix(env,safeTier),stamp=now().replace(/[:.]/g,'-');
+ const raw=JSON.stringify(current),bytes=Buffer.byteLength(raw),hash=crypto.createHash('sha256').update(raw).digest('hex');
+ const name=prefix+'team-state-'+stamp+'.json',blob=container.getBlockBlobClient(name);
+ const uploaded=await blob.upload(raw,bytes,{blobHTTPHeaders:{blobContentType:'application/json; charset=utf-8'},conditions:{ifNoneMatch:'*'},metadata:{purpose:'rc1267-state-backup-lifecycle',tier:safeTier,environment:env,sha256:hash}});
+ const properties=await blob.getProperties(),storedHash=text(properties&&properties.metadata&&properties.metadata.sha256);
+ const readBack=await readBuffer(blob),readBackHash=crypto.createHash('sha256').update(readBack.buffer).digest('hex');
+ if(!uploaded||!uploaded.etag||!properties||!properties.etag||storedHash!==hash||readBack.buffer.length!==bytes||readBackHash!==hash)throw error('BACKUP_VERIFY_FAILED','Das Lifecycle-Backup konnte nicht vollständig zurückgelesen und verifiziert werden.',500);
+ return{ok:true,backup:true,environment:env,tier:safeTier,backupBlob:name,bytes,sha256:hash,backupReadBackVerified:true,revision:Number(current&&current.revision||0)};
 }
 async function runRestoreDrill(container,env,current){
  if(env!=='testservice')throw error('TESTSERVICE_ONLY','Der Restore-Drill ist ausschließlich im TESTSERVICE freigegeben.',403);
@@ -169,12 +190,16 @@ module.exports=async function(context,req){
   if(req.method!=='POST'){context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED'});return}
   if(!await githubOidcAuthorized(req))throw error('GLOBAL_ADMIN_OR_WORKFLOW_REQUIRED','RC1137 darf nur durch den signierten GitHub-Wartungsworkflow ausgeführt werden.',403);
   const payload=body(req),action=lower(payload.action),environment=environmentOf(req,payload);
-  if(action!=='preview'&&action!=='apply'&&action!=='migrate-testservice-documents'&&action!=='cleanup-pallet-20260921'&&action!=='restore-drill')throw error('ACTION_INVALID','Erlaubt sind preview, apply, migrate-testservice-documents, cleanup-pallet-20260921 und restore-drill.',400);
+  if(action!=='preview'&&action!=='apply'&&action!=='migrate-testservice-documents'&&action!=='cleanup-pallet-20260921'&&action!=='restore-drill'&&action!=='backup-snapshot')throw error('ACTION_INVALID','Erlaubt sind preview, apply, migrate-testservice-documents, cleanup-pallet-20260921, restore-drill und backup-snapshot.',400);
   if(action==='migrate-testservice-documents'&&environment!=='testservice')throw error('TESTSERVICE_ONLY','Die RC1138-Dokumentmigration ist ausschließlich im TESTSERVICE freigegeben.',403);
   if(action==='restore-drill'&&environment!=='testservice')throw error('TESTSERVICE_ONLY','Der RC1234-Restore-Drill ist ausschließlich im TESTSERVICE freigegeben.',403);
   if(action==='cleanup-pallet-20260921'&&environment!=='production')throw error('PRODUCTION_ONLY','Die RC1208-Palettenkonto-Bereinigung ist ausschließlich in Produktion freigegeben.',403);
   const container=service().getContainerClient(TEAM_CONTAINER),blob=container.getBlockBlobClient(teamBlobName(environment));
   const currentRead=await readJson(blob),current=currentRead.value;
+  if(action==='backup-snapshot'){
+   context.res=json(200,await createLifecycleBackup(container,environment,current,payload.tier));
+   return;
+  }
   if(action==='restore-drill'){
    context.res=json(200,await runRestoreDrill(container,environment,current));
    return;
