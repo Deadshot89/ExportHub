@@ -7,6 +7,7 @@ w.__EXPORTHUB_RC1166_AVIS_REMINDER__=true;
 var timer=0,dialog=null;
 function q(v){return String(v==null?'':v).trim()}
 function low(v){return q(v).toLocaleLowerCase('de-DE')}
+function normalizeLanguage(v){var m=low(v).replace('_','-').match(/^(de|en|pl|es|fr|it)(?:-|$)/);return m?m[1]:'de'}
 function arr(v){return Array.isArray(v)?v:[]}
 function esc(v){return q(v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function state(){try{if(typeof w.__EXPORTHUB_GET_STATE__==='function')return w.__EXPORTHUB_GET_STATE__()||{}}catch(_){}return w.ExportHUBClean&&w.ExportHUBClean.state||w.appState||{}}
@@ -85,21 +86,50 @@ function avisLink(sh){
  return''
 }
 function localizedLink(url,lang){
- try{var u=new URL(url,w.location&&w.location.href||'https://exporthub.invalid/');u.searchParams.set('lang',lang==='en'?'en':'de');return u.toString()}catch(_){return url}
+ lang=normalizeLanguage(lang);
+ try{var u=new URL(url,w.location&&w.location.href||'https://exporthub.invalid/');u.searchParams.set('lang',lang);return u.toString()}catch(_){return url}
 }
 function subject(sh,target,lang){
- var ref=refOf(sh);
- if(lang==='en')return (target==='carrier'?'Reminder – collection notice ':'Reminder – shipment notice ')+ref;
- return (target==='carrier'?'Erinnerung – Lieferavis Abholung ':'Erinnerung – Lieferavis ')+ref
+ var ref=refOf(sh);lang=normalizeLanguage(lang);
+ var prefix={
+  de:{carrier:'Erinnerung – Lieferavis Abholung ',customer:'Erinnerung – Lieferavis '},
+  en:{carrier:'Reminder – collection notice ',customer:'Reminder – shipment notice '},
+  pl:{carrier:'Przypomnienie – awizo odbioru ',customer:'Przypomnienie – awizo wysyłki '},
+  es:{carrier:'Recordatorio – aviso de recogida ',customer:'Recordatorio – aviso de envío '},
+  fr:{carrier:'Rappel – avis d’enlèvement ',customer:'Rappel – avis d’expédition '},
+  it:{carrier:'Promemoria – avviso di ritiro ',customer:'Promemoria – avviso di spedizione '}
+ }[lang];
+ return prefix[target==='carrier'?'carrier':'customer']+ref
 }
 function body(sh,target,lang,url){
- var ref=refOf(sh),u=localizedLink(url,lang);
- if(lang==='en'){
-  if(target==='carrier')return 'Dear Sir or Madam,\n\nthis is a reminder for the digital collection notice for shipment '+ref+'.\n\nPlease use the link below to check or update the planned pickup date, time window and vehicle licence plate:\n'+u+'\n\nNo separate confirmation by email is required.\n\nKind regards';
-  return 'Dear Sir or Madam,\n\nthis is a reminder for the digital shipment notice for reference '+ref+'.\n\nPlease use the following link to review the released shipment documents and check or update the planned pickup details:\n'+u+'\n\nThank you.\n\nKind regards'
- }
- if(target==='carrier')return 'Sehr geehrte Damen und Herren,\n\nhiermit erinnern wir an das digitale Lieferavis zur Abholung der Sendung '+ref+'.\n\nBitte prüfen bzw. aktualisieren Sie über den folgenden Link Abholdatum, Zeitfenster und – sofern bekannt – das Kennzeichen des Abholfahrzeugs:\n'+u+'\n\nEine zusätzliche Bestätigung per E-Mail ist nicht erforderlich.\n\nMit freundlichen Grüßen';
- return 'Sehr geehrte Damen und Herren,\n\nhiermit erinnern wir an das digitale Lieferavis zur Sendung '+ref+'.\n\nBitte nutzen Sie den folgenden Link, um die freigegebenen Sendungsunterlagen einzusehen und die geplanten Abholdaten zu prüfen bzw. zu aktualisieren:\n'+u+'\n\nVielen Dank.\n\nMit freundlichen Grüßen'
+ var ref=refOf(sh);lang=normalizeLanguage(lang);target=target==='carrier'?'carrier':'customer';var u=localizedLink(url,lang);
+ var templates={
+  de:{
+   carrier:'Sehr geehrte Damen und Herren,\n\nhiermit erinnern wir an das digitale Lieferavis zur Abholung der Sendung {{ref}}.\n\nBitte prüfen bzw. aktualisieren Sie über den folgenden Link Abholdatum, Zeitfenster und – sofern bekannt – das Kennzeichen des Abholfahrzeugs:\n{{url}}\n\nEine zusätzliche Bestätigung per E-Mail ist nicht erforderlich.\n\nMit freundlichen Grüßen',
+   customer:'Sehr geehrte Damen und Herren,\n\nhiermit erinnern wir an das digitale Lieferavis zur Sendung {{ref}}.\n\nBitte nutzen Sie den folgenden Link, um die freigegebenen Sendungsunterlagen einzusehen und die geplanten Abholdaten zu prüfen bzw. zu aktualisieren:\n{{url}}\n\nVielen Dank.\n\nMit freundlichen Grüßen'
+  },
+  en:{
+   carrier:'Dear Sir or Madam,\n\nthis is a reminder for the digital collection notice for shipment {{ref}}.\n\nPlease use the link below to check or update the planned pickup date, time window and vehicle licence plate:\n{{url}}\n\nNo separate confirmation by email is required.\n\nKind regards',
+   customer:'Dear Sir or Madam,\n\nthis is a reminder for the digital shipment notice for reference {{ref}}.\n\nPlease use the following link to review the released shipment documents and check or update the planned pickup details:\n{{url}}\n\nThank you.\n\nKind regards'
+  },
+  pl:{
+   carrier:'Szanowni Państwo,\n\nprzypominamy o cyfrowym awizo odbioru przesyłki {{ref}}.\n\nProsimy użyć poniższego linku, aby sprawdzić lub zaktualizować datę odbioru, przedział czasowy oraz – jeśli jest znany – numer rejestracyjny pojazdu:\n{{url}}\n\nDodatkowe potwierdzenie e-mailem nie jest wymagane.\n\nZ poważaniem',
+   customer:'Szanowni Państwo,\n\nprzypominamy o cyfrowym awizo przesyłki o numerze referencyjnym {{ref}}.\n\nProsimy użyć poniższego linku, aby przejrzeć udostępnione dokumenty wysyłkowe oraz sprawdzić lub zaktualizować planowane dane odbioru:\n{{url}}\n\nDziękujemy.\n\nZ poważaniem'
+  },
+  es:{
+   carrier:'Estimados señores:\n\nLes recordamos el aviso digital de recogida del envío {{ref}}.\n\nUtilicen el siguiente enlace para comprobar o actualizar la fecha de recogida, la franja horaria y, si se conoce, la matrícula del vehículo:\n{{url}}\n\nNo es necesaria una confirmación adicional por correo electrónico.\n\nAtentamente',
+   customer:'Estimados señores:\n\nLes recordamos el aviso digital del envío con referencia {{ref}}.\n\nUtilicen el siguiente enlace para consultar los documentos de envío disponibles y comprobar o actualizar los datos previstos de recogida:\n{{url}}\n\nMuchas gracias.\n\nAtentamente'
+  },
+  fr:{
+   carrier:'Madame, Monsieur,\n\nNous vous rappelons l’avis numérique d’enlèvement de l’expédition {{ref}}.\n\nVeuillez utiliser le lien ci-dessous pour vérifier ou mettre à jour la date d’enlèvement, le créneau horaire et, si elle est connue, l’immatriculation du véhicule :\n{{url}}\n\nAucune confirmation supplémentaire par e-mail n’est nécessaire.\n\nCordialement',
+   customer:'Madame, Monsieur,\n\nNous vous rappelons l’avis numérique de l’expédition portant la référence {{ref}}.\n\nVeuillez utiliser le lien ci-dessous pour consulter les documents d’expédition disponibles et vérifier ou mettre à jour les informations d’enlèvement prévues :\n{{url}}\n\nMerci.\n\nCordialement'
+  },
+  it:{
+   carrier:'Gentili Signore e Signori,\n\nvi ricordiamo l’avviso digitale di ritiro della spedizione {{ref}}.\n\nUtilizzate il seguente link per verificare o aggiornare la data di ritiro, la fascia oraria e, se nota, la targa del veicolo:\n{{url}}\n\nNon è necessaria un’ulteriore conferma via e-mail.\n\nCordiali saluti',
+   customer:'Gentili Signore e Signori,\n\nvi ricordiamo l’avviso digitale della spedizione con riferimento {{ref}}.\n\nUtilizzate il seguente link per consultare i documenti di spedizione disponibili e verificare o aggiornare i dati di ritiro pianificati:\n{{url}}\n\nGrazie.\n\nCordiali saluti'
+  }
+ };
+ return templates[lang][target].replace(/\{\{ref\}\}/g,ref).replace(/\{\{url\}\}/g,u)
 }
 function authToken(){
  try{var rt=w.ExportHUBClean&&w.ExportHUBClean.runtime||{},t=q(rt.authToken||rt.sessionToken);if(t)return t}catch(_){}
@@ -112,7 +142,7 @@ function apiHeaders(){
  return{'Content-Type':'application/json','Accept':'application/json','Cache-Control':'no-cache','X-ExportHUB-Token':t,'X-ExportHUB-Session':t,'Authorization':'Bearer '+t,'X-ExportHUB-Environment':environmentName()}
 }
 async function sendReminder(sh,email,target,lang,url){
- var response=await w.fetch('/api/avis-reminder-mail',{method:'POST',credentials:'same-origin',cache:'no-store',headers:apiHeaders(),body:JSON.stringify({shipmentId:idOf(sh),reference:refOf(sh),recipient:q(email),target:target==='carrier'?'carrier':'customer',language:lang==='en'?'en':'de',avisUrl:url})});
+ var response=await w.fetch('/api/avis-reminder-mail',{method:'POST',credentials:'same-origin',cache:'no-store',headers:apiHeaders(),body:JSON.stringify({shipmentId:idOf(sh),reference:refOf(sh),recipient:q(email),target:target==='carrier'?'carrier':'customer',language:normalizeLanguage(lang),avisUrl:url})});
  var raw=await response.text(),data={};try{data=raw?JSON.parse(raw):{}}catch(_){data={message:raw}}
  if(!response.ok||data.ok===false){var e=new Error(q(data.message)||('HTTP '+response.status));e.code=q(data.code);throw e}
  return data
@@ -127,11 +157,11 @@ function closeDialog(){if(dialog&&dialog.parentNode)dialog.parentNode.removeChil
 function options(list){return list.map(function(x){return'<option value="'+esc(x.email)+'">'+esc((x.name?x.name+' · ':'')+x.email+(x.source?' · '+x.source:''))+'</option>'}).join('')}
 function openDialog(sh){
  closeDialog();var url=avisLink(sh);if(!url)return false;ensureStyle();
- dialog=d.createElement('div');dialog.className='rc1166-dialog';dialog.id='rc1166AvisReminderDialog';dialog.innerHTML='<section class="rc1166-card" role="dialog" aria-modal="true" aria-labelledby="rc1166Title"><h3 id="rc1166Title">Avis-Erinnerung</h3><div class="rc1166-note">Referenz '+esc(refOf(sh))+' · der sichere Lieferavis-Link wird automatisch eingefügt.</div><div class="rc1166-grid"><label>Empfängergruppe<select data-target><option value="customer">Kunde</option><option value="carrier">Spedition</option></select></label><label>Sprache<select data-lang><option value="de">Deutsch</option><option value="en">English</option></select></label></div><label>Empfänger<select data-recipient></select></label><div data-warning></div><label>Mailtext<textarea data-body readonly></textarea></label><div data-send-status class="rc1207-send-status" hidden></div><div class="rc1166-actions"><button type="button" class="ghost" data-close>Abbrechen</button><button type="button" class="btn rc1166-reminder-btn" data-open>Erinnerungsmail senden</button></div><p class="rc1166-note">Die Erinnerung wird direkt über ExportHUB versendet und anschließend in der Sendungshistorie protokolliert.</p></section>';
+ dialog=d.createElement('div');dialog.className='rc1166-dialog';dialog.id='rc1166AvisReminderDialog';dialog.innerHTML='<section class="rc1166-card" role="dialog" aria-modal="true" aria-labelledby="rc1166Title"><h3 id="rc1166Title">Avis-Erinnerung</h3><div class="rc1166-note">Referenz '+esc(refOf(sh))+' · der sichere Lieferavis-Link wird automatisch eingefügt.</div><div class="rc1166-grid"><label>Empfängergruppe<select data-target><option value="customer">Kunde</option><option value="carrier">Spedition</option></select></label><label>Sprache<select data-lang><option value="de">Deutsch</option><option value="en">English</option><option value="pl">Polski</option><option value="es">Español</option><option value="fr">Français</option><option value="it">Italiano</option></select></label></div><label>Empfänger<select data-recipient></select></label><div data-warning></div><label>Mailtext<textarea data-body readonly></textarea></label><div data-send-status class="rc1207-send-status" hidden></div><div class="rc1166-actions"><button type="button" class="ghost" data-close>Abbrechen</button><button type="button" class="btn rc1166-reminder-btn" data-open>Erinnerungsmail senden</button></div><p class="rc1166-note">Die Erinnerung wird direkt über ExportHUB versendet und anschließend in der Sendungshistorie protokolliert.</p></section>';
  d.body.appendChild(dialog);
  var target=dialog.querySelector('[data-target]'),lang=dialog.querySelector('[data-lang]'),recipient=dialog.querySelector('[data-recipient]'),text=dialog.querySelector('[data-body]'),warning=dialog.querySelector('[data-warning]'),open=dialog.querySelector('[data-open]'),sendStatus=dialog.querySelector('[data-send-status]');
  function refresh(){
-  var t=target.value==='carrier'?'carrier':'customer',l=lang.value==='en'?'en':'de',list=shipmentContacts(sh,t),previous=recipient.value;
+  var t=target.value==='carrier'?'carrier':'customer',l=normalizeLanguage(lang.value),list=shipmentContacts(sh,t),previous=recipient.value;
   recipient.innerHTML=options(list);if(previous&&list.some(function(x){return x.email===previous}))recipient.value=previous;
   text.value=body(sh,t,l,url);var has=!!recipient.value;open.disabled=!has;warning.innerHTML=has?'':'<div class="rc1166-warning">Für '+(t==='carrier'?'die Spedition':'den Kunden')+' ist noch kein E-Mail-Empfänger hinterlegt.</div>'
  }
@@ -139,7 +169,7 @@ function openDialog(sh){
  dialog.querySelector('[data-close]').addEventListener('click',closeDialog);
  dialog.addEventListener('click',function(e){if(e.target===dialog)closeDialog()});
  open.addEventListener('click',async function(){
-  var email=q(recipient.value);if(!email)return;var t=target.value==='carrier'?'carrier':'customer',l=lang.value==='en'?'en':'de',oldLabel=q(open.textContent);
+  var email=q(recipient.value);if(!email)return;var t=target.value==='carrier'?'carrier':'customer',l=normalizeLanguage(lang.value),oldLabel=q(open.textContent);
   open.disabled=true;open.textContent='Wird gesendet …';sendStatus.hidden=true;sendStatus.textContent='';sendStatus.removeAttribute('data-kind');
   try{
    var result=await sendReminder(sh,email,t,l,url),event={id:q(result.historyId),at:q(result.sentAt)||new Date().toISOString(),type:'mail-sent',label:'Avis-Erinnerung versendet',details:{reference:refOf(sh),to:email,subject:q(result.subject),mailType:'avis-reminder',target:t,language:l}};
