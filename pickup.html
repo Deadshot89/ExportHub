@@ -53,7 +53,6 @@ button:focus-visible,input:focus-visible{outline:3px solid #1d4ed8;outline-offse
 <section class="card">
 <div class="brand"><div class="logo">EH</div><div><h1>Abholung bestätigen</h1><p>ExportHUB · digitaler Abliefernachweis</p></div></div>
 <div id="status" class="status info" role="status" aria-live="polite" aria-atomic="true">Sendungsdaten werden geladen …</div>
-<div id="details"></div>
 
 <form id="form" hidden>
 <div class="pickup-stepbar" aria-label="Abholablauf">
@@ -63,16 +62,18 @@ button:focus-visible,input:focus-visible{outline:3px solid #1d4ed8;outline-offse
 </div>
 
 <section id="colliSection" class="section">
-<h2>Collis bestätigen <span class="help">(Pflicht vor den Fahrerdaten)</span></h2>
+<h2>Colli-Prüfung <span class="help">(zuerst erforderlich)</span></h2>
 <div class="info-grid">
 <div class="box"><span>Gesamtanzahl</span><b id="expectedColli">—</b></div>
 <div class="box"><span>Bereits abgeholt</span><b id="collectedColli">0</b></div>
 <div class="box" style="grid-column:1/-1"><span>Noch offen</span><b id="remainingColli">—</b></div>
 </div>
-<label>Auf diesem LKW verladenen Colli<input id="colli" type="number" min="1" step="1" inputmode="numeric"></label>
+<label>Auf diesem LKW verladenen Colli<input id="colli" type="number" min="1" step="1" inputmode="numeric" autofocus></label>
 <button id="checkColli" type="button">Collis bestätigen und weiter</button>
 <div id="colliResult" class="help">Bitte zuerst die verladenen Collis bestätigen. Danach werden die Fahrerdaten freigeschaltet.</div>
 </section>
+
+<div id="details"></div>
 
 <div id="driverStep" hidden>
 <section class="section">
@@ -229,13 +230,14 @@ function show(data){
   if(confirmed(data)){status('Diese Abholung wurde bereits bestätigt.','ok');form.hidden=true;return}
   var ref=q(data.reference||data.ref||data.shipmentRef)||'—';
   var customer=q(deep(data,['customerName','recipientCustomerName','consigneeName','companyName','kundenname']))||'—';
-  var address=q(deep(data,['recipientAddress','deliveryAddress','shipToAddress','consigneeAddress','formattedAddress','fullAddress','addressText']));
+  var address=q(deep(data,['recipientAddress','deliveryAddress','shipToAddress','destinationAddress','consigneeAddress','formattedAddress','fullAddress','addressText','address']));
+  if(/^[-–—]+$/.test(address)||/^(?:n\/?a|none|null|undefined)$/i.test(address))address='';
   var carrier=q(deep(data,['carrierName','speditionName','carrier','spedition']));
   expected=expectedCollis(data);
   collectedBefore=Math.max(0,Math.round(Number(deep(data,['collectedPickupCollis','pickupCollectedColliCount']))||0));
   var explicitRemaining=deep(data,['remainingPickupCollis','pickupRemainingColliCount']);
   remainingBefore=colliNumber(explicitRemaining)||Math.max(0,expected-collectedBefore);
-  details.innerHTML='<div class="info-grid"><div class="box"><span>Sendungsreferenz</span><b>'+esc(ref)+'</b></div><div class="box"><span>Kunde</span><b>'+esc(customer)+'</b></div>'+(address?'<div class="box" style="grid-column:1/-1"><span>Lieferadresse</span><b>'+esc(address)+'</b></div>':'')+'</div>';
+  details.innerHTML='<div class="info-grid"><div class="box"><span>Sendungsreferenz</span><b>'+esc(ref)+'</b></div><div class="box"><span>Kunde</span><b>'+esc(customer)+'</b></div><div class="box" style="grid-column:1/-1"><span>Lieferadresse</span><b>'+esc(address||'Adresse nicht verfügbar')+'</b></div></div>';
   if(carrier)document.getElementById('carrier').value=carrier;
   document.getElementById('colliSection').hidden=false;
   document.getElementById('expectedColli').textContent=expected>0?String(expected):'Fehlt';
@@ -246,6 +248,7 @@ function show(data){
   form.hidden=false;
   if(expected>0){
     status('Sendungsdaten geladen. Bitte jetzt zuerst die '+remainingBefore+' offenen Collis bestätigen.','info');
+    setTimeout(function(){var el=document.getElementById('colli');if(el&&!el.disabled){try{el.focus({preventScroll:false})}catch(_){el.focus()}}},0);
   }else{
     blockMissingColli();
     status('Sendungsdaten geladen, aber die erwartete Colli-Anzahl fehlt. Abholung ist gesperrt.','bad');

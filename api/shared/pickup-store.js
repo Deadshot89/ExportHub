@@ -26,6 +26,64 @@ function clone(v){return v==null?v:JSON.parse(JSON.stringify(v))}
 function safeName(v){return String(v||'POD').replace(/[^a-zA-Z0-9._ -]/g,'_').replace(/\s+/g,'_').slice(0,100)}
 function first(source,names){for(const name of names){const v=source&&source[name];if(v!==undefined&&v!==null&&String(v).trim()!=='')return v}return''}
 function sanitizeText(v,max=180){return String(v==null?'':v).replace(/[\u0000-\u001f\u007f]/g,' ').replace(/\s+/g,' ').trim().slice(0,max)}
+function addressToken(v,max=1000){
+ const out=sanitizeText(v,max);
+ if(!out||/^[-–—]+$/.test(out)||/^(?:n\/?a|none|null|undefined)$/i.test(out))return'';
+ return out;
+}
+function addressObject(source){
+ if(source==null)return'';
+ if(typeof source==='string'||typeof source==='number')return addressToken(source);
+ if(typeof source!=='object')return'';
+ for(const key of ['recipientAddress','deliveryAddress','shipToAddress','destinationAddress','consigneeAddress','formattedAddress','fullAddress','addressText','address']){
+  const value=source[key];
+  if(typeof value==='string'||typeof value==='number'){const out=addressToken(value);if(out)return out}
+ }
+ const street=addressToken(source.street||source.strasse||source.streetName||source.addressLine1||source.address1,300),
+       zip=addressToken(source.zip||source.postalCode||source.postcode||source.plz,80),
+       city=addressToken(source.city||source.ort||source.town||source.place,180),
+       country=addressToken(source.country||source.land||source.countryName,120),
+       locality=[zip,city].filter(Boolean).join(' ');
+ return[street,locality,country].filter(Boolean).join(', ');
+}
+function addressFromSource(source){
+ const direct=addressObject(source);if(direct)return direct;
+ if(!source||typeof source!=='object')return'';
+ for(const key of ['locationData','siteData','location','selectedLocation','deliveryLocation','shippingLocation','destination','shipToLocation','recipientLocation','addressData']){
+  const out=addressObject(source[key]);if(out)return out
+ }
+ return'';
+}
+function normKey(v){return String(v==null?'':v).trim().toLowerCase()}
+function sameKey(source,values,fields){
+ if(!source||typeof source!=='object')return false;
+ const wanted=values.map(normKey).filter(Boolean);if(!wanted.length)return false;
+ return fields.some(function(field){const value=normKey(source[field]);return value&&wanted.includes(value)})
+}
+async function resolveShipmentAddress(record,environment='production'){
+ const direct=addressFromSource(record);if(direct)return direct;
+ const c=await clients(environment),blob=c.team.getBlockBlobClient(teamBlobName(c.environment)),loaded=await readJson(blob,null),doc=loaded.value||{},state=doc.state&&typeof doc.state==='object'?doc.state:doc;
+ const shipments=Array.isArray(state.shipments)?state.shipments:[],sid=String(record&&record.shipmentId||'').trim(),ref=String(record&&record.reference||record&&record.ref||'').trim().toUpperCase();
+ const shipment=shipments.find(function(x){return(sid&&String(x&& (x.id||x.shipmentId)||'').trim()===sid)||(ref&&String(x&& (x.reference||x.ref)||'').trim().toUpperCase()===ref)})||null;
+ const shipmentAddress=addressFromSource(shipment);if(shipmentAddress)return shipmentAddress;
+ const customers=Array.isArray(state.customers)?state.customers:[],ids=[
+  shipment&&shipment.customerId,shipment&&shipment.customerAccount,shipment&&shipment.customerNumber,shipment&&shipment.kundennummer,
+  record&&record.customerId,record&&record.customerAccount,record&&record.customerNumber
+ ],names=[shipment&&shipment.customerName,record&&record.customer].map(normKey).filter(Boolean);
+ let customer=customers.find(function(x){return sameKey(x,ids,['id','customerId','account','customerNumber','kundennummer'])})||null;
+ if(!customer&&names.length)customer=customers.find(function(x){return names.includes(normKey(x&& (x.name||x.customerName)))})||null;
+ if(!customer)return'';
+ const locIds=[
+  shipment&&shipment.locationId,shipment&&shipment.selectedLocationId,shipment&&shipment.siteId,shipment&&shipment.destinationId,
+  shipment&&shipment.deliveryLocationId,shipment&&shipment.shipToLocationId,shipment&&shipment.recipientLocationId
+ ];
+ const locations=[];
+ for(const key of ['locations','sites','standorte','deliveryLocations','shippingLocations','addresses','deliveryAddresses','shipToLocations','shipToAddresses','recipientAddresses','customerLocations']){
+  if(Array.isArray(customer[key]))locations.push(...customer[key])
+ }
+ const location=locations.find(function(x){return sameKey(x,locIds,['id','locationId','selectedLocationId','siteId','destinationId','deliveryLocationId','shipToLocationId','recipientLocationId','code','number'])})||null;
+ return addressFromSource(location)||addressFromSource(customer);
+}
 function positiveColliCount(value){const n=Number(value);return Number.isFinite(n)&&n>0?Math.max(0,Math.round(n)):0}
 function physicalColliCount(value){const n=Number(value);return Number.isFinite(n)&&n>0?Math.max(0,Math.ceil(n)):0}
 function expectedCollis(source){
@@ -86,4 +144,4 @@ async function updateTeam(record,podsToAdd=[],rawToken=''){
  }
 }
 
-module.exports={RECORD_CONTAINER,POD_CONTAINER,POD_BACKUP_CONTAINER,TEAM_CONTAINER,TEAM_BLOB_BASE,TEST_TEAM_BLOB,clients,podArchiveClient,connectionString,backupConnectionString,hash,safeEqualHex,validToken,validAccessKey,normalizeEnvironment,json,body,err,now,clone,readBuffer,readJson,writeJson,recordBlob,getRecord,mutateRecord,expired,publicRecord,updateTeam,safeName,parseSignature,saveDriverSignature,signatureUrl,realPodFiles,podBackupSummary,first,sanitizeText,expectedCollis,pickupHistory,pickupCollectedColliCount,pickupRemainingColliCount,pickupComplete,teamBlobName,podPrefix};
+module.exports={RECORD_CONTAINER,POD_CONTAINER,POD_BACKUP_CONTAINER,TEAM_CONTAINER,TEAM_BLOB_BASE,TEST_TEAM_BLOB,clients,podArchiveClient,connectionString,backupConnectionString,hash,safeEqualHex,validToken,validAccessKey,normalizeEnvironment,json,body,err,now,clone,readBuffer,readJson,writeJson,recordBlob,getRecord,mutateRecord,expired,publicRecord,updateTeam,safeName,parseSignature,saveDriverSignature,signatureUrl,realPodFiles,podBackupSummary,first,sanitizeText,addressFromSource,resolveShipmentAddress,expectedCollis,pickupHistory,pickupCollectedColliCount,pickupRemainingColliCount,pickupComplete,teamBlobName,podPrefix};

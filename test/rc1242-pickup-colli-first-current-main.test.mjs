@@ -5,11 +5,11 @@ import {execFileSync} from 'node:child_process';
 
 const page=fs.readFileSync('pickup.html','utf8');
 
-test('RC1242: Abhol-QR führt Sendung → Collis → Fahrer in dieser Reihenfolge',()=>{
+test('RC1258: Colli-Prüfung steht visuell vor Sendungsdetails und Fahrer',()=>{
   const details=page.indexOf('<div id="details"></div>');
   const colli=page.indexOf('<section id="colliSection"');
   const driver=page.indexOf('<div id="driverStep" hidden>');
-  assert.ok(details>=0&&colli>details&&driver>colli,'Abholschritte sind nicht in der geforderten Reihenfolge');
+  assert.ok(colli>=0&&details>colli&&driver>details,'Colli-Prüfung muss vor Sendungsdetails und Fahrerdaten stehen');
   assert.match(page,/1 · Sendung/);
   assert.match(page,/2 · Collis/);
   assert.match(page,/3 · Fahrer/);
