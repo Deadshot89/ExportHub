@@ -956,5 +956,7 @@
   "migration.batchFailed": "Almeno un documento non è stato migrato.",
   "migration.stalled": "La migrazione documenti non sta avanzando ed è stata arrestata in sicurezza.",
   "migration.guard": "La migrazione automatica è stata arrestata in sicurezza dopo troppi pacchetti.",
-  "migration.sessionExpired": "La sessione ExportHUB non è più valida."
+  "migration.sessionExpired": "La sessione ExportHUB non è più valida.",
+  "ups.cartonOne": "{{count}} cartone",
+  "ups.cartonMany": "{{count}} cartoni"
 }
