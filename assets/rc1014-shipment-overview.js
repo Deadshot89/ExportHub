@@ -130,6 +130,47 @@
     try{return /-testservice\./i.test(String(root.location&&root.location.hostname||''))?'testservice':'production'}catch(_){return'production'}
   }
 
+  function authToken(){
+    const rt=root.ExportHUBClean&&root.ExportHUBClean.runtime||{};
+    return q(rt.authToken||rt.sessionToken||'');
+  }
+
+  function apiHeaders(){
+    const token=authToken();if(!token)throw new Error('ExportHUB-Sitzung ist nicht mehr gültig.');
+    return{'Accept':'*/*','Cache-Control':'no-cache','X-ExportHUB-Token':token,'X-ExportHUB-Session':token,'Authorization':'Bearer '+token,'X-ExportHUB-Environment':currentEnvironment()};
+  }
+
+  async function fetchContainerBlob(shipment,photo){
+    const url=photoUrl(shipment,photo,false),res=await root.fetch(url,{method:'GET',headers:apiHeaders(),credentials:'same-origin',cache:'no-store'});
+    if(!res.ok){let msg='Containerfoto konnte nicht geladen werden.';try{const d=await res.json();msg=q(d&&d.message)||msg}catch(_){}throw new Error(msg)}
+    return res.blob();
+  }
+
+  function hydrateContainerImages(panel,shipment){
+    if(!panel||!panel.querySelectorAll)return;
+    Array.from(panel.querySelectorAll('img[data-rc1259-photo-id]')).forEach(async img=>{
+      const id=q(img.getAttribute('data-rc1259-photo-id')),photo=containerMeta(shipment).photos.find(p=>q(p&&p.id)===id);
+      if(!photo)return;
+      try{
+        const blob=await fetchContainerBlob(shipment,photo),url=URL.createObjectURL(blob);
+        img.onload=function(){setTimeout(function(){try{URL.revokeObjectURL(url)}catch(_){}},0)};
+        img.src=url;
+      }catch(e){img.alt=(img.alt||'Containerfoto')+' · nicht ladbar'}
+    });
+  }
+
+  async function openContainerPhoto(shipment,photo,download){
+    try{
+      const blob=await fetchContainerBlob(shipment,photo),url=URL.createObjectURL(blob);
+      if(download){
+        const a=root.document.createElement('a');a.href=url;a.download=q(photo&&photo.name)||'Containerfoto.jpg';root.document.body.appendChild(a);a.click();a.remove();setTimeout(function(){try{URL.revokeObjectURL(url)}catch(_){}},30000)
+      }else{
+        const w=root.open(url,'_blank','noopener');if(!w)setTimeout(function(){try{URL.revokeObjectURL(url)}catch(_){}},30000);else setTimeout(function(){try{URL.revokeObjectURL(url)}catch(_){}},120000)
+      }
+    }catch(e){try{root.alert('Containerfoto konnte nicht geöffnet werden.\n\n'+q(e&&e.message||e))}catch(_){}}
+    return false;
+  }
+
   function inShipmentOverview(doc){
     const body=doc&&doc.body;
     if(!body||typeof body.getAttribute!=='function')return false;
@@ -185,14 +226,15 @@
       const grid=doc.createElement('div');grid.className='rc1259-photo-grid';
       meta.photos.forEach(photo=>{
         const item=doc.createElement('div');item.className='rc1259-photo-item';
-        const img=doc.createElement('img');img.alt=q(photo.label||photo.name)||'Containerfoto';img.loading='lazy';img.src=photoUrl(shipment,photo,false);
+        const img=doc.createElement('img');img.alt=q(photo.label||photo.name)||'Containerfoto';img.loading='lazy';img.setAttribute('data-rc1259-photo-id',q(photo.id));
         const label=doc.createElement('b');label.textContent=q(photo.label||photo.name)||'Containerfoto';
         const actions=doc.createElement('div');actions.className='rc1259-photo-actions';
-        const open=doc.createElement('a');open.href=photoUrl(shipment,photo,false);open.target='_blank';open.rel='noopener';open.textContent='Ansehen';
-        const down=doc.createElement('a');down.href=photoUrl(shipment,photo,true);down.textContent='Herunterladen';
+        const open=doc.createElement('button');open.type='button';open.textContent='Ansehen';open.addEventListener('click',()=>openContainerPhoto(shipment,photo,false));
+        const down=doc.createElement('button');down.type='button';down.textContent='Herunterladen';down.addEventListener('click',()=>openContainerPhoto(shipment,photo,true));
         actions.appendChild(open);actions.appendChild(down);item.appendChild(img);item.appendChild(label);item.appendChild(actions);grid.appendChild(item);
       });
       wrap.appendChild(grid);
+      setTimeout(function(){hydrateContainerImages(wrap,shipment)},0);
     }
     return wrap;
   }
