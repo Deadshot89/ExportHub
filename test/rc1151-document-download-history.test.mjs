@@ -44,7 +44,7 @@ test('RC1151: aktualisierte History und Dokumentansicht werden cache-sicher ausg
 
 test('RC1151: globale History verwendet dieselben klaren Dokument- und ABD-Bezeichnungen',()=>{
   assert.match(audit,/function shipmentActionTitle/);
-  assert.match(audit,/ABD-Anfrage erstellt/);
-  assert.match(audit,/ABD-Anfrage per E-Mail geöffnet/);
-  assert.match(audit,/'document-download':'Dokument heruntergeladen'/);
+  assert.match(audit,/history\.special\.abdRequestCreated/);
+  assert.match(audit,/history\.special\.abdEmailOpened/);
+  assert.match(audit,/'document-download':'history\.shipment\.document-download'/);
 });
