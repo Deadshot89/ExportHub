@@ -211,5 +211,10 @@
   "reports.print": "Stampa report",
   "admin.users": "Utenti",
   "admin.rolesRights": "Ruoli e autorizzazioni",
-  "admin.sessions": "Sessioni"
+  "admin.sessions": "Sessioni",
+  "profile.badge": "PROFILO",
+  "profile.note": "Il profilo usa il tedesco come lingua predefinita. La lingua e-mail di una spedizione rimane indipendente. Le voci della cronologia esistenti mantengono il nome visualizzato utilizzato in quel momento.",
+  "profile.saving": "Salvataggio profilo …",
+  "profile.saveFailed": "Salvataggio non riuscito",
+  "profile.displayNameRequired": "Il nome visualizzato non può essere vuoto."
 }
