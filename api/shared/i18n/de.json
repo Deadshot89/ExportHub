@@ -88,5 +88,8 @@
   "api.pod.fileNotStored": "POD-Datei besitzt keinen gespeicherten Blob-Verweis.",
   "api.pod.signatureStorageMissing": "Fahrerunterschrift wurde im Speicher nicht gefunden.",
   "api.pod.fileStorageMissing": "POD-Datei wurde im Speicher nicht gefunden.",
-  "api.pod.loadFailed": "POD konnte nicht geladen werden."
+  "api.pod.loadFailed": "POD konnte nicht geladen werden.",
+  "api.common.postOnly": "Nur POST ist erlaubt.",
+  "api.auth.adminRequired": "Nur globale Administratoren dürfen diese Aktion ausführen.",
+  "api.auth.adminLocked": "Das Konto ist gesperrt und kann nur durch einen globalen Administrator entsperrt werden."
 }
