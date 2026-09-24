@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 const calendarDe=JSON.parse(fs.readFileSync('assets/i18n/de.json','utf8'));
+const calendarEn=JSON.parse(fs.readFileSync('assets/i18n/en.json','utf8'));
 globalThis.ExportHUBI18n={
   language(){return 'de'},
   t(key,vars){let value=calendarDe[key]||key;if(vars)for(const [name,v] of Object.entries(vars))value=value.replaceAll('{{'+name+'}}',String(v));return value},
@@ -76,4 +77,21 @@ test('Wochenende erzeugt keine Samstag- oder Sonntagsspalte', () => {
   assert.equal(model.today.weekday,null);
   assert.equal(model.days.length,5);
   assert.deepEqual(model.days.map(d=>d.label),['Montag','Dienstag','Mittwoch','Donnerstag','Freitag']);
+});
+
+test('RC1267: Abholkalender rendert englische Wochentage ohne die Fachlogik zu verändern', () => {
+  const previous=globalThis.ExportHUBI18n;
+  globalThis.ExportHUBI18n={
+    language(){return 'en'},
+    t(key,vars){let value=calendarEn[key]||calendarDe[key]||key;if(vars)for(const [name,v] of Object.entries(vars))value=value.replaceAll('{{'+name+'}}',String(v));return value},
+    formatDate(value,options){return new Intl.DateTimeFormat('en-GB',options||{}).format(value)},
+    localized(record,key){return record&&record[key]!=null?record[key]:''}
+  };
+  try {
+    const model=calendar.buildCalendarModel({today:new Date(2026,8,8,12),fixedPickups:[],shipments:[]});
+    assert.deepEqual(model.days.map(d=>d.label),['Monday','Tuesday','Wednesday','Thursday','Friday']);
+    assert.deepEqual(model.days.map(d=>d.weekday),[1,2,3,4,5]);
+  } finally {
+    globalThis.ExportHUBI18n=previous;
+  }
 });
