@@ -15,7 +15,7 @@ const EXCLUDED_FILES=[
 ];
 const SCAN_EXT=new Set(['.html','.js','.mjs','.cjs']);
 
-const GERMAN_HINT=/\b(?:Abmelden|Abholung|Abholdatum|Abholtermin|Abbrechen|Aktivieren|Adresse|Anmelden|Anmeldung|Anzeigename|Archiv|Archiviert|Aufgabe|Aufgaben|Auswählen|Bearbeiten|Bereit|Bestätigen|Bitte|Drucken|Einstellungen|Empfänger|Erstellt|Fehler|Gewicht|Historie|Hinweis|Kunde|Kunden|Laden|Löschen|Nachbearbeitung|Passwort|Prüfen|Schließen|Sendung|Sendungen|Speichern|Spedition|Standort|Status|Suche|Suchen|Überfällig|Unterlagen|Versand|Warnung|Weiter|Zurück|Öffnen|Warenbeschreibung|Zeitfenster)\b|[äöüß]/i;
+const GERMAN_HINT=/\b(?:Abmelden|Abholung|Abholdatum|Abholtermin|Abbrechen|Aktivieren|Adresse|Anmelden|Anmeldung|Anzeigename|Archiv|Archiviert|Aufgabe|Aufgaben|Auswählen|Bearbeiten|Bereit|Bestätigen|Bitte|Drucken|Einstellungen|Empfänger|Erstellt|Fehler|Gewicht|Historie|Hinweis|Kunde|Kunden|Laden|Löschen|Nachbearbeitung|Passwort|Prüfen|Schließen|Sendung|Sendungen|Speichern|Spedition|Standort|Suche|Suchen|Überfällig|Unterlagen|Versand|Warnung|Weiter|Zurück|Öffnen|Warenbeschreibung|Zeitfenster|Verschlüsselung|Benutzername|Fälligkeit|Verantwortlich|Zugehörige|Einträge|Bereich|Aktion|Objekt|Verlader|Kennzeichen|Empfänger|Absender|Lieferschein|Rechnung|Dokumentart|hochladen|gespeichert|geladen|gelöscht|angelegt|verfügbar|freigegeben)\b|[äöüß]/i;
 const UI_CONTEXT=/(?:innerHTML|outerHTML|textContent|innerText|insertAdjacentHTML|placeholder|aria-label|title\s*=|setAttribute\s*\(\s*['"](?:title|aria-label|placeholder)|alert\s*\(|confirm\s*\(|prompt\s*\(|toast|status\s*\(|showMessage|message|label|button|option|<button|<label|<h[1-6]|<th|<td|<span|<p|<div|<option)/i;
 const KEY_LITERAL=/\b(?:common|login|profile|nav|dashboard|shipment|customer|task|document|mail|avis|pickup|public|safety|status|errors|history|settings|calendar|pallet|reports|admin)\.[a-zA-Z0-9_.-]+\b/;
 
@@ -37,11 +37,20 @@ function likelyVisible(line){
   if(/(?:console\.|throw\s+new\s+Error|\.code\s*=|test\(|assert\.|RegExp\(|\/[^/]+\/)/.test(line)&&!UI_CONTEXT.test(line))return false;
   return UI_CONTEXT.test(line);
 }
+function literalTexts(line){
+  const values=[],rx=/'((?:\\.|[^'\\])*)'|"((?:\\.|[^"\\])*)"|\`((?:\\.|[^\`\\])*)\`/g;let m;
+  while((m=rx.exec(line))){const value=(m[1]??m[2]??m[3]??'').replace(/\\n/g,' ').trim();if(value)values.push(value)}
+  const tagRx=/>\s*([^<>]+?)\s*</g;while((m=tagRx.exec(line))){const value=String(m[1]||'').trim();if(value)values.push(value)}
+  return values
+}
 function scanVisibleGerman(file,source){
   const rows=[],lines=source.split(/\r?\n/);
   lines.forEach((line,i)=>{
-    if(!likelyVisible(line))return;
-    rows.push({file:file.rel,line:i+1,text:compact(line)});
+    if(!UI_CONTEXT.test(line))return;
+    if(/^\s*(?:\/\/|\*|\/\*)/.test(line))return;
+    const hits=literalTexts(line).filter(value=>GERMAN_HINT.test(value)&&!/^[-_a-z0-9./:]+$/i.test(value));
+    if(!hits.length)return;
+    for(const literal of hits)rows.push({file:file.rel,line:i+1,literal:compact(literal),text:compact(line)});
   });
   return rows;
 }
