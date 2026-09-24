@@ -7,6 +7,7 @@ const { mergeState, sanitizeState, pruneTombstones, clone, isLocalOnlyKey } = re
 const { externalizeDocumentCollections, DOCUMENT_CONTAINER, DOCUMENT_FIELDS, legacyDocumentInventory } = require('../shared/document-blob-store');
 const { isAdmin, isPrivilegedUser } = require('../shared/user-policy');
 const { compactStateForStorage } = require('../shared/state-compaction');
+const { enrichDynamicTranslations, translationStatus, normalizeLanguage: normalizeDynamicLanguage } = require('../shared/dynamic-i18n');
 
 const TEAM_CONTAINER = process.env.EXPORTHUB_STORAGE_CONTAINER || process.env.EXPORTHUB_CONTAINER || 'exporthub-data';
 const TEAM_BLOB_BASE = process.env.EXPORTHUB_STORAGE_BLOB || process.env.EXPORTHUB_STATE_BLOB || 'team-state.json';
@@ -349,10 +350,10 @@ async function saveMerged(blob,incoming,user,initialTeam,initialEtag,session){
   if(attempt>0){const retryStarted=Date.now();d=await readJson(blob,emptyTeam());retryReadMs+=Date.now()-retryStarted}
   const current=d.value||emptyTeam(),writeUser=validateWriteUserAgainstTeam(current,user,session),operationId=text(incoming.operationId),recentOperations=Array.isArray(current.recentOperations)?current.recentOperations:[];
   if(operationId&&recentOperations.some(op=>text(op&&op.id)===operationId)){const replay=clone(current);replay.concurrentMerge=false;replay.idempotentReplay=true;replay.baseRevision=Number(incoming.baseRevision||0);try{Object.defineProperty(replay,'__storageEtag',{value:d.etag||null,enumerable:false});Object.defineProperty(replay,'__timing',{value:{retryReadMs,mergeMs,uploadMs,uploadBytes,conflictCount},enumerable:false})}catch(_){}return replay}
-  const mergeStarted=Date.now(),merged=compactStateForStorage(pruneTombstones(mergeState(current.state||{},incoming.state||{})));delete merged.users;rc1080AuditCustomerChanges(current.state||{},merged,writeUser,incoming.state||{});mergeMs+=Date.now()-mergeStarted;
+  const mergeStarted=Date.now(),merged=compactStateForStorage(pruneTombstones(mergeState(current.state||{},incoming.state||{})));delete merged.users;rc1080AuditCustomerChanges(current.state||{},merged,writeUser,incoming.state||{});const dynamicI18nReport=await enrichDynamicTranslations(merged,normalizeDynamicLanguage(writeUser.language||writeUser.uiLanguage||'de'),{limit:Number(process.env.EXPORTHUB_I18N_SAVE_LIMIT||50)||50});mergeMs+=Date.now()-mergeStarted;
   const next={schemaVersion:3,revision:Number(current.revision||0)+1,updatedAt:now(),updatedBy:text(writeUser.name||writeUser.user),updatedByUserId:text(writeUser.id),updatedByDevice:incoming.deviceId||null,clientVersion:incoming.clientVersion||null,state:merged,users:current.users||[],authBootstrap:current.authBootstrap&&typeof current.authBootstrap==='object'?clone(current.authBootstrap):undefined};
   next.recentOperations=(operationId?[{id:operationId,at:next.updatedAt,deviceId:incoming.deviceId||null,revision:next.revision}]:[]).concat(recentOperations.filter(op=>text(op&&op.id)!==operationId)).slice(0,50);
-  try{const uploadStarted=Date.now();let uploaded;try{uploaded=await uploadJson(blob,next,d.etag)}finally{uploadMs+=Date.now()-uploadStarted}uploadBytes=Number(uploaded&&uploaded.bytes||0);try{Object.defineProperty(next,'__storageEtag',{value:uploaded&&uploaded.etag||null,enumerable:false});Object.defineProperty(next,'__timing',{value:{retryReadMs,mergeMs,uploadMs,uploadBytes,conflictCount},enumerable:false})}catch(_){}next.concurrentMerge=Number(incoming.baseRevision||0)!==Number(current.revision||0);next.baseRevision=Number(incoming.baseRevision||0);return next}catch(e){if(e&&(e.statusCode===409||e.statusCode===412)&&attempt<MAX_RETRIES-1){conflictCount++;continue;}if(e&&e.statusCode>=500)throw error('STORAGE_UNREACHABLE','Azure Storage konnte den Teamstand nicht speichern: '+(e.message||'Serverfehler'),503);throw e}
+  try{const uploadStarted=Date.now();let uploaded;try{uploaded=await uploadJson(blob,next,d.etag)}finally{uploadMs+=Date.now()-uploadStarted}uploadBytes=Number(uploaded&&uploaded.bytes||0);try{Object.defineProperty(next,'__storageEtag',{value:uploaded&&uploaded.etag||null,enumerable:false});Object.defineProperty(next,'__timing',{value:{retryReadMs,mergeMs,uploadMs,uploadBytes,conflictCount},enumerable:false});Object.defineProperty(next,'__dynamicI18n',{value:dynamicI18nReport,enumerable:false})}catch(_){}next.concurrentMerge=Number(incoming.baseRevision||0)!==Number(current.revision||0);next.baseRevision=Number(incoming.baseRevision||0);return next}catch(e){if(e&&(e.statusCode===409||e.statusCode===412)&&attempt<MAX_RETRIES-1){conflictCount++;continue;}if(e&&e.statusCode>=500)throw error('STORAGE_UNREACHABLE','Azure Storage konnte den Teamstand nicht speichern: '+(e.message||'Serverfehler'),503);throw e}
  }
  throw error('CONCURRENT_UPDATE','Der Teamstand konnte nach mehreren Konfliktversuchen nicht gespeichert werden.',409);
 }
@@ -1014,6 +1015,19 @@ module.exports=async function(context,req){
    await validateSessionAuthOnly(req,payload,c);context.res=json(200,Object.assign({ok:true,metaOnly:true,serverVersion:API_VERSION,environment:c.environment,blob:c.teamBlobName},await metadataOnly(c.team)));return
   }
   const current=await validateSession(req,payload,c),blob=c.team;
+  if(mode==='i18n-status'){
+   if(!isAdmin(current.user))throw error('ADMIN_REQUIRED','Der Übersetzungsstatus ist nur für globale Administratoren verfügbar.',403);
+   context.res=json(200,{ok:true,version:'RC1267',environment:c.environment,translation:translationStatus(current.team&&current.team.state||{})});return
+  }
+  if(mode==='i18n-migrate'){
+   if(req.method!=='POST')throw error('METHOD_NOT_ALLOWED','Die Übersetzungsmigration muss per POST gestartet werden.',405);
+   if(!isAdmin(current.user))throw error('ADMIN_REQUIRED','Die Übersetzungsmigration ist nur für globale Administratoren verfügbar.',403);
+   const migratedState=clone(current.team&&current.team.state||{}),sourceLanguage=normalizeDynamicLanguage(payload.sourceLanguage||'de'),limit=Math.max(1,Math.min(1000,Number(payload.limit||500)||500));
+   const migrationReport=await enrichDynamicTranslations(migratedState,sourceLanguage,{limit});
+   const incomingMigration={clientVersion:'RC1267-i18n-migration',baseRevision:Number(current.team&&current.team.revision||0),deviceId:text(payload.deviceId),operationId:text(payload.operationId)||('I18N-'+Date.now()),reason:'i18n-migration',state:migratedState};
+   const savedMigration=await saveMerged(blob,incomingMigration,current.user,current.team,current.teamEtag,current.session);
+   context.res=json(200,{ok:true,version:'RC1267',environment:c.environment,revision:Number(savedMigration.revision||0),translation:migrationReport});return
+  }
   if(mode==='diagnostics-read'){
    if(!isAdmin(current.user))throw error('ADMIN_REQUIRED','Die zentrale Fehlerdiagnose ist nur für globale Administratoren verfügbar.',403);
    const result=await readDiagnostics(c.diagnostics,req.query&&req.query.limit||payload.limit);context.res=json(200,Object.assign({environment:c.environment,blob:c.diagnosticsBlobName,serverVersion:API_VERSION},result));return
