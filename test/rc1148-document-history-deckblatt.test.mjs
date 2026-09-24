@@ -34,8 +34,8 @@ function historyRuntime(shipment){
 
 test('RC1148: Dokument-History trennt Öffnen und Drucken und speichert Benutzer sowie Dateiname',()=>{
   assert.match(history,/type:'document-open'/,'eigener History-Typ für Dokument öffnen fehlt');
-  assert.match(history,/label:doc\+' – geöffnet'/,'eindeutiger Öffnen-Eintrag fehlt');
-  assert.match(history,/label:doc\+' – gedruckt'/,'eindeutiger Druck-Eintrag fehlt');
+  assert.match(history,/shipmentHistory\.action\.documentOpened/,'lokalisierbarer Öffnen-Eintrag fehlt');
+  assert.match(history,/shipmentHistory\.action\.documentPrinted/,'lokalisierbarer Druck-Eintrag fehlt');
   assert.match(history,/function documentActionFileName/,'Dateiname muss aus Button, Link oder Sendungsdokument ermittelt werden');
 
   const sh={id:'S1',ref:'ABC123',abdFiles:[{name:'ABD_ABC123_original.pdf'}]};
