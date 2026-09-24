@@ -13,7 +13,7 @@ test('RC1265: sichtbare Release-Version wird beim Build aus dem aktuellen RC erm
   assert.match(runtime,/var VERSION='RC1112'/,'Quellruntime behält nur die technische Fallback-Version');
   assert.match(builder,/function resolveVisibleVersion\(\)/);
   assert.match(builder,/EXPORTHUB_VISIBLE_RELEASE_VERSION/);
-  assert.match(builder,/git',['"]log/);
+  assert.match(builder,/execFileSync\\('git',\\['log'/);
   assert.match(builder,/const VISIBLE_VERSION=resolveVisibleVersion\(\)/);
   assert.match(builder,/visibleRuntime\.replace\(\/var VERSION='RC\\d\+';\//);
   assert.match(builder,/releaseNotes\.replace\(\/return'RC\\d\+'\//);
@@ -45,7 +45,7 @@ test('RC1265: Release Notes nutzen die gebaute sichtbare Produktversion',()=>{
 test('RC1265: Browser-Spec erwartet den aktuellen RC statt einer festen RC1231',()=>{
   assert.match(spec,/function expectedVisibleRelease\(\)/);
   assert.match(spec,/EXPORTHUB_EXPECTED_VISIBLE_RELEASE/);
-  assert.match(spec,/git',['"]log/);
+  assert.match(spec,/execFileSync\\('git',\\['log'/);
   assert.match(spec,/data-exporthub-visible-version/);
   assert.doesNotMatch(spec,/Aktuelle Version\\s\+RC1231/);
   assert.doesNotMatch(spec,/toHaveAttribute\('data-exporthub-visible-version','RC1231'\)/);
