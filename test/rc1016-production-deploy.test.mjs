@@ -37,7 +37,7 @@ test('RC1016 Bestandsschutz prüft die damaligen Funktionen und Sicherheitsregre
     '.github/rc1000/rc1000-production-pickup.test.mjs'
   ])assert.ok(flow.includes(required),`${required} fehlt im aktuellen Standarddeploy`);
   assert.match(flow,/assets\/rc1016-mobile-navigation\.js\?v=1016/);
-  assert.match(flow,/assets\/rc1014-task-runtime\.js\?v=1179/,'Aktueller Standarddeploy muss den RC1179 Aufgaben-Reiter-Cache-Key verwenden');
+  assert.match(flow,/assets\/rc1014-task-runtime\.js\?v=1266/,'Aktueller Standarddeploy muss den RC1266 Aufgaben-Runtime-Cache-Key verwenden');
   assert.match(flow,/assets\/rc1014-shipment-overview\.js\?v=1127/,'Aktueller Standarddeploy muss den RC1127 Kunden-Abholtermin-Cache-Key verwenden');
   assert.match(flow,/assets\/rc1014-shipment-overview\.css\?v=1127/,'Aktueller Standarddeploy muss auch den RC1127 Overview-CSS-Cache-Key verwenden');
   assert.match(flow,/assets\/rc1015-lieferavis-mail-flow\.js\?v=1021/);
