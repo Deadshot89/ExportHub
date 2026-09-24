@@ -166,5 +166,6 @@
   "api.avis.mailDocumentType": "Tipo de documento: {{type}}",
   "api.avis.mailStored": "Comprobado y guardado: {{time}}",
   "api.avis.mailPassed": "El archivo superó el análisis de malware y la comprobación de asignación al envío.",
-  "api.avis.mailAction": "Abre ExportHUB → Notificaciones y selecciona «Abrir / imprimir PDF»."
+  "api.avis.mailAction": "Abre ExportHUB → Notificaciones y selecciona «Abrir / imprimir PDF».",
+  "api.auth.unknownAction": "Acción de autenticación desconocida."
 }
