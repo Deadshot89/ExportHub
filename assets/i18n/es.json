@@ -934,5 +934,9 @@
   "ups.individualWeights": "Pesos individuales {{weights}} kg",
   "ups.estimated": "estimado con Ø {{weight}} kg por caja",
   "ups.weight": "Peso {{weight}} kg",
-  "ups.tooltip": "{{cartons}} · UPS Standard zona {{zone}} · {{weightInfo}} · precio base envío completo {{base}} + combustible {{pct}}% · Toolbox desde 21/12/2025"
+  "ups.tooltip": "{{cartons}} · UPS Standard zona {{zone}} · {{weightInfo}} · precio base envío completo {{base}} + combustible {{pct}}% · Toolbox desde 21/12/2025",
+  "gate41.palletsMissing": "Gate41: Falta el número de palés o es 0.",
+  "gate41.weightMissing": "Gate41: Falta el peso total o es 0 kg.",
+  "gate41.calculated": "Precio Gate41 para Alemania calculado{{total}}. Base: {{pallets}} palé(s), {{kg}} kg por palé.",
+  "gate41.unavailable": "no calculable"
 }
