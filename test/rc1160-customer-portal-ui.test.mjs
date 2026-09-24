@@ -18,7 +18,7 @@ test('RC1267: Kundenportal-Rechte bleiben fachlich unverändert und sichtbare Te
   assert.match(ui,/rights&&u\.rights\.customerPortal|u\.rights&&u\.rights\.customerPortal/);
   assert.match(ui,/r\.use===true\|\|r\.manage===true/);
   assert.match(ui,/r\.manage===true/);
-  assert.match(ui,/tr\('portal\.rightsTitle'\)/);
+  assert.match(ui,/th\('portal\.rightsTitle'\)/);
   assert.match(ui,/th\('portal\.use'\)/);
   assert.match(ui,/th\('portal\.manage'\)/);
   assert.match(ui,/ExportHUBI18n/);
