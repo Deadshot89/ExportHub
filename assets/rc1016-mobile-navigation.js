@@ -3,6 +3,7 @@
 
   const ID='rc1016MobileMenuBtn';
   const QUERY='(max-width: 640px)';
+  const tr=(key)=>{try{if(root.ExportHUBI18n&&typeof root.ExportHUBI18n.t==='function')return root.ExportHUBI18n.t(key)}catch(_){}return key};
 
   function isMobile(){
     try{return !!(root.matchMedia&&root.matchMedia(QUERY).matches);}catch(_){return false;}
@@ -17,8 +18,8 @@
     if(!button)return;
     const open=menuOpen();
     button.setAttribute('aria-expanded',open?'true':'false');
-    button.setAttribute('aria-label',open?'Menü schließen':'Menü öffnen');
-    button.title=open?'Menü schließen':'Menü öffnen';
+    button.setAttribute('aria-label',tr(open?'nav.menuClose':'nav.menuOpen'));
+    button.title=tr(open?'nav.menuClose':'nav.menuOpen');
   }
   function toggle(event){
     if(event){event.preventDefault();event.stopPropagation();}
@@ -59,7 +60,7 @@
 
   if(root.addEventListener){
     root.addEventListener('resize',schedule);
-    ['exporthub:ready','exporthub:rendered','exporthub:viewchange'].forEach(name=>root.addEventListener(name,schedule));
+    ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:language-changed'].forEach(name=>root.addEventListener(name,schedule));
   }
   if(root.document){
     if(root.document.readyState==='loading')root.document.addEventListener('DOMContentLoaded',ensure,{once:true});
