@@ -124,9 +124,9 @@ test('RC1087: alle verfügbaren Aktionen werden ohne interne Scroll-Begrenzung a
 });
 
 test('RC1087: sichtbaren Historienansichten sind vollständig deutsch',()=>{
-  assert.match(shipmentHistory,/>HISTORIE<\/span>/);
+  assert.match(shipmentHistory,/shipmentHistory\.badge/);
   assert.match(customerHistory,/>HISTORIE<\/span>/);
-  assert.doesNotMatch(shipmentHistory,/>HISTORY<\/span>/);
+  assert.match(shipmentHistory,/exporthub:language-changed/);
   assert.doesNotMatch(customerHistory,/>HISTORY<\/span>/);
   assert.match(profile,/Historie-Einträge/);
   assert.doesNotMatch(profile,/History-Einträge/);
