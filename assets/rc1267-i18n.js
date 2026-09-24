@@ -218,6 +218,22 @@ function persist(lang){
   if(u.searchParams.has('lang')){u.searchParams.set('lang',lang);w.history.replaceState(null,'',u.pathname+u.search+u.hash)}
  }catch(_){}
 }
+function installApiLanguageFetch(){
+ if(!w.fetch||w.__EXPORTHUB_RC1267_API_LANGUAGE_FETCH__)return false;
+ var nativeFetch=w.fetch.bind(w);w.__EXPORTHUB_RC1267_API_LANGUAGE_FETCH__=true;
+ w.fetch=function(input,init){
+  try{
+   var raw=typeof input==='string'?input:(input&&input.url)||'',url=new URL(raw,w.location&&w.location.href||'http://localhost/');
+   if(url.origin===(w.location&&w.location.origin)&&/^\/api\//i.test(url.pathname)){
+    init=Object.assign({},init||{});
+    var baseHeaders=init.headers||(typeof Request!=='undefined'&&input instanceof Request?input.headers:undefined)||{};
+    var headers=new Headers(baseHeaders);headers.set('X-ExportHUB-Language',current||'de');init.headers=headers;
+   }
+  }catch(_){}
+  return nativeFetch(input,init);
+ };
+ return true;
+}
 async function setLanguage(lang,options){
  var next=normalize(lang)||'de',opts=options||{};
  await ensureResources(next);
@@ -305,6 +321,7 @@ function watch(){
  observer.observe(d.body,{subtree:true,childList:true});
 }
 async function boot(){
+ installApiLanguageFetch();
  current=requested();
  try{await ensureResources(current)}catch(e){reportError(e);current='de';try{await ensureResources('de')}catch(inner){reportError(inner)}}
  ensureSelector();
