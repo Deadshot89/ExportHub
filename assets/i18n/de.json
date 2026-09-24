@@ -934,5 +934,9 @@
   "ups.individualWeights": "Einzelgewichte {{weights}} kg",
   "ups.estimated": "geschätzt mit Ø {{weight}} kg je Karton",
   "ups.weight": "Gewicht {{weight}} kg",
-  "ups.tooltip": "{{cartons}} · UPS Standard Zone {{zone}} · {{weightInfo}} · Grundpreis komplette Lieferung {{base}} + Fuel {{pct}}% · Toolbox ab 21.12.2025"
+  "ups.tooltip": "{{cartons}} · UPS Standard Zone {{zone}} · {{weightInfo}} · Grundpreis komplette Lieferung {{base}} + Fuel {{pct}}% · Toolbox ab 21.12.2025",
+  "gate41.palletsMissing": "Gate41: Palettenanzahl fehlt oder ist 0.",
+  "gate41.weightMissing": "Gate41: Gesamtgewicht fehlt oder ist 0 kg.",
+  "gate41.calculated": "Gate41-Preis Deutschland berechnet{{total}}. Grundlage: {{pallets}} Palette(n), {{kg}} kg je Palette.",
+  "gate41.unavailable": "nicht berechenbar"
 }
