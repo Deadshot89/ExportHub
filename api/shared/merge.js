@@ -393,7 +393,8 @@ const RC1017_SUBSHIPMENT_OPERATIONAL_FIELDS = [
   'status','pickupStatus','processStatus','locked','pickupHistory',
   'collectedPickupCollis','pickupCollectedColliCount','remainingPickupCollis','pickupRemainingColliCount',
   'confirmedAt','lastPartialPickupAt','podFiles','podUpdatedAt','signatureBlobName','signatureStoredAt',
-  'pickupRegistered','pickupAccessKeyHash'
+  'pickupRegistered','pickupAccessKeyHash',
+  'transportMode','containerDocumentationRequired','sealNumber','containerPhotos','containerDocumentationUpdatedAt'
 ];
 
 function rc1017ProtectSubShipments(out, serverItem, incomingItem) {
@@ -480,7 +481,7 @@ function mergeShipmentProtected(serverItem, incomingItem) {
   }
 
   // Rows/documents are additive-protective. Empty arrays can never wipe existing content.
-  ['rows','colli','collis','packages','packagingRows','deliveryFiles','deliveryNotesFiles','podFiles','abdFiles','documents','generatedDocuments','files','attachments','mailHistory','pickupHistory','shipmentHistory'].forEach((key) => {
+  ['rows','colli','collis','packages','packagingRows','deliveryFiles','deliveryNotesFiles','podFiles','abdFiles','documents','generatedDocuments','files','attachments','mailHistory','pickupHistory','shipmentHistory','containerPhotos'].forEach((key) => {
     const a = Array.isArray(serverItem[key]) ? serverItem[key] : [];
     const b = Array.isArray(incomingItem[key]) ? incomingItem[key] : [];
     if (key === 'shipmentHistory') out[key] = mergeShipmentHistory(a,b);
