@@ -21,6 +21,8 @@ function loadWithMocks(relativeFile,mocks){
 }
 
 test('RC1259: drei definierte Containerfotos werden unter der Referenz gespeichert und zusätzlich in den echten Ref-Ordner kopiert',async()=>{
+  const previousStorage=process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;
+  process.env.EXPORTHUB_STORAGE_CONNECTION_STRING='UseDevelopmentStorage=true';
   const uploaded=[],referenceUploads=[];
   const container={
     async createIfNotExists(){},
@@ -37,6 +39,7 @@ test('RC1259: drei definierte Containerfotos werden unter der Referenz gespeiche
   assert.equal(referenceUploads[0].name,'01_Geladener_Container_ABC123.jpg');
   assert.equal(saved.referenceFolderSaved,true);
   assert.equal(saved.referenceFolderPath,'003 Export/ExportHub/Sendungen/ABC123');
+  if(previousStorage===undefined)delete process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;else process.env.EXPORTHUB_STORAGE_CONNECTION_STRING=previousStorage;
 });
 
 test('RC1259: genau alle drei Fotoarten ergeben vollständige Containerdokumentation',()=>{
