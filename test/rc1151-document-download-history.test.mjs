@@ -6,6 +6,7 @@ const compat=fs.readFileSync('assets/rc1063-abd-blob-viewer-compat.js','utf8');
 const history=fs.readFileSync('assets/rc1071-shipment-history.js','utf8');
 const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
 const audit=fs.readFileSync('assets/rc1081-audit-history.js','utf8');
+const historyDe=JSON.parse(fs.readFileSync('assets/i18n/de.json','utf8'));
 
 test('RC1151: Sendungsansicht behandelt Rechnung Lieferschein ABD POD und weitere Dateien einheitlich',()=>{
   for(const marker of ['invoiceFiles','deliveryFiles','deliveryNotesFiles','lieferscheine','abdFiles','podFiles','generatedDocuments','attachments']){
