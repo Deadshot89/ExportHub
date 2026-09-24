@@ -6,6 +6,7 @@ window.__EXPORTHUB_RC1061_DOCUMENT_MIGRATION_ADMIN__=true;
 
 var BATCH_SIZE=5;
 function q(v){return String(v==null?'':v).trim()}
+function tr(key,vars){try{if(window.ExportHUBI18n&&typeof window.ExportHUBI18n.t==='function')return window.ExportHUBI18n.t(key,vars)}catch(_){}return key}
 function lower(v){return q(v).toLowerCase()}
 function isAdmin(user){
   var role=lower(user&&(user.role||user.rolle)),roles=['global admin','globaler administrator','globaler admin','administrator','admin','vollzugriff'];
@@ -15,7 +16,7 @@ function environmentName(){return typeof location!=='undefined'&&/-testservice\.
 function state(){try{if(typeof window.__EXPORTHUB_GET_STATE__==='function')return window.__EXPORTHUB_GET_STATE__()||{}}catch(_){}return window.ExportHUBClean&&window.ExportHUBClean.state||window.appState||{}}
 function currentUser(){var s=state();try{if(typeof window.__EXPORTHUB_GET_CURRENT_USER__==='function'){var u=window.__EXPORTHUB_GET_CURRENT_USER__();if(u)return u}}catch(_){}return window.currentUser||s.currentUser||s.activeUser||null}
 function authToken(){var rt=window.ExportHUBClean&&window.ExportHUBClean.runtime||{};return q(rt.authToken||rt.sessionToken||'')}
-function headers(){var token=authToken();if(!token)throw new Error('ExportHUB-Sitzung ist nicht mehr gültig.');return{'Content-Type':'application/json','Accept':'application/json','Cache-Control':'no-cache','X-ExportHUB-Token':token,'X-ExportHUB-Session':token,'Authorization':'Bearer '+token,'X-ExportHUB-Environment':environmentName()}}
+function headers(){var token=authToken();if(!token)throw new Error(tr('migration.sessionExpired'));return{'Content-Type':'application/json','Accept':'application/json','Cache-Control':'no-cache','X-ExportHUB-Token':token,'X-ExportHUB-Session':token,'Authorization':'Bearer '+token,'X-ExportHUB-Environment':environmentName()}}
 async function runBatch(){var r=await fetch('/api/exporthub-document-migrate',{method:'POST',credentials:'same-origin',cache:'no-store',headers:headers(),body:JSON.stringify({environment:environmentName(),limit:BATCH_SIZE})}),data=await r.json().catch(function(){return{}});if(!r.ok)throw new Error(q(data&&data.message)||('HTTP '+r.status));return data}
 async function health(){var r=await fetch('/api/exporthub-state?mode=health',{method:'GET',credentials:'same-origin',cache:'no-store',headers:{'Accept':'application/json','Cache-Control':'no-cache'}}),data=await r.json().catch(function(){return{}});if(!r.ok)throw new Error(q(data&&data.message)||('HTTP '+r.status));return data}
 function sleep(ms){return new Promise(function(resolve){setTimeout(resolve,ms)})}
@@ -39,19 +40,19 @@ async function runAll(options){
     totals.done=r&&r.done===true||remaining===0;
     onProgress(r,Object.assign({},totals));
     if(failed>0){
-      var failedError=new Error('Mindestens ein Dokument konnte nicht migriert werden.');
+      var failedError=new Error(tr('migration.batchFailed'));
       failedError.code='DOCUMENT_MIGRATION_BATCH_FAILED';failedError.result=Object.assign({},totals);throw failedError
     }
     if(totals.done)return totals;
     if(migrated<=0||(previousRemaining!==null&&remaining>=previousRemaining)){
-      var stalled=new Error('Die Dokumentmigration macht keinen Fortschritt und wurde sicher angehalten.');
+      var stalled=new Error(tr('migration.stalled'));
       stalled.code='DOCUMENT_MIGRATION_STALLED';stalled.result=Object.assign({},totals);throw stalled
     }
     previousRemaining=remaining;
     if(shouldStop()){totals.stopped=true;return totals}
     if(waitMs>0)await sleep(waitMs)
   }
-  var guardError=new Error('Die automatische Dokumentmigration wurde nach zu vielen Batches sicher angehalten.');
+  var guardError=new Error(tr('migration.guard'));
   guardError.code='DOCUMENT_MIGRATION_GUARD';guardError.result=Object.assign({},totals);throw guardError
 }
 function bytes(v){var n=Number(v||0);if(!Number.isFinite(n)||n<=0)return'0 B';var units=['B','KB','MB','GB'],i=Math.min(units.length-1,Math.floor(Math.log(n)/Math.log(1024)));return(n/Math.pow(1024,i)).toFixed(i===0?0:1)+' '+units[i]}
@@ -83,7 +84,7 @@ function ensureCard(){
   box.id='rc1061DocumentMigrationAdmin';
   box.setAttribute('data-exporthub-admin-only','true');
   box.style.cssText='margin:18px 0;padding:18px;border:1px solid #cfd8e3;border-radius:14px;background:#f8fafc;box-shadow:0 2px 8px rgba(15,23,42,.05)';
-  box.innerHTML='<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap"><div><div style="font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#475467">Admin · Speicheroptimierung</div><h3 style="margin:4px 0 6px;font-size:20px">Dokumentmigration</h3><div style="font-size:13px;color:#667085">Noch <b data-rc1073-count>'+remaining+'</b> alte Dokumente (<span data-rc1073-bytes>'+bytes(payloadBytes)+'</span>) liegen eingebettet im '+environmentName().toUpperCase()+'.</div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" data-rc1073-run style="border:0;border-radius:10px;padding:11px 16px;font-weight:800;cursor:pointer;background:#111827;color:#fff">Alle verbleibenden migrieren</button><button type="button" data-rc1073-stop style="display:none;border:1px solid #cbd5e1;border-radius:10px;padding:10px 14px;font-weight:800;cursor:pointer;background:#fff;color:#334155">Nach aktuellem Paket stoppen</button></div></div><div data-rc1073-status style="margin-top:12px;font-size:13px;color:#475467">Bereit. Intern werden weiterhin sichere 5er-Pakete verwendet.</div><div style="height:9px;background:#e2e8f0;border-radius:999px;overflow:hidden;margin-top:12px"><div data-rc1073-progress style="height:100%;width:0%;background:#111827;transition:width .2s ease"></div></div><div data-rc1073-progress-text style="margin-top:5px;font-size:12px;color:#667085">0 %</div>';
+  box.innerHTML='<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap"><div><div style="font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#475467">'+tr('migration.title')+'</div><h3 style="margin:4px 0 6px;font-size:20px">'+tr('migration.documentTitle')+'</h3><div style="font-size:13px;color:#667085">'+tr('migration.remainingIntro',{count:'<b data-rc1073-count>'+remaining+'</b>',bytes:'<span data-rc1073-bytes>'+bytes(payloadBytes)+'</span>',environment:environmentName().toUpperCase()})+'</div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" data-rc1073-run style="border:0;border-radius:10px;padding:11px 16px;font-weight:800;cursor:pointer;background:#111827;color:#fff">'+tr('migration.runAll')+'</button><button type="button" data-rc1073-stop style="display:none;border:1px solid #cbd5e1;border-radius:10px;padding:10px 14px;font-weight:800;cursor:pointer;background:#fff;color:#334155">'+tr('migration.stop')+'</button></div></div><div data-rc1073-status style="margin-top:12px;font-size:13px;color:#475467">'+tr('migration.ready')+'</div><div style="height:9px;background:#e2e8f0;border-radius:999px;overflow:hidden;margin-top:12px"><div data-rc1073-progress style="height:100%;width:0%;background:#111827;transition:width .2s ease"></div></div><div data-rc1073-progress-text style="margin-top:5px;font-size:12px;color:#667085">0 %</div>;
   content.insertBefore(box,content.firstChild||null);
 
   var run=box.querySelector('[data-rc1073-run]'),stop=box.querySelector('[data-rc1073-stop]'),status=box.querySelector('[data-rc1073-status]'),bar=box.querySelector('[data-rc1073-progress]'),progressText=box.querySelector('[data-rc1073-progress-text]'),countNode=box.querySelector('[data-rc1073-count]'),bytesNode=box.querySelector('[data-rc1073-bytes]');
@@ -97,37 +98,37 @@ function ensureCard(){
   }
 
   stop.addEventListener('click',function(){
-    if(!running)return;stopping=true;stop.disabled=true;status.textContent='Stop angefordert. Das aktuelle 5er-Paket wird noch sicher abgeschlossen …'
+    if(!running)return;stopping=true;stop.disabled=true;status.textContent=tr('migration.stopRequested')
   });
 
   run.addEventListener('click',async function(){
-    if(running)return;running=true;stopping=false;run.disabled=true;stop.disabled=false;stop.style.display='inline-block';status.textContent='Migration läuft automatisch …';
+    if(running)return;running=true;stopping=false;run.disabled=true;stop.disabled=false;stop.style.display='inline-block';status.textContent=tr('migration.running');
     try{
       var result=await runAll({
         shouldStop:function(){return stopping},
         onProgress:function(_batch,total){
           progress(total);
-          status.textContent='Paket '+Number(total&&total.batches||0)+' abgeschlossen · '+Number(total&&total.migrated||0)+' neu migriert · '+Number(total&&total.remaining||0)+' verbleiben.'
+          status.textContent=tr('migration.batchProgress',{batch:Number(total&&total.batches||0),migrated:Number(total&&total.migrated||0),remaining:Number(total&&total.remaining||0)})
         }
       });
       if(result.stopped){
-        status.textContent='Migration angehalten. '+Number(result.remaining||0)+' Dokumente verbleiben.';
+        status.textContent=tr('migration.stopped',{count:Number(result.remaining||0)});
         return
       }
       var fresh=await health(),next=Math.max(0,Number(fresh&&fresh.stateDiagnostics&&fresh.stateDiagnostics.inlinePayloadCount||0));
       if(next===0){
         progress({remaining:0});
-        status.textContent='Migration abgeschlossen. Keine eingebetteten Alt-Dokumente mehr vorhanden.';
+        status.textContent=tr('migration.done');
         bar.style.width='100%';
         setTimeout(removeCard,1800);
       }else{
         initial=next;
         if(countNode)countNode.textContent=String(next);
         if(bytesNode)bytesNode.textContent=bytes(Number(fresh&&fresh.stateDiagnostics&&fresh.stateDiagnostics.documentPayloadBytes||0));
-        status.textContent='Migration wurde gespeichert, aber '+next+' Dokumente verbleiben noch. Du kannst den Lauf erneut starten.';
+        status.textContent=tr('migration.remaining',{count:next});
       }
     }catch(e){
-      status.textContent='Migration sicher angehalten: '+q(e&&e.message||e)
+      status.textContent=tr('migration.safeStopped',{error:q(e&&e.message||e)})
     }finally{
       running=false;stopping=false;run.disabled=false;stop.disabled=false;stop.style.display='none'
     }
@@ -145,7 +146,7 @@ function scheduleCard(){
 }
 if(typeof document!=='undefined'){
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',scheduleCard,{once:true});else scheduleCard();
- ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded'].forEach(function(name){try{window.addEventListener(name,scheduleCard)}catch(_){}});
+ ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded','exporthub:language-changed'].forEach(function(name){try{window.addEventListener(name,scheduleCard)}catch(_){}});
 }
 // RC1073: Die Admin-Karte wird nur gerendert, solange der Health-Check
 // wirklich migrierbare Inline-Dokumente meldet. Bei 0 bleibt sie unsichtbar.
