@@ -475,7 +475,7 @@
   "history.shipment.pickup-plan": "Enlèvement planifié ou réservé",
   "history.shipment.pod": "POD",
   "history.shipment.document": "Document",
-  "history.shipment.registration": "Enregistrement d’expédition",
+  "history.shipment.registration": "Enregistrement d’expédition démarré",
   "history.shipment.work-start": "Travail sur l’expédition commencé",
   "history.shipment.event": "Action d’expédition",
   "history.customer.customer-created": "Client créé",
