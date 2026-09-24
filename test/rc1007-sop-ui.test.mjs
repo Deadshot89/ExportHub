@@ -1,6 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+const locales={
+  de:JSON.parse(fs.readFileSync('assets/i18n/de.json','utf8')),
+  en:JSON.parse(fs.readFileSync('assets/i18n/en.json','utf8'))
+};
+let activeLocale='de';
+globalThis.ExportHUBI18n={t(key,vars){let value=locales[activeLocale][key]||key;if(vars)for(const [name,v] of Object.entries(vars))value=value.replaceAll('{{'+name+'}}',String(v));return value;}};
 await import('../assets/sop/rc1007-sop-model.js');
 await import('../assets/sop/rc1007-sop-catalog.js');
 await import('../assets/sop/rc1007-sop-ui.js');
@@ -45,4 +51,14 @@ test('CSS ist auf das SOP-Modul begrenzt und besitzt responsive Grundstruktur',(
   const css=fs.readFileSync('assets/sop/rc1007-sop.css','utf8');
   assert.match(css,/\.rc1007-sop/);
   assert.match(css,/@media\s*\(max-width:\s*760px\)/i);
+});
+
+test('RC1267: feste SOP-UI kann auf Englisch gerendert werden ohne Workflow-Daten zu verändern',()=>{
+  activeLocale='en';
+  try{
+    const html=ui.renderOverview({documents:catalog.documents,rights:{read:true,edit:true,admin:true}});
+    for(const term of ['SOP handbook','Search SOP','All areas','All statuses','Valid from','Next review','Open']) assert.match(html,new RegExp(term,'i'),term+' fehlt');
+    assert.match(html,/Released/i);
+    assert.equal(catalog.documents[0].status,'Freigegeben');
+  } finally { activeLocale='de'; }
 });
