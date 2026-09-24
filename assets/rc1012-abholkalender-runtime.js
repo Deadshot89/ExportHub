@@ -4,6 +4,9 @@
   window.__EXPORTHUB_RC1012_PICKUPCALENDAR_RUNTIME__ = true;
 
   const nativePrint = typeof window.print === 'function' ? window.print.bind(window) : null;
+  function tr(key,vars){try{if(window.ExportHUBI18n&&typeof window.ExportHUBI18n.t==='function')return window.ExportHUBI18n.t(key,vars)}catch(_){}return key}
+  function lang(){try{if(window.ExportHUBI18n&&typeof window.ExportHUBI18n.language==='function')return window.ExportHUBI18n.language()}catch(_){}return'de'}
+  function esc(value){return String(value==null?'':value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
   function installPickupPrintIsolation(){
     if (!nativePrint || !window.document || window.__EXPORTHUB_PICKUP_PRINT_ISOLATION__) return;
@@ -32,7 +35,7 @@
         return nativePrint();
       }
 
-      const printHtml = `<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Abholplan</title><style>
+      const printHtml = `<!doctype html><html lang="${esc(lang())}"><head><meta charset="utf-8"><title>${esc(tr('pickupCalendar.print.title'))}</title><style>
 @page{size:A4 landscape;margin:8mm}
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;background:#fff;color:#111;font-family:Arial,Helvetica,sans-serif}
@@ -150,11 +153,11 @@ html,body{margin:0;padding:0;background:#fff;color:#111;font-family:Arial,Helvet
     const root = window.document && window.document.getElementById('content');
     if (!root) return false;
     if (!allowed()) {
-      root.innerHTML = '<div class="noaccess"><h2>Kein Leserecht</h2><p>Der Abholkalender ist für deinen Benutzer nicht freigegeben.</p></div>';
+      root.innerHTML = '<div class="noaccess"><h2>'+esc(tr('pickupCalendar.accessDeniedTitle'))+'</h2><p>'+esc(tr('pickupCalendar.accessDeniedText'))+'</p></div>';
       return true;
     }
     if (!window.ExportHubPickupCalendar || typeof window.ExportHubPickupCalendar.mount !== 'function') {
-      root.innerHTML = '<section class="card"><h1>Abholkalender</h1><p>Der Kalender konnte nicht geladen werden.</p></section>';
+      root.innerHTML = '<section class="card"><h1>'+esc(tr('pickupCalendar.title'))+'</h1><p>'+esc(tr('pickupCalendar.loadError'))+'</p></section>';
       return false;
     }
     window.ExportHubPickupCalendar.mount(root,{
