@@ -71,9 +71,13 @@ module.exports=async function(context,req){
   if(!await githubOidcAuthorized(req))throw error('WORKFLOW_REQUIRED','Readiness darf nur durch den signierten ExportHUB-Releaseworkflow geprüft werden.',403);
   const environment=environmentOf(req),cfg=graphMail.readiness(),recipient=text(process.env.EXPORTHUB_AVIS_UPLOAD_NOTIFICATION_TO)||DEFAULT_RECIPIENT;
   if(!cfg.configured||!validEmail(recipient)){
-   context.res=json(503,{ok:false,configured:false,environment,recipientConfigured:validEmail(recipient),missing:Array.isArray(cfg.missing)?cfg.missing:[],code:!cfg.configured?'GRAPH_MAIL_NOT_CONFIGURED':'MAIL_RECIPIENT_INVALID',version:'RC1249'});return
+   context.res=json(503,{ok:false,configured:false,authenticated:false,environment,recipientConfigured:validEmail(recipient),missing:Array.isArray(cfg.missing)?cfg.missing:[],code:!cfg.configured?'GRAPH_MAIL_NOT_CONFIGURED':'MAIL_RECIPIENT_INVALID',version:'RC1270'});return
   }
-  context.res=json(200,{ok:true,configured:true,environment,recipient,version:'RC1249'})
+  const authProbe=await graphMail.verifyAuthentication();
+  if(!authProbe.authenticated){
+   context.res=json(503,{ok:false,configured:true,authenticated:false,environment,recipientConfigured:true,code:authProbe.code||'GRAPH_AUTH_FAILED',upstreamStatus:Number(authProbe.upstreamStatus||0),version:'RC1270'});return
+  }
+  context.res=json(200,{ok:true,configured:true,authenticated:true,audienceOk:authProbe.audienceOk===true,environment,recipient,version:'RC1270'})
  }catch(e){
   context.res=json(Number(e&&e.status||e&&e.statusCode||500),{ok:false,configured:false,code:e&&e.code||'SERVER_ERROR',message:e&&e.message||'AVIS-Mail-Readiness fehlgeschlagen.',version:'RC1249'})
  }
