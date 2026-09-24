@@ -104,7 +104,7 @@ body[data-exporthub-view="shipmentoverview"] .rc1259-photo-actions{
   gap:6px;
   flex-wrap:wrap;
 }
-body[data-exporthub-view="shipmentoverview"] .rc1259-photo-actions a{
+body[data-exporthub-view="shipmentoverview"] .rc1259-photo-actions :is(a,button){
   display:inline-flex;
   align-items:center;
   justify-content:center;
@@ -225,7 +225,7 @@ body[data-exporthub-view="shipmentview"] .rc1259-container-detail .rc1259-photo-
   gap:6px;
   flex-wrap:wrap;
 }
-body[data-exporthub-view="shipmentview"] .rc1259-container-detail .rc1259-photo-actions a{
+body[data-exporthub-view="shipmentview"] .rc1259-container-detail .rc1259-photo-actions :is(a,button){
   display:inline-flex;
   align-items:center;
   justify-content:center;
