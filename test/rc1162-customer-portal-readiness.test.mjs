@@ -30,22 +30,22 @@ test('RC1162: Statusprüfung benötigt keinen Kunden und bleibt hinter Nutzungsr
   assert.match(api,/version:'RC1162'/);
 });
 
-test('RC1162: UI zeigt Betriebsbereitschaft und blockiert Secret-Aktionen ohne Schlüssel',()=>{
+test('RC1267: UI zeigt lokalisierte Betriebsbereitschaft und blockiert Secret-Aktionen ohne Schlüssel',()=>{
   assert.match(ui,/portalApi\('status',\{\}\)/);
-  assert.match(ui,/Verschlüsselung aktiv/);
-  assert.match(ui,/Server-Schlüssel fehlt/);
+  assert.match(ui,/portal\.encryptionActive/);
+  assert.match(ui,/portal\.serverKeyMissing/);
+  assert.match(ui,/portal\.encryptionNotReady/);
   assert.match(ui,/data-rc1162-key-warning/);
-  assert.match(ui,/configured\?'':'disabled title="Verschlüsselung nicht bereit"'/);
   assert.match(ui,/add\.disabled=ready\.configured!==true/);
   assert.match(ui,/readinessVersion:'RC1162'/);
 });
 
-test('RC1162: normale Nutzer sehen keine interne Azure-Setting-Bezeichnung',()=>{
+test('RC1267: Readiness-Hinweis unterscheidet Admin und Nutzer über Translation Keys',()=>{
   const fn=ui.slice(ui.indexOf('function readinessHint'),ui.indexOf('function portalRows'));
   assert.match(fn,/adminView\?/);
   assert.doesNotMatch(fn,/EXPORTHUB_CUSTOMER_PORTAL_KEY/);
-  assert.match(fn,/Azure App Setting für die Kundenportal-Verschlüsselung fehlt/);
-  assert.match(fn,/Bitte Administrator informieren/);
+  assert.match(fn,/portal\.adminKeyWarning/);
+  assert.match(fn,/portal\.userKeyWarning/);
 });
 
 test('RC1162: finaler Build erzwingt neuen Kundenportal-Cache ohne Deckblatt-Regression',()=>{
