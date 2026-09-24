@@ -619,5 +619,8 @@
   "pickupCalendar.subtitle": "Fixe Abholungen und angemeldete Sendungen bleiben getrennt und werden gemeinsam übersichtlich dargestellt.",
   "pickupCalendar.updating": "Wird aktualisiert …",
   "pickupCalendar.error.fixedLoad": "Fixe Abholungen konnten nicht geladen werden.",
-  "pickupCalendar.error.fixedSave": "Fixe Abholung konnte nicht gespeichert werden."
+  "pickupCalendar.error.fixedSave": "Fixe Abholung konnte nicht gespeichert werden.",
+  "pickupCalendar.accessDeniedTitle": "Kein Leserecht",
+  "pickupCalendar.accessDeniedText": "Der Abholkalender ist für deinen Benutzer nicht freigegeben.",
+  "pickupCalendar.loadError": "Der Kalender konnte nicht geladen werden."
 }
