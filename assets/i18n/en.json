@@ -619,5 +619,8 @@
   "pickupCalendar.subtitle": "Fixed pickups and registered shipments remain separate and are presented together in a clear overview.",
   "pickupCalendar.updating": "Updating …",
   "pickupCalendar.error.fixedLoad": "Fixed pickups could not be loaded.",
-  "pickupCalendar.error.fixedSave": "Fixed pickup could not be saved."
+  "pickupCalendar.error.fixedSave": "Fixed pickup could not be saved.",
+  "pickupCalendar.accessDeniedTitle": "No read access",
+  "pickupCalendar.accessDeniedText": "The pickup calendar is not enabled for your user account.",
+  "pickupCalendar.loadError": "The calendar could not be loaded."
 }
