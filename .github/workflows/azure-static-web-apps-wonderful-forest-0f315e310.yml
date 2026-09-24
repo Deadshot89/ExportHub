@@ -572,6 +572,2129 @@ jobs:
           if [ "$status" != "200" ]; then cat "$response"; exit 1; fi
           node -e "const fs=require('fs');const v=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));if(!v.ok||v.configured!==true||v.environment!=='testservice'||v.recipient!=='DespatchNettetal@essentra.onmicrosoft.com')process.exit(1)" "$response"
 
+      - name: RC1251 TESTSERVICE Frame-Schutz live prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for route in / /pickup.html /customer-avis.html; do
+            headers="$(mktemp)"
+            trap 'rm -f "$headers"' EXIT
+            curl -sS -D "$headers" -o /dev/null --max-time 20 "$base$route?rc1251=${GITHUB_SHA}"
+            grep -Eqi "^content-security-policy:[[:space:]]*frame-ancestors 'none'[[:space:]]*\\r?$" "$headers"
+            grep -Eqi '^x-frame-options:[[:space:]]*DENY[[:space:]]*\r?        uses: Azure/static-web-apps-deploy@4d27395796ac319302594769cfe812bd207490b1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_FOREST_0F315E310 }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: upload
+          app_location: .rc1112_production_app
+          api_location: api
+          output_location: ''
+          skip_app_build: true
+      - name: RC1170 PRODUCTION Kundenportal-Verschlüsselung prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +x
+          base='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          oidc_token="$(
+            curl -fsSL \
+              -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+              "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=exporthub-customer-portal-readiness" \
+            | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s).value;if(!v)process.exit(2);process.stdout.write(v)})"
+          )"
+          echo "::add-mask::$oidc_token"
+          body="$(mktemp)"
+          trap 'rm -f "$body"' EXIT
+          code="$(curl -sS -o "$body" -w '%{http_code}' --max-time 20 -X POST \
+            -H "x-exporthub-github-oidc: $oidc_token" \
+            -H 'x-exporthub-environment: production' \
+            "$base/api/customer-portal-readiness" || true)"
+          STATUS="$code" BODY="$body" node -e "
+            const fs=require('fs'),status=Number(process.env.STATUS||0);
+            let v={};try{v=JSON.parse(fs.readFileSync(process.env.BODY,'utf8')||'{}')}catch(_){}
+            console.log('RC1170 PRODUCTION customer portal readiness',JSON.stringify({httpStatus:status,ok:v.ok===true,configured:v.configured===true,environment:v.environment,code:v.code,version:v.version}));
+            if(status<200||status>=300||v.ok!==true||v.configured!==true||v.environment!=='production')process.exit(4);
+          "
+      - name: RC1249 PRODUCTION AVIS-Mail-Konfiguration prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          response="$(mktemp)"
+          trap 'rm -f "$response"' EXIT
+          oidc_token="$(
+            curl -fsSL \
+              -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+              "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=exporthub-avis-upload-mail-readiness" \
+            | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s).value;if(!v)process.exit(2);process.stdout.write(v)})"
+          )"
+          echo "::add-mask::$oidc_token"
+          status="$(
+            curl -sS -o "$response" -w '%{http_code}' --max-time 20 -X POST \
+              -H "x-exporthub-github-oidc: $oidc_token" \
+              -H 'x-exporthub-environment: production' \
+              "$base/api/avis-upload-mail-readiness"
+          )"
+          if [ "$status" != "200" ]; then cat "$response"; exit 1; fi
+          node -e "const fs=require('fs');const v=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));if(!v.ok||v.configured!==true||v.environment!=='production'||v.recipient!=='DespatchNettetal@essentra.onmicrosoft.com')process.exit(1)" "$response"
+
+      - name: RC1251 PRODUCTION Frame-Schutz live prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          for route in / /pickup.html /customer-avis.html; do
+            headers="$(mktemp)"
+            trap 'rm -f "$headers"' EXIT
+            curl -sS -D "$headers" -o /dev/null --max-time 20 "$base$route?rc1251=${GITHUB_SHA}"
+            grep -Eqi "^content-security-policy:[[:space:]]*frame-ancestors 'none'[[:space:]]*\\r?$" "$headers"
+            grep -Eqi '^x-frame-options:[[:space:]]*DENY[[:space:]]*\r?        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for env in production testservice; do
+            if [ "$env" = "production" ]; then base="$prod"; else base="$testservice"; fi
+            pickup="$(mktemp)"; viewer="$(mktemp)"; health="$(mktemp)"; protected="$(mktemp)"
+            trap 'rm -f "$pickup" "$viewer" "$health" "$protected"' EXIT
+            ready=0
+            for attempt in {1..18}; do
+              pc=$(curl -sS -L -o "$pickup" -w '%{http_code}' --max-time 20 "$base/pickup.html?rc1233=$GITHUB_SHA-$attempt" || true)
+              vc=$(curl -sS -L -o "$viewer" -w '%{http_code}' --max-time 20 "$base/assets/rc1059-document-blob.js?rc1233=$GITHUB_SHA-$attempt" || true)
+              hc=$(curl -sS -L -o "$health" -w '%{http_code}' --max-time 20 "$base/api/pickup-health?rc1233=$GITHUB_SHA-$attempt" || true)
+              key='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+              blob="rc995/$env/$key/automatic/POD_RC1233.pdf"
+              dc=$(curl -sS -L -o "$protected" -w '%{http_code}' --max-time 20 "$base/api/exporthub-document?blob=$(node -p "encodeURIComponent(process.argv[1])" "$blob")&environment=$env&rc1233=$GITHUB_SHA-$attempt" || true)
+              if [ "$pc" = "200" ]                 && [ "$vc" = "200" ]                 && [ "$hc" = "200" ]                 && [ "$dc" = "401" ]                 && grep -Fq "fetch('/api/'" "$pickup"                 && grep -Fq "request('pickup-status?token='" "$pickup"                 && grep -Fq "request('pickup-confirm-v2'" "$pickup"                 && grep -Fq "storage==='azure'||storage==='pod'" "$viewer"                 && grep -Fq 'automatic' "$viewer"                 && grep -Fq '/api/exporthub-document?blob=' "$viewer"                 && grep -Eq '"ok"[[:space:]]*:[[:space:]]*true' "$health"                 && grep -Eq 'AUTH_REQUIRED|SESSION_INVALID' "$protected"; then
+                ready=1
+                break
+              fi
+              sleep 5
+            done
+            if [ "$ready" != "1" ]; then
+              echo "RC1233 Pickup/POD-Live-Gate fehlgeschlagen: env=$env pickup=$pc viewer=$vc health=$hc protected=$dc" >&2
+              exit 1
+            fi
+            rm -f "$pickup" "$viewer" "$health" "$protected"
+            trap - EXIT
+          done
+          echo 'RC1233 QR-Abholung und geschützter POD-Ladelisten-Viewer live in Produktion und TESTSERVICE bestätigt.'
+
+      - name: RC1228 Lieferavis-Slotlogik live prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for base in "$prod" "$testservice"; do
+            body="$(mktemp)"
+            trap 'rm -f "$body"' EXIT
+            code='000'
+            for attempt in {1..12}; do
+              code=$(curl -sS -L -o "$body" -w '%{http_code}' --max-time 20 "$base/customer-avis.html?rc1228=$GITHUB_SHA-$attempt" || true)
+              if [ "$code" = "200" ] \
+                && grep -Fq 'Buchbar sind ausschließlich 2-Stunden-Zeitfenster innerhalb von 08:30–16:00 Uhr.' "$body" \
+                && grep -Fq "Noch '+esc(x.remaining)+' von 3 gleichzeitig frei" "$body" \
+                && grep -Fq "action:'availability'" "$body" \
+                && grep -Fq "err.code==='PICKUP_SLOT_FULL'" "$body"; then
+                break
+              fi
+              if [ "$attempt" = "12" ]; then
+                echo "RC1228 Lieferavis-Slotlogik fehlt live: base=$base http=$code" >&2
+                exit 1
+              fi
+              sleep 5
+            done
+            rm -f "$body"
+            trap - EXIT
+          done
+          echo 'RC1228 Lieferavis-Slotlogik live in Produktion und TESTSERVICE bestätigt.'
+
+      - name: Live RC1122 HTML-Integrität prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          p=$(mktemp); t=$(mktemp); d=$(mktemp)
+          trap 'rm -f "$p" "$t" "$d"' EXIT
+          for attempt in {1..24}; do
+            pc=$(curl -sS -L -o "$p" -w '%{http_code}' --max-time 20 "$prod/?rc1122=$GITHUB_SHA-$attempt" || true)
+            tc=$(curl -sS -L -o "$t" -w '%{http_code}' --max-time 20 "$testservice/?rc1122=$GITHUB_SHA-$attempt" || true)
+            dc=$(curl -sS -L -o "$d" -w '%{http_code}' --max-time 20 "$testservice/demo.html?rc1122=$GITHUB_SHA-$attempt" || true)
+            if [ "$pc" = "200" ] && [ "$tc" = "200" ] && [ "$dc" = "200" ] && grep -q "version:'RC1112'" "$p" && grep -q "version:'RC1112'" "$t"; then
+              node .github/rc1121/verify-final-html.mjs "$p" "$t" "$d"
+              break
+            fi
+            if [ "$attempt" = "24" ]; then
+              echo "RC1122 Live-HTML konnte nicht verifiziert werden: prod=$pc test=$tc demo=$dc" >&2
+              exit 1
+            fi
+            sleep 5
+          done
+      - name: RC1124 Produktion Read-only Browser Smoke
+        id: rc1124_production_browser_smoke
+        shell: bash
+        env:
+          EXPORTHUB_E2E_LIVE: '1'
+          EXPORTHUB_E2E_BASE_URL: https://wonderful-forest-0f315e310.7.azurestaticapps.net
+          EXPORTHUB_E2E_PUBLIC_ENV: production
+        run: |
+          set -euo pipefail
+          npx playwright test e2e/specs/public-smoke.spec.mjs e2e/specs/version-display.spec.mjs --project=laptop
+
+      - name: RC1124 Produktion Browser-Artefakte
+        if: ${{ failure() && steps.rc1124_production_browser_smoke.outcome == 'failure' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: rc1124-production-browser-${{ github.sha }}
+          path: |
+            test-results
+            playwright-report
+          if-no-files-found: ignore
+          retention-days: 14
+
+
+      - name: Live RC1112 Produktion TESTSERVICE und Demo prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          p=$(mktemp); t=$(mktemp); d=$(mktemp); ph=$(mktemp); th=$(mktemp); pm=$(mktemp); tm=$(mktemp); pcc=$(mktemp); tcc=$(mktemp); pma=$(mktemp); tma=$(mktemp); prec=$(mktemp); trec=$(mktemp); pperf=$(mktemp); tperf=$(mktemp); pavis=$(mktemp); tavis=$(mktemp); precp=$(mktemp); trecp=$(mktemp); ps=$(mktemp); ts=$(mktemp); pk=$(mktemp); tk=$(mktemp); pd=$(mktemp); td=$(mktemp); pg=$(mktemp); tg=$(mktemp); pr=$(mktemp); tr=$(mktemp); pcal=$(mktemp); tcal=$(mktemp); pruntime=$(mktemp); truntime=$(mktemp)
+          trap 'rm -f "$p" "$t" "$d" "$ph" "$th" "$pm" "$tm" "$pcc" "$tcc" "$pma" "$tma" "$prec" "$trec" "$pperf" "$tperf" "$pavis" "$tavis" "$precp" "$trecp" "$ps" "$ts" "$pk" "$tk" "$pd" "$td" "$pg" "$tg" "$pr" "$tr" "$pcal" "$tcal" "$pruntime" "$truntime"' EXIT
+          for attempt in {1..24}; do
+            pc=$(curl -sS -L -o "$p" -w '%{http_code}' --max-time 20 "$prod/?rc1112=$GITHUB_SHA-$attempt" || true)
+            tc=$(curl -sS -L -o "$t" -w '%{http_code}' --max-time 20 "$testservice/TESTVERSION.html?rc1112=$GITHUB_SHA-$attempt" || true)
+            dc=$(curl -sS -L -o "$d" -w '%{http_code}' --max-time 20 "$testservice/demo.html?rc1112=$GITHUB_SHA-$attempt" || true)
+            phc=$(curl -sS -o "$ph" -w '%{http_code}' --max-time 20 "$prod/api/exporthub-health" || true)
+            thc=$(curl -sS -o "$th" -w '%{http_code}' --max-time 20 "$testservice/api/exporthub-health" || true)
+            pmc=$(curl -sS -o "$pm" -w '%{http_code}' --max-time 20 "$prod/assets/rc1016-mobile-navigation.js?rc1112=$GITHUB_SHA-$attempt" || true)
+            tmc=$(curl -sS -o "$tm" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1016-mobile-navigation.js?rc1112=$GITHUB_SHA-$attempt" || true)
+            pccc=$(curl -sS -o "$pcc" -w '%{http_code}' --max-time 20 "$prod/assets/rc1065-registration-cc.js?rc1065=$GITHUB_SHA-$attempt" || true)
+            tccc=$(curl -sS -o "$tcc" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1065-registration-cc.js?rc1065=$GITHUB_SHA-$attempt" || true)
+            pmac=$(curl -sS -o "$pma" -w '%{http_code}' --max-time 20 "$prod/assets/rc1061-document-migration-admin.js?rc1073=$GITHUB_SHA-$attempt" || true)
+            tmac=$(curl -sS -o "$tma" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1061-document-migration-admin.js?rc1073=$GITHUB_SHA-$attempt" || true)
+            precc=$(curl -sS -o "$prec" -w '%{http_code}' --max-time 20 "$prod/assets/rc1067-startup-recovery.js?rc1067=$GITHUB_SHA-$attempt" || true)
+            trecc=$(curl -sS -o "$trec" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1067-startup-recovery.js?rc1067=$GITHUB_SHA-$attempt" || true)
+            pperfc=$(curl -sS -o "$pperf" -w '%{http_code}' --max-time 20 "$prod/assets/rc1069-performance.js?rc1069=$GITHUB_SHA-$attempt" || true)
+            tperfc=$(curl -sS -o "$tperf" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1069-performance.js?rc1069=$GITHUB_SHA-$attempt" || true)
+            pavisc=$(curl -sS -o "$pavis" -w '%{http_code}' --max-time 20 "$prod/assets/rc1027-lieferavis-immediate.js?rc1069=$GITHUB_SHA-$attempt" || true)
+            tavisc=$(curl -sS -o "$tavis" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1027-lieferavis-immediate.js?rc1069=$GITHUB_SHA-$attempt" || true)
+            precpc=$(curl -sS -L -o "$precp" -w '%{http_code}' --max-time 20 "$prod/migration-recovery.html?rc1067=$GITHUB_SHA-$attempt" || true)
+            trecpc=$(curl -sS -L -o "$trecp" -w '%{http_code}' --max-time 20 "$testservice/migration-recovery.html?rc1067=$GITHUB_SHA-$attempt" || true)
+            psc=$(curl -sS -o "$ps" -w '%{http_code}' --max-time 20 "$prod/assets/sop/screenshots/rc1016-tasks.png?rc1112=$GITHUB_SHA-$attempt" || true)
+            tsc=$(curl -sS -o "$ts" -w '%{http_code}' --max-time 20 "$testservice/assets/sop/screenshots/rc1016-tasks.png?rc1112=$GITHUB_SHA-$attempt" || true)
+            pkc=$(curl -sS -o "$pk" -w '%{http_code}' --max-time 20 "$prod/assets/sop/screenshots/rc1016-pickupcalendar.png?rc1112=$GITHUB_SHA-$attempt" || true)
+            tkc=$(curl -sS -o "$tk" -w '%{http_code}' --max-time 20 "$testservice/assets/sop/screenshots/rc1016-pickupcalendar.png?rc1112=$GITHUB_SHA-$attempt" || true)
+            pdc=$(curl -sS -o "$pd" -w '%{http_code}' --max-time 20 "$prod/assets/rc1013-diagnostics.js?rc1112=$GITHUB_SHA-$attempt" || true)
+            tdc=$(curl -sS -o "$td" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1013-diagnostics.js?rc1112=$GITHUB_SHA-$attempt" || true)
+            pgc=$(curl -sS -o "$pg" -w '%{http_code}' --max-time 20 "$prod/assets/rc1013-gate41-ui.js?rc1112=$GITHUB_SHA-$attempt" || true)
+            tgc=$(curl -sS -o "$tg" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1013-gate41-ui.js?rc1112=$GITHUB_SHA-$attempt" || true)
+            prc=$(curl -sS -o "$pr" -w '%{http_code}' --max-time 20 "$prod/assets/rc1017-multi-truck.js?rc1017=$GITHUB_SHA-$attempt" || true)
+            trc=$(curl -sS -o "$tr" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1017-multi-truck.js?rc1017=$GITHUB_SHA-$attempt" || true)
+            pcalc=$(curl -sS -o "$pcal" -w '%{http_code}' --max-time 20 "$prod/assets/abholkalender.js?rc1112=$GITHUB_SHA-$attempt" || true)
+            tcalc=$(curl -sS -o "$tcal" -w '%{http_code}' --max-time 20 "$testservice/assets/abholkalender.js?rc1112=$GITHUB_SHA-$attempt" || true)
+            pruntimec=$(curl -sS -o "$pruntime" -w '%{http_code}' --max-time 20 "$prod/assets/rc1012-abholkalender-runtime.js?rc1112=$GITHUB_SHA-$attempt" || true)
+            truntimec=$(curl -sS -o "$truntime" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1012-abholkalender-runtime.js?rc1112=$GITHUB_SHA-$attempt" || true)
+            if [[ "$pc" == '200' && "$tc" == '200' && "$dc" == '200' && "$phc" == '200' && "$thc" == '200' && "$pmc" == '200' && "$tmc" == '200' && "$pccc" == '200' && "$tccc" == '200' && "$pmac" == '200' && "$tmac" == '200' && "$precc" == '200' && "$trecc" == '200' && "$pperfc" == '200' && "$tperfc" == '200' && "$pavisc" == '200' && "$tavisc" == '200' && "$precpc" == '200' && "$trecpc" == '200' && "$psc" == '200' && "$tsc" == '200' && "$pkc" == '200' && "$tkc" == '200' && "$pdc" == '200' && "$tdc" == '200' && "$pgc" == '200' && "$tgc" == '200' && "$prc" == '200' && "$trc" == '200' && "$pcalc" == '200' && "$tcalc" == '200' && "$pruntimec" == '200' && "$truntimec" == '200' ]] \
+              && grep -q 'ExportHUB RC1112 environment=production-candidate' "$p" \
+              && grep -q 'ExportHUB RC1112 environment=testservice' "$t" \
+              && grep -q 'ExportHUB RC1112 environment=demo' "$d" \
+              && grep -q "version:'RC1112'" "$p" \
+              && grep -q "version:'RC1112'" "$t" \
+              && grep -q "version:'RC1112'" "$d" \
+              && grep -q 'function addressCountryCode(v)' "$p" \
+              && grep -q 'function addressCountryCode(v)' "$t" \
+              && grep -q 'function addressCountryCode(v)' "$d" \
+              && grep -q 'id="rc1048GateMaster"' "$p" \
+              && grep -q 'id="rc1048GateMaster"' "$t" \
+              && grep -q 'id="rc1048GateMaster"' "$d" \
+              && grep -q 'assets/rc1016-mobile-navigation.js?v=1016' "$p" \
+              && grep -q 'assets/rc1016-mobile-navigation.js?v=1016' "$t" \
+              && grep -q 'assets/rc1016-mobile-navigation.js?v=1016' "$d" \
+              && grep -q 'assets/rc1065-registration-cc.js?v=1093' "$p" \
+              && grep -q 'assets/rc1065-registration-cc.js?v=1093' "$t" \
+              && grep -q 'assets/rc1065-registration-cc.js?v=1093' "$d" \
+              && grep -q '__EXPORTHUB_RC1065_REGISTRATION_CC__' "$pcc" \
+              && grep -q '__EXPORTHUB_RC1065_REGISTRATION_CC__' "$tcc" \
+              && grep -q 'assets/rc1061-document-migration-admin.js?v=1073' "$p" \
+              && grep -q 'assets/rc1061-document-migration-admin.js?v=1073' "$t" \
+              && grep -q 'RC1073: Die Admin-Karte wird nur gerendert' "$pma" \
+              && grep -q 'RC1073: Die Admin-Karte wird nur gerendert' "$tma" \
+              && grep -q 'async function runAll' "$pma" \
+              && grep -q 'async function runAll' "$tma" \
+              && grep -q 'inlinePayloadCount' "$pma" \
+              && grep -q 'inlinePayloadCount' "$tma" \
+              && grep -q 'Alle verbleibenden migrieren' "$pma" \
+              && grep -q 'Alle verbleibenden migrieren' "$tma" \
+              && grep -q 'assets/rc1067-startup-recovery.js?v=1067' "$p" \
+              && grep -q 'assets/rc1067-startup-recovery.js?v=1067' "$t" \
+              && grep -q '__EXPORTHUB_RC1067_STARTUP_RECOVERY__' "$prec" \
+              && grep -q '__EXPORTHUB_RC1067_STARTUP_RECOVERY__' "$trec" \
+              && grep -q '__EXPORTHUB_RC1069_PERFORMANCE__' "$pperf" \
+              && grep -q '__EXPORTHUB_RC1069_PERFORMANCE__' "$tperf" \
+              && grep -q "version:'RC1069'" "$pavis" \
+              && grep -q "version:'RC1069'" "$tavis" \
+              && grep -q 'assets/rc1027-lieferavis-immediate.js?v=1069' "$p" \
+              && grep -q 'assets/rc1027-lieferavis-immediate.js?v=1069' "$t" \
+              && grep -q 'assets/rc1027-lieferavis-immediate.js?v=1069' "$d" \
+              && grep -q 'Dokumentspeicher wird optimiert' "$precp" \
+              && grep -q 'Dokumentspeicher wird optimiert' "$trecp" \
+              && grep -q 'assets/abholkalender.js?v=1012' "$p" \
+              && grep -q 'assets/abholkalender.js?v=1012' "$t" \
+              && grep -q 'assets/abholkalender.js?v=1012' "$d" \
+              && grep -q 'assets/rc1012-abholkalender-runtime.js?v=1012' "$p" \
+              && grep -q 'assets/rc1012-abholkalender-runtime.js?v=1012' "$t" \
+              && grep -q 'assets/rc1012-abholkalender-runtime.js?v=1012' "$d" \
+              && grep -q 'assets/rc1014-task-runtime.js?v=1179' "$p" \
+              && grep -q 'assets/rc1014-shipment-overview.js?v=1127' "$p" \
+              && grep -q 'assets/rc1014-shipment-overview.css?v=1127' "$p" \
+              && grep -q 'assets/rc1015-lieferavis-mail-flow.js?v=1021' "$p" \
+              && grep -q 'assets/rc1017-multi-truck.js?v=1017' "$p" \
+              && grep -q 'assets/rc1017-multi-truck.js?v=1017' "$t" \
+              && grep -q 'assets/rc1017-multi-truck.js?v=1017' "$d" \
+              && grep -q 'function rc1017SyncSubShipments(' "$p" \
+              && grep -q 'function rc1017SyncSubShipments(' "$t" \
+              && grep -q 'function rc1017SyncSubShipments(' "$d" \
+              && grep -q 'rc1017-qr-subshipment' "$p" \
+              && grep -q 'rc1017-qr-subshipment' "$t" \
+              && grep -q 'rc1017-qr-subshipment' "$d" \
+              && grep -q 'rc1017-print-subshipment' "$p" \
+              && grep -q 'rc1017-print-subshipment' "$t" \
+              && grep -q 'rc1017-print-subshipment' "$d" \
+              && grep -q 'assets/rc1016-demo-task-seed.js?v=1016' "$d" \
+              && grep -q 'rc1016MobileMenuBtn' "$pm" \
+              && grep -q 'rc1016MobileMenuBtn' "$tm" \
+              && grep -q 'EH-PICKUP-410' "$pd" \
+              && grep -q 'EH-PICKUP-410' "$td" \
+              && grep -q 'Gate41-Preis Deutschland berechnet' "$pg" \
+              && grep -q 'Gate41-Preis Deutschland berechnet' "$tg" \
+              && grep -q 'ExportHubMultiTruck' "$pr" \
+              && grep -q 'ExportHubMultiTruck' "$tr" \
+              && grep -q 'calendarScalarText' "$pcal" \
+              && grep -q 'calendarScalarText' "$tcal" \
+              && grep -q 'companyId' "$pruntime" \
+              && grep -q 'companyId' "$truntime"; then
+              echo 'RC1048 Produktion, TESTSERVICE und Demo live auf demselben geprüften Stand bestätigt.'
+              exit 0
+            fi
+            sleep 10
+          done
+          echo 'RC1048 Drei-Umgebungen-Liveprüfung nicht bestätigt.'
+          echo "HTTP: prod=$pc test=$tc demo=$dc prodHealth=$phc testHealth=$thc prodMobile=$pmc testMobile=$tmc prodCC=$pccc testCC=$tccc prodMigration=$pmac testMigration=$tmac prodRecovery=$precc testRecovery=$trecc prodPerf=$pperfc testPerf=$tperfc prodAvis=$pavisc testAvis=$tavisc prodRecoveryPage=$precpc testRecoveryPage=$trecpc"
+          diagnose_marker() {
+            local label="$1" file="$2" marker="$3"
+            if ! grep -Fq "$marker" "$file"; then echo "FEHLT: $label :: $marker"; fi
+          }
+          diagnose_marker 'Produktion' "$p" 'ExportHUB RC1112 environment=production-candidate'
+          diagnose_marker 'TESTSERVICE' "$t" 'ExportHUB RC1112 environment=testservice'
+          diagnose_marker 'Demo' "$d" 'ExportHUB RC1112 environment=demo'
+          diagnose_marker 'Produktion' "$p" 'function addressCountryCode(v)'
+          diagnose_marker 'TESTSERVICE' "$t" 'function addressCountryCode(v)'
+          diagnose_marker 'Demo' "$d" 'function addressCountryCode(v)'
+          diagnose_marker 'Produktion' "$p" 'id="rc1048GateMaster"'
+          diagnose_marker 'TESTSERVICE' "$t" 'id="rc1048GateMaster"'
+          diagnose_marker 'Demo' "$d" 'id="rc1048GateMaster"'
+          diagnose_marker 'Produktion' "$p" 'assets/rc1061-document-migration-admin.js?v=1073'
+          diagnose_marker 'TESTSERVICE' "$t" 'assets/rc1061-document-migration-admin.js?v=1073'
+          diagnose_marker 'Produktion' "$p" 'assets/rc1067-startup-recovery.js?v=1067'
+          diagnose_marker 'TESTSERVICE' "$t" 'assets/rc1067-startup-recovery.js?v=1067'
+          diagnose_marker 'Produktion' "$p" 'function rc1017SyncSubShipments('
+          diagnose_marker 'TESTSERVICE' "$t" 'function rc1017SyncSubShipments('
+          diagnose_marker 'Demo' "$d" 'function rc1017SyncSubShipments('
+          diagnose_marker 'Produktion' "$p" 'rc1017-qr-subshipment'
+          diagnose_marker 'TESTSERVICE' "$t" 'rc1017-qr-subshipment'
+          diagnose_marker 'Demo' "$d" 'rc1017-qr-subshipment'
+          diagnose_marker 'Produktion' "$p" 'rc1017-print-subshipment'
+          diagnose_marker 'TESTSERVICE' "$t" 'rc1017-print-subshipment'
+          diagnose_marker 'Demo' "$d" 'rc1017-print-subshipment'
+          diagnose_marker 'Demo' "$d" 'assets/rc1016-demo-task-seed.js?v=1016'
+          diagnose_marker 'Produktion RC1068' "$p" 'id="exporthub-rc373-shipment-controller"'
+          diagnose_marker 'TESTSERVICE RC1068' "$t" 'id="exporthub-rc373-shipment-controller"'
+          diagnose_marker 'Demo RC1068' "$d" 'id="exporthub-rc373-shipment-controller"'
+          exit 1
+
+      - name: Live RC1071 Sendungshistorie prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          p=$(mktemp); t=$(mktemp); ph=$(mktemp); th=$(mktemp)
+          trap 'rm -f "$p" "$t" "$ph" "$th"' EXIT
+          for attempt in {1..18}; do
+            pc=$(curl -sS -L -o "$p" -w '%{http_code}' --max-time 20 "$prod/?rc1071=$GITHUB_SHA-$attempt" || true)
+            tc=$(curl -sS -L -o "$t" -w '%{http_code}' --max-time 20 "$testservice/TESTVERSION.html?rc1071=$GITHUB_SHA-$attempt" || true)
+            phc=$(curl -sS -o "$ph" -w '%{http_code}' --max-time 20 "$prod/assets/rc1071-shipment-history.js?rc1071=$GITHUB_SHA-$attempt" || true)
+            thc=$(curl -sS -o "$th" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1071-shipment-history.js?rc1071=$GITHUB_SHA-$attempt" || true)
+            if [[ "$pc" == '200' && "$tc" == '200' && "$phc" == '200' && "$thc" == '200' ]] \
+              && grep -q 'assets/rc1071-shipment-history.js?v=1095' "$p" \
+              && grep -q 'assets/rc1071-shipment-history.js?v=1095' "$t" \
+              && grep -q '__EXPORTHUB_RC1071_SHIPMENT_HISTORY__' "$ph" \
+              && grep -q '__EXPORTHUB_RC1071_SHIPMENT_HISTORY__' "$th" \
+              && grep -q 'mail-sent-open|' "$ph" \
+              && grep -q 'mail-sent-open|' "$th" \
+              && grep -q 'recordMailSent' "$ph" \
+              && grep -q 'recordMailSent' "$th" \
+              && grep -q 'ABD-E-Mail-Versand bestätigt' "$ph" \
+              && grep -q "return'ABD'" "$ph" \
+              && grep -q 'Arbeit an Sendung gestartet' "$ph" \
+              && grep -q 'Versandanmeldung gestartet' "$ph"; then
+              echo 'RC1106 Sendungshistorie live in Produktion und TESTSERVICE bestätigt.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'RC1106 Sendungshistorie wurde live nicht vollständig bestätigt.' >&2
+          exit 1
+
+      - name: Live RC1134 Mail und Sprache prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for attempt in {1..24}; do
+            ok=1
+            for url in \
+              "$prod/assets/rc1018-mail-language-standard.js?rc1112=$GITHUB_SHA-$attempt" \
+              "$testservice/assets/rc1018-mail-language-standard.js?rc1112=$GITHUB_SHA-$attempt" \
+              "$prod/assets/rc1018-public-language.js?rc1112=$GITHUB_SHA-$attempt" \
+              "$testservice/assets/rc1018-public-language.js?rc1112=$GITHUB_SHA-$attempt"; do
+              body=$(mktemp)
+              code=$(curl -sS -L -o "$body" -w '%{http_code}' --max-time 20 "$url" || true)
+              [[ "$code" == '200' ]] || ok=0
+              if [[ "$url" == *mail-language-standard* ]]; then grep -q '__EXPORTHUB_RC1018_MAIL_LANGUAGE_STANDARD__' "$body" || ok=0; else grep -q '__EXPORTHUB_RC1018_PUBLIC_LANGUAGE__' "$body" || ok=0; fi
+              rm -f "$body"
+            done
+            for url in \
+              "$prod/?rc1112=$GITHUB_SHA-$attempt" \
+              "$testservice/TESTVERSION.html?rc1112=$GITHUB_SHA-$attempt" \
+              "$testservice/demo.html?rc1112=$GITHUB_SHA-$attempt"; do
+              body=$(mktemp)
+              code=$(curl -sS -L -o "$body" -w '%{http_code}' --max-time 20 "$url" || true)
+              [[ "$code" == '200' ]] && grep -q 'assets/rc1018-mail-language-standard.js?v=1018' "$body" || ok=0
+              rm -f "$body"
+            done
+            for base in "$prod" "$testservice"; do
+              body=$(mktemp)
+              code=$(curl -sS -L -o "$body" -w '%{http_code}' --max-time 20 "$base/customer-avis.html?lang=en&rc1112=$GITHUB_SHA-$attempt" || true)
+              [[ "$code" == '200' ]] && grep -q 'assets/rc1018-public-language.js?v=1231' "$body" || ok=0
+              rm -f "$body"
+            done
+            if [[ "$ok" == '1' ]]; then echo 'RC1134 Mail- und Sprachruntime live bestätigt.'; exit 0; fi
+            sleep 10
+          done
+          echo 'RC1134 Mail- und Sprachruntime live nicht bestätigt.'
+          exit 1
+
+      - name: Live RC1074 Login ohne technische Prüfhinweise prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for attempt in {1..18}; do
+            ok=1
+            for url in               "$prod/?rc1074=$GITHUB_SHA-$attempt"               "$testservice/TESTVERSION.html?rc1074=$GITHUB_SHA-$attempt"; do
+              body=$(mktemp)
+              code=$(curl -sS -L -o "$body" -w '%{http_code}' --max-time 20 "$url" || true)
+              [[ "$code" == '200' ]] || ok=0
+              grep -q 'assets/rc1074-login-clean.js?v=1112' "$body" || ok=0
+              if grep -Eqi 'Anmeldekonfiguration wird geprüft|TESTSERVICE[[:space:]]*·[[:space:]]*Auth-Backend wird geprüft|TESTSERVICE[[:space:]]*·[[:space:]]*Zugangsdaten eingeben' "$body"; then
+                echo "RC1074: technischer Login-Hinweis ist live noch vorhanden: $url" >&2
+                ok=0
+              fi
+              rm -f "$body"
+            done
+            if [[ "$ok" == '1' ]]; then
+              echo 'RC1074 Login ist live in Produktion und TESTSERVICE ohne technische Prüfhinweise bestätigt.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'RC1074 Login-Liveprüfung nicht bestätigt.' >&2
+          exit 1
+
+      - name: Live RC1087 Verlader-PIN Audit prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for attempt in {1..18}; do
+            ok=1
+            for base in "$prod" "$testservice"; do
+              body=$(mktemp)
+              code=$(curl -sS -L -o "$body" -w '%{http_code}' --max-time 20 "$base/assets/rc1075-loader-pin-admin.js?rc1075=$GITHUB_SHA-$attempt" || true)
+              [[ "$code" == '200' ]] || ok=0
+              grep -q '__EXPORTHUB_RC1075_LOADER_PIN_ADMIN__' "$body" || ok=0
+              grep -q '/api/loader-pins-admin' "$body" || ok=0
+              rm -f "$body"
+            done
+            for base in "$prod" "$testservice"; do
+              apiBody=$(mktemp)
+              apiCode=$(curl -sS -o "$apiBody" -w '%{http_code}' --max-time 20 -X POST -H 'Content-Type: application/json' --data '{"action":"list"}' "$base/api/loader-pins-admin?rc1076=$GITHUB_SHA-$attempt" || true)
+              [[ "$apiCode" == '401' ]] || ok=0
+              grep -Eq 'AUTH_REQUIRED|SESSION_INVALID' "$apiBody" || ok=0
+              headers=$(mktemp)
+              optionsCode=$(curl -sS -D "$headers" -o /dev/null -w '%{http_code}' --max-time 20 -X OPTIONS "$base/api/loader-pins-admin" || true)
+              [[ "$optionsCode" == '204' ]] || ok=0
+              grep -qi 'X-ExportHUB-Loader-Pin-Audit: RC1087' "$headers" || ok=0
+              rm -f "$headers"
+              rm -f "$apiBody"
+            done
+            p=$(mktemp); t=$(mktemp)
+            pc=$(curl -sS -L -o "$p" -w '%{http_code}' --max-time 20 "$prod/?rc1075=$GITHUB_SHA-$attempt" || true)
+            tc=$(curl -sS -L -o "$t" -w '%{http_code}' --max-time 20 "$testservice/TESTVERSION.html?rc1075=$GITHUB_SHA-$attempt" || true)
+            [[ "$pc" == '200' && "$tc" == '200' ]] || ok=0
+            grep -q 'assets/rc1075-loader-pin-admin.js?v=1075' "$p" || ok=0
+            grep -q 'assets/rc1075-loader-pin-admin.js?v=1075' "$t" || ok=0
+            rm -f "$p" "$t"
+            if [[ "$ok" == '1' ]]; then
+              echo 'RC1087 Verlader-PIN Audit ist live in Produktion und TESTSERVICE bestätigt.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'RC1087 Verlader-PIN Audit-Liveprüfung nicht bestätigt.' >&2
+          exit 1
+
+      - name: Live RC1077 Kundenübersicht prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for attempt in {1..18}; do
+            ok=1
+            for base in "$prod" "$testservice"; do
+              page=$(mktemp); asset=$(mktemp)
+              pc=$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1077=$GITHUB_SHA-$attempt" || true)
+              ac=$(curl -sS -L -o "$asset" -w '%{http_code}' --max-time 20 "$base/assets/rc1077-customer-labels.js?rc1077=$GITHUB_SHA-$attempt" || true)
+              [[ "$pc" == '200' && "$ac" == '200' ]] || ok=0
+              grep -q 'assets/rc1077-customer-labels.js?v=1077' "$page" || ok=0
+              grep -q '__EXPORTHUB_RC1077_CUSTOMER_LABELS__' "$asset" || ok=0
+              grep -q "el.textContent='Standorte'" "$asset" || ok=0
+              grep -q 'overflow:visible!important' "$asset" || ok=0
+              rm -f "$page" "$asset"
+            done
+            demo=$(mktemp)
+            dc=$(curl -sS -L -o "$demo" -w '%{http_code}' --max-time 20 "$testservice/demo.html?rc1077=$GITHUB_SHA-$attempt" || true)
+            [[ "$dc" == '200' ]] || ok=0
+            grep -q 'assets/rc1077-customer-labels.js?v=1077' "$demo" || ok=0
+            rm -f "$demo"
+            if [[ "$ok" == '1' ]]; then
+              echo 'RC1077 Kundenübersicht ist live in Produktion, TESTSERVICE und Demo bestätigt.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'RC1077 Kundenübersicht-Liveprüfung nicht bestätigt.' >&2
+          exit 1
+
+      - name: Live RC1079 Profil und RC1080 Kundenhistorie prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for attempt in {1..18}; do
+            ok=1
+            for base in "$prod" "$testservice"; do
+              page=$(mktemp); profile=$(mktemp); customer=$(mktemp)
+              pc=$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1080=$GITHUB_SHA-$attempt" || true)
+              prc=$(curl -sS -L -o "$profile" -w '%{http_code}' --max-time 20 "$base/assets/rc1079-profile-settings.js?rc1080=$GITHUB_SHA-$attempt" || true)
+              chc=$(curl -sS -L -o "$customer" -w '%{http_code}' --max-time 20 "$base/assets/rc1080-customer-history.js?rc1080=$GITHUB_SHA-$attempt" || true)
+              [[ "$pc" == '200' && "$prc" == '200' && "$chc" == '200' ]] || ok=0
+              grep -q 'assets/rc1079-profile-settings.js?v=1079' "$page" || ok=0
+              grep -q 'assets/rc1080-customer-history.js?v=1080' "$page" || ok=0
+              grep -q '__EXPORTHUB_RC1079_PROFILE_SETTINGS__' "$profile" || ok=0
+              grep -q "action:'update-profile'" "$profile" || ok=0
+              grep -q '__EXPORTHUB_RC1080_CUSTOMER_HISTORY__' "$customer" || ok=0
+              grep -q 'Kunde angelegt' "$customer" || ok=0
+              grep -q 'Kunde geändert' "$customer" || ok=0
+              rm -f "$page" "$profile" "$customer"
+              authBody=$(mktemp)
+              authCode=$(curl -sS -o "$authBody" -w '%{http_code}' --max-time 20 -X POST -H 'Content-Type: application/json' --data '{"action":"update-profile","name":"Unzulässig"}' "$base/api/exporthub-auth?rc1080=$GITHUB_SHA-$attempt" || true)
+              [[ "$authCode" == '401' ]] || ok=0
+              grep -Eq 'AUTH_REQUIRED|SESSION_INVALID' "$authBody" || ok=0
+              rm -f "$authBody"
+            done
+            if [[ "$ok" == '1' ]]; then
+              echo 'RC1079 Profil und RC1080 Kundenhistorie live bestätigt.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'RC1079/RC1080 Liveprüfung nicht bestätigt.' >&2
+          exit 1
+
+      - name: Live RC1087 Historie vollständig prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for attempt in {1..18}; do
+            ok=1
+            for base in "$prod" "$testservice"; do
+              page=$(mktemp); asset=$(mktemp)
+              pc=$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1087=$GITHUB_SHA-$attempt" || true)
+              ac=$(curl -sS -L -o "$asset" -w '%{http_code}' --max-time 20 "$base/assets/rc1081-audit-history.js?rc1087=$GITHUB_SHA-$attempt" || true)
+              [[ "$pc" == '200' && "$ac" == '200' ]] || ok=0
+              grep -q 'assets/rc1081-audit-history.js?v=1177' "$page" || ok=0
+              grep -q '__EXPORTHUB_RC1081_AUDIT_HISTORY__' "$asset" || ok=0
+              grep -q '__EXPORTHUB_RC1086_HISTORY_COMPLETE__' "$asset" || ok=0
+              grep -q '__EXPORTHUB_RC1087_ADMIN_AUDIT__' "$asset" || ok=0
+              grep -q 'LOADER_PIN_CREATED' "$asset" || ok=0
+              grep -q '<h3>Historie</h3>' "$asset" || ok=0
+              grep -q 'ExportHUBShipmentHistory1071' "$asset" || ok=0
+              grep -q 'customerHistory' "$asset" || ok=0
+              grep -q 'auditLog' "$asset" || ok=0
+              grep -q 'function taskEvents(t)' "$asset" || ok=0
+              grep -q 'function palletEvents(p,index)' "$asset" || ok=0
+              rm -f "$page" "$asset"
+            done
+            if [[ "$ok" == '1' ]]; then
+              echo 'RC1087 Historie inklusive Aufgaben, Palettenkonto und Admin-Audit live bestätigt.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'RC1087 Historie-Liveprüfung nicht bestätigt.' >&2
+          exit 1
+
+      - name: Live RC1092 Kundenkontakte prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for attempt in {1..18}; do
+            ok=1
+            for base in "$prod" "$testservice"; do
+              page=$(mktemp); asset=$(mktemp)
+              pc=$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1092=$GITHUB_SHA-$attempt" || true)
+              ac=$(curl -sS -L -o "$asset" -w '%{http_code}' --max-time 20 "$base/assets/rc1092-customer-mail-contacts.js?rc1092=$GITHUB_SHA-$attempt" || true)
+              [[ "$pc" == '200' && "$ac" == '200' ]] || ok=0
+              grep -q 'assets/rc1092-customer-mail-contacts.js?v=1092' "$page" || ok=0
+              grep -q '__EXPORTHUB_RC1092_CUSTOMER_MAIL_CONTACTS__' "$asset" || ok=0
+              grep -q 'Person speichern' "$asset" || ok=0
+              grep -q 'Zur Mail hinzufügen' "$asset" || ok=0
+              rm -f "$page" "$asset"
+            done
+            demo=$(mktemp)
+            dc=$(curl -sS -L -o "$demo" -w '%{http_code}' --max-time 20 "$testservice/demo.html?rc1092=$GITHUB_SHA-$attempt" || true)
+            [[ "$dc" == '200' ]] || ok=0
+            grep -q 'assets/rc1092-customer-mail-contacts.js?v=1092' "$demo" || ok=0
+            rm -f "$demo"
+            if [[ "$ok" == '1' ]]; then
+              echo 'RC1092 Kundenkontakte: Person speichern und Zur Mail hinzufügen live bestätigt.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'RC1092 Kundenkontakte-Liveprüfung nicht bestätigt.' >&2
+          exit 1
+
+
+      - name: Live RC1096 Verpackungsgruppen prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for attempt in {1..18}; do
+            ok=1
+            for base in "$prod" "$testservice"; do
+              page=$(mktemp); asset=$(mktemp)
+              pc=$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1096=$GITHUB_SHA-$attempt" || true)
+              ac=$(curl -sS -L -o "$asset" -w '%{http_code}' --max-time 20 "$base/assets/rc1096-packaging-groups.js?rc1096=$GITHUB_SHA-$attempt" || true)
+              [[ "$pc" == '200' && "$ac" == '200' ]] || ok=0
+              grep -q 'assets/rc1096-packaging-groups.js?v=1110' "$page" || ok=0
+              grep -q "name:'Umschlag'" "$page" || ok=0
+              grep -q '__EXPORTHUB_RC1096_PACKAGING_GROUPS__' "$asset" || ok=0
+              grep -Fq "closest('.rc682-packaging-columns')" "$asset" || ok=0
+              grep -q "Pakete" "$asset" || ok=0
+              grep -q "Paletten" "$asset" || ok=0
+              grep -q "Sonstiges" "$asset" || ok=0
+              rm -f "$page" "$asset"
+            done
+            demo=$(mktemp)
+            dc=$(curl -sS -L -o "$demo" -w '%{http_code}' --max-time 20 "$testservice/demo.html?rc1096=$GITHUB_SHA-$attempt" || true)
+            [[ "$dc" == '200' ]] || ok=0
+            grep -q 'assets/rc1096-packaging-groups.js?v=1110' "$demo" || ok=0
+            grep -q "name:'Umschlag'" "$demo" || ok=0
+            rm -f "$demo"
+            if [[ "$ok" == '1' ]]; then
+              echo 'RC1110 Verpackung: native Pakete, Paletten, Sonstiges ohne Doppelverschachtelung live bestätigt.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'RC1096 Verpackungsgruppen-Liveprüfung nicht bestätigt.' >&2
+          exit 1
+
+
+      - name: Live RC1095 Palettenkonto auf Ladeliste prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for attempt in {1..18}; do
+            ok=1
+            for base in "$prod" "$testservice"; do
+              page=$(mktemp)
+              pc=$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1095=$GITHUB_SHA-$attempt" || true)
+              [[ "$pc" == '200' ]] || ok=0
+              grep -q 'function rc1095LoadPalletHtml' "$page" || ok=0
+              grep -q 'rc1095-pallet-account' "$page" || ok=0
+              grep -q 'Palettenkonto' "$page" || ok=0
+              grep -q 'Ausgang:' "$page" || ok=0
+              grep -q 'rc1095LoadPalletCount(sh,rows(sh))' "$page" || ok=0
+              rm -f "$page"
+            done
+            if [[ "$ok" == '1' ]]; then
+              echo 'RC1095 Palettenkonto auf Ladeliste live in Produktion und TESTSERVICE bestätigt.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'RC1095 Palettenkonto-Liveprüfung nicht bestätigt.' >&2
+          exit 1
+
+      - name: Live RC1083 Diagnose-Autofix prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for attempt in {1..18}; do
+            ok=1
+            for base in "$prod" "$testservice"; do
+              page=$(mktemp); asset=$(mktemp); api=$(mktemp)
+              pc=$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1083=$GITHUB_SHA-$attempt" || true)
+              ac=$(curl -sS -L -o "$asset" -w '%{http_code}' --max-time 20 "$base/assets/rc1013-diagnostics.js?rc1083=$GITHUB_SHA-$attempt" || true)
+              apiCode=$(curl -sS -o "$api" -w '%{http_code}' --max-time 20 -X POST -H 'Content-Type: application/json' --data '{"action":"configuration"}' "$base/api/diagnostic-autofix?rc1083=$GITHUB_SHA-$attempt" || true)
+
+              pageMarker=1; chatgptMarker=1; endpointMarker=1; titleMarker=1; authMarker=1
+              grep -q 'assets/rc1013-diagnostics.js?v=1125' "$page" || pageMarker=0
+              grep -q 'Mit ChatGPT beheben' "$asset" || chatgptMarker=0
+              grep -q '__EXPORTHUB_RC1125_DIAGNOSTICS_VIEW_ISOLATION__' "$asset" || titleMarker=0
+              grep -q '/api/diagnostic-autofix' "$asset" || endpointMarker=0
+              grep -q 'Fehlerdiagnose & automatische Behebung' "$asset" || titleMarker=0
+              grep -Eq 'AUTH_REQUIRED|SESSION_INVALID' "$api" || authMarker=0
+
+              if [[ "$pc" != '200' || "$ac" != '200' || "$apiCode" != '401' || "$pageMarker" != '1' || "$chatgptMarker" != '1' || "$endpointMarker" != '1' || "$titleMarker" != '1' || "$authMarker" != '1' ]]; then
+                ok=0
+                echo "RC1083 Versuch $attempt · $base · page=$pc asset=$ac api=$apiCode · pageMarker=$pageMarker chatgpt=$chatgptMarker endpoint=$endpointMarker title=$titleMarker auth=$authMarker"
+                printf 'RC1083 API-Antwort: '
+                head -c 600 "$api" | tr '\n' ' ' || true
+                echo
+              fi
+              rm -f "$page" "$asset" "$api"
+            done
+            if [[ "$ok" == '1' ]]; then
+              echo 'RC1083 Diagnose-Autofix ist live und gegen anonymen Zugriff geschützt.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'RC1083 Diagnose-Autofix-Liveprüfung nicht bestätigt.' >&2
+          exit 1
+ "$headers"
+            rm -f "$headers"
+            trap - EXIT
+          done
+
+      - name: Deploy ExportHUB production
+        uses: Azure/static-web-apps-deploy@4d27395796ac319302594769cfe812bd207490b1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_FOREST_0F315E310 }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: upload
+          app_location: .rc1112_production_app
+          api_location: api
+          output_location: ''
+          skip_app_build: true
+      - name: RC1170 PRODUCTION Kundenportal-Verschlüsselung prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +x
+          base='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          oidc_token="$(
+            curl -fsSL \
+              -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+              "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=exporthub-customer-portal-readiness" \
+            | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s).value;if(!v)process.exit(2);process.stdout.write(v)})"
+          )"
+          echo "::add-mask::$oidc_token"
+          body="$(mktemp)"
+          trap 'rm -f "$body"' EXIT
+          code="$(curl -sS -o "$body" -w '%{http_code}' --max-time 20 -X POST \
+            -H "x-exporthub-github-oidc: $oidc_token" \
+            -H 'x-exporthub-environment: production' \
+            "$base/api/customer-portal-readiness" || true)"
+          STATUS="$code" BODY="$body" node -e "
+            const fs=require('fs'),status=Number(process.env.STATUS||0);
+            let v={};try{v=JSON.parse(fs.readFileSync(process.env.BODY,'utf8')||'{}')}catch(_){}
+            console.log('RC1170 PRODUCTION customer portal readiness',JSON.stringify({httpStatus:status,ok:v.ok===true,configured:v.configured===true,environment:v.environment,code:v.code,version:v.version}));
+            if(status<200||status>=300||v.ok!==true||v.configured!==true||v.environment!=='production')process.exit(4);
+          "
+      - name: RC1249 PRODUCTION AVIS-Mail-Konfiguration prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          response="$(mktemp)"
+          trap 'rm -f "$response"' EXIT
+          oidc_token="$(
+            curl -fsSL \
+              -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+              "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=exporthub-avis-upload-mail-readiness" \
+            | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s).value;if(!v)process.exit(2);process.stdout.write(v)})"
+          )"
+          echo "::add-mask::$oidc_token"
+          status="$(
+            curl -sS -o "$response" -w '%{http_code}' --max-time 20 -X POST \
+              -H "x-exporthub-github-oidc: $oidc_token" \
+              -H 'x-exporthub-environment: production' \
+              "$base/api/avis-upload-mail-readiness"
+          )"
+          if [ "$status" != "200" ]; then cat "$response"; exit 1; fi
+          node -e "const fs=require('fs');const v=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));if(!v.ok||v.configured!==true||v.environment!=='production'||v.recipient!=='DespatchNettetal@essentra.onmicrosoft.com')process.exit(1)" "$response"
+
+      - name: RC1233 QR-Abholung und POD-Ladelisten-Viewer live prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for env in production testservice; do
+            if [ "$env" = "production" ]; then base="$prod"; else base="$testservice"; fi
+            pickup="$(mktemp)"; viewer="$(mktemp)"; health="$(mktemp)"; protected="$(mktemp)"
+            trap 'rm -f "$pickup" "$viewer" "$health" "$protected"' EXIT
+            ready=0
+            for attempt in {1..18}; do
+              pc=$(curl -sS -L -o "$pickup" -w '%{http_code}' --max-time 20 "$base/pickup.html?rc1233=$GITHUB_SHA-$attempt" || true)
+              vc=$(curl -sS -L -o "$viewer" -w '%{http_code}' --max-time 20 "$base/assets/rc1059-document-blob.js?rc1233=$GITHUB_SHA-$attempt" || true)
+              hc=$(curl -sS -L -o "$health" -w '%{http_code}' --max-time 20 "$base/api/pickup-health?rc1233=$GITHUB_SHA-$attempt" || true)
+              key='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+              blob="rc995/$env/$key/automatic/POD_RC1233.pdf"
+              dc=$(curl -sS -L -o "$protected" -w '%{http_code}' --max-time 20 "$base/api/exporthub-document?blob=$(node -p "encodeURIComponent(process.argv[1])" "$blob")&environment=$env&rc1233=$GITHUB_SHA-$attempt" || true)
+              if [ "$pc" = "200" ]                 && [ "$vc" = "200" ]                 && [ "$hc" = "200" ]                 && [ "$dc" = "401" ]                 && grep -Fq "fetch('/api/'" "$pickup"                 && grep -Fq "request('pickup-status?token='" "$pickup"                 && grep -Fq "request('pickup-confirm-v2'" "$pickup"                 && grep -Fq "storage==='azure'||storage==='pod'" "$viewer"                 && grep -Fq 'automatic' "$viewer"                 && grep -Fq '/api/exporthub-document?blob=' "$viewer"                 && grep -Eq '"ok"[[:space:]]*:[[:space:]]*true' "$health"                 && grep -Eq 'AUTH_REQUIRED|SESSION_INVALID' "$protected"; then
+                ready=1
+                break
+              fi
+              sleep 5
+            done
+            if [ "$ready" != "1" ]; then
+              echo "RC1233 Pickup/POD-Live-Gate fehlgeschlagen: env=$env pickup=$pc viewer=$vc health=$hc protected=$dc" >&2
+              exit 1
+            fi
+            rm -f "$pickup" "$viewer" "$health" "$protected"
+            trap - EXIT
+          done
+          echo 'RC1233 QR-Abholung und geschützter POD-Ladelisten-Viewer live in Produktion und TESTSERVICE bestätigt.'
+
+      - name: RC1228 Lieferavis-Slotlogik live prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for base in "$prod" "$testservice"; do
+            body="$(mktemp)"
+            trap 'rm -f "$body"' EXIT
+            code='000'
+            for attempt in {1..12}; do
+              code=$(curl -sS -L -o "$body" -w '%{http_code}' --max-time 20 "$base/customer-avis.html?rc1228=$GITHUB_SHA-$attempt" || true)
+              if [ "$code" = "200" ] \
+                && grep -Fq 'Buchbar sind ausschließlich 2-Stunden-Zeitfenster innerhalb von 08:30–16:00 Uhr.' "$body" \
+                && grep -Fq "Noch '+esc(x.remaining)+' von 3 gleichzeitig frei" "$body" \
+                && grep -Fq "action:'availability'" "$body" \
+                && grep -Fq "err.code==='PICKUP_SLOT_FULL'" "$body"; then
+                break
+              fi
+              if [ "$attempt" = "12" ]; then
+                echo "RC1228 Lieferavis-Slotlogik fehlt live: base=$base http=$code" >&2
+                exit 1
+              fi
+              sleep 5
+            done
+            rm -f "$body"
+            trap - EXIT
+          done
+          echo 'RC1228 Lieferavis-Slotlogik live in Produktion und TESTSERVICE bestätigt.'
+
+      - name: Live RC1122 HTML-Integrität prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          p=$(mktemp); t=$(mktemp); d=$(mktemp)
+          trap 'rm -f "$p" "$t" "$d"' EXIT
+          for attempt in {1..24}; do
+            pc=$(curl -sS -L -o "$p" -w '%{http_code}' --max-time 20 "$prod/?rc1122=$GITHUB_SHA-$attempt" || true)
+            tc=$(curl -sS -L -o "$t" -w '%{http_code}' --max-time 20 "$testservice/?rc1122=$GITHUB_SHA-$attempt" || true)
+            dc=$(curl -sS -L -o "$d" -w '%{http_code}' --max-time 20 "$testservice/demo.html?rc1122=$GITHUB_SHA-$attempt" || true)
+            if [ "$pc" = "200" ] && [ "$tc" = "200" ] && [ "$dc" = "200" ] && grep -q "version:'RC1112'" "$p" && grep -q "version:'RC1112'" "$t"; then
+              node .github/rc1121/verify-final-html.mjs "$p" "$t" "$d"
+              break
+            fi
+            if [ "$attempt" = "24" ]; then
+              echo "RC1122 Live-HTML konnte nicht verifiziert werden: prod=$pc test=$tc demo=$dc" >&2
+              exit 1
+            fi
+            sleep 5
+          done
+      - name: RC1124 Produktion Read-only Browser Smoke
+        id: rc1124_production_browser_smoke
+        shell: bash
+        env:
+          EXPORTHUB_E2E_LIVE: '1'
+          EXPORTHUB_E2E_BASE_URL: https://wonderful-forest-0f315e310.7.azurestaticapps.net
+          EXPORTHUB_E2E_PUBLIC_ENV: production
+        run: |
+          set -euo pipefail
+          npx playwright test e2e/specs/public-smoke.spec.mjs e2e/specs/version-display.spec.mjs --project=laptop
+
+      - name: RC1124 Produktion Browser-Artefakte
+        if: ${{ failure() && steps.rc1124_production_browser_smoke.outcome == 'failure' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: rc1124-production-browser-${{ github.sha }}
+          path: |
+            test-results
+            playwright-report
+          if-no-files-found: ignore
+          retention-days: 14
+
+
+      - name: Live RC1112 Produktion TESTSERVICE und Demo prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          p=$(mktemp); t=$(mktemp); d=$(mktemp); ph=$(mktemp); th=$(mktemp); pm=$(mktemp); tm=$(mktemp); pcc=$(mktemp); tcc=$(mktemp); pma=$(mktemp); tma=$(mktemp); prec=$(mktemp); trec=$(mktemp); pperf=$(mktemp); tperf=$(mktemp); pavis=$(mktemp); tavis=$(mktemp); precp=$(mktemp); trecp=$(mktemp); ps=$(mktemp); ts=$(mktemp); pk=$(mktemp); tk=$(mktemp); pd=$(mktemp); td=$(mktemp); pg=$(mktemp); tg=$(mktemp); pr=$(mktemp); tr=$(mktemp); pcal=$(mktemp); tcal=$(mktemp); pruntime=$(mktemp); truntime=$(mktemp)
+          trap 'rm -f "$p" "$t" "$d" "$ph" "$th" "$pm" "$tm" "$pcc" "$tcc" "$pma" "$tma" "$prec" "$trec" "$pperf" "$tperf" "$pavis" "$tavis" "$precp" "$trecp" "$ps" "$ts" "$pk" "$tk" "$pd" "$td" "$pg" "$tg" "$pr" "$tr" "$pcal" "$tcal" "$pruntime" "$truntime"' EXIT
+          for attempt in {1..24}; do
+            pc=$(curl -sS -L -o "$p" -w '%{http_code}' --max-time 20 "$prod/?rc1112=$GITHUB_SHA-$attempt" || true)
+            tc=$(curl -sS -L -o "$t" -w '%{http_code}' --max-time 20 "$testservice/TESTVERSION.html?rc1112=$GITHUB_SHA-$attempt" || true)
+            dc=$(curl -sS -L -o "$d" -w '%{http_code}' --max-time 20 "$testservice/demo.html?rc1112=$GITHUB_SHA-$attempt" || true)
+            phc=$(curl -sS -o "$ph" -w '%{http_code}' --max-time 20 "$prod/api/exporthub-health" || true)
+            thc=$(curl -sS -o "$th" -w '%{http_code}' --max-time 20 "$testservice/api/exporthub-health" || true)
+            pmc=$(curl -sS -o "$pm" -w '%{http_code}' --max-time 20 "$prod/assets/rc1016-mobile-navigation.js?rc1112=$GITHUB_SHA-$attempt" || true)
+            tmc=$(curl -sS -o "$tm" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1016-mobile-navigation.js?rc1112=$GITHUB_SHA-$attempt" || true)
+            pccc=$(curl -sS -o "$pcc" -w '%{http_code}' --max-time 20 "$prod/assets/rc1065-registration-cc.js?rc1065=$GITHUB_SHA-$attempt" || true)
+            tccc=$(curl -sS -o "$tcc" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1065-registration-cc.js?rc1065=$GITHUB_SHA-$attempt" || true)
+            pmac=$(curl -sS -o "$pma" -w '%{http_code}' --max-time 20 "$prod/assets/rc1061-document-migration-admin.js?rc1073=$GITHUB_SHA-$attempt" || true)
+            tmac=$(curl -sS -o "$tma" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1061-document-migration-admin.js?rc1073=$GITHUB_SHA-$attempt" || true)
+            precc=$(curl -sS -o "$prec" -w '%{http_code}' --max-time 20 "$prod/assets/rc1067-startup-recovery.js?rc1067=$GITHUB_SHA-$attempt" || true)
+            trecc=$(curl -sS -o "$trec" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1067-startup-recovery.js?rc1067=$GITHUB_SHA-$attempt" || true)
+            pperfc=$(curl -sS -o "$pperf" -w '%{http_code}' --max-time 20 "$prod/assets/rc1069-performance.js?rc1069=$GITHUB_SHA-$attempt" || true)
+            tperfc=$(curl -sS -o "$tperf" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1069-performance.js?rc1069=$GITHUB_SHA-$attempt" || true)
+            pavisc=$(curl -sS -o "$pavis" -w '%{http_code}' --max-time 20 "$prod/assets/rc1027-lieferavis-immediate.js?rc1069=$GITHUB_SHA-$attempt" || true)
+            tavisc=$(curl -sS -o "$tavis" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1027-lieferavis-immediate.js?rc1069=$GITHUB_SHA-$attempt" || true)
+            precpc=$(curl -sS -L -o "$precp" -w '%{http_code}' --max-time 20 "$prod/migration-recovery.html?rc1067=$GITHUB_SHA-$attempt" || true)
+            trecpc=$(curl -sS -L -o "$trecp" -w '%{http_code}' --max-time 20 "$testservice/migration-recovery.html?rc1067=$GITHUB_SHA-$attempt" || true)
+            psc=$(curl -sS -o "$ps" -w '%{http_code}' --max-time 20 "$prod/assets/sop/screenshots/rc1016-tasks.png?rc1112=$GITHUB_SHA-$attempt" || true)
+            tsc=$(curl -sS -o "$ts" -w '%{http_code}' --max-time 20 "$testservice/assets/sop/screenshots/rc1016-tasks.png?rc1112=$GITHUB_SHA-$attempt" || true)
+            pkc=$(curl -sS -o "$pk" -w '%{http_code}' --max-time 20 "$prod/assets/sop/screenshots/rc1016-pickupcalendar.png?rc1112=$GITHUB_SHA-$attempt" || true)
+            tkc=$(curl -sS -o "$tk" -w '%{http_code}' --max-time 20 "$testservice/assets/sop/screenshots/rc1016-pickupcalendar.png?rc1112=$GITHUB_SHA-$attempt" || true)
+            pdc=$(curl -sS -o "$pd" -w '%{http_code}' --max-time 20 "$prod/assets/rc1013-diagnostics.js?rc1112=$GITHUB_SHA-$attempt" || true)
+            tdc=$(curl -sS -o "$td" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1013-diagnostics.js?rc1112=$GITHUB_SHA-$attempt" || true)
+            pgc=$(curl -sS -o "$pg" -w '%{http_code}' --max-time 20 "$prod/assets/rc1013-gate41-ui.js?rc1112=$GITHUB_SHA-$attempt" || true)
+            tgc=$(curl -sS -o "$tg" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1013-gate41-ui.js?rc1112=$GITHUB_SHA-$attempt" || true)
+            prc=$(curl -sS -o "$pr" -w '%{http_code}' --max-time 20 "$prod/assets/rc1017-multi-truck.js?rc1017=$GITHUB_SHA-$attempt" || true)
+            trc=$(curl -sS -o "$tr" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1017-multi-truck.js?rc1017=$GITHUB_SHA-$attempt" || true)
+            pcalc=$(curl -sS -o "$pcal" -w '%{http_code}' --max-time 20 "$prod/assets/abholkalender.js?rc1112=$GITHUB_SHA-$attempt" || true)
+            tcalc=$(curl -sS -o "$tcal" -w '%{http_code}' --max-time 20 "$testservice/assets/abholkalender.js?rc1112=$GITHUB_SHA-$attempt" || true)
+            pruntimec=$(curl -sS -o "$pruntime" -w '%{http_code}' --max-time 20 "$prod/assets/rc1012-abholkalender-runtime.js?rc1112=$GITHUB_SHA-$attempt" || true)
+            truntimec=$(curl -sS -o "$truntime" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1012-abholkalender-runtime.js?rc1112=$GITHUB_SHA-$attempt" || true)
+            if [[ "$pc" == '200' && "$tc" == '200' && "$dc" == '200' && "$phc" == '200' && "$thc" == '200' && "$pmc" == '200' && "$tmc" == '200' && "$pccc" == '200' && "$tccc" == '200' && "$pmac" == '200' && "$tmac" == '200' && "$precc" == '200' && "$trecc" == '200' && "$pperfc" == '200' && "$tperfc" == '200' && "$pavisc" == '200' && "$tavisc" == '200' && "$precpc" == '200' && "$trecpc" == '200' && "$psc" == '200' && "$tsc" == '200' && "$pkc" == '200' && "$tkc" == '200' && "$pdc" == '200' && "$tdc" == '200' && "$pgc" == '200' && "$tgc" == '200' && "$prc" == '200' && "$trc" == '200' && "$pcalc" == '200' && "$tcalc" == '200' && "$pruntimec" == '200' && "$truntimec" == '200' ]] \
+              && grep -q 'ExportHUB RC1112 environment=production-candidate' "$p" \
+              && grep -q 'ExportHUB RC1112 environment=testservice' "$t" \
+              && grep -q 'ExportHUB RC1112 environment=demo' "$d" \
+              && grep -q "version:'RC1112'" "$p" \
+              && grep -q "version:'RC1112'" "$t" \
+              && grep -q "version:'RC1112'" "$d" \
+              && grep -q 'function addressCountryCode(v)' "$p" \
+              && grep -q 'function addressCountryCode(v)' "$t" \
+              && grep -q 'function addressCountryCode(v)' "$d" \
+              && grep -q 'id="rc1048GateMaster"' "$p" \
+              && grep -q 'id="rc1048GateMaster"' "$t" \
+              && grep -q 'id="rc1048GateMaster"' "$d" \
+              && grep -q 'assets/rc1016-mobile-navigation.js?v=1016' "$p" \
+              && grep -q 'assets/rc1016-mobile-navigation.js?v=1016' "$t" \
+              && grep -q 'assets/rc1016-mobile-navigation.js?v=1016' "$d" \
+              && grep -q 'assets/rc1065-registration-cc.js?v=1093' "$p" \
+              && grep -q 'assets/rc1065-registration-cc.js?v=1093' "$t" \
+              && grep -q 'assets/rc1065-registration-cc.js?v=1093' "$d" \
+              && grep -q '__EXPORTHUB_RC1065_REGISTRATION_CC__' "$pcc" \
+              && grep -q '__EXPORTHUB_RC1065_REGISTRATION_CC__' "$tcc" \
+              && grep -q 'assets/rc1061-document-migration-admin.js?v=1073' "$p" \
+              && grep -q 'assets/rc1061-document-migration-admin.js?v=1073' "$t" \
+              && grep -q 'RC1073: Die Admin-Karte wird nur gerendert' "$pma" \
+              && grep -q 'RC1073: Die Admin-Karte wird nur gerendert' "$tma" \
+              && grep -q 'async function runAll' "$pma" \
+              && grep -q 'async function runAll' "$tma" \
+              && grep -q 'inlinePayloadCount' "$pma" \
+              && grep -q 'inlinePayloadCount' "$tma" \
+              && grep -q 'Alle verbleibenden migrieren' "$pma" \
+              && grep -q 'Alle verbleibenden migrieren' "$tma" \
+              && grep -q 'assets/rc1067-startup-recovery.js?v=1067' "$p" \
+              && grep -q 'assets/rc1067-startup-recovery.js?v=1067' "$t" \
+              && grep -q '__EXPORTHUB_RC1067_STARTUP_RECOVERY__' "$prec" \
+              && grep -q '__EXPORTHUB_RC1067_STARTUP_RECOVERY__' "$trec" \
+              && grep -q '__EXPORTHUB_RC1069_PERFORMANCE__' "$pperf" \
+              && grep -q '__EXPORTHUB_RC1069_PERFORMANCE__' "$tperf" \
+              && grep -q "version:'RC1069'" "$pavis" \
+              && grep -q "version:'RC1069'" "$tavis" \
+              && grep -q 'assets/rc1027-lieferavis-immediate.js?v=1069' "$p" \
+              && grep -q 'assets/rc1027-lieferavis-immediate.js?v=1069' "$t" \
+              && grep -q 'assets/rc1027-lieferavis-immediate.js?v=1069' "$d" \
+              && grep -q 'Dokumentspeicher wird optimiert' "$precp" \
+              && grep -q 'Dokumentspeicher wird optimiert' "$trecp" \
+              && grep -q 'assets/abholkalender.js?v=1012' "$p" \
+              && grep -q 'assets/abholkalender.js?v=1012' "$t" \
+              && grep -q 'assets/abholkalender.js?v=1012' "$d" \
+              && grep -q 'assets/rc1012-abholkalender-runtime.js?v=1012' "$p" \
+              && grep -q 'assets/rc1012-abholkalender-runtime.js?v=1012' "$t" \
+              && grep -q 'assets/rc1012-abholkalender-runtime.js?v=1012' "$d" \
+              && grep -q 'assets/rc1014-task-runtime.js?v=1179' "$p" \
+              && grep -q 'assets/rc1014-shipment-overview.js?v=1127' "$p" \
+              && grep -q 'assets/rc1014-shipment-overview.css?v=1127' "$p" \
+              && grep -q 'assets/rc1015-lieferavis-mail-flow.js?v=1021' "$p" \
+              && grep -q 'assets/rc1017-multi-truck.js?v=1017' "$p" \
+              && grep -q 'assets/rc1017-multi-truck.js?v=1017' "$t" \
+              && grep -q 'assets/rc1017-multi-truck.js?v=1017' "$d" \
+              && grep -q 'function rc1017SyncSubShipments(' "$p" \
+              && grep -q 'function rc1017SyncSubShipments(' "$t" \
+              && grep -q 'function rc1017SyncSubShipments(' "$d" \
+              && grep -q 'rc1017-qr-subshipment' "$p" \
+              && grep -q 'rc1017-qr-subshipment' "$t" \
+              && grep -q 'rc1017-qr-subshipment' "$d" \
+              && grep -q 'rc1017-print-subshipment' "$p" \
+              && grep -q 'rc1017-print-subshipment' "$t" \
+              && grep -q 'rc1017-print-subshipment' "$d" \
+              && grep -q 'assets/rc1016-demo-task-seed.js?v=1016' "$d" \
+              && grep -q 'rc1016MobileMenuBtn' "$pm" \
+              && grep -q 'rc1016MobileMenuBtn' "$tm" \
+              && grep -q 'EH-PICKUP-410' "$pd" \
+              && grep -q 'EH-PICKUP-410' "$td" \
+              && grep -q 'Gate41-Preis Deutschland berechnet' "$pg" \
+              && grep -q 'Gate41-Preis Deutschland berechnet' "$tg" \
+              && grep -q 'ExportHubMultiTruck' "$pr" \
+              && grep -q 'ExportHubMultiTruck' "$tr" \
+              && grep -q 'calendarScalarText' "$pcal" \
+              && grep -q 'calendarScalarText' "$tcal" \
+              && grep -q 'companyId' "$pruntime" \
+              && grep -q 'companyId' "$truntime"; then
+              echo 'RC1048 Produktion, TESTSERVICE und Demo live auf demselben geprüften Stand bestätigt.'
+              exit 0
+            fi
+            sleep 10
+          done
+          echo 'RC1048 Drei-Umgebungen-Liveprüfung nicht bestätigt.'
+          echo "HTTP: prod=$pc test=$tc demo=$dc prodHealth=$phc testHealth=$thc prodMobile=$pmc testMobile=$tmc prodCC=$pccc testCC=$tccc prodMigration=$pmac testMigration=$tmac prodRecovery=$precc testRecovery=$trecc prodPerf=$pperfc testPerf=$tperfc prodAvis=$pavisc testAvis=$tavisc prodRecoveryPage=$precpc testRecoveryPage=$trecpc"
+          diagnose_marker() {
+            local label="$1" file="$2" marker="$3"
+            if ! grep -Fq "$marker" "$file"; then echo "FEHLT: $label :: $marker"; fi
+          }
+          diagnose_marker 'Produktion' "$p" 'ExportHUB RC1112 environment=production-candidate'
+          diagnose_marker 'TESTSERVICE' "$t" 'ExportHUB RC1112 environment=testservice'
+          diagnose_marker 'Demo' "$d" 'ExportHUB RC1112 environment=demo'
+          diagnose_marker 'Produktion' "$p" 'function addressCountryCode(v)'
+          diagnose_marker 'TESTSERVICE' "$t" 'function addressCountryCode(v)'
+          diagnose_marker 'Demo' "$d" 'function addressCountryCode(v)'
+          diagnose_marker 'Produktion' "$p" 'id="rc1048GateMaster"'
+          diagnose_marker 'TESTSERVICE' "$t" 'id="rc1048GateMaster"'
+          diagnose_marker 'Demo' "$d" 'id="rc1048GateMaster"'
+          diagnose_marker 'Produktion' "$p" 'assets/rc1061-document-migration-admin.js?v=1073'
+          diagnose_marker 'TESTSERVICE' "$t" 'assets/rc1061-document-migration-admin.js?v=1073'
+          diagnose_marker 'Produktion' "$p" 'assets/rc1067-startup-recovery.js?v=1067'
+          diagnose_marker 'TESTSERVICE' "$t" 'assets/rc1067-startup-recovery.js?v=1067'
+          diagnose_marker 'Produktion' "$p" 'function rc1017SyncSubShipments('
+          diagnose_marker 'TESTSERVICE' "$t" 'function rc1017SyncSubShipments('
+          diagnose_marker 'Demo' "$d" 'function rc1017SyncSubShipments('
+          diagnose_marker 'Produktion' "$p" 'rc1017-qr-subshipment'
+          diagnose_marker 'TESTSERVICE' "$t" 'rc1017-qr-subshipment'
+          diagnose_marker 'Demo' "$d" 'rc1017-qr-subshipment'
+          diagnose_marker 'Produktion' "$p" 'rc1017-print-subshipment'
+          diagnose_marker 'TESTSERVICE' "$t" 'rc1017-print-subshipment'
+          diagnose_marker 'Demo' "$d" 'rc1017-print-subshipment'
+          diagnose_marker 'Demo' "$d" 'assets/rc1016-demo-task-seed.js?v=1016'
+          diagnose_marker 'Produktion RC1068' "$p" 'id="exporthub-rc373-shipment-controller"'
+          diagnose_marker 'TESTSERVICE RC1068' "$t" 'id="exporthub-rc373-shipment-controller"'
+          diagnose_marker 'Demo RC1068' "$d" 'id="exporthub-rc373-shipment-controller"'
+          exit 1
+
+      - name: Live RC1071 Sendungshistorie prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          p=$(mktemp); t=$(mktemp); ph=$(mktemp); th=$(mktemp)
+          trap 'rm -f "$p" "$t" "$ph" "$th"' EXIT
+          for attempt in {1..18}; do
+            pc=$(curl -sS -L -o "$p" -w '%{http_code}' --max-time 20 "$prod/?rc1071=$GITHUB_SHA-$attempt" || true)
+            tc=$(curl -sS -L -o "$t" -w '%{http_code}' --max-time 20 "$testservice/TESTVERSION.html?rc1071=$GITHUB_SHA-$attempt" || true)
+            phc=$(curl -sS -o "$ph" -w '%{http_code}' --max-time 20 "$prod/assets/rc1071-shipment-history.js?rc1071=$GITHUB_SHA-$attempt" || true)
+            thc=$(curl -sS -o "$th" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1071-shipment-history.js?rc1071=$GITHUB_SHA-$attempt" || true)
+            if [[ "$pc" == '200' && "$tc" == '200' && "$phc" == '200' && "$thc" == '200' ]] \
+              && grep -q 'assets/rc1071-shipment-history.js?v=1095' "$p" \
+              && grep -q 'assets/rc1071-shipment-history.js?v=1095' "$t" \
+              && grep -q '__EXPORTHUB_RC1071_SHIPMENT_HISTORY__' "$ph" \
+              && grep -q '__EXPORTHUB_RC1071_SHIPMENT_HISTORY__' "$th" \
+              && grep -q 'mail-sent-open|' "$ph" \
+              && grep -q 'mail-sent-open|' "$th" \
+              && grep -q 'recordMailSent' "$ph" \
+              && grep -q 'recordMailSent' "$th" \
+              && grep -q 'ABD-E-Mail-Versand bestätigt' "$ph" \
+              && grep -q "return'ABD'" "$ph" \
+              && grep -q 'Arbeit an Sendung gestartet' "$ph" \
+              && grep -q 'Versandanmeldung gestartet' "$ph"; then
+              echo 'RC1106 Sendungshistorie live in Produktion und TESTSERVICE bestätigt.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'RC1106 Sendungshistorie wurde live nicht vollständig bestätigt.' >&2
+          exit 1
+
+      - name: Live RC1134 Mail und Sprache prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for attempt in {1..24}; do
+            ok=1
+            for url in \
+              "$prod/assets/rc1018-mail-language-standard.js?rc1112=$GITHUB_SHA-$attempt" \
+              "$testservice/assets/rc1018-mail-language-standard.js?rc1112=$GITHUB_SHA-$attempt" \
+              "$prod/assets/rc1018-public-language.js?rc1112=$GITHUB_SHA-$attempt" \
+              "$testservice/assets/rc1018-public-language.js?rc1112=$GITHUB_SHA-$attempt"; do
+              body=$(mktemp)
+              code=$(curl -sS -L -o "$body" -w '%{http_code}' --max-time 20 "$url" || true)
+              [[ "$code" == '200' ]] || ok=0
+              if [[ "$url" == *mail-language-standard* ]]; then grep -q '__EXPORTHUB_RC1018_MAIL_LANGUAGE_STANDARD__' "$body" || ok=0; else grep -q '__EXPORTHUB_RC1018_PUBLIC_LANGUAGE__' "$body" || ok=0; fi
+              rm -f "$body"
+            done
+            for url in \
+              "$prod/?rc1112=$GITHUB_SHA-$attempt" \
+              "$testservice/TESTVERSION.html?rc1112=$GITHUB_SHA-$attempt" \
+              "$testservice/demo.html?rc1112=$GITHUB_SHA-$attempt"; do
+              body=$(mktemp)
+              code=$(curl -sS -L -o "$body" -w '%{http_code}' --max-time 20 "$url" || true)
+              [[ "$code" == '200' ]] && grep -q 'assets/rc1018-mail-language-standard.js?v=1018' "$body" || ok=0
+              rm -f "$body"
+            done
+            for base in "$prod" "$testservice"; do
+              body=$(mktemp)
+              code=$(curl -sS -L -o "$body" -w '%{http_code}' --max-time 20 "$base/customer-avis.html?lang=en&rc1112=$GITHUB_SHA-$attempt" || true)
+              [[ "$code" == '200' ]] && grep -q 'assets/rc1018-public-language.js?v=1231' "$body" || ok=0
+              rm -f "$body"
+            done
+            if [[ "$ok" == '1' ]]; then echo 'RC1134 Mail- und Sprachruntime live bestätigt.'; exit 0; fi
+            sleep 10
+          done
+          echo 'RC1134 Mail- und Sprachruntime live nicht bestätigt.'
+          exit 1
+
+      - name: Live RC1074 Login ohne technische Prüfhinweise prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for attempt in {1..18}; do
+            ok=1
+            for url in               "$prod/?rc1074=$GITHUB_SHA-$attempt"               "$testservice/TESTVERSION.html?rc1074=$GITHUB_SHA-$attempt"; do
+              body=$(mktemp)
+              code=$(curl -sS -L -o "$body" -w '%{http_code}' --max-time 20 "$url" || true)
+              [[ "$code" == '200' ]] || ok=0
+              grep -q 'assets/rc1074-login-clean.js?v=1112' "$body" || ok=0
+              if grep -Eqi 'Anmeldekonfiguration wird geprüft|TESTSERVICE[[:space:]]*·[[:space:]]*Auth-Backend wird geprüft|TESTSERVICE[[:space:]]*·[[:space:]]*Zugangsdaten eingeben' "$body"; then
+                echo "RC1074: technischer Login-Hinweis ist live noch vorhanden: $url" >&2
+                ok=0
+              fi
+              rm -f "$body"
+            done
+            if [[ "$ok" == '1' ]]; then
+              echo 'RC1074 Login ist live in Produktion und TESTSERVICE ohne technische Prüfhinweise bestätigt.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'RC1074 Login-Liveprüfung nicht bestätigt.' >&2
+          exit 1
+
+      - name: Live RC1087 Verlader-PIN Audit prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for attempt in {1..18}; do
+            ok=1
+            for base in "$prod" "$testservice"; do
+              body=$(mktemp)
+              code=$(curl -sS -L -o "$body" -w '%{http_code}' --max-time 20 "$base/assets/rc1075-loader-pin-admin.js?rc1075=$GITHUB_SHA-$attempt" || true)
+              [[ "$code" == '200' ]] || ok=0
+              grep -q '__EXPORTHUB_RC1075_LOADER_PIN_ADMIN__' "$body" || ok=0
+              grep -q '/api/loader-pins-admin' "$body" || ok=0
+              rm -f "$body"
+            done
+            for base in "$prod" "$testservice"; do
+              apiBody=$(mktemp)
+              apiCode=$(curl -sS -o "$apiBody" -w '%{http_code}' --max-time 20 -X POST -H 'Content-Type: application/json' --data '{"action":"list"}' "$base/api/loader-pins-admin?rc1076=$GITHUB_SHA-$attempt" || true)
+              [[ "$apiCode" == '401' ]] || ok=0
+              grep -Eq 'AUTH_REQUIRED|SESSION_INVALID' "$apiBody" || ok=0
+              headers=$(mktemp)
+              optionsCode=$(curl -sS -D "$headers" -o /dev/null -w '%{http_code}' --max-time 20 -X OPTIONS "$base/api/loader-pins-admin" || true)
+              [[ "$optionsCode" == '204' ]] || ok=0
+              grep -qi 'X-ExportHUB-Loader-Pin-Audit: RC1087' "$headers" || ok=0
+              rm -f "$headers"
+              rm -f "$apiBody"
+            done
+            p=$(mktemp); t=$(mktemp)
+            pc=$(curl -sS -L -o "$p" -w '%{http_code}' --max-time 20 "$prod/?rc1075=$GITHUB_SHA-$attempt" || true)
+            tc=$(curl -sS -L -o "$t" -w '%{http_code}' --max-time 20 "$testservice/TESTVERSION.html?rc1075=$GITHUB_SHA-$attempt" || true)
+            [[ "$pc" == '200' && "$tc" == '200' ]] || ok=0
+            grep -q 'assets/rc1075-loader-pin-admin.js?v=1075' "$p" || ok=0
+            grep -q 'assets/rc1075-loader-pin-admin.js?v=1075' "$t" || ok=0
+            rm -f "$p" "$t"
+            if [[ "$ok" == '1' ]]; then
+              echo 'RC1087 Verlader-PIN Audit ist live in Produktion und TESTSERVICE bestätigt.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'RC1087 Verlader-PIN Audit-Liveprüfung nicht bestätigt.' >&2
+          exit 1
+
+      - name: Live RC1077 Kundenübersicht prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for attempt in {1..18}; do
+            ok=1
+            for base in "$prod" "$testservice"; do
+              page=$(mktemp); asset=$(mktemp)
+              pc=$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1077=$GITHUB_SHA-$attempt" || true)
+              ac=$(curl -sS -L -o "$asset" -w '%{http_code}' --max-time 20 "$base/assets/rc1077-customer-labels.js?rc1077=$GITHUB_SHA-$attempt" || true)
+              [[ "$pc" == '200' && "$ac" == '200' ]] || ok=0
+              grep -q 'assets/rc1077-customer-labels.js?v=1077' "$page" || ok=0
+              grep -q '__EXPORTHUB_RC1077_CUSTOMER_LABELS__' "$asset" || ok=0
+              grep -q "el.textContent='Standorte'" "$asset" || ok=0
+              grep -q 'overflow:visible!important' "$asset" || ok=0
+              rm -f "$page" "$asset"
+            done
+            demo=$(mktemp)
+            dc=$(curl -sS -L -o "$demo" -w '%{http_code}' --max-time 20 "$testservice/demo.html?rc1077=$GITHUB_SHA-$attempt" || true)
+            [[ "$dc" == '200' ]] || ok=0
+            grep -q 'assets/rc1077-customer-labels.js?v=1077' "$demo" || ok=0
+            rm -f "$demo"
+            if [[ "$ok" == '1' ]]; then
+              echo 'RC1077 Kundenübersicht ist live in Produktion, TESTSERVICE und Demo bestätigt.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'RC1077 Kundenübersicht-Liveprüfung nicht bestätigt.' >&2
+          exit 1
+
+      - name: Live RC1079 Profil und RC1080 Kundenhistorie prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for attempt in {1..18}; do
+            ok=1
+            for base in "$prod" "$testservice"; do
+              page=$(mktemp); profile=$(mktemp); customer=$(mktemp)
+              pc=$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1080=$GITHUB_SHA-$attempt" || true)
+              prc=$(curl -sS -L -o "$profile" -w '%{http_code}' --max-time 20 "$base/assets/rc1079-profile-settings.js?rc1080=$GITHUB_SHA-$attempt" || true)
+              chc=$(curl -sS -L -o "$customer" -w '%{http_code}' --max-time 20 "$base/assets/rc1080-customer-history.js?rc1080=$GITHUB_SHA-$attempt" || true)
+              [[ "$pc" == '200' && "$prc" == '200' && "$chc" == '200' ]] || ok=0
+              grep -q 'assets/rc1079-profile-settings.js?v=1079' "$page" || ok=0
+              grep -q 'assets/rc1080-customer-history.js?v=1080' "$page" || ok=0
+              grep -q '__EXPORTHUB_RC1079_PROFILE_SETTINGS__' "$profile" || ok=0
+              grep -q "action:'update-profile'" "$profile" || ok=0
+              grep -q '__EXPORTHUB_RC1080_CUSTOMER_HISTORY__' "$customer" || ok=0
+              grep -q 'Kunde angelegt' "$customer" || ok=0
+              grep -q 'Kunde geändert' "$customer" || ok=0
+              rm -f "$page" "$profile" "$customer"
+              authBody=$(mktemp)
+              authCode=$(curl -sS -o "$authBody" -w '%{http_code}' --max-time 20 -X POST -H 'Content-Type: application/json' --data '{"action":"update-profile","name":"Unzulässig"}' "$base/api/exporthub-auth?rc1080=$GITHUB_SHA-$attempt" || true)
+              [[ "$authCode" == '401' ]] || ok=0
+              grep -Eq 'AUTH_REQUIRED|SESSION_INVALID' "$authBody" || ok=0
+              rm -f "$authBody"
+            done
+            if [[ "$ok" == '1' ]]; then
+              echo 'RC1079 Profil und RC1080 Kundenhistorie live bestätigt.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'RC1079/RC1080 Liveprüfung nicht bestätigt.' >&2
+          exit 1
+
+      - name: Live RC1087 Historie vollständig prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for attempt in {1..18}; do
+            ok=1
+            for base in "$prod" "$testservice"; do
+              page=$(mktemp); asset=$(mktemp)
+              pc=$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1087=$GITHUB_SHA-$attempt" || true)
+              ac=$(curl -sS -L -o "$asset" -w '%{http_code}' --max-time 20 "$base/assets/rc1081-audit-history.js?rc1087=$GITHUB_SHA-$attempt" || true)
+              [[ "$pc" == '200' && "$ac" == '200' ]] || ok=0
+              grep -q 'assets/rc1081-audit-history.js?v=1177' "$page" || ok=0
+              grep -q '__EXPORTHUB_RC1081_AUDIT_HISTORY__' "$asset" || ok=0
+              grep -q '__EXPORTHUB_RC1086_HISTORY_COMPLETE__' "$asset" || ok=0
+              grep -q '__EXPORTHUB_RC1087_ADMIN_AUDIT__' "$asset" || ok=0
+              grep -q 'LOADER_PIN_CREATED' "$asset" || ok=0
+              grep -q '<h3>Historie</h3>' "$asset" || ok=0
+              grep -q 'ExportHUBShipmentHistory1071' "$asset" || ok=0
+              grep -q 'customerHistory' "$asset" || ok=0
+              grep -q 'auditLog' "$asset" || ok=0
+              grep -q 'function taskEvents(t)' "$asset" || ok=0
+              grep -q 'function palletEvents(p,index)' "$asset" || ok=0
+              rm -f "$page" "$asset"
+            done
+            if [[ "$ok" == '1' ]]; then
+              echo 'RC1087 Historie inklusive Aufgaben, Palettenkonto und Admin-Audit live bestätigt.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'RC1087 Historie-Liveprüfung nicht bestätigt.' >&2
+          exit 1
+
+      - name: Live RC1092 Kundenkontakte prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for attempt in {1..18}; do
+            ok=1
+            for base in "$prod" "$testservice"; do
+              page=$(mktemp); asset=$(mktemp)
+              pc=$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1092=$GITHUB_SHA-$attempt" || true)
+              ac=$(curl -sS -L -o "$asset" -w '%{http_code}' --max-time 20 "$base/assets/rc1092-customer-mail-contacts.js?rc1092=$GITHUB_SHA-$attempt" || true)
+              [[ "$pc" == '200' && "$ac" == '200' ]] || ok=0
+              grep -q 'assets/rc1092-customer-mail-contacts.js?v=1092' "$page" || ok=0
+              grep -q '__EXPORTHUB_RC1092_CUSTOMER_MAIL_CONTACTS__' "$asset" || ok=0
+              grep -q 'Person speichern' "$asset" || ok=0
+              grep -q 'Zur Mail hinzufügen' "$asset" || ok=0
+              rm -f "$page" "$asset"
+            done
+            demo=$(mktemp)
+            dc=$(curl -sS -L -o "$demo" -w '%{http_code}' --max-time 20 "$testservice/demo.html?rc1092=$GITHUB_SHA-$attempt" || true)
+            [[ "$dc" == '200' ]] || ok=0
+            grep -q 'assets/rc1092-customer-mail-contacts.js?v=1092' "$demo" || ok=0
+            rm -f "$demo"
+            if [[ "$ok" == '1' ]]; then
+              echo 'RC1092 Kundenkontakte: Person speichern und Zur Mail hinzufügen live bestätigt.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'RC1092 Kundenkontakte-Liveprüfung nicht bestätigt.' >&2
+          exit 1
+
+
+      - name: Live RC1096 Verpackungsgruppen prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for attempt in {1..18}; do
+            ok=1
+            for base in "$prod" "$testservice"; do
+              page=$(mktemp); asset=$(mktemp)
+              pc=$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1096=$GITHUB_SHA-$attempt" || true)
+              ac=$(curl -sS -L -o "$asset" -w '%{http_code}' --max-time 20 "$base/assets/rc1096-packaging-groups.js?rc1096=$GITHUB_SHA-$attempt" || true)
+              [[ "$pc" == '200' && "$ac" == '200' ]] || ok=0
+              grep -q 'assets/rc1096-packaging-groups.js?v=1110' "$page" || ok=0
+              grep -q "name:'Umschlag'" "$page" || ok=0
+              grep -q '__EXPORTHUB_RC1096_PACKAGING_GROUPS__' "$asset" || ok=0
+              grep -Fq "closest('.rc682-packaging-columns')" "$asset" || ok=0
+              grep -q "Pakete" "$asset" || ok=0
+              grep -q "Paletten" "$asset" || ok=0
+              grep -q "Sonstiges" "$asset" || ok=0
+              rm -f "$page" "$asset"
+            done
+            demo=$(mktemp)
+            dc=$(curl -sS -L -o "$demo" -w '%{http_code}' --max-time 20 "$testservice/demo.html?rc1096=$GITHUB_SHA-$attempt" || true)
+            [[ "$dc" == '200' ]] || ok=0
+            grep -q 'assets/rc1096-packaging-groups.js?v=1110' "$demo" || ok=0
+            grep -q "name:'Umschlag'" "$demo" || ok=0
+            rm -f "$demo"
+            if [[ "$ok" == '1' ]]; then
+              echo 'RC1110 Verpackung: native Pakete, Paletten, Sonstiges ohne Doppelverschachtelung live bestätigt.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'RC1096 Verpackungsgruppen-Liveprüfung nicht bestätigt.' >&2
+          exit 1
+
+
+      - name: Live RC1095 Palettenkonto auf Ladeliste prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for attempt in {1..18}; do
+            ok=1
+            for base in "$prod" "$testservice"; do
+              page=$(mktemp)
+              pc=$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1095=$GITHUB_SHA-$attempt" || true)
+              [[ "$pc" == '200' ]] || ok=0
+              grep -q 'function rc1095LoadPalletHtml' "$page" || ok=0
+              grep -q 'rc1095-pallet-account' "$page" || ok=0
+              grep -q 'Palettenkonto' "$page" || ok=0
+              grep -q 'Ausgang:' "$page" || ok=0
+              grep -q 'rc1095LoadPalletCount(sh,rows(sh))' "$page" || ok=0
+              rm -f "$page"
+            done
+            if [[ "$ok" == '1' ]]; then
+              echo 'RC1095 Palettenkonto auf Ladeliste live in Produktion und TESTSERVICE bestätigt.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'RC1095 Palettenkonto-Liveprüfung nicht bestätigt.' >&2
+          exit 1
+
+      - name: Live RC1083 Diagnose-Autofix prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for attempt in {1..18}; do
+            ok=1
+            for base in "$prod" "$testservice"; do
+              page=$(mktemp); asset=$(mktemp); api=$(mktemp)
+              pc=$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1083=$GITHUB_SHA-$attempt" || true)
+              ac=$(curl -sS -L -o "$asset" -w '%{http_code}' --max-time 20 "$base/assets/rc1013-diagnostics.js?rc1083=$GITHUB_SHA-$attempt" || true)
+              apiCode=$(curl -sS -o "$api" -w '%{http_code}' --max-time 20 -X POST -H 'Content-Type: application/json' --data '{"action":"configuration"}' "$base/api/diagnostic-autofix?rc1083=$GITHUB_SHA-$attempt" || true)
+
+              pageMarker=1; chatgptMarker=1; endpointMarker=1; titleMarker=1; authMarker=1
+              grep -q 'assets/rc1013-diagnostics.js?v=1125' "$page" || pageMarker=0
+              grep -q 'Mit ChatGPT beheben' "$asset" || chatgptMarker=0
+              grep -q '__EXPORTHUB_RC1125_DIAGNOSTICS_VIEW_ISOLATION__' "$asset" || titleMarker=0
+              grep -q '/api/diagnostic-autofix' "$asset" || endpointMarker=0
+              grep -q 'Fehlerdiagnose & automatische Behebung' "$asset" || titleMarker=0
+              grep -Eq 'AUTH_REQUIRED|SESSION_INVALID' "$api" || authMarker=0
+
+              if [[ "$pc" != '200' || "$ac" != '200' || "$apiCode" != '401' || "$pageMarker" != '1' || "$chatgptMarker" != '1' || "$endpointMarker" != '1' || "$titleMarker" != '1' || "$authMarker" != '1' ]]; then
+                ok=0
+                echo "RC1083 Versuch $attempt · $base · page=$pc asset=$ac api=$apiCode · pageMarker=$pageMarker chatgpt=$chatgptMarker endpoint=$endpointMarker title=$titleMarker auth=$authMarker"
+                printf 'RC1083 API-Antwort: '
+                head -c 600 "$api" | tr '\n' ' ' || true
+                echo
+              fi
+              rm -f "$page" "$asset" "$api"
+            done
+            if [[ "$ok" == '1' ]]; then
+              echo 'RC1083 Diagnose-Autofix ist live und gegen anonymen Zugriff geschützt.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'RC1083 Diagnose-Autofix-Liveprüfung nicht bestätigt.' >&2
+          exit 1
+ "$headers"
+            rm -f "$headers"
+            trap - EXIT
+          done
+
+      - name: RC1233 QR-Abholung und POD-Ladelisten-Viewer live prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for env in production testservice; do
+            if [ "$env" = "production" ]; then base="$prod"; else base="$testservice"; fi
+            pickup="$(mktemp)"; viewer="$(mktemp)"; health="$(mktemp)"; protected="$(mktemp)"
+            trap 'rm -f "$pickup" "$viewer" "$health" "$protected"' EXIT
+            ready=0
+            for attempt in {1..18}; do
+              pc=$(curl -sS -L -o "$pickup" -w '%{http_code}' --max-time 20 "$base/pickup.html?rc1233=$GITHUB_SHA-$attempt" || true)
+              vc=$(curl -sS -L -o "$viewer" -w '%{http_code}' --max-time 20 "$base/assets/rc1059-document-blob.js?rc1233=$GITHUB_SHA-$attempt" || true)
+              hc=$(curl -sS -L -o "$health" -w '%{http_code}' --max-time 20 "$base/api/pickup-health?rc1233=$GITHUB_SHA-$attempt" || true)
+              key='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+              blob="rc995/$env/$key/automatic/POD_RC1233.pdf"
+              dc=$(curl -sS -L -o "$protected" -w '%{http_code}' --max-time 20 "$base/api/exporthub-document?blob=$(node -p "encodeURIComponent(process.argv[1])" "$blob")&environment=$env&rc1233=$GITHUB_SHA-$attempt" || true)
+              if [ "$pc" = "200" ]                 && [ "$vc" = "200" ]                 && [ "$hc" = "200" ]                 && [ "$dc" = "401" ]                 && grep -Fq "fetch('/api/'" "$pickup"                 && grep -Fq "request('pickup-status?token='" "$pickup"                 && grep -Fq "request('pickup-confirm-v2'" "$pickup"                 && grep -Fq "storage==='azure'||storage==='pod'" "$viewer"                 && grep -Fq 'automatic' "$viewer"                 && grep -Fq '/api/exporthub-document?blob=' "$viewer"                 && grep -Eq '"ok"[[:space:]]*:[[:space:]]*true' "$health"                 && grep -Eq 'AUTH_REQUIRED|SESSION_INVALID' "$protected"; then
+                ready=1
+                break
+              fi
+              sleep 5
+            done
+            if [ "$ready" != "1" ]; then
+              echo "RC1233 Pickup/POD-Live-Gate fehlgeschlagen: env=$env pickup=$pc viewer=$vc health=$hc protected=$dc" >&2
+              exit 1
+            fi
+            rm -f "$pickup" "$viewer" "$health" "$protected"
+            trap - EXIT
+          done
+          echo 'RC1233 QR-Abholung und geschützter POD-Ladelisten-Viewer live in Produktion und TESTSERVICE bestätigt.'
+
+      - name: RC1228 Lieferavis-Slotlogik live prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for base in "$prod" "$testservice"; do
+            body="$(mktemp)"
+            trap 'rm -f "$body"' EXIT
+            code='000'
+            for attempt in {1..12}; do
+              code=$(curl -sS -L -o "$body" -w '%{http_code}' --max-time 20 "$base/customer-avis.html?rc1228=$GITHUB_SHA-$attempt" || true)
+              if [ "$code" = "200" ] \
+                && grep -Fq 'Buchbar sind ausschließlich 2-Stunden-Zeitfenster innerhalb von 08:30–16:00 Uhr.' "$body" \
+                && grep -Fq "Noch '+esc(x.remaining)+' von 3 gleichzeitig frei" "$body" \
+                && grep -Fq "action:'availability'" "$body" \
+                && grep -Fq "err.code==='PICKUP_SLOT_FULL'" "$body"; then
+                break
+              fi
+              if [ "$attempt" = "12" ]; then
+                echo "RC1228 Lieferavis-Slotlogik fehlt live: base=$base http=$code" >&2
+                exit 1
+              fi
+              sleep 5
+            done
+            rm -f "$body"
+            trap - EXIT
+          done
+          echo 'RC1228 Lieferavis-Slotlogik live in Produktion und TESTSERVICE bestätigt.'
+
+      - name: Live RC1122 HTML-Integrität prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          p=$(mktemp); t=$(mktemp); d=$(mktemp)
+          trap 'rm -f "$p" "$t" "$d"' EXIT
+          for attempt in {1..24}; do
+            pc=$(curl -sS -L -o "$p" -w '%{http_code}' --max-time 20 "$prod/?rc1122=$GITHUB_SHA-$attempt" || true)
+            tc=$(curl -sS -L -o "$t" -w '%{http_code}' --max-time 20 "$testservice/?rc1122=$GITHUB_SHA-$attempt" || true)
+            dc=$(curl -sS -L -o "$d" -w '%{http_code}' --max-time 20 "$testservice/demo.html?rc1122=$GITHUB_SHA-$attempt" || true)
+            if [ "$pc" = "200" ] && [ "$tc" = "200" ] && [ "$dc" = "200" ] && grep -q "version:'RC1112'" "$p" && grep -q "version:'RC1112'" "$t"; then
+              node .github/rc1121/verify-final-html.mjs "$p" "$t" "$d"
+              break
+            fi
+            if [ "$attempt" = "24" ]; then
+              echo "RC1122 Live-HTML konnte nicht verifiziert werden: prod=$pc test=$tc demo=$dc" >&2
+              exit 1
+            fi
+            sleep 5
+          done
+      - name: RC1124 Produktion Read-only Browser Smoke
+        id: rc1124_production_browser_smoke
+        shell: bash
+        env:
+          EXPORTHUB_E2E_LIVE: '1'
+          EXPORTHUB_E2E_BASE_URL: https://wonderful-forest-0f315e310.7.azurestaticapps.net
+          EXPORTHUB_E2E_PUBLIC_ENV: production
+        run: |
+          set -euo pipefail
+          npx playwright test e2e/specs/public-smoke.spec.mjs e2e/specs/version-display.spec.mjs --project=laptop
+
+      - name: RC1124 Produktion Browser-Artefakte
+        if: ${{ failure() && steps.rc1124_production_browser_smoke.outcome == 'failure' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: rc1124-production-browser-${{ github.sha }}
+          path: |
+            test-results
+            playwright-report
+          if-no-files-found: ignore
+          retention-days: 14
+
+
+      - name: Live RC1112 Produktion TESTSERVICE und Demo prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          p=$(mktemp); t=$(mktemp); d=$(mktemp); ph=$(mktemp); th=$(mktemp); pm=$(mktemp); tm=$(mktemp); pcc=$(mktemp); tcc=$(mktemp); pma=$(mktemp); tma=$(mktemp); prec=$(mktemp); trec=$(mktemp); pperf=$(mktemp); tperf=$(mktemp); pavis=$(mktemp); tavis=$(mktemp); precp=$(mktemp); trecp=$(mktemp); ps=$(mktemp); ts=$(mktemp); pk=$(mktemp); tk=$(mktemp); pd=$(mktemp); td=$(mktemp); pg=$(mktemp); tg=$(mktemp); pr=$(mktemp); tr=$(mktemp); pcal=$(mktemp); tcal=$(mktemp); pruntime=$(mktemp); truntime=$(mktemp)
+          trap 'rm -f "$p" "$t" "$d" "$ph" "$th" "$pm" "$tm" "$pcc" "$tcc" "$pma" "$tma" "$prec" "$trec" "$pperf" "$tperf" "$pavis" "$tavis" "$precp" "$trecp" "$ps" "$ts" "$pk" "$tk" "$pd" "$td" "$pg" "$tg" "$pr" "$tr" "$pcal" "$tcal" "$pruntime" "$truntime"' EXIT
+          for attempt in {1..24}; do
+            pc=$(curl -sS -L -o "$p" -w '%{http_code}' --max-time 20 "$prod/?rc1112=$GITHUB_SHA-$attempt" || true)
+            tc=$(curl -sS -L -o "$t" -w '%{http_code}' --max-time 20 "$testservice/TESTVERSION.html?rc1112=$GITHUB_SHA-$attempt" || true)
+            dc=$(curl -sS -L -o "$d" -w '%{http_code}' --max-time 20 "$testservice/demo.html?rc1112=$GITHUB_SHA-$attempt" || true)
+            phc=$(curl -sS -o "$ph" -w '%{http_code}' --max-time 20 "$prod/api/exporthub-health" || true)
+            thc=$(curl -sS -o "$th" -w '%{http_code}' --max-time 20 "$testservice/api/exporthub-health" || true)
+            pmc=$(curl -sS -o "$pm" -w '%{http_code}' --max-time 20 "$prod/assets/rc1016-mobile-navigation.js?rc1112=$GITHUB_SHA-$attempt" || true)
+            tmc=$(curl -sS -o "$tm" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1016-mobile-navigation.js?rc1112=$GITHUB_SHA-$attempt" || true)
+            pccc=$(curl -sS -o "$pcc" -w '%{http_code}' --max-time 20 "$prod/assets/rc1065-registration-cc.js?rc1065=$GITHUB_SHA-$attempt" || true)
+            tccc=$(curl -sS -o "$tcc" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1065-registration-cc.js?rc1065=$GITHUB_SHA-$attempt" || true)
+            pmac=$(curl -sS -o "$pma" -w '%{http_code}' --max-time 20 "$prod/assets/rc1061-document-migration-admin.js?rc1073=$GITHUB_SHA-$attempt" || true)
+            tmac=$(curl -sS -o "$tma" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1061-document-migration-admin.js?rc1073=$GITHUB_SHA-$attempt" || true)
+            precc=$(curl -sS -o "$prec" -w '%{http_code}' --max-time 20 "$prod/assets/rc1067-startup-recovery.js?rc1067=$GITHUB_SHA-$attempt" || true)
+            trecc=$(curl -sS -o "$trec" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1067-startup-recovery.js?rc1067=$GITHUB_SHA-$attempt" || true)
+            pperfc=$(curl -sS -o "$pperf" -w '%{http_code}' --max-time 20 "$prod/assets/rc1069-performance.js?rc1069=$GITHUB_SHA-$attempt" || true)
+            tperfc=$(curl -sS -o "$tperf" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1069-performance.js?rc1069=$GITHUB_SHA-$attempt" || true)
+            pavisc=$(curl -sS -o "$pavis" -w '%{http_code}' --max-time 20 "$prod/assets/rc1027-lieferavis-immediate.js?rc1069=$GITHUB_SHA-$attempt" || true)
+            tavisc=$(curl -sS -o "$tavis" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1027-lieferavis-immediate.js?rc1069=$GITHUB_SHA-$attempt" || true)
+            precpc=$(curl -sS -L -o "$precp" -w '%{http_code}' --max-time 20 "$prod/migration-recovery.html?rc1067=$GITHUB_SHA-$attempt" || true)
+            trecpc=$(curl -sS -L -o "$trecp" -w '%{http_code}' --max-time 20 "$testservice/migration-recovery.html?rc1067=$GITHUB_SHA-$attempt" || true)
+            psc=$(curl -sS -o "$ps" -w '%{http_code}' --max-time 20 "$prod/assets/sop/screenshots/rc1016-tasks.png?rc1112=$GITHUB_SHA-$attempt" || true)
+            tsc=$(curl -sS -o "$ts" -w '%{http_code}' --max-time 20 "$testservice/assets/sop/screenshots/rc1016-tasks.png?rc1112=$GITHUB_SHA-$attempt" || true)
+            pkc=$(curl -sS -o "$pk" -w '%{http_code}' --max-time 20 "$prod/assets/sop/screenshots/rc1016-pickupcalendar.png?rc1112=$GITHUB_SHA-$attempt" || true)
+            tkc=$(curl -sS -o "$tk" -w '%{http_code}' --max-time 20 "$testservice/assets/sop/screenshots/rc1016-pickupcalendar.png?rc1112=$GITHUB_SHA-$attempt" || true)
+            pdc=$(curl -sS -o "$pd" -w '%{http_code}' --max-time 20 "$prod/assets/rc1013-diagnostics.js?rc1112=$GITHUB_SHA-$attempt" || true)
+            tdc=$(curl -sS -o "$td" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1013-diagnostics.js?rc1112=$GITHUB_SHA-$attempt" || true)
+            pgc=$(curl -sS -o "$pg" -w '%{http_code}' --max-time 20 "$prod/assets/rc1013-gate41-ui.js?rc1112=$GITHUB_SHA-$attempt" || true)
+            tgc=$(curl -sS -o "$tg" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1013-gate41-ui.js?rc1112=$GITHUB_SHA-$attempt" || true)
+            prc=$(curl -sS -o "$pr" -w '%{http_code}' --max-time 20 "$prod/assets/rc1017-multi-truck.js?rc1017=$GITHUB_SHA-$attempt" || true)
+            trc=$(curl -sS -o "$tr" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1017-multi-truck.js?rc1017=$GITHUB_SHA-$attempt" || true)
+            pcalc=$(curl -sS -o "$pcal" -w '%{http_code}' --max-time 20 "$prod/assets/abholkalender.js?rc1112=$GITHUB_SHA-$attempt" || true)
+            tcalc=$(curl -sS -o "$tcal" -w '%{http_code}' --max-time 20 "$testservice/assets/abholkalender.js?rc1112=$GITHUB_SHA-$attempt" || true)
+            pruntimec=$(curl -sS -o "$pruntime" -w '%{http_code}' --max-time 20 "$prod/assets/rc1012-abholkalender-runtime.js?rc1112=$GITHUB_SHA-$attempt" || true)
+            truntimec=$(curl -sS -o "$truntime" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1012-abholkalender-runtime.js?rc1112=$GITHUB_SHA-$attempt" || true)
+            if [[ "$pc" == '200' && "$tc" == '200' && "$dc" == '200' && "$phc" == '200' && "$thc" == '200' && "$pmc" == '200' && "$tmc" == '200' && "$pccc" == '200' && "$tccc" == '200' && "$pmac" == '200' && "$tmac" == '200' && "$precc" == '200' && "$trecc" == '200' && "$pperfc" == '200' && "$tperfc" == '200' && "$pavisc" == '200' && "$tavisc" == '200' && "$precpc" == '200' && "$trecpc" == '200' && "$psc" == '200' && "$tsc" == '200' && "$pkc" == '200' && "$tkc" == '200' && "$pdc" == '200' && "$tdc" == '200' && "$pgc" == '200' && "$tgc" == '200' && "$prc" == '200' && "$trc" == '200' && "$pcalc" == '200' && "$tcalc" == '200' && "$pruntimec" == '200' && "$truntimec" == '200' ]] \
+              && grep -q 'ExportHUB RC1112 environment=production-candidate' "$p" \
+              && grep -q 'ExportHUB RC1112 environment=testservice' "$t" \
+              && grep -q 'ExportHUB RC1112 environment=demo' "$d" \
+              && grep -q "version:'RC1112'" "$p" \
+              && grep -q "version:'RC1112'" "$t" \
+              && grep -q "version:'RC1112'" "$d" \
+              && grep -q 'function addressCountryCode(v)' "$p" \
+              && grep -q 'function addressCountryCode(v)' "$t" \
+              && grep -q 'function addressCountryCode(v)' "$d" \
+              && grep -q 'id="rc1048GateMaster"' "$p" \
+              && grep -q 'id="rc1048GateMaster"' "$t" \
+              && grep -q 'id="rc1048GateMaster"' "$d" \
+              && grep -q 'assets/rc1016-mobile-navigation.js?v=1016' "$p" \
+              && grep -q 'assets/rc1016-mobile-navigation.js?v=1016' "$t" \
+              && grep -q 'assets/rc1016-mobile-navigation.js?v=1016' "$d" \
+              && grep -q 'assets/rc1065-registration-cc.js?v=1093' "$p" \
+              && grep -q 'assets/rc1065-registration-cc.js?v=1093' "$t" \
+              && grep -q 'assets/rc1065-registration-cc.js?v=1093' "$d" \
+              && grep -q '__EXPORTHUB_RC1065_REGISTRATION_CC__' "$pcc" \
+              && grep -q '__EXPORTHUB_RC1065_REGISTRATION_CC__' "$tcc" \
+              && grep -q 'assets/rc1061-document-migration-admin.js?v=1073' "$p" \
+              && grep -q 'assets/rc1061-document-migration-admin.js?v=1073' "$t" \
+              && grep -q 'RC1073: Die Admin-Karte wird nur gerendert' "$pma" \
+              && grep -q 'RC1073: Die Admin-Karte wird nur gerendert' "$tma" \
+              && grep -q 'async function runAll' "$pma" \
+              && grep -q 'async function runAll' "$tma" \
+              && grep -q 'inlinePayloadCount' "$pma" \
+              && grep -q 'inlinePayloadCount' "$tma" \
+              && grep -q 'Alle verbleibenden migrieren' "$pma" \
+              && grep -q 'Alle verbleibenden migrieren' "$tma" \
+              && grep -q 'assets/rc1067-startup-recovery.js?v=1067' "$p" \
+              && grep -q 'assets/rc1067-startup-recovery.js?v=1067' "$t" \
+              && grep -q '__EXPORTHUB_RC1067_STARTUP_RECOVERY__' "$prec" \
+              && grep -q '__EXPORTHUB_RC1067_STARTUP_RECOVERY__' "$trec" \
+              && grep -q '__EXPORTHUB_RC1069_PERFORMANCE__' "$pperf" \
+              && grep -q '__EXPORTHUB_RC1069_PERFORMANCE__' "$tperf" \
+              && grep -q "version:'RC1069'" "$pavis" \
+              && grep -q "version:'RC1069'" "$tavis" \
+              && grep -q 'assets/rc1027-lieferavis-immediate.js?v=1069' "$p" \
+              && grep -q 'assets/rc1027-lieferavis-immediate.js?v=1069' "$t" \
+              && grep -q 'assets/rc1027-lieferavis-immediate.js?v=1069' "$d" \
+              && grep -q 'Dokumentspeicher wird optimiert' "$precp" \
+              && grep -q 'Dokumentspeicher wird optimiert' "$trecp" \
+              && grep -q 'assets/abholkalender.js?v=1012' "$p" \
+              && grep -q 'assets/abholkalender.js?v=1012' "$t" \
+              && grep -q 'assets/abholkalender.js?v=1012' "$d" \
+              && grep -q 'assets/rc1012-abholkalender-runtime.js?v=1012' "$p" \
+              && grep -q 'assets/rc1012-abholkalender-runtime.js?v=1012' "$t" \
+              && grep -q 'assets/rc1012-abholkalender-runtime.js?v=1012' "$d" \
+              && grep -q 'assets/rc1014-task-runtime.js?v=1179' "$p" \
+              && grep -q 'assets/rc1014-shipment-overview.js?v=1127' "$p" \
+              && grep -q 'assets/rc1014-shipment-overview.css?v=1127' "$p" \
+              && grep -q 'assets/rc1015-lieferavis-mail-flow.js?v=1021' "$p" \
+              && grep -q 'assets/rc1017-multi-truck.js?v=1017' "$p" \
+              && grep -q 'assets/rc1017-multi-truck.js?v=1017' "$t" \
+              && grep -q 'assets/rc1017-multi-truck.js?v=1017' "$d" \
+              && grep -q 'function rc1017SyncSubShipments(' "$p" \
+              && grep -q 'function rc1017SyncSubShipments(' "$t" \
+              && grep -q 'function rc1017SyncSubShipments(' "$d" \
+              && grep -q 'rc1017-qr-subshipment' "$p" \
+              && grep -q 'rc1017-qr-subshipment' "$t" \
+              && grep -q 'rc1017-qr-subshipment' "$d" \
+              && grep -q 'rc1017-print-subshipment' "$p" \
+              && grep -q 'rc1017-print-subshipment' "$t" \
+              && grep -q 'rc1017-print-subshipment' "$d" \
+              && grep -q 'assets/rc1016-demo-task-seed.js?v=1016' "$d" \
+              && grep -q 'rc1016MobileMenuBtn' "$pm" \
+              && grep -q 'rc1016MobileMenuBtn' "$tm" \
+              && grep -q 'EH-PICKUP-410' "$pd" \
+              && grep -q 'EH-PICKUP-410' "$td" \
+              && grep -q 'Gate41-Preis Deutschland berechnet' "$pg" \
+              && grep -q 'Gate41-Preis Deutschland berechnet' "$tg" \
+              && grep -q 'ExportHubMultiTruck' "$pr" \
+              && grep -q 'ExportHubMultiTruck' "$tr" \
+              && grep -q 'calendarScalarText' "$pcal" \
+              && grep -q 'calendarScalarText' "$tcal" \
+              && grep -q 'companyId' "$pruntime" \
+              && grep -q 'companyId' "$truntime"; then
+              echo 'RC1048 Produktion, TESTSERVICE und Demo live auf demselben geprüften Stand bestätigt.'
+              exit 0
+            fi
+            sleep 10
+          done
+          echo 'RC1048 Drei-Umgebungen-Liveprüfung nicht bestätigt.'
+          echo "HTTP: prod=$pc test=$tc demo=$dc prodHealth=$phc testHealth=$thc prodMobile=$pmc testMobile=$tmc prodCC=$pccc testCC=$tccc prodMigration=$pmac testMigration=$tmac prodRecovery=$precc testRecovery=$trecc prodPerf=$pperfc testPerf=$tperfc prodAvis=$pavisc testAvis=$tavisc prodRecoveryPage=$precpc testRecoveryPage=$trecpc"
+          diagnose_marker() {
+            local label="$1" file="$2" marker="$3"
+            if ! grep -Fq "$marker" "$file"; then echo "FEHLT: $label :: $marker"; fi
+          }
+          diagnose_marker 'Produktion' "$p" 'ExportHUB RC1112 environment=production-candidate'
+          diagnose_marker 'TESTSERVICE' "$t" 'ExportHUB RC1112 environment=testservice'
+          diagnose_marker 'Demo' "$d" 'ExportHUB RC1112 environment=demo'
+          diagnose_marker 'Produktion' "$p" 'function addressCountryCode(v)'
+          diagnose_marker 'TESTSERVICE' "$t" 'function addressCountryCode(v)'
+          diagnose_marker 'Demo' "$d" 'function addressCountryCode(v)'
+          diagnose_marker 'Produktion' "$p" 'id="rc1048GateMaster"'
+          diagnose_marker 'TESTSERVICE' "$t" 'id="rc1048GateMaster"'
+          diagnose_marker 'Demo' "$d" 'id="rc1048GateMaster"'
+          diagnose_marker 'Produktion' "$p" 'assets/rc1061-document-migration-admin.js?v=1073'
+          diagnose_marker 'TESTSERVICE' "$t" 'assets/rc1061-document-migration-admin.js?v=1073'
+          diagnose_marker 'Produktion' "$p" 'assets/rc1067-startup-recovery.js?v=1067'
+          diagnose_marker 'TESTSERVICE' "$t" 'assets/rc1067-startup-recovery.js?v=1067'
+          diagnose_marker 'Produktion' "$p" 'function rc1017SyncSubShipments('
+          diagnose_marker 'TESTSERVICE' "$t" 'function rc1017SyncSubShipments('
+          diagnose_marker 'Demo' "$d" 'function rc1017SyncSubShipments('
+          diagnose_marker 'Produktion' "$p" 'rc1017-qr-subshipment'
+          diagnose_marker 'TESTSERVICE' "$t" 'rc1017-qr-subshipment'
+          diagnose_marker 'Demo' "$d" 'rc1017-qr-subshipment'
+          diagnose_marker 'Produktion' "$p" 'rc1017-print-subshipment'
+          diagnose_marker 'TESTSERVICE' "$t" 'rc1017-print-subshipment'
+          diagnose_marker 'Demo' "$d" 'rc1017-print-subshipment'
+          diagnose_marker 'Demo' "$d" 'assets/rc1016-demo-task-seed.js?v=1016'
+          diagnose_marker 'Produktion RC1068' "$p" 'id="exporthub-rc373-shipment-controller"'
+          diagnose_marker 'TESTSERVICE RC1068' "$t" 'id="exporthub-rc373-shipment-controller"'
+          diagnose_marker 'Demo RC1068' "$d" 'id="exporthub-rc373-shipment-controller"'
+          exit 1
+
+      - name: Live RC1071 Sendungshistorie prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          p=$(mktemp); t=$(mktemp); ph=$(mktemp); th=$(mktemp)
+          trap 'rm -f "$p" "$t" "$ph" "$th"' EXIT
+          for attempt in {1..18}; do
+            pc=$(curl -sS -L -o "$p" -w '%{http_code}' --max-time 20 "$prod/?rc1071=$GITHUB_SHA-$attempt" || true)
+            tc=$(curl -sS -L -o "$t" -w '%{http_code}' --max-time 20 "$testservice/TESTVERSION.html?rc1071=$GITHUB_SHA-$attempt" || true)
+            phc=$(curl -sS -o "$ph" -w '%{http_code}' --max-time 20 "$prod/assets/rc1071-shipment-history.js?rc1071=$GITHUB_SHA-$attempt" || true)
+            thc=$(curl -sS -o "$th" -w '%{http_code}' --max-time 20 "$testservice/assets/rc1071-shipment-history.js?rc1071=$GITHUB_SHA-$attempt" || true)
+            if [[ "$pc" == '200' && "$tc" == '200' && "$phc" == '200' && "$thc" == '200' ]] \
+              && grep -q 'assets/rc1071-shipment-history.js?v=1095' "$p" \
+              && grep -q 'assets/rc1071-shipment-history.js?v=1095' "$t" \
+              && grep -q '__EXPORTHUB_RC1071_SHIPMENT_HISTORY__' "$ph" \
+              && grep -q '__EXPORTHUB_RC1071_SHIPMENT_HISTORY__' "$th" \
+              && grep -q 'mail-sent-open|' "$ph" \
+              && grep -q 'mail-sent-open|' "$th" \
+              && grep -q 'recordMailSent' "$ph" \
+              && grep -q 'recordMailSent' "$th" \
+              && grep -q 'ABD-E-Mail-Versand bestätigt' "$ph" \
+              && grep -q "return'ABD'" "$ph" \
+              && grep -q 'Arbeit an Sendung gestartet' "$ph" \
+              && grep -q 'Versandanmeldung gestartet' "$ph"; then
+              echo 'RC1106 Sendungshistorie live in Produktion und TESTSERVICE bestätigt.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'RC1106 Sendungshistorie wurde live nicht vollständig bestätigt.' >&2
+          exit 1
+
+      - name: Live RC1134 Mail und Sprache prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for attempt in {1..24}; do
+            ok=1
+            for url in \
+              "$prod/assets/rc1018-mail-language-standard.js?rc1112=$GITHUB_SHA-$attempt" \
+              "$testservice/assets/rc1018-mail-language-standard.js?rc1112=$GITHUB_SHA-$attempt" \
+              "$prod/assets/rc1018-public-language.js?rc1112=$GITHUB_SHA-$attempt" \
+              "$testservice/assets/rc1018-public-language.js?rc1112=$GITHUB_SHA-$attempt"; do
+              body=$(mktemp)
+              code=$(curl -sS -L -o "$body" -w '%{http_code}' --max-time 20 "$url" || true)
+              [[ "$code" == '200' ]] || ok=0
+              if [[ "$url" == *mail-language-standard* ]]; then grep -q '__EXPORTHUB_RC1018_MAIL_LANGUAGE_STANDARD__' "$body" || ok=0; else grep -q '__EXPORTHUB_RC1018_PUBLIC_LANGUAGE__' "$body" || ok=0; fi
+              rm -f "$body"
+            done
+            for url in \
+              "$prod/?rc1112=$GITHUB_SHA-$attempt" \
+              "$testservice/TESTVERSION.html?rc1112=$GITHUB_SHA-$attempt" \
+              "$testservice/demo.html?rc1112=$GITHUB_SHA-$attempt"; do
+              body=$(mktemp)
+              code=$(curl -sS -L -o "$body" -w '%{http_code}' --max-time 20 "$url" || true)
+              [[ "$code" == '200' ]] && grep -q 'assets/rc1018-mail-language-standard.js?v=1018' "$body" || ok=0
+              rm -f "$body"
+            done
+            for base in "$prod" "$testservice"; do
+              body=$(mktemp)
+              code=$(curl -sS -L -o "$body" -w '%{http_code}' --max-time 20 "$base/customer-avis.html?lang=en&rc1112=$GITHUB_SHA-$attempt" || true)
+              [[ "$code" == '200' ]] && grep -q 'assets/rc1018-public-language.js?v=1231' "$body" || ok=0
+              rm -f "$body"
+            done
+            if [[ "$ok" == '1' ]]; then echo 'RC1134 Mail- und Sprachruntime live bestätigt.'; exit 0; fi
+            sleep 10
+          done
+          echo 'RC1134 Mail- und Sprachruntime live nicht bestätigt.'
+          exit 1
+
+      - name: Live RC1074 Login ohne technische Prüfhinweise prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for attempt in {1..18}; do
+            ok=1
+            for url in               "$prod/?rc1074=$GITHUB_SHA-$attempt"               "$testservice/TESTVERSION.html?rc1074=$GITHUB_SHA-$attempt"; do
+              body=$(mktemp)
+              code=$(curl -sS -L -o "$body" -w '%{http_code}' --max-time 20 "$url" || true)
+              [[ "$code" == '200' ]] || ok=0
+              grep -q 'assets/rc1074-login-clean.js?v=1112' "$body" || ok=0
+              if grep -Eqi 'Anmeldekonfiguration wird geprüft|TESTSERVICE[[:space:]]*·[[:space:]]*Auth-Backend wird geprüft|TESTSERVICE[[:space:]]*·[[:space:]]*Zugangsdaten eingeben' "$body"; then
+                echo "RC1074: technischer Login-Hinweis ist live noch vorhanden: $url" >&2
+                ok=0
+              fi
+              rm -f "$body"
+            done
+            if [[ "$ok" == '1' ]]; then
+              echo 'RC1074 Login ist live in Produktion und TESTSERVICE ohne technische Prüfhinweise bestätigt.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'RC1074 Login-Liveprüfung nicht bestätigt.' >&2
+          exit 1
+
+      - name: Live RC1087 Verlader-PIN Audit prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for attempt in {1..18}; do
+            ok=1
+            for base in "$prod" "$testservice"; do
+              body=$(mktemp)
+              code=$(curl -sS -L -o "$body" -w '%{http_code}' --max-time 20 "$base/assets/rc1075-loader-pin-admin.js?rc1075=$GITHUB_SHA-$attempt" || true)
+              [[ "$code" == '200' ]] || ok=0
+              grep -q '__EXPORTHUB_RC1075_LOADER_PIN_ADMIN__' "$body" || ok=0
+              grep -q '/api/loader-pins-admin' "$body" || ok=0
+              rm -f "$body"
+            done
+            for base in "$prod" "$testservice"; do
+              apiBody=$(mktemp)
+              apiCode=$(curl -sS -o "$apiBody" -w '%{http_code}' --max-time 20 -X POST -H 'Content-Type: application/json' --data '{"action":"list"}' "$base/api/loader-pins-admin?rc1076=$GITHUB_SHA-$attempt" || true)
+              [[ "$apiCode" == '401' ]] || ok=0
+              grep -Eq 'AUTH_REQUIRED|SESSION_INVALID' "$apiBody" || ok=0
+              headers=$(mktemp)
+              optionsCode=$(curl -sS -D "$headers" -o /dev/null -w '%{http_code}' --max-time 20 -X OPTIONS "$base/api/loader-pins-admin" || true)
+              [[ "$optionsCode" == '204' ]] || ok=0
+              grep -qi 'X-ExportHUB-Loader-Pin-Audit: RC1087' "$headers" || ok=0
+              rm -f "$headers"
+              rm -f "$apiBody"
+            done
+            p=$(mktemp); t=$(mktemp)
+            pc=$(curl -sS -L -o "$p" -w '%{http_code}' --max-time 20 "$prod/?rc1075=$GITHUB_SHA-$attempt" || true)
+            tc=$(curl -sS -L -o "$t" -w '%{http_code}' --max-time 20 "$testservice/TESTVERSION.html?rc1075=$GITHUB_SHA-$attempt" || true)
+            [[ "$pc" == '200' && "$tc" == '200' ]] || ok=0
+            grep -q 'assets/rc1075-loader-pin-admin.js?v=1075' "$p" || ok=0
+            grep -q 'assets/rc1075-loader-pin-admin.js?v=1075' "$t" || ok=0
+            rm -f "$p" "$t"
+            if [[ "$ok" == '1' ]]; then
+              echo 'RC1087 Verlader-PIN Audit ist live in Produktion und TESTSERVICE bestätigt.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'RC1087 Verlader-PIN Audit-Liveprüfung nicht bestätigt.' >&2
+          exit 1
+
+      - name: Live RC1077 Kundenübersicht prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for attempt in {1..18}; do
+            ok=1
+            for base in "$prod" "$testservice"; do
+              page=$(mktemp); asset=$(mktemp)
+              pc=$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1077=$GITHUB_SHA-$attempt" || true)
+              ac=$(curl -sS -L -o "$asset" -w '%{http_code}' --max-time 20 "$base/assets/rc1077-customer-labels.js?rc1077=$GITHUB_SHA-$attempt" || true)
+              [[ "$pc" == '200' && "$ac" == '200' ]] || ok=0
+              grep -q 'assets/rc1077-customer-labels.js?v=1077' "$page" || ok=0
+              grep -q '__EXPORTHUB_RC1077_CUSTOMER_LABELS__' "$asset" || ok=0
+              grep -q "el.textContent='Standorte'" "$asset" || ok=0
+              grep -q 'overflow:visible!important' "$asset" || ok=0
+              rm -f "$page" "$asset"
+            done
+            demo=$(mktemp)
+            dc=$(curl -sS -L -o "$demo" -w '%{http_code}' --max-time 20 "$testservice/demo.html?rc1077=$GITHUB_SHA-$attempt" || true)
+            [[ "$dc" == '200' ]] || ok=0
+            grep -q 'assets/rc1077-customer-labels.js?v=1077' "$demo" || ok=0
+            rm -f "$demo"
+            if [[ "$ok" == '1' ]]; then
+              echo 'RC1077 Kundenübersicht ist live in Produktion, TESTSERVICE und Demo bestätigt.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'RC1077 Kundenübersicht-Liveprüfung nicht bestätigt.' >&2
+          exit 1
+
+      - name: Live RC1079 Profil und RC1080 Kundenhistorie prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for attempt in {1..18}; do
+            ok=1
+            for base in "$prod" "$testservice"; do
+              page=$(mktemp); profile=$(mktemp); customer=$(mktemp)
+              pc=$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1080=$GITHUB_SHA-$attempt" || true)
+              prc=$(curl -sS -L -o "$profile" -w '%{http_code}' --max-time 20 "$base/assets/rc1079-profile-settings.js?rc1080=$GITHUB_SHA-$attempt" || true)
+              chc=$(curl -sS -L -o "$customer" -w '%{http_code}' --max-time 20 "$base/assets/rc1080-customer-history.js?rc1080=$GITHUB_SHA-$attempt" || true)
+              [[ "$pc" == '200' && "$prc" == '200' && "$chc" == '200' ]] || ok=0
+              grep -q 'assets/rc1079-profile-settings.js?v=1079' "$page" || ok=0
+              grep -q 'assets/rc1080-customer-history.js?v=1080' "$page" || ok=0
+              grep -q '__EXPORTHUB_RC1079_PROFILE_SETTINGS__' "$profile" || ok=0
+              grep -q "action:'update-profile'" "$profile" || ok=0
+              grep -q '__EXPORTHUB_RC1080_CUSTOMER_HISTORY__' "$customer" || ok=0
+              grep -q 'Kunde angelegt' "$customer" || ok=0
+              grep -q 'Kunde geändert' "$customer" || ok=0
+              rm -f "$page" "$profile" "$customer"
+              authBody=$(mktemp)
+              authCode=$(curl -sS -o "$authBody" -w '%{http_code}' --max-time 20 -X POST -H 'Content-Type: application/json' --data '{"action":"update-profile","name":"Unzulässig"}' "$base/api/exporthub-auth?rc1080=$GITHUB_SHA-$attempt" || true)
+              [[ "$authCode" == '401' ]] || ok=0
+              grep -Eq 'AUTH_REQUIRED|SESSION_INVALID' "$authBody" || ok=0
+              rm -f "$authBody"
+            done
+            if [[ "$ok" == '1' ]]; then
+              echo 'RC1079 Profil und RC1080 Kundenhistorie live bestätigt.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'RC1079/RC1080 Liveprüfung nicht bestätigt.' >&2
+          exit 1
+
+      - name: Live RC1087 Historie vollständig prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for attempt in {1..18}; do
+            ok=1
+            for base in "$prod" "$testservice"; do
+              page=$(mktemp); asset=$(mktemp)
+              pc=$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1087=$GITHUB_SHA-$attempt" || true)
+              ac=$(curl -sS -L -o "$asset" -w '%{http_code}' --max-time 20 "$base/assets/rc1081-audit-history.js?rc1087=$GITHUB_SHA-$attempt" || true)
+              [[ "$pc" == '200' && "$ac" == '200' ]] || ok=0
+              grep -q 'assets/rc1081-audit-history.js?v=1177' "$page" || ok=0
+              grep -q '__EXPORTHUB_RC1081_AUDIT_HISTORY__' "$asset" || ok=0
+              grep -q '__EXPORTHUB_RC1086_HISTORY_COMPLETE__' "$asset" || ok=0
+              grep -q '__EXPORTHUB_RC1087_ADMIN_AUDIT__' "$asset" || ok=0
+              grep -q 'LOADER_PIN_CREATED' "$asset" || ok=0
+              grep -q '<h3>Historie</h3>' "$asset" || ok=0
+              grep -q 'ExportHUBShipmentHistory1071' "$asset" || ok=0
+              grep -q 'customerHistory' "$asset" || ok=0
+              grep -q 'auditLog' "$asset" || ok=0
+              grep -q 'function taskEvents(t)' "$asset" || ok=0
+              grep -q 'function palletEvents(p,index)' "$asset" || ok=0
+              rm -f "$page" "$asset"
+            done
+            if [[ "$ok" == '1' ]]; then
+              echo 'RC1087 Historie inklusive Aufgaben, Palettenkonto und Admin-Audit live bestätigt.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'RC1087 Historie-Liveprüfung nicht bestätigt.' >&2
+          exit 1
+
+      - name: Live RC1092 Kundenkontakte prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for attempt in {1..18}; do
+            ok=1
+            for base in "$prod" "$testservice"; do
+              page=$(mktemp); asset=$(mktemp)
+              pc=$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1092=$GITHUB_SHA-$attempt" || true)
+              ac=$(curl -sS -L -o "$asset" -w '%{http_code}' --max-time 20 "$base/assets/rc1092-customer-mail-contacts.js?rc1092=$GITHUB_SHA-$attempt" || true)
+              [[ "$pc" == '200' && "$ac" == '200' ]] || ok=0
+              grep -q 'assets/rc1092-customer-mail-contacts.js?v=1092' "$page" || ok=0
+              grep -q '__EXPORTHUB_RC1092_CUSTOMER_MAIL_CONTACTS__' "$asset" || ok=0
+              grep -q 'Person speichern' "$asset" || ok=0
+              grep -q 'Zur Mail hinzufügen' "$asset" || ok=0
+              rm -f "$page" "$asset"
+            done
+            demo=$(mktemp)
+            dc=$(curl -sS -L -o "$demo" -w '%{http_code}' --max-time 20 "$testservice/demo.html?rc1092=$GITHUB_SHA-$attempt" || true)
+            [[ "$dc" == '200' ]] || ok=0
+            grep -q 'assets/rc1092-customer-mail-contacts.js?v=1092' "$demo" || ok=0
+            rm -f "$demo"
+            if [[ "$ok" == '1' ]]; then
+              echo 'RC1092 Kundenkontakte: Person speichern und Zur Mail hinzufügen live bestätigt.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'RC1092 Kundenkontakte-Liveprüfung nicht bestätigt.' >&2
+          exit 1
+
+
+      - name: Live RC1096 Verpackungsgruppen prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for attempt in {1..18}; do
+            ok=1
+            for base in "$prod" "$testservice"; do
+              page=$(mktemp); asset=$(mktemp)
+              pc=$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1096=$GITHUB_SHA-$attempt" || true)
+              ac=$(curl -sS -L -o "$asset" -w '%{http_code}' --max-time 20 "$base/assets/rc1096-packaging-groups.js?rc1096=$GITHUB_SHA-$attempt" || true)
+              [[ "$pc" == '200' && "$ac" == '200' ]] || ok=0
+              grep -q 'assets/rc1096-packaging-groups.js?v=1110' "$page" || ok=0
+              grep -q "name:'Umschlag'" "$page" || ok=0
+              grep -q '__EXPORTHUB_RC1096_PACKAGING_GROUPS__' "$asset" || ok=0
+              grep -Fq "closest('.rc682-packaging-columns')" "$asset" || ok=0
+              grep -q "Pakete" "$asset" || ok=0
+              grep -q "Paletten" "$asset" || ok=0
+              grep -q "Sonstiges" "$asset" || ok=0
+              rm -f "$page" "$asset"
+            done
+            demo=$(mktemp)
+            dc=$(curl -sS -L -o "$demo" -w '%{http_code}' --max-time 20 "$testservice/demo.html?rc1096=$GITHUB_SHA-$attempt" || true)
+            [[ "$dc" == '200' ]] || ok=0
+            grep -q 'assets/rc1096-packaging-groups.js?v=1110' "$demo" || ok=0
+            grep -q "name:'Umschlag'" "$demo" || ok=0
+            rm -f "$demo"
+            if [[ "$ok" == '1' ]]; then
+              echo 'RC1110 Verpackung: native Pakete, Paletten, Sonstiges ohne Doppelverschachtelung live bestätigt.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'RC1096 Verpackungsgruppen-Liveprüfung nicht bestätigt.' >&2
+          exit 1
+
+
+      - name: Live RC1095 Palettenkonto auf Ladeliste prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for attempt in {1..18}; do
+            ok=1
+            for base in "$prod" "$testservice"; do
+              page=$(mktemp)
+              pc=$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1095=$GITHUB_SHA-$attempt" || true)
+              [[ "$pc" == '200' ]] || ok=0
+              grep -q 'function rc1095LoadPalletHtml' "$page" || ok=0
+              grep -q 'rc1095-pallet-account' "$page" || ok=0
+              grep -q 'Palettenkonto' "$page" || ok=0
+              grep -q 'Ausgang:' "$page" || ok=0
+              grep -q 'rc1095LoadPalletCount(sh,rows(sh))' "$page" || ok=0
+              rm -f "$page"
+            done
+            if [[ "$ok" == '1' ]]; then
+              echo 'RC1095 Palettenkonto auf Ladeliste live in Produktion und TESTSERVICE bestätigt.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'RC1095 Palettenkonto-Liveprüfung nicht bestätigt.' >&2
+          exit 1
+
+      - name: Live RC1083 Diagnose-Autofix prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for attempt in {1..18}; do
+            ok=1
+            for base in "$prod" "$testservice"; do
+              page=$(mktemp); asset=$(mktemp); api=$(mktemp)
+              pc=$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1083=$GITHUB_SHA-$attempt" || true)
+              ac=$(curl -sS -L -o "$asset" -w '%{http_code}' --max-time 20 "$base/assets/rc1013-diagnostics.js?rc1083=$GITHUB_SHA-$attempt" || true)
+              apiCode=$(curl -sS -o "$api" -w '%{http_code}' --max-time 20 -X POST -H 'Content-Type: application/json' --data '{"action":"configuration"}' "$base/api/diagnostic-autofix?rc1083=$GITHUB_SHA-$attempt" || true)
+
+              pageMarker=1; chatgptMarker=1; endpointMarker=1; titleMarker=1; authMarker=1
+              grep -q 'assets/rc1013-diagnostics.js?v=1125' "$page" || pageMarker=0
+              grep -q 'Mit ChatGPT beheben' "$asset" || chatgptMarker=0
+              grep -q '__EXPORTHUB_RC1125_DIAGNOSTICS_VIEW_ISOLATION__' "$asset" || titleMarker=0
+              grep -q '/api/diagnostic-autofix' "$asset" || endpointMarker=0
+              grep -q 'Fehlerdiagnose & automatische Behebung' "$asset" || titleMarker=0
+              grep -Eq 'AUTH_REQUIRED|SESSION_INVALID' "$api" || authMarker=0
+
+              if [[ "$pc" != '200' || "$ac" != '200' || "$apiCode" != '401' || "$pageMarker" != '1' || "$chatgptMarker" != '1' || "$endpointMarker" != '1' || "$titleMarker" != '1' || "$authMarker" != '1' ]]; then
+                ok=0
+                echo "RC1083 Versuch $attempt · $base · page=$pc asset=$ac api=$apiCode · pageMarker=$pageMarker chatgpt=$chatgptMarker endpoint=$endpointMarker title=$titleMarker auth=$authMarker"
+                printf 'RC1083 API-Antwort: '
+                head -c 600 "$api" | tr '\n' ' ' || true
+                echo
+              fi
+              rm -f "$page" "$asset" "$api"
+            done
+            if [[ "$ok" == '1' ]]; then
+              echo 'RC1083 Diagnose-Autofix ist live und gegen anonymen Zugriff geschützt.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'RC1083 Diagnose-Autofix-Liveprüfung nicht bestätigt.' >&2
+          exit 1
+ "$headers"
+            rm -f "$headers"
+            trap - EXIT
+          done
+
       - name: Deploy ExportHUB production
         uses: Azure/static-web-apps-deploy@4d27395796ac319302594769cfe812bd207490b1
         with:
