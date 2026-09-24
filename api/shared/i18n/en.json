@@ -91,5 +91,18 @@
   "api.pod.loadFailed": "POD could not be loaded.",
   "api.common.postOnly": "Only POST is allowed.",
   "api.auth.adminRequired": "Only global administrators may perform this action.",
-  "api.auth.adminLocked": "The account is locked and can only be unlocked by a global administrator."
+  "api.auth.adminLocked": "The account is locked and can only be unlocked by a global administrator.",
+  "api.common.environmentInvalid": "Unknown ExportHUB environment.",
+  "api.autofix.environmentMismatch": "The requested diagnostics environment does not match the website.",
+  "api.autofix.sessionInvalid": "The ExportHUB session is no longer valid.",
+  "api.autofix.sessionRevoked": "The ExportHUB session was ended.",
+  "api.autofix.adminRequired": "Automatic fixing is available only to global administrators.",
+  "api.autofix.diagnosticNotFound": "The diagnostics entry was not found.",
+  "api.autofix.diagnosticConcurrent": "The diagnostics entry was changed concurrently.",
+  "api.autofix.jobNotFound": "Autofix job was not found.",
+  "api.autofix.githubDispatchFailed": "GitHub autofix could not be started (HTTP {{status}}).",
+  "api.autofix.githubTokenMissing": "The GitHub autofix token is not configured on the server yet.",
+  "api.autofix.disabledReason": "Automatic fixing is intentionally disabled at the moment. No external AI job is started.",
+  "api.autofix.diagnosticIdRequired": "Diagnostics ID is missing.",
+  "api.autofix.alreadyRunning": "Automatic fixing is already running for this error."
 }
