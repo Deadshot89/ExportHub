@@ -211,5 +211,10 @@
   "reports.print": "Drukuj raport",
   "admin.users": "Użytkownicy",
   "admin.rolesRights": "Role i uprawnienia",
-  "admin.sessions": "Sesje"
+  "admin.sessions": "Sesje",
+  "profile.badge": "PROFIL",
+  "profile.note": "Domyślnym językiem profilu jest niemiecki. Język wiadomości e-mail dla wysyłki jest ustawiany niezależnie. Istniejące wpisy historii zachowują nazwę wyświetlaną używaną w danym momencie.",
+  "profile.saving": "Zapisywanie profilu …",
+  "profile.saveFailed": "Zapisywanie nie powiodło się",
+  "profile.displayNameRequired": "Nazwa wyświetlana nie może być pusta."
 }
