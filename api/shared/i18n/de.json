@@ -166,5 +166,6 @@
   "api.avis.mailDocumentType": "Dokumentart: {{type}}",
   "api.avis.mailStored": "Geprüft und gespeichert: {{time}}",
   "api.avis.mailPassed": "Die Datei hat die Virenprüfung und die fachliche Sendungszuordnung bestanden.",
-  "api.avis.mailAction": "Bitte ExportHUB → Benachrichtigungen öffnen und „PDF öffnen / drucken“ auswählen."
+  "api.avis.mailAction": "Bitte ExportHUB → Benachrichtigungen öffnen und „PDF öffnen / drucken“ auswählen.",
+  "api.auth.unknownAction": "Unbekannte Anmeldeaktion."
 }
