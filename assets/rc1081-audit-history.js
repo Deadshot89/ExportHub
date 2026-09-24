@@ -17,114 +17,97 @@ function state(){try{if(typeof w.__EXPORTHUB_GET_STATE__==='function')return w._
 function view(){var s=state();return low(s.view||s.currentView||s.activeView||s.page||'')}
 function historyView(){var v=view();return v==='history'||v==='historie'}
 function esc(v){return q(v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
-function fmt(v){var raw=q(v);if(/^\d{4}-\d{2}-\d{2}$/.test(raw)){var p=raw.split('-').map(Number);return new Intl.DateTimeFormat('de-DE',{dateStyle:'short'}).format(new Date(p[0],p[1]-1,p[2]))}var x=new Date(v);if(!Number.isFinite(x.getTime()))return raw||'—';return new Intl.DateTimeFormat('de-DE',{dateStyle:'short',timeStyle:'medium'}).format(x)}
+function tr(key,vars){try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.t==='function')return w.ExportHUBI18n.t(key,vars)}catch(_){}return key}
+function th(key,vars){return esc(tr(key,vars))}
+function lang(){try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.language==='function')return w.ExportHUBI18n.language()}catch(_){}return'de'}
+function locale(){return({de:'de-DE',en:'en-GB',pl:'pl-PL',es:'es-ES',fr:'fr-FR',it:'it-IT'})[lang()]||'de-DE'}
+function fmt(v){var raw=q(v),x;if(/^\d{4}-\d{2}-\d{2}$/.test(raw)){var p=raw.split('-').map(Number);x=new Date(p[0],p[1]-1,p[2]);try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.formatDate==='function')return w.ExportHUBI18n.formatDate(x,{dateStyle:'short'})}catch(_){}return new Intl.DateTimeFormat(locale(),{dateStyle:'short'}).format(x)}x=new Date(v);if(!Number.isFinite(x.getTime()))return raw||'—';try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.formatDate==='function')return w.ExportHUBI18n.formatDate(x,{dateStyle:'short',timeStyle:'medium'})}catch(_){}return new Intl.DateTimeFormat(locale(),{dateStyle:'short',timeStyle:'medium'}).format(x)}
 function identity(sh){return q(sh&&(sh.id||sh.shipmentId||sh.reference||sh.ref||sh.shipmentRef||sh.referenceNumber)).toUpperCase()}
 function shipmentRef(sh){return q(sh&&(sh.reference||sh.ref||sh.shipmentRef||sh.referenceNumber||sh.id))}
-function customerName(c){return q(c&&(c.name||c.customerName||c.companyName||c.account||c.customerNumber))||'Kunde'}
+function customerName(c){return q(c&&(c.name||c.customerName||c.companyName||c.account||c.customerNumber))||tr('history.entity.customer')}
 function actorName(e){return q(e&&e.actor&&e.actor.name||e&&e.actor||e&&e.by||e&&e.user)||'System'}
 function eventKey(e){return q(e&&e.id)||[q(e&&e.at),q(e&&e.type),q(e&&e.subtype),q(e&&e.label),actorName(e),q(e&&e.entityId)].join('|').toLowerCase()}
 function pushUnique(map,e){if(!e||!q(e.at))return;var k=eventKey(e);if(k&&!map.has(k))map.set(k,e)}
 
 var AUDIT_LABELS={
- LOGIN_SUCCESS:'Anmeldung erfolgreich',
- LOGIN_FAILED:'Anmeldung fehlgeschlagen',
- LOGOUT:'Abmeldung',
- PROFILE_DISPLAY_NAME_UPDATED:'Anzeigename geändert',
- USER_DISPLAY_NAME_UPDATED_BY_ADMIN:'Anzeigename durch Administrator geändert',
- USER_CREATED:'Benutzer angelegt',
- USER_RIGHTS_UPDATED:'Benutzerrechte geändert',
- USER_ACTIVATED:'Benutzer aktiviert',
- USER_DEACTIVATED:'Benutzer deaktiviert',
- PASSWORD_RESET:'Passwort zurückgesetzt',
- PASSWORD_CHANGED:'Passwort geändert',
- ACCOUNT_UNLOCKED:'Benutzerkonto entsperrt',
- SESSIONS_TERMINATED:'Sitzungen durch Administrator beendet',
- INITIAL_ADMIN_BOOTSTRAPPED:'Admin-Zugang eingerichtet',
- INITIAL_ADMIN_RECOVERED:'Admin-Zugang wiederhergestellt',
- ADMIN_ACCOUNT_UNLOCKED_WITH_PERSONAL_PASSWORD:'Admin-Konto entsperrt',
- DIAGNOSTIC_AUTOFIX_REQUESTED:'Fehler zur automatischen Behebung übergeben',
- DIAGNOSTIC_AUTOFIX_FIXED:'Fehler automatisch behoben',
- DIAGNOSTIC_AUTOFIX_FAILED:'Automatische Fehlerbehebung fehlgeschlagen',
- LOADER_PIN_CREATED:'Verlader-PIN angelegt',
- LOADER_PIN_UPDATED:'Verlader-PIN geändert',
- LOADER_PIN_STATUS_CHANGED:'Verlader-PIN Status geändert',
- LOADER_PIN_DELETED:'Verlader-PIN gelöscht',
- CUSTOMER_DELETED:'Kunde gelöscht',
- CUSTOMER_PORTAL_CREATED:'Kundenportal angelegt',
- CUSTOMER_PORTAL_UPDATED:'Kundenportal geändert',
- CUSTOMER_PORTAL_DELETED:'Kundenportal gelöscht',
- CUSTOMER_PORTAL_REVEALED:'Kundenportal-Zugang angezeigt',
- CUSTOMER_PORTAL_REVEAL_DENIED:'Kundenportal-Zugang abgelehnt'
+ LOGIN_SUCCESS:'history.audit.LOGIN_SUCCESS',
+ LOGIN_FAILED:'history.audit.LOGIN_FAILED',
+ LOGOUT:'history.audit.LOGOUT',
+ PROFILE_DISPLAY_NAME_UPDATED:'history.audit.PROFILE_DISPLAY_NAME_UPDATED',
+ USER_DISPLAY_NAME_UPDATED_BY_ADMIN:'history.audit.USER_DISPLAY_NAME_UPDATED_BY_ADMIN',
+ USER_CREATED:'history.audit.USER_CREATED',
+ USER_RIGHTS_UPDATED:'history.audit.USER_RIGHTS_UPDATED',
+ USER_ACTIVATED:'history.audit.USER_ACTIVATED',
+ USER_DEACTIVATED:'history.audit.USER_DEACTIVATED',
+ PASSWORD_RESET:'history.audit.PASSWORD_RESET',
+ PASSWORD_CHANGED:'history.audit.PASSWORD_CHANGED',
+ ACCOUNT_UNLOCKED:'history.audit.ACCOUNT_UNLOCKED',
+ SESSIONS_TERMINATED:'history.audit.SESSIONS_TERMINATED',
+ INITIAL_ADMIN_BOOTSTRAPPED:'history.audit.INITIAL_ADMIN_BOOTSTRAPPED',
+ INITIAL_ADMIN_RECOVERED:'history.audit.INITIAL_ADMIN_RECOVERED',
+ ADMIN_ACCOUNT_UNLOCKED_WITH_PERSONAL_PASSWORD:'history.audit.ADMIN_ACCOUNT_UNLOCKED_WITH_PERSONAL_PASSWORD',
+ DIAGNOSTIC_AUTOFIX_REQUESTED:'history.audit.DIAGNOSTIC_AUTOFIX_REQUESTED',
+ DIAGNOSTIC_AUTOFIX_FIXED:'history.audit.DIAGNOSTIC_AUTOFIX_FIXED',
+ DIAGNOSTIC_AUTOFIX_FAILED:'history.audit.DIAGNOSTIC_AUTOFIX_FAILED',
+ LOADER_PIN_CREATED:'history.audit.LOADER_PIN_CREATED',
+ LOADER_PIN_UPDATED:'history.audit.LOADER_PIN_UPDATED',
+ LOADER_PIN_STATUS_CHANGED:'history.audit.LOADER_PIN_STATUS_CHANGED',
+ LOADER_PIN_DELETED:'history.audit.LOADER_PIN_DELETED',
+ CUSTOMER_DELETED:'history.audit.CUSTOMER_DELETED',
+ CUSTOMER_PORTAL_CREATED:'history.audit.CUSTOMER_PORTAL_CREATED',
+ CUSTOMER_PORTAL_UPDATED:'history.audit.CUSTOMER_PORTAL_UPDATED',
+ CUSTOMER_PORTAL_DELETED:'history.audit.CUSTOMER_PORTAL_DELETED',
+ CUSTOMER_PORTAL_REVEALED:'history.audit.CUSTOMER_PORTAL_REVEALED',
+ CUSTOMER_PORTAL_REVEAL_DENIED:'history.audit.CUSTOMER_PORTAL_REVEAL_DENIED'
 };
 var SHIPMENT_LABELS={
- created:'Sendung erstellt',
- saved:'Sendung gespeichert',
- status:'Sendungsstatus geändert',
- mail:'E-Mail vorbereitet oder geöffnet',
- 'mail-sent':'E-Mail-Versand bestätigt',
- print:'Druck oder PDF-Ausgabe',
- 'document-open':'Dokument geöffnet',
- 'document-download':'Dokument heruntergeladen',
- avis:'Lieferavis',
- abd:'ABD',
- pickup:'Abholung',
- 'pickup-plan':'Abholung geplant oder gebucht',
- pod:'POD',
- document:'Dokument',
- registration:'Versandanmeldung',
- 'work-start':'Arbeit an Sendung gestartet',
- event:'Sendungsaktion'
+ created:'history.shipment.created',saved:'history.shipment.saved',status:'history.shipment.status',mail:'history.shipment.mail','mail-sent':'history.shipment.mail-sent',print:'history.shipment.print','document-open':'history.shipment.document-open','document-download':'history.shipment.document-download',avis:'history.shipment.avis',abd:'history.shipment.abd',pickup:'history.shipment.pickup','pickup-plan':'history.shipment.pickup-plan',pod:'history.shipment.pod',document:'history.shipment.document',registration:'history.shipment.registration','work-start':'history.shipment.work-start',event:'history.shipment.event'
 };
-var CUSTOMER_LABELS={
- 'customer-created':'Kunde angelegt',
- 'customer-updated':'Kunde geändert'
-};
-var TASK_LABELS={
- 'task-created':'Aufgabe erstellt',
- 'task-completed':'Aufgabe erledigt',
- 'task-cancelled':'Aufgabe storniert'
-};
-var PALLET_LABELS={
- 'pallet-in':'Paletteneingang gebucht',
- 'pallet-out':'Palettenausgang gebucht',
- 'pallet-exchange':'Palettentausch gebucht',
- 'pallet-correction':'Palettenkorrektur gebucht',
- 'pallet-booking':'Palettenbuchung'
-};
+var CUSTOMER_LABELS={'customer-created':'history.customer.customer-created','customer-updated':'history.customer.customer-updated'};
+var TASK_LABELS={'task-created':'history.task.task-created','task-completed':'history.task.task-completed','task-cancelled':'history.task.task-cancelled'};
+var PALLET_LABELS={'pallet-in':'history.pallet.pallet-in','pallet-out':'history.pallet.pallet-out','pallet-exchange':'history.pallet.pallet-exchange','pallet-correction':'history.pallet.pallet-correction','pallet-booking':'history.pallet.pallet-booking'};
 
-function typeLabel(type){return({shipment:'Sendungen',customer:'Kunden',task:'Aufgaben',pallet:'Palettenkonto',audit:'Benutzer & System'})[type]||'Sonstiges'}
+function typeLabel(type){var key=({shipment:'history.type.shipment',customer:'history.type.customer',task:'history.type.task',pallet:'history.type.pallet',audit:'history.type.audit'})[type]||'history.type.other';return tr(key)}
 function actionLabel(e){
- var subtype=q(e&&e.subtype);
- if(e&&e.type==='audit')return AUDIT_LABELS[subtype]||'Systemaktion';
- if(e&&e.type==='customer')return CUSTOMER_LABELS[subtype]||'Kundenaktion';
- if(e&&e.type==='task')return TASK_LABELS[subtype]||'Aufgabenaktion';
- if(e&&e.type==='pallet')return PALLET_LABELS[subtype]||'Palettenaktion';
- if(e&&e.type==='shipment')return SHIPMENT_LABELS[subtype]||'Sendungsaktion';
- return'Aktion'
+ var subtype=q(e&&e.subtype),key='';
+ if(e&&e.type==='audit')key=AUDIT_LABELS[subtype]||'history.generic.system';
+ else if(e&&e.type==='customer')key=CUSTOMER_LABELS[subtype]||'history.generic.customer';
+ else if(e&&e.type==='task')key=TASK_LABELS[subtype]||'history.generic.task';
+ else if(e&&e.type==='pallet')key=PALLET_LABELS[subtype]||'history.generic.pallet';
+ else if(e&&e.type==='shipment')key=SHIPMENT_LABELS[subtype]||'history.generic.shipment';
+ else key='history.generic.action';
+ return tr(key)
 }
-function shipmentActionTitle(raw){
- var label=q(raw),l=low(label);
- if(/abd.*druck.*pdf.*gestartet/.test(l)||label==='ABD angefordert')return'ABD-Anfrage erstellt';
- if(label==='ABD-Anfrage per E-Mail gestartet')return'ABD-Anfrage per E-Mail geöffnet';
- if(label==='ABD-Dokument hinzugefügt')return'ABD-Dokument hochgeladen';
- if(/^sendung\s+(?:erfasst|angelegt)$/i.test(label))return'Sendung erstellt';
- if(/^lieferavis\s+(?:aktiviert|erstellt|erstellt\s*\/\s*aktiviert)$/i.test(label))return'Lieferavis erstellt/aktiviert';
- return label
+function shipmentLegacyCode(raw){
+ var value=q(raw),k=low(value);
+ if(/abd.*druck.*pdf.*gestartet/.test(k)||value==='ABD angefordert')return'abdRequestCreated';
+ if(value==='ABD-Anfrage per E-Mail gestartet')return'abdEmailOpened';
+ if(value==='ABD-Dokument hinzugefügt')return'abdUploaded';
+ if(/^sendung\s+(?:erfasst|angelegt|erstellt)$/i.test(value))return'shipmentCreated';
+ if(/^lieferavis\s+(?:aktiviert|erstellt|erstellt\s*\/\s*aktiviert)$/i.test(value))return'avisCreated';
+ return''
+}
+function shipmentActionTitle(raw,subtype){
+ var code=shipmentLegacyCode(raw);
+ if(code)return tr('history.special.'+code);
+ var key=SHIPMENT_LABELS[q(subtype)];
+ if(key)return tr(key);
+ return q(raw)||tr('history.generic.shipment')
 }
 function actionTitle(e){
  var raw=q(e&&e.label),mapped=actionLabel(e);
  if(e&&e.type==='audit')return mapped;
- if(e&&e.type==='shipment'&&raw)return shipmentActionTitle(raw);
+ if(e&&e.type==='shipment')return shipmentActionTitle(raw,e&&e.subtype);
+ if(e&&(e.type==='customer'||e.type==='task'||e.type==='pallet'))return mapped;
  if(raw&&raw!==subtypeTechnical(e))return raw;
  return mapped
 }
 function subtypeTechnical(e){return q(e&&e.subtype).replace(/[-_]+/g,' ')}
-function actionKey(e){return q(e&&e.type)+'|'+q(e&&e.subtype)+'|'+low(actionTitle(e))}
+function actionKey(e){var raw=q(e&&e.label),special=e&&e.type==='shipment'?shipmentLegacyCode(raw):'',canonical=special||low(raw||subtypeTechnical(e));return q(e&&e.type)+'|'+q(e&&e.subtype)+'|'+canonical}
 function duplicateWindowMs(e){
  if(!e||e.type!=='shipment')return 0;
- var title=actionTitle(e);
- if(title==='Sendung erstellt')return 8000;
- if(title==='Lieferavis erstellt/aktiviert')return 8000;
+ var code=shipmentLegacyCode(e.label);
+ if(code==='shipmentCreated'||code==='avisCreated')return 8000;
  return 0
 }
 function actorQuality(e){
@@ -137,7 +120,7 @@ function eventQuality(e){
  if(q(details.reference))score+=4;
  if(q(details.action))score+=2;
  if(q(details.to)||q(details.subject))score+=1;
- if(raw===actionTitle(e))score+=3;
+ if(raw)score+=3;
  if(e&&e.subtype==='created')score+=3;
  return score
 }
@@ -150,7 +133,7 @@ function consolidateEvents(events){
   var idx=-1;
   for(var i=0;i<out.length;i++){
    var x=out[i],xt=Date.parse(x.at||0)||0;
-   if(x.type===e.type&&q(x.entityId)===entity&&actionTitle(x)===title&&Math.abs(xt-ts)<=win){idx=i;break}
+   if(x.type===e.type&&q(x.entityId)===entity&&actionKey(x)===actionKey(e)&&Math.abs(xt-ts)<=win){idx=i;break}
   }
   if(idx<0){out.push(e);return}
   if(eventQuality(e)>eventQuality(out[idx]))out[idx]=e
@@ -164,7 +147,7 @@ function auditEvent(e){
  else if(subtype==='CUSTOMER_DELETED'){entity='Kunde';entityId=q(details.account||details.customerId||details.customer)||'Kunde'}
  else if(/^CUSTOMER_PORTAL_/.test(subtype)){entity='Kundenportal';entityId=q(details.portalName||details.portalId||details.customerId)||'Kundenportal'}
  else if(entityId)entity='Benutzer';
- return{id:q(e&&e.id),at:q(e&&e.at),type:'audit',subtype:subtype,label:AUDIT_LABELS[subtype]||'Systemaktion',actor:{name:actorName(e)},entity:entity,entityId:entityId,details:details,source:'audit'}
+ return{id:q(e&&e.id),at:q(e&&e.at),type:'audit',subtype:subtype,label:tr(AUDIT_LABELS[subtype]||'history.generic.system'),actor:{name:actorName(e)},entity:entity,entityId:entityId,details:details,source:'audit'}
 }
 function shipmentEvent(sh,e){
  var ref=shipmentRef(sh)||identity(sh)||'Sendung';
@@ -176,14 +159,18 @@ function customerEvent(c,e){
 
 function systemActor(v){
  var raw=q(v),k=low(raw);
- if(!raw)return'Nicht protokolliert';
- if(k==='system:pod')return'System · POD';
- if(k==='system:abd')return'System · ABD';
- if(k==='system:pick')return'System · Pick';
- if(k==='system:pickup')return'System · Abholung';
- if(k==='system:shipment')return'System · Sendung';
- if(k==='system:cancel')return'System · Stornierung';
+ if(!raw)return'history.actor.notLogged';
+ if(k==='system:pod')return'history.actor.systemPod';
+ if(k==='system:abd')return'history.actor.systemAbd';
+ if(k==='system:pick')return'history.actor.systemPick';
+ if(k==='system:pickup')return'history.actor.systemPickup';
+ if(k==='system:shipment')return'history.actor.systemShipment';
+ if(k==='system:cancel')return'history.actor.systemCancel';
  return raw
+}
+function actorDisplay(v){
+ var raw=typeof v==='object'?actorName(v):q(v);
+ return /^history\.actor\./.test(raw)?tr(raw):raw
 }
 function taskEntityId(t){return q(t&&(t.sourceRef||t.linkedShipmentRef||t.shipmentRef||t.reference||t.ref||t.id))||'Aufgabe'}
 function taskEvents(t){
@@ -194,7 +181,7 @@ function taskEvents(t){
      completed=q(t&&(t.completedAt||t.doneAt||t.closedAt)),status=low(t&&t.status),
      createdBy=q(t&&(t.createdBy||t.creator||t.createdUser||t.createdUserName)),
      completedBy=q(t&&(t.completedBy||t.doneBy||t.closedBy));
- function add(suffix,at,subtype,actor){if(!at)return;out.push({id:'D-TASK-'+suffix+'-'+id,at:at,type:'task',subtype:subtype,label:TASK_LABELS[subtype],actor:{name:systemActor(actor)},entity:'Aufgabe',entityId:title,details:{taskId:id,reference:ref,group:group,assignee:assignee,dueAt:due,status:q(t&&t.status)},source:'task-derived'})}
+ function add(suffix,at,subtype,actor){if(!at)return;out.push({id:'D-TASK-'+suffix+'-'+id,at:at,type:'task',subtype:subtype,label:tr(TASK_LABELS[subtype]||'history.generic.task'),actor:{name:systemActor(actor)},entity:'Aufgabe',entityId:title,details:{taskId:id,reference:ref,group:group,assignee:assignee,dueAt:due,status:q(t&&t.status)},source:'task-derived'})}
  add('CREATED',created,'task-created',createdBy);
  if(completed)add('COMPLETED',completed,/cancel|storn/.test(status)?'task-cancelled':'task-completed',completedBy);
  return out
@@ -214,7 +201,7 @@ function palletEvents(p,index){
      ref=q(p&&(p.shipmentRef||p.reference||p.ref)),count=Number(p&&(p.count!=null?p.count:(p.quantity!=null?p.quantity:p.amount))),
      palletType=q(p&&(p.palletType||p.typeName||p.packaging||p.pallet)),customer=q(p&&(p.customerName||p.customer||p.customerAccount)),
      id=q(p&&(p.id||p._syncId))||String(index||0);
- return[{id:'D-PALLET-'+id,at:at,type:'pallet',subtype:subtype,label:PALLET_LABELS[subtype],actor:{name:systemActor(actor)},entity:'Palettenkonto',entityId:ref||customer||id,details:{reference:ref,count:Number.isFinite(count)?count:undefined,palletType:palletType,customer:customer,direction:q(p&&(p.direction||p.dir||p.movement||p.bookingType||p.transactionType))},source:'pallet-derived'}]
+ return[{id:'D-PALLET-'+id,at:at,type:'pallet',subtype:subtype,label:tr(PALLET_LABELS[subtype]||'history.generic.pallet'),actor:{name:systemActor(actor)},entity:'Palettenkonto',entityId:ref||customer||id,details:{reference:ref,count:Number.isFinite(count)?count:undefined,palletType:palletType,customer:customer,direction:q(p&&(p.direction||p.dir||p.movement||p.bookingType||p.transactionType))},source:'pallet-derived'}]
 }
 function allShipments(){
  var s=state(),list=[];
@@ -235,52 +222,53 @@ function allEvents(){
  arr(s.palletAccount).forEach(function(p,i){palletEvents(p,i).forEach(function(e){pushUnique(map,e)})});
  return consolidateEvents(Array.from(map.values()).sort(function(a,b){return Date.parse(b.at||0)-Date.parse(a.at||0)}))
 }
+function field(key,value){return tr('history.field.'+key)+': '+value}
 function detailText(e){
  var x=e&&e.details||{},parts=[];
- if(x.username)parts.push('Benutzer: '+q(x.username));
- if(x.loaderName)parts.push('Verlader: '+q(x.loaderName));
- if(x.loaderId)parts.push('Verlader-ID: '+q(x.loaderId));
- if(x.previousName||x.displayName)parts.push('Name: '+(x.previousName?q(x.previousName)+' → ':'')+q(x.displayName));
- if(x.customer)parts.push('Kunde: '+q(x.customer));
- if(x.account)parts.push('Kundennummer: '+q(x.account));
- if(x.taskId)parts.push('Aufgabe: '+q(x.taskId));
- if(x.group)parts.push('Gruppe: '+q(x.group));
- if(x.assignee)parts.push('Verantwortlich: '+q(x.assignee));
- if(x.dueAt)parts.push('Fällig: '+q(x.dueAt));
- if(x.palletType)parts.push('Palettentyp: '+q(x.palletType));
- if(x.direction)parts.push('Richtung: '+q(x.direction));
- if(Number.isFinite(Number(x.count)))parts.push('Anzahl: '+Number(x.count));
- if(x.document)parts.push('Dokument: '+q(x.document));
- if(x.files)parts.push('Dateien: '+q(x.files));
- if(x.mailType)parts.push('Mail: '+q(x.mailType));
- if(x.subject)parts.push('Betreff: '+q(x.subject));
- if(x.from&&x.to)parts.push('Änderung: '+q(x.from)+' → '+q(x.to));
- else if(x.to)parts.push('Empfänger: '+q(x.to));
- if(x.fields)parts.push('Geändert: '+q(x.fields));
- if(x.status)parts.push('Status: '+q(x.status));
- if(x.reference)parts.push('Referenz: '+q(x.reference));
- if(x.date)parts.push('Datum: '+q(x.date)+(x.time?' · '+q(x.time):''));
- if(x.oldDate||x.newDate){var oldTime=[q(x.oldTimeFrom),q(x.oldTimeTo)].filter(Boolean).join('–'),newTime=[q(x.newTimeFrom),q(x.newTimeTo)].filter(Boolean).join('–');parts.push('Abholtermin: '+(q(x.oldDate)||'—')+(oldTime?' '+oldTime:'')+' → '+(q(x.newDate)||'—')+(newTime?' '+newTime:''))}
- if(x.oldPlate||x.newPlate)parts.push('Kennzeichen: '+(q(x.oldPlate)||'—')+' → '+(q(x.newPlate)||'—'));
- if(x.driver)parts.push('Fahrer: '+q(x.driver));
- if(x.licensePlate)parts.push('Kennzeichen: '+q(x.licensePlate));
- if(Number.isFinite(Number(x.colli)))parts.push('Colli: '+Number(x.colli));
- if(Number.isFinite(Number(x.documents)))parts.push('Dokumente: '+Number(x.documents));
- if(Number.isFinite(Number(x.remaining)))parts.push('Restmenge: '+Number(x.remaining));
- if(x.action)parts.push('Auslöser: '+q(x.action));
- if(x.environment)parts.push('Umgebung: '+q(x.environment));
- if(x.diagnosticId)parts.push('Fehler-ID: '+q(x.diagnosticId));
- if(Number.isFinite(Number(x.failedAttempts)))parts.push('Fehlversuche: '+Number(x.failedAttempts));
- if(typeof x.globalAdmin==='boolean')parts.push('Globaler Admin: '+(x.globalAdmin?'Ja':'Nein'));
- if(typeof x.active==='boolean')parts.push('Aktiv: '+(x.active?'Ja':'Nein'));
- if(Number.isFinite(Number(x.terminated))&&Number(x.terminated)>0)parts.push('Beendete Sitzungen: '+Number(x.terminated));
+ if(x.username)parts.push(field('user',q(x.username)));
+ if(x.loaderName)parts.push(field('loader',q(x.loaderName)));
+ if(x.loaderId)parts.push(field('loaderId',q(x.loaderId)));
+ if(x.previousName||x.displayName)parts.push(field('name',(x.previousName?q(x.previousName)+' → ':'')+q(x.displayName)));
+ if(x.customer)parts.push(field('customer',q(x.customer)));
+ if(x.account)parts.push(field('customerNumber',q(x.account)));
+ if(x.taskId)parts.push(field('task',q(x.taskId)));
+ if(x.group)parts.push(field('group',q(x.group)));
+ if(x.assignee)parts.push(field('owner',q(x.assignee)));
+ if(x.dueAt)parts.push(field('due',q(x.dueAt)));
+ if(x.palletType)parts.push(field('palletType',q(x.palletType)));
+ if(x.direction)parts.push(field('direction',q(x.direction)));
+ if(Number.isFinite(Number(x.count)))parts.push(field('count',Number(x.count)));
+ if(x.document)parts.push(field('document',q(x.document)));
+ if(x.files)parts.push(field('files',q(x.files)));
+ if(x.mailType)parts.push(field('mail',q(x.mailType)));
+ if(x.subject)parts.push(field('subject',q(x.subject)));
+ if(x.from&&x.to)parts.push(field('change',q(x.from)+' → '+q(x.to)));
+ else if(x.to)parts.push(field('recipient',q(x.to)));
+ if(x.fields)parts.push(field('changed',q(x.fields)));
+ if(x.status)parts.push(field('status',q(x.status)));
+ if(x.reference)parts.push(field('reference',q(x.reference)));
+ if(x.date)parts.push(field('date',q(x.date)+(x.time?' · '+q(x.time):'')));
+ if(x.oldDate||x.newDate){var oldTime=[q(x.oldTimeFrom),q(x.oldTimeTo)].filter(Boolean).join('–'),newTime=[q(x.newTimeFrom),q(x.newTimeTo)].filter(Boolean).join('–');parts.push(field('pickupAppointment',(q(x.oldDate)||'—')+(oldTime?' '+oldTime:'')+' → '+(q(x.newDate)||'—')+(newTime?' '+newTime:'')))}
+ if(x.oldPlate||x.newPlate)parts.push(field('licensePlate',(q(x.oldPlate)||'—')+' → '+(q(x.newPlate)||'—')));
+ if(x.driver)parts.push(field('driver',q(x.driver)));
+ if(x.licensePlate)parts.push(field('licensePlate',q(x.licensePlate)));
+ if(Number.isFinite(Number(x.colli)))parts.push(field('colli',Number(x.colli)));
+ if(Number.isFinite(Number(x.documents)))parts.push(field('documents',Number(x.documents)));
+ if(Number.isFinite(Number(x.remaining)))parts.push(field('remaining',Number(x.remaining)));
+ if(x.action)parts.push(field('trigger',q(x.action)));
+ if(x.environment)parts.push(field('environment',q(x.environment)));
+ if(x.diagnosticId)parts.push(field('errorId',q(x.diagnosticId)));
+ if(Number.isFinite(Number(x.failedAttempts)))parts.push(field('failedAttempts',Number(x.failedAttempts)));
+ if(typeof x.globalAdmin==='boolean')parts.push(field('globalAdmin',tr(x.globalAdmin?'common.yes':'common.no')));
+ if(typeof x.active==='boolean')parts.push(field('active',tr(x.active?'common.yes':'common.no')));
+ if(Number.isFinite(Number(x.terminated))&&Number(x.terminated)>0)parts.push(field('endedSessions',Number(x.terminated)));
  return Array.from(new Set(parts.filter(Boolean))).join(' · ')
 }
-function actorList(events){return Array.from(new Set(events.map(function(e){return actorName(e)}).filter(Boolean))).sort(function(a,b){return a.localeCompare(b,'de')})}
+function actorList(events){return Array.from(new Set(events.map(function(e){return actorName(e)}).filter(Boolean))).sort(function(a,b){return actorDisplay(a).localeCompare(actorDisplay(b),locale())})}
 function actionList(events){
  var map=new Map();
  events.forEach(function(e){var k=actionKey(e);if(!map.has(k))map.set(k,{key:k,label:actionTitle(e),area:typeLabel(e.type)})});
- return Array.from(map.values()).sort(function(a,b){var x=a.label.localeCompare(b.label,'de');return x||a.area.localeCompare(b.area,'de')})
+ return Array.from(map.values()).sort(function(a,b){var x=a.label.localeCompare(b.label,locale());return x||a.area.localeCompare(b.area,locale())})
 }
 function filterEvents(events){
  var days=Number(FILTER.days||0),cutoff=days>0?Date.now()-days*86400000:0,needle=low(FILTER.query),
@@ -296,7 +284,7 @@ function filterEvents(events){
   if(FILTER.entity!=='all'&&q(e.entity)!==FILTER.entity)return false;
   if(!needle)return true;
   var raw='';try{raw=JSON.stringify(e.details||{})}catch(_){}
-  return low([actionTitle(e),actionLabel(e),e.entity,e.entityId,actorName(e),e.actor&&e.actor.role,typeLabel(e.type),detailText(e),raw,fmt(e.at)].join(' ')).indexOf(needle)>=0
+  return low([actionTitle(e),actionLabel(e),e.entity,e.entityId,actorDisplay(e),e.actor&&e.actor.role,typeLabel(e.type),detailText(e),raw,fmt(e.at)].join(' ')).indexOf(needle)>=0
  })
 }
 function countType(events,type){return events.filter(function(e){return e.type===type}).length}
