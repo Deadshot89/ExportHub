@@ -475,7 +475,7 @@
   "history.shipment.pickup-plan": "Pickup planned or booked",
   "history.shipment.pod": "POD",
   "history.shipment.document": "Document",
-  "history.shipment.registration": "Shipping registration",
+  "history.shipment.registration": "Shipping registration started",
   "history.shipment.work-start": "Work on shipment started",
   "history.shipment.event": "Shipment action",
   "history.customer.customer-created": "Customer created",
