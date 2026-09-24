@@ -104,6 +104,8 @@ function normalizeUser(user, index) {
   source.disabled = !source.active;
   source.authVersion = Number(source.authVersion || 0);
   source.loginSecurity = source.loginSecurity && typeof source.loginSecurity === 'object' ? source.loginSecurity : { failedAttempts: 0, stage: 'first', lockedUntil: null, permanentLocked: false };
+  // RC1256: MFA ist deaktiviert; Altbestände werden bei der nächsten Normalisierung entfernt.
+  delete source.mfa;
   return source;
 }
 
@@ -147,8 +149,6 @@ function publicUser(user, adminView = false) {
     active: u.active !== false,
     disabled: u.disabled === true,
     mustChange: u.mustChange === true,
-    mfaEnabled: Boolean(u.mfa && u.mfa.enabled === true),
-    mfaEnrolledAt: u.mfa && u.mfa.enabled === true ? (u.mfa.enrolledAt || null) : null,
     createdAt: u.createdAt || null,
     updatedAt: u.updatedAt || u._syncUpdatedAt || null
   };

@@ -2,8 +2,7 @@
 
 const crypto = require('crypto');
 const auth = require('../shared/auth-store');
-const { MODULES, normalizeUser, defaultRights, isPrivilegedUser } = require('../shared/user-policy');
-const mfaTotp = require('../shared/mfa-totp');
+const { MODULES, normalizeUser, defaultRights } = require('../shared/user-policy');
 
 function responseError(context, e) {
   const status = e && e.status ? e.status : 500;
@@ -11,12 +10,7 @@ function responseError(context, e) {
     ok: false,
     code: e && e.code ? e.code : 'SERVER_ERROR',
     message: e && e.message ? e.message : 'Unbekannter Anmeldefehler.',
-    retryAfterSeconds: e && e.retryAfterSeconds ? e.retryAfterSeconds : undefined,
-    mfaRequired: e && e.mfaRequired === true ? true : undefined,
-    mfaMode: e && e.mfaMode ? e.mfaMode : undefined,
-    mfaChallenge: e && e.mfaChallenge ? e.mfaChallenge : undefined,
-    mfaEnrollmentSecret: e && e.mfaEnrollmentSecret ? e.mfaEnrollmentSecret : undefined,
-    mfaEnrollmentUri: e && e.mfaEnrollmentUri ? e.mfaEnrollmentUri : undefined
+    retryAfterSeconds: e && e.retryAfterSeconds ? e.retryAfterSeconds : undefined
   });
 }
 function requireGlobalAdmin(session) {
@@ -64,14 +58,13 @@ function signTicketPart(encodedPayload) {
   if (!secret) throw auth.error('AUTH_SIGNING_NOT_CONFIGURED', 'Der sichere Passwortwechsel ist serverseitig nicht konfiguriert.', 503);
   return crypto.createHmac('sha256', secret).update(encodedPayload).digest('base64url');
 }
-function createPasswordChangeTicket(user, options = {}) {
+function createPasswordChangeTicket(user) {
   const payload = {
     v: 1,
     purpose: 'password-change',
     userId: auth.text(user && user.id),
     username: auth.usernameOf(user),
     authVersion: Number(user && user.authVersion || 0),
-    mfaVerified: options.mfaVerified === true,
     exp: Date.now() + 15 * 60 * 1000,
     nonce: crypto.randomBytes(12).toString('base64url')
   };
@@ -107,195 +100,12 @@ async function validatePasswordChangeTicket(ticket, payload) {
     session: {
       id: '',
       deviceId: auth.text(payload && payload.deviceId),
-      mustChange: true,
-      mfaVerifiedAt: decoded.mfaVerified === true ? auth.now() : null
+      mustChange: true
     },
     passwordTicket: decoded
   };
 }
 
-
-function createMfaChallenge(user, mode, deviceId) {
-  const payload = {
-    v: 1,
-    purpose: 'mfa-login',
-    mode: mode === 'enroll' ? 'enroll' : 'verify',
-    userId: auth.text(user && user.id),
-    username: auth.usernameOf(user),
-    authVersion: Number(user && user.authVersion || 0),
-    deviceId: auth.text(deviceId).slice(0, 120),
-    exp: Date.now() + 10 * 60 * 1000,
-    nonce: crypto.randomBytes(12).toString('base64url')
-  };
-  const encoded = encodeTicketPart(payload);
-  return encoded + '.' + signTicketPart(encoded);
-}
-function decodeMfaChallenge(ticket) {
-  const raw = String(ticket || '').trim();
-  const parts = raw.split('.');
-  if (parts.length !== 2 || !parts[0] || !parts[1]) return null;
-  let expected;
-  try { expected = signTicketPart(parts[0]); } catch (_) { return null; }
-  if (!auth.safeEqualText(expected, parts[1])) return null;
-  let payload;
-  try { payload = JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8')); } catch (_) { return null; }
-  if (!payload || payload.purpose !== 'mfa-login' || Number(payload.v || 0) !== 1 || Number(payload.exp || 0) <= Date.now()) return null;
-  return payload;
-}
-function mfaRecord(user) {
-  user.mfa = user && user.mfa && typeof user.mfa === 'object' ? user.mfa : {};
-  return user.mfa;
-}
-function openMfaSecret(record) {
-  try { return mfaTotp.openSecret(record && record.secret, ticketSecret()); }
-  catch (_) { throw auth.error('MFA_CONFIGURATION_INVALID', 'Der zweite Faktor ist serverseitig beschädigt. Bitte das MFA über den Administrator zurücksetzen.', 503); }
-}
-function ensureEnrollment(user) {
-  const record = mfaRecord(user);
-  const pendingUntil = Date.parse(record.pendingUntil || '');
-  let secret = '';
-  if (record.enabled !== true && record.secret && Number.isFinite(pendingUntil) && pendingUntil > Date.now()) {
-    try { secret = openMfaSecret(record); } catch (_) { secret = ''; }
-  }
-  if (!secret) {
-    secret = mfaTotp.generateSecret();
-    user.mfa = {
-      version: 1,
-      enabled: false,
-      secret: mfaTotp.sealSecret(secret, ticketSecret()),
-      pendingUntil: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
-      failedAttempts: 0,
-      lockedUntil: null,
-      lastCounter: -1,
-      createdAt: auth.now()
-    };
-  }
-  return { record: user.mfa, secret };
-}
-function mfaChallengeResponse(user, mode, deviceId, code, message, secret) {
-  const challenge = createMfaChallenge(user, mode, deviceId);
-  const extra = {
-    mfaRequired: true,
-    mfaMode: mode,
-    mfaChallenge: challenge
-  };
-  if (mode === 'enroll' && secret) {
-    extra.mfaEnrollmentSecret = secret;
-    extra.mfaEnrollmentUri = mfaTotp.enrollmentUri(user.user || user.login || user.name, secret);
-  }
-  return Object.assign({ ok: false, code, message, status: 428 }, extra);
-}
-function mfaFailure(team, user, record, mode) {
-  record.failedAttempts = Number(record.failedAttempts || 0) + 1;
-  record.lastFailureAt = auth.now();
-  let result = {
-    ok: false,
-    code: 'MFA_CODE_INVALID',
-    message: 'Der eingegebene Authenticator-Code ist ungültig.',
-    status: 401,
-    mfaRequired: true,
-    mfaMode: mode
-  };
-  if (record.failedAttempts >= 5) {
-    record.lockedUntil = new Date(Date.now() + 15 * 60 * 1000).toISOString();
-    result = {
-      ok: false,
-      code: 'MFA_LOCKED',
-      message: 'Der zweite Faktor ist nach zu vielen Fehlversuchen für 15 Minuten gesperrt.',
-      status: 423,
-      retryAfterSeconds: 900,
-      mfaRequired: true,
-      mfaMode: mode
-    };
-  }
-  auth.addAudit(team, 'MFA_FAILED', user.name || user.user, { userId: user.id, username: user.user, mode, failedAttempts: record.failedAttempts });
-  return result;
-}
-function verifyPrivilegedMfa(team, user, payload) {
-  if (!isPrivilegedUser(user)) return { ok: true, verified: false };
-  const deviceId = auth.text(payload && payload.deviceId).slice(0, 120);
-  let record = mfaRecord(user);
-  const lockedUntil = Date.parse(record.lockedUntil || '');
-  if (Number.isFinite(lockedUntil) && lockedUntil > Date.now()) {
-    return {
-      ok: false,
-      code: 'MFA_LOCKED',
-      message: 'Der zweite Faktor ist vorübergehend gesperrt.',
-      status: 423,
-      retryAfterSeconds: Math.max(1, Math.ceil((lockedUntil - Date.now()) / 1000)),
-      mfaRequired: true,
-      mfaMode: record.enabled === true ? 'verify' : 'enroll'
-    };
-  }
-  if (Number.isFinite(lockedUntil) && lockedUntil <= Date.now()) {
-    record.lockedUntil = null;
-    record.failedAttempts = 0;
-  }
-
-  let mode = record.enabled === true ? 'verify' : 'enroll';
-  let secret = '';
-  if (mode === 'enroll') {
-    const enrolled = ensureEnrollment(user);
-    record = enrolled.record;
-    secret = enrolled.secret;
-  } else {
-    secret = openMfaSecret(record);
-  }
-
-  const rawChallenge = auth.text(payload && payload.mfaChallenge);
-  const decoded = decodeMfaChallenge(rawChallenge);
-  if (!decoded) return mfaChallengeResponse(user, mode, deviceId, mode === 'enroll' ? 'MFA_ENROLL_REQUIRED' : 'MFA_REQUIRED', mode === 'enroll' ? 'Bitte richten Sie den zweiten Faktor in Ihrer Authenticator-App ein.' : 'Bitte geben Sie den aktuellen Authenticator-Code ein.', mode === 'enroll' ? secret : '');
-  const challengeMatches =
-    decoded.mode === mode &&
-    auth.text(decoded.userId) === auth.text(user.id) &&
-    auth.lower(decoded.username) === auth.usernameOf(user) &&
-    Number(decoded.authVersion || 0) === Number(user.authVersion || 0) &&
-    auth.text(decoded.deviceId) === deviceId;
-  if (!challengeMatches) return mfaChallengeResponse(user, mode, deviceId, 'MFA_CHALLENGE_INVALID', 'Die MFA-Anfrage ist nicht mehr gültig. Bitte versuchen Sie es erneut.', mode === 'enroll' ? secret : '');
-
-  const code = auth.text(payload && payload.mfaCode);
-  if (!code) {
-    const same = {
-      ok: false,
-      code: 'MFA_CODE_REQUIRED',
-      message: 'Bitte geben Sie den sechsstelligen Authenticator-Code ein.',
-      status: 428,
-      mfaRequired: true,
-      mfaMode: mode,
-      mfaChallenge: rawChallenge
-    };
-    if (mode === 'enroll') {
-      same.mfaEnrollmentSecret = secret;
-      same.mfaEnrollmentUri = mfaTotp.enrollmentUri(user.user || user.login || user.name, secret);
-    }
-    return same;
-  }
-
-  const counter = mfaTotp.verifyCode(secret, code, Date.now(), Number(record.lastCounter == null ? -1 : record.lastCounter));
-  if (counter == null) {
-    const failed = mfaFailure(team, user, record, mode);
-    failed.mfaChallenge = rawChallenge;
-    if (mode === 'enroll') {
-      failed.mfaEnrollmentSecret = secret;
-      failed.mfaEnrollmentUri = mfaTotp.enrollmentUri(user.user || user.login || user.name, secret);
-    }
-    return failed;
-  }
-
-  record.failedAttempts = 0;
-  record.lockedUntil = null;
-  record.lastCounter = counter;
-  record.lastVerifiedAt = auth.now();
-  if (mode === 'enroll') {
-    record.enabled = true;
-    record.enrolledAt = auth.now();
-    delete record.pendingUntil;
-    auth.addAudit(team, 'MFA_ENROLLED', user.name || user.user, { userId: user.id, username: user.user });
-  } else {
-    auth.addAudit(team, 'MFA_VERIFIED', user.name || user.user, { userId: user.id, username: user.user });
-  }
-  return { ok: true, verified: true };
-}
 
 async function login(payload) {
   const username = auth.text(payload.username || payload.user || payload.login);
@@ -461,11 +271,6 @@ async function login(payload) {
       recoveryUsed = true;
     }
 
-    if (recoveryUsed && user.mfa) {
-      delete user.mfa;
-      auth.addAudit(team, 'MFA_RESET_BY_RECOVERY', user.name || user.user, { userId: user.id, username: user.user });
-    }
-
     if (!valid) {
       security.failedAttempts = Number(security.failedAttempts || 0) + 1;
       security.lastFailureAt = auth.now();
@@ -487,12 +292,6 @@ async function login(payload) {
       return result;
     }
 
-    const mfaResult = verifyPrivilegedMfa(team, user, payload);
-    if (!mfaResult.ok) {
-      user.updatedAt = auth.now();
-      return mfaResult;
-    }
-
     security.failedAttempts = 0;
     security.lockedUntil = null;
     security.permanentLocked = false;
@@ -503,28 +302,23 @@ async function login(payload) {
     if (recoveryUsed) auth.addAudit(team, 'INITIAL_ADMIN_RECOVERED', user.name || user.user, { userId: user.id, username: user.user });
     if (recoveryUnlocked) auth.addAudit(team, 'ADMIN_ACCOUNT_UNLOCKED_WITH_PERSONAL_PASSWORD', user.name || user.user, { userId: user.id, username: user.user });
     auth.addAudit(team, 'LOGIN_SUCCESS', user.name || user.user, { userId: user.id, username: user.user, recoveryUsed });
-    return { ok: true, userId: user.id, mustChange: user.mustChange === true, recoveryUsed, recoveryUnlocked, mfaVerified: mfaResult.verified === true };
+    return { ok: true, userId: user.id, mustChange: user.mustChange === true, recoveryUsed, recoveryUnlocked };
   });
 
   const outcome = saved.result;
   if (!outcome || outcome.ok !== true) {
     throw auth.error(outcome.code, outcome.message, outcome.status, {
-      retryAfterSeconds: outcome.retryAfterSeconds,
-      mfaRequired: outcome.mfaRequired === true,
-      mfaMode: outcome.mfaMode,
-      mfaChallenge: outcome.mfaChallenge,
-      mfaEnrollmentSecret: outcome.mfaEnrollmentSecret,
-      mfaEnrollmentUri: outcome.mfaEnrollmentUri
+      retryAfterSeconds: outcome.retryAfterSeconds
     });
   }
   const user = saved.team.users.find((u) => auth.text(u.id) === auth.text(outcome.userId));
   if (outcome.recoveryUsed) await auth.revokeUserSessions(user.id, 'Admin-Zugang wiederhergestellt');
-  const created = await auth.createSession(user, payload.deviceId, outcome.mustChange, { mfaVerified: outcome.mfaVerified === true });
+  const created = await auth.createSession(user, payload.deviceId, outcome.mustChange);
   return {
     ok: true,
     token: created.token,
     mustChange: outcome.mustChange,
-    passwordChangeTicket: outcome.mustChange ? createPasswordChangeTicket(user, { mfaVerified: outcome.mfaVerified === true }) : '',
+    passwordChangeTicket: outcome.mustChange ? createPasswordChangeTicket(user) : '',
     recoveryUsed: outcome.recoveryUsed === true,
     recoveryUnlocked: outcome.recoveryUnlocked === true,
     user: auth.publicUser(user, false),
@@ -622,7 +416,7 @@ async function changePassword(req, payload) {
   });
   const user = changed.team.users.find((u) => auth.text(u.id) === auth.text(changed.result.userId));
   await auth.revokeUserSessions(user.id, 'Passwort geändert');
-  const created = await auth.createSession(user, payload.deviceId || current.session.deviceId, false, { mfaVerified: Boolean(current.session && current.session.mfaVerifiedAt) });
+  const created = await auth.createSession(user, payload.deviceId || current.session.deviceId, false);
   return { ok: true, token: created.token, mustChange: false, user: auth.publicUser(user, false) };
 }
 
@@ -799,9 +593,7 @@ async function adminResetPassword(req, payload) {
     if (!user) throw auth.error('USER_NOT_FOUND', 'Benutzer wurde nicht gefunden.', 404);
     auth.setPassword(user, startPassword, { mustChange: true, allowReuse: false });
     user.mustChange = true;
-    if (user.mfa) delete user.mfa;
     auth.addAudit(team, 'PASSWORD_RESET', current.user.name || current.user.user, { userId: user.id, username: user.user });
-    auth.addAudit(team, 'MFA_RESET_BY_ADMIN', current.user.name || current.user.user, { userId: user.id, username: user.user });
     return { userId: user.id };
   });
   await auth.revokeUserSessions(result.result.userId, 'Passwort zurückgesetzt');

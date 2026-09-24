@@ -57,9 +57,8 @@ function hasAnyEditRight(user){
  return Object.values(user&&user.rights||{}).some(r=>r&&(r.edit===true||r.admin===true||r.functionAdmin===true||r.level==='edit'||r.level==='admin'));
 }
 function publicUser(user,adminView=false){
- const u=clone(user||{}),mfaEnabled=Boolean(u.mfa&&u.mfa.enabled===true),mfaEnrolledAt=mfaEnabled?u.mfa.enrolledAt||null:null;
+ const u=clone(user||{});
  ['password','passwordHash','passwordSalt','passwordIterations','passwordCredential','passwordHistory','temporaryPassword','startPassword','mfa'].forEach(k=>delete u[k]);
- u.mfaEnabled=mfaEnabled;u.mfaEnrolledAt=mfaEnrolledAt;
  if(!adminView)delete u.loginSecurity;
  return u;
 }
@@ -247,7 +246,7 @@ async function readAuthCached(c){
 }
 function resolveSessionFromAuth(token,authDoc){
  const sessions=Array.isArray(authDoc&&authDoc.value&&authDoc.value.sessions)?authDoc.value.sessions:[],hash=tokenHash(token);let session=sessions.find(s=>safeEqualText(s.tokenHash,hash)),source='blob';
- if(!session){const signed=verifySignedSessionToken(token);if(signed){source='signed';session={id:text(signed.sid),userId:text(signed.uid),username:text(signed.username),deviceId:text(signed.deviceId),createdAt:new Date(Number(signed.iat||Date.now())).toISOString(),expiresAt:new Date(Number(signed.exp)).toISOString(),authVersion:Number(signed.authVersion||0),mustChange:signed.mustChange===true,mfaVerifiedAt:Number(signed.mfaVerifiedAt||0)>0?new Date(Number(signed.mfaVerifiedAt)).toISOString():null,environment:lower(signed.environment)==='testservice'?'testservice':'',signedFallback:true}}}
+ if(!session){const signed=verifySignedSessionToken(token);if(signed){source='signed';session={id:text(signed.sid),userId:text(signed.uid),username:text(signed.username),deviceId:text(signed.deviceId),createdAt:new Date(Number(signed.iat||Date.now())).toISOString(),expiresAt:new Date(Number(signed.exp)).toISOString(),authVersion:Number(signed.authVersion||0),mustChange:signed.mustChange===true,environment:lower(signed.environment)==='testservice'?'testservice':'',signedFallback:true}}}
  if(!session)throw error('SESSION_INVALID','Die Sitzung ist nicht mehr gültig. Bitte erneut anmelden.',401);
  if(session.revokedAt)throw error('SESSION_REVOKED','Die Sitzung wurde beendet. Bitte erneut anmelden.',401);
  if(Date.parse(session.expiresAt||'')<=Date.now())throw error('SESSION_INVALID','Die Sitzung ist nicht mehr gültig. Bitte erneut anmelden.',401);
@@ -269,8 +268,6 @@ async function validateSession(req,payload,c){
  const user=users.find(u=>text(u.id)===text(session.userId)||usernameOf(u)===lower(session.username));
  if(!user||!isActive(user))throw error('ACCOUNT_DISABLED','Das Benutzerkonto ist deaktiviert.',403);
  if(Number(session.authVersion||0)!==Number(user.authVersion||0))throw error('SESSION_REVOKED','Die Sitzung wurde beendet. Bitte erneut anmelden.',401);
- const testserviceE2E=c.environment==='testservice'&&/^E2E-USER-/.test(text(session.userId))&&/^e2e\./.test(lower(session.username));
- if(!testserviceE2E&&isPrivilegedUser(user)&&!session.mfaVerifiedAt)throw error('MFA_REAUTH_REQUIRED','Für dieses Administratorkonto ist eine erneute Anmeldung mit zweitem Faktor erforderlich.',401);
  if((session.mustChange||user.mustChange)===true)throw error('PASSWORD_CHANGE_REQUIRED','Vor der Nutzung muss das Startpasswort geändert werden.',403);
  return {token,session,user,team,teamEtag:teamDoc.etag,sessionSource:source,teamRecoveredFromHistory:teamDoc.recoveredFromHistory===true,teamRecoverySource:teamDoc.recoverySource||null,teamCurrentCorrupt:teamDoc.corruptCurrent===true,teamCurrentMissing:teamDoc.missingCurrent===true,timing:{authMs,authCache,teamMs,validationMs:Date.now()-validationStarted,teamCache:teamDoc.cacheMode||'unknown'}};
 }
