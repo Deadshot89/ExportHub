@@ -6,31 +6,52 @@ import {execFileSync} from 'node:child_process';
 const runtime=fs.readFileSync('assets/rc1193-visible-release.js','utf8');
 const builder=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
 const notes=fs.readFileSync('assets/rc1177-release-notes.js','utf8');
+const spec=fs.readFileSync('e2e/specs/version-display.spec.mjs','utf8');
 const workflow=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
 
-test('RC1231: sichtbare Release-Version ist von der stabilen RC1112 Buildkette getrennt',()=>{
-  assert.match(runtime,/var VERSION='RC1231'/);
-  assert.match(runtime,/__EXPORTHUB_VISIBLE_RELEASE_VERSION__=VERSION/);
-  assert.match(builder,/const VERSION='RC1112'/,'technische Buildkette muss RC1112 bleiben');
-  assert.match(builder,/rc1193-visible-release\.js\?v=1231/);
-  assert.match(builder,/visibleProductVersion:'RC1231/);
+test('RC1265: sichtbare Release-Version wird beim Build aus dem aktuellen RC ermittelt',()=>{
+  assert.match(runtime,/var VERSION='RC1112'/,'Quellruntime behält nur die technische Fallback-Version');
+  assert.match(builder,/function resolveVisibleVersion\(\)/);
+  assert.match(builder,/EXPORTHUB_VISIBLE_RELEASE_VERSION/);
+  assert.ok(builder.includes("execFileSync('git',['log'"));
+  assert.match(builder,/const VISIBLE_VERSION=resolveVisibleVersion\(\)/);
+  assert.match(builder,/visibleRuntime\.replace\(\/var VERSION='RC\\d\+';\//);
+  assert.match(builder,/releaseNotes\.replace\(\/return'RC\\d\+'\//);
+  assert.doesNotMatch(builder,/visibleProductVersion:'RC1231/);
 });
 
-test('RC1231: Login-Badge und TESTSERVICE-Warnbanner werden korrigiert',()=>{
+test('RC1265: Cache-Keys der sichtbaren Version sind nicht mehr auf RC1231 festgeschrieben',()=>{
+  assert.match(builder,/rc1193-visible-release\.js\?v=\$\{VISIBLE_NUMBER\}/);
+  assert.match(builder,/rc1177-release-notes\.js\?v=\$\{VISIBLE_NUMBER\}/);
+  assert.doesNotMatch(builder,/rc1193-visible-release\.js\?v=1231/);
+  assert.doesNotMatch(builder,/rc1177-release-notes\.js\?v=1231/);
+});
+
+test('RC1265: Login-Badge und TESTSERVICE-Warnbanner bleiben dynamisch patchbar',()=>{
   assert.match(runtime,/Aktuelle Version\\s\+RC\\d\+/);
   assert.match(runtime,/TESTSERVICE\\s\*·\\s\*RC\\d\+\\s\*·\\s\*NICHT PRODUKTION/);
   assert.match(runtime,/data-exporthub-version-label/);
   assert.match(runtime,/MutationObserver/);
 });
 
-test('RC1231: Release Notes bevorzugen sichtbare Produktversion und fallen nicht auf RC1112 zurück',()=>{
+test('RC1265: Release Notes nutzen die gebaute sichtbare Produktversion',()=>{
   assert.match(notes,/__EXPORTHUB_VISIBLE_RELEASE_VERSION__/);
-  assert.match(notes,/return'RC1231'/);
+  assert.match(notes,/return'RC1112'/);
+  assert.match(builder,/releaseNotes=releaseNotes\.replace/);
   const fn=notes.slice(notes.indexOf('function version()'),notes.indexOf('function patch()'));
-  assert.doesNotMatch(fn,/return'RC1112'/);
+  assert.doesNotMatch(fn,/return'RC1231'/);
 });
 
-test('RC1231: lokale, TESTSERVICE- und Produktions-Browsergates prüfen die sichtbare Version',()=>{
+test('RC1265: Browser-Spec erwartet den aktuellen RC statt einer festen RC1231',()=>{
+  assert.match(spec,/function expectedVisibleRelease\(\)/);
+  assert.match(spec,/EXPORTHUB_EXPECTED_VISIBLE_RELEASE/);
+  assert.ok(spec.includes("execFileSync('git',['log'"));
+  assert.match(spec,/data-exporthub-visible-version/);
+  assert.doesNotMatch(spec,/Aktuelle Version\\s\+RC1231/);
+  assert.doesNotMatch(spec,/toHaveAttribute\('data-exporthub-visible-version','RC1231'\)/);
+});
+
+test('RC1265: lokale, TESTSERVICE- und Produktions-Browsergates prüfen die sichtbare Version',()=>{
   const local=workflow.slice(workflow.indexOf('- name: RC1124 Lokales Browser-Gate'),workflow.indexOf('- name: RC1124 Lokale Browser-Artefakte'));
   const live=workflow.slice(workflow.indexOf('- name: RC1124 TESTSERVICE Browser Gate'),workflow.indexOf('- name: RC1124 TESTSERVICE Browser-Artefakte'));
   const prod=workflow.slice(workflow.indexOf('- name: RC1124 Produktion Read-only Browser Smoke'),workflow.indexOf('- name: RC1124 Produktion Browser-Artefakte'));
@@ -39,22 +60,19 @@ test('RC1231: lokale, TESTSERVICE- und Produktions-Browsergates prüfen die sich
   assert.match(prod,/version-display\.spec\.mjs/);
 });
 
-test('RC1231: statischer UI-Nachweis ignoriert erwartete fehlende API, Live-Gate bleibt streng',()=>{
-  const spec=fs.readFileSync('e2e/specs/version-display.spec.mjs','utf8');
+test('RC1265: laufender Produktionsrelease wird durch neue main-Pushes nicht mehr abgebrochen',()=>{
+  assert.match(workflow,/group:\s*exporthub-rc1112-three-env-\$\{\{ github\.ref \}\}/);
+  assert.match(workflow,/cancel-in-progress:\s*false/);
+});
+
+test('RC1265: statischer UI-Nachweis ignoriert erwartete fehlende API, Live-Gate bleibt streng',()=>{
   assert.match(spec,/EXPORTHUB_E2E_STATIC/);
   assert.match(spec,/assertRuntimeClean/);
   assert.match(spec,/if\(process\.env\.EXPORTHUB_E2E_STATIC!==['"]1['"]\)await assertRuntimeClean/);
 });
 
-test('RC1231: TESTSERVICE-Warnbanner wird nur auf echtem Live-Testservice verlangt',()=>{
-  const spec=fs.readFileSync('e2e/specs/version-display.spec.mjs','utf8');
-  assert.match(spec,/EXPORTHUB_E2E_LIVE===['"]1['"]/);
-  assert.match(spec,/-testservice\\\./);
-  assert.doesNotMatch(spec,/TESTVERSION\/i\.test\(entry\)/);
-});
-
-test('RC1231: Runtime und Browser-Spec bleiben syntaktisch gültig',()=>{
-  for(const file of ['assets/rc1193-visible-release.js','e2e/specs/version-display.spec.mjs','test/rc1193-visible-release-version.test.mjs']){
+test('RC1265: Runtime, Builder und Browser-Spec bleiben syntaktisch gültig',()=>{
+  for(const file of ['assets/rc1193-visible-release.js','.github/rc1112/build-three-env.mjs','e2e/specs/version-display.spec.mjs','test/rc1193-visible-release-version.test.mjs']){
     execFileSync(process.execPath,['--check',file],{stdio:'pipe'});
   }
 });

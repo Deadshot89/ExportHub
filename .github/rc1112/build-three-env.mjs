@@ -7,6 +7,19 @@ const SRC=path.join(ROOT,'dist-rc1048');
 const OUT=path.join(ROOT,'dist-rc1112');
 const VERSION='RC1112';
 const NUMBER='1112';
+const DEFAULT_VISIBLE_VERSION='RC1112';
+function resolveVisibleVersion(){
+  const explicit=String(process.env.EXPORTHUB_VISIBLE_RELEASE_VERSION||'').trim().toUpperCase();
+  if(/^RC\d+$/.test(explicit))return explicit;
+  try{
+    const subjects=execFileSync('git',['log','-20','--pretty=%s'],{cwd:ROOT,encoding:'utf8',stdio:['ignore','pipe','ignore']});
+    const match=String(subjects||'').match(/\bRC(\d+)\b/i);
+    if(match)return 'RC'+match[1];
+  }catch(_){}
+  return DEFAULT_VISIBLE_VERSION;
+}
+const VISIBLE_VERSION=resolveVisibleVersion();
+const VISIBLE_NUMBER=VISIBLE_VERSION.slice(2);
 const LEGACY_TESTSERVICE_HOST='wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net';
 const CURRENT_TESTSERVICE_HOST='ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net';
 const RC1206_SHIPPING_ID='exporthub-rc1206-shipping-rules';
@@ -291,8 +304,8 @@ function patchHtml(file){
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1259-container-runtime" defer src="/assets/rc1014-shipment-overview.js?v=1259"></script>','exporthub-rc1259-container-runtime');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1203-deckblatt-print" defer src="/assets/rc1203-deckblatt-print.js?v=1205"></script>','exporthub-rc1203-deckblatt-print');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1207-pallet-account-fix" defer src="/assets/rc1207-pallet-account-fix.js?v=1246"></script>','exporthub-rc1207-pallet-account-fix');
-  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1193-visible-release" defer src="/assets/rc1193-visible-release.js?v=1231"></script>','exporthub-rc1193-visible-release');
-  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1177-release-notes" defer src="/assets/rc1177-release-notes.js?v=1231"></script>','exporthub-rc1177-release-notes');
+  html=injectDeferredRuntimeInHead(html,`<script id="exporthub-rc1193-visible-release" defer src="/assets/rc1193-visible-release.js?v=${VISIBLE_NUMBER}"></script>`,'exporthub-rc1193-visible-release');
+  html=injectDeferredRuntimeInHead(html,`<script id="exporthub-rc1177-release-notes" defer src="/assets/rc1177-release-notes.js?v=${VISIBLE_NUMBER}"></script>`,'exporthub-rc1177-release-notes');
   if(!html.includes('assets/rc1014-shipment-overview.css?v=1259'))throw new Error(file+': RC1259 Container-CSS fehlt');
   if(!html.includes('assets/rc1014-shipment-overview.js?v=1259'))throw new Error(file+': RC1259 Container-Runtime fehlt');
   if(!html.includes('x&&x.sealNumber')||!html.includes('sh&&sh.sealNumber'))throw new Error(file+': RC1259 Siegelnummer ist nicht in beiden Sendungssuchen');
@@ -319,8 +332,8 @@ function patchHtml(file){
   if(!html.includes('assets/rc1176-shipment-location.js?v=1202'))throw new Error(file+': RC1191 Standort-Capture-Runtime fehlt');
   if(!html.includes('assets/rc1203-deckblatt-print.js?v=1205'))throw new Error(file+': RC1205 Deckblatt-Runtime fehlt');
   if(!html.includes('assets/rc1207-pallet-account-fix.js?v=1246'))throw new Error(file+': RC1207 Palettenkonto-Runtime fehlt');
-  if(!html.includes('assets/rc1193-visible-release.js?v=1231'))throw new Error(file+': RC1231 sichtbare Release-Version fehlt');
-  if(!html.includes('assets/rc1177-release-notes.js?v=1231'))throw new Error(file+': RC1231 Änderungshinweise Cache-Key fehlt');
+  if(!html.includes('assets/rc1193-visible-release.js?v='+VISIBLE_NUMBER))throw new Error(file+': '+VISIBLE_VERSION+' sichtbare Release-Version fehlt');
+  if(!html.includes('assets/rc1177-release-notes.js?v='+VISIBLE_NUMBER))throw new Error(file+': '+VISIBLE_VERSION+' Änderungshinweise Cache-Key fehlt');
   if(!/\.rc352-cover\{[^}]*border:10mm solid #08245d!important;[^}]*border-top-width:18mm!important;/.test(html))throw new Error(file+': RC1133 Deckblatt-Rahmen fehlt');
   if(!/\.rc352-cover-ref\{(?=[^}]*background:#facc15)(?=[^}]*border:3mm solid #111827)[^}]*\}/.test(html))throw new Error(file+': RC1159 Deckblatt-Referenzfeld ist nicht ausreichend hervorgehoben');
   if(/\\\\n\.rc352-qr-slot\.empty/.test(html))throw new Error(file+': RC1133 Deckblatt-CSS enthält literalen \\n-Text');
@@ -364,6 +377,17 @@ for(const rel of [
   fs.copyFileSync(src,dst);
   if(!fs.existsSync(dst)||fs.statSync(dst).size===0)throw new Error('RC1124 Pflicht-Runtime wurde nicht gebaut: '+rel);
 }
+const visibleRuntimeFile=path.join(OUT,'assets','rc1193-visible-release.js');
+let visibleRuntime=fs.readFileSync(visibleRuntimeFile,'utf8');
+if(!/var VERSION='RC\d+';/.test(visibleRuntime))throw new Error('RC1265 sichtbare Release-Runtime enthält keinen ersetzbaren Versionsanker');
+visibleRuntime=visibleRuntime.replace(/var VERSION='RC\d+';/,`var VERSION='${VISIBLE_VERSION}';`);
+fs.writeFileSync(visibleRuntimeFile,visibleRuntime);
+
+const releaseNotesFile=path.join(OUT,'assets','rc1177-release-notes.js');
+let releaseNotes=fs.readFileSync(releaseNotesFile,'utf8');
+releaseNotes=releaseNotes.replace(/return'RC\d+'/,`return'${VISIBLE_VERSION}'`);
+fs.writeFileSync(releaseNotesFile,releaseNotes);
+
 for(const requiredApi of ['shared/pod-archive.js','shared/graph-drive.js','shared/container-document-store.js','shared/reference-folder-upload.js','shared/customer-portal-store.js','customer-portal-credentials/index.js','customer-portal-credentials/function.json','customer-portal-readiness/index.js','customer-portal-readiness/function.json','avis-upload-mail-readiness/index.js','avis-upload-mail-readiness/function.json','pickup-confirm-v2/index.js','pickup-container-document/index.js','pickup-container-document/function.json','container-document/index.js','container-document/function.json','pod-backup/index.js','avis-reminder-mail/index.js','avis-reminder-mail/function.json','shared/graph-mail.js','package.json']){
   if(!fs.existsSync(path.join(builtApi,requiredApi)))throw new Error('RC1114 API-Datei fehlt im Build: '+requiredApi);
 }
@@ -394,7 +418,7 @@ fs.writeFileSync(path.join(OUT,'rc1112-manifest.json'),JSON.stringify({
   sourceRelease:'RC1048',
   sourceManifest:previousManifest,
   releaseFixes:{
-    visibleVersion:'RC1231',
+    visibleVersion:VISIBLE_VERSION,
     taskDetailAndManagedRoster:'RC1179 dedicated Aufgabenansicht tab + RC1152 recurring roster + targeted legacy cleanup',
     abdDashboardCustomer:true,
     androidBuildSetup:'runner-sdkmanager',
@@ -426,7 +450,7 @@ fs.writeFileSync(path.join(OUT,'rc1112-manifest.json'),JSON.stringify({
     testserviceGateOrder:'RC1172 browser/mutation gate before external readiness blocker, production still protected',
     shipmentLocationPersistence:'RC1202 current draft priority + synthetic empty rerender guard',
     historyConsolidationAndReleaseNotes:'RC1177 duplicate shipment history cleanup + current Update changelog',
-    visibleProductVersion:'RC1231 current visible release label while RC1112 remains the stable build/deploy pipeline'
+    visibleProductVersion:VISIBLE_VERSION+' current visible release label while RC1112 remains the stable build/deploy pipeline'
   },
   compatibility:{
     qr:'stable-existing-links',
@@ -444,4 +468,4 @@ const rc1207Source=path.join(ROOT,'assets/rc1207-pallet-account-fix.js'),rc1207T
 if(!fs.existsSync(rc1207Source))throw new Error('RC1207 Palettenkonto-Runtime fehlt');
 fs.copyFileSync(rc1207Source,rc1207Target);
 
-console.log('RC1112 build pipeline ready: sichtbare Produktversion RC1231 auf geprüfter RC1048-Basis, RC1194 sichere Kundenportal-Key-Diagnose aktiv.');
+console.log('RC1112 build pipeline ready: sichtbare Produktversion '+VISIBLE_VERSION+' auf geprüfter RC1048-Basis, RC1194 sichere Kundenportal-Key-Diagnose aktiv.');
