@@ -1,4 +1,6 @@
 'use strict';
+let BlobServiceClient=null;
+try{({BlobServiceClient}=require('@azure/storage-blob'))}catch(e){if(!e||e.code!=='MODULE_NOT_FOUND')throw e}
 const referenceFolder=require('./reference-folder-upload');
 
 const DOCUMENT_CONTAINER=process.env.EXPORTHUB_DOCUMENT_CONTAINER||'exporthub-documents';
@@ -32,7 +34,7 @@ function connectionString(){return process.env.EXPORTHUB_STORAGE_CONNECTION_STRI
 function containerClient(){
  const cs=connectionString();
  if(!cs){const e=new Error('App-Einstellung EXPORTHUB_STORAGE_CONNECTION_STRING fehlt.');e.code='STORAGE_NOT_CONFIGURED';e.status=503;throw e}
- const {BlobServiceClient}=require('@azure/storage-blob');
+ if(!BlobServiceClient)({BlobServiceClient}=require('@azure/storage-blob'));
  return BlobServiceClient.fromConnectionString(cs).getContainerClient(DOCUMENT_CONTAINER);
 }
 function fileName(reference,kind,extension){
