@@ -167,5 +167,17 @@
   "api.avis.mailStored": "Controllato e salvato: {{time}}",
   "api.avis.mailPassed": "Il file ha superato la scansione malware e il controllo di associazione alla spedizione.",
   "api.avis.mailAction": "Apri ExportHUB → Notifiche e seleziona “Apri / stampa PDF”.",
-  "api.auth.unknownAction": "Azione di autenticazione sconosciuta."
+  "api.auth.unknownAction": "Azione di autenticazione sconosciuta.",
+  "api.avis.documentTypeInvalid": "Seleziona un tipo di documento valido.",
+  "api.avis.textUnreadable": "Il contenuto del PDF non è sufficientemente leggibile dalla macchina. Carica un PDF ricercabile.",
+  "api.avis.shipmentMismatch": "Il PDF non è stato associato in modo univoco alla spedizione e non verrà salvato.",
+  "api.avis.documentTypeMismatch": "Il contenuto del PDF non corrisponde chiaramente al tipo di documento selezionato {{type}} e non verrà salvato.",
+  "api.avis.contentValid": "Il contenuto del PDF corrisponde alla spedizione.",
+  "api.avis.textExtractionFailed": "Il contenuto del PDF non è stato letto in modo sicuro né associato alla spedizione. Il file non verrà salvato.",
+  "api.avis.docType.cmr": "CMR / lettera di vettura",
+  "api.avis.docType.delivery_note": "Documento di consegna",
+  "api.avis.docType.invoice": "Fattura / Commercial Invoice",
+  "api.avis.docType.packing_list": "Lista di imballaggio",
+  "api.avis.docType.other": "Altro",
+  "api.avis.attachment": "Allegato"
 }
