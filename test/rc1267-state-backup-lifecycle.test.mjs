@@ -116,6 +116,13 @@ test('RC1267: Workflow läuft täglich und kann Monats-/Jahresbackups determinis
   assert.match(source,/testservice/);
 });
 
+test('RC1268: Workflow baut den scheduled-backup Request als gültiges JSON statt durch Shell-Quoting zu beschädigen',()=>{
+  const source=fs.readFileSync(WF,'utf8');
+  assert.match(source,/JSON\.stringify\(\{action:"scheduled-backup",environment:process\.argv\[1\],tier:process\.argv\[2\]\}\)/);
+  assert.match(source,/--data "\$payload"/);
+  assert.doesNotMatch(source,/-d "\{"action":"scheduled-backup"/,'ungültiges Shell-Quoting aus dem fehlgeschlagenen Live-Lauf darf nicht zurückkehren');
+});
+
 test('RC1267: Runbook dokumentiert Zeitplan, Retention und Restore-Nachweis',()=>{
   const source=fs.readFileSync(RUNBOOK,'utf8');
   for(const marker of ['täglich','35 Tage','monatlich','730 Tage','jährlich','2555 Tage','Restore-Drill','SHA-256','keine automatische Löschung']){
