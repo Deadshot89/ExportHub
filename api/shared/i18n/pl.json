@@ -166,5 +166,6 @@
   "api.avis.mailDocumentType": "Typ dokumentu: {{type}}",
   "api.avis.mailStored": "Sprawdzono i zapisano: {{time}}",
   "api.avis.mailPassed": "Plik przeszedł kontrolę malware i sprawdzenie przypisania do przesyłki.",
-  "api.avis.mailAction": "Otwórz ExportHUB → Powiadomienia i wybierz „Otwórz / drukuj PDF”."
+  "api.avis.mailAction": "Otwórz ExportHUB → Powiadomienia i wybierz „Otwórz / drukuj PDF”.",
+  "api.auth.unknownAction": "Nieznana akcja uwierzytelniania."
 }
