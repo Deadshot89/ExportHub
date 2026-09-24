@@ -934,5 +934,9 @@
   "ups.individualWeights": "Individual weights {{weights}} kg",
   "ups.estimated": "estimated at Ø {{weight}} kg per carton",
   "ups.weight": "Weight {{weight}} kg",
-  "ups.tooltip": "{{cartons}} · UPS Standard Zone {{zone}} · {{weightInfo}} · base price complete shipment {{base}} + Fuel {{pct}}% · Toolbox from 21/12/2025"
+  "ups.tooltip": "{{cartons}} · UPS Standard Zone {{zone}} · {{weightInfo}} · base price complete shipment {{base}} + Fuel {{pct}}% · Toolbox from 21/12/2025",
+  "gate41.palletsMissing": "Gate41: Pallet count is missing or 0.",
+  "gate41.weightMissing": "Gate41: Total weight is missing or 0 kg.",
+  "gate41.calculated": "Gate41 price for Germany calculated{{total}}. Basis: {{pallets}} pallet(s), {{kg}} kg per pallet.",
+  "gate41.unavailable": "not calculable"
 }
