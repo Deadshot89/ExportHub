@@ -36,6 +36,12 @@ test('RC1270: Readiness fordert einen echten Graph-Token an ohne Testmail oder S
   assert.match(workflow,/v\.audienceOk!==true/);
 });
 
+test('RC1271: Release-Readiness verlangt Mail.Send in TESTSERVICE und Produktion',()=>{
+  assert.match(source,/mailSendGranted/);
+  assert.match(source,/GRAPH_MAIL_PERMISSION_MISSING/);
+  assert.match(workflow,/v\.mailSendGranted!==true/);
+});
+
 test('RC1249: finaler Build verlangt den Readiness-Endpunkt',()=>{
   assert.match(build,/avis-upload-mail-readiness\/index\.js/);
   assert.match(build,/avis-upload-mail-readiness\/function\.json/);
