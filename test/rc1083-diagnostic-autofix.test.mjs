@@ -9,6 +9,7 @@ const workflow=fs.readFileSync('.github/workflows/diagnostic-autofix.yml','utf8'
 const preflight=fs.readFileSync('.github/workflows/rc1083-autofix-preflight.yml','utf8');
 const build=fs.readFileSync('.github/rc1048/build-three-env.mjs','utf8');
 const policy=fs.readFileSync('api/shared/user-policy.js','utf8');
+const historyDe=JSON.parse(fs.readFileSync('assets/i18n/de.json','utf8'));
 
 test('RC1082: History ist ein eigenes Rechte- und Navigationsmodul',()=>{
   assert.match(policy,/'archive','history','settings'/);
