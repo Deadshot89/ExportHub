@@ -1,0 +1,80 @@
+name: RC1267 State Backup Lifecycle
+
+on:
+  schedule:
+    - cron: '17 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: rc1267-state-backup-lifecycle
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: Verified state backups
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - environment: testservice
+            base_url: https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net
+          - environment: production
+            base_url: https://wonderful-forest-0f315e310.7.azurestaticapps.net
+    steps:
+      - name: Daily, monthly and yearly snapshots
+        shell: bash
+        env:
+          BASE_URL: ${{ matrix.base_url }}
+          TARGET_ENV: ${{ matrix.environment }}
+        run: |
+          set -euo pipefail
+          set +x
+
+          oidc_token="$(
+            curl -fsSL               -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN"               "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=exporthub-state-compaction"             | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s).value;if(!v)process.exit(2);process.stdout.write(v)})"
+          )"
+          echo "::add-mask::$oidc_token"
+
+          backup() {
+            local tier="$1"
+            local response
+            response="$(
+              curl -fsSL                 -H 'Content-Type: application/json'                 -H "x-exporthub-github-oidc: $oidc_token"                 -H "x-exporthub-environment: $TARGET_ENV"                 -d "{"action":"backup-snapshot","environment":"$TARGET_ENV","tier":"$tier"}"                 "$BASE_URL/api/state-maintenance"
+            )"
+            printf '%s\n' "$response" | TIER="$tier" ENVIRONMENT="$TARGET_ENV" node -e "
+              let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{
+                const v=JSON.parse(s),tier=process.env.TIER,env=process.env.ENVIRONMENT;
+                if(!v.ok||v.backup!==true||v.environment!==env||v.tier!==tier||v.backupReadBackVerified!==true)process.exit(3);
+                if(!v.backupBlob||!v.sha256||!/^[a-f0-9]{64}$/.test(v.sha256)||Number(v.bytes||0)<=0)process.exit(4);
+                console.log(env+' '+tier+' backup',JSON.stringify({backupBlob:v.backupBlob,bytes:v.bytes,revision:v.revision,verified:v.backupReadBackVerified}));
+              })"
+          }
+
+          backup daily
+
+          day="$(date -u +%d)"
+          month="$(date -u +%m)"
+          if [ "$day" = "01" ]; then
+            backup monthly
+          fi
+          if [ "$day" = "01" ] && [ "$month" = "01" ]; then
+            backup yearly
+          fi
+
+          if [ "$TARGET_ENV" = "testservice" ]; then
+            response="$(
+              curl -fsSL                 -H 'Content-Type: application/json'                 -H "x-exporthub-github-oidc: $oidc_token"                 -H "x-exporthub-environment: testservice"                 -d '{"action":"restore-drill","environment":"testservice"}'                 "$BASE_URL/api/state-maintenance"
+            )"
+            printf '%s\n' "$response" | node -e "
+              let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{
+                const v=JSON.parse(s);
+                if(!v.ok||v.restoreDrill!==true||v.verified!==true||v.backupReadBackVerified!==true||v.shipmentReferencesVerified!==true)process.exit(5);
+                console.log('TESTSERVICE restore drill',JSON.stringify({verified:v.verified,bytes:v.bytes,revision:v.revision,shipmentReferenceCount:v.shipmentReferenceCount}));
+              })"
+          fi
