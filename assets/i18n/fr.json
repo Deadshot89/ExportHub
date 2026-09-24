@@ -262,5 +262,12 @@
   "portal.manage": "gérer",
   "portal.adminHasBoth": "Global Admin dispose automatiquement des deux droits.",
   "portal.rightsSaved": "Droits du portail client enregistrés.",
-  "portal.rightsSaveFailed": "Impossible d’enregistrer les droits."
+  "portal.rightsSaveFailed": "Impossible d’enregistrer les droits.",
+  "common.active": "Actif",
+  "common.inactive": "Inactif",
+  "portal.httpsAddress": "Adresse HTTPS",
+  "portal.internalNote": "Note interne",
+  "portal.loadFailed": "Impossible de charger le portail client.",
+  "portal.portalName": "Nom du portail",
+  "portal.userRightsLoadFailed": "Impossible de charger les droits utilisateur."
 }
