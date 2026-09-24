@@ -35,20 +35,16 @@ test('RC1081: administrativ beendete Sitzungen werden protokolliert',()=>{
 });
 
 test('RC1087: zentrale Historie führt Sendungen, Kunden, Aufgaben, Palettenkonto und Audit zusammen',()=>{
-  assert.match(runtime,/<h3>Historie<\/h3>/);
+  assert.match(runtime,/history\.title/);
   assert.match(runtime,/arr\(s\.auditLog\)/);
   assert.match(runtime,/ExportHUBShipmentHistory1071/);
   assert.match(runtime,/shipmentHistory/);
   assert.match(runtime,/customerHistory/);
   assert.match(runtime,/arr\(s\.tasks\)/);
   assert.match(runtime,/arr\(s\.palletAccount\)/);
-  assert.match(runtime,/Alle Benutzer/);
-  assert.match(runtime,/Alle Aktionen/);
-  assert.match(runtime,/Alle Objekte/);
-  assert.match(runtime,/Gesamter Bestand/);
-  assert.match(runtime,/Benutzer, Referenz, Kunde, Aufgabe, Aktion oder Detail/);
-  assert.match(runtime,/Alle protokollierten Aktionen/);
+  for(const key of ['history.allUsers','history.allActions','history.allObjects','history.allData','history.searchPlaceholder','history.subtitle']) assert.match(runtime,new RegExp(key.replace(/[.]/g,'\\.')));
   assert.match(runtime,/data-rc1084-history-table/);
+  assert.match(runtime,/exporthub:language-changed/);
 });
 
 test('RC1087: Historie ist eine eigene Ansicht und nicht mehr an Archiv gebunden',()=>{
@@ -68,8 +64,8 @@ test('RC1087: finaler Build lädt Historie als eigenen Reiter in Produktion TEST
 });
 
 test('RC1081: zentrale History kann gedruckt und als CSV exportiert werden',()=>{
-  assert.match(runtime,/CSV exportieren/);
-  assert.match(runtime,/Drucken/);
+  assert.match(runtime,/history\.csvExport/);
+  assert.match(runtime,/common\.print/);
   assert.match(runtime,/function exportCsv\(/);
   assert.match(runtime,/text\/csv;charset=utf-8/);
   assert.match(runtime,/function printHistory\(/);
@@ -80,7 +76,7 @@ test('RC1081: Namensänderung durch Administrator wird getrennt von Rechteänder
   assert.match(authApi,/USER_DISPLAY_NAME_UPDATED_BY_ADMIN/);
   assert.match(authApi,/previousName: beforeName/);
   assert.match(authApi,/displayName: afterName/);
-  assert.match(runtime,/USER_DISPLAY_NAME_UPDATED_BY_ADMIN:'Anzeigename durch Administrator geändert'/);
+  assert.match(runtime,/USER_DISPLAY_NAME_UPDATED_BY_ADMIN:'history\.audit\.USER_DISPLAY_NAME_UPDATED_BY_ADMIN'/);
 });
 
 test('RC1087: zentrale Historie liest alle Sendungssammlungen inklusive abgeleiteter Ereignisse',()=>{
@@ -105,25 +101,26 @@ test('RC1087: Filterung nach Zeitraum, Bereich, Aktion, Benutzer und Objekt ist 
   assert.match(runtime,/data-rc1081-reset/);
 });
 
-test('RC1087: sichtbaren Aktionsnamen sind deutsch und technische Subtypen bleiben intern',()=>{
+test('RC1267: sichtbare Aktionsnamen verwenden zentrale Translation Keys und technische Subtypen bleiben intern',()=>{
   for(const marker of [
-    "created:'Sendung erstellt'",
-    "'mail-sent':'E-Mail-Versand bestätigt'",
-    "'work-start':'Arbeit an Sendung gestartet'",
-    "'pickup-plan':'Abholung geplant oder gebucht'",
-    "'customer-created':'Kunde angelegt'",
-    "LOGIN_FAILED:'Anmeldung fehlgeschlagen'",
-    "DIAGNOSTIC_AUTOFIX_FIXED:'Fehler automatisch behoben'"
+    "created:'history.shipment.created'",
+    "'mail-sent':'history.shipment.mail-sent'",
+    "'work-start':'history.shipment.work-start'",
+    "'pickup-plan':'history.shipment.pickup-plan'",
+    "'customer-created':'history.customer.customer-created'",
+    "LOGIN_FAILED:'history.audit.LOGIN_FAILED'",
+    "DIAGNOSTIC_AUTOFIX_FIXED:'history.audit.DIAGNOSTIC_AUTOFIX_FIXED'"
   ]) assert.ok(runtime.includes(marker),marker+' fehlt');
   assert.match(runtime,/function actionLabel\(e\)/);
   assert.match(runtime,/actionTitle\(e\),area:typeLabel\(e\.type\)/);
+  assert.match(runtime,/function shipmentLegacyCode\(raw\)/);
   assert.match(runtime,/FILTER=\{query:'',type:'all',subtype:'all',actor:'all',entity:'all',days:0/);
 });
 
 test('RC1087: alle verfügbaren Aktionen werden ohne interne Scroll-Begrenzung als Tabelle gelistet',()=>{
   assert.match(runtime,/data-rc1084-history-table/);
   assert.doesNotMatch(runtime,/max-height:620px/);
-  assert.match(runtime,/events\.length\+' Aktionen im verfügbaren Datenbestand/);
+  assert.match(runtime,/history\.count/);
 });
 
 test('RC1087: sichtbaren Historienansichten sind vollständig deutsch',()=>{
@@ -137,31 +134,29 @@ test('RC1087: sichtbaren Historienansichten sind vollständig deutsch',()=>{
 
 test('RC1087: Aufgaben werden aus belastbaren Erstellungs- und Abschlussdaten abgeleitet',()=>{
   assert.match(runtime,/function taskEvents\(t\)/);
-  assert.match(runtime,/'task-created':'Aufgabe erstellt'/);
-  assert.match(runtime,/'task-completed':'Aufgabe erledigt'/);
-  assert.match(runtime,/'task-cancelled':'Aufgabe storniert'/);
+  assert.match(runtime,/'task-created':'history\.task\.task-created'/);
+  assert.match(runtime,/'task-completed':'history\.task\.task-completed'/);
+  assert.match(runtime,/'task-cancelled':'history\.task\.task-cancelled'/);
   assert.match(runtime,/completedAt\|\|t\.doneAt\|\|t\.closedAt/);
   assert.match(runtime,/completedBy\|\|t\.doneBy\|\|t\.closedBy/);
-  assert.match(runtime,/System · POD/);
-  assert.match(runtime,/System · Abholung/);
+  assert.match(runtime,/history\.actor\.systemPod/);
+  assert.match(runtime,/history\.actor\.systemPickup/);
 });
 
 test('RC1087: Palettenkonto wird nur bei gespeichertem Datum oder Zeitpunkt in der Historie geführt',()=>{
   assert.match(runtime,/function palletEvents\(p,index\)/);
   assert.match(runtime,/p\.at\|\|p\.createdAt\|\|p\.bookedAt\|\|p\.bookingAt\|\|p\.timestamp\|\|p\.date/);
   assert.match(runtime,/if\(!at\)return\[\]/);
-  assert.match(runtime,/'pallet-in':'Paletteneingang gebucht'/);
-  assert.match(runtime,/'pallet-out':'Palettenausgang gebucht'/);
-  assert.match(runtime,/'pallet-exchange':'Palettentausch gebucht'/);
+  assert.match(runtime,/'pallet-in':'history\.pallet\.pallet-in'/);
+  assert.match(runtime,/'pallet-out':'history\.pallet\.pallet-out'/);
+  assert.match(runtime,/'pallet-exchange':'history\.pallet\.pallet-exchange'/);
   assert.match(runtime,/palletType/);
   assert.match(runtime,/shipmentRef\|\|p\.reference\|\|p\.ref/);
 });
 
 test('RC1087: Aufgaben und Palettenkonto sind eigene filterbare Historienbereiche',()=>{
-  assert.match(runtime,/task:'Aufgaben'/);
-  assert.match(runtime,/pallet:'Palettenkonto'/);
-  assert.match(runtime,/\['task','Aufgaben'\]/);
-  assert.match(runtime,/\['pallet','Palettenkonto'\]/);
+  assert.match(runtime,/task:'history\.type\.task'/);
+  assert.match(runtime,/pallet:'history\.type\.pallet'/);
   assert.match(build,/'taskDerived','palletAccount'/);
   assert.match(runtime,/countType\(events,'task'\)/);
   assert.match(runtime,/countType\(events,'pallet'\)/);
@@ -172,14 +167,15 @@ test('RC1087: reine Datumswerte werden ohne erfundene Uhrzeit angezeigt',()=>{
   assert.match(runtime,/dateStyle:'short'/);
 });
 
-test('RC1087: Verlader-PIN Verwaltungsaktionen erscheinen deutsch in der Historie',()=>{
+test('RC1267: Verlader-PIN Verwaltungsaktionen verwenden lokalisierbare Audit-Keys',()=>{
   for(const marker of [
-    "LOADER_PIN_CREATED:'Verlader-PIN angelegt'",
-    "LOADER_PIN_UPDATED:'Verlader-PIN geändert'",
-    "LOADER_PIN_STATUS_CHANGED:'Verlader-PIN Status geändert'",
-    "LOADER_PIN_DELETED:'Verlader-PIN gelöscht'"
+    "LOADER_PIN_CREATED:'history.audit.LOADER_PIN_CREATED'",
+    "LOADER_PIN_UPDATED:'history.audit.LOADER_PIN_UPDATED'",
+    "LOADER_PIN_STATUS_CHANGED:'history.audit.LOADER_PIN_STATUS_CHANGED'",
+    "LOADER_PIN_DELETED:'history.audit.LOADER_PIN_DELETED'"
   ]) assert.ok(runtime.includes(marker),marker+' fehlt');
   assert.match(runtime,/entity='Verlader-PIN'/);
+  assert.match(runtime,/history\.entity\.loaderPin/);
   assert.match(runtime,/details\.loaderName\|\|details\.loaderId/);
   assert.doesNotMatch(runtime,/details\.pin/);
 });
