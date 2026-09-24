@@ -11,12 +11,11 @@ globalThis.ExportHUBI18n={
 await import('../assets/abholkalender.js');
 const calendar = globalThis.ExportHubPickupCalendar;
 
-test('UI-Vertrag enthält Heute, FIX, SENDUNG und Montag bis Freitag', () => {
+test('UI-Vertrag verwendet zentrale Keys für Heute, Sendung und Montag bis Freitag', () => {
   const js = fs.readFileSync('assets/abholkalender.js','utf8');
-  assert.match(js,/Heute/);
-  assert.match(js,/FIX/);
-  assert.match(js,/SENDUNG/);
-  for (const day of ['Montag','Dienstag','Mittwoch','Donnerstag','Freitag']) assert.match(js,new RegExp(day));
+  assert.match(js,/pickupCalendar\.today/);
+  assert.match(js,/pickupCalendar\.badge\.shipment/);
+  for (let day=1;day<=5;day+=1) assert.match(js,new RegExp('pickupCalendar\\.weekday\\.'+day));
   assert.doesNotMatch(js,/Samstag|Sonntag/);
 });
 
@@ -42,7 +41,7 @@ test('Adminformular enthält nur Standort, Wochentag, Hinweis und Aktivstatus', 
   assert.match(js,/name="weekday"/);
   assert.match(js,/name="note"/);
   assert.match(js,/name="active"/);
-  assert.match(js,/Fixe Abholungen verwalten/);
+  assert.match(js,/pickupCalendar\.admin\.manageFixed/);
 });
 
 test('Kalender-CSS bleibt auf Feature-Klassen begrenzt und ist responsiv', () => {
