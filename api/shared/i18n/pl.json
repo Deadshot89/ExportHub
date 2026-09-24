@@ -157,5 +157,14 @@
   "api.avis.writeForbidden": "Brak uprawnień do edycji AVIS klienta.",
   "api.avis.unknownAction": "Nieznana akcja AVIS.",
   "api.avis.scanSaved": "Kontrola malware i przypisanie do przesyłki zakończone pomyślnie. PDF zapisany.",
-  "api.avis.flagSaveFailed": "Nie udało się zapisać AVIS klienta."
+  "api.avis.flagSaveFailed": "Nie udało się zapisać AVIS klienta.",
+  "api.avis.mailSubject": "Nowy dokument AVIS · {{reference}} · {{customer}}",
+  "api.avis.mailIntro": "Klient przesłał nowy dokument przez link AVIS ExportHUB.",
+  "api.avis.mailReference": "Referencja przesyłki: {{reference}}",
+  "api.avis.mailCustomer": "Klient: {{customer}}",
+  "api.avis.mailDocument": "Dokument: {{document}}",
+  "api.avis.mailDocumentType": "Typ dokumentu: {{type}}",
+  "api.avis.mailStored": "Sprawdzono i zapisano: {{time}}",
+  "api.avis.mailPassed": "Plik przeszedł kontrolę malware i sprawdzenie przypisania do przesyłki.",
+  "api.avis.mailAction": "Otwórz ExportHUB → Powiadomienia i wybierz „Otwórz / drukuj PDF”."
 }
