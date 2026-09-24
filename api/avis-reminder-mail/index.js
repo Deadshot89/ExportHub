@@ -13,11 +13,14 @@ function allowed(user){
  return !!(r&&(r.edit===true||r.admin===true||r.functionAdmin===true||r.level==='edit'||r.level==='admin'))
 }
 function validEmail(v){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text(v))}
+const PRODUCTION_PUBLIC_HOST=lower(process.env.EXPORTHUB_PRODUCTION_PUBLIC_HOST||'wonderful-forest-0f315e310.7.azurestaticapps.net');
+const TESTSERVICE_PUBLIC_HOST=lower(process.env.EXPORTHUB_TESTSERVICE_PUBLIC_HOST||'ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net');
 function safeAvisUrl(req,value){
  let u;try{u=new URL(text(value))}catch(_){throw auth.error('AVIS_URL_INVALID','Der Avis-Link ist ungültig.',400)}
  if(u.protocol!=='https:'||!/\/customer-avis\.html$/i.test(u.pathname))throw auth.error('AVIS_URL_INVALID','Der Avis-Link ist ungültig.',400);
- const headers=req&&req.headers||{},host=lower(headers['x-forwarded-host']||headers['x-original-host']||headers.host||headers.Host||'').replace(/:\d+$/,'');
- if(host&&lower(u.hostname)!==host)throw auth.error('AVIS_URL_INVALID','Der Avis-Link gehört nicht zu dieser ExportHUB-Umgebung.',400);
+ const environment=auth.environmentFromRequest(req);
+ const expectedHost=environment==='testservice'?TESTSERVICE_PUBLIC_HOST:PRODUCTION_PUBLIC_HOST;
+ if(lower(u.hostname)!==expectedHost)throw auth.error('AVIS_URL_INVALID','Der Avis-Link gehört nicht zu dieser ExportHUB-Umgebung.',400);
  return u.toString()
 }
 function subject(ref,target,lang){
