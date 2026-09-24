@@ -157,5 +157,14 @@
   "api.avis.writeForbidden": "Les droits de modification pour l’AVIS client sont absents.",
   "api.avis.unknownAction": "Action AVIS inconnue.",
   "api.avis.scanSaved": "Analyse antivirus et affectation à l’expédition réussies. PDF enregistré.",
-  "api.avis.flagSaveFailed": "L’AVIS client n’a pas pu être enregistré."
+  "api.avis.flagSaveFailed": "L’AVIS client n’a pas pu être enregistré.",
+  "api.avis.mailSubject": "Nouveau document AVIS · {{reference}} · {{customer}}",
+  "api.avis.mailIntro": "Un client a importé un nouveau document via le lien AVIS ExportHUB.",
+  "api.avis.mailReference": "Référence d’expédition : {{reference}}",
+  "api.avis.mailCustomer": "Client : {{customer}}",
+  "api.avis.mailDocument": "Document : {{document}}",
+  "api.avis.mailDocumentType": "Type de document : {{type}}",
+  "api.avis.mailStored": "Contrôlé et enregistré : {{time}}",
+  "api.avis.mailPassed": "Le fichier a réussi l’analyse antivirus et le contrôle d’affectation à l’expédition.",
+  "api.avis.mailAction": "Ouvrez ExportHUB → Notifications et sélectionnez « Ouvrir / imprimer le PDF »."
 }
