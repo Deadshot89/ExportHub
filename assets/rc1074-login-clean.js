@@ -1,5 +1,7 @@
 (function(w,d){
 'use strict';
+// RC1253 P0: production rollout marker for the privileged MFA enrollment UI.
+w.__EXPORTHUB_RC1253_MFA_ENROLLMENT_UI__=true;
 if(w.__EXPORTHUB_RC1074_LOGIN_CLEAN__)return;
 w.__EXPORTHUB_RC1074_LOGIN_CLEAN__=true;
 function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}

@@ -86,3 +86,12 @@ test('RC1252: geänderte Server- und Browser-Runtimes sind syntaktisch gültig',
     execFileSync(process.execPath,['--check',file],{stdio:'pipe'});
   }
 });
+
+
+test('RC1253: Produktionsruntime trägt den P0-MFA-Enrollment-Rolloutmarker',()=>{
+  const runtime=fs.readFileSync('assets/rc1074-login-clean.js','utf8');
+  assert.match(runtime,/__EXPORTHUB_RC1253_MFA_ENROLLMENT_UI__/);
+  assert.match(runtime,/mfaEnrollmentSecret/);
+  assert.match(runtime,/mfaEnrollmentUri/);
+  assert.match(runtime,/6-stelliger Authenticator-Code/);
+});
