@@ -258,12 +258,35 @@ function selectorMarkup(){
  selector=select;
  return wrap;
 }
+function extendNativeSelector(nativeSelect){
+ if(!nativeSelect)return null;
+ SUPPORTED.forEach(function(code){
+  if(nativeSelect.querySelector&&nativeSelect.querySelector('option[value="'+code+'"]'))return;
+  var o=d.createElement('option');o.value=code;o.textContent=LANGUAGE_NAMES[code];nativeSelect.appendChild(o)
+ });
+ if(!nativeSelect.__exporthubRc1267Bound){
+  nativeSelect.addEventListener('change',function(){setLanguage(nativeSelect.value).catch(reportError)});
+  nativeSelect.__exporthubRc1267Bound=true
+ }
+ nativeSelect.setAttribute('data-exporthub-i18n','rc1267');
+ return nativeSelect
+}
 function ensureSelector(){
+ var nativeSelect=d.getElementById('languageSelect');
+ if(nativeSelect){
+  var floating=d.getElementById('exporthubI18nLoginSelector');if(floating)floating.remove();
+  selector=extendNativeSelector(nativeSelect);selector.value=current;return
+ }
  if(d.getElementById('exporthubI18nLoginSelector')){selector=d.getElementById('exporthubI18nLanguageSelect');return}
  (d.body||d.documentElement).appendChild(selectorMarkup());
 }
 function updateSelectorCaption(){
  var n=d.getElementById('exporthubI18nLoginCaption');if(n)n.textContent=t('common.language',null,current);
+}
+function syncProfileLanguage(){
+ var profile=profileLanguage();
+ if(profile&&profile!==current)return setLanguage(profile);
+ ensureSelector();return Promise.resolve(current)
 }
 function reportError(error){
  try{console.error('[ExportHUB i18n]',error)}catch(_){}
@@ -296,7 +319,8 @@ w.addEventListener('exporthub:user-profile-updated',function(ev){
  if(lang)setLanguage(lang).catch(reportError);
 });
 w.addEventListener('exporthub:language-changed',function(){updateSelectorCaption()});
-['exporthub:state-loaded','exporthub:sync','exporthub:customer-updated','exporthub:shipment-updated','exporthub:task-updated'].forEach(function(name){w.addEventListener(name,function(){buildDynamicIndex();if(d.body)translate(d.body,current)})});
+['exporthub:state-loaded','exporthub:sync','exporthub:customer-updated','exporthub:shipment-updated','exporthub:task-updated'].forEach(function(name){w.addEventListener(name,function(){buildDynamicIndex();ensureSelector();if(d.body)translate(d.body,current)})});
+['exporthub:ready','exporthub:login','exporthub:authenticated','exporthub:user-changed','exporthub:profile-loaded'].forEach(function(name){w.addEventListener(name,function(){syncProfileLanguage().catch(reportError)})});
 w.ExportHUBI18n=Object.freeze({
  version:VERSION,
  supported:SUPPORTED,
