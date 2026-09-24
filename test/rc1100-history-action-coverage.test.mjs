@@ -4,10 +4,20 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const source=fs.readFileSync('assets/rc1071-shipment-history.js','utf8');
+const historyDe=JSON.parse(fs.readFileSync('assets/i18n/de.json','utf8'));
+function historyI18n(){
+  return {
+    language(){return 'de'},
+    t(key,vars){let value=historyDe[key]||key;if(vars)for(const [name,v] of Object.entries(vars))value=value.replaceAll('{{'+name+'}}',String(v));return value},
+    formatDate(value,options){return new Intl.DateTimeFormat('de-DE',options||{}).format(value)}
+  };
+}
+
 
 function api(){
   const document={body:null,readyState:'loading',addEventListener(){},getElementById(){return null},querySelector(){return null}};
-  const window={document,addEventListener(){},console,__EXPORTHUB_GET_STATE__:()=>({})};
+  const window={
+    ExportHUBI18n:historyI18n(),document,addEventListener(){},console,__EXPORTHUB_GET_STATE__:()=>({})};
   const context={window,document,console,Date,Intl,Math,Map,Set,Array,Object,String,Number,Promise,setTimeout(){return 1},clearTimeout(){},setInterval(){return 1},MutationObserver:undefined};
   vm.runInNewContext(source,context,{filename:'rc1071-shipment-history.js'});
   return window.ExportHUBShipmentHistory1071;
