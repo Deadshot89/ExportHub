@@ -312,6 +312,8 @@ if(!fs.existsSync(currentApi))throw new Error('Aktuelles API-Verzeichnis fehlt')
 fs.mkdirSync(builtApi,{recursive:true});
 fs.cpSync(currentApi,builtApi,{recursive:true,force:true});
 for(const rel of [
+  'assets/rc1014-shipment-overview.js',
+  'assets/rc1014-shipment-overview.css',
   'assets/rc1027-lieferavis-immediate.js',
   'assets/rc1037-lieferavis-timing-diagnostics.js',
   'assets/rc1049-abd-avis-policy.js',
@@ -334,7 +336,7 @@ for(const rel of [
   fs.copyFileSync(src,dst);
   if(!fs.existsSync(dst)||fs.statSync(dst).size===0)throw new Error('RC1124 Pflicht-Runtime wurde nicht gebaut: '+rel);
 }
-for(const requiredApi of ['shared/pod-archive.js','shared/graph-drive.js','shared/customer-portal-store.js','customer-portal-credentials/index.js','customer-portal-credentials/function.json','customer-portal-readiness/index.js','customer-portal-readiness/function.json','avis-upload-mail-readiness/index.js','avis-upload-mail-readiness/function.json','pickup-confirm-v2/index.js','pod-backup/index.js','avis-reminder-mail/index.js','avis-reminder-mail/function.json','shared/graph-mail.js','package.json']){
+for(const requiredApi of ['shared/pod-archive.js','shared/graph-drive.js','shared/container-document-store.js','shared/customer-portal-store.js','customer-portal-credentials/index.js','customer-portal-credentials/function.json','customer-portal-readiness/index.js','customer-portal-readiness/function.json','avis-upload-mail-readiness/index.js','avis-upload-mail-readiness/function.json','pickup-confirm-v2/index.js','pickup-container-document/index.js','pickup-container-document/function.json','container-document/index.js','container-document/function.json','pod-backup/index.js','avis-reminder-mail/index.js','avis-reminder-mail/function.json','shared/graph-mail.js','package.json']){
   if(!fs.existsSync(path.join(builtApi,requiredApi)))throw new Error('RC1114 API-Datei fehlt im Build: '+requiredApi);
 }
 const rc1114PickupSource=path.join(ROOT,'pickup.html');
@@ -377,6 +379,7 @@ fs.writeFileSync(path.join(OUT,'rc1112-manifest.json'),JSON.stringify({
     podBackupStatusUi:'RC1220 shipment overview Azure/archive backup status',
     podTargetedProof:'RC1220 targeted archive proof: found/already-saved/saved-now/not-found/pending',
     podArchiveIntegrity:'RC1226 archive read-back + scheduled integrity verification',
+    containerDocumentation:'RC1259 sea freight container seal + 3 QR photos + reference-folder storage + shipment overview download',
     avisReminderOverview:'RC1207 DE/EN customer/carrier reminder via stored contacts + secure avis link',
     avisUploadNotifications:'RC1133 secure customer PDF notice + open/print action',
     documentActionHistory:'RC1178 print/open/download + user + filename, including resumed print flow',
