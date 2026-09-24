@@ -619,5 +619,8 @@
   "pickupCalendar.subtitle": "Stałe odbiory i zarejestrowane przesyłki pozostają rozdzielone i są wspólnie prezentowane w czytelnym widoku.",
   "pickupCalendar.updating": "Aktualizowanie …",
   "pickupCalendar.error.fixedLoad": "Nie udało się załadować stałych odbiorów.",
-  "pickupCalendar.error.fixedSave": "Nie udało się zapisać stałego odbioru."
+  "pickupCalendar.error.fixedSave": "Nie udało się zapisać stałego odbioru.",
+  "pickupCalendar.accessDeniedTitle": "Brak uprawnień do odczytu",
+  "pickupCalendar.accessDeniedText": "Kalendarz odbiorów nie jest udostępniony dla tego użytkownika.",
+  "pickupCalendar.loadError": "Nie udało się załadować kalendarza."
 }
