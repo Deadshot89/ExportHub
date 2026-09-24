@@ -11,6 +11,7 @@ var SUPPORTED=Object.freeze(['de','en','pl','es','fr','it']);
 var LANGUAGE_NAMES=Object.freeze({de:'Deutsch',en:'English',pl:'Polski',es:'Español',fr:'Français',it:'Italiano'});
 var resources=Object.create(null);
 var sourceByText=Object.create(null);
+var dynamicByText=Object.create(null);
 var textOriginal=new WeakMap();
 var attrOriginal=new WeakMap();
 var observer=null;
@@ -86,6 +87,36 @@ function buildSourceIndex(){
   if(value&&!sourceByText[value])sourceByText[value]=key;
  });
 }
+function applicationState(){
+ try{if(typeof w.__EXPORTHUB_GET_STATE__==='function')return w.__EXPORTHUB_GET_STATE__()||{}}catch(_){}
+ try{if(w.ExportHUBClean&&w.ExportHUBClean.state)return w.ExportHUBClean.state}catch(_){}
+ try{if(w.appState)return w.appState}catch(_){}
+ return{}
+}
+function buildDynamicIndex(){
+ dynamicByText=Object.create(null);var root=applicationState(),seen=new WeakSet();
+ function walk(value,depth){
+  if(value==null||depth>12||typeof value!=='object'||seen.has(value))return;seen.add(value);
+  if(Array.isArray(value)){value.forEach(function(v){walk(v,depth+1)});return}
+  var side=value._localizedText;
+  if(side&&typeof side==='object'){
+   Object.keys(side).forEach(function(key){
+    var meta=side[key],original=q(meta&&meta.originalText);
+    if(!original||!meta||!meta.translations)return;
+    if(!dynamicByText[original])dynamicByText[original]=Object.create(null);
+    SUPPORTED.forEach(function(lang){var translated=q(meta.translations[lang]);if(translated)dynamicByText[original][lang]=translated});
+   })
+  }
+  Object.keys(value).forEach(function(key){if(key!=='_localizedText'&&!/history|files|attachments|documents|photos/i.test(key))walk(value[key],depth+1)})
+ }
+ walk(root,0)
+}
+function localized(record,key,lang){
+ if(!record||typeof record!=='object')return'';
+ var original=q(record[key]),meta=record._localizedText&&record._localizedText[key],wanted=normalize(lang)||current||'de';
+ if(!meta||q(meta.originalText)!==original)return record[key];
+ return q(meta.translations&&meta.translations[wanted])||record[key]
+}
 async function ensureResources(lang){
  var target=normalize(lang)||'de';
  var tasks=[loadResource('de')];
@@ -127,7 +158,8 @@ function translateTextNode(node,lang){
  var original=textOriginal.get(node),trim=q(original);
  if(!trim)return;
  var key=parent.getAttribute&&parent.getAttribute('data-i18n');
- var translated=key?t(key,null,lang):translateLegacyValue(trim,lang);
+ var dynamic=dynamicByText[trim]&&dynamicByText[trim][lang];
+ var translated=dynamic|| (key?t(key,null,lang):translateLegacyValue(trim,lang));
  if(translated===trim&&lang!=='de')return;
  var lead=(original.match(/^\s*/)||[''])[0],trail=(original.match(/\s*$/)||[''])[0];
  node.nodeValue=lead+translated+trail;
@@ -190,6 +222,7 @@ async function setLanguage(lang,options){
  var next=normalize(lang)||'de',opts=options||{};
  await ensureResources(next);
  current=next;
+ buildDynamicIndex();
  if(opts.persist!==false)persist(next);
  if(selector&&selector.value!==next)selector.value=next;
  translate(d.body,next);
@@ -253,6 +286,7 @@ async function boot(){
  try{await ensureResources(current)}catch(e){reportError(e);current='de';try{await ensureResources('de')}catch(inner){reportError(inner)}}
  ensureSelector();
  selector.value=current;
+ buildDynamicIndex();
  translate(d.body,current);
  updateSelectorCaption();
  watch();
@@ -262,6 +296,7 @@ w.addEventListener('exporthub:user-profile-updated',function(ev){
  if(lang)setLanguage(lang).catch(reportError);
 });
 w.addEventListener('exporthub:language-changed',function(){updateSelectorCaption()});
+['exporthub:state-loaded','exporthub:sync','exporthub:customer-updated','exporthub:shipment-updated','exporthub:task-updated'].forEach(function(name){w.addEventListener(name,function(){buildDynamicIndex();if(d.body)translate(d.body,current)})});
 w.ExportHUBI18n=Object.freeze({
  version:VERSION,
  supported:SUPPORTED,
@@ -274,6 +309,8 @@ w.ExportHUBI18n=Object.freeze({
  formatDate:formatDate,
  formatNumber:formatNumber,
  formatCurrency:formatCurrency,
+ localized:localized,
+ rebuildDynamicIndex:buildDynamicIndex,
  resourceUrl:resourceUrl
 });
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
