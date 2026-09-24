@@ -9,6 +9,10 @@ on:
       - 'assets/rc1063-abd-blob-viewer-compat.js'
       - 'assets/rc1071-shipment-history.js'
       - '.github/rc1112/build-three-env.mjs'
+      - 'test/rc1152-task-detail-roster.test.mjs'
+      - 'test/rc1207-ups-toolbox.test.mjs'
+      - 'assets/rc1014-task-runtime.js'
+      - 'assets/rc1206-shipping-rules.js'
       - 'test/rc1151-document-download-history.test.mjs'
       - '.github/workflows/rc1151-branch-test.yml'
 permissions:
@@ -22,3 +26,7 @@ jobs:
         with:
           node-version: '20'
       - run: node --test test/rc1151-document-download-history.test.mjs
+      - name: RC1266 UPS und Aufgaben Regression
+        run: node --test test/rc1207-ups-toolbox.test.mjs test/rc1152-task-detail-roster.test.mjs
+      - name: RC1266 Drei-Umgebungen-Build
+        run: node .github/rc1112/build-three-env.mjs
