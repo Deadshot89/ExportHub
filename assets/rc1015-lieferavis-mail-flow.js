@@ -5,9 +5,9 @@ window.__EXPORTHUB_RC1015_LIEFERAVIS_MAIL_FLOW__=true;
 
 var base=null,wrapper=null,autoEnablePending=Object.create(null),mailSourceCache=new Map(),visibleMailSyncing=false;
 var RC1018_AVIS_EXCEPTIONS=Object.freeze({bmp:'Kunden-IT blockiert den Zugriff','böllhof':'Kein Lieferavis für diesen Kunden','böllhoff':'Kein Lieferavis für diesen Kunden',boellhof:'Kein Lieferavis für diesen Kunden',boellhoff:'Kein Lieferavis für diesen Kunden'});
-var RC1018_AVIS_BLOCK_MESSAGE='Lieferavis für diesen Kunden nicht verfügbar.';
-function rc1018AvisBlockMessage(blocked){return blocked&&blocked.key==='bmp'?RC1018_AVIS_BLOCK_MESSAGE+' Kunden-IT blockiert den Zugriff.':RC1018_AVIS_BLOCK_MESSAGE}
 function q(v){return String(v==null?'':v).trim()}
+function tr(key,vars,language){try{if(window.ExportHUBI18n&&typeof window.ExportHUBI18n.t==='function')return window.ExportHUBI18n.t(key,vars,language)}catch(_){}return key}
+function rc1018AvisBlockMessage(blocked){return tr('avisFlow.unavailable')+(blocked&&blocked.key==='bmp'?' '+tr('avisFlow.customerItBlocked'):'')}
 function rc1267NormalizeLanguage(v){var m=q(v).toLowerCase().replace('_','-').match(/^(de|en|pl|es|fr|it)(?:-|$)/);return m?m[1]:'de'}
 function scalarName(v){
  if(v==null||typeof v==='object'||typeof v==='boolean')return'';
@@ -152,7 +152,7 @@ async function rc1015Toggle(on){
   if(sh&&rc1021WasManuallyDisabled(sh)){
    rc1024ClearDraftDisabled(sh);rc1021NotifyAvisUpdated(true,sh);refreshUi();return true
   }
-  alert('Bitte zuerst eine gültige sechsstellige Sendungsreferenz eingeben.');
+  alert(tr('avisFlow.referenceRequired'));
   return false
  }
  try{
@@ -168,7 +168,7 @@ async function rc1015Toggle(on){
   return result
  }catch(e){
   console.error('RC1015 Lieferavis automatisch speichern',e);
-  alert('Der Lieferavis konnte nicht aktiviert werden. Die Sendung wurde vorher nicht sicher gespeichert.\n\n'+q(e&&e.message||e));
+  alert(tr('avisFlow.activationSaveFailed')+'\n\n'+q(e&&e.message||e));
   return false
  }
 }
@@ -278,18 +278,18 @@ function rc1015UpdateLieferavisButton(){
  if(!btn)return false;
  var sh=currentShipmentForAvis(),blocked=rc1018AvisException(sh),active=!blocked&&rc1018Enabled(sh);
  panel.setAttribute('data-active',active?'1':'0');
- btn.textContent=active?'Deaktivieren':'Aktivieren';
+ btn.textContent=tr(active?'avisFlow.deactivate':'avisFlow.activate');
  btn.disabled=active?false:(!!blocked||!wrapper||!rc1015DraftReference());
  var help=panel.querySelectorAll('.rc897-avis-help'),last=help&&help.length?help[help.length-1]:null;
- if(last)last.textContent=blocked?rc1018AvisBlockMessage(blocked):(active?'Lieferavis ist für diese Sendung standardmäßig aktiv. Der Link wird sofort aus dem aktuellen Entwurf erstellt und während der Eingabe aktualisiert. Bei Bedarf können Sie den Lieferavis deaktivieren.':'Lieferavis ist für diese Sendung deaktiviert.');
+ if(last)last.textContent=blocked?rc1018AvisBlockMessage(blocked):tr(active?'avisFlow.activeHelp':'avisFlow.inactiveHelp');
  return true
 }
 function mailModeLabel(type,sh,lang){
  var active=false,blocked=type==='customer'&&rc1018AvisException(sh||currentShipmentForAvis());
  try{active=!blocked&&(type==='customer'||type==='carrier')&&!!(wrapper&&wrapper.enabled(sh||currentShipmentForAvis()))}catch(_){}
  if(!blocked&&!active&&(type==='customer'||type==='carrier')){var panel=document.getElementById('rc897LieferavisPanel');active=!!(panel&&panel.getAttribute('data-active')==='1')}
- if(active)return lang==='en'?'Collection notice':'Lieferavis';
- return type==='customer'?'Kundenmail':type==='carrier'?'Speditionsmail':type==='own'?'Eigene Info-Mail':'Mail'
+ if(active)return tr('avisFlow.collectionNotice',null,lang);
+ return type==='customer'?tr('avisFlow.customerMail',null,lang):type==='carrier'?tr('avisFlow.carrierMail',null,lang):type==='own'?tr('avisFlow.ownInfoMail',null,lang):tr('avisFlow.mail',null,lang)
 }
 function patchMailMode(){
  var area=document.getElementById('rc543MailArea');if(!area)return false;
