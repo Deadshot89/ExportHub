@@ -10,6 +10,7 @@ const policy=require('../api/shared/user-policy.js');
 const authApi=fs.readFileSync('api/exporthub-auth/index.js','utf8');
 const authStore=fs.readFileSync('api/shared/auth-store.js','utf8');
 const stateApi=fs.readFileSync('api/exporthub-state/index.js','utf8');
+const fastAuth=fs.readFileSync('api/shared/fast-auth-store.js','utf8');
 const runtime=fs.readFileSync('assets/rc1074-login-clean.js','utf8');
 const config=JSON.parse(fs.readFileSync('staticwebapp.config.json','utf8'));
 
@@ -54,6 +55,8 @@ test('RC1252: privilegierte Sessions benötigen MFA, TESTSERVICE-E2E bleibt isol
   assert.match(authStore,/mfaVerifiedAt:/);
   assert.match(stateApi,/MFA_REAUTH_REQUIRED/);
   assert.match(stateApi,/testserviceE2E/);
+  assert.match(fastAuth,/MFA_REAUTH_REQUIRED/);
+  assert.match(fastAuth,/isSignedTestserviceE2E/);
   assert.match(stateApi,/['"]mfa['"]\]\.forEach/);
   assert.doesNotMatch(stateApi,/return u;\s*}\s*function publicUsers[\s\S]{0,200}mfa\.secret/);
 });
@@ -79,7 +82,7 @@ test('RC1252: Login-Runtime ergänzt Authenticator-Code ohne Legacy-Login umzuba
 });
 
 test('RC1252: geänderte Server- und Browser-Runtimes sind syntaktisch gültig',()=>{
-  for(const file of ['api/shared/mfa-totp.js','api/shared/user-policy.js','api/shared/auth-store.js','api/exporthub-auth/index.js','api/exporthub-state/index.js','assets/rc1074-login-clean.js']){
+  for(const file of ['api/shared/mfa-totp.js','api/shared/user-policy.js','api/shared/auth-store.js','api/shared/fast-auth-store.js','api/exporthub-auth/index.js','api/exporthub-state/index.js','assets/rc1074-login-clean.js']){
     execFileSync(process.execPath,['--check',file],{stdio:'pipe'});
   }
 });
