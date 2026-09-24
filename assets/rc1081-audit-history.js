@@ -105,6 +105,7 @@ function actionTitle(e){
 }
 function subtypeTechnical(e){return q(e&&e.subtype).replace(/[-_]+/g,' ')}
 function actionKey(e){var raw=q(e&&e.label),special=e&&e.type==='shipment'?shipmentLegacyCode(raw):'',canonical=special||low(raw||subtypeTechnical(e));return q(e&&e.type)+'|'+q(e&&e.subtype)+'|'+canonical}
+function duplicateKey(e){var special=e&&e.type==='shipment'?shipmentLegacyCode(e.label):'';return special?q(e&&e.type)+'|'+special:actionKey(e)}
 function duplicateWindowMs(e){
  if(!e||e.type!=='shipment')return 0;
  var code=shipmentLegacyCode(e.label);
@@ -135,7 +136,7 @@ function consolidateEvents(events){
   var idx=-1;
   for(var i=0;i<out.length;i++){
    var x=out[i],xt=Date.parse(x.at||0)||0;
-   if(x.type===e.type&&q(x.entityId)===entity&&actionKey(x)===actionKey(e)&&Math.abs(xt-ts)<=win){idx=i;break}
+   if(x.type===e.type&&q(x.entityId)===entity&&duplicateKey(x)===duplicateKey(e)&&Math.abs(xt-ts)<=win){idx=i;break}
   }
   if(idx<0){out.push(e);return}
   if(eventQuality(e)>eventQuality(out[idx]))out[idx]=e
