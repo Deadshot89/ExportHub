@@ -54,7 +54,7 @@ test('RC1252: privilegierte Sessions benötigen MFA, TESTSERVICE-E2E bleibt isol
   assert.match(authStore,/mfaVerifiedAt:/);
   assert.match(stateApi,/MFA_REAUTH_REQUIRED/);
   assert.match(stateApi,/testserviceE2E/);
-  assert.match(stateApi,/['"]mfa['"]\.forEach|['"][^'"]*mfa[^'"]*['"]\.forEach/);
+  assert.match(stateApi,/['"]mfa['"]\]\.forEach/);
   assert.doesNotMatch(stateApi,/return u;\s*}\s*function publicUsers[\s\S]{0,200}mfa\.secret/);
 });
 
