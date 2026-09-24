@@ -179,5 +179,6 @@
   "api.avis.docType.invoice": "Invoice / Commercial Invoice",
   "api.avis.docType.packing_list": "Packing list",
   "api.avis.docType.other": "Other",
-  "api.avis.attachment": "Attachment"
+  "api.avis.attachment": "Attachment",
+  "api.state.saveFailed": "Azure Storage could not save the team state: {{error}}"
 }
