@@ -39,7 +39,9 @@ test('RC1079: Einstellungen zeigen Benutzername, Anzeigename und persönliche Pr
 test('RC1079: Sprache wird im Benutzerprofil gespeichert und Deutsch ist der sichere Standard',()=>{
   const block=auth.slice(auth.indexOf('async function updateProfile'),auth.indexOf('async function adminList'));
   assert.match(block,/user\.language = nextLanguage/);
-  assert.match(block,/requestedLanguage === 'en' \? 'en' : 'de'/);
+  assert.match(block,/normalizeProfileLanguage\(requestedLanguage, previousLanguage\)/);
+  assert.match(auth,/de\|en\|pl\|es\|fr\|it/);
+  assert.match(runtime,/SUPPORTED_LANGUAGES=\['de','en','pl','es','fr','it'\]/);
   assert.match(runtime,/applyProfileLanguage/);
   assert.match(runtime,/ExportHUBI18n/);
   assert.match(runtime,/rc455SetLanguage/);
