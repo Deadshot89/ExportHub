@@ -23,7 +23,7 @@ const VISIBLE_NUMBER=VISIBLE_VERSION.slice(2);
 const LEGACY_TESTSERVICE_HOST='wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net';
 const CURRENT_TESTSERVICE_HOST='ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net';
 const RC1206_SHIPPING_ID='exporthub-rc1206-shipping-rules';
-const RC1206_SHIPPING_TAG='<script id="'+RC1206_SHIPPING_ID+'" defer src="/assets/rc1206-shipping-rules.js?v=1227"></script>';
+const RC1206_SHIPPING_TAG='<script id="'+RC1206_SHIPPING_ID+'" defer src="/assets/rc1206-shipping-rules.js?v=1266"></script>';
 
 function injectDeferredRuntimeInHead(html,tag,id){
   if(id&&(html.includes('id="'+id+'"')||html.includes("id='"+id+"'")))return html;
@@ -284,7 +284,7 @@ function patchHtml(file){
   html=html.replace(/(window\.__EXPORTHUB_BUILD__\s*=\s*['"])RC1048(['"])/g,`$1${VERSION}$2`);
   html=html.replaceAll(LEGACY_TESTSERVICE_HOST,CURRENT_TESTSERVICE_HOST);
   html=html.replace(/assets\/rc1074-login-clean\.js\?v=1074/g,'assets/rc1074-login-clean.js?v=1112');
-  html=html.replace(/assets\/rc1014-task-runtime\.js\?v=1016/g,'assets/rc1014-task-runtime.js?v=1179');
+  html=html.replace(/assets\/rc1014-task-runtime\.js\?v=1016/g,'assets/rc1014-task-runtime.js?v=1266');
   html=html.replace(/assets\/rc1014-task-ui\.css\?v=1016/g,'assets/rc1014-task-ui.css?v=1179');
   html=html.replace(/assets\/rc1013-diagnostics\.js\?v=1085/g,'assets/rc1013-diagnostics.js?v=1125');
   html=html.replace(/assets\/exporthub-environment-hub\.js\?v=\d+/g,'assets/exporthub-environment-hub.js?v=1174');
@@ -314,7 +314,7 @@ function patchHtml(file){
   if(!html.includes(`version:'${VERSION}'`))throw new Error(file+': BUILD '+VERSION+' fehlt');
   if(!html.includes(`ExportHUB ${VERSION} environment=`))throw new Error(file+': Environment '+VERSION+' fehlt');
   if(!html.includes('assets/rc1074-login-clean.js?v=1112'))throw new Error(file+': RC1112 ABD/Login Cache-Key fehlt');
-  if(!html.includes('assets/rc1014-task-runtime.js?v=1179'))throw new Error(file+': RC1156 Aufgaben-Runtime Cache-Key fehlt');
+  if(!html.includes('assets/rc1014-task-runtime.js?v=1266'))throw new Error(file+': RC1266 Aufgaben-Runtime Cache-Key fehlt');
   if(!html.includes('assets/rc1014-task-ui.css?v=1179'))throw new Error(file+': RC1152 Aufgaben-CSS Cache-Key fehlt');
   if(!html.includes('assets/rc1013-diagnostics.js?v=1125'))throw new Error(file+': RC1125 Diagnose Cache-Key fehlt');
   if(!html.includes('assets/exporthub-environment-hub.js?v=1174'))throw new Error(file+': RC1174 Android-Diagnose-Hub Cache-Key fehlt');
