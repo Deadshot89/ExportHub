@@ -560,5 +560,8 @@
   "shipmentHistory.change.removed": "entfernt",
   "shipmentHistory.change.replaced": "ersetzt",
   "shipmentHistory.legacy.abdRequested": "ABD angefordert",
-  "shipmentHistory.legacy.abdDocumentAdded": "ABD-Dokument hinzugefügt"
+  "shipmentHistory.legacy.abdDocumentAdded": "ABD-Dokument hinzugefügt",
+  "shipmentHistory.document.abdDocument": "ABD-Dokument",
+  "shipmentHistory.document.shippingDocument": "Versanddokument",
+  "shipmentHistory.document.pod": "POD"
 }
