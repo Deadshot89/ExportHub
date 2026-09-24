@@ -53,12 +53,16 @@ test('RC1218: nur ein abgebrochener POST-State-Read darf nach bestätigter Persi
 });
 
 test('RC1218: Mutation-Gate quittiert State-Read erst nach direktem History-Persistenznachweis und höchstens einmal',()=>{
-  const persisted=mutation.indexOf("expect(historyPersisted.status).toBe(200)");
-  const settle=mutation.lastIndexOf('await settleStateSave(page,{timeout:25_000});');
-  const acknowledge=mutation.indexOf('acknowledgeReadStateNavigationAbort(runtime)');
-  const clean=mutation.indexOf('assertRuntimeClean(runtime,testInfo)');
+  const start=mutation.indexOf("test('RC1139 P0:");
+  const next=mutation.indexOf("test('RC1255 P2:",start);
+  assert.ok(start>=0);
+  const block=mutation.slice(start,next>start?next:mutation.length);
+  const persisted=block.indexOf("expect(historyPersisted.status).toBe(200)");
+  const settle=block.lastIndexOf('await settleStateSave(page,{timeout:25_000});');
+  const acknowledge=block.indexOf('acknowledgeReadStateNavigationAbort(runtime)');
+  const clean=block.indexOf('assertRuntimeClean(runtime,testInfo)');
   assert.ok(persisted>=0&&settle>persisted&&acknowledge>settle&&clean>acknowledge);
-  assert.match(mutation,/readNavigationAborts[\s\S]*toBeLessThanOrEqual\(1\)/);
+  assert.match(block,/readNavigationAborts[\s\S]*toBeLessThanOrEqual\(1\)/);
 });
 
 test('RC1239: View-Inhalt wird atomar aus dem DOM gelesen und wartet nicht auf abgelöste Locator-Knoten',()=>{
