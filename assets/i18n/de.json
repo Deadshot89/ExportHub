@@ -262,5 +262,12 @@
   "portal.manage": "verwalten",
   "portal.adminHasBoth": "Global Admin besitzt beide Rechte automatisch.",
   "portal.rightsSaved": "Kundenportal-Rechte gespeichert.",
-  "portal.rightsSaveFailed": "Rechte konnten nicht gespeichert werden."
+  "portal.rightsSaveFailed": "Rechte konnten nicht gespeichert werden.",
+  "common.active": "Aktiv",
+  "common.inactive": "Inaktiv",
+  "portal.portalName": "Portalname",
+  "portal.httpsAddress": "HTTPS-Adresse",
+  "portal.internalNote": "Interne Notiz",
+  "portal.loadFailed": "Kundenportal konnte nicht geladen werden.",
+  "portal.userRightsLoadFailed": "Benutzerrechte konnten nicht geladen werden."
 }
