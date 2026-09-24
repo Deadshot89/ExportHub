@@ -211,5 +211,10 @@
   "reports.print": "Report drucken",
   "admin.users": "Benutzer",
   "admin.rolesRights": "Rollen und Rechte",
-  "admin.sessions": "Sitzungen"
+  "admin.sessions": "Sitzungen",
+  "profile.badge": "PROFIL",
+  "profile.note": "Dein Profil ist standardmäßig Deutsch. Die Mailsprache einer Sendung bleibt davon unabhängig. Bereits gespeicherte Historie-Einträge behalten aus Nachvollziehbarkeitsgründen den damaligen Anzeigenamen.",
+  "profile.saving": "Profil wird gespeichert …",
+  "profile.saveFailed": "Speichern fehlgeschlagen",
+  "profile.displayNameRequired": "Der Anzeigename darf nicht leer sein."
 }
