@@ -7,12 +7,14 @@ const {DOCUMENT_CONTAINER,migrateLegacyDocuments,legacyDocumentInventory}=requir
 const {previewCompaction,buildAppliedDocument}=require('../shared/state-maintenance');
 const {CLEANUP_DATE,countPalletDay,cleanupPalletDay}=require('../shared/pallet-account-cleanup');
 const {verifyStateRestore}=require('../shared/state-restore-drill');
+const {createVerifiedSnapshot}=require('../shared/state-backup-lifecycle');
 
 const TEAM_CONTAINER=process.env.EXPORTHUB_STORAGE_CONTAINER||process.env.EXPORTHUB_CONTAINER||'exporthub-data';
 const TEAM_BLOB=process.env.EXPORTHUB_STORAGE_BLOB||process.env.EXPORTHUB_STATE_BLOB||'team-state.json';
 const TEST_TEAM_BLOB=process.env.EXPORTHUB_TEST_STORAGE_BLOB||('testservice/'+String(TEAM_BLOB).replace(/^\/+/,'')); 
 const REPO='Deadshot89/ExportHub';
-const WORKFLOW='rc1137-state-compaction.yml';
+const COMPACTION_WORKFLOW='rc1137-state-compaction.yml';
+const BACKUP_WORKFLOW='rc1267-state-backup.yml';
 const OIDC_ISSUER='https://token.actions.githubusercontent.com';
 const OIDC_JWKS_URL='https://token.actions.githubusercontent.com/.well-known/jwks';
 const OIDC_AUDIENCE='exporthub-state-compaction';
@@ -73,8 +75,11 @@ async function githubOidcAuthorized(req){
   if(jose.alg!=='RS256'||!text(jose.kid))return false;
   const at=Math.floor(Date.now()/1000),aud=Array.isArray(claims.aud)?claims.aud:[claims.aud];
   if(claims.iss!==OIDC_ISSUER||!aud.includes(OIDC_AUDIENCE))return false;
-  if(claims.repository!==REPO||claims.ref!=='refs/heads/main'||claims.event_name!=='workflow_run')return false;
-  if(claims.workflow_ref!==REPO+'/.github/workflows/'+WORKFLOW+'@refs/heads/main')return false;
+  if(claims.repository!==REPO||claims.ref!=='refs/heads/main')return false;
+  const workflowRef=text(claims.workflow_ref),eventName=text(claims.event_name);
+  const compactionAllowed=eventName==='workflow_run'&&workflowRef===REPO+'/.github/workflows/'+COMPACTION_WORKFLOW+'@refs/heads/main';
+  const backupAllowed=['workflow_run','schedule','workflow_dispatch'].includes(eventName)&&workflowRef===REPO+'/.github/workflows/'+BACKUP_WORKFLOW+'@refs/heads/main';
+  if(!compactionAllowed&&!backupAllowed)return false;
   if(!Number(claims.exp)||Number(claims.exp)<=at-30)return false;
   if(Number(claims.nbf||0)>at+60||Number(claims.iat||0)>at+60||Number(claims.iat||0)<at-900)return false;
   if(!oidcCache.keys.length||oidcCache.expiresAt<Date.now()){
@@ -169,12 +174,17 @@ module.exports=async function(context,req){
   if(req.method!=='POST'){context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED'});return}
   if(!await githubOidcAuthorized(req))throw error('GLOBAL_ADMIN_OR_WORKFLOW_REQUIRED','RC1137 darf nur durch den signierten GitHub-Wartungsworkflow ausgeführt werden.',403);
   const payload=body(req),action=lower(payload.action),environment=environmentOf(req,payload);
-  if(action!=='preview'&&action!=='apply'&&action!=='migrate-testservice-documents'&&action!=='cleanup-pallet-20260921'&&action!=='restore-drill')throw error('ACTION_INVALID','Erlaubt sind preview, apply, migrate-testservice-documents, cleanup-pallet-20260921 und restore-drill.',400);
+  if(action!=='preview'&&action!=='apply'&&action!=='migrate-testservice-documents'&&action!=='cleanup-pallet-20260921'&&action!=='restore-drill'&&action!=='scheduled-backup')throw error('ACTION_INVALID','Erlaubt sind preview, apply, migrate-testservice-documents, cleanup-pallet-20260921, restore-drill und scheduled-backup.',400);
   if(action==='migrate-testservice-documents'&&environment!=='testservice')throw error('TESTSERVICE_ONLY','Die RC1138-Dokumentmigration ist ausschließlich im TESTSERVICE freigegeben.',403);
   if(action==='restore-drill'&&environment!=='testservice')throw error('TESTSERVICE_ONLY','Der RC1234-Restore-Drill ist ausschließlich im TESTSERVICE freigegeben.',403);
   if(action==='cleanup-pallet-20260921'&&environment!=='production')throw error('PRODUCTION_ONLY','Die RC1208-Palettenkonto-Bereinigung ist ausschließlich in Produktion freigegeben.',403);
   const container=service().getContainerClient(TEAM_CONTAINER),blob=container.getBlockBlobClient(teamBlobName(environment));
   const currentRead=await readJson(blob),current=currentRead.value;
+  if(action==='scheduled-backup'){
+   const result=await createVerifiedSnapshot(container,{environment,tier:lower(payload.tier),current,at:now()});
+   context.res=json(200,result);
+   return;
+  }
   if(action==='restore-drill'){
    context.res=json(200,await runRestoreDrill(container,environment,current));
    return;
