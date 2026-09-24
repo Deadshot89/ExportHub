@@ -262,5 +262,12 @@
   "portal.manage": "gestire",
   "portal.adminHasBoth": "Global Admin dispone automaticamente di entrambe le autorizzazioni.",
   "portal.rightsSaved": "Autorizzazioni del portale cliente salvate.",
-  "portal.rightsSaveFailed": "Impossibile salvare le autorizzazioni."
+  "portal.rightsSaveFailed": "Impossibile salvare le autorizzazioni.",
+  "common.active": "Attivo",
+  "common.inactive": "Inattivo",
+  "portal.httpsAddress": "Indirizzo HTTPS",
+  "portal.internalNote": "Nota interna",
+  "portal.loadFailed": "Impossibile caricare il portale cliente.",
+  "portal.portalName": "Nome del portale",
+  "portal.userRightsLoadFailed": "Impossibile caricare le autorizzazioni utente."
 }
