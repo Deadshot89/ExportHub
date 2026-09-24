@@ -37,6 +37,16 @@ function error(code,message,status=400,vars){const e=new Error(message);e.code=c
 function localizedError(req,e,fallbackKey){const raw=text(e&&e.message);return /^api\./.test(raw)?apiI18n.t(req,raw,e&&e.vars):raw||apiI18n.t(req,fallbackKey||'api.avis.unavailable')}
 function localizedMeta(key,vars){const original=apiI18n.tLang('de',key,vars),translations={};apiI18n.supported.forEach(lang=>{translations[lang]=apiI18n.tLang(lang,key,vars)});const sourceHash=crypto.createHash('sha256').update(original,'utf8').digest('hex');return{originalText:original,sourceLanguage:'de',translations,translationVersion:'sha256:'+sourceHash.slice(0,16),sourceHash,translatedAt:now(),translationStatus:'complete',status:'complete',translationError:null}}
 function preferredMailLanguage(sh){return apiI18n.normalize(sh&&(sh.mailLanguage||sh.language||sh.customerLanguage||sh.avisLanguage))||'de'}
+function documentTypeLabel(kind,language){
+ const rule=contentCheck.TYPES&&contentCheck.TYPES[text(kind)],key=rule&&rule.labelKey;
+ return key?apiI18n.tLang(language,key):apiI18n.tLang(language,'api.avis.document')
+}
+function contentResultMessage(result,language){
+ const key=text(result&&result.messageKey);if(!key)return text(result&&result.message);
+ const vars=Object.assign({},result&&result.messageVars||{});
+ if(vars.typeKey){vars.type=apiI18n.tLang(language,vars.typeKey);delete vars.typeKey}
+ return apiI18n.tLang(language,key,vars)
+}
 function json(status,body,headers={}){return access.json(status,body,headers)}
 function body(req){return access.body(req)}
 function connectionString(){return process.env.EXPORTHUB_STORAGE_CONNECTION_STRING||process.env.AzureWebJobsStorage||''}
@@ -235,15 +245,16 @@ async function promoteCleanCustomerPdf(teamBlob,sessionInfo,session,quarantineBl
  const docType=contentCheck.documentType(queueEntry&&queueEntry.documentType||'other'),content=await contentCheck.validateShipmentDocument(bytes,shipmentForCheck,docType);
  if(!content.ok){
   try{if(typeof quarantineBlob.deleteIfExists==='function')await quarantineBlob.deleteIfExists()}catch(_){}
-  const blocked=await updateCustomerUploadOutcome(teamBlob,sessionInfo,session,{id:uploadId,name,size:bytes.length,status:'blocked',documentType:docType,uploadedAt:text(queueEntry&&queueEntry.uploadedAt)||text(metadata.uploadedat),completedAt:now(),message:content.message,scanResult:text(scan.result),scanTime:text(scan.scanTime),contentCode:content.code,contentMatched:content.matched},null,language);
-  return{ok:false,status:'blocked',code:content.code,message:content.message,upload:{id:uploadId,name,size:bytes.length,status:'blocked',documentType:docType,contentCode:content.code,contentMatched:content.matched},shipment:blocked}
+  const canonicalMessage=contentResultMessage(content,'de'),responseMessage=contentResultMessage(content,language);
+  const blocked=await updateCustomerUploadOutcome(teamBlob,sessionInfo,session,{id:uploadId,name,size:bytes.length,status:'blocked',documentType:docType,uploadedAt:text(queueEntry&&queueEntry.uploadedAt)||text(metadata.uploadedat),completedAt:now(),message:canonicalMessage,messageKey:text(content.messageKey),scanResult:text(scan.result),scanTime:text(scan.scanTime),contentCode:content.code,contentMatched:content.matched},null,language);
+  return{ok:false,status:'blocked',code:content.code,message:responseMessage,upload:{id:uploadId,name,size:bytes.length,status:'blocked',documentType:docType,contentCode:content.code,contentMatched:content.matched},shipment:blocked}
  }
  const container=await ensureDocumentContainerReady(),blobName=pdfSecurity.finalBlobName(sessionInfo.environment,uploadId),targetBlob=container.getBlockBlobClient(blobName),uploadedAt=now();
  try{
   const options={blobHTTPHeaders:{blobContentType:'application/pdf',blobCacheControl:'private, no-store'},metadata:{sha256:uploadId,environment:sessionInfo.environment,kind:'customer-avis-upload',scanprovider:'defender-for-storage',scanresult:'clean'},conditions:{ifNoneMatch:'*'}};
   if(typeof targetBlob.uploadData==='function')await targetBlob.uploadData(bytes,options);else await targetBlob.upload(bytes,bytes.length,options)
  }catch(e){if(!blobExistsConflict(e))throw e}
- const file={id:'customer-avis-'+uploadId.slice(0,20),name,category:content.documentTypeLabel||'Anhang',documentType:docType,mimeType:'application/pdf',type:'application/pdf',size:bytes.length,storage:'blob',blobName,sha256:uploadId,customerAvisVisible:true,source:'customer-avis-upload',uploadedAt,uploadedBy:'Kunde via Lieferavis',malwareScan:{provider:'Microsoft Defender for Storage',result:'No threats found',scanTime:text(scan.scanTime)},businessValidation:{result:'matched',code:content.code,matched:content.matched}};
+ const file={id:'customer-avis-'+uploadId.slice(0,20),name,category:documentTypeLabel(docType,'de')||apiI18n.tLang('de','api.avis.attachment'),documentType:docType,mimeType:'application/pdf',type:'application/pdf',size:bytes.length,storage:'blob',blobName,sha256:uploadId,customerAvisVisible:true,source:'customer-avis-upload',uploadedAt,uploadedBy:'Kunde via Lieferavis',malwareScan:{provider:'Microsoft Defender for Storage',result:'No threats found',scanTime:text(scan.scanTime)},businessValidation:{result:'matched',code:content.code,matched:content.matched}};
  const completedEntry={id:uploadId,name,size:bytes.length,status:'saved',documentType:docType,uploadedAt:text(queueEntry&&queueEntry.uploadedAt)||text(metadata.uploadedat),completedAt:uploadedAt,message:apiI18n.tLang('de','api.avis.scanSaved'),messageKey:'api.avis.scanSaved',scanResult:text(scan.result),scanTime:text(scan.scanTime),contentCode:content.code,contentMatched:content.matched};
  const shipment=await updateCustomerUploadOutcome(teamBlob,sessionInfo,session,completedEntry,file,language);
  const mailNotification=await notifyDespatchCustomerUpload(sessionInfo.environment,shipmentForCheck,file,completedEntry);
