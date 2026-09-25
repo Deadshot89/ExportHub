@@ -205,5 +205,22 @@
   "api.pickup.photosRequired": "Deben guardarse las 3 fotos del contenedor para este envío marítimo.",
   "api.pickup.confirmFailed": "No se pudo confirmar la recogida.",
   "api.pickup.disabled": "Este código QR ha sido desactivado.",
-  "api.pickup.statusLoadFailed": "No se pudo cargar el estado de la recogida."
+  "api.pickup.statusLoadFailed": "No se pudo cargar el estado de la recogida.",
+  "api.container.readForbidden": "No tiene permiso para leer las fotos del contenedor.",
+  "api.container.referenceRequired": "Falta la referencia del envío.",
+  "api.container.shipmentNotFound": "No se encontró el envío.",
+  "api.container.photoNotFound": "No se encontró la foto del contenedor.",
+  "api.container.photoLoadFailed": "No se pudo cargar la foto del contenedor.",
+  "api.container.photoSaveFailed": "No se pudo guardar la foto del contenedor.",
+  "api.document.environmentMismatchTest": "Una solicitud de TESTSERVICE no puede acceder a datos de producción.",
+  "api.document.environmentMismatchProduction": "El sitio de producción no puede acceder a datos de TESTSERVICE.",
+  "api.document.referenceInvalid": "La referencia del documento no es válida.",
+  "api.document.environmentMismatch": "El documento pertenece a otro entorno de datos de ExportHUB.",
+  "api.document.loadFailed": "No se pudo cargar el documento.",
+  "api.readiness.environmentRequired": "Falta el entorno.",
+  "api.readiness.testProductionMismatch": "TESTSERVICE no puede confirmar la disponibilidad de producción.",
+  "api.readiness.productionTestMismatch": "Producción no puede confirmar la disponibilidad de TESTSERVICE.",
+  "api.readiness.oidcKeysFailed": "No se pudieron cargar las claves OIDC de GitHub.",
+  "api.readiness.workflowRequired": "La disponibilidad solo puede comprobarse mediante el flujo de publicación firmado de ExportHUB.",
+  "api.readiness.failed": "La comprobación de disponibilidad falló."
 }
