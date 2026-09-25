@@ -16,11 +16,13 @@ function readBuilt(file){
 }
 function resilientSource(file='index.html'){
   const html=readBuilt(file);
-  const start=html.indexOf('async function resilientFetch(url,options){');
+  const start=html.indexOf('function apiEndpointLabel(url){');
   const end=html.indexOf('\nasync function jsonFetch(url,options){',start);
-  assert.ok(start>=0,file+': resilientFetch fehlt');
+  assert.ok(start>=0,file+': apiEndpointLabel/resilientFetch fehlt');
   assert.ok(end>start,file+': Ende von resilientFetch fehlt');
-  return html.slice(start,end);
+  const source=html.slice(start,end);
+  assert.match(source,/async function resilientFetch\(url,options\)/,file+': resilientFetch fehlt im Testausschnitt');
+  return source;
 }
 function harness(fetchImpl){
   const source=resilientSource();
