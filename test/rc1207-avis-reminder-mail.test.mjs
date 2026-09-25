@@ -48,7 +48,7 @@ test('RC1207: erfolgreicher Versand schreibt Sendungshistorie und Audit',()=>{
 });
 
 test('RC1207: Frontend zeigt Erfolg und Build liefert API aus',()=>{
- assert.match(runtime,/Erinnerungsmail erfolgreich an/);
+ assert.match(runtime,/avisReminder\.sent/);
  assert.match(runtime,/exporthub:history-updated/);
  assert.match(build,/avis-reminder-mail\/index\.js/);
  assert.match(build,/avis-reminder-mail\/function\.json/);
