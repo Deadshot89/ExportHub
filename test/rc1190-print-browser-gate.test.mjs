@@ -61,7 +61,7 @@ test('RC1275: Browserabnahme prüft Palettenkonto in echtem Ladelisten-Druck',()
   assert.match(spec,/RC1275 P1: Europaletten erscheinen im echten Ladelisten-Druck als Palettenkonto-Ausgang/);
   assert.match(spec,/DEMO01\|Nord/);
   assert.match(spec,/Palettenkonto\/i/);
-  assert.match(spec,/Ausgang:\\\\s\*2\\\\s\*Europaletten\/i/);
+  assert.ok(spec.includes("expect(capture.text).toMatch(/Ausgang:\\s*2\\s*Europaletten/i);"),'Palettenkonto-Ausgang wird im Browsertest nicht geprüft');
   assert.match(spec,/rc1095-pallet-account\/i/);
 });
 
