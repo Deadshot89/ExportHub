@@ -240,5 +240,7 @@
   "api.pod.archiveStateIncomplete": "Archivstatus ist unvollständig und wird neu aufgebaut.",
   "api.pod.archiveNotFound": "Die bestätigte POD-Archivkopie fehlt und wird neu erstellt.",
   "api.pdf.activeContent": "PDFs mit aktivem oder eingebettetem Inhalt sind nicht zulässig ({{label}}).",
-  "api.location.siteRequired": "Standort/Kunde ist erforderlich."
+  "api.location.siteRequired": "Standort/Kunde ist erforderlich.",
+  "api.container.teamSyncUnavailable": "Containerfoto konnte nicht mit der Sendung verknüpft werden.",
+  "api.container.teamSyncFailed": "Containerfoto wurde gespeichert, konnte aber nicht mit der Sendung verknüpft werden. Bitte erneut versuchen."
 }
