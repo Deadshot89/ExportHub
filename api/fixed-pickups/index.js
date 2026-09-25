@@ -4,6 +4,7 @@ const auth = require('../shared/auth-store');
 const fastAuth = require('../shared/fast-auth-store');
 const companies = require('../shared/company-context');
 const store = require('../shared/fixed-pickup-store');
+const apiI18n = require('../shared/i18n');
 
 async function validateSession(req){
   if (fastAuth && typeof fastAuth.isSource === 'function' && fastAuth.isSource(auth)) return fastAuth.validateSession(req);
@@ -17,6 +18,8 @@ function canEditPickupCalendar(user){
   const level = String(right.level || right.access || '').trim().toLowerCase();
   return right.edit === true || right.admin === true || right.functionAdmin === true || level === 'edit' || level === 'admin';
 }
+
+function localizedMessage(req,e,fallback){const raw=String(e&&e.message||'').trim();return /^api\./.test(raw)?apiI18n.t(req,raw,e&&e.vars):raw||apiI18n.t(req,fallback)}
 
 module.exports = async function(context, req){
   const method = String(req && req.method || 'GET').toUpperCase();
@@ -42,6 +45,6 @@ module.exports = async function(context, req){
     const item = await store.update(environment, company.companyKey, id, payload, actor);
     context.res = auth.json(200, {ok:true,item});
   } catch (e) {
-    context.res = auth.json(e && (e.status || e.statusCode) || 500, {ok:false,code:e && e.code || 'FIXED_PICKUPS_FAILED',message:e && e.message || 'Fixe Abholungen konnten nicht verarbeitet werden.'});
+    context.res = auth.json(e && (e.status || e.statusCode) || 500, {ok:false,code:e && e.code || 'FIXED_PICKUPS_FAILED',message:localizedMessage(req,e,'api.common.requestFailed')});
   }
 };
