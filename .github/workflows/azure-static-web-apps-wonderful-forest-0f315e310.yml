@@ -516,11 +516,11 @@ jobs:
           rc1255_mail_status=$?
           set -e
           if [ "$rc1255_mail_status" -ne 0 ]; then
-            echo "::warning title=RC1255 AVIS-Mail P2::Der echte TESTSERVICE-Mailversand ist weiterhin gestört (zuletzt Microsoft Graph HTTP 401). Der P0/P1-Kernrelease bleibt freigegeben; RC1255 bleibt offen und sichtbar."
+            echo "::warning title=RC1255 AVIS-Mail P2::Der echte TESTSERVICE-Mailversand ist blockiert: Microsoft Graph Application Permission Mail.Send fehlt. RC1255 bleibt offen und sichtbar."
             {
               echo '### ⚠ RC1255 AVIS-Mail P2'
-              echo 'Der echte TESTSERVICE-Mailversand ist fehlgeschlagen. Dieser externe P2-Fehler blockiert den P0-MFA-Rollout nicht.'
-              echo 'RC1255 bleibt offen und muss separat behoben werden.'
+              echo 'Der echte TESTSERVICE-Mailversand ist blockiert, weil im App-only Graph-Token die Application Permission Mail.Send fehlt.'
+              echo 'RC1255 bleibt offen, bis Mail.Send mit Admin-Consent in der verwendeten Entra-App freigegeben und der echte Reminder-Mailtest grün ist.'
             } >> "$GITHUB_STEP_SUMMARY"
           else
             echo 'RC1255 echter TESTSERVICE-AVIS-Mailtest grün.'
