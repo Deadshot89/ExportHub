@@ -39,7 +39,7 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
           load2Count:document.querySelectorAll('.rc390-load.rc576-load2').length,
           cmrCount:document.querySelectorAll('.rc390-cmr-wrap').length,
           cmrLabels:Array.from(document.querySelectorAll('.rc390-cmr-copy')).map(node=>String(node.textContent||'').trim()),
-          pages:Array.from(document.querySelectorAll('.rc390-page,.rc352-page')).map(node=>({
+          printDocuments:Array.from(document.querySelectorAll('.rc390-page,.rc352-page,.rc390-cmr-wrap')).map(node=>({
             textLength:String(node.innerText||node.textContent||'').trim().length,
             scrollHeight:Number(node.scrollHeight||0),
             clientHeight:Number(node.clientHeight||0),
@@ -124,10 +124,10 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
   expect(capture.cmrCount).toBe(4);
   expect(capture.cmrLabels.join(' ')).toMatch(/CMR\s*4\s*\/\s*4/i);
   expect(capture.text).toMatch(/Warenbeschreibung/i);
-  expect(capture.pages.length).toBeGreaterThanOrEqual(7);
-  expect(capture.pages.every(p=>p.textLength>40),'Gesamtdruck enthält eine leere oder praktisch leere Dokumentseite').toBe(true);
-  expect(capture.pages.every(p=>p.clientHeight<=0||p.scrollHeight<=p.clientHeight+4),'Gesamtdruck enthält vertikal abgeschnittene Inhalte').toBe(true);
-  expect(capture.pages.every(p=>p.clientWidth<=0||p.scrollWidth<=p.clientWidth+4),'Gesamtdruck enthält horizontal abgeschnittene Inhalte').toBe(true);
+  expect(capture.printDocuments.length).toBe(7);
+  expect(capture.printDocuments.every(p=>p.textLength>40),'Gesamtdruck enthält ein leeres oder praktisch leeres Druckdokument').toBe(true);
+  expect(capture.printDocuments.every(p=>p.clientHeight<=0||p.scrollHeight<=p.clientHeight+4),'Gesamtdruck enthält vertikal abgeschnittene Inhalte').toBe(true);
+  expect(capture.printDocuments.every(p=>p.clientWidth<=0||p.scrollWidth<=p.clientWidth+4),'Gesamtdruck enthält horizontal abgeschnittene Inhalte').toBe(true);
 
   await assertNoSourceLeak(page);
   await assertNoHorizontalOverflow(page);
