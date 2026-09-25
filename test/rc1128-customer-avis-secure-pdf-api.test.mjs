@@ -124,7 +124,7 @@ test('RC1128 API: PDF bleibt bis Defender-Clean ausschließlich in Quarantäne u
   try{
     const bytes=validPdf(),hash=crypto.createHash('sha256').update(bytes).digest('hex');
     let res=await fx.call({action:'upload-document',documentType:'other',file:{name:'Kundenfreigabe.pdf',type:'application/pdf',base64:bytes.toString('base64')}});
-    assert.equal(res.status,202);
+    assert.equal(res.status,202,JSON.stringify(res.body));
     assert.equal(res.body.status,'scanning');
     assert.equal(res.body.upload.id,hash);
     assert.equal(fx.quarantineRecords().length,1);
@@ -138,7 +138,7 @@ test('RC1128 API: PDF bleibt bis Defender-Clean ausschließlich in Quarantäne u
     qRec.tags['Malware scanning scan time']='2026-09-16T12:00:00Z';
 
     res=await fx.call({action:'document-upload-status',uploadId:hash});
-    assert.equal(res.status,200);
+    assert.equal(res.status,200,JSON.stringify(res.body));
     assert.equal(res.body.status,'saved');
     assert.equal(qRec.deleted,true,'Quarantäneblob muss nach Promotion gelöscht werden');
     assert.equal(fx.documentRecords().length,1);
@@ -166,13 +166,13 @@ test('RC1128 API: Defender Malicious löscht Quarantäne und speichert niemals e
   try{
     const bytes=validPdf('MALWARE-SIMULATION'),hash=crypto.createHash('sha256').update(bytes).digest('hex');
     let res=await fx.call({action:'upload-document',documentType:'other',file:{name:'verdacht.pdf',type:'application/pdf',base64:bytes.toString('base64')}});
-    assert.equal(res.status,202);
+    assert.equal(res.status,202,JSON.stringify(res.body));
     const [,qRec]=fx.quarantineRecords()[0];
     qRec.tags['Malware scanning scan result']='Malicious';
     qRec.tags['Malware scanning scan time']='2026-09-16T12:01:00Z';
 
     res=await fx.call({action:'document-upload-status',uploadId:hash});
-    assert.equal(res.status,200);
+    assert.equal(res.status,200,JSON.stringify(res.body));
     assert.equal(res.body.status,'blocked');
     assert.equal(res.body.code,'PDF_MALWARE_DETECTED');
     assert.equal(qRec.deleted,true);
@@ -191,13 +191,13 @@ test('RC1129 API: virenfreies aber fachlich falsches PDF wird nicht als Sendungs
   try{
     const bytes=validPdf('FREMDE-SENDUNG'),hash=crypto.createHash('sha256').update(bytes).digest('hex');
     let res=await fx.call({action:'upload-document',documentType:'other',file:{name:'fremd.pdf',type:'application/pdf',base64:bytes.toString('base64')}});
-    assert.equal(res.status,202);
+    assert.equal(res.status,202,JSON.stringify(res.body));
     const [,qRec]=fx.quarantineRecords()[0];
     qRec.tags['Malware scanning scan result']='No threats found';
     qRec.tags['Malware scanning scan time']='2026-09-16T12:02:00Z';
 
     res=await fx.call({action:'document-upload-status',uploadId:hash});
-    assert.equal(res.status,200);
+    assert.equal(res.status,200,JSON.stringify(res.body));
     assert.equal(res.body.status,'blocked');
     assert.equal(res.body.code,'PDF_SHIPMENT_MISMATCH');
     assert.equal(qRec.deleted,true);
@@ -222,14 +222,14 @@ test('RC1249 API: erfolgreicher Produktionsupload sendet genau eine Despatch-Mai
   try{
     const bytes=validPdf('PRODUCTION-MAIL'),hash=crypto.createHash('sha256').update(bytes).digest('hex');
     let res=await fx.call({action:'upload-document',documentType:'other',file:{name:'Kundenfreigabe.pdf',type:'application/pdf',base64:bytes.toString('base64')}});
-    assert.equal(res.status,202);
+    assert.equal(res.status,202,JSON.stringify(res.body));
     const [qKey,qRec]=fx.quarantineRecords()[0];
     assert.match(qKey,/^exporthub-avis-quarantine\/rc1128\/production\//);
     qRec.tags['Malware scanning scan result']='No threats found';
     qRec.tags['Malware scanning scan time']='2026-09-23T19:10:00Z';
 
     res=await fx.call({action:'document-upload-status',uploadId:hash});
-    assert.equal(res.status,200);
+    assert.equal(res.status,200,JSON.stringify(res.body));
     assert.equal(res.body.status,'saved');
     assert.equal(res.body.mailNotification.ok,true);
     assert.equal(res.body.mailNotification.to,'DespatchNettetal@essentra.onmicrosoft.com');
@@ -255,7 +255,7 @@ test('RC1249 API: TESTSERVICE speichert sauber, verschickt aber keine echte Desp
     qRec.tags['Malware scanning scan time']='2026-09-23T19:11:00Z';
 
     res=await fx.call({action:'document-upload-status',uploadId:hash});
-    assert.equal(res.status,200);
+    assert.equal(res.status,200,JSON.stringify(res.body));
     assert.equal(res.body.status,'saved');
     assert.equal(res.body.mailNotification.ok,true);
     assert.equal(res.body.mailNotification.skipped,true);
@@ -274,7 +274,7 @@ test('RC1249 API: Mailfehler lässt geprüften Kundenupload gespeichert und sich
     qRec.tags['Malware scanning scan time']='2026-09-23T19:12:00Z';
 
     res=await fx.call({action:'document-upload-status',uploadId:hash});
-    assert.equal(res.status,200);
+    assert.equal(res.status,200,JSON.stringify(res.body));
     assert.equal(res.body.status,'saved');
     assert.equal(res.body.mailNotification.ok,false);
     assert.equal(res.body.mailNotification.code,'GRAPH_TIMEOUT');
