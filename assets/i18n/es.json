@@ -1080,5 +1080,7 @@
   "sop.081.flow2": "Introducir cantidad",
   "sop.081.flow3": "Referencia opcional",
   "sop.081.flow4": "Registrar",
-  "sop.081.flow5": "Comprobar saldo"
+  "sop.081.flow5": "Comprobar saldo",
+  "abd.mailPending": "IMPORTANTE – EL DOCUMENTO DE EXPORTACIÓN (ABD) AÚN NO ESTÁ DISPONIBLE\nSe prevé que el ABD esté disponible el {{expected}} aproximadamente a las 10:00. La recogida ya puede reservarse, pero no antes del {{minimum}} a las 10:00.",
+  "mail.closing": "Saludos cordiales"
 }
