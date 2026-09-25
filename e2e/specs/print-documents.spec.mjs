@@ -19,7 +19,6 @@ async function selectLoadingListShipment(page,query,expected){
   await search.fill(query);
   const result=page.locator('[data-rc1283-result]').filter({hasText:expected}).first();
   await expect(result).toBeVisible({timeout:10_000});
-  const value=await result.getAttribute('data-rc1283-result');
   await result.click();
   await expect(page.locator('[data-rc1283-selected]')).toContainText(expected,{timeout:10_000});
   for(const action of ['open','print','download']){
@@ -27,7 +26,6 @@ async function selectLoadingListShipment(page,query,expected){
     await expect(button).toBeVisible();
     await expect(button).toBeEnabled();
   }
-  if(value)await nativeSelect.selectOption(value,{force:true});
   return search;
 }
 
