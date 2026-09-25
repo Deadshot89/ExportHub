@@ -1082,5 +1082,12 @@
   "sop.081.flow4": "Registra",
   "sop.081.flow5": "Controlla saldo",
   "abd.mailPending": "IMPORTANTE – IL DOCUMENTO DI ESPORTAZIONE (ABD) NON È ANCORA DISPONIBILE\nL’ABD dovrebbe essere disponibile il {{expected}} verso le 10:00. Il ritiro può già essere prenotato, ma non prima del {{minimum}} alle 10:00.",
-  "mail.closing": "Cordiali saluti"
+  "mail.closing": "Cordiali saluti",
+  "loadingList.title": "Cerca lista di carico",
+  "loadingList.description": "Cerca per numero di riferimento, cliente, allegato/nome file o nota.",
+  "loadingList.placeholder": "Riferimento, cliente, allegato o nota",
+  "loadingList.selected": "Selezionato:",
+  "loadingList.noneSelected": "Nessuna lista di carico selezionata.",
+  "loadingList.hint": "Inserisci riferimento, cliente, allegato/nome file o nota.",
+  "loadingList.noResults": "Nessuna lista di carico corrispondente trovata."
 }
