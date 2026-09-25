@@ -249,5 +249,6 @@
   "api.location.actionFailed": "Operacja magazynowa nie powiodła się.",
   "api.container.photoLabel.loaded": "Załadowany kontener",
   "api.container.photoLabel.number": "Numer kontenera od wewnątrz",
-  "api.container.photoLabel.sealed": "Zaplombowany kontener · plomba/oznaczenia/dokumenty"
+  "api.container.photoLabel.sealed": "Zaplombowany kontener · plomba/oznaczenia/dokumenty",
+  "api.fixedPickups.failed": "Nie udało się przetworzyć stałych odbiorów."
 }
