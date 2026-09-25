@@ -4,6 +4,15 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const source=fs.readFileSync('assets/rc1071-shipment-history.js','utf8');
+const historyDe=JSON.parse(fs.readFileSync('assets/i18n/de.json','utf8'));
+function historyI18n(){
+  return {
+    language(){return 'de'},
+    t(key,vars){let value=historyDe[key]||key;if(vars)for(const [name,v] of Object.entries(vars))value=value.replaceAll('{{'+name+'}}',String(v));return value},
+    formatDate(value,options){return new Intl.DateTimeFormat('de-DE',options||{}).format(value)}
+  };
+}
+
 
 function setup(){
   const documentEvents=new Map();
@@ -21,6 +30,7 @@ function setup(){
     querySelectorAll(){return[]}
   };
   const window={
+    ExportHUBI18n:historyI18n(),
     document,
     console,
     ExportHUBRC565:{async persistShipment(){return true}},

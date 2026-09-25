@@ -28,7 +28,7 @@ test('RC1073: abgeschlossene Dokumentmigration bleibt unsichtbar, echter Restbes
   assert.match(block,/inlinePayloadCount/);
   assert.match(block,/if\(remaining<=0\)\{removeCard\(\);return false\}/);
   assert.match(block,/createElement\(['"]section['"]\)/);
-  assert.match(block,/Alle verbleibenden migrieren/);
+  assert.match(block,/migration\.runAll/);
   assert.match(block,/runAll\(/);
   assert.match(block,/setTimeout\(removeCard,1800\)/);
   assert.doesNotMatch(block,/MutationObserver/);
@@ -97,7 +97,7 @@ test('RC1069: Draft-Sync Endpoint aktualisiert Snapshot ohne Team-Blob zu lesen 
 
 test('RC1069: alter Speichern-Hinweis ist entfernt und Browser laden frischen Avis-Cache-Key',()=>{
   assert.doesNotMatch(MAIL,/Link wird beim ersten sicheren Speichern erstellt/);
-  assert.match(MAIL,/Link wird sofort aus dem aktuellen Entwurf erstellt und während der Eingabe aktualisiert/);
+  assert.match(MAIL,/avisFlow\.activeHelp/);
   assert.match(FIXER,/rc1027-lieferavis-immediate\.js\?v=1069/);
   assert.doesNotMatch(FIXER,/rc1027-lieferavis-immediate\.js\?v=1052/);
 });

@@ -18,6 +18,7 @@ test('SOP bleibt auf schmalen Displays einspaltig lesbar',()=>{
 
 test('Fehlende SOP-Bilder werden durch sichtbaren Hinweis ersetzt',()=>{
   assert.match(ui,/function\s+handleImageError\s*\(/);
-  assert.match(ui,/Bild konnte nicht geladen werden/);
+  assert.match(ui,/sop\.imageLoadFailed/);
+  assert.doesNotMatch(ui,/>Bild konnte nicht geladen werden</);
   assert.match(ui,/addEventListener\(['"]error['"]/);
 });

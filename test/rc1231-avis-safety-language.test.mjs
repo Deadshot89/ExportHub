@@ -16,8 +16,9 @@ test('RC1231: AVIS Sicherheitsblock ist vollständig DE/EN übersetzt',()=>{
   assert.match(runtime,/anzugeben\.':'must be provided at pickup\.'/);
 });
 
-test('RC1231: englische Mail-/Avis-Sprache wird im Link an die AVIS-Seite weitergegeben',()=>{
-  assert.match(mailFlow,/searchParams\.set\('lang',lang==='en'\?'en':'de'\)/);
+test('RC1267: alle Mail-/Avis-Sprachen werden im Link an die AVIS-Seite weitergegeben',()=>{
+  assert.match(mailFlow,/searchParams\.set\('lang',lang\)/);
+  assert.match(mailFlow,/de\|en\|pl\|es\|fr\|it/);
   assert.match(page,/rc1018-public-language\.js\?v=1231/);
   assert.match(runtime,/searchParams\.get\('lang'\)/);
 });

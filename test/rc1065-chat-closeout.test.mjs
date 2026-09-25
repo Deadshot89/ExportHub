@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {createTestI18n} from './helpers/i18n.mjs';
 
 const read=p=>fs.readFileSync(p,'utf8');
 
@@ -68,8 +69,8 @@ test('RC1065: Wochenplan bleibt A4 Mo-Fr und NEFF wird erneut aus Live-Daten ent
   const js=read('assets/abholkalender.js');
   const runtime=read('assets/rc1012-abholkalender-runtime.js');
   const seed=read('api/shared/rc1014-fixed-pickup-seed.js');
-  assert.match(js,/const WEEKDAYS = Object\.freeze\(\{1:'Montag',2:'Dienstag',3:'Mittwoch',4:'Donnerstag',5:'Freitag'\}\)/);
-  assert.match(js,/Ref: \$\{esc\(ref\)\} · Anzahl: \$\{collis\.expected\}/);
+  assert.match(js,/const WEEKDAY_KEYS = Object\.freeze\(\{1:'pickupCalendar\.weekday\.1',2:'pickupCalendar\.weekday\.2',3:'pickupCalendar\.weekday\.3',4:'pickupCalendar\.weekday\.4',5:'pickupCalendar\.weekday\.5'\}\)/);
+  assert.match(js,/pickupCalendar\.print\.reference/); assert.match(js,/pickupCalendar\.print\.quantity/);
   assert.match(runtime,/@page\{size:A4 landscape/);
   assert.match(seed,/const SEED_VERSION = 9;/);
   assert.match(seed,/isRemovedNeff/);
@@ -78,8 +79,8 @@ test('RC1065: Wochenplan bleibt A4 Mo-Fr und NEFF wird erneut aus Live-Daten ent
 test('RC1065: Gate41 zeigt fehlende Tarifwerte nicht als korrekten Nulltarif',()=>{
   const ui=read('assets/rc1013-gate41-ui.js');
   assert.doesNotMatch(ui,/if\(!national\)base\.value='0\.00'/);
-  assert.match(ui,/nicht berechenbar/);
-  assert.match(ui,/Für Deutschland konnte trotz gültiger Paletten- und Gewichtsdaten kein Grundtarif berechnet werden/);
+  assert.match(ui,/gate41\.unavailable/);
+  assert.match(ui,/gate41\.noRate/);
 });
 
 test('RC1065: Avis-Ausnahmen und Pflicht-CC bleiben verbindlich',()=>{
@@ -93,7 +94,7 @@ test('RC1065: Avis-Ausnahmen und Pflicht-CC bleiben verbindlich',()=>{
   assert.match(cc,/Daniel Ollmann/);
   assert.match(cc,/SevastianMarcu@essentra\.com/);
   assert.match(cc,/DanielOllmann@essentra\.com/);
-  assert.match(cc,/Pflicht-CC konnte nicht aufgelöst werden/);
+  assert.match(cc,/registrationCc\.blocked/);
   assert.match(fixer,/rc1065-registration-cc\.js\?v=1093/);
   assert.match(finalBuilder,/RC1065_CC_TAG/);
   assert.match(finalBuilder,/rc1065-registration-cc\.js\?v=1093/);
@@ -114,7 +115,7 @@ test('RC1065: Pflicht-CC Runtime nutzt die persistente Settings-Konfiguration un
     {name:'Sevastian Marcu',email:'sevastian@example.com'},
     {name:'Daniel Ollmann',email:'daniel@example.com'}
   ]}};
-  const window={__EXPORTHUB_GET_STATE__:()=>appState};
+  const window={ExportHUBI18n:createTestI18n('de'),__EXPORTHUB_GET_STATE__:()=>appState};
   const context={window,URLSearchParams,console};
   vm.runInNewContext(source,context,{filename:'rc1065-registration-cc.js'});
   const api=window.ExportHUBRC1065RegistrationCC;
@@ -150,7 +151,7 @@ test('RC1089: Pflicht-CC erkennt Benutzer auch bei Kurzname oder abweichendem Lo
     {name:'Sevastian',email:'SevastianMarcu@essentra.com'},
     {name:'Daniel',user:'D.Ollmann',email:'DanielOllmann@essentra.com'}
   ]};
-  const window={__EXPORTHUB_GET_STATE__:()=>appState};
+  const window={ExportHUBI18n:createTestI18n('de'),__EXPORTHUB_GET_STATE__:()=>appState};
   const context={window,URLSearchParams,console};
   vm.runInNewContext(source,context,{filename:'rc1065-registration-cc.js'});
   const prepared=window.ExportHUBRC1065RegistrationCC.prepare('mailto:carrier@example.com?subject=Sendungsanmeldung%20ABC123');
@@ -164,7 +165,7 @@ test('RC1089: Pflicht-CC erkennt Benutzer auch bei Kurzname oder abweichendem Lo
 test('RC1089: bestätigte Pflicht-CC-Adressen funktionieren auch ohne Benutzerstamm oder gespeicherte CC-Einstellungen',()=>{
   const source=read('assets/rc1065-registration-cc.js');
   const appState={settings:{}};
-  const window={__EXPORTHUB_GET_STATE__:()=>appState};
+  const window={ExportHUBI18n:createTestI18n('de'),__EXPORTHUB_GET_STATE__:()=>appState};
   const context={window,URLSearchParams,console};
   vm.runInNewContext(source,context,{filename:'rc1065-registration-cc.js'});
   const prepared=window.ExportHUBRC1065RegistrationCC.prepare('mailto:carrier@example.com?subject=Sendungsanmeldung%20ABC123');
@@ -182,7 +183,7 @@ test('RC1089: Pflicht-CC durchsucht auch verschachtelte Benutzerlisten und Profi
     {displayName:'Sevastian Marcu',profile:{email:'sevastian.marcu@example.com'}},
     {displayName:'Daniel Ollmann',contact:{emailAddress:'daniel.ollmann@example.com'}}
   ]}};
-  const window={__EXPORTHUB_GET_STATE__:()=>appState};
+  const window={ExportHUBI18n:createTestI18n('de'),__EXPORTHUB_GET_STATE__:()=>appState};
   const context={window,URLSearchParams,console};
   vm.runInNewContext(source,context,{filename:'rc1065-registration-cc.js'});
   const resolved=window.ExportHUBRC1065RegistrationCC.resolve();
@@ -195,7 +196,7 @@ test('RC1065: Pflicht-CC Settings speichern bestätigt in Azure und rollen bei F
   const source=read('assets/rc1065-registration-cc.js');
   const appState={settings:{}};
   const calls=[];
-  const window={
+  const window={ExportHUBI18n:createTestI18n('de'),
     __EXPORTHUB_GET_STATE__:()=>appState,
     ExportHUBClean:{
       async queueSave(reason){calls.push(['queue',reason]);return true},
@@ -224,7 +225,7 @@ test('RC1065: Pflicht-CC Settings speichern bestätigt in Azure und rollen bei F
 test('RC1065: Global Admin kann beide Pflicht-CC-Adressen in Einstellungen dauerhaft pflegen',()=>{
   const source=read('assets/rc1065-registration-cc.js');
   assert.match(source,/rc1065RegistrationCcSettings/);
-  assert.match(source,/Pflicht-CC speichern/);
+  assert.match(source,/registrationCc\.save/);
   assert.match(source,/Sevastian Marcu/);
   assert.match(source,/Daniel Ollmann/);
   assert.match(source,/settings\.registrationMandatoryCc=next/);
@@ -259,7 +260,7 @@ test('RC1093: Pflicht-CC Asset wird mit neuer Cache-Version ausgeliefert',()=>{
 test('RC1093: bestätigte Pflicht-CC-Fallbacks machen die Anmeldung unabhängig vom Benutzerstamm',()=>{
   const source=read('assets/rc1065-registration-cc.js');
   const appState={users:[],settings:{}};
-  const window={__EXPORTHUB_GET_STATE__:()=>appState};
+  const window={ExportHUBI18n:createTestI18n('de'),__EXPORTHUB_GET_STATE__:()=>appState};
   const context={window,URLSearchParams,console};
   vm.runInNewContext(source,context,{filename:'rc1065-registration-cc.js'});
   const prepared=window.ExportHUBRC1065RegistrationCC.prepare('mailto:carrier@example.com?subject=Sendungsanmeldung%20ABC123');
