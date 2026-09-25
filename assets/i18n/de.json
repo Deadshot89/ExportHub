@@ -855,7 +855,7 @@
   "container.view": "Ansehen",
   "container.download": "Herunterladen",
   "container.configTitle": "🚢 Luft / See & Container",
-  "container.configHelpShort": "Container-Nachweise werden über den Abhol-QR erfasst.",
+  "container.configHelpShort": "Siegelnummer kann bereits auf der Hauptseite gepflegt werden; Fotos werden über den Abhol-QR aufgenommen.",
   "container.transportMode": "Transportart",
   "container.notSet": "Nicht festgelegt",
   "container.road": "Straße",
@@ -1082,5 +1082,7 @@
   "sop.081.flow4": "Buchen",
   "sop.081.flow5": "Bestand prüfen",
   "abd.mailPending": "WICHTIG – ABD NOCH NICHT VORHANDEN\nDas Ausfuhrbegleitdokument (ABD) liegt noch nicht vor. Voraussichtliche Bereitstellung: {{expected}} gegen 10:00 Uhr. Die Abholung kann bereits gebucht werden, jedoch frühestens für {{minimum}} ab 10:00 Uhr.",
-  "mail.closing": "Mit freundlichen Grüßen"
+  "mail.closing": "Mit freundlichen Grüßen",
+  "container.sealInput": "Siegelnummer",
+  "container.sealPlaceholder": "z. B. ABCD123456"
 }
