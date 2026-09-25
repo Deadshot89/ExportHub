@@ -5,6 +5,8 @@ w.__EXPORTHUB_RC1063_ABD_BLOB_VIEWER_COMPAT__=true;
 w.__EXPORTHUB_RC1151_DOCUMENT_ACTIONS__=true;
 
 function q(v){return String(v==null?'':v).trim()}
+function tr(key,vars){try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.t==='function')return w.ExportHUBI18n.t(key,vars)}catch(_){}return key}
+function typeDisplay(type){var map={Rechnung:'shipmentHistory.document.invoice',Lieferschein:'shipmentHistory.document.deliveryNote',Ladeliste:'shipmentHistory.document.loadingList',Dokument:'shipmentHistory.document.generic'};return map[type]?tr(map[type]):type}
 function low(v){return q(v).toLocaleLowerCase('de-DE')}
 function arr(v){return Array.isArray(v)?v:[]}
 function state(){try{if(typeof w.__EXPORTHUB_GET_STATE__==='function')return w.__EXPORTHUB_GET_STATE__()||{}}catch(_){}return w.ExportHUBClean&&w.ExportHUBClean.state||w.appState||{}}
@@ -21,7 +23,7 @@ function helper(){return w.ExportHUBDocumentBlob1059||null}
 function fileOf(d){return d&&d.file&&typeof d.file==='object'?d.file:d}
 function isBlob(d){var h=helper(),f=fileOf(d);return !!(h&&typeof h.isBlobDocument==='function'&&h.isBlobDocument(f))}
 function sourceAvailable(d){var h=helper(),f=fileOf(d);if(!h||!f)return false;if(typeof h.isBlobDocument==='function'&&h.isBlobDocument(f))return true;return typeof h.legacyUrl==='function'&&!!h.legacyUrl(f)}
-function nameOf(d){var f=fileOf(d)||{};return q(d&&d.name||f.name||f.fileName||f.filename||f.originalName||'Dokument')}
+function nameOf(d){var f=fileOf(d)||{};return q(d&&d.name||f.name||f.fileName||f.filename||f.originalName)||tr('shipmentHistory.document.generic')}
 function inferType(d,fallback){
  var raw=low((d&&d.documentType)+' '+(d&&d.category)+' '+nameOf(d));
  if(/rechnung|invoice/.test(raw))return'Rechnung';
@@ -65,11 +67,11 @@ function actionButton(kind,index,label){
 function createRow(d,index){
  var row=w.document.createElement('div');row.className='rc786-doc-row';row.setAttribute('data-rc1151-document-row',docKey(d));
  var main=w.document.createElement('div');main.className='rc786-doc-main';
- var title=w.document.createElement('strong');title.textContent=typeOf(d);
+ var title=w.document.createElement('strong');title.textContent=typeDisplay(typeOf(d));
  var name=w.document.createElement('span');name.className='muted';name.textContent=nameOf(d);
  main.appendChild(title);main.appendChild(name);
  var actions=w.document.createElement('div');actions.className='rc786-doc-actions';
- actions.appendChild(actionButton('open',index,'Öffnen'));actions.appendChild(actionButton('download',index,'Download'));
+ actions.appendChild(actionButton('open',index,tr('documentViewer.open')));actions.appendChild(actionButton('download',index,tr('documentViewer.download')));
  row.appendChild(main);row.appendChild(actions);return row
 }
 function patchRows(){
@@ -79,8 +81,8 @@ function patchRows(){
  rows.forEach(function(row,index){
   var d=list[index];if(!sourceAvailable(d))return;
   var actions=row.querySelector('.rc786-doc-actions');if(!actions)return;
-  if(!actions.querySelector('[data-rc1063-open-blob]')){actions.appendChild(actionButton('open',index,'Öffnen'));changed=true}
-  if(!actions.querySelector('[data-rc1063-download-blob]')){actions.appendChild(actionButton('download',index,'Download'));changed=true}
+  if(!actions.querySelector('[data-rc1063-open-blob]')){actions.appendChild(actionButton('open',index,tr('documentViewer.open')));changed=true}
+  if(!actions.querySelector('[data-rc1063-download-blob]')){actions.appendChild(actionButton('download',index,tr('documentViewer.download')));changed=true}
  });
  for(var i=rows.length;i<list.length;i++){
   var d=list[i];if(!sourceAvailable(d))continue;
@@ -95,11 +97,11 @@ function emitAction(d,download){
 }
 async function openBlob(index,download){
  var d=docs()[Number(index)],h=helper(),f=fileOf(d);
- if(!d||!h||typeof h.open!=='function'||!sourceAvailable(d))throw new Error('Dokument ist nicht verfügbar.');
+ if(!d||!h||typeof h.open!=='function'||!sourceAvailable(d))throw new Error(tr('documentViewer.unavailable'));
  var result=await h.open(f,{name:nameOf(d),download:download===true});
  emitAction(d,download===true);return result
 }
-function reportError(e){try{w.alert('Die Datei konnte nicht geöffnet werden.\n\n'+q(e&&e.message||e))}catch(_){}}
+function reportError(e){try{w.alert(tr('documentViewer.openFailed')+'\n\n'+q(e&&e.message||e))}catch(_){}}
 var panelObserver=null,observedPanel=null,probeTimer=0;
 function stopViewerProbe(){
  if(!probeTimer)return;
@@ -141,7 +143,7 @@ if(w.document){
   var open=t.getAttribute('data-rc1063-open-blob'),down=t.getAttribute('data-rc1063-download-blob');
   openBlob(open!=null?open:down,down!=null).catch(reportError);
  },true);
- ['exporthub:ready','exporthub:rendered','exporthub:viewchange'].forEach(function(name){
+ ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:language-changed'].forEach(function(name){
   try{w.addEventListener(name,function(){scheduleViewerRefresh(true)})}catch(_){}
  });
  try{w.addEventListener('exporthub:sync',function(){scheduleViewerRefresh(false)})}catch(_){}

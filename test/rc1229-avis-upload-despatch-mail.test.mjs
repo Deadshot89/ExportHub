@@ -23,15 +23,15 @@ test('RC1229: Mail wird erst nach erfolgreichem Speichern und fachlicher Prüfun
   const save=api.indexOf('const shipment=await updateCustomerUploadOutcome');
   const mail=api.indexOf('const mailNotification=await notifyDespatchCustomerUpload');
   assert.ok(save>=0&&mail>save,'Mail darf erst nach persistiertem Kundendokument ausgelöst werden');
-  assert.match(api,/Virenprüfung und fachliche Sendungszuordnung erfolgreich/);
+  assert.match(api,/api\.avis\.mailPassed/);
 });
 
 test('RC1229: Mail enthält Druckhinweis und Upload-Identifikation',()=>{
-  assert.match(api,/Sendungsreferenz:/);
-  assert.match(api,/Kunde:/);
-  assert.match(api,/Dokument:/);
-  assert.match(api,/PDF öffnen \/ drucken/);
-  assert.match(api,/Neues AVIS-Dokument/);
+  assert.match(api,/api\.avis\.mailReference/);
+  assert.match(api,/api\.avis\.mailCustomer/);
+  assert.match(api,/api\.avis\.mailDocument/);
+  assert.match(api,/api\.avis\.mailAction/);
+  assert.match(api,/api\.avis\.mailSubject/);
 });
 
 test('RC1229: Mailfehler blockiert den bereits erfolgreichen Kundenupload nicht',()=>{

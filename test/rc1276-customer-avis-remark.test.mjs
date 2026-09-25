@@ -6,7 +6,9 @@ const api=fs.readFileSync('api/customer-avis/index.js','utf8');
 const page=fs.readFileSync('customer-avis.html','utf8');
 
 test('RC1276: Sendungs-Bemerkung wird im AVIS-Payload freigegeben',()=>{
-  assert.match(api,/remark:text\(sh\.remark\|\|sh\.remarks\|\|sh\.bemerkung\|\|sh\.comments\|\|sh\.comment\|\|sh\.note\|\|sh\.notes\|\|sh\.shipmentRemark\)/);
+  assert.match(api,/function localizedShipmentRemark\(sh,language\)/);
+  assert.match(api,/remark:localizedShipmentRemark\(sh,language\)/);
+  assert.match(api,/dynamicI18n\.localizedValue\(sh,key,language\)/);
   for(const field of ['remark','remarks','bemerkung','comments','comment','note','notes','shipmentRemark']){
     assert.match(api,new RegExp("'"+field+"'"),field+' fehlt im Draft-Vertrag');
   }

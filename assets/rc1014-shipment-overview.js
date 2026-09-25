@@ -2,6 +2,8 @@
   'use strict';
 
   const q=v=>String(v==null?'':v).trim();
+  const tr=(key,vars)=>{try{if(root.ExportHUBI18n&&typeof root.ExportHUBI18n.t==='function')return root.ExportHUBI18n.t(key,vars)}catch(_){}return key};
+  const formatDateValue=(date)=>{try{if(root.ExportHUBI18n&&typeof root.ExportHUBI18n.formatDate==='function')return root.ExportHUBI18n.formatDate(date,{day:'2-digit',month:'2-digit',year:'numeric'})}catch(_){}return date.toLocaleDateString(undefined,{day:'2-digit',month:'2-digit',year:'numeric'})};
   const arr=v=>Array.isArray(v)?v:[];
   const obj=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
   let remembered=[];
@@ -27,21 +29,16 @@
     if(!raw)return '—';
     const date=new Date(raw);
     if(Number.isNaN(date.getTime()))return '—';
-    const day=String(date.getDate()).padStart(2,'0');
-    const month=String(date.getMonth()+1).padStart(2,'0');
-    return `${day}.${month}.${date.getFullYear()}`;
+    return formatDateValue(date);
   }
 
   function formatPickupDate(value){
     const raw=q(value);
     if(!raw)return '';
     const ymd=raw.match(/^(\d{4})-(\d{2})-(\d{2})(?:$|T)/);
-    if(ymd)return `${ymd[3]}.${ymd[2]}.${ymd[1]}`;
-    const date=new Date(raw);
+    const date=ymd?new Date(Number(ymd[1]),Number(ymd[2])-1,Number(ymd[3])):new Date(raw);
     if(Number.isNaN(date.getTime()))return raw;
-    const day=String(date.getDate()).padStart(2,'0');
-    const month=String(date.getMonth()+1).padStart(2,'0');
-    return `${day}.${month}.${date.getFullYear()}`;
+    return formatDateValue(date);
   }
 
   function customerPickupMeta(shipment){
@@ -53,9 +50,9 @@
     const timeTo=q(sh.customerAvisPickupTimeTo||sh.avisPickupTimeTo);
     let window='';
     if(timeFrom&&timeTo)window=timeFrom+'–'+timeTo;
-    else if(timeFrom)window='ab '+timeFrom;
-    else if(timeTo)window='bis '+timeTo;
-    return {date,timeFrom,timeTo,label:'Kunden-Abholung: '+date+(window?' · '+window:'')};
+    else if(timeFrom)window=tr('shipmentOverview.fromTime',{time:timeFrom});
+    else if(timeTo)window=tr('shipmentOverview.untilTime',{time:timeTo});
+    return {date,timeFrom,timeTo,label:tr('shipmentOverview.customerPickup',{date:date,window:window?' · '+window:''})};
   }
 
   function rowQuantity(row){
@@ -95,8 +92,8 @@
       customerPickupDate:customerPickup.date,
       customerPickupTimeFrom:customerPickup.timeFrom,
       customerPickupTimeTo:customerPickup.timeTo,
-      createdLabel:`Erfasst: ${created}`,
-      colliLabel:`Colli: ${colli}`,
+      createdLabel:tr('shipmentOverview.created',{date:created}),
+      colliLabel:tr('shipmentOverview.colli',{count:colli}),
       customerPickupLabel:customerPickup.label,
       container
     };
@@ -136,13 +133,13 @@
   }
 
   function apiHeaders(){
-    const token=authToken();if(!token)throw new Error('ExportHUB-Sitzung ist nicht mehr gültig.');
+    const token=authToken();if(!token)throw new Error(tr('shipmentOverview.sessionExpired'));
     return{'Accept':'*/*','Cache-Control':'no-cache','X-ExportHUB-Token':token,'X-ExportHUB-Session':token,'Authorization':'Bearer '+token,'X-ExportHUB-Environment':currentEnvironment()};
   }
 
   async function fetchContainerBlob(shipment,photo){
     const url=photoUrl(shipment,photo,false),res=await root.fetch(url,{method:'GET',headers:apiHeaders(),credentials:'same-origin',cache:'no-store'});
-    if(!res.ok){let msg='Containerfoto konnte nicht geladen werden.';try{const d=await res.json();msg=q(d&&d.message)||msg}catch(_){}throw new Error(msg)}
+    if(!res.ok){let msg=tr('container.photoLoadFailed');try{const d=await res.json();msg=q(d&&d.message)||msg}catch(_){}throw new Error(msg)}
     return res.blob();
   }
 
@@ -155,7 +152,7 @@
         const blob=await fetchContainerBlob(shipment,photo),url=URL.createObjectURL(blob);
         img.onload=function(){setTimeout(function(){try{URL.revokeObjectURL(url)}catch(_){}},0)};
         img.src=url;
-      }catch(e){img.alt=(img.alt||'Containerfoto')+' · nicht ladbar'}
+      }catch(e){img.alt=tr('container.photoUnavailable')}
     });
   }
 
@@ -163,11 +160,11 @@
     try{
       const blob=await fetchContainerBlob(shipment,photo),url=URL.createObjectURL(blob);
       if(download){
-        const a=root.document.createElement('a');a.href=url;a.download=q(photo&&photo.name)||'Containerfoto.jpg';root.document.body.appendChild(a);a.click();a.remove();setTimeout(function(){try{URL.revokeObjectURL(url)}catch(_){}},30000)
+        const a=root.document.createElement('a');a.href=url;a.download=q(photo&&photo.name)||'container-photo.jpg';root.document.body.appendChild(a);a.click();a.remove();setTimeout(function(){try{URL.revokeObjectURL(url)}catch(_){}},30000)
       }else{
         const w=root.open(url,'_blank','noopener');if(!w)setTimeout(function(){try{URL.revokeObjectURL(url)}catch(_){}},30000);else setTimeout(function(){try{URL.revokeObjectURL(url)}catch(_){}},120000)
       }
-    }catch(e){try{root.alert('Containerfoto konnte nicht geöffnet werden.\n\n'+q(e&&e.message||e))}catch(_){}}
+    }catch(e){try{root.alert(tr('container.photoOpenFailed')+'\n\n'+q(e&&e.message||e))}catch(_){}}
     return false;
   }
 
@@ -216,21 +213,22 @@
     wrap.className='rc1259-container-docs';
     wrap.setAttribute('data-rc1259-container-docs','1');
     const head=doc.createElement('div');head.className='rc1259-container-head';
-    const title=doc.createElement('strong');title.textContent='🚢 Container-Dokumentation';
-    const status=doc.createElement('span');status.className='rc1259-container-status';status.textContent=(meta.required?'Pflicht · ':'')+'Fotos '+meta.count+'/3'+(meta.seal?' · Siegel '+meta.seal:'');
+    const title=doc.createElement('strong');title.textContent=tr('container.documentation');
+    const status=doc.createElement('span');status.className='rc1259-container-status';status.textContent=(meta.required?tr('container.required')+' · ':'')+tr('container.photos',{count:meta.count})+(meta.seal?' · '+tr('container.seal',{seal:meta.seal}):'');
     head.appendChild(title);head.appendChild(status);wrap.appendChild(head);
     if(meta.seal){
-      const seal=doc.createElement('div');seal.className='rc1259-seal-search';seal.textContent='Siegelnummer: '+meta.seal;seal.setAttribute('data-container-seal',meta.seal);wrap.appendChild(seal);
+      const seal=doc.createElement('div');seal.className='rc1259-seal-search';seal.textContent=tr('container.sealNumber',{seal:meta.seal});seal.setAttribute('data-container-seal',meta.seal);wrap.appendChild(seal);
     }
     if(meta.photos.length){
       const grid=doc.createElement('div');grid.className='rc1259-photo-grid';
       meta.photos.forEach(photo=>{
         const item=doc.createElement('div');item.className='rc1259-photo-item';
-        const img=doc.createElement('img');img.alt=q(photo.label||photo.name)||'Containerfoto';img.loading='lazy';img.setAttribute('data-rc1259-photo-id',q(photo.id));
-        const label=doc.createElement('b');label.textContent=q(photo.label||photo.name)||'Containerfoto';
+        const display=q(photo.label||photo.name)||tr('container.photoDefault');
+        const img=doc.createElement('img');img.alt=display;img.loading='lazy';img.setAttribute('data-rc1259-photo-id',q(photo.id));
+        const label=doc.createElement('b');label.textContent=display;
         const actions=doc.createElement('div');actions.className='rc1259-photo-actions';
-        const open=doc.createElement('button');open.type='button';open.textContent='Ansehen';open.addEventListener('click',()=>openContainerPhoto(shipment,photo,false));
-        const down=doc.createElement('button');down.type='button';down.textContent='Herunterladen';down.addEventListener('click',()=>openContainerPhoto(shipment,photo,true));
+        const open=doc.createElement('button');open.type='button';open.textContent=tr('container.view');open.addEventListener('click',()=>openContainerPhoto(shipment,photo,false));
+        const down=doc.createElement('button');down.type='button';down.textContent=tr('container.download');down.addEventListener('click',()=>openContainerPhoto(shipment,photo,true));
         actions.appendChild(open);actions.appendChild(down);item.appendChild(img);item.appendChild(label);item.appendChild(actions);grid.appendChild(item);
       });
       wrap.appendChild(grid);
@@ -356,7 +354,7 @@
     const panel=doc.createElement('div');
     panel.className='rc1259-container-config';
     panel.setAttribute('data-rc1259-container-config','1');
-    panel.innerHTML='<div class="rc1259-config-title"><strong>🚢 Luft / See & Container</strong><span>Container-Nachweise werden über den Abhol-QR erfasst.</span></div><div class="rc1259-config-grid"><label>Transportart<select data-rc1259-transport><option value="">Nicht festgelegt</option><option value="road">Straße</option><option value="air">Luftfracht</option><option value="sea">Seefracht</option></select></label><label class="rc1259-required-label"><input type="checkbox" data-rc1259-required> Container-Dokumentation verpflichtend</label></div><div class="rc1259-config-help">Bei Seefracht nur aktivieren, wenn ein Container dokumentiert werden muss. Dann verlangt die QR-Abholung Siegelnummer sowie 3 Fotos: geladen, Container-Nummer innen und versiegelt mit Kennzeichen/Papieren.</div>';
+    panel.innerHTML='<div class="rc1259-config-title"><strong>'+tr('container.configTitle')+'</strong><span>'+tr('container.configHelpShort')+'</span></div><div class="rc1259-config-grid"><label>'+tr('container.transportMode')+'<select data-rc1259-transport><option value="">'+tr('container.notSet')+'</option><option value="road">'+tr('container.road')+'</option><option value="air">'+tr('container.air')+'</option><option value="sea">'+tr('container.sea')+'</option></select></label><label class="rc1259-required-label"><input type="checkbox" data-rc1259-required> '+tr('container.requiredDocumentation')+'</label></div><div class="rc1259-config-help">'+tr('container.configHelp')+'</div>';
     const select=panel.querySelector('[data-rc1259-transport]'),check=panel.querySelector('[data-rc1259-required]');
     if(select)select.addEventListener('change',()=>{const sea=select.value==='sea';if(check){check.disabled=!sea;if(!sea)check.checked=false}writeContainerConfig(select.value,check&&check.checked)});
     if(check)check.addEventListener('change',()=>writeContainerConfig(select&&select.value,check.checked));
@@ -401,7 +399,7 @@
 
   if(root.addEventListener){
     root.addEventListener('exporthub:rendered',onRendered);
-    ['exporthub:viewchange','exporthub:shipment-updated','exporthub:overview-updated','exporthub:state-loaded','exporthub:shipment-saved'].forEach(name=>root.addEventListener(name,scheduleEnhance));
+    ['exporthub:viewchange','exporthub:shipment-updated','exporthub:overview-updated','exporthub:state-loaded','exporthub:shipment-saved','exporthub:language-changed'].forEach(name=>root.addEventListener(name,scheduleEnhance));
   }
 
   root.ExportHUBRC1014ShipmentOverview=Object.freeze({

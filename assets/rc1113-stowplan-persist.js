@@ -6,6 +6,8 @@ window.__EXPORTHUB_RC1113_STOWPLAN_PERSIST__=true;
 var VERSION='RC1113',saveTimer=0,lastRenderedSignature='';
 
 function q(v){return String(v==null?'':v).trim()}
+function tr(key,vars){try{if(window.ExportHUBI18n&&typeof window.ExportHUBI18n.t==='function')return window.ExportHUBI18n.t(key,vars)}catch(_){}return key}
+function fmtNumber(v){try{if(window.ExportHUBI18n&&typeof window.ExportHUBI18n.formatNumber==='function')return window.ExportHUBI18n.formatNumber(v,{minimumFractionDigits:2,maximumFractionDigits:2})}catch(_){}return Number(v).toFixed(2)}
 function num(v){var n=Number(String(v==null?'':v).replace(',','.'));return Number.isFinite(n)?n:0}
 function arr(v){return Array.isArray(v)?v:[]}
 function round(v,d){var p=Math.pow(10,d||0);return Math.round(num(v)*p)/p}
@@ -61,11 +63,11 @@ function renderActualLdm(sh){
  if(!sh||typeof sh!=='object')return false;
  var el=document.getElementById('rc344Sum_ldm');if(!el)return false;
  var summary=actualLdmSummary(shipmentRows(sh)),label=el.previousElementSibling;
- if(label&&label.textContent!=='Tatsächliche LDM')label.textContent='Tatsächliche LDM';
- var text=summary.complete?num(summary.ldm).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2}):'Maße fehlen';
+ if(label&&label.textContent!==tr('stowplan.actualLdm'))label.textContent=tr('stowplan.actualLdm');
+ var text=summary.complete?fmtNumber(num(summary.ldm)):tr('stowplan.dimensionsMissing');
  if(el.textContent!==text)el.textContent=text;
  el.setAttribute('data-actual-ldm',summary.complete?'1':'0');
- if(!summary.complete)el.setAttribute('title','Für tatsächliche LDM müssen Länge und Breite aller Colli vollständig sein.');else el.removeAttribute('title');
+ if(!summary.complete)el.setAttribute('title',tr('stowplan.actualLdmHelp'));else el.removeAttribute('title');
  return summary.complete
 }
 function activeShipment(){
@@ -84,9 +86,10 @@ function locked(sh){
  return false
 }
 function orientation(p){return p&&p.rotated?'quer':'längs'}
+function orientationDisplay(p){return p&&p.rotated?tr('stowplan.orientationCrosswise'):tr('stowplan.orientationLengthwise')}
 function dimension(p){
  var a=Math.round(num(p&&p.lengthAlong)),b=Math.round(num(p&&p.crossWidth));
- return a&&b?a+'×'+b+' cm':'Maße nicht vollständig'
+ return a&&b?a+'×'+b+' cm':tr('stowplan.dimensionsIncomplete')
 }
 function planSignature(plan){
  return JSON.stringify({
@@ -138,11 +141,11 @@ function snapshotFromPlan(plan){
 }
 function instructionLines(plan){
  return arr(plan&&plan.placements).slice().sort(function(a,b){return num(a.step)-num(b.step)}).map(function(p){
-  var stack=num(p.physicalCount)>1?' · '+num(p.physicalCount)+' gestapelt':'';
+  var stack=num(p.physicalCount)>1?' · '+tr('stowplan.stacked',{count:num(p.physicalCount)}):'';
   return{
    step:num(p.step),
    row:num(p.rowNo),
-   text:'R'+num(p.rowNo)+' · '+q(p.position)+' · '+q(p.type)+' · '+orientation(p)+' · '+dimension(p)+stack
+   text:'R'+num(p.rowNo)+' · '+q(p.position)+' · '+q(p.type)+' · '+orientationDisplay(p)+' · '+dimension(p)+stack
   }
  })
 }
@@ -166,7 +169,7 @@ function renderInstructions(plan){
  var lines=instructionLines(plan);if(!lines.length)return false;
  var section=document.createElement('section');section.id='rc1113-stow-instructions';section.setAttribute('data-rc1113-stow-instructions','1');
  section.style.cssText='margin-top:12px;border:1px solid #cbd5e1;border-radius:12px;background:#f8fafc;padding:10px;break-inside:avoid';
- section.innerHTML='<div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><div><b style="font-size:13px;color:#08245d">Ladeanweisung</b><div style="font-size:10px;color:#64748b;margin-top:2px">Reihenfolge von der Stirnwand Richtung Türen. Quer/Längs ist je Ladeeinheit angegeben.</div></div><span style="font-size:9px;font-weight:800;border:1px solid #bbf7d0;background:#f0fdf4;color:#166534;border-radius:999px;padding:3px 7px">automatisch erstellt &amp; mit Sendung gespeichert</span></div><ol style="margin:8px 0 0 20px;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:5px 18px">'+lines.map(function(x){return'<li style="font-size:10px;line-height:1.3;color:#334155;padding-left:2px"><b>Schritt '+x.step+':</b> '+escapeHtml(x.text)+'</li>'}).join('')+'</ol>';
+ section.innerHTML='<div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><div><b style="font-size:13px;color:#08245d">'+escapeHtml(tr('stowplan.instructionTitle'))+'</b><div style="font-size:10px;color:#64748b;margin-top:2px">'+escapeHtml(tr('stowplan.instructionHelp'))+'</div></div><span style="font-size:9px;font-weight:800;border:1px solid #bbf7d0;background:#f0fdf4;color:#166534;border-radius:999px;padding:3px 7px">'+escapeHtml(tr('stowplan.savedBadge'))+'</span></div><ol style="margin:8px 0 0 20px;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:5px 18px">'+lines.map(function(x){return'<li style="font-size:10px;line-height:1.3;color:#334155;padding-left:2px"><b>'+escapeHtml(tr('stowplan.step',{step:x.step}))+'</b> '+escapeHtml(x.text)+'</li>'}).join('')+'</ol>';
  var actions=card.querySelector('.rc396-actions');if(actions)card.insertBefore(section,actions);else card.appendChild(section);
  return true
 }
@@ -205,10 +208,10 @@ function schedule(){
 function missingActualLdm(){var sh=activeShipment();return sh&&actualLdmSummary(shipmentRows(sh)).complete===false}
 function documentActionTarget(target){var el=target&&target.closest&&target.closest('button,a,[role="button"]');if(!el)return null;var text=[q(el.textContent),q(el.getAttribute&&el.getAttribute('title')),q(el.getAttribute&&el.getAttribute('data-action'))].join(' ').toLowerCase();return /gesamtdruck|gesamt.*pdf|ladeliste|cmr/.test(text)?el:null}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
-['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:shipment-saved'].forEach(function(name){window.addEventListener(name,schedule)});
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:shipment-saved','exporthub:language-changed'].forEach(function(name){window.addEventListener(name,schedule)});
 document.addEventListener('input',function(e){if(e.target&&e.target.closest&&e.target.closest('#rc573ColliCard'))setTimeout(function(){try{syncCurrent()}catch(_){}},0)},true);
 document.addEventListener('change',function(e){if(e.target&&e.target.id==='rc713VehicleType')setTimeout(decorate,40);if(e.target&&e.target.closest&&e.target.closest('#rc573ColliCard'))setTimeout(function(){try{syncCurrent();decorate()}catch(_){}},0)},true);
-document.addEventListener('click',function(e){var el=documentActionTarget(e.target);if(!el||!missingActualLdm())return;e.preventDefault();e.stopImmediatePropagation();alert('Tatsächliche LDM können noch nicht berechnet werden. Bitte Länge und Breite aller Colli ergänzen, bevor Ladeliste, CMR oder Gesamtdruck erstellt werden.')},true);
+document.addEventListener('click',function(e){var el=documentActionTarget(e.target);if(!el||!missingActualLdm())return;e.preventDefault();e.stopImmediatePropagation();alert(tr('stowplan.ldmBlocked'))},true);
 
 window.ExportHUBRC1113StowPlan=Object.freeze({version:VERSION,planSignature:planSignature,snapshotFromPlan:snapshotFromPlan,instructionLines:instructionLines,actualLdmSummary:actualLdmSummary,syncActualLdm:syncActualLdm,decorate:decorate});
 })();

@@ -6,7 +6,7 @@ const DRIVE_USER=process.env.EXPORTHUB_REFERENCE_DRIVE_USER||process.env.EXPORTH
 let tokenCache=null;
 
 function text(v){return String(v==null?'':v).trim()}
-function error(code,message,status=500){const e=new Error(message||code);e.code=code;e.status=status;return e}
+function error(code,message,status=500,vars){const e=new Error(message||code);e.code=code;e.status=status;e.vars=vars||{};return e}
 function refValue(v){const ref=text(v).toUpperCase();if(!/^[A-Z0-9]{6}$/.test(ref))throw error('INVALID_REFERENCE','Die Sendungsreferenz ist ungültig.',400);return ref}
 function safeFileName(v){const name=text(v).replace(/[\\/:*?"<>|\r\n]+/g,'_').replace(/\s+/g,' ').trim();if(!name)throw error('REFERENCE_FILE_NAME_INVALID','Dateiname fehlt.',400);return name.slice(0,180)}
 function encPath(path){return String(path||'').split('/').filter(Boolean).map(encodeURIComponent).join('/')}
@@ -32,7 +32,7 @@ function folderPath(reference){return REFERENCE_FOLDER+'/'+refValue(reference)}
 async function getFolder(reference){
  const path=folderPath(reference),url=GRAPH_BASE+'/users/'+encodeURIComponent(DRIVE_USER)+'/drive/root:/'+encPath(path)+'?$select=id,name,webUrl';
  const res=await graph(url);if(res.status===404)return null;let data={};try{data=await res.json()}catch(_){}
- if(!res.ok)throw error('GRAPH_REFERENCE_FOLDER_READ_FAILED',data.error&&data.error.message||('Ref-Ordner konnte nicht geprüft werden (HTTP '+res.status+').'),res.status>=500?502:res.status);
+ if(!res.ok)throw error('GRAPH_REFERENCE_FOLDER_READ_FAILED',data.error&&data.error.message||'api.reference.folderCheckFailed',res.status>=500?502:res.status,{status:res.status});
  return data;
 }
 async function ensureFolder(reference){
@@ -41,7 +41,7 @@ async function ensureFolder(reference){
  const res=await graph(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:ref,folder:{},'@microsoft.graph.conflictBehavior':'fail'})});
  if(res.status===409){const found=await getFolder(ref);if(found)return found}
  let data={};try{data=await res.json()}catch(_){}
- if(!res.ok)throw error('GRAPH_REFERENCE_FOLDER_CREATE_FAILED',data.error&&data.error.message||('Ref-Ordner konnte nicht angelegt werden (HTTP '+res.status+').'),res.status>=500?502:res.status);
+ if(!res.ok)throw error('GRAPH_REFERENCE_FOLDER_CREATE_FAILED',data.error&&data.error.message||'api.reference.folderCreateFailed',res.status>=500?502:res.status,{status:res.status});
  return data;
 }
 async function upload(reference,name,buffer,mimeType){
@@ -50,7 +50,7 @@ async function upload(reference,name,buffer,mimeType){
  const path=folderPath(ref)+'/'+file,url=GRAPH_BASE+'/users/'+encodeURIComponent(DRIVE_USER)+'/drive/root:/'+encPath(path)+':/content';
  const res=await graph(url,{method:'PUT',headers:{'Content-Type':text(mimeType)||'application/octet-stream','Content-Length':String(buffer.length),Accept:'application/json'},body:buffer});
  let data={};try{data=await res.json()}catch(_){}
- if(!res.ok)throw error('GRAPH_REFERENCE_FILE_UPLOAD_FAILED',data.error&&data.error.message||('Datei konnte nicht in den Ref-Ordner gespeichert werden (HTTP '+res.status+').'),res.status>=500?502:res.status);
+ if(!res.ok)throw error('GRAPH_REFERENCE_FILE_UPLOAD_FAILED',data.error&&data.error.message||'api.reference.fileUploadFailed',res.status>=500?502:res.status,{status:res.status});
  return{id:text(data.id),name:text(data.name)||file,size:Number(data.size||buffer.length),webUrl:text(data.webUrl),folderPath:folderPath(ref),reference:ref};
 }
 module.exports={GRAPH_BASE,REFERENCE_FOLDER,DRIVE_USER,refValue,safeFileName,folderPath,ensureFolder,upload};

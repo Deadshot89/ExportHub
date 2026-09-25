@@ -5,6 +5,7 @@ if(!root||root.__EXPORTHUB_RC1165_POD_BACKUP_STATUS__)return;
 root.__EXPORTHUB_RC1165_POD_BACKUP_STATUS__=true;
 
 const q=v=>String(v==null?'':v).trim();
+const tr=(key,vars)=>{try{if(root.ExportHUBI18n&&typeof root.ExportHUBI18n.t==='function')return root.ExportHUBI18n.t(key,vars)}catch(_){}return key};
 const arr=v=>Array.isArray(v)?v:[];
 let timer=0;
 
@@ -50,18 +51,18 @@ function backupOf(sh){
 function backupMeta(sh){
  if(!pickupRelevant(sh))return null;
  const b=backupOf(sh);
- if(!b)return{key:'unknown',label:'POD-Sicherung: nicht bestätigt',title:'Für diese abgeholte Sendung liegt noch kein bestätigter Zweitsicherungsstatus vor.'};
+ if(!b)return{key:'unknown',label:tr('podBackup.unknown.label'),title:tr('podBackup.unknown.title')};
  const status=q(b.status).toLowerCase();
  if(b.archiveSaved===true){
-  return{key:'saved',label:b.azureSaved===true?'POD-Sicherung: Azure + Archiv ✓':'POD-Sicherung: Archiv ✓',title:'Der POD ist primär gespeichert und die zusätzliche Azure-Archivkopie ist bestätigt.'};
+  return{key:'saved',label:b.azureSaved===true?tr('podBackup.saved.azureArchive'):tr('podBackup.saved.archive'),title:tr('podBackup.saved.title')};
  }
  if(b.azureSaved===true){
-  return{key:'pending',label:'POD-Sicherung: Azure ✓ · Archiv offen',title:'Der POD ist primär gesichert. Die zusätzliche Azure-Archivkopie ist noch nicht bestätigt.'};
+  return{key:'pending',label:tr('podBackup.pending.azure'),title:tr('podBackup.pending.azureTitle')};
  }
  if(/fail|error|fehler/.test(status)){
-  return{key:'error',label:'POD-Sicherung: Nachholung nötig',title:'Die automatische POD-Zweitsicherung ist noch nicht erfolgreich abgeschlossen.'};
+  return{key:'error',label:tr('podBackup.error.label'),title:tr('podBackup.error.title')};
  }
- return{key:'pending',label:'POD-Sicherung: offen',title:'Die automatische POD-Sicherung ist noch nicht vollständig bestätigt.'};
+ return{key:'pending',label:tr('podBackup.pending.label'),title:tr('podBackup.pending.title')};
 }
 function inOverview(doc){
  const body=doc&&doc.body;
@@ -123,7 +124,7 @@ function schedule(){
  return true;
 }
 if(root.addEventListener){
- ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded','exporthub:shipment-updated','exporthub:overview-updated'].forEach(name=>root.addEventListener(name,schedule));
+ ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded','exporthub:shipment-updated','exporthub:overview-updated','exporthub:language-changed'].forEach(name=>root.addEventListener(name,schedule));
 }
 if(root.document&&root.document.readyState==='loading')root.document.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
 root.ExportHUBRC1165PodBackupStatus=Object.freeze({version:'RC1165',backupMeta,pickupRelevant,render});

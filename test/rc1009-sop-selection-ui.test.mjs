@@ -1,5 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+const de=JSON.parse(fs.readFileSync('assets/i18n/de.json','utf8'));
+globalThis.ExportHUBI18n={t(key,vars){let value=de[key]||key;if(vars)for(const [name,v] of Object.entries(vars))value=value.replaceAll('{{'+name+'}}',String(v));return value;}};
 
 await import('../assets/sop/rc1007-sop-model.js');
 await import('../assets/sop/rc1007-sop-catalog.js');

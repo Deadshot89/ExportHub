@@ -6,11 +6,21 @@ import {execFileSync} from 'node:child_process';
 
 const history=fs.readFileSync('assets/rc1071-shipment-history.js','utf8');
 const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
+const historyDe=JSON.parse(fs.readFileSync('assets/i18n/de.json','utf8'));
+function historyI18n(){
+  return {
+    language(){return 'de'},
+    t(key,vars){let value=historyDe[key]||key;if(vars)for(const [name,v] of Object.entries(vars))value=value.replaceAll('{{'+name+'}}',String(v));return value},
+    formatDate(value,options){return new Intl.DateTimeFormat('de-DE',options||{}).format(value)}
+  };
+}
+
 
 function historyRuntime(shipment){
   const state={view:'shipment',currentShipment:shipment,shipments:[shipment],savedShipments:[shipment],currentUser:{id:'U1',name:'Tobias',role:'Globaler Administrator'}};
   const document={body:null,readyState:'loading',addEventListener(){},getElementById(){return null},querySelector(){return null}};
   const window={
+    ExportHUBI18n:historyI18n(),
     __EXPORTHUB_GET_STATE__:()=>state,
     __EXPORTHUB_GET_CURRENT_USER__:()=>state.currentUser,
     ExportHUBClean:{state,queueSave(){return true},flushSave(){return Promise.resolve(true)}},
@@ -24,8 +34,8 @@ function historyRuntime(shipment){
 
 test('RC1148: Dokument-History trennt Öffnen und Drucken und speichert Benutzer sowie Dateiname',()=>{
   assert.match(history,/type:'document-open'/,'eigener History-Typ für Dokument öffnen fehlt');
-  assert.match(history,/label:doc\+' – geöffnet'/,'eindeutiger Öffnen-Eintrag fehlt');
-  assert.match(history,/label:doc\+' – gedruckt'/,'eindeutiger Druck-Eintrag fehlt');
+  assert.match(history,/shipmentHistory\.action\.documentOpened/,'lokalisierbarer Öffnen-Eintrag fehlt');
+  assert.match(history,/shipmentHistory\.action\.documentPrinted/,'lokalisierbarer Druck-Eintrag fehlt');
   assert.match(history,/function documentActionFileName/,'Dateiname muss aus Button, Link oder Sendungsdokument ermittelt werden');
 
   const sh={id:'S1',ref:'ABC123',abdFiles:[{name:'ABD_ABC123_original.pdf'}]};

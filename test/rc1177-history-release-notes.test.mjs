@@ -5,6 +5,7 @@ import vm from 'node:vm';
 import {execFileSync} from 'node:child_process';
 
 const historySource=fs.readFileSync('assets/rc1081-audit-history.js','utf8');
+const historyDe=JSON.parse(fs.readFileSync('assets/i18n/de.json','utf8'));
 const notesSource=fs.readFileSync('assets/rc1177-release-notes.js','utf8');
 const builder=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
 const deploy=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
@@ -33,6 +34,11 @@ function historyApi(){
   const window={
     document,
     __EXPORTHUB_GET_STATE__:()=>state,
+    ExportHUBI18n:{
+      language(){return'de'},
+      t(key,vars){let value=historyDe[key]||key;if(vars)for(const [name,v] of Object.entries(vars))value=value.replaceAll('{{'+name+'}}',String(v));return value},
+      formatDate(value,options){return new Intl.DateTimeFormat('de-DE',options||{}).format(value)}
+    },
     addEventListener(){},
     setTimeout(){return 1}
   };
@@ -88,4 +94,11 @@ test('RC1177: geänderte JavaScript-Dateien bleiben syntaktisch gültig',()=>{
   for(const file of ['assets/rc1081-audit-history.js','assets/rc1177-release-notes.js','.github/rc1112/build-three-env.mjs']){
     execFileSync(process.execPath,['--check',file],{stdio:'pipe'});
   }
+});
+
+test('RC1267: lokalisierte Historienanzeige verändert die fachliche Konsolidierung nicht',()=>{
+  const api=historyApi(),events=api.events();
+  assert.equal(events.filter(e=>api.actionTitle(e)==='Sendung erstellt').length,1);
+  assert.equal(events.filter(e=>api.actionTitle(e)==='Lieferavis erstellt/aktiviert').length,1);
+  assert.ok(events.some(e=>api.actionTitle(e)==='Versandanmeldung gestartet'));
 });

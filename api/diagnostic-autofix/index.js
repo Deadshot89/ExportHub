@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const https = require('https');
 const { BlobServiceClient } = require('@azure/storage-blob');
 const { isAdmin } = require('../shared/user-policy');
+const apiI18n = require('../shared/i18n');
 
 const TEAM_CONTAINER = process.env.EXPORTHUB_STORAGE_CONTAINER || process.env.EXPORTHUB_CONTAINER || 'exporthub-data';
 const TEAM_BLOB = process.env.EXPORTHUB_STORAGE_BLOB || process.env.EXPORTHUB_STATE_BLOB || 'team-state.json';
@@ -25,7 +26,8 @@ function text(v){ return String(v == null ? '' : v).trim(); }
 function lower(v){ return text(v).toLowerCase(); }
 function now(){ return new Date().toISOString(); }
 function json(status, body){ return {status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'},body:JSON.stringify(body)}; }
-function error(code,message,status=400){ const e=new Error(message); e.code=code; e.status=status; return e; }
+function error(code,message,status=400,vars){ const e=new Error(message); e.code=code; e.status=status; e.vars=vars||{}; return e; }
+function localizedError(req,e){const raw=text(e&&e.message);return /^api\./.test(raw)?apiI18n.t(req,raw,e&&e.vars):raw;}
 function body(req){ if(req&&req.body&&typeof req.body==='object')return req.body; try{return JSON.parse(req&&req.body||'{}')}catch(_){return {}} }
 function header(req,name){ const h=req&&req.headers||{}; return h[name.toLowerCase()]||h[name]||''; }
 function bearer(req,payload){ const direct=text(header(req,'x-exporthub-token')||header(req,'x-exporthub-session')||payload.sessionToken); if(direct)return direct; return text(String(header(req,'authorization')||'').replace(/^Bearer\s+/i,'')); }
@@ -34,8 +36,8 @@ function environmentOf(req,payload){
  const raw=lower(payload&&payload.environment||header(req,'x-exporthub-environment'));
  const origin=lower(header(req,'origin')||header(req,'referer')||header(req,'x-forwarded-host')||header(req,'host'));
  const inferred=/-testservice\./.test(origin)?'testservice':'production';
- if(raw&&raw!=='production'&&raw!=='testservice')throw error('ENVIRONMENT_INVALID','Unbekannte ExportHUB-Umgebung.',400);
- if(raw&&raw!==inferred&&/azurestaticapps\.net/.test(origin))throw error('ENVIRONMENT_MISMATCH','Die angeforderte Diagnoseumgebung passt nicht zur Website.',409);
+ if(raw&&raw!=='production'&&raw!=='testservice')throw error('ENVIRONMENT_INVALID','api.common.environmentInvalid',400);
+ if(raw&&raw!==inferred&&/azurestaticapps\.net/.test(origin))throw error('ENVIRONMENT_MISMATCH','api.autofix.environmentMismatch',409);
  return raw||inferred;
 }
 function usernameOf(user){ return lower(user&&(user.user||user.login||user.username||user.name)); }
@@ -72,11 +74,11 @@ async function validateGlobalAdmin(req,payload,env){
  const sessions=Array.isArray(authRead.value&&authRead.value.sessions)?authRead.value.sessions:[],digest=tokenHash(t);
  let session=sessions.find(s=>safeEqual(s&&s.tokenHash,digest));
  if(!session){const signed=verifySigned(t);if(signed)session={id:text(signed.sid),userId:text(signed.uid),username:text(signed.username),expiresAt:new Date(Number(signed.exp)).toISOString(),authVersion:Number(signed.authVersion||0),mustChange:signed.mustChange===true,signedFallback:true}}
- if(!session||session.revokedAt||(session.expiresAt&&Date.parse(session.expiresAt)<=Date.now()))throw error('SESSION_INVALID','Die ExportHUB-Sitzung ist nicht mehr gültig.',401);
+ if(!session||session.revokedAt||(session.expiresAt&&Date.parse(session.expiresAt)<=Date.now()))throw error('SESSION_INVALID','api.autofix.sessionInvalid',401);
  const users=Array.isArray(teamRead.value&&teamRead.value.users)?teamRead.value.users:[],user=users.find(u=>text(u&&u.id)===text(session.userId)||usernameOf(u)===lower(session.username));
  if(!user||!isActive(user))throw error('ACCOUNT_DISABLED','Das Benutzerkonto ist nicht aktiv.',403);
- if(Number(session.authVersion||0)!==Number(user.authVersion||0))throw error('SESSION_REVOKED','Die ExportHUB-Sitzung wurde beendet.',401);
- if(!isAdmin(user))throw error('GLOBAL_ADMIN_REQUIRED','Die automatische Fehlerbehebung ist nur für globale Administratoren verfügbar.',403);
+ if(Number(session.authVersion||0)!==Number(user.authVersion||0))throw error('SESSION_REVOKED','api.autofix.sessionRevoked',401);
+ if(!isAdmin(user))throw error('GLOBAL_ADMIN_REQUIRED','api.autofix.adminRequired',403);
  return user;
 }
 async function githubOidcAuthorized(req,workflowFile,allowedEvents){
@@ -138,29 +140,29 @@ async function mutateRecord(env,id,fn){
  const blob=diagBlob(env);
  for(let attempt=0;attempt<MAX_RETRIES;attempt++){
   const d=await readJson(blob,{schemaVersion:1,revision:0,records:[]},false),doc=d.value&&typeof d.value==='object'?d.value:{schemaVersion:1,revision:0,records:[]},rows=Array.isArray(doc.records)?doc.records.slice():[];
-  const pos=rows.findIndex(r=>text(r&&r.id)===text(id));if(pos<0)throw error('DIAGNOSTIC_NOT_FOUND','Der Diagnoseeintrag wurde nicht gefunden.',404);
+  const pos=rows.findIndex(r=>text(r&&r.id)===text(id));if(pos<0)throw error('DIAGNOSTIC_NOT_FOUND','api.autofix.diagnosticNotFound',404);
   const current=Object.assign({},rows[pos]),nextRecord=fn(current)||current;rows[pos]=nextRecord;
   const next=Object.assign({},doc,{schemaVersion:1,revision:Number(doc.revision||0)+1,updatedAt:now(),records:rows});
   try{await uploadJson(blob,next,d.etag);return nextRecord}catch(e){if(e&&(e.statusCode===409||e.statusCode===412)&&attempt<MAX_RETRIES-1)continue;throw e}
  }
- throw error('DIAGNOSTIC_CONCURRENT_UPDATE','Der Diagnoseeintrag wurde gleichzeitig geändert.',409);
+ throw error('DIAGNOSTIC_CONCURRENT_UPDATE','api.autofix.diagnosticConcurrent',409);
 }
 async function findJob(env,jobId){
  const d=await readJson(diagBlob(env),{records:[]},false),rows=Array.isArray(d.value&&d.value.records)?d.value.records:[];
  const record=rows.find(r=>r&&r.autofix&&text(r.autofix.jobId)===text(jobId));
- if(!record)throw error('AUTOFIX_JOB_NOT_FOUND','Autofix-Auftrag wurde nicht gefunden.',404);
+ if(!record)throw error('AUTOFIX_JOB_NOT_FOUND','api.autofix.jobNotFound',404);
  return record;
 }
 function jobIdFor(record){return 'AF-'+Date.now().toString(36).toUpperCase()+'-'+crypto.randomBytes(3).toString('hex').toUpperCase()+'-'+text(record&&record.id).replace(/[^A-Za-z0-9_-]/g,'').slice(-12)}
 function httpsJson(method,url,headers,payload){
  return new Promise((resolve,reject)=>{
   const u=new URL(url),raw=payload===undefined?'':JSON.stringify(payload),req=https.request({method,hostname:u.hostname,path:u.pathname+u.search,headers:Object.assign({'User-Agent':'ExportHUB-Autofix','Accept':'application/vnd.github+json'},headers||{},raw?{'Content-Type':'application/json','Content-Length':Buffer.byteLength(raw)}:{})},res=>{
-   const chunks=[];res.on('data',c=>chunks.push(Buffer.from(c)));res.on('end',()=>{const body=Buffer.concat(chunks).toString('utf8');if(res.statusCode>=200&&res.statusCode<300)return resolve({status:res.statusCode,body});const e=error('GITHUB_DISPATCH_FAILED','GitHub-Autofix konnte nicht gestartet werden (HTTP '+res.statusCode+').',502);e.response=body;reject(e)})});
+   const chunks=[];res.on('data',c=>chunks.push(Buffer.from(c)));res.on('end',()=>{const body=Buffer.concat(chunks).toString('utf8');if(res.statusCode>=200&&res.statusCode<300)return resolve({status:res.statusCode,body});const e=error('GITHUB_DISPATCH_FAILED','api.autofix.githubDispatchFailed',502,{status:res.statusCode});e.response=body;reject(e)})});
   req.on('error',reject);if(raw)req.write(raw);req.end();
  })
 }
 async function dispatch(jobId,env){
- const token=text(process.env.EXPORTHUB_GITHUB_AUTOFIX_TOKEN);if(!token)throw error('AUTOFIX_GITHUB_NOT_CONFIGURED','GitHub-Autofix-Token ist serverseitig noch nicht eingerichtet.',503);
+ const token=text(process.env.EXPORTHUB_GITHUB_AUTOFIX_TOKEN);if(!token)throw error('AUTOFIX_GITHUB_NOT_CONFIGURED','api.autofix.githubTokenMissing',503);
  const url='https://api.github.com/repos/'+REPO+'/actions/workflows/'+encodeURIComponent(WORKFLOW)+'/dispatches';
  await httpsJson('POST',url,{'Authorization':'Bearer '+token,'X-GitHub-Api-Version':'2022-11-28'},{ref:'main',inputs:{job_id:jobId,environment:env}});
 }
@@ -179,12 +181,12 @@ function promptFor(record,jobId,env){
 }
 async function requestAutofix(req,payload,env){
  const admin=await validateGlobalAdmin(req,payload,env);
- if(!autofixEnabled())throw error('AUTOFIX_DISABLED','Automatische Fehlerbehebung ist derzeit bewusst deaktiviert. Es wird kein externer KI-Auftrag gestartet.',409);
- const id=text(payload.diagnosticId||payload.id);if(!id)throw error('DIAGNOSTIC_ID_REQUIRED','Diagnose-ID fehlt.',400);
+ if(!autofixEnabled())throw error('AUTOFIX_DISABLED','api.autofix.disabledReason',409);
+ const id=text(payload.diagnosticId||payload.id);if(!id)throw error('DIAGNOSTIC_ID_REQUIRED','api.autofix.diagnosticIdRequired',400);
  let jobId='';
  const record=await mutateRecord(env,id,current=>{
   const existing=current.autofix&&typeof current.autofix==='object'?current.autofix:{};
-  if(['queued','claimed','running','testing','deploying'].includes(lower(existing.status)))throw error('AUTOFIX_ALREADY_RUNNING','Für diesen Fehler läuft bereits eine automatische Behebung.',409);
+  if(['queued','claimed','running','testing','deploying'].includes(lower(existing.status)))throw error('AUTOFIX_ALREADY_RUNNING','api.autofix.alreadyRunning',409);
   jobId=jobIdFor(current);
   return Object.assign({},current,{autofix:{jobId,status:'queued',requestedAt:now(),requestedBy:text(admin.name||admin.user),requestedByUserId:text(admin.id),attempt:Number(existing.attempt||0)+1,lastMessage:''},resolvedAt:null,resolvedBy:null});
  });
@@ -197,15 +199,15 @@ async function requestAutofix(req,payload,env){
  return {ok:true,jobId,diagnosticId:id,status:'queued',environment:env,record:sanitize(record)};
 }
 async function claim(payload,env){
- const jobId=text(payload.jobId);if(!jobId)throw error('AUTOFIX_JOB_REQUIRED','Autofix-Auftrags-ID fehlt.',400);
+ const jobId=text(payload.jobId);if(!jobId)throw error('AUTOFIX_JOB_REQUIRED','api.autofix.jobRequired',400);
  const found=await findJob(env,jobId),id=text(found.id);
- const record=await mutateRecord(env,id,current=>Object.assign({},current,{autofix:Object.assign({},current.autofix||{},{status:'claimed',claimedAt:now(),lastMessage:'Diagnose an Codex übergeben.'})}));
+ const record=await mutateRecord(env,id,current=>Object.assign({},current,{autofix:Object.assign({},current.autofix||{},{status:'claimed',claimedAt:now(),lastMessage:''})}));
  return {ok:true,jobId,diagnosticId:id,environment:env,prompt:promptFor(record,jobId,env),attachment:sanitize(record),filename:'diagnostic-'+id.replace(/[^A-Za-z0-9_.-]/g,'-')+'.json'};
 }
 async function workflowStatus(payload,env){
  const jobId=text(payload.jobId),status=lower(payload.status),message=text(payload.message).slice(0,4000),commit=text(payload.commit).slice(0,80),runUrl=text(payload.runUrl).slice(0,500);
- if(!jobId)throw error('AUTOFIX_JOB_REQUIRED','Autofix-Auftrags-ID fehlt.',400);
- const allowed=['running','testing','deploying','fixed','failed','reverted'];if(!allowed.includes(status))throw error('AUTOFIX_STATUS_INVALID','Unbekannter Autofix-Status.',400);
+ if(!jobId)throw error('AUTOFIX_JOB_REQUIRED','api.autofix.jobRequired',400);
+ const allowed=['running','testing','deploying','fixed','failed','reverted'];if(!allowed.includes(status))throw error('AUTOFIX_STATUS_INVALID','api.autofix.statusInvalid',400);
  const found=await findJob(env,jobId),id=text(found.id);
  const record=await mutateRecord(env,id,current=>{
   const af=Object.assign({},current.autofix||{},{status,lastMessage:message,commit,runUrl,updatedAt:now()});
@@ -224,37 +226,37 @@ async function workflowStatus(payload,env){
 
 module.exports=async function(context,req){
  if(req.method==='OPTIONS'){context.res={status:204,headers:{'Cache-Control':'no-store','Allow':'POST, OPTIONS'},body:''};return}
- if(req.method!=='POST'){context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED',message:'Nur POST ist erlaubt.'});return}
+ if(req.method!=='POST'){context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED',message:apiI18n.t(req,'api.common.postOnly')});return}
  try{
   const payload=body(req),env=environmentOf(req,payload),action=lower(payload.action||'status');
   let result;
   if(action==='request')result=await requestAutofix(req,payload,env);
-  else if(action==='claim'){if(!(await callbackAuthorized(req,WORKFLOW)))throw error('AUTOFIX_CALLBACK_UNAUTHORIZED','Autofix-Rückkanal nicht autorisiert.',401);result=await claim(payload,env)}
-  else if(action==='workflow-status'){if(!(await callbackAuthorized(req,WORKFLOW)))throw error('AUTOFIX_CALLBACK_UNAUTHORIZED','Autofix-Rückkanal nicht autorisiert.',401);result=await workflowStatus(payload,env)}
+  else if(action==='claim'){if(!(await callbackAuthorized(req,WORKFLOW)))throw error('AUTOFIX_CALLBACK_UNAUTHORIZED','api.autofix.callbackUnauthorized',401);result=await claim(payload,env)}
+  else if(action==='workflow-status'){if(!(await callbackAuthorized(req,WORKFLOW)))throw error('AUTOFIX_CALLBACK_UNAUTHORIZED','api.autofix.callbackUnauthorized',401);result=await workflowStatus(payload,env)}
   else if(action==='preflight'){
-   if(!(await callbackAuthorized(req,PREFLIGHT_WORKFLOW,['push','workflow_dispatch'])))throw error('AUTOFIX_CALLBACK_UNAUTHORIZED','Autofix-Vorflug nicht autorisiert.',401);
+   if(!(await callbackAuthorized(req,PREFLIGHT_WORKFLOW,['push','workflow_dispatch'])))throw error('AUTOFIX_CALLBACK_UNAUTHORIZED','api.autofix.preflightUnauthorized',401);
    result={ok:true,githubDispatchConfigured:Boolean(text(process.env.EXPORTHUB_GITHUB_AUTOFIX_TOKEN)),autofixEnabled:autofixEnabled(),callbackMode:'github-oidc',repo:REPO,workflow:WORKFLOW,environment:env}
   }
   else if(action==='configuration'){
    await validateGlobalAdmin(req,payload,env);
    const enabled=autofixEnabled(),githubToken=text(process.env.EXPORTHUB_GITHUB_AUTOFIX_TOKEN);
-   let preflight=enabled?{checked:false,status:'unknown',conclusion:'',runUrl:'',updatedAt:'',message:''}:{checked:false,status:'disabled',conclusion:'',runUrl:'',updatedAt:'',message:'Automatische Fehlerbehebung ist derzeit deaktiviert.'};
+   let preflight=enabled?{checked:false,status:'unknown',conclusion:'',runUrl:'',updatedAt:'',message:''}:{checked:false,status:'disabled',conclusion:'',runUrl:'',updatedAt:'',message:apiI18n.t(req,'api.autofix.disabled')};
    if(githubToken&&enabled){
     try{
      const probe=await httpsJson('GET','https://api.github.com/repos/'+REPO+'/actions/workflows/'+encodeURIComponent(PREFLIGHT_WORKFLOW)+'/runs?branch=main&per_page=1',{'Authorization':'Bearer '+githubToken,'X-GitHub-Api-Version':'2022-11-28'});
      const parsed=JSON.parse(probe.body||'{}'),run=Array.isArray(parsed.workflow_runs)&&parsed.workflow_runs.length?parsed.workflow_runs[0]:null;
-     preflight=run?{checked:true,status:text(run.status),conclusion:text(run.conclusion),runUrl:text(run.html_url),updatedAt:text(run.updated_at),message:text(run.conclusion)==='success'?'GitHub/OpenAI-Vorflug erfolgreich.':'GitHub/OpenAI-Vorflug ist noch nicht erfolgreich.'}:{checked:true,status:'missing',conclusion:'',runUrl:'',updatedAt:'',message:'Noch kein Autofix-Vorflug vorhanden.'};
+     preflight=run?{checked:true,status:text(run.status),conclusion:text(run.conclusion),runUrl:text(run.html_url),updatedAt:text(run.updated_at),message:text(run.conclusion)==='success'?apiI18n.t(req,'api.autofix.preflightSuccess'):apiI18n.t(req,'api.autofix.preflightPending')}:{checked:true,status:'missing',conclusion:'',runUrl:'',updatedAt:'',message:apiI18n.t(req,'api.autofix.preflightMissing')};
     }catch(e){
-     preflight={checked:true,status:'unavailable',conclusion:'',runUrl:'',updatedAt:'',message:'Autofix-Vorflug konnte über GitHub nicht gelesen werden.'};
+     preflight={checked:true,status:'unavailable',conclusion:'',runUrl:'',updatedAt:'',message:apiI18n.t(req,'api.autofix.preflightUnavailable')};
     }
    }
    const serverConfigured=Boolean(githubToken),preflightOk=preflight.conclusion==='success';
    result={ok:true,enabled,configured:Boolean(enabled&&serverConfigured&&preflightOk),serverConfigured,github:Boolean(githubToken),callback:true,callbackMode:'github-oidc',noExternalAiRequests:!enabled,preflight,repo:REPO,workflow:WORKFLOW,preflightWorkflow:PREFLIGHT_WORKFLOW,environment:env}
   }
-  else throw error('AUTOFIX_ACTION_INVALID','Unbekannte Autofix-Aktion.',400);
+  else throw error('AUTOFIX_ACTION_INVALID','api.autofix.invalidAction',400);
   context.res=json(200,result);
  }catch(e){
   context.log&&context.log.error&&context.log.error('diagnostic-autofix',e&&e.code,e&&e.message);
-  context.res=json(Number(e.status||e.statusCode||500),{ok:false,code:e.code||'SERVER_ERROR',message:e.message||'Automatische Fehlerbehebung fehlgeschlagen.'});
+  context.res=json(Number(e.status||e.statusCode||500),{ok:false,code:e.code||'SERVER_ERROR',message:localizedError(req,e)||apiI18n.t(req,'api.autofix.failed')});
  }
 };
