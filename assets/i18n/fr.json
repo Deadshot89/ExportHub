@@ -855,7 +855,7 @@
   "container.view": "Voir",
   "container.download": "Télécharger",
   "container.configTitle": "🚢 Aérien / maritime et conteneur",
-  "container.configHelpShort": "Les justificatifs du conteneur sont saisis via le QR d’enlèvement.",
+  "container.configHelpShort": "Le numéro de scellé peut déjà être renseigné sur la page principale ; les photos sont prises via le QR code d’enlèvement.",
   "container.transportMode": "Mode de transport",
   "container.notSet": "Non défini",
   "container.road": "Route",
@@ -1082,5 +1082,7 @@
   "sop.081.flow4": "Enregistrer",
   "sop.081.flow5": "Vérifier le solde",
   "abd.mailPending": "IMPORTANT – LE DOCUMENT D’EXPORTATION (ABD) N’EST PAS ENCORE DISPONIBLE\nL’ABD devrait être disponible le {{expected}} vers 10:00. L’enlèvement peut déjà être réservé, mais pas avant le {{minimum}} à 10:00.",
-  "mail.closing": "Cordialement"
+  "mail.closing": "Cordialement",
+  "container.sealInput": "Numéro de scellé",
+  "container.sealPlaceholder": "p. ex. ABCD123456"
 }
