@@ -1082,5 +1082,12 @@
   "sop.081.flow4": "Enregistrer",
   "sop.081.flow5": "Vérifier le solde",
   "abd.mailPending": "IMPORTANT – LE DOCUMENT D’EXPORTATION (ABD) N’EST PAS ENCORE DISPONIBLE\nL’ABD devrait être disponible le {{expected}} vers 10:00. L’enlèvement peut déjà être réservé, mais pas avant le {{minimum}} à 10:00.",
-  "mail.closing": "Cordialement"
+  "mail.closing": "Cordialement",
+  "loadingList.title": "Rechercher une liste de chargement",
+  "loadingList.description": "Rechercher par numéro de référence, client, pièce jointe/nom de fichier ou remarque.",
+  "loadingList.placeholder": "Référence, client, pièce jointe ou remarque",
+  "loadingList.selected": "Sélectionné :",
+  "loadingList.noneSelected": "Aucune liste de chargement sélectionnée.",
+  "loadingList.hint": "Saisissez une référence, un client, une pièce jointe/nom de fichier ou une remarque.",
+  "loadingList.noResults": "Aucune liste de chargement correspondante trouvée."
 }
