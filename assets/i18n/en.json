@@ -1080,5 +1080,7 @@
   "sop.081.flow2": "Enter quantity",
   "sop.081.flow3": "Reference optional",
   "sop.081.flow4": "Book",
-  "sop.081.flow5": "Check balance"
+  "sop.081.flow5": "Check balance",
+  "abd.mailPending": "IMPORTANT – EXPORT DOCUMENT (ABD) NOT YET AVAILABLE\nThe ABD is expected on {{expected}} at approximately 10:00. Pickup can already be booked, but not before {{minimum}} at 10:00.",
+  "mail.closing": "Kind regards"
 }
