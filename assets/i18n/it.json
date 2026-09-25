@@ -855,7 +855,7 @@
   "container.view": "Visualizza",
   "container.download": "Scarica",
   "container.configTitle": "🚢 Aereo / mare e container",
-  "container.configHelpShort": "La documentazione del container viene acquisita tramite il QR di ritiro.",
+  "container.configHelpShort": "Il numero del sigillo può già essere inserito nella pagina principale; le foto vengono scattate tramite il codice QR di ritiro.",
   "container.transportMode": "Tipo di trasporto",
   "container.notSet": "Non definito",
   "container.road": "Strada",
@@ -1082,5 +1082,7 @@
   "sop.081.flow4": "Registra",
   "sop.081.flow5": "Controlla saldo",
   "abd.mailPending": "IMPORTANTE – IL DOCUMENTO DI ESPORTAZIONE (ABD) NON È ANCORA DISPONIBILE\nL’ABD dovrebbe essere disponibile il {{expected}} verso le 10:00. Il ritiro può già essere prenotato, ma non prima del {{minimum}} alle 10:00.",
-  "mail.closing": "Cordiali saluti"
+  "mail.closing": "Cordiali saluti",
+  "container.sealInput": "Numero del sigillo",
+  "container.sealPlaceholder": "ad es. ABCD123456"
 }
