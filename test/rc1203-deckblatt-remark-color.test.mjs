@@ -76,7 +76,7 @@ test('RC1203: Runtime wird in Produktion TESTSERVICE und Demo gebaut',()=>{
   assert.match(build,/assets\/rc1203-deckblatt-print\.js\?v=1281/);
   assert.match(build,/'assets\/rc1203-deckblatt-print\.js'/);
   assert.match(build,/deckblattHighVisibility:'RC1281 white cover/);
-  assert.match(build,/coverRemark:'RC1204 compact remark block above QR without overlap'/);
+  assert.match(build,/coverRemark:'RC1281 compact remark block above QR without overlap'/);
   assert.match(build,/coverOnlyPrint:'RC1205 single Nur Deckblatt drucken action inside Speichern & Ausgabe'/);
   assert.doesNotMatch(build,/cmrOnlyPrint:/);
 });
