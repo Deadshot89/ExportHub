@@ -20,6 +20,14 @@ test('RC1265: sichtbare Release-Version wird beim Build aus dem aktuellen RC erm
   assert.doesNotMatch(builder,/visibleProductVersion:'RC1231/);
 });
 
+test('RC1286: spätere Merge-Reihenfolge darf die sichtbare RC-Version nicht zurückstufen',()=>{
+  assert.match(builder,/matchAll\(\/\\bRC\(\\d\+\)\\b\/gi\)/);
+  assert.match(builder,/Math\.max\(\.\.\.matches\)/);
+  assert.match(spec,/matchAll\(\/\\bRC\(\\d\+\)\\b\/gi\)/);
+  assert.match(spec,/Math\.max\(\.\.\.matches\)/);
+  assert.doesNotMatch(builder,/String\(subjects\|\|''\)\.match\(\/\\bRC\(\\d\+\)\\b\/i\)/);
+});
+
 test('RC1265: Cache-Keys der sichtbaren Version sind nicht mehr auf RC1231 festgeschrieben',()=>{
   assert.match(builder,/rc1193-visible-release\.js\?v=\$\{VISIBLE_NUMBER\}/);
   assert.match(builder,/rc1177-release-notes\.js\?v=\$\{VISIBLE_NUMBER\}/);
