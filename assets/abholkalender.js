@@ -491,7 +491,7 @@
   };
 
   if (root && typeof root.addEventListener === 'function') root.addEventListener('exporthub:language-changed',()=>{
-    if (mountedRoot && mountedState) render(mountedRoot,mountedState,mountedOptions && mountedOptions.today);
+    if (mountedRoot && mountedState && mountedCalendarIsCurrent(mountedRoot,mountedState,mountedOptions)) render(mountedRoot,mountedState,mountedOptions && mountedOptions.today);
   });
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (root) root.ExportHubPickupCalendar = Object.assign(root.ExportHubPickupCalendar || {}, api);
