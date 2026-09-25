@@ -855,7 +855,7 @@
   "container.view": "Ver",
   "container.download": "Descargar",
   "container.configTitle": "🚢 Aéreo / marítimo y contenedor",
-  "container.configHelpShort": "Las pruebas del contenedor se registran mediante el QR de recogida.",
+  "container.configHelpShort": "El número de precinto ya puede mantenerse en la página principal; las fotos se toman mediante el código QR de recogida.",
   "container.transportMode": "Tipo de transporte",
   "container.notSet": "No definido",
   "container.road": "Carretera",
@@ -1082,5 +1082,7 @@
   "sop.081.flow4": "Registrar",
   "sop.081.flow5": "Comprobar saldo",
   "abd.mailPending": "IMPORTANTE – EL DOCUMENTO DE EXPORTACIÓN (ABD) AÚN NO ESTÁ DISPONIBLE\nSe prevé que el ABD esté disponible el {{expected}} aproximadamente a las 10:00. La recogida ya puede reservarse, pero no antes del {{minimum}} a las 10:00.",
-  "mail.closing": "Saludos cordiales"
+  "mail.closing": "Saludos cordiales",
+  "container.sealInput": "Número de precinto",
+  "container.sealPlaceholder": "p. ej. ABCD123456"
 }
