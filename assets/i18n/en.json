@@ -1082,5 +1082,12 @@
   "sop.081.flow4": "Book",
   "sop.081.flow5": "Check balance",
   "abd.mailPending": "IMPORTANT – EXPORT DOCUMENT (ABD) NOT YET AVAILABLE\nThe ABD is expected on {{expected}} at approximately 10:00. Pickup can already be booked, but not before {{minimum}} at 10:00.",
-  "mail.closing": "Kind regards"
+  "mail.closing": "Kind regards",
+  "loadingList.title": "Search loading list",
+  "loadingList.description": "Search by reference number, customer, attachment/file name or remark.",
+  "loadingList.placeholder": "Reference, customer, attachment or remark",
+  "loadingList.selected": "Selected:",
+  "loadingList.noneSelected": "No loading list selected yet.",
+  "loadingList.hint": "Enter reference, customer, attachment/file name or remark.",
+  "loadingList.noResults": "No matching loading list found."
 }
