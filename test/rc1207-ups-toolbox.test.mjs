@@ -21,6 +21,20 @@ test('RC1227: Ortskürzel MG bleibt weiterhin kein Länderkennzeichen',()=>{cons
 test('RC1227: sichtbare UPS-Ausgabe kennzeichnet komplette Lieferung',()=>{const s=fs.readFileSync(new URL('../assets/rc1206-shipping-rules.js',import.meta.url),'utf8');assert.match(s,/ups\.totalComplete/);assert.match(s,/ups\.baseComplete/);assert.match(s,/ups\.fuelComplete/)});
 
 
+
+test('RC1274: eindeutige Lieferadresse schlägt veraltetes generisches countryCode',()=>{
+  const x=load({__EXPORTHUB_GET_STATE__:()=>({currentShipment:{countryCode:'NL',country:'Nederland',deliveryAddress:'60044 Albacina-Fabriano AN'}})});
+  assert.equal(x.shipmentDestination().country,'IT');
+  assert.equal(x.shipmentDestination().postal,'60044');
+});
+
+test('RC1274: komplette Lieferung summiert alle Kartons plus Fuel',()=>{
+  const x=load();
+  const zone='3',weights=[10,23,35],base=x.upsIndividualBase(zone,weights),fuel=base*x.fuelPct()/100;
+  assert.equal(base,Math.round((x.upsRate(zone,10)+x.upsRate(zone,23)+x.upsRate(zone,35))*100)/100);
+  assert.equal(Math.round((base+fuel)*100)/100,Math.round((base*(1+x.fuelPct()/100))*100)/100);
+});
+
 test('RC1266: aktuelle Sendung hat Vorrang vor stale shipment-Fallback',()=>{
   const x=load({__EXPORTHUB_GET_STATE__:()=>({shipment:{country:'Nederland',postalCode:'5657 EA'},currentShipment:{deliveryAddress:'60044 Albacina-Fabriano AN'}})});
   assert.equal(x.shipmentDestination().country,'IT');
