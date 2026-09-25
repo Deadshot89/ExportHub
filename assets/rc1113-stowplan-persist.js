@@ -85,7 +85,7 @@ function locked(sh){
  if(sh.podAvailable===true||sh.hasPod===true||arr(sh.pods).length||arr(sh.podFiles).length)return true;
  return false
 }
-function orientation(p){return p&&p.rotated?'crosswise':'lengthwise'}
+function orientation(p){return p&&p.rotated?'quer':'längs'}
 function orientationDisplay(p){return p&&p.rotated?tr('stowplan.orientationCrosswise'):tr('stowplan.orientationLengthwise')}
 function dimension(p){
  var a=Math.round(num(p&&p.lengthAlong)),b=Math.round(num(p&&p.crossWidth));
