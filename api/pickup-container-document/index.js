@@ -10,6 +10,15 @@ function mergePhoto(list,photo){
  next.push(photo);
  return next;
 }
+function text(v){return String(v==null?'':v).trim()}
+function linkedInTeam(teamDoc,record,photo){
+ const state=teamDoc&&teamDoc.state&&typeof teamDoc.state==='object'?teamDoc.state:teamDoc||{},shipments=Array.isArray(state.shipments)?state.shipments:[];
+ const sid=text(record&&record.shipmentId),ref=text(record&&record.reference).toUpperCase(),sh=shipments.find(x=>(sid&&text(x&&(x.id||x.shipmentId))===sid)||(ref&&text(x&&(x.reference||x.ref)).toUpperCase()===ref));
+ if(!sh)return false;
+ const target=record&&record.subShipmentId&&Array.isArray(sh.subShipments)?sh.subShipments.find(x=>text(x&&x.subShipmentId)===text(record.subShipmentId)):sh;
+ const photos=Array.isArray(target&&target.containerPhotos)?target.containerPhotos:[];
+ return photos.some(x=>text(x&&x.kind).toLowerCase()===text(photo&&photo.kind).toLowerCase()&&(!text(photo&&photo.blobName)||text(x&&x.blobName)===text(photo&&photo.blobName)));
+}
 module.exports=async function(context,req){
  if(req.method==='OPTIONS'){context.res=json(204,{});return}
  if(req.method!=='POST'){context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED',message:'Nur POST ist erlaubt.'});return}
@@ -23,9 +32,9 @@ module.exports=async function(context,req){
    r.updatedAt=r.containerDocumentationUpdatedAt;
    return r
   });
-  if(typeof pickup.updateTeamContainerDocumentation==='function'){
-   try{await pickup.updateTeamContainerDocumentation(updated)}catch(e){context.log&&context.log.error&&context.log.error('RC1259 container team sync failed',e&&e.code,e&&e.message)}
-  }
-  context.res=json(200,{ok:true,reference:updated.reference,photo:docs.publicPhoto(photo),containerPhotos:(updated.containerPhotos||[]).map(docs.publicPhoto).filter(Boolean),storedUnderReference:true,version:'RC1259'});
+  if(typeof pickup.updateTeamContainerDocumentation!=='function')throw pickup.err('CONTAINER_TEAM_SYNC_UNAVAILABLE','Containerfoto konnte nicht mit der Sendung verknüpft werden.',503);
+  const teamDoc=await pickup.updateTeamContainerDocumentation(updated);
+  if(!linkedInTeam(teamDoc,updated,photo))throw pickup.err('CONTAINER_TEAM_SYNC_FAILED','Containerfoto wurde gespeichert, konnte aber nicht mit der Sendung verknüpft werden. Bitte erneut versuchen.',503);
+  context.res=json(200,{ok:true,reference:updated.reference,photo:docs.publicPhoto(photo),containerPhotos:(updated.containerPhotos||[]).map(docs.publicPhoto).filter(Boolean),storedUnderReference:true,linkedToShipment:true,version:'RC1272'});
  }catch(e){context.log&&context.log.error&&context.log.error('pickup-container-document RC1259',e&&e.code,e&&e.message);context.res=json(e.status||e.statusCode||500,{ok:false,code:e.code||'CONTAINER_PHOTO_UPLOAD_FAILED',message:e.message||'Containerfoto konnte nicht gespeichert werden.'})}
 };
