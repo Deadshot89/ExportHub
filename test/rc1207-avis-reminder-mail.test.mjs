@@ -44,7 +44,7 @@ test('RC1270: Graph-Auth-Probe klassifiziert sicher ohne Token oder Secret in de
  assert.match(graph,/audienceOk/);
  assert.match(graph,/module\.exports=\{readiness,verifyAuthentication,sendTextMail\}/);
  const probeBlock=graph.slice(graph.indexOf('async function verifyAuthentication'),graph.indexOf('function transient'));
- assert.doesNotMatch(probeBlock,/return\{[^}]*token[: ,]/,'Auth-Probe darf keinen Token zurückgeben');
+ assert.doesNotMatch(probeBlock,/\btoken\s*:/,'Auth-Probe darf kein Token-Feld zurückgeben');
  assert.doesNotMatch(probeBlock,/clientSecret[: ,]/,'Auth-Probe darf kein Secret zurückgeben');
 });
 
