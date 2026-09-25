@@ -69,6 +69,7 @@ jobs:
       - name: QR- und Lieferavis-End-to-End-Regression
         shell: bash
         run: |
+          node .github/rc1018/fix-mail-wording.mjs
           node --test test/rc1013-pickup-readonly-flow.test.mjs
           node --test --test-name-pattern='RC995 Pickup-PIN' .github/rc995/rc995-flow.test.cjs
           node --test --test-concurrency=1 .github/rc998/partial-pickup-avis-contract.test.mjs .github/rc1000/rc1000-production-pickup.test.mjs
