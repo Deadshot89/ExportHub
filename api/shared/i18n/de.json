@@ -242,5 +242,12 @@
   "api.pdf.activeContent": "PDFs mit aktivem oder eingebettetem Inhalt sind nicht zulässig ({{label}}).",
   "api.location.siteRequired": "Standort/Kunde ist erforderlich.",
   "api.container.teamSyncUnavailable": "Containerfoto konnte nicht mit der Sendung verknüpft werden.",
-  "api.container.teamSyncFailed": "Containerfoto wurde gespeichert, konnte aber nicht mit der Sendung verknüpft werden. Bitte erneut versuchen."
+  "api.container.teamSyncFailed": "Containerfoto wurde gespeichert, konnte aber nicht mit der Sendung verknüpft werden. Bitte erneut versuchen.",
+  "api.location.invalid": "Ungültiger Lagerplatz.",
+  "api.location.alreadyCollected": "Die Sendung wurde bereits abgeholt. Die Ausgangslocation ist gesperrt.",
+  "api.location.notReady": "Die Sendung ist noch nicht abholbereit und kann nicht auf eine Ausgangslocation gebucht werden.",
+  "api.location.actionFailed": "Lageraktion fehlgeschlagen.",
+  "api.container.photoLabel.loaded": "Geladener Container",
+  "api.container.photoLabel.number": "Container-Nummer von innen",
+  "api.container.photoLabel.sealed": "Versiegelter Container · Siegel/Kennzeichen/Papiere"
 }
