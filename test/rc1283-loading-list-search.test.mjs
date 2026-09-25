@@ -41,10 +41,16 @@ test('RC1283: Runtime ersetzt die Dropdown-Bedienung und bietet drei direkte Akt
 
 test('RC1283: Drei-Umgebungen-Build injiziert Runtime und vorhandenen Ladelistenrenderer als Bridge',()=>{
   assert.match(build,/function patchRc1283LoadingListSearch\(/);
-  assert.match(build,/assets\/rc1283-loading-list-search\.js\?v=1283/);
+  assert.match(build,/assets\/rc1283-loading-list-search\.js\?v=1283-2/);
   assert.match(build,/__EXPORTHUB_RC1283_OPEN_LOAD1__/);
   assert.match(build,/body=loadHtml\(sh,true\)/);
   assert.match(build,/'assets\/rc1283-loading-list-search\.js'/);
+});
+
+test('RC1283: Suchruntime erzeugt keinen selbsttriggernden DOM-Renderloop',()=>{
+  assert.doesNotMatch(runtime,/new MutationObserver\(/);
+  assert.match(runtime,/exporthub:rendered/);
+  assert.match(runtime,/exporthub:viewchange/);
 });
 
 test('RC1283: echter Browsertest prüft alle vier Suchdimensionen und verbirgt das alte Dropdown',()=>{

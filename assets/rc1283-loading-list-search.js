@@ -81,5 +81,4 @@ function schedule(){if(timer)w.clearTimeout(timer);timer=w.setTimeout(function()
 w.ExportHUBRC1283LoadingListSearch=Object.freeze({version:'RC1283',searchText:searchText,filterRows:filterRows,documentNames:documentNames,remarkOf:remarkOf,candidates:candidates,install:install,action:act});
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync','exporthub:shipment-saved'].forEach(function(name){w.addEventListener(name,schedule)});
-if(w.MutationObserver&&d.documentElement){new MutationObserver(function(){schedule()}).observe(d.documentElement,{subtree:true,childList:true})}
 })(window,document);

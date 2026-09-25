@@ -239,12 +239,7 @@ test('RC1275 P1: Europaletten erscheinen im echten Ladelisten-Druck als Paletten
   await waitReady(page);
   await openExportHubView(page,'documents',['Ladeliste & CMR','Dokumente & CMR','Dokumente','CMR'],/Ladeliste|CMR|Dokument/i,{allowProgrammaticFallback:true});
 
-  const shipmentSelect=page.getByRole('combobox',{name:'Sendung auswählen'}).first();
-  await expect(shipmentSelect).toBeVisible({timeout:10_000});
-  const optionLabels=await shipmentSelect.locator('option').allTextContents();
-  const palletShipment=optionLabels.find(label=>/DEMO01|Nord/i.test(label));
-  expect(palletShipment,'Fake-Europaletten-Sendung DEMO01 fehlt im lokalen Demo-Artefakt').toBeTruthy();
-  await shipmentSelect.selectOption({label:palletShipment});
+  await selectLoadingListShipment(page,'DEMO01',/DEMO01|Nord/i);
   await expect(page.locator('#content')).toContainText(/DEMO01/,{timeout:10_000});
 
   let printButton=page.locator('[data-index352-action="print-all"]').first();
