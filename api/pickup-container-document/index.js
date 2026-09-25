@@ -36,6 +36,6 @@ module.exports=async function(context,req){
   if(typeof pickup.updateTeamContainerDocumentation!=='function')throw pickup.err('CONTAINER_TEAM_SYNC_UNAVAILABLE',apiI18n.t(req,'api.container.teamSyncUnavailable'),503);
   const teamDoc=await pickup.updateTeamContainerDocumentation(updated);
   if(!linkedInTeam(teamDoc,updated,photo))throw pickup.err('CONTAINER_TEAM_SYNC_FAILED',apiI18n.t(req,'api.container.teamSyncFailed'),503);
-  context.res=json(200,{ok:true,reference:updated.reference,photo:docs.publicPhoto(photo),containerPhotos:(updated.containerPhotos||[]).map(docs.publicPhoto).filter(Boolean),storedUnderReference:true,linkedToShipment:true,version:'RC1277'});
+  context.res=json(200,{ok:true,reference:updated.reference,photo:docs.publicPhoto(photo),containerPhotos:(updated.containerPhotos||[]).map(docs.publicPhoto).filter(Boolean),storedUnderReference:true,linkedToShipment:true,version:'RC1272'});
  }catch(e){context.log&&context.log.error&&context.log.error('pickup-container-document RC1259',e&&e.code,e&&e.message);context.res=json(e.status||e.statusCode||500,{ok:false,code:e.code||'CONTAINER_PHOTO_UPLOAD_FAILED',message:e.message||apiI18n.t(req,'api.container.photoSaveFailed')})}
 };
