@@ -13,8 +13,8 @@ function resolveVisibleVersion(){
   if(/^RC\d+$/.test(explicit))return explicit;
   try{
     const subjects=execFileSync('git',['log','-20','--pretty=%s'],{cwd:ROOT,encoding:'utf8',stdio:['ignore','pipe','ignore']});
-    const match=String(subjects||'').match(/\bRC(\d+)\b/i);
-    if(match)return 'RC'+match[1];
+    const matches=Array.from(String(subjects||'').matchAll(/\bRC(\d+)\b/gi)).map(m=>Number(m[1])).filter(Number.isFinite);
+    if(matches.length)return 'RC'+Math.max(...matches);
   }catch(_){}
   return DEFAULT_VISIBLE_VERSION;
 }
