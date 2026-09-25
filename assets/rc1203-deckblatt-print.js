@@ -4,7 +4,8 @@ if(!w||!d||w.__EXPORTHUB_RC1203_DECKBLATT__)return;
 w.__EXPORTHUB_RC1203_DECKBLATT__=true;
 
 var pendingMode='',originalOpen=null,installed=false;
-function q(v){return String(v==null?'':v).trim()}\nfunction tr(key,vars){try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.t==='function')return w.ExportHUBI18n.t(key,vars)}catch(_){}return key}
+function q(v){return String(v==null?'':v).trim()}
+function tr(key,vars){try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.t==='function')return w.ExportHUBI18n.t(key,vars)}catch(_){}return key}
 function arr(v){return Array.isArray(v)?v:[]}
 function obj(v){return !!v&&typeof v==='object'&&!Array.isArray(v)}
 function state(){try{return typeof w.__EXPORTHUB_GET_STATE__==='function'?(w.__EXPORTHUB_GET_STATE__()||{}):{}}catch(_){return{}}}
