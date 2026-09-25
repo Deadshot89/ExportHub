@@ -21,6 +21,10 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
       try{
         const cover=document.querySelector('.rc390-cover,.rc352-cover');
         const cs=cover?getComputedStyle(cover):null;
+        const reference=cover&&cover.querySelector('.rc390-cover-ref,[data-rc1203-reference-highlight]');
+        const recipient=cover&&cover.querySelector('.rc1203-cover-recipient,[data-rc1203-recipient-highlight]');
+        const rs=reference?getComputedStyle(reference):null;
+        const rcs=recipient?getComputedStyle(recipient):null;
         window.__RC1190_PRINT_CAPTURE__={
           title:String(document.title||''),
           text:String(document.body&&document.body.innerText||''),
@@ -35,6 +39,9 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
             borderColor:cs.borderTopColor,
             outlineStyle:cs.outlineStyle
           }:null,
+          coverTheme:cover?String(cover.getAttribute('data-rc1281-customer-theme')||''):null,
+          referenceStyle:rs?{backgroundColor:rs.backgroundColor,color:rs.color,borderColor:rs.borderTopColor}:null,
+          recipientStyle:rcs?{backgroundColor:rcs.backgroundColor,color:rcs.color,borderColor:rcs.borderTopColor}:null,
           load1Count:document.querySelectorAll('.rc390-load.rc576-load1').length,
           load2Count:document.querySelectorAll('.rc390-load.rc576-load2').length,
           cmrCount:document.querySelectorAll('.rc390-cmr-wrap').length,
@@ -102,7 +109,7 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
   expect(capture.html).toMatch(/\brc390-cover\b/i);
   expect(capture.html).toMatch(/data-rc1203-cover-enhanced="1"/i);
   expect(capture.coverStyle).toBeTruthy();
-  expect(capture.coverStyle.backgroundColor).toBe('rgb(248, 250, 252)');
+  expect(capture.coverStyle.backgroundColor).toBe('rgb(255, 255, 255)');
   expect(capture.coverStyle.backgroundImage).toBe('none');
   expect(parseFloat(capture.coverStyle.borderTopWidth)).toBeGreaterThanOrEqual(18);
   expect(parseFloat(capture.coverStyle.borderTopWidth)).toBeLessThanOrEqual(20);
@@ -112,6 +119,14 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
   }
   expect(capture.coverStyle.borderColor).toBe('rgb(51, 65, 85)');
   expect(capture.coverStyle.outlineStyle).toBe('none');
+  expect(capture.coverTheme).toBe('customer');
+  expect(capture.referenceStyle).toBeTruthy();
+  expect(capture.referenceStyle.backgroundColor).toBe('rgb(37, 99, 235)');
+  expect(capture.referenceStyle.color).toBe('rgb(255, 255, 255)');
+  expect(capture.recipientStyle).toBeTruthy();
+  expect(capture.recipientStyle.backgroundColor).toBe('rgb(219, 234, 254)');
+  expect(capture.text).toMatch(/Erstellt am:\s*\d{2}\.\d{2}\.\d{4}/);
+  expect(capture.html).toMatch(/data-rc1281-created-date="1"/i);
   expect(capture.html).toMatch(/data-rc1203-cover-remark="1"/i);
   expect(capture.text).toContain('Bemerkung');
   expect(capture.text).toContain('RC1203 Demo-Bemerkung');
@@ -133,6 +148,70 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
   await assertNoHorizontalOverflow(page);
   for(const guard of guards)await assertRuntimeClean(guard,testInfo);
 });
+
+
+test('RC1281 P2: Essentra-Deckblatt ist weiß mit gelber Referenz und hellgelbem Empfänger',async({page},testInfo)=>{
+  test.skip(testInfo.project.name!=='laptop','Essentra-Deckblatt-Farbregel wird einmal im echten Browser geprüft.');
+  test.setTimeout(45_000);
+  const guard=attachRuntimeGuards(page,testInfo);
+
+  await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
+  await waitReady(page);
+
+  const prepared=await page.evaluate(()=>{
+    const state=typeof window.__EXPORTHUB_GET_STATE__==='function'?window.__EXPORTHUB_GET_STATE__():null;
+    if(!state)return false;
+    const shipments=Array.isArray(state.shipments)?state.shipments:[],customers=Array.isArray(state.customers)?state.customers:[];
+    const shipment=shipments.find(item=>String(item&& (item.ref||item.reference)||'').toUpperCase()==='DEMO01');
+    if(!shipment)return false;
+    const customer=customers.find(item=>String(item&&item.id||'')===String(shipment.customerId||''));
+    shipment.customerName='Essentra Components Sweden AB';
+    if(customer){customer.name='Essentra Components Sweden AB';customer.customerName='Essentra Components Sweden AB'}
+    return true;
+  });
+  expect(prepared,'DEMO01 konnte nicht als Essentra-Sendung vorbereitet werden').toBe(true);
+
+  await openExportHubView(page,'documents',['Ladeliste & CMR','Dokumente & CMR','Dokumente','CMR'],/Ladeliste|CMR|Dokument/i,{allowProgrammaticFallback:true});
+  const shipmentSelect=page.getByRole('combobox',{name:'Sendung auswählen'}).first();
+  await expect(shipmentSelect).toBeVisible({timeout:10_000});
+  const optionLabels=await shipmentSelect.locator('option').allTextContents();
+  const shipmentLabel=optionLabels.find(label=>/DEMO01/i.test(label));
+  expect(shipmentLabel,'DEMO01 fehlt in der Dokumentauswahl').toBeTruthy();
+  await shipmentSelect.selectOption({label:shipmentLabel});
+
+  const coverTab=page.locator('[data-index352-doc="cover"]').first();
+  await expect(coverTab).toBeVisible({timeout:10_000});
+  await coverTab.click();
+
+  const style=await page.locator('#rc565Cover').evaluate(cover=>{
+    const reference=cover.querySelector('.rc390-cover-ref,[data-rc1203-reference-highlight]');
+    const recipient=cover.querySelector('.rc1203-cover-recipient,[data-rc1203-recipient-highlight]');
+    const cs=getComputedStyle(cover),rs=reference?getComputedStyle(reference):null,rcs=recipient?getComputedStyle(recipient):null;
+    return{
+      theme:String(cover.getAttribute('data-rc1281-customer-theme')||''),
+      backgroundColor:cs.backgroundColor,
+      referenceBackground:rs&&rs.backgroundColor,
+      referenceColor:rs&&rs.color,
+      recipientBackground:rcs&&rcs.backgroundColor,
+      recipientColor:rcs&&rcs.color,
+      text:String(cover.innerText||''),
+      created:!!cover.querySelector('[data-rc1281-created-date="1"]')
+    };
+  });
+
+  expect(style.theme).toBe('essentra');
+  expect(style.backgroundColor).toBe('rgb(255, 255, 255)');
+  expect(style.referenceBackground).toBe('rgb(250, 204, 21)');
+  expect(style.referenceColor).toBe('rgb(17, 24, 39)');
+  expect(style.recipientBackground).toBe('rgb(254, 249, 195)');
+  expect(style.created).toBe(true);
+  expect(style.text).toMatch(/Erstellt am:\s*\d{2}\.\d{2}\.\d{4}/);
+
+  await assertNoSourceLeak(page);
+  await assertNoHorizontalOverflow(page);
+  await assertRuntimeClean(guard,testInfo);
+});
+
 
 test('RC1275 P1: Europaletten erscheinen im echten Ladelisten-Druck als Palettenkonto-Ausgang',async({page,context},testInfo)=>{
   test.skip(testInfo.project.name!=='laptop','Palettenkonto-Druckabnahme läuft einmal auf dem Laptop-Profil.');
