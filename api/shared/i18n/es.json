@@ -240,5 +240,7 @@
   "api.pod.archiveStateIncomplete": "El estado del archivo está incompleto y se reconstruirá.",
   "api.pod.archiveNotFound": "Falta la copia de archivo POD confirmada y se volverá a crear.",
   "api.pdf.activeContent": "No se permiten PDF con contenido activo o incrustado ({{label}}).",
-  "api.location.siteRequired": "La ubicación/el cliente es obligatorio."
+  "api.location.siteRequired": "La ubicación/el cliente es obligatorio.",
+  "api.container.teamSyncUnavailable": "No se pudo vincular la foto del contenedor con el envío.",
+  "api.container.teamSyncFailed": "La foto del contenedor se guardó, pero no se pudo vincular con el envío. Inténtelo de nuevo."
 }
