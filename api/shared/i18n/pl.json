@@ -242,5 +242,12 @@
   "api.pdf.activeContent": "Pliki PDF z aktywną lub osadzoną zawartością są niedozwolone ({{label}}).",
   "api.location.siteRequired": "Lokalizacja/klient jest wymagany.",
   "api.container.teamSyncUnavailable": "Nie udało się powiązać zdjęcia kontenera z przesyłką.",
-  "api.container.teamSyncFailed": "Zdjęcie kontenera zostało zapisane, ale nie udało się powiązać go z przesyłką. Spróbuj ponownie."
+  "api.container.teamSyncFailed": "Zdjęcie kontenera zostało zapisane, ale nie udało się powiązać go z przesyłką. Spróbuj ponownie.",
+  "api.location.invalid": "Nieprawidłowa lokalizacja magazynowa.",
+  "api.location.alreadyCollected": "Przesyłka została już odebrana. Lokalizacja wyjściowa jest zablokowana.",
+  "api.location.notReady": "Przesyłka nie jest jeszcze gotowa do odbioru i nie może zostać przypisana do lokalizacji wyjściowej.",
+  "api.location.actionFailed": "Operacja magazynowa nie powiodła się.",
+  "api.container.photoLabel.loaded": "Załadowany kontener",
+  "api.container.photoLabel.number": "Numer kontenera od wewnątrz",
+  "api.container.photoLabel.sealed": "Zaplombowany kontener · plomba/oznaczenia/dokumenty"
 }
