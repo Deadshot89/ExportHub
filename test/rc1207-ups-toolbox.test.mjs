@@ -21,6 +21,12 @@ test('RC1227: Ortskürzel MG bleibt weiterhin kein Länderkennzeichen',()=>{cons
 test('RC1227: sichtbare UPS-Ausgabe kennzeichnet komplette Lieferung',()=>{const s=fs.readFileSync(new URL('../assets/rc1206-shipping-rules.js',import.meta.url),'utf8');assert.match(s,/Gesamtkosten komplette Lieferung/);assert.match(s,/Grundpreis komplette Lieferung/);assert.ok(s.includes("'Fuel '+pct.toFixed(2)+' % · komplette Lieferung'"))});
 
 
+test('RC1274: eindeutige Lieferadresse schlägt veraltetes generisches countryCode',()=>{
+  const x=load({__EXPORTHUB_GET_STATE__:()=>({currentShipment:{countryCode:'NL',country:'Nederland',deliveryAddress:'60044 Albacina-Fabriano AN'}})});
+  assert.equal(x.shipmentDestination().country,'IT');
+  assert.equal(x.shipmentDestination().postal,'60044');
+});
+
 test('RC1266: aktuelle Sendung hat Vorrang vor stale shipment-Fallback',()=>{
   const x=load({__EXPORTHUB_GET_STATE__:()=>({shipment:{country:'Nederland',postalCode:'5657 EA'},currentShipment:{deliveryAddress:'60044 Albacina-Fabriano AN'}})});
   assert.equal(x.shipmentDestination().country,'IT');
