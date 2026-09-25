@@ -39,7 +39,7 @@ test('RC1065: ABD-Avis ist schnell erzeugbar und serverseitig erst ab Verfügbar
   const immediate=read('assets/rc1027-lieferavis-immediate.js');
   assert.match(runtime,/minutes<=810\?1:2/);
   assert.match(runtime,/expectedAvailableTime:'10:00'/);
-  assert.match(runtime,/ABD NOCH NICHT VORHANDEN/);
+  assert.match(runtime,/abd\.mailPending/);
   assert.match(fixer,/fastSnapshotIssue=action==='issue'/);
   assert.match(fixer,/ABD_PICKUP_TOO_EARLY/);
   assert.match(fixer,/enforceAbdAppointment\(state,target,payload\);applyAppointment/);
