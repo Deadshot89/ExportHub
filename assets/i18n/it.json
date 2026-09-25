@@ -1080,5 +1080,7 @@
   "sop.081.flow2": "Inserisci quantità",
   "sop.081.flow3": "Riferimento facoltativo",
   "sop.081.flow4": "Registra",
-  "sop.081.flow5": "Controlla saldo"
+  "sop.081.flow5": "Controlla saldo",
+  "abd.mailPending": "IMPORTANTE – IL DOCUMENTO DI ESPORTAZIONE (ABD) NON È ANCORA DISPONIBILE\nL’ABD dovrebbe essere disponibile il {{expected}} verso le 10:00. Il ritiro può già essere prenotato, ma non prima del {{minimum}} alle 10:00.",
+  "mail.closing": "Cordiali saluti"
 }
