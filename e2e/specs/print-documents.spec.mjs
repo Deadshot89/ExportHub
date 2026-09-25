@@ -34,7 +34,11 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
             borderLeftWidth:cs.borderLeftWidth,
             borderColor:cs.borderTopColor,
             outlineStyle:cs.outlineStyle
-          }:null
+          }:null,
+          load1Count:document.querySelectorAll('.rc390-load.rc576-load1').length,
+          load2Count:document.querySelectorAll('.rc390-load.rc576-load2').length,
+          cmrCount:document.querySelectorAll('.rc390-cmr-wrap').length,
+          cmrLabels:Array.from(document.querySelectorAll('.rc390-cmr-copy')).map(node=>String(node.textContent||'').trim())
         };
       }catch(_){}
     };
@@ -108,7 +112,10 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
   expect(capture.text).toMatch(/(?:Ladeliste\s*1|\bL1\b)/i);
   expect(capture.text).toMatch(/(?:Ladeliste\s*2|\bL2\b)/i);
   expect(capture.text).toMatch(/CMR/i);
-  expect(capture.text).toMatch(/CMR\s*4\s*\/\s*4/i);
+  expect(capture.load1Count).toBe(1);
+  expect(capture.load2Count).toBe(1);
+  expect(capture.cmrCount).toBe(4);
+  expect(capture.cmrLabels.join(' ')).toMatch(/CMR\s*4\s*\/\s*4/i);
   expect(capture.text).toMatch(/Warenbeschreibung/i);
 
   await assertNoSourceLeak(page);
