@@ -249,5 +249,6 @@
   "api.location.actionFailed": "La operación de almacén ha fallado.",
   "api.container.photoLabel.loaded": "Contenedor cargado",
   "api.container.photoLabel.number": "Número del contenedor desde el interior",
-  "api.container.photoLabel.sealed": "Contenedor precintado · precinto/marcajes/documentos"
+  "api.container.photoLabel.sealed": "Contenedor precintado · precinto/marcajes/documentos",
+  "api.fixedPickups.failed": "No se pudieron procesar las recogidas fijas."
 }
