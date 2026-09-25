@@ -15,6 +15,10 @@ test('RC1190: Gesamtdruck-Browserabnahme benutzt die echte UI-Aktion und echten 
   assert.match(spec,/for\(const frame of p\.frames\(\)\)/);
   assert.match(spec,/\\brc390-cover\\b/);
   for(const marker of ['Ladeliste','Ladeliste\\s*1','Ladeliste\\s*2','CMR','CMR\\s*4','Warenbeschreibung'])assert.ok(spec.includes(marker),marker+' fehlt in der Browserabnahme');
+  assert.match(spec,/pages:Array\.from\(document\.querySelectorAll\('\.rc390-page,\.rc352-page'\)\)/);
+  assert.match(spec,/Gesamtdruck enthält eine leere oder praktisch leere Dokumentseite/);
+  assert.match(spec,/vertikal abgeschnittene Inhalte/);
+  assert.match(spec,/horizontal abgeschnittene Inhalte/);
 });
 
 test('RC1190: Browserabnahme verwendet die lokale Fake-Benelux-Sendung ohne Servermutation',()=>{
@@ -52,6 +56,14 @@ test('RC1190: neue Browserdateien sind syntaktisch gültig',()=>{
   }
 });
 
+
+test('RC1275: Browserabnahme prüft Palettenkonto in echtem Ladelisten-Druck',()=>{
+  assert.match(spec,/RC1275 P1: Europaletten erscheinen im echten Ladelisten-Druck als Palettenkonto-Ausgang/);
+  assert.match(spec,/DEMO01\|Nord/);
+  assert.match(spec,/Palettenkonto\/i/);
+  assert.match(spec,/Ausgang:\\\\s\*2\\\\s\*Europaletten\/i/);
+  assert.match(spec,/rc1095-pallet-account\/i/);
+});
 
 test('RC1274: finaler Build stellt L2 und vier CMR im Gesamtdruck wieder her',()=>{
   const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
