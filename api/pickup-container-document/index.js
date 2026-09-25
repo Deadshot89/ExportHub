@@ -5,6 +5,8 @@ const docs=require('../shared/container-document-store');
 const apiI18n=require('../shared/i18n');
 
 function json(status,body){return pickup.json(status,body)}
+function message(req,e,fallback){const raw=text(e&&e.message);return /^api\./.test(raw)?apiI18n.t(req,raw,e&&e.vars):raw||apiI18n.t(req,fallback)}
+function publicPhoto(req,photo){return docs.publicPhoto(photo,key=>apiI18n.t(req,key))}
 function mergePhoto(list,photo){
  const rows=Array.isArray(list)?list.slice():[];
  const next=rows.filter(x=>String(x&&x.kind||'').toLowerCase()!==photo.kind);
@@ -36,6 +38,6 @@ module.exports=async function(context,req){
   if(typeof pickup.updateTeamContainerDocumentation!=='function')throw pickup.err('CONTAINER_TEAM_SYNC_UNAVAILABLE',apiI18n.t(req,'api.container.teamSyncUnavailable'),503);
   const teamDoc=await pickup.updateTeamContainerDocumentation(updated);
   if(!linkedInTeam(teamDoc,updated,photo))throw pickup.err('CONTAINER_TEAM_SYNC_FAILED',apiI18n.t(req,'api.container.teamSyncFailed'),503);
-  context.res=json(200,{ok:true,reference:updated.reference,photo:docs.publicPhoto(photo),containerPhotos:(updated.containerPhotos||[]).map(docs.publicPhoto).filter(Boolean),storedUnderReference:true,linkedToShipment:true,version:'RC1272'});
- }catch(e){context.log&&context.log.error&&context.log.error('pickup-container-document RC1259',e&&e.code,e&&e.message);context.res=json(e.status||e.statusCode||500,{ok:false,code:e.code||'CONTAINER_PHOTO_UPLOAD_FAILED',message:e.message||apiI18n.t(req,'api.container.photoSaveFailed')})}
+  context.res=json(200,{ok:true,reference:updated.reference,photo:publicPhoto(req,photo),containerPhotos:(updated.containerPhotos||[]).map(p=>publicPhoto(req,p)).filter(Boolean),storedUnderReference:true,linkedToShipment:true,version:'RC1272'});
+ }catch(e){context.log&&context.log.error&&context.log.error('pickup-container-document RC1259',e&&e.code,e&&e.message);context.res=json(e.status||e.statusCode||500,{ok:false,code:e.code||'CONTAINER_PHOTO_UPLOAD_FAILED',message:message(req,e,'api.container.photoSaveFailed')})}
 };
