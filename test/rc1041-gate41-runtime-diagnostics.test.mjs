@@ -27,7 +27,7 @@ test('RC1041: Gate41 Deutschland berechnet den Grundtarif zur Laufzeit korrekt',
 });
 
 test('RC1041: Gate41 ist in der Oberfläche ausdrücklich nur für Deutschland freigegeben',()=>{
-  assert.match(ui,/nur für nationalen Versand innerhalb Deutschlands freigegeben/);
+  assert.match(ui,/gate41\.international/);
   assert.match(ui,/nationalOnly:true/);
   assert.match(ui,/save\.disabled=!national/,'Speichern muss für Ausland gesperrt sein');
   assert.doesNotMatch(ui,/gate41\.com\/frachtkalkulator/,'kein externer Auslandskalkulator im National-Only-Modus');
