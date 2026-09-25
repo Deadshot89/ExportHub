@@ -11,6 +11,15 @@ on:
       - '.github/rc1112/**'
       - '.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml'
       - '.github/workflows/rc1190-print-browser-pr.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'e2e/specs/print-documents.spec.mjs'
+      - 'e2e/helpers/**'
+      - 'test/rc1190-*'
+      - 'playwright.config.mjs'
+      - '.github/rc1112/**'
+      - '.github/workflows/rc1190-print-browser-pr.yml'
   workflow_dispatch:
 
 permissions:
