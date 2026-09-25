@@ -855,7 +855,7 @@
   "container.view": "Wyświetl",
   "container.download": "Pobierz",
   "container.configTitle": "🚢 Lotniczy / morski i kontener",
-  "container.configHelpShort": "Dokumentacja kontenera jest rejestrowana przez kod QR odbioru.",
+  "container.configHelpShort": "Numer plomby można już uzupełnić na stronie głównej; zdjęcia są wykonywane za pomocą kodu QR odbioru.",
   "container.transportMode": "Rodzaj transportu",
   "container.notSet": "Nie określono",
   "container.road": "Droga",
@@ -1082,5 +1082,7 @@
   "sop.081.flow4": "Zaksięguj",
   "sop.081.flow5": "Sprawdź stan",
   "abd.mailPending": "WAŻNE – DOKUMENT EKSPORTOWY (ABD) NIE JEST JESZCZE DOSTĘPNY\nABD powinien być dostępny {{expected}} około 10:00. Odbiór można już zarezerwować, jednak nie wcześniej niż {{minimum}} o 10:00.",
-  "mail.closing": "Z poważaniem"
+  "mail.closing": "Z poważaniem",
+  "container.sealInput": "Numer plomby",
+  "container.sealPlaceholder": "np. ABCD123456"
 }
