@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import {execFileSync} from 'node:child_process';
+import {createTestI18n} from './helpers/i18n.mjs';
 
 const read=p=>fs.readFileSync(p,'utf8');
 
@@ -14,7 +15,7 @@ test('RC1091: bestehende Sendungsmetadaten werden bei identischen Werten nicht e
   const row={querySelector(sel){if(sel==='.rc1014-shipment-created')return created;if(sel==='.rc1014-shipment-colli')return colli;return null}};
   const card={dataset:{shipment:'ABC123'},textContent:'ABC123',querySelector(sel){return sel==='[data-rc1014-shipment-meta]'?row:null},appendChild(){appends++},setAttribute(){}};
   const document={body:{getAttribute(name){return name==='data-exporthub-view'?'shipmentoverview':''}},querySelectorAll(){return[card]},createElement(){throw new Error('Bestehende Meta-Zeile darf nicht neu erstellt werden')}};
-  const context={document,Date,console,setTimeout(fn){fn();return 1},clearTimeout(){},addEventListener(){}};context.globalThis=context;
+  const context={document,Date,console,ExportHUBI18n:createTestI18n('de'),setTimeout(fn){fn();return 1},clearTimeout(){},addEventListener(){}};context.globalThis=context;
   vm.runInNewContext(source,context,{filename:'rc1014-shipment-overview.js'});
   const api=context.ExportHUBRC1014ShipmentOverview;
   assert.equal(api.enhanceShipmentOverview([{id:'ABC123',createdAt:'2026-09-14T08:00:00Z',totalColli:3}]),1);
@@ -24,7 +25,7 @@ test('RC1091: bestehende Sendungsmetadaten werden bei identischen Werten nicht e
 
 test('RC1127: Kunden-Abholdatum kommt ausschließlich aus der Lieferavis-Antwort',()=>{
   const source=read('assets/rc1014-shipment-overview.js');
-  const context={console,Date,setTimeout(fn){fn();return 1},clearTimeout(){},addEventListener(){}};context.globalThis=context;
+  const context={console,Date,ExportHUBI18n:createTestI18n('de'),setTimeout(fn){fn();return 1},clearTimeout(){},addEventListener(){}};context.globalThis=context;
   vm.runInNewContext(source,context,{filename:'rc1014-shipment-overview.js'});
   const api=context.ExportHUBRC1014ShipmentOverview;
   const avis=api.shipmentMeta({
