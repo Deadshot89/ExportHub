@@ -2,6 +2,7 @@
   'use strict';
 
   const q=v=>String(v==null?'':v).trim();
+  const tr=(key,vars)=>{try{return root.ExportHUBI18n&&typeof root.ExportHUBI18n.t==='function'?root.ExportHUBI18n.t(key,vars):key}catch(_){return key}};
   const arr=v=>Array.isArray(v)?v:[];
   const obj=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
   let remembered=[];
