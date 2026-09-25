@@ -139,7 +139,7 @@ test('RC1259: Siegelnummer wird in Sendungsübersicht und Sendungsansicht als Su
   assert.match(build,/sh&&sh\.sealNumber/);
   assert.match(build,/Siegelnummer, Kundennummer/);
   assert.match(build,/exporthub-rc1259-container-runtime/);
-  assert.match(build,/rc1014-shipment-overview\.js\?v=1259/);
+  assert.match(build,/rc1014-shipment-overview\.js\?v=1284/);
 });
 
 test('RC1259: stale Browser-Saves dürfen serverseitige Siegel- und Fotodaten nicht verlieren',()=>{
