@@ -4,10 +4,21 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const source=fs.readFileSync('assets/rc1071-shipment-history.js','utf8');
+const historyDe=JSON.parse(fs.readFileSync('assets/i18n/de.json','utf8'));
+const historyEn=JSON.parse(fs.readFileSync('assets/i18n/en.json','utf8'));
+function historyI18n(language='de'){
+  return {
+    language(){return language},
+    t(key,vars,forced){const pack=(forced||language)==='en'?historyEn:historyDe;let value=pack[key]||historyDe[key]||key;if(vars)for(const [name,v] of Object.entries(vars))value=value.replaceAll('{{'+name+'}}',String(v));return value},
+    formatDate(value,options){return new Intl.DateTimeFormat(language==='en'?'en-GB':'de-DE',options||{}).format(value)}
+  };
+}
 
-function api(){
+
+function api(language='de'){
   const document={body:null,readyState:'loading',addEventListener(){},getElementById(){return null},querySelector(){return null}};
-  const window={document,addEventListener(){},console,__EXPORTHUB_GET_STATE__:()=>({})};
+  const window={
+    ExportHUBI18n:historyI18n(language),document,addEventListener(){},console,__EXPORTHUB_GET_STATE__:()=>({})};
   const context={window,document,console,Date,Intl,Math,Map,Set,Array,Object,String,Number,Promise,setTimeout(){return 1},clearTimeout(){},setInterval(){return 1},MutationObserver:undefined};
   vm.runInNewContext(source,context,{filename:'rc1071-shipment-history.js'});
   return window.ExportHUBShipmentHistory1071;
@@ -44,15 +55,22 @@ test('RC1100: Statushistorie benennt Storno Nachbearbeitung Abschluss und Archiv
 
 test('RC1100: zentrale Aktionsabdeckung enthält Dokumentänderung ABD Anmeldung Druck Mail Avis Abholung POD',()=>{
   for(const marker of [
-    "base+' ersetzt'",
-    "base+' entfernt'",
-    "base+' hinzugefügt'",
-    "label:'ABD-Anfrage erstellt'",
-    "label:'Versandanmeldung gestartet'",
+    "change:'replaced'",
+    "change:'removed'",
+    "change:'added'",
+    "shipmentHistory.action.abdRequestCreated",
+    "shipmentHistory.action.registrationStarted",
     "type:'print'",
     "type:'mail-sent'",
     "type:'avis'",
     "type:'pickup'",
     "type:'pod'"
   ]) assert.ok(source.includes(marker),marker+' fehlt');
+});
+
+test('RC1267: sichtbare Sendungshistorie wechselt ohne Änderung der gespeicherten Fachwerte auf Englisch',()=>{
+  const runtime=api('en');
+  assert.equal(runtime.displayAction({type:'status',label:'Sendung storniert',details:{}}),'Shipment cancelled');
+  assert.equal(runtime.displayAction({type:'created',label:'Sendung erstellt',details:{}}),'Shipment created');
+  assert.equal(runtime.displayAction({type:'document-download',label:'Lieferschein – heruntergeladen',details:{document:'Lieferschein'}}),'Delivery note – downloaded');
 });

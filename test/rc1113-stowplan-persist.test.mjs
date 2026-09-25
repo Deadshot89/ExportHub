@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
+import {createTestI18n} from './helpers/i18n.mjs';
 
 const ROOT=process.cwd();
 const RUNTIME=path.join(ROOT,'assets/rc1113-stowplan-persist.js');
@@ -10,7 +11,7 @@ const BUILDER=path.join(ROOT,'.github/rc1112/build-three-env.mjs');
 
 function api(){
   const source=fs.readFileSync(RUNTIME,'utf8');
-  const window={addEventListener(){}};
+  const window={ExportHUBI18n:createTestI18n('de'),addEventListener(){}};
   const document={readyState:'loading',addEventListener(){},getElementById(){return null}};
   const context={window,document,console,setTimeout:()=>0,clearTimeout(){},CustomEvent:function(){},requestAnimationFrame:()=>0,Date};
   vm.runInNewContext(source,context,{filename:'rc1113-stowplan-persist.js'});
@@ -67,8 +68,8 @@ test('RC1113: Runtime respektiert Sperrstatus und nutzt den bestehenden Sendungs
   assert.match(source,/abgeholt\|picked\|pod\|abgeschlossen\|completed\|archiviert\|archived/);
   assert.match(source,/stowPlanSnapshot/);
   assert.match(source,/scheduleEditSave\('Stauplan automatisch erstellt und gespeichert'/);
-  assert.match(source,/Ladeanweisung/);
-  assert.match(source,/automatisch erstellt &amp; mit Sendung gespeichert/);
+  assert.match(source,/stowplan\.instructionTitle/);
+  assert.match(source,/stowplan\.savedBadge/);
 });
 
 test('RC1113: RC1112-Builder lädt die Stauplan-Erweiterung in Produktion, TESTSERVICE und Demo',()=>{

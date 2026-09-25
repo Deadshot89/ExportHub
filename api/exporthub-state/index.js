@@ -7,6 +7,8 @@ const { mergeState, sanitizeState, pruneTombstones, clone, isLocalOnlyKey } = re
 const { externalizeDocumentCollections, DOCUMENT_CONTAINER, DOCUMENT_FIELDS, legacyDocumentInventory } = require('../shared/document-blob-store');
 const { isAdmin, isPrivilegedUser } = require('../shared/user-policy');
 const { compactStateForStorage } = require('../shared/state-compaction');
+const { enrichDynamicTranslations, translationStatus, normalizeLanguage: normalizeDynamicLanguage } = require('../shared/dynamic-i18n');
+const apiI18n = require('../shared/i18n');
 
 const TEAM_CONTAINER = process.env.EXPORTHUB_STORAGE_CONTAINER || process.env.EXPORTHUB_CONTAINER || 'exporthub-data';
 const TEAM_BLOB_BASE = process.env.EXPORTHUB_STORAGE_BLOB || process.env.EXPORTHUB_STATE_BLOB || 'team-state.json';
@@ -24,7 +26,8 @@ const AUTH_WARM_CACHE = new Map();
 function text(v){ return String(v == null ? '' : v).trim(); }
 function lower(v){ return text(v).toLowerCase(); }
 function now(){ return new Date().toISOString(); }
-function error(code,message,status=400){ const e=new Error(message); e.code=code; e.status=status; return e; }
+function error(code,message,status=400,vars){ const e=new Error(message); e.code=code; e.status=status; e.vars=vars||{}; return e; }
+function localizedError(req,e,fallbackKey){const raw=text(e&&e.message);return /^api\./.test(raw)?apiI18n.t(req,raw,e&&e.vars):raw||apiI18n.t(req,fallbackKey||'api.state.unknownStorage');}
 function json(status,body,headers={}){ return {status,headers:Object.assign({'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'},headers),body:JSON.stringify(body)}; }
 function timingHeaders(t={}){const h={'X-ExportHUB-Server-Ms':String(Math.max(0,Number(t.serverMs||0)||0)),'X-ExportHUB-Auth-Ms':String(Math.max(0,Number(t.authMs||0)||0)),'X-ExportHUB-Auth-Cache':text(t.authCache||'none')||'none','X-ExportHUB-Team-Ms':String(Math.max(0,Number(t.teamMs||0)||0)),'X-ExportHUB-Team-Cache':text(t.teamCache||'none')||'none'};if(t.mergeMs!==undefined)h['X-ExportHUB-Merge-Ms']=String(Math.max(0,Number(t.mergeMs||0)||0));if(t.uploadMs!==undefined)h['X-ExportHUB-Upload-Ms']=String(Math.max(0,Number(t.uploadMs||0)||0));if(t.retryReadMs!==undefined)h['X-ExportHUB-Retry-Read-Ms']=String(Math.max(0,Number(t.retryReadMs||0)||0));if(t.uploadBytes!==undefined)h['X-ExportHUB-Upload-Bytes']=String(Math.max(0,Number(t.uploadBytes||0)||0));if(t.conflictCount!==undefined)h['X-ExportHUB-Save-Conflicts']=String(Math.max(0,Number(t.conflictCount||0)||0));return h}
 function body(req){ if(req&&req.body&&typeof req.body==='object')return req.body; try{return JSON.parse(req&&req.body||'{}')}catch(_){return {}} }
@@ -39,10 +42,10 @@ function requestEnvironmentEvidence(req){
 }
 function requestedEnvironment(req,payload){
  const h=req&&req.headers||{},raw=lower(h['x-exporthub-environment']||h['X-ExportHUB-Environment']||(payload&&payload.environment)||'');
- if(raw&&raw!=='production'&&raw!=='testservice')throw error('ENVIRONMENT_INVALID','Unbekannte ExportHUB-Datenumgebung.',400);
+ if(raw&&raw!=='production'&&raw!=='testservice')throw error('ENVIRONMENT_INVALID','api.state.environmentInvalid',400);
  const evidence=requestEnvironmentEvidence(req),origin=lower(h.origin||h.Origin||h.referer||h.Referer||''),originTest=/-testservice\./i.test(origin),originAzure=/\.azurestaticapps\.net(?:[:/]|$)/i.test(origin),originProd=originAzure&&!originTest;
  if(originTest){if(raw&&raw!=='testservice')throw error('ENVIRONMENT_MISMATCH','Ein Testservice-Aufruf darf keine Produktionsdaten anfordern.',409);return'testservice'}
- if(originProd){if(raw&&raw!=='production')throw error('ENVIRONMENT_MISMATCH','Die Produktionsseite darf keine Testservice-Daten anfordern.',409);return'production'}
+ if(originProd){if(raw&&raw!=='production')throw error('ENVIRONMENT_MISMATCH','api.state.productionNoTestData',409);return'production'}
  if(raw)return raw;
  return /-testservice\./i.test(evidence)?'testservice':'production';
 }
@@ -68,7 +71,7 @@ function tokenHash(token){ return crypto.createHash('sha256').update(String(toke
 function sessionSigningSecret(){
  const configured=text(process.env.EXPORTHUB_AUTH_SIGNING_SECRET||process.env.EXPORTHUB_SESSION_SECRET);
  const source=configured||connectionString();
- if(!source)throw error('AUTH_SIGNING_NOT_CONFIGURED','Die sichere Sitzungssignatur ist serverseitig nicht konfiguriert.',503);
+ if(!source)throw error('AUTH_SIGNING_NOT_CONFIGURED','api.state.signingMissing',503);
  return crypto.createHash('sha256').update('ExportHUB/session/v1|'+source).digest();
 }
 function signSessionPart(encoded){ return crypto.createHmac('sha256',sessionSigningSecret()).update(encoded).digest('base64url'); }
@@ -90,8 +93,8 @@ function bearer(req,payload){
 }
 async function clients(req,payload){
  const cs=connectionString();
- if(!cs)throw error('STORAGE_NOT_CONFIGURED','Keine ExportHUB-Speicherverbindung ist in Azure verfügbar.',503);
- let service; try{service=createBlobServiceClient(cs)}catch(e){throw error('STORAGE_NOT_CONFIGURED','Die ExportHUB-Speicherverbindung ist ungültig: '+(e&&e.message||'Konfigurationsfehler'),503)}
+ if(!cs)throw error('STORAGE_NOT_CONFIGURED','api.state.storageMissing',503);
+ let service; try{service=createBlobServiceClient(cs)}catch(e){throw error('STORAGE_NOT_CONFIGURED','api.state.storageInvalid',503,{error:e&&e.message||'CONFIGURATION_ERROR'})}
  const container=service.getContainerClient(TEAM_CONTAINER),environment=requestedEnvironment(req,payload),teamBlobName=teamBlobForEnvironment(environment);
  const diagnosticsBlobName=diagnosticsBlobForEnvironment(environment);
  return {container,documentContainer:service.getContainerClient(DOCUMENT_CONTAINER),environment,teamBlobName,diagnosticsBlobName,recoveryPrefix:recoveryPrefixForEnvironment(environment),allowGenericRecoveryDiscovery:environment!=='testservice',team:container.getBlockBlobClient(teamBlobName),diagnostics:container.getBlockBlobClient(diagnosticsBlobName),productionTeam:container.getBlockBlobClient(TEAM_BLOB_BASE),auth:container.getBlockBlobClient(AUTH_BLOB)};
@@ -99,7 +102,7 @@ async function clients(req,payload){
 function parseStoredJson(raw,name){
  const cleaned=String(raw==null?'':raw).replace(/^\uFEFF/,'').replace(/\u0000+$/g,'').trim();
  if(!cleaned)return null;
- try{let v=JSON.parse(cleaned);if(typeof v==='string'&&/^[\[{]/.test(v.trim()))v=JSON.parse(v.trim());return v}catch(e){throw error('STORAGE_JSON_INVALID','Die Azure-Datei '+text(name||'unbekannt')+' enthält keine gültigen ExportHUB-Daten.',500)}
+ try{let v=JSON.parse(cleaned);if(typeof v==='string'&&/^[\[{]/.test(v.trim()))v=JSON.parse(v.trim());return v}catch(e){throw error('STORAGE_JSON_INVALID','api.state.jsonInvalid',500,{name:text(name)||'—'})}
 }
 async function readJson(blob,fallback,repairAuth=false){
  try{
@@ -186,7 +189,7 @@ async function readTeamResilient(container,blob,teamBlobName,recoveryPrefix,allo
  }catch(e){
   if(e&&e.code!=='STORAGE_JSON_INVALID')throw e;
   const fallback=await latestValidTeamFallback(container,teamBlobName,recoveryPrefix,allowDiscovery);
-  if(!fallback)throw error('STATE_CORRUPT_NO_BACKUP','Der aktuelle Azure-Teamstand ist beschädigt und es wurde keine lesbare historische Sicherung gefunden.',500);
+  if(!fallback)throw error('STATE_CORRUPT_NO_BACKUP','api.state.corruptNoBackup',500);
   return {value:fallback.value,etag:e&&e.etag||null,recoveredFromHistory:true,recoverySource:fallback.source,corruptCurrent:true};
  }
 }
@@ -194,9 +197,9 @@ async function readTeamFast(blob){
  try{
   const d=await readJson(blob,emptyTeam(),false);
   if(d.etag||usableTeamDocument(d.value))return d;
-  throw error('STATE_MISSING','Der aktuelle Azure-Teamstand fehlt. Die Historienrettung wird im normalen Lese-/Speicherpfad nicht automatisch gestartet.',503);
+  throw error('STATE_MISSING','api.state.stateMissing',503);
  }catch(e){
-  if(e&&e.code==='STORAGE_JSON_INVALID')throw error('STATE_CORRUPT_RECOVERY_REQUIRED','Der aktuelle Azure-Teamstand ist beschädigt. Bitte die explizite Wiederherstellung verwenden; normale Speichervorgänge wurden gestoppt.',503);
+  if(e&&e.code==='STORAGE_JSON_INVALID')throw error('STATE_CORRUPT_RECOVERY_REQUIRED','api.state.corruptRecoveryRequired',503);
   throw e;
  }
 }
@@ -204,7 +207,7 @@ async function ensureEnvironmentTeam(c){
  if(!c||c.environment!=='testservice')return false;
  try{await c.team.getProperties();return false}catch(e){const status=Number(e&&e.statusCode||e&&e.status||0),code=lower(e&&e.code);if(status!==404&&code!=='blobnotfound')throw e}
  const prod=await readJson(c.productionTeam,emptyTeam(),false),base=prod.value||emptyTeam();
- if(!usableTeamDocument(base))throw error('TEST_STATE_SEED_FAILED','Der Testservice konnte keinen gültigen Produktions-Ausgangsstand lesen.',503);
+ if(!usableTeamDocument(base))throw error('TEST_STATE_SEED_FAILED','api.state.testSeedFailed',503);
  const next=clone(base);next.schemaVersion=Math.max(3,Number(next.schemaVersion||3));next.revision=1;next.updatedAt=now();next.updatedBy='Testservice Initialisierung';next.updatedByUserId=null;next.updatedByDevice=null;next.clientVersion='RC923-testservice-seed';next.dataEnvironment='testservice';next.state=isObj(next.state)?clone(next.state):{};next.state._exporthubEnvironment={name:'testservice',isolated:true,seededAt:next.updatedAt,sourceBlob:TEAM_BLOB_BASE};
  try{await uploadJson(c.team,next,null);return true}catch(e){if(Number(e&&e.statusCode||0)===409||Number(e&&e.statusCode||0)===412)return false;throw e}
 }
@@ -247,18 +250,18 @@ async function readAuthCached(c){
 function resolveSessionFromAuth(token,authDoc){
  const sessions=Array.isArray(authDoc&&authDoc.value&&authDoc.value.sessions)?authDoc.value.sessions:[],hash=tokenHash(token);let session=sessions.find(s=>safeEqualText(s.tokenHash,hash)),source='blob';
  if(!session){const signed=verifySignedSessionToken(token);if(signed){source='signed';session={id:text(signed.sid),userId:text(signed.uid),username:text(signed.username),deviceId:text(signed.deviceId),createdAt:new Date(Number(signed.iat||Date.now())).toISOString(),expiresAt:new Date(Number(signed.exp)).toISOString(),authVersion:Number(signed.authVersion||0),mustChange:signed.mustChange===true,environment:lower(signed.environment)==='testservice'?'testservice':'',signedFallback:true}}}
- if(!session)throw error('SESSION_INVALID','Die Sitzung ist nicht mehr gültig. Bitte erneut anmelden.',401);
- if(session.revokedAt)throw error('SESSION_REVOKED','Die Sitzung wurde beendet. Bitte erneut anmelden.',401);
- if(Date.parse(session.expiresAt||'')<=Date.now())throw error('SESSION_INVALID','Die Sitzung ist nicht mehr gültig. Bitte erneut anmelden.',401);
+ if(!session)throw error('SESSION_INVALID','api.common.sessionInvalid',401);
+ if(session.revokedAt)throw error('SESSION_REVOKED','api.common.sessionRevoked',401);
+ if(Date.parse(session.expiresAt||'')<=Date.now())throw error('SESSION_INVALID','api.common.sessionInvalid',401);
  return {session,source}
 }
 async function validateSessionAuthOnly(req,payload,c){
- const token=bearer(req,payload);if(!token)throw error('AUTH_REQUIRED','ExportHUB-Anmeldung erforderlich.',401);
+ const token=bearer(req,payload);if(!token)throw error('AUTH_REQUIRED','api.common.authRequired',401);
  const authDoc=await readAuthCached(c),resolved=resolveSessionFromAuth(token,authDoc),session=resolved.session,username=text(session.username)||'Benutzer';
  return {token,session,sessionSource:resolved.source,user:{id:text(session.userId),name:username,user:username,username}}
 }
 async function validateSession(req,payload,c){
- const validationStarted=Date.now(),token=bearer(req,payload);if(!token)throw error('AUTH_REQUIRED','ExportHUB-Anmeldung erforderlich.',401);
+ const validationStarted=Date.now(),token=bearer(req,payload);if(!token)throw error('AUTH_REQUIRED','api.common.authRequired',401);
  const requestedMode=lower((req.query&&req.query.mode)||(payload&&payload.action)||(payload&&payload.mode));
  let authMs=0,teamMs=0,authCache='unknown';
  const authStarted=Date.now(),authPromise=readAuthCached(c).then(v=>{authMs=Date.now()-authStarted;authCache=v&&v.cacheMode||'unknown';return v},e=>{authMs=Date.now()-authStarted;throw e});
@@ -266,9 +269,9 @@ async function validateSession(req,payload,c){
  const reads=await Promise.all([authPromise,teamPromise]),authDoc=reads[0],teamDoc=reads[1],resolved=resolveSessionFromAuth(token,authDoc),session=resolved.session,source=resolved.source;
  const team=teamDoc.value||emptyTeam(),users=Array.isArray(team.users)?team.users:[];
  const user=users.find(u=>text(u.id)===text(session.userId)||usernameOf(u)===lower(session.username));
- if(!user||!isActive(user))throw error('ACCOUNT_DISABLED','Das Benutzerkonto ist deaktiviert.',403);
- if(Number(session.authVersion||0)!==Number(user.authVersion||0))throw error('SESSION_REVOKED','Die Sitzung wurde beendet. Bitte erneut anmelden.',401);
- if((session.mustChange||user.mustChange)===true)throw error('PASSWORD_CHANGE_REQUIRED','Vor der Nutzung muss das Startpasswort geändert werden.',403);
+ if(!user||!isActive(user))throw error('ACCOUNT_DISABLED','api.common.accountDisabled',403);
+ if(Number(session.authVersion||0)!==Number(user.authVersion||0))throw error('SESSION_REVOKED','api.common.sessionRevoked',401);
+ if((session.mustChange||user.mustChange)===true)throw error('PASSWORD_CHANGE_REQUIRED','api.common.passwordChangeRequired',403);
  return {token,session,user,team,teamEtag:teamDoc.etag,sessionSource:source,teamRecoveredFromHistory:teamDoc.recoveredFromHistory===true,teamRecoverySource:teamDoc.recoverySource||null,teamCurrentCorrupt:teamDoc.corruptCurrent===true,teamCurrentMissing:teamDoc.missingCurrent===true,timing:{authMs,authCache,teamMs,validationMs:Date.now()-validationStarted,teamCache:teamDoc.cacheMode||'unknown'}};
 }
 function clientStateForRead(state){
@@ -285,7 +288,7 @@ async function metadataOnly(blob){
  catch(e){if(e&&e.statusCode===404)return {schemaVersion:3,revision:0,updatedAt:null,clientVersion:null};throw e}
 }
 function normalizeIncoming(payload){const state=sanitizeState(payload.state||{});delete state.users;return {clientVersion:text(payload.clientVersion),baseRevision:Number(payload.baseRevision||0),deviceId:text(payload.deviceId),operationId:text(payload.operationId||payload.clientMutationId),reason:text(payload.reason||'save'),state}}
-function validateWriteUserAgainstTeam(team,user,session){const users=Array.isArray(team&&team.users)?team.users:[],fresh=users.find(u=>text(u.id)===text(user&&user.id)||usernameOf(u)===usernameOf(user));if(!fresh||!isActive(fresh))throw error('ACCOUNT_DISABLED','Das Benutzerkonto ist deaktiviert.',403);if(session&&Number(session.authVersion||0)!==Number(fresh.authVersion||0))throw error('SESSION_REVOKED','Die Sitzung wurde beendet. Bitte erneut anmelden.',401);if((session&&session.mustChange||fresh.mustChange)===true)throw error('PASSWORD_CHANGE_REQUIRED','Vor der Nutzung muss das Startpasswort geändert werden.',403);if(!hasAnyEditRight(fresh))throw error('WRITE_FORBIDDEN','Für Änderungen fehlen Bearbeitungsrechte.',403);return fresh}
+function validateWriteUserAgainstTeam(team,user,session){const users=Array.isArray(team&&team.users)?team.users:[],fresh=users.find(u=>text(u.id)===text(user&&user.id)||usernameOf(u)===usernameOf(user));if(!fresh||!isActive(fresh))throw error('ACCOUNT_DISABLED','api.common.accountDisabled',403);if(session&&Number(session.authVersion||0)!==Number(fresh.authVersion||0))throw error('SESSION_REVOKED','api.common.sessionRevoked',401);if((session&&session.mustChange||fresh.mustChange)===true)throw error('PASSWORD_CHANGE_REQUIRED','api.common.passwordChangeRequired',403);if(!hasAnyEditRight(fresh))throw error('WRITE_FORBIDDEN','api.state.writeForbidden',403);return fresh}
 function rc1080CustomerKey(c){
  if(!c||typeof c!=='object')return'';
  return lower(c.id||c.customerId||c.account||c.customerNumber||c.kundennummer||c.name||c.customerName);
@@ -349,12 +352,12 @@ async function saveMerged(blob,incoming,user,initialTeam,initialEtag,session){
   if(attempt>0){const retryStarted=Date.now();d=await readJson(blob,emptyTeam());retryReadMs+=Date.now()-retryStarted}
   const current=d.value||emptyTeam(),writeUser=validateWriteUserAgainstTeam(current,user,session),operationId=text(incoming.operationId),recentOperations=Array.isArray(current.recentOperations)?current.recentOperations:[];
   if(operationId&&recentOperations.some(op=>text(op&&op.id)===operationId)){const replay=clone(current);replay.concurrentMerge=false;replay.idempotentReplay=true;replay.baseRevision=Number(incoming.baseRevision||0);try{Object.defineProperty(replay,'__storageEtag',{value:d.etag||null,enumerable:false});Object.defineProperty(replay,'__timing',{value:{retryReadMs,mergeMs,uploadMs,uploadBytes,conflictCount},enumerable:false})}catch(_){}return replay}
-  const mergeStarted=Date.now(),merged=compactStateForStorage(pruneTombstones(mergeState(current.state||{},incoming.state||{})));delete merged.users;rc1080AuditCustomerChanges(current.state||{},merged,writeUser,incoming.state||{});mergeMs+=Date.now()-mergeStarted;
+  const mergeStarted=Date.now(),merged=compactStateForStorage(pruneTombstones(mergeState(current.state||{},incoming.state||{})));delete merged.users;rc1080AuditCustomerChanges(current.state||{},merged,writeUser,incoming.state||{});const dynamicI18nReport=await enrichDynamicTranslations(merged,normalizeDynamicLanguage(writeUser.language||writeUser.uiLanguage||'de'),{limit:Number(process.env.EXPORTHUB_I18N_SAVE_LIMIT||50)||50});mergeMs+=Date.now()-mergeStarted;
   const next={schemaVersion:3,revision:Number(current.revision||0)+1,updatedAt:now(),updatedBy:text(writeUser.name||writeUser.user),updatedByUserId:text(writeUser.id),updatedByDevice:incoming.deviceId||null,clientVersion:incoming.clientVersion||null,state:merged,users:current.users||[],authBootstrap:current.authBootstrap&&typeof current.authBootstrap==='object'?clone(current.authBootstrap):undefined};
   next.recentOperations=(operationId?[{id:operationId,at:next.updatedAt,deviceId:incoming.deviceId||null,revision:next.revision}]:[]).concat(recentOperations.filter(op=>text(op&&op.id)!==operationId)).slice(0,50);
-  try{const uploadStarted=Date.now();let uploaded;try{uploaded=await uploadJson(blob,next,d.etag)}finally{uploadMs+=Date.now()-uploadStarted}uploadBytes=Number(uploaded&&uploaded.bytes||0);try{Object.defineProperty(next,'__storageEtag',{value:uploaded&&uploaded.etag||null,enumerable:false});Object.defineProperty(next,'__timing',{value:{retryReadMs,mergeMs,uploadMs,uploadBytes,conflictCount},enumerable:false})}catch(_){}next.concurrentMerge=Number(incoming.baseRevision||0)!==Number(current.revision||0);next.baseRevision=Number(incoming.baseRevision||0);return next}catch(e){if(e&&(e.statusCode===409||e.statusCode===412)&&attempt<MAX_RETRIES-1){conflictCount++;continue;}if(e&&e.statusCode>=500)throw error('STORAGE_UNREACHABLE','Azure Storage konnte den Teamstand nicht speichern: '+(e.message||'Serverfehler'),503);throw e}
+  try{const uploadStarted=Date.now();let uploaded;try{uploaded=await uploadJson(blob,next,d.etag)}finally{uploadMs+=Date.now()-uploadStarted}uploadBytes=Number(uploaded&&uploaded.bytes||0);try{Object.defineProperty(next,'__storageEtag',{value:uploaded&&uploaded.etag||null,enumerable:false});Object.defineProperty(next,'__timing',{value:{retryReadMs,mergeMs,uploadMs,uploadBytes,conflictCount},enumerable:false});Object.defineProperty(next,'__dynamicI18n',{value:dynamicI18nReport,enumerable:false})}catch(_){}next.concurrentMerge=Number(incoming.baseRevision||0)!==Number(current.revision||0);next.baseRevision=Number(incoming.baseRevision||0);return next}catch(e){if(e&&(e.statusCode===409||e.statusCode===412)&&attempt<MAX_RETRIES-1){conflictCount++;continue;}if(e&&e.statusCode>=500)throw error('STORAGE_UNREACHABLE','api.state.saveFailed',503,{error:e.message||'SERVER_ERROR'});throw e}
  }
- throw error('CONCURRENT_UPDATE','Der Teamstand konnte nach mehreren Konfliktversuchen nicht gespeichert werden.',409);
+ throw error('CONCURRENT_UPDATE','api.state.concurrentSaveFailed',409);
 }
 
 
@@ -636,7 +639,7 @@ async function listHistory(container,teamBlobName,recoveryPrefix,allowDiscovery)
     if(!d.versionId&&!d.snapshot)continue;
     out.push(d);
    }
-  }catch(inner){throw error('RECOVERY_HISTORY_UNAVAILABLE','Azure konnte die Versionshistorie von '+teamBlobName+' nicht auflisten: '+(inner&&inner.message||e&&e.message||'Unbekannter Fehler'),500)}
+  }catch(inner){throw error('RECOVERY_HISTORY_UNAVAILABLE','api.state.recoveryHistoryUnavailable',500,{blob:teamBlobName,error:inner&&inner.message||e&&e.message||'UNKNOWN'})}
  }
  try{
   for await(const item of container.listBlobsFlat({prefix:recoveryPrefix,includeMetadata:true})){
@@ -871,7 +874,7 @@ async function recoverShipments(container,teamBlob,payload,user,teamBlobName,rec
  currentEvidence.map.forEach((sh,ref)=>{if(meaningfulRows(sh).length)currentEvidenceRows.push({ref,shipment:sh,sources:currentEvidence.sources.get(ref)||[]})});
  const currentRowRefs=new Set(currentEvidenceRows.map(x=>x.ref)),historyRefs=Array.from(refs).filter(ref=>!currentRowRefs.has(ref));
  const deep=historyRefs.length?await bestHistoricalPerShipment(container,historyRefs,payload&&payload.deepMaxVersions||500):{historyCount:0,scanned:0,readErrors:0,complete:[],partial:[]};
- if(!deep.complete.length&&!candidateInfo&&!currentEvidenceRows.length)throw error('NO_RECOVERABLE_SHIPMENT_HISTORY','In den vorhandenen ExportHUB-Datenquellen wurde für keine betroffene Sendungsreferenz ein echter Datensatz mit Packstückdaten gefunden. Es wurde nichts verändert.',409);
+ if(!deep.complete.length&&!candidateInfo&&!currentEvidenceRows.length)throw error('NO_RECOVERABLE_SHIPMENT_HISTORY','api.state.noRecoverableShipmentHistory',409);
  let merged={state:clone(currentBase.state||{}),added:0,repaired:0,backfilled:0,tombstonesRemoved:0,restoredRefs:[]};
  if(currentEvidenceRows.length){
   const evMerged=mergeHistoricalShipments(merged.state,{shipments:currentEvidenceRows.map(x=>x.shipment)});
@@ -886,7 +889,7 @@ async function recoverShipments(container,teamBlob,payload,user,teamBlobName,rec
  const beforeStats=candidateStats(current,known),afterStats=candidateStats({state:merged.state},known);
  const beforeRows=bestShipmentSet(current.state||{}).reduce((n,sh)=>n+meaningfulRows(sh).length,0),afterRows=bestShipmentSet(merged.state||{}).reduce((n,sh)=>n+meaningfulRows(sh).length,0);
  const rowImproved=afterRows>beforeRows,coreImproved=afterStats.coreComplete>beforeStats.coreComplete||afterStats.activeCoreComplete>beforeStats.activeCoreComplete;
- if(!rowImproved&&!coreImproved&&merged.added===0&&merged.repaired===0&&merged.backfilled===0)throw error('RECOVERY_NO_IMPROVEMENT','Historische Versionen wurden gefunden, aber sie enthalten keine besseren Sendungsdaten als der aktuelle Stand. Es wurde nichts verändert.',409);
+ if(!rowImproved&&!coreImproved&&merged.added===0&&merged.repaired===0&&merged.backfilled===0)throw error('RECOVERY_NO_IMPROVEMENT','api.state.recoveryNoImprovement',409);
  const backupName=await safetyBackup(container,current,'team-state-before-RC640-forensic-recovery',recoveryPrefix);
  const next=clone(current);
  next.schemaVersion=Math.max(3,Number(current.schemaVersion||3));
@@ -898,7 +901,7 @@ async function recoverShipments(container,teamBlob,payload,user,teamBlobName,rec
  next.state=merged.state;
  const finalStats=candidateStats(next,known),remainingIncomplete=bestShipmentSet(next.state||{}).filter(sh=>meaningfulRows(sh).length===0).map(refOf).filter(Boolean);
  next.recoveryAudit={at:next.updatedAt,by:next.updatedBy,source:candidateInfo&&candidateInfo.source||null,sourceRevision:candidateInfo&&candidateInfo.revision||0,sourceUpdatedAt:candidateInfo&&candidateInfo.updatedAt||null,backupBlob:backupName,added:merged.added,repaired:merged.repaired,backfilled:merged.backfilled,tombstonesRemoved:merged.tombstonesRemoved,restoredRefs:merged.restoredRefs,deepScannedVersions:deep.scanned,deepHistoryCount:deep.historyCount,deepReadErrors:deep.readErrors,deepRecoveredRefs:deep.complete.map(x=>x.ref),deepPartialRefs:deep.partial.map(x=>x.ref),currentEvidenceRefs:currentEvidenceRows.map(x=>x.ref),currentEvidenceSources:Object.fromEntries(currentEvidenceRows.map(x=>[x.ref,x.sources])),locationEvidenceUpdatedRefs:locationApplied.updatedRefs,browserEvidenceCount:arr(payload&&payload.browserEvidence).length,remainingIncompleteRefs:remainingIncomplete,beforeMeaningfulRows:beforeRows,afterMeaningfulRows:afterRows};
- try{await uploadJson(teamBlob,next,fresh.etag)}catch(e){if(e&&(e.statusCode===409||e.statusCode===412))throw error('CONCURRENT_UPDATE','Der Azure-Teamstand wurde während der Datenrettung gleichzeitig geändert. Die Wiederherstellung wurde sicher abgebrochen und kann erneut gestartet werden.',409);if(e&&e.statusCode>=500)throw error('STORAGE_UNREACHABLE','Azure Storage konnte den wiederhergestellten Sendungsstand nicht speichern: '+(e.message||'Serverfehler'),503);throw e}
+ try{await uploadJson(teamBlob,next,fresh.etag)}catch(e){if(e&&(e.statusCode===409||e.statusCode===412))throw error('CONCURRENT_UPDATE','api.state.concurrentRecovery',409);if(e&&e.statusCode>=500)throw error('STORAGE_UNREACHABLE','api.state.recoverySaveFailed',503,{error:e.message||'SERVER_ERROR'});throw e}
  return {ok:true,recovered:true,revision:next.revision,updatedAt:next.updatedAt,backupBlob:backupName,source:candidateInfo&&candidateInfo.source||null,sourceRevision:candidateInfo&&candidateInfo.revision||0,sourceUpdatedAt:candidateInfo&&candidateInfo.updatedAt||null,sourceStats:candidateInfo&&candidateInfo.stats||null,added:merged.added,repaired:merged.repaired,backfilled:merged.backfilled,tombstonesRemoved:merged.tombstonesRemoved,restoredRefs:merged.restoredRefs,finalStats,deepScannedVersions:deep.scanned,deepHistoryCount:deep.historyCount,deepReadErrors:deep.readErrors,deepRecoveredRefs:deep.complete.map(x=>x.ref),deepPartialRefs:deep.partial.map(x=>x.ref),currentEvidenceRefs:currentEvidenceRows.map(x=>x.ref),currentEvidenceSources:Object.fromEntries(currentEvidenceRows.map(x=>[x.ref,x.sources])),locationEvidenceUpdatedRefs:locationApplied.updatedRefs,browserEvidenceCount:arr(payload&&payload.browserEvidence).length,remainingIncompleteRefs:remainingIncomplete,beforeMeaningfulRows:beforeRows,afterMeaningfulRows:afterRows};
 }
 
@@ -941,9 +944,9 @@ async function recoverCustomers(container,teamBlob,payload,user,teamBlobName,rec
  const fresh=await readJson(teamBlob,emptyTeam(),false),current=fresh.value||emptyTeam(),state=clone(current.state||{});state.customers=arr(state.customers).map(clone);
  const history=await scanHistoricalCustomers(container,payload&&payload.maxVersions||500,teamBlobName,recoveryPrefix,allowDiscovery);let restored=0,filled=0;const restoredAccounts=[],restoredIds=[];
  history.best.forEach(item=>{const c=item.customer;if(customerRecoveryScore(c)<34)return;const hit=state.customers.find(x=>customerSame(x,c));if(hit){if(mergeMissingCustomerFields(hit,c))filled++;return}if(customerTombstoned(state,c))return;state.customers.push(clone(c));restored++;const acc=cleanScalar(c.account||c.customerNumber||c.kundennummer),id=cleanScalar(c.id||c.customerId);if(acc)restoredAccounts.push(acc);if(id)restoredIds.push(id)});
- if(!restored&&!filled)throw error('CUSTOMER_RECOVERY_NO_IMPROVEMENT','In der Azure-Historie wurden keine besseren Kundendaten oder Kundenvorlagen als im aktuellen Stand gefunden. Es wurde nichts verändert.',409);
+ if(!restored&&!filled)throw error('CUSTOMER_RECOVERY_NO_IMPROVEMENT','api.state.customerNoImprovement',409);
  const backupName=await safetyBackup(container,current,'team-state-before-RC770-customer-recovery',recoveryPrefix),next=clone(current);next.schemaVersion=Math.max(3,Number(current.schemaVersion||3));next.revision=Number(current.revision||0)+1;next.updatedAt=now();next.updatedBy=text(user.name||user.user);next.updatedByUserId=text(user.id);next.clientVersion='RC770-customer-recovery';next.state=state;next.customerRecoveryAudit={at:next.updatedAt,by:next.updatedBy,backupBlob:backupName,historyCount:history.historyCount,scanned:history.scanned,readErrors:history.readErrors,restored,filled,restoredAccounts,restoredIds};
- try{await uploadJson(teamBlob,next,fresh.etag)}catch(e){if(e&&(e.statusCode===409||e.statusCode===412))throw error('CONCURRENT_UPDATE','Der Azure-Teamstand wurde während der Kundenrettung gleichzeitig geändert. Die Wiederherstellung wurde sicher abgebrochen und kann erneut gestartet werden.',409);if(e&&e.statusCode>=500)throw error('STORAGE_UNREACHABLE','Azure Storage konnte den wiederhergestellten Kundenstand nicht speichern: '+(e.message||'Serverfehler'),503);throw e}
+ try{await uploadJson(teamBlob,next,fresh.etag)}catch(e){if(e&&(e.statusCode===409||e.statusCode===412))throw error('CONCURRENT_UPDATE','api.state.concurrentCustomerRecovery',409);if(e&&e.statusCode>=500)throw error('STORAGE_UNREACHABLE','api.state.customerRecoverySaveFailed',503,{error:e.message||'SERVER_ERROR'});throw e}
  return {ok:true,recovered:true,revision:next.revision,updatedAt:next.updatedAt,backupBlob:backupName,historyCount:history.historyCount,scanned:history.scanned,readErrors:history.readErrors,restored,filled,restoredAccounts,restoredIds,state:next.state,users:next.users||current.users||[]}
 }
 
@@ -953,7 +956,7 @@ function diagnosticScalar(v,max=1000){return text(v).replace(/\s+/g,' ').slice(0
 function diagnosticSafeDetails(value){
  if(!value||typeof value!=='object'||Array.isArray(value))return null;
  const out={};Object.keys(value).slice(0,24).forEach(k=>{
-  if(/token|authorization|password|passwort|session|signature|base64|dataurl|filedata|content/i.test(k)){out[k]='[geschützt]';return}
+  if(/token|authorization|password|passwort|session|signature|base64|dataurl|filedata|content/i.test(k)){out[k]='[redacted]';return}
   const v=value[k];if(v==null||typeof v==='number'||typeof v==='boolean')out[k]=v;else out[k]=diagnosticScalar(v,500)
  });return out
 }
@@ -965,19 +968,19 @@ function diagnosticRecordId(record,payload,user){
 function sanitizeDiagnosticRecord(record,payload,user,environment){
  record=record&&typeof record==='object'?record:{};
  const at=diagnosticScalar(record.at||record.lastAt||now(),40),lastAt=diagnosticScalar(record.lastAt||record.at||at,40);
- return {id:diagnosticRecordId(record,payload,user),seq:Number(record.seq||0)||0,at,lastAt,level:['error','warning','info'].includes(lower(record.level))?lower(record.level):'info',category:diagnosticScalar(record.category||'system',50),area:diagnosticScalar(record.area||'unbekannt',160),message:diagnosticScalar(record.message||'Unbekanntes Ereignis',1500),details:diagnosticSafeDetails(record.details),count:Math.max(1,Math.min(100000,Number(record.count||1)||1)),user:diagnosticScalar(user&&(user.name||user.user||user.username)||'Benutzer',120),userId:diagnosticScalar(user&&user.id,100),deviceId:diagnosticScalar(payload&&payload.deviceId,120),clientVersion:diagnosticScalar(payload&&payload.clientVersion,80),environment:environment==='testservice'?'testservice':'production'}
+ return {id:diagnosticRecordId(record,payload,user),seq:Number(record.seq||0)||0,at,lastAt,level:['error','warning','info'].includes(lower(record.level))?lower(record.level):'info',category:diagnosticScalar(record.category||'system',50),area:diagnosticScalar(record.area||'',160),message:diagnosticScalar(record.message||'',1500),details:diagnosticSafeDetails(record.details),count:Math.max(1,Math.min(100000,Number(record.count||1)||1)),user:diagnosticScalar(user&&(user.name||user.user||user.username)||'',120),userId:diagnosticScalar(user&&user.id,100),deviceId:diagnosticScalar(payload&&payload.deviceId,120),clientVersion:diagnosticScalar(payload&&payload.clientVersion,80),environment:environment==='testservice'?'testservice':'production'}
 }
 async function appendDiagnostics(blob,records,user,payload,environment){
  const incoming=(Array.isArray(records)?records:[]).slice(0,100).map(r=>sanitizeDiagnosticRecord(r,payload,user,environment));
  if(!incoming.length)return {ok:true,appended:0,revision:0};
  for(let attempt=0;attempt<MAX_RETRIES;attempt++){
   const d=await readJson(blob,diagnosticsEmpty(),false),current=d.value&&typeof d.value==='object'?d.value:diagnosticsEmpty(),existing=Array.isArray(current.records)?current.records.slice():[],byId=new Map(existing.map((r,i)=>[text(r&&r.id),i]));let appended=0,updated=0;
-  incoming.forEach(r=>{const pos=byId.get(r.id);if(pos===undefined){byId.set(r.id,existing.length);existing.push(r);appended++}else{const prev=existing[pos]||{},merged=Object.assign({},prev,r,{at:prev.at||r.at,lastAt:r.lastAt||r.at,count:Math.max(Number(prev.count||1),Number(r.count||1))}),resolvedAt=Date.parse(text(prev.resolvedAt)),incomingAt=Date.parse(text(r.lastAt||r.at));if(Number.isFinite(resolvedAt)&&Number.isFinite(incomingAt)&&incomingAt>resolvedAt){merged.resolvedAt=null;merged.resolvedBy=null;merged.resolutionMessage='';merged.autofix=Object.assign({},prev.autofix||{},{status:'reopened',reopenedAt:now(),lastMessage:'Fehler ist nach der letzten Behebung erneut aufgetreten.'})}existing[pos]=merged;updated++}});
+  incoming.forEach(r=>{const pos=byId.get(r.id);if(pos===undefined){byId.set(r.id,existing.length);existing.push(r);appended++}else{const prev=existing[pos]||{},merged=Object.assign({},prev,r,{at:prev.at||r.at,lastAt:r.lastAt||r.at,count:Math.max(Number(prev.count||1),Number(r.count||1))}),resolvedAt=Date.parse(text(prev.resolvedAt)),incomingAt=Date.parse(text(r.lastAt||r.at));if(Number.isFinite(resolvedAt)&&Number.isFinite(incomingAt)&&incomingAt>resolvedAt){merged.resolvedAt=null;merged.resolvedBy=null;merged.resolutionMessage='';merged.autofix=Object.assign({},prev.autofix||{},{status:'reopened',reopenedAt:now(),lastMessage:''})}existing[pos]=merged;updated++}});
   const cutoff=Date.now()-DIAGNOSTICS_RETENTION_MS,kept=existing.filter(r=>{const t=Date.parse(text(r&&r.lastAt||r&&r.at));return !Number.isFinite(t)||t>=cutoff}).slice(-DIAGNOSTICS_MAX_RECORDS),next={schemaVersion:1,revision:Number(current.revision||0)+1,updatedAt:now(),clientVersion:diagnosticScalar(payload&&payload.clientVersion,80),records:kept};
   try{await uploadJson(blob,next,d.etag);return {ok:true,appended,updated,records:kept.length,revision:next.revision,updatedAt:next.updatedAt}}
-  catch(e){if(e&&(e.statusCode===409||e.statusCode===412)&&attempt<MAX_RETRIES-1)continue;if(e&&e.statusCode>=500)throw error('DIAGNOSTICS_STORAGE_UNREACHABLE','Azure Storage konnte die Fehlerdiagnose nicht speichern: '+(e.message||'Serverfehler'),503);throw e}
+  catch(e){if(e&&(e.statusCode===409||e.statusCode===412)&&attempt<MAX_RETRIES-1)continue;if(e&&e.statusCode>=500)throw error('DIAGNOSTICS_STORAGE_UNREACHABLE','api.state.diagnosticsStoreFailed',503,{error:e.message||'SERVER_ERROR'});throw e}
  }
- throw error('DIAGNOSTICS_CONCURRENT_UPDATE','Die Fehlerdiagnose wurde gleichzeitig aktualisiert. Bitte erneut versuchen.',409)
+ throw error('DIAGNOSTICS_CONCURRENT_UPDATE','api.state.diagnosticsConcurrent',409)
 }
 async function readDiagnostics(blob,limit){
  const d=await readJson(blob,diagnosticsEmpty(),false),doc=d.value&&typeof d.value==='object'?d.value:diagnosticsEmpty(),n=Math.max(1,Math.min(DIAGNOSTICS_MAX_RECORDS,Number(limit||1000)||1000)),rows=Array.isArray(doc.records)?doc.records.slice(-n):[];
@@ -989,7 +992,7 @@ async function clearDiagnostics(blob,user){
   try{await uploadJson(blob,next,d.etag);return {ok:true,revision:next.revision,updatedAt:next.updatedAt}}
   catch(e){if(e&&(e.statusCode===409||e.statusCode===412)&&attempt<MAX_RETRIES-1)continue;throw e}
  }
- throw error('DIAGNOSTICS_CONCURRENT_UPDATE','Die Fehlerdiagnose wurde gleichzeitig aktualisiert. Bitte erneut versuchen.',409)
+ throw error('DIAGNOSTICS_CONCURRENT_UPDATE','api.state.diagnosticsConcurrent',409)
 }
 
 
@@ -1001,26 +1004,39 @@ module.exports=async function(context,req){
   if(mode==='ping'){const environment=requestedEnvironment(req,payload);context.res=json(200,{ok:true,service:'exporthub-state',version:API_VERSION,serverVersion:API_VERSION,routeReachable:true,storageChecked:false,environment,blob:teamBlobForEnvironment(environment),time:now()});return}
   if(mode==='health'){
    const c=await clients(req,payload),authStarted=Date.now();
-   let authReadable=true,authCheck=null;try{authCheck=await readJson(c.auth,emptyAuth(),true)}catch(e){authReadable=false;throw error('STORAGE_UNREACHABLE','ExportHUB kann den Auth-Blob im konfigurierten Azure-Speicher nicht lesen: '+(e&&e.message||'Unbekannter Speicherfehler'),503)}
+   let authReadable=true,authCheck=null;try{authCheck=await readJson(c.auth,emptyAuth(),true)}catch(e){authReadable=false;throw error('STORAGE_UNREACHABLE','api.state.authBlobUnreadable',503,{error:e&&e.message||'UNKNOWN'})}
    await ensureEnvironmentTeam(c);const authReadMs=Date.now()-authStarted,teamStarted=Date.now(),teamCheck=await readTeamResilient(c.container,c.team,c.teamBlobName,c.recoveryPrefix,c.allowGenericRecoveryDiscovery),teamReadMs=Date.now()-teamStarted;
    context.res=json(200,{ok:true,service:'exporthub-state',version:API_VERSION,storageConfigured:true,storageReachable:true,authBlobReadable:authReadable,teamStateReadable:true,teamStateRecoveredFromHistory:teamCheck.recoveredFromHistory===true,storageSource:connectionSource(),container:TEAM_CONTAINER,environment:c.environment,blob:c.teamBlobName,authBlobBytes:Number(authCheck.bytes||0),teamStateBytes:Number(teamCheck.bytes||0),stateDiagnostics:stateSizeDiagnostics(teamCheck.value&&teamCheck.value.state),collectionFieldBytes:collectionFieldSizeDiagnostics(teamCheck.value&&teamCheck.value.state),authReadMs,teamReadMs,totalMs:Date.now()-requestStarted,time:now()});return;
   }
   const clientsStarted=Date.now(),c=await clients(req,payload),clientsMs=Date.now()-clientsStarted;
   if(mode==='diagnostics-append'){
-   if(req.method!=='POST')throw error('METHOD_NOT_ALLOWED','Diagnoseereignisse müssen per POST übertragen werden.',405);
+   if(req.method!=='POST')throw error('METHOD_NOT_ALLOWED','api.state.diagnosticsPostOnly',405);
    const diagnosticSession=await validateSessionAuthOnly(req,payload,c),result=await appendDiagnostics(c.diagnostics,payload.records,diagnosticSession.user,payload,c.environment);context.res=json(200,Object.assign({environment:c.environment,blob:c.diagnosticsBlobName,serverVersion:API_VERSION},result));return
   }
   if(mode==='meta'||(req.query&&String(req.query.meta||'')==='1')){
    await validateSessionAuthOnly(req,payload,c);context.res=json(200,Object.assign({ok:true,metaOnly:true,serverVersion:API_VERSION,environment:c.environment,blob:c.teamBlobName},await metadataOnly(c.team)));return
   }
   const current=await validateSession(req,payload,c),blob=c.team;
+  if(mode==='i18n-status'){
+   if(!isAdmin(current.user))throw error('ADMIN_REQUIRED','api.state.i18nStatusAdmin',403);
+   context.res=json(200,{ok:true,version:'RC1267',environment:c.environment,translation:translationStatus(current.team&&current.team.state||{})});return
+  }
+  if(mode==='i18n-migrate'){
+   if(req.method!=='POST')throw error('METHOD_NOT_ALLOWED','api.state.i18nMigrationPostOnly',405);
+   if(!isAdmin(current.user))throw error('ADMIN_REQUIRED','api.state.i18nMigrationAdmin',403);
+   const migratedState=clone(current.team&&current.team.state||{}),sourceLanguage=normalizeDynamicLanguage(payload.sourceLanguage||'de'),limit=Math.max(1,Math.min(1000,Number(payload.limit||500)||500));
+   const migrationReport=await enrichDynamicTranslations(migratedState,sourceLanguage,{limit});
+   const incomingMigration={clientVersion:'RC1267-i18n-migration',baseRevision:Number(current.team&&current.team.revision||0),deviceId:text(payload.deviceId),operationId:text(payload.operationId)||('I18N-'+Date.now()),reason:'i18n-migration',state:migratedState};
+   const savedMigration=await saveMerged(blob,incomingMigration,current.user,current.team,current.teamEtag,current.session);
+   context.res=json(200,{ok:true,version:'RC1267',environment:c.environment,revision:Number(savedMigration.revision||0),translation:migrationReport});return
+  }
   if(mode==='diagnostics-read'){
-   if(!isAdmin(current.user))throw error('ADMIN_REQUIRED','Die zentrale Fehlerdiagnose ist nur für globale Administratoren verfügbar.',403);
+   if(!isAdmin(current.user))throw error('ADMIN_REQUIRED','api.state.diagnosticsAdmin',403);
    const result=await readDiagnostics(c.diagnostics,req.query&&req.query.limit||payload.limit);context.res=json(200,Object.assign({environment:c.environment,blob:c.diagnosticsBlobName,serverVersion:API_VERSION},result));return
   }
   if(mode==='diagnostics-clear'){
-   if(req.method!=='POST')throw error('METHOD_NOT_ALLOWED','Das Diagnoseprotokoll kann nur per POST gelöscht werden.',405);
-   if(!isAdmin(current.user))throw error('ADMIN_REQUIRED','Nur globale Administratoren dürfen die zentrale Fehlerdiagnose löschen.',403);
+   if(req.method!=='POST')throw error('METHOD_NOT_ALLOWED','api.state.diagnosticsClearPostOnly',405);
+   if(!isAdmin(current.user))throw error('ADMIN_REQUIRED','api.state.diagnosticsClearAdmin',403);
    const result=await clearDiagnostics(c.diagnostics,current.user);context.res=json(200,Object.assign({environment:c.environment,blob:c.diagnosticsBlobName,serverVersion:API_VERSION},result));return
   }
   if(req.method==='GET'||(req.method==='POST'&&mode==='read')){
@@ -1030,23 +1046,23 @@ module.exports=async function(context,req){
   }
   if(req.method==='POST'){
    if(mode==='recovery-preview'){
-    if(!isAdmin(current.user))throw error('ADMIN_REQUIRED','Die Sendungswiederherstellung ist nur für globale Administratoren verfügbar.',403);
+    if(!isAdmin(current.user))throw error('ADMIN_REQUIRED','api.state.shipmentRecoveryAdmin',403);
     context.res=json(200,await recoveryPreview(c.container,payload,c.teamBlobName,c.recoveryPrefix,c.allowGenericRecoveryDiscovery));return
    }
    if(mode==='recover-shipments'){
-    if(!isAdmin(current.user))throw error('ADMIN_REQUIRED','Die Sendungswiederherstellung ist nur für globale Administratoren verfügbar.',403);
+    if(!isAdmin(current.user))throw error('ADMIN_REQUIRED','api.state.shipmentRecoveryAdmin',403);
     context.res=json(200,await recoverShipments(c.container,blob,payload,current.user,c.teamBlobName,c.recoveryPrefix,c.allowGenericRecoveryDiscovery));return
    }
    if(mode==='recovery-preview-customers'){
-    if(!isAdmin(current.user))throw error('ADMIN_REQUIRED','Die Kunden-Historienprüfung ist nur für globale Administratoren verfügbar.',403);
+    if(!isAdmin(current.user))throw error('ADMIN_REQUIRED','api.state.customerHistoryAdmin',403);
     context.res=json(200,await previewCustomerRecovery(c.container,blob,payload,c.teamBlobName,c.recoveryPrefix,c.allowGenericRecoveryDiscovery));return
    }
    if(mode==='recover-customers'){
-    if(!isAdmin(current.user))throw error('ADMIN_REQUIRED','Die Kundenwiederherstellung ist nur für globale Administratoren verfügbar.',403);
+    if(!isAdmin(current.user))throw error('ADMIN_REQUIRED','api.state.customerRecoveryAdmin',403);
     context.res=json(200,await recoverCustomers(c.container,blob,payload,current.user,c.teamBlobName,c.recoveryPrefix,c.allowGenericRecoveryDiscovery));return
    }
-   if(mode&&mode!=='save')throw error('UNKNOWN_STATE_ACTION','Unbekannte Teamdatenaktion.',400);
-   if(!hasAnyEditRight(current.user))throw error('WRITE_FORBIDDEN','Für Änderungen fehlen Bearbeitungsrechte.',403);
+   if(mode&&mode!=='save')throw error('UNKNOWN_STATE_ACTION','api.state.unknownAction',400);
+   if(!hasAnyEditRight(current.user))throw error('WRITE_FORBIDDEN','api.state.writeForbidden',403);
    let corruptBackup=null;if(current.teamRecoveredFromHistory===true&&current.teamCurrentCorrupt===true)corruptBackup=await safetyRawBackup(c.container,blob,'corrupt-team-state-before-RC855-save',c.recoveryPrefix);
    const normalized=normalizeIncoming(payload),documentExternalizeStarted=Date.now(),externalized=await externalizeDocumentCollections(normalized.state,{environment:c.environment,container:c.documentContainer,currentState:current.team&&current.team.state});normalized.state=externalized.state;
    const saveStarted=Date.now(),saved=await saveMerged(blob,normalized,current.user,current.team,current.teamEtag,current.session),saveMs=Date.now()-saveStarted;rememberWarmTeam(c,saved,saved&&saved.__storageEtag||current.teamEtag);saved.dataEnvironment=c.environment;saved.documentExternalizeStats=externalized.stats;saved.documentExternalizeMs=Date.now()-documentExternalizeStarted;
@@ -1059,6 +1075,6 @@ module.exports=async function(context,req){
   context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED'},{Allow:'GET, POST, OPTIONS'});
  }catch(e){
   try{context.log&&context.log.error&&context.log.error('ExportHUB state API error',e&&e.code,e&&e.message)}catch(_){}
-  context.res=json(e&&(e.status||e.statusCode)?Number(e.status||e.statusCode):500,{ok:false,code:e&&e.code?e.code:'SERVER_ERROR',message:e&&e.message?e.message:'Unbekannter Speicherfehler.'});
+  context.res=json(e&&(e.status||e.statusCode)?Number(e.status||e.statusCode):500,{ok:false,code:e&&e.code?e.code:'SERVER_ERROR',message:localizedError(req,e,'api.state.unknownStorage')});
  }
 };

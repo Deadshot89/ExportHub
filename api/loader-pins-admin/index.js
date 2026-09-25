@@ -5,6 +5,7 @@ const { BlobServiceClient } = require('@azure/storage-blob');
 const pins = require('../shared/loader-pin-store');
 const auditStore = require('../shared/auth-store');
 const { isAdmin } = require('../shared/user-policy');
+const apiI18n = require('../shared/i18n');
 
 const TEAM_CONTAINER = process.env.EXPORTHUB_STORAGE_CONTAINER || process.env.EXPORTHUB_CONTAINER || 'exporthub-data';
 const TEAM_BLOB = process.env.EXPORTHUB_STORAGE_BLOB || process.env.EXPORTHUB_STATE_BLOB || 'team-state.json';
@@ -140,6 +141,6 @@ module.exports = async function (context, req) {
     context.res = json(200, { ok: true, pins: list, count: list.length, serverStored: true, auditStored, admin: adminName(admin), version: 'RC1087' });
   } catch (e) {
     context.log && context.log.error && context.log.error('loader-pins-admin', e && e.code, e && e.message);
-    context.res = json(e.status || 500, { ok: false, code: e.code || 'SERVER_ERROR', message: e.message || 'Verlader-PINs konnten nicht verwaltet werden.' });
+    context.res = json(e.status || 500, { ok: false, code: e.code || 'SERVER_ERROR', message: e.message || apiI18n.t(req,'api.loaderPins.manageFailed') });
   }
 };

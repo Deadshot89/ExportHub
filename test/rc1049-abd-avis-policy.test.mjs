@@ -22,7 +22,7 @@ test('RC1049: ABD-Avis meldet fehlendes ABD und sperrt zu frühe Abholung server
   assert.match(api,/function nrwHolidays/);
   assert.match(api,/ABD_PICKUP_TOO_EARLY/);
   assert.match(api,/abd:abdPolicy\(state,sh\)/);
-  assert.match(api,/publicShipment\(sh,session,state\)/);
+  assert.match(api,/publicShipment\(sh,session,state,language\)/);
 });
 
 test('RC1049: Mail und öffentliche Avis-Seite erhalten den ABD-Hinweis und Terminuntergrenze',()=>{
@@ -30,7 +30,7 @@ test('RC1049: Mail und öffentliche Avis-Seite erhalten den ABD-Hinweis und Term
   const asset=read('assets/rc1049-abd-avis-policy.js');
   const page=read('customer-avis.html');
   const main=read('index.html');
-  assert.match(asset,/ABD NOCH NICHT VORHANDEN/);
+  assert.match(asset,/abd\.mailPending/);
   assert.match(asset,/expectedAvailableDate/);
   assert.match(asset,/minPickupTime:'10:00'/);
   assert.match(asset,/b\.shipmentSnapshot\.abdRequestedAt/);

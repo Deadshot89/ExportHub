@@ -4,11 +4,21 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const source=fs.readFileSync('assets/rc1071-shipment-history.js','utf8');
+const historyDe=JSON.parse(fs.readFileSync('assets/i18n/de.json','utf8'));
+function historyI18n(){
+  return {
+    language(){return 'de'},
+    t(key,vars){let value=historyDe[key]||key;if(vars)for(const [name,v] of Object.entries(vars))value=value.replaceAll('{{'+name+'}}',String(v));return value},
+    formatDate(value,options){return new Intl.DateTimeFormat('de-DE',options||{}).format(value)}
+  };
+}
+
 
 function runtime(shipment){
   const state={view:'shipment',currentShipment:shipment,shipments:[shipment],savedShipments:[shipment],currentUser:{id:'U1',name:'Tobias',role:'Globaler Administrator'}};
   const document={body:null,readyState:'loading',addEventListener(){},getElementById(){return null},querySelector(){return null}};
   const window={
+    ExportHUBI18n:historyI18n(),
     __EXPORTHUB_GET_STATE__:()=>state,
     __EXPORTHUB_GET_CURRENT_USER__:()=>state.currentUser,
     ExportHUBClean:{state,queueSave(){return true},flushSave(){return Promise.resolve(true)}},

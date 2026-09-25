@@ -6,6 +6,9 @@ w.__EXPORTHUB_RC1079_PROFILE_SETTINGS__=true;
 
 function q(v){return String(v==null?'':v).trim()}
 function low(v){return q(v).toLowerCase()}
+var SUPPORTED_LANGUAGES=['de','en','pl','es','fr','it'];
+function normalizeLanguage(v){var x=low(v).replace('_','-'),m=x.match(/^(de|en|pl|es|fr|it)(?:-|$)/);return m?m[1]:'de'}
+function tr(key){try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.t==='function')return w.ExportHUBI18n.t(key)}catch(_){}return key}
 function state(){try{if(typeof w.__EXPORTHUB_GET_STATE__==='function')return w.__EXPORTHUB_GET_STATE__()||{}}catch(_){}return w.ExportHUBClean&&w.ExportHUBClean.state||w.appState||{}}
 function user(){
  try{if(typeof w.__EXPORTHUB_GET_CURRENT_USER__==='function'){var u=w.__EXPORTHUB_GET_CURRENT_USER__();if(u)return u}}catch(_){}
@@ -31,7 +34,7 @@ function token(){
 function headers(){var t=token(),h={'Content-Type':'application/json','Accept':'application/json','Cache-Control':'no-cache'};if(t){h['X-ExportHUB-Token']=t;h['X-ExportHUB-Session']=t;h.Authorization='Bearer '+t}return h}
 function status(box,msg,kind){var n=box&&box.querySelector('[data-rc1079-status]');if(!n)return;n.textContent=msg||'';n.setAttribute('data-kind',kind||'info')}
 async function saveProfile(name,language){
- language=low(language)==='en'?'en':'de';
+ language=normalizeLanguage(language);
  var response=await w.fetch('/api/exporthub-auth',{method:'POST',credentials:'same-origin',cache:'no-store',headers:headers(),body:JSON.stringify({action:'update-profile',name:name,language:language})});
  var text=await response.text(),data={};try{data=text?JSON.parse(text):{}}catch(_){data={message:text}}
  if(!response.ok||data.ok===false){var e=new Error(q(data.message)||('HTTP '+response.status));e.code=q(data.code);throw e}
@@ -39,7 +42,7 @@ async function saveProfile(name,language){
 }
 function syncUser(next){
  if(!next)return;
- var name=q(next.name||next.displayName),language=low(next.language)==='en'?'en':'de',id=q(next.id),username=q(next.user||next.username||next.login);
+ var name=q(next.name||next.displayName),language=normalizeLanguage(next.language),id=q(next.id),username=q(next.user||next.username||next.login);
  try{
    if(w.ExportHUBClean&&w.ExportHUBClean.runtime&&w.ExportHUBClean.runtime.user){
      w.ExportHUBClean.runtime.user.name=name;
@@ -58,12 +61,12 @@ function syncUser(next){
      if(match){x.user.name=name;x.user.displayName=name;x.user.language=language;w.sessionStorage.setItem(key,JSON.stringify(x))}
    }
  }catch(_){}
- try{if(typeof w.rc455SetLanguage==='function')w.rc455SetLanguage(language);else if(typeof w.setLanguage==='function')w.setLanguage(language)}catch(_){}
+ try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.setLanguage==='function')w.ExportHUBI18n.setLanguage(language);else if(typeof w.rc455SetLanguage==='function')w.rc455SetLanguage(language);else if(typeof w.setLanguage==='function')w.setLanguage(language)}catch(_){}
  try{w.dispatchEvent(new CustomEvent('exporthub:user-profile-updated',{detail:{user:next}}))}catch(_){}
 }
 function applyProfileLanguage(){
- var u=user();if(!u)return false;var language=low(u.language)==='en'?'en':'de';
- try{var current=w.__rc455I18nTest&&typeof w.__rc455I18nTest.language==='function'?w.__rc455I18nTest.language():'';if(current!==language){if(typeof w.rc455SetLanguage==='function')w.rc455SetLanguage(language);else if(typeof w.setLanguage==='function')w.setLanguage(language)}}catch(_){}
+ var u=user();if(!u)return false;var language=normalizeLanguage(u.language);
+ try{var current=w.ExportHUBI18n&&typeof w.ExportHUBI18n.language==='function'?w.ExportHUBI18n.language():(w.__rc455I18nTest&&typeof w.__rc455I18nTest.language==='function'?w.__rc455I18nTest.language():'');if(current!==language){if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.setLanguage==='function')w.ExportHUBI18n.setLanguage(language);else if(typeof w.rc455SetLanguage==='function')w.rc455SetLanguage(language);else if(typeof w.setLanguage==='function')w.setLanguage(language)}}catch(_){}
  return language
 }
 function ensureStyle(){
@@ -78,34 +81,34 @@ function install(){
  var u=user();if(!u||!q(u.id||u.user||u.username||u.login)){if(old)old.remove();return false}
  if(old){
    var nameField=old.querySelector('[data-rc1079-name]');if(nameField&&d.activeElement!==nameField)nameField.value=q(u.name||u.displayName||u.user||u.username||u.login);
-   var languageField=old.querySelector('[data-rc1079-language]');if(languageField&&d.activeElement!==languageField)languageField.value=low(u.language)==='en'?'en':'de';
+   var languageField=old.querySelector('[data-rc1079-language]');if(languageField&&d.activeElement!==languageField)languageField.value=normalizeLanguage(u.language);
    applyProfileLanguage();return true
  }
  ensureStyle();
  var host=d.getElementById('content')||d.querySelector('main')||d.body;if(!host)return false;
  var box=d.createElement('section');box.id='rc1079ProfileSettings';box.className='card rc1079-profile';
- box.innerHTML='<div><span class="pill blue">PROFIL</span><h3>Mein Profil</h3><p>Der Benutzername bleibt für die Anmeldung unverändert. Anzeigename und Programmsprache gehören zu deinem persönlichen Profil.</p></div><div class="rc1079-profile-grid"><label>Benutzername<input data-rc1079-user readonly></label><label>Anzeigename<input data-rc1079-name maxlength="80" autocomplete="name"></label><label>Programmsprache<select data-rc1079-language><option value="de">Deutsch</option><option value="en">English</option></select></label><button type="button" class="btn" data-rc1079-save>Profil speichern</button></div><div class="rc1079-note">Dein Profil ist standardmäßig Deutsch. Die Mailsprache einer Sendung bleibt davon unabhängig. Bereits gespeicherte Historie-Einträge behalten aus Nachvollziehbarkeitsgründen den damaligen Anzeigenamen.</div><div data-rc1079-status></div>';
+ box.innerHTML='<div><span class="pill blue">'+tr('profile.badge')+'</span><h3>'+tr('profile.title')+'</h3><p>'+tr('profile.help')+'</p></div><div class="rc1079-profile-grid"><label><span>'+tr('profile.username')+'</span><input data-rc1079-user readonly></label><label><span>'+tr('profile.displayName')+'</span><input data-rc1079-name maxlength="80" autocomplete="name"></label><label><span>'+tr('profile.programLanguage')+'</span><select data-rc1079-language aria-label="'+tr('profile.programLanguage')+'"><option value="de">Deutsch</option><option value="en">English</option><option value="pl">Polski</option><option value="es">Español</option><option value="fr">Français</option><option value="it">Italiano</option></select></label><button type="button" class="btn" data-rc1079-save>'+tr('profile.save')+'</button></div><div class="rc1079-note">'+tr('profile.note')+'</div><div data-rc1079-status></div>'
  host.appendChild(box);
  box.querySelector('[data-rc1079-user]').value=q(u.user||u.username||u.login);
  box.querySelector('[data-rc1079-name]').value=q(u.name||u.displayName||u.user||u.username||u.login);
- box.querySelector('[data-rc1079-language]').value=low(u.language)==='en'?'en':'de';
+ box.querySelector('[data-rc1079-language]').value=normalizeLanguage(u.language);
  applyProfileLanguage();
  box.querySelector('[data-rc1079-save]').addEventListener('click',async function(){
-   var btn=this,input=box.querySelector('[data-rc1079-name]'),languageInput=box.querySelector('[data-rc1079-language]'),name=q(input.value).replace(/\s+/g,' ').slice(0,80),language=low(languageInput&&languageInput.value)==='en'?'en':'de';
-   if(!name){status(box,'Der Anzeigename darf nicht leer sein.','error');return}
-   btn.disabled=true;status(box,'Profil wird gespeichert …','info');
+   var btn=this,input=box.querySelector('[data-rc1079-name]'),languageInput=box.querySelector('[data-rc1079-language]'),name=q(input.value).replace(/\s+/g,' ').slice(0,80),language=normalizeLanguage(languageInput&&languageInput.value);
+   if(!name){status(box,tr('profile.displayNameRequired'),'error');return}
+   btn.disabled=true;status(box,tr('profile.saving'),'info');
    try{
-     var data=await saveProfile(name,language);syncUser(data.user);input.value=q(data.user&&data.user.name)||name;if(languageInput)languageInput.value=low(data.user&&data.user.language)==='en'?'en':'de';
-     status(box,'Profil wurde gespeichert.','ok')
-   }catch(e){status(box,'Speichern fehlgeschlagen: '+q(e&&e.message||e),'error')}
+     var data=await saveProfile(name,language);syncUser(data.user);input.value=q(data.user&&data.user.name)||name;if(languageInput)languageInput.value=normalizeLanguage(data.user&&data.user.language);
+     status(box,tr('profile.saved'),'ok')
+   }catch(e){status(box,tr('profile.saveFailed')+': '+q(e&&e.message||e),'error')}
    finally{btn.disabled=false}
  });
  return true
 }
 function schedule(){try{w.setTimeout(install,0)}catch(_){}}
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
-['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded','exporthub:user-profile-updated'].forEach(function(n){try{w.addEventListener(n,function(){applyProfileLanguage();schedule()})}catch(_){}});
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded','exporthub:user-profile-updated','exporthub:language-changed'].forEach(function(n){try{w.addEventListener(n,function(){applyProfileLanguage();schedule()})}catch(_){}});
 try{d.addEventListener('click',function(){schedule()},true)}catch(_){}
-try{w.addEventListener('change',function(e){var el=e&&e.target;if(!el||el.id!=='languageSelect')return;var u=user();if(!u||!q(u.id||u.user||u.username||u.login))return;var language=low(el.value)==='en'?'en':'de',name=q(u.name||u.displayName||u.user||u.username||u.login);saveProfile(name,language).then(function(data){syncUser(data.user)}).catch(function(){})},true)}catch(_){}
+try{w.addEventListener('change',function(e){var el=e&&e.target;if(!el||el.id!=='languageSelect')return;var u=user();if(!u||!q(u.id||u.user||u.username||u.login))return;var language=normalizeLanguage(el.value),name=q(u.name||u.displayName||u.user||u.username||u.login);saveProfile(name,language).then(function(data){syncUser(data.user)}).catch(function(){})},true)}catch(_){}
 w.ExportHUBRC1079Profile=Object.freeze({version:'RC1100',install:install,saveProfile:saveProfile,saveName:function(name){return saveProfile(name,(user()||{}).language||'de')},syncUser:syncUser,applyProfileLanguage:applyProfileLanguage});
 })(window,document);

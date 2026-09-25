@@ -7,6 +7,15 @@ import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
 const merge=require('../api/shared/merge.js');
 const source=fs.readFileSync('assets/rc1071-shipment-history.js','utf8');
+const historyDe=JSON.parse(fs.readFileSync('assets/i18n/de.json','utf8'));
+function historyI18n(){
+  return {
+    language(){return 'de'},
+    t(key,vars){let value=historyDe[key]||key;if(vars)for(const [name,v] of Object.entries(vars))value=value.replaceAll('{{'+name+'}}',String(v));return value},
+    formatDate(value,options){return new Intl.DateTimeFormat('de-DE',options||{}).format(value)}
+  };
+}
+
 const builder=fs.readFileSync('.github/rc1048/build-three-env.mjs','utf8');
 
 function runtime(shipment){
@@ -17,6 +26,7 @@ function runtime(shipment){
     addEventListener(){},getElementById(){return null},querySelector(){return null}
   };
   const window={
+    ExportHUBI18n:historyI18n(),
     __EXPORTHUB_GET_STATE__:()=>state,
     __EXPORTHUB_GET_CURRENT_USER__:()=>state.currentUser,
     ExportHUBClean:{state,queueSave(reason){calls.push(['queue',reason]);return true},flushSave(reason,opt){calls.push(['flush',reason,opt]);return Promise.resolve(true)}},
@@ -72,7 +82,7 @@ test('RC1100: Mailöffnung erfasst Versand automatisch ohne manuelle Bestätigun
   assert.doesNotMatch(source,/data-rc1071-mail-sent/);
   assert.doesNotMatch(source,/w\.confirm/);
   assert.match(source,/type:'mail-sent'/);
-  assert.match(source,/ABD-E-Mail-Versand bestätigt/);
+  assert.match(source,/shipmentHistory\.action\.abdMailSent/);
   assert.match(source,/mail-sent-open/);
   assert.match(source,/recordMailSent\(sh,contextText\)/);
   assert.match(source,/details:\{reference:ref\(sh\),to:q\(mailMeta\.to\),subject:q\(mailMeta\.subject\),mailType:mailKind\}/);
@@ -80,7 +90,7 @@ test('RC1100: Mailöffnung erfasst Versand automatisch ohne manuelle Bestätigun
 
 test('RC1071: Ersteller, Druck, Status, ABD, POD und Avis sind als History-Ereignisse vorgesehen',()=>{
   for(const marker of [
-    "type:'created',label:'Sendung erstellt'",
+    "type:'created',label:de('shipmentHistory.action.shipmentCreated')",
     "type:'print'",
     "type:'status'",
     "type:'abd'",
@@ -94,7 +104,7 @@ test('RC1071: Ersteller, Druck, Status, ABD, POD und Avis sind als History-Ereig
 
 test('RC1071: Timeline wird direkt in der Sendungsansicht dargestellt und mobil lesbar',()=>{
   assert.match(source,/id='rc1071ShipmentHistory'|rc1071ShipmentHistory/);
-  assert.match(source,/Sendungshistorie/);
+  assert.match(source,/shipmentHistory\.title/);
   assert.match(source,/rc1071-history-row/);
   assert.match(source,/@media\(max-width:720px\)/);
 });
@@ -109,9 +119,9 @@ test('RC1071: finaler RC1048-Build lädt History in Produktion TESTSERVICE und D
 
 test('RC1080: Arbeitsstart und Versandanmeldung werden mit Benutzer in der Sendungshistorie erfasst',()=>{
   assert.match(source,/type:'work-start'/);
-  assert.match(source,/Arbeit an Sendung gestartet/);
-  assert.match(source,/Versandanmeldung gestartet/);
-  assert.match(source,/Versandanmeldung per E-Mail gestartet/);
+  assert.match(source,/shipmentHistory\.action\.workStarted/);
+  assert.match(source,/shipmentHistory\.action\.registrationStarted/);
+  assert.match(source,/shipmentHistory\.action\.registrationEmailStarted/);
   assert.match(source,/actor:actorFrom\(currentUser\(\)\)/);
   assert.match(source,/type:'print'/);
   assert.match(source,/type:'mail-sent'/);
@@ -138,11 +148,11 @@ test('RC1095: Mailhistorie unterscheidet ABD-Anfrage, Versandanmeldung und Liefe
   assert.equal(api.mailTypeFrom('Lieferavis Abholung'),'Lieferavis');
   assert.equal(api.mailTypeFrom('E-Mail öffnen'),'E-Mail');
   assert.match(source,/actor:actorFrom\(currentUser\(\)\)/);
-  assert.match(source,/ABD-Anfrage per E-Mail geöffnet/);
+  assert.match(source,/shipmentHistory\.action\.abdEmailOpened/);
   assert.match(source,/mailType:mailKind/);
   assert.doesNotMatch(source,/function ensureMailConfirm/);
   assert.match(source,/recordMailSent\(sh,contextText\)/);
-  assert.match(source,/Dokument: /);
+  assert.match(source,/shipmentHistory\.detail\./);
 });
 
 
