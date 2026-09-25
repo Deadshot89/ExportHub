@@ -30,7 +30,7 @@ test('RC1049: Mail und öffentliche Avis-Seite erhalten den ABD-Hinweis und Term
   const asset=read('assets/rc1049-abd-avis-policy.js');
   const page=read('customer-avis.html');
   const main=read('index.html');
-  assert.match(asset,/ABD NOCH NICHT VORHANDEN/);
+  assert.match(asset,/abd\.mailPending/);
   assert.match(asset,/expectedAvailableDate/);
   assert.match(asset,/minPickupTime:'10:00'/);
   assert.match(asset,/b\.shipmentSnapshot\.abdRequestedAt/);
