@@ -205,5 +205,22 @@
   "api.pickup.photosRequired": "All 3 container photos must be saved for this sea-freight shipment.",
   "api.pickup.confirmFailed": "Pickup could not be confirmed.",
   "api.pickup.disabled": "This QR code has been disabled.",
-  "api.pickup.statusLoadFailed": "Pickup status could not be loaded."
+  "api.pickup.statusLoadFailed": "Pickup status could not be loaded.",
+  "api.container.readForbidden": "You do not have permission to read container photos.",
+  "api.container.referenceRequired": "Shipment reference is missing.",
+  "api.container.shipmentNotFound": "Shipment was not found.",
+  "api.container.photoNotFound": "Container photo was not found.",
+  "api.container.photoLoadFailed": "Container photo could not be loaded.",
+  "api.container.photoSaveFailed": "Container photo could not be saved.",
+  "api.document.environmentMismatchTest": "A test-service request must not access production data.",
+  "api.document.environmentMismatchProduction": "The production site must not access test-service data.",
+  "api.document.referenceInvalid": "The document reference is invalid.",
+  "api.document.environmentMismatch": "The document belongs to a different ExportHUB data environment.",
+  "api.document.loadFailed": "The document could not be loaded.",
+  "api.readiness.environmentRequired": "Environment is missing.",
+  "api.readiness.testProductionMismatch": "TESTSERVICE must not confirm production readiness.",
+  "api.readiness.productionTestMismatch": "Production must not confirm TESTSERVICE readiness.",
+  "api.readiness.oidcKeysFailed": "GitHub OIDC keys could not be loaded.",
+  "api.readiness.workflowRequired": "Readiness may only be checked by the signed ExportHUB release workflow.",
+  "api.readiness.failed": "Readiness check failed."
 }
