@@ -81,4 +81,23 @@ function schedule(){if(timer)w.clearTimeout(timer);timer=w.setTimeout(function()
 w.ExportHUBRC1283LoadingListSearch=Object.freeze({version:'RC1283',searchText:searchText,filterRows:filterRows,documentNames:documentNames,remarkOf:remarkOf,candidates:candidates,install:install,action:act});
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync','exporthub:shipment-saved'].forEach(function(name){w.addEventListener(name,schedule)});
+function rc1283MutationRelevant(records){
+ var panel=d.getElementById('rc1283LoadListSearch'),current=panel&&panel.__rc1283Select;
+ if(current&&d.documentElement&&typeof d.documentElement.contains==='function'&&!d.documentElement.contains(current))return true;
+ if(panel&&current)return false;
+ for(var i=0;i<(records||[]).length;i++){
+  var added=records[i]&&records[i].addedNodes||[];
+  for(var j=0;j<added.length;j++){
+   var node=added[j];if(!node||node.nodeType!==1)continue;
+   if(node.id==='rc1283LoadListSearch'||node.closest&&node.closest('#rc1283LoadListSearch'))continue;
+   if(node.matches&&node.matches('select')&&/sendung\s*ausw[aä]hlen|shipment\s*(?:select|choose)/i.test(selectText(node)))return true;
+   if(node.querySelectorAll){var selects=Array.from(node.querySelectorAll('select'));if(selects.some(function(sel){return /sendung\s*ausw[aä]hlen|shipment\s*(?:select|choose)/i.test(selectText(sel))}))return true}
+  }
+ }
+ return false
+}
+if(w.MutationObserver&&d.documentElement){
+ w.__EXPORTHUB_RC1283_DOCUMENT_OBSERVER__=new MutationObserver(function(records){if(rc1283MutationRelevant(records))schedule()});
+ w.__EXPORTHUB_RC1283_DOCUMENT_OBSERVER__.observe(d.documentElement,{subtree:true,childList:true})
+}
 })(window,document);
