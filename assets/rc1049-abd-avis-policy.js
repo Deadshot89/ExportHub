@@ -27,5 +27,60 @@ function applyPublic(){if(!document)return;var p=window.__EXPORTHUB_RC1049_PUBLI
 function boot(){installMail();syncMail();applyPublic()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 ['exporthub:rendered','exporthub:viewchange','exporthub:rc1027-avis-ready','exporthub:customer-avis-updated'].forEach(function(n){window.addEventListener(n,function(){setTimeout(function(){syncMail();applyPublic()},0)})});
+
+/* RC1278: Outlook öffnen bestätigt den Versand direkt; separate Bestätigung entfällt. */
+(function(){
+if(window.__EXPORTHUB_RC1278_MAIL_OPEN_AUTOCONFIRM__)return;window.__EXPORTHUB_RC1278_MAIL_OPEN_AUTOCONFIRM__=true;
+function actorName(){try{return q((window.currentUser||{}).name||(window.currentUser||{}).user)||'Benutzer'}catch(_){return'Benutzer'}}
+function abdCurrent(){var s=state();return s.abdRequest||s.abdDraft||reqOf(shipment())||null}
+function queueSave(reason){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')window.ExportHUBClean.queueSave(reason||'Mailversand automatisch bestätigt')}catch(_){}}
+function historyCount(sh){return sh&&Array.isArray(sh.mailHistory)?sh.mailHistory.length:0}
+function actionButton(e){var t=e&&e.target;return t&&t.closest?t.closest('button,a'):null}
+function textOf(b){return q((b&&b.textContent)||'')+' '+q(b&&b.getAttribute&&b.getAttribute('onclick'))+' '+q(b&&b.id)}
+function isMainMailOpen(b){return !!(b&&b.closest&&b.closest('#rc543MailArea')&&(/rc543OpenMail|rc542OpenMail|rc524OpenMail/i.test(textOf(b))||/Mail in Outlook öffnen/i.test(q(b.textContent))))}
+function isRc543AbdOpen(b){return !!(b&&(/rc543OpenAbdMail/i.test(textOf(b))||/ABD-Mail in Outlook öffnen/i.test(q(b.textContent))))}
+function isRc626AbdOpen(b){return !!(b&&(/ExportHUBRC626\.openAbdMail/i.test(textOf(b))||/ABD-Anfrage in Outlook öffnen/i.test(q(b.textContent))))}
+function hideManualConfirmButtons(){
+ if(!document||!document.querySelectorAll)return;
+ document.querySelectorAll('#rc543ConfirmMailButton,button[onclick*="rc543ConfirmMail"],button[onclick*="rc542ConfirmMail"],button[onclick*="rc543ConfirmAbdMail"]').forEach(function(b){b.hidden=true;b.disabled=true;b.setAttribute('aria-hidden','true');b.style.setProperty('display','none','important')});
+ Array.prototype.forEach.call(document.querySelectorAll('button'),function(b){var t=q(b.textContent);if(/^(Mail als versendet bestätigen|ABD-Anfrage als versendet bestätigen)$/i.test(t)){b.hidden=true;b.disabled=true;b.setAttribute('aria-hidden','true');b.style.setProperty('display','none','important')}});
+}
+function confirmRc626Abd(){
+ if(typeof window.rc542AbdMarkSent==='function'){try{return window.rc542AbdMarkSent()}catch(_){}}
+ var a=abdCurrent();if(!a)return false;var stamp=new Date().toISOString();a.status='Angefragt';a.sentAt=stamp;a.sentBy=actorName();a.mailSent=true;a.mailConfirmed=true;a.mailConfirmedAt=stamp;a.mailStatus='Versendet';queueSave('ABD-Anfrage in Outlook geöffnet und als versendet bestätigt');return false
+}
+function intercept(e){
+ var b=actionButton(e);if(!b)return;
+ if(isMainMailOpen(b)){
+  e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+  var sh=shipment(),before=historyCount(sh),openFn=window.rc543OpenMail||window.rc542OpenMail||window.rc524OpenMail,confirmFn=window.rc543ConfirmMail||window.rc542ConfirmMail;
+  if(typeof openFn==='function')openFn();
+  if(typeof confirmFn==='function'&&historyCount(sh)<=before)confirmFn();
+  hideManualConfirmButtons();setTimeout(hideManualConfirmButtons,0);return
+ }
+ if(isRc543AbdOpen(b)){
+  e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+  var a=abdCurrent(),wasSent=!!(a&&(a.sentAt||a.mailConfirmedAt)),openAbd=window.rc543OpenAbdMail;
+  if(typeof openAbd==='function')openAbd();
+  a=abdCurrent();
+  if(!wasSent&&a&&!a.sentAt&&typeof window.rc543ConfirmAbdMail==='function')window.rc543ConfirmAbdMail();
+  hideManualConfirmButtons();setTimeout(hideManualConfirmButtons,0);return
+ }
+ if(isRc626AbdOpen(b)){
+  e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+  var fn=window.ExportHUBRC626&&window.ExportHUBRC626.openAbdMail;
+  if(typeof fn==='function')fn();
+  confirmRc626Abd();hideManualConfirmButtons();setTimeout(hideManualConfirmButtons,0);return
+ }
+}
+window.addEventListener('click',intercept,true);
+var confirmHideTimer=0,confirmObserver=null;
+function watchConfirmButtons(){if(confirmObserver||!window.MutationObserver||!document.body)return;confirmObserver=new MutationObserver(function(){clearTimeout(confirmHideTimer);confirmHideTimer=setTimeout(hideManualConfirmButtons,0)});confirmObserver.observe(document.body,{childList:true,subtree:true})}
+function autoBoot(){hideManualConfirmButtons();watchConfirmButtons()}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',autoBoot,{once:true});else autoBoot();
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(n){window.addEventListener(n,function(){setTimeout(hideManualConfirmButtons,0)})});
+window.ExportHUBRC1278MailAutoConfirm=Object.freeze({version:'RC1278',hideManualConfirmButtons:hideManualConfirmButtons});
+})();
+
 window.ExportHUBRC1049ABDPolicy=Object.freeze({version:'RC1049',policy:policy,notice:notice});
 })();
