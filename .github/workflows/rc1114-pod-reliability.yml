@@ -10,6 +10,7 @@ on:
       - 'RELEASE_MANIFEST.txt'
       - 'test/rc1114-pod-reliability.test.mjs'
       - 'test/rc1209-graph-drive-target-resolver.test.mjs'
+      - 'test/rc1259-container-documentation.test.mjs'
       - '.github/rc1114/**'
       - '.github/rc1112/build-three-env.mjs'
       - '.github/workflows/rc1114-pod-reliability.yml'
@@ -34,6 +35,9 @@ jobs:
 
       - name: API-Abhängigkeiten installieren
         run: npm install --prefix api --ignore-scripts --no-audit --no-fund
+
+      - name: RC1259/RC1284 Container- und Pickup-Regression
+        run: node --test test/rc1259-container-documentation.test.mjs
 
       - name: API-Runtime Syntax
         run: node api/scripts/verify-runtime-sources.cjs
