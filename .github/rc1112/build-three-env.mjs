@@ -145,48 +145,60 @@ function patchDeckblattHighVisibility(html,file){
 }
 
 function patchRc1203ActualDeckblatt(html,file){
-  if(html.includes('data-rc1203-cover-enhanced="1"')&&html.includes('id="exporthub-rc1203-deckblatt-style"'))return html;
+  if(html.includes('data-rc1281-customer-theme=')&&html.includes('id="exporthub-rc1203-deckblatt-style"'))return html;
   const start=html.indexOf('function coverHtml(sh){');
   const end=start<0?-1:html.indexOf('function rc1095LoadPalletCount',start);
-  if(start<0||end<0)throw new Error(file+': RC1203 echter rc390-coverHtml-Renderer fehlt');
+  if(start<0||end<0)throw new Error(file+': RC1281 echter rc390-coverHtml-Renderer fehlt');
   let block=html.slice(start,end);
 
+  const coverFnOld="function coverHtml(sh){var c=cname(sh),addr=caddress(sh),t=totals(sh),d=documents(sh),ref=esc(sref(sh)||sid(sh));return";
+  const coverFnNew="function coverHtml(sh){var c=cname(sh),addr=caddress(sh),t=totals(sh),d=documents(sh),ref=esc(sref(sh)||sid(sh)),isEssentra=/\\bessentra\\b/i.test(c),created=dateDe(sh&&(sh.createdAt||sh.createdDateTime||sh.createdOn||sh.createdDate||sh.created));return";
+  if(block.split(coverFnOld).length-1!==1)throw new Error(file+': RC1281 coverHtml-Kopf nicht eindeutig');
+  block=block.replace(coverFnOld,coverFnNew);
+
   const coverOld=`<section id="rc565Cover" class="rc390-page rc390-cover rc576-cover rc601-cover" data-shipment-ref="'+ref+'">`;
-  const coverNew=`<section id="rc565Cover" class="rc390-page rc390-cover rc576-cover rc601-cover rc1203-cover" data-rc1203-cover-enhanced="1" data-shipment-ref="'+ref+'" style="box-sizing:border-box!important;border:3mm solid #334155!important;border-top-width:5mm!important;outline:0!important;background:#f8fafc!important;background-image:none!important;color:#1f2937!important;box-shadow:inset 0 0 0 1mm #dbe4ee!important;padding:8mm!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important">`;
-  if(block.split(coverOld).length-1!==1)throw new Error(file+': RC1203 rc390-Cover-Anker nicht eindeutig');
+  const coverNew=`<section id="rc565Cover" class="rc390-page rc390-cover rc576-cover rc601-cover rc1203-cover" data-rc1203-cover-enhanced="1" data-rc1281-customer-theme="'+(isEssentra?'essentra':'customer')+'" data-shipment-ref="'+ref+'" style="box-sizing:border-box!important;border:3mm solid #334155!important;border-top-width:5mm!important;outline:0!important;background:#fff!important;background-image:none!important;color:#1f2937!important;box-shadow:inset 0 0 0 1mm #dbe4ee!important;padding:8mm!important;--rc1281-ref-bg:'+(isEssentra?'#facc15':'#2563eb')+';--rc1281-ref-border:'+(isEssentra?'#ca8a04':'#1d4ed8')+';--rc1281-ref-text:'+(isEssentra?'#111827':'#ffffff')+';--rc1281-recipient-bg:'+(isEssentra?'#fef9c3':'#dbeafe')+';--rc1281-recipient-border:'+(isEssentra?'#eab308':'#60a5fa')+';--rc1281-recipient-text:'+(isEssentra?'#713f12':'#1e3a8a')+';-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important">`;
+  if(block.split(coverOld).length-1!==1)throw new Error(file+': RC1281 rc390-Cover-Anker nicht eindeutig');
   block=block.replace(coverOld,coverNew);
 
   const recipientOld='<div class="rc390-card"><div class="rc390-label">Empfänger</div><strong>';
-  const recipientNew='<div class="rc390-card rc1203-cover-recipient" data-rc1203-recipient-highlight="1" style="font-size:16pt!important;line-height:1.24!important;font-weight:750!important;padding:4mm!important;border:1mm solid #94a3b8!important;background:#fff!important;color:#1f2937!important"><div class="rc390-label">Empfänger</div><strong style="font-size:19pt!important;line-height:1.18!important;font-weight:800!important">';
-  if(block.split(recipientOld).length-1<1)throw new Error(file+': RC1203 Empfänger-Anker fehlt');
+  const recipientNew='<div class="rc390-card rc1203-cover-recipient" data-rc1203-recipient-highlight="1" style="font-size:16pt!important;line-height:1.24!important;font-weight:750!important;padding:4mm!important;border:1mm solid var(--rc1281-recipient-border)!important;background:var(--rc1281-recipient-bg)!important;color:var(--rc1281-recipient-text)!important"><div class="rc390-label">Empfänger</div><strong style="font-size:19pt!important;line-height:1.18!important;font-weight:800!important;color:var(--rc1281-recipient-text)!important">';
+  if(block.split(recipientOld).length-1<1)throw new Error(file+': RC1281 Empfänger-Anker fehlt');
   block=block.replace(recipientOld,recipientNew);
 
   const refOld='<div class="rc390-cover-ref"><span>Sendungsreferenz</span><b>';
-  const refNew='<div class="rc390-cover-ref rc1203-cover-reference" data-rc1203-reference-highlight="1" style="background:#fff6cc!important;border:1.2mm solid #d4a514!important;color:#1f2937!important;padding:4mm!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important"><span style="color:#1f2937!important">Sendungsreferenz</span><b style="color:#1f2937!important">';
-  if(block.split(refOld).length-1!==1)throw new Error(file+': RC1203 Referenz-Anker nicht eindeutig');
+  const refNew='<div class="rc390-cover-ref rc1203-cover-reference" data-rc1203-reference-highlight="1" style="background:var(--rc1281-ref-bg)!important;border:1.2mm solid var(--rc1281-ref-border)!important;color:var(--rc1281-ref-text)!important;padding:4mm!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important"><span style="color:var(--rc1281-ref-text)!important">Sendungsreferenz</span><b style="color:var(--rc1281-ref-text)!important">';
+  if(block.split(refOld).length-1!==1)throw new Error(file+': RC1281 Referenz-Anker nicht eindeutig');
   block=block.replace(refOld,refNew);
+
+  const dataOld='<div class="rc390-card"><div class="rc390-label">Sendungsdaten</div><div class="rc390-txt">Zielland: '+esc(country(sh))+'\\nAnzahl: ';
+  const dataNew='<div class="rc390-card" data-rc1281-created-date="1"><div class="rc390-label">Sendungsdaten</div><div class="rc390-txt"><b>Erstellt am: '+esc(created||'–')+'</b>\\nZielland: '+esc(country(sh))+'\\nAnzahl: ';
+  if(block.split(dataOld).length-1!==1)throw new Error(file+': RC1281 Sendungsdaten-Anker nicht eindeutig');
+  block=block.replace(dataOld,dataNew);
 
   const dncOld=`<div class="rc390-card" style="grid-column:1/-1"><div class="rc390-label">Lieferscheine / DNCs</div><div class="rc390-txt">'+esc(d.join('\\n')||'–')+'</div></div></div><div class="rc390-cover-qr`;
   const dncNew=`<div class="rc390-card" style="grid-column:1/-1"><div class="rc390-label">Lieferscheine / DNCs</div><div class="rc390-txt">'+esc(d.join('\\n')||'–')+'</div></div><div class="rc390-card rc1203-cover-remark" data-rc1203-cover-remark="1" style="grid-column:1/-1;border:1mm solid #cbd5e1!important;border-left:3mm solid #e5b51d!important;background:#fffdf5!important;color:#1f2937!important;padding:3.5mm 4mm!important;min-height:18mm!important;max-height:28mm!important;overflow:hidden!important;margin-bottom:5mm!important;break-inside:avoid!important;page-break-inside:avoid!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important"><div class="rc390-label" style="font-size:11pt!important;font-weight:800!important;text-transform:uppercase!important;letter-spacing:.25mm!important;color:#1f2937!important">Bemerkung</div><div class="rc390-txt" style="font-size:12pt!important;line-height:1.25!important;font-weight:700!important;white-space:pre-wrap!important;color:#1f2937!important">'+esc(sh.remark||sh.remarks||sh.bemerkung||sh.comments||sh.comment||sh.note||sh.notes||'–')+'</div></div></div><div class="rc390-cover-qr`;
-  if(block.split(dncOld).length-1!==1)throw new Error(file+': RC1203 Bemerkungs-Anker nicht eindeutig');
+  if(block.split(dncOld).length-1!==1)throw new Error(file+': RC1281 Bemerkungs-Anker nicht eindeutig');
   block=block.replace(dncOld,dncNew);
 
   html=html.slice(0,start)+block+html.slice(end);
 
   const css='<style id="exporthub-rc1203-deckblatt-style">'+
-  '#rc576DocumentStage .rc390-cover.rc1203-cover,.rc390-cover.rc1203-cover{box-sizing:border-box!important;border:3mm solid #334155!important;border-top-width:5mm!important;outline:0!important;background:#f8fafc!important;background-image:none!important;color:#1f2937!important;box-shadow:inset 0 0 0 1mm #dbe4ee!important;padding:8mm!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'+
-  '#rc576DocumentStage .rc390-cover.rc1203-cover .rc390-cover-ref,.rc390-cover.rc1203-cover .rc390-cover-ref{background:#fff6cc!important;border:1.2mm solid #d4a514!important;color:#1f2937!important;padding:4mm!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'+
-  '.rc390-cover.rc1203-cover .rc390-cover-ref span,.rc390-cover.rc1203-cover .rc390-cover-ref b{color:#111827!important}'+
-  '#rc576DocumentStage .rc390-cover.rc1203-cover .rc1203-cover-recipient,.rc390-cover.rc1203-cover .rc1203-cover-recipient{font-size:16pt!important;line-height:1.24!important;font-weight:750!important;padding:4mm!important;border:1mm solid #94a3b8!important;background:#fff!important;color:#1f2937!important}'+
-  '.rc390-cover.rc1203-cover .rc1203-cover-recipient strong{font-size:19pt!important;line-height:1.18!important;font-weight:800!important}.rc390-cover.rc1203-cover .rc1203-cover-recipient .rc390-txt{font-size:18pt!important;line-height:1.25!important;font-weight:800!important}'+
+  '#rc576DocumentStage .rc390-cover.rc1203-cover,.rc390-cover.rc1203-cover{box-sizing:border-box!important;border:3mm solid #334155!important;border-top-width:5mm!important;outline:0!important;background:#fff!important;background-image:none!important;color:#1f2937!important;box-shadow:inset 0 0 0 1mm #dbe4ee!important;padding:8mm!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'+
+  '#rc576DocumentStage .rc390-cover.rc1203-cover .rc390-cover-ref,.rc390-cover.rc1203-cover .rc390-cover-ref{background:var(--rc1281-ref-bg)!important;border:1.2mm solid var(--rc1281-ref-border)!important;color:var(--rc1281-ref-text)!important;padding:4mm!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'+
+  '.rc390-cover.rc1203-cover .rc390-cover-ref span,.rc390-cover.rc1203-cover .rc390-cover-ref b{color:var(--rc1281-ref-text)!important}'+
+  '#rc576DocumentStage .rc390-cover.rc1203-cover .rc1203-cover-recipient,.rc390-cover.rc1203-cover .rc1203-cover-recipient{font-size:16pt!important;line-height:1.24!important;font-weight:750!important;padding:4mm!important;border:1mm solid var(--rc1281-recipient-border)!important;background:var(--rc1281-recipient-bg)!important;color:var(--rc1281-recipient-text)!important}'+
+  '.rc390-cover.rc1203-cover .rc1203-cover-recipient strong{font-size:19pt!important;line-height:1.18!important;font-weight:800!important;color:var(--rc1281-recipient-text)!important}.rc390-cover.rc1203-cover .rc1203-cover-recipient .rc390-txt{font-size:18pt!important;line-height:1.25!important;font-weight:800!important;color:var(--rc1281-recipient-text)!important}'+
+  '.rc390-cover.rc1203-cover [data-rc1281-created-date]{background:#fff!important;color:#334155!important}'+
   '#rc576DocumentStage .rc390-cover.rc1203-cover .rc1203-cover-remark,.rc390-cover.rc1203-cover .rc1203-cover-remark{border:1mm solid #cbd5e1!important;border-left:3mm solid #e5b51d!important;background:#fffdf5!important;color:#1f2937!important;padding:3.5mm 4mm!important;min-height:18mm!important;max-height:28mm!important;overflow:hidden!important;margin-bottom:5mm!important;break-inside:avoid!important;page-break-inside:avoid!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'+
   '.rc390-cover.rc1203-cover .rc1203-cover-remark .rc390-label{font-size:11pt!important;font-weight:800!important;text-transform:uppercase!important;letter-spacing:.25mm!important;color:#1f2937!important}.rc390-cover.rc1203-cover .rc1203-cover-remark .rc390-txt{font-size:12pt!important;line-height:1.25!important;font-weight:700!important;white-space:pre-wrap!important;color:#1f2937!important}'+
   '</style>';
   html=injectDeferredRuntimeInHead(html,css,'exporthub-rc1203-deckblatt-style');
 
-  if(!html.includes('data-rc1203-cover-enhanced="1"'))throw new Error(file+': RC1203 rc390-Cover-Marker fehlt');
-  if(!html.includes('data-rc1203-cover-remark="1"'))throw new Error(file+': RC1203 Bemerkungsblock fehlt');
-  if(!html.includes('border:3mm solid #334155!important'))throw new Error(file+': RC1204 heller rc390-Rahmen fehlt');
+  if(!html.includes('data-rc1203-cover-enhanced="1"'))throw new Error(file+': RC1281 rc390-Cover-Marker fehlt');
+  if(!html.includes('data-rc1281-customer-theme='))throw new Error(file+': RC1281 kundenspezifisches Deckblatt-Theme fehlt');
+  if(!html.includes('data-rc1281-created-date="1"'))throw new Error(file+': RC1281 Erstellungsdatum fehlt');
+  if(!html.includes('background:#fff!important'))throw new Error(file+': RC1281 weißer Deckblatt-Hintergrund fehlt');
   return html
 }
 
@@ -339,7 +351,7 @@ function patchHtml(file){
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1176-shipment-location" defer src="/assets/rc1176-shipment-location.js?v=1202"></script>','exporthub-rc1176-shipment-location');
   html=injectDeferredRuntimeInHead(html,'<link id="exporthub-rc1259-container-ui" rel="stylesheet" href="/assets/rc1014-shipment-overview.css?v=1259">','exporthub-rc1259-container-ui');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1259-container-runtime" defer src="/assets/rc1014-shipment-overview.js?v=1259"></script>','exporthub-rc1259-container-runtime');
-  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1203-deckblatt-print" defer src="/assets/rc1203-deckblatt-print.js?v=1205"></script>','exporthub-rc1203-deckblatt-print');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1203-deckblatt-print" defer src="/assets/rc1203-deckblatt-print.js?v=1281"></script>','exporthub-rc1203-deckblatt-print');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1207-pallet-account-fix" defer src="/assets/rc1207-pallet-account-fix.js?v=1246"></script>','exporthub-rc1207-pallet-account-fix');
   html=injectDeferredRuntimeInHead(html,`<script id="exporthub-rc1193-visible-release" defer src="/assets/rc1193-visible-release.js?v=${VISIBLE_NUMBER}"></script>`,'exporthub-rc1193-visible-release');
   html=injectDeferredRuntimeInHead(html,`<script id="exporthub-rc1177-release-notes" defer src="/assets/rc1177-release-notes.js?v=${VISIBLE_NUMBER}"></script>`,'exporthub-rc1177-release-notes');
@@ -367,7 +379,7 @@ function patchHtml(file){
   if(!html.includes('assets/rc1165-pod-backup-status.js?v=1165'))throw new Error(file+': RC1165 POD-Sicherungsstatus-Runtime fehlt');
   if(!html.includes('assets/rc1166-avis-reminder-overview.js?v=1207'))throw new Error(file+': RC1207 Avis-Erinnerung-Runtime fehlt');
   if(!html.includes('assets/rc1176-shipment-location.js?v=1202'))throw new Error(file+': RC1191 Standort-Capture-Runtime fehlt');
-  if(!html.includes('assets/rc1203-deckblatt-print.js?v=1205'))throw new Error(file+': RC1205 Deckblatt-Runtime fehlt');
+  if(!html.includes('assets/rc1203-deckblatt-print.js?v=1281'))throw new Error(file+': RC1205 Deckblatt-Runtime fehlt');
   if(!html.includes('assets/rc1207-pallet-account-fix.js?v=1246'))throw new Error(file+': RC1207 Palettenkonto-Runtime fehlt');
   if(!html.includes('assets/rc1193-visible-release.js?v='+VISIBLE_NUMBER))throw new Error(file+': '+VISIBLE_VERSION+' sichtbare Release-Version fehlt');
   if(!html.includes('assets/rc1177-release-notes.js?v='+VISIBLE_NUMBER))throw new Error(file+': '+VISIBLE_VERSION+' Änderungshinweise Cache-Key fehlt');
@@ -472,10 +484,10 @@ fs.writeFileSync(path.join(OUT,'rc1112-manifest.json'),JSON.stringify({
     avisReminderOverview:'RC1207 DE/EN customer/carrier reminder via stored contacts + secure avis link',
     avisUploadNotifications:'RC1133 secure customer PDF notice + open/print action',
     documentActionHistory:'RC1178 print/open/download + user + filename, including resumed print flow',
-    deckblattHighVisibility:'RC1204 calm light rc390 cover: thin slate frame + white/light surface + restrained yellow accent + remark',
+    deckblattHighVisibility:'RC1281 white cover + Essentra yellow / customer blue reference + lighter recipient + shipment created date',
     coverOnlyPrint:'RC1205 single Nur Deckblatt drucken action inside Speichern & Ausgabe',
     palletAccountDirectionAndAdminDelete:'RC1207 visible direction is saved, admin tombstone delete, one-time production cleanup 2026-09-21',
-    coverRemark:'RC1204 compact remark block above QR without overlap',
+    coverRemark:'RC1281 compact remark block above QR without overlap',
     customerPortalCredentials:'RC1160 AES-256-GCM + re-auth + use/manage rights',
     customerPortalReadiness:'RC1162 safe key-status + UI readiness guard',
     avisAppointmentRevisionHistory:'RC1163 old/new pickup appointment history before actual pickup',
