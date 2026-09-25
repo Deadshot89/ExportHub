@@ -1084,5 +1084,17 @@
   "abd.mailPending": "IMPORTANT – LE DOCUMENT D’EXPORTATION (ABD) N’EST PAS ENCORE DISPONIBLE\nL’ABD devrait être disponible le {{expected}} vers 10:00. L’enlèvement peut déjà être réservé, mais pas avant le {{minimum}} à 10:00.",
   "mail.closing": "Cordialement",
   "container.sealInput": "Numéro de scellé",
-  "container.sealPlaceholder": "p. ex. ABCD123456"
+  "container.sealPlaceholder": "p. ex. ABCD123456",
+  "loadingList.title": "Rechercher une liste de chargement",
+  "loadingList.subtitle": "Rechercher par numéro de référence, client, pièce jointe/nom de fichier ou remarque.",
+  "loadingList.ariaLabel": "Rechercher une liste de chargement",
+  "loadingList.placeholder": "Référence, client, pièce jointe ou remarque",
+  "loadingList.searchHint": "Saisissez une référence, un client, une pièce jointe/nom de fichier ou une remarque.",
+  "loadingList.noMatch": "Aucune liste de chargement correspondante trouvée.",
+  "loadingList.selectedPrefix": "Sélectionné :",
+  "loadingList.noneSelected": "Aucune liste de chargement sélectionnée.",
+  "loadingList.open": "Ouvrir",
+  "loadingList.print": "Imprimer",
+  "loadingList.download": "Télécharger",
+  "loadingList.shipmentSelectLabel": "Sélectionner l’expédition"
 }
