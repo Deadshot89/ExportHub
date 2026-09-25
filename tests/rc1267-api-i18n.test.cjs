@@ -48,3 +48,25 @@ test('RC1267 customer AVIS keeps the required 14-day post-pickup window',()=>{
   assert.doesNotMatch(src,/postPickupDays:3/);
   assert.match(src,/api\.avis\.expired14/);
 });
+
+
+test('RC1277 API localizes warehouse, container and shared document errors',()=>{
+  assert.equal(apiI18n.t({headers:{'x-exporthub-language':'pl'}},'api.location.invalid'),'Nieprawidłowa lokalizacja magazynowa.');
+  assert.match(apiI18n.t({headers:{'x-exporthub-language':'fr'}},'api.container.photoLabel.sealed'),/Conteneur scellé/);
+  const pdf=fs.readFileSync('api/shared/customer-avis-pdf-security.js','utf8');
+  const refs=fs.readFileSync('api/shared/reference-folder-upload.js','utf8');
+  const pickup=fs.readFileSync('api/pickup-container-document/index.js','utf8');
+  assert.match(pdf,/api\.pdf\.activeContent/);
+  assert.match(refs,/api\.reference\.folderCheckFailed/);
+  assert.match(refs,/api\.reference\.folderCreateFailed/);
+  assert.match(refs,/api\.reference\.fileUploadFailed/);
+  assert.match(pickup,/publicPhoto\(req,photo\)/);
+  assert.match(pickup,/apiI18n\.t\(req,key\)/);
+});
+
+test('RC1277 strict UI audit includes API translations but ignores business master-data names',()=>{
+  const audit=fs.readFileSync('scripts/i18n-audit.mjs','utf8');
+  assert.match(audit,/apiDePath=path\.join\(ROOT,'api','shared','i18n','de\.json'\)/);
+  assert.match(audit,/rc1014-fixed-pickup-seed\.js/);
+  assert.match(audit,/siteLabel\\s\*:/);
+});
