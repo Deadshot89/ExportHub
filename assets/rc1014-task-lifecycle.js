@@ -111,8 +111,19 @@
     return 'future';
   }
 
+  function taskTimeValue(task){
+    const raw=q(task&&(task.createdAt||task.requestedAt||task.updatedAt));
+    if(!raw)return 0;
+    const t=Date.parse(raw);
+    return Number.isFinite(t)?t:0;
+  }
+
   function compareTasks(a,b,now){
     const aa=normalizeTask(a),bb=normalizeTask(b);
+    if(aa.group==='Offene ABDs'&&bb.group==='Offene ABDs'){
+      const at=taskTimeValue(aa),bt=taskTimeValue(bb);
+      if(at!==bt)return bt-at;
+    }
     const p=(PRIORITY_RANK[aa.priority]??99)-(PRIORITY_RANK[bb.priority]??99);
     if(p)return p;
     const d=(DUE_RANK[dueBucket(aa,now)]??99)-(DUE_RANK[dueBucket(bb,now)]??99);
