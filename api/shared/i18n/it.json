@@ -242,5 +242,12 @@
   "api.pdf.activeContent": "I PDF con contenuto attivo o incorporato non sono consentiti ({{label}}).",
   "api.location.siteRequired": "Sede/cliente è obbligatorio.",
   "api.container.teamSyncUnavailable": "Non è stato possibile collegare la foto del container alla spedizione.",
-  "api.container.teamSyncFailed": "La foto del container è stata salvata, ma non è stato possibile collegarla alla spedizione. Riprova."
+  "api.container.teamSyncFailed": "La foto del container è stata salvata, ma non è stato possibile collegarla alla spedizione. Riprova.",
+  "api.location.invalid": "Posizione di magazzino non valida.",
+  "api.location.alreadyCollected": "La spedizione è già stata ritirata. La posizione di uscita è bloccata.",
+  "api.location.notReady": "La spedizione non è ancora pronta per il ritiro e non può essere assegnata a una posizione di uscita.",
+  "api.location.actionFailed": "Operazione di magazzino non riuscita.",
+  "api.container.photoLabel.loaded": "Container caricato",
+  "api.container.photoLabel.number": "Numero del container dall’interno",
+  "api.container.photoLabel.sealed": "Container sigillato · sigillo/marcature/documenti"
 }
