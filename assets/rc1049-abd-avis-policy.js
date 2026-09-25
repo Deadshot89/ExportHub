@@ -74,7 +74,9 @@ function intercept(e){
  }
 }
 window.addEventListener('click',intercept,true);
-function autoBoot(){hideManualConfirmButtons()}
+var confirmHideTimer=0,confirmObserver=null;
+function watchConfirmButtons(){if(confirmObserver||!window.MutationObserver||!document.body)return;confirmObserver=new MutationObserver(function(){clearTimeout(confirmHideTimer);confirmHideTimer=setTimeout(hideManualConfirmButtons,0)});confirmObserver.observe(document.body,{childList:true,subtree:true})}
+function autoBoot(){hideManualConfirmButtons();watchConfirmButtons()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',autoBoot,{once:true});else autoBoot();
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(n){window.addEventListener(n,function(){setTimeout(hideManualConfirmButtons,0)})});
 window.ExportHUBRC1278MailAutoConfirm=Object.freeze({version:'RC1278',hideManualConfirmButtons:hideManualConfirmButtons});
