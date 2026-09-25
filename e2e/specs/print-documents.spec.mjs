@@ -105,6 +105,8 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
   expect(capture.text).toContain('Bemerkung');
   expect(capture.text).toContain('RC1203 Demo-Bemerkung');
   expect(capture.text).toMatch(/Ladeliste/i);
+  expect(capture.text).toMatch(/(?:Ladeliste\s*1|\bL1\b)/i);
+  expect(capture.text).toMatch(/(?:Ladeliste\s*2|\bL2\b)/i);
   expect(capture.text).toMatch(/CMR/i);
   expect(capture.text).toMatch(/Warenbeschreibung/i);
 
