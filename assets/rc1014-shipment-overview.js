@@ -317,20 +317,26 @@
     return out;
   }
 
-  function writeContainerConfig(mode,required){
+  function writeContainerConfig(mode,required,seal){
     const s=state(),active=activeShipment(s);if(!active)return false;
     mode=q(mode).toLowerCase();required=mode==='sea'&&required===true;
+    const sealProvided=arguments.length>=3,sealValue=q(seal);
     shipmentTargets(s,active).forEach(sh=>{
       sh.transportMode=mode;
       sh.transportType=mode;
       sh.containerDocumentationRequired=required;
+      if(sealProvided){
+        sh.sealNumber=sealValue;
+        sh.containerSealNumber=sealValue;
+        sh.siegelnummer=sealValue;
+      }
       sh.containerDocumentationUpdatedAt=new Date().toISOString();
     });
     try{
       const api=root.ExportHUBClean;
       if(api&&typeof api.queueSave==='function')Promise.resolve(api.queueSave('container-documentation-config')).catch(()=>{});
     }catch(_){}
-    try{root.dispatchEvent(new CustomEvent('exporthub:shipment-updated',{detail:{reference:shipmentReference(active),containerDocumentation:true}}))}catch(_){}
+    try{root.dispatchEvent(new CustomEvent('exporthub:shipment-updated',{detail:{reference:shipmentReference(active),containerDocumentation:true,sealNumber:sealProvided?sealValue:undefined}}))}catch(_){}
     return true;
   }
 
@@ -356,10 +362,12 @@
     const panel=doc.createElement('div');
     panel.className='rc1259-container-config';
     panel.setAttribute('data-rc1259-container-config','1');
-    panel.innerHTML='<div class="rc1259-config-title"><strong>🚢 Luft / See & Container</strong><span>Container-Nachweise werden über den Abhol-QR erfasst.</span></div><div class="rc1259-config-grid"><label>Transportart<select data-rc1259-transport><option value="">Nicht festgelegt</option><option value="road">Straße</option><option value="air">Luftfracht</option><option value="sea">Seefracht</option></select></label><label class="rc1259-required-label"><input type="checkbox" data-rc1259-required> Container-Dokumentation verpflichtend</label></div><div class="rc1259-config-help">Bei Seefracht nur aktivieren, wenn ein Container dokumentiert werden muss. Dann verlangt die QR-Abholung Siegelnummer sowie 3 Fotos: geladen, Container-Nummer innen und versiegelt mit Kennzeichen/Papieren.</div>';
-    const select=panel.querySelector('[data-rc1259-transport]'),check=panel.querySelector('[data-rc1259-required]');
-    if(select)select.addEventListener('change',()=>{const sea=select.value==='sea';if(check){check.disabled=!sea;if(!sea)check.checked=false}writeContainerConfig(select.value,check&&check.checked)});
-    if(check)check.addEventListener('change',()=>writeContainerConfig(select&&select.value,check.checked));
+    panel.innerHTML='<div class="rc1259-config-title"><strong>🚢 Luft / See & Container</strong><span>Siegelnummer kann bereits auf der Hauptseite gepflegt werden; Fotos werden über den Abhol-QR aufgenommen.</span></div><div class="rc1259-config-grid"><label>Transportart<select data-rc1259-transport><option value="">Nicht festgelegt</option><option value="road">Straße</option><option value="air">Luftfracht</option><option value="sea">Seefracht</option></select></label><label>Siegelnummer <span class="rc1259-field-note">(optional)</span><input type="text" data-rc1259-seal autocomplete="off" maxlength="120" placeholder="z. B. ABCD123456"></label><label class="rc1259-required-label"><input type="checkbox" data-rc1259-required> Container-Dokumentation verpflichtend</label></div><div class="rc1259-config-help">Bei Seefracht nur aktivieren, wenn ein Container dokumentiert werden muss. Dann verlangt die QR-Abholung die Siegelnummer sowie 3 Fotos: geladen, Container-Nummer innen und versiegelt mit Kennzeichen/Papieren.</div>';
+    const select=panel.querySelector('[data-rc1259-transport]'),seal=panel.querySelector('[data-rc1259-seal]'),check=panel.querySelector('[data-rc1259-required]');
+    const save=()=>writeContainerConfig(select&&select.value,check&&check.checked,seal&&seal.value);
+    if(select)select.addEventListener('change',()=>{const sea=select.value==='sea';if(check){check.disabled=!sea;if(!sea)check.checked=false}save()});
+    if(check)check.addEventListener('change',save);
+    if(seal)seal.addEventListener('change',save);
     return panel;
   }
 
@@ -369,8 +377,9 @@
     let panel=host.querySelector&&host.querySelector('[data-rc1259-container-config]');
     if(!panel){if(typeof doc.createElement!=='function')return false;panel=createConfigPanel(doc);const target=host.querySelector&&host.querySelector('.rc363-process-body')||host;target.appendChild(panel);lastMutationAt=Date.now()}
     const sh=activeShipment(state());if(!sh)return true;
-    const meta=containerMeta(sh),select=panel.querySelector&&panel.querySelector('[data-rc1259-transport]'),check=panel.querySelector&&panel.querySelector('[data-rc1259-required]');
+    const meta=containerMeta(sh),select=panel.querySelector&&panel.querySelector('[data-rc1259-transport]'),seal=panel.querySelector&&panel.querySelector('[data-rc1259-seal]'),check=panel.querySelector&&panel.querySelector('[data-rc1259-required]');
     if(select&&doc.activeElement!==select&&select.value!==meta.mode)select.value=meta.mode||'';
+    if(seal&&doc.activeElement!==seal&&seal.value!==meta.seal)seal.value=meta.seal||'';
     if(check){check.disabled=(select?select.value:meta.mode)!=='sea';if(doc.activeElement!==check)check.checked=meta.required===true;if(check.disabled&&check.checked)check.checked=false}
     return true;
   }
