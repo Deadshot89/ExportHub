@@ -117,16 +117,16 @@ test('RC1259: Pickup-Status veröffentlicht Containerdaten und bestehende QR-Cod
 
 test('RC1259: Sendungsansicht zeigt Siegel und Fotos mit authentifiziertem Ansehen und Download',()=>{
   const ui=read('assets/rc1014-shipment-overview.js');
-  assert.match(ui,/Siegelnummer: /);
-  assert.match(ui,/Ansehen/);
-  assert.match(ui,/Herunterladen/);
+  assert.match(ui,/container\\.sealNumber/);
+  assert.match(ui,/container\\.view/);
+  assert.match(ui,/container\\.download/);
   assert.match(ui,/enhanceShipmentDetailedView/);
   assert.match(ui,/rc786ReferenceFilesCard/);
   assert.match(ui,/Authorization':'Bearer '/);
   assert.match(ui,/fetchContainerBlob/);
   assert.match(ui,/queueSave\('container-documentation-config'\)/);
-  assert.match(ui,/Transportart/);
-  assert.match(ui,/Seefracht/);
+  assert.match(ui,/container\\.transportMode/);
+  assert.match(ui,/container\\.sea/);
   assert.match(ui,/data-rc1259-seal/);
   assert.match(ui,/sh\.sealNumber=sealValue/);
   assert.match(ui,/sh\.containerSealNumber=sealValue/);
