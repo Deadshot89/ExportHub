@@ -13,8 +13,8 @@ test('RC1038: Lieferavis-Timing deckt Authentifizierung und Team-Speicher-Vorber
   }
   assert.match(API,/auth;dur=/,'Server-Timing muss die Authentifizierung ausweisen.');
   assert.match(API,/team-blob;dur=/,'Server-Timing muss die Team-Speicher-Vorbereitung ausweisen.');
-  assert.match(DIAG,/Authentifizierung/,'Diagnose muss die Authentifizierung verständlich beschriften.');
-  assert.match(DIAG,/Team-Speicher vorbereiten/,'Diagnose muss die Speicher-Vorbereitung verständlich beschriften.');
+  assert.match(DIAG,/avisTiming\.auth/,'Diagnose muss die lokalisierte Authentifizierung verwenden.');
+  assert.match(DIAG,/avisTiming\.prepareStorage/,'Diagnose muss die lokalisierte Speicher-Vorbereitung verwenden.');
 });
 
 test('RC1038: geändertes Timing-Asset wird mit frischem Cache-Key in alle Umgebungen geladen',()=>{

@@ -3,6 +3,7 @@
 const crypto = require('crypto');
 const { BlobServiceClient } = require('@azure/storage-blob');
 const { applyUserPolicy, isAdmin, isPrivilegedUser, normalizeRights, publicUser } = require('./user-policy');
+const apiI18n = require('./i18n');
 
 const TEAM_CONTAINER = process.env.EXPORTHUB_STORAGE_CONTAINER || process.env.EXPORTHUB_CONTAINER || 'exporthub-data';
 const TEAM_BLOB = process.env.EXPORTHUB_STORAGE_BLOB || process.env.EXPORTHUB_STATE_BLOB || 'team-state.json';
@@ -164,7 +165,7 @@ function passwordWasUsed(user, password) {
 function setPassword(user, password, options = {}) {
   const policyError = options.skipPolicy === true ? '' : passwordPolicy(password);
   if (policyError) throw error('PASSWORD_POLICY', policyError, 400);
-  if (!options.allowReuse && passwordWasUsed(user, password)) throw error('PASSWORD_REUSED', 'Ein bereits verwendetes Passwort darf nicht erneut benutzt werden.', 409);
+  if (!options.allowReuse && passwordWasUsed(user, password)) throw error('PASSWORD_REUSED', apiI18n.tLang('de','api.auth.passwordReused'), 409);
   const previous = credentialOf(user);
   user.passwordHistory = Array.isArray(user.passwordHistory) ? user.passwordHistory : [];
   if (previous) user.passwordHistory.push(clone(previous));
@@ -385,7 +386,7 @@ async function createSession(user, deviceId, mustChange) {
 }
 async function validateSession(req, options = {}) {
   const token = bearer(req);
-  if (!token) throw error('AUTH_REQUIRED', 'ExportHUB-Anmeldung erforderlich.', 401);
+  if (!token) throw error('AUTH_REQUIRED', apiI18n.t(req,'api.common.authRequired'), 401);
   const routingPayload = decodeSessionPayload(token);
   const testserviceE2E = Boolean(
     routingPayload &&
@@ -397,15 +398,15 @@ async function validateSession(req, options = {}) {
   const authDoc = await readJson(c.auth, emptyAuth());
   const resolved = resolveSession(token, authDoc.value || emptyAuth());
   const session = resolved.session;
-  if (!session) throw error('SESSION_INVALID', 'Die Sitzung ist nicht mehr gültig. Bitte erneut anmelden.', 401);
-  if (session.revokedAt) throw error('SESSION_REVOKED', 'Die Sitzung wurde beendet. Bitte erneut anmelden.', 401);
-  if (Date.parse(session.expiresAt || '') <= Date.now()) throw error('SESSION_INVALID', 'Die Sitzung ist nicht mehr gültig. Bitte erneut anmelden.', 401);
+  if (!session) throw error('SESSION_INVALID', apiI18n.t(req,'api.common.sessionInvalid'), 401);
+  if (session.revokedAt) throw error('SESSION_REVOKED', apiI18n.t(req,'api.common.sessionRevoked'), 401);
+  if (Date.parse(session.expiresAt || '') <= Date.now()) throw error('SESSION_INVALID', apiI18n.t(req,'api.common.sessionInvalid'), 401);
   const teamDoc = await readJson(c.team, emptyTeam());
   const team = applyUserPolicy(teamDoc.value || emptyTeam());
   const user = (team.users || []).find((u) => text(u.id) === text(session.userId) || usernameOf(u) === lower(session.username));
-  if (!user || !isActive(user)) throw error('ACCOUNT_DISABLED', 'Das Benutzerkonto ist deaktiviert.', 403);
-  if (Number(session.authVersion || 0) !== Number(user.authVersion || 0)) throw error('SESSION_REVOKED', 'Die Sitzung wurde beendet. Bitte erneut anmelden.', 401);
-  if ((session.mustChange || user.mustChange) && !options.allowPasswordChange) throw error('PASSWORD_CHANGE_REQUIRED', 'Vor der Nutzung muss das Startpasswort geändert werden.', 403);
+  if (!user || !isActive(user)) throw error('ACCOUNT_DISABLED', apiI18n.t(req,'api.common.accountDisabled'), 403);
+  if (Number(session.authVersion || 0) !== Number(user.authVersion || 0)) throw error('SESSION_REVOKED', apiI18n.t(req,'api.common.sessionRevoked'), 401);
+  if ((session.mustChange || user.mustChange) && !options.allowPasswordChange) throw error('PASSWORD_CHANGE_REQUIRED', apiI18n.t(req,'api.common.passwordChangeRequired'), 403);
   return { token, session, user, team, teamEtag: teamDoc.etag };
 }
 function hasAnyEditRight(user) {

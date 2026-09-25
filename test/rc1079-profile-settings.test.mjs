@@ -26,11 +26,12 @@ test('RC1079: Benutzername bleibt unverändert und Anzeigename ist begrenzt',()=
 });
 
 test('RC1079: Einstellungen zeigen Benutzername, Anzeigename und persönliche Programmsprache',()=>{
-  assert.match(runtime,/Mein Profil/);
-  assert.match(runtime,/Benutzername<input data-rc1079-user readonly/);
-  assert.match(runtime,/Anzeigename<input data-rc1079-name maxlength="80"/);
-  assert.match(runtime,/Programmsprache<select data-rc1079-language/);
-  assert.match(runtime,/Profil speichern/);
+  assert.match(runtime,/profile\.title/);
+  assert.match(runtime,/profile\.username/); assert.match(runtime,/data-rc1079-user readonly/);
+  assert.match(runtime,/profile\.displayName/); assert.match(runtime,/data-rc1079-name maxlength="80"/);
+  assert.match(runtime,/profile\.programLanguage/); assert.match(runtime,/data-rc1079-language/);
+  assert.match(runtime,/profile\.save/);
+  for(const label of ['Deutsch','English','Polski','Español','Français','Italiano']) assert.match(runtime,new RegExp('>'+label+'<'));
   assert.match(runtime,/language:language/);
   assert.match(runtime,/action:'update-profile'/);
   assert.match(runtime,/exporthub:user-profile-updated/);
@@ -39,8 +40,11 @@ test('RC1079: Einstellungen zeigen Benutzername, Anzeigename und persönliche Pr
 test('RC1079: Sprache wird im Benutzerprofil gespeichert und Deutsch ist der sichere Standard',()=>{
   const block=auth.slice(auth.indexOf('async function updateProfile'),auth.indexOf('async function adminList'));
   assert.match(block,/user\.language = nextLanguage/);
-  assert.match(block,/requestedLanguage === 'en' \? 'en' : 'de'/);
+  assert.match(block,/normalizeProfileLanguage\(requestedLanguage, previousLanguage\)/);
+  assert.match(auth,/de\|en\|pl\|es\|fr\|it/);
+  assert.match(runtime,/SUPPORTED_LANGUAGES=\['de','en','pl','es','fr','it'\]/);
   assert.match(runtime,/applyProfileLanguage/);
+  assert.match(runtime,/ExportHUBI18n/);
   assert.match(runtime,/rc455SetLanguage/);
 });
 

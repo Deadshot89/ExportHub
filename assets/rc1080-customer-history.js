@@ -7,14 +7,16 @@ w.__EXPORTHUB_RC1080_CUSTOMER_HISTORY__=true;
 var BASELINES=Object.create(null),MAX_EVENTS=500,WRAPPED=false;
 
 function q(v){return String(v==null?'':v).trim()}
+function tr(key,vars,language){try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.t==='function')return w.ExportHUBI18n.t(key,vars,language)}catch(_){}return key}
+function de(key,vars){return tr(key,vars,'de')}
 function low(v){return q(v).toLocaleLowerCase('de-DE')}
 function arr(v){return Array.isArray(v)?v:[]}
 function obj(v){return v&&typeof v==='object'&&!Array.isArray(v)}
 function state(){try{if(typeof w.__EXPORTHUB_GET_STATE__==='function')return w.__EXPORTHUB_GET_STATE__()||{}}catch(_){}return w.ExportHUBClean&&w.ExportHUBClean.state||w.appState||{}}
 function user(){var s=state();try{if(typeof w.__EXPORTHUB_GET_CURRENT_USER__==='function'){var u=w.__EXPORTHUB_GET_CURRENT_USER__();if(u)return u}}catch(_){}return s.currentUser||s.activeUser||w.currentUser||{}}
-function actor(){var u=user();return{name:q(u.name||u.displayName||u.fullName||u.user||u.username||u.login)||'Unbekannt',id:q(u.id||u.userId||u.user||u.username||u.login),role:q(u.role||u.rolle)}}
+function actor(){var u=user();return{name:q(u.name||u.displayName||u.fullName||u.user||u.username||u.login)||de('customerHistory.unknown'),id:q(u.id||u.userId||u.user||u.username||u.login),role:q(u.role||u.rolle)}}
 function id(c){return q(c&&(c.id||c.customerId||c.account||c.customerNumber||c.kundennummer||c.name||c.customerName)).toLocaleUpperCase('de-DE')}
-function name(c){return q(c&&(c.name||c.customerName||c.companyName||c.account||c.customerNumber))||'Kunde'}
+function name(c){return q(c&&(c.name||c.customerName||c.companyName||c.account||c.customerNumber))||tr('history.entity.customer')}
 function clean(value,key){
  if(key&&/customerHistory|history|updatedAt|updatedBy|createdAt|createdBy|_sync|lastSaved|lastModified/i.test(key))return undefined;
  if(Array.isArray(value))return value.map(function(x){return clean(x,'')});
@@ -69,10 +71,10 @@ function prepare(reason,opt){
  list.forEach(function(c){
   var k=id(c);if(!k)return;seen[k]=true;var fp=fingerprint(c),base=BASELINES[k];
   if(!base){
-    if(append(c,'customer-created','Kunde angelegt',{customer:name(c),account:q(c.account||c.customerNumber||c.kundennummer)}))count++
+    if(append(c,'customer-created',de('history.customer.customer-created'),{customer:name(c),account:q(c.account||c.customerNumber||c.kundennummer)}))count++
   }else if(base.fingerprint!==fp){
     var fields=changedFields(base.snapshot,c);
-    if(append(c,'customer-updated','Kunde geändert',{customer:name(c),fields:fields.join(', ')}))count++
+    if(append(c,'customer-updated',de('history.customer.customer-updated'),{customer:name(c),fields:fields.join(', ')}))count++
   }
  });
  list.forEach(function(c){var k=id(c);if(k)BASELINES[k]={fingerprint:fingerprint(c),snapshot:JSON.parse(JSON.stringify(c))}});
@@ -85,9 +87,11 @@ function wrapSave(){
  var wrapped=async function(){return await original.apply(this,arguments)};
  wrapped.__rc1080CustomerHistory=true;wrapped.__original=original;clean.flushSave=wrapped;WRAPPED=true;return true
 }
-function formatDate(v){var x=new Date(v);if(!Number.isFinite(x.getTime()))return q(v)||'—';return new Intl.DateTimeFormat('de-DE',{dateStyle:'short',timeStyle:'medium'}).format(x)}
+function formatDate(v){var x=new Date(v);if(!Number.isFinite(x.getTime()))return q(v)||'—';try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.formatDate==='function')return w.ExportHUBI18n.formatDate(x,{dateStyle:'short',timeStyle:'medium'})}catch(_){}return x.toLocaleString()}
+function displayLabel(e){var type=q(e&&e.type);if(type==='customer-created')return tr('history.customer.customer-created');if(type==='customer-updated')return tr('history.customer.customer-updated');return q(e&&e.label)||tr('customerHistory.change')}
+
 function esc(v){return q(v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
-function detail(e){var d=e&&e.details||{},p=[];if(d.account)p.push('Nr.: '+d.account);if(d.fields)p.push('Geändert: '+d.fields);return p.join(' · ')}
+function detail(e){var d=e&&e.details||{},p=[];if(d.account)p.push(tr('customerHistory.number')+': '+d.account);if(d.fields)p.push(tr('customerHistory.changed')+': '+d.fields);return p.join(' · ')}
 function ensureStyle(){
  if(d.getElementById('rc1080CustomerHistoryStyle'))return;
  var s=d.createElement('style');s.id='rc1080CustomerHistoryStyle';
@@ -100,15 +104,16 @@ function render(){
  var host=d.getElementById('content')||d.querySelector('main')||d.body;if(!host)return false;
  if(!old){old=d.createElement('section');old.id='rc1080CustomerHistory';old.className='card rc1080-customer-history';host.appendChild(old)}
  var events=arr(c.customerHistory).slice().sort(function(a,b){return Date.parse(b&&b.at||0)-Date.parse(a&&a.at||0)});
- var rows=events.length?events.map(function(e){var det=detail(e);return'<div class="rc1080-customer-history-row"><strong>'+esc(e.label||'Kundenänderung')+'</strong><div class="rc1080-customer-history-meta">'+esc(formatDate(e.at))+' · '+esc(e.actor&&e.actor.name||'Unbekannt')+(e.actor&&e.actor.role?' · '+esc(e.actor.role):'')+'</div>'+(det?'<div class="rc1080-customer-history-detail">'+esc(det)+'</div>':'')+'</div>'}).join(''):'<div class="muted">Für diesen Kunden sind noch keine protokollierten Änderungen vorhanden.</div>';
- old.innerHTML='<div class="rc1080-customer-history-head"><div><span class="pill blue">HISTORIE</span><h3>Kundenhistorie</h3><div class="muted">'+esc(name(c))+'</div></div><span class="pill gray">'+events.length+' Ereignisse</span></div><div class="rc1080-customer-history-list">'+rows+'</div>';
+ var rows=events.length?events.map(function(e){var det=detail(e);return'<div class="rc1080-customer-history-row"><strong>'+esc(displayLabel(e))+'</strong><div class="rc1080-customer-history-meta">'+esc(formatDate(e.at))+' · '+esc(e.actor&&e.actor.name||tr('customerHistory.unknown'))+(e.actor&&e.actor.role?' · '+esc(e.actor.role):'')+'</div>'+(det?'<div class="rc1080-customer-history-detail">'+esc(det)+'</div>':'')+'</div>'}).join(''):'<div class="muted">'+esc(tr('customerHistory.empty'))+'</div>';
+ old.innerHTML='<div class="rc1080-customer-history-head"><div><span class="pill blue">'+esc(tr('customerHistory.badge'))+'</span><h3>'+esc(tr('customerHistory.title'))+'</h3><div class="muted">'+esc(name(c))+'</div></div><span class="pill gray">'+esc(tr('customerHistory.events',{count:events.length}))+'</span></div><div class="rc1080-customer-history-list">'+rows+'</div>';
  ensureStyle();return true
 }
+
 function schedule(){
  w.setTimeout(function(){try{wrapSave();render();if(!WRAPPED)baselineAll()}catch(e){try{console.warn('RC1080 Kundenhistorie',e)}catch(_){}}},0)
 }
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',function(){baselineAll();schedule()},{once:true});else{baselineAll();schedule()}
-['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded'].forEach(function(n){try{w.addEventListener(n,function(){schedule()})}catch(_){}});
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded','exporthub:language-changed'].forEach(function(n){try{w.addEventListener(n,function(){schedule()})}catch(_){}});
 try{w.addEventListener('exporthub:user-profile-updated',schedule)}catch(_){}
 w.ExportHUBRC1080CustomerHistory=Object.freeze({version:'RC1080',prepare:prepare,render:render,baselineAll:baselineAll,currentCustomer:currentCustomer});
 })(window,document);

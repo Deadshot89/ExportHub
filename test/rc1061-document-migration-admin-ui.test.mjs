@@ -68,8 +68,8 @@ test('RC1073: Migrationskarte bleibt bei 0 verborgen und erscheint nur bei echte
   assert.match(source,/function ensureCard\(\)/);
   assert.match(source,/inlinePayloadCount/);
   assert.match(source,/if\(remaining<=0\)\{removeCard\(\);return false\}/);
-  assert.match(source,/Alle verbleibenden migrieren/);
-  assert.match(source,/Nach aktuellem Paket stoppen/);
+  assert.match(source,/migration\.runAll/);
+  assert.match(source,/migration\.stop/);
   assert.match(source,/runAll\(/);
   assert.match(source,/setTimeout\(removeCard,1800\)/);
   assert.match(source,/runAll:runAll/);

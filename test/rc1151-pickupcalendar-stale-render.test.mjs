@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const SOURCE=fs.readFileSync('assets/abholkalender.js','utf8');
+const calendarDe=JSON.parse(fs.readFileSync('assets/i18n/de.json','utf8'));
 
 function deferred(){
   let resolve;
@@ -31,6 +32,12 @@ test('RC1151: verspätete FIX-Antwort überschreibt nach View-Wechsel nicht mehr
   };
   const context=vm.createContext({
     console,
+    ExportHUBI18n:{
+      language(){return 'de'},
+      t(key,vars){let value=calendarDe[key]||key;if(vars)for(const [name,v] of Object.entries(vars))value=value.replaceAll('{{'+name+'}}',String(v));return value},
+      formatDate(value,options){return new Intl.DateTimeFormat('de-DE',options||{}).format(value)},
+      localized(record,key){return record&&record[key]!=null?record[key]:''}
+    },
     document,
     Date,
     Intl,

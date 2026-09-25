@@ -8,15 +8,16 @@ const merge=require('../api/shared/merge.js');
 const runtime=fs.readFileSync('assets/rc1126-customer-delete.js','utf8');
 const audit=fs.readFileSync('assets/rc1081-audit-history.js','utf8');
 const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
+const historyDe=JSON.parse(fs.readFileSync('assets/i18n/de.json','utf8'));
 
 test('RC1126: Kundenlöschung ist nur für Kunden-Admins sichtbar und zweistufig bestätigt',()=>{
   assert.match(runtime,/function canDelete\(\)/);
   assert.match(runtime,/rights\.customers\|\|\{\}/);
   assert.match(runtime,/rights\.customerfolder\|\|\{\}/);
   assert.match(runtime,/functionAdmin/);
-  assert.match(runtime,/Kunde löschen/);
-  assert.match(runtime,/Endgültig löschen/);
-  assert.match(runtime,/Nur für doppelt oder falsch angelegte Kunden/);
+  assert.match(runtime,/customerDelete\.title/);
+  assert.match(runtime,/customerDelete\.finalDelete/);
+  assert.match(runtime,/customerDelete\.help/);
 });
 
 test('RC1126: Löschen setzt Kunden-Tombstone und protokolliert die Aktion',()=>{
@@ -24,7 +25,7 @@ test('RC1126: Löschen setzt Kunden-Tombstone und protokolliert die Aktion',()=>
   assert.match(runtime,/explicitUserAction:true/);
   assert.match(runtime,/reason:'duplicate-or-invalid-customer'/);
   assert.match(runtime,/type:'CUSTOMER_DELETED'/);
-  assert.match(audit,/CUSTOMER_DELETED:'Kunde gelöscht'/);
+  assert.match(audit,/CUSTOMER_DELETED:'history\.audit\.CUSTOMER_DELETED'/);
   assert.match(audit,/subtype==='CUSTOMER_DELETED'/);
 });
 

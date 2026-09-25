@@ -10,7 +10,7 @@ const rc1112=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
 test('RC1174: wiederholtes Diagnoseereignis derselben ID wird bei neuerem Zeitpunkt erneut gemeldet',()=>{
   assert.match(hub,/matchedAt>Number\(marker\.at\|\|0\)\?critical\.slice\(idx\):critical\.slice\(idx\+1\)/);
   assert.match(hub,/const at=String\(rec\.lastAt\|\|rec\.at\|\|''\)\.trim\(\)/);
-  assert.match(hub,/Zeitpunkt:/);
+  assert.match(hub,/android\.time/);
 });
 
 test('RC1174: strukturierter Android-Diagnose-Push enthÃ¤lt ebenfalls den Ereigniszeitpunkt',()=>{
@@ -29,8 +29,8 @@ test('RC1174: finaler Drei-Umgebungen-Build cache-bustet die Android-DiagnosebrÃ
   }
   const built=fs.readFileSync('dist-rc1112/assets/exporthub-environment-hub.js','utf8');
   assert.match(built,/matchedAt>Number\(marker\.at\|\|0\)/);
-  assert.match(built,/Zeitpunkt:/);
-  assert.match(built,/ExportHUB Fehlerdiagnose/);
+  assert.match(built,/android\.time/);
+  assert.match(built,/android\.diagnosticTitle/);
   assert.match(built,/ExportHUBAndroid\.notify/);
 });
 
