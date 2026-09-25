@@ -19,17 +19,17 @@ test('RC1082: History ist ein eigenes Rechte- und Navigationsmodul',()=>{
 });
 
 test('RC1085: Fehlerdiagnose bietet Filter und zeigt die bewusst deaktivierte automatische Behebung klar an',()=>{
-  assert.match(diagnostics,/Fehlerdiagnose & automatische Behebung/);
-  assert.match(diagnostics,/Mit ChatGPT beheben/);
-  assert.match(diagnostics,/Automatische Fehlerbehebung deaktiviert/);
-  assert.match(diagnostics,/Es werden keine externen KI-Aufträge gestartet/);
+  assert.match(diagnostics,/diagnostics\.title/);
+  assert.match(diagnostics,/diagnostics\.fixWithChatgpt/);
+  assert.match(diagnostics,/diagnostics\.disabledTitle/);
+  assert.match(diagnostics,/diagnostics\.disabledBody/);
   assert.match(diagnostics,/data-rc1083-level/);
   assert.match(diagnostics,/data-rc1083-status/);
   assert.match(diagnostics,/data-rc1083-area/);
   assert.match(diagnostics,/\/api\/diagnostic-autofix/);
   assert.match(diagnostics,/setInterval\(function\(\)\{if\(!win\.document\.hidden&&\(diagnosticsVisible\(win\)\|\|win\.document\.getElementById\('rc1013-diagnostics-enhanced'\)\)\)refresh\(win\)/);
   assert.match(diagnostics,/resolvedAt/);
-  assert.match(diagnostics,/ChatGPT arbeitet/);
+  assert.match(diagnostics,/diagnostics\.autofixRunning/);
 });
 
 test('RC1083: Diagnose-Autofix ist als Azure HTTP Function registriert',()=>{
