@@ -242,5 +242,12 @@
   "api.pdf.activeContent": "PDFs with active or embedded content are not allowed ({{label}}).",
   "api.location.siteRequired": "Location/customer is required.",
   "api.container.teamSyncUnavailable": "Container photo could not be linked to the shipment.",
-  "api.container.teamSyncFailed": "The container photo was saved but could not be linked to the shipment. Please try again."
+  "api.container.teamSyncFailed": "The container photo was saved but could not be linked to the shipment. Please try again.",
+  "api.location.invalid": "Invalid warehouse location.",
+  "api.location.alreadyCollected": "The shipment has already been collected. The outbound location is locked.",
+  "api.location.notReady": "The shipment is not yet ready for pickup and cannot be booked to an outbound location.",
+  "api.location.actionFailed": "Warehouse action failed.",
+  "api.container.photoLabel.loaded": "Loaded container",
+  "api.container.photoLabel.number": "Container number from inside",
+  "api.container.photoLabel.sealed": "Sealed container · seal/markings/documents"
 }
