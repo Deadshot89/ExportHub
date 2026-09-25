@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import {execFileSync} from 'node:child_process';
+import {createTestI18n} from './helpers/i18n.mjs';
 
 function loadRuntime(){
   const code=fs.readFileSync('assets/rc1113-stowplan-persist.js','utf8');
@@ -14,6 +15,7 @@ function loadRuntime(){
   };
   const window={
     document,
+    ExportHUBI18n:createTestI18n('de'),
     console,
     addEventListener(){},
     dispatchEvent(){},
@@ -86,5 +88,5 @@ test('RC1149: finaler Drei-Umgebungen-Build enthält die tatsächliche LDM-Logik
   const stow=fs.readFileSync('dist-rc1112/assets/rc1113-stowplan-persist.js','utf8');
   assert.match(multi,/actualEffectiveLdm/);
   assert.match(stow,/actualLdmSummary/);
-  assert.match(stow,/Tatsächliche LDM/);
+  assert.match(stow,/stowplan\.actualLdm/);
 });
