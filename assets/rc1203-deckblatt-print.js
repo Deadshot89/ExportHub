@@ -4,7 +4,7 @@ if(!w||!d||w.__EXPORTHUB_RC1203_DECKBLATT__)return;
 w.__EXPORTHUB_RC1203_DECKBLATT__=true;
 
 var pendingMode='',originalOpen=null,installed=false;
-function q(v){return String(v==null?'':v).trim()}
+function q(v){return String(v==null?'':v).trim()}\nfunction tr(key,vars){try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.t==='function')return w.ExportHUBI18n.t(key,vars)}catch(_){}return key}
 function arr(v){return Array.isArray(v)?v:[]}
 function obj(v){return !!v&&typeof v==='object'&&!Array.isArray(v)}
 function state(){try{return typeof w.__EXPORTHUB_GET_STATE__==='function'?(w.__EXPORTHUB_GET_STATE__()||{}):{}}catch(_){return{}}}
@@ -116,14 +116,14 @@ function renderCoverButton(){
   var all=d.querySelectorAll('[data-rc1203-print-cover-only]');
   for(var i=1;i<all.length;i++)all[i].remove();
   if(!shipmentCreateVisible())return false;
-  if(d.querySelector('[data-rc1203-print-cover-only]'))return true;
+  var existing=d.querySelector('[data-rc1203-print-cover-only]');if(existing){existing.innerHTML='<span aria-hidden="true">▣</span><span>'+tr('coverPrint.only')+'</span>';existing.title=tr('coverPrint.title');return true;}
   var host=actionHost();if(!host)return false;
   ensureActionStyle();
   var btn=d.createElement('button');
   btn.type='button';btn.className='rc1205-cover-only-btn';
   btn.setAttribute('data-rc1203-print-cover-only','1');
-  btn.innerHTML='<span aria-hidden="true">▣</span><span>Nur Deckblatt drucken</span>';
-  btn.title='Druckt ausschließlich das Deckblatt der aktuellen Sendung';
+  btn.innerHTML='<span aria-hidden="true">▣</span><span>'+tr('coverPrint.only')+'</span>';
+  btn.title=tr('coverPrint.title');
   host.appendChild(btn);return true
 }
 function markRecipient(cover,theme){
@@ -160,7 +160,7 @@ function ensureRemark(cover,remark){
   old.setAttribute('data-rc1203-remark-value',value);
   old.innerHTML='';
   var title=cover.ownerDocument.createElement('div');
-  title.textContent='Bemerkung';
+  title.textContent=tr('coverPrint.remark');
   title.style.fontSize='11pt';title.style.fontWeight='800';title.style.textTransform='uppercase';title.style.letterSpacing='.25mm';
   var body=cover.ownerDocument.createElement('div');
   body.textContent=value;
@@ -269,7 +269,7 @@ function installOpenGuard(){
 }
 function triggerMode(mode){
   var printAll=findPrintAll();
-  if(!printAll){try{w.alert('Der Einzeldruck ist erst verfügbar, sobald die Sendungsdokumente geladen sind.')}catch(_){}return false}
+  if(!printAll){try{w.alert(tr('coverPrint.documentsNotLoaded'))}catch(_){}return false}
   pendingMode=mode;installOpenGuard();
   try{printAll.click();(w.setTimeout||setTimeout)(function(){if(pendingMode===mode)pendingMode=''},15000);return true}catch(_){pendingMode='';return false}
 }
@@ -286,7 +286,7 @@ installOpenGuard();
 d.addEventListener('click',onClick,true);
 try{w.addEventListener('beforeprint',function(){decorateCover(d)})}catch(_){}
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
-['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:shipment-saved'].forEach(function(name){try{w.addEventListener(name,schedule)}catch(_){}});
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:shipment-saved','exporthub:language-changed'].forEach(function(name){try{w.addEventListener(name,schedule)}catch(_){}});
 if(typeof MutationObserver!=='undefined'){try{new MutationObserver(function(){if(!deckblattObserverRelevant())return;removeLegacyExtraButtons();renderCoverButton();decorateCover(d)}).observe(d.documentElement||d.body,{childList:true,subtree:true})}catch(_){}}
 w.ExportHUBRC1203Deckblatt=Object.freeze({version:'RC1281',decorateCover:decorateCover,remarkValue:remarkValue,isEssentraShipment:isEssentraShipment,formatCreatedDate:formatCreatedDate,renderCoverButton:renderCoverButton,triggerCoverOnly:function(){return triggerMode('cover')}});
 })(window,document);
