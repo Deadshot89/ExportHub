@@ -2,12 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {createTestI18n} from './helpers/i18n.mjs';
 
 const lifecycle=fs.readFileSync('assets/rc1014-task-lifecycle.js','utf8');
 const runtimeSource=fs.readFileSync('assets/rc1014-task-runtime.js','utf8');
 
 function load(){
   const window={
+    ExportHUBI18n:createTestI18n('de'),
     addEventListener(){},
     dispatchEvent(){return true;},
     setTimeout(){return 1;},
@@ -122,9 +124,9 @@ test('RC1266: Benutzerkennung user und State-Kontext werden für Aufgaben übern
 test('RC1152: Runtime enthält echte Aufgabenansicht statt Direktöffnung der Sendung',()=>{
   assert.match(runtimeSource,/function\s+openTaskDetail\s*\(/);
   assert.match(runtimeSource,/id='rc1152TaskDetail'|panel\.id='rc1152TaskDetail'/);
-  assert.match(runtimeSource,/Zurück zu Aufgaben/);
-  assert.match(runtimeSource,/Als erledigt markieren/);
-  assert.match(runtimeSource,/Zugehörige Sendung/);
+  assert.match(runtimeSource,/taskDetail\.backToTasks/);
+  assert.match(runtimeSource,/taskDetail\.markDone/);
+  assert.match(runtimeSource,/taskDetail\.relatedShipment/);
   assert.match(runtimeSource,/data\.rc1152TaskOpen/);
 });
 

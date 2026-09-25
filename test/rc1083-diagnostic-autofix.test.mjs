@@ -9,6 +9,7 @@ const workflow=fs.readFileSync('.github/workflows/diagnostic-autofix.yml','utf8'
 const preflight=fs.readFileSync('.github/workflows/rc1083-autofix-preflight.yml','utf8');
 const build=fs.readFileSync('.github/rc1048/build-three-env.mjs','utf8');
 const policy=fs.readFileSync('api/shared/user-policy.js','utf8');
+const historyDe=JSON.parse(fs.readFileSync('assets/i18n/de.json','utf8'));
 
 test('RC1082: History ist ein eigenes Rechte- und Navigationsmodul',()=>{
   assert.match(policy,/'archive','history','settings'/);
@@ -18,17 +19,17 @@ test('RC1082: History ist ein eigenes Rechte- und Navigationsmodul',()=>{
 });
 
 test('RC1085: Fehlerdiagnose bietet Filter und zeigt die bewusst deaktivierte automatische Behebung klar an',()=>{
-  assert.match(diagnostics,/Fehlerdiagnose & automatische Behebung/);
-  assert.match(diagnostics,/Mit ChatGPT beheben/);
-  assert.match(diagnostics,/Automatische Fehlerbehebung deaktiviert/);
-  assert.match(diagnostics,/Es werden keine externen KI-Aufträge gestartet/);
+  assert.match(diagnostics,/diagnostics\.title/);
+  assert.match(diagnostics,/diagnostics\.fixWithChatgpt/);
+  assert.match(diagnostics,/diagnostics\.disabledTitle/);
+  assert.match(diagnostics,/diagnostics\.disabledBody/);
   assert.match(diagnostics,/data-rc1083-level/);
   assert.match(diagnostics,/data-rc1083-status/);
   assert.match(diagnostics,/data-rc1083-area/);
   assert.match(diagnostics,/\/api\/diagnostic-autofix/);
   assert.match(diagnostics,/setInterval\(function\(\)\{if\(!win\.document\.hidden&&\(diagnosticsVisible\(win\)\|\|win\.document\.getElementById\('rc1013-diagnostics-enhanced'\)\)\)refresh\(win\)/);
   assert.match(diagnostics,/resolvedAt/);
-  assert.match(diagnostics,/ChatGPT arbeitet/);
+  assert.match(diagnostics,/diagnostics\.autofixRunning/);
 });
 
 test('RC1083: Diagnose-Autofix ist als Azure HTTP Function registriert',()=>{
@@ -102,8 +103,8 @@ test('RC1083: Autofix-Auftrag und Ergebnis erscheinen in der zentralen History',
   assert.match(api,/DIAGNOSTIC_AUTOFIX_REQUESTED/);
   assert.match(api,/DIAGNOSTIC_AUTOFIX_FIXED/);
   assert.match(api,/DIAGNOSTIC_AUTOFIX_FAILED/);
-  assert.match(history,/Fehler zur automatischen Behebung übergeben/);
-  assert.match(history,/Fehler automatisch behoben/);
+  assert.match(history,/DIAGNOSTIC_AUTOFIX_REQUESTED:'history\.audit\.DIAGNOSTIC_AUTOFIX_REQUESTED'/);
+  assert.match(history,/DIAGNOSTIC_AUTOFIX_FIXED:'history\.audit\.DIAGNOSTIC_AUTOFIX_FIXED'/);
 });
 
 test('RC1083: GitHub OIDC statt dauerhaftem Callback-Secret schützt den Rückkanal',()=>{

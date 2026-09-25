@@ -2,6 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
+const calendarDe=JSON.parse(fs.readFileSync('assets/i18n/de.json','utf8'));
+globalThis.ExportHUBI18n={
+  language(){return 'de'},
+  t(key,vars){let value=calendarDe[key]||key;if(vars)for(const [name,v] of Object.entries(vars))value=value.replaceAll('{{'+name+'}}',String(v));return value},
+  formatDate(value,options){return new Intl.DateTimeFormat('de-DE',options||{}).format(value)},
+  localized(record,key){return record&&record[key]!=null?record[key]:''}
+};
 await import('../assets/abholkalender.js');
 const calendar = globalThis.ExportHubPickupCalendar;
 
@@ -42,7 +49,7 @@ test('RC1012: Oberfläche besitzt vollständige Wochennavigation', () => {
   const js = fs.readFileSync('assets/abholkalender.js','utf8');
   const css = fs.readFileSync('assets/abholkalender.css','utf8');
   for (const action of ['week-prev','week-current','week-next']) assert.match(js,new RegExp(`data-pickup-action=["']${action}["']`));
-  for (const label of ['Vorherige Woche','Aktuelle Woche','Nächste Woche']) assert.match(js,new RegExp(label));
+  for (const key of ['pickupCalendar.action.previousWeek','pickupCalendar.action.currentWeek','pickupCalendar.action.nextWeek']) assert.match(js,new RegExp(key.replace(/[.]/g,'\\.')));
   assert.match(js,/pickup-week-label/);
   assert.match(css,/\.pickup-week-toolbar/);
 });
@@ -56,6 +63,6 @@ test('RC1012: SENDUNG-Karte öffnet über stabile Identität die bestehende Send
   assert.equal(opened.id,'S-2');
   const js = fs.readFileSync('assets/abholkalender.js','utf8');
   assert.match(js,/data-pickup-action=["']open-shipment["']/);
-  assert.match(js,/Sendung öffnen/);
+  assert.match(js,/pickupCalendar\.action\.openShipment/);
   assert.match(js,/root\.openShipment/);
 });

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {createTestI18n} from './helpers/i18n.mjs';
 
 const FLOW=fs.readFileSync('assets/rc1015-lieferavis-mail-flow.js','utf8');
 
@@ -33,7 +34,7 @@ function flowApi(shipment,{reference='',link=''}={}){
     injectMailBody(_sh,_target,body){return body}
   };
   const window={
-    document,
+    document,ExportHUBI18n:createTestI18n('de'),
     ExportHUBCustomerAvis706:base,
     ExportHUBClean:{state:{currentShipment:shipment,shipment,shipments:[]}},
     addEventListener(name,fn){if(!listeners.has(name))listeners.set(name,[]);listeners.get(name).push(fn)},

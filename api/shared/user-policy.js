@@ -9,6 +9,10 @@ function clone(value) { return value === undefined ? undefined : JSON.parse(JSON
 function text(value) { return String(value == null ? '' : value).trim(); }
 function lower(value) { return text(value).toLowerCase(); }
 function userName(user) { return lower(user && (user.user || user.login || user.username || user.name)); }
+function normalizeLanguage(value) {
+  const match = lower(value).replace('_', '-').match(/^(de|en|pl|es|fr|it)(?:-|$)/);
+  return match ? match[1] : 'de';
+}
 
 const GLOBAL_ADMIN_ROLES = new Set(['global admin','global administrator','globaler administrator','globaler admin','administrator','admin','vollzugriff']);
 
@@ -95,7 +99,7 @@ function normalizeUser(user, index) {
   source.login = login;
   source.username = login;
   source.name = text(source.name) || login;
-  source.language = /^en(?:[-_]|$)/i.test(text(source.language || source.uiLanguage || source.locale)) ? 'en' : 'de';
+  source.language = normalizeLanguage(source.language || source.uiLanguage || source.locale);
   source.globalAdmin = admin;
   source.role = admin ? 'Globaler Administrator' : (text(source.role) || 'Benutzer');
   source.permissions = admin ? ['*'] : (Array.isArray(source.permissions) ? source.permissions.filter((x) => x !== '*') : []);
@@ -192,5 +196,6 @@ module.exports = {
   isPrivilegedUser,
   countAdmins,
   defaultRights,
-  publicUser
+  publicUser,
+  normalizeLanguage
 };

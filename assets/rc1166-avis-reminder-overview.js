@@ -6,7 +6,9 @@ w.__EXPORTHUB_RC1166_AVIS_REMINDER__=true;
 
 var timer=0,dialog=null;
 function q(v){return String(v==null?'':v).trim()}
+function tr(key,vars,language){try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.t==='function')return w.ExportHUBI18n.t(key,vars,language)}catch(_){}return key}
 function low(v){return q(v).toLocaleLowerCase('de-DE')}
+function normalizeLanguage(v){var m=low(v).replace('_','-').match(/^(de|en|pl|es|fr|it)(?:-|$)/);return m?m[1]:'de'}
 function arr(v){return Array.isArray(v)?v:[]}
 function esc(v){return q(v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function state(){try{if(typeof w.__EXPORTHUB_GET_STATE__==='function')return w.__EXPORTHUB_GET_STATE__()||{}}catch(_){}return w.ExportHUBClean&&w.ExportHUBClean.state||w.appState||{}}
@@ -85,21 +87,50 @@ function avisLink(sh){
  return''
 }
 function localizedLink(url,lang){
- try{var u=new URL(url,w.location&&w.location.href||'https://exporthub.invalid/');u.searchParams.set('lang',lang==='en'?'en':'de');return u.toString()}catch(_){return url}
+ lang=normalizeLanguage(lang);
+ try{var u=new URL(url,w.location&&w.location.href||'https://exporthub.invalid/');u.searchParams.set('lang',lang);return u.toString()}catch(_){return url}
 }
 function subject(sh,target,lang){
- var ref=refOf(sh);
- if(lang==='en')return (target==='carrier'?'Reminder – collection notice ':'Reminder – shipment notice ')+ref;
- return (target==='carrier'?'Erinnerung – Lieferavis Abholung ':'Erinnerung – Lieferavis ')+ref
+ var ref=refOf(sh);lang=normalizeLanguage(lang);
+ var prefix={
+  de:{carrier:'Erinnerung – Lieferavis Abholung ',customer:'Erinnerung – Lieferavis '},
+  en:{carrier:'Reminder – collection notice ',customer:'Reminder – shipment notice '},
+  pl:{carrier:'Przypomnienie – awizo odbioru ',customer:'Przypomnienie – awizo wysyłki '},
+  es:{carrier:'Recordatorio – aviso de recogida ',customer:'Recordatorio – aviso de envío '},
+  fr:{carrier:'Rappel – avis d’enlèvement ',customer:'Rappel – avis d’expédition '},
+  it:{carrier:'Promemoria – avviso di ritiro ',customer:'Promemoria – avviso di spedizione '}
+ }[lang];
+ return prefix[target==='carrier'?'carrier':'customer']+ref
 }
 function body(sh,target,lang,url){
- var ref=refOf(sh),u=localizedLink(url,lang);
- if(lang==='en'){
-  if(target==='carrier')return 'Dear Sir or Madam,\n\nthis is a reminder for the digital collection notice for shipment '+ref+'.\n\nPlease use the link below to check or update the planned pickup date, time window and vehicle licence plate:\n'+u+'\n\nNo separate confirmation by email is required.\n\nKind regards';
-  return 'Dear Sir or Madam,\n\nthis is a reminder for the digital shipment notice for reference '+ref+'.\n\nPlease use the following link to review the released shipment documents and check or update the planned pickup details:\n'+u+'\n\nThank you.\n\nKind regards'
- }
- if(target==='carrier')return 'Sehr geehrte Damen und Herren,\n\nhiermit erinnern wir an das digitale Lieferavis zur Abholung der Sendung '+ref+'.\n\nBitte prüfen bzw. aktualisieren Sie über den folgenden Link Abholdatum, Zeitfenster und – sofern bekannt – das Kennzeichen des Abholfahrzeugs:\n'+u+'\n\nEine zusätzliche Bestätigung per E-Mail ist nicht erforderlich.\n\nMit freundlichen Grüßen';
- return 'Sehr geehrte Damen und Herren,\n\nhiermit erinnern wir an das digitale Lieferavis zur Sendung '+ref+'.\n\nBitte nutzen Sie den folgenden Link, um die freigegebenen Sendungsunterlagen einzusehen und die geplanten Abholdaten zu prüfen bzw. zu aktualisieren:\n'+u+'\n\nVielen Dank.\n\nMit freundlichen Grüßen'
+ var ref=refOf(sh);lang=normalizeLanguage(lang);target=target==='carrier'?'carrier':'customer';var u=localizedLink(url,lang);
+ var templates={
+  de:{
+   carrier:'Sehr geehrte Damen und Herren,\n\nhiermit erinnern wir an das digitale Lieferavis zur Abholung der Sendung {{ref}}.\n\nBitte prüfen bzw. aktualisieren Sie über den folgenden Link Abholdatum, Zeitfenster und – sofern bekannt – das Kennzeichen des Abholfahrzeugs:\n{{url}}\n\nEine zusätzliche Bestätigung per E-Mail ist nicht erforderlich.\n\nMit freundlichen Grüßen',
+   customer:'Sehr geehrte Damen und Herren,\n\nhiermit erinnern wir an das digitale Lieferavis zur Sendung {{ref}}.\n\nBitte nutzen Sie den folgenden Link, um die freigegebenen Sendungsunterlagen einzusehen und die geplanten Abholdaten zu prüfen bzw. zu aktualisieren:\n{{url}}\n\nVielen Dank.\n\nMit freundlichen Grüßen'
+  },
+  en:{
+   carrier:'Dear Sir or Madam,\n\nthis is a reminder for the digital collection notice for shipment {{ref}}.\n\nPlease use the link below to check or update the planned pickup date, time window and vehicle licence plate:\n{{url}}\n\nNo separate confirmation by email is required.\n\nKind regards',
+   customer:'Dear Sir or Madam,\n\nthis is a reminder for the digital shipment notice for reference {{ref}}.\n\nPlease use the following link to review the released shipment documents and check or update the planned pickup details:\n{{url}}\n\nThank you.\n\nKind regards'
+  },
+  pl:{
+   carrier:'Szanowni Państwo,\n\nprzypominamy o cyfrowym awizo odbioru przesyłki {{ref}}.\n\nProsimy użyć poniższego linku, aby sprawdzić lub zaktualizować datę odbioru, przedział czasowy oraz – jeśli jest znany – numer rejestracyjny pojazdu:\n{{url}}\n\nDodatkowe potwierdzenie e-mailem nie jest wymagane.\n\nZ poważaniem',
+   customer:'Szanowni Państwo,\n\nprzypominamy o cyfrowym awizo przesyłki o numerze referencyjnym {{ref}}.\n\nProsimy użyć poniższego linku, aby przejrzeć udostępnione dokumenty wysyłkowe oraz sprawdzić lub zaktualizować planowane dane odbioru:\n{{url}}\n\nDziękujemy.\n\nZ poważaniem'
+  },
+  es:{
+   carrier:'Estimados señores:\n\nLes recordamos el aviso digital de recogida del envío {{ref}}.\n\nUtilicen el siguiente enlace para comprobar o actualizar la fecha de recogida, la franja horaria y, si se conoce, la matrícula del vehículo:\n{{url}}\n\nNo es necesaria una confirmación adicional por correo electrónico.\n\nAtentamente',
+   customer:'Estimados señores:\n\nLes recordamos el aviso digital del envío con referencia {{ref}}.\n\nUtilicen el siguiente enlace para consultar los documentos de envío disponibles y comprobar o actualizar los datos previstos de recogida:\n{{url}}\n\nMuchas gracias.\n\nAtentamente'
+  },
+  fr:{
+   carrier:'Madame, Monsieur,\n\nNous vous rappelons l’avis numérique d’enlèvement de l’expédition {{ref}}.\n\nVeuillez utiliser le lien ci-dessous pour vérifier ou mettre à jour la date d’enlèvement, le créneau horaire et, si elle est connue, l’immatriculation du véhicule :\n{{url}}\n\nAucune confirmation supplémentaire par e-mail n’est nécessaire.\n\nCordialement',
+   customer:'Madame, Monsieur,\n\nNous vous rappelons l’avis numérique de l’expédition portant la référence {{ref}}.\n\nVeuillez utiliser le lien ci-dessous pour consulter les documents d’expédition disponibles et vérifier ou mettre à jour les informations d’enlèvement prévues :\n{{url}}\n\nMerci.\n\nCordialement'
+  },
+  it:{
+   carrier:'Gentili Signore e Signori,\n\nvi ricordiamo l’avviso digitale di ritiro della spedizione {{ref}}.\n\nUtilizzate il seguente link per verificare o aggiornare la data di ritiro, la fascia oraria e, se nota, la targa del veicolo:\n{{url}}\n\nNon è necessaria un’ulteriore conferma via e-mail.\n\nCordiali saluti',
+   customer:'Gentili Signore e Signori,\n\nvi ricordiamo l’avviso digitale della spedizione con riferimento {{ref}}.\n\nUtilizzate il seguente link per consultare i documenti di spedizione disponibili e verificare o aggiornare i dati di ritiro pianificati:\n{{url}}\n\nGrazie.\n\nCordiali saluti'
+  }
+ };
+ return templates[lang][target].replace(/\{\{ref\}\}/g,ref).replace(/\{\{url\}\}/g,u)
 }
 function authToken(){
  try{var rt=w.ExportHUBClean&&w.ExportHUBClean.runtime||{},t=q(rt.authToken||rt.sessionToken);if(t)return t}catch(_){}
@@ -108,11 +139,11 @@ function authToken(){
 }
 function environmentName(){try{return /-testservice\./i.test(String(w.location&&w.location.hostname||''))?'testservice':'production'}catch(_){return'production'}}
 function apiHeaders(){
- var t=authToken();if(!t)throw new Error('ExportHUB-Sitzung ist nicht mehr gültig.');
+ var t=authToken();if(!t)throw new Error(tr('avisReminder.sessionExpired'));
  return{'Content-Type':'application/json','Accept':'application/json','Cache-Control':'no-cache','X-ExportHUB-Token':t,'X-ExportHUB-Session':t,'Authorization':'Bearer '+t,'X-ExportHUB-Environment':environmentName()}
 }
 async function sendReminder(sh,email,target,lang,url){
- var response=await w.fetch('/api/avis-reminder-mail',{method:'POST',credentials:'same-origin',cache:'no-store',headers:apiHeaders(),body:JSON.stringify({shipmentId:idOf(sh),reference:refOf(sh),recipient:q(email),target:target==='carrier'?'carrier':'customer',language:lang==='en'?'en':'de',avisUrl:url})});
+ var response=await w.fetch('/api/avis-reminder-mail',{method:'POST',credentials:'same-origin',cache:'no-store',headers:apiHeaders(),body:JSON.stringify({shipmentId:idOf(sh),reference:refOf(sh),recipient:q(email),target:target==='carrier'?'carrier':'customer',language:normalizeLanguage(lang),avisUrl:url})});
  var raw=await response.text(),data={};try{data=raw?JSON.parse(raw):{}}catch(_){data={message:raw}}
  if(!response.ok||data.ok===false){var e=new Error(q(data.message)||('HTTP '+response.status));e.code=q(data.code);throw e}
  return data
@@ -127,37 +158,38 @@ function closeDialog(){if(dialog&&dialog.parentNode)dialog.parentNode.removeChil
 function options(list){return list.map(function(x){return'<option value="'+esc(x.email)+'">'+esc((x.name?x.name+' · ':'')+x.email+(x.source?' · '+x.source:''))+'</option>'}).join('')}
 function openDialog(sh){
  closeDialog();var url=avisLink(sh);if(!url)return false;ensureStyle();
- dialog=d.createElement('div');dialog.className='rc1166-dialog';dialog.id='rc1166AvisReminderDialog';dialog.innerHTML='<section class="rc1166-card" role="dialog" aria-modal="true" aria-labelledby="rc1166Title"><h3 id="rc1166Title">Avis-Erinnerung</h3><div class="rc1166-note">Referenz '+esc(refOf(sh))+' · der sichere Lieferavis-Link wird automatisch eingefügt.</div><div class="rc1166-grid"><label>Empfängergruppe<select data-target><option value="customer">Kunde</option><option value="carrier">Spedition</option></select></label><label>Sprache<select data-lang><option value="de">Deutsch</option><option value="en">English</option></select></label></div><label>Empfänger<select data-recipient></select></label><div data-warning></div><label>Mailtext<textarea data-body readonly></textarea></label><div data-send-status class="rc1207-send-status" hidden></div><div class="rc1166-actions"><button type="button" class="ghost" data-close>Abbrechen</button><button type="button" class="btn rc1166-reminder-btn" data-open>Erinnerungsmail senden</button></div><p class="rc1166-note">Die Erinnerung wird direkt über ExportHUB versendet und anschließend in der Sendungshistorie protokolliert.</p></section>';
+ dialog=d.createElement('div');dialog.className='rc1166-dialog';dialog.id='rc1166AvisReminderDialog';dialog.innerHTML='<section class="rc1166-card" role="dialog" aria-modal="true" aria-labelledby="rc1166Title"><h3 id="rc1166Title">'+esc(tr('avisReminder.title'))+'</h3><div class="rc1166-note">'+esc(tr('avisReminder.referenceNote',{reference:refOf(sh)}))+'</div><div class="rc1166-grid"><label>'+esc(tr('avisReminder.targetGroup'))+'<select data-target><option value="customer">'+esc(tr('avisReminder.customer'))+'</option><option value="carrier">'+esc(tr('avisReminder.carrier'))+'</option></select></label><label>'+esc(tr('avisReminder.language'))+'<select data-lang><option value="de">Deutsch</option><option value="en">English</option><option value="pl">Polski</option><option value="es">Español</option><option value="fr">Français</option><option value="it">Italiano</option></select></label></div><label>'+esc(tr('avisReminder.recipient'))+'<select data-recipient></select></label><div data-warning></div><label>'+esc(tr('avisReminder.mailText'))+'<textarea data-body readonly></textarea></label><div data-send-status class="rc1207-send-status" hidden></div><div class="rc1166-actions"><button type="button" class="ghost" data-close>'+esc(tr('avisReminder.cancel'))+'</button><button type="button" class="btn rc1166-reminder-btn" data-open>'+esc(tr('avisReminder.send'))+'</button></div><p class="rc1166-note">'+esc(tr('avisReminder.footer'))+'</p></section>';
  d.body.appendChild(dialog);
  var target=dialog.querySelector('[data-target]'),lang=dialog.querySelector('[data-lang]'),recipient=dialog.querySelector('[data-recipient]'),text=dialog.querySelector('[data-body]'),warning=dialog.querySelector('[data-warning]'),open=dialog.querySelector('[data-open]'),sendStatus=dialog.querySelector('[data-send-status]');
  function refresh(){
-  var t=target.value==='carrier'?'carrier':'customer',l=lang.value==='en'?'en':'de',list=shipmentContacts(sh,t),previous=recipient.value;
+  var t=target.value==='carrier'?'carrier':'customer',l=normalizeLanguage(lang.value),list=shipmentContacts(sh,t),previous=recipient.value;
   recipient.innerHTML=options(list);if(previous&&list.some(function(x){return x.email===previous}))recipient.value=previous;
-  text.value=body(sh,t,l,url);var has=!!recipient.value;open.disabled=!has;warning.innerHTML=has?'':'<div class="rc1166-warning">Für '+(t==='carrier'?'die Spedition':'den Kunden')+' ist noch kein E-Mail-Empfänger hinterlegt.</div>'
+  text.value=body(sh,t,l,url);var has=!!recipient.value;open.disabled=!has;warning.innerHTML=has?'':'<div class="rc1166-warning">'+esc(tr(t==='carrier'?'avisReminder.missingCarrier':'avisReminder.missingCustomer'))+'</div>'
  }
  target.addEventListener('change',refresh);lang.addEventListener('change',refresh);
  dialog.querySelector('[data-close]').addEventListener('click',closeDialog);
  dialog.addEventListener('click',function(e){if(e.target===dialog)closeDialog()});
  open.addEventListener('click',async function(){
-  var email=q(recipient.value);if(!email)return;var t=target.value==='carrier'?'carrier':'customer',l=lang.value==='en'?'en':'de',oldLabel=q(open.textContent);
-  open.disabled=true;open.textContent='Wird gesendet …';sendStatus.hidden=true;sendStatus.textContent='';sendStatus.removeAttribute('data-kind');
+  var email=q(recipient.value);if(!email)return;var t=target.value==='carrier'?'carrier':'customer',l=normalizeLanguage(lang.value),oldLabel=q(open.textContent);
+  open.disabled=true;open.textContent=tr('avisReminder.sending');sendStatus.hidden=true;sendStatus.textContent='';sendStatus.removeAttribute('data-kind');
   try{
-   var result=await sendReminder(sh,email,t,l,url),event={id:q(result.historyId),at:q(result.sentAt)||new Date().toISOString(),type:'mail-sent',label:'Avis-Erinnerung versendet',details:{reference:refOf(sh),to:email,subject:q(result.subject),mailType:'avis-reminder',target:t,language:l}};
+   var result=await sendReminder(sh,email,t,l,url),event={id:q(result.historyId),at:q(result.sentAt)||new Date().toISOString(),type:'mail-sent',label:tr('avisReminder.historyLabel',null,'de'),details:{reference:refOf(sh),to:email,subject:q(result.subject),mailType:'avis-reminder',target:t,language:l}};
    sh.shipmentHistory=Array.isArray(sh.shipmentHistory)?sh.shipmentHistory:[];if(event.id&&!sh.shipmentHistory.some(function(x){return x&&x.id===event.id}))sh.shipmentHistory.push(event);
-   sendStatus.hidden=false;sendStatus.setAttribute('data-kind','ok');sendStatus.textContent='Erinnerungsmail erfolgreich an '+email+' gesendet.';
-   open.textContent='Gesendet ✓';
+   sendStatus.hidden=false;sendStatus.setAttribute('data-kind','ok');sendStatus.textContent=tr('avisReminder.sent',{email:email});
+   open.textContent=tr('avisReminder.sentButton');
    try{w.dispatchEvent(new CustomEvent('exporthub:shipment-updated',{detail:{shipment:sh,source:'rc1207-avis-reminder'}}));w.dispatchEvent(new CustomEvent('exporthub:history-updated',{detail:{shipment:sh}}))}catch(_){}
   }catch(err){
-   open.disabled=false;open.textContent=oldLabel||'Erinnerungsmail senden';sendStatus.hidden=false;sendStatus.setAttribute('data-kind','bad');sendStatus.textContent=q(err&&err.message)||'Erinnerungsmail konnte nicht gesendet werden.'
+   open.disabled=false;open.textContent=oldLabel||tr('avisReminder.send');sendStatus.hidden=false;sendStatus.setAttribute('data-kind','bad');sendStatus.textContent=q(err&&err.message)||tr('avisReminder.failed')
   }
  });
  refresh();return true
 }
+
 function ensureButton(card,sh){
  var url=avisLink(sh),old=card.querySelector&&card.querySelector('[data-rc1166-avis-reminder]');
  if(!url){if(old)old.remove();return false}
- if(old){old.__rc1166Shipment=sh;return true}
- var btn=d.createElement('button');btn.type='button';btn.className='btn rc1166-reminder-btn';btn.setAttribute('data-rc1166-avis-reminder','1');btn.textContent='Avis-Erinnerung senden';btn.__rc1166Shipment=sh;btn.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();openDialog(btn.__rc1166Shipment)});
+ if(old){old.__rc1166Shipment=sh;old.textContent=tr('avisReminder.button');return true}
+ var btn=d.createElement('button');btn.type='button';btn.className='btn rc1166-reminder-btn';btn.setAttribute('data-rc1166-avis-reminder','1');btn.textContent=tr('avisReminder.button');btn.__rc1166Shipment=sh;btn.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();openDialog(btn.__rc1166Shipment)});
  var host=card.querySelector&&card.querySelector('.actions,.card-actions,.overview-actions,.rc524-actions,.rc485-actions,.rc229-actions,[data-actions]');
  if(!host){host=d.createElement('div');host.className='rc1166-reminder-row';card.appendChild(host)}
  host.appendChild(btn);return true
@@ -168,7 +200,7 @@ function render(){
  cards.forEach(function(card){var sh=cardShipment(card,shipments);if(sh&&ensureButton(card,sh))count++;else if(!sh){var b=card.querySelector&&card.querySelector('[data-rc1166-avis-reminder]');if(b)b.remove()}});return count
 }
 function schedule(){if(timer)return;timer=w.setTimeout(function(){timer=0;try{render()}catch(e){try{console.warn('RC1166 Avis-Erinnerung',e)}catch(_){}}},0)}
-['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded','exporthub:shipment-updated','exporthub:overview-updated','exporthub:customer-avis-updated','exporthub:customer-mail-contacts-updated'].forEach(function(n){try{w.addEventListener(n,schedule)}catch(_){}});
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded','exporthub:shipment-updated','exporthub:overview-updated','exporthub:customer-avis-updated','exporthub:customer-mail-contacts-updated','exporthub:language-changed'].forEach(function(n){try{w.addEventListener(n,schedule)}catch(_){}});
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
 w.ExportHUBRC1166AvisReminder=Object.freeze({version:'RC1207',shipmentContacts:shipmentContacts,avisLink:avisLink,subject:subject,body:body,sendReminder:sendReminder,render:render});
 })(window,document);

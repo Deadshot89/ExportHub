@@ -9,6 +9,7 @@ var DEFAULTS=Object.freeze({'sevastian marcu':'SevastianMarcu@essentra.com','dan
 var REQUIRED_DEFAULTS=Object.freeze(REQUIRED.map(function(name){return{name:name,email:DEFAULTS[norm(name)]}}));
 
 function q(v){return String(v==null?'':v).trim()}
+function tr(key,vars){try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.t==='function')return w.ExportHUBI18n.t(key,vars)}catch(_){}return key}
 function norm(v){return q(v).toLocaleLowerCase('de-DE').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim()}
 function mail(v){var m=q(v).match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);return m?m[0]:''}
 function state(){try{if(typeof w.__EXPORTHUB_GET_STATE__==='function')return w.__EXPORTHUB_GET_STATE__()||{}}catch(_){}return w.ExportHUBClean&&w.ExportHUBClean.state||w.appState||{}}
@@ -78,7 +79,7 @@ function prepare(url){
  return{ok:true,url:mergeRequiredCc(raw,r.addresses),required:true,missing:[]}
 }
 function block(p){
- var names=(p&&p.missing||[]).join(', '),msg='Anmeldung nicht geöffnet: Pflicht-CC konnte nicht aufgelöst werden'+(names?': '+names:'')+'. Bitte ExportHUB neu laden. Falls der Fehler erneut auftritt, die Pflicht-CC-Konfiguration prüfen.';
+ var names=(p&&p.missing||[]).join(', '),msg=tr('registrationCc.blocked',{names:names?': '+names:''});
  try{w.alert(msg)}catch(_){}
  return false
 }
@@ -124,10 +125,10 @@ async function persistCcSettings(next){
  s.settings.registrationMandatoryCc=next;
  try{
   var clean=w.ExportHUBClean;
-  if(!clean||typeof clean.queueSave!=='function'||typeof clean.flushSave!=='function')throw new Error('Die Azure-Speicherung ist noch nicht verfügbar.');
+  if(!clean||typeof clean.queueSave!=='function'||typeof clean.flushSave!=='function')throw new Error(tr('registrationCc.storageUnavailable'));
   await clean.queueSave('Pflicht-CC Anmeldung gespeichert');
   var ok=await clean.flushSave('Pflicht-CC Anmeldung gespeichert',{force:true,userInitiated:true});
-  if(ok!==true)throw new Error('Die Azure-Speicherung wurde nicht bestätigt.');
+  if(ok!==true)throw new Error(tr('registrationCc.storageUnconfirmed'));
   try{w.dispatchEvent(new CustomEvent('exporthub:registration-cc-updated',{detail:{required:REQUIRED.slice()}}))}catch(_){}
   return true
  }catch(e){
@@ -150,28 +151,30 @@ function installSettings(){
  if(!host)return false;
  ensureCcStyle();
  var box=w.document.createElement('section');box.id='rc1065RegistrationCcSettings';box.className='card rc1065-cc-settings';
- box.innerHTML='<div><span class="pill blue">ANMELDUNG</span><h3>Pflicht-CC</h3><p>Diese beiden Empfänger werden bei jeder Sendungsanmeldung automatisch in CC gesetzt. Ohne vollständig gepflegte Adressen wird die Anmeldung nicht geöffnet.</p></div><div class="rc1065-cc-grid"><label>Sevastian Marcu<input type="email" autocomplete="off" data-rc1065-cc="sevastian" placeholder="E-Mail-Adresse"></label><label>Daniel Ollmann<input type="email" autocomplete="off" data-rc1065-cc="daniel" placeholder="E-Mail-Adresse"></label></div><div class="rc1065-cc-actions"><button type="button" class="btn" data-rc1065-cc-save>Pflicht-CC speichern</button><span data-rc1065-cc-status></span></div>';
+ box.innerHTML='<div><span class="pill blue">'+tr('registrationCc.badge')+'</span><h3>'+tr('registrationCc.title')+'</h3><p>'+tr('registrationCc.help')+'</p></div><div class="rc1065-cc-grid"><label>Sevastian Marcu<input type="email" autocomplete="off" data-rc1065-cc="sevastian" placeholder="'+tr('registrationCc.emailPlaceholder')+'"></label><label>Daniel Ollmann<input type="email" autocomplete="off" data-rc1065-cc="daniel" placeholder="'+tr('registrationCc.emailPlaceholder')+'"></label></div><div class="rc1065-cc-actions"><button type="button" class="btn" data-rc1065-cc-save>'+tr('registrationCc.save')+'</button><span data-rc1065-cc-status></span></div>';
  host.appendChild(box);
  var sev=box.querySelector('[data-rc1065-cc="sevastian"]'),dan=box.querySelector('[data-rc1065-cc="daniel"]'),status=box.querySelector('[data-rc1065-cc-status]'),save=box.querySelector('[data-rc1065-cc-save]');
  if(sev)sev.value=configuredEmail(REQUIRED[0]);
  if(dan)dan.value=configuredEmail(REQUIRED[1]);
- ccSettingsStatus(status,(sev&&sev.value&&dan&&dan.value)?'Beide Pflicht-CC-Adressen sind gepflegt.':'Bitte beide Pflicht-CC-Adressen pflegen.','info');
+ ccSettingsStatus(status,(sev&&sev.value&&dan&&dan.value)?tr('registrationCc.ready'):tr('registrationCc.missing'),'info');
  if(save)save.addEventListener('click',async function(){
   var a=mail(sev&&sev.value),b=mail(dan&&dan.value);
-  if(!a||!b){ccSettingsStatus(status,'Bitte für Sevastian Marcu und Daniel Ollmann jeweils eine gültige E-Mail-Adresse eintragen.','error');return}
-  save.disabled=true;ccSettingsStatus(status,'Wird dauerhaft gespeichert …','info');
+  if(!a||!b){ccSettingsStatus(status,tr('registrationCc.invalid'),'error');return}
+  save.disabled=true;ccSettingsStatus(status,tr('registrationCc.saving'),'info');
   try{
    await persistCcSettings([{name:REQUIRED[0],email:a},{name:REQUIRED[1],email:b}]);
    if(sev)sev.value=a;if(dan)dan.value=b;
-   ccSettingsStatus(status,'Pflicht-CC wurde dauerhaft gespeichert.','ok')
-  }catch(e){ccSettingsStatus(status,'Speichern fehlgeschlagen: '+q(e&&e.message||e),'error')}
+   ccSettingsStatus(status,tr('registrationCc.saved'),'ok')
+  }catch(e){ccSettingsStatus(status,tr('registrationCc.saveFailed',{error:q(e&&e.message||e)}),'error')}
   finally{save.disabled=false}
  });
  return true
 }
+
 function scheduleSettings(){try{if(typeof w.setTimeout==='function')w.setTimeout(installSettings,0);else installSettings()}catch(_){}}
 if(w.addEventListener){
  ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded'].forEach(function(name){w.addEventListener(name,scheduleSettings)});
+ w.addEventListener('exporthub:language-changed',function(){var old=w.document&&w.document.getElementById('rc1065RegistrationCcSettings');if(old)old.remove();scheduleSettings()});
  w.addEventListener('click',scheduleSettings,true)
 }
 if(w.document){

@@ -30,15 +30,23 @@ test('RC1018: Sprache gilt für bestehende und neue Kunden mit sicherem Deutsch-
   assert.equal(a.resolveLanguage({mailLanguage:'EN'},'', ''),'en');
   assert.equal(a.resolveLanguage({rc543MailLang:'de'},'en',''),'en','Explizite Mailauswahl muss Vorrang haben.');
   assert.equal(a.resolveLanguage({},'', 'en'),'en','Aktuelle UI-Auswahl muss unterstützt werden.');
+  assert.equal(a.resolveLanguage({language:'pl'},'', ''),'pl');
+  assert.equal(a.resolveLanguage({language:'es'},'', ''),'es');
+  assert.equal(a.resolveLanguage({language:'fr'},'', ''),'fr');
+  assert.equal(a.resolveLanguage({language:'it'},'', ''),'it');
 });
 
-test('RC1018: Kunden- und Speditionsmail haben professionelle DE/EN-Sendungsdetails',()=>{
+test('RC1267: Kunden- und Speditionsmail haben professionelle Sendungsdetails in sechs Sprachen',()=>{
   const a=api();
   for(const [target,lang,body,title] of [
     ['customer','de',deBody,'SENDUNGSDETAILS'],
     ['carrier','de',deBody,'SENDUNGSDETAILS – ABHOLUNG'],
     ['customer','en',enBody,'SHIPMENT DETAILS'],
-    ['carrier','en',enBody,'SHIPMENT DETAILS – PICKUP']
+    ['carrier','en',enBody,'SHIPMENT DETAILS – PICKUP'],
+    ['customer','pl',deBody,'SZCZEGÓŁY WYSYŁKI'],
+    ['customer','es',deBody,'DETALLES DEL ENVÍO'],
+    ['customer','fr',deBody,'DÉTAILS DE L’EXPÉDITION'],
+    ['customer','it',deBody,'DETTAGLI DELLA SPEDIZIONE']
   ]){
     const out=a.composeMail({target,lang,body,avisEnabled:false,url:'https://example.test/customer-avis.html?t=abc',reference:'ABC123'});
     assert.match(out,new RegExp(title.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'i'));
@@ -48,15 +56,16 @@ test('RC1018: Kunden- und Speditionsmail haben professionelle DE/EN-Sendungsdeta
   }
 });
 
-test('RC1018: Lieferavis ersetzt Sendungsdetails strikt bei Kunde und Spedition in DE/EN',()=>{
+test('RC1267: Lieferavis ersetzt Sendungsdetails strikt in sechs Sprachen',()=>{
   const a=api();
   for(const [target,lang,body] of [
-    ['customer','de',deBody],['carrier','de',deBody],['customer','en',enBody],['carrier','en',enBody]
+    ['customer','de',deBody],['carrier','de',deBody],['customer','en',enBody],['carrier','en',enBody],
+    ['customer','pl',deBody],['customer','es',deBody],['customer','fr',deBody],['customer','it',deBody]
   ]){
     const out=a.composeMail({target,lang,body,avisEnabled:true,url:'https://example.test/customer-avis.html?t=abc',reference:'ABC123'});
-    assert.match(out,/LIEFERAVIS|COLLECTION NOTICE/i);
+    assert.match(out,/LIEFERAVIS|COLLECTION NOTICE|AWIZO|AVISO|AVIS|AVVISO/i);
     assert.match(out,/ABC123/);
-    assert.match(out,/lang=(?:de|en)/i,'Lieferavis-Link muss die Mail-Sprache übernehmen.');
+    assert.match(out,/lang=(?:de|en|pl|es|fr|it)/i,'Lieferavis-Link muss die Mail-Sprache übernehmen.');
     assert.doesNotMatch(out,/SENDUNGSDETAILS|SHIPMENT DETAILS|Details zur Sendung|Shipment details/i,'Lieferavis-Mail darf keine Sendungsdetails mehr enthalten.');
   }
 });
@@ -89,12 +98,14 @@ test('RC1018: Mail-Sprache und Programmsprache sind strikt getrennt',()=>{
   assert.match(runtime,/exporthub-site-language-wrap[^\n]{0,120}remove\(\)/,'Ein alter zusätzlicher RC1018-Schalter muss entfernt werden.');
 });
 
-test('RC1018: Website und öffentliche Seiten besitzen denselben DE/EN-Sprachstandard',()=>{
+test('RC1267: Website und öffentliche Seiten besitzen denselben Sechs-Sprachen-Standard',()=>{
   assert.ok(fs.existsSync(PUBLIC),'Öffentliche RC1018 Sprachruntime fehlt.');
   const runtime=fs.readFileSync(PUBLIC,'utf8');
   assert.match(runtime,/exporthub\.language/);
   assert.match(runtime,/Deutsch/);
   assert.match(runtime,/English/);
+  const central=fs.readFileSync(path.join(ROOT,'assets/rc1267-i18n.js'),'utf8');
+  for(const label of ['Deutsch','English','Polski','Español','Français','Italiano'])assert.match(central,new RegExp(label));
   for(const page of ['customer-avis.html','pickup.html','location.html']){
     const html=fs.readFileSync(path.join(ROOT,page),'utf8'),expected=page==='customer-avis.html'?'1231':'1018';
     assert.match(html,new RegExp('rc1018-public-language\\.js\\?v='+expected),`${page} lädt die gemeinsame Sprachruntime nicht mit dem richtigen Cache-Key.`);

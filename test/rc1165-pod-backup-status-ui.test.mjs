@@ -3,12 +3,14 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import {execFileSync} from 'node:child_process';
+import {createTestI18n} from './helpers/i18n.mjs';
 
 const runtime=fs.readFileSync('assets/rc1165-pod-backup-status.js','utf8');
 const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
 
 function api(){
   const sandbox={
+    ExportHUBI18n:createTestI18n('de'),
     setTimeout(){return 1},
     clearTimeout(){},
     addEventListener(){},

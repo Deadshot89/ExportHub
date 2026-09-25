@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
 import {execFileSync} from 'node:child_process';
+import {createTestI18n} from './helpers/i18n.mjs';
 
 const ROOT=process.cwd();
 const BUILD=path.join(ROOT,'.github/rc1013/build-three-env.mjs');
@@ -73,7 +74,7 @@ test('Fehlerdiagnose klassifiziert Fehler verständlich und zeigt Benutzer, Firm
   const file=path.join(ROOT,'assets/rc1013-diagnostics.js');
   assert.ok(fs.existsSync(file),'RC1013 Diagnose-Formatter fehlt.');
   const source=fs.readFileSync(file,'utf8');
-  const sandbox={module:{exports:{}},exports:{},window:null,console};
+  const sandbox={module:{exports:{}},exports:{},window:null,console,ExportHUBI18n:createTestI18n('de')};
   vm.runInNewContext(source,sandbox,{filename:'rc1013-diagnostics.js'});
   const api=sandbox.module.exports;
   assert.equal(typeof api.describe,'function','describe(record) fehlt.');

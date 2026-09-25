@@ -1,11 +1,11 @@
 'use strict';
 
 const TYPES=Object.freeze({
-  cmr:{label:'CMR / Frachtbrief',keywords:['cmr','frachtbrief','consignment note','international consignment']},
-  delivery_note:{label:'Lieferschein',keywords:['lieferschein','delivery note','delivery slip']},
-  invoice:{label:'Rechnung / Commercial Invoice',keywords:['rechnung','invoice','commercial invoice']},
-  packing_list:{label:'Packliste / Packing List',keywords:['packliste','packing list','packing slip']},
-  other:{label:'Sonstiges',keywords:[]}
+  cmr:{labelKey:'api.avis.docType.cmr',keywords:['cmr','frachtbrief','consignment note','international consignment']},
+  delivery_note:{labelKey:'api.avis.docType.delivery_note',keywords:['lieferschein','delivery note','delivery slip']},
+  invoice:{labelKey:'api.avis.docType.invoice',keywords:['rechnung','invoice','commercial invoice']},
+  packing_list:{labelKey:'api.avis.docType.packing_list',keywords:['packliste','packing list','packing slip']},
+  other:{labelKey:'api.avis.docType.other',keywords:[]}
 });
 
 function text(v){return String(v==null?'':v).trim()}
@@ -13,7 +13,7 @@ function lower(v){return text(v).toLocaleLowerCase('de-DE')}
 function normalize(v){return lower(v).normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').replace(/\s+/g,' ').trim()}
 function compact(v){return normalize(v).replace(/\s+/g,'')}
 function unique(values){return Array.from(new Set(values.filter(Boolean)))}
-function documentType(value){const key=lower(value);if(!Object.prototype.hasOwnProperty.call(TYPES,key)){const e=new Error('Bitte eine gültige Dokumentart auswählen.');e.code='PDF_DOCUMENT_TYPE_INVALID';e.status=400;throw e}return key}
+function documentType(value){const key=lower(value);if(!Object.prototype.hasOwnProperty.call(TYPES,key)){const e=new Error('api.avis.documentTypeInvalid');e.code='PDF_DOCUMENT_TYPE_INVALID';e.status=400;throw e}return key}
 function shipmentIdentifiers(sh){
   sh=sh||{};
   const reference=text(sh.reference||sh.ref||sh.shipmentRef||sh.referenceNumber||sh.referenceNo||sh.id||sh.shipmentId).toUpperCase();
@@ -38,37 +38,37 @@ function customerNameMatch(haystack,name){
 }
 function evaluateExtractedText(extracted,shipment,type){
   const kind=documentType(type),raw=text(extracted),normalized=normalize(raw),ids=shipmentIdentifiers(shipment);
-  if(normalized.length<40)return{ok:false,code:'PDF_TEXT_UNREADABLE',message:'Der PDF-Inhalt ist nicht ausreichend maschinenlesbar. Bitte ein durchsuchbares PDF hochladen.',documentType:kind,matched:[],missing:['lesbarer PDF-Text']};
+  if(normalized.length<40)return{ok:false,code:'PDF_TEXT_UNREADABLE',messageKey:'api.avis.textUnreadable',documentType:kind,matched:[],missing:['readable-pdf-text']};
 
   const matched=[],missing=[];
   const referenceMatch=containsIdentifier(raw,ids.reference);
-  if(referenceMatch)matched.push('Sendungsreferenz');
+  if(referenceMatch)matched.push('shipment-reference');
 
   const alternatives=[
-    ['Kundennummer',ids.customerNumber],
-    ['Sales Order',ids.salesOrder],
-    ['Kundenreferenz',ids.customerReference]
+    ['customer-number',ids.customerNumber],
+    ['sales-order',ids.salesOrder],
+    ['customer-reference',ids.customerReference]
   ];
   let alternativeCount=0;
   for(const [label,value] of alternatives){
     if(value&&containsIdentifier(raw,value)){matched.push(label);alternativeCount++}
   }
   const nameMatch=ids.customerName&&customerNameMatch(raw,ids.customerName);
-  if(nameMatch){matched.push('Kundenname');alternativeCount++}
+  if(nameMatch){matched.push('customer-name');alternativeCount++}
 
   const identityOk=referenceMatch||alternativeCount>=2;
   if(!identityOk){
-    if(ids.reference&&!referenceMatch)missing.push('Sendungsreferenz '+ids.reference);
-    if(alternativeCount<2)missing.push('mindestens zwei weitere Sendungsmerkmale');
+    if(ids.reference&&!referenceMatch)missing.push('shipment-reference:'+ids.reference);
+    if(alternativeCount<2)missing.push('at-least-two-shipment-features');
   }
 
   const rules=TYPES[kind],keywordMatch=!rules.keywords.length||rules.keywords.some(k=>normalized.includes(normalize(k)));
-  if(!keywordMatch)missing.push('Dokumentart '+rules.label);
+  if(!keywordMatch)missing.push('document-type:'+kind);
 
-  if(!identityOk)return{ok:false,code:'PDF_SHIPMENT_MISMATCH',message:'Das PDF konnte der Sendung nicht eindeutig zugeordnet werden. Es wird nicht gespeichert.',documentType:kind,matched,missing};
-  if(!keywordMatch)return{ok:false,code:'PDF_DOCUMENT_TYPE_MISMATCH',message:'Der PDF-Inhalt passt nicht eindeutig zur ausgewählten Dokumentart '+rules.label+'. Es wird nicht gespeichert.',documentType:kind,matched,missing};
+  if(!identityOk)return{ok:false,code:'PDF_SHIPMENT_MISMATCH',messageKey:'api.avis.shipmentMismatch',documentType:kind,matched,missing};
+  if(!keywordMatch)return{ok:false,code:'PDF_DOCUMENT_TYPE_MISMATCH',messageKey:'api.avis.documentTypeMismatch',messageVars:{typeKey:rules.labelKey},documentType:kind,documentTypeLabelKey:rules.labelKey,matched,missing};
 
-  return{ok:true,code:'PDF_CONTENT_VALID',message:'PDF-Inhalt passt zur Sendung.',documentType:kind,documentTypeLabel:rules.label,matched,missing:[]};
+  return{ok:true,code:'PDF_CONTENT_VALID',messageKey:'api.avis.contentValid',documentType:kind,documentTypeLabelKey:rules.labelKey,matched,missing:[]};
 }
 async function extractPdfText(buffer){
   let parser;
@@ -85,7 +85,7 @@ async function validateShipmentDocument(buffer,shipment,type,options={}){
   const extractor=typeof options.extractText==='function'?options.extractText:extractPdfText;
   let extracted='';
   try{extracted=await extractor(buffer)}catch(e){
-    return{ok:false,code:'PDF_TEXT_EXTRACTION_FAILED',message:'Der PDF-Inhalt konnte nicht sicher gelesen und der Sendung nicht zugeordnet werden. Die Datei wird nicht gespeichert.',documentType:documentType(type),matched:[],missing:['lesbarer PDF-Text'],error:text(e&&e.message).slice(0,160)};
+    return{ok:false,code:'PDF_TEXT_EXTRACTION_FAILED',messageKey:'api.avis.textExtractionFailed',documentType:documentType(type),matched:[],missing:['readable-pdf-text'],error:text(e&&e.message).slice(0,160)};
   }
   return evaluateExtractedText(extracted,shipment,type);
 }
