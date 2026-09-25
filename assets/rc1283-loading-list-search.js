@@ -4,6 +4,7 @@ if(!w||!d||w.__EXPORTHUB_RC1283_LOADING_LIST_SEARCH__)return;
 w.__EXPORTHUB_RC1283_LOADING_LIST_SEARCH__=true;
 var timer=0,lastQuery='',lastSelected='',lastSelectedRef='',selectedSnapshot=null;
 function q(v){return String(v==null?'':v).trim()}
+function tr(key,vars){try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.t==='function')return w.ExportHUBI18n.t(key,vars)}catch(_){}return key}
 function arr(v){return Array.isArray(v)?v:[]}
 function low(v){var s=q(v).toLowerCase();try{return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'')}catch(_){return s}}
 function state(){try{if(typeof w.__EXPORTHUB_GET_STATE__==='function')return w.__EXPORTHUB_GET_STATE__()||{}}catch(_){ }try{return w.ExportHUBClean&&w.ExportHUBClean.state||w.ExportHUBClean&&w.ExportHUBClean.runtime&&w.ExportHUBClean.runtime.state||w.appState||w.state||{}}catch(_){return{}}}
