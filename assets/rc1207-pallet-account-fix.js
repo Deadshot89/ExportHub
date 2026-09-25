@@ -74,12 +74,28 @@ function audit(s,type,details){
   s.auditLog=arr(s.auditLog).slice(-4999);
   s.auditLog.push({id:'AUD-PALLET-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8),type:type,actor:actor(),at:new Date().toISOString(),details:details||{}});
 }
+function saveDelay(ms){
+  return new Promise(function(resolve){var timer=cleanTimer();timer(resolve,ms)})
+}
+function cleanTimer(){
+  var clean=root.ExportHUBClean;
+  return clean&&clean.native&&typeof clean.native.setTimeout==='function'?clean.native.setTimeout.bind(clean.native):(root.setTimeout||setTimeout)
+}
 async function persist(reason){
   var clean=root.ExportHUBClean;
   if(!clean||typeof clean.queueSave!=='function'||typeof clean.flushSave!=='function')throw new Error(tr('palletDelete.storageUnavailable'));
   await Promise.resolve(clean.queueSave(reason));
-  var ok=await Promise.resolve(clean.flushSave(reason));
-  if(ok===false)throw new Error(tr('palletDelete.storageUnconfirmed'));
+  var runtime=clean.runtime||null,target=runtime?Number(runtime.changeGeneration||0):0,deadline=Date.now()+80000,ok=false;
+  while(Date.now()<deadline&&!ok){
+    while(runtime&&runtime.saving&&Date.now()<deadline)await saveDelay(100);
+    if(runtime&&target>0&&Number(runtime.lastSavedGeneration||0)>=target){ok=true;break}
+    ok=await Promise.resolve(clean.flushSave(reason,{force:true,userInitiated:true}));
+    if(ok===true)break;
+    if(runtime&&target>0&&Number(runtime.lastSavedGeneration||0)>=target){ok=true;break}
+    await saveDelay(250)
+  }
+  if(!ok&&runtime&&target>0&&Number(runtime.lastSavedGeneration||0)>=target)ok=true;
+  if(ok!==true)throw new Error(tr('palletDelete.storageUnconfirmed'));
   return true;
 }
 function rerender(){
