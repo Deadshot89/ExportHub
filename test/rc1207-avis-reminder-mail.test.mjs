@@ -73,6 +73,14 @@ test('RC1207: Frontend zeigt Erfolg und Build liefert API aus',()=>{
 });
 
 
+test('RC1271: Graph-Token muss Mail.Send als Application-Rolle enthalten',()=>{
+ assert.match(graph,/function mailSendGranted\(claims\)/);
+ assert.match(graph,/roles/);
+ assert.match(graph,/mail\.send/);
+ assert.match(graph,/GRAPH_MAIL_PERMISSION_MISSING/);
+ assert.match(graph,/mailSendGranted:mailSendGranted\(claims\)/);
+});
+
 test('RC1255: TESTSERVICE prüft den echten Reminder ohne externe Kundenadresse',()=>{
  assert.match(e2eFixture,/function e2eReminderRecipient\(\)/);
  assert.match(e2eFixture,/EXPORTHUB_MAIL_SENDER\|\|process\.env\.EXPORTHUB_POD_DRIVE_USER/);
