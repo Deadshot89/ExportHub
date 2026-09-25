@@ -855,7 +855,7 @@
   "container.view": "View",
   "container.download": "Download",
   "container.configTitle": "🚢 Air / Sea & Container",
-  "container.configHelpShort": "Container evidence is captured via the pickup QR.",
+  "container.configHelpShort": "The seal number can already be maintained on the main page; photos are captured via the pickup QR code.",
   "container.transportMode": "Transport mode",
   "container.notSet": "Not set",
   "container.road": "Road",
@@ -1082,5 +1082,7 @@
   "sop.081.flow4": "Book",
   "sop.081.flow5": "Check balance",
   "abd.mailPending": "IMPORTANT – EXPORT DOCUMENT (ABD) NOT YET AVAILABLE\nThe ABD is expected on {{expected}} at approximately 10:00. Pickup can already be booked, but not before {{minimum}} at 10:00.",
-  "mail.closing": "Kind regards"
+  "mail.closing": "Kind regards",
+  "container.sealInput": "Seal number",
+  "container.sealPlaceholder": "e.g. ABCD123456"
 }
