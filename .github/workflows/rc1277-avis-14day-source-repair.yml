@@ -1,0 +1,51 @@
+name: RC1277 AVIS 14-Day Source Repair
+
+on:
+  push:
+    branches:
+      - fix/rc1277-avis-14day-source-drift
+
+permissions:
+  contents: write
+
+jobs:
+  repair-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: fix/rc1277-avis-14day-source-drift
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Normalize source contracts
+        run: node scripts/rc1277-fix-avis-14day-source-drift.mjs
+      - name: Targeted AVIS regression
+        run: node --test test/rc1277-avis-14day-source-drift.test.mjs test/rc1089-avis-post-pickup-downloads.test.mjs .github/rc998/partial-pickup-avis-contract.test.mjs
+      - name: Full Node regression
+        run: npm test
+      - name: Three-environment build
+        run: node .github/rc1048/build-three-env.mjs
+      - name: Build contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q "14 calendar days after the actual collection" dist-rc1112/index.html
+          grep -q "14 Kalendertage nach der tatsächlichen Abholung" dist-rc1112/TESTVERSION.html
+          ! grep -q "postPickupDays:3" api/customer-avis/index.js
+          git diff --check
+      - name: Commit repaired canonical sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html TESTVERSION.html demo.html api/customer-avis/index.js
+          if git diff --cached --quiet; then
+            echo "Canonical sources already normalized."
+            exit 0
+          fi
+          git commit -m "RC1277: normalize AVIS 14-day canonical sources"
+          git push origin HEAD:fix/rc1277-avis-14day-source-drift
