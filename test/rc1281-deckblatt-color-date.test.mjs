@@ -26,15 +26,17 @@ test('RC1281: finale Artefakte enthalten weißes kundenspezifisches Deckblatt mi
   }
 });
 
-test('RC1281: finaler Deckblatt-Stil nutzt die angeforderten vier Farben',()=>{
+test('RC1281: finaler Deckblatt-Stil nutzt die kundenspezifischen Farbvariablen',()=>{
   const source=html('index.html');
   const start=source.indexOf('<style id="exporthub-rc1203-deckblatt-style">');
   const end=start<0?-1:source.indexOf('</style>',start);
   assert.ok(start>=0&&end>start,'RC1281 Deckblatt-Style fehlt');
   const style=source.slice(start,end);
-  for(const color of ['#facc15','#fef9c3','#2563eb','#dbeafe'])assert.ok(style.includes(color),color+' fehlt');
   assert.match(style,/background:#fff!important/);
+  assert.match(style,/var\(--rc1281-ref-bg\)/);
+  assert.match(style,/var\(--rc1281-recipient-bg\)/);
   assert.doesNotMatch(style,/background:#f8fafc!important/);
+  for(const color of ['#facc15','#fef9c3','#2563eb','#dbeafe'])assert.ok(source.includes(color),color+' fehlt im finalen Deckblatt');
 });
 
 test('RC1281: Runtime unterscheidet Essentra und andere Kunden ohne Pickup-Datum-Fallback',()=>{
