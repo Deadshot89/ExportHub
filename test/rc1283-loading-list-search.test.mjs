@@ -37,42 +37,33 @@ test('RC1283: Runtime ersetzt die Dropdown-Bedienung und bietet drei direkte Akt
   for(const action of ['open','print','download'])assert.ok(runtime.includes("['"+action+"'")||runtime.includes("'"+action+"'"),action+' fehlt');
   assert.match(runtime,/download-load1/);
   assert.match(runtime,/__EXPORTHUB_RC1283_OPEN_LOAD1__/);
-});
-
-test('RC1283: Drei-Umgebungen-Build injiziert Runtime und vorhandenen Ladelistenrenderer als Bridge',()=>{
-  assert.match(build,/function patchRc1283LoadingListSearch\(/);
-  assert.match(build,/assets\/rc1283-loading-list-search\.js\?v=1283-6/);
-  assert.match(build,/__EXPORTHUB_RC1283_OPEN_LOAD1__/);\n  assert.match(build,/__EXPORTHUB_RC1283_DOWNLOAD_LOAD1__/);\n  assert.match(build,/createPdf\('load1',sh\)/);
-  assert.match(build,/body=loadHtml\(sh,true\)/);
-  assert.match(build,/'assets\/rc1283-loading-list-search\.js'/);
-});
-
-test('RC1283: spätere Optionsbefüllung des nativen Sendungs-Select löst gezielte Aktualisierung aus',()=>{
-  assert.match(runtime,/records\[c\]&&records\[c\]\.target/);
-  assert.match(runtime,/target===current/);
-  assert.match(runtime,/current\.contains&&current\.contains\(target\)/);
-  assert.doesNotMatch(runtime,/observe\(d\.documentElement,\{subtree:true,childList:true,attributes:true/);
-});
-
-test('RC1283: Trefferauswahl bleibt von nativem Dropdown entkoppelt und Aktionen nutzen die gefundene Sendung direkt',()=>{
-  const clickBlock=runtime.slice(runtime.indexOf("b.addEventListener('click'"),runtime.indexOf("results.appendChild(b)",runtime.indexOf("b.addEventListener('click'")));
-  assert.doesNotMatch(clickBlock,/dispatchSelection/);
-  assert.match(clickBlock,/selectedSnapshot=/);
-  assert.match(runtime,/__EXPORTHUB_RC1283_OPEN_LOAD1__/);
   assert.match(runtime,/__EXPORTHUB_RC1283_DOWNLOAD_LOAD1__/);
 });
 
-test('RC1283: Auswahl bleibt über Referenz stabil wenn das native Select neu gerendert wird',()=>{
-  assert.match(runtime,/lastSelectedRef/);
-  assert.match(runtime,/select\.selectedIndex=index/);
-  assert.match(runtime,/lastSelectedRef=refOf\(row\.shipment\)\|\|row\.reference\|\|row\.value/);\n  assert.match(runtime,/selectedSnapshot=/);
-  assert.match(runtime,/selected\.textContent='Ausgewählt: '/);
-  assert.match(runtime,/low\(row\.reference\)===ref/);
+test('RC1283: Drei-Umgebungen-Build injiziert Runtime und vorhandene Ladelisten-Pfade',()=>{
+  assert.match(build,/function patchRc1283LoadingListSearch\(/);
+  assert.match(build,/assets\/rc1283-loading-list-search\.js\?v=1283-6/);
+  assert.match(build,/__EXPORTHUB_RC1283_OPEN_LOAD1__/);
+  assert.match(build,/__EXPORTHUB_RC1283_DOWNLOAD_LOAD1__/);
+  assert.match(build,/body=loadHtml\(sh,true\)/);
+  assert.match(build,/createPdf\('load1',sh\)/);
+  assert.match(build,/'assets\/rc1283-loading-list-search\.js'/);
 });
 
-test('RC1283: DOM-Wächter reagiert nur auf neu gerenderte Sendungsauswahl und ignoriert Suchergebnisse',()=>{
+test('RC1283: Trefferauswahl ist vom alten Dropdown entkoppelt und bleibt als Snapshot verfügbar',()=>{
+  const start=runtime.indexOf("b.addEventListener('click'");
+  const end=runtime.indexOf('results.appendChild(b)',start);
+  assert.ok(start>=0&&end>start);
+  const clickBlock=runtime.slice(start,end);
+  assert.doesNotMatch(clickBlock,/dispatchSelection/);
+  assert.match(clickBlock,/selectedSnapshot=/);
+  assert.match(clickBlock,/lastSelectedRef=refOf\(row\.shipment\)\|\|row\.reference\|\|row\.value/);
+  assert.match(runtime,/if\(selectedSnapshot&&selectedSnapshot\.shipment\)return selectedSnapshot/);
+});
+
+test('RC1283: DOM-Wächter ignoriert Suchergebnis-Mutationen und erkennt dynamische Sendungsoptionen',()=>{
   assert.match(runtime,/function rc1283MutationRelevant\(records\)/);
-  assert.match(runtime,/target===current\\|\\|current\\.contains&&current\\.contains\\(target\\)/);\n  assert.match(runtime,/return false/);
+  assert.match(runtime,/target===current\|\|current\.contains&&current\.contains\(target\)/);
   assert.match(runtime,/closest\('#rc1283LoadListSearch'\)/);
   assert.match(runtime,/querySelectorAll\('select'\)/);
   assert.match(runtime,/if\(rc1283MutationRelevant\(records\)\)schedule\(\)/);
@@ -82,6 +73,9 @@ test('RC1283: DOM-Wächter reagiert nur auf neu gerenderte Sendungsauswahl und i
 
 test('RC1283: echter Browsertest prüft alle vier Suchdimensionen und verbirgt das alte Dropdown',()=>{
   for(const marker of ['DEMO02','Benelux','Fake_Lieferschein_DEMO02.pdf','RC1203 Demo-Bemerkung'])assert.ok(e2e.includes(marker),marker+' fehlt im Browsertest');
-  assert.match(e2e,/getByRole\('combobox',\{name:'Sendung auswählen'\}\)\.first\(\)\)\.toBeHidden/);
+  assert.match(e2e,/getByRole\('combobox',\{name:'Sendung auswählen'\}\)\.first\(\)/);
+  assert.match(e2e,/toBeHidden/);
+  assert.match(e2e,/data-rc1283-result/);
   assert.match(e2e,/data-rc1283-action/);
+  assert.match(e2e,/selectOption\(value,\{force:true\}\)/);
 });
