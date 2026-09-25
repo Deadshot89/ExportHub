@@ -1084,5 +1084,17 @@
   "abd.mailPending": "IMPORTANT – EXPORT DOCUMENT (ABD) NOT YET AVAILABLE\nThe ABD is expected on {{expected}} at approximately 10:00. Pickup can already be booked, but not before {{minimum}} at 10:00.",
   "mail.closing": "Kind regards",
   "container.sealInput": "Seal number",
-  "container.sealPlaceholder": "e.g. ABCD123456"
+  "container.sealPlaceholder": "e.g. ABCD123456",
+  "loadingList.title": "Search loading list",
+  "loadingList.subtitle": "Search by reference number, customer, attachment/file name or remark.",
+  "loadingList.ariaLabel": "Search loading list",
+  "loadingList.placeholder": "Reference, customer, attachment or remark",
+  "loadingList.searchHint": "Enter a reference, customer, attachment/file name or remark.",
+  "loadingList.noMatch": "No matching loading list found.",
+  "loadingList.selectedPrefix": "Selected:",
+  "loadingList.noneSelected": "No loading list selected yet.",
+  "loadingList.open": "Open",
+  "loadingList.print": "Print",
+  "loadingList.download": "Download",
+  "loadingList.shipmentSelectLabel": "Select shipment"
 }
