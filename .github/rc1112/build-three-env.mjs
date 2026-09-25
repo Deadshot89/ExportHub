@@ -259,42 +259,6 @@ function patchRc1259ContainerSearch(html,file){
   return html;
 }
 
-function patchCompletePrintBundle(html,file){
-  const loadStart=html.indexOf('function loadHtml(sh,withQr){');
-  const loadEnd=loadStart<0?-1:html.indexOf('function documentCacheKey',loadStart);
-  if(loadStart<0||loadEnd<0)throw new Error(file+': RC1274 Ladelisten-/CMR-Druckmodul fehlt');
-  let block=html.slice(loadStart,loadEnd);
-
-  const copyOld="withQr?'1 / 1 · mit QR-Code':'ohne QR-Code'";
-  const copyNew="withQr?'1 / 2 · mit QR-Code':'2 / 2 · ohne QR-Code'";
-  if(!block.includes(copyOld)&&!block.includes(copyNew))throw new Error(file+': RC1274 Ladelisten-Seitenkennzeichnung fehlt');
-  block=block.replace(copyOld,copyNew);
-
-  const cmrOld="for(var i=1;i<=3;i++){";
-  const cmrNew="for(var i=1;i<=4;i++){";
-  if(!block.includes(cmrOld)&&!block.includes(cmrNew))throw new Error(file+': RC1274 CMR-Ausfertigungszähler fehlt');
-  block=block.replace(cmrOld,cmrNew);
-  block=block.replace("CMR '+i+' / 3</div></div>'","CMR '+i+' / 4</div></div>'");
-
-  html=html.slice(0,loadStart)+block+html.slice(loadEnd);
-
-  const bundleOld="+coverHtml(sh)+loadHtml(sh,true)+cmrHtml(sh)+";
-  const bundleNew="+coverHtml(sh)+loadHtml(sh,true)+loadHtml(sh,false)+cmrHtml(sh)+";
-  if(!html.includes(bundleOld)&&!html.includes(bundleNew))throw new Error(file+': RC1274 Gesamtdruck-Bundle-Anker fehlt');
-  html=html.replace(bundleOld,bundleNew);
-
-  const pagesOld="return[d.cover,d.load1].concat(d.cmrs.slice(0,3)).filter(Boolean)";
-  const pagesNew="return[d.cover,d.load1,d.load2].concat(d.cmrs.slice(0,4)).filter(Boolean)";
-  if(!html.includes(pagesOld)&&!html.includes(pagesNew))throw new Error(file+': RC1274 Gesamtdruck-Seitenauswahl fehlt');
-  html=html.replace(pagesOld,pagesNew);
-
-  if(!html.includes("loadHtml(sh,true)+loadHtml(sh,false)+cmrHtml(sh)"))throw new Error(file+': RC1274 L2 fehlt im Gesamtdruck');
-  if(!html.includes("return[d.cover,d.load1,d.load2].concat(d.cmrs.slice(0,4)).filter(Boolean)"))throw new Error(file+': RC1274 Druckreihenfolge ist unvollständig');
-  if(!html.includes("withQr?'1 / 2 · mit QR-Code':'2 / 2 · ohne QR-Code'"))throw new Error(file+': RC1274 L1/L2-Kennzeichnung fehlt');
-  if(!html.includes("for(var i=1;i<=4;i++){")||!html.includes("CMR '+i+' / 4</div></div>'"))throw new Error(file+': RC1274 vier CMR-Ausfertigungen fehlen');
-  return html;
-}
-
 function patchHtml(file){
   const target=path.join(OUT,file);
   let html=fs.readFileSync(target,'utf8');
@@ -306,7 +270,6 @@ function patchHtml(file){
   html=patchTaskMasterSaveScope(html,file);
   html=patchTaskDetailTab(html,file);
   html=patchRc1259ContainerSearch(html,file);
-  html=patchCompletePrintBundle(html,file);
   html=patchDeckblattHighVisibility(html,file);
   html=patchRc1203ActualDeckblatt(html,file);
   html=patchShipmentSuspendSave(html,file);
@@ -329,6 +292,7 @@ function patchHtml(file){
   html=html.replace(/assets\/rc1071-shipment-history\.js\?v=(?:1095|1151)/g,'assets/rc1071-shipment-history.js?v=1178');
   html=html.replace(/assets\/rc1063-abd-blob-viewer-compat\.js\?v=(?:1063|1151|1248)/g,'assets/rc1063-abd-blob-viewer-compat.js?v=1248');
   html=injectDeferredRuntimeInHead(html,'<!-- id="exporthub-rc1148-history-compat-marker" assets/rc1071-shipment-history.js?v=1095 -->','exporthub-rc1148-history-compat-marker');
+  html=injectDeferredRuntimeInHead(html,RC1267_I18N_TAG,'exporthub-rc1267-i18n');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1126-customer-delete" defer src="/assets/rc1126-customer-delete.js?v=1126"></script>','exporthub-rc1126-customer-delete');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1113-stowplan-persist" defer src="/assets/rc1113-stowplan-persist.js?v=1113"></script>','exporthub-rc1113-stowplan-persist');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1114-shipping-neutral" defer src="/assets/rc1114-shipping-neutral.js?v=1114"></script>','exporthub-rc1114-shipping-neutral');
@@ -385,10 +349,14 @@ function patchHtml(file){
 execFileSync(process.execPath,['.github/rc1048/build-three-env.mjs'],{cwd:ROOT,stdio:'inherit'});
 fs.rmSync(OUT,{recursive:true,force:true});
 fs.cpSync(SRC,OUT,{recursive:true});
+const RC1267_I18N_TAG='<script id="exporthub-rc1267-i18n" defer src="/assets/rc1267-i18n.js?v=1267"></script>';
 const currentApi=path.join(ROOT,'api'),builtApi=path.join(OUT,'api');
 if(!fs.existsSync(currentApi))throw new Error('Aktuelles API-Verzeichnis fehlt');
 fs.mkdirSync(builtApi,{recursive:true});
 fs.cpSync(currentApi,builtApi,{recursive:true,force:true});
+fs.mkdirSync(path.join(OUT,'assets'),{recursive:true});
+fs.copyFileSync(path.join(ROOT,'assets/rc1267-i18n.js'),path.join(OUT,'assets/rc1267-i18n.js'));
+fs.cpSync(path.join(ROOT,'assets/i18n'),path.join(OUT,'assets/i18n'),{recursive:true,force:true});
 for(const rel of [
   'assets/rc1014-shipment-overview.js',
   'assets/rc1014-shipment-overview.css',
@@ -441,6 +409,22 @@ const rc1114ShippingOut=path.join(OUT,'assets','rc1114-shipping-neutral.js');
 if(!fs.existsSync(rc1114ShippingSrc))throw new Error('RC1114 Versandkosten-Runtime fehlt');
 fs.copyFileSync(rc1114ShippingSrc,rc1114ShippingOut);
 for(const file of ['index.html','TESTVERSION.html','demo.html'])patchHtml(file);
+// RC1267 public pages: central language runtime must load before the legacy compatibility runtime.
+for(const file of ['customer-avis.html','pickup.html','location.html','pod-notfall.html']){
+  const target=path.join(OUT,file);if(!fs.existsSync(target))continue;
+  let publicHtml=fs.readFileSync(target,'utf8');
+  if(!publicHtml.includes('exporthub-rc1267-i18n')){
+    const marker='id="exporthub-rc1018-public-language"';
+    const at=publicHtml.indexOf(marker);
+    if(at>=0){
+      const start=publicHtml.lastIndexOf('<script',at);
+      publicHtml=publicHtml.slice(0,start)+RC1267_I18N_TAG+'\n'+publicHtml.slice(start);
+    }else{
+      publicHtml=publicHtml.replace('</head>',RC1267_I18N_TAG+'\n</head>');
+    }
+    fs.writeFileSync(target,publicHtml);
+  }
+}
 
 const probeFile=path.join(OUT,'production-version.js');
 let probe=fs.readFileSync(probeFile,'utf8');

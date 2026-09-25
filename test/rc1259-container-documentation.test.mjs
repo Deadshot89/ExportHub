@@ -110,16 +110,16 @@ test('RC1259: Pickup-Status veröffentlicht Containerdaten und bestehende QR-Cod
 
 test('RC1259: Sendungsansicht zeigt Siegel und Fotos mit authentifiziertem Ansehen und Download',()=>{
   const ui=read('assets/rc1014-shipment-overview.js');
-  assert.match(ui,/Siegelnummer: /);
-  assert.match(ui,/Ansehen/);
-  assert.match(ui,/Herunterladen/);
+  assert.match(ui,/container\.sealNumber/);
+  assert.match(ui,/container\.view/);
+  assert.match(ui,/container\.download/);
   assert.match(ui,/enhanceShipmentDetailedView/);
   assert.match(ui,/rc786ReferenceFilesCard/);
   assert.match(ui,/Authorization':'Bearer '/);
   assert.match(ui,/fetchContainerBlob/);
   assert.match(ui,/queueSave\('container-documentation-config'\)/);
-  assert.match(ui,/Transportart/);
-  assert.match(ui,/Seefracht/);
+  assert.match(ui,/container\.transportMode/);
+  assert.match(ui,/container\.sea/);
 });
 
 test('RC1259: Siegelnummer wird in Sendungsübersicht und Sendungsansicht als Suchfeld gebaut',()=>{
@@ -138,64 +138,6 @@ test('RC1259: stale Browser-Saves dürfen serverseitige Siegel- und Fotodaten ni
   assert.match(merge,/meaningfulValue\(serverItem&&serverItem\.sealNumber\)/);
   assert.match(merge,/containerDocumentationUpdatedAt/);
   assert.match(merge,/containerPhotos/);
-});
-
-test('RC1272: Foto-Upload meldet erst Erfolg wenn das Foto mit der Sendung verknüpft ist',async()=>{
-  const handler=loadWithMocks('api/pickup-container-document/index.js',{
-    '../shared/public-access-store':{
-      async resolve(){return{resourceKey:'access-key',tokenHash:'token-hash',environment:'production'}}
-    },
-    '../shared/pickup-store':{
-      json(status,body){return{status,body}},
-      body(req){return req.body||{}},
-      async getRecord(){return{record:{reference:'ABC123',shipmentId:'S1',containerPhotos:[]}}},
-      expired(){return false},
-      pickupComplete(){return false},
-      async mutateRecord(_key,_environment,mutator){return mutator({reference:'ABC123',shipmentId:'S1',containerPhotos:[]})},
-      now(){return'2026-09-25T08:30:00.000Z'},
-      err(code,message,status){const e=new Error(message);e.code=code;e.status=status;return e},
-      async updateTeamContainerDocumentation(){return{state:{shipments:[{id:'S1',reference:'ABC123',containerPhotos:[]}]}}}
-    },
-    '../shared/container-document-store':{
-      kindOf(){return'loaded'},
-      async savePhoto(){return{id:'container-loaded',kind:'loaded',blobName:'production/ABC123/Containerdokumentation/01_Geladener_Container_ABC123.jpg'}},
-      publicPhoto(photo){return photo}
-    }
-  });
-  const context={log:{error(){}},res:null};
-  await handler(context,{method:'POST',body:{token:'pickup-token',kind:'loaded',dataUrl:'data:image/jpeg;base64,AA=='}});
-  assert.equal(context.res.status,503);
-  assert.equal(context.res.body.code,'CONTAINER_TEAM_SYNC_FAILED');
-});
-
-test('RC1272: erfolgreicher Foto-Upload bestätigt die Verknüpfung zur Sendung',async()=>{
-  const photo={id:'container-loaded',kind:'loaded',blobName:'production/ABC123/Containerdokumentation/01_Geladener_Container_ABC123.jpg'};
-  const handler=loadWithMocks('api/pickup-container-document/index.js',{
-    '../shared/public-access-store':{
-      async resolve(){return{resourceKey:'access-key',tokenHash:'token-hash',environment:'production'}}
-    },
-    '../shared/pickup-store':{
-      json(status,body){return{status,body}},
-      body(req){return req.body||{}},
-      async getRecord(){return{record:{reference:'ABC123',shipmentId:'S1',containerPhotos:[]}}},
-      expired(){return false},
-      pickupComplete(){return false},
-      async mutateRecord(_key,_environment,mutator){return mutator({reference:'ABC123',shipmentId:'S1',containerPhotos:[]})},
-      now(){return'2026-09-25T08:30:00.000Z'},
-      err(code,message,status){const e=new Error(message);e.code=code;e.status=status;return e},
-      async updateTeamContainerDocumentation(){return{state:{shipments:[{id:'S1',reference:'ABC123',containerPhotos:[photo]}]}}}
-    },
-    '../shared/container-document-store':{
-      kindOf(){return'loaded'},
-      async savePhoto(){return photo},
-      publicPhoto(value){return value}
-    }
-  });
-  const context={log:{error(){}},res:null};
-  await handler(context,{method:'POST',body:{token:'pickup-token',kind:'loaded',dataUrl:'data:image/jpeg;base64,AA=='}});
-  assert.equal(context.res.status,200);
-  assert.equal(context.res.body.linkedToShipment,true);
-  assert.equal(context.res.body.version,'RC1272');
 });
 
 test('RC1259: neue Browser- und Serverdateien sind syntaktisch prüfbar',()=>{

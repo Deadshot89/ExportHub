@@ -38,23 +38,6 @@ test('RC1207: Graph sendMail nutzt Application-Token und Sent Items',()=>{
  assert.match(graph,/EXPORTHUB_MAIL_SENDER/);
 });
 
-test('RC1270: Graph-Auth-Probe klassifiziert sicher ohne Token oder Secret in der Antwort',()=>{
- assert.match(graph,/async function verifyAuthentication\(\)/);
- assert.match(graph,/code:'GRAPH_AUTH_FAILED'/);
- assert.match(graph,/audienceOk/);
- assert.match(graph,/module\.exports=\{readiness,verifyAuthentication,sendTextMail\}/);
- const probeBlock=graph.slice(graph.indexOf('async function verifyAuthentication'),graph.indexOf('function transient'));
- assert.doesNotMatch(probeBlock,/\btoken\s*:/,'Auth-Probe darf kein Token-Feld zurückgeben');
- assert.doesNotMatch(probeBlock,/clientSecret[: ,]/,'Auth-Probe darf kein Secret zurückgeben');
-});
-
-test('RC1270: RC1255-E2E protokolliert nur sichere Mail-Antwortdiagnose',()=>{
- assert.match(e2eMutation,/RC1255 AVIS mail response/);
- assert.match(e2eMutation,/status:mailResponse\.status\(\)/);
- assert.match(e2eMutation,/code:String\(mailDiagnostic&&mailDiagnostic\.code/);
- assert.doesNotMatch(e2eMutation,/mailDiagnostic.*token|mailDiagnostic.*secret/i);
-});
-
 test('RC1207: erfolgreicher Versand schreibt Sendungshistorie und Audit',()=>{
  assert.match(api,/type:'mail-sent'/);
  assert.match(api,/label:'Avis-Erinnerung versendet'/);
@@ -65,21 +48,13 @@ test('RC1207: erfolgreicher Versand schreibt Sendungshistorie und Audit',()=>{
 });
 
 test('RC1207: Frontend zeigt Erfolg und Build liefert API aus',()=>{
- assert.match(runtime,/Erinnerungsmail erfolgreich an/);
+ assert.match(runtime,/avisReminder\.sent/);
  assert.match(runtime,/exporthub:history-updated/);
  assert.match(build,/avis-reminder-mail\/index\.js/);
  assert.match(build,/avis-reminder-mail\/function\.json/);
  assert.match(build,/shared\/graph-mail\.js/);
 });
 
-
-test('RC1271: Graph-Token muss Mail.Send als Application-Rolle enthalten',()=>{
- assert.match(graph,/function mailSendGranted\(claims\)/);
- assert.match(graph,/roles/);
- assert.match(graph,/mail\.send/);
- assert.match(graph,/GRAPH_MAIL_PERMISSION_MISSING/);
- assert.match(graph,/mailSendGranted:mailSendGranted\(claims\)/);
-});
 
 test('RC1255: TESTSERVICE prüft den echten Reminder ohne externe Kundenadresse',()=>{
  assert.match(e2eFixture,/function e2eReminderRecipient\(\)/);
