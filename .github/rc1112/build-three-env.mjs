@@ -259,6 +259,42 @@ function patchRc1259ContainerSearch(html,file){
   return html;
 }
 
+function patchCompletePrintBundle(html,file){
+  const loadStart=html.indexOf('function loadHtml(sh,withQr){');
+  const loadEnd=loadStart<0?-1:html.indexOf('function documentCacheKey',loadStart);
+  if(loadStart<0||loadEnd<0)throw new Error(file+': RC1274 Ladelisten-/CMR-Druckmodul fehlt');
+  let block=html.slice(loadStart,loadEnd);
+
+  const copyOld="withQr?'1 / 1 · mit QR-Code':'ohne QR-Code'";
+  const copyNew="withQr?'1 / 2 · mit QR-Code':'2 / 2 · ohne QR-Code'";
+  if(!block.includes(copyOld)&&!block.includes(copyNew))throw new Error(file+': RC1274 Ladelisten-Seitenkennzeichnung fehlt');
+  block=block.replace(copyOld,copyNew);
+
+  const cmrOld="for(var i=1;i<=3;i++){";
+  const cmrNew="for(var i=1;i<=4;i++){";
+  if(!block.includes(cmrOld)&&!block.includes(cmrNew))throw new Error(file+': RC1274 CMR-Ausfertigungszähler fehlt');
+  block=block.replace(cmrOld,cmrNew);
+  block=block.replace("'CMR '+i+' / 3</div></div>'","'CMR '+i+' / 4</div></div>'");
+
+  html=html.slice(0,loadStart)+block+html.slice(loadEnd);
+
+  const bundleOld="+coverHtml(sh)+loadHtml(sh,true)+cmrHtml(sh)+";
+  const bundleNew="+coverHtml(sh)+loadHtml(sh,true)+loadHtml(sh,false)+cmrHtml(sh)+";
+  if(!html.includes(bundleOld)&&!html.includes(bundleNew))throw new Error(file+': RC1274 Gesamtdruck-Bundle-Anker fehlt');
+  html=html.replace(bundleOld,bundleNew);
+
+  const pagesOld="return[d.cover,d.load1].concat(d.cmrs.slice(0,3)).filter(Boolean)";
+  const pagesNew="return[d.cover,d.load1,d.load2].concat(d.cmrs.slice(0,4)).filter(Boolean)";
+  if(!html.includes(pagesOld)&&!html.includes(pagesNew))throw new Error(file+': RC1274 Gesamtdruck-Seitenauswahl fehlt');
+  html=html.replace(pagesOld,pagesNew);
+
+  if(!html.includes("loadHtml(sh,true)+loadHtml(sh,false)+cmrHtml(sh)"))throw new Error(file+': RC1274 L2 fehlt im Gesamtdruck');
+  if(!html.includes("return[d.cover,d.load1,d.load2].concat(d.cmrs.slice(0,4)).filter(Boolean)"))throw new Error(file+': RC1274 Druckreihenfolge ist unvollständig');
+  if(!html.includes("withQr?'1 / 2 · mit QR-Code':'2 / 2 · ohne QR-Code'"))throw new Error(file+': RC1274 L1/L2-Kennzeichnung fehlt');
+  if(!html.includes("for(var i=1;i<=4;i++){")||!html.includes("'CMR '+i+' / 4</div></div>'"))throw new Error(file+': RC1274 vier CMR-Ausfertigungen fehlen');
+  return html;
+}
+
 function patchHtml(file){
   const target=path.join(OUT,file);
   let html=fs.readFileSync(target,'utf8');
@@ -270,6 +306,7 @@ function patchHtml(file){
   html=patchTaskMasterSaveScope(html,file);
   html=patchTaskDetailTab(html,file);
   html=patchRc1259ContainerSearch(html,file);
+  html=patchCompletePrintBundle(html,file);
   html=patchDeckblattHighVisibility(html,file);
   html=patchRc1203ActualDeckblatt(html,file);
   html=patchShipmentSuspendSave(html,file);
