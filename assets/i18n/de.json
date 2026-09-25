@@ -1082,5 +1082,12 @@
   "sop.081.flow4": "Buchen",
   "sop.081.flow5": "Bestand prüfen",
   "abd.mailPending": "WICHTIG – ABD NOCH NICHT VORHANDEN\nDas Ausfuhrbegleitdokument (ABD) liegt noch nicht vor. Voraussichtliche Bereitstellung: {{expected}} gegen 10:00 Uhr. Die Abholung kann bereits gebucht werden, jedoch frühestens für {{minimum}} ab 10:00 Uhr.",
-  "mail.closing": "Mit freundlichen Grüßen"
+  "mail.closing": "Mit freundlichen Grüßen",
+  "loadingList.title": "Ladeliste suchen",
+  "loadingList.description": "Suche nach Referenznummer, Kunde, Anhang/Dateiname oder Bemerkung.",
+  "loadingList.placeholder": "Referenz, Kunde, Anhang oder Bemerkung",
+  "loadingList.selected": "Ausgewählt:",
+  "loadingList.noneSelected": "Noch keine Ladeliste ausgewählt.",
+  "loadingList.hint": "Referenz, Kunde, Anhang/Dateiname oder Bemerkung eingeben.",
+  "loadingList.noResults": "Keine passende Ladeliste gefunden."
 }
