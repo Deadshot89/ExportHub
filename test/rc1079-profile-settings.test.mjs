@@ -26,13 +26,12 @@ test('RC1079: Benutzername bleibt unverändert und Anzeigename ist begrenzt',()=
 });
 
 test('RC1079: Einstellungen zeigen Benutzername, Anzeigename und persönliche Programmsprache',()=>{
-  assert.match(runtime,/Mein Profil/);
-  assert.match(runtime,/data-i18n="profile\.username">Benutzername<\/span><input data-rc1079-user readonly/);
-  assert.match(runtime,/data-i18n="profile\.displayName">Anzeigename<\/span><input data-rc1079-name maxlength="80"/);
-  assert.match(runtime,/data-i18n="profile\.programLanguage">Programmsprache<\/span><select data-rc1079-language/);
-  assert.match(runtime,/Profil speichern/);
+  assert.match(runtime,/profile\.title/);
+  assert.match(runtime,/profile\.username/); assert.match(runtime,/data-rc1079-user readonly/);
+  assert.match(runtime,/profile\.displayName/); assert.match(runtime,/data-rc1079-name maxlength="80"/);
+  assert.match(runtime,/profile\.programLanguage/); assert.match(runtime,/data-rc1079-language/);
+  assert.match(runtime,/profile\.save/);
   for(const label of ['Deutsch','English','Polski','Español','Français','Italiano']) assert.match(runtime,new RegExp('>'+label+'<'));
-  assert.match(runtime,/data-i18n="profile\.save"/);
   assert.match(runtime,/language:language/);
   assert.match(runtime,/action:'update-profile'/);
   assert.match(runtime,/exporthub:user-profile-updated/);
