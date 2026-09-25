@@ -240,5 +240,7 @@
   "api.pod.archiveStateIncomplete": "The archive status is incomplete and will be rebuilt.",
   "api.pod.archiveNotFound": "The confirmed POD archive copy is missing and will be recreated.",
   "api.pdf.activeContent": "PDFs with active or embedded content are not allowed ({{label}}).",
-  "api.location.siteRequired": "Location/customer is required."
+  "api.location.siteRequired": "Location/customer is required.",
+  "api.container.teamSyncUnavailable": "Container photo could not be linked to the shipment.",
+  "api.container.teamSyncFailed": "The container photo was saved but could not be linked to the shipment. Please try again."
 }
