@@ -38,7 +38,14 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
           load1Count:document.querySelectorAll('.rc390-load.rc576-load1').length,
           load2Count:document.querySelectorAll('.rc390-load.rc576-load2').length,
           cmrCount:document.querySelectorAll('.rc390-cmr-wrap').length,
-          cmrLabels:Array.from(document.querySelectorAll('.rc390-cmr-copy')).map(node=>String(node.textContent||'').trim())
+          cmrLabels:Array.from(document.querySelectorAll('.rc390-cmr-copy')).map(node=>String(node.textContent||'').trim()),
+          pages:Array.from(document.querySelectorAll('.rc390-page,.rc352-page')).map(node=>({
+            textLength:String(node.innerText||node.textContent||'').trim().length,
+            scrollHeight:Number(node.scrollHeight||0),
+            clientHeight:Number(node.clientHeight||0),
+            scrollWidth:Number(node.scrollWidth||0),
+            clientWidth:Number(node.clientWidth||0)
+          }))
         };
       }catch(_){}
     };
@@ -117,8 +124,64 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
   expect(capture.cmrCount).toBe(4);
   expect(capture.cmrLabels.join(' ')).toMatch(/CMR\s*4\s*\/\s*4/i);
   expect(capture.text).toMatch(/Warenbeschreibung/i);
+  expect(capture.pages.length).toBeGreaterThanOrEqual(7);
+  expect(capture.pages.every(p=>p.textLength>40),'Gesamtdruck enthält eine leere oder praktisch leere Dokumentseite').toBe(true);
+  expect(capture.pages.every(p=>p.clientHeight<=0||p.scrollHeight<=p.clientHeight+4),'Gesamtdruck enthält vertikal abgeschnittene Inhalte').toBe(true);
+  expect(capture.pages.every(p=>p.clientWidth<=0||p.scrollWidth<=p.clientWidth+4),'Gesamtdruck enthält horizontal abgeschnittene Inhalte').toBe(true);
 
   await assertNoSourceLeak(page);
   await assertNoHorizontalOverflow(page);
   for(const guard of guards)await assertRuntimeClean(guard,testInfo);
 });
+
+test('RC1275 P1: Europaletten erscheinen im echten Ladelisten-Druck als Palettenkonto-Ausgang',async({page,context},testInfo)=>{
+  test.skip(testInfo.project.name!=='laptop','Palettenkonto-Druckabnahme läuft einmal auf dem Laptop-Profil.');
+  test.setTimeout(60_000);
+
+  await context.addInitScript(()=>{
+    window.__RC1275_PALLET_PRINT_CAPTURE__=null;
+    const capture=()=>{try{window.__RC1275_PALLET_PRINT_CAPTURE__={
+      text:String(document.body&&document.body.innerText||''),
+      html:String(document.documentElement&&document.documentElement.outerHTML||'')
+    }}catch(_){}};
+    try{Object.defineProperty(window,'print',{configurable:true,writable:true,value:capture})}catch(_){try{window.print=capture}catch(__){}}
+  });
+
+  const guard=attachRuntimeGuards(page,testInfo);
+  await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
+  await waitReady(page);
+  await openExportHubView(page,'documents',['Ladeliste & CMR','Dokumente & CMR','Dokumente','CMR'],/Ladeliste|CMR|Dokument/i,{allowProgrammaticFallback:true});
+
+  const shipmentSelect=page.getByRole('combobox',{name:'Sendung auswählen'}).first();
+  await expect(shipmentSelect).toBeVisible({timeout:10_000});
+  const optionLabels=await shipmentSelect.locator('option').allTextContents();
+  const palletShipment=optionLabels.find(label=>/DEMO01|Nord/i.test(label));
+  expect(palletShipment,'Fake-Europaletten-Sendung DEMO01 fehlt im lokalen Demo-Artefakt').toBeTruthy();
+  await shipmentSelect.selectOption({label:palletShipment});
+  await expect(page.locator('#content')).toContainText(/DEMO01/,{timeout:10_000});
+
+  let printButton=page.locator('[data-index352-action="print-all"]').first();
+  if(!(await printButton.count())||!(await printButton.isVisible().catch(()=>false))){
+    printButton=page.locator('button,a,[role="button"]').filter({hasText:/Gesamtausgabe\s*drucken|Gesamtdruck/i}).first();
+  }
+  await expect(printButton).toBeVisible({timeout:10_000});
+  await printButton.click({timeout:10_000});
+
+  let capture=null;
+  await expect.poll(async()=>{
+    for(const p of context.pages()){
+      for(const frame of p.frames()){
+        const value=await frame.evaluate(()=>window.__RC1275_PALLET_PRINT_CAPTURE__||null).catch(()=>null);
+        if(value&&String(value.html||'').length>500){capture=value;return value.html.length}
+      }
+    }
+    await sleep(100);
+    return 0;
+  },{timeout:20_000,message:'Palettenkonto-Druck hat keinen druckbaren Dokumentkontext erzeugt'}).toBeGreaterThan(500);
+
+  expect(capture.text).toMatch(/Palettenkonto/i);
+  expect(capture.text).toMatch(/Ausgang:\s*2\s*Europaletten/i);
+  expect(capture.html).toMatch(/rc1095-pallet-account/i);
+  await assertRuntimeClean(guard,testInfo);
+});
+
