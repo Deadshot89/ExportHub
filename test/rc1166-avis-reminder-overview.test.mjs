@@ -40,9 +40,9 @@ test('RC1207: Runtime ist syntaktisch gültig und nutzt direkten authentifiziert
   assert.match(runtime,/X-ExportHUB-Session/);
   assert.match(runtime,/["']Authorization["']:'Bearer '\+t/);
   assert.doesNotMatch(runtime,/function\s+mailto\s*\(|href\s*=\s*['\"]?mailto:|\.href\s*=\s*mailto/i);
-  assert.match(runtime,/Erinnerungsmail senden/);
-  assert.match(runtime,/Erinnerungsmail erfolgreich an/);
-  assert.match(runtime,/Sendungshistorie protokolliert/);
+  assert.match(runtime,/avisReminder\.send/);
+  assert.match(runtime,/avisReminder\.sent/);
+  assert.match(runtime,/avisReminder\.footer/);
 });
 
 test('RC1166: sichere Avis-Links werden nur vor Abholung und nicht für Ausnahmekunden angeboten',()=>{
@@ -98,12 +98,12 @@ test('RC1207: Direktversand übergibt nur strukturierte Felder an den Mail-Endpu
 });
 
 test('RC1166: Übersicht zeigt einen blauen Aktionsbutton und eine Empfängerauswahl',()=>{
-  assert.match(runtime,/Avis-Erinnerung senden/);
+  assert.match(runtime,/avisReminder\.button/);
   assert.match(runtime,/rc1166-reminder-btn/);
   assert.match(runtime,/background:#2563eb/);
-  assert.match(runtime,/Empfängergruppe/);
-  assert.match(runtime,/>Kunde</);
-  assert.match(runtime,/>Spedition</);
+  assert.match(runtime,/avisReminder\.targetGroup/);
+  assert.match(runtime,/avisReminder\.customer/);
+  assert.match(runtime,/avisReminder\.carrier/);
   assert.match(runtime,/>Deutsch</);
   assert.match(runtime,/>English</);
   assert.match(runtime,/data-recipient/);
