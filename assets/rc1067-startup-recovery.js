@@ -3,6 +3,7 @@
 if(w.__EXPORTHUB_RC1067_STARTUP_RECOVERY__)return;w.__EXPORTHUB_RC1067_STARTUP_RECOVERY__=true;
 var KEY='exporthub_rc301_tab_session',TIMER=null;
 function q(v){return String(v==null?'':v).trim()}
+function tr(key,vars,fallback){try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.t==='function'){var v=w.ExportHUBI18n.t(key,vars);if(v&&v!==key)return v}}catch(_){}return fallback||key}
 function low(v){return q(v).toLowerCase()}
 function session(){
  try{var raw=w.sessionStorage&&w.sessionStorage.getItem(KEY);if(raw){var x=JSON.parse(raw);if(x&&x.token)return x}}catch(_){}
@@ -20,7 +21,7 @@ function environment(){return /-testservice\./i.test(String(w.location&&w.locati
 function recoveryUrl(){return '/migration-recovery.html?environment='+encodeURIComponent(environment())+'&return='+encodeURIComponent((w.location&&w.location.pathname)||'/')+'&_='+Date.now()}
 function addManualLink(){
  if(!w.document||!w.document.body||w.document.getElementById('rc1067MigrationRecoveryLink'))return;
- var b=w.document.createElement('button');b.id='rc1067MigrationRecoveryLink';b.type='button';b.textContent='Speicheroptimierung öffnen';
+ var b=w.document.createElement('button');b.id='rc1067MigrationRecoveryLink';b.type='button';b.textContent=tr('startup.openStorageOptimization',null,'Open storage optimization');
  b.style.cssText='position:fixed;right:20px;bottom:20px;z-index:2147483000;border:0;border-radius:12px;padding:11px 15px;background:#0f172a;color:#fff;font-weight:800;box-shadow:0 8px 28px rgba(15,23,42,.24);cursor:pointer';
  b.onclick=function(){w.location.href=recoveryUrl()};w.document.body.appendChild(b)
 }
