@@ -2,6 +2,7 @@
 'use strict';
 if(window.__EXPORTHUB_RC1049_ABD_AVIS_POLICY__)return;window.__EXPORTHUB_RC1049_ABD_AVIS_POLICY__=true;
 function q(v){return String(v==null?'':v).trim()}
+function tr(key,vars){try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.t==='function')return w.ExportHUBI18n.t(key,vars)}catch(_){}return key}
 function state(){try{if(typeof window.__EXPORTHUB_GET_STATE__==='function')return window.__EXPORTHUB_GET_STATE__()||{}}catch(_){}return window.ExportHUBClean&&window.ExportHUBClean.state||window.appState||{}}
 function shipment(){try{if(typeof window.__EXPORTHUB_GET_ACTIVE_SHIPMENT__==='function'){var x=window.__EXPORTHUB_GET_ACTIVE_SHIPMENT__();if(x&&typeof x==='object')return x}}catch(_){}var s=state();return s.currentShipment||s.shipment||s.selectedShipment||null}
 function refOf(sh){return q(sh&&(sh.ref||sh.reference||sh.shipmentRef||sh.referenceNumber||sh.referenceNo||sh.id||sh.shipmentId)).toUpperCase()}
