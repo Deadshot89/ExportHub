@@ -22,7 +22,7 @@ test('RC1281: rc390-Deckblattdruck ist weiß, reduziert und drucksicher',()=>{
 test('RC1203: Bemerkung aus Sendungsdaten wird immer als eigener Deckblattblock ausgegeben',()=>{
   assert.match(runtime,/sh\.remark,sh\.remarks,sh\.bemerkung,sh\.comments/);
   assert.match(runtime,/data-rc1203-cover-remark/);
-  assert.match(runtime,/title\.textContent='Bemerkung'/);
+  assert.match(runtime,/title\.textContent=tr\('coverPrint\.remark'\)/);
   assert.match(runtime,/body\.textContent=value/);
   assert.match(runtime,/data-rc896-field="remark"/);
   assert.match(runtime,/data-rc1203-remark-value/);
@@ -50,7 +50,7 @@ test('RC1281: Erstellungsdatum stammt aus dem gespeicherten Sendungszeitpunkt un
 });
 
 test('RC1205: genau eine zusätzliche Deckblatt-Aktion bleibt übrig',()=>{
-  assert.match(runtime,/Nur Deckblatt drucken/);
+  assert.match(runtime,/coverPrint\.only/);
   assert.doesNotMatch(runtime,/Nur CMR drucken/);
   assert.match(runtime,/return d\.querySelector\('#rc363BlockActions'\)/);
   assert.match(runtime,/removeLegacyExtraButtons/);
