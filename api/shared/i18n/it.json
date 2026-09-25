@@ -249,5 +249,6 @@
   "api.location.actionFailed": "Operazione di magazzino non riuscita.",
   "api.container.photoLabel.loaded": "Container caricato",
   "api.container.photoLabel.number": "Numero del container dall’interno",
-  "api.container.photoLabel.sealed": "Container sigillato · sigillo/marcature/documenti"
+  "api.container.photoLabel.sealed": "Container sigillato · sigillo/marcature/documenti",
+  "api.fixedPickups.failed": "Non è stato possibile elaborare i ritiri fissi."
 }
