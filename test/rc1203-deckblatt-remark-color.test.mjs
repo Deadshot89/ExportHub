@@ -39,10 +39,13 @@ test('RC1281: Referenz und Empfänger folgen der Essentra-/Kunden-Farbregel',()=
   assert.match(runtime,/data-rc1203-reference-highlight/);
 });
 
-test('RC1281: Erstellungsdatum stammt aus dem gespeicherten Sendungszeitpunkt',()=>{
+test('RC1281: Erstellungsdatum stammt aus dem gespeicherten Sendungszeitpunkt und erzeugt keinen Renderloop',()=>{
   assert.match(runtime,/sh\.createdAt,sh\.createdDateTime,sh\.createdOn,sh\.createdDate,sh\.created/);
   assert.match(runtime,/Sendung erstellt/);
   assert.match(runtime,/data-rc1281-created-date/);
+  assert.match(runtime,/data-rc1281-created-value/);
+  assert.match(runtime,/stored===value/);
+  assert.match(runtime,/Sendungsdaten\/i\.test\(current\).*Erstellt am\|Sendung erstellt/);
   assert.match(build,/created=dateDe\(sh&&\(sh\.createdAt\|\|sh\.createdDateTime\|\|sh\.createdOn\|\|sh\.createdDate\|\|sh\.created\)\)/);
 });
 
