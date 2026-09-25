@@ -205,5 +205,22 @@
   "api.pickup.photosRequired": "Les 3 photos du conteneur doivent être enregistrées pour cette expédition maritime.",
   "api.pickup.confirmFailed": "L’enlèvement n’a pas pu être confirmé.",
   "api.pickup.disabled": "Ce QR code a été désactivé.",
-  "api.pickup.statusLoadFailed": "Le statut de l’enlèvement n’a pas pu être chargé."
+  "api.pickup.statusLoadFailed": "Le statut de l’enlèvement n’a pas pu être chargé.",
+  "api.container.readForbidden": "Vous ne disposez pas du droit de lecture des photos du conteneur.",
+  "api.container.referenceRequired": "La référence de l’expédition est manquante.",
+  "api.container.shipmentNotFound": "L’expédition n’a pas été trouvée.",
+  "api.container.photoNotFound": "La photo du conteneur n’a pas été trouvée.",
+  "api.container.photoLoadFailed": "La photo du conteneur n’a pas pu être chargée.",
+  "api.container.photoSaveFailed": "La photo du conteneur n’a pas pu être enregistrée.",
+  "api.document.environmentMismatchTest": "Une requête TESTSERVICE ne doit pas accéder aux données de production.",
+  "api.document.environmentMismatchProduction": "Le site de production ne doit pas accéder aux données TESTSERVICE.",
+  "api.document.referenceInvalid": "La référence du document n’est pas valide.",
+  "api.document.environmentMismatch": "Le document appartient à un autre environnement de données ExportHUB.",
+  "api.document.loadFailed": "Le document n’a pas pu être chargé.",
+  "api.readiness.environmentRequired": "L’environnement est manquant.",
+  "api.readiness.testProductionMismatch": "TESTSERVICE ne doit pas confirmer la disponibilité de la production.",
+  "api.readiness.productionTestMismatch": "La production ne doit pas confirmer la disponibilité de TESTSERVICE.",
+  "api.readiness.oidcKeysFailed": "Les clés OIDC GitHub n’ont pas pu être chargées.",
+  "api.readiness.workflowRequired": "La disponibilité ne peut être vérifiée que par le workflow de publication ExportHUB signé.",
+  "api.readiness.failed": "La vérification de disponibilité a échoué."
 }
