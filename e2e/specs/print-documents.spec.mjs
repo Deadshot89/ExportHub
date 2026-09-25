@@ -157,26 +157,13 @@ test('RC1281 P2: Essentra-Deckblatt ist weiß mit gelber Referenz und hellgelbem
 
   await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
   await waitReady(page);
-
-  const prepared=await page.evaluate(()=>{
-    const state=typeof window.__EXPORTHUB_GET_STATE__==='function'?window.__EXPORTHUB_GET_STATE__():null;
-    if(!state)return false;
-    const shipments=Array.isArray(state.shipments)?state.shipments:[],customers=Array.isArray(state.customers)?state.customers:[];
-    const shipment=shipments.find(item=>String(item&& (item.ref||item.reference)||'').toUpperCase()==='DEMO01');
-    if(!shipment)return false;
-    const customer=customers.find(item=>String(item&&item.id||'')===String(shipment.customerId||''));
-    shipment.customerName='Essentra Components Sweden AB';
-    if(customer){customer.name='Essentra Components Sweden AB';customer.customerName='Essentra Components Sweden AB'}
-    return true;
-  });
-  expect(prepared,'DEMO01 konnte nicht als Essentra-Sendung vorbereitet werden').toBe(true);
-
   await openExportHubView(page,'documents',['Ladeliste & CMR','Dokumente & CMR','Dokumente','CMR'],/Ladeliste|CMR|Dokument/i,{allowProgrammaticFallback:true});
+
   const shipmentSelect=page.getByRole('combobox',{name:'Sendung auswählen'}).first();
   await expect(shipmentSelect).toBeVisible({timeout:10_000});
   const optionLabels=await shipmentSelect.locator('option').allTextContents();
-  const shipmentLabel=optionLabels.find(label=>/DEMO01/i.test(label));
-  expect(shipmentLabel,'DEMO01 fehlt in der Dokumentauswahl').toBeTruthy();
+  const shipmentLabel=optionLabels.find(label=>/DEMO03|Essentra|Fake Export/i.test(label));
+  expect(shipmentLabel,'Essentra-Demo-Sendung DEMO03 fehlt in der Dokumentauswahl').toBeTruthy();
   await shipmentSelect.selectOption({label:shipmentLabel});
 
   const coverTab=page.locator('[data-index352-doc="cover"]').first();
@@ -211,7 +198,6 @@ test('RC1281 P2: Essentra-Deckblatt ist weiß mit gelber Referenz und hellgelbem
   await assertNoHorizontalOverflow(page);
   await assertRuntimeClean(guard,testInfo);
 });
-
 
 test('RC1275 P1: Europaletten erscheinen im echten Ladelisten-Druck als Palettenkonto-Ausgang',async({page,context},testInfo)=>{
   test.skip(testInfo.project.name!=='laptop','Palettenkonto-Druckabnahme läuft einmal auf dem Laptop-Profil.');
