@@ -1084,5 +1084,17 @@
   "abd.mailPending": "IMPORTANTE – IL DOCUMENTO DI ESPORTAZIONE (ABD) NON È ANCORA DISPONIBILE\nL’ABD dovrebbe essere disponibile il {{expected}} verso le 10:00. Il ritiro può già essere prenotato, ma non prima del {{minimum}} alle 10:00.",
   "mail.closing": "Cordiali saluti",
   "container.sealInput": "Numero del sigillo",
-  "container.sealPlaceholder": "ad es. ABCD123456"
+  "container.sealPlaceholder": "ad es. ABCD123456",
+  "loadingList.title": "Cerca lista di carico",
+  "loadingList.subtitle": "Cerca per numero di riferimento, cliente, allegato/nome file o nota.",
+  "loadingList.ariaLabel": "Cerca lista di carico",
+  "loadingList.placeholder": "Riferimento, cliente, allegato o nota",
+  "loadingList.searchHint": "Inserisci un riferimento, cliente, allegato/nome file o nota.",
+  "loadingList.noMatch": "Nessuna lista di carico corrispondente trovata.",
+  "loadingList.selectedPrefix": "Selezionato:",
+  "loadingList.noneSelected": "Nessuna lista di carico selezionata.",
+  "loadingList.open": "Apri",
+  "loadingList.print": "Stampa",
+  "loadingList.download": "Scarica",
+  "loadingList.shipmentSelectLabel": "Seleziona spedizione"
 }
