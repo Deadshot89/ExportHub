@@ -15,9 +15,9 @@ test('RC1126: Kundenlöschung ist nur für Kunden-Admins sichtbar und zweistufig
   assert.match(runtime,/rights\.customers\|\|\{\}/);
   assert.match(runtime,/rights\.customerfolder\|\|\{\}/);
   assert.match(runtime,/functionAdmin/);
-  assert.match(runtime,/Kunde löschen/);
-  assert.match(runtime,/Endgültig löschen/);
-  assert.match(runtime,/Nur für doppelt oder falsch angelegte Kunden/);
+  assert.match(runtime,/customerDelete\.title/);
+  assert.match(runtime,/customerDelete\.finalDelete/);
+  assert.match(runtime,/customerDelete\.help/);
 });
 
 test('RC1126: Löschen setzt Kunden-Tombstone und protokolliert die Aktion',()=>{
