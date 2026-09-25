@@ -24,7 +24,9 @@ test('RC1190: Gesamtdruck-Browserabnahme benutzt die echte UI-Aktion und echten 
 
 test('RC1190: Browserabnahme verwendet die lokale Fake-Benelux-Sendung ohne Servermutation',()=>{
   assert.match(spec,/DEMO02\|Benelux/);
-  assert.match(spec,/selectOption/);
+  assert.match(spec,/selectLoadingListShipment/);
+  assert.match(spec,/Ladeliste suchen/);
+  assert.match(spec,/data-rc1283-result/);
   assert.match(spec,/capture\.text\)\.toContain\('DEMO02'\)/);
   assert.match(spec,/attachRuntimeGuards/);
   assert.match(spec,/assertRuntimeClean/);
