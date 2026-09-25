@@ -316,7 +316,8 @@ function patchRc1283LoadingListSearch(html,file){
     html=html.replace(anchor,bridge+'\n'+anchor);
   }
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1283-loading-list-search" defer src="/assets/rc1283-loading-list-search.js?v=1283-6"></script>','exporthub-rc1283-loading-list-search');
-  if(!html.includes('__EXPORTHUB_RC1283_OPEN_LOAD1__'))throw new Error(file+': RC1283 Ladelisten-Öffnen/Drucken-Bridge fehlt');\n  if(!html.includes('__EXPORTHUB_RC1283_DOWNLOAD_LOAD1__'))throw new Error(file+': RC1283 Ladelisten-Download-Bridge fehlt');
+  if(!html.includes('__EXPORTHUB_RC1283_OPEN_LOAD1__'))throw new Error(file+': RC1283 Ladelisten-Öffnen/Drucken-Bridge fehlt');
+  if(!html.includes('__EXPORTHUB_RC1283_DOWNLOAD_LOAD1__'))throw new Error(file+': RC1283 Ladelisten-Download-Bridge fehlt');
   if(!html.includes('assets/rc1283-loading-list-search.js?v=1283-6'))throw new Error(file+': RC1283 Ladelisten-Suche fehlt');
   return html;
 }
