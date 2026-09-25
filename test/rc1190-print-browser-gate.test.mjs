@@ -14,7 +14,7 @@ test('RC1190: Gesamtdruck-Browserabnahme benutzt die echte UI-Aktion und echten 
   assert.match(spec,/__RC1190_PRINT_CAPTURE__/);
   assert.match(spec,/for\(const frame of p\.frames\(\)\)/);
   assert.match(spec,/\\brc390-cover\\b/);
-  for(const marker of ['Ladeliste','CMR','Warenbeschreibung'])assert.ok(spec.includes(marker),marker+' fehlt in der Browserabnahme');
+  for(const marker of ['Ladeliste','Ladeliste\\s*1','Ladeliste\\s*2','CMR','Warenbeschreibung'])assert.ok(spec.includes(marker),marker+' fehlt in der Browserabnahme');
 });
 
 test('RC1190: Browserabnahme verwendet die lokale Fake-Benelux-Sendung ohne Servermutation',()=>{
