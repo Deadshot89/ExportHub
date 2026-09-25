@@ -25,7 +25,7 @@ function makeRoot(extra={}){
     __EXPORTHUB_FORCED_ENVIRONMENT__:extra.environment||'production',
     __EXPORTHUB_GET_STATE__:()=>state,
     __EXPORTHUB_GET_CURRENT_USER__:()=>({name:'Admin Test'}),
-    ExportHUBClean:{runtime:cleanRuntime,queueSave:r=>{calls.push(['queue',r]);return true},flushSave:(r,opt)=>{calls.push(['flush',r,opt]);var result=flushResults&&flushResults.length?flushResults.shift():true;if(result===true&&cleanRuntime)cleanRuntime.lastSavedGeneration=Number(cleanRuntime.changeGeneration||0);return result}},
+    ExportHUBClean:{runtime:cleanRuntime,native:extra.cleanNative||null,queueSave:r=>{calls.push(['queue',r]);return true},flushSave:(r,opt)=>{calls.push(['flush',r,opt]);var result=flushResults&&flushResults.length?flushResults.shift():true;if(result===true&&cleanRuntime)cleanRuntime.lastSavedGeneration=Number(cleanRuntime.changeGeneration||0);return result}},
     canAdmin:()=>extra.admin!==false,confirm:()=>true,alert(){},document:doc,location:{hostname:'prod.test',pathname:'/'},
     addEventListener(){},setTimeout(){return 1},clearTimeout(){},console:{error(){}},
     rc542RenderPallet(){return false},rc542AddPalletBooking(){return state.rc542PalDirection}
@@ -94,7 +94,7 @@ test('RC1287: Palettenkonto wiederholt unbestätigten Flush forciert bis Azure b
   const x=makeRoot({
     flushResults:[false,true],
     cleanRuntime:{changeGeneration:7,lastSavedGeneration:0,saving:false},
-    root:{setTimeout(fn){fn();return 1}},
+    cleanNative:{setTimeout(fn){fn();return 1}},
     state:{
       palletAccount:[{id:'PAL-RETRY',date:'2026-09-21',direction:'Eingang',count:2}],
       palletSettlements:[],auditLog:[],_teamSyncMeta:{fields:{},tombstones:[]}
