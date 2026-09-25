@@ -1082,5 +1082,12 @@
   "sop.081.flow4": "Registrar",
   "sop.081.flow5": "Comprobar saldo",
   "abd.mailPending": "IMPORTANTE – EL DOCUMENTO DE EXPORTACIÓN (ABD) AÚN NO ESTÁ DISPONIBLE\nSe prevé que el ABD esté disponible el {{expected}} aproximadamente a las 10:00. La recogida ya puede reservarse, pero no antes del {{minimum}} a las 10:00.",
-  "mail.closing": "Saludos cordiales"
+  "mail.closing": "Saludos cordiales",
+  "loadingList.title": "Buscar lista de carga",
+  "loadingList.description": "Buscar por número de referencia, cliente, adjunto/nombre de archivo u observación.",
+  "loadingList.placeholder": "Referencia, cliente, adjunto u observación",
+  "loadingList.selected": "Seleccionado:",
+  "loadingList.noneSelected": "Aún no se ha seleccionado ninguna lista de carga.",
+  "loadingList.hint": "Introduzca referencia, cliente, adjunto/nombre de archivo u observación.",
+  "loadingList.noResults": "No se encontró ninguna lista de carga coincidente."
 }
