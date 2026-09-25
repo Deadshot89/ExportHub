@@ -36,3 +36,37 @@ test('RC1260: Produktionsdeploy bleibt hinter dem harten TESTSERVICE-Gate',()=>{
   const prod=workflow.indexOf('- name: Deploy ExportHUB production');
   assert.ok(hard>=0&&prod>hard);
 });
+
+
+test('RC1279: bekannte Mail.Send-Berechtigungslücke blockiert weder TESTSERVICE noch Produktion',()=>{
+  for(const [name,env] of [
+    ['RC1249 TESTSERVICE AVIS-Mail-Konfiguration prüfen','testservice'],
+    ['RC1249 PRODUCTION AVIS-Mail-Konfiguration prüfen','production']
+  ]){
+    const start=workflow.indexOf('- name: '+name);
+    const end=workflow.indexOf('\n      - name:',start+10);
+    assert.ok(start>=0&&end>start,name+' fehlt');
+    const block=workflow.slice(start,end);
+    assert.match(block,new RegExp("ENVIRONMENT='"+env+"'"));
+    assert.match(block,/status===503/);
+    assert.match(block,/GRAPH_MAIL_PERMISSION_MISSING/);
+    assert.match(block,/recipientConfigured===true/);
+    assert.match(block,/knownMailSendBlocker/);
+    assert.match(block,/::warning title=RC1249 AVIS-Mail P2::/);
+    assert.match(block,/Release läuft weiter; RC1255 bleibt offen/);
+    assert.doesNotMatch(block,/if \[ "\$status" != "200" \]; then cat "\$response"; exit 1; fi/);
+  }
+});
+
+test('RC1279: unerwartete AVIS-Mail-Readiness bleibt ein harter Releasefehler',()=>{
+  const markers=[
+    "const ready=status===200",
+    "v.configured===true",
+    "v.authenticated===true",
+    "v.audienceOk===true",
+    "v.mailSendGranted===true",
+    "console.error('RC1249 '+env+' readiness unerwartet'",
+    "process.exit(1);"
+  ];
+  for(const marker of markers)assert.ok(workflow.includes(marker),'Fehlender RC1279 Fail-closed-Marker: '+marker);
+});
