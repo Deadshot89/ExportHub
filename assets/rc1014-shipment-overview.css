@@ -141,7 +141,7 @@ body[data-exporthub-view="shipment"] .rc1259-config-help{
 }
 body[data-exporthub-view="shipment"] .rc1259-config-grid{
   display:grid;
-  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  grid-template-columns:repeat(3,minmax(0,1fr));
   gap:10px;
   align-items:end;
 }
@@ -150,9 +150,15 @@ body[data-exporthub-view="shipment"] .rc1259-config-grid label{
   gap:6px;
   font-weight:800;
 }
-body[data-exporthub-view="shipment"] .rc1259-config-grid select{
+body[data-exporthub-view="shipment"] .rc1259-config-grid select,
+body[data-exporthub-view="shipment"] .rc1259-config-grid input[type="text"]{
   width:100%;
   min-height:42px;
+}
+body[data-exporthub-view="shipment"] .rc1259-field-note{
+  font-size:11px;
+  color:#64748b;
+  font-weight:700;
 }
 body[data-exporthub-view="shipment"] .rc1259-required-label{
   grid-template-columns:auto 1fr!important;
