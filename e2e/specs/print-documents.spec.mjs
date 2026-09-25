@@ -11,6 +11,38 @@ import {
 
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 
+async function selectLoadingListShipment(page,query,expected){
+  const search=page.getByRole('searchbox',{name:'Ladeliste suchen'}).first();
+  await expect(search).toBeVisible({timeout:10_000});
+  const nativeSelect=page.getByRole('combobox',{name:'Sendung auswählen'}).first();
+  await expect(nativeSelect).toBeHidden({timeout:10_000});
+  await search.fill(query);
+  const result=page.locator('[data-rc1283-result]').filter({hasText:expected}).first();
+  await expect(result).toBeVisible({timeout:10_000});
+  await result.click();
+  await expect(page.locator('[data-rc1283-selected]')).toContainText(expected,{timeout:10_000});
+  for(const action of ['open','print','download'])await expect(page.locator('[data-rc1283-action="'+action+'"]')).toBeVisible();
+  return search;
+}
+
+test('RC1283 P2: Ladelistensuche findet Referenz, Kunde, Anhang und Bemerkung',async({page},testInfo)=>{
+  test.skip(testInfo.project.name!=='laptop','Ladelisten-Suche wird einmal im echten Browser geprüft.');
+  const guard=attachRuntimeGuards(page,testInfo);
+  await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
+  await waitReady(page);
+  await openExportHubView(page,'documents',['Ladeliste & CMR','Dokumente & CMR','Dokumente','CMR'],/Ladeliste|CMR|Dokument/i,{allowProgrammaticFallback:true});
+  const search=page.getByRole('searchbox',{name:'Ladeliste suchen'}).first();
+  await expect(search).toBeVisible({timeout:10_000});
+  await expect(page.getByRole('combobox',{name:'Sendung auswählen'}).first()).toBeHidden();
+  for(const query of ['DEMO02','Benelux','Fake_Lieferschein_DEMO02.pdf','RC1203 Demo-Bemerkung']){
+    await search.fill(query);
+    await expect(page.locator('[data-rc1283-result]').filter({hasText:/DEMO02|Benelux/i}).first(),query+' findet DEMO02 nicht').toBeVisible({timeout:10_000});
+  }
+  await selectLoadingListShipment(page,'DEMO02',/DEMO02|Benelux/i);
+  await assertNoHorizontalOverflow(page);
+  await assertRuntimeClean(guard,testInfo);
+});
+
 test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollständigen Dokumentkontext',async({page,context},testInfo)=>{
   test.skip(testInfo.project.name!=='laptop','Gesamtdruck-Abnahme läuft einmal auf dem Laptop-Profil.');
   test.setTimeout(60_000);
@@ -70,12 +102,7 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
   await waitReady(page);
   await openExportHubView(page,'documents',['Ladeliste & CMR','Dokumente & CMR','Dokumente','CMR'],/Ladeliste|CMR|Dokument/i,{allowProgrammaticFallback:true});
 
-  const shipmentSelect=page.getByRole('combobox',{name:'Sendung auswählen'}).first();
-  await expect(shipmentSelect).toBeVisible({timeout:10_000});
-  const optionLabels=await shipmentSelect.locator('option').allTextContents();
-  const benelux=optionLabels.find(label=>/DEMO02|Benelux/i.test(label));
-  expect(benelux,'Fake-Benelux-Sendung DEMO02 fehlt im lokalen Demo-Artefakt').toBeTruthy();
-  await shipmentSelect.selectOption({label:benelux});
+  await selectLoadingListShipment(page,'DEMO02',/DEMO02|Benelux/i);
   await expect(page.locator('#content')).toContainText(/DEMO02/,{timeout:10_000});
   await expect(page.locator('#content')).toContainText(/Benelux|Niederlande|NL/i,{timeout:10_000});
 
@@ -159,12 +186,7 @@ test('RC1281 P2: Essentra-Deckblatt ist weiß mit gelber Referenz und hellgelbem
   await waitReady(page);
   await openExportHubView(page,'documents',['Ladeliste & CMR','Dokumente & CMR','Dokumente','CMR'],/Ladeliste|CMR|Dokument/i,{allowProgrammaticFallback:true});
 
-  const shipmentSelect=page.getByRole('combobox',{name:'Sendung auswählen'}).first();
-  await expect(shipmentSelect).toBeVisible({timeout:10_000});
-  const optionLabels=await shipmentSelect.locator('option').allTextContents();
-  const shipmentLabel=optionLabels.find(label=>/DEMO03|Essentra|Fake Export/i.test(label));
-  expect(shipmentLabel,'Essentra-Demo-Sendung DEMO03 fehlt in der Dokumentauswahl').toBeTruthy();
-  await shipmentSelect.selectOption({label:shipmentLabel});
+  await selectLoadingListShipment(page,'DEMO03',/DEMO03|Essentra|Fake Export/i);
 
   const coverTab=page.locator('[data-index352-doc="cover"]').first();
   await expect(coverTab).toBeVisible({timeout:10_000});
