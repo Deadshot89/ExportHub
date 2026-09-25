@@ -3,6 +3,7 @@
 const crypto=require('crypto');
 const https=require('https');
 const store=require('../shared/customer-portal-store');
+const apiI18n=require('../shared/i18n');
 
 const REPO='Deadshot89/ExportHub';
 const WORKFLOW='azure-static-web-apps-wonderful-forest-0f315e310.yml';
@@ -23,9 +24,9 @@ function environmentOf(req){
  const hostTest=/-testservice\./.test(host);
  const hostAzure=/\.azurestaticapps\.net(?:[:/]|$)/.test(host);
  const hostProd=hostAzure&&!hostTest;
- if(!['production','testservice'].includes(requested))throw error('ENVIRONMENT_REQUIRED','Umgebung fehlt.',400);
- if(hostTest&&requested!=='testservice')throw error('ENVIRONMENT_MISMATCH','TESTSERVICE darf keine Produktionsbereitschaft bestätigen.',409);
- if(hostProd&&requested!=='production')throw error('ENVIRONMENT_MISMATCH','Produktion darf keine TESTSERVICE-Bereitschaft bestätigen.',409);
+ if(!['production','testservice'].includes(requested))throw error('ENVIRONMENT_REQUIRED',apiI18n.t(req,'api.readiness.environmentRequired'),400);
+ if(hostTest&&requested!=='testservice')throw error('ENVIRONMENT_MISMATCH',apiI18n.t(req,'api.readiness.testProductionMismatch'),409);
+ if(hostProd&&requested!=='production')throw error('ENVIRONMENT_MISMATCH',apiI18n.t(req,'api.readiness.productionTestMismatch'),409);
  return requested;
 }
 function httpsJson(url){
@@ -34,7 +35,7 @@ function httpsJson(url){
    const chunks=[];response.on('data',chunk=>chunks.push(Buffer.from(chunk)));response.on('end',()=>{
     const raw=Buffer.concat(chunks).toString('utf8');
     if(response.statusCode>=200&&response.statusCode<300){try{return resolve(JSON.parse(raw||'{}'))}catch(e){return reject(e)}}
-    reject(error('OIDC_JWKS_FAILED','GitHub OIDC-Schlüssel konnten nicht geladen werden.',502));
+    reject(error('OIDC_JWKS_FAILED',apiI18n.tLang('de','api.readiness.oidcKeysFailed'),502));
    });
   });
   request.on('error',reject);request.end();
@@ -66,11 +67,11 @@ module.exports=async function(context,req){
  if(req.method==='OPTIONS'){context.res={status:204,headers:{Allow:'POST, OPTIONS','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'},body:''};return}
  if(req.method!=='POST'){context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED'});return}
  try{
-  if(!await githubOidcAuthorized(req))throw error('WORKFLOW_REQUIRED','Readiness darf nur durch den signierten ExportHUB-Releaseworkflow geprüft werden.',403);
+  if(!await githubOidcAuthorized(req))throw error('WORKFLOW_REQUIRED',apiI18n.t(req,'api.readiness.workflowRequired'),403);
   const environment=environmentOf(req),keyStatus=typeof store.keyStatus==='function'?store.keyStatus():{configured:store.keyConfigured(),code:'CUSTOMER_PORTAL_NOT_CONFIGURED'};
   if(!keyStatus.configured){context.res=json(503,{ok:false,configured:false,environment,code:keyStatus.code||'CUSTOMER_PORTAL_NOT_CONFIGURED',version:'RC1194'});return}
   context.res=json(200,{ok:true,configured:true,environment,version:'RC1194'});
  }catch(e){
-  context.res=json(Number(e&&e.status||e&&e.statusCode||500),{ok:false,configured:false,code:e&&e.code||'SERVER_ERROR',message:e&&e.message||'Readiness-Prüfung fehlgeschlagen.',version:'RC1194'});
+  context.res=json(Number(e&&e.status||e&&e.statusCode||500),{ok:false,configured:false,code:e&&e.code||'SERVER_ERROR',message:e&&e.message||apiI18n.t(req,'api.readiness.failed'),version:'RC1194'});
  }
 };
