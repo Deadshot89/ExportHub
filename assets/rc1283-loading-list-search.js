@@ -45,6 +45,19 @@ function style(){
  '@media(max-width:640px){#rc1283LoadListSearch{padding:12px}#rc1283LoadListSearch .rc1283-actions button{flex:1 1 100%}}';
  (d.head||d.documentElement).appendChild(st)
 }
+function rc1285CaptureSelection(event){
+ var raw=event&&event.target,target=raw&&raw.closest&&raw.closest('[data-rc1283-result]');
+ if(!target)return false;
+ var panel=target.closest&&target.closest('#rc1283LoadListSearch')||d.getElementById('rc1283LoadListSearch'),select=panel&&panel.__rc1283Select||findSelect();
+ if(!panel||!select)return false;
+ var value=q(target.getAttribute&&target.getAttribute('data-rc1283-result')),row=candidates(select,state()).find(function(item){return item.value===value})||(selectedSnapshot&&selectedSnapshot.value===value?selectedSnapshot:null);
+ if(!row)return false;
+ var input=panel.querySelector&&panel.querySelector('[data-rc1283-search]'),selected=panel.querySelector&&panel.querySelector('[data-rc1283-selected]'),actions=Array.from(panel.querySelectorAll&&panel.querySelectorAll('[data-rc1283-action]')||[]);
+ lastSelected=row.value;lastSelectedRef=refOf(row.shipment)||row.reference||row.value;selectedSnapshot={value:row.value,label:row.label,shipment:row.shipment,reference:row.reference,customer:row.customer,documents:row.documents,remark:row.remark,search:row.search};lastQuery=q(input&&input.value);
+ if(selected)selected.textContent='Ausgewählt: '+(row.reference||row.label)+(row.customer?' · '+row.customer:'');
+ actions.forEach(function(btn){btn.disabled=false});
+ return true
+}
 function render(panel,select){
  var input=panel.querySelector('[data-rc1283-search]'),results=panel.querySelector('[data-rc1283-results]'),selected=panel.querySelector('[data-rc1283-selected]'),actions=Array.from(panel.querySelectorAll('[data-rc1283-action]')),rows=candidates(select,state()),query=q(input&&input.value),found=filterRows(rows,query),chosen=currentRow(select);
  if(input&&input.value!==lastQuery)lastQuery=input.value;
@@ -78,7 +91,8 @@ function makePanel(select){
 }
 function install(){var select=findSelect(),panel=d.getElementById('rc1283LoadListSearch');if(!select){if(panel)panel.remove();return false}setNativeHidden(select);makePanel(select);return true}
 function schedule(){if(timer)w.clearTimeout(timer);timer=w.setTimeout(function(){timer=0;install()},30)}
-w.ExportHUBRC1283LoadingListSearch=Object.freeze({version:'RC1283',searchText:searchText,filterRows:filterRows,documentNames:documentNames,remarkOf:remarkOf,candidates:candidates,install:install,action:act});
+w.ExportHUBRC1283LoadingListSearch=Object.freeze({version:'RC1285',searchText:searchText,filterRows:filterRows,documentNames:documentNames,remarkOf:remarkOf,candidates:candidates,install:install,action:act,captureSelection:rc1285CaptureSelection});
+if(typeof d.addEventListener==='function')d.addEventListener('pointerdown',rc1285CaptureSelection,true);
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync','exporthub:shipment-saved'].forEach(function(name){w.addEventListener(name,schedule)});
 function rc1283MutationRelevant(records){
