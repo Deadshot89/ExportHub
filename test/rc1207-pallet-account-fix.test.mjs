@@ -20,12 +20,12 @@ function makeRoot(extra={}){
     querySelectorAll(){return[]},
     createElement(){return{setAttribute(){},addEventListener(){},classList:classList(false)}}
   };
-  const calls=[];
+  const calls=[],flushResults=Array.isArray(extra.flushResults)?extra.flushResults.slice():null,cleanRuntime=extra.cleanRuntime||{changeGeneration:1,lastSavedGeneration:0,saving:false};
   const root={
     __EXPORTHUB_FORCED_ENVIRONMENT__:extra.environment||'production',
     __EXPORTHUB_GET_STATE__:()=>state,
     __EXPORTHUB_GET_CURRENT_USER__:()=>({name:'Admin Test'}),
-    ExportHUBClean:{queueSave:r=>{calls.push(['queue',r]);return true},flushSave:r=>{calls.push(['flush',r]);return true}},
+    ExportHUBClean:{runtime:cleanRuntime,queueSave:r=>{calls.push(['queue',r]);return true},flushSave:(r,opt)=>{calls.push(['flush',r,opt]);var result=flushResults&&flushResults.length?flushResults.shift():true;if(result===true&&cleanRuntime)cleanRuntime.lastSavedGeneration=Number(cleanRuntime.changeGeneration||0);return result}},
     canAdmin:()=>extra.admin!==false,confirm:()=>true,alert(){},document:doc,location:{hostname:'prod.test',pathname:'/'},
     addEventListener(){},setTimeout(){return 1},clearTimeout(){},console:{error(){}},
     rc542RenderPallet(){return false},rc542AddPalletBooking(){return state.rc542PalDirection}
@@ -87,4 +87,23 @@ test('RC1207: Build liefert Runtime in Produktion, TESTSERVICE und Demo aus',()=
   assert.match(build,/assets\/rc1207-pallet-account-fix\.js\?v=1246/);
   assert.match(build,/RC1207 Palettenkonto-Runtime fehlt/);
   assert.match(build,/palletAccountDirectionAndAdminDelete:'RC1207/);
+});
+
+
+test('RC1287: Palettenkonto wiederholt unbestätigten Flush forciert bis Azure bestätigt',async()=>{
+  const x=makeRoot({
+    flushResults:[false,true],
+    cleanRuntime:{changeGeneration:7,lastSavedGeneration:0,saving:false},
+    root:{setTimeout(fn){fn();return 1}},
+    state:{
+      palletAccount:[{id:'PAL-RETRY',date:'2026-09-21',direction:'Eingang',count:2}],
+      palletSettlements:[],auditLog:[],_teamSyncMeta:{fields:{},tombstones:[]}
+    }
+  });
+  assert.equal(await x.api.cleanupProductionDayOnce(),true);
+  const flushes=x.calls.filter(c=>c[0]==='flush');
+  assert.equal(flushes.length,2);
+  assert.deepEqual(flushes[0][2],{force:true,userInitiated:true});
+  assert.equal(x.state.palletAccount.length,0);
+  assert.equal(x.state.rc1207PalletCleanup20260921At.deletedCount,1);
 });
