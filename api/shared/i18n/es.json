@@ -242,5 +242,12 @@
   "api.pdf.activeContent": "No se permiten PDF con contenido activo o incrustado ({{label}}).",
   "api.location.siteRequired": "La ubicación/el cliente es obligatorio.",
   "api.container.teamSyncUnavailable": "No se pudo vincular la foto del contenedor con el envío.",
-  "api.container.teamSyncFailed": "La foto del contenedor se guardó, pero no se pudo vincular con el envío. Inténtelo de nuevo."
+  "api.container.teamSyncFailed": "La foto del contenedor se guardó, pero no se pudo vincular con el envío. Inténtelo de nuevo.",
+  "api.location.invalid": "Ubicación de almacén no válida.",
+  "api.location.alreadyCollected": "El envío ya ha sido recogido. La ubicación de salida está bloqueada.",
+  "api.location.notReady": "El envío aún no está listo para la recogida y no puede asignarse a una ubicación de salida.",
+  "api.location.actionFailed": "La operación de almacén ha fallado.",
+  "api.container.photoLabel.loaded": "Contenedor cargado",
+  "api.container.photoLabel.number": "Número del contenedor desde el interior",
+  "api.container.photoLabel.sealed": "Contenedor precintado · precinto/marcajes/documentos"
 }
