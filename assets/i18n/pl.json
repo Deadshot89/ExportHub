@@ -1082,5 +1082,12 @@
   "sop.081.flow4": "Zaksięguj",
   "sop.081.flow5": "Sprawdź stan",
   "abd.mailPending": "WAŻNE – DOKUMENT EKSPORTOWY (ABD) NIE JEST JESZCZE DOSTĘPNY\nABD powinien być dostępny {{expected}} około 10:00. Odbiór można już zarezerwować, jednak nie wcześniej niż {{minimum}} o 10:00.",
-  "mail.closing": "Z poważaniem"
+  "mail.closing": "Z poważaniem",
+  "loadingList.title": "Wyszukaj listę załadunkową",
+  "loadingList.description": "Szukaj według numeru referencyjnego, klienta, załącznika/nazwy pliku lub uwagi.",
+  "loadingList.placeholder": "Referencja, klient, załącznik lub uwaga",
+  "loadingList.selected": "Wybrano:",
+  "loadingList.noneSelected": "Nie wybrano jeszcze listy załadunkowej.",
+  "loadingList.hint": "Wprowadź referencję, klienta, załącznik/nazwę pliku lub uwagę.",
+  "loadingList.noResults": "Nie znaleziono pasującej listy załadunkowej."
 }
