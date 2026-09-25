@@ -240,5 +240,7 @@
   "api.pod.archiveStateIncomplete": "Status archiwum jest niekompletny i zostanie odbudowany.",
   "api.pod.archiveNotFound": "Brakuje potwierdzonej kopii archiwalnej POD i zostanie ona utworzona ponownie.",
   "api.pdf.activeContent": "Pliki PDF z aktywną lub osadzoną zawartością są niedozwolone ({{label}}).",
-  "api.location.siteRequired": "Lokalizacja/klient jest wymagany."
+  "api.location.siteRequired": "Lokalizacja/klient jest wymagany.",
+  "api.container.teamSyncUnavailable": "Nie udało się powiązać zdjęcia kontenera z przesyłką.",
+  "api.container.teamSyncFailed": "Zdjęcie kontenera zostało zapisane, ale nie udało się powiązać go z przesyłką. Spróbuj ponownie."
 }
