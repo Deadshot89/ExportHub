@@ -1084,5 +1084,17 @@
   "abd.mailPending": "WICHTIG – ABD NOCH NICHT VORHANDEN\nDas Ausfuhrbegleitdokument (ABD) liegt noch nicht vor. Voraussichtliche Bereitstellung: {{expected}} gegen 10:00 Uhr. Die Abholung kann bereits gebucht werden, jedoch frühestens für {{minimum}} ab 10:00 Uhr.",
   "mail.closing": "Mit freundlichen Grüßen",
   "container.sealInput": "Siegelnummer",
-  "container.sealPlaceholder": "z. B. ABCD123456"
+  "container.sealPlaceholder": "z. B. ABCD123456",
+  "loadingList.title": "Ladeliste suchen",
+  "loadingList.subtitle": "Suche nach Referenznummer, Kunde, Anhang/Dateiname oder Bemerkung.",
+  "loadingList.ariaLabel": "Ladeliste suchen",
+  "loadingList.placeholder": "Referenz, Kunde, Anhang oder Bemerkung",
+  "loadingList.searchHint": "Referenz, Kunde, Anhang/Dateiname oder Bemerkung eingeben.",
+  "loadingList.noMatch": "Keine passende Ladeliste gefunden.",
+  "loadingList.selectedPrefix": "Ausgewählt:",
+  "loadingList.noneSelected": "Noch keine Ladeliste ausgewählt.",
+  "loadingList.open": "Öffnen",
+  "loadingList.print": "Drucken",
+  "loadingList.download": "Herunterladen",
+  "loadingList.shipmentSelectLabel": "Sendung auswählen"
 }
