@@ -249,5 +249,6 @@
   "api.location.actionFailed": "L’opération d’entrepôt a échoué.",
   "api.container.photoLabel.loaded": "Conteneur chargé",
   "api.container.photoLabel.number": "Numéro du conteneur depuis l’intérieur",
-  "api.container.photoLabel.sealed": "Conteneur scellé · scellé/marquages/documents"
+  "api.container.photoLabel.sealed": "Conteneur scellé · scellé/marquages/documents",
+  "api.fixedPickups.failed": "Les enlèvements fixes n’ont pas pu être traités."
 }
