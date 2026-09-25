@@ -1084,5 +1084,17 @@
   "abd.mailPending": "WAŻNE – DOKUMENT EKSPORTOWY (ABD) NIE JEST JESZCZE DOSTĘPNY\nABD powinien być dostępny {{expected}} około 10:00. Odbiór można już zarezerwować, jednak nie wcześniej niż {{minimum}} o 10:00.",
   "mail.closing": "Z poważaniem",
   "container.sealInput": "Numer plomby",
-  "container.sealPlaceholder": "np. ABCD123456"
+  "container.sealPlaceholder": "np. ABCD123456",
+  "loadingList.title": "Wyszukaj listę załadunkową",
+  "loadingList.subtitle": "Szukaj według numeru referencyjnego, klienta, załącznika/nazwy pliku lub uwagi.",
+  "loadingList.ariaLabel": "Wyszukaj listę załadunkową",
+  "loadingList.placeholder": "Referencja, klient, załącznik lub uwaga",
+  "loadingList.searchHint": "Wprowadź referencję, klienta, załącznik/nazwę pliku lub uwagę.",
+  "loadingList.noMatch": "Nie znaleziono pasującej listy załadunkowej.",
+  "loadingList.selectedPrefix": "Wybrano:",
+  "loadingList.noneSelected": "Nie wybrano jeszcze listy załadunkowej.",
+  "loadingList.open": "Otwórz",
+  "loadingList.print": "Drukuj",
+  "loadingList.download": "Pobierz",
+  "loadingList.shipmentSelectLabel": "Wybierz przesyłkę"
 }
