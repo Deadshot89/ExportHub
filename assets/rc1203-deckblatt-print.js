@@ -5,6 +5,7 @@ w.__EXPORTHUB_RC1203_DECKBLATT__=true;
 
 var pendingMode='',originalOpen=null,installed=false;
 function q(v){return String(v==null?'':v).trim()}
+function tr(key,vars){try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.t==='function')return w.ExportHUBI18n.t(key,vars)}catch(_){}return key}
 function arr(v){return Array.isArray(v)?v:[]}
 function obj(v){return !!v&&typeof v==='object'&&!Array.isArray(v)}
 function state(){try{return typeof w.__EXPORTHUB_GET_STATE__==='function'?(w.__EXPORTHUB_GET_STATE__()||{}):{}}catch(_){return{}}}
@@ -122,8 +123,8 @@ function renderCoverButton(){
   var btn=d.createElement('button');
   btn.type='button';btn.className='rc1205-cover-only-btn';
   btn.setAttribute('data-rc1203-print-cover-only','1');
-  btn.innerHTML='<span aria-hidden="true">▣</span><span>Nur Deckblatt drucken</span>';
-  btn.title='Druckt ausschließlich das Deckblatt der aktuellen Sendung';
+  btn.innerHTML='<span aria-hidden="true">▣</span><span>'+tr('coverPrint.only')+'</span>';
+  btn.title=tr('coverPrint.title');
   host.appendChild(btn);return true
 }
 function markRecipient(cover,theme){
@@ -160,7 +161,7 @@ function ensureRemark(cover,remark){
   old.setAttribute('data-rc1203-remark-value',value);
   old.innerHTML='';
   var title=cover.ownerDocument.createElement('div');
-  title.textContent='Bemerkung';
+  title.textContent=tr('coverPrint.remark');
   title.style.fontSize='11pt';title.style.fontWeight='800';title.style.textTransform='uppercase';title.style.letterSpacing='.25mm';
   var body=cover.ownerDocument.createElement('div');
   body.textContent=value;
