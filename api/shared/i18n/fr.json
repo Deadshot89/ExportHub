@@ -242,5 +242,12 @@
   "api.pdf.activeContent": "Les PDF contenant du contenu actif ou intégré ne sont pas autorisés ({{label}}).",
   "api.location.siteRequired": "Le site/le client est requis.",
   "api.container.teamSyncUnavailable": "La photo du conteneur n’a pas pu être associée à l’expédition.",
-  "api.container.teamSyncFailed": "La photo du conteneur a été enregistrée, mais n’a pas pu être associée à l’expédition. Veuillez réessayer."
+  "api.container.teamSyncFailed": "La photo du conteneur a été enregistrée, mais n’a pas pu être associée à l’expédition. Veuillez réessayer.",
+  "api.location.invalid": "Emplacement d’entrepôt non valide.",
+  "api.location.alreadyCollected": "L’expédition a déjà été enlevée. L’emplacement de sortie est verrouillé.",
+  "api.location.notReady": "L’expédition n’est pas encore prête à être enlevée et ne peut pas être affectée à un emplacement de sortie.",
+  "api.location.actionFailed": "L’opération d’entrepôt a échoué.",
+  "api.container.photoLabel.loaded": "Conteneur chargé",
+  "api.container.photoLabel.number": "Numéro du conteneur depuis l’intérieur",
+  "api.container.photoLabel.sealed": "Conteneur scellé · scellé/marquages/documents"
 }
