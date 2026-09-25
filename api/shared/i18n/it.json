@@ -205,5 +205,22 @@
   "api.pickup.photosRequired": "Per questa spedizione marittima devono essere salvate tutte e 3 le foto del container.",
   "api.pickup.confirmFailed": "Non è stato possibile confermare il ritiro.",
   "api.pickup.disabled": "Questo codice QR è stato disattivato.",
-  "api.pickup.statusLoadFailed": "Non è stato possibile caricare lo stato del ritiro."
+  "api.pickup.statusLoadFailed": "Non è stato possibile caricare lo stato del ritiro.",
+  "api.container.readForbidden": "Non disponi del permesso di lettura per le foto del container.",
+  "api.container.referenceRequired": "Manca il riferimento della spedizione.",
+  "api.container.shipmentNotFound": "La spedizione non è stata trovata.",
+  "api.container.photoNotFound": "La foto del container non è stata trovata.",
+  "api.container.photoLoadFailed": "Non è stato possibile caricare la foto del container.",
+  "api.container.photoSaveFailed": "Non è stato possibile salvare la foto del container.",
+  "api.document.environmentMismatchTest": "Una richiesta TESTSERVICE non può accedere ai dati di produzione.",
+  "api.document.environmentMismatchProduction": "Il sito di produzione non può accedere ai dati TESTSERVICE.",
+  "api.document.referenceInvalid": "Il riferimento del documento non è valido.",
+  "api.document.environmentMismatch": "Il documento appartiene a un altro ambiente dati ExportHUB.",
+  "api.document.loadFailed": "Non è stato possibile caricare il documento.",
+  "api.readiness.environmentRequired": "Manca l’ambiente.",
+  "api.readiness.testProductionMismatch": "TESTSERVICE non può confermare la disponibilità della produzione.",
+  "api.readiness.productionTestMismatch": "La produzione non può confermare la disponibilità di TESTSERVICE.",
+  "api.readiness.oidcKeysFailed": "Non è stato possibile caricare le chiavi OIDC di GitHub.",
+  "api.readiness.workflowRequired": "La disponibilità può essere verificata solo dal workflow di rilascio ExportHUB firmato.",
+  "api.readiness.failed": "La verifica della disponibilità non è riuscita."
 }
