@@ -2,7 +2,7 @@
 'use strict';
 if(!w||!d||w.__EXPORTHUB_RC1283_LOADING_LIST_SEARCH__)return;
 w.__EXPORTHUB_RC1283_LOADING_LIST_SEARCH__=true;
-var timer=0,lastQuery='',lastSelected='',lastSelectedRef='';
+var timer=0,lastQuery='',lastSelected='',lastSelectedRef='',selectedSnapshot=null;
 function q(v){return String(v==null?'':v).trim()}
 function arr(v){return Array.isArray(v)?v:[]}
 function low(v){var s=q(v).toLowerCase();try{return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'')}catch(_){return s}}
@@ -26,7 +26,7 @@ function findSelect(){return Array.from(d.querySelectorAll('select')).find(funct
 function buttonByText(re){return Array.from(d.querySelectorAll('button,a,[role="button"]')).find(function(el){return re.test(q(el.textContent))&&!el.disabled})||null}
 function setNativeHidden(select){select.setAttribute('data-rc1283-native-select','1');select.style.setProperty('display','none','important');var label=select.closest&&select.closest('label');if(label&&label.querySelectorAll('select,input,button').length===1){label.setAttribute('data-rc1283-native-label','1');label.style.setProperty('display','none','important')}return label}
 function dispatchSelection(select,value){if(!select)return false;var options=Array.from(select.options||[]),index=options.findIndex(function(opt){return q(opt.value)===q(value)});if(index>=0)select.selectedIndex=index;else select.value=value;lastSelected=value;try{select.dispatchEvent(new Event('input',{bubbles:true}));select.dispatchEvent(new Event('change',{bubbles:true}))}catch(_){try{var ev=d.createEvent('Event');ev.initEvent('change',true,true);select.dispatchEvent(ev)}catch(__){}}return true}
-function currentRow(select){var rows=candidates(select,state()),value=q(select&&select.value)||lastSelected,ref=low(lastSelectedRef);return rows.find(function(row){return row.value===value})||rows.find(function(row){return ref&&(low(row.reference)===ref||low(refOf(row.shipment))===ref||low(idOf(row.shipment))===ref)})||null}
+function currentRow(select){var rows=candidates(select,state()),value=lastSelected,ref=low(lastSelectedRef),hit=rows.find(function(row){return value&&row.value===value})||rows.find(function(row){return ref&&(low(row.reference)===ref||low(refOf(row.shipment))===ref||low(idOf(row.shipment))===ref)});if(hit)return hit;if(selectedSnapshot&&selectedSnapshot.shipment)return selectedSnapshot;var sh=allShipments(state()).find(function(item){return ref&&(low(refOf(item))===ref||low(idOf(item))===ref)});return sh?{value:value,label:lastSelectedRef,shipment:sh,reference:refOf(sh)||lastSelectedRef,customer:customerOf(sh),documents:documentNames(sh),remark:remarkOf(sh),search:searchText(sh,lastSelectedRef)}:null}
 function resultMeta(row){var parts=[];if(row.customer)parts.push(row.customer);if(row.documents)parts.push(row.documents);if(row.remark)parts.push(row.remark);return parts.join(' · ')}
 function style(){
  if(d.getElementById('rc1283-loading-list-style'))return;
@@ -51,7 +51,7 @@ function render(panel,select){
  results.innerHTML='';
  if(!query){var hint=d.createElement('div');hint.className='rc1283-empty';hint.textContent='Referenz, Kunde, Anhang/Dateiname oder Bemerkung eingeben.';results.appendChild(hint)}
  else if(!found.length){var empty=d.createElement('div');empty.className='rc1283-empty';empty.textContent='Keine passende Ladeliste gefunden.';results.appendChild(empty)}
- else found.forEach(function(row){var b=d.createElement('button');b.type='button';b.className='rc1283-result';b.setAttribute('data-rc1283-result',row.value);var strong=d.createElement('strong');strong.textContent=(row.reference||row.label)+(row.customer?' · '+row.customer:'');var meta=d.createElement('span');meta.textContent=resultMeta(row)||row.label;b.appendChild(strong);b.appendChild(meta);b.addEventListener('click',function(){lastSelected=row.value;lastSelectedRef=refOf(row.shipment)||row.reference||row.value;lastQuery=query;selected.textContent='Ausgewählt: '+(row.reference||row.label)+(row.customer?' · '+row.customer:'');actions.forEach(function(btn){btn.disabled=false});dispatchSelection(select,row.value);schedule()});results.appendChild(b)});
+ else found.forEach(function(row){var b=d.createElement('button');b.type='button';b.className='rc1283-result';b.setAttribute('data-rc1283-result',row.value);var strong=d.createElement('strong');strong.textContent=(row.reference||row.label)+(row.customer?' · '+row.customer:'');var meta=d.createElement('span');meta.textContent=resultMeta(row)||row.label;b.appendChild(strong);b.appendChild(meta);b.addEventListener('click',function(){lastSelected=row.value;lastSelectedRef=refOf(row.shipment)||row.reference||row.value;selectedSnapshot={value:row.value,label:row.label,shipment:row.shipment,reference:row.reference,customer:row.customer,documents:row.documents,remark:row.remark,search:row.search};lastQuery=query;selected.textContent='Ausgewählt: '+(row.reference||row.label)+(row.customer?' · '+row.customer:'');actions.forEach(function(btn){btn.disabled=false})});results.appendChild(b)});
  selected.textContent=chosen?'Ausgewählt: '+(chosen.reference||chosen.label)+(chosen.customer?' · '+chosen.customer:''):'Noch keine Ladeliste ausgewählt.';
  actions.forEach(function(btn){btn.disabled=!chosen})
 }
@@ -62,7 +62,7 @@ function act(kind,panel,select){
   if(kind==='open'){var tab=d.querySelector('[data-index352-doc="load1"]')||buttonByText(/(?:Ladeliste\s*1|\bL1\b)/i);if(tab){tab.click();return true}}
   return false
  }
- if(kind==='download'){var dl=d.querySelector('[data-index352-action="download-load1"]')||buttonByText(/Ladeliste\s*1.*PDF|Ladeliste.*herunterladen/i);if(dl){dl.click();return true}}
+ if(kind==='download'){if(typeof w.__EXPORTHUB_RC1283_DOWNLOAD_LOAD1__==='function')return w.__EXPORTHUB_RC1283_DOWNLOAD_LOAD1__(row.shipment);var dl=d.querySelector('[data-index352-action="download-load1"]')||buttonByText(/Ladeliste\s*1.*PDF|Ladeliste.*herunterladen/i);if(dl){dl.click();return true}}
  return false
 }
 function makePanel(select){

@@ -309,15 +309,15 @@ function patchCompletePrintBundle(html,file){
 
 function patchRc1283LoadingListSearch(html,file){
   const anchor="async function downloadDocument(mode,button){";
-  const bridge=`window.__EXPORTHUB_RC1283_OPEN_LOAD1__=function(sh,printNow){try{if(!sh)throw new Error('Keine Ladeliste ausgewählt.');var child=window.open('about:blank','_blank','width=1180,height=860');if(!child){alert('Das Ladelistenfenster wurde vom Browser blockiert.');return false}var styles=Array.from(document.querySelectorAll('style,link[rel="stylesheet"]')).map(function(n){return n.outerHTML}).join(''),body=loadHtml(sh,true),title='Ladeliste '+esc(sref(sh)||sid(sh));child.opener=null;child.document.open();child.document.write('<!doctype html><html lang="de"><head><meta charset="utf-8"><title>'+title+'</title>'+styles+'<style>@page{size:A4 portrait;margin:8mm}html,body{background:#fff!important}body{margin:0;padding:0}.rc390-page,.rc352-page{margin:0 auto!important;box-shadow:none!important}</style></head><body>'+body+'</body></html>');child.document.close();if(printNow){var run=function(){try{child.focus();child.print()}catch(e){console.error('RC1283 Ladeliste drucken',e)}};if(child.document.readyState==='complete')setTimeout(run,250);else child.addEventListener('load',function(){setTimeout(run,200)},{once:true})}return true}catch(e){console.error('RC1283 Ladeliste öffnen/drucken',e);alert('Ladeliste konnte nicht geöffnet werden: '+String(e&&e.message||e));return false}}`;
+  const bridge=`window.__EXPORTHUB_RC1283_OPEN_LOAD1__=function(sh,printNow){try{if(!sh)throw new Error('Keine Ladeliste ausgewählt.');var child=window.open('about:blank','_blank','width=1180,height=860');if(!child){alert('Das Ladelistenfenster wurde vom Browser blockiert.');return false}var styles=Array.from(document.querySelectorAll('style,link[rel="stylesheet"]')).map(function(n){return n.outerHTML}).join(''),body=loadHtml(sh,true),title='Ladeliste '+esc(sref(sh)||sid(sh));child.opener=null;child.document.open();child.document.write('<!doctype html><html lang="de"><head><meta charset="utf-8"><title>'+title+'</title>'+styles+'<style>@page{size:A4 portrait;margin:8mm}html,body{background:#fff!important}body{margin:0;padding:0}.rc390-page,.rc352-page{margin:0 auto!important;box-shadow:none!important}</style></head><body>'+body+'</body></html>');child.document.close();if(printNow){var run=function(){try{child.focus();child.print()}catch(e){console.error('RC1283 Ladeliste drucken',e)}};if(child.document.readyState==='complete')setTimeout(run,250);else child.addEventListener('load',function(){setTimeout(run,200)},{once:true})}return true}catch(e){console.error('RC1283 Ladeliste öffnen/drucken',e);alert('Ladeliste konnte nicht geöffnet werden: '+String(e&&e.message||e));return false}}\nwindow.__EXPORTHUB_RC1283_DOWNLOAD_LOAD1__=async function(sh){try{if(!sh)throw new Error('Keine Ladeliste ausgewählt.');var out=await createPdf('load1',sh),name=('Ladeliste_'+(sref(sh)||sid(sh)||'Sendung')+'.pdf').replace(/[^A-Za-z0-9._-]+/g,'_');downloadBlob(out.blob,name);return true}catch(e){console.error('RC1283 Ladeliste herunterladen',e);alert('Ladeliste konnte nicht heruntergeladen werden: '+String(e&&e.message||e));return false}}`;
   const count=html.split(anchor).length-1;
   if(!html.includes('__EXPORTHUB_RC1283_OPEN_LOAD1__')){
     if(count!==1)throw new Error(file+': RC1283 Ladelisten-Druckanker '+count+'x gefunden');
     html=html.replace(anchor,bridge+'\n'+anchor);
   }
-  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1283-loading-list-search" defer src="/assets/rc1283-loading-list-search.js?v=1283-5"></script>','exporthub-rc1283-loading-list-search');
-  if(!html.includes('__EXPORTHUB_RC1283_OPEN_LOAD1__'))throw new Error(file+': RC1283 Ladelisten-Öffnen/Drucken-Bridge fehlt');
-  if(!html.includes('assets/rc1283-loading-list-search.js?v=1283-5'))throw new Error(file+': RC1283 Ladelisten-Suche fehlt');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1283-loading-list-search" defer src="/assets/rc1283-loading-list-search.js?v=1283-6"></script>','exporthub-rc1283-loading-list-search');
+  if(!html.includes('__EXPORTHUB_RC1283_OPEN_LOAD1__'))throw new Error(file+': RC1283 Ladelisten-Öffnen/Drucken-Bridge fehlt');\n  if(!html.includes('__EXPORTHUB_RC1283_DOWNLOAD_LOAD1__'))throw new Error(file+': RC1283 Ladelisten-Download-Bridge fehlt');
+  if(!html.includes('assets/rc1283-loading-list-search.js?v=1283-6'))throw new Error(file+': RC1283 Ladelisten-Suche fehlt');
   return html;
 }
 
@@ -395,7 +395,7 @@ function patchHtml(file){
   if(!html.includes('assets/rc1166-avis-reminder-overview.js?v=1207'))throw new Error(file+': RC1207 Avis-Erinnerung-Runtime fehlt');
   if(!html.includes('assets/rc1176-shipment-location.js?v=1202'))throw new Error(file+': RC1191 Standort-Capture-Runtime fehlt');
   if(!html.includes('assets/rc1203-deckblatt-print.js?v=1281'))throw new Error(file+': RC1205 Deckblatt-Runtime fehlt');
-  if(!html.includes('assets/rc1283-loading-list-search.js?v=1283-5'))throw new Error(file+': RC1283 Ladelisten-Suchruntime fehlt');
+  if(!html.includes('assets/rc1283-loading-list-search.js?v=1283-6'))throw new Error(file+': RC1283 Ladelisten-Suchruntime fehlt');
   if(!html.includes('__EXPORTHUB_RC1283_OPEN_LOAD1__'))throw new Error(file+': RC1283 Ladelisten-Öffnen/Drucken-Bridge fehlt');
   if(!html.includes('assets/rc1207-pallet-account-fix.js?v=1246'))throw new Error(file+': RC1207 Palettenkonto-Runtime fehlt');
   if(!html.includes('assets/rc1193-visible-release.js?v='+VISIBLE_NUMBER))throw new Error(file+': '+VISIBLE_VERSION+' sichtbare Release-Version fehlt');

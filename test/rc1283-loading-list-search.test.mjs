@@ -41,8 +41,8 @@ test('RC1283: Runtime ersetzt die Dropdown-Bedienung und bietet drei direkte Akt
 
 test('RC1283: Drei-Umgebungen-Build injiziert Runtime und vorhandenen Ladelistenrenderer als Bridge',()=>{
   assert.match(build,/function patchRc1283LoadingListSearch\(/);
-  assert.match(build,/assets\/rc1283-loading-list-search\.js\?v=1283-5/);
-  assert.match(build,/__EXPORTHUB_RC1283_OPEN_LOAD1__/);
+  assert.match(build,/assets\/rc1283-loading-list-search\.js\?v=1283-6/);
+  assert.match(build,/__EXPORTHUB_RC1283_OPEN_LOAD1__/);\n  assert.match(build,/__EXPORTHUB_RC1283_DOWNLOAD_LOAD1__/);\n  assert.match(build,/createPdf\('load1',sh\)/);
   assert.match(build,/body=loadHtml\(sh,true\)/);
   assert.match(build,/'assets\/rc1283-loading-list-search\.js'/);
 });
@@ -54,17 +54,25 @@ test('RC1283: spätere Optionsbefüllung des nativen Sendungs-Select löst gezie
   assert.doesNotMatch(runtime,/observe\(d\.documentElement,\{subtree:true,childList:true,attributes:true/);
 });
 
+test('RC1283: Trefferauswahl bleibt von nativem Dropdown entkoppelt und Aktionen nutzen die gefundene Sendung direkt',()=>{
+  const clickBlock=runtime.slice(runtime.indexOf("b.addEventListener('click'"),runtime.indexOf("results.appendChild(b)",runtime.indexOf("b.addEventListener('click'")));
+  assert.doesNotMatch(clickBlock,/dispatchSelection/);
+  assert.match(clickBlock,/selectedSnapshot=/);
+  assert.match(runtime,/__EXPORTHUB_RC1283_OPEN_LOAD1__/);
+  assert.match(runtime,/__EXPORTHUB_RC1283_DOWNLOAD_LOAD1__/);
+});
+
 test('RC1283: Auswahl bleibt über Referenz stabil wenn das native Select neu gerendert wird',()=>{
   assert.match(runtime,/lastSelectedRef/);
   assert.match(runtime,/select\.selectedIndex=index/);
-  assert.match(runtime,/lastSelectedRef=refOf\(row\.shipment\)\|\|row\.reference\|\|row\.value/);
+  assert.match(runtime,/lastSelectedRef=refOf\(row\.shipment\)\|\|row\.reference\|\|row\.value/);\n  assert.match(runtime,/selectedSnapshot=/);
   assert.match(runtime,/selected\.textContent='Ausgewählt: '/);
   assert.match(runtime,/low\(row\.reference\)===ref/);
 });
 
 test('RC1283: DOM-Wächter reagiert nur auf neu gerenderte Sendungsauswahl und ignoriert Suchergebnisse',()=>{
   assert.match(runtime,/function rc1283MutationRelevant\(records\)/);
-  assert.match(runtime,/target===current\|\|current\.contains&&current\.contains\(target\)/);\n  assert.match(runtime,/return false/);
+  assert.match(runtime,/target===current\\|\\|current\\.contains&&current\\.contains\\(target\\)/);\n  assert.match(runtime,/return false/);
   assert.match(runtime,/closest\('#rc1283LoadListSearch'\)/);
   assert.match(runtime,/querySelectorAll\('select'\)/);
   assert.match(runtime,/if\(rc1283MutationRelevant\(records\)\)schedule\(\)/);
