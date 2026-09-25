@@ -84,7 +84,10 @@ if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',schedule,{once
 function rc1283MutationRelevant(records){
  var panel=d.getElementById('rc1283LoadListSearch'),current=panel&&panel.__rc1283Select;
  if(current&&d.documentElement&&typeof d.documentElement.contains==='function'&&!d.documentElement.contains(current))return true;
- if(panel&&current)return false;
+ if(panel&&current){
+  for(var c=0;c<(records||[]).length;c++){var target=records[c]&&records[c].target;if(target&&(target===current||current.contains&&current.contains(target)))return true}
+  return false
+ }
  for(var i=0;i<(records||[]).length;i++){
   var added=records[i]&&records[i].addedNodes||[];
   for(var j=0;j<added.length;j++){

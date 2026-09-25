@@ -315,9 +315,9 @@ function patchRc1283LoadingListSearch(html,file){
     if(count!==1)throw new Error(file+': RC1283 Ladelisten-Druckanker '+count+'x gefunden');
     html=html.replace(anchor,bridge+'\n'+anchor);
   }
-  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1283-loading-list-search" defer src="/assets/rc1283-loading-list-search.js?v=1283-4"></script>','exporthub-rc1283-loading-list-search');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1283-loading-list-search" defer src="/assets/rc1283-loading-list-search.js?v=1283-5"></script>','exporthub-rc1283-loading-list-search');
   if(!html.includes('__EXPORTHUB_RC1283_OPEN_LOAD1__'))throw new Error(file+': RC1283 Ladelisten-Öffnen/Drucken-Bridge fehlt');
-  if(!html.includes('assets/rc1283-loading-list-search.js?v=1283-4'))throw new Error(file+': RC1283 Ladelisten-Suche fehlt');
+  if(!html.includes('assets/rc1283-loading-list-search.js?v=1283-5'))throw new Error(file+': RC1283 Ladelisten-Suche fehlt');
   return html;
 }
 
@@ -395,7 +395,7 @@ function patchHtml(file){
   if(!html.includes('assets/rc1166-avis-reminder-overview.js?v=1207'))throw new Error(file+': RC1207 Avis-Erinnerung-Runtime fehlt');
   if(!html.includes('assets/rc1176-shipment-location.js?v=1202'))throw new Error(file+': RC1191 Standort-Capture-Runtime fehlt');
   if(!html.includes('assets/rc1203-deckblatt-print.js?v=1281'))throw new Error(file+': RC1205 Deckblatt-Runtime fehlt');
-  if(!html.includes('assets/rc1283-loading-list-search.js?v=1283-4'))throw new Error(file+': RC1283 Ladelisten-Suchruntime fehlt');
+  if(!html.includes('assets/rc1283-loading-list-search.js?v=1283-5'))throw new Error(file+': RC1283 Ladelisten-Suchruntime fehlt');
   if(!html.includes('__EXPORTHUB_RC1283_OPEN_LOAD1__'))throw new Error(file+': RC1283 Ladelisten-Öffnen/Drucken-Bridge fehlt');
   if(!html.includes('assets/rc1207-pallet-account-fix.js?v=1246'))throw new Error(file+': RC1207 Palettenkonto-Runtime fehlt');
   if(!html.includes('assets/rc1193-visible-release.js?v='+VISIBLE_NUMBER))throw new Error(file+': '+VISIBLE_VERSION+' sichtbare Release-Version fehlt');

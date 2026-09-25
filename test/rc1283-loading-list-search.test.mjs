@@ -41,10 +41,17 @@ test('RC1283: Runtime ersetzt die Dropdown-Bedienung und bietet drei direkte Akt
 
 test('RC1283: Drei-Umgebungen-Build injiziert Runtime und vorhandenen Ladelistenrenderer als Bridge',()=>{
   assert.match(build,/function patchRc1283LoadingListSearch\(/);
-  assert.match(build,/assets\/rc1283-loading-list-search\.js\?v=1283-4/);
+  assert.match(build,/assets\/rc1283-loading-list-search\.js\?v=1283-5/);
   assert.match(build,/__EXPORTHUB_RC1283_OPEN_LOAD1__/);
   assert.match(build,/body=loadHtml\(sh,true\)/);
   assert.match(build,/'assets\/rc1283-loading-list-search\.js'/);
+});
+
+test('RC1283: spätere Optionsbefüllung des nativen Sendungs-Select löst gezielte Aktualisierung aus',()=>{
+  assert.match(runtime,/records\[c\]&&records\[c\]\.target/);
+  assert.match(runtime,/target===current/);
+  assert.match(runtime,/current\.contains&&current\.contains\(target\)/);
+  assert.doesNotMatch(runtime,/observe\(d\.documentElement,\{subtree:true,childList:true,attributes:true/);
 });
 
 test('RC1283: Auswahl bleibt über Referenz stabil wenn das native Select neu gerendert wird',()=>{
@@ -57,7 +64,7 @@ test('RC1283: Auswahl bleibt über Referenz stabil wenn das native Select neu ge
 
 test('RC1283: DOM-Wächter reagiert nur auf neu gerenderte Sendungsauswahl und ignoriert Suchergebnisse',()=>{
   assert.match(runtime,/function rc1283MutationRelevant\(records\)/);
-  assert.match(runtime,/panel&&current\)return false/);
+  assert.match(runtime,/target===current\|\|current\.contains&&current\.contains\(target\)/);\n  assert.match(runtime,/return false/);
   assert.match(runtime,/closest\('#rc1283LoadListSearch'\)/);
   assert.match(runtime,/querySelectorAll\('select'\)/);
   assert.match(runtime,/if\(rc1283MutationRelevant\(records\)\)schedule\(\)/);
