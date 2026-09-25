@@ -42,7 +42,7 @@ test('RC1283: Runtime ersetzt die Dropdown-Bedienung und bietet drei direkte Akt
 
 test('RC1283: Drei-Umgebungen-Build injiziert Runtime und vorhandene Ladelisten-Pfade',()=>{
   assert.match(build,/function patchRc1283LoadingListSearch\(/);
-  assert.match(build,/assets\/rc1283-loading-list-search\.js\?v=1283-6/);
+  assert.match(build,/assets\/rc1283-loading-list-search\.js\?v=1285/);
   assert.match(build,/__EXPORTHUB_RC1283_OPEN_LOAD1__/);
   assert.match(build,/__EXPORTHUB_RC1283_DOWNLOAD_LOAD1__/);
   assert.match(build,/body=loadHtml\(sh,true\)/);
@@ -71,11 +71,20 @@ test('RC1283: DOM-Wächter ignoriert Suchergebnis-Mutationen und erkennt dynamis
   assert.match(runtime,/exporthub:viewchange/);
 });
 
+test('RC1285: Pointerdown-Capture sichert die Trefferauswahl vor dynamischem DOM-Neuaufbau',()=>{
+  assert.match(runtime,/function rc1285CaptureSelection\(event\)/);
+  assert.match(runtime,/closest\('\[data-rc1283-result\]'\)/);
+  assert.match(runtime,/selectedSnapshot=\{value:row\.value/);
+  assert.match(runtime,/d\.addEventListener\('pointerdown',rc1285CaptureSelection,true\)/);
+  assert.match(runtime,/captureSelection:rc1285CaptureSelection/);
+});
+
 test('RC1283: echter Browsertest prüft alle vier Suchdimensionen und verbirgt das alte Dropdown',()=>{
   for(const marker of ['DEMO02','Benelux','Fake_Lieferschein_DEMO02.pdf','RC1203 Demo-Bemerkung'])assert.ok(e2e.includes(marker),marker+' fehlt im Browsertest');
   assert.match(e2e,/getByRole\('combobox',\{name:'Sendung auswählen'\}\)\.first\(\)/);
   assert.match(e2e,/toBeHidden/);
   assert.match(e2e,/data-rc1283-result/);
   assert.match(e2e,/data-rc1283-action/);
-  assert.match(e2e,/selectOption\(value,\{force:true\}\)/);
+  assert.doesNotMatch(e2e,/selectOption\(value/);
+  assert.match(runtime,/setTimeout\(function\(\)\{var current=findSelect\(\);if\(current\)dispatchSelection\(current,row\.value\)\},0\)/);
 });
