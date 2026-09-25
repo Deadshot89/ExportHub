@@ -43,12 +43,12 @@ function literalTexts(line){
   const tagRx=/>\s*([^<>]+?)\s*</g;while((m=tagRx.exec(line))){const value=String(m[1]||'').trim();if(value)values.push(value)}
   return values
 }
-function scanVisibleGerman(file,source){
+function scanVisibleGerman(file,source,registeredGerman){
   const rows=[],lines=source.split(/\r?\n/);
   lines.forEach((line,i)=>{
     if(!UI_CONTEXT.test(line))return;
     if(/^\s*(?:\/\/|\*|\/\*)/.test(line))return;
-    const hits=literalTexts(line).filter(value=>GERMAN_HINT.test(value)&&!/^[-_a-z0-9./:]+$/i.test(value));
+    const hits=literalTexts(line).filter(value=>GERMAN_HINT.test(value)&&!/^[-_a-z0-9./:]+$/i.test(value)&&!registeredGerman.has(value));
     if(!hits.length)return;
     for(const literal of hits)rows.push({file:file.rel,line:i+1,literal:compact(literal),text:compact(line)});
   });
@@ -85,10 +85,10 @@ function keyAudit(packs){
   }
   return{baseKeyCount:base.length,issues}
 }
-const packs=loadPacks(),keys=keyAudit(packs),files=walk(ROOT),hardcoded=[],visibleKeys=[];
+const packs=loadPacks(),keys=keyAudit(packs),files=walk(ROOT),hardcoded=[],visibleKeys=[],registeredGerman=new Set(Object.values(packs.de).filter(v=>typeof v==='string'&&v.trim()));
 for(const file of files){
   const source=fs.readFileSync(file.abs,'utf8');
-  hardcoded.push(...scanVisibleGerman(file,source));
+  hardcoded.push(...scanVisibleGerman(file,source,registeredGerman));
   visibleKeys.push(...scanVisibleKeys(file,source));
 }
 const report={
