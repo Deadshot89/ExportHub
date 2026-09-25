@@ -274,7 +274,7 @@ function patchCompletePrintBundle(html,file){
   const cmrNew="for(var i=1;i<=4;i++){";
   if(!block.includes(cmrOld)&&!block.includes(cmrNew))throw new Error(file+': RC1274 CMR-Ausfertigungszähler fehlt');
   block=block.replace(cmrOld,cmrNew);
-  block=block.replace("'CMR '+i+' / 3</div></div>'","'CMR '+i+' / 4</div></div>'");
+  block=block.replace("CMR '+i+' / 3</div></div>'","CMR '+i+' / 4</div></div>'");
 
   html=html.slice(0,loadStart)+block+html.slice(loadEnd);
 
@@ -291,7 +291,7 @@ function patchCompletePrintBundle(html,file){
   if(!html.includes("loadHtml(sh,true)+loadHtml(sh,false)+cmrHtml(sh)"))throw new Error(file+': RC1274 L2 fehlt im Gesamtdruck');
   if(!html.includes("return[d.cover,d.load1,d.load2].concat(d.cmrs.slice(0,4)).filter(Boolean)"))throw new Error(file+': RC1274 Druckreihenfolge ist unvollständig');
   if(!html.includes("withQr?'1 / 2 · mit QR-Code':'2 / 2 · ohne QR-Code'"))throw new Error(file+': RC1274 L1/L2-Kennzeichnung fehlt');
-  if(!html.includes("for(var i=1;i<=4;i++){")||!html.includes("'CMR '+i+' / 4</div></div>'"))throw new Error(file+': RC1274 vier CMR-Ausfertigungen fehlen');
+  if(!html.includes("for(var i=1;i<=4;i++){")||!html.includes("CMR '+i+' / 4</div></div>'"))throw new Error(file+': RC1274 vier CMR-Ausfertigungen fehlen');
   return html;
 }
 
