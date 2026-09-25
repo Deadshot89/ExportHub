@@ -87,6 +87,13 @@ test('RC1259: QR-Abholung bietet Siegelnummer, drei Kameraaufnahmen und sofortig
   assert.match(page,/Für diese Sendung müssen alle 3 Containerfotos gespeichert sein/);
   assert.match(page,/Foto wurde im Referenzordner der Sendung gespeichert/);
   assert.match(page,/containerSealNumber:seal/);
+  const colliPos=page.indexOf('id="colliSection"');
+  const containerPos=page.indexOf('id="containerSection"');
+  const detailsPos=page.indexOf('id="details"');
+  const driverPos=page.indexOf('id="driverStep"');
+  assert.ok(colliPos>=0&&containerPos>colliPos,'Colli-Prüfung muss zuerst stehen');
+  assert.ok(detailsPos>containerPos,'Siegelnummer und Fotos müssen vor den Sendungsdetails stehen');
+  assert.ok(driverPos>detailsPos,'Fahrerbereich muss nach den priorisierten Abholdaten stehen');
 });
 
 test('RC1259: vollständige Abholung ist bei Containerpflicht serverseitig ohne Siegel oder Fotos gesperrt',()=>{
@@ -120,6 +127,10 @@ test('RC1259: Sendungsansicht zeigt Siegel und Fotos mit authentifiziertem Anseh
   assert.match(ui,/queueSave\('container-documentation-config'\)/);
   assert.match(ui,/Transportart/);
   assert.match(ui,/Seefracht/);
+  assert.match(ui,/data-rc1259-seal/);
+  assert.match(ui,/sh\.sealNumber=sealValue/);
+  assert.match(ui,/sh\.containerSealNumber=sealValue/);
+  assert.match(ui,/sh\.siegelnummer=sealValue/);
 });
 
 test('RC1259: Siegelnummer wird in Sendungsübersicht und Sendungsansicht als Suchfeld gebaut',()=>{
