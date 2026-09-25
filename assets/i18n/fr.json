@@ -1080,5 +1080,7 @@
   "sop.081.flow2": "Saisir la quantité",
   "sop.081.flow3": "Référence facultative",
   "sop.081.flow4": "Enregistrer",
-  "sop.081.flow5": "Vérifier le solde"
+  "sop.081.flow5": "Vérifier le solde",
+  "abd.mailPending": "IMPORTANT – LE DOCUMENT D’EXPORTATION (ABD) N’EST PAS ENCORE DISPONIBLE\nL’ABD devrait être disponible le {{expected}} vers 10:00. L’enlèvement peut déjà être réservé, mais pas avant le {{minimum}} à 10:00.",
+  "mail.closing": "Cordialement"
 }
