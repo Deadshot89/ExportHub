@@ -8,12 +8,12 @@ const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
 const browser=fs.readFileSync('e2e/specs/print-documents.spec.mjs','utf8');
 const demo=fs.readFileSync('assets/exporthub-demo-bootstrap.js','utf8');
 
-test('RC1204: rc390-Deckblattdruck ist hell, reduziert und drucksicher',()=>{
+test('RC1281: rc390-Deckblattdruck ist weiß, reduziert und drucksicher',()=>{
   assert.match(runtime,/\.rc390-cover,\.rc352-cover/);
   assert.match(runtime,/border='3mm solid #334155'/);
   assert.match(runtime,/borderTopWidth='5mm'/);
   assert.match(runtime,/outline='0'/);
-  assert.match(runtime,/background='#f8fafc'/);
+  assert.match(runtime,/background='#ffffff'/);
   assert.match(runtime,/webkitPrintColorAdjust='exact'/);
   assert.match(runtime,/printColorAdjust='exact'/);
   assert.match(runtime,/data-rc1203-cover-enhanced/);
@@ -28,12 +28,22 @@ test('RC1203: Bemerkung aus Sendungsdaten wird immer als eigener Deckblattblock 
   assert.match(runtime,/data-rc1203-remark-value/);
 });
 
-test('RC1203: Empfängeradresse und Referenz bleiben für Paletten deutlich hervorgehoben',()=>{
+test('RC1281: Referenz und Empfänger folgen der Essentra-/Kunden-Farbregel',()=>{
+  assert.match(runtime,/function isEssentraShipment\(sh\)/);
+  assert.match(runtime,/refBg:'#facc15'/);
+  assert.match(runtime,/recipientBg:'#fef9c3'/);
+  assert.match(runtime,/refBg:'#2563eb'/);
+  assert.match(runtime,/recipientBg:'#dbeafe'/);
+  assert.match(runtime,/data-rc1281-customer-theme/);
   assert.match(runtime,/data-rc1203-recipient-highlight/);
-  assert.match(runtime,/fontSize='16pt'/);
   assert.match(runtime,/data-rc1203-reference-highlight/);
-  assert.match(runtime,/background='#fff6cc'/);
-  assert.match(runtime,/border='1.2mm solid #d4a514'/);
+});
+
+test('RC1281: Erstellungsdatum stammt aus dem gespeicherten Sendungszeitpunkt',()=>{
+  assert.match(runtime,/sh\.createdAt,sh\.createdDateTime,sh\.createdOn,sh\.createdDate,sh\.created/);
+  assert.match(runtime,/Sendung erstellt/);
+  assert.match(runtime,/data-rc1281-created-date/);
+  assert.match(build,/created=dateDe\(sh&&\(sh\.createdAt\|\|sh\.createdDateTime\|\|sh\.createdOn\|\|sh\.createdDate\|\|sh\.created\)\)/);
 });
 
 test('RC1205: genau eine zusätzliche Deckblatt-Aktion bleibt übrig',()=>{
@@ -51,14 +61,21 @@ test('RC1203: echter coverHtml-Renderer trägt Farbe und Bemerkung direkt in den
   assert.match(build,/data-rc1203-reference-highlight="1"/);
   assert.match(build,/border:3mm solid #334155!important/);
   assert.match(build,/border-top-width:5mm!important/);
-  assert.match(build,/background:#f8fafc!important/);
+  assert.match(build,/background:#fff!important/);
+  assert.match(build,/data-rc1281-customer-theme/);
+  assert.match(build,/data-rc1281-created-date="1"/);
+  assert.match(build,/Erstellt am:/);
+  assert.match(build,/#facc15/);
+  assert.match(build,/#2563eb/);
+  assert.match(build,/#fef9c3/);
+  assert.match(build,/#dbeafe/);
   assert.match(build,/sh\.remark\|\|sh\.remarks\|\|sh\.bemerkung\|\|sh\.comments/);
 });
 
 test('RC1203: Runtime wird in Produktion TESTSERVICE und Demo gebaut',()=>{
-  assert.match(build,/assets\/rc1203-deckblatt-print\.js\?v=1205/);
+  assert.match(build,/assets\/rc1203-deckblatt-print\.js\?v=1281/);
   assert.match(build,/'assets\/rc1203-deckblatt-print\.js'/);
-  assert.match(build,/deckblattHighVisibility:'RC1204 calm light rc390 cover/);
+  assert.match(build,/deckblattHighVisibility:'RC1281 white cover/);
   assert.match(build,/coverRemark:'RC1204 compact remark block above QR without overlap'/);
   assert.match(build,/coverOnlyPrint:'RC1205 single Nur Deckblatt drucken action inside Speichern & Ausgabe'/);
   assert.doesNotMatch(build,/cmrOnlyPrint:/);
@@ -72,11 +89,11 @@ test('RC1203: Browser-Gate prüft echte Druckausgabe statt nur Quelltext',()=>{
   assert.match(browser,/coverStyle:cs/);
   assert.match(browser,/backgroundColor:cs\.backgroundColor/);
   assert.match(browser,/backgroundImage:cs\.backgroundImage/);
-  assert.match(browser,/expect\(capture\.coverStyle\.backgroundColor\)\.toBe\('rgb\(248, 250, 252\)'\)/);
+  assert.match(browser,/expect\(capture\.coverStyle\.backgroundColor\)\.toBe\('rgb\(255, 255, 255\)'\)/);
   assert.match(browser,/expect\(capture\.coverStyle\.backgroundImage\)\.toBe\('none'\)/);
 });
 
-test('RC1204: geänderte Runtime und Browserprüfung sind syntaktisch gültig',()=>{
+test('RC1281: geänderte Runtime und Browserprüfung sind syntaktisch gültig',()=>{
   for(const file of ['assets/rc1203-deckblatt-print.js','e2e/specs/print-documents.spec.mjs','.github/rc1112/build-three-env.mjs']){
     execFileSync(process.execPath,['--check',file],{stdio:'pipe'});
   }
