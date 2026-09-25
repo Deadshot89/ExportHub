@@ -313,21 +313,21 @@ function sessionFromRequest(req,payload){const h=req&&req.headers||{};return tex
 module.exports=async function(context,req){
  if(req.method==='OPTIONS'){context.res={status:204,headers:{'Cache-Control':'no-store','Allow':'GET, POST, OPTIONS','Referrer-Policy':'no-referrer','X-Frame-Options':'DENY','X-Content-Type-Options':'nosniff'},body:''};return}
  try{
-  const requestStarted=Date.now(),payload=body(req),action=lower(payload.action);
+  const requestStarted=Date.now(),payload=body(req),action=lower(payload.action),language=apiI18n.language(req,payload);
   if(req.method==='POST'&&action==='draft-sync'){
-   const authStarted=Date.now(),internal=await auth.validateSession(req),authMs=elapsed(authStarted);if(!auth.hasAnyEditRight(internal.user))throw auth.error('WRITE_FORBIDDEN','Für Kunden-Avis fehlen Bearbeitungsrechte.',403);
+   const authStarted=Date.now(),internal=await auth.validateSession(req),authMs=elapsed(authStarted);if(!auth.hasAnyEditRight(internal.user))throw auth.error('WRITE_FORBIDDEN','api.avis.writeForbidden',403);
    const subjectId=text(payload.shipmentId||payload.id||payload.reference||payload.ref),reference=upper(payload.reference||payload.ref),snapshot=sanitizeDraftSnapshot(payload.shipmentSnapshot,subjectId,reference),syncStarted=Date.now();
    const result=await access.updateSubjectSnapshot(req,'avis',subjectId,snapshot,internal.user.name||internal.user.user||'ExportHUB',payload);
    const timing={authMs,teamBlobMs:0,teamReadMs:0,flagWriteMs:0,tokenIssueMs:0,draftSyncMs:elapsed(syncStarted),teamWriteMs:0,totalMs:elapsed(requestStarted)};
    context.res=json(200,{ok:true,synced:true,shipmentId:subjectId,reference:snapshot.reference,updated:Number(result&&result.updated||0),timing,version:'RC1069'},timingHeaders(timing));return
   }
   if(req.method==='POST'&&(action==='issue'||action==='disable')){
-   const authStarted=Date.now(),internal=await auth.validateSession(req),authMs=elapsed(authStarted);if(!auth.hasAnyEditRight(internal.user))throw auth.error('WRITE_FORBIDDEN','Für Kunden-Avis fehlen Bearbeitungsrechte.',403);
+   const authStarted=Date.now(),internal=await auth.validateSession(req),authMs=elapsed(authStarted);if(!auth.hasAnyEditRight(internal.user))throw auth.error('WRITE_FORBIDDEN','api.avis.writeForbidden',403);
    const env=access.environment(req,payload),teamBlobStarted=Date.now(),blob=await teamBlob(env),teamBlobMs=elapsed(teamBlobStarted),canReuseAuthTeam=env==='production'&&internal&&internal.teamDoc&&obj(internal.teamDoc.value)&&text(auth.TEAM_CONTAINER)===TEAM_CONTAINER&&text(auth.TEAM_BLOB)===TEAM_BLOB_BASE,readStarted=Date.now(),d=canReuseAuthTeam?internal.teamDoc:await readTeam(blob),team=d.value||{},state=obj(team.state)?team.state:{};if(!obj(team.state))team.state=state;
    const timing={authMs,teamBlobMs,teamReadMs:elapsed(readStarted),flagWriteMs:0,tokenIssueMs:0,totalMs:0};
    const subjectId=text(payload.shipmentId||payload.id||payload.reference||payload.ref),reference=upper(payload.reference||payload.ref);let target=findShipment(state,subjectId,reference),draftOnly=false;
    if(!target&&payload.shipmentSnapshot){target=sanitizeDraftSnapshot(payload.shipmentSnapshot,subjectId,reference);draftOnly=true}
-   if(!target)throw error('SHIPMENT_NOT_FOUND','Sendung wurde nicht gefunden.',404);
+   if(!target)throw error('SHIPMENT_NOT_FOUND','api.avis.shipmentNotFound',404);
    const actualSubject=sid(target)||subjectId,actualRef=sref(target),snapshot=sanitizeDraftSnapshot(target,actualSubject,actualRef);
    if(action==='disable'){await access.revokeSubject(req,'avis',actualSubject,'disabled',internal.user.name||internal.user.user||'ExportHUB',payload);if(!draftOnly){const flagStarted=Date.now();await setAvisFlags(blob,actualSubject,actualRef,false,internal.user.name||internal.user.user,d);timing.flagWriteMs=elapsed(flagStarted)}timing.totalMs=elapsed(requestStarted);context.res=json(200,{ok:true,disabled:true,shipmentId:actualSubject,reference:actualRef,timing,version:'RC1129'},timingHeaders(timing));return}
    const actor=internal.user.name||internal.user.user||'ExportHUB',tokenStarted=Date.now(),needsFlagWrite=!draftOnly&&avisManuallyDisabled(target);let issued;
