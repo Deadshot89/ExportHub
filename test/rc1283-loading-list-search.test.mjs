@@ -85,5 +85,6 @@ test('RC1283: echter Browsertest prüft alle vier Suchdimensionen und verbirgt d
   assert.match(e2e,/toBeHidden/);
   assert.match(e2e,/data-rc1283-result/);
   assert.match(e2e,/data-rc1283-action/);
-  assert.match(e2e,/selectOption\(value,\{force:true\}\)/);
+  assert.doesNotMatch(e2e,/selectOption\(value/);
+  assert.match(runtime,/setTimeout\(function\(\)\{var current=findSelect\(\);if\(current\)dispatchSelection\(current,row\.value\)\},0\)/);
 });
