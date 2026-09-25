@@ -429,6 +429,7 @@ for(const rel of [
   'assets/rc1014-shipment-overview.css',
   'assets/rc1027-lieferavis-immediate.js',
   'assets/rc1037-lieferavis-timing-diagnostics.js',
+  'assets/exporthub-environment-hub.js',
   'assets/rc1049-abd-avis-policy.js',
   'assets/rc1014-task-runtime.js',
   'assets/rc1014-task-ui.css',
@@ -450,6 +451,8 @@ for(const rel of [
   fs.copyFileSync(src,dst);
   if(!fs.existsSync(dst)||fs.statSync(dst).size===0)throw new Error('RC1124 Pflicht-Runtime wurde nicht gebaut: '+rel);
 }
+const environmentHubBuilt=fs.readFileSync(path.join(OUT,'assets','exporthub-environment-hub.js'),'utf8');
+if(!environmentHubBuilt.includes("android.time")||!environmentHubBuilt.includes("android.diagnosticTitle"))throw new Error('RC1287 lokalisierter Android-Diagnose-Hub fehlt im finalen Build');
 const visibleRuntimeFile=path.join(OUT,'assets','rc1193-visible-release.js');
 let visibleRuntime=fs.readFileSync(visibleRuntimeFile,'utf8');
 if(!/var VERSION='RC\d+';/.test(visibleRuntime))throw new Error('RC1265 sichtbare Release-Runtime enthält keinen ersetzbaren Versionsanker');
