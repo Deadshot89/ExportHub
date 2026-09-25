@@ -5,6 +5,7 @@ import fs from 'node:fs';
 const api=fs.readFileSync('api/customer-avis/index.js','utf8');
 const page=fs.readFileSync('customer-avis.html','utf8');
 const fixer=fs.readFileSync('.github/rc1018/fix-mail-wording.mjs','utf8');
+const workflow=fs.readFileSync('.github/workflows/rc1002-main-contract.yml','utf8');
 
 test('RC1089: Lieferavis bleibt bis einschließlich 14 Kalendertage nach Abholung erreichbar',()=>{
   assert.match(api,/function avisExpiresOn\(sh\)[^{]*\{[^}]*addCalendarDays\(picked,14\)/);
@@ -15,6 +16,14 @@ test('RC1089: Lieferavis bleibt bis einschließlich 14 Kalendertage nach Abholun
   assert.match(fixer,/addCalendarDays\(picked,14\)/);
   assert.match(fixer,/berlinDateKey\(new Date\(\)\)>until/);
   assert.match(fixer,/14 Kalendertage nach der tatsächlichen Abholung/);
+});
+
+test('RC1273: Main-Contract bereitet die 14-Tage-AVIS-Regel vor dem QR-/Avis-Vertrag vor',()=>{
+  const step=workflow.slice(workflow.indexOf('QR- und Lieferavis-End-to-End-Regression'),workflow.indexOf('Android-Regression'));
+  const prepareAt=step.indexOf('node .github/rc1018/fix-mail-wording.mjs');
+  const contractAt=step.indexOf('.github/rc998/partial-pickup-avis-contract.test.mjs');
+  assert.ok(prepareAt>=0,'14-Tage-AVIS-Vorbereitung fehlt im Main-Contract');
+  assert.ok(contractAt>prepareAt,'14-Tage-AVIS-Vorbereitung muss vor dem QR-/Avis-Vertrag laufen');
 });
 
 test('RC1089: Sendungsdokumente bleiben nach Abholung im schreibgeschützten Avis downloadbar',()=>{
