@@ -22,8 +22,8 @@ test('RC1133: AVIS-Upload-Benachrichtigungsruntime wird in alle internen Umgebun
   if(!fs.existsSync(src))return;
   const runtime=fs.readFileSync(src,'utf8');
   assert.match(runtime,/customer-avis-document/);
-  assert.match(runtime,/Neues AVIS-Dokument/);
-  assert.match(runtime,/PDF öffnen \/ drucken/);
+  assert.match(runtime,/avisUploads\.noticeTitle/);
+  assert.match(runtime,/avisUploads\.openPrint/);
   assert.match(runtime,/ExportHUBDocumentBlob1059/);
   assert.match(runtime,/data-index236-action="open-shipment"/);
   assert.match(runtime,/localStorage/);

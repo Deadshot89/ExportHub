@@ -7,7 +7,7 @@ const builder=fs.readFileSync('.github/rc1048/build-three-env.mjs','utf8');
 
 test('RC1096: Verpackungsauswahl wird in drei feste Gruppen gegliedert',()=>{
   assert.match(runtime,/\['packages','pallets','other'\]/);
-  assert.match(runtime,/cat==='packages'\?'Pakete':cat==='pallets'\?'Paletten':'Sonstiges'/);
+  assert.match(runtime,/packaging\.packages/); assert.match(runtime,/packaging\.pallets/); assert.match(runtime,/packaging\.other/);
   assert.match(runtime,/rc1096-packaging-grid/);
   assert.match(runtime,/@media\(max-width:720px\)/);
 });

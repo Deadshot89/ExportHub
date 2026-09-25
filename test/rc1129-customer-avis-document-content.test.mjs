@@ -22,7 +22,7 @@ test('RC1129: exakte Sendungsreferenz plus passende Dokumentart wird freigegeben
   );
   assert.equal(out.ok,true);
   assert.equal(out.code,'PDF_CONTENT_VALID');
-  assert.ok(out.matched.includes('Sendungsreferenz'));
+  assert.ok(out.matched.includes('shipment-reference'));
 });
 
 test('RC1129: zwei starke Alternativmerkmale reichen auch ohne sichtbare Hauptreferenz',()=>{
@@ -33,8 +33,8 @@ test('RC1129: zwei starke Alternativmerkmale reichen auch ohne sichtbare Hauptre
   );
   assert.equal(out.ok,true);
   assert.equal(out.documentType,'delivery_note');
-  assert.ok(out.matched.includes('Kundennummer'));
-  assert.ok(out.matched.includes('Sales Order'));
+  assert.ok(out.matched.includes('customer-number'));
+  assert.ok(out.matched.includes('sales-order'));
 });
 
 test('RC1129: fremde Sendung wird trotz plausiblem PDF nicht gespeichert',()=>{
@@ -45,7 +45,7 @@ test('RC1129: fremde Sendung wird trotz plausiblem PDF nicht gespeichert',()=>{
   );
   assert.equal(out.ok,false);
   assert.equal(out.code,'PDF_SHIPMENT_MISMATCH');
-  assert.match(out.message,/nicht eindeutig zugeordnet/i);
+  assert.equal(out.messageKey,'api.avis.shipmentMismatch');
 });
 
 test('RC1129: falsche Dokumentart wird blockiert',()=>{

@@ -10,7 +10,10 @@
     "test:security": "node --test --test-concurrency=1 --test-name-pattern='Security|Rechte' test/rc1088-release-hardening.test.mjs",
     "test:accessibility": "node --test --test-concurrency=1 --test-name-pattern='Accessibility|Responsive' test/rc1088-release-hardening.test.mjs",
     "test:smoke": "node --test --test-concurrency=1 test/rc1088-release-hardening.test.mjs",
-    "verify:release": "npm run test:security && npm run test:accessibility && npm test"
+    "verify:release": "npm run test:security && npm run test:accessibility && npm test",
+    "i18n:audit": "node scripts/i18n-audit.mjs",
+    "i18n:audit:strict": "node scripts/i18n-audit.mjs --strict",
+    "verify:i18n": "node --test --test-concurrency=1 test/rc1267-i18n.test.mjs tests/rc1267-dynamic-i18n.test.cjs tests/rc1267-api-i18n.test.cjs && npm run i18n:audit"
   },
   "engines": {
     "node": ">=20"

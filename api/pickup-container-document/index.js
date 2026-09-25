@@ -2,8 +2,11 @@
 const access=require('../shared/public-access-store');
 const pickup=require('../shared/pickup-store');
 const docs=require('../shared/container-document-store');
+const apiI18n=require('../shared/i18n');
 
 function json(status,body){return pickup.json(status,body)}
+function message(req,e,fallback){const raw=text(e&&e.message);return /^api\./.test(raw)?apiI18n.t(req,raw,e&&e.vars):raw||apiI18n.t(req,fallback)}
+function publicPhoto(req,photo){return docs.publicPhoto(photo,key=>apiI18n.t(req,key))}
 function mergePhoto(list,photo){
  const rows=Array.isArray(list)?list.slice():[];
  const next=rows.filter(x=>String(x&&x.kind||'').toLowerCase()!==photo.kind);
@@ -21,10 +24,10 @@ function linkedInTeam(teamDoc,record,photo){
 }
 module.exports=async function(context,req){
  if(req.method==='OPTIONS'){context.res=json(204,{});return}
- if(req.method!=='POST'){context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED',message:'Nur POST ist erlaubt.'});return}
+ if(req.method!=='POST'){context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED',message:apiI18n.t(req,'api.common.postOnly')});return}
  try{
   const b=pickup.body(req),token=String(b.token||'').trim(),resolved=await access.resolve(req,'pickup',token,{allowUsed:false},b),accessKey=resolved.resourceKey||resolved.tokenHash,got=await pickup.getRecord(accessKey,resolved.environment),record=got.record||{};
-  if(pickup.expired(record)&&!(typeof pickup.pickupComplete==='function'&&pickup.pickupComplete(record)))throw pickup.err('EXPIRED','QR-Code ist abgelaufen.',410);
+  if(pickup.expired(record)&&!(typeof pickup.pickupComplete==='function'&&pickup.pickupComplete(record)))throw pickup.err('EXPIRED',apiI18n.t(req,'api.pickup.expired'),410);
   const kind=docs.kindOf(b.kind),photo=await docs.savePhoto({environment:resolved.environment,reference:record.reference,kind,dataUrl:b.dataUrl,shipmentId:record.shipmentId,subShipmentId:record.subShipmentId});
   const updated=await pickup.mutateRecord(accessKey,resolved.environment,function(r){
    r.containerPhotos=mergePhoto(r.containerPhotos,photo);
@@ -32,9 +35,9 @@ module.exports=async function(context,req){
    r.updatedAt=r.containerDocumentationUpdatedAt;
    return r
   });
-  if(typeof pickup.updateTeamContainerDocumentation!=='function')throw pickup.err('CONTAINER_TEAM_SYNC_UNAVAILABLE','Containerfoto konnte nicht mit der Sendung verknüpft werden.',503);
+  if(typeof pickup.updateTeamContainerDocumentation!=='function')throw pickup.err('CONTAINER_TEAM_SYNC_UNAVAILABLE',apiI18n.t(req,'api.container.teamSyncUnavailable'),503);
   const teamDoc=await pickup.updateTeamContainerDocumentation(updated);
-  if(!linkedInTeam(teamDoc,updated,photo))throw pickup.err('CONTAINER_TEAM_SYNC_FAILED','Containerfoto wurde gespeichert, konnte aber nicht mit der Sendung verknüpft werden. Bitte erneut versuchen.',503);
-  context.res=json(200,{ok:true,reference:updated.reference,photo:docs.publicPhoto(photo),containerPhotos:(updated.containerPhotos||[]).map(docs.publicPhoto).filter(Boolean),storedUnderReference:true,linkedToShipment:true,version:'RC1272'});
- }catch(e){context.log&&context.log.error&&context.log.error('pickup-container-document RC1259',e&&e.code,e&&e.message);context.res=json(e.status||e.statusCode||500,{ok:false,code:e.code||'CONTAINER_PHOTO_UPLOAD_FAILED',message:e.message||'Containerfoto konnte nicht gespeichert werden.'})}
+  if(!linkedInTeam(teamDoc,updated,photo))throw pickup.err('CONTAINER_TEAM_SYNC_FAILED',apiI18n.t(req,'api.container.teamSyncFailed'),503);
+  context.res=json(200,{ok:true,reference:updated.reference,photo:publicPhoto(req,photo),containerPhotos:(updated.containerPhotos||[]).map(p=>publicPhoto(req,p)).filter(Boolean),storedUnderReference:true,linkedToShipment:true,version:'RC1272'});
+ }catch(e){context.log&&context.log.error&&context.log.error('pickup-container-document RC1259',e&&e.code,e&&e.message);context.res=json(e.status||e.statusCode||500,{ok:false,code:e.code||'CONTAINER_PHOTO_UPLOAD_FAILED',message:message(req,e,'api.container.photoSaveFailed')})}
 };

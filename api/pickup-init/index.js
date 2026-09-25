@@ -2,17 +2,18 @@
 const access=require('../shared/public-access-store');
 const store=require('../shared/pickup-store');
 const auth=require('../shared/fast-auth-store');
+const apiI18n=require('../shared/i18n');
 
 function text(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
 function rowsOf(src){for(const k of ['rows','colli','collis','packages','packageRows'])if(Array.isArray(src&&src[k])&&src[k].length)return src[k];return[]}
 function carrier(src){return store.sanitizeText(src.carrierName||src.speditionName||src.carrier||src.spedition||'',180)}
 module.exports=async function(context,req){
  if(req.method==='OPTIONS'){context.res=store.json(204,{}, {Allow:'POST, OPTIONS'});return}
- if(req.method!=='POST'){context.res=store.json(405,{ok:false,code:'METHOD_NOT_ALLOWED',message:'Nur POST ist erlaubt.'},{Allow:'POST, OPTIONS'});return}
+ if(req.method!=='POST'){context.res=store.json(405,{ok:false,code:'METHOD_NOT_ALLOWED',message:apiI18n.t(req,'api.common.postOnly')},{Allow:'POST, OPTIONS'});return}
  try{
-  const session=await auth.validateSession(req);if(!auth.hasAnyEditRight(session.user))throw auth.error('WRITE_FORBIDDEN','Für das Erstellen eines Abhol-QR-Codes fehlen Bearbeitungsrechte.',403);
-  const b=store.body(req),src=b.shipment&&typeof b.shipment==='object'?Object.assign({},b.shipment,b):b,reference=text(src.reference||src.ref||src.shipmentRef).toUpperCase(),shipmentId=text(src.shipmentId||src.id||reference),subShipmentId=text(src.subShipmentId),subShipmentSequence=Math.max(0,Math.round(Number(src.subShipmentSequence)||0)),subShipmentTotal=Math.max(0,Math.round(Number(src.subShipmentTotal)||0)),subShipmentLabel=subShipmentId&&subShipmentSequence&&subShipmentTotal?`Sendung ${subShipmentSequence} von ${subShipmentTotal}`:'',pickupSubjectId=subShipmentId?`${shipmentId}::${subShipmentId}`:shipmentId,rows=rowsOf(src),expected=store.expectedCollis(Object.assign({},src,{rows}));
-  if(!shipmentId||!reference)throw store.err('SHIPMENT_REQUIRED','Sendung oder Referenz fehlt.',400);if(!expected)throw store.err('COLLI_REQUIRED','Die Soll-Colli-Anzahl fehlt. Bitte die Sendung mit vollständigen Colli-Daten speichern.',400);
+  const session=await auth.validateSession(req);if(!auth.hasAnyEditRight(session.user))throw auth.error('WRITE_FORBIDDEN',apiI18n.t(req,'api.pickup.writeForbidden'),403);
+  const b=store.body(req),src=b.shipment&&typeof b.shipment==='object'?Object.assign({},b.shipment,b):b,reference=text(src.reference||src.ref||src.shipmentRef).toUpperCase(),shipmentId=text(src.shipmentId||src.id||reference),subShipmentId=text(src.subShipmentId),subShipmentSequence=Math.max(0,Math.round(Number(src.subShipmentSequence)||0)),subShipmentTotal=Math.max(0,Math.round(Number(src.subShipmentTotal)||0)),subShipmentLabel=subShipmentId&&subShipmentSequence&&subShipmentTotal?apiI18n.t(req,'api.pickup.subShipmentLabel',{current:subShipmentSequence,total:subShipmentTotal}):'',pickupSubjectId=subShipmentId?`${shipmentId}::${subShipmentId}`:shipmentId,rows=rowsOf(src),expected=store.expectedCollis(Object.assign({},src,{rows}));
+  if(!shipmentId||!reference)throw store.err('SHIPMENT_REQUIRED',apiI18n.t(req,'api.pickup.shipmentRequired'),400);if(!expected)throw store.err('COLLI_REQUIRED',apiI18n.t(req,'api.pickup.colliRequiredInit'),400);
   const ttlDays=Math.min(30,Math.max(1,Number(b.expiresDays||src.expiresDays||14)||14));
   const snapshot={shipmentId,subShipmentId,subShipmentSequence,subShipmentTotal,subShipmentLabel,reference,customer:text(src.customerName||src.customer||src.recipientCustomerName),recipient:text(src.recipient||src.recipientName),address:typeof store.addressFromSource==='function'?store.addressFromSource(src):text(src.recipientAddress||src.deliveryAddress||src.shipToAddress||src.destinationAddress||src.address),locationName:text(src.locationName),carrierName:carrier(src),transportMode:typeof store.transportModeOf==='function'?store.transportModeOf(src):text(src.transportMode),containerDocumentationRequired:typeof store.containerDocumentationRequired==='function'?store.containerDocumentationRequired(src):src.containerDocumentationRequired===true,palletOut:Math.max(0,Number(src.palletOut||src.euroPallets||0)||0),rows:store.clone(rows),expectedColliCount:expected,plannedPickupDate:text(src.pickdate||src.plannedPickupDate||src.pickupDate)};
   const issued=await access.issue(req,'pickup',{subjectId:pickupSubjectId,shipmentId,subShipmentId,subShipmentSequence,subShipmentTotal,subShipmentLabel,reference,snapshot,actor:session.user.name||session.user.user||'ExportHUB'},ttlDays*86400000,b);
@@ -31,5 +32,5 @@ module.exports=async function(context,req){
    });
   }else await store.writeJson(store.recordBlob(c.records,accessKey,issued.environment),record,null);
   context.res=store.json(200,Object.assign({ok:true,registered:true,token:issued.token,environment:issued.environment,oneTime:false,reused:issued.reused===true,compatibility:'stable-qr-v1',version:'RC1014'},store.publicRecord(record,issued.token)));
- }catch(e){context.log&&context.log.error&&context.log.error('pickup-init RC1259',e&&e.code,e&&e.message);context.res=store.json(e.status||e.statusCode||500,{ok:false,code:e.code||'INIT_FAILED',message:e.message||'QR-Code konnte nicht registriert werden.'})}
+ }catch(e){context.log&&context.log.error&&context.log.error('pickup-init RC1259',e&&e.code,e&&e.message);context.res=store.json(e.status||e.statusCode||500,{ok:false,code:e.code||'INIT_FAILED',message:e.message||apiI18n.t(req,'api.pickup.registerFailed')})}
 };

@@ -127,7 +127,7 @@ function client(environment, companyKey){
 }
 function sanitizeLabel(value){
   const out = text(value).replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').slice(0, 180);
-  if (!out) throw error('SITE_LABEL_REQUIRED', 'Standort/Kunde ist erforderlich.', 400);
+  if (!out) throw error('SITE_LABEL_REQUIRED', 'api.location.siteRequired', 400);
   return out;
 }
 function sanitizeNote(value){

@@ -3,13 +3,14 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import {execFileSync} from 'node:child_process';
+import {createTestI18n} from './helpers/i18n.mjs';
 
 function build(){
   execFileSync(process.execPath,['.github/rc1014/build-three-env.mjs'],{stdio:'pipe'});
 }
 
 function loadOverview(){
-  const context={};
+  const context={ExportHUBI18n:createTestI18n('de')};
   context.globalThis=context;
   const source=fs.readFileSync('assets/rc1014-shipment-overview.js','utf8');
   vm.runInNewContext(source,context,{filename:'rc1014-shipment-overview.js'});
@@ -60,7 +61,7 @@ test('RC1014 Übersichtsadapter ergänzt nur zuordenbare Sendungskarten und ver�
   const source=fs.readFileSync('assets/rc1014-shipment-overview.js','utf8');
   assert.match(source,/function\s+enhanceShipmentOverview\s*\(/);
   assert.match(source,/data-exporthub-view[^\n]{0,120}shipmentoverview|shipmentoverview[^\n]{0,120}data-exporthub-view/i);
-  assert.match(source,/Erfasst:/);
-  assert.match(source,/Colli:/);
+  assert.match(source,/shipmentOverview\.created/);
+  assert.match(source,/shipmentOverview\.colli/);
   assert.doesNotMatch(source,/state\.shipments\s*=|filter\s*\([^)]*state\.shipments/i);
 });

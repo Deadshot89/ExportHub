@@ -16,10 +16,10 @@ test('RC1037 speichert Lieferavis-Serverzeiten clientseitig und stellt sie der D
   for(const key of ['authMs','teamBlobMs','teamReadMs','flagWriteMs','tokenIssueMs','totalMs'])assert.match(src,new RegExp(key),key+' muss übernommen werden.');
   assert.match(src,/sessionStorage/,'Der letzte Messwert muss lokal für die laufende Sitzung verfügbar bleiben.');
   assert.match(src,/exporthub:lieferavis-timing/,'Neue Lieferavis-Timings müssen als Diagnoseereignis gemeldet werden.');
-  assert.match(src,/Team-State lesen/,'Die Diagnose muss den Team-Read verständlich beschriften.');
-  assert.match(src,/Team-State speichern/,'Die Diagnose muss den Flag-Write verständlich beschriften.');
-  assert.match(src,/Token erzeugen/,'Die Diagnose muss den Token-Issue verständlich beschriften.');
-  assert.match(src,/Gesamtzeit/,'Die Diagnose muss die Gesamtzeit sichtbar machen.');
+  assert.match(src,/avisTiming\.readState/,'Die Diagnose muss den lokalisierten Team-Read verwenden.');
+  assert.match(src,/avisTiming\.writeState/,'Die Diagnose muss den lokalisierten Flag-Write verwenden.');
+  assert.match(src,/avisTiming\.createToken/,'Die Diagnose muss den lokalisierten Token-Issue verwenden.');
+  assert.match(src,/avisTiming\.total/,'Die Diagnose muss die lokalisierte Gesamtzeit sichtbar machen.');
   assert.match(src,/isGlobalAdmin/,'Die Timing-Karte bleibt auf die bestehende Global-Admin-Diagnose begrenzt.');
 
   assert.match(build,/rc1037-lieferavis-timing-diagnostics\.js\?v=1038/,'Der gemeinsame Build muss die aktuelle Lieferavis-Timingdiagnose mit frischem Cache-Key laden.');

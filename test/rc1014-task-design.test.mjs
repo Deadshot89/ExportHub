@@ -3,11 +3,12 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import {execFileSync} from 'node:child_process';
+import {createTestI18n} from './helpers/i18n.mjs';
 
 const read=rel=>fs.readFileSync(rel,'utf8');
 
 function loadRuntime(extra={}){
-  const context={...extra};
+  const context={ExportHUBI18n:createTestI18n('de'),...extra};
   context.globalThis=context;
   context.setTimeout=fn=>fn();
   context.clearTimeout=()=>{};
@@ -18,7 +19,7 @@ function loadRuntime(extra={}){
 
 test('RC1014 Aufgaben-Design zeigt Priorität Fälligkeit Verantwortlichen und Öffnen als Text',()=>{
   const runtime=read('assets/rc1014-task-runtime.js');
-  for(const label of ['Priorität','Fällig','Verantwortlich','Öffnen']) assert.match(runtime,new RegExp(label,'i'));
+  for(const key of ['taskDetail.priority','taskDetail.dueLabel','taskDetail.ownerLabel','taskDetail.openTask']) assert.match(runtime,new RegExp(key.replaceAll('.','\\.')));
   assert.match(runtime,/rc1014-task-meta/);
   assert.match(runtime,/data-rc1014-priority|dataset\.rc1014Priority/);
   assert.match(runtime,/data-rc1014-due|dataset\.rc1014Due/);
@@ -86,7 +87,7 @@ test('RC1153 Aufgabenansicht bietet Offen In Bearbeitung und Erledigt',()=>{
   assert.match(runtime,/data-task-action="open"/);
   assert.match(runtime,/data-task-action="in_progress"/);
   assert.match(runtime,/data-task-action="done"/);
-  assert.match(runtime,/In Bearbeitung/);
+  assert.match(runtime,/taskDetail\.status\.inProgress/);
   assert.match(runtime,/function\s+setTaskStatus\s*\(/);
 });
 

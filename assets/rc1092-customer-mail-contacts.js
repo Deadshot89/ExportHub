@@ -7,6 +7,7 @@ w.__EXPORTHUB_RC1092_CUSTOMER_MAIL_CONTACTS__=true;
 var installTimer=0;
 
 function q(v){return String(v==null?'':v).trim()}
+function tr(key,vars){try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.t==='function')return w.ExportHUBI18n.t(key,vars)}catch(_){}return key}
 function low(v){return q(v).toLocaleLowerCase('de-DE')}
 function arr(v){return Array.isArray(v)?v:[]}
 function obj(v){return v&&typeof v==='object'&&!Array.isArray(v)}
@@ -92,7 +93,7 @@ function writeMailContacts(c,r,list){
 function librarySnapshot(){return clone(arr(state().customerContactDirectory))}
 function restoreLibrary(snapshot){state().customerContactDirectory=clone(arr(snapshot))}
 function upsertLibrary(name,email,r){
- var root=state(),row=contact(name,email,r);if(!row.name)throw new Error('Bitte einen Namen eingeben.');if(!row.email)throw new Error('Bitte eine gültige E-Mail-Adresse eingeben.');
+ var root=state(),row=contact(name,email,r);if(!row.name)throw new Error(tr('customerContacts.nameRequired'));if(!row.email)throw new Error(tr('customerContacts.validEmailRequired'));
  root.customerContactDirectory=arr(root.customerContactDirectory);
  var hit=root.customerContactDirectory.find(function(x){return low(x&&x.email)===low(row.email)}),now=new Date().toISOString();
  if(!hit){hit={id:contactId(row.email),name:row.name,email:row.email,roles:[row.role],createdAt:now};root.customerContactDirectory.push(hit)}
@@ -100,9 +101,9 @@ function upsertLibrary(name,email,r){
  return clone(hit)
 }
 async function persist(reason){
- var clean=w.ExportHUBClean;if(!clean||typeof clean.queueSave!=='function'||typeof clean.flushSave!=='function')throw new Error('Die Azure-Speicherung ist noch nicht verfügbar.');
+ var clean=w.ExportHUBClean;if(!clean||typeof clean.queueSave!=='function'||typeof clean.flushSave!=='function')throw new Error(tr('customerContacts.storageUnavailable'));
  await Promise.resolve(clean.queueSave(reason));var ok=await Promise.resolve(clean.flushSave(reason,{force:true,userInitiated:true}));
- if(ok!==true)throw new Error('Die Azure-Speicherung wurde nicht bestätigt.');
+ if(ok!==true)throw new Error(tr('customerContacts.storageUnconfirmed'));
  return true
 }
 async function savePerson(r,name,email){
@@ -113,15 +114,15 @@ async function savePerson(r,name,email){
 function customerFieldsSnapshot(c){var keys=['salesContacts','customerSalesContacts','salesMail','salesEmail','salesPersonMail','salesPersonEmail','salesContactMail','salesContactEmail','rc385SalesMail','salesCc','salesPersonName','salesContactName','salesName','ccContacts','customerCcContacts','cc','mailCc','rc385Cc','updatedAt'],out={};keys.forEach(function(k){out[k]=clone(c&&c[k])});return out}
 function restoreCustomerFields(c,snap){Object.keys(snap||{}).forEach(function(k){if(snap[k]===undefined)delete c[k];else c[k]=clone(snap[k])})}
 async function addToMail(r,name,email){
- r=role(r);var c=currentCustomer();if(!c)throw new Error('Bitte zuerst einen Kunden im Kundenordner öffnen.');
- var row=contact(name,email,r);if(!row.email)throw new Error('Bitte eine gültige E-Mail-Adresse auswählen oder eingeben.');if(!row.name)row.name=nameForEmail(row.email,r);
+ r=role(r);var c=currentCustomer();if(!c)throw new Error(tr('customerContacts.customerRequired'));
+ var row=contact(name,email,r);if(!row.email)throw new Error(tr('customerContacts.validEmailSelect'));if(!row.name)row.name=nameForEmail(row.email,r);
  var before=customerFieldsSnapshot(c),list=mailContacts(c,r),exists=list.some(function(x){return low(x.email)===low(row.email)});
  if(!exists)list.push(row);else list=list.map(function(x){return low(x.email)===low(row.email)&&row.name?row:x});
  try{writeMailContacts(c,r,list);syncLegacyFields(c);await persist((r==='sales'?'Sales Person':'CC-Kontakt')+' zur Kundenmail hinzugefügt');try{w.dispatchEvent(new CustomEvent('exporthub:customer-mail-contacts-updated',{detail:{customerId:customerId(c),role:r,email:row.email}}))}catch(_){}return row}
  catch(e){restoreCustomerFields(c,before);syncLegacyFields(c);throw e}
 }
 async function removeFromMail(r,email){
- r=role(r);var c=currentCustomer();if(!c)throw new Error('Kunde nicht gefunden.');var before=customerFieldsSnapshot(c),list=mailContacts(c,r).filter(function(x){return low(x.email)!==low(email)});
+ r=role(r);var c=currentCustomer();if(!c)throw new Error(tr('customerContacts.customerNotFound'));var before=customerFieldsSnapshot(c),list=mailContacts(c,r).filter(function(x){return low(x.email)!==low(email)});
  try{writeMailContacts(c,r,list);syncLegacyFields(c);await persist((r==='sales'?'Sales Person':'CC-Kontakt')+' aus Kundenmail entfernt');try{w.dispatchEvent(new CustomEvent('exporthub:customer-mail-contacts-updated',{detail:{customerId:customerId(c),role:r,email:q(email),removed:true}}))}catch(_){}return true}
  catch(e){restoreCustomerFields(c,before);syncLegacyFields(c);throw e}
 }
@@ -134,9 +135,11 @@ function syncLegacyFields(c){
  if(salesField)salesField.value=salesEmails;if(ccField)ccField.value=ccEmails;if(legacyName)legacyName.value=q(sales[0]&&sales[0].name);
  return true
 }
-function optionHtml(r){return '<option value="">— Person auswählen —</option>'+directory(r).map(function(x){return'<option value="'+esc(x.email)+'" data-contact-name="'+esc(x.name)+'">'+esc(x.name||x.email)+' · '+esc(x.email)+'</option>'}).join('')}
-function chipHtml(x,r){return'<span class="rc1092-mail-chip" data-rc1092-role="'+esc(r)+'" data-rc1092-email="'+esc(x.email)+'"><span><b>'+esc(x.name||x.email)+'</b>'+(x.name?'<small>'+esc(x.email)+'</small>':'')+'</span><button type="button" class="ghost" data-rc1092-remove="'+esc(r)+'" data-email="'+esc(x.email)+'" title="Nur aus der Mail entfernen">×</button></span>'}
-function setStatus(r,text,kind){var el=d.querySelector('[data-rc1092-status="'+role(r)+'"]');if(!el)return;el.textContent=text||'';el.setAttribute('data-kind',kind||'info')}
+function optionHtml(r){return '<option value="" data-i18n="customerContacts.selectPerson">'+esc(tr('customerContacts.selectPerson'))+'</option>'+directory(r).map(function(x){return'<option value="'+esc(x.email)+'" data-contact-name="'+esc(x.name)+'">'+esc(x.name||x.email)+' · '+esc(x.email)+'</option>'}).join('')}
+function chipHtml(x,r){return'<span class="rc1092-mail-chip" data-rc1092-role="'+esc(r)+'" data-rc1092-email="'+esc(x.email)+'"><span><b>'+esc(x.name||x.email)+'</b>'+(x.name?'<small>'+esc(x.email)+'</small>':'')+'</span><button type="button" class="ghost" data-rc1092-remove="'+esc(r)+'" data-email="'+esc(x.email)+'" data-i18n-title="customerContacts.removeFromMailTitle" title="'+esc(tr('customerContacts.removeFromMailTitle'))+'">×</button></span>'}
+function setStatus(r,text,kind,key,vars){var el=d.querySelector('[data-rc1092-status="'+role(r)+'"]');if(!el)return;el.textContent=key?tr(key,vars):(text||'');el.setAttribute('data-kind',kind||'info');if(key){el.setAttribute('data-rc1092-status-key',key);try{el.setAttribute('data-rc1092-status-vars',JSON.stringify(vars||{}))}catch(_){}}else{el.removeAttribute('data-rc1092-status-key');el.removeAttribute('data-rc1092-status-vars')}}
+function setStatusKey(r,key,vars,kind){setStatus(r,'',kind,key,vars)}
+function refreshStatusLanguage(){['sales','cc'].forEach(function(r){var el=d.querySelector('[data-rc1092-status="'+r+'"]'),key=el&&q(el.getAttribute('data-rc1092-status-key'));if(!key)return;var vars={};try{vars=JSON.parse(el.getAttribute('data-rc1092-status-vars')||'{}')}catch(_){}el.textContent=tr(key,vars)})}
 function ensureStyle(){
  if(d.getElementById('rc1092CustomerContactsStyle'))return;
  var s=d.createElement('style');s.id='rc1092CustomerContactsStyle';
@@ -161,24 +164,24 @@ function refreshManager(c){
  if(salesSelect){var html=optionHtml('sales');if(salesSelect.innerHTML!==html)salesSelect.innerHTML=html}
  if(ccSelect){var html2=optionHtml('cc');if(ccSelect.innerHTML!==html2)ccSelect.innerHTML=html2}
  var salesBox=d.getElementById('rc1092SalesMailContacts'),ccBox=d.getElementById('rc819CcContactChips'),sales=mailContacts(c,'sales'),cc=mailContacts(c,'cc');
- if(salesBox){var sh=sales.length?sales.map(function(x){return chipHtml(x,'sales')}).join(''):'<span class="muted">Noch keine Sales-Person zur Mail hinzugefügt.</span>';if(salesBox.innerHTML!==sh)salesBox.innerHTML=sh}
- if(ccBox){var ch=cc.length?cc.map(function(x){return chipHtml(x,'cc')}).join(''):'<span class="muted">Noch kein CC-Kontakt zur Mail hinzugefügt.</span>';if(ccBox.innerHTML!==ch)ccBox.innerHTML=ch}
+ if(salesBox){var sh=sales.length?sales.map(function(x){return chipHtml(x,'sales')}).join(''):'<span class="muted" data-i18n="customerContacts.emptySales">'+esc(tr('customerContacts.emptySales'))+'</span>';if(salesBox.innerHTML!==sh)salesBox.innerHTML=sh}
+ if(ccBox){var ch=cc.length?cc.map(function(x){return chipHtml(x,'cc')}).join(''):'<span class="muted" data-i18n="customerContacts.emptyCc">'+esc(tr('customerContacts.emptyCc'))+'</span>';if(ccBox.innerHTML!==ch)ccBox.innerHTML=ch}
  syncLegacyFields(c);return true
 }
 function managerHtml(){
- return '<div class="rc819-contact-head"><div><h4>Gespeicherte Sales- &amp; CC-Kontakte</h4><p>Kontakte und Mail-Empfänger werden jetzt getrennt verwaltet.</p></div></div><div class="rc1092-contact-intro"><b>Person speichern</b> legt den Kontakt dauerhaft in der Kontaktbibliothek ab. <b>Zur Mail hinzufügen</b> entscheidet separat, welche Person bei diesem Kunden in CC aufgenommen wird. Ein gespeicherter Kontakt wird nicht allein durch die Auswahl zur Mail hinzugefügt.</div><div class="rc1092-contact-grid">'+cardHtml('sales','Sales Personen')+cardHtml('cc','CC-Kontakte')+'</div>'
+ return '<div class="rc819-contact-head"><div><h4 data-i18n="customerContacts.heading">'+esc(tr('customerContacts.heading'))+'</h4><p data-i18n="customerContacts.subtitle">'+esc(tr('customerContacts.subtitle'))+'</p></div></div><div class="rc1092-contact-intro"><b data-i18n="customerContacts.intro.save">'+esc(tr('customerContacts.intro.save'))+'</b> <span data-i18n="customerContacts.intro.saveText">'+esc(tr('customerContacts.intro.saveText'))+'</span> <b data-i18n="customerContacts.intro.add">'+esc(tr('customerContacts.intro.add'))+'</b> <span data-i18n="customerContacts.intro.addText">'+esc(tr('customerContacts.intro.addText'))+'</span> <span data-i18n="customerContacts.intro.note">'+esc(tr('customerContacts.intro.note'))+'</span></div><div class="rc1092-contact-grid">'+cardHtml('sales','customerContacts.salesPeople')+cardHtml('cc','customerContacts.ccContacts')+'</div>'
 }
-function cardHtml(r,title){
- return '<section class="rc1092-contact-card" data-rc1092-card="'+r+'"><h5>'+title+'</h5><label class="field">Gespeicherte Person<select data-rc1092-select="'+r+'"></select></label><div class="rc1092-draft-grid"><label class="field">Name<input data-rc1092-name="'+r+'" autocomplete="off" placeholder="Name"></label><label class="field">E-Mail<input data-rc1092-email="'+r+'" type="email" autocomplete="off" placeholder="name@firma.de"></label></div><div class="rc1092-actions"><button type="button" class="ghost" data-rc1092-save="'+r+'">Person speichern</button><button type="button" class="btn" data-rc1092-add="'+r+'">Zur Mail hinzufügen</button></div><div class="rc1092-status" data-rc1092-status="'+r+'"></div><div class="rc1092-current-label">Dieser Kunden-Mail hinzugefügt</div><div class="rc1092-mail-list" '+(r==='sales'?'id="rc1092SalesMailContacts"':'id="rc819CcContactChips"')+'></div></section>'
+function cardHtml(r,titleKey){
+ return '<section class="rc1092-contact-card" data-rc1092-card="'+r+'"><h5 data-i18n="'+titleKey+'">'+esc(tr(titleKey))+'</h5><label class="field"><span data-i18n="customerContacts.savedPerson">'+esc(tr('customerContacts.savedPerson'))+'</span><select data-rc1092-select="'+r+'"></select></label><div class="rc1092-draft-grid"><label class="field"><span data-i18n="customerContacts.name">'+esc(tr('customerContacts.name'))+'</span><input data-rc1092-name="'+r+'" autocomplete="off" data-i18n-placeholder="customerContacts.name" placeholder="'+esc(tr('customerContacts.name'))+'"></label><label class="field"><span data-i18n="customerContacts.email">'+esc(tr('customerContacts.email'))+'</span><input data-rc1092-email="'+r+'" type="email" autocomplete="off" placeholder="name@firma.de"></label></div><div class="rc1092-actions"><button type="button" class="ghost" data-rc1092-save="'+r+'" data-i18n="customerContacts.savePerson">'+esc(tr('customerContacts.savePerson'))+'</button><button type="button" class="btn" data-rc1092-add="'+r+'" data-i18n="customerContacts.addToMail">'+esc(tr('customerContacts.addToMail'))+'</button></div><div class="rc1092-status" data-rc1092-status="'+r+'"></div><div class="rc1092-current-label" data-i18n="customerContacts.addedToCustomerMail">'+esc(tr('customerContacts.addedToCustomerMail'))+'</div><div class="rc1092-mail-list" '+(r==='sales'?'id="rc1092SalesMailContacts"':'id="rc819CcContactChips"')+'></div></section>'
 }
 async function run(button,r,mode){
- var row=draftContact(r);if(!row.name){setStatus(r,'Bitte zuerst Name und E-Mail auswählen oder eingeben.','error');return false}if(!row.email){setStatus(r,'Bitte eine gültige E-Mail-Adresse eingeben.','error');return false}
- button.disabled=true;setStatus(r,mode==='save'?'Person wird dauerhaft gespeichert …':'Person wird zur Mail hinzugefügt …','info');
+ var row=draftContact(r);if(!row.name){setStatusKey(r,'customerContacts.nameEmailRequired',null,'error');return false}if(!row.email){setStatusKey(r,'customerContacts.validEmailRequired',null,'error');return false}
+ button.disabled=true;setStatusKey(r,mode==='save'?'customerContacts.savingPerson':'customerContacts.addingPerson',null,'info');
  try{
-  if(mode==='save'){await savePerson(r,row.name,row.email);setStatus(r,'Person dauerhaft gespeichert. Noch nicht automatisch zur Mail hinzugefügt.','ok')}
-  else{await addToMail(r,row.name,row.email);setStatus(r,'Person wurde zur Mail dieses Kunden hinzugefügt und dauerhaft gespeichert.','ok')}
+  if(mode==='save'){await savePerson(r,row.name,row.email);setStatusKey(r,'customerContacts.personSaved',null,'ok')}
+  else{await addToMail(r,row.name,row.email);setStatusKey(r,'customerContacts.personAdded',null,'ok')}
   refreshManager(currentCustomer());return false
- }catch(e){setStatus(r,'Speichern fehlgeschlagen: '+q(e&&e.message||e),'error');return false}
+ }catch(e){setStatusKey(r,'customerContacts.saveFailed',{error:q(e&&e.message||e)},'error');return false}
  finally{button.disabled=false}
 }
 function bind(host){
@@ -187,7 +190,7 @@ function bind(host){
  host.addEventListener('click',function(ev){
   var save=ev.target&&ev.target.closest&&ev.target.closest('[data-rc1092-save]');if(save){ev.preventDefault();run(save,save.getAttribute('data-rc1092-save'),'save');return}
   var add=ev.target&&ev.target.closest&&ev.target.closest('[data-rc1092-add]');if(add){ev.preventDefault();run(add,add.getAttribute('data-rc1092-add'),'add');return}
-  var remove=ev.target&&ev.target.closest&&ev.target.closest('[data-rc1092-remove]');if(remove){ev.preventDefault();var r=remove.getAttribute('data-rc1092-remove'),email=remove.getAttribute('data-email');remove.disabled=true;setStatus(r,'Kontakt wird aus der Mail entfernt …','info');removeFromMail(r,email).then(function(){setStatus(r,'Aus der Mail entfernt. Die Person bleibt gespeichert.','ok');refreshManager(currentCustomer())}).catch(function(e){setStatus(r,'Entfernen fehlgeschlagen: '+q(e&&e.message||e),'error')}).finally(function(){remove.disabled=false})}
+  var remove=ev.target&&ev.target.closest&&ev.target.closest('[data-rc1092-remove]');if(remove){ev.preventDefault();var r=remove.getAttribute('data-rc1092-remove'),email=remove.getAttribute('data-email');remove.disabled=true;setStatusKey(r,'customerContacts.removing',null,'info');removeFromMail(r,email).then(function(){setStatusKey(r,'customerContacts.removed',null,'ok');refreshManager(currentCustomer())}).catch(function(e){setStatusKey(r,'customerContacts.removeFailed',{error:q(e&&e.message||e)},'error')}).finally(function(){remove.disabled=false})}
  })
 }
 function install(){
@@ -202,7 +205,8 @@ function schedule(){
  if(installTimer)return;installTimer=w.setTimeout(function(){installTimer=0;try{install()}catch(e){try{console.warn('RC1092 Kundenkontakte',e)}catch(_){}}},0)
 }
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',function(){schedule();w.setTimeout(schedule,180);w.setTimeout(schedule,700)},{once:true});else{schedule();w.setTimeout(schedule,180);w.setTimeout(schedule,700)}
-['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded','exporthub:sync'].forEach(function(n){try{w.addEventListener(n,schedule)}catch(_){}});
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded','exporthub:sync','exporthub:language-changed'].forEach(function(n){try{w.addEventListener(n,schedule)}catch(_){}});
+try{w.addEventListener('exporthub:language-changed',function(){refreshManager(currentCustomer());refreshStatusLanguage()})}catch(_){}
 if(w.MutationObserver){try{var mo=new MutationObserver(function(){if(customerFolderVisible())schedule()});mo.observe(d.documentElement,{childList:true,subtree:true})}catch(_){}}
 
 w.ExportHUBRC1092CustomerContacts=Object.freeze({version:'RC1092',directory:directory,mailContacts:mailContacts,savePerson:savePerson,addToMail:addToMail,removeFromMail:removeFromMail,install:install});

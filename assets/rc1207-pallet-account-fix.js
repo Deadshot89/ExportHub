@@ -6,6 +6,7 @@ root.__EXPORTHUB_RC1207_PALLET_ACCOUNT_FIX__=true;
 var CLEANUP_DATE='2026-09-21',cleanupInFlight=false,enhanceTimer=0;
 
 function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
+function tr(key,vars){try{if(root.ExportHUBI18n&&typeof root.ExportHUBI18n.t==='function')return root.ExportHUBI18n.t(key,vars)}catch(_){}return key}
 function low(v){return q(v).toLowerCase()}
 function arr(v){return Array.isArray(v)?v:[]}
 function clone(v){return v===undefined?undefined:JSON.parse(JSON.stringify(v))}
@@ -75,10 +76,10 @@ function audit(s,type,details){
 }
 async function persist(reason){
   var clean=root.ExportHUBClean;
-  if(!clean||typeof clean.queueSave!=='function'||typeof clean.flushSave!=='function')throw new Error('Azure-Speicherung ist noch nicht bereit.');
+  if(!clean||typeof clean.queueSave!=='function'||typeof clean.flushSave!=='function')throw new Error(tr('palletDelete.storageUnavailable'));
   await Promise.resolve(clean.queueSave(reason));
   var ok=await Promise.resolve(clean.flushSave(reason));
-  if(ok===false)throw new Error('Azure hat die Palettenkonto-Änderung nicht bestätigt.');
+  if(ok===false)throw new Error(tr('palletDelete.storageUnconfirmed'));
   return true;
 }
 function rerender(){
@@ -112,12 +113,12 @@ function installBookingGuard(){
 }
 async function deletePalletBooking(id,options){
   options=options||{};
-  if(!canAdmin())throw new Error('Nur ein Admin darf Palettenbuchungen löschen.');
-  var s=state();if(!s)throw new Error('Palettenkonto ist noch nicht geladen.');
+  if(!canAdmin())throw new Error(tr('palletDelete.adminOnly'));
+  var s=state();if(!s)throw new Error(tr('palletDelete.notLoaded'));
   var list=arr(s.palletAccount),index=list.findIndex(function(b,i){return low(bookingId(b,i))===low(id)});
   if(index<0)return false;
   var row=list[index],label=[bookingDay(row),q(row.direction||row.type),q(row.count||row.quantity)].filter(Boolean).join(' · ');
-  if(!options.skipConfirm&&typeof root.confirm==='function'&&!root.confirm('Palettenbuchung '+label+' endgültig löschen?'))return false;
+  if(!options.skipConfirm&&typeof root.confirm==='function'&&!root.confirm(tr('palletDelete.confirm',{label:label})))return false;
   var prev={palletAccount:clone(s.palletAccount),palletSettlements:clone(s.palletSettlements),meta:clone(s._teamSyncMeta),audit:clone(s.auditLog)};
   var who=actor(),key=bookingId(row,index),reason='Admin-Löschung Palettenkonto';
   try{
@@ -146,7 +147,7 @@ function enhanceAdminDeleteButtons(){
     if(existing)return;
     var correct=row.querySelector&&row.querySelector('button[onclick*="rc542CorrectPalletBooking"]'),id=bookingIdFromCorrection(correct);
     if(!correct||!id||!correct.parentNode)return;
-    var btn=d.createElement('button');btn.type='button';btn.className='danger';btn.setAttribute('data-rc1207-delete-pallet',id);btn.textContent='Löschen';btn.title='Palettenbuchung als Admin endgültig löschen';
+    var btn=d.createElement('button');btn.type='button';btn.className='danger';btn.setAttribute('data-rc1207-delete-pallet',id);btn.textContent=tr('palletDelete.button');btn.title=tr('palletDelete.title');
     btn.addEventListener('click',function(ev){if(ev&&ev.preventDefault)ev.preventDefault();deletePalletBooking(id).catch(function(error){if(root.alert)root.alert(q(error&&error.message||error))})});
     correct.parentNode.appendChild(btn);
   });
@@ -193,7 +194,7 @@ function scheduleCleanup(){
 }
 
 if(root.addEventListener){
-  ['exporthub:ready','exporthub:rendered','exporthub:viewchange'].forEach(function(name){root.addEventListener(name,scheduleEnhance)});
+  ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:language-changed'].forEach(function(name){root.addEventListener(name,scheduleEnhance)});
   root.addEventListener('exporthub:ready',scheduleCleanup);
 }
 if(root.document&&root.document.readyState!=='loading'){scheduleEnhance()}

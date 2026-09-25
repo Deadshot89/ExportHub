@@ -2,16 +2,17 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {createTestI18n} from './helpers/i18n.mjs';
 
 const jsSource = fs.readFileSync('assets/abholkalender.js','utf8');
 const runtimeSource = fs.readFileSync('assets/rc1012-abholkalender-runtime.js','utf8');
-const sandbox = { module:{exports:{}}, exports:{}, globalThis:{} };
+const sandbox = { module:{exports:{}}, exports:{}, globalThis:{ExportHUBI18n:createTestI18n('de')} };
 vm.runInNewContext(jsSource,sandbox,{filename:'assets/abholkalender.js'});
 const calendar = sandbox.module.exports;
 
 test('Abholkalender bietet einen Wochenplan-Druck direkt aus der Seite an', () => {
   assert.match(jsSource,/data-pickup-action="print-week"/);
-  assert.match(jsSource,/Wochenplan drucken/);
+  assert.match(jsSource,/pickupCalendar\.action\.printWeek/);
 });
 
 test('Druckansicht enthält exakt Montag bis Freitag und nur kompakte Abholdaten', () => {

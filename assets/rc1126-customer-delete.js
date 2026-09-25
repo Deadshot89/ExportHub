@@ -6,6 +6,7 @@ w.__EXPORTHUB_RC1126_CUSTOMER_DELETE__=true;
 
 var timer=0,working=false;
 function q(v){return String(v==null?'':v).trim()}
+function tr(key,vars,language){try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.t==='function')return w.ExportHUBI18n.t(key,vars,language)}catch(_){}return key}
 function low(v){return q(v).toLocaleLowerCase('de-DE')}
 function arr(v){return Array.isArray(v)?v:[]}
 function obj(v){return v&&typeof v==='object'&&!Array.isArray(v)}
@@ -15,7 +16,7 @@ function state(){try{if(typeof w.__EXPORTHUB_GET_STATE__==='function')return w._
 function view(){var s=state();return low(s.view||s.currentView||s.activeView||s.page||'')}
 function customerView(){var v=view();return v==='customerfolder'||v==='customers'||v==='customer'||v==='kundenordner'||v==='kunden'}
 function customerKey(c){return q(c&&(c.id||c.account||c.customerNumber||c.name))}
-function customerLabel(c){return q(c&&(c.name||c.customerName))||'Unbenannter Kunde'}
+function customerLabel(c){return q(c&&(c.name||c.customerName))||tr('customerDelete.unnamed')}
 function customerAccount(c){return q(c&&(c.account||c.customerNumber||c.kundennummer))}
 function currentCustomer(){
  var s=state(),direct=s.currentCustomer||s.selectedCustomer||null,key=q(s.currentCustomerId||s.selectedCustomerId||s.customerFolderId||s.customerFolderOpenId||(direct&&customerKey(direct)));
@@ -53,10 +54,10 @@ function linkedShipmentCount(c){
 }
 async function persist(reason){
  var clean=w.ExportHUBClean;
- if(!clean||typeof clean.queueSave!=='function'||typeof clean.flushSave!=='function')throw new Error('Die Azure-Speicherung ist noch nicht verfügbar.');
+ if(!clean||typeof clean.queueSave!=='function'||typeof clean.flushSave!=='function')throw new Error(tr('customerDelete.storageUnavailable'));
  await Promise.resolve(clean.queueSave(reason));
  var ok=await Promise.resolve(clean.flushSave(reason,{force:true,userInitiated:true}));
- if(ok!==true)throw new Error('Die Azure-Speicherung wurde nicht bestätigt.');
+ if(ok!==true)throw new Error(tr('customerDelete.storageUnconfirmed'));
  return true
 }
 function selectionSnapshot(s){
@@ -70,12 +71,12 @@ function clearSelection(s,c){
  ['currentCustomerId','selectedCustomerId','customerFolderId','customerFolderOpenId'].forEach(function(k){var v=low(s[k]);if(v&&(v===id||v===account||v===name))s[k]=''})
 }
 async function deleteCustomer(c){
- if(working)throw new Error('Löschen läuft bereits.');
- if(!canDelete())throw new Error('Nur globale Administratoren oder Funktions-Admins für Kunden dürfen Kunden löschen.');
+ if(working)throw new Error(tr('customerDelete.inProgress'));
+ if(!canDelete())throw new Error(tr('customerDelete.forbidden'));
  var s=state(),list=arr(s.customers),key=customerKey(c);
- if(!key)throw new Error('Der Kunde besitzt keine eindeutige Kennung und kann nicht sicher gelöscht werden.');
+ if(!key)throw new Error(tr('customerDelete.noKey'));
  var idx=list.findIndex(function(x){return x===c||low(customerKey(x))===low(key)});
- if(idx<0)throw new Error('Der ausgewählte Kunde wurde im aktuellen Kundenstamm nicht gefunden.');
+ if(idx<0)throw new Error(tr('customerDelete.notFound'));
  var removed=list[idx],beforeCustomers=list.slice(),beforeMeta=clone(s._teamSyncMeta),beforeAudit=clone(arr(s.auditLog)),beforeSelection=selectionSnapshot(s),now=new Date().toISOString(),actor=currentUser()||{},actorName=q(actor.name||actor.user||actor.username)||'Unbekannt';
  working=true;
  try{
@@ -85,9 +86,9 @@ async function deleteCustomer(c){
   s._teamSyncMeta.tombstones=arr(s._teamSyncMeta.tombstones).filter(function(t){return !(low(t&&t.collection)==='customers'&&low(t&&t.id)===low(key))});
   s._teamSyncMeta.tombstones.push({collection:'customers',id:key,deletedAt:now,deletedBy:actorName,explicitUserAction:true,reason:'duplicate-or-invalid-customer'});
   s.auditLog=arr(s.auditLog).slice(-4999);
-  s.auditLog.push({id:'AUD-CUSTOMER-DELETE-'+Date.now().toString(36)+'-'+low(key).replace(/[^a-z0-9]+/g,'-').slice(0,40),type:'CUSTOMER_DELETED',actor:actorName,at:now,details:{customer:customerLabel(removed),account:customerAccount(removed),customerId:q(removed.id||removed.customerId),reason:'Doppelter oder falsch angelegter Kundenstammsatz',linkedShipments:linkedShipmentCount(removed)}});
+  s.auditLog.push({id:'AUD-CUSTOMER-DELETE-'+Date.now().toString(36)+'-'+low(key).replace(/[^a-z0-9]+/g,'-').slice(0,40),type:'CUSTOMER_DELETED',actor:actorName,at:now,details:{customer:customerLabel(removed),account:customerAccount(removed),customerId:q(removed.id||removed.customerId),reason:tr('customerDelete.auditReason',null,'de'),linkedShipments:linkedShipmentCount(removed)}});
   clearSelection(s,removed);
-  await persist('Kunde gelöscht: '+customerLabel(removed)+(customerAccount(removed)?' · '+customerAccount(removed):''));
+  await persist(tr('customerDelete.persistReason',{customer:customerLabel(removed)+(customerAccount(removed)?' · '+customerAccount(removed):'')},'de'));
   try{w.dispatchEvent(new CustomEvent('exporthub:customer-deleted',{detail:{id:key,name:customerLabel(removed),account:customerAccount(removed),deletedAt:now}}))}catch(_){}
   try{if(typeof w.setView==='function')w.setView('customerfolder')}catch(_){}
   try{w.dispatchEvent(new CustomEvent('exporthub:rendered'))}catch(_){}
@@ -115,20 +116,21 @@ function render(){
  if(old&&old.getAttribute('data-customer-key')===key)return true;
  if(old)old.remove();
  var box=d.createElement('section');box.id='rc1126CustomerDelete';box.className='rc1126-customer-delete';box.setAttribute('data-customer-key',key);
- var count=linkedShipmentCount(c),account=customerAccount(c);
- box.innerHTML='<h4>Kunde löschen</h4><p>Nur für doppelt oder falsch angelegte Kunden. Sendungen, Historie, Dokumente, ABD und POD werden dabei nicht gelöscht.</p><div><b>'+esc(customerLabel(c))+'</b>'+(account?' · '+esc(account):'')+'</div>'+(count?'<p><b>'+count+'</b> bestehende Sendung'+(count===1?'':'en')+' bleiben unverändert erhalten.</p>':'')+'<div class="rc1126-actions"><button type="button" class="btn rc1126-danger" data-rc1126-open>Kunde löschen</button></div><div class="rc1126-status" data-rc1126-status></div>';
+ var count=linkedShipmentCount(c),account=customerAccount(c),linked=count?(count===1?tr('customerDelete.linkedOne'):tr('customerDelete.linkedMany',{count:count})):'';
+ box.innerHTML='<h4>'+esc(tr('customerDelete.title'))+'</h4><p>'+esc(tr('customerDelete.help'))+'</p><div><b>'+esc(customerLabel(c))+'</b>'+(account?' · '+esc(account):'')+'</div>'+(linked?'<p>'+esc(linked)+'</p>':'')+'<div class="rc1126-actions"><button type="button" class="btn rc1126-danger" data-rc1126-open>'+esc(tr('customerDelete.title'))+'</button></div><div class="rc1126-status" data-rc1126-status></div>';
  box.addEventListener('click',function(ev){
   var open=ev.target&&ev.target.closest&&ev.target.closest('[data-rc1126-open]');
   if(open){ev.preventDefault();var existing=box.querySelector('.rc1126-confirm');if(existing){existing.remove();return}
-   var panel=d.createElement('div');panel.className='rc1126-confirm';panel.innerHTML='<strong>Diesen Kundenstammsatz wirklich löschen?</strong><div>'+esc(customerLabel(c))+(account?' · '+esc(account):'')+'</div><p>Diese Aktion entfernt nur diesen Kunden aus dem Kundenstamm. Bestehende Sendungs- und Historiedaten bleiben bestehen.</p><div class="rc1126-actions"><button type="button" class="ghost" data-rc1126-cancel>Abbrechen</button><button type="button" class="btn rc1126-danger" data-rc1126-confirm>Endgültig löschen</button></div>';box.appendChild(panel);return}
+   var panel=d.createElement('div');panel.className='rc1126-confirm';panel.innerHTML='<strong>'+esc(tr('customerDelete.confirmTitle'))+'</strong><div>'+esc(customerLabel(c))+(account?' · '+esc(account):'')+'</div><p>'+esc(tr('customerDelete.confirmText'))+'</p><div class="rc1126-actions"><button type="button" class="ghost" data-rc1126-cancel>'+esc(tr('customerDelete.cancel'))+'</button><button type="button" class="btn rc1126-danger" data-rc1126-confirm>'+esc(tr('customerDelete.finalDelete'))+'</button></div>';box.appendChild(panel);return}
   var cancel=ev.target&&ev.target.closest&&ev.target.closest('[data-rc1126-cancel]');if(cancel){ev.preventDefault();var p=box.querySelector('.rc1126-confirm');if(p)p.remove();return}
-  var confirmBtn=ev.target&&ev.target.closest&&ev.target.closest('[data-rc1126-confirm]');if(confirmBtn){ev.preventDefault();confirmBtn.disabled=true;var st=box.querySelector('[data-rc1126-status]');if(st){st.textContent='Kunde wird gelöscht …';st.setAttribute('data-kind','info')}deleteCustomer(c).then(function(){if(st){st.textContent='Kunde wurde gelöscht.';st.setAttribute('data-kind','ok')}}).catch(function(e){if(st){st.textContent='Löschen fehlgeschlagen: '+q(e&&e.message||e);st.setAttribute('data-kind','error')}confirmBtn.disabled=false})}
+  var confirmBtn=ev.target&&ev.target.closest&&ev.target.closest('[data-rc1126-confirm]');if(confirmBtn){ev.preventDefault();confirmBtn.disabled=true;var st=box.querySelector('[data-rc1126-status]');if(st){st.textContent=tr('customerDelete.deleting');st.setAttribute('data-kind','info')}deleteCustomer(c).then(function(){if(st){st.textContent=tr('customerDelete.deleted');st.setAttribute('data-kind','ok')}}).catch(function(e){if(st){st.textContent=tr('customerDelete.failed',{error:q(e&&e.message||e)});st.setAttribute('data-kind','error')}confirmBtn.disabled=false})}
  });
  host.appendChild(box);return true
 }
+
 function schedule(){if(timer)return;timer=w.setTimeout(function(){timer=0;try{render()}catch(e){try{console.warn('RC1126 Kunden löschen',e)}catch(_){}}},20)}
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',function(){schedule();w.setTimeout(schedule,250);w.setTimeout(schedule,800)},{once:true});else{schedule();w.setTimeout(schedule,250);w.setTimeout(schedule,800)}
-['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded','exporthub:sync','exporthub:customer-updated'].forEach(function(n){try{w.addEventListener(n,schedule)}catch(_){}});
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded','exporthub:sync','exporthub:customer-updated','exporthub:language-changed'].forEach(function(n){try{w.addEventListener(n,schedule)}catch(_){}});
 if(w.MutationObserver){try{var mo=new MutationObserver(function(){if(customerView())schedule();else{var x=d.getElementById('rc1126CustomerDelete');if(x)x.remove()}});mo.observe(d.documentElement,{childList:true,subtree:true})}catch(_){}}
 
 w.ExportHUBRC1126CustomerDelete=Object.freeze({version:'RC1126',customerKey:customerKey,currentCustomer:currentCustomer,canDelete:canDelete,linkedShipmentCount:linkedShipmentCount,deleteCustomer:deleteCustomer,render:render});

@@ -12,5 +12,5 @@ test('RC1017 Kalender: fixe Abholungen sind grün und Sendungen blau',()=>{
 
 test('RC1017 Kalender: Sendungskarte nennt den Kunden explizit',()=>{
   assert.match(js,/recipientCustomerName/);
-  assert.match(js,/Kunde:\s*<strong>/);
+  assert.match(js,/pickupCalendar\.label\.customer/);
 });
