@@ -3,7 +3,7 @@
 
   const q=v=>String(v==null?'':v).trim();
   const tr=(key,vars)=>{try{if(root.ExportHUBI18n&&typeof root.ExportHUBI18n.t==='function')return root.ExportHUBI18n.t(key,vars)}catch(_){}return key};
-  const formatDateValue=(date)=>{try{if(root.ExportHUBI18n&&typeof root.ExportHUBI18n.formatDate==='function')return root.ExportHUBI18n.formatDate(date,{dateStyle:'short'})}catch(_){}return date.toLocaleDateString()};
+  const formatDateValue=(date)=>{try{if(root.ExportHUBI18n&&typeof root.ExportHUBI18n.formatDate==='function')return root.ExportHUBI18n.formatDate(date,{day:'2-digit',month:'2-digit',year:'numeric'})}catch(_){}return date.toLocaleDateString(undefined,{day:'2-digit',month:'2-digit',year:'numeric'})};
   const arr=v=>Array.isArray(v)?v:[];
   const obj=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
   let remembered=[];
