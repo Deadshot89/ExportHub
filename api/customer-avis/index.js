@@ -142,8 +142,8 @@ function addCustomerUploadNotification(state,sh,file,entry){
  if(!obj(state)||!obj(sh)||!obj(file)||!text(file.sha256))return null;
  const id='avis-upload-'+text(file.sha256),list=arr(state.notifications).slice(),existing=list.find(x=>obj(x)&&text(x.id)===id);
  if(existing)return existing;
- const reference=sref(sh),customer=text(sh.customerName||(sh.customer&&sh.customer.name))||apiI18n.tLang('de','api.avis.customer'),documentName=fileName(file,apiI18n.tLang('de','api.avis.customerDocument')),createdAt=text(entry&&entry.completedAt)||text(file.uploadedAt)||now(),vars={customer,document:documentName,reference},title=apiI18n.tLang('de','api.avis.uploadNoticeTitle'),message=apiI18n.tLang('de','api.avis.uploadNoticeMessage',vars);
- const notice={id,type:'customer-avis-document',source:'customer-avis-upload',title,message,_localizedText:{title:localizedMeta('api.avis.uploadNoticeTitle'),message:localizedMeta('api.avis.uploadNoticeMessage',vars)},createdAt,read:false,route:'notifications',shipmentId:sid(sh),shipmentRef:reference,customerName:customer,documentId:text(file.id),documentName,documentSha256:text(file.sha256),documentBlobName:text(file.blobName),documentMimeType:text(file.mimeType||file.type)||'application/pdf'};
+ const reference=sref(sh),customer=text(sh.customerName||(sh.customer&&sh.customer.name))||apiI18n.tLang('de','api.avis.customer'),documentName=fileName(file,apiI18n.tLang('de','api.avis.customerDocument')),createdAt=text(entry&&entry.completedAt)||text(file.uploadedAt)||now(),vars={customer,document:documentName,reference},title=apiI18n.tLang('de','api.avis.document'),message=apiI18n.tLang('de','api.avis.uploadMessage',vars);
+ const notice={id,type:'customer-avis-document',source:'customer-avis-upload',title,message,_localizedText:{title:localizedMeta('api.avis.document'),message:localizedMeta('api.avis.uploadMessage',vars)},createdAt,read:false,route:'notifications',shipmentId:sid(sh),shipmentRef:reference,customerName:customer,documentId:text(file.id),documentName,documentSha256:text(file.sha256),documentBlobName:text(file.blobName),documentMimeType:text(file.mimeType||file.type)||'application/pdf'};
  list.push(notice);state.notifications=list.slice(-200);return notice
 }
 function avisUploadMailSubject(sh,file){
@@ -318,7 +318,7 @@ module.exports=async function(context,req){
     assertCustomerUploadQuota(sh);
     const quarantine=await uploadQuarantinePdf(sessionInfo,session,validated);
     try{
-     const shipment=await savePendingCustomerUpload(blob,sessionInfo,session,{id:validated.sha256,name:validated.name,size:validated.size,status:'scanning',documentType:docType,uploadedAt:quarantine.uploadedAt,message:apiI18n.tLang('de','api.avis.scanPending'),messageKey:'api.avis.scanPending'},d);
+     const shipment=await savePendingCustomerUpload(blob,sessionInfo,session,{id:validated.sha256,name:validated.name,size:validated.size,status:'scanning',documentType:docType,uploadedAt:quarantine.uploadedAt,message:apiI18n.tLang('de','api.avis.scanning'),messageKey:'api.avis.scanning'},d);
      context.res=json(202,{ok:true,status:'scanning',upload:{id:validated.sha256,name:validated.name,size:validated.size,status:'scanning',documentType:docType,provider:'Microsoft Defender for Storage'},shipment});return
     }catch(e){try{if(typeof quarantine.blob.deleteIfExists==='function')await quarantine.blob.deleteIfExists()}catch(_){}throw e}
    }
