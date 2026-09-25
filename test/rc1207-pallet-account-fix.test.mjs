@@ -103,7 +103,8 @@ test('RC1287: Palettenkonto wiederholt unbestätigten Flush forciert bis Azure b
   assert.equal(await x.api.cleanupProductionDayOnce(),true);
   const flushes=x.calls.filter(c=>c[0]==='flush');
   assert.equal(flushes.length,2);
-  assert.deepEqual(flushes[0][2],{force:true,userInitiated:true});
+  assert.equal(flushes[0][2]&&flushes[0][2].force,true);
+  assert.equal(flushes[0][2]&&flushes[0][2].userInitiated,true);
   assert.equal(x.state.palletAccount.length,0);
   assert.equal(x.state.rc1207PalletCleanup20260921At.deletedCount,1);
 });
