@@ -14,7 +14,7 @@ test('RC1190: Gesamtdruck-Browserabnahme benutzt die echte UI-Aktion und echten 
   assert.match(spec,/__RC1190_PRINT_CAPTURE__/);
   assert.match(spec,/for\(const frame of p\.frames\(\)\)/);
   assert.match(spec,/\\brc390-cover\\b/);
-  for(const marker of ['Ladeliste','Ladeliste\\s*1','Ladeliste\\s*2','CMR','Warenbeschreibung'])assert.ok(spec.includes(marker),marker+' fehlt in der Browserabnahme');
+  for(const marker of ['Ladeliste','Ladeliste\\s*1','Ladeliste\\s*2','CMR','CMR\\s*4','Warenbeschreibung'])assert.ok(spec.includes(marker),marker+' fehlt in der Browserabnahme');
 });
 
 test('RC1190: Browserabnahme verwendet die lokale Fake-Benelux-Sendung ohne Servermutation',()=>{
@@ -50,4 +50,14 @@ test('RC1190: neue Browserdateien sind syntaktisch gültig',()=>{
   for(const file of ['e2e/specs/print-documents.spec.mjs','test/rc1190-print-browser-gate.test.mjs']){
     execFileSync(process.execPath,['--check',file],{stdio:'pipe'});
   }
+});
+
+
+test('RC1274: finaler Build stellt L2 und vier CMR im Gesamtdruck wieder her',()=>{
+  const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
+  assert.match(build,/function patchCompletePrintBundle\(/);
+  assert.match(build,/loadHtml\(sh,true\)\+loadHtml\(sh,false\)\+cmrHtml\(sh\)/);
+  assert.match(build,/\[d\.cover,d\.load1,d\.load2\]\.concat\(d\.cmrs\.slice\(0,4\)\)/);
+  assert.match(build,/withQr\?'1 \/ 2 · mit QR-Code':'2 \/ 2 · ohne QR-Code'/);
+  assert.match(build,/for\(var i=1;i<=4;i\+\+\)/);
 });
