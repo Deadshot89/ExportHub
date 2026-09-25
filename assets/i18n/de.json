@@ -1080,5 +1080,7 @@
   "sop.081.flow2": "Menge eingeben",
   "sop.081.flow3": "Referenz optional",
   "sop.081.flow4": "Buchen",
-  "sop.081.flow5": "Bestand prüfen"
+  "sop.081.flow5": "Bestand prüfen",
+  "abd.mailPending": "WICHTIG – ABD NOCH NICHT VORHANDEN\nDas Ausfuhrbegleitdokument (ABD) liegt noch nicht vor. Voraussichtliche Bereitstellung: {{expected}} gegen 10:00 Uhr. Die Abholung kann bereits gebucht werden, jedoch frühestens für {{minimum}} ab 10:00 Uhr.",
+  "mail.closing": "Mit freundlichen Grüßen"
 }
