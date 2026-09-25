@@ -67,12 +67,19 @@ function formatCreatedDate(value){
 function ensureCreatedDate(cover,sh){
   if(!cover||!cover.ownerDocument)return false;
   var value=formatCreatedDate(createdValue(sh))||'—',node=cover.querySelector('[data-rc1281-created-date]');
+  if(node){
+    var current=q(node.textContent),stored=q(node.getAttribute('data-rc1281-created-value'));
+    if(stored===value)return true;
+    if(/Sendungsdaten/i.test(current)&&/(Erstellt am|Sendung erstellt)/i.test(current))return true;
+    if(current.indexOf(value)>=0&&/(Erstellt am|Sendung erstellt)/i.test(current))return true
+  }
   if(!node){
     node=cover.ownerDocument.createElement('div');
     node.setAttribute('data-rc1281-created-date','1');
     var ref=cover.querySelector('.rc390-cover-ref,[data-rc1203-reference-highlight]');
     if(ref&&ref.parentNode)ref.parentNode.insertBefore(node,ref.nextSibling);else cover.appendChild(node)
   }
+  node.setAttribute('data-rc1281-created-value',value);
   node.innerHTML='';
   var label=cover.ownerDocument.createElement('span'),date=cover.ownerDocument.createElement('strong');
   label.textContent='Sendung erstellt';date.textContent=value;
