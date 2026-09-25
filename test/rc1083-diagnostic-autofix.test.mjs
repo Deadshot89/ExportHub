@@ -93,7 +93,8 @@ test('RC1085: finaler Build überschreibt die historische Diagnose-Runtime mit k
 test('RC1083: erneut auftretende Fehler werden nach früherer Behebung wieder geöffnet',()=>{
   const stateApi=fs.readFileSync('api/exporthub-state/index.js','utf8');
   assert.match(stateApi,/status:'reopened'/);
-  assert.match(stateApi,/Fehler ist nach der letzten Behebung erneut aufgetreten/);
+  assert.match(stateApi,/merged\.resolutionMessage=''/);
+  assert.match(stateApi,/status:'reopened'/);
   assert.match(stateApi,/merged\.resolvedAt=null/);
 });
 
