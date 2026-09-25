@@ -29,7 +29,8 @@ test('Kundenmail ersetzt bei aktivem Lieferavis die Sendungsdetails',()=>{
     const fn=source.slice(start,end);
     assert.ok(start>0&&end>start,`${name}: injectMailBody fehlt`);
     assert.match(fn,/if\(target!==['"]customer['"]\|\|!enabled\(sh\)\)return clean;clean=stripShipmentDetails\(clean\)/,`${name}: Sendungsdetails müssen nur bei aktivem Kunden-AVIS entfernt werden`);
-    assert.match(fn,/Lieferavis-Link bleibt bis einschließlich 14 Kalendertage nach der tatsächlichen Abholung verfügbar|delivery notice link remains available through 14 calendar days after the actual collection|Lieferavis-Link bleibt bis drei Arbeitstage nach der tatsächlichen Abholung gültig|Der Link wird drei Arbeitstage nach der tatsächlichen Abholung automatisch deaktiviert|automatically deactivated three business days after the actual collection/,`${name}: AVIS-Hinweis fehlt`);
+    assert.match(fn,/Lieferavis-Link bleibt bis einschließlich 14 Kalendertage nach der tatsächlichen Abholung verfügbar|delivery notice link remains available through 14 calendar days after the actual collection/,`${name}: verbindlicher 14-Tage-AVIS-Hinweis fehlt`);
+    assert.doesNotMatch(fn,/3 Tage nach Abholung|drei Tage nach der Abholung|drei Kalendertage|3 Arbeitstage|drei Arbeitstage|three business days|three calendar days/i,`${name}: veraltete 3-Tage-AVIS-Frist ist noch enthalten`);
     assert.match(fn,/automatisch deaktiviert|automatically deactivated/,`${name}: automatische Deaktivierung fehlt`);
   }
 });
