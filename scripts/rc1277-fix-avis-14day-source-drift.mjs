@@ -37,6 +37,10 @@ const oldPairs=[
 ];
 
 for(const file of pages){
+  if(!fs.existsSync(file)){
+    if(file==='demo.html')continue;
+    throw new Error(file+': verpflichtende Quelldatei fehlt');
+  }
   let html=fs.readFileSync(file,'utf8');
   let changed=false;
   for(const [before,after] of oldPairs){
