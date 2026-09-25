@@ -205,5 +205,22 @@
   "api.pickup.photosRequired": "Dla tej przesyłki morskiej muszą być zapisane wszystkie 3 zdjęcia kontenera.",
   "api.pickup.confirmFailed": "Nie udało się potwierdzić odbioru.",
   "api.pickup.disabled": "Ten kod QR został dezaktywowany.",
-  "api.pickup.statusLoadFailed": "Nie udało się wczytać statusu odbioru."
+  "api.pickup.statusLoadFailed": "Nie udało się wczytać statusu odbioru.",
+  "api.container.readForbidden": "Brak uprawnień do odczytu zdjęć kontenera.",
+  "api.container.referenceRequired": "Brakuje numeru referencyjnego przesyłki.",
+  "api.container.shipmentNotFound": "Nie znaleziono przesyłki.",
+  "api.container.photoNotFound": "Nie znaleziono zdjęcia kontenera.",
+  "api.container.photoLoadFailed": "Nie udało się wczytać zdjęcia kontenera.",
+  "api.container.photoSaveFailed": "Nie udało się zapisać zdjęcia kontenera.",
+  "api.document.environmentMismatchTest": "Żądanie TESTSERVICE nie może pobierać danych produkcyjnych.",
+  "api.document.environmentMismatchProduction": "Strona produkcyjna nie może pobierać danych TESTSERVICE.",
+  "api.document.referenceInvalid": "Odwołanie do dokumentu jest nieprawidłowe.",
+  "api.document.environmentMismatch": "Dokument należy do innego środowiska danych ExportHUB.",
+  "api.document.loadFailed": "Nie udało się wczytać dokumentu.",
+  "api.readiness.environmentRequired": "Brakuje środowiska.",
+  "api.readiness.testProductionMismatch": "TESTSERVICE nie może potwierdzać gotowości produkcji.",
+  "api.readiness.productionTestMismatch": "Produkcja nie może potwierdzać gotowości TESTSERVICE.",
+  "api.readiness.oidcKeysFailed": "Nie udało się pobrać kluczy GitHub OIDC.",
+  "api.readiness.workflowRequired": "Gotowość może być sprawdzana wyłącznie przez podpisany proces wydania ExportHUB.",
+  "api.readiness.failed": "Kontrola gotowości nie powiodła się."
 }
