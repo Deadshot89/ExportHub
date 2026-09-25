@@ -249,5 +249,6 @@
   "api.location.actionFailed": "Warehouse action failed.",
   "api.container.photoLabel.loaded": "Loaded container",
   "api.container.photoLabel.number": "Container number from inside",
-  "api.container.photoLabel.sealed": "Sealed container · seal/markings/documents"
+  "api.container.photoLabel.sealed": "Sealed container · seal/markings/documents",
+  "api.fixedPickups.failed": "Fixed pickups could not be processed."
 }
