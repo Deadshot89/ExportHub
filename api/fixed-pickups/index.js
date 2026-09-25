@@ -45,6 +45,6 @@ module.exports = async function(context, req){
     const item = await store.update(environment, company.companyKey, id, payload, actor);
     context.res = auth.json(200, {ok:true,item});
   } catch (e) {
-    context.res = auth.json(e && (e.status || e.statusCode) || 500, {ok:false,code:e && e.code || 'FIXED_PICKUPS_FAILED',message:localizedMessage(req,e,'api.common.requestFailed')});
+    context.res = auth.json(e && (e.status || e.statusCode) || 500, {ok:false,code:e && e.code || 'FIXED_PICKUPS_FAILED',message:localizedMessage(req,e,'api.fixedPickups.failed')});
   }
 };
