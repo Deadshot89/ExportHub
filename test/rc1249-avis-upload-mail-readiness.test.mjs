@@ -32,14 +32,19 @@ test('RC1270: Readiness fordert einen echten Graph-Token an ohne Testmail oder S
   assert.match(source,/upstreamStatus/);
   assert.doesNotMatch(source,/access_token|clientSecret/,'Readiness darf weder Graph-Token noch Client-Secret ausgeben');
   assert.doesNotMatch(source,/sendTextMail/,'Auth-Probe darf keine Testmail senden');
-  assert.match(workflow,/v\.authenticated!==true/);
-  assert.match(workflow,/v\.audienceOk!==true/);
+  assert.match(workflow,/v\.authenticated===true/);
+  assert.match(workflow,/v\.audienceOk===true/);
+  assert.match(workflow,/console\.error\('RC1249 '\+env\+' readiness unerwartet'/);
 });
 
-test('RC1271: Release-Readiness verlangt Mail.Send in TESTSERVICE und Produktion',()=>{
+test('RC1271/RC1279: Mail.Send bleibt geprüft und der bekannte Permission-Blocker sichtbar',()=>{
   assert.match(source,/mailSendGranted/);
   assert.match(source,/GRAPH_MAIL_PERMISSION_MISSING/);
-  assert.match(workflow,/v\.mailSendGranted!==true/);
+  assert.match(workflow,/v\.mailSendGranted===true/);
+  assert.match(workflow,/v\.mailSendGranted===false/);
+  assert.match(workflow,/knownMailSendBlocker/);
+  assert.match(workflow,/GRAPH_MAIL_PERMISSION_MISSING/);
+  assert.match(workflow,/::warning title=RC1249 AVIS-Mail P2::/);
 });
 
 test('RC1249: finaler Build verlangt den Readiness-Endpunkt',()=>{
