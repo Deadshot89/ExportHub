@@ -3,9 +3,9 @@ const referenceFolder=require('./reference-folder-upload');
 
 const DOCUMENT_CONTAINER=process.env.EXPORTHUB_DOCUMENT_CONTAINER||'exporthub-documents';
 const KINDS=Object.freeze({
-  loaded:{label:'Geladener Container',prefix:'01_Geladener_Container'},
-  number:{label:'Container-Nummer von innen',prefix:'02_Containernummer_Innen'},
-  sealed:{label:'Versiegelter Container · Siegel/Kennzeichen/Papiere',prefix:'03_Versiegelt_Siegel_Kennzeichen_Papiere'}
+  loaded:{label:'Geladener Container',labelKey:'api.container.photoLabel.loaded',prefix:'01_Geladener_Container'},
+  number:{label:'Container-Nummer von innen',labelKey:'api.container.photoLabel.number',prefix:'02_Containernummer_Innen'},
+  sealed:{label:'Versiegelter Container · Siegel/Kennzeichen/Papiere',labelKey:'api.container.photoLabel.sealed',prefix:'03_Versiegelt_Siegel_Kennzeichen_Papiere'}
 });
 
 function text(v){return String(v==null?'':v).trim()}
@@ -67,9 +67,10 @@ async function readPhoto(photo){
   throw e;
  }
 }
-function publicPhoto(photo){
+function publicPhoto(photo,translate){
  if(!photo||typeof photo!=='object')return null;
- return{id:text(photo.id),kind:text(photo.kind),label:text(photo.label)||KINDS[text(photo.kind)]&&KINDS[text(photo.kind)].label||'',name:text(photo.name),type:text(photo.type),size:Math.max(0,Number(photo.size)||0),uploadedAt:text(photo.uploadedAt),referenceFolderSaved:photo.referenceFolderSaved===true};
+ const kind=text(photo.kind),rule=KINDS[kind],translated=rule&&typeof translate==='function'?text(translate(rule.labelKey)):'';
+ return{id:text(photo.id),kind,label:translated||text(photo.label)||rule&&rule.label||'',name:text(photo.name),type:text(photo.type),size:Math.max(0,Number(photo.size)||0),uploadedAt:text(photo.uploadedAt),referenceFolderSaved:photo.referenceFolderSaved===true};
 }
 function completePhotos(list){
  const kinds=new Set((Array.isArray(list)?list:[]).map(x=>text(x&&x.kind).toLowerCase()).filter(Boolean));
