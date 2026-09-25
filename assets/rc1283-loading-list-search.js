@@ -56,6 +56,7 @@ function rc1285CaptureSelection(event){
  lastSelected=row.value;lastSelectedRef=refOf(row.shipment)||row.reference||row.value;selectedSnapshot={value:row.value,label:row.label,shipment:row.shipment,reference:row.reference,customer:row.customer,documents:row.documents,remark:row.remark,search:row.search};lastQuery=q(input&&input.value);
  if(selected)selected.textContent='Ausgewählt: '+(row.reference||row.label)+(row.customer?' · '+row.customer:'');
  actions.forEach(function(btn){btn.disabled=false});
+ if(typeof w.setTimeout==='function')w.setTimeout(function(){var current=findSelect();if(current)dispatchSelection(current,row.value)},0);
  return true
 }
 function render(panel,select){
