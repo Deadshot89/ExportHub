@@ -2,6 +2,7 @@
 const auth=require('../shared/fast-auth-store');
 const pickup=require('../shared/pickup-store');
 const docs=require('../shared/container-document-store');
+const apiI18n=require('../shared/i18n');
 
 function text(v){return String(v==null?'':v).trim()}
 function json(status,body){return pickup.json(status,body)}
@@ -18,16 +19,16 @@ function photosOf(sh){
 }
 module.exports=async function(context,req){
  if(req.method==='OPTIONS'){context.res={status:204,headers:{Allow:'GET, OPTIONS','Cache-Control':'no-store'},body:''};return}
- if(req.method!=='GET'){context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED',message:'Nur GET ist erlaubt.'});return}
+ if(req.method!=='GET'){context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED',message:apiI18n.t(req,'api.common.getOnly')});return}
  try{
-  const session=await auth.validateSession(req);if(!allowed(session.user))throw auth.error('CONTAINER_PHOTO_FORBIDDEN','Für Containerfotos fehlt das Leserecht.',403);
+  const session=await auth.validateSession(req);if(!allowed(session.user))throw auth.error('CONTAINER_PHOTO_FORBIDDEN',apiI18n.t(req,'api.container.readForbidden'),403);
   const q=req.query||{},reference=text(q.reference).toUpperCase(),file=text(q.file),kind=text(q.kind).toLowerCase();
-  if(!reference)throw auth.error('REFERENCE_REQUIRED','Sendungsreferenz fehlt.',400);
+  if(!reference)throw auth.error('REFERENCE_REQUIRED',apiI18n.t(req,'api.container.referenceRequired'),400);
   const state=session.team&&session.team.state||{},shipments=Array.isArray(state.shipments)?state.shipments:[],sh=shipments.find(x=>text(x&&(x.reference||x.ref||x.shipmentRef||x.referenceNumber||x.id||x.shipmentId)).toUpperCase()===reference);
-  if(!sh)throw auth.error('SHIPMENT_NOT_FOUND','Sendung wurde nicht gefunden.',404);
+  if(!sh)throw auth.error('SHIPMENT_NOT_FOUND',apiI18n.t(req,'api.container.shipmentNotFound'),404);
   const photos=photosOf(sh),photo=photos.find(x=>(file&&text(x&&x.id)===file)||(kind&&text(x&&x.kind).toLowerCase()===kind));
-  if(!photo)throw auth.error('CONTAINER_PHOTO_NOT_FOUND','Containerfoto wurde nicht gefunden.',404);
+  if(!photo)throw auth.error('CONTAINER_PHOTO_NOT_FOUND',apiI18n.t(req,'api.container.photoNotFound'),404);
   const result=await docs.readPhoto(photo),download=String(q.download||'')==='1',name=text(photo.name)||'Containerfoto.jpg';
   context.res={status:200,isRaw:true,headers:{'Content-Type':result.contentType,'Content-Length':String(result.buffer.length),'Content-Disposition':(download?'attachment':'inline')+'; filename="'+name.replace(/["\r\n]/g,'_')+'"','Cache-Control':'private, no-store, no-cache, must-revalidate','X-Content-Type-Options':'nosniff'},body:result.buffer};
- }catch(e){context.log&&context.log.error&&context.log.error('container-document RC1259',e&&e.code,e&&e.message);context.res=json(e.status||e.statusCode||500,{ok:false,code:e.code||'CONTAINER_PHOTO_READ_FAILED',message:e.message||'Containerfoto konnte nicht geladen werden.'})}
+ }catch(e){context.log&&context.log.error&&context.log.error('container-document RC1259',e&&e.code,e&&e.message);context.res=json(e.status||e.statusCode||500,{ok:false,code:e.code||'CONTAINER_PHOTO_READ_FAILED',message:e.message||apiI18n.t(req,'api.container.photoLoadFailed')})}
 };
