@@ -5,6 +5,7 @@ window.__EXPORTHUB_RC1027_LIEFERAVIS_IMMEDIATE__=true;
 
 var previous=null,wrapper=null,earlyPending=null,visibleSyncing=false,draftSyncTimer=0,draftSyncPending=null,lastDraftSignature='',avisLinkCache=Object.create(null);
 function q(v){return String(v==null?'':v).trim()}
+function tr(key,vars,fallback){try{if(window.ExportHUBI18n&&typeof window.ExportHUBI18n.t==='function'){var v=window.ExportHUBI18n.t(key,vars);if(v&&v!==key)return v}}catch(_){}return fallback||key}
 function rc1267NormalizeLanguage(v){var m=q(v).toLowerCase().replace('_','-').match(/^(de|en|pl|es|fr|it)(?:-|$)/);return m?m[1]:'de'}
 function explicitReference(sh){return q(sh&&(sh.ref||sh.reference||sh.shipmentRef||sh.referenceNumber||sh.referenceNo)).toUpperCase()}
 function state(){
@@ -189,12 +190,12 @@ async function coordinatedToggle(on){
  if(on){
   if(!manualDisabled(sh))return ensureCustomerAvis('manual-toggle');
   if(!ensureReference(sh))return false;
-  try{return await issueDraftAvis(sh)}catch(e){console.error('RC1052 Lieferavis reaktivieren',e);try{alert('Kunden-Avis konnte nicht aktiviert werden.\n\n'+q(e&&e.message||e))}catch(_){}return false}
+  try{return await issueDraftAvis(sh)}catch(e){console.error('RC1052 Lieferavis reaktivieren',e);try{alert(tr('avis.activationFailed',null,'Customer collection notice could not be activated.')+'\n\n'+q(e&&e.message||e))}catch(_){}return false}
  }
  if(earlyPending){try{await earlyPending}catch(_){}}
  var current=shipment()||sh;
  if(!current)return false;
- try{return await disableDraftAvis(current)}catch(e){console.error('RC1052 Lieferavis deaktivieren',e);try{alert('Kunden-Avis konnte nicht deaktiviert werden.\n\n'+q(e&&e.message||e))}catch(_){}return false}
+ try{return await disableDraftAvis(current)}catch(e){console.error('RC1052 Lieferavis deaktivieren',e);try{alert(tr('avis.deactivationFailed',null,'Customer collection notice could not be deactivated.')+'\n\n'+q(e&&e.message||e))}catch(_){}return false}
 }
 function localizedUrl(url,lang){
  url=q(url);if(!url)return'';lang=rc1267NormalizeLanguage(lang);
