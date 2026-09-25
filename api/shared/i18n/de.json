@@ -249,5 +249,6 @@
   "api.location.actionFailed": "Lageraktion fehlgeschlagen.",
   "api.container.photoLabel.loaded": "Geladener Container",
   "api.container.photoLabel.number": "Container-Nummer von innen",
-  "api.container.photoLabel.sealed": "Versiegelter Container · Siegel/Kennzeichen/Papiere"
+  "api.container.photoLabel.sealed": "Versiegelter Container · Siegel/Kennzeichen/Papiere",
+  "api.fixedPickups.failed": "Fixe Abholungen konnten nicht verarbeitet werden."
 }
