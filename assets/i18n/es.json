@@ -1084,5 +1084,17 @@
   "abd.mailPending": "IMPORTANTE – EL DOCUMENTO DE EXPORTACIÓN (ABD) AÚN NO ESTÁ DISPONIBLE\nSe prevé que el ABD esté disponible el {{expected}} aproximadamente a las 10:00. La recogida ya puede reservarse, pero no antes del {{minimum}} a las 10:00.",
   "mail.closing": "Saludos cordiales",
   "container.sealInput": "Número de precinto",
-  "container.sealPlaceholder": "p. ej. ABCD123456"
+  "container.sealPlaceholder": "p. ej. ABCD123456",
+  "loadingList.title": "Buscar lista de carga",
+  "loadingList.subtitle": "Buscar por número de referencia, cliente, adjunto/nombre de archivo o comentario.",
+  "loadingList.ariaLabel": "Buscar lista de carga",
+  "loadingList.placeholder": "Referencia, cliente, adjunto o comentario",
+  "loadingList.searchHint": "Introduce una referencia, cliente, adjunto/nombre de archivo o comentario.",
+  "loadingList.noMatch": "No se encontró ninguna lista de carga coincidente.",
+  "loadingList.selectedPrefix": "Seleccionado:",
+  "loadingList.noneSelected": "Aún no se ha seleccionado ninguna lista de carga.",
+  "loadingList.open": "Abrir",
+  "loadingList.print": "Imprimir",
+  "loadingList.download": "Descargar",
+  "loadingList.shipmentSelectLabel": "Seleccionar envío"
 }
