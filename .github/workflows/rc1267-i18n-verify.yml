@@ -60,6 +60,7 @@ jobs:
       - name: Full regression test suite
         run: npm test
       - name: Restore clean checkout after mutation-heavy regression tests
+        if: always()
         run: |
           git reset --hard HEAD
           git clean -fd
