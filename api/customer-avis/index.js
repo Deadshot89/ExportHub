@@ -33,6 +33,7 @@ function obj(v){return!!v&&typeof v==='object'&&!Array.isArray(v)}
 function num(v){const n=Number(String(v==null?'':v).replace(',','.'));return Number.isFinite(n)?n:0}
 function now(){return new Date().toISOString()}
 function localizedMeta(key,vars){const original=apiI18n.tLang('de',key,vars),translations={};apiI18n.supported.forEach(lang=>{translations[lang]=apiI18n.tLang(lang,key,vars)});const sourceHash=crypto.createHash('sha256').update(original,'utf8').digest('hex');return{originalText:original,sourceLanguage:'de',translations,translationVersion:'sha256:'+sourceHash.slice(0,16),sourceHash,translatedAt:now(),translationStatus:'complete',status:'complete',translationError:null}}
+function preferredMailLanguage(sh){return apiI18n.normalize(sh&&(sh.mailLanguage||sh.language||sh.customerLanguage||sh.avisLanguage))||'de'}
 function elapsed(start){return Math.max(0,Date.now()-start)}
 function timingHeaders(timing){return{'Server-Timing':['auth;dur='+timing.authMs,'team-blob;dur='+timing.teamBlobMs,'team-read;dur='+timing.teamReadMs,'flag-write;dur='+timing.flagWriteMs,'token-issue;dur='+timing.tokenIssueMs,'total;dur='+timing.totalMs].join(', ')}}
 function error(code,message,status=400){const e=new Error(message);e.code=code;e.status=status;return e}
@@ -147,24 +148,25 @@ function addCustomerUploadNotification(state,sh,file,entry){
  list.push(notice);state.notifications=list.slice(-200);return notice
 }
 function avisUploadMailSubject(sh,file){
- const reference=sref(sh)||'ohne Referenz',customer=text(sh&&sh.customerName||(sh&&sh.customer&&sh.customer.name))||'Kunde';
- return 'Neues AVIS-Dokument · '+reference+' · '+customer
+ const lang=preferredMailLanguage(sh),reference=sref(sh)||apiI18n.tLang(lang,'api.avis.noReference'),customer=text(sh&&sh.customerName||(sh&&sh.customer&&sh.customer.name))||apiI18n.tLang(lang,'api.avis.customer');
+ return apiI18n.tLang(lang,'api.avis.mailSubject',{reference,customer})
 }
 function avisUploadMailBody(sh,file,entry){
- const reference=sref(sh)||'–',customer=text(sh&&sh.customerName||(sh&&sh.customer&&sh.customer.name))||'Kunde',name=fileName(file,'Kunden-Dokument.pdf'),documentType=text(file&&file.category||entry&&entry.documentType)||'Dokument',completed=text(entry&&entry.completedAt)||text(file&&file.uploadedAt)||now();
+ const lang=preferredMailLanguage(sh),reference=sref(sh)||'–',customer=text(sh&&sh.customerName||(sh&&sh.customer&&sh.customer.name))||apiI18n.tLang(lang,'api.avis.customer'),name=fileName(file,apiI18n.tLang(lang,'api.avis.customerDocument')),documentType=text(file&&file.category||entry&&entry.documentType)||apiI18n.tLang(lang,'api.avis.document'),completed=text(entry&&entry.completedAt)||text(file&&file.uploadedAt)||now();
  return [
-  'Ein Kunde hat über den ExportHUB-AVIS-Link ein neues Dokument hochgeladen.',
+  apiI18n.tLang(lang,'api.avis.mailIntro'),
   '',
-  'Sendungsreferenz: '+reference,
-  'Kunde: '+customer,
-  'Dokument: '+name,
-  'Dokumentart: '+documentType,
-  'Geprüft und gespeichert: '+completed,
+  apiI18n.tLang(lang,'api.avis.mailReference',{reference}),
+  apiI18n.tLang(lang,'api.avis.mailCustomer',{customer}),
+  apiI18n.tLang(lang,'api.avis.mailDocument',{document:name}),
+  apiI18n.tLang(lang,'api.avis.mailDocumentType',{type:documentType}),
+  apiI18n.tLang(lang,'api.avis.mailStored',{time:completed}),
   '',
-  'Die Datei hat die Virenprüfung und die fachliche Sendungszuordnung bestanden.',
-  'Bitte ExportHUB → Benachrichtigungen öffnen und „PDF öffnen / drucken“ auswählen.'
+  apiI18n.tLang(lang,'api.avis.mailPassed'),
+  apiI18n.tLang(lang,'api.avis.mailAction')
  ].join('\n')
 }
+
 async function notifyDespatchCustomerUpload(environment,sh,file,entry){
  if(environment!=='production')return{ok:true,skipped:true,reason:'non-production'};
  const recipient=text(AVIS_UPLOAD_NOTIFICATION_TO);
