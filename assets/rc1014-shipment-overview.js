@@ -96,8 +96,8 @@
       customerPickupDate:customerPickup.date,
       customerPickupTimeFrom:customerPickup.timeFrom,
       customerPickupTimeTo:customerPickup.timeTo,
-      createdLabel:`Erfasst: ${created}`,
-      colliLabel:`Colli: ${colli}`,
+      createdLabel:tr('shipmentOverview.created',{date:created}),
+      colliLabel:tr('shipmentOverview.colli',{count:colli}),
       customerPickupLabel:customerPickup.label,
       container
     };
