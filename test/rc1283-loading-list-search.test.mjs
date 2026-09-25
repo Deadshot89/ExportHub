@@ -42,7 +42,7 @@ test('RC1283: Runtime ersetzt die Dropdown-Bedienung und bietet drei direkte Akt
 
 test('RC1283: Drei-Umgebungen-Build injiziert Runtime und vorhandene Ladelisten-Pfade',()=>{
   assert.match(build,/function patchRc1283LoadingListSearch\(/);
-  assert.match(build,/assets\/rc1283-loading-list-search\.js\?v=1283-6/);
+  assert.match(build,/assets\/rc1283-loading-list-search\.js\?v=1285/);
   assert.match(build,/__EXPORTHUB_RC1283_OPEN_LOAD1__/);
   assert.match(build,/__EXPORTHUB_RC1283_DOWNLOAD_LOAD1__/);
   assert.match(build,/body=loadHtml\(sh,true\)/);
@@ -69,6 +69,14 @@ test('RC1283: DOM-Wächter ignoriert Suchergebnis-Mutationen und erkennt dynamis
   assert.match(runtime,/if\(rc1283MutationRelevant\(records\)\)schedule\(\)/);
   assert.match(runtime,/exporthub:rendered/);
   assert.match(runtime,/exporthub:viewchange/);
+});
+
+test('RC1285: Pointerdown-Capture sichert die Trefferauswahl vor dynamischem DOM-Neuaufbau',()=>{
+  assert.match(runtime,/function rc1285CaptureSelection\(event\)/);
+  assert.match(runtime,/closest\('\[data-rc1283-result\]'\)/);
+  assert.match(runtime,/selectedSnapshot=\{value:row\.value/);
+  assert.match(runtime,/d\.addEventListener\('pointerdown',rc1285CaptureSelection,true\)/);
+  assert.match(runtime,/captureSelection:rc1285CaptureSelection/);
 });
 
 test('RC1283: echter Browsertest prüft alle vier Suchdimensionen und verbirgt das alte Dropdown',()=>{
