@@ -93,6 +93,16 @@ test('RC1203: Browser-Gate prüft echte Druckausgabe statt nur Quelltext',()=>{
   assert.match(browser,/expect\(capture\.coverStyle\.backgroundImage\)\.toBe\('none'\)/);
 });
 
+
+test('RC1281: Essentra-Browserabnahme nutzt feste Demo-Daten ohne State-Mutation',()=>{
+  assert.match(demo,/DEMO03[\s\S]*Essentra Components Sweden AB/);
+  assert.match(browser,/DEMO03\|Essentra\|Fake Export/);
+  assert.doesNotMatch(browser,/__EXPORTHUB_GET_STATE__/);
+  assert.match(browser,/referenceBackground/);
+  assert.match(browser,/recipientBackground/);
+});
+
+
 test('RC1281: geänderte Runtime und Browserprüfung sind syntaktisch gültig',()=>{
   for(const file of ['assets/rc1203-deckblatt-print.js','e2e/specs/print-documents.spec.mjs','.github/rc1112/build-three-env.mjs']){
     execFileSync(process.execPath,['--check',file],{stdio:'pipe'});
