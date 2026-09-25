@@ -15,8 +15,9 @@ test('RC1190: Gesamtdruck-Browserabnahme benutzt die echte UI-Aktion und echten 
   assert.match(spec,/for\(const frame of p\.frames\(\)\)/);
   assert.match(spec,/\\brc390-cover\\b/);
   for(const marker of ['Ladeliste','Ladeliste\\s*1','Ladeliste\\s*2','CMR','CMR\\s*4','Warenbeschreibung'])assert.ok(spec.includes(marker),marker+' fehlt in der Browserabnahme');
-  assert.match(spec,/pages:Array\.from\(document\.querySelectorAll\('\.rc390-page,\.rc352-page'\)\)/);
-  assert.match(spec,/Gesamtdruck enthält eine leere oder praktisch leere Dokumentseite/);
+  assert.match(spec,/printDocuments:Array\.from\(document\.querySelectorAll\('\.rc390-page,\.rc352-page,\.rc390-cmr-wrap'\)\)/);
+  assert.match(spec,/expect\(capture\.printDocuments\.length\)\.toBe\(7\)/);
+  assert.match(spec,/Gesamtdruck enthält ein leeres oder praktisch leeres Druckdokument/);
   assert.match(spec,/vertikal abgeschnittene Inhalte/);
   assert.match(spec,/horizontal abgeschnittene Inhalte/);
 });
