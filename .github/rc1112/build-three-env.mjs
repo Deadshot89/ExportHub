@@ -389,6 +389,7 @@ function patchHtml(file){
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1259-container-runtime" defer src="/assets/rc1014-shipment-overview.js?v=1284"></script>','exporthub-rc1259-container-runtime');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1203-deckblatt-print" defer src="/assets/rc1203-deckblatt-print.js?v=1281"></script>','exporthub-rc1203-deckblatt-print');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1207-pallet-account-fix" defer src="/assets/rc1207-pallet-account-fix.js?v=1246"></script>','exporthub-rc1207-pallet-account-fix');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1294-abd-self-service" defer src="/assets/rc1294-abd-self-service.js?v=1294"></script>','exporthub-rc1294-abd-self-service');
   html=injectDeferredRuntimeInHead(html,`<script id="exporthub-rc1193-visible-release" defer src="/assets/rc1193-visible-release.js?v=${VISIBLE_NUMBER}"></script>`,'exporthub-rc1193-visible-release');
   html=injectDeferredRuntimeInHead(html,`<script id="exporthub-rc1177-release-notes" defer src="/assets/rc1177-release-notes.js?v=${VISIBLE_NUMBER}"></script>`,'exporthub-rc1177-release-notes');
   if(!html.includes('assets/rc1014-shipment-overview.css?v=1284'))throw new Error(file+': RC1259 Container-CSS fehlt');
@@ -420,6 +421,7 @@ function patchHtml(file){
   if(!html.includes('assets/rc1283-loading-list-search.js?v=1285'))throw new Error(file+': RC1283 Ladelisten-Suchruntime fehlt');
   if(!html.includes('__EXPORTHUB_RC1283_OPEN_LOAD1__'))throw new Error(file+': RC1283 Ladelisten-Öffnen/Drucken-Bridge fehlt');
   if(!html.includes('assets/rc1207-pallet-account-fix.js?v=1246'))throw new Error(file+': RC1207 Palettenkonto-Runtime fehlt');
+  if(!html.includes('assets/rc1294-abd-self-service.js?v=1294'))throw new Error(file+': RC1294 ABD-Self-Service-Runtime fehlt');
   if(!html.includes('assets/rc1193-visible-release.js?v='+VISIBLE_NUMBER))throw new Error(file+': '+VISIBLE_VERSION+' sichtbare Release-Version fehlt');
   if(!html.includes('assets/rc1177-release-notes.js?v='+VISIBLE_NUMBER))throw new Error(file+': '+VISIBLE_VERSION+' Änderungshinweise Cache-Key fehlt');
   if(!/\.rc352-cover\{[^}]*border:10mm solid #08245d!important;[^}]*border-top-width:18mm!important;/.test(html))throw new Error(file+': RC1133 Deckblatt-Rahmen fehlt');
@@ -463,6 +465,7 @@ for(const rel of [
   'assets/rc1203-deckblatt-print.js',
   'assets/rc1283-loading-list-search.js',
   'assets/rc1289-auth-transport-fallback.js',
+  'assets/rc1294-abd-self-service.js',
   'assets/rc1177-release-notes.js',
   'assets/rc1193-visible-release.js'
 ]){
@@ -485,7 +488,7 @@ let releaseNotes=fs.readFileSync(releaseNotesFile,'utf8');
 releaseNotes=releaseNotes.replace(/return'RC\d+'/,`return'${VISIBLE_VERSION}'`);
 fs.writeFileSync(releaseNotesFile,releaseNotes);
 
-for(const requiredApi of ['shared/pod-archive.js','shared/graph-drive.js','shared/container-document-store.js','shared/reference-folder-upload.js','shared/customer-portal-store.js','customer-portal-credentials/index.js','customer-portal-credentials/function.json','customer-portal-readiness/index.js','customer-portal-readiness/function.json','avis-upload-mail-readiness/index.js','avis-upload-mail-readiness/function.json','pickup-confirm-v2/index.js','pickup-container-document/index.js','pickup-container-document/function.json','container-document/index.js','container-document/function.json','pod-backup/index.js','avis-reminder-mail/index.js','avis-reminder-mail/function.json','shared/graph-mail.js','package.json']){
+for(const requiredApi of ['shared/pod-archive.js','shared/graph-drive.js','shared/container-document-store.js','shared/reference-folder-upload.js','shared/customer-portal-store.js','customer-portal-credentials/index.js','customer-portal-credentials/function.json','customer-portal-readiness/index.js','customer-portal-readiness/function.json','avis-upload-mail-readiness/index.js','avis-upload-mail-readiness/function.json','pickup-confirm-v2/index.js','pickup-container-document/index.js','pickup-container-document/function.json','container-document/index.js','container-document/function.json','pod-backup/index.js','avis-reminder-mail/index.js','avis-reminder-mail/function.json','abd-analysis/index.js','abd-analysis/function.json','shared/abd-analysis.js','shared/graph-mail.js','package.json']){
   if(!fs.existsSync(path.join(builtApi,requiredApi)))throw new Error('RC1114 API-Datei fehlt im Build: '+requiredApi);
 }
 const rc1114PickupSource=path.join(ROOT,'pickup.html');
@@ -541,6 +544,7 @@ fs.writeFileSync(path.join(OUT,'rc1112-manifest.json'),JSON.stringify({
     podArchiveIntegrity:'RC1226 archive read-back + scheduled integrity verification',
     containerDocumentation:'RC1259 sea freight container seal + 3 QR photos + reference-folder storage + shipment overview download',
     avisReminderOverview:'RC1292 DE/EN customer/carrier reminder via stored contacts + secure avis link + recipient exclusion',
+    abdSelfService:'RC1294 Defender-scanned PDF/XLSX/CSV analysis preview with customs position fields; no customs submission',
     avisUploadNotifications:'RC1133 secure customer PDF notice + open/print action',
     documentActionHistory:'RC1178 print/open/download + user + filename, including resumed print flow',
     deckblattHighVisibility:'RC1281 white cover + Essentra yellow / customer blue reference + lighter recipient + shipment created date',
