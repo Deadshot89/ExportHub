@@ -1,5 +1,6 @@
 'use strict';
 const https=require('https');
+const MAIL_SEND_PERMISSION=Object.freeze({resource:'Microsoft Graph',type:'Application',name:'Mail.Send',id:'b633e1c5-b582-4048-a93e-9f11b44c7e96',adminConsentRequired:true});
 
 function text(v){return String(v==null?'':v).trim()}
 function readiness(){
@@ -33,6 +34,7 @@ function request(method,url,headers,body,timeoutMs){
 let tokenCache=null;
 function tokenClaims(token){try{const parts=String(token||'').split('.');if(parts.length<2)return{};return JSON.parse(Buffer.from(parts[1],'base64url').toString('utf8'))||{}}catch(_){return{}}}
 function mailSendGranted(claims){return Array.isArray(claims&&claims.roles)&&claims.roles.some(r=>text(r).toLowerCase()==='mail.send')}
+function permissionRequirement(){return{...MAIL_SEND_PERMISSION}}
 async function accessToken(force){
  const cfg=readiness();if(!cfg.configured)throw error('GRAPH_MAIL_NOT_CONFIGURED','Microsoft Graph Mailversand ist noch nicht vollständig konfiguriert.',503);
  if(!force&&tokenCache&&tokenCache.expiresAt>Date.now()+60000)return tokenCache.token;
@@ -79,4 +81,4 @@ async function sendTextMail({to,subject,body,sender}){
  }
  throw last||error('GRAPH_MAIL_FAILED','E-Mail konnte nicht versendet werden.',502)
 }
-module.exports={readiness,verifyAuthentication,sendTextMail};
+module.exports={readiness,verifyAuthentication,permissionRequirement,sendTextMail};
