@@ -187,7 +187,7 @@ jobs:
           grep -q '__EXPORTHUB_RC1080_CUSTOMER_HISTORY__' dist-rc1112/assets/rc1080-customer-history.js
           test -s dist-rc1112/assets/rc1081-audit-history.js
           grep -q '__EXPORTHUB_RC1081_AUDIT_HISTORY__' dist-rc1112/assets/rc1081-audit-history.js
-          grep -q "CUSTOMER_DELETED:'Kunde gelöscht'" dist-rc1112/assets/rc1081-audit-history.js
+          grep -q "CUSTOMER_DELETED:'history.audit.CUSTOMER_DELETED'" dist-rc1112/assets/rc1081-audit-history.js
           for file in index.html TESTVERSION.html demo.html; do
             grep -q 'assets/rc1126-customer-delete.js?v=1126' "dist-rc1112/$file"
           done
