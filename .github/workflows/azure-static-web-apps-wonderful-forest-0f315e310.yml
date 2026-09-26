@@ -131,7 +131,7 @@ jobs:
       - name: RC1112 Produktion TESTSERVICE und Demo gemeinsam bauen
         shell: bash
         run: |
-          set -euo pipefail
+          set -euxo pipefail
           node .github/rc1112/build-three-env.mjs
           node .github/rc1121/verify-final-html.mjs
           grep -q 'ExportHUB RC1112 environment=production-candidate' dist-rc1112/index.html
