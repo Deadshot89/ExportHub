@@ -88,7 +88,11 @@ function shipmentLegacyCode(raw){
  if(/^lieferavis\s+(?:aktiviert|erstellt|erstellt\s*\/\s*aktiviert)$/i.test(value))return'avisCreated';
  return''
 }
-function shipmentActionTitle(raw,subtype){
+function shipmentActionTitle(raw,subtype,details){
+ var shipmentApi=w.ExportHUBShipmentHistory1071;
+ if(shipmentApi&&typeof shipmentApi.displayAction==='function'){
+  try{return shipmentApi.displayAction({type:q(subtype),label:q(raw),details:details||{}})}catch(_){}
+ }
  var code=shipmentLegacyCode(raw);
  if(code)return tr('history.special.'+code);
  var key=SHIPMENT_LABELS[q(subtype)];
@@ -98,7 +102,7 @@ function shipmentActionTitle(raw,subtype){
 function actionTitle(e){
  var raw=q(e&&e.label),mapped=actionLabel(e);
  if(e&&e.type==='audit')return mapped;
- if(e&&e.type==='shipment')return shipmentActionTitle(raw,e&&e.subtype);
+ if(e&&e.type==='shipment')return shipmentActionTitle(raw,e&&e.subtype,e&&e.details);
  if(e&&(e.type==='customer'||e.type==='task'||e.type==='pallet'))return mapped;
  if(raw&&raw!==subtypeTechnical(e))return raw;
  return mapped
