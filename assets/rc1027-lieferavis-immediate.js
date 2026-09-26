@@ -37,6 +37,7 @@ function closed(sh){
 }
 function exception(sh){try{return previous&&typeof previous.avisException==='function'?previous.avisException(sh):null}catch(_){return null}}
 function mailExcluded(sh){try{return previous&&typeof previous.avisMailExcluded==='function'?previous.avisMailExcluded(sh):null}catch(_){return null}}
+function recipientExcluded(sh,target){try{return previous&&typeof previous.avisRecipientExcluded==='function'?previous.avisRecipientExcluded(sh,target):null}catch(_){return null}}
 function environmentName(){return typeof location!=='undefined'&&/-testservice\./i.test(String(location.hostname||''))?'testservice':'production'}
 function avisCacheKey(sh){var ref=explicitReference(sh);if(!ref)return'';return'exporthub:avis-url:'+environmentName()+':'+ref}
 function cachedAvisUrl(sh){var key=avisCacheKey(sh);if(!key)return'';if(avisLinkCache[key])return avisLinkCache[key];try{if(typeof sessionStorage!=='undefined'){var stored=q(sessionStorage.getItem(key));if(stored){avisLinkCache[key]=stored;return stored}}}catch(_){}return''}
@@ -257,10 +258,13 @@ function standaloneAvis(sh,target,lang,url){
  var closings={de:'Mit freundlichen Grüßen',en:'Kind regards',pl:'Z poważaniem',es:'Atentamente',fr:'Cordialement',it:'Cordiali saluti'};
  return greetings[lang]+'\n\n'+avisBlock(url,explicitReference(sh),lang,target)+'\n\n'+closings[lang]
 }
+function stripExcludedAvis(sh,target,source,lang){
+ var cleaned=String(source==null?'':source);try{if(previous&&typeof previous.injectMailBody==='function')cleaned=previous.injectMailBody(sh,target,cleaned,lang)}catch(_){}return stripOwnAvisLink(cleaned)
+}
 function injectMailBody(sh,target,body,langOverride){
  var type=q(target).toLowerCase()||'customer',source=String(body==null?'':body),lang=rc1267NormalizeLanguage(langOverride);
  if(type!=='customer'&&type!=='carrier'&&type!=='own')return previous&&typeof previous.injectMailBody==='function'?previous.injectMailBody(sh,target,source,langOverride):source;
- if(mailExcluded(sh))return stripOwnAvisLink(source);
+ if(mailExcluded(sh)||recipientExcluded(sh,type))return stripExcludedAvis(sh,type,source,lang);
  if(exception(sh)||manualDisabled(sh))return previous&&typeof previous.injectMailBody==='function'?previous.injectMailBody(sh,target,source,langOverride):source;
  var url=avisUrl(sh);if(!url)return previous&&typeof previous.injectMailBody==='function'?previous.injectMailBody(sh,target,source,langOverride):source;
  if(type==='own')return ownAvisMail(source,url,lang);
@@ -272,7 +276,7 @@ function syncVisibleMail(){
  var body=area.querySelector('textarea'),active=area.querySelector('[data-rc543-target].active'),type=q(active&&active.getAttribute('data-rc543-target'))||'customer';
  if(!body||(type!=='customer'&&type!=='carrier'&&type!=='own'))return false;
  var sh=shipment(),url=avisUrl(sh);if(!sh||exception(sh)||manualDisabled(sh)||closed(sh)||!customerName(sh)||!url)return false;
- if(mailExcluded(sh)){var cleaned=stripOwnAvisLink(String(body.value==null?'':body.value));if(cleaned!==String(body.value==null?'':body.value)){visibleSyncing=true;try{body.value=cleaned;try{body.dispatchEvent(new Event('input',{bubbles:true}))}catch(_){}try{body.dispatchEvent(new Event('change',{bubbles:true}))}catch(_){}}finally{visibleSyncing=false}return true}return false}
+ if(mailExcluded(sh)||recipientExcluded(sh,type)){var cleaned=stripExcludedAvis(sh,type,String(body.value==null?'':body.value),rc1267NormalizeLanguage((document.getElementById('rc543MailLang')||{}).value));if(cleaned!==String(body.value==null?'':body.value)){visibleSyncing=true;try{body.value=cleaned;try{body.dispatchEvent(new Event('input',{bubbles:true}))}catch(_){}try{body.dispatchEvent(new Event('change',{bubbles:true}))}catch(_){}}finally{visibleSyncing=false}return true}return false}
  var lang=rc1267NormalizeLanguage((document.getElementById('rc543MailLang')||{}).value),next=type==='own'?ownAvisMail(String(body.value==null?'':body.value),url,lang):standaloneAvis(sh,type,lang,url);
  if(String(body.value==null?'':body.value)===next)return false;
  visibleSyncing=true;try{body.value=next;try{body.dispatchEvent(new Event('input',{bubbles:true}))}catch(_){}try{body.dispatchEvent(new Event('change',{bubbles:true}))}catch(_){}}finally{visibleSyncing=false}
@@ -291,7 +295,7 @@ function install(){
  var current=window.ExportHUBCustomerAvis706||window.ExportHUBCustomerAvis705;if(!current)return false;
  if(current.__rc1027===true){wrapper=current;return true}
  previous=current;
- wrapper=Object.freeze(Object.assign({},current,{version:'RC1291',link:avisUrl,toggle:coordinatedToggle,injectMailBody:injectMailBody,autoEnable:ensureCustomerAvis,__rc1027:true,__rc1031:true,__rc1032:true,__rc1033:true,__rc1052:true,__rc1291:true,__base1027:current}));
+ wrapper=Object.freeze(Object.assign({},current,{version:'RC1292',link:avisUrl,toggle:coordinatedToggle,injectMailBody:injectMailBody,autoEnable:ensureCustomerAvis,__rc1027:true,__rc1031:true,__rc1032:true,__rc1033:true,__rc1052:true,__rc1291:true,__rc1292:true,__base1027:current}));
  window.ExportHUBCustomerAvis706=wrapper;window.ExportHUBCustomerAvis705=wrapper;
  return true
 }
