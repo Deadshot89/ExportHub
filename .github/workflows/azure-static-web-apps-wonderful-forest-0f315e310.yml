@@ -200,9 +200,9 @@ jobs:
           grep -q '/api/diagnostic-autofix' dist-rc1112/assets/rc1013-diagnostics.js
           grep -q "view:'history',label:'Historie',right:'history'" dist-rc1112/index.html
           grep -q "view:'history',label:'Historie',right:'history'" dist-rc1112/TESTVERSION.html
-          grep -q 'assets/rc1027-lieferavis-immediate.js?v=1069' dist-rc1112/index.html
-          grep -q 'assets/rc1027-lieferavis-immediate.js?v=1069' dist-rc1112/TESTVERSION.html
-          grep -q 'assets/rc1027-lieferavis-immediate.js?v=1069' dist-rc1112/demo.html
+          grep -q 'assets/rc1027-lieferavis-immediate.js?v=1291' dist-rc1112/index.html
+          grep -q 'assets/rc1027-lieferavis-immediate.js?v=1291' dist-rc1112/TESTVERSION.html
+          grep -q 'assets/rc1027-lieferavis-immediate.js?v=1291' dist-rc1112/demo.html
           test -s dist-rc1112/assets/rc1027-lieferavis-immediate.js
           test -s dist-rc1112/assets/rc1037-lieferavis-timing-diagnostics.js
           test -s dist-rc1112/assets/rc1049-abd-avis-policy.js
@@ -221,7 +221,7 @@ jobs:
           done
           test -s dist-rc1112/assets/rc1092-customer-mail-contacts.js
           grep -q '__EXPORTHUB_RC1092_CUSTOMER_MAIL_CONTACTS__' dist-rc1112/assets/rc1092-customer-mail-contacts.js
-          grep -q 'assets/rc1015-lieferavis-mail-flow.js?v=1021' dist-rc1112/index.html
+          grep -q 'assets/rc1015-lieferavis-mail-flow.js?v=1291' dist-rc1112/index.html
           grep -q 'assets/abholkalender.js?v=1012' dist-rc1112/index.html
           grep -q 'assets/abholkalender.js?v=1012' dist-rc1112/TESTVERSION.html
           grep -q 'assets/abholkalender.js?v=1012' dist-rc1112/demo.html
@@ -853,9 +853,9 @@ jobs:
               && grep -q '__EXPORTHUB_RC1069_PERFORMANCE__' "$tperf" \
               && grep -q "version:'RC1069'" "$pavis" \
               && grep -q "version:'RC1069'" "$tavis" \
-              && grep -q 'assets/rc1027-lieferavis-immediate.js?v=1069' "$p" \
-              && grep -q 'assets/rc1027-lieferavis-immediate.js?v=1069' "$t" \
-              && grep -q 'assets/rc1027-lieferavis-immediate.js?v=1069' "$d" \
+              && grep -q 'assets/rc1027-lieferavis-immediate.js?v=1291' "$p" \
+              && grep -q 'assets/rc1027-lieferavis-immediate.js?v=1291' "$t" \
+              && grep -q 'assets/rc1027-lieferavis-immediate.js?v=1291' "$d" \
               && grep -q 'Dokumentspeicher wird optimiert' "$precp" \
               && grep -q 'Dokumentspeicher wird optimiert' "$trecp" \
               && grep -q 'assets/abholkalender.js?v=1012' "$p" \
@@ -867,7 +867,7 @@ jobs:
               && grep -q 'assets/rc1014-task-runtime.js?v=1266' "$p" \
               && grep -q 'assets/rc1014-shipment-overview.js?v=1127' "$p" \
               && grep -q 'assets/rc1014-shipment-overview.css?v=1127' "$p" \
-              && grep -q 'assets/rc1015-lieferavis-mail-flow.js?v=1021' "$p" \
+              && grep -q 'assets/rc1015-lieferavis-mail-flow.js?v=1291' "$p" \
               && grep -q 'assets/rc1017-multi-truck.js?v=1017' "$p" \
               && grep -q 'assets/rc1017-multi-truck.js?v=1017' "$t" \
               && grep -q 'assets/rc1017-multi-truck.js?v=1017' "$d" \
