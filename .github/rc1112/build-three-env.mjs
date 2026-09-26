@@ -449,6 +449,7 @@ for(const rel of [
   'assets/rc1027-lieferavis-immediate.js',
   'assets/rc1037-lieferavis-timing-diagnostics.js',
   'assets/exporthub-environment-hub.js',
+  'assets/exporthub-demo-bootstrap.js',
   'assets/rc1049-abd-avis-policy.js',
   'assets/rc1014-task-runtime.js',
   'assets/rc1014-task-ui.css',
