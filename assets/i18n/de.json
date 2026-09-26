@@ -1116,5 +1116,6 @@
   "abd.analysis.complete": "Vollständig",
   "abd.analysis.review": "Prüfen",
   "abd.analysis.missing": "Fehlt: {{fields}}",
-  "abd.analysis.error": "Auswertung fehlgeschlagen: {{message}}"
+  "abd.analysis.error": "Auswertung fehlgeschlagen: {{message}}",
+  "abd.analysis.fileRequired": "Bitte mindestens eine Datei auswählen."
 }
