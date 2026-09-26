@@ -90,7 +90,7 @@ test('RC1207: Build liefert Runtime in Produktion, TESTSERVICE und Demo aus',()=
 });
 
 
-test('RC1287: Palettenkonto wiederholt unbestätigten Flush forciert bis Azure bestätigt',async()=>{
+test('RC1299: automatischer Palettenkonto-Cleanup sendet bei fehlender Azure-Bestätigung keinen Save-Sturm',async()=>{
   const x=makeRoot({
     flushResults:[false,true],
     cleanRuntime:{changeGeneration:7,lastSavedGeneration:0,saving:false},
@@ -100,11 +100,11 @@ test('RC1287: Palettenkonto wiederholt unbestätigten Flush forciert bis Azure b
       palletSettlements:[],auditLog:[],_teamSyncMeta:{fields:{},tombstones:[]}
     }
   });
-  assert.equal(await x.api.cleanupProductionDayOnce(),true);
+  await assert.rejects(()=>x.api.cleanupProductionDayOnce());
   const flushes=x.calls.filter(c=>c[0]==='flush');
-  assert.equal(flushes.length,2);
+  assert.equal(flushes.length,1);
   assert.equal(flushes[0][2]&&flushes[0][2].force,true);
-  assert.equal(flushes[0][2]&&flushes[0][2].userInitiated,true);
-  assert.equal(x.state.palletAccount.length,0);
-  assert.equal(x.state.rc1207PalletCleanup20260921At.deletedCount,1);
+  assert.equal(flushes[0][2]&&flushes[0][2].userInitiated,false);
+  assert.equal(x.state.palletAccount.length,1,'fehlgeschlagener Hintergrund-Save muss vollständig zurückrollen');
+  assert.equal(x.state.rc1207PalletCleanup20260921At,undefined,'Cleanup-Marker darf ohne Azure-Bestätigung nicht gesetzt bleiben');
 });
