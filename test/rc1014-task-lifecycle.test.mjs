@@ -55,6 +55,18 @@ test('RC1014 klassifiziert Fälligkeit und sortiert P0 bis P4 stabil',()=>{
   assert.deepEqual(tasks.map(t=>`${t.priority}:${t.sourceRef}`),['P0:C','P1:A','P1:B','P4:Z']);
 });
 
+test('RC1276 sortiert offene ABD-Anfragen strikt nach neuester Anfrage zuerst',()=>{
+  const api=loadApi();
+  const now='2026-09-25T11:40:00+02:00';
+  const tasks=[
+    api.normalizeTask({id:'abd-old',group:'Offene ABDs',sourceType:'abd',priority:'P0',createdAt:'2026-09-24T15:00:00+02:00',dueAt:'2026-09-24',sourceRef:'OLD123'},{companyId:'essentra',environment:'production'}),
+    api.normalizeTask({id:'abd-new',group:'Offene ABDs',sourceType:'abd',priority:'P0',createdAt:'2026-09-25T10:30:00+02:00',dueAt:'2026-09-26',sourceRef:'NEW123'},{companyId:'essentra',environment:'production'}),
+    api.normalizeTask({id:'abd-mid',group:'Offene ABDs',sourceType:'abd',priority:'P0',requestedAt:'2026-09-25T08:00:00+02:00',dueAt:'2026-09-25',sourceRef:'MID123'},{companyId:'essentra',environment:'production'})
+  ];
+  tasks.sort((a,b)=>api.compareTasks(a,b,now));
+  assert.deepEqual(tasks.map(t=>t.id),['abd-new','abd-mid','abd-old']);
+});
+
 test('RC1014 löst Vertretung auf und filtert Firma sowie Umgebung',()=>{
   const api=loadApi();
   const ctx={
