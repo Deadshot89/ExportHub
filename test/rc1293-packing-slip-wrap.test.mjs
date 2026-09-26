@@ -16,7 +16,8 @@ test('RC1293: Deckblatt rendert Lieferscheine als mehrzeiliges Auto-Fit-Raster',
   assert.doesNotMatch(build,/d\.join\('\\n'\)\|\|'–'/,'Lieferscheine dürfen nicht mehr ausschließlich vertikal untereinander gerendert werden');
 });
 
-test('RC1293: Browserfixture erzwingt mit sieben Lieferscheinen mindestens eine zweite Reihe',()=>{
+test('RC1293: Browserfixture erzwingt mit sieben echten deliveryFiles mindestens eine zweite Reihe',()=>{
+  assert.match(demo,/deliveryFiles:\[\{id:'DLV-DEMO-2A'/);
   for(let i=2;i<=7;i++){
     const needle=i===2?'Fake_Lieferschein_DEMO02.pdf':`LS_4711000${i}.pdf`;
     assert.ok(demo.includes(needle),needle+' fehlt in DEMO02');
