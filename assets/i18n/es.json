@@ -1116,5 +1116,6 @@
   "abd.analysis.complete": "Completo",
   "abd.analysis.review": "Revisar",
   "abd.analysis.missing": "Falta: {{fields}}",
-  "abd.analysis.error": "Error de análisis: {{message}}"
+  "abd.analysis.error": "Error de análisis: {{message}}",
+  "abd.analysis.fileRequired": "Seleccione al menos un archivo."
 }
