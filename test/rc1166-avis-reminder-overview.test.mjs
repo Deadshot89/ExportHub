@@ -111,7 +111,7 @@ test('RC1166: Übersicht zeigt einen blauen Aktionsbutton und eine Empfängeraus
 
 test('RC1166: Drei-Umgebungen-Build übernimmt die neue Runtime und bestehende Schutzstände',()=>{
   assert.match(build,/exporthub-rc1166-avis-reminder/);
-  assert.match(build,/assets\/rc1166-avis-reminder-overview\.js\?v=1207/);
+  assert.match(build,/assets\/rc1166-avis-reminder-overview\.js\?v=1292/);
   assert.match(build,/'assets\/rc1166-avis-reminder-overview\.js'/);
   assert.match(build,/avisReminderOverview:'RC1207/);
   assert.match(build,/avis-reminder-mail\/index\.js/);
@@ -120,4 +120,26 @@ test('RC1166: Drei-Umgebungen-Build übernimmt die neue Runtime und bestehende S
   assert.match(build,/podGraphReadiness:'RC1220/);
   assert.match(build,/avisAppointmentRevisionHistory:'RC1163/);
   assert.match(build,/border:3mm solid #111827/);
+});
+
+
+test('RC1292: Holenstein wird aus der Avis-Erinnerungs-Empfängerliste entfernt',()=>{
+  const state={customers:[{
+    id:'P1',name:'Plica',carrierEmail:'dispo@holenstein.de',
+    carrierContacts:[{name:'Disposition | Holenstein GmbH',email:'dispo@holenstein.de'},{name:'Andere Spedition',email:'other@example.com'}]
+  }]};
+  const api=load(state),sh={customerId:'P1',customerName:'Plica',carrierMail:'dispo@holenstein.de'};
+  const carrier=api.shipmentContacts(sh,'carrier').map(x=>x.email);
+  assert.equal(carrier.includes('dispo@holenstein.de'),false);
+  assert.equal(carrier.includes('other@example.com'),true);
+  assert.equal(api.recipientExcluded('dispo@holenstein.de'),true);
+  assert.equal(api.recipientExcluded('OTHER@example.com'),false);
+});
+
+test('RC1292: direkter Reminder-Versand an Holenstein wird bereits im Frontend geblockt',async()=>{
+  const api=load(),sh={reference:'ABC123'};
+  await assert.rejects(
+    ()=>api.sendReminder(sh,'dispo@holenstein.de','carrier','de','https://example.test/customer-avis.html?token=abc'),
+    e=>e&&e.code==='AVIS_RECIPIENT_EXCLUDED'
+  );
 });
