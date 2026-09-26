@@ -78,10 +78,10 @@ function renderResults(results){
   '<th>'+esc(tr('abd.analysis.position',null,'Pos.'))+'</th><th>'+esc(tr('abd.analysis.item',null,'Artikel'))+'</th><th>'+esc(tr('common.description',null,'Beschreibung'))+'</th>'+
   '<th>'+esc(tr('abd.analysis.hs',null,'HS-/Warennummer'))+'</th><th>'+esc(tr('abd.analysis.origin',null,'Ursprungsland'))+'</th><th>'+esc(tr('abd.analysis.quantity',null,'Menge'))+'</th>'+
   '<th>'+esc(tr('abd.analysis.net',null,'Eigenmasse kg'))+'</th><th>'+esc(tr('abd.analysis.gross',null,'Rohmasse kg'))+'</th><th>'+esc(tr('abd.analysis.value',null,'Warenwert'))+'</th>'+
-  '<th>'+esc(tr('abd.analysis.currency',null,'Währung'))+'</th><th>'+esc(tr('abd.analysis.codes',null,'Y-/Unterlagencodes'))+'</th><th>'+esc(tr('abd.analysis.source',null,'Quelle'))+'</th><th>'+esc(tr('common.status',null,'Status'))+'</th>'+
-  '</tr></thead><tbody>'+rowsHtml(lastPositions)+'</tbody></table></div>':'<div class="rc1294-empty">'+esc(tr('abd.analysis.noPositions',null,'Keine sicheren strukturierten Positionen erkannt. PDF-Kandidaten bzw. Quelldaten bitte manuell prüfen.'))+'</div>';
+  '<th>'+esc(tr('abd.analysis.currency'))+'</th><th>'+esc(tr('abd.analysis.codes'))+'</th><th>'+esc(tr('abd.analysis.source'))+'</th><th>'+esc(tr('common.status'))+'</th>'+
+  '</tr></thead><tbody>'+rowsHtml(lastPositions)+'</tbody></table></div>':'<div class="rc1294-empty">'+esc(tr('abd.analysis.noPositions'))+'</div>';
  box.innerHTML='<div class="rc1294-result-head"><strong>'+esc(summary)+'</strong>'+(lastPositions.length?'<button type="button" class="ghost" data-rc1294-copy>'+esc(tr('abd.analysis.copy',null,'Positionsdaten kopieren'))+'</button>':'')+'</div>'+
-  (codes.length?'<div class="rc1294-codes">'+esc(tr('abd.analysis.codes',null,'Y-/Unterlagencodes'))+': <b>'+esc(codes.join(', '))+'</b></div>':'')+table;
+  (codes.length?'<div class="rc1294-codes">'+esc(tr('abd.analysis.codes'))+': <b>'+esc(codes.join(', '))+'</b></div>':'')+table;
  box.hidden=false
 }
 async function poll(upload,fileName){
@@ -141,11 +141,11 @@ function mount(){
  var old=d.getElementById('rc1294AbdAnalysis');if(old)return true;
  ensureStyle();
  var p=d.createElement('section');p.id='rc1294AbdAnalysis';p.className='rc1294-abd';p.setAttribute('data-rc1294-abd-analysis','1');
- p.innerHTML='<h3>'+esc(tr('abd.analysis.title',null,'ABD-Datenimport & Positionsprüfung'))+'</h3>'+
-  '<p>'+esc(tr('abd.analysis.help',null,'Rechnung, Lieferschein oder strukturierte Datei hochladen. ExportHUB erstellt eine prüfbare Vorschau für die spätere Eingabe im Zollportal.'))+'</p>'+
-  '<div class="rc1294-note">'+esc(tr('abd.analysis.previewOnly',null,'Vorschau: Es wird keine Zollanmeldung an ATLAS/AES gesendet. Warennummer, Ursprung und Y-/Unterlagencodes müssen fachlich geprüft werden.'))+'</div>'+
-  '<div class="rc1294-controls"><label class="rc1294-file"><span>'+esc(tr('abd.analysis.chooseFiles',null,'PDF, XLSX oder CSV auswählen'))+'</span><input type="file" multiple accept=".pdf,.xlsx,.csv,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"></label>'+
-  '<button type="button" class="btn" data-rc1294-start>'+esc(tr('abd.analysis.start',null,'Dateien prüfen & auswerten'))+'</button></div>'+
+ p.innerHTML='<h3>'+esc(tr('abd.analysis.title'))+'</h3>'+
+  '<p>'+esc(tr('abd.analysis.help'))+'</p>'+
+  '<div class="rc1294-note">'+esc(tr('abd.analysis.previewOnly'))+'</div>'+
+  '<div class="rc1294-controls"><label class="rc1294-file"><span>'+esc(tr('abd.analysis.chooseFiles'))+'</span><input type="file" multiple accept=".pdf,.xlsx,.csv,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"></label>'+
+  '<button type="button" class="btn" data-rc1294-start>'+esc(tr('abd.analysis.start'))+'</button></div>'+
   '<div class="rc1294-status" data-rc1294-status hidden></div><div class="rc1294-results" data-rc1294-results hidden></div>';
  var head=host.querySelector('.rc626-head');if(head&&head.parentNode)head.parentNode.insertBefore(p,head.nextSibling);else host.insertBefore(p,host.firstChild);
  p.querySelector('[data-rc1294-start]').addEventListener('click',start);
