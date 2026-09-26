@@ -44,7 +44,7 @@ test('RC1271/RC1279: Mail.Send bleibt geprüft und der bekannte Permission-Block
   assert.match(workflow,/v\.mailSendGranted===false/);
   assert.match(workflow,/knownMailSendBlocker/);
   assert.match(workflow,/GRAPH_MAIL_PERMISSION_MISSING/);
-  assert.match(workflow,/::warning title=RC1249 AVIS-Mail P2::/);
+  assert.match(workflow,/::warning title=RC1290 AVIS-Mail P2::/);
 });
 
 test('RC1249: finaler Build verlangt den Readiness-Endpunkt',()=>{
