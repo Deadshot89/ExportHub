@@ -158,3 +158,25 @@ test('RC1069: Kundeneingaben aktualisieren einen bereits sofort ausgestellten Av
   assert.ok(env.apiCalls.some(x=>x.action==='draft-sync'&&x.shipmentSnapshot&&x.shipmentSnapshot.customerName==='Heizmann AG Hydraulik'),'Kundenänderung muss in den öffentlichen Avis-Draft synchronisiert werden.');
   assert.deepEqual(env.persists,[]);
 });
+
+test('RC1291: Würth Industrie behält das Avis technisch aktiv, erhält aber in keiner Mail einen Avis-Link',()=>{
+  for(const customerName of ['Würth Industrie','Würth Industrie Service GmbH & Co. KG','Wuerth Industrie']){
+    const shipment={reference:'7RZ5W9',customerName,customerAvisEnabled:true,customerAvisToken:'server-token',status:'Entwurf'};
+    const {api}=load(shipment,{reference:'7RZ5W9'});
+    assert.equal(api.enabled(shipment),true,customerName+': Avis darf technisch nicht deaktiviert werden');
+    assert.match(api.link(shipment),/customer-avis\.html/,customerName+': Avis-Link darf technisch weiter existieren');
+    for(const target of ['customer','carrier','own']){
+      const out=api.injectMailBody(shipment,target,expandedDetails,'de');
+      assert.doesNotMatch(out,/customer-avis\.html|Lieferavis:\s*https?:\/\//i,customerName+' / '+target+': Avis-Link muss aus der Mail entfernt sein');
+    }
+  }
+});
+
+test('RC1291: normale Kunden behalten den Lieferavis-Link in Kunden-, Speditions- und eigener Mail',()=>{
+  const shipment={reference:'7RZ5W9',customerName:'Normaler Kunde',customerAvisEnabled:true,customerAvisToken:'server-token',status:'Entwurf'};
+  const {api}=load(shipment,{reference:'7RZ5W9'});
+  for(const target of ['customer','carrier','own']){
+    const out=api.injectMailBody(shipment,target,expandedDetails,'de');
+    assert.match(out,/customer-avis\.html/i,target+': normaler Kunde muss den Avis-Link behalten');
+  }
+});
