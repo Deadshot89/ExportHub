@@ -244,5 +244,5 @@ test('RC1024: Lieferavis-Flow schützt seine Mailvorlagen vor der abgelehnten Vo
 });
 
 test('Lieferavis: neuer Cache-Key wird in allen drei Umgebungen gebaut',()=>{
-  assert.match(rc1013Build,/rc1015-lieferavis-mail-flow\.js\?v=1021/);
+  assert.match(rc1013Build,/rc1015-lieferavis-mail-flow\.js\?v=1291/);
 });
