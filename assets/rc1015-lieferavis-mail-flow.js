@@ -6,6 +6,7 @@ window.__EXPORTHUB_RC1015_LIEFERAVIS_MAIL_FLOW__=true;
 var base=null,wrapper=null,autoEnablePending=Object.create(null),mailSourceCache=new Map(),visibleMailSyncing=false;
 var RC1018_AVIS_EXCEPTIONS=Object.freeze({bmp:'Kunden-IT blockiert den Zugriff','böllhof':'Kein Lieferavis für diesen Kunden','böllhoff':'Kein Lieferavis für diesen Kunden',boellhof:'Kein Lieferavis für diesen Kunden',boellhoff:'Kein Lieferavis für diesen Kunden'});
 var RC1291_AVIS_MAIL_EXCLUSIONS=Object.freeze(['würth industrie','wuerth industrie']);
+var RC1292_AVIS_RECIPIENT_EXCLUSIONS=Object.freeze({'dispo@holenstein.de':'Holenstein GmbH'});
 function q(v){return String(v==null?'':v).trim()}
 function tr(key,vars,language){try{if(window.ExportHUBI18n&&typeof window.ExportHUBI18n.t==='function')return window.ExportHUBI18n.t(key,vars,language)}catch(_){}return key}
 function rc1018AvisBlockMessage(blocked){return tr('avisFlow.unavailable')+(blocked&&blocked.key==='bmp'?' '+tr('avisFlow.customerItBlocked'):'')}
@@ -34,6 +35,46 @@ function rc1018AvisException(sh){
 function rc1291AvisMailExcluded(sh){
  var name=shipmentCustomerName(sh),key=name.toLocaleLowerCase('de-DE').replace(/\s+/g,' ').trim();
  for(var i=0;i<RC1291_AVIS_MAIL_EXCLUSIONS.length;i++){var candidate=RC1291_AVIS_MAIL_EXCLUSIONS[i];if(key===candidate||key.indexOf(candidate+' ')===0)return{customer:name,key:candidate,reason:'Kein Lieferavis-Link in E-Mails'} }
+ return null
+}
+function rc1292EmailItems(value){
+ var out=[],seen={};
+ function add(v){
+  if(Array.isArray(v)){v.forEach(add);return}
+  if(v&&typeof v==='object'){
+   if(v.email||v.mail||v.address)add(v.email||v.mail||v.address);
+   if(Array.isArray(v.roles)||v.role)add(v.contacts||[]);
+   return
+  }
+  String(v==null?'':v).replace(/mailto:/gi,' ').split(/[;,\n\r\t ]+/).forEach(function(part){
+   var m=String(part||'').match(/[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}/i);if(!m)return;
+   var email=q(m[0]).replace(/[.,;:]+$/,''),key=email.toLowerCase();if(email&&!seen[key]){seen[key]=1;out.push(email)}
+  })
+ }
+ add(value);return out
+}
+function rc1292CustomerForShipment(sh){
+ var s=currentState(),list=Array.isArray(s.customers)?s.customers:[],name=shipmentCustomerName(sh).toLocaleLowerCase('de-DE'),ids=[
+  sh&&sh.customerId,sh&&sh.customerNumber,sh&&sh.customerAccount,sh&&sh.customerNo,sh&&sh.account
+ ].map(function(v){return q(v).toLocaleUpperCase('de-DE')}).filter(Boolean);
+ for(var i=0;i<list.length;i++){
+  var customer=list[i]||{},cid=q(customer.id||customer.customerId||customer.customerNumber||customer.kundennummer||customer.account).toLocaleUpperCase('de-DE');
+  if(cid&&ids.indexOf(cid)>=0)return customer;
+  var cname=q(customer.name||customer.customerName||customer.companyName).toLocaleLowerCase('de-DE');
+  if(name&&cname&&name===cname)return customer
+ }
+ return null
+}
+function rc1292AvisRecipientExcluded(sh,target){
+ target=q(target).toLowerCase();var customer=rc1292CustomerForShipment(sh),values=[];
+ function take(obj,fields){if(!obj)return;fields.forEach(function(k){values.push(obj[k])})}
+ var carrierFields=['carrierEmail','carrierMail','speditionEmail','speditionMail','forwarderEmail','forwarderMail','carrierContacts','speditionContacts','forwarderContacts'];
+ var customerFields=['customerEmail','customerMail','recipientEmail','email','ccContacts','customerCcContacts','contactDirectory','customerContactDirectory'];
+ if(target==='carrier'){take(sh,carrierFields);take(customer,carrierFields)}
+ else if(target==='customer'){take(sh,customerFields);take(customer,customerFields)}
+ else{take(sh,carrierFields.concat(customerFields));take(customer,carrierFields.concat(customerFields))}
+ var emails=rc1292EmailItems(values);
+ for(var i=0;i<emails.length;i++){var key=emails[i].toLowerCase();if(RC1292_AVIS_RECIPIENT_EXCLUSIONS[key])return{email:emails[i],reason:'Kein Lieferavis-Link an '+RC1292_AVIS_RECIPIENT_EXCLUSIONS[key]}}
  return null
 }
 function shipmentReference(sh){return q(sh&&(sh.ref||sh.reference||sh.shipmentRef||sh.referenceNumber||sh.referenceNo||sh.id||sh.shipmentId)).toUpperCase()}
@@ -257,7 +298,7 @@ function rc1015InjectMailBody(sh,target,body,langOverride){
  var source=String(body==null?'':body),type=q(target).toLowerCase()||'customer',lang=rc1267NormalizeLanguage(langOverride);
  if(type!=='customer'&&type!=='carrier')return base&&typeof base.injectMailBody==='function'?base.injectMailBody(sh,target,source,langOverride):source;
  if(type==='customer'&&rc1018AvisException(sh))return source;
- if(rc1291AvisMailExcluded(sh))return stripAvisBlocks(source);
+ if(rc1291AvisMailExcluded(sh)||rc1292AvisRecipientExcluded(sh,type))return stripAvisBlocks(source);
  var key=rc1024MailKey(sh,type,lang);if(!rc1024IsOurAvis(source))mailSourceCache.set(key,source);
  if(!rc1018Enabled(sh))return source;
  var u=q(base&&base.link&&base.link(sh));if(!u)return source;
@@ -272,7 +313,7 @@ function rc1024SyncVisibleMail(){
  var lang=rc1267NormalizeLanguage((document.getElementById('rc543MailLang')||{}).value),key=rc1024MailKey(sh,type,lang),current=String(bodyEl.value==null?'':bodyEl.value),source=mailSourceCache.get(key)||'';
  if(!source&&!rc1024IsOurAvis(current)){source=current;mailSourceCache.set(key,current)}
  if(!source)return false;
- var next=source,u=q(base&&base.link&&base.link(sh));if(rc1018Enabled(sh)&&u&&!rc1291AvisMailExcluded(sh))next=rc1015AvisMailVariant(source,u,shipmentReference(sh),lang,type);
+ var next=source,u=q(base&&base.link&&base.link(sh));if(rc1018Enabled(sh)&&u&&!rc1291AvisMailExcluded(sh)&&!rc1292AvisRecipientExcluded(sh,type))next=rc1015AvisMailVariant(source,u,shipmentReference(sh),lang,type);
  if(next===current)return false;
  visibleMailSyncing=true;try{bodyEl.value=next;try{bodyEl.dispatchEvent(new Event('input',{bubbles:true}))}catch(_){}try{bodyEl.dispatchEvent(new Event('change',{bubbles:true}))}catch(_){}}finally{visibleMailSyncing=false}
  return true
@@ -311,7 +352,7 @@ function install(){
  if(current.__rc1015===true){wrapper=current;base=current.__base||base;refreshUi();return true}
  if(current.__rc1018===true&&current.__base1018)current=current.__base1018;
  base=current;
- wrapper=Object.freeze(Object.assign({},base,{version:'RC1291',enabled:rc1018Enabled,toggle:rc1015Toggle,autoEnable:rc1021AutoEnable,injectMailBody:rc1015InjectMailBody,avisException:rc1018AvisException,avisMailExcluded:rc1291AvisMailExcluded,__rc1015:true,__rc1018:true,__rc1291:true,__base:base,__base1018:base}));
+ wrapper=Object.freeze(Object.assign({},base,{version:'RC1292',enabled:rc1018Enabled,toggle:rc1015Toggle,autoEnable:rc1021AutoEnable,injectMailBody:rc1015InjectMailBody,avisException:rc1018AvisException,avisMailExcluded:rc1291AvisMailExcluded,avisRecipientExcluded:rc1292AvisRecipientExcluded,__rc1015:true,__rc1018:true,__rc1291:true,__rc1292:true,__base:base,__base1018:base}));
  window.ExportHUBCustomerAvis706=wrapper;
  window.ExportHUBCustomerAvis705=wrapper;
  refreshUi();
