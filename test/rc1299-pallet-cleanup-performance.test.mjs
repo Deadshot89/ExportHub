@@ -33,7 +33,3 @@ test('RC1299: explizites Admin-Löschen behält den bestätigten robusten Save-P
   assert.match(block,/await persist\('Palettenbuchung gelöscht'\)/);
   assert.doesNotMatch(block,/persistOnce/);
 });
-
-test('RC1299: Runtime-Version ist sichtbar aktualisiert',()=>{
-  assert.match(SOURCE,/version:'RC1299'/);
-});
