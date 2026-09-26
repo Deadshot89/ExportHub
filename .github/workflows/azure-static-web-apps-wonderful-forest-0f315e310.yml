@@ -194,8 +194,8 @@ jobs:
           test -s dist-rc1112/assets/rc1126-customer-delete.js
           grep -q '__EXPORTHUB_RC1126_CUSTOMER_DELETE__' dist-rc1112/assets/rc1126-customer-delete.js
           grep -q "collection:'customers'" dist-rc1112/assets/rc1126-customer-delete.js
-          grep -q 'Endgültig löschen' dist-rc1112/assets/rc1126-customer-delete.js
-          grep -q 'Mit ChatGPT beheben' dist-rc1112/assets/rc1013-diagnostics.js
+          grep -q 'customerDelete.finalDelete' dist-rc1112/assets/rc1126-customer-delete.js
+          grep -q 'diagnostics.fixWithChatgpt' dist-rc1112/assets/rc1013-diagnostics.js
           grep -q '__EXPORTHUB_RC1125_DIAGNOSTICS_VIEW_ISOLATION__' dist-rc1112/assets/rc1013-diagnostics.js
           grep -q '/api/diagnostic-autofix' dist-rc1112/assets/rc1013-diagnostics.js
           grep -q "view:'history',label:'Historie',right:'history'" dist-rc1112/index.html
@@ -238,7 +238,7 @@ jobs:
           done
           test -s dist-rc1112/assets/rc1113-stowplan-persist.js
           grep -q '__EXPORTHUB_RC1113_STOWPLAN_PERSIST__' dist-rc1112/assets/rc1113-stowplan-persist.js
-          grep -q 'Ladeanweisung' dist-rc1112/assets/rc1113-stowplan-persist.js
+          grep -q 'stowplan.instructionTitle' dist-rc1112/assets/rc1113-stowplan-persist.js
           grep -q 'stowPlanSnapshot' dist-rc1112/assets/rc1113-stowplan-persist.js
           for file in index.html TESTVERSION.html demo.html; do
             grep -q 'assets/rc1114-shipping-neutral.js?v=1114' "dist-rc1112/$file"
@@ -251,7 +251,7 @@ jobs:
           grep -q 'document-upload-status' dist-rc1112/customer-avis.html
           grep -q 'Microsoft Defender for Storage' dist-rc1112/customer-avis.html
           grep -q 'id="customerPdfDocumentType"' dist-rc1112/customer-avis.html
-          grep -q 'Sendungszuordnung fachlich geprüft' api/customer-avis/index.js
+          grep -q '"api.avis.mailPassed"' api/shared/i18n/de.json
           test -s api/shared/customer-avis-document-content.js
           grep -q "pdf-parse" api/package.json
           grep -q 'PDF_SHIPMENT_MISMATCH' api/shared/customer-avis-document-content.js
@@ -264,8 +264,8 @@ jobs:
             grep -q 'assets/rc1133-avis-upload-notifications.js?v=1133' "dist-rc1112/$file"
           done
           test -s dist-rc1112/assets/rc1133-avis-upload-notifications.js
-          grep -q 'Neues AVIS-Dokument' dist-rc1112/assets/rc1133-avis-upload-notifications.js
-          grep -q 'PDF öffnen / drucken' dist-rc1112/assets/rc1133-avis-upload-notifications.js
+          grep -q 'avisUploads.noticeTitle' dist-rc1112/assets/rc1133-avis-upload-notifications.js
+          grep -q 'avisUploads.openPrint' dist-rc1112/assets/rc1133-avis-upload-notifications.js
           grep -q "type:'customer-avis-document'" api/customer-avis/index.js
           test -s api/shared/customer-avis-pdf-security.js
           grep -q 'AVIS_QUARANTINE_CONTAINER' api/customer-avis/index.js
@@ -843,8 +843,8 @@ jobs:
               && grep -q 'async function runAll' "$tma" \
               && grep -q 'inlinePayloadCount' "$pma" \
               && grep -q 'inlinePayloadCount' "$tma" \
-              && grep -q 'Alle verbleibenden migrieren' "$pma" \
-              && grep -q 'Alle verbleibenden migrieren' "$tma" \
+              && grep -q 'migration.runAll' "$pma" \
+              && grep -q 'migration.runAll' "$tma" \
               && grep -q 'assets/rc1067-startup-recovery.js?v=1067' "$p" \
               && grep -q 'assets/rc1067-startup-recovery.js?v=1067' "$t" \
               && grep -q '__EXPORTHUB_RC1067_STARTUP_RECOVERY__' "$prec" \
@@ -885,8 +885,8 @@ jobs:
               && grep -q 'rc1016MobileMenuBtn' "$tm" \
               && grep -q 'EH-PICKUP-410' "$pd" \
               && grep -q 'EH-PICKUP-410' "$td" \
-              && grep -q 'Gate41-Preis Deutschland berechnet' "$pg" \
-              && grep -q 'Gate41-Preis Deutschland berechnet' "$tg" \
+              && grep -q 'gate41.calculated' "$pg" \
+              && grep -q 'gate41.calculated' "$tg" \
               && grep -q 'ExportHubMultiTruck' "$pr" \
               && grep -q 'ExportHubMultiTruck' "$tr" \
               && grep -q 'calendarScalarText' "$pcal" \
@@ -954,10 +954,10 @@ jobs:
               && grep -q 'mail-sent-open|' "$th" \
               && grep -q 'recordMailSent' "$ph" \
               && grep -q 'recordMailSent' "$th" \
-              && grep -q 'ABD-E-Mail-Versand bestätigt' "$ph" \
+              && grep -q 'shipmentHistory.action.abdMailSent' "$ph" \
               && grep -q "return'ABD'" "$ph" \
-              && grep -q 'Arbeit an Sendung gestartet' "$ph" \
-              && grep -q 'Versandanmeldung gestartet' "$ph"; then
+              && grep -q 'shipmentHistory.action.workStarted' "$ph" \
+              && grep -q 'shipmentHistory.action.registrationStarted' "$ph"; then
               echo 'RC1106 Sendungshistorie live in Produktion und TESTSERVICE bestätigt.'
               exit 0
             fi
@@ -1130,8 +1130,8 @@ jobs:
               grep -q '__EXPORTHUB_RC1079_PROFILE_SETTINGS__' "$profile" || ok=0
               grep -q "action:'update-profile'" "$profile" || ok=0
               grep -q '__EXPORTHUB_RC1080_CUSTOMER_HISTORY__' "$customer" || ok=0
-              grep -q 'Kunde angelegt' "$customer" || ok=0
-              grep -q 'Kunde geändert' "$customer" || ok=0
+              grep -q 'history.customer.customer-created' "$customer" || ok=0
+              grep -q 'history.customer.customer-updated' "$customer" || ok=0
               rm -f "$page" "$profile" "$customer"
               authBody=$(mktemp)
               authCode=$(curl -sS -o "$authBody" -w '%{http_code}' --max-time 20 -X POST -H 'Content-Type: application/json' --data '{"action":"update-profile","name":"Unzulässig"}' "$base/api/exporthub-auth?rc1080=$GITHUB_SHA-$attempt" || true)
@@ -1166,7 +1166,7 @@ jobs:
               grep -q '__EXPORTHUB_RC1086_HISTORY_COMPLETE__' "$asset" || ok=0
               grep -q '__EXPORTHUB_RC1087_ADMIN_AUDIT__' "$asset" || ok=0
               grep -q 'LOADER_PIN_CREATED' "$asset" || ok=0
-              grep -q '<h3>Historie</h3>' "$asset" || ok=0
+              grep -q 'history.title' "$asset" || ok=0
               grep -q 'ExportHUBShipmentHistory1071' "$asset" || ok=0
               grep -q 'customerHistory' "$asset" || ok=0
               grep -q 'auditLog' "$asset" || ok=0
@@ -1198,8 +1198,8 @@ jobs:
               [[ "$pc" == '200' && "$ac" == '200' ]] || ok=0
               grep -q 'assets/rc1092-customer-mail-contacts.js?v=1092' "$page" || ok=0
               grep -q '__EXPORTHUB_RC1092_CUSTOMER_MAIL_CONTACTS__' "$asset" || ok=0
-              grep -q 'Person speichern' "$asset" || ok=0
-              grep -q 'Zur Mail hinzufügen' "$asset" || ok=0
+              grep -q 'customerContacts.savePerson' "$asset" || ok=0
+              grep -q 'customerContacts.addToMail' "$asset" || ok=0
               rm -f "$page" "$asset"
             done
             demo=$(mktemp)
@@ -1234,9 +1234,9 @@ jobs:
               grep -q "name:'Umschlag'" "$page" || ok=0
               grep -q '__EXPORTHUB_RC1096_PACKAGING_GROUPS__' "$asset" || ok=0
               grep -Fq "closest('.rc682-packaging-columns')" "$asset" || ok=0
-              grep -q "Pakete" "$asset" || ok=0
-              grep -q "Paletten" "$asset" || ok=0
-              grep -q "Sonstiges" "$asset" || ok=0
+              grep -q 'packaging.packages' "$asset" || ok=0
+              grep -q 'packaging.pallets' "$asset" || ok=0
+              grep -q 'packaging.other' "$asset" || ok=0
               rm -f "$page" "$asset"
             done
             demo=$(mktemp)
@@ -1299,10 +1299,10 @@ jobs:
 
               pageMarker=1; chatgptMarker=1; endpointMarker=1; titleMarker=1; authMarker=1
               grep -q 'assets/rc1013-diagnostics.js?v=1125' "$page" || pageMarker=0
-              grep -q 'Mit ChatGPT beheben' "$asset" || chatgptMarker=0
+              grep -q 'diagnostics.fixWithChatgpt' "$asset" || chatgptMarker=0
               grep -q '__EXPORTHUB_RC1125_DIAGNOSTICS_VIEW_ISOLATION__' "$asset" || titleMarker=0
               grep -q '/api/diagnostic-autofix' "$asset" || endpointMarker=0
-              grep -q 'Fehlerdiagnose & automatische Behebung' "$asset" || titleMarker=0
+              grep -q 'diagnostics.title' "$asset" || titleMarker=0
               grep -Eq 'AUTH_REQUIRED|SESSION_INVALID' "$api" || authMarker=0
 
               if [[ "$pc" != '200' || "$ac" != '200' || "$apiCode" != '401' || "$pageMarker" != '1' || "$chatgptMarker" != '1' || "$endpointMarker" != '1' || "$titleMarker" != '1' || "$authMarker" != '1' ]]; then
