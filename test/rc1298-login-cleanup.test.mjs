@@ -13,15 +13,15 @@ test('RC1298 P1: redundante Login-Informationen sind ausgeblendet',()=>{
   assert.match(runtime,/#login \.login-card\{width:min\(540px,100%\)!important/);
   assert.match(runtime,/function hideRedundantLoginInfo\(\)/);
   assert.match(runtime,/querySelectorAll\('\.clean-version-badge,\.eh-login-mode-head,\.eh-login-environment-note'\)/);
-  assert.match(runtime,/style\.setProperty\('display','none','important'\)/);
+  assert.match(runtime,/setImportant\(node\.style,'display','none'\)/);
 });
 
 test('RC1298 P1: nur die aktive Umgebung erhält die Hintergrundbeleuchtung',()=>{
   assert.match(runtime,/#login \.eh-login-environment button\{[\s\S]*background:#f8fafc!important[\s\S]*box-shadow:none!important/);
   assert.match(runtime,/button\.is-active,#login \.eh-login-environment button\.active,#login \.eh-login-environment button\[aria-pressed="true"\][\s\S]*0 0 26px rgba\(14,165,233,.48\)/);
   assert.match(runtime,/function applyEnvironmentSelectionStyles\(\)/);
-  assert.match(runtime,/style\.setProperty\('box-shadow','none','important'\)/);
-  assert.match(runtime,/0 0 26px rgba\(56,189,248/);
+  assert.match(runtime,/setImportant\(style,'box-shadow','none'\)/);
+  assert.match(runtime,/0 0 26px rgba\(14,165,233/);
 });
 
 test('RC1298 P1: Browser-Passwortmanager bleibt aktiv ohne hardcodierte deutsche Login-Texte',()=>{
