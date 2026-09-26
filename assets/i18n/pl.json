@@ -1116,5 +1116,6 @@
   "abd.analysis.complete": "Kompletne",
   "abd.analysis.review": "Sprawdź",
   "abd.analysis.missing": "Brakuje: {{fields}}",
-  "abd.analysis.error": "Analiza nie powiodła się: {{message}}"
+  "abd.analysis.error": "Analiza nie powiodła się: {{message}}",
+  "abd.analysis.fileRequired": "Wybierz co najmniej jeden plik."
 }
