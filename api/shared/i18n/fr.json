@@ -250,5 +250,16 @@
   "api.container.photoLabel.loaded": "Conteneur chargé",
   "api.container.photoLabel.number": "Numéro du conteneur depuis l’intérieur",
   "api.container.photoLabel.sealed": "Conteneur scellé · scellé/marquages/documents",
-  "api.fixedPickups.failed": "Les enlèvements fixes n’ont pas pu être traités."
+  "api.fixedPickups.failed": "Les enlèvements fixes n’ont pas pu être traités.",
+  "api.abdAnalysis.fileRequired": "Veuillez sélectionner un fichier PDF, XLSX ou CSV.",
+  "api.abdAnalysis.fileType": "Seuls les fichiers PDF, XLSX et CSV sont autorisés pour l’analyse de la déclaration d’exportation.",
+  "api.abdAnalysis.fileTooLarge": "Le fichier est trop volumineux. La taille maximale est de {{max}} Mo.",
+  "api.abdAnalysis.fileInvalid": "Le fichier est endommagé ou ne correspond pas au type indiqué.",
+  "api.abdAnalysis.uploadInvalid": "L’identifiant de téléversement est invalide.",
+  "api.abdAnalysis.uploadExpired": "Le téléversement temporaire a expiré. Veuillez sélectionner à nouveau le fichier.",
+  "api.abdAnalysis.malware": "Le fichier a été détecté comme malveillant et n’a pas été analysé.",
+  "api.abdAnalysis.scanFailed": "Le fichier n’a pas pu être contrôlé de manière sûre contre les logiciels malveillants.",
+  "api.abdAnalysis.failed": "Le fichier de déclaration d’exportation n’a pas pu être analysé.",
+  "api.abdAnalysis.forbidden": "Un droit de modification dans la zone ABD est requis pour l’analyse.",
+  "api.abdAnalysis.actionInvalid": "Action d’analyse ABD inconnue."
 }
