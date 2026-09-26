@@ -105,6 +105,7 @@ async function persistOnce(reason){
   var runtime=clean.runtime||null,target=runtime?Number(runtime.changeGeneration||0):0,deadline=Date.now()+12000;
   while(runtime&&runtime.saving&&Date.now()<deadline)await saveDelay(100);
   if(runtime&&runtime.saving)throw new Error(tr('palletDelete.storageUnconfirmed'));
+  if(runtime&&target>0&&Number(runtime.lastSavedGeneration||0)>=target)return true;
   var ok=await Promise.resolve(clean.flushSave(reason,{force:true,userInitiated:false}));
   if(ok!==true&&runtime&&target>0&&Number(runtime.lastSavedGeneration||0)>=target)ok=true;
   if(ok!==true)throw new Error(tr('palletDelete.storageUnconfirmed'));
