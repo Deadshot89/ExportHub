@@ -235,7 +235,7 @@ if(typeof root.MutationObserver==='function'&&root.document){
 (root.setTimeout||setTimeout)(function(){scheduleEnhance();if(environment()==='production')scheduleCleanup()},4500);
 
 root.ExportHUBRC1207PalletFix=Object.freeze({
-  version:'RC1299',cleanupDate:CLEANUP_DATE,bookingDay:bookingDay,chosenDirection:chosenDirection,syncDirectionUi:syncDirectionUi,palletViewActive:palletViewActive,
+  version:'RC1246',cleanupDate:CLEANUP_DATE,bookingDay:bookingDay,chosenDirection:chosenDirection,syncDirectionUi:syncDirectionUi,palletViewActive:palletViewActive,
   installBookingGuard:installBookingGuard,enhanceAdminDeleteButtons:enhanceAdminDeleteButtons,deletePalletBooking:deletePalletBooking,
   cleanupProductionDayOnce:cleanupProductionDayOnce
 });
