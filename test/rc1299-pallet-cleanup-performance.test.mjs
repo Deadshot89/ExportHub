@@ -19,6 +19,7 @@ test('RC1299: Hintergrund-Bereinigung löst keine 80-Sekunden-Save-Retry-Schleif
   const end=SOURCE.indexOf('\nfunction rerender(){',start);
   assert.ok(start>=0&&end>start,'persistOnce fehlt');
   const block=SOURCE.slice(start,end);
+  assert.match(block,/lastSavedGeneration/,'bereits bestätigte queueSave-Generationen müssen ohne zweiten Flush akzeptiert werden');
   assert.match(block,/flushSave\(reason,\{force:true,userInitiated:false\}\)/);
   assert.doesNotMatch(block,/while\([^)]*!ok/,'persistOnce darf fehlgeschlagene Azure-Saves nicht wiederholt senden');
   assert.match(SOURCE,/await persistOnce\('RC1207 Palettenkonto 21\.09\.2026 bereinigt'\)/);
