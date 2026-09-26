@@ -11,11 +11,17 @@ const workflow=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderfu
 test('RC1298 P1: redundante Login-Informationen sind ausgeblendet',()=>{
   assert.match(runtime,/#login \.clean-version-badge,#login \.eh-login-mode-head,#login \.eh-login-environment-note\{display:none!important\}/);
   assert.match(runtime,/#login \.login-card\{width:min\(540px,100%\)!important/);
+  assert.match(runtime,/function hideRedundantLoginInfo\(\)/);
+  assert.match(runtime,/querySelectorAll\('\.clean-version-badge,\.eh-login-mode-head,\.eh-login-environment-note'\)/);
+  assert.match(runtime,/style\.setProperty\('display','none','important'\)/);
 });
 
 test('RC1298 P1: nur die aktive Umgebung erhält die Hintergrundbeleuchtung',()=>{
   assert.match(runtime,/#login \.eh-login-environment button\{[\s\S]*background:#f8fafc!important[\s\S]*box-shadow:none!important/);
   assert.match(runtime,/button\.is-active,#login \.eh-login-environment button\.active,#login \.eh-login-environment button\[aria-pressed="true"\][\s\S]*0 0 26px rgba\(14,165,233,.48\)/);
+  assert.match(runtime,/function applyEnvironmentSelectionStyles\(\)/);
+  assert.match(runtime,/style\.setProperty\('box-shadow','none','important'\)/);
+  assert.match(runtime,/0 0 26px rgba\(56,189,248/);
 });
 
 test('RC1298 P1: Browser-Passwortmanager bleibt aktiv ohne hardcodierte deutsche Login-Texte',()=>{
