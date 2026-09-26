@@ -42,7 +42,7 @@ test('RC1270: Graph-Auth-Probe klassifiziert sicher ohne Token oder Secret in de
  assert.match(graph,/async function verifyAuthentication\(\)/);
  assert.match(graph,/code:'GRAPH_AUTH_FAILED'/);
  assert.match(graph,/audienceOk/);
- assert.match(graph,/module\.exports=\{readiness,verifyAuthentication,sendTextMail\}/);
+ assert.match(graph,/module\.exports=\{readiness,verifyAuthentication,permissionRequirement,sendTextMail\}/);
  const probeBlock=graph.slice(graph.indexOf('async function verifyAuthentication'),graph.indexOf('function transient'));
  assert.doesNotMatch(probeBlock,/\btoken\s*:/,'Auth-Probe darf kein Token-Feld zurückgeben');
  assert.doesNotMatch(probeBlock,/clientSecret[: ,]/,'Auth-Probe darf kein Secret zurückgeben');
@@ -65,7 +65,7 @@ test('RC1207: erfolgreicher Versand schreibt Sendungshistorie und Audit',()=>{
 });
 
 test('RC1207: Frontend zeigt Erfolg und Build liefert API aus',()=>{
- assert.match(runtime,/Erinnerungsmail erfolgreich an/);
+ assert.match(runtime,/avisReminder\.sent/);
  assert.match(runtime,/exporthub:history-updated/);
  assert.match(build,/avis-reminder-mail\/index\.js/);
  assert.match(build,/avis-reminder-mail\/function\.json/);
@@ -95,4 +95,16 @@ test('RC1255: TESTSERVICE prüft den echten Reminder ohne externe Kundenadresse'
  assert.match(e2eMutation,/action:'authorize'/);
  execFileSync(process.execPath,['--check','api/e2e-test-fixture/index.js'],{stdio:'pipe'});
  execFileSync(process.execPath,['--check','e2e/specs/testservice-mutation.spec.mjs'],{stdio:'pipe'});
+});
+
+
+test('RC1292: Reminder-Backend blockiert Holenstein vor URL-Verarbeitung und Graph-Versand',()=>{
+ assert.match(api,/function avisRecipientExcluded\(v\)\{return lower\(v\)==='dispo@holenstein\.de'\}/);
+ assert.match(api,/AVIS_RECIPIENT_EXCLUDED/);
+ const recipientCheck=api.indexOf("if(avisRecipientExcluded(to))");
+ const urlCheck=api.indexOf("const url=safeAvisUrl");
+ const sendCheck=api.indexOf("graphMail.sendTextMail");
+ assert.ok(recipientCheck>=0&&urlCheck>recipientCheck,'Empfängersperre muss vor Avis-URL-Verarbeitung greifen');
+ assert.ok(sendCheck>recipientCheck,'Empfängersperre muss vor Graph-Versand greifen');
+ assert.match(api,/status\|\|e\.statusCode\|\|500/);
 });

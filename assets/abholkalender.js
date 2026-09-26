@@ -1,11 +1,25 @@
 (function(root){
   'use strict';
 
-  const WEEKDAYS = Object.freeze({1:'Montag',2:'Dienstag',3:'Mittwoch',4:'Donnerstag',5:'Freitag'});
+  const WEEKDAY_KEYS = Object.freeze({1:'pickupCalendar.weekday.1',2:'pickupCalendar.weekday.2',3:'pickupCalendar.weekday.3',4:'pickupCalendar.weekday.4',5:'pickupCalendar.weekday.5'});
   let mountedRoot = null;
   let mountedState = null;
   let mountedOptions = null;
   let eventsBound = false;
+
+  function tr(key,vars){
+    try { if (root && root.ExportHUBI18n && typeof root.ExportHUBI18n.t === 'function') return root.ExportHUBI18n.t(key,vars); } catch (_) {}
+    return key;
+  }
+  function lang(){
+    try { if (root && root.ExportHUBI18n && typeof root.ExportHUBI18n.language === 'function') return root.ExportHUBI18n.language(); } catch (_) {}
+    return 'de';
+  }
+  function locale(){ return ({de:'de-DE',en:'en-GB',pl:'pl-PL',es:'es-ES',fr:'fr-FR',it:'it-IT'})[lang()] || 'de-DE'; }
+  function localized(record,key){
+    try { if (root && root.ExportHUBI18n && typeof root.ExportHUBI18n.localized === 'function') return root.ExportHUBI18n.localized(record,key); } catch (_) {}
+    return record && record[key] != null ? record[key] : '';
+  }
 
   function number(value){
     const n = Number(value);
@@ -24,7 +38,7 @@
     if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
     return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`;
   }
-  function weekdayLabel(weekday){ return WEEKDAYS[Number(weekday)] || ''; }
+  function weekdayLabel(weekday){ const key=WEEKDAY_KEYS[Number(weekday)]; return key ? tr(key) : ''; }
   function plannedDateValue(value){
     if (value instanceof Date) return dateKeyLocal(value);
     const raw = String(value == null ? '' : value).trim();
@@ -163,15 +177,15 @@
   }
   function formatDate(date){
     if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
-    try { return new Intl.DateTimeFormat('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'}).format(date); }
-    catch (_) { return `${pad(date.getDate())}.${pad(date.getMonth()+1)}.${date.getFullYear()}`; }
+    try { if (root && root.ExportHUBI18n && typeof root.ExportHUBI18n.formatDate === 'function') return root.ExportHUBI18n.formatDate(date,{day:'2-digit',month:'2-digit',year:'numeric'}); } catch (_) {}
+    try { return new Intl.DateTimeFormat(locale(),{day:'2-digit',month:'2-digit',year:'numeric'}).format(date); }
+    catch (_) { return date.toISOString().slice(0,10); }
   }
   function formatWeekLabel(model){
     if (!model || !(model.weekStart instanceof Date) || !(model.weekEnd instanceof Date)) return '';
-    const start = `${pad(model.weekStart.getDate())}.${pad(model.weekStart.getMonth()+1)}.`;
-    return `${start} – ${formatDate(model.weekEnd)}`;
+    return `${formatDate(model.weekStart)} – ${formatDate(model.weekEnd)}`;
   }
-  function shipmentRef(shipment){ return String(shipment && (shipment.reference || shipment.ref || shipment.shipmentRef || shipment.id) || 'Ohne Referenz'); }
+  function shipmentRef(shipment){ return String(shipment && (shipment.reference || shipment.ref || shipment.shipmentRef || shipment.id) || tr('pickupCalendar.noReference')); }
   function calendarScalarText(value){
     if (value == null || typeof value === 'object' || typeof value === 'boolean') return '';
     const text = String(value).trim();
@@ -195,14 +209,15 @@
     const customer = calendarScalarText(sh.customer) || calendarObjectName(sh.customer);
     if (customer) return customer;
     const recipient = calendarScalarText(sh.recipient) || calendarObjectName(sh.recipient);
-    return recipient || 'Ohne Kunde';
+    return recipient || tr('pickupCalendar.noCustomer');
   }
-  function shipmentCarrier(shipment){ return String(shipment && (shipment.carrierName || shipment.speditionName || shipment.carrier || shipment.spedition) || 'Spedition offen'); }
+  function shipmentCarrier(shipment){ return String(shipment && (shipment.carrierName || shipment.speditionName || shipment.carrier || shipment.spedition) || tr('pickupCalendar.carrierOpen')); }
   function shipmentStatus(shipment){
     const collis = shipmentColliState(shipment);
-    if (collis.complete) return 'Abgeholt';
-    if (collis.partial) return 'Teilweise abgeholt';
-    return String(shipment && (shipment.pickupStatus || shipment.status) || 'Angemeldet');
+    if (collis.complete) return tr('pickupCalendar.status.pickedUp');
+    if (collis.partial) return tr('pickupCalendar.status.partial');
+    const raw=String(shipment && (shipment.pickupStatus || shipment.status) || '').trim();
+    return raw || tr('pickupCalendar.status.registered');
   }
   function triggerOpenShipment(shipment, options){
     const sh = shipment && typeof shipment === 'object' ? shipment : null;
@@ -225,30 +240,31 @@
     return false;
   }
   function renderFixCard(item, manage){
-    const note = item && item.note ? `<div class="pickup-item-note">${esc(item.note)}</div>` : '';
-    const inactive = item && item.active === false ? ' <span class="pickup-muted">Inaktiv</span>' : '';
-    const actions = manage ? `<div class="pickup-item-actions"><button type="button" data-pickup-action="edit" data-pickup-id="${esc(item.id)}">Bearbeiten</button><button type="button" data-pickup-action="toggle" data-pickup-id="${esc(item.id)}">${item.active === false ? 'Reaktivieren' : 'Deaktivieren'}</button></div>` : '';
+    const noteValue = item ? localized(item,'note') : '';
+    const note = noteValue ? `<div class="pickup-item-note">${esc(noteValue)}</div>` : '';
+    const inactive = item && item.active === false ? ` <span class="pickup-muted">${esc(tr('pickupCalendar.card.inactive'))}</span>` : '';
+    const actions = manage ? `<div class="pickup-item-actions"><button type="button" data-pickup-action="edit" data-pickup-id="${esc(item.id)}">${esc(tr('pickupCalendar.action.edit'))}</button><button type="button" data-pickup-action="toggle" data-pickup-id="${esc(item.id)}">${esc(tr(item.active === false ? 'pickupCalendar.action.reactivate' : 'pickupCalendar.action.deactivate'))}</button></div>` : '';
     return `<article class="pickup-item pickup-item-fix"><div class="pickup-item-head"><span class="pickup-badge pickup-badge-fix">FIX</span><strong>${esc(item && item.siteLabel)}</strong>${inactive}</div>${note}${actions}</article>`;
   }
   function renderShipmentCard(shipment){
     const collis = shipmentColliState(shipment);
     const key = shipmentIdentity(shipment);
-    const colli = collis.expected > 0 ? `<div class="pickup-colli"><span>Gesamt: <strong>${collis.expected}</strong></span><span>Bereits abgeholt: <strong>${collis.collected}</strong></span><span>Noch offen: <strong>${collis.remaining}</strong></span></div>` : '';
-    const open = key ? `<div class="pickup-item-actions"><button type="button" data-pickup-action="open-shipment" data-pickup-shipment-key="${esc(key)}">Sendung öffnen</button></div>` : '';
+    const colli = collis.expected > 0 ? `<div class="pickup-colli"><span>${esc(tr('pickupCalendar.colli.total'))}: <strong>${collis.expected}</strong></span><span>${esc(tr('pickupCalendar.colli.collected'))}: <strong>${collis.collected}</strong></span><span>${esc(tr('pickupCalendar.colli.remaining'))}: <strong>${collis.remaining}</strong></span></div>` : '';
+    const open = key ? `<div class="pickup-item-actions"><button type="button" data-pickup-action="open-shipment" data-pickup-shipment-key="${esc(key)}">${esc(tr('pickupCalendar.action.openShipment'))}</button></div>` : '';
     const customer = shipmentCustomer(shipment);
-    return `<article class="pickup-item pickup-item-shipment"><div class="pickup-item-head"><span class="pickup-badge pickup-badge-shipment">SENDUNG</span><strong>${esc(shipmentRef(shipment))}</strong></div><div class="pickup-item-grid"><span>Kunde: <strong>${esc(customer)}</strong></span><span>${esc(shipmentCarrier(shipment))}</span><span class="pickup-status">${esc(shipmentStatus(shipment))}</span></div>${colli}${open}</article>`;
+    return `<article class="pickup-item pickup-item-shipment"><div class="pickup-item-head"><span class="pickup-badge pickup-badge-shipment">${esc(tr('pickupCalendar.badge.shipment'))}</span><strong>${esc(shipmentRef(shipment))}</strong></div><div class="pickup-item-grid"><span>${esc(tr('pickupCalendar.label.customer'))}: <strong>${esc(customer)}</strong></span><span>${esc(shipmentCarrier(shipment))}</span><span class="pickup-status">${esc(shipmentStatus(shipment))}</span></div>${colli}${open}</article>`;
   }
   function renderSection(title, items, renderer, emptyText){
     return `<section class="pickup-source"><h4>${esc(title)}</h4>${items.length ? items.map(renderer).join('') : `<div class="pickup-empty">${esc(emptyText)}</div>`}</section>`;
   }
   function renderToday(model){
     if (!model.today.regular) {
-      return `<section class="pickup-today"><div class="pickup-section-title"><div><span class="pickup-eyebrow">Heute</span><h3>${formatDate(model.today.date)}</h3></div></div><div class="pickup-weekend-note">Heute ist kein regulärer Abholkalendertag.</div></section>`;
+      return `<section class="pickup-today"><div class="pickup-section-title"><div><span class="pickup-eyebrow">${esc(tr('pickupCalendar.today'))}</span><h3>${formatDate(model.today.date)}</h3></div></div><div class="pickup-weekend-note">${esc(tr('pickupCalendar.nonWorkingDay'))}</div></section>`;
     }
-    return `<section class="pickup-today"><div class="pickup-section-title"><div><span class="pickup-eyebrow">Heute</span><h3>${esc(model.today.label)} · ${formatDate(model.today.date)}</h3></div><span class="pickup-count">${model.today.fixed.length + model.today.shipments.length} Einträge</span></div><div class="pickup-today-grid">${renderSection('Fixe Abholungen',model.today.fixed,item=>renderFixCard(item,false),'Keine fixe Abholung')}${renderSection('Angemeldete Sendungen',model.today.shipments,renderShipmentCard,'Keine angemeldete Sendung')}</div></section>`;
+    return `<section class="pickup-today"><div class="pickup-section-title"><div><span class="pickup-eyebrow">${esc(tr('pickupCalendar.today'))}</span><h3>${esc(model.today.label)} · ${formatDate(model.today.date)}</h3></div><span class="pickup-count">${esc(tr('pickupCalendar.entries',{count:model.today.fixed.length + model.today.shipments.length}))}</span></div><div class="pickup-today-grid">${renderSection(tr('pickupCalendar.section.fixedPickups'),model.today.fixed,item=>renderFixCard(item,false),tr('pickupCalendar.empty.fixedPickup'))}${renderSection(tr('pickupCalendar.section.registeredShipments'),model.today.shipments,renderShipmentCard,tr('pickupCalendar.empty.registeredShipment'))}</div></section>`;
   }
   function renderDay(day){
-    return `<section class="pickup-day"><header><span>${esc(day.label)}</span><small>${formatDate(day.date)}</small></header>${renderSection('FIX',day.fixed,item=>renderFixCard(item,false),'Keine')}${renderSection('SENDUNG',day.shipments,renderShipmentCard,'Keine')}</section>`;
+    return `<section class="pickup-day"><header><span>${esc(day.label)}</span><small>${formatDate(day.date)}</small></header>${renderSection('FIX',day.fixed,item=>renderFixCard(item,false),tr('pickupCalendar.empty.none'))}${renderSection(tr('pickupCalendar.badge.shipment'),day.shipments,renderShipmentCard,tr('pickupCalendar.empty.none'))}</section>`;
   }
   function renderPrintFixed(item){
     return `<div class="pickup-print-entry"><strong>${esc(item && item.siteLabel)}</strong></div>`;
@@ -256,7 +272,7 @@
   function renderPrintShipment(shipment){
     const collis = shipmentColliState(shipment);
     const ref = shipmentRef(shipment);
-    return `<div class="pickup-print-entry pickup-print-entry-confirmed"><strong>${esc(shipmentCustomer(shipment))}</strong><small>Ref: ${esc(ref)} · Anzahl: ${collis.expected}</small></div>`;
+    return `<div class="pickup-print-entry pickup-print-entry-confirmed"><strong>${esc(shipmentCustomer(shipment))}</strong><small>${esc(tr('pickupCalendar.print.reference'))}: ${esc(ref)} · ${esc(tr('pickupCalendar.print.quantity'))}: ${collis.expected}</small></div>`;
   }
   function renderPrintDay(day){
     const entries = [];
@@ -266,7 +282,7 @@
   }
   function renderPrintWeek(model){
     const safeModel = model && Array.isArray(model.days) ? model : {days:[],weekStart:null,weekEnd:null};
-    return `<section class="pickup-print-sheet"><header class="pickup-print-head"><div><h1>Abholplan</h1><p>Wochenübersicht</p></div><div class="pickup-print-meta"><span>Woche</span><strong>${esc(formatWeekLabel(safeModel))}</strong></div></header><div class="pickup-print-week">${safeModel.days.map(renderPrintDay).join('')}</div></section>`;
+    return `<section class="pickup-print-sheet"><header class="pickup-print-head"><div><h1>${esc(tr('pickupCalendar.print.title'))}</h1><p>${esc(tr('pickupCalendar.print.weekOverview'))}</p></div><div class="pickup-print-meta"><span>${esc(tr('pickupCalendar.print.week'))}</span><strong>${esc(formatWeekLabel(safeModel))}</strong></div></header><div class="pickup-print-week">${safeModel.days.map(renderPrintDay).join('')}</div></section>`;
   }
   function printCurrentWeek(){
     if (!mountedState || !root || !root.document || !root.document.body || typeof root.print !== 'function') return false;
@@ -291,22 +307,23 @@
     return true;
   }
   function renderWeekToolbar(model){
-    return `<div class="pickup-week-toolbar"><div><span class="pickup-eyebrow">Wochenansicht</span><h3 class="pickup-week-label">${esc(formatWeekLabel(model))}</h3></div><div class="pickup-week-actions"><button type="button" data-pickup-action="week-prev">← Vorherige Woche</button><button type="button" data-pickup-action="week-current"${model.weekOffset===0?' aria-current="true"':''}>Aktuelle Woche</button><button type="button" data-pickup-action="week-next">Nächste Woche →</button><button type="button" class="pickup-primary" data-pickup-action="print-week">Wochenplan drucken</button></div></div>`;
+    return `<div class="pickup-week-toolbar"><div><span class="pickup-eyebrow">${esc(tr('pickupCalendar.weekView'))}</span><h3 class="pickup-week-label">${esc(formatWeekLabel(model))}</h3></div><div class="pickup-week-actions"><button type="button" data-pickup-action="week-prev">${esc(tr('pickupCalendar.action.previousWeek'))}</button><button type="button" data-pickup-action="week-current"${model.weekOffset===0?' aria-current="true"':''}>${esc(tr('pickupCalendar.action.currentWeek'))}</button><button type="button" data-pickup-action="week-next">${esc(tr('pickupCalendar.action.nextWeek'))}</button><button type="button" class="pickup-primary" data-pickup-action="print-week">${esc(tr('pickupCalendar.action.printWeek'))}</button></div></div>`;
   }
   function renderForm(state){
     if (!state.canEdit) return '';
     const edit = state.editingFix;
     const selected = edit || {siteLabel:'',weekday:1,note:'',active:true};
-    const options = [1,2,3,4,5].map(day=>`<option value="${day}"${Number(selected.weekday)===day?' selected':''}>${weekdayLabel(day)}</option>`).join('');
+    const options = [1,2,3,4,5].map(day=>`<option value="${day}"${Number(selected.weekday)===day?' selected':''}>${esc(weekdayLabel(day))}</option>`).join('');
     const inactive = state.fixedPickups.filter(item=>item && item.active === false);
-    const list = state.fixedPickups.length ? state.fixedPickups.map(item=>renderFixCard(item,true)).join('') : '<div class="pickup-empty">Noch keine fixen Abholungen angelegt.</div>';
-    return `<section class="pickup-admin"><div class="pickup-section-title"><div><span class="pickup-eyebrow">Administration</span><h3>Fixe Abholungen verwalten</h3></div><button type="button" class="pickup-primary" data-pickup-action="new">Neue fixe Abholung</button></div>${state.saveError?`<div class="pickup-error">${esc(state.saveError)}</div>`:''}${edit?`<form class="pickup-form" data-pickup-form="fix"><input type="hidden" name="id" value="${esc(edit.id||'')}"><label>Standort / Kunde<input name="siteLabel" maxlength="180" required value="${esc(selected.siteLabel||'')}"></label><label>Wochentag<select name="weekday" required>${options}</select></label><label class="pickup-form-wide">Hinweis<textarea name="note" maxlength="500" rows="3">${esc(selected.note||'')}</textarea></label><label class="pickup-check"><input name="active" type="checkbox"${selected.active!==false?' checked':''}> Aktiv</label><div class="pickup-form-actions"><button type="submit" class="pickup-primary">Speichern</button><button type="button" data-pickup-action="cancel">Abbrechen</button></div></form>`:''}<div class="pickup-admin-list">${list}</div>${inactive.length?`<p class="pickup-admin-hint">${inactive.length} deaktivierte fixe Abholung${inactive.length===1?'':'en'} kann reaktiviert werden.</p>`:''}</section>`;
+    const list = state.fixedPickups.length ? state.fixedPickups.map(item=>renderFixCard(item,true)).join('') : `<div class="pickup-empty">${esc(tr('pickupCalendar.empty.noFixedCreated'))}</div>`;
+    const inactiveHint = inactive.length ? tr(inactive.length===1?'pickupCalendar.inactiveHint.one':'pickupCalendar.inactiveHint.many',{count:inactive.length}) : '';
+    return `<section class="pickup-admin"><div class="pickup-section-title"><div><span class="pickup-eyebrow">${esc(tr('pickupCalendar.admin'))}</span><h3>${esc(tr('pickupCalendar.admin.manageFixed'))}</h3></div><button type="button" class="pickup-primary" data-pickup-action="new">${esc(tr('pickupCalendar.action.newFixed'))}</button></div>${state.saveError?`<div class="pickup-error">${esc(state.saveError)}</div>`:''}${edit?`<form class="pickup-form" data-pickup-form="fix"><input type="hidden" name="id" value="${esc(edit.id||'')}"><label>${esc(tr('pickupCalendar.field.locationCustomer'))}<input name="siteLabel" maxlength="180" required value="${esc(selected.siteLabel||'')}"></label><label>${esc(tr('pickupCalendar.field.weekday'))}<select name="weekday" required>${options}</select></label><label class="pickup-form-wide">${esc(tr('pickupCalendar.field.note'))}<textarea name="note" maxlength="500" rows="3">${esc(selected.note||'')}</textarea></label><label class="pickup-check"><input name="active" type="checkbox"${selected.active!==false?' checked':''}> ${esc(tr('pickupCalendar.field.active'))}</label><div class="pickup-form-actions"><button type="submit" class="pickup-primary">${esc(tr('pickupCalendar.action.save'))}</button><button type="button" data-pickup-action="cancel">${esc(tr('pickupCalendar.action.cancel'))}</button></div></form>`:''}<div class="pickup-admin-list">${list}</div>${inactiveHint?`<p class="pickup-admin-hint">${esc(inactiveHint)}</p>`:''}</section>`;
   }
   function render(rootElement, state, today){
     if (!rootElement || !state) return;
     const model = buildCalendarModel({today:today || new Date(),weekOffset:state.weekOffset,fixedPickups:state.fixedPickups,shipments:state.shipments});
     const loading = state.fixedLoading || state.shipmentLoading;
-    rootElement.innerHTML = `<div class="pickup-calendar"><div class="pickup-calendar-head"><div><span class="pickup-eyebrow">ExportHUB</span><h2>Abholkalender</h2><p>Fixe Abholungen und angemeldete Sendungen bleiben getrennt und werden gemeinsam übersichtlich dargestellt.</p></div>${loading?'<span class="pickup-loading">Wird aktualisiert …</span>':''}</div>${state.fixedError?`<div class="pickup-error">FIX: ${esc(state.fixedError)}</div>`:''}${state.shipmentError?`<div class="pickup-error">SENDUNG: ${esc(state.shipmentError)}</div>`:''}${renderToday(model)}${renderWeekToolbar(model)}<div class="pickup-week">${model.days.map(renderDay).join('')}</div>${renderForm(state)}</div>`;
+    rootElement.innerHTML = `<div class="pickup-calendar"><div class="pickup-calendar-head"><div><span class="pickup-eyebrow">ExportHUB</span><h2>${esc(tr('pickupCalendar.title'))}</h2><p>${esc(tr('pickupCalendar.subtitle'))}</p></div>${loading?`<span class="pickup-loading">${esc(tr('pickupCalendar.updating'))}</span>`:''}</div>${state.fixedError?`<div class="pickup-error">FIX: ${esc(state.fixedError)}</div>`:''}${state.shipmentError?`<div class="pickup-error">${esc(tr('pickupCalendar.badge.shipment'))}: ${esc(state.shipmentError)}</div>`:''}${renderToday(model)}${renderWeekToolbar(model)}<div class="pickup-week">${model.days.map(renderDay).join('')}</div>${renderForm(state)}</div>`;
   }
   function environmentOf(options){
     const env = String(options && options.environment || 'production').toLowerCase();
@@ -354,7 +371,7 @@
       requestState.canEdit = data.canEdit === true;
     } catch (e) {
       if (!mountedCalendarIsCurrent(requestRoot,requestState,requestOptions)) return;
-      requestState.fixedError = e && e.message || 'Fixe Abholungen konnten nicht geladen werden.';
+      requestState.fixedError = e && e.message || tr('pickupCalendar.error.fixedLoad');
     } finally {
       if (!mountedCalendarIsCurrent(requestRoot,requestState,requestOptions)) return;
       requestState.fixedLoading = false;
@@ -371,7 +388,7 @@
       mountedState.editingFix = null;
       await loadFixedPickups();
     } catch (e) {
-      mountedState.saveError = e && e.message || 'Fixe Abholung konnte nicht gespeichert werden.';
+      mountedState.saveError = e && e.message || tr('pickupCalendar.error.fixedSave');
       render(mountedRoot,mountedState,mountedOptions.today);
     }
   }
@@ -473,6 +490,9 @@
     loadFixedPickups
   };
 
+  if (root && typeof root.addEventListener === 'function') root.addEventListener('exporthub:language-changed',()=>{
+    if (mountedRoot && mountedState && mountedCalendarIsCurrent(mountedRoot,mountedState,mountedOptions)) render(mountedRoot,mountedState,mountedOptions && mountedOptions.today);
+  });
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (root) root.ExportHubPickupCalendar = Object.assign(root.ExportHubPickupCalendar || {}, api);
 })(typeof globalThis !== 'undefined' ? globalThis : this);

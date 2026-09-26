@@ -57,9 +57,9 @@ test('RC1220: automatische und bereitgestellte PODs nutzen die Azure-Zweitsicher
 });
 
 test('RC1220: UI meldet Azure plus Archiv und nicht mehr M365 als Pflicht',()=>{
-  assert.match(ui,/Azure \+ Archiv/);
-  assert.match(ui,/Archiv offen/);
-  assert.doesNotMatch(ui,/M365 offen/);
+  assert.match(ui,/podBackup\.saved\.azureArchive/);
+  assert.match(ui,/podBackup\.pending\.azure/);
+  assert.doesNotMatch(ui,/podBackup\.pending\.m365/);
   assert.match(pickup,/data\.podArchiveSaved/);
 });
 

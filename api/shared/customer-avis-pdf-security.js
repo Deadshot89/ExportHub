@@ -8,7 +8,7 @@ const DEFENDER_TIME_TAG='Malware scanning scan time';
 
 function text(v){return String(v==null?'':v).trim()}
 function lower(v){return text(v).toLowerCase()}
-function err(code,message,status=400){const e=new Error(message);e.code=code;e.status=status;return e}
+function err(code,message,status=400,vars){const e=new Error(message);e.code=code;e.status=status;e.vars=vars||{};return e}
 function normalizeEnvironment(value){return lower(value)==='testservice'?'testservice':'production'}
 function maxPdfBytes(){
   const raw=Number(process.env.EXPORTHUB_AVIS_PDF_MAX_BYTES||DEFAULT_MAX_PDF_BYTES);
@@ -46,7 +46,7 @@ function assertPdfStructure(buffer){
     ['/AA',/\/AA\b/i],
     ['/RichMedia',/\/RichMedia\b/i]
   ];
-  for(const [label,rx] of active)if(rx.test(source))throw err('PDF_ACTIVE_CONTENT','PDFs mit aktivem oder eingebettetem Inhalt sind nicht zulässig ('+label+').',400);
+  for(const [label,rx] of active)if(rx.test(source))throw err('PDF_ACTIVE_CONTENT','api.pdf.activeContent',400,{label});
   return true;
 }
 function validatePdfUpload(file){

@@ -5,6 +5,7 @@ import fs from 'node:fs';
 const store=fs.readFileSync('api/shared/loader-pin-store.js','utf8');
 const admin=fs.readFileSync('api/loader-pins-admin/index.js','utf8');
 const ui=fs.readFileSync('assets/rc1075-loader-pin-admin.js','utf8');
+const i18nDe=JSON.parse(fs.readFileSync('assets/i18n/de.json','utf8'));
 
 test('RC1076: Repository enthält keine fest codierten produktiven Verlader-PINs mehr',()=>{
   for(const legacy of ['4466','2050','2258','7530']) assert.doesNotMatch(store,new RegExp("\\b"+legacy+"\\b"));
@@ -30,7 +31,8 @@ test('RC1076: PIN-Admin gewährt keine Rechte über einen fest codierten Benutze
 });
 
 test('RC1076: Admin-Oberfläche kann leeren PIN-Bestand sicher initialisieren',()=>{
-  assert.match(ui,/Noch keine Verlader-PINs gespeichert/);
+  assert.match(ui,/loaderPin\.empty/);
   assert.match(ui,/call\('create'/);
-  assert.match(ui,/Die neue Verlader-PIN muss genau vier Ziffern enthalten/);
+  assert.match(ui,/loaderPin\.newPinInvalid/);
+  assert.equal(i18nDe['loaderPin.newPinInvalid'],'Die neue Verlader-PIN muss genau vier Ziffern enthalten.');
 });

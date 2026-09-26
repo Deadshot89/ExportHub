@@ -22,6 +22,7 @@ const VISIBLE_VERSION=resolveVisibleVersion();
 const VISIBLE_NUMBER=VISIBLE_VERSION.slice(2);
 const LEGACY_TESTSERVICE_HOST='wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net';
 const CURRENT_TESTSERVICE_HOST='ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net';
+const RC1267_I18N_TAG='<script id="exporthub-rc1267-i18n" defer src="/assets/rc1267-i18n.js?v=1267"></script>';
 const RC1206_SHIPPING_ID='exporthub-rc1206-shipping-rules';
 const RC1206_SHIPPING_TAG='<script id="'+RC1206_SHIPPING_ID+'" defer src="/assets/rc1206-shipping-rules.js?v=1266"></script>';
 
@@ -33,6 +34,21 @@ function injectDeferredRuntimeInHead(html,tag,id){
   const lower=html.toLowerCase(),idx=lower.indexOf('</head>',start);
   if(idx<0)throw new Error((id||'Script')+': äußerer </head>-Anker fehlt');
   return html.slice(0,idx)+tag+'\n'+html.slice(idx);
+}
+function injectImmediateRuntimeAfterHead(html,tag,id){
+  if(id&&(html.includes('id="'+id+'"')||html.includes("id='"+id+"'")))return html;
+  const headOpen=/<head\b[^>]*>/i.exec(html);
+  if(!headOpen)throw new Error((id||'Script')+': äußerer <head>-Anker fehlt');
+  const at=headOpen.index+headOpen[0].length;
+  return html.slice(0,at)+'\n'+tag+html.slice(at);
+}
+function patchRc1289AuthTransportFallback(html,file){
+  if(file==='demo.html')return html;
+  const tag='<script id="exporthub-rc1289-auth-transport-fallback" src="/assets/rc1289-auth-transport-fallback.js?v=1289"></script>';
+  html=injectImmediateRuntimeAfterHead(html,tag,'exporthub-rc1289-auth-transport-fallback');
+  const at=html.indexOf(tag),headEnd=html.toLowerCase().indexOf('</head>');
+  if(at<0||headEnd<0||at>headEnd)throw new Error(file+': RC1289 Auth-Fallback nicht früh im Head geladen');
+  return html;
 }
 
 function patchRc1206ShippingRules(html,file){
@@ -177,7 +193,7 @@ function patchRc1203ActualDeckblatt(html,file){
   block=block.replace(dataOld,dataNew);
 
   const dncOld=`<div class="rc390-card" style="grid-column:1/-1"><div class="rc390-label">Lieferscheine / DNCs</div><div class="rc390-txt">'+esc(d.join('\\n')||'–')+'</div></div></div><div class="rc390-cover-qr`;
-  const dncNew=`<div class="rc390-card" style="grid-column:1/-1"><div class="rc390-label">Lieferscheine / DNCs</div><div class="rc390-txt">'+esc(d.join('\\n')||'–')+'</div></div><div class="rc390-card rc1203-cover-remark" data-rc1203-cover-remark="1" style="grid-column:1/-1;border:1mm solid #cbd5e1!important;border-left:3mm solid #e5b51d!important;background:#fffdf5!important;color:#1f2937!important;padding:3.5mm 4mm!important;min-height:18mm!important;max-height:28mm!important;overflow:hidden!important;margin-bottom:5mm!important;break-inside:avoid!important;page-break-inside:avoid!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important"><div class="rc390-label" style="font-size:11pt!important;font-weight:800!important;text-transform:uppercase!important;letter-spacing:.25mm!important;color:#1f2937!important">Bemerkung</div><div class="rc390-txt" style="font-size:12pt!important;line-height:1.25!important;font-weight:700!important;white-space:pre-wrap!important;color:#1f2937!important">'+esc(sh.remark||sh.remarks||sh.bemerkung||sh.comments||sh.comment||sh.note||sh.notes||'–')+'</div></div></div><div class="rc390-cover-qr`;
+  const dncNew=`<div class="rc390-card rc1293-packing-slip-card" data-rc1293-packing-slip-card="1" style="grid-column:1/-1"><div class="rc390-label">Lieferscheine / DNCs</div><div class="rc390-txt rc1293-packing-slip-grid" data-rc1293-packing-slip-grid="1" style="display:grid!important;grid-template-columns:repeat(auto-fit,minmax(36mm,1fr))!important;gap:2mm!important;align-items:stretch!important">'+(d.length?d.map(function(item){return '<span class="rc1293-packing-slip" data-rc1293-packing-slip="1" style="display:flex!important;align-items:center!important;min-width:0!important;padding:1.5mm 2mm!important;border:.4mm solid #cbd5e1!important;border-radius:2mm!important;background:#fff!important;font-size:10.5pt!important;line-height:1.2!important;font-weight:750!important;overflow-wrap:anywhere!important;word-break:break-word!important;break-inside:avoid!important;page-break-inside:avoid!important">'+esc(item)+'</span>'}).join(''):'<span class="rc1293-packing-slip" data-rc1293-packing-slip="1">–</span>')+'</div></div><div class="rc390-card rc1203-cover-remark" data-rc1203-cover-remark="1" style="grid-column:1/-1;border:1mm solid #cbd5e1!important;border-left:3mm solid #e5b51d!important;background:#fffdf5!important;color:#1f2937!important;padding:3.5mm 4mm!important;min-height:18mm!important;max-height:28mm!important;overflow:hidden!important;margin-bottom:5mm!important;break-inside:avoid!important;page-break-inside:avoid!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important"><div class="rc390-label" style="font-size:11pt!important;font-weight:800!important;text-transform:uppercase!important;letter-spacing:.25mm!important;color:#1f2937!important">Bemerkung</div><div class="rc390-txt" style="font-size:12pt!important;line-height:1.25!important;font-weight:700!important;white-space:pre-wrap!important;color:#1f2937!important">'+esc(sh.remark||sh.remarks||sh.bemerkung||sh.comments||sh.comment||sh.note||sh.notes||'–')+'</div></div></div><div class="rc390-cover-qr`;
   if(block.split(dncOld).length-1!==1)throw new Error(file+': RC1281 Bemerkungs-Anker nicht eindeutig');
   block=block.replace(dncOld,dncNew);
 
@@ -190,6 +206,7 @@ function patchRc1203ActualDeckblatt(html,file){
   '#rc576DocumentStage .rc390-cover.rc1203-cover .rc1203-cover-recipient,.rc390-cover.rc1203-cover .rc1203-cover-recipient{font-size:16pt!important;line-height:1.24!important;font-weight:750!important;padding:4mm!important;border:1mm solid var(--rc1281-recipient-border)!important;background:var(--rc1281-recipient-bg)!important;color:var(--rc1281-recipient-text)!important}'+
   '.rc390-cover.rc1203-cover .rc1203-cover-recipient strong{font-size:19pt!important;line-height:1.18!important;font-weight:800!important;color:var(--rc1281-recipient-text)!important}.rc390-cover.rc1203-cover .rc1203-cover-recipient .rc390-txt{font-size:18pt!important;line-height:1.25!important;font-weight:800!important;color:var(--rc1281-recipient-text)!important}'+
   '.rc390-cover.rc1203-cover [data-rc1281-created-date]{background:#fff!important;color:#334155!important}'+
+  '.rc390-cover.rc1203-cover [data-rc1293-packing-slip-grid]{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(36mm,1fr))!important;gap:2mm!important;align-items:stretch!important}.rc390-cover.rc1203-cover [data-rc1293-packing-slip]{display:flex!important;align-items:center!important;min-width:0!important;padding:1.5mm 2mm!important;border:.4mm solid #cbd5e1!important;border-radius:2mm!important;background:#fff!important;font-size:10.5pt!important;line-height:1.2!important;font-weight:750!important;overflow-wrap:anywhere!important;word-break:break-word!important;break-inside:avoid!important;page-break-inside:avoid!important}'+
   '#rc576DocumentStage .rc390-cover.rc1203-cover .rc1203-cover-remark,.rc390-cover.rc1203-cover .rc1203-cover-remark{border:1mm solid #cbd5e1!important;border-left:3mm solid #e5b51d!important;background:#fffdf5!important;color:#1f2937!important;padding:3.5mm 4mm!important;min-height:18mm!important;max-height:28mm!important;overflow:hidden!important;margin-bottom:5mm!important;break-inside:avoid!important;page-break-inside:avoid!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'+
   '.rc390-cover.rc1203-cover .rc1203-cover-remark .rc390-label{font-size:11pt!important;font-weight:800!important;text-transform:uppercase!important;letter-spacing:.25mm!important;color:#1f2937!important}.rc390-cover.rc1203-cover .rc1203-cover-remark .rc390-txt{font-size:12pt!important;line-height:1.25!important;font-weight:700!important;white-space:pre-wrap!important;color:#1f2937!important}'+
   '</style>';
@@ -198,6 +215,7 @@ function patchRc1203ActualDeckblatt(html,file){
   if(!html.includes('data-rc1203-cover-enhanced="1"'))throw new Error(file+': RC1281 rc390-Cover-Marker fehlt');
   if(!html.includes('data-rc1281-customer-theme='))throw new Error(file+': RC1281 kundenspezifisches Deckblatt-Theme fehlt');
   if(!html.includes('data-rc1281-created-date="1"'))throw new Error(file+': RC1281 Erstellungsdatum fehlt');
+  if(!html.includes('data-rc1293-packing-slip-grid="1"')||!html.includes('grid-template-columns:repeat(auto-fit,minmax(36mm,1fr))'))throw new Error(file+': RC1293 Lieferschein-Mehrzeilenraster fehlt');
   if(!html.includes('background:#fff!important'))throw new Error(file+': RC1281 weißer Deckblatt-Hintergrund fehlt');
   return html
 }
@@ -325,6 +343,7 @@ function patchRc1283LoadingListSearch(html,file){
 function patchHtml(file){
   const target=path.join(OUT,file);
   let html=fs.readFileSync(target,'utf8');
+  html=patchRc1289AuthTransportFallback(html,file);
   html=patchDemoTestPortalIsolation(html,file);
   html=patchAuthSessionTimeout(html,file);
   html=patchMainCountryDetection(html,file);
@@ -357,18 +376,20 @@ function patchHtml(file){
   html=html.replace(/assets\/rc1071-shipment-history\.js\?v=(?:1095|1151)/g,'assets/rc1071-shipment-history.js?v=1178');
   html=html.replace(/assets\/rc1063-abd-blob-viewer-compat\.js\?v=(?:1063|1151|1248)/g,'assets/rc1063-abd-blob-viewer-compat.js?v=1248');
   html=injectDeferredRuntimeInHead(html,'<!-- id="exporthub-rc1148-history-compat-marker" assets/rc1071-shipment-history.js?v=1095 -->','exporthub-rc1148-history-compat-marker');
+  html=injectDeferredRuntimeInHead(html,RC1267_I18N_TAG,'exporthub-rc1267-i18n');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1126-customer-delete" defer src="/assets/rc1126-customer-delete.js?v=1126"></script>','exporthub-rc1126-customer-delete');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1113-stowplan-persist" defer src="/assets/rc1113-stowplan-persist.js?v=1113"></script>','exporthub-rc1113-stowplan-persist');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1114-shipping-neutral" defer src="/assets/rc1114-shipping-neutral.js?v=1114"></script>','exporthub-rc1114-shipping-neutral');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1133-avis-upload-notifications" defer src="/assets/rc1133-avis-upload-notifications.js?v=1133"></script>','exporthub-rc1133-avis-upload-notifications');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1160-customer-portal" defer src="/assets/rc1160-customer-portal-credentials.js?v=1162"></script>','exporthub-rc1160-customer-portal');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1165-pod-backup-status" defer src="/assets/rc1165-pod-backup-status.js?v=1165"></script>','exporthub-rc1165-pod-backup-status');
-  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1166-avis-reminder" defer src="/assets/rc1166-avis-reminder-overview.js?v=1207"></script>','exporthub-rc1166-avis-reminder');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1166-avis-reminder" defer src="/assets/rc1166-avis-reminder-overview.js?v=1292"></script>','exporthub-rc1166-avis-reminder');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1176-shipment-location" defer src="/assets/rc1176-shipment-location.js?v=1202"></script>','exporthub-rc1176-shipment-location');
   html=injectDeferredRuntimeInHead(html,'<link id="exporthub-rc1259-container-ui" rel="stylesheet" href="/assets/rc1014-shipment-overview.css?v=1284">','exporthub-rc1259-container-ui');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1259-container-runtime" defer src="/assets/rc1014-shipment-overview.js?v=1284"></script>','exporthub-rc1259-container-runtime');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1203-deckblatt-print" defer src="/assets/rc1203-deckblatt-print.js?v=1281"></script>','exporthub-rc1203-deckblatt-print');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1207-pallet-account-fix" defer src="/assets/rc1207-pallet-account-fix.js?v=1246"></script>','exporthub-rc1207-pallet-account-fix');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1294-abd-self-service" defer src="/assets/rc1294-abd-self-service.js?v=1294"></script>','exporthub-rc1294-abd-self-service');
   html=injectDeferredRuntimeInHead(html,`<script id="exporthub-rc1193-visible-release" defer src="/assets/rc1193-visible-release.js?v=${VISIBLE_NUMBER}"></script>`,'exporthub-rc1193-visible-release');
   html=injectDeferredRuntimeInHead(html,`<script id="exporthub-rc1177-release-notes" defer src="/assets/rc1177-release-notes.js?v=${VISIBLE_NUMBER}"></script>`,'exporthub-rc1177-release-notes');
   if(!html.includes('assets/rc1014-shipment-overview.css?v=1284'))throw new Error(file+': RC1259 Container-CSS fehlt');
@@ -378,6 +399,7 @@ function patchHtml(file){
   if(!html.includes(CURRENT_TESTSERVICE_HOST))throw new Error(file+': aktueller TESTSERVICE-Endpunkt fehlt');
   if(!html.includes(`version:'${VERSION}'`))throw new Error(file+': BUILD '+VERSION+' fehlt');
   if(!html.includes(`ExportHUB ${VERSION} environment=`))throw new Error(file+': Environment '+VERSION+' fehlt');
+  if(file!=='demo.html'&&!html.includes('assets/rc1289-auth-transport-fallback.js?v=1289'))throw new Error(file+': RC1289 Desktop-Auth-Fallback fehlt');
   if(!html.includes('assets/rc1074-login-clean.js?v=1112'))throw new Error(file+': RC1112 ABD/Login Cache-Key fehlt');
   if(!html.includes('assets/rc1014-task-runtime.js?v=1266'))throw new Error(file+': RC1266 Aufgaben-Runtime Cache-Key fehlt');
   if(!html.includes('assets/rc1014-task-ui.css?v=1179'))throw new Error(file+': RC1152 Aufgaben-CSS Cache-Key fehlt');
@@ -393,12 +415,13 @@ function patchHtml(file){
   if(!html.includes('assets/rc1133-avis-upload-notifications.js?v=1133'))throw new Error(file+': RC1133 AVIS-Upload-Benachrichtigungen fehlen');
   if(!html.includes('assets/rc1160-customer-portal-credentials.js?v=1162'))throw new Error(file+': RC1160 Kundenportal-Runtime fehlt');
   if(!html.includes('assets/rc1165-pod-backup-status.js?v=1165'))throw new Error(file+': RC1165 POD-Sicherungsstatus-Runtime fehlt');
-  if(!html.includes('assets/rc1166-avis-reminder-overview.js?v=1207'))throw new Error(file+': RC1207 Avis-Erinnerung-Runtime fehlt');
+  if(!html.includes('assets/rc1166-avis-reminder-overview.js?v=1292'))throw new Error(file+': RC1207 Avis-Erinnerung-Runtime fehlt');
   if(!html.includes('assets/rc1176-shipment-location.js?v=1202'))throw new Error(file+': RC1191 Standort-Capture-Runtime fehlt');
   if(!html.includes('assets/rc1203-deckblatt-print.js?v=1281'))throw new Error(file+': RC1205 Deckblatt-Runtime fehlt');
   if(!html.includes('assets/rc1283-loading-list-search.js?v=1285'))throw new Error(file+': RC1283 Ladelisten-Suchruntime fehlt');
   if(!html.includes('__EXPORTHUB_RC1283_OPEN_LOAD1__'))throw new Error(file+': RC1283 Ladelisten-Öffnen/Drucken-Bridge fehlt');
   if(!html.includes('assets/rc1207-pallet-account-fix.js?v=1246'))throw new Error(file+': RC1207 Palettenkonto-Runtime fehlt');
+  if(!html.includes('assets/rc1294-abd-self-service.js?v=1294'))throw new Error(file+': RC1294 ABD-Self-Service-Runtime fehlt');
   if(!html.includes('assets/rc1193-visible-release.js?v='+VISIBLE_NUMBER))throw new Error(file+': '+VISIBLE_VERSION+' sichtbare Release-Version fehlt');
   if(!html.includes('assets/rc1177-release-notes.js?v='+VISIBLE_NUMBER))throw new Error(file+': '+VISIBLE_VERSION+' Änderungshinweise Cache-Key fehlt');
   if(!/\.rc352-cover\{[^}]*border:10mm solid #08245d!important;[^}]*border-top-width:18mm!important;/.test(html))throw new Error(file+': RC1133 Deckblatt-Rahmen fehlt');
@@ -419,11 +442,16 @@ const currentApi=path.join(ROOT,'api'),builtApi=path.join(OUT,'api');
 if(!fs.existsSync(currentApi))throw new Error('Aktuelles API-Verzeichnis fehlt');
 fs.mkdirSync(builtApi,{recursive:true});
 fs.cpSync(currentApi,builtApi,{recursive:true,force:true});
+fs.mkdirSync(path.join(OUT,'assets'),{recursive:true});
+fs.copyFileSync(path.join(ROOT,'assets/rc1267-i18n.js'),path.join(OUT,'assets/rc1267-i18n.js'));
+fs.cpSync(path.join(ROOT,'assets/i18n'),path.join(OUT,'assets/i18n'),{recursive:true,force:true});
 for(const rel of [
   'assets/rc1014-shipment-overview.js',
   'assets/rc1014-shipment-overview.css',
   'assets/rc1027-lieferavis-immediate.js',
   'assets/rc1037-lieferavis-timing-diagnostics.js',
+  'assets/exporthub-environment-hub.js',
+  'assets/exporthub-demo-bootstrap.js',
   'assets/rc1049-abd-avis-policy.js',
   'assets/rc1014-task-runtime.js',
   'assets/rc1014-task-ui.css',
@@ -436,6 +464,8 @@ for(const rel of [
   'assets/rc1176-shipment-location.js',
   'assets/rc1203-deckblatt-print.js',
   'assets/rc1283-loading-list-search.js',
+  'assets/rc1289-auth-transport-fallback.js',
+  'assets/rc1294-abd-self-service.js',
   'assets/rc1177-release-notes.js',
   'assets/rc1193-visible-release.js'
 ]){
@@ -445,6 +475,8 @@ for(const rel of [
   fs.copyFileSync(src,dst);
   if(!fs.existsSync(dst)||fs.statSync(dst).size===0)throw new Error('RC1124 Pflicht-Runtime wurde nicht gebaut: '+rel);
 }
+const environmentHubBuilt=fs.readFileSync(path.join(OUT,'assets','exporthub-environment-hub.js'),'utf8');
+if(!environmentHubBuilt.includes("android.time")||!environmentHubBuilt.includes("android.diagnosticTitle"))throw new Error('RC1287 lokalisierter Android-Diagnose-Hub fehlt im finalen Build');
 const visibleRuntimeFile=path.join(OUT,'assets','rc1193-visible-release.js');
 let visibleRuntime=fs.readFileSync(visibleRuntimeFile,'utf8');
 if(!/var VERSION='RC\d+';/.test(visibleRuntime))throw new Error('RC1265 sichtbare Release-Runtime enthält keinen ersetzbaren Versionsanker');
@@ -456,7 +488,7 @@ let releaseNotes=fs.readFileSync(releaseNotesFile,'utf8');
 releaseNotes=releaseNotes.replace(/return'RC\d+'/,`return'${VISIBLE_VERSION}'`);
 fs.writeFileSync(releaseNotesFile,releaseNotes);
 
-for(const requiredApi of ['shared/pod-archive.js','shared/graph-drive.js','shared/container-document-store.js','shared/reference-folder-upload.js','shared/customer-portal-store.js','customer-portal-credentials/index.js','customer-portal-credentials/function.json','customer-portal-readiness/index.js','customer-portal-readiness/function.json','avis-upload-mail-readiness/index.js','avis-upload-mail-readiness/function.json','pickup-confirm-v2/index.js','pickup-container-document/index.js','pickup-container-document/function.json','container-document/index.js','container-document/function.json','pod-backup/index.js','avis-reminder-mail/index.js','avis-reminder-mail/function.json','shared/graph-mail.js','package.json']){
+for(const requiredApi of ['shared/pod-archive.js','shared/graph-drive.js','shared/container-document-store.js','shared/reference-folder-upload.js','shared/customer-portal-store.js','customer-portal-credentials/index.js','customer-portal-credentials/function.json','customer-portal-readiness/index.js','customer-portal-readiness/function.json','avis-upload-mail-readiness/index.js','avis-upload-mail-readiness/function.json','pickup-confirm-v2/index.js','pickup-container-document/index.js','pickup-container-document/function.json','container-document/index.js','container-document/function.json','pod-backup/index.js','avis-reminder-mail/index.js','avis-reminder-mail/function.json','abd-analysis/index.js','abd-analysis/function.json','shared/abd-analysis.js','shared/graph-mail.js','package.json']){
   if(!fs.existsSync(path.join(builtApi,requiredApi)))throw new Error('RC1114 API-Datei fehlt im Build: '+requiredApi);
 }
 const rc1114PickupSource=path.join(ROOT,'pickup.html');
@@ -472,6 +504,17 @@ const rc1114ShippingOut=path.join(OUT,'assets','rc1114-shipping-neutral.js');
 if(!fs.existsSync(rc1114ShippingSrc))throw new Error('RC1114 Versandkosten-Runtime fehlt');
 fs.copyFileSync(rc1114ShippingSrc,rc1114ShippingOut);
 for(const file of ['index.html','TESTVERSION.html','demo.html'])patchHtml(file);
+// RC1267 public pages: central language runtime must load before the legacy compatibility runtime.
+for(const file of ['customer-avis.html','pickup.html','location.html','pod-notfall.html']){
+  const target=path.join(OUT,file);if(!fs.existsSync(target))continue;
+  let publicHtml=fs.readFileSync(target,'utf8');
+  if(!publicHtml.includes('exporthub-rc1267-i18n')){
+    const marker='id="exporthub-rc1018-public-language"',at=publicHtml.indexOf(marker);
+    if(at>=0){const start=publicHtml.lastIndexOf('<script',at);publicHtml=publicHtml.slice(0,start)+RC1267_I18N_TAG+'\n'+publicHtml.slice(start)}
+    else publicHtml=publicHtml.replace('</head>',RC1267_I18N_TAG+'\n</head>');
+    fs.writeFileSync(target,publicHtml);
+  }
+}
 
 const probeFile=path.join(OUT,'production-version.js');
 let probe=fs.readFileSync(probeFile,'utf8');
@@ -500,7 +543,8 @@ fs.writeFileSync(path.join(OUT,'rc1112-manifest.json'),JSON.stringify({
     podTargetedProof:'RC1220 targeted archive proof: found/already-saved/saved-now/not-found/pending',
     podArchiveIntegrity:'RC1226 archive read-back + scheduled integrity verification',
     containerDocumentation:'RC1259 sea freight container seal + 3 QR photos + reference-folder storage + shipment overview download',
-    avisReminderOverview:'RC1207 DE/EN customer/carrier reminder via stored contacts + secure avis link',
+    avisReminderOverview:'RC1292 DE/EN customer/carrier reminder via stored contacts + secure avis link + recipient exclusion',
+    abdSelfService:'RC1294 Defender-scanned PDF/XLSX/CSV analysis preview with customs position fields; no customs submission',
     avisUploadNotifications:'RC1133 secure customer PDF notice + open/print action',
     documentActionHistory:'RC1178 print/open/download + user + filename, including resumed print flow',
     deckblattHighVisibility:'RC1281 white cover + Essentra yellow / customer blue reference + lighter recipient + shipment created date',

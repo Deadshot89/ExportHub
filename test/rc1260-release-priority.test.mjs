@@ -52,8 +52,11 @@ test('RC1279: bekannte Mail.Send-Berechtigungslücke blockiert weder TESTSERVICE
     assert.match(block,/GRAPH_MAIL_PERMISSION_MISSING/);
     assert.match(block,/recipientConfigured===true/);
     assert.match(block,/knownMailSendBlocker/);
-    assert.match(block,/::warning title=RC1249 AVIS-Mail P2::/);
-    assert.match(block,/Release läuft weiter; RC1255 bleibt offen/);
+    assert.match(block,/::warning title=RC1290 AVIS-Mail P2::/);
+    assert.match(block,/Microsoft Graph > Application > Mail\.Send/);
+    assert.match(block,/b633e1c5-b582-4048-a93e-9f11b44c7e96/);
+    assert.match(block,/Admin Consent erforderlich/);
+    assert.match(block,/Release läuft weiter, Mailversand bleibt offen/);
     assert.doesNotMatch(block,/if \[ "\$status" != "200" \]; then cat "\$response"; exit 1; fi/);
   }
 });

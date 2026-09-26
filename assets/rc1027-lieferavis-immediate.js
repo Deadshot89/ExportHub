@@ -5,6 +5,8 @@ window.__EXPORTHUB_RC1027_LIEFERAVIS_IMMEDIATE__=true;
 
 var previous=null,wrapper=null,earlyPending=null,visibleSyncing=false,draftSyncTimer=0,draftSyncPending=null,lastDraftSignature='',avisLinkCache=Object.create(null);
 function q(v){return String(v==null?'':v).trim()}
+function tr(key,vars,fallback){try{if(window.ExportHUBI18n&&typeof window.ExportHUBI18n.t==='function'){var v=window.ExportHUBI18n.t(key,vars);if(v&&v!==key)return v}}catch(_){}return fallback||key}
+function rc1267NormalizeLanguage(v){var m=q(v).toLowerCase().replace('_','-').match(/^(de|en|pl|es|fr|it)(?:-|$)/);return m?m[1]:'de'}
 function explicitReference(sh){return q(sh&&(sh.ref||sh.reference||sh.shipmentRef||sh.referenceNumber||sh.referenceNo)).toUpperCase()}
 function state(){
  try{if(typeof window.__EXPORTHUB_GET_STATE__==='function')return window.__EXPORTHUB_GET_STATE__()||{}}catch(_){}
@@ -34,6 +36,8 @@ function closed(sh){
  return /^(?:abgeholt|pod vorhanden|abgeschlossen|archiviert|storniert|picked up|pod available|completed|archived|cancelled)$/i.test(q(sh.status||sh.shipmentStatus))
 }
 function exception(sh){try{return previous&&typeof previous.avisException==='function'?previous.avisException(sh):null}catch(_){return null}}
+function mailExcluded(sh){try{return previous&&typeof previous.avisMailExcluded==='function'?previous.avisMailExcluded(sh):null}catch(_){return null}}
+function recipientExcluded(sh,target){try{return previous&&typeof previous.avisRecipientExcluded==='function'?previous.avisRecipientExcluded(sh,target):null}catch(_){return null}}
 function environmentName(){return typeof location!=='undefined'&&/-testservice\./i.test(String(location.hostname||''))?'testservice':'production'}
 function avisCacheKey(sh){var ref=explicitReference(sh);if(!ref)return'';return'exporthub:avis-url:'+environmentName()+':'+ref}
 function cachedAvisUrl(sh){var key=avisCacheKey(sh);if(!key)return'';if(avisLinkCache[key])return avisLinkCache[key];try{if(typeof sessionStorage!=='undefined'){var stored=q(sessionStorage.getItem(key));if(stored){avisLinkCache[key]=stored;return stored}}}catch(_){}return''}
@@ -188,44 +192,79 @@ async function coordinatedToggle(on){
  if(on){
   if(!manualDisabled(sh))return ensureCustomerAvis('manual-toggle');
   if(!ensureReference(sh))return false;
-  try{return await issueDraftAvis(sh)}catch(e){console.error('RC1052 Lieferavis reaktivieren',e);try{alert('Kunden-Avis konnte nicht aktiviert werden.\n\n'+q(e&&e.message||e))}catch(_){}return false}
+  try{return await issueDraftAvis(sh)}catch(e){console.error('RC1052 Lieferavis reaktivieren',e);try{alert(tr('avis.activationFailed',null,'Customer collection notice could not be activated.')+'\n\n'+q(e&&e.message||e))}catch(_){}return false}
  }
  if(earlyPending){try{await earlyPending}catch(_){}}
  var current=shipment()||sh;
  if(!current)return false;
- try{return await disableDraftAvis(current)}catch(e){console.error('RC1052 Lieferavis deaktivieren',e);try{alert('Kunden-Avis konnte nicht deaktiviert werden.\n\n'+q(e&&e.message||e))}catch(_){}return false}
+ try{return await disableDraftAvis(current)}catch(e){console.error('RC1052 Lieferavis deaktivieren',e);try{alert(tr('avis.deactivationFailed',null,'Customer collection notice could not be deactivated.')+'\n\n'+q(e&&e.message||e))}catch(_){}return false}
 }
 function localizedUrl(url,lang){
- url=q(url);if(!url)return'';
- try{var u=new URL(url,typeof location!=='undefined'?location.href:'https://exporthub.invalid/');u.searchParams.set('lang',lang==='en'?'en':'de');return u.toString()}catch(_){return url+(url.indexOf('?')>=0?'&':'?')+'lang='+(lang==='en'?'en':'de')}
+ url=q(url);if(!url)return'';lang=rc1267NormalizeLanguage(lang);
+ try{var u=new URL(url,typeof location!=='undefined'?location.href:'https://exporthub.invalid/');u.searchParams.set('lang',lang);return u.toString()}catch(_){return url+(url.indexOf('?')>=0?'&':'?')+'lang='+lang}
 }
 function stripOwnAvisLink(text){
  text=String(text==null?'':text).replace(/\r\n/g,'\n');
- text=text.replace(/(?:^|\n)(?:Lieferavis|Collection notice):[ \t]*(?:\n[ \t]*)?https?:\/\/[^\s]+(?=\n|$)/gi,'');
+ text=text.replace(/(?:^|\n)(?:Lieferavis|Collection notice|Awizo|Aviso|Avis|Avviso)[^:\n]*:[ \t]*(?:\n[ \t]*)?https?:\/\/[^\s]+(?=\n|$)/gi,'');
  return text.replace(/\n{3,}/g,'\n\n').trim()
 }
 function ownAvisMail(body,url,lang){
- var source=stripOwnAvisLink(body),u=localizedUrl(url,lang),label=lang==='en'?'Collection notice':'Lieferavis',line=label+': '+u;
+ lang=rc1267NormalizeLanguage(lang);var source=stripOwnAvisLink(body),u=localizedUrl(url,lang),labels={de:'Lieferavis',en:'Collection notice',pl:'Awizo',es:'Aviso',fr:'Avis',it:'Avviso'},line=labels[lang]+': '+u;
  if(!u)return source;
- var closingRx=lang==='en'?/(?:Kind regards|Best regards|Yours sincerely|Yours faithfully)[\s\S]*$/i:/(?:Mit freundlichen Grüßen|Freundliche Grüße|Viele Grüße)[\s\S]*$/i,match=source.match(closingRx);
+ var closings={
+  de:/(?:Mit freundlichen Grüßen|Freundliche Grüße|Viele Grüße)[\s\S]*$/i,
+  en:/(?:Kind regards|Best regards|Yours sincerely|Yours faithfully)[\s\S]*$/i,
+  pl:/(?:Z poważaniem|Pozdrawiam)[\s\S]*$/i,
+  es:/(?:Atentamente|Saludos cordiales)[\s\S]*$/i,
+  fr:/(?:Cordialement|Bien cordialement)[\s\S]*$/i,
+  it:/(?:Cordiali saluti|Distinti saluti)[\s\S]*$/i
+ },match=source.match(closings[lang]);
  if(match&&typeof match.index==='number'){var before=source.slice(0,match.index).trim(),closing=source.slice(match.index).trim();return[before,line,closing].filter(Boolean).join('\n\n')}
  return[source,line].filter(Boolean).join('\n\n')
 }
 function avisBlock(url,reference,lang,target){
- var en=lang==='en',carrier=target==='carrier',u=localizedUrl(url,lang),ref=q(reference);
- if(en&&carrier)return 'COLLECTION NOTICE – PICKUP\n\nA digital collection notice is available for the planned pickup of this shipment.\n\nPlease use the link below to submit the pickup details. The released shipment documents are also available there.\n\nCollection notice:\n'+u+'\nReference: '+ref+'\n\nRequired information:\n• Pickup date\n• Time window\n• Vehicle licence plate, if known\n\nNo additional confirmation of the pickup details by email is required.';
- if(en)return 'COLLECTION NOTICE\n\nA digital collection notice is available for this shipment.\n\nPlease use the link below to view the released shipment documents and submit the planned pickup details.\n\nCollection notice:\n'+u+'\nReference: '+ref+'\n\nPlease enter the pickup date and time window and, if known, the vehicle licence plate.\n\nNo additional confirmation by email is required.\n\nThank you.';
- if(carrier)return 'LIEFERAVIS – ABHOLUNG\n\nFür die geplante Abholung dieser Sendung steht ein digitales Lieferavis bereit.\n\nBitte erfassen Sie die Abholdaten über den folgenden Link. Die freigegebenen Sendungsunterlagen können dort ebenfalls eingesehen werden.\n\nLieferavis:\n'+u+'\nReferenz: '+ref+'\n\nErforderliche Angaben:\n• Abholdatum\n• Zeitfenster\n• Kennzeichen des Abholfahrzeugs, sofern bekannt\n\nEine zusätzliche Bestätigung der Abholdaten per E-Mail ist nicht erforderlich.';
- return 'LIEFERAVIS\n\nFür diese Sendung steht Ihnen unser digitales Lieferavis zur Verfügung.\n\nÜber den folgenden Link können Sie die freigegebenen Sendungsunterlagen einsehen und die Angaben zur geplanten Abholung übermitteln.\n\nLieferavis:\n'+u+'\nReferenz: '+ref+'\n\nBitte erfassen Sie Abholdatum und Zeitfenster. Sofern bekannt, ergänzen Sie bitte das Kennzeichen des Abholfahrzeugs.\n\nDie Angaben werden direkt der Sendung zugeordnet. Eine zusätzliche Rückmeldung per E-Mail ist nicht erforderlich.\n\nVielen Dank.'
+ lang=rc1267NormalizeLanguage(lang);var carrier=target==='carrier',u=localizedUrl(url,lang),ref=q(reference);
+ var templates={
+  de:{
+   carrier:'LIEFERAVIS – ABHOLUNG\n\nFür die geplante Abholung dieser Sendung steht ein digitales Lieferavis bereit.\n\nBitte erfassen Sie die Abholdaten über den folgenden Link. Die freigegebenen Sendungsunterlagen können dort ebenfalls eingesehen werden.\n\nLieferavis:\n{{url}}\nReferenz: {{ref}}\n\nErforderliche Angaben:\n• Abholdatum\n• Zeitfenster\n• Kennzeichen des Abholfahrzeugs, sofern bekannt\n\nEine zusätzliche Bestätigung der Abholdaten per E-Mail ist nicht erforderlich.',
+   customer:'LIEFERAVIS\n\nFür diese Sendung steht Ihnen unser digitales Lieferavis zur Verfügung.\n\nÜber den folgenden Link können Sie die freigegebenen Sendungsunterlagen einsehen und die Angaben zur geplanten Abholung übermitteln.\n\nLieferavis:\n{{url}}\nReferenz: {{ref}}\n\nBitte erfassen Sie Abholdatum und Zeitfenster. Sofern bekannt, ergänzen Sie bitte das Kennzeichen des Abholfahrzeugs.\n\nEine zusätzliche Rückmeldung per E-Mail ist nicht erforderlich.\n\nVielen Dank.'
+  },
+  en:{
+   carrier:'COLLECTION NOTICE – PICKUP\n\nA digital collection notice is available for the planned pickup of this shipment.\n\nPlease use the link below to submit the pickup details. The released shipment documents are also available there.\n\nCollection notice:\n{{url}}\nReference: {{ref}}\n\nRequired information:\n• Pickup date\n• Time window\n• Vehicle licence plate, if known\n\nNo additional confirmation by email is required.',
+   customer:'COLLECTION NOTICE\n\nA digital collection notice is available for this shipment.\n\nPlease use the link below to view the released shipment documents and submit the planned pickup details.\n\nCollection notice:\n{{url}}\nReference: {{ref}}\n\nPlease enter the pickup date and time window and, if known, the vehicle licence plate.\n\nNo additional confirmation by email is required.\n\nThank you.'
+  },
+  pl:{
+   carrier:'AWIZO ODBIORU – ODBIÓR\n\nDla planowanego odbioru tej przesyłki dostępne jest cyfrowe awizo.\n\nProsimy użyć poniższego linku do przekazania danych odbioru. Udostępnione dokumenty wysyłkowe są tam również dostępne.\n\nAwizo odbioru:\n{{url}}\nReferencja: {{ref}}\n\nWymagane informacje:\n• Data odbioru\n• Przedział czasowy\n• Numer rejestracyjny pojazdu, jeśli jest znany\n\nDodatkowe potwierdzenie e-mailem nie jest wymagane.',
+   customer:'AWIZO WYSYŁKI\n\nDla tej przesyłki dostępne jest cyfrowe awizo.\n\nProsimy użyć poniższego linku, aby przejrzeć udostępnione dokumenty wysyłkowe i przekazać planowane dane odbioru.\n\nAwizo:\n{{url}}\nReferencja: {{ref}}\n\nProsimy podać datę i przedział czasowy odbioru oraz, jeśli jest znany, numer rejestracyjny pojazdu.\n\nDodatkowe potwierdzenie e-mailem nie jest wymagane.\n\nDziękujemy.'
+  },
+  es:{
+   carrier:'AVISO DE RECOGIDA – RECOGIDA\n\nHay disponible un aviso digital para la recogida prevista de este envío.\n\nUtilice el siguiente enlace para enviar los datos de recogida. Allí también están disponibles los documentos de envío autorizados.\n\nAviso de recogida:\n{{url}}\nReferencia: {{ref}}\n\nDatos necesarios:\n• Fecha de recogida\n• Franja horaria\n• Matrícula del vehículo, si se conoce\n\nNo es necesaria una confirmación adicional por correo electrónico.',
+   customer:'AVISO DE ENVÍO\n\nHay disponible un aviso digital para este envío.\n\nUtilice el siguiente enlace para consultar los documentos de envío autorizados y enviar los datos de la recogida prevista.\n\nAviso:\n{{url}}\nReferencia: {{ref}}\n\nIndique la fecha y la franja horaria de recogida y, si se conoce, la matrícula del vehículo.\n\nNo es necesaria una confirmación adicional por correo electrónico.\n\nGracias.'
+  },
+  fr:{
+   carrier:'AVIS D’ENLÈVEMENT – ENLÈVEMENT\n\nUn avis numérique est disponible pour l’enlèvement prévu de cette expédition.\n\nVeuillez utiliser le lien ci-dessous pour transmettre les informations d’enlèvement. Les documents d’expédition validés y sont également disponibles.\n\nAvis d’enlèvement :\n{{url}}\nRéférence : {{ref}}\n\nInformations requises :\n• Date d’enlèvement\n• Créneau horaire\n• Immatriculation du véhicule, si connue\n\nAucune confirmation supplémentaire par e-mail n’est nécessaire.',
+   customer:'AVIS D’EXPÉDITION\n\nUn avis numérique est disponible pour cette expédition.\n\nVeuillez utiliser le lien ci-dessous pour consulter les documents d’expédition validés et transmettre les informations d’enlèvement prévues.\n\nAvis :\n{{url}}\nRéférence : {{ref}}\n\nVeuillez indiquer la date et le créneau horaire d’enlèvement ainsi que, si elle est connue, l’immatriculation du véhicule.\n\nAucune confirmation supplémentaire par e-mail n’est nécessaire.\n\nMerci.'
+  },
+  it:{
+   carrier:'AVVISO DI RITIRO – RITIRO\n\nÈ disponibile un avviso digitale per il ritiro pianificato di questa spedizione.\n\nUtilizzate il seguente link per inviare i dati di ritiro. Sono disponibili anche i documenti di spedizione approvati.\n\nAvviso di ritiro:\n{{url}}\nRiferimento: {{ref}}\n\nDati richiesti:\n• Data di ritiro\n• Fascia oraria\n• Targa del veicolo, se nota\n\nNon è necessaria un’ulteriore conferma via e-mail.',
+   customer:'AVVISO DI SPEDIZIONE\n\nÈ disponibile un avviso digitale per questa spedizione.\n\nUtilizzate il seguente link per consultare i documenti di spedizione approvati e inviare i dati del ritiro pianificato.\n\nAvviso:\n{{url}}\nRiferimento: {{ref}}\n\nInserite la data e la fascia oraria del ritiro e, se nota, la targa del veicolo.\n\nNon è necessaria un’ulteriore conferma via e-mail.\n\nGrazie.'
+  }
+ };
+ return templates[lang][carrier?'carrier':'customer'].replace(/\{\{url\}\}/g,u).replace(/\{\{ref\}\}/g,ref)
 }
 function standaloneAvis(sh,target,lang,url){
- lang=lang==='en'?'en':'de';target=q(target).toLowerCase()==='carrier'?'carrier':'customer';
- var greeting=lang==='en'?'Dear Sir or Madam,':'Sehr geehrte Damen und Herren,',closing=lang==='en'?'Kind regards':'Mit freundlichen Grüßen';
- return greeting+'\n\n'+avisBlock(url,explicitReference(sh),lang,target)+'\n\n'+closing
+ lang=rc1267NormalizeLanguage(lang);target=q(target).toLowerCase()==='carrier'?'carrier':'customer';
+ var greetings={de:'Sehr geehrte Damen und Herren,',en:'Dear Sir or Madam,',pl:'Szanowni Państwo,',es:'Estimados señores:',fr:'Madame, Monsieur,',it:'Gentili Signore e Signori,'};
+ var closings={de:'Mit freundlichen Grüßen',en:'Kind regards',pl:'Z poważaniem',es:'Atentamente',fr:'Cordialement',it:'Cordiali saluti'};
+ return greetings[lang]+'\n\n'+avisBlock(url,explicitReference(sh),lang,target)+'\n\n'+closings[lang]
+}
+function stripExcludedAvis(sh,target,source,lang){
+ var cleaned=String(source==null?'':source);try{if(previous&&typeof previous.injectMailBody==='function')cleaned=previous.injectMailBody(sh,target,cleaned,lang)}catch(_){}return stripOwnAvisLink(cleaned)
 }
 function injectMailBody(sh,target,body,langOverride){
- var type=q(target).toLowerCase()||'customer',source=String(body==null?'':body),lang=q(langOverride).toLowerCase()==='en'?'en':'de';
+ var type=q(target).toLowerCase()||'customer',source=String(body==null?'':body),lang=rc1267NormalizeLanguage(langOverride);
  if(type!=='customer'&&type!=='carrier'&&type!=='own')return previous&&typeof previous.injectMailBody==='function'?previous.injectMailBody(sh,target,source,langOverride):source;
+ if(mailExcluded(sh)||recipientExcluded(sh,type))return stripExcludedAvis(sh,type,source,lang);
  if(exception(sh)||manualDisabled(sh))return previous&&typeof previous.injectMailBody==='function'?previous.injectMailBody(sh,target,source,langOverride):source;
  var url=avisUrl(sh);if(!url)return previous&&typeof previous.injectMailBody==='function'?previous.injectMailBody(sh,target,source,langOverride):source;
  if(type==='own')return ownAvisMail(source,url,lang);
@@ -237,7 +276,8 @@ function syncVisibleMail(){
  var body=area.querySelector('textarea'),active=area.querySelector('[data-rc543-target].active'),type=q(active&&active.getAttribute('data-rc543-target'))||'customer';
  if(!body||(type!=='customer'&&type!=='carrier'&&type!=='own'))return false;
  var sh=shipment(),url=avisUrl(sh);if(!sh||exception(sh)||manualDisabled(sh)||closed(sh)||!customerName(sh)||!url)return false;
- var lang=q((document.getElementById('rc543MailLang')||{}).value).toLowerCase()==='en'?'en':'de',next=type==='own'?ownAvisMail(String(body.value==null?'':body.value),url,lang):standaloneAvis(sh,type,lang,url);
+ if(mailExcluded(sh)||recipientExcluded(sh,type)){var cleaned=stripExcludedAvis(sh,type,String(body.value==null?'':body.value),rc1267NormalizeLanguage((document.getElementById('rc543MailLang')||{}).value));if(cleaned!==String(body.value==null?'':body.value)){visibleSyncing=true;try{body.value=cleaned;try{body.dispatchEvent(new Event('input',{bubbles:true}))}catch(_){}try{body.dispatchEvent(new Event('change',{bubbles:true}))}catch(_){}}finally{visibleSyncing=false}return true}return false}
+ var lang=rc1267NormalizeLanguage((document.getElementById('rc543MailLang')||{}).value),next=type==='own'?ownAvisMail(String(body.value==null?'':body.value),url,lang):standaloneAvis(sh,type,lang,url);
  if(String(body.value==null?'':body.value)===next)return false;
  visibleSyncing=true;try{body.value=next;try{body.dispatchEvent(new Event('input',{bubbles:true}))}catch(_){}try{body.dispatchEvent(new Event('change',{bubbles:true}))}catch(_){}}finally{visibleSyncing=false}
  return true
@@ -255,7 +295,7 @@ function install(){
  var current=window.ExportHUBCustomerAvis706||window.ExportHUBCustomerAvis705;if(!current)return false;
  if(current.__rc1027===true){wrapper=current;return true}
  previous=current;
- wrapper=Object.freeze(Object.assign({},current,{version:'RC1033',link:avisUrl,toggle:coordinatedToggle,injectMailBody:injectMailBody,autoEnable:ensureCustomerAvis,__rc1027:true,__rc1031:true,__rc1032:true,__rc1033:true,__rc1052:true,__base1027:current}));
+ wrapper=Object.freeze(Object.assign({},current,{version:'RC1292',link:avisUrl,toggle:coordinatedToggle,injectMailBody:injectMailBody,autoEnable:ensureCustomerAvis,__rc1027:true,__rc1031:true,__rc1032:true,__rc1033:true,__rc1052:true,__rc1291:true,__rc1292:true,__base1027:current}));
  window.ExportHUBCustomerAvis706=wrapper;window.ExportHUBCustomerAvis705=wrapper;
  return true
 }

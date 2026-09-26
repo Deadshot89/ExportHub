@@ -40,9 +40,9 @@ test('RC1207: Runtime ist syntaktisch gültig und nutzt direkten authentifiziert
   assert.match(runtime,/X-ExportHUB-Session/);
   assert.match(runtime,/["']Authorization["']:'Bearer '\+t/);
   assert.doesNotMatch(runtime,/function\s+mailto\s*\(|href\s*=\s*['\"]?mailto:|\.href\s*=\s*mailto/i);
-  assert.match(runtime,/Erinnerungsmail senden/);
-  assert.match(runtime,/Erinnerungsmail erfolgreich an/);
-  assert.match(runtime,/Sendungshistorie protokolliert/);
+  assert.match(runtime,/avisReminder\.send/);
+  assert.match(runtime,/avisReminder\.sent/);
+  assert.match(runtime,/avisReminder\.footer/);
 });
 
 test('RC1166: sichere Avis-Links werden nur vor Abholung und nicht für Ausnahmekunden angeboten',()=>{
@@ -72,7 +72,7 @@ test('RC1166: Kunde und Spedition erhalten getrennte hinterlegte Empfänger',()=
   for(const e of ['sped@example.com','dispo@example.com','fracht@example.com','sendung-sped@example.com'])assert.ok(carrier.includes(e),e+' fehlt bei Spedition');
 });
 
-test('RC1166: Deutsch und Englisch sowie Kunde und Spedition haben eigene Erinnerungsmails',()=>{
+test('RC1267: sechs Sprachen sowie Kunde und Spedition haben eigene Erinnerungsmails',()=>{
   const api=load(),sh={reference:'ABC123'},url='https://example.test/customer-avis.html?token=abc';
   assert.match(api.subject(sh,'customer','de'),/Erinnerung – Lieferavis ABC123/);
   assert.match(api.subject(sh,'carrier','de'),/Lieferavis Abholung ABC123/);
@@ -80,6 +80,11 @@ test('RC1166: Deutsch und Englisch sowie Kunde und Spedition haben eigene Erinne
   assert.match(api.body(sh,'carrier','de',url),/Abholdatum/);
   assert.match(api.body(sh,'carrier','en',url),/pickup date/i);
   assert.match(api.body(sh,'customer','en',url),/lang=en/);
+  assert.match(api.subject(sh,'customer','pl'),/Przypomnienie/);
+  assert.match(api.subject(sh,'customer','es'),/Recordatorio/);
+  assert.match(api.subject(sh,'customer','fr'),/Rappel/);
+  assert.match(api.subject(sh,'customer','it'),/Promemoria/);
+  for(const lang of ['de','en','pl','es','fr','it'])assert.match(api.body(sh,'customer',lang,url),new RegExp('lang='+lang));
 });
 
 test('RC1207: Direktversand übergibt nur strukturierte Felder an den Mail-Endpunkt',()=>{
@@ -87,18 +92,18 @@ test('RC1207: Direktversand übergibt nur strukturierte Felder an den Mail-Endpu
   assert.match(runtime,/reference:refOf\(sh\)/);
   assert.match(runtime,/recipient:q\(email\)/);
   assert.match(runtime,/target:target==='carrier'\?'carrier':'customer'/);
-  assert.match(runtime,/language:lang==='en'\?'en':'de'/);
+  assert.match(runtime,/language:normalizeLanguage\(lang\)/);
   assert.match(runtime,/avisUrl:url/);
   assert.doesNotMatch(runtime,/function\s+mailto\s*\(|href\s*=\s*['\"]?mailto:|\.href\s*=\s*mailto/i);
 });
 
 test('RC1166: Übersicht zeigt einen blauen Aktionsbutton und eine Empfängerauswahl',()=>{
-  assert.match(runtime,/Avis-Erinnerung senden/);
+  assert.match(runtime,/avisReminder\.button/);
   assert.match(runtime,/rc1166-reminder-btn/);
   assert.match(runtime,/background:#2563eb/);
-  assert.match(runtime,/Empfängergruppe/);
-  assert.match(runtime,/>Kunde</);
-  assert.match(runtime,/>Spedition</);
+  assert.match(runtime,/avisReminder\.targetGroup/);
+  assert.match(runtime,/avisReminder\.customer/);
+  assert.match(runtime,/avisReminder\.carrier/);
   assert.match(runtime,/>Deutsch</);
   assert.match(runtime,/>English</);
   assert.match(runtime,/data-recipient/);
@@ -106,13 +111,35 @@ test('RC1166: Übersicht zeigt einen blauen Aktionsbutton und eine Empfängeraus
 
 test('RC1166: Drei-Umgebungen-Build übernimmt die neue Runtime und bestehende Schutzstände',()=>{
   assert.match(build,/exporthub-rc1166-avis-reminder/);
-  assert.match(build,/assets\/rc1166-avis-reminder-overview\.js\?v=1207/);
+  assert.match(build,/assets\/rc1166-avis-reminder-overview\.js\?v=1292/);
   assert.match(build,/'assets\/rc1166-avis-reminder-overview\.js'/);
-  assert.match(build,/avisReminderOverview:'RC1207/);
+  assert.match(build,/avisReminderOverview:'RC1292/);
   assert.match(build,/avis-reminder-mail\/index\.js/);
   assert.match(build,/shared\/graph-mail\.js/);
   assert.match(build,/podBackupStatusUi:'RC1220/);
   assert.match(build,/podGraphReadiness:'RC1220/);
   assert.match(build,/avisAppointmentRevisionHistory:'RC1163/);
   assert.match(build,/border:3mm solid #111827/);
+});
+
+
+test('RC1292: Holenstein wird aus der Avis-Erinnerungs-Empfängerliste entfernt',()=>{
+  const state={customers:[{
+    id:'P1',name:'Plica',carrierEmail:'dispo@holenstein.de',
+    carrierContacts:[{name:'Disposition | Holenstein GmbH',email:'dispo@holenstein.de'},{name:'Andere Spedition',email:'other@example.com'}]
+  }]};
+  const api=load(state),sh={customerId:'P1',customerName:'Plica',carrierMail:'dispo@holenstein.de'};
+  const carrier=api.shipmentContacts(sh,'carrier').map(x=>x.email);
+  assert.equal(carrier.includes('dispo@holenstein.de'),false);
+  assert.equal(carrier.includes('other@example.com'),true);
+  assert.equal(api.recipientExcluded('dispo@holenstein.de'),true);
+  assert.equal(api.recipientExcluded('OTHER@example.com'),false);
+});
+
+test('RC1292: direkter Reminder-Versand an Holenstein wird bereits im Frontend geblockt',async()=>{
+  const api=load(),sh={reference:'ABC123'};
+  await assert.rejects(
+    ()=>api.sendReminder(sh,'dispo@holenstein.de','carrier','de','https://example.test/customer-avis.html?token=abc'),
+    e=>e&&e.code==='AVIS_RECIPIENT_EXCLUDED'
+  );
 });

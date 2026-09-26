@@ -4,6 +4,7 @@ if(!w||!d||w.__EXPORTHUB_RC1283_LOADING_LIST_SEARCH__)return;
 w.__EXPORTHUB_RC1283_LOADING_LIST_SEARCH__=true;
 var timer=0,lastQuery='',lastSelected='',lastSelectedRef='',selectedSnapshot=null;
 function q(v){return String(v==null?'':v).trim()}
+function tr(key,vars){try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.t==='function')return w.ExportHUBI18n.t(key,vars)}catch(_){}return key}
 function arr(v){return Array.isArray(v)?v:[]}
 function low(v){var s=q(v).toLowerCase();try{return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'')}catch(_){return s}}
 function state(){try{if(typeof w.__EXPORTHUB_GET_STATE__==='function')return w.__EXPORTHUB_GET_STATE__()||{}}catch(_){ }try{return w.ExportHUBClean&&w.ExportHUBClean.state||w.ExportHUBClean&&w.ExportHUBClean.runtime&&w.ExportHUBClean.runtime.state||w.appState||w.state||{}}catch(_){return{}}}
@@ -54,7 +55,7 @@ function rc1285CaptureSelection(event){
  if(!row)return false;
  var input=panel.querySelector&&panel.querySelector('[data-rc1283-search]'),selected=panel.querySelector&&panel.querySelector('[data-rc1283-selected]'),actions=Array.from(panel.querySelectorAll&&panel.querySelectorAll('[data-rc1283-action]')||[]);
  lastSelected=row.value;lastSelectedRef=refOf(row.shipment)||row.reference||row.value;selectedSnapshot={value:row.value,label:row.label,shipment:row.shipment,reference:row.reference,customer:row.customer,documents:row.documents,remark:row.remark,search:row.search};lastQuery=q(input&&input.value);
- if(selected)selected.textContent='Ausgewählt: '+(row.reference||row.label)+(row.customer?' · '+row.customer:'');
+ if(selected)selected.textContent=tr('loadingList.selected')+' '+(row.reference||row.label)+(row.customer?' · '+row.customer:'');
  actions.forEach(function(btn){btn.disabled=false});
  if(typeof w.setTimeout==='function')w.setTimeout(function(){var current=findSelect();if(current)dispatchSelection(current,row.value)},0);
  return true
@@ -63,10 +64,10 @@ function render(panel,select){
  var input=panel.querySelector('[data-rc1283-search]'),results=panel.querySelector('[data-rc1283-results]'),selected=panel.querySelector('[data-rc1283-selected]'),actions=Array.from(panel.querySelectorAll('[data-rc1283-action]')),rows=candidates(select,state()),query=q(input&&input.value),found=filterRows(rows,query),chosen=currentRow(select);
  if(input&&input.value!==lastQuery)lastQuery=input.value;
  results.innerHTML='';
- if(!query){var hint=d.createElement('div');hint.className='rc1283-empty';hint.textContent='Referenz, Kunde, Anhang/Dateiname oder Bemerkung eingeben.';results.appendChild(hint)}
- else if(!found.length){var empty=d.createElement('div');empty.className='rc1283-empty';empty.textContent='Keine passende Ladeliste gefunden.';results.appendChild(empty)}
- else found.forEach(function(row){var b=d.createElement('button');b.type='button';b.className='rc1283-result';b.setAttribute('data-rc1283-result',row.value);var strong=d.createElement('strong');strong.textContent=(row.reference||row.label)+(row.customer?' · '+row.customer:'');var meta=d.createElement('span');meta.textContent=resultMeta(row)||row.label;b.appendChild(strong);b.appendChild(meta);b.addEventListener('click',function(){lastSelected=row.value;lastSelectedRef=refOf(row.shipment)||row.reference||row.value;selectedSnapshot={value:row.value,label:row.label,shipment:row.shipment,reference:row.reference,customer:row.customer,documents:row.documents,remark:row.remark,search:row.search};lastQuery=query;selected.textContent='Ausgewählt: '+(row.reference||row.label)+(row.customer?' · '+row.customer:'');actions.forEach(function(btn){btn.disabled=false})});results.appendChild(b)});
- selected.textContent=chosen?'Ausgewählt: '+(chosen.reference||chosen.label)+(chosen.customer?' · '+chosen.customer:''):'Noch keine Ladeliste ausgewählt.';
+ if(!query){var hint=d.createElement('div');hint.className='rc1283-empty';hint.textContent=tr('loadingList.hint');results.appendChild(hint)}
+ else if(!found.length){var empty=d.createElement('div');empty.className='rc1283-empty';empty.textContent=tr('loadingList.noResults');results.appendChild(empty)}
+ else found.forEach(function(row){var b=d.createElement('button');b.type='button';b.className='rc1283-result';b.setAttribute('data-rc1283-result',row.value);var strong=d.createElement('strong');strong.textContent=(row.reference||row.label)+(row.customer?' · '+row.customer:'');var meta=d.createElement('span');meta.textContent=resultMeta(row)||row.label;b.appendChild(strong);b.appendChild(meta);b.addEventListener('click',function(){lastSelected=row.value;lastSelectedRef=refOf(row.shipment)||row.reference||row.value;selectedSnapshot={value:row.value,label:row.label,shipment:row.shipment,reference:row.reference,customer:row.customer,documents:row.documents,remark:row.remark,search:row.search};lastQuery=query;selected.textContent=tr('loadingList.selected')+' '+(row.reference||row.label)+(row.customer?' · '+row.customer:'');actions.forEach(function(btn){btn.disabled=false})});results.appendChild(b)});
+ selected.textContent=chosen?tr('loadingList.selected')+' '+(chosen.reference||chosen.label)+(chosen.customer?' · '+chosen.customer:''):tr('loadingList.noneSelected');
  actions.forEach(function(btn){btn.disabled=!chosen})
 }
 function act(kind,panel,select){
@@ -83,11 +84,11 @@ function makePanel(select){
  style();var old=d.getElementById('rc1283LoadListSearch');if(old&&old.__rc1283Select===select){render(old,select);return old}if(old)old.remove();
  var label=setNativeHidden(select),host=label&&label.parentNode||select.parentNode;if(!host)return null;
  var panel=d.createElement('section');panel.id='rc1283LoadListSearch';panel.setAttribute('role','search');panel.__rc1283Select=select;
- var head=d.createElement('div');head.className='rc1283-head';var title=d.createElement('div'),h=d.createElement('h3'),p=d.createElement('p');h.textContent='Ladeliste suchen';p.textContent='Suche nach Referenznummer, Kunde, Anhang/Dateiname oder Bemerkung.';title.appendChild(h);title.appendChild(p);head.appendChild(title);panel.appendChild(head);
- var input=d.createElement('input');input.type='search';input.setAttribute('aria-label','Ladeliste suchen');input.setAttribute('data-rc1283-search','1');input.placeholder='Referenz, Kunde, Anhang oder Bemerkung';input.autocomplete='off';input.value=lastQuery;panel.appendChild(input);
+ var head=d.createElement('div');head.className='rc1283-head';var title=d.createElement('div'),h=d.createElement('h3'),p=d.createElement('p');h.textContent=tr('loadingList.title');p.textContent=tr('loadingList.description');title.appendChild(h);title.appendChild(p);head.appendChild(title);panel.appendChild(head);
+ var input=d.createElement('input');input.type='search';input.setAttribute('aria-label',tr('loadingList.title'));input.setAttribute('data-rc1283-search','1');input.placeholder=tr('loadingList.placeholder');input.autocomplete='off';input.value=lastQuery;panel.appendChild(input);
  var results=d.createElement('div');results.className='rc1283-results';results.setAttribute('data-rc1283-results','1');panel.appendChild(results);
  var selected=d.createElement('div');selected.className='rc1283-selected';selected.setAttribute('data-rc1283-selected','1');panel.appendChild(selected);
- var actions=d.createElement('div');actions.className='rc1283-actions';[['open','Öffnen'],['print','Drucken'],['download','Herunterladen']].forEach(function(def){var b=d.createElement('button');b.type='button';b.setAttribute('data-rc1283-action',def[0]);b.textContent=def[1];b.addEventListener('click',function(){act(def[0],panel,select)});actions.appendChild(b)});panel.appendChild(actions);
+ var actions=d.createElement('div');actions.className='rc1283-actions';[['open',tr('common.open')],['print',tr('common.print')],['download',tr('common.download')]].forEach(function(def){var b=d.createElement('button');b.type='button';b.setAttribute('data-rc1283-action',def[0]);b.textContent=def[1];b.addEventListener('click',function(){act(def[0],panel,select)});actions.appendChild(b)});panel.appendChild(actions);
  host.insertBefore(panel,label||select);input.addEventListener('input',function(){lastQuery=input.value;render(panel,select)});render(panel,select);return panel
 }
 function install(){var select=findSelect(),panel=d.getElementById('rc1283LoadListSearch');if(!select){if(panel)panel.remove();return false}setNativeHidden(select);makePanel(select);return true}

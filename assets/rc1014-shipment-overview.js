@@ -2,6 +2,7 @@
   'use strict';
 
   const q=v=>String(v==null?'':v).trim();
+  const tr=(key,vars)=>{try{return root.ExportHUBI18n&&typeof root.ExportHUBI18n.t==='function'?root.ExportHUBI18n.t(key,vars):key}catch(_){return key}};
   const arr=v=>Array.isArray(v)?v:[];
   const obj=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
   let remembered=[];
@@ -95,8 +96,8 @@
       customerPickupDate:customerPickup.date,
       customerPickupTimeFrom:customerPickup.timeFrom,
       customerPickupTimeTo:customerPickup.timeTo,
-      createdLabel:`Erfasst: ${created}`,
-      colliLabel:`Colli: ${colli}`,
+      createdLabel:tr('shipmentOverview.created',{date:created}),
+      colliLabel:tr('shipmentOverview.colli',{count:colli}),
       customerPickupLabel:customerPickup.label,
       container
     };
@@ -362,7 +363,7 @@
     const panel=doc.createElement('div');
     panel.className='rc1259-container-config';
     panel.setAttribute('data-rc1259-container-config','1');
-    panel.innerHTML='<div class="rc1259-config-title"><strong>🚢 Luft / See & Container</strong><span>Siegelnummer kann bereits auf der Hauptseite gepflegt werden; Fotos werden über den Abhol-QR aufgenommen.</span></div><div class="rc1259-config-grid"><label>Transportart<select data-rc1259-transport><option value="">Nicht festgelegt</option><option value="road">Straße</option><option value="air">Luftfracht</option><option value="sea">Seefracht</option></select></label><label>Siegelnummer <span class="rc1259-field-note">(optional)</span><input type="text" data-rc1259-seal autocomplete="off" maxlength="120" placeholder="z. B. ABCD123456"></label><label class="rc1259-required-label"><input type="checkbox" data-rc1259-required> Container-Dokumentation verpflichtend</label></div><div class="rc1259-config-help">Bei Seefracht nur aktivieren, wenn ein Container dokumentiert werden muss. Dann verlangt die QR-Abholung die Siegelnummer sowie 3 Fotos: geladen, Container-Nummer innen und versiegelt mit Kennzeichen/Papieren.</div>';
+    panel.innerHTML='<div class="rc1259-config-title"><strong>🚢 '+tr('container.configTitle')+'</strong><span>'+tr('container.configHelpShort')+'</span></div><div class="rc1259-config-grid"><label>'+tr('container.transportMode')+'<select data-rc1259-transport><option value="">'+tr('container.notSet')+'</option><option value="road">'+tr('container.road')+'</option><option value="air">'+tr('container.air')+'</option><option value="sea">'+tr('container.sea')+'</option></select></label><label>'+tr('container.seal')+' <span class="rc1259-field-note">('+tr('common.optional')+')</span><input type="text" data-rc1259-seal autocomplete="off" maxlength="120" placeholder="ABCD123456"></label><label class="rc1259-required-label"><input type="checkbox" data-rc1259-required> '+tr('container.requiredDocumentation')+'</label></div><div class="rc1259-config-help">'+tr('container.configHelp')+'</div>';
     const select=panel.querySelector('[data-rc1259-transport]'),seal=panel.querySelector('[data-rc1259-seal]'),check=panel.querySelector('[data-rc1259-required]');
     const save=()=>writeContainerConfig(select&&select.value,check&&check.checked,seal&&seal.value);
     if(select)select.addEventListener('change',()=>{const sea=select.value==='sea';if(check){check.disabled=!sea;if(!sea)check.checked=false}save()});

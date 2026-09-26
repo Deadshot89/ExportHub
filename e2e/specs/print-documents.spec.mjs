@@ -78,6 +78,20 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
           coverTheme:cover?String(cover.getAttribute('data-rc1281-customer-theme')||''):null,
           referenceStyle:rs?{backgroundColor:rs.backgroundColor,color:rs.color,borderColor:rs.borderTopColor}:null,
           recipientStyle:rcs?{backgroundColor:rcs.backgroundColor,color:rcs.color,borderColor:rcs.borderTopColor}:null,
+          packingSlipGrid:(()=>{
+            const grid=document.querySelector('[data-rc1293-packing-slip-grid]');
+            const slips=grid?Array.from(grid.querySelectorAll('[data-rc1293-packing-slip]')):[];
+            const rowTops=[...new Set(slips.map(node=>Math.round(node.getBoundingClientRect().top)))];
+            const gs=grid?getComputedStyle(grid):null;
+            return{
+              count:slips.length,
+              rowCount:rowTops.length,
+              display:gs&&gs.display,
+              scrollWidth:grid?Number(grid.scrollWidth||0):0,
+              clientWidth:grid?Number(grid.clientWidth||0):0,
+              items:slips.map(node=>{const r=node.getBoundingClientRect();return{text:String(node.textContent||'').trim(),left:r.left,right:r.right,top:r.top,bottom:r.bottom}})
+            };
+          })(),
           load1Count:document.querySelectorAll('.rc390-load.rc576-load1').length,
           load2Count:document.querySelectorAll('.rc390-load.rc576-load2').length,
           cmrCount:document.querySelectorAll('.rc390-cmr-wrap').length,
@@ -161,6 +175,12 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
   expect(capture.html).toMatch(/data-rc1203-cover-remark="1"/i);
   expect(capture.text).toContain('Bemerkung');
   expect(capture.text).toContain('RC1203 Demo-Bemerkung');
+  expect(capture.packingSlipGrid).toBeTruthy();
+  expect(capture.packingSlipGrid.display).toBe('grid');
+  expect(capture.packingSlipGrid.count).toBe(7);
+  expect(capture.packingSlipGrid.rowCount).toBeGreaterThanOrEqual(2);
+  expect(capture.packingSlipGrid.clientWidth<=0||capture.packingSlipGrid.scrollWidth<=capture.packingSlipGrid.clientWidth+2,'Lieferschein-Raster läuft horizontal über').toBe(true);
+  expect(capture.packingSlipGrid.items.some(item=>/LS_47110007\.pdf/.test(item.text))).toBe(true);
   expect(capture.text).toMatch(/Ladeliste/i);
   expect(capture.text).toMatch(/(?:Ladeliste\s*1|\bL1\b)/i);
   expect(capture.text).toMatch(/(?:Ladeliste\s*2|\bL2\b)/i);

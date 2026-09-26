@@ -95,7 +95,7 @@ public class EnvironmentActivity extends Activity {
         if (isEnvironment(requested)) {
             selectEnvironment(requested, route);
         } else {
-            selectEnvironment("production", route);
+            selectEnvironment(selectedEnvironment, route);
         }
     }
 
@@ -644,6 +644,12 @@ public class EnvironmentActivity extends Activity {
     protected void onSaveInstanceState(Bundle outState) {
         if (webView != null) webView.saveState(outState);
         super.onSaveInstanceState(outState);
+    }
+
+    @Override
+    protected void onPause() {
+        CookieManager.getInstance().flush();
+        super.onPause();
     }
 
     @Override

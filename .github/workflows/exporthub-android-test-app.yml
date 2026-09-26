@@ -1,6 +1,12 @@
 name: Build ExportHUB Android RC1112 APK
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'android-app/**'
+      - 'test/rc1288-android-cold-start.test.mjs'
+      - '.github/workflows/exporthub-android-test-app.yml'
   push:
     branches: [main]
     paths:
@@ -52,6 +58,7 @@ jobs:
           grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1112'" production-version.js
           for test_file in \
             test/rc1003-android-native-direct-open.test.mjs \
+            test/rc1288-android-cold-start.test.mjs \
             test/rc1003-three-env-sync.test.mjs \
             test/rc1011-three-env-sync.test.mjs \
             test/rc1012-three-env-sync.test.mjs \
@@ -77,13 +84,55 @@ jobs:
           sdkmanager_bin="$sdk_root/cmdline-tools/latest/bin/sdkmanager"
           test -x "$sdkmanager_bin"
           yes | "$sdkmanager_bin" --licenses >/dev/null || true
-          "$sdkmanager_bin" "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+          "$sdkmanager_bin" "platforms;android-36" "build-tools;36.0.0" "platform-tools" "emulator" "system-images;android-29;google_apis;x86_64"
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '9.5.0'
       - name: Build debug APK
         working-directory: android-app
         run: gradle :app:assembleDebug --stacktrace
+      - name: RC1288 Force-Stop Cold-Start Smoke
+        working-directory: android-app
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdk_root="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          export PATH="$sdk_root/platform-tools:$sdk_root/emulator:$sdk_root/cmdline-tools/latest/bin:$PATH"
+          export ANDROID_AVD_HOME="$HOME/.android/avd"
+          mkdir -p "$ANDROID_AVD_HOME"
+          if [ -e /dev/kvm ]; then sudo chmod 666 /dev/kvm || true; fi
+          echo no | avdmanager create avd -n exporthub-ci -k "system-images;android-29;google_apis;x86_64" --device "pixel_6" --force
+          test -f "$ANDROID_AVD_HOME/exporthub-ci.ini"
+          emulator -avd exporthub-ci -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect > /tmp/exporthub-emulator.log 2>&1 &
+          emulator_pid=$!
+          trap 'kill "$emulator_pid" 2>/dev/null || true; adb emu kill 2>/dev/null || true' EXIT
+          if ! timeout 120 adb wait-for-device; then
+            cat /tmp/exporthub-emulator.log || true
+            exit 1
+          fi
+          booted=0
+          for i in $(seq 1 90); do
+            if [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; then booted=1; break; fi
+            sleep 2
+          done
+          if [ "$booted" != "1" ]; then
+            cat /tmp/exporthub-emulator.log || true
+            exit 1
+          fi
+          adb shell input keyevent 82 || true
+          adb install -r app/build/outputs/apk/debug/app-debug.apk
+          package="de.exporthub.test.debug"
+          activity="de.exporthub.test.EnvironmentActivity"
+          adb shell am start -W -n "$package/$activity" --es exporthub_environment testservice >/tmp/exporthub-first-start.txt
+          sleep 2
+          adb shell run-as "$package" cat shared_prefs/exporthub_environment.xml | grep -q '<string name="selected_environment">testservice</string>'
+          adb shell am force-stop "$package"
+          adb shell monkey -p "$package" -c android.intent.category.LAUNCHER 1 >/tmp/exporthub-restart.txt
+          sleep 2
+          prefs="$(adb shell run-as "$package" cat shared_prefs/exporthub_environment.xml)"
+          printf '%s\n' "$prefs"
+          printf '%s\n' "$prefs" | grep -q '<string name="selected_environment">testservice</string>'
+
       - name: Prepare APK
         working-directory: android-app
         shell: bash

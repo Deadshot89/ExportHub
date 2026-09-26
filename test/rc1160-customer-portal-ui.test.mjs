@@ -14,13 +14,15 @@ test('RC1160: Kundenportal-Runtime enthält keine RC1159-Versionsreste',()=>{
   assert.match(ui,/__EXPORTHUB_RC1160_CUSTOMER_PORTAL__/);
   assert.match(ui,/ExportHUBCustomerPortal1160/);
 });
-test('RC1160: UI zeigt sensible Funktionen nur über customerPortal Rechte',()=>{
+test('RC1267: Kundenportal-Rechte bleiben fachlich unverändert und sichtbare Texte laufen über i18n',()=>{
   assert.match(ui,/rights&&u\.rights\.customerPortal|u\.rights&&u\.rights\.customerPortal/);
   assert.match(ui,/r\.use===true\|\|r\.manage===true/);
   assert.match(ui,/r\.manage===true/);
-  assert.match(ui,/Kundenportal-Rechte/);
-  assert.match(ui,/verwenden/);
-  assert.match(ui,/verwalten/);
+  assert.match(ui,/th\('portal\.rightsTitle'\)/);
+  assert.match(ui,/th\('portal\.use'\)/);
+  assert.match(ui,/th\('portal\.manage'\)/);
+  assert.match(ui,/ExportHUBI18n/);
+  assert.match(ui,/exporthub:language-changed/);
 });
 test('RC1160: Offenlegung verlangt Re-Auth und wird nach 60 Sekunden gelöscht',()=>{
   assert.match(ui,/autocomplete="current-password"/);
@@ -49,4 +51,19 @@ test('RC1160: Runtime wird in alle drei Builds übernommen',()=>{
   assert.match(build,/'assets\/rc1160-customer-portal-credentials\.js'/);
   assert.match(build,/shared\/customer-portal-store\.js/);
   assert.match(build,/customer-portal-credentials\/index\.js/);
+});
+
+test('RC1267: Kundenportal verwendet zentrale Translation Keys statt deutscher UI-Literale',()=>{
+  for(const key of [
+    'portal.encryptionActive','portal.serverKeyMissing','portal.encryptionNotReady',
+    'portal.noneConfigured','portal.showCredentials','portal.showTitle','portal.editTitle',
+    'portal.addTitle','portal.title','portal.rightsTitle','portal.userRightsLoadFailed'
+  ]) assert.match(ui,new RegExp(key.replace(/[.]/g,'\\.')));
+  assert.match(ui,/common\.cancel/);
+  assert.match(ui,/common\.close/);
+  assert.match(ui,/common\.save/);
+  assert.match(ui,/common\.active/);
+  assert.match(ui,/common\.inactive/);
+  assert.doesNotMatch(ui,/>Kundenportal-Rechte</);
+  assert.doesNotMatch(ui,/>Zugangsdaten anzeigen</);
 });

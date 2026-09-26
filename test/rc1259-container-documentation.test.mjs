@@ -125,8 +125,8 @@ test('RC1259: Sendungsansicht zeigt Siegel und Fotos mit authentifiziertem Anseh
   assert.match(ui,/Authorization':'Bearer '/);
   assert.match(ui,/fetchContainerBlob/);
   assert.match(ui,/queueSave\('container-documentation-config'\)/);
-  assert.match(ui,/Transportart/);
-  assert.match(ui,/Seefracht/);
+  assert.match(ui,/container\.transportMode/);
+  assert.match(ui,/container\.sea/);
   assert.match(ui,/data-rc1259-seal/);
   assert.match(ui,/sh\.sealNumber=sealValue/);
   assert.match(ui,/sh\.containerSealNumber=sealValue/);

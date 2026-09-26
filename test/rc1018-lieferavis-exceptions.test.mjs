@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {createTestI18n} from './helpers/i18n.mjs';
 
 const source=fs.readFileSync('assets/rc1015-lieferavis-mail-flow.js','utf8');
 const rc1013Build=fs.readFileSync('.github/rc1013/build-three-env.mjs','utf8');
@@ -28,7 +29,7 @@ function load(shipment,options={}){
   };
   const state={shipments:options.initiallySaved===false?[]:[shipment]};
   const window={
-    document,
+    document,ExportHUBI18n:createTestI18n('de'),
     ExportHUBCustomerAvis706:base,
     ExportHUBClean:{state},
     addEventListener(){},
@@ -97,7 +98,7 @@ function loadAuto(shipment){
   };
   const state={shipments:[shipment],currentShipment:shipment};
   const window={
-    document,
+    document,ExportHUBI18n:createTestI18n('de'),
     ExportHUBCustomerAvis706:base,
     ExportHUBClean:{state},
     ExportHUBRC565:{async persistShipment(){persists.push('persist');return true}},
@@ -192,8 +193,8 @@ test('RC1024: BMP-Kundenmail bleibt ohne Lieferavis und normale Kunden erhalten 
 });
 
 test('RC1018: sichtbarer Hinweistext für gesperrte Avis-Kunden ist im Flow vorhanden',()=>{
-  assert.match(source,/Lieferavis für diesen Kunden nicht verfügbar/i);
-  assert.match(source,/Kunden-IT blockiert den Zugriff/i);
+  assert.match(source,/avisFlow\.unavailable/);
+  assert.match(source,/avisFlow\.customerItBlocked/);
 });
 
 test('Lieferavis: normale gespeicherte Sendung wird standardmäßig automatisch aktiviert',async()=>{
@@ -243,5 +244,5 @@ test('RC1024: Lieferavis-Flow schützt seine Mailvorlagen vor der abgelehnten Vo
 });
 
 test('Lieferavis: neuer Cache-Key wird in allen drei Umgebungen gebaut',()=>{
-  assert.match(rc1013Build,/rc1015-lieferavis-mail-flow\.js\?v=1021/);
+  assert.match(rc1013Build,/rc1015-lieferavis-mail-flow\.js\?v=1291/);
 });

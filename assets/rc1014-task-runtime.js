@@ -3,6 +3,10 @@
 
   const q=v=>String(v==null?'':v).trim();
   const arr=v=>Array.isArray(v)?v:[];
+  const tr=(key,vars,language)=>{try{if(root.ExportHUBI18n&&typeof root.ExportHUBI18n.t==='function')return root.ExportHUBI18n.t(key,vars,language)}catch(_){}return key};
+  const de=(key,vars)=>tr(key,vars,'de');
+  const locale=()=>{try{const l=root.ExportHUBI18n&&root.ExportHUBI18n.language&&root.ExportHUBI18n.language();return({de:'de-DE',en:'en-GB',pl:'pl-PL',es:'es-ES',fr:'fr-FR',it:'it-IT'})[l]||'de-DE'}catch(_){return'de-DE'}};
+  const localized=(record,key)=>{try{if(root.ExportHUBI18n&&typeof root.ExportHUBI18n.localized==='function')return root.ExportHUBI18n.localized(record,key)}catch(_){}return record&&record[key]};
   const CARD_SELECTOR='.rc229-task-card.rc628-unified-task, .task-card';
   let lastTasks=[];
   let lastContext={};
@@ -13,13 +17,13 @@
   let lastOpenTaskId='';
 
   const MANAGED_TASKS=Object.freeze([
-    {key:'spanien',title:'Spanien anmelden',group:'Anmeldung',weekdays:[1],priority:'P3',description:'Spanien montags anmelden.'},
-    {key:'wuerth-industrie',title:'Würth Industrie anmelden',group:'Anmeldung',weekdays:[2,4],priority:'P3',description:'Würth Industrie dienstags und donnerstags anmelden.'},
-    {key:'bmp',title:'BMP anmelden',group:'Anmeldung',weekdays:[2],priority:'P3',description:'BMP dienstags anmelden.'},
-    {key:'ohare',title:'O’Hare anmelden',group:'Anmeldung',weekdays:[3],dueTime:'12:00',priority:'P2',description:'O’Hare mittwochs bis 12:00 Uhr anmelden.'},
-    {key:'essentra-schweden',title:'Essentra Schweden anmelden',group:'Anmeldung',weekdays:[3],priority:'P3',description:'Essentra Schweden mittwochs anmelden.'},
-    {key:'contitech-abd',title:'Contitech – ABD erstellen',group:'Export / ABD',weekdays:[3],priority:'P2',description:'Für Contitech mittwochs das erforderliche ABD erstellen.'},
-    {key:'swiss-area',title:'Schweizer Kunden prüfen',group:'Schweizer Kunden prüfen',referenceArea:true,priority:'P3',description:'Prüfen, ob für die Schweizer Sendungen ein ABD erstellt werden muss.',checklist:['Omni Ray','Bossard','Heizmann']}
+    {key:'spanien',titleKey:'taskManaged.spanien.title',groupKey:'taskManaged.group.registration',weekdays:[1],priority:'P3',descriptionKey:'taskManaged.spanien.description'},
+    {key:'wuerth-industrie',titleKey:'taskManaged.wuerth.title',groupKey:'taskManaged.group.registration',weekdays:[2,4],priority:'P3',descriptionKey:'taskManaged.wuerth.description'},
+    {key:'bmp',titleKey:'taskManaged.bmp.title',groupKey:'taskManaged.group.registration',weekdays:[2],priority:'P3',descriptionKey:'taskManaged.bmp.description'},
+    {key:'ohare',titleKey:'taskManaged.ohare.title',groupKey:'taskManaged.group.registration',weekdays:[3],dueTime:'12:00',priority:'P2',descriptionKey:'taskManaged.ohare.description'},
+    {key:'essentra-schweden',titleKey:'taskManaged.essentraSweden.title',groupKey:'taskManaged.group.registration',weekdays:[3],priority:'P3',descriptionKey:'taskManaged.essentraSweden.description'},
+    {key:'contitech-abd',titleKey:'taskManaged.contitech.title',groupKey:'taskManaged.group.exportAbd',weekdays:[3],priority:'P2',descriptionKey:'taskManaged.contitech.description'},
+    {key:'swiss-area',titleKey:'taskManaged.swiss.title',groupKey:'taskManaged.group.swiss',referenceArea:true,priority:'P3',descriptionKey:'taskManaged.swiss.description',checklist:['Omni Ray','Bossard','Heizmann']}
   ]);
   const SYSTEM_GROUPS=new Set(['Offene Sendungen','Fehlende POD','Kunde angemeldet','Picks','Offene ABDs']);
 
@@ -52,9 +56,9 @@
       managedBy:'RC1152',
       managedKey:spec.key,
       managedKind:spec.referenceArea?'reference-area':'recurring',
-      title:spec.title,
-      group:spec.group,
-      area:spec.group,
+      title:de(spec.titleKey),
+      group:de(spec.groupKey),
+      area:de(spec.groupKey),
       sourceType:'manual',
       sourceId:`managed:${spec.key}`,
       sourceRef:'',
@@ -70,18 +74,17 @@
       effectiveAssignee:user,
       companyId:q(ctx.companyId),
       environment:q(ctx.environment),
-      description:spec.description||'',
+      description:spec.descriptionKey?de(spec.descriptionKey):'',
       checklist:arr(spec.checklist),
-      recurrenceLabel:spec.referenceArea?'Bereich':weekdayLabel(spec.weekdays,spec.dueTime),
+      recurrenceLabel:spec.referenceArea?de('taskDetail.referenceArea'):weekdayLabel(spec.weekdays,spec.dueTime),
       createdAt:new Date().toISOString(),
       updatedAt:new Date().toISOString()
     };
   }
 
   function weekdayLabel(days,time){
-    const names={1:'Montag',2:'Dienstag',3:'Mittwoch',4:'Donnerstag',5:'Freitag'};
-    const label=arr(days).map(d=>names[d]||'').filter(Boolean).join(' + ');
-    return label+(time?` · bis ${time} Uhr`:'');
+    const label=arr(days).map(d=>de('taskDetail.weekday.'+d)).filter(v=>v&&!/^taskDetail\./.test(v)).join(' + ');
+    return label+(time?' · '+de('taskDetail.untilTime',{time}):'');
   }
 
   function hasShipmentLink(task){
@@ -203,7 +206,7 @@
   }
 
   function reportOpenBlocked(task){
-    try{if(root.ExportHUBClean&&typeof root.ExportHUBClean.operationStatus==='function')root.ExportHUBClean.operationStatus('Aufgabe kann in diesem Firmen- oder Umgebungskontext nicht geöffnet werden.','bad');}catch(_){ }
+    try{if(root.ExportHUBClean&&typeof root.ExportHUBClean.operationStatus==='function')root.ExportHUBClean.operationStatus(tr('taskDetail.openContextError'),'bad');}catch(_){ }
     try{if(root.console&&typeof root.console.warn==='function')root.console.warn('RC1014 Aufgabenöffnung blockiert',task&&task.id);}catch(_){ }
   }
 
@@ -223,19 +226,19 @@
 
   function detailDue(task){
     const raw=q(task&&task.dueAt);
-    if(!raw)return 'Keine feste Frist';
+    if(!raw)return tr('taskDetail.noFixedDeadline');
     const d=new Date(raw);
     if(Number.isNaN(d.getTime()))return raw;
-    try{return new Intl.DateTimeFormat('de-DE',{dateStyle:'full',timeStyle:raw.includes('T')?'short':undefined}).format(d);}catch(_){return raw;}
+    try{return new Intl.DateTimeFormat(locale(),{dateStyle:'full',timeStyle:raw.includes('T')?'short':undefined}).format(d);}catch(_){return raw;}
   }
 
   function taskStatusLabel(task,isReference){
-    if(isReference)return 'Bereich';
+    if(isReference)return tr('taskDetail.referenceArea');
     const status=q(task&&task.status).toLowerCase();
-    if(status==='done')return 'Erledigt';
-    if(status==='in_progress')return 'In Bearbeitung';
-    if(status==='cancelled')return 'Storniert';
-    return 'Offen';
+    if(status==='done')return tr('taskDetail.status.done');
+    if(status==='in_progress')return tr('taskDetail.status.inProgress');
+    if(status==='cancelled')return tr('taskDetail.status.cancelled');
+    return tr('taskDetail.status.open');
   }
 
   function storedTaskId(){
@@ -317,27 +320,29 @@
     const t=api().normalizeTask(task||{},ctx),spec=detailSpec(t)||detailSpec(task);
     const shipmentTarget=linkedShipmentTarget({...task,...t},ctx);
     const checklist=arr((task&&task.checklist)||(spec&&spec.checklist));
-    const description=q((task&&task.description)||(spec&&spec.description))||'Für diese Aufgabe ist keine zusätzliche Beschreibung hinterlegt.';
-    const recurrence=q((task&&task.recurrenceLabel)||(spec&&weekdayLabel(spec.weekdays,spec.dueTime)))||'Einmalig / ohne festen Rhythmus';
+    const title=spec?tr(spec.titleKey):q(localized(task,'title')||t.title)||tr('taskDetail.task');
+    const group=spec?tr(spec.groupKey):q(localized(task,'group')||t.group)||tr('taskDetail.task');
+    const description=spec?tr(spec.descriptionKey):q(localized(task,'description')||(task&&task.description))||tr('taskDetail.descriptionMissing');
+    const recurrence=q(localized(task,'recurrenceLabel')||(task&&task.recurrenceLabel)||(spec&&weekdayLabel(spec.weekdays,spec.dueTime)))||tr('taskDetail.recurrenceOnce');
     const isReference=!!((task&&task.managedKind==='reference-area')||(spec&&spec.referenceArea));
     return `<div class="rc1152-task-shell" data-rc1179-task-tab="1">
       <header class="rc1152-task-header">
-        <button type="button" class="btn rc1152-task-back" data-task-action="back">← Zurück zu Aufgaben</button>
-        <div><span class="rc1152-task-eyebrow">${esc(t.group||'Aufgabe')}</span><h1>${esc(t.title||'Aufgabe')}</h1></div>
+        <button type="button" class="btn rc1152-task-back" data-task-action="back">${esc(tr('taskDetail.backToTasks'))}</button>
+        <div><span class="rc1152-task-eyebrow">${esc(group)}</span><h1>${esc(title)}</h1></div>
         <span class="rc1152-task-status" data-status="${esc(isReference?'reference':t.status||'open')}">${esc(taskStatusLabel(t,isReference))}</span>
       </header>
       <div class="rc1152-task-grid">
-        <article class="rc1152-task-card"><h2>Aufgabe</h2><p>${esc(description)}</p></article>
-        <article class="rc1152-task-card"><h2>Fälligkeit</h2><strong>${esc(detailDue(t))}</strong><p>${esc(recurrence)}</p></article>
-        <article class="rc1152-task-card"><h2>Verantwortlich</h2><strong>${esc(t.effectiveAssignee||t.originalAssignee||'Nicht zugewiesen')}</strong><p>Priorität ${esc(t.priority||'P4')}</p></article>
-        ${checklist.length?`<article class="rc1152-task-card rc1152-task-checklist"><h2>Kunden / Prüfpunkte</h2><ul>${checklist.map(item=>`<li>${esc(item)}</li>`).join('')}</ul></article>`:''}
-        ${shipmentTarget?`<article class="rc1152-task-card"><h2>Zugehörige Sendung</h2><strong>${esc(shipmentTarget)}</strong><button type="button" class="btn primary" data-task-action="shipment">Sendung öffnen</button></article>`:''}
+        <article class="rc1152-task-card"><h2>${esc(tr('taskDetail.task'))}</h2><p>${esc(description)}</p></article>
+        <article class="rc1152-task-card"><h2>${esc(tr('taskDetail.due'))}</h2><strong>${esc(detailDue(t))}</strong><p>${esc(recurrence)}</p></article>
+        <article class="rc1152-task-card"><h2>${esc(tr('taskDetail.owner'))}</h2><strong>${esc(t.effectiveAssignee||t.originalAssignee||tr('taskDetail.unassigned'))}</strong><p>${esc(tr('taskDetail.priority',{priority:t.priority||'P4'}))}</p></article>
+        ${checklist.length?`<article class="rc1152-task-card rc1152-task-checklist"><h2>${esc(tr('taskDetail.checkpoints'))}</h2><ul>${checklist.map(item=>`<li>${esc(item)}</li>`).join('')}</ul></article>`:''}
+        ${shipmentTarget?`<article class="rc1152-task-card"><h2>${esc(tr('taskDetail.relatedShipment'))}</h2><strong>${esc(shipmentTarget)}</strong><button type="button" class="btn primary" data-task-action="shipment">${esc(tr('taskDetail.openShipment'))}</button></article>`:''}
       </div>
       <footer class="rc1152-task-actions">
-        <button type="button" class="btn" data-task-action="back">Zurück</button>
-        ${!isReference?`<button type="button" class="btn" data-task-action="open" ${t.status==='open'?'disabled':''}>Offen</button>
-        <button type="button" class="btn" data-task-action="in_progress" ${t.status==='in_progress'?'disabled':''}>In Bearbeitung</button>
-        <button type="button" class="btn primary" data-task-action="done" aria-label="Als erledigt markieren" ${t.status==='done'?'disabled':''}>Erledigt</button>`:''}
+        <button type="button" class="btn" data-task-action="back">${esc(tr('taskDetail.back'))}</button>
+        ${!isReference?`<button type="button" class="btn" data-task-action="open" ${t.status==='open'?'disabled':''}>${esc(tr('taskDetail.status.open'))}</button>
+        <button type="button" class="btn" data-task-action="in_progress" ${t.status==='in_progress'?'disabled':''}>${esc(tr('taskDetail.status.inProgress'))}</button>
+        <button type="button" class="btn primary" data-task-action="done" aria-label="${esc(tr('taskDetail.markDone'))}" ${t.status==='done'?'disabled':''}>${esc(tr('taskDetail.status.done'))}</button>`:''}
       </footer>
     </div>`;
   }
@@ -353,7 +358,7 @@
     const panel=doc.createElement('section');
     panel.id='rc1152TaskDetail';panel.className='rc1152-task-detail';panel.setAttribute('data-rc1179-task-view','1');
     if(!raw){
-      panel.innerHTML='<div class="rc1152-task-shell"><header class="rc1152-task-header"><div><span class="rc1152-task-eyebrow">Aufgaben</span><h1>Aufgabenansicht</h1></div></header><article class="rc1152-task-card"><h2>Keine Aufgabe geöffnet</h2><p>Öffne zuerst im Reiter „Aufgaben“ eine Aufgabe. Sie wird anschließend hier angezeigt.</p><button type="button" class="btn primary" data-task-action="back">Zu den Aufgaben</button></article></div>';
+      panel.innerHTML='<div class="rc1152-task-shell"><header class="rc1152-task-header"><div><span class="rc1152-task-eyebrow">'+esc(tr('taskDetail.area'))+'</span><h1>'+esc(tr('taskDetail.title'))+'</h1></div></header><article class="rc1152-task-card"><h2>'+esc(tr('taskDetail.noneTitle'))+'</h2><p>'+esc(tr('taskDetail.noneText'))+'</p><button type="button" class="btn primary" data-task-action="back">'+esc(tr('taskDetail.toTasks'))+'</button></article></div>';
       panel.addEventListener('click',event=>{const btn=event.target&&event.target.closest&&event.target.closest('[data-task-action="back"]');if(btn)closeTaskDetail(false);});
       host.appendChild(panel);return true;
     }
@@ -391,17 +396,17 @@
   }
 
   function dueLabel(bucket,dueAt){
-    if(bucket==='overdue')return 'Überfällig';
-    if(bucket==='today')return 'Heute';
-    if(bucket==='future')return q(dueAt)||'Zukünftig';
-    return 'Ohne Termin';
+    if(bucket==='overdue')return tr('taskDetail.due.overdue');
+    if(bucket==='today')return tr('taskDetail.due.today');
+    if(bucket==='future')return q(dueAt)||tr('taskDetail.due.future');
+    return tr('taskDetail.due.none');
   }
 
   function taskCardMeta(task,ctx={}){
     const lifecycle=api();
     const t=lifecycle.normalizeTask(task||{},ctx);
     const bucket=lifecycle.dueBucket(t,ctx.now);
-    return {priority:t.priority,dueBucket:bucket,dueAt:t.dueAt,dueLabel:dueLabel(bucket,t.dueAt),assignee:t.effectiveAssignee||t.originalAssignee||'Nicht zugewiesen',sourceRef:t.sourceRef,group:t.group};
+    return {priority:t.priority,dueBucket:bucket,dueAt:t.dueAt,dueLabel:dueLabel(bucket,t.dueAt),assignee:t.effectiveAssignee||t.originalAssignee||tr('taskDetail.unassigned'),sourceRef:t.sourceRef,group:t.group};
   }
 
   function cardTask(card,tasks){
@@ -432,12 +437,12 @@
       let row=card.querySelector&&card.querySelector('.rc1014-task-meta');
       if(!row){row=doc.createElement('div');row.className='rc1014-task-meta';if(typeof card.appendChild==='function')card.appendChild(row);}
       row.textContent='';
-      row.appendChild(createSpan(doc,'rc1014-priority','data-rc1014-priority',meta.priority,`Priorität ${meta.priority}`));
-      row.appendChild(createSpan(doc,'rc1014-due','data-rc1014-due',meta.dueBucket,`Fällig: ${meta.dueLabel}`));
-      row.appendChild(createSpan(doc,'rc1014-assignee','data-rc1014-assignee',meta.assignee,`Verantwortlich: ${meta.assignee}`));
+      row.appendChild(createSpan(doc,'rc1014-priority','data-rc1014-priority',meta.priority,tr('taskDetail.priority',{priority:meta.priority})));
+      row.appendChild(createSpan(doc,'rc1014-due','data-rc1014-due',meta.dueBucket,tr('taskDetail.dueLabel',{due:meta.dueLabel})));
+      row.appendChild(createSpan(doc,'rc1014-assignee','data-rc1014-assignee',meta.assignee,tr('taskDetail.ownerLabel',{owner:meta.assignee})));
       let button=card.querySelector&&card.querySelector('[data-rc1014-open-task]');
       if(!button){
-        button=doc.createElement('button');button.type='button';button.className='btn primary rc1014-open-task';button.setAttribute('data-rc1014-open-task','1');button.textContent='Aufgabe öffnen';
+        button=doc.createElement('button');button.type='button';button.className='btn primary rc1014-open-task';button.setAttribute('data-rc1014-open-task','1');button.textContent=tr('taskDetail.openTask');
         button.addEventListener('click',event=>{if(event&&typeof event.preventDefault==='function')event.preventDefault();if(event&&typeof event.stopPropagation==='function')event.stopPropagation();openTask(task,ctx);});
         if(typeof card.appendChild==='function')card.appendChild(button);
       }
@@ -568,6 +573,7 @@
   }
 
   if(root.addEventListener){
+    root.addEventListener('exporthub:language-changed',()=>{scheduleEnhance();try{if(root.document&&root.document.body&&root.document.body.getAttribute('data-exporthub-task-detail')==='open')renderTaskDetailView(null,lastContext);}catch(_){}});
     ['exporthub:rendered','exporthub:viewchange','exporthub:tasks-updated'].forEach(name=>root.addEventListener(name,scheduleEnhance));
     root.addEventListener('DOMContentLoaded',installLazyCardObserver,{once:true});
   }

@@ -21,7 +21,8 @@ test('RC1002 Website-App-Brücke: nur Global Admin erhält deduplizierte Diagnos
   assert.match(src,/channel:'diagnostic'/);
   assert.match(src,/route:'diagnostics'/);
   assert.match(src,/exporthub-native-notify:/);
-  assert.match(src,/ExportHUB Fehlerdiagnose/);
+  assert.match(src,/tr\('android\.diagnosticTitle'/);
+  assert.match(src,/ExportHUB Diagnostics/);
   assert.match(src,/cloud\.refresh/);
   assert.match(src,/recentRecords/);
   assert.match(src,/exporthub-native-diagnostic-last/);

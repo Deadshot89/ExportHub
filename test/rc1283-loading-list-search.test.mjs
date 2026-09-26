@@ -6,6 +6,7 @@ import vm from 'node:vm';
 const runtime=fs.readFileSync('assets/rc1283-loading-list-search.js','utf8');
 const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
 const e2e=fs.readFileSync('e2e/specs/print-documents.spec.mjs','utf8');
+const loadingListI18n=Object.fromEntries(['de','en','pl','es','fr','it'].map(lang=>[lang,JSON.parse(fs.readFileSync(`assets/i18n/${lang}.json`,'utf8'))]));
 
 function api(){
   const document={readyState:'loading',addEventListener(){},querySelectorAll(){return[]},getElementById(){return null},documentElement:null};
@@ -31,13 +32,23 @@ test('RC1283: Mehrwortsuche filtert nur passende Ladelisten',()=>{
 });
 
 test('RC1283: Runtime ersetzt die Dropdown-Bedienung und bietet drei direkte Aktionen',()=>{
-  assert.match(runtime,/Ladeliste suchen/);
+  assert.match(runtime,/tr\('loadingList\.title'\)/);
   assert.match(runtime,/data-rc1283-native-select/);
   assert.match(runtime,/style\.setProperty\('display','none','important'\)/);
   for(const action of ['open','print','download'])assert.ok(runtime.includes("['"+action+"'")||runtime.includes("'"+action+"'"),action+' fehlt');
   assert.match(runtime,/download-load1/);
   assert.match(runtime,/__EXPORTHUB_RC1283_OPEN_LOAD1__/);
   assert.match(runtime,/__EXPORTHUB_RC1283_DOWNLOAD_LOAD1__/);
+});
+
+
+test('RC1287: Ladelistensuche ist in allen sechs Anwendungssprachen vollständig belegt',()=>{
+  const keys=['loadingList.title','loadingList.description','loadingList.placeholder','loadingList.selected','loadingList.noneSelected','loadingList.hint','loadingList.noResults'];
+  for(const [lang,dict] of Object.entries(loadingListI18n)){
+    for(const key of keys)assert.ok(String(dict[key]||'').trim(),lang+': '+key+' fehlt');
+  }
+  assert.equal(loadingListI18n.de['loadingList.title'],'Ladeliste suchen');
+  assert.equal(loadingListI18n.en['loadingList.title'],'Search loading list');
 });
 
 test('RC1283: Drei-Umgebungen-Build injiziert Runtime und vorhandene Ladelisten-Pfade',()=>{
