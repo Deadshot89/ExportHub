@@ -6,7 +6,7 @@ import vm from 'node:vm';
 const FLOW=fs.readFileSync('assets/rc1015-lieferavis-mail-flow.js','utf8');
 const FIX=fs.readFileSync('assets/rc1027-lieferavis-immediate.js','utf8');
 
-function load(shipment,{reference='',link='https://example.test/customer-avis.html?token=abc'}={}){
+function load(shipment,{reference='',link='https://example.test/customer-avis.html?token=abc',customers=[]}={}){
   const windowListeners=new Map();
   const documentListeners=new Map();
   const toggles=[];
@@ -25,7 +25,7 @@ function load(shipment,{reference='',link='https://example.test/customer-avis.ht
     getAttribute(k){return this.attrs[k]||''},setAttribute(k,v){this.attrs[k]=String(v)},
     querySelector(){return{textContent:'Aktivieren',disabled:false}},querySelectorAll(){return[]}
   };
-  const state={currentShipment:shipment,shipment,shipments:[]};
+  const state={currentShipment:shipment,shipment,shipments:[],customers};
   const document={
     readyState:'complete',
     querySelectorAll(selector){return selector==='#content input'?[referenceInput,customerInput]:[]},
@@ -179,4 +179,32 @@ test('RC1291: normale Kunden behalten den Lieferavis-Link in Kunden-, Speditions
     const out=api.injectMailBody(shipment,target,expandedDetails,'de');
     assert.match(out,/customer-avis\.html/i,target+': normaler Kunde muss den Avis-Link behalten');
   }
+});
+
+
+test('RC1292: Plica-Mail an Holenstein erhält keinen Avis-Link, andere Empfänger bleiben unverändert',()=>{
+  const customers=[{
+    id:'P1',name:'Plica',
+    carrierEmail:'dispo@holenstein.de',
+    carrierContacts:[{name:'Disposition | Holenstein GmbH',email:'dispo@holenstein.de'}],
+    customerEmail:'plica@example.com'
+  }];
+  const shipment={reference:'7RZ5W9',customerId:'P1',customerName:'Plica',customerAvisEnabled:true,customerAvisToken:'server-token',status:'Entwurf'};
+  const {api}=load(shipment,{reference:'7RZ5W9',customers});
+
+  const carrier=api.injectMailBody(shipment,'carrier',expandedDetails,'de');
+  assert.doesNotMatch(carrier,/customer-avis\.html|Lieferavis:\s*https?:\/\//i,'Holenstein-Speditionsmail darf keinen Avis-Link enthalten');
+
+  const own=api.injectMailBody(shipment,'own',expandedDetails,'de');
+  assert.doesNotMatch(own,/customer-avis\.html|Lieferavis:\s*https?:\/\//i,'Eigene Mail mit Holenstein als möglichem Empfänger darf keinen Avis-Link enthalten');
+
+  const customer=api.injectMailBody(shipment,'customer',expandedDetails,'de');
+  assert.match(customer,/customer-avis\.html/i,'Plica-Kundenmail an andere Adresse muss den Avis-Link behalten');
+});
+
+test('RC1292: direkte Holenstein-Adresse auf der Sendung greift ohne Kundenstamm',()=>{
+  const shipment={reference:'7RZ5W9',customerName:'Beliebiger Kunde',carrierMail:'Disposition | Holenstein GmbH <dispo@holenstein.de>',customerAvisEnabled:true,customerAvisToken:'server-token',status:'Entwurf'};
+  const {api}=load(shipment,{reference:'7RZ5W9'});
+  const out=api.injectMailBody(shipment,'carrier',expandedDetails,'de');
+  assert.doesNotMatch(out,/customer-avis\.html|Lieferavis:\s*https?:\/\//i);
 });
