@@ -75,5 +75,5 @@ test('RC1295: Runtime und deutsche Locale liefern die vom Gate geprüften Schlü
 });
 
 test('RC1295: AVIS-Mail-Gate prüft den API-i18n-Vertrag',()=>{
-  assert.match(workflow,/grep -q '\\"api\\.avis\\.mailPassed\\"' api\/shared\/i18n\/de\.json/);
+  assert.ok(workflow.includes("grep -q '\"api.avis.mailPassed\"' api/shared/i18n/de.json"));
 });
