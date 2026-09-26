@@ -102,7 +102,7 @@ async function analyzeFile(file){
 async function start(){
  if(busy)return false;var p=panel(),input=p&&p.querySelector('[data-rc1294-files]'),button=p&&p.querySelector('[data-rc1294-start]'),files=Array.from(input&&input.files||[]);
  clearStatus();var out=resultBox();if(out){out.hidden=true;out.innerHTML=''}
- if(!files.length){setStatus(tr('api.abdAnalysis.fileRequired',null,'Bitte Dateien auswählen.'),'bad');return false}
+ if(!files.length){setStatus(tr('abd.analysis.fileRequired',null,'Bitte Dateien auswählen.'),'bad');return false}
  if(files.length>5){setStatus(tr('abd.analysis.fileLimit',null,'Maximal 5 Dateien pro Auswertung.'),'bad');return false}
  busy=true;if(button)button.disabled=true;lastPositions=[];lastResults=[];
  try{
