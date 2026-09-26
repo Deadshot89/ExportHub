@@ -9,7 +9,7 @@ test('RC1041 Deployvertrag prüft Gate41 v1041 in allen drei Umgebungen',()=>{
   assert.doesNotMatch(workflow,/rc1013-gate41-ui\.js\?v=1013/);
 });
 
-test('RC1041 Liveprüfung erwartet die nationale Gate41-Erfolgsmeldung',()=>{
-  const hits=workflow.match(/Gate41-Preis Deutschland berechnet/g)||[];
+test('RC1041 Liveprüfung erwartet den i18n-Vertrag der nationalen Gate41-Erfolgsmeldung',()=>{
+  const hits=workflow.match(/gate41\.calculated/g)||[];
   assert.equal(hits.length,2);
 });
