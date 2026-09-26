@@ -250,5 +250,16 @@
   "api.container.photoLabel.loaded": "Loaded container",
   "api.container.photoLabel.number": "Container number from inside",
   "api.container.photoLabel.sealed": "Sealed container · seal/markings/documents",
-  "api.fixedPickups.failed": "Fixed pickups could not be processed."
+  "api.fixedPickups.failed": "Fixed pickups could not be processed.",
+  "api.abdAnalysis.fileRequired": "Please select a PDF, XLSX or CSV file.",
+  "api.abdAnalysis.fileType": "Only PDF, XLSX and CSV files are allowed for export declaration analysis.",
+  "api.abdAnalysis.fileTooLarge": "The file is too large. The maximum size is {{max}} MB.",
+  "api.abdAnalysis.fileInvalid": "The file is damaged or does not match the declared file type.",
+  "api.abdAnalysis.uploadInvalid": "The upload ID is invalid.",
+  "api.abdAnalysis.uploadExpired": "The temporary export declaration upload has expired. Please select the file again.",
+  "api.abdAnalysis.malware": "The file was detected as malicious and was not analysed.",
+  "api.abdAnalysis.scanFailed": "The file could not be safely scanned for malware and was not analysed.",
+  "api.abdAnalysis.failed": "The export declaration file could not be analysed.",
+  "api.abdAnalysis.forbidden": "Edit permission for the export declaration area is required for this analysis.",
+  "api.abdAnalysis.actionInvalid": "Unknown export declaration analysis action."
 }
