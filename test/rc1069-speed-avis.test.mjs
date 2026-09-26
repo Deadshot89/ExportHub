@@ -98,7 +98,7 @@ test('RC1069: Draft-Sync Endpoint aktualisiert Snapshot ohne Team-Blob zu lesen 
 test('RC1069: alter Speichern-Hinweis ist entfernt und Browser laden frischen Avis-Cache-Key',()=>{
   assert.doesNotMatch(MAIL,/Link wird beim ersten sicheren Speichern erstellt/);
   assert.match(MAIL,/avisFlow\.activeHelp/);
-  assert.match(FIXER,/rc1027-lieferavis-immediate\.js\?v=1069/);
+  assert.match(FIXER,/rc1027-lieferavis-immediate\.js\?v=1291/);
   assert.doesNotMatch(FIXER,/rc1027-lieferavis-immediate\.js\?v=1052/);
 });
 
