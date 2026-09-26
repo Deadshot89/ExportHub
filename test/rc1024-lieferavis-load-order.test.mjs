@@ -10,7 +10,7 @@ test('RC1024: geschützter Lieferavis-Mailflow lädt vor der unveränderten Spra
   execFileSync(process.execPath,['.github/rc1018/build-three-env.mjs'],{cwd:ROOT,stdio:'pipe'});
   for(const file of ['index.html','TESTVERSION.html','demo.html']){
     const html=fs.readFileSync(path.join(ROOT,'dist-rc1018',file),'utf8');
-    const guard=html.indexOf('assets/rc1015-lieferavis-mail-flow.js?v=1021');
+    const guard=html.indexOf('assets/rc1015-lieferavis-mail-flow.js?v=1291');
     const language=html.indexOf('assets/rc1018-mail-language-standard.js?v=1018');
     assert.ok(guard>=0,`${file}: geschützter Lieferavis-Flow fehlt.`);
     assert.ok(language>=0,`${file}: Sprachruntime fehlt.`);
