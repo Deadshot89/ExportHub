@@ -209,8 +209,8 @@ jobs:
           test -s dist-rc1112/migration-recovery.html
           grep -q 'Dokumentspeicher wird optimiert' dist-rc1112/migration-recovery.html
           grep -q 'assets/rc1014-task-runtime.js?v=1266' dist-rc1112/index.html
-          grep -q 'assets/rc1014-shipment-overview.js?v=1127' dist-rc1112/index.html
-          grep -q 'assets/rc1014-shipment-overview.css?v=1127' dist-rc1112/index.html
+          grep -q 'assets/rc1014-shipment-overview.js?v=1284' dist-rc1112/index.html
+          grep -q 'assets/rc1014-shipment-overview.css?v=1284' dist-rc1112/index.html
           test -s dist-rc1112/assets/rc1014-shipment-overview.js
           test -s dist-rc1112/assets/rc1014-shipment-overview.css
           grep -q 'customerAvisPickupDate' dist-rc1112/assets/rc1014-shipment-overview.js
