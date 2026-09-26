@@ -250,5 +250,16 @@
   "api.container.photoLabel.loaded": "Contenedor cargado",
   "api.container.photoLabel.number": "Número del contenedor desde el interior",
   "api.container.photoLabel.sealed": "Contenedor precintado · precinto/marcajes/documentos",
-  "api.fixedPickups.failed": "No se pudieron procesar las recogidas fijas."
+  "api.fixedPickups.failed": "No se pudieron procesar las recogidas fijas.",
+  "api.abdAnalysis.fileRequired": "Seleccione un archivo PDF, XLSX o CSV.",
+  "api.abdAnalysis.fileType": "Para el análisis de la declaración de exportación solo se permiten archivos PDF, XLSX y CSV.",
+  "api.abdAnalysis.fileTooLarge": "El archivo es demasiado grande. El tamaño máximo es {{max}} MB.",
+  "api.abdAnalysis.fileInvalid": "El archivo está dañado o no coincide con el tipo indicado.",
+  "api.abdAnalysis.uploadInvalid": "El identificador de carga no es válido.",
+  "api.abdAnalysis.uploadExpired": "La carga temporal ha caducado. Seleccione el archivo de nuevo.",
+  "api.abdAnalysis.malware": "El archivo fue detectado como malicioso y no se analizó.",
+  "api.abdAnalysis.scanFailed": "No se pudo analizar el archivo de forma segura contra malware.",
+  "api.abdAnalysis.failed": "No se pudo analizar el archivo de la declaración de exportación.",
+  "api.abdAnalysis.forbidden": "Se requiere permiso de edición en el área ABD para realizar el análisis.",
+  "api.abdAnalysis.actionInvalid": "Acción de análisis ABD desconocida."
 }
