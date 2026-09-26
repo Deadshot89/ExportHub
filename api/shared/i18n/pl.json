@@ -250,5 +250,16 @@
   "api.container.photoLabel.loaded": "Załadowany kontener",
   "api.container.photoLabel.number": "Numer kontenera od wewnątrz",
   "api.container.photoLabel.sealed": "Zaplombowany kontener · plomba/oznaczenia/dokumenty",
-  "api.fixedPickups.failed": "Nie udało się przetworzyć stałych odbiorów."
+  "api.fixedPickups.failed": "Nie udało się przetworzyć stałych odbiorów.",
+  "api.abdAnalysis.fileRequired": "Wybierz plik PDF, XLSX lub CSV.",
+  "api.abdAnalysis.fileType": "Do analizy zgłoszenia wywozowego dozwolone są tylko pliki PDF, XLSX i CSV.",
+  "api.abdAnalysis.fileTooLarge": "Plik jest za duży. Maksymalny rozmiar to {{max}} MB.",
+  "api.abdAnalysis.fileInvalid": "Plik jest uszkodzony lub nie odpowiada zadeklarowanemu typowi.",
+  "api.abdAnalysis.uploadInvalid": "Identyfikator przesyłania jest nieprawidłowy.",
+  "api.abdAnalysis.uploadExpired": "Tymczasowy plik do analizy wygasł. Wybierz go ponownie.",
+  "api.abdAnalysis.malware": "Plik został wykryty jako szkodliwy i nie został przeanalizowany.",
+  "api.abdAnalysis.scanFailed": "Nie udało się bezpiecznie przeskanować pliku pod kątem złośliwego oprogramowania.",
+  "api.abdAnalysis.failed": "Nie udało się przeanalizować pliku zgłoszenia wywozowego.",
+  "api.abdAnalysis.forbidden": "Do analizy wymagane jest prawo edycji w obszarze ABD.",
+  "api.abdAnalysis.actionInvalid": "Nieznana akcja analizy ABD."
 }
