@@ -195,9 +195,9 @@ jobs:
           grep -q '__EXPORTHUB_RC1126_CUSTOMER_DELETE__' dist-rc1112/assets/rc1126-customer-delete.js
           grep -q "collection:'customers'" dist-rc1112/assets/rc1126-customer-delete.js
           grep -q "customerDelete.finalDelete" dist-rc1112/assets/rc1126-customer-delete.js
-          grep -q '"'"'"customerDelete.finalDelete"'"'"': "'"'"Endgültig löschen"'"'"'' dist-rc1112/assets/i18n/de.json
+          grep -Fq '"customerDelete.finalDelete": "Endgültig löschen"' dist-rc1112/assets/i18n/de.json
           grep -q "diagnostics.fixWithChatgpt" dist-rc1112/assets/rc1013-diagnostics.js
-          grep -q '"'"'"diagnostics.fixWithChatgpt"'"'"': "'"'"Mit ChatGPT beheben"'"'"'' dist-rc1112/assets/i18n/de.json
+          grep -Fq '"diagnostics.fixWithChatgpt": "Mit ChatGPT beheben"' dist-rc1112/assets/i18n/de.json
           grep -q '__EXPORTHUB_RC1125_DIAGNOSTICS_VIEW_ISOLATION__' dist-rc1112/assets/rc1013-diagnostics.js
           grep -q '/api/diagnostic-autofix' dist-rc1112/assets/rc1013-diagnostics.js
           grep -q "view:'history',label:'Historie',right:'history'" dist-rc1112/index.html
@@ -241,7 +241,7 @@ jobs:
           test -s dist-rc1112/assets/rc1113-stowplan-persist.js
           grep -q '__EXPORTHUB_RC1113_STOWPLAN_PERSIST__' dist-rc1112/assets/rc1113-stowplan-persist.js
           grep -q "stowplan.instructionTitle" dist-rc1112/assets/rc1113-stowplan-persist.js
-          grep -q '"'"'"stowplan.instructionTitle"'"'"': "'"'"Ladeanweisung"'"'"'' dist-rc1112/assets/i18n/de.json
+          grep -Fq '"stowplan.instructionTitle": "Ladeanweisung"' dist-rc1112/assets/i18n/de.json
           grep -q 'stowPlanSnapshot' dist-rc1112/assets/rc1113-stowplan-persist.js
           for file in index.html TESTVERSION.html demo.html; do
             grep -q 'assets/rc1114-shipping-neutral.js?v=1114' "dist-rc1112/$file"
@@ -254,8 +254,7 @@ jobs:
           grep -q 'document-upload-status' dist-rc1112/customer-avis.html
           grep -q 'Microsoft Defender for Storage' dist-rc1112/customer-avis.html
           grep -q 'id="customerPdfDocumentType"' dist-rc1112/customer-avis.html
-          grep -q "api.avis.mailPassed" api/customer-avis/index.js
-          grep -q '"'"'"api.avis.mailPassed"'"'"'' api/shared/i18n/de.json
+          grep -Fq '"api.avis.mailPassed":' api/shared/i18n/de.json
           test -s api/shared/customer-avis-document-content.js
           grep -q "pdf-parse" api/package.json
           grep -q 'PDF_SHIPMENT_MISMATCH' api/shared/customer-avis-document-content.js
@@ -269,9 +268,9 @@ jobs:
           done
           test -s dist-rc1112/assets/rc1133-avis-upload-notifications.js
           grep -q "avisUploads.noticeTitle" dist-rc1112/assets/rc1133-avis-upload-notifications.js
-          grep -q '"'"'"avisUploads.noticeTitle"'"'"'' dist-rc1112/assets/i18n/de.json
+          grep -Fq '"avisUploads.noticeTitle":' dist-rc1112/assets/i18n/de.json
           grep -q "avisUploads.openPrint" dist-rc1112/assets/rc1133-avis-upload-notifications.js
-          grep -q '"'"'"avisUploads.openPrint"'"'"': "'"'"PDF öffnen / drucken"'"'"'' dist-rc1112/assets/i18n/de.json
+          grep -Fq '"avisUploads.openPrint": "PDF öffnen / drucken"' dist-rc1112/assets/i18n/de.json
           grep -q "type:'customer-avis-document'" api/customer-avis/index.js
           test -s api/shared/customer-avis-pdf-security.js
           grep -q 'AVIS_QUARANTINE_CONTAINER' api/customer-avis/index.js
