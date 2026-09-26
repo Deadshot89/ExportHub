@@ -35,6 +35,21 @@ function injectDeferredRuntimeInHead(html,tag,id){
   if(idx<0)throw new Error((id||'Script')+': äußerer </head>-Anker fehlt');
   return html.slice(0,idx)+tag+'\n'+html.slice(idx);
 }
+function injectImmediateRuntimeAfterHead(html,tag,id){
+  if(id&&(html.includes('id="'+id+'"')||html.includes("id='"+id+"'")))return html;
+  const headOpen=/<head\b[^>]*>/i.exec(html);
+  if(!headOpen)throw new Error((id||'Script')+': äußerer <head>-Anker fehlt');
+  const at=headOpen.index+headOpen[0].length;
+  return html.slice(0,at)+'\n'+tag+html.slice(at);
+}
+function patchRc1289AuthTransportFallback(html,file){
+  if(file==='demo.html')return html;
+  const tag='<script id="exporthub-rc1289-auth-transport-fallback" src="/assets/rc1289-auth-transport-fallback.js?v=1289"></script>';
+  html=injectImmediateRuntimeAfterHead(html,tag,'exporthub-rc1289-auth-transport-fallback');
+  const at=html.indexOf(tag),headEnd=html.toLowerCase().indexOf('</head>');
+  if(at<0||headEnd<0||at>headEnd)throw new Error(file+': RC1289 Auth-Fallback nicht früh im Head geladen');
+  return html;
+}
 
 function patchRc1206ShippingRules(html,file){
   return injectDeferredRuntimeInHead(html,RC1206_SHIPPING_TAG,RC1206_SHIPPING_ID);
@@ -326,6 +341,7 @@ function patchRc1283LoadingListSearch(html,file){
 function patchHtml(file){
   const target=path.join(OUT,file);
   let html=fs.readFileSync(target,'utf8');
+  html=patchRc1289AuthTransportFallback(html,file);
   html=patchDemoTestPortalIsolation(html,file);
   html=patchAuthSessionTimeout(html,file);
   html=patchMainCountryDetection(html,file);
@@ -380,6 +396,7 @@ function patchHtml(file){
   if(!html.includes(CURRENT_TESTSERVICE_HOST))throw new Error(file+': aktueller TESTSERVICE-Endpunkt fehlt');
   if(!html.includes(`version:'${VERSION}'`))throw new Error(file+': BUILD '+VERSION+' fehlt');
   if(!html.includes(`ExportHUB ${VERSION} environment=`))throw new Error(file+': Environment '+VERSION+' fehlt');
+  if(file!=='demo.html'&&!html.includes('assets/rc1289-auth-transport-fallback.js?v=1289'))throw new Error(file+': RC1289 Desktop-Auth-Fallback fehlt');
   if(!html.includes('assets/rc1074-login-clean.js?v=1112'))throw new Error(file+': RC1112 ABD/Login Cache-Key fehlt');
   if(!html.includes('assets/rc1014-task-runtime.js?v=1266'))throw new Error(file+': RC1266 Aufgaben-Runtime Cache-Key fehlt');
   if(!html.includes('assets/rc1014-task-ui.css?v=1179'))throw new Error(file+': RC1152 Aufgaben-CSS Cache-Key fehlt');
@@ -442,6 +459,7 @@ for(const rel of [
   'assets/rc1176-shipment-location.js',
   'assets/rc1203-deckblatt-print.js',
   'assets/rc1283-loading-list-search.js',
+  'assets/rc1289-auth-transport-fallback.js',
   'assets/rc1177-release-notes.js',
   'assets/rc1193-visible-release.js'
 ]){
