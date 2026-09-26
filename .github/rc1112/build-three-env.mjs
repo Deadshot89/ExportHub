@@ -25,6 +25,25 @@ const CURRENT_TESTSERVICE_HOST='ashy-grass-065b7b803-testservice.westeurope.6.az
 const RC1267_I18N_TAG='<script id="exporthub-rc1267-i18n" defer src="/assets/rc1267-i18n.js?v=1267"></script>';
 const RC1206_SHIPPING_ID='exporthub-rc1206-shipping-rules';
 const RC1206_SHIPPING_TAG='<script id="'+RC1206_SHIPPING_ID+'" defer src="/assets/rc1206-shipping-rules.js?v=1266"></script>';
+const RC1296_BROWSER_TITLE='ExportHUB360';
+const RC1296_FAVICON_TAG='<link id="exporthub360-favicon" rel="icon" type="image/svg+xml" href="/assets/exporthub360-favicon.svg?v=1296">';
+
+function patchRc1296BrowserBranding(html,file){
+  if(file!=='index.html')return html;
+  const headOpen=/<head\\b[^>]*>/i.exec(html);
+  if(!headOpen)throw new Error(file+': RC1296 äußerer <head>-Anker fehlt');
+  const start=headOpen.index+headOpen[0].length;
+  const end=html.toLowerCase().indexOf('</head>',start);
+  if(end<0)throw new Error(file+': RC1296 äußerer </head>-Anker fehlt');
+  let head=html.slice(start,end);
+  const title=/<title\\b[^>]*>[\\s\\S]*?<\\/title>/i;
+  head=title.test(head)?head.replace(title,'<title>'+RC1296_BROWSER_TITLE+'</title>'):'<title>'+RC1296_BROWSER_TITLE+'</title>\\n'+head;
+  if(!head.includes('id="exporthub360-favicon"'))head+='\\n'+RC1296_FAVICON_TAG+'\\n';
+  html=html.slice(0,start)+head+html.slice(end);
+  if(!html.includes('<title>'+RC1296_BROWSER_TITLE+'</title>'))throw new Error(file+': RC1296 Browser-Titel fehlt');
+  if(!html.includes(RC1296_FAVICON_TAG))throw new Error(file+': RC1296 Favicon fehlt');
+  return html;
+}
 
 function injectDeferredRuntimeInHead(html,tag,id){
   if(id&&(html.includes('id="'+id+'"')||html.includes("id='"+id+"'")))return html;
@@ -357,6 +376,7 @@ function patchHtml(file){
   html=patchDeckblattHighVisibility(html,file);
   html=patchRc1203ActualDeckblatt(html,file);
   html=patchShipmentSuspendSave(html,file);
+  html=patchRc1296BrowserBranding(html,file);
   html=html.replace(/ExportHUB RC1048 environment=/g,`ExportHUB ${VERSION} environment=`);
   html=html.replace(
     /var BUILD=Object\.freeze\(\{version:'RC1048',cache:'1048',loginReturn:'([^']*)'\}\);/,
@@ -467,7 +487,8 @@ for(const rel of [
   'assets/rc1289-auth-transport-fallback.js',
   'assets/rc1294-abd-self-service.js',
   'assets/rc1177-release-notes.js',
-  'assets/rc1193-visible-release.js'
+  'assets/rc1193-visible-release.js',
+  'assets/exporthub360-favicon.svg'
 ]){
   const src=path.join(ROOT,rel),dst=path.join(OUT,rel);
   if(!fs.existsSync(src))throw new Error('RC1124 Pflicht-Runtime fehlt: '+rel);
