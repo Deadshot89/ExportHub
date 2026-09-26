@@ -14,6 +14,7 @@ function allowed(user){
  return !!(r&&(r.edit===true||r.admin===true||r.functionAdmin===true||r.level==='edit'||r.level==='admin'))
 }
 function validEmail(v){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text(v))}
+function avisRecipientExcluded(v){return lower(v)==='dispo@holenstein.de'}
 const PRODUCTION_PUBLIC_HOST=lower(process.env.EXPORTHUB_PRODUCTION_PUBLIC_HOST||'wonderful-forest-0f315e310.7.azurestaticapps.net');
 const TESTSERVICE_PUBLIC_HOST=lower(process.env.EXPORTHUB_TESTSERVICE_PUBLIC_HOST||'ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net');
 function safeAvisUrl(req,value){
@@ -104,13 +105,14 @@ module.exports=async function(context,req){
   const p=payload(req),id=text(p.shipmentId).toUpperCase(),ref=text(p.reference).toUpperCase(),to=text(p.recipient),target=lower(p.target)==='carrier'?'carrier':'customer',lang=normalizeLanguage(p.language);
   if(!ref||ref.length>40)throw auth.error('REFERENCE_INVALID','Die Sendungsreferenz ist ungültig.',400);
   if(!validEmail(to))throw auth.error('MAIL_RECIPIENT_INVALID','Die Empfängeradresse ist ungültig.',400);
+  if(avisRecipientExcluded(to))throw auth.error('AVIS_RECIPIENT_EXCLUDED','Für dispo@holenstein.de darf kein Lieferavis-Link versendet werden.',409);
   const url=safeAvisUrl(req,p.avisUrl),sub=subject(ref,target,lang),content=body(ref,target,lang,url);
   const sent=await graphMail.sendTextMail({to,subject:sub,body:content});
   const event=historyEvent(current,ref,to,sub,target,lang);
   await record(req,current,id,ref,event);
-  context.res=response(200,{ok:true,version:'RC1207',reference:ref,recipient:to,subject:sub,sentAt:event.at,historyId:event.id,attempts:sent.attempts})
+  context.res=response(200,{ok:true,version:'RC1292',reference:ref,recipient:to,subject:sub,sentAt:event.at,historyId:event.id,attempts:sent.attempts})
  }catch(e){
-  try{context.log&&context.log.error&&context.log.error('RC1207 Avis reminder mail failed',e&&e.code,e&&e.message)}catch(_){}
+  try{context.log&&context.log.error&&context.log.error('RC1292 Avis reminder mail failed',e&&e.code,e&&e.message)}catch(_){}
   context.res=response(e.status||e.statusCode||500,{ok:false,code:e.code||'MAIL_SEND_FAILED',message:e.message||'Die Avis-Erinnerung konnte nicht versendet werden.',version:'RC1207',missing:Array.isArray(e.missing)?e.missing:undefined})
  }
 };
