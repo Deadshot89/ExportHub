@@ -590,8 +590,9 @@ jobs:
             const recipient='DespatchNettetal@essentra.onmicrosoft.com';
             const ready=status===200&&v.ok===true&&v.configured===true&&v.authenticated===true&&v.audienceOk===true&&v.mailSendGranted===true&&v.environment===env&&v.recipient===recipient;
             if(ready)process.exit(0);
-            const knownMailSendBlocker=status===503&&v.ok===false&&v.configured===true&&v.authenticated===true&&v.audienceOk===true&&v.mailSendGranted===false&&v.environment===env&&v.recipientConfigured===true&&v.code==='GRAPH_MAIL_PERMISSION_MISSING';
-            if(knownMailSendBlocker){console.log('::warning title=RC1249 AVIS-Mail P2::Microsoft Graph Application Permission Mail.Send fehlt in '+env+'. Release läuft weiter; RC1255 bleibt offen.');process.exit(0)}
+            const requirement=v.requiredPermission||{};
+            const knownMailSendBlocker=status===503&&v.ok===false&&v.configured===true&&v.authenticated===true&&v.audienceOk===true&&v.mailSendGranted===false&&v.environment===env&&v.recipientConfigured===true&&v.code==='GRAPH_MAIL_PERMISSION_MISSING'&&requirement.resource==='Microsoft Graph'&&requirement.type==='Application'&&requirement.name==='Mail.Send'&&requirement.id==='b633e1c5-b582-4048-a93e-9f11b44c7e96'&&requirement.adminConsentRequired===true;
+            if(knownMailSendBlocker){console.log('::warning title=RC1290 AVIS-Mail P2::Microsoft Graph > Application > Mail.Send (b633e1c5-b582-4048-a93e-9f11b44c7e96) fehlt in '+env+'. Admin Consent erforderlich; Release läuft weiter, Mailversand bleibt offen.');process.exit(0)}
             console.error('RC1249 '+env+' readiness unerwartet',JSON.stringify({status,code:v.code,configured:v.configured,authenticated:v.authenticated,audienceOk:v.audienceOk,mailSendGranted:v.mailSendGranted,recipientConfigured:v.recipientConfigured}));
             process.exit(1);
           "
@@ -656,8 +657,9 @@ jobs:
             const recipient='DespatchNettetal@essentra.onmicrosoft.com';
             const ready=status===200&&v.ok===true&&v.configured===true&&v.authenticated===true&&v.audienceOk===true&&v.mailSendGranted===true&&v.environment===env&&v.recipient===recipient;
             if(ready)process.exit(0);
-            const knownMailSendBlocker=status===503&&v.ok===false&&v.configured===true&&v.authenticated===true&&v.audienceOk===true&&v.mailSendGranted===false&&v.environment===env&&v.recipientConfigured===true&&v.code==='GRAPH_MAIL_PERMISSION_MISSING';
-            if(knownMailSendBlocker){console.log('::warning title=RC1249 AVIS-Mail P2::Microsoft Graph Application Permission Mail.Send fehlt in '+env+'. Release läuft weiter; RC1255 bleibt offen.');process.exit(0)}
+            const requirement=v.requiredPermission||{};
+            const knownMailSendBlocker=status===503&&v.ok===false&&v.configured===true&&v.authenticated===true&&v.audienceOk===true&&v.mailSendGranted===false&&v.environment===env&&v.recipientConfigured===true&&v.code==='GRAPH_MAIL_PERMISSION_MISSING'&&requirement.resource==='Microsoft Graph'&&requirement.type==='Application'&&requirement.name==='Mail.Send'&&requirement.id==='b633e1c5-b582-4048-a93e-9f11b44c7e96'&&requirement.adminConsentRequired===true;
+            if(knownMailSendBlocker){console.log('::warning title=RC1290 AVIS-Mail P2::Microsoft Graph > Application > Mail.Send (b633e1c5-b582-4048-a93e-9f11b44c7e96) fehlt in '+env+'. Admin Consent erforderlich; Release läuft weiter, Mailversand bleibt offen.');process.exit(0)}
             console.error('RC1249 '+env+' readiness unerwartet',JSON.stringify({status,code:v.code,configured:v.configured,authenticated:v.authenticated,audienceOk:v.audienceOk,mailSendGranted:v.mailSendGranted,recipientConfigured:v.recipientConfigured}));
             process.exit(1);
           "
