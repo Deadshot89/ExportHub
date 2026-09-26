@@ -3,7 +3,7 @@
 if(root.__EXPORTHUB_RC1207_PALLET_ACCOUNT_FIX__)return;
 root.__EXPORTHUB_RC1207_PALLET_ACCOUNT_FIX__=true;
 
-var CLEANUP_DATE='2026-09-21',cleanupInFlight=false,enhanceTimer=0;
+var CLEANUP_DATE='2026-09-21',cleanupInFlight=false,cleanupAttempted=false,enhanceTimer=0;
 
 function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
 function tr(key,vars){try{if(root.ExportHUBI18n&&typeof root.ExportHUBI18n.t==='function')return root.ExportHUBI18n.t(key,vars)}catch(_){}return key}
@@ -95,6 +95,18 @@ async function persist(reason){
     await saveDelay(250)
   }
   if(!ok&&runtime&&target>0&&Number(runtime.lastSavedGeneration||0)>=target)ok=true;
+  if(ok!==true)throw new Error(tr('palletDelete.storageUnconfirmed'));
+  return true;
+}
+async function persistOnce(reason){
+  var clean=root.ExportHUBClean;
+  if(!clean||typeof clean.queueSave!=='function'||typeof clean.flushSave!=='function')throw new Error(tr('palletDelete.storageUnavailable'));
+  await Promise.resolve(clean.queueSave(reason));
+  var runtime=clean.runtime||null,target=runtime?Number(runtime.changeGeneration||0):0,deadline=Date.now()+12000;
+  while(runtime&&runtime.saving&&Date.now()<deadline)await saveDelay(100);
+  if(runtime&&runtime.saving)throw new Error(tr('palletDelete.storageUnconfirmed'));
+  var ok=await Promise.resolve(clean.flushSave(reason,{force:true,userInitiated:false}));
+  if(ok!==true&&runtime&&target>0&&Number(runtime.lastSavedGeneration||0)>=target)ok=true;
   if(ok!==true)throw new Error(tr('palletDelete.storageUnconfirmed'));
   return true;
 }
@@ -194,7 +206,7 @@ async function cleanupProductionDayOnce(){
       audit(s,'PALLET_BOOKINGS_DAY_PURGED',{date:CLEANUP_DATE,deletedCount:ids.length,reason:'Benutzerauftrag vom 21.09.2026'});
     }
     s.rc1207PalletCleanup20260921At={at:at,date:CLEANUP_DATE,deletedCount:ids.length};
-    await persist('RC1207 Palettenkonto 21.09.2026 bereinigt');
+    await persistOnce('RC1207 Palettenkonto 21.09.2026 bereinigt');
     rerender();return true;
   }catch(error){
     s.palletAccount=prev.palletAccount;s.palletSettlements=prev.palletSettlements;s._teamSyncMeta=prev.meta;s.auditLog=prev.audit;
@@ -203,7 +215,8 @@ async function cleanupProductionDayOnce(){
   }finally{cleanupInFlight=false}
 }
 function scheduleCleanup(){
-  if(environment()!=='production')return false;
+  if(environment()!=='production'||cleanupAttempted)return false;
+  cleanupAttempted=true;
   var schedule=root.setTimeout||setTimeout;
   schedule(function(){cleanupProductionDayOnce().catch(function(error){try{root.console&&root.console.error&&root.console.error('RC1207 Palettenkonto-Bereinigung fehlgeschlagen',error)}catch(_){}})},1200);
   return true;
@@ -221,7 +234,7 @@ if(typeof root.MutationObserver==='function'&&root.document){
 (root.setTimeout||setTimeout)(function(){scheduleEnhance();if(environment()==='production')scheduleCleanup()},4500);
 
 root.ExportHUBRC1207PalletFix=Object.freeze({
-  version:'RC1246',cleanupDate:CLEANUP_DATE,bookingDay:bookingDay,chosenDirection:chosenDirection,syncDirectionUi:syncDirectionUi,palletViewActive:palletViewActive,
+  version:'RC1299',cleanupDate:CLEANUP_DATE,bookingDay:bookingDay,chosenDirection:chosenDirection,syncDirectionUi:syncDirectionUi,palletViewActive:palletViewActive,
   installBookingGuard:installBookingGuard,enhanceAdminDeleteButtons:enhanceAdminDeleteButtons,deletePalletBooking:deletePalletBooking,
   cleanupProductionDayOnce:cleanupProductionDayOnce
 });
