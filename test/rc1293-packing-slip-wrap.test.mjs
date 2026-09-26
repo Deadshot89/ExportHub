@@ -21,6 +21,7 @@ test('RC1293: Browserfixture erzwingt mit sieben Lieferscheinen mindestens eine 
     const needle=i===2?'Fake_Lieferschein_DEMO02.pdf':`LS_4711000${i}.pdf`;
     assert.ok(demo.includes(needle),needle+' fehlt in DEMO02');
   }
+  assert.match(build,/'assets\/exporthub-demo-bootstrap\.js'/,'aktueller Demo-Datensatz muss in den finalen Build kopiert werden');
   assert.match(browser,/packingSlipGrid/);
   assert.match(browser,/packingSlipGrid\.count\)\.toBe\(7\)/);
   assert.match(browser,/packingSlipGrid\.rowCount\)\.toBeGreaterThanOrEqual\(2\)/);
