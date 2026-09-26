@@ -30,15 +30,15 @@ const RC1296_FAVICON_TAG='<link id="exporthub360-favicon" rel="icon" type="image
 
 function patchRc1296BrowserBranding(html,file){
   if(file!=='index.html')return html;
-  const headOpen=/<head\\b[^>]*>/i.exec(html);
+  const headOpen=/<head\b[^>]*>/i.exec(html);
   if(!headOpen)throw new Error(file+': RC1296 äußerer <head>-Anker fehlt');
   const start=headOpen.index+headOpen[0].length;
   const end=html.toLowerCase().indexOf('</head>',start);
   if(end<0)throw new Error(file+': RC1296 äußerer </head>-Anker fehlt');
   let head=html.slice(start,end);
-  const title=/<title\\b[^>]*>[\\s\\S]*?<\\/title>/i;
-  head=title.test(head)?head.replace(title,'<title>'+RC1296_BROWSER_TITLE+'</title>'):'<title>'+RC1296_BROWSER_TITLE+'</title>\\n'+head;
-  if(!head.includes('id="exporthub360-favicon"'))head+='\\n'+RC1296_FAVICON_TAG+'\\n';
+  const title=/<title\b[^>]*>[\s\S]*?<\/title>/i;
+  head=title.test(head)?head.replace(title,'<title>'+RC1296_BROWSER_TITLE+'</title>'):'<title>'+RC1296_BROWSER_TITLE+'</title>\n'+head;
+  if(!head.includes('id="exporthub360-favicon"'))head+='\n'+RC1296_FAVICON_TAG+'\n';
   html=html.slice(0,start)+head+html.slice(end);
   if(!html.includes('<title>'+RC1296_BROWSER_TITLE+'</title>'))throw new Error(file+': RC1296 Browser-Titel fehlt');
   if(!html.includes(RC1296_FAVICON_TAG))throw new Error(file+': RC1296 Favicon fehlt');
