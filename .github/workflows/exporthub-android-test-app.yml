@@ -98,8 +98,11 @@ jobs:
           set -euo pipefail
           sdk_root="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
           export PATH="$sdk_root/platform-tools:$sdk_root/emulator:$sdk_root/cmdline-tools/latest/bin:$PATH"
+          export ANDROID_AVD_HOME="$HOME/.android/avd"
+          mkdir -p "$ANDROID_AVD_HOME"
           if [ -e /dev/kvm ]; then sudo chmod 666 /dev/kvm || true; fi
           echo no | avdmanager create avd -n exporthub-ci -k "system-images;android-29;google_apis;x86_64" --device "pixel_6" --force
+          test -f "$ANDROID_AVD_HOME/exporthub-ci.ini"
           emulator -avd exporthub-ci -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect > /tmp/exporthub-emulator.log 2>&1 &
           emulator_pid=$!
           trap 'kill "$emulator_pid" 2>/dev/null || true; adb emu kill 2>/dev/null || true' EXIT
