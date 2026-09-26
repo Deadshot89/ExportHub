@@ -250,5 +250,16 @@
   "api.container.photoLabel.loaded": "Geladener Container",
   "api.container.photoLabel.number": "Container-Nummer von innen",
   "api.container.photoLabel.sealed": "Versiegelter Container · Siegel/Kennzeichen/Papiere",
-  "api.fixedPickups.failed": "Fixe Abholungen konnten nicht verarbeitet werden."
+  "api.fixedPickups.failed": "Fixe Abholungen konnten nicht verarbeitet werden.",
+  "api.abdAnalysis.fileRequired": "Bitte eine PDF-, XLSX- oder CSV-Datei auswählen.",
+  "api.abdAnalysis.fileType": "Für die ABD-Auswertung sind nur PDF, XLSX und CSV zulässig.",
+  "api.abdAnalysis.fileTooLarge": "Die Datei ist zu groß. Maximal {{max}} MB sind zulässig.",
+  "api.abdAnalysis.fileInvalid": "Die Datei ist beschädigt oder entspricht nicht dem angegebenen Dateityp.",
+  "api.abdAnalysis.uploadInvalid": "Die Upload-ID ist ungültig.",
+  "api.abdAnalysis.uploadExpired": "Der temporäre ABD-Upload ist abgelaufen. Bitte die Datei erneut auswählen.",
+  "api.abdAnalysis.malware": "Die Datei wurde als schädlich erkannt und nicht ausgewertet.",
+  "api.abdAnalysis.scanFailed": "Die Datei konnte nicht sicher auf Schadsoftware geprüft werden und wurde nicht ausgewertet.",
+  "api.abdAnalysis.failed": "Die ABD-Datei konnte nicht ausgewertet werden.",
+  "api.abdAnalysis.forbidden": "Für die ABD-Auswertung ist Bearbeitungsrecht im ABD-Bereich erforderlich.",
+  "api.abdAnalysis.actionInvalid": "Unbekannte ABD-Auswertungsaktion."
 }
