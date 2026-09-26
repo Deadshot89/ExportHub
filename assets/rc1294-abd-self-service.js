@@ -15,7 +15,7 @@ function authToken(){
 }
 function environment(){try{return /-testservice\./i.test(String(w.location&&w.location.hostname||''))?'testservice':'production'}catch(_){return'production'}}
 function headers(){
- var token=authToken();if(!token)throw new Error(tr('errors.unauthorized',null,'Keine gültige ExportHUB-Sitzung.'));
+ var token=authToken();if(!token)throw new Error(tr('errors.unauthorized',null,'Keine Berechtigung für diese Aktion.'));
  return{'Content-Type':'application/json','Accept':'application/json','Cache-Control':'no-cache','X-ExportHUB-Token':token,'X-ExportHUB-Session':token,'Authorization':'Bearer '+token,'X-ExportHUB-Environment':environment(),'X-ExportHUB-Language':lang()}
 }
 async function post(payload){
@@ -79,7 +79,7 @@ function renderResults(results){
   '<th>'+esc(tr('abd.analysis.hs',null,'HS-/Warennummer'))+'</th><th>'+esc(tr('abd.analysis.origin',null,'Ursprungsland'))+'</th><th>'+esc(tr('abd.analysis.quantity',null,'Menge'))+'</th>'+
   '<th>'+esc(tr('abd.analysis.net',null,'Eigenmasse kg'))+'</th><th>'+esc(tr('abd.analysis.gross',null,'Rohmasse kg'))+'</th><th>'+esc(tr('abd.analysis.value',null,'Warenwert'))+'</th>'+
   '<th>'+esc(tr('abd.analysis.currency',null,'Währung'))+'</th><th>'+esc(tr('abd.analysis.codes',null,'Y-/Unterlagencodes'))+'</th><th>'+esc(tr('abd.analysis.source',null,'Quelle'))+'</th><th>'+esc(tr('common.status',null,'Status'))+'</th>'+
-  '</tr></thead><tbody>'+rowsHtml(lastPositions)+'</tbody></table></div>':'<div class="rc1294-empty">'+esc(tr('abd.analysis.noPositions',null,'Keine sicheren strukturierten Positionen erkannt.'))+'</div>';
+  '</tr></thead><tbody>'+rowsHtml(lastPositions)+'</tbody></table></div>':'<div class="rc1294-empty">'+esc(tr('abd.analysis.noPositions',null,'Keine sicheren strukturierten Positionen erkannt. PDF-Kandidaten bzw. Quelldaten bitte manuell prüfen.'))+'</div>';
  box.innerHTML='<div class="rc1294-result-head"><strong>'+esc(summary)+'</strong>'+(lastPositions.length?'<button type="button" class="ghost" data-rc1294-copy>'+esc(tr('abd.analysis.copy',null,'Positionsdaten kopieren'))+'</button>':'')+'</div>'+
   (codes.length?'<div class="rc1294-codes">'+esc(tr('abd.analysis.codes',null,'Y-/Unterlagencodes'))+': <b>'+esc(codes.join(', '))+'</b></div>':'')+table;
  box.hidden=false
@@ -89,10 +89,10 @@ async function poll(upload,fileName){
   var result=await post({action:'status',uploadId:upload.id});
   if(result.data&&result.data.status==='ready')return result.data;
   if(result.data&&result.data.status==='blocked'){var blocked=new Error(q(result.data.message)||'Datei blockiert');blocked.code=q(result.data.code);throw blocked}
-  if(i===0)fileLine(fileName,tr('abd.analysis.scanning',null,'Microsoft Defender prüft die Datei …'),'scan');
+  if(i===0)fileLine(fileName,tr('abd.analysis.scanning',null,'Microsoft Defender prüft die Datei auf Schadsoftware …'),'scan');
   await delay(1800)
  }
- var e=new Error(tr('abd.analysis.waiting',null,'Die Sicherheitsprüfung läuft noch. Bitte die Auswertung erneut starten.'));e.code='ABD_SCAN_PENDING';throw e
+ var e=new Error(tr('abd.analysis.waiting',null,'Auswertung wird vorbereitet …'));e.code='ABD_SCAN_PENDING';throw e
 }
 async function analyzeFile(file){
  var uploaded=await post({action:'upload',file:{name:file.name,type:file.type||'',base64:await base64(file)}}),upload=uploaded.data&&uploaded.data.upload;
@@ -102,7 +102,7 @@ async function analyzeFile(file){
 async function start(){
  if(busy)return false;var p=panel(),input=p&&p.querySelector('[data-rc1294-files]'),button=p&&p.querySelector('[data-rc1294-start]'),files=Array.from(input&&input.files||[]);
  clearStatus();var out=resultBox();if(out){out.hidden=true;out.innerHTML=''}
- if(!files.length){setStatus(tr('abd.analysis.fileRequired',null,'Bitte Dateien auswählen.'),'bad');return false}
+ if(!files.length){setStatus(tr('abd.analysis.fileRequired',null,'Bitte mindestens eine Datei auswählen.'),'bad');return false}
  if(files.length>5){setStatus(tr('abd.analysis.fileLimit',null,'Maximal 5 Dateien pro Auswertung.'),'bad');return false}
  busy=true;if(button)button.disabled=true;lastPositions=[];lastResults=[];
  try{
@@ -111,11 +111,11 @@ async function start(){
    fileLine(files[i].name,tr('abd.analysis.waiting',null,'Auswertung wird vorbereitet …'),'info');
    try{
     var result=await analyzeFile(files[i]);results.push(result);fileLine(files[i].name,(result.analysis&&result.analysis.positions||[]).length+' Position(en)','ok')
-   }catch(e){fileLine(files[i].name,q(e&&e.message)||tr('errors.generic',null,'Fehler'),'bad')}
+   }catch(e){fileLine(files[i].name,q(e&&e.message)||tr('errors.generic',null,'Es ist ein Fehler aufgetreten.'),'bad')}
   }
   renderResults(results);
   return results.length>0
- }catch(e){setStatus(tr('abd.analysis.error',{message:q(e&&e.message)},'Auswertung fehlgeschlagen: '+q(e&&e.message)),'bad');return false}
+ }catch(e){setStatus(tr('abd.analysis.error',{message:q(e&&e.message)},'Auswertung fehlgeschlagen: {{message}}').replace('{{message}}',q(e&&e.message)),'bad');return false}
  finally{busy=false;if(button)button.disabled=false}
 }
 function copyResults(){
@@ -123,12 +123,12 @@ function copyResults(){
  var header=['Position','Artikel','Warenbeschreibung','HS-Code','Ursprungsland','Menge','Eigenmasse kg','Rohmasse kg','Warenwert','Währung','Y-/Unterlagencodes','Quelle','Fehlende Felder'];
  var lines=[header.join('\t')].concat(lastPositions.map(function(p){return[p.position,p.itemNumber,p.description,p.commodityCode,p.originCountry,p.quantity==null?'':p.quantity,p.netMassKg==null?'':p.netMassKg,p.grossMassKg==null?'':p.grossMassKg,p.value==null?'':p.value,p.currency,(p.supplementaryCodes||[]).join(','),p.sourceFile||p.source,(p.missing||[]).join(',')].map(function(v){return q(v).replace(/[\t\r\n]+/g,' ')}).join('\t')}));
  var raw=lines.join('\n');
- if(w.navigator&&w.navigator.clipboard&&w.navigator.clipboard.writeText)w.navigator.clipboard.writeText(raw).then(function(){setStatus(tr('abd.analysis.copied',null,'Positionsdaten wurden kopiert.'),'ok')}).catch(function(){fallbackCopy(raw)});
+ if(w.navigator&&w.navigator.clipboard&&w.navigator.clipboard.writeText)w.navigator.clipboard.writeText(raw).then(function(){setStatus(tr('abd.analysis.copied',null,'Positionsdaten wurden als Tabelle kopiert.'),'ok')}).catch(function(){fallbackCopy(raw)});
  else fallbackCopy(raw);
  return false
 }
 function fallbackCopy(raw){
- var ta=d.createElement('textarea');ta.value=raw;ta.style.position='fixed';ta.style.left='-9999px';d.body.appendChild(ta);ta.select();try{d.execCommand('copy');setStatus(tr('abd.analysis.copied',null,'Positionsdaten wurden kopiert.'),'ok')}catch(_){}ta.remove()
+ var ta=d.createElement('textarea');ta.value=raw;ta.style.position='fixed';ta.style.left='-9999px';d.body.appendChild(ta);ta.select();try{d.execCommand('copy');setStatus(tr('abd.analysis.copied',null,'Positionsdaten wurden als Tabelle kopiert.'),'ok')}catch(_){}ta.remove()
 }
 function ensureStyle(){
  if(d.getElementById('rc1294AbdStyle'))return;
@@ -142,8 +142,8 @@ function mount(){
  ensureStyle();
  var p=d.createElement('section');p.id='rc1294AbdAnalysis';p.className='rc1294-abd';p.setAttribute('data-rc1294-abd-analysis','1');
  p.innerHTML='<h3>'+esc(tr('abd.analysis.title',null,'ABD-Datenimport & Positionsprüfung'))+'</h3>'+
-  '<p>'+esc(tr('abd.analysis.help',null,'Rechnung, Lieferschein oder strukturierte Datei hochladen.'))+'</p>'+
-  '<div class="rc1294-note">'+esc(tr('abd.analysis.previewOnly',null,'Vorschau – keine Zollanmeldung wird gesendet.'))+'</div>'+
+  '<p>'+esc(tr('abd.analysis.help',null,'Rechnung, Lieferschein oder strukturierte Datei hochladen. ExportHUB erstellt eine prüfbare Vorschau für die spätere Eingabe im Zollportal.'))+'</p>'+
+  '<div class="rc1294-note">'+esc(tr('abd.analysis.previewOnly',null,'Vorschau: Es wird keine Zollanmeldung an ATLAS/AES gesendet. Warennummer, Ursprung und Y-/Unterlagencodes müssen fachlich geprüft werden.'))+'</div>'+
   '<div class="rc1294-controls"><label class="rc1294-file"><span>'+esc(tr('abd.analysis.chooseFiles',null,'PDF, XLSX oder CSV auswählen'))+'</span><input type="file" multiple accept=".pdf,.xlsx,.csv,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"></label>'+
   '<button type="button" class="btn" data-rc1294-start>'+esc(tr('abd.analysis.start',null,'Dateien prüfen & auswerten'))+'</button></div>'+
   '<div class="rc1294-status" data-rc1294-status hidden></div><div class="rc1294-results" data-rc1294-results hidden></div>';
