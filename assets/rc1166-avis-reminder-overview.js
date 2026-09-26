@@ -31,6 +31,7 @@ function customerFor(sh){
  var s=state(),list=arr(s.customers),keys=[sh&&sh.customerId,sh&&sh.customerNumber,sh&&sh.customerAccount,sh&&sh.account,sh&&sh.customerName,sh&&sh.customer].map(function(x){return q(x&&typeof x==='object'?(x.id||x.customerId||x.account||x.customerNumber||x.name):x).toUpperCase()}).filter(Boolean);
  return list.find(function(c){var ck=customerKey(c),name=q(c&&(c.name||c.customerName)).toUpperCase(),account=q(c&&(c.account||c.customerNumber||c.kundennummer)).toUpperCase();return keys.indexOf(ck)>=0||keys.indexOf(name)>=0||keys.indexOf(account)>=0})||null
 }
+function avisRecipientExcluded(email){return low(email)==='dispo@holenstein.de'}
 function emails(v){
  var out=[],seen={};
  function take(x){
@@ -66,7 +67,7 @@ function shipmentContacts(sh,target){
  directoryContacts(c,target).forEach(function(x){addContact(out,seen,x.name,x.email,x.source)});
  if(target==='carrier')addContact(out,seen,q(sh&& (sh.carrierName||sh.speditionName||sh.carrier)),[sh&&sh.carrierEmail,sh&&sh.carrierMail,sh&&sh.speditionEmail,sh&&sh.speditionMail,sh&&sh.forwarderEmail,sh&&sh.forwarderMail],'Sendung');
  else addContact(out,seen,q(sh&& (sh.recipientName||sh.customerName)),[sh&&sh.customerEmail,sh&&sh.customerMail,sh&&sh.recipientEmail],'Sendung');
- return out
+ return out.filter(function(x){return !avisRecipientExcluded(x.email)})
 }
 function exception(sh){
  var name=low(sh&& (sh.customerName||sh.customer&&sh.customer.name||sh.customer));
@@ -143,6 +144,7 @@ function apiHeaders(){
  return{'Content-Type':'application/json','Accept':'application/json','Cache-Control':'no-cache','X-ExportHUB-Token':t,'X-ExportHUB-Session':t,'Authorization':'Bearer '+t,'X-ExportHUB-Environment':environmentName()}
 }
 async function sendReminder(sh,email,target,lang,url){
+ if(avisRecipientExcluded(email)){var blocked=new Error('Für dispo@holenstein.de darf kein Lieferavis-Link versendet werden.');blocked.code='AVIS_RECIPIENT_EXCLUDED';throw blocked}
  var response=await w.fetch('/api/avis-reminder-mail',{method:'POST',credentials:'same-origin',cache:'no-store',headers:apiHeaders(),body:JSON.stringify({shipmentId:idOf(sh),reference:refOf(sh),recipient:q(email),target:target==='carrier'?'carrier':'customer',language:normalizeLanguage(lang),avisUrl:url})});
  var raw=await response.text(),data={};try{data=raw?JSON.parse(raw):{}}catch(_){data={message:raw}}
  if(!response.ok||data.ok===false){var e=new Error(q(data.message)||('HTTP '+response.status));e.code=q(data.code);throw e}
@@ -202,5 +204,5 @@ function render(){
 function schedule(){if(timer)return;timer=w.setTimeout(function(){timer=0;try{render()}catch(e){try{console.warn('RC1166 Avis-Erinnerung',e)}catch(_){}}},0)}
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded','exporthub:shipment-updated','exporthub:overview-updated','exporthub:customer-avis-updated','exporthub:customer-mail-contacts-updated','exporthub:language-changed'].forEach(function(n){try{w.addEventListener(n,schedule)}catch(_){}});
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
-w.ExportHUBRC1166AvisReminder=Object.freeze({version:'RC1207',shipmentContacts:shipmentContacts,avisLink:avisLink,subject:subject,body:body,sendReminder:sendReminder,render:render});
+w.ExportHUBRC1166AvisReminder=Object.freeze({version:'RC1292',shipmentContacts:shipmentContacts,avisLink:avisLink,subject:subject,body:body,sendReminder:sendReminder,recipientExcluded:avisRecipientExcluded,render:render});
 })(window,document);
