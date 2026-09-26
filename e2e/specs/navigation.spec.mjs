@@ -18,6 +18,7 @@ const coreViews=[
   ['notifications',['Benachrichtigungen','Benachrichtigungscenter'],/Benachrichtig|Offene Aufgaben/i],
   ['pickupcalendar',['Abholkalender'],/Abholkalender|Abholung/i],
   ['shipment',['Sendung erstellen','Neue Sendung','Sendung anlegen'],/Kunde|Empfänger/i],
+  ['abd',['ABD erstellen','ABD'],/ABD-Anfrage|Grunddaten|ABD/i],
   ['shipmentoverview',['Sendungsübersicht','Sendungen'],/Sendungsübersicht|Sendungen/i],
   ['customerfolder',['Kundenordner'],/Kundenordner|Kunden/i],
   ['pallet',['Palettenkonto'],/Palettenkonto|Paletten/i],
@@ -314,6 +315,27 @@ test('RC1127 P0: Sendungsübersicht zeigt vom Kunden erfasstes Abholdatum in der
   const pickup=card.locator('[data-rc1127-customer-pickup]').first();
   await expect(pickup).toBeVisible({timeout:10_000});
   await expect(pickup).toHaveText('Kunden-Abholung: 18.09.2026 · 10:00–12:00');
+  await assertNoSourceLeak(page);
+  await assertNoHorizontalOverflow(page);
+  await assertRuntimeClean(runtime,testInfo);
+});
+
+
+test('RC1294 P2: ABD-Bereich zeigt sicheren PDF/XLSX/CSV-Datenimport als zusätzliche Vorschau',async({page},testInfo)=>{
+  test.skip(testInfo.project.name!=='laptop','ABD-Datenimport wird einmal auf dem Laptop-Profil geprüft.');
+  const runtime=attachRuntimeGuards(page,testInfo);
+  await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
+  await waitReady(page);
+  await openExportHubView(page,'abd',['ABD erstellen','ABD'],/ABD-Anfrage|Grunddaten|ABD/i,{allowProgrammaticFallback:true});
+
+  const panel=page.locator('[data-rc1294-abd-analysis="1"]');
+  await expect(panel).toBeVisible({timeout:10_000});
+  await expect(panel).toContainText(/ABD-Datenimport|Positionsprüfung|Export declaration/i);
+  const input=panel.locator('input[type="file"]');
+  await expect(input).toHaveAttribute('multiple','');
+  await expect(input).toHaveAttribute('accept',/\.pdf.*\.xlsx.*\.csv/i);
+  await expect(panel.locator('[data-rc1294-start]')).toBeVisible();
+  await expect(page.locator('#rc626Abd')).toContainText(/ABD-Anfrage erstellen/i);
   await assertNoSourceLeak(page);
   await assertNoHorizontalOverflow(page);
   await assertRuntimeClean(runtime,testInfo);
