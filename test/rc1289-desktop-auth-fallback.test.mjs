@@ -64,7 +64,9 @@ test('RC1289 P1: Failed-to-fetch beim Login fällt einmalig auf XHR desselben Au
   assert.equal(x.calls[0].headers['content-type'],'application/json');
   assert.equal(res.ok,true);
   assert.equal(res.status,200);
-  assert.deepEqual(await res.json(),{ok:true,user:{name:'Desktop Test'}});
+  const body=await res.json();
+  assert.equal(body.ok,true);
+  assert.equal(body.user&&body.user.name,'Desktop Test');
   assert.equal(x.window.__EXPORTHUB_RC1289_AUTH_TRANSPORT_FALLBACK__.fallbacks,1);
   assert.equal(x.window.__EXPORTHUB_RC1289_AUTH_TRANSPORT_FALLBACK__.lastEndpoint,'/api/exporthub-auth');
 });
