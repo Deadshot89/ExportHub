@@ -96,3 +96,15 @@ test('RC1255: TESTSERVICE prüft den echten Reminder ohne externe Kundenadresse'
  execFileSync(process.execPath,['--check','api/e2e-test-fixture/index.js'],{stdio:'pipe'});
  execFileSync(process.execPath,['--check','e2e/specs/testservice-mutation.spec.mjs'],{stdio:'pipe'});
 });
+
+
+test('RC1292: Reminder-Backend blockiert Holenstein vor URL-Verarbeitung und Graph-Versand',()=>{
+ assert.match(api,/function avisRecipientExcluded\(v\)\{return lower\(v\)==='dispo@holenstein\.de'\}/);
+ assert.match(api,/AVIS_RECIPIENT_EXCLUDED/);
+ const recipientCheck=api.indexOf("if(avisRecipientExcluded(to))");
+ const urlCheck=api.indexOf("const url=safeAvisUrl");
+ const sendCheck=api.indexOf("graphMail.sendTextMail");
+ assert.ok(recipientCheck>=0&&urlCheck>recipientCheck,'Empfängersperre muss vor Avis-URL-Verarbeitung greifen');
+ assert.ok(sendCheck>recipientCheck,'Empfängersperre muss vor Graph-Versand greifen');
+ assert.match(api,/status\|\|e\.statusCode\|\|500/);
+});
