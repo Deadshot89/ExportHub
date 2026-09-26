@@ -250,5 +250,16 @@
   "api.container.photoLabel.loaded": "Container caricato",
   "api.container.photoLabel.number": "Numero del container dall’interno",
   "api.container.photoLabel.sealed": "Container sigillato · sigillo/marcature/documenti",
-  "api.fixedPickups.failed": "Non è stato possibile elaborare i ritiri fissi."
+  "api.fixedPickups.failed": "Non è stato possibile elaborare i ritiri fissi.",
+  "api.abdAnalysis.fileRequired": "Seleziona un file PDF, XLSX o CSV.",
+  "api.abdAnalysis.fileType": "Per l’analisi della dichiarazione di esportazione sono ammessi solo file PDF, XLSX e CSV.",
+  "api.abdAnalysis.fileTooLarge": "Il file è troppo grande. La dimensione massima è {{max}} MB.",
+  "api.abdAnalysis.fileInvalid": "Il file è danneggiato o non corrisponde al tipo indicato.",
+  "api.abdAnalysis.uploadInvalid": "L’ID di caricamento non è valido.",
+  "api.abdAnalysis.uploadExpired": "Il caricamento temporaneo è scaduto. Seleziona nuovamente il file.",
+  "api.abdAnalysis.malware": "Il file è stato rilevato come dannoso e non è stato analizzato.",
+  "api.abdAnalysis.scanFailed": "Non è stato possibile controllare in modo sicuro il file per malware.",
+  "api.abdAnalysis.failed": "Non è stato possibile analizzare il file della dichiarazione di esportazione.",
+  "api.abdAnalysis.forbidden": "Per l’analisi è necessario il diritto di modifica nell’area ABD.",
+  "api.abdAnalysis.actionInvalid": "Azione di analisi ABD sconosciuta."
 }
