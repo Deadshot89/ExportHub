@@ -78,9 +78,11 @@ test('RC1306: explicit design changes bypass render debounce',()=>{
   assert.match(runtime,/addEventListener\('exporthub:rendered',schedule\)/);
 });
 
-test('RC1310: explicit design changes do not schedule a duplicate observer rebuild',()=>{
+test('RC1310: explicit design changes do not schedule duplicate layout rebuilds',()=>{
   assert.match(runtime,/var lastAppliedDesign='';/);
-  assert.match(runtime,/lastAppliedDesign=mode;/);
+  assert.match(runtime,/function layoutHealthy\(mode\)/);
+  assert.match(runtime,/lastAppliedDesign===mode&&layoutHealthy\(mode\)/);
+  assert.match(runtime,/workspace\.contains\(node\)/);
   assert.match(runtime,/attributeName==='data-eh-design'&&design\(\)!==lastAppliedDesign/);
 });
 
