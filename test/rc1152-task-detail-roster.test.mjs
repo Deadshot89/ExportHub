@@ -199,13 +199,13 @@ test('RC1312: hinterlegte Aufgaben sind unabhängig vom Wochentag als persönlic
 
 test('RC1312: Aufgabenansicht rendert sichtbaren hinterlegten Wochenplan und ist mobil responsiv',()=>{
   assert.match(runtimeSource,/function\s+renderManagedTaskPlan\s*\(/);
-  assert.match(runtimeSource,/rc1312ManagedTaskPlan/);
+  assert.match(runtimeSource,/rc1307ManagedTaskPlan/);
   assert.match(runtimeSource,/taskPlan\.title/);
   assert.match(runtimeSource,/currentView\(\)!==['"]tasks['"]/);
   const css=fs.readFileSync('assets/rc1014-task-ui.css','utf8');
-  assert.match(css,/\.rc1312-managed-task-plan/);
-  assert.match(css,/\.rc1312-task-plan-grid/);
-  assert.match(css,/@media \(max-width:640px\)[\s\S]*\.rc1312-task-plan-grid\{grid-template-columns:1fr\}/);
+  assert.match(css,/\.rc1307-managed-task-plan/);
+  assert.match(css,/\.rc1307-task-plan-grid/);
+  assert.match(css,/@media \(max-width:640px\)[\s\S]*\.rc1307-task-plan-grid\{grid-template-columns:1fr\}/);
 });
 
 test('RC1312: neue Aufgabenbezeichnungen sind in allen aktiven Sprachen vorhanden',()=>{
