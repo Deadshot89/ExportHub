@@ -43,6 +43,14 @@ test('RC1283 P2: Ladelistensuche findet Referenz, Kunde, Anhang und Bemerkung',a
     await expect(page.locator('[data-rc1283-result]').filter({hasText:/DEMO02|Benelux/i}).first(),query+' findet DEMO02 nicht').toBeVisible({timeout:10_000});
   }
   await selectLoadingListShipment(page,'DEMO02',/DEMO02|Benelux/i);
+  const selectedFiles=page.locator('[data-rc1305-selected-files]').first();
+  await expect(selectedFiles,'RC1305 Dateidetail fehlt nach Trefferauswahl').toBeVisible();
+  await expect(selectedFiles).toContainText('Fake_Lieferschein_DEMO02.pdf');
+  const compactMeta=page.locator('[data-rc1283-result]').filter({hasText:/DEMO02|Benelux/i}).first().locator('.rc1283-result-meta');
+  await expect(compactMeta,'RC1305 Suchergebnis-Metadaten fehlen').not.toContainText(/\.pdf/i);
+  const workspace=await page.locator('#rc1283LoadListSearch').evaluate(el=>{const r=el.getBoundingClientRect(),content=document.querySelector('#content'),c=content&&content.getBoundingClientRect();return{width:r.width,contentWidth:c&&c.width||0,overflow:Number(el.scrollWidth||0)-Number(el.clientWidth||0),gridColumn:getComputedStyle(el).gridColumn}});
+  expect(workspace.overflow,'RC1305 Sucharbeitsfläche läuft horizontal über').toBeLessThanOrEqual(2);
+  expect(workspace.contentWidth<=0||workspace.width/workspace.contentWidth>=0.7,'RC1305 Sucharbeitsfläche bleibt in der schmalen Seitenspalte').toBe(true);
   await assertNoHorizontalOverflow(page);
   await assertRuntimeClean(guard,testInfo);
 });
@@ -173,6 +181,8 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
   expect(capture.text).toMatch(/Erstellt am:\s*\d{2}\.\d{2}\.\d{4}/);
   expect(capture.html).toMatch(/data-rc1281-created-date="1"/i);
   expect(capture.html).toMatch(/data-rc1203-cover-remark="1"/i);
+  expect(capture.html).toMatch(/data-rc1305-loading-list="1"/i);
+  expect(capture.html).toMatch(/data-rc1305-document-grid="1"/i);
   expect(capture.text).toContain('Bemerkung');
   expect(capture.text).toContain('RC1203 Demo-Bemerkung');
   expect(capture.packingSlipGrid).toBeTruthy();
