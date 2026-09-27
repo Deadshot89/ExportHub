@@ -63,6 +63,13 @@ test('RC1298: Login ist kompakt, eindeutig und produktiv als ExportHUB360 gebran
     await expect(page.locator('#loginUser')).toHaveAttribute('autocomplete','username');
     await expect(page.locator('#loginPass')).toHaveAttribute('autocomplete','current-password');
     await expect(page.locator('#loginFields')).toHaveAttribute('autocomplete','on');
+
+    await page.evaluate(()=>{
+      const login=document.getElementById('login');
+      if(login){login.hidden=true;login.classList.add('hidden')}
+      document.title='ExportHUB Online RC9999';
+    });
+    await expect(page).toHaveTitle('ExportHUB360');
   }
   await expect(page.locator('html')).toHaveAttribute('data-exporthub-visible-version',expected);
   await assertNoSourceLeak(page);
