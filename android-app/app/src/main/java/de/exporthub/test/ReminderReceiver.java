@@ -28,27 +28,22 @@ public class ReminderReceiver extends BroadcastReceiver {
             String userId = root == null ? "" : root.optString("userId", "").trim();
             JSONArray tasks = root == null ? null : root.optJSONArray("tasks");
 
+            // A scheduled reminder is not a reason to invent a task. Without a valid,
+            // user-scoped snapshot there is nothing actionable to notify about.
             if (root == null || !env.equals(snapshotEnv) || userId.isEmpty() || tasks == null || tasks.length() == 0) {
-                String key = "scheduled-task-sync|" + day + "|" + hour + "|" + env;
-                NotificationHelper.show(
-                        context,
-                        env,
-                        "notification",
-                        key,
-                        "ExportHUB Aufgaben",
-                        "Öffne ExportHUB, um deine aktuellen persönlichen Aufgaben zu synchronisieren.",
-                        "tasks");
                 return;
             }
 
             JSONObject task = tasks.optJSONObject(0);
             if (task == null) return;
-            String taskId = task.optString("id", "task").trim();
+            String taskId = task.optString("id", "").trim();
             String priority = task.optString("priority", "P4").trim();
-            String title = task.optString("title", "Offene Aufgabe").trim();
+            String title = task.optString("title", "").trim();
             String sourceRef = task.optString("sourceRef", "").trim();
             String dueBucket = task.optString("dueBucket", "none").trim();
             String route = task.optString("route", "tasks").trim();
+            if (taskId.isEmpty() || title.isEmpty()) return;
+
             String key = taskId + "|" + day + "|" + hour + "|" + env + "|" + userId;
             String dueText = dueLabel(dueBucket);
             String body = title
@@ -64,15 +59,8 @@ public class ReminderReceiver extends BroadcastReceiver {
                     body,
                     route.isEmpty() ? "tasks" : route);
         } catch (Exception ignored) {
-            String key = "scheduled-task-sync-error|" + day + "|" + hour + "|" + env;
-            NotificationHelper.show(
-                    context,
-                    env,
-                    "notification",
-                    key,
-                    "ExportHUB Aufgaben",
-                    "Aufgabenstand konnte nicht gelesen werden. Öffne ExportHUB zur Aktualisierung.",
-                    "tasks");
+            // Corrupt/stale snapshots must fail closed. The next successful website
+            // sync replaces the snapshot; no generic or misleading task is shown.
         }
     }
 
