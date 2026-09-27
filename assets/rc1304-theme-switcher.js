@@ -236,21 +236,6 @@
     if(event&&event.key===STORAGE_KEY)refresh();
   });
 
-  var observer=new MutationObserver(function(records){
-    for(var i=0;i<records.length;i++){
-      if(records[i].type==='childList'&&records[i].addedNodes&&records[i].addedNodes.length){
-        schedule();
-        break;
-      }
-    }
-  });
-
-  function observe(){
-    if(document.body)observer.observe(document.body,{childList:true,subtree:true});
-  }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',observe,{once:true});
-  else observe();
-
   window.ExportHUBDesignSwitcher=Object.freeze({
     version:'RC1304',
     storageKey:STORAGE_KEY,
