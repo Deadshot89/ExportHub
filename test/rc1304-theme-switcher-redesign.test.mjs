@@ -79,6 +79,16 @@ test('RC1311: startup refreshes are debounced instead of repeated per event task
   assert.match(runtime,/addEventListener\('DOMContentLoaded',refresh,\{once:true\}\)/);
 });
 
+test('RC1311: bereits montierter Login-Switcher vermeidet erneuten Login-Card-DOM-Scan',()=>{
+  const start=runtime.indexOf('function ensureLogin(value){');
+  const end=runtime.indexOf('\n  function syncControls',start);
+  assert.ok(start>=0&&end>start,'ensureLogin fehlt');
+  const block=runtime.slice(start,end);
+  assert.match(block,/var existingSelect=document\.getElementById\('ehLoginThemeSelect'\)/);
+  assert.match(block,/if\(box&&existingSelect\)/);
+  assert.ok(block.indexOf('if(box&&existingSelect)')<block.indexOf("document.querySelector('#login .login-card')"),'Fast-Path muss vor dem teuren Login-Card-Scan liegen');
+});
+
 test('RC1304: three redesigns are distinct while classic remains untouched',()=>{
   assert.match(css,/data-eh-design="modern"/);
   assert.match(css,/data-eh-design="glass"/);
