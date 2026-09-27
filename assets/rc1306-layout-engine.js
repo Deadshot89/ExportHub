@@ -11,6 +11,7 @@ w.__EXPORTHUB_RC1306_LAYOUT_ENGINE__=true;
 var VERSION='RC1306';
 var timer=0;
 var observer=null;
+var designObserver=null;
 var originals=new WeakMap();
 var managed=[];
 var SHIPMENT_IDS=[
@@ -35,9 +36,9 @@ function currentView(){
   return q(d.body&&(d.body.getAttribute('data-exporthub-view')||d.body.getAttribute('data-current-view'))).toLowerCase()
 }
 function remember(node){
-  if(!node||originals.has(node))return;
-  originals.set(node,{parent:node.parentNode,next:node.nextSibling});
-  managed.push(node)
+  if(!node)return;
+  if(!originals.has(node))originals.set(node,{parent:node.parentNode,next:node.nextSibling});
+  if(managed.indexOf(node)<0)managed.push(node)
 }
 function move(node,parent){
   if(!node||!parent)return false;
@@ -53,7 +54,10 @@ function restoreNode(node){
   return true
 }
 function restoreAll(){
-  for(var i=managed.length-1;i>=0;i--)restoreNode(managed[i]);
+  for(var i=managed.length-1;i>=0;i--){
+    restoreNode(managed[i]);
+    originals.delete(managed[i])
+  }
   managed=[];
   removeGenerated();
   d.documentElement.removeAttribute('data-eh-layout-mode');
@@ -249,17 +253,22 @@ function genericLayout(mode){
 
 function apply(){
   timer=0;
-  restoreAll();
-  var mode=design();
-  if(mode==='classic')return;
+  if(observer)observer.disconnect();
+  try{
+    restoreAll();
+    var mode=design();
+    if(mode==='classic')return;
 
-  var shell=shipmentShell(),b=blocks();
-  if(shell&&isShipmentCreate()){
-    if(mode==='modern')businessShipment(shell,b);
-    else if(mode==='glass')glassShipment(shell,b);
-    else if(mode==='neon')neonShipment(shell,b)
-  }else{
-    genericLayout(mode==='modern'?'business':mode)
+    var shell=shipmentShell(),b=blocks();
+    if(shell&&isShipmentCreate()){
+      if(mode==='modern')businessShipment(shell,b);
+      else if(mode==='glass')glassShipment(shell,b);
+      else if(mode==='neon')neonShipment(shell,b)
+    }else{
+      genericLayout(mode==='modern'?'business':mode)
+    }
+  }finally{
+    if(observer&&d.body)observer.observe(d.body,{childList:true,subtree:true})
   }
 }
 function schedule(){
@@ -267,20 +276,32 @@ function schedule(){
   timer=w.setTimeout(apply,90)
 }
 function watch(){
-  if(observer||!w.MutationObserver||!d.body)return;
-  observer=new MutationObserver(function(records){
-    for(var i=0;i<records.length;i++){
-      var r=records[i];
-      if(!r.addedNodes||!r.addedNodes.length)continue;
-      var external=false;
-      for(var j=0;j<r.addedNodes.length;j++){
-        var n=r.addedNodes[j];
-        if(n.nodeType===1&&!n.hasAttribute('data-rc1306-generated')){external=true;break}
+  if(!w.MutationObserver||!d.body)return;
+  if(!observer){
+    observer=new MutationObserver(function(records){
+      for(var i=0;i<records.length;i++){
+        var r=records[i];
+        if(!r.addedNodes||!r.addedNodes.length)continue;
+        var external=false;
+        for(var j=0;j<r.addedNodes.length;j++){
+          var n=r.addedNodes[j];
+          if(n.nodeType===1&&!n.hasAttribute('data-rc1306-generated')){external=true;break}
+        }
+        if(external){schedule();break}
       }
-      if(external){schedule();break}
-    }
-  });
-  observer.observe(d.body,{childList:true,subtree:true})
+    })
+  }
+  observer.disconnect();
+  observer.observe(d.body,{childList:true,subtree:true});
+
+  if(!designObserver){
+    designObserver=new MutationObserver(function(records){
+      for(var k=0;k<records.length;k++){
+        if(records[k].attributeName==='data-eh-design'){schedule();break}
+      }
+    });
+    designObserver.observe(d.documentElement,{attributes:true,attributeFilter:['data-eh-design']})
+  }
 }
 
 w.addEventListener('exporthub:designchange',schedule);
