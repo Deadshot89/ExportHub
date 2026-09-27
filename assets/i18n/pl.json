@@ -1134,5 +1134,14 @@
   "loadingListPrint.noRemark": "Brak zapisanej uwagi",
   "loadingListPrint.signatureStored": "Zapisano cyfrowo",
   "loadingListPrint.driverSignature": "Podpis kierowcy",
-  "loadingListPrint.palletMovement": "Wydanie: {{out}} · Przyjęcie/zwrot: {{returned}}"
+  "loadingListPrint.palletMovement": "Wydanie: {{out}} · Przyjęcie/zwrot: {{returned}}",
+  "layout.shipmentProcess": "Proces wysyłki",
+  "layout.customerRecipient": "Klient i odbiorca",
+  "layout.shipmentData": "Dane wysyłki",
+  "layout.colliLdm": "Opakowania i metry ładunkowe",
+  "layout.documentsAbd": "Dokumenty i zgłoszenie eksportowe",
+  "layout.stowPlan": "Plan załadunku",
+  "layout.abd": "Zgłoszenie eksportowe",
+  "layout.mail": "E-mail",
+  "layout.saveOutput": "Zapis i wydruk"
 }
