@@ -22,5 +22,5 @@ test('RC1112: eigener Drei-Umgebungen-Build bleibt auf der geprüften RC1048-Bas
   assert.match(build,/dist-rc1112/);
   assert.match(build,/\.github\/rc1048\/build-three-env\.mjs/);
   assert.match(build,/dist-rc1048/);
-  assert.match(build,/rc1074-login-clean\.js\?v=1303/);
+  assert.match(build,/rc1074-login-clean\.js\?v=1311/);
 });
