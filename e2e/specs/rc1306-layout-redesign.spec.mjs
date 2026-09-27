@@ -92,8 +92,19 @@ test('RC1306: Neon Night uses command rail, core workspace and telemetry rail',a
   await expect(page.locator('.rc1306-neon-core #rc363BlockCustomer')).toHaveCount(1);
   await expect(page.locator('.rc1306-neon-core #rc363BlockDocuments')).toHaveCount(1);
   await expect(page.locator('.rc1306-neon-telemetry #rc573ColliCard')).toHaveCount(1);
-  const columns=await page.locator('.rc1306-neon-workspace').evaluate(el=>getComputedStyle(el).gridTemplateColumns);
-  expect(columns.split(' ').length).toBeGreaterThanOrEqual(3);
+  const neonGeometry=await page.evaluate(()=>{
+    const box=selector=>document.querySelector(selector)?.getBoundingClientRect();
+    const command=box('.rc1306-neon-command');
+    const core=box('.rc1306-neon-core');
+    const telemetry=box('.rc1306-neon-telemetry');
+    return command&&core&&telemetry?{commandX:command.x,coreX:core.x,telemetryX:telemetry.x,commandW:command.width,coreW:core.width,telemetryW:telemetry.width}:null;
+  });
+  expect(neonGeometry).not.toBeNull();
+  expect(neonGeometry.commandX).toBeLessThan(neonGeometry.coreX);
+  expect(neonGeometry.coreX).toBeLessThan(neonGeometry.telemetryX);
+  expect(neonGeometry.commandW).toBeGreaterThan(0);
+  expect(neonGeometry.coreW).toBeGreaterThan(0);
+  expect(neonGeometry.telemetryW).toBeGreaterThan(0);
   await commonAssertions(page);
   await assertRuntimeClean(runtime,testInfo);
 });
