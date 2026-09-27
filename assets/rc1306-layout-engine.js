@@ -12,6 +12,7 @@ var VERSION='RC1306';
 var timer=0;
 var observer=null;
 var designObserver=null;
+var lastAppliedDesign='';
 var originals=new WeakMap();
 var managed=[];
 var SHIPMENT_IDS=[
@@ -257,6 +258,7 @@ function apply(){
   try{
     restoreAll();
     var mode=design();
+    lastAppliedDesign=mode;
     if(mode==='classic')return;
 
     var shell=shipmentShell(),b=blocks();
@@ -297,7 +299,7 @@ function watch(){
   if(!designObserver){
     designObserver=new MutationObserver(function(records){
       for(var k=0;k<records.length;k++){
-        if(records[k].attributeName==='data-eh-design'){schedule();break}
+        if(records[k].attributeName==='data-eh-design'&&design()!==lastAppliedDesign){schedule();break}
       }
     });
     designObserver.observe(d.documentElement,{attributes:true,attributeFilter:['data-eh-design']})
