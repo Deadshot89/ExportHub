@@ -304,7 +304,7 @@ function watch(){
   }
 }
 
-w.addEventListener('exporthub:designchange',schedule);
+w.addEventListener('exporthub:designchange',apply);
 w.addEventListener('exporthub:viewchange',schedule);
 w.addEventListener('exporthub:rendered',schedule);
 w.addEventListener('pageshow',schedule);
