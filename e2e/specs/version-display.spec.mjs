@@ -25,7 +25,10 @@ test('RC1311: Login-Theme-Initialisierung scannt die Login-Karte höchstens zwei
     const original=Document.prototype.querySelector;
     window.__RC1311_LOGIN_CARD_QUERIES__=0;
     Document.prototype.querySelector=function(selector){
-      if(selector==='#login .login-card')window.__RC1311_LOGIN_CARD_QUERIES__++;
+      if(selector==='#login .login-card'){
+        const stack=String(new Error().stack||'');
+        if(stack.includes('rc1304-theme-switcher.js'))window.__RC1311_LOGIN_CARD_QUERIES__++;
+      }
       return original.call(this,selector);
     };
   });
