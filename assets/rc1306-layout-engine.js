@@ -252,12 +252,36 @@ function genericLayout(mode){
   content.appendChild(root)
 }
 
+function layoutHealthy(mode){
+  var expected=mode==='modern'?'business':mode;
+  if(d.documentElement.getAttribute('data-eh-layout-mode')!==expected)return false;
+  if(isShipmentCreate()){
+    var workspace=d.getElementById('rc1306Workspace');
+    if(!workspace)return false;
+    var b=blocks();
+    for(var i=0;i<SHIPMENT_IDS.length;i++){
+      var node=b[SHIPMENT_IDS[i]];
+      if(node&&!workspace.contains(node))return false
+    }
+    return true
+  }
+  var content=topLevelContent();
+  var generic=d.getElementById('rc1306Generic');
+  if(!content||!generic||generic.parentNode!==content)return false;
+  var kids=Array.prototype.slice.call(content.children);
+  for(var j=0;j<kids.length;j++){
+    var child=kids[j];
+    if(child!==generic&&!child.hasAttribute('data-rc1306-generated'))return false
+  }
+  return true
+}
 function apply(){
   timer=0;
+  var mode=design();
+  if(mode!=='classic'&&lastAppliedDesign===mode&&layoutHealthy(mode))return;
   if(observer)observer.disconnect();
   try{
     restoreAll();
-    var mode=design();
     lastAppliedDesign=mode;
     if(mode==='classic')return;
 
