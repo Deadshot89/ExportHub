@@ -42,9 +42,9 @@ test('RC1298 P1: Produktion hält den Browser-Tab dauerhaft auf ExportHUB360',()
 });
 
 test('RC1298 P1: Login-Runtime wird cache-frisch gebaut und live geprüft',()=>{
-  assert.match(build,/assets\\\/rc1074-login-clean\\\.js\\\?v=\(\?:1074\|1112\)[\s\S]*v=1298/);
-  assert.match(build,/assets\/rc1074-login-clean\.js\?v=1298/);
-  assert.match(workflow,/assets\/rc1074-login-clean\.js\?v=1298/);
+  assert.match(build,/assets\\\/rc1074-login-clean\\\.js\\\?v=\(\?:1074\|1112\)[\s\S]*v=1301/);
+  assert.match(build,/assets\/rc1074-login-clean\.js\?v=1301/);
+  assert.match(workflow,/assets\/rc1074-login-clean\.js\?v=1301/);
 });
 
 test('RC1298 P1: Login-Runtime bleibt syntaktisch gültig',()=>{
