@@ -50,3 +50,17 @@ test('RC1298 P1: Login-Runtime wird cache-frisch gebaut und live geprüft',()=>{
 test('RC1298 P1: Login-Runtime bleibt syntaktisch gültig',()=>{
   execFileSync(process.execPath,['--check','assets/rc1074-login-clean.js'],{stdio:'pipe'});
 });
+
+
+test('RC1300 P1: Login rendert weder bei jedem View-Wechsel noch vor dem Umgebungswechsel neu',()=>{
+  assert.match(runtime,/requestAnimationFrame/);
+  assert.match(runtime,/target===login/);
+  assert.match(runtime,/target\.matches&&target\.matches\('\.eh-login-environment button'\)/);
+  assert.doesNotMatch(runtime,/\['exporthub:ready','exporthub:language-changed','exporthub:rendered','exporthub:viewchange'\]/);
+  const clickStart=runtime.indexOf('function stableEnvironmentClick');
+  const clickEnd=runtime.indexOf('\nfunction installStableEnvironmentSwitch',clickStart);
+  assert.ok(clickStart>=0&&clickEnd>clickStart,'stableEnvironmentClick fehlt');
+  const clickBlock=runtime.slice(clickStart,clickEnd);
+  assert.doesNotMatch(clickBlock,/markEnvironmentTarget\(next\)/,'Vor Navigation darf kein Zwischen-Render der Kacheln erfolgen');
+  assert.match(clickBlock,/location\.assign\(url\)/);
+});
