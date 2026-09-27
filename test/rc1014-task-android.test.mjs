@@ -68,3 +68,22 @@ test('RC1307 native Aufgabenansicht ist kompakt und auf die konkrete Aufgabe fok
   assert.match(detail,/\? "Aufgabe öffnen" : "In ExportHUB öffnen"/);
   assert.match(detail,/return "ExportHUB Aufgabe";/);
 });
+
+
+test('RC1307 Statusänderung aktualisiert den Android-Aufgaben-Snapshot sofort',()=>{
+  const start=runtime.indexOf('async function setTaskStatus');
+  const end=runtime.indexOf('async function completeTask',start);
+  assert.ok(start>=0&&end>start,'setTaskStatus-Block fehlt');
+  const block=runtime.slice(start,end);
+  assert.match(block,/await Promise\.resolve\(ctx\.persist\(items\)\)/);
+  assert.match(block,/lastTasks=items/);
+  assert.match(block,/syncAndroidSnapshot\(items,lastContext\)/);
+});
+
+test('RC1307 reine Referenzbereiche erzeugen keine Handy-Erinnerung',()=>{
+  const start=runtime.indexOf('function syncAndroidSnapshot');
+  const end=runtime.indexOf('function environmentName',start);
+  assert.ok(start>=0&&end>start,'syncAndroidSnapshot-Block fehlt');
+  const block=runtime.slice(start,end);
+  assert.match(block,/managedKind[^\n]{0,120}reference-area/);
+});
