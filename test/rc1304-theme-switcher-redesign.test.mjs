@@ -87,10 +87,22 @@ test('RC1304: three redesigns are distinct while classic remains untouched',()=>
 });
 
 test('RC1304: release builder injects and ships the redesign in generated environments',()=>{
-  assert.match(builder,/rc1304-theme-switcher\.css\?v=1304/);
-  assert.match(builder,/rc1304-theme-switcher\.js\?v=1304/);
+  assert.match(builder,/rc1304-theme-switcher\.css\?v=1305/);
+  assert.match(builder,/rc1304-theme-switcher\.js\?v=1305/);
   assert.match(builder,/patchRc1304ThemeRedesign/);
   assert.match(builder,/'assets\/rc1304-theme-switcher\.css'/);
   assert.match(builder,/'assets\/rc1304-theme-switcher\.js'/);
   assert.match(builder,/html=patchRc1304ThemeRedesign\(html,file\)/);
+});
+
+test('Full redesign changes layout architecture, not only colors',()=>{
+  assert.match(css,/RC1305 FULL APPLICATION REDESIGN/);
+  assert.match(css,/data-eh-design="modern"\] \.app\{[\s\S]*grid-template-columns:256px minmax\(0,1fr\)/);
+  assert.match(css,/data-eh-design="glass"\] \.app\{[\s\S]*grid-template-columns:238px minmax\(0,1fr\)/);
+  assert.match(css,/data-eh-design="neon"\] \.app\{[\s\S]*grid-template-columns:208px minmax\(0,1fr\)/);
+  assert.match(css,/data-eh-design="glass"\] \.sidebar[\s\S]*border-radius:28px/);
+  assert.match(css,/data-eh-design="neon"\] #content table/);
+  assert.match(css,/@media\(max-width:760px\)[\s\S]*bottom:0/);
+  assert.match(css,/\.modal,\.dialog,\[role="dialog"\],\.overlay-card/);
+  assert.match(css,/\.tabs,\.tabbar,\.segmented,\.filter-tabs/);
 });
