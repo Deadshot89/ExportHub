@@ -62,6 +62,20 @@ test('RC1306: mobile composition collapses deliberately instead of shrinking des
   assert.match(css,/\.rc1306-neon-core-top/);
 });
 
+test('RC1306: layout engine reacts to design attribute changes without observing its own moves',()=>{
+  assert.match(runtime,/attributeFilter:\['data-eh-design'\]/);
+  assert.match(runtime,/attributeName==='data-eh-design'/);
+  assert.match(runtime,/if\(observer\)observer\.disconnect\(\)/);
+  assert.match(runtime,/observer\.observe\(d\.body,\{childList:true,subtree:true\}\)/);
+  assert.match(runtime,/originals\.delete\(managed\[i\]\)/);
+});
+
+test('RC1306: explicit design changes bypass render debounce',()=>{
+  assert.match(runtime,/addEventListener\('exporthub:designchange',apply\)/);
+  assert.match(runtime,/addEventListener\('exporthub:viewchange',schedule\)/);
+  assert.match(runtime,/addEventListener\('exporthub:rendered',schedule\)/);
+});
+
 test('RC1306: generated layout navigation is localized',()=>{
   assert.match(runtime,/ExportHUBI18n/);
   assert.match(runtime,/layout\.shipmentProcess/);

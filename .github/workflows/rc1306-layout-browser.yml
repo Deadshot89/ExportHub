@@ -1,0 +1,61 @@
+name: RC1306 Multi-Layout Browser Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'assets/rc1306-layout-engine.js'
+      - 'assets/rc1306-layout-engine.css'
+      - 'assets/rc1304-theme-switcher.js'
+      - 'assets/rc1304-theme-switcher.css'
+      - 'assets/i18n/**'
+      - 'e2e/specs/rc1306-layout-redesign.spec.mjs'
+      - '.github/rc1112/**'
+      - '.github/workflows/rc1306-layout-browser.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rc1306-layout-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+
+      - name: RC1306 contract tests
+        run: node --test test/rc1306-true-layout-redesign.test.mjs
+
+      - name: Build current three-environment package
+        run: node .github/rc1112/build-three-env.mjs
+
+      - name: Install Playwright
+        run: |
+          npm install --no-save @playwright/test@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Verify all four designs in Chromium
+        env:
+          EXPORTHUB_E2E_STATIC: '1'
+          EXPORTHUB_E2E_ENTRY: /demo.html
+          EXPORTHUB_E2E_PUBLIC_ENV: testservice
+        run: npx playwright test e2e/specs/rc1306-layout-redesign.spec.mjs --project=laptop
+
+      - name: Upload browser artifacts
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: rc1306-layout-browser
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: ignore
+          retention-days: 14
