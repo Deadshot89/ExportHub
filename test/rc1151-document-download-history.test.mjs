@@ -39,7 +39,7 @@ test('RC1151: ABD-Anfrage wird nicht durch Nachbartexte als Druckvorgang protoko
 });
 
 test('RC1151: aktualisierte History und Dokumentansicht werden cache-sicher ausgeliefert',()=>{
-  assert.match(build,/rc1071-shipment-history\.js\?v=1178/);
+  assert.match(build,/rc1071-shipment-history\.js\?v=1305/);
   assert.match(build,/rc1063-abd-blob-viewer-compat\.js\?v=1248/);
 });
 
