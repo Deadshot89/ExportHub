@@ -49,7 +49,7 @@ public final class NotificationDetailActivity extends Activity {
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(22), dp(28), dp(22), dp(28));
+        root.setPadding(dp(20), dp(20), dp(20), dp(24));
         root.setGravity(Gravity.TOP);
         scroll.addView(root, new ScrollView.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -57,9 +57,9 @@ public final class NotificationDetailActivity extends Activity {
 
         root.addView(text("ExportHUB", 15f, 0xFF0F766E, true));
 
-        TextView heading = text(defaultTitle(channel), 25f, 0xFF0F172A, true);
+        TextView heading = text(headingForChannel(channel), 23f, 0xFF0F172A, true);
         LinearLayout.LayoutParams headingParams = wrap();
-        headingParams.topMargin = dp(8);
+        headingParams.topMargin = dp(6);
         root.addView(heading, headingParams);
 
         TextView meta = text(
@@ -74,7 +74,7 @@ public final class NotificationDetailActivity extends Activity {
 
         TextView titleView = text(title, 19f, 0xFF0F172A, true);
         LinearLayout.LayoutParams titleParams = wrap();
-        titleParams.topMargin = dp(28);
+        titleParams.topMargin = dp(20);
         root.addView(titleView, titleParams);
 
         if ("diagnostic".equalsIgnoreCase(channel)) {
@@ -94,16 +94,16 @@ public final class NotificationDetailActivity extends Activity {
                 0xFF64748B,
                 false);
         LinearLayout.LayoutParams privacyParams = wrap();
-        privacyParams.topMargin = dp(26);
+        privacyParams.topMargin = dp(18);
         root.addView(privacy, privacyParams);
 
         Button open = new Button(this);
-        open.setText("In ExportHUB öffnen");
+        open.setText("notification".equalsIgnoreCase(channel) ? "Aufgabe öffnen" : "In ExportHUB öffnen");
         open.setAllCaps(false);
         open.setTextSize(16f);
         open.setOnClickListener(v -> openExportHub());
         LinearLayout.LayoutParams openParams = matchWrap();
-        openParams.topMargin = dp(28);
+        openParams.topMargin = dp(20);
         root.addView(open, openParams);
 
         Button close = new Button(this);
@@ -219,7 +219,13 @@ public final class NotificationDetailActivity extends Activity {
     private static String defaultTitle(String channel) {
         if ("diagnostic".equalsIgnoreCase(channel)) return "ExportHUB Fehlerdiagnose";
         if ("warning".equalsIgnoreCase(channel)) return "ExportHUB Warncenter";
-        return "ExportHUB Benachrichtigung";
+        return "ExportHUB Aufgabe";
+    }
+
+    private static String headingForChannel(String channel) {
+        if ("diagnostic".equalsIgnoreCase(channel)) return "Fehlerdiagnose";
+        if ("warning".equalsIgnoreCase(channel)) return "Warncenter";
+        return "Aufgabe";
     }
 
     private static String labelForChannel(String channel) {
