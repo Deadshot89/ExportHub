@@ -306,7 +306,7 @@
       target.completedAt='';target.doneAt='';target.completedBy='';target.doneBy='';
     }
     target.updatedAt=now;
-    if(typeof ctx.persist==='function')ctx.persist(items);
+    if(typeof ctx.persist==='function')await Promise.resolve(ctx.persist(items));
     else{
       const clean=root.ExportHUBClean;
       if(clean&&typeof clean.queueSave==='function'){
@@ -314,6 +314,9 @@
         if(typeof clean.flushSave==='function')await Promise.resolve(clean.flushSave('RC1153 Aufgabenstatus geändert'));
       }
     }
+    lastTasks=items;
+    lastContext={...lastContext,...ctx,state};
+    syncAndroidSnapshot(items,lastContext);
     try{if(typeof root.dispatchEvent==='function'&&typeof root.CustomEvent==='function')root.dispatchEvent(new root.CustomEvent('exporthub:tasks-updated',{detail:{reason:'RC1153 status',taskId:id,status:target.status}}));}catch(_){}
     closeTaskDetail(false);
     return true;
