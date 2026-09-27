@@ -4,8 +4,6 @@ import fs from 'node:fs';
 
 const runtime=fs.readFileSync('assets/rc1304-theme-switcher.js','utf8');
 const css=fs.readFileSync('assets/rc1304-theme-switcher.css','utf8');
-const index=fs.readFileSync('index.html','utf8');
-const testversion=fs.readFileSync('TESTVERSION.html','utf8');
 const builder=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
 
 test('RC1304: Switcher exposes exactly Classic and Modern and persists the choice',()=>{
@@ -50,15 +48,11 @@ test('RC1304: modern redesign is scoped and classic remains untouched',()=>{
   assert.doesNotMatch(css,/body:not\(\[data-eh-design="modern"\]\)/);
 });
 
-test('RC1304: production and testservice source include the shared assets',()=>{
-  for(const html of [index,testversion]){
-    assert.match(html,/rc1304-theme-switcher\.css\?v=1304/);
-    assert.match(html,/rc1304-theme-switcher\.js\?v=1304/);
-  }
-});
-
-test('RC1304: release builder keeps the redesign in generated environments',()=>{
-  assert.match(builder,/rc1304-theme-switcher\.css/);
-  assert.match(builder,/rc1304-theme-switcher\.js/);
+test('RC1304: release builder injects and ships the redesign in generated environments',()=>{
+  assert.match(builder,/rc1304-theme-switcher\.css\?v=1304/);
+  assert.match(builder,/rc1304-theme-switcher\.js\?v=1304/);
   assert.match(builder,/patchRc1304ThemeRedesign/);
+  assert.match(builder,/'assets\/rc1304-theme-switcher\.css'/);
+  assert.match(builder,/'assets\/rc1304-theme-switcher\.js'/);
+  assert.match(builder,/html=patchRc1304ThemeRedesign\(html,file\)/);
 });
