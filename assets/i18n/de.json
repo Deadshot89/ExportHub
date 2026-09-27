@@ -1117,5 +1117,11 @@
   "abd.analysis.review": "Prüfen",
   "abd.analysis.missing": "Fehlt: {{fields}}",
   "abd.analysis.error": "Auswertung fehlgeschlagen: {{message}}",
-  "abd.analysis.fileRequired": "Bitte mindestens eine Datei auswählen."
+  "abd.analysis.fileRequired": "Bitte mindestens eine Datei auswählen.",
+  "theme.label": "Design",
+  "theme.select": "Design auswählen",
+  "theme.classic": "Klassisch / Alt",
+  "theme.modernBusiness": "Modern Business",
+  "theme.glass": "Glass",
+  "theme.neonNight": "Neon Night"
 }
