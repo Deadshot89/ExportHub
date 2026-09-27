@@ -6,11 +6,17 @@ const runtime=fs.readFileSync('assets/rc1304-theme-switcher.js','utf8');
 const css=fs.readFileSync('assets/rc1304-theme-switcher.css','utf8');
 const builder=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
 
-test('RC1304: Switcher exposes exactly Classic and Modern and persists the choice',()=>{
+test('RC1304: Switcher exposes exactly four designs and persists the choice',()=>{
   assert.match(runtime,/var CLASSIC='classic'/);
   assert.match(runtime,/var MODERN='modern'/);
+  assert.match(runtime,/var GLASS='glass'/);
+  assert.match(runtime,/var NEON='neon'/);
+  assert.match(runtime,/VALUES=\[CLASSIC,MODERN,GLASS,NEON\]/);
   assert.match(runtime,/Klassisch \/ Alt/);
-  assert.match(runtime,/>Neu</);
+  assert.match(runtime,/Modern Business/);
+  assert.match(runtime,/>Glass</);
+  assert.match(runtime,/Neon Night/);
+  assert.match(runtime,/options\.length===4/);
   assert.match(runtime,/localStorage\.getItem\(STORAGE_KEY\)/);
   assert.match(runtime,/localStorage\.setItem\(STORAGE_KEY,value\)/);
   assert.match(runtime,/data-eh-design/);
@@ -44,14 +50,20 @@ test('RC1304: observer refresh is idempotent and does not rebuild options foreve
   assert.match(runtime,/if\(select\.value!==value\)select\.value=value/);
 });
 
-test('RC1304: modern redesign is scoped and classic remains untouched',()=>{
+test('RC1304: three redesigns are distinct while classic remains untouched',()=>{
   assert.match(css,/data-eh-design="modern"/);
+  assert.match(css,/data-eh-design="glass"/);
+  assert.match(css,/data-eh-design="neon"/);
   assert.match(css,/--pc-primary:#2563eb/);
+  assert.match(css,/--pc-primary:#5b7cfa/);
+  assert.match(css,/--pc-primary:#22d3ee/);
+  assert.match(css,/html\[data-eh-design\]:not\(\[data-eh-design="classic"\]\)/);
+  assert.match(css,/Glass personality/);
+  assert.match(css,/Neon Night personality/);
   assert.match(css,/\.sidebar/);
   assert.match(css,/\.topbar/);
   assert.match(css,/#content/);
   assert.match(css,/#login/);
-  assert.doesNotMatch(css,/body:not\(\[data-eh-design="modern"\]\)/);
 });
 
 test('RC1304: release builder injects and ships the redesign in generated environments',()=>{
