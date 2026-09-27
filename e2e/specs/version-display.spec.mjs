@@ -25,6 +25,17 @@ test('RC1298: Login ist kompakt, eindeutig und produktiv als ExportHUB360 gebran
   await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
   const body=page.locator('body');
   const expected=expectedVisibleRelease();
+  const diagnosticBadge=page.locator('#login #cleanVersionBadge');
+  console.log('RC1304_VERSION_DIAG',JSON.stringify({
+    expected,
+    badgeCount:await diagnosticBadge.count(),
+    badgeText:await diagnosticBadge.textContent().catch(()=>null),
+    badgeAria:await diagnosticBadge.getAttribute('aria-label').catch(()=>null),
+    badgeHidden:await diagnosticBadge.isHidden().catch(()=>null),
+    htmlVisibleVersion:await page.locator('html').getAttribute('data-exporthub-visible-version').catch(()=>null),
+    htmlBuildVersion:await page.locator('html').getAttribute('data-exporthub-version').catch(()=>null),
+    bodyText:(await body.textContent().catch(()=>''))?.slice(0,1200)
+  }));
   await expect(body).toContainText(new RegExp('Aktuelle Version\\s+'+expected,'i'),{timeout:15_000});
   const base=String(process.env.EXPORTHUB_E2E_BASE_URL||'');
   const entry=String(appEntry()||'');
