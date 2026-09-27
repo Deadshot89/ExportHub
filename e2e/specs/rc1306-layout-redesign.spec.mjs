@@ -30,6 +30,33 @@ async function commonAssertions(page){
   for(const row of duplicates)expect(row.count,row.id+' duplicated').toBeLessThanOrEqual(1);
 }
 
+test('RC1310: explicit design switch builds the layout only once',async({page},testInfo)=>{
+  const runtime=attachRuntimeGuards(page,testInfo);
+  await openShipment(page);
+  await setDesign(page,'classic');
+  await page.evaluate(()=>{
+    window.__RC1310_LAYOUT_ADDS__=0;
+    const observer=new MutationObserver(records=>{
+      for(const record of records){
+        for(const node of record.addedNodes||[]){
+          if(node.nodeType!==1)continue;
+          if(node.id==='rc1306Workspace')window.__RC1310_LAYOUT_ADDS__++;
+        }
+      }
+    });
+    observer.observe(document.body,{childList:true,subtree:true});
+    window.__RC1310_LAYOUT_OBSERVER__=observer;
+  });
+  await setDesign(page,'modern');
+  await page.waitForTimeout(220);
+  const builds=await page.evaluate(()=>{
+    window.__RC1310_LAYOUT_OBSERVER__?.disconnect();
+    return window.__RC1310_LAYOUT_ADDS__;
+  });
+  expect(builds).toBe(1);
+  await assertRuntimeClean(runtime,testInfo);
+});
+
 test('RC1306: Modern Business uses process rail, work canvas and status rail',async({page},testInfo)=>{
   const runtime=attachRuntimeGuards(page,testInfo);
   await openShipment(page);

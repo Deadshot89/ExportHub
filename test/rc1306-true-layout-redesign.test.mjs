@@ -36,7 +36,7 @@ test('RC1306: shipment create has three genuinely different compositions',()=>{
 
 test('RC1306: classic restores the original DOM arrangement',()=>{
   assert.match(runtime,/if\(mode==='classic'\)return/);
-  assert.match(runtime,/restoreAll\(\);\s*var mode=design\(\)/);
+  assert.match(runtime,/var mode=design\(\);[\s\S]{0,500}restoreAll\(\);[\s\S]{0,160}if\(mode==='classic'\)return/);
   assert.match(runtime,/o\.next&&o\.next\.parentNode===o\.parent/);
 });
 
@@ -76,6 +76,14 @@ test('RC1306: explicit design changes bypass render debounce',()=>{
   assert.match(runtime,/addEventListener\('exporthub:designchange',apply\)/);
   assert.match(runtime,/addEventListener\('exporthub:viewchange',schedule\)/);
   assert.match(runtime,/addEventListener\('exporthub:rendered',schedule\)/);
+});
+
+test('RC1310: explicit design changes do not schedule duplicate layout rebuilds',()=>{
+  assert.match(runtime,/var lastAppliedDesign='';/);
+  assert.match(runtime,/function layoutHealthy\(mode\)/);
+  assert.match(runtime,/lastAppliedDesign===mode&&layoutHealthy\(mode\)/);
+  assert.match(runtime,/workspace\.contains\(node\)/);
+  assert.match(runtime,/attributeName==='data-eh-design'&&design\(\)!==lastAppliedDesign/);
 });
 
 test('RC1308: multi-layout browser gate covers all five configured target viewports',()=>{
