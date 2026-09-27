@@ -82,10 +82,14 @@ test('RC1308: multi-layout browser gate covers all five configured target viewpo
   assert.doesNotMatch(browserGate,/--project=laptop/);
   assert.match(browserGate,/npx playwright test e2e\/specs\/rc1306-layout-redesign\.spec\.mjs/);
   for(const project of ['mobile-small','mobile-standard','tablet','laptop','desktop']){
-    assert.match(playwrightConfig,new RegExp("name:'"+project+"'"));
+    assert.ok(playwrightConfig.includes("name:'"+project+"'"),'missing project '+project);
   }
   for(const viewport of ['width:360,height:800','width:390,height:844','width:768,height:1024','width:1366,height:768','width:1920,height:1080']){
-    assert.match(playwrightConfig,new RegExp(viewport.replace(/[.*+?^$\\{\\}()|[\\]\\\\]/g,'\\\\test('RC1306: generated layout navigation is localized',()=>{')));
+    assert.ok(playwrightConfig.includes(viewport),'missing viewport '+viewport);
+  }
+});
+
+test('RC1306: generated layout navigation is localized',()=>{')));
   }
 });
 
