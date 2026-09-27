@@ -23,6 +23,11 @@
     }catch(_){}
     return key;
   }
+  function setText(node,value){
+    if(!node)return;
+    value=String(value==null?'':value);
+    if(node.textContent!==value)node.textContent=value;
+  }
 
   function normalize(value){
     value=String(value||'').toLowerCase().trim();
@@ -71,10 +76,10 @@
       select.dataset.rc446='1';
       select.dataset.rc1304='1';
     }
-    select.options[0].textContent=tr('theme.classic');
-    select.options[1].textContent=tr('theme.modernBusiness');
-    select.options[2].textContent=tr('theme.glass');
-    select.options[3].textContent=tr('theme.neonNight');
+    setText(select.options[0],tr('theme.classic'));
+    setText(select.options[1],tr('theme.modernBusiness'));
+    setText(select.options[2],tr('theme.glass'));
+    setText(select.options[3],tr('theme.neonNight'));
     if(select.value!==value)select.value=value;
     select.setAttribute('aria-label',tr('theme.select'));
   }
@@ -109,7 +114,7 @@
       wrap.className='eh-theme-switch ghost';
       wrap.title=tr('theme.select');
       wrap.innerHTML='<span data-rc1304-theme-label></span><select id="ehThemeSelect"></select>';
-      wrap.querySelector('[data-rc1304-theme-label]').textContent=tr('theme.label');
+      setText(wrap.querySelector('[data-rc1304-theme-label]'),tr('theme.label'));
       var optionsBox=top.querySelector('.eh-topbar-options')||top;
       optionsBox.appendChild(wrap);
     }
@@ -123,7 +128,7 @@
     }
     wrap.title=tr('theme.select');
     var topLabel=wrap.querySelector('[data-rc1304-theme-label]')||wrap.querySelector('span');
-    if(topLabel)topLabel.textContent=tr('theme.label');
+    setText(topLabel,tr('theme.label'));
     wrap.hidden=false;
     wrap.setAttribute('aria-hidden','false');
     return select;
@@ -138,13 +143,13 @@
       box.id='rc1304LoginTheme';
       box.className='rc1304-login-theme';
       box.innerHTML='<span data-rc1304-theme-label></span><select id="ehLoginThemeSelect"></select>';
-      box.querySelector('[data-rc1304-theme-label]').textContent=tr('theme.label');
+      setText(box.querySelector('[data-rc1304-theme-label]'),tr('theme.label'));
       var anchor=document.getElementById('cleanVersionBadge')||card.querySelector('h1')||card.firstChild;
       if(anchor&&anchor.parentNode===card)anchor.insertAdjacentElement('afterend',box);
       else card.prepend(box);
     }
     var loginLabel=box.querySelector('[data-rc1304-theme-label]')||box.querySelector('span');
-    if(loginLabel)loginLabel.textContent=tr('theme.label');
+    setText(loginLabel,tr('theme.label'));
     var select=document.getElementById('ehLoginThemeSelect');
     if(select&&select.dataset.rc1304!=='1'){
       options(select,value);
