@@ -235,3 +235,33 @@ test('RC1307: persönlicher hinterlegter Wochenplan wird nicht anderen Benutzern
   const out=api.prepareTasks(state.tasks,{companyId:'essentra',environment:'production',currentUserId:'daniel',now:'2026-09-28T10:00:00+02:00',state,persist(next){state.tasks=next}});
   assert.ok(!out.some(t=>t.managedBy==='RC1152'),'persönliche Tobias-Aufgaben dürfen für andere Benutzer nicht erzeugt werden');
 });
+
+
+test('RC1307: wiederkehrende persönliche Aufgabe bleibt nach Erledigung am selben Tag erledigt und entsteht beim nächsten Termin neu',async()=>{
+  const api=load();
+  const state={tasks:[],_teamSyncMeta:{fields:{},tombstones:[]}};
+  const persist=next=>{state.tasks=next};
+  let out=api.prepareTasks(state.tasks,{companyId:'essentra',environment:'production',currentUserId:'tobias',now:'2026-09-28T09:00:00+02:00',state,persist});
+  const first=out.find(t=>t.id==='managed:gaggenau:2026-09-28');
+  assert.ok(first,'Montags-Aufgabe Gaggenau fehlt');
+  assert.equal(first.status,'open');
+
+  assert.equal(await api.setTaskStatus(first,'in_progress',{state,currentUserId:'tobias',persist}),true);
+  assert.equal(state.tasks.find(t=>t.id===first.id).status,'in_progress');
+
+  assert.equal(await api.setTaskStatus(state.tasks.find(t=>t.id===first.id),'done',{state,currentUserId:'tobias',persist}),true);
+  const done=state.tasks.find(t=>t.id===first.id);
+  assert.equal(done.status,'done');
+  assert.equal(done.done,true);
+  assert.ok(done.completedAt);
+
+  out=api.prepareTasks(state.tasks,{companyId:'essentra',environment:'production',currentUserId:'tobias',now:'2026-09-28T14:00:00+02:00',state,persist});
+  assert.equal(out.filter(t=>t.id===first.id).length,1,'Erledigte Tagesaufgabe darf am selben Tag nicht neu erzeugt werden');
+  assert.equal(out.find(t=>t.id===first.id).status,'done');
+
+  out=api.prepareTasks(state.tasks,{companyId:'essentra',environment:'production',currentUserId:'tobias',now:'2026-10-05T09:00:00+02:00',state,persist});
+  const next=out.find(t=>t.id==='managed:gaggenau:2026-10-05');
+  assert.ok(next,'Gaggenau muss am nächsten Montag als neue Aufgabe entstehen');
+  assert.equal(next.status,'open');
+  assert.notEqual(next.id,first.id);
+});
