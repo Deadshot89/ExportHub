@@ -31,6 +31,13 @@ test('RC1304: theme switcher uses central i18n keys instead of hard-coded German
   assert.doesNotMatch(runtime,/Klassisch \/ Alt/);
 });
 
+test('RC1304: login version marker stays owned by the canonical release runtime',()=>{
+  assert.match(runtime,/function protectVersionBadge\(\)/);
+  assert.match(runtime,/data-i18n-ignore/);
+  assert.match(runtime,/ExportHUBBuild\.applyVersion/);
+  assert.match(runtime,/ExportHUBVisibleRelease1193\.patch/);
+});
+
 test('RC1304: switching never reloads or changes the URL',()=>{
   assert.doesNotMatch(runtime,/location\.reload\s*\(/);
   assert.doesNotMatch(runtime,/location\.href\s*=/);
