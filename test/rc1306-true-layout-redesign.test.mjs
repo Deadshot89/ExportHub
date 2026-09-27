@@ -79,9 +79,9 @@ test('RC1306: explicit design changes bypass render debounce',()=>{
 });
 
 test('RC1308: multi-layout browser gate covers all five configured target viewports',()=>{
-  assert.doesNotMatch(browserGate,/--project=laptop/);
   assert.match(browserGate,/npx playwright test e2e\/specs\/rc1306-layout-redesign\.spec\.mjs/);
   for(const project of ['mobile-small','mobile-standard','tablet','laptop','desktop']){
+    assert.ok(browserGate.includes('--project='+project),'missing workflow project '+project);
     assert.ok(playwrightConfig.includes("name:'"+project+"'"),'missing project '+project);
   }
   for(const viewport of ['width:360,height:800','width:390,height:844','width:768,height:1024','width:1366,height:768','width:1920,height:1080']){

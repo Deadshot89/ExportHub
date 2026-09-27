@@ -47,7 +47,7 @@ jobs:
           EXPORTHUB_E2E_STATIC: '1'
           EXPORTHUB_E2E_ENTRY: /demo.html
           EXPORTHUB_E2E_PUBLIC_ENV: testservice
-        run: npx playwright test e2e/specs/rc1306-layout-redesign.spec.mjs
+        run: npx playwright test e2e/specs/rc1306-layout-redesign.spec.mjs --project=mobile-small --project=mobile-standard --project=tablet --project=laptop --project=desktop
 
       - name: Upload browser artifacts
         if: failure()
