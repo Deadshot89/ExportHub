@@ -36,7 +36,7 @@ test('RC1306: shipment create has three genuinely different compositions',()=>{
 
 test('RC1306: classic restores the original DOM arrangement',()=>{
   assert.match(runtime,/if\(mode==='classic'\)return/);
-  assert.match(runtime,/restoreAll\(\);\s*var mode=design\(\)/);
+  assert.match(runtime,/var mode=design\(\);[\s\S]{0,500}restoreAll\(\);[\s\S]{0,160}if\(mode==='classic'\)return/);
   assert.match(runtime,/o\.next&&o\.next\.parentNode===o\.parent/);
 });
 
