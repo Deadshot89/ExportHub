@@ -40,7 +40,7 @@ test('RC1310: explicit design switch builds the layout only once',async({page},t
       for(const record of records){
         for(const node of record.addedNodes||[]){
           if(node.nodeType!==1)continue;
-          if(node.id==='rc1306Workspace'||node.querySelector?.('#rc1306Workspace'))window.__RC1310_LAYOUT_ADDS__++;
+          if(node.id==='rc1306Workspace')window.__RC1310_LAYOUT_ADDS__++;
         }
       }
     });
