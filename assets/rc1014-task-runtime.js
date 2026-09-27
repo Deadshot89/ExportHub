@@ -17,12 +17,19 @@
   let lastOpenTaskId='';
 
   const MANAGED_TASKS=Object.freeze([
-    {key:'spanien',titleKey:'taskManaged.spanien.title',groupKey:'taskManaged.group.registration',weekdays:[1],priority:'P3',descriptionKey:'taskManaged.spanien.description'},
+    {key:'spanien',titleKey:'taskManaged.spanien.title',groupKey:'taskManaged.group.registration',weekdays:[1,4],priority:'P3',descriptionKey:'taskManaged.spanien.description'},
+    {key:'gaggenau',titleKey:'taskManaged.gaggenau.title',groupKey:'taskManaged.group.registration',weekdays:[1],dueTime:'13:00',priority:'P2',descriptionKey:'taskManaged.gaggenau.description'},
+    {key:'faurecia',titleKey:'taskManaged.faurecia.title',groupKey:'taskManaged.group.registration',weekdays:[1],priority:'P3',descriptionKey:'taskManaged.faurecia.description'},
     {key:'wuerth-industrie',titleKey:'taskManaged.wuerth.title',groupKey:'taskManaged.group.registration',weekdays:[2,4],priority:'P3',descriptionKey:'taskManaged.wuerth.description'},
     {key:'bmp',titleKey:'taskManaged.bmp.title',groupKey:'taskManaged.group.registration',weekdays:[2],priority:'P3',descriptionKey:'taskManaged.bmp.description'},
+    {key:'italien',titleKey:'taskManaged.italien.title',groupKey:'taskManaged.group.registration',weekdays:[3,5],priority:'P3',descriptionKey:'taskManaged.italien.description'},
+    {key:'bsh',titleKey:'taskManaged.bsh.title',groupKey:'taskManaged.group.registration',weekdays:[3],dueTime:'13:00',priority:'P2',descriptionKey:'taskManaged.bsh.description'},
     {key:'ohare',titleKey:'taskManaged.ohare.title',groupKey:'taskManaged.group.registration',weekdays:[3],dueTime:'12:00',priority:'P2',descriptionKey:'taskManaged.ohare.description'},
     {key:'essentra-schweden',titleKey:'taskManaged.essentraSweden.title',groupKey:'taskManaged.group.registration',weekdays:[3],priority:'P3',descriptionKey:'taskManaged.essentraSweden.description'},
     {key:'contitech-abd',titleKey:'taskManaged.contitech.title',groupKey:'taskManaged.group.exportAbd',weekdays:[3],priority:'P2',descriptionKey:'taskManaged.contitech.description'},
+    {key:'polen',titleKey:'taskManaged.polen.title',groupKey:'taskManaged.group.registration',weekdays:[4],priority:'P3',descriptionKey:'taskManaged.polen.description'},
+    {key:'frankreich',titleKey:'taskManaged.frankreich.title',groupKey:'taskManaged.group.registration',weekdays:[5],priority:'P3',descriptionKey:'taskManaged.frankreich.description'},
+    {key:'neff',titleKey:'taskManaged.neff.title',groupKey:'taskManaged.group.registration',weekdays:[5],dueTime:'13:00',priority:'P2',descriptionKey:'taskManaged.neff.description'},
     {key:'swiss-area',titleKey:'taskManaged.swiss.title',groupKey:'taskManaged.group.swiss',referenceArea:true,priority:'P3',descriptionKey:'taskManaged.swiss.description',checklist:['Omni Ray','Bossard','Heizmann']}
   ]);
   const SYSTEM_GROUPS=new Set(['Offene Sendungen','Fehlende POD','Kunde angemeldet','Picks','Offene ABDs']);
@@ -36,6 +43,15 @@
   function currentUserId(ctx){
     const u=(ctx&&ctx.currentUser)||{};
     return q((ctx&&ctx.currentUserId)||u.id||u.userId||u.user||u.username||u.login||u.name);
+  }
+
+  function managedOwnerMatches(ctx={}){
+    const state=ctx.state||{},u=ctx.currentUser||state.currentUser||{};
+    const aliases=[
+      ctx.currentUserId,state.currentUserId,state.userId,
+      u.id,u.userId,u.user,u.username,u.login,u.name
+    ].map(value=>q(value).toLowerCase()).filter(Boolean);
+    return aliases.some(value=>value==='tobias'||value==='user-tobias');
   }
 
   function taskContext(ctx={}){
@@ -166,7 +182,7 @@
     }
     const day=localDay(ctx.now||new Date());
     if(day){
-      const specs=MANAGED_TASKS.filter(spec=>spec.referenceArea||arr(spec.weekdays).includes(day.weekday));
+      const specs=managedOwnerMatches(ctx)?MANAGED_TASKS.filter(spec=>spec.referenceArea||arr(spec.weekdays).includes(day.weekday)):[];
       specs.forEach(spec=>{
         const candidate=managedTaskForSpec(spec,day.date,ctx);
         if(tasks.some(t=>q(t&&t.id)===candidate.id))return;
@@ -290,7 +306,7 @@
       target.completedAt='';target.doneAt='';target.completedBy='';target.doneBy='';
     }
     target.updatedAt=now;
-    if(typeof ctx.persist==='function')ctx.persist(items);
+    if(typeof ctx.persist==='function')await Promise.resolve(ctx.persist(items));
     else{
       const clean=root.ExportHUBClean;
       if(clean&&typeof clean.queueSave==='function'){
@@ -298,6 +314,9 @@
         if(typeof clean.flushSave==='function')await Promise.resolve(clean.flushSave('RC1153 Aufgabenstatus geändert'));
       }
     }
+    lastTasks=items;
+    lastContext={...lastContext,...ctx,state};
+    syncAndroidSnapshot(items,lastContext);
     try{if(typeof root.dispatchEvent==='function'&&typeof root.CustomEvent==='function')root.dispatchEvent(new root.CustomEvent('exporthub:tasks-updated',{detail:{reason:'RC1153 status',taskId:id,status:target.status}}));}catch(_){}
     closeTaskDetail(false);
     return true;
@@ -425,6 +444,70 @@
     const el=doc.createElement('span');el.className=className;el.setAttribute(attribute,value);el.textContent=text;return el;
   }
 
+  function managedTaskPlanItems(ctx={}){
+    if(!managedOwnerMatches(ctx))return [];
+    const today=localDay(ctx.now||new Date());
+    return MANAGED_TASKS.map(spec=>({
+      key:spec.key,
+      title:tr(spec.titleKey),
+      group:tr(spec.groupKey),
+      description:spec.descriptionKey?tr(spec.descriptionKey):'',
+      priority:spec.priority||'P3',
+      dueTime:q(spec.dueTime),
+      weekdays:arr(spec.weekdays).slice(),
+      referenceArea:!!spec.referenceArea,
+      checklist:arr(spec.checklist).slice(),
+      schedule:spec.referenceArea?tr('taskPlan.always'):arr(spec.weekdays).map(day=>tr('taskDetail.weekday.'+day)).filter(Boolean).join(' + ')+(spec.dueTime?' · '+tr('taskDetail.untilTime',{time:spec.dueTime}):''),
+      today:!!(today&&arr(spec.weekdays).includes(today.weekday))
+    }));
+  }
+
+  function currentView(){
+    try{
+      const bodyValue=q(root.document&&root.document.body&&root.document.body.getAttribute&&root.document.body.getAttribute('data-exporthub-view'));
+      if(bodyValue)return bodyValue.toLowerCase();
+    }catch(_){}
+    try{
+      const state=sharedState()||{},value=q(state.view||state.currentView||state.activeView||state.page);
+      return value.toLowerCase();
+    }catch(_){return''}
+  }
+
+  function renderManagedTaskPlan(ctx=lastContext){
+    const doc=root.document;
+    if(!doc||typeof doc.getElementById!=='function')return false;
+    const existing=doc.getElementById('rc1307ManagedTaskPlan');
+    if(currentView()!=='tasks'){
+      if(existing&&existing.parentNode)existing.parentNode.removeChild(existing);
+      return false;
+    }
+    const host=doc.getElementById('content')||(doc.querySelector&&doc.querySelector('[data-view="tasks"],main'))||doc.body;
+    if(!host)return false;
+    const items=managedTaskPlanItems(ctx);
+    let section=existing;
+    if(!section){
+      section=doc.createElement('section');
+      section.id='rc1307ManagedTaskPlan';
+      section.className='rc1307-managed-task-plan';
+      const anchor=host.querySelector&&host.querySelector('.rc229-task-grid,details.task-area-details,.task-grid,.tasks-grid');
+      if(anchor&&anchor.parentNode)anchor.parentNode.insertBefore(section,anchor);
+      else if(typeof host.prepend==='function')host.prepend(section);
+      else host.insertBefore(section,host.firstChild||null);
+    }
+    section.innerHTML=`<div class="rc1307-task-plan-head">
+      <div><span class="rc1307-task-plan-eyebrow">${esc(tr('taskPlan.eyebrow'))}</span><h2>${esc(tr('taskPlan.title'))}</h2><p>${esc(tr('taskPlan.help'))}</p></div>
+      <span class="rc1307-task-plan-count">${esc(tr('taskPlan.count',{count:items.length}))}</span>
+    </div>
+    <div class="rc1307-task-plan-grid">${items.map(item=>`<article class="rc1307-task-plan-card${item.today?' is-today':''}" data-managed-task="${esc(item.key)}">
+      <div class="rc1307-task-plan-card-top"><span class="rc1307-task-plan-group">${esc(item.group)}</span><span class="rc1307-task-plan-priority">${esc(item.priority)}</span></div>
+      <h3>${esc(item.title)}</h3>
+      <p>${esc(item.description)}</p>
+      <div class="rc1307-task-plan-meta"><span>${esc(item.schedule)}</span>${item.today?`<strong>${esc(tr('taskPlan.today'))}</strong>`:''}</div>
+      ${item.checklist.length?`<div class="rc1307-task-plan-checklist">${item.checklist.map(entry=>`<span>${esc(entry)}</span>`).join('')}</div>`:''}
+    </article>`).join('')}</div>`;
+    return true;
+  }
+
   function enhanceTaskCards(tasks=lastTasks,ctx=lastContext){
     const doc=root.document;
     if(!doc||typeof doc.querySelectorAll!=='function')return 0;
@@ -462,7 +545,7 @@
     if(!root.document)return;
     if(enhanceTimer&&typeof root.clearTimeout==='function')root.clearTimeout(enhanceTimer);
     const schedule=typeof root.setTimeout==='function'?root.setTimeout:(fn=>fn());
-    enhanceTimer=schedule(()=>{enhanceTimer=0;enhanceTaskCards();},0);
+    enhanceTimer=schedule(()=>{enhanceTimer=0;renderManagedTaskPlan();enhanceTaskCards();},0);
   }
 
   function containsTaskCard(node){
@@ -477,9 +560,11 @@
     const target=doc.body||doc.documentElement;
     if(!target)return false;
     lazyCardObserver=new root.MutationObserver(mutations=>{
-      if(mutations.some(mutation=>Array.from(mutation.addedNodes||[]).some(containsTaskCard)))scheduleEnhance();
+      const viewChanged=mutations.some(mutation=>mutation.type==='attributes'&&mutation.attributeName==='data-exporthub-view');
+      const cardsAdded=mutations.some(mutation=>mutation.type==='childList'&&Array.from(mutation.addedNodes||[]).some(containsTaskCard));
+      if(viewChanged||cardsAdded)scheduleEnhance();
     });
-    lazyCardObserver.observe(target,{childList:true,subtree:true});
+    lazyCardObserver.observe(target,{childList:true,subtree:true,attributes:target===doc.body,attributeFilter:target===doc.body?['data-exporthub-view']:undefined});
     doc.addEventListener('toggle',event=>{const target=event&&event.target;if(target&&target.matches&&target.matches('details.task-area-details'))scheduleEnhance();},true);
     return true;
   }
@@ -491,7 +576,8 @@
     const userId=q(ctx.currentUserId||currentUserId(ctx));
     const environment=q(ctx.environment);
     if(!userId||!environment)return false;
-    const candidates=lifecycle.reminderCandidates(tasks,{...ctx,currentUserId:userId,environment});
+    const candidates=lifecycle.reminderCandidates(tasks,{...ctx,currentUserId:userId,environment})
+      .filter(task=>q(task&&task.managedKind)!=='reference-area');
     const safeTasks=candidates.map(task=>{
       const t=lifecycle.normalizeTask(task,ctx);const bucket=lifecycle.dueBucket(t,ctx.now);
       return {id:q(t.id),title:q(t.title),sourceRef:q(t.sourceRef),priority:q(t.priority),dueAt:q(t.dueAt),dueBucket:bucket,group:q(t.group),effectiveAssignee:q(t.effectiveAssignee),environment:q(t.environment||environment),route:'tasks'};
@@ -583,5 +669,5 @@
 
   if(root.addEventListener)root.addEventListener('popstate',()=>{const doc=root.document;if(doc&&doc.getElementById&&doc.getElementById('rc1152TaskDetail'))closeTaskDetail(true);});
 
-  root.ExportHUBRC1014TaskRuntime=Object.freeze({currentTasks,prepareTasks,openTask,openTaskDetail,renderTaskDetailView,rememberTaskDetail,rememberedTask,closeTaskDetail,setTaskStatus,completeTask,prepareManagedRoster,systemTaskIsCurrent,taskCardMeta,enhanceTaskCards,syncAndroidSnapshot,resetProductionTasksOnce,MANAGED_TASKS});
+  root.ExportHUBRC1014TaskRuntime=Object.freeze({currentTasks,prepareTasks,openTask,openTaskDetail,renderTaskDetailView,rememberTaskDetail,rememberedTask,closeTaskDetail,setTaskStatus,completeTask,prepareManagedRoster,systemTaskIsCurrent,taskCardMeta,managedOwnerMatches,managedTaskPlanItems,renderManagedTaskPlan,enhanceTaskCards,syncAndroidSnapshot,resetProductionTasksOnce,MANAGED_TASKS});
 })(globalThis);
