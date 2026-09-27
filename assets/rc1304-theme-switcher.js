@@ -1,5 +1,5 @@
 /*
- * ExportHUB360 RC1304 – Classic / Modern UI switcher.
+ * ExportHUB360 RC1304 – four-design UI switcher.
  * This intentionally leaves the legacy business logic untouched.
  */
 (function(){
@@ -10,7 +10,9 @@
   var STORAGE_KEY='exporthub-ui-design';
   var CLASSIC='classic';
   var MODERN='modern';
-  var VALUES=[CLASSIC,MODERN];
+  var GLASS='glass';
+  var NEON='neon';
+  var VALUES=[CLASSIC,MODERN,GLASS,NEON];
   var scheduled=false;
 
   function normalize(value){
@@ -46,9 +48,11 @@
   function options(select,value){
     if(!select)return;
     var ready=select.dataset.rc1304==='1'&&
-      select.options&&select.options.length===2&&
+      select.options&&select.options.length===4&&
       select.options[0].value===CLASSIC&&
-      select.options[1].value===MODERN;
+      select.options[1].value===MODERN&&
+      select.options[2].value===GLASS&&
+      select.options[3].value===NEON;
     if(!ready){
       select.innerHTML=
         '<option value="'+CLASSIC+'">Klassisch / Alt</option>'+
@@ -206,7 +210,9 @@
     storageKey:STORAGE_KEY,
     designs:Object.freeze([
       Object.freeze({id:CLASSIC,label:'Klassisch / Alt'}),
-      Object.freeze({id:MODERN,label:'Neu'})
+      Object.freeze({id:MODERN,label:'Modern Business'}),
+      Object.freeze({id:GLASS,label:'Glass'}),
+      Object.freeze({id:NEON,label:'Neon Night'})
     ]),
     apply:function(value){return apply(value,true)},
     current:function(){return normalize(document.documentElement.getAttribute('data-eh-design')||read())},
