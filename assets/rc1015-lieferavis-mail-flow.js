@@ -3,7 +3,7 @@
 if(window.__EXPORTHUB_RC1015_LIEFERAVIS_MAIL_FLOW__)return;
 window.__EXPORTHUB_RC1015_LIEFERAVIS_MAIL_FLOW__=true;
 
-var base=null,wrapper=null,autoEnablePending=Object.create(null),mailSourceCache=new Map(),visibleMailSyncing=false;
+var base=null,wrapper=null,autoEnablePending=Object.create(null),mailSourceCache=new Map(),visibleMailSyncing=false,refreshUiPending=false;
 var RC1018_AVIS_EXCEPTIONS=Object.freeze({bmp:'Kunden-IT blockiert den Zugriff','böllhof':'Kein Lieferavis für diesen Kunden','böllhoff':'Kein Lieferavis für diesen Kunden',boellhof:'Kein Lieferavis für diesen Kunden',boellhoff:'Kein Lieferavis für diesen Kunden'});
 var RC1291_AVIS_MAIL_EXCLUSIONS=Object.freeze(['würth industrie','wuerth industrie']);
 var RC1292_AVIS_RECIPIENT_EXCLUSIONS=Object.freeze({'dispo@holenstein.de':'Holenstein GmbH'});
@@ -345,7 +345,17 @@ function patchMailMode(){
  if(standard){var label=mailModeLabel(type,null,lang)+' · '+(lang==='en'?'Englisch':'Deutsch');if(standard.value!==label)standard.value=label;standard.setAttribute('data-rc1015-mail-mode',(type==='customer'||type==='carrier')&&/lieferavis|collection notice/i.test(label)?'lieferavis':'sendungsdetails')}
  return true
 }
-function refreshUi(){requestAnimationFrame(function(){rc1015UpdateLieferavisButton();patchMailMode()})}
+function rc1015UiRelevant(){
+ if(rc1021ShipmentViewActive())return true;
+ try{return !!(document.getElementById('rc897LieferavisPanel')||document.getElementById('rc543MailArea'))}catch(_){return false}
+}
+function refreshUi(){
+ if(!rc1015UiRelevant()||refreshUiPending)return false;
+ refreshUiPending=true;
+ var raf=typeof requestAnimationFrame==='function'?requestAnimationFrame:function(fn){return setTimeout(fn,0)};
+ raf(function(){refreshUiPending=false;rc1015UpdateLieferavisButton();patchMailMode()});
+ return true
+}
 function install(){
  var current=window.ExportHUBCustomerAvis706||window.ExportHUBCustomerAvis705;
  if(!current)return false;
