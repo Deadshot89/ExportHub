@@ -1134,5 +1134,14 @@
   "loadingListPrint.noRemark": "No remark stored",
   "loadingListPrint.signatureStored": "Stored digitally",
   "loadingListPrint.driverSignature": "Driver signature",
-  "loadingListPrint.palletMovement": "Outgoing: {{out}} · Incoming/returned: {{returned}}"
+  "loadingListPrint.palletMovement": "Outgoing: {{out}} · Incoming/returned: {{returned}}",
+  "layout.shipmentProcess": "Shipment process",
+  "layout.customerRecipient": "Customer & recipient",
+  "layout.shipmentData": "Shipment data",
+  "layout.colliLdm": "Packages & loading meters",
+  "layout.documentsAbd": "Documents & export declaration",
+  "layout.stowPlan": "Stowage plan",
+  "layout.abd": "Export declaration",
+  "layout.mail": "Mail",
+  "layout.saveOutput": "Save & output"
 }

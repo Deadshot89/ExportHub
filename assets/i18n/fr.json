@@ -1134,5 +1134,14 @@
   "loadingListPrint.noRemark": "Aucune remarque enregistrée",
   "loadingListPrint.signatureStored": "Enregistré numériquement",
   "loadingListPrint.driverSignature": "Signature du chauffeur",
-  "loadingListPrint.palletMovement": "Sortie : {{out}} · Entrée/retour : {{returned}}"
+  "loadingListPrint.palletMovement": "Sortie : {{out}} · Entrée/retour : {{returned}}",
+  "layout.shipmentProcess": "Processus d’expédition",
+  "layout.customerRecipient": "Client et destinataire",
+  "layout.shipmentData": "Données d’expédition",
+  "layout.colliLdm": "Colis et mètres de chargement",
+  "layout.documentsAbd": "Documents et déclaration d’exportation",
+  "layout.stowPlan": "Plan de chargement",
+  "layout.abd": "Déclaration d’exportation",
+  "layout.mail": "E-mail",
+  "layout.saveOutput": "Enregistrer et sortie"
 }

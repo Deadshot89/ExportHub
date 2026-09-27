@@ -1134,5 +1134,14 @@
   "loadingListPrint.noRemark": "Keine Bemerkung hinterlegt",
   "loadingListPrint.signatureStored": "Digital gespeichert",
   "loadingListPrint.driverSignature": "Fahrerunterschrift",
-  "loadingListPrint.palletMovement": "Ausgang: {{out}} · Eingang/Rückgabe: {{returned}}"
+  "loadingListPrint.palletMovement": "Ausgang: {{out}} · Eingang/Rückgabe: {{returned}}",
+  "layout.shipmentProcess": "Sendungsprozess",
+  "layout.customerRecipient": "Kunde & Empfänger",
+  "layout.shipmentData": "Sendungsdaten",
+  "layout.colliLdm": "Colli & Lademeter",
+  "layout.documentsAbd": "Dokumente & ABD",
+  "layout.stowPlan": "Stauplan",
+  "layout.abd": "ABD",
+  "layout.mail": "Mail",
+  "layout.saveOutput": "Speichern & Ausgabe"
 }
