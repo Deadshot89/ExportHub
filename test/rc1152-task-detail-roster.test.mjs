@@ -39,10 +39,9 @@ test('RC1266: Mittwoch erzeugt den freigegebenen Wochenplan, erhält System- und
     persist(next){state.tasks=next}
   });
   const titles=out.map(t=>t.title);
-  for(const title of ['O’Hare anmelden','Essentra Schweden anmelden','Contitech – ABD erstellen','Schweizer Kunden prüfen','POD ABC123 prüfen']){
+  for(const title of ['Italien anmelden','BSH anmelden','O’Hare anmelden','Essentra Schweden anmelden','Contitech – ABD erstellen','Schweizer Kunden prüfen','POD ABC123 prüfen']){
     assert.ok(titles.includes(title),title+' fehlt');
   }
-  for(const title of ['Italien anmelden','BSH anmelden','Gaggenau anmelden','FAURECIA anmelden','Polen anmelden','Frankreich anmelden','Neff anmelden'])assert.ok(!titles.includes(title),title+' darf nicht mehr automatisch erzeugt werden');
   assert.ok(titles.includes('Alte Aufgabe die nicht besprochen wurde'),'bestehende manuelle Aufgabe darf bei fehlendem Roster-Marker nicht gelöscht werden');
   assert.ok(state.rc1152TaskRosterAt);
   assert.ok(!state._teamSyncMeta.tombstones.some(t=>t.collection==='tasks'&&t.id==='ALT-1'),'manuelle Aufgabe darf keinen Lösch-Tombstone bekommen');
@@ -50,21 +49,21 @@ test('RC1266: Mittwoch erzeugt den freigegebenen Wochenplan, erhält System- und
   assert.match(ohare.dueAt,/T12:00:00$/);
 });
 
-test('RC1156: Donnerstag erzeugt nur Würth Industrie plus Schweizer Bereich',()=>{
+test('RC1307: Donnerstag erzeugt Würth Industrie, Spanien, Polen plus Schweizer Bereich',()=>{
   const api=load(),state={tasks:[],_teamSyncMeta:{fields:{},tombstones:[]}};
   const out=api.prepareTasks(state.tasks,{companyId:'essentra',environment:'production',currentUserId:'tobias',now:'2026-09-17T10:00:00+02:00',state,persist(next){state.tasks=next}});
   const titles=new Set(out.map(t=>t.title));
-  for(const title of ['Würth Industrie anmelden','Schweizer Kunden prüfen'])assert.ok(titles.has(title));
-  for(const title of ['Spanien anmelden','Polen anmelden','BMP anmelden'])assert.ok(!titles.has(title));
+  for(const title of ['Würth Industrie anmelden','Spanien anmelden','Polen anmelden','Schweizer Kunden prüfen'])assert.ok(titles.has(title));
+  assert.ok(!titles.has('BMP anmelden'));
 });
 
-test('RC1156: Montag erzeugt Spanien nur montags und keine alten Automatik-Aufgaben',()=>{
+test('RC1307: Montag erzeugt Spanien, Gaggenau und FAURECIA',()=>{
   const api=load(),state={tasks:[],_teamSyncMeta:{fields:{},tombstones:[]}};
   const out=api.prepareTasks(state.tasks,{companyId:'essentra',environment:'production',currentUserId:'tobias',now:'2026-09-14T10:00:00+02:00',state,persist(next){state.tasks=next}});
   const titles=new Set(out.map(t=>t.title));
-  assert.ok(titles.has('Spanien anmelden'));
-  assert.ok(titles.has('Schweizer Kunden prüfen'));
-  for(const title of ['Gaggenau anmelden','FAURECIA anmelden','Italien anmelden','BSH anmelden','Polen anmelden','Frankreich anmelden','Neff anmelden'])assert.ok(!titles.has(title));
+  for(const title of ['Spanien anmelden','Gaggenau anmelden','FAURECIA anmelden','Schweizer Kunden prüfen'])assert.ok(titles.has(title));
+  const gaggenau=out.find(t=>t.title==='Gaggenau anmelden');
+  assert.match(gaggenau.dueAt,/T13:00:00$/);
 });
 
 test('RC1156: Dienstag erzeugt Würth Industrie und BMP',()=>{
@@ -166,4 +165,20 @@ test('RC1179: Aufgabenansicht ist kein Vollbild-Overlay mehr',()=>{
   assert.match(css,/RC1179 Aufgabenansicht als eigener Reiter/);
   assert.match(css,/\.rc1152-task-detail\{[\s\S]*position:relative/);
   assert.doesNotMatch(css,/\.rc1152-task-detail\{[\s\S]{0,160}position:fixed/);
+});
+
+
+test('RC1307: Freitag erzeugt Italien, Frankreich und Neff',()=>{
+  const api=load(),state={tasks:[],_teamSyncMeta:{fields:{},tombstones:[]}};
+  const out=api.prepareTasks(state.tasks,{companyId:'essentra',environment:'production',currentUserId:'tobias',now:'2026-09-18T10:00:00+02:00',state,persist(next){state.tasks=next}});
+  const titles=new Set(out.map(t=>t.title));
+  for(const title of ['Italien anmelden','Frankreich anmelden','Neff anmelden','Schweizer Kunden prüfen'])assert.ok(titles.has(title),title+' fehlt');
+  const neff=out.find(t=>t.title==='Neff anmelden');
+  assert.match(neff.dueAt,/T13:00:00$/);
+});
+
+test('RC1307: kompletter hinterlegter Aufgabenstamm ist im Runtime-Vertrag vorhanden',()=>{
+  for(const key of ['spanien','gaggenau','faurecia','wuerth-industrie','bmp','italien','bsh','ohare','essentra-schweden','contitech-abd','polen','frankreich','neff','swiss-area']){
+    assert.ok(runtimeSource.includes("key:'"+key+"'"),key+' fehlt');
+  }
 });
