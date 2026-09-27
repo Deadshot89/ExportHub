@@ -411,6 +411,122 @@ function patchCompletePrintBundle(html,file){
   return html;
 }
 
+function patchRc1305ShipmentViewReliability(html,file){
+  function replaceBlock(start,end,replacement,label){
+    const a=html.indexOf(start),b=a<0?-1:html.indexOf(end,a+start.length);
+    if(a<0||b<0)throw new Error(file+': RC1305 '+label+'-Anker fehlt');
+    html=html.slice(0,a)+replacement+html.slice(b);
+  }
+
+  const historyReplacement=`/* exporthub-rc1305-shipment-view-reliability */
+function historyHtml(sh){
+ var list=[],seen={},raw=arr(sh&&sh.statusHistory);
+ function add(at,label,detail,key){
+  at=q(at);label=q(label);detail=q(detail);if(!label)return;
+  var unique=q(key)||low(label)+'|'+at+'|'+low(detail);if(seen[unique])return;seen[unique]=1;
+  list.push({at:at,label:label,detail:detail,stamp:Date.parse(at)||0,key:unique})
+ }
+ raw.forEach(function(row){var h=historyItem(row);if(h)add(h.at,h.label,h.detail,'status|'+h.key+'|'+q(h.at))});
+ var created=q(sh&&(sh.createdAt||sh.created||sh.savedAt)),creator=q(sh&&(sh.createdByName||sh.createdBy||sh.creatorName||sh.creator||sh.owner));
+ if(created&&!list.some(function(x){return /erstellt|created/i.test(x.label)}))add(created,'Sendung erstellt',creator,'created');
+ function pickupRows(rows,prefix){
+  arr(rows).forEach(function(p,i){
+   var at=q(p&&(p.confirmedAt||p.signatureStoredAt||p.pickedUpAt||p.actualPickupAt));if(!at)return;
+   var who=q(p.loaderName||p.driverName),plate=q(p.licensePlate||p.plate),colli=Number(p.colliCount||p.colli);
+   var detail=[who,plate?('Kennzeichen '+plate):'',Number.isFinite(colli)&&colli>0?(colli+' Colli'):''].filter(Boolean).join(' · ');
+   add(at,p.complete===false?'Teilabholung bestätigt':'Abgeholt',detail,'pickup|'+prefix+'|'+q(p.id||at||i))
+  })
+ }
+ pickupRows(sh&&sh.pickupHistory,'main');
+ arr(sh&&sh.subShipments).forEach(function(sub,i){pickupRows(sub&&sub.pickupHistory,'sub'+i)});
+ var picked=q(sh&&(sh.actualPickupDate||sh.pickedUpAtDate||sh.pickedUpAt||sh.pickupConfirmedAt||sh.actualPickupAt||sh.collectedAt));
+ if(picked&&!list.some(function(x){return /abgeholt|abholung bestätigt/i.test(x.label)}))add(picked,'Abgeholt',q(sh.loader||sh.loadedBy||sh.verlader),'picked|'+picked);
+ var podAt=q(sh&&(sh.podUploadedAt||sh.podServerVerifiedAt||sh.podConfirmedAt));
+ if(podAt)add(podAt,'POD vorhanden','Abliefernachweis gespeichert','pod|'+podAt);
+ var completedAt=q(sh&&sh.completedAt),archivedAt=q(sh&&sh.archivedAt);
+ if(completedAt)add(completedAt,'Abgeschlossen',q(sh.completedBy),'completed|'+completedAt);
+ if(archivedAt)add(archivedAt,'Archiviert',q(sh.archivedBy),'archived|'+archivedAt);
+ var current=status(sh),currentAt=q(sh&&(sh.statusChangedAt||sh.statusUpdatedAt||sh.updatedAt||sh._syncUpdatedAt));
+ if(current&&!list.some(function(x){return low(x.label).indexOf(low(current))>=0}))add(currentAt,'Aktueller Status: '+current,'','current|'+low(current));
+ list.sort(function(a,b){var aa=a.stamp||Number.MAX_SAFE_INTEGER,bb=b.stamp||Number.MAX_SAFE_INTEGER;return aa-bb});
+ if(!list.length)return '<div class="rc776-empty">Für diese Sendung sind noch keine fachlichen Bewegungsdaten gespeichert.</div>';
+ return '<div class="rc776-history">'+list.slice(-30).map(function(x){return '<div class="rc776-history-row"><time>'+esc(x.at?fmtDate(x.at):'–')+'</time><div><b>'+esc(x.label)+'</b>'+(x.detail?'<small> · '+esc(x.detail)+'</small>':'')+'</div></div>'}).join('')+'</div>'
+}
+`;
+  replaceBlock('function historyHtml(sh){','
+
+var referenceCache=',historyReplacement,'Statusverlauf');
+
+  const docHelpers=`function fallbackDocUsable(d){
+ if(!d)return false;
+ if(d.source==='referenceFolder'&&d.itemId)return true;
+ if(d.url)return true;
+ var helper=window.ExportHUBDocumentBlob1059,f=d.file;
+ try{return !!(helper&&f&&typeof helper.isBlobDocument==='function'&&helper.isBlobDocument(f))}catch(_){return false}
+}
+function mergeReferenceDocs(live,fallback){
+ var out=arr(live).slice(),seen={};out.forEach(function(d){seen[low(q(d&&d.name))]=1});
+ arr(fallback).filter(fallbackDocUsable).forEach(function(d){var key=low(q(d&&d.name));if(key&&seen[key])return;if(key)seen[key]=1;out.push(d)});
+ return out
+}
+`;
+  const normalizeAnchor='function normalizeFallback(d){';
+  const normalizePos=html.indexOf(normalizeAnchor);
+  if(normalizePos<0)throw new Error(file+': RC1305 Dokument-Fallback-Anker fehlt');
+  html=html.slice(0,normalizePos)+docHelpers+html.slice(normalizePos);
+
+  replaceBlock(
+    'function docHtml(d,i){',
+    '
+function docsPanelHtml',
+    `function docHtml(d,i){var usable=fallbackDocUsable(d),buttons=[];if(usable){buttons.push('<button type="button" class="ghost" data-rc786-open-file="'+i+'">Öffnen</button>');buttons.push('<button type="button" class="ghost" data-rc786-download-file="'+i+'">Download</button>');if(isPrintable(d))buttons.push('<button type="button" class="ghost" data-rc786-print-file="'+i+'">Drucken</button>')}return '<article class="rc786-doc-row"><div class="rc786-doc-icon" aria-hidden="true">'+docIcon(d)+'</div><div class="rc786-doc-main"><b>'+esc(d.name||'Dokument')+'</b><small>'+esc(docMeta(d))+'</small></div><div class="rc786-doc-actions">'+buttons.join('')+'</div></article>'}
+`,
+    'Dokumentaktionen'
+  );
+
+  replaceBlock(
+    'function docsPanelHtml(docs,source,error){',
+    '
+function setDocsPanel',
+    `function docsPanelHtml(docs,source,error){docs=arr(docs);var sourceText=source==='referenceFolder'?'Vorhandene Dateien direkt aus dem Ref-Ordner der Sendung':source==='combined'?'Ref-Ordner und gespeicherte Anhänge der Sendung':source==='fallback'?'Gespeicherte Anhänge der Sendung':'';var note=sourceText?'<div class="rc786-doc-source">'+esc(sourceText)+(error?' · Ref-Ordner derzeit nicht erreichbar':'')+'</div>':'';var body=docs.length?'<div class="rc776-docs">'+docs.map(docHtml).join('')+'</div>':'<div class="rc776-empty">'+(source==='referenceFolder'?'Im Ref-Ordner und im Sendungsdatensatz sind aktuell keine öffnungsfähigen Dateien vorhanden.':'Keine echte Datei verfügbar. Interne Erzeugungsmetadaten werden nicht als Datei angezeigt.')+'</div>';return note+body}
+`,
+    'Dokumentpanel'
+  );
+
+  replaceBlock(
+    'async function loadReferenceDocs(sh,fallback){',
+    '
+
+function shipmentSearchStamp',
+    `async function loadReferenceDocs(sh,fallback){var ref=refOf(sh),expected=idOf(sh)||ref;fallback=arr(fallback).filter(fallbackDocUsable);if(!ref)return setDocsPanel(fallback,'fallback',true);try{var data=await referenceList(ref,false);if(data&&data.available===false){setDocsPanel(fallback,'fallback',true);return false}var live=arr(data.files).map(function(x){return liveDoc(x,ref)}),merged=mergeReferenceDocs(live,fallback),source=live.length?(merged.length>live.length?'combined':'referenceFolder'):(fallback.length?'fallback':'referenceFolder');var current=find(state().shipmentViewId||state().selectedShipmentId||state().activeShipmentId);if(low(state().view)!=='shipmentview'||!current||(idOf(current)||refOf(current))!==expected)return false;setDocsPanel(merged,source,false)}catch(e){if(!(e&&e.code==='GRAPH_NOT_CONFIGURED'))console.warn('RC1305 Ref-Ordner',e);var current2=find(state().shipmentViewId||state().selectedShipmentId||state().activeShipmentId);if(low(state().view)==='shipmentview'&&current2&&(idOf(current2)||refOf(current2))===expected)setDocsPanel(fallback,'fallback',true)}return false}
+`,
+    'Ref-Ordner-Fallback'
+  );
+
+  replaceBlock(
+    'async function fetchDocBlob(d){',
+    '
+async function downloadDocObject',
+    `async function fetchDocBlob(d){if(!d)throw new Error('Datei fehlt.');if(d._blob instanceof Blob)return d._blob;var helper=window.ExportHUBDocumentBlob1059;if(d.file&&helper&&typeof helper.isBlobDocument==='function'&&helper.isBlobDocument(d.file)&&typeof helper.fetchBlob==='function')return await helper.fetchBlob(d.file);if(d.source==='referenceFolder'&&d.itemId){var ref=q(d.reference)||refOf(currentShipmentForDocs()),res=await fetch('/api/reference-files?reference='+encodeURIComponent(ref)+'&itemId='+encodeURIComponent(d.itemId)+'&mode=inline&_='+Date.now(),{method:'GET',headers:referenceHeaders(),credentials:'same-origin',cache:'no-store'});if(!res.ok){var message='Datei konnte nicht geöffnet werden.';try{var data=await res.json();message=q(data.message)||message}catch(_){}throw new Error(message)}return await res.blob()}if(d.url&&(/^data:|^blob:|^\/api\//i.test(d.url))){var r=await fetch(d.url,{headers:/^\/api\//i.test(d.url)?referenceHeaders():{},credentials:'same-origin',cache:'no-store'});if(!r.ok)throw new Error('Datei konnte nicht geladen werden.');return await r.blob()}return null}
+`,
+    'Blob-Dokumentöffnung'
+  );
+
+  const oldNote='<p class="rc808-history-note">Nur tatsächliche Statuswechsel der Sendung. Technische RC543-Synchronisierungstexte werden nicht angezeigt.</p>';
+  const newNote='<p class="rc808-history-note">Fachliche Bewegung der Sendung: Status, Abholung, POD und Abschluss. Technische Synchronisierung wird ausgeblendet.</p>';
+  if(!html.includes(oldNote)&&!html.includes(newNote))throw new Error(file+': RC1305 Statushinweis-Anker fehlt');
+  html=html.replace(oldNote,newNote);
+
+  const oldDocs="Vorhandene Originaldateien · Ref-Ordner '+esc(ref)+'";
+  const newDocs="Ref-Ordner + gespeicherte Anhänge · Referenz '+esc(ref)+'";
+  if(html.includes(oldDocs))html=html.replace(oldDocs,newDocs);
+
+  if(!html.includes('exporthub-rc1305-shipment-view-reliability'))throw new Error(file+': RC1305 Marker fehlt');
+  if(!html.includes('mergeReferenceDocs(live,fallback)'))throw new Error(file+': RC1305 Ref-Datei-Merge fehlt');
+  if(!html.includes("'Abgeholt'"))throw new Error(file+': RC1305 Abholbewegung fehlt');
+  return html;
+}
+
 function patchRc1283LoadingListSearch(html,file){
   const anchor="async function downloadDocument(mode,button){";
   const bridge=`window.__EXPORTHUB_RC1283_OPEN_LOAD1__=function(sh,printNow){try{if(!sh)throw new Error('Keine Ladeliste ausgewählt.');var child=window.open('about:blank','_blank','width=1180,height=860');if(!child){alert('Das Ladelistenfenster wurde vom Browser blockiert.');return false}var styles=Array.from(document.querySelectorAll('style,link[rel="stylesheet"]')).map(function(n){return n.outerHTML}).join(''),body=loadHtml(sh,true),title='Ladeliste '+esc(sref(sh)||sid(sh));child.opener=null;child.document.open();child.document.write('<!doctype html><html lang="de"><head><meta charset="utf-8"><title>'+title+'</title>'+styles+'<style>@page{size:A4 portrait;margin:8mm}html,body{background:#fff!important}body{margin:0;padding:0}.rc390-page,.rc352-page{margin:0 auto!important;box-shadow:none!important}</style></head><body>'+body+'</body></html>');child.document.close();if(printNow){var run=function(){try{child.focus();child.print()}catch(e){console.error('RC1283 Ladeliste drucken',e)}};if(child.document.readyState==='complete')setTimeout(run,250);else child.addEventListener('load',function(){setTimeout(run,200)},{once:true})}return true}catch(e){console.error('RC1283 Ladeliste öffnen/drucken',e);alert('Ladeliste konnte nicht geöffnet werden: '+String(e&&e.message||e));return false}}\nwindow.__EXPORTHUB_RC1283_DOWNLOAD_LOAD1__=async function(sh){try{if(!sh)throw new Error('Keine Ladeliste ausgewählt.');var out=await createPdf('load1',sh),name=('Ladeliste_'+(sref(sh)||sid(sh)||'Sendung')+'.pdf').replace(/[^A-Za-z0-9._-]+/g,'_');downloadBlob(out.blob,name);return true}catch(e){console.error('RC1283 Ladeliste herunterladen',e);alert('Ladeliste konnte nicht heruntergeladen werden: '+String(e&&e.message||e));return false}}`;
@@ -441,6 +557,7 @@ function patchHtml(file){
   html=patchTaskDetailTab(html,file);
   html=patchRc1259ContainerSearch(html,file);
   html=patchCompletePrintBundle(html,file);
+  html=patchRc1305ShipmentViewReliability(html,file);
   html=patchRc1283LoadingListSearch(html,file);
   html=patchDeckblattHighVisibility(html,file);
   html=patchRc1203ActualDeckblatt(html,file);
@@ -462,7 +579,7 @@ function patchHtml(file){
   html=html.replace(/assets\/rc1013-diagnostics\.js\?v=1085/g,'assets/rc1013-diagnostics.js?v=1125');
   html=html.replace(/assets\/exporthub-environment-hub\.js\?v=\d+/g,'assets/exporthub-environment-hub.js?v=1174');
   html=html.replace(/assets\/rc1081-audit-history\.js\?v=(?:1087|1126|1160|1163)/g,'assets/rc1081-audit-history.js?v=1177');
-  html=html.replace(/assets\/rc1071-shipment-history\.js\?v=(?:1095|1151)/g,'assets/rc1071-shipment-history.js?v=1178');
+  html=html.replace(/assets\/rc1071-shipment-history\.js\?v=(?:1095|1151|1178|1305)/g,'assets/rc1071-shipment-history.js?v=1305');
   html=html.replace(/assets\/rc1063-abd-blob-viewer-compat\.js\?v=(?:1063|1151|1248)/g,'assets/rc1063-abd-blob-viewer-compat.js?v=1248');
   html=injectDeferredRuntimeInHead(html,'<!-- id="exporthub-rc1148-history-compat-marker" assets/rc1071-shipment-history.js?v=1095 -->','exporthub-rc1148-history-compat-marker');
   html=injectDeferredRuntimeInHead(html,RC1267_I18N_TAG,'exporthub-rc1267-i18n');
