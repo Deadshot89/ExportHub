@@ -605,7 +605,7 @@ function patchHtml(file){
   if(!html.includes('assets/rc1013-diagnostics.js?v=1125'))throw new Error(file+': RC1125 Diagnose Cache-Key fehlt');
   if(!html.includes('assets/exporthub-environment-hub.js?v=1174'))throw new Error(file+': RC1174 Android-Diagnose-Hub Cache-Key fehlt');
   if(!html.includes('assets/rc1081-audit-history.js?v=1177'))throw new Error(file+': RC1177 Historie Cache-Key fehlt');
-  if(!html.includes('assets/rc1071-shipment-history.js?v=1178'))throw new Error(file+': RC1178 Druck-History Cache-Key fehlt');
+  if(!html.includes('assets/rc1071-shipment-history.js?v=1305'))throw new Error(file+': RC1305 Dokument-History Cache-Key fehlt');
   if(file!=='demo.html'&&!html.includes('assets/rc1063-abd-blob-viewer-compat.js?v=1248'))throw new Error(file+': RC1248 Dokumentaktionen Cache-Key fehlt');
   if(!html.includes('assets/rc1071-shipment-history.js?v=1095'))throw new Error(file+': RC1148 History-Kompatibilitätsmarker fehlt');
   if(!html.includes('assets/rc1126-customer-delete.js?v=1126'))throw new Error(file+': RC1126 Kundenlöschung fehlt');
