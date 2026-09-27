@@ -70,6 +70,13 @@ test('RC1304: refresh is idempotent and never installs a body-wide mutation feed
   assert.doesNotMatch(runtime,/observe\(document\.body/);
 });
 
+test('RC1311: login first paint avoids duplicate theme refresh work',()=>{
+  assert.match(runtime,/document\.documentElement\.getAttribute\('data-eh-design'\)!==value/);
+  assert.match(runtime,/document\.body&&document\.body\.getAttribute\('data-eh-design'\)!==value/);
+  assert.match(runtime,/document\.addEventListener\('DOMContentLoaded',refresh,\{once:true\}\)/);
+  assert.doesNotMatch(runtime,/setTimeout\(refresh,0\)/);
+});
+
 test('RC1311: startup refreshes are debounced instead of repeated per event task',()=>{
   assert.match(runtime,/var refreshTimer=0;/);
   assert.match(runtime,/if\(refreshTimer\)clearTimeout\(refreshTimer\)/);
