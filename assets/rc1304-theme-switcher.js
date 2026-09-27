@@ -45,13 +45,19 @@
 
   function options(select,value){
     if(!select)return;
-    select.innerHTML=
-      '<option value="'+CLASSIC+'">Klassisch / Alt</option>'+
-      '<option value="'+MODERN+'">Neu</option>';
-    select.value=value;
+    var ready=select.dataset.rc1304==='1'&&
+      select.options&&select.options.length===2&&
+      select.options[0].value===CLASSIC&&
+      select.options[1].value===MODERN;
+    if(!ready){
+      select.innerHTML=
+        '<option value="'+CLASSIC+'">Klassisch / Alt</option>'+
+        '<option value="'+MODERN+'">Neu</option>';
+      select.dataset.rc446='1';
+      select.dataset.rc1304='1';
+    }
+    if(select.value!==value)select.value=value;
     select.setAttribute('aria-label','Design auswählen');
-    select.dataset.rc446='1';
-    select.dataset.rc1304='1';
   }
 
   function replaceLegacySelect(value){
