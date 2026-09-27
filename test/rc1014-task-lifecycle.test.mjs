@@ -176,3 +176,27 @@ test('RC1153 unterstützt In Bearbeitung und automatische Erledigung weiterhin',
   assert.equal(result.tasks[0].status,'done');
   assert.equal(result.tasks[0].completedBy,'system:abd');
 });
+
+
+test('RC1302: offene ABD-Anfragen stehen strikt mit der neuesten Anfrage zuerst',()=>{
+  const api=loadApi();
+  const now='2026-09-27T12:00:00+02:00';
+  const tasks=[
+    api.normalizeTask({id:'abd-old',group:'Offene ABDs',sourceType:'abd',priority:'P0',createdAt:'2026-09-25T15:00:00+02:00',dueAt:'2026-09-25',sourceRef:'OLD123'},{companyId:'essentra',environment:'production'}),
+    api.normalizeTask({id:'abd-new',group:'Offene ABDs',sourceType:'abd',priority:'P4',createdAt:'2026-09-27T10:30:00+02:00',dueAt:'2026-09-29',sourceRef:'NEW123'},{companyId:'essentra',environment:'production'}),
+    api.normalizeTask({id:'abd-mid',group:'Offene ABDs',sourceType:'abd',priority:'P1',requestedAt:'2026-09-26T08:00:00+02:00',dueAt:'2026-09-26',sourceRef:'MID123'},{companyId:'essentra',environment:'production'})
+  ];
+  tasks.sort((a,b)=>api.compareTasks(a,b,now));
+  assert.deepEqual(tasks.map(t=>t.id),['abd-new','abd-mid','abd-old']);
+});
+
+test('RC1302: normale Aufgaben behalten weiterhin P0-P4- und Fälligkeitssortierung',()=>{
+  const api=loadApi();
+  const now='2026-09-27T12:00:00+02:00';
+  const tasks=[
+    api.normalizeTask({id:'normal-p4',group:'Picks',priority:'P4',createdAt:'2026-09-27T11:30:00+02:00',dueAt:'2026-09-27',sourceRef:'P4'},{companyId:'essentra',environment:'production'}),
+    api.normalizeTask({id:'normal-p0',group:'Picks',priority:'P0',createdAt:'2026-09-20T08:00:00+02:00',dueAt:'2026-09-28',sourceRef:'P0'},{companyId:'essentra',environment:'production'})
+  ];
+  tasks.sort((a,b)=>api.compareTasks(a,b,now));
+  assert.deepEqual(tasks.map(t=>t.id),['normal-p0','normal-p4']);
+});
