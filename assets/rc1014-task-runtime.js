@@ -432,6 +432,66 @@
     const el=doc.createElement('span');el.className=className;el.setAttribute(attribute,value);el.textContent=text;return el;
   }
 
+  function managedTaskPlanItems(ctx={}){
+    const today=localDay(ctx.now||new Date());
+    return MANAGED_TASKS.map(spec=>({
+      key:spec.key,
+      title:tr(spec.titleKey),
+      group:tr(spec.groupKey),
+      description:spec.descriptionKey?tr(spec.descriptionKey):'',
+      priority:spec.priority||'P3',
+      dueTime:q(spec.dueTime),
+      weekdays:arr(spec.weekdays).slice(),
+      referenceArea:!!spec.referenceArea,
+      checklist:arr(spec.checklist).slice(),
+      schedule:spec.referenceArea?tr('taskPlan.always'):arr(spec.weekdays).map(day=>tr('taskDetail.weekday.'+day)).filter(Boolean).join(' + ')+(spec.dueTime?' · '+tr('taskDetail.untilTime',{time:spec.dueTime}):''),
+      today:!!(today&&arr(spec.weekdays).includes(today.weekday))
+    }));
+  }
+
+  function currentView(){
+    try{
+      const state=sharedState()||{},value=q(state.view||state.currentView||state.activeView||state.page);
+      if(value)return value.toLowerCase();
+    }catch(_){}
+    try{return q(root.document&&root.document.body&&root.document.body.getAttribute&&root.document.body.getAttribute('data-exporthub-view')).toLowerCase();}catch(_){return''}
+  }
+
+  function renderManagedTaskPlan(ctx=lastContext){
+    const doc=root.document;
+    if(!doc||typeof doc.getElementById!=='function')return false;
+    const existing=doc.getElementById('rc1307ManagedTaskPlan');
+    if(currentView()!=='tasks'){
+      if(existing&&existing.parentNode)existing.parentNode.removeChild(existing);
+      return false;
+    }
+    const host=doc.getElementById('content')||(doc.querySelector&&doc.querySelector('[data-view="tasks"],main'))||doc.body;
+    if(!host)return false;
+    const items=managedTaskPlanItems(ctx);
+    let section=existing;
+    if(!section){
+      section=doc.createElement('section');
+      section.id='rc1307ManagedTaskPlan';
+      section.className='rc1307-managed-task-plan';
+      const anchor=host.querySelector&&host.querySelector('.rc229-task-grid,details.task-area-details,.task-grid,.tasks-grid');
+      if(anchor&&anchor.parentNode)anchor.parentNode.insertBefore(section,anchor);
+      else if(typeof host.prepend==='function')host.prepend(section);
+      else host.insertBefore(section,host.firstChild||null);
+    }
+    section.innerHTML=`<div class="rc1307-task-plan-head">
+      <div><span class="rc1307-task-plan-eyebrow">${esc(tr('taskPlan.eyebrow'))}</span><h2>${esc(tr('taskPlan.title'))}</h2><p>${esc(tr('taskPlan.help'))}</p></div>
+      <span class="rc1307-task-plan-count">${esc(tr('taskPlan.count',{count:items.length}))}</span>
+    </div>
+    <div class="rc1307-task-plan-grid">${items.map(item=>`<article class="rc1307-task-plan-card${item.today?' is-today':''}" data-managed-task="${esc(item.key)}">
+      <div class="rc1307-task-plan-card-top"><span class="rc1307-task-plan-group">${esc(item.group)}</span><span class="rc1307-task-plan-priority">${esc(item.priority)}</span></div>
+      <h3>${esc(item.title)}</h3>
+      <p>${esc(item.description)}</p>
+      <div class="rc1307-task-plan-meta"><span>${esc(item.schedule)}</span>${item.today?`<strong>${esc(tr('taskPlan.today'))}</strong>`:''}</div>
+      ${item.checklist.length?`<div class="rc1307-task-plan-checklist">${item.checklist.map(entry=>`<span>${esc(entry)}</span>`).join('')}</div>`:''}
+    </article>`).join('')}</div>`;
+    return true;
+  }
+
   function enhanceTaskCards(tasks=lastTasks,ctx=lastContext){
     const doc=root.document;
     if(!doc||typeof doc.querySelectorAll!=='function')return 0;
@@ -469,7 +529,7 @@
     if(!root.document)return;
     if(enhanceTimer&&typeof root.clearTimeout==='function')root.clearTimeout(enhanceTimer);
     const schedule=typeof root.setTimeout==='function'?root.setTimeout:(fn=>fn());
-    enhanceTimer=schedule(()=>{enhanceTimer=0;enhanceTaskCards();},0);
+    enhanceTimer=schedule(()=>{enhanceTimer=0;renderManagedTaskPlan();enhanceTaskCards();},0);
   }
 
   function containsTaskCard(node){
@@ -590,5 +650,5 @@
 
   if(root.addEventListener)root.addEventListener('popstate',()=>{const doc=root.document;if(doc&&doc.getElementById&&doc.getElementById('rc1152TaskDetail'))closeTaskDetail(true);});
 
-  root.ExportHUBRC1014TaskRuntime=Object.freeze({currentTasks,prepareTasks,openTask,openTaskDetail,renderTaskDetailView,rememberTaskDetail,rememberedTask,closeTaskDetail,setTaskStatus,completeTask,prepareManagedRoster,systemTaskIsCurrent,taskCardMeta,enhanceTaskCards,syncAndroidSnapshot,resetProductionTasksOnce,MANAGED_TASKS});
+  root.ExportHUBRC1014TaskRuntime=Object.freeze({currentTasks,prepareTasks,openTask,openTaskDetail,renderTaskDetailView,rememberTaskDetail,rememberedTask,closeTaskDetail,setTaskStatus,completeTask,prepareManagedRoster,systemTaskIsCurrent,taskCardMeta,managedTaskPlanItems,renderManagedTaskPlan,enhanceTaskCards,syncAndroidSnapshot,resetProductionTasksOnce,MANAGED_TASKS});
 })(globalThis);
