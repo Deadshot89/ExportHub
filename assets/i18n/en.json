@@ -1157,5 +1157,11 @@
   "taskManaged.frankreich.title": "Register France",
   "taskManaged.frankreich.description": "Register France on Fridays.",
   "taskManaged.neff.title": "Register Neff",
-  "taskManaged.neff.description": "Register Neff on Fridays by 13:00."
+  "taskManaged.neff.description": "Register Neff on Fridays by 13:00.",
+  "taskPlan.eyebrow": "Personal weekly plan",
+  "taskPlan.title": "My saved tasks",
+  "taskPlan.help": "These recurring tasks are permanently assigned to you. Tasks due today also appear below as actionable tasks.",
+  "taskPlan.count": "{{count}} saved",
+  "taskPlan.today": "Today",
+  "taskPlan.always": "Always available"
 }
