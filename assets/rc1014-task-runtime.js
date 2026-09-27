@@ -451,10 +451,13 @@
 
   function currentView(){
     try{
-      const state=sharedState()||{},value=q(state.view||state.currentView||state.activeView||state.page);
-      if(value)return value.toLowerCase();
+      const bodyValue=q(root.document&&root.document.body&&root.document.body.getAttribute&&root.document.body.getAttribute('data-exporthub-view'));
+      if(bodyValue)return bodyValue.toLowerCase();
     }catch(_){}
-    try{return q(root.document&&root.document.body&&root.document.body.getAttribute&&root.document.body.getAttribute('data-exporthub-view')).toLowerCase();}catch(_){return''}
+    try{
+      const state=sharedState()||{},value=q(state.view||state.currentView||state.activeView||state.page);
+      return value.toLowerCase();
+    }catch(_){return''}
   }
 
   function renderManagedTaskPlan(ctx=lastContext){
@@ -544,9 +547,11 @@
     const target=doc.body||doc.documentElement;
     if(!target)return false;
     lazyCardObserver=new root.MutationObserver(mutations=>{
-      if(mutations.some(mutation=>Array.from(mutation.addedNodes||[]).some(containsTaskCard)))scheduleEnhance();
+      const viewChanged=mutations.some(mutation=>mutation.type==='attributes'&&mutation.attributeName==='data-exporthub-view');
+      const cardsAdded=mutations.some(mutation=>mutation.type==='childList'&&Array.from(mutation.addedNodes||[]).some(containsTaskCard));
+      if(viewChanged||cardsAdded)scheduleEnhance();
     });
-    lazyCardObserver.observe(target,{childList:true,subtree:true});
+    lazyCardObserver.observe(target,{childList:true,subtree:true,attributes:target===doc.body,attributeFilter:target===doc.body?['data-exporthub-view']:undefined});
     doc.addEventListener('toggle',event=>{const target=event&&event.target;if(target&&target.matches&&target.matches('details.task-area-details'))scheduleEnhance();},true);
     return true;
   }
