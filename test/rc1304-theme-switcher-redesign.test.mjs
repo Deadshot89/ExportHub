@@ -38,6 +38,12 @@ test('RC1304: design selection is available on login and in the authenticated to
   assert.match(runtime,/ensureTopbar/);
 });
 
+test('RC1304: observer refresh is idempotent and does not rebuild options forever',()=>{
+  assert.match(runtime,/var ready=select\.dataset\.rc1304==='1'/);
+  assert.match(runtime,/if\(!ready\)\{/);
+  assert.match(runtime,/if\(select\.value!==value\)select\.value=value/);
+});
+
 test('RC1304: modern redesign is scoped and classic remains untouched',()=>{
   assert.match(css,/data-eh-design="modern"/);
   assert.match(css,/--pc-primary:#2563eb/);
