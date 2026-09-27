@@ -42,12 +42,12 @@ jobs:
           npm install --no-save @playwright/test@1.55.0
           npx playwright install --with-deps chromium
 
-      - name: Verify all four designs in Chromium
+      - name: Verify all four designs on all five viewports in Chromium
         env:
           EXPORTHUB_E2E_STATIC: '1'
           EXPORTHUB_E2E_ENTRY: /demo.html
           EXPORTHUB_E2E_PUBLIC_ENV: testservice
-        run: npx playwright test e2e/specs/rc1306-layout-redesign.spec.mjs --project=laptop
+        run: npx playwright test e2e/specs/rc1306-layout-redesign.spec.mjs
 
       - name: Upload browser artifacts
         if: failure()
