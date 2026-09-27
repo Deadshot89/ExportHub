@@ -420,7 +420,7 @@ function patchRc1305LoadingListPresentation(html,file){
       "var rc1305LoadHtmlOriginal=loadHtml;",
       "loadHtml=function(sh,withQr){var out=rc1305LoadHtmlOriginal(sh,withQr);try{var api=window.ExportHUBRC1305LoadingListPrint;if(api&&typeof api.enhance==='function')return api.enhance(out,sh||{})}catch(e){try{console.warn('RC1305 Ladelisten-Enhancer',e)}catch(_){}}return out};",
       "window.__EXPORTHUB_RC1305_LOAD_HTML_WRAPPED__=true;"
-    ].join('\\n')+'\\n';
+    ].join('\n')+'\n';
     html=html.slice(0,loadEnd)+wrapper+html.slice(loadEnd);
   }
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1305-loading-list-print" defer src="/assets/rc1305-loading-list-print.js?v=1305"></script>','exporthub-rc1305-loading-list-print');
