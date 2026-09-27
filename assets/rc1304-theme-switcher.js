@@ -56,7 +56,9 @@
     if(!ready){
       select.innerHTML=
         '<option value="'+CLASSIC+'">Klassisch / Alt</option>'+
-        '<option value="'+MODERN+'">Neu</option>';
+        '<option value="'+MODERN+'">Modern Business</option>'+
+        '<option value="'+GLASS+'">Glass</option>'+
+        '<option value="'+NEON+'">Neon Night</option>';
       select.dataset.rc446='1';
       select.dataset.rc1304='1';
     }
