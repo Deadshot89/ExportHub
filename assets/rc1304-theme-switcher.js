@@ -163,9 +163,13 @@
   setRoot(read());
 
   if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded',refresh,{once:true});
+    document.addEventListener('DOMContentLoaded',function(){
+      refresh();
+      setTimeout(refresh,0);
+    },{once:true});
   }else{
     refresh();
+    setTimeout(refresh,0);
   }
 
   ['exporthub:ready','exporthub:viewchange','exporthub:logout','pageshow'].forEach(function(name){
