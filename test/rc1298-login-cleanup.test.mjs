@@ -21,7 +21,7 @@ test('RC1298 P1: nur die aktive Umgebung erhält die Hintergrundbeleuchtung',()=
   assert.match(runtime,/button\.is-active,#login \.eh-login-environment button\.active,#login \.eh-login-environment button\[aria-pressed="true"\][\s\S]*0 0 26px rgba\(14,165,233,.48\)/);
   assert.match(runtime,/function applyEnvironmentSelectionStyles\(\)/);
   assert.match(runtime,/setImportant\(style,'box-shadow','none'\)/);
-  assert.match(runtime,/#login \\.eh-login-environment button\\{[\\s\\S]*transition:none!important/,'Inaktive Umgebung darf im Live-Smoke keinen animierten Restschatten behalten');
+  assert.match(runtime,/#login \.eh-login-environment button\{[\s\S]*transition:none!important/,'Inaktive Umgebung darf im Live-Smoke keinen animierten Restschatten behalten');
   assert.match(runtime,/0 0 26px rgba\(14,165,233/);
 });
 
@@ -42,7 +42,7 @@ test('RC1298 P1: Produktion hält den Browser-Tab dauerhaft auf ExportHUB360',()
 });
 
 test('RC1298 P1: Login-Runtime wird cache-frisch gebaut und live geprüft',()=>{
-  assert.match(build,/assets\\\/rc1074-login-clean\\\.js\\\?v=\(\?:1074\|1112\)[\s\S]*v=1301/);
+  assert.match(build,/assets\/rc1074-login-clean\.js\?v=(?:1074|1112|1298)[\s\S]*v=1301/);
   assert.match(build,/assets\/rc1074-login-clean\.js\?v=1301/);
   assert.match(workflow,/assets\/rc1074-login-clean\.js\?v=1301/);
 });
