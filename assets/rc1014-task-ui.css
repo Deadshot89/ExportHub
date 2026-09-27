@@ -235,3 +235,137 @@ body[data-exporthub-task-detail="open"]{
 .rc1152-task-detail[data-rc1179-task-view="1"] .rc1152-task-header{
   padding-top:4px;
 }
+
+
+/* RC1307: hinterlegte persönliche Aufgaben */
+.rc1307-managed-task-plan{
+  margin:0 0 22px;
+  padding:20px;
+  border:1px solid var(--rc990-card-border,#dbe4ee);
+  border-radius:18px;
+  background:var(--rc990-card-bg,#fff);
+  box-shadow:0 10px 30px rgba(15,23,42,.07);
+}
+.rc1307-task-plan-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:18px;
+  margin-bottom:16px;
+}
+.rc1307-task-plan-head h2{
+  margin:3px 0 6px;
+  font-size:clamp(22px,2.2vw,30px);
+  line-height:1.1;
+}
+.rc1307-task-plan-head p{
+  margin:0;
+  color:var(--rc990-muted,#64748b);
+  line-height:1.5;
+}
+.rc1307-task-plan-eyebrow{
+  display:block;
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:#2563eb;
+}
+.rc1307-task-plan-count{
+  flex:0 0 auto;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:34px;
+  padding:6px 11px;
+  border-radius:999px;
+  background:#eff6ff;
+  border:1px solid #bfdbfe;
+  color:#1d4ed8;
+  font-weight:800;
+}
+.rc1307-task-plan-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:12px;
+}
+.rc1307-task-plan-card{
+  min-width:0;
+  padding:15px;
+  border:1px solid #dbe4ee;
+  border-radius:15px;
+  background:#f8fafc;
+}
+.rc1307-task-plan-card.is-today{
+  border-color:#60a5fa;
+  box-shadow:0 0 0 2px rgba(59,130,246,.12);
+  background:#eff6ff;
+}
+.rc1307-task-plan-card-top,
+.rc1307-task-plan-meta{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+.rc1307-task-plan-group{
+  font-size:12px;
+  font-weight:800;
+  color:#475569;
+}
+.rc1307-task-plan-priority{
+  flex:0 0 auto;
+  font-size:11px;
+  font-weight:900;
+  padding:3px 7px;
+  border-radius:999px;
+  background:#e2e8f0;
+  color:#334155;
+}
+.rc1307-task-plan-card h3{
+  margin:8px 0 6px;
+  font-size:16px;
+  line-height:1.25;
+}
+.rc1307-task-plan-card p{
+  margin:0 0 11px;
+  color:#64748b;
+  font-size:13px;
+  line-height:1.45;
+}
+.rc1307-task-plan-meta{
+  padding-top:10px;
+  border-top:1px solid #e2e8f0;
+  font-size:12px;
+  font-weight:700;
+  color:#334155;
+}
+.rc1307-task-plan-meta strong{
+  color:#166534;
+}
+.rc1307-task-plan-checklist{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-top:9px;
+}
+.rc1307-task-plan-checklist span{
+  display:inline-flex;
+  padding:4px 7px;
+  border-radius:999px;
+  background:#fff;
+  border:1px solid #dbe4ee;
+  font-size:11px;
+  font-weight:700;
+  color:#475569;
+}
+@media (max-width:1000px){
+  .rc1307-task-plan-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:640px){
+  .rc1307-managed-task-plan{padding:15px;margin-bottom:16px}
+  .rc1307-task-plan-head{display:grid;grid-template-columns:1fr}
+  .rc1307-task-plan-count{justify-self:start}
+  .rc1307-task-plan-grid{grid-template-columns:1fr}
+  .rc1307-task-plan-card{padding:14px}
+}
