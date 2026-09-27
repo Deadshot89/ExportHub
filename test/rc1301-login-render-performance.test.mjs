@@ -14,6 +14,7 @@ test('RC1301: Login beobachtet nur noch den eigenen DOM-Bereich statt das komple
 });
 
 test('RC1301: Login-Mutationen starten keine ABD-Hintergrund-Persistenz mehr',()=>{
+  assert.match(runtime,/function rc1109Schedule\(\)\{if\(loginVisible\(\)\)return false/,'Auch Render/Viewchange-Events dürfen am sichtbaren Login keine ABD-Arbeit starten');
   const start=runtime.indexOf('function install(){');
   const end=runtime.indexOf("\nif(d.readyState",start);
   assert.ok(start>=0&&end>start,'install fehlt');
