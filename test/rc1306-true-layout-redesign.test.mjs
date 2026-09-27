@@ -71,9 +71,9 @@ test('RC1306: layout engine reacts to design attribute changes without observing
 });
 
 test('RC1306: explicit design changes bypass render debounce',()=>{
-  assert.match(runtime,/addEventListener\\('exporthub:designchange',apply\\)/);
-  assert.match(runtime,/addEventListener\\('exporthub:viewchange',schedule\\)/);
-  assert.match(runtime,/addEventListener\\('exporthub:rendered',schedule\\)/);
+  assert.match(runtime,/addEventListener\('exporthub:designchange',apply\)/);
+  assert.match(runtime,/addEventListener\('exporthub:viewchange',schedule\)/);
+  assert.match(runtime,/addEventListener\('exporthub:rendered',schedule\)/);
 });
 
 test('RC1306: generated layout navigation is localized',()=>{
