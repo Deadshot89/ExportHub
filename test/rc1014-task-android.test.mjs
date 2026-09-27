@@ -6,6 +6,7 @@ const read=rel=>fs.readFileSync(rel,'utf8');
 const scheduler=read('android-app/app/src/main/java/de/exporthub/test/ReminderScheduler.java');
 const receiver=read('android-app/app/src/main/java/de/exporthub/test/ReminderReceiver.java');
 const helper=read('android-app/app/src/main/java/de/exporthub/test/NotificationHelper.java');
+const detail=read('android-app/app/src/main/java/de/exporthub/test/NotificationDetailActivity.java');
 const runtime=read('assets/rc1014-task-runtime.js');
 
 test('RC1014 Android behält exakt die regulären Erinnerungszeiten 09 12 15',()=>{
@@ -43,6 +44,10 @@ test('RC1014 ReminderReceiver verwendet echten persönlichen Task statt generisc
   assert.match(receiver,/userId/);
   assert.match(receiver,/NotificationHelper\.show\s*\(/);
   assert.doesNotMatch(receiver,/Prüfe deine persönlichen offenen Aufgaben in ExportHUB\./);
+  assert.doesNotMatch(receiver,/Öffne ExportHUB, um deine aktuellen persönlichen Aufgaben zu synchronisieren\./);
+  assert.doesNotMatch(receiver,/Aufgabenstand konnte nicht gelesen werden/);
+  assert.match(receiver,/tasks == null \|\| tasks\.length\(\) == 0\)[\s\S]{0,120}return;/);
+  assert.match(receiver,/taskId\.isEmpty\(\) \|\| title\.isEmpty\(\)/);
 });
 
 test('RC1014 Reminder-Dedupe enthält Aufgabe Tag Slot Umgebung und Benutzer',()=>{
@@ -54,4 +59,12 @@ test('RC1014 Aufgabenbenachrichtigung bleibt auf nativer Detailansicht und beste
   assert.match(helper,/EXTRA_NOTIFICATION_ROUTE/);
   assert.match(receiver,/"notification"/);
   assert.doesNotMatch(receiver,/new Intent\(context, EnvironmentActivity\.class\)/);
+});
+
+
+test('RC1307 native Aufgabenansicht ist kompakt und auf die konkrete Aufgabe fokussiert',()=>{
+  assert.match(detail,/headingForChannel\(channel\)/);
+  assert.match(detail,/return "Aufgabe";/);
+  assert.match(detail,/\? "Aufgabe öffnen" : "In ExportHUB öffnen"/);
+  assert.match(detail,/return "ExportHUB Aufgabe";/);
 });
