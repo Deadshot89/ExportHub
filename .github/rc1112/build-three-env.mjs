@@ -47,6 +47,8 @@ const RC1296_BROWSER_TITLE='ExportHUB360';
 const RC1296_FAVICON_TAG='<link id="exporthub360-favicon" rel="icon" type="image/svg+xml" href="/assets/exporthub360-favicon.svg?v=1296">';
 const RC1304_THEME_STYLE_TAG='<link id="exporthub-rc1304-theme-style" rel="stylesheet" href="/assets/rc1304-theme-switcher.css?v=1305">';
 const RC1304_THEME_SCRIPT_TAG='<script id="exporthub-rc1304-theme-script" src="/assets/rc1304-theme-switcher.js?v=1305"><\/script>';
+const RC1306_LAYOUT_STYLE_TAG='<link id="exporthub-rc1306-layout-style" rel="stylesheet" href="/assets/rc1306-layout-engine.css?v=1306">';
+const RC1306_LAYOUT_SCRIPT_TAG='<script id="exporthub-rc1306-layout-script" defer src="/assets/rc1306-layout-engine.js?v=1306"><\/script>';
 
 function patchRc1296BrowserBranding(html,file){
   if(file!=='index.html')return html;
@@ -87,6 +89,14 @@ function patchRc1304ThemeRedesign(html,file){
   html=injectDeferredRuntimeInHead(html,RC1304_THEME_SCRIPT_TAG,'exporthub-rc1304-theme-script');
   if(!html.includes('rc1304-theme-switcher.css?v=1305'))throw new Error(file+': RC1304 Theme-CSS fehlt');
   if(!html.includes('rc1304-theme-switcher.js?v=1305'))throw new Error(file+': RC1304 Theme-Switcher fehlt');
+  return html;
+}
+
+function patchRc1306LayoutEngine(html,file){
+  html=injectDeferredRuntimeInHead(html,RC1306_LAYOUT_STYLE_TAG,'exporthub-rc1306-layout-style');
+  html=injectDeferredRuntimeInHead(html,RC1306_LAYOUT_SCRIPT_TAG,'exporthub-rc1306-layout-script');
+  if(!html.includes('rc1306-layout-engine.css?v=1306'))throw new Error(file+': RC1306 Layout-CSS fehlt');
+  if(!html.includes('rc1306-layout-engine.js?v=1306'))throw new Error(file+': RC1306 Layout-Engine fehlt');
   return html;
 }
 
@@ -558,6 +568,7 @@ function patchHtml(file){
   let html=fs.readFileSync(target,'utf8');
   html=patchRc1289AuthTransportFallback(html,file);
   html=patchRc1304ThemeRedesign(html,file);
+  html=patchRc1306LayoutEngine(html,file);
   html=patchRc1303LoginExperience(html,file);
   html=patchDemoTestPortalIsolation(html,file);
   html=patchAuthSessionTimeout(html,file);
@@ -690,7 +701,9 @@ for(const rel of [
   'assets/rc1193-visible-release.js',
   'assets/exporthub360-favicon.svg',
   'assets/rc1304-theme-switcher.css',
-  'assets/rc1304-theme-switcher.js'
+  'assets/rc1304-theme-switcher.js',
+  'assets/rc1306-layout-engine.css',
+  'assets/rc1306-layout-engine.js'
 ]){
   const src=path.join(ROOT,rel),dst=path.join(OUT,rel);
   if(!fs.existsSync(src))throw new Error('RC1124 Pflicht-Runtime fehlt: '+rel);
