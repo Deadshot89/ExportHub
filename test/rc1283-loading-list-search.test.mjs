@@ -53,7 +53,7 @@ test('RC1287: Ladelistensuche ist in allen sechs Anwendungssprachen vollständig
 
 test('RC1283: Drei-Umgebungen-Build injiziert Runtime und vorhandene Ladelisten-Pfade',()=>{
   assert.match(build,/function patchRc1283LoadingListSearch\(/);
-  assert.match(build,/assets\/rc1283-loading-list-search\.js\?v=1285/);
+  assert.match(build,/assets\/rc1283-loading-list-search\.js\?v=1305/);
   assert.match(build,/__EXPORTHUB_RC1283_OPEN_LOAD1__/);
   assert.match(build,/__EXPORTHUB_RC1283_DOWNLOAD_LOAD1__/);
   assert.match(build,/body=loadHtml\(sh,true\)/);
