@@ -80,7 +80,7 @@ test('RC1178: explizites document-action print wird unterstützt und mit Klickpf
 
 test('RC1178: Druck-History wird cache-sicher in allen drei Umgebungen ausgeliefert',()=>{
   assert.match(build,/rc1071-shipment-history\.js\?v=1305/);
-  assert.match(build,/RC1178 Druck-History Cache-Key/);
+  assert.match(build,/RC1305 Dokument-History Cache-Key/);
 });
 
 test('RC1178: geänderte Dateien bleiben syntaktisch gültig',()=>{
