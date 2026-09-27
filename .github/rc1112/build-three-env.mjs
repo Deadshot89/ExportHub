@@ -597,8 +597,8 @@ function patchHtml(file){
   html=html.replace(/(window\.__EXPORTHUB_BUILD__\s*=\s*['"])RC1048(['"])/g,`$1${VERSION}$2`);
   html=html.replaceAll(LEGACY_TESTSERVICE_HOST,CURRENT_TESTSERVICE_HOST);
   html=html.replace(/assets\/rc1074-login-clean\.js\?v=(?:1074|1112|1298|1301)/g,'assets/rc1074-login-clean.js?v=1303');
-  html=html.replace(/assets\/rc1014-task-runtime\.js\?v=1016/g,'assets/rc1014-task-runtime.js?v=1307');
-  html=html.replace(/assets\/rc1014-task-ui\.css\?v=1016/g,'assets/rc1014-task-ui.css?v=1307');
+  html=html.replace(/assets\/rc1014-task-runtime\.js\?v=(?:1016|1266|1307)/g,'assets/rc1014-task-runtime.js?v=1307');
+  html=html.replace(/assets\/rc1014-task-ui\.css\?v=(?:1016|1179|1307)/g,'assets/rc1014-task-ui.css?v=1307');
   html=html.replace(/assets\/rc1013-diagnostics\.js\?v=1085/g,'assets/rc1013-diagnostics.js?v=1125');
   html=html.replace(/assets\/exporthub-environment-hub\.js\?v=\d+/g,'assets/exporthub-environment-hub.js?v=1174');
   html=html.replace(/assets\/rc1081-audit-history\.js\?v=(?:1087|1126|1160|1163)/g,'assets/rc1081-audit-history.js?v=1177');
