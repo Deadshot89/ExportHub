@@ -5,6 +5,8 @@ import fs from 'node:fs';
 const runtime=fs.readFileSync('assets/rc1306-layout-engine.js','utf8');
 const css=fs.readFileSync('assets/rc1306-layout-engine.css','utf8');
 const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
+const browserGate=fs.readFileSync('.github/workflows/rc1306-layout-browser.yml','utf8');
+const playwrightConfig=fs.readFileSync('playwright.config.mjs','utf8');
 
 test('RC1306: layout engine moves live nodes and never clones functional blocks',()=>{
   assert.match(runtime,/function move\(node,parent\)/);
@@ -74,6 +76,17 @@ test('RC1306: explicit design changes bypass render debounce',()=>{
   assert.match(runtime,/addEventListener\('exporthub:designchange',apply\)/);
   assert.match(runtime,/addEventListener\('exporthub:viewchange',schedule\)/);
   assert.match(runtime,/addEventListener\('exporthub:rendered',schedule\)/);
+});
+
+test('RC1308: multi-layout browser gate covers all five configured target viewports',()=>{
+  assert.doesNotMatch(browserGate,/--project=laptop/);
+  assert.match(browserGate,/npx playwright test e2e\/specs\/rc1306-layout-redesign\.spec\.mjs/);
+  for(const project of ['mobile-small','mobile-standard','tablet','laptop','desktop']){
+    assert.match(playwrightConfig,new RegExp("name:'"+project+"'"));
+  }
+  for(const viewport of ['width:360,height:800','width:390,height:844','width:768,height:1024','width:1366,height:768','width:1920,height:1080']){
+    assert.match(playwrightConfig,new RegExp(viewport.replace(/[.*+?^$\\{\\}()|[\\]\\\\]/g,'\\\\test('RC1306: generated layout navigation is localized',()=>{')));
+  }
 });
 
 test('RC1306: generated layout navigation is localized',()=>{
