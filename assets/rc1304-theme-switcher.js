@@ -13,7 +13,7 @@
   var GLASS='glass';
   var NEON='neon';
   var VALUES=[CLASSIC,MODERN,GLASS,NEON];
-  var scheduled=false;
+  var refreshTimer=0;
   function tr(key){
     try{
       if(window.ExportHUBI18n&&typeof window.ExportHUBI18n.t==='function'){
@@ -45,8 +45,8 @@
 
   function setRoot(value){
     value=normalize(value);
-    document.documentElement.setAttribute('data-eh-design',value);
-    if(document.body)document.body.setAttribute('data-eh-design',value);
+    if(document.documentElement.getAttribute('data-eh-design')!==value)document.documentElement.setAttribute('data-eh-design',value);
+    if(document.body&&document.body.getAttribute('data-eh-design')!==value)document.body.setAttribute('data-eh-design',value);
     return value;
   }
 
@@ -153,9 +153,16 @@
   }
 
   function ensureLogin(value){
+    var box=document.getElementById('rc1304LoginTheme');
+    var existingSelect=document.getElementById('ehLoginThemeSelect');
+    if(box&&existingSelect){
+      var existingLabel=box.querySelector('[data-rc1304-theme-label]')||box.querySelector('span');
+      setText(existingLabel,tr('theme.label'));
+      options(existingSelect,value);
+      return existingSelect;
+    }
     var card=document.querySelector('#login .login-card');
     if(!card)return null;
-    var box=document.getElementById('rc1304LoginTheme');
     if(!box){
       box=document.createElement('label');
       box.id='rc1304LoginTheme';
@@ -200,7 +207,6 @@
   }
 
   function refresh(){
-    scheduled=false;
     var value=read();
     forceLegacyClassic();
     setRoot(value);
@@ -211,21 +217,19 @@
   }
 
   function schedule(){
-    if(scheduled)return;
-    scheduled=true;
-    Promise.resolve().then(refresh);
+    if(refreshTimer)clearTimeout(refreshTimer);
+    refreshTimer=setTimeout(function(){
+      refreshTimer=0;
+      refresh();
+    },40);
   }
 
   setRoot(read());
 
   if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded',function(){
-      refresh();
-      setTimeout(refresh,0);
-    },{once:true});
+    document.addEventListener('DOMContentLoaded',refresh,{once:true});
   }else{
     refresh();
-    setTimeout(refresh,0);
   }
 
   ['exporthub:ready','exporthub:viewchange','exporthub:logout','exporthub:language-changed','pageshow'].forEach(function(name){
