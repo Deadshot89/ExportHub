@@ -89,10 +89,6 @@ test('RC1308: multi-layout browser gate covers all five configured target viewpo
   }
 });
 
-test('RC1306: generated layout navigation is localized',()=>{')));
-  }
-});
-
 test('RC1306: generated layout navigation is localized',()=>{
   assert.match(runtime,/ExportHUBI18n/);
   assert.match(runtime,/layout\.shipmentProcess/);
