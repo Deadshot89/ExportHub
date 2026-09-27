@@ -78,6 +78,12 @@ test('RC1306: explicit design changes bypass render debounce',()=>{
   assert.match(runtime,/addEventListener\('exporthub:rendered',schedule\)/);
 });
 
+test('RC1310: explicit design changes do not schedule a duplicate observer rebuild',()=>{
+  assert.match(runtime,/var lastAppliedDesign='';/);
+  assert.match(runtime,/lastAppliedDesign=mode;/);
+  assert.match(runtime,/attributeName==='data-eh-design'&&design\(\)!==lastAppliedDesign/);
+});
+
 test('RC1308: multi-layout browser gate covers all five configured target viewports',()=>{
   assert.match(browserGate,/npx playwright test e2e\/specs\/rc1306-layout-redesign\.spec\.mjs/);
   for(const project of ['mobile-small','mobile-standard','tablet','laptop','desktop']){
