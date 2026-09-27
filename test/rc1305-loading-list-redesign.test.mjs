@@ -34,8 +34,8 @@ test('RC1305: Ladeliste ersetzt abgeholte Leerformulare durch gespeicherte Abhol
     assert.ok(print.includes(field),field+' fehlt im Abholnachweis');
   }
   assert.match(print,/data-rc1305-pickup-summary/);
-  assert.match(print,/SENDUNG ABGEHOLT/);
-  assert.match(print,/Nicht erfasst/);
+  assert.match(print,/loadingListPrint\.pickedUp/);
+  assert.match(print,/loadingListPrint\.notRecorded/);
   assert.match(print,/if\(!isPicked\(sh,last\)\)return false/,'offene Sendungen dürfen ihre Unterschriftsfelder nicht verlieren');
 });
 
@@ -44,8 +44,9 @@ test('RC1305: Lieferscheine und Bemerkung werden drucksicher kompakt dargestellt
   assert.match(print,/grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
   assert.match(print,/word-break:break-word/);
   assert.match(print,/data-rc1305-remark/);
-  assert.match(print,/Keine Bemerkung hinterlegt/);
+  assert.match(print,/loadingListPrint\.noRemark/);
   assert.match(print,/page-break-inside:avoid/);
+  assert.match(print,/loadingListPrint\.palletMovement/);
 });
 
 test('RC1305: Drei-Umgebungen-Build liefert beide Ladelisten-Runtimes aus',()=>{
