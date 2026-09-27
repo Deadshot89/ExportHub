@@ -19,6 +19,22 @@ function expectedVisibleRelease(){
   return 'RC1112';
 }
 
+test('RC1311: Login-Theme-Initialisierung scannt die Login-Karte höchstens zweimal',async({page},testInfo)=>{
+  test.skip(testInfo.project.name!=='laptop','Login-Performance wird einmal im Laptop-Profil geprüft.');
+  await page.addInitScript(()=>{
+    const original=Document.prototype.querySelector;
+    window.__RC1311_LOGIN_CARD_QUERIES__=0;
+    Document.prototype.querySelector=function(selector){
+      if(selector==='#login .login-card')window.__RC1311_LOGIN_CARD_QUERIES__++;
+      return original.call(this,selector);
+    };
+  });
+  await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
+  await page.waitForTimeout(250);
+  const count=await page.evaluate(()=>window.__RC1311_LOGIN_CARD_QUERIES__||0);
+  expect(count).toBeLessThanOrEqual(2);
+});
+
 test('RC1298: Login ist kompakt, eindeutig und produktiv als ExportHUB360 gebrandet',async({page},testInfo)=>{
   test.skip(testInfo.project.name!=='laptop','Versionsanzeige wird einmal im Laptop-Profil geprüft.');
   const runtime=attachRuntimeGuards(page,testInfo);
