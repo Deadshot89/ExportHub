@@ -13,7 +13,7 @@
   var GLASS='glass';
   var NEON='neon';
   var VALUES=[CLASSIC,MODERN,GLASS,NEON];
-  var scheduled=false;
+  var refreshTimer=0;
   function tr(key){
     try{
       if(window.ExportHUBI18n&&typeof window.ExportHUBI18n.t==='function'){
@@ -200,7 +200,6 @@
   }
 
   function refresh(){
-    scheduled=false;
     var value=read();
     forceLegacyClassic();
     setRoot(value);
@@ -211,21 +210,19 @@
   }
 
   function schedule(){
-    if(scheduled)return;
-    scheduled=true;
-    Promise.resolve().then(refresh);
+    if(refreshTimer)clearTimeout(refreshTimer);
+    refreshTimer=setTimeout(function(){
+      refreshTimer=0;
+      refresh();
+    },40);
   }
 
   setRoot(read());
 
   if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded',function(){
-      refresh();
-      setTimeout(refresh,0);
-    },{once:true});
+    document.addEventListener('DOMContentLoaded',refresh,{once:true});
   }else{
     refresh();
-    setTimeout(refresh,0);
   }
 
   ['exporthub:ready','exporthub:viewchange','exporthub:logout','exporthub:language-changed','pageshow'].forEach(function(name){
