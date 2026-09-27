@@ -1157,5 +1157,11 @@
   "taskManaged.frankreich.title": "Frankreich anmelden",
   "taskManaged.frankreich.description": "Frankreich freitags anmelden.",
   "taskManaged.neff.title": "Neff anmelden",
-  "taskManaged.neff.description": "Neff freitags bis 13:00 Uhr anmelden."
+  "taskManaged.neff.description": "Neff freitags bis 13:00 Uhr anmelden.",
+  "taskPlan.eyebrow": "Persönlicher Wochenplan",
+  "taskPlan.title": "Meine hinterlegten Aufgaben",
+  "taskPlan.help": "Diese wiederkehrenden Aufgaben sind fest für dich hinterlegt. Die fälligen Aufgaben erscheinen zusätzlich unten als bearbeitbare Aufgaben.",
+  "taskPlan.count": "{{count}} hinterlegt",
+  "taskPlan.today": "Heute",
+  "taskPlan.always": "Immer verfügbar"
 }
