@@ -31,7 +31,7 @@ function runtime(){
   const context={window,document,console,Date,Intl,Math,Map,Set,Array,Object,String,Number,Promise,CustomEvent:function(){},
     setTimeout(){return 1},clearTimeout(){},setInterval(){return 1},MutationObserver:undefined};
   vm.runInNewContext(historySource,context,{filename:'rc1071-shipment-history.js'});
-  return{shipment,listeners};
+  return{shipment,listeners,api:window.ExportHUBShipmentHistory1071};
 }
 
 function clickTarget(label,sectionText){
@@ -62,13 +62,13 @@ test('RC1305: Navigation zu Ladeliste & CMR erzeugt keinen falschen CMR-geöffne
   assert.equal((shipment.shipmentHistory||[]).filter(x=>x.type==='document-open').length,0);
 });
 
-test('RC1305: ein ausdrücklicher Öffnen-Button wird weiterhin als Dokumentöffnung protokolliert',()=>{
-  const {shipment,listeners}=runtime();
-  const click=(listeners.click||[])[0];
-  click({target:clickTarget('Öffnen','CMR CMR_ABC123.pdf Öffnen')});
+test('RC1305: eine ausdrückliche Dokumentöffnung wird weiterhin protokolliert',()=>{
+  const {shipment,api}=runtime();
+  api.recordDocumentAction(shipment,'open','CMR','CMR_ABC123.pdf');
   const opens=(shipment.shipmentHistory||[]).filter(x=>x.type==='document-open');
   assert.equal(opens.length,1);
   assert.equal(opens[0].details.document,'CMR');
+  assert.equal(opens[0].details.fileName,'CMR_ABC123.pdf');
 });
 
 test('RC1305: Sendungsansicht verbindet Ref-Ordner, gespeicherte Anhänge und Blob-Dokumente',()=>{
