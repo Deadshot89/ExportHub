@@ -576,7 +576,8 @@
     const userId=q(ctx.currentUserId||currentUserId(ctx));
     const environment=q(ctx.environment);
     if(!userId||!environment)return false;
-    const candidates=lifecycle.reminderCandidates(tasks,{...ctx,currentUserId:userId,environment});
+    const candidates=lifecycle.reminderCandidates(tasks,{...ctx,currentUserId:userId,environment})
+      .filter(task=>q(task&&task.managedKind)!=='reference-area');
     const safeTasks=candidates.map(task=>{
       const t=lifecycle.normalizeTask(task,ctx);const bucket=lifecycle.dueBucket(t,ctx.now);
       return {id:q(t.id),title:q(t.title),sourceRef:q(t.sourceRef),priority:q(t.priority),dueAt:q(t.dueAt),dueBucket:bucket,group:q(t.group),effectiveAssignee:q(t.effectiveAssignee),environment:q(t.environment||environment),route:'tasks'};
