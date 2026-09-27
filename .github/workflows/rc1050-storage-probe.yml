@@ -4,6 +4,8 @@ on:
   workflow_run:
     workflows: ['ExportHUB RC1112 Drei-Umgebungen Deploy']
     types: [completed]
+  schedule:
+    - cron: '17 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -11,7 +13,7 @@ permissions:
 
 jobs:
   probe:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.head_branch == 'main' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event.workflow_run.head_branch == 'main' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -36,7 +38,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          prod='https://www.exporthub360.de'
+          azure_prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
           testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
           sample_blob='rc1059/production/aa/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
 
@@ -77,6 +80,8 @@ jobs:
             fi
             rm -f "$body"
           }
+
+          check_json "$azure_prod /api/exporthub-health" "$azure_prod/api/exporthub-health" "v.ok===true&&v.version==='RC1060'&&v.release==='legacy-document-migration'"
 
           for base in "$prod" "$testservice"; do
             check_json "$base /api/exporthub-health" "$base/api/exporthub-health" "v.ok===true&&v.version==='RC1060'&&v.release==='legacy-document-migration'"
