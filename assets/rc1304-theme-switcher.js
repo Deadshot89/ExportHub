@@ -45,8 +45,8 @@
 
   function setRoot(value){
     value=normalize(value);
-    document.documentElement.setAttribute('data-eh-design',value);
-    if(document.body)document.body.setAttribute('data-eh-design',value);
+    if(document.documentElement.getAttribute('data-eh-design')!==value)document.documentElement.setAttribute('data-eh-design',value);
+    if(document.body&&document.body.getAttribute('data-eh-design')!==value)document.body.setAttribute('data-eh-design',value);
     return value;
   }
 
