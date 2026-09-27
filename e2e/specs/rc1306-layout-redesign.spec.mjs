@@ -40,8 +40,19 @@ test('RC1306: Modern Business uses process rail, work canvas and status rail',as
   await expect(page.locator('.rc1306-business-center #rc363BlockCustomer')).toHaveCount(1);
   await expect(page.locator('.rc1306-business-center #rc363BlockShipment')).toHaveCount(1);
   await expect(page.locator('.rc1306-business-rail #rc573ColliCard')).toHaveCount(1);
-  const columns=await page.locator('.rc1306-business-workspace').evaluate(el=>getComputedStyle(el).gridTemplateColumns);
-  expect(columns.split(' ').length).toBeGreaterThanOrEqual(3);
+  const businessGeometry=await page.evaluate(()=>{
+    const box=selector=>document.querySelector(selector)?.getBoundingClientRect();
+    const nav=box('.rc1306-business-workspace > .rc1306-process-nav');
+    const center=box('.rc1306-business-center');
+    const rail=box('.rc1306-business-rail');
+    return nav&&center&&rail?{navX:nav.x,centerX:center.x,railX:rail.x,navW:nav.width,centerW:center.width,railW:rail.width}:null;
+  });
+  expect(businessGeometry).not.toBeNull();
+  expect(businessGeometry.navX).toBeLessThan(businessGeometry.centerX);
+  expect(businessGeometry.centerX).toBeLessThan(businessGeometry.railX);
+  expect(businessGeometry.navW).toBeGreaterThan(0);
+  expect(businessGeometry.centerW).toBeGreaterThan(0);
+  expect(businessGeometry.railW).toBeGreaterThan(0);
   await commonAssertions(page);
   await assertRuntimeClean(runtime,testInfo);
 });
@@ -56,8 +67,17 @@ test('RC1306: Glass uses twelve-column mosaic with reordered functional modules'
   await expect(page.locator('.rc1306-glass-mosaic #rc363BlockCustomer')).toHaveCount(1);
   await expect(page.locator('.rc1306-glass-mosaic #rc363BlockDocuments')).toHaveCount(1);
   await expect(page.locator('.rc1306-glass-mosaic #rc363BlockActions')).toHaveCount(1);
-  const columns=await page.locator('.rc1306-glass-mosaic').evaluate(el=>getComputedStyle(el).gridTemplateColumns);
-  expect(columns.split(' ').length).toBeGreaterThanOrEqual(6);
+  const glassGeometry=await page.evaluate(()=>{
+    const selectors=['#rc363BlockCustomer','#rc363BlockShipment','#rc573ColliCard'];
+    return selectors.map(selector=>{
+      const el=document.querySelector('.rc1306-glass-mosaic '+selector);
+      const rect=el&&el.closest('.rc1306-glass-card')?.getBoundingClientRect();
+      return rect?{x:rect.x,y:rect.y,width:rect.width}:null;
+    });
+  });
+  expect(glassGeometry.every(Boolean)).toBe(true);
+  expect(new Set(glassGeometry.map(row=>Math.round(row.x))).size).toBeGreaterThanOrEqual(3);
+  expect(glassGeometry.every(row=>row.width>0)).toBe(true);
   await commonAssertions(page);
   await assertRuntimeClean(runtime,testInfo);
 });
