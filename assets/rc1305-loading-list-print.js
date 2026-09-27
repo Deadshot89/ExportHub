@@ -2,7 +2,6 @@
 'use strict';
 if(!w||!d||w.__EXPORTHUB_RC1305_LOADING_LIST_PRINT__)return;
 w.__EXPORTHUB_RC1305_LOADING_LIST_PRINT__=true;
-var attempts=0,timer=0;
 function q(v){return String(v==null?'':v).trim()}
 function arr(v){return Array.isArray(v)?v:[]}
 function esc(v){return q(v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -104,21 +103,6 @@ function style(){
  '@media print{.rc1305-document-grid,.rc1305-pickup-summary,.rc1305-pickup-grid,.rc1305-pickup-item{break-inside:avoid!important;page-break-inside:avoid!important}}';
  (d.head||d.documentElement).appendChild(st)
 }
-function install(){
- style();
- if(typeof w.loadHtml!=='function')return false;
- if(w.loadHtml&&w.loadHtml.__rc1305Wrapped)return true;
- var original=w.loadHtml;
- function wrapped(sh,withQr){return enhance(original.call(this,sh,withQr),sh||{})}
- wrapped.__rc1305Wrapped=true;wrapped.__rc1305Original=original;w.loadHtml=wrapped;
- return true
-}
-function schedule(){
- if(install())return;
- if(attempts++>40)return;
- if(timer)w.clearTimeout(timer);timer=w.setTimeout(function(){timer=0;schedule()},50)
-}
-style();schedule();
-['exporthub:ready','exporthub:rendered','exporthub:viewchange'].forEach(function(name){try{w.addEventListener(name,schedule)}catch(_){}});
-w.ExportHUBRC1305LoadingListPrint=Object.freeze({version:'RC1305',install:install,enhance:enhance,isPicked:isPicked,deliveryFiles:deliveryFiles});
+style();
+w.ExportHUBRC1305LoadingListPrint=Object.freeze({version:'RC1305',enhance:enhance,isPicked:isPicked,deliveryFiles:deliveryFiles,style:style});
 })(window,document);
