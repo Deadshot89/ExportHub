@@ -71,7 +71,7 @@ test('RC1124: TESTSERVICE Browser-Gate liegt zwingend vor Produktion',()=>{
   assert.ok(production>gate,'Produktion darf erst nach grünem TESTSERVICE Browser Gate laufen');
   assert.match(workflow,/'e2e\/\*\*'/);
   assert.match(workflow,/'playwright\.config\.mjs'/);
-  assert.match(workflow,/npm install --no-save @playwright\/test@1\.55\.0/);
+  assert.match(workflow,/npm install --no-save @playwright\/test@1\.63\.0/);
   assert.match(workflow,/npx playwright install --with-deps chromium/);
   assert.match(workflow,/RC1124 Lokales Browser-Gate/);
   assert.match(workflow,/Live RC1122 HTML-Integrität prüfen/);
