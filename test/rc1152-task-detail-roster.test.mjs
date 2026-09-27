@@ -216,3 +216,10 @@ test('RC1307: neue Aufgabenbezeichnungen sind in allen aktiven Sprachen vorhande
     }
   }
 });
+
+
+test('RC1307: Aufgabenplan folgt der tatsächlich sichtbaren Aufgabenansicht',()=>{
+  assert.match(runtimeSource,/body\.getAttribute\('data-exporthub-view'\)/);
+  assert.match(runtimeSource,/mutation\.attributeName==='data-exporthub-view'/);
+  assert.match(runtimeSource,/attributeFilter:target===doc\.body\?\['data-exporthub-view'\]/);
+});
