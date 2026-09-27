@@ -3,6 +3,7 @@
 if(!w||!d||w.__EXPORTHUB_RC1177_RELEASE_NOTES__)return;
 w.__EXPORTHUB_RC1177_RELEASE_NOTES__=true;
 var NOTES=[
+ 'RC1305 überarbeitet Ladelisten-Suche und Abholnachweis: Suchergebnisse nutzen die volle verfügbare Breite, Dateinamen bleiben in der Detailansicht lesbar, und abgeholte Ladelisten zeigen gespeicherte Fahrer-, Fahrzeug-, Verlader- und Zeitdaten kompakt statt leerer Formularfelder.',
  'RC1177 bereinigt die zentrale Historie: doppelte Sendung-erfasst/erstellt-Einträge und mehrfach protokollierte Lieferavis-Aktivierungen werden in der Anzeige zu einer fachlich eindeutigen Aktion zusammengeführt; echte Benutzeraktionen werden gegenüber technischen System-Dubletten bevorzugt.',
  'RC1176 stabilisiert die Standortauswahl in „Sendung erstellen“. Gewählter Standort, Standort-Aliase und Empfängeradresse bleiben auch nach dem nächsten Render konsistent erhalten.',
  'RC1174 stellt die Fehlerdiagnose-Benachrichtigungen für die Android-/Handy-Nutzung wieder sicher und hält den Diagnosekanal im Releasevertrag abgesichert.',
@@ -28,7 +29,7 @@ function patch(){
  var title=d.getElementById('rc524ReleaseTitle');if(!title)return false;
  var card=title.closest&&title.closest('.rc524-release-card');if(!card)return false;
  title.textContent=version()+' · Aktueller ExportHUB-Stand';
- var date=card.querySelector('.rc524-release-date');if(date)date.textContent='23.09.2026';
+ var date=card.querySelector('.rc524-release-date');if(date)date.textContent='27.09.2026';
  var list=card.querySelector('.rc524-release-list');
  if(!list){
   list=d.createElement('ul');list.className='rc524-release-list';
