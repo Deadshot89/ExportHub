@@ -453,9 +453,7 @@ function historyHtml(sh){
  return '<div class="rc776-history">'+list.slice(-30).map(function(x){return '<div class="rc776-history-row"><time>'+esc(x.at?fmtDate(x.at):'–')+'</time><div><b>'+esc(x.label)+'</b>'+(x.detail?'<small> · '+esc(x.detail)+'</small>':'')+'</div></div>'}).join('')+'</div>'
 }
 `;
-  replaceBlock('function historyHtml(sh){','
-
-var referenceCache=',historyReplacement,'Statusverlauf');
+  replaceBlock('function historyHtml(sh){','\n\nvar referenceCache=',historyReplacement,'Statusverlauf');
 
   const docHelpers=`function fallbackDocUsable(d){
  if(!d)return false;
@@ -477,8 +475,7 @@ function mergeReferenceDocs(live,fallback){
 
   replaceBlock(
     'function docHtml(d,i){',
-    '
-function docsPanelHtml',
+    '\nfunction docsPanelHtml',
     `function docHtml(d,i){var usable=fallbackDocUsable(d),buttons=[];if(usable){buttons.push('<button type="button" class="ghost" data-rc786-open-file="'+i+'">Öffnen</button>');buttons.push('<button type="button" class="ghost" data-rc786-download-file="'+i+'">Download</button>');if(isPrintable(d))buttons.push('<button type="button" class="ghost" data-rc786-print-file="'+i+'">Drucken</button>')}return '<article class="rc786-doc-row"><div class="rc786-doc-icon" aria-hidden="true">'+docIcon(d)+'</div><div class="rc786-doc-main"><b>'+esc(d.name||'Dokument')+'</b><small>'+esc(docMeta(d))+'</small></div><div class="rc786-doc-actions">'+buttons.join('')+'</div></article>'}
 `,
     'Dokumentaktionen'
@@ -486,8 +483,7 @@ function docsPanelHtml',
 
   replaceBlock(
     'function docsPanelHtml(docs,source,error){',
-    '
-function setDocsPanel',
+    '\nfunction setDocsPanel',
     `function docsPanelHtml(docs,source,error){docs=arr(docs);var sourceText=source==='referenceFolder'?'Vorhandene Dateien direkt aus dem Ref-Ordner der Sendung':source==='combined'?'Ref-Ordner und gespeicherte Anhänge der Sendung':source==='fallback'?'Gespeicherte Anhänge der Sendung':'';var note=sourceText?'<div class="rc786-doc-source">'+esc(sourceText)+(error?' · Ref-Ordner derzeit nicht erreichbar':'')+'</div>':'';var body=docs.length?'<div class="rc776-docs">'+docs.map(docHtml).join('')+'</div>':'<div class="rc776-empty">'+(source==='referenceFolder'?'Im Ref-Ordner und im Sendungsdatensatz sind aktuell keine öffnungsfähigen Dateien vorhanden.':'Keine echte Datei verfügbar. Interne Erzeugungsmetadaten werden nicht als Datei angezeigt.')+'</div>';return note+body}
 `,
     'Dokumentpanel'
@@ -495,9 +491,7 @@ function setDocsPanel',
 
   replaceBlock(
     'async function loadReferenceDocs(sh,fallback){',
-    '
-
-function shipmentSearchStamp',
+    '\n\nfunction shipmentSearchStamp',
     `async function loadReferenceDocs(sh,fallback){var ref=refOf(sh),expected=idOf(sh)||ref;fallback=arr(fallback).filter(fallbackDocUsable);if(!ref)return setDocsPanel(fallback,'fallback',true);try{var data=await referenceList(ref,false);if(data&&data.available===false){setDocsPanel(fallback,'fallback',true);return false}var live=arr(data.files).map(function(x){return liveDoc(x,ref)}),merged=mergeReferenceDocs(live,fallback),source=live.length?(merged.length>live.length?'combined':'referenceFolder'):(fallback.length?'fallback':'referenceFolder');var current=find(state().shipmentViewId||state().selectedShipmentId||state().activeShipmentId);if(low(state().view)!=='shipmentview'||!current||(idOf(current)||refOf(current))!==expected)return false;setDocsPanel(merged,source,false)}catch(e){if(!(e&&e.code==='GRAPH_NOT_CONFIGURED'))console.warn('RC1305 Ref-Ordner',e);var current2=find(state().shipmentViewId||state().selectedShipmentId||state().activeShipmentId);if(low(state().view)==='shipmentview'&&current2&&(idOf(current2)||refOf(current2))===expected)setDocsPanel(fallback,'fallback',true)}return false}
 `,
     'Ref-Ordner-Fallback'
@@ -505,8 +499,7 @@ function shipmentSearchStamp',
 
   replaceBlock(
     'async function fetchDocBlob(d){',
-    '
-async function downloadDocObject',
+    '\nasync function downloadDocObject',
     `async function fetchDocBlob(d){if(!d)throw new Error('Datei fehlt.');if(d._blob instanceof Blob)return d._blob;var helper=window.ExportHUBDocumentBlob1059;if(d.file&&helper&&typeof helper.isBlobDocument==='function'&&helper.isBlobDocument(d.file)&&typeof helper.fetchBlob==='function')return await helper.fetchBlob(d.file);if(d.source==='referenceFolder'&&d.itemId){var ref=q(d.reference)||refOf(currentShipmentForDocs()),res=await fetch('/api/reference-files?reference='+encodeURIComponent(ref)+'&itemId='+encodeURIComponent(d.itemId)+'&mode=inline&_='+Date.now(),{method:'GET',headers:referenceHeaders(),credentials:'same-origin',cache:'no-store'});if(!res.ok){var message='Datei konnte nicht geöffnet werden.';try{var data=await res.json();message=q(data.message)||message}catch(_){}throw new Error(message)}return await res.blob()}if(d.url&&(/^data:|^blob:|^\/api\//i.test(d.url))){var r=await fetch(d.url,{headers:/^\/api\//i.test(d.url)?referenceHeaders():{},credentials:'same-origin',cache:'no-store'});if(!r.ok)throw new Error('Datei konnte nicht geladen werden.');return await r.blob()}return null}
 `,
     'Blob-Dokumentöffnung'
