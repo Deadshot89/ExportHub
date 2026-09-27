@@ -351,7 +351,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npm install --no-save @playwright/test@1.55.0
+          npm install --no-save @playwright/test@1.63.0
           npx playwright install --with-deps chromium
 
       - name: RC1124 Lokales Browser-Gate
