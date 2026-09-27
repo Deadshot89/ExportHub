@@ -45,6 +45,15 @@
     return q((ctx&&ctx.currentUserId)||u.id||u.userId||u.user||u.username||u.login||u.name);
   }
 
+  function managedOwnerMatches(ctx={}){
+    const state=ctx.state||{},u=ctx.currentUser||state.currentUser||{};
+    const aliases=[
+      ctx.currentUserId,state.currentUserId,state.userId,
+      u.id,u.userId,u.user,u.username,u.login,u.name
+    ].map(value=>q(value).toLowerCase()).filter(Boolean);
+    return aliases.some(value=>value==='tobias'||value==='user-tobias');
+  }
+
   function taskContext(ctx={}){
     const state=ctx.state||{};return {companyId:q(ctx.companyId||state.companyId||state.currentCompanyId||root.__EXPORTHUB_COMPANY_ID__),environment:q(ctx.environment||state.environment||root.__EXPORTHUB_FORCED_ENVIRONMENT__||environmentName()),currentUserId:currentUserId(ctx)||q(state.currentUserId||state.userId||state.currentUser&&((state.currentUser.id||state.currentUser.userId||state.currentUser.user||state.currentUser.username||state.currentUser.login||state.currentUser.name))),now:ctx.now,absences:arr(ctx.absences||state.absences)};
   }
@@ -173,7 +182,7 @@
     }
     const day=localDay(ctx.now||new Date());
     if(day){
-      const specs=MANAGED_TASKS.filter(spec=>spec.referenceArea||arr(spec.weekdays).includes(day.weekday));
+      const specs=managedOwnerMatches(ctx)?MANAGED_TASKS.filter(spec=>spec.referenceArea||arr(spec.weekdays).includes(day.weekday)):[];
       specs.forEach(spec=>{
         const candidate=managedTaskForSpec(spec,day.date,ctx);
         if(tasks.some(t=>q(t&&t.id)===candidate.id))return;
@@ -433,6 +442,7 @@
   }
 
   function managedTaskPlanItems(ctx={}){
+    if(!managedOwnerMatches(ctx))return [];
     const today=localDay(ctx.now||new Date());
     return MANAGED_TASKS.map(spec=>({
       key:spec.key,
@@ -655,5 +665,5 @@
 
   if(root.addEventListener)root.addEventListener('popstate',()=>{const doc=root.document;if(doc&&doc.getElementById&&doc.getElementById('rc1152TaskDetail'))closeTaskDetail(true);});
 
-  root.ExportHUBRC1014TaskRuntime=Object.freeze({currentTasks,prepareTasks,openTask,openTaskDetail,renderTaskDetailView,rememberTaskDetail,rememberedTask,closeTaskDetail,setTaskStatus,completeTask,prepareManagedRoster,systemTaskIsCurrent,taskCardMeta,managedTaskPlanItems,renderManagedTaskPlan,enhanceTaskCards,syncAndroidSnapshot,resetProductionTasksOnce,MANAGED_TASKS});
+  root.ExportHUBRC1014TaskRuntime=Object.freeze({currentTasks,prepareTasks,openTask,openTaskDetail,renderTaskDetailView,rememberTaskDetail,rememberedTask,closeTaskDetail,setTaskStatus,completeTask,prepareManagedRoster,systemTaskIsCurrent,taskCardMeta,managedOwnerMatches,managedTaskPlanItems,renderManagedTaskPlan,enhanceTaskCards,syncAndroidSnapshot,resetProductionTasksOnce,MANAGED_TASKS});
 })(globalThis);
