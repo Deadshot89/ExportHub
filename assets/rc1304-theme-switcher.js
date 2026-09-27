@@ -14,6 +14,15 @@
   var NEON='neon';
   var VALUES=[CLASSIC,MODERN,GLASS,NEON];
   var scheduled=false;
+  function tr(key){
+    try{
+      if(window.ExportHUBI18n&&typeof window.ExportHUBI18n.t==='function'){
+        var value=window.ExportHUBI18n.t(key);
+        if(value&&value!==key)return value;
+      }
+    }catch(_){}
+    return key;
+  }
 
   function normalize(value){
     value=String(value||'').toLowerCase().trim();
@@ -55,15 +64,19 @@
       select.options[3].value===NEON;
     if(!ready){
       select.innerHTML=
-        '<option value="'+CLASSIC+'">Klassisch / Alt</option>'+
-        '<option value="'+MODERN+'">Modern Business</option>'+
-        '<option value="'+GLASS+'">Glass</option>'+
-        '<option value="'+NEON+'">Neon Night</option>';
+        '<option value="'+CLASSIC+'"></option>'+
+        '<option value="'+MODERN+'"></option>'+
+        '<option value="'+GLASS+'"></option>'+
+        '<option value="'+NEON+'"></option>';
       select.dataset.rc446='1';
       select.dataset.rc1304='1';
     }
+    select.options[0].textContent=tr('theme.classic');
+    select.options[1].textContent=tr('theme.modernBusiness');
+    select.options[2].textContent=tr('theme.glass');
+    select.options[3].textContent=tr('theme.neonNight');
     if(select.value!==value)select.value=value;
-    select.setAttribute('aria-label','Design auswählen');
+    select.setAttribute('aria-label',tr('theme.select'));
   }
 
   function replaceLegacySelect(value){
@@ -76,7 +89,7 @@
     var select=old.cloneNode(false);
     select.id='ehThemeSelect';
     select.className=old.className;
-    select.title=old.title||'Design auswählen';
+    select.title=tr('theme.select');
     options(select,value);
     old.replaceWith(select);
     select.addEventListener('change',function(event){
@@ -94,8 +107,9 @@
       wrap=document.createElement('div');
       wrap.id='ehThemeSwitch';
       wrap.className='eh-theme-switch ghost';
-      wrap.title='Design auswählen';
-      wrap.innerHTML='<span>Design</span><select id="ehThemeSelect" aria-label="Design auswählen"></select>';
+      wrap.title=tr('theme.select');
+      wrap.innerHTML='<span data-rc1304-theme-label></span><select id="ehThemeSelect"></select>';
+      wrap.querySelector('[data-rc1304-theme-label]').textContent=tr('theme.label');
       var optionsBox=top.querySelector('.eh-topbar-options')||top;
       optionsBox.appendChild(wrap);
     }
@@ -107,6 +121,9 @@
       options(select,value);
       select.addEventListener('change',function(){apply(select.value,true)});
     }
+    wrap.title=tr('theme.select');
+    var topLabel=wrap.querySelector('[data-rc1304-theme-label]')||wrap.querySelector('span');
+    if(topLabel)topLabel.textContent=tr('theme.label');
     wrap.hidden=false;
     wrap.setAttribute('aria-hidden','false');
     return select;
@@ -120,11 +137,14 @@
       box=document.createElement('label');
       box.id='rc1304LoginTheme';
       box.className='rc1304-login-theme';
-      box.innerHTML='<span>Design</span><select id="ehLoginThemeSelect" aria-label="Design auswählen"></select>';
+      box.innerHTML='<span data-rc1304-theme-label></span><select id="ehLoginThemeSelect"></select>';
+      box.querySelector('[data-rc1304-theme-label]').textContent=tr('theme.label');
       var anchor=document.getElementById('cleanVersionBadge')||card.querySelector('h1')||card.firstChild;
       if(anchor&&anchor.parentNode===card)anchor.insertAdjacentElement('afterend',box);
       else card.prepend(box);
     }
+    var loginLabel=box.querySelector('[data-rc1304-theme-label]')||box.querySelector('span');
+    if(loginLabel)loginLabel.textContent=tr('theme.label');
     var select=document.getElementById('ehLoginThemeSelect');
     if(select&&select.dataset.rc1304!=='1'){
       options(select,value);
@@ -184,7 +204,7 @@
     setTimeout(refresh,0);
   }
 
-  ['exporthub:ready','exporthub:viewchange','exporthub:logout','pageshow'].forEach(function(name){
+  ['exporthub:ready','exporthub:viewchange','exporthub:logout','exporthub:language-changed','pageshow'].forEach(function(name){
     window.addEventListener(name,schedule);
   });
 
@@ -211,10 +231,10 @@
     version:'RC1304',
     storageKey:STORAGE_KEY,
     designs:Object.freeze([
-      Object.freeze({id:CLASSIC,label:'Klassisch / Alt'}),
-      Object.freeze({id:MODERN,label:'Modern Business'}),
-      Object.freeze({id:GLASS,label:'Glass'}),
-      Object.freeze({id:NEON,label:'Neon Night'})
+      Object.freeze({id:CLASSIC,labelKey:'theme.classic'}),
+      Object.freeze({id:MODERN,labelKey:'theme.modernBusiness'}),
+      Object.freeze({id:GLASS,labelKey:'theme.glass'}),
+      Object.freeze({id:NEON,labelKey:'theme.neonNight'})
     ]),
     apply:function(value){return apply(value,true)},
     current:function(){return normalize(document.documentElement.getAttribute('data-eh-design')||read())},
