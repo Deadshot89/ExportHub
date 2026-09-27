@@ -1123,5 +1123,16 @@
   "theme.classic": "Klassisch / Alt",
   "theme.modernBusiness": "Modern Business",
   "theme.glass": "Glass",
-  "theme.neonNight": "Neon Night"
+  "theme.neonNight": "Neon Night",
+  "loadingList.documentCount": "{{count}} Dokumente",
+  "loadingList.resultCount": "{{count}} Treffer",
+  "loadingList.shipmentCount": "{{count}} Sendungen",
+  "loadingList.noFileNames": "Keine Dateinamen hinterlegt",
+  "loadingListPrint.pickedUp": "SENDUNG ABGEHOLT",
+  "loadingListPrint.notRecorded": "Nicht erfasst",
+  "loadingListPrint.noDeliveryNotes": "Keine Lieferscheine hinterlegt",
+  "loadingListPrint.noRemark": "Keine Bemerkung hinterlegt",
+  "loadingListPrint.signatureStored": "Digital gespeichert",
+  "loadingListPrint.driverSignature": "Fahrerunterschrift",
+  "loadingListPrint.palletMovement": "Ausgang: {{out}} · Eingang/Rückgabe: {{returned}}"
 }
