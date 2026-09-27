@@ -182,3 +182,37 @@ test('RC1307: kompletter hinterlegter Aufgabenstamm ist im Runtime-Vertrag vorha
     assert.ok(runtimeSource.includes("key:'"+key+"'"),key+' fehlt');
   }
 });
+
+
+test('RC1307: hinterlegte Aufgaben sind unabhängig vom Wochentag als persönlicher Wochenplan abrufbar',()=>{
+  const api=load();
+  const items=api.managedTaskPlanItems({now:'2026-09-27T20:30:00+02:00'});
+  assert.equal(items.length,14);
+  const byKey=new Map(items.map(item=>[item.key,item]));
+  assert.match(byKey.get('spanien').schedule,/Montag.*Donnerstag/);
+  assert.match(byKey.get('gaggenau').schedule,/13:00/);
+  assert.match(byKey.get('ohare').schedule,/12:00/);
+  assert.match(byKey.get('neff').schedule,/13:00/);
+  assert.equal(byKey.get('swiss-area').referenceArea,true);
+  assert.deepEqual(Array.from(byKey.get('swiss-area').checklist),['Omni Ray','Bossard','Heizmann']);
+});
+
+test('RC1307: Aufgabenansicht rendert sichtbaren hinterlegten Wochenplan und ist mobil responsiv',()=>{
+  assert.match(runtimeSource,/function\s+renderManagedTaskPlan\s*\(/);
+  assert.match(runtimeSource,/rc1307ManagedTaskPlan/);
+  assert.match(runtimeSource,/taskPlan\.title/);
+  assert.match(runtimeSource,/currentView\(\)!==['"]tasks['"]/);
+  const css=fs.readFileSync('assets/rc1014-task-ui.css','utf8');
+  assert.match(css,/\.rc1307-managed-task-plan/);
+  assert.match(css,/\.rc1307-task-plan-grid/);
+  assert.match(css,/@media \(max-width:640px\)[\s\S]*\.rc1307-task-plan-grid\{grid-template-columns:1fr\}/);
+});
+
+test('RC1307: neue Aufgabenbezeichnungen sind in allen aktiven Sprachen vorhanden',()=>{
+  for(const language of ['de','en','pl','es','fr','it']){
+    const json=JSON.parse(fs.readFileSync('assets/i18n/'+language+'.json','utf8'));
+    for(const key of ['taskManaged.gaggenau.title','taskManaged.faurecia.title','taskManaged.italien.title','taskManaged.bsh.title','taskManaged.polen.title','taskManaged.frankreich.title','taskManaged.neff.title','taskPlan.title','taskPlan.help']){
+      assert.ok(String(json[key]||'').trim(),language+': '+key+' fehlt');
+    }
+  }
+});
