@@ -12,14 +12,23 @@ test('RC1304: Switcher exposes exactly four designs and persists the choice',()=
   assert.match(runtime,/var GLASS='glass'/);
   assert.match(runtime,/var NEON='neon'/);
   assert.match(runtime,/VALUES=\[CLASSIC,MODERN,GLASS,NEON\]/);
-  assert.match(runtime,/Klassisch \/ Alt/);
-  assert.match(runtime,/Modern Business/);
-  assert.match(runtime,/>Glass</);
-  assert.match(runtime,/Neon Night/);
+  assert.match(runtime,/theme\.classic/);
+  assert.match(runtime,/theme\.modernBusiness/);
+  assert.match(runtime,/theme\.glass/);
+  assert.match(runtime,/theme\.neonNight/);
   assert.match(runtime,/options\.length===4/);
   assert.match(runtime,/localStorage\.getItem\(STORAGE_KEY\)/);
   assert.match(runtime,/localStorage\.setItem\(STORAGE_KEY,value\)/);
   assert.match(runtime,/data-eh-design/);
+});
+
+test('RC1304: theme switcher uses central i18n keys instead of hard-coded German UI text',()=>{
+  assert.match(runtime,/ExportHUBI18n/);
+  assert.match(runtime,/theme\.label/);
+  assert.match(runtime,/theme\.select/);
+  assert.match(runtime,/exporthub:language-changed/);
+  assert.doesNotMatch(runtime,/Design auswählen/);
+  assert.doesNotMatch(runtime,/Klassisch \/ Alt/);
 });
 
 test('RC1304: switching never reloads or changes the URL',()=>{
