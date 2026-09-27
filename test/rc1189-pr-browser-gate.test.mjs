@@ -11,7 +11,7 @@ test('RC1189: PR-Änderungen an E2E-Navigation erhalten vor Merge einen echten l
   assert.match(workflow,/e2e\/\*\*/);
   assert.match(workflow,/test\/rc1189-/);
   assert.match(workflow,/node \.github\/rc1112\/build-three-env\.mjs/);
-  assert.match(workflow,/@playwright\/test@1\.55\.0/);
+  assert.match(workflow,/@playwright\/test@1\.63\.0/);
   assert.match(workflow,/npx playwright install --with-deps chromium/);
   assert.match(workflow,/npx playwright test e2e\/specs\/navigation\.spec\.mjs/);
   assert.doesNotMatch(workflow,/Azure\/static-web-apps-deploy|deployment_token|Deploy ExportHUB/i);
