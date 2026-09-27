@@ -50,6 +50,24 @@
     return value;
   }
 
+  function protectVersionBadge(){
+    var badge=document.getElementById('cleanVersionBadge');
+    if(!badge)return false;
+    if(badge.getAttribute('data-i18n-ignore')==='1')return true;
+    badge.setAttribute('data-i18n-ignore','1');
+    try{
+      if(window.ExportHUBBuild&&typeof window.ExportHUBBuild.applyVersion==='function'){
+        window.ExportHUBBuild.applyVersion();
+      }else if(window.ExportHUBBuild&&typeof window.ExportHUBBuild.apply==='function'){
+        window.ExportHUBBuild.apply();
+      }
+      if(window.ExportHUBVisibleRelease1193&&typeof window.ExportHUBVisibleRelease1193.patch==='function'){
+        window.ExportHUBVisibleRelease1193.patch();
+      }
+    }catch(_){}
+    return true;
+  }
+
   function forceLegacyClassic(){
     try{
       var legacy=window.ExportHUBThemeSwitcher;
@@ -186,6 +204,7 @@
     var value=read();
     forceLegacyClassic();
     setRoot(value);
+    protectVersionBadge();
     ensureTopbar(value);
     ensureLogin(value);
     syncControls(value);
