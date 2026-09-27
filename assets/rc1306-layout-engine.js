@@ -100,6 +100,12 @@ function shipmentShell(){
   return d.getElementById('rc573ShipmentShell')||d.getElementById('rc363FixedShipmentLayout')
 }
 function isShipmentCreate(){
+  var hasCreateBlocks=!!(
+    d.getElementById('rc363BlockCustomer')&&
+    d.getElementById('rc363BlockShipment')&&
+    (d.getElementById('rc573ColliCard')||d.getElementById('rc363BlockColli'))
+  );
+  if(hasCreateBlocks)return true;
   var v=currentView();
   if(v==='shipment'||/shipmentcreate|newshipment/.test(v))return true;
   var s=shipmentShell();
@@ -212,6 +218,7 @@ function neonShipment(shell,b){
 }
 
 function genericLayout(mode){
+  setMode(mode);
   var content=topLevelContent();
   if(!content||isShipmentCreate())return;
   var kids=Array.prototype.slice.call(content.children);
