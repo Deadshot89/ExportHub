@@ -256,9 +256,9 @@ function click(ev){
  if(knownDoc&&(/öffnen|open|anzeigen|view|pdf/.test(actionText)||(/\.pdf(?:[?#]|$)/i.test(href)))){
    if(actionOnce('document-open|'+identity(sh)+'|'+doc+'|'+file,1800))recordDocumentAction(sh,'open',doc,file);return
  }
- if(knownDoc&&/cmr|ladeliste|stauplan|deckblatt|lieferschein|\babd\b|\bpod\b|l1|\bl2\b/.test(l)){
-   if(actionOnce('document-open|'+identity(sh)+'|'+doc+'|'+file,1800))recordDocumentAction(sh,'open',doc,file);return
- }
+ // RC1305: Ein Dokument gilt nur dann als geöffnet, wenn die konkrete Aktion
+ // ausdrücklich Öffnen/Anzeigen/PDF auslöst. Reine Navigation wie
+ // "Ladeliste & CMR" darf keinen Audit-Eintrag "CMR – geöffnet" erzeugen.
  if(/speichern/.test(l)&&!/einstellung|vorlage|stammdaten/.test(l)){
    if(actionOnce('save|'+identity(sh),2500))append(sh,{type:'saved',label:de('shipmentHistory.action.shipmentSavedManually'),actor:actorFrom(currentUser()),details:{status:statusOf(sh)}});return
  }
@@ -285,5 +285,5 @@ try{w.addEventListener('click',printBubble,false)}catch(_){}
 try{w.addEventListener('exporthub:customer-avis-updated',avisUpdated)}catch(_){}
 try{w.addEventListener('exporthub:document-action',documentActionEvent)}catch(_){}
 setInterval(function(){try{hookPersist();monitor()}catch(_){}},2500);
-w.ExportHUBShipmentHistory1071=Object.freeze({version:'RC1178',append:append,events:allEvents,render:render,currentShipment:currentShipment,actor:actorFrom,monitor:monitor,markWorkStarted:markWorkStarted,documentLabel:documentLabel,documentActionFileName:documentActionFileName,recordDocumentAction:recordDocumentAction,printFromElement:printFromElement,printBubble:printBubble,mailTypeFrom:mailTypeFrom,mailSentLabel:mailSentLabel,statusLabel:statusLabel,displayAction:displayAction,creatorMetaText:creatorMetaText,repairCreatorMetaSpacing:repairCreatorMetaSpacing});
+w.ExportHUBShipmentHistory1071=Object.freeze({version:'RC1305',append:append,events:allEvents,render:render,currentShipment:currentShipment,actor:actorFrom,monitor:monitor,markWorkStarted:markWorkStarted,documentLabel:documentLabel,documentActionFileName:documentActionFileName,recordDocumentAction:recordDocumentAction,printFromElement:printFromElement,printBubble:printBubble,mailTypeFrom:mailTypeFrom,mailSentLabel:mailSentLabel,statusLabel:statusLabel,displayAction:displayAction,creatorMetaText:creatorMetaText,repairCreatorMetaSpacing:repairCreatorMetaSpacing});
 })(window);
