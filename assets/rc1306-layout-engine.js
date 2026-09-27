@@ -69,17 +69,27 @@ function el(tag,cls,id){
   n.setAttribute('data-rc1306-generated','1');
   return n
 }
+function tr(key){
+  try{
+    if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.t==='function'){
+      var value=w.ExportHUBI18n.t(key);
+      if(value&&value!==key)return value
+    }
+  }catch(_){}
+  return key
+}
 function labelFor(id){
-  return ({
-    rc363BlockCustomer:'Kunde & Empfänger',
-    rc363BlockShipment:'Sendungsdaten',
-    rc573ColliCard:'Colli & Lademeter',
-    rc363BlockDocuments:'Dokumente & ABD',
-    rc363BlockStow:'Stauplan',
-    rc363BlockAbdDecision:'ABD',
-    rc363BlockMail:'Mail',
-    rc363BlockActions:'Speichern & Ausgabe'
-  })[id]||id
+  var key=({
+    rc363BlockCustomer:'layout.customerRecipient',
+    rc363BlockShipment:'layout.shipmentData',
+    rc573ColliCard:'layout.colliLdm',
+    rc363BlockDocuments:'layout.documentsAbd',
+    rc363BlockStow:'layout.stowPlan',
+    rc363BlockAbdDecision:'layout.abd',
+    rc363BlockMail:'layout.mail',
+    rc363BlockActions:'layout.saveOutput'
+  })[id];
+  return key?tr(key):id
 }
 function blocks(){
   var out={};
@@ -91,16 +101,16 @@ function shipmentShell(){
 }
 function isShipmentCreate(){
   var v=currentView();
-  if(v==='shipment'||/shipmentcreate|newshipment|sendung.*erstell/.test(v))return true;
+  if(v==='shipment'||/shipmentcreate|newshipment/.test(v))return true;
   var s=shipmentShell();
-  return !!(s&&/sendung\s*erstellen/i.test(q(s.textContent).slice(0,500)))
+  return !!(s&&/shipment|sendung/i.test(q(s.textContent).slice(0,500)))
 }
 function topLevelContent(){
   return d.getElementById('content')
 }
 function createNavigator(mode,b){
   var nav=el('nav','rc1306-process-nav rc1306-process-nav--'+mode,'rc1306ProcessNav');
-  nav.setAttribute('aria-label','Sendungsprozess');
+  nav.setAttribute('aria-label',tr('layout.shipmentProcess'));
   SHIPMENT_IDS.forEach(function(id,index){
     if(!b[id])return;
     var btn=d.createElement('button');
