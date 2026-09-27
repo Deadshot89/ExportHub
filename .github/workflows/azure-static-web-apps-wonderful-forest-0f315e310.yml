@@ -1018,7 +1018,7 @@ jobs:
               body=$(mktemp)
               code=$(curl -sS -L -o "$body" -w '%{http_code}' --max-time 20 "$url" || true)
               [[ "$code" == '200' ]] || ok=0
-              grep -q 'assets/rc1074-login-clean.js?v=1301' "$body" || ok=0
+              grep -q 'assets/rc1074-login-clean.js?v=1303' "$body" || ok=0
               if grep -Eqi 'Anmeldekonfiguration wird geprüft|TESTSERVICE[[:space:]]*·[[:space:]]*Auth-Backend wird geprüft|TESTSERVICE[[:space:]]*·[[:space:]]*Zugangsdaten eingeben' "$body"; then
                 echo "RC1074: technischer Login-Hinweis ist live noch vorhanden: $url" >&2
                 ok=0
