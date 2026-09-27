@@ -70,6 +70,15 @@ test('RC1304: refresh is idempotent and never installs a body-wide mutation feed
   assert.doesNotMatch(runtime,/observe\(document\.body/);
 });
 
+test('RC1311: startup refreshes are debounced instead of repeated per event task',()=>{
+  assert.match(runtime,/var refreshTimer=0;/);
+  assert.match(runtime,/if\(refreshTimer\)clearTimeout\(refreshTimer\)/);
+  assert.match(runtime,/refreshTimer=setTimeout\(function\(\)\{[\s\S]*refreshTimer=0;[\s\S]*refresh\(\);[\s\S]*\},40\)/);
+  assert.doesNotMatch(runtime,/Promise\.resolve\(\)\.then\(refresh\)/);
+  assert.doesNotMatch(runtime,/setTimeout\(refresh,0\)/);
+  assert.match(runtime,/addEventListener\('DOMContentLoaded',refresh,\{once:true\}\)/);
+});
+
 test('RC1304: three redesigns are distinct while classic remains untouched',()=>{
   assert.match(css,/data-eh-design="modern"/);
   assert.match(css,/data-eh-design="glass"/);
