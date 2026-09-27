@@ -57,6 +57,8 @@ test('RC1304: observer refresh is idempotent and does not rebuild options foreve
   assert.match(runtime,/var ready=select\.dataset\.rc1304==='1'/);
   assert.match(runtime,/if\(!ready\)\{/);
   assert.match(runtime,/if\(select\.value!==value\)select\.value=value/);
+  assert.match(runtime,/function setText\(node,value\)/);
+  assert.match(runtime,/if\(node\.textContent!==value\)node\.textContent=value/);
 });
 
 test('RC1304: three redesigns are distinct while classic remains untouched',()=>{
