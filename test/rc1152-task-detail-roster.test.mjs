@@ -186,7 +186,7 @@ test('RC1307: kompletter hinterlegter Aufgabenstamm ist im Runtime-Vertrag vorha
 
 test('RC1307: hinterlegte Aufgaben sind unabhängig vom Wochentag als persönlicher Wochenplan abrufbar',()=>{
   const api=load();
-  const items=api.managedTaskPlanItems({now:'2026-09-27T20:30:00+02:00'});
+  const items=api.managedTaskPlanItems({currentUserId:'tobias',now:'2026-09-27T20:30:00+02:00'});
   assert.equal(items.length,14);
   const byKey=new Map(items.map(item=>[item.key,item]));
   assert.match(byKey.get('spanien').schedule,/Montag.*Donnerstag/);
@@ -222,4 +222,16 @@ test('RC1307: Aufgabenplan folgt der tatsächlich sichtbaren Aufgabenansicht',()
   assert.match(runtimeSource,/body\.getAttribute\('data-exporthub-view'\)/);
   assert.match(runtimeSource,/mutation\.attributeName==='data-exporthub-view'/);
   assert.match(runtimeSource,/attributeFilter:target===doc\.body\?\['data-exporthub-view'\]/);
+});
+
+
+test('RC1307: persönlicher hinterlegter Wochenplan wird nicht anderen Benutzern zugeordnet',()=>{
+  const api=load();
+  assert.equal(api.managedOwnerMatches({currentUserId:'tobias'}),true);
+  assert.equal(api.managedOwnerMatches({currentUser:{id:'USER-Tobias',user:'Tobias'}}),true);
+  assert.equal(api.managedOwnerMatches({currentUserId:'daniel'}),false);
+  assert.equal(api.managedTaskPlanItems({currentUserId:'daniel',now:'2026-09-28T10:00:00+02:00'}).length,0);
+  const state={tasks:[],_teamSyncMeta:{fields:{},tombstones:[]}};
+  const out=api.prepareTasks(state.tasks,{companyId:'essentra',environment:'production',currentUserId:'daniel',now:'2026-09-28T10:00:00+02:00',state,persist(next){state.tasks=next}});
+  assert.ok(!out.some(t=>t.managedBy==='RC1152'),'persönliche Tobias-Aufgaben dürfen für andere Benutzer nicht erzeugt werden');
 });
