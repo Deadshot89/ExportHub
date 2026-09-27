@@ -45,11 +45,21 @@ test('RC1306: Modern Business uses process rail, work canvas and status rail',as
     const nav=box('.rc1306-business-workspace > .rc1306-process-nav');
     const center=box('.rc1306-business-center');
     const rail=box('.rc1306-business-rail');
-    return nav&&center&&rail?{navX:nav.x,centerX:center.x,railX:rail.x,navW:nav.width,centerW:center.width,railW:rail.width}:null;
+    return nav&&center&&rail?{
+      navX:nav.x,centerX:center.x,railX:rail.x,
+      navY:nav.y,centerY:center.y,railY:rail.y,
+      navW:nav.width,centerW:center.width,railW:rail.width
+    }:null;
   });
   expect(businessGeometry).not.toBeNull();
-  expect(businessGeometry.navX).toBeLessThan(businessGeometry.centerX);
-  expect(businessGeometry.centerX).toBeLessThan(businessGeometry.railX);
+  const businessViewport=page.viewportSize()?.width||1366;
+  if(businessViewport>1120){
+    expect(businessGeometry.navX).toBeLessThan(businessGeometry.centerX);
+    expect(businessGeometry.centerX).toBeLessThan(businessGeometry.railX);
+  }else{
+    expect(businessGeometry.navY).toBeLessThan(businessGeometry.centerY);
+    expect(businessGeometry.centerY).toBeLessThan(businessGeometry.railY);
+  }
   expect(businessGeometry.navW).toBeGreaterThan(0);
   expect(businessGeometry.centerW).toBeGreaterThan(0);
   expect(businessGeometry.railW).toBeGreaterThan(0);
@@ -76,7 +86,19 @@ test('RC1306: Glass uses twelve-column mosaic with reordered functional modules'
     });
   });
   expect(glassGeometry.every(Boolean)).toBe(true);
-  expect(new Set(glassGeometry.map(row=>Math.round(row.x))).size).toBeGreaterThanOrEqual(3);
+  const glassViewport=page.viewportSize()?.width||1366;
+  if(glassViewport<=760){
+    expect(new Set(glassGeometry.map(row=>Math.round(row.x))).size).toBe(1);
+    expect(glassGeometry[0].y).toBeLessThan(glassGeometry[1].y);
+    expect(glassGeometry[1].y).toBeLessThan(glassGeometry[2].y);
+  }else if(glassViewport<=1120){
+    expect(glassGeometry[0].x).toBeLessThan(glassGeometry[1].x);
+    expect(Math.abs(glassGeometry[0].y-glassGeometry[1].y)).toBeLessThan(4);
+    expect(glassGeometry[2].y).toBeGreaterThan(glassGeometry[0].y);
+  }else{
+    expect(glassGeometry[0].x).toBeLessThan(glassGeometry[1].x);
+    expect(glassGeometry[1].x).toBeLessThan(glassGeometry[2].x);
+  }
   expect(glassGeometry.every(row=>row.width>0)).toBe(true);
   await commonAssertions(page);
   await assertRuntimeClean(runtime,testInfo);
@@ -97,11 +119,21 @@ test('RC1306: Neon Night uses command rail, core workspace and telemetry rail',a
     const command=box('.rc1306-neon-command');
     const core=box('.rc1306-neon-core');
     const telemetry=box('.rc1306-neon-telemetry');
-    return command&&core&&telemetry?{commandX:command.x,coreX:core.x,telemetryX:telemetry.x,commandW:command.width,coreW:core.width,telemetryW:telemetry.width}:null;
+    return command&&core&&telemetry?{
+      commandX:command.x,coreX:core.x,telemetryX:telemetry.x,
+      commandY:command.y,coreY:core.y,telemetryY:telemetry.y,
+      commandW:command.width,coreW:core.width,telemetryW:telemetry.width
+    }:null;
   });
   expect(neonGeometry).not.toBeNull();
-  expect(neonGeometry.commandX).toBeLessThan(neonGeometry.coreX);
-  expect(neonGeometry.coreX).toBeLessThan(neonGeometry.telemetryX);
+  const neonViewport=page.viewportSize()?.width||1366;
+  if(neonViewport>1120){
+    expect(neonGeometry.commandX).toBeLessThan(neonGeometry.coreX);
+    expect(neonGeometry.coreX).toBeLessThan(neonGeometry.telemetryX);
+  }else{
+    expect(neonGeometry.commandY).toBeLessThan(neonGeometry.coreY);
+    expect(neonGeometry.coreY).toBeLessThan(neonGeometry.telemetryY);
+  }
   expect(neonGeometry.commandW).toBeGreaterThan(0);
   expect(neonGeometry.coreW).toBeGreaterThan(0);
   expect(neonGeometry.telemetryW).toBeGreaterThan(0);
