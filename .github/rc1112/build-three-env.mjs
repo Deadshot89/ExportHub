@@ -45,6 +45,8 @@ const RC1206_SHIPPING_ID='exporthub-rc1206-shipping-rules';
 const RC1206_SHIPPING_TAG='<script id="'+RC1206_SHIPPING_ID+'" defer src="/assets/rc1206-shipping-rules.js?v=1266"></script>';
 const RC1296_BROWSER_TITLE='ExportHUB360';
 const RC1296_FAVICON_TAG='<link id="exporthub360-favicon" rel="icon" type="image/svg+xml" href="/assets/exporthub360-favicon.svg?v=1296">';
+const RC1304_THEME_STYLE_TAG='<link id="exporthub-rc1304-theme-style" rel="stylesheet" href="/assets/rc1304-theme-switcher.css?v=1304">';
+const RC1304_THEME_SCRIPT_TAG='<script id="exporthub-rc1304-theme-script" src="/assets/rc1304-theme-switcher.js?v=1304"><\/script>';
 
 function patchRc1296BrowserBranding(html,file){
   if(file!=='index.html')return html;
@@ -79,6 +81,15 @@ function injectImmediateRuntimeAfterHead(html,tag,id){
   const at=headOpen.index+headOpen[0].length;
   return html.slice(0,at)+'\n'+tag+html.slice(at);
 }
+
+function patchRc1304ThemeRedesign(html,file){
+  html=injectDeferredRuntimeInHead(html,RC1304_THEME_STYLE_TAG,'exporthub-rc1304-theme-style');
+  html=injectDeferredRuntimeInHead(html,RC1304_THEME_SCRIPT_TAG,'exporthub-rc1304-theme-script');
+  if(!html.includes('rc1304-theme-switcher.css?v=1304'))throw new Error(file+': RC1304 Theme-CSS fehlt');
+  if(!html.includes('rc1304-theme-switcher.js?v=1304'))throw new Error(file+': RC1304 Theme-Switcher fehlt');
+  return html;
+}
+
 function patchRc1289AuthTransportFallback(html,file){
   if(file==='demo.html')return html;
   const tag='<script id="exporthub-rc1289-auth-transport-fallback" src="/assets/rc1289-auth-transport-fallback.js?v=1289"></script>';
@@ -419,6 +430,7 @@ function patchHtml(file){
   const target=path.join(OUT,file);
   let html=fs.readFileSync(target,'utf8');
   html=patchRc1289AuthTransportFallback(html,file);
+  html=patchRc1304ThemeRedesign(html,file);
   html=patchRc1303LoginExperience(html,file);
   html=patchDemoTestPortalIsolation(html,file);
   html=patchAuthSessionTimeout(html,file);
@@ -545,7 +557,9 @@ for(const rel of [
   'assets/rc1294-abd-self-service.js',
   'assets/rc1177-release-notes.js',
   'assets/rc1193-visible-release.js',
-  'assets/exporthub360-favicon.svg'
+  'assets/exporthub360-favicon.svg',
+  'assets/rc1304-theme-switcher.css',
+  'assets/rc1304-theme-switcher.js'
 ]){
   const src=path.join(ROOT,rel),dst=path.join(OUT,rel);
   if(!fs.existsSync(src))throw new Error('RC1124 Pflicht-Runtime fehlt: '+rel);
