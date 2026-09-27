@@ -64,3 +64,15 @@ test('RC1300 P1: Login rendert weder bei jedem View-Wechsel noch vor dem Umgebun
   assert.doesNotMatch(clickBlock,/markEnvironmentTarget\(next\)/,'Vor Navigation darf kein Zwischen-Render der Kacheln erfolgen');
   assert.match(clickBlock,/location\.assign\(url\)/);
 });
+
+
+test('RC1300 P1: Login und Fremdansichten starten keine ABD-Dashboard-Nacharbeit',()=>{
+  assert.match(runtime,/function rc1109RelevantView\(\)/);
+  assert.match(runtime,/if\(loginVisible\(\)\)return false/);
+  assert.match(runtime,/view==='dashboard'\|\|view==='tasks'/);
+  const start=runtime.indexOf('function rc1109Schedule(){');
+  const end=runtime.indexOf('\nvar loginRefreshTimer=0;',start);
+  assert.ok(start>=0&&end>start,'rc1109Schedule-Block fehlt');
+  const block=runtime.slice(start,end);
+  assert.match(block,/if\(!rc1109RelevantView\(\)\)return false/);
+});
