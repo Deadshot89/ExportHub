@@ -22,6 +22,24 @@ const VISIBLE_VERSION=resolveVisibleVersion();
 const VISIBLE_NUMBER=VISIBLE_VERSION.slice(2);
 const LEGACY_TESTSERVICE_HOST='wonderful-forest-0f315e310-testservice.centralus.7.azurestaticapps.net';
 const CURRENT_TESTSERVICE_HOST='ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net';
+const PUBLIC_PRODUCTION_HOST='www.exporthub360.de';
+const PUBLIC_PRODUCTION_ORIGIN='https://www.exporthub360.de';
+const RC1303_LOGIN_FIRST_PAINT_STYLE=`<style id="exporthub-rc1303-login-first-paint">
+#login .login-card{width:min(540px,100%)!important;padding:28px 30px 26px!important}
+#login .logo{width:66px!important;height:66px!important;border-radius:20px!important;font-size:24px!important}
+#login h1{margin:8px 0 14px!important;font-size:34px!important}
+#login .clean-version-badge,#login .eh-login-mode-head,#login .eh-login-environment-note{display:none!important}
+#login .eh-login-environment{grid-template-columns:1fr 1fr!important;gap:10px!important;margin:0 0 16px!important}
+#login .eh-login-environment button{min-height:68px!important;padding:11px 14px!important;border:1px solid #cbd5e1!important;border-radius:15px!important;background:#f8fafc!important;color:#334155!important;box-shadow:none!important;filter:none!important;transform:none!important;text-align:left!important;transition:none!important}
+#login .eh-login-environment button.is-active,#login .eh-login-environment button.active,#login .eh-login-environment button[aria-pressed="true"]{border-color:#2563eb!important;background:linear-gradient(135deg,#4f9fdb,#67b8ee)!important;color:#0f2942!important;filter:saturate(1.08) brightness(1.03)!important;transform:translateY(-1px)!important;box-shadow:0 0 0 3px rgba(56,189,248,.24),0 0 26px rgba(14,165,233,.48),0 10px 22px rgba(37,99,235,.22)!important}
+#login .login-lang{margin:0 0 12px!important}
+#login .field{margin:10px 0!important}
+#login .field input,#login .field select{min-height:44px!important}
+#login .rc119-login-remember{margin:8px 0 12px!important;padding:9px 10px!important}
+#login #loginBtn{min-height:46px!important;margin-top:2px!important}
+#login #loginMicrosoftAccountSwitchBtn,#login #adminRecoveryBtn{min-height:34px!important;margin-top:6px!important;padding:5px 8px!important}
+@media(max-width:600px){#login .login-card{width:min(100%,440px)!important;padding:18px 16px 16px!important}#login .logo{width:54px!important;height:54px!important;border-radius:17px!important;font-size:20px!important}#login h1{font-size:27px!important;margin-bottom:12px!important}#login .eh-login-environment{margin-bottom:12px!important}#login .eh-login-environment button{min-height:58px!important;padding:9px 10px!important}}
+</style>`;
 const RC1267_I18N_TAG='<script id="exporthub-rc1267-i18n" defer src="/assets/rc1267-i18n.js?v=1267"></script>';
 const RC1206_SHIPPING_ID='exporthub-rc1206-shipping-rules';
 const RC1206_SHIPPING_TAG='<script id="'+RC1206_SHIPPING_ID+'" defer src="/assets/rc1206-shipping-rules.js?v=1266"></script>';
@@ -67,6 +85,44 @@ function patchRc1289AuthTransportFallback(html,file){
   html=injectImmediateRuntimeAfterHead(html,tag,'exporthub-rc1289-auth-transport-fallback');
   const at=html.indexOf(tag),headEnd=html.toLowerCase().indexOf('</head>');
   if(at<0||headEnd<0||at>headEnd)throw new Error(file+': RC1289 Auth-Fallback nicht früh im Head geladen');
+  return html;
+}
+
+function patchRc1303LoginExperience(html,file){
+  html=injectImmediateRuntimeAfterHead(html,RC1303_LOGIN_FIRST_PAINT_STYLE,'exporthub-rc1303-login-first-paint');
+  const prodHost="var PROD_HOST='wonderful-forest-0f315e310.7.azurestaticapps.net';";
+  const prodOrigin="var PROD_ORIGIN='https://wonderful-forest-0f315e310.7.azurestaticapps.net';";
+  const isProd="function isProd(){return host()===PROD_HOST}";
+  const testUrl="function testUrl(){return TEST_ORIGIN+'/TESTVERSION.html?entry=login&_='+cache()}";
+  const prodUrl="function prodUrl(){return PROD_ORIGIN+'/index.html?entry=login&_='+cache()}";
+  const exposedProd="productionUrl:PROD_ORIGIN+'/index.html'";
+  if(html.includes(prodHost))html=html.replace(prodHost,"var PROD_HOST='"+PUBLIC_PRODUCTION_HOST+"';");
+  if(html.includes(prodOrigin))html=html.replace(prodOrigin,"var PROD_ORIGIN='"+PUBLIC_PRODUCTION_ORIGIN+"';");
+  if(html.includes(isProd))html=html.replace(isProd,"function isProd(){var h=host();return h===PROD_HOST||h==='exporthub360.de'}");
+  if(html.includes(testUrl))html=html.replace(testUrl,"function testUrl(){return TEST_ORIGIN+'/TESTVERSION.html?entry=login'}");
+  if(html.includes(prodUrl))html=html.replace(prodUrl,"function prodUrl(){return PROD_ORIGIN+'/?entry=login'}");
+  if(html.includes(exposedProd))html=html.replace(exposedProd,"productionUrl:PROD_ORIGIN+'/'");
+
+  const prodButton='<button type="button" id="ehLoginProduction" data-environment="production">';
+  const testButton='<button type="button" id="ehLoginTestservice" data-environment="testservice">';
+  if(file==='index.html'){
+    if(html.includes(prodButton))html=html.replace(prodButton,'<button type="button" id="ehLoginProduction" data-environment="production" class="is-active active" aria-pressed="true" aria-current="page">');
+    if(html.includes(testButton))html=html.replace(testButton,'<button type="button" id="ehLoginTestservice" data-environment="testservice" aria-pressed="false" aria-current="false">');
+  }else if(file==='TESTVERSION.html'){
+    if(html.includes(prodButton))html=html.replace(prodButton,'<button type="button" id="ehLoginProduction" data-environment="production" aria-pressed="false" aria-current="false">');
+    if(html.includes(testButton))html=html.replace(testButton,'<button type="button" id="ehLoginTestservice" data-environment="testservice" class="is-active active" aria-pressed="true" aria-current="page">');
+  }
+
+  const optional="var cred=await navigator.credentials.get({password:true,mediation:'optional'});if(!cred){";
+  const retry="var cred=await navigator.credentials.get({password:true,mediation:'optional'});if(!cred)try{cred=await navigator.credentials.get({password:true,mediation:'required'})}catch(_){}if(!cred){";
+  if(html.includes(optional))html=html.replace(optional,retry);
+
+  if(!html.includes('id="exporthub-rc1303-login-first-paint"'))throw new Error(file+': RC1303 Login-First-Paint fehlt');
+  if(file!=='demo.html'){
+    if(!html.includes(PUBLIC_PRODUCTION_ORIGIN))throw new Error(file+': RC1303 öffentliche Produktionsdomain fehlt');
+    if(html.includes("PROD_ORIGIN='https://wonderful-forest-0f315e310.7.azurestaticapps.net'"))throw new Error(file+': RC1303 alte Produktions-URL ist noch im Login-Umschalter aktiv');
+    if(!html.includes("mediation:'required'"))throw new Error(file+': RC1303 Passwortmanager-Fallback fehlt');
+  }
   return html;
 }
 
@@ -363,6 +419,7 @@ function patchHtml(file){
   const target=path.join(OUT,file);
   let html=fs.readFileSync(target,'utf8');
   html=patchRc1289AuthTransportFallback(html,file);
+  html=patchRc1303LoginExperience(html,file);
   html=patchDemoTestPortalIsolation(html,file);
   html=patchAuthSessionTimeout(html,file);
   html=patchMainCountryDetection(html,file);
@@ -387,7 +444,7 @@ function patchHtml(file){
   );
   html=html.replace(/(window\.__EXPORTHUB_BUILD__\s*=\s*['"])RC1048(['"])/g,`$1${VERSION}$2`);
   html=html.replaceAll(LEGACY_TESTSERVICE_HOST,CURRENT_TESTSERVICE_HOST);
-  html=html.replace(/assets\/rc1074-login-clean\.js\?v=(?:1074|1112|1298)/g,'assets/rc1074-login-clean.js?v=1301');
+  html=html.replace(/assets\/rc1074-login-clean\.js\?v=(?:1074|1112|1298|1301)/g,'assets/rc1074-login-clean.js?v=1303');
   html=html.replace(/assets\/rc1014-task-runtime\.js\?v=1016/g,'assets/rc1014-task-runtime.js?v=1266');
   html=html.replace(/assets\/rc1014-task-ui\.css\?v=1016/g,'assets/rc1014-task-ui.css?v=1179');
   html=html.replace(/assets\/rc1013-diagnostics\.js\?v=1085/g,'assets/rc1013-diagnostics.js?v=1125');
@@ -420,7 +477,7 @@ function patchHtml(file){
   if(!html.includes(`version:'${VERSION}'`))throw new Error(file+': BUILD '+VERSION+' fehlt');
   if(!html.includes(`ExportHUB ${VERSION} environment=`))throw new Error(file+': Environment '+VERSION+' fehlt');
   if(file!=='demo.html'&&!html.includes('assets/rc1289-auth-transport-fallback.js?v=1289'))throw new Error(file+': RC1289 Desktop-Auth-Fallback fehlt');
-  if(!html.includes('assets/rc1074-login-clean.js?v=1301'))throw new Error(file+': RC1301 Login-Performance Cache-Key fehlt');
+  if(!html.includes('assets/rc1074-login-clean.js?v=1303'))throw new Error(file+': RC1303 Login-Cache-Key fehlt');
   if(!html.includes('assets/rc1014-task-runtime.js?v=1266'))throw new Error(file+': RC1266 Aufgaben-Runtime Cache-Key fehlt');
   if(!html.includes('assets/rc1014-task-ui.css?v=1179'))throw new Error(file+': RC1152 Aufgaben-CSS Cache-Key fehlt');
   if(!html.includes('assets/rc1013-diagnostics.js?v=1125'))throw new Error(file+': RC1125 Diagnose Cache-Key fehlt');
