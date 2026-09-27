@@ -3,12 +3,14 @@
 if(!w||!d||w.__EXPORTHUB_RC1305_LOADING_LIST_PRINT__)return;
 w.__EXPORTHUB_RC1305_LOADING_LIST_PRINT__=true;
 function q(v){return String(v==null?'':v).trim()}
+function tr(key,vars){try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.t==='function'){var out=w.ExportHUBI18n.t(key,vars);if(out&&out!==key)return out}}catch(_){}return key}
+function locale(){var lang=q(d.documentElement&&d.documentElement.lang);try{if(!lang&&w.navigator)lang=q(w.navigator.language)}catch(_){}return lang||undefined}
 function arr(v){return Array.isArray(v)?v:[]}
 function esc(v){return q(v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function fileName(v){if(!v)return'';if(typeof v==='string')return q(v);return q(v.name||v.fileName||v.filename||v.originalName||v.title||v.file&&v.file.name)}
 function lastPickup(sh){var h=arr(sh&&sh.pickupHistory);return h.length?h[h.length-1]||{}:{}}
 function value(sh,last,keys){for(var i=0;i<keys.length;i++){var k=keys[i],v=last&&last[k];if(v!=null&&q(v))return q(v);v=sh&&sh[k];if(v!=null&&q(v))return q(v)}return''}
-function formatDate(v){var raw=q(v);if(!raw)return'Nicht erfasst';try{var dt=new Date(raw);if(!isNaN(dt.getTime()))return dt.toLocaleString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}catch(_){}return raw}
+function formatDate(v){var raw=q(v);if(!raw)return tr('loadingListPrint.notRecorded');try{var dt=new Date(raw);if(!isNaN(dt.getTime()))return dt.toLocaleString(locale(),{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}catch(_){}return raw}
 function isPicked(sh,last){var status=q(sh&&(sh.processStatus||sh.status||sh.pickupStatus)).toLowerCase();return !!(sh&&(sh.pickupComplete===true||sh.pickedUp===true||sh.pickupConfirmed===true)||last&&last.complete===true||last&&last.confirmedAt&&Number(last.remainingAfter)===0||/abgeholt|pod vorhanden|abgeschlossen|confirmed|completed/.test(status))}
 function findLabel(root,re){return Array.from(root.querySelectorAll('.rc390-label,.rc352-label,[class*="label"],strong,b')).find(function(el){var t=q(el.textContent);return t&&re.test(t)})||null}
 function cardFor(el,root){if(!el)return null;var n=el;for(var i=0;i<6&&n&&n!==root;i++,n=n.parentElement){if(n.nodeType===1&&/(?:card|field|sign|box|cell|pickup)/i.test(q(n.className)))return n}return el.parentElement&&el.parentElement!==root?el.parentElement:el}
@@ -23,7 +25,7 @@ function enhanceDocuments(root,sh){
  card.setAttribute('data-rc1305-documents','1');
  var grid=d.createElement('div');grid.className='rc1305-document-grid';grid.setAttribute('data-rc1305-document-grid','1');
  if(files.length)files.forEach(function(name){var item=d.createElement('span');item.className='rc1305-document-item';item.textContent=name;grid.appendChild(item)});
- else{var empty=d.createElement('span');empty.className='rc1305-document-empty';empty.textContent='Keine Lieferscheine hinterlegt';grid.appendChild(empty)}
+ else{var empty=d.createElement('span');empty.className='rc1305-document-empty';empty.textContent=tr('loadingListPrint.noDeliveryNotes');grid.appendChild(empty)}
  if(body){body.innerHTML='';body.appendChild(grid)}else card.appendChild(grid);
  return true
 }
@@ -32,7 +34,7 @@ function enhanceRemark(root,sh){
  var card=cardFor(label,root);if(!card)return false;var body=card.querySelector('.rc390-txt,.rc352-txt,[class*="txt"]')||label.nextElementSibling;
  var remark=value(sh,{},['remark','remarks','bemerkung','comment','comments','note','notes','shipmentRemark','pickupRemark']);
  card.setAttribute('data-rc1305-remark','1');if(!remark)card.setAttribute('data-rc1305-empty','1');
- if(body)body.textContent=remark||'Keine Bemerkung hinterlegt';
+ if(body)body.textContent=remark||tr('loadingListPrint.noRemark');
  return true
 }
 function palletOut(sh){
@@ -52,24 +54,25 @@ function pickupSummary(root,sh){
  var legend=innermost(root,/gr[uü]n\s*=\s*abholung|green\s*=\s*pickup/i),legendCard=cardFor(legend,root);if(legendCard)cards.unshift(legendCard);
  cards=cards.filter(function(card,index){return cards.indexOf(card)===index});
  if(!cards.length)return false;
- var driver=value(sh,last,['driverName','pickupDriverName','fahrerName'])||'Nicht erfasst';
- var plate=value(sh,last,['licensePlate','pickupLicensePlate','vehicleRegistration','vehiclePlate','kennzeichen'])||'Nicht erfasst';
- var loader=value(sh,last,['loaderName','pickupLoaderName','loadedBy','warehouseLoader','loader'])||'Nicht erfasst';
+ var driver=value(sh,last,['driverName','pickupDriverName','fahrerName'])||tr('loadingListPrint.notRecorded');
+ var plate=value(sh,last,['licensePlate','pickupLicensePlate','vehicleRegistration','vehiclePlate','kennzeichen'])||tr('loadingListPrint.notRecorded');
+ var loader=value(sh,last,['loaderName','pickupLoaderName','loadedBy','warehouseLoader','loader'])||tr('loadingListPrint.notRecorded');
  var confirmed=value(sh,last,['confirmedAt','pickupConfirmedAt','pickedUpAt','actualPickupAt']);
  var carrier=value(sh,last,['carrierName','pickupCarrierName','carrier','spedition']);
  var signature=value(sh,last,['driverSignature','signature','signatureData']);
  var signatureStored=!!(signature||value(sh,last,['signatureBlobName','signatureStoredAt']));
  var out=palletOut(sh),returned=Math.max(0,Math.round(Number(last&&last.returnedEuroPallets||sh&&sh.returnedEuroPallets||sh&&sh.palletIn)||0));
  var section=d.createElement('section');section.className='rc1305-pickup-summary';section.setAttribute('data-rc1305-pickup-summary','1');section.style.gridColumn='1 / -1';
- var signHtml=signature&&/^data:image\//i.test(signature)?'<img class="rc1305-signature-image" alt="Fahrerunterschrift" src="'+esc(signature)+'">':(signatureStored?'Digital gespeichert':'Nicht erfasst');
- section.innerHTML='<div class="rc1305-pickup-banner"><span>✓ SENDUNG ABGEHOLT</span><strong>'+esc(formatDate(confirmed))+'</strong></div>'+
+ var driverLabel=tr('pickup.driver'),plateLabel=tr('history.field.licensePlate'),loaderLabel=tr('history.field.loader'),carrierLabel=tr('shipment.carrier'),signatureLabel=tr('loadingListPrint.driverSignature'),palletLabel=tr('pallet.euroPallet');
+ var signHtml=signature&&/^data:image\//i.test(signature)?'<img class="rc1305-signature-image" alt="'+esc(signatureLabel)+'" src="'+esc(signature)+'">':esc(signatureStored?tr('loadingListPrint.signatureStored'):tr('loadingListPrint.notRecorded'));
+ section.innerHTML='<div class="rc1305-pickup-banner"><span>✓ '+esc(tr('loadingListPrint.pickedUp'))+'</span><strong>'+esc(formatDate(confirmed))+'</strong></div>'+
  '<div class="rc1305-pickup-grid">'+
- '<div class="rc1305-pickup-item"><span>Fahrer</span><strong>'+esc(driver)+'</strong></div>'+
- '<div class="rc1305-pickup-item"><span>Kennzeichen</span><strong>'+esc(plate)+'</strong></div>'+
- '<div class="rc1305-pickup-item"><span>Verlader</span><strong>'+esc(loader)+'</strong></div>'+
- (carrier?'<div class="rc1305-pickup-item"><span>Spedition</span><strong>'+esc(carrier)+'</strong></div>':'')+
- '<div class="rc1305-pickup-item rc1305-pickup-signature"><span>Fahrerunterschrift</span><strong>'+signHtml+'</strong></div>'+
- '<div class="rc1305-pickup-item"><span>Europaletten</span><strong>Ausgang: '+out+' · Eingang/Rückgabe: '+returned+'</strong></div>'+
+ '<div class="rc1305-pickup-item"><span>'+esc(driverLabel)+'</span><strong>'+esc(driver)+'</strong></div>'+
+ '<div class="rc1305-pickup-item"><span>'+esc(plateLabel)+'</span><strong>'+esc(plate)+'</strong></div>'+
+ '<div class="rc1305-pickup-item"><span>'+esc(loaderLabel)+'</span><strong>'+esc(loader)+'</strong></div>'+
+ (carrier?'<div class="rc1305-pickup-item"><span>'+esc(carrierLabel)+'</span><strong>'+esc(carrier)+'</strong></div>':'')+
+ '<div class="rc1305-pickup-item rc1305-pickup-signature"><span>'+esc(signatureLabel)+'</span><strong>'+signHtml+'</strong></div>'+
+ '<div class="rc1305-pickup-item"><span>'+esc(palletLabel)+'</span><strong>'+esc(tr('loadingListPrint.palletMovement',{out:out,returned:returned}))+'</strong></div>'+
  '</div>';
  var anchor=cards[0],parent=anchor&&anchor.parentNode;if(parent)parent.insertBefore(section,anchor);else root.appendChild(section);
  cards.forEach(function(card){card.setAttribute('data-rc1305-replaced-pickup-field','1');card.style.setProperty('display','none','important')});
