@@ -412,8 +412,19 @@ function patchCompletePrintBundle(html,file){
 }
 
 function patchRc1305LoadingListPresentation(html,file){
-  if(!html.includes('function loadHtml(sh,withQr){'))throw new Error(file+': RC1305 Ladelisten-Renderer fehlt');
+  const loadStart=html.indexOf('function loadHtml(sh,withQr){');
+  const loadEnd=loadStart<0?-1:html.indexOf('function documentCacheKey',loadStart);
+  if(loadStart<0||loadEnd<0)throw new Error(file+': RC1305 Ladelisten-Renderer fehlt');
+  if(!html.includes('__EXPORTHUB_RC1305_LOAD_HTML_WRAPPED__')){
+    const wrapper=[
+      "var rc1305LoadHtmlOriginal=loadHtml;",
+      "loadHtml=function(sh,withQr){var out=rc1305LoadHtmlOriginal(sh,withQr);try{var api=window.ExportHUBRC1305LoadingListPrint;if(api&&typeof api.enhance==='function')return api.enhance(out,sh||{})}catch(e){try{console.warn('RC1305 Ladelisten-Enhancer',e)}catch(_){}}return out};",
+      "window.__EXPORTHUB_RC1305_LOAD_HTML_WRAPPED__=true;"
+    ].join('\\n')+'\\n';
+    html=html.slice(0,loadEnd)+wrapper+html.slice(loadEnd);
+  }
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1305-loading-list-print" defer src="/assets/rc1305-loading-list-print.js?v=1305"></script>','exporthub-rc1305-loading-list-print');
+  if(!html.includes('__EXPORTHUB_RC1305_LOAD_HTML_WRAPPED__'))throw new Error(file+': RC1305 interner Ladelisten-Renderer ist nicht angebunden');
   if(!html.includes('assets/rc1305-loading-list-print.js?v=1305'))throw new Error(file+': RC1305 Ladelisten-Druckruntime fehlt');
   return html;
 }
