@@ -153,9 +153,16 @@
   }
 
   function ensureLogin(value){
+    var box=document.getElementById('rc1304LoginTheme');
+    var existingSelect=document.getElementById('ehLoginThemeSelect');
+    if(box&&existingSelect){
+      var existingLabel=box.querySelector('[data-rc1304-theme-label]')||box.querySelector('span');
+      setText(existingLabel,tr('theme.label'));
+      options(existingSelect,value);
+      return existingSelect;
+    }
     var card=document.querySelector('#login .login-card');
     if(!card)return null;
-    var box=document.getElementById('rc1304LoginTheme');
     if(!box){
       box=document.createElement('label');
       box.id='rc1304LoginTheme';
