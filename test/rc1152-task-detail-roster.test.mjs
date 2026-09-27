@@ -78,15 +78,15 @@ test('RC1156: nicht mehr freigegebene frühere Managed-Aufgaben werden auch nach
   const api=load(),state={
     rc1152TaskRosterAt:'2026-09-17T08:00:00.000Z',
     tasks:[
-      {id:'managed:bsh:2026-09-16',managedBy:'RC1152',managedKey:'bsh',title:'BSH anmelden',sourceType:'manual',status:'open'},
+      {id:'managed:legacy-old:2026-09-16',managedBy:'RC1152',managedKey:'legacy-old',title:'Veraltete Automatik-Aufgabe',sourceType:'manual',status:'open'},
       {id:'NEW-MANUAL',title:'Neue manuelle Aufgabe',sourceType:'manual',status:'open'}
     ],
     _teamSyncMeta:{fields:{},tombstones:[]}
   };
   const out=api.prepareTasks(state.tasks,{environment:'production',currentUserId:'tobias',now:'2026-09-18T10:00:00+02:00',state,persist(next){state.tasks=next}});
-  assert.ok(!out.some(t=>t.id==='managed:bsh:2026-09-16'));
+  assert.ok(!out.some(t=>t.id==='managed:legacy-old:2026-09-16'));
   assert.ok(out.some(t=>t.id==='NEW-MANUAL'));
-  assert.ok(state._teamSyncMeta.tombstones.some(t=>t.collection==='tasks'&&t.id==='managed:bsh:2026-09-16'));
+  assert.ok(state._teamSyncMeta.tombstones.some(t=>t.collection==='tasks'&&t.id==='managed:legacy-old:2026-09-16'));
 });
 
 test('RC1152: gezielte Altbereinigung läuft nur einmal und löscht spätere neue manuelle Aufgaben nicht',()=>{
