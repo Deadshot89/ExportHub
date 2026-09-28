@@ -132,3 +132,13 @@ test('Full redesign changes layout architecture, not only colors',()=>{
   assert.match(css,/\.modal,\.dialog,\[role="dialog"\],\.overlay-card/);
   assert.match(css,/\.tabs,\.tabbar,\.segmented,\.filter-tabs/);
 });
+
+
+test('RC1305: Glass shipment overview uses solid operational cards instead of translucent capsules',()=>{
+  assert.match(css,/RC1305 GLASS CORRECTION: PROFESSIONAL LOGISTICS WORKSPACE/);
+  assert.match(css,/data-eh-design="glass"\] #content :is\([\s\S]*\.rc524-shipment-card[\s\S]*\.shipment-card[\s\S]*\)\{[\s\S]*border-radius:14px!important;[\s\S]*background:#fff!important;/);
+  assert.match(css,/data-eh-design="glass"\] #content :is\([\s\S]*\.rc524-shipment-card[\s\S]*\)::before,[\s\S]*content:none!important;/);
+  assert.match(css,/data-eh-design="glass"\] #content :is\(input,select,textarea\)\{[\s\S]*background:#fff!important;/);
+  assert.match(css,/data-eh-design="glass"\] #content table\{[\s\S]*background:#fff!important;[\s\S]*backdrop-filter:none!important;/);
+  assert.match(css,/data-eh-design="glass"\] #content :is\(\.btn,button\.btn\)\{[\s\S]*border-radius:9px!important;/);
+});
