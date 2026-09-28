@@ -1134,6 +1134,7 @@
   "loadingListPrint.noRemark": "Aucune remarque enregistrée",
   "loadingListPrint.signatureStored": "Enregistré numériquement",
   "loadingListPrint.driverSignature": "Signature du chauffeur",
+  "loadingListPrint.customsDocumentsReceived": "Documents douaniers reçus",
   "loadingListPrint.palletMovement": "Sortie : {{out}} · Entrée/retour : {{returned}}",
   "layout.shipmentProcess": "Processus d’expédition",
   "layout.customerRecipient": "Client et destinataire",

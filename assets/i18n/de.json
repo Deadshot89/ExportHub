@@ -1134,6 +1134,7 @@
   "loadingListPrint.noRemark": "Keine Bemerkung hinterlegt",
   "loadingListPrint.signatureStored": "Digital gespeichert",
   "loadingListPrint.driverSignature": "Fahrerunterschrift",
+  "loadingListPrint.customsDocumentsReceived": "Zolldokumente erhalten",
   "loadingListPrint.palletMovement": "Ausgang: {{out}} · Eingang/Rückgabe: {{returned}}",
   "layout.shipmentProcess": "Sendungsprozess",
   "layout.customerRecipient": "Kunde & Empfänger",

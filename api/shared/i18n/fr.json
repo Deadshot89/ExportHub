@@ -193,6 +193,7 @@
   "api.pickup.accessLocked": "Trop de saisies de PIN incorrectes. Le QR code est temporairement verrouillé.",
   "api.pickup.referenceMismatch": "La référence ne correspond pas à l’expédition.",
   "api.pickup.signatureRequired": "La signature numérique est obligatoire.",
+  "api.pickup.customsSignatureRequired": "Veuillez confirmer la réception des documents douaniers avec la deuxième signature du chauffeur.",
   "api.pickup.expired": "Le QR code a expiré.",
   "api.pickup.alreadyConfirmed": "Cette expédition a déjà été entièrement enlevée.",
   "api.pickup.carrierRequired": "Le nom du transporteur est manquant. L’enlèvement ne peut pas être terminé.",

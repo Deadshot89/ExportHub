@@ -1134,6 +1134,7 @@
   "loadingListPrint.noRemark": "No remark stored",
   "loadingListPrint.signatureStored": "Stored digitally",
   "loadingListPrint.driverSignature": "Driver signature",
+  "loadingListPrint.customsDocumentsReceived": "Customs documents received",
   "loadingListPrint.palletMovement": "Outgoing: {{out}} · Incoming/returned: {{returned}}",
   "layout.shipmentProcess": "Shipment process",
   "layout.customerRecipient": "Customer & recipient",

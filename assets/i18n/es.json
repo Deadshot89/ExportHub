@@ -1134,6 +1134,7 @@
   "loadingListPrint.noRemark": "No hay observaciones registradas",
   "loadingListPrint.signatureStored": "Guardado digitalmente",
   "loadingListPrint.driverSignature": "Firma del conductor",
+  "loadingListPrint.customsDocumentsReceived": "Documentos aduaneros recibidos",
   "loadingListPrint.palletMovement": "Salida: {{out}} · Entrada/devolución: {{returned}}",
   "layout.shipmentProcess": "Proceso de envío",
   "layout.customerRecipient": "Cliente y destinatario",
