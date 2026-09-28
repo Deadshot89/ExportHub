@@ -19,7 +19,7 @@ test('RC1331: Kunden-Avis nutzt immer die kanonische ExportHUB360-Domain',()=>{
 test('RC1331: Server stellt neue AVIS-Links in allen Umgebungen über ExportHUB360 aus',()=>{
   assert.match(api,/PRODUCTION_AVIS_ORIGIN.*https:\/\/exporthub360\.com/);
   assert.match(api,/url=PRODUCTION_AVIS_ORIGIN\+'\/avis\/'\+encoded/);
-  assert.match(api,/environment='?testservice'?/i);
+  assert.match(api,/url\+'\?environment='\+encodeURIComponent\(env\)/);
 });
 
 test('RC1331: Avis-Erinnerung normalisiert bestehende Altlinks ebenfalls',()=>{
