@@ -5,6 +5,27 @@ window.__EXPORTHUB_RC1027_LIEFERAVIS_IMMEDIATE__=true;
 
 var previous=null,wrapper=null,earlyPending=null,visibleSyncing=false,draftSyncTimer=0,draftSyncPending=null,lastDraftSignature='',avisLinkCache=Object.create(null);
 function q(v){return String(v==null?'':v).trim()}
+var RC1331_AVIS_ORIGIN='https://exporthub360.com';
+function rc1331AvisToken(sh,url){
+ var token=q(sh&&(sh.customerAvisToken||sh.avisToken));
+ if(token)return token;
+ try{
+  var u=new URL(q(url)||'', 'https://exporthub.invalid/');
+  token=q(u.searchParams.get('token')||u.searchParams.get('avis'));
+  if(token)return token;
+  var m=String(u.pathname||'').match(/\/avis\/([^/?#]+)\/?$/i);
+  if(m&&m[1]){try{return decodeURIComponent(m[1])}catch(_){return m[1]}}
+ }catch(_){}
+ return''
+}
+function rc1331CanonicalAvisUrl(sh,url){
+ var token=rc1331AvisToken(sh,url);if(!token)return q(url);
+ var env='';
+ try{var u=new URL(q(url)||'', 'https://exporthub.invalid/');env=q(u.searchParams.get('environment')).toLowerCase()}catch(_){}
+ if(!env)env=environmentName();
+ var out=RC1331_AVIS_ORIGIN+'/avis/'+encodeURIComponent(token);
+ return env&&env!=='production'?out+'?environment='+encodeURIComponent(env):out
+}
 function tr(key,vars,fallback){try{if(window.ExportHUBI18n&&typeof window.ExportHUBI18n.t==='function'){var v=window.ExportHUBI18n.t(key,vars);if(v&&v!==key)return v}}catch(_){}return fallback||key}
 function rc1267NormalizeLanguage(v){var m=q(v).toLowerCase().replace('_','-').match(/^(de|en|pl|es|fr|it)(?:-|$)/);return m?m[1]:'de'}
 function explicitReference(sh){return q(sh&&(sh.ref||sh.reference||sh.shipmentRef||sh.referenceNumber||sh.referenceNo)).toUpperCase()}
@@ -40,10 +61,10 @@ function mailExcluded(sh){try{return previous&&typeof previous.avisMailExcluded=
 function recipientExcluded(sh,target){try{return previous&&typeof previous.avisRecipientExcluded==='function'?previous.avisRecipientExcluded(sh,target):null}catch(_){return null}}
 function environmentName(){return typeof location!=='undefined'&&/-testservice\./i.test(String(location.hostname||''))?'testservice':'production'}
 function avisCacheKey(sh){var ref=explicitReference(sh);if(!ref)return'';return'exporthub:avis-url:'+environmentName()+':'+ref}
-function cachedAvisUrl(sh){var key=avisCacheKey(sh);if(!key)return'';if(avisLinkCache[key])return avisLinkCache[key];try{if(typeof sessionStorage!=='undefined'){var stored=q(sessionStorage.getItem(key));if(stored){avisLinkCache[key]=stored;return stored}}}catch(_){}return''}
-function rememberAvisUrl(sh,url){url=q(url);var key=avisCacheKey(sh);if(!key||!url)return url;if(!/customer-avis(?:\.html)?[?/#]/i.test(url))return url;avisLinkCache[key]=url;try{if(typeof sessionStorage!=='undefined')sessionStorage.setItem(key,url)}catch(_){}return url}
+function cachedAvisUrl(sh){var key=avisCacheKey(sh);if(!key)return'';if(avisLinkCache[key])return rc1331CanonicalAvisUrl(sh,avisLinkCache[key]);try{if(typeof sessionStorage!=='undefined'){var stored=q(sessionStorage.getItem(key));if(stored){stored=rc1331CanonicalAvisUrl(sh,stored);avisLinkCache[key]=stored;sessionStorage.setItem(key,stored);return stored}}}catch(_){}return''}
+function rememberAvisUrl(sh,url){url=rc1331CanonicalAvisUrl(sh,url);var key=avisCacheKey(sh);if(!key||!url)return url;if(!/^https:\/\/exporthub360\.com\/avis\//i.test(url))return url;avisLinkCache[key]=url;try{if(typeof sessionStorage!=='undefined')sessionStorage.setItem(key,url)}catch(_){}return url}
 function forgetAvisUrl(sh){var key=avisCacheKey(sh);if(!key)return false;delete avisLinkCache[key];try{if(typeof sessionStorage!=='undefined')sessionStorage.removeItem(key)}catch(_){}return true}
-function avisUrl(sh){if(manualDisabled(sh)){forgetAvisUrl(sh);return''}var live='';try{live=q(previous&&typeof previous.link==='function'&&previous.link(sh))}catch(_){}return live?rememberAvisUrl(sh,live):cachedAvisUrl(sh)}
+function avisUrl(sh){if(manualDisabled(sh)){forgetAvisUrl(sh);return''}var live='';try{live=q(previous&&typeof previous.link==='function'&&previous.link(sh))}catch(_){}if(!live&&sh)live=q(sh.customerAvisUrl||sh.avisUrl||sh.customerAvisLink||sh.avisLink);return live?rememberAvisUrl(sh,live):cachedAvisUrl(sh)}
 function referenceInput(){
  if(typeof document==='undefined')return null;
  return Array.from(document.querySelectorAll('#content input')).find(function(input){
@@ -101,7 +122,7 @@ function patchIssuedAvis(sh,data){
  Object.assign(sh,values);
  var ref=explicitReference(sh),s=state(),lists=[s.shipments,s.savedShipments,s.salesSharedShipments,s.sharedShipments];
  for(var i=0;i<lists.length;i++){var list=lists[i];if(!Array.isArray(list))continue;for(var j=0;j<list.length;j++){var item=list[j];if(item&&item!==sh&&explicitReference(item)===ref)Object.assign(item,values)}}
- if(url){try{url=new URL(url,typeof location!=='undefined'?location.href:'https://exporthub.invalid/').toString()}catch(_){}rememberAvisUrl(sh,url)}
+ if(url)rememberAvisUrl(sh,rc1331CanonicalAvisUrl(sh,url))
  try{window.dispatchEvent(new CustomEvent('exporthub:customer-avis-updated',{detail:{enabled:true,reference:ref,version:'RC1033'}}))}catch(_){}
  return !!avisUrl(sh)
 }
