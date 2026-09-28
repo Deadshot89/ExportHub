@@ -111,9 +111,9 @@ test('RC1166: Übersicht zeigt einen blauen Aktionsbutton und eine Empfängeraus
 
 test('RC1166: Drei-Umgebungen-Build übernimmt die neue Runtime und bestehende Schutzstände',()=>{
   assert.match(build,/exporthub-rc1166-avis-reminder/);
-  assert.match(build,/assets\/rc1166-avis-reminder-overview\.js\?v=1292/);
+  assert.match(build,/assets\/rc1166-avis-reminder-overview\.js\?v=1316/);
   assert.match(build,/'assets\/rc1166-avis-reminder-overview\.js'/);
-  assert.match(build,/avisReminderOverview:'RC1292/);
+  assert.match(build,/avisReminderOverview:'RC1316/);
   assert.match(build,/avis-reminder-mail\/index\.js/);
   assert.match(build,/shared\/graph-mail\.js/);
   assert.match(build,/podBackupStatusUi:'RC1220/);
@@ -142,4 +142,17 @@ test('RC1292: direkter Reminder-Versand an Holenstein wird bereits im Frontend g
     ()=>api.sendReminder(sh,'dispo@holenstein.de','carrier','de','https://example.test/customer-avis.html?token=abc'),
     e=>e&&e.code==='AVIS_RECIPIENT_EXCLUDED'
   );
+});
+
+
+test('RC1316: Sendungsübersicht injiziert Avis-Erinnerung auch nach späteren Karten-Renders stabil',()=>{
+  assert.match(runtime,/function overviewCards\(shipments\)/);
+  assert.match(runtime,/#content article/);
+  assert.match(runtime,/#content \.card/);
+  assert.match(runtime,/MutationObserver/);
+  assert.match(runtime,/observer\.observe\(root,\{childList:true,subtree:true\}\)/);
+  assert.match(runtime,/exporthub:rc1027-avis-ready/);
+  assert.match(runtime,/exporthub:design-changed/);
+  assert.match(runtime,/version:'RC1316'/);
+  assert.match(runtime,/q\(old\.textContent\)!==q\(label\)/,'Bestehende Buttons dürfen den MutationObserver nicht durch unnötige Text-DOM-Writes triggern');
 });
