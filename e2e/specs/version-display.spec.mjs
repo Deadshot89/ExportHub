@@ -1,5 +1,5 @@
 import {test,expect} from '@playwright/test';
-import {execFileSync} from 'node:child_process';
+import fs from 'node:fs';
 import {
   appEntry,
   attachRuntimeGuards,
@@ -11,12 +11,10 @@ import {
 function expectedVisibleRelease(){
   const explicit=String(process.env.EXPORTHUB_EXPECTED_VISIBLE_RELEASE||process.env.EXPORTHUB_VISIBLE_RELEASE_VERSION||'').trim().toUpperCase();
   if(/^RC\d+$/.test(explicit))return explicit;
-  try{
-    const subjects=execFileSync('git',['log','-20','--pretty=%s'],{encoding:'utf8',stdio:['ignore','pipe','ignore']});
-    const matches=Array.from(String(subjects||'').matchAll(/\bRC(\d+)\b/gi)).map(m=>Number(m[1])).filter(Number.isFinite);
-    if(matches.length)return 'RC'+Math.max(...matches);
-  }catch(_){}
-  return 'RC1112';
+  const marker=JSON.parse(fs.readFileSync('release-version.json','utf8'));
+  const visible=String(marker&&marker.visibleRelease||'').trim().toUpperCase();
+  if(!/^RC\d+$/.test(visible))throw new Error('release-version.json visibleRelease ist ungültig');
+  return visible;
 }
 
 test('RC1311: Login-Theme-Initialisierung scannt die Login-Karte höchstens zweimal',async({page},testInfo)=>{
