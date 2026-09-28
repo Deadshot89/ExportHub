@@ -50,6 +50,19 @@ test('RC1315: Ladeliste und automatischer POD zeigen den Zollnachweis',()=>{
   assert.match(podArchive,/record\.customsDocumentsSignatureBlobName/);
 });
 
+test('RC1315: beide Fahrerunterschriften sind als kompakter A4-Block nebeneinander begrenzt',()=>{
+  assert.match(loadingList,/grid-template-columns:repeat\(6,minmax\(0,1fr\)\)/);
+  assert.match(loadingList,/data-rc1315-customs-required/);
+  assert.match(loadingList,/rc1305-signature-primary/);
+  assert.match(loadingList,/rc1305-signature-customs/);
+  assert.match(loadingList,/grid-column:span 3!important/);
+  assert.match(loadingList,/height:16\.5mm!important/);
+  assert.match(loadingList,/max-height:9\.5mm!important/);
+  assert.match(loadingList,/overflow:hidden!important/);
+  assert.match(loadingList,/customsSignatureUrl/);
+  assert.match(loadingList,/customsSignature','1/);
+});
+
 test('RC1315: Übersetzungsdateien enthalten den neuen Ladelisten- und API-Text',()=>{
   for(const lang of ['de','en','pl','es','fr','it']){
     const client=JSON.parse(fs.readFileSync('assets/i18n/'+lang+'.json','utf8'));
