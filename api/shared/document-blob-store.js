@@ -166,9 +166,9 @@ async function storeInlineDocument(file,options={}){
  return Object.assign(stripInlineFields(file),{storage:'blob',blobName,sha256:hash,size:parsed.buffer.length,mimeType:parsed.mimeType});
 }
 async function externalizeDocumentCollections(state,options={}){
- const scan=incomingDocumentScan(state),out=clone(state)||{},stats={externalized:0,inlineBytes:0,scanned:scan.scanned,legacySkipped:0,blobReused:0,fastPath:!scan.hasInlineFields};
- if(!scan.hasInlineFields)return{state:out,stats};
- const existing=existingDocumentMap(options.currentState);stats.scanned=0;
+ const scan=incomingDocumentScan(state),stats={externalized:0,inlineBytes:0,scanned:scan.scanned,legacySkipped:0,blobReused:0,fastPath:!scan.hasInlineFields};
+ if(!scan.hasInlineFields)return{state:state&&typeof state==='object'?state:{},stats};
+ const out=clone(state)||{},existing=existingDocumentMap(options.currentState);stats.scanned=0;
  for(const root of ROOT_COLLECTIONS){
   const rows=Array.isArray(out[root])?out[root]:[];
   for(let ri=0;ri<rows.length;ri++){
