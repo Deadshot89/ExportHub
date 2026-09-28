@@ -64,3 +64,50 @@ test('RC1267 browser runtime renders sidecar translations without mutating appli
  assert.match(runtime,/exporthub:state-loaded/);
  assert.doesNotMatch(runtime,/record\[key\]\s*=/);
 });
+
+
+test('RC1337 duplicate dynamic texts are translated once per source language and applied to every row',async()=>{
+ const state={
+  customers:[
+   {id:'C1',processNotes:'Abholung nur über Tor 3.'},
+   {id:'C2',processNotes:'Abholung nur über Tor 3.'}
+  ],
+  tasks:[{id:'T1',description:'Abholung nur über Tor 3.'}]
+ };
+ const calls=[];
+ const fake=async(items,source)=>{
+  calls.push({items:[...items],source});
+  return items.map(original=>({original,translations:Object.fromEntries(mod.LANGUAGES.map(lang=>[lang,lang+':'+original]))}));
+ };
+ const report=await mod.enrichDynamicTranslations(state,'de',{translator:fake,limit:50});
+
+ assert.equal(calls.length,1);
+ assert.equal(calls[0].source,'de');
+ assert.deepEqual(calls[0].items,['Abholung nur über Tor 3.']);
+ assert.equal(report.attempted,3);
+ assert.equal(report.completedNow,3);
+ assert.equal(state.customers[0]._localizedText.processNotes.translations.en,'en:Abholung nur über Tor 3.');
+ assert.equal(state.customers[1]._localizedText.processNotes.translations.en,'en:Abholung nur über Tor 3.');
+ assert.equal(state.tasks[0]._localizedText.description.translations.en,'en:Abholung nur über Tor 3.');
+});
+
+test('RC1337 dedupe never crosses source-language boundaries',async()=>{
+ const state={
+  customers:[
+   {id:'C1',processNotes:'Dock 3 only',processNotesLanguage:'en'},
+   {id:'C2',processNotes:'Dock 3 only',processNotesLanguage:'de'}
+  ]
+ };
+ const calls=[];
+ const fake=async(items,source)=>{
+  calls.push({items:[...items],source});
+  return items.map(original=>({original,translations:Object.fromEntries(mod.LANGUAGES.map(lang=>[lang,lang+':'+source+':'+original]))}));
+ };
+ const report=await mod.enrichDynamicTranslations(state,'de',{translator:fake,limit:50});
+
+ assert.equal(calls.length,2);
+ assert.deepEqual(calls.map(call=>call.source).sort(),['de','en']);
+ assert.ok(calls.every(call=>call.items.length===1&&call.items[0]==='Dock 3 only'));
+ assert.equal(report.attempted,2);
+ assert.equal(report.completedNow,2);
+});
