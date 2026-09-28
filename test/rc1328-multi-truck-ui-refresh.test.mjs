@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {execFileSync} from 'node:child_process';
 
 const runtime=fs.readFileSync('assets/rc1328-multi-truck-ui-refresh.js','utf8');
 const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
@@ -91,4 +92,26 @@ test('RC1328: Drei-Umgebungen-Build lädt und kopiert den Refresh-Hook',()=>{
   assert.match(build,/assets\/rc1328-multi-truck-ui-refresh\.js\?v=1328/);
   assert.match(build,/'assets\/rc1328-multi-truck-ui-refresh\.js'/);
   assert.match(build,/html=patchRc1328MultiTruckRefresh\(html,file\)/);
+});
+
+
+test('RC1329: finaler RC1112-Build erzwingt den sichtbaren Mehr-LKW-Renderer in allen drei Umgebungen',()=>{
+  assert.match(build,/function patchRc1329MultiTruckUiRuntime\(html,file\)/);
+  assert.match(build,/section\.id='rc1017-subshipments'/);
+  assert.match(build,/data-rc1017-subshipment/);
+  assert.match(build,/html=patchRc1329MultiTruckUiRuntime\(html,file\)/);
+
+  execFileSync(process.execPath,['.github/rc1112/build-three-env.mjs'],{stdio:'pipe'});
+  for(const file of ['index.html','TESTVERSION.html','demo.html']){
+    const html=fs.readFileSync('dist-rc1112/'+file,'utf8');
+    const start=html.indexOf('var rc1017SubShipmentQrRuntime=Object.create(null);');
+    const end=start<0?-1:html.indexOf('function rc1017SyncSubShipments(',start);
+    assert.ok(start>=0&&end>start,file+': Mehr-LKW-Runtimeblock fehlt');
+    const block=html.slice(start,end);
+    assert.match(block,/section\.id='rc1017-subshipments'/,file+': sichtbarer Teilsendungsbereich fehlt');
+    assert.match(block,/data-rc1017-subshipment/,file+': Teilsendungskarten fehlen');
+    assert.match(block,/rc1017-qr-subshipment/,file+': QR-Aktion fehlt');
+    assert.match(block,/rc1017-print-subshipment/,file+': Ladelisten-Aktion fehlt');
+    assert.match(block,/rc1017-stow-subshipment/,file+': Stauplan-Aktion fehlt');
+  }
 });
