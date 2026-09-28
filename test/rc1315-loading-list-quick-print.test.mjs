@@ -88,11 +88,11 @@ test('RC1316: Druck-QR liegt nur auf dem Deckblatt und nicht auf der Ladeliste',
 });
 
 test('RC1315: Release-Build lädt Schnelldruck und reicht withQr an den Renderer weiter',()=>{
-  assert.match(build,/assets\/rc1315-loading-list-quick-print\.js\?v=1315/);
+  assert.match(build,/assets\/rc1315-loading-list-quick-print\.js\?v=1322/);
   assert.match(build,/assets\/rc1305-loading-list-print\.js\?v=1316/);
   assert.match(build,/api\.enhance\(out,sh\|\|\{\},withQr===true\)/); assert.match(build,/api\.enhanceCover==='function'/);
   assert.match(build,/'assets\/rc1315-loading-list-quick-print\.js'/);
-  assert.match(build,/loadingListQuickPrint:'RC1315/);
+  assert.match(build,/loadingListQuickPrint:'RC1322/);
 });
 
 test('RC1315: Schnelldruck löst den vorhandenen Gesamtdruck aus statt eine zweite Drucklogik zu bauen',()=>{

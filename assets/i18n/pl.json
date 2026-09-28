@@ -1173,5 +1173,7 @@
   "loadingListQuickPrint.printing": "Uruchomiono pełny wydruk dla {{ref}}.",
   "loadingListQuickPrint.invalid": "Nie wykryto prawidłowego 6-znakowego REF.",
   "loadingListQuickPrint.missing": "Nie znaleziono przesyłki {{ref}}.",
-  "loadingListQuickPrint.noPrint": "Pełny wydruk nie jest dostępny dla tej przesyłki."
+  "loadingListQuickPrint.noPrint": "Pełny wydruk nie jest dostępny dla tej przesyłki.",
+  "loadingListQuickPrint.directPrintSetup": "Skonfiguruj druk bezpośredni (Edge)",
+  "loadingListQuickPrint.directPrintSetupHint": "Jednorazowa konfiguracja Windows do cichego drukowania na drukarce domyślnej."
 }

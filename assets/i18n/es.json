@@ -1173,5 +1173,7 @@
   "loadingListQuickPrint.printing": "Impresión completa de {{ref}} iniciada.",
   "loadingListQuickPrint.invalid": "No se detectó una REF válida de 6 caracteres.",
   "loadingListQuickPrint.missing": "No se encontró el envío {{ref}}.",
-  "loadingListQuickPrint.noPrint": "La impresión completa no está disponible para este envío."
+  "loadingListQuickPrint.noPrint": "La impresión completa no está disponible para este envío.",
+  "loadingListQuickPrint.directPrintSetup": "Configurar impresión directa (Edge)",
+  "loadingListQuickPrint.directPrintSetupHint": "Configuración única de Windows para imprimir silenciosamente en la impresora predeterminada."
 }
