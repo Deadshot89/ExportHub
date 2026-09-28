@@ -565,6 +565,37 @@ function patchRc1283LoadingListSearch(html,file){
   return html;
 }
 
+function patchRc1319ShipmentSaveFinalization(html,file){
+  const replacements=[
+    [
+      "if(!q(saved.status))saved.status='Entwurf';",
+      "if(!q(saved.status)||/^entwurf$/i.test(q(saved.status))){saved.status='Erstellt';saved.processStatus='Erstellt'}",
+      'Persistierter Entwurf wird nicht auf Erstellt gesetzt'
+    ],
+    [
+      "function recalc(sh){try{if(window.ExportHUBRC543&&typeof window.ExportHUBRC543.recalculateShipmentStatus==='function')window.ExportHUBRC543.recalculateShipmentStatus(sh)}catch(e){console.error('RC565 Status',e)}}",
+      "function recalc(sh){try{if(window.ExportHUBRC543&&typeof window.ExportHUBRC543.recalculateShipmentStatus==='function')window.ExportHUBRC543.recalculateShipmentStatus(sh)}catch(e){console.error('RC565 Status',e)}return q(sh&&(sh.status||sh.processStatus))}",
+      'Statusberechnung liefert keinen kanonischen Status zurück'
+    ],
+    [
+      "detail:{id:id,reference:saved.ref,updated:!!existing,azureSaved:true}",
+      "detail:{id:id,reference:saved.ref,updated:!!existing,azureSaved:true,shipment:saved}",
+      'Save-Event übergibt die persistierte Sendung nicht an QR-Registrierung'
+    ]
+  ];
+  for(const [before,after,label] of replacements){
+    if(html.includes(after))continue;
+    const count=html.split(before).length-1;
+    if(count!==1)throw new Error(file+': RC1319 '+label+' · Anker '+count+'x gefunden');
+    html=html.replace(before,after);
+  }
+  if(html.includes("if(!q(saved.status))saved.status='Entwurf';"))throw new Error(file+': RC1319 Entwurf-Regression ist noch aktiv');
+  if(!html.includes("saved.status='Erstellt';saved.processStatus='Erstellt'"))throw new Error(file+': RC1319 Erstellt-Status fehlt');
+  if(!html.includes("return q(sh&&(sh.status||sh.processStatus))"))throw new Error(file+': RC1319 Status-Rückgabe fehlt');
+  if(!html.includes("azureSaved:true,shipment:saved"))throw new Error(file+': RC1319 Save-Event ohne Sendungsobjekt');
+  return html;
+}
+
 function patchHtml(file){
   const target=path.join(OUT,file);
   let html=fs.readFileSync(target,'utf8');
@@ -587,6 +618,7 @@ function patchHtml(file){
   html=patchDeckblattHighVisibility(html,file);
   html=patchRc1203ActualDeckblatt(html,file);
   html=patchShipmentSuspendSave(html,file);
+  html=patchRc1319ShipmentSaveFinalization(html,file);
   html=patchRc1296BrowserBranding(html,file);
   html=html.replace(/ExportHUB RC1048 environment=/g,`ExportHUB ${VERSION} environment=`);
   html=html.replace(
