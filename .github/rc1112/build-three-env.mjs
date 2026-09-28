@@ -651,6 +651,21 @@ function patchRc1329MultiTruckRenderer(html,file){
   ])if(!renderer.includes(required))throw new Error(file+': RC1329 vollständiger Mehr-LKW-Renderer fehlt: '+required);
   return html;
 }
+function patchRc1337MultiTruckCloneIsolation(html,file){
+  const startMarker='var rc1017SubShipmentQrRuntime=Object.create(null);';
+  const endMarker='function rc1017SyncSubShipments(target){';
+  const start=html.indexOf(startMarker),end=html.indexOf(endMarker,start);
+  if(start<0||end<=start)throw new Error(file+': RC1337 Mehr-LKW-Helferblock fehlt');
+  let block=html.slice(start,end);
+  const helper="function rc1017Clone(value){if(value==null)return value;try{return JSON.parse(JSON.stringify(value))}catch(_){if(Array.isArray(value))return value.slice();if(typeof value==='object')return Object.assign({},value);return value}}\n";
+  if(!block.includes('function rc1017Clone('))block=block.replace(startMarker,startMarker+'\n'+helper);
+  block=block.replace(/\bcopy\s*\(/g,'rc1017Clone(');
+  if(/\bcopy\s*\(/.test(block))throw new Error(file+': RC1337 globale copy()-Abhängigkeit ist im Mehr-LKW-Block noch aktiv');
+  if(!block.includes('function rc1017Clone('))throw new Error(file+': RC1337 lokaler Clone-Helper fehlt');
+  html=html.slice(0,start)+block+html.slice(end);
+  return html;
+}
+
 function patchRc1331MultiTruckSaveIsolation(html,file){
   const syncStartMarker='function rc1017SyncSubShipments(target){';
   const syncEndMarker='window.rc1017SyncSubShipments=rc1017SyncSubShipments;';
@@ -679,6 +694,7 @@ function patchHtml(file){
   html=patchRc1328MultiTruckRefresh(html,file);
   html=patchRc1329MultiTruckRenderer(html,file);
   html=patchRc1331MultiTruckSaveIsolation(html,file);
+  html=patchRc1337MultiTruckCloneIsolation(html,file);
   html=patchRc1303LoginExperience(html,file);
   html=patchDemoTestPortalIsolation(html,file);
   html=patchAuthSessionTimeout(html,file);
