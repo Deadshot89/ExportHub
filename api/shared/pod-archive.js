@@ -46,7 +46,7 @@ function formatDate(value) {
     return date.toISOString();
   }
 }
-async function createPodPdf(record, signatureBuffer, signatureType) {
+async function createPodPdf(record, signatureBuffer, signatureType, customsSignatureBuffer, customsSignatureType) {
   const { PDFDocument, StandardFonts } = require('pdf-lib');
   const pdf = await PDFDocument.create();
   const normal = await pdf.embedFont(StandardFonts.Helvetica);
@@ -136,6 +136,31 @@ async function createPodPdf(record, signatureBuffer, signatureType) {
   } else {
     page.drawText('Unterschrift ist im geschuetzten ExportHUB-POD-Speicher hinterlegt.', { x: left, y, size: 10, font: normal });
     y -= 22;
+  }
+
+  const customsRequired = record && (record.abdPresent === true || (typeof store.abdPresent === 'function' && store.abdPresent(record)));
+  if (customsRequired) {
+    heading('Zolldokumente erhalten');
+    ensure(180);
+    let customsImage = null;
+    try {
+      if (customsSignatureBuffer && /png/i.test(customsSignatureType || '')) customsImage = await pdf.embedPng(customsSignatureBuffer);
+      else if (customsSignatureBuffer) customsImage = await pdf.embedJpg(customsSignatureBuffer);
+    } catch (_) {
+      customsImage = null;
+    }
+    if (customsImage) {
+      const dims = customsImage.scale(1);
+      const maxW = width;
+      const maxH = 150;
+      const scale = Math.min(maxW / dims.width, maxH / dims.height, 1);
+      page.drawRectangle({ x: left, y: y - maxH + 8, width: maxW, height: maxH, borderWidth: 1 });
+      page.drawImage(customsImage, { x: left + 8, y: y - Math.min(maxH - 16, dims.height * scale), width: dims.width * scale, height: dims.height * scale });
+      y -= maxH + 10;
+    } else {
+      page.drawText('Fahrerunterschrift zum Erhalt der Zolldokumente: nicht erfasst.', { x: left, y, size: 10, font: normal });
+      y -= 22;
+    }
   }
 
   ensure(55);
@@ -346,7 +371,12 @@ async function ensureAutomaticPod(accessKey, environment, options) {
   if (!pdf) {
     const signatureBlob = got.clients.pods.getBlobClient(record.signatureBlobName);
     const signature = await store.readBuffer(signatureBlob);
-    pdf = await createPodPdf(record, signature.buffer, record.signatureType || signature.contentType);
+    let customsSignature = null;
+    if (record.customsDocumentsSignatureBlobName) {
+      const customsSignatureBlob = got.clients.pods.getBlobClient(record.customsDocumentsSignatureBlobName);
+      customsSignature = await store.readBuffer(customsSignatureBlob);
+    }
+    pdf = await createPodPdf(record, signature.buffer, record.signatureType || signature.contentType, customsSignature && customsSignature.buffer, record.customsDocumentsSignatureType || customsSignature && customsSignature.contentType);
     const saved = await saveAzurePod(accessKey, environment, record, pdf);
     record = saved.record;
     file = saved.file;
