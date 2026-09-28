@@ -16,6 +16,13 @@ function renderer(html,file){
   assert.ok(start>=0&&end>start,file+': Mehr-LKW-Renderer fehlt');
   return html.slice(start,end);
 }
+function multiTruckRuntime(html,file){
+  const startMarker='var rc1017SubShipmentQrRuntime=Object.create(null);';
+  const nextMarker='function rc1017SyncSubShipments(target){';
+  const start=html.indexOf(startMarker),end=html.indexOf(nextMarker,start);
+  assert.ok(start>=0&&end>start,file+': vollständiger Mehr-LKW-Runtimeblock fehlt');
+  return html.slice(start,end);
+}
 
 test('RC1329 P0: finaler Build enthält keinen Mehr-LKW-Stub mehr',()=>{
   build();
@@ -65,4 +72,17 @@ test('RC1329 P0: ursprünglicher TESTSERVICE-E2E prüft weiterhin den echten Tei
 
 test('RC1329 P0: Builder bleibt syntaktisch gültig',()=>{
   execFileSync(process.execPath,['--check','.github/rc1112/build-three-env.mjs'],{stdio:'pipe'});
+});
+
+
+test('RC1338 P0: gesamter finaler Mehr-LKW-Runtimeblock ist unabhängig von globalem copy()',()=>{
+  build();
+  for(const file of ['index.html','TESTVERSION.html','demo.html']){
+    const html=fs.readFileSync('dist-rc1112/'+file,'utf8');
+    const block=multiTruckRuntime(html,file);
+    assert.doesNotMatch(block,/\bcopy\s*\(/,file+': vollständiger Mehr-LKW-Runtimeblock darf keine globale copy()-Funktion voraussetzen');
+    assert.match(block,/function rc1338MultiTruckCopy\(value\)/,file+': scope-sicherer Deep-Copy-Helper fehlt');
+    assert.match(block,/return rc1338MultiTruckCopy\(row\)/,file+': rc1017RowsForSubShipment muss den scope-sicheren Helper verwenden');
+    assert.match(block,/temp\.rows=rc1338MultiTruckCopy\(metrics\.rows\)/,file+': Teilsendungs-Dokumentkopie muss den scope-sicheren Helper verwenden');
+  }
 });
