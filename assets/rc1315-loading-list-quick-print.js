@@ -62,6 +62,7 @@ function install(){
  var search=p.querySelector('[data-rc1283-search]');p.insertBefore(box,search||p.children[1]||null);
  input.addEventListener('keydown',function(e){if(e.key!=='Enter')return;e.preventDefault();trigger(input.value);input.select()});
  button.addEventListener('click',function(){trigger(input.value);input.focus();input.select()});
+ if(typeof w.setTimeout==='function')w.setTimeout(function(){try{input.focus();input.select()}catch(_){}},0);
  return true
 }
 function schedule(){if(timer)w.clearTimeout(timer);timer=w.setTimeout(function(){timer=0;install()},30)}
