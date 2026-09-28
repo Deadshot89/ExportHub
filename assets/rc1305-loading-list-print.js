@@ -69,7 +69,7 @@ function pickupSummary(root,sh){
  var section=d.createElement('section');section.className='rc1305-pickup-summary';section.setAttribute('data-rc1305-pickup-summary','1');section.style.gridColumn='1 / -1';
  var driverLabel=tr('pickup.driver'),plateLabel=tr('history.field.licensePlate'),loaderLabel=tr('history.field.loader'),carrierLabel=tr('shipment.carrier'),signatureLabel=tr('loadingListPrint.driverSignature'),customsLabel=tr('loadingListPrint.customsDocumentsReceived'),palletLabel=tr('pallet.euroPallet');
  var signHtml=signature&&/^data:image\//i.test(signature)?'<img class="rc1305-signature-image" alt="'+esc(signatureLabel)+'" src="'+esc(signature)+'">':esc(signatureStored?tr('loadingListPrint.signatureStored'):tr('loadingListPrint.notRecorded'));
- var customsSignHtml=customsSignature&&/^data:image\//i.test(customsSignature)?'<img class="rc1305-signature-image" alt="'+esc(customsLabel)+'" src="'+esc(customsSignature)+'">':esc(customsSignatureStored?tr('loadingListPrint.signatureStored'):tr('loadingListPrint.notRecorded'));
+ var customsSignHtml=customsSignature&&/^data:image\//i.test(customsSignature)?'<img class="rc1305-signature-image" alt="'+esc(customsLabel)+'" src="'+esc(customsSignature)+'">':esc(customsSignatureStored?(tr('loadingListPrint.driverSignature')+' · '+tr('loadingListPrint.signatureStored')):tr('loadingListPrint.notRecorded'));
  section.innerHTML='<div class="rc1305-pickup-banner"><span>✓ '+esc(tr('loadingListPrint.pickedUp'))+'</span><strong>'+esc(formatDate(confirmed))+'</strong></div>'+
  '<div class="rc1305-pickup-grid">'+
  '<div class="rc1305-pickup-item"><span>'+esc(driverLabel)+'</span><strong>'+esc(driver)+'</strong></div>'+
