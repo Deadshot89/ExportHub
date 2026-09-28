@@ -62,6 +62,16 @@ test('RC1259: TESTSERVICE akzeptiert korrekten öffentlichen Avis-Link trotz int
   assert.equal(result.body.ok,true);
 });
 
+test('RC1331: TESTSERVICE akzeptiert den kanonischen ExportHUB360-Avis-Link mit Umgebungskennung',async()=>{
+  const result=await invoke({
+    environment:'testservice',
+    host:'internal-function.azurewebsites.net',
+    avisUrl:'https://exporthub360.com/avis/abc?environment=testservice'
+  });
+  assert.equal(result.status,200);
+  assert.equal(result.body.ok,true);
+});
+
 test('RC1259: TESTSERVICE lehnt Produktions-Avis-Link weiterhin ab',async()=>{
   const result=await invoke({
     environment:'testservice',

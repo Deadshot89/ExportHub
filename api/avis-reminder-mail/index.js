@@ -22,7 +22,7 @@ function safeAvisUrl(req,value){
  let u;try{u=new URL(text(value))}catch(_){throw auth.error('AVIS_URL_INVALID','Der Avis-Link ist ungültig.',400)}
  if(u.protocol!=='https:')throw auth.error('AVIS_URL_INVALID','Der Avis-Link ist ungültig.',400);
  const environment=auth.environmentFromRequest(req),host=lower(u.hostname),legacyPath=/\/customer-avis\.html$/i.test(u.pathname),brandedPath=/^\/avis\/[^/]+\/?$/i.test(u.pathname);
- const valid=environment==='testservice'?(host===TESTSERVICE_PUBLIC_HOST&&legacyPath):((host===PRODUCTION_PUBLIC_HOST&&(brandedPath||legacyPath))||(host===LEGACY_PRODUCTION_PUBLIC_HOST&&legacyPath));
+ const valid=environment==='testservice'?((host===TESTSERVICE_PUBLIC_HOST&&legacyPath)||(host===PRODUCTION_PUBLIC_HOST&&brandedPath&&lower(u.searchParams.get('environment'))==='testservice')):((host===PRODUCTION_PUBLIC_HOST&&(brandedPath||legacyPath))||(host===LEGACY_PRODUCTION_PUBLIC_HOST&&legacyPath));
  if(!valid)throw auth.error('AVIS_URL_INVALID','Der Avis-Link gehört nicht zu dieser ExportHUB-Umgebung.',400);
  return u.toString()
 }

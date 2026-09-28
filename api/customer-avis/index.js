@@ -22,7 +22,7 @@ const MAX_UPLOADS_PER_HOUR=8;
 const AVIS_CONFIRMED_STATUS='bestätigt';
 const AVIS_UPLOAD_NOTIFICATION_TO=process.env.EXPORTHUB_AVIS_UPLOAD_NOTIFICATION_TO||'DespatchNettetal@essentra.onmicrosoft.com';
 const PRODUCTION_AVIS_ORIGIN=text(process.env.EXPORTHUB_PRODUCTION_AVIS_ORIGIN||'https://exporthub360.com').replace(/\/+$/,'');
-function publicAvisUrl(env,token){const encoded=encodeURIComponent(text(token));return env==='production'?PRODUCTION_AVIS_ORIGIN+'/avis/'+encoded:'/customer-avis.html?token='+encoded+'&environment='+encodeURIComponent(env)}
+function publicAvisUrl(env,token){const encoded=encodeURIComponent(text(token)),url=PRODUCTION_AVIS_ORIGIN+'/avis/'+encoded;return env==='production'?url:url+'?environment='+encodeURIComponent(env)}
 let teamContainer=null;
 let teamContainerReadyPromise=null;
 let documentContainer=null;
