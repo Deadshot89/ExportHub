@@ -323,9 +323,9 @@ function scheduleTranslateFlush(){
   }
   var roots=queuedRoots.slice(),texts=queuedTextNodes.slice();
   queuedRoots.length=0;queuedTextNodes.length=0;
-  roots.forEach(function(root){if(root&&root.isConnected)translate(root,current)});
+  roots.forEach(function(root){if(root&&root.isConnected!==false)translate(root,current)});
   texts.forEach(function(node){
-   if(!node||!node.isConnected)return;
+   if(!node||node.isConnected===false)return;
    var covered=roots.some(function(root){return root&&root.contains&&node.parentElement&&root.contains(node.parentElement)});
    if(!covered)translateTextNode(node,current);
   });
