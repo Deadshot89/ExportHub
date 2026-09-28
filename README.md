@@ -1,6 +1,6 @@
 # ExportHUB – aktueller Main-Stand
 
-ExportHUB verwendet weiterhin die gemeinsame **RC1112-Releasebasis** für Produktion, TESTSERVICE, Demo und Android. Die fachlichen und technischen Korrekturen auf `main` reichen aktuell bis **RC1312**. Der technische Build-/Produktionsmarker bleibt bewusst RC1112; die sichtbare Produktversion wird getrennt geführt.
+ExportHUB verwendet weiterhin die gemeinsame **RC1112-Releasebasis** für Produktion, TESTSERVICE, Demo und Android. Die fachlichen und technischen Korrekturen auf `main` reichen aktuell bis **RC1322**. Der technische Build-/Produktionsmarker bleibt bewusst RC1112; die sichtbare Produktversion wird getrennt geführt.
 
 ## Aktueller Release-Stand
 
@@ -32,6 +32,9 @@ Seit RC1223 wurden unter anderem folgende releasekritische Punkte ergänzt oder 
 - **RC1310** – doppelter Layout-Rebuild beim expliziten Designwechsel beseitigt.
 - **RC1311** – Login-First-Paint weiter reduziert und Browser-Tab nach Login dauerhaft auf `ExportHUB360` gehalten.
 - **RC1312** – persönlicher Aufgabenplan vollständig sichtbar, Android-Aufgabenbenachrichtigungen auf reale persönliche Aufgaben begrenzt und stündliches Runtime-Monitoring für Produktion und TESTSERVICE ergänzt.
+- **RC1319** – P0 für Sendung speichern, Statusfinalisierung und QR-Registrierung behoben und per mutierendem TESTSERVICE-E2E bis Reload verifiziert.
+- **RC1320** – Mehr-LKW-Ablauf mit getrennten Teilabholungen und Statusaggregation als mutierender TESTSERVICE-E2E in das Release-Gate aufgenommen.
+- **RC1322** – PC-Direktdruck vorbereitet: Edge ≥144 kann per offizieller Silent-Printing-Policy ohne Druckdialog auf den Windows-Standarddrucker drucken; Setup ist direkt im Schnelldruck verlinkt.
 
 Die sichtbare Produktversionsanzeige ist von der stabilen technischen RC1112-Buildkette getrennt. Die autoritative sichtbare Version steht in `release-version.json`; reine Dokumentations- oder Testcommits erhöhen sie nicht automatisch. Dadurch können fachliche Korrekturen unabhängig vom technischen Buildmarker ausgeliefert werden.
 
@@ -131,6 +134,18 @@ Die Aufgabenansicht zeigt den vollständigen persönlichen Wochenplan direkt unt
 - Referenzbereich: Schweizer Kunden prüfen
 
 Statusfolge: **offen → in Bearbeitung → erledigt**. Wiederkehrende Aufgaben erzeugen danach die nächste planmäßige Ausführung. Die Android-Erinnerungsslots bleiben **09:00 / 12:00 / 15:00**; Referenzbereiche erzeugen keine Handy-Erinnerung, und ohne gültigen persönlichen Snapshot werden keine generischen Aufgaben erfunden.
+
+## Direktdruck-Arbeitsplatz
+
+Der QR-/REF-Schnelldruck verwendet weiterhin exakt den vorhandenen ExportHUB-Gesamtdruck. Für einen verwalteten Windows-Druckarbeitsplatz kann zusätzlich `assets/tools/ExportHUB-DirectPrint-Setup.ps1` einmalig als Administrator ausgeführt werden. Das Skript:
+
+- verlangt Microsoft Edge **144 oder neuer**,
+- prüft, dass Windows einen Standarddrucker besitzt,
+- aktiviert Edge `SilentPrintingEnabled`,
+- aktiviert `PrintPreviewUseSystemDefaultPrinter`,
+- kann mit `-Disable` vollständig zurückgesetzt werden.
+
+Ohne diese verwaltete Edge-Konfiguration bleibt das normale Browser-Druckfenster erhalten. Es wird bewusst kein lokaler HTTP-/WebSocket-Druckserver geöffnet.
 
 ## Android-App
 
