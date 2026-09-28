@@ -52,11 +52,18 @@ function load(){
     listeners,
     documentListeners,
     flush(){
-      while(timers.length){
+      let guard=0;
+      while(timers.length&&guard++<200){
         const fn=timers.shift();
         fn();
       }
     },
+    runNextTimer(){
+      const fn=timers.shift();
+      if(fn)fn();
+      return !!fn;
+    },
+    pendingTimers(){return timers.length},
     setPanel(v){panelPresent=!!v},
     setCard(v){cardPresent=!!v},
     setState(v){state=v},
@@ -67,20 +74,24 @@ function load(){
   };
 }
 
-test('RC1332: Runtime ist syntaktisch gültig und hört auf Save, Render, Sync und Viewwechsel',()=>{
+test('RC1333: Runtime ist syntaktisch gültig und hört auf Save, Render, Sync und Viewwechsel',()=>{
   new vm.Script(runtime);
   assert.match(runtime,/exporthub:shipment-saved/);
   assert.match(runtime,/exporthub:viewchange/);
   assert.match(runtime,/exporthub:rendered/);
   assert.match(runtime,/exporthub:sync/);
+  assert.match(runtime,/exporthub:state-loaded/);
+  assert.match(runtime,/exporthub:shipment-updated/);
   assert.match(runtime,/rc363SaveShipment/);
+  assert.match(runtime,/watchCurrent/);
+  assert.match(runtime,/watchRemaining/);
   assert.match(runtime,/state\.shipments|arr\(s\.shipments\)/);
   assert.match(runtime,/currentMultiTruckShipment/);
   assert.match(runtime,/rc1017SyncSubShipments/);
   assert.match(runtime,/rc1017-subshipments/);
 });
 
-test('RC1332: Mehr-LKW-Bereich wird nach Save erneut gerendert und nach DOM-Ersatz wiederhergestellt',()=>{
+test('RC1333: Mehr-LKW-Bereich wird nach Save erneut gerendert und nach DOM-Ersatz wiederhergestellt',()=>{
   const app=load();
   const shipment={id:'ABC123',ref:'ABC123',subShipments:[{subShipmentId:'ABC123-TRUCK-1'},{subShipmentId:'ABC123-TRUCK-2'}]};
   app.listeners.get('exporthub:shipment-saved')({detail:{shipment}});
@@ -96,7 +107,7 @@ test('RC1332: Mehr-LKW-Bereich wird nach Save erneut gerendert und nach DOM-Ersa
   assert.equal(app.panel(),true);
 });
 
-test('RC1332: Live-Fall findet Mehr-LKW-Sendung in state.shipments obwohl aktueller Draft keine Teilsendungen enthält',()=>{
+test('RC1333: Live-Fall findet Mehr-LKW-Sendung in state.shipments obwohl aktueller Draft keine Teilsendungen enthält',()=>{
   const app=load();
   const saved={id:'ABC123',ref:'ABC123',subShipments:[{subShipmentId:'ABC123-TRUCK-1'},{subShipmentId:'ABC123-TRUCK-2'}]};
   app.setVisibleRef('ABC123');
@@ -114,25 +125,39 @@ test('RC1332: Live-Fall findet Mehr-LKW-Sendung in state.shipments obwohl aktuel
   assert.equal(app.panel(),true);
 });
 
-test('RC1332: Speichern-Klick löst zustandsbasierten Refresh auch ohne shipment-saved Event aus',()=>{
+test('RC1333: Save-Watcher bleibt aktiv bis die Mehr-LKW-Sendung verzögert im State erscheint',()=>{
   const app=load();
   app.setVisibleRef('ABC123');
   app.setState({shipment:{id:'ABC123',ref:'ABC123',subShipments:[]},shipments:[]});
-  const click=app.documentListeners.get('click');
+  const click=app.listeners.get('click');
   assert.equal(typeof click,'function');
   click({target:{closest(selector){return selector==='#rc363SaveShipment'?{}:null}}});
+
+  // Der alte RC1332-Watcher endete nach spätestens 6 Sekunden. Der neue Watcher
+  // muss auch danach noch aktiv sein, ohne einen shipment-saved Event zu benötigen.
+  for(let i=0;i<8;i++)app.runNextTimer();
+  assert.equal(app.syncCalls(),0);
+  assert.ok(app.pendingTimers()>0,'Watcher muss nach mehr als sechs Versuchen weiterlaufen');
 
   app.setState({
     shipment:{id:'ABC123',ref:'ABC123',subShipments:[]},
     shipments:[{id:'ABC123',ref:'ABC123',subShipments:[{subShipmentId:'ABC123-TRUCK-1'},{subShipmentId:'ABC123-TRUCK-2'}]}]
   });
-  app.flush();
+  app.runNextTimer();
   assert.equal(app.syncCalls(),1);
   assert.equal(app.lastSyncRef(),'ABC123');
   assert.equal(app.panel(),true);
 });
 
-test('RC1332: Single-LKW und fehlender Stauplan lösen keinen Render aus',()=>{
+test('RC1333: Save-Klick wird auf window in der Capture-Phase überwacht',()=>{
+  assert.match(runtime,/w\.addEventListener\('click'/);
+  assert.match(runtime,/rc363SaveShipment/);
+  assert.match(runtime,/watchCurrent\(50\)/);
+  assert.match(runtime,/watchRemaining/);
+  assert.match(runtime,/setTimeout\(run,1000\)/);
+});
+
+test('RC1333: Single-LKW und fehlender Stauplan lösen keinen Render aus',()=>{
   const app=load();
   app.listeners.get('exporthub:shipment-saved')({detail:{shipment:{id:'ONE',ref:'ONE',subShipments:[{subShipmentId:'ONE-TRUCK-1'}]}}});
   app.flush();
@@ -144,10 +169,10 @@ test('RC1332: Single-LKW und fehlender Stauplan lösen keinen Render aus',()=>{
   assert.equal(app.syncCalls(),0);
 });
 
-test('RC1332: Drei-Umgebungen-Build lädt den Refresh-Hook mit neuem Cache-Key',()=>{
+test('RC1333: Drei-Umgebungen-Build lädt den Refresh-Hook mit neuem Cache-Key',()=>{
   assert.match(build,/RC1328_MULTI_TRUCK_REFRESH_TAG/);
   assert.match(build,/patchRc1328MultiTruckRefresh/);
-  assert.match(build,/assets\/rc1328-multi-truck-ui-refresh\.js\?v=1332/);
+  assert.match(build,/assets\/rc1328-multi-truck-ui-refresh\.js\?v=1333/);
   assert.match(build,/'assets\/rc1328-multi-truck-ui-refresh\.js'/);
   assert.match(build,/html=patchRc1328MultiTruckRefresh\(html,file\)/);
 });
