@@ -7,16 +7,16 @@ const SRC=path.join(ROOT,'dist-rc1048');
 const OUT=path.join(ROOT,'dist-rc1112');
 const VERSION='RC1112';
 const NUMBER='1112';
-const DEFAULT_VISIBLE_VERSION='RC1112';
+const RELEASE_VERSION_FILE=path.join(ROOT,'release-version.json');
 function resolveVisibleVersion(){
   const explicit=String(process.env.EXPORTHUB_VISIBLE_RELEASE_VERSION||'').trim().toUpperCase();
   if(/^RC\d+$/.test(explicit))return explicit;
-  try{
-    const subjects=execFileSync('git',['log','-20','--pretty=%s'],{cwd:ROOT,encoding:'utf8',stdio:['ignore','pipe','ignore']});
-    const matches=Array.from(String(subjects||'').matchAll(/\bRC(\d+)\b/gi)).map(m=>Number(m[1])).filter(Number.isFinite);
-    if(matches.length)return 'RC'+Math.max(...matches);
-  }catch(_){}
-  return DEFAULT_VISIBLE_VERSION;
+  const marker=JSON.parse(fs.readFileSync(RELEASE_VERSION_FILE,'utf8'));
+  const visible=String(marker&&marker.visibleRelease||'').trim().toUpperCase();
+  const technical=String(marker&&marker.technicalBuild||'').trim().toUpperCase();
+  if(!/^RC\d+$/.test(visible))throw new Error('RC1314 release-version.json visibleRelease ist ungültig');
+  if(technical!==VERSION)throw new Error('RC1314 release-version.json technicalBuild '+technical+' stimmt nicht mit '+VERSION+' überein');
+  return visible;
 }
 const VISIBLE_VERSION=resolveVisibleVersion();
 const VISIBLE_NUMBER=VISIBLE_VERSION.slice(2);
