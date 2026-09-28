@@ -1,6 +1,6 @@
 # ExportHUB – aktueller Main-Stand
 
-ExportHUB verwendet weiterhin die gemeinsame **RC1112-Releasebasis** für Produktion, TESTSERVICE, Demo und Android. Die fachlichen und technischen Korrekturen auf `main` reichen aktuell bis **RC1322**. Der technische Build-/Produktionsmarker bleibt bewusst RC1112; die sichtbare Produktversion wird getrennt geführt.
+ExportHUB verwendet weiterhin die gemeinsame **RC1112-Releasebasis** für Produktion, TESTSERVICE, Demo und Android. Die fachlichen und technischen Korrekturen auf `main` reichen aktuell bis **RC1312**. Der technische Build-/Produktionsmarker bleibt bewusst RC1112; die sichtbare Produktversion wird getrennt geführt.
 
 ## Aktueller Release-Stand
 
