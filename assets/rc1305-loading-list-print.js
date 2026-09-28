@@ -140,7 +140,7 @@ function enhance(html,sh,withQr){
 function enhanceCover(html,sh){
  try{
   var tpl=d.createElement('template');tpl.innerHTML=html;var root=tpl.content.querySelector('.rc390-cover,.rc352-cover,[data-rc1203-cover-enhanced]')||tpl.content.firstElementChild;if(!root)return html;
-  root.setAttribute('data-rc1326-print-cover','1');shrinkInlineFonts(root,2);var oldQuick=root.querySelector('[data-rc1315-print-qr]');if(oldQuick)oldQuick.remove();var refBox=root.querySelector('.rc390-ref');if(refBox){refBox.style.removeProperty('padding-right');refBox.style.removeProperty('width');refBox.style.removeProperty('min-width');refBox.style.removeProperty('flex-basis')}addQuickPrintQr(root,sh||{},true);var quick=root.querySelector('[data-rc1315-print-qr]'),qrArea=root.querySelector('.rc390-cover-qr,.rc352-cover-qr');if(quick&&qrArea){quick.classList.remove('rc1315-print-qr-in-ref');quick.classList.add('rc1326-print-qr-bottom');qrArea.appendChild(quick)}
+  root.setAttribute('data-rc1326-print-cover','1');var oldQuick=root.querySelector('[data-rc1315-print-qr]');if(oldQuick)oldQuick.remove();var refBox=root.querySelector('.rc390-ref');if(refBox){refBox.style.removeProperty('padding-right');refBox.style.removeProperty('width');refBox.style.removeProperty('min-width');refBox.style.removeProperty('flex-basis')}addQuickPrintQr(root,sh||{},true);var quick=root.querySelector('[data-rc1315-print-qr]'),qrArea=root.querySelector('.rc390-cover-qr,.rc352-cover-qr');if(quick&&qrArea){quick.classList.remove('rc1315-print-qr-in-ref');quick.classList.add('rc1326-print-qr-bottom');qrArea.appendChild(quick)}
   return tpl.innerHTML
  }catch(e){try{console.warn('RC1316 Deckblatt-Druck-QR',e)}catch(_){}return html}
 }
