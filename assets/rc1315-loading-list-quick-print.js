@@ -2,7 +2,7 @@
 'use strict';
 if(!w||!d||w.__EXPORTHUB_RC1315_LOADING_LIST_QUICK_PRINT__)return;
 w.__EXPORTHUB_RC1315_LOADING_LIST_QUICK_PRINT__=true;
-var lockUntil=0,timer=0,lastStatus={text:'',kind:'idle',at:0};
+var lockUntil=0,timer=0,scanTimer=0,lastStatus={text:'',kind:'idle',at:0};
 function q(v){return String(v==null?'':v).trim()}
 function lang(){return q(d.documentElement&&d.documentElement.lang).toLowerCase().slice(0,2)||'de'}
 var I18N={
@@ -60,7 +60,8 @@ function install(){
  var row=d.createElement('div');row.className='rc1315-quick-print-row';var input=d.createElement('input');input.type='text';input.autocomplete='off';input.spellcheck=false;input.setAttribute('aria-label',t('placeholder'));input.setAttribute('data-rc1315-input','1');input.placeholder=t('placeholder');var button=d.createElement('button');button.type='button';button.textContent=t('button');button.setAttribute('data-rc1315-print','1');row.appendChild(input);row.appendChild(button);box.appendChild(row);
  var s=d.createElement('p');s.className='rc1315-quick-print-status';s.setAttribute('data-rc1315-status','1');var keep=lastStatus.text&&Date.now()-lastStatus.at<8000;s.setAttribute('data-state',keep?lastStatus.kind:'idle');s.textContent=keep?lastStatus.text:t('ready');box.appendChild(s);
  var search=p.querySelector('[data-rc1283-search]');p.insertBefore(box,search||p.children[1]||null);
- input.addEventListener('keydown',function(e){if(e.key!=='Enter')return;e.preventDefault();trigger(input.value);input.select()});
+ input.addEventListener('input',function(){var raw=q(input.value).toUpperCase();if(!/^(?:EHPRINT|EXPORTHUB-PRINT)\s*:\s*[A-Z0-9]{6}$/.test(raw))return;if(scanTimer&&typeof w.clearTimeout==='function')w.clearTimeout(scanTimer);scanTimer=w.setTimeout(function(){scanTimer=0;trigger(input.value);try{input.focus();input.select()}catch(_){}},80)});
+ input.addEventListener('keydown',function(e){if(e.key!=='Enter')return;e.preventDefault();if(scanTimer&&typeof w.clearTimeout==='function'){w.clearTimeout(scanTimer);scanTimer=0}trigger(input.value);input.select()});
  button.addEventListener('click',function(){trigger(input.value);input.focus();input.select()});
  if(typeof w.setTimeout==='function')w.setTimeout(function(){try{input.focus();input.select()}catch(_){}},0);
  return true
