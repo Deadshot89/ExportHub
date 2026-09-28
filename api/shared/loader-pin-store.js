@@ -5,12 +5,16 @@ const { BlobServiceClient } = require('@azure/storage-blob');
 
 const CONTAINER = process.env.EXPORTHUB_STORAGE_CONTAINER || process.env.EXPORTHUB_CONTAINER || 'exporthub-data';
 const BLOB_NAME = process.env.EXPORTHUB_LOADER_PIN_BLOB || 'server/loader-pins.json';
+const TEST_BLOB_NAME = process.env.EXPORTHUB_TEST_LOADER_PIN_BLOB || ('testservice/' + String(BLOB_NAME).replace(/^\/+/, ''));
 const RECORD_CONTAINER = process.env.EXPORTHUB_PICKUP_CONTAINER || 'exporthub-pickup';
 const TEAM_BLOB = process.env.EXPORTHUB_STORAGE_BLOB || process.env.EXPORTHUB_STATE_BLOB || 'team-state.json';
 const MAX_RETRIES = 6;
 
 function text(v) { return String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim(); }
 function now() { return new Date().toISOString(); }
+function environment(value) { return text(value).toLowerCase() === 'testservice' ? 'testservice' : 'production'; }
+function blobNameForEnvironment(value) { return environment(value) === 'testservice' ? TEST_BLOB_NAME : BLOB_NAME; }
+function teamBlobForEnvironment(value) { return environment(value) === 'testservice' ? (process.env.EXPORTHUB_TEST_STORAGE_BLOB || ('testservice/' + String(TEAM_BLOB).replace(/^\/+/, ''))) : TEAM_BLOB; }
 function clone(v) { return v == null ? v : JSON.parse(JSON.stringify(v)); }
 function conn() { return process.env.EXPORTHUB_STORAGE_CONNECTION_STRING || process.env.EXPORTHUB_STORAGE_CONNECTION || process.env.EXPORTHUB_AZURE_STORAGE_CONNECTION_STRING || process.env.AzureWebJobsStorage || ''; }
 function error(code, message, status) { const e = new Error(message); e.code = code; e.status = status || 400; return e; }
@@ -24,7 +28,8 @@ function slug(v) { return text(v).toLowerCase().normalize('NFKD').replace(/[\u03
 function encryptPin(pin) { const iv = crypto.randomBytes(12), cipher = crypto.createCipheriv('aes-256-gcm', encryptionKey(), iv), enc = Buffer.concat([cipher.update(String(pin), 'utf8'), cipher.final()]), tag = cipher.getAuthTag(); return ['v1', iv.toString('base64'), tag.toString('base64'), enc.toString('base64')].join('.'); }
 function decryptPin(value) { const parts = String(value || '').split('.'); if (parts.length !== 4 || parts[0] !== 'v1') throw error('PIN_DECRYPT_FAILED', 'Eine gespeicherte Verlader-PIN konnte nicht gelesen werden.', 500); const decipher = crypto.createDecipheriv('aes-256-gcm', encryptionKey(), Buffer.from(parts[1], 'base64')); decipher.setAuthTag(Buffer.from(parts[2], 'base64')); return Buffer.concat([decipher.update(Buffer.from(parts[3], 'base64')), decipher.final()]).toString('utf8'); }
 
-function envDefaults() {
+function envDefaults(targetEnvironment) {
+  if (environment(targetEnvironment) === 'testservice') return [];
   const raw = text(process.env.EXPORTHUB_LOADER_PINS);
   const rows = [];
   if (raw) {
@@ -67,7 +72,7 @@ async function clients() {
 async function readBuffer(blob) { const r = await blob.download(0), chunks = []; for await (const c of r.readableStreamBody) chunks.push(Buffer.from(c)); return { buffer: Buffer.concat(chunks), etag: r.etag || null }; }
 async function readJson(blob, fallback) { try { const r = await readBuffer(blob); return { value: r.buffer.length ? JSON.parse(r.buffer.toString('utf8')) : clone(fallback), etag: r.etag }; } catch (e) { if (e && e.statusCode === 404) return { value: clone(fallback), etag: null }; throw e; } }
 async function writeJson(blob, value, etag) { const raw = JSON.stringify(value); const conditions = etag ? { ifMatch: etag } : { ifNoneMatch: '*' }; return blob.upload(raw, Buffer.byteLength(raw), { blobHTTPHeaders: { blobContentType: 'application/json; charset=utf-8', blobCacheControl: 'no-store' }, conditions }); }
-async function configBlob() { const c = await clients(); return { clients: c, blob: c.config.getBlockBlobClient(BLOB_NAME) }; }
+async function configBlob(targetEnvironment) { const c = await clients(); return { clients: c, blob: c.config.getBlockBlobClient(blobNameForEnvironment(targetEnvironment)) }; }
 
 function normalizeDoc(doc) {
   const source = doc && typeof doc === 'object' ? doc : {};
@@ -86,11 +91,11 @@ function normalizeDoc(doc) {
   return { doc: source, changed };
 }
 
-async function ensure() {
-  const got = await configBlob();
+async function ensure(targetEnvironment) {
+  const env = environment(targetEnvironment), got = await configBlob(env);
   const current = await readJson(got.blob, null);
   if (!current.value) {
-    const doc = { schemaVersion: 1, updatedAt: now(), pins: envDefaults().map(makeRecord) };
+    const doc = { schemaVersion: 1, updatedAt: now(), pins: envDefaults(env).map(makeRecord) };
     try { await writeJson(got.blob, doc, null); return doc; } catch (e) { if (!(e && e.statusCode === 412)) throw e; }
     return (await readJson(got.blob, { schemaVersion: 1, pins: [] })).value;
   }
@@ -103,14 +108,14 @@ async function ensure() {
 }
 
 function reveal(r) { let pin = ''; try { pin = decryptPin(r.pinEncrypted); } catch (_) {} return { id: text(r.id), name: text(r.name), pin, active: r.active !== false, createdAt: r.createdAt || null, updatedAt: r.updatedAt || null }; }
-async function list() { const doc = await ensure(); return doc.pins.map(reveal); }
+async function list(targetEnvironment) { const doc = await ensure(targetEnvironment); return doc.pins.map(reveal); }
 
-async function mutate(fn) {
-  const got = await configBlob();
+async function mutate(fn, targetEnvironment) {
+  const env = environment(targetEnvironment), got = await configBlob(env);
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     const current = await readJson(got.blob, null);
     let doc = current.value;
-    if (!doc) doc = { schemaVersion: 1, updatedAt: now(), pins: envDefaults().map(makeRecord) };
+    if (!doc) doc = { schemaVersion: 1, updatedAt: now(), pins: envDefaults(env).map(makeRecord) };
     doc = normalizeDoc(doc).doc;
     const next = await fn(clone(doc));
     next.schemaVersion = 1; next.updatedAt = now();
@@ -119,7 +124,7 @@ async function mutate(fn) {
   throw error('PIN_CONFLICT', 'Die Verlader-PINs konnten wegen eines gleichzeitigen Zugriffs nicht gespeichert werden.', 409);
 }
 
-async function create(input) {
+async function create(input, targetEnvironment) {
   const name = text(input && input.name), pin = text(input && input.pin);
   if (!name) throw error('NAME_REQUIRED', 'Bitte einen Verlader-Namen eingeben.', 400);
   if (!validPin(pin)) throw error('INVALID_PIN', 'Die Verlader-PIN muss genau vier Ziffern enthalten.', 400);
@@ -128,11 +133,11 @@ async function create(input) {
     const id = slug(name) + '-' + crypto.randomBytes(4).toString('hex');
     d.pins.push(makeRecord({ id, name, pin, active: input.active !== false }, d.pins.length));
     return d;
-  });
+  }, targetEnvironment);
   return doc.pins.map(reveal);
 }
 
-async function update(input) {
+async function update(input, targetEnvironment) {
   const id = text(input && input.id), name = text(input && input.name), pin = text(input && input.pin);
   if (!id) throw error('ID_REQUIRED', 'Verlader-ID fehlt.', 400);
   if (!name) throw error('NAME_REQUIRED', 'Bitte einen Verlader-Namen eingeben.', 400);
@@ -144,30 +149,31 @@ async function update(input) {
     if (d.pins.some(x => text(x.id) !== id && safeEq(x.pinHash, digest))) throw error('PIN_EXISTS', 'Diese Verlader-PIN ist bereits vergeben.', 409);
     row.name = name; row.pinHash = digest; row.pinEncrypted = encryptPin(pin); row.active = input.active !== false; row.updatedAt = now();
     return d;
-  });
+  }, targetEnvironment);
   return doc.pins.map(reveal);
 }
 
-async function toggle(input) {
+async function toggle(input, targetEnvironment) {
   const id = text(input && input.id), active = input && input.active === true;
-  const doc = await mutate(function (d) { const row = d.pins.find(x => text(x.id) === id); if (!row) throw error('NOT_FOUND', 'Verlader-PIN wurde nicht gefunden.', 404); row.active = active; row.updatedAt = now(); return d; });
+  const doc = await mutate(function (d) { const row = d.pins.find(x => text(x.id) === id); if (!row) throw error('NOT_FOUND', 'Verlader-PIN wurde nicht gefunden.', 404); row.active = active; row.updatedAt = now(); return d; }, targetEnvironment);
   return doc.pins.map(reveal);
 }
 
-async function remove(input) {
+async function remove(input, targetEnvironment) {
   const id = text(input && input.id);
-  const doc = await mutate(function (d) { const before = d.pins.length; d.pins = d.pins.filter(x => text(x.id) !== id); if (before === d.pins.length) throw error('NOT_FOUND', 'Verlader-PIN wurde nicht gefunden.', 404); return d; });
+  const doc = await mutate(function (d) { const before = d.pins.length; d.pins = d.pins.filter(x => text(x.id) !== id); if (before === d.pins.length) throw error('NOT_FOUND', 'Verlader-PIN wurde nicht gefunden.', 404); return d; }, targetEnvironment);
   return doc.pins.map(reveal);
 }
 
-async function findByPin(pin) {
+async function findByPin(pin, targetEnvironment) {
+  const env = environment(targetEnvironment);
   pin = text(pin);
   if (!validPin(pin)) return null;
-  const doc = await ensure(), digest = pinHash(pin);
+  const doc = await ensure(env), digest = pinHash(pin);
   let row = doc.pins.find(x => x.active !== false && safeEq(x.pinHash, digest));
   if (row) return { id: text(row.id), name: text(row.name), active: true };
   /* RC644: Falls sich das Storage-/Signaturgeheimnis geändert hat, bleiben die explizit konfigurierten bzw. bisherigen Standard-PINs nutzbar. */
-  const fallback = envDefaults().find(x => x.active !== false && text(x.pin) === pin);
+  const fallback = envDefaults(env).find(x => x.active !== false && text(x.pin) === pin);
   if (!fallback) return null;
   row = doc.pins.find(x => x.active !== false && text(x.name).toLowerCase() === text(fallback.name).toLowerCase());
   const resolved = row || { id: slug(fallback.name) + '-fallback', name: fallback.name, active: true };
@@ -177,7 +183,7 @@ async function findByPin(pin) {
       if(!target){target=makeRecord(fallback,d.pins.length);d.pins.push(target)}
       else{target.pinHash=pinHash(pin);target.pinEncrypted=encryptPin(pin);target.active=true;target.updatedAt=now()}
       return d;
-    });
+    }, env);
   } catch (_) {}
   return { id: text(resolved.id), name: text(fallback.name), active: true };
 }
@@ -196,7 +202,7 @@ function bridgePin() {
   return '';
 }
 
-async function patchPickupIdentity(token, loader) {
+async function patchPickupIdentity(token, loader, targetEnvironment) {
   token = text(token).toLowerCase();
   if (!token || !loader) return false;
   const c = await clients();
@@ -210,7 +216,7 @@ async function patchPickupIdentity(token, loader) {
   record.loaderName = loader.name; record.loadedBy = loader.name; record.loader = loader.name; record.verlader = loader.name; record.loaderId = loader.id; record.updatedAt = now();
   try { await writeJson(recordBlob, record, etag); } catch (_) { return false; }
   try {
-    const teamBlob = c.config.getBlockBlobClient(TEAM_BLOB), teamRead = await readJson(teamBlob, null), doc = teamRead.value;
+    const teamBlob = c.config.getBlockBlobClient(teamBlobForEnvironment(targetEnvironment)), teamRead = await readJson(teamBlob, null), doc = teamRead.value;
     if (doc && doc.state && Array.isArray(doc.state.shipments)) {
       const sid = text(record.shipmentId), ref = text(record.reference).toUpperCase();
       const sh = doc.state.shipments.find(x => (sid && text(x.id || x.shipmentId) === sid) || (ref && text(x.ref || x.reference || x.shipmentRef).toUpperCase() === ref));
@@ -224,4 +230,4 @@ async function patchPickupIdentity(token, loader) {
   return true;
 }
 
-module.exports = { list, create, update, toggle, remove, findByPin, bridgePin, patchPickupIdentity, text, validPin, error };
+module.exports = { BLOB_NAME, TEST_BLOB_NAME, environment, blobNameForEnvironment, teamBlobForEnvironment, list, create, update, toggle, remove, findByPin, bridgePin, patchPickupIdentity, text, validPin, error };
