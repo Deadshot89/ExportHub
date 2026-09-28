@@ -107,6 +107,25 @@ function patchRc1328MultiTruckRefresh(html,file){
   return html;
 }
 
+function patchRc1329MultiTruckUiRuntime(html,file){
+  const source=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
+  const canonicalStart='var rc1017SubShipmentQrRuntime=Object.create(null);';
+  const legacyStart='function renderRc1017SubShipments(result){';
+  const endMarker='function rc1017SyncSubShipments(';
+  const sourceStart=source.indexOf(canonicalStart),sourceEnd=source.indexOf(endMarker,sourceStart);
+  if(sourceStart<0||sourceEnd<=sourceStart)throw new Error('RC1329 kanonische Mehr-LKW-UI fehlt in index.html');
+  const canonical=source.slice(sourceStart,sourceEnd);
+  if(!canonical.includes("section.id='rc1017-subshipments'")||!canonical.includes('data-rc1017-subshipment')||!canonical.includes('rc1017-qr-subshipment'))throw new Error('RC1329 kanonischer Mehr-LKW-Renderer ist unvollständig');
+  let targetStart=html.indexOf(canonicalStart);
+  if(targetStart<0)targetStart=html.indexOf(legacyStart);
+  const targetEnd=targetStart<0?-1:html.indexOf(endMarker,targetStart);
+  if(targetStart<0||targetEnd<=targetStart)throw new Error(file+': RC1329 Mehr-LKW-Renderer-Anker fehlt');
+  html=html.slice(0,targetStart)+canonical+html.slice(targetEnd);
+  const verifyStart=html.indexOf(canonicalStart),verifyEnd=html.indexOf(endMarker,verifyStart),verify=verifyStart>=0&&verifyEnd>verifyStart?html.slice(verifyStart,verifyEnd):'';
+  if(!verify.includes("section.id='rc1017-subshipments'")||!verify.includes('data-rc1017-subshipment')||!verify.includes('rc1017-print-subshipment')||!verify.includes('rc1017-stow-subshipment'))throw new Error(file+': RC1329 sichtbarer Mehr-LKW-Renderer fehlt im finalen Build');
+  return html;
+}
+
 function patchRc1289AuthTransportFallback(html,file){
   if(file==='demo.html')return html;
   const tag='<script id="exporthub-rc1289-auth-transport-fallback" src="/assets/rc1289-auth-transport-fallback.js?v=1289"></script>';
@@ -608,6 +627,7 @@ function patchHtml(file){
   html=patchRc1289AuthTransportFallback(html,file);
   html=patchRc1304ThemeRedesign(html,file);
   html=patchRc1306LayoutEngine(html,file);
+  html=patchRc1329MultiTruckUiRuntime(html,file);
   html=patchRc1328MultiTruckRefresh(html,file);
   html=patchRc1303LoginExperience(html,file);
   html=patchDemoTestPortalIsolation(html,file);
