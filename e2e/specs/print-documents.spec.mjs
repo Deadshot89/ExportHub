@@ -331,8 +331,7 @@ test('RC1315 P1: Druck-QR oder REF in Ladeliste startet den vollständigen Sendu
 
   const quick=page.locator('[data-rc1315-input]').first();
   await expect(quick,'RC1315 QR-/REF-Eingabe fehlt').toBeVisible({timeout:10_000});
-  await quick.fill('EHPRINT:DEMO02');
-  await quick.press('Enter');
+  await quick.fill('EHPRINT:DEMO02'); // echter QR-Scan muss ohne zusätzlichen Klick/Enter starten
 
   let capture=null;
   await expect.poll(async()=>{
