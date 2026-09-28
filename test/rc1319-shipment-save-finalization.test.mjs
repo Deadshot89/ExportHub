@@ -11,19 +11,23 @@ function saveRuntime(source){
   return source.slice(start,end+'</script>'.length);
 }
 
-test('RC1319 Diagnose: finaler Save-Controller zeigt Status- und Buttonpfad',()=>{
+test('RC1319 Diagnose: finaler Save-Controller zeigt Status, Recalc und QR-Pfad',()=>{
   execFileSync(process.execPath,['.github/rc1112/build-three-env.mjs'],{stdio:'pipe'});
   const html=fs.readFileSync('dist-rc1112/index.html','utf8');
   const runtime=saveRuntime(html);
   const statusPos=runtime.indexOf("if(!q(saved.status))saved.status='Entwurf';");
+  const recalcPos=runtime.indexOf('function recalc');
   const eventPos=runtime.indexOf('exporthub:shipment-saved');
-  const buttonPos=html.indexOf('rc363SaveShipment');
+  const warehousePos=html.indexOf('ExportHUBWarehouse');
+  const qrRegisterPos=html.indexOf('pickupQrRegistered:true');
   assert.ok(statusPos>=0,'RC565 Statusanker fehlt');
-  assert.ok(buttonPos>=0,'Save-Button fehlt');
+  assert.ok(recalcPos>=0,'RC565 recalc fehlt');
   const excerpt=[
-    'STATUS='+runtime.slice(Math.max(0,statusPos-2200),statusPos+6200),
-    'BUTTON='+html.slice(Math.max(0,buttonPos-1800),buttonPos+7500),
-    'EVENT='+runtime.slice(Math.max(0,eventPos-2200),eventPos+5200)
+    'STATUS='+runtime.slice(Math.max(0,statusPos-1800),statusPos+5600),
+    'RECALC='+runtime.slice(recalcPos,recalcPos+7600),
+    'EVENT='+runtime.slice(Math.max(0,eventPos-1800),eventPos+3800),
+    'WAREHOUSE='+html.slice(Math.max(0,warehousePos-2600),warehousePos+7800),
+    'QRREGISTER='+html.slice(Math.max(0,qrRegisterPos-2600),qrRegisterPos+7800)
   ].join('\n---RC1319---\n');
   assert.fail(excerpt);
 });
