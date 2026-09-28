@@ -18,6 +18,10 @@ var observer=null;
 var current='de';
 var loadPromise=null;
 var selector=null;
+var translateFrame=0;
+var queuedRoots=[];
+var queuedTextNodes=[];
+var fullBodyQueued=false;
 
 function q(v){return String(v==null?'':v).trim()}
 function normalize(value){
@@ -182,7 +186,7 @@ function translateAttributes(root,lang){
    if(!el.hasAttribute(attr)&&!explicit[attr])return;
    if(memory[attr]===undefined)memory[attr]=el.getAttribute(attr)||'';
    var next=explicit[attr]?t(explicit[attr],null,lang):translateLegacyValue(memory[attr],lang);
-   if(next!==undefined&&next!==null)el.setAttribute(attr,next);
+   if(next!==undefined&&next!==null&&el.getAttribute(attr)!==String(next))el.setAttribute(attr,next);
   });
  });
 }
@@ -196,9 +200,9 @@ function translateDataKeys(root,lang){
   if(!key)return;
   var target=el.getAttribute('data-i18n-target');
   var value=t(key,null,lang);
-  if(target==='value')el.value=value;
-  else if(target)el.setAttribute(target,value);
-  else el.textContent=value;
+  if(target==='value'){if(el.value!==value)el.value=value}
+  else if(target){if(el.getAttribute(target)!==value)el.setAttribute(target,value)}
+  else if(el.textContent!==value)el.textContent=value;
  });
 }
 function translate(root,lang){
@@ -308,13 +312,46 @@ function reportError(error){
  try{console.error('[ExportHUB i18n]',error)}catch(_){}
  try{w.dispatchEvent(new CustomEvent('exporthub:i18n-error',{detail:{message:String(error&&error.message||error),language:current}}))}catch(_){}
 }
+function scheduleTranslateFlush(){
+ if(translateFrame)return;
+ var run=function(){
+  translateFrame=0;
+  if(fullBodyQueued){
+   fullBodyQueued=false;queuedRoots.length=0;queuedTextNodes.length=0;
+   if(d.body)translate(d.body,current);
+   return;
+  }
+  var roots=queuedRoots.slice(),texts=queuedTextNodes.slice();
+  queuedRoots.length=0;queuedTextNodes.length=0;
+  roots.forEach(function(root){if(root&&root.isConnected)translate(root,current)});
+  texts.forEach(function(node){
+   if(!node||!node.isConnected)return;
+   var covered=roots.some(function(root){return root&&root.contains&&node.parentElement&&root.contains(node.parentElement)});
+   if(!covered)translateTextNode(node,current);
+  });
+ };
+ translateFrame=typeof w.requestAnimationFrame==='function'?w.requestAnimationFrame(run):w.setTimeout(run,0);
+}
+function queueTranslateRoot(node){
+ if(!node||node.nodeType!==1||fullBodyQueued)return;
+ for(var i=0;i<queuedRoots.length;i++)if(queuedRoots[i].contains&&queuedRoots[i].contains(node))return;
+ queuedRoots=queuedRoots.filter(function(existing){return !(node.contains&&node.contains(existing))});
+ queuedRoots.push(node);scheduleTranslateFlush();
+}
+function queueTranslateText(node){
+ if(!node||fullBodyQueued)return;
+ queuedTextNodes.push(node);scheduleTranslateFlush();
+}
+function queueFullTranslation(){
+ fullBodyQueued=true;queuedRoots.length=0;queuedTextNodes.length=0;scheduleTranslateFlush();
+}
 function watch(){
  if(observer||typeof MutationObserver==='undefined'||!d.body)return;
  observer=new MutationObserver(function(records){
   records.forEach(function(record){
    Array.from(record.addedNodes||[]).forEach(function(node){
-    if(node.nodeType===1)translate(node,current);
-    else if(node.nodeType===3)translateTextNode(node,current);
+    if(node.nodeType===1)queueTranslateRoot(node);
+    else if(node.nodeType===3)queueTranslateText(node);
    });
   });
  });
@@ -336,7 +373,7 @@ w.addEventListener('exporthub:user-profile-updated',function(ev){
  if(lang)setLanguage(lang).catch(reportError);
 });
 w.addEventListener('exporthub:language-changed',function(){updateSelectorCaption()});
-['exporthub:state-loaded','exporthub:sync','exporthub:customer-updated','exporthub:shipment-updated','exporthub:task-updated'].forEach(function(name){w.addEventListener(name,function(){buildDynamicIndex();ensureSelector();if(d.body)translate(d.body,current)})});
+['exporthub:state-loaded','exporthub:sync','exporthub:customer-updated','exporthub:shipment-updated','exporthub:task-updated'].forEach(function(name){w.addEventListener(name,function(){buildDynamicIndex();ensureSelector();if(d.body)queueFullTranslation()})});
 ['exporthub:ready','exporthub:login','exporthub:authenticated','exporthub:user-changed','exporthub:profile-loaded'].forEach(function(name){w.addEventListener(name,function(){syncProfileLanguage().catch(reportError)})});
 w.ExportHUBI18n=Object.freeze({
  version:VERSION,
