@@ -546,11 +546,11 @@ function patchRc1283LoadingListSearch(html,file){
     html=html.replace(anchor,bridge+'\n'+anchor);
   }
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1283-loading-list-search" defer src="/assets/rc1283-loading-list-search.js?v=1305"></script>','exporthub-rc1283-loading-list-search');
-  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1315-loading-list-quick-print" defer src="/assets/rc1315-loading-list-quick-print.js?v=1315"></script>','exporthub-rc1315-loading-list-quick-print');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1315-loading-list-quick-print" defer src="/assets/rc1315-loading-list-quick-print.js?v=1322"></script>','exporthub-rc1315-loading-list-quick-print');
   if(!html.includes('__EXPORTHUB_RC1283_OPEN_LOAD1__'))throw new Error(file+': RC1283 Ladelisten-Öffnen/Drucken-Bridge fehlt');
   if(!html.includes('__EXPORTHUB_RC1283_DOWNLOAD_LOAD1__'))throw new Error(file+': RC1283 Ladelisten-Download-Bridge fehlt');
   if(!html.includes('assets/rc1283-loading-list-search.js?v=1305'))throw new Error(file+': RC1283 Ladelisten-Suche fehlt');
-  if(!html.includes('assets/rc1315-loading-list-quick-print.js?v=1315'))throw new Error(file+': RC1315 QR-/REF-Schnelldruck fehlt');
+  if(!html.includes('assets/rc1315-loading-list-quick-print.js?v=1322'))throw new Error(file+': RC1315 QR-/REF-Schnelldruck fehlt');
   return html;
 }
 
@@ -671,7 +671,7 @@ function patchHtml(file){
   if(!html.includes('assets/rc1176-shipment-location.js?v=1202'))throw new Error(file+': RC1191 Standort-Capture-Runtime fehlt');
   if(!html.includes('assets/rc1203-deckblatt-print.js?v=1281'))throw new Error(file+': RC1205 Deckblatt-Runtime fehlt');
   if(!html.includes('assets/rc1283-loading-list-search.js?v=1305'))throw new Error(file+': RC1283 Ladelisten-Suchruntime fehlt');
-  if(!html.includes('assets/rc1315-loading-list-quick-print.js?v=1315'))throw new Error(file+': RC1315 QR-/REF-Schnelldruck-Runtime fehlt');
+  if(!html.includes('assets/rc1315-loading-list-quick-print.js?v=1322'))throw new Error(file+': RC1315 QR-/REF-Schnelldruck-Runtime fehlt');
   if(!html.includes('assets/rc1305-loading-list-print.js?v=1316'))throw new Error(file+': RC1305 Ladelisten-Druckruntime fehlt im HTML');
   if(!html.includes('__EXPORTHUB_RC1283_OPEN_LOAD1__'))throw new Error(file+': RC1283 Ladelisten-Öffnen/Drucken-Bridge fehlt');
   if(!html.includes('assets/rc1207-pallet-account-fix.js?v=1246'))throw new Error(file+': RC1207 Palettenkonto-Runtime fehlt');
@@ -811,7 +811,7 @@ fs.writeFileSync(path.join(OUT,'rc1112-manifest.json'),JSON.stringify({
     deckblattHighVisibility:'RC1281 white cover + Essentra yellow / customer blue reference + lighter recipient + shipment created date',
     loadingListSearch:'RC1305 full-width search by reference/customer/attachment/remark + compact result/detail workspace + open/print/download',
     loadingListPrintRedesign:'RC1305 compact delivery-note grid + actual pickup data after collection + explicit missing values',
-    loadingListQuickPrint:'RC1315 dedicated print QR on loading list 1 + QR/REF scan starts the complete shipment print',
+    loadingListQuickPrint:'RC1322 dedicated print QR + QR/REF complete print + Edge silent-print workstation setup',
     coverOnlyPrint:'RC1205 single Nur Deckblatt drucken action inside Speichern & Ausgabe',
     palletAccountDirectionAndAdminDelete:'RC1207 visible direction is saved, admin tombstone delete, one-time production cleanup 2026-09-21',
     coverRemark:'RC1281 compact remark block above QR without overlap',
