@@ -1134,6 +1134,7 @@
   "loadingListPrint.noRemark": "Brak zapisanej uwagi",
   "loadingListPrint.signatureStored": "Zapisano cyfrowo",
   "loadingListPrint.driverSignature": "Podpis kierowcy",
+  "loadingListPrint.customsDocumentsReceived": "Otrzymano dokumenty celne",
   "loadingListPrint.palletMovement": "Wydanie: {{out}} · Przyjęcie/zwrot: {{returned}}",
   "layout.shipmentProcess": "Proces wysyłki",
   "layout.customerRecipient": "Klient i odbiorca",
