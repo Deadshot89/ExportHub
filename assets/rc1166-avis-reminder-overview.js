@@ -79,12 +79,26 @@ function closed(sh){
  if(q(sh.actualPickupAt||sh.pickedUpAt||sh.pickupConfirmedAt||sh.qrPickupConfirmedAt||sh.pickupCompletedAt))return true;
  return /^(?:abgeholt|pod vorhanden|abgeschlossen|archiviert|picked up|pod available|completed|archived)$/i.test(q(sh.status||sh.shipmentStatus||sh.processStatus))
 }
+var RC1331_AVIS_ORIGIN='https://exporthub360.com';
+function canonicalAvisLink(sh,url){
+ var token=q(sh&&(sh.customerAvisToken||sh.avisToken)),env='';
+ try{
+  var u=new URL(q(url)||'',w.location&&w.location.href||'https://exporthub.invalid/');
+  if(!token)token=q(u.searchParams.get('token')||u.searchParams.get('avis'));
+  if(!token){var m=String(u.pathname||'').match(/\/avis\/([^/?#]+)\/?$/i);if(m&&m[1]){try{token=decodeURIComponent(m[1])}catch(_){token=m[1]}}}
+  env=q(u.searchParams.get('environment')).toLowerCase()
+ }catch(_){}
+ if(!token)return q(url);
+ if(!env)env=environmentName();
+ var out=RC1331_AVIS_ORIGIN+'/avis/'+encodeURIComponent(token);
+ return env&&env!=='production'?out+'?environment='+encodeURIComponent(env):out
+}
 function avisLink(sh){
  if(!sh||exception(sh)||closed(sh))return'';
  var direct=q(sh.customerAvisUrl||sh.avisUrl||sh.customerAvisLink||sh.avisLink);
- if(/^https:\/\//i.test(direct))return direct;
+ if(direct)return canonicalAvisLink(sh,direct);
  var api=w.ExportHUBCustomerAvis706||w.ExportHUBCustomerAvis705;
- try{if(api&&typeof api.link==='function'){var u=q(api.link(sh));if(/^https:\/\//i.test(u))return u}}catch(_){}
+ try{if(api&&typeof api.link==='function'){var u=q(api.link(sh));if(u)return canonicalAvisLink(sh,u)}}catch(_){}
  return''
 }
 function localizedLink(url,lang){
