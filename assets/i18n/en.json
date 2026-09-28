@@ -1163,5 +1163,14 @@
   "taskPlan.help": "These recurring tasks are permanently assigned to you. Tasks due today also appear below as actionable tasks.",
   "taskPlan.count": "{{count}} saved",
   "taskPlan.today": "Today",
-  "taskPlan.always": "Always available"
+  "taskPlan.always": "Always available",
+  "loadingListQuickPrint.title": "Quick print · QR / REF",
+  "loadingListQuickPrint.description": "Scan the QR code or enter the 6-character REF and press Enter. The complete print job starts immediately.",
+  "loadingListQuickPrint.placeholder": "Scan QR or enter REF",
+  "loadingListQuickPrint.button": "Print all documents",
+  "loadingListQuickPrint.ready": "Ready for QR scan or REF.",
+  "loadingListQuickPrint.printing": "Complete print for {{ref}} started.",
+  "loadingListQuickPrint.invalid": "No valid 6-character REF detected.",
+  "loadingListQuickPrint.missing": "Shipment {{ref}} was not found.",
+  "loadingListQuickPrint.noPrint": "Complete print is not available for this shipment."
 }

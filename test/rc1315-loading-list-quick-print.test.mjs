@@ -104,3 +104,21 @@ test('RC1315: Schnelldruck löst den vorhandenen Gesamtdruck aus statt eine zwei
   assert.match(quick,/keydown/);
   assert.match(quick,/e\.key!=='Enter'/);
 });
+
+test('RC1315: zentrale Sprachpakete enthalten alle Schnelldruck-Texte',()=>{
+  const keys=[
+    'loadingListQuickPrint.title',
+    'loadingListQuickPrint.description',
+    'loadingListQuickPrint.placeholder',
+    'loadingListQuickPrint.button',
+    'loadingListQuickPrint.ready',
+    'loadingListQuickPrint.printing',
+    'loadingListQuickPrint.invalid',
+    'loadingListQuickPrint.missing',
+    'loadingListQuickPrint.noPrint'
+  ];
+  for(const lang of ['de','en','pl','es','fr','it']){
+    const pack=JSON.parse(fs.readFileSync('assets/i18n/'+lang+'.json','utf8'));
+    for(const key of keys)assert.equal(typeof pack[key]==='string'&&pack[key].trim().length>0,true,lang+' fehlt '+key);
+  }
+});

@@ -1163,5 +1163,14 @@
   "taskPlan.help": "Diese wiederkehrenden Aufgaben sind fest für dich hinterlegt. Die fälligen Aufgaben erscheinen zusätzlich unten als bearbeitbare Aufgaben.",
   "taskPlan.count": "{{count}} hinterlegt",
   "taskPlan.today": "Heute",
-  "taskPlan.always": "Immer verfügbar"
+  "taskPlan.always": "Immer verfügbar",
+  "loadingListQuickPrint.title": "Schnelldruck · QR / REF",
+  "loadingListQuickPrint.description": "QR scannen oder 6-stellige REF eingeben und Enter drücken. Danach startet der Gesamtdruck.",
+  "loadingListQuickPrint.placeholder": "QR scannen oder REF eingeben",
+  "loadingListQuickPrint.button": "Alle Dokumente drucken",
+  "loadingListQuickPrint.ready": "Bereit für QR-Scan oder REF.",
+  "loadingListQuickPrint.printing": "Gesamtdruck für {{ref}} gestartet.",
+  "loadingListQuickPrint.invalid": "Keine gültige 6-stellige REF erkannt.",
+  "loadingListQuickPrint.missing": "Sendung {{ref}} wurde nicht gefunden.",
+  "loadingListQuickPrint.noPrint": "Gesamtdruck ist für diese Sendung nicht verfügbar."
 }
