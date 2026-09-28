@@ -10,6 +10,7 @@ const init=fs.readFileSync('api/pickup-init/index.js','utf8');
 const store=fs.readFileSync('api/shared/pickup-store.js','utf8');
 const loadingList=fs.readFileSync('assets/rc1305-loading-list-print.js','utf8');
 const podArchive=fs.readFileSync('api/shared/pod-archive.js','utf8');
+const publicAccess=fs.readFileSync('api/shared/public-access-store.js','utf8');
 
 test('RC1315: zweite Fahrerunterschrift erscheint nur bei tatsächlich vorhandenem ABD',()=>{
   assert.match(pickup,/id="customsSignatureField" hidden/);
@@ -79,4 +80,10 @@ test('RC1315: geänderte JavaScript-Dateien sind syntaktisch gültig',()=>{
   const scripts=[...pickup.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].map(m=>m[1]).filter(Boolean);
   assert.ok(scripts.length>0,'Pickup-Script fehlt');
   for(const script of scripts)new Function(script);
+});
+
+
+test('RC1316: bestätigte Pickup-PODs und Unterschriften bleiben nach Linkablauf lesbar',()=>{
+  assert.match(publicAccess,/record\.kind==='pickup'&&allowUsed&&record\.usedAt/);
+  assert.match(publicAccess,/ACCESS_EXPIRED/);
 });
