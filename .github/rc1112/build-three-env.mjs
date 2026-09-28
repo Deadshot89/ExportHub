@@ -388,36 +388,23 @@ function patchRc1259ContainerSearch(html,file){
 function patchCompletePrintBundle(html,file){
   const loadStart=html.indexOf('function loadHtml(sh,withQr){');
   const loadEnd=loadStart<0?-1:html.indexOf('function documentCacheKey',loadStart);
-  if(loadStart<0||loadEnd<0)throw new Error(file+': RC1274 Ladelisten-/CMR-Druckmodul fehlt');
+  if(loadStart<0||loadEnd<0)throw new Error(file+': RC1316 Ladelisten-/CMR-Druckmodul fehlt');
   let block=html.slice(loadStart,loadEnd);
 
-  const copyOld="withQr?'1 / 1 · mit QR-Code':'ohne QR-Code'";
-  const copyNew="withQr?'1 / 2 · mit QR-Code':'2 / 2 · ohne QR-Code'";
-  if(!block.includes(copyOld)&&!block.includes(copyNew))throw new Error(file+': RC1274 Ladelisten-Seitenkennzeichnung fehlt');
-  block=block.replace(copyOld,copyNew);
-
-  const cmrOld="for(var i=1;i<=3;i++){";
-  const cmrNew="for(var i=1;i<=4;i++){";
-  if(!block.includes(cmrOld)&&!block.includes(cmrNew))throw new Error(file+': RC1274 CMR-Ausfertigungszähler fehlt');
-  block=block.replace(cmrOld,cmrNew);
-  block=block.replace("CMR '+i+' / 3</div></div>'","CMR '+i+' / 4</div></div>'");
-
+  block=block.replace("withQr?'1 / 2 · mit QR-Code':'2 / 2 · ohne QR-Code'","withQr?'1 / 1 · mit QR-Code':'ohne QR-Code'");
+  block=block.replace("for(var i=1;i<=4;i++){","for(var i=1;i<=1;i++){");
+  block=block.replace("for(var i=1;i<=3;i++){","for(var i=1;i<=1;i++){");
+  block=block.replace("CMR '+i+' / 4</div></div>'","CMR '+i+' / 1</div></div>'");
+  block=block.replace("CMR '+i+' / 3</div></div>'","CMR '+i+' / 1</div></div>'");
   html=html.slice(0,loadStart)+block+html.slice(loadEnd);
 
-  const bundleOld="+coverHtml(sh)+loadHtml(sh,true)+cmrHtml(sh)+";
-  const bundleNew="+coverHtml(sh)+loadHtml(sh,true)+loadHtml(sh,false)+cmrHtml(sh)+";
-  if(!html.includes(bundleOld)&&!html.includes(bundleNew))throw new Error(file+': RC1274 Gesamtdruck-Bundle-Anker fehlt');
-  html=html.replace(bundleOld,bundleNew);
+  html=html.replace("+coverHtml(sh)+loadHtml(sh,true)+loadHtml(sh,false)+cmrHtml(sh)+","+coverHtml(sh)+loadHtml(sh,true)+cmrHtml(sh)+");
+  html=html.replace("return[d.cover,d.load1,d.load2].concat(d.cmrs.slice(0,4)).filter(Boolean)","return[d.cover,d.load1].concat(d.cmrs.slice(0,1)).filter(Boolean)");
+  html=html.replace("return[d.cover,d.load1].concat(d.cmrs.slice(0,3)).filter(Boolean)","return[d.cover,d.load1].concat(d.cmrs.slice(0,1)).filter(Boolean)");
 
-  const pagesOld="return[d.cover,d.load1].concat(d.cmrs.slice(0,3)).filter(Boolean)";
-  const pagesNew="return[d.cover,d.load1,d.load2].concat(d.cmrs.slice(0,4)).filter(Boolean)";
-  if(!html.includes(pagesOld)&&!html.includes(pagesNew))throw new Error(file+': RC1274 Gesamtdruck-Seitenauswahl fehlt');
-  html=html.replace(pagesOld,pagesNew);
-
-  if(!html.includes("loadHtml(sh,true)+loadHtml(sh,false)+cmrHtml(sh)"))throw new Error(file+': RC1274 L2 fehlt im Gesamtdruck');
-  if(!html.includes("return[d.cover,d.load1,d.load2].concat(d.cmrs.slice(0,4)).filter(Boolean)"))throw new Error(file+': RC1274 Druckreihenfolge ist unvollständig');
-  if(!html.includes("withQr?'1 / 2 · mit QR-Code':'2 / 2 · ohne QR-Code'"))throw new Error(file+': RC1274 L1/L2-Kennzeichnung fehlt');
-  if(!html.includes("for(var i=1;i<=4;i++){")||!html.includes("CMR '+i+' / 4</div></div>'"))throw new Error(file+': RC1274 vier CMR-Ausfertigungen fehlen');
+  if(html.includes("loadHtml(sh,true)+loadHtml(sh,false)+cmrHtml(sh)"))throw new Error(file+': RC1316 doppelte Ladeliste noch aktiv');
+  if(!html.includes("return[d.cover,d.load1].concat(d.cmrs.slice(0,1)).filter(Boolean)"))throw new Error(file+': RC1316 Druckreihenfolge 1x Ladeliste/1x CMR fehlt');
+  if(!html.includes("for(var i=1;i<=1;i++){")||!html.includes("CMR '+i+' / 1</div></div>'"))throw new Error(file+': RC1316 CMR muss genau einmal erzeugt werden');
   return html;
 }
 
@@ -429,13 +416,15 @@ function patchRc1305LoadingListPresentation(html,file){
     const wrapper=[
       "var rc1305LoadHtmlOriginal=loadHtml;",
       "loadHtml=function(sh,withQr){var out=rc1305LoadHtmlOriginal(sh,withQr);try{var api=window.ExportHUBRC1305LoadingListPrint;if(api&&typeof api.enhance==='function')return api.enhance(out,sh||{},withQr===true)}catch(e){try{console.warn('RC1305 Ladelisten-Enhancer',e)}catch(_){}}return out};",
+      "var rc1316CoverHtmlOriginal=coverHtml;",
+      "coverHtml=function(sh){var out=rc1316CoverHtmlOriginal(sh);try{var api=window.ExportHUBRC1305LoadingListPrint;if(api&&typeof api.enhanceCover==='function')return api.enhanceCover(out,sh||{})}catch(e){try{console.warn('RC1316 Deckblatt-Enhancer',e)}catch(_){}}return out};",
       "window.__EXPORTHUB_RC1305_LOAD_HTML_WRAPPED__=true;"
     ].join('\n')+'\n';
     html=html.slice(0,loadEnd)+wrapper+html.slice(loadEnd);
   }
-  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1305-loading-list-print" defer src="/assets/rc1305-loading-list-print.js?v=1315"></script>','exporthub-rc1305-loading-list-print');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1305-loading-list-print" defer src="/assets/rc1305-loading-list-print.js?v=1316"></script>','exporthub-rc1305-loading-list-print');
   if(!html.includes('__EXPORTHUB_RC1305_LOAD_HTML_WRAPPED__'))throw new Error(file+': RC1305 interner Ladelisten-Renderer ist nicht angebunden');
-  if(!html.includes('assets/rc1305-loading-list-print.js?v=1315'))throw new Error(file+': RC1305 Ladelisten-Druckruntime fehlt');
+  if(!html.includes('assets/rc1305-loading-list-print.js?v=1316'))throw new Error(file+': RC1305 Ladelisten-Druckruntime fehlt');
   return html;
 }
 
@@ -683,7 +672,7 @@ function patchHtml(file){
   if(!html.includes('assets/rc1203-deckblatt-print.js?v=1281'))throw new Error(file+': RC1205 Deckblatt-Runtime fehlt');
   if(!html.includes('assets/rc1283-loading-list-search.js?v=1305'))throw new Error(file+': RC1283 Ladelisten-Suchruntime fehlt');
   if(!html.includes('assets/rc1315-loading-list-quick-print.js?v=1315'))throw new Error(file+': RC1315 QR-/REF-Schnelldruck-Runtime fehlt');
-  if(!html.includes('assets/rc1305-loading-list-print.js?v=1315'))throw new Error(file+': RC1305 Ladelisten-Druckruntime fehlt im HTML');
+  if(!html.includes('assets/rc1305-loading-list-print.js?v=1316'))throw new Error(file+': RC1305 Ladelisten-Druckruntime fehlt im HTML');
   if(!html.includes('__EXPORTHUB_RC1283_OPEN_LOAD1__'))throw new Error(file+': RC1283 Ladelisten-Öffnen/Drucken-Bridge fehlt');
   if(!html.includes('assets/rc1207-pallet-account-fix.js?v=1246'))throw new Error(file+': RC1207 Palettenkonto-Runtime fehlt');
   if(!html.includes('assets/rc1294-abd-self-service.js?v=1294'))throw new Error(file+': RC1294 ABD-Self-Service-Runtime fehlt');
