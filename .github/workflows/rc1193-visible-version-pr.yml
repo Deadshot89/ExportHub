@@ -6,8 +6,10 @@ on:
     paths:
       - 'assets/rc1193-visible-release.js'
       - 'assets/rc1177-release-notes.js'
+      - 'release-version.json'
       - 'e2e/specs/version-display.spec.mjs'
       - 'test/rc1193-*'
+      - 'test/rc1314-explicit-visible-release.test.mjs'
       - '.github/rc1112/build-three-env.mjs'
       - '.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml'
       - '.github/workflows/rc1193-visible-version-pr.yml'
@@ -26,7 +28,7 @@ jobs:
         with:
           node-version: '24'
       - name: RC1265 Versionsvertrag prüfen
-        run: node --test test/rc1193-visible-release-version.test.mjs
+        run: node --test test/rc1193-visible-release-version.test.mjs test/rc1314-explicit-visible-release.test.mjs
       - name: Drei-Umgebungen-Paket bauen
         run: node .github/rc1112/build-three-env.mjs
       - name: Playwright installieren
