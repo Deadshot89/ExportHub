@@ -79,17 +79,18 @@ test('RC1315: Druck-QR verwendet einen getrennten Payload und erzeugt echtes SVG
   assert.match(svg,/<path d="M/);
 });
 
-test('RC1315: Druck-QR bleibt auf Ladeliste 1 beschränkt',()=>{
-  assert.match(printRuntime,/addQuickPrintQr\(root,sh\|\|\{\},withQr===true\)/);
-  assert.match(printRuntime,/if\(!withQr\|\|!root\|\|root\.querySelector\('\[data-rc1315-print-qr\]'\)\)return false/);
+test('RC1316: Druck-QR liegt nur auf dem Deckblatt und nicht auf der Ladeliste',()=>{
+  assert.doesNotMatch(printRuntime,/pickupSummary\(root,sh\|\|\{\}\);addQuickPrintQr/);
+  assert.match(printRuntime,/function enhanceCover\(html,sh\)/);
+  assert.match(printRuntime,/addQuickPrintQr\(root,sh\|\|\{\},true\)/);
   assert.match(printRuntime,/payload='EHPRINT:'\+ref/);
-  assert.match(printRuntime,/Druck-QR/);
+  assert.match(printRuntime,/width:14mm!important;height:14mm!important/);
 });
 
 test('RC1315: Release-Build lädt Schnelldruck und reicht withQr an den Renderer weiter',()=>{
   assert.match(build,/assets\/rc1315-loading-list-quick-print\.js\?v=1315/);
-  assert.match(build,/assets\/rc1305-loading-list-print\.js\?v=1315/);
-  assert.match(build,/api\.enhance\(out,sh\|\|\{\},withQr===true\)/);
+  assert.match(build,/assets\/rc1305-loading-list-print\.js\?v=1316/);
+  assert.match(build,/api\.enhance\(out,sh\|\|\{\},withQr===true\)/); assert.match(build,/api\.enhanceCover==='function'/);
   assert.match(build,/'assets\/rc1315-loading-list-quick-print\.js'/);
   assert.match(build,/loadingListQuickPrint:'RC1315/);
 });
