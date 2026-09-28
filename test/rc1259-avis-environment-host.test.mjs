@@ -72,12 +72,21 @@ test('RC1259: TESTSERVICE lehnt Produktions-Avis-Link weiterhin ab',async()=>{
   assert.equal(result.body.code,'AVIS_URL_INVALID');
 });
 
-test('RC1259: Produktion akzeptiert nur die Produktionsdomain',async()=>{
-  const ok=await invoke({
+test('RC1326: Produktion akzeptiert den neuen ExportHUB360-Avis-Link und bestehende Altlinks',async()=>{
+  const branded=await invoke({
+    environment:'production',
+    avisUrl:'https://exporthub360.com/avis/abc'
+  });
+  assert.equal(branded.status,200);
+  assert.equal(branded.body.ok,true);
+
+  const legacy=await invoke({
     environment:'production',
     avisUrl:'https://wonderful-forest-0f315e310.7.azurestaticapps.net/customer-avis.html?token=abc'
   });
-  assert.equal(ok.status,200);
+  assert.equal(legacy.status,200);
+  assert.equal(legacy.body.ok,true);
+
   const bad=await invoke({
     environment:'production',
     avisUrl:'https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net/customer-avis.html?token=abc'
