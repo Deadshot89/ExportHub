@@ -9,6 +9,7 @@ const apiI18n = require('../shared/i18n');
 
 const TEAM_CONTAINER = process.env.EXPORTHUB_STORAGE_CONTAINER || process.env.EXPORTHUB_CONTAINER || 'exporthub-data';
 const TEAM_BLOB = process.env.EXPORTHUB_STORAGE_BLOB || process.env.EXPORTHUB_STATE_BLOB || 'team-state.json';
+const TEST_TEAM_BLOB = process.env.EXPORTHUB_TEST_STORAGE_BLOB || ('testservice/' + String(TEAM_BLOB).replace(/^\/+/, ''));
 const AUTH_BLOB = process.env.EXPORTHUB_AUTH_BLOB || 'auth-sessions.json';
 
 function json(status, body) {
@@ -16,6 +17,14 @@ function json(status, body) {
 }
 function text(v) { return String(v == null ? '' : v).trim(); }
 function lower(v) { return text(v).toLowerCase(); }
+function environmentOf(req, payload) {
+  const raw = lower(payload && payload.environment || header(req, 'x-exporthub-environment'));
+  const evidence = lower(header(req, 'origin') || header(req, 'referer') || header(req, 'x-forwarded-host') || header(req, 'x-original-host') || header(req, 'host'));
+  const inferred = /-testservice\./.test(evidence) ? 'testservice' : 'production';
+  if (raw && raw !== 'production' && raw !== 'testservice') throw pins.error('ENVIRONMENT_INVALID', 'Unbekannte ExportHUB-Datenumgebung.', 400);
+  if (raw && raw !== inferred && /azurestaticapps\.net/.test(evidence)) throw pins.error('ENVIRONMENT_MISMATCH', 'Die angeforderte Datenumgebung passt nicht zur ExportHUB-Seite.', 409);
+  return raw || inferred;
+}
 function body(req) { if (req && req.body && typeof req.body === 'object') return req.body; try { return JSON.parse(req && req.body || '{}'); } catch (_) { return {}; } }
 function header(req, name) { const h = req && req.headers || {}; return h[name.toLowerCase()] || h[name] || ''; }
 function token(req, payload) { const auth = String(header(req, 'authorization') || '').replace(/^Bearer\s+/i, ''); return text(header(req, 'x-exporthub-token') || header(req, 'x-exporthub-session') || payload.sessionToken || payload.authToken || auth); }
@@ -56,22 +65,26 @@ async function readJson(blob, fallback, repairInvalid) {
     throw e;
   }
 }
-async function validateGlobalAdmin(req, payload) {
+async function validateGlobalAdmin(req, payload, environment) {
   const t = token(req, payload);
   if (!t) throw pins.error('AUTH_REQUIRED', 'ExportHUB-Admin-Anmeldung erforderlich.', 401);
   const cs = connectionString();
   if (!cs) throw pins.error('STORAGE_NOT_CONFIGURED', 'Azure-Speicher ist nicht konfiguriert.', 503);
-  const service = BlobServiceClient.fromConnectionString(cs), container = service.getContainerClient(TEAM_CONTAINER);
+  const service = BlobServiceClient.fromConnectionString(cs), container = service.getContainerClient(TEAM_CONTAINER), teamBlobName = environment === 'testservice' ? TEST_TEAM_BLOB : TEAM_BLOB;
   const [authDoc, teamDoc] = await Promise.all([
     readJson(container.getBlockBlobClient(AUTH_BLOB), { schemaVersion: 1, sessions: [] }, true),
-    readJson(container.getBlockBlobClient(TEAM_BLOB), { schemaVersion: 3, state: {}, users: [] }, false)
+    readJson(container.getBlockBlobClient(teamBlobName), { schemaVersion: 3, state: {}, users: [] }, false)
   ]);
   const sessions = Array.isArray(authDoc && authDoc.sessions) ? authDoc.sessions : [];
   const digest = tokenHash(t);
   let session = sessions.find(s => safeEqualText(s && s.tokenHash, digest));
   if (!session) {
     const signed = verifySignedSessionToken(t);
-    if (signed) session = { id: text(signed.sid), userId: text(signed.uid), username: text(signed.username), expiresAt: new Date(Number(signed.exp)).toISOString(), authVersion: Number(signed.authVersion || 0), mustChange: signed.mustChange === true, signedFallback: true };
+    if (signed) {
+      const signedEnvironment = lower(signed.environment) || 'production';
+      if (signedEnvironment !== environment) throw pins.error('ENVIRONMENT_MISMATCH', 'Die ExportHUB-Sitzung gehört zu einer anderen Datenumgebung.', 403);
+      session = { id: text(signed.sid), userId: text(signed.uid), username: text(signed.username), expiresAt: new Date(Number(signed.exp)).toISOString(), authVersion: Number(signed.authVersion || 0), mustChange: signed.mustChange === true, signedFallback: true };
+    }
   }
   if (!session) throw pins.error('SESSION_INVALID', 'Die ExportHUB-Sitzung ist nicht mehr gültig. Bitte erneut anmelden.', 401);
   if (session.revokedAt) throw pins.error('SESSION_REVOKED', 'Die ExportHUB-Sitzung wurde beendet. Bitte erneut anmelden.', 401);
@@ -101,10 +114,10 @@ function targetRow(action, before, after, payload) {
   if (action === 'delete') return (before || []).find(x => text(x && x.id) === id) || { id, name: text(payload && payload.name) };
   return (after || []).find(x => text(x && x.id) === id) || (before || []).find(x => text(x && x.id) === id) || { id, name: text(payload && payload.name) };
 }
-async function auditPinChange(action, admin, row) {
+async function auditPinChange(action, admin, row, environment) {
   const type = PIN_AUDIT_TYPES[action];
   if (!type) return true;
-  await auditStore.mutateTeam(team => {
+  await auditStore.mutateTeamForEnvironment(environment, team => {
     auditStore.addAudit(team, type, adminName(admin), {
       loaderId: text(row && row.id),
       loaderName: text(row && row.name),
@@ -119,26 +132,26 @@ module.exports = async function (context, req) {
   if (req.method === 'OPTIONS') { context.res = { status: 204, headers: { 'Cache-Control': 'no-store', 'Allow': 'POST, OPTIONS', 'X-ExportHUB-Loader-Pin-Audit': 'RC1087' }, body: '' }; return; }
   if (req.method !== 'POST') { context.res = json(405, { ok: false, code: 'METHOD_NOT_ALLOWED', message: 'Nur POST ist erlaubt.' }); return; }
   try {
-    const payload = body(req), admin = await validateGlobalAdmin(req, payload), action = text(payload.action || 'list').toLowerCase();
-    const before = PIN_AUDIT_TYPES[action] ? await pins.list() : [];
+    const payload = body(req), environment = environmentOf(req, payload), admin = await validateGlobalAdmin(req, payload, environment), action = text(payload.action || 'list').toLowerCase();
+    const before = PIN_AUDIT_TYPES[action] ? await pins.list(environment) : [];
     let list;
-    if (action === 'list') list = await pins.list();
-    else if (action === 'create') list = await pins.create(payload);
-    else if (action === 'update') list = await pins.update(payload);
-    else if (action === 'toggle') list = await pins.toggle(payload);
-    else if (action === 'delete') list = await pins.remove(payload);
+    if (action === 'list') list = await pins.list(environment);
+    else if (action === 'create') list = await pins.create(payload, environment);
+    else if (action === 'update') list = await pins.update(payload, environment);
+    else if (action === 'toggle') list = await pins.toggle(payload, environment);
+    else if (action === 'delete') list = await pins.remove(payload, environment);
     else throw pins.error('INVALID_ACTION', 'Unbekannte PIN-Aktion.', 400);
 
     let auditStored = true;
     if (PIN_AUDIT_TYPES[action]) {
       const row = targetRow(action, before, list, payload);
-      try { await auditPinChange(action, admin, row); }
+      try { await auditPinChange(action, admin, row, environment); }
       catch (auditError) {
         auditStored = false;
         context.log && context.log.error && context.log.error('loader-pin-audit', auditError && auditError.code, auditError && auditError.message);
       }
     }
-    context.res = json(200, { ok: true, pins: list, count: list.length, serverStored: true, auditStored, admin: adminName(admin), version: 'RC1087' });
+    context.res = json(200, { ok: true, pins: list, count: list.length, serverStored: true, auditStored, admin: adminName(admin), environment, version: 'RC1338' });
   } catch (e) {
     context.log && context.log.error && context.log.error('loader-pins-admin', e && e.code, e && e.message);
     context.res = json(e.status || 500, { ok: false, code: e.code || 'SERVER_ERROR', message: e.message || apiI18n.t(req,'api.loaderPins.manageFailed') });
