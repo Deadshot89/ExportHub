@@ -29,8 +29,17 @@ test('RC1319: erfolgreicher Save übergibt exakt die persistierte Sendung an den
   for(const file of ['index.html','TESTVERSION.html','demo.html']){
     const html=read('dist-rc1112/'+file);
     assert.match(html,/detail:\{id:id,reference:saved\.ref,updated:!!existing,azureSaved:true,shipment:saved\}/,file+': Save-Event muss das persistierte Sendungsobjekt tragen');
-    assert.match(html,/function persisted\(sh\)[\s\S]{0,600}!\/\^DRAFT-\/i\.test\(id\)[\s\S]{0,600}states\(\)\.some/,file+': QR-Zulassung muss echte Persistenz verlangen');
-    assert.match(html,/function eligible\(sh\)[\s\S]{0,500}persisted\(sh\)[\s\S]{0,500}colliCount\(sh\)>0/,file+': QR-Zulassung muss gespeicherte Sendung, Referenz/Kunde und Colli prüfen');
+    const persistedAt=html.indexOf('function persisted(sh)');
+    const eligibleAt=html.indexOf('function eligible(sh)',persistedAt);
+    assert.ok(persistedAt>=0&&eligibleAt>persistedAt,file+': QR-Persistenz-/Zulassungsfunktion fehlt');
+    const persistedBlock=html.slice(persistedAt,eligibleAt);
+    assert.match(persistedBlock,/\^DRAFT-/i,file+': QR-Persistenz muss Draft-IDs ablehnen');
+    assert.match(persistedBlock,/states\(\)\.some/,file+': QR-Persistenz muss gespeicherte State-Kopien prüfen');
+    const eligibleBlock=html.slice(eligibleAt,html.indexOf('function historicalQr',eligibleAt));
+    assert.match(eligibleBlock,/persisted\(sh\)/,file+': QR-Zulassung muss Persistenz verlangen');
+    assert.match(eligibleBlock,/\^\[A-Z0-9\]\{6\}\$/,file+': QR-Zulassung muss sechsstellige Referenz verlangen');
+    assert.match(eligibleBlock,/customerText\(sh\)/,file+': QR-Zulassung muss Kunde verlangen');
+    assert.match(eligibleBlock,/colliCount\(sh\)>0/,file+': QR-Zulassung muss Colli verlangen');
     assert.match(html,/pickupQrRegistered:true[\s\S]{0,700}readyForPickup:true[\s\S]{0,700}readinessStatus:'Bereit zur Abholung'/,file+': QR-Erfolg muss Abholbereitschaft setzen');
     assert.match(html,/one\.status='Bereit zur Abholung';one\.processStatus='Bereit zur Abholung'/,file+': QR-Erfolg muss Status fortschreiben');
   }
