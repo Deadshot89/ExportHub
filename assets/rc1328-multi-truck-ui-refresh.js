@@ -4,9 +4,35 @@ if(!w||!d||w.__EXPORTHUB_RC1328_MULTI_TRUCK_REFRESH__)return;
 w.__EXPORTHUB_RC1328_MULTI_TRUCK_REFRESH__=true;
 
 function arr(v){return Array.isArray(v)?v:[]}
+function q(v){return String(v==null?'':v).trim()}
+function refOf(sh){return q(sh&&(sh.ref||sh.reference||sh.shipmentRef)).toUpperCase()}
 function hasMultiTruck(sh){return !!(sh&&arr(sh.subShipments).length>1)}
 function card(){return d.getElementById('rc380StowPlan')}
 function panel(){return d.getElementById('rc1017-subshipments')}
+
+function state(){
+ try{return typeof w.__EXPORTHUB_GET_STATE__==='function'?(w.__EXPORTHUB_GET_STATE__()||null):null}catch(_){return null}
+}
+function activeReference(s){
+ var direct=refOf(s&&(s.shipment||s.currentShipment||s.selectedShipment));
+ if(direct)return direct;
+ try{
+  var input=typeof d.querySelector==='function'?d.querySelector('#rc363BlockCustomer input[maxlength="6"],input[maxlength="6"][pattern*="A-Z0-9"]'):null;
+  return q(input&&input.value).toUpperCase()
+ }catch(_){return''}
+}
+function currentMultiTruckShipment(){
+ var s=state();if(!s)return null;
+ var current=[s.shipment,s.currentShipment,s.selectedShipment].filter(Boolean);
+ var saved=arr(s.shipments);
+ var ref=activeReference(s);
+ var candidates=current.concat(saved);
+ if(ref){
+  var exact=candidates.find(function(sh){return refOf(sh)===ref&&hasMultiTruck(sh)});
+  if(exact)return exact
+ }
+ return current.find(hasMultiTruck)||null
+}
 
 function refresh(sh){
  if(!hasMultiTruck(sh))return false;
@@ -17,7 +43,7 @@ function refresh(sh){
   w.rc1017SyncSubShipments(sh);
   return !!panel()
  }catch(e){
-  try{console.warn('RC1328 Mehr-LKW UI-Refresh',e)}catch(_){}
+  try{console.warn('RC1332 Mehr-LKW UI-Refresh',e)}catch(_){}
   return false
  }
 }
@@ -26,25 +52,45 @@ function schedule(sh){
  var delays=[0,100,400,1000,2500,6000];
  delays.forEach(function(delay){
   w.setTimeout(function(){
-   if(!hasMultiTruck(sh)||panel())return;
-   refresh(sh)
+   if(panel())return;
+   var current=hasMultiTruck(sh)?sh:currentMultiTruckShipment();
+   if(current)refresh(current)
+  },delay)
+ })
+}
+function scheduleCurrent(){
+ var delays=[0,100,400,1000,2500,6000];
+ delays.forEach(function(delay){
+  w.setTimeout(function(){
+   if(panel())return;
+   var sh=currentMultiTruckShipment();
+   if(sh)refresh(sh)
   },delay)
  })
 }
 
 function onSaved(event){
  var detail=event&&event.detail||{},sh=detail.shipment;
- if(!hasMultiTruck(sh))return;
- schedule(sh)
+ if(hasMultiTruck(sh))schedule(sh);
+ else scheduleCurrent()
 }
 
 w.addEventListener('exporthub:shipment-saved',onSaved);
-w.addEventListener('exporthub:viewchange',function(){
- try{
-  var state=typeof w.__EXPORTHUB_GET_STATE__==='function'?w.__EXPORTHUB_GET_STATE__():null;
-  var sh=state&&(state.shipment||state.currentShipment);
-  if(hasMultiTruck(sh))schedule(sh)
- }catch(_){}
+['exporthub:viewchange','exporthub:rendered','exporthub:sync'].forEach(function(name){
+ w.addEventListener(name,scheduleCurrent)
 });
-w.ExportHUBRC1328MultiTruckRefresh=Object.freeze({refresh:refresh,onSaved:onSaved,schedule:schedule});
+if(typeof d.addEventListener==='function'){
+ d.addEventListener('click',function(event){
+  var target=event&&event.target,button=target&&target.closest&&target.closest('#rc363SaveShipment');
+  if(button)scheduleCurrent()
+ },true)
+}
+w.ExportHUBRC1328MultiTruckRefresh=Object.freeze({
+ refresh:refresh,
+ refreshCurrent:function(){var sh=currentMultiTruckShipment();return sh?refresh(sh):false},
+ onSaved:onSaved,
+ schedule:schedule,
+ scheduleCurrent:scheduleCurrent,
+ currentMultiTruckShipment:currentMultiTruckShipment
+});
 })(window,document);
