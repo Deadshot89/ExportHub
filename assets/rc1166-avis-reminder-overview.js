@@ -4,7 +4,7 @@
 if(!w||!d||w.__EXPORTHUB_RC1166_AVIS_REMINDER__)return;
 w.__EXPORTHUB_RC1166_AVIS_REMINDER__=true;
 
-var timer=0,dialog=null;
+var timer=0,dialog=null,observer=null;
 function q(v){return String(v==null?'':v).trim()}
 function tr(key,vars,language){try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.t==='function')return w.ExportHUBI18n.t(key,vars,language)}catch(_){}return key}
 function low(v){return q(v).toLocaleLowerCase('de-DE')}
@@ -190,19 +190,41 @@ function openDialog(sh){
 function ensureButton(card,sh){
  var url=avisLink(sh),old=card.querySelector&&card.querySelector('[data-rc1166-avis-reminder]');
  if(!url){if(old)old.remove();return false}
- if(old){old.__rc1166Shipment=sh;old.textContent=tr('avisReminder.button');return true}
+ if(old){old.__rc1166Shipment=sh;var label=tr('avisReminder.button');if(q(old.textContent)!==q(label))old.textContent=label;return true}
  var btn=d.createElement('button');btn.type='button';btn.className='btn rc1166-reminder-btn';btn.setAttribute('data-rc1166-avis-reminder','1');btn.textContent=tr('avisReminder.button');btn.__rc1166Shipment=sh;btn.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();openDialog(btn.__rc1166Shipment)});
  var host=card.querySelector&&card.querySelector('.actions,.card-actions,.overview-actions,.rc524-actions,.rc485-actions,.rc229-actions,[data-actions]');
  if(!host){host=d.createElement('div');host.className='rc1166-reminder-row';card.appendChild(host)}
  host.appendChild(btn);return true
 }
+function overviewCards(shipments){
+ var primary='.rc524-shipment-card,.rc485-overview-card,.rc229-shipment-card,.shipment-card,.overview-card,[data-shipment-id],[data-shipment-ref],[data-ref],[data-reference]';
+ var selector=primary+',#content article,#content .card,#content [role="article"]',map=new Map();
+ Array.from(d.querySelectorAll(selector)).forEach(function(card){
+  var sh=cardShipment(card,shipments);if(!sh)return;
+  var key=refOf(sh)||idOf(sh);if(!key)return;
+  var direct=!!(card.matches&&card.matches(primary)),score=(direct?0:100000)+Math.min(q(card.textContent).length,99999),old=map.get(key);
+  if(!old||score<old.score)map.set(key,{card:card,shipment:sh,score:score})
+ });
+ return Array.from(map.values())
+}
 function render(){
  if(!inOverview()){d.querySelectorAll('[data-rc1166-avis-reminder]').forEach(function(x){x.remove()});closeDialog();return 0}
- ensureStyle();var shipments=allShipments(),cards=Array.from(d.querySelectorAll('.rc524-shipment-card,.rc485-overview-card,.rc229-shipment-card,.shipment-card,.overview-card,[data-shipment-id],[data-shipment-ref],[data-ref],[data-reference]')),count=0;
- cards.forEach(function(card){var sh=cardShipment(card,shipments);if(sh&&ensureButton(card,sh))count++;else if(!sh){var b=card.querySelector&&card.querySelector('[data-rc1166-avis-reminder]');if(b)b.remove()}});return count
+ ensureStyle();var shipments=allShipments(),rows=overviewCards(shipments),count=0;
+ rows.forEach(function(row){if(row.shipment&&ensureButton(row.card,row.shipment))count++});return count
 }
-function schedule(){if(timer)return;timer=w.setTimeout(function(){timer=0;try{render()}catch(e){try{console.warn('RC1166 Avis-Erinnerung',e)}catch(_){}}},0)}
-['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded','exporthub:shipment-updated','exporthub:overview-updated','exporthub:customer-avis-updated','exporthub:customer-mail-contacts-updated','exporthub:language-changed'].forEach(function(n){try{w.addEventListener(n,schedule)}catch(_){}});
-if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
-w.ExportHUBRC1166AvisReminder=Object.freeze({version:'RC1292',shipmentContacts:shipmentContacts,avisLink:avisLink,subject:subject,body:body,sendReminder:sendReminder,recipientExcluded:avisRecipientExcluded,render:render});
+function schedule(){if(timer)return;timer=w.setTimeout(function(){timer=0;try{render()}catch(e){try{console.warn('RC1316 Avis-Erinnerung',e)}catch(_){}}},0)}
+function ensureObserver(){
+ if(observer||typeof w.MutationObserver!=='function')return false;
+ var root=d.getElementById&&d.getElementById('content')||d.body;if(!root)return false;
+ observer=new w.MutationObserver(function(mutations){
+  if(!inOverview())return;
+  var relevant=arr(mutations).some(function(m){return m&&m.type==='childList'&&(m.addedNodes&&m.addedNodes.length||m.removedNodes&&m.removedNodes.length)});
+  if(relevant)schedule()
+ });
+ observer.observe(root,{childList:true,subtree:true});return true
+}
+function boot(){ensureObserver();schedule()}
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded','exporthub:shipment-updated','exporthub:overview-updated','exporthub:customer-avis-updated','exporthub:rc1027-avis-ready','exporthub:customer-mail-contacts-updated','exporthub:language-changed','exporthub:theme-changed','exporthub:design-changed'].forEach(function(n){try{w.addEventListener(n,schedule)}catch(_){}});
+if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+w.ExportHUBRC1166AvisReminder=Object.freeze({version:'RC1316',shipmentContacts:shipmentContacts,avisLink:avisLink,subject:subject,body:body,sendReminder:sendReminder,recipientExcluded:avisRecipientExcluded,render:render});
 })(window,document);
