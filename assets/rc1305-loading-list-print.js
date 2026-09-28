@@ -21,7 +21,7 @@ function deliveryFiles(sh){var fields=['deliveryFiles','deliveryNotesFiles','del
 function enhanceDocuments(root,sh){
  var label=findLabel(root,/lieferscheine|delivery\s*notes|\bdncs?\b/i);if(!label)return false;
  var card=cardFor(label,root);if(!card)return false;var body=card.querySelector('.rc390-txt,.rc352-txt,[class*="txt"]')||label.nextElementSibling;
- var files=existingFiles(body);if(!files.length)files=deliveryFiles(sh);
+ var files=deliveryFiles(sh);if(!files.length)files=existingFiles(body);
  card.setAttribute('data-rc1305-documents','1');
  var grid=d.createElement('div');grid.className='rc1305-document-grid';grid.setAttribute('data-rc1305-document-grid','1');
  if(files.length)files.forEach(function(name){var item=d.createElement('span');item.className='rc1305-document-item';item.textContent=name;grid.appendChild(item)});
@@ -91,7 +91,7 @@ function style(){
  '.rc390-load[data-rc1305-loading-list],.rc352-load[data-rc1305-loading-list]{box-sizing:border-box!important}'+
  '[data-rc1305-documents]{min-height:0!important;height:auto!important;overflow:visible!important}'+
  '.rc1305-document-grid{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:1.4mm!important;align-items:stretch!important;min-width:0!important}'+
- '.rc1305-document-item,.rc1305-document-empty{display:flex!important;align-items:center!important;min-width:0!important;padding:1.2mm 1.6mm!important;border:.35mm solid #cbd5e1!important;border-radius:1.6mm!important;background:#f8fafc!important;color:#0f2942!important;font-size:8.4pt!important;line-height:1.15!important;font-weight:700!important;overflow-wrap:anywhere!important;word-break:break-word!important;break-inside:avoid!important;page-break-inside:avoid!important}'+
+ '.rc1305-document-item,.rc1305-document-empty{display:flex!important;align-items:center!important;min-width:0!important;padding:1.5mm 2mm!important;border:.4mm solid #cbd5e1!important;border-radius:2mm!important;background:#fff!important;color:#0f2942!important;font-size:10.5pt!important;line-height:1.2!important;font-weight:750!important;overflow-wrap:anywhere!important;word-break:break-word!important;break-inside:avoid!important;page-break-inside:avoid!important}'+
  '[data-rc1305-remark]{min-height:0!important;height:auto!important;max-height:none!important;overflow:visible!important;padding-bottom:2mm!important}'+
  '[data-rc1305-remark][data-rc1305-empty="1"]{min-height:0!important}'+
  '[data-rc1305-remark][data-rc1305-empty="1"] .rc390-txt,[data-rc1305-remark][data-rc1305-empty="1"] .rc352-txt{color:#64748b!important;font-weight:600!important}'+
