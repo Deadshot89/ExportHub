@@ -111,7 +111,7 @@ async function issue(req,kind,meta={},ttlMs,payload){
 function assertUsable(record,{allowUsed=false,allowLegacyReissued=false}={}){
   if(!record)throw error('ACCESS_INVALID','Dieser öffentliche Link ist ungültig oder nicht mehr aktiv.',410);
   if(record.revokedAt&&!(allowLegacyReissued&&lower(record.revokedReason)==='reissued'))throw error('ACCESS_REVOKED','Dieser öffentliche Link wurde deaktiviert.',410);
-  if(record.kind!=='avis'&&record.expiresAt&&Date.now()>=Date.parse(record.expiresAt))throw error('ACCESS_EXPIRED','Dieser öffentliche Link ist abgelaufen.',410);
+  if(record.kind!=='avis'&&record.expiresAt&&Date.now()>=Date.parse(record.expiresAt)&&!(record.kind==='pickup'&&allowUsed&&record.usedAt))throw error('ACCESS_EXPIRED','Dieser öffentliche Link ist abgelaufen.',410);
   if(record.lockedUntil&&Date.now()<Date.parse(record.lockedUntil))throw error('ACCESS_LOCKED','Zu viele falsche Eingaben. Der Zugriff ist vorübergehend gesperrt.',429);
   const reusableKind=record.kind==='pickup'||record.kind==='avis';
   if(record.usedAt&&!allowUsed&&!reusableKind)throw error('ACCESS_USED','Dieser Einmal-Link wurde bereits verwendet.',410);
