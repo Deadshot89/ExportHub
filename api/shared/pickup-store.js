@@ -110,6 +110,7 @@ async function resolveShipmentContainerConfig(record,environment='production'){
 }
 function abdPresent(source){
  if(!source||typeof source!=='object')return false;
+ if(source.abdPresent===true)return true;
  for(const key of ['abdFiles','abds','abdDocuments']){
   const list=source[key];if(Array.isArray(list)&&list.some(Boolean))return true
  }
