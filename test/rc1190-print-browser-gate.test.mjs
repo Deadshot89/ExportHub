@@ -14,9 +14,11 @@ test('RC1190: Gesamtdruck-Browserabnahme benutzt die echte UI-Aktion und echten 
   assert.match(spec,/__RC1190_PRINT_CAPTURE__/);
   assert.match(spec,/for\(const frame of p\.frames\(\)\)/);
   assert.match(spec,/\\brc390-cover\\b/);
-  for(const marker of ['Ladeliste','Ladeliste\\s*1','Ladeliste\\s*2','CMR','CMR\\s*4','Warenbeschreibung'])assert.ok(spec.includes(marker),marker+' fehlt in der Browserabnahme');
+  for(const marker of ['Ladeliste','Ladeliste\\s*1','CMR','CMR\\s*1','Warenbeschreibung'])assert.ok(spec.includes(marker),marker+' fehlt in der Browserabnahme');
+  assert.match(spec,/expect\(capture\.load2Count\)\.toBe\(0\)/);
+  assert.match(spec,/expect\(capture\.cmrCount\)\.toBe\(1\)/);
   assert.match(spec,/printDocuments:Array\.from\(document\.querySelectorAll\('\.rc390-page,\.rc352-page,\.rc390-cmr-wrap'\)\)/);
-  assert.match(spec,/expect\(capture\.printDocuments\.length\)\.toBe\(7\)/);
+  assert.match(spec,/expect\(capture\.printDocuments\.length\)\.toBe\(3\)/);
   assert.match(spec,/Gesamtdruck enthält ein leeres oder praktisch leeres Druckdokument/);
   assert.match(spec,/vertikal abgeschnittene Inhalte/);
   assert.match(spec,/horizontal abgeschnittene Inhalte/);
@@ -68,11 +70,11 @@ test('RC1275: Browserabnahme prüft Palettenkonto in echtem Ladelisten-Druck',()
   assert.match(spec,/rc1095-pallet-account\/i/);
 });
 
-test('RC1274: finaler Build stellt L2 und vier CMR im Gesamtdruck wieder her',()=>{
+test('RC1316: finaler Build erzwingt genau eine Ladeliste und genau ein CMR',()=>{
   const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
   assert.match(build,/function patchCompletePrintBundle\(/);
-  assert.match(build,/loadHtml\(sh,true\)\+loadHtml\(sh,false\)\+cmrHtml\(sh\)/);
-  assert.match(build,/\[d\.cover,d\.load1,d\.load2\]\.concat\(d\.cmrs\.slice\(0,4\)\)/);
-  assert.match(build,/withQr\?'1 \/ 2 · mit QR-Code':'2 \/ 2 · ohne QR-Code'/);
-  assert.match(build,/for\(var i=1;i<=4;i\+\+\)/);
+  assert.match(build,/RC1316 doppelte Ladeliste noch aktiv/);
+  assert.match(build,/return\[d\.cover,d\.load1\]\.concat\(d\.cmrs\.slice\(0,1\)\)\.filter\(Boolean\)/);
+  assert.match(build,/for\(var i=1;i<=1;i\+\+\)/);
+  assert.match(build,/CMR '\+i\+' \/ 1<\/div><\/div>'/);
 });
