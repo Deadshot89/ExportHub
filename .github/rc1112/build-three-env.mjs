@@ -422,9 +422,9 @@ function patchRc1305LoadingListPresentation(html,file){
     ].join('\n')+'\n';
     html=html.slice(0,loadEnd)+wrapper+html.slice(loadEnd);
   }
-  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1305-loading-list-print" defer src="/assets/rc1305-loading-list-print.js?v=1316"></script>','exporthub-rc1305-loading-list-print');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1305-loading-list-print" defer src="/assets/rc1305-loading-list-print.js?v=1323"></script>','exporthub-rc1305-loading-list-print');
   if(!html.includes('__EXPORTHUB_RC1305_LOAD_HTML_WRAPPED__'))throw new Error(file+': RC1305 interner Ladelisten-Renderer ist nicht angebunden');
-  if(!html.includes('assets/rc1305-loading-list-print.js?v=1316'))throw new Error(file+': RC1305 Ladelisten-Druckruntime fehlt');
+  if(!html.includes('assets/rc1305-loading-list-print.js?v=1323'))throw new Error(file+': RC1305 Ladelisten-Druckruntime fehlt');
   return html;
 }
 
