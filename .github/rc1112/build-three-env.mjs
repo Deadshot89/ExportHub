@@ -49,7 +49,7 @@ const RC1304_THEME_STYLE_TAG='<link id="exporthub-rc1304-theme-style" rel="style
 const RC1304_THEME_SCRIPT_TAG='<script id="exporthub-rc1304-theme-script" src="/assets/rc1304-theme-switcher.js?v=1305"><\/script>';
 const RC1306_LAYOUT_STYLE_TAG='<link id="exporthub-rc1306-layout-style" rel="stylesheet" href="/assets/rc1306-layout-engine.css?v=1306">';
 const RC1306_LAYOUT_SCRIPT_TAG='<script id="exporthub-rc1306-layout-script" defer src="/assets/rc1306-layout-engine.js?v=1306"><\/script>';
-const RC1328_MULTI_TRUCK_REFRESH_TAG='<script id="exporthub-rc1328-multi-truck-refresh" defer src="/assets/rc1328-multi-truck-ui-refresh.js?v=1332"><\/script>';
+const RC1328_MULTI_TRUCK_REFRESH_TAG='<script id="exporthub-rc1328-multi-truck-refresh" defer src="/assets/rc1328-multi-truck-ui-refresh.js?v=1333"><\/script>';
 
 function patchRc1296BrowserBranding(html,file){
   if(file!=='index.html')return html;
@@ -103,7 +103,7 @@ function patchRc1306LayoutEngine(html,file){
 
 function patchRc1328MultiTruckRefresh(html,file){
   html=injectDeferredRuntimeInHead(html,RC1328_MULTI_TRUCK_REFRESH_TAG,'exporthub-rc1328-multi-truck-refresh');
-  if(!html.includes('assets/rc1328-multi-truck-ui-refresh.js?v=1332'))throw new Error(file+': RC1332 Mehr-LKW UI-Refresh fehlt');
+  if(!html.includes('assets/rc1328-multi-truck-ui-refresh.js?v=1333'))throw new Error(file+': RC1333 Mehr-LKW UI-Refresh fehlt');
   return html;
 }
 
