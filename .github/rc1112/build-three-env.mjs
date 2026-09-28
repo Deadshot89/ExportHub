@@ -651,6 +651,24 @@ function patchRc1329MultiTruckRenderer(html,file){
   ])if(!renderer.includes(required))throw new Error(file+': RC1329 vollständiger Mehr-LKW-Renderer fehlt: '+required);
   return html;
 }
+function patchRc1331MultiTruckSaveIsolation(html,file){
+  const syncStartMarker='function rc1017SyncSubShipments(target){';
+  const syncEndMarker='window.rc1017SyncSubShipments=rc1017SyncSubShipments;';
+  const start=html.indexOf(syncStartMarker),end=html.indexOf(syncEndMarker,start);
+  if(start<0||end<=start)throw new Error(file+': RC1331 Mehr-LKW-Sync-Anker fehlt');
+  const helper="function rc1331RenderRc1017SubShipmentsSafe(result){try{return renderRc1017SubShipments(result)}catch(e){console.error('RC1331 Mehr-LKW UI-Render',e);return 0}}\n";
+  if(!html.includes('function rc1331RenderRc1017SubShipmentsSafe('))html=html.slice(0,start)+helper+html.slice(start);
+  const syncStart=html.indexOf(syncStartMarker),syncEnd=html.indexOf(syncEndMarker,syncStart);
+  let block=html.slice(syncStart,syncEnd);
+  const direct=(block.match(/renderRc1017SubShipments\(/g)||[]).length;
+  if(direct<1)throw new Error(file+': RC1331 direkter Mehr-LKW-Render-Aufruf fehlt');
+  block=block.replace(/renderRc1017SubShipments\(/g,'rc1331RenderRc1017SubShipmentsSafe(');
+  html=html.slice(0,syncStart)+block+html.slice(syncEnd);
+  const patched=html.slice(html.indexOf(syncStartMarker),html.indexOf(syncEndMarker,html.indexOf(syncStartMarker)));
+  if(/(^|[^A-Za-z0-9_])renderRc1017SubShipments\(/.test(patched))throw new Error(file+': RC1331 direkter UI-Render kann Save weiterhin abbrechen');
+  if(!patched.includes('rc1331RenderRc1017SubShipmentsSafe('))throw new Error(file+': RC1331 Save-isolierter Renderer fehlt');
+  return html;
+}
 function patchHtml(file){
   const target=path.join(OUT,file);
   let html=fs.readFileSync(target,'utf8');
@@ -660,6 +678,7 @@ function patchHtml(file){
   html=patchRc1329MultiTruckUiRuntime(html,file);
   html=patchRc1328MultiTruckRefresh(html,file);
   html=patchRc1329MultiTruckRenderer(html,file);
+  html=patchRc1331MultiTruckSaveIsolation(html,file);
   html=patchRc1303LoginExperience(html,file);
   html=patchDemoTestPortalIsolation(html,file);
   html=patchAuthSessionTimeout(html,file);
