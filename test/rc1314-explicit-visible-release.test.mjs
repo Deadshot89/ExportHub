@@ -34,6 +34,8 @@ test('RC1314: production-version.js ist nur technischer RC1112-Probe-Marker',()=
   assert.doesNotMatch(probe,/autoritative Quelle für die in ExportHUB angezeigte Release-Version/);
 });
 
-test('RC1314: Release-Marker löst den Visible-Version-Browser-Gate aus',()=>{
+test('RC1314: Release-Marker löst den Visible-Version-Browser-Gate samt Vertrag aus',()=>{
   assert.match(workflow,/release-version\.json/);
+  assert.match(workflow,/test\/rc1314-explicit-visible-release\.test\.mjs/);
+  assert.match(workflow,/node --test test\/rc1193-visible-release-version\.test\.mjs test\/rc1314-explicit-visible-release\.test\.mjs/);
 });
