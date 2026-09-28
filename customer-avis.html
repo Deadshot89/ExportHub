@@ -25,7 +25,7 @@
 (function(){
 'use strict';
 var token='',session='',sessionExpiresAt='',dataEnvironment=/-testservice\./i.test(String(location.hostname||''))?'testservice':'production';
-try{var u=new URL(location.href),requestedEnvironment=String(u.searchParams.get('environment')||'').trim().toLowerCase();token=String(u.searchParams.get('token')||u.searchParams.get('avis')||'').trim();if(requestedEnvironment==='testservice'||requestedEnvironment==='production')dataEnvironment=requestedEnvironment}catch(_){token=''}
+try{var u=new URL(location.href),requestedEnvironment=String(u.searchParams.get('environment')||'').trim().toLowerCase(),pathMatch=String(u.pathname||'').match(/\/avis\/([^/?#]+)\/?$/i),pathToken='';try{pathToken=pathMatch&&pathMatch[1]?decodeURIComponent(pathMatch[1]):''}catch(_decode){pathToken=pathMatch&&pathMatch[1]||''}token=String(u.searchParams.get('token')||u.searchParams.get('avis')||pathToken||'').trim();if(requestedEnvironment==='testservice'||requestedEnvironment==='production')dataEnvironment=requestedEnvironment}catch(_){token=''}
 var uploadPollers={},customerUploadInteraction=false,appointmentInteraction=false;
 function q(v){return String(v==null?'':v).trim()}
 function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
