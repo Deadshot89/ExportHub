@@ -33,7 +33,7 @@ Seit RC1223 wurden unter anderem folgende releasekritische Punkte ergänzt oder 
 - **RC1311** – Login-First-Paint weiter reduziert und Browser-Tab nach Login dauerhaft auf `ExportHUB360` gehalten.
 - **RC1312** – persönlicher Aufgabenplan vollständig sichtbar, Android-Aufgabenbenachrichtigungen auf reale persönliche Aufgaben begrenzt und stündliches Runtime-Monitoring für Produktion und TESTSERVICE ergänzt.
 
-Die sichtbare Produktversionsanzeige ist von der stabilen technischen RC1112-Buildkette getrennt. Dadurch können fachliche Korrekturen unabhängig vom technischen Buildmarker ausgeliefert werden.
+Die sichtbare Produktversionsanzeige ist von der stabilen technischen RC1112-Buildkette getrennt. Die autoritative sichtbare Version steht in `release-version.json`; reine Dokumentations- oder Testcommits erhöhen sie nicht automatisch. Dadurch können fachliche Korrekturen unabhängig vom technischen Buildmarker ausgeliefert werden.
 
 ## Website und Umgebungen
 
