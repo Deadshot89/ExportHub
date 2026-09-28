@@ -39,7 +39,7 @@ test('RC1329 P0: Save-Refresh und vollständiger Renderer sind gemeinsam im fina
   build();
   for(const file of ['index.html','TESTVERSION.html','demo.html']){
     const html=fs.readFileSync('dist-rc1112/'+file,'utf8');
-    assert.match(html,/assets\/rc1328-multi-truck-ui-refresh\.js\?v=1328/);
+    assert.match(html,/assets\/rc1328-multi-truck-ui-refresh\.js\?v=1332/);
     assert.match(renderer(html,file),/card\.appendChild\(section\)/);
   }
 });
