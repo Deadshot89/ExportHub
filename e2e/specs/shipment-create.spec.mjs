@@ -137,6 +137,24 @@ test('RC1171 P0: Sendung erstellen läuft vollständig über die Benutzeroberfl�
 
   const savedEvent=await page.evaluate(()=>window.__RC1171_SAVED_EVENTS__[window.__RC1171_SAVED_EVENTS__.length-1]||null);
   expect(String(savedEvent?.reference||'').toUpperCase()).toBe(ref);
+  expect(savedEvent?.shipment,'RC1319: Save-Event muss die persistierte Sendung für den QR-Pfad enthalten').toBeTruthy();
+  expect(String(savedEvent?.shipment?.status||savedEvent?.shipment?.processStatus||''),'RC1319: gespeicherte Sendung darf nicht Entwurf/leer bleiben').toMatch(/Erstellt|Bereit zur Abholung/i);
+
+  await expect.poll(()=>page.evaluate(ref=>{
+    const s=window.__EXPORTHUB_GET_STATE__?.()||{};
+    const list=[...(Array.isArray(s.shipments)?s.shipments:[]),s.shipment,s.currentShipment,s.selectedShipment].filter(Boolean);
+    const sh=list.find(x=>String(x.ref||x.reference||x.shipmentRef||'').trim().toUpperCase()===ref);
+    return sh&&sh.pickupQrRegistered===true;
+  },ref),{timeout:35_000,message:'RC1319: QR muss nach erfolgreichem Speichern serverseitig registriert werden'}).toBe(true);
+
+  await expect.poll(()=>page.evaluate(ref=>{
+    const s=window.__EXPORTHUB_GET_STATE__?.()||{};
+    const list=[...(Array.isArray(s.shipments)?s.shipments:[]),s.shipment,s.currentShipment,s.selectedShipment].filter(Boolean);
+    const sh=list.find(x=>String(x.ref||x.reference||x.shipmentRef||'').trim().toUpperCase()===ref);
+    return String(sh?.status||sh?.processStatus||'');
+  },ref),{timeout:35_000,message:'RC1319: QR-Erfolg muss den Status auf Bereit zur Abholung setzen'}).toBe('Bereit zur Abholung');
+
+  await settleStateSave(page,{timeout:30_000});
 
   // Reale Serverpersistenz nach Reload prüfen.
   await page.reload({waitUntil:'domcontentloaded'});
@@ -155,7 +173,10 @@ test('RC1171 P0: Sendung erstellen läuft vollständig über die Benutzeroberfl�
       ref:String(sh.ref||sh.reference||'').toUpperCase(),
       customerName:String(sh.customerName||sh.customer?.name||''),
       locationId:String(sh.locationId||sh.selectedLocationId||''),
-      rows:Array.isArray(sh.rows)?sh.rows:[]
+      rows:Array.isArray(sh.rows)?sh.rows:[],
+      status:String(sh.status||sh.processStatus||''),
+      pickupQrRegistered:sh.pickupQrRegistered===true,
+      pickupQrRegisteredAt:String(sh.pickupQrRegisteredAt||'')
     }:null};
   },{token:session.token,runId:session.runId,ref});
 
@@ -164,6 +185,9 @@ test('RC1171 P0: Sendung erstellen läuft vollständig über die Benutzeroberfl�
   expect(persisted.found?.customerName).toContain('E2E TEST CUSTOMER');
   expect(persisted.found?.locationId).toBe(customer.locationId);
   expect(persisted.found?.rows?.length).toBeGreaterThan(0);
+  expect(persisted.found?.status).toBe('Bereit zur Abholung');
+  expect(persisted.found?.pickupQrRegistered,'RC1319: QR-Registrierung muss Reload/Server-Read überstehen').toBe(true);
+  expect(persisted.found?.pickupQrRegisteredAt).toBeTruthy();
 
   await openExportHubView(page,'shipmentoverview',['Sendungsübersicht','Sendungen'],/Sendungsübersicht|Sendungen/i,{allowProgrammaticFallback:true});
   await expect(page.locator('#content')).toContainText(ref,{timeout:15_000});
