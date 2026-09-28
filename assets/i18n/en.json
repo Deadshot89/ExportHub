@@ -1173,5 +1173,7 @@
   "loadingListQuickPrint.printing": "Complete print for {{ref}} started.",
   "loadingListQuickPrint.invalid": "No valid 6-character REF detected.",
   "loadingListQuickPrint.missing": "Shipment {{ref}} was not found.",
-  "loadingListQuickPrint.noPrint": "Complete print is not available for this shipment."
+  "loadingListQuickPrint.noPrint": "Complete print is not available for this shipment.",
+  "loadingListQuickPrint.directPrintSetup": "Set up direct printing (Edge)",
+  "loadingListQuickPrint.directPrintSetupHint": "One-time Windows setup for silent printing to the default printer."
 }
