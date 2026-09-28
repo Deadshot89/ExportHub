@@ -44,6 +44,16 @@ test('RC1329 P0: Save-Refresh und vollständiger Renderer sind gemeinsam im fina
   }
 });
 
+test('RC1334 P0: finaler Mehr-LKW-Renderer ist ohne nicht vorhandene copy-Hilfsfunktion lauffähig',()=>{
+  build();
+  for(const file of ['index.html','TESTVERSION.html','demo.html']){
+    const html=fs.readFileSync('dist-rc1112/'+file,'utf8');
+    const block=renderer(html,file);
+    assert.doesNotMatch(block,/\bcopy\s*\(/,file+': Renderer darf keine globale copy()-Funktion voraussetzen');
+    assert.match(block,/Object\.assign\(\{\},main\)/,file+': Renderer muss die Hauptsendung scope-sicher flach kopieren');
+  }
+});
+
 test('RC1329 P0: ursprünglicher TESTSERVICE-E2E prüft weiterhin den echten Teilsendungsbereich',()=>{
   const spec=fs.readFileSync('e2e/specs/multi-truck-live.spec.mjs','utf8');
   assert.match(spec,/#rc1017-subshipments/);
