@@ -114,7 +114,10 @@ function patchRc1329MultiTruckUiRuntime(html,file){
   const endMarker='function rc1017SyncSubShipments(';
   const sourceStart=source.indexOf(canonicalStart),sourceEnd=source.indexOf(endMarker,sourceStart);
   if(sourceStart<0||sourceEnd<=sourceStart)throw new Error('RC1329 kanonische Mehr-LKW-UI fehlt in index.html');
-  const canonical=source.slice(sourceStart,sourceEnd);
+  let canonical=source.slice(sourceStart,sourceEnd);
+  const scopedCopy="function rc1338MultiTruckCopy(value){return value===undefined?undefined:JSON.parse(JSON.stringify(value))}";
+  canonical=canonical.replace(canonicalStart,canonicalStart+'\n'+scopedCopy).replace(/\bcopy\s*\(/g,'rc1338MultiTruckCopy(');
+  if(/\bcopy\s*\(/.test(canonical)||!canonical.includes(scopedCopy))throw new Error('RC1338 Mehr-LKW-UI enthält weiterhin eine globale copy()-Abhängigkeit');
   if(!canonical.includes("section.id='rc1017-subshipments'")||!canonical.includes('data-rc1017-subshipment')||!canonical.includes('rc1017-qr-subshipment'))throw new Error('RC1329 kanonischer Mehr-LKW-Renderer ist unvollständig');
   let targetStart=html.indexOf(canonicalStart);
   if(targetStart<0)targetStart=html.indexOf(legacyStart);
