@@ -54,6 +54,21 @@ test('RC1334 P0: finaler Mehr-LKW-Renderer ist ohne nicht vorhandene copy-Hilfsf
   }
 });
 
+test('RC1337 P0: kompletter finaler Mehr-LKW-Helferblock hat keine globale copy()-Abhängigkeit',()=>{
+  build();
+  for(const file of ['index.html','TESTVERSION.html','demo.html']){
+    const html=fs.readFileSync('dist-rc1112/'+file,'utf8');
+    const start=html.indexOf('var rc1017SubShipmentQrRuntime=Object.create(null);');
+    const end=html.indexOf('function rc1017SyncSubShipments(target){',start);
+    assert.ok(start>=0&&end>start,file+': Mehr-LKW-Helferblock fehlt');
+    const block=html.slice(start,end);
+    assert.match(block,/function rc1017Clone\(/,file+': lokaler Clone-Helper fehlt');
+    assert.doesNotMatch(block,/\bcopy\s*\(/,file+': Mehr-LKW-Helferblock darf keine globale copy()-Funktion voraussetzen');
+    assert.match(block,/rc1017RowsForSubShipment[\s\S]*rc1017Clone\(row\)/,file+': Rows werden nicht lokal geklont');
+    assert.match(block,/temp\.rows=rc1017Clone\(metrics\.rows\)/,file+': Teilsendungs-Druckrows werden nicht lokal geklont');
+  }
+});
+
 test('RC1329 P0: ursprünglicher TESTSERVICE-E2E prüft weiterhin den echten Teilsendungsbereich',()=>{
   const spec=fs.readFileSync('e2e/specs/multi-truck-live.spec.mjs','utf8');
   assert.match(spec,/#rc1017-subshipments/);
