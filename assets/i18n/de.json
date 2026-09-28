@@ -1173,5 +1173,7 @@
   "loadingListQuickPrint.printing": "Gesamtdruck für {{ref}} gestartet.",
   "loadingListQuickPrint.invalid": "Keine gültige 6-stellige REF erkannt.",
   "loadingListQuickPrint.missing": "Sendung {{ref}} wurde nicht gefunden.",
-  "loadingListQuickPrint.noPrint": "Gesamtdruck ist für diese Sendung nicht verfügbar."
+  "loadingListQuickPrint.noPrint": "Gesamtdruck ist für diese Sendung nicht verfügbar.",
+  "loadingListQuickPrint.directPrintSetup": "Direktdruck einrichten (Edge)",
+  "loadingListQuickPrint.directPrintSetupHint": "Einmalige Windows-Konfiguration für stilles Drucken auf den Standarddrucker."
 }
