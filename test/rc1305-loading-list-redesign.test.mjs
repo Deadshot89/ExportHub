@@ -51,7 +51,7 @@ test('RC1305: Lieferscheine und Bemerkung werden drucksicher kompakt dargestellt
 
 test('RC1305: Drei-Umgebungen-Build liefert beide Ladelisten-Runtimes aus',()=>{
   assert.match(build,/function patchRc1305LoadingListPresentation\(html,file\)/);
-  assert.match(build,/assets\/rc1305-loading-list-print\.js\?v=1324/);
+  assert.match(build,/assets\/rc1305-loading-list-print\.js\?v=1325/);
   assert.match(build,/assets\/rc1315-loading-list-quick-print\.js\?v=1322/);
   assert.match(build,/assets\/rc1283-loading-list-search\.js\?v=1305/);
   assert.match(build,/'assets\/rc1305-loading-list-print\.js'/);
