@@ -683,7 +683,7 @@ function patchHtml(file){
   if(!html.includes('assets/rc1203-deckblatt-print.js?v=1281'))throw new Error(file+': RC1205 Deckblatt-Runtime fehlt');
   if(!html.includes('assets/rc1283-loading-list-search.js?v=1305'))throw new Error(file+': RC1283 Ladelisten-Suchruntime fehlt');
   if(!html.includes('assets/rc1315-loading-list-quick-print.js?v=1322'))throw new Error(file+': RC1315 QR-/REF-Schnelldruck-Runtime fehlt');
-  if(!html.includes('assets/rc1305-loading-list-print.js?v=1316'))throw new Error(file+': RC1305 Ladelisten-Druckruntime fehlt im HTML');
+  if(!html.includes('assets/rc1305-loading-list-print.js?v=1324'))throw new Error(file+': RC1305 Ladelisten-Druckruntime fehlt im HTML');
   if(!html.includes('__EXPORTHUB_RC1283_OPEN_LOAD1__'))throw new Error(file+': RC1283 Ladelisten-Öffnen/Drucken-Bridge fehlt');
   if(!html.includes('assets/rc1207-pallet-account-fix.js?v=1246'))throw new Error(file+': RC1207 Palettenkonto-Runtime fehlt');
   if(!html.includes('assets/rc1294-abd-self-service.js?v=1294'))throw new Error(file+': RC1294 ABD-Self-Service-Runtime fehlt');
