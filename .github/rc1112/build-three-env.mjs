@@ -602,6 +602,36 @@ function patchRc1319ShipmentSaveFinalization(html,file){
   return html;
 }
 
+const RC1329_MULTI_TRUCK_RENDERER="function renderRc1017SubShipments(result){\n var main=shipment(),card=document.getElementById('rc380StowPlan'),count=Math.max(1,num(result&&result.requiredTruckCount||main.requiredTruckCount||1)),subs=arr(result&&result.subShipments&&result.subShipments.length?result.subShipments:main.subShipments),existing=card&&card.querySelector('#rc1017-subshipments');if(existing)existing.remove();\n if(card){card.setAttribute('data-rc1017-truck-count',String(count));card.setAttribute('data-rc1017-multi-truck',count>1?'1':'0')}if(!card||count<=1||subs.length<2)return count;\n var renderMain=copy(main)||{};renderMain.subShipments=subs;\n var picked=subs.filter(rc1017SubPicked).length,section=document.createElement('section');section.id='rc1017-subshipments';section.setAttribute('data-rc1329-multi-truck-rendered','1');section.style.cssText='margin-top:16px;padding-top:16px;border-top:2px solid #dbeafe';section.innerHTML='<div style=\"display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap\"><div><span class=\"pill blue\">'+count+' LKW erforderlich</span><h3 style=\"margin:7px 0 3px\">Teilsendungen</h3><div class=\"muted\">Jeder LKW hat einen eigenen QR-Code, eine eigene Ladeliste und einen eigenen Stauplan.</div></div><span class=\"pill gray\">'+picked+' von '+subs.length+' abgeholt</span></div><div style=\"display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px;margin-top:12px\">'+subs.map(function(sub){var sequence=rc1017SubSequence(sub),total=rc1017SubTotal(renderMain,sub),label='Sendung '+sequence+' von '+total,metrics=rc1017SubMetrics(renderMain,sub),runtime=rc1017SubShipmentQrRuntime[q(sub.subShipmentId)],started=rc1017SubStarted(sub),pickedUp=rc1017SubPicked(sub),qr='',temp=null;if(runtime&&q(runtime.token)&&window.ExportHUBPickupPOD&&typeof window.ExportHUBPickupPOD.qrMarkup==='function'){try{temp=rc1017SubShipmentDocumentShipment(renderMain,sub.subShipmentId);qr=window.ExportHUBPickupPOD.qrMarkup(temp)||''}catch(_){qr=''}}var status=pickedUp?'Abgeholt':started?'Teilweise abgeholt':'Offen',statusClass=pickedUp?'green':started?'orange':'gray',qrBlocked=started&&!runtime;return '<article data-rc1017-subshipment=\"'+esc(sub.subShipmentId)+'\" style=\"border:1px solid #cbd5e1;border-radius:14px;padding:12px;background:#fff\"><div style=\"display:flex;justify-content:space-between;gap:8px;align-items:flex-start\"><div><b>'+esc(label)+'</b><div class=\"muted\">'+metrics.colli+' Collis · '+metrics.weight.toLocaleString('de-DE',{maximumFractionDigits:1})+' kg · '+metrics.ldm.toLocaleString('de-DE',{maximumFractionDigits:2})+' LDM</div></div><span class=\"pill '+statusClass+'\">'+status+'</span></div><div data-rc1017-qr-preview=\"'+esc(sub.subShipmentId)+'\" style=\"margin-top:8px\">'+qr+'</div><div class=\"toolbar\" style=\"margin-top:10px\"><button type=\"button\" class=\"ghost\" data-action=\"rc1017-qr-subshipment\" data-subshipment-id=\"'+esc(sub.subShipmentId)+'\" '+(qrBlocked?'disabled title=\"QR ist nach begonnener Abholung gesperrt\"':'')+'>'+((runtime&&q(runtime.token))?'QR anzeigen':'QR-Code')+'</button><button type=\"button\" class=\"ghost\" data-action=\"rc1017-print-subshipment\" data-subshipment-id=\"'+esc(sub.subShipmentId)+'\" '+(qrBlocked?'disabled title=\"Aktiver QR kann nach begonnener Abholung nicht neu erzeugt werden\"':'')+'>Ladeliste</button><button type=\"button\" class=\"ghost\" data-action=\"rc1017-stow-subshipment\" data-subshipment-id=\"'+esc(sub.subShipmentId)+'\">Stauplan</button></div></article>'}).join('')+'</div>';\n section.addEventListener('click',function(event){var button=event.target&&event.target.closest&&event.target.closest('button[data-action][data-subshipment-id]');if(!button||!section.contains(button)||button.disabled)return;var action=button.getAttribute('data-action'),id=button.getAttribute('data-subshipment-id');if(action==='rc1017-qr-subshipment'){rc1017ActivateSubShipmentQr(id,button);return}if(action==='rc1017-print-subshipment'){rc1017PrintSubShipment(id,button);return}if(action==='rc1017-stow-subshipment'){rc1017PrintSubShipmentStow(id);return}});card.appendChild(section);return count\n}";
+
+function patchRc1329MultiTruckRenderer(html,file){
+  const startMarker='function renderRc1017SubShipments(result){';
+  const nextMarker='function rc1017SyncSubShipments(target){';
+  const start=html.indexOf(startMarker),end=html.indexOf(nextMarker,start);
+  if(start<0||end<=start)throw new Error(file+': RC1329 Mehr-LKW-Renderer-Anker fehlt');
+  for(const required of [
+    'var rc1017SubShipmentQrRuntime=Object.create(null);',
+    'function rc1017SubSequence(',
+    'function rc1017SubTotal(',
+    'function rc1017SubMetrics(',
+    'function rc1017SubStarted(',
+    'function rc1017SubPicked(',
+    'function rc1017ActivateSubShipmentQr(',
+    'function rc1017PrintSubShipment(',
+    'function rc1017PrintSubShipmentStow('
+  ])if(!html.includes(required))throw new Error(file+': RC1329 Mehr-LKW-Helfer fehlt: '+required);
+  html=html.slice(0,start)+RC1329_MULTI_TRUCK_RENDERER+'\n'+html.slice(end);
+  const renderer=html.slice(start,html.indexOf(nextMarker,start));
+  for(const required of [
+    "section.id='rc1017-subshipments'",
+    'data-rc1017-subshipment',
+    'data-action="rc1017-qr-subshipment"',
+    'data-action="rc1017-print-subshipment"',
+    'data-action="rc1017-stow-subshipment"',
+    'card.appendChild(section)'
+  ])if(!renderer.includes(required))throw new Error(file+': RC1329 vollständiger Mehr-LKW-Renderer fehlt: '+required);
+  return html;
+}
 function patchHtml(file){
   const target=path.join(OUT,file);
   let html=fs.readFileSync(target,'utf8');
@@ -609,6 +639,7 @@ function patchHtml(file){
   html=patchRc1304ThemeRedesign(html,file);
   html=patchRc1306LayoutEngine(html,file);
   html=patchRc1328MultiTruckRefresh(html,file);
+  html=patchRc1329MultiTruckRenderer(html,file);
   html=patchRc1303LoginExperience(html,file);
   html=patchDemoTestPortalIsolation(html,file);
   html=patchAuthSessionTimeout(html,file);
