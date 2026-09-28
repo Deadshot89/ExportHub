@@ -9,18 +9,26 @@ const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
 
 function load(){
   const listeners=new Map();
+  const documentListeners=new Map();
   const timers=[];
   let panelPresent=false;
   let cardPresent=true;
   let syncCalls=0;
   let state=null;
+  let visibleRef='';
+  let lastSyncRef='';
 
   const document={
     getElementById(id){
       if(id==='rc380StowPlan')return cardPresent?{id}:null;
       if(id==='rc1017-subshipments')return panelPresent?{id}:null;
       return null;
-    }
+    },
+    querySelector(selector){
+      if(/maxlength/.test(String(selector)))return{value:visibleRef};
+      return null;
+    },
+    addEventListener(name,fn){documentListeners.set(name,fn)}
   };
 
   const window={
@@ -28,14 +36,21 @@ function load(){
     console,
     setTimeout(fn){timers.push(fn);return timers.length},
     addEventListener(name,fn){listeners.set(name,fn)},
-    rc1017SyncSubShipments(sh){syncCalls++;assert.ok(Array.isArray(sh.subShipments)&&sh.subShipments.length>1);panelPresent=true;return{requiredTruckCount:sh.subShipments.length}},
+    rc1017SyncSubShipments(sh){
+      syncCalls++;
+      assert.ok(Array.isArray(sh.subShipments)&&sh.subShipments.length>1);
+      lastSyncRef=String(sh.ref||sh.reference||sh.shipmentRef||'').toUpperCase();
+      panelPresent=true;
+      return{requiredTruckCount:sh.subShipments.length};
+    },
     __EXPORTHUB_GET_STATE__(){return state}
   };
 
-  vm.runInContext(runtime,vm.createContext({window,document,console,Object,Array}));
+  vm.runInContext(runtime,vm.createContext({window,document,console,Object,Array,String}));
   return{
     window,
     listeners,
+    documentListeners,
     flush(){
       while(timers.length){
         const fn=timers.shift();
@@ -45,22 +60,29 @@ function load(){
     setPanel(v){panelPresent=!!v},
     setCard(v){cardPresent=!!v},
     setState(v){state=v},
+    setVisibleRef(v){visibleRef=String(v||'')},
     syncCalls(){return syncCalls},
+    lastSyncRef(){return lastSyncRef},
     panel(){return panelPresent}
   };
 }
 
-test('RC1328: Runtime ist syntaktisch gültig und hört auf Save sowie Viewwechsel',()=>{
+test('RC1332: Runtime ist syntaktisch gültig und hört auf Save, Render, Sync und Viewwechsel',()=>{
   new vm.Script(runtime);
   assert.match(runtime,/exporthub:shipment-saved/);
   assert.match(runtime,/exporthub:viewchange/);
+  assert.match(runtime,/exporthub:rendered/);
+  assert.match(runtime,/exporthub:sync/);
+  assert.match(runtime,/rc363SaveShipment/);
+  assert.match(runtime,/state\.shipments|arr\(s\.shipments\)/);
+  assert.match(runtime,/currentMultiTruckShipment/);
   assert.match(runtime,/rc1017SyncSubShipments/);
   assert.match(runtime,/rc1017-subshipments/);
 });
 
-test('RC1328: Mehr-LKW-Bereich wird nach Save erneut gerendert und nach DOM-Ersatz wiederhergestellt',()=>{
+test('RC1332: Mehr-LKW-Bereich wird nach Save erneut gerendert und nach DOM-Ersatz wiederhergestellt',()=>{
   const app=load();
-  const shipment={id:'ABC123',subShipments:[{subShipmentId:'ABC123-TRUCK-1'},{subShipmentId:'ABC123-TRUCK-2'}]};
+  const shipment={id:'ABC123',ref:'ABC123',subShipments:[{subShipmentId:'ABC123-TRUCK-1'},{subShipmentId:'ABC123-TRUCK-2'}]};
   app.listeners.get('exporthub:shipment-saved')({detail:{shipment}});
   app.flush();
   assert.equal(app.syncCalls(),1);
@@ -74,26 +96,61 @@ test('RC1328: Mehr-LKW-Bereich wird nach Save erneut gerendert und nach DOM-Ersa
   assert.equal(app.panel(),true);
 });
 
-test('RC1328: Single-LKW und fehlender Stauplan lösen keinen Render aus',()=>{
+test('RC1332: Live-Fall findet Mehr-LKW-Sendung in state.shipments obwohl aktueller Draft keine Teilsendungen enthält',()=>{
   const app=load();
-  app.listeners.get('exporthub:shipment-saved')({detail:{shipment:{id:'ONE',subShipments:[{subShipmentId:'ONE-TRUCK-1'}]}}});
+  const saved={id:'ABC123',ref:'ABC123',subShipments:[{subShipmentId:'ABC123-TRUCK-1'},{subShipmentId:'ABC123-TRUCK-2'}]};
+  app.setVisibleRef('ABC123');
+  app.setState({
+    shipment:{id:'ABC123',ref:'ABC123',subShipments:[]},
+    shipments:[
+      {id:'OTHER1',ref:'OTHER1',subShipments:[{},{}]},
+      saved
+    ]
+  });
+  app.listeners.get('exporthub:viewchange')({detail:{view:'shipment'}});
+  app.flush();
+  assert.equal(app.syncCalls(),1);
+  assert.equal(app.lastSyncRef(),'ABC123');
+  assert.equal(app.panel(),true);
+});
+
+test('RC1332: Speichern-Klick löst zustandsbasierten Refresh auch ohne shipment-saved Event aus',()=>{
+  const app=load();
+  app.setVisibleRef('ABC123');
+  app.setState({shipment:{id:'ABC123',ref:'ABC123',subShipments:[]},shipments:[]});
+  const click=app.documentListeners.get('click');
+  assert.equal(typeof click,'function');
+  click({target:{closest(selector){return selector==='#rc363SaveShipment'?{}:null}}});
+
+  app.setState({
+    shipment:{id:'ABC123',ref:'ABC123',subShipments:[]},
+    shipments:[{id:'ABC123',ref:'ABC123',subShipments:[{subShipmentId:'ABC123-TRUCK-1'},{subShipmentId:'ABC123-TRUCK-2'}]}]
+  });
+  app.flush();
+  assert.equal(app.syncCalls(),1);
+  assert.equal(app.lastSyncRef(),'ABC123');
+  assert.equal(app.panel(),true);
+});
+
+test('RC1332: Single-LKW und fehlender Stauplan lösen keinen Render aus',()=>{
+  const app=load();
+  app.listeners.get('exporthub:shipment-saved')({detail:{shipment:{id:'ONE',ref:'ONE',subShipments:[{subShipmentId:'ONE-TRUCK-1'}]}}});
   app.flush();
   assert.equal(app.syncCalls(),0);
 
   app.setCard(false);
-  app.listeners.get('exporthub:shipment-saved')({detail:{shipment:{id:'TWO',subShipments:[{},{}]}}});
+  app.listeners.get('exporthub:shipment-saved')({detail:{shipment:{id:'TWO',ref:'TWO',subShipments:[{},{}]}}});
   app.flush();
   assert.equal(app.syncCalls(),0);
 });
 
-test('RC1328: Drei-Umgebungen-Build lädt und kopiert den Refresh-Hook',()=>{
+test('RC1332: Drei-Umgebungen-Build lädt den Refresh-Hook mit neuem Cache-Key',()=>{
   assert.match(build,/RC1328_MULTI_TRUCK_REFRESH_TAG/);
   assert.match(build,/patchRc1328MultiTruckRefresh/);
-  assert.match(build,/assets\/rc1328-multi-truck-ui-refresh\.js\?v=1328/);
+  assert.match(build,/assets\/rc1328-multi-truck-ui-refresh\.js\?v=1332/);
   assert.match(build,/'assets\/rc1328-multi-truck-ui-refresh\.js'/);
   assert.match(build,/html=patchRc1328MultiTruckRefresh\(html,file\)/);
 });
-
 
 test('RC1329: finaler RC1112-Build erzwingt den sichtbaren Mehr-LKW-Renderer in allen drei Umgebungen',()=>{
   assert.match(build,/function patchRc1329MultiTruckUiRuntime\(html,file\)/);
