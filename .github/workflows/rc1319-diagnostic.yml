@@ -1,0 +1,27 @@
+name: RC1319 Save Finalization Diagnose
+
+on:
+  push:
+    branches:
+      - fix/rc1319-shipment-save-qr-status
+    paths:
+      - 'test/rc1319-shipment-save-finalization.test.mjs'
+      - '.github/workflows/rc1319-diagnostic.yml'
+      - '.github/rc1112/**'
+      - '.github/rc1018/**'
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Finalen Save-Pfad reproduzieren
+        run: node --test test/rc1319-shipment-save-finalization.test.mjs
