@@ -54,6 +54,13 @@ function palletOut(sh){
  try{if(typeof w.rc1095LoadPalletCount==='function'){var rs=typeof w.rows==='function'?w.rows(sh):[];return Math.max(0,Math.round(Number(w.rc1095LoadPalletCount(sh,rs))||0))}}catch(_){}
  return Math.max(0,Math.round(Number(sh&&(sh.palletOut||sh.euroPallets||sh.euroPalletCount))||0))
 }
+function ensureCustomsSignatureField(root,sh){
+ var last=lastPickup(sh);if(!hasAbd(sh,last)||isPicked(sh,last)||root.querySelector('[data-rc1327-customs-signature-field]'))return false;
+ var driverCard=findCard(root,/unterschrift.*fahrer|fahrer.*unterschrift|driver.*signature|signature/i);if(!driverCard||!driverCard.parentNode)return false;
+ var card=d.createElement(driverCard.tagName&&driverCard.tagName.toLowerCase()||'div');card.className=q(driverCard.className)+' rc1327-customs-signature-field';card.setAttribute('data-rc1327-customs-signature-field','1');
+ card.innerHTML='<div class="rc390-label rc352-label">Zolldokumente erhalten</div><div class="rc1327-customs-signature-line"></div><div class="rc1327-customs-signature-hint">Unterschrift Fahrer / Customs documents received</div>';
+ driverCard.parentNode.insertBefore(card,driverCard.nextSibling);return true
+}
 function pickupSummary(root,sh){
  var last=lastPickup(sh);if(!isPicked(sh,last))return false;
  var cards=[
@@ -124,23 +131,24 @@ function rc1315QrSvg(text){
 function addQuickPrintQr(root,sh,withQr){
  if(!withQr||!root||root.querySelector('[data-rc1315-print-qr]'))return false;var ref=printRef(sh);if(!ref)return false;
  var payload='EHPRINT:'+ref,section=d.createElement('section');section.className='rc1315-print-qr';section.setAttribute('data-rc1315-print-qr','1');section.setAttribute('data-rc1315-payload',payload);
- section.innerHTML='<div class="rc1315-print-qr-code">'+rc1315QrSvg(payload)+'</div><div class="rc1315-print-qr-copy"><strong>Druck-QR</strong><span>REF '+esc(ref)+'</span><small>In „Ladeliste“ scannen → Gesamtdruck</small></div>';
- var refBox=root.querySelector('.rc390-ref');
- if(refBox){section.classList.add('rc1315-print-qr-in-ref');section.querySelector('.rc1315-print-qr-copy').innerHTML='<strong>Druck</strong>';refBox.appendChild(section)}else{section.setAttribute('data-rc1315-fallback','1');root.appendChild(section)}
- root.setAttribute('data-rc1315-quick-print-qr','1');return true
+ section.innerHTML='<div class="rc1315-print-qr-code">'+rc1315QrSvg(payload)+'</div><div class="rc1315-print-qr-copy"><strong>Druck</strong></div>';
+ var qrArea=root.querySelector('.rc390-cover-qr,.rc352-cover-qr');
+ if(qrArea){section.classList.add('rc1327-print-qr-bottom');qrArea.classList.add('rc1327-cover-qr-row');qrArea.appendChild(section)}
+ else{section.setAttribute('data-rc1315-fallback','1');root.appendChild(section)}
+ root.setAttribute('data-rc1327-quick-print-qr-bottom','1');return true
 }
 
 function enhance(html,sh,withQr){
  try{
   var tpl=d.createElement('template');tpl.innerHTML=html;var root=tpl.content.querySelector('.rc390-load,.rc352-load,.rc390-page,.rc352-page')||tpl.content.firstElementChild;if(!root)return html;
-  root.setAttribute('data-rc1305-loading-list','1');shrinkInlineFonts(root,1);enhanceDocuments(root,sh||{});enhanceRemark(root,sh||{});pickupSummary(root,sh||{});
+  root.setAttribute('data-rc1305-loading-list','1');shrinkInlineFonts(root,1);enhanceDocuments(root,sh||{});enhanceRemark(root,sh||{});ensureCustomsSignatureField(root,sh||{});pickupSummary(root,sh||{});
   return tpl.innerHTML
  }catch(e){try{console.warn('RC1305 Ladelisten-Darstellung',e)}catch(_){}return html}
 }
 function enhanceCover(html,sh){
  try{
   var tpl=d.createElement('template');tpl.innerHTML=html;var root=tpl.content.querySelector('.rc390-cover,.rc352-cover,[data-rc1203-cover-enhanced]')||tpl.content.firstElementChild;if(!root)return html;
-  root.setAttribute('data-rc1326-print-cover','1');var oldQuick=root.querySelector('[data-rc1315-print-qr]');if(oldQuick)oldQuick.remove();var refBox=root.querySelector('.rc390-ref');if(refBox){refBox.style.removeProperty('padding-right');refBox.style.removeProperty('width');refBox.style.removeProperty('min-width');refBox.style.removeProperty('flex-basis')}addQuickPrintQr(root,sh||{},true);var quick=root.querySelector('[data-rc1315-print-qr]'),qrArea=root.querySelector('.rc390-cover-qr,.rc352-cover-qr');if(quick&&qrArea){quick.classList.remove('rc1315-print-qr-in-ref');quick.classList.add('rc1326-print-qr-bottom');qrArea.appendChild(quick)}
+  root.setAttribute('data-rc1327-print-cover','1');Array.from(root.querySelectorAll('[data-rc1315-print-qr],.rc1315-print-qr')).forEach(function(el){el.remove()});root.removeAttribute('data-rc1315-quick-print-qr');var refBox=root.querySelector('.rc390-ref');if(refBox){refBox.style.removeProperty('padding-right');refBox.style.removeProperty('width');refBox.style.removeProperty('min-width');refBox.style.removeProperty('flex-basis');refBox.style.removeProperty('position')}addQuickPrintQr(root,sh||{},true)
   return tpl.innerHTML
  }catch(e){try{console.warn('RC1316 Deckblatt-Druck-QR',e)}catch(_){}return html}
 }
@@ -165,17 +173,18 @@ function style(){
  '.rc1305-pickup-signature{grid-column:span 3!important;height:18mm!important;min-height:18mm!important;padding:1mm 1.35mm!important;overflow:hidden!important}.rc1305-pickup-summary[data-rc1315-customs-required="0"] .rc1305-signature-primary{grid-column:1 / -1!important}'+
  '.rc1305-pickup-signature>strong{display:flex!important;align-items:center!important;justify-content:flex-start!important;height:11.2mm!important;max-height:11.2mm!important;overflow:hidden!important}'+
  '.rc1305-signature-image{display:block!important;width:auto!important;max-width:100%!important;height:auto!important;max-height:10.5mm!important;object-fit:contain!important;object-position:left center!important}'+
+ '.rc1327-customs-signature-field{box-sizing:border-box!important;min-width:0!important;break-inside:avoid!important;page-break-inside:avoid!important}.rc1327-customs-signature-line{height:9mm!important;border-bottom:.45mm solid #334155!important;margin:2mm 0 1mm!important}.rc1327-customs-signature-hint{font-size:6.4pt!important;line-height:1.1!important;color:#64748b!important;font-weight:650!important}'+
  '@media(max-width:640px){.rc1305-document-grid,.rc1305-pickup-grid{grid-template-columns:1fr!important}.rc1305-pickup-meta,.rc1305-meta-driver,.rc1305-pickup-signature,.rc1305-pickup-summary[data-rc1315-customs-required] .rc1305-signature-primary{grid-column:auto!important;height:auto!important;min-height:0!important}.rc1305-pickup-signature>strong{height:auto!important;min-height:11.2mm!important}}'+
  '.rc1315-print-qr{box-sizing:border-box!important;display:flex!important;align-items:center!important;gap:1mm!important;width:28mm!important;max-width:28mm!important;min-height:18mm!important;padding:1mm!important;border:.45mm solid #0f2942!important;border-radius:2.2mm!important;background:#fff!important;color:#0f2942!important;break-inside:avoid!important;page-break-inside:avoid!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'+
  '.rc1315-print-qr-code{flex:0 0 16mm!important;width:16mm!important;height:16mm!important}.rc1315-qr-svg{display:block!important;width:16mm!important;height:16mm!important}'+
  '.rc1315-print-qr-copy{display:flex!important;min-width:0!important;flex-direction:column!important;gap:.6mm!important}.rc1315-print-qr-copy strong{font-size:9pt!important;text-transform:uppercase!important}.rc1315-print-qr-copy span{font-size:8.5pt!important;font-weight:800!important}.rc1315-print-qr-copy small{font-size:6.8pt!important;line-height:1.2!important;font-weight:700!important;color:#475569!important}'+
- '[data-rc1315-quick-print-qr="1"] .rc390-ref{box-sizing:border-box!important;position:relative!important;width:52mm!important;min-width:52mm!important;flex:0 0 52mm!important;padding-right:21mm!important}'+
- '.rc1315-print-qr.rc1315-print-qr-in-ref{position:absolute!important;z-index:2!important;top:1.4mm!important;right:1.4mm!important;display:block!important;width:15mm!important;max-width:15mm!important;min-height:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important}'+
+  '.rc1315-print-qr.rc1315-print-qr-in-ref{position:absolute!important;z-index:2!important;top:1.4mm!important;right:1.4mm!important;display:block!important;width:15mm!important;max-width:15mm!important;min-height:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important}'+
  '.rc1315-print-qr-in-ref .rc1315-print-qr-code{width:14mm!important;height:14mm!important}.rc1315-print-qr-in-ref .rc1315-qr-svg{width:14mm!important;height:14mm!important}.rc1315-print-qr-in-ref .rc1315-print-qr-copy{display:block!important;margin-top:.4mm!important;text-align:center!important;line-height:1!important}.rc1315-print-qr-in-ref .rc1315-print-qr-copy strong{font-size:6pt!important;letter-spacing:.06em!important}'+
- '[data-rc1315-fallback="1"]{margin:2mm 0 0 auto!important}.rc1326-print-qr-bottom{position:static!important;display:flex!important;width:28mm!important;max-width:28mm!important;min-height:18mm!important;padding:1mm!important;margin:0!important;border:.35mm solid #2563eb!important;border-radius:1.6mm!important;background:#fff!important}.rc1326-print-qr-bottom .rc1315-print-qr-code,.rc1326-print-qr-bottom .rc1315-qr-svg{width:16mm!important;height:16mm!important;flex-basis:16mm!important}.rc1326-print-qr-bottom .rc1315-print-qr-copy{display:block!important;margin:0!important}.rc1326-print-qr-bottom .rc1315-print-qr-copy strong{font-size:6pt!important}'+
+ '.rc1327-cover-qr-row{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;align-items:end!important;gap:4mm!important}.rc1327-cover-qr-row>*{min-width:0!important}'+
+ '[data-rc1315-fallback="1"]{margin:2mm 0 0 auto!important}.rc1327-print-qr-bottom{position:static!important;display:flex!important;width:28mm!important;max-width:28mm!important;min-height:18mm!important;padding:1mm!important;margin:0!important;border:.35mm solid #2563eb!important;border-radius:1.6mm!important;background:#fff!important}.rc1327-print-qr-bottom .rc1315-print-qr-code,.rc1327-print-qr-bottom .rc1315-qr-svg{width:16mm!important;height:16mm!important;flex-basis:16mm!important}.rc1327-print-qr-bottom .rc1315-print-qr-copy{display:block!important;margin:0!important}.rc1327-print-qr-bottom .rc1315-print-qr-copy strong{font-size:6pt!important}'+
  '@media print{.rc1305-pickup-summary{margin-top:1.6mm!important}.rc1305-pickup-banner{padding:1.5mm 2.2mm!important;font-size:8.2pt!important}.rc1305-pickup-grid{grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:.8mm!important;padding:1.2mm!important}.rc1305-pickup-meta{height:11.5mm!important;min-height:11.5mm!important}.rc1305-pickup-signature{grid-column:span 3!important;height:16.5mm!important;min-height:16.5mm!important}.rc1305-pickup-summary[data-rc1315-customs-required="0"] .rc1305-signature-primary{grid-column:1 / -1!important}.rc1305-pickup-signature>strong{height:10.1mm!important;max-height:10.1mm!important}.rc1305-signature-image{max-height:9.5mm!important}.rc1305-document-grid,.rc1305-pickup-summary,.rc1305-pickup-grid,.rc1305-pickup-item,.rc1315-print-qr{break-inside:avoid!important;page-break-inside:avoid!important}}';
  (d.head||d.documentElement).appendChild(st)
 }
 style();
-w.ExportHUBRC1305LoadingListPrint=Object.freeze({version:'RC1326',enhance:enhance,enhanceCover:enhanceCover,isPicked:isPicked,deliveryFiles:deliveryFiles,printRef:printRef,qrSvg:rc1315QrSvg,addQuickPrintQr:addQuickPrintQr,style:style});
+w.ExportHUBRC1305LoadingListPrint=Object.freeze({version:'RC1327',enhance:enhance,enhanceCover:enhanceCover,isPicked:isPicked,deliveryFiles:deliveryFiles,printRef:printRef,qrSvg:rc1315QrSvg,addQuickPrintQr:addQuickPrintQr,style:style});
 })(window,document);
