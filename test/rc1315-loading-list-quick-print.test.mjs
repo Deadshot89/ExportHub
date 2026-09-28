@@ -98,6 +98,9 @@ test('RC1315: Schnelldruck löst den vorhandenen Gesamtdruck aus statt eine zwei
   assert.match(quick,/\[data-index352-action="print-all"\]/);
   assert.match(quick,/btn\.click\(\)/);
   assert.doesNotMatch(quick,/window\.print\s*\(/);
+  assert.match(quick,/addEventListener\('input'/);
+  assert.match(quick,/EHPRINT\|EXPORTHUB-PRINT/);
+  assert.match(quick,/setTimeout\(function\(\)\{scanTimer=0;trigger\(input\.value\)/);
   assert.match(quick,/keydown/);
   assert.match(quick,/e\.key!=='Enter'/);
 });
