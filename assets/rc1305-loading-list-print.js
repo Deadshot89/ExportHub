@@ -12,6 +12,7 @@ function lastPickup(sh){var h=arr(sh&&sh.pickupHistory);return h.length?h[h.leng
 function value(sh,last,keys){for(var i=0;i<keys.length;i++){var k=keys[i],v=last&&last[k];if(v!=null&&q(v))return q(v);v=sh&&sh[k];if(v!=null&&q(v))return q(v)}return''}
 function formatDate(v){var raw=q(v);if(!raw)return tr('loadingListPrint.notRecorded');try{var dt=new Date(raw);if(!isNaN(dt.getTime()))return dt.toLocaleString(locale(),{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}catch(_){}return raw}
 function isPicked(sh,last){var status=q(sh&&(sh.processStatus||sh.status||sh.pickupStatus)).toLowerCase();return !!(sh&&(sh.pickupComplete===true||sh.pickedUp===true||sh.pickupConfirmed===true)||last&&last.complete===true||last&&last.confirmedAt&&Number(last.remainingAfter)===0||/abgeholt|pod vorhanden|abgeschlossen|confirmed|completed/.test(status))}
+function hasAbd(sh,last){if(last&&last.abdPresent===true||sh&&sh.abdPresent===true)return true;var lists=[sh&&sh.abdFiles,sh&&sh.abds,sh&&sh.abdDocuments];if(lists.some(function(x){return Array.isArray(x)&&x.length>0}))return true;if(q(sh&&(sh.abdFile||sh.abdRef||sh.abdReference||sh.abdMrn||sh.mrn)))return true;var docs=[].concat(arr(sh&&sh.documents),arr(sh&&sh.generatedDocuments));if(docs.some(function(item){var kind=q(item&&(item.type||item.category||item.group||item.documentType||item.kind)),name=fileName(item);return /(^|\b)abd(\b|$)|ausfuhrbegleitdokument/i.test(kind+' '+name)}))return true;var status=q(sh&&sh.abdStatus).toLowerCase();return /vorhanden|fertig|erledigt|completed|done|available|erstellt|created/.test(status)&&!/wartet|offen|pending|angefordert|requested/.test(status)}
 function findLabel(root,re){return Array.from(root.querySelectorAll('.rc390-label,.rc352-label,[class*="label"],strong,b')).find(function(el){var t=q(el.textContent);return t&&re.test(t)})||null}
 function cardFor(el,root){if(!el)return null;var n=el;for(var i=0;i<6&&n&&n!==root;i++,n=n.parentElement){if(n.nodeType===1&&/(?:card|field|sign|box|cell|pickup)/i.test(q(n.className)))return n}return el.parentElement&&el.parentElement!==root?el.parentElement:el}
 function findCard(root,re){return cardFor(findLabel(root,re),root)}
@@ -61,10 +62,14 @@ function pickupSummary(root,sh){
  var carrier=value(sh,last,['carrierName','pickupCarrierName','carrier','spedition']);
  var signature=value(sh,last,['driverSignature','signature','signatureData']);
  var signatureStored=!!(signature||value(sh,last,['signatureBlobName','signatureStoredAt']));
+ var customsSignature=value(sh,last,['customsDocumentsSignature','abdHandoverSignature','customsSignatureData']);
+ var customsSignatureStored=!!(customsSignature||value(sh,last,['customsDocumentsSignatureBlobName','customsDocumentsSignatureStoredAt'])||last&&last.customsDocumentsSignatureStored===true||sh&&sh.customsDocumentsSignatureStored===true);
+ var customsRequired=hasAbd(sh,last);
  var out=palletOut(sh),returned=Math.max(0,Math.round(Number(last&&last.returnedEuroPallets||sh&&sh.returnedEuroPallets||sh&&sh.palletIn)||0));
  var section=d.createElement('section');section.className='rc1305-pickup-summary';section.setAttribute('data-rc1305-pickup-summary','1');section.style.gridColumn='1 / -1';
- var driverLabel=tr('pickup.driver'),plateLabel=tr('history.field.licensePlate'),loaderLabel=tr('history.field.loader'),carrierLabel=tr('shipment.carrier'),signatureLabel=tr('loadingListPrint.driverSignature'),palletLabel=tr('pallet.euroPallet');
+ var driverLabel=tr('pickup.driver'),plateLabel=tr('history.field.licensePlate'),loaderLabel=tr('history.field.loader'),carrierLabel=tr('shipment.carrier'),signatureLabel=tr('loadingListPrint.driverSignature'),customsLabel=tr('loadingListPrint.customsDocumentsReceived'),palletLabel=tr('pallet.euroPallet');
  var signHtml=signature&&/^data:image\//i.test(signature)?'<img class="rc1305-signature-image" alt="'+esc(signatureLabel)+'" src="'+esc(signature)+'">':esc(signatureStored?tr('loadingListPrint.signatureStored'):tr('loadingListPrint.notRecorded'));
+ var customsSignHtml=customsSignature&&/^data:image\//i.test(customsSignature)?'<img class="rc1305-signature-image" alt="'+esc(customsLabel)+'" src="'+esc(customsSignature)+'">':esc(customsSignatureStored?tr('loadingListPrint.signatureStored'):tr('loadingListPrint.notRecorded'));
  section.innerHTML='<div class="rc1305-pickup-banner"><span>✓ '+esc(tr('loadingListPrint.pickedUp'))+'</span><strong>'+esc(formatDate(confirmed))+'</strong></div>'+
  '<div class="rc1305-pickup-grid">'+
  '<div class="rc1305-pickup-item"><span>'+esc(driverLabel)+'</span><strong>'+esc(driver)+'</strong></div>'+
@@ -72,6 +77,7 @@ function pickupSummary(root,sh){
  '<div class="rc1305-pickup-item"><span>'+esc(loaderLabel)+'</span><strong>'+esc(loader)+'</strong></div>'+
  (carrier?'<div class="rc1305-pickup-item"><span>'+esc(carrierLabel)+'</span><strong>'+esc(carrier)+'</strong></div>':'')+
  '<div class="rc1305-pickup-item rc1305-pickup-signature"><span>'+esc(signatureLabel)+'</span><strong>'+signHtml+'</strong></div>'+
+ (customsRequired?'<div class="rc1305-pickup-item rc1305-pickup-signature" data-rc1315-customs-signature="1"><span>'+esc(customsLabel)+'</span><strong>'+customsSignHtml+'</strong></div>':'')+
  '<div class="rc1305-pickup-item"><span>'+esc(palletLabel)+'</span><strong>'+esc(tr('loadingListPrint.palletMovement',{out:out,returned:returned}))+'</strong></div>'+
  '</div>';
  var anchor=cards[0],parent=anchor&&anchor.parentNode;if(parent)parent.insertBefore(section,anchor);else root.appendChild(section);
