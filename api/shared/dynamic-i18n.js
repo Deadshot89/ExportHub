@@ -116,18 +116,27 @@ async function enrichDynamicTranslations(root,fallbackLanguage='de',options={}){
  selected.forEach(row=>{const list=groups.get(row.source)||[];list.push(row);groups.set(row.source,list)});
  let completed=0,failed=0;
  for(const [source,list] of groups){
+  const unique=[],byOriginal=new Map();
+  list.forEach(row=>{
+   let entry=byOriginal.get(row.original);
+   if(!entry){entry={original:row.original,rows:[]};byOriginal.set(row.original,entry);unique.push(entry)}
+   entry.rows.push(row)
+  });
   try{
-   const translated=await translator(list.map(x=>x.original),source);
-   list.forEach((row,index)=>{
-    const data=translated[index]&&translated[index].translations||{},translations={};
-    LANGUAGES.forEach(lang=>{translations[lang]=text(data[lang])||(lang===source?row.original:'')});
-    const ok=LANGUAGES.every(lang=>translations[lang]);
-    row.meta.translations=translations;
-    row.meta.translatedAt=ok?new Date().toISOString():null;
-    row.meta.translationStatus=ok?'complete':'pending';
-    row.meta.status=row.meta.translationStatus;
-    row.meta.translationError=ok?null:'MISSING_TARGET_TRANSLATION';
-    if(ok)completed++;else failed++
+   const translated=await translator(unique.map(x=>x.original),source);
+   unique.forEach((entry,index)=>{
+    const data=translated[index]&&translated[index].translations||{};
+    entry.rows.forEach(row=>{
+     const translations={};
+     LANGUAGES.forEach(lang=>{translations[lang]=text(data[lang])||(lang===source?row.original:'')});
+     const ok=LANGUAGES.every(lang=>translations[lang]);
+     row.meta.translations=translations;
+     row.meta.translatedAt=ok?new Date().toISOString():null;
+     row.meta.translationStatus=ok?'complete':'pending';
+     row.meta.status=row.meta.translationStatus;
+     row.meta.translationError=ok?null:'MISSING_TARGET_TRANSLATION';
+     if(ok)completed++;else failed++
+    })
    })
   }catch(e){
    list.forEach(row=>{
