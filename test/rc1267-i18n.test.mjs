@@ -56,3 +56,18 @@ test('RC1267: legacy public runtime delegates to central i18n',()=>{
   assert.match(legacy,/RC1267-compat/);
   assert.match(legacy,/window\.ExportHUBI18n\.setLanguage/);
 });
+
+
+test('RC1335: i18n batches DOM translation and avoids no-op DOM writes',()=>{
+  assert.match(runtime,/function scheduleTranslateFlush\(/);
+  assert.match(runtime,/function queueTranslateRoot\(/);
+  assert.match(runtime,/function queueFullTranslation\(/);
+  assert.match(runtime,/requestAnimationFrame/);
+  assert.match(runtime,/if\(el\.textContent!==value\)el\.textContent=value/);
+  assert.match(runtime,/el\.getAttribute\(target\)!==value/);
+  assert.match(runtime,/el\.getAttribute\(attr\)!==String\(next\)/);
+  assert.match(runtime,/if\(node\.nodeType===1\)queueTranslateRoot\(node\)/);
+  assert.match(runtime,/if\(d\.body\)queueFullTranslation\(\)/);
+  const stateEvents=runtime.match(/\['exporthub:state-loaded'[\s\S]*?\}\);/)?.[0]||'';
+  assert.doesNotMatch(stateEvents,/translate\(d\.body,current\)/);
+});
