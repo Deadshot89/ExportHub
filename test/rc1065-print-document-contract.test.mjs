@@ -53,7 +53,7 @@ test('RC1065 Druckvertrag: Teilsendungsdokumente mischen keine Rows verschiedene
   const rows=functionBlock(html,'rc1017RowsForSubShipment',6000);
   const doc=functionBlock(html,'rc1017SubShipmentDocumentShipment',12000);
   assert.match(rows,/subShipmentId/);
-  assert.match(doc,/temp\.rows=rc1017Clone\(metrics\.rows\)/);
+  assert.match(doc,/temp\.rows=copy\(metrics\.rows\)/);
   assert.match(doc,/temp\.totalColli=metrics\.colli/);
   assert.match(doc,/temp\.totalWeight=metrics\.weight/);
   assert.match(doc,/Hauptreferenz/);
