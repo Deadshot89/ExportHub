@@ -7,6 +7,7 @@ const builder=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
 const spec=fs.readFileSync('e2e/specs/version-display.spec.mjs','utf8');
 const probe=fs.readFileSync('production-version.js','utf8');
 const workflow=fs.readFileSync('.github/workflows/rc1193-visible-version-pr.yml','utf8');
+const deployWorkflow=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
 
 test('RC1314: sichtbare Produktversion besitzt eine explizite autoritative Quelle',()=>{
   assert.equal(fs.existsSync(markerPath),true,'release-version.json fehlt');
@@ -38,4 +39,8 @@ test('RC1314: Release-Marker löst den Visible-Version-Browser-Gate samt Vertrag
   assert.match(workflow,/release-version\.json/);
   assert.match(workflow,/test\/rc1314-explicit-visible-release\.test\.mjs/);
   assert.match(workflow,/node --test test\/rc1193-visible-release-version\.test\.mjs test\/rc1314-explicit-visible-release\.test\.mjs/);
+});
+
+test('RC1314: sichtbarer Release-Marker löst den Drei-Umgebungen-Deploy aus',()=>{
+  assert.match(deployWorkflow,/push:[\s\S]*paths:[\s\S]*release-version\.json/);
 });

@@ -9,6 +9,7 @@ on:
       - 'TESTVERSION.html'
       - 'demo.html'
       - 'production-version.js'
+      - 'release-version.json'
       - 'pickup.html'
       - 'customer-avis.html'
       - 'location.html'
