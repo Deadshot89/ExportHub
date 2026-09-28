@@ -1164,5 +1164,14 @@
   "taskPlan.help": "Te zadania cykliczne są na stałe przypisane do Ciebie. Zadania na dziś pojawiają się również poniżej jako zadania do wykonania.",
   "taskPlan.count": "Zapisano: {{count}}",
   "taskPlan.today": "Dzisiaj",
-  "taskPlan.always": "Zawsze dostępne"
+  "taskPlan.always": "Zawsze dostępne",
+  "loadingListQuickPrint.title": "Szybki wydruk · QR / REF",
+  "loadingListQuickPrint.description": "Zeskanuj kod QR lub wpisz 6-znakowy REF i naciśnij Enter. Zostanie uruchomiony pełny wydruk.",
+  "loadingListQuickPrint.placeholder": "Zeskanuj QR lub wpisz REF",
+  "loadingListQuickPrint.button": "Drukuj wszystkie dokumenty",
+  "loadingListQuickPrint.ready": "Gotowe do skanowania QR lub REF.",
+  "loadingListQuickPrint.printing": "Uruchomiono pełny wydruk dla {{ref}}.",
+  "loadingListQuickPrint.invalid": "Nie wykryto prawidłowego 6-znakowego REF.",
+  "loadingListQuickPrint.missing": "Nie znaleziono przesyłki {{ref}}.",
+  "loadingListQuickPrint.noPrint": "Pełny wydruk nie jest dostępny dla tej przesyłki."
 }

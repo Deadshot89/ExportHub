@@ -1164,5 +1164,14 @@
   "taskPlan.help": "Estas tareas recurrentes están asignadas de forma permanente. Las tareas que vencen hoy también aparecen abajo para poder gestionarlas.",
   "taskPlan.count": "{{count}} guardadas",
   "taskPlan.today": "Hoy",
-  "taskPlan.always": "Siempre disponible"
+  "taskPlan.always": "Siempre disponible",
+  "loadingListQuickPrint.title": "Impresión rápida · QR / REF",
+  "loadingListQuickPrint.description": "Escanea el QR o introduce la REF de 6 caracteres y pulsa Enter. Se iniciará la impresión completa.",
+  "loadingListQuickPrint.placeholder": "Escanear QR o introducir REF",
+  "loadingListQuickPrint.button": "Imprimir todos los documentos",
+  "loadingListQuickPrint.ready": "Listo para QR o REF.",
+  "loadingListQuickPrint.printing": "Impresión completa de {{ref}} iniciada.",
+  "loadingListQuickPrint.invalid": "No se detectó una REF válida de 6 caracteres.",
+  "loadingListQuickPrint.missing": "No se encontró el envío {{ref}}.",
+  "loadingListQuickPrint.noPrint": "La impresión completa no está disponible para este envío."
 }

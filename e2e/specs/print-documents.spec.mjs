@@ -399,3 +399,58 @@ test('RC1315: ABD-Ladeliste hält beide Fahrerunterschriften kollisionsfrei auf 
 
   await assertRuntimeClean(guard,testInfo);
 });
+
+test('RC1315 P1: Druck-QR oder REF in Ladeliste startet den vollständigen Sendungsdruck',async({page,context},testInfo)=>{
+  test.skip(testInfo.project.name!=='laptop','QR-/REF-Schnelldruck wird einmal im echten Browser geprüft.');
+  test.setTimeout(60_000);
+
+  await context.addInitScript(()=>{
+    window.__RC1315_PRINT_CAPTURE__=null;
+    const capture=()=>{try{
+      window.__RC1315_PRINT_CAPTURE__={
+        text:String(document.body&&document.body.innerText||''),
+        html:String(document.documentElement&&document.documentElement.outerHTML||''),
+        load1Count:document.querySelectorAll('.rc390-load.rc576-load1').length,
+        load2Count:document.querySelectorAll('.rc390-load.rc576-load2').length,
+        cmrCount:document.querySelectorAll('.rc390-cmr-wrap').length
+      };
+    }catch(_){}};
+    try{Object.defineProperty(window,'print',{configurable:true,writable:true,value:capture})}
+    catch(_){try{window.print=capture}catch(__){}}
+  });
+
+  const guards=[attachRuntimeGuards(page,testInfo)];
+  context.on('page',popup=>guards.push(attachRuntimeGuards(popup,testInfo)));
+
+  await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
+  await waitReady(page);
+  await openExportHubView(page,'documents',['Ladeliste & CMR','Dokumente & CMR','Dokumente','CMR'],/Ladeliste|CMR|Dokument/i,{allowProgrammaticFallback:true});
+
+  const quick=page.locator('[data-rc1315-input]').first();
+  await expect(quick,'RC1315 QR-/REF-Eingabe fehlt').toBeVisible({timeout:10_000});
+  await quick.fill('EHPRINT:DEMO02'); // echter QR-Scan muss ohne zusätzlichen Klick/Enter starten
+
+  let capture=null;
+  await expect.poll(async()=>{
+    for(const p of context.pages()){
+      for(const frame of p.frames()){
+        const value=await frame.evaluate(()=>window.__RC1315_PRINT_CAPTURE__||null).catch(()=>null);
+        if(value&&String(value.html||'').length>500){capture=value;return value.html.length}
+      }
+    }
+    await sleep(100);
+    return 0;
+  },{timeout:20_000,message:'QR-Schnelldruck hat keinen vollständigen Druckkontext erzeugt'}).toBeGreaterThan(500);
+
+  expect(capture.text).toContain('DEMO02');
+  expect(capture.html).toContain('data-rc1315-print-qr="1"');
+  expect(capture.html).toContain('data-rc1315-payload="EHPRINT:DEMO02"');
+  expect(capture.load1Count).toBe(1);
+  expect(capture.load2Count).toBe(1);
+  expect(capture.cmrCount).toBe(4);
+
+  const status=page.locator('[data-rc1315-status]').first();
+  await expect(status).toContainText(/DEMO02/);
+
+  for(const guard of guards)await assertRuntimeClean(guard,testInfo);
+});
