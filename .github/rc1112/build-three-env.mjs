@@ -296,11 +296,11 @@ function patchRc1203ActualDeckblatt(html,file){
   html=html.slice(0,start)+block+html.slice(end);
 
   const css='<style id="exporthub-rc1203-deckblatt-style">'+
-  '#rc576DocumentStage .rc390-cover.rc1203-cover,.rc390-cover.rc1203-cover{box-sizing:border-box!important;border:3mm solid #334155!important;border-top-width:5mm!important;outline:0!important;background:#fff!important;background-image:none!important;color:#1f2937!important;box-shadow:inset 0 0 0 1mm #dbe4ee!important;padding:8mm!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'+
+  '#rc576DocumentStage .rc390-cover.rc1203-cover,.rc390-cover.rc1203-cover{font-size:calc(1em - 2pt)!important;box-sizing:border-box!important;border:3mm solid #334155!important;border-top-width:5mm!important;outline:0!important;background:#fff!important;background-image:none!important;color:#1f2937!important;box-shadow:inset 0 0 0 1mm #dbe4ee!important;padding:8mm!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'+
   '#rc576DocumentStage .rc390-cover.rc1203-cover .rc390-cover-ref,.rc390-cover.rc1203-cover .rc390-cover-ref{background:var(--rc1281-ref-bg)!important;border:1.2mm solid var(--rc1281-ref-border)!important;color:var(--rc1281-ref-text)!important;padding:4mm!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'+
   '.rc390-cover.rc1203-cover .rc390-cover-ref span,.rc390-cover.rc1203-cover .rc390-cover-ref b{color:var(--rc1281-ref-text)!important}'+
   '#rc576DocumentStage .rc390-cover.rc1203-cover .rc1203-cover-recipient,.rc390-cover.rc1203-cover .rc1203-cover-recipient{font-size:16pt!important;line-height:1.24!important;font-weight:750!important;padding:4mm!important;border:1mm solid var(--rc1281-recipient-border)!important;background:var(--rc1281-recipient-bg)!important;color:var(--rc1281-recipient-text)!important}'+
-  '.rc390-cover.rc1203-cover .rc1203-cover-recipient strong{font-size:19pt!important;line-height:1.18!important;font-weight:800!important;color:var(--rc1281-recipient-text)!important}.rc390-cover.rc1203-cover .rc1203-cover-recipient .rc390-txt{font-size:18pt!important;line-height:1.25!important;font-weight:800!important;color:var(--rc1281-recipient-text)!important}'+
+  '.rc390-cover.rc1203-cover .rc1203-cover-recipient strong{font-size:17pt!important;line-height:1.18!important;font-weight:800!important;color:var(--rc1281-recipient-text)!important}.rc390-cover.rc1203-cover .rc1203-cover-recipient .rc390-txt{font-size:16pt!important;line-height:1.22!important;font-weight:800!important;color:var(--rc1281-recipient-text)!important}'+
   '.rc390-cover.rc1203-cover [data-rc1281-created-date]{background:#fff!important;color:#334155!important}'+
   '.rc390-cover.rc1203-cover [data-rc1293-packing-slip-grid]{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(36mm,1fr))!important;gap:2mm!important;align-items:stretch!important}.rc390-cover.rc1203-cover [data-rc1293-packing-slip]{display:flex!important;align-items:center!important;min-width:0!important;padding:1.5mm 2mm!important;border:.4mm solid #cbd5e1!important;border-radius:2mm!important;background:#fff!important;font-size:10.5pt!important;line-height:1.2!important;font-weight:750!important;overflow-wrap:anywhere!important;word-break:break-word!important;break-inside:avoid!important;page-break-inside:avoid!important}'+
   '#rc576DocumentStage .rc390-cover.rc1203-cover .rc1203-cover-remark,.rc390-cover.rc1203-cover .rc1203-cover-remark{border:1mm solid #cbd5e1!important;border-left:3mm solid #e5b51d!important;background:#fffdf5!important;color:#1f2937!important;padding:3.5mm 4mm!important;min-height:18mm!important;max-height:28mm!important;overflow:hidden!important;margin-bottom:5mm!important;break-inside:avoid!important;page-break-inside:avoid!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'+
@@ -408,6 +408,16 @@ function patchCompletePrintBundle(html,file){
   return html;
 }
 
+function patchRc1324PrintScale(html,file){
+  const loadStart=html.indexOf('function loadHtml(sh,withQr){');
+  const loadEnd=loadStart<0?-1:html.indexOf('function documentCacheKey',loadStart);
+  if(loadStart<0||loadEnd<0)throw new Error(file+': RC1324 Ladeliste fehlt');
+  let block=html.slice(loadStart,loadEnd);
+  block=block.replace('<section class="rc390-load">','<section class="rc390-load rc1324-load-compact" style="font-size:calc(1em - 1pt)!important">');
+  html=html.slice(0,loadStart)+block+html.slice(loadEnd);
+  return html;
+}
+
 function patchRc1305LoadingListPresentation(html,file){
   const loadStart=html.indexOf('function loadHtml(sh,withQr){');
   const loadEnd=loadStart<0?-1:html.indexOf('function documentCacheKey',loadStart);
@@ -422,9 +432,9 @@ function patchRc1305LoadingListPresentation(html,file){
     ].join('\n')+'\n';
     html=html.slice(0,loadEnd)+wrapper+html.slice(loadEnd);
   }
-  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1305-loading-list-print" defer src="/assets/rc1305-loading-list-print.js?v=1323"></script>','exporthub-rc1305-loading-list-print');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1305-loading-list-print" defer src="/assets/rc1305-loading-list-print.js?v=1324"></script>','exporthub-rc1305-loading-list-print');
   if(!html.includes('__EXPORTHUB_RC1305_LOAD_HTML_WRAPPED__'))throw new Error(file+': RC1305 interner Ladelisten-Renderer ist nicht angebunden');
-  if(!html.includes('assets/rc1305-loading-list-print.js?v=1323'))throw new Error(file+': RC1305 Ladelisten-Druckruntime fehlt');
+  if(!html.includes('assets/rc1305-loading-list-print.js?v=1324'))throw new Error(file+': RC1305 Ladelisten-Druckruntime fehlt');
   return html;
 }
 
@@ -601,6 +611,7 @@ function patchHtml(file){
   html=patchTaskDetailTab(html,file);
   html=patchRc1259ContainerSearch(html,file);
   html=patchCompletePrintBundle(html,file);
+  html=patchRc1324PrintScale(html,file);
   html=patchRc1305ShipmentViewReliability(html,file);
   html=patchRc1305LoadingListPresentation(html,file);
   html=patchRc1283LoadingListSearch(html,file);
