@@ -3,20 +3,35 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {execFileSync} from 'node:child_process';
 
-test('RC1319 Diagnose: QR-Zulassung und Statusberechnung',()=>{
+function build(){
   execFileSync(process.execPath,['.github/rc1112/build-three-env.mjs'],{stdio:'pipe'});
-  const html=fs.readFileSync('dist-rc1112/index.html','utf8');
-  const qr=html.indexOf('function register(sh,force)');
-  assert.ok(qr>=0,'QR register fehlt');
-  const eligible=html.lastIndexOf('function eligible',qr);
-  const persisted=html.lastIndexOf('function persisted',qr);
-  const statusApi=html.indexOf('recalculateShipmentStatus');
-  const saveStatus=html.indexOf("if(!q(saved.status))saved.status='Entwurf';");
-  assert.ok(eligible>=0&&persisted>=0&&saveStatus>=0,'Diagnoseanker fehlen');
-  assert.fail([
-    'ELIGIBLE='+html.slice(eligible,eligible+2600),
-    'PERSISTED='+html.slice(persisted,persisted+2600),
-    'STATUSAPI='+html.slice(Math.max(0,statusApi-2800),statusApi+6200),
-    'SAVESTATUS='+html.slice(Math.max(0,saveStatus-1000),saveStatus+2600)
-  ].join('\n---RC1319---\n'));
+}
+function read(file){return fs.readFileSync(file,'utf8')}
+
+test('RC1319: gespeicherte Entwürfe werden erstellt und Status bleibt definiert',()=>{
+  build();
+  for(const file of ['index.html','TESTVERSION.html','demo.html']){
+    const html=read('dist-rc1112/'+file);
+    assert.doesNotMatch(html,/if\(!q\(saved\.status\)\)saved\.status='Entwurf';/,file+': alte Entwurf-Regression darf nicht zurückkehren');
+    assert.match(html,/if\(!q\(saved\.status\)\|\|\/\^entwurf\$\/i\.test\(q\(saved\.status\)\)\)\{saved\.status='Erstellt';saved\.processStatus='Erstellt'\}/,file+': persistierte Sendung muss Entwurf verlassen');
+    assert.match(html,/function recalc\(sh\)\{[\s\S]*?return q\(sh&&\(sh\.status\|\|sh\.processStatus\)\)\}/,file+': recalc muss den kanonischen Status zurückgeben');
+    assert.doesNotMatch(html,/var canonicalSavedStatus=recalc\(saved\);[\s\S]{0,500}s\.shipment\.status=undefined/,file+': aktiver Status darf nie undefined werden');
+  }
+});
+
+test('RC1319: erfolgreicher Save übergibt exakt die persistierte Sendung an den vorhandenen QR-Pfad',()=>{
+  build();
+  const perf=read('assets/rc1069-performance.js');
+  assert.match(perf,/\['exporthub:shipment-saved','exporthub:documents-opening'\]/);
+  assert.match(perf,/sh=d\.shipment\|\|currentPrintShipment\(\)/);
+  assert.match(perf,/warehouse\.register\(sh,false\)/);
+
+  for(const file of ['index.html','TESTVERSION.html','demo.html']){
+    const html=read('dist-rc1112/'+file);
+    assert.match(html,/detail:\{id:id,reference:saved\.ref,updated:!!existing,azureSaved:true,shipment:saved\}/,file+': Save-Event muss das persistierte Sendungsobjekt tragen');
+    assert.match(html,/function persisted\(sh\)[\s\S]{0,600}!\/\^DRAFT-\/i\.test\(id\)[\s\S]{0,600}states\(\)\.some/,file+': QR-Zulassung muss echte Persistenz verlangen');
+    assert.match(html,/function eligible\(sh\)[\s\S]{0,500}persisted\(sh\)[\s\S]{0,500}colliCount\(sh\)>0/,file+': QR-Zulassung muss gespeicherte Sendung, Referenz/Kunde und Colli prüfen');
+    assert.match(html,/pickupQrRegistered:true[\s\S]{0,700}readyForPickup:true[\s\S]{0,700}readinessStatus:'Bereit zur Abholung'/,file+': QR-Erfolg muss Abholbereitschaft setzen');
+    assert.match(html,/one\.status='Bereit zur Abholung';one\.processStatus='Bereit zur Abholung'/,file+': QR-Erfolg muss Status fortschreiben');
+  }
 });
