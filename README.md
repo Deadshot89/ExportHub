@@ -1,6 +1,6 @@
 # ExportHUB – aktueller Main-Stand
 
-ExportHUB verwendet weiterhin die gemeinsame **RC1112-Releasebasis** für Produktion, TESTSERVICE, Demo und Android. Die fachlichen und technischen Korrekturen auf `main` reichen aktuell bis **RC1242**. Der technische Build-/Produktionsmarker bleibt bewusst RC1112; die sichtbare Produktversion wird getrennt geführt.
+ExportHUB verwendet weiterhin die gemeinsame **RC1112-Releasebasis** für Produktion, TESTSERVICE, Demo und Android. Die fachlichen und technischen Korrekturen auf `main` reichen aktuell bis **RC1312**. Der technische Build-/Produktionsmarker bleibt bewusst RC1112; die sichtbare Produktversion wird getrennt geführt.
 
 ## Aktueller Release-Stand
 
@@ -22,6 +22,16 @@ Seit RC1223 wurden unter anderem folgende releasekritische Punkte ergänzt oder 
 - **RC1240** – signierte TESTSERVICE-E2E-Sitzung auf 45 Minuten erweitert; ausschließlich gültig `E2E-*`-markierte Alt-Testdaten werden vor einem neuen Lauf bereinigt.
 - **RC1241** – POD-Reconcile leert den sicherungsfähigen Backlog in mehreren Batches und gilt erst bei vollständig leerem Backlog als erfolgreich.
 - **RC1242** – QR-Abholung erzwingt die Reihenfolge Sendung → Collis bestätigen → Fahrer/Fahrzeug/Unterschrift/PIN; fehlende erwartete Colli-Anzahl sperrt die Abholung fail-closed.
+- **RC1303** – Login-Persistenz, First-Paint und Produktionsdomain stabilisiert; Produktion verwendet `https://www.exporthub360.de/`.
+- **RC1304** – Lieferavis-Refresh-Sturm behoben und Design-Switcher eingeführt.
+- **RC1305** – Sendungsansicht mit Dokumentzugriff/Statushistorie sowie Ladeliste-/CMR-Suche und -Ausgabe verbessert.
+- **RC1306** – echte Multi-Layout-Architektur für Classic, Modern Business, Glass und Neon Night; funktionale DOM-Knoten werden verschoben statt dupliziert.
+- **RC1307** – `RC1112 Main Contract` läuft für jeden Pull Request gegen `main` und kann damit als Pre-Merge-Gate verwendet werden.
+- **RC1308** – Multi-Layout-Browser-Gate explizit auf alle fünf Ziel-Viewports erweitert.
+- **RC1309** – Playwright-Testtooling auf 1.63.0 aktualisiert; die zuvor gemeldeten High-Severity-Funde im reinen Testtooling sind aus den aktiven Workflows entfernt.
+- **RC1310** – doppelter Layout-Rebuild beim expliziten Designwechsel beseitigt.
+- **RC1311** – Login-First-Paint weiter reduziert und Browser-Tab nach Login dauerhaft auf `ExportHUB360` gehalten.
+- **RC1312** – persönlicher Aufgabenplan vollständig sichtbar, Android-Aufgabenbenachrichtigungen auf reale persönliche Aufgaben begrenzt und stündliches Runtime-Monitoring für Produktion und TESTSERVICE ergänzt.
 
 Die sichtbare Produktversionsanzeige ist von der stabilen technischen RC1112-Buildkette getrennt. Dadurch können fachliche Korrekturen unabhängig vom technischen Buildmarker ausgeliefert werden.
 
@@ -34,6 +44,20 @@ Die sichtbare Produktversionsanzeige ist von der stabilen technischen RC1112-Bui
 - Der TESTSERVICE-E2E-Fixture verwendet ausschließlich signierte, TESTSERVICE-isolierte 45-Minuten-Sitzungen; vor jedem Lauf werden nur eindeutig `E2E-*`-markierte Alt-Testdaten bereinigt.
 - `index.html`, `TESTVERSION.html` und `demo.html` verwenden denselben RC1112-Funktionsstand.
 - Topbar, Navigation, globale Suche, Warncenter, persönliche Benachrichtigungen, Fehlerdiagnose, Historie, Abholkalender und Sendungsübersicht sind Bestandteil des aktuellen Stands.
+
+## Design und responsive Viewports
+
+ExportHUB unterstützt vier vollständig unterschiedliche Layouts: **Classic**, **Modern Business**, **Glass** und **Neon Night**. Der Wechsel betrifft die Informationsarchitektur und Geometrie der Oberfläche, nicht nur Farben oder Hintergründe.
+
+Das RC1306/RC1308 Browser-Gate prüft alle vier Designs in Chromium auf allen fünf verbindlichen Zielgrößen:
+
+- Smartphone klein: **360×800**
+- Smartphone Standard: **390×844**
+- Tablet: **768×1024**
+- Laptop: **1366×768**
+- Desktop: **1920×1080**
+
+Die responsive Logik stapelt Modern Business und Neon unterhalb 1120 px bewusst vertikal; Glass reduziert sein Raster bei Tabletbreite und wird auf Smartphone einspaltig. Alle Varianten prüfen zusätzlich auf horizontales Overflow, doppelte Funktionsblöcke und Runtime-Fehler.
 
 ## POD-Sicherung und Wiederherstellung
 
@@ -97,15 +121,16 @@ Der aktuelle Lieferavis-Stand umfasst unter anderem:
 
 ## Aufgaben
 
-Die aktuelle Aufgabenansicht verwendet unter anderem die fachlichen Gruppen:
+Die Aufgabenansicht zeigt den vollständigen persönlichen Wochenplan direkt unter **„Meine hinterlegten Aufgaben“**. Für Tobias sind aktuell hinterlegt:
 
-- Offene Sendungen
-- Fehlende POD
-- Kunde angemeldet
-- Picks
-- Offene ABDs
+- Montag: Spanien, Gaggenau bis 13:00, FAURECIA
+- Dienstag: Würth Industrie, BMP
+- Mittwoch: Italien, BSH bis 13:00, O’Hare bis 12:00, Essentra Schweden, Contitech ABD
+- Donnerstag: Würth Industrie, Spanien, Polen
+- Freitag: Italien, Frankreich, Neff bis 13:00
+- Referenzbereich: Schweizer Kunden prüfen
 
-`Fehlende POD` gilt nur für bereits abgeholte Sendungen, bei denen der POD noch fehlt.
+Statusfolge: **offen → in Bearbeitung → erledigt**. Wiederkehrende Aufgaben erzeugen danach die nächste planmäßige Ausführung. Die Android-Erinnerungsslots bleiben **09:00 / 12:00 / 15:00**; Referenzbereiche erzeugen keine Handy-Erinnerung, und ohne gültigen persönlichen Snapshot werden keine generischen Aufgaben erfunden.
 
 ## Android-App
 
@@ -131,6 +156,8 @@ Die zentralen dauerhaft aktiven Pfade sind:
 - TESTSERVICE Einzel-Deploy nur als ausdrücklich bestätigte Ausnahme: `.github/workflows/exporthub-testservice.yml`
 - Android: `.github/workflows/exporthub-android-test-app.yml`
 - POD-Backup-Nachholung: `.github/workflows/rc1144-pod-backup-reconcile.yml`
+- Multi-Layout Browser Gate: `.github/workflows/rc1306-layout-browser.yml`
+- Stündliches Runtime-Monitoring: `.github/workflows/rc1050-storage-probe.yml`
 
 Historische RC-Regressionstests bleiben bewusst erhalten und werden vom aktuellen Releasevertrag weiter ausgeführt, damit frühere Funktionen nicht unbemerkt regressieren.
 
@@ -153,3 +180,23 @@ Der Main Contract prüft unter anderem:
 - reproduzierbaren Drei-Umgebungen-Build.
 
 Für die POD-Sicherung gilt zusätzlich: offene Sicherungen dürfen im Production-Reconcile weder `pendingCount > 0` noch `errorCount > 0` hinterlassen.
+
+## Runtime-Monitoring
+
+Der RC1050-Workflow läuft **stündlich** und prüft ohne zusätzlichen Cloud-Dienst:
+
+- `https://www.exporthub360.de/`
+- den Azure-Production-Origin,
+- TESTSERVICE,
+- Health,
+- Auth,
+- Storage-Readiness.
+
+Damit bleiben Erreichbarkeit und zentrale Backend-Abhängigkeiten regelmäßig sichtbar, auch zwischen Deployments.
+
+## Bekannte externe Admin-Blocker
+
+Zwei Punkte sind technisch vorbereitet, können aber nicht allein durch Repository-Code abgeschlossen werden:
+
+- **Microsoft Graph `Mail.Send`**: Der echte RC1255 TESTSERVICE-AVIS-/Reminder-Mailtest bleibt blockiert, solange die verwendete Entra-App die Application Permission `Mail.Send` nicht mit Admin-Consent besitzt. Der Deploy weist darauf ausdrücklich hin und behandelt den bekannten Permission-Blocker nicht als Codefehler.
+- **GitHub Branch Protection**: `RC1112 Main Contract` läuft bereits für jeden Pull Request gegen `main`, aber **Branch Protection** ist auf `main` derzeit nicht aktiviert. Für eine echte erzwungene Merge-Sperre muss die Repository-Admin-Konfiguration zusätzlich „Änderungen nur via PR“, den Required Check `RC1112 Main Contract / verify`, Force-Push-Sperre und Löschsperre aktivieren.
