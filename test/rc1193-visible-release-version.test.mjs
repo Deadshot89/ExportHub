@@ -8,24 +8,26 @@ const builder=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
 const notes=fs.readFileSync('assets/rc1177-release-notes.js','utf8');
 const spec=fs.readFileSync('e2e/specs/version-display.spec.mjs','utf8');
 const workflow=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
+const releaseMarker=JSON.parse(fs.readFileSync('release-version.json','utf8'));
 
-test('RC1265: sichtbare Release-Version wird beim Build aus dem aktuellen RC ermittelt',()=>{
+test('RC1314: sichtbare Release-Version wird aus dem expliziten Release-Marker ermittelt',()=>{
   assert.match(runtime,/var VERSION='RC1112'/,'Quellruntime behält nur die technische Fallback-Version');
   assert.match(builder,/function resolveVisibleVersion\(\)/);
   assert.match(builder,/EXPORTHUB_VISIBLE_RELEASE_VERSION/);
-  assert.ok(builder.includes("execFileSync('git',['log'"));
+  assert.match(builder,/release-version\.json/);
   assert.match(builder,/const VISIBLE_VERSION=resolveVisibleVersion\(\)/);
   assert.match(builder,/visibleRuntime\.replace\(\/var VERSION='RC\\d\+';\//);
   assert.match(builder,/releaseNotes\.replace\(\/return'RC\\d\+'\//);
-  assert.doesNotMatch(builder,/visibleProductVersion:'RC1231/);
+  assert.equal(releaseMarker.visibleRelease,'RC1312');
+  assert.equal(releaseMarker.technicalBuild,'RC1112');
 });
 
-test('RC1286: spätere Merge-Reihenfolge darf die sichtbare RC-Version nicht zurückstufen',()=>{
-  assert.match(builder,/matchAll\(\/\\bRC\(\\d\+\)\\b\/gi\)/);
-  assert.match(builder,/Math\.max\(\.\.\.matches\)/);
-  assert.match(spec,/matchAll\(\/\\bRC\(\\d\+\)\\b\/gi\)/);
-  assert.match(spec,/Math\.max\(\.\.\.matches\)/);
-  assert.doesNotMatch(builder,/String\(subjects\|\|''\)\.match\(\/\\bRC\(\\d\+\)\\b\/i\)/);
+test('RC1314: Commit-Reihenfolge und Doku-RCs verändern die sichtbare Produktversion nicht',()=>{
+  assert.doesNotMatch(builder,/--pretty=%s/);
+  assert.doesNotMatch(spec,/--pretty=%s/);
+  assert.doesNotMatch(builder,/matchAll\(\/\\bRC\(\\d\+\)\\b\/gi\)/);
+  assert.doesNotMatch(spec,/matchAll\(\/\\bRC\(\\d\+\)\\b\/gi\)/);
+  assert.match(spec,/release-version\.json/);
 });
 
 test('RC1265: Cache-Keys der sichtbaren Version sind nicht mehr auf RC1231 festgeschrieben',()=>{
@@ -53,7 +55,8 @@ test('RC1265: Release Notes nutzen die gebaute sichtbare Produktversion',()=>{
 test('RC1265: Browser-Spec erwartet den aktuellen RC statt einer festen RC1231',()=>{
   assert.match(spec,/function expectedVisibleRelease\(\)/);
   assert.match(spec,/EXPORTHUB_EXPECTED_VISIBLE_RELEASE/);
-  assert.ok(spec.includes("execFileSync('git',['log'"));
+  assert.match(spec,/release-version\.json/);
+  assert.doesNotMatch(spec,/--pretty=%s/);
   assert.match(spec,/data-exporthub-visible-version/);
   assert.doesNotMatch(spec,/Aktuelle Version\\s\+RC1231/);
   assert.doesNotMatch(spec,/toHaveAttribute\('data-exporthub-visible-version','RC1231'\)/);

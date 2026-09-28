@@ -1,0 +1,6 @@
+{
+  "schema": "exporthub-release-version-v1",
+  "visibleRelease": "RC1312",
+  "technicalBuild": "RC1112",
+  "note": "visibleRelease changes only for a deliberately released product/runtime change; documentation-only commits do not advance it."
+}
