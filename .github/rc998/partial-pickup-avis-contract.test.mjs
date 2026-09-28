@@ -77,8 +77,9 @@ test('Jede Teilabholung speichert einen getrennten Signaturnachweis',()=>{
 });
 
 
-test('Lieferavis-Link trägt seine Umgebung und die öffentliche Seite übernimmt sie',()=>{
-  assert.match(avisApi,/customer-avis\.html\?token=.*environment/);
+test('Lieferavis-Link nutzt ExportHUB360 und trägt seine Umgebung; die öffentliche Seite übernimmt sie',()=>{
+  assert.match(avisApi,/https:\/\/exporthub360\.com/);
+  assert.match(avisApi,/\/avis\/['"]?\+encoded|PRODUCTION_AVIS_ORIGIN\+'\/avis\/'\+encoded/);
   assert.match(avisApi,/encodeURIComponent\(env\)/);
   assert.match(avisHtml,/searchParams\.get\(['"]environment['"]\)/);
   assert.match(avisHtml,/environment=testservice|dataEnvironment/);
