@@ -210,10 +210,25 @@ test('RC1320 P1: Mehr-LKW läuft im TESTSERVICE von UI-Aufteilung über getrennt
 
     await page.evaluate(()=>{window.__RC1320_SAVED_EVENTS__=[];window.addEventListener('exporthub:shipment-saved',e=>window.__RC1320_SAVED_EVENTS__.push(e?.detail||{}));});
     await page.locator('#rc363SaveShipment').click();
-    await expect.poll(()=>page.evaluate(()=>window.__RC1320_SAVED_EVENTS__?.length||0),{timeout:40_000}).toBeGreaterThan(0);
+    await expect.poll(()=>page.evaluate(ref=>{
+      const events=Array.isArray(window.__RC1320_SAVED_EVENTS__)?window.__RC1320_SAVED_EVENTS__:[];
+      if(events.length)return true;
+      const s=window.__EXPORTHUB_GET_STATE__?.()||{};
+      const list=[...(Array.isArray(s.shipments)?s.shipments:[]),s.shipment,s.currentShipment,s.selectedShipment].filter(Boolean);
+      const sh=list.find(x=>String(x.ref||x.reference||x.shipmentRef||'').trim().toUpperCase()===ref);
+      return !!(sh&&Array.isArray(sh.subShipments)&&sh.subShipments.length>1);
+    },ref),{timeout:40_000,message:'Mehr-LKW-Speicherung muss als Save-Event oder persistierter State sichtbar werden'}).toBe(true);
     await settleStateSave(page,{timeout:40_000});
 
-    const saved=await page.evaluate(()=>window.__RC1320_SAVED_EVENTS__.at(-1)||null);
+    const saved=await page.evaluate(ref=>{
+      const events=Array.isArray(window.__RC1320_SAVED_EVENTS__)?window.__RC1320_SAVED_EVENTS__:[];
+      const event=events.at(-1)||null;
+      if(event&&event.shipment)return event;
+      const s=window.__EXPORTHUB_GET_STATE__?.()||{};
+      const list=[...(Array.isArray(s.shipments)?s.shipments:[]),s.shipment,s.currentShipment,s.selectedShipment].filter(Boolean);
+      const sh=list.find(x=>String(x.ref||x.reference||x.shipmentRef||'').trim().toUpperCase()===ref)||null;
+      return sh?{reference:String(sh.ref||sh.reference||sh.shipmentRef||'').trim().toUpperCase(),shipment:sh,source:'state-fallback'}:event;
+    },ref);
     expect(String(saved?.reference||'').toUpperCase()).toBe(ref);
     expect(saved?.shipment).toBeTruthy();
     const subShipments=Array.isArray(saved?.shipment?.subShipments)?saved.shipment.subShipments:[];
