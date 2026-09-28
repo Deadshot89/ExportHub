@@ -69,6 +69,12 @@
       "headers": {"Cache-Control": "no-store","Referrer-Policy": "no-referrer","X-Content-Type-Options": "nosniff"}
     },
     {
+      "route": "/avis/*",
+      "rewrite": "/customer-avis.html",
+      "allowedRoles": ["anonymous"],
+      "headers": {"Cache-Control": "no-store","Referrer-Policy": "no-referrer","X-Content-Type-Options": "nosniff"}
+    },
+    {
       "route": "/customer-avis",
       "rewrite": "/customer-avis.html",
       "allowedRoles": ["anonymous"],
@@ -121,7 +127,7 @@
   "navigationFallback": {
     "rewrite": "/index.html",
     "exclude": [
-      "/assets/*","/api/*","/tools/*","/pickup","/pickup.html","/customer-avis","/customer-avis.html","/location","/location.html","/pod-notfall","/pod-notfall.html","/*.{css,js,json,png,jpg,jpeg,gif,svg,ico,pdf,webp,woff,woff2}","/migration-recovery","/migration-recovery.html"
+      "/assets/*","/api/*","/tools/*","/pickup","/pickup.html","/avis/*","/customer-avis","/customer-avis.html","/location","/location.html","/pod-notfall","/pod-notfall.html","/*.{css,js,json,png,jpg,jpeg,gif,svg,ico,pdf,webp,woff,woff2}","/migration-recovery","/migration-recovery.html"
     ]
   },
   "globalHeaders": {
