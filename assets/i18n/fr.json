@@ -1129,6 +1129,7 @@
   "loadingList.shipmentCount": "{{count}} expéditions",
   "loadingList.noFileNames": "Aucun nom de fichier enregistré",
   "loadingListPrint.pickedUp": "EXPÉDITION ENLEVÉE",
+  "loadingListPrint.pickupDate": "Date d’enlèvement",
   "loadingListPrint.notRecorded": "Non renseigné",
   "loadingListPrint.noDeliveryNotes": "Aucun bon de livraison enregistré",
   "loadingListPrint.noRemark": "Aucune remarque enregistrée",
