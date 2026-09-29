@@ -103,7 +103,7 @@ test('RC1027: aktive Kundenmail besteht nur aus Lieferavis und enthält keine Se
   const out=api.injectMailBody(shipment,'customer',expandedDetails,'de');
   assert.match(out,/Sehr geehrte Damen und Herren/i);
   assert.match(out,/LIEFERAVIS/i);
-  assert.match(out,/https:\/\/exporthub360\.com\/avis\/server-token/i);
+  assert.match(out,/https:\/\/wonderful-forest-0f315e310\.7\.azurestaticapps\.net\/customer-avis\.html\?token=server-token/i);
   assert.match(out,/7RZ5W9/);
   assert.doesNotMatch(out,/Details zur Sendung|Kunde:\s*Heizmann|Spedition:\s*DB Schenker|Warenbeschreibung:|Gesamtgewicht:|LDM:/i);
   assert.doesNotMatch(out,/innerhalb der nächsten 24 Stunden/i);
@@ -114,7 +114,7 @@ test('RC1027: aktive Speditionsmail besteht nur aus Lieferavis und enthält kein
   const {api}=load(shipment,{reference:'7RZ5W9'});
   const out=api.injectMailBody(shipment,'carrier',expandedDetails,'de');
   assert.match(out,/LIEFERAVIS\s*[–-]\s*ABHOLUNG/i);
-  assert.match(out,/https:\/\/exporthub360\.com\/avis\/server-token/i);
+  assert.match(out,/https:\/\/wonderful-forest-0f315e310\.7\.azurestaticapps\.net\/customer-avis\.html\?token=server-token/i);
   assert.doesNotMatch(out,/Details zur Sendung|Kunde:\s*Heizmann|Spedition:\s*DB Schenker|Warenbeschreibung:|Gesamtgewicht:|LDM:/i);
 });
 
@@ -124,7 +124,7 @@ test('RC1147: eigene Mail behält ihren Freitext und erhält genau einen kompakt
   const out=api.injectMailBody(shipment,'own',expandedDetails,'de');
   assert.match(out,/für den unten genannten Vorgang steht die Ware/i);
   assert.match(out,/Details zur Sendung:/i);
-  assert.match(out,/Lieferavis: https:\/\/exporthub360\.com\/avis\/server-token\?lang=de/i);
+  assert.match(out,/Lieferavis: https:\/\/wonderful-forest-0f315e310\.7\.azurestaticapps\.net\/customer-avis\.html\?token=server-token&lang=de/i);
   assert.equal((out.match(/Lieferavis:/gi)||[]).length,1,'Eigene Mail darf den Avis-Link nicht doppelt enthalten.');
   assert.ok(out.indexOf('Lieferavis:')<out.indexOf('Mit freundlichen Grüßen'),'Avis-Link muss vor der Grußformel stehen.');
 });
@@ -141,7 +141,7 @@ test('RC1069: der Sendungsentwurf erhält Referenz und Avis-Link sofort ohne nor
   assert.deepEqual(env.toggles,[],'RC1069 nutzt den direkten Avis-API-Pfad statt den alten Toggle-Save-Pfad.');
   assert.equal(env.apiCalls.filter(x=>x.action==='issue').length,1);
   assert.equal(shipment.customerAvisToken,'server-token');
-  assert.equal(env.api.link(shipment),'https://exporthub360.com/avis/server-token');
+  assert.equal(env.api.link(shipment),'https://wonderful-forest-0f315e310.7.azurestaticapps.net/customer-avis.html?token=server-token');
 });
 
 test('RC1069: Kundeneingaben aktualisieren einen bereits sofort ausgestellten Avis-Draft ohne erneute Speicherung',async()=>{
@@ -164,7 +164,7 @@ test('RC1291: Würth Industrie behält das Avis technisch aktiv, erhält aber in
     const shipment={reference:'7RZ5W9',customerName,customerAvisEnabled:true,customerAvisToken:'server-token',status:'Entwurf'};
     const {api}=load(shipment,{reference:'7RZ5W9'});
     assert.equal(api.enabled(shipment),true,customerName+': Avis darf technisch nicht deaktiviert werden');
-    assert.match(api.link(shipment),/^https:\/\/exporthub360\.com\/avis\//,customerName+': Avis-Link darf technisch weiter existieren');
+    assert.match(api.link(shipment),/^https:\/\/wonderful-forest-0f315e310\.7\.azurestaticapps\.net\/customer-avis\.html\?token=/,customerName+': Avis-Link darf technisch weiter existieren');
     for(const target of ['customer','carrier','own']){
       const out=api.injectMailBody(shipment,target,expandedDetails,'de');
       assert.doesNotMatch(out,/customer-avis\.html|Lieferavis:\s*https?:\/\//i,customerName+' / '+target+': Avis-Link muss aus der Mail entfernt sein');
@@ -177,7 +177,7 @@ test('RC1291: normale Kunden behalten den Lieferavis-Link in Kunden-, Speditions
   const {api}=load(shipment,{reference:'7RZ5W9'});
   for(const target of ['customer','carrier','own']){
     const out=api.injectMailBody(shipment,target,expandedDetails,'de');
-    assert.match(out,/exporthub360\.com\/avis\//i,target+': normaler Kunde muss den Avis-Link behalten');
+    assert.match(out,/wonderful-forest-0f315e310\.7\.azurestaticapps\.net\/customer-avis\.html\?token=/i,target+': normaler Kunde muss den Avis-Link behalten');
   }
 });
 
@@ -199,7 +199,7 @@ test('RC1292: Plica-Mail an Holenstein erhält keinen Avis-Link, andere Empfäng
   assert.doesNotMatch(own,/customer-avis\.html|Lieferavis:\s*https?:\/\//i,'Eigene Mail mit Holenstein als möglichem Empfänger darf keinen Avis-Link enthalten');
 
   const customer=api.injectMailBody(shipment,'customer',expandedDetails,'de');
-  assert.match(customer,/exporthub360\.com\/avis\//i,'Plica-Kundenmail an andere Adresse muss den Avis-Link behalten');
+  assert.match(customer,/wonderful-forest-0f315e310\.7\.azurestaticapps\.net\/customer-avis\.html\?token=/i,'Plica-Kundenmail an andere Adresse muss den Avis-Link behalten');
 });
 
 test('RC1292: direkte Holenstein-Adresse auf der Sendung greift ohne Kundenstamm',()=>{

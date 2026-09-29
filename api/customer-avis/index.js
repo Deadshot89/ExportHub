@@ -21,8 +21,9 @@ const MAX_PENDING_PDF_FILES=3;
 const MAX_UPLOADS_PER_HOUR=8;
 const AVIS_CONFIRMED_STATUS='bestätigt';
 const AVIS_UPLOAD_NOTIFICATION_TO=process.env.EXPORTHUB_AVIS_UPLOAD_NOTIFICATION_TO||'DespatchNettetal@essentra.onmicrosoft.com';
-const PRODUCTION_AVIS_ORIGIN=text(process.env.EXPORTHUB_PRODUCTION_AVIS_ORIGIN||'https://exporthub360.com').replace(/\/+$/,'');
-function publicAvisUrl(env,token){const encoded=encodeURIComponent(text(token)),url=PRODUCTION_AVIS_ORIGIN+'/avis/'+encoded;return env==='production'?url:url+'?environment='+encodeURIComponent(env)}
+const PRODUCTION_AVIS_ORIGIN='https://wonderful-forest-0f315e310.7.azurestaticapps.net';
+const TESTSERVICE_AVIS_ORIGIN='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net';
+function publicAvisUrl(env,token){const encoded=encodeURIComponent(text(token)),origin=env==='testservice'?TESTSERVICE_AVIS_ORIGIN:PRODUCTION_AVIS_ORIGIN,url=origin+'/customer-avis.html?token='+encoded;return env==='production'?url:url+'&environment='+encodeURIComponent(env)}
 let teamContainer=null;
 let teamContainerReadyPromise=null;
 let documentContainer=null;
