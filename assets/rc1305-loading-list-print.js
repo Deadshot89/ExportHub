@@ -162,7 +162,7 @@ function ensureCoverPickupDate(root,sh){
 function enhanceCover(html,sh){
  try{
   var tpl=d.createElement('template');tpl.innerHTML=html;var root=tpl.content.querySelector('.rc390-cover,.rc352-cover,[data-rc1203-cover-enhanced]')||tpl.content.firstElementChild;if(!root)return html;
-  root.setAttribute('data-rc1327-print-cover','1');Array.from(root.querySelectorAll('[data-rc1315-print-qr],.rc1315-print-qr')).forEach(function(el){el.remove()});root.removeAttribute('data-rc1315-quick-print-qr');enhanceDocuments(root,sh||{});ensureCoverPickupDate(root,sh||{});addQuickPrintQr(root,sh||{},true)
+  root.setAttribute('data-rc1327-print-cover','1');shrinkInlineFonts(root,2);Array.from(root.querySelectorAll('[data-rc1315-print-qr],.rc1315-print-qr')).forEach(function(el){el.remove()});root.removeAttribute('data-rc1315-quick-print-qr');enhanceDocuments(root,sh||{});ensureCoverPickupDate(root,sh||{});addQuickPrintQr(root,sh||{},true)
   return tpl.innerHTML
  }catch(e){try{console.warn('RC1316 Deckblatt-Druck-QR',e)}catch(_){}return html}
 }
