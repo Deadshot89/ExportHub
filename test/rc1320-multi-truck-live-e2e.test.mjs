@@ -8,6 +8,8 @@ const workflowPath='.github/workflows/azure-static-web-apps-wonderful-forest-0f3
 const spec=fs.readFileSync(specPath,'utf8');
 const workflow=fs.readFileSync(workflowPath,'utf8');
 const loaderAdmin=fs.readFileSync('api/loader-pins-admin/index.js','utf8');
+const loaderPins=fs.readFileSync('api/shared/loader-pin-store.js','utf8');
+const pickupConfirm=fs.readFileSync('api/pickup-confirm-v2/index.js','utf8');
 
 test('RC1320: Mehr-LKW-Live-E2E ist syntaktisch gültig und mutierend',()=>{
   execFileSync(process.execPath,['--check',specPath],{stdio:'pipe'});
@@ -40,4 +42,25 @@ test('RC1338 P0: TESTSERVICE-E2E-Adminsession liest Verlader-PIN-Rechte aus dem 
   assert.match(loaderAdmin,/const teamBlobName = testserviceE2E \? TEST_TEAM_BLOB : TEAM_BLOB/);
   assert.match(loaderAdmin,/getBlockBlobClient\(teamBlobName\)/);
   assert.doesNotMatch(loaderAdmin,/x-exporthub-environment[^\n]{0,120}\?\s*TEST_TEAM_BLOB/,'Ein bloßer Header darf niemals Produktions-Adminrechte in den Test-Team-State umleiten');
+});
+
+
+test('RC1339 P0: TESTSERVICE-Verlader-PINs bleiben vollständig von Produktion getrennt',()=>{
+  assert.match(loaderPins,/const TEST_BLOB_NAME = process\.env\.EXPORTHUB_TEST_LOADER_PIN_BLOB/);
+  assert.match(loaderPins,/function blobNameForEnvironment\(value\)[\s\S]*TEST_BLOB_NAME[\s\S]*BLOB_NAME/);
+  assert.match(loaderPins,/function initialRecords\(targetEnvironment\)[\s\S]*testservice' \? \[\] : envDefaults\(\)\.map\(makeRecord\)/);
+  assert.match(loaderAdmin,/const environment = testserviceE2E \? 'testservice' : auditStore\.environmentFromRequest\(req\)/);
+  assert.match(loaderAdmin,/pins\.list\(environment\)/);
+  assert.match(loaderAdmin,/pins\.create\(payload, environment\)/);
+  assert.match(loaderAdmin,/pins\.update\(payload, environment\)/);
+  assert.match(loaderAdmin,/pins\.toggle\(payload, environment\)/);
+  assert.match(loaderAdmin,/pins\.remove\(payload, environment\)/);
+  assert.match(loaderAdmin,/auditStore\.mutateTeamForEnvironment\(environment/);
+  assert.match(pickupConfirm,/pins\.findByPin\(personalPin,resolved\.environment\)/);
+});
+
+test('RC1339 P0: geänderte PIN- und Pickup-Dateien bleiben syntaktisch gültig',()=>{
+  for(const file of ['api/shared/loader-pin-store.js','api/loader-pins-admin/index.js','api/pickup-confirm-v2/index.js']){
+    execFileSync(process.execPath,['--check',file],{stdio:'pipe'});
+  }
 });
