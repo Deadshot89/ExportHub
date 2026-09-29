@@ -149,3 +149,10 @@ test('RC1340: Pickup-Bestätigung meldet keinen Erfolg wenn Team-State-Speicheru
   assert.match(src,/try\s*\{\s*await store\.updateTeam\(rec,\[\],''\);?\s*\}\s*catch\(e\)\s*\{[\s\S]*?TEAM_STATE_UPDATE_FAILED[\s\S]*?503[\s\S]*?\}/);
   assert.match(src,/throw store\.err\('TEAM_STATE_UPDATE_FAILED','Abholung wurde nicht vollständig gespeichert\. Bitte erneut versuchen\.',503\)/);
 });
+
+
+test('RC1342: Pickup-Store verwendet dieselbe Storage-Konfigurationsfamilie wie der zentrale Team-State',()=>{
+  const src=fs.readFileSync('api/shared/pickup-store.js','utf8');
+  assert.match(src,/EXPORTHUB_STORAGE_CONTAINER\|\|process\.env\.EXPORTHUB_CONTAINER/);
+  assert.match(src,/EXPORTHUB_STORAGE_CONNECTION_STRING\|\|process\.env\.EXPORTHUB_STORAGE_CONNECTION\|\|process\.env\.EXPORTHUB_AZURE_STORAGE_CONNECTION_STRING\|\|process\.env\.AzureWebJobsStorage/);
+});
