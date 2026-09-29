@@ -149,6 +149,7 @@
   "avis.appointment": "Pickup appointment",
   "avis.timeWindow": "Time window",
   "pickup.title": "Pickup confirmation",
+  "pickup.date": "Pickup date",
   "pickup.driver": "Driver",
   "pickup.driverName": "Driver name",
   "pickup.signature": "Signature",
