@@ -36,9 +36,9 @@ function enhanceDocuments(root,sh){
  var card=cardFor(label,root);if(!card)return false;var body=card.querySelector('.rc390-txt,.rc352-txt,[class*="txt"]')||label.nextElementSibling;
  var files=deliveryFiles(sh);var fallback=existingFiles(body);fallback.forEach(function(name){if(!files.some(function(x){return x.toLowerCase()===name.toLowerCase()}))files.push(name)});
  card.setAttribute('data-rc1305-documents','1');
- var grid=d.createElement('div');grid.className='rc1305-document-grid';grid.setAttribute('data-rc1305-document-grid','1');
- if(files.length)files.forEach(function(name){var item=d.createElement('span');item.className='rc1305-document-item';item.textContent=name;grid.appendChild(item)});
- else{var empty=d.createElement('span');empty.className='rc1305-document-empty';empty.textContent=tr('loadingListPrint.noDeliveryNotes');grid.appendChild(empty)}
+ var grid=d.createElement('div');grid.className='rc1305-document-grid rc1293-packing-slip-grid';grid.setAttribute('data-rc1305-document-grid','1');grid.setAttribute('data-rc1293-packing-slip-grid','1');
+ if(files.length)files.forEach(function(name){var item=d.createElement('span');item.className='rc1305-document-item rc1293-packing-slip';item.setAttribute('data-rc1293-packing-slip','1');item.textContent=name;grid.appendChild(item)});
+ else{var empty=d.createElement('span');empty.className='rc1305-document-empty rc1293-packing-slip';empty.setAttribute('data-rc1293-packing-slip','1');empty.textContent=tr('loadingListPrint.noDeliveryNotes');grid.appendChild(empty)}
  if(body){body.innerHTML='';body.appendChild(grid)}else card.appendChild(grid);
  return true
 }
