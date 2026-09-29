@@ -9,6 +9,7 @@ const apiI18n = require('../shared/i18n');
 
 const TEAM_CONTAINER = process.env.EXPORTHUB_STORAGE_CONTAINER || process.env.EXPORTHUB_CONTAINER || 'exporthub-data';
 const TEAM_BLOB = process.env.EXPORTHUB_STORAGE_BLOB || process.env.EXPORTHUB_STATE_BLOB || 'team-state.json';
+const TEST_TEAM_BLOB = process.env.EXPORTHUB_TEST_STORAGE_BLOB || ('testservice/' + String(TEAM_BLOB).replace(/^\/+/, ''));
 const AUTH_BLOB = process.env.EXPORTHUB_AUTH_BLOB || 'auth-sessions.json';
 
 function json(status, body) {
@@ -62,16 +63,23 @@ async function validateGlobalAdmin(req, payload) {
   const cs = connectionString();
   if (!cs) throw pins.error('STORAGE_NOT_CONFIGURED', 'Azure-Speicher ist nicht konfiguriert.', 503);
   const service = BlobServiceClient.fromConnectionString(cs), container = service.getContainerClient(TEAM_CONTAINER);
+  const signed = verifySignedSessionToken(t);
+  const testserviceE2E = Boolean(
+    signed &&
+    lower(signed.environment) === 'testservice' &&
+    /^E2E-USER-/.test(text(signed.uid)) &&
+    /^e2e\./.test(lower(signed.username))
+  );
+  const teamBlobName = testserviceE2E ? TEST_TEAM_BLOB : TEAM_BLOB;
   const [authDoc, teamDoc] = await Promise.all([
     readJson(container.getBlockBlobClient(AUTH_BLOB), { schemaVersion: 1, sessions: [] }, true),
-    readJson(container.getBlockBlobClient(TEAM_BLOB), { schemaVersion: 3, state: {}, users: [] }, false)
+    readJson(container.getBlockBlobClient(teamBlobName), { schemaVersion: 3, state: {}, users: [] }, false)
   ]);
   const sessions = Array.isArray(authDoc && authDoc.sessions) ? authDoc.sessions : [];
   const digest = tokenHash(t);
   let session = sessions.find(s => safeEqualText(s && s.tokenHash, digest));
-  if (!session) {
-    const signed = verifySignedSessionToken(t);
-    if (signed) session = { id: text(signed.sid), userId: text(signed.uid), username: text(signed.username), expiresAt: new Date(Number(signed.exp)).toISOString(), authVersion: Number(signed.authVersion || 0), mustChange: signed.mustChange === true, signedFallback: true };
+  if (!session && signed) {
+    session = { id: text(signed.sid), userId: text(signed.uid), username: text(signed.username), expiresAt: new Date(Number(signed.exp)).toISOString(), authVersion: Number(signed.authVersion || 0), mustChange: signed.mustChange === true, signedFallback: true, environment: testserviceE2E ? 'testservice' : '' };
   }
   if (!session) throw pins.error('SESSION_INVALID', 'Die ExportHUB-Sitzung ist nicht mehr gültig. Bitte erneut anmelden.', 401);
   if (session.revokedAt) throw pins.error('SESSION_REVOKED', 'Die ExportHUB-Sitzung wurde beendet. Bitte erneut anmelden.', 401);
