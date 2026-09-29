@@ -30,7 +30,7 @@ test('RC1343: Druck-QR sitzt kompakt unten im vorgesehenen Deckblatt-QR-Bereich'
 
 test('RC1341: Deckblatt zeigt ein vorhandenes Abholdatum',()=>{
   assert.match(runtime,/function ensureCoverPickupDate\(/);
-  assert.match(runtime,/Abholdatum:/);
+  assert.match(runtime,/loadingListPrint\.pickupDate/);
   assert.match(runtime,/data-rc1341-pickup-date/);
 });
 
