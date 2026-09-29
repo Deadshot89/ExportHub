@@ -20,13 +20,16 @@ test('RC1260: harter TESTSERVICE-Gate behält alle Browser-Specs und schließt n
   assert.match(block,/--grep-invert 'RC1255 P2:'/);
 });
 
-test('RC1260/RC1272: echter RC1255-Mailtest bleibt sichtbar und benennt den aktuellen Mail.Send-Blocker',()=>{
+test('RC1260/RC1346: echter RC1255-Mailtest bleibt hart und der bekannte Mail.Send-Blocker wird nur gezielt behandelt',()=>{
   assert.match(workflow,/npx playwright test e2e\/specs\/testservice-mutation\.spec\.mjs --project=laptop --grep 'RC1255 P2:'/);
-  assert.match(workflow,/rc1255_mail_status=\$\?/);
-  assert.match(workflow,/::warning title=RC1255 AVIS-Mail P2::/);
-  assert.match(workflow,/Application Permission Mail\.Send fehlt/);
-  assert.match(workflow,/Admin-Consent/);
-  assert.match(workflow,/RC1255 bleibt offen/);
+  assert.doesNotMatch(workflow,/rc1255_mail_status=\$\?/);
+  assert.doesNotMatch(workflow,/set \+e[\s\S]{0,500}RC1255 P2:/);
+  assert.doesNotMatch(workflow,/::warning title=RC1255 AVIS-Mail P2::/);
+  assert.match(workflow,/RC1249 TESTSERVICE AVIS-Mail-Konfiguration prüfen/);
+  assert.match(workflow,/GRAPH_MAIL_PERMISSION_MISSING/);
+  assert.match(workflow,/::warning title=RC1290 AVIS-Mail P2::/);
+  assert.match(workflow,/Microsoft Graph > Application > Mail\.Send/);
+  assert.match(workflow,/Admin Consent erforderlich/);
   assert.doesNotMatch(workflow,/zuletzt Microsoft Graph HTTP 401/);
   assert.doesNotMatch(workflow,/P0-MFA-Rollout/);
 });
