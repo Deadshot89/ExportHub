@@ -258,6 +258,47 @@ test('RC1281 P2: Essentra-Deckblatt ist weiß mit gelber Referenz und hellgelbem
   await assertRuntimeClean(guard,testInfo);
 });
 
+
+test('RC1340 P1: echte Lieferschein-PDFs werden im Gesamtdruck exakt einmal gedruckt',async({page},testInfo)=>{
+  test.skip(testInfo.project.name!=='laptop','Lieferschein-Deduplizierung wird einmal im echten Browser geprüft.');
+  test.setTimeout(30_000);
+  const guard=attachRuntimeGuards(page,testInfo);
+  await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
+  await waitReady(page);
+
+  const result=await page.evaluate(async()=>{
+    const api=window.ExportHUBRC1340AttachmentPrint;
+    if(!api||typeof api.printable!=='function'||typeof api.printShipment!=='function')throw new Error('RC1340 Lieferschein-Druck-API fehlt');
+    const one='data:application/pdf;base64,JVBERi0xLjQKJSBB';
+    const two='data:application/pdf;base64,JVBERi0xLjQKJSBC';
+    const fileA={id:'LS-A',name:'LS_A.pdf',dataUrl:one,status:'active'};
+    const fileADuplicate={id:'LS-A-COPY',name:'LS_A.pdf',dataUrl:one,status:'active'};
+    const fileB={id:'LS-B',name:'LS_B.pdf',dataUrl:two,status:'active'};
+    const shipment={
+      deliveryFiles:[fileA,fileB,{id:'LS-OLD',name:'LS_ALT.pdf',dataUrl:'data:application/pdf;base64,JVBERi0xLjQKJSBD',status:'replaced'},{id:'LS-META',name:'LS_NUR_METADATA.pdf'}],
+      files:[fileADuplicate],
+      attachments:[fileB,{id:'TXT-1',name:'Hinweis.txt',dataUrl:'data:text/plain;base64,SGFsbG8='}]
+    };
+    const printable=api.printable(shipment).map(item=>({name:item.name,identity:item.identity}));
+    const printed=[];
+    window.__EXPORTHUB_CAPTURE_ATTACHMENT_PRINT__=meta=>{printed.push({name:String(meta.name||''),identity:String(meta.identity||''),index:Number(meta.index),total:Number(meta.total)})};
+    const count=await api.printShipment(shipment);
+    delete window.__EXPORTHUB_CAPTURE_ATTACHMENT_PRINT__;
+    return{version:api.version,printable,printed,count};
+  });
+
+  expect(result.version).toBe('RC1340');
+  expect(result.printable.map(x=>x.name)).toEqual(['LS_A.pdf','LS_B.pdf']);
+  expect(new Set(result.printable.map(x=>x.identity)).size).toBe(2);
+  expect(result.count).toBe(2);
+  expect(result.printed).toHaveLength(2);
+  expect(result.printed.map(x=>x.name)).toEqual(['LS_A.pdf','LS_B.pdf']);
+  expect(result.printed.map(x=>x.index)).toEqual([0,1]);
+  expect(result.printed.every(x=>x.total===2)).toBe(true);
+
+  await assertRuntimeClean(guard,testInfo);
+});
+
 test('RC1275 P1: Europaletten erscheinen im echten Ladelisten-Druck als Palettenkonto-Ausgang',async({page,context},testInfo)=>{
   test.skip(testInfo.project.name!=='laptop','Palettenkonto-Druckabnahme läuft einmal auf dem Laptop-Profil.');
   test.setTimeout(60_000);
