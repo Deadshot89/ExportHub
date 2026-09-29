@@ -108,9 +108,10 @@ async function issue(req,kind,meta={},ttlMs,payload){
   try{await writeJson(idx,index,old.etag)}catch(e){if(e&&e.statusCode===412){const retry=await readJson(idx,null),retryHashes=subjectTokenHashes(retry.value).concat(tokenHash).filter((v,i,a)=>a.indexOf(v)===i),retryResource=tokenHashValid(retry.value&&retry.value.resourceKey)?text(retry.value.resourceKey).toLowerCase():(tokenHashValid(retry.value&&retry.value.tokenHash)?text(retry.value.tokenHash).toLowerCase():resourceKey);await writeJson(idx,Object.assign({},index,{resourceKey:retryResource,tokenHashes:retryHashes}),retry.etag)}else throw e}
   return {token,tokenHash,resourceKey,environment:env,kind,subjectId,expiresAt,record,reused:false};
 }
-function assertUsable(record,{allowUsed=false,allowLegacyReissued=false}={}){
+function assertUsable(record,{allowUsed=false,allowLegacyReissued=false,allowUsedPickupDocument=false}={}){
   if(!record)throw error('ACCESS_INVALID','Dieser öffentliche Link ist ungültig oder nicht mehr aktiv.',410);
-  if(record.revokedAt&&!(allowLegacyReissued&&lower(record.revokedReason)==='reissued'))throw error('ACCESS_REVOKED','Dieser öffentliche Link wurde deaktiviert.',410);
+  const usedPickupDocument=record.kind==='pickup'&&allowUsed===true&&allowUsedPickupDocument===true&&!!record.usedAt;
+  if(record.revokedAt&&!(allowLegacyReissued&&lower(record.revokedReason)==='reissued')&&!usedPickupDocument)throw error('ACCESS_REVOKED','Dieser öffentliche Link wurde deaktiviert.',410);
   if(record.kind!=='avis'&&record.expiresAt&&Date.now()>=Date.parse(record.expiresAt)&&!(record.kind==='pickup'&&allowUsed&&record.usedAt))throw error('ACCESS_EXPIRED','Dieser öffentliche Link ist abgelaufen.',410);
   if(record.lockedUntil&&Date.now()<Date.parse(record.lockedUntil))throw error('ACCESS_LOCKED','Zu viele falsche Eingaben. Der Zugriff ist vorübergehend gesperrt.',429);
   const reusableKind=record.kind==='pickup'||record.kind==='avis';
