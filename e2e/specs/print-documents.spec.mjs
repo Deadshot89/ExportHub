@@ -188,6 +188,7 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
   expect(capture.packingSlipGrid).toBeTruthy();
   expect(capture.packingSlipGrid.display).toBe('grid');
   expect(capture.packingSlipGrid.count).toBe(7);
+  expect(new Set(capture.packingSlipGrid.items.map(item=>item.text)).size,'Lieferscheine werden im Deckblatt doppelt dargestellt').toBe(7);
   expect(capture.packingSlipGrid.rowCount).toBeGreaterThanOrEqual(2);
   expect(capture.packingSlipGrid.clientWidth<=0||capture.packingSlipGrid.scrollWidth<=capture.packingSlipGrid.clientWidth+2,'Lieferschein-Raster läuft horizontal über').toBe(true);
   expect(capture.packingSlipGrid.items.some(item=>/LS_47110007\.pdf/.test(item.text))).toBe(true);
