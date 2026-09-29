@@ -1129,6 +1129,7 @@
   "loadingList.shipmentCount": "{{count}} spedizioni",
   "loadingList.noFileNames": "Nessun nome file registrato",
   "loadingListPrint.pickedUp": "SPEDIZIONE RITIRATA",
+  "loadingListPrint.pickupDate": "Data di ritiro",
   "loadingListPrint.notRecorded": "Non registrato",
   "loadingListPrint.noDeliveryNotes": "Nessun documento di consegna registrato",
   "loadingListPrint.noRemark": "Nessuna nota registrata",
