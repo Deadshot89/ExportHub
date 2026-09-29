@@ -288,7 +288,7 @@ test('RC1255 P2: AVIS-Erinnerung läuft über TESTSERVICE UI, echte Mail, AVIS-L
   expect(issued.data?.ok).toBe(true);
   expect(issued.data?.issued).toBe(true);
   expect(issued.data?.token).toBeTruthy();
-  expect(issued.url).toMatch(/\/customer-avis\.html\?token=/);
+  expect(issued.url).toMatch(/^https:\/\/exporthub360\.com\/avis\/[A-Za-z0-9_-]+\?environment=testservice(?:&|$)/);
 
   const linked=await page.evaluate(async({token,runId,shipmentId,ref,avisUrl,avisToken})=>{
     const read=await fetch('/api/exporthub-state?mode=read&full=1',{
