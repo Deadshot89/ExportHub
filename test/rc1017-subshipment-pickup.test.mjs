@@ -142,3 +142,11 @@ test('RC1339: Teilsendungs-Pickup findet die Hauptsendung notfalls über subShip
     assert.equal(sh.subShipments[0].locked,true);
   }finally{f.restore()}
 });
+
+
+test('RC1340: Pickup-Bestätigung meldet keinen Erfolg wenn Team-State-Speicherung fehlschlägt',()=>{
+  const src=fs.readFileSync('api/pickup-confirm-v2/index.js','utf8');
+  assert.match(src,/await store\.updateTeam\(rec,\[\],'\'\)/);
+  assert.match(src,/TEAM_STATE_UPDATE_FAILED/);
+  assert.doesNotMatch(src,/try\{await store\.updateTeam\(rec,\[\],'\'\)\}catch\(e\)\{context\.log/);
+});
