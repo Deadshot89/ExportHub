@@ -28,8 +28,7 @@ function slug(v) { return text(v).toLowerCase().normalize('NFKD').replace(/[\u03
 function encryptPin(pin) { const iv = crypto.randomBytes(12), cipher = crypto.createCipheriv('aes-256-gcm', encryptionKey(), iv), enc = Buffer.concat([cipher.update(String(pin), 'utf8'), cipher.final()]), tag = cipher.getAuthTag(); return ['v1', iv.toString('base64'), tag.toString('base64'), enc.toString('base64')].join('.'); }
 function decryptPin(value) { const parts = String(value || '').split('.'); if (parts.length !== 4 || parts[0] !== 'v1') throw error('PIN_DECRYPT_FAILED', 'Eine gespeicherte Verlader-PIN konnte nicht gelesen werden.', 500); const decipher = crypto.createDecipheriv('aes-256-gcm', encryptionKey(), Buffer.from(parts[1], 'base64')); decipher.setAuthTag(Buffer.from(parts[2], 'base64')); return Buffer.concat([decipher.update(Buffer.from(parts[3], 'base64')), decipher.final()]).toString('utf8'); }
 
-function envDefaults(targetEnvironment) {
-  if (environment(targetEnvironment) === 'testservice') return [];
+function envDefaults() {
   const raw = text(process.env.EXPORTHUB_LOADER_PINS);
   const rows = [];
   if (raw) {
@@ -46,6 +45,10 @@ function envDefaults(targetEnvironment) {
     } catch (_) {}
   }
   return rows;
+}
+
+function initialRecords(targetEnvironment) {
+  return environment(targetEnvironment) === 'testservice' ? [] : envDefaults().map(makeRecord);
 }
 
 function makeRecord(item, index) {
@@ -95,7 +98,7 @@ async function ensure(targetEnvironment) {
   const env = environment(targetEnvironment), got = await configBlob(env);
   const current = await readJson(got.blob, null);
   if (!current.value) {
-    const doc = { schemaVersion: 1, updatedAt: now(), pins: envDefaults(env).map(makeRecord) };
+    const doc = { schemaVersion: 1, updatedAt: now(), pins: initialRecords(env) };
     try { await writeJson(got.blob, doc, null); return doc; } catch (e) { if (!(e && e.statusCode === 412)) throw e; }
     return (await readJson(got.blob, { schemaVersion: 1, pins: [] })).value;
   }
@@ -115,7 +118,7 @@ async function mutate(fn, targetEnvironment) {
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     const current = await readJson(got.blob, null);
     let doc = current.value;
-    if (!doc) doc = { schemaVersion: 1, updatedAt: now(), pins: envDefaults(env).map(makeRecord) };
+    if (!doc) doc = { schemaVersion: 1, updatedAt: now(), pins: initialRecords(env) };
     doc = normalizeDoc(doc).doc;
     const next = await fn(clone(doc));
     next.schemaVersion = 1; next.updatedAt = now();
@@ -173,7 +176,7 @@ async function findByPin(pin, targetEnvironment) {
   let row = doc.pins.find(x => x.active !== false && safeEq(x.pinHash, digest));
   if (row) return { id: text(row.id), name: text(row.name), active: true };
   /* RC644: Falls sich das Storage-/Signaturgeheimnis geändert hat, bleiben die explizit konfigurierten bzw. bisherigen Standard-PINs nutzbar. */
-  const fallback = envDefaults(env).find(x => x.active !== false && text(x.pin) === pin);
+  const fallback = env === 'testservice' ? null : envDefaults().find(x => x.active !== false && text(x.pin) === pin);
   if (!fallback) return null;
   row = doc.pins.find(x => x.active !== false && text(x.name).toLowerCase() === text(fallback.name).toLowerCase());
   const resolved = row || { id: slug(fallback.name) + '-fallback', name: fallback.name, active: true };
