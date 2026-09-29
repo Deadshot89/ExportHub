@@ -366,8 +366,7 @@ function rc1017SubShipmentOperationalTimestamp(sub) {
     sub && sub.lastPartialPickupAt,
     sub && sub.podUpdatedAt,
     sub && sub.signatureStoredAt,
-    sub && sub.containerDocumentationUpdatedAt,
-    sub && sub.updatedAt
+    sub && sub.containerDocumentationUpdatedAt
   ];
   if (Array.isArray(sub && sub.pickupHistory)) {
     for (const item of sub.pickupHistory) candidates.push(item && item.confirmedAt);
