@@ -70,7 +70,7 @@ test('RC1275: Browserabnahme prüft Palettenkonto in echtem Ladelisten-Druck',()
   assert.match(spec,/rc1095-pallet-account\/i/);
 });
 
-test('RC1316: finaler Build erzwingt genau eine Ladeliste und genau ein CMR',()=>{
+test('RC1316: finaler Build erzwingt genau eine Ladeliste und genau drei CMR',()=>{
   const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
   assert.match(build,/function patchCompletePrintBundle\(/);
   assert.match(build,/RC1316 doppelte Ladeliste noch aktiv/);
