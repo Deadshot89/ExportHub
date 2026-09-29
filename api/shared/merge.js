@@ -529,11 +529,15 @@ function mergePodFilesProtected(serverList, incomingList) {
       const currentDurable = durablePodFile(current);
       const itemDurable = durablePodFile(item);
       if (currentDurable && !itemDurable) {
-        map.set(key, Object.assign({}, item, current));
+        const merged = Object.assign({}, item, current);
+        delete merged.url; delete merged.downloadUrl; delete merged.href; delete merged.contentUrl;
+        map.set(key, merged);
         return;
       }
       if (!currentDurable && itemDurable) {
-        map.set(key, Object.assign({}, current, item));
+        const merged = Object.assign({}, current, item);
+        delete merged.url; delete merged.downloadUrl; delete merged.href; delete merged.contentUrl;
+        map.set(key, merged);
         return;
       }
       map.set(key, source === 'incoming' ? item : current);
@@ -543,7 +547,12 @@ function mergePodFilesProtected(serverList, incomingList) {
   ingest(serverList, 'server');
   ingest(incomingList, 'incoming');
 
-  const files = Array.from(map.values());
+  const files = Array.from(map.values()).map((file) => {
+    if (!durablePodFile(file)) return file;
+    const durable = Object.assign({}, file);
+    delete durable.url; delete durable.downloadUrl; delete durable.href; delete durable.contentUrl;
+    return durable;
+  });
   const hasDurableAutomaticPod = files.some((file) => durablePodFile(file) && /automatic-pod|signed-loadlist|pod/i.test(lower([
     file.kind, file.source, file.name, file.filename
   ].join(' '))));
