@@ -1129,6 +1129,7 @@
   "loadingList.shipmentCount": "{{count}} Sendungen",
   "loadingList.noFileNames": "Keine Dateinamen hinterlegt",
   "loadingListPrint.pickedUp": "SENDUNG ABGEHOLT",
+  "loadingListPrint.pickupDate": "Abholdatum",
   "loadingListPrint.notRecorded": "Nicht erfasst",
   "loadingListPrint.noDeliveryNotes": "Keine Lieferscheine hinterlegt",
   "loadingListPrint.noRemark": "Keine Bemerkung hinterlegt",
