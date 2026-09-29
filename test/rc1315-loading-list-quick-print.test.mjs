@@ -84,7 +84,7 @@ test('RC1316: Druck-QR liegt nur auf dem Deckblatt und nicht auf der Ladeliste',
   assert.match(printRuntime,/function enhanceCover\(html,sh\)/);
   assert.match(printRuntime,/addQuickPrintQr\(root,sh\|\|\{\},true\)/);
   assert.match(printRuntime,/payload='EHPRINT:'\+ref/);
-  assert.match(printRuntime,/rc1327-print-qr-bottom/); assert.match(printRuntime,/width:16mm!important;height:16mm!important/);
+  assert.match(printRuntime,/rc1327-print-qr-bottom/); assert.match(printRuntime,/width:12mm!important;height:12mm!important/);
 });
 
 test('RC1315: Release-Build lädt Schnelldruck und reicht withQr an den Renderer weiter',()=>{
