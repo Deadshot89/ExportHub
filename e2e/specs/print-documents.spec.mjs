@@ -100,7 +100,13 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
               items:slips.map(node=>{const r=node.getBoundingClientRect();return{text:String(node.textContent||'').trim(),left:r.left,right:r.right,top:r.top,bottom:r.bottom}})
             };
           })(),
-          load1Count:document.querySelectorAll('.rc390-load.rc576-load1').length,
+          quickPrintQrCount:document.querySelectorAll('[data-rc1315-print-qr]').length,
+          coverQuickPrintQrCount:document.querySelectorAll('.rc390-cover [data-rc1315-print-qr],.rc352-cover [data-rc1315-print-qr]').length,
+          loadingListQuickPrintQrCount:document.querySelectorAll('.rc390-load [data-rc1315-print-qr],.rc352-load [data-rc1315-print-qr]').length,
+          quickPrintQrCount:document.querySelectorAll('[data-rc1315-print-qr]').length,
+        coverQuickPrintQrCount:document.querySelectorAll('.rc390-cover [data-rc1315-print-qr],.rc352-cover [data-rc1315-print-qr]').length,
+        loadingListQuickPrintQrCount:document.querySelectorAll('.rc390-load [data-rc1315-print-qr],.rc352-load [data-rc1315-print-qr]').length,
+        load1Count:document.querySelectorAll('.rc390-load.rc576-load1').length,
           load2Count:document.querySelectorAll('.rc390-load.rc576-load2').length,
           cmrCount:document.querySelectorAll('.rc390-cmr-wrap').length,
           cmrLabels:Array.from(document.querySelectorAll('.rc390-cmr-copy')).map(node=>String(node.textContent||'').trim()),
@@ -204,6 +210,9 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
   expect(capture.cmrLabels[2]).toMatch(/CMR\s*3\s*\/\s*3/i);
   expect(capture.text).toMatch(/Warenbeschreibung/i);
   expect(capture.printDocuments.length).toBe(6);
+  expect(capture.quickPrintQrCount,'Gesamtdruck muss genau einen Druck-QR enthalten').toBe(1);
+  expect(capture.coverQuickPrintQrCount,'Druck-QR muss ausschließlich auf dem Deckblatt stehen').toBe(1);
+  expect(capture.loadingListQuickPrintQrCount,'L1/L2 dürfen keinen Druck-QR enthalten').toBe(0);
   expect(capture.printDocuments.every(p=>p.textLength>40),'Gesamtdruck enthält ein leeres oder praktisch leeres Druckdokument').toBe(true);
   expect(capture.printDocuments.every(p=>p.clientHeight<=0||p.scrollHeight<=p.clientHeight+4),'Gesamtdruck enthält vertikal abgeschnittene Inhalte').toBe(true);
   expect(capture.printDocuments.every(p=>p.clientWidth<=0||p.scrollWidth<=p.clientWidth+4),'Gesamtdruck enthält horizontal abgeschnittene Inhalte').toBe(true);
@@ -211,6 +220,45 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
   await assertNoSourceLeak(page);
   await assertNoHorizontalOverflow(page);
   for(const guard of guards)await assertRuntimeClean(guard,testInfo);
+});
+
+
+test('RC1343 P0: gemeldete DNC/SIDE-Dateien bleiben sauber und Ladeliste enthält keinen Alt-QR',async({page},testInfo)=>{
+  test.skip(testInfo.project.name!=='laptop','DNC/SIDE-Drucklayout wird einmal im echten Chromium geprüft.');
+  const guard=attachRuntimeGuards(page,testInfo);
+  await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
+  await waitReady(page);
+  await page.emulateMedia({media:'print'});
+  const result=await page.evaluate(()=>{
+    const api=window.ExportHUBRC1305LoadingListPrint;
+    if(!api||typeof api.enhance!=='function')throw new Error('RC1343 Druckruntime fehlt');
+    const raw='<section class="rc390-page rc390-load rc576-load1"><div class="rc390-card"><div class="rc390-label">Lieferscheine / DNCs</div><div class="rc390-txt">ALT.pdf</div></div><section class="rc1315-print-qr" data-rc1315-print-qr="1"><div>ALT-QR</div></section></section>';
+    const shipment={deliveryFiles:[{name:'DNC3019222063.pdf'},{name:'DNC3019222475.pdf'},{name:'SIDE250071282.pdf'},{name:'SIDE250071640.pdf'}]};
+    document.body.innerHTML=api.enhance(raw,shipment,true);
+    const root=document.querySelector('[data-rc1305-loading-list]');
+    const items=Array.from(root.querySelectorAll('.rc1305-document-item'));
+    const rects=items.map(x=>x.getBoundingClientRect());
+    let overlap=false;
+    for(let i=0;i<rects.length;i++)for(let j=i+1;j<rects.length;j++){
+      const a=rects[i],b=rects[j];
+      if(Math.min(a.right,b.right)-Math.max(a.left,b.left)>1&&Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)>1)overlap=true;
+    }
+    return{
+      version:String(api.version||''),
+      files:items.map(x=>String(x.textContent||'').trim()),
+      qrCount:root.querySelectorAll('[data-rc1315-print-qr],.rc1315-print-qr').length,
+      stripped:root.getAttribute('data-rc1343-loading-list-qr-stripped'),
+      fontReduced:root.getAttribute('data-rc1326-font-reduced'),
+      overlap
+    };
+  });
+  expect(result.version).toBe('RC1343');
+  expect(result.files).toEqual(['DNC3019222063.pdf','DNC3019222475.pdf','SIDE250071282.pdf','SIDE250071640.pdf']);
+  expect(result.qrCount).toBe(0);
+  expect(result.stripped).toBe('1');
+  expect(result.fontReduced).toBe('1');
+  expect(result.overlap,'DNC/SIDE-Dateikarten dürfen sich nicht überlappen').toBe(false);
+  await assertRuntimeClean(guard,testInfo);
 });
 
 
@@ -489,6 +537,9 @@ test('RC1315 P1: Druck-QR oder REF in Ladeliste startet den vollständigen Sendu
   expect(capture.text).toContain('DEMO02');
   expect(capture.html).toContain('data-rc1315-print-qr="1"');
   expect(capture.html).toContain('data-rc1315-payload="EHPRINT:DEMO02"');
+  expect(capture.quickPrintQrCount).toBe(1);
+  expect(capture.coverQuickPrintQrCount).toBe(1);
+  expect(capture.loadingListQuickPrintQrCount).toBe(0);
   expect(capture.load1Count).toBe(1);
   expect(capture.load2Count).toBe(1);
   expect(capture.cmrCount).toBe(3);
