@@ -124,7 +124,7 @@ test('RC1147: eigene Mail behält ihren Freitext und erhält genau einen kompakt
   const out=api.injectMailBody(shipment,'own',expandedDetails,'de');
   assert.match(out,/für den unten genannten Vorgang steht die Ware/i);
   assert.match(out,/Details zur Sendung:/i);
-  assert.match(out,/Lieferavis: https:\/\/exporthub360\.com\/avis\/server-token\?lang=de/i);
+  assert.match(out,/Lieferavis: https:\/\/wonderful-forest-0f315e310\.7\.azurestaticapps\.net\/customer-avis\.html\?token=server-token&lang=de/i);
   assert.equal((out.match(/Lieferavis:/gi)||[]).length,1,'Eigene Mail darf den Avis-Link nicht doppelt enthalten.');
   assert.ok(out.indexOf('Lieferavis:')<out.indexOf('Mit freundlichen Grüßen'),'Avis-Link muss vor der Grußformel stehen.');
 });
@@ -141,7 +141,7 @@ test('RC1069: der Sendungsentwurf erhält Referenz und Avis-Link sofort ohne nor
   assert.deepEqual(env.toggles,[],'RC1069 nutzt den direkten Avis-API-Pfad statt den alten Toggle-Save-Pfad.');
   assert.equal(env.apiCalls.filter(x=>x.action==='issue').length,1);
   assert.equal(shipment.customerAvisToken,'server-token');
-  assert.equal(env.api.link(shipment),'https://exporthub360.com/avis/server-token');
+  assert.equal(env.api.link(shipment),'https://wonderful-forest-0f315e310.7.azurestaticapps.net/customer-avis.html?token=server-token');
 });
 
 test('RC1069: Kundeneingaben aktualisieren einen bereits sofort ausgestellten Avis-Draft ohne erneute Speicherung',async()=>{
