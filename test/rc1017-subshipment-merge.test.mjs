@@ -65,3 +65,33 @@ test('RC1017: Raw Public-Access-Tokens werden auch aus Teilsendungen vor dem Tea
   assert.equal(child.subShipmentId,'S1-TRUCK-1');
   assert.equal(child.status,'open');
 });
+
+
+test('RC1341: neueres updatedAt einer offenen Teilsendung darf bestätigten LKW nicht zurückrollen',()=>{
+  const server=shipment({
+    _syncUpdatedAt:'2026-09-29T10:00:00Z',
+    status:'Teilweise abgeholt',
+    processStatus:'Teilweise abgeholt',
+    multiTruckLocked:true,
+    subShipments:[
+      {subShipmentId:'S1-TRUCK-1',sequence:1,total:2,status:'confirmed',locked:true,confirmedAt:'2026-09-29T10:00:00Z',updatedAt:'2026-09-29T10:00:00Z',pickupHistory:[{id:'pickup-1',confirmedAt:'2026-09-29T10:00:00Z'}],pickupCollectedColliCount:2,pickupRemainingColliCount:0,podFiles:[]},
+      {subShipmentId:'S1-TRUCK-2',sequence:2,total:2,status:'open',locked:false,updatedAt:'2026-09-29T09:55:00Z',pickupHistory:[],podFiles:[]}
+    ]
+  });
+  const stale=shipment({
+    _syncUpdatedAt:'2026-09-29T10:00:05Z',
+    status:'Bereit zur Abholung',
+    processStatus:'Bereit zur Abholung',
+    multiTruckLocked:false,
+    subShipments:[
+      {subShipmentId:'S1-TRUCK-1',sequence:1,total:2,status:'open',locked:false,updatedAt:'2026-09-29T10:00:05Z',pickupHistory:[],pickupCollectedColliCount:0,pickupRemainingColliCount:2,podFiles:[]},
+      {subShipmentId:'S1-TRUCK-2',sequence:2,total:2,status:'open',locked:false,updatedAt:'2026-09-29T10:00:05Z',pickupHistory:[],podFiles:[]}
+    ]
+  });
+  const out=merge.mergeShipmentProtected(server,stale);
+  assert.equal(out.subShipments[0].status,'confirmed');
+  assert.equal(out.subShipments[0].locked,true);
+  assert.equal(out.status,'Teilweise abgeholt');
+  assert.equal(out.processStatus,'Teilweise abgeholt');
+  assert.equal(out.pickupPartial,true);
+});
