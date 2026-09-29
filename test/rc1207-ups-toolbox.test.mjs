@@ -51,3 +51,61 @@ test('RC1266: Kartonanzahl und Gesamtgewicht fallen auf Sendungsdaten zurück',(
   assert.equal(x.packageCount(),3);
   assert.equal(x.upsTotalWeight(),32);
 });
+
+
+test('RC1334: Dezimalgewichte mit Punkt oder Komma bleiben echte Dezimalwerte',()=>{
+  const x=load();
+  assert.equal(x.parseNumber('12.5'),12.5);
+  assert.equal(x.parseNumber('12,5'),12.5);
+  assert.equal(x.parseNumber('1.234,56'),1234.56);
+  assert.equal(x.parseNumber('1,234.56'),1234.56);
+});
+
+test('RC1334: ausgewählter Kundenstandort bestimmt das UPS-Zielland vor veralteten Sendungsfeldern',()=>{
+  const x=load({__EXPORTHUB_GET_STATE__:()=>({
+    customers:[{
+      id:'C1',
+      country:'Nederland',
+      locations:[{
+        id:'L1',
+        country:'Italia',
+        postalCode:'60044',
+        city:'Fabriano',
+        address:'60044 Albacina-Fabriano AN'
+      }]
+    }],
+    currentShipment:{
+      customerId:'C1',
+      selectedLocationId:'L1',
+      recipientCountry:'Nederland',
+      country:'Nederland',
+      postalCode:'5657 EA',
+      deliveryAddress:'5657 EA Eindhoven Nederland'
+    }
+  })});
+  assert.equal(x.shipmentDestination().country,'IT');
+  assert.equal(x.shipmentDestination().postal,'60044');
+});
+
+test('RC1334: Kunden-Stammland bleibt nur Fallback wenn Standort und Lieferadresse kein Land liefern',()=>{
+  const x=load({__EXPORTHUB_GET_STATE__:()=>({
+    customers:[{id:'C1',country:'Belgien'}],
+    currentShipment:{customerId:'C1',deliveryAddress:'Rue Exemple 12',postalCode:'1000'}
+  })});
+  assert.equal(x.shipmentDestination().country,'BE');
+});
+
+test('RC1334: weitere UPS-Länderbezeichnungen werden auf gültige Ländercodes normalisiert',()=>{
+  const x=load();
+  assert.equal(x.countryCode('Vereinigtes Königreich'),'GB');
+  assert.equal(x.countryCode('Estland'),'EE');
+  assert.equal(x.countryCode('Liechtenstein'),'LI');
+});
+
+test('RC1334: UPS-Ausgabe trennt Paket-Grundtarif und Gesamtkosten der kompletten Lieferung sichtbar',()=>{
+  const s=fs.readFileSync(new URL('../assets/rc1206-shipping-rules.js',import.meta.url),'utf8');
+  assert.match(s,/rc1334UpsPriceMeaning/);
+  assert.match(s,/UPS Grundtarif je Paket/);
+  assert.match(s,/ups\.totalComplete/);
+  assert.match(s,/ups\.baseComplete/);
+});
