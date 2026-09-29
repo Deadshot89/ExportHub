@@ -33,6 +33,11 @@ test('RC1342: Deckblatt zeigt ein vorhandenes Abholdatum',()=>{
   assert.match(runtime,/data-rc1341-pickup-date/);
 });
 
+test('RC1343: Deckblatt wird zwei Punkte und Ladeliste einen Punkt kompakter gedruckt',()=>{
+  assert.match(runtime,/enhance\(html,sh,withQr\)[\s\S]*?shrinkInlineFonts\(root,1\)/);
+  assert.match(runtime,/enhanceCover\(html,sh\)[\s\S]*?shrinkInlineFonts\(root,2\)/);
+});
+
 test('RC1342: neue Druckruntime wird cache-sicher geladen',()=>{
   assert.match(build,/rc1305-loading-list-print\\.js\\?v=1342/);
   assert.match(runtime,/version:'RC1342'/);
