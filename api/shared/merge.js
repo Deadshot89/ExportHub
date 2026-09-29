@@ -529,6 +529,28 @@ function mergeShipmentProtected(serverItem, incomingItem) {
     out.status = clone(chosenStatus);
     out.processStatus = clone(chosenStatus);
   }
+
+  // RC1338: Once multi-truck pickup is operational, the aggregate shipment
+  // status must be derived from the protected sub-shipment state. A newer
+  // stale browser snapshot may not roll "Teilweise abgeholt" back to "Erstellt".
+  if (out.multiTruckLocked === true && Array.isArray(out.subShipments) && out.subShipments.length > 1) {
+    const picked = (sub) => /^(?:confirmed|pod|completed|abgeholt|pod vorhanden|abgeschlossen|picked(?: up)?)$/.test(
+      lower(sub && (sub.status || sub.pickupStatus || sub.processStatus))
+    );
+    const allPicked = out.subShipments.every(picked);
+    const anyStarted = out.subShipments.some(rc1017SubShipmentOperational);
+    if (allPicked) {
+      out.status = 'Abgeholt';
+      out.processStatus = 'Abgeholt';
+      out.pickupComplete = true;
+      out.pickupPartial = false;
+    } else if (anyStarted) {
+      out.status = 'Teilweise abgeholt';
+      out.processStatus = 'Teilweise abgeholt';
+      out.pickupComplete = false;
+      out.pickupPartial = true;
+    }
+  }
   return out;
 }
 
