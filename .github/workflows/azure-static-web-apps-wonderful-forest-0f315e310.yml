@@ -100,7 +100,9 @@ permissions:
   id-token: write
 concurrency:
   group: exporthub-rc1112-three-env-${{ github.ref }}
-  cancel-in-progress: false
+  # A newer main commit must cancel an older deployment so stale code can never
+  # finish after a newer release and overwrite production/TESTSERVICE.
+  cancel-in-progress: true
 jobs:
   build_and_deploy_job:
     runs-on: ubuntu-latest
