@@ -47,7 +47,7 @@ test('RC1207: Runtime ist syntaktisch gültig und nutzt direkten authentifiziert
 
 test('RC1166: sichere Avis-Links werden nur vor Abholung und nicht für Ausnahmekunden angeboten',()=>{
   const api=load();
-  assert.equal(api.avisLink({reference:'ABC123',customerName:'Testkunde',testAvisLink:'https://example.test/customer-avis.html?token=abc'}),'https://exporthub360.com/avis/abc');
+  assert.equal(api.avisLink({reference:'ABC123',customerName:'Testkunde',testAvisLink:'https://example.test/customer-avis.html?token=abc'}),'https://wonderful-forest-0f315e310.7.azurestaticapps.net/customer-avis.html?token=abc');
   assert.equal(api.avisLink({reference:'ABC123',customerName:'BMP',testAvisLink:'https://example.test/customer-avis.html?token=abc'}),'');
   assert.equal(api.avisLink({reference:'ABC123',customerName:'Böllhof',testAvisLink:'https://example.test/customer-avis.html?token=abc'}),'');
   assert.equal(api.avisLink({reference:'ABC123',status:'Abgeholt',testAvisLink:'https://example.test/customer-avis.html?token=abc'}),'');
