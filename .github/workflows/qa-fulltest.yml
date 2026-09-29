@@ -49,3 +49,26 @@ jobs:
             playwright-report
           if-no-files-found: ignore
           retention-days: 14
+
+  public-domain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Production and AVIS domains read-only
+        shell: bash
+        run: |
+          set -euo pipefail
+          main_body="$(mktemp)"
+          avis_body="$(mktemp)"
+          unknown_body="$(mktemp)"
+          trap 'rm -f "$main_body" "$avis_body" "$unknown_body"' EXIT
+          main_code="$(curl -sS -L -o "$main_body" -w '%{http_code}' --max-time 20 'https://www.exporthub360.de/?qa=fulltest')"
+          avis_code="$(curl -sS -L -o "$avis_body" -w '%{http_code}' --max-time 20 'https://exporthub360.com/avis/RCFULLTESTINVALIDTOKEN12345678901234567890')"
+          unknown_code="$(curl -sS -L -o "$unknown_body" -w '%{http_code}' --max-time 20 'https://www.exporthub360.de/qa-not-a-real-route-20260929')"
+          echo "main=$main_code avis=$avis_code unknown=$unknown_code"
+          test "$main_code" = "200"
+          test "$avis_code" = "200"
+          grep -Eq 'ExportHUB360|ExportHUB' "$main_body"
+          grep -Eq 'Kunden-Avis|Lieferavis|Avis-Link' "$avis_body"
+          test "$unknown_code" = "200"
+          grep -Eq 'ExportHUB360|ExportHUB' "$unknown_body"
