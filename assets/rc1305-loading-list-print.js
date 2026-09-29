@@ -132,6 +132,8 @@ function addQuickPrintQr(root,sh,withQr){
  if(!withQr||!root||root.querySelector('[data-rc1315-print-qr]'))return false;var ref=printRef(sh);if(!ref)return false;
  var payload='EHPRINT:'+ref,section=d.createElement('section');section.className='rc1315-print-qr';section.setAttribute('data-rc1315-print-qr','1');section.setAttribute('data-rc1315-payload',payload);
  section.innerHTML='<div class="rc1315-print-qr-code">'+rc1315QrSvg(payload)+'</div><div class="rc1315-print-qr-copy"><strong>Druck</strong></div>';
+ var refBox=root.querySelector('.rc390-ref,.rc352-ref,[data-rc1281-reference]');
+ if(refBox){refBox.style.setProperty('position','relative','important');refBox.style.setProperty('padding-right','19mm','important');section.classList.add('rc1315-print-qr-in-ref');refBox.appendChild(section);root.setAttribute('data-rc1341-print-qr-top-right','1');return true}
  var qrArea=root.querySelector('.rc390-cover-qr,.rc352-cover-qr');
  if(qrArea){section.classList.add('rc1327-print-qr-bottom');qrArea.classList.add('rc1327-cover-qr-row');qrArea.appendChild(section)}
  else{section.setAttribute('data-rc1315-fallback','1');root.appendChild(section)}
@@ -145,10 +147,16 @@ function enhance(html,sh,withQr){
   return tpl.innerHTML
  }catch(e){try{console.warn('RC1305 Ladelisten-Darstellung',e)}catch(_){}return html}
 }
+function formatDay(v){var raw=q(v);if(!raw)return'';try{var dt=new Date(raw);if(!isNaN(dt.getTime()))return dt.toLocaleDateString(locale(),{day:'2-digit',month:'2-digit',year:'numeric'})}catch(_){}return raw}
+function ensureCoverPickupDate(root,sh){
+ var last=lastPickup(sh),raw=value(sh,last,['actualPickupAt','pickupConfirmedAt','confirmedAt','plannedPickupDate','pickupPlannedDate','pickupDate','collectionDate','abholdatum']);if(!raw)return false;
+ var label=findLabel(root,/sendungsdaten|shipment\s*data/i),card=cardFor(label,root);if(!card||card.querySelector('[data-rc1341-pickup-date]'))return false;
+ var line=d.createElement('div');line.setAttribute('data-rc1341-pickup-date','1');line.className='rc1341-cover-pickup-date';line.innerHTML='<strong>Abholdatum:</strong> '+esc(formatDay(raw));var body=card.querySelector('.rc390-txt,.rc352-txt,[class*="txt"]')||card;body.appendChild(line);return true
+}
 function enhanceCover(html,sh){
  try{
   var tpl=d.createElement('template');tpl.innerHTML=html;var root=tpl.content.querySelector('.rc390-cover,.rc352-cover,[data-rc1203-cover-enhanced]')||tpl.content.firstElementChild;if(!root)return html;
-  root.setAttribute('data-rc1327-print-cover','1');Array.from(root.querySelectorAll('[data-rc1315-print-qr],.rc1315-print-qr')).forEach(function(el){el.remove()});root.removeAttribute('data-rc1315-quick-print-qr');var refBox=root.querySelector('.rc390-ref');if(refBox){refBox.style.removeProperty('padding-right');refBox.style.removeProperty('width');refBox.style.removeProperty('min-width');refBox.style.removeProperty('flex-basis');refBox.style.removeProperty('position')}addQuickPrintQr(root,sh||{},true)
+  root.setAttribute('data-rc1327-print-cover','1');Array.from(root.querySelectorAll('[data-rc1315-print-qr],.rc1315-print-qr')).forEach(function(el){el.remove()});root.removeAttribute('data-rc1315-quick-print-qr');enhanceDocuments(root,sh||{});ensureCoverPickupDate(root,sh||{});addQuickPrintQr(root,sh||{},true)
   return tpl.innerHTML
  }catch(e){try{console.warn('RC1316 Deckblatt-Druck-QR',e)}catch(_){}return html}
 }
@@ -179,12 +187,12 @@ function style(){
  '.rc1315-print-qr-code{flex:0 0 12mm!important;width:12mm!important;height:12mm!important}.rc1315-qr-svg{display:block!important;width:12mm!important;height:12mm!important}'+
  '.rc1315-print-qr-copy{display:flex!important;min-width:0!important;flex-direction:column!important;gap:.6mm!important}.rc1315-print-qr-copy strong{font-size:9pt!important;text-transform:uppercase!important}.rc1315-print-qr-copy span{font-size:8.5pt!important;font-weight:800!important}.rc1315-print-qr-copy small{font-size:6.8pt!important;line-height:1.2!important;font-weight:700!important;color:#475569!important}'+
   '.rc1315-print-qr.rc1315-print-qr-in-ref{position:absolute!important;z-index:2!important;top:1.4mm!important;right:1.4mm!important;display:block!important;width:15mm!important;max-width:15mm!important;min-height:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important}'+
- '.rc1315-print-qr-in-ref .rc1315-print-qr-code{width:14mm!important;height:14mm!important}.rc1315-print-qr-in-ref .rc1315-qr-svg{width:14mm!important;height:14mm!important}.rc1315-print-qr-in-ref .rc1315-print-qr-copy{display:block!important;margin-top:.4mm!important;text-align:center!important;line-height:1!important}.rc1315-print-qr-in-ref .rc1315-print-qr-copy strong{font-size:6pt!important;letter-spacing:.06em!important}'+
+ '.rc1315-print-qr-in-ref .rc1315-print-qr-code{width:13mm!important;height:13mm!important}.rc1315-print-qr-in-ref .rc1315-qr-svg{width:13mm!important;height:13mm!important}.rc1315-print-qr-in-ref .rc1315-print-qr-copy{display:block!important;margin-top:.25mm!important;text-align:center!important;line-height:1!important}.rc1315-print-qr-in-ref .rc1315-print-qr-copy strong{font-size:5.6pt!important;letter-spacing:.05em!important}.rc1341-cover-pickup-date{margin-top:1mm!important;font-size:8.5pt!important;line-height:1.15!important;color:#0f2942!important}'+
  '.rc1327-cover-qr-row{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;align-items:end!important;gap:4mm!important}.rc1327-cover-qr-row>*{min-width:0!important}'+
  '[data-rc1315-fallback="1"]{margin:2mm 0 0 auto!important}.rc1327-print-qr-bottom{position:static!important;display:flex!important;width:22mm!important;max-width:22mm!important;min-height:14mm!important;padding:.7mm!important;margin:0!important;border:.35mm solid #2563eb!important;border-radius:1.6mm!important;background:#fff!important}.rc1327-print-qr-bottom .rc1315-print-qr-code,.rc1327-print-qr-bottom .rc1315-qr-svg{width:12mm!important;height:12mm!important;flex-basis:12mm!important}.rc1327-print-qr-bottom .rc1315-print-qr-copy{display:block!important;margin:0!important}.rc1327-print-qr-bottom .rc1315-print-qr-copy strong{font-size:6pt!important}'+
  '@media print{.rc1305-pickup-summary{margin-top:1.6mm!important}.rc1305-pickup-banner{padding:1.5mm 2.2mm!important;font-size:8.2pt!important}.rc1305-pickup-grid{grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:.8mm!important;padding:1.2mm!important}.rc1305-pickup-meta{height:11.5mm!important;min-height:11.5mm!important}.rc1305-pickup-signature{grid-column:span 3!important;height:16.5mm!important;min-height:16.5mm!important}.rc1305-pickup-summary[data-rc1315-customs-required="0"] .rc1305-signature-primary{grid-column:1 / -1!important}.rc1305-pickup-signature>strong{height:10.1mm!important;max-height:10.1mm!important}.rc1305-signature-image{max-height:9.5mm!important}.rc1305-document-grid,.rc1305-pickup-summary,.rc1305-pickup-grid,.rc1305-pickup-item,.rc1315-print-qr{break-inside:avoid!important;page-break-inside:avoid!important}}';
  (d.head||d.documentElement).appendChild(st)
 }
 style();
-w.ExportHUBRC1305LoadingListPrint=Object.freeze({version:'RC1327',enhance:enhance,enhanceCover:enhanceCover,isPicked:isPicked,deliveryFiles:deliveryFiles,printRef:printRef,qrSvg:rc1315QrSvg,addQuickPrintQr:addQuickPrintQr,style:style});
+w.ExportHUBRC1305LoadingListPrint=Object.freeze({version:'RC1341',enhance:enhance,enhanceCover:enhanceCover,isPicked:isPicked,deliveryFiles:deliveryFiles,printRef:printRef,qrSvg:rc1315QrSvg,addQuickPrintQr:addQuickPrintQr,style:style});
 })(window,document);
