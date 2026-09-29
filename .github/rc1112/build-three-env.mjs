@@ -444,6 +444,70 @@ function patchCompletePrintBundle(html,file){
   if(!html.includes("if(mode==='load2')return[d.load2].filter(Boolean);return[d.cover,d.load1,d.load2].concat(d.cmrs.slice(0,3)).filter(Boolean)"))throw new Error(file+': RC1316 Druckauswahl 1x L1/1x L2/3x CMR fehlt');
   if(!html.includes("withQr?'1 / 2 · mit QR-Code':'2 / 2 · ohne QR-Code'"))throw new Error(file+': RC1316 Ladelisten-Kopienbeschriftung fehlt');
   if(!html.includes("for(var i=1;i<=3;i++){")||!html.includes("CMR '+i+' / 3</div></div>'"))throw new Error(file+': RC1316 CMR muss genau dreimal erzeugt werden');
+
+  const rc1340Anchor='async function printDocuments(mode){';
+  const rc1340Runtime=`
+function rc1340PrintableDeliveryAttachments(sh){
+ var helper=window.ExportHUBDocumentBlob1059,out=[],seen=Object.create(null),keys=['deliveryFiles','deliveryNotesFiles','lieferscheine','files','attachments'];
+ function legacyUrl(file){try{if(helper&&typeof helper.legacyUrl==='function')return q(helper.legacyUrl(file))}catch(_){}if(typeof file==='string')return /^(?:data:application\\/pdf|blob:|https?:)/i.test(q(file))?q(file):'';return q(file&&(file.data||file.dataUrl||file.url||file.downloadUrl||file.contentUrl||file.href||file.objectUrl||file.link))}
+ function add(raw){
+  if(!raw)return;var file=typeof raw==='string'?{name:q(raw),url:/^(?:data:application\\/pdf|blob:|https?:)/i.test(q(raw))?q(raw):''}:raw;if(!file||typeof file!=='object')return;
+  if(/deleted|gelöscht|geloscht|replaced|ersetzt|storniert|cancelled|canceled/i.test(q(file.status)))return;
+  var name=q(file.name||file.fileName||file.filename||file.number||'Dokument.pdf'),mime=low(file.contentType||file.mimeType||file.mime||file.type),blobBacked=false,blobName='',url=legacyUrl(file);
+  try{blobBacked=!!(helper&&typeof helper.isBlobDocument==='function'&&helper.isBlobDocument(file));if(blobBacked&&typeof helper.blobName==='function')blobName=q(helper.blobName(file))}catch(_){blobBacked=false}
+  var pdf=/application\\/pdf/i.test(mime)||/\\.pdf(?:$|[?#])/i.test(name)||/^data:application\\/pdf/i.test(url)||/\\.pdf(?:$|[?#])/i.test(url);
+  if(!pdf||(!blobBacked&&!url))return;
+  var identity=blobBacked?'blob:'+blobName:(url?'url:'+url:'id:'+q(file.id||file.documentId||file.itemId||name));
+  if(!identity||seen[identity])return;seen[identity]=true;out.push({file:file,name:name,identity:identity,blobBacked:blobBacked,legacyUrl:url})
+ }
+ keys.forEach(function(key){arr(sh&&sh[key]).forEach(add)});return out
+}
+async function rc1340PrepareDeliveryAttachmentPrints(sh){
+ var helper=window.ExportHUBDocumentBlob1059,list=rc1340PrintableDeliveryAttachments(sh),prepared=[];
+ try{
+  for(var i=0;i<list.length;i++){var item=list[i],url=item.legacyUrl,owned=false;
+   if(item.blobBacked){if(!helper||typeof helper.fetchBlob!=='function')throw new Error('Dokumentenspeicher ist nicht verfügbar: '+item.name);var blob=await helper.fetchBlob(item.file);url=URL.createObjectURL(blob);owned=true}
+   else if(url&&!/^(?:data:application\\/pdf|blob:)/i.test(url)){var response=await fetch(url,{credentials:'same-origin',cache:'no-store'});if(!response.ok)throw new Error(item.name+' konnte nicht geladen werden (HTTP '+response.status+').');var fetched=await response.blob();url=URL.createObjectURL(fetched);owned=true}
+   if(!url)throw new Error('Kein druckbarer Dateiinhalt für '+item.name+'.');
+   prepared.push({name:item.name,identity:item.identity,url:url,owned:owned})
+  }
+  return prepared
+ }catch(e){prepared.forEach(function(item){if(item.owned)try{URL.revokeObjectURL(item.url)}catch(_){}});throw e}
+}
+async function rc1340PrintPreparedAttachment(item,index,total){
+ if(typeof window.__EXPORTHUB_CAPTURE_ATTACHMENT_PRINT__==='function'){await Promise.resolve(window.__EXPORTHUB_CAPTURE_ATTACHMENT_PRINT__({name:item.name,index:index,total:total,identity:item.identity,url:item.url}));return true}
+ return new Promise(function(resolve,reject){var frame=document.createElement('iframe'),done=false,timer;
+  function finish(error){if(done)return;done=true;try{clearTimeout(timer)}catch(_){};try{frame.remove()}catch(_){};if(error)reject(error);else resolve(true)}
+  frame.setAttribute('aria-hidden','true');frame.setAttribute('data-rc1340-attachment-print',String(index+1));frame.style.cssText='position:fixed;left:-100000px;top:0;width:1px;height:1px;border:0;opacity:0;pointer-events:none';
+  frame.onload=function(){later(function(){try{if(!frame.contentWindow)throw new Error('PDF-Druckfenster fehlt.');frame.contentWindow.focus();frame.contentWindow.print();later(function(){finish()},250)}catch(e){finish(e)}},350)};
+  frame.onerror=function(){finish(new Error('PDF konnte nicht für den Druck geladen werden: '+item.name))};
+  timer=later(function(){finish(new Error('Zeitüberschreitung beim PDF-Druck: '+item.name))},15000);document.body.appendChild(frame);frame.src=item.url
+ })
+}
+async function rc1340PrintPreparedAttachments(items){
+ items=arr(items);try{for(var i=0;i<items.length;i++)await rc1340PrintPreparedAttachment(items[i],i,items.length);return items.length}
+ finally{items.forEach(function(item){if(item&&item.owned)try{URL.revokeObjectURL(item.url)}catch(_){}})}
+}
+window.ExportHUBRC1340AttachmentPrint=Object.freeze({version:'RC1340',printable:rc1340PrintableDeliveryAttachments,prepare:rc1340PrepareDeliveryAttachmentPrints,printPrepared:rc1340PrintPreparedAttachments,printShipment:async function(sh){var jobs=await rc1340PrepareDeliveryAttachmentPrints(sh);return rc1340PrintPreparedAttachments(jobs)}});
+`;
+  if(!html.includes('window.ExportHUBRC1340AttachmentPrint=')){
+    const count=html.split(rc1340Anchor).length-1;
+    if(count!==1)throw new Error(file+': RC1340 Druckanker '+count+'x gefunden');
+    html=html.replace(rc1340Anchor,rc1340Runtime+'\n'+rc1340Anchor);
+  }
+  const readyOld="await ensureOutputReady(sh,'normal');docWorkStep(opToken,'Druckseiten werden geöffnet …');";
+  const readyNew="await ensureOutputReady(sh,'normal');var attachmentJobs=(mode==='all'||!mode)?await rc1340PrepareDeliveryAttachmentPrints(sh):[];docWorkStep(opToken,'Druckseiten werden geöffnet …');";
+  if(!html.includes(readyNew)){
+    if(!html.includes(readyOld))throw new Error(file+': RC1340 Output-Ready-Anker fehlt');
+    html=html.replace(readyOld,readyNew);
+  }
+  const printOld="window.__INDEX352_LAST_PRINT__={ok:true,mode:mode||'all',pages:root.children.length,ref:sref(sh)||sid(sh),owner:VERSION,signed:false};docWorkDone(opToken,'Druckdialog wird geöffnet');frame.contentWindow.focus();frame.contentWindow.print()";
+  const printNew="frame.contentWindow.focus();frame.contentWindow.print();if(attachmentJobs.length){docWorkStep(opToken,'Lieferscheine werden gedruckt …');await rc1340PrintPreparedAttachments(attachmentJobs)}window.__INDEX352_LAST_PRINT__={ok:true,mode:mode||'all',pages:root.children.length,attachmentCount:attachmentJobs.length,attachmentNames:attachmentJobs.map(function(item){return item.name}),ref:sref(sh)||sid(sh),owner:VERSION,signed:false};docWorkDone(opToken,attachmentJobs.length?'Gesamtdruck vollständig gestartet':'Druckdialog wird geöffnet')";
+  if(!html.includes(printNew)){
+    if(!html.includes(printOld))throw new Error(file+': RC1340 Druckabschluss-Anker fehlt');
+    html=html.replace(printOld,printNew);
+  }
+  if(!html.includes("version:'RC1340'")||!html.includes('attachmentCount:attachmentJobs.length')||!html.includes('await rc1340PrintPreparedAttachments(attachmentJobs)'))throw new Error(file+': RC1340 Lieferschein-Direktdruck fehlt');
   return html;
 }
 
