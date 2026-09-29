@@ -491,6 +491,71 @@ function mergeShipmentHistory(a,b){
     .slice(-1000);
 }
 
+function podFileBlobName(file) {
+  return text(file && (file.blobName || file.storageBlobName));
+}
+
+function durablePodFile(file) {
+  const blobName = podFileBlobName(file);
+  if (!blobName) return false;
+  if (/^rc995\/(?:production|testservice)\/[a-f0-9]{64}\/automatic\/[^/]+\.pdf$/i.test(blobName)) return true;
+  return lower(file && file.storage) === 'blob';
+}
+
+function pickupTokenPodFile(file) {
+  const url = text(file && (file.url || file.downloadUrl || file.href || file.contentUrl));
+  return /\/api\/pickup-pod(?:$|[?&#])/i.test(url);
+}
+
+function podFileIdentity(file, index) {
+  return lower(text(file && (
+    file.id || file.remoteId || file.hash || file.blobName || file.storageBlobName ||
+    file.name || file.filename || file.fileName
+  ))) || ('pod-index-' + index);
+}
+
+function mergePodFilesProtected(serverList, incomingList) {
+  const map = new Map();
+  const ingest = (list, source) => {
+    (Array.isArray(list) ? list : []).forEach((raw, index) => {
+      if (!raw || typeof raw !== 'object') return;
+      const item = clone(raw);
+      const key = podFileIdentity(item, index);
+      const current = map.get(key);
+      if (!current) {
+        map.set(key, item);
+        return;
+      }
+      const currentDurable = durablePodFile(current);
+      const itemDurable = durablePodFile(item);
+      if (currentDurable && !itemDurable) {
+        map.set(key, Object.assign({}, item, current));
+        return;
+      }
+      if (!currentDurable && itemDurable) {
+        map.set(key, Object.assign({}, current, item));
+        return;
+      }
+      map.set(key, source === 'incoming' ? item : current);
+    });
+  };
+
+  ingest(serverList, 'server');
+  ingest(incomingList, 'incoming');
+
+  const files = Array.from(map.values());
+  const hasDurableAutomaticPod = files.some((file) => durablePodFile(file) && /automatic-pod|signed-loadlist|pod/i.test(lower([
+    file.kind, file.source, file.name, file.filename
+  ].join(' '))));
+
+  if (!hasDurableAutomaticPod) return files;
+  return files.filter((file) => {
+    if (!pickupTokenPodFile(file)) return true;
+    const marker = lower([file.kind, file.source, file.name, file.filename].join(' '));
+    return !/signed-loadlist|automatic-pod|qr-abholung|ladeliste.*unterschrift|pod/.test(marker);
+  });
+}
+
 function mergeShipmentProtected(serverItem, incomingItem) {
   if (!isObject(serverItem)) return clone(incomingItem);
   if (!isObject(incomingItem)) return clone(serverItem);
@@ -510,6 +575,7 @@ function mergeShipmentProtected(serverItem, incomingItem) {
     const a = Array.isArray(serverItem[key]) ? serverItem[key] : [];
     const b = Array.isArray(incomingItem[key]) ? incomingItem[key] : [];
     if (key === 'shipmentHistory') out[key] = mergeShipmentHistory(a,b);
+    else if (key === 'podFiles') out[key] = mergePodFilesProtected(a,b);
     else if (!a.length && b.length) out[key] = clone(b);
     else if (a.length && !b.length) out[key] = clone(a);
     else if (a.length && b.length && key === 'rows') out[key] = clone((incomingTs >= serverTs ? b : a));
@@ -723,6 +789,7 @@ module.exports = {
   itemKey,
   timestamp,
   mergeShipmentProtected,
+  mergePodFilesProtected,
   mergeCustomerProtected,
   mergeShipmentHistory,
   rc1017ProtectSubShipments,
