@@ -5,9 +5,9 @@ import fs from 'node:fs';
 const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
 const runtime=fs.readFileSync('assets/rc1305-loading-list-print.js','utf8');
 
-test('RC1341: Gesamtdruck enthält genau eine Ladeliste',()=>{
-  assert.match(build,/html=html\.replace\("\+coverHtml\(sh\)\+loadHtml\(sh,true\)\+loadHtml\(sh,false\)\+cmrHtml\(sh\)\+","\+coverHtml\(sh\)\+loadHtml\(sh,true\)\+cmrHtml\(sh\)\+"\)/);
-  assert.match(build,/return\[d\.cover,d\.load1\]\.concat\(d\.cmrs\.slice\(0,3\)\)\.filter\(Boolean\)/);
+test('RC1341: Gesamtdruck enthält genau L1 und L2 sowie drei CMR',()=>{
+  assert.match(build,/html=html\.replace\("\+coverHtml\(sh\)\+loadHtml\(sh,true\)\+cmrHtml\(sh\)\+","\+coverHtml\(sh\)\+loadHtml\(sh,true\)\+loadHtml\(sh,false\)\+cmrHtml\(sh\)\+"\)/);
+  assert.match(build,/return\[d\.cover,d\.load1,d\.load2\]\.concat\(d\.cmrs\.slice\(0,3\)\)\.filter\(Boolean\)/);
   assert.match(build,/if\(mode==='load2'\)return\[d\.load2\]\.filter\(Boolean\)/);
 });
 
