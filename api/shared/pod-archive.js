@@ -3,6 +3,7 @@
 const crypto = require('crypto');
 const store = require('./pickup-store');
 const graphDrive = require('./graph-drive');
+const TEAM_POD_LINK_VERSION = 'RC1340';
 
 function text(value) {
   return String(value == null ? '' : value).replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -430,6 +431,7 @@ async function reconcilePendingBackups(environment, options) {
   const clients = await store.clients(environment);
   const prefix = 'rc995/' + environment + '/records/';
   const candidates = [];
+  const teamRelinkCandidates = [];
   const alreadySaved = [];
   const integrityErrors = [];
   let scanned = 0;
@@ -470,6 +472,14 @@ async function reconcilePendingBackups(environment, options) {
           record = await persistBackupState(match[1].toLowerCase(), environment, { archiveVerifiedAt: integrity.verifiedAt, lastError: '' });
           backup = record.podBackup || backup;
         }
+        if (text(record.teamPodLinkVersion) !== TEAM_POD_LINK_VERSION) {
+          teamRelinkCandidates.push({
+            accessKey: match[1].toLowerCase(),
+            reference: recordReference || text(record.reference),
+            confirmedAtMs: Date.parse(record.confirmedAt || '') || 0,
+            record
+          });
+        }
         if (reference) alreadySaved.push({ reference: recordReference || text(record.reference), fileName: text(backup.fileName), attempts: Math.max(0, Number(backup.attempts) || 0) });
         continue;
       }
@@ -499,11 +509,34 @@ async function reconcilePendingBackups(environment, options) {
     });
   }
 
+  teamRelinkCandidates.sort((a, b) => a.confirmedAtMs - b.confirmedAtMs || a.reference.localeCompare(b.reference));
   candidates.sort((a, b) => a.lastAttemptMs - b.lastAttemptMs || a.confirmedAtMs - b.confirmedAtMs || a.reference.localeCompare(b.reference));
+  const selectedRelinks = teamRelinkCandidates.slice(0, limit);
+  // Preserve the established fair backup batch contract. Relinking is an
+  // independent one-time repair queue and must not reorder pending backups.
   const selectedCandidates = candidates.slice(0, limit);
   const saved = [];
   const pending = [];
   const errors = integrityErrors.slice();
+  let teamRelinkedCount = 0;
+
+  // RC1340: Older browser state could replace the durable automatic POD with a
+  // short-lived /api/pickup-pod?token=... URL. Re-link archived PODs once from
+  // the authoritative pickup record so already affected signed loading lists recover.
+  for (const candidate of selectedRelinks) {
+    try {
+      await store.updateTeam(candidate.record, [], '');
+      await store.mutateRecord(candidate.accessKey, environment, function(record) {
+        record.teamPodLinkVersion = TEAM_POD_LINK_VERSION;
+        record.teamPodLinkedAt = store.now();
+        return record;
+      });
+      teamRelinkedCount += 1;
+    } catch (error) {
+      errors.push({ reference: candidate.reference, code: text(error && error.code) || 'TEAM_POD_RELINK_FAILED', error: text(error && error.message).slice(0, 300) });
+    }
+  }
+
   for (const candidate of selectedCandidates) {
     try {
       const result = await retryArchiveBackup(candidate.accessKey, environment);
@@ -538,9 +571,12 @@ async function reconcilePendingBackups(environment, options) {
     ok: errors.length === 0,
     environment,
     scanned,
-    eligible: candidates.length,
-    selected: selectedCandidates.length,
+    eligible: candidates.length + teamRelinkCandidates.length,
+    selected: selectedCandidates.length + selectedRelinks.length,
     skippedRecent,
+    teamRelinkEligible: teamRelinkCandidates.length,
+    teamRelinkedCount,
+    teamRelinkPendingCount: Math.max(0, teamRelinkCandidates.length - teamRelinkedCount),
     savedCount: saved.length,
     alreadySavedCount: alreadySaved.length,
     pendingCount: pending.length,

@@ -62,7 +62,9 @@ module.exports = async function(context, req) {
       record = result.record || record;
     }
 
-    try { await store.updateTeam(record, [], rawToken); } catch (error) {
+    // Internal team state must only contain durable POD references. The public pickup token
+    // remains a public-session credential and must never become the canonical document link.
+    try { await store.updateTeam(record, [], ''); } catch (error) {
       context.log && context.log.error && context.log.error('RC1114 POD team state update failed', error && error.code, error && error.message);
     }
 
