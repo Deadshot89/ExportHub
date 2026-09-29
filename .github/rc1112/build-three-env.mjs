@@ -52,7 +52,7 @@ const RC1306_LAYOUT_SCRIPT_TAG='<script id="exporthub-rc1306-layout-script" defe
 const RC1328_MULTI_TRUCK_REFRESH_TAG='<script id="exporthub-rc1328-multi-truck-refresh" defer src="/assets/rc1328-multi-truck-ui-refresh.js?v=1333"><\/script>';
 
 function patchRc1296BrowserBranding(html,file){
-  if(file!=='index.html')return html;
+  if(file!=='index.html'&&file!=='demo.html')return html;
   const headOpen=/<head\b[^>]*>/i.exec(html);
   if(!headOpen)throw new Error(file+': RC1296 äußerer <head>-Anker fehlt');
   const start=headOpen.index+headOpen[0].length;
