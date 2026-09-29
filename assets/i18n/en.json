@@ -1129,6 +1129,7 @@
   "loadingList.shipmentCount": "{{count}} shipments",
   "loadingList.noFileNames": "No file names stored",
   "loadingListPrint.pickedUp": "SHIPMENT PICKED UP",
+  "loadingListPrint.pickupDate": "Pickup date",
   "loadingListPrint.notRecorded": "Not recorded",
   "loadingListPrint.noDeliveryNotes": "No delivery notes stored",
   "loadingListPrint.noRemark": "No remark stored",
