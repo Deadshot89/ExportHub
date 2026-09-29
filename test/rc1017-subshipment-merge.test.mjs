@@ -10,14 +10,18 @@ function shipment(overrides={}){
 
 test('RC1017: stale Client darf begonnene Teilsendung nicht zurücksetzen',()=>{
   assert.equal(typeof merge.mergeShipmentProtected,'function');
-  const server=shipment({_syncUpdatedAt:'2026-09-09T13:00:00Z',multiTruckLocked:true,subShipments:[{subShipmentId:'S1-TRUCK-1',sequence:1,total:2,status:'confirmed',locked:true,confirmedAt:'2026-09-09T13:00:00Z',pickupHistory:[{id:'pickup-1',confirmedAt:'2026-09-09T13:00:00Z'}],collectedPickupCollis:2,pickupCollectedColliCount:2,remainingPickupCollis:0,pickupRemainingColliCount:0,podFiles:[]},{subShipmentId:'S1-TRUCK-2',sequence:2,total:2,status:'open',locked:false,pickupHistory:[],podFiles:[]}]});
-  const stale=shipment({_syncUpdatedAt:'2026-09-09T13:05:00Z',multiTruckLocked:false,subShipments:[{subShipmentId:'S1-TRUCK-1',sequence:1,total:2,status:'open',locked:false,pickupHistory:[],collectedPickupCollis:0,pickupCollectedColliCount:0,remainingPickupCollis:2,pickupRemainingColliCount:2,podFiles:[]},{subShipmentId:'S1-TRUCK-2',sequence:2,total:2,status:'open',locked:false,pickupHistory:[],podFiles:[]}]});
+  const server=shipment({_syncUpdatedAt:'2026-09-09T13:00:00Z',status:'Teilweise abgeholt',processStatus:'Teilweise abgeholt',multiTruckLocked:true,subShipments:[{subShipmentId:'S1-TRUCK-1',sequence:1,total:2,status:'confirmed',locked:true,confirmedAt:'2026-09-09T13:00:00Z',pickupHistory:[{id:'pickup-1',confirmedAt:'2026-09-09T13:00:00Z'}],collectedPickupCollis:2,pickupCollectedColliCount:2,remainingPickupCollis:0,pickupRemainingColliCount:0,podFiles:[]},{subShipmentId:'S1-TRUCK-2',sequence:2,total:2,status:'open',locked:false,pickupHistory:[],podFiles:[]}]});
+  const stale=shipment({_syncUpdatedAt:'2026-09-09T13:05:00Z',status:'Erstellt',processStatus:'Erstellt',multiTruckLocked:false,subShipments:[{subShipmentId:'S1-TRUCK-1',sequence:1,total:2,status:'open',locked:false,pickupHistory:[],collectedPickupCollis:0,pickupCollectedColliCount:0,remainingPickupCollis:2,pickupRemainingColliCount:2,podFiles:[]},{subShipmentId:'S1-TRUCK-2',sequence:2,total:2,status:'open',locked:false,pickupHistory:[],podFiles:[]}]});
   const out=merge.mergeShipmentProtected(server,stale);
   assert.equal(out.multiTruckLocked,true);
   assert.equal(out.subShipments[0].status,'confirmed');
   assert.equal(out.subShipments[0].locked,true);
   assert.equal(out.subShipments[0].pickupHistory.length,1);
   assert.equal(out.subShipments[0].pickupCollectedColliCount,2);
+  assert.equal(out.status,'Teilweise abgeholt');
+  assert.equal(out.processStatus,'Teilweise abgeholt');
+  assert.equal(out.pickupPartial,true);
+  assert.equal(out.pickupComplete,false);
 });
 
 test('RC1017: neuerer operativer Teilsendungsstand darf den älteren ersetzen',()=>{
