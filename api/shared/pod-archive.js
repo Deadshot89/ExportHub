@@ -519,6 +519,7 @@ async function reconcilePendingBackups(environment, options) {
   const pending = [];
   const errors = integrityErrors.slice();
   let teamRelinkedCount = 0;
+  let teamRelinkSkippedCount = 0;
 
   // RC1340: Older browser state could replace the durable automatic POD with a
   // short-lived /api/pickup-pod?token=... URL. Re-link archived PODs once from
@@ -533,7 +534,34 @@ async function reconcilePendingBackups(environment, options) {
       });
       teamRelinkedCount += 1;
     } catch (error) {
-      errors.push({ reference: candidate.reference, code: text(error && error.code) || 'TEAM_POD_RELINK_FAILED', error: text(error && error.message).slice(0, 300) });
+      const code = text(error && error.code) || 'TEAM_POD_RELINK_FAILED';
+      // RC1348: TESTSERVICE may retain completed pickup records after the
+      // corresponding disposable team-state shipment has been cleaned up.
+      // The durable POD archive is already verified above; there is no live
+      // team-state target to repair. Mark only this TESTSERVICE orphan as
+      // terminally checked so the maintenance queue can drain. Production
+      // remains fail-closed for the same condition.
+      if (environment === 'testservice' && code === 'TEAM_SHIPMENT_NOT_FOUND') {
+        try {
+          await store.mutateRecord(candidate.accessKey, environment, function(record) {
+            record.teamPodLinkVersion = TEAM_POD_LINK_VERSION;
+            record.teamPodLinkCheckedAt = store.now();
+            record.teamPodLinkStatus = 'skipped-team-shipment-not-found';
+            record.teamPodLinkSkipReason = code;
+            return record;
+          });
+          teamRelinkSkippedCount += 1;
+          continue;
+        } catch (markError) {
+          errors.push({
+            reference: candidate.reference,
+            code: text(markError && markError.code) || 'TEAM_POD_RELINK_SKIP_MARK_FAILED',
+            error: text(markError && markError.message).slice(0, 300)
+          });
+          continue;
+        }
+      }
+      errors.push({ reference: candidate.reference, code, error: text(error && error.message).slice(0, 300) });
     }
   }
 
@@ -576,7 +604,8 @@ async function reconcilePendingBackups(environment, options) {
     skippedRecent,
     teamRelinkEligible: teamRelinkCandidates.length,
     teamRelinkedCount,
-    teamRelinkPendingCount: Math.max(0, teamRelinkCandidates.length - teamRelinkedCount),
+    teamRelinkSkippedCount,
+    teamRelinkPendingCount: Math.max(0, teamRelinkCandidates.length - teamRelinkedCount - teamRelinkSkippedCount),
     savedCount: saved.length,
     alreadySavedCount: alreadySaved.length,
     pendingCount: pending.length,

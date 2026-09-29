@@ -87,3 +87,22 @@ test('RC1340: changed server files remain syntactically valid',()=>{
     execFileSync(process.execPath,['--check',file],{stdio:'pipe'});
   }
 });
+
+
+test('RC1348: TESTSERVICE orphaned POD relink is terminally marked without weakening production',()=>{
+  assert.match(archiveSource,/environment === 'testservice' && code === 'TEAM_SHIPMENT_NOT_FOUND'/);
+  assert.match(archiveSource,/record\.teamPodLinkVersion = TEAM_POD_LINK_VERSION/);
+  assert.match(archiveSource,/record\.teamPodLinkStatus = 'skipped-team-shipment-not-found'/);
+  assert.match(archiveSource,/record\.teamPodLinkSkipReason = code/);
+  assert.match(archiveSource,/teamRelinkSkippedCount \+= 1/);
+  assert.match(archiveSource,/teamRelinkCandidates\.length - teamRelinkedCount - teamRelinkSkippedCount/);
+  assert.doesNotMatch(archiveSource,/environment === 'production' && code === 'TEAM_SHIPMENT_NOT_FOUND'/);
+});
+
+test('RC1348: production still keeps unknown and missing team relink failures in the hard error path',()=>{
+  const catchStart=archiveSource.indexOf("const code = text(error && error.code) || 'TEAM_POD_RELINK_FAILED'");
+  assert.ok(catchStart>=0);
+  const window=archiveSource.slice(catchStart,catchStart+2200);
+  assert.match(window,/if \(environment === 'testservice' && code === 'TEAM_SHIPMENT_NOT_FOUND'\)/);
+  assert.match(window,/errors\.push\(\{ reference: candidate\.reference, code, error:/);
+});
