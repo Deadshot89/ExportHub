@@ -20,6 +20,66 @@ test('RC1017: stale Client darf begonnene Teilsendung nicht zurücksetzen',()=>{
   assert.equal(out.subShipments[0].pickupCollectedColliCount,2);
 });
 
+test('RC1340 P0: stale Browser darf Hauptstatus nach erster LKW-Abholung nicht auf Bereit zur Abholung zurücksetzen',()=>{
+  const server=shipment({
+    status:'Teilweise abgeholt',processStatus:'Teilweise abgeholt',_syncUpdatedAt:'2026-09-29T06:34:00Z',multiTruckLocked:true,
+    subShipments:[
+      {subShipmentId:'S1-TRUCK-1',sequence:1,total:2,status:'confirmed',locked:true,confirmedAt:'2026-09-29T06:34:00Z',pickupHistory:[{id:'pickup-1',confirmedAt:'2026-09-29T06:34:00Z'}],pickupCollectedColliCount:2,pickupRemainingColliCount:0,podFiles:[]},
+      {subShipmentId:'S1-TRUCK-2',sequence:2,total:2,status:'open',locked:false,pickupHistory:[],pickupCollectedColliCount:0,pickupRemainingColliCount:1,podFiles:[]}
+    ]
+  });
+  const stale=shipment({
+    status:'Bereit zur Abholung',processStatus:'Bereit zur Abholung',_syncUpdatedAt:'2026-09-29T06:35:00Z',multiTruckLocked:false,
+    subShipments:[
+      {subShipmentId:'S1-TRUCK-1',sequence:1,total:2,status:'open',locked:false,pickupHistory:[],pickupCollectedColliCount:0,pickupRemainingColliCount:2,podFiles:[]},
+      {subShipmentId:'S1-TRUCK-2',sequence:2,total:2,status:'open',locked:false,pickupHistory:[],pickupCollectedColliCount:0,pickupRemainingColliCount:1,podFiles:[]}
+    ]
+  });
+  const out=merge.mergeShipmentProtected(server,stale);
+  assert.equal(out.status,'Teilweise abgeholt');
+  assert.equal(out.processStatus,'Teilweise abgeholt');
+  assert.equal(out.multiTruckLocked,true);
+  assert.equal(out.pickupPartial,true);
+  assert.equal(out.pickupComplete,false);
+  assert.equal(out.subShipments[0].status,'confirmed');
+});
+
+test('RC1340 P0: nach letztem LKW bleibt Hauptstatus trotz neuerem stale Browser mindestens Abgeholt',()=>{
+  const server=shipment({
+    status:'Abgeholt',processStatus:'Abgeholt',_syncUpdatedAt:'2026-09-29T06:40:00Z',multiTruckLocked:true,
+    subShipments:[
+      {subShipmentId:'S1-TRUCK-1',status:'confirmed',locked:true,confirmedAt:'2026-09-29T06:34:00Z',pickupHistory:[{id:'pickup-1',confirmedAt:'2026-09-29T06:34:00Z'}]},
+      {subShipmentId:'S1-TRUCK-2',status:'confirmed',locked:true,confirmedAt:'2026-09-29T06:40:00Z',pickupHistory:[{id:'pickup-1',confirmedAt:'2026-09-29T06:40:00Z'}]}
+    ]
+  });
+  const stale=shipment({
+    status:'Bereit zur Abholung',processStatus:'Bereit zur Abholung',_syncUpdatedAt:'2026-09-29T06:41:00Z',multiTruckLocked:false,
+    subShipments:[
+      {subShipmentId:'S1-TRUCK-1',status:'open',locked:false,pickupHistory:[]},
+      {subShipmentId:'S1-TRUCK-2',status:'open',locked:false,pickupHistory:[]}
+    ]
+  });
+  const out=merge.mergeShipmentProtected(server,stale);
+  assert.equal(out.status,'Abgeholt');
+  assert.equal(out.processStatus,'Abgeholt');
+  assert.equal(out.pickupComplete,true);
+  assert.equal(out.pickupPartial,false);
+});
+
+test('RC1340 P0: höherer Folge-Status wird durch Mehr-LKW-Schutz nicht zurückgestuft',()=>{
+  const server=shipment({
+    status:'POD vorhanden',processStatus:'POD vorhanden',_syncUpdatedAt:'2026-09-29T06:45:00Z',multiTruckLocked:true,
+    subShipments:[
+      {subShipmentId:'S1-TRUCK-1',status:'confirmed',locked:true,confirmedAt:'2026-09-29T06:34:00Z',pickupHistory:[{id:'pickup-1',confirmedAt:'2026-09-29T06:34:00Z'}]},
+      {subShipmentId:'S1-TRUCK-2',status:'confirmed',locked:true,confirmedAt:'2026-09-29T06:40:00Z',pickupHistory:[{id:'pickup-1',confirmedAt:'2026-09-29T06:40:00Z'}]}
+    ]
+  });
+  const incoming=shipment({...server,_syncUpdatedAt:'2026-09-29T06:46:00Z'});
+  const out=merge.mergeShipmentProtected(server,incoming);
+  assert.equal(out.status,'POD vorhanden');
+  assert.equal(out.processStatus,'POD vorhanden');
+});
+
 test('RC1017: neuerer operativer Teilsendungsstand darf den älteren ersetzen',()=>{
   const server=shipment({_syncUpdatedAt:'2026-09-09T13:00:00Z',multiTruckLocked:true,subShipments:[{subShipmentId:'S1-TRUCK-1',sequence:1,total:2,status:'partial',locked:true,lastPartialPickupAt:'2026-09-09T13:00:00Z',pickupHistory:[{id:'pickup-1',confirmedAt:'2026-09-09T13:00:00Z'}],collectedPickupCollis:1,pickupCollectedColliCount:1,remainingPickupCollis:1,pickupRemainingColliCount:1,podFiles:[]}]});
   const incoming=shipment({_syncUpdatedAt:'2026-09-09T13:10:00Z',multiTruckLocked:true,subShipments:[{subShipmentId:'S1-TRUCK-1',sequence:1,total:2,status:'confirmed',locked:true,confirmedAt:'2026-09-09T13:10:00Z',pickupHistory:[{id:'pickup-1',confirmedAt:'2026-09-09T13:00:00Z'},{id:'pickup-2',confirmedAt:'2026-09-09T13:10:00Z'}],collectedPickupCollis:2,pickupCollectedColliCount:2,remainingPickupCollis:0,pickupRemainingColliCount:0,podFiles:[{id:'pod-1'}]}]});
