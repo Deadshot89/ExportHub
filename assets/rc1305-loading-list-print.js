@@ -34,7 +34,7 @@ function shrinkInlineFonts(root,deltaPt){
 function enhanceDocuments(root,sh){
  var label=findLabel(root,/lieferscheine|delivery\s*notes|\bdncs?\b/i);if(!label)return false;
  var card=cardFor(label,root);if(!card)return false;var body=card.querySelector('.rc390-txt,.rc352-txt,[class*="txt"]')||label.nextElementSibling;
- var files=deliveryFiles(sh);var fallback=existingFiles(body);fallback.forEach(function(name){if(!files.some(function(x){return x.toLowerCase()===name.toLowerCase()}))files.push(name)});
+ var files=deliveryFiles(sh);if(!files.length){var fallback=existingFiles(body);fallback.forEach(function(name){if(!files.some(function(x){return x.toLowerCase()===name.toLowerCase()}))files.push(name)})}
  card.setAttribute('data-rc1305-documents','1');
  var grid=d.createElement('div');grid.className='rc1305-document-grid rc1293-packing-slip-grid';grid.setAttribute('data-rc1305-document-grid','1');grid.setAttribute('data-rc1293-packing-slip-grid','1');
  if(files.length)files.forEach(function(name){var item=d.createElement('span');item.className='rc1305-document-item rc1293-packing-slip';item.setAttribute('data-rc1293-packing-slip','1');item.textContent=name;grid.appendChild(item)});
@@ -132,18 +132,17 @@ function addQuickPrintQr(root,sh,withQr){
  if(!withQr||!root||root.querySelector('[data-rc1315-print-qr]'))return false;var ref=printRef(sh);if(!ref)return false;
  var payload='EHPRINT:'+ref,section=d.createElement('section');section.className='rc1315-print-qr';section.setAttribute('data-rc1315-print-qr','1');section.setAttribute('data-rc1315-payload',payload);
  section.innerHTML='<div class="rc1315-print-qr-code">'+rc1315QrSvg(payload)+'</div><div class="rc1315-print-qr-copy"><strong>Druck</strong></div>';
- var refBox=root.querySelector('.rc390-ref,.rc352-ref,[data-rc1281-reference]');
- if(refBox){refBox.style.setProperty('position','relative','important');refBox.style.setProperty('padding-right','19mm','important');section.classList.add('rc1315-print-qr-in-ref');refBox.appendChild(section);root.setAttribute('data-rc1341-print-qr-top-right','1');return true}
  var qrArea=root.querySelector('.rc390-cover-qr,.rc352-cover-qr');
- if(qrArea){section.classList.add('rc1327-print-qr-bottom');qrArea.classList.add('rc1327-cover-qr-row');qrArea.appendChild(section)}
- else{section.setAttribute('data-rc1315-fallback','1');root.appendChild(section)}
- root.setAttribute('data-rc1327-quick-print-qr-bottom','1');return true
+ if(qrArea){section.classList.add('rc1327-print-qr-bottom');qrArea.classList.add('rc1327-cover-qr-row');qrArea.appendChild(section);root.setAttribute('data-rc1343-print-qr-bottom','1');return true}
+ var refBox=root.querySelector('.rc390-ref,.rc352-ref,[data-rc1281-reference]');
+ if(refBox){refBox.style.setProperty('position','relative','important');refBox.style.setProperty('padding-right','19mm','important');section.classList.add('rc1315-print-qr-in-ref');refBox.appendChild(section);root.setAttribute('data-rc1343-print-qr-fallback','1');return true}
+ section.setAttribute('data-rc1315-fallback','1');root.appendChild(section);root.setAttribute('data-rc1343-print-qr-fallback','1');return true
 }
 
 function enhance(html,sh,withQr){
  try{
   var tpl=d.createElement('template');tpl.innerHTML=html;var root=tpl.content.querySelector('.rc390-load,.rc352-load,.rc390-page,.rc352-page')||tpl.content.firstElementChild;if(!root)return html;
-  root.setAttribute('data-rc1305-loading-list','1');shrinkInlineFonts(root,1);enhanceDocuments(root,sh||{});enhanceRemark(root,sh||{});ensureCustomsSignatureField(root,sh||{});pickupSummary(root,sh||{});
+  root.setAttribute('data-rc1305-loading-list','1');Array.from(root.querySelectorAll('[data-rc1315-print-qr],.rc1315-print-qr')).forEach(function(el){el.remove()});root.removeAttribute('data-rc1315-quick-print-qr');root.setAttribute('data-rc1343-loading-list-qr-stripped','1');shrinkInlineFonts(root,1);enhanceDocuments(root,sh||{});enhanceRemark(root,sh||{});ensureCustomsSignatureField(root,sh||{});pickupSummary(root,sh||{});
   return tpl.innerHTML
  }catch(e){try{console.warn('RC1305 Ladelisten-Darstellung',e)}catch(_){}return html}
 }
@@ -194,5 +193,5 @@ function style(){
  (d.head||d.documentElement).appendChild(st)
 }
 style();
-w.ExportHUBRC1305LoadingListPrint=Object.freeze({version:'RC1341',enhance:enhance,enhanceCover:enhanceCover,isPicked:isPicked,deliveryFiles:deliveryFiles,printRef:printRef,qrSvg:rc1315QrSvg,addQuickPrintQr:addQuickPrintQr,style:style});
+w.ExportHUBRC1305LoadingListPrint=Object.freeze({version:'RC1343',enhance:enhance,enhanceCover:enhanceCover,isPicked:isPicked,deliveryFiles:deliveryFiles,printRef:printRef,qrSvg:rc1315QrSvg,addQuickPrintQr:addQuickPrintQr,style:style});
 })(window,document);
