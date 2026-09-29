@@ -90,7 +90,8 @@ async function validateGlobalAdmin(req, payload) {
   if (Number(session.authVersion || 0) !== Number(user.authVersion || 0)) throw pins.error('SESSION_REVOKED', 'Die ExportHUB-Sitzung wurde beendet. Bitte erneut anmelden.', 401);
   if ((session.mustChange || user.mustChange) === true) throw pins.error('PASSWORD_CHANGE_REQUIRED', 'Vor der Nutzung muss das Startpasswort geändert werden.', 403);
   if (!isAdmin(user)) throw pins.error('GLOBAL_ADMIN_REQUIRED', 'Nur globale Administratoren dürfen Verlader-PINs verwalten.', 403);
-  return user;
+  const environment = testserviceE2E ? 'testservice' : auditStore.environmentFromRequest(req);
+  return { user, environment };
 }
 
 const PIN_AUDIT_TYPES = Object.freeze({
@@ -109,10 +110,10 @@ function targetRow(action, before, after, payload) {
   if (action === 'delete') return (before || []).find(x => text(x && x.id) === id) || { id, name: text(payload && payload.name) };
   return (after || []).find(x => text(x && x.id) === id) || (before || []).find(x => text(x && x.id) === id) || { id, name: text(payload && payload.name) };
 }
-async function auditPinChange(action, admin, row) {
+async function auditPinChange(action, admin, row, environment) {
   const type = PIN_AUDIT_TYPES[action];
   if (!type) return true;
-  await auditStore.mutateTeam(team => {
+  await auditStore.mutateTeamForEnvironment(environment, team => {
     auditStore.addAudit(team, type, adminName(admin), {
       loaderId: text(row && row.id),
       loaderName: text(row && row.name),
@@ -127,26 +128,26 @@ module.exports = async function (context, req) {
   if (req.method === 'OPTIONS') { context.res = { status: 204, headers: { 'Cache-Control': 'no-store', 'Allow': 'POST, OPTIONS', 'X-ExportHUB-Loader-Pin-Audit': 'RC1087' }, body: '' }; return; }
   if (req.method !== 'POST') { context.res = json(405, { ok: false, code: 'METHOD_NOT_ALLOWED', message: 'Nur POST ist erlaubt.' }); return; }
   try {
-    const payload = body(req), admin = await validateGlobalAdmin(req, payload), action = text(payload.action || 'list').toLowerCase();
-    const before = PIN_AUDIT_TYPES[action] ? await pins.list() : [];
+    const payload = body(req), access = await validateGlobalAdmin(req, payload), admin = access.user, environment = access.environment, action = text(payload.action || 'list').toLowerCase();
+    const before = PIN_AUDIT_TYPES[action] ? await pins.list(environment) : [];
     let list;
-    if (action === 'list') list = await pins.list();
-    else if (action === 'create') list = await pins.create(payload);
-    else if (action === 'update') list = await pins.update(payload);
-    else if (action === 'toggle') list = await pins.toggle(payload);
-    else if (action === 'delete') list = await pins.remove(payload);
+    if (action === 'list') list = await pins.list(environment);
+    else if (action === 'create') list = await pins.create(payload, environment);
+    else if (action === 'update') list = await pins.update(payload, environment);
+    else if (action === 'toggle') list = await pins.toggle(payload, environment);
+    else if (action === 'delete') list = await pins.remove(payload, environment);
     else throw pins.error('INVALID_ACTION', 'Unbekannte PIN-Aktion.', 400);
 
     let auditStored = true;
     if (PIN_AUDIT_TYPES[action]) {
       const row = targetRow(action, before, list, payload);
-      try { await auditPinChange(action, admin, row); }
+      try { await auditPinChange(action, admin, row, environment); }
       catch (auditError) {
         auditStored = false;
         context.log && context.log.error && context.log.error('loader-pin-audit', auditError && auditError.code, auditError && auditError.message);
       }
     }
-    context.res = json(200, { ok: true, pins: list, count: list.length, serverStored: true, auditStored, admin: adminName(admin), version: 'RC1087' });
+    context.res = json(200, { ok: true, pins: list, count: list.length, serverStored: true, auditStored, admin: adminName(admin), environment, version: 'RC1339' });
   } catch (e) {
     context.log && context.log.error && context.log.error('loader-pins-admin', e && e.code, e && e.message);
     context.res = json(e.status || 500, { ok: false, code: e.code || 'SERVER_ERROR', message: e.message || apiI18n.t(req,'api.loaderPins.manageFailed') });
