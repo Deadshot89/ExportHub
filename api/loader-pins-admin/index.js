@@ -147,7 +147,7 @@ module.exports = async function (context, req) {
         context.log && context.log.error && context.log.error('loader-pin-audit', auditError && auditError.code, auditError && auditError.message);
       }
     }
-    context.res = json(200, { ok: true, pins: list, count: list.length, serverStored: true, auditStored, admin: adminName(admin), environment, version: 'RC1339' });
+    context.res = json(200, { ok: true, pins: list, count: list.length, serverStored: true, auditStored, admin: adminName(admin), environment, version: 'RC1087', isolationVersion: 'RC1339' });
   } catch (e) {
     context.log && context.log.error && context.log.error('loader-pins-admin', e && e.code, e && e.message);
     context.res = json(e.status || 500, { ok: false, code: e.code || 'SERVER_ERROR', message: e.message || apiI18n.t(req,'api.loaderPins.manageFailed') });
