@@ -443,6 +443,42 @@ function rc1017ProtectSubShipments(out, serverItem, incomingItem) {
   return out;
 }
 
+function rc1340ProtectMultiTruckMainStatus(out) {
+  const subs = Array.isArray(out && out.subShipments) ? out.subShipments : [];
+  if (subs.length < 2) return out;
+  const picked = (sub) => {
+    const status = lower(sub && (sub.status || sub.pickupStatus || sub.processStatus));
+    return Boolean(sub && (sub.complete === true || /confirmed|abgeholt|picked|pod|abgeschlossen|completed/.test(status)));
+  };
+  const allPicked = subs.every(picked);
+  const anyStarted = subs.some(rc1017SubShipmentOperational);
+  if (!anyStarted) return out;
+  const current = text(out.status || out.processStatus);
+  const rank = shipmentStatusRank(current);
+  if (allPicked) {
+    if (rank < 50 || /teilweise|partial/.test(lower(current))) {
+      out.status = 'Abgeholt';
+      out.processStatus = 'Abgeholt';
+    }
+    out.pickupPartial = false;
+    out.pickupComplete = true;
+    out.pickedUp = true;
+    out.pickupStatus = 'abgeholt';
+    out.pickupConfirmed = true;
+    return out;
+  }
+  if (rank <= 50) {
+    out.status = 'Teilweise abgeholt';
+    out.processStatus = 'Teilweise abgeholt';
+  }
+  out.pickupPartial = true;
+  out.pickupComplete = false;
+  out.pickedUp = false;
+  out.pickupStatus = 'teilweise abgeholt';
+  out.pickupConfirmed = false;
+  return out;
+}
+
 function mergeContainerPhotosProtected(serverList,incomingList){
   const map=new Map();
   const ingest=(list)=>{
@@ -529,6 +565,7 @@ function mergeShipmentProtected(serverItem, incomingItem) {
     out.status = clone(chosenStatus);
     out.processStatus = clone(chosenStatus);
   }
+  rc1340ProtectMultiTruckMainStatus(out);
   return out;
 }
 
@@ -704,6 +741,7 @@ module.exports = {
   mergeCustomerProtected,
   mergeShipmentHistory,
   rc1017ProtectSubShipments,
+  rc1340ProtectMultiTruckMainStatus,
   mergeCollection,
   mergeState,
   mergeUsers,
