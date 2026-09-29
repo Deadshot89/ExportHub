@@ -514,20 +514,9 @@ jobs:
 
           npx playwright test             e2e/specs/navigation.spec.mjs             e2e/specs/notifications.spec.mjs             e2e/specs/public-smoke.spec.mjs             e2e/specs/shipment-create.spec.mjs             e2e/specs/multi-truck-live.spec.mjs             e2e/specs/testservice-mutation.spec.mjs             e2e/specs/version-display.spec.mjs             --grep-invert 'RC1255 P2:'
 
-          set +e
+          # RC1346: Nur der im Test selbst eindeutig erkannte Graph-Mail.Send-Blocker darf als P2 übersprungen werden.
+          # Jede andere RC1255-Regression muss den Release hart stoppen.
           npx playwright test e2e/specs/testservice-mutation.spec.mjs --project=laptop --grep 'RC1255 P2:'
-          rc1255_mail_status=$?
-          set -e
-          if [ "$rc1255_mail_status" -ne 0 ]; then
-            echo "::warning title=RC1255 AVIS-Mail P2::Der echte TESTSERVICE-Mailversand ist blockiert: Microsoft Graph Application Permission Mail.Send fehlt. RC1255 bleibt offen und sichtbar."
-            {
-              echo '### ⚠ RC1255 AVIS-Mail P2'
-              echo 'Der echte TESTSERVICE-Mailversand ist blockiert, weil im App-only Graph-Token die Application Permission Mail.Send fehlt.'
-              echo 'RC1255 bleibt offen, bis Mail.Send mit Admin-Consent in der verwendeten Entra-App freigegeben und der echte Reminder-Mailtest grün ist.'
-            } >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo 'RC1255 echter TESTSERVICE-AVIS-Mailtest grün.'
-          fi
 
           cleanup
           trap - EXIT
