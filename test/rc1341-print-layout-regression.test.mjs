@@ -14,6 +14,9 @@ test('RC1341: Gesamtdruck enthält genau L1 und L2 sowie drei CMR',()=>{
 test('RC1341: Lieferscheine werden einzeln und umbruchfähig gerendert',()=>{
   assert.match(runtime,/enhanceDocuments\(root,sh\|\|\{\}\)/);
   assert.match(runtime,/rc1305-document-grid/);
+  assert.match(runtime,/data-rc1293-packing-slip-grid/);
+  assert.match(runtime,/data-rc1293-packing-slip/);
+  assert.match(runtime,/rc1305-document-item rc1293-packing-slip/);
   assert.match(runtime,/overflow-wrap:anywhere/);
   assert.match(runtime,/word-break:break-word/);
 });
