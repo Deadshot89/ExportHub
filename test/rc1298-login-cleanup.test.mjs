@@ -53,3 +53,9 @@ test('RC1298 P1: Login-Runtime wird cache-frisch gebaut und live geprüft',()=>{
 test('RC1298 P1: Login-Runtime bleibt syntaktisch gültig',()=>{
   execFileSync(process.execPath,['--check','assets/rc1074-login-clean.js'],{stdio:'pipe'});
 });
+
+
+test('RC1349: Production und Demo erhalten festen Browser-Titel ExportHUB360, TESTSERVICE bleibt getrennt',()=>{
+  assert.match(build,/if\(file!=='index\.html'&&file!=='demo\.html'\)return html/);
+  assert.match(build,/const RC1296_BROWSER_TITLE='ExportHUB360'/);
+});
