@@ -149,6 +149,7 @@
   "avis.appointment": "Rendez-vous d’enlèvement",
   "avis.timeWindow": "Créneau horaire",
   "pickup.title": "Confirmation d’enlèvement",
+  "pickup.date": "Date d’enlèvement",
   "pickup.driver": "Chauffeur",
   "pickup.driverName": "Nom du chauffeur",
   "pickup.signature": "Signature",

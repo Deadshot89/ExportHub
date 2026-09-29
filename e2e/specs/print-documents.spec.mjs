@@ -86,6 +86,21 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
           coverTheme:cover?String(cover.getAttribute('data-rc1281-customer-theme')||''):null,
           referenceStyle:rs?{backgroundColor:rs.backgroundColor,color:rs.color,borderColor:rs.borderTopColor}:null,
           recipientStyle:rcs?{backgroundColor:rcs.backgroundColor,color:rcs.color,borderColor:rcs.borderTopColor}:null,
+          quickPrintQr:(()=>{
+            const qr=document.querySelector('[data-rc1315-print-qr]');
+            const coverQr=document.querySelector('.rc390-cover-qr,.rc352-cover-qr');
+            const refBox=document.querySelector('.rc390-ref,.rc352-ref,[data-rc1281-reference]');
+            const code=qr&&qr.querySelector('.rc1315-print-qr-code');
+            const qs=code?getComputedStyle(code):null;
+            return{
+              count:document.querySelectorAll('[data-rc1315-print-qr]').length,
+              insideCoverQr:!!(qr&&coverQr&&coverQr.contains(qr)),
+              insideReference:!!(qr&&refBox&&refBox.contains(qr)),
+              bottomMarker:!!(cover&&cover.getAttribute('data-rc1344-print-qr-bottom-row')==='1'),
+              width:qs&&qs.width,
+              height:qs&&qs.height
+            };
+          })(),
           packingSlipGrid:(()=>{
             const grid=document.querySelector('[data-rc1293-packing-slip-grid]');
             const slips=grid?Array.from(grid.querySelectorAll('[data-rc1293-packing-slip]')):[];
@@ -178,6 +193,11 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
   expect(capture.referenceStyle.color).toBe('rgb(255, 255, 255)');
   expect(capture.recipientStyle).toBeTruthy();
   expect(capture.recipientStyle.backgroundColor).toBe('rgb(219, 234, 254)');
+  expect(capture.quickPrintQr).toBeTruthy();
+  expect(capture.quickPrintQr.count,'Druck-QR darf im Gesamtdruck nur einmal vorkommen').toBe(1);
+  expect(capture.quickPrintQr.insideCoverQr,'Druck-QR muss unten im QR-Bereich des Deckblatts sitzen').toBe(true);
+  expect(capture.quickPrintQr.insideReference,'Druck-QR darf nicht im Referenzfeld sitzen').toBe(false);
+  expect(capture.quickPrintQr.bottomMarker,'Deckblatt muss die RC1344-Unterkantenposition markieren').toBe(true);
   expect(capture.text).toMatch(/Erstellt am:\s*\d{2}\.\d{2}\.\d{4}/);
   expect(capture.html).toMatch(/data-rc1281-created-date="1"/i);
   expect(capture.html).toMatch(/data-rc1203-cover-remark="1"/i);

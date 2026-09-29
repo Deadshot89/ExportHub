@@ -149,6 +149,7 @@
   "avis.appointment": "Appuntamento di ritiro",
   "avis.timeWindow": "Fascia oraria",
   "pickup.title": "Conferma ritiro",
+  "pickup.date": "Data di ritiro",
   "pickup.driver": "Autista",
   "pickup.driverName": "Nome dell’autista",
   "pickup.signature": "Firma",

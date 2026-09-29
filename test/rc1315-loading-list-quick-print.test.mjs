@@ -84,12 +84,13 @@ test('RC1316: Druck-QR liegt nur auf dem Deckblatt und nicht auf der Ladeliste',
   assert.match(printRuntime,/function enhanceCover\(html,sh\)/);
   assert.match(printRuntime,/addQuickPrintQr\(root,sh\|\|\{\},true\)/);
   assert.match(printRuntime,/payload='EHPRINT:'\+ref/);
-  assert.match(printRuntime,/rc1327-print-qr-bottom/); assert.match(printRuntime,/width:12mm!important;height:12mm!important/);
+  assert.match(printRuntime,/rc1327-print-qr-bottom/); assert.match(printRuntime,/data-rc1344-print-qr-bottom-row/); assert.match(printRuntime,/width:12mm!important;height:12mm!important/);
+  assert.doesNotMatch(printRuntime,/rc1315-print-qr-in-ref/);
 });
 
 test('RC1315: Release-Build lädt Schnelldruck und reicht withQr an den Renderer weiter',()=>{
   assert.match(build,/assets\/rc1315-loading-list-quick-print\.js\?v=1322/);
-  assert.match(build,/assets\/rc1305-loading-list-print\.js\?v=1342/);
+  assert.match(build,/assets\/rc1305-loading-list-print\.js\?v=1344/);
   assert.match(build,/api\.enhance\(out,sh\|\|\{\},withQr===true\)/); assert.match(build,/api\.enhanceCover==='function'/);
   assert.match(build,/'assets\/rc1315-loading-list-quick-print\.js'/);
   assert.match(build,/loadingListQuickPrint:'RC1322/);

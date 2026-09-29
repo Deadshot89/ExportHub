@@ -149,6 +149,7 @@
   "avis.appointment": "Abholtermin",
   "avis.timeWindow": "Zeitfenster",
   "pickup.title": "Abholbestätigung",
+  "pickup.date": "Abholdatum",
   "pickup.driver": "Fahrer",
   "pickup.driverName": "Name des Fahrers",
   "pickup.signature": "Unterschrift",

@@ -149,6 +149,7 @@
   "avis.appointment": "Termin odbioru",
   "avis.timeWindow": "Przedział czasowy",
   "pickup.title": "Potwierdzenie odbioru",
+  "pickup.date": "Data odbioru",
   "pickup.driver": "Kierowca",
   "pickup.driverName": "Imię i nazwisko kierowcy",
   "pickup.signature": "Podpis",

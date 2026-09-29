@@ -149,6 +149,7 @@
   "avis.appointment": "Cita de recogida",
   "avis.timeWindow": "Franja horaria",
   "pickup.title": "Confirmación de recogida",
+  "pickup.date": "Fecha de recogida",
   "pickup.driver": "Conductor",
   "pickup.driverName": "Nombre del conductor",
   "pickup.signature": "Firma",
