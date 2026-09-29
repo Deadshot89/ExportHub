@@ -32,7 +32,7 @@ test('RC1167: HTTP 503 bleibt ein harter Fehler statt falschem Grün',()=>{
 test('RC1199: Pending-Diagnose gibt nur deduplizierte Fehlercodes aus',()=>{
   assert.match(workflow,/const pendingCodes=Array\.from\(new Set\(/);
   assert.match(workflow,/split\(':',1\)\[0\]\.trim\(\)/);
-  assert.match(workflow,/pendingCodes,target:/);
+  assert.match(workflow,/pendingCodes,errorCodes,target:/);
   assert.doesNotMatch(workflow,/pending:v\.pending/);
   assert.doesNotMatch(workflow,/lastError/);
 });
