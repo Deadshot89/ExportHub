@@ -127,3 +127,18 @@ test('RC1017: Hauptsendung und Abholtag-Aufgabe werden erst nach Bestätigung al
     assert.equal(task.status,'erledigt');
   }finally{f.restore()}
 });
+
+
+test('RC1339: Teilsendungs-Pickup findet die Hauptsendung notfalls über subShipmentId und Sequenz',async()=>{
+  const f=teamFixture();
+  try{
+    const record=completedSubPickup('S1-TRUCK-1',1,2,'2026-09-09T17:35:00.000Z');
+    record.shipmentId='NICHT-MEHR-GUELTIG';
+    record.reference='ZZZZZZ';
+    await f.store.updateTeam(record,[],'');
+    const sh=f.getDocument().state.shipments[0];
+    assert.equal(sh.status,'Teilweise abgeholt');
+    assert.equal(sh.subShipments[0].status,'confirmed');
+    assert.equal(sh.subShipments[0].locked,true);
+  }finally{f.restore()}
+});
