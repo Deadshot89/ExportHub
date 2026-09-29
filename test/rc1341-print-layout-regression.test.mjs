@@ -32,7 +32,7 @@ test('RC1344: Druck-QR sitzt ausschließlich unten bei den anderen QR-Codes auf 
 
 test('RC1342: Deckblatt zeigt ein vorhandenes Abholdatum',()=>{
   assert.match(runtime,/function ensureCoverPickupDate\(/);
-  assert.match(runtime,/Abholdatum:/);
+  assert.match(runtime,/tr\('pickup\.date'\)/);
   assert.match(runtime,/data-rc1341-pickup-date/);
 });
 
