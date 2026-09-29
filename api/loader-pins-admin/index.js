@@ -9,7 +9,7 @@ const apiI18n = require('../shared/i18n');
 
 const TEAM_CONTAINER = process.env.EXPORTHUB_STORAGE_CONTAINER || process.env.EXPORTHUB_CONTAINER || 'exporthub-data';
 const TEAM_BLOB = process.env.EXPORTHUB_STORAGE_BLOB || process.env.EXPORTHUB_STATE_BLOB || 'team-state.json';
-const TEST_TEAM_BLOB = process.env.EXPORTHUB_TEST_STORAGE_BLOB || ('testservice/' + String(TEAM_BLOB).replace(/^\\/+/, ''));
+const TEST_TEAM_BLOB = process.env.EXPORTHUB_TEST_STORAGE_BLOB || ('testservice/' + String(TEAM_BLOB).replace(/^\/+/, ''));
 const AUTH_BLOB = process.env.EXPORTHUB_AUTH_BLOB || 'auth-sessions.json';
 
 function json(status, body) {
