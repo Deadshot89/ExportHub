@@ -19,7 +19,7 @@ test('RC1333: Kunden-Avis nutzt den nachweislich erreichbaren Produktionshost',(
 test('RC1333: Server stellt neue AVIS-Links über die produktiven Azure-Hosts aus',()=>{
   assert.match(api,/PRODUCTION_AVIS_ORIGIN='https:\/\/wonderful-forest-0f315e310\.7\.azurestaticapps\.net'/);
   assert.match(api,/customer-avis\.html\?token=/);
-  assert.match(api,/url\+'\?environment='\+encodeURIComponent\(env\)/);
+  assert.match(api,/url\+'&environment='\+encodeURIComponent\(env\)/);
 });
 
 test('RC1333: Avis-Erinnerung normalisiert bestehende Altlinks auf erreichbare Hosts',()=>{
