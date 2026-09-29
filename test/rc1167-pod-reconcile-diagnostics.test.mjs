@@ -36,3 +36,12 @@ test('RC1199: Pending-Diagnose gibt nur deduplizierte Fehlercodes aus',()=>{
   assert.doesNotMatch(workflow,/pending:v\.pending/);
   assert.doesNotMatch(workflow,/lastError/);
 });
+
+
+test('RC1347: Reconcile-Diagnose nennt deduplizierte Fehlercodes ohne sensible Fehlertexte',()=>{
+  assert.match(workflow,/const errorCodes=Array\.from\(new Set\(/);
+  assert.match(workflow,/Array\.isArray\(v\.errors\)\?v\.errors:\[\]/);
+  assert.match(workflow,/x&&x\.code/);
+  assert.match(workflow,/pendingCodes,errorCodes,target:/);
+  assert.doesNotMatch(workflow,/errors:v\.errors/);
+});
