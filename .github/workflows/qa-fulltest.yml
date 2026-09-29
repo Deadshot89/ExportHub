@@ -1,0 +1,51 @@
+name: QA Full System Test
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/qa-fulltest.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  full-system:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+      - name: Full Node regression
+        run: npm test
+      - name: Security contracts
+        run: npm run test:security
+      - name: Accessibility and responsive contracts
+        run: npm run test:accessibility
+      - name: Strict i18n release audit
+        run: npm run i18n:audit:strict
+        continue-on-error: true
+      - name: Three-environment build
+        run: node .github/rc1112/build-three-env.mjs
+      - name: Verify final HTML
+        run: node .github/rc1121/verify-final-html.mjs
+      - name: Install Playwright
+        run: |
+          npm install --no-save @playwright/test@1.63.0
+          npx playwright install --with-deps chromium
+      - name: All local browser specs on all five viewports
+        env:
+          EXPORTHUB_E2E_STATIC: '1'
+        run: npx playwright test
+      - name: Upload browser failures
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: qa-fulltest-browser-${{ github.sha }}
+          path: |
+            test-results
+            playwright-report
+          if-no-files-found: ignore
+          retention-days: 14
