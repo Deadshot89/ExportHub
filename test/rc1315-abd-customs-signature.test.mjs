@@ -95,3 +95,11 @@ test('RC1317: fehlende primäre POD-Unterschrift wird aus revisionssicherem Arch
   assert.match(pickupPod,/archive\.podArchive\.getBlobClient\(blobName\)/);
   assert.match(pickupPod,/store\.readBuffer\(archiveBlob\)/);
 });
+
+
+test('RC1318: unterschriebene Ladelisten bleiben auch nach technischer Pickup-Sperre lesbar',()=>{
+  assert.match(publicAccess,/allowUsedPickupDocument=false/);
+  assert.match(publicAccess,/usedPickupDocument=record\.kind==='pickup'&&allowUsed===true&&allowUsedPickupDocument===true&&!!record\.usedAt/);
+  assert.match(publicAccess,/!usedPickupDocument\)throw error\('ACCESS_REVOKED'/);
+  assert.match(pickupPod,/allowUsed:true,allowUsedPickupDocument:true/);
+});
