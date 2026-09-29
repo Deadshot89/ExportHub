@@ -46,6 +46,9 @@ test('RC1305: Lieferscheine und Bemerkung werden drucksicher kompakt dargestellt
   assert.match(print,/data-rc1305-document-grid/);
   assert.match(print,/grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/); assert.match(print,/font-size:5.8pt!important/); assert.match(print,/data-rc1326-font-reduced/); assert.match(print,/shrinkInlineFonts\(root,1\)/);
   assert.match(print,/word-break:break-word/);
+  assert.match(print,/data-rc1343-loading-list-qr-stripped/);
+  assert.match(print,/var files=deliveryFiles\(sh\);if\(!files\.length\)\{var fallback=existingFiles\(body\)/);
+  assert.match(print,/version:'RC1343'/);
   assert.match(print,/data-rc1305-remark/);
   assert.match(print,/loadingListPrint\.noRemark/);
   assert.match(print,/page-break-inside:avoid/);
@@ -54,7 +57,7 @@ test('RC1305: Lieferscheine und Bemerkung werden drucksicher kompakt dargestellt
 
 test('RC1305: Drei-Umgebungen-Build liefert beide Ladelisten-Runtimes aus',()=>{
   assert.match(build,/function patchRc1305LoadingListPresentation\(html,file\)/);
-  assert.match(build,/assets\/rc1305-loading-list-print\.js\?v=1341/);
+  assert.match(build,/assets\/rc1305-loading-list-print\.js\?v=1343/);
   assert.match(build,/assets\/rc1315-loading-list-quick-print\.js\?v=1322/);
   assert.match(build,/assets\/rc1283-loading-list-search\.js\?v=1305/);
   assert.match(build,/'assets\/rc1305-loading-list-print\.js'/);
