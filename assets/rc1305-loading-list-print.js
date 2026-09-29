@@ -138,12 +138,9 @@ function addQuickPrintQr(root,sh,withQr){
  if(!withQr||!root||root.querySelector('[data-rc1315-print-qr]'))return false;var ref=printRef(sh);if(!ref)return false;
  var payload='EHPRINT:'+ref,section=d.createElement('section');section.className='rc1315-print-qr';section.setAttribute('data-rc1315-print-qr','1');section.setAttribute('data-rc1315-payload',payload);
  section.innerHTML='<div class="rc1315-print-qr-code">'+rc1315QrSvg(payload)+'</div><div class="rc1315-print-qr-copy"><strong>Druck</strong></div>';
- var refBox=root.querySelector('.rc390-ref,.rc352-ref,[data-rc1281-reference]');
- if(refBox){refBox.style.setProperty('position','relative','important');refBox.style.setProperty('padding-right','19mm','important');section.classList.add('rc1315-print-qr-in-ref');refBox.appendChild(section);root.setAttribute('data-rc1341-print-qr-top-right','1');return true}
  var qrArea=root.querySelector('.rc390-cover-qr,.rc352-cover-qr');
- if(qrArea){section.classList.add('rc1327-print-qr-bottom');qrArea.classList.add('rc1327-cover-qr-row');qrArea.appendChild(section)}
- else{section.setAttribute('data-rc1315-fallback','1');root.appendChild(section)}
- root.setAttribute('data-rc1327-quick-print-qr-bottom','1');return true
+ if(qrArea){section.classList.add('rc1327-print-qr-bottom');qrArea.classList.add('rc1327-cover-qr-row');qrArea.appendChild(section);root.setAttribute('data-rc1344-print-qr-bottom-row','1');root.setAttribute('data-rc1327-quick-print-qr-bottom','1');return true}
+ section.setAttribute('data-rc1315-fallback','1');section.classList.add('rc1327-print-qr-bottom');root.appendChild(section);root.setAttribute('data-rc1327-quick-print-qr-bottom','1');return true
 }
 
 function enhance(html,sh,withQr){
@@ -202,5 +199,5 @@ function style(){
  (d.head||d.documentElement).appendChild(st)
 }
 style();
-w.ExportHUBRC1305LoadingListPrint=Object.freeze({version:'RC1342',enhance:enhance,enhanceCover:enhanceCover,isPicked:isPicked,deliveryFiles:deliveryFiles,printRef:printRef,qrSvg:rc1315QrSvg,addQuickPrintQr:addQuickPrintQr,style:style});
+w.ExportHUBRC1305LoadingListPrint=Object.freeze({version:'RC1344',enhance:enhance,enhanceCover:enhanceCover,isPicked:isPicked,deliveryFiles:deliveryFiles,printRef:printRef,qrSvg:rc1315QrSvg,addQuickPrintQr:addQuickPrintQr,style:style});
 })(window,document);
