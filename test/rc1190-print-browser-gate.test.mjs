@@ -73,7 +73,7 @@ test('RC1275: Browserabnahme prüft Palettenkonto in echtem Ladelisten-Druck',()
 test('RC1316: finaler Build erzwingt genau L1, L2 und drei CMR',()=>{
   const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
   assert.match(build,/function patchCompletePrintBundle\(/);
-  assert.match(build,/RC1316 L2 fehlt im Gesamtdruck/);
+  assert.match(build,/RC1316 L2 fehlt im Dokumentrenderer/);
   assert.match(build,/return\[d\.cover,d\.load1,d\.load2\]\.concat\(d\.cmrs\.slice\(0,3\)\)\.filter\(Boolean\)/);
   assert.match(build,/for\(var i=1;i<=3;i\+\+\)/);
   assert.match(build,/CMR '\+i\+' \/ 3<\/div><\/div>'/);
