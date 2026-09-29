@@ -1129,6 +1129,7 @@
   "loadingList.shipmentCount": "{{count}} przesyłek",
   "loadingList.noFileNames": "Brak zapisanych nazw plików",
   "loadingListPrint.pickedUp": "PRZESYŁKA ODEBRANA",
+  "loadingListPrint.pickupDate": "Data odbioru",
   "loadingListPrint.notRecorded": "Nie zarejestrowano",
   "loadingListPrint.noDeliveryNotes": "Brak zapisanych dokumentów dostawy",
   "loadingListPrint.noRemark": "Brak zapisanej uwagi",
