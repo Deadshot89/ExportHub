@@ -40,7 +40,12 @@ module.exports=async function(context,req){
   const complete=completeOf(rec),history=historyOf(rec),last=history[history.length-1]||{};
   if(complete)await access.consume(resolved.environment,'pickup',resolved.tokenHash,{reason:'pickup-confirmed',fields:{confirmedAt:rec.confirmedAt,loaderId:loader.id}});if(!complete)await access.clearFailures(resolved.environment,'pickup',resolved.tokenHash);
   if(typeof store.updateTeamContainerDocumentation==='function'){try{await store.updateTeamContainerDocumentation(rec)}catch(e){context.log&&context.log.error&&context.log.error('RC1259 container team state update failed',e&&e.code,e&&e.message)}}
-  try{await store.updateTeam(rec,[],'')}catch(e){context.log&&context.log.error&&context.log.error('RC1259 team state update failed',e&&e.code,e&&e.message)}
+  try{
+   await store.updateTeam(rec,[],'');
+  }catch(e){
+   context.log&&context.log.error&&context.log.error('RC1340 team state update failed',e&&e.code,e&&e.message);
+   throw store.err('TEAM_STATE_UPDATE_FAILED','Abholung wurde nicht vollständig gespeichert. Bitte erneut versuchen.',503);
+  }
 
   let archiveResult=null,archiveFailure='',podArchive=null;
   if(complete){
