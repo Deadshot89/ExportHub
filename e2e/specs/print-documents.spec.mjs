@@ -502,6 +502,9 @@ test('RC1315 P1: Druck-QR oder REF in Ladeliste startet den vollständigen Sendu
       window.__RC1315_PRINT_CAPTURE__={
         text:String(document.body&&document.body.innerText||''),
         html:String(document.documentElement&&document.documentElement.outerHTML||''),
+        quickPrintQrCount:document.querySelectorAll('[data-rc1315-print-qr]').length,
+        coverQuickPrintQrCount:document.querySelectorAll('.rc390-cover [data-rc1315-print-qr],.rc352-cover [data-rc1315-print-qr]').length,
+        loadingListQuickPrintQrCount:document.querySelectorAll('.rc390-load [data-rc1315-print-qr],.rc352-load [data-rc1315-print-qr]').length,
         load1Count:document.querySelectorAll('.rc390-load.rc576-load1').length,
         load2Count:document.querySelectorAll('.rc390-load.rc576-load2').length,
         cmrCount:document.querySelectorAll('.rc390-cmr-wrap').length
