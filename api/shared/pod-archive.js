@@ -512,7 +512,9 @@ async function reconcilePendingBackups(environment, options) {
   teamRelinkCandidates.sort((a, b) => a.confirmedAtMs - b.confirmedAtMs || a.reference.localeCompare(b.reference));
   candidates.sort((a, b) => a.lastAttemptMs - b.lastAttemptMs || a.confirmedAtMs - b.confirmedAtMs || a.reference.localeCompare(b.reference));
   const selectedRelinks = teamRelinkCandidates.slice(0, limit);
-  const selectedCandidates = candidates.slice(0, Math.max(0, limit - selectedRelinks.length));
+  // Preserve the established fair backup batch contract. Relinking is an
+  // independent one-time repair queue and must not reorder pending backups.
+  const selectedCandidates = candidates.slice(0, limit);
   const saved = [];
   const pending = [];
   const errors = integrityErrors.slice();
