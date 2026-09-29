@@ -426,23 +426,23 @@ function patchCompletePrintBundle(html,file){
   loadBlock=loadBlock.replace("CMR '+i+' / 1</div></div>'","CMR '+i+' / 3</div></div>'");
   html=html.slice(0,loadStart)+loadBlock+html.slice(loadEnd);
 
-  html=html.replace("+coverHtml(sh)+loadHtml(sh,true)+loadHtml(sh,false)+cmrHtml(sh)+","+coverHtml(sh)+loadHtml(sh,true)+cmrHtml(sh)+");
+  html=html.replace("+coverHtml(sh)+loadHtml(sh,true)+cmrHtml(sh)+","+coverHtml(sh)+loadHtml(sh,true)+loadHtml(sh,false)+cmrHtml(sh)+");
   html=html.replace(
     "if(mode==='load2')return[];return[d.cover,d.load1].concat(d.cmrs.slice(0,3)).filter(Boolean)",
-    "if(mode==='load2')return[d.load2].filter(Boolean);return[d.cover,d.load1].concat(d.cmrs.slice(0,3)).filter(Boolean)"
+    "if(mode==='load2')return[d.load2].filter(Boolean);return[d.cover,d.load1,d.load2].concat(d.cmrs.slice(0,3)).filter(Boolean)"
   );
   html=html.replace(
     "if(mode==='load2')return[];return[d.cover,d.load1].concat(d.cmrs.slice(0,1)).filter(Boolean)",
-    "if(mode==='load2')return[d.load2].filter(Boolean);return[d.cover,d.load1].concat(d.cmrs.slice(0,3)).filter(Boolean)"
+    "if(mode==='load2')return[d.load2].filter(Boolean);return[d.cover,d.load1,d.load2].concat(d.cmrs.slice(0,3)).filter(Boolean)"
   );
   html=html.replace(
     "return[d.cover,d.load1,d.load2].concat(d.cmrs.slice(0,4)).filter(Boolean)",
-    "return[d.cover,d.load1].concat(d.cmrs.slice(0,3)).filter(Boolean)"
+    "return[d.cover,d.load1,d.load2].concat(d.cmrs.slice(0,3)).filter(Boolean)"
   );
 
-  if(!html.includes("+coverHtml(sh)+loadHtml(sh,true)+cmrHtml(sh)+"))throw new Error(file+': RC1341 Gesamtdruck muss genau eine Ladeliste enthalten');
-  if(html.includes("+coverHtml(sh)+loadHtml(sh,true)+loadHtml(sh,false)+cmrHtml(sh)+"))throw new Error(file+': RC1341 Gesamtdruck enthält weiterhin eine doppelte Ladeliste');
-  if(!html.includes("if(mode==='load2')return[d.load2].filter(Boolean);return[d.cover,d.load1].concat(d.cmrs.slice(0,3)).filter(Boolean)"))throw new Error(file+': RC1341 Druckauswahl muss L2 nur explizit und nicht im Gesamtdruck liefern');
+  if(!html.includes("+coverHtml(sh)+loadHtml(sh,true)+loadHtml(sh,false)+cmrHtml(sh)+"))throw new Error(file+': RC1316 L2 fehlt im Dokumentrenderer');
+  if(!html.includes("if(mode==='load2')return[d.load2].filter(Boolean);return[d.cover,d.load1,d.load2].concat(d.cmrs.slice(0,3)).filter(Boolean)"))throw new Error(file+': RC1316 Druckauswahl 1x L1/1x L2/3x CMR fehlt');
+  if(!html.includes("withQr?'1 / 2 · mit QR-Code':'2 / 2 · ohne QR-Code'"))throw new Error(file+': RC1316 Ladelisten-Kopienbeschriftung fehlt');
   if(!html.includes("for(var i=1;i<=3;i++){")||!html.includes("CMR '+i+' / 3</div></div>'"))throw new Error(file+': RC1316 CMR muss genau dreimal erzeugt werden');
 
   const rc1340Anchor='async function printDocuments(mode){';
