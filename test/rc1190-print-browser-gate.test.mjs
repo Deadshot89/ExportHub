@@ -15,10 +15,10 @@ test('RC1190: Gesamtdruck-Browserabnahme benutzt die echte UI-Aktion und echten 
   assert.match(spec,/for\(const frame of p\.frames\(\)\)/);
   assert.match(spec,/\\brc390-cover\\b/);
   for(const marker of ['Ladeliste','Ladeliste\\s*1','CMR','CMR\\s*1','Warenbeschreibung'])assert.ok(spec.includes(marker),marker+' fehlt in der Browserabnahme');
-  assert.match(spec,/expect\(capture\.load2Count\)\.toBe\(0\)/);
+  assert.match(spec,/expect\(capture\.load2Count\)\.toBe\(1\)/);
   assert.match(spec,/expect\(capture\.cmrCount\)\.toBe\(3\)/);
   assert.match(spec,/printDocuments:Array\.from\(document\.querySelectorAll\('\.rc390-page,\.rc352-page,\.rc390-cmr-wrap'\)\)/);
-  assert.match(spec,/expect\(capture\.printDocuments\.length\)\.toBe\(5\)/);
+  assert.match(spec,/expect\(capture\.printDocuments\.length\)\.toBe\(6\)/);
   assert.match(spec,/Gesamtdruck enthält ein leeres oder praktisch leeres Druckdokument/);
   assert.match(spec,/vertikal abgeschnittene Inhalte/);
   assert.match(spec,/horizontal abgeschnittene Inhalte/);
@@ -70,11 +70,11 @@ test('RC1275: Browserabnahme prüft Palettenkonto in echtem Ladelisten-Druck',()
   assert.match(spec,/rc1095-pallet-account\/i/);
 });
 
-test('RC1316: finaler Build erzwingt genau eine Ladeliste und genau drei CMR',()=>{
+test('RC1316: finaler Build erzwingt genau L1, L2 und drei CMR',()=>{
   const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
   assert.match(build,/function patchCompletePrintBundle\(/);
-  assert.match(build,/RC1316 doppelte Ladeliste noch aktiv/);
-  assert.match(build,/return\[d\.cover,d\.load1\]\.concat\(d\.cmrs\.slice\(0,3\)\)\.filter\(Boolean\)/);
+  assert.match(build,/RC1316 L2 fehlt im Gesamtdruck/);
+  assert.match(build,/return\[d\.cover,d\.load1,d\.load2\]\.concat\(d\.cmrs\.slice\(0,3\)\)\.filter\(Boolean\)/);
   assert.match(build,/for\(var i=1;i<=3;i\+\+\)/);
   assert.match(build,/CMR '\+i\+' \/ 3<\/div><\/div>'/);
 });
