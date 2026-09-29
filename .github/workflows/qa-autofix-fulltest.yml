@@ -1,0 +1,77 @@
+name: QA Autofix Full System Test
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/qa-autofix-fulltest.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  full-system:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+      - name: Full Node regression
+        run: npm test
+      - name: Security contracts
+        run: npm run test:security
+      - name: Accessibility and responsive contracts
+        run: npm run test:accessibility
+      - name: Restore clean checkout after mutation-heavy regression tests
+        run: |
+          git reset --hard HEAD
+          git clean -fd
+      - name: Strict i18n release audit
+        run: npm run i18n:audit:strict
+      - name: Three-environment build
+        run: node .github/rc1112/build-three-env.mjs
+      - name: Verify final HTML
+        run: node .github/rc1121/verify-final-html.mjs
+      - name: Install Playwright
+        run: |
+          npm install --no-save @playwright/test@1.63.0
+          npx playwright install --with-deps chromium
+      - name: All local browser specs on all five viewports
+        env:
+          EXPORTHUB_E2E_STATIC: '1'
+        run: npx playwright test
+      - name: Upload browser failures
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: qa-autofix-fulltest-browser-${{ github.sha }}
+          path: |
+            test-results
+            playwright-report
+          if-no-files-found: ignore
+          retention-days: 14
+
+  public-domain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Production and AVIS domains read-only
+        shell: bash
+        run: |
+          set -euo pipefail
+          main_body="$(mktemp)"
+          avis_body="$(mktemp)"
+          unknown_body="$(mktemp)"
+          trap 'rm -f "$main_body" "$avis_body" "$unknown_body"' EXIT
+          main_code="$(curl -sS -L -o "$main_body" -w '%{http_code}' --max-time 20 'https://www.exporthub360.de/?qa=autofix-fulltest')"
+          avis_code="$(curl -sS -L -o "$avis_body" -w '%{http_code}' --max-time 20 'https://exporthub360.com/avis/RCFULLTESTINVALIDTOKEN12345678901234567890')"
+          unknown_code="$(curl -sS -L -o "$unknown_body" -w '%{http_code}' --max-time 20 'https://www.exporthub360.de/qa-not-a-real-route-20260929')"
+          echo "main=$main_code avis=$avis_code unknown=$unknown_code"
+          test "$main_code" = "200"
+          test "$avis_code" = "200"
+          grep -Eq 'ExportHUB360|ExportHUB' "$main_body"
+          grep -Eq 'Kunden-Avis|Lieferavis|Avis-Link' "$avis_body"
+          test "$unknown_code" = "200"
+          grep -Eq 'ExportHUB360|ExportHUB' "$unknown_body"
