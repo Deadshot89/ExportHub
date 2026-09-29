@@ -40,16 +40,23 @@ test('RC1298 P1: Produktion hält den Browser-Tab dauerhaft auf ExportHUB360',()
   assert.match(runtime,/-testservice\\\./);
   assert.match(runtime,/TESTVERSION\\\.html/);
   assert.match(runtime,/function installBrowserBrandingGuard\(\)/);
+  assert.doesNotMatch(runtime,/__EXPORTHUB_DEMO_MODE__===true\|\|w\.__EXPORTHUB_TEST_PORTAL__/);
   assert.match(runtime,/__EXPORTHUB_RC1311_BROWSER_BRANDING_OBSERVER__/);
   assert.match(runtime,/observer\.observe\(root,\{subtree:true,childList:true,characterData:true\}\)/);
 });
 
 test('RC1298 P1: Login-Runtime wird cache-frisch gebaut und live geprüft',()=>{
-  assert.ok(build.includes("assets\\/rc1074-login-clean\\.js\\?v=(?:1074|1112|1298|1301|1303)"),'Builder muss alte Login-Cache-Keys auf RC1311 anheben');
-  assert.match(build,/assets\/rc1074-login-clean\.js\?v=1311/);
-  assert.match(workflow,/assets\/rc1074-login-clean\.js\?v=1311/);
+  assert.ok(build.includes("assets\\/rc1074-login-clean\\.js\\?v=(?:1074|1112|1298|1301|1303|1311)"),'Builder muss alte Login-Cache-Keys auf RC1349 anheben');
+  assert.match(build,/assets\/rc1074-login-clean\.js\?v=1349/);
+  assert.match(workflow,/assets\/rc1074-login-clean\.js\?v=1349/);
 });
 
 test('RC1298 P1: Login-Runtime bleibt syntaktisch gültig',()=>{
   execFileSync(process.execPath,['--check','assets/rc1074-login-clean.js'],{stdio:'pipe'});
+});
+
+
+test('RC1349: Production und Demo erhalten festen Browser-Titel ExportHUB360, TESTSERVICE bleibt getrennt',()=>{
+  assert.match(build,/if\(file!=='index\.html'&&file!=='demo\.html'\)return html/);
+  assert.match(build,/const RC1296_BROWSER_TITLE='ExportHUB360'/);
 });

@@ -7,7 +7,7 @@ const favicon=fs.readFileSync('assets/exporthub360-favicon.svg','utf8');
 
 test('RC1296: Produktions-Tab heißt ausschließlich ExportHUB360',()=>{
   assert.match(builder,/const RC1296_BROWSER_TITLE='ExportHUB360'/);
-  assert.match(builder,/if\(file!=='index\.html'\)return html/);
+  assert.match(builder,/if\(file!=='index\.html'&&file!=='demo\.html'\)return html/);
   assert.match(builder,/<title>'\+RC1296_BROWSER_TITLE\+'<\/title>/);
 });
 
