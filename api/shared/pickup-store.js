@@ -6,14 +6,14 @@ const {BlobServiceClient}=require('@azure/storage-blob');
 const RECORD_CONTAINER=process.env.EXPORTHUB_PICKUP_CONTAINER||'exporthub-pickup';
 const POD_CONTAINER=process.env.EXPORTHUB_POD_CONTAINER||'exporthub-pod';
 const POD_BACKUP_CONTAINER=process.env.EXPORTHUB_POD_BACKUP_CONTAINER||'exporthub-pod-backup';
-const TEAM_CONTAINER=process.env.EXPORTHUB_STORAGE_CONTAINER||'exporthub-data';
+const TEAM_CONTAINER=process.env.EXPORTHUB_STORAGE_CONTAINER||process.env.EXPORTHUB_CONTAINER||'exporthub-data';
 const TEAM_BLOB_BASE=process.env.EXPORTHUB_STORAGE_BLOB||process.env.EXPORTHUB_STATE_BLOB||'team-state.json';
 const TEST_TEAM_BLOB=process.env.EXPORTHUB_TEST_STORAGE_BLOB||('testservice/'+String(TEAM_BLOB_BASE).replace(/^\/+/,''));
 const MAX_RETRIES=6;
 const TEAM_MAX_RETRIES=18;
 function retryDelay(ms){return new Promise(resolve=>setTimeout(resolve,Math.max(0,Number(ms)||0)))}
 
-function connectionString(){return process.env.EXPORTHUB_STORAGE_CONNECTION_STRING||process.env.AzureWebJobsStorage||''}
+function connectionString(){return process.env.EXPORTHUB_STORAGE_CONNECTION_STRING||process.env.EXPORTHUB_STORAGE_CONNECTION||process.env.EXPORTHUB_AZURE_STORAGE_CONNECTION_STRING||process.env.AzureWebJobsStorage||''}
 function backupConnectionString(){return process.env.EXPORTHUB_POD_BACKUP_CONNECTION_STRING||connectionString()}
 function secret(){return process.env.EXPORTHUB_PICKUP_SECRET||process.env.EXPORTHUB_PUBLIC_ACCESS_SECRET||connectionString()||'exporthub-local-secret'}
 function hash(value){return crypto.createHmac('sha256',secret()).update(String(value||'')).digest('hex')}
