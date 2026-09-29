@@ -46,6 +46,9 @@ test('RC1305: Lieferscheine und Bemerkung werden drucksicher kompakt dargestellt
   assert.match(print,/data-rc1305-document-grid/);
   assert.match(print,/grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/); assert.match(print,/font-size:5.8pt!important/); assert.match(print,/data-rc1326-font-reduced/); assert.match(print,/shrinkInlineFonts\(root,1\)/);
   assert.match(print,/word-break:break-word/);
+  assert.match(print,/data-rc1328-loading-list-qr-stripped/);
+  assert.match(print,/querySelectorAll\('\[data-rc1315-print-qr\],\.rc1315-print-qr'\)/);
+  assert.match(print,/version:'RC1328'/);
   assert.match(print,/data-rc1305-remark/);
   assert.match(print,/loadingListPrint\.noRemark/);
   assert.match(print,/page-break-inside:avoid/);
