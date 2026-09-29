@@ -450,7 +450,7 @@ test('RC1315 P1: Druck-QR oder REF in Ladeliste startet den vollständigen Sendu
   expect(capture.html).toContain('data-rc1315-payload="EHPRINT:DEMO02"');
   expect(capture.load1Count).toBe(1);
   expect(capture.load2Count).toBe(0);
-  expect(capture.cmrCount).toBe(1);
+  expect(capture.cmrCount).toBe(3);
 
   const status=page.locator('[data-rc1315-status]').first();
   await expect(status).toContainText(/DEMO02/);
