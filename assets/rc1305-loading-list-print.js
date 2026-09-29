@@ -154,7 +154,7 @@ function formatDay(v){var raw=q(v);if(!raw)return'';try{var dt=new Date(raw);if(
 function ensureCoverPickupDate(root,sh){
  var last=lastPickup(sh),raw=value(sh,last,['actualPickupAt','pickupConfirmedAt','confirmedAt','plannedPickupDate','pickupPlannedDate','pickupDate','collectionDate','abholdatum']);if(!raw)return false;
  var label=findLabel(root,/sendungsdaten|shipment\s*data/i),card=cardFor(label,root);if(!card||card.querySelector('[data-rc1341-pickup-date]'))return false;
- var line=d.createElement('div');line.setAttribute('data-rc1341-pickup-date','1');line.className='rc1341-cover-pickup-date';line.innerHTML='<strong>Abholdatum:</strong> '+esc(formatDay(raw));var body=card.querySelector('.rc390-txt,.rc352-txt,[class*="txt"]')||card;body.appendChild(line);return true
+ var line=d.createElement('div');line.setAttribute('data-rc1341-pickup-date','1');line.className='rc1341-cover-pickup-date';line.innerHTML='<strong>'+esc(tr('pickup.date'))+':</strong> '+esc(formatDay(raw));var body=card.querySelector('.rc390-txt,.rc352-txt,[class*="txt"]')||card;body.appendChild(line);return true
 }
 function enhanceCover(html,sh){
  try{
