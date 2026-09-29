@@ -146,7 +146,6 @@ test('RC1339: Teilsendungs-Pickup findet die Hauptsendung notfalls über subShip
 
 test('RC1340: Pickup-Bestätigung meldet keinen Erfolg wenn Team-State-Speicherung fehlschlägt',()=>{
   const src=fs.readFileSync('api/pickup-confirm-v2/index.js','utf8');
-  assert.match(src,/await store\.updateTeam\(rec,\[\],'\'\)/);
-  assert.match(src,/TEAM_STATE_UPDATE_FAILED/);
-  assert.doesNotMatch(src,/try\{await store\.updateTeam\(rec,\[\],'\'\)\}catch\(e\)\{context\.log/);
+  assert.match(src,/try\s*\{\s*await store\.updateTeam\(rec,\[\],''\);?\s*\}\s*catch\(e\)\s*\{[\s\S]*?TEAM_STATE_UPDATE_FAILED[\s\S]*?503[\s\S]*?\}/);
+  assert.match(src,/throw store\.err\('TEAM_STATE_UPDATE_FAILED','Abholung wurde nicht vollständig gespeichert\. Bitte erneut versuchen\.',503\)/);
 });
