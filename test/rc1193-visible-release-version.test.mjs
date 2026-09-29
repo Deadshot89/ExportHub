@@ -71,9 +71,9 @@ test('RC1265: lokale, TESTSERVICE- und Produktions-Browsergates prüfen die sich
   assert.match(prod,/version-display\.spec\.mjs/);
 });
 
-test('RC1265: laufender Produktionsrelease wird durch neue main-Pushes nicht mehr abgebrochen',()=>{
+test('RC1335: nur der neueste main-Stand darf den Drei-Umgebungen-Deploy abschließen',()=>{
   assert.match(workflow,/group:\s*exporthub-rc1112-three-env-\$\{\{ github\.ref \}\}/);
-  assert.match(workflow,/cancel-in-progress:\s*false/);
+  assert.match(workflow,/cancel-in-progress:\s*true/);
 });
 
 test('RC1265: statischer UI-Nachweis ignoriert erwartete fehlende API, Live-Gate bleibt streng',()=>{
