@@ -70,6 +70,19 @@ test('RC1275: Browserabnahme prüft Palettenkonto in echtem Ladelisten-Druck',()
   assert.match(spec,/rc1095-pallet-account\/i/);
 });
 
+test('RC1340: Lieferschein-PDFs werden dedupliziert und über den Gesamtdruck ausgegeben',()=>{
+  const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
+  assert.match(build,/function rc1340PrintableDeliveryAttachments/);
+  assert.match(build,/await rc1340PrepareDeliveryAttachmentPrints\(sh\)/);
+  assert.match(build,/await rc1340PrintPreparedAttachments\(attachmentJobs\)/);
+  assert.match(build,/attachmentCount:attachmentJobs\.length/);
+  assert.match(build,/window\.ExportHUBRC1340AttachmentPrint/);
+  assert.match(spec,/RC1340 P1: echte Lieferschein-PDFs werden im Gesamtdruck exakt einmal gedruckt/);
+  assert.match(spec,/expect\(result\.printed\)\.toHaveLength\(2\)/);
+  assert.match(spec,/LS_NUR_METADATA\.pdf/);
+  assert.match(spec,/status:'replaced'/);
+});
+
 test('RC1316: finaler Build erzwingt genau L1, L2 und drei CMR',()=>{
   const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
   assert.match(build,/function patchCompletePrintBundle\(/);
