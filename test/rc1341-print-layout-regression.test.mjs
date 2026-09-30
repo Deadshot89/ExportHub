@@ -5,7 +5,7 @@ import fs from 'node:fs';
 const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
 const runtime=fs.readFileSync('assets/rc1305-loading-list-print.js','utf8');
 
-test('RC1353: Gesamtdruck enthält genau eine Ladeliste sowie drei CMR',()=>{
+test('RC1354: Gesamtdruck enthält genau eine Ladeliste sowie drei CMR',()=>{
   assert.ok(build.includes('html=html.replace("+coverHtml(sh)+loadHtml(sh,true)+loadHtml(sh,false)+cmrHtml(sh)+","+coverHtml(sh)+loadHtml(sh,true)+cmrHtml(sh)+")'));
   assert.ok(build.includes("return[d.cover,d.load1].concat(d.cmrs.slice(0,3)).filter(Boolean)"));
   assert.ok(build.includes("if(mode==='load2')return[d.load2].filter(Boolean)"));
@@ -21,14 +21,16 @@ test('RC1342: Lieferscheine werden einzeln und umbruchfähig gerendert',()=>{
   assert.match(runtime,/word-break:break-word/);
 });
 
-test('RC1353: Druck-QR sitzt klein ausschließlich unten bei den anderen QR-Codes auf dem Deckblatt',()=>{
-  assert.match(runtime,/data-rc1353-print-qr-bottom-row/);
-  assert.match(runtime,/rc1327-print-qr-bottom/);
-  assert.match(runtime,/rc1327-cover-qr-row/);
+test('RC1354: Druck-QR sitzt klein ausschließlich unten bei den anderen QR-Codes auf dem Deckblatt',()=>{
+  assert.match(runtime,/data-rc1354-print-qr-bottom-center/);
+  assert.match(runtime,/rc1354-print-qr-center/);
+  assert.match(runtime,/rc1354-print-qr-center/);
   assert.doesNotMatch(runtime,/data-rc1341-print-qr-top-right/);
   assert.doesNotMatch(runtime,/padding-right','19mm'/);
   assert.doesNotMatch(runtime,/rc1315-print-qr-in-ref/);
-  assert.match(runtime,/width:8mm!important;height:8mm!important/);
+  assert.ok(runtime.includes("important(section,'left','50%')"));
+  assert.ok(runtime.includes("important(section,'bottom','14mm')"));
+  assert.ok(runtime.includes("important(code,'width','8mm')"));
 });
 
 test('RC1342: Deckblatt zeigt ein vorhandenes Abholdatum',()=>{
@@ -42,13 +44,13 @@ test('RC1343: Deckblatt wird zwei Punkte und Ladeliste einen Punkt kompakter ged
   assert.match(runtime,/enhanceCover\(html,sh\)[\s\S]*?shrinkInlineFonts\(root,2\)/);
 });
 
-test('RC1353: neue Druckruntime wird cache-sicher geladen',()=>{
-  assert.ok(build.includes('assets/rc1305-loading-list-print.js?v=1353'));
-  assert.match(runtime,/version:'RC1353'/);
+test('RC1354: neue Druckruntime wird cache-sicher geladen',()=>{
+  assert.ok(build.includes('assets/rc1305-loading-list-print.js?v=1354'));
+  assert.match(runtime,/version:'RC1354'/);
 });
 
 
-test('RC1353: zusammengeklebte PDF-Namen werden vor dem Druck getrennt und kompakt dargestellt',()=>{
+test('RC1354: zusammengeklebte PDF-Namen werden vor dem Druck getrennt und kompakt dargestellt',()=>{
   assert.ok(runtime.includes('function splitPdfNames('));
   assert.ok(runtime.includes('font-size:5.2pt!important'));
   assert.ok(runtime.includes('gap:.45mm!important'));
