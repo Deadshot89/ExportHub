@@ -96,9 +96,8 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
               count:document.querySelectorAll('[data-rc1315-print-qr]').length,
               insideCover:!!(qr&&cover&&cover.contains(qr)),
               directCoverChild:!!(qr&&cover&&qr.parentElement===cover),
-              sameBottomBand:!!(qrRect&&baseRect&&Math.abs(qrRect.bottom-baseRect.bottom)<=4),
               insideReference:!!(qr&&refBox&&refBox.contains(qr)),
-              bottomMarker:!!(cover&&cover.getAttribute('data-rc1359-print-qr-bottom-center')==='1'),
+              topRightMarker:!!(cover&&cover.getAttribute('data-rc1360-print-qr-top-right')==='1'),
               width:qs&&qs.width,
               height:qs&&qs.height,
               boxWidth:qrRect&&qrRect.width
@@ -202,10 +201,9 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
   expect(capture.quickPrintQr.count,'Druck-QR darf im Gesamtdruck nur einmal vorkommen').toBe(1);
   expect(capture.quickPrintQr.insideCover,'Druck-QR muss auf dem Deckblatt sitzen').toBe(true);
   expect(capture.quickPrintQr.directCoverChild,'Druck-QR darf nicht im großen Location-/Abhol-QR-Container stecken').toBe(true);
-  expect(capture.quickPrintQr.sameBottomBand,'Druck-QR muss unten auf derselben Höhe wie die anderen QR-Codes sitzen').toBe(true);
   expect(capture.quickPrintQr.boxWidth).toBeLessThanOrEqual(85);
   expect(capture.quickPrintQr.insideReference,'Druck-QR darf nicht im Referenzfeld sitzen').toBe(false);
-  expect(capture.quickPrintQr.bottomMarker,'Deckblatt muss die RC1359-Unterkantenposition markieren').toBe(true);
+  expect(capture.quickPrintQr.topRightMarker,'Deckblatt muss die RC1360-Position oben rechts markieren').toBe(true);
   expect(capture.text).toMatch(/Erstellt am:\s*\d{2}\.\d{2}\.\d{4}/);
   expect(capture.html).toMatch(/data-rc1281-created-date="1"/i);
   expect(capture.html).toMatch(/data-rc1203-cover-remark="1"/i);
