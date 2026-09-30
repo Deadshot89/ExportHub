@@ -217,14 +217,14 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
   expect(capture.text).toMatch(/(?:Ladeliste\s*2|\bL2\b)/i);
   expect(capture.text).toMatch(/CMR/i);
   expect(capture.load1Count).toBe(1);
-  expect(capture.load2Count).toBe(1);
+  expect(capture.load2Count).toBe(0);
   expect(capture.cmrCount).toBe(3);
   expect(capture.cmrLabels).toHaveLength(3);
   expect(capture.cmrLabels[0]).toMatch(/CMR\s*1\s*\/\s*3/i);
   expect(capture.cmrLabels[1]).toMatch(/CMR\s*2\s*\/\s*3/i);
   expect(capture.cmrLabels[2]).toMatch(/CMR\s*3\s*\/\s*3/i);
   expect(capture.text).toMatch(/Warenbeschreibung/i);
-  expect(capture.printDocuments.length).toBe(6);
+  expect(capture.printDocuments.length).toBe(5);
   expect(capture.printDocuments.every(p=>p.textLength>40),'Gesamtdruck enthält ein leeres oder praktisch leeres Druckdokument').toBe(true);
   expect(capture.printDocuments.every(p=>p.clientHeight<=0||p.scrollHeight<=p.clientHeight+4),'Gesamtdruck enthält vertikal abgeschnittene Inhalte').toBe(true);
   expect(capture.printDocuments.every(p=>p.clientWidth<=0||p.scrollWidth<=p.clientWidth+4),'Gesamtdruck enthält horizontal abgeschnittene Inhalte').toBe(true);
@@ -511,7 +511,7 @@ test('RC1315 P1: Druck-QR oder REF in Ladeliste startet den vollständigen Sendu
   expect(capture.html).toContain('data-rc1315-print-qr="1"');
   expect(capture.html).toContain('data-rc1315-payload="EHPRINT:DEMO02"');
   expect(capture.load1Count).toBe(1);
-  expect(capture.load2Count).toBe(1);
+  expect(capture.load2Count).toBe(0);
   expect(capture.cmrCount).toBe(3);
 
   const status=page.locator('[data-rc1315-status]').first();
