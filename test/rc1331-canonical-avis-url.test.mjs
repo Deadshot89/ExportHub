@@ -9,27 +9,28 @@ const reminderApi=fs.readFileSync('api/avis-reminder-mail/index.js','utf8');
 const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
 const fixer=fs.readFileSync('.github/rc1018/fix-mail-wording.mjs','utf8');
 
-test('RC1333: Kunden-Avis nutzt den nachweislich erreichbaren Produktionshost',()=>{
-  assert.match(immediate,/RC1333_PROD_AVIS_ORIGIN='https:\/\/wonderful-forest-0f315e310\.7\.azurestaticapps\.net'/);
+test('RC1360: Kunden-Avis zeigt ausschließlich den gebrandeten ExportHUB360-Produktionslink',()=>{
+  assert.match(immediate,/RC1333_PROD_AVIS_ORIGIN='https:\/\/exporthub360\.com'/);
+  assert.match(immediate,/RC1333_PROD_AVIS_ORIGIN\+'\/avis\/'\+encodeURIComponent\(token\)/);
   assert.match(immediate,/rc1333SafeAvisUrl\(/);
-  assert.match(immediate,/customer-avis\.html\?token=/);
   assert.match(immediate,/rememberAvisUrl\(sh,rc1333SafeAvisUrl\(sh,url\)\)/);
 });
 
-test('RC1333: Server stellt neue AVIS-Links über die produktiven Azure-Hosts aus',()=>{
-  assert.match(api,/PRODUCTION_AVIS_ORIGIN='https:\/\/wonderful-forest-0f315e310\.7\.azurestaticapps\.net'/);
-  assert.match(api,/customer-avis\.html\?token=/);
-  assert.match(api,/url\+'&environment='\+encodeURIComponent\(env\)/);
+test('RC1360: Server stellt neue Produktions-AVIS-Links über ExportHUB360 aus',()=>{
+  assert.match(api,/PRODUCTION_AVIS_ORIGIN='https:\/\/exporthub360\.com'/);
+  assert.match(api,/PRODUCTION_AVIS_ORIGIN\+'\/avis\/'\+encoded/);
+  assert.match(api,/TESTSERVICE_AVIS_ORIGIN\+'\/customer-avis\.html\?token='\+encoded/);
 });
 
-test('RC1333: Avis-Erinnerung normalisiert bestehende Altlinks auf erreichbare Hosts',()=>{
-  assert.match(reminder,/RC1333_PROD_AVIS_ORIGIN='https:\/\/wonderful-forest-0f315e310\.7\.azurestaticapps\.net'/);
+test('RC1360: Avis-Erinnerung normalisiert bestehende Altlinks auf ExportHUB360',()=>{
+  assert.match(reminder,/RC1333_PROD_AVIS_ORIGIN='https:\/\/exporthub360\.com'/);
+  assert.match(reminder,/RC1333_PROD_AVIS_ORIGIN\+'\/avis\/'\+encodeURIComponent\(token\)/);
   assert.match(reminder,/function safeAvisLink\(/);
   assert.match(reminder,/return safeAvisLink\(sh,direct\)/);
   assert.match(reminderApi,/environment.*testservice/);
 });
 
 test('RC1333: Browser laden den Safe-Origin-Hotfix mit neuem Cache-Key',()=>{
-  assert.match(fixer,/rc1027-lieferavis-immediate\.js\?v=1333/);
-  assert.match(build,/rc1166-avis-reminder-overview\.js\?v=1358/);
+  assert.match(fixer,/rc1027-lieferavis-immediate\.js\?v=1360/);
+  assert.match(build,/rc1166-avis-reminder-overview\.js\?v=1360/);
 });
