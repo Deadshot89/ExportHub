@@ -49,6 +49,7 @@ test('RC1139 P0: TESTSERVICE Sitzung schreibt echten State, Reload liest ihn zur
   expect(read.data?.ok).toBe(true);
 
   const stamp=new Date().toISOString();
+  const reminderEligibleAt=new Date(Date.now()-7*24*60*60*1000).toISOString();
   const shipment={
     id:'E2E-SHIP-'+session.runId,
     shipmentId:'E2E-SHIP-'+session.runId,
@@ -65,6 +66,8 @@ test('RC1139 P0: TESTSERVICE Sitzung schreibt echten State, Reload liest ihn zur
     processStatus:'Erstellt',
     createdAt:stamp,
     updatedAt:stamp,
+    avisFirstMailSentAt:reminderEligibleAt,
+    avisInitialMailSentAt:reminderEligibleAt,
     totalColli:1,
     totalWeight:100,
     totalLdm:0.2,
