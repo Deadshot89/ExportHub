@@ -1015,7 +1015,7 @@ fs.writeFileSync(path.join(OUT,'rc1112-manifest.json'),JSON.stringify({
     documentActionHistory:'RC1178 print/open/download + user + filename, including resumed print flow',
     deckblattHighVisibility:'RC1281 white cover + Essentra yellow / customer blue reference + lighter recipient + shipment created date',
     loadingListSearch:'RC1305 full-width search by reference/customer/attachment/remark + compact result/detail workspace + open/print/download',
-    loadingListPrintRedesign:'RC1360 max 15 delivery-note rows per column + complete multi-column list + 8mm cover print QR top-right',
+    loadingListPrintRedesign:'RC1362 delivery-note attachments stacked vertically + full wrap + no multi-column clipping + 8mm cover print QR top-right',
     loadingListQuickPrint:'RC1322 dedicated print QR + QR/REF complete print + Edge silent-print workstation setup',
     coverOnlyPrint:'RC1205 single Nur Deckblatt drucken action inside Speichern & Ausgabe',
     palletAccountDirectionAndAdminDelete:'RC1207 visible direction is saved, admin tombstone delete, one-time production cleanup 2026-09-21',
