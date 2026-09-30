@@ -826,7 +826,7 @@ function patchHtml(file){
   html=html.replace(/assets\/rc1074-login-clean\.js\?v=(?:1074|1112|1298|1301|1303|1311)/g,'assets/rc1074-login-clean.js?v=1349');
   html=html.replace(/assets\/rc1014-task-runtime\.js\?v=(?:1016|1266|1312|1353|1359)/g,'assets/rc1014-task-runtime.js?v=1359');
   html=html.replace(/assets\/rc1014-task-ui\.css\?v=(?:1016|1179|1312)/g,'assets/rc1014-task-ui.css?v=1312');
-  html=html.replace(/assets\/rc1013-diagnostics\.js\?v=1085/g,'assets/rc1013-diagnostics.js?v=1125');
+  html=html.replace(/assets\/rc1013-diagnostics\.js\?v=(?:1085|1125|1361)/g,'assets/rc1013-diagnostics.js?v=1361');
   html=html.replace(/assets\/exporthub-environment-hub\.js\?v=\d+/g,'assets/exporthub-environment-hub.js?v=1174');
   html=html.replace(/assets\/rc1081-audit-history\.js\?v=(?:1087|1126|1160|1163)/g,'assets/rc1081-audit-history.js?v=1177');
   html=html.replace(/assets\/rc1071-shipment-history\.js\?v=(?:1095|1151|1178|1305)/g,'assets/rc1071-shipment-history.js?v=1305');
@@ -859,7 +859,7 @@ function patchHtml(file){
   if(!html.includes('assets/rc1074-login-clean.js?v=1349'))throw new Error(file+': RC1349 Login-/Browser-Branding-Cache-Key fehlt');
   if(!html.includes('assets/rc1014-task-runtime.js?v=1359'))throw new Error(file+': RC1359 Aufgaben-Runtime Cache-Key fehlt');
   if(!html.includes('assets/rc1014-task-ui.css?v=1312'))throw new Error(file+': RC1312 Aufgaben-CSS Cache-Key fehlt');
-  if(!html.includes('assets/rc1013-diagnostics.js?v=1125'))throw new Error(file+': RC1125 Diagnose Cache-Key fehlt');
+  if(!html.includes('assets/rc1013-diagnostics.js?v=1361'))throw new Error(file+': RC1361 Diagnose Cache-Key fehlt');
   if(!html.includes('assets/exporthub-environment-hub.js?v=1174'))throw new Error(file+': RC1174 Android-Diagnose-Hub Cache-Key fehlt');
   if(!html.includes('assets/rc1081-audit-history.js?v=1177'))throw new Error(file+': RC1177 Historie Cache-Key fehlt');
   if(!html.includes('assets/rc1071-shipment-history.js?v=1305'))throw new Error(file+': RC1305 Dokument-History Cache-Key fehlt');
