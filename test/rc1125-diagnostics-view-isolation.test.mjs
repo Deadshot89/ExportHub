@@ -48,9 +48,9 @@ test('RC1125: Diagnoseansicht entfernt ihren eigenen Diagnoseblock nicht',async(
   assert.equal(host.removed,false,'Diagnoseblock wurde in der Diagnose-Ansicht unerwartet entfernt');
 });
 
-test('RC1125: finaler RC1112 Build erzwingt neuen Diagnose-Cache-Key',()=>{
-  assert.match(build,/assets\\\/rc1013-diagnostics\\\.js\\\?v=1085/);
-  assert.match(build,/assets\/rc1013-diagnostics\.js\?v=1125/);
-  assert.match(workflow,/assets\/rc1013-diagnostics\.js\?v=1125/);
+test('RC1362: finaler RC1112 Build erzwingt den aktuellen Diagnose-Cache-Key',()=>{
+  assert.match(build,/1085\|1125\|1362/,'historische Diagnose-Cache-Keys müssen beim Build weiter migriert werden');
+  assert.match(build,/assets\/rc1013-diagnostics\.js\?v=1362/);
+  assert.match(workflow,/assets\/rc1013-diagnostics\.js\?v=1362/);
   assert.match(workflow,/__EXPORTHUB_RC1125_DIAGNOSTICS_VIEW_ISOLATION__/);
 });
