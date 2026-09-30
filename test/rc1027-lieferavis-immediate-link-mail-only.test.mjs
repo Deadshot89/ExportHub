@@ -103,7 +103,7 @@ test('RC1027: aktive Kundenmail besteht nur aus Lieferavis und enthält keine Se
   const out=api.injectMailBody(shipment,'customer',expandedDetails,'de');
   assert.match(out,/Sehr geehrte Damen und Herren/i);
   assert.match(out,/LIEFERAVIS/i);
-  assert.match(out,/https:\/\/wonderful-forest-0f315e310\.7\.azurestaticapps\.net\/customer-avis\.html\?token=server-token/i);
+  assert.match(out,/https:\/\/exporthub360\.com\/avis\/server-token/i);
   assert.match(out,/7RZ5W9/);
   assert.doesNotMatch(out,/Details zur Sendung|Kunde:\s*Heizmann|Spedition:\s*DB Schenker|Warenbeschreibung:|Gesamtgewicht:|LDM:/i);
   assert.doesNotMatch(out,/innerhalb der nächsten 24 Stunden/i);
@@ -114,7 +114,7 @@ test('RC1027: aktive Speditionsmail besteht nur aus Lieferavis und enthält kein
   const {api}=load(shipment,{reference:'7RZ5W9'});
   const out=api.injectMailBody(shipment,'carrier',expandedDetails,'de');
   assert.match(out,/LIEFERAVIS\s*[–-]\s*ABHOLUNG/i);
-  assert.match(out,/https:\/\/wonderful-forest-0f315e310\.7\.azurestaticapps\.net\/customer-avis\.html\?token=server-token/i);
+  assert.match(out,/https:\/\/exporthub360\.com\/avis\/server-token/i);
   assert.doesNotMatch(out,/Details zur Sendung|Kunde:\s*Heizmann|Spedition:\s*DB Schenker|Warenbeschreibung:|Gesamtgewicht:|LDM:/i);
 });
 
@@ -124,7 +124,7 @@ test('RC1147: eigene Mail behält ihren Freitext und erhält genau einen kompakt
   const out=api.injectMailBody(shipment,'own',expandedDetails,'de');
   assert.match(out,/für den unten genannten Vorgang steht die Ware/i);
   assert.match(out,/Details zur Sendung:/i);
-  assert.match(out,/Lieferavis: https:\/\/wonderful-forest-0f315e310\.7\.azurestaticapps\.net\/customer-avis\.html\?token=server-token&lang=de/i);
+  assert.match(out,/Lieferavis: https:\/\/exporthub360\.com\/avis\/server-token\?lang=de/i);
   assert.equal((out.match(/Lieferavis:/gi)||[]).length,1,'Eigene Mail darf den Avis-Link nicht doppelt enthalten.');
   assert.ok(out.indexOf('Lieferavis:')<out.indexOf('Mit freundlichen Grüßen'),'Avis-Link muss vor der Grußformel stehen.');
 });
