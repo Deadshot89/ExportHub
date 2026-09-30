@@ -122,6 +122,27 @@ function shipmentDraftField(el){
  if(/warenbeschreibung|goods description|opis towaru|descripcion de mercancia|description de la marchandise|descrizione merce/.test(text))return'goodsDescription';
  return''
 }
+function shipmentIdentity(value){
+ if(!value||typeof value!=='object')return'';
+ return q(value.ref||value.reference||value.shipmentRef||value.referenceNumber||value.id||value.shipmentId).toUpperCase()
+}
+function shipmentDraftTargets(root){
+ var out=[],keys=Object.create(null);
+ function add(value){if(value&&typeof value==='object'&&out.indexOf(value)<0)out.push(value)}
+ function key(value){value=q(value).toUpperCase();if(value)keys[value]=1}
+ ['shipment','currentShipment','selectedShipment','activeShipment','editingShipment','documentShipment'].forEach(function(name){var value=root&&root[name];if(value&&typeof value==='object'){add(value);key(shipmentIdentity(value))}});
+ ['currentShipmentId','selectedShipmentId','activeShipmentId','editingShipmentId','documentShipmentId','shipmentId','currentShipmentRef','selectedShipmentRef','activeShipmentRef','reference'].forEach(function(name){key(root&&root[name])});
+ try{
+  var refInput=d.querySelector('input[data-rc408-shipment-field="reference"],[data-rc896-field="reference"] input,input[name="reference"],input[name="ref"]');
+  key(refInput&&refInput.value)
+ }catch(_){}
+ ['shipments','savedShipments','salesSharedShipments','sharedShipments'].forEach(function(name){
+  var list=root&&root[name];if(!Array.isArray(list))return;
+  list.forEach(function(value){var identity=shipmentIdentity(value);if(identity&&keys[identity])add(value)})
+ });
+ if(!out.length&&root&&typeof root==='object')add(root.shipment||(root.shipment={}));
+ return out
+}
 function snapshotShipmentDraft(){
  if(!d.querySelectorAll)return false;
  var values=Object.create(null),changed=false;
@@ -132,12 +153,14 @@ function snapshotShipmentDraft(){
   changed=true;
  });
  if(!changed)return false;
- var stamp=new Date().toISOString();
- applicationStateRoots().forEach(function(root){
-  var shipment=root.shipment||(root.shipment={});
+ var stamp=new Date().toISOString(),targets=[];
+ applicationStateRoots().forEach(function(root){shipmentDraftTargets(root).forEach(function(shipment){if(targets.indexOf(shipment)<0)targets.push(shipment)})});
+ targets.forEach(function(shipment){
   if(Object.prototype.hasOwnProperty.call(values,'comments')){
    shipment.comments=values.comments;
    shipment.remarks=values.comments;
+   shipment.remark=values.comments;
+   shipment.bemerkung=values.comments;
   }
   if(Object.prototype.hasOwnProperty.call(values,'goodsDescription'))shipment.goodsDescription=values.goodsDescription;
   shipment.updatedAt=stamp;
@@ -146,7 +169,7 @@ function snapshotShipmentDraft(){
  try{
   var draft=w.__EXPORTHUB_SHIPMENT_DRAFT__;
   if(draft&&typeof draft==='object'){
-   if(Object.prototype.hasOwnProperty.call(values,'comments')){draft.comments=values.comments;draft.remarks=values.comments}
+   if(Object.prototype.hasOwnProperty.call(values,'comments')){draft.comments=values.comments;draft.remarks=values.comments;draft.remark=values.comments;draft.bemerkung=values.comments}
    if(Object.prototype.hasOwnProperty.call(values,'goodsDescription'))draft.goodsDescription=values.goodsDescription;
   }
  }catch(_){}
