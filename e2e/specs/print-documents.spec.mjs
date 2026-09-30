@@ -97,8 +97,7 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
               insideCover:!!(qr&&cover&&cover.contains(qr)),
               directCoverChild:!!(qr&&cover&&qr.parentElement===cover),
               insideReference:!!(qr&&refBox&&refBox.contains(qr)),
-              bottomMarker:!!(cover&&cover.getAttribute('data-rc1361-print-qr-bottom')==='1'),
-              afterCoverQr:!!(qr&&coverQr&&coverQr.compareDocumentPosition(qr)&Node.DOCUMENT_POSITION_FOLLOWING),
+              topRightMarker:!!(cover&&cover.getAttribute('data-rc1361-print-qr-top-right')==='1'),
               width:qs&&qs.width,
               height:qs&&qs.height,
               boxWidth:qrRect&&qrRect.width
@@ -203,8 +202,7 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
   expect(capture.quickPrintQr.insideCover,'Druck-QR muss auf dem Deckblatt sitzen').toBe(true);
   expect(capture.quickPrintQr.boxWidth).toBeLessThanOrEqual(85);
   expect(capture.quickPrintQr.insideReference,'Druck-QR darf nicht im Referenzfeld sitzen').toBe(false);
-  expect(capture.quickPrintQr.bottomMarker,'Deckblatt muss die RC1361-Position unten markieren').toBe(true);
-  expect(capture.quickPrintQr.afterCoverQr,'Druck-QR muss im unteren Deckblattbereich direkt nach der vorhandenen QR-Zone angeordnet sein').toBe(true);
+  expect(capture.quickPrintQr.topRightMarker,'Deckblatt muss die RC1361-Position oben rechts markieren').toBe(true);
   expect(capture.text).toMatch(/Erstellt am:\s*\d{2}\.\d{2}\.\d{4}/);
   expect(capture.html).toMatch(/data-rc1281-created-date="1"/i);
   expect(capture.html).toMatch(/data-rc1203-cover-remark="1"/i);
