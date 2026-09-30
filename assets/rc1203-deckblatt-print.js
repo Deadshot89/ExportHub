@@ -107,7 +107,7 @@ function actionHost(){
 function ensureActionStyle(){
   if(d.getElementById('rc1205-cover-action-style'))return;
   var style=d.createElement('style');style.id='rc1205-cover-action-style';
-  style.textContent='#rc363BlockActions [data-rc1203-print-cover-only]{display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:8px!important;min-height:42px!important;padding:10px 16px!important;border:1px solid #cbd5e1!important;border-radius:10px!important;background:#fff!important;color:#0f172a!important;font:700 14px/1.2 inherit!important;box-shadow:0 1px 2px rgba(15,23,42,.06)!important;cursor:pointer!important;transition:background .15s ease,border-color .15s ease,box-shadow .15s ease!important}#rc363BlockActions [data-rc1203-print-cover-only]:hover{background:#f8fafc!important;border-color:#94a3b8!important;box-shadow:0 2px 5px rgba(15,23,42,.08)!important}#rc363BlockActions [data-rc1203-print-cover-only]:focus-visible{outline:3px solid rgba(37,99,235,.22)!important;outline-offset:2px!important}';
+  style.textContent='#rc363BlockActions{--rc1203-action-blue:#0ea5e9}#rc363BlockActions [data-rc1203-action-row]{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:10px!important;align-items:stretch!important;width:100%!important}#rc363BlockActions [data-rc1203-action-row]>:is(button,a,[role="button"]){width:100%!important;min-width:0!important;min-height:44px!important;height:44px!important;margin:0!important;padding:10px 14px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important;white-space:nowrap!important}#rc363BlockActions [data-rc1203-print-cover-only]{border:1px solid var(--rc1203-action-blue)!important;border-radius:10px!important;background:var(--rc1203-action-blue)!important;color:#fff!important;font:700 14px/1.2 inherit!important;box-shadow:0 1px 2px rgba(15,23,42,.08)!important;cursor:pointer!important;transition:background .15s ease,border-color .15s ease,box-shadow .15s ease!important}#rc363BlockActions [data-rc1203-print-cover-only]:hover{background:#0284c7!important;border-color:#0284c7!important;box-shadow:0 2px 5px rgba(15,23,42,.12)!important}#rc363BlockActions [data-rc1203-print-cover-only]:focus-visible{outline:3px solid rgba(14,165,233,.25)!important;outline-offset:2px!important}@media(max-width:900px){#rc363BlockActions [data-rc1203-action-row]{grid-template-columns:repeat(2,minmax(0,1fr))!important}}@media(max-width:560px){#rc363BlockActions [data-rc1203-action-row]{grid-template-columns:1fr!important}}';
   (d.head||d.documentElement).appendChild(style)
 }
 function removeLegacyExtraButtons(){
@@ -125,7 +125,11 @@ function renderCoverButton(){
   btn.setAttribute('data-rc1203-print-cover-only','1');
   btn.innerHTML='<span aria-hidden="true">▣</span><span>'+tr('coverPrint.only')+'</span>';
   btn.title=tr('coverPrint.title');
-  host.appendChild(btn);return true
+  var printAll=findPrintAll();
+  var row=printAll&&printAll.parentElement&&host.contains(printAll.parentElement)?printAll.parentElement:host;
+  row.setAttribute('data-rc1203-action-row','1');
+  if(printAll&&printAll.parentNode===row)row.insertBefore(btn,printAll);else row.appendChild(btn);
+  return true
 }
 function markRecipient(cover,theme){
   if(!cover||!cover.querySelectorAll)return false;
