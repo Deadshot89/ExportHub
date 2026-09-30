@@ -44,17 +44,19 @@ test('RC1343: Deckblatt wird zwei Punkte und Ladeliste einen Punkt kompakter ged
   assert.match(runtime,/enhanceCover\(html,sh\)[\s\S]*?shrinkInlineFonts\(root,2\)/);
 });
 
-test('RC1361: neue Druckruntime wird cache-sicher geladen',()=>{
-  assert.match(build,/rc1305-loading-list-print\.js\?v=1361/);
-  assert.match(runtime,/version:'RC1361'/);
+test('RC1362: neue Druckruntime wird cache-sicher geladen',()=>{
+  assert.match(build,/rc1305-loading-list-print\.js\?v=1362/);
+  assert.match(runtime,/version:'RC1362'/);
 });
 
 
-test('RC1360: PDF-Namen werden einzeln, vollständig und mit maximal 15 Zeilen je Spalte gerendert',()=>{
+test('RC1362: PDF-Namen werden einzeln untereinander vollständig und ohne Spaltenwechsel gerendert',()=>{
   assert.ok(runtime.includes('function splitPdfNames('));
-  assert.ok(runtime.includes('docColumns=Math.max(1,Math.ceil(docCount/15))'));
-  assert.ok(runtime.includes('grid-template-rows:repeat(15,minmax(0,auto))'));
-  assert.ok(runtime.includes('grid-auto-flow:column'));
+  assert.ok(runtime.includes('grid-template-columns:minmax(0,1fr)'));
+  assert.ok(runtime.includes('grid-auto-flow:row'));
+  assert.doesNotMatch(runtime,/docColumns=Math\.max\(1,Math\.ceil\(docCount\/15\)\)/);
+  assert.doesNotMatch(runtime,/grid-template-rows:repeat\(15,minmax\(0,auto\)\)/);
+  assert.doesNotMatch(runtime,/grid-auto-flow:column/);
   assert.ok(runtime.includes('overflow:visible!important'));
   assert.ok(runtime.includes('font-size:5.2pt!important'));
 });
