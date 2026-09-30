@@ -492,8 +492,7 @@ async function rc1340PrintPreparedAttachment(item,index,total){
     if(chromium){
      frame.contentWindow.postMessage({type:'print'},'*');
     }else{
-     frame.contentWindow.focus();
-     frame.contentWindow.print();
+     frame.contentWindow.postMessage({type:'print'},'*');
     }
     later(function(){finish()},600)
    }catch(e){finish(e)}
@@ -528,7 +527,9 @@ window.ExportHUBRC1340AttachmentPrint=Object.freeze({version:'RC1340',printable:
     html=html.replace(printOld,printNew);
   }
   if(!html.includes("version:'RC1340'")||!html.includes('attachmentCount:attachmentJobs.length')||!html.includes('await rc1340PrintPreparedAttachments(attachmentJobs)'))throw new Error(file+': RC1340 Lieferschein-Direktdruck fehlt');
-  if(!html.includes("data-rc1354-pdf-print-bridge")||!html.includes("frame.contentWindow.postMessage({type:'print'},'*')"))throw new Error(file+': RC1354 Chromium PDF-Druckbrücke fehlt');
+  if(!html.includes("data-rc1354-pdf-print-bridge")||!html.includes("frame.contentWindow.postMessage({type:'print'},'*')"))throw new Error(file+': RC1354 PDF-Druckbrücke fehlt');
+  var rc1355BridgeStart=html.indexOf('async function rc1340PrintPreparedAttachment(item,index,total){'),rc1355BridgeEnd=rc1355BridgeStart<0?-1:html.indexOf('async function rc1340PrintPreparedAttachments(items){',rc1355BridgeStart);
+  if(rc1355BridgeStart<0||rc1355BridgeEnd<0||html.slice(rc1355BridgeStart,rc1355BridgeEnd).includes('frame.contentWindow.print()'))throw new Error(file+': RC1355 Cross-Origin PDF-Druckzugriff ist noch aktiv');
   return html;
 }
 
