@@ -23,7 +23,7 @@ function load(){
   return window.ExportHUBRC1014TaskRuntime;
 }
 
-test('RC1353: Mittwoch erzeugt nur Schweden, erhält System- und bestehende manuelle Aufgaben',()=>{
+test('RC1359: Mittwoch erzeugt den vollständigen Mittwochsstamm und erhält System-/manuelle Aufgaben',()=>{
   const api=load();
   const state={
     tasks:[
@@ -33,41 +33,32 @@ test('RC1353: Mittwoch erzeugt nur Schweden, erhält System- und bestehende manu
     shipments:[{id:'S-1',ref:'ABC123',status:'Bereit zur Abholung'}],
     _teamSyncMeta:{fields:{},tombstones:[]}
   };
-  const out=api.prepareTasks(state.tasks,{
-    companyId:'essentra',environment:'production',currentUserId:'tobias',
-    now:'2026-09-16T10:00:00+02:00',state,
-    persist(next){state.tasks=next}
-  });
-  const titles=out.map(t=>t.title);
-  for(const title of ['Essentra Schweden anmelden','POD ABC123 prüfen']) assert.ok(titles.includes(title),title+' fehlt');
-  for(const title of ['Italien anmelden','BSH anmelden','O’Hare anmelden','Contitech – ABD erstellen','Schweizer Kunden prüfen']) assert.ok(!titles.includes(title),title+' darf nicht mehr aktiv sein');
-  assert.ok(titles.includes('Alte Aufgabe die nicht besprochen wurde'),'bestehende manuelle Aufgabe darf bei fehlendem Roster-Marker nicht gelöscht werden');
-  assert.ok(state.rc1152TaskRosterAt);
+  const out=api.prepareTasks(state.tasks,{companyId:'essentra',environment:'production',currentUserId:'tobias',now:'2026-09-16T10:00:00+02:00',state,persist(next){state.tasks=next}});
+  const titles=new Set(out.map(t=>t.title));
+  for(const title of ['Italien anmelden','BSH anmelden','O’Hare anmelden','Essentra Schweden anmelden','Contitech – ABD erstellen','Schweizer Kunden prüfen','POD ABC123 prüfen','Alte Aufgabe die nicht besprochen wurde']) assert.ok(titles.has(title),title+' fehlt');
   assert.ok(!state._teamSyncMeta.tombstones.some(t=>t.collection==='tasks'&&t.id==='ALT-1'),'manuelle Aufgabe darf keinen Lösch-Tombstone bekommen');
-  const schweden=out.find(t=>t.title==='Essentra Schweden anmelden');
-  assert.ok(schweden);
-  assert.equal(schweden.managedKey,'essentra-schweden');
 });
 
-test('RC1353: Donnerstag erzeugt keine archivierte persönliche Aufgabe',()=>{
+test('RC1359: Donnerstag erzeugt Spanien Würth Polen und Schweizer Referenz',()=>{
   const api=load(),state={tasks:[],_teamSyncMeta:{fields:{},tombstones:[]}};
   const out=api.prepareTasks(state.tasks,{companyId:'essentra',environment:'production',currentUserId:'tobias',now:'2026-09-17T10:00:00+02:00',state,persist(next){state.tasks=next}});
   const titles=new Set(out.map(t=>t.title));
-  for(const title of ['Würth Industrie anmelden','Spanien anmelden','Polen anmelden','Schweizer Kunden prüfen','Essentra Schweden anmelden'])assert.ok(!titles.has(title));
+  for(const title of ['Spanien anmelden','Würth Industrie anmelden','Polen anmelden','Schweizer Kunden prüfen'])assert.ok(titles.has(title),title+' fehlt');
+  assert.ok(!titles.has('Essentra Schweden anmelden'));
 });
 
-test('RC1353: Montag erzeugt keine archivierte persönliche Aufgabe',()=>{
+test('RC1359: Montag erzeugt Spanien Gaggenau FAURECIA und Schweizer Referenz',()=>{
   const api=load(),state={tasks:[],_teamSyncMeta:{fields:{},tombstones:[]}};
   const out=api.prepareTasks(state.tasks,{companyId:'essentra',environment:'production',currentUserId:'tobias',now:'2026-09-14T10:00:00+02:00',state,persist(next){state.tasks=next}});
   const titles=new Set(out.map(t=>t.title));
-  for(const title of ['Spanien anmelden','Gaggenau anmelden','FAURECIA anmelden','Schweizer Kunden prüfen'])assert.ok(!titles.has(title));
+  for(const title of ['Spanien anmelden','Gaggenau anmelden','FAURECIA anmelden','Schweizer Kunden prüfen'])assert.ok(titles.has(title),title+' fehlt');
 });
 
-test('RC1353: Dienstag erzeugt keine archivierte persönliche Aufgabe',()=>{
+test('RC1359: Dienstag erzeugt Würth BMP und Schweizer Referenz',()=>{
   const api=load(),state={tasks:[],_teamSyncMeta:{fields:{},tombstones:[]}};
   const out=api.prepareTasks(state.tasks,{companyId:'essentra',environment:'production',currentUserId:'tobias',now:'2026-09-15T10:00:00+02:00',state,persist(next){state.tasks=next}});
   const titles=new Set(out.map(t=>t.title));
-  for(const title of ['Würth Industrie anmelden','BMP anmelden','Schweizer Kunden prüfen','Spanien anmelden'])assert.ok(!titles.has(title));
+  for(const title of ['Würth Industrie anmelden','BMP anmelden','Schweizer Kunden prüfen'])assert.ok(titles.has(title),title+' fehlt');
 });
 
 test('RC1156: nicht mehr freigegebene frühere Managed-Aufgaben werden auch nach der Erstbereinigung entfernt',()=>{
@@ -102,7 +93,7 @@ test('RC1266: fehlender Roster-Marker darf vorhandene manuelle Aufgaben nicht l�
   const out=api.prepareTasks(state.tasks,{companyId:'essentra',environment:'production',currentUser:{user:'tobias'},now:'2026-09-24T10:00:00+02:00',state,persist(next){state.tasks=next}});
   assert.ok(out.some(t=>t.id==='KEEP-MANUAL'),'manuelle Aufgabe wurde fälschlich entfernt');
   assert.ok(!state._teamSyncMeta.tombstones.some(t=>t.collection==='tasks'&&t.id==='KEEP-MANUAL'),'manuelle Aufgabe darf keinen Lösch-Tombstone bekommen');
-  assert.ok(!out.some(t=>t.managedBy==='RC1152'),'Donnerstag darf keine archivierte persönliche Aufgabe neu erzeugen');
+  for(const title of ['Spanien anmelden','Würth Industrie anmelden','Polen anmelden','Schweizer Kunden prüfen']) assert.ok(out.some(t=>t.title===title),title+' fehlt am Donnerstag');
 });
 
 test('RC1266: Benutzerkennung user und State-Kontext werden für Aufgaben übernommen',()=>{
@@ -126,7 +117,7 @@ test('RC1152: Runtime enthält echte Aufgabenansicht statt Direktöffnung der Se
 
 test('RC1312: aktiver RC1112 Build cache-bustet Aufgaben-Reiter und Runtime',()=>{
   const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
-  assert.match(build,/rc1014-task-runtime\.js\?v=1353/);
+  assert.match(build,/rc1014-task-runtime\.js\?v=1359/);
   assert.match(build,/rc1014-task-ui\.css\?v=1312/);
   assert.match(build,/taskdetail/);
   assert.match(build,/Aufgabenansicht/);
@@ -163,27 +154,27 @@ test('RC1179: Aufgabenansicht ist kein Vollbild-Overlay mehr',()=>{
 });
 
 
-test('RC1353: Freitag erzeugt keine archivierte persönliche Aufgabe',()=>{
+test('RC1359: Freitag erzeugt Italien Frankreich Neff und Schweizer Referenz',()=>{
   const api=load(),state={tasks:[],_teamSyncMeta:{fields:{},tombstones:[]}};
   const out=api.prepareTasks(state.tasks,{companyId:'essentra',environment:'production',currentUserId:'tobias',now:'2026-09-18T10:00:00+02:00',state,persist(next){state.tasks=next}});
   const titles=new Set(out.map(t=>t.title));
-  for(const title of ['Italien anmelden','Frankreich anmelden','Neff anmelden','Schweizer Kunden prüfen'])assert.ok(!titles.has(title),title+' darf nicht mehr aktiv sein');
+  for(const title of ['Italien anmelden','Frankreich anmelden','Neff anmelden','Schweizer Kunden prüfen'])assert.ok(titles.has(title),title+' fehlt');
 });
 
-test('RC1353: nur Schweden ist aktiv, frühere Aufgaben bleiben als Archiv im Runtime-Vertrag erhalten',()=>{
+test('RC1359: vollständiger freigegebener Wochenstamm ist aktiv',()=>{
   const api=load();
-  assert.deepEqual(Array.from(api.MANAGED_TASKS,item=>item.key),['essentra-schweden']);
-  const archived=new Set(Array.from(api.ARCHIVED_MANAGED_TASKS,item=>item.key));
-  for(const key of ['spanien','gaggenau','faurecia','wuerth-industrie','bmp','italien','bsh','ohare','contitech-abd','polen','frankreich','neff','swiss-area']) assert.ok(archived.has(key),key+' fehlt im Archiv');
+  const active=new Set(Array.from(api.MANAGED_TASKS,item=>item.key));
+  for(const key of ['spanien','gaggenau','faurecia','wuerth-industrie','bmp','italien','bsh','ohare','essentra-schweden','contitech-abd','polen','frankreich','neff','swiss-area']) assert.ok(active.has(key),key+' fehlt im aktiven Wochenstamm');
+  assert.equal(api.ARCHIVED_MANAGED_TASKS.length,0);
 });
 
-
-test('RC1353: persönlicher Wochenplan zeigt ausschließlich Schweden am Mittwoch',()=>{
+test('RC1359: persönlicher Wochenplan zeigt wieder alle hinterlegten Aufgaben',()=>{
   const api=load();
   const items=api.managedTaskPlanItems({currentUserId:'tobias',now:'2026-09-30T10:00:00+02:00'});
-  assert.equal(items.length,1);
-  assert.equal(items[0].key,'essentra-schweden');
-  assert.match(items[0].schedule,/Mittwoch/);
+  assert.equal(items.length,14);
+  const schweden=items.find(item=>item.key==='essentra-schweden');
+  assert.ok(schweden);
+  assert.match(schweden.schedule,/Mittwoch/);
 });
 
 test('RC1312: Aufgabenansicht rendert sichtbaren hinterlegten Wochenplan und ist mobil responsiv',()=>{

@@ -16,9 +16,10 @@
   let taskResetInFlight=false;
   let lastOpenTaskId='';
 
-  // RC1353: Nur der aktuell freigegebene persönliche Aufgabenstamm wird aktiv erzeugt.
-  // Frühere wiederkehrende Aufgaben bleiben ausschließlich als historische Referenz erhalten.
-  const ARCHIVED_MANAGED_TASKS=Object.freeze([
+  // RC1359: Vollständigen freigegebenen persönlichen Wochenplan wiederherstellen.
+  // Bereinigt werden nur veraltete Instanzen; der hinterlegte Wochenstamm bleibt aktiv.
+  const ARCHIVED_MANAGED_TASKS=Object.freeze([]);
+  const MANAGED_TASKS=Object.freeze([
     {key:'spanien',titleKey:'taskManaged.spanien.title',groupKey:'taskManaged.group.registration',weekdays:[1,4],priority:'P3',descriptionKey:'taskManaged.spanien.description'},
     {key:'gaggenau',titleKey:'taskManaged.gaggenau.title',groupKey:'taskManaged.group.registration',weekdays:[1],dueTime:'13:00',priority:'P2',descriptionKey:'taskManaged.gaggenau.description'},
     {key:'faurecia',titleKey:'taskManaged.faurecia.title',groupKey:'taskManaged.group.registration',weekdays:[1],priority:'P3',descriptionKey:'taskManaged.faurecia.description'},
@@ -27,14 +28,12 @@
     {key:'italien',titleKey:'taskManaged.italien.title',groupKey:'taskManaged.group.registration',weekdays:[3,5],priority:'P3',descriptionKey:'taskManaged.italien.description'},
     {key:'bsh',titleKey:'taskManaged.bsh.title',groupKey:'taskManaged.group.registration',weekdays:[3],dueTime:'13:00',priority:'P2',descriptionKey:'taskManaged.bsh.description'},
     {key:'ohare',titleKey:'taskManaged.ohare.title',groupKey:'taskManaged.group.registration',weekdays:[3],dueTime:'12:00',priority:'P2',descriptionKey:'taskManaged.ohare.description'},
+    {key:'essentra-schweden',titleKey:'taskManaged.essentraSweden.title',groupKey:'taskManaged.group.registration',weekdays:[3],priority:'P3',descriptionKey:'taskManaged.essentraSweden.description'},
     {key:'contitech-abd',titleKey:'taskManaged.contitech.title',groupKey:'taskManaged.group.exportAbd',weekdays:[3],priority:'P2',descriptionKey:'taskManaged.contitech.description'},
     {key:'polen',titleKey:'taskManaged.polen.title',groupKey:'taskManaged.group.registration',weekdays:[4],priority:'P3',descriptionKey:'taskManaged.polen.description'},
     {key:'frankreich',titleKey:'taskManaged.frankreich.title',groupKey:'taskManaged.group.registration',weekdays:[5],priority:'P3',descriptionKey:'taskManaged.frankreich.description'},
     {key:'neff',titleKey:'taskManaged.neff.title',groupKey:'taskManaged.group.registration',weekdays:[5],dueTime:'13:00',priority:'P2',descriptionKey:'taskManaged.neff.description'},
     {key:'swiss-area',titleKey:'taskManaged.swiss.title',groupKey:'taskManaged.group.swiss',referenceArea:true,priority:'P3',descriptionKey:'taskManaged.swiss.description',checklist:['Omni Ray','Bossard','Heizmann']}
-  ]);
-  const MANAGED_TASKS=Object.freeze([
-    {key:'essentra-schweden',titleKey:'taskManaged.essentraSweden.title',groupKey:'taskManaged.group.registration',weekdays:[3],priority:'P3',descriptionKey:'taskManaged.essentraSweden.description'}
   ]);
   const SYSTEM_GROUPS=new Set(['Offene Sendungen','Fehlende POD','Kunde angemeldet','Picks','Offene ABDs']);
 
