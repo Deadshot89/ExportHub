@@ -124,16 +124,11 @@ Der aktuelle Lieferavis-Stand umfasst unter anderem:
 
 ## Aufgaben
 
-Die Aufgabenansicht zeigt den vollständigen persönlichen Wochenplan direkt unter **„Meine hinterlegten Aufgaben“**. Für Tobias sind aktuell hinterlegt:
+Die Aufgabenansicht zeigt unter **„Meine hinterlegten Aufgaben“** nur den aktuell freigegebenen persönlichen Aufgabenstamm.
 
-- Montag: Spanien, Gaggenau bis 13:00, FAURECIA
-- Dienstag: Würth Industrie, BMP
-- Mittwoch: Italien, BSH bis 13:00, O’Hare bis 12:00, Essentra Schweden, Contitech ABD
-- Donnerstag: Würth Industrie, Spanien, Polen
-- Freitag: Italien, Frankreich, Neff bis 13:00
-- Referenzbereich: Schweizer Kunden prüfen
+- Mittwoch: **Essentra Schweden anmelden**
 
-Statusfolge: **offen → in Bearbeitung → erledigt**. Wiederkehrende Aufgaben erzeugen danach die nächste planmäßige Ausführung. Die Android-Erinnerungsslots bleiben **09:00 / 12:00 / 15:00**; Referenzbereiche erzeugen keine Handy-Erinnerung, und ohne gültigen persönlichen Snapshot werden keine generischen Aufgaben erfunden.
+Die früher hinterlegten Wochenaufgaben sind nicht mehr aktiv und werden nicht mehr automatisch erzeugt. Sie bleiben im Code ausschließlich als historisches Archiv erhalten. Manuelle Aufgaben sowie echte Systemaufgaben für Sendungen, POD, ABD und Picks werden durch diese Bereinigung nicht entfernt.
 
 ## Direktdruck-Arbeitsplatz
 
