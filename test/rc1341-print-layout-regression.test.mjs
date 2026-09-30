@@ -21,13 +21,14 @@ test('RC1342: Lieferscheine werden einzeln und umbruchfähig gerendert',()=>{
   assert.match(runtime,/word-break:break-word/);
 });
 
-test('RC1359: Druck-QR sitzt klein direkt auf dem Deckblatt und nicht im großen QR-Container',()=>{
-  assert.match(runtime,/data-rc1359-print-qr-bottom-center/);
-  assert.match(runtime,/rc1359-print-qr-center/);
-  assert.doesNotMatch(runtime,/data-rc1341-print-qr-top-right/);
+test('RC1360: Druck-QR sitzt klein oben rechts direkt auf dem Deckblatt und nicht im großen QR-Container',()=>{
+  assert.match(runtime,/data-rc1360-print-qr-top-right/);
+  assert.match(runtime,/rc1360-print-qr-top-right/);
+  assert.doesNotMatch(runtime,/data-rc1359-print-qr-bottom-center/);
+  assert.doesNotMatch(runtime,/rc1359-print-qr-center/);
   assert.doesNotMatch(runtime,/rc1315-print-qr-in-ref/);
-  assert.ok(runtime.includes("important(section,'left','50%')"));
-  assert.ok(runtime.includes("important(section,'bottom','14mm')"));
+  assert.ok(runtime.includes("important(section,'top','8mm')"));
+  assert.ok(runtime.includes("important(section,'right','8mm')"));
   assert.ok(runtime.includes("important(code,'width','8mm')"));
 });
 
@@ -42,15 +43,17 @@ test('RC1343: Deckblatt wird zwei Punkte und Ladeliste einen Punkt kompakter ged
   assert.match(runtime,/enhanceCover\(html,sh\)[\s\S]*?shrinkInlineFonts\(root,2\)/);
 });
 
-test('RC1359: neue Druckruntime wird cache-sicher geladen',()=>{
-  assert.match(build,/rc1305-loading-list-print\.js\?v=1359/);
-  assert.match(runtime,/version:'RC1359'/);
+test('RC1360: neue Druckruntime wird cache-sicher geladen',()=>{
+  assert.match(build,/rc1305-loading-list-print\.js\?v=1360/);
+  assert.match(runtime,/version:'RC1360'/);
 });
 
 
-test('RC1359: zusammengeklebte PDF-Namen werden getrennt und das Raster bleibt inline drucksicher',()=>{
+test('RC1360: PDF-Namen werden einzeln, vollständig und mit maximal 15 Zeilen je Spalte gerendert',()=>{
   assert.ok(runtime.includes('function splitPdfNames('));
-  assert.ok(runtime.includes('grid.style.cssText'));
-  assert.ok(runtime.includes('grid-template-columns:repeat(4,minmax(0,1fr))'));
+  assert.ok(runtime.includes('docColumns=Math.max(1,Math.ceil(docCount/15))'));
+  assert.ok(runtime.includes('grid-template-rows:repeat(15,minmax(0,auto))'));
+  assert.ok(runtime.includes('grid-auto-flow:column'));
+  assert.ok(runtime.includes('overflow:visible!important'));
   assert.ok(runtime.includes('font-size:5.2pt!important'));
 });
