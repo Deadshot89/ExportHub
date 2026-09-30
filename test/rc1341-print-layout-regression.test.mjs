@@ -21,16 +21,16 @@ test('RC1342: Lieferscheine werden einzeln und umbruchfähig gerendert',()=>{
   assert.match(runtime,/word-break:break-word/);
 });
 
-test('RC1360: Druck-QR sitzt klein oben rechts direkt auf dem Deckblatt und nicht im großen QR-Container',()=>{
-  assert.match(runtime,/data-rc1360-print-qr-top-right/);
-  assert.match(runtime,/rc1360-print-qr-top-right/);
-  assert.match(runtime,/setAttribute\('data-rc1360-print-qr-top-right','1'\)/);
-  assert.match(runtime,/removeAttribute\('data-rc1359-print-qr-bottom-center'\)/);
-  assert.doesNotMatch(runtime,/setAttribute\('data-rc1359-print-qr-bottom-center'/);
-  assert.doesNotMatch(runtime,/className=['"][^'"]*rc1359-print-qr-center/);
+test('RC1361: Druck-QR sitzt klein unten am Deckblatt direkt bei der QR-Zone',()=>{
+  assert.match(runtime,/data-rc1361-print-qr-bottom/);
+  assert.match(runtime,/rc1361-print-qr-bottom/);
+  assert.match(runtime,/setAttribute\('data-rc1361-print-qr-bottom','1'\)/);
+  assert.match(runtime,/querySelector\('\.rc390-cover-qr,\.rc352-cover-qr'\)/);
+  assert.match(runtime,/insertBefore\(section,coverQr\.nextSibling\)/);
+  assert.doesNotMatch(runtime,/setAttribute\('data-rc1360-print-qr-top-right'/);
   assert.doesNotMatch(runtime,/className=['"][^'"]*rc1315-print-qr-in-ref/);
-  assert.ok(runtime.includes("important(section,'top','8mm')"));
-  assert.ok(runtime.includes("important(section,'right','8mm')"));
+  assert.ok(runtime.includes("important(section,'position','static')"));
+  assert.ok(runtime.includes("important(section,'margin','3mm auto 0')"));
   assert.ok(runtime.includes("important(code,'width','8mm')"));
 });
 
@@ -45,9 +45,9 @@ test('RC1343: Deckblatt wird zwei Punkte und Ladeliste einen Punkt kompakter ged
   assert.match(runtime,/enhanceCover\(html,sh\)[\s\S]*?shrinkInlineFonts\(root,2\)/);
 });
 
-test('RC1360: neue Druckruntime wird cache-sicher geladen',()=>{
-  assert.match(build,/rc1305-loading-list-print\.js\?v=1360/);
-  assert.match(runtime,/version:'RC1360'/);
+test('RC1361: neue Druckruntime wird cache-sicher geladen',()=>{
+  assert.match(build,/rc1305-loading-list-print\.js\?v=1361/);
+  assert.match(runtime,/version:'RC1361'/);
 });
 
 
