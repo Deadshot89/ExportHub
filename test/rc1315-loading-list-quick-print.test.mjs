@@ -84,7 +84,7 @@ test('RC1316: Druck-QR liegt nur auf dem Deckblatt und nicht auf der Ladeliste',
   assert.match(printRuntime,/function enhanceCover\(html,sh\)/);
   assert.match(printRuntime,/addQuickPrintQr\(root,sh\|\|\{\},true\)/);
   assert.match(printRuntime,/payload='EHPRINT:'\+ref/);
-  assert.match(printRuntime,/rc1327-print-qr-bottom/); assert.match(printRuntime,/data-rc1344-print-qr-bottom-row/); assert.match(printRuntime,/width:12mm!important;height:12mm!important/);
+  assert.match(printRuntime,/rc1327-print-qr-bottom/); assert.match(printRuntime,/data-rc1344-print-qr-bottom-row/); assert.match(printRuntime,/width:9mm!important;height:9mm!important/); assert.match(printRuntime,/justify-self:end!important;align-self:end!important/);
   assert.doesNotMatch(printRuntime,/rc1315-print-qr-in-ref/);
 });
 
