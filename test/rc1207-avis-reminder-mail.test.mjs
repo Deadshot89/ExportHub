@@ -108,3 +108,25 @@ test('RC1292: Reminder-Backend blockiert Holenstein vor URL-Verarbeitung und Gra
  assert.ok(sendCheck>recipientCheck,'Empfängersperre muss vor Graph-Versand greifen');
  assert.match(api,/status\|\|e\.statusCode\|\|500/);
 });
+
+
+test('RC1358: AVIS-Mail kommt fest von Despatch und setzt Sales, ExportHUB-CC sowie Tobias in CC',()=>{
+ assert.match(api,/MAIL_SENDER='DespatchNettetal@essentra\.onmicrosoft\.com'/);
+ assert.match(api,/FIXED_CC='TobiasLimberg@essentra\.com'/);
+ assert.match(api,/salesContacts/);
+ assert.match(api,/customerSalesContacts/);
+ assert.match(api,/ccContacts/);
+ assert.match(api,/customerCcContacts/);
+ assert.match(api,/sender:MAIL_SENDER,cc/);
+ assert.match(graph,/ccRecipients/);
+});
+
+test('RC1358: Erstversand wird gespeichert und Reminder serverseitig drei Arbeitstage gesperrt',()=>{
+ assert.match(api,/mode=lower\(p\.mode\)==='initial'\?'initial':'reminder'/);
+ assert.match(api,/avisFirstMailSentAt/);
+ assert.match(api,/avisInitialMailSentAt/);
+ assert.match(api,/function addBusinessDays/);
+ assert.match(api,/WAITING_3_BUSINESS_DAYS/);
+ assert.match(api,/PICKUP_DATE_EXISTS/);
+ assert.match(api,/AVIS_INITIAL_ALREADY_SENT/);
+});
