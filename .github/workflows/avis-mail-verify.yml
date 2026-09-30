@@ -1,0 +1,108 @@
+name: ExportHUB AVIS-Mail Verify
+
+on:
+  workflow_dispatch:
+    inputs:
+      send_test:
+        description: 'Nach erfolgreicher Readiness eine interne Production-Testmail senden'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: exporthub-avis-mail-verify
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: TESTSERVICE Mail.Send verifizieren
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          response="$(mktemp)"
+          trap 'rm -f "$response"' EXIT
+          oidc_token="$(
+            curl -fsSL \
+              -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+              "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=exporthub-avis-upload-mail-readiness" \
+            | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s).value;if(!v)process.exit(2);process.stdout.write(v)})"
+          )"
+          echo "::add-mask::$oidc_token"
+          status="$(
+            curl -sS -o "$response" -w '%{http_code}' --max-time 20 -X POST \
+              -H "x-exporthub-github-oidc: $oidc_token" \
+              -H 'x-exporthub-environment: testservice' \
+              "$base/api/avis-upload-mail-readiness"
+          )"
+          STATUS="$status" RESPONSE="$response" node -e "
+            const fs=require('fs'),status=Number(process.env.STATUS||0),v=JSON.parse(fs.readFileSync(process.env.RESPONSE,'utf8')||'{}');
+            const ok=status===200&&v.ok===true&&v.configured===true&&v.authenticated===true&&v.audienceOk===true&&v.mailSendGranted===true&&v.environment==='testservice';
+            console.log('TESTSERVICE AVIS-Mail readiness',JSON.stringify({status,ok,code:v.code,mailSendGranted:v.mailSendGranted,version:v.version}));
+            if(!ok)process.exit(1);
+          "
+
+      - name: PRODUCTION Mail.Send verifizieren
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          response="$(mktemp)"
+          trap 'rm -f "$response"' EXIT
+          oidc_token="$(
+            curl -fsSL \
+              -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+              "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=exporthub-avis-upload-mail-readiness" \
+            | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s).value;if(!v)process.exit(2);process.stdout.write(v)})"
+          )"
+          echo "::add-mask::$oidc_token"
+          status="$(
+            curl -sS -o "$response" -w '%{http_code}' --max-time 20 -X POST \
+              -H "x-exporthub-github-oidc: $oidc_token" \
+              -H 'x-exporthub-environment: production' \
+              "$base/api/avis-upload-mail-readiness"
+          )"
+          STATUS="$status" RESPONSE="$response" node -e "
+            const fs=require('fs'),status=Number(process.env.STATUS||0),v=JSON.parse(fs.readFileSync(process.env.RESPONSE,'utf8')||'{}');
+            const ok=status===200&&v.ok===true&&v.configured===true&&v.authenticated===true&&v.audienceOk===true&&v.mailSendGranted===true&&v.environment==='production';
+            console.log('PRODUCTION AVIS-Mail readiness',JSON.stringify({status,ok,code:v.code,mailSendGranted:v.mailSendGranted,version:v.version}));
+            if(!ok)process.exit(1);
+          "
+
+      - name: PRODUCTION interne Testmail senden
+        if: ${{ inputs.send_test == true }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          response="$(mktemp)"
+          trap 'rm -f "$response"' EXIT
+          oidc_token="$(
+            curl -fsSL \
+              -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+              "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=exporthub-avis-upload-mail-readiness" \
+            | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s).value;if(!v)process.exit(2);process.stdout.write(v)})"
+          )"
+          echo "::add-mask::$oidc_token"
+          status="$(
+            curl -sS -o "$response" -w '%{http_code}' --max-time 45 -X POST \
+              -H 'Content-Type: application/json' \
+              -H "x-exporthub-github-oidc: $oidc_token" \
+              -H 'x-exporthub-environment: production' \
+              -d '{"action":"send-test"}' \
+              "$base/api/avis-upload-mail-readiness"
+          )"
+          STATUS="$status" RESPONSE="$response" node -e "
+            const fs=require('fs'),status=Number(process.env.STATUS||0),v=JSON.parse(fs.readFileSync(process.env.RESPONSE,'utf8')||'{}');
+            const expected='DespatchNettetal@essentra.onmicrosoft.com';
+            const ok=status===200&&v.ok===true&&v.mailSendGranted===true&&v.environment==='production'&&v.mailProbe&&v.mailProbe.ok===true&&v.mailProbe.to===expected;
+            console.log('PRODUCTION AVIS-Mail send-test',JSON.stringify({status,ok,to:v.mailProbe&&v.mailProbe.to,attempts:v.mailProbe&&v.mailProbe.attempts,version:v.version}));
+            if(!ok)process.exit(1);
+          "
