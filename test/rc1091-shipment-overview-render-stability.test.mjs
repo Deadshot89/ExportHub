@@ -66,10 +66,10 @@ test('RC1127: finaler RC1048-Build rendert Kunden-Abholtermin direkt in overview
   assert.match(build,/assets\/rc1014-shipment-overview\.js/,'RC1127 Runtime muss weiterhin in den finalen Build kopiert werden');
 });
 
-test('RC1127: Produktionsdeploy prüft die neuen Sendungsübersichts-Cache-Keys',()=>{
+test('RC1284: aktueller Produktionsdeploy prüft die aktiven Sendungsübersichts-Cache-Keys',()=>{
   const flow=read('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml');
-  assert.match(flow,/assets\/rc1014-shipment-overview\.js\?v=1127/);
-  assert.match(flow,/assets\/rc1014-shipment-overview\.css\?v=1127/);
+  assert.match(flow,/assets\/rc1014-shipment-overview\.js\?v=1284/);
+  assert.match(flow,/assets\/rc1014-shipment-overview\.css\?v=1284/);
   assert.doesNotMatch(flow,/dist-rc1048\/index\.html[^\n]*rc1014-shipment-overview\.js\?v=1016/);
 });
 
