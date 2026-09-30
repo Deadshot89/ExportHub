@@ -24,9 +24,11 @@ test('RC1342: Lieferscheine werden einzeln und umbruchfähig gerendert',()=>{
 test('RC1360: Druck-QR sitzt klein oben rechts direkt auf dem Deckblatt und nicht im großen QR-Container',()=>{
   assert.match(runtime,/data-rc1360-print-qr-top-right/);
   assert.match(runtime,/rc1360-print-qr-top-right/);
-  assert.doesNotMatch(runtime,/data-rc1359-print-qr-bottom-center/);
-  assert.doesNotMatch(runtime,/rc1359-print-qr-center/);
-  assert.doesNotMatch(runtime,/rc1315-print-qr-in-ref/);
+  assert.match(runtime,/setAttribute\('data-rc1360-print-qr-top-right','1'\)/);
+  assert.match(runtime,/removeAttribute\('data-rc1359-print-qr-bottom-center'\)/);
+  assert.doesNotMatch(runtime,/setAttribute\('data-rc1359-print-qr-bottom-center'/);
+  assert.doesNotMatch(runtime,/className=['"][^'"]*rc1359-print-qr-center/);
+  assert.doesNotMatch(runtime,/className=['"][^'"]*rc1315-print-qr-in-ref/);
   assert.ok(runtime.includes("important(section,'top','8mm')"));
   assert.ok(runtime.includes("important(section,'right','8mm')"));
   assert.ok(runtime.includes("important(code,'width','8mm')"));
