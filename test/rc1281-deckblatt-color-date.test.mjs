@@ -53,7 +53,7 @@ test('RC1326: Deckblatt-Drucktypografie ist tatsächlich zwei Punkte kleiner',()
   const source=html('index.html');
   assert.match(source,/rc1203-cover-recipient[^>]*font-size:14pt!important/,'Empfängerblock ist nicht auf 14pt reduziert');
   assert.match(source,/font-size:17pt!important;line-height:1\.15!important;font-weight:800!important/,'Empfängername ist nicht auf 17pt reduziert');
-  assert.match(source,/data-rc1293-packing-slip="1"[^>]*font-size:8\.5pt!important/,'Deckblatt-Anhänge sind nicht auf 8.5pt reduziert');
+  assert.match(source,/data-rc1293-packing-slip="1"[^>]*font-size:7pt!important/,'Deckblatt-Anhänge sind nicht auf die kompakte RC1360-Schrift reduziert');
   assert.match(source,/rc1203-cover-remark[\s\S]{0,1200}font-size:9pt!important[\s\S]{0,500}font-size:10pt!important/,'Bemerkung ist nicht um zwei Punkte reduziert');
   assert.doesNotMatch(source,/data-rc1293-packing-slip="1"[^>]*font-size:10\.5pt!important/,'Alte zu große Anhangschrift ist noch aktiv');
 });
