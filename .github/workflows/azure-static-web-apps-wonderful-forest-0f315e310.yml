@@ -944,7 +944,8 @@ jobs:
               && grep -Fq "data-rc1361-print-qr-top-right" "$print_runtime" \
               && grep -Fq "important(section,'top','8mm')" "$print_runtime" \
               && grep -Fq "important(section,'right','8mm')" "$print_runtime" \
-              && grep -Fq 'docColumns=Math.max(1,Math.ceil(docCount/15))' "$print_runtime" \
+              && grep -Fq 'grid-template-columns:minmax(0,1fr)' "$print_runtime" \
+              && grep -Fq 'grid-auto-flow:row' "$print_runtime" \
               && grep -Fq "RC1333_PROD_AVIS_ORIGIN='https://exporthub360.com'" "$avis_runtime" \
               && grep -Fq "RC1333_PROD_AVIS_ORIGIN+'/avis/'" "$avis_runtime" \
               && grep -Fq "pathMatch=String(u.pathname||'').match(/\/avis\/" "$avis_page"; then
@@ -957,7 +958,7 @@ jobs:
             echo "RC1361 Live-Gate fehlgeschlagen: main=$mc print=$pc avisRuntime=$ac brandedAvis=$bc" >&2
             exit 1
           fi
-          echo 'RC1361 AVIS-Link, Druck-QR oben rechts und 15-Zeilen-Dokumentraster live bestätigt.'
+          echo 'RC1362 AVIS-Link, Druck-QR und einspaltige Lieferschein-/DNC-Darstellung live bestätigt.'
 
       - name: Live RC1071 Sendungshistorie prüfen
         shell: bash
