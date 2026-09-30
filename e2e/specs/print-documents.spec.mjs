@@ -89,26 +89,35 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
           quickPrintQr:(()=>{
             const qr=document.querySelector('[data-rc1315-print-qr]');
             const coverQr=document.querySelector('.rc390-cover-qr,.rc352-cover-qr');
-            const refBox=document.querySelector('.rc390-ref,.rc352-ref,[data-rc1281-reference]');
+            const refBox=document.querySelector('.rc390-cover-ref,.rc352-cover-ref,[data-rc1203-reference-highlight]');
+            const topRight=document.querySelector('[data-rc1359-cover-top-right]');
             const code=qr&&qr.querySelector('.rc1315-print-qr-code');
             const qs=code?getComputedStyle(code):null;
+            const qrRect=qr&&qr.getBoundingClientRect(),coverRect=cover&&cover.getBoundingClientRect();
             return{
               count:document.querySelectorAll('[data-rc1315-print-qr]').length,
               insideCoverQr:!!(qr&&coverQr&&coverQr.contains(qr)),
               insideReference:!!(qr&&refBox&&refBox.contains(qr)),
-              bottomMarker:!!(cover&&cover.getAttribute('data-rc1344-print-qr-bottom-row')==='1'),
+              insideTopRight:!!(qr&&topRight&&topRight.contains(qr)),
+              topRightMarker:!!(cover&&cover.getAttribute('data-rc1359-print-qr-top-right')==='1'),
               width:qs&&qs.width,
-              height:qs&&qs.height
+              height:qs&&qs.height,
+              rightAligned:!!(qrRect&&coverRect&&qrRect.right<=coverRect.right+2&&qrRect.right>=coverRect.right-coverRect.width*.35)
             };
           })(),
           packingSlipGrid:(()=>{
             const grid=document.querySelector('[data-rc1293-packing-slip-grid]');
             const slips=grid?Array.from(grid.querySelectorAll('[data-rc1293-packing-slip]')):[];
+            const columns=grid?Array.from(grid.querySelectorAll('[data-rc1359-document-column]')):[];
             const rowTops=[...new Set(slips.map(node=>Math.round(node.getBoundingClientRect().top)))];
+            const counts=columns.map(node=>node.querySelectorAll('[data-rc1293-packing-slip]').length);
             const gs=grid?getComputedStyle(grid):null;
             return{
               count:slips.length,
               rowCount:rowTops.length,
+              columnCount:columns.length,
+              maxItemsPerColumn:counts.length?Math.max(...counts):0,
+              columnItemCounts:counts,
               display:gs&&gs.display,
               scrollWidth:grid?Number(grid.scrollWidth||0):0,
               clientWidth:grid?Number(grid.clientWidth||0):0,
@@ -195,9 +204,11 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
   expect(capture.recipientStyle.backgroundColor).toBe('rgb(219, 234, 254)');
   expect(capture.quickPrintQr).toBeTruthy();
   expect(capture.quickPrintQr.count,'Druck-QR darf im Gesamtdruck nur einmal vorkommen').toBe(1);
-  expect(capture.quickPrintQr.insideCoverQr,'Druck-QR muss unten im QR-Bereich des Deckblatts sitzen').toBe(true);
-  expect(capture.quickPrintQr.insideReference,'Druck-QR darf nicht im Referenzfeld sitzen').toBe(false);
-  expect(capture.quickPrintQr.bottomMarker,'Deckblatt muss die RC1344-Unterkantenposition markieren').toBe(true);
+  expect(capture.quickPrintQr.insideCoverQr,'Druck-QR darf nicht mehr im unteren QR-Bereich sitzen').toBe(false);
+  expect(capture.quickPrintQr.insideReference,'Druck-QR darf das Referenzfeld nicht überdecken').toBe(false);
+  expect(capture.quickPrintQr.insideTopRight,'Druck-QR muss im oberen rechten Deckblattbereich sitzen').toBe(true);
+  expect(capture.quickPrintQr.topRightMarker,'Deckblatt muss die RC1359-Position oben rechts markieren').toBe(true);
+  expect(capture.quickPrintQr.rightAligned,'Druck-QR muss rechts im Deckblatt ausgerichtet sein').toBe(true);
   expect(capture.text).toMatch(/Erstellt am:\s*\d{2}\.\d{2}\.\d{4}/);
   expect(capture.html).toMatch(/data-rc1281-created-date="1"/i);
   expect(capture.html).toMatch(/data-rc1203-cover-remark="1"/i);
@@ -209,7 +220,9 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
   expect(capture.packingSlipGrid.display).toBe('grid');
   expect(capture.packingSlipGrid.count).toBe(7);
   expect(new Set(capture.packingSlipGrid.items.map(item=>item.text)).size,'Lieferscheine werden im Deckblatt doppelt dargestellt').toBe(7);
-  expect(capture.packingSlipGrid.rowCount).toBeGreaterThanOrEqual(2);
+  expect(capture.packingSlipGrid.columnCount).toBe(1);
+  expect(capture.packingSlipGrid.maxItemsPerColumn).toBeLessThanOrEqual(15);
+  expect(capture.packingSlipGrid.columnItemCounts).toEqual([7]);
   expect(capture.packingSlipGrid.clientWidth<=0||capture.packingSlipGrid.scrollWidth<=capture.packingSlipGrid.clientWidth+2,'Lieferschein-Raster läuft horizontal über').toBe(true);
   expect(capture.packingSlipGrid.items.some(item=>/LS_47110007\.pdf/.test(item.text))).toBe(true);
   expect(capture.text).toMatch(/Ladeliste/i);
