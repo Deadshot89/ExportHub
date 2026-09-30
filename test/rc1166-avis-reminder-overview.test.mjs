@@ -155,7 +155,7 @@ test('RC1358: Sendungsübersicht injiziert Avis-Erinnerung auch nach späteren K
   assert.match(runtime,/exporthub:rc1027-avis-ready/);
   assert.match(runtime,/exporthub:design-changed/);
   assert.match(runtime,/version:'RC1358'/);
-  assert.match(runtime,/q\(old\.textContent\)!==q\(label\)/,'Bestehende Buttons dürfen den MutationObserver nicht durch unnötige Text-DOM-Writes triggern');
+  assert.match(runtime,/if\(q\(btn\.textContent\)!==q\(label\)\)btn\.textContent=label/,'Bestehende Buttons dürfen den MutationObserver nicht durch unnötige Text-DOM-Writes triggern');
 });
 
 
