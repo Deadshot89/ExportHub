@@ -110,7 +110,7 @@ button:focus-visible,input:focus-visible{outline:3px solid #1d4ed8;outline-offse
 <span class="help">Unterschrift, Kennzeichen und Speditionsname sind verpflichtend.</span>
 <input id="signatureData" type="hidden">
 </label>
-<label id="customsSignatureField" hidden>Zolldokumente erhalten
+<label id="customsSignatureField" hidden><strong>Zolldokumente erhalten – Unterschrift Fahrer</strong>
 <button id="customsSignatureOpen" class="signature" type="button">
 <span id="customsSignaturePrompt">Erhalt der Zolldokumente unterschreiben</span>
 <img id="customsSignaturePreview" alt="Fahrerunterschrift zum Erhalt der Zolldokumente" hidden>
@@ -224,6 +224,12 @@ function request(path,opt){
 }
 
 function confirmed(data){return !!(data&&(data.confirmedAt||data.pickupConfirmedAt||data.completedAt||data.pickedUpAt||data.used||data.confirmed||/confirmed|completed|abgeholt|used/i.test(q(data.status))))}
+function customsSignatureNeeded(data){
+  if(!data||typeof data!=='object')return false;
+  if(data.customsDocumentsSignatureRequired===true||data.abdPresent===true)return true;
+  var s=q(data.abdStatus).toLowerCase();
+  return /vorhanden|fertig|erledigt|completed|done|available|erstellt|created|abgeschlossen/.test(s)&&!/wartet|offen|pending|angefordert|requested/.test(s);
+}
 
 function colliNumber(v){
   var n=Number(String(v==null?'':v).replace(',','.').replace(/[^0-9.-]/g,''));
@@ -309,7 +315,7 @@ function show(data){
   if(/^[-–—]+$/.test(address)||/^(?:n\/?a|none|null|undefined)$/i.test(address))address='';
   var carrier=q(deep(data,['carrierName','speditionName','carrier','spedition']));
   containerRequired=data&&data.containerDocumentationRequired===true;
-  customsSignatureRequired=!!(data&&(data.customsDocumentsSignatureRequired===true||data.abdPresent===true));
+  customsSignatureRequired=customsSignatureNeeded(data);
   var customsField=document.getElementById('customsSignatureField');if(customsField)customsField.hidden=!customsSignatureRequired;
   containerPhotos=containerPhotoMap(data&&data.containerPhotos||[]);
   var seal=q(data&&data.sealNumber);if(seal)document.getElementById('sealNumber').value=seal;renderContainerState();
