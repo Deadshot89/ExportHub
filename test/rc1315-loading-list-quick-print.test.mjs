@@ -79,18 +79,18 @@ test('RC1315: Druck-QR verwendet einen getrennten Payload und erzeugt echtes SVG
   assert.match(svg,/<path d="M/);
 });
 
-test('RC1353: kleiner Druck-QR liegt nur unten auf dem Deckblatt und nicht auf der Ladeliste',()=>{
+test('RC1354: kleiner Druck-QR liegt unten mittig direkt auf dem Deckblatt',()=>{
   assert.doesNotMatch(printRuntime,/pickupSummary\(root,sh\|\|\{\}\);addQuickPrintQr/);
   assert.match(printRuntime,/function enhanceCover\(html,sh\)/);
   assert.match(printRuntime,/addQuickPrintQr\(root,sh\|\|\{\},true\)/);
   assert.match(printRuntime,/payload='EHPRINT:'\+ref/);
-  assert.match(printRuntime,/rc1327-print-qr-bottom/); assert.match(printRuntime,/data-rc1353-print-qr-bottom-row/); assert.match(printRuntime,/width:8mm!important;height:8mm!important/);
+  assert.match(printRuntime,/rc1354-print-qr-center/); assert.match(printRuntime,/data-rc1354-print-qr-bottom-center/); assert.ok(printRuntime.includes("important(code,'width','8mm')"));
   assert.doesNotMatch(printRuntime,/rc1315-print-qr-in-ref/);
 });
 
 test('RC1315: Release-Build lädt Schnelldruck und reicht withQr an den Renderer weiter',()=>{
   assert.match(build,/assets\/rc1315-loading-list-quick-print\.js\?v=1322/);
-  assert.ok(build.includes('assets/rc1305-loading-list-print.js?v=1353'));
+  assert.ok(build.includes('assets/rc1305-loading-list-print.js?v=1354'));
   assert.match(build,/api\.enhance\(out,sh\|\|\{\},withQr===true\)/); assert.match(build,/api\.enhanceCover==='function'/);
   assert.match(build,/'assets\/rc1315-loading-list-quick-print\.js'/);
   assert.match(build,/loadingListQuickPrint:'RC1322/);
