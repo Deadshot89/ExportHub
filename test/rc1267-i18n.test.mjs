@@ -71,3 +71,16 @@ test('RC1335: i18n batches DOM translation and avoids no-op DOM writes',()=>{
   const stateEvents=runtime.match(/\['exporthub:state-loaded'[\s\S]*?\}\);/)?.[0]||'';
   assert.doesNotMatch(stateEvents,/translate\(d\.body,current\)/);
 });
+
+
+test('RC1354: language switch preserves the live shipment remark before any legacy rerender',()=>{
+  assert.match(runtime,/function snapshotShipmentDraft\(\)/);
+  assert.match(runtime,/shipment\.comments=values\.comments/);
+  assert.match(runtime,/shipment\.remarks=values\.comments/);
+  assert.match(runtime,/function captureLanguageChange\(event\)/);
+  assert.match(runtime,/d\.addEventListener\('change',captureLanguageChange,true\)/);
+  assert.match(runtime,/event\.stopImmediatePropagation/);
+  assert.match(runtime,/syncApplicationLanguage\(next\)/);
+  assert.match(runtime,/snapshotShipmentDraft\(\);\s*var next=normalize\(lang\)/);
+  for(const label of ['bemerkung','comment','uwaga','remarque','observacion','osservazioni'])assert.match(runtime,new RegExp(label));
+});
