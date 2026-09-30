@@ -79,7 +79,7 @@ function closed(sh){
  if(q(sh.actualPickupAt||sh.pickedUpAt||sh.pickupConfirmedAt||sh.qrPickupConfirmedAt||sh.pickupCompletedAt))return true;
  return /^(?:abgeholt|pod vorhanden|abgeschlossen|archiviert|picked up|pod available|completed|archived)$/i.test(q(sh.status||sh.shipmentStatus||sh.processStatus))
 }
-var RC1333_PROD_AVIS_ORIGIN='https://wonderful-forest-0f315e310.7.azurestaticapps.net';
+var RC1333_PROD_AVIS_ORIGIN='https://exporthub360.com';
 var RC1333_TEST_AVIS_ORIGIN='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net';
 function safeAvisLink(sh,url){
  var token=q(sh&&(sh.customerAvisToken||sh.avisToken)),env='';
@@ -91,9 +91,9 @@ function safeAvisLink(sh,url){
  }catch(_){}
  if(!token)return q(url);
  if(!env)env=environmentName();
- var origin=env&&env!=='production'?RC1333_TEST_AVIS_ORIGIN:RC1333_PROD_AVIS_ORIGIN;
- var out=origin+'/customer-avis.html?token='+encodeURIComponent(token);
- return env&&env!=='production'?out+'&environment='+encodeURIComponent(env):out
+ if(!env||env==='production')return RC1333_PROD_AVIS_ORIGIN+'/avis/'+encodeURIComponent(token);
+ var out=RC1333_TEST_AVIS_ORIGIN+'/customer-avis.html?token='+encodeURIComponent(token);
+ return out+'&environment='+encodeURIComponent(env)
 }
 function avisLink(sh){
  if(!sh||exception(sh)||closed(sh))return'';
