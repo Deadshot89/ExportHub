@@ -250,6 +250,10 @@ test('RC1255 P2: AVIS-Erinnerung läuft über TESTSERVICE UI, echte Mail, AVIS-L
     processStatus:'Erstellt',
     createdAt:stamp,
     updatedAt:stamp,
+    // RC1358: Dieser E2E-Fall prüft ausdrücklich die Erinnerung. Die Erstmail muss daher
+    // mindestens drei Arbeitstage zurückliegen, sonst zeigt die UI korrekt „Lieferavis senden“.
+    avisFirstMailSentAt:new Date(Date.now()-7*24*60*60*1000).toISOString(),
+    avisInitialMailSentAt:new Date(Date.now()-7*24*60*60*1000).toISOString(),
     totalColli:1,
     totalWeight:100,
     totalLdm:0.2,
