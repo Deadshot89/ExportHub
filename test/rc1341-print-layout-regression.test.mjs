@@ -21,15 +21,14 @@ test('RC1342: Lieferscheine werden einzeln und umbruchfähig gerendert',()=>{
   assert.match(runtime,/word-break:break-word/);
 });
 
-test('RC1345: Druck-QR sitzt ausschließlich unten bei den anderen QR-Codes auf dem Deckblatt und bleibt kompakt',()=>{
-  assert.match(runtime,/data-rc1344-print-qr-bottom-row/);
-  assert.match(runtime,/rc1327-print-qr-bottom/);
-  assert.match(runtime,/rc1327-cover-qr-row/);
+test('RC1359: Druck-QR sitzt klein direkt auf dem Deckblatt und nicht im großen QR-Container',()=>{
+  assert.match(runtime,/data-rc1359-print-qr-bottom-center/);
+  assert.match(runtime,/rc1359-print-qr-center/);
   assert.doesNotMatch(runtime,/data-rc1341-print-qr-top-right/);
-  assert.doesNotMatch(runtime,/padding-right','19mm'/);
   assert.doesNotMatch(runtime,/rc1315-print-qr-in-ref/);
-  assert.match(runtime,/width:9mm!important;height:9mm!important/);
-  assert.match(runtime,/justify-self:end!important;align-self:end!important/);
+  assert.ok(runtime.includes("important(section,'left','50%')"));
+  assert.ok(runtime.includes("important(section,'bottom','14mm')"));
+  assert.ok(runtime.includes("important(code,'width','8mm')"));
 });
 
 test('RC1342: Deckblatt zeigt ein vorhandenes Abholdatum',()=>{
@@ -43,7 +42,15 @@ test('RC1343: Deckblatt wird zwei Punkte und Ladeliste einen Punkt kompakter ged
   assert.match(runtime,/enhanceCover\(html,sh\)[\s\S]*?shrinkInlineFonts\(root,2\)/);
 });
 
-test('RC1345: neue Druckruntime wird cache-sicher geladen',()=>{
-  assert.match(build,/rc1305-loading-list-print\.js\?v=1345/);
-  assert.match(runtime,/version:'RC1345'/);
+test('RC1359: neue Druckruntime wird cache-sicher geladen',()=>{
+  assert.match(build,/rc1305-loading-list-print\.js\?v=1359/);
+  assert.match(runtime,/version:'RC1359'/);
+});
+
+
+test('RC1359: zusammengeklebte PDF-Namen werden getrennt und das Raster bleibt inline drucksicher',()=>{
+  assert.ok(runtime.includes('function splitPdfNames('));
+  assert.ok(runtime.includes('grid.style.cssText'));
+  assert.ok(runtime.includes('grid-template-columns:repeat(4,minmax(0,1fr))'));
+  assert.ok(runtime.includes('font-size:5.2pt!important'));
 });
