@@ -416,17 +416,18 @@ function patchRc1259ContainerSearch(html,file){
 function patchCompletePrintBundle(html,file){
   const loadStart=html.indexOf('function loadHtml(sh,withQr){');
   const loadEnd=loadStart<0?-1:html.indexOf('function documentCacheKey',loadStart);
-  if(loadStart<0||loadEnd<0)throw new Error(file+': RC1316 Ladelisten-/CMR-Druckmodul fehlt');
+  if(loadStart<0||loadEnd<0)throw new Error(file+': RC1345 Ladelisten-/CMR-Druckmodul fehlt');
   let loadBlock=html.slice(loadStart,loadEnd);
 
-  loadBlock=loadBlock.replace("withQr?'1 / 1 · mit QR-Code':'ohne QR-Code'","withQr?'1 / 2 · mit QR-Code':'2 / 2 · ohne QR-Code'");
+  loadBlock=loadBlock.replace("withQr?'1 / 1 · mit QR-Code':'ohne QR-Code'","withQr?'Ladeliste · mit QR-Code':'Ladeliste · ohne QR-Code'");
+  loadBlock=loadBlock.replace("withQr?'1 / 2 · mit QR-Code':'2 / 2 · ohne QR-Code'","withQr?'Ladeliste · mit QR-Code':'Ladeliste · ohne QR-Code'");
   loadBlock=loadBlock.replace("for(var i=1;i<=4;i++){","for(var i=1;i<=3;i++){");
   loadBlock=loadBlock.replace("for(var i=1;i<=1;i++){","for(var i=1;i<=3;i++){");
   loadBlock=loadBlock.replace("CMR '+i+' / 4</div></div>'","CMR '+i+' / 3</div></div>'");
   loadBlock=loadBlock.replace("CMR '+i+' / 1</div></div>'","CMR '+i+' / 3</div></div>'");
   html=html.slice(0,loadStart)+loadBlock+html.slice(loadEnd);
 
-  html=html.replace("+coverHtml(sh)+loadHtml(sh,true)+cmrHtml(sh)+","+coverHtml(sh)+loadHtml(sh,true)+cmrHtml(sh)+");
+  html=html.replace("+coverHtml(sh)+loadHtml(sh,true)+loadHtml(sh,false)+cmrHtml(sh)+","+coverHtml(sh)+loadHtml(sh,true)+cmrHtml(sh)+");
   html=html.replace(
     "if(mode==='load2')return[];return[d.cover,d.load1].concat(d.cmrs.slice(0,3)).filter(Boolean)",
     "if(mode==='load2')return[d.load2].filter(Boolean);return[d.cover,d.load1].concat(d.cmrs.slice(0,3)).filter(Boolean)"
@@ -437,13 +438,17 @@ function patchCompletePrintBundle(html,file){
   );
   html=html.replace(
     "return[d.cover,d.load1,d.load2].concat(d.cmrs.slice(0,4)).filter(Boolean)",
-    "return[d.cover,d.load1,d.load2].concat(d.cmrs.slice(0,3)).filter(Boolean)"
+    "return[d.cover,d.load1].concat(d.cmrs.slice(0,3)).filter(Boolean)"
+  );
+  html=html.replace(
+    "return[d.cover,d.load1,d.load2].concat(d.cmrs.slice(0,3)).filter(Boolean)",
+    "return[d.cover,d.load1].concat(d.cmrs.slice(0,3)).filter(Boolean)"
   );
 
-  if(!html.includes("+coverHtml(sh)+loadHtml(sh,true)+cmrHtml(sh)+"))throw new Error(file+': RC1316 L2 fehlt im Dokumentrenderer');
-  if(!html.includes("if(mode==='load2')return[d.load2].filter(Boolean);return[d.cover,d.load1].concat(d.cmrs.slice(0,3)).filter(Boolean)"))throw new Error(file+': RC1316 Druckauswahl 1x L1/1x L2/3x CMR fehlt');
-  if(!html.includes("withQr?'1 / 2 · mit QR-Code':'2 / 2 · ohne QR-Code'"))throw new Error(file+': RC1316 Ladelisten-Kopienbeschriftung fehlt');
-  if(!html.includes("for(var i=1;i<=3;i++){")||!html.includes("CMR '+i+' / 3</div></div>'"))throw new Error(file+': RC1316 CMR muss genau dreimal erzeugt werden');
+  if(!html.includes("+coverHtml(sh)+loadHtml(sh,true)+cmrHtml(sh)+"))throw new Error(file+': RC1345 Gesamtdruck muss genau eine Ladeliste enthalten');
+  if(!html.includes("if(mode==='load2')return[d.load2].filter(Boolean);return[d.cover,d.load1].concat(d.cmrs.slice(0,3)).filter(Boolean)"))throw new Error(file+': RC1345 Gesamtdruckauswahl 1x Ladeliste/3x CMR fehlt');
+  if(!html.includes("withQr?'Ladeliste · mit QR-Code':'Ladeliste · ohne QR-Code'"))throw new Error(file+': RC1345 eindeutige Ladelisten-Beschriftung fehlt');
+  if(!html.includes("for(var i=1;i<=3;i++){")||!html.includes("CMR '+i+' / 3</div></div>'"))throw new Error(file+': RC1345 CMR muss genau dreimal erzeugt werden');
 
   const rc1340Anchor='async function printDocuments(mode){';
   const rc1340Runtime=`
