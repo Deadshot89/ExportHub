@@ -124,7 +124,7 @@ test('RC1147: eigene Mail behält ihren Freitext und erhält genau einen kompakt
   const out=api.injectMailBody(shipment,'own',expandedDetails,'de');
   assert.match(out,/für den unten genannten Vorgang steht die Ware/i);
   assert.match(out,/Details zur Sendung:/i);
-  assert.match(out,/Lieferavis: https:\/\/exporthub360\.com\/avis\/server-token&lang=de/i);
+  assert.match(out,/Lieferavis: https:\/\/exporthub360\.com\/avis\/server-token\?lang=de/i);
   assert.equal((out.match(/Lieferavis:/gi)||[]).length,1,'Eigene Mail darf den Avis-Link nicht doppelt enthalten.');
   assert.ok(out.indexOf('Lieferavis:')<out.indexOf('Mit freundlichen Grüßen'),'Avis-Link muss vor der Grußformel stehen.');
 });
