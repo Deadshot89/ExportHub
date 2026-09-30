@@ -203,9 +203,9 @@ jobs:
           grep -q '/api/diagnostic-autofix' dist-rc1112/assets/rc1013-diagnostics.js
           grep -q "view:'history',label:'Historie',right:'history'" dist-rc1112/index.html
           grep -q "view:'history',label:'Historie',right:'history'" dist-rc1112/TESTVERSION.html
-          grep -q 'assets/rc1027-lieferavis-immediate.js?v=1333' dist-rc1112/index.html
-          grep -q 'assets/rc1027-lieferavis-immediate.js?v=1333' dist-rc1112/TESTVERSION.html
-          grep -q 'assets/rc1027-lieferavis-immediate.js?v=1333' dist-rc1112/demo.html
+          grep -q 'assets/rc1027-lieferavis-immediate.js?v=1360' dist-rc1112/index.html
+          grep -q 'assets/rc1027-lieferavis-immediate.js?v=1360' dist-rc1112/TESTVERSION.html
+          grep -q 'assets/rc1027-lieferavis-immediate.js?v=1360' dist-rc1112/demo.html
           test -s dist-rc1112/assets/rc1027-lieferavis-immediate.js
           test -s dist-rc1112/assets/rc1037-lieferavis-timing-diagnostics.js
           test -s dist-rc1112/assets/rc1049-abd-avis-policy.js
