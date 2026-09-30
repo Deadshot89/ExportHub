@@ -487,7 +487,7 @@ function patchHtml(file,canonicalPrintStow,canonicalController){
   html=patchDeckblattContrast(html,file);
   html=html.replace(/assets\/rc1014-shipment-overview\.js\?v=1016/g,'assets/rc1014-shipment-overview.js?v=1127');
   html=html.replace(/assets\/rc1014-shipment-overview\.css\?v=1016/g,'assets/rc1014-shipment-overview.css?v=1127');
-  html=html.replace(/assets\/rc1013-diagnostics\.js\?v=1013/g,'assets/rc1013-diagnostics.js?v=1085');
+  html=html.replace(/assets\/rc1013-diagnostics\.js\?v=1013/g,'assets/rc1013-diagnostics.js?v=1361');
   html=injectBeforeHeadClose(html,RC1065_CC_TAG,RC1065_CC_ID);
   html=injectBeforeHeadClose(html,RC1069_PERF_TAG,RC1069_PERF_ID);
   html=injectBeforeHeadClose(html,RC1071_HISTORY_TAG,RC1071_HISTORY_ID);
