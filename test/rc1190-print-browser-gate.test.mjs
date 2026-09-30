@@ -103,3 +103,14 @@ test('RC1345: finaler Build erzwingt genau eine Ladeliste und drei CMR',()=>{
   assert.match(build,/for\(var i=1;i<=3;i\+\+\)/);
   assert.match(build,/CMR '\+i\+' \/ 3<\/div><\/div>'/);
 });
+
+
+test('RC1355: PDF attachment bridge never reads cross-origin Window.print',()=>{
+  const start=build.indexOf('async function rc1340PrintPreparedAttachment(item,index,total){');
+  const end=build.indexOf('async function rc1340PrintPreparedAttachments(items){',start);
+  assert.ok(start>=0&&end>start,'PDF attachment print bridge missing');
+  const bridge=build.slice(start,end);
+  assert.doesNotMatch(bridge,/frame\.contentWindow\.print\(\)/);
+  assert.match(bridge,/frame\.contentWindow\.postMessage\(\{type:'print'\},'\*'\)/);
+  assert.match(build,/RC1355 Cross-Origin PDF-Druckzugriff ist noch aktiv/);
+});
