@@ -106,6 +106,7 @@ test('RC1345: finaler Build erzwingt genau eine Ladeliste und drei CMR',()=>{
 
 
 test('RC1355: PDF attachment bridge never reads cross-origin Window.print',()=>{
+  const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
   const start=build.indexOf('async function rc1340PrintPreparedAttachment(item,index,total){');
   const end=build.indexOf('async function rc1340PrintPreparedAttachments(items){',start);
   assert.ok(start>=0&&end>start,'PDF attachment print bridge missing');
