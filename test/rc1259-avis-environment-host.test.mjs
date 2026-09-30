@@ -11,14 +11,14 @@ function loadEndpoint(){
     body:req=>req&&req.body&&typeof req.body==='object'?req.body:{},
     error:(code,message,status=400)=>Object.assign(new Error(message),{code,status}),
     isAdmin:()=>true,
-    async validateSession(){return{user:{id:'U1',user:'Tester',name:'Tester',globalAdmin:true}}},
+    async validateSession(){return{user:{id:'U1',user:'Tester',name:'Tester',globalAdmin:true},team:{state:{shipments:[{id:'S1',reference:'ABC123'}],customers:[]}}}},
     environmentFromRequest(req){
       const headers=req&&req.headers||{};
       const requested=String(headers['x-exporthub-environment']||'').trim().toLowerCase();
       return requested==='testservice'?'testservice':'production';
     },
     async mutateTeamForRequest(req,mutator){
-      const team={state:{shipments:[]}};
+      const team={state:{shipments:[{id:'S1',reference:'ABC123'}],customers:[]}};
       const result=await mutator(team);
       return{team,result};
     },
@@ -46,6 +46,7 @@ async function invoke({environment='production',host='internal.azurewebsites.net
       recipient:'test@example.com',
       target:'customer',
       language:'de',
+      mode:'initial',
       avisUrl
     }
   });

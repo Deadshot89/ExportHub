@@ -3,6 +3,19 @@ const https=require('https');
 const MAIL_SEND_PERMISSION=Object.freeze({resource:'Microsoft Graph',type:'Application',name:'Mail.Send',id:'b633e1c5-b582-4048-a93e-9f11b44c7e96',adminConsentRequired:true});
 
 function text(v){return String(v==null?'':v).trim()}
+function validEmail(v){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text(v))}
+function emailList(value){
+ const source=Array.isArray(value)?value:[value],out=[],seen=new Set();
+ for(const item of source){
+  if(item==null||item==='')continue;
+  const values=String(item).replace(/mailto:/gi,' ').split(/[;,\n\r\t ]+/).map(text).filter(Boolean);
+  for(const email of values){
+   if(!validEmail(email))throw error('MAIL_CC_INVALID','Eine CC-Adresse ist ungültig.',400);
+   const key=email.toLowerCase();if(!seen.has(key)){seen.add(key);out.push(email)}
+  }
+ }
+ return out
+}
 function readiness(){
  const tenantId=text(process.env.EXPORTHUB_GRAPH_TENANT_ID);
  const clientId=text(process.env.EXPORTHUB_GRAPH_CLIENT_ID);
@@ -58,20 +71,20 @@ async function verifyAuthentication(){
 function transient(e){return[408,429,500,502,503,504].includes(Number(e&&e.statusCode||0))||['GRAPH_TIMEOUT','GRAPH_NETWORK_ERROR','ECONNRESET','ETIMEDOUT'].includes(e&&e.code)}
 function delay(e,n){const h=e&&e.responseHeaders||{},ra=Number(h['retry-after']||0);return ra>0?Math.min(5000,ra*1000):Math.min(2500,350*Math.pow(2,n-1))}
 function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
-async function sendTextMail({to,subject,body,sender}){
+async function sendTextMail({to,subject,body,sender,cc}){
  const cfg=readiness();if(!cfg.configured)throw error('GRAPH_MAIL_NOT_CONFIGURED','Microsoft Graph Mailversand ist noch nicht vollständig konfiguriert.',503);
- const actualSender=text(sender)||cfg.sender,email=text(to),sub=text(subject),content=text(body);
- if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw error('MAIL_RECIPIENT_INVALID','Die Empfängeradresse ist ungültig.',400);
+ const actualSender=text(sender)||cfg.sender,email=text(to),sub=text(subject),content=text(body),ccEmails=emailList(cc).filter(x=>x.toLowerCase()!==email.toLowerCase()&&x.toLowerCase()!==actualSender.toLowerCase());
+ if(!validEmail(email))throw error('MAIL_RECIPIENT_INVALID','Die Empfängeradresse ist ungültig.',400);
  if(!sub||sub.length>200)throw error('MAIL_SUBJECT_INVALID','Der Mailbetreff ist ungültig.',400);
  if(!content||content.length>12000)throw error('MAIL_BODY_INVALID','Der Mailtext ist ungültig.',400);
- const payload=Buffer.from(JSON.stringify({message:{subject:sub,body:{contentType:'Text',content},toRecipients:[{emailAddress:{address:email}}]},saveToSentItems:true}),'utf8');
+ const payload=Buffer.from(JSON.stringify({message:{subject:sub,body:{contentType:'Text',content},toRecipients:[{emailAddress:{address:email}}],ccRecipients:ccEmails.map(address=>({emailAddress:{address}}))},saveToSentItems:true}),'utf8');
  let force=false,last=null;
  for(let attempt=1;attempt<=3;attempt++){
   try{
    const token=await accessToken(force),claims=tokenClaims(token);
    if(!mailSendGranted(claims))throw error('GRAPH_MAIL_PERMISSION_MISSING','Microsoft Graph Mail.Send ist für die ExportHUB-App nicht als Application-Berechtigung freigegeben.',503);
    await request('POST','https://graph.microsoft.com/v1.0/users/'+encodeURIComponent(actualSender)+'/sendMail',{Authorization:'Bearer '+token,'Content-Type':'application/json','Content-Length':payload.length,Accept:'application/json'},payload,12000);
-   return{ok:true,sender:actualSender,to:email,attempts:attempt}
+   return{ok:true,sender:actualSender,to:email,cc:ccEmails,attempts:attempt}
   }catch(e){
    last=e;
    if(e&&e.statusCode===401&&!force){tokenCache=null;force=true;continue}

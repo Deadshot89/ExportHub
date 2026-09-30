@@ -94,6 +94,7 @@ test('RC1207: Direktversand übergibt nur strukturierte Felder an den Mail-Endpu
   assert.match(runtime,/target:target==='carrier'\?'carrier':'customer'/);
   assert.match(runtime,/language:normalizeLanguage\(lang\)/);
   assert.match(runtime,/avisUrl:url/);
+  assert.match(runtime,/mode:mode==='initial'\?'initial':'reminder'/);
   assert.doesNotMatch(runtime,/function\s+mailto\s*\(|href\s*=\s*['\"]?mailto:|\.href\s*=\s*mailto/i);
 });
 
@@ -111,9 +112,9 @@ test('RC1166: Übersicht zeigt einen blauen Aktionsbutton und eine Empfängeraus
 
 test('RC1166: Drei-Umgebungen-Build übernimmt die neue Runtime und bestehende Schutzstände',()=>{
   assert.match(build,/exporthub-rc1166-avis-reminder/);
-  assert.match(build,/assets\/rc1166-avis-reminder-overview\.js\?v=1333/);
+  assert.match(build,/assets\/rc1166-avis-reminder-overview\.js\?v=1358/);
   assert.match(build,/'assets\/rc1166-avis-reminder-overview\.js'/);
-  assert.match(build,/avisReminderOverview:'RC1316/);
+  assert.match(build,/avisReminderOverview:'RC1358/);
   assert.match(build,/avis-reminder-mail\/index\.js/);
   assert.match(build,/shared\/graph-mail\.js/);
   assert.match(build,/podBackupStatusUi:'RC1220/);
@@ -145,7 +146,7 @@ test('RC1292: direkter Reminder-Versand an Holenstein wird bereits im Frontend g
 });
 
 
-test('RC1316: Sendungsübersicht injiziert Avis-Erinnerung auch nach späteren Karten-Renders stabil',()=>{
+test('RC1358: Sendungsübersicht injiziert Avis-Erinnerung auch nach späteren Karten-Renders stabil',()=>{
   assert.match(runtime,/function overviewCards\(shipments\)/);
   assert.match(runtime,/#content article/);
   assert.match(runtime,/#content \.card/);
@@ -153,6 +154,37 @@ test('RC1316: Sendungsübersicht injiziert Avis-Erinnerung auch nach späteren K
   assert.match(runtime,/observer\.observe\(root,\{childList:true,subtree:true\}\)/);
   assert.match(runtime,/exporthub:rc1027-avis-ready/);
   assert.match(runtime,/exporthub:design-changed/);
-  assert.match(runtime,/version:'RC1316'/);
-  assert.match(runtime,/q\(old\.textContent\)!==q\(label\)/,'Bestehende Buttons dürfen den MutationObserver nicht durch unnötige Text-DOM-Writes triggern');
+  assert.match(runtime,/version:'RC1358'/);
+  assert.match(runtime,/if\(q\(btn\.textContent\)!==q\(label\)\)btn\.textContent=label/,'Bestehende Buttons dürfen den MutationObserver nicht durch unnötige Text-DOM-Writes triggern');
+});
+
+
+test('RC1358: Erstversand und Reminder haben fachlich getrennte Beschriftungen',()=>{
+  assert.match(runtime,/avisReminder\.initialButton/);
+  assert.match(runtime,/avisReminder\.initialFooter/);
+  assert.match(runtime,/avisReminder\.waitingUntil/);
+  assert.match(runtime,/avisReminder\.pickupRecorded/);
+});
+
+test('RC1358: Erstversand ist sofort manuell möglich; Reminder erst nach drei Arbeitstagen ohne Abholtag',()=>{
+  const api=load();
+  let gate=api.reminderGate({reference:'ABC123'},'2026-09-28T10:00:00.000Z');
+  assert.equal(gate.mode,'initial');
+  assert.equal(gate.enabled,true);
+
+  gate=api.reminderGate({reference:'ABC123',avisFirstMailSentAt:'2026-09-28T10:00:00.000Z'},'2026-10-01T09:59:59.000Z');
+  assert.equal(gate.mode,'reminder');
+  assert.equal(gate.enabled,false);
+  assert.equal(gate.reason,'waiting');
+
+  gate=api.reminderGate({reference:'ABC123',avisFirstMailSentAt:'2026-09-28T10:00:00.000Z'},'2026-10-01T10:00:00.000Z');
+  assert.equal(gate.enabled,true);
+  assert.equal(gate.reason,'ready');
+
+  gate=api.reminderGate({reference:'ABC123',avisFirstMailSentAt:'2026-09-25T10:00:00.000Z'},'2026-09-30T10:00:00.000Z');
+  assert.equal(gate.enabled,true,'Wochenende darf nicht als Arbeitstag zählen');
+
+  gate=api.reminderGate({reference:'ABC123',avisFirstMailSentAt:'2026-09-28T10:00:00.000Z',customerAvisPickupDate:'2026-10-02'},'2026-10-05T10:00:00.000Z');
+  assert.equal(gate.enabled,false);
+  assert.equal(gate.reason,'pickup-date');
 });
