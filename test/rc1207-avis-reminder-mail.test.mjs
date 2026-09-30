@@ -57,9 +57,9 @@ test('RC1270: RC1255-E2E protokolliert nur sichere Mail-Antwortdiagnose',()=>{
 
 test('RC1207: erfolgreicher Versand schreibt Sendungshistorie und Audit',()=>{
  assert.match(api,/type:'mail-sent'/);
- assert.match(api,/label:'Avis-Erinnerung versendet'/);
- assert.match(api,/mailType:'avis-reminder'/);
- assert.match(api,/AVIS_REMINDER_SENT/);
+ assert.match(api,/label:initial\?'Lieferavis versendet':'Avis-Erinnerung versendet'/);
+ assert.match(api,/mailType:initial\?'avis-initial':'avis-reminder'/);
+ assert.match(api,/mode==='initial'\?'AVIS_INITIAL_MAIL_SENT':'AVIS_REMINDER_SENT'/);
  assert.match(api,/shipmentHistory/);
  assert.match(api,/mailHistory/);
 });
