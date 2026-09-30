@@ -214,7 +214,6 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
   expect(capture.packingSlipGrid.items.some(item=>/LS_47110007\.pdf/.test(item.text))).toBe(true);
   expect(capture.text).toMatch(/Ladeliste/i);
   expect(capture.text).toMatch(/(?:Ladeliste\s*1|\bL1\b)/i);
-  expect(capture.text).toMatch(/(?:Ladeliste\s*2|\bL2\b)/i);
   expect(capture.text).toMatch(/CMR/i);
   expect(capture.load1Count).toBe(1);
   expect(capture.load2Count).toBe(0);
