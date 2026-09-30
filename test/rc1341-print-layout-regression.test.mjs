@@ -11,24 +11,26 @@ test('RC1345: Gesamtdruck enthält genau eine Ladeliste sowie drei CMR',()=>{
   assert.match(build,/if\(mode==='load2'\)return\[d\.load2\]\.filter\(Boolean\)/);
 });
 
-test('RC1342: Lieferscheine werden einzeln und umbruchfähig gerendert',()=>{
+test('RC1360: Lieferscheine werden vollständig mit maximal 15 Einträgen je Spalte gerendert',()=>{
   assert.match(runtime,/enhanceDocuments\(root,sh\|\|\{\}\)/);
-  assert.match(runtime,/rc1305-document-grid/);
-  assert.match(runtime,/data-rc1293-packing-slip-grid/);
+  assert.match(runtime,/perColumn=15/);
+  assert.match(runtime,/files\.slice\(start,start\+perColumn\)/);
+  assert.match(runtime,/data-rc1360-document-column/);
+  assert.match(runtime,/Math\.min\(columnCount,4\)/);
   assert.match(runtime,/data-rc1293-packing-slip/);
-  assert.ok(runtime.includes("(emptyState?'rc1305-document-empty':'rc1305-document-item')+' rc1293-packing-slip'"));
   assert.match(runtime,/overflow-wrap:anywhere/);
   assert.match(runtime,/word-break:break-word/);
 });
 
-test('RC1359: Druck-QR sitzt klein direkt auf dem Deckblatt und nicht im großen QR-Container',()=>{
-  assert.match(runtime,/data-rc1359-print-qr-bottom-center/);
-  assert.match(runtime,/rc1359-print-qr-center/);
-  assert.doesNotMatch(runtime,/data-rc1341-print-qr-top-right/);
+test('RC1360: Druck-QR sitzt oben rechts auf dem Deckblatt ohne Referenzfeld zu überdecken',()=>{
+  assert.match(runtime,/data-rc1360-print-qr-top-right/);
+  assert.match(runtime,/rc1360-print-qr-top-right/);
+  assert.match(runtime,/rc1360-cover-top-right/);
+  assert.doesNotMatch(runtime,/data-rc1359-print-qr-bottom-center/);
+  assert.doesNotMatch(runtime,/rc1359-print-qr-center/);
   assert.doesNotMatch(runtime,/rc1315-print-qr-in-ref/);
-  assert.ok(runtime.includes("important(section,'left','50%')"));
-  assert.ok(runtime.includes("important(section,'bottom','14mm')"));
-  assert.ok(runtime.includes("important(code,'width','8mm')"));
+  assert.ok(runtime.includes("important(code,'width','12mm')"));
+  assert.ok(runtime.includes("grid-template-columns:minmax(0,1fr) 18mm"));
 });
 
 test('RC1342: Deckblatt zeigt ein vorhandenes Abholdatum',()=>{
@@ -42,15 +44,19 @@ test('RC1343: Deckblatt wird zwei Punkte und Ladeliste einen Punkt kompakter ged
   assert.match(runtime,/enhanceCover\(html,sh\)[\s\S]*?shrinkInlineFonts\(root,2\)/);
 });
 
-test('RC1359: neue Druckruntime wird cache-sicher geladen',()=>{
-  assert.match(build,/rc1305-loading-list-print\.js\?v=1359/);
-  assert.match(runtime,/version:'RC1359'/);
+test('RC1360: neue Druckruntime wird cache-sicher und A4-stabil geladen',()=>{
+  assert.match(build,/rc1305-loading-list-print\.js\?v=1360/);
+  assert.match(runtime,/version:'RC1360'/);
+  assert.match(runtime,/@page\{size:A4 portrait;margin:0\}/);
+  assert.match(runtime,/width:210mm!important/);
+  assert.match(runtime,/min-height:297mm!important/);
 });
 
 
-test('RC1359: zusammengeklebte PDF-Namen werden getrennt und das Raster bleibt inline drucksicher',()=>{
+test('RC1360: zusammengeklebte PDF-Namen werden getrennt und das Spaltenraster bleibt drucksicher',()=>{
   assert.ok(runtime.includes('function splitPdfNames('));
   assert.ok(runtime.includes('grid.style.cssText'));
-  assert.ok(runtime.includes('grid-template-columns:repeat(4,minmax(0,1fr))'));
-  assert.ok(runtime.includes('font-size:5.2pt!important'));
+  assert.ok(runtime.includes('grid-template-columns:repeat(var(--rc1360-document-columns,1),minmax(0,1fr))'));
+  assert.ok(runtime.includes('font-size:7pt!important'));
+  assert.ok(runtime.includes('data-rc1360-document-column'));
 });
