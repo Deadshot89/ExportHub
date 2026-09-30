@@ -39,7 +39,10 @@ test('RC1352: echter Sendetest ist optional, production-only und fest auf intern
 
 test('RC1352: Workflow und Readiness geben keine Graph-Secrets aus',()=>{
   assert.doesNotMatch(workflow,/EXPORTHUB_GRAPH_CLIENT_SECRET|client_secret|access_token/);
-  const responseBlock=api.slice(api.indexOf("if(action==='send-test')"),api.indexOf("}catch(e)"));
+  const start=api.indexOf("if(action==='send-test')");
+  const end=api.indexOf("}catch(e)",start);
+  const responseBlock=api.slice(start,end);
+  assert.ok(start>=0&&end>start,'send-test Zweig muss vor dem Handler-catch liegen');
   assert.doesNotMatch(responseBlock,/clientSecret\s*:|access_token/);
   assert.match(responseBlock,/mailProbe:\{ok:/);
 });
