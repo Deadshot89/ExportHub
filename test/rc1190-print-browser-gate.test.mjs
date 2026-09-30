@@ -81,6 +81,11 @@ test('RC1340: Lieferschein-PDFs werden dedupliziert und über den Gesamtdruck au
   assert.match(build,/frame\.contentWindow\.postMessage\(\{type:'print'\},'\*'\)/);
   assert.match(build,/dataResponse=await fetch\(url\)/);
   assert.match(build,/URL\.createObjectURL\(dataBlob\)/);
+  assert.match(build,/seenName=Object\.create\(null\)/);
+  assert.match(build,/nameKey=low\(name\)\.replace/);
+  assert.match(spec,/directCoverChild/);
+  assert.match(spec,/sameBottomBand/);
+  assert.match(spec,/Zusammengeklebte PDF-Dateinamen/);
   const bridgeStart=build.indexOf('async function rc1340PrintPreparedAttachment(item,index,total){');
   const bridgeEnd=build.indexOf('async function rc1340PrintPreparedAttachments(items){',bridgeStart);
   const bridge=build.slice(bridgeStart,bridgeEnd);
