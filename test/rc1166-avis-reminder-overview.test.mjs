@@ -159,6 +159,13 @@ test('RC1358: Sendungsübersicht injiziert Avis-Erinnerung auch nach späteren K
 });
 
 
+test('RC1358: Erstversand und Reminder haben fachlich getrennte Beschriftungen',()=>{
+  assert.match(runtime,/avisReminder\.initialButton/);
+  assert.match(runtime,/avisReminder\.initialFooter/);
+  assert.match(runtime,/avisReminder\.waitingUntil/);
+  assert.match(runtime,/avisReminder\.pickupRecorded/);
+});
+
 test('RC1358: Erstversand ist sofort manuell möglich; Reminder erst nach drei Arbeitstagen ohne Abholtag',()=>{
   const api=load();
   let gate=api.reminderGate({reference:'ABC123'},'2026-09-28T10:00:00.000Z');
