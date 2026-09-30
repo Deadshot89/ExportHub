@@ -66,7 +66,7 @@ test('RC1052: customer-avis issue erzeugt den Link ohne grossen Team-State-Write
     assert.equal(teamWrites,0,'Die normale Link-Erstellung darf den grossen Team-State nicht mehr neu hochladen.');
     const response=JSON.parse(context.res.body);
     assert.equal(response.timing.flagWriteMs,0);
-    assert.match(response.url,/^https:\/\/wonderful-forest-0f315e310\.7\.azurestaticapps\.net\/customer-avis\.html\?token=[A-Za-z0-9_-]+$/);
+    assert.match(response.url,/^https:\/\/exporthub360\.com\/avis\/[A-Za-z0-9_-]+$/);
   }finally{if(oldStorage===undefined)delete process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;else process.env.EXPORTHUB_STORAGE_CONNECTION_STRING=oldStorage}
 });
 
