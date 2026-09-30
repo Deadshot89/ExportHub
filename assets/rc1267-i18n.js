@@ -97,6 +97,64 @@ function applicationState(){
  try{if(w.appState)return w.appState}catch(_){}
  return{}
 }
+function applicationStateRoots(){
+ var out=[];
+ function add(value){if(value&&typeof value==='object'&&out.indexOf(value)<0)out.push(value)}
+ try{add(applicationState())}catch(_){}
+ try{add(w.state)}catch(_){}
+ try{add(w.ExportHUBClean&&w.ExportHUBClean.runtime&&w.ExportHUBClean.runtime.state)}catch(_){}
+ try{add(w.__CLEAN_BOOT_STATE__)}catch(_){}
+ return out
+}
+function normalizeLabel(value){
+ try{return q(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}catch(_){return q(value).toLowerCase()}
+}
+function shipmentDraftField(el){
+ if(!el||el.tagName!=='TEXTAREA')return'';
+ var explicit=normalizeLabel((el.getAttribute&&el.getAttribute('data-rc408-shipment-field'))||el.name||el.id||'');
+ if(/comments?|remarks?|bemerk/.test(explicit))return'comments';
+ if(/goodsdescription|goods-description|description/.test(explicit))return'goodsDescription';
+ var owner=el.closest&&el.closest('[data-rc896-field]'),kind=normalizeLabel(owner&&owner.getAttribute('data-rc896-field'));
+ if(kind==='remark')return'comments';
+ if(kind==='description')return'goodsDescription';
+ var label=el.closest&&el.closest('label'),text=normalizeLabel(label&&label.textContent);
+ if(/^(bemerkung|comment|remarks?|uwaga|remarque|observacion|osservazioni|nota)\b/.test(text))return'comments';
+ if(/warenbeschreibung|goods description|opis towaru|descripcion de mercancia|description de la marchandise|descrizione merce/.test(text))return'goodsDescription';
+ return''
+}
+function snapshotShipmentDraft(){
+ if(!d.querySelectorAll)return false;
+ var values=Object.create(null),changed=false;
+ Array.from(d.querySelectorAll('#rc363FixedShipmentLayout textarea,textarea[data-rc408-shipment-field],[data-rc896-field="remark"] textarea,[data-rc896-field="description"] textarea')).forEach(function(el){
+  var field=shipmentDraftField(el);
+  if(!field)return;
+  values[field]=String(el.value==null?'':el.value);
+  changed=true;
+ });
+ if(!changed)return false;
+ var stamp=new Date().toISOString();
+ applicationStateRoots().forEach(function(root){
+  var shipment=root.shipment||(root.shipment={});
+  if(Object.prototype.hasOwnProperty.call(values,'comments')){
+   shipment.comments=values.comments;
+   shipment.remarks=values.comments;
+  }
+  if(Object.prototype.hasOwnProperty.call(values,'goodsDescription'))shipment.goodsDescription=values.goodsDescription;
+  shipment.updatedAt=stamp;
+  shipment._syncUpdatedAt=stamp;
+ });
+ try{
+  var draft=w.__EXPORTHUB_SHIPMENT_DRAFT__;
+  if(draft&&typeof draft==='object'){
+   if(Object.prototype.hasOwnProperty.call(values,'comments')){draft.comments=values.comments;draft.remarks=values.comments}
+   if(Object.prototype.hasOwnProperty.call(values,'goodsDescription'))draft.goodsDescription=values.goodsDescription;
+  }
+ }catch(_){}
+ return true
+}
+function syncApplicationLanguage(lang){
+ applicationStateRoots().forEach(function(root){try{root.language=lang}catch(_){}});
+}
 function buildDynamicIndex(){
  dynamicByText=Object.create(null);var root=applicationState(),seen=new WeakSet();
  function walk(value,depth){
@@ -239,9 +297,11 @@ function installApiLanguageFetch(){
  return true;
 }
 async function setLanguage(lang,options){
+ snapshotShipmentDraft();
  var next=normalize(lang)||'de',opts=options||{};
  await ensureResources(next);
  current=next;
+ syncApplicationLanguage(next);
  buildDynamicIndex();
  if(opts.persist!==false)persist(next);
  if(selector&&selector.value!==next)selector.value=next;
@@ -278,6 +338,19 @@ function selectorMarkup(){
  selector=select;
  return wrap;
 }
+function isLanguageSelector(el){
+ if(!el||el.tagName!=='SELECT')return false;
+ return /^(?:languageSelect|loginLanguageSelect|exporthubI18nLanguageSelect)$/.test(q(el.id))
+}
+function captureLanguageChange(event){
+ var target=event&&event.target;
+ if(!isLanguageSelector(target))return;
+ snapshotShipmentDraft();
+ if(event.stopImmediatePropagation)event.stopImmediatePropagation();
+ if(event.stopPropagation)event.stopPropagation();
+ setLanguage(target.value).catch(reportError);
+}
+d.addEventListener('change',captureLanguageChange,true);
 function extendNativeSelector(nativeSelect){
  if(!nativeSelect)return null;
  SUPPORTED.forEach(function(code){
@@ -388,6 +461,7 @@ w.ExportHUBI18n=Object.freeze({
  formatNumber:formatNumber,
  formatCurrency:formatCurrency,
  localized:localized,
+ snapshotShipmentDraft:snapshotShipmentDraft,
  rebuildDynamicIndex:buildDynamicIndex,
  resourceUrl:resourceUrl
 });

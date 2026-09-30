@@ -77,6 +77,18 @@ test('RC1340: Lieferschein-PDFs werden dedupliziert und über den Gesamtdruck au
   assert.match(build,/await rc1340PrintPreparedAttachments\(attachmentJobs\)/);
   assert.match(build,/attachmentCount:attachmentJobs\.length/);
   assert.match(build,/window\.ExportHUBRC1340AttachmentPrint/);
+  assert.match(build,/data-rc1354-pdf-print-bridge/);
+  assert.match(build,/frame\.contentWindow\.postMessage\(\{type:'print'\},'\*'\)/);
+  assert.match(build,/dataResponse=await fetch\(url\)/);
+  assert.match(build,/URL\.createObjectURL\(dataBlob\)/);
+  const bridgeStart=build.indexOf('async function rc1340PrintPreparedAttachment(item,index,total){');
+  const bridgeEnd=build.indexOf('async function rc1340PrintPreparedAttachments(items){',bridgeStart);
+  const bridge=build.slice(bridgeStart,bridgeEnd);
+  assert.match(bridge,/if\(chromium\)/);
+  const chromiumBlock=bridge.match(/if\(chromium\)\{([\s\S]*?)\}else\{/);
+  assert.ok(chromiumBlock,'Chromium-Druckzweig fehlt');
+  assert.match(chromiumBlock[1],/postMessage\(\{type:'print'\},'\*'\)/);
+  assert.doesNotMatch(chromiumBlock[1],/\.print\(/);
   assert.match(spec,/RC1340 P1: echte Lieferschein-PDFs werden im Gesamtdruck exakt einmal gedruckt/);
   assert.match(spec,/expect\(result\.printed\)\.toHaveLength\(2\)/);
   assert.match(spec,/LS_NUR_METADATA\.pdf/);

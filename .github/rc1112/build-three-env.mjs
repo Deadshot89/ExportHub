@@ -467,7 +467,8 @@ async function rc1340PrepareDeliveryAttachmentPrints(sh){
  try{
   for(var i=0;i<list.length;i++){var item=list[i],url=item.legacyUrl,owned=false;
    if(item.blobBacked){if(!helper||typeof helper.fetchBlob!=='function')throw new Error('Dokumentenspeicher ist nicht verfügbar: '+item.name);var blob=await helper.fetchBlob(item.file);url=URL.createObjectURL(blob);owned=true}
-   else if(url&&!/^(?:data:application\\/pdf|blob:)/i.test(url)){var response=await fetch(url,{credentials:'same-origin',cache:'no-store'});if(!response.ok)throw new Error(item.name+' konnte nicht geladen werden (HTTP '+response.status+').');var fetched=await response.blob();url=URL.createObjectURL(fetched);owned=true}
+   else if(/^data:application\\/pdf/i.test(url)){var dataResponse=await fetch(url);if(!dataResponse.ok)throw new Error(item.name+' konnte nicht aus dem lokalen PDF-Inhalt geladen werden.');var dataBlob=await dataResponse.blob();url=URL.createObjectURL(dataBlob);owned=true}
+   else if(url&&!/^blob:/i.test(url)){var response=await fetch(url,{credentials:'same-origin',cache:'no-store'});if(!response.ok)throw new Error(item.name+' konnte nicht geladen werden (HTTP '+response.status+').');var fetched=await response.blob();url=URL.createObjectURL(fetched);owned=true}
    if(!url)throw new Error('Kein druckbarer Dateiinhalt für '+item.name+'.');
    prepared.push({name:item.name,identity:item.identity,url:url,owned:owned})
   }
@@ -475,11 +476,25 @@ async function rc1340PrepareDeliveryAttachmentPrints(sh){
  }catch(e){prepared.forEach(function(item){if(item.owned)try{URL.revokeObjectURL(item.url)}catch(_){}});throw e}
 }
 async function rc1340PrintPreparedAttachment(item,index,total){
- if(typeof window.__EXPORTHUB_CAPTURE_ATTACHMENT_PRINT__==='function'){await Promise.resolve(window.__EXPORTHUB_CAPTURE_ATTACHMENT_PRINT__({name:item.name,index:index,total:total,identity:item.identity,url:item.url}));return true}
+ if(typeof window.__EXPORTHUB_CAPTURE_ATTACHMENT_PRINT__==='function'){await Promise.resolve(window.__EXPORTHUB_CAPTURE_ATTACHMENT_PRINT__({name:item.name,index:index,total:total,identity:item.identity,url:item.url,transport:'capture'}));return true}
  return new Promise(function(resolve,reject){var frame=document.createElement('iframe'),done=false,timer;
   function finish(error){if(done)return;done=true;try{clearTimeout(timer)}catch(_){};try{frame.remove()}catch(_){};if(error)reject(error);else resolve(true)}
-  frame.setAttribute('aria-hidden','true');frame.setAttribute('data-rc1340-attachment-print',String(index+1));frame.style.cssText='position:fixed;left:-100000px;top:0;width:1px;height:1px;border:0;opacity:0;pointer-events:none';
-  frame.onload=function(){later(function(){try{if(!frame.contentWindow)throw new Error('PDF-Druckfenster fehlt.');frame.contentWindow.focus();frame.contentWindow.print();later(function(){finish()},250)}catch(e){finish(e)}},350)};
+  function dispatchPrint(){
+   try{
+    if(!frame.contentWindow)throw new Error('PDF-Druckfenster fehlt.');
+    frame.focus();
+    var ua=String(navigator&&navigator.userAgent||''),chromium=/(?:Chrome|Chromium|Edg)\\//.test(ua);
+    if(chromium){
+     frame.contentWindow.postMessage({type:'print'},'*');
+    }else{
+     frame.contentWindow.focus();
+     frame.contentWindow.print();
+    }
+    later(function(){finish()},600)
+   }catch(e){finish(e)}
+  }
+  frame.setAttribute('aria-hidden','true');frame.setAttribute('data-rc1340-attachment-print',String(index+1));frame.setAttribute('data-rc1354-pdf-print-bridge','1');frame.style.cssText='position:fixed;left:-100000px;top:0;width:1px;height:1px;border:0;opacity:0;pointer-events:none';
+  frame.onload=function(){later(dispatchPrint,350)};
   frame.onerror=function(){finish(new Error('PDF konnte nicht für den Druck geladen werden: '+item.name))};
   timer=later(function(){finish(new Error('Zeitüberschreitung beim PDF-Druck: '+item.name))},15000);document.body.appendChild(frame);frame.src=item.url
  })
@@ -508,6 +523,7 @@ window.ExportHUBRC1340AttachmentPrint=Object.freeze({version:'RC1340',printable:
     html=html.replace(printOld,printNew);
   }
   if(!html.includes("version:'RC1340'")||!html.includes('attachmentCount:attachmentJobs.length')||!html.includes('await rc1340PrintPreparedAttachments(attachmentJobs)'))throw new Error(file+': RC1340 Lieferschein-Direktdruck fehlt');
+  if(!html.includes("data-rc1354-pdf-print-bridge")||!html.includes("frame.contentWindow.postMessage({type:'print'},'*')"))throw new Error(file+': RC1354 Chromium PDF-Druckbrücke fehlt');
   return html;
 }
 
