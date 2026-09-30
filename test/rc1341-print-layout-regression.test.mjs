@@ -21,16 +21,15 @@ test('RC1342: Lieferscheine werden einzeln und umbruchfähig gerendert',()=>{
   assert.match(runtime,/word-break:break-word/);
 });
 
-test('RC1361: Druck-QR sitzt klein unten am Deckblatt direkt bei der QR-Zone',()=>{
-  assert.match(runtime,/data-rc1361-print-qr-bottom/);
-  assert.match(runtime,/rc1361-print-qr-bottom/);
-  assert.match(runtime,/setAttribute\('data-rc1361-print-qr-bottom','1'\)/);
-  assert.match(runtime,/querySelector\('\.rc390-cover-qr,\.rc352-cover-qr'\)/);
-  assert.match(runtime,/insertBefore\(section,coverQr\.nextSibling\)/);
-  assert.doesNotMatch(runtime,/setAttribute\('data-rc1360-print-qr-top-right'/);
+test('RC1361: Druck-QR sitzt klein oben rechts direkt auf dem Deckblatt',()=>{
+  assert.match(runtime,/data-rc1361-print-qr-top-right/);
+  assert.match(runtime,/rc1361-print-qr-top-right/);
+  assert.match(runtime,/setAttribute\('data-rc1361-print-qr-top-right','1'\)/);
+  assert.doesNotMatch(runtime,/setAttribute\('data-rc1361-print-qr-bottom'/);
   assert.doesNotMatch(runtime,/className=['"][^'"]*rc1315-print-qr-in-ref/);
-  assert.ok(runtime.includes("important(section,'position','static')"));
-  assert.ok(runtime.includes("important(section,'margin','3mm auto 0')"));
+  assert.ok(runtime.includes("important(section,'top','8mm')"));
+  assert.ok(runtime.includes("important(section,'right','8mm')"));
+  assert.ok(runtime.includes("important(section,'position','absolute')"));
   assert.ok(runtime.includes("important(code,'width','8mm')"));
 });
 
