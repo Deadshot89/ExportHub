@@ -63,10 +63,13 @@ test('RC1362: Drei-Umgebungen-Build liefert die aktuelle Ladelisten-Druckruntime
   assert.match(build,/loadingListPrintRedesign:'RC1362/);
 });
 
-test('RC1362: Production-Gate prüft dieselbe Ladelisten-Druckruntime wie der Build',()=>{
+test('RC1362: Production- und Live-Gate prüfen dieselbe einspaltige Ladelisten-Druckruntime wie der Build',()=>{
   assert.match(build,/assets\/rc1305-loading-list-print\.js\?v=1362/);
   assert.match(FLOW,/assets\/rc1305-loading-list-print\.js\?v=1362/);
+  assert.match(FLOW,/grid-template-columns:minmax\(0,1fr\)/);
+  assert.match(FLOW,/grid-auto-flow:row/);
   assert.doesNotMatch(FLOW,/assets\/rc1305-loading-list-print\.js\?v=1361/);
+  assert.doesNotMatch(FLOW,/docColumns=Math\.max\(1,Math\.ceil\(docCount\/15\)\)/);
 });
 
 test('RC1305: geänderte JavaScript-Dateien sind syntaktisch gültig',()=>{
