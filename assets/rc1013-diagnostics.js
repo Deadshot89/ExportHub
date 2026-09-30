@@ -203,11 +203,41 @@
   }
   function install(win){
     if(!win||!win.document||win.__EXPORTHUB_RC1013_DIAGNOSTICS__)return;win.__EXPORTHUB_RC1013_DIAGNOSTICS__=true;win.__EXPORTHUB_RC1125_DIAGNOSTICS_VIEW_ISOLATION__=true;style(win);
-    var timer=0,schedule=function(delay){clearTimeout(timer);timer=setTimeout(function(){refresh(win);},delay||120);};
+    var timer=0,activeObserver=null,activeObserverTarget=null,activePollTimer=0;
+    function stopActiveWatchers(){
+      if(activeObserver){try{activeObserver.disconnect()}catch(_){}activeObserver=null;activeObserverTarget=null;}
+      if(activePollTimer){try{(win.clearInterval||clearInterval)(activePollTimer)}catch(_){}activePollTimer=0;}
+    }
+    function mutationOutsideEnhancedHost(records){
+      var host=win.document.getElementById('rc1013-diagnostics-enhanced');
+      return Array.prototype.some.call(records||[],function(rec){
+        var target=rec&&rec.target;
+        return !(host&&target&&(target===host||(host.contains&&host.contains(target))));
+      });
+    }
+    function syncActiveWatchers(){
+      if(!diagnosticsVisible(win)){stopActiveWatchers();return false;}
+      var target=pageRoot(win);
+      if(win.MutationObserver&&target&&activeObserverTarget!==target){
+        if(activeObserver){try{activeObserver.disconnect()}catch(_){}}
+        activeObserver=new win.MutationObserver(function(records){if(mutationOutsideEnhancedHost(records))schedule(180);});
+        try{activeObserver.observe(target,{childList:true,subtree:true});activeObserverTarget=target}catch(_){activeObserver=null;activeObserverTarget=null;}
+      }
+      if(!activePollTimer&&typeof win.setInterval==='function'){
+        activePollTimer=win.setInterval(function(){if(!win.document.hidden&&diagnosticsVisible(win))refresh(win);},10000);
+      }
+      return true;
+    }
+    var schedule=function(delay){
+      clearTimeout(timer);
+      timer=setTimeout(function(){
+        if(!diagnosticsVisible(win)){stopActiveWatchers();removeDiagnosticsHost(win);return;}
+        syncActiveWatchers();
+        Promise.resolve(refresh(win)).then(syncActiveWatchers,function(){syncActiveWatchers();});
+      },delay||120);
+    };
     ['exporthub:ready','exporthub:rendered','exporthub:diagnostic','exporthub:diagnostic-autofix','exporthub:language-changed'].forEach(function(n){win.addEventListener(n,function(){schedule(120);});});
-    win.addEventListener('exporthub:viewchange',function(){schedule(0);});
-    if(win.MutationObserver){var mo=new win.MutationObserver(function(){if(diagnosticsVisible(win)||win.document.getElementById('rc1013-diagnostics-enhanced'))schedule(180);});mo.observe(win.document.documentElement,{childList:true,subtree:true});}
-    win.setInterval(function(){if(!win.document.hidden&&(diagnosticsVisible(win)||win.document.getElementById('rc1013-diagnostics-enhanced')))refresh(win)},10000);
+    win.addEventListener('exporthub:viewchange',function(){if(!diagnosticsVisible(win)){stopActiveWatchers();removeDiagnosticsHost(win);return;}syncActiveWatchers();schedule(0);});
     schedule(300);
   }
   return Object.freeze({version:'RC1085',describe:describe,codeOf:codeOf,refresh:refresh,install:install,requestAutofix:requestAutofix,filterRows:filterRows,statusInfo:statusInfo});
