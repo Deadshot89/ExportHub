@@ -84,3 +84,12 @@ test('RC1354: language switch preserves the live shipment remark before any lega
   assert.match(runtime,/snapshotShipmentDraft\(\);\s*var next=normalize\(lang\)/);
   for(const label of ['bemerkung','comment','uwaga','remarque','observacion','osservazioni'])assert.match(runtime,new RegExp(label));
 });
+
+
+test('RC1355: language switch snapshots remark into active shipment collections before rerender',()=>{
+  assert.match(runtime,/function shipmentDraftTargets\(root\)/);
+  assert.match(runtime,/\['shipments','savedShipments','salesSharedShipments','sharedShipments'\]/);
+  assert.match(runtime,/shipment\.remark=values\.comments/);
+  assert.match(runtime,/shipment\.bemerkung=values\.comments/);
+  assert.match(runtime,/snapshotShipmentDraft\(\);\s*var next=normalize\(lang\)/);
+});
