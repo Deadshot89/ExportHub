@@ -457,7 +457,7 @@ function rc1340PrintableDeliveryAttachments(sh){
   try{blobBacked=!!(helper&&typeof helper.isBlobDocument==='function'&&helper.isBlobDocument(file));if(blobBacked&&typeof helper.blobName==='function')blobName=q(helper.blobName(file))}catch(_){blobBacked=false}
   var pdf=/application\\/pdf/i.test(mime)||/\\.pdf(?:$|[?#])/i.test(name)||/^data:application\\/pdf/i.test(url)||/\\.pdf(?:$|[?#])/i.test(url);
   if(!pdf||(!blobBacked&&!url))return;
-  var nameKey=low(name).replace(/\s+/g,' '),strongId=q(file.sha256||file.hash||file.documentId||file.itemId||file.id),identity=strongId?'id:'+strongId:(blobBacked?'blob:'+blobName:(nameKey?'name:'+nameKey:(url?'url:'+url:'')));
+  var nameKey=low(name).replace(/\\s+/g,' '),strongId=q(file.sha256||file.hash||file.documentId||file.itemId||file.id),identity=strongId?'id:'+strongId:(blobBacked?'blob:'+blobName:(nameKey?'name:'+nameKey:(url?'url:'+url:'')));
   if(!identity||seen[identity]||(nameKey&&seenName[nameKey]))return;seen[identity]=true;if(nameKey)seenName[nameKey]=true;out.push({file:file,name:name,identity:identity,blobBacked:blobBacked,legacyUrl:url})
  }
  keys.forEach(function(key){arr(sh&&sh[key]).forEach(add)});return out
@@ -993,7 +993,7 @@ fs.writeFileSync(path.join(OUT,'rc1112-manifest.json'),JSON.stringify({
     documentActionHistory:'RC1178 print/open/download + user + filename, including resumed print flow',
     deckblattHighVisibility:'RC1281 white cover + Essentra yellow / customer blue reference + lighter recipient + shipment created date',
     loadingListSearch:'RC1305 full-width search by reference/customer/attachment/remark + compact result/detail workspace + open/print/download',
-    loadingListPrintRedesign:'RC1305 compact delivery-note grid + actual pickup data after collection + explicit missing values',
+    loadingListPrintRedesign:'RC1353 single loading-list total print + compact unique delivery-note grid + actual pickup data after collection',
     loadingListQuickPrint:'RC1322 dedicated print QR + QR/REF complete print + Edge silent-print workstation setup',
     coverOnlyPrint:'RC1205 single Nur Deckblatt drucken action inside Speichern & Ausgabe',
     palletAccountDirectionAndAdminDelete:'RC1207 visible direction is saved, admin tombstone delete, one-time production cleanup 2026-09-21',
