@@ -64,6 +64,7 @@ test('RC1362: Drei-Umgebungen-Build liefert die aktuelle Ladelisten-Druckruntime
 });
 
 test('RC1362: Production- und Live-Gate prüfen dieselbe einspaltige Ladelisten-Druckruntime wie der Build',()=>{
+  assert.match(FLOW,/RC1362 AVIS und Drucklayout live verifizieren/);
   assert.match(build,/assets\/rc1305-loading-list-print\.js\?v=1362/);
   assert.match(FLOW,/assets\/rc1305-loading-list-print\.js\?v=1362/);
   assert.match(FLOW,/grid-template-columns:minmax\(0,1fr\)/);
