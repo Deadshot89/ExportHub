@@ -27,6 +27,12 @@ function safeAvisUrl(req,value){
  const environment=auth.environmentFromRequest(req),host=lower(u.hostname),legacyPath=/\/customer-avis\.html$/i.test(u.pathname),brandedPath=/^\/avis\/[^/]+\/?$/i.test(u.pathname);
  const valid=environment==='testservice'?((host===TESTSERVICE_PUBLIC_HOST&&legacyPath)||(host===PRODUCTION_PUBLIC_HOST&&brandedPath&&lower(u.searchParams.get('environment'))==='testservice')):((host===PRODUCTION_PUBLIC_HOST&&(brandedPath||legacyPath))||(host===LEGACY_PRODUCTION_PUBLIC_HOST&&legacyPath));
  if(!valid)throw auth.error('AVIS_URL_INVALID','Der Avis-Link gehört nicht zu dieser ExportHUB-Umgebung.',400);
+ if(environment==='production'){
+  let token=text(u.searchParams.get('token')||u.searchParams.get('avis'));
+  if(!token&&brandedPath){const m=String(u.pathname||'').match(/^\/avis\/([^/?#]+)\/?$/i);if(m&&m[1]){try{token=decodeURIComponent(m[1])}catch(_){token=m[1]}}}
+  if(!token)throw auth.error('AVIS_URL_INVALID','Der Avis-Link ist ungültig.',400);
+  return 'https://'+PRODUCTION_PUBLIC_HOST+'/avis/'+encodeURIComponent(token)
+ }
  return u.toString()
 }
 function subject(ref,target,lang){
