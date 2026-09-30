@@ -91,7 +91,7 @@ test('RC1153 Aufgabenansicht bietet Offen In Bearbeitung und Erledigt',()=>{
   assert.match(runtime,/function\s+setTaskStatus\s*\(/);
 });
 
-test('RC1153 entfernt Altaufgaben wiederholt und behält nur aktuelle Systemquellen',()=>{
+test('RC1353 entfernt archivierte Managed-Aufgaben wiederholt und behält nur aktuelle Systemquellen',()=>{
   const {api}=loadRuntime();
   const state={
     tasks:[],
@@ -109,7 +109,7 @@ test('RC1153 entfernt Altaufgaben wiederholt und behält nur aktuelle Systemquel
   assert.equal(result.tasks.some(t=>t.id==='legacy-manual'),false);
   assert.equal(result.tasks.some(t=>t.id==='stale-pod'),false);
   assert.equal(result.tasks.some(t=>t.id==='current-pod'),true);
-  assert.equal(result.tasks.some(t=>t.id==='managed-old'),true);
+  assert.equal(result.tasks.some(t=>t.id==='managed-old'),false);
   assert.equal(state._teamSyncMeta.tombstones.some(t=>t.id==='legacy-manual'),true);
   assert.equal(state._teamSyncMeta.tombstones.some(t=>t.id==='stale-pod'),true);
 });
