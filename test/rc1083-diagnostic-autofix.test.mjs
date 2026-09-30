@@ -82,7 +82,7 @@ test('RC1083: Autofix schützt Workflow Secrets und große unkontrollierte Ände
 
 test('RC1085: finaler Build überschreibt die historische Diagnose-Runtime mit kostenneutralem RC1085-Stand',()=>{
   assert.match(build,/assets\\\/rc1013-diagnostics\\\.js\\\?v=1013/);
-  assert.match(build,/assets\/rc1013-diagnostics\.js\?v=1085/);
+  assert.match(build,/assets\/rc1013-diagnostics\.js\?v=1361/);
   assert.match(build,/'assets\/rc1013-diagnostics\.js','assets\/rc1061-document-migration-admin\.js'/);
   assert.match(build,/diagnosticsAutofix:\{version:'RC1085'/);
   assert.match(build,/enabledByDefault:false/);
