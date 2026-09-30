@@ -5,7 +5,7 @@ window.__EXPORTHUB_RC1027_LIEFERAVIS_IMMEDIATE__=true;
 
 var previous=null,wrapper=null,earlyPending=null,visibleSyncing=false,draftSyncTimer=0,draftSyncPending=null,lastDraftSignature='',avisLinkCache=Object.create(null);
 function q(v){return String(v==null?'':v).trim()}
-var RC1333_PROD_AVIS_ORIGIN='https://wonderful-forest-0f315e310.7.azurestaticapps.net';
+var RC1333_PROD_AVIS_ORIGIN='https://exporthub360.com';
 var RC1333_TEST_AVIS_ORIGIN='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net';
 function rc1331AvisToken(sh,url){
  var token=q(sh&&(sh.customerAvisToken||sh.avisToken));
@@ -24,9 +24,9 @@ function rc1333SafeAvisUrl(sh,url){
  var env='';
  try{var u=new URL(q(url)||'', 'https://exporthub.invalid/');env=q(u.searchParams.get('environment')).toLowerCase()}catch(_){}
  if(!env)env=environmentName();
- var origin=env&&env!=='production'?RC1333_TEST_AVIS_ORIGIN:RC1333_PROD_AVIS_ORIGIN;
- var out=origin+'/customer-avis.html?token='+encodeURIComponent(token);
- return env&&env!=='production'?out+'&environment='+encodeURIComponent(env):out
+ if(!env||env==='production')return RC1333_PROD_AVIS_ORIGIN+'/avis/'+encodeURIComponent(token);
+ var out=RC1333_TEST_AVIS_ORIGIN+'/customer-avis.html?token='+encodeURIComponent(token);
+ return out+'&environment='+encodeURIComponent(env)
 }
 function tr(key,vars,fallback){try{if(window.ExportHUBI18n&&typeof window.ExportHUBI18n.t==='function'){var v=window.ExportHUBI18n.t(key,vars);if(v&&v!==key)return v}}catch(_){}return fallback||key}
 function rc1267NormalizeLanguage(v){var m=q(v).toLowerCase().replace('_','-').match(/^(de|en|pl|es|fr|it)(?:-|$)/);return m?m[1]:'de'}
@@ -64,7 +64,7 @@ function recipientExcluded(sh,target){try{return previous&&typeof previous.avisR
 function environmentName(){return typeof location!=='undefined'&&/-testservice\./i.test(String(location.hostname||''))?'testservice':'production'}
 function avisCacheKey(sh){var ref=explicitReference(sh);if(!ref)return'';return'exporthub:avis-url:'+environmentName()+':'+ref}
 function cachedAvisUrl(sh){var key=avisCacheKey(sh);if(!key)return'';if(avisLinkCache[key])return rc1333SafeAvisUrl(sh,avisLinkCache[key]);try{if(typeof sessionStorage!=='undefined'){var stored=q(sessionStorage.getItem(key));if(stored){stored=rc1333SafeAvisUrl(sh,stored);avisLinkCache[key]=stored;sessionStorage.setItem(key,stored);return stored}}}catch(_){}return''}
-function rc1333IsSafeAvisUrl(url){try{var u=new URL(q(url)),h=q(u.hostname).toLowerCase();return u.protocol==='https:'&&/\/customer-avis\.html$/i.test(u.pathname)&&!!q(u.searchParams.get('token'))&&(h==='wonderful-forest-0f315e310.7.azurestaticapps.net'||h==='ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net')}catch(_){return false}}
+function rc1333IsSafeAvisUrl(url){try{var u=new URL(q(url)),h=q(u.hostname).toLowerCase(),branded=h==='exporthub360.com'&&/\/avis\/[^/?#]+\/?$/i.test(u.pathname),legacy=/\/customer-avis\.html$/i.test(u.pathname)&&!!q(u.searchParams.get('token'))&&(h==='wonderful-forest-0f315e310.7.azurestaticapps.net'||h==='ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net');return u.protocol==='https:'&&(branded||legacy)}catch(_){return false}}
 function rememberAvisUrl(sh,url){url=rc1333SafeAvisUrl(sh,url);var key=avisCacheKey(sh);if(!key||!url)return url;if(!rc1333IsSafeAvisUrl(url))return url;avisLinkCache[key]=url;try{if(typeof sessionStorage!=='undefined')sessionStorage.setItem(key,url)}catch(_){}return url}
 function forgetAvisUrl(sh){var key=avisCacheKey(sh);if(!key)return false;delete avisLinkCache[key];try{if(typeof sessionStorage!=='undefined')sessionStorage.removeItem(key)}catch(_){}return true}
 function avisUrl(sh){if(manualDisabled(sh)){forgetAvisUrl(sh);return''}var live='';try{live=q(previous&&typeof previous.link==='function'&&previous.link(sh))}catch(_){}if(!live&&sh)live=q(sh.customerAvisUrl||sh.avisUrl||sh.customerAvisLink||sh.avisLink);return live?rememberAvisUrl(sh,live):cachedAvisUrl(sh)}
