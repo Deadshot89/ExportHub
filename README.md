@@ -130,6 +130,8 @@ Die Aufgabenansicht zeigt unter **„Meine hinterlegten Aufgaben“** nur den ak
 
 Die früher hinterlegten Wochenaufgaben sind nicht mehr aktiv und werden nicht mehr automatisch erzeugt. Sie bleiben im Code ausschließlich als historisches Archiv erhalten. Manuelle Aufgaben sowie echte Systemaufgaben für Sendungen, POD, ABD und Picks werden durch diese Bereinigung nicht entfernt.
 
+Statusfolge: **offen → in Bearbeitung → erledigt**. Wiederkehrende Aufgaben erzeugen danach die nächste planmäßige Ausführung. Die Android-Erinnerungsslots bleiben **09:00 / 12:00 / 15:00**; Referenzbereiche erzeugen keine Handy-Erinnerung, und ohne gültigen persönlichen Snapshot werden keine generischen Aufgaben erfunden.
+
 ## Direktdruck-Arbeitsplatz
 
 Der QR-/REF-Schnelldruck verwendet weiterhin exakt den vorhandenen ExportHUB-Gesamtdruck. Für einen verwalteten Windows-Druckarbeitsplatz kann zusätzlich `assets/tools/ExportHUB-DirectPrint-Setup.ps1` einmalig als Administrator ausgeführt werden. Das Skript:
