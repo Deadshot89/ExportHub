@@ -1009,7 +1009,7 @@ fs.writeFileSync(path.join(OUT,'rc1112-manifest.json'),JSON.stringify({
     podTargetedProof:'RC1220 targeted archive proof: found/already-saved/saved-now/not-found/pending',
     podArchiveIntegrity:'RC1226 archive read-back + scheduled integrity verification',
     containerDocumentation:'RC1259 sea freight container seal + 3 QR photos + reference-folder storage + shipment overview download',
-    avisReminderOverview:'RC1316 resilient shipment-card injection + DE/EN customer/carrier reminder via stored contacts + secure avis link + recipient exclusion',
+    avisReminderOverview:'RC1358 Despatch Graph sender + customer/carrier first send + Sales/CC/Tobias CC + three-business-day reminder gate + resilient shipment-card injection + secure avis link + recipient exclusion',
     abdSelfService:'RC1294 Defender-scanned PDF/XLSX/CSV analysis preview with customs position fields; no customs submission',
     avisUploadNotifications:'RC1133 secure customer PDF notice + open/print action',
     documentActionHistory:'RC1178 print/open/download + user + filename, including resumed print flow',
