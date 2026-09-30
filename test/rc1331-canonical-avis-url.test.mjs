@@ -31,5 +31,5 @@ test('RC1333: Avis-Erinnerung normalisiert bestehende Altlinks auf erreichbare H
 
 test('RC1333: Browser laden den Safe-Origin-Hotfix mit neuem Cache-Key',()=>{
   assert.match(fixer,/rc1027-lieferavis-immediate\.js\?v=1333/);
-  assert.match(build,/rc1166-avis-reminder-overview\.js\?v=1333/);
+  assert.match(build,/rc1166-avis-reminder-overview\.js\?v=1358/);
 });
