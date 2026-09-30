@@ -43,6 +43,19 @@ test('RC1016 Bestandsschutz prüft die damaligen Funktionen und Sicherheitsregre
   assert.match(flow,/assets\/rc1015-lieferavis-mail-flow\.js\?v=1304/);
 });
 
+
+test('RC1361: RC1048-Buildgenerator und Production-Gate verwenden denselben Shipment-Overview-Cache-Key',()=>{
+  const flow=read(FLOW),build=read('.github/rc1048/build-three-env.mjs');
+  for(const asset of [
+    'assets/rc1014-shipment-overview.js?v=1284',
+    'assets/rc1014-shipment-overview.css?v=1284'
+  ]){
+    assert.ok(flow.includes(asset),asset+' fehlt im Production-Gate');
+    assert.ok(build.includes(asset),asset+' fehlt im RC1048-Buildgenerator');
+  }
+  assert.doesNotMatch(build,/assets\/rc1014-shipment-overview\.(?:js|css)\?v=1127/,'RC1048-Buildgenerator darf keinen veralteten RC1127 Shipment-Overview-Cache-Key mehr ausgeben');
+});
+
 test('RC1016 Laufzeitressourcen bleiben in der aktuellen Drei-Umgebungen-Liveprüfung geschützt',()=>{
   const flow=read(FLOW),rc=currentRc();
   assert.match(flow,new RegExp(`rc${rc}=\\$GITHUB_SHA-\\$attempt`));
