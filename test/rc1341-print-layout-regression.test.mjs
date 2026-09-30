@@ -5,10 +5,10 @@ import fs from 'node:fs';
 const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
 const runtime=fs.readFileSync('assets/rc1305-loading-list-print.js','utf8');
 
-test('RC1342: Gesamtdruck enthält genau L1 und L2 sowie drei CMR',()=>{
-  assert.match(build,/html=html\.replace\("\+coverHtml\(sh\)\+loadHtml\(sh,true\)\+cmrHtml\(sh\)\+","\+coverHtml\(sh\)\+loadHtml\(sh,true\)\+loadHtml\(sh,false\)\+cmrHtml\(sh\)\+"\)/);
-  assert.match(build,/return\[d\.cover,d\.load1,d\.load2\]\.concat\(d\.cmrs\.slice\(0,3\)\)\.filter\(Boolean\)/);
-  assert.match(build,/if\(mode==='load2'\)return\[d\.load2\]\.filter\(Boolean\)/);
+test('RC1353: Gesamtdruck enthält genau eine Ladeliste sowie drei CMR',()=>{
+  assert.match(build,/html=html\\.replace\\("\\+coverHtml\\(sh\\)\\+loadHtml\\(sh,true\\)\\+loadHtml\\(sh,false\\)\\+cmrHtml\\(sh\\)\\+","\\+coverHtml\\(sh\\)\\+loadHtml\\(sh,true\\)\\+cmrHtml\\(sh\\)\\+"\\)/);
+  assert.match(build,/return\\[d\\.cover,d\\.load1\\]\\.concat\\(d\\.cmrs\\.slice\\(0,3\\)\\)\\.filter\\(Boolean\\)/);
+  assert.match(build,/if\\(mode==='load2'\\)return\\[d\\.load2\\]\\.filter\\(Boolean\\)/);
 });
 
 test('RC1342: Lieferscheine werden einzeln und umbruchfähig gerendert',()=>{
@@ -21,13 +21,14 @@ test('RC1342: Lieferscheine werden einzeln und umbruchfähig gerendert',()=>{
   assert.match(runtime,/word-break:break-word/);
 });
 
-test('RC1344: Druck-QR sitzt ausschließlich unten bei den anderen QR-Codes auf dem Deckblatt',()=>{
-  assert.match(runtime,/data-rc1344-print-qr-bottom-row/);
+test('RC1353: Druck-QR sitzt klein ausschließlich unten bei den anderen QR-Codes auf dem Deckblatt',()=>{
+  assert.match(runtime,/data-rc1353-print-qr-bottom-row/);
   assert.match(runtime,/rc1327-print-qr-bottom/);
   assert.match(runtime,/rc1327-cover-qr-row/);
   assert.doesNotMatch(runtime,/data-rc1341-print-qr-top-right/);
   assert.doesNotMatch(runtime,/padding-right','19mm'/);
   assert.doesNotMatch(runtime,/rc1315-print-qr-in-ref/);
+  assert.match(runtime,/width:8mm!important;height:8mm!important/);
 });
 
 test('RC1342: Deckblatt zeigt ein vorhandenes Abholdatum',()=>{
@@ -41,7 +42,14 @@ test('RC1343: Deckblatt wird zwei Punkte und Ladeliste einen Punkt kompakter ged
   assert.match(runtime,/enhanceCover\(html,sh\)[\s\S]*?shrinkInlineFonts\(root,2\)/);
 });
 
-test('RC1344: neue Druckruntime wird cache-sicher geladen',()=>{
-  assert.match(build,/rc1305-loading-list-print\.js\?v=1344/);
-  assert.match(runtime,/version:'RC1344'/);
+test('RC1353: neue Druckruntime wird cache-sicher geladen',()=>{
+  assert.match(build,/rc1305-loading-list-print\\.js\\?v=1353/);
+  assert.match(runtime,/version:'RC1353'/);
+});
+
+
+test('RC1353: zusammengeklebte PDF-Namen werden vor dem Druck getrennt und kompakt dargestellt',()=>{
+  assert.match(runtime,/function splitPdfNames\\(/);
+  assert.match(runtime,/font-size:5\\.2pt!important/);
+  assert.match(runtime,/gap:\\.45mm!important/);
 });
