@@ -52,6 +52,14 @@ test('RC1315: Ladeliste und automatischer POD zeigen den Zollnachweis',()=>{
   assert.match(podArchive,/record\.customsDocumentsSignatureBlobName/);
 });
 
+test('RC1357: Ladeliste zeigt beide gespeicherten Unterschriften auch über geschützte Pickup-POD-URLs als Bild',()=>{
+  assert.match(loadingList,/safeSignatureSource/);
+  assert.match(loadingList,/pickup-pod/);
+  assert.match(loadingList,/var signHtml=signature\?'<img class="rc1305-signature-image"/);
+  assert.match(loadingList,/var customsSignHtml=customsSignature\?'<img class="rc1305-signature-image"/);
+  assert.match(loadingList,/erstellt\\|created\\|abgeschlossen/);
+});
+
 test('RC1315: beide Fahrerunterschriften sind als kompakter A4-Block nebeneinander begrenzt',()=>{
   assert.match(loadingList,/grid-template-columns:repeat\(6,minmax\(0,1fr\)\)/);
   assert.match(loadingList,/data-rc1315-customs-required/);
