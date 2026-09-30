@@ -6,11 +6,11 @@ const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
 const runtime=fs.readFileSync('assets/rc1305-loading-list-print.js','utf8');
 
 test('RC1353: Gesamtdruck enthält genau eine Ladeliste sowie drei CMR',()=>{
-  assert.match(build,/html=html\\.replace\\("\\+coverHtml\\(sh\\)\\+loadHtml\\(sh,true\\)\\+loadHtml\\(sh,false\\)\\+cmrHtml\\(sh\\)\\+","\\+coverHtml\\(sh\\)\\+loadHtml\\(sh,true\\)\\+cmrHtml\\(sh\\)\\+"\\)/);
-  assert.match(build,/return\\[d\\.cover,d\\.load1\\]\\.concat\\(d\\.cmrs\\.slice\\(0,3\\)\\)\\.filter\\(Boolean\\)/);
-  assert.match(build,/if\\(mode==='load2'\\)return\\[d\\.load2\\]\\.filter\\(Boolean\\)/);
+  assert.ok(build.includes('html=html.replace("+coverHtml(sh)+loadHtml(sh,true)+loadHtml(sh,false)+cmrHtml(sh)+","+coverHtml(sh)+loadHtml(sh,true)+cmrHtml(sh)+")'));
+  assert.ok(build.includes("return[d.cover,d.load1].concat(d.cmrs.slice(0,3)).filter(Boolean)"));
+  assert.ok(build.includes("if(mode==='load2')return[d.load2].filter(Boolean)"));
+  assert.equal(build.includes("return[d.cover,d.load1,d.load2].concat(d.cmrs.slice(0,3)).filter(Boolean)"),false);
 });
-
 test('RC1342: Lieferscheine werden einzeln und umbruchfähig gerendert',()=>{
   assert.match(runtime,/enhanceDocuments\(root,sh\|\|\{\}\)/);
   assert.match(runtime,/rc1305-document-grid/);
@@ -43,13 +43,13 @@ test('RC1343: Deckblatt wird zwei Punkte und Ladeliste einen Punkt kompakter ged
 });
 
 test('RC1353: neue Druckruntime wird cache-sicher geladen',()=>{
-  assert.match(build,/rc1305-loading-list-print\\.js\\?v=1353/);
+  assert.ok(build.includes('assets/rc1305-loading-list-print.js?v=1353'));
   assert.match(runtime,/version:'RC1353'/);
 });
 
 
 test('RC1353: zusammengeklebte PDF-Namen werden vor dem Druck getrennt und kompakt dargestellt',()=>{
-  assert.match(runtime,/function splitPdfNames\\(/);
-  assert.match(runtime,/font-size:5\\.2pt!important/);
-  assert.match(runtime,/gap:\\.45mm!important/);
+  assert.ok(runtime.includes('function splitPdfNames('));
+  assert.ok(runtime.includes('font-size:5.2pt!important'));
+  assert.ok(runtime.includes('gap:.45mm!important'));
 });
