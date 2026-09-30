@@ -845,9 +845,9 @@ jobs:
               && grep -q '__EXPORTHUB_RC1069_PERFORMANCE__' "$tperf" \
               && grep -q "version:'RC1069'" "$pavis" \
               && grep -q "version:'RC1069'" "$tavis" \
-              && grep -q 'assets/rc1027-lieferavis-immediate.js?v=1333' "$p" \
-              && grep -q 'assets/rc1027-lieferavis-immediate.js?v=1333' "$t" \
-              && grep -q 'assets/rc1027-lieferavis-immediate.js?v=1333' "$d" \
+              && grep -q 'assets/rc1027-lieferavis-immediate.js?v=1360' "$p" \
+              && grep -q 'assets/rc1027-lieferavis-immediate.js?v=1360' "$t" \
+              && grep -q 'assets/rc1027-lieferavis-immediate.js?v=1360' "$d" \
               && grep -q 'Dokumentspeicher wird optimiert' "$precp" \
               && grep -q 'Dokumentspeicher wird optimiert' "$trecp" \
               && grep -q 'assets/abholkalender.js?v=1012' "$p" \
