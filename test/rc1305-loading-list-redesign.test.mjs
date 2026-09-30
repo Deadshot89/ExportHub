@@ -45,7 +45,7 @@ test('RC1305: Ladeliste ersetzt abgeholte Leerformulare durch gespeicherte Abhol
 test('RC1305: Lieferscheine und Bemerkung werden drucksicher kompakt dargestellt',()=>{
   assert.match(print,/data-rc1305-document-grid/);
   assert.match(print,/grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/); assert.match(print,/font-size:5.8pt!important/); assert.match(print,/data-rc1326-font-reduced/); assert.match(print,/shrinkInlineFonts\(root,1\)/);
-  assert.match(print,/word-break:break-word/);
+  assert.match(print,/word-break:break-word/); assert.match(print,/function splitPdfNames\\(/);
   assert.match(print,/data-rc1305-remark/);
   assert.match(print,/loadingListPrint\.noRemark/);
   assert.match(print,/page-break-inside:avoid/);
@@ -54,7 +54,7 @@ test('RC1305: Lieferscheine und Bemerkung werden drucksicher kompakt dargestellt
 
 test('RC1305: Drei-Umgebungen-Build liefert beide Ladelisten-Runtimes aus',()=>{
   assert.match(build,/function patchRc1305LoadingListPresentation\(html,file\)/);
-  assert.match(build,/assets\/rc1305-loading-list-print\.js\?v=1344/);
+  assert.match(build,/assets\/rc1305-loading-list-print\\.js\\?v=1353/);
   assert.match(build,/assets\/rc1315-loading-list-quick-print\.js\?v=1322/);
   assert.match(build,/assets\/rc1283-loading-list-search\.js\?v=1305/);
   assert.match(build,/'assets\/rc1305-loading-list-print\.js'/);
