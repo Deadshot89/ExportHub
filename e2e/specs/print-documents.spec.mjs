@@ -88,17 +88,20 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
           recipientStyle:rcs?{backgroundColor:rcs.backgroundColor,color:rcs.color,borderColor:rcs.borderTopColor}:null,
           quickPrintQr:(()=>{
             const qr=document.querySelector('[data-rc1315-print-qr]');
-            const coverQr=document.querySelector('.rc390-cover-qr,.rc352-cover-qr');
+            const coverQr=cover&&cover.querySelector('.rc390-cover-qr,.rc352-cover-qr');
             const refBox=document.querySelector('.rc390-ref,.rc352-ref,[data-rc1281-reference]');
             const code=qr&&qr.querySelector('.rc1315-print-qr-code');
-            const qs=code?getComputedStyle(code):null;
+            const qs=code?getComputedStyle(code):null,qrRect=qr&&qr.getBoundingClientRect(),baseRect=coverQr&&coverQr.getBoundingClientRect();
             return{
               count:document.querySelectorAll('[data-rc1315-print-qr]').length,
-              insideCoverQr:!!(qr&&coverQr&&coverQr.contains(qr)),
+              insideCover:!!(qr&&cover&&cover.contains(qr)),
+              directCoverChild:!!(qr&&cover&&qr.parentElement===cover),
+              sameBottomBand:!!(qrRect&&baseRect&&Math.abs(qrRect.bottom-baseRect.bottom)<=4),
               insideReference:!!(qr&&refBox&&refBox.contains(qr)),
-              bottomMarker:!!(cover&&cover.getAttribute('data-rc1353-print-qr-bottom-row')==='1'),
+              bottomMarker:!!(cover&&cover.getAttribute('data-rc1354-print-qr-bottom-center')==='1'),
               width:qs&&qs.width,
-              height:qs&&qs.height
+              height:qs&&qs.height,
+              boxWidth:qrRect&&qrRect.width
             };
           })(),
           packingSlipGrid:(()=>{
@@ -197,9 +200,12 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
   expect(parseFloat(capture.quickPrintQr.width)).toBeLessThanOrEqual(31);
   expect(parseFloat(capture.quickPrintQr.height)).toBeLessThanOrEqual(31);
   expect(capture.quickPrintQr.count,'Druck-QR darf im Gesamtdruck nur einmal vorkommen').toBe(1);
-  expect(capture.quickPrintQr.insideCoverQr,'Druck-QR muss unten im QR-Bereich des Deckblatts sitzen').toBe(true);
+  expect(capture.quickPrintQr.insideCover,'Druck-QR muss auf dem Deckblatt sitzen').toBe(true);
+  expect(capture.quickPrintQr.directCoverChild,'Druck-QR darf nicht mehr im 40-mm-Location-/Abhol-QR-Container stecken').toBe(true);
+  expect(capture.quickPrintQr.sameBottomBand,'Druck-QR muss unten auf derselben Höhe wie die anderen QR-Codes sitzen').toBe(true);
+  expect(capture.quickPrintQr.boxWidth).toBeLessThanOrEqual(86);
   expect(capture.quickPrintQr.insideReference,'Druck-QR darf nicht im Referenzfeld sitzen').toBe(false);
-  expect(capture.quickPrintQr.bottomMarker,'Deckblatt muss die RC1353-Unterkantenposition markieren').toBe(true);
+  expect(capture.quickPrintQr.bottomMarker,'Deckblatt muss die RC1354-Unterkantenposition markieren').toBe(true);
   expect(capture.text).toMatch(/Erstellt am:\s*\d{2}\.\d{2}\.\d{4}/);
   expect(capture.html).toMatch(/data-rc1281-created-date="1"/i);
   expect(capture.html).toMatch(/data-rc1203-cover-remark="1"/i);
@@ -211,12 +217,13 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
   expect(capture.packingSlipGrid.display).toBe('grid');
   expect(capture.packingSlipGrid.count).toBe(7);
   expect(new Set(capture.packingSlipGrid.items.map(item=>item.text)).size,'Lieferscheine werden im Deckblatt doppelt dargestellt').toBe(7);
-  expect(capture.packingSlipGrid.rowCount).toBeGreaterThanOrEqual(2);
+  expect(capture.packingSlipGrid.rowCount).toBe(3);
+  const slipWidths=capture.packingSlipGrid.items.map(item=>item.right-item.left);
+  expect(Math.max(...slipWidths)-Math.min(...slipWidths),'Lieferschein-Kacheln müssen gleichmäßig kompakt bleiben').toBeLessThanOrEqual(3);
   expect(capture.packingSlipGrid.clientWidth<=0||capture.packingSlipGrid.scrollWidth<=capture.packingSlipGrid.clientWidth+2,'Lieferschein-Raster läuft horizontal über').toBe(true);
   expect(capture.packingSlipGrid.items.some(item=>/LS_47110007\.pdf/.test(item.text))).toBe(true);
   expect(capture.text).toMatch(/Ladeliste/i);
   expect(capture.text).toMatch(/(?:Ladeliste\s*1|\bL1\b)/i);
-  expect(capture.text).toMatch(/(?:Ladeliste\s*2|\bL2\b)/i);
   expect(capture.text).toMatch(/CMR/i);
   expect(capture.load1Count).toBe(1);
   expect(capture.load2Count,'Gesamtdruck darf keine zweite Ladeliste enthalten').toBe(0);
@@ -513,7 +520,7 @@ test('RC1315 P1: Druck-QR oder REF in Ladeliste startet den vollständigen Sendu
   expect(capture.html).toContain('data-rc1315-print-qr="1"');
   expect(capture.html).toContain('data-rc1315-payload="EHPRINT:DEMO02"');
   expect(capture.load1Count).toBe(1);
-  expect(capture.load2Count).toBe(1);
+  expect(capture.load2Count,'QR-Schnelldruck darf ebenfalls keine zweite Ladeliste erzeugen').toBe(0);
   expect(capture.cmrCount).toBe(3);
 
   const status=page.locator('[data-rc1315-status]').first();
