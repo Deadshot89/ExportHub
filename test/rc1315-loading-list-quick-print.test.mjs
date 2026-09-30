@@ -90,7 +90,7 @@ test('RC1353: kleiner Druck-QR liegt nur unten auf dem Deckblatt und nicht auf d
 
 test('RC1315: Release-Build lädt Schnelldruck und reicht withQr an den Renderer weiter',()=>{
   assert.match(build,/assets\/rc1315-loading-list-quick-print\.js\?v=1322/);
-  assert.match(build,/assets\/rc1305-loading-list-print\\.js\\?v=1353/);
+  assert.ok(build.includes('assets/rc1305-loading-list-print.js?v=1353'));
   assert.match(build,/api\.enhance\(out,sh\|\|\{\},withQr===true\)/); assert.match(build,/api\.enhanceCover==='function'/);
   assert.match(build,/'assets\/rc1315-loading-list-quick-print\.js'/);
   assert.match(build,/loadingListQuickPrint:'RC1322/);
