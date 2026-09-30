@@ -7,10 +7,10 @@ const page=fs.readFileSync('customer-avis.html','utf8');
 const config=JSON.parse(fs.readFileSync('staticwebapp.config.json','utf8'));
 const reminder=fs.readFileSync('api/avis-reminder-mail/index.js','utf8');
 
-test('RC1333: production issues reachable Azure AVIS links while branded route remains compatible',()=>{
-  assert.match(api,/https:\/\/wonderful-forest-0f315e310\.7\.azurestaticapps\.net/);
+test('RC1360: production issues canonical ExportHUB360 AVIS links',()=>{
+  assert.match(api,/https:\/\/exporthub360\.com/);
   assert.match(api,/function publicAvisUrl\(/);
-  assert.match(api,/customer-avis\.html\?token=/);
+  assert.match(api,/PRODUCTION_AVIS_ORIGIN\+'\/avis\/'\+encoded/);
   assert.match(api,/url:publicAvisUrl\(env,issued\.token\)/);
 });
 
