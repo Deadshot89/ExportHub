@@ -11,25 +11,26 @@ test('RC1345: Gesamtdruck enthält genau eine Ladeliste sowie drei CMR',()=>{
   assert.match(build,/if\(mode==='load2'\)return\[d\.load2\]\.filter\(Boolean\)/);
 });
 
-test('RC1342: Lieferscheine werden einzeln und umbruchfähig gerendert',()=>{
+test('RC1359: Lieferscheine bleiben vollständig und werden nach 15 Einträgen spaltenweise umgebrochen',()=>{
   assert.match(runtime,/enhanceDocuments\(root,sh\|\|\{\}\)/);
-  assert.match(runtime,/rc1305-document-grid/);
-  assert.match(runtime,/data-rc1293-packing-slip-grid/);
+  assert.match(runtime,/perColumn=15/);
+  assert.match(runtime,/files\.slice\(start,start\+perColumn\)/);
+  assert.match(runtime,/data-rc1359-document-column/);
+  assert.match(runtime,/Math\.min\(columnCount,4\)/);
   assert.match(runtime,/data-rc1293-packing-slip/);
-  assert.match(runtime,/rc1305-document-item rc1293-packing-slip/);
   assert.match(runtime,/overflow-wrap:anywhere/);
   assert.match(runtime,/word-break:break-word/);
 });
 
-test('RC1345: Druck-QR sitzt ausschließlich unten bei den anderen QR-Codes auf dem Deckblatt und bleibt kompakt',()=>{
-  assert.match(runtime,/data-rc1344-print-qr-bottom-row/);
-  assert.match(runtime,/rc1327-print-qr-bottom/);
-  assert.match(runtime,/rc1327-cover-qr-row/);
-  assert.doesNotMatch(runtime,/data-rc1341-print-qr-top-right/);
-  assert.doesNotMatch(runtime,/padding-right','19mm'/);
+test('RC1359: Druck-QR sitzt ausschließlich oben rechts auf dem Deckblatt und bleibt kompakt',()=>{
+  assert.match(runtime,/data-rc1359-print-qr-top-right/);
+  assert.match(runtime,/rc1359-print-qr-top-right/);
+  assert.match(runtime,/rc1359-cover-top-right/);
+  assert.doesNotMatch(runtime,/data-rc1344-print-qr-bottom-row/);
+  assert.doesNotMatch(runtime,/rc1327-print-qr-bottom/);
   assert.doesNotMatch(runtime,/rc1315-print-qr-in-ref/);
-  assert.match(runtime,/width:9mm!important;height:9mm!important/);
-  assert.match(runtime,/justify-self:end!important;align-self:end!important/);
+  assert.match(runtime,/width:12mm!important;height:12mm!important/);
+  assert.match(runtime,/width:18mm!important;max-width:18mm!important/);
 });
 
 test('RC1342: Deckblatt zeigt ein vorhandenes Abholdatum',()=>{
@@ -43,7 +44,10 @@ test('RC1343: Deckblatt wird zwei Punkte und Ladeliste einen Punkt kompakter ged
   assert.match(runtime,/enhanceCover\(html,sh\)[\s\S]*?shrinkInlineFonts\(root,2\)/);
 });
 
-test('RC1345: neue Druckruntime wird cache-sicher geladen',()=>{
-  assert.match(build,/rc1305-loading-list-print\.js\?v=1345/);
-  assert.match(runtime,/version:'RC1345'/);
+test('RC1359: neue Druckruntime wird cache-sicher geladen',()=>{
+  assert.match(build,/rc1305-loading-list-print\.js\?v=1359/);
+  assert.match(runtime,/version:'RC1359'/);
+  assert.match(runtime,/@page\{size:A4 portrait;margin:0\}/);
+  assert.match(runtime,/width:210mm!important/);
+  assert.match(runtime,/min-height:297mm!important/);
 });
