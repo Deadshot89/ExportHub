@@ -96,7 +96,7 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
               count:document.querySelectorAll('[data-rc1315-print-qr]').length,
               insideCoverQr:!!(qr&&coverQr&&coverQr.contains(qr)),
               insideReference:!!(qr&&refBox&&refBox.contains(qr)),
-              bottomMarker:!!(cover&&cover.getAttribute('data-rc1344-print-qr-bottom-row')==='1'),
+              bottomMarker:!!(cover&&cover.getAttribute('data-rc1353-print-qr-bottom-row')==='1'),
               width:qs&&qs.width,
               height:qs&&qs.height
             };
@@ -194,10 +194,12 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
   expect(capture.recipientStyle).toBeTruthy();
   expect(capture.recipientStyle.backgroundColor).toBe('rgb(219, 234, 254)');
   expect(capture.quickPrintQr).toBeTruthy();
+  expect(parseFloat(capture.quickPrintQr.width)).toBeLessThanOrEqual(31);
+  expect(parseFloat(capture.quickPrintQr.height)).toBeLessThanOrEqual(31);
   expect(capture.quickPrintQr.count,'Druck-QR darf im Gesamtdruck nur einmal vorkommen').toBe(1);
   expect(capture.quickPrintQr.insideCoverQr,'Druck-QR muss unten im QR-Bereich des Deckblatts sitzen').toBe(true);
   expect(capture.quickPrintQr.insideReference,'Druck-QR darf nicht im Referenzfeld sitzen').toBe(false);
-  expect(capture.quickPrintQr.bottomMarker,'Deckblatt muss die RC1344-Unterkantenposition markieren').toBe(true);
+  expect(capture.quickPrintQr.bottomMarker,'Deckblatt muss die RC1353-Unterkantenposition markieren').toBe(true);
   expect(capture.text).toMatch(/Erstellt am:\s*\d{2}\.\d{2}\.\d{4}/);
   expect(capture.html).toMatch(/data-rc1281-created-date="1"/i);
   expect(capture.html).toMatch(/data-rc1203-cover-remark="1"/i);
@@ -217,14 +219,14 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
   expect(capture.text).toMatch(/(?:Ladeliste\s*2|\bL2\b)/i);
   expect(capture.text).toMatch(/CMR/i);
   expect(capture.load1Count).toBe(1);
-  expect(capture.load2Count).toBe(1);
+  expect(capture.load2Count,'Gesamtdruck darf keine zweite Ladeliste enthalten').toBe(0);
   expect(capture.cmrCount).toBe(3);
   expect(capture.cmrLabels).toHaveLength(3);
   expect(capture.cmrLabels[0]).toMatch(/CMR\s*1\s*\/\s*3/i);
   expect(capture.cmrLabels[1]).toMatch(/CMR\s*2\s*\/\s*3/i);
   expect(capture.cmrLabels[2]).toMatch(/CMR\s*3\s*\/\s*3/i);
   expect(capture.text).toMatch(/Warenbeschreibung/i);
-  expect(capture.printDocuments.length).toBe(6);
+  expect(capture.printDocuments.length).toBe(5);
   expect(capture.printDocuments.every(p=>p.textLength>40),'Gesamtdruck enthält ein leeres oder praktisch leeres Druckdokument').toBe(true);
   expect(capture.printDocuments.every(p=>p.clientHeight<=0||p.scrollHeight<=p.clientHeight+4),'Gesamtdruck enthält vertikal abgeschnittene Inhalte').toBe(true);
   expect(capture.printDocuments.every(p=>p.clientWidth<=0||p.scrollWidth<=p.clientWidth+4),'Gesamtdruck enthält horizontal abgeschnittene Inhalte').toBe(true);
