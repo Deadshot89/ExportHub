@@ -109,7 +109,7 @@ test('RC1031: ein bereits ausgestellter Lieferavis-Link bleibt bei State-Refresh
   const context=vm.createContext({window,document,console,URL,Date,Math,Uint8Array,crypto:{getRandomValues(a){return a}},location:{href:'https://wonderful-forest-0f315e310.azurestaticapps.net/TESTVERSION.html',hostname:'wonderful-forest-0f315e310.azurestaticapps.net',host:'wonderful-forest-0f315e310.azurestaticapps.net'},sessionStorage:window.sessionStorage,setTimeout(fn){fn();return 1},requestAnimationFrame(fn){fn();return 1},Event:function(type){this.type=type},CustomEvent:function(type,opt){this.type=type;this.detail=opt&&opt.detail}});
   vm.runInContext(source,context,{filename:'assets/rc1027-lieferavis-immediate.js'});
   const api=window.ExportHUBCustomerAvis706,rc=window.ExportHUBRC1027Lieferavis;
-  const canonical='https://wonderful-forest-0f315e310.7.azurestaticapps.net/customer-avis.html?token=server-token';
+  const canonical='https://exporthub360.com/avis/server-token';
   assert.equal(api.link(shipment),canonical,'Ausgestellter Link muss sofort auf die sichere produktive Avis-Adresse normalisiert werden.');
   delete shipment.customerAvisToken;
   assert.equal(api.link(shipment),canonical,'Ein State-Refresh ohne Cloud-Token darf den bereits ausgestellten sicheren Link nicht aus der Oberfläche entfernen.');
