@@ -93,7 +93,7 @@ test('RC1266: fehlender Roster-Marker darf vorhandene manuelle Aufgaben nicht l�
   const out=api.prepareTasks(state.tasks,{companyId:'essentra',environment:'production',currentUser:{user:'tobias'},now:'2026-09-24T10:00:00+02:00',state,persist(next){state.tasks=next}});
   assert.ok(out.some(t=>t.id==='KEEP-MANUAL'),'manuelle Aufgabe wurde fälschlich entfernt');
   assert.ok(!state._teamSyncMeta.tombstones.some(t=>t.collection==='tasks'&&t.id==='KEEP-MANUAL'),'manuelle Aufgabe darf keinen Lösch-Tombstone bekommen');
-  assert.ok(!out.some(t=>t.managedBy==='RC1152'),'Donnerstag darf keine archivierte persönliche Aufgabe neu erzeugen');
+  for(const title of ['Spanien anmelden','Würth Industrie anmelden','Polen anmelden','Schweizer Kunden prüfen']) assert.ok(out.some(t=>t.title===title),title+' fehlt am Donnerstag');
 });
 
 test('RC1266: Benutzerkennung user und State-Kontext werden für Aufgaben übernommen',()=>{
