@@ -35,13 +35,11 @@ Der Containername ist standardmäßig:
 
 - `exporthub-pod-backup`
 
-## Microsoft 365 optional aktivieren
+## Microsoft 365 automatisch aktivieren
 
-Microsoft 365 wird nur verwendet, wenn
+Sobald das explizite Microsoft-365-POD-Ziel vollständig konfiguriert ist, wird die zusätzliche Drive-Kopie automatisch verwendet. Der historische Schalter `EXPORTHUB_POD_M365_ENABLED` ist seit RC1386 kein Sperrschalter mehr und darf eine konfigurierte POD-Ablage nicht deaktivieren.
 
-- `EXPORTHUB_POD_M365_ENABLED=true`
-
-gesetzt ist und die erforderliche Graph-Konfiguration vollständig vorhanden ist.
+Die Microsoft-365-Kopie bleibt technisch nachgelagert und darf die verpflichtende Azure-Primär- und Archivkopie bei einem Graph-Fehler nicht blockieren.
 
 Mögliche Graph-Werte sind unter anderem:
 
