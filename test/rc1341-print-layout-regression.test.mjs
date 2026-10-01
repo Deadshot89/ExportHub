@@ -21,7 +21,7 @@ test('RC1342: Lieferscheine werden einzeln und umbruchfähig gerendert',()=>{
   assert.match(runtime,/word-break:break-word/);
 });
 
-test('RC1361: Druck-QR sitzt klein oben rechts direkt auf dem Deckblatt',()=>{
+test('RC1366: Druck-QR sitzt oben rechts direkt auf dem Deckblatt und bleibt 12mm groß',()=>{
   assert.match(runtime,/data-rc1361-print-qr-top-right/);
   assert.match(runtime,/rc1361-print-qr-top-right/);
   assert.match(runtime,/setAttribute\('data-rc1361-print-qr-top-right','1'\)/);
@@ -30,7 +30,7 @@ test('RC1361: Druck-QR sitzt klein oben rechts direkt auf dem Deckblatt',()=>{
   assert.ok(runtime.includes("important(section,'top','8mm')"));
   assert.ok(runtime.includes("important(section,'right','8mm')"));
   assert.ok(runtime.includes("important(section,'position','absolute')"));
-  assert.ok(runtime.includes("important(code,'width','8mm')"));
+  assert.ok(runtime.includes("important(code,'width','12mm')"));
 });
 
 test('RC1342: Deckblatt zeigt ein vorhandenes Abholdatum',()=>{
@@ -44,9 +44,9 @@ test('RC1343: Deckblatt wird zwei Punkte und Ladeliste einen Punkt kompakter ged
   assert.match(runtime,/enhanceCover\(html,sh\)[\s\S]*?shrinkInlineFonts\(root,2\)/);
 });
 
-test('RC1364: neue Druckruntime bleibt cache-sicher geladen',()=>{
-  assert.match(build,/rc1305-loading-list-print\.js\?v=1363/);
-  assert.match(runtime,/version:'RC1364'/);
+test('RC1368: aktuelle RC1366-Druckruntime bleibt cache-sicher geladen',()=>{
+  assert.match(build,/rc1305-loading-list-print\.js\?v=1366/);
+  assert.match(runtime,/version:'RC1366'/);
 });
 
 
