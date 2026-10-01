@@ -5,7 +5,7 @@ window.__EXPORTHUB_RC1027_LIEFERAVIS_IMMEDIATE__=true;
 
 var previous=null,wrapper=null,earlyPending=null,visibleSyncing=false,draftSyncTimer=0,draftSyncPending=null,lastDraftSignature='',avisLinkCache=Object.create(null);
 function q(v){return String(v==null?'':v).trim()}
-var RC1333_PROD_AVIS_ORIGIN='https://www.exporthub360.de';
+var RC1333_PROD_AVIS_ORIGIN='https://exporthub360.com';
 var RC1333_TEST_AVIS_ORIGIN='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net';
 function rc1331AvisToken(sh,url){
  var token=q(sh&&(sh.customerAvisToken||sh.avisToken));
@@ -64,7 +64,7 @@ function recipientExcluded(sh,target){try{return previous&&typeof previous.avisR
 function environmentName(){return typeof location!=='undefined'&&/-testservice\./i.test(String(location.hostname||''))?'testservice':'production'}
 function avisCacheKey(sh){var ref=explicitReference(sh);if(!ref)return'';return'exporthub:avis-url:'+environmentName()+':'+ref}
 function cachedAvisUrl(sh){var key=avisCacheKey(sh);if(!key)return'';if(avisLinkCache[key])return rc1333SafeAvisUrl(sh,avisLinkCache[key]);try{if(typeof sessionStorage!=='undefined'){var stored=q(sessionStorage.getItem(key));if(stored){stored=rc1333SafeAvisUrl(sh,stored);avisLinkCache[key]=stored;sessionStorage.setItem(key,stored);return stored}}}catch(_){}return''}
-function rc1333IsSafeAvisUrl(url){try{var u=new URL(q(url)),h=q(u.hostname).toLowerCase(),branded=(h==='www.exporthub360.de'||h==='exporthub360.com')&&/\/avis\/[^/?#]+\/?$/i.test(u.pathname),legacy=/\/customer-avis\.html$/i.test(u.pathname)&&!!q(u.searchParams.get('token'))&&(h==='wonderful-forest-0f315e310.7.azurestaticapps.net'||h==='ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net');return u.protocol==='https:'&&(branded||legacy)}catch(_){return false}}
+function rc1333IsSafeAvisUrl(url){try{var u=new URL(q(url)),h=q(u.hostname).toLowerCase(),branded=(h==='exporthub360.com'||h==='www.exporthub360.com'||h==='www.exporthub360.de'||h==='exporthub360.de')&&/\/avis\/[^/?#]+\/?$/i.test(u.pathname),legacy=/\/customer-avis\.html$/i.test(u.pathname)&&!!q(u.searchParams.get('token'))&&(h==='wonderful-forest-0f315e310.7.azurestaticapps.net'||h==='ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net');return u.protocol==='https:'&&(branded||legacy)}catch(_){return false}}
 function rememberAvisUrl(sh,url){url=rc1333SafeAvisUrl(sh,url);var key=avisCacheKey(sh);if(!key||!url)return url;if(!rc1333IsSafeAvisUrl(url))return url;avisLinkCache[key]=url;try{if(typeof sessionStorage!=='undefined')sessionStorage.setItem(key,url)}catch(_){}return url}
 function forgetAvisUrl(sh){var key=avisCacheKey(sh);if(!key)return false;delete avisLinkCache[key];try{if(typeof sessionStorage!=='undefined')sessionStorage.removeItem(key)}catch(_){}return true}
 function avisUrl(sh){if(manualDisabled(sh)){forgetAvisUrl(sh);return''}var live='';try{live=q(previous&&typeof previous.link==='function'&&previous.link(sh))}catch(_){}if(!live&&sh)live=q(sh.customerAvisUrl||sh.avisUrl||sh.customerAvisLink||sh.avisLink);return live?rememberAvisUrl(sh,live):cachedAvisUrl(sh)}
