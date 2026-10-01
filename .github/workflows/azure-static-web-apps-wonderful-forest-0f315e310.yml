@@ -383,6 +383,16 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
+      - name: RC1381 TESTSERVICE stale-deploy guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          remote_sha="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          if [ -z "$remote_sha" ] || [ "$remote_sha" != "$GITHUB_SHA" ]; then
+            echo "RC1381: veralteter Workflow darf TESTSERVICE nicht deployen. run=$GITHUB_SHA main=$remote_sha" >&2
+            exit 1
+          fi
+
       - name: Deploy ExportHUB TESTSERVICE
         uses: Azure/static-web-apps-deploy@4d27395796ac319302594769cfe812bd207490b1
         with:
@@ -588,6 +598,16 @@ jobs:
             console.error('RC1249 '+env+' readiness unerwartet',JSON.stringify({status,code:v.code,configured:v.configured,authenticated:v.authenticated,audienceOk:v.audienceOk,mailSendGranted:v.mailSendGranted,recipientConfigured:v.recipientConfigured}));
             process.exit(1);
           "
+
+      - name: RC1381 PRODUCTION stale-deploy guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          remote_sha="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          if [ -z "$remote_sha" ] || [ "$remote_sha" != "$GITHUB_SHA" ]; then
+            echo "RC1381: veralteter Workflow darf Produktion nicht deployen. run=$GITHUB_SHA main=$remote_sha" >&2
+            exit 1
+          fi
 
       - name: Deploy ExportHUB production
         uses: Azure/static-web-apps-deploy@4d27395796ac319302594769cfe812bd207490b1
