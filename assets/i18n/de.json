@@ -1180,5 +1180,16 @@
   "loadingListQuickPrint.missing": "Sendung {{ref}} wurde nicht gefunden.",
   "loadingListQuickPrint.noPrint": "Gesamtdruck ist für diese Sendung nicht verfügbar.",
   "loadingListQuickPrint.directPrintSetup": "Direktdruck einrichten (Edge)",
-  "loadingListQuickPrint.directPrintSetupHint": "Einmalige Windows-Konfiguration für stilles Drucken auf den Standarddrucker."
+  "loadingListQuickPrint.directPrintSetupHint": "Einmalige Windows-Konfiguration für stilles Drucken auf den Standarddrucker.",
+  "customerAvisPreference.title": "AVIS-Link",
+  "customerAvisPreference.description": "Legt für diesen Kunden fest, ob ein digitaler AVIS-Link erstellt und in Sendungs- und Abholmails verwendet wird.",
+  "customerAvisPreference.label": "AVIS-Link erwünscht",
+  "customerAvisPreference.yes": "Ja",
+  "customerAvisPreference.no": "Nein",
+  "customerAvisPreference.saving": "Einstellung wird gespeichert …",
+  "customerAvisPreference.saved": "AVIS-Einstellung gespeichert.",
+  "customerAvisPreference.saveFailed": "AVIS-Einstellung konnte nicht gespeichert werden: {{error}}",
+  "customerAvisPreference.enabledStatus": "AVIS-Link ist für diesen Kunden aktiviert.",
+  "customerAvisPreference.disabledStatus": "AVIS-Link ist für diesen Kunden deaktiviert.",
+  "customerAvisPreference.blockedHelp": "AVIS-Link ist für diesen Kunden im Kundenordner deaktiviert."
 }
