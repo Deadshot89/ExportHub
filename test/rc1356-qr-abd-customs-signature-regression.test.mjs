@@ -8,13 +8,14 @@ const store=fs.readFileSync('api/shared/pickup-store.js','utf8');
 const status=fs.readFileSync('api/pickup-status/index.js','utf8');
 const confirm=fs.readFileSync('api/pickup-confirm-v2/index.js','utf8');
 
-test('RC1356 P0: QR-Abholung zeigt Zoll-Unterschrift bei vorhandenem oder abgeschlossenem ABD',()=>{
-  assert.match(pickup,/id="customsSignatureField" hidden/);
-  assert.match(pickup,/Zolldokumente erhalten[^<]*Unterschrift Fahrer/);
-  assert.match(pickup,/function customsSignatureNeeded\(data\)/);
-  assert.match(pickup,/customsDocumentsSignatureRequired===true\|\|data\.abdPresent===true/);
+test('RC1385 P0: QR-Abholung zeigt bei vorhandenem oder abgeschlossenem ABD nur die Zollübergabe-Bestätigung',()=>{
+  assert.match(pickup,/id="customsDocumentsField" class="customs-confirm" hidden/);
+  assert.match(pickup,/id="customsDocumentsReceived" type="checkbox"/);
+  assert.match(pickup,/function customsDocumentsNeeded\(data\)/);
+  assert.match(pickup,/customsDocumentsConfirmationRequired===true\|\|data\.abdPresent===true/);
   assert.match(pickup,/abgeschlossen/);
-  assert.match(pickup,/customsSignatureRequired=customsSignatureNeeded\(data\)/);
+  assert.match(pickup,/customsDocumentsRequired=customsDocumentsNeeded\(data\)/);
+  assert.doesNotMatch(pickup,/customsSignatureOpen|customsSignatureData/);
 });
 
 test('RC1356 P0: abgeschlossener ABD-Status gilt serverseitig als tatsächlich vorhandenes ABD',()=>{
@@ -54,12 +55,13 @@ test('RC1377 P0: ältere ABD-Datenform wird bei bestehenden Sendungen erkannt',(
   assert.match(block,/typeof legacyAbd==='object'/);
 });
 
-test('RC1356 P0: Abschluss bleibt ohne Zoll-Unterschrift gesperrt und speichert sie mit',()=>{
+test('RC1385 P0: Abschluss bleibt bei ABD ohne bestätigte Zollübergabe gesperrt',()=>{
   assert.match(status,/resolveShipmentAbdConfig/);
-  assert.match(confirm,/CUSTOMS_SIGNATURE_REQUIRED/);
-  assert.match(confirm,/customsDocumentsSignatureDataUrl/);
-  assert.match(confirm,/saveCustomsDocumentsSignature/);
-  assert.match(pickup,/customsSignatureRequired&&!\/\^data:image/);
+  assert.match(confirm,/CUSTOMS_DOCUMENTS_CONFIRMATION_REQUIRED/);
+  assert.match(confirm,/customsDocumentsReceived/);
+  assert.match(confirm,/abdPresent&&!customsConfirmed/);
+  assert.match(pickup,/customsDocumentsRequired&&!customsConfirmed/);
+  assert.doesNotMatch(confirm,/customsDocumentsSignatureDataUrl|saveCustomsDocumentsSignature|CUSTOMS_SIGNATURE_REQUIRED/);
 });
 
 test('RC1356: geänderte QR-Pickup-Dateien bleiben syntaktisch gültig',()=>{
