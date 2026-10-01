@@ -11,7 +11,7 @@ function build(){
 }
 function html(file){build();return fs.readFileSync('dist-rc1112/'+file,'utf8')}
 
-test('RC1281: finale Artefakte enthalten weißes kundenspezifisches Deckblatt mit Erstellungsdatum',()=>{
+test('RC1377: finale Artefakte bewahren RC1281 Deckblatt-Design mit aktuellem RC1373 Runtime-Cache-Key',()=>{
   for(const file of ['index.html','TESTVERSION.html','demo.html']){
     const source=html(file);
     assert.match(source,/data-rc1203-cover-enhanced="1"/,file+': Deckblatt-Marker fehlt');
@@ -22,7 +22,7 @@ test('RC1281: finale Artefakte enthalten weißes kundenspezifisches Deckblatt mi
     assert.match(source,/background:#fff!important;background-image:none!important/,file+': weißer Deckblatt-Hintergrund fehlt');
     assert.match(source,/--rc1281-ref-bg:'\+\(isEssentra\?'#facc15':'#2563eb'\)/,file+': Referenz Gelb\/Blau fehlt');
     assert.match(source,/--rc1281-recipient-bg:'\+\(isEssentra\?'#fef9c3':'#dbeafe'\)/,file+': Empfänger Hellgelb\/Hellblau fehlt');
-    assert.match(source,/assets\/rc1203-deckblatt-print\.js\?v=1281/,file+': RC1281 Runtime-Cache-Key fehlt');
+    assert.match(source,/assets\/rc1203-deckblatt-print\.js\?v=1373/,file+': aktueller Deckblatt-Runtime-Cache-Key v=1373 fehlt');
   }
 });
 
