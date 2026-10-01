@@ -38,9 +38,11 @@ test('RC1305: Ladeliste ersetzt abgeholte Leerformulare durch gespeicherte Abhol
   assert.match(print,/loadingListPrint\.pickedUp/);
   assert.match(print,/loadingListPrint\.notRecorded/);
   assert.match(print,/if\(!isPicked\(sh,last\)\)return false/,'offene Sendungen dürfen ihre Unterschriftsfelder nicht verlieren');
-  assert.match(print,/function ensureCustomsSignatureField\(root,sh\)/);
-  assert.match(print,/data-rc1327-customs-signature-field/);
-  assert.match(print,/Zolldokumente erhalten/);
+  assert.match(print,/rc1305-meta-loader/);
+  assert.match(print,/rc1305-meta-plate/);
+  assert.match(print,/rc1305-signature-primary/);
+  assert.match(print,/grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
+  assert.doesNotMatch(print,/ensureCustomsSignatureField|rc1305-signature-customs|data-rc1315-customs-signature/);
 });
 
 test('RC1363: Lieferscheine und Bemerkung werden drucksicher kompakt untereinander dargestellt',()=>{
