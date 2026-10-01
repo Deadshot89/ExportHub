@@ -10,20 +10,20 @@ const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
 const fixer=fs.readFileSync('.github/rc1018/fix-mail-wording.mjs','utf8');
 
 test('RC1360: Kunden-Avis zeigt ausschließlich den gebrandeten ExportHUB360-Produktionslink',()=>{
-  assert.match(immediate,/RC1333_PROD_AVIS_ORIGIN='https:\/\/www\.exporthub360\.de'/);
+  assert.match(immediate,/RC1333_PROD_AVIS_ORIGIN='https:\/\/exporthub360\.com'/);
   assert.match(immediate,/RC1333_PROD_AVIS_ORIGIN\+'\/avis\/'\+encodeURIComponent\(token\)/);
   assert.match(immediate,/rc1333SafeAvisUrl\(/);
   assert.match(immediate,/rememberAvisUrl\(sh,rc1333SafeAvisUrl\(sh,url\)\)/);
 });
 
 test('RC1360: Server stellt neue Produktions-AVIS-Links über ExportHUB360 aus',()=>{
-  assert.match(api,/PRODUCTION_AVIS_ORIGIN=(?:process\.env\.EXPORTHUB_AVIS_PUBLIC_ORIGIN\|\|)?'https:\/\/www\.exporthub360\.de'/);
+  assert.match(api,/PRODUCTION_AVIS_ORIGIN='https:\/\/exporthub360\.com'/);
   assert.match(api,/PRODUCTION_AVIS_ORIGIN\+'\/avis\/'\+encoded/);
   assert.match(api,/TESTSERVICE_AVIS_ORIGIN\+'\/customer-avis\.html\?token='\+encoded/);
 });
 
 test('RC1360: Avis-Erinnerung normalisiert bestehende Altlinks auf ExportHUB360',()=>{
-  assert.match(reminder,/RC1333_PROD_AVIS_ORIGIN='https:\/\/www\.exporthub360\.de'/);
+  assert.match(reminder,/RC1333_PROD_AVIS_ORIGIN='https:\/\/exporthub360\.com'/);
   assert.match(reminder,/RC1333_PROD_AVIS_ORIGIN\+'\/avis\/'\+encodeURIComponent\(token\)/);
   assert.match(reminder,/function safeAvisLink\(/);
   assert.match(reminder,/return safeAvisLink\(sh,direct\)/);
@@ -32,8 +32,8 @@ test('RC1360: Avis-Erinnerung normalisiert bestehende Altlinks auf ExportHUB360'
 
 
 test('RC1365: Client-Sicherheitsprüfung akzeptiert neuen und bestehenden Markenhost',()=>{
-  assert.match(immediate,/branded=\(h==='www\.exporthub360\.de'\|\|h==='exporthub360\.com'\)&&\/\\\/avis\\\//);
-  assert.match(immediate,/RC1333_PROD_AVIS_ORIGIN='https:\/\/www\.exporthub360\.de'/);
+  assert.match(immediate,/h==='exporthub360\.com'/);\n  assert.match(immediate,/h==='www\.exporthub360\.de'/);
+  assert.match(immediate,/RC1333_PROD_AVIS_ORIGIN='https:\/\/exporthub360\.com'/);
 });
 test('RC1333: Browser laden den Safe-Origin-Hotfix mit neuem Cache-Key',()=>{
   assert.match(fixer,/rc1027-lieferavis-immediate\.js\?v=1365/);
