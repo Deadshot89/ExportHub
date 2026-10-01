@@ -89,3 +89,11 @@ test('RC1364: Lieferscheinrahmen bleiben inhaltsbreit und Empfänger wird kunden
   assert.match(print,/data-rc1364-recipient-kind="essentra"/);
   assert.match(print,/data-rc1364-recipient-kind="customer"/);
 });
+
+
+test('RC1366: Druck-QR wird gezielt auf 12mm vergroessert',()=>{
+  assert.match(print,/version:'RC1366'/);
+  assert.match(print,/important\(code,'width','12mm'\)/);
+  assert.match(print,/important\(svg,'width','12mm'\)/);
+  assert.match(print,/shape-rendering="crispEdges"/);
+});
