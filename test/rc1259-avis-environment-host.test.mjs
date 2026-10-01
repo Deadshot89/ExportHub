@@ -67,7 +67,7 @@ test('RC1331: TESTSERVICE akzeptiert den kanonischen ExportHUB360-Avis-Link mit 
   const result=await invoke({
     environment:'testservice',
     host:'internal-function.azurewebsites.net',
-    avisUrl:'https://www.exporthub360.de/avis/abc?environment=testservice'
+    avisUrl:'https://exporthub360.com/avis/abc?environment=testservice'
   });
   assert.equal(result.status,200);
   assert.equal(result.body.ok,true);
@@ -86,14 +86,14 @@ test('RC1259: TESTSERVICE lehnt Produktions-Avis-Link weiterhin ab',async()=>{
 test('RC1326: Produktion akzeptiert den neuen ExportHUB360-Avis-Link und bestehende Altlinks',async()=>{
   const branded=await invoke({
     environment:'production',
-    avisUrl:'https://www.exporthub360.de/avis/abc'
+    avisUrl:'https://exporthub360.com/avis/abc'
   });
   assert.equal(branded.status,200);
   assert.equal(branded.body.ok,true);
 
   const legacyBranded=await invoke({
     environment:'production',
-    avisUrl:'https://exporthub360.com/avis/abc'
+    avisUrl:'https://www.exporthub360.de/avis/abc'
   });
   assert.equal(legacyBranded.status,200);
   assert.equal(legacyBranded.body.ok,true);
