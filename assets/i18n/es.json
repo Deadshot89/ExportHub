@@ -1180,5 +1180,16 @@
   "loadingListQuickPrint.missing": "No se encontró el envío {{ref}}.",
   "loadingListQuickPrint.noPrint": "La impresión completa no está disponible para este envío.",
   "loadingListQuickPrint.directPrintSetup": "Configurar impresión directa (Edge)",
-  "loadingListQuickPrint.directPrintSetupHint": "Configuración única de Windows para imprimir silenciosamente en la impresora predeterminada."
+  "loadingListQuickPrint.directPrintSetupHint": "Configuración única de Windows para imprimir silenciosamente en la impresora predeterminada.",
+  "customerAvisPreference.title": "Enlace de aviso",
+  "customerAvisPreference.description": "Define si se crea un enlace digital de aviso para este cliente y si se utiliza en los correos de envío y recogida.",
+  "customerAvisPreference.label": "Enlace de aviso deseado",
+  "customerAvisPreference.yes": "Sí",
+  "customerAvisPreference.no": "No",
+  "customerAvisPreference.saving": "Guardando configuración …",
+  "customerAvisPreference.saved": "Configuración de aviso guardada.",
+  "customerAvisPreference.saveFailed": "No se pudo guardar la configuración de aviso: {{error}}",
+  "customerAvisPreference.enabledStatus": "El enlace de aviso está activado para este cliente.",
+  "customerAvisPreference.disabledStatus": "El enlace de aviso está desactivado para este cliente.",
+  "customerAvisPreference.blockedHelp": "El enlace de aviso está desactivado para este cliente en la carpeta del cliente."
 }
