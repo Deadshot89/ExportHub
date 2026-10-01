@@ -69,13 +69,6 @@ function palletOut(sh){
  try{if(typeof w.rc1095LoadPalletCount==='function'){var rs=typeof w.rows==='function'?w.rows(sh):[];return Math.max(0,Math.round(Number(w.rc1095LoadPalletCount(sh,rs))||0))}}catch(_){}
  return Math.max(0,Math.round(Number(sh&&(sh.palletOut||sh.euroPallets||sh.euroPalletCount))||0))
 }
-function ensureCustomsSignatureField(root,sh){
- var last=lastPickup(sh);if(!hasAbd(sh,last)||isPicked(sh,last)||root.querySelector('[data-rc1327-customs-signature-field]'))return false;
- var driverCard=findCard(root,/unterschrift.*fahrer|fahrer.*unterschrift|driver.*signature|signature/i);if(!driverCard||!driverCard.parentNode)return false;
- var card=d.createElement(driverCard.tagName&&driverCard.tagName.toLowerCase()||'div');card.className=q(driverCard.className)+' rc1327-customs-signature-field';card.setAttribute('data-rc1327-customs-signature-field','1');
- card.innerHTML='<div class="rc390-label rc352-label">Zolldokumente erhalten</div><div class="rc1327-customs-signature-line"></div><div class="rc1327-customs-signature-hint">Unterschrift Fahrer / Customs documents received</div>';
- driverCard.parentNode.insertBefore(card,driverCard.nextSibling);return true
-}
 function pickupSummary(root,sh){
  var last=lastPickup(sh);if(!isPicked(sh,last))return false;
  var cards=[
@@ -91,28 +84,23 @@ function pickupSummary(root,sh){
  if(!cards.length)return false;
  var driver=value(sh,last,['driverName','pickupDriverName','fahrerName'])||tr('loadingListPrint.notRecorded');
  var plate=value(sh,last,['licensePlate','pickupLicensePlate','vehicleRegistration','vehiclePlate','kennzeichen'])||tr('loadingListPrint.notRecorded');
- var loader=value(sh,last,['loaderName','pickupLoaderName','loadedBy','warehouseLoader','loader'])||tr('loadingListPrint.notRecorded');
+ var loader=value(sh,last,['loaderName','pickupLoaderName','loadedBy','warehouseLoader','loader','verlader'])||tr('loadingListPrint.notRecorded');
  var confirmed=value(sh,last,['confirmedAt','pickupConfirmedAt','pickedUpAt','actualPickupAt']);
  var carrier=value(sh,last,['carrierName','pickupCarrierName','carrier','spedition']);
  var signature=safeSignatureSource(value(sh,last,['driverSignature','signature','signatureData','driverSignatureUrl','pickupDriverSignatureUrl']));
  var signatureStored=!!(signature||value(sh,last,['signatureBlobName','signatureStoredAt'])||last&&last.signatureStored===true||sh&&sh.signatureAvailable===true);
- var customsSignature=safeSignatureSource(value(sh,last,['customsDocumentsSignature','abdHandoverSignature','customsSignatureData','customsDocumentsSignatureUrl']))||customsSignatureUrl(value(sh,last,['driverSignatureUrl','pickupDriverSignatureUrl']));
- var customsSignatureStored=!!(customsSignature||value(sh,last,['customsDocumentsSignatureBlobName','customsDocumentsSignatureStoredAt'])||last&&last.customsDocumentsSignatureStored===true||sh&&sh.customsDocumentsSignatureStored===true);
- var customsRequired=hasAbd(sh,last);
  var out=palletOut(sh),returned=Math.max(0,Math.round(Number(last&&last.returnedEuroPallets||sh&&sh.returnedEuroPallets||sh&&sh.palletIn)||0));
- var section=d.createElement('section');section.className='rc1305-pickup-summary';section.setAttribute('data-rc1305-pickup-summary','1');section.setAttribute('data-rc1315-customs-required',customsRequired?'1':'0');section.style.gridColumn='1 / -1';
- var driverLabel=tr('pickup.driver'),plateLabel=tr('history.field.licensePlate'),loaderLabel=tr('history.field.loader'),carrierLabel=tr('shipment.carrier'),signatureLabel=tr('loadingListPrint.driverSignature'),customsLabel=tr('loadingListPrint.customsDocumentsReceived'),palletLabel=tr('pallet.euroPallet');
+ var section=d.createElement('section');section.className='rc1305-pickup-summary';section.setAttribute('data-rc1305-pickup-summary','1');section.style.gridColumn='1 / -1';
+ var driverLabel=tr('pickup.driver'),plateLabel=tr('history.field.licensePlate'),loaderLabel=tr('history.field.loader'),carrierLabel=tr('shipment.carrier'),signatureLabel=tr('loadingListPrint.driverSignature'),palletLabel=tr('pallet.euroPallet');
  var signHtml=signature?'<img class="rc1305-signature-image" alt="'+esc(signatureLabel)+'" src="'+esc(signature)+'">':esc(signatureStored?tr('loadingListPrint.signatureStored'):tr('loadingListPrint.notRecorded'));
- var customsSignHtml=customsSignature?'<img class="rc1305-signature-image" alt="'+esc(customsLabel)+'" src="'+esc(customsSignature)+'">':esc(customsSignatureStored?(tr('loadingListPrint.driverSignature')+' · '+tr('loadingListPrint.signatureStored')):tr('loadingListPrint.notRecorded'));
  section.innerHTML='<div class="rc1305-pickup-banner"><span>✓ '+esc(tr('loadingListPrint.pickedUp'))+'</span><strong>'+esc(formatDate(confirmed))+'</strong></div>'+
  '<div class="rc1305-pickup-grid">'+
- '<div class="rc1305-pickup-item rc1305-pickup-meta rc1305-meta-driver"><span>'+esc(driverLabel)+'</span><strong>'+esc(driver)+'</strong></div>'+
- '<div class="rc1305-pickup-item rc1305-pickup-meta"><span>'+esc(plateLabel)+'</span><strong>'+esc(plate)+'</strong></div>'+
- '<div class="rc1305-pickup-item rc1305-pickup-meta"><span>'+esc(loaderLabel)+'</span><strong>'+esc(loader)+'</strong></div>'+
- (carrier?'<div class="rc1305-pickup-item rc1305-pickup-meta"><span>'+esc(carrierLabel)+'</span><strong>'+esc(carrier)+'</strong></div>':'')+
- '<div class="rc1305-pickup-item rc1305-pickup-meta"><span>'+esc(palletLabel)+'</span><strong>'+esc(tr('loadingListPrint.palletMovement',{out:out,returned:returned}))+'</strong></div>'+
+ '<div class="rc1305-pickup-item rc1305-meta-driver"><span>'+esc(driverLabel)+'</span><strong>'+esc(driver)+'</strong></div>'+
+ '<div class="rc1305-pickup-item rc1305-meta-plate"><span>'+esc(plateLabel)+'</span><strong>'+esc(plate)+'</strong></div>'+
+ '<div class="rc1305-pickup-item rc1305-meta-loader"><span>'+esc(loaderLabel)+'</span><strong>'+esc(loader)+'</strong></div>'+
+ (carrier?'<div class="rc1305-pickup-item rc1305-meta-carrier"><span>'+esc(carrierLabel)+'</span><strong>'+esc(carrier)+'</strong></div>':'')+
  '<div class="rc1305-pickup-item rc1305-pickup-signature rc1305-signature-primary"><span>'+esc(signatureLabel)+'</span><strong>'+signHtml+'</strong></div>'+
- (customsRequired?'<div class="rc1305-pickup-item rc1305-pickup-signature rc1305-signature-customs" data-rc1315-customs-signature="1"><span>'+esc(customsLabel)+'</span><strong>'+customsSignHtml+'</strong></div>':'')+
+ '<div class="rc1305-pickup-item rc1305-meta-pallet"><span>'+esc(palletLabel)+'</span><strong>'+esc(tr('loadingListPrint.palletMovement',{out:out,returned:returned}))+'</strong></div>'+
  '</div>';
  var anchor=cards[0],parent=anchor&&anchor.parentNode;if(parent)parent.insertBefore(section,anchor);else root.appendChild(section);
  cards.forEach(function(card){card.setAttribute('data-rc1305-replaced-pickup-field','1');card.style.setProperty('display','none','important')});
@@ -156,7 +144,7 @@ function addQuickPrintQr(root,sh,withQr){
 function enhance(html,sh,withQr){
  try{
   var tpl=d.createElement('template');tpl.innerHTML=html;var root=tpl.content.querySelector('.rc390-load,.rc352-load,.rc390-page,.rc352-page')||tpl.content.firstElementChild;if(!root)return html;
-  root.setAttribute('data-rc1305-loading-list','1');shrinkInlineFonts(root,1);enhanceRecipient(root,sh||{});enhanceDocuments(root,sh||{});enhanceRemark(root,sh||{});ensureCustomsSignatureField(root,sh||{});pickupSummary(root,sh||{});
+  root.setAttribute('data-rc1305-loading-list','1');shrinkInlineFonts(root,1);enhanceRecipient(root,sh||{});enhanceDocuments(root,sh||{});enhanceRemark(root,sh||{});pickupSummary(root,sh||{});
   return tpl.innerHTML
  }catch(e){try{console.warn('RC1305 Ladelisten-Darstellung',e)}catch(_){}return html}
 }
@@ -189,24 +177,23 @@ function style(){
  '[data-rc1305-remark][data-rc1305-empty="1"] .rc390-txt,[data-rc1305-remark][data-rc1305-empty="1"] .rc352-txt{color:#64748b!important;font-weight:600!important}'+
  '.rc1305-pickup-summary{box-sizing:border-box!important;width:100%!important;margin:2.5mm 0 0!important;border:.45mm solid #94a3b8!important;border-radius:2.6mm!important;background:#fff!important;overflow:hidden!important;break-inside:avoid!important;page-break-inside:avoid!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'+
  '.rc1305-pickup-banner{display:flex!important;justify-content:space-between!important;gap:3mm!important;align-items:center!important;padding:2.2mm 3mm!important;border-bottom:.4mm solid #86efac!important;background:#ecfdf5!important;color:#166534!important;font-size:9pt!important;font-weight:850!important}'+
- '.rc1305-pickup-grid{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;grid-auto-flow:row!important;gap:1mm!important;padding:1.6mm!important;align-items:stretch!important}'+
- '.rc1305-pickup-item{box-sizing:border-box!important;min-width:0!important;margin:0!important;padding:1.15mm 1.35mm!important;border:.35mm solid #cbd5e1!important;border-radius:1.5mm!important;background:#f8fafc!important;overflow:hidden!important}'+
- '.rc1305-pickup-meta{height:12.5mm!important;min-height:12.5mm!important}.rc1305-meta-driver{grid-column:span 2!important}'+
+ '.rc1305-pickup-grid{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:1.6mm!important;padding:2.5mm!important;align-items:stretch!important}'+
+ '.rc1305-pickup-item{box-sizing:border-box!important;min-width:0!important;min-height:12mm!important;margin:0!important;padding:1.7mm 2mm!important;border:.35mm solid #cbd5e1!important;border-radius:1.7mm!important;background:#f8fafc!important;overflow:hidden!important}'+
+ ''+
  '.rc1305-pickup-item>span{display:block!important;margin:0 0 .45mm!important;color:#64748b!important;font-size:6.6pt!important;line-height:1.05!important;font-weight:800!important;text-transform:uppercase!important;letter-spacing:.08mm!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}'+
  '.rc1305-pickup-item>strong{display:block!important;min-width:0!important;color:#0f2942!important;font-size:8.2pt!important;line-height:1.12!important;font-weight:800!important;overflow-wrap:anywhere!important}'+
  '.rc1305-pickup-meta>strong{display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important;max-height:6.8mm!important;overflow:hidden!important}'+
- '.rc1305-pickup-signature{grid-column:span 3!important;height:18mm!important;min-height:18mm!important;padding:1mm 1.35mm!important;overflow:hidden!important}.rc1305-pickup-summary[data-rc1315-customs-required="0"] .rc1305-signature-primary{grid-column:1 / -1!important}'+
- '.rc1305-pickup-signature>strong{display:flex!important;align-items:center!important;justify-content:flex-start!important;height:11.2mm!important;max-height:11.2mm!important;overflow:hidden!important}'+
- '.rc1305-signature-image{display:block!important;width:auto!important;max-width:100%!important;height:auto!important;max-height:10.5mm!important;object-fit:contain!important;object-position:left center!important}'+
- '.rc1327-customs-signature-field{box-sizing:border-box!important;min-width:0!important;break-inside:avoid!important;page-break-inside:avoid!important}.rc1327-customs-signature-line{height:9mm!important;border-bottom:.45mm solid #334155!important;margin:2mm 0 1mm!important}.rc1327-customs-signature-hint{font-size:6.4pt!important;line-height:1.1!important;color:#64748b!important;font-weight:650!important}'+
- '@media(max-width:640px){.rc1305-document-grid,.rc1305-pickup-grid{grid-template-columns:1fr!important}.rc1305-pickup-meta,.rc1305-meta-driver,.rc1305-pickup-signature,.rc1305-pickup-summary[data-rc1315-customs-required] .rc1305-signature-primary{grid-column:auto!important;height:auto!important;min-height:0!important}.rc1305-pickup-signature>strong{height:auto!important;min-height:11.2mm!important}}'+
+ '.rc1305-pickup-signature{grid-column:span 2!important;min-height:16mm!important;overflow:hidden!important}'+
+ '.rc1305-pickup-signature>strong{display:flex!important;align-items:center!important;justify-content:flex-start!important;min-height:10mm!important;max-height:14mm!important;overflow:hidden!important}'+
+ '.rc1305-signature-image{display:block!important;width:auto!important;max-width:100%!important;height:auto!important;max-height:14mm!important;object-fit:contain!important;object-position:left center!important}'+
+  '@media(max-width:640px){.rc1305-document-grid,.rc1305-pickup-grid{grid-template-columns:1fr!important}.rc1305-pickup-signature{grid-column:auto!important;height:auto!important;min-height:0!important}.rc1305-pickup-signature>strong{height:auto!important;min-height:11.2mm!important}}'+
  '.rc1315-print-qr{box-sizing:border-box!important;display:flex!important;align-items:center!important;gap:1mm!important;width:22mm!important;max-width:22mm!important;min-height:14mm!important;padding:.7mm!important;border:.45mm solid #0f2942!important;border-radius:2.2mm!important;background:#fff!important;color:#0f2942!important;break-inside:avoid!important;page-break-inside:avoid!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'+
  '.rc1315-print-qr-code{flex:0 0 12mm!important;width:12mm!important;height:12mm!important}.rc1315-qr-svg{display:block!important;width:12mm!important;height:12mm!important}'+
  '.rc1315-print-qr-copy{display:flex!important;min-width:0!important;flex-direction:column!important;gap:.6mm!important}.rc1315-print-qr-copy strong{font-size:9pt!important;text-transform:uppercase!important}.rc1315-print-qr-copy span{font-size:8.5pt!important;font-weight:800!important}.rc1315-print-qr-copy small{font-size:6.8pt!important;line-height:1.2!important;font-weight:700!important;color:#475569!important}'+
   '.rc1341-cover-pickup-date{margin-top:1mm!important;font-size:8.5pt!important;line-height:1.15!important;color:#0f2942!important}'+
  '.rc1327-cover-qr-row{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;align-items:end!important;gap:4mm!important}.rc1327-cover-qr-row>*{min-width:0!important}'+
  '.rc1359-print-qr-center{position:absolute!important;left:50%!important;right:auto!important;bottom:14mm!important;transform:translateX(-50%)!important;width:22mm!important;max-width:22mm!important;min-height:10mm!important;padding:.5mm!important;margin:0!important;border:.35mm solid #2563eb!important;border-radius:1.6mm!important;background:#fff!important;z-index:4!important}.rc1359-print-qr-center .rc1315-print-qr-code,.rc1359-print-qr-center .rc1315-qr-svg{width:12mm!important;min-width:12mm!important;max-width:12mm!important;height:12mm!important;min-height:12mm!important;max-height:12mm!important;flex:0 0 12mm!important}.rc1359-print-qr-center .rc1315-print-qr-copy{display:block!important;margin:0!important}.rc1359-print-qr-center .rc1315-print-qr-copy strong{font-size:5.4pt!important;line-height:1!important}.rc390-cover [data-rc1305-document-grid],.rc352-cover [data-rc1305-document-grid]{display:flex!important;flex-direction:column!important;align-items:flex-start!important;gap:.5mm!important}.rc390-cover [data-rc1305-document-grid] [data-rc1293-packing-slip],.rc352-cover [data-rc1305-document-grid] [data-rc1293-packing-slip]{display:inline-flex!important;align-self:flex-start!important;flex:0 1 auto!important;width:fit-content!important;font-size:6.2pt!important;line-height:1.05!important;padding:.25mm .35mm!important;min-width:0!important;max-width:100%!important;overflow-wrap:anywhere!important;word-break:break-word!important}'+
- '@media print{.rc1305-pickup-summary{margin-top:1.6mm!important}.rc1305-pickup-banner{padding:1.5mm 2.2mm!important;font-size:8.2pt!important}.rc1305-pickup-grid{grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:.8mm!important;padding:1.2mm!important}.rc1305-pickup-meta{height:11.5mm!important;min-height:11.5mm!important}.rc1305-pickup-signature{grid-column:span 3!important;height:16.5mm!important;min-height:16.5mm!important}.rc1305-pickup-summary[data-rc1315-customs-required="0"] .rc1305-signature-primary{grid-column:1 / -1!important}.rc1305-pickup-signature>strong{height:10.1mm!important;max-height:10.1mm!important}.rc1305-signature-image{max-height:9.5mm!important}.rc1305-document-grid,.rc1305-pickup-summary,.rc1305-pickup-grid,.rc1305-pickup-item,.rc1315-print-qr{break-inside:avoid!important;page-break-inside:avoid!important}}';
+ '@media print{.rc1305-pickup-summary{margin-top:1.6mm!important}.rc1305-pickup-banner{padding:1.5mm 2.2mm!important;font-size:8.2pt!important}.rc1305-pickup-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:1mm!important;padding:1.6mm!important}.rc1305-pickup-signature{grid-column:span 2!important;min-height:15mm!important}.rc1305-pickup-signature>strong{min-height:9mm!important;max-height:12mm!important}.rc1305-signature-image{max-height:11mm!important}.rc1305-document-grid,.rc1305-pickup-summary,.rc1305-pickup-grid,.rc1305-pickup-item,.rc1315-print-qr{break-inside:avoid!important;page-break-inside:avoid!important}}';
  (d.head||d.documentElement).appendChild(st)
 }
 style();
