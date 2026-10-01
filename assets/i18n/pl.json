@@ -1180,5 +1180,16 @@
   "loadingListQuickPrint.missing": "Nie znaleziono przesyłki {{ref}}.",
   "loadingListQuickPrint.noPrint": "Pełny wydruk nie jest dostępny dla tej przesyłki.",
   "loadingListQuickPrint.directPrintSetup": "Skonfiguruj druk bezpośredni (Edge)",
-  "loadingListQuickPrint.directPrintSetupHint": "Jednorazowa konfiguracja Windows do cichego drukowania na drukarce domyślnej."
+  "loadingListQuickPrint.directPrintSetupHint": "Jednorazowa konfiguracja Windows do cichego drukowania na drukarce domyślnej.",
+  "customerAvisPreference.title": "Link awiza",
+  "customerAvisPreference.description": "Określa, czy dla tego klienta ma być tworzony cyfrowy link awiza i używany w wiadomościach dotyczących wysyłki i odbioru.",
+  "customerAvisPreference.label": "Czy link awiza jest wymagany",
+  "customerAvisPreference.yes": "Tak",
+  "customerAvisPreference.no": "Nie",
+  "customerAvisPreference.saving": "Zapisywanie ustawienia …",
+  "customerAvisPreference.saved": "Ustawienie awiza zapisane.",
+  "customerAvisPreference.saveFailed": "Nie udało się zapisać ustawienia awiza: {{error}}",
+  "customerAvisPreference.enabledStatus": "Link awiza jest włączony dla tego klienta.",
+  "customerAvisPreference.disabledStatus": "Link awiza jest wyłączony dla tego klienta.",
+  "customerAvisPreference.blockedHelp": "Link awiza jest wyłączony dla tego klienta w folderze klienta."
 }
