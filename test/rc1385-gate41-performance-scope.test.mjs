@@ -29,7 +29,7 @@ function harness(){
     clearTimeout(){},
     ExportHUBI18n:{t(key){return key}}
   };
-  vm.runInNewContext(source,{window,document,console,String,Number,Math,Set,Array,Object},{filename:'rc1013-gate41-ui.js'});
+  vm.runInNewContext(source,{window,document,console,String,Number,Math,Set,Array,Object,setTimeout:window.setTimeout,clearTimeout:window.clearTimeout},{filename:'rc1013-gate41-ui.js'});
   return{events,timers,observers,shipping,documentElement};
 }
 
