@@ -194,6 +194,17 @@ test('RC1374: explizites Nein im Kundenordner verhindert die technische AVIS-Erz
   assert.equal(env.api.link(shipment),'');
 });
 
+test('RC1374: bereits aktiver AVIS wird beim nächsten Kundenabgleich serverseitig deaktiviert',async()=>{
+  const customers=[{id:'N1',name:'Normaler Kunde',customerAvisLinkEnabled:false}];
+  const shipment={reference:'7RZ5W9',customerId:'N1',customerName:'Normaler Kunde',customerAvisEnabled:true,customerAvisToken:'server-token',status:'Entwurf'};
+  const env=load(shipment,{reference:'7RZ5W9',customers});
+  const active=await env.rc.ensureCustomerAvis('preference-revoke-test');
+  assert.equal(active,false);
+  assert.equal(env.apiCalls.filter(x=>x.action==='disable').length,1,'Bestehender AVIS muss deaktiviert werden');
+  assert.equal(shipment.customerAvisToken,'');
+  assert.equal(shipment.customerAvisEnabled,false);
+});
+
 test('RC1374: Adolf Würth 3019100629 und V-Zug starten ohne AVIS-Link',()=>{
   const customers=[
     {id:'3019100629',name:'Adolf Würth GmbH & Co. KG'},
