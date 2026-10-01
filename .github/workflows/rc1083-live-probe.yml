@@ -1,10 +1,10 @@
 name: RC1083 Live Probe
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/rc1083-live-probe.yml'
+  workflow_run:
+    workflows:
+      - ExportHUB RC1112 Drei-Umgebungen Deploy
+    types: [completed]
   workflow_dispatch:
 
 permissions:
@@ -12,6 +12,7 @@ permissions:
 
 jobs:
   probe:
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -21,26 +22,34 @@ jobs:
           set -u
           prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
           testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
-          failed=0
-          for base in "$prod" "$testservice"; do
-            page=$(mktemp); asset=$(mktemp); api=$(mktemp)
-            pc=$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1083-probe=$GITHUB_SHA" || true)
-            ac=$(curl -sS -L -o "$asset" -w '%{http_code}' --max-time 20 "$base/assets/rc1013-diagnostics.js?rc1083-probe=$GITHUB_SHA" || true)
-            apiCode=$(curl -sS -o "$api" -w '%{http_code}' --max-time 20 -X POST -H 'Content-Type: application/json' --data '{"action":"configuration"}' "$base/api/diagnostic-autofix?rc1083-probe=$GITHUB_SHA" || true)
-            pageMarker=0; chatgptMarker=0; endpointMarker=0; titleMarker=0; authMarker=0
-            grep -q 'assets/rc1013-diagnostics.js?v=1364' "$page" && pageMarker=1
-            grep -q 'Mit ChatGPT beheben' "$asset" && chatgptMarker=1
-            grep -q '__EXPORTHUB_RC1125_DIAGNOSTICS_VIEW_ISOLATION__' "$asset" && titleMarker=1
-            grep -q '/api/diagnostic-autofix' "$asset" && endpointMarker=1
-            grep -q 'Fehlerdiagnose & automatische Behebung' "$asset" && titleMarker=1
-            grep -Eq 'AUTH_REQUIRED|SESSION_INVALID' "$api" && authMarker=1
-            echo "BASE=$base page=$pc asset=$ac api=$apiCode pageMarker=$pageMarker chatgpt=$chatgptMarker endpoint=$endpointMarker title=$titleMarker auth=$authMarker"
-            printf 'API_BODY='
-            head -c 1000 "$api" | tr '\n' ' ' || true
-            echo
-            if [[ "$pc" != '200' || "$ac" != '200' || "$apiCode" != '401' || "$pageMarker" != '1' || "$chatgptMarker" != '1' || "$endpointMarker" != '1' || "$titleMarker" != '1' || "$authMarker" != '1' ]]; then
-              failed=1
+          target_sha='${{ github.event.workflow_run.head_sha || github.sha }}'
+          for attempt in {1..18}; do
+            failed=0
+            for base in "$prod" "$testservice"; do
+              page=$(mktemp); asset=$(mktemp); api=$(mktemp)
+              pc=$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1083-probe=$target_sha-$attempt" || true)
+              ac=$(curl -sS -L -o "$asset" -w '%{http_code}' --max-time 20 "$base/assets/rc1013-diagnostics.js?rc1083-probe=$target_sha-$attempt" || true)
+              apiCode=$(curl -sS -o "$api" -w '%{http_code}' --max-time 20 -X POST -H 'Content-Type: application/json' --data '{"action":"configuration"}' "$base/api/diagnostic-autofix?rc1083-probe=$target_sha-$attempt" || true)
+              pageMarker=0; chatgptMarker=0; endpointMarker=0; titleMarker=0; authMarker=0
+              grep -q 'assets/rc1013-diagnostics.js?v=1364' "$page" && pageMarker=1
+              grep -q 'diagnostics.fixWithChatgpt' "$asset" && chatgptMarker=1
+              grep -q '__EXPORTHUB_RC1125_DIAGNOSTICS_VIEW_ISOLATION__' "$asset" && titleMarker=1
+              grep -q '/api/diagnostic-autofix' "$asset" && endpointMarker=1
+              grep -q 'diagnostics.title' "$asset" && titleMarker=1
+              grep -Eq 'AUTH_REQUIRED|SESSION_INVALID' "$api" && authMarker=1
+              echo "BASE=$base page=$pc asset=$ac api=$apiCode pageMarker=$pageMarker chatgpt=$chatgptMarker endpoint=$endpointMarker title=$titleMarker auth=$authMarker"
+              printf 'API_BODY='
+              head -c 1000 "$api" | tr '\n' ' ' || true
+              echo
+              if [[ "$pc" != '200' || "$ac" != '200' || "$apiCode" != '401' || "$pageMarker" != '1' || "$chatgptMarker" != '1' || "$endpointMarker" != '1' || "$titleMarker" != '1' || "$authMarker" != '1' ]]; then
+                failed=1
+              fi
+              rm -f "$page" "$asset" "$api"
+            done
+            if [[ "$failed" == '0' ]]; then
+              echo 'RC1083 Diagnose-Autofix ist nach erfolgreichem Deploy live und gegen anonymen Zugriff geschützt.'
+              exit 0
             fi
-            rm -f "$page" "$asset" "$api"
+            sleep 5
           done
-          exit "$failed"
+          exit 1
