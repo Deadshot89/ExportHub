@@ -4,10 +4,9 @@ import fs from 'node:fs';
 
 const archive=fs.readFileSync('api/shared/pod-archive.js','utf8');
 
-test('RC1385: vollständig konfiguriertes Microsoft-Ziel bleibt ohne explizites Disable aktiv',()=>{
-  assert.match(archive,/const flag = text\(process\.env\.EXPORTHUB_POD_M365_ENABLED\)\.toLowerCase\(\)/);
-  assert.match(archive,/if \(\/\^\(0\|false\|no\|off\)\$\/\.test\(flag\)\) return false/);
-  assert.match(archive,/return graphDrive\.readiness\(\)\.configured/);
+test('RC1386: vollständig konfiguriertes Microsoft-Ziel ist automatisch aktiv',()=>{
+  assert.match(archive,/function m365Enabled\(\) \{[\s\S]*?return graphDrive\.readiness\(\)\.configured;[\s\S]*?\}/);
+  assert.doesNotMatch(archive,/process\.env\.EXPORTHUB_POD_M365_ENABLED/);
 });
 
 test('RC1385: bereits archivierte PODs ohne Drive-Kopie werden erneut in die Nachholqueue aufgenommen',()=>{
