@@ -247,6 +247,19 @@ async function listUserDrives(token, user) {
     : [];
 }
 
+async function defaultUserDrive(token, user) {
+  let result = null;
+  try {
+    result = await graphGet(token, `/users/${encodeURIComponent(user)}/drive?$select=id,driveType,name`);
+  } catch (error) {
+    if (!isNotFound(error)) throw error;
+    return null;
+  }
+  const drive = result && result.body || {};
+  const id = text(drive.id);
+  return id ? { id, driveType: text(drive.driveType), name: text(drive.name) } : null;
+}
+
 async function findFolder(token, driveId, folder) {
   const path = encodedPath(folder);
   if (!path) return null;
@@ -298,8 +311,26 @@ async function resolveTarget(token, cfg, force) {
   if (unique.length > 1) throw targetError('GRAPH_TARGET_AMBIGUOUS', 'Der konfigurierte Microsoft-365-Zielordner ist nicht eindeutig.', { statusCode: 409 });
 
   let value = unique[0] || null;
+
+  // RC1391: Manche App-only Graph-Konfigurationen liefern für /users/{id}/drives
+  // keinen Eintrag, obwohl das Default-OneDrive des explizit konfigurierten
+  // Benutzers direkt erreichbar ist. In diesem Fall das echte Default-Drive
+  // abfragen und den konfigurierten Ordner dort suchen, bevor aus der
+  // Maildomain eine persönliche SharePoint-URL konstruiert wird.
+  if (!value && drives.length === 0) {
+    const defaultDrive = await defaultUserDrive(token, cfg.user);
+    if (defaultDrive && defaultDrive.id) {
+      for (const folder of folders) {
+        const found = await findFolder(token, defaultDrive.id, folder);
+        if (!found) continue;
+        value = { driveId: defaultDrive.id, folderId: found.folderId, folder: found.folder };
+        break;
+      }
+    }
+  }
+
   if (!value) value = await resolvePersonalFolderTarget(token, cfg.user, cfg.folder);
-  if (!value) throw targetError('GRAPH_FOLDER_NOT_FOUND', 'Der konfigurierte Microsoft-365-Zielordner wurde weder in erreichbaren Drives noch über seine explizite OneDrive-URL gefunden.', { statusCode: 404 });
+  if (!value) throw targetError('GRAPH_FOLDER_NOT_FOUND', 'Der konfigurierte Microsoft-365-Zielordner wurde weder in erreichbaren Drives, im Default-OneDrive noch über seine explizite OneDrive-URL gefunden.', { statusCode: 404 });
 
   targetCache = { key, value, expiresAt: Date.now() + 10 * 60 * 1000 };
   return value;
