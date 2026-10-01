@@ -41,7 +41,7 @@ test('RC1305: Ladeliste ersetzt abgeholte Leerformulare durch gespeicherte Abhol
   assert.match(print,/rc1305-meta-loader/);
   assert.match(print,/rc1305-meta-plate/);
   assert.match(print,/rc1305-signature-primary/);
-  assert.match(print,/grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
+  assert.match(print,/grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
   assert.doesNotMatch(print,/ensureCustomsSignatureField|rc1305-signature-customs|data-rc1315-customs-signature/);
 });
 
