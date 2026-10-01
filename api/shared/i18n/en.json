@@ -193,7 +193,7 @@
   "api.pickup.accessLocked": "Too many incorrect PIN entries. The QR code is temporarily locked.",
   "api.pickup.referenceMismatch": "The reference does not match the shipment.",
   "api.pickup.signatureRequired": "The digital signature is required.",
-  "api.pickup.customsSignatureRequired": "Please confirm receipt of the customs documents with the second driver signature.",
+  "api.pickup.customsSignatureRequired": "Please confirm that the customs documents were handed over.",
   "api.pickup.expired": "The QR code has expired.",
   "api.pickup.alreadyConfirmed": "This shipment has already been fully collected.",
   "api.pickup.carrierRequired": "Carrier name is missing. Pickup cannot be completed.",
