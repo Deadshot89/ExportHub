@@ -18,8 +18,8 @@ function allowed(user){
 }
 function validEmail(v){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text(v))}
 function avisRecipientExcluded(v){return lower(v)==='dispo@holenstein.de'}
-const PRODUCTION_PUBLIC_HOST=lower(process.env.EXPORTHUB_PRODUCTION_PUBLIC_HOST||'www.exporthub360.de');
-const LEGACY_BRANDED_PRODUCTION_PUBLIC_HOST=lower(process.env.EXPORTHUB_LEGACY_BRANDED_PRODUCTION_PUBLIC_HOST||'exporthub360.com');
+const PRODUCTION_PUBLIC_HOST='exporthub360.com';
+const LEGACY_BRANDED_PRODUCTION_PUBLIC_HOST='www.exporthub360.de';
 const LEGACY_PRODUCTION_PUBLIC_HOST=lower(process.env.EXPORTHUB_LEGACY_PRODUCTION_PUBLIC_HOST||'wonderful-forest-0f315e310.7.azurestaticapps.net');
 const TESTSERVICE_PUBLIC_HOST=lower(process.env.EXPORTHUB_TESTSERVICE_PUBLIC_HOST||'ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net');
 function safeAvisUrl(req,value){
