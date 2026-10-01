@@ -32,7 +32,8 @@ test('RC1360: Avis-Erinnerung normalisiert bestehende Altlinks auf ExportHUB360'
 
 
 test('RC1365: Client-Sicherheitsprüfung akzeptiert neuen und bestehenden Markenhost',()=>{
-  assert.match(immediate,/h==='exporthub360\.com'/);\n  assert.match(immediate,/h==='www\.exporthub360\.de'/);
+  assert.match(immediate,/h==='exporthub360\.com'/);
+  assert.match(immediate,/h==='www\.exporthub360\.de'/);
   assert.match(immediate,/RC1333_PROD_AVIS_ORIGIN='https:\/\/exporthub360\.com'/);
 });
 test('RC1333: Browser laden den Safe-Origin-Hotfix mit neuem Cache-Key',()=>{
