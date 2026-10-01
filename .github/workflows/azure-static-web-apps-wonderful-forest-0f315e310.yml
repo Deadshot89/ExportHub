@@ -987,10 +987,10 @@ jobs:
             sleep 5
           done
           if [ "$ready" != "1" ]; then
-            echo "RC1376 Produktions-Live-Gate fehlgeschlagen: main=$mc print=$pc avisRuntime=$ac" >&2
+            echo "RC1379 Produktions-Live-Gate fehlgeschlagen: main=$mc print=$pc avisRuntime=$ac" >&2
             exit 1
           fi
-          echo 'RC1376 Deckblatt + Ladeliste, 12-mm-Druck-QR, inhaltsbreite DNC-Rahmen, +1pt Dateischrift und Empfänger/Kunde-Hervorhebung live bestätigt.'
+          echo 'RC1379 POD-Ladeliste mit Verlader, Kennzeichen und einer Fahrerunterschrift sowie aktuelle Druck-Fixes live bestätigt.'
 
       - name: RC1373 Nur-Deckblatt Produktionspfad live verifizieren
         shell: bash
