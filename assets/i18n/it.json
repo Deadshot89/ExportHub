@@ -1180,5 +1180,16 @@
   "loadingListQuickPrint.missing": "Spedizione {{ref}} non trovata.",
   "loadingListQuickPrint.noPrint": "La stampa completa non è disponibile per questa spedizione.",
   "loadingListQuickPrint.directPrintSetup": "Configura stampa diretta (Edge)",
-  "loadingListQuickPrint.directPrintSetupHint": "Configurazione Windows una tantum per stampare senza finestra sulla stampante predefinita."
+  "loadingListQuickPrint.directPrintSetupHint": "Configurazione Windows una tantum per stampare senza finestra sulla stampante predefinita.",
+  "customerAvisPreference.title": "Link avviso",
+  "customerAvisPreference.description": "Definisce se per questo cliente deve essere creato un link di avviso digitale e utilizzato nelle e-mail di spedizione e ritiro.",
+  "customerAvisPreference.label": "Link avviso richiesto",
+  "customerAvisPreference.yes": "Sì",
+  "customerAvisPreference.no": "No",
+  "customerAvisPreference.saving": "Salvataggio impostazione …",
+  "customerAvisPreference.saved": "Impostazione avviso salvata.",
+  "customerAvisPreference.saveFailed": "Impossibile salvare l’impostazione avviso: {{error}}",
+  "customerAvisPreference.enabledStatus": "Il link avviso è attivo per questo cliente.",
+  "customerAvisPreference.disabledStatus": "Il link avviso è disattivato per questo cliente.",
+  "customerAvisPreference.blockedHelp": "Il link avviso è disattivato per questo cliente nella cartella cliente."
 }
