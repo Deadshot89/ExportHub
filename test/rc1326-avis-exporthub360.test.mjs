@@ -32,7 +32,8 @@ test('RC1326: customer portal accepts token from /avis/<token> without breaking 
 });
 
 test('RC1326: reminder validation allows branded production and legacy production URLs',()=>{
-  assert.match(reminder,/exporthub360\.com/);\n  assert.match(reminder,/www\.exporthub360\.de/);
+  assert.match(reminder,/exporthub360\.com/);
+  assert.match(reminder,/www\.exporthub360\.de/);
   assert.match(reminder,/LEGACY_PRODUCTION_PUBLIC_HOST/);
   assert.match(reminder,/brandedPath/);
   assert.match(reminder,/legacyPath/);
