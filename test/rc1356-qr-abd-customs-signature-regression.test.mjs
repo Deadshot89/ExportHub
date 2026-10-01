@@ -32,7 +32,7 @@ test('RC1377 P0: bestehende QR-Sendung behält ABD-Pflicht auch wenn Live-Sendun
   const end=store.indexOf('function mergeContainerPhotos',start);
   assert.ok(start>=0&&end>start,'ABD-Resolver konnte nicht isoliert werden');
   const block=store.slice(start,end);
-  assert.match(block,/abdPresent\(sh\)\|\|abdPresent\(req\)\|\|abdPresent\(record\)/);
+  assert.match(block,/abdPresent\(sh\)\|\|reqPresent\|\|abdPresent\(record\)/);
   assert.doesNotMatch(block,/found\?\(abdPresent\(sh\)\|\|abdPresent\(req\)\):abdPresent\(record\)/);
 });
 
