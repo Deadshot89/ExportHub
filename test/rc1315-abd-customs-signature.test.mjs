@@ -51,7 +51,7 @@ test('RC1379: POD-Ladeliste zeigt wieder genau eine Fahrerunterschrift mit Verla
   assert.match(loadingList,/rc1305-meta-plate/);
   assert.match(loadingList,/rc1305-signature-primary/);
   assert.match(loadingList,/grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
-  assert.match(loadingList,/grid-column:span 2!important/);
+  assert.match(loadingList,/grid-column:span 3!important/);
   assert.doesNotMatch(loadingList,/rc1305-signature-customs/);
   assert.doesNotMatch(loadingList,/data-rc1315-customs-signature/);
   assert.doesNotMatch(loadingList,/ensureCustomsSignatureField/);
