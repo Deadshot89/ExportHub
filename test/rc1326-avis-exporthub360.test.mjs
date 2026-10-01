@@ -8,7 +8,7 @@ const config=JSON.parse(fs.readFileSync('staticwebapp.config.json','utf8'));
 const reminder=fs.readFileSync('api/avis-reminder-mail/index.js','utf8');
 
 test('RC1360: production issues canonical ExportHUB360 AVIS links',()=>{
-  assert.match(api,/https:\/\/www\.exporthub360\.de/);
+  assert.match(api,/https:\/\/exporthub360\.com/);
   assert.match(api,/function publicAvisUrl\(/);
   assert.match(api,/PRODUCTION_AVIS_ORIGIN\+'\/avis\/'\+encoded/);
   assert.match(api,/url:publicAvisUrl\(env,issued\.token\)/);
@@ -32,7 +32,7 @@ test('RC1326: customer portal accepts token from /avis/<token> without breaking 
 });
 
 test('RC1326: reminder validation allows branded production and legacy production URLs',()=>{
-  assert.match(reminder,/www\.exporthub360\.de/);
+  assert.match(reminder,/exporthub360\.com/);\n  assert.match(reminder,/www\.exporthub360\.de/);
   assert.match(reminder,/LEGACY_PRODUCTION_PUBLIC_HOST/);
   assert.match(reminder,/brandedPath/);
   assert.match(reminder,/legacyPath/);
