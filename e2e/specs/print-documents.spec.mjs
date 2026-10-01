@@ -541,8 +541,8 @@ test('RC1376: kurze DNC-Rahmen und EMPFÄNGER / KUNDE sind auf Deckblatt und Lad
   await assertRuntimeClean(guard,testInfo);
 });
 
-test('RC1315: ABD-Ladeliste hält beide Fahrerunterschriften kollisionsfrei auf einer A4-Seite',async({page},testInfo)=>{
-  test.skip(testInfo.project.name!=='laptop','A4-Signaturlayout wird einmal im echten Chromium geprüft.');
+test('RC1379: POD-Ladeliste nutzt wieder eine Fahrerunterschrift und ordnet Verlader/Kennzeichen korrekt zu',async({page},testInfo)=>{
+  test.skip(testInfo.project.name!=='laptop','POD-Ladelistenlayout wird einmal im echten Chromium geprüft.');
   test.setTimeout(45_000);
   const guard=attachRuntimeGuards(page,testInfo);
 
@@ -555,7 +555,7 @@ test('RC1315: ABD-Ladeliste hält beide Fahrerunterschriften kollisionsfrei auf 
     if(!api||typeof api.enhance!=='function')throw new Error('RC1305 Ladelisten-Enhancer fehlt');
     const sig='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
     const raw='<section class="rc390-page rc390-load">'+
-      '<div data-rc1315-fixture-content="1"></div>'+
+      '<div data-rc1379-fixture-content="1"></div>'+
       '<div class="field"><strong>Unterschrift Fahrer</strong></div>'+
       '<div class="field"><strong>Fahrername</strong></div>'+
       '<div class="field"><strong>Datum / Uhrzeit</strong></div>'+
@@ -568,6 +568,7 @@ test('RC1315: ABD-Ladeliste hält beide Fahrerunterschriften kollisionsfrei auf 
       pickupComplete:true,
       status:'Abgeholt',
       abdPresent:true,
+      customsDocumentsReceived:true,
       driverName:'Max Mustermann',
       licensePlate:'KLE-AB 1234',
       loaderName:'Tobias',
@@ -575,14 +576,12 @@ test('RC1315: ABD-Ladeliste hält beide Fahrerunterschriften kollisionsfrei auf 
       palletOut:4,
       returnedEuroPallets:2,
       driverSignature:sig,
-      customsDocumentsSignature:sig,
-      customsDocumentsSignatureStored:true,
-      confirmedAt:'2026-09-28T08:30:00Z'
+      confirmedAt:'2026-10-01T15:30:00Z'
     };
     document.body.innerHTML=api.enhance(raw,shipment);
     const root=document.querySelector('[data-rc1305-loading-list]');
-    const filler=root&&root.querySelector('[data-rc1315-fixture-content]');
-    if(!root||!filler)throw new Error('RC1315 Druckfixture konnte nicht aufgebaut werden');
+    const filler=root&&root.querySelector('[data-rc1379-fixture-content]');
+    if(!root||!filler)throw new Error('RC1379 Druckfixture konnte nicht aufgebaut werden');
     root.style.setProperty('box-sizing','border-box','important');
     root.style.setProperty('width','194mm','important');
     root.style.setProperty('height','281mm','important');
@@ -599,19 +598,19 @@ test('RC1315: ABD-Ladeliste hält beide Fahrerunterschriften kollisionsfrei auf 
     const summary=root.querySelector('[data-rc1305-pickup-summary]');
     const primary=root.querySelector('.rc1305-signature-primary');
     const customs=root.querySelector('.rc1305-signature-customs');
+    const loader=root.querySelector('.rc1305-meta-loader');
+    const plate=root.querySelector('.rc1305-meta-plate');
     const images=Array.from(root.querySelectorAll('.rc1305-signature-image'));
-    if(!summary||!primary||!customs||images.length!==2)throw new Error('Beide Signaturfelder wurden nicht gerendert');
-    const rr=root.getBoundingClientRect(),sr=summary.getBoundingClientRect(),pr=primary.getBoundingClientRect(),cr=customs.getBoundingClientRect();
+    if(!summary||!primary||!loader||!plate||images.length!==1)throw new Error('POD-Felder wurden nicht korrekt gerendert');
+    const rr=root.getBoundingClientRect(),sr=summary.getBoundingClientRect();
     const itemRects=Array.from(summary.querySelectorAll('.rc1305-pickup-item')).map(node=>node.getBoundingClientRect());
     let overlap=false;
     for(let i=0;i<itemRects.length;i++)for(let j=i+1;j<itemRects.length;j++){
       const a=itemRects[i],b=itemRects[j],x=Math.min(a.right,b.right)-Math.max(a.left,b.left),y=Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top);
-      if(x>1&&y>1){overlap=true}
+      if(x>1&&y>1)overlap=true;
     }
-    const imagesInside=images.every(img=>{
-      const ir=img.getBoundingClientRect(),parent=img.closest('.rc1305-pickup-signature').getBoundingClientRect();
-      return ir.left>=parent.left-1&&ir.right<=parent.right+1&&ir.top>=parent.top-1&&ir.bottom<=parent.bottom+1;
-    });
+    const image=images[0],ir=image.getBoundingClientRect(),parent=image.closest('.rc1305-pickup-signature').getBoundingClientRect();
+    const imageInside=ir.left>=parent.left-1&&ir.right<=parent.right+1&&ir.top>=parent.top-1&&ir.bottom<=parent.bottom+1;
     return{
       scrollHeight:root.scrollHeight,
       clientHeight:root.clientHeight,
@@ -619,21 +618,23 @@ test('RC1315: ABD-Ladeliste hält beide Fahrerunterschriften kollisionsfrei auf 
       rootBottom:rr.bottom,
       summaryHeight:sr.height,
       signatureCount:images.length,
-      sameRow:Math.abs(pr.top-cr.top)<=2,
-      sideBySide:pr.right<=cr.left+2,
+      customsSignaturePresent:!!customs,
+      loaderText:String(loader.textContent||''),
+      plateText:String(plate.textContent||''),
       overlap,
-      imagesInside
+      imageInside
     };
   });
 
-  expect(layout.signatureCount).toBe(2);
-  expect(layout.sameRow,'Die beiden Fahrerunterschriften stehen nicht in derselben Zeile').toBe(true);
-  expect(layout.sideBySide,'Die beiden Fahrerunterschriften überlappen horizontal').toBe(true);
+  expect(layout.signatureCount).toBe(1);
+  expect(layout.customsSignaturePresent,'Eine zweite Zoll-Unterschrift darf nicht mehr erscheinen').toBe(false);
+  expect(layout.loaderText).toContain('Tobias');
+  expect(layout.plateText).toContain('KLE-AB 1234');
   expect(layout.overlap,'Elemente des Abholnachweises überlappen sich').toBe(false);
-  expect(layout.imagesInside,'Mindestens eine Unterschrift ragt aus ihrem Signaturfeld').toBe(true);
-  expect(layout.summaryHeight,'Der Signatur-/Abholblock ist für A4 zu hoch').toBeLessThan(160);
-  expect(layout.summaryBottom<=layout.rootBottom+2,'Der Signaturblock ragt aus der A4-Ladeliste heraus').toBe(true);
-  expect(layout.scrollHeight<=layout.clientHeight+2,'Die ABD-Ladeliste würde auf eine zweite Seite überlaufen').toBe(true);
+  expect(layout.imageInside,'Die Fahrerunterschrift ragt aus ihrem Feld').toBe(true);
+  expect(layout.summaryHeight,'Der Abholblock ist für A4 zu hoch').toBeLessThan(160);
+  expect(layout.summaryBottom<=layout.rootBottom+2,'Der Abholblock ragt aus der A4-Ladeliste heraus').toBe(true);
+  expect(layout.scrollHeight<=layout.clientHeight+2,'Die POD-Ladeliste würde auf eine zweite Seite überlaufen').toBe(true);
 
   await assertRuntimeClean(guard,testInfo);
 });
