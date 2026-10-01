@@ -460,18 +460,20 @@ async function reconcilePendingBackups(environment, options) {
           continue;
         }
       }
-      if (!integrity.repairable) {
-        integrityErrors.push({ reference: recordReference || text(record.reference), code: integrity.code, error: integrity.message });
-        continue;
+      if (!integrity.ok) {
+        if (!integrity.repairable) {
+          integrityErrors.push({ reference: recordReference || text(record.reference), code: integrity.code, error: integrity.message });
+          continue;
+        }
+        record = await persistBackupState(match[1].toLowerCase(), environment, {
+          status: 'pending',
+          archiveSaved: false,
+          lastError: integrity.code + ': ' + integrity.message
+        });
+        backup = record.podBackup || backup;
+        forceRepair = true;
+        repairedStateCount += 1;
       }
-      record = await persistBackupState(match[1].toLowerCase(), environment, {
-        status: 'pending',
-        archiveSaved: false,
-        lastError: integrity.code + ': ' + integrity.message
-      });
-      backup = record.podBackup || backup;
-      forceRepair = true;
-      repairedStateCount += 1;
     }
     const lastAttemptMs = Date.parse(backup.lastAttemptAt || '');
     if (!forceRepair && !reference && minAgeMs > 0 && Number.isFinite(lastAttemptMs) && Date.now() - lastAttemptMs < minAgeMs) {
