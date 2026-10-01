@@ -29,7 +29,7 @@ test('RC1015: Lieferavis kann aus einer noch nicht manuell gespeicherten Sendung
   assert.match(persist,/await persist\(['"]Sendung vor Lieferavis automatisch gespeichert['"]\)/,'Der Lieferavis wartet nicht auf die bestätigte Azure-Speicherung.');
   const toggle=between(out,'async function rc1015Toggle(on)','function stripAvisBlocks');
   assert.match(toggle,/rc1015DraftReference\(\)/,'Die Formular-Referenz wird vor der Server-Aktivierung nicht geprüft.');
-  assert.match(toggle,/if\(on\)\{rc1024ClearDraftDisabled\(sh\);await rc1015PersistBeforeAvis\(\)\}/,'Die Sendung wird vor der Server-Aktivierung nicht automatisch gespeichert.');
+  assert.match(toggle,/if\(on\)\{rc1024ClearDraftDisabled\(sh\);var refBeforeToggle=rc1015DraftReference\(\);if\(!autoEnableSaveConfirmed\[refBeforeToggle\]\)await rc1015PersistBeforeAvis\(\)\}/,'Die manuelle Aktivierung speichert weiterhin vor der Server-Aktivierung; nur ein bereits bestätigter Auto-Save darf den zweiten Save unterdrücken.');
   assert.ok(toggle.indexOf('rc1015PersistBeforeAvis')<toggle.indexOf('base.toggle(on)'),'Der bestehende Avis-Linkpfad wird vor der dauerhaften Speicherung aufgerufen.');
   const panel=between(out,'function rc1015UpdateLieferavisButton()','function mailModeLabel');
   assert.match(panel,/panel\.setAttribute\(['"]data-active['"],active\?['"]1['"]:['"]0['"]\)/,'Der Entwurfs-Default wird im Lieferavis-Panel nicht sichtbar gespiegelt.');
