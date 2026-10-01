@@ -3,7 +3,7 @@
 if(window.__EXPORTHUB_RC1015_LIEFERAVIS_MAIL_FLOW__)return;
 window.__EXPORTHUB_RC1015_LIEFERAVIS_MAIL_FLOW__=true;
 
-var base=null,wrapper=null,autoEnablePending=Object.create(null),mailSourceCache=new Map(),visibleMailSyncing=false,refreshUiPending=false;
+var base=null,wrapper=null,autoEnablePending=Object.create(null),autoEnableSaveConfirmed=Object.create(null),mailSourceCache=new Map(),visibleMailSyncing=false,refreshUiPending=false;
 var RC1018_AVIS_EXCEPTIONS=Object.freeze({bmp:'Kunden-IT blockiert den Zugriff','böllhof':'Kein Lieferavis für diesen Kunden','böllhoff':'Kein Lieferavis für diesen Kunden',boellhof:'Kein Lieferavis für diesen Kunden',boellhoff:'Kein Lieferavis für diesen Kunden'});
 var RC1291_AVIS_MAIL_EXCLUSIONS=Object.freeze(['würth industrie','wuerth industrie']);
 var RC1292_AVIS_RECIPIENT_EXCLUSIONS=Object.freeze({'dispo@holenstein.de':'Holenstein GmbH'});
@@ -219,7 +219,7 @@ async function rc1015Toggle(on){
   return false
  }
  try{
-  if(on){rc1024ClearDraftDisabled(sh);await rc1015PersistBeforeAvis()}
+  if(on){rc1024ClearDraftDisabled(sh);var refBeforeToggle=rc1015DraftReference();if(!autoEnableSaveConfirmed[refBeforeToggle])await rc1015PersistBeforeAvis()}
   if(on&&rc1018AvisException(currentShipmentForAvis())){
    alert(rc1018AvisBlockMessage(rc1018AvisException(currentShipmentForAvis())));
    refreshUi();
@@ -247,6 +247,7 @@ async function rc1021AutoEnable(reason){
   if(!saveAlreadyConfirmed)await rc1015PersistBeforeAvis();
   sh=currentShipmentForAvis()||sh;
   if(!rc1021ShouldAutoEnable(sh))return rc1018Enabled(sh);
+  if(saveAlreadyConfirmed)autoEnableSaveConfirmed[ref]=true;
   await base.toggle(true);
   sh=currentShipmentForAvis()||sh;
   rc1021NotifyAvisUpdated(true,sh);
@@ -257,6 +258,7 @@ async function rc1021AutoEnable(reason){
   console.error('RC1021 Lieferavis Standardaktivierung fehlgeschlagen',reason||'',e);
   return false
  }finally{
+  delete autoEnableSaveConfirmed[ref];
   delete autoEnablePending[ref]
  }
 }
