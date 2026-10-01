@@ -55,18 +55,18 @@ test('RC1363: Lieferscheine und Bemerkung werden drucksicher kompakt untereinand
 
 test('RC1368: Drei-Umgebungen-Build liefert die aktuelle Ladelisten-Druckruntime aus',()=>{
   assert.match(build,/function patchRc1305LoadingListPresentation\(html,file\)/);
-  assert.match(build,/assets\/rc1305-loading-list-print\.js\?v=1372/);
+  assert.match(build,/assets\/rc1305-loading-list-print\.js\?v=1376/);
   assert.match(build,/assets\/rc1315-loading-list-quick-print\.js\?v=1322/);
   assert.match(build,/assets\/rc1283-loading-list-search\.js\?v=1305/);
   assert.match(build,/'assets\/rc1305-loading-list-print\.js'/);
   assert.match(build,/patchRc1305LoadingListPresentation\(html,file\)/);
-  assert.match(build,/loadingListPrintRedesign:'RC1372/); assert.match(print,/data-rc1363-document-density/);
+  assert.match(build,/loadingListPrintRedesign:'RC1376/); assert.match(print,/data-rc1363-document-density/);
 });
 
 test('RC1374: Production- und Live-Gate prüfen dieselbe aktuelle Ladelisten-Druckruntime wie der Build',()=>{
-  assert.match(FLOW,/RC1374 Produktions-Drucklayout live verifizieren/);
-  assert.match(build,/assets\/rc1305-loading-list-print\.js\?v=1372/);
-  assert.match(FLOW,/assets\/rc1305-loading-list-print\.js\?v=1372/);
+  assert.match(FLOW,/RC1376 Produktions-Drucklayout live verifizieren/);
+  assert.match(build,/assets\/rc1305-loading-list-print\.js\?v=1376/);
+  assert.match(FLOW,/assets\/rc1305-loading-list-print\.js\?v=1376/);
   assert.match(FLOW,/display:flex!important/);
   assert.match(FLOW,/flex-direction:column!important/);
   assert.match(FLOW,/important\(code,'width','12mm'\)/);
@@ -93,18 +93,18 @@ test('RC1364: Lieferscheinrahmen bleiben inhaltsbreit und Empfänger wird kunden
 });
 
 
-test('RC1372: Druck-QR bleibt 12mm gross',()=>{
-  assert.match(print,/version:'RC1372'/);
+test('RC1376: Druck-QR bleibt 12mm gross',()=>{
+  assert.match(print,/version:'RC1376'/);
   assert.match(print,/important\(code,'width','12mm'\)/);
   assert.match(print,/important\(svg,'width','12mm'\)/);
   assert.match(print,/shape-rendering="crispEdges"/);
 });
 
 
-test('RC1372: Build lädt die aktuelle Druckruntime cache-sicher',()=>{
-  assert.match(FLOW,/assets\/rc1305-loading-list-print\.js\?v=1372/);
+test('RC1376: Build lädt die aktuelle Druckruntime cache-sicher',()=>{
+  assert.match(FLOW,/assets\/rc1305-loading-list-print\.js\?v=1376/);
   assert.doesNotMatch(FLOW,/assets\/rc1305-loading-list-print\.js\?v=1363/);
-  assert.match(build,/loadingListPrintRedesign:'RC1372/);
+  assert.match(build,/loadingListPrintRedesign:'RC1376/);
 });
 
 
@@ -122,7 +122,7 @@ test('RC1372: blaue Lieferscheinrahmen bleiben inhaltsbreit und Dateischrift ist
 test('RC1374: Marken-Domain-DNS kann keinen erfolgreichen Produktions-Deploy mehr blockieren',()=>{
   assert.match(FLOW,/RC1374 ExportHUB360 Marken-Domain prüfen/);
   assert.match(FLOW,/continue-on-error: true/);
-  const prodStart=FLOW.indexOf('RC1374 Produktions-Drucklayout live verifizieren');
+  const prodStart=FLOW.indexOf('RC1376 Produktions-Drucklayout live verifizieren');
   const brandedStart=FLOW.indexOf('RC1374 ExportHUB360 Marken-Domain prüfen');
   assert.ok(prodStart>=0&&brandedStart>prodStart,'RC1374 Live-Gates fehlen oder sind falsch sortiert');
   const prodBlock=FLOW.slice(prodStart,brandedStart);
@@ -131,4 +131,11 @@ test('RC1374: Marken-Domain-DNS kann keinen erfolgreichen Produktions-Deploy meh
   const brandedBlock=FLOW.slice(brandedStart,FLOW.indexOf('Live RC1071 Sendungshistorie prüfen',brandedStart));
   assert.match(brandedBlock,/exporthub360\.com/);
   assert.match(brandedBlock,/::warning::RC1374 ExportHUB360 Marken-Domain/);
+});
+
+
+test('RC1376: Deckblatt verwendet denselben Empfaenger-Fix wie die Ladeliste',()=>{
+  assert.match(print,/function enhanceCover\(html,sh\)/);
+  assert.match(print,/enhanceRecipient\(root,sh\|\|\{\}\);enhanceDocuments\(root,sh\|\|\{\}\)/);
+  assert.match(print,/version:'RC1376'/);
 });
