@@ -78,3 +78,14 @@ test('RC1305: geänderte JavaScript-Dateien sind syntaktisch gültig',()=>{
     execFileSync(process.execPath,['--check',file],{stdio:'pipe'});
   }
 });
+
+
+test('RC1364: Lieferscheinrahmen bleiben inhaltsbreit und Empfänger wird kundentypabhängig hervorgehoben',()=>{
+  assert.match(print,/version:'RC1364'/);
+  assert.match(print,/data-rc1364-recipient-kind/);
+  assert.match(print,/isEssentraRecipient/);
+  assert.match(print,/display:inline-flex!important/);
+  assert.match(print,/width:auto!important/);
+  assert.match(print,/data-rc1364-recipient-kind="essentra"/);
+  assert.match(print,/data-rc1364-recipient-kind="customer"/);
+});
