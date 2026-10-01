@@ -55,18 +55,18 @@ test('RC1363: Lieferscheine und Bemerkung werden drucksicher kompakt untereinand
 
 test('RC1368: Drei-Umgebungen-Build liefert die aktuelle Ladelisten-Druckruntime aus',()=>{
   assert.match(build,/function patchRc1305LoadingListPresentation\(html,file\)/);
-  assert.match(build,/assets\/rc1305-loading-list-print\.js\?v=1371/);
+  assert.match(build,/assets\/rc1305-loading-list-print\.js\?v=1372/);
   assert.match(build,/assets\/rc1315-loading-list-quick-print\.js\?v=1322/);
   assert.match(build,/assets\/rc1283-loading-list-search\.js\?v=1305/);
   assert.match(build,/'assets\/rc1305-loading-list-print\.js'/);
   assert.match(build,/patchRc1305LoadingListPresentation\(html,file\)/);
-  assert.match(build,/loadingListPrintRedesign:'RC1371/); assert.match(print,/data-rc1363-document-density/);
+  assert.match(build,/loadingListPrintRedesign:'RC1372/); assert.match(print,/data-rc1363-document-density/);
 });
 
 test('RC1368: Production- und Live-Gate prüfen dieselbe aktuelle Ladelisten-Druckruntime wie der Build',()=>{
-  assert.match(FLOW,/RC1371 AVIS und Drucklayout live verifizieren/);
-  assert.match(build,/assets\/rc1305-loading-list-print\.js\?v=1371/);
-  assert.match(FLOW,/assets\/rc1305-loading-list-print\.js\?v=1371/);
+  assert.match(FLOW,/RC1372 AVIS und Drucklayout live verifizieren/);
+  assert.match(build,/assets\/rc1305-loading-list-print\.js\?v=1372/);
+  assert.match(FLOW,/assets\/rc1305-loading-list-print\.js\?v=1372/);
   assert.match(FLOW,/display:flex!important/);
   assert.match(FLOW,/flex-direction:column!important/);
   assert.match(FLOW,/important\(code,'width','12mm'\)/);
@@ -89,26 +89,28 @@ test('RC1364: Lieferscheinrahmen bleiben inhaltsbreit und Empfänger wird kunden
   assert.match(print,/width:auto!important/);
   assert.match(print,/data-rc1364-recipient-kind="essentra"/);
   assert.match(print,/data-rc1364-recipient-kind="customer"/);
+  assert.match(print,/empf\[aä\]nger\(\?:\\s\*\\\/\\s\*kunde\)\?/);
 });
 
 
-test('RC1371: Druck-QR bleibt 12mm gross',()=>{
-  assert.match(print,/version:'RC1371'/);
+test('RC1372: Druck-QR bleibt 12mm gross',()=>{
+  assert.match(print,/version:'RC1372'/);
   assert.match(print,/important\(code,'width','12mm'\)/);
   assert.match(print,/important\(svg,'width','12mm'\)/);
   assert.match(print,/shape-rendering="crispEdges"/);
 });
 
 
-test('RC1371: Build lädt die aktuelle Druckruntime cache-sicher',()=>{
-  assert.match(FLOW,/assets\/rc1305-loading-list-print\.js\?v=1371/);
+test('RC1372: Build lädt die aktuelle Druckruntime cache-sicher',()=>{
+  assert.match(FLOW,/assets\/rc1305-loading-list-print\.js\?v=1372/);
   assert.doesNotMatch(FLOW,/assets\/rc1305-loading-list-print\.js\?v=1363/);
-  assert.match(build,/loadingListPrintRedesign:'RC1371/);
+  assert.match(build,/loadingListPrintRedesign:'RC1372/);
 });
 
 
-test('RC1371: blaue Lieferscheinrahmen bleiben inhaltsbreit und Dateischrift ist 1pt groesser',()=>{
+test('RC1372: blaue Lieferscheinrahmen bleiben inhaltsbreit und Dateischrift ist 1pt groesser',()=>{
   assert.match(print,/align-items:flex-start!important;gap:/);
+  assert.match(print,/align-self:flex-start!important;flex:0 1 auto!important;width:fit-content!important/);
   assert.doesNotMatch(print,/gap:'\+metrics\.gap\+'!important;align-items:stretch!important/);
   assert.match(print,/font:'6\.2pt'/);
   assert.match(print,/font:'5\.6pt'/);
