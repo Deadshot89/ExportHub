@@ -66,5 +66,7 @@ test('RC1092 Produktionsworkflow prüft Build und Live-Auslieferung',()=>{
  const flow=read('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml');
  assert.match(flow,/Live RC1092 Kundenkontakte prüfen/);
  assert.match(flow,/assets\/rc1092-customer-mail-contacts\.js\?v=1380/);
- assert.match(flow,/Person speichern und Zur Mail hinzufügen live bestätigt/);
+ assert.match(flow,/data-rc1092-avis-toggle/);
+ assert.match(flow,/function rc1330AvisPolicyBlock/);
+ assert.match(flow,/RC1380 Kundenordner: Kontakte und AVIS-Kundensteuerung live bestätigt/);
 });
