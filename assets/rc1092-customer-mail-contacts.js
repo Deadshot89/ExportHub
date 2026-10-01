@@ -23,6 +23,48 @@ function currentCustomer(){
  if(!key)return direct&&obj(direct)?direct:null;
  return customers().find(function(c){return c&&(customerId(c)===key||q(c.id||c.customerId).toLocaleUpperCase('de-DE')===key||q(c.account||c.customerNumber).toLocaleUpperCase('de-DE')===key)})||(direct&&obj(direct)?direct:null)
 }
+function boolPreference(v){
+ if(v===true||v===false)return v;
+ var x=low(v);if(/^(?:1|true|yes|ja|on|enabled|aktiv)$/.test(x))return true;if(/^(?:0|false|no|nein|off|disabled|inaktiv)$/.test(x))return false;return null
+}
+function explicitAvisPreference(c){
+ if(!c||typeof c!=='object')return null;
+ var keys=['customerAvisLinkEnabled','avisLinkEnabled','customerAvisEnabledByCustomer','lieferavisLinkEnabled'];
+ for(var i=0;i<keys.length;i++)if(Object.prototype.hasOwnProperty.call(c,keys[i])){var parsed=boolPreference(c[keys[i]]);if(parsed!==null)return parsed}
+ return null
+}
+function legacyAvisDefault(c){
+ c=c&&typeof c==='object'?c:{};
+ var id=customerId(c),name=low(c.name||c.customerName||c.companyName||c.customerDisplayName);
+ if(id==='3019100629')return false;
+ if(name.indexOf('adolf würth')>=0||name.indexOf('adolf wuerth')>=0||name.indexOf('würth industrie')===0||name.indexOf('wuerth industrie')===0)return false;
+ var emails=emailItems([c.email,c.mail,c.customerEmail,c.customerMail,c.recipientEmail,c.cc,c.mailCc,c.salesMail,c.salesEmail,c.ccContacts,c.customerCcContacts,c.customerContactDirectory,c.contactDirectory]);
+ for(var i=0;i<emails.length;i++)if(low(emails[i])==='v-zug@lebert.com')return false;
+ return true
+}
+function customerAvisAllowed(c){var explicit=explicitAvisPreference(c);return explicit===null?legacyAvisDefault(c):explicit}
+function customerForShipment(sh){
+ sh=sh&&typeof sh==='object'?sh:{};var list=customers(),ids=[sh.customerId,sh.customerNumber,sh.customerAccount,sh.customerNo,sh.account].map(function(v){return q(v).toLocaleUpperCase('de-DE')}).filter(Boolean),name=low(sh.customerName||sh.customerDisplay||sh.recipientCustomerName||sh.companyName||sh.customer&&sh.customer.name);
+ for(var i=0;i<list.length;i++){var c=list[i]||{},cid=customerId(c),cname=low(c.name||c.customerName||c.companyName);if(cid&&ids.indexOf(cid)>=0)return c;if(name&&cname&&name===cname)return c}
+ return null
+}
+function avisPreferenceForShipment(sh){
+ var c=customerForShipment(sh),explicit=c?explicitAvisPreference(c):null,allowed=c?customerAvisAllowed(c):legacyAvisDefault(sh);
+ return{allowed:allowed!==false,customer:c||null,customerId:c?customerId(c):'',source:explicit===null?'default':'customer'}
+}
+async function setCustomerAvisAllowed(on){
+ var c=currentCustomer();if(!c)throw new Error(tr('customerContacts.customerRequired'));on=!!on;
+ var before={customerAvisLinkEnabled:c.customerAvisLinkEnabled,avisLinkEnabled:c.avisLinkEnabled,updatedAt:c.updatedAt};
+ try{
+  c.customerAvisLinkEnabled=on;c.avisLinkEnabled=on;c.updatedAt=new Date().toISOString();
+  await persist('AVIS-Link Kundenpräferenz gespeichert');
+  try{w.dispatchEvent(new CustomEvent('exporthub:customer-avis-preference-updated',{detail:{customerId:customerId(c),enabled:on,version:'RC1374'}}))}catch(_){}
+  return true
+ }catch(e){
+  ['customerAvisLinkEnabled','avisLinkEnabled','updatedAt'].forEach(function(k){if(before[k]===undefined)delete c[k];else c[k]=before[k]});
+  throw e
+ }
+}
 function emailItems(value){
  var out=[],seen={};
  function ingest(v){
@@ -143,7 +185,7 @@ function refreshStatusLanguage(){['sales','cc'].forEach(function(r){var el=d.que
 function ensureStyle(){
  if(d.getElementById('rc1092CustomerContactsStyle'))return;
  var s=d.createElement('style');s.id='rc1092CustomerContactsStyle';
- s.textContent='.rc1092-contact-manager{margin-top:14px}.rc1092-contact-intro{padding:10px 12px;border:1px solid #bfdbfe;border-radius:12px;background:#eff6ff;color:#1e3a8a;font-size:12px;line-height:1.45}.rc1092-contact-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:12px}.rc1092-contact-card{border:1px solid #dbe4ec;border-radius:14px;padding:13px;background:var(--card,#fff);display:grid;gap:10px}.rc1092-contact-card h5{margin:0}.rc1092-draft-grid{display:grid;grid-template-columns:.8fr 1.2fr;gap:9px}.rc1092-actions{display:flex;gap:8px;flex-wrap:wrap}.rc1092-actions button{flex:1 1 150px}.rc1092-mail-list{display:flex;gap:7px;flex-wrap:wrap;min-height:30px}.rc1092-mail-chip{display:inline-flex;align-items:center;gap:8px;padding:7px 8px 7px 10px;border:1px solid #cbd5e1;border-radius:999px;background:#f8fafc;max-width:100%}.rc1092-mail-chip span{min-width:0}.rc1092-mail-chip b,.rc1092-mail-chip small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:240px}.rc1092-mail-chip small{font-size:10px;color:#64748b}.rc1092-mail-chip button{min-height:28px!important;width:28px!important;padding:0!important;border-radius:50%!important}.rc1092-current-label{font-size:11px;font-weight:900;color:#475569;text-transform:uppercase;letter-spacing:.04em}.rc1092-status{min-height:18px;font-size:12px}.rc1092-status[data-kind="ok"]{color:#166534}.rc1092-status[data-kind="error"]{color:#b91c1c}.rc1092-status[data-kind="info"]{color:#475569}.rc1092-legacy-contact-fields{display:none!important}@media(max-width:760px){.rc1092-contact-grid,.rc1092-draft-grid{grid-template-columns:1fr}.rc1092-actions button{width:100%}}';
+ s.textContent='.rc1092-contact-manager{margin-top:14px}.rc1092-contact-intro{padding:10px 12px;border:1px solid #bfdbfe;border-radius:12px;background:#eff6ff;color:#1e3a8a;font-size:12px;line-height:1.45}.rc1092-contact-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:12px}.rc1092-contact-card{border:1px solid #dbe4ec;border-radius:14px;padding:13px;background:var(--card,#fff);display:grid;gap:10px}.rc1092-contact-card h5{margin:0}.rc1092-draft-grid{display:grid;grid-template-columns:.8fr 1.2fr;gap:9px}.rc1092-actions{display:flex;gap:8px;flex-wrap:wrap}.rc1092-actions button{flex:1 1 150px}.rc1092-mail-list{display:flex;gap:7px;flex-wrap:wrap;min-height:30px}.rc1092-mail-chip{display:inline-flex;align-items:center;gap:8px;padding:7px 8px 7px 10px;border:1px solid #cbd5e1;border-radius:999px;background:#f8fafc;max-width:100%}.rc1092-mail-chip span{min-width:0}.rc1092-mail-chip b,.rc1092-mail-chip small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:240px}.rc1092-mail-chip small{font-size:10px;color:#64748b}.rc1092-mail-chip button{min-height:28px!important;width:28px!important;padding:0!important;border-radius:50%!important}.rc1092-current-label{font-size:11px;font-weight:900;color:#475569;text-transform:uppercase;letter-spacing:.04em}.rc1092-status{min-height:18px;font-size:12px}.rc1092-status[data-kind="ok"]{color:#166534}.rc1092-status[data-kind="error"]{color:#b91c1c}.rc1092-status[data-kind="info"]{color:#475569}.rc1092-legacy-contact-fields{display:none!important}.rc1374-avis-pref{margin:0 0 14px;padding:13px;border:1px solid #cbd5e1;border-radius:14px;background:var(--card,#fff);display:grid;grid-template-columns:minmax(0,1fr) minmax(180px,260px);gap:14px;align-items:end}.rc1374-avis-pref h4{margin:0 0 4px}.rc1374-avis-pref p{margin:0;color:#64748b;font-size:12px;line-height:1.45}.rc1374-avis-pref-status{min-height:18px;margin-top:5px;font-size:12px;color:#475569}.rc1374-avis-pref-status[data-kind="ok"]{color:#166534}.rc1374-avis-pref-status[data-kind="error"]{color:#b91c1c}@media(max-width:760px){.rc1374-avis-pref,.rc1092-contact-grid,.rc1092-draft-grid{grid-template-columns:1fr}.rc1092-actions button{width:100%}}';
  (d.head||d.documentElement).appendChild(s)
 }
 function preserveLegacyFields(host){
@@ -159,6 +201,15 @@ function fillDraft(r){
  if(!select||!select.value)return false;var opt=select.options[select.selectedIndex];if(name)name.value=q(opt&&opt.getAttribute('data-contact-name'));if(email)email.value=q(select.value);return true
 }
 function draftContact(r){r=role(r);return contact((d.querySelector('[data-rc1092-name="'+r+'"]')||{}).value,(d.querySelector('[data-rc1092-email="'+r+'"]')||{}).value,r)}
+function avisPreferenceHtml(){
+ return '<section class="rc1374-avis-pref" data-rc1374-avis-preference="1"><div><h4 data-i18n="customerAvisPreference.title">'+esc(tr('customerAvisPreference.title'))+'</h4><p data-i18n="customerAvisPreference.description">'+esc(tr('customerAvisPreference.description'))+'</p><div class="rc1374-avis-pref-status" data-rc1374-avis-preference-status></div></div><label class="field"><span data-i18n="customerAvisPreference.label">'+esc(tr('customerAvisPreference.label'))+'</span><select data-rc1374-avis-preference-select><option value="1" data-i18n="customerAvisPreference.yes">'+esc(tr('customerAvisPreference.yes'))+'</option><option value="0" data-i18n="customerAvisPreference.no">'+esc(tr('customerAvisPreference.no'))+'</option></select></label></section>'
+}
+function refreshAvisPreference(c){
+ var select=d.querySelector('[data-rc1374-avis-preference-select]'),status=d.querySelector('[data-rc1374-avis-preference-status]'),allowed=customerAvisAllowed(c);
+ if(select&&select.value!==(allowed?'1':'0'))select.value=allowed?'1':'0';
+ if(status&&status.getAttribute('data-busy')!=='1'){status.textContent=tr(allowed?'customerAvisPreference.enabledStatus':'customerAvisPreference.disabledStatus');status.setAttribute('data-kind','info')}
+ return allowed
+}
 function refreshManager(c){
  var salesSelect=d.querySelector('[data-rc1092-select="sales"]'),ccSelect=d.querySelector('[data-rc1092-select="cc"]');
  if(salesSelect){var html=optionHtml('sales');if(salesSelect.innerHTML!==html)salesSelect.innerHTML=html}
@@ -166,10 +217,10 @@ function refreshManager(c){
  var salesBox=d.getElementById('rc1092SalesMailContacts'),ccBox=d.getElementById('rc819CcContactChips'),sales=mailContacts(c,'sales'),cc=mailContacts(c,'cc');
  if(salesBox){var sh=sales.length?sales.map(function(x){return chipHtml(x,'sales')}).join(''):'<span class="muted" data-i18n="customerContacts.emptySales">'+esc(tr('customerContacts.emptySales'))+'</span>';if(salesBox.innerHTML!==sh)salesBox.innerHTML=sh}
  if(ccBox){var ch=cc.length?cc.map(function(x){return chipHtml(x,'cc')}).join(''):'<span class="muted" data-i18n="customerContacts.emptyCc">'+esc(tr('customerContacts.emptyCc'))+'</span>';if(ccBox.innerHTML!==ch)ccBox.innerHTML=ch}
- syncLegacyFields(c);return true
+ refreshAvisPreference(c);syncLegacyFields(c);return true
 }
 function managerHtml(){
- return '<div class="rc819-contact-head"><div><h4 data-i18n="customerContacts.heading">'+esc(tr('customerContacts.heading'))+'</h4><p data-i18n="customerContacts.subtitle">'+esc(tr('customerContacts.subtitle'))+'</p></div></div><div class="rc1092-contact-intro"><b data-i18n="customerContacts.intro.save">'+esc(tr('customerContacts.intro.save'))+'</b> <span data-i18n="customerContacts.intro.saveText">'+esc(tr('customerContacts.intro.saveText'))+'</span> <b data-i18n="customerContacts.intro.add">'+esc(tr('customerContacts.intro.add'))+'</b> <span data-i18n="customerContacts.intro.addText">'+esc(tr('customerContacts.intro.addText'))+'</span> <span data-i18n="customerContacts.intro.note">'+esc(tr('customerContacts.intro.note'))+'</span></div><div class="rc1092-contact-grid">'+cardHtml('sales','customerContacts.salesPeople')+cardHtml('cc','customerContacts.ccContacts')+'</div>'
+ return avisPreferenceHtml()+'<div class="rc819-contact-head"><div><h4 data-i18n="customerContacts.heading">'+esc(tr('customerContacts.heading'))+'</h4><p data-i18n="customerContacts.subtitle">'+esc(tr('customerContacts.subtitle'))+'</p></div></div><div class="rc1092-contact-intro"><b data-i18n="customerContacts.intro.save">'+esc(tr('customerContacts.intro.save'))+'</b> <span data-i18n="customerContacts.intro.saveText">'+esc(tr('customerContacts.intro.saveText'))+'</span> <b data-i18n="customerContacts.intro.add">'+esc(tr('customerContacts.intro.add'))+'</b> <span data-i18n="customerContacts.intro.addText">'+esc(tr('customerContacts.intro.addText'))+'</span> <span data-i18n="customerContacts.intro.note">'+esc(tr('customerContacts.intro.note'))+'</span></div><div class="rc1092-contact-grid">'+cardHtml('sales','customerContacts.salesPeople')+cardHtml('cc','customerContacts.ccContacts')+'</div>'
 }
 function cardHtml(r,titleKey){
  return '<section class="rc1092-contact-card" data-rc1092-card="'+r+'"><h5 data-i18n="'+titleKey+'">'+esc(tr(titleKey))+'</h5><label class="field"><span data-i18n="customerContacts.savedPerson">'+esc(tr('customerContacts.savedPerson'))+'</span><select data-rc1092-select="'+r+'"></select></label><div class="rc1092-draft-grid"><label class="field"><span data-i18n="customerContacts.name">'+esc(tr('customerContacts.name'))+'</span><input data-rc1092-name="'+r+'" autocomplete="off" data-i18n-placeholder="customerContacts.name" placeholder="'+esc(tr('customerContacts.name'))+'"></label><label class="field"><span data-i18n="customerContacts.email">'+esc(tr('customerContacts.email'))+'</span><input data-rc1092-email="'+r+'" type="email" autocomplete="off" placeholder="name@firma.de"></label></div><div class="rc1092-actions"><button type="button" class="ghost" data-rc1092-save="'+r+'" data-i18n="customerContacts.savePerson">'+esc(tr('customerContacts.savePerson'))+'</button><button type="button" class="btn" data-rc1092-add="'+r+'" data-i18n="customerContacts.addToMail">'+esc(tr('customerContacts.addToMail'))+'</button></div><div class="rc1092-status" data-rc1092-status="'+r+'"></div><div class="rc1092-current-label" data-i18n="customerContacts.addedToCustomerMail">'+esc(tr('customerContacts.addedToCustomerMail'))+'</div><div class="rc1092-mail-list" '+(r==='sales'?'id="rc1092SalesMailContacts"':'id="rc819CcContactChips"')+'></div></section>'
@@ -186,7 +237,16 @@ async function run(button,r,mode){
 }
 function bind(host){
  if(host.getAttribute('data-rc1092-bound')==='1')return;host.setAttribute('data-rc1092-bound','1');
- host.addEventListener('change',function(ev){var sel=ev.target&&ev.target.closest&&ev.target.closest('[data-rc1092-select]');if(sel)fillDraft(sel.getAttribute('data-rc1092-select'))});
+ host.addEventListener('change',function(ev){
+  var pref=ev.target&&ev.target.closest&&ev.target.closest('[data-rc1374-avis-preference-select]');
+  if(pref){
+   var status=host.querySelector&&host.querySelector('[data-rc1374-avis-preference-status]'),previous=customerAvisAllowed(currentCustomer());pref.disabled=true;
+   if(status){status.setAttribute('data-busy','1');status.setAttribute('data-kind','info');status.textContent=tr('customerAvisPreference.saving')}
+   setCustomerAvisAllowed(pref.value==='1').then(function(){if(status){status.textContent=tr('customerAvisPreference.saved');status.setAttribute('data-kind','ok')}refreshAvisPreference(currentCustomer())}).catch(function(e){pref.value=previous?'1':'0';if(status){status.textContent=tr('customerAvisPreference.saveFailed',{error:q(e&&e.message||e)});status.setAttribute('data-kind','error')}}).finally(function(){pref.disabled=false;if(status)status.removeAttribute('data-busy')});
+   return
+  }
+  var sel=ev.target&&ev.target.closest&&ev.target.closest('[data-rc1092-select]');if(sel)fillDraft(sel.getAttribute('data-rc1092-select'))
+ });
  host.addEventListener('click',function(ev){
   var save=ev.target&&ev.target.closest&&ev.target.closest('[data-rc1092-save]');if(save){ev.preventDefault();run(save,save.getAttribute('data-rc1092-save'),'save');return}
   var add=ev.target&&ev.target.closest&&ev.target.closest('[data-rc1092-add]');if(add){ev.preventDefault();run(add,add.getAttribute('data-rc1092-add'),'add');return}
@@ -209,5 +269,6 @@ if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',function(){sch
 try{w.addEventListener('exporthub:language-changed',function(){refreshManager(currentCustomer());refreshStatusLanguage()})}catch(_){}
 if(w.MutationObserver){try{var mo=new MutationObserver(function(){if(customerFolderVisible())schedule()});mo.observe(d.documentElement,{childList:true,subtree:true})}catch(_){}}
 
-w.ExportHUBRC1092CustomerContacts=Object.freeze({version:'RC1092',directory:directory,mailContacts:mailContacts,savePerson:savePerson,addToMail:addToMail,removeFromMail:removeFromMail,install:install});
+w.ExportHUBCustomerAvisPreference1374=Object.freeze({version:'RC1374',allowed:customerAvisAllowed,forShipment:avisPreferenceForShipment,set:setCustomerAvisAllowed,customerForShipment:customerForShipment});
+w.ExportHUBRC1092CustomerContacts=Object.freeze({version:'RC1092',avisPreferenceVersion:'RC1374',directory:directory,mailContacts:mailContacts,savePerson:savePerson,addToMail:addToMail,removeFromMail:removeFromMail,avisAllowed:customerAvisAllowed,setAvisAllowed:setCustomerAvisAllowed,install:install});
 })(window,document);
