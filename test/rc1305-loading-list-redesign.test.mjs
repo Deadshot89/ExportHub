@@ -63,8 +63,8 @@ test('RC1368: Drei-Umgebungen-Build liefert die aktuelle Ladelisten-Druckruntime
   assert.match(build,/loadingListPrintRedesign:'RC1372/); assert.match(print,/data-rc1363-document-density/);
 });
 
-test('RC1368: Production- und Live-Gate prüfen dieselbe aktuelle Ladelisten-Druckruntime wie der Build',()=>{
-  assert.match(FLOW,/RC1372 AVIS und Drucklayout live verifizieren/);
+test('RC1374: Production- und Live-Gate prüfen dieselbe aktuelle Ladelisten-Druckruntime wie der Build',()=>{
+  assert.match(FLOW,/RC1374 Produktions-Drucklayout live verifizieren/);
   assert.match(build,/assets\/rc1305-loading-list-print\.js\?v=1372/);
   assert.match(FLOW,/assets\/rc1305-loading-list-print\.js\?v=1372/);
   assert.match(FLOW,/display:flex!important/);
@@ -116,4 +116,19 @@ test('RC1372: blaue Lieferscheinrahmen bleiben inhaltsbreit und Dateischrift ist
   assert.match(print,/font:'5\.6pt'/);
   assert.match(print,/font:'5\.2pt'/);
   assert.match(print,/padding:\.25mm \.35mm!important/);
+});
+
+
+test('RC1374: Marken-Domain-DNS kann keinen erfolgreichen Produktions-Deploy mehr blockieren',()=>{
+  assert.match(FLOW,/RC1374 ExportHUB360 Marken-Domain prüfen/);
+  assert.match(FLOW,/continue-on-error: true/);
+  const prodStart=FLOW.indexOf('RC1374 Produktions-Drucklayout live verifizieren');
+  const brandedStart=FLOW.indexOf('RC1374 ExportHUB360 Marken-Domain prüfen');
+  assert.ok(prodStart>=0&&brandedStart>prodStart,'RC1374 Live-Gates fehlen oder sind falsch sortiert');
+  const prodBlock=FLOW.slice(prodStart,brandedStart);
+  assert.doesNotMatch(prodBlock,/branded='https:\/\/exporthub360\.com'/);
+  assert.doesNotMatch(prodBlock,/brandedAvis/);
+  const brandedBlock=FLOW.slice(brandedStart,FLOW.indexOf('Live RC1071 Sendungshistorie prüfen',brandedStart));
+  assert.match(brandedBlock,/exporthub360\.com/);
+  assert.match(brandedBlock,/::warning::RC1374 ExportHUB360 Marken-Domain/);
 });
