@@ -193,7 +193,7 @@
   "api.pickup.accessLocked": "Zbyt wiele błędnych prób PIN. Kod QR został tymczasowo zablokowany.",
   "api.pickup.referenceMismatch": "Numer referencyjny nie odpowiada przesyłce.",
   "api.pickup.signatureRequired": "Podpis cyfrowy jest wymagany.",
-  "api.pickup.customsSignatureRequired": "Proszę potwierdzić odbiór dokumentów celnych drugim podpisem kierowcy.",
+  "api.pickup.customsSignatureRequired": "Potwierdź, że dokumenty celne zostały przekazane kierowcy.",
   "api.pickup.expired": "Kod QR wygasł.",
   "api.pickup.alreadyConfirmed": "Ta przesyłka została już odebrana w całości.",
   "api.pickup.carrierRequired": "Brakuje nazwy przewoźnika. Nie można zakończyć odbioru.",
