@@ -44,16 +44,16 @@ test('RC1343: Deckblatt wird zwei Punkte und Ladeliste einen Punkt kompakter ged
   assert.match(runtime,/enhanceCover\(html,sh\)[\s\S]*?shrinkInlineFonts\(root,2\)/);
 });
 
-test('RC1363: neue Druckruntime wird cache-sicher geladen',()=>{
+test('RC1364: neue Druckruntime bleibt cache-sicher geladen',()=>{
   assert.match(build,/rc1305-loading-list-print\.js\?v=1363/);
-  assert.match(runtime,/version:'RC1363'/);
+  assert.match(runtime,/version:'RC1364'/);
 });
 
 
 test('RC1362: PDF-Namen werden einzeln untereinander vollständig und ohne Spaltenwechsel gerendert',()=>{
   assert.ok(runtime.includes('function splitPdfNames('));
-  assert.ok(runtime.includes('grid-template-columns:minmax(0,1fr)'));
-  assert.ok(runtime.includes('grid-auto-flow:row'));
+  assert.ok(runtime.includes('display:flex!important'));
+  assert.ok(runtime.includes('flex-direction:column!important'));
   assert.doesNotMatch(runtime,/docColumns=Math\.max\(1,Math\.ceil\(docCount\/15\)\)/);
   assert.doesNotMatch(runtime,/grid-template-rows:repeat\(15,minmax\(0,auto\)\)/);
   assert.doesNotMatch(runtime,/grid-auto-flow:column/);
@@ -67,8 +67,8 @@ test('RC1363: lange PDF-Listen bleiben einspaltig und werden nur bei Bedarf verd
   assert.match(runtime,/data-rc1363-document-density/);
   assert.match(runtime,/density==='ultra'\?\{gap:'\.1mm',pad:'\.1mm \.3mm',font:'4\.2pt',line:'\.9',border:'\.2mm'\}/);
   assert.match(runtime,/density==='dense'\?\{gap:'\.18mm',pad:'\.15mm \.35mm',font:'4\.6pt',line:'\.95',border:'\.25mm'\}/);
-  assert.match(runtime,/grid-template-columns:minmax\(0,1fr\)/);
-  assert.match(runtime,/grid-auto-flow:row/);
+  assert.match(runtime,/display:flex!important/);
+  assert.match(runtime,/flex-direction:column!important/);
   assert.match(runtime,/overflow-wrap:anywhere/);
   assert.match(runtime,/word-break:break-word/);
   assert.doesNotMatch(runtime,/grid-auto-flow:column/);
