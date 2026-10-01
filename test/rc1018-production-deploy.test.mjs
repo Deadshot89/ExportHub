@@ -25,13 +25,13 @@ test('RC1112 ist der aktuelle sichtbare Standarddeploy auf der historischen RC10
   assert.match(flow,/Deploy ExportHUB TESTSERVICE/);
 });
 
-test('RC1112 bewahrt die RC1018 Mail- und Sprachruntime unverändert',()=>{
+test('RC1112 bewahrt die RC1018 Mail- und Sprachruntime mit aktuellem RC1374 AVIS-Cache-Key',()=>{
   const flow=read(workflow);
   assert.match(flow,/test\/rc1018-mail-language-standard\.test\.mjs/);
   assert.match(flow,/test\/rc1018-production-deploy\.test\.mjs/);
   assert.match(flow,/test\/rc1015-lieferavis-mail-flow\.test\.mjs/);
   assert.match(flow,/npm test/);
-  assert.match(flow,/assets\/rc1015-lieferavis-mail-flow\.js\?v=1304/);
+  assert.match(flow,/assets\/rc1015-lieferavis-mail-flow\.js\?v=1374/);
   assert.match(flow,/assets\/rc1018-mail-language-standard\.js\?v=1018/);
   assert.match(flow,/assets\/rc1018-public-language\.js\?v=1018/);
 });
