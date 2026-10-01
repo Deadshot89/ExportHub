@@ -46,7 +46,7 @@ test('RC1343: Deckblatt wird zwei Punkte und Ladeliste einen Punkt kompakter ged
 
 test('RC1368: aktuelle RC1366-Druckruntime bleibt cache-sicher geladen',()=>{
   assert.match(build,/rc1305-loading-list-print\.js\?v=1379/);
-  assert.match(runtime,/version:'RC1376'/);
+  assert.match(runtime,/version:'RC1379'/);
 });
 
 
