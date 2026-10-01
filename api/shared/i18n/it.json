@@ -193,7 +193,7 @@
   "api.pickup.accessLocked": "Troppi tentativi PIN errati. Il codice QR è temporaneamente bloccato.",
   "api.pickup.referenceMismatch": "Il riferimento non corrisponde alla spedizione.",
   "api.pickup.signatureRequired": "La firma digitale è obbligatoria.",
-  "api.pickup.customsSignatureRequired": "Confermare la ricezione dei documenti doganali con la seconda firma del conducente.",
+  "api.pickup.customsSignatureRequired": "Conferma che i documenti doganali sono stati consegnati all'autista.",
   "api.pickup.expired": "Il codice QR è scaduto.",
   "api.pickup.alreadyConfirmed": "Questa spedizione è già stata ritirata completamente.",
   "api.pickup.carrierRequired": "Manca il nome del vettore. Il ritiro non può essere completato.",
