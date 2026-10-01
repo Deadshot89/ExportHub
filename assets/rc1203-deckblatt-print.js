@@ -275,8 +275,21 @@ function installOpenGuard(){
 function triggerMode(mode){
   var printAll=findPrintAll();
   if(!printAll){try{w.alert('Der Einzeldruck ist erst verfügbar, sobald die Sendungsdokumente geladen sind.')}catch(_){}return false}
-  pendingMode=mode;installOpenGuard();
-  try{printAll.click();(w.setTimeout||setTimeout)(function(){if(pendingMode===mode)pendingMode=''},15000);return true}catch(_){pendingMode='';return false}
+  pendingMode=mode;
+  if(mode==='cover')w.__EXPORTHUB_PRINT_MODE_OVERRIDE__='cover';
+  installOpenGuard();
+  try{
+    printAll.click();
+    (w.setTimeout||setTimeout)(function(){
+      if(pendingMode===mode)pendingMode='';
+      if(w.__EXPORTHUB_PRINT_MODE_OVERRIDE__===mode)w.__EXPORTHUB_PRINT_MODE_OVERRIDE__=''
+    },60000);
+    return true
+  }catch(_){
+    pendingMode='';
+    if(w.__EXPORTHUB_PRINT_MODE_OVERRIDE__===mode)w.__EXPORTHUB_PRINT_MODE_OVERRIDE__='';
+    return false
+  }
 }
 function onClick(e){
   var cover=e&&e.target&&e.target.closest&&e.target.closest('[data-rc1203-print-cover-only]');
@@ -293,5 +306,5 @@ try{w.addEventListener('beforeprint',function(){decorateCover(d)})}catch(_){}
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:shipment-saved'].forEach(function(name){try{w.addEventListener(name,schedule)}catch(_){}});
 if(typeof MutationObserver!=='undefined'){try{new MutationObserver(function(){if(!deckblattObserverRelevant())return;removeLegacyExtraButtons();renderCoverButton();decorateCover(d)}).observe(d.documentElement||d.body,{childList:true,subtree:true})}catch(_){}}
-w.ExportHUBRC1203Deckblatt=Object.freeze({version:'RC1281',decorateCover:decorateCover,remarkValue:remarkValue,isEssentraShipment:isEssentraShipment,formatCreatedDate:formatCreatedDate,renderCoverButton:renderCoverButton,triggerCoverOnly:function(){return triggerMode('cover')}});
+w.ExportHUBRC1203Deckblatt=Object.freeze({version:'RC1373',decorateCover:decorateCover,remarkValue:remarkValue,isEssentraShipment:isEssentraShipment,formatCreatedDate:formatCreatedDate,renderCoverButton:renderCoverButton,triggerCoverOnly:function(){return triggerMode('cover')}});
 })(window,document);
