@@ -31,13 +31,13 @@ test('RC1220: Archivkopie ist unveränderlich und wird per SHA-256 plus Größe 
   assert.match(archive,/POD_ARCHIVE_INTEGRITY_FAILED/);
 });
 
-test('RC1220: Primärspeicher kommt vor Archiv; M365 ist danach nur optional',()=>{
+test('RC1386: Primärspeicher kommt vor Archiv; konfiguriertes M365-Ziel wird danach automatisch bedient',()=>{
   const primary=archive.indexOf('await saveAzurePod(accessKey, environment, record, pdf)');
   const secondary=archive.indexOf('await saveAzureArchive(accessKey, environment, record, pdf, file)');
   const optional=archive.indexOf('await copyToDrive(accessKey, environment, record, pdf, file)');
   assert.ok(primary>=0&&secondary>primary&&optional>secondary);
-  assert.match(archive,/EXPORTHUB_POD_M365_ENABLED/);
-  assert.match(archive,/!m365Enabled\(\) \|\| !graphDrive\.readiness\(\)\.configured/);
+  assert.match(archive,/function m365Enabled\(\) \{[\s\S]*?return graphDrive\.readiness\(\)\.configured/);
+  assert.doesNotMatch(archive,/process\.env\.EXPORTHUB_POD_M365_ENABLED/);
 });
 
 test('RC1220: Reconcile hängt nicht mehr von Graph-Bereitschaft ab',()=>{
