@@ -249,6 +249,65 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
 });
 
 
+test('RC1373 P1: Nur Deckblatt drucken erzeugt exakt eine Deckblattseite ohne Ladeliste, CMR oder Anhänge',async({page,context},testInfo)=>{
+  test.skip(testInfo.project.name!=='laptop','Nur-Deckblatt-Druck wird einmal im echten Browser geprüft.');
+  test.setTimeout(60_000);
+
+  await context.addInitScript(()=>{
+    window.__RC1373_COVER_PRINT_CAPTURE__=null;
+    const capture=()=>{
+      try{
+        window.__RC1373_COVER_PRINT_CAPTURE__={
+          text:String(document.body&&document.body.innerText||''),
+          coverCount:document.querySelectorAll('.rc390-cover,.rc352-cover').length,
+          loadCount:document.querySelectorAll('.rc390-load,.rc352-load').length,
+          cmrCount:document.querySelectorAll('.rc390-cmr-wrap,.rc390-cmr,.rc352-cmr').length,
+          pageCount:document.querySelectorAll('.rc390-page,.rc352-page,.rc390-cmr-wrap').length
+        };
+      }catch(_){}
+    };
+    try{Object.defineProperty(window,'print',{configurable:true,writable:true,value:capture})}
+    catch(_){try{window.print=capture}catch(__){}}
+  });
+
+  const guards=[attachRuntimeGuards(page,testInfo)];
+  context.on('page',popup=>guards.push(attachRuntimeGuards(popup,testInfo)));
+
+  await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
+  await waitReady(page);
+  await openExportHubView(page,'documents',['Ladeliste & CMR','Dokumente & CMR','Dokumente','CMR'],/Ladeliste|CMR|Dokument/i,{allowProgrammaticFallback:true});
+  await selectLoadingListShipment(page,'DEMO02',/DEMO02|Benelux/i);
+
+  const triggered=await page.evaluate(()=>{
+    const api=window.ExportHUBRC1203Deckblatt;
+    if(!api||typeof api.triggerCoverOnly!=='function')throw new Error('Nur-Deckblatt-Druck-API fehlt');
+    return api.triggerCoverOnly();
+  });
+  expect(triggered).toBe(true);
+
+  let capture=null;
+  await expect.poll(async()=>{
+    for(const p of context.pages()){
+      for(const frame of p.frames()){
+        const value=await frame.evaluate(()=>window.__RC1373_COVER_PRINT_CAPTURE__||null).catch(()=>null);
+        if(value&&value.coverCount===1){capture=value;return value.pageCount}
+      }
+    }
+    await sleep(100);
+    return 0;
+  },{timeout:20_000,message:'Nur-Deckblatt-Druck hat keinen einzelnen Deckblatt-Druckkontext erzeugt'}).toBe(1);
+
+  expect(capture).toBeTruthy();
+  expect(capture.text).toContain('DEMO02');
+  expect(capture.coverCount).toBe(1);
+  expect(capture.loadCount,'Nur Deckblatt darf keine Ladeliste enthalten').toBe(0);
+  expect(capture.cmrCount,'Nur Deckblatt darf keinen CMR enthalten').toBe(0);
+  expect(capture.pageCount,'Nur Deckblatt darf genau eine Druckseite erzeugen').toBe(1);
+
+  for(const guard of guards)await assertRuntimeClean(guard,testInfo);
+});
+
+
 test('RC1281 P2: Essentra-Deckblatt ist weiß mit gelber Referenz und hellgelbem Empfänger',async({page},testInfo)=>{
   test.skip(testInfo.project.name!=='laptop','Essentra-Deckblatt-Farbregel wird einmal im echten Browser geprüft.');
   test.setTimeout(45_000);
