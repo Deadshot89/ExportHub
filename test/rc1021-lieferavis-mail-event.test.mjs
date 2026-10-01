@@ -14,10 +14,15 @@ test('RC1021: jeder erfolgreiche Lieferavis-Statuswechsel meldet die Mailruntime
 });
 
 
-test('RC1382 P1: bestätigter Sync oder Shipment-Saved Event löst keinen redundanten zweiten Sendungs-Save aus',()=>{
+test('RC1383 P1: bestätigter Sync oder Shipment-Saved Event kann auch über einen gewrappten Toggle keinen zweiten Save auslösen',()=>{
+  const manual=source.slice(source.indexOf('async function rc1015Toggle(on)'),source.indexOf('async function rc1021AutoEnable'));
   const automatic=source.slice(source.indexOf('async function rc1021AutoEnable'),source.indexOf('function stripAvisBlocks'));
+  assert.match(source,/autoEnableSaveConfirmed=Object\.create\(null\)/);
   assert.match(automatic,/saveAlreadyConfirmed=reason==='exporthub:sync'\|\|reason==='exporthub:shipment-saved'/);
   assert.match(automatic,/if\(!saveAlreadyConfirmed\)await rc1015PersistBeforeAvis\(\)/);
+  assert.match(automatic,/if\(saveAlreadyConfirmed\)autoEnableSaveConfirmed\[ref\]=true/);
+  assert.match(manual,/if\(!autoEnableSaveConfirmed\[refBeforeToggle\]\)await rc1015PersistBeforeAvis\(\)/);
+  assert.match(automatic,/delete autoEnableSaveConfirmed\[ref\]/);
   assert.match(automatic,/await base\.toggle\(true\)/,'Avis-Aktivierung muss nach bestätigtem Save weiterhin erfolgen.');
 });
 
