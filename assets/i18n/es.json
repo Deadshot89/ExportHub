@@ -1180,5 +1180,11 @@
   "loadingListQuickPrint.missing": "No se encontró el envío {{ref}}.",
   "loadingListQuickPrint.noPrint": "La impresión completa no está disponible para este envío.",
   "loadingListQuickPrint.directPrintSetup": "Configurar impresión directa (Edge)",
-  "loadingListQuickPrint.directPrintSetupHint": "Configuración única de Windows para imprimir silenciosamente en la impresora predeterminada."
+  "loadingListQuickPrint.directPrintSetupHint": "Configuración única de Windows para imprimir silenciosamente en la impresora predeterminada.",
+  "customerContacts.avisHeading": "Enlace AVIS",
+  "customerContacts.avisHelp": "Define si se puede crear un enlace AVIS para este cliente y ofrecerlo en los procesos de envío.",
+  "customerContacts.avisWanted": "Enlace AVIS deseado",
+  "customerContacts.avisEnabled": "Deseado",
+  "customerContacts.avisDisabled": "No deseado",
+  "customerContacts.avisSaveFailed": "No se pudo guardar la configuración AVIS: {{error}}"
 }
