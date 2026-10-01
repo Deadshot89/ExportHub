@@ -379,6 +379,72 @@ test('RC1275 P1: Europaletten erscheinen im echten Ladelisten-Druck als Paletten
 
 
 
+
+test('RC1363 P1: lange Lieferscheinlisten bleiben auf A4 einspaltig und überlappungsfrei',async({page},testInfo)=>{
+  test.skip(testInfo.project.name!=='laptop','Lange Lieferscheinlisten werden einmal im echten Chromium geprüft.');
+  test.setTimeout(45_000);
+  const guard=attachRuntimeGuards(page,testInfo);
+
+  await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
+  await waitReady(page);
+  await page.emulateMedia({media:'print'});
+
+  const layouts=await page.evaluate(()=>{
+    const api=window.ExportHUBRC1305LoadingListPrint;
+    if(!api||typeof api.enhance!=='function'||typeof api.enhanceCover!=='function')throw new Error('RC1363 Druckruntime fehlt');
+    const deliveryFiles=Array.from({length:28},(_,i)=>({
+      name:'DNC_'+String(i+1).padStart(2,'0')+'_Kundenauftrag_Sehr_Langer_Dateiname_'+String(47110000+i)+'.pdf'
+    }));
+    const shipment={reference:'ATT001',deliveryFiles:deliveryFiles};
+    function measure(kind){
+      const raw=kind==='cover'
+        ?'<section class="rc390-page rc390-cover"><div data-rc1363-fixture-fill="1"></div><div class="rc390-card"><div class="rc390-label">Lieferscheine / DNCs</div><div class="rc390-txt"></div></div><div class="rc390-cover-qr"></div></section>'
+        :'<section class="rc390-page rc390-load"><div data-rc1363-fixture-fill="1"></div><div class="rc390-card"><div class="rc390-label">Lieferscheine / DNCs</div><div class="rc390-txt"></div></div></section>';
+      document.body.innerHTML=kind==='cover'?api.enhanceCover(raw,shipment):api.enhance(raw,shipment,true);
+      const root=document.querySelector(kind==='cover'?'.rc390-cover':'.rc390-load'),fill=root&&root.querySelector('[data-rc1363-fixture-fill]');
+      if(!root||!fill)throw new Error('RC1363 '+kind+' Fixture fehlt');
+      root.style.setProperty('box-sizing','border-box','important');
+      root.style.setProperty('width','194mm','important');
+      root.style.setProperty('height','281mm','important');
+      root.style.setProperty('max-height','281mm','important');
+      root.style.setProperty('min-height','281mm','important');
+      root.style.setProperty('margin','0','important');
+      root.style.setProperty('padding','8mm','important');
+      root.style.setProperty('display','block','important');
+      root.style.setProperty('overflow','visible','important');
+      fill.style.setProperty('height',kind==='cover'?'158mm':'170mm','important');
+      const grid=root.querySelector('[data-rc1305-document-grid]'),items=grid?Array.from(grid.querySelectorAll('[data-rc1293-packing-slip]')):[];
+      const rr=root.getBoundingClientRect(),gr=grid&&grid.getBoundingClientRect(),rects=items.map(node=>node.getBoundingClientRect());
+      let overlap=false;for(let i=1;i<rects.length;i++){if(rects[i].top<rects[i-1].bottom-1)overlap=true}
+      return{
+        kind,
+        count:items.length,
+        density:grid&&grid.getAttribute('data-rc1363-document-density'),
+        sameColumn:rects.every((r,i)=>i===0||Math.abs(r.left-rects[0].left)<=2),
+        overlap,
+        gridBottom:gr&&gr.bottom,
+        rootBottom:rr.bottom,
+        scrollHeight:root.scrollHeight,
+        clientHeight:root.clientHeight,
+        allNamed:items.every(node=>/\.pdf$/i.test(String(node.textContent||'').trim()))
+      };
+    }
+    return[measure('load'),measure('cover')];
+  });
+
+  for(const layout of layouts){
+    expect(layout.count,layout.kind+' verliert Lieferscheine/DNCs').toBe(28);
+    expect(layout.density,layout.kind+' aktiviert für 28 Anhänge nicht die Ultra-Verdichtung').toBe('ultra');
+    expect(layout.sameColumn,layout.kind+' verteilt Anhänge auf mehrere Spalten').toBe(true);
+    expect(layout.overlap,layout.kind+' enthält überlappende Anhangzeilen').toBe(false);
+    expect(layout.allNamed,layout.kind+' enthält einen unvollständigen Dateinamen').toBe(true);
+    expect(layout.gridBottom<=layout.rootBottom+2,layout.kind+' Dokumentliste ragt aus A4 heraus').toBe(true);
+    expect(layout.scrollHeight<=layout.clientHeight+2,layout.kind+' würde auf eine zweite Seite überlaufen').toBe(true);
+  }
+
+  await assertRuntimeClean(guard,testInfo);
+});
+
 test('RC1315: ABD-Ladeliste hält beide Fahrerunterschriften kollisionsfrei auf einer A4-Seite',async({page},testInfo)=>{
   test.skip(testInfo.project.name!=='laptop','A4-Signaturlayout wird einmal im echten Chromium geprüft.');
   test.setTimeout(45_000);
