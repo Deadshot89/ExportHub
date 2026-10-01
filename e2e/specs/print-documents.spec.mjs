@@ -447,6 +447,40 @@ test('RC1363 P1: lange Lieferscheinlisten bleiben auf A4 einspaltig und überlap
   await assertRuntimeClean(guard,testInfo);
 });
 
+test('RC1372: kurze DNC-Rahmen bleiben inhaltsbreit und EMPFÄNGER / KUNDE wird hervorgehoben',async({page},testInfo)=>{
+  const guard=attachRuntimeGuards(page,testInfo);
+  await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
+  await waitReady(page);
+  await page.emulateMedia({media:'print'});
+
+  const layout=await page.evaluate(()=>{
+    const api=window.ExportHUBRC1305LoadingListPrint;
+    if(!api||typeof api.enhance!=='function')throw new Error('RC1372 Druckruntime fehlt');
+    const raw='<section class="rc390-page rc390-load"><div class="rc390-card"><div class="rc390-label">EMPFÄNGER / KUNDE</div><div class="rc390-txt">Bossard AG Schweiz</div></div><div class="rc390-card"><div class="rc390-label">LIEFERSCHEINE/DNCs / DELIVERY NOTES/DNCs</div><div class="rc390-txt"></div></div></section>';
+    document.body.innerHTML=api.enhance(raw,{reference:'Y6JEUX',customerName:'Bossard AG Schweiz',deliveryFiles:[{name:'DNC3019221995.pdf'}]},true);
+    const grid=document.querySelector('[data-rc1305-document-grid]');
+    const item=grid&&grid.querySelector('[data-rc1293-packing-slip]');
+    const recipient=document.querySelector('[data-rc1342-recipient]');
+    if(!grid||!item||!recipient)throw new Error('RC1372 Druckfixture unvollständig');
+    const gr=grid.getBoundingClientRect(),ir=item.getBoundingClientRect(),is=getComputedStyle(item),rs=getComputedStyle(recipient);
+    return{
+      gridWidth:gr.width,
+      itemWidth:ir.width,
+      itemFontSize:is.fontSize,
+      itemAlignSelf:is.alignSelf,
+      recipientBackground:rs.backgroundColor,
+      recipientKind:recipient.getAttribute('data-rc1364-recipient-kind')
+    };
+  });
+
+  expect(layout.itemWidth,'Kurzer DNC-Rahmen darf nicht die gesamte Kartenbreite einnehmen').toBeLessThan(layout.gridWidth*0.6);
+  expect(layout.itemAlignSelf).toBe('flex-start');
+  expect(parseFloat(layout.itemFontSize),'Normale DNC-Dateischrift muss +1pt auf 6.2pt liegen').toBeGreaterThanOrEqual(8);
+  expect(layout.recipientKind).toBe('customer');
+  expect(layout.recipientBackground).toBe('rgb(219, 234, 254)');
+  await assertRuntimeClean(guard,testInfo);
+});
+
 test('RC1315: ABD-Ladeliste hält beide Fahrerunterschriften kollisionsfrei auf einer A4-Seite',async({page},testInfo)=>{
   test.skip(testInfo.project.name!=='laptop','A4-Signaturlayout wird einmal im echten Chromium geprüft.');
   test.setTimeout(45_000);
