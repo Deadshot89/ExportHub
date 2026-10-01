@@ -36,6 +36,16 @@ test('RC1377 P0: bestehende QR-Sendung behält ABD-Pflicht auch wenn Live-Sendun
   assert.doesNotMatch(block,/found\?\(abdPresent\(sh\)\|\|abdPresent\(req\)\):abdPresent\(record\)/);
 });
 
+test('RC1378 P0: abgeschlossene ABD-Anfrage mit generischem status wird serverseitig wie in der UI erkannt',()=>{
+  const start=store.indexOf('async function resolveShipmentAbdConfig');
+  const end=store.indexOf('function mergeContainerPhotos',start);
+  const block=store.slice(start,end);
+  assert.match(block,/first\(req,\['abdStatus','status','state'\]\)/);
+  assert.match(block,/const reqPresent=abdPresent\(req\)\|\|/);
+  assert.match(block,/completed\|done\|available\|erstellt\|created\|abgeschlossen/);
+  assert.match(block,/const present=abdPresent\(sh\)\|\|reqPresent\|\|abdPresent\(record\)/);
+});
+
 test('RC1377 P0: ältere ABD-Datenform wird bei bestehenden Sendungen erkannt',()=>{
   const start=store.indexOf('function abdPresent(source)');
   const end=store.indexOf('async function resolveShipmentAbdConfig',start);

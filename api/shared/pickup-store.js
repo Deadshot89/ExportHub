@@ -129,7 +129,9 @@ async function resolveShipmentAbdConfig(record,environment='production'){
  const shipments=Array.isArray(state.shipments)?state.shipments:[],requests=Array.isArray(state.abdRequests)?state.abdRequests:[],sid=String(record&&record.shipmentId||'').trim(),ref=String(record&&record.reference||record&&record.ref||'').trim().toUpperCase();
  const sh=shipments.find(x=>(sid&&String(x&& (x.id||x.shipmentId)||'').trim()===sid)||(ref&&String(x&& (x.reference||x.ref)||'').trim().toUpperCase()===ref))||null;
  const req=requests.slice().reverse().find(function(x){const rid=String(x&& (x.linkedShipmentId||x.shipmentId)||'').trim(),rr=String(x&& (x.reference||x.ref||x.shipmentRef)||'').trim().toUpperCase();return(sid&&rid===sid)||(ref&&rr===ref)})||null;
- const present=abdPresent(sh)||abdPresent(req)||abdPresent(record);
+ const reqStatus=sanitizeText(first(req,['abdStatus','status','state']),120).toLowerCase();
+ const reqPresent=abdPresent(req)||(!!req&&/vorhanden|fertig|erledigt|completed|done|available|erstellt|created|abgeschlossen/.test(reqStatus)&&!/wartet|offen|pending|angefordert|requested/.test(reqStatus));
+ const present=abdPresent(sh)||reqPresent||abdPresent(record);
  return{abdPresent:present,abdStatus:sanitizeText(first(req||sh||record,['abdStatus','status']),120)}
 }
 function mergeContainerPhotos(a,b){
