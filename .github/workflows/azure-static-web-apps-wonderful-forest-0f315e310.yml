@@ -924,7 +924,7 @@ jobs:
           diagnose_marker 'Demo RC1068' "$d" 'id="exporthub-rc373-shipment-controller"'
           exit 1
 
-      - name: RC1368 AVIS und Drucklayout live verifizieren
+      - name: RC1371 AVIS und Drucklayout live verifizieren
         shell: bash
         run: |
           set -euo pipefail
@@ -934,12 +934,12 @@ jobs:
           trap 'rm -f "$main" "$print_runtime" "$avis_runtime" "$avis_page"' EXIT
           ready=0
           for attempt in {1..18}; do
-            mc=$(curl -sS -L -o "$main" -w '%{http_code}' --max-time 20 "$prod/?rc1363=$GITHUB_SHA-$attempt" || true)
-            pc=$(curl -sS -L -o "$print_runtime" -w '%{http_code}' --max-time 20 "$prod/assets/rc1305-loading-list-print.js?rc1363=$GITHUB_SHA-$attempt" || true)
-            ac=$(curl -sS -L -o "$avis_runtime" -w '%{http_code}' --max-time 20 "$prod/assets/rc1027-lieferavis-immediate.js?rc1363=$GITHUB_SHA-$attempt" || true)
-            bc=$(curl -sS -L -o "$avis_page" -w '%{http_code}' --max-time 20 "$branded/avis/RC1363TEST?rc1363=$GITHUB_SHA-$attempt" || true)
+            mc=$(curl -sS -L -o "$main" -w '%{http_code}' --max-time 20 "$prod/?rc1371=$GITHUB_SHA-$attempt" || true)
+            pc=$(curl -sS -L -o "$print_runtime" -w '%{http_code}' --max-time 20 "$prod/assets/rc1305-loading-list-print.js?rc1371=$GITHUB_SHA-$attempt" || true)
+            ac=$(curl -sS -L -o "$avis_runtime" -w '%{http_code}' --max-time 20 "$prod/assets/rc1027-lieferavis-immediate.js?rc1371=$GITHUB_SHA-$attempt" || true)
+            bc=$(curl -sS -L -o "$avis_page" -w '%{http_code}' --max-time 20 "$branded/avis/RC1363TEST?rc1371=$GITHUB_SHA-$attempt" || true)
             if [[ "$mc" == '200' && "$pc" == '200' && "$ac" == '200' && "$bc" == '200' ]] \
-              && grep -Fq 'assets/rc1305-loading-list-print.js?v=1366' "$main" \
+              && grep -Fq 'assets/rc1305-loading-list-print.js?v=1371' "$main" \
               && grep -Fq 'assets/rc1027-lieferavis-immediate.js?v=1365' "$main" \
               && grep -Fq "data-rc1361-print-qr-top-right" "$print_runtime" \
               && grep -Fq "important(section,'top','8mm')" "$print_runtime" \
@@ -949,6 +949,8 @@ jobs:
               && grep -Fq 'display:flex!important' "$print_runtime" \
               && grep -Fq 'flex-direction:column!important' "$print_runtime" \
               && grep -Fq 'data-rc1363-document-density' "$print_runtime" \
+              && grep -Fq "font-size:6.2pt!important" "$print_runtime" \
+              && grep -Fq "align-items:flex-start!important;gap:" "$print_runtime" \
               && grep -Fq "RC1333_PROD_AVIS_ORIGIN='https://exporthub360.com'" "$avis_runtime" \
               && grep -Fq "RC1333_PROD_AVIS_ORIGIN+'/avis/'" "$avis_runtime" \
               && grep -Fq "pathMatch=String(u.pathname||'').match(/\/avis\/" "$avis_page"; then
@@ -958,10 +960,10 @@ jobs:
             sleep 5
           done
           if [ "$ready" != "1" ]; then
-            echo "RC1368 Live-Gate fehlgeschlagen: main=$mc print=$pc avisRuntime=$ac brandedAvis=$bc" >&2
+            echo "RC1371 Live-Gate fehlgeschlagen: main=$mc print=$pc avisRuntime=$ac brandedAvis=$bc" >&2
             exit 1
           fi
-          echo 'RC1368 AVIS-Link, 12-mm-Druck-QR und adaptive einspaltige Lieferschein-/DNC-Darstellung live bestätigt.'
+          echo 'RC1371 AVIS-Link, 12-mm-Druck-QR, kompakte Lieferscheinrahmen und +1pt Dateischrift live bestätigt.'
 
       - name: Live RC1071 Sendungshistorie prüfen
         shell: bash
