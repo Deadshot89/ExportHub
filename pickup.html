@@ -110,13 +110,9 @@ button:focus-visible,input:focus-visible{outline:3px solid #1d4ed8;outline-offse
 <span class="help">Unterschrift, Kennzeichen und Speditionsname sind verpflichtend.</span>
 <input id="signatureData" type="hidden">
 </label>
-<label id="customsSignatureField" hidden><strong>Zolldokumente erhalten – Unterschrift Fahrer</strong>
-<button id="customsSignatureOpen" class="signature" type="button">
-<span id="customsSignaturePrompt">Erhalt der Zolldokumente unterschreiben</span>
-<img id="customsSignaturePreview" alt="Fahrerunterschrift zum Erhalt der Zolldokumente" hidden>
-</button>
-<span class="help">Nur erforderlich, wenn für diese Sendung ein ABD erstellt wurde. Mit dieser zweiten Unterschrift bestätigt der Fahrer den Erhalt der Zolldokumente.</span>
-<input id="customsSignatureData" type="hidden">
+<label id="customsDocumentsField" hidden>
+<span><input id="customsDocumentsConfirmed" type="checkbox" style="width:auto;min-height:0;margin-right:8px"> <strong>Zolldokumente wurden an den Fahrer übergeben</strong></span>
+<span class="help">Pflicht, sobald für diese Sendung ein ABD erstellt wurde. Der Verlader bestätigt hier nur die Übergabe; eine zweite Unterschrift ist nicht erforderlich.</span>
 </label>
 <label>Persönlicher PIN des Verladers<input id="pin" inputmode="numeric" autocomplete="one-time-code" maxlength="4" pattern="[0-9]{4}" required></label>
 </section>
@@ -185,7 +181,7 @@ if(env!=='production'&&env!=='testservice'){
 var statusEl=document.getElementById('status');
 var details=document.getElementById('details');
 var form=document.getElementById('form');
-var expected=0,collectedBefore=0,remainingBefore=0,colliOk=false,signatureSaved='',customsSignatureSaved='',customsSignatureRequired=false,activeSignatureKind='driver',submitting=false,containerRequired=false,containerPhotos={},containerUploadBusy=false;
+var expected=0,collectedBefore=0,remainingBefore=0,colliOk=false,signatureSaved='',customsDocumentsRequired=false,submitting=false,containerRequired=false,containerPhotos={},containerUploadBusy=false;
 var canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d',{alpha:false}),drawing=false,drawn=false;
 
 function status(text,kind){statusEl.className='status '+(kind||'info');statusEl.textContent=text}
@@ -224,9 +220,9 @@ function request(path,opt){
 }
 
 function confirmed(data){return !!(data&&(data.confirmedAt||data.pickupConfirmedAt||data.completedAt||data.pickedUpAt||data.used||data.confirmed||/confirmed|completed|abgeholt|used/i.test(q(data.status))))}
-function customsSignatureNeeded(data){
+function customsDocumentsConfirmationNeeded(data){
   if(!data||typeof data!=='object')return false;
-  if(data.customsDocumentsSignatureRequired===true||data.abdPresent===true)return true;
+  if(data.customsDocumentsConfirmationRequired===true||data.abdPresent===true)return true;
   var s=q(data.abdStatus).toLowerCase();
   return /vorhanden|fertig|erledigt|completed|done|available|erstellt|created|abgeschlossen/.test(s)&&!/wartet|offen|pending|angefordert|requested/.test(s);
 }
@@ -315,8 +311,9 @@ function show(data){
   if(/^[-–—]+$/.test(address)||/^(?:n\/?a|none|null|undefined)$/i.test(address))address='';
   var carrier=q(deep(data,['carrierName','speditionName','carrier','spedition']));
   containerRequired=data&&data.containerDocumentationRequired===true;
-  customsSignatureRequired=customsSignatureNeeded(data);
-  var customsField=document.getElementById('customsSignatureField');if(customsField)customsField.hidden=!customsSignatureRequired;
+  customsDocumentsRequired=customsDocumentsConfirmationNeeded(data);
+  var customsField=document.getElementById('customsDocumentsField');if(customsField)customsField.hidden=!customsDocumentsRequired;
+  var customsCheck=document.getElementById('customsDocumentsConfirmed');if(customsCheck){customsCheck.required=customsDocumentsRequired;if(!customsDocumentsRequired)customsCheck.checked=false;}
   containerPhotos=containerPhotoMap(data&&data.containerPhotos||[]);
   var seal=q(data&&data.sealNumber);if(seal)document.getElementById('sealNumber').value=seal;renderContainerState();
   expected=expectedCollis(data);
@@ -381,35 +378,24 @@ function point(e){var r=canvas.getBoundingClientRect(),p=e;return{x:(p.clientX-r
 canvas.addEventListener('pointerdown',function(e){e.preventDefault();drawing=true;drawn=true;var p=point(e);ctx.beginPath();ctx.moveTo(p.x,p.y)});
 canvas.addEventListener('pointermove',function(e){if(!drawing)return;e.preventDefault();var p=point(e);ctx.lineTo(p.x,p.y);ctx.stroke()});
 ['pointerup','pointercancel','pointerleave'].forEach(function(n){canvas.addEventListener(n,function(e){if(!drawing)return;e.preventDefault();drawing=false;ctx.closePath()})});
-function openSignature(kind){
-  activeSignatureKind=kind==='customs'?'customs':'driver';
-  document.getElementById('signatureDialogTitle').textContent=activeSignatureKind==='customs'?'Zolldokumente erhalten – Fahrerunterschrift':'Unterschrift des Fahrers';
-  var dialog=document.getElementById('signatureDialogTitle').nextElementSibling;if(dialog)dialog.textContent=activeSignatureKind==='customs'?'Bitte bestätigen Sie mit Ihrer Unterschrift, dass Sie die Zolldokumente erhalten haben.':'Bitte im großen Feld mit Finger, Stift oder Maus unterschreiben.';
+function openSignature(){
+  document.getElementById('signatureDialogTitle').textContent='Unterschrift des Fahrers';
+  var dialog=document.getElementById('signatureDialogTitle').nextElementSibling;if(dialog)dialog.textContent='Bitte im großen Feld mit Finger, Stift oder Maus unterschreiben.';
   document.getElementById('signatureModal').hidden=false;document.body.style.overflow='hidden';clearSig()
 }
-document.getElementById('signatureOpen').addEventListener('click',function(){openSignature('driver')});
-document.getElementById('customsSignatureOpen').addEventListener('click',function(){openSignature('customs')});
+document.getElementById('signatureOpen').addEventListener('click',openSignature);
 document.getElementById('cancelSig').addEventListener('click',function(){document.getElementById('signatureModal').hidden=true;document.body.style.overflow=''});
 document.getElementById('clearSig').addEventListener('click',clearSig);
 document.getElementById('saveSig').addEventListener('click',function(){
   if(!drawn){status('Bitte zuerst unterschreiben.','bad');return}
   var out=document.createElement('canvas');out.width=700;out.height=252;var ox=out.getContext('2d',{alpha:false});ox.fillStyle='#fff';ox.fillRect(0,0,out.width,out.height);ox.drawImage(canvas,0,0,out.width,out.height);
   var data=out.toDataURL('image/jpeg',0.70);
-  if(activeSignatureKind==='customs'){
-    customsSignatureSaved=data;
-    document.getElementById('customsSignatureData').value=data;
-    var customsImg=document.getElementById('customsSignaturePreview');customsImg.src=data;customsImg.hidden=false;
-    document.getElementById('customsSignaturePrompt').textContent='Zolldokumente bestätigt – zum Ändern antippen';
-    document.getElementById('customsSignatureOpen').classList.add('has');
-    status('Erhalt der Zolldokumente wurde unterschrieben. Bitte Verlader-PIN eingeben.','info');
-  }else{
-    signatureSaved=data;
-    document.getElementById('signatureData').value=data;
-    var img=document.getElementById('signaturePreview');img.src=data;img.hidden=false;
-    document.getElementById('signaturePrompt').textContent='Unterschrift erfasst – zum Ändern antippen';
-    document.getElementById('signatureOpen').classList.add('has');
-    status('Unterschrift erfasst. Bitte Verlader-PIN eingeben.','info');
-  }
+  signatureSaved=data;
+  document.getElementById('signatureData').value=data;
+  var img=document.getElementById('signaturePreview');img.src=data;img.hidden=false;
+  document.getElementById('signaturePrompt').textContent='Unterschrift erfasst – zum Ändern antippen';
+  document.getElementById('signatureOpen').classList.add('has');
+  status('Unterschrift erfasst. Bitte Verlader-PIN eingeben.','info');
   document.getElementById('signatureModal').hidden=true;document.body.style.overflow='';
 });
 
@@ -419,7 +405,7 @@ document.getElementById('plate').addEventListener('input',function(){this.value=
 form.addEventListener('submit',function(e){
   e.preventDefault();
   var mode=e.submitter&&e.submitter.dataset&&e.submitter.dataset.mode==='partial'?'partial':'complete';
-  var pin=q(document.getElementById('pin').value),driver=q(document.getElementById('driver').value),plate=q(document.getElementById('plate').value),carrier=q(document.getElementById('carrier').value),sig=q(document.getElementById('signatureData').value),customsSig=q(document.getElementById('customsSignatureData').value),seal=q(document.getElementById('sealNumber').value),returned=Math.max(0,Math.round(Number(document.getElementById('returned').value||0))),entered=colliNumber(document.getElementById('colli').value),btn=mode==='partial'?document.getElementById('confirmPartial'):document.getElementById('confirm');
+  var pin=q(document.getElementById('pin').value),driver=q(document.getElementById('driver').value),plate=q(document.getElementById('plate').value),carrier=q(document.getElementById('carrier').value),sig=q(document.getElementById('signatureData').value),customsConfirmed=!!(document.getElementById('customsDocumentsConfirmed')&&document.getElementById('customsDocumentsConfirmed').checked),seal=q(document.getElementById('sealNumber').value),returned=Math.max(0,Math.round(Number(document.getElementById('returned').value||0))),entered=colliNumber(document.getElementById('colli').value),btn=mode==='partial'?document.getElementById('confirmPartial'):document.getElementById('confirm');
   if(!(expected>0)||!colliOk){setDriverStepUnlocked(false);status('Bitte zuerst die Collis prüfen und bestätigen. Fahrerdaten werden erst danach freigeschaltet.','bad');document.getElementById('colli').focus();return}
   if(!plate){status('Bitte das Kennzeichen eingeben.','bad');return}
   if(!carrier){status('Bitte den Speditionsnamen eingeben.','bad');return}
@@ -429,14 +415,14 @@ form.addEventListener('submit',function(e){
   if(mode==='complete'&&containerRequired&&(!containerPhotos.loaded||!containerPhotos.number||!containerPhotos.sealed)){status('Für diese Sendung müssen alle 3 Containerfotos gespeichert sein.','bad');return}
   if(!/^\d{4}$/.test(pin)){status('Der persönliche Verlader-PIN muss genau vier Ziffern enthalten.','bad');return}
   if(!/^data:image\/jpeg;base64,/i.test(sig)){status('Bitte die Unterschrift des Fahrers erfassen.','bad');return}
-  if(customsSignatureRequired&&!/^data:image\/jpeg;base64,/i.test(customsSig)){status('Bitte mit der zweiten Fahrerunterschrift bestätigen, dass die Zolldokumente ausgehändigt wurden.','bad');document.getElementById('customsSignatureOpen').focus();return}
+  if(customsDocumentsRequired&&!customsConfirmed){status('Bitte bestätigen, dass die Zolldokumente an den Fahrer übergeben wurden.','bad');document.getElementById('customsDocumentsConfirmed').focus();return}
   if(submitting)return;
   submitting=true;document.getElementById('confirmPartial').disabled=true;document.getElementById('confirm').disabled=true;status(mode==='partial'?'Teilabholung wird übertragen …':'Abholung und POD werden übertragen …','info');
-  var body={token:token,pin:pin,loaderPin:pin,personalLoaderPin:pin,driverName:driver,licensePlate:plate,carrierName:carrier,speditionName:carrier,carrier:carrier,spedition:carrier,signatureDataUrl:sig,customsDocumentsSignatureDataUrl:customsSig,abdHandoverSignatureDataUrl:customsSig,returnedEuroPallets:returned,enteredColliCount:entered,colliCount:entered,expectedColliCount:expected,colliConfirmed:expected>0?colliOk:true,colliCountConfirmed:expected>0?colliOk:true,pickupMode:mode,sealNumber:seal,containerSealNumber:seal,siegelnummer:seal,environment:env};
+  var body={token:token,pin:pin,loaderPin:pin,personalLoaderPin:pin,driverName:driver,licensePlate:plate,carrierName:carrier,speditionName:carrier,carrier:carrier,spedition:carrier,signatureDataUrl:sig,customsDocumentsReceived:customsConfirmed,customsDocumentsConfirmed:customsConfirmed,abdDocumentsHandedOver:customsConfirmed,returnedEuroPallets:returned,enteredColliCount:entered,colliCount:entered,expectedColliCount:expected,colliConfirmed:expected>0?colliOk:true,colliCountConfirmed:expected>0?colliOk:true,pickupMode:mode,sealNumber:seal,containerSealNumber:seal,siegelnummer:seal,environment:env};
   request('pickup-confirm-v2',{method:'POST',body:JSON.stringify(body),timeout:90000}).then(function(data){
     submitting=false;
     var card=document.querySelector('.card');
-    if(data&&data.partial){var rest=Math.max(0,Math.round(Number(data.remainingAfter)||0)),receipt=customsSignatureRequired?' Die Übergabe der Zolldokumente wurde ebenfalls bestätigt.':'';card.innerHTML='<div class="success"><div class="icon">✓</div><h2>Teilabholung gespeichert</h2><p>Die Teilabholung und die Fahrerunterschrift wurden gespeichert.'+receipt+'</p><div class="status ok">Noch offen: '+rest+' Colli. Der QR-Code bleibt für die nächste Abholung aktiv.</div></div>';return}
+    if(data&&data.partial){var rest=Math.max(0,Math.round(Number(data.remainingAfter)||0)),receipt=customsDocumentsRequired?' Die Übergabe der Zolldokumente wurde ebenfalls bestätigt.':'';card.innerHTML='<div class="success"><div class="icon">✓</div><h2>Teilabholung gespeichert</h2><p>Die Teilabholung und die Fahrerunterschrift wurden gespeichert.'+receipt+'</p><div class="status ok">Noch offen: '+rest+' Colli. Der QR-Code bleibt für die nächste Abholung aktiv.</div></div>';return}
     var podText=data&&data.podAzureSaved?(data.podArchiveSaved?'POD wurde sicher in ExportHUB und zusätzlich im geschützten Archiv gespeichert.':'POD wurde sicher in ExportHUB gespeichert. Die zusätzliche Archivkopie ist noch offen.'):'Abholung und Fahrerunterschrift wurden gespeichert. Der Archivstatus konnte nicht bestätigt werden.';card.innerHTML='<div class="success"><div class="icon">✓</div><h2>Abholung erfolgreich übertragen</h2><p>'+esc(podText)+'</p><div class="status ok">Die vollständige Abholung ist abgeschlossen. Dieses Fenster kann geschlossen werden.</div></div>';
   }).catch(function(err){
     submitting=false;document.getElementById('confirmPartial').disabled=false;document.getElementById('confirm').disabled=false;
