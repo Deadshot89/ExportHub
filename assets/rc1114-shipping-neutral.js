@@ -3,7 +3,7 @@
 if(!w||!d||w.__EXPORTHUB_RC1114_SHIPPING_NEUTRAL__)return;
 w.__EXPORTHUB_RC1114_SHIPPING_NEUTRAL__=true;
 
-var VERSION='RC1114.1',scheduled=0,observer=null;
+var VERSION='RC1114.1',scheduled=0,observer=null,observerRoot=null,bootstrapObserver=null;
 
 function q(v){return String(v==null?'':v)}
 function normalized(v){return q(v).replace(/\s+/g,' ').trim()}
@@ -82,9 +82,51 @@ function normalizeHistory(root){
   neutralizeText(item);neutralizeAttrs(item)
  })
 }
+function disconnectObserver(){
+ if(observer){try{observer.disconnect()}catch(_){}observer=null}
+ observerRoot=null
+}
+function disconnectBootstrap(){
+ if(bootstrapObserver){try{bootstrapObserver.disconnect()}catch(_){}bootstrapObserver=null}
+}
+function syncObserver(){
+ var root=d.getElementById('rc626Shipping');
+ if(root){
+  disconnectBootstrap();
+  if(observer&&observerRoot===root)return root;
+  disconnectObserver();
+  observerRoot=root;
+  if(w.MutationObserver){
+   try{
+    observer=new w.MutationObserver(function(){schedule()});
+    observer.observe(root,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['title','aria-label','placeholder','data-label']})
+   }catch(_){observer=null;observerRoot=null}
+  }
+  return root
+ }
+ disconnectObserver();
+ if(!bootstrapObserver&&w.MutationObserver&&d.documentElement){
+  try{
+   bootstrapObserver=new w.MutationObserver(function(records){
+    for(var i=0;i<records.length;i++){
+     var added=records[i]&&records[i].addedNodes;
+     if(!added||!added.length)continue;
+     for(var j=0;j<added.length;j++){
+      var n=added[j];
+      if(n&&n.nodeType===1&&(n.id==='rc626Shipping'||n.querySelector&&n.querySelector('#rc626Shipping'))){
+       syncObserver();schedule();return
+      }
+     }
+    }
+   });
+   bootstrapObserver.observe(d.documentElement,{subtree:true,childList:true})
+  }catch(_){bootstrapObserver=null}
+ }
+ return null
+}
 function run(){
  scheduled=0;
- var root=d.getElementById('rc626Shipping');if(!root)return false;
+ var root=syncObserver();if(!root)return false;
  neutralizeText(root);neutralizeAttrs(root);normalizeHistory(root);suppressNotices(root);
  root.setAttribute('data-rc1114-shipping-neutral','1');
  return true
@@ -93,24 +135,9 @@ function schedule(){
  if(scheduled)return;
  scheduled=w.requestAnimationFrame?w.requestAnimationFrame(run):w.setTimeout(run,0)
 }
-function installObserver(){
- if(observer||!w.MutationObserver||!d.documentElement)return;
- observer=new MutationObserver(function(records){
-  for(var i=0;i<records.length;i++){
-   var r=records[i],target=r.target&&r.target.nodeType===3?r.target.parentElement:r.target;
-   if(target&&target.closest&&target.closest('#rc626Shipping')){schedule();return}
-   if(r.addedNodes&&r.addedNodes.length){
-    for(var j=0;j<r.addedNodes.length;j++){
-     var n=r.addedNodes[j];
-     if(n&&n.nodeType===1&&(n.id==='rc626Shipping'||n.querySelector&&n.querySelector('#rc626Shipping'))){schedule();return}
-    }
-   }
-  }
- });
- observer.observe(d.documentElement,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['title','aria-label','placeholder','data-label']})
-}
-['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:shipment-saved'].forEach(function(name){w.addEventListener&&w.addEventListener(name,schedule)});
-d.addEventListener('click',function(e){if(e.target&&e.target.closest&&e.target.closest('[data-view="shippingcosts"],[data-action*="shipping"],#rc626Shipping'))setTimeout(schedule,20)},true);
+function installObserver(){return !!syncObserver()}
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:shipment-saved'].forEach(function(name){w.addEventListener&&w.addEventListener(name,function(){syncObserver();schedule()})});
+d.addEventListener('click',function(e){if(e.target&&e.target.closest&&e.target.closest('[data-view="shippingcosts"],[data-action*="shipping"],#rc626Shipping'))w.setTimeout(schedule,20)},true);
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',function(){installObserver();schedule()},{once:true});else{installObserver();schedule()}
 
 w.ExportHUBRC1114ShippingNeutral=Object.freeze({version:VERSION,replaceText:replaceText,shouldSuppressNotice:shouldSuppressNotice,run:run});
