@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 
+const PREF=fs.readFileSync('assets/rc1092-customer-mail-contacts.js','utf8');
 const FLOW=fs.readFileSync('assets/rc1015-lieferavis-mail-flow.js','utf8');
 const FIX=fs.readFileSync('assets/rc1027-lieferavis-immediate.js','utf8');
 
@@ -52,6 +53,7 @@ function load(shipment,{reference='',link='https://example.test/customer-avis.ht
     ExportHUBCustomerAvis706:base,
     ExportHUBClean:{state,runtime:{authToken:'TOKEN'}},
     ExportHUBRC565:{async persistShipment(){persists.push('persist');if(!state.shipments.includes(shipment))state.shipments.push(shipment);return true}},
+    setTimeout(fn){fn();return 1},
     addEventListener(name,fn){if(!windowListeners.has(name))windowListeners.set(name,[]);windowListeners.get(name).push(fn)},
     dispatchEvent(){return true},
     console
@@ -67,6 +69,7 @@ function load(shipment,{reference='',link='https://example.test/customer-avis.ht
     CustomEvent:function CustomEvent(type,opt){this.type=type;this.detail=opt&&opt.detail},
     fetch:async(_url,opt)=>{var payload=JSON.parse(opt&&opt.body||'{}');apiCalls.push(payload);if(payload.action==='draft-sync')return{ok:true,status:200,json:async()=>({ok:true,updated:1})};return{ok:true,status:200,json:async()=>({ok:true,token:'server-token',shipmentId:payload.shipmentId||payload.reference,url:link,expiresAt:null})}}
   });
+  vm.runInContext(PREF,context,{filename:'assets/rc1092-customer-mail-contacts.js'});
   vm.runInContext(FLOW,context,{filename:'assets/rc1015-lieferavis-mail-flow.js'});
   vm.runInContext(FIX,context,{filename:'assets/rc1027-lieferavis-immediate.js'});
   async function fireDocument(name,target=customerInput){for(const fn of documentListeners.get(name)||[])await fn({type:name,target})}
@@ -159,17 +162,47 @@ test('RC1069: Kundeneingaben aktualisieren einen bereits sofort ausgestellten Av
   assert.deepEqual(env.persists,[]);
 });
 
-test('RC1291: Würth Industrie behält das Avis technisch aktiv, erhält aber in keiner Mail einen Avis-Link',()=>{
+test('RC1374: Würth Industrie ist ohne explizite Kundenfreigabe vollständig vom AVIS ausgeschlossen',()=>{
   for(const customerName of ['Würth Industrie','Würth Industrie Service GmbH & Co. KG','Wuerth Industrie']){
     const shipment={reference:'7RZ5W9',customerName,customerAvisEnabled:true,customerAvisToken:'server-token',status:'Entwurf'};
     const {api}=load(shipment,{reference:'7RZ5W9'});
-    assert.equal(api.enabled(shipment),true,customerName+': Avis darf technisch nicht deaktiviert werden');
-    assert.match(api.link(shipment),/^https:\/\/exporthub360\.com\/avis\//,customerName+': Avis-Link darf technisch weiter existieren');
+    assert.equal(api.enabled(shipment),false,customerName+': AVIS muss durch die Kundenpräferenz deaktiviert sein');
+    assert.equal(api.link(shipment),'',customerName+': es darf kein AVIS-Link zurückgegeben werden');
     for(const target of ['customer','carrier','own']){
       const out=api.injectMailBody(shipment,target,expandedDetails,'de');
-      assert.doesNotMatch(out,/(?:exporthub360\.com\/avis\/|customer-avis\.html)|Lieferavis:\s*https?:\/\//i,customerName+' / '+target+': Avis-Link muss aus der Mail entfernt sein');
+      assert.doesNotMatch(out,/(?:exporthub360\.com\/avis\/|customer-avis\.html)|Lieferavis:\s*https?:\/\//i,customerName+' / '+target+': AVIS-Link muss aus der Mail entfernt sein');
     }
   }
+});
+
+test('RC1374: explizites Ja im Kundenordner überschreibt den Würth-Standard und erlaubt AVIS wieder',()=>{
+  const customers=[{id:'W1',name:'Würth Industrie',customerAvisLinkEnabled:true}];
+  const shipment={reference:'7RZ5W9',customerId:'W1',customerName:'Würth Industrie',customerAvisEnabled:true,customerAvisToken:'server-token',status:'Entwurf'};
+  const {api}=load(shipment,{reference:'7RZ5W9',customers});
+  assert.equal(api.enabled(shipment),true);
+  assert.match(api.link(shipment),/^https:\/\/exporthub360\.com\/avis\//);
+  assert.match(api.injectMailBody(shipment,'customer',expandedDetails,'de'),/exporthub360\.com\/avis\//i);
+});
+
+test('RC1374: explizites Nein im Kundenordner verhindert die technische AVIS-Erzeugung',async()=>{
+  const customers=[{id:'N1',name:'Normaler Kunde',customerAvisLinkEnabled:false}];
+  const shipment={reference:'7RZ5W9',customerId:'N1',customerName:'Normaler Kunde',customerAvisEnabled:false,status:'Entwurf'};
+  const env=load(shipment,{reference:'7RZ5W9',customers});
+  const active=await env.rc.ensureCustomerAvis('preference-test');
+  assert.equal(active,false);
+  assert.equal(env.apiCalls.filter(x=>x.action==='issue').length,0,'Bei Nein darf kein AVIS ausgestellt werden');
+  assert.equal(env.api.link(shipment),'');
+});
+
+test('RC1374: Adolf Würth 3019100629 und V-Zug starten ohne AVIS-Link',()=>{
+  const customers=[
+    {id:'3019100629',name:'Adolf Würth GmbH & Co. KG'},
+    {id:'VZ',name:'V-Zug',customerEmail:'v-zug@lebert.com'}
+  ];
+  const wuerth={reference:'7RZ5W9',customerId:'3019100629',customerName:'Adolf Würth GmbH & Co. KG',customerAvisEnabled:true,customerAvisToken:'server-token',status:'Entwurf'};
+  const vzug={reference:'8RZ5W9',customerId:'VZ',customerName:'V-Zug',customerAvisEnabled:true,customerAvisToken:'server-token',status:'Entwurf'};
+  assert.equal(load(wuerth,{reference:'7RZ5W9',customers}).api.link(wuerth),'');
+  assert.equal(load(vzug,{reference:'8RZ5W9',customers}).api.link(vzug),'');
 });
 
 test('RC1291: normale Kunden behalten den Lieferavis-Link in Kunden-, Speditions- und eigener Mail',()=>{
