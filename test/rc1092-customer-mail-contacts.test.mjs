@@ -53,7 +53,7 @@ test('RC1092 wird in alle drei RC1048 Umgebungen ausgeliefert',()=>{
  execFileSync(process.execPath,['.github/rc1048/build-three-env.mjs'],{stdio:'pipe'});
  for(const file of ['index.html','TESTVERSION.html','demo.html']){
   const html=read('dist-rc1048/'+file);
-  assert.match(html,/assets\/rc1092-customer-mail-contacts\.js\?v=1092/,file+': RC1092 Runtime fehlt');
+  assert.match(html,/assets\/rc1092-customer-mail-contacts\.js\?v=1380/,file+': RC1092 Runtime fehlt');
  }
  const built=read('dist-rc1048/assets/rc1092-customer-mail-contacts.js');
  assert.match(built,/__EXPORTHUB_RC1092_CUSTOMER_MAIL_CONTACTS__/);
@@ -65,6 +65,6 @@ test('RC1092 wird in alle drei RC1048 Umgebungen ausgeliefert',()=>{
 test('RC1092 Produktionsworkflow prüft Build und Live-Auslieferung',()=>{
  const flow=read('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml');
  assert.match(flow,/Live RC1092 Kundenkontakte prüfen/);
- assert.match(flow,/assets\/rc1092-customer-mail-contacts\.js\?v=1092/);
+ assert.match(flow,/assets\/rc1092-customer-mail-contacts\.js\?v=1380/);
  assert.match(flow,/Person speichern und Zur Mail hinzufügen live bestätigt/);
 });
