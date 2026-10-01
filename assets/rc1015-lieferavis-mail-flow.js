@@ -47,6 +47,8 @@ function rc1018AvisException(sh){
  return rc1330AvisPolicyBlock(sh)
 }
 function rc1291AvisMailExcluded(sh){
+ var customer=rc1292CustomerForShipment(sh);
+ if(customer&&(customer.avisLinkEnabled===true||customer.customerAvisLinkEnabled===true))return null;
  var name=shipmentCustomerName(sh),key=name.toLocaleLowerCase('de-DE').replace(/\s+/g,' ').trim();
  for(var i=0;i<RC1291_AVIS_MAIL_EXCLUSIONS.length;i++){var candidate=RC1291_AVIS_MAIL_EXCLUSIONS[i];if(key===candidate||key.indexOf(candidate+' ')===0)return{customer:name,key:candidate,reason:'Kein Lieferavis-Link in E-Mails'} }
  return null
