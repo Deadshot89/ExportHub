@@ -446,6 +446,12 @@ function patchCompletePrintBundle(html,file){
   );
 
   if(!html.includes("+coverHtml(sh)+loadHtml(sh,true)+cmrHtml(sh)+"))throw new Error(file+': RC1345 Gesamtdruck muss genau eine Ladeliste enthalten');
+  const rc1373SelectNeedle="if(mode==='load2')return[d.load2].filter(Boolean);return[d.cover,d.load1].concat(d.cmrs.slice(0,3)).filter(Boolean)";
+  const rc1373SelectReplacement="if(mode==='cover')return[d.cover].filter(Boolean);if(mode==='load2')return[d.load2].filter(Boolean);return[d.cover,d.load1].concat(d.cmrs.slice(0,3)).filter(Boolean)";
+  const rc1373SelectCount=html.split(rc1373SelectNeedle).length-1;
+  if(rc1373SelectCount!==1)throw new Error(file+': RC1373 Deckblatt-Auswahl '+rc1373SelectCount+'x gefunden');
+  html=html.replace(rc1373SelectNeedle,rc1373SelectReplacement);
+  if(!html.includes(rc1373SelectReplacement))throw new Error(file+': RC1373 Nur-Deckblatt-Modus fehlt');
   if(!html.includes("if(mode==='load2')return[d.load2].filter(Boolean);return[d.cover,d.load1].concat(d.cmrs.slice(0,3)).filter(Boolean)"))throw new Error(file+': RC1345 Gesamtdruckauswahl 1x Ladeliste/3x CMR fehlt');
   if(!html.includes("withQr?'Ladeliste · mit QR-Code':'Ladeliste · ohne QR-Code'"))throw new Error(file+': RC1345 eindeutige Ladelisten-Beschriftung fehlt');
   if(!html.includes("for(var i=1;i<=3;i++){")||!html.includes("CMR '+i+' / 3</div></div>'"))throw new Error(file+': RC1345 CMR muss genau dreimal erzeugt werden');
@@ -512,7 +518,8 @@ window.ExportHUBRC1340AttachmentPrint=Object.freeze({version:'RC1340',printable:
   if(!html.includes('window.ExportHUBRC1340AttachmentPrint=')){
     const count=html.split(rc1340Anchor).length-1;
     if(count!==1)throw new Error(file+': RC1340 Druckanker '+count+'x gefunden');
-    html=html.replace(rc1340Anchor,rc1340Runtime+'\n'+rc1340Anchor);
+    const rc1373PrintEntry="async function printDocuments(mode){var rc1373Override=String(window.__EXPORTHUB_PRINT_MODE_OVERRIDE__||'').trim().toLowerCase();if(rc1373Override){mode=rc1373Override;window.__EXPORTHUB_PRINT_MODE_OVERRIDE__=''}";
+    html=html.replace(rc1340Anchor,rc1340Runtime+'\n'+rc1373PrintEntry);
   }
   const readyOld="await ensureOutputReady(sh,'normal');docWorkStep(opToken,'Druckseiten werden geöffnet …');";
   const readyNew="await ensureOutputReady(sh,'normal');var attachmentJobs=(mode==='all'||!mode)?await rc1340PrepareDeliveryAttachmentPrints(sh):[];docWorkStep(opToken,'Druckseiten werden geöffnet …');";
@@ -527,6 +534,7 @@ window.ExportHUBRC1340AttachmentPrint=Object.freeze({version:'RC1340',printable:
     html=html.replace(printOld,printNew);
   }
   if(!html.includes("version:'RC1340'")||!html.includes('attachmentCount:attachmentJobs.length')||!html.includes('await rc1340PrintPreparedAttachments(attachmentJobs)'))throw new Error(file+': RC1340 Lieferschein-Direktdruck fehlt');
+  if(!html.includes("__EXPORTHUB_PRINT_MODE_OVERRIDE__")||!html.includes("if(mode==='cover')return[d.cover].filter(Boolean)"))throw new Error(file+': RC1373 Nur-Deckblatt-Druck ist nicht im finalen Print-Pfad verankert');
   if(!html.includes("data-rc1354-pdf-print-bridge")||!html.includes("frame.contentWindow.postMessage({type:'print'},'*')"))throw new Error(file+': RC1354 PDF-Druckbrücke fehlt');
   var rc1355BridgeStart=html.indexOf('async function rc1340PrintPreparedAttachment(item,index,total){'),rc1355BridgeEnd=rc1355BridgeStart<0?-1:html.indexOf('async function rc1340PrintPreparedAttachments(items){',rc1355BridgeStart);
   if(rc1355BridgeStart<0||rc1355BridgeEnd<0||html.slice(rc1355BridgeStart,rc1355BridgeEnd).includes('frame.contentWindow.print()'))throw new Error(file+': RC1355 Cross-Origin PDF-Druckzugriff ist noch aktiv');
@@ -843,7 +851,7 @@ function patchHtml(file){
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1176-shipment-location" defer src="/assets/rc1176-shipment-location.js?v=1202"></script>','exporthub-rc1176-shipment-location');
   html=injectDeferredRuntimeInHead(html,'<link id="exporthub-rc1259-container-ui" rel="stylesheet" href="/assets/rc1014-shipment-overview.css?v=1284">','exporthub-rc1259-container-ui');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1259-container-runtime" defer src="/assets/rc1014-shipment-overview.js?v=1284"></script>','exporthub-rc1259-container-runtime');
-  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1203-deckblatt-print" defer src="/assets/rc1203-deckblatt-print.js?v=1281"></script>','exporthub-rc1203-deckblatt-print');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1203-deckblatt-print" defer src="/assets/rc1203-deckblatt-print.js?v=1373"></script>','exporthub-rc1203-deckblatt-print');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1207-pallet-account-fix" defer src="/assets/rc1207-pallet-account-fix.js?v=1246"></script>','exporthub-rc1207-pallet-account-fix');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1294-abd-self-service" defer src="/assets/rc1294-abd-self-service.js?v=1294"></script>','exporthub-rc1294-abd-self-service');
   html=injectDeferredRuntimeInHead(html,`<script id="exporthub-rc1193-visible-release" defer src="/assets/rc1193-visible-release.js?v=${VISIBLE_NUMBER}"></script>`,'exporthub-rc1193-visible-release');
@@ -873,7 +881,7 @@ function patchHtml(file){
   if(!html.includes('assets/rc1165-pod-backup-status.js?v=1165'))throw new Error(file+': RC1165 POD-Sicherungsstatus-Runtime fehlt');
   if(!html.includes('assets/rc1166-avis-reminder-overview.js?v=1365'))throw new Error(file+': RC1207 Avis-Erinnerung-Runtime fehlt');
   if(!html.includes('assets/rc1176-shipment-location.js?v=1202'))throw new Error(file+': RC1191 Standort-Capture-Runtime fehlt');
-  if(!html.includes('assets/rc1203-deckblatt-print.js?v=1281'))throw new Error(file+': RC1205 Deckblatt-Runtime fehlt');
+  if(!html.includes('assets/rc1203-deckblatt-print.js?v=1373'))throw new Error(file+': RC1205 Deckblatt-Runtime fehlt');
   if(!html.includes('assets/rc1283-loading-list-search.js?v=1305'))throw new Error(file+': RC1283 Ladelisten-Suchruntime fehlt');
   if(!html.includes('assets/rc1315-loading-list-quick-print.js?v=1322'))throw new Error(file+': RC1315 QR-/REF-Schnelldruck-Runtime fehlt');
   if(!html.includes('assets/rc1305-loading-list-print.js?v=1372'))throw new Error(file+': RC1360 Ladelisten-Druckruntime fehlt im HTML');
