@@ -1180,5 +1180,16 @@
   "loadingListQuickPrint.missing": "Envoi {{ref}} introuvable.",
   "loadingListQuickPrint.noPrint": "L’impression complète n’est pas disponible pour cet envoi.",
   "loadingListQuickPrint.directPrintSetup": "Configurer l’impression directe (Edge)",
-  "loadingListQuickPrint.directPrintSetupHint": "Configuration Windows unique pour imprimer silencieusement sur l’imprimante par défaut."
+  "loadingListQuickPrint.directPrintSetupHint": "Configuration Windows unique pour imprimer silencieusement sur l’imprimante par défaut.",
+  "customerAvisPreference.title": "Lien d’avis",
+  "customerAvisPreference.description": "Définit si un lien d’avis numérique est créé pour ce client et utilisé dans les e-mails d’expédition et d’enlèvement.",
+  "customerAvisPreference.label": "Lien d’avis souhaité",
+  "customerAvisPreference.yes": "Oui",
+  "customerAvisPreference.no": "Non",
+  "customerAvisPreference.saving": "Enregistrement du réglage …",
+  "customerAvisPreference.saved": "Réglage de l’avis enregistré.",
+  "customerAvisPreference.saveFailed": "Le réglage de l’avis n’a pas pu être enregistré : {{error}}",
+  "customerAvisPreference.enabledStatus": "Le lien d’avis est activé pour ce client.",
+  "customerAvisPreference.disabledStatus": "Le lien d’avis est désactivé pour ce client.",
+  "customerAvisPreference.blockedHelp": "Le lien d’avis est désactivé pour ce client dans le dossier client."
 }
