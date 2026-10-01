@@ -16,7 +16,7 @@ test('RC1293: Deckblatt rendert Lieferscheine als mehrzeiliges Auto-Fit-Raster',
   assert.doesNotMatch(build,/d\.join\('\\n'\)\|\|'–'/,'Lieferscheine dürfen nicht mehr ausschließlich vertikal untereinander gerendert werden');
 });
 
-test('RC1293: Browserfixture erzwingt mit sieben echten deliveryFiles mindestens eine zweite Reihe',()=>{
+test('RC1363: Browserfixture erzwingt sieben echte deliveryFiles als sieben getrennte vertikale Zeilen',()=>{
   assert.match(demo,/deliveryFiles:\[\{id:'DLV-DEMO-2A'/);
   for(let i=2;i<=7;i++){
     const needle=i===2?'Fake_Lieferschein_DEMO02.pdf':`LS_4711000${i}.pdf`;
@@ -25,7 +25,7 @@ test('RC1293: Browserfixture erzwingt mit sieben echten deliveryFiles mindestens
   assert.match(build,/'assets\/exporthub-demo-bootstrap\.js'/,'aktueller Demo-Datensatz muss in den finalen Build kopiert werden');
   assert.match(browser,/packingSlipGrid/);
   assert.match(browser,/packingSlipGrid\.count\)\.toBe\(7\)/);
-  assert.match(browser,/packingSlipGrid\.rowCount\)\.toBeGreaterThanOrEqual\(2\)/);
+  assert.match(browser,/packingSlipGrid\.rowCount[^\n]*\.toBe\(capture\.packingSlipGrid\.count\)/);
   assert.match(browser,/scrollWidth<=capture\.packingSlipGrid\.clientWidth\+2/);
 });
 
