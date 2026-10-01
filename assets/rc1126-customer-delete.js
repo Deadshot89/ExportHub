@@ -4,7 +4,7 @@
 if(!w||!d||w.__EXPORTHUB_RC1126_CUSTOMER_DELETE__)return;
 w.__EXPORTHUB_RC1126_CUSTOMER_DELETE__=true;
 
-var timer=0,working=false;
+var timer=0,working=false,observer=null,observerRoot=null;
 function q(v){return String(v==null?'':v).trim()}
 function tr(key,vars,language){try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.t==='function')return w.ExportHUBI18n.t(key,vars,language)}catch(_){}return key}
 function low(v){return q(v).toLocaleLowerCase('de-DE')}
@@ -128,10 +128,21 @@ function render(){
  host.appendChild(box);return true
 }
 
-function schedule(){if(timer)return;timer=w.setTimeout(function(){timer=0;try{render()}catch(e){try{console.warn('RC1126 Kunden löschen',e)}catch(_){}}},20)}
-if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',function(){schedule();w.setTimeout(schedule,250);w.setTimeout(schedule,800)},{once:true});else{schedule();w.setTimeout(schedule,250);w.setTimeout(schedule,800)}
-['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded','exporthub:sync','exporthub:customer-updated','exporthub:language-changed'].forEach(function(n){try{w.addEventListener(n,schedule)}catch(_){}});
-if(w.MutationObserver){try{var mo=new MutationObserver(function(){if(customerView())schedule();else{var x=d.getElementById('rc1126CustomerDelete');if(x)x.remove()}});mo.observe(d.documentElement,{childList:true,subtree:true})}catch(_){}}
+function removeDeleteBox(){var x=d.getElementById('rc1126CustomerDelete');if(x)x.remove()}
+function customerHost(){return d.getElementById('content')||d.querySelector('main')||d.body||null}
+function disconnectObserver(){if(observer){try{observer.disconnect()}catch(_){}observer=null}observerRoot=null}
+function syncObserver(){
+ if(!customerView()){disconnectObserver();removeDeleteBox();return false}
+ var root=customerHost();if(!root)return false;
+ if(observer&&observerRoot===root)return true;
+ disconnectObserver();
+ if(w.MutationObserver){try{observer=new w.MutationObserver(function(){if(customerView())schedule();else{disconnectObserver();removeDeleteBox()}});observer.observe(root,{childList:true,subtree:true});observerRoot=root}catch(_){observer=null;observerRoot=null}}
+ return true
+}
+function schedule(){if(timer)return;timer=w.setTimeout(function(){timer=0;try{syncObserver();render()}catch(e){try{console.warn('RC1126 Kunden löschen',e)}catch(_){}}},20)}
+function activate(){syncObserver();schedule()}
+if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',function(){activate();w.setTimeout(activate,250);w.setTimeout(activate,800)},{once:true});else{activate();w.setTimeout(activate,250);w.setTimeout(activate,800)}
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded','exporthub:sync','exporthub:customer-updated','exporthub:language-changed'].forEach(function(n){try{w.addEventListener(n,activate)}catch(_){}});
 
 w.ExportHUBRC1126CustomerDelete=Object.freeze({version:'RC1126',customerKey:customerKey,currentCustomer:currentCustomer,canDelete:canDelete,linkedShipmentCount:linkedShipmentCount,deleteCustomer:deleteCustomer,render:render});
 })(window,document);
