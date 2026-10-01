@@ -45,7 +45,7 @@ test('RC1305: Ladeliste ersetzt abgeholte Leerformulare durch gespeicherte Abhol
 
 test('RC1363: Lieferscheine und Bemerkung werden drucksicher kompakt untereinander dargestellt',()=>{
   assert.match(print,/data-rc1305-document-grid/);
-  assert.match(print,/display:flex!important/); assert.match(print,/flex-direction:column!important/); assert.doesNotMatch(print,/grid-auto-flow:column/); assert.doesNotMatch(print,/docColumns=Math\.max\(1,Math\.ceil\(docCount\/15\)\)/); assert.match(print,/font-size:5\.2pt!important/); assert.match(print,/data-rc1326-font-reduced/); assert.match(print,/shrinkInlineFonts\(root,1\)/);
+  assert.match(print,/display:flex!important/); assert.match(print,/flex-direction:column!important/); assert.doesNotMatch(print,/grid-auto-flow:column/); assert.doesNotMatch(print,/docColumns=Math\.max\(1,Math\.ceil\(docCount\/15\)\)/); assert.match(print,/font-size:6\.2pt!important/); assert.match(print,/data-rc1326-font-reduced/); assert.match(print,/shrinkInlineFonts\(root,1\)/);
   assert.match(print,/word-break:break-word/); assert.match(print,/overflow-wrap:anywhere/); assert.ok(print.includes('function splitPdfNames(')); assert.ok(print.includes("var grid=body||d.createElement('div')")); assert.ok(print.includes('grid.style.cssText'));
   assert.match(print,/data-rc1305-remark/);
   assert.match(print,/loadingListPrint\.noRemark/);
@@ -55,18 +55,18 @@ test('RC1363: Lieferscheine und Bemerkung werden drucksicher kompakt untereinand
 
 test('RC1368: Drei-Umgebungen-Build liefert die aktuelle Ladelisten-Druckruntime aus',()=>{
   assert.match(build,/function patchRc1305LoadingListPresentation\(html,file\)/);
-  assert.match(build,/assets\/rc1305-loading-list-print\.js\?v=1366/);
+  assert.match(build,/assets\/rc1305-loading-list-print\.js\?v=1371/);
   assert.match(build,/assets\/rc1315-loading-list-quick-print\.js\?v=1322/);
   assert.match(build,/assets\/rc1283-loading-list-search\.js\?v=1305/);
   assert.match(build,/'assets\/rc1305-loading-list-print\.js'/);
   assert.match(build,/patchRc1305LoadingListPresentation\(html,file\)/);
-  assert.match(build,/loadingListPrintRedesign:'RC1366/); assert.match(print,/data-rc1363-document-density/);
+  assert.match(build,/loadingListPrintRedesign:'RC1371/); assert.match(print,/data-rc1363-document-density/);
 });
 
 test('RC1368: Production- und Live-Gate prüfen dieselbe aktuelle Ladelisten-Druckruntime wie der Build',()=>{
-  assert.match(FLOW,/RC1368 AVIS und Drucklayout live verifizieren/);
-  assert.match(build,/assets\/rc1305-loading-list-print\.js\?v=1366/);
-  assert.match(FLOW,/assets\/rc1305-loading-list-print\.js\?v=1366/);
+  assert.match(FLOW,/RC1371 AVIS und Drucklayout live verifizieren/);
+  assert.match(build,/assets\/rc1305-loading-list-print\.js\?v=1371/);
+  assert.match(FLOW,/assets\/rc1305-loading-list-print\.js\?v=1371/);
   assert.match(FLOW,/display:flex!important/);
   assert.match(FLOW,/flex-direction:column!important/);
   assert.match(FLOW,/important\(code,'width','12mm'\)/);
@@ -92,16 +92,26 @@ test('RC1364: Lieferscheinrahmen bleiben inhaltsbreit und Empfänger wird kunden
 });
 
 
-test('RC1366: Druck-QR wird gezielt auf 12mm vergroessert',()=>{
-  assert.match(print,/version:'RC1366'/);
+test('RC1371: Druck-QR bleibt 12mm gross',()=>{
+  assert.match(print,/version:'RC1371'/);
   assert.match(print,/important\(code,'width','12mm'\)/);
   assert.match(print,/important\(svg,'width','12mm'\)/);
   assert.match(print,/shape-rendering="crispEdges"/);
 });
 
 
-test('RC1367: Build lädt die aktuelle RC1366 Druckruntime statt gecachtem RC1363',()=>{
-  assert.match(FLOW,/assets\/rc1305-loading-list-print\.js\?v=1366/);
+test('RC1371: Build lädt die aktuelle Druckruntime cache-sicher',()=>{
+  assert.match(FLOW,/assets\/rc1305-loading-list-print\.js\?v=1371/);
   assert.doesNotMatch(FLOW,/assets\/rc1305-loading-list-print\.js\?v=1363/);
-  assert.match(build,/loadingListPrintRedesign:'RC1366/);
+  assert.match(build,/loadingListPrintRedesign:'RC1371/);
+});
+
+
+test('RC1371: blaue Lieferscheinrahmen bleiben inhaltsbreit und Dateischrift ist 1pt groesser',()=>{
+  assert.match(print,/align-items:flex-start!important;gap:/);
+  assert.doesNotMatch(print,/gap:'\+metrics\.gap\+'!important;align-items:stretch!important/);
+  assert.match(print,/font:'6\.2pt'/);
+  assert.match(print,/font:'5\.6pt'/);
+  assert.match(print,/font:'5\.2pt'/);
+  assert.match(print,/padding:\.25mm \.35mm!important/);
 });
