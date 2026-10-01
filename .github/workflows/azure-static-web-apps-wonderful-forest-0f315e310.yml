@@ -946,7 +946,7 @@ jobs:
           diagnose_marker 'Demo RC1068' "$d" 'id="exporthub-rc373-shipment-controller"'
           exit 1
 
-      - name: RC1376 Produktions-Drucklayout live verifizieren
+      - name: RC1379 Produktions-Drucklayout live verifizieren
         shell: bash
         run: |
           set -euo pipefail
@@ -955,11 +955,11 @@ jobs:
           trap 'rm -f "$main" "$print_runtime" "$avis_runtime"' EXIT
           ready=0
           for attempt in {1..18}; do
-            mc=$(curl -sS -L -o "$main" -w '%{http_code}' --max-time 20 "$prod/?rc1376=$GITHUB_SHA-$attempt" || true)
-            pc=$(curl -sS -L -o "$print_runtime" -w '%{http_code}' --max-time 20 "$prod/assets/rc1305-loading-list-print.js?rc1376=$GITHUB_SHA-$attempt" || true)
-            ac=$(curl -sS -L -o "$avis_runtime" -w '%{http_code}' --max-time 20 "$prod/assets/rc1027-lieferavis-immediate.js?rc1376=$GITHUB_SHA-$attempt" || true)
+            mc=$(curl -sS -L -o "$main" -w '%{http_code}' --max-time 20 "$prod/?rc1379=$GITHUB_SHA-$attempt" || true)
+            pc=$(curl -sS -L -o "$print_runtime" -w '%{http_code}' --max-time 20 "$prod/assets/rc1305-loading-list-print.js?rc1379=$GITHUB_SHA-$attempt" || true)
+            ac=$(curl -sS -L -o "$avis_runtime" -w '%{http_code}' --max-time 20 "$prod/assets/rc1027-lieferavis-immediate.js?rc1379=$GITHUB_SHA-$attempt" || true)
             if [[ "$mc" == '200' && "$pc" == '200' && "$ac" == '200' ]] \
-              && grep -Fq 'assets/rc1305-loading-list-print.js?v=1376' "$main" \
+              && grep -Fq 'assets/rc1305-loading-list-print.js?v=1379' "$main" \
               && grep -Fq 'assets/rc1027-lieferavis-immediate.js?v=1365' "$main" \
               && grep -Fq "data-rc1361-print-qr-top-right" "$print_runtime" \
               && grep -Fq "important(section,'top','8mm')" "$print_runtime" \
@@ -974,6 +974,11 @@ jobs:
               && grep -Fq "align-self:flex-start!important;flex:0 1 auto!important;width:fit-content!important" "$print_runtime" \
               && grep -Fq "empf[aä]nger(?:\\s*\\/\\s*kunde)?" "$print_runtime" \
               && grep -Fq "enhanceRecipient(root,sh||{});enhanceDocuments(root,sh||{})" "$print_runtime" \
+              && grep -Fq "rc1305-meta-loader" "$print_runtime" \
+              && grep -Fq "rc1305-meta-plate" "$print_runtime" \
+              && grep -Fq "rc1305-signature-primary" "$print_runtime" \
+              && grep -Fq "grid-template-columns:repeat(3,minmax(0,1fr))" "$print_runtime" \
+              && ! grep -Fq "rc1305-signature-customs" "$print_runtime" \
               && grep -Fq "RC1333_PROD_AVIS_ORIGIN='https://exporthub360.com'" "$avis_runtime" \
               && grep -Fq "RC1333_PROD_AVIS_ORIGIN+'/avis/'" "$avis_runtime"; then
               ready=1
@@ -1024,7 +1029,7 @@ jobs:
           avis_page="$(mktemp)"
           trap 'rm -f "$avis_page"' EXIT
           for attempt in {1..6}; do
-            bc=$(curl -sS -L -o "$avis_page" -w '%{http_code}' --max-time 20 "$branded/avis/RC1374TEST?rc1376=$GITHUB_SHA-$attempt" || true)
+            bc=$(curl -sS -L -o "$avis_page" -w '%{http_code}' --max-time 20 "$branded/avis/RC1374TEST?rc1379=$GITHUB_SHA-$attempt" || true)
             if [[ "$bc" == '200' ]] && grep -Fq "pathMatch=String(u.pathname||'').match(/\/avis\/" "$avis_page"; then
               echo 'RC1374 ExportHUB360 Marken-Domain und AVIS-Routing erreichbar.'
               exit 0
