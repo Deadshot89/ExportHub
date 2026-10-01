@@ -959,7 +959,7 @@ jobs:
             pc=$(curl -sS -L -o "$print_runtime" -w '%{http_code}' --max-time 20 "$prod/assets/rc1305-loading-list-print.js?rc1379=$GITHUB_SHA-$attempt" || true)
             ac=$(curl -sS -L -o "$avis_runtime" -w '%{http_code}' --max-time 20 "$prod/assets/rc1027-lieferavis-immediate.js?rc1379=$GITHUB_SHA-$attempt" || true)
             if [[ "$mc" == '200' && "$pc" == '200' && "$ac" == '200' ]] \
-              && grep -Fq 'assets/rc1305-loading-list-print.js?v=1379' "$main" \
+              && grep -Fq 'assets/rc1305-loading-list-print.js?v=1389' "$main" \
               && grep -Fq 'assets/rc1027-lieferavis-immediate.js?v=1365' "$main" \
               && grep -Fq "data-rc1361-print-qr-top-right" "$print_runtime" \
               && grep -Fq "important(section,'top','8mm')" "$print_runtime" \
