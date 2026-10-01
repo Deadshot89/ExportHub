@@ -5,7 +5,7 @@ w.__EXPORTHUB_RC1069_PERFORMANCE__=true;
 
 var SEARCH_DELAY=140,searchTimer=0,lastSearchValue='',searchInstalls=0;
 var printPrewarmByKey=Object.create(null),printPrewarmStarted=0,printPrewarmWaited=0;
-var deadPickupUntil=Object.create(null),PICKUP_MISS_MS=10*60*1000,pickup410Blocked=0,pickup410Observed=0,diagnosticsCleared=0,diagnosticsCleanupTimer=0;
+var deadPickupUntil=Object.create(null),PICKUP_MISS_MS=10*60*1000,pickup410Blocked=0,pickup410Observed=0,diagnosticsCleared=0,diagnosticsCleanupTimer=0,diagnosticsCleanupScheduled=0,diagnosticsCleanupCoalesced=0;
 function q(v){return String(v==null?'':v)}
 function clean(v){return q(v).replace(/\s+/g,' ').trim()}
 function nativeSetTimeout(){try{return w.ExportHUBClean&&w.ExportHUBClean.native&&w.ExportHUBClean.native.setTimeout||w.setTimeout}catch(_){return w.setTimeout}}
@@ -69,7 +69,8 @@ function cleanupSyncedDiagnostics(){
  store.clear();diagnosticsCleared++;return true
 }
 function scheduleDiagnosticsCleanup(){
- if(diagnosticsCleanupTimer){try{nativeClearTimeout()(diagnosticsCleanupTimer)}catch(_){}diagnosticsCleanupTimer=0}
+ if(diagnosticsCleanupTimer){diagnosticsCleanupCoalesced++;return true}
+ diagnosticsCleanupScheduled++;
  diagnosticsCleanupTimer=nativeSetTimeout()(function(){diagnosticsCleanupTimer=0;cleanupSyncedDiagnostics()},250);return true
 }
 function flushSearch(input){
@@ -112,5 +113,5 @@ if(w.addEventListener){
  w.addEventListener('exporthub:diagnostics-cloud-updated',scheduleDiagnosticsCleanup);
  ['exporthub:shipment-saved','exporthub:documents-opening'].forEach(function(name){w.addEventListener(name,function(e){var d=e&&e.detail||{},sh=d.shipment||currentPrintShipment();if(sh)prewarmPrintOutput(sh)})});
 }
-w.ExportHUBRC1069Performance=Object.freeze({version:'RC1069',printOptimizationVersion:'RC1104',diagnosticOptimizationVersion:'RC1108',searchDelayMs:SEARCH_DELAY,install:install,flushSearch:flushSearch,prewarmPrintOutput:prewarmPrintOutput,waitForPrintPrewarm:waitForPrintPrewarm,installPickup410Guard:installPickup410Guard,cleanupSyncedDiagnostics:cleanupSyncedDiagnostics,stats:function(){return{searchInstalls:searchInstalls,pendingSearch:!!searchTimer,lastSearchValue:lastSearchValue,printPrewarmStarted:printPrewarmStarted,printPrewarmWaited:printPrewarmWaited,pendingPrintPrewarm:Object.keys(printPrewarmByKey).length,pickup410Observed:pickup410Observed,pickup410Blocked:pickup410Blocked,deadPickupTokens:Object.keys(deadPickupUntil).filter(function(k){return Number(deadPickupUntil[k]||0)>Date.now()}).length,diagnosticsCleared:diagnosticsCleared}}});
+w.ExportHUBRC1069Performance=Object.freeze({version:'RC1069',printOptimizationVersion:'RC1104',diagnosticOptimizationVersion:'RC1108',searchDelayMs:SEARCH_DELAY,install:install,flushSearch:flushSearch,prewarmPrintOutput:prewarmPrintOutput,waitForPrintPrewarm:waitForPrintPrewarm,installPickup410Guard:installPickup410Guard,cleanupSyncedDiagnostics:cleanupSyncedDiagnostics,stats:function(){return{searchInstalls:searchInstalls,pendingSearch:!!searchTimer,lastSearchValue:lastSearchValue,printPrewarmStarted:printPrewarmStarted,printPrewarmWaited:printPrewarmWaited,pendingPrintPrewarm:Object.keys(printPrewarmByKey).length,pickup410Observed:pickup410Observed,pickup410Blocked:pickup410Blocked,deadPickupTokens:Object.keys(deadPickupUntil).filter(function(k){return Number(deadPickupUntil[k]||0)>Date.now()}).length,diagnosticsCleared:diagnosticsCleared,diagnosticsCleanupScheduled:diagnosticsCleanupScheduled,diagnosticsCleanupCoalesced:diagnosticsCleanupCoalesced}}});
 })(window);
