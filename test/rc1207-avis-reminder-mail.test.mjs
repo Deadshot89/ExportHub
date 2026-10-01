@@ -110,6 +110,16 @@ test('RC1292: Reminder-Backend blockiert Holenstein vor URL-Verarbeitung und Gra
 });
 
 
+test('RC1374: Reminder-Backend erzwingt die Kundenordner-AVIS-Präferenz vor URL und Graph-Versand',()=>{
+ assert.match(api,/function customerAvisAllowed\(team,sh\)/);
+ assert.match(api,/AVIS_CUSTOMER_DISABLED/);
+ const customerCheck=api.indexOf("if(!customerAvisAllowed(current.team,shipment))");
+ const urlCheck=api.indexOf("const url=safeAvisUrl");
+ const sendCheck=api.indexOf("graphMail.sendTextMail");
+ assert.ok(customerCheck>=0&&urlCheck>customerCheck,'Kundensperre muss vor Avis-URL-Verarbeitung greifen');
+ assert.ok(sendCheck>customerCheck,'Kundensperre muss vor Graph-Versand greifen');
+});
+
 test('RC1358: AVIS-Mail kommt fest von Despatch und setzt Sales, ExportHUB-CC sowie Tobias in CC',()=>{
  assert.match(api,/MAIL_SENDER='DespatchNettetal@essentra\.onmicrosoft\.com'/);
  assert.match(api,/FIXED_CC='TobiasLimberg@essentra\.com'/);
