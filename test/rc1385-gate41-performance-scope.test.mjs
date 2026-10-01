@@ -38,7 +38,8 @@ test('RC1385: Gate41 beobachtet nur den Versandbereich statt den kompletten Doku
   assert.equal(observers.length,1);
   assert.equal(observers[0].target,shipping);
   assert.notEqual(observers[0].target,documentElement);
-  assert.equal(observers[0].options&&observers[0].options.subtree,true);\n  assert.equal(observers[0].options&&observers[0].options.childList,true);
+  assert.equal(observers[0].options&&observers[0].options.subtree,true);
+  assert.equal(observers[0].options&&observers[0].options.childList,true);
 });
 
 test('RC1385: 100 fremde globale Eingaben erzeugen keinen Gate41-Timer',()=>{
