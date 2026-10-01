@@ -141,6 +141,18 @@ function customerFor(team,sh){
   return values.some(v=>keys.includes(v))
  })||null
 }
+function prefBool(v){if(v===true||v===false)return v;const x=lower(v);if(/^(?:1|true|yes|ja|on|enabled|aktiv)$/.test(x))return true;if(/^(?:0|false|no|nein|off|disabled|inaktiv)$/.test(x))return false;return null}
+function customerAvisAllowed(team,sh){
+ const c=customerFor(team,sh)||{},keys=['customerAvisLinkEnabled','avisLinkEnabled','customerAvisEnabledByCustomer','lieferavisLinkEnabled'];
+ for(const key of keys)if(Object.prototype.hasOwnProperty.call(c,key)){const parsed=prefBool(c[key]);if(parsed!==null)return parsed}
+ const ids=[c.id,c.customerId,c.account,c.customerNumber,c.kundennummer,sh&&sh.customerId,sh&&sh.customerNumber,sh&&sh.customerAccount,sh&&sh.account].map(customerKey).filter(Boolean);
+ if(ids.includes('3019100629'))return false;
+ const name=lower(c.name||c.customerName||sh&&sh.customerName||sh&&sh.customer);
+ if(name.includes('adolf würth')||name.includes('adolf wuerth')||name.startsWith('würth industrie')||name.startsWith('wuerth industrie')||name==='v-zug'||name.startsWith('v-zug '))return false;
+ const addresses=emailItems([c.email,c.mail,c.customerEmail,c.customerMail,c.recipientEmail,c.cc,c.mailCc,c.ccContacts,c.customerCcContacts,c.customerContactDirectory,c.contactDirectory]);
+ if(addresses.some(e=>lower(e)==='v-zug@lebert.com'))return false;
+ return true
+}
 function shipmentFromTeam(team,id,ref){
  const state=team&&team.state||{},names=['shipments','savedShipments','salesSharedShipments','sharedShipments','shipmentArchive','archivedShipments','archive'];
  for(const name of names){for(const sh of Array.isArray(state[name])?state[name]:[]){if(sameShipment(sh,id,ref))return sh}}
@@ -218,6 +230,7 @@ module.exports=async function(context,req){
   if(!validEmail(to))throw auth.error('MAIL_RECIPIENT_INVALID','Die Empfängeradresse ist ungültig.',400);
   if(avisRecipientExcluded(to))throw auth.error('AVIS_RECIPIENT_EXCLUDED','Für dispo@holenstein.de darf kein Lieferavis-Link versendet werden.',409);
   const shipment=shipmentFromTeam(current.team,id,ref);if(!shipment)throw auth.error('SHIPMENT_NOT_FOUND','Die Sendung wurde nicht gefunden.',404);
+  if(!customerAvisAllowed(current.team,shipment))throw auth.error('AVIS_CUSTOMER_DISABLED','AVIS-Link ist für diesen Kunden im Kundenordner deaktiviert.',409);
   if(mode==='initial'&&initialMailSentAt(shipment))throw auth.error('AVIS_INITIAL_ALREADY_SENT','Das erste Lieferavis wurde bereits versendet.',409);
   if(mode==='reminder'){
    const gate=reminderGate(shipment);if(!gate.allowed){const e=auth.error(gate.reason,gate.reason==='PICKUP_DATE_EXISTS'?'Für diese Sendung ist bereits ein Abholtag erfasst.':'Die Avis-Erinnerung ist erst drei Arbeitstage nach dem ersten Mailversand möglich.',409);e.dueAt=gate.dueAt||'';throw e}
@@ -227,9 +240,9 @@ module.exports=async function(context,req){
   const event=historyEvent(current,ref,to,sub,target,lang,mode,cc);
   await record(req,current,id,ref,event,mode);
   const nextGate=mode==='initial'?reminderGate(Object.assign({},shipment,{avisFirstMailSentAt:event.at})):reminderGate(shipment);
-  context.res=response(200,{ok:true,version:'RC1358',mode,reference:ref,recipient:to,sender:MAIL_SENDER,cc,subject:sub,sentAt:event.at,historyId:event.id,reminderDueAt:nextGate.dueAt||'',attempts:sent.attempts})
+  context.res=response(200,{ok:true,version:'RC1374',mode,reference:ref,recipient:to,sender:MAIL_SENDER,cc,subject:sub,sentAt:event.at,historyId:event.id,reminderDueAt:nextGate.dueAt||'',attempts:sent.attempts})
  }catch(e){
   try{context.log&&context.log.error&&context.log.error('RC1292 Avis reminder mail failed',e&&e.code,e&&e.message)}catch(_){}
-  context.res=response(e.status||e.statusCode||500,{ok:false,code:e.code||'MAIL_SEND_FAILED',message:e.message||'Die Avis-Erinnerung konnte nicht versendet werden.',version:'RC1358',dueAt:text(e&&e.dueAt),missing:Array.isArray(e.missing)?e.missing:undefined})
+  context.res=response(e.status||e.statusCode||500,{ok:false,code:e.code||'MAIL_SEND_FAILED',message:e.message||'Die Avis-Erinnerung konnte nicht versendet werden.',version:'RC1374',dueAt:text(e&&e.dueAt),missing:Array.isArray(e.missing)?e.missing:undefined})
  }
 };
