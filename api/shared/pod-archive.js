@@ -550,10 +550,16 @@ async function reconcilePendingBackups(environment, options) {
       const record = result && result.record || {};
       try { await store.updateTeam(record, [], ''); } catch (_) {}
       const backup = record.podBackup || result && result.backup || {};
-      if (backup.archiveSaved === true) {
+      const driveRequired = m365Enabled() && graphDrive.readiness().configured;
+      const driveSaved = backup.driveSaved === true || result && result.driveSaved === true;
+      if (backup.archiveSaved === true && (!driveRequired || driveSaved)) {
         saved.push({ reference: candidate.reference, fileName: text(backup.fileName), attempts: Math.max(0, Number(backup.attempts) || 0) });
       } else {
-        pending.push({ reference: candidate.reference, error: text(backup.lastError || result && result.driveError && result.driveError.message).slice(0, 300) });
+        const driveError = result && result.driveError;
+        const pendingError = driveRequired && !driveSaved
+          ? text(backup.driveLastError || ((text(driveError && driveError.code) ? text(driveError && driveError.code) + ': ' : '') + text(driveError && driveError.message || 'Microsoft-365-Sicherung ist noch offen.'))).slice(0, 300)
+          : text(backup.lastError || driveError && driveError.message).slice(0, 300);
+        pending.push({ reference: candidate.reference, error: pendingError });
       }
     } catch (error) {
       errors.push({ reference: candidate.reference, code: text(error && error.code), error: text(error && error.message).slice(0, 300) });
