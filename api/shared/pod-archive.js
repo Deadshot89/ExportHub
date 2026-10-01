@@ -550,10 +550,24 @@ async function reconcilePendingBackups(environment, options) {
       const record = result && result.record || {};
       try { await store.updateTeam(record, [], ''); } catch (_) {}
       const backup = record.podBackup || result && result.backup || {};
-      if (backup.archiveSaved === true) {
+      const driveRequired = m365Enabled() && graphDrive.readiness().configured;
+      if (backup.archiveSaved === true && (!driveRequired || backup.driveSaved === true)) {
         saved.push({ reference: candidate.reference, fileName: text(backup.fileName), attempts: Math.max(0, Number(backup.attempts) || 0) });
       } else {
-        pending.push({ reference: candidate.reference, error: text(backup.lastError || result && result.driveError && result.driveError.message).slice(0, 300) });
+        const driveError = result && result.driveError;
+        const driveErrorText = text(
+          backup.driveLastError ||
+          (driveError && ((driveError.code ? driveError.code + ': ' : '') + (driveError.message || ''))) ||
+          ''
+        );
+        pending.push({
+          reference: candidate.reference,
+          error: text(
+            backup.lastError ||
+            driveErrorText ||
+            (driveRequired && backup.driveSaved !== true ? 'POD_DRIVE_BACKUP_PENDING: Microsoft-365-POD-Sicherung ist noch nicht bestätigt.' : '')
+          ).slice(0, 300)
+        });
       }
     } catch (error) {
       errors.push({ reference: candidate.reference, code: text(error && error.code), error: text(error && error.message).slice(0, 300) });
