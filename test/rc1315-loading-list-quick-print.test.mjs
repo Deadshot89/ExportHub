@@ -93,7 +93,7 @@ test('RC1361: kleiner Druck-QR liegt oben rechts direkt auf dem Deckblatt',()=>{
 
 test('RC1315: Release-Build lädt Schnelldruck und reicht withQr an den Renderer weiter',()=>{
   assert.match(build,/assets\/rc1315-loading-list-quick-print\.js\?v=1322/);
-  assert.match(build,/assets\/rc1305-loading-list-print\.js\?v=1361/);
+  assert.match(build,/assets\/rc1305-loading-list-print\.js\?v=1363/);
   assert.match(build,/api\.enhance\(out,sh\|\|\{\},withQr===true\)/); assert.match(build,/api\.enhanceCover==='function'/);
   assert.match(build,/'assets\/rc1315-loading-list-quick-print\.js'/);
   assert.match(build,/loadingListQuickPrint:'RC1322/);
