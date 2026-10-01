@@ -35,8 +35,8 @@ function explicitAvisPreference(c){
 }
 function legacyAvisDefault(c){
  c=c&&typeof c==='object'?c:{};
- var id=customerId(c),name=low(c.name||c.customerName||c.companyName||c.customerDisplayName);
- if(id==='3019100629')return false;
+ var ids=[c.id,c.customerId,c.account,c.customerNumber,c.kundennummer].map(function(v){return q(v).toLocaleUpperCase('de-DE')}).filter(Boolean),name=low(c.name||c.customerName||c.companyName||c.customerDisplayName);
+ if(ids.indexOf('3019100629')>=0)return false;
  if(name.indexOf('adolf würth')>=0||name.indexOf('adolf wuerth')>=0||name.indexOf('würth industrie')===0||name.indexOf('wuerth industrie')===0)return false;
  var emails=emailItems([c.email,c.mail,c.customerEmail,c.customerMail,c.recipientEmail,c.cc,c.mailCc,c.salesMail,c.salesEmail,c.ccContacts,c.customerCcContacts,c.customerContactDirectory,c.contactDirectory]);
  for(var i=0;i<emails.length;i++)if(low(emails[i])==='v-zug@lebert.com')return false;
@@ -45,7 +45,7 @@ function legacyAvisDefault(c){
 function customerAvisAllowed(c){var explicit=explicitAvisPreference(c);return explicit===null?legacyAvisDefault(c):explicit}
 function customerForShipment(sh){
  sh=sh&&typeof sh==='object'?sh:{};var list=customers(),ids=[sh.customerId,sh.customerNumber,sh.customerAccount,sh.customerNo,sh.account].map(function(v){return q(v).toLocaleUpperCase('de-DE')}).filter(Boolean),name=low(sh.customerName||sh.customerDisplay||sh.recipientCustomerName||sh.companyName||sh.customer&&sh.customer.name);
- for(var i=0;i<list.length;i++){var c=list[i]||{},cid=customerId(c),cname=low(c.name||c.customerName||c.companyName);if(cid&&ids.indexOf(cid)>=0)return c;if(name&&cname&&name===cname)return c}
+ for(var i=0;i<list.length;i++){var c=list[i]||{},cids=[c.id,c.customerId,c.account,c.customerNumber,c.kundennummer].map(function(v){return q(v).toLocaleUpperCase('de-DE')}).filter(Boolean),cname=low(c.name||c.customerName||c.companyName);if(cids.some(function(id){return ids.indexOf(id)>=0}))return c;if(name&&cname&&name===cname)return c}
  return null
 }
 function avisPreferenceForShipment(sh){
