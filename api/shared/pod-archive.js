@@ -315,7 +315,10 @@ async function saveAzureArchive(accessKey, environment, record, pdf, file) {
   return { record: next, blobName, container: store.POD_BACKUP_CONTAINER, hash };
 }
 function m365Enabled() {
-  return /^(1|true|yes|on)$/i.test(text(process.env.EXPORTHUB_POD_M365_ENABLED));
+  const flag = text(process.env.EXPORTHUB_POD_M365_ENABLED).toLowerCase();
+  if (/^(0|false|no|off)$/.test(flag)) return false;
+  if (/^(1|true|yes|on)$/.test(flag)) return true;
+  return graphDrive.readiness().configured;
 }
 async function copyToDrive(accessKey, environment, record, pdf, file) {
   const attemptAt = store.now();
@@ -480,8 +483,11 @@ async function reconcilePendingBackups(environment, options) {
             record
           });
         }
-        if (reference) alreadySaved.push({ reference: recordReference || text(record.reference), fileName: text(backup.fileName), attempts: Math.max(0, Number(backup.attempts) || 0) });
-        continue;
+        const driveBackfillRequired = m365Enabled() && graphDrive.readiness().configured && backup.driveSaved !== true;
+        if (!driveBackfillRequired) {
+          if (reference) alreadySaved.push({ reference: recordReference || text(record.reference), fileName: text(backup.fileName), attempts: Math.max(0, Number(backup.attempts) || 0) });
+          continue;
+        }
       }
       if (!integrity.repairable) {
         integrityErrors.push({ reference: recordReference || text(record.reference), code: integrity.code, error: integrity.message });
