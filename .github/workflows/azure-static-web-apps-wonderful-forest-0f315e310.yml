@@ -224,6 +224,8 @@ jobs:
           done
           test -s dist-rc1112/assets/rc1092-customer-mail-contacts.js
           grep -q '__EXPORTHUB_RC1092_CUSTOMER_MAIL_CONTACTS__' dist-rc1112/assets/rc1092-customer-mail-contacts.js
+          grep -q 'customerContacts.savePerson' dist-rc1112/assets/rc1092-customer-mail-contacts.js
+          grep -q 'customerContacts.addToMail' dist-rc1112/assets/rc1092-customer-mail-contacts.js
           grep -q 'assets/rc1015-lieferavis-mail-flow.js?v=1379' dist-rc1112/index.html
           grep -q 'assets/abholkalender.js?v=1012' dist-rc1112/index.html
           grep -q 'assets/abholkalender.js?v=1012' dist-rc1112/TESTVERSION.html
