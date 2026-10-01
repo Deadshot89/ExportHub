@@ -246,7 +246,7 @@ jobs:
           grep -q 'stowplan.instructionTitle' dist-rc1112/assets/rc1113-stowplan-persist.js
           grep -q 'stowPlanSnapshot' dist-rc1112/assets/rc1113-stowplan-persist.js
           for file in index.html TESTVERSION.html demo.html; do
-            grep -q 'assets/rc1114-shipping-neutral.js?v=1114' "dist-rc1112/$file"
+            grep -q 'assets/rc1114-shipping-neutral.js?v=1386' "dist-rc1112/$file"
           done
           test -s dist-rc1112/assets/rc1114-shipping-neutral.js
           grep -q '__EXPORTHUB_RC1114_SHIPPING_NEUTRAL__' dist-rc1112/assets/rc1114-shipping-neutral.js
