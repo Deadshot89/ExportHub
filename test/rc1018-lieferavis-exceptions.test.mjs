@@ -204,8 +204,7 @@ test('Lieferavis: normale gespeicherte Sendung wird standardmäßig automatisch 
   await fire('exporthub:shipment-saved');
   assert.equal(toggles.length,1);
   assert.equal(toggles[0],true);
-  assert.equal(persists.length,1);
-  assert.equal(persists[0],'persist');
+  assert.equal(persists.length,0,'shipment-saved bestätigt die Persistierung bereits; ein zweiter Save darf nicht ausgelöst werden');
   assert.equal(shipment.customerAvisEnabled,true);
 });
 
