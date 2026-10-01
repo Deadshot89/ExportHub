@@ -18,6 +18,7 @@ test('RC1330 Kundenordner steuert AVIS-Link dauerhaft selbst',()=>{
 
 test('RC1330 bekannte AVIS-Ausnahmen bleiben sichere Voreinstellung und sind danach manuell überschreibbar',()=>{
   assert.match(contacts,/3019100629/);
+  assert.match(contacts,/\[c&&c\.id,c&&c\.customerId,c&&c\.account,c&&c\.customerNumber,c&&c\.kundennummer\]/,'Kundennummer muss auch bei interner id geprüft werden');
   assert.match(contacts,/v-zug@lebert\.com/);
   assert.match(contacts,/würth industrie/);
   assert.match(avis,/if\(explicit===true\)return null/);
