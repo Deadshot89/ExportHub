@@ -193,7 +193,6 @@
   "api.pickup.accessLocked": "Troppi tentativi PIN errati. Il codice QR è temporaneamente bloccato.",
   "api.pickup.referenceMismatch": "Il riferimento non corrisponde alla spedizione.",
   "api.pickup.signatureRequired": "La firma digitale è obbligatoria.",
-  "api.pickup.customsSignatureRequired": "Conferma che i documenti doganali sono stati consegnati.",
   "api.pickup.expired": "Il codice QR è scaduto.",
   "api.pickup.alreadyConfirmed": "Questa spedizione è già stata ritirata completamente.",
   "api.pickup.carrierRequired": "Manca il nome del vettore. Il ritiro non può essere completato.",
@@ -262,5 +261,6 @@
   "api.abdAnalysis.scanFailed": "Non è stato possibile controllare in modo sicuro il file per malware.",
   "api.abdAnalysis.failed": "Non è stato possibile analizzare il file della dichiarazione di esportazione.",
   "api.abdAnalysis.forbidden": "Per l’analisi è necessario il diritto di modifica nell’area ABD.",
-  "api.abdAnalysis.actionInvalid": "Azione di analisi ABD sconosciuta."
+  "api.abdAnalysis.actionInvalid": "Azione di analisi ABD sconosciuta.",
+  "api.pickup.customsDocumentsConfirmationRequired": "Conferma che i documenti doganali sono stati consegnati."
 }
