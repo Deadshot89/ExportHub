@@ -315,9 +315,9 @@ async function saveAzureArchive(accessKey, environment, record, pdf, file) {
   return { record: next, blobName, container: store.POD_BACKUP_CONTAINER, hash };
 }
 function m365Enabled() {
-  const flag = text(process.env.EXPORTHUB_POD_M365_ENABLED).toLowerCase();
-  if (/^(0|false|no|off)$/.test(flag)) return false;
-  if (/^(1|true|yes|on)$/.test(flag)) return true;
+  // RC1386: Sobald das explizite Microsoft-POD-Ziel vollständig konfiguriert ist,
+  // muss die Drive-Kopie automatisch aktiv sein. Der historische Enable-Schalter
+  // darf vorhandene PODs nicht mehr von der verpflichtenden Nachsicherung ausschließen.
   return graphDrive.readiness().configured;
 }
 async function copyToDrive(accessKey, environment, record, pdf, file) {
