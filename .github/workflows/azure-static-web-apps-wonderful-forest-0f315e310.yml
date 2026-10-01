@@ -220,7 +220,7 @@ jobs:
           grep -q 'data-rc1127-customer-pickup' dist-rc1112/assets/rc1014-shipment-overview.js
           grep -q 'rc1014-shipment-customer-pickup' dist-rc1112/assets/rc1014-shipment-overview.css
           for file in index.html TESTVERSION.html demo.html; do
-            grep -q 'assets/rc1092-customer-mail-contacts.js?v=1379' "dist-rc1112/$file"
+            grep -q 'assets/rc1092-customer-mail-contacts.js?v=1380' "dist-rc1112/$file"
           done
           test -s dist-rc1112/assets/rc1092-customer-mail-contacts.js
           grep -q '__EXPORTHUB_RC1092_CUSTOMER_MAIL_CONTACTS__' dist-rc1112/assets/rc1092-customer-mail-contacts.js
@@ -1276,7 +1276,7 @@ jobs:
               pc=$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1092=$GITHUB_SHA-$attempt" || true)
               ac=$(curl -sS -L -o "$asset" -w '%{http_code}' --max-time 20 "$base/assets/rc1092-customer-mail-contacts.js?rc1092=$GITHUB_SHA-$attempt" || true)
               [[ "$pc" == '200' && "$ac" == '200' ]] || ok=0
-              grep -q 'assets/rc1092-customer-mail-contacts.js?v=1379' "$page" || ok=0
+              grep -q 'assets/rc1092-customer-mail-contacts.js?v=1380' "$page" || ok=0
               grep -q '__EXPORTHUB_RC1092_CUSTOMER_MAIL_CONTACTS__' "$asset" || ok=0
               grep -q 'customerContacts.savePerson' "$asset" || ok=0
               grep -q 'customerContacts.addToMail' "$asset" || ok=0
@@ -1285,7 +1285,7 @@ jobs:
             demo=$(mktemp)
             dc=$(curl -sS -L -o "$demo" -w '%{http_code}' --max-time 20 "$testservice/demo.html?rc1092=$GITHUB_SHA-$attempt" || true)
             [[ "$dc" == '200' ]] || ok=0
-            grep -q 'assets/rc1092-customer-mail-contacts.js?v=1379' "$demo" || ok=0
+            grep -q 'assets/rc1092-customer-mail-contacts.js?v=1380' "$demo" || ok=0
             rm -f "$demo"
             if [[ "$ok" == '1' ]]; then
               echo 'RC1092 Kundenkontakte: Person speichern und Zur Mail hinzufügen live bestätigt.'
