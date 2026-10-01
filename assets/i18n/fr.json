@@ -1180,5 +1180,11 @@
   "loadingListQuickPrint.missing": "Envoi {{ref}} introuvable.",
   "loadingListQuickPrint.noPrint": "L’impression complète n’est pas disponible pour cet envoi.",
   "loadingListQuickPrint.directPrintSetup": "Configurer l’impression directe (Edge)",
-  "loadingListQuickPrint.directPrintSetupHint": "Configuration Windows unique pour imprimer silencieusement sur l’imprimante par défaut."
+  "loadingListQuickPrint.directPrintSetupHint": "Configuration Windows unique pour imprimer silencieusement sur l’imprimante par défaut.",
+  "customerContacts.avisHeading": "Lien AVIS",
+  "customerContacts.avisHelp": "Définit si un lien AVIS peut être créé pour ce client et proposé dans les processus d’expédition.",
+  "customerContacts.avisWanted": "Lien AVIS souhaité",
+  "customerContacts.avisEnabled": "Souhaité",
+  "customerContacts.avisDisabled": "Non souhaité",
+  "customerContacts.avisSaveFailed": "Le paramètre AVIS n’a pas pu être enregistré : {{error}}"
 }
