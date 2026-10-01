@@ -97,3 +97,10 @@ test('RC1366: Druck-QR wird gezielt auf 12mm vergroessert',()=>{
   assert.match(print,/important\(svg,'width','12mm'\)/);
   assert.match(print,/shape-rendering="crispEdges"/);
 });
+
+
+test('RC1367: Build lädt die aktuelle RC1366 Druckruntime statt gecachtem RC1363',()=>{
+  assert.match(FLOW,/assets\/rc1305-loading-list-print\.js\?v=1366/);
+  assert.doesNotMatch(FLOW,/assets\/rc1305-loading-list-print\.js\?v=1363/);
+  assert.match(FLOW,/loadingListPrintRedesign:'RC1366/);
+});
