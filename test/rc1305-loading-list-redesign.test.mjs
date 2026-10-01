@@ -43,7 +43,7 @@ test('RC1305: Ladeliste ersetzt abgeholte Leerformulare durch gespeicherte Abhol
   assert.match(print,/Zolldokumente erhalten/);
 });
 
-test('RC1362: Lieferscheine und Bemerkung werden drucksicher kompakt untereinander dargestellt',()=>{
+test('RC1363: Lieferscheine und Bemerkung werden drucksicher kompakt untereinander dargestellt',()=>{
   assert.match(print,/data-rc1305-document-grid/);
   assert.match(print,/grid-template-columns:minmax\(0,1fr\)/); assert.match(print,/grid-auto-flow:row/); assert.doesNotMatch(print,/grid-auto-flow:column/); assert.doesNotMatch(print,/docColumns=Math\.max\(1,Math\.ceil\(docCount\/15\)\)/); assert.match(print,/font-size:5\.2pt!important/); assert.match(print,/data-rc1326-font-reduced/); assert.match(print,/shrinkInlineFonts\(root,1\)/);
   assert.match(print,/word-break:break-word/); assert.match(print,/overflow-wrap:anywhere/); assert.ok(print.includes('function splitPdfNames(')); assert.ok(print.includes("var grid=body||d.createElement('div')")); assert.ok(print.includes('grid.style.cssText'));
@@ -53,23 +53,23 @@ test('RC1362: Lieferscheine und Bemerkung werden drucksicher kompakt untereinand
   assert.match(print,/loadingListPrint\.palletMovement/);
 });
 
-test('RC1362: Drei-Umgebungen-Build liefert die aktuelle Ladelisten-Druckruntime aus',()=>{
+test('RC1363: Drei-Umgebungen-Build liefert die aktuelle Ladelisten-Druckruntime aus',()=>{
   assert.match(build,/function patchRc1305LoadingListPresentation\(html,file\)/);
-  assert.match(build,/assets\/rc1305-loading-list-print\.js\?v=1362/);
+  assert.match(build,/assets\/rc1305-loading-list-print\.js\?v=1363/);
   assert.match(build,/assets\/rc1315-loading-list-quick-print\.js\?v=1322/);
   assert.match(build,/assets\/rc1283-loading-list-search\.js\?v=1305/);
   assert.match(build,/'assets\/rc1305-loading-list-print\.js'/);
   assert.match(build,/patchRc1305LoadingListPresentation\(html,file\)/);
-  assert.match(build,/loadingListPrintRedesign:'RC1362/);
+  assert.match(build,/loadingListPrintRedesign:'RC1363/); assert.match(print,/data-rc1363-document-density/);
 });
 
-test('RC1362: Production- und Live-Gate prüfen dieselbe einspaltige Ladelisten-Druckruntime wie der Build',()=>{
-  assert.match(FLOW,/RC1362 AVIS und Drucklayout live verifizieren/);
-  assert.match(build,/assets\/rc1305-loading-list-print\.js\?v=1362/);
-  assert.match(FLOW,/assets\/rc1305-loading-list-print\.js\?v=1362/);
+test('RC1363: Production- und Live-Gate prüfen dieselbe einspaltige Ladelisten-Druckruntime wie der Build',()=>{
+  assert.match(FLOW,/RC1363 AVIS und Drucklayout live verifizieren/);
+  assert.match(build,/assets\/rc1305-loading-list-print\.js\?v=1363/);
+  assert.match(FLOW,/assets\/rc1305-loading-list-print\.js\?v=1363/);
   assert.match(FLOW,/grid-template-columns:minmax\(0,1fr\)/);
   assert.match(FLOW,/grid-auto-flow:row/);
-  assert.doesNotMatch(FLOW,/assets\/rc1305-loading-list-print\.js\?v=1361/);
+  assert.doesNotMatch(FLOW,/assets\/rc1305-loading-list-print\.js\?v=1362/);
   assert.doesNotMatch(FLOW,/docColumns=Math\.max\(1,Math\.ceil\(docCount\/15\)\)/);
 });
 
