@@ -18,6 +18,35 @@ function view(){var s=state();return low(s.view||s.currentView||s.activeView||s.
 function customerFolderVisible(){var v=view();return v==='customerfolder'||v==='customers'||v==='customer'||v==='kundenordner'||v==='kunden'}
 function customerId(c){return q(c&&(c.id||c.customerId||c.account||c.customerNumber||c.kundennummer||c.name||c.customerName)).toLocaleUpperCase('de-DE')}
 function customers(){return arr(state().customers)}
+function customerEmails(c){return emailItems(c&&[c.customerEmail,c.customerMail,c.email,c.mail,c.cc,c.mailCc,c.rc385Cc,c.ccContacts,c.customerCcContacts,c.contactDirectory,c.customerContactDirectory])}
+function legacyAvisBlocked(c){
+ var id=customerId(c),name=low(c&&(c.name||c.customerName||c.companyName)),emails=customerEmails(c).map(low);
+ if(id==='3019100629')return true;
+ if(name.indexOf('würth industrie')===0||name.indexOf('wuerth industrie')===0)return true;
+ if(name.indexOf('v-zug')>=0||name.indexOf('v zug')>=0)return true;
+ return emails.indexOf('v-zug@lebert.com')>=0
+}
+function avisAllowed(c){
+ if(!c||typeof c!=='object')return true;
+ if(c.avisLinkEnabled===true||c.customerAvisLinkEnabled===true)return true;
+ if(c.avisLinkEnabled===false||c.customerAvisLinkEnabled===false)return false;
+ return !legacyAvisBlocked(c)
+}
+async function setAvisAllowed(c,on){
+ if(!c||typeof c!=='object')throw new Error(tr('customerContacts.customerRequired'));
+ var before={avisLinkEnabled:c.avisLinkEnabled,customerAvisLinkEnabled:c.customerAvisLinkEnabled,updatedAt:c.updatedAt},enabled=!!on;
+ c.avisLinkEnabled=enabled;c.customerAvisLinkEnabled=enabled;c.updatedAt=new Date().toISOString();
+ try{
+  await persist(enabled?'AVIS-Link im Kundenordner aktiviert':'AVIS-Link im Kundenordner deaktiviert');
+  try{w.dispatchEvent(new CustomEvent('exporthub:customer-avis-policy-updated',{detail:{customerId:customerId(c),enabled:enabled}}))}catch(_){}
+  return enabled
+ }catch(e){
+  if(before.avisLinkEnabled===undefined)delete c.avisLinkEnabled;else c.avisLinkEnabled=before.avisLinkEnabled;
+  if(before.customerAvisLinkEnabled===undefined)delete c.customerAvisLinkEnabled;else c.customerAvisLinkEnabled=before.customerAvisLinkEnabled;
+  if(before.updatedAt===undefined)delete c.updatedAt;else c.updatedAt=before.updatedAt;
+  throw e
+ }
+}
 function currentCustomer(){
  var s=state(),direct=s.currentCustomer||s.selectedCustomer||null,key=q(s.currentCustomerId||s.selectedCustomerId||s.customerFolderId||s.customerFolderOpenId||(direct&&customerId(direct))).toLocaleUpperCase('de-DE');
  if(!key)return direct&&obj(direct)?direct:null;
@@ -143,7 +172,7 @@ function refreshStatusLanguage(){['sales','cc'].forEach(function(r){var el=d.que
 function ensureStyle(){
  if(d.getElementById('rc1092CustomerContactsStyle'))return;
  var s=d.createElement('style');s.id='rc1092CustomerContactsStyle';
- s.textContent='.rc1092-contact-manager{margin-top:14px}.rc1092-contact-intro{padding:10px 12px;border:1px solid #bfdbfe;border-radius:12px;background:#eff6ff;color:#1e3a8a;font-size:12px;line-height:1.45}.rc1092-contact-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:12px}.rc1092-contact-card{border:1px solid #dbe4ec;border-radius:14px;padding:13px;background:var(--card,#fff);display:grid;gap:10px}.rc1092-contact-card h5{margin:0}.rc1092-draft-grid{display:grid;grid-template-columns:.8fr 1.2fr;gap:9px}.rc1092-actions{display:flex;gap:8px;flex-wrap:wrap}.rc1092-actions button{flex:1 1 150px}.rc1092-mail-list{display:flex;gap:7px;flex-wrap:wrap;min-height:30px}.rc1092-mail-chip{display:inline-flex;align-items:center;gap:8px;padding:7px 8px 7px 10px;border:1px solid #cbd5e1;border-radius:999px;background:#f8fafc;max-width:100%}.rc1092-mail-chip span{min-width:0}.rc1092-mail-chip b,.rc1092-mail-chip small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:240px}.rc1092-mail-chip small{font-size:10px;color:#64748b}.rc1092-mail-chip button{min-height:28px!important;width:28px!important;padding:0!important;border-radius:50%!important}.rc1092-current-label{font-size:11px;font-weight:900;color:#475569;text-transform:uppercase;letter-spacing:.04em}.rc1092-status{min-height:18px;font-size:12px}.rc1092-status[data-kind="ok"]{color:#166534}.rc1092-status[data-kind="error"]{color:#b91c1c}.rc1092-status[data-kind="info"]{color:#475569}.rc1092-legacy-contact-fields{display:none!important}@media(max-width:760px){.rc1092-contact-grid,.rc1092-draft-grid{grid-template-columns:1fr}.rc1092-actions button{width:100%}}';
+ s.textContent='.rc1092-contact-manager{margin-top:14px}.rc1092-avis-policy{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:14px;padding:13px 14px;margin-bottom:14px;border:1px solid #cbd5e1;border-radius:14px;background:var(--card,#fff)}.rc1092-avis-policy h4{margin:0 0 4px}.rc1092-avis-policy p{margin:0;color:#64748b;font-size:12px;line-height:1.4}.rc1092-avis-switch{display:flex;align-items:center;gap:8px;font-weight:800;cursor:pointer}.rc1092-avis-switch input{width:20px;height:20px}.rc1092-avis-state{padding:6px 9px;border-radius:999px;font-size:11px;white-space:nowrap;background:#dcfce7;color:#166534}.rc1092-avis-state[data-enabled="0"]{background:#fee2e2;color:#991b1b}.rc1092-contact-intro{padding:10px 12px;border:1px solid #bfdbfe;border-radius:12px;background:#eff6ff;color:#1e3a8a;font-size:12px;line-height:1.45}.rc1092-contact-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:12px}.rc1092-contact-card{border:1px solid #dbe4ec;border-radius:14px;padding:13px;background:var(--card,#fff);display:grid;gap:10px}.rc1092-contact-card h5{margin:0}.rc1092-draft-grid{display:grid;grid-template-columns:.8fr 1.2fr;gap:9px}.rc1092-actions{display:flex;gap:8px;flex-wrap:wrap}.rc1092-actions button{flex:1 1 150px}.rc1092-mail-list{display:flex;gap:7px;flex-wrap:wrap;min-height:30px}.rc1092-mail-chip{display:inline-flex;align-items:center;gap:8px;padding:7px 8px 7px 10px;border:1px solid #cbd5e1;border-radius:999px;background:#f8fafc;max-width:100%}.rc1092-mail-chip span{min-width:0}.rc1092-mail-chip b,.rc1092-mail-chip small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:240px}.rc1092-mail-chip small{font-size:10px;color:#64748b}.rc1092-mail-chip button{min-height:28px!important;width:28px!important;padding:0!important;border-radius:50%!important}.rc1092-current-label{font-size:11px;font-weight:900;color:#475569;text-transform:uppercase;letter-spacing:.04em}.rc1092-status{min-height:18px;font-size:12px}.rc1092-status[data-kind="ok"]{color:#166534}.rc1092-status[data-kind="error"]{color:#b91c1c}.rc1092-status[data-kind="info"]{color:#475569}.rc1092-legacy-contact-fields{display:none!important}@media(max-width:760px){.rc1092-avis-policy{grid-template-columns:1fr}.rc1092-contact-grid,.rc1092-draft-grid{grid-template-columns:1fr}.rc1092-actions button{width:100%}}';
  (d.head||d.documentElement).appendChild(s)
 }
 function preserveLegacyFields(host){
@@ -159,7 +188,15 @@ function fillDraft(r){
  if(!select||!select.value)return false;var opt=select.options[select.selectedIndex];if(name)name.value=q(opt&&opt.getAttribute('data-contact-name'));if(email)email.value=q(select.value);return true
 }
 function draftContact(r){r=role(r);return contact((d.querySelector('[data-rc1092-name="'+r+'"]')||{}).value,(d.querySelector('[data-rc1092-email="'+r+'"]')||{}).value,r)}
+function refreshAvisPolicy(c){
+ var toggle=d.querySelector('[data-rc1092-avis-toggle]'),stateEl=d.querySelector('[data-rc1092-avis-state]');
+ if(!toggle||!c)return false;
+ var enabled=avisAllowed(c);toggle.checked=enabled;toggle.setAttribute('aria-checked',enabled?'true':'false');
+ if(stateEl){stateEl.textContent=tr(enabled?'customerContacts.avisEnabled':'customerContacts.avisDisabled');stateEl.setAttribute('data-enabled',enabled?'1':'0')}
+ return true
+}
 function refreshManager(c){
+ refreshAvisPolicy(c);
  var salesSelect=d.querySelector('[data-rc1092-select="sales"]'),ccSelect=d.querySelector('[data-rc1092-select="cc"]');
  if(salesSelect){var html=optionHtml('sales');if(salesSelect.innerHTML!==html)salesSelect.innerHTML=html}
  if(ccSelect){var html2=optionHtml('cc');if(ccSelect.innerHTML!==html2)ccSelect.innerHTML=html2}
@@ -169,7 +206,7 @@ function refreshManager(c){
  syncLegacyFields(c);return true
 }
 function managerHtml(){
- return '<div class="rc819-contact-head"><div><h4 data-i18n="customerContacts.heading">'+esc(tr('customerContacts.heading'))+'</h4><p data-i18n="customerContacts.subtitle">'+esc(tr('customerContacts.subtitle'))+'</p></div></div><div class="rc1092-contact-intro"><b data-i18n="customerContacts.intro.save">'+esc(tr('customerContacts.intro.save'))+'</b> <span data-i18n="customerContacts.intro.saveText">'+esc(tr('customerContacts.intro.saveText'))+'</span> <b data-i18n="customerContacts.intro.add">'+esc(tr('customerContacts.intro.add'))+'</b> <span data-i18n="customerContacts.intro.addText">'+esc(tr('customerContacts.intro.addText'))+'</span> <span data-i18n="customerContacts.intro.note">'+esc(tr('customerContacts.intro.note'))+'</span></div><div class="rc1092-contact-grid">'+cardHtml('sales','customerContacts.salesPeople')+cardHtml('cc','customerContacts.ccContacts')+'</div>'
+ return '<section class="rc1092-avis-policy" data-rc1092-avis-policy><div><h4 data-i18n="customerContacts.avisHeading">'+esc(tr('customerContacts.avisHeading'))+'</h4><p data-i18n="customerContacts.avisHelp">'+esc(tr('customerContacts.avisHelp'))+'</p></div><label class="rc1092-avis-switch"><input type="checkbox" data-rc1092-avis-toggle><span data-i18n="customerContacts.avisWanted">'+esc(tr('customerContacts.avisWanted'))+'</span></label><strong class="rc1092-avis-state" data-rc1092-avis-state></strong></section><div class="rc819-contact-head"><div><h4 data-i18n="customerContacts.heading">'+esc(tr('customerContacts.heading'))+'</h4><p data-i18n="customerContacts.subtitle">'+esc(tr('customerContacts.subtitle'))+'</p></div></div><div class="rc1092-contact-intro"><b data-i18n="customerContacts.intro.save">'+esc(tr('customerContacts.intro.save'))+'</b> <span data-i18n="customerContacts.intro.saveText">'+esc(tr('customerContacts.intro.saveText'))+'</span> <b data-i18n="customerContacts.intro.add">'+esc(tr('customerContacts.intro.add'))+'</b> <span data-i18n="customerContacts.intro.addText">'+esc(tr('customerContacts.intro.addText'))+'</span> <span data-i18n="customerContacts.intro.note">'+esc(tr('customerContacts.intro.note'))+'</span></div><div class="rc1092-contact-grid">'+cardHtml('sales','customerContacts.salesPeople')+cardHtml('cc','customerContacts.ccContacts')+'</div>'
 }
 function cardHtml(r,titleKey){
  return '<section class="rc1092-contact-card" data-rc1092-card="'+r+'"><h5 data-i18n="'+titleKey+'">'+esc(tr(titleKey))+'</h5><label class="field"><span data-i18n="customerContacts.savedPerson">'+esc(tr('customerContacts.savedPerson'))+'</span><select data-rc1092-select="'+r+'"></select></label><div class="rc1092-draft-grid"><label class="field"><span data-i18n="customerContacts.name">'+esc(tr('customerContacts.name'))+'</span><input data-rc1092-name="'+r+'" autocomplete="off" data-i18n-placeholder="customerContacts.name" placeholder="'+esc(tr('customerContacts.name'))+'"></label><label class="field"><span data-i18n="customerContacts.email">'+esc(tr('customerContacts.email'))+'</span><input data-rc1092-email="'+r+'" type="email" autocomplete="off" placeholder="name@firma.de"></label></div><div class="rc1092-actions"><button type="button" class="ghost" data-rc1092-save="'+r+'" data-i18n="customerContacts.savePerson">'+esc(tr('customerContacts.savePerson'))+'</button><button type="button" class="btn" data-rc1092-add="'+r+'" data-i18n="customerContacts.addToMail">'+esc(tr('customerContacts.addToMail'))+'</button></div><div class="rc1092-status" data-rc1092-status="'+r+'"></div><div class="rc1092-current-label" data-i18n="customerContacts.addedToCustomerMail">'+esc(tr('customerContacts.addedToCustomerMail'))+'</div><div class="rc1092-mail-list" '+(r==='sales'?'id="rc1092SalesMailContacts"':'id="rc819CcContactChips"')+'></div></section>'
@@ -186,7 +223,15 @@ async function run(button,r,mode){
 }
 function bind(host){
  if(host.getAttribute('data-rc1092-bound')==='1')return;host.setAttribute('data-rc1092-bound','1');
- host.addEventListener('change',function(ev){var sel=ev.target&&ev.target.closest&&ev.target.closest('[data-rc1092-select]');if(sel)fillDraft(sel.getAttribute('data-rc1092-select'))});
+ host.addEventListener('change',function(ev){
+  var avis=ev.target&&ev.target.closest&&ev.target.closest('[data-rc1092-avis-toggle]');
+  if(avis){
+   var c=currentCustomer(),wanted=!!avis.checked;avis.disabled=true;
+   setAvisAllowed(c,wanted).then(function(){refreshAvisPolicy(c)}).catch(function(e){avis.checked=!wanted;refreshAvisPolicy(c);try{alert(tr('customerContacts.avisSaveFailed',{error:q(e&&e.message||e)}))}catch(_){}}).finally(function(){avis.disabled=false});
+   return
+  }
+  var sel=ev.target&&ev.target.closest&&ev.target.closest('[data-rc1092-select]');if(sel)fillDraft(sel.getAttribute('data-rc1092-select'))
+ });
  host.addEventListener('click',function(ev){
   var save=ev.target&&ev.target.closest&&ev.target.closest('[data-rc1092-save]');if(save){ev.preventDefault();run(save,save.getAttribute('data-rc1092-save'),'save');return}
   var add=ev.target&&ev.target.closest&&ev.target.closest('[data-rc1092-add]');if(add){ev.preventDefault();run(add,add.getAttribute('data-rc1092-add'),'add');return}
@@ -209,5 +254,5 @@ if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',function(){sch
 try{w.addEventListener('exporthub:language-changed',function(){refreshManager(currentCustomer());refreshStatusLanguage()})}catch(_){}
 if(w.MutationObserver){try{var mo=new MutationObserver(function(){if(customerFolderVisible())schedule()});mo.observe(d.documentElement,{childList:true,subtree:true})}catch(_){}}
 
-w.ExportHUBRC1092CustomerContacts=Object.freeze({version:'RC1092',directory:directory,mailContacts:mailContacts,savePerson:savePerson,addToMail:addToMail,removeFromMail:removeFromMail,install:install});
+w.ExportHUBRC1092CustomerContacts=Object.freeze({version:'RC1330',directory:directory,mailContacts:mailContacts,savePerson:savePerson,addToMail:addToMail,removeFromMail:removeFromMail,avisAllowed:avisAllowed,setAvisAllowed:setAvisAllowed,install:install});
 })(window,document);
