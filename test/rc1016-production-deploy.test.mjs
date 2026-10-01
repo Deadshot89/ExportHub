@@ -40,7 +40,7 @@ test('RC1016 Bestandsschutz prüft die damaligen Funktionen und Sicherheitsregre
   assert.match(flow,/assets\/rc1014-task-runtime\.js\?v=1359/,'Aktueller Standarddeploy muss den RC1359 Aufgaben-Runtime-Cache-Key verwenden');
   assert.match(flow,/assets\/rc1014-shipment-overview\.js\?v=1284/,'Aktueller Standarddeploy muss den RC1284 Shipment-Overview-Cache-Key verwenden');
   assert.match(flow,/assets\/rc1014-shipment-overview\.css\?v=1284/,'Aktueller Standarddeploy muss auch den RC1284 Overview-CSS-Cache-Key verwenden');
-  assert.match(flow,/assets\/rc1015-lieferavis-mail-flow\.js\?v=1304/);
+  assert.match(flow,/assets\/rc1015-lieferavis-mail-flow\.js\?v=1374/);
 });
 
 
