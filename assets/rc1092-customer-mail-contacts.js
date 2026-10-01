@@ -20,9 +20,9 @@ function customerId(c){return q(c&&(c.id||c.customerId||c.account||c.customerNum
 function customers(){return arr(state().customers)}
 function customerEmails(c){return emailItems(c&&[c.customerEmail,c.customerMail,c.email,c.mail,c.cc,c.mailCc,c.rc385Cc,c.ccContacts,c.customerCcContacts,c.contactDirectory,c.customerContactDirectory])}
 function legacyAvisBlocked(c){
- var id=customerId(c),name=low(c&&(c.name||c.customerName||c.companyName)),emails=customerEmails(c).map(low);
- if(id==='3019100629')return true;
- if(name.indexOf('würth industrie')===0||name.indexOf('wuerth industrie')===0)return true;
+ var ids=[c&&c.id,c&&c.customerId,c&&c.account,c&&c.customerNumber,c&&c.kundennummer].map(function(v){return q(v).toLocaleUpperCase('de-DE')}).filter(Boolean),name=low(c&&(c.name||c.customerName||c.companyName)),emails=customerEmails(c).map(low);
+ if(ids.indexOf('3019100629')>=0)return true;
+ if(name.indexOf('adolf würth')>=0||name.indexOf('adolf wuerth')>=0||name.indexOf('würth industrie')===0||name.indexOf('wuerth industrie')===0)return true;
  if(name.indexOf('v-zug')>=0||name.indexOf('v zug')>=0)return true;
  return emails.indexOf('v-zug@lebert.com')>=0
 }
