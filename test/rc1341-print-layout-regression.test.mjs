@@ -45,8 +45,8 @@ test('RC1343: Deckblatt wird zwei Punkte und Ladeliste einen Punkt kompakter ged
 });
 
 test('RC1368: aktuelle RC1366-Druckruntime bleibt cache-sicher geladen',()=>{
-  assert.match(build,/rc1305-loading-list-print\.js\?v=1366/);
-  assert.match(runtime,/version:'RC1366'/);
+  assert.match(build,/rc1305-loading-list-print\.js\?v=1371/);
+  assert.match(runtime,/version:'RC1371'/);
 });
 
 
@@ -58,18 +58,25 @@ test('RC1362: PDF-Namen werden einzeln untereinander vollständig und ohne Spalt
   assert.doesNotMatch(runtime,/grid-template-rows:repeat\(15,minmax\(0,auto\)\)/);
   assert.doesNotMatch(runtime,/grid-auto-flow:column/);
   assert.ok(runtime.includes('overflow:visible!important'));
-  assert.ok(runtime.includes('font-size:5.2pt!important'));
+  assert.ok(runtime.includes('font-size:6.2pt!important'));
 });
 
 
 test('RC1363: lange PDF-Listen bleiben einspaltig und werden nur bei Bedarf verdichtet',()=>{
   assert.match(runtime,/files\.length>24\?'ultra':\(files\.length>15\?'dense':'normal'\)/);
   assert.match(runtime,/data-rc1363-document-density/);
-  assert.match(runtime,/density==='ultra'\?\{gap:'\.1mm',pad:'\.1mm \.3mm',font:'4\.2pt',line:'\.9',border:'\.2mm'\}/);
-  assert.match(runtime,/density==='dense'\?\{gap:'\.18mm',pad:'\.15mm \.35mm',font:'4\.6pt',line:'\.95',border:'\.25mm'\}/);
+  assert.match(runtime,/density==='ultra'\?\{gap:'\.1mm',pad:'\.1mm \.2mm',font:'5\.2pt',line:'\.95',border:'\.2mm'\}/);
+  assert.match(runtime,/density==='dense'\?\{gap:'\.18mm',pad:'\.15mm \.25mm',font:'5\.6pt',line:'1',border:'\.25mm'\}/);
   assert.match(runtime,/display:flex!important/);
   assert.match(runtime,/flex-direction:column!important/);
   assert.match(runtime,/overflow-wrap:anywhere/);
   assert.match(runtime,/word-break:break-word/);
   assert.doesNotMatch(runtime,/grid-auto-flow:column/);
+});
+
+
+test('RC1371: DNC-Rahmen werden nicht mehr durch ein spaeteres stretch ueberschrieben',()=>{
+  assert.ok(runtime.includes("align-items:flex-start!important;gap:"));
+  assert.ok(!runtime.includes("gap:'+metrics.gap+'!important;align-items:stretch!important"));
+  assert.ok(runtime.includes("font:'6.2pt'"));
 });
