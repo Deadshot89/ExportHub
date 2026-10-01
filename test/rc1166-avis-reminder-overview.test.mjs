@@ -112,9 +112,9 @@ test('RC1166: Übersicht zeigt einen blauen Aktionsbutton und eine Empfängeraus
 
 test('RC1166: Drei-Umgebungen-Build übernimmt die neue Runtime und bestehende Schutzstände',()=>{
   assert.match(build,/exporthub-rc1166-avis-reminder/);
-  assert.match(build,/assets\/rc1166-avis-reminder-overview\.js\?v=1365/);
+  assert.match(build,/assets\/rc1166-avis-reminder-overview\.js\?v=1374/);
   assert.match(build,/'assets\/rc1166-avis-reminder-overview\.js'/);
-  assert.match(build,/avisReminderOverview:'RC1358/);
+  assert.match(build,/avisReminderOverview:'RC1374/);
   assert.match(build,/avis-reminder-mail\/index\.js/);
   assert.match(build,/shared\/graph-mail\.js/);
   assert.match(build,/podBackupStatusUi:'RC1220/);
@@ -123,6 +123,34 @@ test('RC1166: Drei-Umgebungen-Build übernimmt die neue Runtime und bestehende S
   assert.match(build,/border:3mm solid #111827/);
 });
 
+
+test('RC1374: Kundenordner-Nein entfernt AVIS-Link und Reminder vollständig',async()=>{
+  const state={customers:[
+    {id:'C1',name:'Normaler Kunde',customerAvisLinkEnabled:false},
+    {id:'3019100629',name:'Adolf Würth GmbH & Co. KG'},
+    {id:'VZ',name:'V-Zug',customerEmail:'v-zug@lebert.com'}
+  ]};
+  const api=load(state);
+  for(const sh of [
+    {customerId:'C1',customerName:'Normaler Kunde',testAvisLink:'https://example.test/customer-avis.html?token=abc'},
+    {customerId:'3019100629',customerName:'Adolf Würth GmbH & Co. KG',testAvisLink:'https://example.test/customer-avis.html?token=abc'},
+    {customerId:'VZ',customerName:'V-Zug',testAvisLink:'https://example.test/customer-avis.html?token=abc'}
+  ]){
+    assert.equal(api.customerAvisAllowed(sh),false);
+    assert.equal(api.avisLink(sh),'');
+    await assert.rejects(
+      ()=>api.sendReminder(sh,'kunde@example.com','customer','de','https://example.test/customer-avis.html?token=abc'),
+      e=>e&&e.code==='AVIS_CUSTOMER_DISABLED'
+    );
+  }
+});
+
+test('RC1374: explizites Ja im Kundenordner erlaubt auch Würth wieder im Reminder-Pfad',()=>{
+  const state={customers:[{id:'3019100629',name:'Adolf Würth GmbH & Co. KG',customerAvisLinkEnabled:true}]};
+  const api=load(state),sh={customerId:'3019100629',customerName:'Adolf Würth GmbH & Co. KG',testAvisLink:'https://example.test/customer-avis.html?token=abc'};
+  assert.equal(api.customerAvisAllowed(sh),true);
+  assert.match(api.avisLink(sh),/^https:\/\/exporthub360\.com\/avis\/abc/);
+});
 
 test('RC1292: Holenstein wird aus der Avis-Erinnerungs-Empfängerliste entfernt',()=>{
   const state={customers:[{
@@ -154,7 +182,7 @@ test('RC1358: Sendungsübersicht injiziert Avis-Erinnerung auch nach späteren K
   assert.match(runtime,/observer\.observe\(root,\{childList:true,subtree:true\}\)/);
   assert.match(runtime,/exporthub:rc1027-avis-ready/);
   assert.match(runtime,/exporthub:design-changed/);
-  assert.match(runtime,/version:'RC1358'/);
+  assert.match(runtime,/version:'RC1374'/);
   assert.match(runtime,/if\(q\(btn\.textContent\)!==q\(label\)\)btn\.textContent=label/,'Bestehende Buttons dürfen den MutationObserver nicht durch unnötige Text-DOM-Writes triggern');
 });
 
