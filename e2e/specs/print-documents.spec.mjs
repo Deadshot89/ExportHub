@@ -219,7 +219,7 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
   expect(capture.packingSlipGrid.rowCount,'Jeder Lieferschein/DNC muss eine eigene Zeile erhalten').toBe(capture.packingSlipGrid.count);
   const slipWidths=capture.packingSlipGrid.items.map(item=>item.right-item.left);
   const slipLefts=capture.packingSlipGrid.items.map(item=>item.left);
-  expect(Math.max(...slipWidths)-Math.min(...slipWidths),'Lieferschein-Kacheln müssen gleichmäßig kompakt bleiben').toBeLessThanOrEqual(3);
+  expect(Math.max(...slipWidths)-Math.min(...slipWidths),'RC1371 Lieferschein-Kacheln müssen inhaltsbreit statt auf gleiche Breite gestreckt sein').toBeGreaterThan(3);
   expect(Math.max(...slipLefts)-Math.min(...slipLefts),'Lieferscheine/DNCs dürfen nicht nebeneinander in mehrere Spalten springen').toBeLessThanOrEqual(2);
   const orderedSlips=[...capture.packingSlipGrid.items].sort((a,b)=>a.top-b.top);
   expect(orderedSlips.every((item,index)=>index===0||item.top>=orderedSlips[index-1].bottom-1),'Lieferschein-Kacheln dürfen sich vertikal nicht überlappen').toBe(true);
