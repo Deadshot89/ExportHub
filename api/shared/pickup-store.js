@@ -116,6 +116,8 @@ function abdPresent(source){
  for(const key of ['abdFiles','abds','abdDocuments']){
   const list=source[key];if(Array.isArray(list)&&list.some(Boolean))return true
  }
+ const legacyAbd=source.abd;
+ if((Array.isArray(legacyAbd)&&legacyAbd.some(Boolean))||(legacyAbd&&typeof legacyAbd==='object')||sanitizeText(legacyAbd,180))return true;
  const single=first(source,['abdFile','abdRef','abdReference','abdMrn','mrn']);if(single)return true;
  const documents=[].concat(Array.isArray(source.documents)?source.documents:[],Array.isArray(source.generatedDocuments)?source.generatedDocuments:[]);
  if(documents.some(function(item){const kind=sanitizeText(item&& (item.type||item.category||item.group||item.documentType||item.kind)||'',120),name=sanitizeText(item&& (item.name||item.fileName||item.filename)||'',180);return /(^|\b)abd(\b|$)|ausfuhrbegleitdokument/i.test(kind+' '+name)}))return true;
@@ -127,7 +129,7 @@ async function resolveShipmentAbdConfig(record,environment='production'){
  const shipments=Array.isArray(state.shipments)?state.shipments:[],requests=Array.isArray(state.abdRequests)?state.abdRequests:[],sid=String(record&&record.shipmentId||'').trim(),ref=String(record&&record.reference||record&&record.ref||'').trim().toUpperCase();
  const sh=shipments.find(x=>(sid&&String(x&& (x.id||x.shipmentId)||'').trim()===sid)||(ref&&String(x&& (x.reference||x.ref)||'').trim().toUpperCase()===ref))||null;
  const req=requests.slice().reverse().find(function(x){const rid=String(x&& (x.linkedShipmentId||x.shipmentId)||'').trim(),rr=String(x&& (x.reference||x.ref||x.shipmentRef)||'').trim().toUpperCase();return(sid&&rid===sid)||(ref&&rr===ref)})||null;
- const found=!!(sh||req),present=found?(abdPresent(sh)||abdPresent(req)):abdPresent(record);
+ const present=abdPresent(sh)||abdPresent(req)||abdPresent(record);
  return{abdPresent:present,abdStatus:sanitizeText(first(req||sh||record,['abdStatus','status']),120)}
 }
 function mergeContainerPhotos(a,b){

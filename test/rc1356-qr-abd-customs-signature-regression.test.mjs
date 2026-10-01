@@ -27,6 +27,23 @@ test('RC1356 P0: abgeschlossener ABD-Status gilt serverseitig als tatsächlich v
   assert.match(store,/abdStatus:sanitizeText\(r\.abdStatus\|\|''/);
 });
 
+test('RC1377 P0: bestehende QR-Sendung behält ABD-Pflicht auch wenn Live-Sendung keine ABD-Felder mehr liefert',()=>{
+  const start=store.indexOf('async function resolveShipmentAbdConfig');
+  const end=store.indexOf('function mergeContainerPhotos',start);
+  assert.ok(start>=0&&end>start,'ABD-Resolver konnte nicht isoliert werden');
+  const block=store.slice(start,end);
+  assert.match(block,/abdPresent\(sh\)\|\|abdPresent\(req\)\|\|abdPresent\(record\)/);
+  assert.doesNotMatch(block,/found\?\(abdPresent\(sh\)\|\|abdPresent\(req\)\):abdPresent\(record\)/);
+});
+
+test('RC1377 P0: ältere ABD-Datenform wird bei bestehenden Sendungen erkannt',()=>{
+  const start=store.indexOf('function abdPresent(source)');
+  const end=store.indexOf('async function resolveShipmentAbdConfig',start);
+  const block=store.slice(start,end);
+  assert.match(block,/legacyAbd=source\.abd/);
+  assert.match(block,/typeof legacyAbd==='object'/);
+});
+
 test('RC1356 P0: Abschluss bleibt ohne Zoll-Unterschrift gesperrt und speichert sie mit',()=>{
   assert.match(status,/resolveShipmentAbdConfig/);
   assert.match(confirm,/CUSTOMS_SIGNATURE_REQUIRED/);
