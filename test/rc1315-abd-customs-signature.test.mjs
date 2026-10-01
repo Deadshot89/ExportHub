@@ -42,7 +42,10 @@ test('RC1385: API erzwingt die Zollübergabe als boolesche Bestätigung und spei
   assert.match(confirm,/abdPresent&&!customsConfirmed/);
   assert.doesNotMatch(confirm,/customsDocumentsSignatureDataUrl|abdHandoverSignatureDataUrl|saveCustomsDocumentsSignature|CUSTOMS_SIGNATURE_REQUIRED/);
   assert.match(store,/customsDocumentsConfirmationRequired:abd/);
-  assert.match(store,/customsDocumentsSignatureRequired:false/);
+  const publicStart=store.indexOf('function publicRecord');
+  const publicEnd=store.indexOf('function parseSignature',publicStart);
+  const publicBlock=store.slice(publicStart,publicEnd);
+  assert.doesNotMatch(publicBlock,/customsDocumentsSignatureRequired|customsDocumentsSignatureStored/);
   assert.doesNotMatch(store,/async function saveCustomsDocumentsSignature/);
 });
 
