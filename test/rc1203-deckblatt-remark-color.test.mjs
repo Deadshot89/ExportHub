@@ -76,12 +76,22 @@ test('RC1203: echter coverHtml-Renderer trägt Farbe und Bemerkung direkt in den
 });
 
 test('RC1203: Runtime wird in Produktion TESTSERVICE und Demo gebaut',()=>{
-  assert.match(build,/assets\/rc1203-deckblatt-print\.js\?v=1281/);
+  assert.match(build,/assets\/rc1203-deckblatt-print\.js\?v=1373/);
   assert.match(build,/'assets\/rc1203-deckblatt-print\.js'/);
   assert.match(build,/deckblattHighVisibility:'RC1281 white cover/);
   assert.match(build,/coverRemark:'RC1281 compact remark block above QR without overlap'/);
   assert.match(build,/coverOnlyPrint:'RC1205 single Nur Deckblatt drucken action inside Speichern & Ausgabe'/);
   assert.doesNotMatch(build,/cmrOnlyPrint:/);
+});
+
+test('RC1373: Nur Deckblatt setzt einen einmaligen Druckmodus und der Build wählt exakt eine Deckblatt-Seite',()=>{
+  assert.match(runtime,/__EXPORTHUB_PRINT_MODE_OVERRIDE__='cover'/);
+  assert.match(runtime,/printAll\.click\(\)/);
+  assert.match(runtime,/version:'RC1373'/);
+  assert.match(build,/var rc1373Override=String\(window\.__EXPORTHUB_PRINT_MODE_OVERRIDE__/);
+  assert.match(build,/mode=rc1373Override;window\.__EXPORTHUB_PRINT_MODE_OVERRIDE__=''/);
+  assert.match(build,/if\(mode==='cover'\)return\[d\.cover\]\.filter\(Boolean\)/);
+  assert.match(build,/var attachmentJobs=\(mode==='all'\|\|!mode\)\?await rc1340PrepareDeliveryAttachmentPrints\(sh\):\[\]/);
 });
 
 test('RC1203: Browser-Gate prüft echte Druckausgabe statt nur Quelltext',()=>{
