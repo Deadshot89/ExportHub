@@ -75,6 +75,6 @@ test('RC1304: Runtime enthält Relevanz-Guard und Refresh-Koaleszierung',()=>{
 test('RC1304: Drei-Umgebungen-Auslieferung erzwingt frischen Lieferavis-Cache-Key',()=>{
   const build=fs.readFileSync('.github/rc1013/build-three-env.mjs','utf8');
   const workflow=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
-  assert.match(build,/rc1015-lieferavis-mail-flow\.js\?v=1379/);
-  assert.match(workflow,/rc1015-lieferavis-mail-flow\.js\?v=1379/);
+  assert.match(build,/rc1015-lieferavis-mail-flow\.js\?v=1383/);
+  assert.match(workflow,/rc1015-lieferavis-mail-flow\.js\?v=1383/);
 });
