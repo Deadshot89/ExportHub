@@ -18,14 +18,15 @@ function allowed(user){
 }
 function validEmail(v){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text(v))}
 function avisRecipientExcluded(v){return lower(v)==='dispo@holenstein.de'}
-const PRODUCTION_PUBLIC_HOST=lower(process.env.EXPORTHUB_PRODUCTION_PUBLIC_HOST||'exporthub360.com');
+const PRODUCTION_PUBLIC_HOST=lower(process.env.EXPORTHUB_PRODUCTION_PUBLIC_HOST||'www.exporthub360.de');
+const LEGACY_BRANDED_PRODUCTION_PUBLIC_HOST=lower(process.env.EXPORTHUB_LEGACY_BRANDED_PRODUCTION_PUBLIC_HOST||'exporthub360.com');
 const LEGACY_PRODUCTION_PUBLIC_HOST=lower(process.env.EXPORTHUB_LEGACY_PRODUCTION_PUBLIC_HOST||'wonderful-forest-0f315e310.7.azurestaticapps.net');
 const TESTSERVICE_PUBLIC_HOST=lower(process.env.EXPORTHUB_TESTSERVICE_PUBLIC_HOST||'ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net');
 function safeAvisUrl(req,value){
  let u;try{u=new URL(text(value))}catch(_){throw auth.error('AVIS_URL_INVALID','Der Avis-Link ist ungültig.',400)}
  if(u.protocol!=='https:')throw auth.error('AVIS_URL_INVALID','Der Avis-Link ist ungültig.',400);
  const environment=auth.environmentFromRequest(req),host=lower(u.hostname),legacyPath=/\/customer-avis\.html$/i.test(u.pathname),brandedPath=/^\/avis\/[^/]+\/?$/i.test(u.pathname);
- const valid=environment==='testservice'?((host===TESTSERVICE_PUBLIC_HOST&&legacyPath)||(host===PRODUCTION_PUBLIC_HOST&&brandedPath&&lower(u.searchParams.get('environment'))==='testservice')):((host===PRODUCTION_PUBLIC_HOST&&(brandedPath||legacyPath))||(host===LEGACY_PRODUCTION_PUBLIC_HOST&&legacyPath));
+ const valid=environment==='testservice'?((host===TESTSERVICE_PUBLIC_HOST&&legacyPath)||((host===PRODUCTION_PUBLIC_HOST||host===LEGACY_BRANDED_PRODUCTION_PUBLIC_HOST)&&brandedPath&&lower(u.searchParams.get('environment'))==='testservice')):(((host===PRODUCTION_PUBLIC_HOST||host===LEGACY_BRANDED_PRODUCTION_PUBLIC_HOST)&&(brandedPath||legacyPath))||(host===LEGACY_PRODUCTION_PUBLIC_HOST&&legacyPath));
  if(!valid)throw auth.error('AVIS_URL_INVALID','Der Avis-Link gehört nicht zu dieser ExportHUB-Umgebung.',400);
  return u.toString()
 }
