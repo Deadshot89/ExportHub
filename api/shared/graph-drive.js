@@ -247,6 +247,28 @@ async function listUserDrives(token, user) {
     : [];
 }
 
+async function resolveDefaultUserDriveTarget(token, user, folders) {
+  for (const folder of Array.isArray(folders) ? folders : []) {
+    const path = encodedPath(folder);
+    if (!path) continue;
+    try {
+      const result = await graphGet(token, `/users/${encodeURIComponent(user)}/drive/root:/${path}?$select=id,name,folder,parentReference`);
+      const item = result.body || {};
+      const folderId = text(item.id);
+      const driveId = text(item.parentReference && item.parentReference.driveId);
+      if (folderId && driveId && item.folder) return { driveId, folderId, folder };
+    } catch (error) {
+      if (isNotFound(error)) continue;
+      throw targetError(
+        'GRAPH_DEFAULT_DRIVE_TARGET_FAILED',
+        'Das explizite Microsoft-365-POD-Ziel konnte im konfigurierten Benutzerlaufwerk nicht aufgelöst werden.',
+        error
+      );
+    }
+  }
+  return null;
+}
+
 async function findFolder(token, driveId, folder) {
   const path = encodedPath(folder);
   if (!path) return null;
@@ -298,8 +320,9 @@ async function resolveTarget(token, cfg, force) {
   if (unique.length > 1) throw targetError('GRAPH_TARGET_AMBIGUOUS', 'Der konfigurierte Microsoft-365-Zielordner ist nicht eindeutig.', { statusCode: 409 });
 
   let value = unique[0] || null;
+  if (!value && drives.length === 0) value = await resolveDefaultUserDriveTarget(token, cfg.user, folders);
   if (!value) value = await resolvePersonalFolderTarget(token, cfg.user, cfg.folder);
-  if (!value) throw targetError('GRAPH_FOLDER_NOT_FOUND', 'Der konfigurierte Microsoft-365-Zielordner wurde weder in erreichbaren Drives noch über seine explizite OneDrive-URL gefunden.', { statusCode: 404 });
+  if (!value) throw targetError('GRAPH_FOLDER_NOT_FOUND', 'Der konfigurierte Microsoft-365-Zielordner wurde weder in erreichbaren Drives noch im konfigurierten Benutzerlaufwerk oder über seine explizite OneDrive-URL gefunden.', { statusCode: 404 });
 
   targetCache = { key, value, expiresAt: Date.now() + 10 * 60 * 1000 };
   return value;
