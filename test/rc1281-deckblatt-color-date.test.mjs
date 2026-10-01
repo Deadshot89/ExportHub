@@ -22,7 +22,7 @@ test('RC1281: finale Artefakte enthalten weißes kundenspezifisches Deckblatt mi
     assert.match(source,/background:#fff!important;background-image:none!important/,file+': weißer Deckblatt-Hintergrund fehlt');
     assert.match(source,/--rc1281-ref-bg:'\+\(isEssentra\?'#facc15':'#2563eb'\)/,file+': Referenz Gelb\/Blau fehlt');
     assert.match(source,/--rc1281-recipient-bg:'\+\(isEssentra\?'#fef9c3':'#dbeafe'\)/,file+': Empfänger Hellgelb\/Hellblau fehlt');
-    assert.match(source,/assets\/rc1203-deckblatt-print\.js\?v=1281/,file+': RC1281 Runtime-Cache-Key fehlt');
+    assert.match(source,/assets\/rc1203-deckblatt-print\.js\?v=1373/,file+': aktueller Deckblatt-Runtime-Cache-Key fehlt');
   }
 });
 
