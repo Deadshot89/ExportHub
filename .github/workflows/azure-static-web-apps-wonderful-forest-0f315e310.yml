@@ -203,9 +203,9 @@ jobs:
           grep -q '/api/diagnostic-autofix' dist-rc1112/assets/rc1013-diagnostics.js
           grep -q "view:'history',label:'Historie',right:'history'" dist-rc1112/index.html
           grep -q "view:'history',label:'Historie',right:'history'" dist-rc1112/TESTVERSION.html
-          grep -q 'assets/rc1027-lieferavis-immediate.js?v=1360' dist-rc1112/index.html
-          grep -q 'assets/rc1027-lieferavis-immediate.js?v=1360' dist-rc1112/TESTVERSION.html
-          grep -q 'assets/rc1027-lieferavis-immediate.js?v=1360' dist-rc1112/demo.html
+          grep -q 'assets/rc1027-lieferavis-immediate.js?v=1365' dist-rc1112/index.html
+          grep -q 'assets/rc1027-lieferavis-immediate.js?v=1365' dist-rc1112/TESTVERSION.html
+          grep -q 'assets/rc1027-lieferavis-immediate.js?v=1365' dist-rc1112/demo.html
           test -s dist-rc1112/assets/rc1027-lieferavis-immediate.js
           test -s dist-rc1112/assets/rc1037-lieferavis-timing-diagnostics.js
           test -s dist-rc1112/assets/rc1049-abd-avis-policy.js
@@ -845,9 +845,9 @@ jobs:
               && grep -q '__EXPORTHUB_RC1069_PERFORMANCE__' "$tperf" \
               && grep -q "version:'RC1069'" "$pavis" \
               && grep -q "version:'RC1069'" "$tavis" \
-              && grep -q 'assets/rc1027-lieferavis-immediate.js?v=1360' "$p" \
-              && grep -q 'assets/rc1027-lieferavis-immediate.js?v=1360' "$t" \
-              && grep -q 'assets/rc1027-lieferavis-immediate.js?v=1360' "$d" \
+              && grep -q 'assets/rc1027-lieferavis-immediate.js?v=1365' "$p" \
+              && grep -q 'assets/rc1027-lieferavis-immediate.js?v=1365' "$t" \
+              && grep -q 'assets/rc1027-lieferavis-immediate.js?v=1365' "$d" \
               && grep -q 'Dokumentspeicher wird optimiert' "$precp" \
               && grep -q 'Dokumentspeicher wird optimiert' "$trecp" \
               && grep -q 'assets/abholkalender.js?v=1012' "$p" \
@@ -929,7 +929,7 @@ jobs:
         run: |
           set -euo pipefail
           prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
-          branded='https://exporthub360.com'
+          branded='https://www.exporthub360.de'
           main="$(mktemp)"; print_runtime="$(mktemp)"; avis_runtime="$(mktemp)"; avis_page="$(mktemp)"
           trap 'rm -f "$main" "$print_runtime" "$avis_runtime" "$avis_page"' EXIT
           ready=0
@@ -940,14 +940,14 @@ jobs:
             bc=$(curl -sS -L -o "$avis_page" -w '%{http_code}' --max-time 20 "$branded/avis/RC1363TEST?rc1363=$GITHUB_SHA-$attempt" || true)
             if [[ "$mc" == '200' && "$pc" == '200' && "$ac" == '200' && "$bc" == '200' ]] \
               && grep -Fq 'assets/rc1305-loading-list-print.js?v=1363' "$main" \
-              && grep -Fq 'assets/rc1027-lieferavis-immediate.js?v=1360' "$main" \
+              && grep -Fq 'assets/rc1027-lieferavis-immediate.js?v=1365' "$main" \
               && grep -Fq "data-rc1361-print-qr-top-right" "$print_runtime" \
               && grep -Fq "important(section,'top','8mm')" "$print_runtime" \
               && grep -Fq "important(section,'right','8mm')" "$print_runtime" \
               && grep -Fq 'grid-template-columns:minmax(0,1fr)' "$print_runtime" \
               && grep -Fq 'grid-auto-flow:row' "$print_runtime" \
               && grep -Fq 'data-rc1363-document-density' "$print_runtime" \
-              && grep -Fq "RC1333_PROD_AVIS_ORIGIN='https://exporthub360.com'" "$avis_runtime" \
+              && grep -Fq "RC1333_PROD_AVIS_ORIGIN='https://www.exporthub360.de'" "$avis_runtime" \
               && grep -Fq "RC1333_PROD_AVIS_ORIGIN+'/avis/'" "$avis_runtime" \
               && grep -Fq "pathMatch=String(u.pathname||'').match(/\/avis\/" "$avis_page"; then
               ready=1
