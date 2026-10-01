@@ -193,7 +193,6 @@
   "api.pickup.accessLocked": "Zu viele falsche PIN-Eingaben. Der QR-Code ist vorübergehend gesperrt.",
   "api.pickup.referenceMismatch": "Referenz stimmt nicht mit der Sendung überein.",
   "api.pickup.signatureRequired": "Die digitale Unterschrift ist Pflicht.",
-  "api.pickup.customsSignatureRequired": "Bitte mit der zweiten Fahrerunterschrift bestätigen, dass die Zolldokumente ausgehändigt wurden.",
   "api.pickup.expired": "QR-Code ist abgelaufen.",
   "api.pickup.alreadyConfirmed": "Diese Sendung wurde bereits vollständig abgeholt.",
   "api.pickup.carrierRequired": "Speditionsname fehlt. Die Abholung darf nicht abgeschlossen werden.",
@@ -262,5 +261,6 @@
   "api.abdAnalysis.scanFailed": "Die Datei konnte nicht sicher auf Schadsoftware geprüft werden und wurde nicht ausgewertet.",
   "api.abdAnalysis.failed": "Die ABD-Datei konnte nicht ausgewertet werden.",
   "api.abdAnalysis.forbidden": "Für die ABD-Auswertung ist Bearbeitungsrecht im ABD-Bereich erforderlich.",
-  "api.abdAnalysis.actionInvalid": "Unbekannte ABD-Auswertungsaktion."
+  "api.abdAnalysis.actionInvalid": "Unbekannte ABD-Auswertungsaktion.",
+  "api.pickup.customsDocumentsConfirmationRequired": "Bitte bestätigen, dass die Zolldokumente übergeben wurden."
 }
