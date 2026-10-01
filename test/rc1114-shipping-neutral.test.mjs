@@ -47,7 +47,7 @@ test('RC1114: UPS-Begriffe bleiben unverändert',()=>{
 });
 
 test('RC1114: RC1112-Builder liefert die neutrale Oberfläche in alle drei Umgebungen aus',()=>{
-  assert.match(builder,/rc1114-shipping-neutral\.js\?v=1114/);
+  assert.match(builder,/rc1114-shipping-neutral\\.js\\?v=1386/);
   assert.match(builder,/fs\.copyFileSync\(rc1114ShippingSrc,rc1114ShippingOut\)/);
   assert.match(builder,/shippingProviderNeutralUi:'RC1114'/);
 });
