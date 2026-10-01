@@ -930,15 +930,20 @@ jobs:
           set -euo pipefail
           prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
           branded='https://exporthub360.com'
-          main="$(mktemp)"; print_runtime="$(mktemp)"; avis_runtime="$(mktemp)"; avis_page="$(mktemp)"
-          trap 'rm -f "$main" "$print_runtime" "$avis_runtime" "$avis_page"' EXIT
+          main="$(mktemp)"; print_runtime="$(mktemp)"; avis_runtime="$(mktemp)"; avis_origin_page="$(mktemp)"; branded_avis_page="$(mktemp)"
+          trap 'rm -f "$main" "$print_runtime" "$avis_runtime" "$avis_origin_page" "$branded_avis_page"' EXIT
+
+          # RC1365: Software-/Routing-Vertrag auf der tatsächlichen Azure-Production
+          # bleibt fail-closed. Externe DNS-/Custom-Domain-Verfügbarkeit wird separat
+          # gemeldet, damit ein bereits erfolgreicher Production-Deploy nicht als
+          # Softwarefehler gewertet wird.
           ready=0
           for attempt in {1..18}; do
-            mc=$(curl -sS -L -o "$main" -w '%{http_code}' --max-time 20 "$prod/?rc1363=$GITHUB_SHA-$attempt" || true)
-            pc=$(curl -sS -L -o "$print_runtime" -w '%{http_code}' --max-time 20 "$prod/assets/rc1305-loading-list-print.js?rc1363=$GITHUB_SHA-$attempt" || true)
-            ac=$(curl -sS -L -o "$avis_runtime" -w '%{http_code}' --max-time 20 "$prod/assets/rc1027-lieferavis-immediate.js?rc1363=$GITHUB_SHA-$attempt" || true)
-            bc=$(curl -sS -L -o "$avis_page" -w '%{http_code}' --max-time 20 "$branded/avis/RC1363TEST?rc1363=$GITHUB_SHA-$attempt" || true)
-            if [[ "$mc" == '200' && "$pc" == '200' && "$ac" == '200' && "$bc" == '200' ]] \
+            mc=$(curl -sS -L -o "$main" -w '%{http_code}' --max-time 20 "$prod/?rc1365=$GITHUB_SHA-$attempt" || true)
+            pc=$(curl -sS -L -o "$print_runtime" -w '%{http_code}' --max-time 20 "$prod/assets/rc1305-loading-list-print.js?rc1365=$GITHUB_SHA-$attempt" || true)
+            ac=$(curl -sS -L -o "$avis_runtime" -w '%{http_code}' --max-time 20 "$prod/assets/rc1027-lieferavis-immediate.js?rc1365=$GITHUB_SHA-$attempt" || true)
+            oc=$(curl -sS -L -o "$avis_origin_page" -w '%{http_code}' --max-time 20 "$prod/avis/RC1363TEST?rc1365=$GITHUB_SHA-$attempt" || true)
+            if [[ "$mc" == '200' && "$pc" == '200' && "$ac" == '200' && "$oc" == '200' ]] \
               && grep -Fq 'assets/rc1305-loading-list-print.js?v=1363' "$main" \
               && grep -Fq 'assets/rc1027-lieferavis-immediate.js?v=1360' "$main" \
               && grep -Fq "data-rc1361-print-qr-top-right" "$print_runtime" \
@@ -949,17 +954,34 @@ jobs:
               && grep -Fq 'data-rc1363-document-density' "$print_runtime" \
               && grep -Fq "RC1333_PROD_AVIS_ORIGIN='https://exporthub360.com'" "$avis_runtime" \
               && grep -Fq "RC1333_PROD_AVIS_ORIGIN+'/avis/'" "$avis_runtime" \
-              && grep -Fq "pathMatch=String(u.pathname||'').match(/\/avis\/" "$avis_page"; then
+              && grep -Fq "pathMatch=String(u.pathname||'').match(/\\/avis\\/" "$avis_origin_page"; then
               ready=1
               break
             fi
             sleep 5
           done
           if [ "$ready" != "1" ]; then
-            echo "RC1363 Live-Gate fehlgeschlagen: main=$mc print=$pc avisRuntime=$ac brandedAvis=$bc" >&2
+            echo "RC1365 Production-Code-/Routing-Gate fehlgeschlagen: main=$mc print=$pc avisRuntime=$ac productionAvisRoute=$oc" >&2
             exit 1
           fi
-          echo 'RC1363 AVIS-Link, Druck-QR und adaptive einspaltige Lieferschein-/DNC-Darstellung live bestätigt.'
+
+          branded_ready=0
+          bc='000'
+          for attempt in {1..6}; do
+            bc=$(curl -sS -L -o "$branded_avis_page" -w '%{http_code}' --max-time 20 "$branded/avis/RC1363TEST?rc1365=$GITHUB_SHA-$attempt" || true)
+            if [[ "$bc" == '200' ]] && grep -Fq "pathMatch=String(u.pathname||'').match(/\\/avis\\/" "$branded_avis_page"; then
+              branded_ready=1
+              break
+            fi
+            sleep 5
+          done
+
+          if [ "$branded_ready" = "1" ]; then
+            echo 'RC1365 AVIS-Link, ExportHUB360-Domain, Druck-QR und adaptive einspaltige Lieferschein-/DNC-Darstellung live bestätigt.'
+          else
+            echo "::warning title=RC1365 ExportHUB360 DNS/Custom-Domain::exporthub360.com ist vom Release-Runner nicht erreichbar (HTTP/DNS $bc). Azure-Production, /avis/-Routing, AVIS-Runtime und Drucklayout sind vollständig bestätigt. DNS/Custom-Domain bleibt als separater externer P1-Blocker offen."
+            echo 'RC1365 Software-Release live bestätigt; Marken-Domain-DNS separat offen.'
+          fi
 
       - name: Live RC1071 Sendungshistorie prüfen
         shell: bash
