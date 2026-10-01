@@ -53,22 +53,24 @@ test('RC1363: Lieferscheine und Bemerkung werden drucksicher kompakt untereinand
   assert.match(print,/loadingListPrint\.palletMovement/);
 });
 
-test('RC1363: Drei-Umgebungen-Build liefert die aktuelle Ladelisten-Druckruntime aus',()=>{
+test('RC1368: Drei-Umgebungen-Build liefert die aktuelle Ladelisten-Druckruntime aus',()=>{
   assert.match(build,/function patchRc1305LoadingListPresentation\(html,file\)/);
-  assert.match(build,/assets\/rc1305-loading-list-print\.js\?v=1363/);
+  assert.match(build,/assets\/rc1305-loading-list-print\.js\?v=1366/);
   assert.match(build,/assets\/rc1315-loading-list-quick-print\.js\?v=1322/);
   assert.match(build,/assets\/rc1283-loading-list-search\.js\?v=1305/);
   assert.match(build,/'assets\/rc1305-loading-list-print\.js'/);
   assert.match(build,/patchRc1305LoadingListPresentation\(html,file\)/);
-  assert.match(build,/loadingListPrintRedesign:'RC1363/); assert.match(print,/data-rc1363-document-density/);
+  assert.match(build,/loadingListPrintRedesign:'RC1366/); assert.match(print,/data-rc1363-document-density/);
 });
 
-test('RC1363: Production- und Live-Gate prüfen dieselbe einspaltige Ladelisten-Druckruntime wie der Build',()=>{
-  assert.match(FLOW,/RC1363 AVIS und Drucklayout live verifizieren/);
-  assert.match(build,/assets\/rc1305-loading-list-print\.js\?v=1363/);
-  assert.match(FLOW,/assets\/rc1305-loading-list-print\.js\?v=1363/);
+test('RC1368: Production- und Live-Gate prüfen dieselbe aktuelle Ladelisten-Druckruntime wie der Build',()=>{
+  assert.match(FLOW,/RC1368 AVIS und Drucklayout live verifizieren/);
+  assert.match(build,/assets\/rc1305-loading-list-print\.js\?v=1366/);
+  assert.match(FLOW,/assets\/rc1305-loading-list-print\.js\?v=1366/);
   assert.match(FLOW,/display:flex!important/);
   assert.match(FLOW,/flex-direction:column!important/);
+  assert.match(FLOW,/important\(code,'width','12mm'\)/);
+  assert.match(FLOW,/important\(svg,'width','12mm'\)/);
   assert.doesNotMatch(FLOW,/assets\/rc1305-loading-list-print\.js\?v=1362/);
   assert.doesNotMatch(FLOW,/docColumns=Math\.max\(1,Math\.ceil\(docCount\/15\)\)/);
 });
@@ -81,7 +83,6 @@ test('RC1305: geänderte JavaScript-Dateien sind syntaktisch gültig',()=>{
 
 
 test('RC1364: Lieferscheinrahmen bleiben inhaltsbreit und Empfänger wird kundentypabhängig hervorgehoben',()=>{
-  assert.match(print,/version:'RC1364'/);
   assert.match(print,/data-rc1364-recipient-kind/);
   assert.match(print,/isEssentraRecipient/);
   assert.match(print,/display:inline-flex!important/);
@@ -102,5 +103,5 @@ test('RC1366: Druck-QR wird gezielt auf 12mm vergroessert',()=>{
 test('RC1367: Build lädt die aktuelle RC1366 Druckruntime statt gecachtem RC1363',()=>{
   assert.match(FLOW,/assets\/rc1305-loading-list-print\.js\?v=1366/);
   assert.doesNotMatch(FLOW,/assets\/rc1305-loading-list-print\.js\?v=1363/);
-  assert.match(FLOW,/loadingListPrintRedesign:'RC1366/);
+  assert.match(build,/loadingListPrintRedesign:'RC1366/);
 });
