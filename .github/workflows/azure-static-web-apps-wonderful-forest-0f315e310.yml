@@ -964,6 +964,34 @@ jobs:
           fi
           echo 'RC1374 Produktions-Drucklayout, 12-mm-Druck-QR, inhaltsbreite DNC-Rahmen, +1pt Dateischrift und Empfänger/Kunde-Hervorhebung live bestätigt.'
 
+      - name: RC1373 Nur-Deckblatt Produktionspfad live verifizieren
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          main="$(mktemp)"; cover_runtime="$(mktemp)"
+          trap 'rm -f "$main" "$cover_runtime"' EXIT
+          ready=0
+          for attempt in {1..18}; do
+            mc=$(curl -sS -L -o "$main" -w '%{http_code}' --max-time 20 "$prod/?rc1373-cover=$GITHUB_SHA-$attempt" || true)
+            cc=$(curl -sS -L -o "$cover_runtime" -w '%{http_code}' --max-time 20 "$prod/assets/rc1203-deckblatt-print.js?rc1373-cover=$GITHUB_SHA-$attempt" || true)
+            if [[ "$mc" == '200' && "$cc" == '200' ]] \
+              && grep -Fq 'assets/rc1203-deckblatt-print.js?v=1373' "$main" \
+              && grep -Fq "__EXPORTHUB_PRINT_MODE_OVERRIDE__" "$main" \
+              && grep -Fq "if(mode==='cover')return[d.cover].filter(Boolean)" "$main" \
+              && grep -Fq "__EXPORTHUB_PRINT_MODE_OVERRIDE__='cover'" "$cover_runtime" \
+              && grep -Fq "version:'RC1373'" "$cover_runtime"; then
+              ready=1
+              break
+            fi
+            sleep 5
+          done
+          if [ "$ready" != "1" ]; then
+            echo "RC1373 Nur-Deckblatt-Live-Gate fehlgeschlagen: main=$mc runtime=$cc" >&2
+            exit 1
+          fi
+          echo 'RC1373 Nur Deckblatt drucken ist live als echter Ein-Seiten-Druckmodus bestätigt.'
+
       - name: RC1374 ExportHUB360 Marken-Domain prüfen
         continue-on-error: true
         shell: bash
