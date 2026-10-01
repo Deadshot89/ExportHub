@@ -81,3 +81,16 @@ test('RC1374: Änderung wird bestätigt gespeichert und als Ereignis veröffentl
   assert.equal(env.saves.filter(x=>x[0]==='flush').length,1);
   assert.ok(env.events.some(e=>e.type==='exporthub:customer-avis-preference-updated'&&e.detail&&e.detail.enabled===true));
 });
+
+test('RC1374: alle drei geänderten Browser-Runtimes erhalten einen neuen Cache-Key',()=>{
+  const rc1013=fs.readFileSync('.github/rc1013/build-three-env.mjs','utf8');
+  const rc1018=fs.readFileSync('.github/rc1018/fix-mail-wording.mjs','utf8');
+  const rc1048=fs.readFileSync('.github/rc1048/build-three-env.mjs','utf8');
+  const deploy=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
+  assert.match(rc1013,/rc1015-lieferavis-mail-flow\.js\?v=1374/);
+  assert.match(rc1018,/rc1027-lieferavis-immediate\.js\?v=1374/);
+  assert.match(rc1048,/rc1092-customer-mail-contacts\.js\?v=1374/);
+  assert.match(deploy,/rc1015-lieferavis-mail-flow\.js\?v=1374/);
+  assert.match(deploy,/rc1027-lieferavis-immediate\.js\?v=1374/);
+  assert.match(deploy,/rc1092-customer-mail-contacts\.js\?v=1374/);
+});
