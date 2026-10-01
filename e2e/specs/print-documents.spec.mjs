@@ -196,8 +196,10 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
   expect(capture.recipientStyle).toBeTruthy();
   expect(capture.recipientStyle.backgroundColor).toBe('rgb(219, 234, 254)');
   expect(capture.quickPrintQr).toBeTruthy();
-  expect(parseFloat(capture.quickPrintQr.width)).toBeLessThanOrEqual(31);
-  expect(parseFloat(capture.quickPrintQr.height)).toBeLessThanOrEqual(31);
+  expect(parseFloat(capture.quickPrintQr.width),'RC1366 Druck-QR muss ca. 12mm breit sein').toBeGreaterThanOrEqual(45);
+  expect(parseFloat(capture.quickPrintQr.width),'RC1366 Druck-QR darf 12mm nicht überschreiten').toBeLessThanOrEqual(46);
+  expect(parseFloat(capture.quickPrintQr.height),'RC1366 Druck-QR muss ca. 12mm hoch sein').toBeGreaterThanOrEqual(45);
+  expect(parseFloat(capture.quickPrintQr.height),'RC1366 Druck-QR darf 12mm nicht überschreiten').toBeLessThanOrEqual(46);
   expect(capture.quickPrintQr.count,'Druck-QR darf im Gesamtdruck nur einmal vorkommen').toBe(1);
   expect(capture.quickPrintQr.insideCover,'Druck-QR muss auf dem Deckblatt sitzen').toBe(true);
   expect(capture.quickPrintQr.boxWidth).toBeLessThanOrEqual(85);
