@@ -1302,6 +1302,8 @@ jobs:
               grep -q 'assets/rc1092-customer-mail-contacts.js?v=1380' "$page" || ok=0
               grep -q 'assets/rc1015-lieferavis-mail-flow.js?v=1379' "$page" || ok=0
               grep -q '__EXPORTHUB_RC1092_CUSTOMER_MAIL_CONTACTS__' "$asset" || ok=0
+              grep -q 'customerContacts.savePerson' "$asset" || ok=0
+              grep -q 'customerContacts.addToMail' "$asset" || ok=0
               grep -q 'data-rc1092-avis-toggle' "$asset" || ok=0
               grep -q 'customerAvisLinkEnabled' "$asset" || ok=0
               grep -q '3019100629' "$asset" || ok=0
