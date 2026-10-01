@@ -1180,5 +1180,11 @@
   "loadingListQuickPrint.missing": "Nie znaleziono przesyłki {{ref}}.",
   "loadingListQuickPrint.noPrint": "Pełny wydruk nie jest dostępny dla tej przesyłki.",
   "loadingListQuickPrint.directPrintSetup": "Skonfiguruj druk bezpośredni (Edge)",
-  "loadingListQuickPrint.directPrintSetupHint": "Jednorazowa konfiguracja Windows do cichego drukowania na drukarce domyślnej."
+  "loadingListQuickPrint.directPrintSetupHint": "Jednorazowa konfiguracja Windows do cichego drukowania na drukarce domyślnej.",
+  "customerContacts.avisHeading": "Link AVIS",
+  "customerContacts.avisHelp": "Określa, czy dla tego klienta można tworzyć link AVIS i udostępniać go w procesach wysyłkowych.",
+  "customerContacts.avisWanted": "Link AVIS wymagany",
+  "customerContacts.avisEnabled": "Wymagany",
+  "customerContacts.avisDisabled": "Niewymagany",
+  "customerContacts.avisSaveFailed": "Nie udało się zapisać ustawienia AVIS: {{error}}"
 }
