@@ -45,8 +45,8 @@ test('RC1343: Deckblatt wird zwei Punkte und Ladeliste einen Punkt kompakter ged
 });
 
 test('RC1368: aktuelle RC1366-Druckruntime bleibt cache-sicher geladen',()=>{
-  assert.match(build,/rc1305-loading-list-print\.js\?v=1372/);
-  assert.match(runtime,/version:'RC1372'/);
+  assert.match(build,/rc1305-loading-list-print\.js\?v=1376/);
+  assert.match(runtime,/version:'RC1376'/);
 });
 
 
@@ -85,4 +85,9 @@ test('RC1372: DNC-Rahmen werden nicht mehr durch ein spaeteres stretch ueberschr
 test('RC1372: jedes DNC erzwingt Inhaltsbreite auch gegen fremde Layout-CSS',()=>{
   assert.ok(runtime.includes("align-self:flex-start!important;flex:0 1 auto!important;width:fit-content!important"));
   assert.ok(runtime.includes("empf[aä]nger(?:\\s*\\/\\s*kunde)?"));
+});
+
+
+test('RC1376: Deckblatt und Ladeliste teilen Empfaenger- und Dokumentenhancer',()=>{
+  assert.ok(runtime.includes("enhanceRecipient(root,sh||{});enhanceDocuments(root,sh||{})"));
 });
