@@ -14,7 +14,7 @@ test('RC1043 bleibt als reproduzierbarer Vorgänger vollständig baubar',()=>{
     assert.match(html,new RegExp('ExportHUB RC1043 environment='+environment));
     assert.match(html,/version:'RC1043'/);
     assert.match(html,/assets\/rc1018-mail-language-standard\.js\?v=1018/);
-    assert.match(html,/assets\/rc1013-gate41-ui\.js\?v=1041/);
+    assert.match(html,/assets\/rc1013-gate41-ui\.js\?v=1385/);
   }
   assert.match(read('dist-rc1043/production-version.js'),/__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1043'/);
 });

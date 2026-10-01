@@ -44,5 +44,5 @@ test('RC1041: aktueller Drei-Umgebungen-Build sperrt automatische und manuelle G
 });
 
 test('RC1041: aktueller Drei-Umgebungen-Build lädt die Gate41-Diagnose cache-frisch',()=>{
-  assert.match(build,/rc1013-gate41-ui\.js\?v=1041/,'Gate41-Asset wird im aktuellen Build nicht mit RC1041 neu geladen');
+  assert.match(build,/rc1013-gate41-ui\.js\?v=1385/,'Gate41-Asset wird im aktuellen Build nicht cache-frisch geladen');
 });

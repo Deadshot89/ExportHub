@@ -40,6 +40,7 @@ function markUnavailable(result){
   return true;
 }
 function update(){
+  bindObserver();
   var host=ensure();if(!host)return false;
   var data={
     country:q(field('country')&&field('country').value),
@@ -58,8 +59,28 @@ function update(){
   host.style.background=result.ok?'#f0fdf4':'#fff7ed';host.style.borderColor=result.ok?'#86efac':'#fdba74';host.style.color=result.ok?'#166534':'#9a3412';return result.ok;
 }
 window.ExportHUBRC1041Gate41Diagnostics=Object.freeze({diagnosticMessage:diagnosticMessage,nationalOnly:true});
-var timer=0;function schedule(){clearTimeout(timer);timer=setTimeout(update,80);}
-window.addEventListener('click',schedule,true);window.addEventListener('input',schedule,true);window.addEventListener('change',schedule,true);['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:language-changed'].forEach(n=>window.addEventListener(n,schedule));
-if(window.MutationObserver){var mo=new MutationObserver(()=>{if(document.getElementById('rc626Shipping'))schedule();});mo.observe(document.documentElement,{subtree:true,childList:true});}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
+var timer=0,observer=null,observerRoot=null;
+function schedule(){clearTimeout(timer);timer=setTimeout(update,80);}
+function bindObserver(){
+  var root=document.getElementById('rc626Shipping');
+  if(root===observerRoot)return root;
+  if(observer){try{observer.disconnect()}catch(_){}observer=null;}
+  observerRoot=root||null;
+  if(window.MutationObserver&&root){
+    try{
+      observer=new window.MutationObserver(function(){schedule();});
+      observer.observe(root,{subtree:true,childList:true});
+    }catch(_){observer=null;observerRoot=null;}
+  }
+  return root;
+}
+function scheduleFromShippingEvent(event){
+  var target=event&&event.target;
+  if(target&&target.closest&&target.closest('#rc626Shipping'))schedule();
+}
+window.addEventListener('click',scheduleFromShippingEvent,true);
+window.addEventListener('input',scheduleFromShippingEvent,true);
+window.addEventListener('change',scheduleFromShippingEvent,true);
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:language-changed'].forEach(function(name){window.addEventListener(name,function(){bindObserver();schedule();});});
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){bindObserver();schedule();},{once:true});else{bindObserver();schedule();}
 })();
