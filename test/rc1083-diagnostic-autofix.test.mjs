@@ -27,7 +27,8 @@ test('RC1085: Fehlerdiagnose bietet Filter und zeigt die bewusst deaktivierte au
   assert.match(diagnostics,/data-rc1083-status/);
   assert.match(diagnostics,/data-rc1083-area/);
   assert.match(diagnostics,/\/api\/diagnostic-autofix/);
-  assert.match(diagnostics,/setInterval\(function\(\)\{if\(!win\.document\.hidden&&\(diagnosticsVisible\(win\)\|\|win\.document\.getElementById\('rc1013-diagnostics-enhanced'\)\)\)refresh\(win\)/);
+  assert.match(diagnostics,/activePollTimer=win\.setInterval\(function\(\)\{if\(!win\.document\.hidden&&diagnosticsVisible\(win\)\)refresh\(win\);\},10000\)/);
+  assert.match(diagnostics,/stopActiveWatchers/);
   assert.match(diagnostics,/resolvedAt/);
   assert.match(diagnostics,/diagnostics\.autofixRunning/);
 });
@@ -82,7 +83,7 @@ test('RC1083: Autofix schützt Workflow Secrets und große unkontrollierte Ände
 
 test('RC1085: finaler Build überschreibt die historische Diagnose-Runtime mit kostenneutralem RC1085-Stand',()=>{
   assert.match(build,/assets\\\/rc1013-diagnostics\\\.js\\\?v=1013/);
-  assert.match(build,/assets\/rc1013-diagnostics\.js\?v=1085/);
+  assert.match(build,/assets\/rc1013-diagnostics\.js\?v=1364/);
   assert.match(build,/'assets\/rc1013-diagnostics\.js','assets\/rc1061-document-migration-admin\.js'/);
   assert.match(build,/diagnosticsAutofix:\{version:'RC1085'/);
   assert.match(build,/enabledByDefault:false/);
