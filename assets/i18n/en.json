@@ -1180,5 +1180,11 @@
   "loadingListQuickPrint.missing": "Shipment {{ref}} was not found.",
   "loadingListQuickPrint.noPrint": "Complete print is not available for this shipment.",
   "loadingListQuickPrint.directPrintSetup": "Set up direct printing (Edge)",
-  "loadingListQuickPrint.directPrintSetupHint": "One-time Windows setup for silent printing to the default printer."
+  "loadingListQuickPrint.directPrintSetupHint": "One-time Windows setup for silent printing to the default printer.",
+  "customerContacts.avisHeading": "AVIS link",
+  "customerContacts.avisHelp": "Controls whether an AVIS link may be created for this customer and offered in shipping workflows.",
+  "customerContacts.avisWanted": "AVIS link wanted",
+  "customerContacts.avisEnabled": "Wanted",
+  "customerContacts.avisDisabled": "Not wanted",
+  "customerContacts.avisSaveFailed": "The AVIS setting could not be saved: {{error}}"
 }
