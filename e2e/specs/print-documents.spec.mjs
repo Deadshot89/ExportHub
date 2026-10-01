@@ -211,7 +211,7 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
   expect(capture.text).toContain('Bemerkung');
   expect(capture.text).toContain('RC1203 Demo-Bemerkung');
   expect(capture.packingSlipGrid).toBeTruthy();
-  expect(capture.packingSlipGrid.display).toBe('grid');
+  expect(capture.packingSlipGrid.display).toBe('flex');
   expect(capture.packingSlipGrid.count).toBe(7);
   expect(new Set(capture.packingSlipGrid.items.map(item=>item.text)).size,'Lieferscheine werden im Deckblatt doppelt dargestellt').toBe(7);
   expect(capture.packingSlipGrid.rowCount,'Jeder Lieferschein/DNC muss eine eigene Zeile erhalten').toBe(capture.packingSlipGrid.count);
