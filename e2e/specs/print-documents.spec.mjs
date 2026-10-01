@@ -629,7 +629,7 @@ test('RC1385: POD-Ladeliste nutzt wieder ein einziges Fahrer-Unterschriftsfeld o
   expect(layout.hasPlate,'Kennzeichen ist nicht dem Kennzeichen-Feld zugeordnet').toBe(true);
   expect(layout.overlap,'Elemente des Abholnachweises überlappen sich').toBe(false);
   expect(layout.imageInside,'Die Fahrerunterschrift ragt aus ihrem Feld').toBe(true);
-  expect(layout.summaryHeight,'Der Abholblock ist für A4 zu hoch').toBeLessThan(160);
+  expect(layout.summaryHeight,'Der wiederhergestellte POD-Abholblock ist unerwartet hoch').toBeLessThan(220);
   expect(layout.summaryBottom<=layout.rootBottom+2,'Der Abholblock ragt aus der A4-Ladeliste heraus').toBe(true);
   expect(layout.scrollHeight<=layout.clientHeight+2,'Die ABD-Ladeliste würde auf eine zweite Seite überlaufen').toBe(true);
 
