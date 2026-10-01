@@ -1272,15 +1272,22 @@ jobs:
           for attempt in {1..18}; do
             ok=1
             for base in "$prod" "$testservice"; do
-              page=$(mktemp); asset=$(mktemp)
-              pc=$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1092=$GITHUB_SHA-$attempt" || true)
-              ac=$(curl -sS -L -o "$asset" -w '%{http_code}' --max-time 20 "$base/assets/rc1092-customer-mail-contacts.js?rc1092=$GITHUB_SHA-$attempt" || true)
-              [[ "$pc" == '200' && "$ac" == '200' ]] || ok=0
+              page=$(mktemp); asset=$(mktemp); avisflow=$(mktemp)
+              pc=$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1380=$GITHUB_SHA-$attempt" || true)
+              ac=$(curl -sS -L -o "$asset" -w '%{http_code}' --max-time 20 "$base/assets/rc1092-customer-mail-contacts.js?rc1380=$GITHUB_SHA-$attempt" || true)
+              lc=$(curl -sS -L -o "$avisflow" -w '%{http_code}' --max-time 20 "$base/assets/rc1015-lieferavis-mail-flow.js?rc1380=$GITHUB_SHA-$attempt" || true)
+              [[ "$pc" == '200' && "$ac" == '200' && "$lc" == '200' ]] || ok=0
               grep -q 'assets/rc1092-customer-mail-contacts.js?v=1380' "$page" || ok=0
+              grep -q 'assets/rc1015-lieferavis-mail-flow.js?v=1379' "$page" || ok=0
               grep -q '__EXPORTHUB_RC1092_CUSTOMER_MAIL_CONTACTS__' "$asset" || ok=0
-              grep -q 'customerContacts.savePerson' "$asset" || ok=0
-              grep -q 'customerContacts.addToMail' "$asset" || ok=0
-              rm -f "$page" "$asset"
+              grep -q 'data-rc1092-avis-toggle' "$asset" || ok=0
+              grep -q 'customerAvisLinkEnabled' "$asset" || ok=0
+              grep -q '3019100629' "$asset" || ok=0
+              grep -q 'v-zug@lebert.com' "$asset" || ok=0
+              grep -q 'function rc1330AvisPolicyBlock' "$avisflow" || ok=0
+              grep -q 'customer-policy' "$avisflow" || ok=0
+              grep -q 'customerAvisLinkEnabled' "$avisflow" || ok=0
+              rm -f "$page" "$asset" "$avisflow"
             done
             demo=$(mktemp)
             dc=$(curl -sS -L -o "$demo" -w '%{http_code}' --max-time 20 "$testservice/demo.html?rc1092=$GITHUB_SHA-$attempt" || true)
@@ -1288,12 +1295,12 @@ jobs:
             grep -q 'assets/rc1092-customer-mail-contacts.js?v=1380' "$demo" || ok=0
             rm -f "$demo"
             if [[ "$ok" == '1' ]]; then
-              echo 'RC1092 Kundenkontakte: Person speichern und Zur Mail hinzufügen live bestätigt.'
+              echo 'RC1380 Kundenordner: Kontakte und AVIS-Kundensteuerung live bestätigt.'
               exit 0
             fi
             sleep 5
           done
-          echo 'RC1092 Kundenkontakte-Liveprüfung nicht bestätigt.' >&2
+          echo 'RC1380 Kundenordner/AVIS-Liveprüfung nicht bestätigt.' >&2
           exit 1
 
 
