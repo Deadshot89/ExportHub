@@ -3,7 +3,7 @@
 if(window.__EXPORTHUB_RC1027_LIEFERAVIS_IMMEDIATE__)return;
 window.__EXPORTHUB_RC1027_LIEFERAVIS_IMMEDIATE__=true;
 
-var previous=null,wrapper=null,earlyPending=null,visibleSyncing=false,draftSyncTimer=0,draftSyncPending=null,lastDraftSignature='',avisLinkCache=Object.create(null);
+var previous=null,wrapper=null,earlyPending=null,visibleSyncing=false,draftSyncTimer=0,draftSyncPending=null,disablePending=Object.create(null),lastDraftSignature='',avisLinkCache=Object.create(null);
 function q(v){return String(v==null?'':v).trim()}
 var RC1333_PROD_AVIS_ORIGIN='https://exporthub360.com';
 var RC1333_TEST_AVIS_ORIGIN='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net';
@@ -147,13 +147,18 @@ function patchDisabledAvis(sh){
  return true
 }
 async function disableDraftAvis(sh){
- if(typeof fetch!=='function')return previous&&typeof previous.toggle==='function'?previous.toggle(false):patchDisabledAvis(sh);
- var ref=explicitReference(sh);
- if(!/^[A-Z0-9]{6}$/.test(ref))return patchDisabledAvis(sh);
- var payload={action:'disable',shipmentId:shipmentId(sh)||ref,reference:ref,environment:environmentName(),shipmentSnapshot:avisDraftSnapshot(sh)};
- var r=await fetch('/api/customer-avis',{method:'POST',credentials:'same-origin',cache:'no-store',headers:fastAvisHeaders(),body:JSON.stringify(payload)}),data=await r.json().catch(function(){return{}});
- if(!r.ok)throw new Error(q(data&&data.message)||('HTTP '+r.status));
- return patchDisabledAvis(sh)
+ var ref=explicitReference(sh),key=ref||shipmentId(sh)||'current';
+ if(disablePending[key])return disablePending[key];
+ var task=(async function(){
+  if(typeof fetch!=='function')return previous&&typeof previous.toggle==='function'?previous.toggle(false):patchDisabledAvis(sh);
+  if(!/^[A-Z0-9]{6}$/.test(ref))return patchDisabledAvis(sh);
+  var payload={action:'disable',shipmentId:shipmentId(sh)||ref,reference:ref,environment:environmentName(),shipmentSnapshot:avisDraftSnapshot(sh)};
+  var r=await fetch('/api/customer-avis',{method:'POST',credentials:'same-origin',cache:'no-store',headers:fastAvisHeaders(),body:JSON.stringify(payload)}),data=await r.json().catch(function(){return{}});
+  if(!r.ok)throw new Error(q(data&&data.message)||('HTTP '+r.status));
+  return patchDisabledAvis(sh)
+ })();
+ disablePending[key]=task;
+ try{return await task}finally{if(disablePending[key]===task)delete disablePending[key]}
 }
 async function issueDraftAvis(sh){
  if(typeof fetch!=='function')return previous&&typeof previous.toggle==='function'?previous.toggle(true):false;
