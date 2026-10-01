@@ -14,3 +14,12 @@ test('RC1387: Drive-Backfill bleibt Kandidat für retryArchiveBackup',()=>{
   assert.match(archive,/candidates\.push\(\{/);
   assert.match(archive,/await retryArchiveBackup\(candidate\.accessKey, environment\)/);
 });
+
+
+test('RC1390: fehlgeschlagenes Drive-Backfill wird nicht als gespeichert gezaehlt',()=>{
+  assert.match(archive,/const driveRequired = m365Enabled\(\) && graphDrive\.readiness\(\)\.configured/);
+  assert.match(archive,/const driveSaved = backup\.driveSaved === true \|\| result && result\.driveSaved === true/);
+  assert.match(archive,/if \(backup\.archiveSaved === true && \(!driveRequired \|\| driveSaved\)\)/);
+  assert.match(archive,/backup\.driveLastError/);
+  assert.match(archive,/pending\.push\(\{ reference: candidate\.reference, error: pendingError \}\)/);
+});
