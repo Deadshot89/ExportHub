@@ -14,6 +14,13 @@ test('RC1021: jeder erfolgreiche Lieferavis-Statuswechsel meldet die Mailruntime
 });
 
 
+test('RC1382 P1: bestätigter Sync oder Shipment-Saved Event löst keinen redundanten zweiten Sendungs-Save aus',()=>{
+  const automatic=source.slice(source.indexOf('async function rc1021AutoEnable'),source.indexOf('function stripAvisBlocks'));
+  assert.match(automatic,/saveAlreadyConfirmed=reason==='exporthub:sync'\|\|reason==='exporthub:shipment-saved'/);
+  assert.match(automatic,/if\(!saveAlreadyConfirmed\)await rc1015PersistBeforeAvis\(\)/);
+  assert.match(automatic,/await base\.toggle\(true\)/,'Avis-Aktivierung muss nach bestätigtem Save weiterhin erfolgen.');
+});
+
 test('RC1236: normale Navigation startet außerhalb der Sendungsansicht keinen Avis-Autosave',()=>{
   assert.match(source,/function rc1021ShipmentViewActive\(\)/,'Ansichts-Guard für die Avis-Automatik fehlt.');
   const automatic=source.slice(source.indexOf('async function rc1021AutoEnable'),source.indexOf('function stripAvisBlocks'));

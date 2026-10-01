@@ -243,7 +243,8 @@ async function rc1021AutoEnable(reason){
  if(autoEnablePending[ref])return false;
  autoEnablePending[ref]=true;
  try{
-  await rc1015PersistBeforeAvis();
+  var saveAlreadyConfirmed=reason==='exporthub:sync'||reason==='exporthub:shipment-saved';
+  if(!saveAlreadyConfirmed)await rc1015PersistBeforeAvis();
   sh=currentShipmentForAvis()||sh;
   if(!rc1021ShouldAutoEnable(sh))return rc1018Enabled(sh);
   await base.toggle(true);
