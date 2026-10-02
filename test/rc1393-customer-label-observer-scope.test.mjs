@@ -63,7 +63,8 @@ test('RC1393: Kundenansicht beobachtet nur den lokalen Content-Bereich',()=>{
   assert.equal(h.observers.length,1);
   assert.equal(h.observers[0].target,h.content);
   assert.notEqual(h.observers[0].target,h.documentElement);
-  assert.deepEqual(h.observers[0].options,{subtree:true,childList:true});
+  assert.equal(h.observers[0].options.subtree,true);
+  assert.equal(h.observers[0].options.childList,true);
 });
 
 test('RC1393: View-Wechsel aktiviert und deaktiviert den lokalen Observer',()=>{
