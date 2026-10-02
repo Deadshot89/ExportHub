@@ -48,3 +48,13 @@ test('RC1290: Graph- und Readiness-Code bleiben syntaktisch gültig',()=>{
   execFileSync(process.execPath,['--check','api/shared/graph-mail.js'],{stdio:'pipe'});
   execFileSync(process.execPath,['--check','api/avis-upload-mail-readiness/index.js'],{stdio:'pipe'});
 });
+
+test('RC1427: Graph-sendMail trennt Auth-, Zugriffs- und Senderfehler ohne Secrets',()=>{
+  assert.match(graphSource,/GRAPH_SEND_UNAUTHORIZED/);
+  assert.match(graphSource,/GRAPH_SEND_FORBIDDEN/);
+  assert.match(graphSource,/GRAPH_SENDER_NOT_FOUND/);
+  assert.match(graphSource,/upstreamStatus=upstreamStatus/);
+  assert.match(graphSource,/out\.sender=text\(sender\)/);
+  const block=graphSource.slice(graphSource.indexOf('function sendFailure'),graphSource.indexOf('function transient'));
+  assert.doesNotMatch(block,/access_token|clientSecret|Authorization:/i);
+});
