@@ -10,10 +10,10 @@ test('RC1383: geänderte AVIS-Runtimes werden mit neuem Cache-Key ausgeliefert',
   const deployPatch=read('.github/rc1018/apply-standard-deploy.mjs');
   const workflow=read('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml');
 
-  assert.match(customerBuilder,/rc1092-customer-mail-contacts\.js\?v=1380/);
+  assert.match(customerBuilder,/rc1092-customer-mail-contacts\.js\?v=1399/);
   assert.match(avisBuilder,/rc1015-lieferavis-mail-flow\.js\?v=1383/);
   assert.match(deployPatch,/rc1015-lieferavis-mail-flow\.js\?v=1383/);
-  assert.match(workflow,/rc1092-customer-mail-contacts\.js\?v=1380/);
+  assert.match(workflow,/rc1092-customer-mail-contacts\.js\?v=1399/);
   assert.match(workflow,/rc1015-lieferavis-mail-flow\.js\?v=1383/);
 
   for(const source of [customerBuilder,avisBuilder,deployPatch,workflow]){
