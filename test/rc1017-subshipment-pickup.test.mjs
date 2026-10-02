@@ -166,3 +166,19 @@ test('RC1342: Pickup-Store verwendet dieselbe Storage-Konfigurationsfamilie wie 
   assert.match(src,/EXPORTHUB_STORAGE_CONTAINER\|\|process\.env\.EXPORTHUB_CONTAINER/);
   assert.match(src,/EXPORTHUB_STORAGE_CONNECTION_STRING\|\|process\.env\.EXPORTHUB_STORAGE_CONNECTION\|\|process\.env\.EXPORTHUB_AZURE_STORAGE_CONNECTION_STRING\|\|process\.env\.AzureWebJobsStorage/);
 });
+
+
+test('RC1406 P0: bestätigte aber noch nicht synchronisierte QR-Abholung bleibt im UI wiederaufnehmbar',()=>{
+  const page=fs.readFileSync('pickup.html','utf8');
+  assert.match(page,/id="recoverySection" class="section" hidden/);
+  assert.match(page,/Abholung fertig synchronisieren/);
+  assert.match(page,/id="recoveryPin"/);
+  assert.match(page,/id="recoverPickup"/);
+  assert.match(page,/if\(confirmed\(data\)\)\{[\s\S]*?recovery\.hidden=false[\s\S]*?Synchronisierung mit dem Verlader-PIN abschließen/);
+  assert.match(page,/request\('pickup-confirm-v2',\{method:'POST',body:JSON\.stringify\(\{token:token,pin:pin,loaderPin:pin,personalLoaderPin:pin,environment:env\}\)/);
+  const recoveryStart=page.indexOf("if(recoverPickup)recoverPickup.addEventListener");
+  const recoveryEnd=page.indexOf("function checkColli",recoveryStart);
+  const recoveryBlock=page.slice(recoveryStart,recoveryEnd);
+  assert.doesNotMatch(recoveryBlock,/signatureDataUrl|customsDocumentsConfirmed|colliCount|enteredColliCount/);
+  assert.match(recoveryBlock,/Abholung vollständig abgeschlossen/);
+});
