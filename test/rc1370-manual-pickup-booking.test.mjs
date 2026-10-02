@@ -11,7 +11,7 @@ const flow=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-fo
 
 test('RC1370: Sendungsansicht bietet die manuelle Abholbuchung mit den geforderten Feldern',()=>{
   for(const marker of [
-    'Abholung manuell buchen',
+    'manualPickup.title',
     'data-rc1370-date',
     'data-rc1370-slot',
     'data-rc1370-carrier',
@@ -71,5 +71,22 @@ test('RC1370: Produktionsbuild erzwingt den neuen Cache-Key',()=>{
   for(const source of [build,flow]){
     assert.match(source,/rc1014-shipment-overview\.js\?v=1370/);
     assert.match(source,/rc1014-shipment-overview\.css\?v=1370/);
+  }
+});
+
+
+test('RC1370: manuelle Abholbuchung ist in allen sechs Produktsprachen vollständig hinterlegt',()=>{
+  const languages=['de','en','pl','es','fr','it'];
+  const required=[
+    'manualPickup.title','manualPickup.help','manualPickup.badge','manualPickup.date','manualPickup.timeSlot',
+    'manualPickup.selectDateFirst','manualPickup.loadingSlots','manualPickup.selectSlot','manualPickup.slotRemaining',
+    'manualPickup.carrier','manualPickup.shipmentNumber','manualPickup.plate','manualPickup.save',
+    'manualPickup.shipmentMissing','manualPickup.alreadyPicked','manualPickup.dateRequired','manualPickup.slotRequired',
+    'manualPickup.carrierRequired','manualPickup.shipmentNumberRequired','manualPickup.saving','manualPickup.saved',
+    'manualPickup.failed','manualPickup.booked','manualPickup.bookedBy'
+  ];
+  for(const lang of languages){
+    const dict=JSON.parse(fs.readFileSync('assets/i18n/'+lang+'.json','utf8'));
+    for(const key of required)assert.ok(String(dict[key]||'').trim(),lang+' fehlt '+key);
   }
 });
