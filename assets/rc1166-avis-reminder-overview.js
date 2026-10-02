@@ -79,7 +79,7 @@ function closed(sh){
  if(q(sh.actualPickupAt||sh.pickedUpAt||sh.pickupConfirmedAt||sh.qrPickupConfirmedAt||sh.pickupCompletedAt))return true;
  return /^(?:abgeholt|pod vorhanden|abgeschlossen|archiviert|picked up|pod available|completed|archived)$/i.test(q(sh.status||sh.shipmentStatus||sh.processStatus))
 }
-var RC1333_PROD_AVIS_ORIGIN='https://exporthub360.com';
+var RC1333_PROD_AVIS_ORIGIN='https://www.exporthub360.de';
 var RC1333_TEST_AVIS_ORIGIN='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net';
 function safeAvisLink(sh,url){
  var token=q(sh&&(sh.customerAvisToken||sh.avisToken)),env='';
