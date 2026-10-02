@@ -69,6 +69,18 @@ async function verifyAuthentication(){
  }
 }
 function transient(e){return[408,429,500,502,503,504].includes(Number(e&&e.statusCode||0))||['GRAPH_TIMEOUT','GRAPH_NETWORK_ERROR','ECONNRESET','ETIMEDOUT'].includes(e&&e.code)}
+function sendFailure(e,sender){
+ const upstreamStatus=Number(e&&e.statusCode||0)||0;
+ let out=e;
+ if(upstreamStatus===401)out=error('GRAPH_SEND_UNAUTHORIZED','Microsoft Graph hat den Mailversand trotz erneuertem App-Token abgewiesen.',502);
+ else if(upstreamStatus===403)out=error('GRAPH_SEND_FORBIDDEN','Microsoft Graph hat den Mailversand für dieses Absenderpostfach abgewiesen.',502);
+ else if(upstreamStatus===404)out=error('GRAPH_SENDER_NOT_FOUND','Das konfigurierte Absenderpostfach wurde von Microsoft Graph nicht gefunden.',503);
+ if(!out)out=error('GRAPH_MAIL_FAILED','E-Mail konnte nicht versendet werden.',502);
+ out.upstreamStatus=upstreamStatus;
+ out.sender=text(sender);
+ return out
+}
+
 function delay(e,n){const h=e&&e.responseHeaders||{},ra=Number(h['retry-after']||0);return ra>0?Math.min(5000,ra*1000):Math.min(2500,350*Math.pow(2,n-1))}
 function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
 async function sendTextMail({to,subject,body,sender,cc}){
@@ -89,9 +101,9 @@ async function sendTextMail({to,subject,body,sender,cc}){
    last=e;
    if(e&&e.statusCode===401&&!force){tokenCache=null;force=true;continue}
    if(attempt<3&&transient(e)){await sleep(delay(e,attempt));force=false;continue}
-   throw e
+   throw sendFailure(e,actualSender)
   }
  }
- throw last||error('GRAPH_MAIL_FAILED','E-Mail konnte nicht versendet werden.',502)
+ throw sendFailure(last,actualSender)
 }
 module.exports={readiness,verifyAuthentication,permissionRequirement,sendTextMail};
