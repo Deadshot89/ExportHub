@@ -92,7 +92,9 @@ test('RC1114: POD-Sicherungsstatus wird in Team-State und öffentliche Statusant
 
 test('RC1144: fehlgeschlagene POD-Backups werden dauerhaft serverseitig nachgeholt',()=>{
   assert.match(archive,/async function reconcilePendingBackups\(/);
-  assert.match(archive,/listBlobsFlat\(\{\s*prefix\s*\}\)/);
+  assert.match(archive,/listBlobsFlat\(\{\s*prefix\s*\}\)\.byPage\(/);
+  assert.match(archive,/continuationToken:\s*continuationToken\s*\|\|\s*undefined/);
+  assert.match(archive,/maxPageSize:\s*scanPageSize/);
   assert.match(archive,/await retryArchiveBackup\(/);
   assert.match(archive,/await store\.updateTeam\(/);
   assert.match(archive,/reconcilePendingBackups/);
@@ -110,6 +112,15 @@ test('RC1144: eigener OIDC-geschützter Wartungsendpunkt stößt offene POD-Back
   assert.match(reconcileApi,/WORKFLOW\s*=\s*['"]rc1144-pod-backup-reconcile\.yml['"]/);
   assert.match(reconcileApi,/podArchive\.reconcilePendingBackups\(/);
   assert.ok(reconcileApi.includes("['workflow_run','schedule','workflow_dispatch']"),'erlaubte Workflow-Ereignisse fehlen');
+});
+
+test('RC1406: POD-Reconcile verarbeitet Produktion paginiert statt als Vollscan',()=>{
+  assert.match(reconcileApi,/continuationToken:\s*text\(payload\.continuationToken\)/);
+  assert.match(reconcileApi,/scanPageSize:/);
+  assert.match(reconcileWorkflow,/continuation_token=''/);
+  assert.match(reconcileWorkflow,/CONTINUATION_TOKEN="\$continuation_token"/);
+  assert.match(reconcileWorkflow,/nextContinuationToken/);
+  assert.match(reconcileWorkflow,/scanComplete===true/);
 });
 
 test('RC1144: POD-Nachholung läuft nach Deployments und zusätzlich alle 15 Minuten',()=>{
