@@ -38,8 +38,8 @@ test('RC1016 Bestandsschutz prüft die damaligen Funktionen und Sicherheitsregre
   ])assert.ok(flow.includes(required),`${required} fehlt im aktuellen Standarddeploy`);
   assert.match(flow,/assets\/rc1016-mobile-navigation\.js\?v=1400/);
   assert.match(flow,/assets\/rc1014-task-runtime\.js\?v=1359/,'Aktueller Standarddeploy muss den RC1359 Aufgaben-Runtime-Cache-Key verwenden');
-  assert.match(flow,/assets\/rc1014-shipment-overview\.js\?v=1284/,'Aktueller Standarddeploy muss den RC1284 Shipment-Overview-Cache-Key verwenden');
-  assert.match(flow,/assets\/rc1014-shipment-overview\.css\?v=1284/,'Aktueller Standarddeploy muss auch den RC1284 Overview-CSS-Cache-Key verwenden');
+  assert.match(flow,/assets\/rc1014-shipment-overview\.js\?v=1284/,'Aktueller Standarddeploy muss den RC1370 Shipment-Overview-Cache-Key verwenden');
+  assert.match(flow,/assets\/rc1014-shipment-overview\.css\?v=1284/,'Aktueller Standarddeploy muss auch den RC1370 Overview-CSS-Cache-Key verwenden');
   assert.match(flow,/assets\/rc1015-lieferavis-mail-flow\.js\?v=1383/);
 });
 
@@ -47,8 +47,8 @@ test('RC1016 Bestandsschutz prüft die damaligen Funktionen und Sicherheitsregre
 test('RC1361: RC1048-Buildgenerator und Production-Gate verwenden denselben Shipment-Overview-Cache-Key',()=>{
   const flow=read(FLOW),build=read('.github/rc1048/build-three-env.mjs');
   for(const asset of [
-    'assets/rc1014-shipment-overview.js?v=1284',
-    'assets/rc1014-shipment-overview.css?v=1284'
+    'assets/rc1014-shipment-overview.js?v=1370',
+    'assets/rc1014-shipment-overview.css?v=1370'
   ]){
     assert.ok(flow.includes(asset),asset+' fehlt im Production-Gate');
     assert.ok(build.includes(asset),asset+' fehlt im RC1048-Buildgenerator');
