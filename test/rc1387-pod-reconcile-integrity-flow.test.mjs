@@ -14,7 +14,7 @@ test('RC1395: gültiges Azure-Archiv mit fehlender Drive-Kopie bleibt fachlich g
 test('RC1395: Drive-Backfill bleibt Kandidat, verdrängt aber keine erforderliche Azure-Nachsicherung',()=>{
   assert.match(archive,/candidates\.push\(\{[\s\S]*?driveOnly/);
   assert.match(archive,/Number\(!!a\.driveOnly\) - Number\(!!b\.driveOnly\)/);
-  assert.match(archive,/const requiredEligible = candidates\.filter\(candidate => !candidate\.driveOnly\)\.length/);
+  assert.match(archive,/const requiredEligible = requiredCandidates\.length/);
   assert.match(archive,/await retryArchiveBackup\(candidate\.accessKey, environment\)/);
 });
 
