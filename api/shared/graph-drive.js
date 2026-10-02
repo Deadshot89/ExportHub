@@ -271,7 +271,8 @@ async function listUserDrives(token, user) {
 }
 
 async function resolveDefaultUserDriveTarget(token, user, folders) {
-  for (const folder of Array.isArray(folders) ? folders : []) {
+  const candidates = Array.isArray(folders) ? folders : [];
+  for (const folder of candidates) {
     const path = encodedPath(folder);
     if (!path) continue;
     try {
@@ -288,6 +289,29 @@ async function resolveDefaultUserDriveTarget(token, user, folders) {
         error
       );
     }
+  }
+
+  // RC1402: Der exakte Root-Pfad kann bei OneDrive-for-Business trotz
+  // erreichbarem Default-Drive abweichen. Deshalb den echten Default-Drive
+  // ermitteln und den Zielordner darin anhand des realen Inhalts suchen.
+  let driveResult = null;
+  try {
+    driveResult = await graphGet(token, `/users/${encodeURIComponent(user)}/drive?$select=id,webUrl`);
+  } catch (error) {
+    if (!isNotFound(error)) {
+      throw targetError(
+        'GRAPH_DEFAULT_DRIVE_TARGET_FAILED',
+        'Das konfigurierte Microsoft-365-Benutzerlaufwerk konnte nicht für die POD-Zielsuche gelesen werden.',
+        error
+      );
+    }
+  }
+  const driveId = text(driveResult && driveResult.body && driveResult.body.id);
+  if (!driveId) return null;
+
+  for (const folder of candidates) {
+    const found = await searchFolderInDrive(token, driveId, folder);
+    if (found) return found;
   }
   return null;
 }
