@@ -157,7 +157,10 @@ async function renderRights(){
 function removeBoxes(){['rc1160CustomerFolderPortal','rc1160ShipmentPortal','rc1160PortalRights'].forEach(function(id){var n=d.getElementById(id);if(n)n.remove()})}
 function contextKey(){var c=selectedCustomer();return view()+'|'+customerId(c)+'|'+JSON.stringify(rights())}
 function schedule(force){
- ensureStyle();var key=contextKey();if(!force&&key===lastContext)return;lastContext=key;clearRevealedSecrets();removeBoxes();
+ ensureStyle();var key=contextKey(),sameContext=key===lastContext,dialogOpen=!!d.getElementById('rc1160RevealDialog');
+ if(dialogOpen&&sameContext)return;
+ if(!force&&sameContext)return;
+ lastContext=key;clearRevealedSecrets();removeBoxes();
  var r=rights(),v=view(),c=selectedCustomer();if(!r.use)return;
  if((v==='customerfolder'||v==='customers')&&c)renderCustomerFolder(c,r);
  if(v==='shipment'&&c)renderShipment(c,r);
