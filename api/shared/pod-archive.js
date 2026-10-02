@@ -473,16 +473,16 @@ async function reconcilePendingBackups(environment, options) {
       // ohne die tägliche vollständige Integritätsprüfung zu schwächen.
       const integrity = verificationFresh
         ? { ok: true, verifiedAt: backup.archiveVerifiedAt, cached: true }
-        : await checkAzureArchive(clients, record, match[1].toLowerCase(), true);
+        : await checkAzureArchive(clients, record, accessKey, true);
       if (integrity.ok) {
         verifiedCount += 1;
         if (!verificationFresh) {
-          record = await persistBackupState(match[1].toLowerCase(), environment, { archiveVerifiedAt: integrity.verifiedAt, lastError: '' });
+          record = await persistBackupState(accessKey, environment, { archiveVerifiedAt: integrity.verifiedAt, lastError: '' });
           backup = record.podBackup || backup;
         }
         if (text(record.teamPodLinkVersion) !== TEAM_POD_LINK_VERSION) {
           teamRelinkCandidates.push({
-            accessKey: match[1].toLowerCase(),
+            accessKey: accessKey,
             reference: recordReference || text(record.reference),
             confirmedAtMs: Date.parse(record.confirmedAt || '') || 0,
             record
@@ -498,7 +498,7 @@ async function reconcilePendingBackups(environment, options) {
           integrityErrors.push({ reference: recordReference || text(record.reference), code: integrity.code, error: integrity.message });
           continue;
         }
-        record = await persistBackupState(match[1].toLowerCase(), environment, {
+        record = await persistBackupState(accessKey, environment, {
           status: 'pending',
           archiveSaved: false,
           lastError: integrity.code + ': ' + integrity.message
@@ -515,7 +515,7 @@ async function reconcilePendingBackups(environment, options) {
       continue;
     }
     candidates.push({
-      accessKey: match[1].toLowerCase(),
+      accessKey: accessKey,
       reference: recordReference || text(record.reference),
       lastAttemptMs: Number.isFinite(lastAttemptMs) ? lastAttemptMs : 0,
       confirmedAtMs: Date.parse(record.confirmedAt || '') || 0,
