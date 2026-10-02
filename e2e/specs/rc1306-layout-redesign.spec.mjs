@@ -57,6 +57,42 @@ test('RC1310: explicit design switch builds the layout only once',async({page},t
   await assertRuntimeClean(runtime,testInfo);
 });
 
+test('RC1412: Neue Sendung setzt den Entwurf zurück ohne die montierte Sendungsansicht neu aufzubauen',async({page},testInfo)=>{
+  const runtime=attachRuntimeGuards(page,testInfo);
+  await openShipment(page);
+  await setDesign(page,'classic');
+
+  const before=await page.evaluate(()=>{
+    window.__RC1412_LAYOUT_NODE__=document.getElementById('rc363FixedShipmentLayout')||document.getElementById('rc573ShipmentShell');
+    window.__RC1412_CUSTOMER_NODE__=document.getElementById('rc363BlockCustomer');
+    window.__RC1412_CONTENT_NODE__=document.getElementById('content');
+    const sh=window.__EXPORTHUB_GET_STATE__?.().shipment||{};
+    return{ref:String(sh.ref||sh.reference||'').trim().toUpperCase()};
+  });
+  expect(before.ref).toMatch(/^[A-Z0-9]{6}$/);
+
+  const newShipment=page.locator('#rc380NewShipment').or(page.getByRole('button',{name:/^\+?\s*Neue Sendung$/i})).first();
+  await expect(newShipment).toBeVisible();
+  await newShipment.evaluate(button=>button.click());
+  await expect(page.locator('#rc363BlockCustomer')).toBeVisible();
+
+  const after=await page.evaluate(()=>({
+    layoutPreserved:window.__RC1412_LAYOUT_NODE__===(document.getElementById('rc363FixedShipmentLayout')||document.getElementById('rc573ShipmentShell')),
+    customerPreserved:window.__RC1412_CUSTOMER_NODE__===document.getElementById('rc363BlockCustomer'),
+    contentPreserved:window.__RC1412_CONTENT_NODE__===document.getElementById('content'),
+    ref:String((window.__EXPORTHUB_GET_STATE__?.().shipment||{}).ref||'').trim().toUpperCase(),
+    fresh:(window.__EXPORTHUB_GET_STATE__?.().shipment||{}).__rc562Fresh===true
+  }));
+
+  expect(after.layoutPreserved,'Sendungs-Layout wurde beim neuen Entwurf ersetzt').toBe(true);
+  expect(after.customerPreserved,'Kundenblock wurde beim neuen Entwurf ersetzt').toBe(true);
+  expect(after.contentPreserved,'#content wurde beim neuen Entwurf ersetzt').toBe(true);
+  expect(after.ref).toMatch(/^[A-Z0-9]{6}$/);
+  expect(after.fresh).toBe(true);
+  await commonAssertions(page);
+  await assertRuntimeClean(runtime,testInfo);
+});
+
 test('RC1306: Modern Business uses process rail, work canvas and status rail',async({page},testInfo)=>{
   const runtime=attachRuntimeGuards(page,testInfo);
   await openShipment(page);
