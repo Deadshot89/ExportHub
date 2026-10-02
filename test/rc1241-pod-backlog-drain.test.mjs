@@ -21,7 +21,7 @@ test('RC1241: TESTSERVICE und Produktion fordern vollständiges Leeren des Backl
   assert.equal((workflow.match(/if\(requiredDone\)\{process\.stdout\.write\('done'\);return\}/g)||[]).length,2);
   assert.equal((workflow.match(/if\(selected<=0&&!v\.nextContinuationToken&&!v\.requiredWorkDeferred\)process\.exit\(7\)/g)||[]).length,2);
   assert.equal((workflow.match(/continuation_token=/g)||[]).length>=2,true);
-  assert.equal((workflow.match(/pageWorkDeferred:v\.requiredWorkDeferred/g)||[]).length,2);
+  assert.equal((workflow.match(/pageWorkDeferred:v\.pageWorkDeferred/g)||[]).length,2);
   assert.equal((workflow.match(/requiredWorkDeferred:v\.requiredWorkDeferred/g)||[]).length,2);
   assert.equal((workflow.match(/optionalDriveWorkDeferred:v\.optionalDriveWorkDeferred/g)||[]).length,2);
 });
