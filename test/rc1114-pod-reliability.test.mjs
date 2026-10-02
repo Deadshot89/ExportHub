@@ -126,7 +126,8 @@ test('RC1406: POD-Reconcile verarbeitet Produktion paginiert statt als Vollscan'
   assert.match(reconcileWorkflow,/continuation_token=''/);
   assert.match(reconcileWorkflow,/CONTINUATION_TOKEN="\$continuation_token"/);
   assert.match(reconcileWorkflow,/nextContinuationToken/);
-  assert.match(reconcileWorkflow,/scanComplete===true/);
+  assert.match(reconcileWorkflow,/const requiredDone=eligible===0&&selected===0&&skipped===0&&!v\.nextContinuationToken&&!v\.pageWorkDeferred/);
+  assert.doesNotMatch(reconcileWorkflow,/eligible===0&&selected===0&&skipped===0&&v\.scanComplete===true/);
 });
 
 test('RC1144: POD-Nachholung läuft nach Deployments und zusätzlich alle 15 Minuten',()=>{
