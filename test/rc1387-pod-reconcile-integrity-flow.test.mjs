@@ -4,22 +4,27 @@ import fs from 'node:fs';
 
 const archive=fs.readFileSync('api/shared/pod-archive.js','utf8');
 
-test('RC1387: gültiges Azure-Archiv mit fehlender Drive-Kopie wird nicht als Archivfehler behandelt',()=>{
+test('RC1395: gültiges Azure-Archiv mit fehlender Drive-Kopie bleibt fachlich gesichert und wird nur als optionales Backfill markiert',()=>{
   assert.match(archive,/const driveBackfillRequired = m365Enabled\(\) && graphDrive\.readiness\(\)\.configured && backup\.driveSaved !== true/);
-  assert.match(archive,/if \(integrity\.ok\) \{[\s\S]*?const driveBackfillRequired[\s\S]*?if \(!driveBackfillRequired\) \{[\s\S]*?continue;[\s\S]*?\n\s*\}[\s\S]*?\n\s*\}\n\s*if \(!integrity\.ok\) \{/);
+  assert.match(archive,/if \(!driveBackfillRequired\) continue;/);
+  assert.match(archive,/driveOnly = true;/);
   assert.match(archive,/if \(!integrity\.ok\) \{[\s\S]*?if \(!integrity\.repairable\)/);
 });
 
-test('RC1387: Drive-Backfill bleibt Kandidat für retryArchiveBackup',()=>{
-  assert.match(archive,/candidates\.push\(\{/);
+test('RC1395: Drive-Backfill bleibt Kandidat, verdrängt aber keine erforderliche Azure-Nachsicherung',()=>{
+  assert.match(archive,/candidates\.push\(\{[\s\S]*?driveOnly/);
+  assert.match(archive,/Number\(!!a\.driveOnly\) - Number\(!!b\.driveOnly\)/);
+  assert.match(archive,/const requiredEligible = candidates\.filter\(candidate => !candidate\.driveOnly\)\.length/);
   assert.match(archive,/await retryArchiveBackup\(candidate\.accessKey, environment\)/);
 });
 
 
-test('RC1390: fehlgeschlagenes Drive-Backfill wird nicht als gespeichert gezaehlt',()=>{
+test('RC1395: fehlgeschlagene optionale Drive-Kopie bleibt sichtbar, blockiert aber den erforderlichen POD-Backupstatus nicht',()=>{
   assert.match(archive,/const driveRequired = m365Enabled\(\) && graphDrive\.readiness\(\)\.configured/);
-  assert.match(archive,/const driveSaved = backup\.driveSaved === true \|\| result && result\.driveSaved === true/);
-  assert.match(archive,/if \(backup\.archiveSaved === true && \(!driveRequired \|\| driveSaved\)\)/);
-  assert.match(archive,/backup\.driveLastError/);
-  assert.match(archive,/pending\.push\(\{ reference: candidate\.reference, error: pendingError \}\)/);
+  assert.match(archive,/const driveWasSaved = backup\.driveSaved === true \|\| result && result\.driveSaved === true/);
+  assert.match(archive,/if \(backup\.archiveSaved === true\)/);
+  assert.match(archive,/if \(!candidate\.driveOnly\) saved\.push/);
+  assert.match(archive,/drivePending\.push\(\{/);
+  assert.match(archive,/drivePendingCount: drivePending\.length/);
+  assert.match(archive,/pending\.push\(\{ reference: candidate\.reference, error: text\(backup\.lastError/);
 });
