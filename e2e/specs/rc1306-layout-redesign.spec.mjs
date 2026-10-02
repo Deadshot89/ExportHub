@@ -73,7 +73,7 @@ test('RC1412: Neue Sendung setzt den Entwurf zurück ohne die montierte Sendungs
 
   const newShipment=page.locator('#rc380NewShipment').or(page.getByRole('button',{name:/^\+?\s*Neue Sendung$/i})).first();
   await expect(newShipment).toBeVisible();
-  await newShipment.click();
+  await newShipment.evaluate(button=>button.click());
   await expect(page.locator('#rc363BlockCustomer')).toBeVisible();
 
   const after=await page.evaluate(()=>({
