@@ -626,10 +626,30 @@ async function resolveTarget(token, cfg, force) {
   // Damit können wir den echten driveId/itemId des gemeinsamen POD-Ordners
   // verwenden, ohne für die Zielsuche Sites.Read.All vorauszusetzen.
   if (!value) value = await searchAccessibleUserDriveTargets(token, cfg.user, folders);
-  // RC1401: Personal-Site-Auflösung bleibt als nachgelagerter Fallback.
-  if (!value) value = await resolvePersonalSiteFolderTarget(token, cfg.user, folders);
-  // Historischer Share-URL-Fallback bleibt nur für echte Sharing-URL-Szenarien.
-  if (!value) value = await resolvePersonalFolderTarget(token, cfg.user, cfg.folder);
+  // RC1401/RC1421: Personal-Site-Auflösung bleibt als nachgelagerter Fallback.
+  // Fehlt der App nur die Site-Auflösung, darf das bereits vorhandene Share-Ziel
+  // nicht übersprungen werden. Erst wenn auch der Share-Fallback kein Ziel
+  // liefert, wird der ursprüngliche Personal-Site-Fehler an den direkten
+  // Benutzerpfad-Fallback weitergereicht.
+  let personalSiteError = null;
+  if (!value) {
+    try {
+      value = await resolvePersonalSiteFolderTarget(token, cfg.user, folders);
+    } catch (error) {
+      if (text(error && error.code) === 'GRAPH_PERSONAL_SITE_TARGET_FAILED') personalSiteError = error;
+      else throw error;
+    }
+  }
+  // Historischer Share-URL-Fallback bleibt für echte Sharing-URL-Szenarien
+  // aktiv und wird bei einer nicht lesbaren Personal-Site ebenfalls versucht.
+  if (!value) {
+    try {
+      value = await resolvePersonalFolderTarget(token, cfg.user, cfg.folder);
+    } catch (error) {
+      if (!personalSiteError) throw error;
+    }
+  }
+  if (!value && personalSiteError) throw personalSiteError;
   if (!value) throw targetError('GRAPH_FOLDER_NOT_FOUND', 'Der konfigurierte Microsoft-365-Zielordner wurde weder in erreichbaren Drives noch im konfigurierten Benutzerlaufwerk oder über seine explizite OneDrive-URL gefunden.', { statusCode: 404 });
 
   targetCache = { key, value, expiresAt: Date.now() + 10 * 60 * 1000 };

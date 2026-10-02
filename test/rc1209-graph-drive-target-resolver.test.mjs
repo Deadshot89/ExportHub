@@ -327,6 +327,10 @@ test('RC1408: Personal-Site-Fehler fällt auf den explizit konfigurierten Benutz
       return{status:403,body:{error:{code:'accessDenied',message:'Sites lookup is not permitted'}}};
     }
     if(index===8){
+      assert.match(call.path,/^\/v1\.0\/shares\/u![^/]+\/driveItem\?\$select=id,name,folder,parentReference$/);
+      return{status:404,body:{error:{code:'itemNotFound',message:'Shared target not found'}}};
+    }
+    if(index===9){
       assert.equal(call.method,'PUT');
       assert.equal(
         call.path,
@@ -486,3 +490,36 @@ test('RC1213: nicht auffindbarer Zielordner wird als GRAPH_FOLDER_NOT_FOUND klas
   });
 });
 
+
+
+test('RC1421: Personal-Site-Fehler nutzt vorhandenes Share-Ziel vor dem direkten Benutzerpfad',async()=>{
+  setEnv();
+  const graph=fresh();
+  await withFakeHttps((call,index)=>{
+    if(index===1)return tokenResponse();
+    if(index===2)return{status:404,body:{error:{code:'Request_ResourceNotFound',message:'User drives not available'}}};
+    if(index===3||index===4)return{status:404,body:{error:{code:'itemNotFound',message:'Default drive folder not found'}}};
+    if(index===5)return{status:200,body:{id:'drive-default'}};
+    if(index===6)return{status:200,body:{value:[]}};
+    if(index===7){
+      assert.match(call.path,/^\/v1\.0\/sites\/essentra-my\.sharepoint\.com:/);
+      return{status:403,body:{error:{code:'accessDenied',message:'Sites lookup is not permitted'}}};
+    }
+    if(index===8){
+      assert.equal(call.method,'GET');
+      assert.match(call.path,/^\/v1\.0\/shares\/u![^/]+\/driveItem\?\$select=id,name,folder,parentReference$/);
+      return{status:200,body:{id:'folder-shared',name:'Abliefernachweise',folder:{},parentReference:{driveId:'drive-shared'}}};
+    }
+    if(index===9){
+      assert.equal(call.method,'PUT');
+      assert.equal(call.path,'/v1.0/drives/drive-shared/items/folder-shared:/POD_TV9NKH.pdf:/content');
+      return{status:201,body:{id:'file-shared',name:'POD_TV9NKH.pdf',size:9,webUrl:'https://example.invalid/shared'}};
+    }
+    throw new Error('Unerwarteter Aufruf '+index+' '+call.method+' '+call.path);
+  },async calls=>{
+    const result=await graph.uploadPdf(Buffer.from('%PDF-test'),'POD_TV9NKH.pdf');
+    assert.equal(result.id,'file-shared');
+    assert.equal(result.folder,'Documents/003 Export/ExportHub/Abliefernachweise');
+    assert.equal(calls.some(call=>/\/users\/[^/]+\/drive\/root:.*\/POD_TV9NKH\.pdf:\/content$/.test(call.path)),false);
+  });
+});
