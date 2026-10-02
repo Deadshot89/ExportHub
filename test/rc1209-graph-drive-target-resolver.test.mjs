@@ -306,6 +306,29 @@ test('RC1217: Graph Shares BadRequest wird ohne Rohmeldung als GRAPH_SHARE_TARGE
   });
 });
 
+test('RC1395: deterministischer Graph-Zielfehler wird im selben Reconcile kurzzeitig negativ gecacht',async()=>{
+  setEnv();
+  const graph=fresh();
+  await withFakeHttps((call,index)=>{
+    if(index===1)return tokenResponse();
+    if(index===2)return{status:404,body:{error:{code:'Request_ResourceNotFound',message:'User or drives not found'}}};
+    if(index===3||index===4)return{status:404,body:{error:{code:'itemNotFound',message:'Default drive folder not found'}}};
+    if(index===5)return{status:400,body:{error:{code:'BadRequest',message:'target cannot be resolved'}}};
+    throw new Error('Negativcache wurde nicht verwendet; unerwarteter Aufruf '+index);
+  },async calls=>{
+    await assert.rejects(
+      graph.uploadPdf(Buffer.from('%PDF-one'),'POD_ONE.pdf'),
+      error=>error&&error.code==='GRAPH_SHARE_TARGET_FAILED'
+    );
+    assert.equal(calls.length,5);
+    await assert.rejects(
+      graph.uploadPdf(Buffer.from('%PDF-two'),'POD_TWO.pdf'),
+      error=>error&&error.code==='GRAPH_SHARE_TARGET_FAILED'
+    );
+    assert.equal(calls.length,5,'derselbe deterministische Zielfehler darf im Batch nicht für jedes POD erneut Graph aufrufen');
+  });
+});
+
 test('RC1213: Zielordner muss genau in einem erreichbaren Drive gefunden werden',async()=>{
   setEnv();
   const graph=fresh();
