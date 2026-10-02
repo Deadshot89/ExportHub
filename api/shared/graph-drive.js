@@ -292,6 +292,112 @@ async function resolveDefaultUserDriveTarget(token, user, folders) {
   return null;
 }
 
+function folderLeaf(value) {
+  const parts = rawFolder(value).split('/').filter(Boolean);
+  return parts.length ? parts[parts.length - 1] : '';
+}
+
+function normalizedComparablePath(value) {
+  return rawFolder(value)
+    .replace(/^root:\/+/i, '')
+    .replace(/^drives\/[^/]+\/root:\/+/i, '')
+    .replace(/^documents\//i, '')
+    .toLowerCase();
+}
+
+function folderSearchScore(item, wantedFolder) {
+  const wanted = normalizedComparablePath(wantedFolder);
+  const name = text(item && item.name).toLowerCase();
+  const parentPath = normalizedComparablePath(item && item.parentReference && item.parentReference.path || '');
+  const actual = [parentPath, name].filter(Boolean).join('/').replace(/^\/+/, '');
+  if (!wanted || !actual) return 0;
+  if (actual === wanted) return 100;
+  if (actual.endsWith('/' + wanted)) return 90;
+  const wantedParts = wanted.split('/').filter(Boolean);
+  const actualParts = actual.split('/').filter(Boolean);
+  let tail = 0;
+  while (
+    tail < wantedParts.length &&
+    tail < actualParts.length &&
+    wantedParts[wantedParts.length - 1 - tail] === actualParts[actualParts.length - 1 - tail]
+  ) tail += 1;
+  return tail >= 2 ? 50 + tail : 0;
+}
+
+async function searchFolderInDrive(token, driveId, wantedFolder) {
+  const leaf = folderLeaf(wantedFolder);
+  if (!leaf || !driveId) return null;
+  let result;
+  try {
+    result = await graphGet(
+      token,
+      `/drives/${encodeURIComponent(driveId)}/root/search(q='${encodeURIComponent(leaf)}')?$select=id,name,folder,parentReference,webUrl`
+    );
+  } catch (error) {
+    if (isNotFound(error)) return null;
+    throw error;
+  }
+  const rows = Array.isArray(result && result.body && result.body.value) ? result.body.value : [];
+  const ranked = rows
+    .filter(item => item && item.folder && text(item.id))
+    .map(item => ({ item, score: folderSearchScore(item, wantedFolder) }))
+    .filter(entry => entry.score > 0)
+    .sort((a, b) => b.score - a.score);
+  if (!ranked.length) return null;
+  if (ranked.length > 1 && ranked[0].score === ranked[1].score && text(ranked[0].item.id) !== text(ranked[1].item.id)) {
+    throw targetError('GRAPH_TARGET_AMBIGUOUS', 'Der konfigurierte Microsoft-365-POD-Zielordner wurde mehrfach gefunden.', { statusCode: 409 });
+  }
+  const item = ranked[0].item;
+  const resolvedDriveId = text(item.parentReference && item.parentReference.driveId) || text(driveId);
+  return {
+    driveId: resolvedDriveId,
+    folderId: text(item.id),
+    folder: wantedFolder
+  };
+}
+
+async function searchConfiguredFolderTargets(token, user, drives, folders) {
+  const found = [];
+  for (const drive of Array.isArray(drives) ? drives : []) {
+    const driveId = text(drive && drive.id);
+    if (!driveId) continue;
+    for (const folder of Array.isArray(folders) ? folders : []) {
+      const match = await searchFolderInDrive(token, driveId, folder);
+      if (match) {
+        found.push(match);
+        break;
+      }
+    }
+  }
+
+  if (!found.length) {
+    let defaultDrive = null;
+    try {
+      defaultDrive = await graphGet(token, `/users/${encodeURIComponent(user)}/drive?$select=id`);
+    } catch (error) {
+      if (!isNotFound(error)) throw targetError(
+        'GRAPH_DEFAULT_DRIVE_TARGET_FAILED',
+        'Das konfigurierte Microsoft-365-Benutzerlaufwerk konnte nicht für die POD-Zielsuche gelesen werden.',
+        error
+      );
+    }
+    const defaultDriveId = text(defaultDrive && defaultDrive.body && defaultDrive.body.id);
+    if (defaultDriveId) {
+      for (const folder of Array.isArray(folders) ? folders : []) {
+        const match = await searchFolderInDrive(token, defaultDriveId, folder);
+        if (match) {
+          found.push(match);
+          break;
+        }
+      }
+    }
+  }
+
+  const unique = Array.from(new Map(found.map(item => [item.driveId + ':' + item.folderId, item])).values());
+  if (unique.length > 1) throw targetError('GRAPH_TARGET_AMBIGUOUS', 'Der konfigurierte Microsoft-365-POD-Zielordner ist nicht eindeutig.', { statusCode: 409 });
+  return unique[0] || null;
+}
+
 async function findFolder(token, driveId, folder) {
   const path = encodedPath(folder);
   if (!path) return null;
@@ -349,6 +455,12 @@ async function resolveTarget(token, cfg, force) {
   // Benutzer-Default-Drive immer als zweiten Resolver versuchen, sobald die
   // Drive-Suche keinen eindeutigen Zielordner gefunden hat.
   if (!value) value = await resolveDefaultUserDriveTarget(token, cfg.user, folders);
+  // RC1397: Wenn der konfigurierte Pfad wegen abweichender Root-/Documents-Struktur
+  // nicht exakt auflösbar ist, den Zielordner über den echten Drive-Inhalt suchen
+  // und den Pfad anhand der letzten Segmente eindeutig abgleichen.
+  if (!value) value = await searchConfiguredFolderTargets(token, cfg.user, drives, folders);
+  // Historischer persönlicher Share-URL-Fallback bleibt letzter Versuch, darf aber
+  // die robusteren Drive-Resolver nicht mehr übersteuern.
   if (!value) value = await resolvePersonalFolderTarget(token, cfg.user, cfg.folder);
   if (!value) throw targetError('GRAPH_FOLDER_NOT_FOUND', 'Der konfigurierte Microsoft-365-Zielordner wurde weder in erreichbaren Drives noch im konfigurierten Benutzerlaufwerk oder über seine explizite OneDrive-URL gefunden.', { statusCode: 404 });
 
