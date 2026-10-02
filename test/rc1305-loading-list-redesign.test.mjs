@@ -121,18 +121,15 @@ test('RC1372: blaue Lieferscheinrahmen bleiben inhaltsbreit und Dateischrift ist
 });
 
 
-test('RC1374: Marken-Domain-DNS kann keinen erfolgreichen Produktions-Deploy mehr blockieren',()=>{
+test('RC1393: produktive AVIS-Marken-Domain ist .de und blockiert Release bei Ausfall',()=>{
   assert.match(FLOW,/RC1374 ExportHUB360 Marken-Domain prüfen/);
-  assert.match(FLOW,/continue-on-error: true/);
-  const prodStart=FLOW.indexOf('RC1379 Produktions-Drucklayout live verifizieren');
   const brandedStart=FLOW.indexOf('RC1374 ExportHUB360 Marken-Domain prüfen');
-  assert.ok(prodStart>=0&&brandedStart>prodStart,'RC1374 Live-Gates fehlen oder sind falsch sortiert');
-  const prodBlock=FLOW.slice(prodStart,brandedStart);
-  assert.doesNotMatch(prodBlock,/branded='https:\/\/exporthub360\.com'/);
-  assert.doesNotMatch(prodBlock,/brandedAvis/);
+  assert.ok(brandedStart>=0,'RC1374 Marken-Domain-Gate fehlt');
   const brandedBlock=FLOW.slice(brandedStart,FLOW.indexOf('Live RC1071 Sendungshistorie prüfen',brandedStart));
-  assert.match(brandedBlock,/exporthub360\.com/);
-  assert.match(brandedBlock,/::warning::RC1374 ExportHUB360 Marken-Domain/);
+  assert.doesNotMatch(brandedBlock,/continue-on-error:\\s*true/);
+  assert.match(brandedBlock,/branded='https:\\/\\/www\\.exporthub360\\.de'/);
+  assert.match(brandedBlock,/::error::RC1374 ExportHUB360 Marken-Domain/);
+  assert.doesNotMatch(brandedBlock,/exporthub360\\.com/);
 });
 
 
