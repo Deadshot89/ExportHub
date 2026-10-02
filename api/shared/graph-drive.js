@@ -178,7 +178,7 @@ function cachedTargetFailure(cfg) {
 
 function rememberTargetFailure(cfg, error) {
   const code = text(error && error.code);
-  if (!/^(?:GRAPH_SHARE_TARGET_FAILED|GRAPH_PERSONAL_SITE_TARGET_FAILED|GRAPH_SHARED_DRIVE_SEARCH_FAILED|GRAPH_DEFAULT_DRIVE_TARGET_FAILED|GRAPH_FOLDER_NOT_FOUND|GRAPH_TARGET_AMBIGUOUS)$/.test(code)) return false;
+  if (!/^(?:GRAPH_SHARE_TARGET_FAILED|GRAPH_PERSONAL_SITE_TARGET_FAILED|GRAPH_DIRECT_PATH_TARGET_FAILED|GRAPH_SHARED_DRIVE_SEARCH_FAILED|GRAPH_DEFAULT_DRIVE_TARGET_FAILED|GRAPH_FOLDER_NOT_FOUND|GRAPH_TARGET_AMBIGUOUS)$/.test(code)) return false;
   targetFailureCache = {
     key: targetKey(cfg),
     code,
@@ -636,11 +636,73 @@ async function resolveTarget(token, cfg, force) {
   return value;
 }
 
+async function uploadConfiguredUserPath(token, cfg, name, buffer) {
+  const folder = rawFolder(cfg && cfg.folder);
+  const user = text(cfg && cfg.user);
+  if (!folder || !user) return null;
+  const path = encodedPath(folder);
+  const result = await request(
+    'PUT',
+    `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(user)}/drive/root:/${path}/${encodeURIComponent(name)}:/content`,
+    {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/pdf',
+      'Content-Length': buffer.length,
+      'Accept': 'application/json'
+    },
+    buffer,
+    8000
+  );
+  const item = result.body || {};
+  return {
+    id: text(item.id),
+    name: text(item.name) || name,
+    size: Number(item.size || buffer.length),
+    webUrl: text(item.webUrl),
+    eTag: text(item.eTag),
+    user,
+    folder,
+    directPath: true
+  };
+}
+
+function directPathFallbackAllowed(cfg, error) {
+  return !text(cfg && cfg.driveId) &&
+    !text(cfg && cfg.folderId) &&
+    text(error && error.code) === 'GRAPH_PERSONAL_SITE_TARGET_FAILED';
+}
+
+function wrapDirectPathError(error) {
+  const wrapped = targetError(
+    'GRAPH_DIRECT_PATH_TARGET_FAILED',
+    'Das explizit konfigurierte Microsoft-365-POD-Ziel konnte nicht über den direkten Benutzer-/Ordnerpfad beschrieben werden.',
+    error
+  );
+  wrapped.graphCode = text(error && error.code);
+  return wrapped;
+}
+
 async function uploadPdf(buffer, fileName) {
   const cfg = config();
-  const cachedFailure = cachedTargetFailure(cfg);
-  if (cachedFailure) throw cachedFailure;
   const name = safeFileName(fileName);
+  const cachedFailure = cachedTargetFailure(cfg);
+  if (cachedFailure) {
+    if (directPathFallbackAllowed(cfg, cachedFailure)) {
+      try {
+        const token = await accessToken(false);
+        const direct = await uploadConfiguredUserPath(token, cfg, name, buffer);
+        if (direct) {
+          targetFailureCache = null;
+          return Object.assign({}, direct, { attempts: 1 });
+        }
+      } catch (directError) {
+        const wrapped = wrapDirectPathError(directError);
+        rememberTargetFailure(cfg, wrapped);
+        throw wrapped;
+      }
+    }
+    throw cachedFailure;
+  }
   let forceToken = false;
   let forceTarget = false;
   let lastError = null;
@@ -668,28 +730,41 @@ async function uploadPdf(buffer, fileName) {
         attempts: attempt
       };
     } catch (error) {
-      lastError = error;
-      rememberTargetFailure(cfg, error);
-      if (error && error.statusCode === 401 && !forceToken) {
+      let effectiveError = error;
+      if (directPathFallbackAllowed(cfg, error)) {
+        try {
+          const token = await accessToken(forceToken);
+          const direct = await uploadConfiguredUserPath(token, cfg, name, buffer);
+          if (direct) {
+            targetFailureCache = null;
+            return Object.assign({}, direct, { attempts: attempt });
+          }
+        } catch (directError) {
+          effectiveError = wrapDirectPathError(directError);
+        }
+      }
+      lastError = effectiveError;
+      rememberTargetFailure(cfg, effectiveError);
+      if (effectiveError && effectiveError.statusCode === 401 && !forceToken) {
         tokenCache = null;
         targetCache = null;
         forceToken = true;
         forceTarget = true;
         continue;
       }
-      if (isNotFound(error) && attempt < 3 && !/^GRAPH_(DRIVE|FOLDER)_NOT_FOUND$/.test(text(error.code))) {
+      if (isNotFound(effectiveError) && attempt < 3 && !/^GRAPH_(DRIVE|FOLDER)_NOT_FOUND$/.test(text(effectiveError.code))) {
         targetCache = null;
         forceTarget = true;
         forceToken = false;
         continue;
       }
-      if (attempt < 3 && transient(error)) {
-        await sleep(retryDelay(error, attempt));
+      if (attempt < 3 && transient(effectiveError)) {
+        await sleep(retryDelay(effectiveError, attempt));
         forceToken = false;
         forceTarget = false;
         continue;
       }
-      throw error;
+      throw effectiveError;
     }
   }
   throw lastError || Object.assign(new Error('Microsoft-365-POD-Sicherung ist fehlgeschlagen.'), { code: 'GRAPH_UPLOAD_FAILED', statusCode: 502 });
