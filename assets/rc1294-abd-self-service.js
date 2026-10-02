@@ -3,7 +3,7 @@
 if(!w||!d||w.__EXPORTHUB_RC1294_ABD_SELF_SERVICE__)return;
 w.__EXPORTHUB_RC1294_ABD_SELF_SERVICE__=true;
 
-var busy=false,lastPositions=[],lastResults=[];
+var busy=false,lastPositions=[],lastResults=[],mountTimer=0,hostObserver=null,hostObserverRoot=null,bootstrapObserver=null,bootstrapObserverRoot=null;
 function q(v){return String(v==null?'':v).trim()}
 function esc(v){return q(v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function lang(){try{return w.ExportHUBI18n&&w.ExportHUBI18n.language?w.ExportHUBI18n.language():'de'}catch(_){return'de'}}
@@ -152,10 +152,41 @@ function mount(){
  p.addEventListener('click',function(e){var b=e.target&&e.target.closest&&e.target.closest('[data-rc1294-copy]');if(b){e.preventDefault();copyResults()}});
  return true
 }
-function schedule(){setTimeout(function(){mount()},0)}
-if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
-['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(name){w.addEventListener(name,schedule)});
-w.addEventListener('exporthub:language-changed',function(){var old=panel();if(old)old.remove();schedule()});
-if(typeof MutationObserver!=='undefined'){try{new MutationObserver(function(){if(d.getElementById('rc626Abd')&&!panel())schedule()}).observe(d.documentElement||d.body,{childList:true,subtree:true})}catch(_){}}
+function disconnectHostObserver(){if(hostObserver){try{hostObserver.disconnect()}catch(_){}hostObserver=null}hostObserverRoot=null}
+function disconnectBootstrapObserver(){if(bootstrapObserver){try{bootstrapObserver.disconnect()}catch(_){}bootstrapObserver=null}bootstrapObserverRoot=null}
+function bootstrapRoot(){return d.getElementById('content')||d.body||d.documentElement||null}
+function ensureBootstrapObserver(){
+ var root=bootstrapRoot();if(!root||!w.MutationObserver)return false;
+ if(bootstrapObserver&&bootstrapObserverRoot===root)return true;
+ disconnectBootstrapObserver();
+ try{
+  bootstrapObserver=new w.MutationObserver(function(){if(d.getElementById('rc626Abd')){disconnectBootstrapObserver();schedule()}});
+  bootstrapObserver.observe(root,{childList:true,subtree:true});bootstrapObserverRoot=root;return true
+ }catch(_){bootstrapObserver=null;bootstrapObserverRoot=null;return false}
+}
+function syncObserver(){
+ var host=d.getElementById('rc626Abd');
+ if(!host){disconnectHostObserver();ensureBootstrapObserver();return false}
+ disconnectBootstrapObserver();
+ if(hostObserver&&hostObserverRoot===host)return true;
+ disconnectHostObserver();
+ if(!w.MutationObserver)return true;
+ try{
+  hostObserver=new w.MutationObserver(function(){
+   if(!d.getElementById('rc626Abd')){disconnectHostObserver();ensureBootstrapObserver();return}
+   if(!panel())schedule()
+  });
+  hostObserver.observe(host,{childList:true,subtree:true});hostObserverRoot=host
+ }catch(_){hostObserver=null;hostObserverRoot=null}
+ return true
+}
+function schedule(){
+ if(mountTimer)return true;
+ mountTimer=w.setTimeout(function(){mountTimer=0;syncObserver();mount()},0);return true
+}
+function activate(){syncObserver();schedule()}
+if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',activate,{once:true});else activate();
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(name){w.addEventListener(name,activate)});
+w.addEventListener('exporthub:language-changed',function(){var old=panel();if(old)old.remove();activate()});
 w.ExportHUBRC1294ABDAnalysis=Object.freeze({version:'RC1294',mount:mount,start:start,copyResults:copyResults});
 })(window,document);

@@ -123,7 +123,7 @@ test('RC1294: XLSX-Runtime und Release-Build sind vollständig verdrahtet',()=>{
  assert.match(runtime,/\/api\/abd-analysis/);
  assert.match(runtime,/accept="\.pdf,\.xlsx,\.csv/);
  assert.match(runtime,/data-rc1294-results/);
- assert.match(build,/assets\/rc1294-abd-self-service\.js\?v=1294/);
+ assert.match(build,/assets\/rc1294-abd-self-service\.js\?v=1407/);
  assert.match(build,/abd-analysis\/index\.js/);
  assert.match(build,/shared\/abd-analysis\.js/);
 });
