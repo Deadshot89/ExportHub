@@ -878,7 +878,7 @@ function patchHtml(file){
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1160-customer-portal" defer src="/assets/rc1160-customer-portal-credentials.js?v=1411"></script>','exporthub-rc1160-customer-portal');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1165-pod-backup-status" defer src="/assets/rc1165-pod-backup-status.js?v=1165"></script>','exporthub-rc1165-pod-backup-status');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1166-avis-reminder" defer src="/assets/rc1166-avis-reminder-overview.js?v=1393"></script>','exporthub-rc1166-avis-reminder');
-  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1176-shipment-location" defer src="/assets/rc1176-shipment-location.js?v=1202"></script>','exporthub-rc1176-shipment-location');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1176-shipment-location" defer src="/assets/rc1176-shipment-location.js?v=1413"></script>','exporthub-rc1176-shipment-location');
   html=injectDeferredRuntimeInHead(html,'<link id="exporthub-rc1259-container-ui" rel="stylesheet" href="/assets/rc1014-shipment-overview.css?v=1370">','exporthub-rc1259-container-ui');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1259-container-runtime" defer src="/assets/rc1014-shipment-overview.js?v=1370"></script>','exporthub-rc1259-container-runtime');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1203-deckblatt-print" defer src="/assets/rc1203-deckblatt-print.js?v=1373"></script>','exporthub-rc1203-deckblatt-print');
@@ -910,7 +910,7 @@ function patchHtml(file){
   if(!html.includes('assets/rc1160-customer-portal-credentials.js?v=1411'))throw new Error(file+': RC1160 Kundenportal-Runtime fehlt');
   if(!html.includes('assets/rc1165-pod-backup-status.js?v=1165'))throw new Error(file+': RC1165 POD-Sicherungsstatus-Runtime fehlt');
   if(!html.includes('assets/rc1166-avis-reminder-overview.js?v=1393'))throw new Error(file+': RC1207 Avis-Erinnerung-Runtime fehlt');
-  if(!html.includes('assets/rc1176-shipment-location.js?v=1202'))throw new Error(file+': RC1191 Standort-Capture-Runtime fehlt');
+  if(!html.includes('assets/rc1176-shipment-location.js?v=1413'))throw new Error(file+': RC1191 Standort-Capture-Runtime fehlt');
   if(!html.includes('assets/rc1203-deckblatt-print.js?v=1373'))throw new Error(file+': RC1205 Deckblatt-Runtime fehlt');
   if(!html.includes('assets/rc1283-loading-list-search.js?v=1305'))throw new Error(file+': RC1283 Ladelisten-Suchruntime fehlt');
   if(!html.includes('assets/rc1315-loading-list-quick-print.js?v=1322'))throw new Error(file+': RC1315 QR-/REF-Schnelldruck-Runtime fehlt');
