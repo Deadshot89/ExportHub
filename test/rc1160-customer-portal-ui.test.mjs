@@ -34,9 +34,12 @@ test('RC1160: Offenlegung verlangt Re-Auth und wird nach 60 Sekunden gelöscht',
   assert.match(ui,/exporthub:viewchange/);
   assert.match(ui,/customer-changed/);
 });
-test('RC1409: offener Portal-Dialog überlebt Render-Events im gleichen Kontext',()=>{
-  assert.match(ui,/dialogOpen=!!d\.getElementById\('rc1160RevealDialog'\)/);
-  assert.match(ui,/if\(dialogOpen&&sameContext\)return/);
+test('RC1412: offener Portal-Dialog überlebt auch transiente State-/Render-Events',()=>{
+  assert.match(ui,/data-rc1160-reveal-customer/);
+  assert.match(ui,/data-rc1160-reveal-view/);
+  assert.ok(ui.includes("sameRevealCustomer=!modalCustomer||!currentCustomer||modalCustomer===currentCustomer"));
+  assert.ok(ui.includes("sameRevealView=!modalView||!currentView||modalView===currentView"));
+  assert.ok(ui.includes("if(sameRevealCustomer&&sameRevealView){lastContext=key||lastContext;return}"));
   assert.match(ui,/if\(!force&&sameContext\)return/);
   assert.match(ui,/lastContext=key;clearRevealedSecrets\(\);removeBoxes\(\)/);
 });
