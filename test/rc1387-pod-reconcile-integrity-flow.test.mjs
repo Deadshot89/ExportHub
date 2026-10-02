@@ -28,3 +28,12 @@ test('RC1395: fehlgeschlagene optionale Drive-Kopie bleibt sichtbar, blockiert a
   assert.match(archive,/drivePendingCount: drivePending\.length/);
   assert.match(archive,/pending\.push\(\{ reference: candidate\.reference, error: text\(backup\.lastError/);
 });
+
+
+test('RC1407: optionales Drive-Backfill ist pro Reconcile-Aufruf hart begrenzt',()=>{
+  assert.match(archive,/const driveBackfillBudget = Math\.min\(2, Math\.max\(0, limit - selectedRequiredCandidates\.length\)\)/);
+  assert.match(archive,/const selectedDriveCandidates = driveBackfillCandidates\.slice\(0, driveBackfillBudget\)/);
+  assert.match(archive,/const selectedCandidates = selectedRequiredCandidates\.concat\(selectedDriveCandidates\)/);
+  assert.match(archive,/const requiredSelected = selectedRequiredCandidates\.length/);
+  assert.match(archive,/const driveBackfillSelected = selectedDriveCandidates\.length/);
+});
