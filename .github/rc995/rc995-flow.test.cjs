@@ -295,7 +295,7 @@ test('RC995 public-access store: Token bleibt serverseitig, ist einmalig und spe
   }
 });
 
-test('RC995 Pickup-Bedienfluss: Status -> PIN -> Abholung -> Zweitnutzung gesperrt -> POD', async () => {
+test('RC1400 Pickup-Bedienfluss: Status -> PIN -> Abholung -> idempotente Wiederaufnahme -> POD', async () => {
   const f = makePickupFixture();
   const status = loadWithMocks('api/pickup-status/index.js', {
     '../shared/public-access-store': f.access,
@@ -403,8 +403,12 @@ test('RC995 Pickup-Bedienfluss: Status -> PIN -> Abholung -> Zweitnutzung gesper
       driverSignature: 'data:image/jpeg;base64,AQIDBA==',
     },
   });
-  assert.equal(ctx.res.status, 410);
-  assert.equal(bodyOf(ctx.res).code, 'ACCESS_USED');
+  assert.equal(ctx.res.status, 200);
+  const recovered = bodyOf(ctx.res);
+  assert.equal(recovered.pickedUp, true);
+  assert.equal(recovered.recovered, true);
+  assert.equal(recovered.shipmentStatus, 'Abgeholt');
+  assert.equal(Array.isArray(f.record.pickupHistory) ? f.record.pickupHistory.length : 0, 1, 'Recovery darf keine zweite Abholung erzeugen');
 
   ctx = context();
   await pod(ctx, { method: 'GET', query: { token: f.token, environment: 'testservice', signature: '1' } });
