@@ -144,20 +144,23 @@ test('RC1339: Teilsendungs-Pickup findet die Hauptsendung notfalls über subShip
 });
 
 
-test('RC1400 P0: Pickup verbraucht den QR erst nach erfolgreicher Team-State-Synchronisierung',()=>{
+test('RC1413 P0: dauerhaft gespeicherte Pickup-Abholung bleibt bei nachgelagertem Team-State-Fehler erfolgreich',()=>{
   const src=fs.readFileSync('api/pickup-confirm-v2/index.js','utf8');
   const update=src.indexOf("await store.updateTeam(rec,[],'')");
   const consume=src.indexOf("await access.consume(resolved.environment,'pickup',resolved.tokenHash",update);
-  assert.ok(update>=0&&consume>update,'QR darf erst nach Team-State-Sync verbraucht werden');
-  assert.match(src,/TEAM_STATE_UPDATE_FAILED[\s\S]*?Abholung ist gespeichert, konnte aber noch nicht mit der Sendung synchronisiert werden/);
+  assert.ok(update>=0&&consume>update,'QR wird weiter erst nach dem ersten Team-State-Sync-Versuch verbraucht');
+  assert.doesNotMatch(src,/throw store\.err\('TEAM_STATE_UPDATE_FAILED'/);
+  assert.match(src,/teamStateSynced=false;teamStateSyncError=shortError\(e\)/);
+  assert.match(src,/teamStateSyncPending:!teamStateSynced/);
 });
 
-test('RC1400 P0: bereits bestätigte QR-Abholung kann fehlende Synchronisierung idempotent nachholen',()=>{
+test('RC1413 P0: bereits bestätigte QR-Abholung bleibt idempotent erfolgreich auch wenn Team-State-Sync noch offen ist',()=>{
   const src=fs.readFileSync('api/pickup-confirm-v2/index.js','utf8');
   assert.match(src,/access\.resolve\(req,'pickup',token,\{allowUsed:true\}/);
   assert.match(src,/if\(completeOf\(current\)\|\|current\.status==='confirmed'\)\{/);
-  assert.match(src,/RC1400 pickup recovery team state update failed/);
+  assert.match(src,/RC1413 pickup recovery team state update pending/);
   assert.match(src,/recovered:true/);
+  assert.match(src,/teamStateSyncPending:!teamStateSynced/);
 });
 
 
