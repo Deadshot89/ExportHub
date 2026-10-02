@@ -24,7 +24,7 @@ const RC1074_LOGIN_TAG='<script id="'+RC1074_LOGIN_ID+'" defer src="/assets/rc10
 const RC1075_LOADER_PIN_ID='exporthub-rc1075-loader-pin-admin';
 const RC1075_LOADER_PIN_TAG='<script id="'+RC1075_LOADER_PIN_ID+'" defer src="/assets/rc1075-loader-pin-admin.js?v=1075"></script>';
 const RC1077_CUSTOMER_LABELS_ID='exporthub-rc1077-customer-labels';
-const RC1077_CUSTOMER_LABELS_TAG='<script id="'+RC1077_CUSTOMER_LABELS_ID+'" defer src="/assets/rc1077-customer-labels.js?v=1077"></script>';
+const RC1077_CUSTOMER_LABELS_TAG='<script id="'+RC1077_CUSTOMER_LABELS_ID+'" defer src="/assets/rc1077-customer-labels.js?v=1393"></script>';
 const RC1079_PROFILE_ID='exporthub-rc1079-profile-settings';
 const RC1079_PROFILE_TAG='<script id="'+RC1079_PROFILE_ID+'" defer src="/assets/rc1079-profile-settings.js?v=1079"></script>';
 const RC1080_CUSTOMER_HISTORY_ID='exporthub-rc1080-customer-history';
