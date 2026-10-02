@@ -73,7 +73,16 @@ function applyLocation(value,expectedCustomerKey){
  return true
 }
 var pending=null,pendingSeq=0,observer=null;
-function clearPending(){pending=null;pendingSeq++}
+function disconnectObserver(){if(observer){try{observer.disconnect()}catch(_){}observer=null}}
+function ensureObserver(){
+ if(observer||!pending||typeof MutationObserver==='undefined')return !!observer;
+ try{
+  observer=new MutationObserver(function(){if(pending)repairPending(pendingSeq);else disconnectObserver()});
+  observer.observe(d.documentElement||d.body,{childList:true,subtree:true});
+  return true
+ }catch(_){observer=null;return false}
+}
+function clearPending(){pending=null;pendingSeq++;disconnectObserver()}
 function currentSelect(){return d.getElementById&&d.getElementById('index289LocationSelect')}
 function selectedOptionExists(select,value){
  if(!select||!select.options)return true;
@@ -81,7 +90,7 @@ function selectedOptionExists(select,value){
  return false
 }
 function repairPending(seq){
- if(!pending||seq!==pendingSeq||Date.now()>pending.expiresAt){if(pending&&Date.now()>pending.expiresAt)pending=null;return false}
+ if(!pending||seq!==pendingSeq||Date.now()>pending.expiresAt){if(pending&&Date.now()>pending.expiresAt)clearPending();return false}
  var s=state(),active=activeShipment(s),actualCustomerKey=shipmentCustomerKey(active)||shipmentCustomerKey(s&&s.shipment);
  if(pending.customerKey&&actualCustomerKey&&pending.customerKey!==actualCustomerKey){clearPending();return false}
  var value=pending.value,current=currentSelect();
@@ -104,6 +113,7 @@ function onLocationChange(ev){
  }
  pendingSeq++;
  pending={value:value,customerKey:actualCustomerKey,expiresAt:Date.now()+18000};
+ ensureObserver();
  applyLocation(value,pending.customerKey);
  scheduleRepairs(pendingSeq)
 }
@@ -124,11 +134,5 @@ w.addEventListener('change',onLocationChange,true);
 w.addEventListener('input',onCustomerInput,true);
 w.addEventListener('change',onCustomerInput,true);
 ['exporthub:rendered','exporthub:viewchange','exporthub:state-loaded','exporthub:shipment-saved'].forEach(function(name){try{w.addEventListener(name,onRendered)}catch(_){}});
-if(typeof MutationObserver!=='undefined'){
- try{
-  observer=new MutationObserver(function(){if(pending)repairPending(pendingSeq)});
-  observer.observe(d.documentElement||d.body,{childList:true,subtree:true})
- }catch(_){}
-}
 w.ExportHUBShipmentLocation1176=Object.freeze({version:'RC1202',applyLocation:applyLocation,repairPending:function(){return repairPending(pendingSeq)},clearPending:clearPending});
 })(window,document);
