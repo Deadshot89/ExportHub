@@ -54,9 +54,13 @@ test('Aktive Abhol- und Kunden-Avis-Links bleiben wiederverwendbar',()=>{
   assert.match(accessStore,/record\.kind!==['"]avis['"][^;]*record\.expiresAt/s,'Bestehende aktive Avis-Links dürfen nicht an alter TTL scheitern');
 });
 
-test('QR-Teilabholung bleibt offen; nach Abschluss bleibt die Seite lesbar',()=>{
+test('QR-Teilabholung bleibt offen; Abschluss ist synchronisiert und wiederaufnehmbar',()=>{
   assert.match(pickupConfirm,/remainingAfter/);
-  assert.match(pickupConfirm,/if\(complete\)await access\.consume/);
+  assert.match(pickupConfirm,/if\(complete\)\{[\s\S]*?await access\.consume/);
+  const teamSync=pickupConfirm.indexOf("await store.updateTeam(rec,[],'')");
+  const consume=pickupConfirm.indexOf("await access.consume(resolved.environment,'pickup',resolved.tokenHash",teamSync);
+  assert.ok(teamSync>=0&&consume>teamSync,'QR-Abschluss darf erst nach erfolgreicher Team-State-Synchronisierung verbraucht werden');
+  assert.match(pickupConfirm,/completeOf\(current\)\|\|current\.status==='confirmed'/,'Bereits gespeicherte Abholung muss idempotent wiederaufnehmbar sein');
   assert.match(pickupConfirm,/if\(!complete(?:&&[^)]*)?\).*access\.clearFailures/);
   assert.match(accessStore,/record\.usedAt&&!allowUsed&&!reusableKind/,'Abgeschlossene QR-Links müssen weiterhin lesbar bleiben');
   assert.match(pickupStore,/Teilweise abgeholt/);
