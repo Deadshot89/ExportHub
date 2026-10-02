@@ -18,11 +18,12 @@ test('RC1226: Archivkopie wird vor archiveSaved per vollständigem Read-back ver
   assert.match(archive,/POD_ARCHIVE_INTEGRITY_FAILED/);
 });
 
-test('RC1226: bestehende Archivkopien werden regelmäßig geprüft',()=>{
-  assert.match(archive,/await checkAzureArchive\(clients, record, match\[1\]\.toLowerCase\(\), fullRead\)/);
-  assert.match(archive,/Date\.now\(\) - lastVerifiedMs >= 24 \* 60 \* 60 \* 1000/);
+test('RC1226/RC1404: bestehende Archivkopien werden mindestens täglich vollständig geprüft',()=>{
+  assert.match(archive,/const verificationFresh = !reference/);
+  assert.match(archive,/Date\.now\(\) - lastVerifiedMs < 24 \* 60 \* 60 \* 1000/);
+  assert.match(archive,/verificationFresh[\s\S]{0,220}cached: true[\s\S]{0,220}await checkAzureArchive\(clients, record, match\[1\]\.toLowerCase\(\), true\)/);
+  assert.match(archive,/if \(!verificationFresh\)[\s\S]{0,220}archiveVerifiedAt: integrity\.verifiedAt/);
   assert.match(archive,/verifiedCount \+= 1/);
-  assert.match(archive,/archiveVerifiedAt: integrity\.verifiedAt/);
 });
 
 test('RC1226: fehlende Archivkopie wird automatisch zur Reparatur zurückgesetzt',()=>{
