@@ -1,8 +1,8 @@
 'use strict';
 
-const fs=require('fs');
-const test=require('node:test');
-const assert=require('node:assert/strict');
+import fs from 'node:fs';
+import test from 'node:test';
+import assert from 'node:assert/strict';
 
 const source=fs.readFileSync('api/exporthub-state/index.js','utf8');
 
