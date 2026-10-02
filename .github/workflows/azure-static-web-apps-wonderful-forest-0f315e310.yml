@@ -151,9 +151,9 @@ jobs:
           grep -q 'id="rc1048GateMaster"' dist-rc1112/TESTVERSION.html
           grep -q 'id="rc1048GateMaster"' dist-rc1112/demo.html
           grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1112'" dist-rc1112/production-version.js
-          grep -q 'assets/rc1016-mobile-navigation.js?v=1016' dist-rc1112/index.html
-          grep -q 'assets/rc1016-mobile-navigation.js?v=1016' dist-rc1112/TESTVERSION.html
-          grep -q 'assets/rc1016-mobile-navigation.js?v=1016' dist-rc1112/demo.html
+          grep -q 'assets/rc1016-mobile-navigation.js?v=1400' dist-rc1112/index.html
+          grep -q 'assets/rc1016-mobile-navigation.js?v=1400' dist-rc1112/TESTVERSION.html
+          grep -q 'assets/rc1016-mobile-navigation.js?v=1400' dist-rc1112/demo.html
           grep -q 'assets/rc1065-registration-cc.js?v=1093' dist-rc1112/index.html
           grep -q 'assets/rc1065-registration-cc.js?v=1093' dist-rc1112/TESTVERSION.html
           grep -q 'assets/rc1065-registration-cc.js?v=1093' dist-rc1112/demo.html
@@ -869,9 +869,9 @@ jobs:
               && grep -q 'id="rc1048GateMaster"' "$p" \
               && grep -q 'id="rc1048GateMaster"' "$t" \
               && grep -q 'id="rc1048GateMaster"' "$d" \
-              && grep -q 'assets/rc1016-mobile-navigation.js?v=1016' "$p" \
-              && grep -q 'assets/rc1016-mobile-navigation.js?v=1016' "$t" \
-              && grep -q 'assets/rc1016-mobile-navigation.js?v=1016' "$d" \
+              && grep -q 'assets/rc1016-mobile-navigation.js?v=1400' "$p" \
+              && grep -q 'assets/rc1016-mobile-navigation.js?v=1400' "$t" \
+              && grep -q 'assets/rc1016-mobile-navigation.js?v=1400' "$d" \
               && grep -q 'assets/rc1065-registration-cc.js?v=1093' "$p" \
               && grep -q 'assets/rc1065-registration-cc.js?v=1093' "$t" \
               && grep -q 'assets/rc1065-registration-cc.js?v=1093' "$d" \
