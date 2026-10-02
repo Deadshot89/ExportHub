@@ -93,6 +93,16 @@ function patchRc1304ThemeRedesign(html,file){
   return html;
 }
 
+function patchRc1400MobileNavigationCache(html,file){
+  const before='assets/rc1016-mobile-navigation.js?v=1016';
+  const after='assets/rc1016-mobile-navigation.js?v=1400';
+  const count=html.split(before).length-1;
+  if(count!==1)throw new Error(file+': RC1400 Mobile-Navigation Cache-Anker '+count+'x gefunden');
+  html=html.replace(before,after);
+  if(!html.includes(after))throw new Error(file+': RC1400 Mobile-Navigation Cache-Key fehlt');
+  return html;
+}
+
 function patchRc1306LayoutEngine(html,file){
   html=injectDeferredRuntimeInHead(html,RC1306_LAYOUT_STYLE_TAG,'exporthub-rc1306-layout-style');
   html=injectDeferredRuntimeInHead(html,RC1306_LAYOUT_SCRIPT_TAG,'exporthub-rc1306-layout-script');
@@ -796,6 +806,7 @@ function patchHtml(file){
   let html=fs.readFileSync(target,'utf8');
   html=patchRc1289AuthTransportFallback(html,file);
   html=patchRc1304ThemeRedesign(html,file);
+  html=patchRc1400MobileNavigationCache(html,file);
   html=patchRc1306LayoutEngine(html,file);
   html=patchRc1329MultiTruckUiRuntime(html,file);
   html=patchRc1328MultiTruckRefresh(html,file);
