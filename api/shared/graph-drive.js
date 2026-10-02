@@ -411,14 +411,21 @@ async function searchAccessibleUserDriveTargets(token, user, folders) {
   if (!defaultDriveId) return null;
 
   const matches = [];
+  const foldersByLeaf = new Map();
   for (const folder of Array.isArray(folders) ? folders : []) {
     const leaf = folderLeaf(folder);
     if (!leaf) continue;
+    const key = leaf.toLowerCase();
+    if (!foldersByLeaf.has(key)) foldersByLeaf.set(key, { leaf, folders: [] });
+    foldersByLeaf.get(key).folders.push(folder);
+  }
+
+  for (const group of foldersByLeaf.values()) {
     let result;
     try {
       result = await graphGet(
         token,
-        `/drives/${encodeURIComponent(defaultDriveId)}/search(q='${encodeURIComponent(leaf)}')?$select=id,name,folder,parentReference,remoteItem,webUrl`
+        `/drives/${encodeURIComponent(defaultDriveId)}/search(q='${encodeURIComponent(group.leaf)}')?$select=id,name,folder,parentReference,remoteItem,webUrl`
       );
     } catch (error) {
       if (isNotFound(error)) continue;
@@ -432,8 +439,12 @@ async function searchAccessibleUserDriveTargets(token, user, folders) {
     for (const row of rows) {
       const candidate = sharedSearchItem(row, defaultDriveId);
       if (!candidate) continue;
-      const score = folderSearchScore(candidate, folder);
-      if (score > 0) matches.push({ ...candidate, folder, score });
+      let best = null;
+      for (const folder of group.folders) {
+        const score = folderSearchScore(candidate, folder);
+        if (score > 0 && (!best || score > best.score)) best = { folder, score };
+      }
+      if (best) matches.push({ ...candidate, folder: best.folder, score: best.score });
     }
   }
 
