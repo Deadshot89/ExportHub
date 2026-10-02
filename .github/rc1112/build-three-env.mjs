@@ -383,6 +383,37 @@ function patchRc1412ShipmentCreateDomPreserve(html,file){
   return html.slice(0,start)+block+html.slice(end);
 }
 
+function patchRc1414ShipmentCreateNoRerender(html,file){
+  const startMarker='function startFreshShipment(){';
+  const endMarker='function enforceFreshDraft(){';
+  const start=html.indexOf(startMarker),end=html.indexOf(endMarker,start);
+  if(start<0||end<=start)throw new Error(file+': RC1414 Fresh-Draft-Block fehlt');
+  let block=html.slice(start,end);
+
+  const eagerPatch="if(preserveMountedShipment){try{patch()}catch(e){console.error('RC1412 Neue Sendung im bestehenden Layout',e)}}else{try{if(window.ExportHUBRC325&&typeof window.ExportHUBRC325.route==='function')window.ExportHUBRC325.route('shipment','new-shipment');else throw new Error('Zentraler Router nicht verfügbar')}catch(e){console.error('RC455 Neue Sendung',e)}}";
+  const noEagerPatch="if(!preserveMountedShipment){try{if(window.ExportHUBRC325&&typeof window.ExportHUBRC325.route==='function')window.ExportHUBRC325.route('shipment','new-shipment');else throw new Error('Zentraler Router nicht verfügbar')}catch(e){console.error('RC455 Neue Sendung',e)}}";
+  const eagerCount=block.split(eagerPatch).length-1;
+  if(eagerCount!==1)throw new Error(file+': RC1414 RC1412-Eager-Patch-Anker '+eagerCount+'x gefunden');
+  block=block.replace(eagerPatch,noEagerPatch);
+
+  const finalizeAnchor=" function finalize(){var sh=shipment();";
+  const resetHelper=" function resetMountedFreshDom(){if(!preserveMountedShipment)return false;var box=rowBox();if(box){rowNodes().forEach(function(node){node.remove()});box.appendChild(ownedRow(0,blankFreshRow()));reindex()}try{if(window.ExportHUBIndex289&&typeof window.ExportHUBIndex289.patch==='function')window.ExportHUBIndex289.patch()}catch(e){console.error('RC1414 Standort lokal zurücksetzen',e)}safePatchDuringEdit();return true}\n";
+  if(block.split(finalizeAnchor).length-1!==1)throw new Error(file+': RC1414 Finalize-Anker fehlt');
+  block=block.replace(finalizeAnchor,resetHelper+finalizeAnchor);
+
+  const finalizeTail="if(el.tagName==='SELECT')el.selectedIndex=0;else el.value=''}})}\n finalize();var nt=window.ExportHUBClean&&window.ExportHUBClean.native&&window.ExportHUBClean.native.setTimeout||window.setTimeout;nt(finalize,90);";
+  const finalizeTailNext="if(el.tagName==='SELECT')el.selectedIndex=0;else el.value=''}});resetMountedFreshDom()}\n finalize();if(!preserveMountedShipment){var nt=window.ExportHUBClean&&window.ExportHUBClean.native&&window.ExportHUBClean.native.setTimeout||window.setTimeout;nt(finalize,90)};";
+  const tailCount=block.split(finalizeTail).length-1;
+  if(tailCount!==1)throw new Error(file+': RC1414 Doppel-Finalize-Anker '+tailCount+'x gefunden');
+  block=block.replace(finalizeTail,finalizeTailNext);
+
+  if(block.includes("if(preserveMountedShipment){try{patch()}"))throw new Error(file+': RC1414 großer Shipment-Patch ist beim lokalen Reset noch aktiv');
+  if(!block.includes('function resetMountedFreshDom()'))throw new Error(file+': RC1414 lokaler DOM-Reset fehlt');
+  if(!block.includes('safePatchDuringEdit();return true'))throw new Error(file+': RC1414 sicherer Visual-Patch fehlt');
+  if(!block.includes('if(!preserveMountedShipment){var nt='))throw new Error(file+': RC1414 zweiter Finalizer ist nicht auf echten Ansichtsaufbau begrenzt');
+  return html.slice(0,start)+block+html.slice(end);
+}
+
 function patchTaskDetailTab(html,file){
   const open='<script id="index321-single-navigation-controller">';
   const start=html.indexOf(open),end=start<0?-1:html.indexOf('</script>',start+open.length);
@@ -849,6 +880,7 @@ function patchHtml(file){
   html=patchRc1203ActualDeckblatt(html,file);
   html=patchShipmentSuspendSave(html,file);
   html=patchRc1412ShipmentCreateDomPreserve(html,file);
+  html=patchRc1414ShipmentCreateNoRerender(html,file);
   html=patchRc1319ShipmentSaveFinalization(html,file);
   html=patchRc1296BrowserBranding(html,file);
   html=html.replace(/ExportHUB RC1048 environment=/g,`ExportHUB ${VERSION} environment=`);
