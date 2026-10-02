@@ -396,6 +396,37 @@ async function retryArchiveBackup(accessKey, environment) {
 async function retryDriveBackup(accessKey, environment) {
   return retryArchiveBackup(accessKey, environment);
 }
+async function readReconcileRecords(clients, prefix) {
+  const items = [];
+  for await (const item of clients.records.listBlobsFlat({ prefix })) {
+    const name = text(item && item.name);
+    const match = name.match(/\/([a-f0-9]{64})\.json$/i);
+    if (!match) continue;
+    items.push({ name, accessKey: match[1].toLowerCase() });
+  }
+
+  // RC1406: Production enthält inzwischen genug Pickup-Datensätze, dass
+  // serielles Lesen aller JSON-Blobs das Azure-Functions-Requestlimit
+  // überschreiten kann. Das Lesen wird deshalb begrenzt parallelisiert;
+  // die fachliche Verarbeitung findet anschließend weiterhin deterministisch
+  // in derselben Blob-Reihenfolge statt.
+  const concurrency = 12;
+  const loaded = [];
+  for (let start = 0; start < items.length; start += concurrency) {
+    const batch = items.slice(start, start + concurrency);
+    const rows = await Promise.all(batch.map(async item => {
+      try {
+        const read = await store.readJson(clients.records.getBlobClient(item.name), null);
+        return { name: item.name, accessKey: item.accessKey, record: read && read.value || null };
+      } catch (_) {
+        return { name: item.name, accessKey: item.accessKey, record: null };
+      }
+    }));
+    loaded.push(...rows);
+  }
+  return { scanned: items.length, rows: loaded };
+}
+
 async function reconcilePendingBackups(environment, options) {
   options = Object.assign({ limit: 10, minAgeMs: 5 * 60 * 1000 }, options || {});
   environment = store.normalizeEnvironment(environment);
@@ -416,18 +447,11 @@ async function reconcilePendingBackups(environment, options) {
   let verifiedCount = 0;
   let repairedStateCount = 0;
 
-  for await (const item of clients.records.listBlobsFlat({ prefix })) {
-    scanned += 1;
-    const name = text(item && item.name);
-    const match = name.match(/\/([a-f0-9]{64})\.json$/i);
-    if (!match) continue;
-    let record;
-    try {
-      const read = await store.readJson(clients.records.getBlobClient(name), null);
-      record = read && read.value;
-    } catch (_) {
-      continue;
-    }
+  const recordScan = await readReconcileRecords(clients, prefix);
+  scanned = recordScan.scanned;
+  for (const scannedRecord of recordScan.rows) {
+    const record = scannedRecord.record;
+    const accessKey = scannedRecord.accessKey;
     if (!record) continue;
     const recordReference = text(record.reference).toUpperCase();
     if (reference && recordReference !== reference) continue;
