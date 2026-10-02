@@ -116,6 +116,8 @@ module.exports = async function(context, req) {
     const result = await podArchive.reconcilePendingBackups(environment, {
       reference,
       limit,
+      continuationToken: text(payload.continuationToken),
+      scanPageSize: Math.min(100, Math.max(10, Math.round(Number(payload.scanPageSize) || 40))),
       minAgeMs: reference || drainAll ? 0 : 5 * 60 * 1000
     });
     context.res = json(200, Object.assign({ version: 'RC1241', backupMode: 'azure-archive', graphConfigured: graph.configured, reference: reference || null, drainAll }, result));
