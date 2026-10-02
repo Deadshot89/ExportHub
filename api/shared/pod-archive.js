@@ -517,11 +517,18 @@ async function reconcilePendingBackups(environment, options) {
   candidates.sort((a, b) => Number(!!a.driveOnly) - Number(!!b.driveOnly) || a.lastAttemptMs - b.lastAttemptMs || a.confirmedAtMs - b.confirmedAtMs || a.reference.localeCompare(b.reference));
   const selectedRelinks = teamRelinkCandidates.slice(0, limit);
   // Required Azure/archive work always precedes optional Microsoft-365 backfill.
-  const selectedCandidates = candidates.slice(0, limit);
-  const requiredEligible = candidates.filter(candidate => !candidate.driveOnly).length;
-  const driveBackfillEligible = candidates.filter(candidate => candidate.driveOnly).length;
-  const requiredSelected = selectedCandidates.filter(candidate => !candidate.driveOnly).length;
-  const driveBackfillSelected = selectedCandidates.filter(candidate => candidate.driveOnly).length;
+  // RC1407: Keep optional Graph backfill deliberately small per Azure Function
+  // invocation so archive integrity work cannot be pushed into the host timeout.
+  const requiredCandidates = candidates.filter(candidate => !candidate.driveOnly);
+  const driveBackfillCandidates = candidates.filter(candidate => candidate.driveOnly);
+  const selectedRequiredCandidates = requiredCandidates.slice(0, limit);
+  const driveBackfillBudget = Math.min(2, Math.max(0, limit - selectedRequiredCandidates.length));
+  const selectedDriveCandidates = driveBackfillCandidates.slice(0, driveBackfillBudget);
+  const selectedCandidates = selectedRequiredCandidates.concat(selectedDriveCandidates);
+  const requiredEligible = requiredCandidates.length;
+  const driveBackfillEligible = driveBackfillCandidates.length;
+  const requiredSelected = selectedRequiredCandidates.length;
+  const driveBackfillSelected = selectedDriveCandidates.length;
   const saved = [];
   const pending = [];
   const driveSaved = [];

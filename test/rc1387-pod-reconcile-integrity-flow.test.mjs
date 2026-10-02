@@ -14,7 +14,7 @@ test('RC1395: gültiges Azure-Archiv mit fehlender Drive-Kopie bleibt fachlich g
 test('RC1395: Drive-Backfill bleibt Kandidat, verdrängt aber keine erforderliche Azure-Nachsicherung',()=>{
   assert.match(archive,/candidates\.push\(\{[\s\S]*?driveOnly/);
   assert.match(archive,/Number\(!!a\.driveOnly\) - Number\(!!b\.driveOnly\)/);
-  assert.match(archive,/const requiredEligible = candidates\.filter\(candidate => !candidate\.driveOnly\)\.length/);
+  assert.match(archive,/const requiredEligible = requiredCandidates\.length/);
   assert.match(archive,/await retryArchiveBackup\(candidate\.accessKey, environment\)/);
 });
 
@@ -27,4 +27,13 @@ test('RC1395: fehlgeschlagene optionale Drive-Kopie bleibt sichtbar, blockiert a
   assert.match(archive,/drivePending\.push\(\{/);
   assert.match(archive,/drivePendingCount: drivePending\.length/);
   assert.match(archive,/pending\.push\(\{ reference: candidate\.reference, error: text\(backup\.lastError/);
+});
+
+
+test('RC1407: optionales Drive-Backfill ist pro Reconcile-Aufruf hart begrenzt',()=>{
+  assert.match(archive,/const driveBackfillBudget = Math\.min\(2, Math\.max\(0, limit - selectedRequiredCandidates\.length\)\)/);
+  assert.match(archive,/const selectedDriveCandidates = driveBackfillCandidates\.slice\(0, driveBackfillBudget\)/);
+  assert.match(archive,/const selectedCandidates = selectedRequiredCandidates\.concat\(selectedDriveCandidates\)/);
+  assert.match(archive,/const requiredSelected = selectedRequiredCandidates\.length/);
+  assert.match(archive,/const driveBackfillSelected = selectedDriveCandidates\.length/);
 });
