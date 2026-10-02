@@ -175,6 +175,37 @@ test('RC1213: Documents-Präfix wird als zweiter kompatibler Ordnerpfad geprüft
   });
 });
 
+test('RC1392: vorhandene Drives ohne Zielordner fallen ebenfalls auf den Benutzer-Default-Drive zurück',async()=>{
+  setEnv();
+  const graph=fresh();
+  await withFakeHttps((call,index)=>{
+    if(index===1)return tokenResponse();
+    if(index===2){
+      assert.match(call.path,/\/v1\.0\/users\/tobiaslimberg%40essentra\.com\/drives\?/);
+      return{status:200,body:{value:[{id:'drive-other',name:'Other drive'}]}};
+    }
+    if(index===3||index===4){
+      assert.match(call.path,/\/v1\.0\/drives\/drive-other\/root:\//);
+      return{status:404,body:{error:{code:'itemNotFound',message:'Folder not found in enumerated drive'}}};
+    }
+    if(index===5){
+      assert.match(call.path,/\/v1\.0\/users\/tobiaslimberg%40essentra\.com\/drive\/root:\/003%20Export\/ExportHub\/Abliefernachweise\?\$select=/);
+      return{status:200,body:{id:'folder-default',name:'Abliefernachweise',folder:{},parentReference:{driveId:'drive-default'}}};
+    }
+    if(index===6){
+      assert.equal(call.method,'PUT');
+      assert.equal(call.path,'/v1.0/drives/drive-default/items/folder-default:/POD_TEST.pdf:/content');
+      return{status:201,body:{id:'file-default',name:'POD_TEST.pdf',size:9}};
+    }
+    throw new Error('Unerwarteter Aufruf '+index+' '+call.method+' '+call.path);
+  },async calls=>{
+    const result=await graph.uploadPdf(Buffer.from('%PDF-test'),'POD_TEST.pdf');
+    assert.equal(result.id,'file-default');
+    assert.equal(result.folder,'003 Export/ExportHub/Abliefernachweise');
+    assert.equal(calls.some(call=>/\/v1\.0\/shares\//.test(call.path)),false);
+  });
+});
+
 test('RC1391: fehlende Drives-Liste fällt auf den konfigurierten Benutzer-Default-Drive zurück',async()=>{
   setEnv();
   const graph=fresh();
