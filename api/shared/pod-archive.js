@@ -524,17 +524,17 @@ async function reconcilePendingBackups(environment, options) {
   teamRelinkCandidates.sort((a, b) => a.confirmedAtMs - b.confirmedAtMs || a.reference.localeCompare(b.reference));
   candidates.sort((a, b) => Number(!!a.driveOnly) - Number(!!b.driveOnly) || a.lastAttemptMs - b.lastAttemptMs || a.confirmedAtMs - b.confirmedAtMs || a.reference.localeCompare(b.reference));
   let remainingRemoteBudget = Math.max(0, remoteWorkBudget - integrityChecks);
-  const relinkBudget = reference ? limit : Math.min(1, remainingRemoteBudget);
-  const selectedRelinks = teamRelinkCandidates.slice(0, relinkBudget);
-  remainingRemoteBudget = Math.max(0, remainingRemoteBudget - selectedRelinks.length);
-  // Required Azure/archive work always precedes optional Microsoft-365 backfill.
-  // RC1408: one shared remote-work budget covers integrity reads, team relinks,
-  // Azure archive repairs and optional Graph backfill together.
+  // Required Azure/archive work always has first claim on the remaining budget.
+  // RC1408: one shared remote-work budget covers integrity reads, Azure archive
+  // repairs, team relinks and optional Graph backfill together.
   const requiredCandidates = candidates.filter(candidate => !candidate.driveOnly);
   const driveBackfillCandidates = candidates.filter(candidate => candidate.driveOnly);
   const requiredBackupBudget = reference ? limit : remainingRemoteBudget;
   const selectedRequiredCandidates = requiredCandidates.slice(0, requiredBackupBudget);
   remainingRemoteBudget = Math.max(0, remainingRemoteBudget - selectedRequiredCandidates.length);
+  const relinkBudget = reference ? limit : Math.min(1, remainingRemoteBudget);
+  const selectedRelinks = teamRelinkCandidates.slice(0, relinkBudget);
+  remainingRemoteBudget = Math.max(0, remainingRemoteBudget - selectedRelinks.length);
   const driveBackfillBudget = reference ? Math.min(limit, remainingRemoteBudget) : Math.min(1, remainingRemoteBudget);
   const selectedDriveCandidates = driveBackfillCandidates.slice(0, driveBackfillBudget);
   const selectedCandidates = selectedRequiredCandidates.concat(selectedDriveCandidates);
