@@ -1,6 +1,6 @@
 # ExportHUB – aktueller Main-Stand
 
-ExportHUB verwendet weiterhin die gemeinsame **RC1112-Releasebasis** für Produktion, TESTSERVICE, Demo und Android. Die fachlichen und technischen Korrekturen auf `main` reichen aktuell bis **RC1312**. Der technische Build-/Produktionsmarker bleibt bewusst RC1112; die sichtbare Produktversion wird getrennt geführt.
+ExportHUB verwendet weiterhin die gemeinsame **RC1112-Releasebasis** für Produktion, TESTSERVICE, Demo und Android. Die fachlichen und technischen Korrekturen auf `main` reichen aktuell bis **RC1370**. Der technische Build-/Produktionsmarker bleibt bewusst RC1112; die sichtbare Produktversion wird getrennt geführt.
 
 ## Aktueller Release-Stand
 
@@ -35,6 +35,7 @@ Seit RC1223 wurden unter anderem folgende releasekritische Punkte ergänzt oder 
 - **RC1319** – P0 für Sendung speichern, Statusfinalisierung und QR-Registrierung behoben und per mutierendem TESTSERVICE-E2E bis Reload verifiziert.
 - **RC1320** – Mehr-LKW-Ablauf mit getrennten Teilabholungen und Statusaggregation als mutierender TESTSERVICE-E2E in das Release-Gate aufgenommen.
 - **RC1322** – PC-Direktdruck vorbereitet: Edge ≥144 kann per offizieller Silent-Printing-Policy ohne Druckdialog auf den Windows-Standarddrucker drucken; Setup ist direkt im Schnelldruck verlinkt.
+- **RC1370** – Sendungsansicht unterstützt eine interne manuelle Abholterminbuchung als Alternative zum Kunden-AVIS. Sie verwendet dieselben 2-Stunden-Slots und Kapazitätsgrenzen, speichert Abholdatum/-zeit, Spedition, Sendungsnummer und optional Kennzeichen und setzt den Status nicht vorzeitig auf `Abgeholt`.
 
 Die sichtbare Produktversionsanzeige ist von der stabilen technischen RC1112-Buildkette getrennt. Die autoritative sichtbare Version steht in `release-version.json`; reine Dokumentations- oder Testcommits erhöhen sie nicht automatisch. Dadurch können fachliche Korrekturen unabhängig vom technischen Buildmarker ausgeliefert werden.
 
