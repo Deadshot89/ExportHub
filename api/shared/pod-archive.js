@@ -410,6 +410,7 @@ async function reconcilePendingBackups(environment, options) {
   const integrityErrors = [];
   let scanned = 0;
   let skippedRecent = 0;
+  let driveBackfillSkippedRecent = 0;
   let referenceMatched = 0;
   let referencePodReady = 0;
   let verifiedCount = 0;
@@ -436,6 +437,7 @@ async function reconcilePendingBackups(environment, options) {
     if (reference) referencePodReady += 1;
     let backup = record.podBackup && typeof record.podBackup === 'object' ? record.podBackup : {};
     let forceRepair = false;
+    let driveOnly = false;
     if (backup.archiveSaved === true) {
       const lastVerifiedMs = Date.parse(backup.archiveVerifiedAt || '');
       const fullRead = !!reference || !Number.isFinite(lastVerifiedMs) || Date.now() - lastVerifiedMs >= 24 * 60 * 60 * 1000;
@@ -455,10 +457,9 @@ async function reconcilePendingBackups(environment, options) {
           });
         }
         const driveBackfillRequired = m365Enabled() && graphDrive.readiness().configured && backup.driveSaved !== true;
-        if (!driveBackfillRequired) {
-          if (reference) alreadySaved.push({ reference: recordReference || text(record.reference), fileName: text(backup.fileName), attempts: Math.max(0, Number(backup.attempts) || 0) });
-          continue;
-        }
+        if (reference) alreadySaved.push({ reference: recordReference || text(record.reference), fileName: text(backup.fileName), attempts: Math.max(0, Number(backup.attempts) || 0) });
+        if (!driveBackfillRequired) continue;
+        driveOnly = true;
       }
       if (!integrity.ok) {
         if (!integrity.repairable) {
@@ -477,25 +478,32 @@ async function reconcilePendingBackups(environment, options) {
     }
     const lastAttemptMs = Date.parse(backup.lastAttemptAt || '');
     if (!forceRepair && !reference && minAgeMs > 0 && Number.isFinite(lastAttemptMs) && Date.now() - lastAttemptMs < minAgeMs) {
-      skippedRecent += 1;
+      if (driveOnly) driveBackfillSkippedRecent += 1;
+      else skippedRecent += 1;
       continue;
     }
     candidates.push({
       accessKey: match[1].toLowerCase(),
       reference: recordReference || text(record.reference),
       lastAttemptMs: Number.isFinite(lastAttemptMs) ? lastAttemptMs : 0,
-      confirmedAtMs: Date.parse(record.confirmedAt || '') || 0
+      confirmedAtMs: Date.parse(record.confirmedAt || '') || 0,
+      driveOnly
     });
   }
 
   teamRelinkCandidates.sort((a, b) => a.confirmedAtMs - b.confirmedAtMs || a.reference.localeCompare(b.reference));
-  candidates.sort((a, b) => a.lastAttemptMs - b.lastAttemptMs || a.confirmedAtMs - b.confirmedAtMs || a.reference.localeCompare(b.reference));
+  candidates.sort((a, b) => Number(!!a.driveOnly) - Number(!!b.driveOnly) || a.lastAttemptMs - b.lastAttemptMs || a.confirmedAtMs - b.confirmedAtMs || a.reference.localeCompare(b.reference));
   const selectedRelinks = teamRelinkCandidates.slice(0, limit);
-  // Preserve the established fair backup batch contract. Relinking is an
-  // independent one-time repair queue and must not reorder pending backups.
+  // Required Azure/archive work always precedes optional Microsoft-365 backfill.
   const selectedCandidates = candidates.slice(0, limit);
+  const requiredEligible = candidates.filter(candidate => !candidate.driveOnly).length;
+  const driveBackfillEligible = candidates.filter(candidate => candidate.driveOnly).length;
+  const requiredSelected = selectedCandidates.filter(candidate => !candidate.driveOnly).length;
+  const driveBackfillSelected = selectedCandidates.filter(candidate => candidate.driveOnly).length;
   const saved = [];
   const pending = [];
+  const driveSaved = [];
+  const drivePending = [];
   const errors = integrityErrors.slice();
   let teamRelinkedCount = 0;
   let teamRelinkSkippedCount = 0;
@@ -551,15 +559,19 @@ async function reconcilePendingBackups(environment, options) {
       try { await store.updateTeam(record, [], ''); } catch (_) {}
       const backup = record.podBackup || result && result.backup || {};
       const driveRequired = m365Enabled() && graphDrive.readiness().configured;
-      const driveSaved = backup.driveSaved === true || result && result.driveSaved === true;
-      if (backup.archiveSaved === true && (!driveRequired || driveSaved)) {
-        saved.push({ reference: candidate.reference, fileName: text(backup.fileName), attempts: Math.max(0, Number(backup.attempts) || 0) });
+      const driveWasSaved = backup.driveSaved === true || result && result.driveSaved === true;
+      const driveError = result && result.driveError;
+      if (backup.archiveSaved === true) {
+        if (!candidate.driveOnly) saved.push({ reference: candidate.reference, fileName: text(backup.fileName), attempts: Math.max(0, Number(backup.attempts) || 0) });
+        if (driveRequired) {
+          if (driveWasSaved) driveSaved.push({ reference: candidate.reference, fileName: text(backup.fileName) });
+          else drivePending.push({
+            reference: candidate.reference,
+            error: text(backup.driveLastError || ((text(driveError && driveError.code) ? text(driveError && driveError.code) + ': ' : '') + text(driveError && driveError.message || 'Microsoft-365-Zusatzkopie ist noch offen.'))).slice(0, 300)
+          });
+        }
       } else {
-        const driveError = result && result.driveError;
-        const pendingError = driveRequired && !driveSaved
-          ? text(backup.driveLastError || ((text(driveError && driveError.code) ? text(driveError && driveError.code) + ': ' : '') + text(driveError && driveError.message || 'Microsoft-365-Sicherung ist noch offen.'))).slice(0, 300)
-          : text(backup.lastError || driveError && driveError.message).slice(0, 300);
-        pending.push({ reference: candidate.reference, error: pendingError });
+        pending.push({ reference: candidate.reference, error: text(backup.lastError || driveError && driveError.message).slice(0, 300) });
       }
     } catch (error) {
       errors.push({ reference: candidate.reference, code: text(error && error.code), error: text(error && error.message).slice(0, 300) });
@@ -584,9 +596,12 @@ async function reconcilePendingBackups(environment, options) {
     ok: errors.length === 0,
     environment,
     scanned,
-    eligible: candidates.length + teamRelinkCandidates.length,
-    selected: selectedCandidates.length + selectedRelinks.length,
+    eligible: requiredEligible + teamRelinkCandidates.length,
+    selected: requiredSelected + selectedRelinks.length,
     skippedRecent,
+    driveBackfillEligible,
+    driveBackfillSelected,
+    driveBackfillSkippedRecent,
     teamRelinkEligible: teamRelinkCandidates.length,
     teamRelinkedCount,
     teamRelinkSkippedCount,
@@ -594,6 +609,8 @@ async function reconcilePendingBackups(environment, options) {
     savedCount: saved.length,
     alreadySavedCount: alreadySaved.length,
     pendingCount: pending.length,
+    driveSavedCount: driveSaved.length,
+    drivePendingCount: drivePending.length,
     errorCount: errors.length,
     verifiedCount,
     repairedStateCount,
@@ -601,6 +618,8 @@ async function reconcilePendingBackups(environment, options) {
     saved,
     alreadySaved,
     pending,
+    driveSaved,
+    drivePending,
     errors
   };
 }
