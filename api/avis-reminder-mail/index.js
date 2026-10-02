@@ -16,6 +16,7 @@ function allowed(user){
  return !!(r&&(r.edit===true||r.admin===true||r.functionAdmin===true||r.level==='edit'||r.level==='admin'))
 }
 function validEmail(v){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text(v))}
+function configuredMailSender(){return text(process.env.EXPORTHUB_MAIL_SENDER||process.env.EXPORTHUB_POD_DRIVE_USER)}
 function avisRecipientExcluded(v){return lower(v)==='dispo@holenstein.de'}
 const PRODUCTION_PUBLIC_HOST='www.exporthub360.de';
 const LEGACY_BRANDED_PRODUCTION_PUBLIC_HOST='exporthub360.de';
@@ -237,7 +238,8 @@ module.exports=async function(context,req){
   if(mode==='reminder'){
    const gate=reminderGate(shipment);if(!gate.allowed){const e=auth.error(gate.reason,gate.reason==='PICKUP_DATE_EXISTS'?'Für diese Sendung ist bereits ein Abholtag erfasst.':'Die Avis-Erinnerung ist erst drei Arbeitstage nach dem ersten Mailversand möglich.',409);e.dueAt=gate.dueAt||'';throw e}
   }
-  const sender=text(graphMail.readiness().sender),url=safeAvisUrl(req,p.avisUrl),sub=mode==='initial'?initialSubject(ref,target,lang):subject(ref,target,lang),content=mode==='initial'?initialBody(ref,target,lang,url):body(ref,target,lang,url),cc=ccRecipients(current.team,shipment,to,sender);
+  const url=safeAvisUrl(req,p.avisUrl),sub=mode==='initial'?initialSubject(ref,target,lang):subject(ref,target,lang),content=mode==='initial'?initialBody(ref,target,lang,url):body(ref,target,lang,url);
+  const sender=configuredMailSender(),cc=ccRecipients(current.team,shipment,to,sender);
   const sent=await graphMail.sendTextMail({to,subject:sub,body:content,cc});
   const event=historyEvent(current,ref,to,sub,target,lang,mode,cc,sender);
   await record(req,current,id,ref,event,mode,sender);
