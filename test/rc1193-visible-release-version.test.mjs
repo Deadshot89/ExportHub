@@ -18,7 +18,7 @@ test('RC1314: sichtbare Release-Version wird aus dem expliziten Release-Marker e
   assert.match(builder,/const VISIBLE_VERSION=resolveVisibleVersion\(\)/);
   assert.match(builder,/visibleRuntime\.replace\(\/var VERSION='RC\\d\+';\//);
   assert.match(builder,/releaseNotes\.replace\(\/return'RC\\d\+'\//);
-  assert.equal(releaseMarker.visibleRelease,'RC1312');
+  assert.equal(releaseMarker.visibleRelease,'RC1370');
   assert.equal(releaseMarker.technicalBuild,'RC1112');
 });
 
