@@ -3,7 +3,6 @@ const crypto=require('crypto');
 const auth=require('../shared/auth-store');
 const graphMail=require('../shared/graph-mail');
 
-const MAIL_SENDER='DespatchNettetal@essentra.onmicrosoft.com';
 const FIXED_CC='TobiasLimberg@essentra.com';
 
 function text(v){return String(v==null?'':v).trim()}
@@ -161,14 +160,14 @@ function shipmentFromTeam(team,id,ref){
  for(const name of names){for(const sh of Array.isArray(state[name])?state[name]:[]){if(sameShipment(sh,id,ref))return sh}}
  return null
 }
-function ccRecipients(team,sh,to){
+function ccRecipients(team,sh,to,sender){
  const c=customerFor(team,sh),values=[FIXED_CC];
  if(c){
   values.push(c.salesContacts,c.customerSalesContacts,c.salesMail,c.salesEmail,c.salesPersonMail,c.salesPersonEmail,c.salesContactMail,c.salesContactEmail,c.rc385SalesMail,c.salesCc);
   values.push(c.ccContacts,c.customerCcContacts,c.cc,c.mailCc,c.rc385Cc)
  }
  values.push(sh&&sh.salesContacts,sh&&sh.customerSalesContacts,sh&&sh.salesMail,sh&&sh.salesEmail,sh&&sh.salesCc,sh&&sh.ccContacts,sh&&sh.customerCcContacts,sh&&sh.cc,sh&&sh.mailCc);
- const out=[],seen=new Set([lower(to),lower(MAIL_SENDER)]);
+ const out=[],seen=new Set([lower(to),lower(sender)]);
  emailItems(values).forEach(email=>{const key=lower(email);if(key&&!seen.has(key)){seen.add(key);out.push(email)}});
  return out
 }
@@ -197,11 +196,11 @@ function sameShipment(sh,id,ref){
  const sid=text(sh&&(sh.id||sh.shipmentId||sh.uuid)).toUpperCase(),sref=text(sh&&(sh.reference||sh.ref||sh.shipmentRef)).toUpperCase();
  return !!((id&&sid===id)||(ref&&sref===ref))
 }
-function historyEvent(current,ref,to,sub,target,lang,mode,cc){
+function historyEvent(current,ref,to,sub,target,lang,mode,cc,sender){
  const now=new Date().toISOString(),initial=mode==='initial';
- return{id:'H-'+crypto.randomBytes(10).toString('hex'),at:now,type:'mail-sent',label:initial?'Lieferavis versendet':'Avis-Erinnerung versendet',actor:{id:text(current.user&&current.user.id),name:text(current.user&&(current.user.name||current.user.user))||'Benutzer'},details:{reference:ref,to,cc:Array.isArray(cc)?cc:[],subject:sub,mailType:initial?'avis-initial':'avis-reminder',target,language:lang,sender:MAIL_SENDER}}
+ return{id:'H-'+crypto.randomBytes(10).toString('hex'),at:now,type:'mail-sent',label:initial?'Lieferavis versendet':'Avis-Erinnerung versendet',actor:{id:text(current.user&&current.user.id),name:text(current.user&&(current.user.name||current.user.user))||'Benutzer'},details:{reference:ref,to,cc:Array.isArray(cc)?cc:[],subject:sub,mailType:initial?'avis-initial':'avis-reminder',target,language:lang,sender}}
 }
-async function record(req,current,id,ref,event,mode){
+async function record(req,current,id,ref,event,mode,sender){
  await auth.mutateTeamForRequest(req,team=>{
   team.state=team.state&&typeof team.state==='object'?team.state:{};
   const names=['shipments','savedShipments','salesSharedShipments','sharedShipments','shipmentArchive','archivedShipments','archive'];
@@ -218,7 +217,7 @@ async function record(req,current,id,ref,event,mode){
     found=true
    }
   }
-  auth.addAudit(team,mode==='initial'?'AVIS_INITIAL_MAIL_SENT':'AVIS_REMINDER_SENT',event.actor.name,{reference:ref,to:event.details.to,cc:event.details.cc,target:event.details.target,language:event.details.language,sender:MAIL_SENDER});
+  auth.addAudit(team,mode==='initial'?'AVIS_INITIAL_MAIL_SENT':'AVIS_REMINDER_SENT',event.actor.name,{reference:ref,to:event.details.to,cc:event.details.cc,target:event.details.target,language:event.details.language,sender});
   return{found}
  })
 }
@@ -238,12 +237,12 @@ module.exports=async function(context,req){
   if(mode==='reminder'){
    const gate=reminderGate(shipment);if(!gate.allowed){const e=auth.error(gate.reason,gate.reason==='PICKUP_DATE_EXISTS'?'Für diese Sendung ist bereits ein Abholtag erfasst.':'Die Avis-Erinnerung ist erst drei Arbeitstage nach dem ersten Mailversand möglich.',409);e.dueAt=gate.dueAt||'';throw e}
   }
-  const url=safeAvisUrl(req,p.avisUrl),sub=mode==='initial'?initialSubject(ref,target,lang):subject(ref,target,lang),content=mode==='initial'?initialBody(ref,target,lang,url):body(ref,target,lang,url),cc=ccRecipients(current.team,shipment,to);
-  const sent=await graphMail.sendTextMail({to,subject:sub,body:content,sender:MAIL_SENDER,cc});
-  const event=historyEvent(current,ref,to,sub,target,lang,mode,cc);
-  await record(req,current,id,ref,event,mode);
+  const sender=text(graphMail.readiness().sender),url=safeAvisUrl(req,p.avisUrl),sub=mode==='initial'?initialSubject(ref,target,lang):subject(ref,target,lang),content=mode==='initial'?initialBody(ref,target,lang,url):body(ref,target,lang,url),cc=ccRecipients(current.team,shipment,to,sender);
+  const sent=await graphMail.sendTextMail({to,subject:sub,body:content,cc});
+  const event=historyEvent(current,ref,to,sub,target,lang,mode,cc,sender);
+  await record(req,current,id,ref,event,mode,sender);
   const nextGate=mode==='initial'?reminderGate(Object.assign({},shipment,{avisFirstMailSentAt:event.at})):reminderGate(shipment);
-  context.res=response(200,{ok:true,version:'RC1358',mode,reference:ref,recipient:to,sender:MAIL_SENDER,cc,subject:sub,sentAt:event.at,historyId:event.id,reminderDueAt:nextGate.dueAt||'',attempts:sent.attempts})
+  context.res=response(200,{ok:true,version:'RC1358',mode,reference:ref,recipient:to,sender,cc,subject:sub,sentAt:event.at,historyId:event.id,reminderDueAt:nextGate.dueAt||'',attempts:sent.attempts})
  }catch(e){
   try{context.log&&context.log.error&&context.log.error('RC1292 Avis reminder mail failed',e&&e.code,e&&e.message)}catch(_){}
   context.res=response(e.status||e.statusCode||500,{ok:false,code:e.code||'MAIL_SEND_FAILED',message:e.message||'Die Avis-Erinnerung konnte nicht versendet werden.',version:'RC1358',dueAt:text(e&&e.dueAt),missing:Array.isArray(e.missing)?e.missing:undefined})
