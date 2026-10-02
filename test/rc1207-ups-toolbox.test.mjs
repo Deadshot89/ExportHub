@@ -109,3 +109,55 @@ test('RC1334: UPS-Ausgabe trennt Paket-Grundtarif und Gesamtkosten der komplette
   assert.match(s,/ups\.totalComplete/);
   assert.match(s,/ups\.baseComplete/);
 });
+
+
+test('RC1419: UPS behält E0-E6 als echte Karton-Verpackungen und sperrt Paletten',()=>{
+  const x=load();
+  assert.equal(x.isUpsPackageType('E3'),true);
+  assert.equal(x.isUpsPackageType('E0'),true);
+  assert.equal(x.isUpsPackageType('Karton'),true);
+  assert.equal(x.isUpsPackageType('Euro Palette'),false);
+  assert.equal(x.isPalletType('Euro Palette'),true);
+});
+
+test('RC1419: E3-Maße und Mengen werden direkt aus der geöffneten Sendung übernommen',()=>{
+  const x=load({__EXPORTHUB_GET_STATE__:()=>({
+    currentShipment:{rows:[{type:'E3',count:2,weight:20,l:43,w:31,h:31,ldm:0.06}]}
+  })});
+  const loadData=x.canonicalLoad('ups');
+  assert.equal(loadData.packaging,'E3');
+  assert.equal(loadData.count,2);
+  assert.equal(loadData.totalWeight,20);
+  assert.equal(loadData.l,43);
+  assert.equal(loadData.w,31);
+  assert.equal(loadData.h,31);
+  assert.equal(Math.round(loadData.ldm*100)/100,0.12);
+  assert.equal(x.packageCount(),2);
+  assert.equal(x.upsTotalWeight(),20);
+});
+
+test('RC1419: Länder-Fallback erkennt auch vollständige UPS-Länderliste und kombinierte Ländertexte',()=>{
+  const x=load();
+  assert.equal(x.countryCode('NL - Niederlande'),'NL');
+  assert.equal(x.countryCode('SE / Schweden'),'SE');
+  assert.equal(x.inferCountryFromAddress('Industrigatan 1, 12345 Stockholm, Sweden'),'SE');
+  assert.equal(x.inferCountryFromAddress('Example Road, Tallinn, Estonia'),'EE');
+});
+
+test('RC1419: eingebetteter ausgewählter Standort schlägt veraltete Kunden- und Sendungsländer',()=>{
+  const x=load({__EXPORTHUB_GET_STATE__:()=>({
+    customers:[{id:'C1',country:'Nederland'}],
+    currentShipment:{
+      customerId:'C1',
+      country:'Nederland',
+      selectedLocation:{country:'Italia',postalCode:'60044',address:'60044 Fabriano Italia'},
+      rows:[{type:'E3',count:1,weight:10,l:43,w:31,h:31}]
+    }
+  })});
+  const dest=x.shipmentDestination();
+  assert.equal(dest.country,'IT');
+  assert.equal(dest.postal,'60044');
+  const zone=x.resolveUpsZone(dest.country,dest.postal);
+  assert.equal(zone,'5');
+  assert.ok(x.upsIndividualBase(zone,[10])>0);
+});
