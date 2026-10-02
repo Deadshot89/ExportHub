@@ -30,10 +30,20 @@ test('RC1395: fehlgeschlagene optionale Drive-Kopie bleibt sichtbar, blockiert a
 });
 
 
-test('RC1407: optionales Drive-Backfill ist pro Reconcile-Aufruf hart begrenzt',()=>{
-  assert.match(archive,/const driveBackfillBudget = Math\.min\(2, Math\.max\(0, limit - selectedRequiredCandidates\.length\)\)/);
+test('RC1410: optionales Drive-Backfill nutzt nur das verbleibende gemeinsame Remote-Budget',()=>{
+  assert.match(archive,/const driveBackfillBudget = reference \? Math\.min\(limit, remainingRemoteBudget\) : Math\.min\(1, remainingRemoteBudget\)/);
   assert.match(archive,/const selectedDriveCandidates = driveBackfillCandidates\.slice\(0, driveBackfillBudget\)/);
   assert.match(archive,/const selectedCandidates = selectedRequiredCandidates\.concat\(selectedDriveCandidates\)/);
   assert.match(archive,/const requiredSelected = selectedRequiredCandidates\.length/);
   assert.match(archive,/const driveBackfillSelected = selectedDriveCandidates\.length/);
+});
+
+
+test('RC1410: ein gemeinsames Remote-Budget begrenzt teure POD-Arbeit pro Function-Aufruf',()=>{
+  assert.match(archive,/const remoteWorkBudget = reference \? Math\.max\(2, limit\) : 2/);
+  assert.match(archive,/let remainingRemoteBudget = Math\.max\(0, remoteWorkBudget - integrityChecks\)/);
+  assert.match(archive,/const requiredBackupBudget = reference \? limit : remainingRemoteBudget/);
+  assert.match(archive,/const relinkBudget = reference \? limit : Math\.min\(1, remainingRemoteBudget\)/);
+  assert.match(archive,/pageWorkDeferred = true/);
+  assert.match(archive,/nextContinuationToken = continuationToken;[\s\S]{0,100}scanComplete = false/);
 });
