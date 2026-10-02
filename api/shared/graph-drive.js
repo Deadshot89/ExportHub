@@ -271,8 +271,7 @@ async function listUserDrives(token, user) {
 }
 
 async function resolveDefaultUserDriveTarget(token, user, folders) {
-  const candidates = Array.isArray(folders) ? folders : [];
-  for (const folder of candidates) {
+  for (const folder of Array.isArray(folders) ? folders : []) {
     const path = encodedPath(folder);
     if (!path) continue;
     try {
@@ -289,29 +288,6 @@ async function resolveDefaultUserDriveTarget(token, user, folders) {
         error
       );
     }
-  }
-
-  // RC1402: Der exakte Root-Pfad kann bei OneDrive-for-Business trotz
-  // erreichbarem Default-Drive abweichen. Deshalb den echten Default-Drive
-  // ermitteln und den Zielordner darin anhand des realen Inhalts suchen.
-  let driveResult = null;
-  try {
-    driveResult = await graphGet(token, `/users/${encodeURIComponent(user)}/drive?$select=id,webUrl`);
-  } catch (error) {
-    if (!isNotFound(error)) {
-      throw targetError(
-        'GRAPH_DEFAULT_DRIVE_TARGET_FAILED',
-        'Das konfigurierte Microsoft-365-Benutzerlaufwerk konnte nicht für die POD-Zielsuche gelesen werden.',
-        error
-      );
-    }
-  }
-  const driveId = text(driveResult && driveResult.body && driveResult.body.id);
-  if (!driveId) return null;
-
-  for (const folder of candidates) {
-    const found = await searchFolderInDrive(token, driveId, folder);
-    if (found) return found;
   }
   return null;
 }
@@ -397,6 +373,30 @@ async function searchConfiguredFolderTargets(token, user, drives, folders) {
   const unique = Array.from(new Map(found.map(item => [item.driveId + ':' + item.folderId, item])).values());
   if (unique.length > 1) throw targetError('GRAPH_TARGET_AMBIGUOUS', 'Der konfigurierte Microsoft-365-POD-Zielordner ist nicht eindeutig.', { statusCode: 409 });
   return unique[0] || null;
+}
+
+async function resolveDefaultDriveSearchTarget(token, user, folders) {
+  let driveResult = null;
+  try {
+    driveResult = await graphGet(token, `/users/${encodeURIComponent(user)}/drive?$select=id,webUrl`);
+  } catch (error) {
+    if (isNotFound(error)) return null;
+    const wrapped = targetError(
+      'GRAPH_DEFAULT_DRIVE_TARGET_FAILED',
+      'Das konfigurierte Microsoft-365-Benutzerlaufwerk konnte nicht für die POD-Zielsuche gelesen werden.',
+      error
+    );
+    wrapped.graphCode = text(error && error.code);
+    throw wrapped;
+  }
+
+  const driveId = text(driveResult && driveResult.body && driveResult.body.id);
+  if (!driveId) return null;
+  for (const folder of Array.isArray(folders) ? folders : []) {
+    const found = await searchFolderInDrive(token, driveId, folder);
+    if (found) return found;
+  }
+  return null;
 }
 
 function encodedSitePath(value) {
@@ -547,7 +547,21 @@ async function resolveTarget(token, cfg, force) {
   // RC1401: Die bekannte OneDrive-for-Business-URL ist eine SharePoint-Personal-Site,
   // kein Graph-Sharing-Link. Deshalb zuerst die Personal-Site und ihre Drives
   // direkt über /sites/... auflösen.
-  if (!value) value = await resolvePersonalSiteFolderTarget(token, cfg.user, folders);
+  let personalSiteError = null;
+  if (!value) {
+    try {
+      value = await resolvePersonalSiteFolderTarget(token, cfg.user, folders);
+    } catch (error) {
+      if (text(error && error.code) !== 'GRAPH_PERSONAL_SITE_TARGET_FAILED') throw error;
+      personalSiteError = error;
+    }
+  }
+  // RC1402: Wenn die Site-Auflösung selbst (z. B. wegen Sites-Berechtigung oder
+  // Tenant-Host) scheitert, den echten Benutzer-Default-Drive direkt lesen und
+  // darin nach dem bestätigten Zielpfad suchen. Dieser Fallback greift nur für
+  // den RC1401-Livefehler und verändert bestehende 404-/Share-Semantik nicht.
+  if (!value && personalSiteError) value = await resolveDefaultDriveSearchTarget(token, cfg.user, folders);
+  if (!value && personalSiteError) throw personalSiteError;
   // Historischer Share-URL-Fallback bleibt nur für echte Sharing-URL-Szenarien.
   if (!value) value = await resolvePersonalFolderTarget(token, cfg.user, cfg.folder);
   if (!value) throw targetError('GRAPH_FOLDER_NOT_FOUND', 'Der konfigurierte Microsoft-365-Zielordner wurde weder in erreichbaren Drives noch im konfigurierten Benutzerlaufwerk oder über seine explizite OneDrive-URL gefunden.', { statusCode: 404 });
