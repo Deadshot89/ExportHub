@@ -49,7 +49,7 @@ test('RC1267: Readiness-Hinweis unterscheidet Admin und Nutzer über Translation
 });
 
 test('RC1162: finaler Build erzwingt neuen Kundenportal-Cache ohne Deckblatt-Regression',()=>{
-  assert.match(build,/assets\/rc1160-customer-portal-credentials\.js\?v=1411/);
+  assert.match(build,/assets\/rc1160-customer-portal-credentials\.js\?v=1412/);
   assert.match(build,/customerPortalReadiness:'RC1162 safe key-status \+ UI readiness guard'/);
   assert.match(build,/border:3mm solid #111827/);
 });
