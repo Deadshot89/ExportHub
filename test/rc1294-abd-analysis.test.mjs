@@ -123,12 +123,12 @@ test('RC1294: XLSX-Runtime und Release-Build sind vollständig verdrahtet',()=>{
  assert.match(runtime,/\/api\/abd-analysis/);
  assert.match(runtime,/accept="\.pdf,\.xlsx,\.csv/);
  assert.match(runtime,/data-rc1294-results/);
- assert.match(build,/assets\/rc1294-abd-self-service\.js\?v=1294/);
+ assert.match(build,/assets\/rc1294-abd-self-service\.js\?v=1406/);
  assert.match(build,/abd-analysis\/index\.js/);
  assert.match(build,/shared\/abd-analysis\.js/);
 });
 
-test('RC1294: geänderte JavaScript-Dateien sind syntaktisch gültig',async()=>{
+test('RC1406: geänderte JavaScript-Dateien sind syntaktisch gültig',async()=>{
  const {execFileSync}=await import('node:child_process');
  for(const file of ['api/shared/abd-analysis.js','api/abd-analysis/index.js','assets/rc1294-abd-self-service.js','.github/rc1112/build-three-env.mjs'])execFileSync(process.execPath,['--check',file],{stdio:'pipe'});
 });
