@@ -19,7 +19,11 @@ test('RC1370: Sendungsansicht bietet die manuelle Abholbuchung mit den gefordert
     'data-rc1370-plate',
     "manualPickupApi('manual-appointment'"
   ]) assert.ok(ui.includes(marker),marker+' fehlt');
-  assert.match(css,/\.rc1370-manual-pickup/);
+  assert.match(css,/body\[data-exporthub-view="shipmentview"\] \.rc1370-manual-pickup/);
+  assert.match(ui,/function inShipmentDetailView\(/);
+  assert.match(ui,/rc786ReferenceFilesCard/);
+  const manualEnhancer=ui.slice(ui.indexOf('function enhanceManualPickupBooking'),ui.indexOf('function enhanceShipmentDetailedView'));
+  assert.doesNotMatch(manualEnhancer,/rc363BlockShipment/,'Manuelle Abholbuchung darf nicht in Sendung erstellen eingebaut werden');
 });
 
 test('RC1370: manuelle Buchung verwendet dieselbe Slot-Kapazität wie der Kunden-AVIS',()=>{
