@@ -40,3 +40,14 @@ test('RC1333: Browser laden den Safe-Origin-Hotfix mit neuem Cache-Key',()=>{
   assert.match(fixer,/rc1027-lieferavis-immediate\.js\?v=1393/);
   assert.match(build,/rc1166-avis-reminder-overview\.js\?v=1393/);
 });
+
+test('RC1420: neue Produktions-AVIS-Links bleiben verbindlich auf exporthub360.de',()=>{
+  const canonical=/https:\/\/www\.exporthub360\.de/;
+  const wrongCanonical=/PROD(?:UCTION)?_AVIS_ORIGIN='https:\/\/(?:www\.)?exporthub360\.com'/;
+  assert.match(immediate,canonical,'Client muss neue Produktions-AVIS-Links auf exporthub360.de erzeugen');
+  assert.match(api,canonical,'Server muss neue Produktions-AVIS-Links auf exporthub360.de erzeugen');
+  assert.match(reminder,canonical,'Erinnerungslogik muss Produktions-AVIS-Links auf exporthub360.de normalisieren');
+  assert.doesNotMatch(immediate,wrongCanonical,'Client darf .com nicht als kanonischen Produktions-Host setzen');
+  assert.doesNotMatch(api,wrongCanonical,'Server darf .com nicht als kanonischen Produktions-Host setzen');
+  assert.doesNotMatch(reminder,wrongCanonical,'Erinnerungslogik darf .com nicht als kanonischen Produktions-Host setzen');
+});
