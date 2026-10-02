@@ -4,7 +4,7 @@
 if(!w||!d||w.__EXPORTHUB_RC1092_CUSTOMER_MAIL_CONTACTS__)return;
 w.__EXPORTHUB_RC1092_CUSTOMER_MAIL_CONTACTS__=true;
 
-var installTimer=0;
+var installTimer=0,observer=null,observerRoot=null,scheduledFrame=0;
 
 function q(v){return String(v==null?'':v).trim()}
 function tr(key,vars){try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.t==='function')return w.ExportHUBI18n.t(key,vars)}catch(_){}return key}
@@ -246,13 +246,25 @@ function install(){
  }
  refreshManager(c);return true
 }
-function schedule(){
- if(installTimer)return;installTimer=w.setTimeout(function(){installTimer=0;try{install()}catch(e){try{console.warn('RC1092 Kundenkontakte',e)}catch(_){}}},0)
+function customerHost(){return d.getElementById('content')||d.querySelector('main')||d.body||null}
+function disconnectObserver(){if(observer){try{observer.disconnect()}catch(_){}observer=null}observerRoot=null}
+function syncObserver(){
+ if(!customerFolderVisible()){disconnectObserver();return false}
+ var root=customerHost();if(!root)return false;
+ if(observer&&observerRoot===root)return true;
+ disconnectObserver();
+ if(w.MutationObserver){try{observer=new w.MutationObserver(function(){schedule()});observer.observe(root,{childList:true,subtree:true});observerRoot=root}catch(_){observer=null;observerRoot=null}}
+ return true
 }
-if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',function(){schedule();w.setTimeout(schedule,180);w.setTimeout(schedule,700)},{once:true});else{schedule();w.setTimeout(schedule,180);w.setTimeout(schedule,700)}
-['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded','exporthub:sync','exporthub:language-changed'].forEach(function(n){try{w.addEventListener(n,schedule)}catch(_){}});
+function schedule(){
+ if(scheduledFrame)return;
+ var run=function(){scheduledFrame=0;if(installTimer)return;installTimer=w.setTimeout(function(){installTimer=0;try{syncObserver();install()}catch(e){try{console.warn('RC1092 Kundenkontakte',e)}catch(_){}}},0)};
+ try{if(typeof w.requestAnimationFrame==='function')scheduledFrame=w.requestAnimationFrame(run);else{scheduledFrame=1;w.setTimeout(run,0)}}catch(_){scheduledFrame=0}
+}
+function activate(){syncObserver();schedule()}
+if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',function(){activate();w.setTimeout(activate,180);w.setTimeout(activate,700)},{once:true});else{activate();w.setTimeout(activate,180);w.setTimeout(activate,700)}
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded','exporthub:sync','exporthub:language-changed'].forEach(function(n){try{w.addEventListener(n,activate)}catch(_){}});
 try{w.addEventListener('exporthub:language-changed',function(){refreshManager(currentCustomer());refreshStatusLanguage()})}catch(_){}
-if(w.MutationObserver){try{var mo=new MutationObserver(function(){if(customerFolderVisible())schedule()});mo.observe(d.documentElement,{childList:true,subtree:true})}catch(_){}}
 
 w.ExportHUBRC1092CustomerContacts=Object.freeze({version:'RC1330',directory:directory,mailContacts:mailContacts,savePerson:savePerson,addToMail:addToMail,removeFromMail:removeFromMail,avisAllowed:avisAllowed,setAvisAllowed:setAvisAllowed,install:install});
 })(window,document);
