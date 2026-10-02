@@ -262,5 +262,7 @@
   "api.abdAnalysis.scanFailed": "The file could not be safely scanned for malware and was not analysed.",
   "api.abdAnalysis.failed": "The export declaration file could not be analysed.",
   "api.abdAnalysis.forbidden": "Edit permission for the export declaration area is required for this analysis.",
-  "api.abdAnalysis.actionInvalid": "Unknown export declaration analysis action."
+  "api.abdAnalysis.actionInvalid": "Unknown export declaration analysis action.",
+  "api.avis.manualAppointmentCreated": "Pickup booked manually",
+  "api.avis.manualAppointmentChanged": "Manual pickup changed"
 }
