@@ -370,29 +370,6 @@ async function searchConfiguredFolderTargets(token, user, drives, folders) {
     }
   }
 
-  if (!found.length) {
-    let defaultDrive = null;
-    try {
-      defaultDrive = await graphGet(token, `/users/${encodeURIComponent(user)}/drive?$select=id`);
-    } catch (error) {
-      if (!isNotFound(error)) throw targetError(
-        'GRAPH_DEFAULT_DRIVE_TARGET_FAILED',
-        'Das konfigurierte Microsoft-365-Benutzerlaufwerk konnte nicht für die POD-Zielsuche gelesen werden.',
-        error
-      );
-    }
-    const defaultDriveId = text(defaultDrive && defaultDrive.body && defaultDrive.body.id);
-    if (defaultDriveId) {
-      for (const folder of Array.isArray(folders) ? folders : []) {
-        const match = await searchFolderInDrive(token, defaultDriveId, folder);
-        if (match) {
-          found.push(match);
-          break;
-        }
-      }
-    }
-  }
-
   const unique = Array.from(new Map(found.map(item => [item.driveId + ':' + item.folderId, item])).values());
   if (unique.length > 1) throw targetError('GRAPH_TARGET_AMBIGUOUS', 'Der konfigurierte Microsoft-365-POD-Zielordner ist nicht eindeutig.', { statusCode: 409 });
   return unique[0] || null;
