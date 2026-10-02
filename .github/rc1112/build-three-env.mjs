@@ -402,7 +402,7 @@ function patchRc1414ShipmentCreateNoRerender(html,file){
   block=block.replace(finalizeAnchor,resetHelper+finalizeAnchor);
 
   const finalizeTail="if(el.tagName==='SELECT')el.selectedIndex=0;else el.value=''}})}\n finalize();var nt=window.ExportHUBClean&&window.ExportHUBClean.native&&window.ExportHUBClean.native.setTimeout||window.setTimeout;nt(finalize,90);";
-  const finalizeTailNext="if(el.tagName==='SELECT')el.selectedIndex=0;else el.value=''}})}resetMountedFreshDom()}\n finalize();if(!preserveMountedShipment){var nt=window.ExportHUBClean&&window.ExportHUBClean.native&&window.ExportHUBClean.native.setTimeout||window.setTimeout;nt(finalize,90)};";
+  const finalizeTailNext="if(el.tagName==='SELECT')el.selectedIndex=0;else el.value=''}});resetMountedFreshDom()}\n finalize();if(!preserveMountedShipment){var nt=window.ExportHUBClean&&window.ExportHUBClean.native&&window.ExportHUBClean.native.setTimeout||window.setTimeout;nt(finalize,90)};";
   const tailCount=block.split(finalizeTail).length-1;
   if(tailCount!==1)throw new Error(file+': RC1414 Doppel-Finalize-Anker '+tailCount+'x gefunden');
   block=block.replace(finalizeTail,finalizeTailNext);
