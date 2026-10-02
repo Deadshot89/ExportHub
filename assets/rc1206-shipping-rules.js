@@ -32,7 +32,7 @@ function shipmentCandidates(){var s=state(),out=[];function push(x){if(x&&typeof
 function candidateRows(){var cs=shipmentCandidates();for(var i=0;i<cs.length;i++){var sh=cs[i],lists=[sh.rows,sh.colli,sh.collis,sh.packages,sh.packagingRows,sh.packageRows,sh.shipmentRows,sh.colliRows,sh.handlingUnits,sh.items,sh.lines];for(var j=0;j<lists.length;j++)if(Array.isArray(lists[j])&&lists[j].length)return lists[j]}return[]}
 function packageType(r){return q(r&&(r.type||r.packaging||r.verpackung||r.packageType||r.packagingType||r.name))}
 function isPalletType(v){return /palette|palett|pallet|skid/i.test(q(v))}
-function isUpsPackageType(v){var x=q(v);return !!x&&!isPalletType(x)&&(/karton|carton|package|paket|umschlag|envelope|^e[0-6]$/i.test(x))}
+function isUpsPackageType(v){var x=q(v);return !!x&&!isPalletType(x)&&(/karton|carton|package|paket|umschlag|envelope|\be[0-6]\b/i.test(x))}
 function rowCount(r){return Math.max(0,Math.round(num(r&&(r.count||r.quantity||r.qty||r.anzahl))||1))}
 function rowWeight(r){return Math.max(0,num(r&&(r.weight||r.gewicht||r.kg||r.totalWeight||r.grossWeight)))}
 function rowDim(r,key){var aliases=key==='l'?['l','length','lengthCm','laenge','länge']:key==='w'?['w','width','widthCm','breite']:['h','height','heightCm','hoehe','höhe'];for(var i=0;i<aliases.length;i++){var v=num(r&&r[aliases[i]]);if(v>0)return v}return 0}
