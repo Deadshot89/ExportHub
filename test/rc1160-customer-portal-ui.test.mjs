@@ -34,6 +34,12 @@ test('RC1160: Offenlegung verlangt Re-Auth und wird nach 60 Sekunden gelöscht',
   assert.match(ui,/exporthub:viewchange/);
   assert.match(ui,/customer-changed/);
 });
+test('RC1409: offener Portal-Dialog überlebt Render-Events im gleichen Kontext',()=>{
+  assert.match(ui,/dialogOpen=!!d\.getElementById\('rc1160RevealDialog'\)/);
+  assert.match(ui,/if\(dialogOpen&&sameContext\)return/);
+  assert.match(ui,/if\(!force&&sameContext\)return/);
+  assert.match(ui,/lastContext=key;clearRevealedSecrets\(\);removeBoxes\(\)/);
+});
 test('RC1160: Secrets werden nicht in Browser-Speicher geschrieben',()=>{
   assert.doesNotMatch(ui,/localStorage\.setItem/);
   assert.doesNotMatch(ui,/sessionStorage\.setItem/);
