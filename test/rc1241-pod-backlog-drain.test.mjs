@@ -17,7 +17,8 @@ test('RC1241: TESTSERVICE und Produktion fordern vollständiges Leeren des Backl
   assert.equal((workflow.match(/for batch in \$\(seq 1 50\); do/g)||[]).length,2);
   assert.equal((workflow.match(/drainAll:!reference/g)||[]).length,2);
   assert.equal((workflow.match(/scanPageSize:10/g)||[]).length,2);
-  assert.equal((workflow.match(/eligible===0&&selected===0&&skipped===0&&v\.scanComplete===true/g)||[]).length,2);
+  assert.equal((workflow.match(/const requiredDone=eligible===0&&selected===0&&skipped===0&&!v\.nextContinuationToken&&!v\.pageWorkDeferred/g)||[]).length,2);
+  assert.equal((workflow.match(/if\(requiredDone\)\{process\.stdout\.write\('done'\);return\}/g)||[]).length,2);
   assert.equal((workflow.match(/if\(selected<=0&&!v\.nextContinuationToken&&!v\.pageWorkDeferred\)process\.exit\(7\)/g)||[]).length,2);
   assert.equal((workflow.match(/continuation_token=/g)||[]).length>=2,true);
   assert.equal((workflow.match(/pageWorkDeferred:v\.pageWorkDeferred/g)||[]).length,2);
@@ -38,4 +39,13 @@ test('RC1241: gezielter Referenznachweis bleibt streng und Drain verändert kein
 
 test('RC1241: geänderte Reconcile-Dateien sind syntaktisch gültig',()=>{
   execFileSync(process.execPath,['--check','api/pod-backup-reconcile/index.js'],{stdio:'pipe'});
+});
+
+
+test('RC1416: optionale Microsoft-365-Backfills blockieren einen leeren verpflichtenden Azure-Backlog nicht',()=>{
+  assert.equal((workflow.match(/driveBackfillSelected:v\.driveBackfillSelected/g)||[]).length,2);
+  assert.equal((workflow.match(/drivePendingCount:v\.drivePendingCount/g)||[]).length,2);
+  assert.equal((workflow.match(/const requiredDone=eligible===0&&selected===0&&skipped===0&&!v\.nextContinuationToken&&!v\.pageWorkDeferred/g)||[]).length,2);
+  assert.doesNotMatch(workflow,/requiredDone[^\n]*driveBackfill/);
+  assert.doesNotMatch(workflow,/requiredDone[^\n]*scanComplete/);
 });
