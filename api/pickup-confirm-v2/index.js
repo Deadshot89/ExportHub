@@ -22,17 +22,18 @@ module.exports=async function(context,req){
   const got=await store.getRecord(accessKey,resolved.environment),current=got.record||{},providedRef=String(b.reference||b.shipmentRef||'').trim().toUpperCase();if(providedRef&&providedRef!==String(current.reference||'').trim().toUpperCase()){await access.registerFailure(resolved.environment,'pickup',resolved.tokenHash,'reference');throw store.err('REFERENCE_MISMATCH',apiI18n.t(req,'api.pickup.referenceMismatch'),403)}
   if(completeOf(current)||current.status==='confirmed'){
    let rec=current,archiveFailure='',podArchive=null;
+   let teamStateSynced=true,teamStateSyncError='';
    try{
     await store.updateTeam(rec,[],'');
    }catch(e){
-    context.log&&context.log.error&&context.log.error('RC1400 pickup recovery team state update failed',e&&e.code,e&&e.message);
-    throw store.err('TEAM_STATE_UPDATE_FAILED','Abholung ist gespeichert, konnte aber noch nicht mit der Sendung synchronisiert werden. Bitte erneut versuchen.',503);
+    teamStateSynced=false;teamStateSyncError=shortError(e);
+    context.log&&context.log.error&&context.log.error('RC1413 pickup recovery team state update pending',e&&e.code,e&&e.message);
    }
    try{
     podArchive=require('../shared/pod-archive');
     const archiveResult=await podArchive.ensureAutomaticPod(accessKey,resolved.environment,{copyToDrive:true});
     if(archiveResult&&archiveResult.record)rec=archiveResult.record;
-    try{await store.updateTeam(rec,[],'')}catch(e){context.log&&context.log.error&&context.log.error('RC1400 recovered POD team state update failed',e&&e.code,e&&e.message)}
+    try{await store.updateTeam(rec,[],'');teamStateSynced=true;teamStateSyncError=''}catch(e){teamStateSynced=false;teamStateSyncError=shortError(e);context.log&&context.log.error&&context.log.error('RC1413 recovered POD team state update pending',e&&e.code,e&&e.message)}
    }catch(e){
     archiveFailure=shortError(e);
     context.log&&context.log.error&&context.log.error('RC1400 recovered automatic POD archive failed',e&&e.code,e&&e.message);
@@ -50,10 +51,10 @@ module.exports=async function(context,req){
     sequence:last.sequence||history.length,remainingAfter:0,loaderName:last.loaderName||rec.loaderName||loader.name,
     loadedBy:last.loaderName||rec.loaderName||loader.name,loader:last.loaderName||rec.loaderName||loader.name,
     verlader:last.loaderName||rec.loaderName||loader.name,loaderId:last.loaderId||rec.loaderId||loader.id,
-    personalPinValidated:true,oneTimeConsumed:true,recovered:true,podAzureSaved:backup.azureSaved===true,
+    personalPinValidated:true,oneTimeConsumed:true,recovered:true,teamStateSynced,teamStateSyncPending:!teamStateSynced,teamStateSyncError,podAzureSaved:backup.azureSaved===true,
     podArchiveSaved:backup.archiveSaved===true,podDriveSaved:backup.driveSaved===true,
     podBackupStatus:backup.status||archiveFailure&&'error'||'pending',podBackupError:backup.lastError||archiveFailure||'',
-    podFileName:autoPod&&autoPod.name||backup.fileName||'',version:'RC1400'
+    podFileName:autoPod&&autoPod.name||backup.fileName||'',version:'RC1413'
    }));
    return
   }
@@ -70,18 +71,19 @@ module.exports=async function(context,req){
    if(mode==='complete'&&containerRequired&&!containerDocs.completePhotos(containerPhotos))throw store.err('CONTAINER_PHOTOS_REQUIRED',apiI18n.t(req,'api.pickup.photosRequired'),409);
    const sequence=historyOf(r).length+1,signatureMeta=await store.saveDriverSignature(clients,r,signature,String(sequence)),iso=store.now(),collectedAfter=collectedOf(r)+entered,remainingAfter=Math.max(0,expected-collectedAfter),complete=remainingAfter===0;
    const item={id:'pickup-'+sequence,sequence,type:complete?'complete':'partial',confirmedAt:iso,colliCount:entered,collectedAfter,remainingAfter,complete,driverName:store.sanitizeText(store.first(b,['driverName','pickupDriverName','confirmedBy']),180),licensePlate:plate,loaderName:loader.name,loaderId:loader.id,carrierName:spedition,returnedEuroPallets:Math.max(0,Math.round(Number(b.returnedEuroPallets||b.returnPallets||0)||0)),signatureBlobName:signatureMeta.signatureBlobName,signatureType:signatureMeta.signatureType,signatureSize:signatureMeta.signatureSize,signatureStoredAt:signatureMeta.signatureStoredAt,signatureStored:true,abdPresent:abdPresent,customsDocumentsReceived:abdPresent?customsDocumentsReceived:false};
-   r.pickupHistory=historyOf(r).concat(item);r.collectedPickupCollis=collectedAfter;r.pickupCollectedColliCount=collectedAfter;r.remainingPickupCollis=remainingAfter;r.pickupRemainingColliCount=remainingAfter;r.partialPickup=!complete;r.status=complete?'confirmed':'partial';r.complete=complete;r.confirmedAt=complete?iso:null;r.lastPartialPickupAt=iso;r.updatedAt=iso;r.failedAttempts=0;r.lockedUntil=null;r.driverName=item.driverName;r.licensePlate=plate;r.loaderName=loader.name;r.loadedBy=loader.name;r.loader=loader.name;r.verlader=loader.name;r.loaderId=loader.id;r.carrierName=spedition;r.speditionName=spedition;r.carrier=spedition;r.spedition=spedition;r.enteredColliCount=entered;r.confirmedColliCount=entered;r.colliCountConfirmed=true;r.colliConfirmed=true;r.pickupColliCountConfirmed=true;r.signatureBlobName=signatureMeta.signatureBlobName;r.signatureType=signatureMeta.signatureType;r.signatureSize=signatureMeta.signatureSize;r.signatureStoredAt=signatureMeta.signatureStoredAt;r.abdPresent=abdPresent;r.customsDocumentsReceived=abdPresent?customsDocumentsReceived:false;r.podType='signed-loadlist';r.podFiles=store.realPodFiles(r);if(sealNumber)r.sealNumber=sealNumber;r.containerDocumentationUpdatedAt=iso;r.confirmationVersion='RC1400';
+   r.pickupHistory=historyOf(r).concat(item);r.collectedPickupCollis=collectedAfter;r.pickupCollectedColliCount=collectedAfter;r.remainingPickupCollis=remainingAfter;r.pickupRemainingColliCount=remainingAfter;r.partialPickup=!complete;r.status=complete?'confirmed':'partial';r.complete=complete;r.confirmedAt=complete?iso:null;r.lastPartialPickupAt=iso;r.updatedAt=iso;r.failedAttempts=0;r.lockedUntil=null;r.driverName=item.driverName;r.licensePlate=plate;r.loaderName=loader.name;r.loadedBy=loader.name;r.loader=loader.name;r.verlader=loader.name;r.loaderId=loader.id;r.carrierName=spedition;r.speditionName=spedition;r.carrier=spedition;r.spedition=spedition;r.enteredColliCount=entered;r.confirmedColliCount=entered;r.colliCountConfirmed=true;r.colliConfirmed=true;r.pickupColliCountConfirmed=true;r.signatureBlobName=signatureMeta.signatureBlobName;r.signatureType=signatureMeta.signatureType;r.signatureSize=signatureMeta.signatureSize;r.signatureStoredAt=signatureMeta.signatureStoredAt;r.abdPresent=abdPresent;r.customsDocumentsReceived=abdPresent?customsDocumentsReceived:false;r.podType='signed-loadlist';r.podFiles=store.realPodFiles(r);if(sealNumber)r.sealNumber=sealNumber;r.containerDocumentationUpdatedAt=iso;r.confirmationVersion='RC1413';
    if(complete){uploadKey=crypto.randomBytes(32).toString('hex');r.uploadKeyHash=store.hash(uploadKey);r.uploadKeyExpiresAt=new Date(Date.now()+2*3600000).toISOString();r.podBackup=Object.assign({},r.podBackup||{},{status:'pending',archiveSaved:false,driveSaved:false,lastError:'',lastAttemptAt:null})}
    return r
   });
   const complete=completeOf(rec),history=historyOf(rec),last=history[history.length-1]||{};
   if(!complete)await access.clearFailures(resolved.environment,'pickup',resolved.tokenHash);
   if(typeof store.updateTeamContainerDocumentation==='function'){try{await store.updateTeamContainerDocumentation(rec)}catch(e){context.log&&context.log.error&&context.log.error('RC1259 container team state update failed',e&&e.code,e&&e.message)}}
+  let teamStateSynced=true,teamStateSyncError='';
   try{
    await store.updateTeam(rec,[],'');
   }catch(e){
-   context.log&&context.log.error&&context.log.error('RC1400 team state update failed',e&&e.code,e&&e.message);
-   throw store.err('TEAM_STATE_UPDATE_FAILED','Abholung ist gespeichert, konnte aber noch nicht mit der Sendung synchronisiert werden. Bitte erneut versuchen.',503);
+   teamStateSynced=false;teamStateSyncError=shortError(e);
+   context.log&&context.log.error&&context.log.error('RC1413 team state update pending',e&&e.code,e&&e.message);
   }
   if(complete){
    await access.consume(resolved.environment,'pickup',resolved.tokenHash,{reason:'pickup-confirmed',fields:{confirmedAt:rec.confirmedAt,loaderId:loader.id}});
@@ -93,7 +95,7 @@ module.exports=async function(context,req){
    try{
     archiveResult=await podArchive.ensureAutomaticPod(accessKey,resolved.environment,{copyToDrive:true});
     if(archiveResult&&archiveResult.record)rec=archiveResult.record;
-    try{await store.updateTeam(rec,[],'')}catch(e){context.log&&context.log.error&&context.log.error('RC1114 POD team state update failed',e&&e.code,e&&e.message)}
+    try{await store.updateTeam(rec,[],'');teamStateSynced=true;teamStateSyncError=''}catch(e){teamStateSynced=false;teamStateSyncError=shortError(e);context.log&&context.log.error&&context.log.error('RC1413 POD team state update pending',e&&e.code,e&&e.message)}
    }catch(e){
     archiveFailure=shortError(e);
     context.log&&context.log.error&&context.log.error('RC1114 automatic POD archive failed',e&&e.code,e&&e.message);
@@ -131,13 +133,16 @@ module.exports=async function(context,req){
    loaderId:loader.id,
    personalPinValidated:true,
    oneTimeConsumed:complete,
+   teamStateSynced,
+   teamStateSyncPending:!teamStateSynced,
+   teamStateSyncError,
    podAzureSaved:complete?backup.azureSaved===true:false,
    podArchiveSaved:complete?backup.archiveSaved===true:false,
    podDriveSaved:complete?backup.driveSaved===true:false,
    podBackupStatus:complete?(backup.status||archiveFailure&&'error'||'pending'):'not-applicable',
    podBackupError:complete?(backup.lastError||archiveFailure||''):'',
    podFileName:autoPod&&autoPod.name||backup.fileName||'',
-   version:'RC1400'
+   version:'RC1413'
   }));
- }catch(e){context.log&&context.log.error&&context.log.error('pickup-confirm-v2 RC1400',e&&e.code,e&&e.message);context.res=json(e.status||e.statusCode||500,{ok:false,code:e.code||'SERVER_ERROR',message:e.message||apiI18n.t(req,'api.pickup.confirmFailed')})}
+ }catch(e){context.log&&context.log.error&&context.log.error('pickup-confirm-v2 RC1413',e&&e.code,e&&e.message);context.res=json(e.status||e.statusCode||500,{ok:false,code:e.code||'SERVER_ERROR',message:e.message||apiI18n.t(req,'api.pickup.confirmFailed')})}
 };
