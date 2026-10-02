@@ -252,7 +252,6 @@ test('RC1402: freigegebener POD-Ordner wird über remoteItem auf den echten Driv
         remoteItem:{
           id:'folder-remote',
           name:'Abliefernachweise',
-          folder:{},
           parentReference:{driveId:'drive-shared',path:'/drives/drive-shared/root:/003 Export/ExportHub'}
         }
       }]}};
