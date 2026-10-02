@@ -365,6 +365,24 @@ function patchShipmentSuspendSave(html,file){
   return html
 }
 
+function patchRc1412ShipmentCreateDomPreserve(html,file){
+  const startMarker='function startFreshShipment(){';
+  const endMarker='function enforceFreshDraft(){';
+  const start=html.indexOf(startMarker),end=html.indexOf(endMarker,start);
+  if(start<0||end<=start)throw new Error(file+': RC1412 Fresh-Draft-Block fehlt');
+  let block=html.slice(start,end);
+  const before="var r=root();if(r){r.className='content';r.removeAttribute('data-view');r.removeAttribute('data-rc562-layout');r.replaceChildren()}document.body.removeAttribute('data-rc420-shipment-readonly');\n try{if(window.ExportHUBRC325&&typeof window.ExportHUBRC325.route==='function')window.ExportHUBRC325.route('shipment','new-shipment');else throw new Error('Zentraler Router nicht verfügbar')}catch(e){console.error('RC455 Neue Sendung',e)}";
+  const after="var r=root(),mountedLayout=document.getElementById('rc363FixedShipmentLayout')||document.getElementById('rc573ShipmentShell'),preserveMountedShipment=!!(r&&mountedLayout&&r.contains(mountedLayout));if(r&&!preserveMountedShipment){r.className='content';r.removeAttribute('data-view');r.removeAttribute('data-rc562-layout');r.replaceChildren()}document.body.removeAttribute('data-rc420-shipment-readonly');\n if(preserveMountedShipment){try{patch()}catch(e){console.error('RC1412 Neue Sendung im bestehenden Layout',e)}}else{try{if(window.ExportHUBRC325&&typeof window.ExportHUBRC325.route==='function')window.ExportHUBRC325.route('shipment','new-shipment');else throw new Error('Zentraler Router nicht verfügbar')}catch(e){console.error('RC455 Neue Sendung',e)}}";
+  const count=block.split(before).length-1;
+  if(count!==1)throw new Error(file+': RC1412 Root-Reset/Router-Anker '+count+'x gefunden');
+  block=block.replace(before,after);
+  if(!block.includes("preserveMountedShipment=!!(r&&mountedLayout&&r.contains(mountedLayout))"))throw new Error(file+': RC1412 DOM-Erhalt-Erkennung fehlt');
+  if(!block.includes("if(r&&!preserveMountedShipment)"))throw new Error(file+': RC1412 Root-Clear ist nicht auf echten Ansichtswechsel begrenzt');
+  if(!block.includes("if(preserveMountedShipment){try{patch()}"))throw new Error(file+': RC1412 lokaler Fresh-Draft-Patch fehlt');
+  if(block.includes("if(r){r.className='content';r.removeAttribute('data-view');r.removeAttribute('data-rc562-layout');r.replaceChildren()}"))throw new Error(file+': RC1412 alter unbedingter Root-Clear ist noch aktiv');
+  return html.slice(0,start)+block+html.slice(end);
+}
+
 function patchTaskDetailTab(html,file){
   const open='<script id="index321-single-navigation-controller">';
   const start=html.indexOf(open),end=start<0?-1:html.indexOf('</script>',start+open.length);
@@ -830,6 +848,7 @@ function patchHtml(file){
   html=patchDeckblattHighVisibility(html,file);
   html=patchRc1203ActualDeckblatt(html,file);
   html=patchShipmentSuspendSave(html,file);
+  html=patchRc1412ShipmentCreateDomPreserve(html,file);
   html=patchRc1319ShipmentSaveFinalization(html,file);
   html=patchRc1296BrowserBranding(html,file);
   html=html.replace(/ExportHUB RC1048 environment=/g,`ExportHUB ${VERSION} environment=`);
