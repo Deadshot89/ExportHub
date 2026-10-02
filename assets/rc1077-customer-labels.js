@@ -58,16 +58,36 @@ function apply(){
  renameLabels(host);
  return true
 }
+var observer=null,observerRoot=null,scheduled=false;
+function customerHost(){return d.getElementById('content')||d.querySelector('main')||d.body||null}
+function disconnectObserver(){
+ if(observer){try{observer.disconnect()}catch(_){}observer=null}
+ observerRoot=null
+}
+function syncObserver(){
+ if(!customerView()){disconnectObserver();return false}
+ var root=customerHost();if(!root)return false;
+ if(observer&&observerRoot===root)return true;
+ disconnectObserver();
+ if(w.MutationObserver){
+  try{
+   observer=new w.MutationObserver(function(){schedule()});
+   observer.observe(root,{subtree:true,childList:true});
+   observerRoot=root
+  }catch(_){observer=null;observerRoot=null}
+ }
+ return true
+}
 function schedule(){
- try{if(typeof w.requestAnimationFrame==='function')w.requestAnimationFrame(apply);else w.setTimeout(apply,0)}catch(_){}
+ if(scheduled)return;
+ scheduled=true;
+ var run=function(){scheduled=false;try{syncObserver();apply()}catch(_){}};
+ try{if(typeof w.requestAnimationFrame==='function')w.requestAnimationFrame(run);else w.setTimeout(run,0)}catch(_){scheduled=false}
 }
-if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
+function activate(){syncObserver();schedule()}
+if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',activate,{once:true});else activate();
 if(w.addEventListener){
- ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded'].forEach(function(name){w.addEventListener(name,schedule)});
-}
-if(w.MutationObserver){
- var obs=new MutationObserver(function(){if(customerView())schedule()});
- try{obs.observe(d.documentElement,{subtree:true,childList:true})}catch(_){}
+ ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded'].forEach(function(name){w.addEventListener(name,activate)});
 }
 w.ExportHUBRC1077CustomerLabels=Object.freeze({version:'RC1077',apply:apply,renameLabels:renameLabels,customerView:customerView});
 })(window,document);
