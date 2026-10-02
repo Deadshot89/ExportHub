@@ -346,7 +346,7 @@ test('RC1408: Personal-Site-Fehler fällt auf den explizit konfigurierten Benutz
     assert.equal(result.folder,'Documents/003 Export/ExportHub/Abliefernachweise');
     assert.equal(result.directPath,true);
     assert.equal(result.attempts,1);
-    assert.equal(calls.some(call=>/\/v1\.0\/shares\//.test(call.path)),false);
+    assert.equal(calls.some(call=>/\/v1\.0\/shares\//.test(call.path)),true,'Share-Ziel muss vor Direct-Path geprüft werden');
   });
 });
 
