@@ -200,6 +200,38 @@ test('RC1391: fehlende Drives-Liste fällt auf den konfigurierten Benutzer-Defau
   });
 });
 
+
+test('RC1392: vorhandene aber erfolglose Drives-Liste fällt trotzdem auf den Benutzer-Default-Drive zurück',async()=>{
+  setEnv();
+  const graph=fresh();
+  await withFakeHttps((call,index)=>{
+    if(index===1)return tokenResponse();
+    if(index===2){
+      assert.match(call.path,/\/v1\.0\/users\/tobiaslimberg%40essentra\.com\/drives\?\$select=id,driveType,name$/);
+      return{status:200,body:{value:[{id:'drive-unrelated',name:'Unrelated'}]}};
+    }
+    if(index===3||index===4){
+      assert.match(call.path,/\/v1\.0\/drives\/drive-unrelated\/root:\//);
+      return{status:404,body:{error:{code:'itemNotFound',message:'Folder not in listed drive'}}};
+    }
+    if(index===5){
+      assert.match(call.path,/\/v1\.0\/users\/tobiaslimberg%40essentra\.com\/drive\/root:\/003%20Export\/ExportHub\/Abliefernachweise\?\$select=id,name,folder,parentReference$/);
+      return{status:200,body:{id:'folder-default',name:'Abliefernachweise',folder:{},parentReference:{driveId:'drive-default'}}};
+    }
+    if(index===6){
+      assert.equal(call.method,'PUT');
+      assert.equal(call.path,'/v1.0/drives/drive-default/items/folder-default:/POD_TV9NKH.pdf:/content');
+      return{status:201,body:{id:'file-default',name:'POD_TV9NKH.pdf',size:9}};
+    }
+    throw new Error('Unerwarteter Aufruf '+index+' '+call.method+' '+call.path);
+  },async calls=>{
+    const result=await graph.uploadPdf(Buffer.from('%PDF-test'),'POD_TV9NKH.pdf');
+    assert.equal(result.id,'file-default');
+    assert.equal(result.folder,'003 Export/ExportHub/Abliefernachweise');
+    assert.equal(calls.some(call=>/\/v1\.0\/shares\//.test(call.path)),false);
+  });
+});
+
 test('RC1217: nicht auflösbarer Benutzer wird über die bekannte OneDrive-Ordner-URL per Graph Shares aufgelöst',async()=>{
   setEnv();
   const graph=fresh();
