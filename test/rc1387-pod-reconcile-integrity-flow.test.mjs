@@ -37,3 +37,13 @@ test('RC1407: optionales Drive-Backfill ist pro Reconcile-Aufruf hart begrenzt',
   assert.match(archive,/const requiredSelected = selectedRequiredCandidates\.length/);
   assert.match(archive,/const driveBackfillSelected = selectedDriveCandidates\.length/);
 });
+
+
+test('RC1408: ein gemeinsames Remote-Budget begrenzt teure POD-Arbeit pro Function-Aufruf',()=>{
+  assert.match(archive,/const remoteWorkBudget = reference \? Math\.max\(2, limit\) : 2/);
+  assert.match(archive,/let remainingRemoteBudget = Math\.max\(0, remoteWorkBudget - integrityChecks\)/);
+  assert.match(archive,/const relinkBudget = reference \? limit : Math\.min\(1, remainingRemoteBudget\)/);
+  assert.match(archive,/const requiredBackupBudget = reference \? limit : remainingRemoteBudget/);
+  assert.match(archive,/pageWorkDeferred = true/);
+  assert.match(archive,/nextContinuationToken = continuationToken;[\s\S]{0,100}scanComplete = false/);
+});
