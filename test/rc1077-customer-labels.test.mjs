@@ -29,7 +29,7 @@ test('RC1077: Kundenüberschriften dürfen nicht mehr abgeschnitten werden',()=>
 
 test('RC1077: finaler Drei-Umgebungen-Build lädt den Kundenlayout-Fix überall',()=>{
   assert.match(build,/RC1077_CUSTOMER_LABELS_TAG/);
-  assert.match(build,/assets\/rc1077-customer-labels\.js\?v=1077/);
+  assert.match(build,/assets\/rc1077-customer-labels\.js\?v=1392/);
   assert.match(build,/html=injectBeforeHeadClose\(html,RC1077_CUSTOMER_LABELS_TAG,RC1077_CUSTOMER_LABELS_ID\)/);
   assert.match(build,/assets\/rc1077-customer-labels\.js/);
   assert.match(build,/customerLabels:\{version:'RC1077'/);
