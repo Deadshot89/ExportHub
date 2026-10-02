@@ -178,7 +178,7 @@ function cachedTargetFailure(cfg) {
 
 function rememberTargetFailure(cfg, error) {
   const code = text(error && error.code);
-  if (!/^(?:GRAPH_SHARE_TARGET_FAILED|GRAPH_DEFAULT_DRIVE_TARGET_FAILED|GRAPH_FOLDER_NOT_FOUND|GRAPH_TARGET_AMBIGUOUS)$/.test(code)) return false;
+  if (!/^(?:GRAPH_SHARE_TARGET_FAILED|GRAPH_PERSONAL_SITE_TARGET_FAILED|GRAPH_DEFAULT_DRIVE_TARGET_FAILED|GRAPH_FOLDER_NOT_FOUND|GRAPH_TARGET_AMBIGUOUS)$/.test(code)) return false;
   targetFailureCache = {
     key: targetKey(cfg),
     code,
@@ -375,6 +375,90 @@ async function searchConfiguredFolderTargets(token, user, drives, folders) {
   return unique[0] || null;
 }
 
+function encodedSitePath(value) {
+  return rawFolder(value).split('/').map(part => encodeURIComponent(part)).filter(Boolean).join('/');
+}
+
+async function resolvePersonalSiteFolderTarget(token, user, folders) {
+  const descriptor = personalSiteDescriptor(user);
+  if (!descriptor) return null;
+
+  let siteResult;
+  try {
+    siteResult = await graphGet(
+      token,
+      `/sites/${descriptor.host}:/${encodedSitePath(descriptor.sitePath)}?$select=id,webUrl`
+    );
+  } catch (error) {
+    if (isNotFound(error)) return null;
+    const wrapped = targetError(
+      'GRAPH_PERSONAL_SITE_TARGET_FAILED',
+      'Die konfigurierte Microsoft-365-Personal-Site konnte nicht über Microsoft Graph aufgelöst werden.',
+      error
+    );
+    wrapped.graphCode = text(error && error.code);
+    throw wrapped;
+  }
+
+  const siteId = text(siteResult && siteResult.body && siteResult.body.id);
+  if (!siteId) return null;
+
+  let drivesResult;
+  try {
+    drivesResult = await graphGet(token, `/sites/${encodeURIComponent(siteId)}/drives?$select=id,name,driveType`);
+  } catch (error) {
+    if (isNotFound(error)) return null;
+    const wrapped = targetError(
+      'GRAPH_PERSONAL_SITE_TARGET_FAILED',
+      'Die Dokumentbibliotheken der konfigurierten Microsoft-365-Personal-Site konnten nicht gelesen werden.',
+      error
+    );
+    wrapped.graphCode = text(error && error.code);
+    throw wrapped;
+  }
+
+  const drives = Array.isArray(drivesResult && drivesResult.body && drivesResult.body.value)
+    ? drivesResult.body.value.filter(item => text(item && item.id))
+    : [];
+  const matches = [];
+
+  for (const drive of drives) {
+    const driveId = text(drive && drive.id);
+    if (!driveId) continue;
+    for (const folder of Array.isArray(folders) ? folders : []) {
+      const exact = await findFolder(token, driveId, folder);
+      if (exact) {
+        matches.push({ driveId, folderId: exact.folderId, folder: exact.folder });
+        break;
+      }
+    }
+  }
+
+  if (!matches.length) {
+    for (const drive of drives) {
+      const driveId = text(drive && drive.id);
+      if (!driveId) continue;
+      for (const folder of Array.isArray(folders) ? folders : []) {
+        const searched = await searchFolderInDrive(token, driveId, folder);
+        if (searched) {
+          matches.push(searched);
+          break;
+        }
+      }
+    }
+  }
+
+  const unique = Array.from(new Map(matches.map(item => [item.driveId + ':' + item.folderId, item])).values());
+  if (unique.length > 1) {
+    throw targetError(
+      'GRAPH_TARGET_AMBIGUOUS',
+      'Der konfigurierte Microsoft-365-POD-Zielordner wurde in der Personal-Site mehrfach gefunden.',
+      { statusCode: 409 }
+    );
+  }
+  return unique[0] || null;
+}
+
 async function findFolder(token, driveId, folder) {
   const path = encodedPath(folder);
   if (!path) return null;
@@ -436,8 +520,11 @@ async function resolveTarget(token, cfg, force) {
   // nicht exakt auflösbar ist, den Zielordner über den echten Drive-Inhalt suchen
   // und den Pfad anhand der letzten Segmente eindeutig abgleichen.
   if (!value) value = await searchConfiguredFolderTargets(token, cfg.user, drives, folders);
-  // Historischer persönlicher Share-URL-Fallback bleibt letzter Versuch, darf aber
-  // die robusteren Drive-Resolver nicht mehr übersteuern.
+  // RC1401: Die bekannte OneDrive-for-Business-URL ist eine SharePoint-Personal-Site,
+  // kein Graph-Sharing-Link. Deshalb zuerst die Personal-Site und ihre Drives
+  // direkt über /sites/... auflösen.
+  if (!value) value = await resolvePersonalSiteFolderTarget(token, cfg.user, folders);
+  // Historischer Share-URL-Fallback bleibt nur für echte Sharing-URL-Szenarien.
   if (!value) value = await resolvePersonalFolderTarget(token, cfg.user, cfg.folder);
   if (!value) throw targetError('GRAPH_FOLDER_NOT_FOUND', 'Der konfigurierte Microsoft-365-Zielordner wurde weder in erreichbaren Drives noch im konfigurierten Benutzerlaufwerk oder über seine explizite OneDrive-URL gefunden.', { statusCode: 404 });
 
