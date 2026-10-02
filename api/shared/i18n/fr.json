@@ -262,5 +262,7 @@
   "api.abdAnalysis.scanFailed": "Le fichier n’a pas pu être contrôlé de manière sûre contre les logiciels malveillants.",
   "api.abdAnalysis.failed": "Le fichier de déclaration d’exportation n’a pas pu être analysé.",
   "api.abdAnalysis.forbidden": "Un droit de modification dans la zone ABD est requis pour l’analyse.",
-  "api.abdAnalysis.actionInvalid": "Action d’analyse ABD inconnue."
+  "api.abdAnalysis.actionInvalid": "Action d’analyse ABD inconnue.",
+  "api.avis.manualAppointmentCreated": "Enlèvement réservé manuellement",
+  "api.avis.manualAppointmentChanged": "Enlèvement manuel modifié"
 }
