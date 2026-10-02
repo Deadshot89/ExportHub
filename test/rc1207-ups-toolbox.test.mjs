@@ -2,7 +2,7 @@ import test from 'node:test';import assert from 'node:assert/strict';import fs f
 function load(extra={}){const code=fs.readFileSync(new URL('../assets/rc1206-shipping-rules.js',import.meta.url),'utf8');const document={readyState:'loading',querySelector(){return null},addEventListener(){},documentElement:{}};const window={addEventListener(){},...extra};const ctx={window,document,Event:function(){},setTimeout(){return 1},clearTimeout(){}};vm.createContext(ctx);vm.runInContext(code,ctx);return window.ExportHUBRC1206ShippingRules}
 test('UPS Standard zones from 2026 toolbox',()=>{const x=load();assert.equal(x.resolveUpsZone('NL','5657 EA'),'3');assert.equal(x.resolveUpsZone('BE','1000'),'3');assert.equal(x.resolveUpsZone('FR','75001'),'4');assert.equal(x.resolveUpsZone('FR','20000'),'4');assert.equal(x.resolveUpsZone('IT','20100'),'4');assert.equal(x.resolveUpsZone('IT','90100'),'5');assert.equal(x.resolveUpsZone('PL','60000'),'31');assert.equal(x.resolveUpsZone('PL','93000'),'31');assert.equal(x.resolveUpsZone('CZ','11000'),'3');assert.equal(x.resolveUpsZone('IT','50999'),'4');assert.equal(x.resolveUpsZone('IT','51000'),'5');assert.equal(x.resolveUpsZone('AT','1010'),'4');assert.equal(x.resolveUpsZone('CH','8000'),'6');assert.equal(x.resolveUpsZone('SK','81101'),'31');assert.equal(x.resolveUpsZone('HU','1011'),'41')});
 test('UPS Standard weight tiers from toolbox',()=>{const x=load();assert.equal(x.upsRate('3',1),7.93);assert.equal(x.upsRate('3',5),8.55);assert.equal(x.upsRate('3',30),27.71);assert.equal(x.upsRate('4',50),78.03);assert.equal(x.upsRate('31',70),88.93);assert.equal(x.upsRate('6',70),159.11);assert.equal(x.upsRate('3',71),0)});
-test('carrier packaging rules remain separated',()=>{const s=fs.readFileSync(new URL('../assets/rc1206-shipping-rules.js',import.meta.url),'utf8');assert.match(s,/restrictPackaging\('ups',\/karton/);assert.match(s,/restrictPackaging\('gate',\/palette/)});
+test('carrier packaging rules remain separated',()=>{const x=load();assert.equal(x.isUpsPackageType('E3'),true);assert.equal(x.isUpsPackageType('Karton'),true);assert.equal(x.isUpsPackageType('Euro Palette'),false);assert.equal(x.isPalletType('Euro Palette'),true)});
 
 test('UPS postcode validation prevents silent wrong zones',()=>{const x=load();assert.equal(x.validUpsPostal('NL','5657 EA'),true);assert.equal(x.validUpsPostal('NL','5657'),false);assert.equal(x.validUpsPostal('BE','1000'),true);assert.equal(x.validUpsPostal('FR','75001'),true);assert.equal(x.validUpsPostal('FR','ABCDE'),false);assert.equal(x.validUpsPostal('GB','SW1A 1AA'),true)});
 
@@ -108,4 +108,56 @@ test('RC1334: UPS-Ausgabe trennt Paket-Grundtarif und Gesamtkosten der komplette
   assert.match(s,/UPS Grundtarif je Paket/);
   assert.match(s,/ups\.totalComplete/);
   assert.match(s,/ups\.baseComplete/);
+});
+
+
+test('RC1419: UPS behält E0-E6 als echte Karton-Verpackungen und sperrt Paletten',()=>{
+  const x=load();
+  assert.equal(x.isUpsPackageType('E3'),true);
+  assert.equal(x.isUpsPackageType('E0'),true);
+  assert.equal(x.isUpsPackageType('Karton'),true);
+  assert.equal(x.isUpsPackageType('Euro Palette'),false);
+  assert.equal(x.isPalletType('Euro Palette'),true);
+});
+
+test('RC1419: E3-Maße und Mengen werden direkt aus der geöffneten Sendung übernommen',()=>{
+  const x=load({__EXPORTHUB_GET_STATE__:()=>({
+    currentShipment:{rows:[{type:'E3',count:2,weight:20,l:43,w:31,h:31,ldm:0.06}]}
+  })});
+  const loadData=x.canonicalLoad('ups');
+  assert.equal(loadData.packaging,'E3');
+  assert.equal(loadData.count,2);
+  assert.equal(loadData.totalWeight,20);
+  assert.equal(loadData.l,43);
+  assert.equal(loadData.w,31);
+  assert.equal(loadData.h,31);
+  assert.equal(Math.round(loadData.ldm*100)/100,0.12);
+  assert.equal(x.packageCount(),2);
+  assert.equal(x.upsTotalWeight(),20);
+});
+
+test('RC1419: Länder-Fallback erkennt auch vollständige UPS-Länderliste und kombinierte Ländertexte',()=>{
+  const x=load();
+  assert.equal(x.countryCode('NL - Niederlande'),'NL');
+  assert.equal(x.countryCode('SE / Schweden'),'SE');
+  assert.equal(x.inferCountryFromAddress('Industrigatan 1, 12345 Stockholm, Sweden'),'SE');
+  assert.equal(x.inferCountryFromAddress('Example Road, Tallinn, Estonia'),'EE');
+});
+
+test('RC1419: eingebetteter ausgewählter Standort schlägt veraltete Kunden- und Sendungsländer',()=>{
+  const x=load({__EXPORTHUB_GET_STATE__:()=>({
+    customers:[{id:'C1',country:'Nederland'}],
+    currentShipment:{
+      customerId:'C1',
+      country:'Nederland',
+      selectedLocation:{country:'Italia',postalCode:'60044',address:'60044 Fabriano Italia'},
+      rows:[{type:'E3',count:1,weight:10,l:43,w:31,h:31}]
+    }
+  })});
+  const dest=x.shipmentDestination();
+  assert.equal(dest.country,'IT');
+  assert.equal(dest.postal,'60044');
+  const zone=x.resolveUpsZone(dest.country,dest.postal);
+  assert.equal(zone,'5');
+  assert.ok(x.upsIndividualBase(zone,[10])>0);
 });
