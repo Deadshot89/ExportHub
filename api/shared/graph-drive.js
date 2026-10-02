@@ -96,6 +96,7 @@ function retryDelay(error, attempt) {
 
 let tokenCache = null;
 let targetCache = null;
+let targetFailureCache = null;
 async function accessToken(force) {
   const cfg = config();
   if (!force && tokenCache && tokenCache.expiresAt > Date.now() + 60000) return tokenCache.token;
@@ -164,6 +165,28 @@ function targetKey(cfg) {
     text(cfg.driveId).toLowerCase(),
     text(cfg.folderId).toLowerCase()
   ].join('\\n');
+}
+
+function cachedTargetFailure(cfg) {
+  const key = targetKey(cfg);
+  if (!targetFailureCache || targetFailureCache.key !== key || targetFailureCache.expiresAt <= Date.now()) return null;
+  const error = new Error(targetFailureCache.message || 'Das Microsoft-365-POD-Ziel ist vorübergehend nicht auflösbar.');
+  error.code = targetFailureCache.code || 'GRAPH_TARGET_FAILED';
+  error.statusCode = Number(targetFailureCache.statusCode || 502);
+  return error;
+}
+
+function rememberTargetFailure(cfg, error) {
+  const code = text(error && error.code);
+  if (!/^(?:GRAPH_SHARE_TARGET_FAILED|GRAPH_DEFAULT_DRIVE_TARGET_FAILED|GRAPH_FOLDER_NOT_FOUND|GRAPH_TARGET_AMBIGUOUS)$/.test(code)) return false;
+  targetFailureCache = {
+    key: targetKey(cfg),
+    code,
+    statusCode: Number(error && error.statusCode || 502),
+    message: text(error && error.message),
+    expiresAt: Date.now() + 60 * 1000
+  };
+  return true;
 }
 
 async function graphGet(token, path) {
@@ -335,6 +358,8 @@ async function resolveTarget(token, cfg, force) {
 
 async function uploadPdf(buffer, fileName) {
   const cfg = config();
+  const cachedFailure = cachedTargetFailure(cfg);
+  if (cachedFailure) throw cachedFailure;
   const name = safeFileName(fileName);
   let forceToken = false;
   let forceTarget = false;
@@ -351,6 +376,7 @@ async function uploadPdf(buffer, fileName) {
         'Accept': 'application/json'
       }, buffer, 8000);
       const item = result.body || {};
+      if (targetFailureCache && targetFailureCache.key === targetKey(cfg)) targetFailureCache = null;
       return {
         id: text(item.id),
         name: text(item.name) || name,
@@ -363,6 +389,7 @@ async function uploadPdf(buffer, fileName) {
       };
     } catch (error) {
       lastError = error;
+      rememberTargetFailure(cfg, error);
       if (error && error.statusCode === 401 && !forceToken) {
         tokenCache = null;
         targetCache = null;
