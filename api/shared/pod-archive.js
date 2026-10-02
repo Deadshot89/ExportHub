@@ -8,6 +8,9 @@ const TEAM_POD_LINK_VERSION = 'RC1340';
 function text(value) {
   return String(value == null ? '' : value).replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim();
 }
+function safeCode(value) {
+  return text(value).replace(/[^A-Za-z0-9_.-]+/g, '').slice(0, 80);
+}
 function safeFilePart(value) {
   return (text(value) || 'Sendung').replace(/[\\/:*?"<>|#%]/g, '_').replace(/\s+/g, '_').slice(0, 90);
 }
@@ -311,6 +314,7 @@ async function copyToDrive(accessKey, environment, record, pdf, file) {
       driveItemId: result.id || '',
       webUrl: result.webUrl || '',
       fileName: result.name || (file && file.name) || fileNameFor(record),
+      driveProviderCode: '',
       lastError: ''
     });
     return { ok: true, record: next, drive: result };
@@ -322,6 +326,7 @@ async function copyToDrive(accessKey, environment, record, pdf, file) {
       driveSaved: false,
       lastAttemptAt: attemptAt,
       attempts: Math.max(0, Number(record && record.podBackup && record.podBackup.attempts) || 0) + 1,
+      driveProviderCode: safeCode(error && error.graphCode),
       driveLastError: text(error && (error.code ? error.code + ': ' : '') + (error && error.message || 'Microsoft-365-Sicherung fehlgeschlagen')).slice(0, 500),
       lastError: record && record.podBackup && record.podBackup.archiveSaved === true ? '' : text(error && (error.code ? error.code + ': ' : '') + (error && error.message || 'Microsoft-365-Sicherung fehlgeschlagen')).slice(0, 500)
     });
@@ -626,6 +631,7 @@ async function reconcilePendingBackups(environment, options) {
           if (driveWasSaved) driveSaved.push({ reference: candidate.reference, fileName: text(backup.fileName) });
           else drivePending.push({
             reference: candidate.reference,
+            providerCode: safeCode(backup.driveProviderCode || (driveError && driveError.graphCode)),
             error: text(backup.driveLastError || ((text(driveError && driveError.code) ? text(driveError && driveError.code) + ': ' : '') + text(driveError && driveError.message || 'Microsoft-365-Zusatzkopie ist noch offen.'))).slice(0, 300)
           });
         }

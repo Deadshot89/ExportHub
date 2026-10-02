@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const workflow=fs.readFileSync('.github/workflows/rc1144-pod-backup-reconcile.yml','utf8');
+const podArchive=fs.readFileSync('api/shared/pod-archive.js','utf8');
 
 test('RC1167: POD-Reconcile protokolliert HTTP-Fehlerdiagnose ohne Secret-Werte',()=>{
   assert.match(workflow,/response_file="\$\(mktemp\)"/);
@@ -45,4 +46,16 @@ test('RC1347: Reconcile-Diagnose nennt deduplizierte Fehlercodes ohne sensible F
   assert.match(workflow,/x&&x\.code/);
   assert.match(workflow,/pendingCodes,drivePendingCodes,errorCodes,target:/);
   assert.doesNotMatch(workflow,/errors:v\.errors/);
+});
+
+
+test('RC1423: M365-POD-Diagnose transportiert ausschließlich bereinigte Graph-Provider-Codes',()=>{
+  assert.match(podArchive,/function safeCode\(value\)/);
+  assert.match(podArchive,/driveProviderCode: safeCode\(error && error\.graphCode\)/);
+  assert.match(podArchive,/providerCode: safeCode\(backup\.driveProviderCode \|\| \(driveError && driveError\.graphCode\)\)/);
+  assert.match(workflow,/const driveProviderCodes=Array\.from\(new Set\(/);
+  assert.match(workflow,/replace\(\/\[\^A-Za-z0-9_\.\-\]\/g,''\)\.slice\(0,80\)/);
+  assert.match(workflow,/pendingCodes,drivePendingCodes,driveProviderCodes,errorCodes,target:/);
+  assert.doesNotMatch(workflow,/drivePending:v\.drivePending/);
+  assert.doesNotMatch(workflow,/graphCode:v\./);
 });
