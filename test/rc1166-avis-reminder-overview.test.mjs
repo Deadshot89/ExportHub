@@ -53,6 +53,12 @@ test('RC1166: sichere Avis-Links werden nur vor Abholung und nicht für Ausnahme
   assert.equal(api.avisLink({reference:'ABC123',status:'Abgeholt',testAvisLink:'https://example.test/customer-avis.html?token=abc'}),'');
 });
 
+
+test('RC1400: gespeicherter alter .com-Avis-Link wird in der Oberfläche zwingend auf .de normalisiert',()=>{
+  const api=load();
+  const sh={reference:'ABC123',customerName:'Testkunde',customerAvisUrl:'https://exporthub360.com/avis/legacy-token'};
+  assert.equal(api.avisLink(sh),'https://www.exporthub360.de/avis/legacy-token');
+});
 test('RC1166: Kunde und Spedition erhalten getrennte hinterlegte Empfänger',()=>{
   const state={customers:[{
     id:'C1',name:'Testkunde',customerEmail:'kunde@example.com',carrierEmail:'sped@example.com',
