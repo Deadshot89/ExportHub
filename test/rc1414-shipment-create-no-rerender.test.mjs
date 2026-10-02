@@ -36,7 +36,8 @@ test('RC1414: lokaler Reset setzt Colli-DOM gezielt zurück und behält den Layo
   assert.match(block,/rowNodes\(\)\.forEach\(function\(node\)\{node\.remove\(\)\}\)/);
   assert.match(block,/box\.appendChild\(ownedRow\(0,blankFreshRow\(\)\)\)/);
   assert.match(block,/safePatchDuringEdit\(\);return true/);
-  assert.doesNotMatch(block,/preserveMountedShipment[\s\S]{0,250}replaceChildren\(\)/,'lokaler Reset darf #content nicht ersetzen');
+  assert.doesNotMatch(block,/if\(preserveMountedShipment\)[\s\S]{0,180}replaceChildren\(\)/,'lokaler Reset darf #content nicht ersetzen');
+  assert.doesNotMatch(block,/if\(preserveMountedShipment\)[\s\S]{0,180}ExportHUBRC325\.route/,'lokaler Reset darf den Router nicht starten');
 });
 
 test('RC1414: zweiter 90-ms-Finalizer läuft nur beim erstmaligen Ansichtsaufbau',()=>{
