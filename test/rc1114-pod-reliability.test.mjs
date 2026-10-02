@@ -100,12 +100,14 @@ test('RC1144: fehlgeschlagene POD-Backups werden dauerhaft serverseitig nachgeho
   assert.match(archive,/reconcilePendingBackups/);
 });
 
-test('RC1407: offene POD-Backups werden fair ausgewählt und Pflicht-Azure verdrängt optionales Drive',()=>{
+test('RC1408: offene POD-Backups werden fair ausgewählt und teilen ein hartes Remote-Budget',()=>{
   assert.match(archive,/candidates\.sort\(/);
   assert.match(archive,/const requiredCandidates = candidates\.filter\(candidate => !candidate\.driveOnly\)/);
-  assert.match(archive,/const selectedRequiredCandidates = requiredCandidates\.slice\(0, limit\)/);
+  assert.match(archive,/const remoteWorkBudget = reference \? Math\.max\(2, limit\) : 2/);
+  assert.match(archive,/const requiredBackupBudget = reference \? limit : remainingRemoteBudget/);
+  assert.match(archive,/const selectedRequiredCandidates = requiredCandidates\.slice\(0, requiredBackupBudget\)/);
   assert.match(archive,/const driveBackfillCandidates = candidates\.filter\(candidate => candidate\.driveOnly\)/);
-  assert.match(archive,/const driveBackfillBudget = Math\.min\(2,/);
+  assert.match(archive,/const driveBackfillBudget = reference \? Math\.min\(limit, remainingRemoteBudget\) : Math\.min\(1, remainingRemoteBudget\)/);
   assert.match(archive,/const selectedCandidates = selectedRequiredCandidates\.concat\(selectedDriveCandidates\)/);
   assert.doesNotMatch(archive,/if \(candidates\.length >= limit\) break/);
 });
