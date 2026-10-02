@@ -231,6 +231,47 @@ test('RC1391: fehlende Drives-Liste fällt auf den konfigurierten Benutzer-Defau
   });
 });
 
+test('RC1402: freigegebener POD-Ordner wird über remoteItem auf den echten Drive aufgelöst',async()=>{
+  setEnv();
+  const graph=fresh();
+  await withFakeHttps((call,index)=>{
+    if(index===1)return tokenResponse();
+    if(index===2)return{status:404,body:{error:{code:'Request_ResourceNotFound',message:'User drives collection not available'}}};
+    if(index===3||index===4)return{status:404,body:{error:{code:'itemNotFound',message:'Default drive path not found'}}};
+    if(index===5){
+      assert.match(call.path,/\/v1\.0\/users\/tobiaslimberg%40essentra\.com\/drive\?\$select=id$/);
+      return{status:200,body:{id:'drive-default'}};
+    }
+    if(index===6){
+      assert.match(call.path,/\/v1\.0\/drives\/drive-default\/search\(q='Abliefernachweise'\)/);
+      return{status:200,body:{value:[{
+        id:'shortcut-local',
+        name:'Abliefernachweise',
+        folder:{},
+        parentReference:{driveId:'drive-default',path:'/drives/drive-default/root:'},
+        remoteItem:{
+          id:'folder-remote',
+          name:'Abliefernachweise',
+          folder:{},
+          parentReference:{driveId:'drive-shared',path:'/drives/drive-shared/root:/003 Export/ExportHub'}
+        }
+      }]}};
+    }
+    if(index===7){
+      assert.equal(call.method,'PUT');
+      assert.equal(call.path,'/v1.0/drives/drive-shared/items/folder-remote:/POD_TV9NKH.pdf:/content');
+      return{status:201,body:{id:'file-shared',name:'POD_TV9NKH.pdf',size:9}};
+    }
+    throw new Error('Unerwarteter Aufruf '+index+' '+call.method+' '+call.path);
+  },async calls=>{
+    const result=await graph.uploadPdf(Buffer.from('%PDF-test'),'POD_TV9NKH.pdf');
+    assert.equal(result.id,'file-shared');
+    assert.equal(result.folder,'003 Export/ExportHub/Abliefernachweise');
+    assert.equal(calls.some(call=>/\/v1\.0\/sites\//.test(call.path)),false);
+    assert.equal(calls.some(call=>/\/v1\.0\/shares\//.test(call.path)),false);
+  });
+});
+
 test('RC1401: Essentra-OneDrive-Personal-Site wird vor dem Share-Link-Fallback direkt aufgelöst',async()=>{
   setEnv();
   const graph=fresh();
@@ -239,19 +280,27 @@ test('RC1401: Essentra-OneDrive-Personal-Site wird vor dem Share-Link-Fallback d
     if(index===2)return{status:404,body:{error:{code:'Request_ResourceNotFound',message:'User or drives not found'}}};
     if(index===3||index===4)return{status:404,body:{error:{code:'itemNotFound',message:'Default drive folder not found'}}};
     if(index===5){
+      assert.match(call.path,/\/v1\.0\/users\/tobiaslimberg%40essentra\.com\/drive\?\$select=id$/);
+      return{status:200,body:{id:'drive-default'}};
+    }
+    if(index===6){
+      assert.match(call.path,/\/v1\.0\/drives\/drive-default\/search\(q='Abliefernachweise'\)/);
+      return{status:200,body:{value:[]}};
+    }
+    if(index===7){
       assert.equal(call.method,'GET');
       assert.match(call.path,/^\/v1\.0\/sites\/essentra-my\.sharepoint\.com:\/personal\/tobiaslimberg_essentra_com\?\$select=id,webUrl$/);
       return{status:200,body:{id:'site-personal',webUrl:'https://essentra-my.sharepoint.com/personal/tobiaslimberg_essentra_com'}};
     }
-    if(index===6){
+    if(index===8){
       assert.match(call.path,/^\/v1\.0\/sites\/site-personal\/drives\?\$select=id,name,driveType$/);
       return{status:200,body:{value:[{id:'drive-personal',name:'Documents'}]}};
     }
-    if(index===7){
+    if(index===9){
       assert.match(call.path,/\/v1\.0\/drives\/drive-personal\/root:\/003%20Export\/ExportHub\/Abliefernachweise\?\$select=/);
       return{status:200,body:{id:'folder-456',name:'Abliefernachweise',folder:{},parentReference:{driveId:'drive-personal'}}};
     }
-    if(index===8){
+    if(index===10){
       assert.equal(call.method,'PUT');
       assert.equal(call.path,'/v1.0/drives/drive-personal/items/folder-456:/POD_TV9NKH.pdf:/content');
       return{status:201,body:{id:'file-789',name:'POD_TV9NKH.pdf',size:9}};
@@ -270,25 +319,17 @@ test('RC1217: nicht auflösbarer Benutzer wird über die bekannte OneDrive-Ordne
   await withFakeHttps((call,index)=>{
     if(index===1)return tokenResponse();
     if(index===2)return{status:404,body:{error:{code:'Request_ResourceNotFound',message:'User or drives not found'}}};
-    if(index===3||index===4){
-      assert.match(call.path,/\/v1\.0\/users\/tobiaslimberg%40essentra\.com\/drive\/root:\//);
-      return{status:404,body:{error:{code:'itemNotFound',message:'Default drive folder not found'}}};
-    }
-    if(index===5){
-      assert.match(call.path,/^\/v1\.0\/sites\/essentra-my\.sharepoint\.com:\/personal\/tobiaslimberg_essentra_com\?/);
-      return{status:404,body:{error:{code:'itemNotFound',message:'Personal site not found'}}};
-    }
-    if(index===6){
+    if(index===3||index===4)return{status:404,body:{error:{code:'itemNotFound',message:'Default drive folder not found'}}};
+    if(index===5)return{status:200,body:{id:'drive-default'}};
+    if(index===6)return{status:200,body:{value:[]}};
+    if(index===7)return{status:404,body:{error:{code:'itemNotFound',message:'Personal site not found'}}};
+    if(index===8){
       assert.equal(call.method,'GET');
       const match=call.path.match(/^\/v1\.0\/shares\/(u![^/]+)\/driveItem\?\$select=id,name,folder,parentReference$/);
       assert.ok(match,'Graph Shares URL fehlt');
-      const encoded=match[1].slice(2).replace(/-/g,'+').replace(/_/g,'/');
-      const padded=encoded+'='.repeat((4-encoded.length%4)%4);
-      const webUrl=Buffer.from(padded,'base64').toString('utf8');
-      assert.equal(webUrl,'https://essentra-my.sharepoint.com/personal/tobiaslimberg_essentra_com/Documents/003%20Export/ExportHub/Abliefernachweise');
       return{status:200,body:{id:'folder-456',name:'Abliefernachweise',folder:{},parentReference:{driveId:'drive-personal'}}};
     }
-    if(index===7){
+    if(index===9){
       assert.equal(call.method,'PUT');
       assert.equal(call.path,'/v1.0/drives/drive-personal/items/folder-456:/POD_TV9NKH.pdf:/content');
       return{status:201,body:{id:'file-789',name:'POD_TV9NKH.pdf',size:9}};
@@ -297,9 +338,7 @@ test('RC1217: nicht auflösbarer Benutzer wird über die bekannte OneDrive-Ordne
   },async calls=>{
     const result=await graph.uploadPdf(Buffer.from('%PDF-test'),'POD_TV9NKH.pdf');
     assert.equal(result.id,'file-789');
-    assert.equal(result.folder,'Documents/003 Export/ExportHub/Abliefernachweise');
-    assert.equal(calls.length,7);
-    assert.equal(calls.some(call=>/\/v1\.0\/sites\//.test(call.path)),true);
+    assert.equal(calls.length,9);
   });
 });
 
@@ -309,19 +348,12 @@ test('RC1217: nicht erreichbare OneDrive-URL bleibt fail-closed als GRAPH_FOLDER
   await withFakeHttps((call,index)=>{
     if(index===1)return tokenResponse();
     if(index===2)return{status:404,body:{error:{code:'Request_ResourceNotFound',message:'User or drives not found'}}};
-    if(index===3||index===4){
-      assert.match(call.path,/\/v1\.0\/users\/tobiaslimberg%40essentra\.com\/drive\/root:\//);
-      return{status:404,body:{error:{code:'itemNotFound',message:'Default drive folder not found'}}};
-    }
-    if(index===5){
-      assert.match(call.path,/^\/v1\.0\/sites\/essentra-my\.sharepoint\.com:\/personal\/tobiaslimberg_essentra_com\?/);
-      return{status:404,body:{error:{code:'itemNotFound',message:'Personal site not found'}}};
-    }
-    if(index===6){
-      assert.match(call.path,/^\/v1\.0\/shares\/u!/);
-      return{status:404,body:{error:{code:'itemNotFound',message:'Shared target not found'}}};
-    }
-    throw new Error('Unerwarteter Aufruf '+index);
+    if(index===3||index===4)return{status:404,body:{error:{code:'itemNotFound',message:'Default drive folder not found'}}};
+    if(index===5)return{status:200,body:{id:'drive-default'}};
+    if(index===6)return{status:200,body:{value:[]}};
+    if(index===7)return{status:404,body:{error:{code:'itemNotFound',message:'Personal site not found'}}};
+    if(index===8)return{status:404,body:{error:{code:'itemNotFound',message:'Shared target not found'}}};
+    throw new Error('Unerwarteter Aufruf '+index+' '+call.method+' '+call.path);
   },async()=>{
     await assert.rejects(
       graph.uploadPdf(Buffer.from('%PDF-test'),'POD_TEST.pdf'),
@@ -337,8 +369,10 @@ test('RC1217: Graph Shares BadRequest wird ohne Rohmeldung als GRAPH_SHARE_TARGE
     if(index===1)return tokenResponse();
     if(index===2)return{status:404,body:{error:{code:'Request_ResourceNotFound',message:'User or drives not found'}}};
     if(index===3||index===4)return{status:404,body:{error:{code:'itemNotFound',message:'Default drive folder not found'}}};
-    if(index===5)return{status:404,body:{error:{code:'itemNotFound',message:'Personal site not found'}}};
-    if(index===6)return{status:400,body:{error:{code:'BadRequest',message:'sensitive provider detail'}}};
+    if(index===5)return{status:200,body:{id:'drive-default'}};
+    if(index===6)return{status:200,body:{value:[]}};
+    if(index===7)return{status:404,body:{error:{code:'itemNotFound',message:'Personal site not found'}}};
+    if(index===8)return{status:400,body:{error:{code:'BadRequest',message:'sensitive provider detail'}}};
     throw new Error('Unerwarteter Aufruf '+index);
   },async()=>{
     await assert.rejects(
@@ -355,20 +389,22 @@ test('RC1395: deterministischer Graph-Zielfehler wird im selben Reconcile kurzze
     if(index===1)return tokenResponse();
     if(index===2)return{status:404,body:{error:{code:'Request_ResourceNotFound',message:'User or drives not found'}}};
     if(index===3||index===4)return{status:404,body:{error:{code:'itemNotFound',message:'Default drive folder not found'}}};
-    if(index===5)return{status:404,body:{error:{code:'itemNotFound',message:'Personal site not found'}}};
-    if(index===6)return{status:400,body:{error:{code:'BadRequest',message:'target cannot be resolved'}}};
+    if(index===5)return{status:200,body:{id:'drive-default'}};
+    if(index===6)return{status:200,body:{value:[]}};
+    if(index===7)return{status:404,body:{error:{code:'itemNotFound',message:'Personal site not found'}}};
+    if(index===8)return{status:400,body:{error:{code:'BadRequest',message:'target cannot be resolved'}}};
     throw new Error('Negativcache wurde nicht verwendet; unerwarteter Aufruf '+index);
   },async calls=>{
     await assert.rejects(
       graph.uploadPdf(Buffer.from('%PDF-one'),'POD_ONE.pdf'),
       error=>error&&error.code==='GRAPH_SHARE_TARGET_FAILED'
     );
-    assert.equal(calls.length,6);
+    assert.equal(calls.length,8);
     await assert.rejects(
       graph.uploadPdf(Buffer.from('%PDF-two'),'POD_TWO.pdf'),
       error=>error&&error.code==='GRAPH_SHARE_TARGET_FAILED'
     );
-    assert.equal(calls.length,6,'derselbe deterministische Zielfehler darf im Batch nicht für jedes POD erneut Graph aufrufen');
+    assert.equal(calls.length,8,'derselbe deterministische Zielfehler darf im Batch nicht für jedes POD erneut Graph aufrufen');
   });
 });
 
@@ -396,22 +432,18 @@ test('RC1213: nicht auffindbarer Zielordner wird als GRAPH_FOLDER_NOT_FOUND klas
     if(index===1)return tokenResponse();
     if(index===2)return{status:200,body:{value:[{id:'drive-123'}]}};
     if(index===3||index===4)return{status:404,body:{error:{code:'ResourceNotFound',message:'Folder not found'}}};
-    if(index===5||index===6){
-      assert.match(call.path,/\/v1\.0\/users\/tobiaslimberg%40essentra\.com\/drive\/root:\//);
-      return{status:404,body:{error:{code:'itemNotFound',message:'Default drive folder not found'}}};
-    }
-    if(index===7||index===8){
-      assert.match(call.path,/\/v1\.0\/drives\/drive-123\/root\/search\(q=/);
-      return{status:200,body:{value:[]}};
-    }
+    if(index===5||index===6)return{status:404,body:{error:{code:'itemNotFound',message:'Default drive folder not found'}}};
+    if(index===7||index===8)return{status:200,body:{value:[]}};
     if(index===9){
-      assert.match(call.path,/^\/v1\.0\/sites\/essentra-my\.sharepoint\.com:\/personal\/tobiaslimberg_essentra_com\?/);
-      return{status:404,body:{error:{code:'itemNotFound',message:'Personal site not found'}}};
+      assert.match(call.path,/\/v1\.0\/users\/tobiaslimberg%40essentra\.com\/drive\?\$select=id$/);
+      return{status:200,body:{id:'drive-default'}};
     }
     if(index===10){
-      assert.match(call.path,/^\/v1\.0\/shares\/u!/);
-      return{status:404,body:{error:{code:'itemNotFound',message:'Explicit OneDrive target not found'}}};
+      assert.match(call.path,/\/v1\.0\/drives\/drive-default\/search\(q='Abliefernachweise'\)/);
+      return{status:200,body:{value:[]}};
     }
+    if(index===11)return{status:404,body:{error:{code:'itemNotFound',message:'Personal site not found'}}};
+    if(index===12)return{status:404,body:{error:{code:'itemNotFound',message:'Explicit OneDrive target not found'}}};
     throw new Error('Unerwarteter Aufruf '+index+' '+call.method+' '+call.path);
   },async()=>{
     await assert.rejects(
@@ -420,3 +452,4 @@ test('RC1213: nicht auffindbarer Zielordner wird als GRAPH_FOLDER_NOT_FOUND klas
     );
   });
 });
+

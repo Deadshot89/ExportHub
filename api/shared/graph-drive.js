@@ -178,7 +178,7 @@ function cachedTargetFailure(cfg) {
 
 function rememberTargetFailure(cfg, error) {
   const code = text(error && error.code);
-  if (!/^(?:GRAPH_SHARE_TARGET_FAILED|GRAPH_PERSONAL_SITE_TARGET_FAILED|GRAPH_DEFAULT_DRIVE_TARGET_FAILED|GRAPH_FOLDER_NOT_FOUND|GRAPH_TARGET_AMBIGUOUS)$/.test(code)) return false;
+  if (!/^(?:GRAPH_SHARE_TARGET_FAILED|GRAPH_PERSONAL_SITE_TARGET_FAILED|GRAPH_SHARED_DRIVE_SEARCH_FAILED|GRAPH_DEFAULT_DRIVE_TARGET_FAILED|GRAPH_FOLDER_NOT_FOUND|GRAPH_TARGET_AMBIGUOUS)$/.test(code)) return false;
   targetFailureCache = {
     key: targetKey(cfg),
     code,
@@ -375,6 +375,99 @@ async function searchConfiguredFolderTargets(token, user, drives, folders) {
   return unique[0] || null;
 }
 
+function sharedSearchItem(item, defaultDriveId) {
+  if (!item) return null;
+  const remote = item.remoteItem && item.remoteItem.folder ? item.remoteItem : null;
+  const source = remote || item;
+  if (!source.folder && !item.folder) return null;
+  const folderId = text(source.id || item.id);
+  const driveId = text(source.parentReference && source.parentReference.driveId) ||
+    text(item.parentReference && item.parentReference.driveId) ||
+    text(defaultDriveId);
+  if (!folderId || !driveId) return null;
+  return {
+    driveId,
+    folderId,
+    name: text(source.name || item.name),
+    parentReference: source.parentReference || item.parentReference || {},
+    remote: !!remote
+  };
+}
+
+async function searchAccessibleUserDriveTargets(token, user, folders) {
+  let defaultDrive;
+  try {
+    defaultDrive = await graphGet(token, `/users/${encodeURIComponent(user)}/drive?$select=id`);
+  } catch (error) {
+    if (isNotFound(error)) return null;
+    throw targetError(
+      'GRAPH_DEFAULT_DRIVE_TARGET_FAILED',
+      'Das konfigurierte Microsoft-365-Benutzerlaufwerk konnte für die freigegebene POD-Zielsuche nicht gelesen werden.',
+      error
+    );
+  }
+
+  const defaultDriveId = text(defaultDrive && defaultDrive.body && defaultDrive.body.id);
+  if (!defaultDriveId) return null;
+
+  const matches = [];
+  const foldersByLeaf = new Map();
+  for (const folder of Array.isArray(folders) ? folders : []) {
+    const leaf = folderLeaf(folder);
+    if (!leaf) continue;
+    const key = leaf.toLowerCase();
+    if (!foldersByLeaf.has(key)) foldersByLeaf.set(key, { leaf, folders: [] });
+    foldersByLeaf.get(key).folders.push(folder);
+  }
+
+  for (const group of foldersByLeaf.values()) {
+    let result;
+    try {
+      result = await graphGet(
+        token,
+        `/drives/${encodeURIComponent(defaultDriveId)}/search(q='${encodeURIComponent(group.leaf)}')?$select=id,name,folder,parentReference,remoteItem,webUrl`
+      );
+    } catch (error) {
+      if (isNotFound(error)) continue;
+      throw targetError(
+        'GRAPH_SHARED_DRIVE_SEARCH_FAILED',
+        'Freigegebene Microsoft-365-Ordner konnten im konfigurierten Benutzerlaufwerk nicht durchsucht werden.',
+        error
+      );
+    }
+    const rows = Array.isArray(result && result.body && result.body.value) ? result.body.value : [];
+    for (const row of rows) {
+      const candidate = sharedSearchItem(row, defaultDriveId);
+      if (!candidate) continue;
+      let best = null;
+      for (const folder of group.folders) {
+        const score = folderSearchScore(candidate, folder);
+        if (score > 0 && (!best || score > best.score)) best = { folder, score };
+      }
+      if (best) matches.push({ ...candidate, folder: best.folder, score: best.score });
+    }
+  }
+
+  matches.sort((a, b) => b.score - a.score);
+  if (!matches.length) return null;
+  if (
+    matches.length > 1 &&
+    matches[0].score === matches[1].score &&
+    (matches[0].driveId !== matches[1].driveId || matches[0].folderId !== matches[1].folderId)
+  ) {
+    throw targetError(
+      'GRAPH_TARGET_AMBIGUOUS',
+      'Der konfigurierte Microsoft-365-POD-Zielordner wurde unter den freigegebenen Elementen mehrfach gefunden.',
+      { statusCode: 409 }
+    );
+  }
+  return {
+    driveId: matches[0].driveId,
+    folderId: matches[0].folderId,
+    folder: matches[0].folder
+  };
+}
+
 function encodedSitePath(value) {
   return rawFolder(value).split('/').map(part => encodeURIComponent(part)).filter(Boolean).join('/');
 }
@@ -520,9 +613,12 @@ async function resolveTarget(token, cfg, force) {
   // nicht exakt auflösbar ist, den Zielordner über den echten Drive-Inhalt suchen
   // und den Pfad anhand der letzten Segmente eindeutig abgleichen.
   if (!value) value = await searchConfiguredFolderTargets(token, cfg.user, drives, folders);
-  // RC1401: Die bekannte OneDrive-for-Business-URL ist eine SharePoint-Personal-Site,
-  // kein Graph-Sharing-Link. Deshalb zuerst die Personal-Site und ihre Drives
-  // direkt über /sites/... auflösen.
+  // RC1402: Auf der Drive-Ressource suchen, weil Microsoft Graph dort auch
+  // freigegebene Elemente außerhalb des Default-Drives als remoteItem liefert.
+  // Damit können wir den echten driveId/itemId des gemeinsamen POD-Ordners
+  // verwenden, ohne für die Zielsuche Sites.Read.All vorauszusetzen.
+  if (!value) value = await searchAccessibleUserDriveTargets(token, cfg.user, folders);
+  // RC1401: Personal-Site-Auflösung bleibt als nachgelagerter Fallback.
   if (!value) value = await resolvePersonalSiteFolderTarget(token, cfg.user, folders);
   // Historischer Share-URL-Fallback bleibt nur für echte Sharing-URL-Szenarien.
   if (!value) value = await resolvePersonalFolderTarget(token, cfg.user, cfg.folder);
