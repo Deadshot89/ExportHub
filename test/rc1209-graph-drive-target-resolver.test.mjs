@@ -334,7 +334,7 @@ test('RC1408: Personal-Site-Fehler fällt auf den explizit konfigurierten Benutz
       assert.equal(call.method,'PUT');
       assert.equal(
         call.path,
-        '/v1.0/users/tobiaslimberg%40essentra.com/drive/root:/Documents/003%20Export/ExportHub/Abliefernachweise/POD_TV9NKH.pdf:/content'
+        '/v1.0/users/tobiaslimberg%40essentra.com/drive/root:/003%20Export/ExportHub/Abliefernachweise/POD_TV9NKH.pdf:/content'
       );
       assert.equal(call.body.toString('utf8'),'%PDF-test');
       return{status:201,body:{id:'file-direct',name:'POD_TV9NKH.pdf',size:9,webUrl:'https://example.invalid/direct'}};
@@ -343,7 +343,7 @@ test('RC1408: Personal-Site-Fehler fällt auf den explizit konfigurierten Benutz
   },async calls=>{
     const result=await graph.uploadPdf(Buffer.from('%PDF-test'),'POD_TV9NKH.pdf');
     assert.equal(result.id,'file-direct');
-    assert.equal(result.folder,'Documents/003 Export/ExportHub/Abliefernachweise');
+    assert.equal(result.folder,'003 Export/ExportHub/Abliefernachweise');
     assert.equal(result.directPath,true);
     assert.equal(result.attempts,1);
     assert.equal(calls.some(call=>/\/v1\.0\/shares\//.test(call.path)),true,'Share-Ziel muss vor Direct-Path geprüft werden');
@@ -521,5 +521,37 @@ test('RC1421: Personal-Site-Fehler nutzt vorhandenes Share-Ziel vor dem direkten
     assert.equal(result.id,'file-shared');
     assert.equal(result.folder,'Documents/003 Export/ExportHub/Abliefernachweise');
     assert.equal(calls.some(call=>/\/users\/[^/]+\/drive\/root:.*\/POD_TV9NKH\.pdf:\/content$/.test(call.path)),false);
+  });
+});
+
+
+test('RC1425: Direct-Path nutzt OneDrive-Root ohne doppeltes Documents und fällt bei 404 auf Altpfad zurück',async()=>{
+  setEnv();
+  const graph=fresh();
+  await withFakeHttps((call,index)=>{
+    if(index===1)return tokenResponse();
+    if(index===2)return{status:404,body:{error:{code:'Request_ResourceNotFound',message:'User drives not available'}}};
+    if(index===3||index===4)return{status:404,body:{error:{code:'itemNotFound',message:'Default drive folder not found'}}};
+    if(index===5)return{status:200,body:{id:'drive-default'}};
+    if(index===6)return{status:200,body:{value:[]}};
+    if(index===7)return{status:403,body:{error:{code:'accessDenied',message:'Sites lookup is not permitted'}}};
+    if(index===8)return{status:404,body:{error:{code:'itemNotFound',message:'Shared target not found'}}};
+    if(index===9){
+      assert.equal(call.method,'PUT');
+      assert.equal(call.path,'/v1.0/users/tobiaslimberg%40essentra.com/drive/root:/003%20Export/ExportHub/Abliefernachweise/POD_TV9NKH.pdf:/content');
+      return{status:404,body:{error:{code:'ResourceNotFound',message:'Normalized folder not found'}}};
+    }
+    if(index===10){
+      assert.equal(call.method,'PUT');
+      assert.equal(call.path,'/v1.0/users/tobiaslimberg%40essentra.com/drive/root:/Documents/003%20Export/ExportHub/Abliefernachweise/POD_TV9NKH.pdf:/content');
+      return{status:201,body:{id:'file-legacy',name:'POD_TV9NKH.pdf',size:9,webUrl:'https://example.invalid/legacy'}};
+    }
+    throw new Error('Unerwarteter Aufruf '+index+' '+call.method+' '+call.path);
+  },async calls=>{
+    const result=await graph.uploadPdf(Buffer.from('%PDF-test'),'POD_TV9NKH.pdf');
+    assert.equal(result.id,'file-legacy');
+    assert.equal(result.folder,'Documents/003 Export/ExportHub/Abliefernachweise');
+    assert.equal(result.directPath,true);
+    assert.equal(calls.filter(call=>call.method==='PUT').length,2);
   });
 });

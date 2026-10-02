@@ -660,30 +660,40 @@ async function uploadConfiguredUserPath(token, cfg, name, buffer) {
   const folder = rawFolder(cfg && cfg.folder);
   const user = text(cfg && cfg.user);
   if (!folder || !user) return null;
-  const path = encodedPath(folder);
-  const result = await request(
-    'PUT',
-    `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(user)}/drive/root:/${path}/${encodeURIComponent(name)}:/content`,
-    {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/pdf',
-      'Content-Length': buffer.length,
-      'Accept': 'application/json'
-    },
-    buffer,
-    8000
-  );
-  const item = result.body || {};
-  return {
-    id: text(item.id),
-    name: text(item.name) || name,
-    size: Number(item.size || buffer.length),
-    webUrl: text(item.webUrl),
-    eTag: text(item.eTag),
-    user,
-    folder,
-    directPath: true
-  };
+  const folders = candidateFolders(folder);
+  let lastError = null;
+  for (const candidate of folders) {
+    const path = encodedPath(candidate);
+    try {
+      const result = await request(
+        'PUT',
+        `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(user)}/drive/root:/${path}/${encodeURIComponent(name)}:/content`,
+        {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/pdf',
+          'Content-Length': buffer.length,
+          'Accept': 'application/json'
+        },
+        buffer,
+        8000
+      );
+      const item = result.body || {};
+      return {
+        id: text(item.id),
+        name: text(item.name) || name,
+        size: Number(item.size || buffer.length),
+        webUrl: text(item.webUrl),
+        eTag: text(item.eTag),
+        user,
+        folder: candidate,
+        directPath: true
+      };
+    } catch (error) {
+      lastError = error;
+      if (!isNotFound(error)) throw error;
+    }
+  }
+  throw lastError || targetError('GRAPH_FOLDER_NOT_FOUND', 'Der konfigurierte Microsoft-365-Zielordner wurde im Benutzerlaufwerk nicht gefunden.', { statusCode: 404 });
 }
 
 function directPathFallbackAllowed(cfg, error) {
