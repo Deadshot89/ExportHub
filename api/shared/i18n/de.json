@@ -262,5 +262,7 @@
   "api.abdAnalysis.scanFailed": "Die Datei konnte nicht sicher auf Schadsoftware geprüft werden und wurde nicht ausgewertet.",
   "api.abdAnalysis.failed": "Die ABD-Datei konnte nicht ausgewertet werden.",
   "api.abdAnalysis.forbidden": "Für die ABD-Auswertung ist Bearbeitungsrecht im ABD-Bereich erforderlich.",
-  "api.abdAnalysis.actionInvalid": "Unbekannte ABD-Auswertungsaktion."
+  "api.abdAnalysis.actionInvalid": "Unbekannte ABD-Auswertungsaktion.",
+  "api.avis.manualAppointmentCreated": "Abholung manuell gebucht",
+  "api.avis.manualAppointmentChanged": "Manuelle Abholung geändert"
 }
