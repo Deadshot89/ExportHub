@@ -315,6 +315,14 @@ async function copyToDrive(accessKey, environment, record, pdf, file) {
     });
     return { ok: true, record: next, drive: result };
   } catch (error) {
+    const graphCode = text(error && (error.graphCode || error.code)) || 'GRAPH_UPLOAD_FAILED';
+    const wrapperCode = text(error && error.code);
+    const safeDriveError = text(
+      graphCode +
+      (wrapperCode && wrapperCode !== graphCode ? ' / ' + wrapperCode : '') +
+      ': ' +
+      (error && error.message || 'Microsoft-365-Sicherung fehlgeschlagen')
+    ).slice(0, 500);
     const next = await persistBackupState(accessKey, environment, {
       status: record && record.podBackup && record.podBackup.archiveSaved === true ? 'saved' : 'pending',
       azureSaved: true,
@@ -322,8 +330,9 @@ async function copyToDrive(accessKey, environment, record, pdf, file) {
       driveSaved: false,
       lastAttemptAt: attemptAt,
       attempts: Math.max(0, Number(record && record.podBackup && record.podBackup.attempts) || 0) + 1,
-      driveLastError: text(error && (error.code ? error.code + ': ' : '') + (error && error.message || 'Microsoft-365-Sicherung fehlgeschlagen')).slice(0, 500),
-      lastError: record && record.podBackup && record.podBackup.archiveSaved === true ? '' : text(error && (error.code ? error.code + ': ' : '') + (error && error.message || 'Microsoft-365-Sicherung fehlgeschlagen')).slice(0, 500)
+      driveGraphCode: graphCode,
+      driveLastError: safeDriveError,
+      lastError: record && record.podBackup && record.podBackup.archiveSaved === true ? '' : safeDriveError
     });
     return { ok: false, record: next, error };
   }
