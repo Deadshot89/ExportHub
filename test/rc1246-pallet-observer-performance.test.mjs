@@ -18,16 +18,15 @@ test('RC1246: Scheduler startet außerhalb des Palettenkontos keinen Tabellen-Sc
   assert.ok(start>=0&&end>start,'scheduleEnhance Block fehlt');
   const block=source.slice(start,end);
   assert.match(block,/installBookingGuard\(\)/);
-  assert.match(block,/if\(!palletViewActive\(\)\)return false/);
+  assert.match(block,/if\(!palletViewActive\(\)\)\{disconnectObserver\(\);return false\}/);
   assert.ok(block.indexOf('!palletViewActive()')<block.indexOf('setTimeout'),'View-Guard muss vor Timer liegen');
 });
 
-test('RC1246: globaler MutationObserver plant Arbeit nur bei aktiver Palettenansicht',()=>{
-  const start=source.indexOf("if(typeof root.MutationObserver==='function'");
-  const end=source.indexOf("(root.setTimeout||setTimeout)",start);
-  assert.ok(start>=0&&end>start,'MutationObserver Block fehlt');
-  const block=source.slice(start,end);
-  assert.match(block,/new root\.MutationObserver\(function\(\)\{if\(palletViewActive\(\)\)scheduleEnhance\(\)\}\)/);
+test('RC1418: MutationObserver ist nur lokal in aktiver Palettenansicht gebunden',()=>{
+  assert.match(source,/function syncObserver\(\)/);
+  assert.match(source,/observer\.observe\(host,\{childList:true,subtree:true\}\)/);
+  assert.match(source,/if\(!palletViewActive\(\)\)\{disconnectObserver\(\);return false\}/);
+  assert.doesNotMatch(source,/observe\(root\.document\.(?:body|documentElement)/);
 });
 
 test('RC1246: Buchungs- und Admin-Funktionen bleiben erhalten',()=>{
@@ -39,7 +38,7 @@ test('RC1246: Buchungs- und Admin-Funktionen bleiben erhalten',()=>{
 });
 
 test('RC1246: neue Runtime wird mit frischem Cache-Key ausgeliefert',()=>{
-  assert.match(build,/assets\/rc1207-pallet-account-fix\.js\?v=1246/);
+  assert.match(build,/assets\/rc1207-pallet-account-fix\.js\?v=1418/);
   assert.doesNotMatch(build,/assets\/rc1207-pallet-account-fix\.js\?v=1207/);
 });
 
