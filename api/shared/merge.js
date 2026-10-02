@@ -30,7 +30,10 @@ const RC1016_AVIS_FIELDS = [
   'customerAvisResponseReference','avisResponseReference',
   'customerAvisResponseStatus','avisResponseStatus',
   'customerConfirmed','customerConfirmedAt','customerConfirmedVia',
-  'plannedPickupDate','pickupDate'
+  'plannedPickupDate','pickupDate',
+  'manualPickupCarrierName','pickupCarrierName','pickupSpeditionName','carrierName','speditionName',
+  'manualPickupShipmentNumber','pickupShipmentNumber','carrierShipmentNumber',
+  'manualPickupBookedAt','manualPickupBookedBy','pickupAppointmentSource'
 ];
 const LOCAL_ONLY_KEYS = new Set([
   'view', 'q', 'taskSearch', 'taskFilter', 'taskDay', 'shipmentOverviewSearch',
@@ -339,7 +342,8 @@ function rc1016AvisTimestamp(value) {
   const candidates = [
     value && value.customerAvisResponseAt,
     value && value.avisResponseAt,
-    value && value.customerConfirmedAt
+    value && value.customerConfirmedAt,
+    value && value.manualPickupBookedAt
   ];
   let latest = 0;
   for (const candidate of candidates) {

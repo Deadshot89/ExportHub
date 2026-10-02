@@ -13,7 +13,7 @@ test('RC1314: sichtbare Produktversion besitzt eine explizite autoritative Quell
   assert.equal(fs.existsSync(markerPath),true,'release-version.json fehlt');
   const marker=JSON.parse(fs.readFileSync(markerPath,'utf8'));
   assert.match(String(marker.visibleRelease||''),/^RC\d+$/);
-  assert.equal(marker.visibleRelease,'RC1312');
+  assert.equal(marker.visibleRelease,'RC1370');
   assert.equal(marker.technicalBuild,'RC1112');
 });
 

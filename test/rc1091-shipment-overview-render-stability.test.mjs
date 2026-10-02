@@ -59,8 +59,8 @@ test('RC1127: finaler RC1048-Build rendert Kunden-Abholtermin direkt in overview
   assert.match(build,/rc1091MetaHtml/);
   assert.match(build,/rc1127PickupHtml/);
   assert.match(build,/data-rc1127-customer-pickup/);
-  assert.match(build,/rc1014-shipment-overview\.js\?v=1284/);
-  assert.match(build,/rc1014-shipment-overview\.css\?v=1284/);
+  assert.match(build,/rc1014-shipment-overview\.js\?v=1370/);
+  assert.match(build,/rc1014-shipment-overview\.css\?v=1370/);
   assert.match(build,/shipmentOverviewRenderStability:\{version:'RC1127'/);
   assert.match(build,/customerPickupDateFromAvis:true/);
   assert.match(build,/assets\/rc1014-shipment-overview\.js/,'RC1127 Runtime muss weiterhin in den finalen Build kopiert werden');
@@ -68,8 +68,8 @@ test('RC1127: finaler RC1048-Build rendert Kunden-Abholtermin direkt in overview
 
 test('RC1284: aktueller Produktionsdeploy prüft die aktiven Sendungsübersichts-Cache-Keys',()=>{
   const flow=read('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml');
-  assert.match(flow,/assets\/rc1014-shipment-overview\.js\?v=1284/);
-  assert.match(flow,/assets\/rc1014-shipment-overview\.css\?v=1284/);
+  assert.match(flow,/assets\/rc1014-shipment-overview\.js\?v=1370/);
+  assert.match(flow,/assets\/rc1014-shipment-overview\.css\?v=1370/);
   assert.doesNotMatch(flow,/dist-rc1048\/index\.html[^\n]*rc1014-shipment-overview\.js\?v=1016/);
 });
 
@@ -78,8 +78,8 @@ test('RC1091: finaler Drei-Umgebungen-Build erzeugt die stabilisierte Übersicht
   execFileSync(process.execPath,['.github/rc1048/build-three-env.mjs'],{stdio:'pipe'});
   for(const file of ['index.html','TESTVERSION.html','demo.html']){
     const html=read('dist-rc1048/'+file);
-    assert.match(html,/assets\/rc1014-shipment-overview\.js\?v=1284/,file+': RC1284 JS Cache-Key fehlt');
-    assert.match(html,/assets\/rc1014-shipment-overview\.css\?v=1284/,file+': RC1284 CSS Cache-Key fehlt');
+    assert.match(html,/assets\/rc1014-shipment-overview\.js\?v=1370/,file+': RC1284 JS Cache-Key fehlt');
+    assert.match(html,/assets\/rc1014-shipment-overview\.css\?v=1370/,file+': RC1284 CSS Cache-Key fehlt');
     assert.match(html,/var rc1091OverviewApi=window\.ExportHUBRC1014ShipmentOverview/,file+': direkte Overview-Metadaten fehlen');
     assert.match(html,/rc1127PickupHtml/,file+': Kunden-Abholtermin fehlt in overviewCardHtml');
     assert.match(html,/data-rc1127-customer-pickup/,file+': Kunden-Abholtermin besitzt keinen stabilen Marker');

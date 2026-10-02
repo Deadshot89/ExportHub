@@ -117,3 +117,51 @@ test('RC1016 Lieferavis: eine tatsächlich neuere Avis-Antwort darf die vorherig
   assert.equal(merged.shipments[0].customerAvisPickupTimeTo, '16:00');
   assert.equal(merged.shipments[0].plannedPickupDate, '2026-09-11');
 });
+
+
+test('RC1370 manuelle Abholung: neuerer stale Client darf manuelle Buchungsdaten nicht zurücksetzen', () => {
+  const bookedAt='2026-10-02T08:00:00.000Z';
+  const serverManual=serverAvisCopy({
+    customerAvisResponseAt:'',
+    avisResponseAt:'',
+    customerConfirmedAt:'',
+    customerAvisPickupDate:'2026-10-06',
+    avisPickupDate:'2026-10-06',
+    customerAvisPickupTimeFrom:'10:00',
+    avisPickupTimeFrom:'10:00',
+    customerAvisPickupTimeTo:'12:00',
+    avisPickupTimeTo:'12:00',
+    customerAvisPickupPlate:'KLE-AB 123',
+    avisPickupPlate:'KLE-AB 123',
+    plannedPickupDate:'2026-10-06',
+    pickupDate:'2026-10-06',
+    manualPickupCarrierName:'Test Spedition',
+    pickupCarrierName:'Test Spedition',
+    pickupSpeditionName:'Test Spedition',
+    carrierName:'Test Spedition',
+    speditionName:'Test Spedition',
+    manualPickupShipmentNumber:'SHIP-4711',
+    pickupShipmentNumber:'SHIP-4711',
+    carrierShipmentNumber:'SHIP-4711',
+    manualPickupBookedAt:bookedAt,
+    manualPickupBookedBy:'Tobias',
+    pickupAppointmentSource:'manual',
+    updatedAt:bookedAt,
+    _syncUpdatedAt:bookedAt
+  });
+  const stale=staleClientCopy({
+    updatedAt:'2026-10-02T08:05:00.000Z',
+    _syncUpdatedAt:'2026-10-02T08:05:00.000Z'
+  });
+  const merged=mergeState({...meta(),shipments:[serverManual]},{...meta(),shipments:[stale]});
+  const sh=merged.shipments[0];
+  assert.equal(sh.customerAvisPickupDate,'2026-10-06');
+  assert.equal(sh.customerAvisPickupTimeFrom,'10:00');
+  assert.equal(sh.customerAvisPickupTimeTo,'12:00');
+  assert.equal(sh.customerAvisPickupPlate,'KLE-AB 123');
+  assert.equal(sh.manualPickupCarrierName,'Test Spedition');
+  assert.equal(sh.manualPickupShipmentNumber,'SHIP-4711');
+  assert.equal(sh.manualPickupBookedAt,bookedAt);
+  assert.equal(sh.manualPickupBookedBy,'Tobias');
+  assert.equal(sh.pickupAppointmentSource,'manual');
+});

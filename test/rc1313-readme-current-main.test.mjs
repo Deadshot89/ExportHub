@@ -4,9 +4,9 @@ import fs from 'node:fs';
 
 const readme=fs.readFileSync(new URL('../README.md',import.meta.url),'utf8');
 
-test('RC1313: README documents the current main release state through RC1312',()=>{
-  assert.match(readme,/Korrekturen auf `main` reichen aktuell bis \*\*RC1312\*\*/);
-  for(const marker of ['RC1306','RC1308','RC1309','RC1310','RC1311','RC1312']){
+test('RC1370: README documents the current main release state through RC1370',()=>{
+  assert.match(readme,/Korrekturen auf `main` reichen aktuell bis \*\*RC1370\*\*/);
+  for(const marker of ['RC1306','RC1308','RC1309','RC1310','RC1311','RC1312','RC1370']){
     assert.ok(readme.includes(marker),'README missing current release marker '+marker);
   }
 });

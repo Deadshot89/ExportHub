@@ -262,5 +262,7 @@
   "api.abdAnalysis.scanFailed": "Nie udało się bezpiecznie przeskanować pliku pod kątem złośliwego oprogramowania.",
   "api.abdAnalysis.failed": "Nie udało się przeanalizować pliku zgłoszenia wywozowego.",
   "api.abdAnalysis.forbidden": "Do analizy wymagane jest prawo edycji w obszarze ABD.",
-  "api.abdAnalysis.actionInvalid": "Nieznana akcja analizy ABD."
+  "api.abdAnalysis.actionInvalid": "Nieznana akcja analizy ABD.",
+  "api.avis.manualAppointmentCreated": "Odbiór zarezerwowano ręcznie",
+  "api.avis.manualAppointmentChanged": "Zmieniono ręczny odbiór"
 }
