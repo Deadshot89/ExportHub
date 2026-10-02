@@ -404,6 +404,10 @@ async function reconcilePendingBackups(environment, options) {
   const reference = text(options.reference).toUpperCase();
   const clients = await store.clients(environment);
   const prefix = 'rc995/' + environment + '/records/';
+  const continuationToken = text(options.continuationToken);
+  const scanPageSize = Math.min(100, Math.max(10, Math.round(Number(options.scanPageSize) || 40)));
+  let nextContinuationToken = '';
+  let scanComplete = true;
   const candidates = [];
   const teamRelinkCandidates = [];
   const alreadySaved = [];
@@ -416,7 +420,15 @@ async function reconcilePendingBackups(environment, options) {
   let verifiedCount = 0;
   let repairedStateCount = 0;
 
-  for await (const item of clients.records.listBlobsFlat({ prefix })) {
+  const pages = clients.records.listBlobsFlat({ prefix }).byPage({
+    continuationToken: continuationToken || undefined,
+    maxPageSize: scanPageSize
+  });
+  for await (const page of pages) {
+    nextContinuationToken = text(page && page.continuationToken);
+    scanComplete = !nextContinuationToken;
+    const blobItems = page && page.segment && Array.isArray(page.segment.blobItems) ? page.segment.blobItems : [];
+    for (const item of blobItems) {
     scanned += 1;
     const name = text(item && item.name);
     const match = name.match(/\/([a-f0-9]{64})\.json$/i);
@@ -497,6 +509,8 @@ async function reconcilePendingBackups(environment, options) {
       confirmedAtMs: Date.parse(record.confirmedAt || '') || 0,
       driveOnly
     });
+    }
+    break;
   }
 
   teamRelinkCandidates.sort((a, b) => a.confirmedAtMs - b.confirmedAtMs || a.reference.localeCompare(b.reference));
@@ -604,6 +618,10 @@ async function reconcilePendingBackups(environment, options) {
     ok: errors.length === 0,
     environment,
     scanned,
+    scanPageSize,
+    continuationToken: continuationToken || null,
+    nextContinuationToken: nextContinuationToken || null,
+    scanComplete,
     eligible: requiredEligible + teamRelinkCandidates.length,
     selected: requiredSelected + selectedRelinks.length,
     skippedRecent,
