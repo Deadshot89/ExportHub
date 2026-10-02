@@ -243,7 +243,7 @@ test('RC1402: freigegebener POD-Ordner wird über remoteItem auf den echten Driv
       return{status:200,body:{id:'drive-default'}};
     }
     if(index===6){
-      assert.match(call.path,/\/v1\.0\/drives\/drive-default\/search\(q='Abliefernachweise'\)/);
+      assert.match(call.path,/\/v1\.0\/drives\/drive-default\/root\/search\(q='Abliefernachweise'\)/);
       return{status:200,body:{value:[{
         id:'shortcut-local',
         name:'Abliefernachweise',
@@ -283,7 +283,7 @@ test('RC1401: Essentra-OneDrive-Personal-Site wird vor dem Share-Link-Fallback d
       return{status:200,body:{id:'drive-default'}};
     }
     if(index===6){
-      assert.match(call.path,/\/v1\.0\/drives\/drive-default\/search\(q='Abliefernachweise'\)/);
+      assert.match(call.path,/\/v1\.0\/drives\/drive-default\/root\/search\(q='Abliefernachweise'\)/);
       return{status:200,body:{value:[]}};
     }
     if(index===7){
@@ -438,7 +438,7 @@ test('RC1213: nicht auffindbarer Zielordner wird als GRAPH_FOLDER_NOT_FOUND klas
       return{status:200,body:{id:'drive-default'}};
     }
     if(index===10){
-      assert.match(call.path,/\/v1\.0\/drives\/drive-default\/search\(q='Abliefernachweise'\)/);
+      assert.match(call.path,/\/v1\.0\/drives\/drive-default\/root\/search\(q='Abliefernachweise'\)/);
       return{status:200,body:{value:[]}};
     }
     if(index===11)return{status:404,body:{error:{code:'itemNotFound',message:'Personal site not found'}}};
