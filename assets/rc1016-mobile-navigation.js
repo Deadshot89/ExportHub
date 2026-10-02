@@ -3,6 +3,7 @@
 
   const ID='rc1016MobileMenuBtn';
   const QUERY='(max-width: 640px)';
+  let observer=null,observerRoot=null;
   const tr=(key)=>{try{if(root.ExportHUBI18n&&typeof root.ExportHUBI18n.t==='function')return root.ExportHUBI18n.t(key)}catch(_){}return key};
 
   function isMobile(){
@@ -35,12 +36,30 @@
       root.setTimeout(()=>sync(root.document&&root.document.getElementById(ID)),0);
     }
   }
+  function disconnectObserver(){
+    if(observer){try{observer.disconnect();}catch(_){ }observer=null;}
+    observerRoot=null;
+  }
+  function syncObserver(){
+    const doc=root.document;
+    if(!doc||!doc.body||!isMobile()){disconnectObserver();return false;}
+    if(observer&&observerRoot===doc.body)return true;
+    disconnectObserver();
+    try{
+      if(typeof root.MutationObserver!=='function')return false;
+      observer=new root.MutationObserver(()=>{if(isMobile()&&!doc.getElementById(ID))schedule();});
+      observer.observe(doc.body,{childList:true});
+      observerRoot=doc.body;
+      return true;
+    }catch(_){observer=null;observerRoot=null;return false;}
+  }
   function ensure(){
     const doc=root.document;
     if(!doc||!doc.body)return null;
     let button=doc.getElementById(ID);
     if(!isMobile()){
       if(button)button.remove();
+      disconnectObserver();
       return null;
     }
     if(!button){
@@ -54,6 +73,7 @@
       doc.body.appendChild(button);
     }
     sync(button);
+    syncObserver();
     return button;
   }
   function schedule(){root.setTimeout(ensure,0);}
@@ -65,11 +85,7 @@
   if(root.document){
     if(root.document.readyState==='loading')root.document.addEventListener('DOMContentLoaded',ensure,{once:true});
     else ensure();
-    try{
-      const observer=new MutationObserver(()=>{if(isMobile()&&!root.document.getElementById(ID))schedule();});
-      observer.observe(root.document.documentElement,{childList:true,subtree:true});
-    }catch(_){ }
   }
 
-  root.ExportHUBRC1016MobileNavigation=Object.freeze({ensure,toggle,menuOpen});
+  root.ExportHUBRC1016MobileNavigation=Object.freeze({ensure,toggle,menuOpen,syncObserver});
 })(globalThis);
