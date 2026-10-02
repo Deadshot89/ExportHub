@@ -170,7 +170,7 @@ function targetKey(cfg) {
 function cachedTargetFailure(cfg) {
   const key = targetKey(cfg);
   if (!targetFailureCache || targetFailureCache.key !== key || targetFailureCache.expiresAt <= Date.now()) return null;
-  const error = new Error(targetFailureCache.message || 'Das Microsoft-365-POD-Ziel ist vorübergehend nicht auflösbar.');
+  const error = new Error(targetFailureCache.message || 'GRAPH_TARGET_FAILED');
   error.code = targetFailureCache.code || 'GRAPH_TARGET_FAILED';
   error.statusCode = Number(targetFailureCache.statusCode || 502);
   return error;
