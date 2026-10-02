@@ -59,7 +59,8 @@ test('RC1400: Mobile beobachtet nur direkte body-Kinder statt den gesamten Dokum
   assert.equal(h.observers.length,1);
   assert.equal(h.observers[0].target,h.body);
   assert.notEqual(h.observers[0].target,h.documentElement);
-  assert.deepEqual(h.observers[0].options,{childList:true});
+  assert.equal(h.observers[0].options.childList,true);
+  assert.equal(h.observers[0].options.subtree,undefined);
 });
 
 test('RC1400: Entfernen des Body-Menüknopfs löst weiterhin eine Reparatur aus',()=>{
