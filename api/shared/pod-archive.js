@@ -545,9 +545,12 @@ async function reconcilePendingBackups(environment, options) {
   if (!reference && (
     pageWorkDeferred ||
     teamRelinkCandidates.length > selectedRelinks.length ||
-    requiredCandidates.length > selectedRequiredCandidates.length ||
-    driveBackfillCandidates.length > selectedDriveCandidates.length
+    requiredCandidates.length > selectedRequiredCandidates.length
   )) pageWorkDeferred = true;
+  // RC1417: Microsoft-365-Drive-Backfill ist eine optionale Zusatzkopie.
+  // Offene Drive-Kandidaten dürfen deshalb den Seiten-Cursor nicht auf derselben
+  // Scan-Seite festhalten. Nur Pflichtarbeit (Archiv/Integrität/Relink) darf
+  // pageWorkDeferred setzen und damit die Seite erneut anfordern.
   const saved = [];
   const pending = [];
   const driveSaved = [];
