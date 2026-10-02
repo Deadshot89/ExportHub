@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 
+// RC1400 redeploy trigger: current green main includes the synchronized historical QR contracts.
 const source=fs.readFileSync('assets/rc1016-mobile-navigation.js','utf8');
 
 function harness(mobile=true){
