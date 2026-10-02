@@ -377,9 +377,17 @@ async function searchConfiguredFolderTargets(token, user, drives, folders) {
 
 function sharedSearchItem(item, defaultDriveId) {
   if (!item) return null;
-  const remote = item.remoteItem && item.remoteItem.folder ? item.remoteItem : null;
+  const remoteCandidate = item.remoteItem || null;
+  const remote = remoteCandidate &&
+    text(remoteCandidate.id) &&
+    text(remoteCandidate.parentReference && remoteCandidate.parentReference.driveId)
+    ? remoteCandidate
+    : null;
+  // Graph kann bei freigegebenen Ordnern die folder-Facette am lokalen
+  // Suchtreffer liefern, während remoteItem nur Ziel-ID und driveId enthält.
+  // In diesem Fall muss trotzdem das Remote-Ziel verwendet werden.
+  if (!item.folder && !(remote && remote.folder)) return null;
   const source = remote || item;
-  if (!source.folder && !item.folder) return null;
   const folderId = text(source.id || item.id);
   const driveId = text(source.parentReference && source.parentReference.driveId) ||
     text(item.parentReference && item.parentReference.driveId) ||
