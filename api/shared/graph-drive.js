@@ -433,7 +433,7 @@ async function searchAccessibleUserDriveTargets(token, user, folders) {
     try {
       result = await graphGet(
         token,
-        `/drives/${encodeURIComponent(defaultDriveId)}/search(q='${encodeURIComponent(group.leaf)}')?$select=id,name,folder,parentReference,remoteItem,webUrl`
+        `/drives/${encodeURIComponent(defaultDriveId)}/root/search(q='${encodeURIComponent(group.leaf)}')?$select=id,name,folder,parentReference,remoteItem,webUrl`
       );
     } catch (error) {
       if (isNotFound(error)) continue;
