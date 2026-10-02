@@ -47,3 +47,13 @@ test('RC1410: ein gemeinsames Remote-Budget begrenzt teure POD-Arbeit pro Functi
   assert.match(archive,/pageWorkDeferred = true/);
   assert.match(archive,/nextContinuationToken = continuationToken;[\s\S]{0,100}scanComplete = false/);
 });
+
+
+test('RC1417: nur verpflichtende Arbeit hält dieselbe Scan-Seite fest',()=>{
+  assert.match(archive,/let requiredWorkDeferred = false/);
+  assert.match(archive,/let optionalDriveWorkDeferred = false/);
+  assert.match(archive,/requiredWorkDeferred = true;[\s\S]*?pageWorkDeferred = true/);
+  assert.match(archive,/optionalDriveWorkDeferred = true;[\s\S]*?pageWorkDeferred = true/);
+  assert.match(archive,/if \(!reference && requiredWorkDeferred\) \{[\s\S]*?nextContinuationToken = continuationToken;[\s\S]*?scanComplete = false/);
+  assert.match(archive,/requiredWorkDeferred,[\s\S]*?optionalDriveWorkDeferred/);
+});
