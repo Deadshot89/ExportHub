@@ -203,9 +203,9 @@ jobs:
           grep -q '/api/diagnostic-autofix' dist-rc1112/assets/rc1013-diagnostics.js
           grep -q "view:'history',label:'Historie',right:'history'" dist-rc1112/index.html
           grep -q "view:'history',label:'Historie',right:'history'" dist-rc1112/TESTVERSION.html
-          grep -q 'assets/rc1027-lieferavis-immediate.js?v=1365' dist-rc1112/index.html
-          grep -q 'assets/rc1027-lieferavis-immediate.js?v=1365' dist-rc1112/TESTVERSION.html
-          grep -q 'assets/rc1027-lieferavis-immediate.js?v=1365' dist-rc1112/demo.html
+          grep -q 'assets/rc1027-lieferavis-immediate.js?v=1393' dist-rc1112/index.html
+          grep -q 'assets/rc1027-lieferavis-immediate.js?v=1393' dist-rc1112/TESTVERSION.html
+          grep -q 'assets/rc1027-lieferavis-immediate.js?v=1393' dist-rc1112/demo.html
           test -s dist-rc1112/assets/rc1027-lieferavis-immediate.js
           test -s dist-rc1112/assets/rc1037-lieferavis-timing-diagnostics.js
           test -s dist-rc1112/assets/rc1049-abd-avis-policy.js
@@ -867,9 +867,9 @@ jobs:
               && grep -q '__EXPORTHUB_RC1069_PERFORMANCE__' "$tperf" \
               && grep -q "version:'RC1069'" "$pavis" \
               && grep -q "version:'RC1069'" "$tavis" \
-              && grep -q 'assets/rc1027-lieferavis-immediate.js?v=1365' "$p" \
-              && grep -q 'assets/rc1027-lieferavis-immediate.js?v=1365' "$t" \
-              && grep -q 'assets/rc1027-lieferavis-immediate.js?v=1365' "$d" \
+              && grep -q 'assets/rc1027-lieferavis-immediate.js?v=1393' "$p" \
+              && grep -q 'assets/rc1027-lieferavis-immediate.js?v=1393' "$t" \
+              && grep -q 'assets/rc1027-lieferavis-immediate.js?v=1393' "$d" \
               && grep -q 'Dokumentspeicher wird optimiert' "$precp" \
               && grep -q 'Dokumentspeicher wird optimiert' "$trecp" \
               && grep -q 'assets/abholkalender.js?v=1012' "$p" \
@@ -960,7 +960,7 @@ jobs:
             ac=$(curl -sS -L -o "$avis_runtime" -w '%{http_code}' --max-time 20 "$prod/assets/rc1027-lieferavis-immediate.js?rc1379=$GITHUB_SHA-$attempt" || true)
             if [[ "$mc" == '200' && "$pc" == '200' && "$ac" == '200' ]] \
               && grep -Fq 'assets/rc1305-loading-list-print.js?v=1379' "$main" \
-              && grep -Fq 'assets/rc1027-lieferavis-immediate.js?v=1365' "$main" \
+              && grep -Fq 'assets/rc1027-lieferavis-immediate.js?v=1393' "$main" \
               && grep -Fq "data-rc1361-print-qr-top-right" "$print_runtime" \
               && grep -Fq "important(section,'top','8mm')" "$print_runtime" \
               && grep -Fq "important(section,'right','8mm')" "$print_runtime" \
@@ -979,7 +979,7 @@ jobs:
               && grep -Fq "rc1305-signature-primary" "$print_runtime" \
               && grep -Fq "grid-template-columns:repeat(3,minmax(0,1fr))" "$print_runtime" \
               && ! grep -Fq "rc1305-signature-customs" "$print_runtime" \
-              && grep -Fq "RC1333_PROD_AVIS_ORIGIN='https://exporthub360.com'" "$avis_runtime" \
+              && grep -Fq "RC1333_PROD_AVIS_ORIGIN='https://www.exporthub360.de'" "$avis_runtime" \
               && grep -Fq "RC1333_PROD_AVIS_ORIGIN+'/avis/'" "$avis_runtime"; then
               ready=1
               break
@@ -1021,11 +1021,10 @@ jobs:
           echo 'RC1373 Nur Deckblatt drucken ist live als echter Ein-Seiten-Druckmodus bestätigt.'
 
       - name: RC1374 ExportHUB360 Marken-Domain prüfen
-        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
-          branded='https://exporthub360.com'
+          branded='https://www.exporthub360.de'
           avis_page="$(mktemp)"
           trap 'rm -f "$avis_page"' EXIT
           for attempt in {1..6}; do
@@ -1036,7 +1035,7 @@ jobs:
             fi
             sleep 5
           done
-          echo "::warning::RC1374 ExportHUB360 Marken-Domain derzeit nicht verifizierbar (HTTP $bc). Produktions-Deploy und Azure-Origin bleiben davon getrennt geprüft."
+          echo "::error::RC1374 ExportHUB360 Marken-Domain .de nicht erreichbar (HTTP $bc). Kunden-AVIS darf nicht freigegeben werden."
           exit 1
 
       - name: Live RC1071 Sendungshistorie prüfen
