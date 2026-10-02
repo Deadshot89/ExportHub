@@ -4,13 +4,15 @@ import fs from 'node:fs';
 
 const flow=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
 
-test('RC1381 blockiert veraltete Workflow-Runs vor TESTSERVICE und Produktion',()=>{
+test('RC1396 blockiert nur neuere deploy-relevante Änderungen vor TESTSERVICE und Produktion',()=>{
   assert.match(flow,/RC1381 TESTSERVICE stale-deploy guard/);
   assert.match(flow,/RC1381 PRODUCTION stale-deploy guard/);
-  const guards=(flow.match(/git ls-remote origin refs\/heads\/main/g)||[]).length;
-  assert.equal(guards,2,'Stale-Guard muss direkt vor beiden Deployments greifen');
-  const checks=(flow.match(/\[ "\$remote_sha" != "\$GITHUB_SHA" \]/g)||[]).length;
-  assert.equal(checks,2,'Jeder Deploy muss GITHUB_SHA gegen den aktuellen main-Head prüfen');
+  assert.equal((flow.match(/git ls-remote origin refs\/heads\/main/g)||[]).length,2);
+  assert.equal((flow.match(/git diff --name-only "\$GITHUB_SHA" "\$remote_sha"/g)||[]).length,2);
+  assert.equal((flow.match(/RC1396: neuerer main-Head enthält nur nicht-deploy-relevante Änderungen/g)||[]).length,2);
+  assert.equal((flow.match(/\.github\/workflows\/azure-static-web-apps-wonderful-forest-0f315e310\\\.yml\$/g)||[]).length,2);
+  assert.equal((flow.match(/\.github\/rc\[0-9\]\+\//g)||[]).length,2);
+  assert.doesNotMatch(flow,/\[ -z "\$remote_sha" \] \|\| \[ "\$remote_sha" != "\$GITHUB_SHA" \]/);
 
   const testGuard=flow.indexOf('RC1381 TESTSERVICE stale-deploy guard');
   const testDeploy=flow.indexOf('Deploy ExportHUB TESTSERVICE');

@@ -390,9 +390,23 @@ jobs:
         run: |
           set -euo pipefail
           remote_sha="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
-          if [ -z "$remote_sha" ] || [ "$remote_sha" != "$GITHUB_SHA" ]; then
-            echo "RC1381: veralteter Workflow darf TESTSERVICE nicht deployen. run=$GITHUB_SHA main=$remote_sha" >&2
+          if [ -z "$remote_sha" ]; then
+            echo "RC1381: aktueller main-Head konnte nicht ermittelt werden." >&2
             exit 1
+          fi
+          if [ "$remote_sha" != "$GITHUB_SHA" ]; then
+            git fetch --no-tags --prune --depth=200 origin main
+            changed="$(git diff --name-only "$GITHUB_SHA" "$remote_sha" || true)"
+            deploy_relevant="$(
+              printf '%s\n' "$changed" |
+                grep -E '^(index\.html|TESTVERSION\.html|demo\.html|production-version\.js|release-version\.json|pickup\.html|customer-avis\.html|location\.html|pod-notfall\.html|migration-recovery\.html|assets/|api/|android-app/|staticwebapp\.config\.json|staticwebapp\.testservice\.config\.json|\.github/rc[0-9]+/|\.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310\.yml$|test/|e2e/|tests/|playwright\.config\.mjs$)' || true
+            )"
+            if [ -n "$deploy_relevant" ]; then
+              echo "RC1381: veralteter Workflow darf TESTSERVICE nicht deployen. run=$GITHUB_SHA main=$remote_sha" >&2
+              printf '%s\n' "$deploy_relevant" >&2
+              exit 1
+            fi
+            echo "RC1396: neuerer main-Head enthält nur nicht-deploy-relevante Änderungen; TESTSERVICE-Deploy bleibt gültig. run=$GITHUB_SHA main=$remote_sha"
           fi
 
       - name: Deploy ExportHUB TESTSERVICE
@@ -606,9 +620,23 @@ jobs:
         run: |
           set -euo pipefail
           remote_sha="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
-          if [ -z "$remote_sha" ] || [ "$remote_sha" != "$GITHUB_SHA" ]; then
-            echo "RC1381: veralteter Workflow darf Produktion nicht deployen. run=$GITHUB_SHA main=$remote_sha" >&2
+          if [ -z "$remote_sha" ]; then
+            echo "RC1381: aktueller main-Head konnte nicht ermittelt werden." >&2
             exit 1
+          fi
+          if [ "$remote_sha" != "$GITHUB_SHA" ]; then
+            git fetch --no-tags --prune --depth=200 origin main
+            changed="$(git diff --name-only "$GITHUB_SHA" "$remote_sha" || true)"
+            deploy_relevant="$(
+              printf '%s\n' "$changed" |
+                grep -E '^(index\.html|TESTVERSION\.html|demo\.html|production-version\.js|release-version\.json|pickup\.html|customer-avis\.html|location\.html|pod-notfall\.html|migration-recovery\.html|assets/|api/|android-app/|staticwebapp\.config\.json|staticwebapp\.testservice\.config\.json|\.github/rc[0-9]+/|\.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310\.yml$|test/|e2e/|tests/|playwright\.config\.mjs$)' || true
+            )"
+            if [ -n "$deploy_relevant" ]; then
+              echo "RC1381: veralteter Workflow darf Produktion nicht deployen. run=$GITHUB_SHA main=$remote_sha" >&2
+              printf '%s\n' "$deploy_relevant" >&2
+              exit 1
+            fi
+            echo "RC1396: neuerer main-Head enthält nur nicht-deploy-relevante Änderungen; Produktion-Deploy bleibt gültig. run=$GITHUB_SHA main=$remote_sha"
           fi
 
       - name: Deploy ExportHUB production
