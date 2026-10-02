@@ -62,8 +62,12 @@ test('QR-Abholung unterstützt Teilabholung und Restmenge',()=>{
   assert.match(pickupStore,/pickupCollectedColliCount/);
 });
 
-test('Teilabholung verbraucht QR erst bei vollständiger Abholung und Abholtag bleibt offen',()=>{
-  assert.match(pickupConfirm,/if\(complete\)await access\.consume/);
+test('Teilabholung bleibt offen; Vollabholung synchronisiert vor QR-Verbrauch und ist wiederaufnehmbar',()=>{
+  const teamSync=pickupConfirm.indexOf("await store.updateTeam(rec,[],'')");
+  const consume=pickupConfirm.indexOf("await access.consume(resolved.environment,'pickup',resolved.tokenHash",teamSync);
+  assert.ok(teamSync>=0&&consume>teamSync,'Vollabholung muss Team-State vor QR-Verbrauch synchronisieren');
+  assert.match(pickupConfirm,/if\(complete\)\{[\s\S]*?await access\.consume/);
+  assert.match(pickupConfirm,/completeOf\(current\)\|\|current\.status==='confirmed'/);
   assert.match(pickupConfirm,/if\(!complete(?:&&[^)]*)?\).*access\.clearFailures/);
   assert.match(pickupStore,/if\(complete\).*abholtag/s);
   assert.match(pickupStore,/Teilweise abgeholt/);
