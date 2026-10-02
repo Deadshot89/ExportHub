@@ -130,10 +130,12 @@ test('RC1171 P0: Sendung erstellen läuft vollständig über die Benutzeroberfl�
     s.shipment._e2eRunId=runId;
   },session.runId);
 
-  await page.evaluate(()=>{window.__RC1171_SAVED_EVENTS__=[];});
+  await page.evaluate(()=>{window.__RC1171_SAVED_EVENTS__=[];window.__RC1418_LAYOUT_NODE__=document.getElementById('rc363FixedShipmentLayout');});
   await saveButton.click();
   await expect.poll(()=>page.evaluate(()=>Array.isArray(window.__RC1171_SAVED_EVENTS__)?window.__RC1171_SAVED_EVENTS__.length:0),{timeout:30_000}).toBeGreaterThan(0);
   await settleStateSave(page,{timeout:30_000});
+  const layoutPreserved=await page.evaluate(()=>!!window.__RC1418_LAYOUT_NODE__&&window.__RC1418_LAYOUT_NODE__===document.getElementById('rc363FixedShipmentLayout'));
+  expect(layoutPreserved,'RC1418: Speichern darf das montierte Sendungslayout nicht ersetzen').toBe(true);
 
   const savedEvent=await page.evaluate(()=>window.__RC1171_SAVED_EVENTS__[window.__RC1171_SAVED_EVENTS__.length-1]||null);
   expect(String(savedEvent?.reference||'').toUpperCase()).toBe(ref);
