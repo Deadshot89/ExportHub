@@ -421,6 +421,8 @@ async function reconcilePendingBackups(environment, options) {
   let repairedStateCount = 0;
   let integrityChecks = 0;
   let pageWorkDeferred = false;
+  let requiredWorkDeferred = false;
+  let optionalDriveWorkDeferred = false;
   const remoteWorkBudget = reference ? Math.max(2, limit) : 2;
 
   const pages = clients.records.listBlobsFlat({ prefix }).byPage({
@@ -464,6 +466,7 @@ async function reconcilePendingBackups(environment, options) {
       // ohne die tägliche vollständige Integritätsprüfung zu schwächen.
       if (!verificationFresh && integrityChecks >= remoteWorkBudget) {
         pageWorkDeferred = true;
+        requiredWorkDeferred = true;
         continue;
       }
       if (!verificationFresh) integrityChecks += 1;
@@ -542,12 +545,20 @@ async function reconcilePendingBackups(environment, options) {
   const driveBackfillEligible = driveBackfillCandidates.length;
   const requiredSelected = selectedRequiredCandidates.length;
   const driveBackfillSelected = selectedDriveCandidates.length;
-  if (!reference && (
-    pageWorkDeferred ||
-    teamRelinkCandidates.length > selectedRelinks.length ||
-    requiredCandidates.length > selectedRequiredCandidates.length ||
-    driveBackfillCandidates.length > selectedDriveCandidates.length
-  )) pageWorkDeferred = true;
+  if (!reference) {
+    if (
+      requiredWorkDeferred ||
+      teamRelinkCandidates.length > selectedRelinks.length ||
+      requiredCandidates.length > selectedRequiredCandidates.length
+    ) {
+      requiredWorkDeferred = true;
+      pageWorkDeferred = true;
+    }
+    if (driveBackfillCandidates.length > selectedDriveCandidates.length) {
+      optionalDriveWorkDeferred = true;
+      pageWorkDeferred = true;
+    }
+  }
   const saved = [];
   const pending = [];
   const driveSaved = [];
@@ -626,7 +637,7 @@ async function reconcilePendingBackups(environment, options) {
     }
   }
 
-  if (!reference && pageWorkDeferred) {
+  if (!reference && requiredWorkDeferred) {
     nextContinuationToken = continuationToken;
     scanComplete = false;
   }
@@ -674,6 +685,8 @@ async function reconcilePendingBackups(environment, options) {
     integrityChecks,
     remoteWorkBudget,
     pageWorkDeferred,
+    requiredWorkDeferred,
+    optionalDriveWorkDeferred,
     target,
     saved,
     alreadySaved,
