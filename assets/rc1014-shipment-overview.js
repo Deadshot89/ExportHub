@@ -341,6 +341,12 @@
     return true;
   }
 
+  function inShipmentDetailView(doc){
+    const body=doc&&doc.body,bodyView=q(body&&body.getAttribute&&body.getAttribute('data-exporthub-view')).toLowerCase();
+    const s=state(),stateView=q(s&&(s.view||s.currentView||s.activeView||s.page)).toLowerCase();
+    return stateView==='shipmentview'||bodyView==='shipmentview';
+  }
+
   function manualPickupMeta(shipment){
     const sh=shipment||{};
     return{
@@ -431,11 +437,11 @@
   }
 
   function enhanceManualPickupBooking(){
-    const doc=root.document;if(!doc||!inShipmentView(doc)||typeof doc.getElementById!=='function')return false;
+    const doc=root.document;if(!doc||!inShipmentDetailView(doc)||typeof doc.getElementById!=='function')return false;
     const sh=viewShipment(state());if(!sh)return false;
-    const host=doc.getElementById('rc363BlockShipment');if(!host)return false;
-    let panel=host.querySelector&&host.querySelector('[data-rc1370-manual-pickup]');
-    if(!panel){panel=createManualPickupPanel(doc);const target=host.querySelector&&host.querySelector('.rc363-process-body')||host;target.appendChild(panel);lastMutationAt=Date.now()}
+    const docsCard=doc.getElementById('rc786ReferenceFilesCard'),host=docsCard&&docsCard.parentNode;if(!host||typeof host.insertBefore!=='function')return false;
+    let panel=doc.querySelector&&doc.querySelector('[data-rc1370-manual-pickup]');
+    if(!panel){panel=createManualPickupPanel(doc);host.insertBefore(panel,docsCard);lastMutationAt=Date.now()}
     const meta=manualPickupMeta(sh),closed=manualPickupClosed(sh),date=panel.querySelector('[data-rc1370-date]'),slot=panel.querySelector('[data-rc1370-slot]'),carrier=panel.querySelector('[data-rc1370-carrier]'),number=panel.querySelector('[data-rc1370-shipment-number]'),plate=panel.querySelector('[data-rc1370-plate]'),save=panel.querySelector('[data-rc1370-save]');
     if(!panel.dataset.rc1370Dirty){
       if(date&&doc.activeElement!==date)date.value=meta.date||'';
