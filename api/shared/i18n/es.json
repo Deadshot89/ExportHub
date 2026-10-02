@@ -262,5 +262,7 @@
   "api.abdAnalysis.scanFailed": "No se pudo analizar el archivo de forma segura contra malware.",
   "api.abdAnalysis.failed": "No se pudo analizar el archivo de la declaración de exportación.",
   "api.abdAnalysis.forbidden": "Se requiere permiso de edición en el área ABD para realizar el análisis.",
-  "api.abdAnalysis.actionInvalid": "Acción de análisis ABD desconocida."
+  "api.abdAnalysis.actionInvalid": "Acción de análisis ABD desconocida.",
+  "api.avis.manualAppointmentCreated": "Recogida reservada manualmente",
+  "api.avis.manualAppointmentChanged": "Recogida manual modificada"
 }
