@@ -16,8 +16,9 @@ test('RC1241: vollständige Nachholung deaktiviert den Altersfilter nur im signi
 test('RC1241: TESTSERVICE und Produktion fordern vollständiges Leeren des Backlogs an',()=>{
   assert.equal((workflow.match(/for batch in \$\(seq 1 10\); do/g)||[]).length,2);
   assert.equal((workflow.match(/drainAll:!reference/g)||[]).length,2);
-  assert.equal((workflow.match(/eligible===0&&selected===0&&skipped===0/g)||[]).length,2);
-  assert.equal((workflow.match(/if\(selected<=0\)process\.exit\(7\)/g)||[]).length,2);
+  assert.equal((workflow.match(/eligible===0&&selected===0&&skipped===0&&v\.scanComplete===true/g)||[]).length,2);
+  assert.equal((workflow.match(/if\(selected<=0&&!v\.nextContinuationToken\)process\.exit\(7\)/g)||[]).length,2);
+  assert.equal((workflow.match(/continuation_token=/g)||[]).length>=2,true);
 });
 
 test('RC1241: Pending und Fehler bleiben in beiden Umgebungen harte Fehler',()=>{
