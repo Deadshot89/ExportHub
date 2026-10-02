@@ -312,6 +312,40 @@ test('RC1401: Essentra-OneDrive-Personal-Site wird vor dem Share-Link-Fallback d
   });
 });
 
+
+test('RC1408: Personal-Site-Fehler fällt auf den explizit konfigurierten Benutzerpfad zurück',async()=>{
+  setEnv();
+  const graph=fresh();
+  await withFakeHttps((call,index)=>{
+    if(index===1)return tokenResponse();
+    if(index===2)return{status:404,body:{error:{code:'Request_ResourceNotFound',message:'User drives not available'}}};
+    if(index===3||index===4)return{status:404,body:{error:{code:'itemNotFound',message:'Default drive folder not found'}}};
+    if(index===5)return{status:200,body:{id:'drive-default'}};
+    if(index===6)return{status:200,body:{value:[]}};
+    if(index===7){
+      assert.match(call.path,/^\/v1\.0\/sites\/essentra-my\.sharepoint\.com:/);
+      return{status:403,body:{error:{code:'accessDenied',message:'Sites lookup is not permitted'}}};
+    }
+    if(index===8){
+      assert.equal(call.method,'PUT');
+      assert.equal(
+        call.path,
+        '/v1.0/users/tobiaslimberg%40essentra.com/drive/root:/Documents/003%20Export/ExportHub/Abliefernachweise/POD_TV9NKH.pdf:/content'
+      );
+      assert.equal(call.body.toString('utf8'),'%PDF-test');
+      return{status:201,body:{id:'file-direct',name:'POD_TV9NKH.pdf',size:9,webUrl:'https://example.invalid/direct'}};
+    }
+    throw new Error('Unerwarteter Aufruf '+index+' '+call.method+' '+call.path);
+  },async calls=>{
+    const result=await graph.uploadPdf(Buffer.from('%PDF-test'),'POD_TV9NKH.pdf');
+    assert.equal(result.id,'file-direct');
+    assert.equal(result.folder,'Documents/003 Export/ExportHub/Abliefernachweise');
+    assert.equal(result.directPath,true);
+    assert.equal(result.attempts,1);
+    assert.equal(calls.some(call=>/\/v1\.0\/shares\//.test(call.path)),false);
+  });
+});
+
 test('RC1217: nicht auflösbarer Benutzer wird über die bekannte OneDrive-Ordner-URL per Graph Shares aufgelöst',async()=>{
   setEnv();
   const graph=fresh();
