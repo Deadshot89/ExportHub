@@ -419,6 +419,9 @@ async function reconcilePendingBackups(environment, options) {
   let referencePodReady = 0;
   let verifiedCount = 0;
   let repairedStateCount = 0;
+  let integrityChecks = 0;
+  let pageWorkDeferred = false;
+  const integrityCheckBudget = reference ? scanPageSize : 2;
 
   const pages = clients.records.listBlobsFlat({ prefix }).byPage({
     continuationToken: continuationToken || undefined,
@@ -459,6 +462,11 @@ async function reconcilePendingBackups(environment, options) {
       // Archivkopien nicht bei jedem Reconcile erneut remote abfragen. Das
       // verhindert den Azure-Functions-Timeout bei großen Production-Beständen,
       // ohne die tägliche vollständige Integritätsprüfung zu schwächen.
+      if (!verificationFresh && integrityChecks >= integrityCheckBudget) {
+        pageWorkDeferred = true;
+        continue;
+      }
+      if (!verificationFresh) integrityChecks += 1;
       const integrity = verificationFresh
         ? { ok: true, verifiedAt: backup.archiveVerifiedAt, cached: true }
         : await checkAzureArchive(clients, record, match[1].toLowerCase(), true);
@@ -515,20 +523,28 @@ async function reconcilePendingBackups(environment, options) {
 
   teamRelinkCandidates.sort((a, b) => a.confirmedAtMs - b.confirmedAtMs || a.reference.localeCompare(b.reference));
   candidates.sort((a, b) => Number(!!a.driveOnly) - Number(!!b.driveOnly) || a.lastAttemptMs - b.lastAttemptMs || a.confirmedAtMs - b.confirmedAtMs || a.reference.localeCompare(b.reference));
-  const selectedRelinks = teamRelinkCandidates.slice(0, limit);
+  const relinkBudget = reference ? limit : 1;
+  const selectedRelinks = teamRelinkCandidates.slice(0, relinkBudget);
   // Required Azure/archive work always precedes optional Microsoft-365 backfill.
   // RC1407: Keep optional Graph backfill deliberately small per Azure Function
   // invocation so archive integrity work cannot be pushed into the host timeout.
   const requiredCandidates = candidates.filter(candidate => !candidate.driveOnly);
   const driveBackfillCandidates = candidates.filter(candidate => candidate.driveOnly);
-  const selectedRequiredCandidates = requiredCandidates.slice(0, limit);
-  const driveBackfillBudget = Math.min(2, Math.max(0, limit - selectedRequiredCandidates.length));
+  const requiredBackupBudget = reference ? limit : 2;
+  const selectedRequiredCandidates = requiredCandidates.slice(0, requiredBackupBudget);
+  const driveBackfillBudget = Math.min(1, Math.max(0, limit - selectedRequiredCandidates.length));
   const selectedDriveCandidates = driveBackfillCandidates.slice(0, driveBackfillBudget);
   const selectedCandidates = selectedRequiredCandidates.concat(selectedDriveCandidates);
   const requiredEligible = requiredCandidates.length;
   const driveBackfillEligible = driveBackfillCandidates.length;
   const requiredSelected = selectedRequiredCandidates.length;
   const driveBackfillSelected = selectedDriveCandidates.length;
+  if (!reference && (
+    integrityChecks >= integrityCheckBudget && pageWorkDeferred ||
+    teamRelinkCandidates.length > selectedRelinks.length ||
+    requiredCandidates.length > selectedRequiredCandidates.length ||
+    driveBackfillCandidates.length > selectedDriveCandidates.length
+  )) pageWorkDeferred = true;
   const saved = [];
   const pending = [];
   const driveSaved = [];
@@ -607,6 +623,11 @@ async function reconcilePendingBackups(environment, options) {
     }
   }
 
+  if (!reference && pageWorkDeferred) {
+    nextContinuationToken = continuationToken;
+    scanComplete = false;
+  }
+
   const target = reference ? {
     reference,
     matchedCount: referenceMatched,
@@ -647,6 +668,8 @@ async function reconcilePendingBackups(environment, options) {
     errorCount: errors.length,
     verifiedCount,
     repairedStateCount,
+    integrityChecks,
+    pageWorkDeferred,
     target,
     saved,
     alreadySaved,
