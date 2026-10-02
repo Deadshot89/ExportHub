@@ -440,11 +440,19 @@ async function reconcilePendingBackups(environment, options) {
     let driveOnly = false;
     if (backup.archiveSaved === true) {
       const lastVerifiedMs = Date.parse(backup.archiveVerifiedAt || '');
-      const fullRead = !!reference || !Number.isFinite(lastVerifiedMs) || Date.now() - lastVerifiedMs >= 24 * 60 * 60 * 1000;
-      const integrity = await checkAzureArchive(clients, record, match[1].toLowerCase(), fullRead);
+      const verificationFresh = !reference &&
+        Number.isFinite(lastVerifiedMs) &&
+        Date.now() - lastVerifiedMs < 24 * 60 * 60 * 1000;
+      // RC1404: Bereits innerhalb der letzten 24h vollständig verifizierte
+      // Archivkopien nicht bei jedem Reconcile erneut remote abfragen. Das
+      // verhindert den Azure-Functions-Timeout bei großen Production-Beständen,
+      // ohne die tägliche vollständige Integritätsprüfung zu schwächen.
+      const integrity = verificationFresh
+        ? { ok: true, verifiedAt: backup.archiveVerifiedAt, cached: true }
+        : await checkAzureArchive(clients, record, match[1].toLowerCase(), true);
       if (integrity.ok) {
         verifiedCount += 1;
-        if (fullRead) {
+        if (!verificationFresh) {
           record = await persistBackupState(match[1].toLowerCase(), environment, { archiveVerifiedAt: integrity.verifiedAt, lastError: '' });
           backup = record.podBackup || backup;
         }
