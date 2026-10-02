@@ -174,7 +174,7 @@ jobs:
           test -s dist-rc1112/assets/rc1075-loader-pin-admin.js
           grep -q '__EXPORTHUB_RC1075_LOADER_PIN_ADMIN__' dist-rc1112/assets/rc1075-loader-pin-admin.js
           for file in index.html TESTVERSION.html demo.html; do
-            grep -q 'assets/rc1077-customer-labels.js?v=1077' "dist-rc1112/$file"
+            grep -q 'assets/rc1077-customer-labels.js?v=1394' "dist-rc1112/$file"
           done
           test -s dist-rc1112/assets/rc1077-customer-labels.js
           grep -q '__EXPORTHUB_RC1077_CUSTOMER_LABELS__' dist-rc1112/assets/rc1077-customer-labels.js
@@ -1198,7 +1198,7 @@ jobs:
               pc=$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1077=$GITHUB_SHA-$attempt" || true)
               ac=$(curl -sS -L -o "$asset" -w '%{http_code}' --max-time 20 "$base/assets/rc1077-customer-labels.js?rc1077=$GITHUB_SHA-$attempt" || true)
               [[ "$pc" == '200' && "$ac" == '200' ]] || ok=0
-              grep -q 'assets/rc1077-customer-labels.js?v=1077' "$page" || ok=0
+              grep -q 'assets/rc1077-customer-labels.js?v=1394' "$page" || ok=0
               grep -q '__EXPORTHUB_RC1077_CUSTOMER_LABELS__' "$asset" || ok=0
               grep -q "el.textContent='Standorte'" "$asset" || ok=0
               grep -q 'overflow:visible!important' "$asset" || ok=0
@@ -1207,7 +1207,7 @@ jobs:
             demo=$(mktemp)
             dc=$(curl -sS -L -o "$demo" -w '%{http_code}' --max-time 20 "$testservice/demo.html?rc1077=$GITHUB_SHA-$attempt" || true)
             [[ "$dc" == '200' ]] || ok=0
-            grep -q 'assets/rc1077-customer-labels.js?v=1077' "$demo" || ok=0
+            grep -q 'assets/rc1077-customer-labels.js?v=1394' "$demo" || ok=0
             rm -f "$demo"
             if [[ "$ok" == '1' ]]; then
               echo 'RC1077 Kundenübersicht ist live in Produktion, TESTSERVICE und Demo bestätigt.'
