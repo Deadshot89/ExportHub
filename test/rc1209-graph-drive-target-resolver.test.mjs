@@ -357,7 +357,11 @@ test('RC1213: nicht auffindbarer Zielordner wird als GRAPH_FOLDER_NOT_FOUND klas
       assert.match(call.path,/\/v1\.0\/users\/tobiaslimberg%40essentra\.com\/drive\/root:\//);
       return{status:404,body:{error:{code:'itemNotFound',message:'Default drive folder not found'}}};
     }
-    if(index===7){
+    if(index===7||index===8){
+      assert.match(call.path,/\/v1\.0\/drives\/drive-123\/root\/search\(q=/);
+      return{status:200,body:{value:[]}};
+    }
+    if(index===9){
       assert.match(call.path,/^\/v1\.0\/shares\/u!/);
       return{status:404,body:{error:{code:'itemNotFound',message:'Explicit OneDrive target not found'}}};
     }
