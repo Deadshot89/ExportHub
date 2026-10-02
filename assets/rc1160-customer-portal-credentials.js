@@ -83,6 +83,8 @@ function modal(html){clearRevealedSecrets();var box=d.createElement('div');box.i
 function copyText(value){if(!value)return Promise.resolve(false);if(navigator.clipboard&&navigator.clipboard.writeText)return navigator.clipboard.writeText(value).then(function(){return true});return Promise.resolve(false)}
 async function reveal(customer,p){
  var box=modal('<h3>'+th('portal.showTitle')+'</h3><p class="rc1160-muted">'+th('portal.reauthHelp')+'</p><label>'+th('portal.exporthubPassword')+'<input type="password" autocomplete="current-password" data-rc1160-reauth></label><div class="rc1160-status" data-rc1160-status></div><div class="rc1160-actions"><button class="btn" data-rc1160-close>'+th('common.cancel')+'</button><button class="btn primary" data-rc1160-confirm>'+th('portal.show')+'</button></div>');
+ box.setAttribute('data-rc1160-reveal-customer',customerId(customer));
+ box.setAttribute('data-rc1160-reveal-view',view());
  var input=box.querySelector('[data-rc1160-reauth]'),out=box.querySelector('[data-rc1160-status]');
  input.focus();
  box.querySelector('[data-rc1160-confirm]').addEventListener('click',async function(){
@@ -157,8 +159,12 @@ async function renderRights(){
 function removeBoxes(){['rc1160CustomerFolderPortal','rc1160ShipmentPortal','rc1160PortalRights'].forEach(function(id){var n=d.getElementById(id);if(n)n.remove()})}
 function contextKey(){var c=selectedCustomer();return view()+'|'+customerId(c)+'|'+JSON.stringify(rights())}
 function schedule(force){
- ensureStyle();var key=contextKey(),sameContext=key===lastContext,dialogOpen=!!d.getElementById('rc1160RevealDialog');
- if(dialogOpen&&sameContext)return;
+ ensureStyle();var key=contextKey(),sameContext=key===lastContext,dialog=d.getElementById('rc1160RevealDialog'),dialogOpen=!!dialog;
+ if(dialogOpen){
+  var modalCustomer=q(dialog.getAttribute('data-rc1160-reveal-customer')),currentCustomer=customerId(selectedCustomer()),modalView=q(dialog.getAttribute('data-rc1160-reveal-view')),currentView=view();
+  var sameRevealCustomer=!modalCustomer||!currentCustomer||modalCustomer===currentCustomer,sameRevealView=!modalView||!currentView||modalView===currentView;
+  if(sameRevealCustomer&&sameRevealView){lastContext=key||lastContext;return}
+ }
  if(!force&&sameContext)return;
  lastContext=key;clearRevealedSecrets();removeBoxes();
  var r=rights(),v=view(),c=selectedCustomer();if(!r.use)return;
