@@ -126,10 +126,10 @@ test('RC1393: produktive AVIS-Marken-Domain ist .de und blockiert Release bei Au
   const brandedStart=FLOW.indexOf('RC1374 ExportHUB360 Marken-Domain prüfen');
   assert.ok(brandedStart>=0,'RC1374 Marken-Domain-Gate fehlt');
   const brandedBlock=FLOW.slice(brandedStart,FLOW.indexOf('Live RC1071 Sendungshistorie prüfen',brandedStart));
-  assert.doesNotMatch(brandedBlock,/continue-on-error:\\s*true/);
-  assert.match(brandedBlock,/branded='https:\\/\\/www\\.exporthub360\\.de'/);
+  assert.doesNotMatch(brandedBlock,/continue-on-error:\s*true/);
+  assert.match(brandedBlock,/branded='https:\/\/www\.exporthub360\.de'/);
   assert.match(brandedBlock,/::error::RC1374 ExportHUB360 Marken-Domain/);
-  assert.doesNotMatch(brandedBlock,/exporthub360\\.com/);
+  assert.doesNotMatch(brandedBlock,/exporthub360\.com/);
 });
 
 
