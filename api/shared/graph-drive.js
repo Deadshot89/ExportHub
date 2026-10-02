@@ -320,7 +320,12 @@ async function resolveTarget(token, cfg, force) {
   if (unique.length > 1) throw targetError('GRAPH_TARGET_AMBIGUOUS', 'Der konfigurierte Microsoft-365-Zielordner ist nicht eindeutig.', { statusCode: 409 });
 
   let value = unique[0] || null;
-  if (!value && drives.length === 0) value = await resolveDefaultUserDriveTarget(token, cfg.user, folders);
+  // RC1392: /users/{id}/drives kann zusätzliche erreichbare Drives liefern,
+  // ohne dass der persönliche Default-Drive darin vollständig oder mit dem
+  // erwarteten Root-Pfad abgebildet ist. Deshalb den explizit konfigurierten
+  // Benutzer-Default-Drive immer als zweiten Resolver versuchen, sobald die
+  // Drive-Suche keinen eindeutigen Zielordner gefunden hat.
+  if (!value) value = await resolveDefaultUserDriveTarget(token, cfg.user, folders);
   if (!value) value = await resolvePersonalFolderTarget(token, cfg.user, cfg.folder);
   if (!value) throw targetError('GRAPH_FOLDER_NOT_FOUND', 'Der konfigurierte Microsoft-365-Zielordner wurde weder in erreichbaren Drives noch im konfigurierten Benutzerlaufwerk oder über seine explizite OneDrive-URL gefunden.', { statusCode: 404 });
 
