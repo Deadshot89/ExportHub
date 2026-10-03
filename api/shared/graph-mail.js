@@ -78,6 +78,7 @@ function sendFailure(e,sender){
  if(!out)out=error('GRAPH_MAIL_FAILED','E-Mail konnte nicht versendet werden.',502);
  out.upstreamStatus=upstreamStatus;
  out.upstreamCode=text(e&&e.code);
+ out.upstreamMessage=text(e&&e.message);
  out.sender=text(sender);
  return out
 }
