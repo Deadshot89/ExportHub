@@ -3,6 +3,7 @@ const crypto=require('crypto');
 const auth=require('../shared/auth-store');
 const graphMail=require('../shared/graph-mail');
 
+const DEFAULT_AVIS_MAIL_SENDER='DespatchNettetal@essentra.onmicrosoft.com';
 const FIXED_CC='TobiasLimberg@essentra.com';
 
 function text(v){return String(v==null?'':v).trim()}
@@ -16,7 +17,7 @@ function allowed(user){
  return !!(r&&(r.edit===true||r.admin===true||r.functionAdmin===true||r.level==='edit'||r.level==='admin'))
 }
 function validEmail(v){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text(v))}
-function configuredMailSender(){return text(process.env.EXPORTHUB_MAIL_SENDER||process.env.EXPORTHUB_POD_DRIVE_USER)}
+function configuredAvisMailSender(){return text(process.env.EXPORTHUB_AVIS_MAIL_SENDER||DEFAULT_AVIS_MAIL_SENDER)}
 function avisRecipientExcluded(v){return lower(v)==='dispo@holenstein.de'}
 const PRODUCTION_PUBLIC_HOST='www.exporthub360.de';
 const LEGACY_BRANDED_PRODUCTION_PUBLIC_HOST='exporthub360.de';
@@ -239,14 +240,14 @@ module.exports=async function(context,req){
    const gate=reminderGate(shipment);if(!gate.allowed){const e=auth.error(gate.reason,gate.reason==='PICKUP_DATE_EXISTS'?'Für diese Sendung ist bereits ein Abholtag erfasst.':'Die Avis-Erinnerung ist erst drei Arbeitstage nach dem ersten Mailversand möglich.',409);e.dueAt=gate.dueAt||'';throw e}
   }
   const url=safeAvisUrl(req,p.avisUrl),sub=mode==='initial'?initialSubject(ref,target,lang):subject(ref,target,lang),content=mode==='initial'?initialBody(ref,target,lang,url):body(ref,target,lang,url);
-  const sender=configuredMailSender(),cc=ccRecipients(current.team,shipment,to,sender);
-  const sent=await graphMail.sendTextMail({to,subject:sub,body:content,cc});
+  const sender=configuredAvisMailSender(),cc=ccRecipients(current.team,shipment,to,sender);
+  const sent=await graphMail.sendTextMail({to,subject:sub,body:content,sender,cc});
   const event=historyEvent(current,ref,to,sub,target,lang,mode,cc,sender);
   await record(req,current,id,ref,event,mode,sender);
   const nextGate=mode==='initial'?reminderGate(Object.assign({},shipment,{avisFirstMailSentAt:event.at})):reminderGate(shipment);
   context.res=response(200,{ok:true,version:'RC1358',mode,reference:ref,recipient:to,sender,cc,subject:sub,sentAt:event.at,historyId:event.id,reminderDueAt:nextGate.dueAt||'',attempts:sent.attempts})
  }catch(e){
   try{context.log&&context.log.error&&context.log.error('RC1292 Avis reminder mail failed',e&&e.code,e&&e.message)}catch(_){}
-  context.res=response(e.status||e.statusCode||500,{ok:false,code:e.code||'MAIL_SEND_FAILED',message:e.message||'Die Avis-Erinnerung konnte nicht versendet werden.',version:'RC1358',dueAt:text(e&&e.dueAt),missing:Array.isArray(e.missing)?e.missing:undefined,upstreamStatus:Number(e&&e.upstreamStatus||0)||0,upstreamCode:text(e&&e.upstreamCode),upstreamMessage:text(e&&e.upstreamMessage),sender:text(e&&e.sender||configuredMailSender())})
+  context.res=response(e.status||e.statusCode||500,{ok:false,code:e.code||'MAIL_SEND_FAILED',message:e.message||'Die Avis-Erinnerung konnte nicht versendet werden.',version:'RC1358',dueAt:text(e&&e.dueAt),missing:Array.isArray(e.missing)?e.missing:undefined,upstreamStatus:Number(e&&e.upstreamStatus||0)||0,upstreamCode:text(e&&e.upstreamCode),upstreamMessage:text(e&&e.upstreamMessage),sender:text(e&&e.sender||configuredAvisMailSender())})
  }
 };
