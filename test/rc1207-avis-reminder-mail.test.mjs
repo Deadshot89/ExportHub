@@ -110,11 +110,12 @@ test('RC1292: Reminder-Backend blockiert Holenstein vor URL-Verarbeitung und Gra
 });
 
 
-test('RC1426: AVIS-Mail verwendet den zentral konfigurierten Graph-Absender und behält Sales, ExportHUB-CC sowie Tobias in CC',()=>{
- assert.doesNotMatch(api,/MAIL_SENDER='DespatchNettetal@essentra\.onmicrosoft\.com'/);
- assert.match(api,/function configuredMailSender\(\)\{return text\(process\.env\.EXPORTHUB_MAIL_SENDER\|\|process\.env\.EXPORTHUB_POD_DRIVE_USER\)\}/);
- assert.match(api,/const sender=configuredMailSender\(\),cc=ccRecipients\(current\.team,shipment,to,sender\)/);
- assert.match(api,/graphMail\.sendTextMail\(\{to,subject:sub,body:content,cc\}\)/);
+test('RC1431: AVIS-Mail verwendet den dedizierten Despatch-Absender und behält Sales, ExportHUB-CC sowie Tobias in CC',()=>{
+ assert.match(api,/DEFAULT_AVIS_MAIL_SENDER='DespatchNettetal@essentra\.onmicrosoft\.com'/);
+ assert.match(api,/function configuredAvisMailSender\(\)\{return text\(process\.env\.EXPORTHUB_AVIS_MAIL_SENDER\|\|DEFAULT_AVIS_MAIL_SENDER\)\}/);
+ assert.match(api,/const sender=configuredAvisMailSender\(\),cc=ccRecipients\(current\.team,shipment,to,sender\)/);
+ assert.match(api,/graphMail\.sendTextMail\(\{to,subject:sub,body:content,sender,cc\}\)/);
+ assert.doesNotMatch(api,/function configuredMailSender\(\)\{return text\(process\.env\.EXPORTHUB_MAIL_SENDER\|\|process\.env\.EXPORTHUB_POD_DRIVE_USER\)\}/);
  assert.match(api,/FIXED_CC='TobiasLimberg@essentra\.com'/);
  assert.match(api,/salesContacts/);
  assert.match(api,/customerSalesContacts/);
