@@ -346,7 +346,7 @@ test('RC1255 P2: AVIS-Erinnerung läuft über TESTSERVICE UI, echte Mail, AVIS-L
   await dialog.locator('[data-open]').click();
   const mailResponse=await mailResponsePromise;
   const mailDiagnostic=await mailResponse.json().catch(()=>({}));
-  console.log('RC1255 AVIS mail response',JSON.stringify({status:mailResponse.status(),code:String(mailDiagnostic&&mailDiagnostic.code||''),upstreamStatus:Number(mailDiagnostic&&mailDiagnostic.upstreamStatus||0)||0,upstreamCode:String(mailDiagnostic&&mailDiagnostic.upstreamCode||''),sender:String(mailDiagnostic&&mailDiagnostic.sender||''),version:String(mailDiagnostic&&mailDiagnostic.version||'')}));
+  console.log('RC1255 AVIS mail response',JSON.stringify({status:mailResponse.status(),code:String(mailDiagnostic&&mailDiagnostic.code||''),upstreamStatus:Number(mailDiagnostic&&mailDiagnostic.upstreamStatus||0)||0,upstreamCode:String(mailDiagnostic&&mailDiagnostic.upstreamCode||''),upstreamMessage:String(mailDiagnostic&&mailDiagnostic.upstreamMessage||''),sender:String(mailDiagnostic&&mailDiagnostic.sender||''),version:String(mailDiagnostic&&mailDiagnostic.version||'')}));
   const knownMailSendBlocker=mailResponse.status()===503&&String(mailDiagnostic&&mailDiagnostic.code||'')==='GRAPH_MAIL_PERMISSION_MISSING';
   if(knownMailSendBlocker){
     test.skip(true,'RC1255 P2: Microsoft Graph Application Permission Mail.Send fehlt; separater Readiness-Gate bleibt zuständig.');
