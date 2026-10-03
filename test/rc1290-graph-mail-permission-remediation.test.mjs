@@ -7,6 +7,8 @@ import {execFileSync} from 'node:child_process';
 const require=createRequire(import.meta.url);
 const graphSource=fs.readFileSync('api/shared/graph-mail.js','utf8');
 const readinessSource=fs.readFileSync('api/avis-upload-mail-readiness/index.js','utf8');
+const reminderSource=fs.readFileSync('api/avis-reminder-mail/index.js','utf8');
+const mutationSource=fs.readFileSync('e2e/specs/testservice-mutation.spec.mjs','utf8');
 const workflow=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
 const graph=require('../api/shared/graph-mail.js');
 
@@ -55,6 +57,14 @@ test('RC1427: Graph-sendMail trennt Auth-, Zugriffs- und Senderfehler ohne Secre
   assert.match(graphSource,/GRAPH_SENDER_NOT_FOUND/);
   assert.match(graphSource,/upstreamStatus=upstreamStatus/);
   assert.match(graphSource,/out\.sender=text\(sender\)/);
+  const block=graphSource.slice(graphSource.indexOf('function sendFailure'),graphSource.indexOf('function transient'));
+  assert.doesNotMatch(block,/access_token|clientSecret|Authorization:/i);
+});
+
+test('RC1428 P1: Originaler Graph-Fehlercode bleibt bis zur RC1255-Diagnose erhalten',()=>{
+  assert.match(graphSource,/out\.upstreamCode=text\(e&&e\.code\)/);
+  assert.match(reminderSource,/upstreamCode:text\(e&&e\.upstreamCode\)/);
+  assert.match(mutationSource,/upstreamCode:String\(mailDiagnostic&&mailDiagnostic\.upstreamCode\|\|''\)/);
   const block=graphSource.slice(graphSource.indexOf('function sendFailure'),graphSource.indexOf('function transient'));
   assert.doesNotMatch(block,/access_token|clientSecret|Authorization:/i);
 });
