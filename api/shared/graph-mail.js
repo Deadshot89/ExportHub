@@ -77,6 +77,7 @@ function sendFailure(e,sender){
  else if(upstreamStatus===404)out=error('GRAPH_SENDER_NOT_FOUND','Das konfigurierte Absenderpostfach wurde von Microsoft Graph nicht gefunden.',503);
  if(!out)out=error('GRAPH_MAIL_FAILED','E-Mail konnte nicht versendet werden.',502);
  out.upstreamStatus=upstreamStatus;
+ out.upstreamCode=text(e&&e.code);
  out.sender=text(sender);
  return out
 }
