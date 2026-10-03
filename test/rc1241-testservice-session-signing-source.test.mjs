@@ -20,8 +20,8 @@ test('RC1241: exporthub-state Runtime leitet das Signatur-Secret aus derselben F
   assert.match(runtimeSource,/module\.exports = require\('\.\/index'\);/);
 });
 
-test('RC1241: breitere Storage-Aliase fuer den State-Zugriff bleiben unveraendert',()=>{
-  assert.match(stateSource,/function connectionString\(\)\{ return process\.env\.EXPORTHUB_STORAGE_CONNECTION_STRING \|\| process\.env\.EXPORTHUB_STORAGE_CONNECTION \|\| process\.env\.EXPORTHUB_AZURE_STORAGE_CONNECTION_STRING \|\| '';/);
+test('RC1241: breitere Storage-Aliase inklusive AzureWebJobsStorage fuer den State-Zugriff bleiben unveraendert',()=>{
+  assert.match(stateSource,/function connectionString\(\)\{ return process\.env\.EXPORTHUB_STORAGE_CONNECTION_STRING \|\| process\.env\.EXPORTHUB_STORAGE_CONNECTION \|\| process\.env\.EXPORTHUB_AZURE_STORAGE_CONNECTION_STRING \|\| process\.env\.AzureWebJobsStorage \|\| '';/);
   assert.match(stateSource,/const \{ isAdmin, isPrivilegedUser \} = require\('\.\.\/shared\/user-policy'\)/);
 });
 
