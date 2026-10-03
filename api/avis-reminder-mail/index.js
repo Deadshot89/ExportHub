@@ -103,7 +103,7 @@ function initialBody(ref,target,lang,url){
   },
   pl:{
    carrier:'Szanowni Państwo,\n\ndla planowanego odbioru przesyłki {{ref}} dostępne jest cyfrowe awizo.\n\nProsimy użyć poniższego linku, aby podać datę odbioru, przedział czasowy oraz – jeśli jest znany – numer rejestracyjny pojazdu. Dostępne są tam również udostępnione dokumenty wysyłkowe:\n{{url}}\n\nDodatkowe potwierdzenie e-mailem nie jest wymagane.\n\nZ poważaniem',
-   customer:'Szanowni Państwo,\n\ndla przesyłki {{ref}} dostępne jest cyfrowe awizo.\n\nProsimy użyć poniższego linku, aby przejrzeć udostępnione dokumenty wysyłkowe oraz podać datę odbioru, przedział czasowy i – jeśli jest znany – numer rejestracyjny pojazdu:\n{{url}}\n\nDodatkowe potwierdzenie e-mailem nie jest wymagane.\n\nZ poważaniem'
+   customer:'Szanowni Państwo,\n\ndla przesyłki {{ref}} dostępne jest cyfrowe awizo.\n\nProsimy użyć poniższego linku, aby przejrzeć udostępnione dokumenty wysyłkowe oraz podać datę odbioru, przedział czasowy i – jeśli jest znany – numer rejestracyjjny pojazdu:\n{{url}}\n\nDodatkowe potwierdzenie e-mailem nie jest wymagane.\n\nZ poważaniem'
   },
   es:{
    carrier:'Estimados señores:\n\nHay disponible un aviso digital para la recogida prevista del envío {{ref}}.\n\nUtilicen el siguiente enlace para indicar la fecha de recogida, la franja horaria y, si se conoce, la matrícula del vehículo. Allí también están disponibles los documentos de envío autorizados:\n{{url}}\n\nNo es necesaria una confirmación adicional por correo electrónico.\n\nAtentamente',
@@ -247,6 +247,6 @@ module.exports=async function(context,req){
   context.res=response(200,{ok:true,version:'RC1358',mode,reference:ref,recipient:to,sender,cc,subject:sub,sentAt:event.at,historyId:event.id,reminderDueAt:nextGate.dueAt||'',attempts:sent.attempts})
  }catch(e){
   try{context.log&&context.log.error&&context.log.error('RC1292 Avis reminder mail failed',e&&e.code,e&&e.message)}catch(_){}
-  context.res=response(e.status||e.statusCode||500,{ok:false,code:e.code||'MAIL_SEND_FAILED',message:e.message||'Die Avis-Erinnerung konnte nicht versendet werden.',version:'RC1358',dueAt:text(e&&e.dueAt),missing:Array.isArray(e.missing)?e.missing:undefined,upstreamStatus:Number(e&&e.upstreamStatus||0)||0,upstreamCode:text(e&&e.upstreamCode),sender:text(e&&e.sender||configuredMailSender())})
+  context.res=response(e.status||e.statusCode||500,{ok:false,code:e.code||'MAIL_SEND_FAILED',message:e.message||'Die Avis-Erinnerung konnte nicht versendet werden.',version:'RC1358',dueAt:text(e&&e.dueAt),missing:Array.isArray(e.missing)?e.missing:undefined,upstreamStatus:Number(e&&e.upstreamStatus||0)||0,upstreamCode:text(e&&e.upstreamCode),upstreamMessage:text(e&&e.upstreamMessage),sender:text(e&&e.sender||configuredMailSender())})
  }
 };
