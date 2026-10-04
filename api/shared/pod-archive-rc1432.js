@@ -33,7 +33,7 @@ async function createPodPdf(record,signatureBuffer,signatureType,customsSignatur
  ensure(customsRequired?132:180);
  if(customsRequired){
   const gap=12,boxW=(width-gap)/2,boxH=92,labelY=y;
-  page.drawText('Abholung bestaetigt',{x:left,y:labelY,size:8,font:bold});
+  page.drawText('Abholung bestätigt',{x:left,y:labelY,size:8,font:bold});
   page.drawText('Zolldokumente erhalten',{x:left+boxW+gap,y:labelY,size:8,font:bold});
   const boxY=labelY-boxH-12;
   page.drawRectangle({x:left,y:boxY,width:boxW,height:boxH,borderWidth:1});
