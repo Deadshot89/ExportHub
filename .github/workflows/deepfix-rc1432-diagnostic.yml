@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - deepfix/diag-rc1432-abd-ci
+  pull_request:
+    branches:
+      - fix/rc1432-abd-customs-signature
 
 permissions:
   contents: read
