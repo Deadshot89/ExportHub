@@ -28,10 +28,11 @@ test('RC1249/RC1352: normale Readiness bleibt versandfrei; Testmail ist explizit
   assert.match(source,/MAIL_RECIPIENT_INVALID/);
   const action=source.indexOf("if(action==='send-test')");
   const send=source.indexOf('graphMail.sendTextMail(',action);
-  const normal=source.indexOf("context.res=json(200,{ok:true,configured:true,authenticated:true,audienceOk:true,mailSendGranted:true,environment,recipient,version:'RC1352'})",action);
+  const normal=source.indexOf("context.res=json(200,{ok:true,configured:true,authenticated:true,audienceOk:true,mailSendGranted:true,environment,sender:avisMailSender,recipient,version:'RC1352'})",action);
   assert.ok(action>=0&&send>action&&normal>send,'Mailversand darf nur im expliziten send-test Zweig liegen');
   assert.match(source,/environment!=='production'/);
   assert.match(source,/to:DEFAULT_RECIPIENT/);
+  assert.match(source,/sender:avisMailSender/);
   assert.match(source,/\[TEST\] ExportHUB AVIS-Mail – RC1352/);
   assert.match(source,/Keine Kundendaten und keine Kundendokumente/);
 });
