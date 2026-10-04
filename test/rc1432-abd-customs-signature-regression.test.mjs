@@ -15,29 +15,31 @@ test('RC1432: ABD-Abholung verlangt serverseitig die zweite Fahrerunterschrift',
   assert.match(confirm,/CUSTOMS_SIGNATURE_REQUIRED/);
   assert.match(confirm,/customsDocumentsSignatureDataUrl/);
   assert.match(confirm,/saveCustomsDocumentsSignature\(clients/);
-  assert.match(store,/customsDocumentsSignatureRequired:abd/);
-  assert.doesNotMatch(store,/customsDocumentsSignatureRequired:false/);
+  assert.match(store,/async function saveCustomsDocumentsSignature/);
+  assert.match(store,/customsDocumentsConfirmationRequired:abd/);
 });
 
 test('RC1432: QR-Abholseite erfasst die zweite ABD-Unterschrift und sendet sie an pickup-confirm-v2',()=>{
-  assert.match(publicRuntime,/customsSignatureField/);
+  assert.match(publicRuntime,/customsDocumentsField/);
+  assert.match(publicRuntime,/customsSignatureOpen/);
+  assert.match(publicRuntime,/customsSignatureData/);
   assert.match(publicRuntime,/Zolldokumente erhalten/);
   assert.match(publicRuntime,/customsDocumentsSignatureDataUrl/);
   assert.match(publicRuntime,/abdHandoverSignatureDataUrl/);
-  assert.match(publicRuntime,/CUSTOMS_SIGNATURE_REQUIRED/);
 });
 
-test('RC1432: Ladeliste zeigt den ABD-Signaturnachweis nur bei vorhandener ABD-Pflicht',()=>{
+test('RC1432: Ladeliste zeigt den ABD-Signaturnachweis nur bei vorhandenem ABD',()=>{
   assert.match(loadingList,/hasAbd\(sh,last\)/);
   assert.match(loadingList,/customsSignatureUrl/);
   assert.match(loadingList,/loadingListPrint\.customsDocumentsReceived/);
   assert.match(loadingList,/data-rc1432-customs-signature/);
 });
 
-test('RC1432: automatischer POD enthält die zweite Zoll-Unterschrift',()=>{
+test('RC1432: automatischer POD enthält die zweite Zoll-Unterschrift kompakt im Signaturbereich',()=>{
   assert.match(pod,/Zolldokumente erhalten/);
   assert.match(pod,/customsDocumentsSignatureBlobName/);
-  assert.match(pod,/customs-documents-signature/);
+  assert.match(pod,/customsSignatureBuffer/);
+  assert.match(pod,/boxW=\(width-gap\)\/2/);
 });
 
 test('RC1432: geänderte JS-Dateien bleiben syntaktisch gültig',()=>{
