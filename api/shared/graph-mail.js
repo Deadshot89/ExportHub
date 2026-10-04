@@ -1,6 +1,7 @@
 'use strict';
 const https=require('https');
 const MAIL_SEND_PERMISSION=Object.freeze({resource:'Microsoft Graph',type:'Application',name:'Mail.Send',id:'b633e1c5-b582-4048-a93e-9f11b44c7e96',adminConsentRequired:true});
+const DEFAULT_AVIS_MAIL_SENDER='DespatchNettetal@essentra.onmicrosoft.com';
 
 function text(v){return String(v==null?'':v).trim()}
 function validEmail(v){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text(v))}
@@ -28,6 +29,7 @@ function readiness(){
  if(!sender)missing.push('EXPORTHUB_MAIL_SENDER');
  return{configured:missing.length===0,missing,sender,tenantId,clientId,clientSecret}
 }
+function getAvisMailSender(){return text(process.env.EXPORTHUB_AVIS_MAIL_SENDER||DEFAULT_AVIS_MAIL_SENDER)}
 function error(code,message,statusCode){const e=new Error(message);e.code=code;e.statusCode=statusCode||500;return e}
 function request(method,url,headers,body,timeoutMs){
  return new Promise((resolve,reject)=>{
@@ -108,4 +110,4 @@ async function sendTextMail({to,subject,body,sender,cc}){
  }
  throw sendFailure(last,actualSender)
 }
-module.exports={readiness,verifyAuthentication,permissionRequirement,sendTextMail};
+module.exports={readiness,verifyAuthentication,permissionRequirement,getAvisMailSender,sendTextMail};
