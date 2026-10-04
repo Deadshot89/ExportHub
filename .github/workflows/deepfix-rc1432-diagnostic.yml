@@ -1,0 +1,43 @@
+name: Deepfix RC1432 Diagnostic
+
+on:
+  push:
+    branches:
+      - deepfix/diag-rc1432-abd-ci
+
+permissions:
+  contents: read
+
+jobs:
+  rc1315:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+      - run: node --test --test-concurrency=1 test/rc1315-abd-customs-signature.test.mjs
+  rc1356:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+      - run: node --test --test-concurrency=1 test/rc1356-qr-abd-customs-signature-regression.test.mjs
+  rc1432:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+      - run: node --test --test-concurrency=1 test/rc1432-abd-customs-signature-regression.test.mjs
+  strict-i18n:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+      - run: node scripts/i18n-audit.mjs --strict
