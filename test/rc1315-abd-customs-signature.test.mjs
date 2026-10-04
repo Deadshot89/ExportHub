@@ -69,7 +69,7 @@ test('RC1432: automatischer ABD-POD enthaelt beide Fahrerunterschriften ohne sep
 
 test('RC1432: QR-Runtime erklaert die zweite ABD-Unterschrift in allen sechs Sprachen',()=>{
   for(const marker of ['de:','en:','pl:','es:','fr:','it:'])assert.match(publicRuntime,new RegExp(marker.replace(':','\\s*:\\s*\\{')));
-  assert.match(publicRuntime,/zweiten Fahrerunterschrift/);
+  assert.match(publicRuntime,/zweite Fahrerunterschrift/);
   assert.match(publicRuntime,/second signature/);
 });
 
