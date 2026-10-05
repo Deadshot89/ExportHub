@@ -59,7 +59,7 @@ test('RC1065: POD-Speicherung und Blob-Dokumente bleiben nach Reload lesbar',()=
 
 test('RC1065: QR-Bestandsschutz hält alte Linkparameter und resourceKey bei',()=>{
   const html=read('pickup.html'),access=read('api/shared/public-access-store.js');
-  for(const p of ["searchParams.get('pickup')","searchParams.get('token')","searchParams.get('qr')","searchParams.get('ehcmd')","searchParams.get('ref')]){
+  for(const p of ["searchParams.get('pickup')","searchParams.get('token')","searchParams.get('qr')","searchParams.get('ehcmd')","searchParams.get('ref')"]){
     assert.ok(html.includes(p),p+' fehlt');
   }
   assert.match(access,/resourceKey/);
