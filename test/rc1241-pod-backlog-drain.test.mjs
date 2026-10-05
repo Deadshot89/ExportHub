@@ -14,7 +14,7 @@ test('RC1241: vollständige Nachholung deaktiviert den Altersfilter nur im signi
 });
 
 test('RC1241: TESTSERVICE und Produktion fordern vollständiges Leeren des Backlogs an',()=>{
-  assert.equal((workflow.match(/for batch in \$\(seq 1 50\); do/g)||[]).length,2);
+  assert.equal((workflow.match(/for batch in \$\(seq 1 200\); do/g)||[]).length,2);
   assert.equal((workflow.match(/drainAll:!reference/g)||[]).length,2);
   assert.equal((workflow.match(/scanPageSize:10/g)||[]).length,2);
   assert.equal((workflow.match(/const requiredDone=eligible===0&&selected===0&&skipped===0&&!v\.nextContinuationToken&&!v\.requiredWorkDeferred/g)||[]).length,2);
@@ -29,7 +29,7 @@ test('RC1241: TESTSERVICE und Produktion fordern vollständiges Leeren des Backl
 test('RC1241: Pending und Fehler bleiben in beiden Umgebungen harte Fehler',()=>{
   assert.match(workflow,/Number\(v\.errorCount\|\|0\)>0\|\|Number\(v\.pendingCount\|\|0\)>0\)process\.exit\(3\)/);
   assert.match(workflow,/Number\(v\.errorCount\|\|0\)>0\|\|Number\(v\.pendingCount\|\|0\)>0\)process\.exit\(4\)/);
-  assert.equal((workflow.match(/Backlog nach 50 Batches noch nicht vollständig geleert/g)||[]).length,2);
+  assert.equal((workflow.match(/Backlog nach 200 Batches noch nicht vollständig geleert/g)||[]).length,2);
   assert.equal((workflow.match(/exit 8/g)||[]).length,2);
 });
 
