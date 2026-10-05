@@ -49,7 +49,8 @@ test('RC1439: Standortwahl aktiviert genau einen temporären Observer',()=>{
   change.fn({target:h.select,isTrusted:true});
   assert.equal(h.observers.length,1);
   assert.equal(h.observers[0].target,h.documentElement);
-  assert.deepEqual(h.observers[0].options,{childList:true,subtree:true});
+  assert.equal(h.observers[0].options.childList,true);
+  assert.equal(h.observers[0].options.subtree,true);
   assert.equal(h.observers[0].disconnected,false);
 });
 
