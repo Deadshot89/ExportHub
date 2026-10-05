@@ -59,7 +59,8 @@ jobs:
           )"
 
           continuation_token=''
-          for batch in $(seq 1 50); do
+          for batch in $(seq 1 200); do
+            previous_continuation_token="$continuation_token"
             payload="$(CONTINUATION_TOKEN="$continuation_token" node -e "const reference=String(process.env.TARGET_REFERENCE||'').trim().toUpperCase();process.stdout.write(JSON.stringify({environment:process.env.TARGET_ENV,limit:25,scanPageSize:10,reference,drainAll:!reference,continuationToken:String(process.env.CONTINUATION_TOKEN||'')}))")"
             response_file="$(mktemp)"
             http_code="$(
@@ -95,9 +96,13 @@ jobs:
             if [ "$verdict" = "done" ]; then
               exit 0
             fi
+            if [ -n "$continuation_token" ] && [ "$continuation_token" = "$previous_continuation_token" ]; then
+              echo 'TESTSERVICE POD reconcile: Continuation-Token bewegt sich nicht weiter.' >&2
+              exit 9
+            fi
           done
 
-          echo 'TESTSERVICE POD reconcile: Backlog nach 50 Batches noch nicht vollständig geleert.' >&2
+          echo 'TESTSERVICE POD reconcile: Backlog nach 200 Batches noch nicht vollständig geleert.' >&2
           exit 8
   production:
     name: POD-Backup-Nachholung PRODUCTION
@@ -123,7 +128,8 @@ jobs:
           )"
 
           continuation_token=''
-          for batch in $(seq 1 50); do
+          for batch in $(seq 1 200); do
+            previous_continuation_token="$continuation_token"
             payload="$(CONTINUATION_TOKEN="$continuation_token" node -e "const reference=String(process.env.TARGET_REFERENCE||'').trim().toUpperCase();process.stdout.write(JSON.stringify({environment:process.env.TARGET_ENV,limit:25,scanPageSize:10,reference,drainAll:!reference,continuationToken:String(process.env.CONTINUATION_TOKEN||'')}))")"
             response_file="$(mktemp)"
             http_code="$(
@@ -159,7 +165,11 @@ jobs:
             if [ "$verdict" = "done" ]; then
               exit 0
             fi
+            if [ -n "$continuation_token" ] && [ "$continuation_token" = "$previous_continuation_token" ]; then
+              echo 'PRODUCTION POD reconcile: Continuation-Token bewegt sich nicht weiter.' >&2
+              exit 9
+            fi
           done
 
-          echo 'PRODUCTION POD reconcile: Backlog nach 50 Batches noch nicht vollständig geleert.' >&2
+          echo 'PRODUCTION POD reconcile: Backlog nach 200 Batches noch nicht vollständig geleert.' >&2
           exit 8
