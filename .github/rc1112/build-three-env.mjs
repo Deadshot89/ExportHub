@@ -414,6 +414,17 @@ function patchRc1414ShipmentCreateNoRerender(html,file){
   return html.slice(0,start)+block+html.slice(end);
 }
 
+function patchRc1418ShipmentSaveNoRerender(html,file){
+  const before="window.addEventListener('exporthub:sync',function(event){if(event&&event.detail&&event.detail.remote===true)scheduleRemoteMerge(0)})";
+  const after="window.addEventListener('exporthub:sync',function(event){var detail=event&&event.detail||{},localSaveConfirmation=detail.remote===true&&detail.reason==='save-confirmation'&&window.__EXPORTHUB_SHIPMENT_SAVE_TX__===true;if(localSaveConfirmation)return;if(detail.remote===true)scheduleRemoteMerge(0)})";
+  if(html.includes(after))return html;
+  const count=html.split(before).length-1;
+  if(count!==1)throw new Error(file+': RC1418 Shipment-Sync-Anker '+count+'x gefunden');
+  html=html.replace(before,after);
+  if(!html.includes("localSaveConfirmation=detail.remote===true&&detail.reason==='save-confirmation'&&window.__EXPORTHUB_SHIPMENT_SAVE_TX__===true"))throw new Error(file+': RC1418 lokaler Save-Confirmation-Guard fehlt');
+  return html;
+}
+
 function patchTaskDetailTab(html,file){
   const open='<script id="index321-single-navigation-controller">';
   const start=html.indexOf(open),end=start<0?-1:html.indexOf('</script>',start+open.length);
@@ -881,6 +892,7 @@ function patchHtml(file){
   html=patchShipmentSuspendSave(html,file);
   html=patchRc1412ShipmentCreateDomPreserve(html,file);
   html=patchRc1414ShipmentCreateNoRerender(html,file);
+  html=patchRc1418ShipmentSaveNoRerender(html,file);
   html=patchRc1319ShipmentSaveFinalization(html,file);
   html=patchRc1296BrowserBranding(html,file);
   html=html.replace(/ExportHUB RC1048 environment=/g,`ExportHUB ${VERSION} environment=`);
