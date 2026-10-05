@@ -10,7 +10,6 @@ test('RC1435 Pickup: POD-Archive bleiben hinter einem nicht ausgeführten Lazy-S
   assert.match(beforeHandler,/return require\(['"]\.\.\/shared\/pod-archive-rc1432['"]\)/);
   const withoutSelector=beforeHandler.replace(/function podArchiveFor\(record\)\{[^\n]*\}/,'');
   assert.doesNotMatch(withoutSelector,/require\(['"]\.\.\/shared\/pod-archive(?:-rc1432)?['"]\)/,'POD-Archive dürfen außerhalb des Lazy-Selectors nicht beim Modulimport geladen werden');
-  assert.doesNotMatch(beforeHandler,/podArchiveFor\s*\(/g&&/^$/,'');
 });
 
 test('RC1435 Pickup: POD-Selector wird ausschließlich in vollständigen Abholpfaden aufgerufen',()=>{
