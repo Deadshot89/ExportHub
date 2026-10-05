@@ -74,32 +74,34 @@ test('real mail gate runs before broad browser matrix and both remain required',
  assert.ok(source.indexOf('Deploy ExportHUB production',broad)>broad);
 });
 
-test('Essentra sender acquires its token from the Essentra authority, preserving the configured app credentials',async()=>{
+test('Essentra sender keeps the tenant paired with the configured shared Graph app',async()=>{
  const {calls}=await failedSend();
  const tokenRequests=calls.filter(c=>c.path.endsWith('/token'));
  assert.equal(tokenRequests.length,2);
- for(const req of tokenRequests)assert.equal(req.path,'/essentra.com/oauth2/v2.0/token');
+ for(const req of tokenRequests)assert.equal(req.path,'/app-tenant/oauth2/v2.0/token');
 });
 
-test('mail-specific app credentials can be configured without altering the shared drive credentials',async()=>{
- const {calls}=await failedSend({environment:{EXPORTHUB_MAIL_GRAPH_CLIENT_ID:'mail-client-test',EXPORTHUB_MAIL_GRAPH_CLIENT_SECRET:'mail-secret-test'}});
- const form=new URLSearchParams(calls.find(c=>c.path.endsWith('/token')).testBody);
+test('mail-specific app credentials use an explicitly configured mail tenant without altering shared drive credentials',async()=>{
+ const {calls}=await failedSend({environment:{EXPORTHUB_MAIL_GRAPH_TENANT_ID:'mail-tenant',EXPORTHUB_MAIL_GRAPH_CLIENT_ID:'mail-client-test',EXPORTHUB_MAIL_GRAPH_CLIENT_SECRET:'mail-secret-test'}});
+ const tokenRequest=calls.find(c=>c.path.endsWith('/token'));
+ const form=new URLSearchParams(tokenRequest.testBody);
+ assert.equal(tokenRequest.path,'/mail-tenant/oauth2/v2.0/token');
  assert.equal(form.get('client_id'),'mail-client-test');
  assert.equal(form.get('client_secret'),'mail-secret-test');
  assert.equal(form.get('scope'),'https://graph.microsoft.com/.default');
 });
 
-test('missing app in the correct tenant remains an explicit OAuth error, with no fallback to the wrong tenant',async()=>{
+test('missing app stays an explicit OAuth error in the configured app tenant',async()=>{
  const {error,calls}=await failedSend({tokenStatus:400});
  assert.equal(error.upstreamCode,'invalid_client');
  assert.match(error.upstreamMessage,/AADSTS700016/);
  assert.equal(calls.length,1);
- assert.equal(calls[0].path,'/essentra.com/oauth2/v2.0/token');
+ assert.equal(calls[0].path,'/app-tenant/oauth2/v2.0/token');
 });
 
-test('cached token from another authority is never reused for the Essentra mailbox',async()=>{
+test('cached token is reused when different sender domains use the same configured Graph authority',async()=>{
  const {error,calls}=await failedSend({sendStatus:202,senders:['configured@example.com','DespatchNettetal@essentra.com']});
  assert.equal(error,undefined);
- assert.deepEqual(calls.filter(c=>c.path.endsWith('/token')).map(c=>c.path),['/app-tenant/oauth2/v2.0/token','/essentra.com/oauth2/v2.0/token']);
+ assert.deepEqual(calls.filter(c=>c.path.endsWith('/token')).map(c=>c.path),['/app-tenant/oauth2/v2.0/token']);
  assert.equal(calls.filter(c=>c.path.endsWith('/sendMail')).length,2);
 });
