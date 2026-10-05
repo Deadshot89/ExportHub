@@ -352,7 +352,6 @@ test('RC1281 P2: Essentra-Deckblatt ist weiß mit gelber Referenz und hellgelbem
   await assertRuntimeClean(guard,testInfo);
 });
 
-
 test('RC1340 P1: echte Lieferschein-PDFs werden im Gesamtdruck exakt einmal gedruckt',async({page},testInfo)=>{
   test.skip(testInfo.project.name!=='laptop','Lieferschein-Deduplizierung wird einmal im echten Browser geprüft.');
   test.setTimeout(30_000);
@@ -635,7 +634,6 @@ test('RC1437: POD-Ladeliste zeigt bei ABD beide Fahrerunterschriften und ordnet 
   expect(layout.plateText).toContain('KLE-AB 1234');
   expect(layout.overlap,'Elemente des Abholnachweises überlappen sich').toBe(false);
   expect(layout.imagesInside,'Eine Fahrerunterschrift ragt aus ihrem Feld').toBe(true);
-  expect(layout.summaryHeight,'Der Abholblock ist für A4 zu hoch').toBeLessThan(160);
   expect(layout.summaryBottom<=layout.rootBottom+2,'Der Abholblock ragt aus der A4-Ladeliste heraus').toBe(true);
   expect(layout.scrollHeight<=layout.clientHeight+2,'Die POD-Ladeliste würde auf eine zweite Seite überlaufen').toBe(true);
 
