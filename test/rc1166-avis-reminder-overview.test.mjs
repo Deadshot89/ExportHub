@@ -118,7 +118,7 @@ test('RC1166: Übersicht zeigt einen blauen Aktionsbutton und eine Empfängeraus
 
 test('RC1166: Drei-Umgebungen-Build übernimmt die neue Runtime und bestehende Schutzstände',()=>{
   assert.match(build,/exporthub-rc1166-avis-reminder/);
-  assert.match(build,/assets\/rc1166-avis-reminder-overview\.js\?v=1393/);
+  assert.match(build,/assets\/rc1166-avis-reminder-overview\.js\?v=20261005/);
   assert.match(build,/'assets\/rc1166-avis-reminder-overview\.js'/);
   assert.match(build,/avisReminderOverview:'RC1358/);
   assert.match(build,/avis-reminder-mail\/index\.js/);

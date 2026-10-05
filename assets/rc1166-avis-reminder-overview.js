@@ -28,7 +28,7 @@ function cardShipment(card,shipments){
 }
 function customerKey(c){return q(c&&(c.id||c.customerId||c.account||c.customerNumber||c.kundennummer||c.name||c.customerName)).toUpperCase()}
 function customerFor(sh){
- var s=state(),list=arr(s.customers),keys=[sh&&sh.customerId,sh&&sh.customerNumber,sh&&sh.customerAccount,sh&&sh.account,sh&&sh.customerName,sh&&sh.customer].map(function(x){return q(x&&typeof x==='object'?(x.id||x.customerId||x.account||x.customerNumber||x.name):x).toUpperCase()}).filter(Boolean);
+ var s=state(),list=arr(s.customers),keys=[sh&&sh.customerId,sh&&sh.customerNumber,sh&&sh.customerAccount,sh&&sh.customerNo,sh&&sh.account,sh&&sh.customerName,sh&&sh.customer].map(function(x){return q(x&&typeof x==='object'?(x.id||x.customerId||x.account||x.customerNumber||x.name):x).toUpperCase()}).filter(Boolean);
  return list.find(function(c){var ck=customerKey(c),name=q(c&&(c.name||c.customerName)).toUpperCase(),account=q(c&&(c.account||c.customerNumber||c.kundennummer)).toUpperCase();return keys.indexOf(ck)>=0||keys.indexOf(name)>=0||keys.indexOf(account)>=0})||null
 }
 function avisRecipientExcluded(email){return low(email)==='dispo@holenstein.de'}
@@ -81,6 +81,11 @@ function closed(sh){
 }
 var RC1333_PROD_AVIS_ORIGIN='https://www.exporthub360.de';
 var RC1333_TEST_AVIS_ORIGIN='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net';
+function essentraAvisCustomer(sh,c){
+ sh=sh||{};c=c||{};
+ var nested=sh.customer&&typeof sh.customer==='object'?sh.customer:{};
+ return [c.name,c.customerName,c.companyName,sh.customerName,sh.customerDisplay,sh.recipientCustomerName,nested.name,nested.customerName,nested.companyName,typeof sh.customer==='string'?sh.customer:''].some(function(v){return /\bessentra\b/i.test(String(v||''))})
+}
 function safeAvisLink(sh,url){
  var token=q(sh&&(sh.customerAvisToken||sh.avisToken)),env='';
  try{
@@ -91,6 +96,7 @@ function safeAvisLink(sh,url){
  }catch(_){}
  if(!token)return q(url);
  if(!env)env=environmentName();
+ if((!env||env==='production')&&essentraAvisCustomer(sh,customerFor(sh)))return 'https://wonderful-forest-0f315e310.7.azurestaticapps.net/customer-avis.html?token='+encodeURIComponent(token);
  if(!env||env==='production')return RC1333_PROD_AVIS_ORIGIN+'/avis/'+encodeURIComponent(token);
  var out=RC1333_TEST_AVIS_ORIGIN+'/customer-avis.html?token='+encodeURIComponent(token);
  return out+'&environment='+encodeURIComponent(env)

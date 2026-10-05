@@ -19,11 +19,22 @@ function rc1331AvisToken(sh,url){
  }catch(_){}
  return''
 }
+function essentraAvisCustomer(sh,c){
+ sh=sh||{};c=c||{};
+ var nested=sh.customer&&typeof sh.customer==='object'?sh.customer:{};
+ return [c.name,c.customerName,c.companyName,sh.customerName,sh.customerDisplay,sh.recipientCustomerName,nested.name,nested.customerName,nested.companyName,typeof sh.customer==='string'?sh.customer:''].some(function(v){return /\bessentra\b/i.test(String(v||''))})
+}
+function avisCustomerFor(sh){
+ var list=state().customers||[],nested=sh&&sh.customer&&typeof sh.customer==='object'?sh.customer:{};
+ var keys=[sh&&sh.customerId,sh&&sh.customerNumber,sh&&sh.customerAccount,sh&&sh.customerNo,sh&&sh.account,sh&&sh.customerName,nested.id,nested.customerId,nested.account,nested.customerNumber,nested.name,typeof (sh&&sh.customer)==='string'?sh.customer:''].map(function(v){return q(v).toUpperCase()}).filter(Boolean);
+ return Array.isArray(list)?list.find(function(c){return [c.id,c.customerId,c.account,c.customerNumber,c.kundennummer,c.name,c.customerName].some(function(v){return keys.indexOf(q(v).toUpperCase())>=0})}):null
+}
 function rc1333SafeAvisUrl(sh,url){
  var token=rc1331AvisToken(sh,url);if(!token)return q(url);
  var env='';
  try{var u=new URL(q(url)||'', 'https://exporthub.invalid/');env=q(u.searchParams.get('environment')).toLowerCase()}catch(_){}
  if(!env)env=environmentName();
+ if((!env||env==='production')&&essentraAvisCustomer(sh,avisCustomerFor(sh)))return 'https://wonderful-forest-0f315e310.7.azurestaticapps.net/customer-avis.html?token='+encodeURIComponent(token);
  if(!env||env==='production')return RC1333_PROD_AVIS_ORIGIN+'/avis/'+encodeURIComponent(token);
  var out=RC1333_TEST_AVIS_ORIGIN+'/customer-avis.html?token='+encodeURIComponent(token);
  return out+'&environment='+encodeURIComponent(env)

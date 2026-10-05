@@ -37,8 +37,8 @@ test('RC1365: Client-Sicherheitsprüfung akzeptiert neuen und bestehenden Marken
   assert.match(immediate,/RC1333_PROD_AVIS_ORIGIN='https:\/\/www\.exporthub360\.de'/);
 });
 test('RC1333: Browser laden den Safe-Origin-Hotfix mit neuem Cache-Key',()=>{
-  assert.match(fixer,/rc1027-lieferavis-immediate\.js\?v=1393/);
-  assert.match(build,/rc1166-avis-reminder-overview\.js\?v=1393/);
+  assert.match(fixer,/rc1027-lieferavis-immediate\.js\?v=20261005/);
+  assert.match(build,/rc1166-avis-reminder-overview\.js\?v=20261005/);
 });
 
 test('RC1420: neue Produktions-AVIS-Links bleiben verbindlich auf exporthub360.de',()=>{

@@ -11,7 +11,7 @@ test('RC1360: production issues canonical ExportHUB360 AVIS links',()=>{
   assert.match(api,/https:\/\/www\.exporthub360\.de/);
   assert.match(api,/function publicAvisUrl\(/);
   assert.match(api,/PRODUCTION_AVIS_ORIGIN\+'\/avis\/'\+encoded/);
-  assert.match(api,/url:publicAvisUrl\(env,issued\.token\)/);
+  assert.match(api,/url:publicAvisUrl\(env,issued\.token,target,customerForState\(state,target\)\)/);
 });
 
 test('RC1326: branded AVIS path is routed to the existing secure customer portal',()=>{

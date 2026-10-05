@@ -26,12 +26,26 @@ const LEGACY_COM_WWW_PRODUCTION_PUBLIC_HOST='www.exporthub360.com';
 function isBrandedProductionHost(host){return host===PRODUCTION_PUBLIC_HOST||host===LEGACY_BRANDED_PRODUCTION_PUBLIC_HOST||host===LEGACY_COM_PRODUCTION_PUBLIC_HOST||host===LEGACY_COM_WWW_PRODUCTION_PUBLIC_HOST}
 const LEGACY_PRODUCTION_PUBLIC_HOST=lower(process.env.EXPORTHUB_LEGACY_PRODUCTION_PUBLIC_HOST||'wonderful-forest-0f315e310.7.azurestaticapps.net');
 const TESTSERVICE_PUBLIC_HOST=lower(process.env.EXPORTHUB_TESTSERVICE_PUBLIC_HOST||'ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net');
-function safeAvisUrl(req,value){
+function essentraAvisCustomer(sh,c){
+ sh=sh||{};c=c||{};
+ var nested=sh.customer&&typeof sh.customer==='object'?sh.customer:{};
+ return [c.name,c.customerName,c.companyName,sh.customerName,sh.customerDisplay,sh.recipientCustomerName,nested.name,nested.customerName,nested.companyName,typeof sh.customer==='string'?sh.customer:''].some(function(v){return /\bessentra\b/i.test(String(v||''))})
+}
+function safeAvisUrl(req,value,sh,c){
  let u;try{u=new URL(text(value))}catch(_){throw auth.error('AVIS_URL_INVALID','Der Avis-Link ist ungültig.',400)}
  if(u.protocol!=='https:')throw auth.error('AVIS_URL_INVALID','Der Avis-Link ist ungültig.',400);
  const environment=auth.environmentFromRequest(req),host=lower(u.hostname),legacyPath=/\/customer-avis\.html$/i.test(u.pathname),brandedPath=/^\/avis\/[^/]+\/?$/i.test(u.pathname);
  const valid=environment==='testservice'?((host===TESTSERVICE_PUBLIC_HOST&&legacyPath)||(isBrandedProductionHost(host)&&brandedPath&&lower(u.searchParams.get('environment'))==='testservice')):((isBrandedProductionHost(host)&&(brandedPath||legacyPath))||(host===LEGACY_PRODUCTION_PUBLIC_HOST&&legacyPath));
  if(!valid)throw auth.error('AVIS_URL_INVALID','Der Avis-Link gehört nicht zu dieser ExportHUB-Umgebung.',400);
+ if(environment==='production'){
+  const match=u.pathname.match(/^\/avis\/([^/]+)\/?$/i);
+  let token=text(u.searchParams.get('token')||u.searchParams.get('avis'));
+  if(!token&&match){try{token=decodeURIComponent(match[1])}catch(_){throw auth.error('AVIS_URL_INVALID','Der Avis-Link ist ungültig.',400)}}
+  if(!token)throw auth.error('AVIS_URL_INVALID','Der Avis-Link ist ungültig.',400);
+  const out=new URL(essentraAvisCustomer(sh,c)?'https://'+LEGACY_PRODUCTION_PUBLIC_HOST+'/customer-avis.html?token='+encodeURIComponent(token):'https://'+PRODUCTION_PUBLIC_HOST+'/avis/'+encodeURIComponent(token));
+  for(const [key,v] of u.searchParams)if(key!=='token'&&key!=='avis'&&key!=='environment')out.searchParams.append(key,v);
+  return out.toString()
+ }
  return u.toString()
 }
 function subject(ref,target,lang){
@@ -136,8 +150,8 @@ function emailItems(value){
 function customerKey(v){return text(v).toUpperCase()}
 function customerFor(team,sh){
  const state=team&&team.state||{},customers=Array.isArray(state.customers)?state.customers:[],keys=[
-  sh&&sh.customerId,sh&&sh.customerNumber,sh&&sh.customerAccount,sh&&sh.account,sh&&sh.customerName,
-  sh&&sh.customer&&typeof sh.customer==='object'&&(sh.customer.id||sh.customer.account||sh.customer.name),
+  sh&&sh.customerId,sh&&sh.customerNumber,sh&&sh.customerAccount,sh&&sh.customerNo,sh&&sh.account,sh&&sh.customerName,
+  sh&&sh.customer&&typeof sh.customer==='object'&&(sh.customer.id||sh.customer.customerId||sh.customer.account||sh.customer.customerNumber||sh.customer.name),
   sh&&typeof sh.customer==='string'&&sh.customer
  ].map(customerKey).filter(Boolean);
  return customers.find(c=>{
@@ -239,7 +253,7 @@ module.exports=async function(context,req){
   if(mode==='reminder'){
    const gate=reminderGate(shipment);if(!gate.allowed){const e=auth.error(gate.reason,gate.reason==='PICKUP_DATE_EXISTS'?'Für diese Sendung ist bereits ein Abholtag erfasst.':'Die Avis-Erinnerung ist erst drei Arbeitstage nach dem ersten Mailversand möglich.',409);e.dueAt=gate.dueAt||'';throw e}
   }
-  const url=safeAvisUrl(req,p.avisUrl),sub=mode==='initial'?initialSubject(ref,target,lang):subject(ref,target,lang),content=mode==='initial'?initialBody(ref,target,lang,url):body(ref,target,lang,url);
+  const url=safeAvisUrl(req,p.avisUrl,shipment,customerFor(current.team,shipment)),sub=mode==='initial'?initialSubject(ref,target,lang):subject(ref,target,lang),content=mode==='initial'?initialBody(ref,target,lang,url):body(ref,target,lang,url);
   const sender=configuredAvisMailSender(),cc=ccRecipients(current.team,shipment,to,sender);
   const sent=await graphMail.sendTextMail({to,subject:sub,body:content,sender,cc});
   const event=historyEvent(current,ref,to,sub,target,lang,mode,cc,sender);

@@ -24,7 +24,12 @@ const AVIS_UPLOAD_NOTIFICATION_TO=process.env.EXPORTHUB_AVIS_UPLOAD_NOTIFICATION
 // RC1366: canonical ExportHUB360 AVIS production origin.
 const PRODUCTION_AVIS_ORIGIN='https://www.exporthub360.de';
 const TESTSERVICE_AVIS_ORIGIN='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net';
-function publicAvisUrl(env,token){const encoded=encodeURIComponent(text(token));if(env==='production')return PRODUCTION_AVIS_ORIGIN+'/avis/'+encoded;const url=TESTSERVICE_AVIS_ORIGIN+'/customer-avis.html?token='+encoded;return url+'&environment='+encodeURIComponent(env)}
+function essentraAvisCustomer(sh,c){
+ sh=sh||{};c=c||{};
+ var nested=sh.customer&&typeof sh.customer==='object'?sh.customer:{};
+ return [c.name,c.customerName,c.companyName,sh.customerName,sh.customerDisplay,sh.recipientCustomerName,nested.name,nested.customerName,nested.companyName,typeof sh.customer==='string'?sh.customer:''].some(function(v){return /\bessentra\b/i.test(String(v||''))})
+}
+function publicAvisUrl(env,token,sh,c){const encoded=encodeURIComponent(text(token));if(env==='production'&&essentraAvisCustomer(sh,c))return 'https://wonderful-forest-0f315e310.7.azurestaticapps.net/customer-avis.html?token='+encoded;if(env==='production')return PRODUCTION_AVIS_ORIGIN+'/avis/'+encoded;const url=TESTSERVICE_AVIS_ORIGIN+'/customer-avis.html?token='+encoded;return url+'&environment='+encodeURIComponent(env)}
 let teamContainer=null;
 let teamContainerReadyPromise=null;
 let documentContainer=null;
@@ -345,7 +350,7 @@ module.exports=async function(context,req){
    const actor=internal.user.name||internal.user.user||'ExportHUB',tokenStarted=Date.now(),needsFlagWrite=!draftOnly&&avisManuallyDisabled(target);let issued;
    if(needsFlagWrite){const flagStarted=Date.now(),flagPromise=setAvisFlags(blob,actualSubject,actualRef,true,actor,d).finally(()=>{timing.flagWriteMs=elapsed(flagStarted)}),tokenPromise=access.issue(req,'avis',{subjectId:actualSubject,shipmentId:actualSubject,reference:actualRef,actor,snapshot},null,payload).finally(()=>{timing.tokenIssueMs=elapsed(tokenStarted)});const pair=await Promise.all([flagPromise,tokenPromise]);issued=pair[1]}
    else{issued=await access.issue(req,'avis',{subjectId:actualSubject,shipmentId:actualSubject,reference:actualRef,actor,snapshot},null,payload);timing.tokenIssueMs=elapsed(tokenStarted)}
-   timing.totalMs=elapsed(requestStarted);context.res=json(200,{ok:true,issued:true,token:issued.token,shipmentId:actualSubject,reference:actualRef,expiresAt:issued.expiresAt,url:publicAvisUrl(env,issued.token),oneTime:false,timing,version:'RC1129'},timingHeaders(timing));return
+   timing.totalMs=elapsed(requestStarted);context.res=json(200,{ok:true,issued:true,token:issued.token,shipmentId:actualSubject,reference:actualRef,expiresAt:issued.expiresAt,url:publicAvisUrl(env,issued.token,target,customerForState(state,target)),oneTime:false,timing,version:'RC1129'},timingHeaders(timing));return
   }
   if(req.method==='POST'&&action==='authorize'){
    const raw=text(payload.token),resolved=await access.resolve(req,'avis',raw,{allowUsed:true},payload),blob=await teamBlob(resolved.environment),d=await readTeam(blob),state=obj(d.value&&d.value.state)?d.value.state:{},sh=findShipment(state,resolved.record.subjectId,resolved.record.reference)||(obj(resolved.record&&resolved.record.snapshot)?resolved.record.snapshot:null),reference=upper(payload.reference);if(!sh)throw error('SHIPMENT_NOT_FOUND','Sendung wurde nicht gefunden.',404);if(!customerAvisAllowed(state,sh))throw error('AVIS_CUSTOMER_DISABLED','AVIS-Link ist für diesen Kunden im Kundenordner deaktiviert.',409);assertAvisWindow(sh);if(!reference||reference!==sref(sh)){const failed=await access.registerFailure(resolved.environment,'avis',resolved.tokenHash,'reference');if(failed.lockedUntil)throw error('ACCESS_LOCKED','Zu viele falsche Referenzeingaben. Der Zugriff ist vorübergehend gesperrt.',429);await wait(300);throw error('AVIS_ACCESS_DENIED','Die Referenznummer ist nicht korrekt.',403)}const cleared=await access.clearFailures(resolved.environment,'avis',resolved.tokenHash),sessionInfo=access.issueSession(cleared),response=publicShipment(sh,sessionInfo.session,state,language);response.session=sessionInfo.session;response.sessionExpiresAt=sessionInfo.expiresAt;response.rawLinkConsumed=false;context.res=json(200,response);return
