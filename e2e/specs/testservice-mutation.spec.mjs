@@ -267,7 +267,8 @@ test('RC1255 P2: AVIS-Erinnerung läuft über TESTSERVICE UI, Outlook-Entwurf, A
   savedShipments.push({...shipment});
 
   const firstSave=await page.evaluate(async({token,runId,ref,revision,shipments,savedShipments})=>{
-    const response=await fetch('/api/exporthub-state?mode=save&ack=1',{
+    // Fixture preparation writes outside this API's worker cache. A default POST checks the current team ETag before authenticating.
+    const response=await fetch('/api/exporthub-state?ack=1',{
       method:'POST',credentials:'same-origin',cache:'no-store',
       headers:{'Content-Type':'application/json','Accept':'application/json','X-ExportHUB-Token':token,'X-ExportHUB-Session':token,'Authorization':'Bearer '+token,'X-ExportHUB-Environment':'testservice'},
       body:JSON.stringify({
@@ -279,7 +280,7 @@ test('RC1255 P2: AVIS-Erinnerung läuft über TESTSERVICE UI, Outlook-Entwurf, A
     });
     return{status:response.status,data:await response.json().catch(()=>({}))};
   },{token:session.token,runId:session.runId,ref,revision:initial.data?.revision||0,shipments,savedShipments});
-  expect(firstSave.status).toBe(200);
+  expect(firstSave.status,'RC1255 fixture save: '+String(firstSave.data?.code||'')+' '+String(firstSave.data?.message||'')).toBe(200);
   expect(firstSave.data?.ok).toBe(true);
 
   const issued=await page.evaluate(async({token,shipment})=>{
@@ -310,7 +311,7 @@ test('RC1255 P2: AVIS-Erinnerung läuft über TESTSERVICE UI, Outlook-Entwurf, A
       return Object.assign({},sh,{customerAvisUrl:avisUrl,avisUrl,customerAvisToken:avisToken,avisToken,customerAvisEnabled:true,avisEnabled:true,updatedAt:new Date().toISOString(),_e2eRunId:runId});
     });
     const shipments=patch(state.shipments),savedShipments=patch(state.savedShipments);
-    const response=await fetch('/api/exporthub-state?mode=save&ack=1',{
+    const response=await fetch('/api/exporthub-state?ack=1',{
       method:'POST',credentials:'same-origin',cache:'no-store',
       headers:{'Content-Type':'application/json','Accept':'application/json','X-ExportHUB-Token':token,'X-ExportHUB-Session':token,'Authorization':'Bearer '+token,'X-ExportHUB-Environment':'testservice'},
       body:JSON.stringify({
@@ -322,7 +323,7 @@ test('RC1255 P2: AVIS-Erinnerung läuft über TESTSERVICE UI, Outlook-Entwurf, A
     });
     return{status:response.status,data:await response.json().catch(()=>({}))};
   },{token:session.token,runId:session.runId,shipmentId:shipment.id,ref,avisUrl:issued.url,avisToken:issued.data.token});
-  expect(linked.status).toBe(200);
+  expect(linked.status,'RC1255 fixture link save: '+String(linked.data?.code||'')+' '+String(linked.data?.message||'')).toBe(200);
   expect(linked.data?.ok).toBe(true);
 
   await page.reload({waitUntil:'domcontentloaded'});
