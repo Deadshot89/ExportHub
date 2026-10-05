@@ -69,6 +69,29 @@ async function verifyAuthentication(){
  }
 }
 function transient(e){return[408,429,500,502,503,504].includes(Number(e&&e.statusCode||0))||['GRAPH_TIMEOUT','GRAPH_NETWORK_ERROR','ECONNRESET','ETIMEDOUT'].includes(e&&e.code)}
+function safeDiagnosticText(value){
+ let out=text(value),secret=text(process.env.EXPORTHUB_GRAPH_CLIENT_SECRET);
+ if(secret)out=out.split(secret).join('[redacted]');
+ return out.replace(/Bearer\s+[^\s,;"]+/gi,'[redacted]').replace(/[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]+/g,'[redacted]').replace(/[\r\n\x00-\x1f]+/g,' ').slice(0,240)
+}
+function diagnosticParameter(value,name){const m=text(value).match(new RegExp('(?:^|[;,\\s])'+name+'="([^"]*)"','i'));return m?safeDiagnosticText(m[1]):''}
+async function authFailureDiagnostics(e,sender,claims,token,cfg){
+ const h=e&&e.responseHeaders||{},exp=Number(claims.exp||0),now=Math.floor(Date.now()/1000);
+ const domain=text(sender).split('@').pop();
+ const [domainProbe,directoryProbe]=await Promise.allSettled([
+  request('GET','https://login.microsoftonline.com/'+encodeURIComponent(domain)+'/v2.0/.well-known/openid-configuration',{Accept:'application/json'},null,5000),
+  request('GET','https://graph.microsoft.com/v1.0/users/'+encodeURIComponent(sender)+'?$select=id,userPrincipalName,mail,userType',{Authorization:'Bearer '+token,Accept:'application/json'},null,5000)
+ ]);
+ const domainBody=domainProbe.status==='fulfilled'?domainProbe.value.body:null;
+ const match=text(domainBody&&domainBody.issuer).match(/^https:\/\/login\.microsoftonline\.com\/([^/]+)\/v2\.0\/?$/i);
+ const directory=directoryProbe.status==='fulfilled'?directoryProbe.value:null,user=directory&&directory.body||{};
+ return{
+  token:{audienceOk:['https://graph.microsoft.com','00000003-0000-0000-c000-000000000000'].includes(text(claims.aud)),mailSendGranted:mailSendGranted(claims),expiresInSec:Math.max(0,exp-now),clientMatchesConfigured:text(claims.appid||claims.azp).toLowerCase()===cfg.clientId.toLowerCase()},
+  senderDomain:{resolved:!!match,tenantMatchesToken:match?match[1].toLowerCase()===text(claims.tid).toLowerCase():null},
+  senderDirectory:{status:directory?directory.status:Number(directoryProbe.reason&&directoryProbe.reason.statusCode||0),code:directory?'OK':safeDiagnosticText(directoryProbe.reason&&directoryProbe.reason.code),found:!!user.id,mailMatches:!!user.id&&text(user.mail).toLowerCase()===sender.toLowerCase(),upnMatches:!!user.id&&text(user.userPrincipalName).toLowerCase()===sender.toLowerCase(),guest:!!user.id&&text(user.userType).toLowerCase()==='guest'},
+  upstream:{requestId:safeDiagnosticText(h['request-id']),category:diagnosticParameter(h['x-ms-diagnostics'],'error_category'),reason:diagnosticParameter(h['x-ms-diagnostics'],'reason'),authError:diagnosticParameter(h['www-authenticate'],'error'),authDescription:diagnosticParameter(h['www-authenticate'],'error_description')}
+ }
+}
 function sendFailure(e,sender){
  const upstreamStatus=Number(e&&e.statusCode||0)||0;
  let out=e;
@@ -80,6 +103,7 @@ function sendFailure(e,sender){
  out.upstreamCode=text(e&&e.code);
  out.upstreamMessage=text(e&&e.message);
  out.sender=text(sender);
+ if(e&&e.diagnostics)out.diagnostics=e.diagnostics;
  return out
 }
 
@@ -92,10 +116,11 @@ async function sendTextMail({to,subject,body,sender,cc}){
  if(!sub||sub.length>200)throw error('MAIL_SUBJECT_INVALID','Der Mailbetreff ist ungültig.',400);
  if(!content||content.length>12000)throw error('MAIL_BODY_INVALID','Der Mailtext ist ungültig.',400);
  const payload=Buffer.from(JSON.stringify({message:{subject:sub,body:{contentType:'Text',content},toRecipients:[{emailAddress:{address:email}}],ccRecipients:ccEmails.map(address=>({emailAddress:{address}}))},saveToSentItems:true}),'utf8');
- let force=false,last=null;
+ let force=false,last=null,lastClaims={},lastToken='';
  for(let attempt=1;attempt<=3;attempt++){
   try{
    const token=await accessToken(force),claims=tokenClaims(token);
+   lastToken=token;lastClaims=claims;
    if(!mailSendGranted(claims))throw error('GRAPH_MAIL_PERMISSION_MISSING','Microsoft Graph Mail.Send ist für die ExportHUB-App nicht als Application-Berechtigung freigegeben.',503);
    await request('POST','https://graph.microsoft.com/v1.0/users/'+encodeURIComponent(actualSender)+'/sendMail',{Authorization:'Bearer '+token,'Content-Type':'application/json','Content-Length':payload.length,Accept:'application/json'},payload,12000);
    return{ok:true,sender:actualSender,to:email,cc:ccEmails,attempts:attempt}
@@ -103,6 +128,7 @@ async function sendTextMail({to,subject,body,sender,cc}){
    last=e;
    if(e&&e.statusCode===401&&!force){tokenCache=null;force=true;continue}
    if(attempt<3&&transient(e)){await sleep(delay(e,attempt));force=false;continue}
+   if(e&&e.statusCode===401&&lastToken){try{e.diagnostics=await authFailureDiagnostics(e,actualSender,lastClaims,lastToken,cfg)}catch(_){}}
    throw sendFailure(e,actualSender)
   }
  }

@@ -538,11 +538,11 @@ jobs:
           export EXPORTHUB_E2E_REFERENCE="E2E$(printf '%s' "$GITHUB_SHA" | cut -c1-3 | tr '[:lower:]' '[:upper:]')"
           export EXPORTHUB_E2E_MUTATION='1'
 
-          npx playwright test             e2e/specs/navigation.spec.mjs             e2e/specs/notifications.spec.mjs             e2e/specs/public-smoke.spec.mjs             e2e/specs/shipment-create.spec.mjs             e2e/specs/multi-truck-live.spec.mjs             e2e/specs/testservice-mutation.spec.mjs             e2e/specs/version-display.spec.mjs             --grep-invert 'RC1255 P2:'
-
           # RC1346: Nur der im Test selbst eindeutig erkannte Graph-Mail.Send-Blocker darf als P2 übersprungen werden.
           # Jede andere RC1255-Regression muss den Release hart stoppen.
           npx playwright test e2e/specs/testservice-mutation.spec.mjs --project=laptop --grep 'RC1255 P2:'
+
+          npx playwright test             e2e/specs/navigation.spec.mjs             e2e/specs/notifications.spec.mjs             e2e/specs/public-smoke.spec.mjs             e2e/specs/shipment-create.spec.mjs             e2e/specs/multi-truck-live.spec.mjs             e2e/specs/testservice-mutation.spec.mjs             e2e/specs/version-display.spec.mjs             --grep-invert 'RC1255 P2:'
 
           cleanup
           trap - EXIT

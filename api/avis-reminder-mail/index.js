@@ -262,6 +262,6 @@ module.exports=async function(context,req){
   context.res=response(200,{ok:true,version:'RC1358',mode,reference:ref,recipient:to,sender,cc,subject:sub,sentAt:event.at,historyId:event.id,reminderDueAt:nextGate.dueAt||'',attempts:sent.attempts})
  }catch(e){
   try{context.log&&context.log.error&&context.log.error('RC1292 Avis reminder mail failed',e&&e.code,e&&e.message)}catch(_){}
-  context.res=response(e.status||e.statusCode||500,{ok:false,code:e.code||'MAIL_SEND_FAILED',message:e.message||'Die Avis-Erinnerung konnte nicht versendet werden.',version:'RC1358',dueAt:text(e&&e.dueAt),missing:Array.isArray(e.missing)?e.missing:undefined,upstreamStatus:Number(e&&e.upstreamStatus||0)||0,upstreamCode:text(e&&e.upstreamCode),upstreamMessage:text(e&&e.upstreamMessage),sender:text(e&&e.sender||configuredAvisMailSender())})
+  context.res=response(e.status||e.statusCode||500,{ok:false,code:e.code||'MAIL_SEND_FAILED',message:e.message||'Die Avis-Erinnerung konnte nicht versendet werden.',version:'RC1358',dueAt:text(e&&e.dueAt),missing:Array.isArray(e.missing)?e.missing:undefined,upstreamStatus:Number(e&&e.upstreamStatus||0)||0,upstreamCode:text(e&&e.upstreamCode),upstreamMessage:text(e&&e.upstreamMessage),diagnostics:e&&e.diagnostics||undefined,sender:text(e&&e.sender||configuredAvisMailSender())})
  }
 };
