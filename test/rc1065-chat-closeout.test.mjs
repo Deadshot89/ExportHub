@@ -59,7 +59,7 @@ test('RC1065: POD-Speicherung und Blob-Dokumente bleiben nach Reload lesbar',()=
 
 test('RC1065: QR-Bestandsschutz hält alte Linkparameter und resourceKey bei',()=>{
   const html=read('pickup.html'),access=read('api/shared/public-access-store.js');
-  for(const p of ["searchParams.get('pickup')","searchParams.get('token')","searchParams.get('qr')","searchParams.get('ehcmd')","searchParams.get('ref')"]){
+  for(const p of ["searchParams.get('pickup')","searchParams.get('token')","searchParams.get('qr')","searchParams.get('ehcmd')","searchParams.get('ref')]){
     assert.ok(html.includes(p),p+' fehlt');
   }
   assert.match(access,/resourceKey/);
@@ -109,7 +109,7 @@ test('RC1065: mobile Navigation und Navigation ohne F5-Logout bleiben enthalten'
 });
 
 
-test('RC1065: Pflicht-CC Runtime nutzt die persistente Settings-Konfiguration und blockiert bei unvollständiger Pflege',()=>{
+test('RC1436: Pflicht-CC Runtime gilt nur für Anmeldung und lässt AVIS unangetastet',()=>{
   const source=read('assets/rc1065-registration-cc.js');
   const appState={settings:{registrationMandatoryCc:[
     {name:'Sevastian Marcu',email:'sevastian@example.com'},
@@ -129,16 +129,21 @@ test('RC1065: Pflicht-CC Runtime nutzt die persistente Settings-Konfiguration un
   assert.match(decoded,/sevastian@example\.com/);
   assert.match(decoded,/daniel@example\.com/);
 
-  const plusSensitive=api.prepare('mailto:carrier@example.com?subject=Lieferavis%20DVT8ZZ&body=Sehr%20geehrte%20Damen%20und%20Herren%2C%0AReferenz%3A%20DVT8ZZ');
+  const plusSensitive=api.prepare('mailto:carrier@example.com?subject=Sendungsanmeldung%20DVT8ZZ&body=Sehr%20geehrte%20Damen%20und%20Herren%2C%0AReferenz%3A%20DVT8ZZ');
   assert.equal(plusSensitive.ok,true);
   assert.equal(plusSensitive.url.includes('Sehr+geehrte'),false);
   assert.match(plusSensitive.url,/body=Sehr%20geehrte%20Damen%20und%20Herren/);
 
   appState.settings.registrationMandatoryCc=[{name:'Sevastian Marcu',email:'sevastian@example.com'}];
-  const withFallback=api.prepare('mailto:carrier@example.com?subject=Lieferavis%20ABC123');
+  const withFallback=api.prepare('mailto:carrier@example.com?subject=Sendungsanmeldung%20ABC123');
   assert.equal(withFallback.ok,true);
   assert.deepEqual(Array.from(withFallback.missing),[]);
   assert.match(decodeURIComponent(withFallback.url).toLowerCase(),/danielollmann@essentra\.com/);
+
+  const avis=api.prepare('mailto:carrier@example.com?subject=Lieferavis%20ABC123&cc=manual@example.com');
+  assert.equal(avis.ok,true);
+  assert.equal(avis.required,false);
+  assert.equal(avis.url,'mailto:carrier@example.com?subject=Lieferavis%20ABC123&cc=manual@example.com');
 
   const normal=api.prepare('mailto:test@example.com?subject=Hallo');
   assert.equal(normal.ok,true);
