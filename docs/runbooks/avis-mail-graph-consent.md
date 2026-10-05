@@ -4,7 +4,7 @@ Seit RC1434 öffnen Lieferavis und AVIS-Erinnerung aus der Sendungsübersicht ei
 
 Dieses Runbook gilt weiterhin für die separate automatische Benachrichtigung bei Kunden-Uploads und den optionalen direkten Mail-Endpunkt. Deren Graph-Readiness wird im Release sichtbar diagnostiziert, blockiert den verpflichtend geprüften Outlook-Ablauf aber nicht. Eine fehlgeschlagene Upload-Mail-Diagnose ist keine Versandbestätigung.
 
-Stand: RC1352
+Stand: RC1440
 
 ## Ausgangslage
 
@@ -67,9 +67,9 @@ Workflow erneut starten:
 
 - `send_test = true`
 
-Der Workflow darf ausschließlich eine klar markierte Testmail an
+Der Sendetest verwendet denselben dedizierten AVIS-Absendervertrag wie der produktive AVIS-Versand (`EXPORTHUB_AVIS_MAIL_SENDER`, Fallback `DespatchNettetal@essentra.com`). Der Workflow darf ausschließlich eine klar markierte Testmail an
 
-`DespatchNettetal@essentra.onmicrosoft.com`
+`DespatchNettetal@essentra.com`
 
 senden.
 
