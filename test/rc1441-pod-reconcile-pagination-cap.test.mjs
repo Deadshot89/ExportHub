@@ -11,8 +11,10 @@ test('RC1441: POD-Reconcile kann mehr als die bisherige 500-State-Grenze vollst�
   assert.doesNotMatch(workflow,/seq 1 50/);
 });
 
-test('RC1441: ein festhängender Continuation-Token beendet den Reconcile fail-closed',()=>{
+test('RC1441/RC1442: ein wirklich festhängender Continuation-Token beendet den Reconcile fail-closed',()=>{
   assert.equal((workflow.match(/previous_continuation_token="\$continuation_token"/g)||[]).length,2);
-  assert.equal((workflow.match(/Continuation-Token bewegt sich nicht weiter/g)||[]).length,2);
+  assert.equal((workflow.match(/progress_count=/g)||[]).length,2);
+  assert.equal((workflow.match(/Continuation-Token bewegt sich ohne Fortschritt nicht weiter/g)||[]).length,2);
+  assert.equal((workflow.match(/\[ "\$progress_count" -le 0 \]/g)||[]).length,2);
   assert.equal((workflow.match(/exit 9/g)||[]).length,2);
 });
