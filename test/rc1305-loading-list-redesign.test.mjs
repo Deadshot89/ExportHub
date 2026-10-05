@@ -28,7 +28,7 @@ test('RC1305: Treffer zeigen kompakte Metadaten statt aller PDF-Dateinamen in ei
   assert.match(search,/overflow-wrap:anywhere/);
 });
 
-test('RC1305: Ladeliste ersetzt abgeholte Leerformulare durch gespeicherte Abholdaten',()=>{
+test('RC1435: Ladeliste ersetzt abgeholte Leerformulare durch gespeicherte Abholdaten und führt die ABD-Zollunterschrift separat',()=>{
   assert.match(print,/function pickupSummary\(root,sh\)/);
   assert.match(print,/pickupHistory/);
   for(const field of ['driverName','licensePlate','loaderName','confirmedAt','signatureBlobName','returnedEuroPallets']){
@@ -41,8 +41,10 @@ test('RC1305: Ladeliste ersetzt abgeholte Leerformulare durch gespeicherte Abhol
   assert.match(print,/rc1305-meta-loader/);
   assert.match(print,/rc1305-meta-plate/);
   assert.match(print,/rc1305-signature-primary/);
+  assert.match(print,/ensureCustomsSignatureField/);
+  assert.match(print,/rc1305-signature-customs/);
+  assert.match(print,/data-rc1432-customs-signature/);
   assert.match(print,/grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
-  assert.doesNotMatch(print,/ensureCustomsSignatureField|rc1305-signature-customs|data-rc1315-customs-signature/);
 });
 
 test('RC1363: Lieferscheine und Bemerkung werden drucksicher kompakt untereinander dargestellt',()=>{
@@ -95,8 +97,8 @@ test('RC1364: Lieferscheinrahmen bleiben inhaltsbreit und Empfänger wird kunden
 });
 
 
-test('RC1379: Druck-QR bleibt 12mm gross',()=>{
-  assert.match(print,/version:'RC1379'/);
+test('RC1435: Druck-QR bleibt 12mm gross',()=>{
+  assert.match(print,/version:'RC1432'/);
   assert.match(print,/important\(code,'width','12mm'\)/);
   assert.match(print,/important\(svg,'width','12mm'\)/);
   assert.match(print,/shape-rendering="crispEdges"/);
@@ -133,8 +135,8 @@ test('RC1393: produktive AVIS-Marken-Domain ist .de und blockiert Release bei Au
 });
 
 
-test('RC1379: Deckblatt verwendet denselben Empfaenger-Fix wie die Ladeliste',()=>{
+test('RC1435: Deckblatt verwendet denselben Empfaenger-Fix wie die Ladeliste',()=>{
   assert.match(print,/function enhanceCover\(html,sh\)/);
   assert.match(print,/enhanceRecipient\(root,sh\|\|\{\}\);enhanceDocuments\(root,sh\|\|\{\}\)/);
-  assert.match(print,/version:'RC1379'/);
+  assert.match(print,/version:'RC1432'/);
 });
