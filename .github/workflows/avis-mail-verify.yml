@@ -101,7 +101,7 @@ jobs:
           )"
           STATUS="$status" RESPONSE="$response" node -e "
             const fs=require('fs'),status=Number(process.env.STATUS||0),v=JSON.parse(fs.readFileSync(process.env.RESPONSE,'utf8')||'{}');
-            const expected='DespatchNettetal@essentra.onmicrosoft.com';
+            const expected='DespatchNettetal@essentra.com';
             const ok=status===200&&v.ok===true&&v.mailSendGranted===true&&v.environment==='production'&&v.mailProbe&&v.mailProbe.ok===true&&v.mailProbe.to===expected;
             console.log('PRODUCTION AVIS-Mail send-test',JSON.stringify({status,ok,to:v.mailProbe&&v.mailProbe.to,attempts:v.mailProbe&&v.mailProbe.attempts,version:v.version}));
             if(!ok)process.exit(1);

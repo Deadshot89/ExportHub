@@ -11,7 +11,7 @@ const OIDC_ISSUER='https://token.actions.githubusercontent.com';
 const OIDC_JWKS_URL='https://token.actions.githubusercontent.com/.well-known/jwks';
 const OIDC_AUDIENCE='exporthub-avis-upload-mail-readiness';
 const ALLOWED_EVENTS=['push','workflow_dispatch'];
-const DEFAULT_RECIPIENT='DespatchNettetal@essentra.onmicrosoft.com';
+const DEFAULT_RECIPIENT='DespatchNettetal@essentra.com';
 let oidcCache={expiresAt:0,keys:[]};
 
 function text(v){return String(v==null?'':v).trim()}

@@ -84,7 +84,7 @@ test('mail endpoint uses the stored customer identity for the outgoing message',
  const team={state:{shipments:[sh],customers:[{customerId:'SE1',name:'Essentra Sweden'}]}};
  let mail;
  const auth={body:req=>req.body,isAdmin:()=>true,environmentFromRequest:()=> 'production',async validateSession(){return{user:{name:'Tester'},team}},async mutateTeamForRequest(req,fn){return fn(team)},addAudit(){}};
- const sandbox={URL,process,module:{exports:{}},require(name){
+ const sandbox={URL,process:{env:{}},module:{exports:{}},require(name){
   if(name==='crypto')return crypto;
   if(name==='../shared/auth-store')return auth;
   if(name==='../shared/graph-mail')return{async sendTextMail(value){mail=value;return{attempts:1}}};
@@ -94,6 +94,8 @@ test('mail endpoint uses the stored customer identity for the outgoing message',
  const context={};
  await sandbox.module.exports(context,{method:'POST',body:{shipmentId:'S1',reference:'ABC123',recipient:'test@example.com',mode:'initial',avisUrl:branded}});
  assert.equal(context.res.status,200);
+ assert.equal(mail.sender,'DespatchNettetal@essentra.com');
+ assert.equal(JSON.parse(context.res.body).sender,'DespatchNettetal@essentra.com');
  assert.ok(mail.body.includes(legacy));
  assert.ok(!mail.body.includes('exporthub360.de'));
 });

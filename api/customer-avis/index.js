@@ -20,7 +20,7 @@ const MAX_CUSTOMER_PDF_FILES=10;
 const MAX_PENDING_PDF_FILES=3;
 const MAX_UPLOADS_PER_HOUR=8;
 const AVIS_CONFIRMED_STATUS='bestätigt';
-const AVIS_UPLOAD_NOTIFICATION_TO=process.env.EXPORTHUB_AVIS_UPLOAD_NOTIFICATION_TO||'DespatchNettetal@essentra.onmicrosoft.com';
+const AVIS_UPLOAD_NOTIFICATION_TO=process.env.EXPORTHUB_AVIS_UPLOAD_NOTIFICATION_TO||'DespatchNettetal@essentra.com';
 // RC1366: canonical ExportHUB360 AVIS production origin.
 const PRODUCTION_AVIS_ORIGIN='https://www.exporthub360.de';
 const TESTSERVICE_AVIS_ORIGIN='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net';

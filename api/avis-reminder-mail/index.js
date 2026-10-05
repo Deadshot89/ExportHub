@@ -3,7 +3,7 @@ const crypto=require('crypto');
 const auth=require('../shared/auth-store');
 const graphMail=require('../shared/graph-mail');
 
-const DEFAULT_AVIS_MAIL_SENDER='DespatchNettetal@essentra.onmicrosoft.com';
+const DEFAULT_AVIS_MAIL_SENDER='DespatchNettetal@essentra.com';
 const FIXED_CC='TobiasLimberg@essentra.com';
 
 function text(v){return String(v==null?'':v).trim()}

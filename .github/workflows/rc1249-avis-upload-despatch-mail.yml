@@ -44,7 +44,7 @@ jobs:
         run: |
           set -euo pipefail
           node .github/rc1112/build-three-env.mjs
-          grep -q 'DespatchNettetal@essentra.onmicrosoft.com' api/customer-avis/index.js
+          grep -q 'DespatchNettetal@essentra.com' api/customer-avis/index.js
           test -s dist-rc1112/api/avis-upload-mail-readiness/index.js
           test -s dist-rc1112/api/avis-upload-mail-readiness/function.json
           grep -q 'assets/rc1133-avis-upload-notifications.js?v=1133' dist-rc1112/index.html

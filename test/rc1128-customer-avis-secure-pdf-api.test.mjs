@@ -232,9 +232,9 @@ test('RC1249 API: erfolgreicher Produktionsupload sendet genau eine Despatch-Mai
     assert.equal(res.status,200);
     assert.equal(res.body.status,'saved');
     assert.equal(res.body.mailNotification.ok,true);
-    assert.equal(res.body.mailNotification.to,'DespatchNettetal@essentra.onmicrosoft.com');
+    assert.equal(res.body.mailNotification.to,'DespatchNettetal@essentra.com');
     assert.equal(fx.sentMails.length,1);
-    assert.equal(fx.sentMails[0].to,'DespatchNettetal@essentra.onmicrosoft.com');
+    assert.equal(fx.sentMails[0].to,'DespatchNettetal@essentra.com');
     assert.match(fx.sentMails[0].subject,/Neues AVIS-Dokument/);
     assert.match(fx.sentMails[0].subject,/ABC123/);
     assert.match(fx.sentMails[0].body,/Sendungsreferenz: ABC123/);

@@ -23,7 +23,7 @@ test('RC1249/RC1352: AVIS-Mail-Readiness akzeptiert nur signierten Release- oder
 test('RC1249/RC1352: normale Readiness bleibt versandfrei; Testmail ist explizit, production-only und intern',()=>{
   assert.match(source,/graphMail\.readiness\(\)/);
   assert.match(source,/EXPORTHUB_AVIS_UPLOAD_NOTIFICATION_TO/);
-  assert.match(source,/DespatchNettetal@essentra\.onmicrosoft\.com/);
+  assert.match(source,/DespatchNettetal@essentra\.com/);
   assert.match(source,/GRAPH_MAIL_NOT_CONFIGURED/);
   assert.match(source,/MAIL_RECIPIENT_INVALID/);
   const action=source.indexOf("if(action==='send-test')");
@@ -79,5 +79,5 @@ test('RC1249: Release prüft TESTSERVICE und PRODUCTION Mail-Readiness in sicher
   assert.ok(testReady>=0&&prodDeploy>testReady,'TESTSERVICE Mail-Readiness muss Produktion blockieren können');
   assert.ok(prodReady>prodDeploy&&liveQr>prodReady,'PRODUCTION Mail-Readiness muss direkt nach Deployment verifiziert werden');
   assert.match(workflow,/audience=exporthub-avis-upload-mail-readiness/);
-  assert.match(workflow,/DespatchNettetal@essentra\.onmicrosoft\.com/);
+  assert.match(workflow,/DespatchNettetal@essentra\.com/);
 });

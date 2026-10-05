@@ -29,7 +29,7 @@ test('RC1352: echter Sendetest ist optional, production-only und fest auf intern
   assert.match(workflow,/send_test:/);
   assert.match(workflow,/if: \$\{\{ inputs\.send_test == true \}\}/);
   assert.match(workflow,/-d '\{"action":"send-test"\}'/);
-  assert.match(workflow,/DespatchNettetal@essentra\.onmicrosoft\.com/);
+  assert.match(workflow,/DespatchNettetal@essentra\.com/);
   assert.match(api,/if\(action==='send-test'\)/);
   assert.match(api,/if\(environment!=='production'\)throw error\('PRODUCTION_ONLY'/);
   assert.match(api,/to:DEFAULT_RECIPIENT/);

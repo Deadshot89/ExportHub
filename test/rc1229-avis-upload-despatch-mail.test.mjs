@@ -11,7 +11,7 @@ test('RC1229: AVIS-Upload-Mailintegration ist syntaktisch gültig',()=>{
 
 test('RC1229: Despatch Nettetal ist zusätzlicher Standardempfänger',()=>{
   assert.match(api,/EXPORTHUB_AVIS_UPLOAD_NOTIFICATION_TO/);
-  assert.match(api,/DespatchNettetal@essentra\.onmicrosoft\.com/);
+  assert.match(api,/DespatchNettetal@essentra\.com/);
   assert.match(api,/graphMail\.sendTextMail/);
 });
 

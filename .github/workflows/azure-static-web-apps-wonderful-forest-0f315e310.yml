@@ -605,7 +605,7 @@ jobs:
           )"
           STATUS="$status" ENVIRONMENT='testservice' RESPONSE="$response" node -e "
             const fs=require('fs'),status=Number(process.env.STATUS||0),env=process.env.ENVIRONMENT,v=JSON.parse(fs.readFileSync(process.env.RESPONSE,'utf8')||'{}');
-            const recipient='DespatchNettetal@essentra.onmicrosoft.com';
+            const recipient='DespatchNettetal@essentra.com';
             const ready=status===200&&v.ok===true&&v.configured===true&&v.authenticated===true&&v.audienceOk===true&&v.mailSendGranted===true&&v.environment===env&&v.recipient===recipient;
             if(ready)process.exit(0);
             const requirement=v.requiredPermission||{};
@@ -696,7 +696,7 @@ jobs:
           )"
           STATUS="$status" ENVIRONMENT='production' RESPONSE="$response" node -e "
             const fs=require('fs'),status=Number(process.env.STATUS||0),env=process.env.ENVIRONMENT,v=JSON.parse(fs.readFileSync(process.env.RESPONSE,'utf8')||'{}');
-            const recipient='DespatchNettetal@essentra.onmicrosoft.com';
+            const recipient='DespatchNettetal@essentra.com';
             const ready=status===200&&v.ok===true&&v.configured===true&&v.authenticated===true&&v.audienceOk===true&&v.mailSendGranted===true&&v.environment===env&&v.recipient===recipient;
             if(ready)process.exit(0);
             const requirement=v.requiredPermission||{};
