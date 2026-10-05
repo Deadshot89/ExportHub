@@ -541,7 +541,7 @@ test('RC1376: kurze DNC-Rahmen und EMPFÄNGER / KUNDE sind auf Deckblatt und Lad
   await assertRuntimeClean(guard,testInfo);
 });
 
-test('RC1379: POD-Ladeliste nutzt wieder eine Fahrerunterschrift und ordnet Verlader/Kennzeichen korrekt zu',async({page},testInfo)=>{
+test('RC1437: POD-Ladeliste zeigt bei ABD beide Fahrerunterschriften und ordnet Verlader/Kennzeichen korrekt zu',async({page},testInfo)=>{
   test.skip(testInfo.project.name!=='laptop','POD-Ladelistenlayout wird einmal im echten Chromium geprüft.');
   test.setTimeout(45_000);
   const guard=attachRuntimeGuards(page,testInfo);
@@ -576,12 +576,13 @@ test('RC1379: POD-Ladeliste nutzt wieder eine Fahrerunterschrift und ordnet Verl
       palletOut:4,
       returnedEuroPallets:2,
       driverSignature:sig,
+      customsDocumentsSignature:sig,
       confirmedAt:'2026-10-01T15:30:00Z'
     };
     document.body.innerHTML=api.enhance(raw,shipment);
     const root=document.querySelector('[data-rc1305-loading-list]');
     const filler=root&&root.querySelector('[data-rc1379-fixture-content]');
-    if(!root||!filler)throw new Error('RC1379 Druckfixture konnte nicht aufgebaut werden');
+    if(!root||!filler)throw new Error('RC1437 Druckfixture konnte nicht aufgebaut werden');
     root.style.setProperty('box-sizing','border-box','important');
     root.style.setProperty('width','194mm','important');
     root.style.setProperty('height','281mm','important');
@@ -601,7 +602,7 @@ test('RC1379: POD-Ladeliste nutzt wieder eine Fahrerunterschrift und ordnet Verl
     const loader=root.querySelector('.rc1305-meta-loader');
     const plate=root.querySelector('.rc1305-meta-plate');
     const images=Array.from(root.querySelectorAll('.rc1305-signature-image'));
-    if(!summary||!primary||!loader||!plate||images.length!==1)throw new Error('POD-Felder wurden nicht korrekt gerendert');
+    if(!summary||!primary||!customs||!loader||!plate||images.length!==2)throw new Error('POD-/ABD-Felder wurden nicht korrekt gerendert');
     const rr=root.getBoundingClientRect(),sr=summary.getBoundingClientRect();
     const itemRects=Array.from(summary.querySelectorAll('.rc1305-pickup-item')).map(node=>node.getBoundingClientRect());
     let overlap=false;
@@ -609,8 +610,10 @@ test('RC1379: POD-Ladeliste nutzt wieder eine Fahrerunterschrift und ordnet Verl
       const a=itemRects[i],b=itemRects[j],x=Math.min(a.right,b.right)-Math.max(a.left,b.left),y=Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top);
       if(x>1&&y>1)overlap=true;
     }
-    const image=images[0],ir=image.getBoundingClientRect(),parent=image.closest('.rc1305-pickup-signature').getBoundingClientRect();
-    const imageInside=ir.left>=parent.left-1&&ir.right<=parent.right+1&&ir.top>=parent.top-1&&ir.bottom<=parent.bottom+1;
+    const imagesInside=images.every(image=>{
+      const ir=image.getBoundingClientRect(),holder=image.closest('.rc1305-pickup-signature'),parent=holder&&holder.getBoundingClientRect();
+      return !!parent&&ir.left>=parent.left-1&&ir.right<=parent.right+1&&ir.top>=parent.top-1&&ir.bottom<=parent.bottom+1;
+    });
     return{
       scrollHeight:root.scrollHeight,
       clientHeight:root.clientHeight,
@@ -622,16 +625,16 @@ test('RC1379: POD-Ladeliste nutzt wieder eine Fahrerunterschrift und ordnet Verl
       loaderText:String(loader.textContent||''),
       plateText:String(plate.textContent||''),
       overlap,
-      imageInside
+      imagesInside
     };
   });
 
-  expect(layout.signatureCount).toBe(1);
-  expect(layout.customsSignaturePresent,'Eine zweite Zoll-Unterschrift darf nicht mehr erscheinen').toBe(false);
+  expect(layout.signatureCount).toBe(2);
+  expect(layout.customsSignaturePresent,'Bei ABD muss die zweite Zoll-Unterschrift erscheinen').toBe(true);
   expect(layout.loaderText).toContain('Tobias');
   expect(layout.plateText).toContain('KLE-AB 1234');
   expect(layout.overlap,'Elemente des Abholnachweises überlappen sich').toBe(false);
-  expect(layout.imageInside,'Die Fahrerunterschrift ragt aus ihrem Feld').toBe(true);
+  expect(layout.imagesInside,'Eine Fahrerunterschrift ragt aus ihrem Feld').toBe(true);
   expect(layout.summaryHeight,'Der Abholblock ist für A4 zu hoch').toBeLessThan(160);
   expect(layout.summaryBottom<=layout.rootBottom+2,'Der Abholblock ragt aus der A4-Ladeliste heraus').toBe(true);
   expect(layout.scrollHeight<=layout.clientHeight+2,'Die POD-Ladeliste würde auf eine zweite Seite überlaufen').toBe(true);
