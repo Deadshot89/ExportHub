@@ -54,6 +54,17 @@ test('all six languages keep mandatory registration CC',async()=>{
  }
 });
 
+test('Tobias as the primary recipient is not duplicated in reminder CC',async()=>{
+ const {api,sh,launches}=setup();
+ await api.sendReminder(sh,'TobiasLimberg@essentra.com','customer','de',sh.customerAvisUrl,'reminder');
+ const draft=new URL(launches[0]);
+ assert.equal(decodeURIComponent(draft.pathname),'TobiasLimberg@essentra.com');
+ const cc=draft.searchParams.get('cc').toLowerCase().split(';');
+ assert.ok(!cc.includes('tobiaslimberg@essentra.com'));
+ assert.ok(cc.includes('sevastianmarcu@essentra.com'));
+ assert.ok(cc.includes('danielollmann@essentra.com'));
+});
+
 test('matching current shipment copy receives the opening history',async()=>{
  const {api,sh,state}=setup();state.shipment={...sh};
  await api.sendReminder(sh,'customer@example.com','customer','de',sh.customerAvisUrl,'reminder');
