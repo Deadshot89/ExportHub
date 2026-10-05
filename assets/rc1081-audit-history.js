@@ -1,4 +1,4 @@
-// ExportHUB RC1087 – zentrale Historie inklusive sicherheitsrelevanter Admin-Aktionen.
+// ExportHUB RC1436 – zentrale Historie inklusive Kunden-AVIS-Audit und sicherheitsrelevanter Admin-Aktionen.
 (function(w,d){
 'use strict';
 if(!w||!d||w.__EXPORTHUB_RC1081_AUDIT_HISTORY__)return;
@@ -7,12 +7,22 @@ w.__EXPORTHUB_RC1084_HISTORY_DE__=true;
 w.__EXPORTHUB_RC1086_HISTORY_COMPLETE__=true;
 w.__EXPORTHUB_RC1087_ADMIN_AUDIT__=true;
 w.__EXPORTHUB_RC1087_RELEASE__=true;
+w.__EXPORTHUB_RC1436_CUSTOMER_AVIS_AUDIT__=true;
 
 var FILTER={query:'',type:'all',subtype:'all',actor:'all',entity:'all',days:0,from:'',to:''};
+var CUSTOMER_AVIS_COPY={
+ de:{confirmed:'Kunde hat Abholung bestätigt',changed:'Kunde hat Abholung geändert',source:'Kunde über AVIS-Link',badge:'Kunden-Avis',date:'Abholdatum',time:'Zeitfenster',plate:'Kennzeichen',note:'Bemerkung'},
+ en:{confirmed:'Customer confirmed pickup',changed:'Customer changed pickup',source:'Customer via AVIS link',badge:'Customer AVIS',date:'Pickup date',time:'Time window',plate:'License plate',note:'Note'},
+ pl:{confirmed:'Klient potwierdził odbiór',changed:'Klient zmienił odbiór',source:'Klient przez link AVIS',badge:'AVIS klienta',date:'Data odbioru',time:'Przedział czasowy',plate:'Numer rejestracyjny',note:'Uwaga'},
+ es:{confirmed:'El cliente confirmó la recogida',changed:'El cliente modificó la recogida',source:'Cliente mediante enlace AVIS',badge:'AVIS de cliente',date:'Fecha de recogida',time:'Franja horaria',plate:'Matrícula',note:'Observación'},
+ fr:{confirmed:'Le client a confirmé l’enlèvement',changed:'Le client a modifié l’enlèvement',source:'Client via lien AVIS',badge:'AVIS client',date:'Date d’enlèvement',time:'Créneau horaire',plate:'Immatriculation',note:'Remarque'},
+ it:{confirmed:'Il cliente ha confermato il ritiro',changed:'Il cliente ha modificato il ritiro',source:'Cliente tramite link AVIS',badge:'AVIS cliente',date:'Data ritiro',time:'Fascia oraria',plate:'Targa',note:'Nota'}
+};
 
 function q(v){return String(v==null?'':v).trim()}
 function low(v){return q(v).toLocaleLowerCase('de-DE')}
 function arr(v){return Array.isArray(v)?v:[]}
+function obj(v){return!!v&&typeof v==='object'&&!Array.isArray(v)}
 function state(){try{if(typeof w.__EXPORTHUB_GET_STATE__==='function')return w.__EXPORTHUB_GET_STATE__()||{}}catch(_){}return w.ExportHUBClean&&w.ExportHUBClean.state||w.appState||{}}
 function view(){var s=state();return low(s.view||s.currentView||s.activeView||s.page||'')}
 function historyView(){var v=view();return v==='history'||v==='historie'}
@@ -21,6 +31,7 @@ function tr(key,vars){try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.t==='functi
 function th(key,vars){return esc(tr(key,vars))}
 function lang(){try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.language==='function')return w.ExportHUBI18n.language()}catch(_){}return'de'}
 function locale(){return({de:'de-DE',en:'en-GB',pl:'pl-PL',es:'es-ES',fr:'fr-FR',it:'it-IT'})[lang()]||'de-DE'}
+function customerAvisCopy(key){var c=CUSTOMER_AVIS_COPY[lang()]||CUSTOMER_AVIS_COPY.de;return q(c[key]||CUSTOMER_AVIS_COPY.de[key]||key)}
 function fmt(v){var raw=q(v),x;if(/^\d{4}-\d{2}-\d{2}$/.test(raw)){var p=raw.split('-').map(Number);x=new Date(p[0],p[1]-1,p[2]);try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.formatDate==='function')return w.ExportHUBI18n.formatDate(x,{dateStyle:'short'})}catch(_){}return new Intl.DateTimeFormat(locale(),{dateStyle:'short'}).format(x)}x=new Date(v);if(!Number.isFinite(x.getTime()))return raw||'—';try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.formatDate==='function')return w.ExportHUBI18n.formatDate(x,{dateStyle:'short',timeStyle:'medium'})}catch(_){}return new Intl.DateTimeFormat(locale(),{dateStyle:'short',timeStyle:'medium'}).format(x)}
 function identity(sh){return q(sh&&(sh.id||sh.shipmentId||sh.reference||sh.ref||sh.shipmentRef||sh.referenceNumber)).toUpperCase()}
 function shipmentRef(sh){return q(sh&&(sh.reference||sh.ref||sh.shipmentRef||sh.referenceNumber||sh.id))}
@@ -28,6 +39,18 @@ function customerName(c){return q(c&&(c.name||c.customerName||c.companyName||c.a
 function actorName(e){return q(e&&e.actor&&e.actor.name||e&&e.actor||e&&e.by||e&&e.user)||'System'}
 function eventKey(e){return q(e&&e.id)||[q(e&&e.at),q(e&&e.type),q(e&&e.subtype),q(e&&e.label),actorName(e),q(e&&e.entityId)].join('|').toLowerCase()}
 function pushUnique(map,e){if(!e||!q(e.at))return;var k=eventKey(e);if(k&&!map.has(k))map.set(k,e)}
+function customerAvisEvent(e){
+ if(!e)return false;
+ var type=q(e.type),subtype=q(e.subtype||e.type),actor=low(actorName(e)),role=low(e.actor&&e.actor.role),label=low(e.label),x=e.details||{};
+ if(type==='shipment'&&subtype!=='avis')return false;
+ if(type!=='shipment'&&type!=='avis')return false;
+ return actor==='kunden-avis'||actor==='customer-avis'||role==='kunde'||/abholtermin.*kunden|pickup.*customer|customer.*pickup/.test(label)||!!(obj(x.before)&&obj(x.after)&&(q(x.reference)||q(x.oldDate)||q(x.newDate)))
+}
+function customerAvisChanged(e){
+ var x=e&&e.details||{},before=obj(x.before)?x.before:{},after=obj(x.after)?x.after:{},label=low(e&&e.label);
+ if(/geändert|changed|modified|zmieni|modific|modifié|modificato/.test(label))return true;
+ return ['date','timeFrom','timeTo','plate','note'].some(function(k){return q(before[k])!==q(after[k])&&q(before[k])!==''})
+}
 
 var AUDIT_LABELS={
  LOGIN_SUCCESS:'history.audit.LOGIN_SUCCESS',
@@ -101,6 +124,7 @@ function shipmentActionTitle(raw,subtype,details){
 }
 function actionTitle(e){
  var raw=q(e&&e.label),mapped=actionLabel(e);
+ if(customerAvisEvent(e))return customerAvisCopy(customerAvisChanged(e)?'changed':'confirmed');
  if(e&&e.type==='audit')return mapped;
  if(e&&e.type==='shipment')return shipmentActionTitle(raw,e&&e.subtype,e&&e.details);
  if(e&&(e.type==='customer'||e.type==='task'||e.type==='pallet'))return mapped;
@@ -108,7 +132,7 @@ function actionTitle(e){
  return mapped
 }
 function subtypeTechnical(e){return q(e&&e.subtype).replace(/[-_]+/g,' ')}
-function actionKey(e){var raw=q(e&&e.label),special=e&&e.type==='shipment'?shipmentLegacyCode(raw):'',canonical=special||low(raw||subtypeTechnical(e));return q(e&&e.type)+'|'+q(e&&e.subtype)+'|'+canonical}
+function actionKey(e){var raw=q(e&&e.label),special=e&&e.type==='shipment'?shipmentLegacyCode(raw):'',canonical=customerAvisEvent(e)?(customerAvisChanged(e)?'customer-avis-changed':'customer-avis-confirmed'):(special||low(raw||subtypeTechnical(e)));return q(e&&e.type)+'|'+q(e&&e.subtype)+'|'+canonical}
 function duplicateKey(e){var special=e&&e.type==='shipment'?shipmentLegacyCode(e.label):'';return special?q(e&&e.type)+'|'+special:actionKey(e)}
 function duplicateWindowMs(e){
  if(!e||e.type!=='shipment')return 0;
@@ -127,6 +151,7 @@ function eventQuality(e){
  if(q(details.reference))score+=4;
  if(q(details.action))score+=2;
  if(q(details.to)||q(details.subject))score+=1;
+ if(obj(details.before)&&obj(details.after))score+=8;
  if(raw)score+=3;
  if(e&&e.subtype==='created')score+=3;
  return score
@@ -176,7 +201,8 @@ function systemActor(v){
  return raw
 }
 function actorDisplay(v){
- var raw=typeof v==='object'?actorName(v):q(v);
+ var raw=typeof v==='object'?actorName(v):q(v),k=low(raw);
+ if(k==='kunden-avis'||k==='customer-avis')return customerAvisCopy('source');
  if(raw==='System')return tr('history.entity.system');
  return /^history\.actor\./.test(raw)?tr(raw):raw
 }
@@ -216,9 +242,20 @@ function allShipments(){
  ['shipments','savedShipments','shipmentArchive','archivedShipments','salesSharedShipments','sharedShipments'].forEach(function(k){arr(s[k]).forEach(function(sh){if(sh&&typeof sh==='object')list.push(sh)})});
  return list
 }
+function mergeShipmentEvents(sh,normalized){
+ var raw=arr(sh&&sh.shipmentHistory),rawById=new Map(),normalizedIds=new Set();
+ raw.forEach(function(e){var id=q(e&&e.id);if(id)rawById.set(id,e)});
+ var merged=arr(normalized).map(function(e){
+  var id=q(e&&e.id);if(id)normalizedIds.add(id);var rawEvent=id?rawById.get(id):null;if(!rawEvent)return e;
+  var normalizedDetails=e&&e.details||{},rawDetails=rawEvent&&rawEvent.details||{};
+  return Object.assign({},e,{label:q(rawEvent.label)||q(e.label),actor:rawEvent.actor||e.actor,source:q(rawEvent.source)||q(e.source),details:Object.assign({},normalizedDetails,rawDetails)})
+ });
+ raw.forEach(function(e){var id=q(e&&e.id);if(!id||!normalizedIds.has(id))merged.push(e)});
+ return merged
+}
 function shipmentEvents(sh){
  var api=w.ExportHUBShipmentHistory1071;
- if(api&&typeof api.events==='function'){try{return arr(api.events(sh))}catch(_){}}
+ if(api&&typeof api.events==='function'){try{return mergeShipmentEvents(sh,arr(api.events(sh)))}catch(_){}}
  return arr(sh&&sh.shipmentHistory)
 }
 function allEvents(){
@@ -231,8 +268,19 @@ function allEvents(){
  return consolidateEvents(Array.from(map.values()).sort(function(a,b){return Date.parse(b.at||0)-Date.parse(a.at||0)}))
 }
 function field(key,value){return tr('history.field.'+key)+': '+value}
+function customerAvisDetailParts(e){
+ var x=e&&e.details||{},before=obj(x.before)?x.before:{date:x.oldDate,timeFrom:x.oldTimeFrom,timeTo:x.oldTimeTo,plate:x.oldPlate,note:x.oldNote},after=obj(x.after)?x.after:{date:x.newDate,timeFrom:x.newTimeFrom,timeTo:x.newTimeTo,plate:x.newPlate,note:x.newNote},changed=customerAvisChanged(e),parts=[];
+ var oldDate=q(before.date),newDate=q(after.date),oldTime=[q(before.timeFrom),q(before.timeTo)].filter(Boolean).join('–'),newTime=[q(after.timeFrom),q(after.timeTo)].filter(Boolean).join('–'),oldPlate=q(before.plate),newPlate=q(after.plate),oldNote=q(before.note),newNote=q(after.note);
+ function add(label,oldValue,newValue,format){var oldText=q(oldValue),newText=q(newValue);if(!changed){if(newText)parts.push(label+': '+(format?format(newText):newText));return}if(oldText===newText)return;parts.push(label+': '+(format?format(oldText||'—'):oldText||'—')+' → '+(format?format(newText||'—'):newText||'—'))}
+ add(customerAvisCopy('date'),oldDate,newDate,function(v){return v==='—'?v:fmt(v)});
+ add(customerAvisCopy('time'),oldTime,newTime);
+ add(customerAvisCopy('plate'),oldPlate,newPlate);
+ add(customerAvisCopy('note'),oldNote,newNote);
+ return parts
+}
 function detailText(e){
  var x=e&&e.details||{},parts=[];
+ if(customerAvisEvent(e)){parts=customerAvisDetailParts(e);if(x.reference)parts.push(field('reference',q(x.reference)));return Array.from(new Set(parts.filter(Boolean))).join(' · ')}
  if(x.username)parts.push(field('user',q(x.username)));
  if(x.loaderName)parts.push(field('loader',q(x.loaderName)));
  if(x.loaderId)parts.push(field('loaderId',q(x.loaderId)));
@@ -296,10 +344,11 @@ function filterEvents(events){
  })
 }
 function countType(events,type){return events.filter(function(e){return e.type===type}).length}
+function countCustomerAvis(events){return events.filter(customerAvisEvent).length}
 function ensureStyle(){
  if(d.getElementById('rc1081AuditHistoryStyle'))return;
  var s=d.createElement('style');s.id='rc1081AuditHistoryStyle';
- s.textContent='.rc1084-history{margin-top:12px}.rc1084-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}.rc1084-head h3{margin:5px 0 3px;font-size:22px}.rc1084-summary{display:grid;grid-template-columns:repeat(6,minmax(110px,1fr));gap:8px;margin:14px 0}.rc1084-summary-card{padding:10px 12px;border:1px solid #dbe4ec;border-radius:12px;background:var(--surface,#fff)}.rc1084-summary-card b{display:block;font-size:20px}.rc1084-summary-card span{font-size:11px;color:#64748b}.rc1084-filters{display:grid;grid-template-columns:minmax(250px,1.5fr) repeat(4,minmax(145px,.7fr)) minmax(135px,.6fr) minmax(140px,.55fr) minmax(140px,.55fr);gap:8px;margin:12px 0 14px}.rc1084-filters label{display:grid;gap:4px;font-size:11px;font-weight:700;color:#475569}.rc1084-filters input,.rc1084-filters select{min-height:40px;padding:8px 10px;border:1px solid #cbd5e1;border-radius:9px;background:var(--surface,#fff);color:inherit}.rc1084-actions{display:flex;gap:7px;flex-wrap:wrap;align-items:center}.rc1084-table-wrap{width:100%;overflow-x:auto;border:1px solid #dbe4ec;border-radius:12px;background:var(--surface,#fff)}.rc1084-table{width:100%;border-collapse:collapse;min-width:980px}.rc1084-table th{padding:9px 10px;background:#f1f5f9;color:#475569;font-size:11px;text-transform:uppercase;letter-spacing:.03em;text-align:left;border-bottom:1px solid #dbe4ec}.rc1084-table td{padding:10px;border-bottom:1px solid #e7edf3;vertical-align:top;font-size:12px}.rc1084-table tr:last-child td{border-bottom:0}.rc1084-table tbody tr:hover{background:#f8fafc}.rc1084-time{white-space:nowrap;color:#475569}.rc1084-area{display:inline-flex;padding:4px 7px;border-radius:999px;background:#eef6ff;color:#1d4ed8;font-weight:750;white-space:nowrap}.rc1084-action-title{font-weight:800;color:#0f172a}.rc1084-user{font-weight:700}.rc1084-object{font-weight:700;color:#334155}.rc1084-detail{color:#64748b;line-height:1.35}.rc1084-empty{padding:24px;text-align:center;color:#64748b}.rc1084-count{font-size:12px;color:#64748b;margin-top:5px}@media(max-width:1180px){.rc1084-filters{grid-template-columns:repeat(3,1fr)}}@media(max-width:760px){.rc1084-summary{grid-template-columns:1fr 1fr}.rc1084-filters{grid-template-columns:1fr 1fr}.rc1084-table{min-width:0}.rc1084-table thead{display:none}.rc1084-table,.rc1084-table tbody,.rc1084-table tr,.rc1084-table td{display:block;width:100%}.rc1084-table tr{padding:8px 10px;border-bottom:1px solid #dbe4ec}.rc1084-table td{display:grid;grid-template-columns:105px 1fr;gap:8px;padding:5px 0;border:0}.rc1084-table td:before{content:attr(data-label);font-size:10px;font-weight:800;text-transform:uppercase;color:#64748b}.rc1084-table tbody tr:last-child{border-bottom:0}}@media(max-width:520px){.rc1084-summary,.rc1084-filters{grid-template-columns:1fr}}';
+ s.textContent='.rc1084-history{margin-top:12px}.rc1084-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}.rc1084-head h3{margin:5px 0 3px;font-size:22px}.rc1084-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin:14px 0}.rc1084-summary-card{padding:10px 12px;border:1px solid #dbe4ec;border-radius:12px;background:var(--surface,#fff)}.rc1084-summary-card b{display:block;font-size:20px}.rc1084-summary-card span{font-size:11px;color:#64748b}.rc1084-summary-card.rc1084-avis-summary{border-color:#7dd3fc;box-shadow:inset 4px 0 0 #0284c7}.rc1084-filters{display:grid;grid-template-columns:minmax(250px,1.5fr) repeat(4,minmax(145px,.7fr)) minmax(135px,.6fr) minmax(140px,.55fr) minmax(140px,.55fr);gap:8px;margin:12px 0 14px}.rc1084-filters label{display:grid;gap:4px;font-size:11px;font-weight:700;color:#475569}.rc1084-filters input,.rc1084-filters select{min-height:40px;padding:8px 10px;border:1px solid #cbd5e1;border-radius:9px;background:var(--surface,#fff);color:inherit}.rc1084-actions{display:flex;gap:7px;flex-wrap:wrap;align-items:center}.rc1084-table-wrap{width:100%;overflow-x:auto;border:1px solid #dbe4ec;border-radius:12px;background:var(--surface,#fff)}.rc1084-table{width:100%;border-collapse:collapse;min-width:980px}.rc1084-table th{padding:9px 10px;background:#f1f5f9;color:#475569;font-size:11px;text-transform:uppercase;letter-spacing:.03em;text-align:left;border-bottom:1px solid #dbe4ec}.rc1084-table td{padding:10px;border-bottom:1px solid #e7edf3;vertical-align:top;font-size:12px}.rc1084-table tr:last-child td{border-bottom:0}.rc1084-table tbody tr:hover{background:#f8fafc}.rc1084-table tbody tr.rc1084-customer-avis{box-shadow:inset 4px 0 0 #0284c7}.rc1084-time{white-space:nowrap;color:#475569}.rc1084-area{display:inline-flex;padding:4px 7px;border-radius:999px;background:#eef6ff;color:#1d4ed8;font-weight:750;white-space:nowrap}.rc1084-action-title{font-weight:800;color:#0f172a}.rc1084-source-badge{display:inline-flex;margin-top:5px;padding:2px 7px;border:1px solid #7dd3fc;border-radius:999px;color:#0369a1;font-size:10px;font-weight:800}.rc1084-user{font-weight:700}.rc1084-object{font-weight:700;color:#334155}.rc1084-detail{color:#64748b;line-height:1.35}.rc1084-empty{padding:24px;text-align:center;color:#64748b}.rc1084-count{font-size:12px;color:#64748b;margin-top:5px}@media(max-width:1180px){.rc1084-filters{grid-template-columns:repeat(3,1fr)}}@media(max-width:760px){.rc1084-summary{grid-template-columns:1fr 1fr}.rc1084-filters{grid-template-columns:1fr 1fr}.rc1084-table{min-width:0}.rc1084-table thead{display:none}.rc1084-table,.rc1084-table tbody,.rc1084-table tr,.rc1084-table td{display:block;width:100%}.rc1084-table tr{padding:8px 10px;border-bottom:1px solid #dbe4ec}.rc1084-table td{display:grid;grid-template-columns:105px 1fr;gap:8px;padding:5px 0;border:0}.rc1084-table td:before{content:attr(data-label);font-size:10px;font-weight:800;text-transform:uppercase;color:#64748b}.rc1084-table tbody tr:last-child{border-bottom:0}}@media(max-width:520px){.rc1084-summary,.rc1084-filters{grid-template-columns:1fr}}';
  (d.head||d.documentElement).appendChild(s)
 }
 function csvCell(v){var x=String(v==null?'':v);return '"'+x.replace(/"/g,'""')+'"'}
@@ -327,8 +376,8 @@ function render(){
  var actionOptions='<option value="all">'+th('history.allActions')+'</option>'+actions.map(function(a){return'<option value="'+esc(a.key)+'"'+(FILTER.subtype===a.key?' selected':'')+'>'+esc(a.label)+' · '+esc(a.area)+'</option>'}).join('');
  var actorOptions='<option value="all">'+th('history.allUsers')+'</option>'+actors.map(function(a){return'<option value="'+esc(a)+'"'+(FILTER.actor===a?' selected':'')+'>'+esc(actorDisplay(a))+'</option>'}).join('');
  var entityOptions='<option value="all">'+th('history.allObjects')+'</option>'+entities.map(function(a){return'<option value="'+esc(a)+'"'+(FILTER.entity===a?' selected':'')+'>'+esc(entityDisplay(a))+'</option>'}).join('');
- var rows=filtered.length?filtered.map(function(e){var det=detailText(e);return'<tr><td class="rc1084-time" data-label="'+th('history.time')+'">'+esc(fmt(e.at))+'</td><td data-label="'+th('history.area')+'"><span class="rc1084-area">'+esc(typeLabel(e.type))+'</span></td><td data-label="'+th('history.action')+'"><div class="rc1084-action-title">'+esc(actionTitle(e))+'</div></td><td data-label="'+th('history.user')+'"><div class="rc1084-user">'+esc(actorDisplay(e))+'</div>'+(e.actor&&e.actor.role?'<div class="rc1084-detail">'+esc(e.actor.role)+'</div>':'')+'</td><td data-label="'+th('history.object')+'"><div class="rc1084-object">'+esc(entityDisplay(e.entity))+'</div>'+(e.entityId?'<div class="rc1084-detail">'+esc(e.entityId)+'</div>':'')+'</td><td data-label="'+th('history.details')+'"><div class="rc1084-detail">'+esc(det||'—')+'</div></td></tr>'}).join(''):'<tr><td colspan="6" class="rc1084-empty">'+th('history.noEntries')+'</td></tr>';
- old.innerHTML='<div class="rc1084-head"><div><span class="pill blue">'+th('history.badge')+'</span><h3>'+th('history.title')+'</h3><div class="muted">'+th('history.subtitle')+'</div><div class="rc1084-count">'+th('history.count',{total:events.length,shown:filtered.length})+'</div></div><div class="rc1084-actions"><button type="button" class="btn ghost" data-rc1081-reset>'+th('history.filterReset')+'</button><button type="button" class="btn ghost" data-rc1081-csv>'+th('history.csvExport')+'</button><button type="button" class="btn" data-rc1081-print>'+th('common.print')+'</button></div></div><div class="rc1084-summary"><div class="rc1084-summary-card"><b>'+events.length+'</b><span>'+th('history.allActions')+'</span></div><div class="rc1084-summary-card"><b>'+countType(events,'shipment')+'</b><span>'+esc(typeLabel('shipment'))+'</span></div><div class="rc1084-summary-card"><b>'+countType(events,'customer')+'</b><span>'+esc(typeLabel('customer'))+'</span></div><div class="rc1084-summary-card"><b>'+countType(events,'task')+'</b><span>'+esc(typeLabel('task'))+'</span></div><div class="rc1084-summary-card"><b>'+countType(events,'pallet')+'</b><span>'+esc(typeLabel('pallet'))+'</span></div><div class="rc1084-summary-card"><b>'+countType(events,'audit')+'</b><span>'+esc(typeLabel('audit'))+'</span></div></div><div class="rc1084-filters"><label>'+th('history.search')+'<input data-rc1081-q placeholder="'+th('history.searchPlaceholder')+'" value="'+esc(FILTER.query)+'"></label><label>'+th('history.area')+'<select data-rc1081-type>'+typeOptions+'</select></label><label>'+th('history.action')+'<select data-rc1081-subtype>'+actionOptions+'</select></label><label>'+th('history.user')+'<select data-rc1081-actor>'+actorOptions+'</select></label><label>'+th('history.object')+'<select data-rc1081-entity>'+entityOptions+'</select></label><label>'+th('history.period')+'<select data-rc1081-days><option value="0"'+(FILTER.days===0?' selected':'')+'>'+th('history.allData')+'</option><option value="7"'+(FILTER.days===7?' selected':'')+'>'+th('history.days',{count:7})+'</option><option value="30"'+(FILTER.days===30?' selected':'')+'>'+th('history.days',{count:30})+'</option><option value="90"'+(FILTER.days===90?' selected':'')+'>'+th('history.days',{count:90})+'</option><option value="180"'+(FILTER.days===180?' selected':'')+'>'+th('history.days',{count:180})+'</option><option value="365"'+(FILTER.days===365?' selected':'')+'>'+th('history.months12')+'</option></select></label><label>'+th('history.from')+'<input type="date" data-rc1081-from value="'+esc(FILTER.from)+'"></label><label>'+th('history.to')+'<input type="date" data-rc1081-to value="'+esc(FILTER.to)+'"></label></div><div class="rc1084-table-wrap"><table class="rc1084-table" data-rc1084-history-table><thead><tr><th>'+th('history.time')+'</th><th>'+th('history.area')+'</th><th>'+th('history.action')+'</th><th>'+th('history.user')+'</th><th>'+th('history.object')+'</th><th>'+th('history.details')+'</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+ var rows=filtered.length?filtered.map(function(e){var det=detailText(e),avis=customerAvisEvent(e);return'<tr'+(avis?' class="rc1084-customer-avis"':'')+'><td class="rc1084-time" data-label="'+th('history.time')+'">'+esc(fmt(e.at))+'</td><td data-label="'+th('history.area')+'"><span class="rc1084-area">'+esc(typeLabel(e.type))+'</span></td><td data-label="'+th('history.action')+'"><div class="rc1084-action-title">'+esc(actionTitle(e))+'</div>'+(avis?'<span class="rc1084-source-badge">'+esc(customerAvisCopy('badge'))+'</span>':'')+'</td><td data-label="'+th('history.user')+'"><div class="rc1084-user">'+esc(actorDisplay(e))+'</div>'+(e.actor&&e.actor.role?'<div class="rc1084-detail">'+esc(e.actor.role)+'</div>':'')+'</td><td data-label="'+th('history.object')+'"><div class="rc1084-object">'+esc(entityDisplay(e.entity))+'</div>'+(e.entityId?'<div class="rc1084-detail">'+esc(e.entityId)+'</div>':'')+'</td><td data-label="'+th('history.details')+'"><div class="rc1084-detail">'+esc(det||'—')+'</div></td></tr>'}).join(''):'<tr><td colspan="6" class="rc1084-empty">'+th('history.noEntries')+'</td></tr>';
+ old.innerHTML='<div class="rc1084-head"><div><span class="pill blue">'+th('history.badge')+'</span><h3>'+th('history.title')+'</h3><div class="muted">'+th('history.subtitle')+'</div><div class="rc1084-count">'+th('history.count',{total:events.length,shown:filtered.length})+'</div></div><div class="rc1084-actions"><button type="button" class="btn ghost" data-rc1081-reset>'+th('history.filterReset')+'</button><button type="button" class="btn ghost" data-rc1081-csv>'+th('history.csvExport')+'</button><button type="button" class="btn" data-rc1081-print>'+th('common.print')+'</button></div></div><div class="rc1084-summary"><div class="rc1084-summary-card"><b>'+events.length+'</b><span>'+th('history.allActions')+'</span></div><div class="rc1084-summary-card"><b>'+countType(events,'shipment')+'</b><span>'+esc(typeLabel('shipment'))+'</span></div><div class="rc1084-summary-card rc1084-avis-summary"><b>'+countCustomerAvis(events)+'</b><span>'+esc(customerAvisCopy('badge'))+'</span></div><div class="rc1084-summary-card"><b>'+countType(events,'customer')+'</b><span>'+esc(typeLabel('customer'))+'</span></div><div class="rc1084-summary-card"><b>'+countType(events,'task')+'</b><span>'+esc(typeLabel('task'))+'</span></div><div class="rc1084-summary-card"><b>'+countType(events,'pallet')+'</b><span>'+esc(typeLabel('pallet'))+'</span></div><div class="rc1084-summary-card"><b>'+countType(events,'audit')+'</b><span>'+esc(typeLabel('audit'))+'</span></div></div><div class="rc1084-filters"><label>'+th('history.search')+'<input data-rc1081-q placeholder="'+th('history.searchPlaceholder')+'" value="'+esc(FILTER.query)+'"></label><label>'+th('history.area')+'<select data-rc1081-type>'+typeOptions+'</select></label><label>'+th('history.action')+'<select data-rc1081-subtype>'+actionOptions+'</select></label><label>'+th('history.user')+'<select data-rc1081-actor>'+actorOptions+'</select></label><label>'+th('history.object')+'<select data-rc1081-entity>'+entityOptions+'</select></label><label>'+th('history.period')+'<select data-rc1081-days><option value="0"'+(FILTER.days===0?' selected':'')+'>'+th('history.allData')+'</option><option value="7"'+(FILTER.days===7?' selected':'')+'>'+th('history.days',{count:7})+'</option><option value="30"'+(FILTER.days===30?' selected':'')+'>'+th('history.days',{count:30})+'</option><option value="90"'+(FILTER.days===90?' selected':'')+'>'+th('history.days',{count:90})+'</option><option value="180"'+(FILTER.days===180?' selected':'')+'>'+th('history.days',{count:180})+'</option><option value="365"'+(FILTER.days===365?' selected':'')+'>'+th('history.months12')+'</option></select></label><label>'+th('history.from')+'<input type="date" data-rc1081-from value="'+esc(FILTER.from)+'"></label><label>'+th('history.to')+'<input type="date" data-rc1081-to value="'+esc(FILTER.to)+'"></label></div><div class="rc1084-table-wrap"><table class="rc1084-table" data-rc1084-history-table><thead><tr><th>'+th('history.time')+'</th><th>'+th('history.area')+'</th><th>'+th('history.action')+'</th><th>'+th('history.user')+'</th><th>'+th('history.object')+'</th><th>'+th('history.details')+'</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
  ensureStyle();
  var qf=old.querySelector('[data-rc1081-q]'),tf=old.querySelector('[data-rc1081-type]'),sf=old.querySelector('[data-rc1081-subtype]'),af=old.querySelector('[data-rc1081-actor]'),ef=old.querySelector('[data-rc1081-entity]'),df=old.querySelector('[data-rc1081-days]'),ff=old.querySelector('[data-rc1081-from]'),tof=old.querySelector('[data-rc1081-to]');
  if(qf)qf.addEventListener('input',function(){FILTER.query=this.value;render()});
@@ -345,8 +394,8 @@ function render(){
  if(pr)pr.addEventListener('click',printHistory);
  return true
 }
-function schedule(){w.setTimeout(function(){try{render()}catch(e){try{console.warn('RC1087 Historie',e)}catch(_){}}},0)}
+function schedule(){w.setTimeout(function(){try{render()}catch(e){try{console.warn('RC1436 Historie',e)}catch(_){}}},0)}
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded','exporthub:user-profile-updated','exporthub:language-changed'].forEach(function(n){try{w.addEventListener(n,schedule)}catch(_){}});
-w.ExportHUBRC1081AuditHistory=Object.freeze({version:'RC1177',events:allEvents,render:render,filter:filterEvents,exportCsv:exportCsv,print:printHistory,historyView:historyView,actionLabel:actionLabel,actionTitle:actionTitle,consolidateEvents:consolidateEvents});
+w.ExportHUBRC1081AuditHistory=Object.freeze({version:'RC1436',events:allEvents,render:render,filter:filterEvents,exportCsv:exportCsv,print:printHistory,historyView:historyView,actionLabel:actionLabel,actionTitle:actionTitle,consolidateEvents:consolidateEvents,customerAvisEvent:customerAvisEvent,customerAvisDetailParts:customerAvisDetailParts});
 })(window,document);
