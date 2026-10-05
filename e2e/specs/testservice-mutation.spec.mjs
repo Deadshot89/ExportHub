@@ -364,11 +364,8 @@ test('RC1255 P2: AVIS-Erinnerung läuft über TESTSERVICE UI, Outlook-Entwurf, A
   expect(draft.searchParams.get('subject')).toBe('Erinnerung – Lieferavis '+ref);
   expect(draft.searchParams.get('body')).toContain(issued.url+'&lang=de');
   const draftCc=(draft.searchParams.get('cc')||'').split(';').map(email=>email.trim().toLowerCase()).filter(Boolean);
-  // The safe internal fixture can itself be Tobias; the primary recipient must not be duplicated in CC.
-  for(const email of ['tobiaslimberg@essentra.com','sevastianmarcu@essentra.com','danielollmann@essentra.com']){
-    if(email!==prepared.email.toLowerCase())expect(draftCc).toContain(email);
-  }
-  expect(draftCc).not.toContain(prepared.email.toLowerCase());
+  // Der TESTSERVICE-Kunde hat bewusst keinen manuellen CC im Kundenordner.
+  expect(draftCc).toEqual([]);
   await settleStateSave(page,{timeout:25_000});
 
   const proof=await page.evaluate(async({token,runId,ref})=>{
