@@ -4,26 +4,26 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import {EventEmitter} from 'node:events';
 
-async function failedSend({domainTenant='sender-tenant',lookupStatus=200,lookup={id:'mailbox-id',mail:'DespatchNettetal@essentra.com',userPrincipalName:'despatch@tenant.example',userType:'Member'},headers={}}={}){
+async function failedSend({tokenStatus=200,sendStatus=401,senders=['DespatchNettetal@essentra.com'],environment={},domainTenant='sender-tenant',lookupStatus=200,lookup={id:'mailbox-id',mail:'DespatchNettetal@essentra.com',userPrincipalName:'despatch@tenant.example',userType:'Member'},headers={}}={}){
  const calls=[],claims={aud:'https://graph.microsoft.com',roles:['Mail.Send'],tid:'app-tenant',appid:'client-test',exp:Math.floor(Date.now()/1000)+3600};
  const token='x.'+Buffer.from(JSON.stringify(claims)).toString('base64url')+'.x';
  const https={request(options,callback){
   calls.push(options);
-  const req=new EventEmitter();req.write=()=>{};req.destroy=e=>req.emit('error',e);
+  const req=new EventEmitter();req.write=body=>options.testBody=body.toString();req.destroy=e=>req.emit('error',e);
   req.end=()=>{
    const res=new EventEmitter();res.headers={};
    let body;
-   if(options.path.endsWith('/token')){res.statusCode=200;body={access_token:token,expires_in:3600};}
+   if(options.path.endsWith('/token')){res.statusCode=tokenStatus;body=tokenStatus===200?{access_token:token,expires_in:3600}:{error:'invalid_client',error_description:'AADSTS700016: Application was not found in the target directory.'};}
    else if(options.path.includes('/.well-known/')){res.statusCode=200;body={issuer:'https://login.microsoftonline.com/'+domainTenant+'/v2.0'};}
    else if(options.method==='GET'){res.statusCode=lookupStatus;body=lookupStatus===200?lookup:{error:{code:'Authorization_RequestDenied',message:'Denied'}};}
-   else{res.statusCode=401;res.headers=headers;body=null;}
+   else{res.statusCode=sendStatus;res.headers=headers;body=null;}
    callback(res);queueMicrotask(()=>{if(body)res.emit('data',Buffer.from(JSON.stringify(body)));res.emit('end');});
   };return req;
  }};
- const sandbox={URL,URLSearchParams,Buffer,Date,setTimeout,process:{env:{EXPORTHUB_GRAPH_TENANT_ID:'app-tenant',EXPORTHUB_GRAPH_CLIENT_ID:'client-test',EXPORTHUB_GRAPH_CLIENT_SECRET:'secret-test',EXPORTHUB_MAIL_SENDER:'configured@example.com'}},module:{exports:{}},require:()=>https};
+ const sandbox={URL,URLSearchParams,Buffer,Date,setTimeout,process:{env:{EXPORTHUB_GRAPH_TENANT_ID:'app-tenant',EXPORTHUB_GRAPH_CLIENT_ID:'client-test',EXPORTHUB_GRAPH_CLIENT_SECRET:'secret-test',EXPORTHUB_MAIL_SENDER:'configured@example.com',...environment}},module:{exports:{}},require:()=>https};
  vm.runInNewContext(fs.readFileSync('api/shared/graph-mail.js','utf8'),sandbox);
  let error;
- try{await sandbox.module.exports.sendTextMail({to:'internal@example.com',sender:'DespatchNettetal@essentra.com',subject:'Test',body:'Test'});}catch(e){error=e;}
+ try{for(const sender of senders)await sandbox.module.exports.sendTextMail({to:'internal@example.com',sender,subject:'Test',body:'Test'});}catch(e){error=e;}
  return{error,calls,token};
 }
 
@@ -72,4 +72,34 @@ test('real mail gate runs before broad browser matrix and both remain required',
  const broad=source.indexOf('npx playwright test             e2e/specs/navigation.spec.mjs',source.indexOf('id: rc1124_testservice_browser_gate'));
  assert.ok(mail>=0&&broad>mail);
  assert.ok(source.indexOf('Deploy ExportHUB production',broad)>broad);
+});
+
+test('Essentra sender acquires its token from the Essentra authority, preserving the configured app credentials',async()=>{
+ const {calls}=await failedSend();
+ const tokenRequests=calls.filter(c=>c.path.endsWith('/token'));
+ assert.equal(tokenRequests.length,2);
+ for(const req of tokenRequests)assert.equal(req.path,'/essentra.com/oauth2/v2.0/token');
+});
+
+test('mail-specific app credentials can be configured without altering the shared drive credentials',async()=>{
+ const {calls}=await failedSend({environment:{EXPORTHUB_MAIL_GRAPH_CLIENT_ID:'mail-client-test',EXPORTHUB_MAIL_GRAPH_CLIENT_SECRET:'mail-secret-test'}});
+ const form=new URLSearchParams(calls.find(c=>c.path.endsWith('/token')).testBody);
+ assert.equal(form.get('client_id'),'mail-client-test');
+ assert.equal(form.get('client_secret'),'mail-secret-test');
+ assert.equal(form.get('scope'),'https://graph.microsoft.com/.default');
+});
+
+test('missing app in the correct tenant remains an explicit OAuth error, with no fallback to the wrong tenant',async()=>{
+ const {error,calls}=await failedSend({tokenStatus:400});
+ assert.equal(error.upstreamCode,'invalid_client');
+ assert.match(error.upstreamMessage,/AADSTS700016/);
+ assert.equal(calls.length,1);
+ assert.equal(calls[0].path,'/essentra.com/oauth2/v2.0/token');
+});
+
+test('cached token from another authority is never reused for the Essentra mailbox',async()=>{
+ const {error,calls}=await failedSend({sendStatus:202,senders:['configured@example.com','DespatchNettetal@essentra.com']});
+ assert.equal(error,undefined);
+ assert.deepEqual(calls.filter(c=>c.path.endsWith('/token')).map(c=>c.path),['/app-tenant/oauth2/v2.0/token','/essentra.com/oauth2/v2.0/token']);
+ assert.equal(calls.filter(c=>c.path.endsWith('/sendMail')).length,2);
 });
