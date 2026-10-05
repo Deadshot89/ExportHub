@@ -103,17 +103,22 @@ test('RC1292: Reminder-Backend blockiert Holenstein vor URL-Verarbeitung und Gra
 });
 
 
-test('RC1431: AVIS-Mail verwendet den dedizierten Despatch-Absender und behält Sales, ExportHUB-CC sowie Tobias in CC',()=>{
+test('RC1436: AVIS-Mail behält Despatch als Absender und verwendet ausschließlich manuelle CCs aus dem Kundenordner',()=>{
  assert.match(api,/DEFAULT_AVIS_MAIL_SENDER='DespatchNettetal@essentra\.com'/);
  assert.match(api,/function configuredAvisMailSender\(\)\{return text\(process\.env\.EXPORTHUB_AVIS_MAIL_SENDER\|\|DEFAULT_AVIS_MAIL_SENDER\)\}/);
  assert.match(api,/const sender=configuredAvisMailSender\(\),cc=ccRecipients\(current\.team,shipment,to,sender\)/);
  assert.match(api,/graphMail\.sendTextMail\(\{to,subject:sub,body:content,sender,cc\}\)/);
  assert.doesNotMatch(api,/function configuredMailSender\(\)\{return text\(process\.env\.EXPORTHUB_MAIL_SENDER\|\|process\.env\.EXPORTHUB_POD_DRIVE_USER\)\}/);
- assert.match(api,/FIXED_CC='TobiasLimberg@essentra\.com'/);
- assert.match(api,/salesContacts/);
- assert.match(api,/customerSalesContacts/);
- assert.match(api,/ccContacts/);
- assert.match(api,/customerCcContacts/);
+ assert.doesNotMatch(api,/FIXED_CC=/);
+ const ccBlock=api.slice(api.indexOf('function ccRecipients'),api.indexOf('function pickupDate'));
+ assert.match(ccBlock,/c\.ccContacts/);
+ assert.match(ccBlock,/c\.customerCcContacts/);
+ assert.match(ccBlock,/c\.cc/);
+ assert.match(ccBlock,/c\.mailCc/);
+ assert.match(ccBlock,/c\.rc385Cc/);
+ assert.doesNotMatch(ccBlock,/TobiasLimberg@essentra\.com/i);
+ assert.doesNotMatch(ccBlock,/salesContacts|customerSalesContacts|salesMail|salesEmail|salesPersonMail|salesPersonEmail|salesContactMail|salesContactEmail|rc385SalesMail|salesCc/);
+ assert.doesNotMatch(ccBlock,/sh&&sh\./);
  assert.match(graph,/ccRecipients/);
 });
 test('RC1358: Erstversand wird gespeichert und Reminder serverseitig drei Arbeitstage gesperrt',()=>{
