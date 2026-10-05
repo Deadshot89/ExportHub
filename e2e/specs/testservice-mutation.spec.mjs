@@ -198,7 +198,7 @@ test('RC1139 P0: TESTSERVICE Sitzung schreibt echten State, Reload liest ihn zur
 });
 
 
-test('RC1255 P2: AVIS-Erinnerung läuft über TESTSERVICE UI, echte Mail, AVIS-Link und History',async({page},testInfo)=>{
+test('RC1255 P2: AVIS-Erinnerung läuft über TESTSERVICE UI, Outlook-Entwurf, AVIS-Link und History',async({page},testInfo)=>{
   test.setTimeout(180_000);
   test.skip(process.env.EXPORTHUB_E2E_MUTATION!=='1','RC1255 läuft nur im mutierenden TESTSERVICE-Gate.');
   test.skip(testInfo.project.name!=='laptop','RC1255 läuft genau einmal auf dem Laptop-Profil.');
@@ -334,7 +334,7 @@ test('RC1255 P2: AVIS-Erinnerung läuft über TESTSERVICE UI, echte Mail, AVIS-L
   const refNode=page.getByText(ref,{exact:true}).first();
   await expect(refNode).toBeVisible();
   const card=refNode.locator('xpath=ancestor::*[self::article or contains(@class,"card")][1]');
-  const reminderButton=card.getByRole('button',{name:/Avis-Erinnerung senden/i}).first();
+  const reminderButton=card.getByRole('button',{name:/Avis-Erinnerung in Outlook öffnen/i}).first();
   await expect(reminderButton).toBeVisible({timeout:15_000});
   await reminderButton.click();
 
@@ -342,18 +342,28 @@ test('RC1255 P2: AVIS-Erinnerung läuft über TESTSERVICE UI, echte Mail, AVIS-L
   await expect(dialog).toBeVisible();
   const recipient=dialog.locator('[data-recipient]');
   await expect(recipient).toHaveValue(prepared.email);
-  const mailResponsePromise=page.waitForResponse(response=>response.url().includes('/api/avis-reminder-mail')&&response.request().method()==='POST',{timeout:45_000});
+  const serverMailRequests=[];
+  page.on('request',request=>{if(request.url().includes('/api/avis-reminder-mail'))serverMailRequests.push(request.url());});
+  await page.evaluate(()=>{
+    window.__rc1434Drafts=[];
+    document.addEventListener('click',event=>{
+      const a=event.target.closest&&event.target.closest('a[data-rc1166-mail-draft]');
+      if(a){window.__rc1434Drafts.push(a.href);event.preventDefault();}
+    },true);
+  });
   await dialog.locator('[data-open]').click();
-  const mailResponse=await mailResponsePromise;
-  const mailDiagnostic=await mailResponse.json().catch(()=>({}));
-  console.log('RC1255 AVIS mail response',JSON.stringify({status:mailResponse.status(),code:String(mailDiagnostic&&mailDiagnostic.code||''),upstreamStatus:Number(mailDiagnostic&&mailDiagnostic.upstreamStatus||0)||0,upstreamCode:String(mailDiagnostic&&mailDiagnostic.upstreamCode||''),upstreamMessage:String(mailDiagnostic&&mailDiagnostic.upstreamMessage||''),sender:String(mailDiagnostic&&mailDiagnostic.sender||''),diagnostics:mailDiagnostic&&mailDiagnostic.diagnostics||undefined,version:String(mailDiagnostic&&mailDiagnostic.version||'')}));
-  const knownMailSendBlocker=mailResponse.status()===503&&String(mailDiagnostic&&mailDiagnostic.code||'')==='GRAPH_MAIL_PERMISSION_MISSING';
-  if(knownMailSendBlocker){
-    test.skip(true,'RC1255 P2: Microsoft Graph Application Permission Mail.Send fehlt; separater Readiness-Gate bleibt zuständig.');
-  }
   const sendStatus=dialog.locator('[data-send-status]');
-  await expect(sendStatus).toHaveAttribute('data-kind','ok',{timeout:45_000});
-  await expect(sendStatus).toContainText(/Erinnerungsmail erfolgreich/i);
+  await expect(sendStatus).toHaveAttribute('data-kind','ok');
+  await expect(sendStatus).toContainText(/Mailentwurf.*vorbereitet/i);
+  const drafts=await page.evaluate(()=>window.__rc1434Drafts);
+  expect(drafts).toHaveLength(1);
+  const draft=new URL(drafts[0]);
+  expect(draft.protocol).toBe('mailto:');
+  expect(decodeURIComponent(draft.pathname)).toBe(prepared.email);
+  expect(draft.searchParams.get('subject')).toBe('Erinnerung – Lieferavis '+ref);
+  expect(draft.searchParams.get('body')).toContain(issued.url+'&lang=de');
+  expect(draft.searchParams.get('cc')).toMatch(/TobiasLimberg@essentra\.com/i);
+  await settleStateSave(page,{timeout:25_000});
 
   const proof=await page.evaluate(async({token,runId,ref})=>{
     const response=await fetch('/api/exporthub-state?mode=read&full=1',{
@@ -371,9 +381,11 @@ test('RC1255 P2: AVIS-Erinnerung läuft über TESTSERVICE UI, echte Mail, AVIS-L
     };
   },{token:session.token,runId:session.runId,ref});
   expect(proof.status).toBe(200);
-  expect(proof.labels).toContain('Avis-Erinnerung versendet');
-  expect(proof.mailTypes).toContain('avis-reminder');
-  expect(proof.auditTypes).toContain('AVIS_REMINDER_SENT');
+  expect(proof.labels).toContain('Avis-Erinnerung in Outlook geöffnet');
+  expect(proof.labels).not.toContain('Avis-Erinnerung versendet');
+  expect(proof.mailTypes).not.toContain('avis-reminder');
+  expect(proof.auditTypes).not.toContain('AVIS_REMINDER_SENT');
+  expect(serverMailRequests).toEqual([]);
 
   const avisPage=await page.request.get(issued.url);
   expect(avisPage.status()).toBe(200);

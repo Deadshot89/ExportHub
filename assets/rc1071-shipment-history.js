@@ -230,10 +230,13 @@ function printBubble(ev){
  return printFromElement(el)
 }
 function click(ev){
- var el=ev.target&&ev.target.closest&&ev.target.closest('button,a,[role="button"]');if(!el)return;var sh=currentShipment();if(!sh)return;
+ var el=ev.target&&ev.target.closest&&ev.target.closest('button,a,[role="button"]');if(!el)return;
+ // The AVIS draft flow logs its own shipment and must never imply mail delivery.
+ if(el.closest&&el.closest('#rc1166AvisReminderDialog,[data-rc1166-avis-reminder],[data-rc1166-mail-draft]'))return;
+ var sh=currentShipment();if(!sh)return;
  var text=q(el.textContent)+' '+q(el.getAttribute&&el.getAttribute('title'))+' '+q(el.getAttribute&&el.getAttribute('data-action')),actionText=low(text),contextText=elementContext(el,text),l=low(contextText);
  var href=q(el.getAttribute&&el.getAttribute('href'));
- if(/^mailto:/i.test(href)||/outlook|e-?mail.*öffnen|mail.*öffnen|anmeldung.*mail/.test(l)){
+ if(/^mailto:/i.test(href)||/outlook|e-?mail.*öffnen|mail.*öffnen|anmeldung.*mail/.test(actionText)){
    var to=/^mailto:/i.test(href)?mailRecipient(href):'',subject=/^mailto:/i.test(href)?mailSubject(href):'',mailKind=mailTypeFrom(contextText+' '+subject);
    LAST_MAIL_META[identity(sh)]={to:to,subject:subject,mailType:mailKind,at:now()};
    if(mailKind===de('shipmentHistory.mail.abdRequest')){if(actionOnce('abd-mail|'+identity(sh)+'|'+to,2500))append(sh,{type:'abd',label:de('shipmentHistory.action.abdEmailOpened'),actor:actorFrom(currentUser()),details:{to:to,subject:subject,mailType:mailKind,reference:ref(sh)}});return}

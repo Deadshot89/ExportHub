@@ -91,6 +91,6 @@ test('RC1305: Statusverlauf enthält fachliche Sendungsbewegung einschließlich 
 test('RC1305: Build-Skript bleibt syntaktisch gültig und lädt die History mit neuem Cache-Key',()=>{
   const check=spawnSync(process.execPath,['--check','.github/rc1112/build-three-env.mjs'],{encoding:'utf8'});
   assert.equal(check.status,0,check.stderr||check.stdout);
-  assert.match(buildSource,/rc1071-shipment-history\.js\?v=1305/);
+  assert.match(buildSource,/rc1071-shipment-history\.js\?v=1434/);
   assert.match(historySource,/version:'RC1305'/);
 });

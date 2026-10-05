@@ -1,5 +1,9 @@
 # ExportHUB AVIS-Mail – Microsoft Graph Mail.Send freigeben
 
+Seit RC1434 öffnen Lieferavis und AVIS-Erinnerung aus der Sendungsübersicht einen vorbereiteten Outlook-Mailentwurf, genau wie die reguläre Anmeldung. Empfänger, Sales-/Kunden-CC, Tobias sowie die Pflicht-CC der Anmeldung werden übernommen. Der Benutzer prüft und sendet in Outlook; ExportHUB protokolliert nur das Öffnen mit Benutzer und Zeit. Für diesen Ablauf ist keine Graph-Mail-App und kein Login für das Despatch-Postfach erforderlich.
+
+Dieses Runbook gilt weiterhin für die separate automatische Benachrichtigung bei Kunden-Uploads und den optionalen direkten Mail-Endpunkt. Deren Graph-Readiness wird im Release sichtbar diagnostiziert, blockiert den verpflichtend geprüften Outlook-Ablauf aber nicht. Eine fehlgeschlagene Upload-Mail-Diagnose ist keine Versandbestätigung.
+
 Stand: RC1352
 
 ## Ausgangslage

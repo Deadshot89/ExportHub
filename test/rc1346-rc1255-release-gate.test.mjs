@@ -10,9 +10,10 @@ test('RC1346 P1: RC1255 erwartet den aktuellen sicheren TESTSERVICE-Avis-Link',(
   assert.doesNotMatch(spec,/expect\(issued\.url\)\.toMatch\(\/\^https:\\\/\\\/exporthub360\\\.com\\\/avis/);
 });
 
-test('RC1346 P1: nur der eindeutig erkannte Graph Mail.Send Blocker wird als P2 übersprungen',()=>{
-  assert.match(spec,/knownMailSendBlocker=mailResponse\.status\(\)===503&&String\(mailDiagnostic&&mailDiagnostic\.code\|\|''\)==='GRAPH_MAIL_PERMISSION_MISSING'/);
-  assert.match(spec,/test\.skip\(true,'RC1255 P2: Microsoft Graph Application Permission Mail\.Send fehlt/);
+test('RC1434: Outlook-Gate prüft Entwurf und Historie ohne Graph-bedingte Überspringung',()=>{
+  assert.match(spec,/draft\.protocol/);
+  assert.match(spec,/Avis-Erinnerung in Outlook geöffnet/);
+  assert.doesNotMatch(spec,/knownMailSendBlocker|GRAPH_MAIL_PERMISSION_MISSING/);
 });
 
 test('RC1346 P1: Release-Workflow schluckt keine beliebigen RC1255-Fehler mehr',()=>{

@@ -61,11 +61,10 @@ test('RC1427: Graph-sendMail trennt Auth-, Zugriffs- und Senderfehler ohne Secre
   assert.doesNotMatch(block,/access_token|clientSecret|Authorization:/i);
 });
 
-test('RC1428 P1: Originaler Graph-Fehlercode bleibt bis zur RC1255-Diagnose erhalten',()=>{
+test('RC1428 P1: Originaler Graph-Fehlercode bleibt in der optionalen Mail-API erhalten',()=>{
   assert.match(graphSource,/out\.upstreamCode=text\(e&&e\.code\)/);
   assert.match(reminderSource,/upstreamCode:text\(e&&e\.upstreamCode\)/);
-  assert.match(mutationSource,/upstreamCode:String\(mailDiagnostic&&mailDiagnostic\.upstreamCode\|\|''\)/);
-  const block=graphSource.slice(graphSource.indexOf('function sendFailure'),graphSource.indexOf('function transient'));
+   const block=graphSource.slice(graphSource.indexOf('function sendFailure'),graphSource.indexOf('function transient'));
   assert.doesNotMatch(block,/access_token|clientSecret|Authorization:/i);
 });
 

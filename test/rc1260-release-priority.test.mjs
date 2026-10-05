@@ -20,7 +20,7 @@ test('RC1260: harter TESTSERVICE-Gate behält alle Browser-Specs und schließt n
   assert.match(block,/--grep-invert 'RC1255 P2:'/);
 });
 
-test('RC1260/RC1346: echter RC1255-Mailtest bleibt hart und der bekannte Mail.Send-Blocker wird nur gezielt behandelt',()=>{
+test('RC1260/RC1346: RC1255-Outlook-Test bleibt hart und automatische Upload-Mail wird separat diagnostiziert',()=>{
   assert.match(workflow,/npx playwright test e2e\/specs\/testservice-mutation\.spec\.mjs --project=laptop --grep 'RC1255 P2:'/);
   assert.doesNotMatch(workflow,/rc1255_mail_status=\$\?/);
   assert.doesNotMatch(workflow,/set \+e[\s\S]{0,500}RC1255 P2:/);
@@ -64,14 +64,14 @@ test('RC1279: bekannte Mail.Send-Berechtigungslücke blockiert weder TESTSERVICE
   }
 });
 
-test('RC1279: unerwartete AVIS-Mail-Readiness bleibt ein harter Releasefehler',()=>{
+test('RC1279: optionale Upload-Mail-Readiness meldet Fehler sichtbar',()=>{
   const markers=[
     "const ready=status===200",
     "v.configured===true",
     "v.authenticated===true",
     "v.audienceOk===true",
     "v.mailSendGranted===true",
-    "console.error('RC1249 '+env+' readiness unerwartet'",
+    "console.error('RC1249 '+env+' automatische Upload-Mail weiterhin nicht verfügbar'",
     "process.exit(1);"
   ];
   for(const marker of markers)assert.ok(workflow.includes(marker),'Fehlender RC1279 Fail-closed-Marker: '+marker);

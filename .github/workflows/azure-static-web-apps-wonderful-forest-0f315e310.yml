@@ -369,7 +369,7 @@ jobs:
         run: |
           set -euo pipefail
           node --test test/rc1124-browser-release-gate.test.mjs test/rc1190-print-browser-gate.test.mjs
-          npx playwright test e2e/specs/navigation.spec.mjs e2e/specs/notifications.spec.mjs e2e/specs/public-smoke.spec.mjs
+          npx playwright test e2e/specs/navigation.spec.mjs e2e/specs/notifications.spec.mjs e2e/specs/public-smoke.spec.mjs e2e/specs/avis-reminder-outlook.spec.mjs
           npx playwright test e2e/specs/print-documents.spec.mjs --project=laptop
           EXPORTHUB_E2E_ENTRY=/index.html npx playwright test e2e/specs/version-display.spec.mjs --project=laptop
           EXPORTHUB_E2E_ENTRY=/TESTVERSION.html npx playwright test e2e/specs/version-display.spec.mjs --project=laptop
@@ -538,8 +538,8 @@ jobs:
           export EXPORTHUB_E2E_REFERENCE="E2E$(printf '%s' "$GITHUB_SHA" | cut -c1-3 | tr '[:lower:]' '[:upper:]')"
           export EXPORTHUB_E2E_MUTATION='1'
 
-          # RC1346: Nur der im Test selbst eindeutig erkannte Graph-Mail.Send-Blocker darf als P2 übersprungen werden.
-          # Jede andere RC1255-Regression muss den Release hart stoppen.
+          # RC1434: Outlook-Entwurf, AVIS-Link und persistierte Öffnungshistorie sind Pflicht.
+          # Der manuelle Outlook-Versand benötigt keine Graph-App.
           npx playwright test e2e/specs/testservice-mutation.spec.mjs --project=laptop --grep 'RC1255 P2:'
 
           npx playwright test             e2e/specs/navigation.spec.mjs             e2e/specs/notifications.spec.mjs             e2e/specs/public-smoke.spec.mjs             e2e/specs/shipment-create.spec.mjs             e2e/specs/multi-truck-live.spec.mjs             e2e/specs/testservice-mutation.spec.mjs             e2e/specs/version-display.spec.mjs             --grep-invert 'RC1255 P2:'
@@ -584,6 +584,8 @@ jobs:
             if(status<200||status>=300||v.ok!==true||v.configured!==true||v.environment!=='testservice')process.exit(3);
           "
       - name: RC1249 TESTSERVICE AVIS-Mail-Konfiguration prüfen
+        # Optional automatic upload notifications; Outlook drafts have their own blocking browser gate.
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
@@ -611,7 +613,7 @@ jobs:
             const requirement=v.requiredPermission||{};
             const knownMailSendBlocker=status===503&&v.ok===false&&v.configured===true&&v.authenticated===true&&v.audienceOk===true&&v.mailSendGranted===false&&v.environment===env&&v.recipientConfigured===true&&v.code==='GRAPH_MAIL_PERMISSION_MISSING'&&requirement.resource==='Microsoft Graph'&&requirement.type==='Application'&&requirement.name==='Mail.Send'&&requirement.id==='b633e1c5-b582-4048-a93e-9f11b44c7e96'&&requirement.adminConsentRequired===true;
             if(knownMailSendBlocker){console.log('::warning title=RC1290 AVIS-Mail P2::Microsoft Graph > Application > Mail.Send (b633e1c5-b582-4048-a93e-9f11b44c7e96) fehlt in '+env+'. Admin Consent erforderlich; Release läuft weiter, Mailversand bleibt offen.');process.exit(0)}
-            console.error('RC1249 '+env+' readiness unerwartet',JSON.stringify({status,code:v.code,configured:v.configured,authenticated:v.authenticated,audienceOk:v.audienceOk,mailSendGranted:v.mailSendGranted,recipientConfigured:v.recipientConfigured}));
+            console.error('RC1249 '+env+' automatische Upload-Mail weiterhin nicht verfügbar',JSON.stringify({status,code:v.code,configured:v.configured,authenticated:v.authenticated,audienceOk:v.audienceOk,mailSendGranted:v.mailSendGranted,recipientConfigured:v.recipientConfigured}));
             process.exit(1);
           "
 
@@ -675,6 +677,8 @@ jobs:
             if(status<200||status>=300||v.ok!==true||v.configured!==true||v.environment!=='production')process.exit(4);
           "
       - name: RC1249 PRODUCTION AVIS-Mail-Konfiguration prüfen
+        # Optional automatic upload notifications; Outlook drafts have their own blocking browser gate.
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
@@ -702,7 +706,7 @@ jobs:
             const requirement=v.requiredPermission||{};
             const knownMailSendBlocker=status===503&&v.ok===false&&v.configured===true&&v.authenticated===true&&v.audienceOk===true&&v.mailSendGranted===false&&v.environment===env&&v.recipientConfigured===true&&v.code==='GRAPH_MAIL_PERMISSION_MISSING'&&requirement.resource==='Microsoft Graph'&&requirement.type==='Application'&&requirement.name==='Mail.Send'&&requirement.id==='b633e1c5-b582-4048-a93e-9f11b44c7e96'&&requirement.adminConsentRequired===true;
             if(knownMailSendBlocker){console.log('::warning title=RC1290 AVIS-Mail P2::Microsoft Graph > Application > Mail.Send (b633e1c5-b582-4048-a93e-9f11b44c7e96) fehlt in '+env+'. Admin Consent erforderlich; Release läuft weiter, Mailversand bleibt offen.');process.exit(0)}
-            console.error('RC1249 '+env+' readiness unerwartet',JSON.stringify({status,code:v.code,configured:v.configured,authenticated:v.authenticated,audienceOk:v.audienceOk,mailSendGranted:v.mailSendGranted,recipientConfigured:v.recipientConfigured}));
+            console.error('RC1249 '+env+' automatische Upload-Mail weiterhin nicht verfügbar',JSON.stringify({status,code:v.code,configured:v.configured,authenticated:v.authenticated,audienceOk:v.audienceOk,mailSendGranted:v.mailSendGranted,recipientConfigured:v.recipientConfigured}));
             process.exit(1);
           "
 

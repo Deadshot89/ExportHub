@@ -66,7 +66,7 @@ test('guest sender is distinguished from a local member account',async()=>{
  assert.equal(error.diagnostics.senderDirectory.guest,true);
 });
 
-test('real mail gate runs before broad browser matrix and both remain required',()=>{
+test('Outlook draft gate runs before broad browser matrix and both remain required',()=>{
  const source=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
  const mail=source.indexOf("npx playwright test e2e/specs/testservice-mutation.spec.mjs --project=laptop --grep 'RC1255 P2:'");
  const broad=source.indexOf('npx playwright test             e2e/specs/navigation.spec.mjs',source.indexOf('id: rc1124_testservice_browser_gate'));

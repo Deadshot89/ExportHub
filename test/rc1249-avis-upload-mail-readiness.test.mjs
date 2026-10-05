@@ -43,7 +43,7 @@ test('RC1270/RC1352: Readiness fordert einen echten Graph-Token an ohne Token- o
   assert.doesNotMatch(source,/access_token|clientSecret/,'Readiness darf weder Graph-Token noch Client-Secret ausgeben');
   assert.match(workflow,/v\.authenticated===true/);
   assert.match(workflow,/v\.audienceOk===true/);
-  assert.match(workflow,/console\.error\('RC1249 '\+env\+' readiness unerwartet'/);
+  assert.match(workflow,/console\.error\('RC1249 '\+env\+' automatische Upload-Mail weiterhin nicht verfügbar'/);
 });
 
 test('RC1271/RC1279: Mail.Send bleibt geprüft und der bekannte Permission-Blocker sichtbar',()=>{
@@ -71,13 +71,17 @@ test('RC1249: anonymer Readiness-Aufruf wird abgewiesen',async()=>{
   assert.equal(body.code,'WORKFLOW_REQUIRED');
 });
 
-test('RC1249: Release prüft TESTSERVICE und PRODUCTION Mail-Readiness in sicherer Reihenfolge',()=>{
+test('RC1249: Release diagnostiziert optionale Upload-Mail getrennt vom verpflichtenden Outlook-Ablauf',()=>{
   const testReady=workflow.indexOf('RC1249 TESTSERVICE AVIS-Mail-Konfiguration prüfen');
   const prodDeploy=workflow.indexOf('Deploy ExportHUB production');
   const prodReady=workflow.indexOf('RC1249 PRODUCTION AVIS-Mail-Konfiguration prüfen');
   const liveQr=workflow.indexOf('RC1233 QR-Abholung und POD-Ladelisten-Viewer live prüfen');
-  assert.ok(testReady>=0&&prodDeploy>testReady,'TESTSERVICE Mail-Readiness muss Produktion blockieren können');
+  assert.ok(testReady>=0&&prodDeploy>testReady,'TESTSERVICE-Diagnose muss vor Produktion liegen');
   assert.ok(prodReady>prodDeploy&&liveQr>prodReady,'PRODUCTION Mail-Readiness muss direkt nach Deployment verifiziert werden');
   assert.match(workflow,/audience=exporthub-avis-upload-mail-readiness/);
   assert.match(workflow,/DespatchNettetal@essentra\.com/);
+  for(const env of ['TESTSERVICE','PRODUCTION']){
+    const start=workflow.indexOf('RC1249 '+env+' AVIS-Mail-Konfiguration prüfen');
+    assert.match(workflow.slice(start,start+280),/continue-on-error: true/);
+  }
 });

@@ -158,9 +158,15 @@ function body(sh,target,lang,url){
 
 function pickupDateOf(sh){return q(sh&&(sh.customerAvisPickupDate||sh.avisPickupDate||sh.plannedPickupDate||sh.pickupDate))}
 function initialMailSentAt(sh){
- var explicit=q(sh&&(sh.avisFirstMailSentAt||sh.avisInitialMailSentAt));if(explicit)return explicit;
- var history=arr(sh&&sh.mailHistory).concat(arr(sh&&sh.shipmentHistory)),hits=history.filter(function(x){return x&&(low(x.type)==='avis-initial'||low(x.mailType)==='avis-initial'||low(x.details&&x.details.mailType)==='avis-initial')});
- hits.sort(function(a,b){return Date.parse(q(a&&a.at))-Date.parse(q(b&&b.at))});return q(hits[0]&&hits[0].at)
+ var explicit=q(sh&&(sh.avisFirstMailSentAt||sh.avisInitialMailSentAt||sh.avisInitialMailOpenedAt));if(explicit)return explicit;
+ var history=arr(sh&&sh.mailHistory).concat(arr(sh&&sh.shipmentHistory)),hits=history.filter(function(x){
+  if(!x)return false;
+  if(low(x.type)==='avis-initial'||low(x.mailType)==='avis-initial'||low(x.details&&x.details.mailType)==='avis-initial')return true;
+  // The existing main Outlook flow stores customer/carrier registration records.
+  return /^(customer|carrier)$/.test(low(x.type))&&/sent|versendet|confirmed|bestätigt/.test(low(x.status))&&/\/(?:customer-avis(?:\.html)?\?|avis\/)/i.test(String(x.body||''))
+ });
+ function mailAt(x){return q(x&&(x.at||x.sentAt||x.confirmedAt||x.createdAt))}
+ hits.sort(function(a,b){return Date.parse(mailAt(a))-Date.parse(mailAt(b))});return mailAt(hits[0])
 }
 function addBusinessDays(value,count){
  var date=new Date(value);if(!isFinite(date.getTime()))return null;var left=Math.max(0,Number(count)||0);
@@ -186,22 +192,55 @@ function initialBody(sh,target,lang,url){
  return body(sh,target,lang,url).replace(/hiermit erinnern wir an /i,'').replace(/this is a reminder for /i,'')
 }
 
-function authToken(){
- try{var rt=w.ExportHUBClean&&w.ExportHUBClean.runtime||{},t=q(rt.authToken||rt.sessionToken);if(t)return t}catch(_){}
- try{for(var i=0;w.sessionStorage&&i<w.sessionStorage.length;i++){var raw=w.sessionStorage.getItem(w.sessionStorage.key(i));if(!raw||raw.charAt(0)!=='{')continue;var x=JSON.parse(raw);if(x&&x.token)return q(x.token)}}catch(_){}
- return''
-}
 function environmentName(){try{return /-testservice\./i.test(String(w.location&&w.location.hostname||''))?'testservice':'production'}catch(_){return'production'}}
-function apiHeaders(){
- var t=authToken();if(!t)throw new Error(tr('avisReminder.sessionExpired'));
- return{'Content-Type':'application/json','Accept':'application/json','Cache-Control':'no-cache','X-ExportHUB-Token':t,'X-ExportHUB-Session':t,'Authorization':'Bearer '+t,'X-ExportHUB-Environment':environmentName()}
+function draftCc(sh,to){
+ var c=customerFor(sh)||{},values=['TobiasLimberg@essentra.com',c.salesContacts,c.customerSalesContacts,c.salesMail,c.salesEmail,c.salesPersonMail,c.salesPersonEmail,c.salesContactMail,c.salesContactEmail,c.rc385SalesMail,c.salesCc,c.ccContacts,c.customerCcContacts,c.cc,c.mailCc,c.rc385Cc,sh.salesContacts,sh.customerSalesContacts,sh.salesMail,sh.salesEmail,sh.salesCc,sh.ccContacts,sh.customerCcContacts,sh.cc,sh.mailCc];
+ var registration=w.ExportHUBRC1065RegistrationCC,required=registration&&typeof registration.resolve==='function'?registration.resolve():{ok:true,addresses:['SevastianMarcu@essentra.com','DanielOllmann@essentra.com']};
+ if(!required.ok)throw new Error(tr('registrationCc.missing'));values.push(required.addresses);
+ return emails(values).filter(function(email){return low(email)!==low(to)})
+}
+function shipmentCopies(sh){
+ var s=state(),out=[sh];
+ ['shipments','savedShipments','salesSharedShipments','sharedShipments','shipmentArchive','archivedShipments','archive'].forEach(function(key){arr(s[key]).forEach(function(copy){if(copy&&idOf(copy)===idOf(sh)&&out.indexOf(copy)<0)out.push(copy)})});
+ ['shipment','currentShipment','selectedShipment'].forEach(function(key){var copy=s[key];if(copy&&idOf(copy)===idOf(sh)&&out.indexOf(copy)<0)out.push(copy)});
+ return out
+}
+function recordDraft(sh,result,mode,target,language){
+ var user=w.ExportHUBClean&&w.ExportHUBClean.runtime&&w.ExportHUBClean.runtime.user||w.currentUser||state().currentUser||state().activeUser||{};
+ try{if(typeof w.__EXPORTHUB_GET_CURRENT_USER__==='function')user=w.__EXPORTHUB_GET_CURRENT_USER__()||user}catch(_){}
+ var actor={name:q(user.name||user.displayName||user.fullName||user.user||user.username||user.login)||'Benutzer',id:q(user.id||user.userId||user.user||user.username||user.login),role:q(user.role||user.rolle)};
+ var event={at:result.openedAt,type:'mail-open',actor:actor,label:tr(mode==='initial'?'avisReminder.initialHistoryLabel':'avisReminder.historyLabel',null,'de'),source:'rc1434-avis-outlook',details:{reference:refOf(sh),to:result.to,cc:result.cc.join('; '),subject:result.subject,mailType:mode==='initial'?'avis-initial-draft':'avis-reminder-draft',target:target,language:language}};
+ var copies=shipmentCopies(sh),merged=new Map();
+ copies.forEach(function(copy){arr(copy.shipmentHistory).forEach(function(e){if(!e)return;var key=q(e.id)||[q(e.at),q(e.type),q(e.label),q(e.actor&&e.actor.name)].join('|');if(!merged.has(key))merged.set(key,e)})});
+ var previous=Array.from(merged.values()).sort(function(a,b){return Date.parse(q(a.at))-Date.parse(q(b.at))}).slice(-1000);
+ copies.forEach(function(copy){copy.shipmentHistory=previous.slice()});
+ if(mode==='initial')copies.forEach(function(copy){copy.avisInitialMailOpenedAt=result.openedAt});
+ var history=w.ExportHUBShipmentHistory1071;
+ if(history&&typeof history.append==='function'){history.append(sh,event);copies.forEach(function(copy){if(copy!==sh)copy.shipmentHistory=arr(sh.shipmentHistory).slice()})}
+ else{
+  event.id='AVIS-DRAFT-'+Date.now()+'-'+Math.random().toString(36).slice(2,7);
+  copies.forEach(function(copy){copy.shipmentHistory=arr(copy.shipmentHistory);copy.shipmentHistory.push(event)});
+  if(w.ExportHUBClean&&typeof w.ExportHUBClean.queueSave==='function')w.ExportHUBClean.queueSave(event.label)
+ }
+ try{w.dispatchEvent(new CustomEvent('exporthub:history-updated',{detail:{shipment:sh}}));schedule()}catch(_){}
 }
 async function sendReminder(sh,email,target,lang,url,mode){
  if(avisRecipientExcluded(email)){var blocked=new Error('Für dispo@holenstein.de darf kein Lieferavis-Link versendet werden.');blocked.code='AVIS_RECIPIENT_EXCLUDED';throw blocked}
- var response=await w.fetch('/api/avis-reminder-mail',{method:'POST',credentials:'same-origin',cache:'no-store',headers:apiHeaders(),body:JSON.stringify({shipmentId:idOf(sh),reference:refOf(sh),recipient:q(email),target:target==='carrier'?'carrier':'customer',language:normalizeLanguage(lang),avisUrl:url,mode:mode==='initial'?'initial':'reminder'})});
- var raw=await response.text(),data={};try{data=raw?JSON.parse(raw):{}}catch(_){data={message:raw}}
- if(!response.ok||data.ok===false){var e=new Error(q(data.message)||('HTTP '+response.status));e.code=q(data.code);throw e}
- return data
+ if(!/^[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}$/i.test(q(email)))throw new Error(tr('avisReminder.missingCustomer'));
+ mode=mode==='initial'?'initial':'reminder';target=target==='carrier'?'carrier':'customer';lang=normalizeLanguage(lang);
+ var gate=reminderGate(sh);
+ if(!gate.enabled||gate.mode!==mode){var unavailable=new Error(tr(gate.reason==='pickup-date'?'avisReminder.pickupRecorded':'avisReminder.notReady'));unavailable.code='AVIS_DRAFT_NOT_READY';throw unavailable}
+ if(closed(sh)||exception(sh)||!avisLink(sh))throw new Error(tr('avisReminder.notReady'));
+ url=safeAvisLink(sh,url||avisLink(sh));
+ var sub=mode==='initial'?initialSubject(sh,target,lang):subject(sh,target,lang),content=mode==='initial'?initialBody(sh,target,lang,url):body(sh,target,lang,url),cc=draftCc(sh,email);
+ var href='mailto:'+encodeURIComponent(q(email))+'?subject='+encodeURIComponent(sub)+'&cc='+encodeURIComponent(cc.join(';'))+'&body='+encodeURIComponent(content);
+ var registration=w.ExportHUBRC1065RegistrationCC;
+ if(registration&&typeof registration.prepare==='function'){var prepared=registration.prepare(href);if(!prepared.ok)throw new Error(tr('registrationCc.missing'));href=prepared.url}
+ var link=d.createElement('a');link.href=href;link.style.display='none';link.setAttribute('aria-hidden','true');link.setAttribute('data-rc1166-mail-draft','1');d.body.appendChild(link);
+ try{link.click()}finally{link.remove()}
+ var result={openedAt:new Date().toISOString(),to:q(email),subject:sub,cc:emails(new URL(href).searchParams.get('cc'))};
+ recordDraft(sh,result,mode,target,lang);
+ return result
 }
 function inOverview(){var b=d.body;return !!(b&&low(b.getAttribute('data-exporthub-view'))==='shipmentoverview')}
 function ensureStyle(){
@@ -214,7 +253,7 @@ function options(list){return list.map(function(x){return'<option value="'+esc(x
 function openDialog(sh,mode){
  mode=mode==='initial'?'initial':'reminder';
  closeDialog();var url=avisLink(sh);if(!url)return false;ensureStyle();
- dialog=d.createElement('div');dialog.className='rc1166-dialog';dialog.id='rc1166AvisReminderDialog';var dialogTitle=mode==='initial'?tr('avisFlow.collectionNotice'):tr('avisReminder.title');dialog.innerHTML='<section class="rc1166-card" role="dialog" aria-modal="true" aria-labelledby="rc1166Title"><h3 id="rc1166Title">'+esc(dialogTitle)+'</h3><div class="rc1166-note">'+esc(tr('avisReminder.referenceNote',{reference:refOf(sh)}))+'</div><div class="rc1166-grid"><label>'+esc(tr('avisReminder.targetGroup'))+'<select data-target><option value="customer">'+esc(tr('avisReminder.customer'))+'</option><option value="carrier">'+esc(tr('avisReminder.carrier'))+'</option></select></label><label>'+esc(tr('avisReminder.language'))+'<select data-lang><option value="de">Deutsch</option><option value="en">English</option><option value="pl">Polski</option><option value="es">Español</option><option value="fr">Français</option><option value="it">Italiano</option></select></label></div><label>'+esc(tr('avisReminder.recipient'))+'<select data-recipient></select></label><div data-warning></div><label>'+esc(tr('avisReminder.mailText'))+'<textarea data-body readonly></textarea></label><div data-send-status class="rc1207-send-status" hidden></div><div class="rc1166-actions"><button type="button" class="ghost" data-close>'+esc(tr('avisReminder.cancel'))+'</button><button type="button" class="btn rc1166-reminder-btn" data-open>'+esc(mode==='initial'?tr('avisReminder.initialButton'):tr('avisReminder.send'))+'</button></div><p class="rc1166-note">'+esc(mode==='initial'?tr('avisReminder.initialFooter'):tr('avisReminder.footer'))+'</p></section>';
+ dialog=d.createElement('div');dialog.className='rc1166-dialog';dialog.id='rc1166AvisReminderDialog';var dialogTitle=mode==='initial'?tr('avisFlow.collectionNotice'):tr('avisReminder.title');dialog.innerHTML='<section class="rc1166-card" role="dialog" aria-modal="true" aria-labelledby="rc1166Title"><h3 id="rc1166Title">'+esc(dialogTitle)+'</h3><div class="rc1166-note">'+esc(tr('avisReminder.referenceNote',{reference:refOf(sh)}))+'</div><div class="rc1166-grid"><label>'+esc(tr('avisReminder.targetGroup'))+'<select data-target><option value="customer">'+esc(tr('avisReminder.customer'))+'</option><option value="carrier">'+esc(tr('avisReminder.carrier'))+'</option></select></label><label>'+esc(tr('avisReminder.language'))+'<select data-lang><option value="de">Deutsch</option><option value="en">English</option><option value="pl">Polski</option><option value="es">Español</option><option value="fr">Français</option><option value="it">Italiano</option></select></label></div><label>'+esc(tr('avisReminder.recipient'))+'<select data-recipient></select></label><div data-warning></div><label>'+esc(tr('avisReminder.mailText'))+'<textarea data-body readonly></textarea></label><div data-send-status class="rc1207-send-status" hidden></div><div class="rc1166-actions"><button type="button" class="ghost" data-close>'+esc(tr('avisReminder.cancel'))+'</button><button type="button" class="btn rc1166-reminder-btn" data-open>'+esc(tr('avisReminder.openOutlook'))+'</button></div><p class="rc1166-note">'+esc(mode==='initial'?tr('avisReminder.initialFooter'):tr('avisReminder.footer'))+'</p></section>';
  d.body.appendChild(dialog);
  var target=dialog.querySelector('[data-target]'),lang=dialog.querySelector('[data-lang]'),recipient=dialog.querySelector('[data-recipient]'),text=dialog.querySelector('[data-body]'),warning=dialog.querySelector('[data-warning]'),open=dialog.querySelector('[data-open]'),sendStatus=dialog.querySelector('[data-send-status]');
  function refresh(){
@@ -227,13 +266,11 @@ function openDialog(sh,mode){
  dialog.addEventListener('click',function(e){if(e.target===dialog)closeDialog()});
  open.addEventListener('click',async function(){
   var email=q(recipient.value);if(!email)return;var t=target.value==='carrier'?'carrier':'customer',l=normalizeLanguage(lang.value),oldLabel=q(open.textContent);
-  open.disabled=true;open.textContent=tr('avisReminder.sending');sendStatus.hidden=true;sendStatus.textContent='';sendStatus.removeAttribute('data-kind');
+  open.disabled=true;open.textContent=tr('avisReminder.opening');sendStatus.hidden=true;sendStatus.textContent='';sendStatus.removeAttribute('data-kind');
   try{
-   var result=await sendReminder(sh,email,t,l,url,mode),event={id:q(result.historyId),at:q(result.sentAt)||new Date().toISOString(),type:'mail-sent',label:mode==='initial'?'Lieferavis versendet':tr('avisReminder.historyLabel',null,'de'),details:{reference:refOf(sh),to:email,cc:arr(result.cc),subject:q(result.subject),mailType:mode==='initial'?'avis-initial':'avis-reminder',target:t,language:l}};if(mode==='initial'){sh.avisFirstMailSentAt=event.at;sh.avisInitialMailSentAt=event.at}
-   sh.shipmentHistory=Array.isArray(sh.shipmentHistory)?sh.shipmentHistory:[];if(event.id&&!sh.shipmentHistory.some(function(x){return x&&x.id===event.id}))sh.shipmentHistory.push(event);
-   sendStatus.hidden=false;sendStatus.setAttribute('data-kind','ok');sendStatus.textContent=tr('avisReminder.sent',{email:email});
-   open.textContent=tr('avisReminder.sentButton');
-   try{w.dispatchEvent(new CustomEvent('exporthub:shipment-updated',{detail:{shipment:sh,source:'rc1358-avis-mail'}}));w.dispatchEvent(new CustomEvent('exporthub:history-updated',{detail:{shipment:sh}}));schedule()}catch(_){}
+   await sendReminder(sh,email,t,l,url,mode);
+   sendStatus.hidden=false;sendStatus.setAttribute('data-kind','ok');sendStatus.textContent=tr('avisReminder.opened',{email:email});
+   open.disabled=false;open.textContent=tr('avisReminder.openOutlook');
   }catch(err){
    open.disabled=false;open.textContent=oldLabel||tr('avisReminder.send');sendStatus.hidden=false;sendStatus.setAttribute('data-kind','bad');sendStatus.textContent=q(err&&err.message)||tr('avisReminder.failed')
   }

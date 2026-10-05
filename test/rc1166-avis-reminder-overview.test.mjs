@@ -33,16 +33,8 @@ function load(state={}){
   return sandbox.ExportHUBRC1166AvisReminder;
 }
 
-test('RC1207: Runtime ist syntaktisch gültig und nutzt direkten authentifizierten Versand',()=>{
+test('RC1434: Outlook-Runtime ist syntaktisch gültig',()=>{
   execFileSync(process.execPath,['--check','assets/rc1166-avis-reminder-overview.js'],{stdio:'pipe'});
-  assert.match(runtime,/fetch\('\/api\/avis-reminder-mail'/);
-  assert.match(runtime,/X-ExportHUB-Token/);
-  assert.match(runtime,/X-ExportHUB-Session/);
-  assert.match(runtime,/["']Authorization["']:'Bearer '\+t/);
-  assert.doesNotMatch(runtime,/function\s+mailto\s*\(|href\s*=\s*['\"]?mailto:|\.href\s*=\s*mailto/i);
-  assert.match(runtime,/avisReminder\.send/);
-  assert.match(runtime,/avisReminder\.sent/);
-  assert.match(runtime,/avisReminder\.footer/);
 });
 
 test('RC1166: sichere Avis-Links werden nur vor Abholung und nicht für Ausnahmekunden angeboten',()=>{
@@ -93,17 +85,6 @@ test('RC1267: sechs Sprachen sowie Kunde und Spedition haben eigene Erinnerungsm
   for(const lang of ['de','en','pl','es','fr','it'])assert.match(api.body(sh,'customer',lang,url),new RegExp('lang='+lang));
 });
 
-test('RC1207: Direktversand übergibt nur strukturierte Felder an den Mail-Endpunkt',()=>{
-  assert.match(runtime,/shipmentId:idOf\(sh\)/);
-  assert.match(runtime,/reference:refOf\(sh\)/);
-  assert.match(runtime,/recipient:q\(email\)/);
-  assert.match(runtime,/target:target==='carrier'\?'carrier':'customer'/);
-  assert.match(runtime,/language:normalizeLanguage\(lang\)/);
-  assert.match(runtime,/avisUrl:url/);
-  assert.match(runtime,/mode:mode==='initial'\?'initial':'reminder'/);
-  assert.doesNotMatch(runtime,/function\s+mailto\s*\(|href\s*=\s*['\"]?mailto:|\.href\s*=\s*mailto/i);
-});
-
 test('RC1166: Übersicht zeigt einen blauen Aktionsbutton und eine Empfängerauswahl',()=>{
   assert.match(runtime,/avisReminder\.button/);
   assert.match(runtime,/rc1166-reminder-btn/);
@@ -118,9 +99,9 @@ test('RC1166: Übersicht zeigt einen blauen Aktionsbutton und eine Empfängeraus
 
 test('RC1166: Drei-Umgebungen-Build übernimmt die neue Runtime und bestehende Schutzstände',()=>{
   assert.match(build,/exporthub-rc1166-avis-reminder/);
-  assert.match(build,/assets\/rc1166-avis-reminder-overview\.js\?v=20261005/);
+  assert.match(build,/assets\/rc1166-avis-reminder-overview\.js\?v=20261005-outlook/);
   assert.match(build,/'assets\/rc1166-avis-reminder-overview\.js'/);
-  assert.match(build,/avisReminderOverview:'RC1358/);
+  assert.match(build,/avisReminderOverview:'RC1434/);
   assert.match(build,/avis-reminder-mail\/index\.js/);
   assert.match(build,/shared\/graph-mail\.js/);
   assert.match(build,/podBackupStatusUi:'RC1220/);

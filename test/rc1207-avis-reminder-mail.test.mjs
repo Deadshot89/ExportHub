@@ -48,13 +48,6 @@ test('RC1270: Graph-Auth-Probe klassifiziert sicher ohne Token oder Secret in de
  assert.doesNotMatch(probeBlock,/clientSecret[: ,]/,'Auth-Probe darf kein Secret zurückgeben');
 });
 
-test('RC1270: RC1255-E2E protokolliert nur sichere Mail-Antwortdiagnose',()=>{
- assert.match(e2eMutation,/RC1255 AVIS mail response/);
- assert.match(e2eMutation,/status:mailResponse\.status\(\)/);
- assert.match(e2eMutation,/code:String\(mailDiagnostic&&mailDiagnostic\.code/);
- assert.doesNotMatch(e2eMutation,/mailDiagnostic.*token|mailDiagnostic.*secret/i);
-});
-
 test('RC1207: erfolgreicher Versand schreibt Sendungshistorie und Audit',()=>{
  assert.match(api,/type:'mail-sent'/);
  assert.match(api,/label:initial\?'Lieferavis versendet':'Avis-Erinnerung versendet'/);
@@ -65,7 +58,7 @@ test('RC1207: erfolgreicher Versand schreibt Sendungshistorie und Audit',()=>{
 });
 
 test('RC1207: Frontend zeigt Erfolg und Build liefert API aus',()=>{
- assert.match(runtime,/avisReminder\.sent/);
+ assert.match(runtime,/avisReminder\.opened/);
  assert.match(runtime,/exporthub:history-updated/);
  assert.match(build,/avis-reminder-mail\/index\.js/);
  assert.match(build,/avis-reminder-mail\/function\.json/);
@@ -81,15 +74,15 @@ test('RC1271: Graph-Token muss Mail.Send als Application-Rolle enthalten',()=>{
  assert.match(graph,/mailSendGranted:mailSendGranted\(claims\)/);
 });
 
-test('RC1255: TESTSERVICE prüft den echten Reminder ohne externe Kundenadresse',()=>{
+test('RC1255: TESTSERVICE prüft Outlook-Entwurf und AVIS-Link ohne Mailversand',()=>{
  assert.match(e2eFixture,/function e2eReminderRecipient\(\)/);
  assert.match(e2eFixture,/EXPORTHUB_MAIL_SENDER\|\|process\.env\.EXPORTHUB_POD_DRIVE_USER/);
  assert.match(e2eFixture,/customerEmail:reminderRecipient/);
  assert.match(e2eMutation,/RC1255 P2: AVIS-Erinnerung/);
- assert.match(e2eMutation,/getByRole\('button',\{name:\/Avis-Erinnerung senden\/i\}\)/);
+ assert.match(e2eMutation,/getByRole\('button',\{name:\/Avis-Erinnerung in Outlook öffnen\/i\}\)/);
  assert.match(e2eMutation,/\[data-recipient\]/);
  assert.match(e2eMutation,/\[data-open\]/);
- assert.match(e2eMutation,/Avis-Erinnerung versendet/);
+ assert.match(e2eMutation,/Avis-Erinnerung in Outlook geöffnet/);
  assert.match(e2eMutation,/AVIS_REMINDER_SENT/);
  assert.match(e2eMutation,/page\.request\.get\(issued\.url\)/);
  assert.match(e2eMutation,/action:'authorize'/);

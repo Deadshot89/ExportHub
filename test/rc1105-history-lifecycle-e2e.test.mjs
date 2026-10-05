@@ -48,7 +48,7 @@ function actionElement(text,href=''){
   return {
     textContent:text,
     getAttribute(name){if(name==='href')return href;if(name==='title'||name==='data-action')return'';return''},
-    closest(){return this}
+    closest(selector){return selector&&selector.includes('data-rc1166')?null:this}
   };
 }
 
