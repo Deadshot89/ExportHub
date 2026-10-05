@@ -55,7 +55,7 @@ function resolve(){
 function isRegistration(url){
  var raw=q(url);if(!/^mailto:/i.test(raw))return false;
  var decoded=raw;try{decoded=decodeURIComponent(raw.replace(/\+/g,' '))}catch(_){}
- return /anmeld|abhol|lieferavis|collection\s+notice|pickup|sendung|shipment/i.test(decoded)
+ return /(?:versand|sendungs)?anmeld|registration/i.test(decoded)
 }
 function decodeQueryValue(v){try{return decodeURIComponent(q(v).replace(/\\+/g,' '))}catch(_){return q(v)}}
 function mergeRequiredCc(raw,requiredAddresses){
