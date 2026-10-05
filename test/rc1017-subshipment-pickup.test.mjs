@@ -154,11 +154,11 @@ test('RC1413 P0: dauerhaft gespeicherte Pickup-Abholung bleibt bei nachgelagerte
   assert.match(src,/teamStateSyncPending:!teamStateSynced/);
 });
 
-test('RC1413 P0: bereits bestätigte QR-Abholung bleibt idempotent erfolgreich auch wenn Team-State-Sync noch offen ist',()=>{
+test('RC1435 P0: bereits bestätigte QR-Abholung bleibt idempotent erfolgreich auch wenn Team-State-Sync noch offen ist',()=>{
   const src=fs.readFileSync('api/pickup-confirm-v2/index.js','utf8');
   assert.match(src,/access\.resolve\(req,'pickup',token,\{allowUsed:true\}/);
   assert.match(src,/if\(completeOf\(current\)\|\|current\.status==='confirmed'\)\{/);
-  assert.match(src,/RC1413 pickup recovery team state update pending/);
+  assert.match(src,/RC1432 pickup recovery team state update pending/);
   assert.match(src,/recovered:true/);
   assert.match(src,/teamStateSyncPending:!teamStateSynced/);
 });

@@ -56,7 +56,8 @@ test('Aktive Abhol- und Kunden-Avis-Links bleiben wiederverwendbar',()=>{
 
 test('QR-Teilabholung bleibt offen; Abschluss ist synchronisiert und wiederaufnehmbar',()=>{
   assert.match(pickupConfirm,/remainingAfter/);
-  assert.match(pickupConfirm,/if\(complete\)\{[\s\S]*?await access\.consume/);
+  const guardedConsume=/if\(complete\)(?:\{|\s*)await access\.consume/.test(pickupConfirm);
+  assert.equal(guardedConsume,true,'QR-Verbrauch muss weiterhin ausdrücklich an complete gebunden sein');
   const teamSync=pickupConfirm.indexOf("await store.updateTeam(rec,[],'')");
   const consume=pickupConfirm.indexOf("await access.consume(resolved.environment,'pickup',resolved.tokenHash",teamSync);
   assert.ok(teamSync>=0&&consume>teamSync,'QR-Abschluss darf erst nach erfolgreicher Team-State-Synchronisierung verbraucht werden');
