@@ -8,7 +8,7 @@ const archive=fs.readFileSync('api/shared/pod-archive.js','utf8');
 test('RC1442: absichtlich wiederholter Token bleibt bei nachweisbarem Fortschritt erlaubt',()=>{
   assert.match(archive,/if \(!reference && requiredWorkDeferred\) \{\s*nextContinuationToken = continuationToken;\s*scanComplete = false;/s);
   assert.equal((workflow.match(/progress_count=/g)||[]).length,2);
-  assert.equal((workflow.match(/verifiedCount/g)||[]).length>=4,true);
+  assert.equal((workflow.match(/integrityChecks/g)||[]).length>=4,true);
   assert.equal((workflow.match(/repairedStateCount/g)||[]).length>=4,true);
   assert.equal((workflow.match(/savedCount/g)||[]).length>=4,true);
   assert.equal((workflow.match(/teamRelinkedCount/g)||[]).length>=2,true);
