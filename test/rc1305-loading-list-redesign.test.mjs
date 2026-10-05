@@ -67,14 +67,17 @@ test('RC1368: Drei-Umgebungen-Build liefert die aktuelle Ladelisten-Druckruntime
   assert.match(build,/loadingListPrintRedesign:'RC1379/); assert.match(print,/data-rc1363-document-density/);
 });
 
-test('RC1374: Production- und Live-Gate prüfen dieselbe aktuelle Ladelisten-Druckruntime wie der Build',()=>{
-  assert.match(FLOW,/RC1379 Produktions-Drucklayout live verifizieren/);
+test('RC1437: Production- und Live-Gate prüfen dieselbe aktuelle Ladelisten-Druckruntime wie der Build',()=>{
+  assert.match(FLOW,/RC1437 ABD-Drucklayout live verifizieren/);
   assert.match(build,/assets\/rc1305-loading-list-print\.js\?v=1379/);
   assert.match(FLOW,/assets\/rc1305-loading-list-print\.js\?v=1379/);
   assert.match(FLOW,/display:flex!important/);
   assert.match(FLOW,/flex-direction:column!important/);
   assert.match(FLOW,/important\(code,'width','12mm'\)/);
   assert.match(FLOW,/important\(svg,'width','12mm'\)/);
+  assert.match(FLOW,/rc1305-signature-customs/);
+  assert.match(FLOW,/data-rc1432-customs-signature/);
+  assert.match(FLOW,/customsDocumentsSignature/);
   assert.doesNotMatch(FLOW,/assets\/rc1305-loading-list-print\.js\?v=1362/);
   assert.doesNotMatch(FLOW,/docColumns=Math\.max\(1,Math\.ceil\(docCount\/15\)\)/);
 });
