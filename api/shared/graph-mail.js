@@ -49,7 +49,7 @@ let tokenCache=null;
 function tokenClaims(token){try{const parts=String(token||'').split('.');if(parts.length<2)return{};return JSON.parse(Buffer.from(parts[1],'base64url').toString('utf8'))||{}}catch(_){return{}}}
 function mailSendGranted(claims){return Array.isArray(claims&&claims.roles)&&claims.roles.some(r=>text(r).toLowerCase()==='mail.send')}
 function permissionRequirement(){return{...MAIL_SEND_PERMISSION}}
-function mailAuthority(sender,cfg){return text(process.env.EXPORTHUB_MAIL_GRAPH_TENANT_ID)||(/@essentra\.com$/i.test(text(sender))?'essentra.com':cfg.tenantId)}
+function mailAuthority(_sender,cfg){return cfg.tenantId}
 async function accessToken(force,authority){
  const cfg=readiness();if(!cfg.configured)throw error('GRAPH_MAIL_NOT_CONFIGURED','Microsoft Graph Mailversand ist noch nicht vollständig konfiguriert.',503);
  const tenantId=text(authority)||cfg.tenantId,cacheKey=cfg.clientId+'|'+tenantId.toLowerCase();
