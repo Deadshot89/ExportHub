@@ -4,7 +4,6 @@ const auth=require('../shared/auth-store');
 const graphMail=require('../shared/graph-mail');
 
 const DEFAULT_AVIS_MAIL_SENDER='DespatchNettetal@essentra.com';
-const FIXED_CC='TobiasLimberg@essentra.com';
 
 function text(v){return String(v==null?'':v).trim()}
 function lower(v){return text(v).toLowerCase()}
@@ -177,12 +176,8 @@ function shipmentFromTeam(team,id,ref){
  return null
 }
 function ccRecipients(team,sh,to,sender){
- const c=customerFor(team,sh),values=[FIXED_CC];
- if(c){
-  values.push(c.salesContacts,c.customerSalesContacts,c.salesMail,c.salesEmail,c.salesPersonMail,c.salesPersonEmail,c.salesContactMail,c.salesContactEmail,c.rc385SalesMail,c.salesCc);
-  values.push(c.ccContacts,c.customerCcContacts,c.cc,c.mailCc,c.rc385Cc)
- }
- values.push(sh&&sh.salesContacts,sh&&sh.customerSalesContacts,sh&&sh.salesMail,sh&&sh.salesEmail,sh&&sh.salesCc,sh&&sh.ccContacts,sh&&sh.customerCcContacts,sh&&sh.cc,sh&&sh.mailCc);
+ const c=customerFor(team,sh),values=[];
+ if(c)values.push(c.ccContacts,c.customerCcContacts,c.cc,c.mailCc,c.rc385Cc);
  const out=[],seen=new Set([lower(to),lower(sender)]);
  emailItems(values).forEach(email=>{const key=lower(email);if(key&&!seen.has(key)){seen.add(key);out.push(email)}});
  return out
@@ -207,7 +202,6 @@ function reminderGate(sh,nowValue){
  if(!due||!Number.isFinite(nowDate.getTime()))return{allowed:false,reason:'INITIAL_AVIS_MAIL_INVALID'};
  return{allowed:nowDate.getTime()>=due.getTime(),reason:nowDate.getTime()>=due.getTime()?'READY':'WAITING_3_BUSINESS_DAYS',sentAt,dueAt:due.toISOString()}
 }
-
 function sameShipment(sh,id,ref){
  const sid=text(sh&&(sh.id||sh.shipmentId||sh.uuid)).toUpperCase(),sref=text(sh&&(sh.reference||sh.ref||sh.shipmentRef)).toUpperCase();
  return !!((id&&sid===id)||(ref&&sref===ref))
