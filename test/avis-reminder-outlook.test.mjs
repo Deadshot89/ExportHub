@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 
-// Catch a regression to server mail, missing Outlook fields, or a false sent history.
+// Catch a regression to server mail, missing Outlook fields, false sent history, or automatic AVIS CCs.
 function setup({hostname='www.exporthub360.de',launchFails=false}={}){
  const launches=[],calls=[],events={},saved=[];
  const sh={id:'S1',reference:'ABC123',customerId:'SE1',customerName:'Essentra Sweden',customerAvisToken:'abc',customerAvisUrl:'https://www.exporthub360.de/avis/abc',avisFirstMailSentAt:'2026-09-01T10:00:00Z'};
- const state={shipment:{id:'OTHER',reference:'OTHER1'},shipments:[sh],savedShipments:[{...sh}],customers:[{id:'SE1',name:'Essentra Sweden',salesContacts:[{email:'sales@example.com'}],ccContacts:[{email:'copy@example.com'},{email:'SALES@example.com'},{email:'customer@example.com'}]}],currentUser:{name:'Tobias'}};
+ const state={shipment:{id:'OTHER',reference:'OTHER1'},shipments:[sh],savedShipments:[{...sh}],customers:[{id:'SE1',name:'Essentra Sweden',salesContacts:[{email:'sales@example.com'}],ccContacts:[{email:'copy@example.com'},{email:'customer@example.com'}]}],currentUser:{name:'Tobias'}};
  const document={readyState:'loading',addEventListener(name,fn){(events[name]||=[]).push(fn)},getElementById(){return null},querySelector(){return null},querySelectorAll(){return[]},createElement(tag){
   const attrs={};return{tagName:tag.toUpperCase(),style:{},setAttribute(k,v){attrs[k]=v},getAttribute(k){return k==='href'?this.href||'':attrs[k]||''},hasAttribute(k){return k in attrs},closest(selector){if(selector.includes('data-rc1166-mail-draft'))return this.hasAttribute('data-rc1166-mail-draft')||this.hasAttribute('data-rc1166-avis-reminder')?this:null;return this},remove(){},click(){
    if(launchFails)throw new Error('Mail handler blocked');
@@ -22,7 +22,7 @@ function setup({hostname='www.exporthub360.de',launchFails=false}={}){
  return{api:sandbox.ExportHUBRC1166AvisReminder,sh,state,launches,calls,saved,events,document};
 }
 
-test('reminder opens a complete Outlook draft without Graph credentials and records opening on the correct shipment',async()=>{
+test('reminder opens a complete Outlook draft with only manual customer-folder CC and records opening on the correct shipment',async()=>{
  const {api,sh,state,launches,calls,saved}=setup();
  await api.sendReminder(sh,'customer@example.com','customer','en',sh.customerAvisUrl,'reminder');
  assert.equal(launches.length,1);
@@ -31,7 +31,7 @@ test('reminder opens a complete Outlook draft without Graph credentials and reco
  assert.equal(decodeURIComponent(url.pathname),'customer@example.com');
  assert.equal(url.searchParams.get('subject'),'Reminder – shipment notice ABC123');
  assert.ok(url.searchParams.get('body').includes('https://wonderful-forest-0f315e310.7.azurestaticapps.net/customer-avis.html?token=abc&lang=en'));
- assert.deepEqual(url.searchParams.get('cc').split(';').map(x=>x.toLowerCase()).sort(),['tobiaslimberg@essentra.com','sales@example.com','copy@example.com','sevastianmarcu@essentra.com','danielollmann@essentra.com'].sort());
+ assert.deepEqual((url.searchParams.get('cc')||'').split(';').map(x=>x.toLowerCase()).filter(Boolean),['copy@example.com']);
  assert.equal(calls.length,0);
  assert.equal(state.shipment.shipmentHistory,undefined,'overview must not log on another currently edited shipment');
  for(const copy of [sh,state.savedShipments[0]]){
@@ -44,25 +44,35 @@ test('reminder opens a complete Outlook draft without Graph credentials and reco
  assert.ok(saved.length>0);
 });
 
-test('all six languages keep mandatory registration CC',async()=>{
+test('all six languages keep only manual customer-folder CC and never add registration CC',async()=>{
  for(const lang of ['de','en','pl','es','fr','it']){
   const {api,sh,launches}=setup();
   await api.sendReminder(sh,'customer@example.com','customer',lang,sh.customerAvisUrl,'reminder');
-  const cc=new URL(launches[0]).searchParams.get('cc').toLowerCase().split(';');
-  assert.ok(cc.includes('sevastianmarcu@essentra.com'),lang);
-  assert.ok(cc.includes('danielollmann@essentra.com'),lang);
+  const cc=(new URL(launches[0]).searchParams.get('cc')||'').toLowerCase().split(';').filter(Boolean);
+  assert.deepEqual(cc,['copy@example.com'],lang);
+  assert.ok(!cc.includes('tobiaslimberg@essentra.com'),lang);
+  assert.ok(!cc.includes('sevastianmarcu@essentra.com'),lang);
+  assert.ok(!cc.includes('danielollmann@essentra.com'),lang);
+  assert.ok(!cc.includes('sales@example.com'),lang);
  }
 });
 
-test('Tobias as the primary recipient is not duplicated in reminder CC',async()=>{
- const {api,sh,launches}=setup();
- await api.sendReminder(sh,'TobiasLimberg@essentra.com','customer','de',sh.customerAvisUrl,'reminder');
+test('empty customer-folder CC stays empty even when Sales and registration helpers exist',async()=>{
+ const {api,sh,state,launches}=setup();
+ const customer=state.customers[0];customer.ccContacts=[];delete customer.customerCcContacts;delete customer.cc;delete customer.mailCc;delete customer.rc385Cc;
+ await api.sendReminder(sh,'customer@example.com','customer','de',sh.customerAvisUrl,'reminder');
  const draft=new URL(launches[0]);
- assert.equal(decodeURIComponent(draft.pathname),'TobiasLimberg@essentra.com');
- const cc=draft.searchParams.get('cc').toLowerCase().split(';');
- assert.ok(!cc.includes('tobiaslimberg@essentra.com'));
- assert.ok(cc.includes('sevastianmarcu@essentra.com'));
- assert.ok(cc.includes('danielollmann@essentra.com'));
+ assert.equal(draft.searchParams.get('cc'),'');
+});
+
+test('primary recipient is removed only from the manually maintained CC list',async()=>{
+ const {api,sh,launches}=setup();
+ await api.sendReminder(sh,'copy@example.com','customer','de',sh.customerAvisUrl,'reminder');
+ const draft=new URL(launches[0]);
+ assert.equal(decodeURIComponent(draft.pathname),'copy@example.com');
+ const cc=(draft.searchParams.get('cc')||'').toLowerCase().split(';').filter(Boolean);
+ assert.ok(!cc.includes('copy@example.com'));
+ assert.deepEqual(cc,['customer@example.com']);
 });
 
 test('matching current shipment copy receives the opening history',async()=>{

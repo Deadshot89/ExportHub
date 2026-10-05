@@ -1,7 +1,7 @@
 import {test,expect} from '@playwright/test';
 import fs from 'node:fs';
 
-test('RC1434: Übersicht öffnet einen vollständigen Outlook-Entwurf und protokolliert keinen Versand',async({page})=>{
+test('RC1436: Übersicht öffnet Outlook-AVIS mit ausschließlich manuellem Kundenordner-CC',async({page})=>{
  const mailRequests=[];
  page.on('request',request=>{if(request.url().includes('/api/avis-reminder-mail'))mailRequests.push(request.url());});
  await page.setContent('<html><head></head><body data-exporthub-view="shipmentoverview"><main id="content"><article class="shipment-card" data-shipment-id="S1"><h2>ABC123</h2><div class="actions"></div></article></main></body></html>');
@@ -36,7 +36,7 @@ test('RC1434: Übersicht öffnet einen vollständigen Outlook-Entwurf und protok
  expect(decodeURIComponent(draft.pathname)).toBe('carrier@example.com');
  expect(draft.searchParams.get('subject')).toBe('Reminder – collection notice ABC123');
  expect(draft.searchParams.get('body')).toContain('https://wonderful-forest-0f315e310.7.azurestaticapps.net/customer-avis.html?token=abc&lang=en');
- expect(draft.searchParams.get('cc').split(';').map(x=>x.toLowerCase()).sort()).toEqual(['copy@example.com','sales@example.com','tobiaslimberg@essentra.com','sevastianmarcu@essentra.com','danielollmann@essentra.com'].sort());
+ expect((draft.searchParams.get('cc')||'').split(';').map(x=>x.toLowerCase()).filter(Boolean)).toEqual(['copy@example.com']);
  expect(mailRequests).toEqual([]);
  expect(result.state.shipment.shipmentHistory).toBeUndefined();
  for(const sh of [...result.state.shipments,...result.state.savedShipments]){

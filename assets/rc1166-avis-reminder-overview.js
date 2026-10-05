@@ -194,9 +194,7 @@ function initialBody(sh,target,lang,url){
 
 function environmentName(){try{return /-testservice\./i.test(String(w.location&&w.location.hostname||''))?'testservice':'production'}catch(_){return'production'}}
 function draftCc(sh,to){
- var c=customerFor(sh)||{},values=['TobiasLimberg@essentra.com',c.salesContacts,c.customerSalesContacts,c.salesMail,c.salesEmail,c.salesPersonMail,c.salesPersonEmail,c.salesContactMail,c.salesContactEmail,c.rc385SalesMail,c.salesCc,c.ccContacts,c.customerCcContacts,c.cc,c.mailCc,c.rc385Cc,sh.salesContacts,sh.customerSalesContacts,sh.salesMail,sh.salesEmail,sh.salesCc,sh.ccContacts,sh.customerCcContacts,sh.cc,sh.mailCc];
- var registration=w.ExportHUBRC1065RegistrationCC,required=registration&&typeof registration.resolve==='function'?registration.resolve():{ok:true,addresses:['SevastianMarcu@essentra.com','DanielOllmann@essentra.com']};
- if(!required.ok)throw new Error(tr('registrationCc.missing'));values.push(required.addresses);
+ var c=customerFor(sh)||{},values=[c.ccContacts,c.customerCcContacts,c.cc,c.mailCc,c.rc385Cc];
  return emails(values).filter(function(email){return low(email)!==low(to)})
 }
 function shipmentCopies(sh){
@@ -234,8 +232,6 @@ async function sendReminder(sh,email,target,lang,url,mode){
  url=safeAvisLink(sh,url||avisLink(sh));
  var sub=mode==='initial'?initialSubject(sh,target,lang):subject(sh,target,lang),content=mode==='initial'?initialBody(sh,target,lang,url):body(sh,target,lang,url),cc=draftCc(sh,email);
  var href='mailto:'+encodeURIComponent(q(email))+'?subject='+encodeURIComponent(sub)+'&cc='+encodeURIComponent(cc.join(';'))+'&body='+encodeURIComponent(content);
- var registration=w.ExportHUBRC1065RegistrationCC;
- if(registration&&typeof registration.prepare==='function'){var prepared=registration.prepare(href);if(!prepared.ok)throw new Error(tr('registrationCc.missing'));href=prepared.url}
  var link=d.createElement('a');link.href=href;link.style.display='none';link.setAttribute('aria-hidden','true');link.setAttribute('data-rc1166-mail-draft','1');d.body.appendChild(link);
  try{link.click()}finally{link.remove()}
  var result={openedAt:new Date().toISOString(),to:q(email),subject:sub,cc:emails(new URL(href).searchParams.get('cc'))};
