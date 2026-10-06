@@ -7,7 +7,7 @@ const pickup=read('pickup.html');
 const confirm=read('api/pickup-confirm-v2/index.js');
 const publicRuntime=read('assets/rc1018-public-language.js');
 const loadingList=read('assets/rc1305-loading-list-print.js');
-const pod1432=read('api/shared/pod-archive-rc1432.js');
+const podArchive=read('api/shared/pod-archive.js');
 
 test('RC1456: ABD nutzt nur die Uebergabe-Checkbox und keine zweite Unterschrift',()=>{
   assert.match(pickup,/id="customsDocumentsConfirmed" type="checkbox"/);
@@ -29,5 +29,6 @@ test('RC1456: Server verlangt die ABD-Uebergabebestaetigung statt Zollunterschri
 test('RC1456: Ladeliste und POD enthalten genau eine Fahrerunterschrift',()=>{
   assert.match(loadingList,/rc1305-signature-primary/);
   assert.doesNotMatch(loadingList,/rc1305-signature-customs|data-rc1432-customs-signature|ensureCustomsSignatureField|customsSignatureUrl/);
-  assert.doesNotMatch(pod1432,/customsSignatureBuffer|customsSignatureType|customsDocumentsSignatureBlobName|Zolldokumente erhalten/);
+  assert.doesNotMatch(podArchive,/customsSignatureBuffer|customsSignatureType|heading\('Zolldokumente erhalten'\)/);
+  assert.equal(fs.existsSync('api/shared/pod-archive-rc1432.js'),false,'obsolete customs POD module must be removed');
 });
