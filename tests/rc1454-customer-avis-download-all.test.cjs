@@ -41,6 +41,14 @@ test('RC1454 exposes one ZIP action before individual AVIS documents',async()=>{
  assert.equal(body.documents.length,3);
 });
 
+test('RC1454 localizes the bulk-download action through API i18n',async()=>{
+ const handler=wrapCustomerAvisHandler(fakeBase()),context={};
+ await handler(context,{method:'POST',headers:{'x-exporthub-language':'en'},query:{},body:{action:'authorize'}});
+ const body=jsonBody(context.res);
+ assert.equal(body.documents[0].name,'Download all attachments');
+ assert.equal(body.documents[0].category,'ZIP · All documents');
+});
+
 test('RC1454 download-all returns one ZIP containing every released document',async()=>{
  const handler=wrapCustomerAvisHandler(fakeBase()),context={};
  await handler(context,{method:'GET',headers:{},query:{action:'download-all',session:'SESSION-1'},body:{}});
@@ -71,6 +79,19 @@ test('RC1454 never returns a partial ZIP when one document fails',async()=>{
  assert.equal(body.ok,false);
  assert.equal(body.code,'ZIP_DOCUMENT_FAILED');
  assert.match(body.message,/CMR\.pdf/);
+});
+
+test('RC1454 localizes bulk-download errors through API i18n',async()=>{
+ const base=fakeBase(),broken=async(context,req)=>{
+  if(req.method==='GET'&&String(req.query&&req.query.action)==='document'&&String(req.query.id)==='b'){
+   context.res={status:404,headers:{'Content-Type':'application/json'},body:{ok:false,code:'DOCUMENT_NOT_FOUND'}};return;
+  }
+  return base(context,req);
+ };
+ const handler=wrapCustomerAvisHandler(broken),context={};
+ await handler(context,{method:'GET',headers:{'x-exporthub-language':'en'},query:{action:'download-all',session:'SESSION-1'},body:{}});
+ const body=jsonBody(context.res);
+ assert.equal(body.message,'The bulk download was cancelled because “CMR.pdf” could not be loaded completely.');
 });
 
 test('RC1454 Azure customer-avis entrypoint wraps but does not replace the proven handler',()=>{
