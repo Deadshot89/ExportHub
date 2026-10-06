@@ -294,7 +294,7 @@ function apply(){
       genericLayout(mode==='modern'?'business':mode)
     }
   }finally{
-    if(observer&&d.body)observer.observe(d.body,{childList:true,subtree:true})
+    if(observer&&d.body&&design()!=='classic')observer.observe(d.body,{childList:true,subtree:true})
   }
 }
 function schedule(){
@@ -318,7 +318,7 @@ function watch(){
     })
   }
   observer.disconnect();
-  observer.observe(d.body,{childList:true,subtree:true});
+  if(design()!=='classic')observer.observe(d.body,{childList:true,subtree:true});
 
   if(!designObserver){
     designObserver=new MutationObserver(function(records){
