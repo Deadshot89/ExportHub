@@ -5,8 +5,9 @@ import {createRequire} from 'node:module';
 
 const require=createRequire(import.meta.url);
 const HELPER='api/shared/rc1453-mail-contamination-cleanup.js';
-const MAINTENANCE='api/state-maintenance/index.js';
-const WORKFLOW='.github/workflows/rc1137-state-compaction.yml';
+const API='api/rc1453-mail-cleanup/index.js';
+const FUNCTION='api/rc1453-mail-cleanup/function.json';
+const WORKFLOW='.github/workflows/rc1453-mail-cleanup.yml';
 
 function mail(){
   return 'Sehr geehrte Damen und Herren\n\nLIEFERAVIS\nFür diese Sendung steht Ihnen unser digitales Lieferavis zur Verfügung.\nhttps://exporthub360.com/avis/ABC123\n\nMit freundlichen Grüßen';
@@ -49,19 +50,33 @@ test('RC1453: helper exists and cleans only mail contamination for 7YJUPL and 4U
   assert.equal(after.targets['4UXU92'].contaminatedFields,0);
 });
 
-test('RC1453: maintenance API exposes production-only verified cleanup with backup and ETag write',()=>{
-  const src=fs.readFileSync(MAINTENANCE,'utf8');
-  assert.match(src,/cleanup-mail-contamination-7yjupl-4uxu92/);
-  assert.match(src,/cleanupHistoricMailContamination/);
-  assert.match(src,/createVerifiedBackup\(/);
-  assert.match(src,/uploadTeam\(blob,working,currentRead\.etag\)/);
-  assert.match(src,/MAIL_CLEANUP_VERIFY_FAILED/);
+test('RC1453: dedicated API is production-only, OIDC-protected, backed up, ETag guarded and verifies both refs after write',()=>{
+  assert.ok(fs.existsSync(API),'RC1453 API is missing');
+  assert.ok(fs.existsSync(FUNCTION),'RC1453 function binding is missing');
+  const src=fs.readFileSync(API,'utf8');
+  assert.match(src,/githubOidcAuthorized/);
+  assert.match(src,/rc1453-mail-cleanup\.yml/);
+  assert.match(src,/refs\/heads\/main/);
   assert.match(src,/environment!=='production'/);
+  assert.match(src,/createVerifiedBackup/);
+  assert.match(src,/conditions:\{ifMatch:etag\}/);
+  assert.match(src,/cleanHistoricMailDescriptions/);
+  assert.match(src,/inspectHistoricMailDescriptions/);
+  assert.match(src,/MAIL_CLEANUP_VERIFY_FAILED/);
+  assert.match(src,/7YJUPL/);
+  assert.match(src,/4UXU92/);
 });
 
-test('RC1453: production maintenance workflow executes cleanup and requires both references verified clean',()=>{
+test('RC1453: production workflow runs only after successful main deploy and fails unless both references are verified clean',()=>{
+  assert.ok(fs.existsSync(WORKFLOW),'RC1453 production workflow is missing');
   const workflow=fs.readFileSync(WORKFLOW,'utf8');
-  assert.match(workflow,/cleanup-mail-contamination-7yjupl-4uxu92/);
+  assert.match(workflow,/workflow_run:/);
+  assert.match(workflow,/ExportHUB RC1112 Drei-Umgebungen Deploy/);
+  assert.match(workflow,/id-token: write/);
+  assert.match(workflow,/github\.event\.workflow_run\.conclusion == 'success'/);
+  assert.match(workflow,/github\.event\.workflow_run\.head_branch == 'main'/);
+  assert.match(workflow,/audience=exporthub-rc1453-mail-cleanup/);
+  assert.match(workflow,/\/api\/rc1453-mail-cleanup/);
   assert.match(workflow,/7YJUPL/);
   assert.match(workflow,/4UXU92/);
   assert.match(workflow,/contaminatedFields/);
