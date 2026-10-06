@@ -77,7 +77,9 @@ for(const rel of ['pickup.html','customer-avis.html','location.html','pod-notfal
   const helperBefore='  const resetHelper=" function resetMountedFreshDom(){';
   const helperAfter=`  const resetHelper=" function resetMountedFreshVolatile(){if(!preserveMountedShipment||!mountedLayout)return;var changed=[];try{Array.from(mountedLayout.querySelectorAll('textarea')).forEach(function(el){if(el.closest&&el.closest('#rc543MailArea,#rc363BlockMail'))return;var owner=el.closest&&el.closest('[data-rc896-field]'),key=((el.getAttribute&&el.getAttribute('data-rc408-shipment-field'))||el.name||el.id||(owner&&owner.getAttribute('data-rc896-field'))||'').toLowerCase(),label=el.closest&&el.closest('label'),text=((label&&label.textContent)||'').toLowerCase();if(!/(comment|remark|bemerk)/.test(key+' '+text))return;el.value='';changed.push(el)});Array.from(mountedLayout.querySelectorAll('input[type=file]')).forEach(function(el){try{el.value=''}catch(_){}changed.push(el)});changed.forEach(function(el){try{el.dispatchEvent(new Event(el.tagName==='INPUT'?'change':'input',{bubbles:true}))}catch(_){}if(el.tagName!=='INPUT')try{el.dispatchEvent(new Event('change',{bubbles:true}))}catch(_){}})}catch(e){console.error('RC1453 Neue Sendung volatile Felder',e)}}\\n function resetMountedFreshDom(){`;
   source=patchInsideFunction(source,start,next,helperBefore,helperAfter,'RC1453 volatile reset helper');
-  source=patchInsideFunction(source,start,next,'safePatchDuringEdit();return true','safePatchDuringEdit();resetMountedFreshVolatile();return true','RC1453 volatile reset call');
+  const resetCallBefore="}catch(e){console.error('RC1414 Standort lokal zurücksetzen',e)}safePatchDuringEdit();return true}\\n\";";
+  const resetCallAfter="}catch(e){console.error('RC1414 Standort lokal zurücksetzen',e)}resetMountedFreshVolatile();safePatchDuringEdit();return true}\\n\";";
+  source=patchInsideFunction(source,start,next,resetCallBefore,resetCallAfter,'RC1453 volatile reset call');
   write(rel,source);
 }
 
@@ -85,5 +87,5 @@ const runtime=read('assets/rc1267-i18n.js');
 const builder=read('.github/rc1112/build-three-env.mjs');
 if(!runtime.includes("var VERSION='RC1452';")||!runtime.includes('rc1452DocumentActionRepair'))throw new Error('RC1452 Runtime-Hotfix unvollständig');
 if(!builder.includes('function rc1452PrintGoodsDescription(sh)')||!builder.includes('/assets/rc1267-i18n.js?v=1452'))throw new Error('RC1452 Druck-/Cache-Hotfix unvollständig');
-if(!builder.includes('function resetMountedFreshVolatile()')||!builder.includes('resetMountedFreshVolatile();return true'))throw new Error('RC1453 Neue-Sendung-Reset unvollständig');
+if(!builder.includes('function resetMountedFreshVolatile()')||!builder.includes('resetMountedFreshVolatile();safePatchDuringEdit();return true'))throw new Error('RC1453 Neue-Sendung-Reset unvollständig');
 console.log('RC1452 mail/goodsDescription hotfix + RC1453 Neue-Sendung-Reset applied');
