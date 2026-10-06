@@ -22,7 +22,8 @@ test('RC1455: POD gilt erst mit SharePoint-Kopie als vollständig gesichert',()=
   assert.match(archive,/status: 'pending-sharepoint'/,'Fehlende SharePoint-Kopie wird nicht als offen markiert');
   assert.match(archive,/const sharePointRequired = backup\.driveSaved !== true/,'SharePoint-Nachsicherung bleibt optional');
   assert.match(archive,/pending\.length \+ drivePending\.length/,'Gezielter Nachweis ignoriert offene SharePoint-Kopien');
-  assert.match(workflow,/Number\(v\.drivePendingCount\|\|0\)>0/,'Wartungsworkflow akzeptiert offene SharePoint-Kopien');
+  assert.match(archive,/eligible: requiredEligible \+ driveBackfillEligible \+ teamRelinkCandidates\.length/,'SharePoint-Rückstand zählt nicht als verpflichtende Reconcile-Arbeit');
+  assert.match(workflow,/const requiredDone=eligible===0&&selected===0&&skipped===0&&!v\.nextContinuationToken&&!v\.requiredWorkDeferred/,'Workflow darf verpflichtenden SharePoint-Rückstand nicht als fertig akzeptieren');
   assert.match(pickup,/data\.podDriveSaved/,'Abholseite zeigt SharePoint-Sicherungsstatus nicht an');
   assert.match(build,/SharePoint required/,'Releasevertrag dokumentiert SharePoint nicht als Pflichtsicherung');
 });
