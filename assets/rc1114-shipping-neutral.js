@@ -89,19 +89,26 @@ function disconnectObserver(){
 function disconnectBootstrap(){
  if(bootstrapObserver){try{bootstrapObserver.disconnect()}catch(_){}bootstrapObserver=null}
 }
+function noticeStateNeedsRun(node){
+ var current=node&&(node.parentElement||node.parentNode);
+ while(current&&current.nodeType===1){
+  if(current!==observerRoot){
+   var suppress=shouldSuppressNotice(current.textContent);
+   var hidden=current.getAttribute&&current.getAttribute('data-rc1114-hidden-notice')==='1';
+   if(suppress!==hidden)return true
+  }
+  if(current===observerRoot)break;
+  current=current.parentElement||current.parentNode
+ }
+ return false
+}
 function mutationNeedsRun(record){
  if(!record)return false;
  if(record.type==='childList')return true;
  if(record.type==='characterData'){
   var text=q(record.target&&record.target.nodeValue);
   if(replaceText(text)!==text)return true;
-  var parent=record.target&&(record.target.parentElement||record.target.parentNode);
-  if(parent&&parent.nodeType===1){
-   var suppress=shouldSuppressNotice(parent.textContent);
-   var hidden=parent.getAttribute&&parent.getAttribute('data-rc1114-hidden-notice')==='1';
-   if(suppress!==hidden)return true
-  }
-  return false
+  return noticeStateNeedsRun(record.target)
  }
  if(record.type==='attributes'){
   var target=record.target,name=record.attributeName;
