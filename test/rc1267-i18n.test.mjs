@@ -100,5 +100,17 @@ test('RC1451: mail textareas can never be classified or persisted as shipment go
   const snapshot=runtime.slice(runtime.indexOf('function snapshotShipmentDraft('),runtime.indexOf('function syncApplicationLanguage('));
   assert.match(classify,/#rc543MailArea|#rc363BlockMail/,'mail area exclusion is missing in shipmentDraftField');
   assert.match(snapshot,/#rc543MailArea|#rc363BlockMail/,'mail area exclusion is missing in shipment draft snapshot');
-  assert.doesNotMatch(classify,/goodsdescription\|goods-description\|description/,'generic description substring may classify unrelated mail fields as goodsDescription');
+  assert.doesNotMatch(classify,/if\(\/goodsdescription\|goods-description\|description\/\.test\(explicit\)\)/,'generic description substring classifier must be removed');
+  assert.match(classify,/\^\(\?:goodsdescription\|goods-description\|description\|warenbeschreibung\)\$/,'goods description identifiers must be exact matches');
+});
+
+
+test('RC1451: already corrupted mail text is repaired in shipment state and persisted once',()=>{
+  assert.match(runtime,/function mailLikeGoodsDescription\(/);
+  assert.match(runtime,/function repairContaminatedGoodsDescription\(/);
+  assert.match(runtime,/shipment\.goodsDescription=''/);
+  assert.match(runtime,/shipment\.description=''/);
+  assert.match(runtime,/shipment\.warenbeschreibung=''/);
+  assert.match(runtime,/ExportHUBRC565[\s\S]*?persistShipment/,'repair must persist through the shipment persistence bridge');
+  assert.match(runtime,/exporthub:state-loaded[\s\S]*?repairContaminatedGoodsDescription/,'repair must run when shared state is loaded');
 });
