@@ -25,7 +25,7 @@ test('RC1453: lokaler Neue-Sendung-Reset umfasst Bemerkung und Datei-Anhänge',(
   assert.match(builder,/comment\|remark\|bemerk/);
   assert.match(builder,/querySelectorAll\('input\[type=file\]'\)/);
   assert.match(builder,/dispatchEvent\(new Event\(el\.tagName==='INPUT'\?'change':'input'/);
-  assert.match(builder,/safePatchDuringEdit\(\);resetMountedFreshVolatile\(\);return true/);
+  assert.match(builder,/resetMountedFreshVolatile\(\);safePatchDuringEdit\(\);return true/);
 });
 
 test('RC1453: finaler Drei-Umgebungen-Build enthält den erweiterten Reset',()=>{
@@ -35,7 +35,7 @@ test('RC1453: finaler Drei-Umgebungen-Build enthält den erweiterten Reset',()=>
     assert.match(block,/function resetMountedFreshVolatile\(\)/,file+': volatile Reset-Helfer fehlt');
     assert.match(block,/querySelectorAll\('input\[type=file\]'\)/,file+': Datei-Reset fehlt');
     assert.match(block,/comment\|remark\|bemerk/,file+': Bemerkungs-Erkennung fehlt');
-    assert.match(block,/resetMountedFreshVolatile\(\);return true/,file+': Reset wird nicht ausgeführt');
+    assert.match(block,/resetMountedFreshVolatile\(\);safePatchDuringEdit\(\);return true/,file+': Reset wird nicht ausgeführt');
     assert.doesNotMatch(block,/if\(preserveMountedShipment\)[\s\S]{0,180}replaceChildren\(\)/,file+': RC1453 darf den Voll-Render nicht wieder einführen');
   }
 });
