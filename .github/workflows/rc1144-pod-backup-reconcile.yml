@@ -10,6 +10,7 @@ on:
       - main
   schedule:
     - cron: '7,22,37,52 * * * *'
+    - cron: '17 2 * * *'
   workflow_dispatch:
     inputs:
       reference:
@@ -105,6 +106,7 @@ jobs:
 
           echo 'TESTSERVICE POD reconcile: Backlog nach 200 Batches noch nicht vollständig geleert.' >&2
           exit 8
+
   production:
     name: POD-Backup-Nachholung PRODUCTION
     if: ${{ (github.event_name != 'workflow_run' || github.event.workflow_run.head_branch == 'main') && (github.event_name != 'workflow_dispatch' || inputs.environment == 'production' || inputs.environment == 'both') }}
@@ -116,7 +118,7 @@ jobs:
         env:
           BASE_URL: https://wonderful-forest-0f315e310.7.azurestaticapps.net
           TARGET_ENV: production
-          TARGET_REFERENCE: ${{ github.event_name == 'workflow_dispatch' && inputs.reference || (github.event_name == 'workflow_run' || github.event_name == 'schedule') && 'XG4YNN' || '' }}
+          TARGET_REFERENCE: ${{ github.event_name == 'workflow_dispatch' && inputs.reference || '' }}
         run: |
           set -euo pipefail
           set +x
@@ -175,3 +177,83 @@ jobs:
 
           echo 'PRODUCTION POD reconcile: Backlog nach 200 Batches noch nicht vollständig geleert.' >&2
           exit 8
+
+  pod_integrity_audit:
+    name: POD-Status-Integritaet PRODUCTION
+    needs: production
+    if: ${{ needs.production.result == 'success' && (github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_run' || github.event.schedule == '17 2 * * *') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: POD-Status-Integritaet PRODUCTION
+        shell: bash
+        env:
+          BASE_URL: https://wonderful-forest-0f315e310.7.azurestaticapps.net
+          TARGET_ENV: production
+        run: |
+          set -euo pipefail
+          set +x
+
+          oidc_token="$(
+            curl -fsSL \
+              -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+              "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=exporthub-pod-backup-reconcile" \
+              | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s).value;if(!v)process.exit(2);process.stdout.write(v)})"
+          )"
+
+          cursor='0'
+          total_checked=0
+          total_downloadable=0
+          total_recovered=0
+          total_essentra=0
+          total_other=0
+          total_removed=0
+
+          for audit_batch in $(seq 1 500); do
+            payload="$(CURSOR="$cursor" node -e "process.stdout.write(JSON.stringify({environment:process.env.TARGET_ENV,auditPodStatus:true,auditOnly:true,auditLimit:10,cursor:Number(process.env.CURSOR||0)}))")"
+            response_file="$(mktemp)"
+            http_code="$(
+              curl -sS -L -o "$response_file" -w '%{http_code}' \
+                -H "Content-Type: application/json" \
+                -H "x-exporthub-github-oidc: $oidc_token" \
+                -H "x-exporthub-environment: $TARGET_ENV" \
+                -d "$payload" \
+                "$BASE_URL/api/pod-backup-reconcile" || true
+            )"
+            result="$(cat "$response_file")"
+            rm -f "$response_file"
+
+            summary="$(printf '%s\n' "$result" | node -e "
+              let s='';const status=Number(process.argv[1]||0);process.stdin.on('data',c=>s+=c).on('end',()=>{
+                let v={};try{v=JSON.parse(s||'{}')}catch(_){}
+                const safe={batch:Number(process.argv[2]||0),httpStatus:status,ok:v.ok,code:v.code,message:v.message,cursor:v.cursor,nextCursor:v.nextCursor,totalShipments:v.totalShipments,checked:v.checked,downloadable:v.downloadable,recovered:v.recovered,downgradedEssentra:v.downgradedEssentra,downgradedOther:v.downgradedOther,removedPodEntries:v.removedPodEntries,backup:v.backup&&{name:v.backup.name,verified:v.backup.verified},broken:Array.isArray(v.broken)?v.broken:[],recordCleanupErrors:Array.isArray(v.recordCleanupErrors)?v.recordCleanupErrors:[]};
+                console.error('PRODUCTION POD integrity audit',JSON.stringify(safe));
+                if(status<200||status>=300||!v.ok)process.exit(10);
+                process.stdout.write([Number(v.checked||0),Number(v.downloadable||0),Number(v.recovered||0),Number(v.downgradedEssentra||0),Number(v.downgradedOther||0),Number(v.removedPodEntries||0),v.nextCursor==null?'':String(v.nextCursor)].join('|'));
+              })" "$http_code" "$audit_batch")"
+
+            IFS='|' read -r checked downloadable recovered ess other removed next_cursor <<< "$summary"
+            total_checked=$((total_checked + checked))
+            total_downloadable=$((total_downloadable + downloadable))
+            total_recovered=$((total_recovered + recovered))
+            total_essentra=$((total_essentra + ess))
+            total_other=$((total_other + other))
+            total_removed=$((total_removed + removed))
+
+            if [ -z "$next_cursor" ]; then
+              {
+                echo '### RC1440 POD-Status-Integritaet PRODUCTION'
+                echo "- Geprueft: $total_checked"
+                echo "- POD abrufbar: $total_downloadable"
+                echo "- POD wiederhergestellt: $total_recovered"
+                echo "- Essentra auf Abgeholt: $total_essentra"
+                echo "- Andere auf Abgeholt: $total_other"
+                echo "- Fehlerhafte POD-Eintraege entfernt: $total_removed"
+              } >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            cursor="$next_cursor"
+          done
+
+          echo 'PRODUCTION POD integrity audit: nach 500 Batches nicht vollständig abgeschlossen.' >&2
+          exit 11
