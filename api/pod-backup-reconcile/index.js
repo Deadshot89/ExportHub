@@ -69,7 +69,9 @@ module.exports = async function(context, req) {
   if (req.method !== 'POST') { context.res = json(405, { ok: false, code: 'METHOD_NOT_ALLOWED', message: 'Nur POST ist erlaubt.' }); return; }
   try {
     if (!await githubOidcAuthorized(req)) throw error('WORKFLOW_REQUIRED', 'Die POD-Nachholung darf nur durch den signierten ExportHUB-Wartungsworkflow ausgeführt werden.', 403);
-    const payload = body(req), environment = environmentOf(req, payload), graph = graphDrive.readiness();
+    const payload = body(req);
+    const environment = environmentOf(req, payload);
+    const graph = graphDrive.readiness();
 
     if (payload.auditPodStatus === true) {
       const audit = await podIntegrityAudit.auditPodStatuses(environment, {
