@@ -495,7 +495,7 @@ function patchCompletePrintBundle(html,file){
   if(!html.includes('function rc1450PrintGoodsDescription('))html=html.slice(0,loadStart)+goodsHelper+'\\n'+html.slice(loadStart);
   const adjustedLoadStart=html.indexOf('function loadHtml(sh,withQr){');
   const adjustedLoadEnd=html.indexOf('function documentCacheKey',adjustedLoadStart);
-  loadBlock=html.slice(adjustedLoadStart,adjustedLoadEnd).replace(/q\\(sh&&sh\\.goodsDescription\\)/g,'rc1450PrintGoodsDescription(sh)');
+  loadBlock=html.slice(adjustedLoadStart,adjustedLoadEnd).replace(/q\\(sh&&sh\\.goodsDescription\\)/g,'rc1450PrintGoodsDescription(sh)').replace(/esc\\(q\\(sh&&sh\\.goodsDescription\\)\\)/g,'esc(rc1450PrintGoodsDescription(sh))');
 
   loadBlock=loadBlock.replace("withQr?'1 / 1 · mit QR-Code':'ohne QR-Code'","withQr?'Ladeliste · mit QR-Code':'Ladeliste · ohne QR-Code'");
   loadBlock=loadBlock.replace("withQr?'1 / 2 · mit QR-Code':'2 / 2 · ohne QR-Code'","withQr?'Ladeliste · mit QR-Code':'Ladeliste · ohne QR-Code'");
