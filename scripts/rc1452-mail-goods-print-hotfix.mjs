@@ -12,6 +12,15 @@ function replaceOnce(source,before,after,label){
   return source.replace(before,after);
 }
 
+function patchInsideFunction(source,functionStart,nextFunction,before,after,label){
+  const start=source.indexOf(functionStart);
+  const end=start<0?-1:source.indexOf(nextFunction,start+functionStart.length);
+  if(start<0||end<0)throw new Error(`${label}: Funktionsgrenze fehlt`);
+  const block=source.slice(start,end);
+  const patched=replaceOnce(block,before,after,label);
+  return source.slice(0,start)+patched+source.slice(end);
+}
+
 // RC1452 root cause repair: clean every shipment collection, not only the currently
 // edited shipment. The document/print view keeps the selected shipment in its own
 // runtime, so the previous active-id-only repair could miss the exact object printed.
@@ -21,7 +30,7 @@ function replaceOnce(source,before,after,label){
   source=source.replace("var VERSION='RC1267';","var VERSION='RC1452';");
   const before=" applicationStateRoots().forEach(function(root){shipmentDraftTargets(root).forEach(function(shipment){if(targets.indexOf(shipment)<0)targets.push(shipment)})});";
   const after=" applicationStateRoots().forEach(function(root){\n  shipmentDraftTargets(root).forEach(function(shipment){if(targets.indexOf(shipment)<0)targets.push(shipment)});\n  ['shipments','savedShipments','salesSharedShipments','sharedShipments','shipmentArchive','archivedShipments','archive'].forEach(function(name){\n   var list=root&&root[name];if(!Array.isArray(list))return;\n   list.forEach(function(shipment){if(shipment&&typeof shipment==='object'&&targets.indexOf(shipment)<0)targets.push(shipment)})\n  });\n  ['shipment','currentShipment','selectedShipment','activeShipment','editingShipment','documentShipment'].forEach(function(name){var shipment=root&&root[name];if(shipment&&typeof shipment==='object'&&targets.indexOf(shipment)<0)targets.push(shipment)});\n });";
-  source=replaceOnce(source,before,after,'RC1452 shipment repair');
+  source=patchInsideFunction(source,'function repairContaminatedGoodsDescription(){','function snapshotShipmentDraft(){',before,after,'RC1452 shipment repair');
 
   // Run the repair synchronously before document actions. This guarantees that an
   // already open production session is cleaned before Ladeliste/CMR HTML is built.
