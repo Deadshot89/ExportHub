@@ -31,13 +31,13 @@ test('RC1114: vollständige Abholung startet serverseitige POD-Archivierung',()=
   assert.match(confirm,/podDriveSaved/);
 });
 
-test('RC1220: Azure-Primärspeicher wird vor unveränderlicher Azure-Archivkopie geschrieben',()=>{
+test('RC1455: Azure-Primärspeicher und unveränderliches Archiv werden vor SharePoint geschrieben',()=>{
   const azure=archive.indexOf('await saveAzurePod(accessKey, environment, record, pdf)');
   const second=archive.indexOf('await saveAzureArchive(accessKey, environment, record, pdf, file)');
   const drive=archive.indexOf('await copyToDrive(accessKey, environment, record, pdf, file)');
   assert.ok(azure>=0,'Azure-Speicherung fehlt');
   assert.ok(second>azure,'Azure-Archivkopie muss nach dem Primärspeicher erfolgen');
-  assert.ok(drive>second,'Optionales Microsoft 365 darf erst nach bestätigtem Azure-Archiv erfolgen');
+  assert.ok(drive>second,'SharePoint darf erst nach bestätigtem Azure-Archiv beschrieben werden');
   for(const marker of ["status: 'azure-saved'","status: 'saved'","archiveSaved: true","kind: 'automatic-pod'","kind: 'automatic-pod-archive'"]){
     assert.ok(archive.includes(marker),marker+' fehlt');
   }
@@ -65,7 +65,7 @@ test('RC1164: Graph-Bereitschaft erkennt fehlende Konfiguration ohne Secret-Wert
   assert.match(graph,/module\.exports\s*=\s*\{\s*readiness,/);
 });
 
-test('RC1220: Reconcile bleibt ohne Microsoft Graph aktiv',()=>{
+test('RC1455: Reconcile bleibt bei Graph-Störung aktiv und führt SharePoint als offenen Pflichtschritt',()=>{
   assert.match(reconcileApi,/graphDrive\.readiness\(\)/);
   assert.doesNotMatch(reconcileApi,/code:\s*'GRAPH_NOT_CONFIGURED'/);
   assert.match(reconcileApi,/backupMode:\s*'azure-archive'/);
@@ -73,6 +73,7 @@ test('RC1220: Reconcile bleibt ohne Microsoft Graph aktiv',()=>{
   const reconcileIndex=reconcileApi.indexOf('podArchive.reconcilePendingBackups');
   assert.ok(readinessIndex>=0&&reconcileIndex>readinessIndex,'Graph-Status darf erfasst werden, aber den Azure-Reconcile nicht blockieren');
 });
+
 test('RC1114: Graph-Upload wiederholt temporäre Fehler',()=>{
   assert.match(graph,/for \(let attempt = 1; attempt <= 3; attempt\+\+\)/);
   assert.match(graph,/status === 429/);
@@ -144,28 +145,28 @@ test('RC1184: POD-Nachholung bleibt von fehlgeschlagenem Release entkoppelt',()=
   assert.match(reconcileWorkflow,/types:\s*\n\s*- completed/);
 });
 
-test('RC1114: öffentliche Abholseite wartet auf serverseitige Sicherung und zeigt Archivstatus',()=>{
+test('RC1455: öffentliche Abholseite wartet auf serverseitige Sicherung und zeigt Azure, Archiv und SharePoint getrennt',()=>{
   assert.match(pickup,/pickup-confirm-v2[^\n]{0,180}timeout:90000/);
   assert.match(pickup,/data&&data\.podAzureSaved/);
   assert.match(pickup,/data\.podArchiveSaved/);
+  assert.match(pickup,/data\.podDriveSaved/);
 });
 
-test('RC1114: Server-PDF-Abhängigkeit und POD-Konfiguration sind Releasebestandteil',()=>{
+test('RC1455: Server-PDF-Abhängigkeit und POD-Konfiguration sind Releasebestandteil',()=>{
   assert.equal(apiPackage.dependencies['pdf-lib'],'1.17.1');
   assert.equal(settings.Values.EXPORTHUB_POD_CONTAINER,'exporthub-pod');
   assert.equal(settings.Values.EXPORTHUB_POD_BACKUP_CONTAINER,'exporthub-pod-backup');
-  assert.equal(settings.Values.EXPORTHUB_POD_M365_ENABLED,'false');
   assert.ok(settings.Values.EXPORTHUB_GRAPH_TENANT_ID);
   assert.ok(settings.Values.EXPORTHUB_GRAPH_CLIENT_ID);
   assert.ok(settings.Values.EXPORTHUB_GRAPH_CLIENT_SECRET);
 });
 
-test('RC1114: Drei-Umgebungen-Build übernimmt aktuelle POD-API',()=>{
+test('RC1455: Drei-Umgebungen-Build übernimmt den verlustsicheren POD-Vertrag',()=>{
   assert.match(build,/const currentApi=path\.join\(ROOT,'api'\),builtApi=path\.join\(OUT,'api'\)/);
   assert.match(build,/fs\.cpSync\(currentApi,builtApi,\{recursive:true,force:true\}\)/);
   assert.match(build,/shared\/pod-archive\.js/);
-  assert.match(build,/podReliability:'RC1220 Azure primary \+ immutable Azure archive; M365 optional'/);
-  assert.match(build,/podGraphReadiness:'RC1220 Graph optional; Azure archive is release-critical secondary backup'/);
+  assert.match(build,/podReliability:'RC1455 Azure primary \+ immutable signature\/archive; SharePoint required'/);
+  assert.match(build,/podGraphReadiness:'RC1455 SharePoint required; Azure archive protects evidence until retry succeeds'/);
 });
 
 test('RC1195: POD-Ziel muss explizit konfiguriert sein und darf nicht auf ein persönliches Laufwerk zurückfallen',()=>{
