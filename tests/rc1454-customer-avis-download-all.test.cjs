@@ -94,6 +94,22 @@ test('RC1454 localizes bulk-download errors through API i18n',async()=>{
  assert.equal(body.message,'The bulk download was cancelled because “CMR.pdf” could not be loaded completely.');
 });
 
+test('RC1454 renders the ZIP action as a dedicated responsive AVIS header CTA',()=>{
+ assert.equal(fs.existsSync('assets/rc1454-avis-download-all-ui.js'),true,'RC1454 UI runtime is missing');
+ assert.equal(fs.existsSync('scripts/rc1454-avis-download-all-ui.mjs'),true,'RC1454 AVIS injector is missing');
+ const ui=fs.readFileSync('assets/rc1454-avis-download-all-ui.js','utf8');
+ const injector=fs.readFileSync('scripts/rc1454-avis-download-all-ui.mjs','utf8');
+ const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
+ assert.match(ui,/action=download-all/);
+ assert.match(ui,/\.section-head/);
+ assert.match(ui,/rc1454-bulk-download/);
+ assert.match(ui,/MutationObserver/);
+ assert.match(ui,/removeAttribute\(['"]target['"]\)/);
+ assert.match(injector,/customer-avis\.html/);
+ assert.match(injector,/rc1454-avis-download-all-ui\.js/);
+ assert.match(pkg.scripts.pretest,/rc1454-avis-download-all-ui\.mjs/);
+});
+
 test('RC1454 Azure customer-avis entrypoint wraps but does not replace the proven handler',()=>{
  const cfg=JSON.parse(fs.readFileSync('api/customer-avis/function.json','utf8'));
  const wrapper=fs.readFileSync('api/customer-avis/wrapper.js','utf8');
