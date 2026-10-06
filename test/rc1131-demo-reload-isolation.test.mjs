@@ -38,7 +38,10 @@ test('RC1131: Fake-Demo bleibt auf demo.html und wird nicht zum TESTSERVICE-Rout
   const syntaxFailures=[];
   classicScripts(demo).forEach((script,index)=>{
     try{new vm.Script(script.code,{filename:'dist-rc1112/demo.html.inline-'+(index+1)})}
-    catch(error){syntaxFailures.push('#'+(index+1)+' @'+script.index+' '+script.openTag+' :: '+String(error&&error.message||error))}
+    catch(error){
+      const detail=String(error&&error.stack||error&&error.message||error).split('\n').slice(0,8).join('\n');
+      syntaxFailures.push('#'+(index+1)+' @'+script.index+' '+script.openTag+' :: '+detail);
+    }
   });
   assert.deepEqual(syntaxFailures,[],syntaxFailures.join('\n'));
 });

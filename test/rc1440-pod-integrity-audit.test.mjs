@@ -4,11 +4,21 @@ import fs from 'node:fs';
 import {createRequire} from 'node:module';
 
 const require=createRequire(import.meta.url);
+const Module=require('node:module');
 const auditPath='api/shared/pod-integrity-audit.js';
 const apiPath='api/pod-backup-reconcile/index.js';
 const workflowPath='.github/workflows/rc1144-pod-backup-reconcile.yml';
 
 function read(path){return fs.existsSync(path)?fs.readFileSync(path,'utf8'):''}
+function loadAudit(){
+  const original=Module._load;
+  Module._load=function(request,parent,isMain){
+    if(request==='@azure/storage-blob')return{BlobServiceClient:{fromConnectionString(){throw new Error('Storage darf für RC1440 Pure-Helper nicht benötigt werden')}}};
+    return original.call(this,request,parent,isMain);
+  };
+  delete require.cache[require.resolve('../api/shared/pod-integrity-audit.js')];
+  try{return require('../api/shared/pod-integrity-audit.js')}finally{Module._load=original}
+}
 
 const source=read(auditPath);
 const api=read(apiPath);
@@ -23,7 +33,7 @@ test('RC1440: POD vorhanden requires a real readable stored file, not metadata a
 
 test('RC1440: Essentra detection follows customer name and preserves POD metadata on downgrade',()=>{
   assert.ok(source,'POD integrity audit module is missing');
-  const mod=require('../api/shared/pod-integrity-audit.js');
+  const mod=loadAudit();
   assert.equal(mod.isEssentraShipment({customerName:'Essentra Components AB - SE'},{}),true);
   assert.equal(mod.isEssentraShipment({customerName:'Omni Ray AG'},{}),false);
   const sh={status:'POD vorhanden',processStatus:'POD vorhanden',podFiles:[{id:'x'}],podAvailable:true,podConfirmed:true};
@@ -37,7 +47,7 @@ test('RC1440: Essentra detection follows customer name and preserves POD metadat
 
 test('RC1440: non-Essentra broken POD is removed and shipment returns to Abgeholt',()=>{
   assert.ok(source,'POD integrity audit module is missing');
-  const mod=require('../api/shared/pod-integrity-audit.js');
+  const mod=loadAudit();
   const sh={status:'POD vorhanden',processStatus:'POD vorhanden',podFiles:[{id:'x'}],podAvailable:true,podConfirmed:true,hasPod:true,podStatus:'POD vorhanden'};
   const out=mod.applyBrokenPodPolicy(sh,false);
   assert.equal(out.status,'Abgeholt');
