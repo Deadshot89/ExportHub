@@ -69,8 +69,6 @@ button:focus-visible,input:focus-visible{outline:3px solid #1d4ed8;outline-offse
   <span id="stepDriver" class="pickup-step">3 · Fahrer</span>
 </div>
 
-<div id="details"></div>
-
 <section id="colliSection" class="section">
 <h2>Colli-Prüfung <span class="help">(zuerst erforderlich)</span></h2>
 <div class="info-grid">
@@ -83,7 +81,7 @@ button:focus-visible,input:focus-visible{outline:3px solid #1d4ed8;outline-offse
 <div id="colliResult" class="help">Bitte zuerst die verladenen Collis bestätigen. Danach werden die Fahrerdaten freigeschaltet.</div>
 </section>
 
-<section id="containerSection" class="section" hidden>
+<section id="containerSection" class="section">
 <h2>🚢 Container-Dokumentation <span id="containerModeLabel" class="help container-optional">(optional)</span></h2>
 <div class="help">Bei Seefracht mit verpflichtender Container-Dokumentation müssen vor der vollständigen Abholung die Siegelnummer und genau diese drei Nachweise gespeichert sein. Bei anderen Sendungen können die Angaben freiwillig genutzt werden.</div>
 <label>Siegelnummer <span id="sealRequiredLabel" class="help">(optional)</span><input id="sealNumber" autocomplete="off" maxlength="120" placeholder="z. B. ABCD123456"></label>
@@ -95,6 +93,8 @@ button:focus-visible,input:focus-visible{outline:3px solid #1d4ed8;outline-offse
 <div id="containerResult" class="help">Fotos werden sofort sicher mit dieser Sendungsreferenz gespeichert.</div>
 </section>
 
+
+<div id="details"></div>
 
 <div id="driverStep" hidden>
 <section class="section">
@@ -245,9 +245,8 @@ function expectedCollis(data){
 }
 
 function setDriverStepUnlocked(on){
-  var step=document.getElementById('driverStep'),containerStep=document.getElementById('containerSection'),colliStep=document.getElementById('stepColli'),driverStep=document.getElementById('stepDriver');
+  var step=document.getElementById('driverStep'),colliStep=document.getElementById('stepColli'),driverStep=document.getElementById('stepDriver');
   if(step)step.hidden=!on;
-  if(containerStep)containerStep.hidden=!on;
   if(colliStep)colliStep.className='pickup-step '+(on?'done':'active');
   if(driverStep)driverStep.className='pickup-step '+(on?'active':'');
 }
