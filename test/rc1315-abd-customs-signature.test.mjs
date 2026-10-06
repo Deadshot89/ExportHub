@@ -10,22 +10,19 @@ const init=fs.readFileSync('api/pickup-init/index.js','utf8');
 const store=fs.readFileSync('api/shared/pickup-store.js','utf8');
 const loadingList=fs.readFileSync('assets/rc1305-loading-list-print.js','utf8');
 const podArchive=fs.readFileSync('api/shared/pod-archive.js','utf8');
-const podArchive1432=fs.readFileSync('api/shared/pod-archive-rc1432.js','utf8');
-const publicRuntime=fs.readFileSync('assets/rc1018-public-language.js','utf8');
 const publicAccess=fs.readFileSync('api/shared/public-access-store.js','utf8');
 const pickupPod=fs.readFileSync('api/pickup-pod/index.js','utf8');
 
-test('RC1432: ABD zeigt auf der Abholseite wieder die zweite Fahrerunterschrift',()=>{
+test('RC1379: ABD zeigt auf der Abholseite nur noch eine Pflichtbestaetigung statt zweiter Unterschrift',()=>{
   assert.match(pickup,/id="customsDocumentsField" hidden/);
+  assert.match(pickup,/id="customsDocumentsConfirmed" type="checkbox"/);
+  assert.match(pickup,/Zolldokumente wurden an den Fahrer übergeben/);
   assert.match(pickup,/function customsDocumentsConfirmationNeeded\(data\)/);
   assert.match(pickup,/customsDocumentsRequired=customsDocumentsConfirmationNeeded\(data\)/);
-  assert.match(publicRuntime,/customsSignatureOpen/);
-  assert.match(publicRuntime,/customsSignatureData/);
-  assert.match(publicRuntime,/customsSignaturePreview/);
-  assert.match(publicRuntime,/Zolldokumente erhalten/);
+  assert.doesNotMatch(pickup,/customsSignatureField|customsSignatureOpen|customsSignatureData|customsSignaturePreview/);
 });
 
-test('RC1432: ABD-Erkennung basiert weiter auf erzeugtem Dokument und nicht nur auf ABD-Pflicht',()=>{
+test('RC1379: ABD-Erkennung basiert weiter auf erzeugtem Dokument und nicht nur auf ABD-Pflicht',()=>{
   const start=store.indexOf('function abdPresent(source)');
   const end=store.indexOf('async function resolveShipmentAbdConfig',start);
   assert.ok(start>=0&&end>start,'abdPresent konnte nicht isoliert werden');
@@ -37,44 +34,46 @@ test('RC1432: ABD-Erkennung basiert weiter auf erzeugtem Dokument und nicht nur 
   assert.match(init,/abdPresent:typeof store\.abdPresent/);
 });
 
-test('RC1432: API erzwingt und speichert die zweite ABD-Fahrerunterschrift',()=>{
-  assert.match(confirm,/CUSTOMS_SIGNATURE_REQUIRED/);
-  assert.match(confirm,/customsDocumentsSignatureDataUrl/);
-  assert.match(confirm,/abdHandoverSignatureDataUrl/);
-  assert.match(confirm,/saveCustomsDocumentsSignature\(clients/);
-  assert.match(confirm,/customsDocumentsSignatureStored:true/);
-  assert.match(store,/async function saveCustomsDocumentsSignature/);
+test('RC1379: API erzwingt die ABD-Uebergabebestaetigung ohne zweite Unterschrift',()=>{
+  assert.match(confirm,/CUSTOMS_DOCUMENTS_CONFIRMATION_REQUIRED/);
+  assert.match(confirm,/customsDocumentsReceived===true/);
+  assert.match(confirm,/customsDocumentsConfirmed===true/);
+  assert.match(confirm,/abdDocumentsHandedOver===true/);
+  assert.doesNotMatch(confirm,/CUSTOMS_SIGNATURE_REQUIRED/);
+  assert.doesNotMatch(confirm,/saveCustomsDocumentsSignature\(clients/);
+  assert.doesNotMatch(confirm,/customsDocumentsSignatureDataUrl/);
   assert.match(store,/customsDocumentsConfirmationRequired:abd/);
+  assert.match(store,/customsDocumentsSignatureRequired:false/);
 });
 
-test('RC1432: POD-Ladeliste zeigt Fahrer- und Zollunterschrift kompakt nebeneinander',()=>{
+test('RC1379: POD-Ladeliste zeigt wieder genau eine Fahrerunterschrift mit Verlader und Kennzeichen',()=>{
   assert.match(loadingList,/rc1305-meta-loader/);
   assert.match(loadingList,/rc1305-meta-plate/);
   assert.match(loadingList,/rc1305-signature-primary/);
-  assert.match(loadingList,/rc1305-signature-customs/);
-  assert.match(loadingList,/data-rc1432-customs-signature/);
-  assert.match(loadingList,/ensureCustomsSignatureField/);
   assert.match(loadingList,/grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
   assert.match(loadingList,/\.rc1305-pickup-signature\{grid-column:auto!important/);
+  assert.doesNotMatch(loadingList,/rc1305-signature-customs/);
+  assert.doesNotMatch(loadingList,/data-rc1315-customs-signature/);
+  assert.doesNotMatch(loadingList,/ensureCustomsSignatureField/);
 });
 
-test('RC1432: automatischer ABD-POD enthaelt beide Fahrerunterschriften ohne separate Zollseite',()=>{
-  assert.match(podArchive1432,/Zolldokumente erhalten/);
-  assert.match(podArchive1432,/customsSignatureBuffer/);
-  assert.match(podArchive1432,/customsSignatureType/);
-  assert.match(podArchive1432,/customsDocumentsSignatureBlobName/);
-  assert.match(podArchive1432,/boxW=\(width-gap\)\/2/);
+test('RC1379: automatischer POD enthaelt keine zweite Zoll-Unterschrift mehr',()=>{
+  assert.doesNotMatch(podArchive,/heading\('Zolldokumente erhalten'\)/);
+  assert.doesNotMatch(podArchive,/customsSignatureBuffer|customsSignatureType/);
   assert.match(podArchive,/createPodPdf\(record, signatureBuffer, signatureType\)/);
 });
 
-test('RC1432: QR-Runtime erklaert die zweite ABD-Unterschrift in allen sechs Sprachen',()=>{
-  for(const marker of ['de:','en:','pl:','es:','fr:','it:'])assert.match(publicRuntime,new RegExp(marker.replace(':','\\s*:\\s*\\{')));
-  assert.match(publicRuntime,/zweite Fahrerunterschrift/);
-  assert.match(publicRuntime,/second signature/);
+test('RC1379: API-Texte verlangen nur noch die Uebergabebestaetigung',()=>{
+  for(const lang of ['de','en','pl','es','fr','it']){
+    const api=JSON.parse(fs.readFileSync('api/shared/i18n/'+lang+'.json','utf8'));
+    const value=String(api['api.pickup.customsSignatureRequired']||'');
+    assert.ok(value,lang+' API-Text fehlt');
+    assert.doesNotMatch(value,/zweite.*unterschrift|second.*signature|deuxième.*signature|segunda.*firma|seconda.*firma|drugim.*podpisem/i);
+  }
 });
 
-test('RC1432: geaenderte Pickup- und POD-Dateien sind syntaktisch gueltig',()=>{
-  for(const file of ['api/shared/pickup-store.js','api/pickup-status/index.js','api/pickup-init/index.js','api/pickup-confirm-v2/index.js','assets/rc1018-public-language.js','assets/rc1305-loading-list-print.js','api/shared/pod-archive.js','api/shared/pod-archive-rc1432.js']){
+test('RC1379: geaenderte Pickup- und POD-Dateien sind syntaktisch gueltig',()=>{
+  for(const file of ['api/shared/pickup-store.js','api/pickup-status/index.js','api/pickup-init/index.js','api/pickup-confirm-v2/index.js','assets/rc1305-loading-list-print.js','api/shared/pod-archive.js']){
     execFileSync(process.execPath,['--check',file],{stdio:'pipe'});
   }
   const scripts=[...pickup.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].map(m=>m[1]).filter(Boolean);
