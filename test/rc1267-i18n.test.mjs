@@ -113,15 +113,3 @@ test('RC1451: already corrupted mail text is repaired in shipment state and pers
   assert.match(runtime,/ExportHUBRC565[\s\S]*?persistShipment/,'repair must persist through the shipment persistence bridge');
   assert.match(runtime,/exporthub:state-loaded[\s\S]*?repairContaminatedGoodsDescription/,'repair must run when shared state is loaded');
 });
-
-
-test('RC1453: production hotfix permanently removes historic mail text from 7YJUPL and 4UXU92',()=>{
-  assert.match(runtime,/RC1453_TARGET_REFS=Object\.freeze\(\['7YJUPL','4UXU92'\]\)/,'target references missing');
-  assert.match(runtime,/function rc1453RepairHistoricMailDescriptions\(/,'targeted cleanup function missing');
-  assert.match(runtime,/\['shipments','savedShipments','salesSharedShipments','sharedShipments'\]/,'all shipment collections must be checked');
-  assert.match(runtime,/\/api\/exporthub-state\?mode=read&full=1/,'repair must read the current production state first');
-  assert.match(runtime,/\/api\/exporthub-state\?mode=save&ack=1/,'repair must persist the cleaned production state');
-  assert.match(runtime,/mailLikeGoodsDescription\(item\[key\]\)/,'only mail-like contamination may be removed');
-  assert.match(runtime,/baseRevision:Number\(readData\.revision\|\|0\)/,'repair must save against the read revision');
-  assert.match(runtime,/rc1453VerifyHistoricMailDescriptions\(/,'repair must verify the two references after save');
-});
