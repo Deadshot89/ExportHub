@@ -6,6 +6,7 @@ const pickup=fs.readFileSync('pickup.html','utf8');
 const confirm=fs.readFileSync('api/pickup-confirm-v2/index.js','utf8');
 const archive=fs.readFileSync('api/shared/pod-archive.js','utf8');
 const print=fs.readFileSync('assets/rc1305-loading-list-print.js','utf8');
+const publicLanguage=fs.readFileSync('assets/rc1018-public-language.js','utf8');
 
 test('RC1455: ABD uses handover checkbox and never asks for a second signature',()=>{
   assert.match(pickup,/id="customsDocumentsConfirmed"/);
@@ -13,6 +14,12 @@ test('RC1455: ABD uses handover checkbox and never asks for a second signature',
   assert.doesNotMatch(pickup,/customsSignatureOpen|customsSignatureData|customsSignatureSaved/);
   assert.match(confirm,/customsDocumentsReceived===true|customsDocumentsConfirmed===true|abdDocumentsHandedOver===true/);
   assert.doesNotMatch(confirm,/CUSTOMS_SIGNATURE_REQUIRED|saveCustomsDocumentsSignature|customsDocumentsSignatureDataUrl|abdHandoverSignatureDataUrl|customsSignatureDataUrl/);
+});
+
+test('RC1455: public pickup runtime cannot re-inject the removed second signature',()=>{
+  assert.doesNotMatch(publicLanguage,/__EXPORTHUB_RC1432_PICKUP_CUSTOMS_SIGNATURE__/);
+  assert.doesNotMatch(publicLanguage,/customsSignatureOpen|customsSignatureData|customsDocumentsSignatureDataUrl|abdHandoverSignatureDataUrl/);
+  assert.doesNotMatch(publicLanguage,/zweite(?:n|r)?\s+Unterschrift|second\s+signature/i);
 });
 
 test('RC1455: signed POD is generated from the driver signature only',()=>{
