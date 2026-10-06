@@ -1,4 +1,4 @@
-// RC1444 RED gate: production runtime intentionally unchanged in this commit.
+// RC1444 observer relevance regression suite.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -24,7 +24,7 @@ function harness(){
 
   const attrs=new Map();
   const root={
-    id:'rc626Shipping',nodeType:1,style:{},
+    id:'rc626Shipping',nodeType:1,style:{},parentElement:null,parentNode:null,
     get textContent(){return textNode.nodeValue},
     getAttribute(name){return attrs.has(name)?attrs.get(name):null},
     setAttribute(name,value){
@@ -99,4 +99,26 @@ test('RC1444: childList bleibt konservativ und plant weiterhin einen Lauf',()=>{
   h.shippingObserver.pending.length=0;
   h.deliver([{type:'childList',target:h.root,addedNodes:[{nodeType:1}],removedNodes:[]}]);
   assert.equal(h.rafs.length,1,'DOM-Strukturänderungen müssen weiterhin verarbeitet werden');
+});
+
+test('RC1444: verschachtelte Notice-Änderung prüft Vorfahren bis zum Shipping-Root',()=>{
+  const h=harness();
+  h.shippingObserver.pending.length=0;
+  const notice={
+    nodeType:1,
+    textContent:'Aus geöffneter Sendung: J6U8AT · 9000003001 · Essentra Components S.L.U.',
+    parentElement:h.root,parentNode:h.root,
+    getAttribute(){return null}
+  };
+  const span={
+    nodeType:1,textContent:'Aus geöffneter Sendung:',
+    parentElement:notice,parentNode:notice,
+    getAttribute(){return null}
+  };
+  const nestedText={
+    nodeType:3,nodeValue:'Aus geöffneter Sendung:',
+    parentElement:span,parentNode:span
+  };
+  h.deliver([{type:'characterData',target:nestedText,addedNodes:[],removedNodes:[]}]);
+  assert.equal(h.rafs.length,1,'Notice-Status eines Vorfahren darf durch den Relevanzfilter nicht übersehen werden');
 });
