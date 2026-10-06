@@ -5,6 +5,7 @@
   "type": "module",
   "description": "ExportHUB RC1112 – Website-, API- und Android-Projekt",
   "scripts": {
+    "pretest": "node scripts/rc1452-mail-goods-print-hotfix.mjs",
     "test": "node --test --test-concurrency=1 test/*.test.mjs tests/*.test.cjs",
     "test:contracts": "node --test --test-concurrency=1 test/rc1065-chat-closeout.test.mjs test/rc1088-release-hardening.test.mjs",
     "test:security": "node --test --test-concurrency=1 --test-name-pattern='Security|Rechte' test/rc1088-release-hardening.test.mjs",
