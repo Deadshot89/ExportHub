@@ -7,11 +7,16 @@ on:
     paths:
       - 'api/**'
       - 'pickup.html'
+      - 'package.json'
+      - 'scripts/rc1455-pod-signature-sharepoint-hardening.mjs'
       - 'RELEASE_MANIFEST.txt'
       - 'test/rc1114-pod-reliability.test.mjs'
       - 'test/rc1209-graph-drive-target-resolver.test.mjs'
       - 'test/rc1259-container-documentation.test.mjs'
+      - 'test/rc1385-pod-drive-backfill.test.mjs'
+      - 'test/rc1387-pod-reconcile-integrity-flow.test.mjs'
       - 'test/rc1440-pod-integrity-audit.test.mjs'
+      - 'test/rc1455-pod-signature-sharepoint-durability.test.mjs'
       - '.github/rc1114/**'
       - '.github/rc1112/build-three-env.mjs'
       - '.github/workflows/rc1114-pod-reliability.yml'
@@ -35,8 +40,11 @@ jobs:
       - name: API-Abhängigkeiten installieren
         run: npm install --prefix api --ignore-scripts --no-audit --no-fund
 
-      - name: RC1114/RC1209/RC1440 Vertrags-Regression
-        run: node --test test/rc1114-pod-reliability.test.mjs test/rc1209-graph-drive-target-resolver.test.mjs test/rc1440-pod-integrity-audit.test.mjs
+      - name: RC1455 POD-Sicherungsstand vorbereiten
+        run: npm run pretest
+
+      - name: RC1114/RC1209/RC1385/RC1387/RC1440/RC1455 Vertrags-Regression
+        run: node --test test/rc1114-pod-reliability.test.mjs test/rc1209-graph-drive-target-resolver.test.mjs test/rc1385-pod-drive-backfill.test.mjs test/rc1387-pod-reconcile-integrity-flow.test.mjs test/rc1440-pod-integrity-audit.test.mjs test/rc1455-pod-signature-sharepoint-durability.test.mjs
 
       - name: RC1259/RC1284 Container- und Pickup-Regression
         run: node --test test/rc1259-container-documentation.test.mjs
@@ -50,7 +58,7 @@ jobs:
       - name: Aktuelles Drei-Umgebungen-Paket bauen
         run: node .github/rc1112/build-three-env.mjs
 
-      - name: RC1114 Deploy-Inhalt prüfen
+      - name: RC1455 Deploy-Inhalt prüfen
         shell: bash
         run: |
           set -euo pipefail
@@ -62,5 +70,8 @@ jobs:
           test -f dist-rc1112/api/pickup-confirm-v2/index.js
           grep -q '"pdf-lib": "1.17.1"' dist-rc1112/api/package.json
           grep -q 'timeout:90000' dist-rc1112/pickup.html
-          grep -q "podReliability:'RC1220 Azure primary + immutable Azure archive; M365 optional'" .github/rc1112/build-three-env.mjs
+          grep -q 'podDriveSaved' dist-rc1112/pickup.html
+          grep -q 'SIGNATURE_ARCHIVE_INTEGRITY_FAILED' dist-rc1112/api/shared/pickup-store.js
+          grep -q "status: 'pending-sharepoint'" dist-rc1112/api/shared/pod-archive.js
+          grep -q "podReliability:'RC1455 Azure primary + immutable signature/archive; SharePoint required'" .github/rc1112/build-three-env.mjs
           git diff --check
