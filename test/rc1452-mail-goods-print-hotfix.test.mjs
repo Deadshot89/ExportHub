@@ -7,6 +7,8 @@ const read=path=>fs.readFileSync(path,'utf8');
 test('RC1452: Lieferavis-Mail darf weder Ladeliste noch CMR Warenbeschreibung erreichen',()=>{
   const runtime=read('assets/rc1267-i18n.js');
   const builder=read('.github/rc1112/build-three-env.mjs');
+  const hotfix=read('scripts/rc1452-mail-goods-print-hotfix.mjs');
+  assert.match(hotfix,/patchInsideFunction/,'RC1452 muss die Reparatur eindeutig innerhalb der Zielfunktion patchen');
   assert.match(runtime,/var VERSION='RC1452'/,'RC1452 Runtime wurde vor dem Test nicht vorbereitet');
   assert.match(runtime,/\['shipments','savedShipments','salesSharedShipments','sharedShipments','shipmentArchive','archivedShipments','archive'\]/,'Reparatur scannt nicht alle Sendungssammlungen');
   assert.match(runtime,/rc1452DocumentActionRepair/,'Druck-/Dokumentaktion repariert Altbestände nicht synchron');
