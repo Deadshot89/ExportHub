@@ -107,6 +107,8 @@ test('RC1454 renders the ZIP action as a dedicated responsive AVIS header CTA',(
  assert.match(ui,/removeAttribute\(['"]target['"]\)/);
  assert.match(injector,/customer-avis\.html/);
  assert.match(injector,/rc1454-avis-download-all-ui\.js/);
+ assert.match(injector,/fs\.readFileSync\(runtimeFile,'utf8'\)/);
+ assert.doesNotMatch(injector,/defer src=/);
  assert.match(pkg.scripts.pretest,/rc1454-avis-download-all-ui\.mjs/);
 });
 
