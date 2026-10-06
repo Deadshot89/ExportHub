@@ -99,7 +99,6 @@ async function verifyRecordPod(accessKey,environment){
    }
    return{ok:true,recovered:false,record,file:sanitizeDurableFile(file),bytes:primary.bytes}
   }catch(_){
-   // A readable primary POD is still valid for the user's status contract.
    return{ok:true,recovered:false,record,file:sanitizeDurableFile(file),bytes:primary.bytes,backupWarning:true}
   }
  }
@@ -183,7 +182,7 @@ async function auditPodStatuses(environment,options){
  if(environment!=='production'&&environment!=='testservice')throw store.err('ENVIRONMENT_INVALID','Unbekannte ExportHUB-Umgebung.',400);
  const clients=await store.clients(environment),teamBlob=clients.team.getBlockBlobClient(store.teamBlobName(environment)),read=await store.readJson(teamBlob,{schemaVersion:3,revision:0,state:{},users:[]}),doc=read.value||{schemaVersion:3,revision:0,state:{},users:[]};
  doc.state=doc.state||{};doc.state.shipments=Array.isArray(doc.state.shipments)?doc.state.shipments:[];
- const shipments=doc.state.shipments,start=Math.max(0,Math.round(Number(options.cursor)||0)),limit=Math.min(25,Math.max(1,Math.round(Number(options.limit)||10)),selected=[];let scan=start;
+ const shipments=doc.state.shipments,start=Math.max(0,Math.round(Number(options.cursor)||0)),limit=Math.min(25,Math.max(1,Math.round(Number(options.limit)||10))),selected=[];let scan=start;
  while(scan<shipments.length&&selected.length<limit){if(statusIsPod(shipments[scan]))selected.push({index:scan,shipment:shipments[scan]});scan++}
  const nextCursor=scan<shipments.length?scan:null;
  if(!selected.length)return{ok:true,version:VERSION,environment,cursor:start,nextCursor,totalShipments:shipments.length,checked:0,downloadable:0,recovered:0,downgradedEssentra:0,downgradedOther:0,removedPodEntries:0,recordCleanupErrors:[],backup:null,changed:false};
