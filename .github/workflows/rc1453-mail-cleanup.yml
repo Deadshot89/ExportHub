@@ -1,0 +1,72 @@
+name: RC1453 Mail Contamination Cleanup
+
+on:
+  workflow_run:
+    workflows:
+      - ExportHUB RC1112 Drei-Umgebungen Deploy
+    types:
+      - completed
+    branches:
+      - main
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: rc1453-mail-cleanup-production
+  cancel-in-progress: false
+
+jobs:
+  production-cleanup:
+    name: PRODUCTION 7YJUPL + 4UXU92 bereinigen
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Persistierten Lieferavis-/Mailtext entfernen und verifizieren
+        shell: bash
+        env:
+          BASE_URL: https://wonderful-forest-0f315e310.7.azurestaticapps.net
+        run: |
+          set -euo pipefail
+          set +x
+
+          oidc_token="$(
+            curl -fsSL \
+              -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+              "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=exporthub-rc1453-mail-cleanup" \
+            | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s).value;if(!v)process.exit(2);process.stdout.write(v)})"
+          )"
+
+          response="$(
+            curl -fsSL --max-time 60 \
+              -X POST \
+              -H 'Content-Type: application/json' \
+              -H "X-ExportHUB-GitHub-OIDC: $oidc_token" \
+              -H 'X-ExportHUB-Environment: production' \
+              --data '{"environment":"production"}' \
+              "$BASE_URL/api/rc1453-mail-cleanup"
+          )"
+
+          printf '%s\n' "$response" | node -e "
+            let s='';
+            process.stdin.on('data',c=>s+=c).on('end',()=>{
+              const v=JSON.parse(s);
+              const refs=['7YJUPL','4UXU92'];
+              if(!v.ok||v.verified!==true)process.exit(10);
+              if(v.applied===true&&v.backupVerified!==true)process.exit(11);
+              for(const ref of refs){
+                const row=v.targets&&v.targets[ref];
+                if(!row||row.found!==true)process.exit(12);
+                if(Number(row.contaminatedFields||0)!==0)process.exit(13);
+              }
+              console.log('RC1453 production cleanup verified',JSON.stringify({
+                applied:v.applied,
+                verified:v.verified,
+                backupVerified:v.backupVerified,
+                backupBlob:v.backupBlob||null,
+                revision:v.revision,
+                clearedFields:v.clearedFields||0,
+                targets:v.targets
+              }));
+            })"
