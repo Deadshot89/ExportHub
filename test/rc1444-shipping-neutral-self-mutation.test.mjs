@@ -1,3 +1,4 @@
+// RC1444 RED gate: production runtime intentionally unchanged in this commit.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
