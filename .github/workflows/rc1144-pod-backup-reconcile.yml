@@ -116,7 +116,7 @@ jobs:
         env:
           BASE_URL: https://wonderful-forest-0f315e310.7.azurestaticapps.net
           TARGET_ENV: production
-          TARGET_REFERENCE: ${{ github.event_name == 'workflow_dispatch' && inputs.reference || github.event_name == 'workflow_run' && 'XG4YNN' || '' }}
+          TARGET_REFERENCE: ${{ github.event_name == 'workflow_dispatch' && inputs.reference || (github.event_name == 'workflow_run' || github.event_name == 'schedule') && 'XG4YNN' || '' }}
         run: |
           set -euo pipefail
           set +x
