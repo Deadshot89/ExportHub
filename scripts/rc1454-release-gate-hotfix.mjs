@@ -6,22 +6,20 @@ const rel='.github/rc1112/build-three-env.mjs';
 const file=path.join(ROOT,rel);
 let source=fs.readFileSync(file,'utf8');
 
-// RC1454: RC1131 originally inserted a real newline into the generated demo runtime.
-// After later RC352 changes the unique anchor can live inside generated JavaScript text,
-// where that newline breaks the surrounding literal. Keep the two guards separated by
-// a normal statement space instead. This is valid both as direct code and as generated
-// code text and preserves the exact RC1131 demo-isolation behavior.
-const before='  html=html.replace(runtimeAnchor," if(window.__EXPORTHUB_DEMO_MODE__===true)return;\\n if(!window.__EXPORTHUB_TEST_PORTAL__)return;");';
-const after='  html=html.replace(runtimeAnchor," if(window.__EXPORTHUB_DEMO_MODE__===true)return; if(!window.__EXPORTHUB_TEST_PORTAL__)return;");';
+// RC1454: RC1452 injects a JavaScript helper into JavaScript which later generates
+// another inline JavaScript block. Backslash escapes in the original helper therefore
+// crossed two parser layers and could become literal control characters in demo.html.
+// Replace only that generated helper assignment with equivalent escape-free checks.
+const start=source.indexOf('  const rc1452GoodsHelper=');
+const end=start<0?-1:source.indexOf('\n  loadBlock=rc1452GoodsHelper+',start);
+if(start<0||end<0)throw new Error('RC1454: RC1452 Goods-Helper im Builder nicht gefunden');
 
-if(!source.includes(after)){
-  const count=source.split(before).length-1;
-  if(count!==1)throw new Error(`RC1454 Demo-Inline-Syntax: erwarteter RC1131-Anker ${count}x gefunden`);
-  source=source.replace(before,after);
-  fs.writeFileSync(file,source,'utf8');
-}
+const safeAssignment=`  const rc1452GoodsHelper="function rc1452PrintGoodsDescription(sh){var v=q(sh&&(sh.goodsDescription||sh.warenbeschreibung||sh.description));if(!v)return'';var l=v.toLowerCase(),score=0;if(l.indexOf('lieferavis')>=0||l.indexOf('collection notice')>=0)score+=2;if(l.indexOf('sehr geehrte damen und herren')>=0||l.indexOf('dear sir or madam')>=0||l.indexOf('mit freundlichen grüßen')>=0||l.indexOf('mit freundlichen grüssen')>=0||l.indexOf('mit freundlichen grussen')>=0||l.indexOf('kind regards')>=0)score++;if(l.indexOf('http://')>=0||l.indexOf('https://')>=0||l.indexOf('/avis/')>=0||l.indexOf('customer-avis')>=0)score++;if(l.indexOf('abholdatum')>=0||l.indexOf('zeitfenster')>=0||l.indexOf('kennzeichen des abholfahrzeugs')>=0||l.indexOf('pickup date')>=0||l.indexOf('time window')>=0||l.indexOf('license plate')>=0)score++;return score>=2?'':v}";`;
+
+source=source.slice(0,start)+safeAssignment+source.slice(end);
+fs.writeFileSync(file,source,'utf8');
 
 const verified=fs.readFileSync(file,'utf8');
-if(!verified.includes(after))throw new Error('RC1454 Demo-Inline-Syntax-Hotfix wurde nicht angewendet');
-if(verified.includes(before))throw new Error('RC1454 unsicherer RC1131-Newline-Anker ist noch vorhanden');
-console.log('RC1454 release-gate hotfix applied: RC1131 demo inline syntax hardened');
+if(!verified.includes("var l=v.toLowerCase(),score=0"))throw new Error('RC1454: escape-freier RC1452 Goods-Helper fehlt');
+if(!verified.includes("l.indexOf('/avis/')>=0"))throw new Error('RC1454: Avis-Erkennung fehlt');
+console.log('RC1454 release-gate hotfix applied: RC1452 generated helper made parser-safe');
