@@ -9,10 +9,11 @@ test('RC1386: vollständig konfiguriertes Microsoft-Ziel ist automatisch aktiv',
   assert.doesNotMatch(archive,/process\.env\.EXPORTHUB_POD_M365_ENABLED/);
 });
 
-test('RC1395: bereits archivierte PODs ohne Drive-Kopie bleiben in der optionalen Nachholqueue',()=>{
-  assert.match(archive,/const driveBackfillRequired = m365Enabled\(\) && graphDrive\.readiness\(\)\.configured && backup\.driveSaved !== true/);
-  assert.match(archive,/if \(!driveBackfillRequired\) continue;/);
+test('RC1455: bereits archivierte PODs ohne SharePoint-Kopie bleiben verpflichtend in der Nachholqueue',()=>{
+  assert.match(archive,/const sharePointRequired = backup\.driveSaved !== true/);
+  assert.match(archive,/if \(!sharePointRequired\) continue;/);
   assert.match(archive,/driveOnly = true;/);
   assert.match(archive,/driveBackfillEligible/);
+  assert.match(archive,/eligible: requiredEligible \+ driveBackfillEligible \+ teamRelinkCandidates\.length/);
   assert.match(archive,/await retryArchiveBackup\(candidate\.accessKey, environment\)/);
 });
