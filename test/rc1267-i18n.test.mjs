@@ -93,3 +93,12 @@ test('RC1355: language switch snapshots remark into active shipment collections 
   assert.match(runtime,/shipment\.bemerkung=values\.comments/);
   assert.match(runtime,/snapshotShipmentDraft\(\);\s*var next=normalize\(lang\)/);
 });
+
+
+test('RC1451: mail textareas can never be classified or persisted as shipment goods description',()=>{
+  const classify=runtime.slice(runtime.indexOf('function shipmentDraftField('),runtime.indexOf('function shipmentIdentity('));
+  const snapshot=runtime.slice(runtime.indexOf('function snapshotShipmentDraft('),runtime.indexOf('function syncApplicationLanguage('));
+  assert.match(classify,/#rc543MailArea|#rc363BlockMail/,'mail area exclusion is missing in shipmentDraftField');
+  assert.match(snapshot,/#rc543MailArea|#rc363BlockMail/,'mail area exclusion is missing in shipment draft snapshot');
+  assert.doesNotMatch(classify,/goodsdescription\|goods-description\|description/,'generic description substring may classify unrelated mail fields as goodsDescription');
+});
