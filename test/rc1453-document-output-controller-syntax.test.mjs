@@ -2,8 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import { execFileSync } from 'node:child_process';
 
-const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+const controllerId = 'exporthub-rc352-document-output-controller';
+
+function read(path) {
+  return fs.readFileSync(path, 'utf8');
+}
 
 function extractInlineScriptById(source, id) {
   const scriptRx = /<script(?=[\s>])([^>]*)>([\s\S]*?)<\/script>/gi;
@@ -20,11 +25,35 @@ function extractInlineScriptById(source, id) {
   return matches[0];
 }
 
-test('RC1453: document output controller remains valid JavaScript', () => {
-  const id = 'exporthub-rc352-document-output-controller';
-  const code = extractInlineScriptById(html, id);
+function parseInlineScript(code, filename) {
+  try {
+    new vm.Script(code, { filename });
+  } catch (error) {
+    const stack = String(error?.stack || error);
+    const escaped = filename.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const lineMatch = stack.match(new RegExp(`${escaped}:(\\d+)`));
+    const line = Number(lineMatch?.[1] || 0);
+    const lines = code.split('\n');
+    const start = Math.max(0, line - 4);
+    const end = Math.min(lines.length, line + 3);
+    const context = lines
+      .slice(start, end)
+      .map((value, index) => `${start + index + 1}: ${JSON.stringify(value)}`)
+      .join('\n');
 
-  // Deliberately let vm.Script surface the original parser location/code frame.
-  // This protects the public index.html from shipping a syntax-broken controller.
-  new vm.Script(code, { filename: `${id}.js` });
+    assert.fail(`${filename} is invalid JavaScript\n${stack}\n\nGenerated context:\n${context}`);
+  }
+}
+
+test('RC1453: source document output controller remains valid JavaScript', () => {
+  const html = read(new URL('../index.html', import.meta.url));
+  const code = extractInlineScriptById(html, controllerId);
+  parseInlineScript(code, `${controllerId}.source.js`);
+});
+
+test('RC1453: built demo document output controller remains valid JavaScript', () => {
+  execFileSync(process.execPath, ['.github/rc1112/build-three-env.mjs'], { stdio: 'pipe' });
+  const demo = read('dist-rc1112/demo.html');
+  const code = extractInlineScriptById(demo, controllerId);
+  parseInlineScript(code, `${controllerId}.demo.js`);
 });
