@@ -4,14 +4,14 @@ import fs from 'node:fs';
 
 const archive=fs.readFileSync('api/shared/pod-archive.js','utf8');
 
-test('RC1395: gültiges Azure-Archiv mit fehlender Drive-Kopie bleibt fachlich gesichert und wird nur als optionales Backfill markiert',()=>{
-  assert.match(archive,/const driveBackfillRequired = m365Enabled\(\) && graphDrive\.readiness\(\)\.configured && backup\.driveSaved !== true/);
-  assert.match(archive,/if \(!driveBackfillRequired\) continue;/);
+test('RC1455: gültiges Azure-Archiv mit fehlender SharePoint-Kopie bleibt in der verpflichtenden Nachholqueue',()=>{
+  assert.match(archive,/const sharePointRequired = backup\.driveSaved !== true/);
+  assert.match(archive,/if \(!sharePointRequired\) continue;/);
   assert.match(archive,/driveOnly = true;/);
   assert.match(archive,/if \(!integrity\.ok\) \{[\s\S]*?if \(!integrity\.repairable\)/);
 });
 
-test('RC1395: Drive-Backfill bleibt Kandidat, verdrängt aber keine erforderliche Azure-Nachsicherung',()=>{
+test('RC1455: SharePoint-Nachsicherung verdrängt keine erforderliche Azure-Nachsicherung',()=>{
   assert.match(archive,/candidates\.push\(\{[\s\S]*?driveOnly/);
   assert.match(archive,/Number\(!!a\.driveOnly\) - Number\(!!b\.driveOnly\)/);
   assert.match(archive,/const requiredEligible = requiredCandidates\.length/);
@@ -19,18 +19,17 @@ test('RC1395: Drive-Backfill bleibt Kandidat, verdrängt aber keine erforderlich
 });
 
 
-test('RC1395: fehlgeschlagene optionale Drive-Kopie bleibt sichtbar, blockiert aber den erforderlichen POD-Backupstatus nicht',()=>{
-  assert.match(archive,/const driveRequired = m365Enabled\(\) && graphDrive\.readiness\(\)\.configured/);
+test('RC1455: fehlgeschlagene SharePoint-Kopie bleibt offen und blockiert den vollständigen POD-Sicherungsstatus',()=>{
+  assert.match(archive,/const driveRequired = true/);
   assert.match(archive,/const driveWasSaved = backup\.driveSaved === true \|\| result && result\.driveSaved === true/);
-  assert.match(archive,/if \(backup\.archiveSaved === true\)/);
-  assert.match(archive,/if \(!candidate\.driveOnly\) saved\.push/);
+  assert.match(archive,/status: 'pending-sharepoint'/);
   assert.match(archive,/drivePending\.push\(\{/);
   assert.match(archive,/drivePendingCount: drivePending\.length/);
-  assert.match(archive,/pending\.push\(\{ reference: candidate\.reference, error: text\(backup\.lastError/);
+  assert.match(archive,/const targetPendingCount = pending\.length \+ drivePending\.length/);
 });
 
 
-test('RC1410: optionales Drive-Backfill nutzt nur das verbleibende gemeinsame Remote-Budget',()=>{
+test('RC1410/RC1455: SharePoint-Nachholung nutzt das gemeinsame Remote-Budget',()=>{
   assert.match(archive,/const driveBackfillBudget = reference \? Math\.min\(limit, remainingRemoteBudget\) : Math\.min\(1, remainingRemoteBudget\)/);
   assert.match(archive,/const selectedDriveCandidates = driveBackfillCandidates\.slice\(0, driveBackfillBudget\)/);
   assert.match(archive,/const selectedCandidates = selectedRequiredCandidates\.concat\(selectedDriveCandidates\)/);
@@ -49,11 +48,10 @@ test('RC1410: ein gemeinsames Remote-Budget begrenzt teure POD-Arbeit pro Functi
 });
 
 
-test('RC1417: nur verpflichtende Arbeit hält dieselbe Scan-Seite fest',()=>{
+test('RC1455: aufgeschobene SharePoint-Arbeit hält dieselbe Scan-Seite fest',()=>{
   assert.match(archive,/let requiredWorkDeferred = false/);
   assert.match(archive,/let optionalDriveWorkDeferred = false/);
-  assert.match(archive,/requiredWorkDeferred = true;[\s\S]*?pageWorkDeferred = true/);
-  assert.match(archive,/optionalDriveWorkDeferred = true;[\s\S]*?pageWorkDeferred = true/);
+  assert.match(archive,/optionalDriveWorkDeferred = true;[\s\S]*?requiredWorkDeferred = true;[\s\S]*?pageWorkDeferred = true/);
   assert.match(archive,/if \(!reference && requiredWorkDeferred\) \{[\s\S]*?nextContinuationToken = continuationToken;[\s\S]*?scanComplete = false/);
   assert.match(archive,/requiredWorkDeferred,[\s\S]*?optionalDriveWorkDeferred/);
 });
