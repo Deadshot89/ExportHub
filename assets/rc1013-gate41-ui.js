@@ -41,26 +41,38 @@ function markUnavailable(result){
 }
 function update(){
   bindObserver();
-  var host=ensure();if(!host)return false;
-  var data={
-    country:q(field('country')&&field('country').value),
-    pallets:num(field('pallets')&&field('pallets').value),
-    weight:num(field('totalWeight')&&field('totalWeight').value),
-    kgPer:num(document.getElementById('rc501GateKgPerPallet')&&document.getElementById('rc501GateKgPerPallet').value),
-    base:num(document.getElementById('rc501GateBase')&&document.getElementById('rc501GateBase').value),
-    origin:q(route('origin')&&route('origin').value),
-    destination:q(route('destination')&&route('destination').value),
-    total:q(document.getElementById('rc501GateTotal')&&document.getElementById('rc501GateTotal').textContent)
-  };
-  var result=diagnosticMessage(data);
-  applyNationalScope(result.national);
-  markUnavailable(result);
-  host.textContent=result.message;
-  host.style.background=result.ok?'#f0fdf4':'#fff7ed';host.style.borderColor=result.ok?'#86efac':'#fdba74';host.style.color=result.ok?'#166534':'#9a3412';return result.ok;
+  return withObserverPaused(function(){
+    var host=ensure();if(!host)return false;
+    var data={
+      country:q(field('country')&&field('country').value),
+      pallets:num(field('pallets')&&field('pallets').value),
+      weight:num(field('totalWeight')&&field('totalWeight').value),
+      kgPer:num(document.getElementById('rc501GateKgPerPallet')&&document.getElementById('rc501GateKgPerPallet').value),
+      base:num(document.getElementById('rc501GateBase')&&document.getElementById('rc501GateBase').value),
+      origin:q(route('origin')&&route('origin').value),
+      destination:q(route('destination')&&route('destination').value),
+      total:q(document.getElementById('rc501GateTotal')&&document.getElementById('rc501GateTotal').textContent)
+    };
+    var result=diagnosticMessage(data);
+    applyNationalScope(result.national);
+    markUnavailable(result);
+    host.textContent=result.message;
+    host.style.background=result.ok?'#f0fdf4':'#fff7ed';host.style.borderColor=result.ok?'#86efac':'#fdba74';host.style.color=result.ok?'#166534':'#9a3412';return result.ok;
+  });
 }
 window.ExportHUBRC1041Gate41Diagnostics=Object.freeze({diagnosticMessage:diagnosticMessage,nationalOnly:true});
 var timer=0,observer=null,observerRoot=null;
 function schedule(){clearTimeout(timer);timer=setTimeout(update,80);}
+function withObserverPaused(fn){
+  var active=observer,root=observerRoot;
+  if(active&&root){try{active.disconnect()}catch(_){}}
+  try{return fn();}
+  finally{
+    if(active&&observer===active&&observerRoot===root&&root&&root.isConnected!==false){
+      try{active.observe(root,{subtree:true,childList:true});}catch(_){observer=null;observerRoot=null;}
+    }
+  }
+}
 function bindObserver(){
   var root=document.getElementById('rc626Shipping');
   if(root===observerRoot)return root;
