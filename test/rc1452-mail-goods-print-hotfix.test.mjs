@@ -18,4 +18,5 @@ test('RC1452: Lieferavis-Mail darf weder Ladeliste noch CMR Warenbeschreibung er
   assert.match(builder,/rc1267-i18n\.js\?v=1452/,'Browser-Cache wird für die Reparatur nicht invalidiert');
   assert.match(builder,/var l=v\.toLowerCase\(\),score=0/,'RC1454 parser-sicherer RC1452-Sanitizer fehlt');
   assert.match(builder,/l\.indexOf\('\/avis\/'\)>=0/,'RC1454 muss Avis-URLs weiterhin erkennen');
+  assert.match(builder,/loadBlock=rc1452GoodsHelper\+String\.fromCharCode\(10\)\+loadBlock/,'RC1454 muss den Helper mit einem echten Zeilenumbruch statt einem literalen \\n verbinden');
 });
