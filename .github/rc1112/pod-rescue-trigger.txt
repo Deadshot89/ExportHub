@@ -1,1 +1,2 @@
 Temporary deployment trigger for XG4YNN POD recovery.
+Retrigger: force workflow_run handoff to approved POD reconcile.
