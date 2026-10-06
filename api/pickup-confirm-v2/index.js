@@ -12,7 +12,6 @@ function collectedOf(r){if(typeof store.pickupCollectedColliCount==='function')r
 function remainingOf(r){return typeof store.pickupRemainingColliCount==='function'?store.pickupRemainingColliCount(r):Math.max(0,store.expectedCollis(r)-collectedOf(r))}
 function completeOf(r){return typeof store.pickupComplete==='function'?store.pickupComplete(r):(store.expectedCollis(r)>0&&remainingOf(r)===0)}
 function shortError(e){return String((e&&e.code?e.code+': ':'')+(e&&e.message||'POD-Archivierung fehlgeschlagen')).replace(/[\u0000-\u001f\u007f]/g,' ').slice(0,500)}
-function podArchiveFor(record){const base=require('../shared/pod-archive');if(record&&((typeof store.abdPresent==='function'&&store.abdPresent(record))||record.abdPresent===true))return require('../shared/pod-archive-rc1432');return base}
 module.exports=async function(context,req){
  if(req.method==='OPTIONS'){context.res=json(204,{});return}if(req.method!=='POST'){context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED',message:apiI18n.t(req,'api.common.postOnly')});return}
  let resolved=null;
@@ -24,24 +23,43 @@ module.exports=async function(context,req){
   if(completeOf(current)||current.status==='confirmed'){
    let rec=current,archiveFailure='',podArchive=null;
    let teamStateSynced=true,teamStateSyncError='';
-   try{await store.updateTeam(rec,[],'')}catch(e){teamStateSynced=false;teamStateSyncError=shortError(e);context.log&&context.log.error&&context.log.error('RC1432 pickup recovery team state update pending',e&&e.code,e&&e.message)}
    try{
-    podArchive=podArchiveFor(rec);
+    await store.updateTeam(rec,[],'');
+   }catch(e){
+    teamStateSynced=false;teamStateSyncError=shortError(e);
+    context.log&&context.log.error&&context.log.error('RC1413 pickup recovery team state update pending',e&&e.code,e&&e.message);
+   }
+   try{
+    podArchive=require('../shared/pod-archive');
     const archiveResult=await podArchive.ensureAutomaticPod(accessKey,resolved.environment,{copyToDrive:true});
     if(archiveResult&&archiveResult.record)rec=archiveResult.record;
-    try{await store.updateTeam(rec,[],'');teamStateSynced=true;teamStateSyncError=''}catch(e){teamStateSynced=false;teamStateSyncError=shortError(e);context.log&&context.log.error&&context.log.error('RC1432 recovered POD team state update pending',e&&e.code,e&&e.message)}
-   }catch(e){archiveFailure=shortError(e);context.log&&context.log.error&&context.log.error('RC1432 recovered automatic POD archive failed',e&&e.code,e&&e.message)}
-   if(!(resolved.record&&resolved.record.usedAt)){try{await access.consume(resolved.environment,'pickup',resolved.tokenHash,{reason:'pickup-confirmed',fields:{confirmedAt:rec.confirmedAt,loaderId:loader.id}})}catch(e){if(!(e&&e.code==='ACCESS_USED'))throw e}}
+    try{await store.updateTeam(rec,[],'');teamStateSynced=true;teamStateSyncError=''}catch(e){teamStateSynced=false;teamStateSyncError=shortError(e);context.log&&context.log.error&&context.log.error('RC1413 recovered POD team state update pending',e&&e.code,e&&e.message)}
+   }catch(e){
+    archiveFailure=shortError(e);
+    context.log&&context.log.error&&context.log.error('RC1400 recovered automatic POD archive failed',e&&e.code,e&&e.message);
+   }
+   if(!(resolved.record&&resolved.record.usedAt)){
+    try{await access.consume(resolved.environment,'pickup',resolved.tokenHash,{reason:'pickup-confirmed',fields:{confirmedAt:rec.confirmedAt,loaderId:loader.id}})}
+    catch(e){if(!(e&&e.code==='ACCESS_USED'))throw e}
+   }
    const history=historyOf(rec),last=history[history.length-1]||{},backup=rec&&rec.podBackup||{},autoPod=podArchive&&typeof podArchive.automaticPod==='function'?podArchive.automaticPod(rec):null;
-   context.res=json(200,Object.assign(store.publicRecord(rec,token),{ok:true,pickedUp:true,partial:false,complete:true,status:'confirmed',shipmentStatus:'Abgeholt',uploadKey:'',uploadExpiresAt:rec.uploadKeyExpiresAt||null,signatureStored:!!(last.signatureBlobName||rec.signatureBlobName),signatureBlobName:last.signatureBlobName||rec.signatureBlobName||'',abdPresent:rec.abdPresent===true,customsDocumentsReceived:rec.customsDocumentsReceived===true||last.customsDocumentsReceived===true,customsDocumentsSignatureStored:!!(last.customsDocumentsSignatureBlobName||rec.customsDocumentsSignatureBlobName),sequence:last.sequence||history.length,remainingAfter:0,loaderName:last.loaderName||rec.loaderName||loader.name,loadedBy:last.loaderName||rec.loaderName||loader.name,loader:last.loaderName||rec.loaderName||loader.name,verlader:last.loaderName||rec.loaderName||loader.name,loaderId:last.loaderId||rec.loaderId||loader.id,personalPinValidated:true,oneTimeConsumed:true,recovered:true,teamStateSynced,teamStateSyncPending:!teamStateSynced,teamStateSyncError,podAzureSaved:backup.azureSaved===true,podArchiveSaved:backup.archiveSaved===true,podDriveSaved:backup.driveSaved===true,podBackupStatus:backup.status||archiveFailure&&'error'||'pending',podBackupError:backup.lastError||archiveFailure||'',podFileName:autoPod&&autoPod.name||backup.fileName||'',version:'RC1432'}));
+   context.res=json(200,Object.assign(store.publicRecord(rec,token),{
+    ok:true,pickedUp:true,partial:false,complete:true,status:'confirmed',shipmentStatus:'Abgeholt',
+    uploadKey:'',uploadExpiresAt:rec.uploadKeyExpiresAt||null,signatureStored:!!(last.signatureBlobName||rec.signatureBlobName),
+    signatureBlobName:last.signatureBlobName||rec.signatureBlobName||'',abdPresent:rec.abdPresent===true,
+    customsDocumentsReceived:rec.customsDocumentsReceived===true||last.customsDocumentsReceived===true,
+    sequence:last.sequence||history.length,remainingAfter:0,loaderName:last.loaderName||rec.loaderName||loader.name,
+    loadedBy:last.loaderName||rec.loaderName||loader.name,loader:last.loaderName||rec.loaderName||loader.name,
+    verlader:last.loaderName||rec.loaderName||loader.name,loaderId:last.loaderId||rec.loaderId||loader.id,
+    personalPinValidated:true,oneTimeConsumed:true,recovered:true,teamStateSynced,teamStateSyncPending:!teamStateSynced,teamStateSyncError,podAzureSaved:backup.azureSaved===true,
+    podArchiveSaved:backup.archiveSaved===true,podDriveSaved:backup.driveSaved===true,
+    podBackupStatus:backup.status||archiveFailure&&'error'||'pending',podBackupError:backup.lastError||archiveFailure||'',
+    podFileName:autoPod&&autoPod.name||backup.fileName||'',version:'RC1413'
+   }));
    return
   }
   const signature=store.first(b,['driverSignature','signatureDataUrl','pickupSignature','signature','qrPickupSignature']);if(!signature)throw store.err('SIGNATURE_REQUIRED',apiI18n.t(req,'api.pickup.signatureRequired'),400);
-  let abdCfg={abdPresent:typeof store.abdPresent==='function'?store.abdPresent(current):current.abdPresent===true};if(typeof store.resolveShipmentAbdConfig==='function'){try{abdCfg=await store.resolveShipmentAbdConfig(current,resolved.environment)}catch(error){context.log&&context.log.warn&&context.log.warn('pickup-confirm-v2 RC1432 ABD state fallback',error&&error.code,error&&error.message)}}
-  const abdPresent=abdCfg&&abdCfg.abdPresent===true;
-  const customsSignature=store.first(b,['customsDocumentsSignatureDataUrl','abdHandoverSignatureDataUrl','customsSignatureDataUrl']);
-  if(abdPresent&&!customsSignature)throw store.err('CUSTOMS_SIGNATURE_REQUIRED',apiI18n.t(req,'api.pickup.customsSignatureRequired'),400);
-  const customsDocumentsReceived=abdPresent&&!!customsSignature;
+  let abdCfg={abdPresent:typeof store.abdPresent==='function'?store.abdPresent(current):current.abdPresent===true};if(typeof store.resolveShipmentAbdConfig==='function'){try{abdCfg=await store.resolveShipmentAbdConfig(current,resolved.environment)}catch(error){context.log&&context.log.warn&&context.log.warn('pickup-confirm-v2 ABD state fallback',error&&error.code,error&&error.message)}}const abdPresent=abdCfg&&abdCfg.abdPresent===true,customsDocumentsReceived=b.customsDocumentsReceived===true||b.customsDocumentsConfirmed===true||b.abdDocumentsHandedOver===true;if(abdPresent&&!customsDocumentsReceived)throw store.err('CUSTOMS_DOCUMENTS_CONFIRMATION_REQUIRED',apiI18n.t(req,'api.pickup.customsSignatureRequired'),400);
   let uploadKey='';
   let rec=await store.mutateRecord(accessKey,resolved.environment,async function(r,clients){
    if(store.expired(r)&&!completeOf(r))throw store.err('EXPIRED',apiI18n.t(req,'api.pickup.expired'),410);if(completeOf(r)||r.status==='confirmed')throw store.err('ALREADY_CONFIRMED',apiI18n.t(req,'api.pickup.alreadyConfirmed'),410);
@@ -49,19 +67,82 @@ module.exports=async function(context,req){
    const plate=store.sanitizeText(store.first(b,['licensePlate','vehicleLicensePlate','kennzeichen','plate']),80);if(!plate)throw store.err('LICENSE_PLATE_REQUIRED',apiI18n.t(req,'api.pickup.plateRequired'),409);
    const expected=store.expectedCollis(r),remainingBefore=remainingOf(r),entered=count(store.first(b,['enteredColliCount','colliCount','pickupColliCount'])),mode=String(b.pickupMode||b.mode||'complete').toLowerCase();if(!expected)throw store.err('COLLI_EXPECTED_MISSING',apiI18n.t(req,'api.pickup.expectedColliMissing'),409);if(!entered)throw store.err('COLLI_REQUIRED',apiI18n.t(req,'api.pickup.colliRequired'),400);if(entered>remainingBefore)throw store.err('COLLI_EXCEEDS_REMAINING',apiI18n.t(req,'api.pickup.colliExceedsRemaining'),409);if(mode==='complete'&&entered!==remainingBefore)throw store.err('COLLI_MISMATCH',apiI18n.t(req,'api.pickup.colliMismatch'),409);
    const sealNumber=store.sanitizeText(store.first(b,['sealNumber','containerSealNumber','siegelnummer'])||r.sealNumber||'',120),containerRequired=typeof store.containerDocumentationRequired==='function'?store.containerDocumentationRequired(r):r.containerDocumentationRequired===true,containerPhotos=typeof store.containerPhotosOf==='function'?store.containerPhotosOf(r):(Array.isArray(r.containerPhotos)?r.containerPhotos:[]);
-   if(mode==='complete'&&containerRequired&&!sealNumber)throw store.err('CONTAINER_SEAL_REQUIRED',apiI18n.t(req,'api.pickup.sealRequired'),409);if(mode==='complete'&&containerRequired&&!containerDocs.completePhotos(containerPhotos))throw store.err('CONTAINER_PHOTOS_REQUIRED',apiI18n.t(req,'api.pickup.photosRequired'),409);
-   const sequence=historyOf(r).length+1,signatureMeta=await store.saveDriverSignature(clients,r,signature,String(sequence)),customsSignatureMeta=abdPresent?await store.saveCustomsDocumentsSignature(clients,r,customsSignature,String(sequence)):null,iso=store.now(),collectedAfter=collectedOf(r)+entered,remainingAfter=Math.max(0,expected-collectedAfter),complete=remainingAfter===0;
-   const item={id:'pickup-'+sequence,sequence,type:complete?'complete':'partial',confirmedAt:iso,colliCount:entered,collectedAfter,remainingAfter,complete,driverName:store.sanitizeText(store.first(b,['driverName','pickupDriverName','confirmedBy']),180),licensePlate:plate,loaderName:loader.name,loaderId:loader.id,carrierName:spedition,returnedEuroPallets:Math.max(0,Math.round(Number(b.returnedEuroPallets||b.returnPallets||0)||0)),signatureBlobName:signatureMeta.signatureBlobName,signatureType:signatureMeta.signatureType,signatureSize:signatureMeta.signatureSize,signatureStoredAt:signatureMeta.signatureStoredAt,signatureStored:true,abdPresent:abdPresent,customsDocumentsReceived:customsDocumentsReceived};if(customsSignatureMeta)Object.assign(item,customsSignatureMeta,{customsDocumentsSignatureStored:true});
-   r.pickupHistory=historyOf(r).concat(item);r.collectedPickupCollis=collectedAfter;r.pickupCollectedColliCount=collectedAfter;r.remainingPickupCollis=remainingAfter;r.pickupRemainingColliCount=remainingAfter;r.partialPickup=!complete;r.status=complete?'confirmed':'partial';r.complete=complete;r.confirmedAt=complete?iso:null;r.lastPartialPickupAt=iso;r.updatedAt=iso;r.failedAttempts=0;r.lockedUntil=null;r.driverName=item.driverName;r.licensePlate=plate;r.loaderName=loader.name;r.loadedBy=loader.name;r.loader=loader.name;r.verlader=loader.name;r.loaderId=loader.id;r.carrierName=spedition;r.speditionName=spedition;r.carrier=spedition;r.spedition=spedition;r.enteredColliCount=entered;r.confirmedColliCount=entered;r.colliCountConfirmed=true;r.colliConfirmed=true;r.pickupColliCountConfirmed=true;r.signatureBlobName=signatureMeta.signatureBlobName;r.signatureType=signatureMeta.signatureType;r.signatureSize=signatureMeta.signatureSize;r.signatureStoredAt=signatureMeta.signatureStoredAt;r.abdPresent=abdPresent;r.customsDocumentsReceived=customsDocumentsReceived;if(customsSignatureMeta)Object.assign(r,customsSignatureMeta,{customsDocumentsSignatureStored:true});r.podType='signed-loadlist';r.podFiles=store.realPodFiles(r);if(sealNumber)r.sealNumber=sealNumber;r.containerDocumentationUpdatedAt=iso;r.confirmationVersion='RC1432';
-   if(complete){uploadKey=crypto.randomBytes(32).toString('hex');r.uploadKeyHash=store.hash(uploadKey);r.uploadKeyExpiresAt=new Date(Date.now()+2*3600000).toISOString();r.podBackup=Object.assign({},r.podBackup||{},{status:'pending',archiveSaved:false,driveSaved:false,lastError:'',lastAttemptAt:null})}return r
+   if(mode==='complete'&&containerRequired&&!sealNumber)throw store.err('CONTAINER_SEAL_REQUIRED',apiI18n.t(req,'api.pickup.sealRequired'),409);
+   if(mode==='complete'&&containerRequired&&!containerDocs.completePhotos(containerPhotos))throw store.err('CONTAINER_PHOTOS_REQUIRED',apiI18n.t(req,'api.pickup.photosRequired'),409);
+   const sequence=historyOf(r).length+1,signatureMeta=await store.saveDriverSignature(clients,r,signature,String(sequence)),iso=store.now(),collectedAfter=collectedOf(r)+entered,remainingAfter=Math.max(0,expected-collectedAfter),complete=remainingAfter===0;
+   const item={id:'pickup-'+sequence,sequence,type:complete?'complete':'partial',confirmedAt:iso,colliCount:entered,collectedAfter,remainingAfter,complete,driverName:store.sanitizeText(store.first(b,['driverName','pickupDriverName','confirmedBy']),180),licensePlate:plate,loaderName:loader.name,loaderId:loader.id,carrierName:spedition,returnedEuroPallets:Math.max(0,Math.round(Number(b.returnedEuroPallets||b.returnPallets||0)||0)),signatureBlobName:signatureMeta.signatureBlobName,signatureType:signatureMeta.signatureType,signatureSize:signatureMeta.signatureSize,signatureStoredAt:signatureMeta.signatureStoredAt,signatureStored:true,abdPresent:abdPresent,customsDocumentsReceived:abdPresent?customsDocumentsReceived:false};
+   r.pickupHistory=historyOf(r).concat(item);r.collectedPickupCollis=collectedAfter;r.pickupCollectedColliCount=collectedAfter;r.remainingPickupCollis=remainingAfter;r.pickupRemainingColliCount=remainingAfter;r.partialPickup=!complete;r.status=complete?'confirmed':'partial';r.complete=complete;r.confirmedAt=complete?iso:null;r.lastPartialPickupAt=iso;r.updatedAt=iso;r.failedAttempts=0;r.lockedUntil=null;r.driverName=item.driverName;r.licensePlate=plate;r.loaderName=loader.name;r.loadedBy=loader.name;r.loader=loader.name;r.verlader=loader.name;r.loaderId=loader.id;r.carrierName=spedition;r.speditionName=spedition;r.carrier=spedition;r.spedition=spedition;r.enteredColliCount=entered;r.confirmedColliCount=entered;r.colliCountConfirmed=true;r.colliConfirmed=true;r.pickupColliCountConfirmed=true;r.signatureBlobName=signatureMeta.signatureBlobName;r.signatureType=signatureMeta.signatureType;r.signatureSize=signatureMeta.signatureSize;r.signatureStoredAt=signatureMeta.signatureStoredAt;r.abdPresent=abdPresent;r.customsDocumentsReceived=abdPresent?customsDocumentsReceived:false;r.podType='signed-loadlist';r.podFiles=store.realPodFiles(r);if(sealNumber)r.sealNumber=sealNumber;r.containerDocumentationUpdatedAt=iso;r.confirmationVersion='RC1413';
+   if(complete){uploadKey=crypto.randomBytes(32).toString('hex');r.uploadKeyHash=store.hash(uploadKey);r.uploadKeyExpiresAt=new Date(Date.now()+2*3600000).toISOString();r.podBackup=Object.assign({},r.podBackup||{},{status:'pending',archiveSaved:false,driveSaved:false,lastError:'',lastAttemptAt:null})}
+   return r
   });
-  const complete=completeOf(rec),history=historyOf(rec),last=history[history.length-1]||{};if(!complete)await access.clearFailures(resolved.environment,'pickup',resolved.tokenHash);
+  const complete=completeOf(rec),history=historyOf(rec),last=history[history.length-1]||{};
+  if(!complete)await access.clearFailures(resolved.environment,'pickup',resolved.tokenHash);
   if(typeof store.updateTeamContainerDocumentation==='function'){try{await store.updateTeamContainerDocumentation(rec)}catch(e){context.log&&context.log.error&&context.log.error('RC1259 container team state update failed',e&&e.code,e&&e.message)}}
-  let teamStateSynced=true,teamStateSyncError='';try{await store.updateTeam(rec,[],'')}catch(e){teamStateSynced=false;teamStateSyncError=shortError(e);context.log&&context.log.error&&context.log.error('RC1432 team state update pending',e&&e.code,e&&e.message)}
-  if(complete)await access.consume(resolved.environment,'pickup',resolved.tokenHash,{reason:'pickup-confirmed',fields:{confirmedAt:rec.confirmedAt,loaderId:loader.id}});
+  let teamStateSynced=true,teamStateSyncError='';
+  try{
+   await store.updateTeam(rec,[],'');
+  }catch(e){
+   teamStateSynced=false;teamStateSyncError=shortError(e);
+   context.log&&context.log.error&&context.log.error('RC1413 team state update pending',e&&e.code,e&&e.message);
+  }
+  if(complete){
+   await access.consume(resolved.environment,'pickup',resolved.tokenHash,{reason:'pickup-confirmed',fields:{confirmedAt:rec.confirmedAt,loaderId:loader.id}});
+  }
+
   let archiveResult=null,archiveFailure='',podArchive=null;
-  if(complete){podArchive=podArchiveFor(rec);try{archiveResult=await podArchive.ensureAutomaticPod(accessKey,resolved.environment,{copyToDrive:true});if(archiveResult&&archiveResult.record)rec=archiveResult.record;try{await store.updateTeam(rec,[],'');teamStateSynced=true;teamStateSyncError=''}catch(e){teamStateSynced=false;teamStateSyncError=shortError(e);context.log&&context.log.error&&context.log.error('RC1432 POD team state update pending',e&&e.code,e&&e.message)}}catch(e){archiveFailure=shortError(e);context.log&&context.log.error&&context.log.error('RC1432 automatic POD archive failed',e&&e.code,e&&e.message);try{rec=await store.mutateRecord(accessKey,resolved.environment,function(r){r.podBackup=Object.assign({},r.podBackup||{},{status:'error',archiveSaved:false,driveSaved:false,lastAttemptAt:store.now(),attempts:Math.max(0,Number(r.podBackup&&r.podBackup.attempts)||0)+1,lastError:archiveFailure});r.updatedAt=store.now();return r})}catch(_){}}}
+  if(complete){
+   podArchive=require('../shared/pod-archive');
+   try{
+    archiveResult=await podArchive.ensureAutomaticPod(accessKey,resolved.environment,{copyToDrive:true});
+    if(archiveResult&&archiveResult.record)rec=archiveResult.record;
+    try{await store.updateTeam(rec,[],'');teamStateSynced=true;teamStateSyncError=''}catch(e){teamStateSynced=false;teamStateSyncError=shortError(e);context.log&&context.log.error&&context.log.error('RC1413 POD team state update pending',e&&e.code,e&&e.message)}
+   }catch(e){
+    archiveFailure=shortError(e);
+    context.log&&context.log.error&&context.log.error('RC1114 automatic POD archive failed',e&&e.code,e&&e.message);
+    try{
+     rec=await store.mutateRecord(accessKey,resolved.environment,function(r){
+      r.podBackup=Object.assign({},r.podBackup||{},{status:'error',archiveSaved:false,driveSaved:false,lastAttemptAt:store.now(),attempts:Math.max(0,Number(r.podBackup&&r.podBackup.attempts)||0)+1,lastError:archiveFailure});
+      r.updatedAt=store.now();
+      return r
+     })
+    }catch(_){}
+   }
+  }
+
   const backup=rec&&rec.podBackup||{},autoPod=podArchive&&typeof podArchive.automaticPod==='function'?podArchive.automaticPod(rec):null;
-  context.res=json(200,Object.assign(store.publicRecord(rec,token),{ok:true,pickedUp:complete,partial:!complete,complete,status:complete?'confirmed':'partial',shipmentStatus:complete?'Abgeholt':'Teilweise abgeholt',uploadKey:complete?uploadKey:'',uploadExpiresAt:complete?rec.uploadKeyExpiresAt:null,signatureStored:true,signatureBlobName:last.signatureBlobName||rec.signatureBlobName||'',abdPresent:abdPresent,customsDocumentsReceived:abdPresent,customsDocumentsSignatureStored:abdPresent&&!!(last.customsDocumentsSignatureBlobName||rec.customsDocumentsSignatureBlobName),sequence:last.sequence||history.length,remainingAfter:last.remainingAfter,loaderName:loader.name,loadedBy:loader.name,loader:loader.name,verlader:loader.name,loaderId:loader.id,personalPinValidated:true,oneTimeConsumed:complete,teamStateSynced,teamStateSyncPending:!teamStateSynced,teamStateSyncError,podAzureSaved:complete?backup.azureSaved===true:false,podArchiveSaved:complete?backup.archiveSaved===true:false,podDriveSaved:complete?backup.driveSaved===true:false,podBackupStatus:complete?(backup.status||archiveFailure&&'error'||'pending'):'not-applicable',podBackupError:complete?(backup.lastError||archiveFailure||''):'',podFileName:autoPod&&autoPod.name||backup.fileName||'',version:'RC1432'}));
- }catch(e){context.log&&context.log.error&&context.log.error('pickup-confirm-v2 RC1432',e&&e.code,e&&e.message);context.res=json(e.status||e.statusCode||500,{ok:false,code:e.code||'SERVER_ERROR',message:e.message||apiI18n.t(req,'api.pickup.confirmFailed')})}
+  context.res=json(200,Object.assign(store.publicRecord(rec,token),{
+   ok:true,
+   pickedUp:complete,
+   partial:!complete,
+   complete,
+   status:complete?'confirmed':'partial',
+   shipmentStatus:complete?'Abgeholt':'Teilweise abgeholt',
+   uploadKey:complete?uploadKey:'',
+   uploadExpiresAt:complete?rec.uploadKeyExpiresAt:null,
+   signatureStored:true,
+   signatureBlobName:last.signatureBlobName||rec.signatureBlobName||'',
+   abdPresent:abdPresent,
+   customsDocumentsReceived:abdPresent,
+   customsDocumentsSignatureStored:abdPresent&&!!(last.customsDocumentsSignatureBlobName||rec.customsDocumentsSignatureBlobName),
+   sequence:last.sequence||history.length,
+   remainingAfter:last.remainingAfter,
+   loaderName:loader.name,
+   loadedBy:loader.name,
+   loader:loader.name,
+   verlader:loader.name,
+   loaderId:loader.id,
+   personalPinValidated:true,
+   oneTimeConsumed:complete,
+   teamStateSynced,
+   teamStateSyncPending:!teamStateSynced,
+   teamStateSyncError,
+   podAzureSaved:complete?backup.azureSaved===true:false,
+   podArchiveSaved:complete?backup.archiveSaved===true:false,
+   podDriveSaved:complete?backup.driveSaved===true:false,
+   podBackupStatus:complete?(backup.status||archiveFailure&&'error'||'pending'):'not-applicable',
+   podBackupError:complete?(backup.lastError||archiveFailure||''):'',
+   podFileName:autoPod&&autoPod.name||backup.fileName||'',
+   version:'RC1413'
+  }));
+ }catch(e){context.log&&context.log.error&&context.log.error('pickup-confirm-v2 RC1413',e&&e.code,e&&e.message);context.res=json(e.status||e.statusCode||500,{ok:false,code:e.code||'SERVER_ERROR',message:e.message||apiI18n.t(req,'api.pickup.confirmFailed')})}
 };
