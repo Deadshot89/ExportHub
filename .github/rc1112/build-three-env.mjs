@@ -489,13 +489,21 @@ function patchCompletePrintBundle(html,file){
   if(loadStart<0||loadEnd<0)throw new Error(file+': RC1345 Ladelisten-/CMR-Druckmodul fehlt');
   let loadBlock=html.slice(loadStart,loadEnd);
 
+  // RC1450: A mail template must never leak into the loading-list goods-description field.
+  // Only the actual shipment goods description is printable; obvious mail/AVIS content is suppressed fail-closed.
+  const goodsHelper="function rc1450PrintGoodsDescription(sh){var v=q(sh&&sh.goodsDescription);if(!v)return'';var mailLike=/Sehr geehrte|Dear Sir or Madam|LIEFERAVIS|COLLECTION NOTICE|Mit freundlichen Gr[uü][sß]en|Kind regards|https?:\\/\\/|Abholdatum|Kennzeichen des Abholfahrzeugs/i.test(v);if(mailLike||v.length>500||v.split(/\\r?\\n/).length>6)return'';return v}";
+  if(!html.includes('function rc1450PrintGoodsDescription('))html=html.slice(0,loadStart)+goodsHelper+'\\n'+html.slice(loadStart);
+  const adjustedLoadStart=html.indexOf('function loadHtml(sh,withQr){');
+  const adjustedLoadEnd=html.indexOf('function documentCacheKey',adjustedLoadStart);
+  loadBlock=html.slice(adjustedLoadStart,adjustedLoadEnd).replace(/q\\(sh&&sh\\.goodsDescription\\)/g,'rc1450PrintGoodsDescription(sh)');
+
   loadBlock=loadBlock.replace("withQr?'1 / 1 · mit QR-Code':'ohne QR-Code'","withQr?'Ladeliste · mit QR-Code':'Ladeliste · ohne QR-Code'");
   loadBlock=loadBlock.replace("withQr?'1 / 2 · mit QR-Code':'2 / 2 · ohne QR-Code'","withQr?'Ladeliste · mit QR-Code':'Ladeliste · ohne QR-Code'");
   loadBlock=loadBlock.replace("for(var i=1;i<=4;i++){","for(var i=1;i<=3;i++){");
   loadBlock=loadBlock.replace("for(var i=1;i<=1;i++){","for(var i=1;i<=3;i++){");
   loadBlock=loadBlock.replace("CMR '+i+' / 4</div></div>'","CMR '+i+' / 3</div></div>'");
   loadBlock=loadBlock.replace("CMR '+i+' / 1</div></div>'","CMR '+i+' / 3</div></div>'");
-  html=html.slice(0,loadStart)+loadBlock+html.slice(loadEnd);
+  html=html.slice(0,adjustedLoadStart)+loadBlock+html.slice(adjustedLoadEnd);
 
   html=html.replace("+coverHtml(sh)+loadHtml(sh,true)+loadHtml(sh,false)+cmrHtml(sh)+","+coverHtml(sh)+loadHtml(sh,true)+cmrHtml(sh)+");
   html=html.replace(
