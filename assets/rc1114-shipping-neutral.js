@@ -89,6 +89,28 @@ function disconnectObserver(){
 function disconnectBootstrap(){
  if(bootstrapObserver){try{bootstrapObserver.disconnect()}catch(_){}bootstrapObserver=null}
 }
+function mutationNeedsRun(record){
+ if(!record)return false;
+ if(record.type==='childList')return true;
+ if(record.type==='characterData'){
+  var text=q(record.target&&record.target.nodeValue);
+  if(replaceText(text)!==text)return true;
+  var parent=record.target&&(record.target.parentElement||record.target.parentNode);
+  if(parent&&parent.nodeType===1){
+   var suppress=shouldSuppressNotice(parent.textContent);
+   var hidden=parent.getAttribute&&parent.getAttribute('data-rc1114-hidden-notice')==='1';
+   if(suppress!==hidden)return true
+  }
+  return false
+ }
+ if(record.type==='attributes'){
+  var target=record.target,name=record.attributeName;
+  if(!target||!target.getAttribute||!name)return false;
+  var value=target.getAttribute(name);
+  return value!=null&&replaceText(value)!==value
+ }
+ return true
+}
 function syncObserver(){
  var root=d.getElementById('rc626Shipping');
  if(root){
@@ -98,7 +120,11 @@ function syncObserver(){
   observerRoot=root;
   if(w.MutationObserver){
    try{
-    observer=new w.MutationObserver(function(){schedule()});
+    observer=new w.MutationObserver(function(records){
+     for(var i=0;i<records.length;i++){
+      if(mutationNeedsRun(records[i])){schedule();break}
+     }
+    });
     observer.observe(root,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['title','aria-label','placeholder','data-label']})
    }catch(_){observer=null;observerRoot=null}
   }
