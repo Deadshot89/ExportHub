@@ -22,6 +22,7 @@ var translateFrame=0;
 var queuedRoots=[];
 var queuedTextNodes=[];
 var fullBodyQueued=false;
+var contaminatedRepairPending=false;
 
 function q(v){return String(v==null?'':v).trim()}
 function normalize(value){
@@ -109,11 +110,21 @@ function applicationStateRoots(){
 function normalizeLabel(value){
  try{return q(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}catch(_){return q(value).toLowerCase()}
 }
+function mailLikeGoodsDescription(value){
+ var text=q(value);if(!text)return false;
+ var score=0;
+ if(/(?:^|\n)\s*(?:LIEFERAVIS|COLLECTION NOTICE)\b/i.test(text))score+=2;
+ if(/Sehr geehrte Damen und Herren|Dear Sir or Madam|Mit freundlichen Gr[uü][sß]en|Kind regards/i.test(text))score++;
+ if(/https?:\/\/|\/avis\/|customer-avis/i.test(text))score++;
+ if(/Abholdatum|Zeitfenster|Kennzeichen des Abholfahrzeugs|pickup date|time window|license plate/i.test(text))score++;
+ return score>=2
+}
 function shipmentDraftField(el){
  if(!el||el.tagName!=='TEXTAREA')return'';
+ if(el.closest&&el.closest('#rc543MailArea,#rc363BlockMail'))return'';
  var explicit=normalizeLabel((el.getAttribute&&el.getAttribute('data-rc408-shipment-field'))||el.name||el.id||'');
- if(/comments?|remarks?|bemerk/.test(explicit))return'comments';
- if(/goodsdescription|goods-description|description/.test(explicit))return'goodsDescription';
+ if(/^(?:comments?|remarks?|bemerkung|bemerkungen)$/.test(explicit))return'comments';
+ if(/^(?:goodsdescription|goods-description|description|warenbeschreibung)$/.test(explicit))return'goodsDescription';
  var owner=el.closest&&el.closest('[data-rc896-field]'),kind=normalizeLabel(owner&&owner.getAttribute('data-rc896-field'));
  if(kind==='remark')return'comments';
  if(kind==='description')return'goodsDescription';
@@ -143,13 +154,38 @@ function shipmentDraftTargets(root){
  if(!out.length&&root&&typeof root==='object')add(root.shipment||(root.shipment={}));
  return out
 }
+function repairContaminatedGoodsDescription(){
+ var targets=[],repaired=false,stamp=new Date().toISOString();
+ applicationStateRoots().forEach(function(root){shipmentDraftTargets(root).forEach(function(shipment){if(targets.indexOf(shipment)<0)targets.push(shipment)})});
+ targets.forEach(function(shipment){
+  var changed=false;
+  ['goodsDescription','description','warenbeschreibung'].forEach(function(key){if(mailLikeGoodsDescription(shipment&&shipment[key])){shipment[key]='';changed=true}});
+  if(changed){shipment.updatedAt=stamp;shipment._syncUpdatedAt=stamp;repaired=true}
+ });
+ try{
+  var draft=w.__EXPORTHUB_SHIPMENT_DRAFT__;
+  if(draft&&typeof draft==='object')['goodsDescription','description','warenbeschreibung'].forEach(function(key){if(mailLikeGoodsDescription(draft[key]))draft[key]=''});
+ }catch(_){}
+ if(repaired&&!contaminatedRepairPending){
+  var core=w.ExportHUBRC565;
+  if(core&&typeof core.persistShipment==='function'){
+   contaminatedRepairPending=true;
+   Promise.resolve(core.persistShipment()).catch(function(error){try{console.error('[ExportHUB RC1451 repair]',error)}catch(_){}}).finally(function(){contaminatedRepairPending=false})
+  }
+ }
+ return repaired
+}
 function snapshotShipmentDraft(){
  if(!d.querySelectorAll)return false;
+ repairContaminatedGoodsDescription();
  var values=Object.create(null),changed=false;
  Array.from(d.querySelectorAll('#rc363FixedShipmentLayout textarea,textarea[data-rc408-shipment-field],[data-rc896-field="remark"] textarea,[data-rc896-field="description"] textarea')).forEach(function(el){
+  if(el.closest&&el.closest('#rc543MailArea,#rc363BlockMail'))return;
   var field=shipmentDraftField(el);
   if(!field)return;
-  values[field]=String(el.value==null?'':el.value);
+  var value=String(el.value==null?'':el.value);
+  if(field==='goodsDescription'&&mailLikeGoodsDescription(value))return;
+  values[field]=value;
   changed=true;
  });
  if(!changed)return false;
@@ -457,6 +493,7 @@ async function boot(){
  installApiLanguageFetch();
  current=requested();
  try{await ensureResources(current)}catch(e){reportError(e);current='de';try{await ensureResources('de')}catch(inner){reportError(inner)}}
+ repairContaminatedGoodsDescription();
  ensureSelector();
  selector.value=current;
  buildDynamicIndex();
@@ -469,8 +506,9 @@ w.addEventListener('exporthub:user-profile-updated',function(ev){
  if(lang)setLanguage(lang).catch(reportError);
 });
 w.addEventListener('exporthub:language-changed',function(){updateSelectorCaption()});
-['exporthub:state-loaded','exporthub:sync','exporthub:customer-updated','exporthub:shipment-updated','exporthub:task-updated'].forEach(function(name){w.addEventListener(name,function(){buildDynamicIndex();ensureSelector();if(d.body)queueFullTranslation()})});
-['exporthub:ready','exporthub:login','exporthub:authenticated','exporthub:user-changed','exporthub:profile-loaded'].forEach(function(name){w.addEventListener(name,function(){syncProfileLanguage().catch(reportError)})});
+w.addEventListener('exporthub:state-loaded',function(){repairContaminatedGoodsDescription();buildDynamicIndex();ensureSelector();if(d.body)queueFullTranslation()});
+['exporthub:sync','exporthub:customer-updated','exporthub:shipment-updated','exporthub:task-updated'].forEach(function(name){w.addEventListener(name,function(){repairContaminatedGoodsDescription();buildDynamicIndex();ensureSelector();if(d.body)queueFullTranslation()})});
+['exporthub:ready','exporthub:login','exporthub:authenticated','exporthub:user-changed','exporthub:profile-loaded'].forEach(function(name){w.addEventListener(name,function(){repairContaminatedGoodsDescription();syncProfileLanguage().catch(reportError)})});
 w.ExportHUBI18n=Object.freeze({
  version:VERSION,
  supported:SUPPORTED,
@@ -485,6 +523,7 @@ w.ExportHUBI18n=Object.freeze({
  formatCurrency:formatCurrency,
  localized:localized,
  snapshotShipmentDraft:snapshotShipmentDraft,
+ repairContaminatedGoodsDescription:repairContaminatedGoodsDescription,
  rebuildDynamicIndex:buildDynamicIndex,
  resourceUrl:resourceUrl
 });
