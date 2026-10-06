@@ -4,11 +4,11 @@ import fs from 'node:fs';
 
 const source=fs.readFileSync('api/pickup-confirm-v2/index.js','utf8');
 
-test('RC1435 Pickup: POD-Archive bleiben hinter einem nicht ausgeführten Lazy-Selector',()=>{
+test('RC1435/RC1455 Pickup: Standard-POD-Archiv bleibt hinter einem nicht ausgeführten Lazy-Selector',()=>{
   const beforeHandler=source.slice(0,source.indexOf('module.exports=async function'));
-  assert.match(beforeHandler,/function podArchiveFor\(record\)\{const base=require\(['"]\.\.\/shared\/pod-archive['"]\)/);
-  assert.match(beforeHandler,/return require\(['"]\.\.\/shared\/pod-archive-rc1432['"]\)/);
-  const withoutSelector=beforeHandler.replace(/function podArchiveFor\(record\)\{[^\n]*\}/,'');
+  assert.match(beforeHandler,/function podArchiveFor\(\)\{return require\(['"]\.\.\/shared\/pod-archive['"]\)\}/);
+  assert.doesNotMatch(beforeHandler,/pod-archive-rc1432/,'RC1455 darf den alten Zwei-Signatur-POD-Pfad nicht erneut laden');
+  const withoutSelector=beforeHandler.replace(/function podArchiveFor\(\)\{[^\n]*\}/,'');
   assert.doesNotMatch(withoutSelector,/require\(['"]\.\.\/shared\/pod-archive(?:-rc1432)?['"]\)/,'POD-Archive dürfen außerhalb des Lazy-Selectors nicht beim Modulimport geladen werden');
 });
 
@@ -29,14 +29,12 @@ test('RC1435 Pickup: POD-Selector wird ausschließlich in vollständigen Abholpf
   assert.match(source,/podArchive&&typeof podArchive\.automaticPod==='function'/);
 });
 
-test('RC1435 Pickup: ABD wählt das Zwei-Signatur-POD, Nicht-ABD bleibt beim Standard-POD',()=>{
-  const start=source.indexOf('function podArchiveFor(record)');
+test('RC1455 Pickup: ABD und Nicht-ABD verwenden denselben Ein-Signatur-POD bei erhaltenem Lazy-Load-Schutz',()=>{
+  const start=source.indexOf('function podArchiveFor()');
   const end=source.indexOf('module.exports=async function',start);
   assert.ok(start>=0&&end>start,'POD-Selector fehlt');
   const selector=source.slice(start,end);
-  assert.match(selector,/const base=require\(['"]\.\.\/shared\/pod-archive['"]\)/);
-  assert.match(selector,/store\.abdPresent\(record\)/);
-  assert.match(selector,/record\.abdPresent===true/);
-  assert.match(selector,/return require\(['"]\.\.\/shared\/pod-archive-rc1432['"]\)/);
-  assert.match(selector,/return base/);
+  assert.match(selector,/return require\(['"]\.\.\/shared\/pod-archive['"]\)/);
+  assert.doesNotMatch(selector,/pod-archive-rc1432/);
+  assert.doesNotMatch(selector,/abdPresent/,'POD-Auswahl darf nicht wieder nach ABD in einen Zwei-Signatur-Pfad verzweigen');
 });
