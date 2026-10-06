@@ -3,6 +3,7 @@
 const crypto = require('crypto');
 const https = require('https');
 const podArchive = require('../shared/pod-archive');
+const podIntegrityAudit = require('../shared/pod-integrity-audit');
 const store = require('../shared/pickup-store');
 const graphDrive = require('../shared/graph-drive');
 
@@ -84,32 +85,34 @@ async function githubOidcAuthorized(req) {
     if (!Number(claims.exp) || Number(claims.exp) <= at - 30) return false;
     if (Number(claims.nbf || 0) > at + 60 || Number(claims.iat || 0) > at + 60 || Number(claims.iat || 0) < at - 900) return false;
     if (!oidcCache.keys.length || oidcCache.expiresAt < Date.now()) {
-      const jwks = await httpsJson(OIDC_JWKS_URL);
-      oidcCache = { expiresAt: Date.now() + 10 * 60 * 1000, keys: Array.isArray(jwks.keys) ? jwks.keys : [] };
+      const jwks = await httpsJson(OIDC_JWKS_URL); oidcCache = { expiresAt: Date.now() + 10 * 60 * 1000, keys: Array.isArray(jwks.keys) ? jwks.keys : [] };
     }
-    const jwk = oidcCache.keys.find(key => key && key.kid === jose.kid && key.kty === 'RSA');
-    if (!jwk) return false;
+    const jwk = oidcCache.keys.find(key => key && key.kid === jose.kid && key.kty === 'RSA'); if (!jwk) return false;
     const key = crypto.createPublicKey({ key: jwk, format: 'jwk' });
     return crypto.verify('RSA-SHA256', Buffer.from(parts[0] + '.' + parts[1]), key, Buffer.from(parts[2], 'base64url'));
-  } catch (_) {
-    return false;
-  }
+  } catch (_) { return false; }
 }
 
 module.exports = async function(context, req) {
-  if (req.method === 'OPTIONS') {
-    context.res = { status: 204, headers: { Allow: 'POST, OPTIONS', 'Cache-Control': 'no-store' }, body: '' };
-    return;
-  }
-  if (req.method !== 'POST') {
-    context.res = json(405, { ok: false, code: 'METHOD_NOT_ALLOWED', message: 'Nur POST ist erlaubt.' });
-    return;
-  }
+  if (req.method === 'OPTIONS') { context.res = { status: 204, headers: { Allow: 'POST, OPTIONS', 'Cache-Control': 'no-store' }, body: '' }; return; }
+  if (req.method !== 'POST') { context.res = json(405, { ok: false, code: 'METHOD_NOT_ALLOWED', message: 'Nur POST ist erlaubt.' }); return; }
   try {
     if (!await githubOidcAuthorized(req)) throw error('WORKFLOW_REQUIRED', 'Die POD-Nachholung darf nur durch den signierten ExportHUB-Wartungsworkflow ausgeführt werden.', 403);
     const payload = body(req);
     const environment = environmentOf(req, payload);
     const graph = graphDrive.readiness();
+
+    if (payload.auditPodStatus === true) {
+      const audit = await podIntegrityAudit.auditPodStatuses(environment, {
+        cursor: Math.max(0, Math.round(Number(payload.cursor) || 0)),
+        limit: Math.min(25, Math.max(1, Math.round(Number(payload.auditLimit || payload.limit) || 10)))
+      });
+      if (payload.auditOnly === true) {
+        context.res = json(audit.ok ? 200 : 409, Object.assign({ version: 'RC1440', backupMode: 'azure-archive', graphConfigured: graph.configured, auditOnly: true }, audit));
+        return;
+      }
+    }
+
     const reference = text(payload.reference).toUpperCase();
     const drainAll = !reference && payload.drainAll === true;
     const limit = Math.min(25, Math.max(1, Math.round(Number(payload.limit) || 10)));
@@ -120,9 +123,9 @@ module.exports = async function(context, req) {
       scanPageSize: Math.min(100, Math.max(10, Math.round(Number(payload.scanPageSize) || 40))),
       minAgeMs: reference || drainAll ? 0 : 5 * 60 * 1000
     });
-    context.res = json(200, Object.assign({ version: 'RC1241', backupMode: 'azure-archive', graphConfigured: graph.configured, reference: reference || null, drainAll }, result));
+    context.res = json(200, Object.assign({ version: 'RC1440', backupMode: 'azure-archive', graphConfigured: graph.configured, reference: reference || null, drainAll }, result));
   } catch (e) {
-    try { context.log && context.log.error && context.log.error('RC1144 POD reconcile failed', e && e.code, e && e.message); } catch (_) {}
-    context.res = json(e.status || e.statusCode || 500, { ok: false, code: e.code || 'SERVER_ERROR', message: e.message || 'POD-Nachholung ist fehlgeschlagen.', version: 'RC1241' });
+    try { context.log && context.log.error && context.log.error('RC1440 POD maintenance failed', e && e.code, e && e.message); } catch (_) {}
+    context.res = json(e.status || e.statusCode || 500, { ok: false, code: e.code || 'SERVER_ERROR', message: e.message || 'POD-Wartung ist fehlgeschlagen.', version: 'RC1440' });
   }
 };
