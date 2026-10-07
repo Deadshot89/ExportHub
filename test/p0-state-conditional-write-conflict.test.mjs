@@ -19,7 +19,7 @@ test('P0: exhausted conditional-write retries return CONCURRENT_UPDATE, not raw 
   assert.ok(start>=0&&end>start);
   const save=source.slice(start,end);
   assert.match(save,/if\(isStorageWriteConflict\(e\)\)/);
-  assert.match(save,/if\(attempt<MAX_RETRIES-1\).*await sleep/);
+  assert.match(save,/if\(attempt<MAX_RETRIES-1\)\{await sleep/);
   assert.match(source,/const MAX_RETRIES = 12/);
   assert.match(source,/CONFLICT_BACKOFF_BASE_MS/);
   assert.match(save,/throw error\('CONCURRENT_UPDATE','api\.state\.concurrentSaveFailed',409/);
