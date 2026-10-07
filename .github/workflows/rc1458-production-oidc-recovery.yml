@@ -1,0 +1,139 @@
+name: RC1458 Production OIDC Recovery
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/rc1458-production-oidc-recovery.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: exporthub-rc1458-production-oidc-recovery
+  cancel-in-progress: true
+
+jobs:
+  recover_production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+
+      - name: Node 20
+        uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+
+      - name: RC1458 regression and release tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm test
+          node --test test/rc1018-production-deploy.test.mjs test/rc1018-azure-static-web-app-action-pin.test.mjs
+
+      - name: Build verified production candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          node .github/rc1112/build-three-env.mjs
+          node .github/rc1121/verify-final-html.mjs
+          grep -q "version:'RC1112'" dist-rc1112/index.html
+          grep -q 'assets/rc1267-i18n.js?v=1458' dist-rc1112/index.html
+          node - <<'NODE'
+          const fs=require('fs');
+          const src=fs.readFileSync('dist-rc1112/assets/rc1267-i18n.js','utf8');
+          const a=src.indexOf('function repairContaminatedGoodsDescription(');
+          const b=src.indexOf('function snapshotShipmentDraft(',a);
+          if(a<0||b<0) throw new Error('RC1458 repair block missing');
+          const block=src.slice(a,b);
+          if(!block.includes("queueSave('RC1458 Warenbeschreibung Hintergrundreparatur')")) throw new Error('RC1458 silent queueSave missing');
+          if(/ExportHUBRC565|persistShipment/.test(block)) throw new Error('RC1458 still invokes strict shipment persistence during startup');
+          NODE
+
+      - name: Prepare production package
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .rc1112_production_app
+          mkdir -p .rc1112_production_app
+          cp dist-rc1112/pickup.html dist-rc1112/customer-avis.html dist-rc1112/location.html dist-rc1112/pod-notfall.html dist-rc1112/migration-recovery.html .rc1112_production_app/
+          cp dist-rc1112/production-version.js .rc1112_production_app/production-version.js
+          cp staticwebapp.config.json .rc1112_production_app/staticwebapp.config.json
+          cp dist-rc1112/index.html .rc1112_production_app/index.html
+          cp -R assets .rc1112_production_app/assets
+          cp -R dist-rc1112/assets/. .rc1112_production_app/assets/
+          test -s .rc1112_production_app/index.html
+          test -s .rc1112_production_app/assets/rc1267-i18n.js
+
+      - name: Reject stale recovery run
+        shell: bash
+        run: |
+          set -euo pipefail
+          remote_sha="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          test -n "$remote_sha"
+          if [ "$remote_sha" != "$GITHUB_SHA" ]; then
+            echo "Recovery deploy is stale: run=$GITHUB_SHA main=$remote_sha" >&2
+            exit 1
+          fi
+
+      - name: Acquire GitHub OIDC token for Azure Static Web Apps
+        id: swa_oidc
+        shell: bash
+        run: |
+          set -euo pipefail
+          response="$(curl -fsSL -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL")"
+          token="$(printf '%s' "$response" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s);if(!v.value)process.exit(2);process.stdout.write(v.value)})")"
+          echo "::add-mask::$token"
+          echo "token=$token" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy ExportHUB production with GitHub OIDC recovery
+        uses: Azure/static-web-apps-deploy@4d27395796ac319302594769cfe812bd207490b1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_FOREST_0F315E310 }}
+          github_id_token: ${{ steps.swa_oidc.outputs.token }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: upload
+          app_location: .rc1112_production_app
+          api_location: api
+          output_location: ''
+          skip_app_build: true
+
+      - name: Verify RC1458 live in production
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          page="$(mktemp)"
+          runtime="$(mktemp)"
+          trap 'rm -f "$page" "$runtime"' EXIT
+          ready=0
+          for attempt in {1..24}; do
+            page_code="$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/?rc1458=${GITHUB_SHA}-${attempt}" || true)"
+            runtime_code="$(curl -sS -L -o "$runtime" -w '%{http_code}' --max-time 20 "$base/assets/rc1267-i18n.js?rc1458=${GITHUB_SHA}-${attempt}" || true)"
+            if [ "$page_code" = '200' ] && [ "$runtime_code" = '200' ] && grep -q 'assets/rc1267-i18n.js?v=1458' "$page"; then
+              if RUNTIME="$runtime" node - <<'NODE'
+          const fs=require('fs');
+          const src=fs.readFileSync(process.env.RUNTIME,'utf8');
+          const a=src.indexOf('function repairContaminatedGoodsDescription(');
+          const b=src.indexOf('function snapshotShipmentDraft(',a);
+          if(a<0||b<0) process.exit(2);
+          const block=src.slice(a,b);
+          if(!block.includes("queueSave('RC1458 Warenbeschreibung Hintergrundreparatur')")) process.exit(3);
+          if(/ExportHUBRC565|persistShipment/.test(block)) process.exit(4);
+          NODE
+              then
+                ready=1
+                break
+              fi
+            fi
+            sleep 5
+          done
+          [ "$ready" = '1' ] || { echo 'RC1458 production live verification failed.' >&2; exit 1; }
+          echo 'RC1458 production startup repair is live and silent.'
