@@ -119,3 +119,17 @@ test('RC1454 Azure customer-avis entrypoint wraps but does not replace the prove
  assert.match(wrapper,/require\('\.\/index'\)/);
  assert.match(wrapper,/wrapCustomerAvisHandler/);
 });
+
+test('RC1454/RC1455: ZIP-i18n darf die entfernte zweite Zollunterschrift nicht wieder einführen',()=>{
+ const core=fs.readFileSync('api/shared/i18n.js','utf8');
+ assert.doesNotMatch(core,/zweite Fahrerunterschrift|second signature|drugi podpis|segunda firma|deuxième signature|seconda firma/i);
+ for(const lang of ['de','en','pl','es','fr','it']){
+  const pack=JSON.parse(fs.readFileSync(`api/shared/i18n/${lang}.json`,'utf8'));
+  assert.equal(typeof pack['api.avis.downloadAll'],'string');
+  assert.equal(typeof pack['api.avis.downloadAllCategory'],'string');
+  assert.equal(typeof pack['api.avis.zipNoDocuments'],'string');
+  assert.equal(typeof pack['api.avis.zipTooManyDocuments'],'string');
+  assert.equal(typeof pack['api.avis.zipDocumentFailed'],'string');
+  assert.equal(typeof pack['api.avis.zipTooLarge'],'string');
+ }
+});
