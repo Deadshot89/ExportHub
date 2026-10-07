@@ -28,7 +28,7 @@ test('RC1305: Treffer zeigen kompakte Metadaten statt aller PDF-Dateinamen in ei
   assert.match(search,/overflow-wrap:anywhere/);
 });
 
-test('RC1435: Ladeliste ersetzt abgeholte Leerformulare durch gespeicherte Abholdaten und führt die ABD-Zollunterschrift separat',()=>{
+test('RC1455: Ladeliste ersetzt abgeholte Leerformulare durch gespeicherte Abholdaten und zeigt nur die Fahrerunterschrift',()=>{
   assert.match(print,/function pickupSummary\(root,sh\)/);
   assert.match(print,/pickupHistory/);
   for(const field of ['driverName','licensePlate','loaderName','confirmedAt','signatureBlobName','returnedEuroPallets']){
@@ -41,9 +41,7 @@ test('RC1435: Ladeliste ersetzt abgeholte Leerformulare durch gespeicherte Abhol
   assert.match(print,/rc1305-meta-loader/);
   assert.match(print,/rc1305-meta-plate/);
   assert.match(print,/rc1305-signature-primary/);
-  assert.match(print,/ensureCustomsSignatureField/);
-  assert.match(print,/rc1305-signature-customs/);
-  assert.match(print,/data-rc1432-customs-signature/);
+  assert.doesNotMatch(print,/ensureCustomsSignatureField|rc1305-signature-customs|data-rc1432-customs-signature|customsDocumentsSignature/,'die entfernte zweite Zoll-/ABD-Unterschrift darf in der Ladeliste nicht wieder eingeführt werden');
   assert.match(print,/grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
 });
 
@@ -67,17 +65,14 @@ test('RC1368: Drei-Umgebungen-Build liefert die aktuelle Ladelisten-Druckruntime
   assert.match(build,/loadingListPrintRedesign:'RC1379/); assert.match(print,/data-rc1363-document-density/);
 });
 
-test('RC1437: Production- und Live-Gate prüfen dieselbe aktuelle Ladelisten-Druckruntime wie der Build',()=>{
-  assert.match(FLOW,/RC1437 ABD-Drucklayout live verifizieren/);
+test('RC1374: Production- und Live-Gate prüfen dieselbe aktuelle Ladelisten-Druckruntime wie der Build',()=>{
+  assert.match(FLOW,/RC1379 Produktions-Drucklayout live verifizieren/);
   assert.match(build,/assets\/rc1305-loading-list-print\.js\?v=1379/);
   assert.match(FLOW,/assets\/rc1305-loading-list-print\.js\?v=1379/);
   assert.match(FLOW,/display:flex!important/);
   assert.match(FLOW,/flex-direction:column!important/);
   assert.match(FLOW,/important\(code,'width','12mm'\)/);
   assert.match(FLOW,/important\(svg,'width','12mm'\)/);
-  assert.match(FLOW,/rc1305-signature-customs/);
-  assert.match(FLOW,/data-rc1432-customs-signature/);
-  assert.match(FLOW,/customsDocumentsSignature/);
   assert.doesNotMatch(FLOW,/assets\/rc1305-loading-list-print\.js\?v=1362/);
   assert.doesNotMatch(FLOW,/docColumns=Math\.max\(1,Math\.ceil\(docCount\/15\)\)/);
 });
@@ -101,7 +96,7 @@ test('RC1364: Lieferscheinrahmen bleiben inhaltsbreit und Empfänger wird kunden
 
 
 test('RC1435: Druck-QR bleibt 12mm gross',()=>{
-  assert.match(print,/version:'RC1432'/);
+  assert.match(print,/version:'RC1379'/);
   assert.match(print,/important\(code,'width','12mm'\)/);
   assert.match(print,/important\(svg,'width','12mm'\)/);
   assert.match(print,/shape-rendering="crispEdges"/);
@@ -141,5 +136,5 @@ test('RC1393: produktive AVIS-Marken-Domain ist .de und blockiert Release bei Au
 test('RC1435: Deckblatt verwendet denselben Empfaenger-Fix wie die Ladeliste',()=>{
   assert.match(print,/function enhanceCover\(html,sh\)/);
   assert.match(print,/enhanceRecipient\(root,sh\|\|\{\}\);enhanceDocuments\(root,sh\|\|\{\}\)/);
-  assert.match(print,/version:'RC1432'/);
+  assert.match(print,/version:'RC1379'/);
 });
