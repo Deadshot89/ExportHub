@@ -21,7 +21,7 @@ const DIAGNOSTICS_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_RETRIES = 12;
 const CONFLICT_BACKOFF_BASE_MS = 12;
 function sleep(ms){return new Promise(resolve=>setTimeout(resolve,Math.max(0,Number(ms)||0)))}
-const API_VERSION = 'RC1457';
+const API_VERSION = 'RC1458';
 const TEAM_WARM_CACHE = new Map();
 const AUTH_WARM_CACHE = new Map();
 
