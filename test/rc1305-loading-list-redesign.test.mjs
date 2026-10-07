@@ -28,7 +28,7 @@ test('RC1305: Treffer zeigen kompakte Metadaten statt aller PDF-Dateinamen in ei
   assert.match(search,/overflow-wrap:anywhere/);
 });
 
-test('RC1435: Ladeliste ersetzt abgeholte Leerformulare durch gespeicherte Abholdaten und führt die ABD-Zollunterschrift separat',()=>{
+test('RC1455: Ladeliste ersetzt abgeholte Leerformulare durch gespeicherte Abholdaten und zeigt nur die Fahrerunterschrift',()=>{
   assert.match(print,/function pickupSummary\(root,sh\)/);
   assert.match(print,/pickupHistory/);
   for(const field of ['driverName','licensePlate','loaderName','confirmedAt','signatureBlobName','returnedEuroPallets']){
@@ -41,9 +41,7 @@ test('RC1435: Ladeliste ersetzt abgeholte Leerformulare durch gespeicherte Abhol
   assert.match(print,/rc1305-meta-loader/);
   assert.match(print,/rc1305-meta-plate/);
   assert.match(print,/rc1305-signature-primary/);
-  assert.match(print,/ensureCustomsSignatureField/);
-  assert.match(print,/rc1305-signature-customs/);
-  assert.match(print,/data-rc1432-customs-signature/);
+  assert.doesNotMatch(print,/ensureCustomsSignatureField|rc1305-signature-customs|data-rc1432-customs-signature|customsDocumentsSignature/,'die entfernte zweite Zoll-/ABD-Unterschrift darf in der Ladeliste nicht wieder eingeführt werden');
   assert.match(print,/grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
 });
 
