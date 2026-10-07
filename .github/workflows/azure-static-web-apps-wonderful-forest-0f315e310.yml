@@ -120,6 +120,8 @@ jobs:
         run: |
           set -euo pipefail
           grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1112'" production-version.js
+          node --check api/exporthub-state/index.js
+          node --test test/p0-state-conditional-write-conflict.test.mjs
           node .github/rc1018/apply-public-language.mjs
           node .github/rc1018/fix-mail-wording.mjs
           node --test --test-concurrency=1 test/rc1018-mail-language-standard.test.mjs test/rc1018-production-deploy.test.mjs
