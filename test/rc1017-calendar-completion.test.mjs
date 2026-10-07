@@ -79,6 +79,16 @@ test('Kalender-Runtime gibt den aktiven Firmenkontext an die FIX-API-Komponente 
   assert.equal(user.calls[0].options.companyId,'ESSENTRA');
 });
 
+test('Kalender sendet bei normalem Benutzer keinen fremden globalen Firmenkontext', () => {
+  const regular = loadRuntime({
+    companyId:'ESSENTRA',
+    currentUser:{name:'Carsten',role:'user',rights:{pickupcalendar:{level:'read'}}},
+    shipments:[]
+  });
+  regular.window.pickupcalendar();
+  assert.equal(regular.calls[0].options.companyId,'');
+});
+
 test('Essentra FIX-Startbestand enthält die freigegebenen Abholkunden ohne NEFF', () => {
   assert.deepEqual(
     seed.defaultsForCompany('ESSENTRA').map(({siteLabel,weekday})=>({siteLabel,weekday})),
