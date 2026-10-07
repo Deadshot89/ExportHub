@@ -1,6 +1,30 @@
 (function(w){
 'use strict';
 if(!w||w.__EXPORTHUB_RC1289_AUTH_TRANSPORT_FALLBACK__)return;
+
+var RC1458_COLLI_MESSAGE='Bitte Verpackung, Anzahl und Gewicht in jeder Colli-Zeile vollständig erfassen.';
+var nativeAlert=typeof w.alert==='function'?w.alert.bind(w):null;
+function loginVisible(){
+  var el=null;
+  try{el=w.document&&w.document.getElementById&&w.document.getElementById('login')}catch(_){}
+  if(!el||el.hidden===true)return false;
+  try{if(el.getAttribute&&el.getAttribute('aria-hidden')==='true')return false}catch(_){}
+  try{
+    if(typeof w.getComputedStyle==='function'){
+      var style=w.getComputedStyle(el);
+      if(style&&(style.display==='none'||style.visibility==='hidden'))return false;
+    }
+  }catch(_){}
+  return true;
+}
+if(nativeAlert&&!w.__EXPORTHUB_RC1458_COLLI_LOGIN_GUARD__){
+  w.alert=function(message){
+    if(String(message==null?'':message).trim()===RC1458_COLLI_MESSAGE&&loginVisible())return;
+    return nativeAlert(message);
+  };
+  w.__EXPORTHUB_RC1458_COLLI_LOGIN_GUARD__=true;
+}
+
 var original=typeof w.fetch==='function'?w.fetch.bind(w):null;
 if(!original||typeof w.XMLHttpRequest!=='function')return;
 
