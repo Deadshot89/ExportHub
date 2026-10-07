@@ -7,6 +7,7 @@ import {spawnSync} from 'node:child_process';
 const historySource=fs.readFileSync('assets/rc1071-shipment-history.js','utf8');
 const buildSource=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
 const de=JSON.parse(fs.readFileSync('assets/i18n/de.json','utf8'));
+const shipmentViewFixSource=fs.readFileSync('assets/rc1460-shipment-view-files-avis-preview.js','utf8');
 
 function runtime(){
   const shipment={id:'S1',ref:'ABC123',status:'Abgeholt',shipmentHistory:[]};
@@ -93,4 +94,31 @@ test('RC1305: Build-Skript bleibt syntaktisch gültig und lädt die History mit 
   assert.equal(check.status,0,check.stderr||check.stdout);
   assert.match(buildSource,/rc1071-shipment-history\.js\?v=1434/);
   assert.match(historySource,/version:'RC1305'/);
+});
+
+
+test('RC1460: Sendungsansicht sammelt Anhänge aus allen fachlichen Datei-Feldern',()=>{
+  assert.match(buildSource,/deliveryFiles','deliveryNotesFiles','lieferscheine','files','attachments','abdFiles','podFiles','cmrFiles','photos','pickupPhotos','containerPhotos/);
+  assert.match(buildSource,/extra\.push\(normalizeFallback\(file\)\)/);
+});
+
+test('RC1460: Statusverlauf zeigt den ausführenden Benutzer',()=>{
+  assert.match(buildSource,/Benutzer: /);
+  assert.match(buildSource,/row&&row\.actor&&row\.actor\.name/);
+});
+
+test('RC1460: aktives Lieferavis erhält Öffnen- und Kopieren-Aktion',()=>{
+  assert.match(shipmentViewFixSource,/AVIS öffnen/);
+  assert.match(shipmentViewFixSource,/Link kopieren/);
+  assert.match(shipmentViewFixSource,/customerAvisUrl\|\|sh\.avisUrl\|\|sh\.customerAvisLink\|\|sh\.avisLink/);
+});
+
+test('RC1460: zentrale Dateivorschau unterstützt PDF und Bilder',()=>{
+  assert.match(shipmentViewFixSource,/ExportHUBFilePreview1460/);
+  assert.match(shipmentViewFixSource,/pdf\|png\|jpe\?g\|webp\|gif\|bmp\|svg/);
+  assert.match(shipmentViewFixSource,/data-exporthub-file-preview/);
+});
+
+test('RC1460: Build lädt die neue Runtime',()=>{
+  assert.match(buildSource,/rc1460-shipment-view-files-avis-preview\.js\?v=1460/);
 });
