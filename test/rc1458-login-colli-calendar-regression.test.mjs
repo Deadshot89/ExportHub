@@ -5,6 +5,7 @@ import vm from 'node:vm';
 
 const calendarRuntime=fs.readFileSync('assets/rc1012-abholkalender-runtime.js','utf8');
 const authRuntime=fs.readFileSync('assets/rc1289-auth-transport-fallback.js','utf8');
+const companyContext=fs.readFileSync('api/shared/company-context.js','utf8');
 
 function loadCalendar(state){
   const calls=[];
@@ -50,6 +51,12 @@ test('RC1458: normale Benutzer verwenden nur eine am Benutzer freigegebene Firma
 test('RC1458: globale Administratoren dürfen den aktiven Firmenkontext weiterhin verwenden',()=>{
   const options=loadCalendar({companyId:'ESSENTRA',currentUser:{user:'Tobias',role:'Globaler Administrator',globalAdmin:true},shipments:[]});
   assert.equal(options.companyId,'ESSENTRA');
+});
+
+test('RC1458: Backend-Firmenisolation bleibt unverändert streng',()=>{
+  assert.match(companyContext,/wanted !== 'legacy-default'/,'Legacy-Fallback muss explizit erlaubt bleiben');
+  assert.match(companyContext,/COMPANY_FORBIDDEN/,'Fremde Firmen müssen weiterhin serverseitig abgewiesen werden');
+  assert.match(companyContext,/wanted \|\| allowed\[0\] \|\| 'legacy-default'/,'Ohne Client-Header muss der Server den erlaubten Kontext selbst wählen');
 });
 
 test('RC1458: Colli-Pflichtfeldmeldung darf auf dem sichtbaren Login-/Ladebildschirm nicht als Alert erscheinen',()=>{
