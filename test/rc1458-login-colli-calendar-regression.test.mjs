@@ -65,3 +65,12 @@ test('RC1458: Colli-Pflichtfeldmeldung darf auf dem sichtbaren Login-/Ladebildsc
   runtime.window.alert(target);
   assert.deepEqual(runtime.alerts,['Andere wichtige Meldung',target]);
 });
+
+test('RC1458: Produktionsbuild nimmt beide reparierten Runtimes mit Cache-Busting aus dem aktuellen Quellstand',()=>{
+  const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
+  const releasePatch=fs.readFileSync('scripts/rc1458-login-calendar-release.mjs','utf8');
+  assert.match(pkg.scripts.pretest,/rc1458-login-calendar-release\.mjs/,'Releasepatch muss vor der Gesamttest-/Buildkette laufen');
+  assert.match(releasePatch,/'assets\/rc1012-abholkalender-runtime\.js'/,'Kalender-Runtime muss aus dem aktuellen assets-Verzeichnis in den Build kopiert werden');
+  assert.match(releasePatch,/rc1289-auth-transport-fallback\.js\?v=1458/,'Login-Guard braucht einen neuen Browser-Cache-Key');
+  assert.match(releasePatch,/rc1012-abholkalender-runtime\.js\?v=1012&rc=1458/,'Kalender-Fix braucht einen neuen Browser-Cache-Key');
+});
