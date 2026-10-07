@@ -2,6 +2,7 @@
 'use strict';
 if(window.__EXPORTHUB_RC1018_PUBLIC_LANGUAGE__)return;
 window.__EXPORTHUB_RC1018_PUBLIC_LANGUAGE__=true;
+if(window.ExportHUBI18n&&window.ExportHUBI18n.version){window.ExportHUBRC1018PublicLanguage=Object.freeze({version:'RC1267-compat',key:'exporthub.language',setLanguage:function(lang){return window.ExportHUBI18n.setLanguage(lang)},language:function(){return window.ExportHUBI18n.language()},translations:{},reconcilePodCards:function(){}});return;}
 var KEY='exporthub.language',original=new WeakMap(),observer=null;
 function q(v){return String(v==null?'':v).trim()}
 function normalize(v){v=q(v).toLowerCase();return/^en(?:[-_]|$)/.test(v)||v==='english'||v==='englisch'?'en':'de'}
