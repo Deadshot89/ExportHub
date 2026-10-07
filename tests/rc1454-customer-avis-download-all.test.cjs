@@ -120,16 +120,16 @@ test('RC1454 Azure customer-avis entrypoint wraps but does not replace the prove
  assert.match(wrapper,/wrapCustomerAvisHandler/);
 });
 
-test('RC1454/RC1455: ZIP-i18n darf die entfernte zweite Zollunterschrift nicht wieder einführen',()=>{
+test('RC1454/RC1455: ZIP-i18n bleibt sechssprachig ohne zweite Zollunterschrift',()=>{
  const core=fs.readFileSync('api/shared/i18n.js','utf8');
+ const i18n=require('../api/shared/i18n.js');
  assert.doesNotMatch(core,/zweite Fahrerunterschrift|second signature|drugi podpis|segunda firma|deuxième signature|seconda firma/i);
  for(const lang of ['de','en','pl','es','fr','it']){
-  const pack=JSON.parse(fs.readFileSync(`api/shared/i18n/${lang}.json`,'utf8'));
-  assert.equal(typeof pack['api.avis.downloadAll'],'string');
-  assert.equal(typeof pack['api.avis.downloadAllCategory'],'string');
-  assert.equal(typeof pack['api.avis.zipNoDocuments'],'string');
-  assert.equal(typeof pack['api.avis.zipTooManyDocuments'],'string');
-  assert.equal(typeof pack['api.avis.zipDocumentFailed'],'string');
-  assert.equal(typeof pack['api.avis.zipTooLarge'],'string');
+  assert.notEqual(i18n.tLang(lang,'api.avis.downloadAll'),'api.avis.downloadAll');
+  assert.notEqual(i18n.tLang(lang,'api.avis.downloadAllCategory'),'api.avis.downloadAllCategory');
+  assert.notEqual(i18n.tLang(lang,'api.avis.zipNoDocuments'),'api.avis.zipNoDocuments');
+  assert.notEqual(i18n.tLang(lang,'api.avis.zipTooManyDocuments'),'api.avis.zipTooManyDocuments');
+  assert.notEqual(i18n.tLang(lang,'api.avis.zipDocumentFailed',{name:'X.pdf'}),'api.avis.zipDocumentFailed');
+  assert.notEqual(i18n.tLang(lang,'api.avis.zipTooLarge'),'api.avis.zipTooLarge');
  }
 });
