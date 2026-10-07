@@ -99,20 +99,46 @@ html,body{margin:0;padding:0;background:#fff;color:#111;font-family:Arial,Helvet
     return Array.isArray(state.shipments) ? state.shipments : [];
   }
 
+  function text(value){ return String(value == null ? '' : value).trim(); }
+  function isGlobalAdmin(user){
+    if (!user || typeof user !== 'object') return false;
+    if (user.globalAdmin === true || user.isGlobalAdmin === true) return true;
+    if (Array.isArray(user.permissions) && user.permissions.includes('*')) return true;
+    const role = text(user.role || user.rolle).toLowerCase();
+    return ['global admin','global administrator','globaler administrator','globaler admin','administrator','admin','vollzugriff'].includes(role);
+  }
+  function userCompanyId(user){
+    if (!user || typeof user !== 'object') return '';
+    const candidates=[user.companyId,user.companyKey,user.tenantId,user.tenant];
+    for (const listName of ['companyIds','allowedCompanyIds']) {
+      const list=user[listName];
+      if (Array.isArray(list)) candidates.push(...list);
+    }
+    if (Array.isArray(user.companies)) {
+      for (const company of user.companies) candidates.push(typeof company === 'string' ? company : company && (company.id || company.key || company.companyId));
+    }
+    for (const candidate of candidates) {
+      const value=text(candidate);
+      if (value) return value;
+    }
+    return '';
+  }
   function companyId(){
     const state = getState();
-    const user = state && state.currentUser && typeof state.currentUser === 'object' ? state.currentUser : {};
+    const hasUser = !!(state && state.currentUser && typeof state.currentUser === 'object');
+    const user = hasUser ? state.currentUser : null;
+    const ownCompany = userCompanyId(user);
+    if (hasUser && !isGlobalAdmin(user)) return ownCompany;
     const candidates = [
       state && state.companyId,
       state && state.currentCompanyId,
       state && state.activeCompanyId,
       state && state.companyKey,
-      user.companyId,
-      user.companyKey,
+      ownCompany,
       window.__EXPORTHUB_COMPANY_ID__
     ];
     for (const candidate of candidates) {
-      const value = String(candidate == null ? '' : candidate).trim();
+      const value = text(candidate);
       if (value) return value;
     }
     return '';
