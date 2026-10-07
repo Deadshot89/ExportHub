@@ -105,11 +105,13 @@ test('RC1451: mail textareas can never be classified or persisted as shipment go
 });
 
 
-test('RC1451: already corrupted mail text is repaired in shipment state and persisted once',()=>{
+test('RC1458: startup repair persists silently and never triggers full shipment validation',()=>{
   assert.match(runtime,/function mailLikeGoodsDescription\(/);
   assert.match(runtime,/function repairContaminatedGoodsDescription\(/);
   assert.match(runtime,/\['goodsDescription','description','warenbeschreibung'\]/,'repair must cover every goods-description alias');
   assert.match(runtime,/shipment\[key\]=''/,'contaminated aliases must be cleared');
-  assert.match(runtime,/ExportHUBRC565[\s\S]*?persistShipment/,'repair must persist through the shipment persistence bridge');
+  const repair=runtime.slice(runtime.indexOf('function repairContaminatedGoodsDescription('),runtime.indexOf('function snapshotShipmentDraft('));
+  assert.match(repair,/ExportHUBClean[\s\S]*?queueSave/,'startup repair must use silent state persistence');
+  assert.doesNotMatch(repair,/ExportHUBRC565|persistShipment/,'startup repair must never call full shipment validation');
   assert.match(runtime,/exporthub:state-loaded[\s\S]*?repairContaminatedGoodsDescription/,'repair must run when shared state is loaded');
 });
