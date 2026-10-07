@@ -99,16 +99,43 @@ html,body{margin:0;padding:0;background:#fff;color:#111;font-family:Arial,Helvet
     return Array.isArray(state.shipments) ? state.shipments : [];
   }
 
+  function userIsAdmin(user){
+    if (!user || typeof user !== 'object') return false;
+    if (user.admin === true || user.isAdmin === true || user.globalAdmin === true) return true;
+    const role = String(user.role || user.userRole || user.level || '').trim().toLowerCase();
+    return role === 'admin' || role === 'administrator' || role === 'globaladmin' || role === 'global-admin';
+  }
+
   function companyId(){
     const state = getState();
-    const user = state && state.currentUser && typeof state.currentUser === 'object' ? state.currentUser : {};
+    const user = state && state.currentUser && typeof state.currentUser === 'object' ? state.currentUser : null;
+    if (user) {
+      const userCandidates = [user.companyId,user.companyKey,user.tenantId,user.tenant];
+      for (const candidate of userCandidates) {
+        const value = String(candidate == null ? '' : candidate).trim();
+        if (value) return value;
+      }
+      for (const listName of ['companyIds','allowedCompanyIds']) {
+        const list = Array.isArray(user[listName]) ? user[listName] : [];
+        for (const candidate of list) {
+          const value = String(candidate == null ? '' : candidate).trim();
+          if (value) return value;
+        }
+      }
+      if (Array.isArray(user.companies)) {
+        for (const company of user.companies) {
+          const candidate = typeof company === 'string' ? company : company && (company.id || company.key || company.companyId);
+          const value = String(candidate == null ? '' : candidate).trim();
+          if (value) return value;
+        }
+      }
+      if (!userIsAdmin(user)) return '';
+    }
     const candidates = [
       state && state.companyId,
       state && state.currentCompanyId,
       state && state.activeCompanyId,
       state && state.companyKey,
-      user.companyId,
-      user.companyKey,
       window.__EXPORTHUB_COMPANY_ID__
     ];
     for (const candidate of candidates) {
