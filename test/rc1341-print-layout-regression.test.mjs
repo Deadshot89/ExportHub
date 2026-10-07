@@ -46,7 +46,7 @@ test('RC1343: Deckblatt wird zwei Punkte und Ladeliste einen Punkt kompakter ged
 
 test('RC1435: aktualisierte ABD-Druckruntime bleibt über den produktiven Asset-Pfad geladen',()=>{
   assert.match(build,/rc1305-loading-list-print\.js\?v=1379/);
-  assert.match(runtime,/version:'RC1432'/);
+  assert.match(runtime,/version:'RC1379'/);
 });
 
 
