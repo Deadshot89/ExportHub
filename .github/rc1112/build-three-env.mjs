@@ -656,7 +656,7 @@ function historyHtml(sh){
   var unique=q(key)||low(label)+'|'+at+'|'+low(detail);if(seen[unique])return;seen[unique]=1;
   list.push({at:at,label:label,detail:detail,stamp:Date.parse(at)||0,key:unique})
  }
- raw.forEach(function(row){var h=historyItem(row);if(h)add(h.at,h.label,h.detail,'status|'+h.key+'|'+q(h.at))});
+ raw.forEach(function(row){var h=historyItem(row);if(h){var actor=q(row&&row.actor&&row.actor.name||row&&row.actorName||row&&row.user||row&&row.by),detail=[h.detail,actor?('Benutzer: '+actor):''].filter(Boolean).join(' · ');add(h.at,h.label,detail,'status|'+h.key+'|'+q(h.at))}});
  var created=q(sh&&(sh.createdAt||sh.created||sh.savedAt)),creator=q(sh&&(sh.createdByName||sh.createdBy||sh.creatorName||sh.creator||sh.owner));
  if(created&&!list.some(function(x){return /erstellt|created/i.test(x.label)}))add(created,'Sendung erstellt',creator,'created');
  function pickupRows(rows,prefix){
@@ -722,7 +722,7 @@ function mergeReferenceDocs(live,fallback){
   replaceBlock(
     'async function loadReferenceDocs(sh,fallback){',
     '\n\nfunction shipmentSearchStamp',
-    `async function loadReferenceDocs(sh,fallback){var ref=refOf(sh),expected=idOf(sh)||ref;fallback=arr(fallback).filter(fallbackDocUsable);if(!ref)return setDocsPanel(fallback,'fallback',true);try{var data=await referenceList(ref,false);if(data&&data.available===false){setDocsPanel(fallback,'fallback',true);return false}var live=arr(data.files).map(function(x){return liveDoc(x,ref)}),merged=mergeReferenceDocs(live,fallback),source=live.length?(merged.length>live.length?'combined':'referenceFolder'):(fallback.length?'fallback':'referenceFolder');var current=find(state().shipmentViewId||state().selectedShipmentId||state().activeShipmentId);if(low(state().view)!=='shipmentview'||!current||(idOf(current)||refOf(current))!==expected)return false;setDocsPanel(merged,source,false)}catch(e){if(!(e&&e.code==='GRAPH_NOT_CONFIGURED'))console.warn('RC1305 Ref-Ordner',e);var current2=find(state().shipmentViewId||state().selectedShipmentId||state().activeShipmentId);if(low(state().view)==='shipmentview'&&current2&&(idOf(current2)||refOf(current2))===expected)setDocsPanel(fallback,'fallback',true)}return false}
+    `async function loadReferenceDocs(sh,fallback){var ref=refOf(sh),expected=idOf(sh)||ref,extra=[];['deliveryFiles','deliveryNotesFiles','lieferscheine','files','attachments','abdFiles','podFiles','cmrFiles','photos','pickupPhotos','containerPhotos'].forEach(function(key){arr(sh&&sh[key]).forEach(function(file){try{extra.push(normalizeFallback(file))}catch(_){}})});fallback=arr(fallback).concat(extra).filter(Boolean).filter(fallbackDocUsable);if(!ref)return setDocsPanel(fallback,'fallback',true);try{var data=await referenceList(ref,false);if(data&&data.available===false){setDocsPanel(fallback,'fallback',true);return false}var live=arr(data.files).map(function(x){return liveDoc(x,ref)}),merged=mergeReferenceDocs(live,fallback),source=live.length?(merged.length>live.length?'combined':'referenceFolder'):(fallback.length?'fallback':'referenceFolder');var current=find(state().shipmentViewId||state().selectedShipmentId||state().activeShipmentId);if(low(state().view)!=='shipmentview'||!current||(idOf(current)||refOf(current))!==expected)return false;setDocsPanel(merged,source,false)}catch(e){if(!(e&&e.code==='GRAPH_NOT_CONFIGURED'))console.warn('RC1305 Ref-Ordner',e);var current2=find(state().shipmentViewId||state().selectedShipmentId||state().activeShipmentId);if(low(state().view)==='shipmentview'&&current2&&(idOf(current2)||refOf(current2))===expected)setDocsPanel(fallback,'fallback',true)}return false}
 `,
     'Ref-Ordner-Fallback'
   );
@@ -915,6 +915,7 @@ function patchHtml(file){
   html=html.replace(/assets\/rc1063-abd-blob-viewer-compat\.js\?v=(?:1063|1151|1248)/g,'assets/rc1063-abd-blob-viewer-compat.js?v=1248');
   html=injectDeferredRuntimeInHead(html,'<!-- id="exporthub-rc1148-history-compat-marker" assets/rc1071-shipment-history.js?v=1095 -->','exporthub-rc1148-history-compat-marker');
   html=injectDeferredRuntimeInHead(html,RC1267_I18N_TAG,'exporthub-rc1267-i18n');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1460-shipment-view-fix" defer src="/assets/rc1460-shipment-view-files-avis-preview.js?v=1460"></script>','exporthub-rc1460-shipment-view-fix');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1126-customer-delete" defer src="/assets/rc1126-customer-delete.js?v=1387"></script>','exporthub-rc1126-customer-delete');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1113-stowplan-persist" defer src="/assets/rc1113-stowplan-persist.js?v=1113"></script>','exporthub-rc1113-stowplan-persist');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1114-shipping-neutral" defer src="/assets/rc1114-shipping-neutral.js?v=1386"></script>','exporthub-rc1114-shipping-neutral');
@@ -1015,7 +1016,8 @@ for(const rel of [
   'assets/rc1304-theme-switcher.css',
   'assets/rc1304-theme-switcher.js',
   'assets/rc1306-layout-engine.css',
-  'assets/rc1306-layout-engine.js'
+  'assets/rc1306-layout-engine.js',
+  'assets/rc1460-shipment-view-files-avis-preview.js'
 ]){
   const src=path.join(ROOT,rel),dst=path.join(OUT,rel);
   if(!fs.existsSync(src))throw new Error('RC1124 Pflicht-Runtime fehlt: '+rel);
