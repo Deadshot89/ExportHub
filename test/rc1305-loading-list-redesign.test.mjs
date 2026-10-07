@@ -96,7 +96,7 @@ test('RC1364: Lieferscheinrahmen bleiben inhaltsbreit und Empfänger wird kunden
 
 
 test('RC1435: Druck-QR bleibt 12mm gross',()=>{
-  assert.match(print,/version:'RC1432'/);
+  assert.match(print,/version:'RC1379'/);
   assert.match(print,/important\(code,'width','12mm'\)/);
   assert.match(print,/important\(svg,'width','12mm'\)/);
   assert.match(print,/shape-rendering="crispEdges"/);
@@ -136,5 +136,5 @@ test('RC1393: produktive AVIS-Marken-Domain ist .de und blockiert Release bei Au
 test('RC1435: Deckblatt verwendet denselben Empfaenger-Fix wie die Ladeliste',()=>{
   assert.match(print,/function enhanceCover\(html,sh\)/);
   assert.match(print,/enhanceRecipient\(root,sh\|\|\{\}\);enhanceDocuments\(root,sh\|\|\{\}\)/);
-  assert.match(print,/version:'RC1432'/);
+  assert.match(print,/version:'RC1379'/);
 });
