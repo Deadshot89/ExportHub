@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="referrer" content="no-referrer">
+  <title>ExportHUB360 · Packmeldung</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/exporthub360-favicon.svg">
+  <link rel="stylesheet" href="/assets/pack-notification.css?v=1">
+  <script defer src="/assets/pack-notification.js?v=1"></script>
+</head>
+<body>
+  <main class="pack-shell" aria-labelledby="packTitle">
+    <section class="pack-card">
+      <header class="pack-header">
+        <div class="pack-brand" aria-hidden="true">EH</div>
+        <div>
+          <span class="pack-eyebrow">ExportHUB360</span>
+          <h1 id="packTitle">Packmeldung</h1>
+          <p>Versanddaten erfassen und direkt an ExportHUB übermitteln.</p>
+        </div>
+        <span id="packStation" class="pack-station">Packtisch wird geladen …</span>
+      </header>
+
+      <div id="packLoading" class="pack-notice" role="status">Sichere Pack-Session wird erstellt …</div>
+      <div id="packError" class="pack-alert" role="alert" hidden></div>
+
+      <form id="packForm" novalidate hidden>
+        <section class="pack-section">
+          <h2>Sendung</h2>
+          <div class="pack-grid pack-grid-two">
+            <label>Kunde *<input id="packCustomer" name="customer" type="text" maxlength="200" autocomplete="organization" required></label>
+            <label>Lieferschein / Referenz *<input id="packDeliveryNote" name="deliveryNoteReference" type="text" maxlength="200" autocomplete="off" required></label>
+            <label>Packstücktyp *
+              <select id="packPackageType" name="packageType" required>
+                <option value="">Bitte wählen</option>
+                <option value="Europalette">Europalette</option>
+                <option value="Palette">Palette</option>
+                <option value="Karton">Karton / Paket</option>
+                <option value="Mischsendung">Mischsendung</option>
+              </select>
+            </label>
+            <label>Anzahl Packstücke *<input id="packPackageCount" name="packageCount" type="number" min="1" max="99" step="1" value="1" inputmode="numeric" required></label>
+            <label>Gesamtgewicht in kg *<input id="packWeight" name="totalWeight" type="number" min="0.01" max="99999" step="0.01" inputmode="decimal" required></label>
+          </div>
+        </section>
+
+        <section class="pack-section">
+          <div class="pack-section-head"><div><h2>Maße</h2><p>Länge × Breite × Höhe je Packstück in cm.</p></div></div>
+          <div id="packPackageRows" class="pack-package-list"></div>
+        </section>
+
+        <section class="pack-section">
+          <h2>Lieferscheine</h2>
+          <p class="pack-help">Mindestens eine PDF-, JPG- oder PNG-Datei hochladen. Mehrere Lieferscheine sind möglich.</p>
+          <label class="pack-upload" for="packDocuments">
+            <strong>Dateien auswählen</strong>
+            <span>PDF · JPG · PNG</span>
+          </label>
+          <input id="packDocuments" class="pack-file-input" name="documents" type="file" accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png" multiple required>
+          <div id="packDocumentList" class="pack-document-list" aria-live="polite"></div>
+        </section>
+
+        <section class="pack-section">
+          <label>Bemerkung <textarea id="packNote" name="note" maxlength="2000" rows="4" placeholder="Optional"></textarea></label>
+        </section>
+
+        <div class="pack-actions">
+          <p id="packValidationHint" class="pack-validation-hint">Bitte alle Pflichtfelder ausfüllen.</p>
+          <button id="packSubmit" class="pack-primary" type="submit" disabled>An ExportHUB senden</button>
+        </div>
+      </form>
+
+      <section id="packSuccess" class="pack-success" hidden aria-live="polite">
+        <div class="pack-success-icon" aria-hidden="true">✓</div>
+        <h2>Packmeldung übermittelt</h2>
+        <p>Die Aufgabe wurde in ExportHUB360 erstellt.</p>
+        <dl>
+          <div><dt>Referenz</dt><dd id="packSuccessReference">–</dd></div>
+          <div><dt>Kunde</dt><dd id="packSuccessCustomer">–</dd></div>
+        </dl>
+        <button id="packRestart" class="pack-secondary" type="button">Neue Packmeldung starten</button>
+      </section>
+    </section>
+  </main>
+</body>
+</html>
