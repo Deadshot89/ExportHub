@@ -42,11 +42,8 @@ test('P0 POD: six pack rows still fit on one page',async()=>{
   assert.equal(pdf.getPageCount(),1);
 });
 
-test('P0 POD: embedded real signature is present in PDF resources',async()=>{
-  const pdf=await PDFDocument.load(await createPodPdf(record,signaturePng,'image/png'));
-  const page=pdf.getPages()[0];
-  const {PDFName}=apiRequire('pdf-lib');
-  const resources=page.node.Resources();
-  const xobjects=resources.lookup(PDFName.of('XObject'));
-  assert.ok(xobjects&&typeof xobjects.size==='function'&&xobjects.size()>0,'Signature image must be embedded, not replaced by placeholder');
+test('P0 POD: embedded real signature is present as a PDF image object',async()=>{
+  const bytes=await createPodPdf(record,signaturePng,'image/png');
+  const raw=bytes.toString('latin1');
+  assert.match(raw,/\/Subtype\s*\/Image/,'Signature image must be embedded, not replaced by placeholder');
 });
