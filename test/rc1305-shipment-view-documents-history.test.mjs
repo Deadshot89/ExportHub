@@ -107,8 +107,10 @@ test('RC1460: Statusverlauf zeigt den ausführenden Benutzer',()=>{
   assert.match(buildSource,/row&&row\.actor&&row\.actor\.name/);
 });
 
-test('RC1460: aktives Lieferavis erhält Öffnen- und Kopieren-Aktion',()=>{
-  assert.match(shipmentViewFixSource,/AVIS öffnen/);
+test('RC1460: aktives Lieferavis erhält zentral übersetzte Öffnen- und Kopieren-Aktion',()=>{
+  assert.match(shipmentViewFixSource,/function tr\(key,fallback\)/);
+  assert.match(shipmentViewFixSource,/tr\('common\.open','Öffnen'\)/);
+  assert.doesNotMatch(shipmentViewFixSource,/a\.textContent='AVIS öffnen'/);
   assert.match(shipmentViewFixSource,/Link kopieren/);
   assert.match(shipmentViewFixSource,/customerAvisUrl\|\|sh\.avisUrl\|\|sh\.customerAvisLink\|\|sh\.avisLink/);
 });
