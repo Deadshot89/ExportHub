@@ -29,7 +29,7 @@ function request(action,body,extra={}){
 
 function validSubmit(token,sessionId,overrides={}){
   return{
-    stationToken:token,sessionId,idempotencyKey:'idem-001',customer:'BSH Hausgeräte',deliveryNoteReference:'LS123456',packageType:'Europalette',packageCount:1,totalWeight:480,
+    stationToken:token,sessionId,idempotencyKey:'idem-001',customer:'BSH Hausgeräte',packageType:'Europalette',packageCount:1,totalWeight:480,
     packages:[{packageNo:1,length:120,width:80,height:140,unit:'cm'}],note:'',
     documents:[{id:'doc-1',name:'LS123456.pdf',mimeType:'application/pdf',size:14,data:'data:application/pdf;base64,JVBERi0xLjQKJSVFT0Y='}],
     ...overrides
@@ -64,6 +64,14 @@ test('submit rejects missing fields and non-positive dimensions or weight',async
   assert.equal(res.status,400);assert.equal(res.body.code,'PACK_WEIGHT_INVALID');
   res=await f.handler(request('submit',validSubmit(f.token,session.body.sessionId,{packages:[{packageNo:1,length:120,width:0,height:140,unit:'cm'}]})));
   assert.equal(res.status,400);assert.equal(res.body.code,'PACK_DIMENSIONS_INVALID');
+});
+
+test('submit accepts payload without manual delivery reference',async()=>{
+  const f=fixture();
+  const session=await f.handler(request('session',{stationToken:f.token}));
+  const res=await f.handler(request('submit',validSubmit(f.token,session.body.sessionId)));
+  assert.equal(res.status,201);
+  assert.equal(f.state().packNotifications[0].deliveryNoteReference,'');
 });
 
 test('submit accepts PDF JPEG and PNG but rejects extension/MIME mismatch',async()=>{
