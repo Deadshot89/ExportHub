@@ -2,7 +2,7 @@
   'use strict';
   const $=id=>document.getElementById(id);
   const catalog=window.ExportHubPackagingCatalog;
-  const state={stationToken:'',sessionId:'',stationName:'',idempotencyKey:'',documents:[],submitLocked:false,selectedCustomer:null,customCustomerConfirmed:false,customerSearchTimer:null,customerQuerySeq:0};
+  const state={stationToken:'',sessionId:'',stationName:'',idempotencyKey:'',documents:[],submitLocked:false,selectedCustomer:null,customCustomerConfirmed:false,customerSearchTimer:null,customerQuerySeq:0,packagingMaster:[]};
   const els={form:$('packForm'),loading:$('packLoading'),error:$('packError'),station:$('packStation'),customer:$('packCustomer'),customerResults:$('packCustomerResults'),customerManual:$('packCustomerManual'),customerManualConfirm:$('packCustomerManualConfirm'),customerSelected:$('packCustomerSelected'),delivery:$('packDeliveryNote'),type:$('packPackageType'),count:$('packPackageCount'),weight:$('packWeight'),rows:$('packPackageRows'),files:$('packDocuments'),fileList:$('packDocumentList'),note:$('packNote'),submit:$('packSubmit'),hint:$('packValidationHint'),success:$('packSuccess'),successRef:$('packSuccessReference'),successCustomer:$('packSuccessCustomer'),restart:$('packRestart')};
 
   function tokenFromPath(){
@@ -15,18 +15,36 @@
   function clearError(){els.error.hidden=true;els.error.textContent='';}
   function positive(value){const n=Number(value);return Number.isFinite(n)&&n>0?n:0;}
   function packageRows(){return Array.from(els.rows.querySelectorAll('[data-pack-package]'));}
+  function normalizePackagingName(value){return String(value==null?'':value).trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'');}
+  function masterPackagingEntry(raw){
+    const name=String(raw&&raw.name||'').trim();if(!name)return null;
+    const length=positive(raw&&raw.length),width=positive(raw&&raw.width),height=positive(raw&&raw.height)||null;
+    if(!length||!width)return null;
+    return{key:normalizePackagingName(name),label:name,length,width,height,source:String(raw&&raw.source||'master')};
+  }
+  function mergePackagingOptions(){
+    const merged=[],seen=new Set();
+    const master=(Array.isArray(state.packagingMaster)?state.packagingMaster:[]).map(masterPackagingEntry).filter(Boolean);
+    for(const entry of master.filter(item=>item.source === 'fixed')){const key=normalizePackagingName(entry.label);if(!seen.has(key)){seen.add(key);merged.push(entry);}}
+    for(const entry of master.filter(item=>item.source !== 'fixed')){const key=normalizePackagingName(entry.label);if(!seen.has(key)){seen.add(key);merged.push(entry);}}
+    if(catalog&&typeof catalog.list==='function')for(const fallback of catalog.list()){
+      const key=normalizePackagingName(fallback.label);if(seen.has(key))continue;seen.add(key);merged.push(Object.assign({},fallback,{source:'fallback'}));
+    }
+    return merged;
+  }
   function populatePackageTypes(){
     const current=els.type.value;
     els.type.innerHTML='<option value="">Bitte wählen</option>';
-    if(!catalog||typeof catalog.list!=='function')return;
-    for(const entry of catalog.list()){
-      const option=document.createElement('option');option.value=entry.label;option.textContent=entry.label;els.type.appendChild(option);
-    }
-    if(current&&catalog.get(current))els.type.value=catalog.get(current).label;
+    const options=mergePackagingOptions();
+    for(const entry of options){const option=document.createElement('option');option.value=entry.label;option.textContent=entry.label;els.type.appendChild(option);}
+    if(current&&options.some(entry=>entry.label===current))els.type.value=current;
   }
-  function selectedPackageEntry(){return catalog&&typeof catalog.get==='function'?catalog.get(els.type.value):null;}
+  function selectedPackageEntry(){
+    const value=normalizePackagingName(els.type.value);
+    return mergePackagingOptions().find(entry=>normalizePackagingName(entry.label)===value)||null;
+  }
   function applyPackageDimensions(){
-    const entry=catalog.get(els.type.value);if(!entry)return;
+    const entry=selectedPackageEntry();if(!entry)return;
     for(const row of packageRows()){
       const length=row.querySelector('[data-dim="length"]'),width=row.querySelector('[data-dim="width"]'),height=row.querySelector('[data-dim="height"]');
       if(length)length.value=String(entry.length);
@@ -70,6 +88,11 @@
   function validateForm(){const ok=valid()&&!state.submitLocked;els.submit.disabled=!ok;els.hint.textContent=ok?'Bereit zum Senden.':'Bitte Kunde bestätigen, alle Pflichtfelder, Maße und mindestens einen Lieferschein erfassen.';return ok;}
   function fileToData(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve({id:crypto.randomUUID(),name:file.name,mimeType:file.type,size:file.size,data:String(reader.result||'')});reader.onerror=()=>reject(new Error(`Datei ${file.name} konnte nicht gelesen werden.`));reader.readAsDataURL(file);});}
   async function api(action,payload){const res=await fetch(`/api/pack-notification?action=${encodeURIComponent(action)}`,{method:'POST',credentials:'omit',cache:'no-store',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(payload)});const data=await res.json().catch(()=>({}));if(!res.ok||data.ok===false){const err=new Error(data.message||`HTTP ${res.status}`);err.code=data.code||'PACK_REQUEST_FAILED';throw err;}return data;}
+  async function loadPackagingMaster(){
+    try{const data=await api('packaging-list',{stationToken:state.stationToken});state.packagingMaster=Array.isArray(data.packaging)?data.packaging:[];}
+    catch(_){state.packagingMaster=[];}
+    populatePackageTypes();
+  }
   function clearCustomerResults(){els.customerResults.innerHTML='';els.customerResults.hidden=true;}
   function showManualCustomer(){const value=els.customer.value.trim();els.customerManual.hidden=value.length<2||!!state.selectedCustomer||state.customCustomerConfirmed;els.customerSelected.hidden=true;}
   function selectCustomer(customer){state.selectedCustomer={id:String(customer.id||''),account:String(customer.account||''),name:String(customer.name||'')};state.customCustomerConfirmed=false;els.customer.value=state.selectedCustomer.name;clearCustomerResults();els.customerManual.hidden=true;els.customerSelected.textContent=`${state.selectedCustomer.name}${state.selectedCustomer.account?` · ${state.selectedCustomer.account}`:''}`;els.customerSelected.hidden=false;validateForm();}
@@ -83,7 +106,7 @@
   async function startSession(){
     clearError();state.stationToken=tokenFromPath();state.idempotencyKey=crypto.randomUUID();
     if(!state.stationToken){els.loading.hidden=true;showError('Ungültiger QR-Code: Packtisch-Token fehlt.');return;}
-    try{const data=await api('session',{stationToken:state.stationToken});state.sessionId=data.sessionId;state.stationName=data.stationName||'Packtisch';els.station.textContent=state.stationName;els.loading.hidden=true;els.form.hidden=false;renderPackages();validateForm();}
+    try{const data=await api('session',{stationToken:state.stationToken});state.sessionId=data.sessionId;state.stationName=data.stationName||'Packtisch';await loadPackagingMaster();els.station.textContent=state.stationName;els.loading.hidden=true;els.form.hidden=false;renderPackages();validateForm();}
     catch(err){els.loading.hidden=true;showError(err.message||'Pack-Session konnte nicht erstellt werden.');}
   }
   async function submit(event){
