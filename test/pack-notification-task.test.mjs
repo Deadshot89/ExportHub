@@ -63,10 +63,13 @@ test('pack task section model includes customer, weight, station and documents',
   assert.equal(model.documents[0].name,'LS123.pdf');
 });
 
-test('existing rc1014 five-group contract remains untouched and pack integration is delegated',()=>{
+test('existing rc1014 five-group contract remains untouched and adapter owns pack-specific UI',()=>{
   const lifecycle=fs.readFileSync('assets/rc1014-task-lifecycle.js','utf8');
   const runtime=fs.readFileSync('assets/rc1014-task-runtime.js','utf8');
+  const adapter=fs.readFileSync('assets/pack-notification-internal.js','utf8');
   assert.match(lifecycle,/Object\.freeze\(\['Offene Sendungen','Fehlende POD','Kunde angemeldet','Picks','Offene ABDs'\]\)/);
-  assert.match(runtime,/ExportHUBPackNotifications/);
-  assert.match(runtime,/sourceType\).*pack_notification|sourceType\).*===.*pack_notification|pack_notification/);
+  assert.doesNotMatch(runtime,/pack_notification|ExportHUBPackNotifications/);
+  assert.match(adapter,/pack_notification/);
+  assert.match(adapter,/renderTaskSection/);
+  assert.match(adapter,/openTaskDetail/);
 });
