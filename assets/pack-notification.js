@@ -3,7 +3,7 @@
   const $=id=>document.getElementById(id);
   const catalog=window.ExportHubPackagingCatalog;
   const state={stationToken:'',sessionId:'',stationName:'',idempotencyKey:'',documents:[],submitLocked:false,selectedCustomer:null,customCustomerConfirmed:false,customerSearchTimer:null,customerQuerySeq:0,packagingMaster:[]};
-  const els={form:$('packForm'),loading:$('packLoading'),error:$('packError'),station:$('packStation'),customer:$('packCustomer'),customerResults:$('packCustomerResults'),customerManual:$('packCustomerManual'),customerManualConfirm:$('packCustomerManualConfirm'),customerSelected:$('packCustomerSelected'),delivery:$('packDeliveryNote'),type:$('packPackageType'),count:$('packPackageCount'),weight:$('packWeight'),rows:$('packPackageRows'),files:$('packDocuments'),fileList:$('packDocumentList'),note:$('packNote'),submit:$('packSubmit'),hint:$('packValidationHint'),success:$('packSuccess'),successRef:$('packSuccessReference'),successCustomer:$('packSuccessCustomer'),restart:$('packRestart')};
+  const els={form:$('packForm'),loading:$('packLoading'),error:$('packError'),station:$('packStation'),customer:$('packCustomer'),customerResults:$('packCustomerResults'),customerManual:$('packCustomerManual'),customerManualConfirm:$('packCustomerManualConfirm'),customerSelected:$('packCustomerSelected'),type:$('packPackageType'),count:$('packPackageCount'),weight:$('packWeight'),rows:$('packPackageRows'),files:$('packDocuments'),fileList:$('packDocumentList'),note:$('packNote'),submit:$('packSubmit'),hint:$('packValidationHint'),success:$('packSuccess'),successRef:$('packSuccessReference'),successCustomer:$('packSuccessCustomer'),restart:$('packRestart')};
 
   function tokenFromPath(){
     const parts=location.pathname.split('/').filter(Boolean);
@@ -78,9 +78,12 @@
   function escapeHtml(value){return String(value||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
   function formatBytes(bytes){const n=Number(bytes)||0;if(n<1024)return`${n} B`;if(n<1024*1024)return`${(n/1024).toFixed(1)} KB`;return`${(n/1024/1024).toFixed(1)} MB`;}
   function collectPackages(){return packageRows().map((row,index)=>({packageNo:index+1,length:positive(row.querySelector('[data-dim="length"]')?.value),width:positive(row.querySelector('[data-dim="width"]')?.value),height:positive(row.querySelector('[data-dim="height"]')?.value),unit:'cm'}));}
+  function derivedDocumentReference(){
+    return state.documents.map(file=>String(file&&file.name||'').trim()).filter(Boolean).join(', ').slice(0,200);
+  }
   function customerReady(){return !!state.selectedCustomer||state.customCustomerConfirmed;}
   function valid(){
-    if(!state.sessionId||!els.customer.value.trim()||!customerReady()||!els.delivery.value.trim()||!els.type.value)return false;
+    if(!state.sessionId||!els.customer.value.trim()||!customerReady()||!els.type.value)return false;
     const count=Number(els.count.value);if(!Number.isInteger(count)||count<1||!positive(els.weight.value))return false;
     const rows=collectPackages();if(rows.length!==count||rows.some(x=>!x.length||!x.width||!x.height))return false;
     return state.documents.length>0;
@@ -114,7 +117,7 @@
     state.submitLocked=true;validateForm();clearError();els.submit.textContent='Wird gesendet …';
     try{
       const selected=state.selectedCustomer;
-      const payload={stationToken:state.stationToken,sessionId:state.sessionId,idempotencyKey:state.idempotencyKey,customer:els.customer.value.trim(),customerId:selected?selected.id:'',customerAccount:selected?selected.account:'',customerSource:selected?'master':'manual',deliveryNoteReference:els.delivery.value.trim(),packageType:els.type.value,packageCount:Number(els.count.value),totalWeight:Number(els.weight.value),packages:collectPackages(),note:els.note.value.trim(),documents:state.documents};
+      const payload={stationToken:state.stationToken,sessionId:state.sessionId,idempotencyKey:state.idempotencyKey,customer:els.customer.value.trim(),customerId:selected?selected.id:'',customerAccount:selected?selected.account:'',customerSource:selected?'master':'manual',deliveryNoteReference:derivedDocumentReference(),packageType:els.type.value,packageCount:Number(els.count.value),totalWeight:Number(els.weight.value),packages:collectPackages(),note:els.note.value.trim(),documents:state.documents};
       const data=await api('submit',payload);els.form.hidden=true;els.success.hidden=false;els.successRef.textContent=data.reference||'–';els.successCustomer.textContent=payload.customer;els.station.textContent=state.stationName;history.replaceState(null,'',location.pathname);
     }catch(err){state.submitLocked=false;els.submit.textContent='An ExportHUB senden';showError(err.message||'Packmeldung konnte nicht gesendet werden.');validateForm();}
   }
