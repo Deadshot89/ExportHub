@@ -1,0 +1,86 @@
+name: ExportHUB Packmeldungen TESTSERVICE
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_pack_test:
+        description: 'Für Packmeldungs-Testservice exakt eingeben: ICH TESTE PACKMELDUNGEN IM TESTSERVICE'
+        required: true
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: exporthub-packmeldungen-testservice-explicit
+  cancel-in-progress: false
+
+jobs:
+  deploy_pack_testservice:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Manuellen Testservice-Deploy absichern
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ inputs.confirm_pack_test }}" != "ICH TESTE PACKMELDUNGEN IM TESTSERVICE" ]; then
+            echo 'Packmeldungs-Testservice-Deploy ist ohne exakte Bestätigung gesperrt.'
+            exit 1
+          fi
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: Packmeldungs-Vertrag prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test --test-concurrency=1 test/pack-notification-*.test.mjs
+          node --check api/shared/pack-notification-store.js
+          node --check api/pack-notification/index.js
+          node --check assets/pack-notification.js
+          node --check assets/pack-notification-internal.js
+          node --check assets/pack-notification-shipment.js
+          node --check assets/pack-notification-avis.js
+          node --check e2e/specs/pack-notification.spec.mjs
+          node --test --test-concurrency=1 test/rc1002-task-groups.test.mjs test/rc1014-task-lifecycle.test.mjs test/rc1014-task-runtime-integration.test.mjs test/rc1089-avis-post-pickup-downloads.test.mjs
+          node .github/packmeldungen/build-three-env.mjs
+          test -s dist-rc1112/pack.html
+          test -s dist-rc1112/assets/pack-notification.js
+          test -s dist-rc1112/assets/pack-notification-internal.js
+          test -s dist-rc1112/assets/pack-notification-shipment.js
+          test -s dist-rc1112/assets/pack-notification-avis.js
+          grep -q 'pack-notification-internal.js?v=1' dist-rc1112/TESTVERSION.html
+          grep -q 'pack-notification-shipment.js?v=1' dist-rc1112/TESTVERSION.html
+          grep -q 'pack-notification-avis.js?v=1' dist-rc1112/TESTVERSION.html
+      - name: TESTSERVICE-Paket vorbereiten
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .packmeldungen_testservice_app
+          mkdir -p .packmeldungen_testservice_app
+          cp dist-rc1112/pickup.html dist-rc1112/customer-avis.html dist-rc1112/location.html dist-rc1112/pod-notfall.html dist-rc1112/pack.html .packmeldungen_testservice_app/
+          cp dist-rc1112/production-version.js .packmeldungen_testservice_app/production-version.js
+          cp -R assets .packmeldungen_testservice_app/assets
+          cp -R dist-rc1112/assets/. .packmeldungen_testservice_app/assets/
+          cp staticwebapp.testservice.config.json .packmeldungen_testservice_app/staticwebapp.config.json
+          cp dist-rc1112/TESTVERSION.html .packmeldungen_testservice_app/index.html
+          cp dist-rc1112/TESTVERSION.html .packmeldungen_testservice_app/TESTVERSION.html
+          cp dist-rc1112/demo.html .packmeldungen_testservice_app/demo.html
+          test -s .packmeldungen_testservice_app/pack.html
+          test -s .packmeldungen_testservice_app/assets/pack-notification.js
+          test -s .packmeldungen_testservice_app/assets/pack-notification-internal.js
+      - name: Deploy nur TESTSERVICE
+        uses: Azure/static-web-apps-deploy@4d27395796ac319302594769cfe812bd207490b1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_EXPORT_HUB_EUROPE }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: upload
+          app_location: .packmeldungen_testservice_app
+          api_location: api
+          output_location: ''
+          skip_app_build: true
+          deployment_environment: testservice
