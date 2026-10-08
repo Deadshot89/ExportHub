@@ -23,10 +23,11 @@ test('pack build contract includes shared catalog and standalone inbox navigatio
   assert.ok(PACK_ASSETS.includes('packaging-catalog.js'));
   assert.ok(PACK_ASSETS.includes('pack-notification-nav.js'));
   const nav=fs.readFileSync('assets/pack-notification-nav.js','utf8');
-  assert.match(nav,/#packmeldungen/);
   assert.match(nav,/renderPackInbox/);
   assert.match(nav,/data-pack-notifications-nav/);
   assert.match(nav,/MutationObserver/);
+  assert.match(nav,/cloneNode\(true\)/);
+  assert.doesNotMatch(nav,/location\.hash\s*=\s*['"]#packmeldungen/);
 });
 
 test('copyPackFiles carries public qr page and every runtime asset into build output',()=>{
