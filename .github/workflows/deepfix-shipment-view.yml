@@ -63,10 +63,9 @@ jobs:
       - name: Verify focused regressions before commit
         run: |
           node --check assets/rc1071-shipment-history.js
-          node --test --test-concurrency=1 \
-            test/rc1468-shipment-view-context-regression.test.mjs \
-            test/rc1305-shipment-view-documents-history.test.mjs \
-            test/rc1071-shipment-history.test.mjs
+          node --test --test-concurrency=1 test/rc1468-shipment-view-context-regression.test.mjs
+          node --test --test-concurrency=1 test/rc1071-shipment-history.test.mjs
+          node --test --test-concurrency=1 --test-name-pattern='RC1305:' test/rc1305-shipment-view-documents-history.test.mjs
       - name: Commit normalized minimal fix
         run: |
           git config user.name "Deadshot89"
@@ -89,9 +88,8 @@ jobs:
       - name: Focused shipment-view verification
         run: |
           node --check assets/rc1071-shipment-history.js
-          node --test --test-concurrency=1 \
-            test/rc1468-shipment-view-context-regression.test.mjs \
-            test/rc1305-shipment-view-documents-history.test.mjs \
-            test/rc1071-shipment-history.test.mjs
+          node --test --test-concurrency=1 test/rc1468-shipment-view-context-regression.test.mjs
+          node --test --test-concurrency=1 test/rc1071-shipment-history.test.mjs
+          node --test --test-concurrency=1 --test-name-pattern='RC1305:' test/rc1305-shipment-view-documents-history.test.mjs
       - name: Full repository test suite
         run: npm test
