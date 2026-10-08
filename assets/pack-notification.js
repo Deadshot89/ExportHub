@@ -22,6 +22,24 @@
     if(!length||!width)return null;
     return{key:normalizePackagingName(name),label:name,length,width,height,source:String(raw&&raw.source||'master')};
   }
+  function packagingSortRank(entry){
+    const label=String(entry&&entry.label||'').trim();
+    const key=normalizePackagingName(label);
+    const preferred={
+      europalette:10,europallet:10,europalette12080:10,
+      einwegpalette:20,
+      industriepalette:30,
+      dusseldorferpalette:40,
+      kunststoffpalette:50,
+      palettengestell:60
+    };
+    if(Object.prototype.hasOwnProperty.call(preferred,key))return preferred[key];
+    const eMatch=key.match(/^e([0-6])$/);if(eMatch)return 100+Number(eMatch[1]);
+    if(key.includes('gestapelteuropalette'))return 200;
+    if(key.includes('gestapelteeinwegpalette'))return 210;
+    if(key.includes('gestapelteindustriepalette'))return 220;
+    return 500;
+  }
   function mergePackagingOptions(){
     const merged=[],seen=new Set();
     const master=(Array.isArray(state.packagingMaster)?state.packagingMaster:[]).map(masterPackagingEntry).filter(Boolean);
@@ -30,7 +48,10 @@
     if(catalog&&typeof catalog.list==='function')for(const fallback of catalog.list()){
       const key=normalizePackagingName(fallback.label);if(seen.has(key))continue;seen.add(key);merged.push(Object.assign({},fallback,{source:'fallback'}));
     }
-    return merged;
+    return merged.sort((a,b)=>{
+      const rank=packagingSortRank(a)-packagingSortRank(b);if(rank)return rank;
+      return String(a.label||'').localeCompare(String(b.label||''),'de',{numeric:true,sensitivity:'base'});
+    });
   }
   function populatePackageTypes(){
     const current=els.type.value;
