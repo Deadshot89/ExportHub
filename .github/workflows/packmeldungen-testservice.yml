@@ -42,9 +42,15 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git branch --show-current)" = "feature/packmeldungen"
-          node --test --test-concurrency=1 test/pack-notification-*.test.mjs
+          node --test --test-concurrency=1 test/pack-notification-*.test.mjs test/packaging-catalog.test.mjs test/document-reference-normalizer.test.mjs
+          node --test --test-concurrency=1 test/rc1059-document-blob-store.test.mjs test/rc1293-packing-slip-wrap.test.mjs test/rc1315-loading-list-quick-print.test.mjs
           node --check api/shared/pack-notification-store.js
+          node --check api/shared/pdf-document-reference.js
+          node --check api/shared/document-blob-store.js
           node --check api/pack-notification/index.js
+          node --check assets/packaging-catalog.js
+          node --check assets/document-reference-normalizer.js
+          node --check assets/document-print-name.js
           node --check assets/pack-notification.js
           node --check assets/pack-notification-internal.js
           node --check assets/pack-notification-shipment.js
@@ -53,6 +59,8 @@ jobs:
           node --test --test-concurrency=1 test/rc1002-task-groups.test.mjs test/rc1014-task-lifecycle.test.mjs test/rc1014-task-runtime-integration.test.mjs test/rc1089-avis-post-pickup-downloads.test.mjs
           node .github/packmeldungen/build-three-env.mjs
           test -s dist-rc1112/pack.html
+          test -s dist-rc1112/assets/packaging-catalog.js
+          test -s dist-rc1112/assets/document-print-name.js
           test -s dist-rc1112/assets/pack-notification.js
           test -s dist-rc1112/assets/pack-notification-internal.js
           test -s dist-rc1112/assets/pack-notification-shipment.js
@@ -60,6 +68,7 @@ jobs:
           grep -q 'pack-notification-internal.js?v=1' dist-rc1112/TESTVERSION.html
           grep -q 'pack-notification-shipment.js?v=1' dist-rc1112/TESTVERSION.html
           grep -q 'pack-notification-avis.js?v=1' dist-rc1112/TESTVERSION.html
+          grep -q 'document-print-name.js?v=1' dist-rc1112/TESTVERSION.html
       - name: TESTSERVICE-Paket vorbereiten
         shell: bash
         run: |
@@ -75,6 +84,8 @@ jobs:
           cp dist-rc1112/TESTVERSION.html .packmeldungen_testservice_app/TESTVERSION.html
           cp dist-rc1112/demo.html .packmeldungen_testservice_app/demo.html
           test -s .packmeldungen_testservice_app/pack.html
+          test -s .packmeldungen_testservice_app/assets/packaging-catalog.js
+          test -s .packmeldungen_testservice_app/assets/document-print-name.js
           test -s .packmeldungen_testservice_app/assets/pack-notification.js
           test -s .packmeldungen_testservice_app/assets/pack-notification-internal.js
       - name: Deploy nur TESTSERVICE
