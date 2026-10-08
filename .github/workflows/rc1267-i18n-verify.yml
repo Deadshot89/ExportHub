@@ -46,6 +46,7 @@ jobs:
         run: |
           node --check assets/rc1267-i18n.js
           node --check assets/rc1018-mail-language-standard.js
+          node --check assets/rc1018-public-language.js
           node --check assets/rc1015-lieferavis-mail-flow.js
           node --check assets/rc1027-lieferavis-immediate.js
           node --check assets/rc1079-profile-settings.js
