@@ -12,7 +12,7 @@ function rc1452Prepared(){
   const builder=fs.readFileSync(builderPath,'utf8');
   const repairBlock=runtime.slice(runtime.indexOf('function repairContaminatedGoodsDescription('),runtime.indexOf('function snapshotShipmentDraft('));
   return runtime.includes('rc1452DocumentActionRepair')
-    && repairBlock.includes("queueSave('RC1458 Warenbeschreibung Hintergrundreparatur')")
+    && /ExportHUBClean[\s\S]*?queueSave/.test(repairBlock)
     && !/ExportHUBRC565|persistShipment/.test(repairBlock)
     && builder.includes('function rc1452PrintGoodsDescription(sh)')
     && builder.includes('/assets/rc1267-i18n.js?v=1458')
