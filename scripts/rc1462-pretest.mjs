@@ -27,8 +27,11 @@ if(!rc1452Prepared()){
   console.log('RC1452/RC1453/RC1458/RC1466 release transforms already prepared; skipping destructive re-application');
 }
 
+// RC1467 is intentionally always evaluated: it is idempotent and protects every
+// release build against startup lifecycle events entering strict shipment validation.
+await import('./rc1467-startup-avis-guard.mjs');
 await import('./rc1454-release-gate-hotfix.mjs');
 await import('./rc1461-release-deepfix.mjs');
 
 if(!rc1452Prepared())throw new Error('RC1462 pretest verification failed: RC1452/1453/1458/1466 preparation incomplete');
-console.log('RC1462 pretest orchestration verified idempotent');
+console.log('RC1462 pretest orchestration verified idempotent with RC1467 startup guard');
