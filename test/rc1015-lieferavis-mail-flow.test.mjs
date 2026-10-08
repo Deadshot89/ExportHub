@@ -29,7 +29,7 @@ test('RC1015: Lieferavis kann aus einer noch nicht manuell gespeicherten Sendung
   assert.match(persist,/await persist\(['"]Sendung vor Lieferavis automatisch gespeichert['"]\)/,'Der Lieferavis wartet nicht auf die bestätigte Azure-Speicherung.');
   const toggle=between(out,'async function rc1015Toggle(on)','function stripAvisBlocks');
   assert.match(toggle,/rc1015DraftReference\(\)/,'Die Formular-Referenz wird vor der Server-Aktivierung nicht geprüft.');
-  assert.match(toggle,/if\(on\)\{rc1024ClearDraftDisabled\(sh\);var refBeforeToggle=rc1015DraftReference\(\);if\(!autoEnableSaveConfirmed\[refBeforeToggle\]\)await rc1015PersistBeforeAvis\(\)\}/,'Die manuelle Aktivierung speichert weiterhin vor der Server-Aktivierung; nur ein bereits bestätigter Auto-Save darf den zweiten Save unterdrücken.');
+  assert.match(toggle,/if\(on\)\{rc1024ClearDraftDisabled\(sh\);var refBeforeToggle=rc1015DraftReference\(\);if\(!autoEnableSaveConfirmed\[refBeforeToggle\]\)await rc1015PersistBeforeAvis\(\)\}/,'Die bewusste Aktivierung muss weiterhin validiert speichern; nur der geschützte Hintergrundpfad darf keinen zweiten Save auslösen.');
   assert.ok(toggle.indexOf('rc1015PersistBeforeAvis')<toggle.indexOf('base.toggle(on)'),'Der bestehende Avis-Linkpfad wird vor der dauerhaften Speicherung aufgerufen.');
   const panel=between(out,'function rc1015UpdateLieferavisButton()','function mailModeLabel');
   assert.match(panel,/panel\.setAttribute\(['"]data-active['"],active\?['"]1['"]:['"]0['"]\)/,'Der Entwurfs-Default wird im Lieferavis-Panel nicht sichtbar gespiegelt.');
@@ -57,13 +57,13 @@ test('RC1024: Kunden- und Speditionsmail schützen eigene Vorlagen und verwenden
 for(const file of ['index.html','TESTVERSION.html','demo.html']){
   test(`${file}: lädt denselben RC1015 Lieferavis-Mailfluss`,()=>{
     const out=html(file);
-    assert.match(out,/rc1015-lieferavis-mail-flow\.js\?v=1383/);
+    assert.match(out,/rc1015-lieferavis-mail-flow\.js\?v=1383&rc=1467/);
   });
 }
 
 test('RC1015 Lieferavis-Korrektur wird über den gemeinsamen Drei-Umgebungen-Build ausgerollt',()=>{
   const source=fs.readFileSync(BUILD,'utf8');
-  assert.match(source,/LIEFERAVIS_SRC=['"]\/assets\/rc1015-lieferavis-mail-flow\.js\?v=1383['"]/);
+  assert.match(source,/LIEFERAVIS_SRC=['"]\/assets\/rc1015-lieferavis-mail-flow\.js\?v=1383&rc=1467['"]/);
   assert.match(source,/copy\(['"]assets\/rc1015-lieferavis-mail-flow\.js['"]\)/);
   assert.match(source,/lieferavis:/,'Der gemeinsame Manifest-Eintrag für die Korrektur fehlt.');
 });
