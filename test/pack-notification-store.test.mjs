@@ -104,3 +104,17 @@ test('expired session cannot be submitted',()=>{
   const expired=store.expireSession(created.state,created.session.id,'2026-10-08T18:00:00.000Z');
   assert.throws(()=>store.submitSession(expired.state,created.session.id,{idempotencyKey:'idem-x'},'2026-10-08T18:01:00.000Z'),e=>e&&e.code==='PACK_SESSION_EXPIRED');
 });
+
+test('generic state merge preserves two concurrent pack sessions from the same station',()=>{
+  const {mergeState}=require('../api/shared/merge.js');
+  const meta={_teamSyncMeta:{fields:{},tombstones:[]}};
+  const server={...meta,packSessions:[{id:'session-a',packStationId:'PT01',status:'new',createdAt:'2026-10-08T10:00:00.000Z'}]};
+  const incoming={...meta,packSessions:[{id:'session-b',packStationId:'PT01',status:'new',createdAt:'2026-10-08T10:00:01.000Z'}]};
+  const merged=mergeState(server,incoming);
+  assert.deepEqual(merged.packSessions.map(x=>x.id).sort(),['session-a','session-b']);
+});
+
+test('document blob store treats packNotifications as a first-class document root',()=>{
+  const documents=require('../api/shared/document-blob-store.js');
+  assert.ok(documents.ROOT_COLLECTIONS.includes('packNotifications'));
+});
