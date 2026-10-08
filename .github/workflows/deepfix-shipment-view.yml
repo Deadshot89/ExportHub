@@ -59,9 +59,14 @@ jobs:
           new_replace = "html=html.replace(/assets\\/rc1071-shipment-history\\.js\\?v=(?:1095|1151|1178|1305|1434)/g,'assets/rc1071-shipment-history.js?v=1468');"
           old_guard = "if(!html.includes('assets/rc1071-shipment-history.js?v=1434'))throw new Error(file+': RC1305 Dokument-History Cache-Key fehlt');"
           new_guard = "if(!html.includes('assets/rc1071-shipment-history.js?v=1468'))throw new Error(file+': RC1468 Dokument-History Cache-Key fehlt');"
+          synthetic_status = """ var current=status(sh),currentAt=q(sh&&(sh.statusChangedAt||sh.statusUpdatedAt||sh.updatedAt||sh._syncUpdatedAt));
+ if(current&&!list.some(function(x){return low(x.label).indexOf(low(current))>=0}))add(currentAt,'Aktueller Status: '+current,'','current|'+low(current));
+"""
           if build_source.count(old_replace) != 1: raise SystemExit('history cache replacement contract changed')
           if build_source.count(old_guard) != 1: raise SystemExit('history cache guard contract changed')
-          build.write_text(build_source.replace(old_replace,new_replace,1).replace(old_guard,new_guard,1),encoding='utf-8')
+          if build_source.count(synthetic_status) != 1: raise SystemExit('synthetic status fallback contract changed')
+          build_source = build_source.replace(old_replace,new_replace,1).replace(old_guard,new_guard,1).replace(synthetic_status,'',1)
+          build.write_text(build_source,encoding='utf-8')
           PY
       - name: Verify focused regressions before commit
         run: |
@@ -76,7 +81,7 @@ jobs:
           git config user.email "86518220+Deadshot89@users.noreply.github.com"
           git add assets/rc1071-shipment-history.js .github/rc1112/build-three-env.mjs
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m "fix: normalize shipment view context and cache patch [deepfix-clean]"
+          git commit -m "fix: normalize shipment view context timeline and cache patch [deepfix-clean]"
           git push origin HEAD:deepfix/shipment-view-context-20261008
 
   verify:
