@@ -53,7 +53,15 @@ function patchInsideFunction(source,functionStart,nextFunction,before,after,labe
    }catch(error){contaminatedRepairPending=false;try{console.error('[ExportHUB RC1458 silent repair]',error)}catch(_){}}
   }
  }`;
-  source=patchInsideFunction(source,'function repairContaminatedGoodsDescription(){','function snapshotShipmentDraft(){',persistBefore,persistAfter,'RC1458 silent startup repair');
+  const startupRepairStart=source.indexOf('function repairContaminatedGoodsDescription(){');
+  const startupRepairEnd=startupRepairStart<0?-1:source.indexOf('function snapshotShipmentDraft(){',startupRepairStart);
+  if(startupRepairStart<0||startupRepairEnd<0)throw new Error('RC1458 silent startup repair: Funktionsgrenze fehlt');
+  const startupRepairBlock=source.slice(startupRepairStart,startupRepairEnd);
+  if(/ExportHUBRC565|persistShipment/.test(startupRepairBlock)){
+   source=patchInsideFunction(source,'function repairContaminatedGoodsDescription(){','function snapshotShipmentDraft(){',persistBefore,persistAfter,'RC1458 silent startup repair');
+  }else if(!/ExportHUBClean[\s\S]*?queueSave/.test(startupRepairBlock)){
+   throw new Error('RC1458 silent startup repair: stille Persistenz fehlt');
+  }
 
   // Run the repair synchronously before document actions. This guarantees that an
   // already open production session is cleaned before Ladeliste/CMR HTML is built.
@@ -110,7 +118,7 @@ const runtime=read('assets/rc1267-i18n.js');
 const builder=read('.github/rc1112/build-three-env.mjs');
 const repairBlock=runtime.slice(runtime.indexOf('function repairContaminatedGoodsDescription('),runtime.indexOf('function snapshotShipmentDraft('));
 if(!runtime.includes("var VERSION='RC1452';")||!runtime.includes('rc1452DocumentActionRepair'))throw new Error('RC1452 Runtime-Hotfix unvollständig');
-if(!repairBlock.includes("queueSave('RC1458 Warenbeschreibung Hintergrundreparatur')")||/ExportHUBRC565|persistShipment/.test(repairBlock))throw new Error('RC1458 Login-/Startup-Reparatur ist nicht still');
+if(!/ExportHUBClean[\s\S]*?queueSave/.test(repairBlock)||/ExportHUBRC565|persistShipment/.test(repairBlock))throw new Error('RC1458 Login-/Startup-Reparatur ist nicht still');
 if(!builder.includes('function rc1452PrintGoodsDescription(sh)')||!builder.includes('/assets/rc1267-i18n.js?v=1458'))throw new Error('RC1452/RC1458 Druck-/Cache-Hotfix unvollständig');
 if(!builder.includes('function resetMountedFreshVolatile()')||!builder.includes('resetMountedFreshVolatile();safePatchDuringEdit();return true'))throw new Error('RC1453 Neue-Sendung-Reset unvollständig');
 console.log('RC1452 mail/goodsDescription hotfix + RC1453 reset + RC1458 silent startup repair applied');
