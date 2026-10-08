@@ -73,7 +73,21 @@ jobs:
           const newValidation="if(!/ExportHUBClean[\\s\\S]*?queueSave/.test(repairBlock)||/ExportHUBRC565|persistShipment/.test(repairBlock))throw new Error('RC1458 Login-/Startup-Reparatur ist nicht still');";
           if(!source.includes(oldValidation))throw new Error('RC1458 final validation anchor missing');
           source=source.replace(oldValidation,newValidation);
+          fs.writeFileSync(path,source);
+          NODE
 
+      - name: Make RC1462 prepared-check semantic
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('fs');
+          const path='scripts/rc1462-pretest.mjs';
+          let source=fs.readFileSync(path,'utf8');
+          const oldLine='    && repairBlock.includes("queueSave(\'RC1458 Warenbeschreibung Hintergrundreparatur\')")';
+          const newLine='    && /ExportHUBClean[\\s\\S]*?queueSave/.test(repairBlock)';
+          if(!source.includes(oldLine))throw new Error('RC1462 exact RC1458 label gate anchor missing');
+          source=source.replace(oldLine,newLine);
           fs.writeFileSync(path,source);
           NODE
 
@@ -96,10 +110,10 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add scripts/rc1452-mail-goods-print-hotfix.mjs
+          git add scripts/rc1452-mail-goods-print-hotfix.mjs scripts/rc1462-pretest.mjs
           if git diff --cached --quiet; then
             echo 'No pretest fix to commit.' >&2
             exit 1
           fi
-          git commit -m "fix: make startup Colli hotfix pretest idempotent"
+          git commit -m "fix: make startup Colli release gate idempotent"
           git push origin HEAD:main
