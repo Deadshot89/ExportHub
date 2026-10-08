@@ -15,16 +15,18 @@ function escRe(v){return q(v).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}
 function arr(v){return Array.isArray(v)?v:[]}
 function obj(v){return v&&typeof v==='object'&&!Array.isArray(v)}
 function now(){return new Date().toISOString()}
-function esc(v){return q(v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function esc(v){return q(v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]})}
 function state(){try{if(typeof w.__EXPORTHUB_GET_STATE__==='function')return w.__EXPORTHUB_GET_STATE__()||{}}catch(_){}return w.ExportHUBClean&&w.ExportHUBClean.state||w.appState||{}}
 function currentUser(){var s=state();try{if(typeof w.__EXPORTHUB_GET_CURRENT_USER__==='function'){var u=w.__EXPORTHUB_GET_CURRENT_USER__();if(u)return u}}catch(_){}return s.currentUser||s.activeUser||w.currentUser||{}}
 function actorFrom(user){user=user||{};return{name:q(user.name||user.displayName||user.fullName||user.user||user.username||user.login)||de('shipmentHistory.actor.unknown'),id:q(user.id||user.userId||user.user||user.username||user.login),role:q(user.role||user.rolle)}}
 function identity(sh){if(!sh)return'';return q(sh.id||sh.shipmentId||sh.reference||sh.referenceNumber||sh.ref||sh.sendungsreferenz).toLocaleUpperCase('de-DE')}
 function ref(sh){return q(sh&&((sh.reference||sh.referenceNumber||sh.ref||sh.sendungsreferenz)))}
 function currentShipment(){
- var s=state(),direct=s.currentShipment||s.shipment||s.activeShipment||null;if(direct&&obj(direct))return direct;
- var id=q(s.currentShipmentId||s.selectedShipmentId||s.shipmentId),r=q(s.currentShipmentRef||s.selectedShipmentRef||s.reference);
+ var s=state(),view=low(s.view||s.currentView||s.activeView||''),viewId=q(s.shipmentViewId||s.selectedShipmentId||s.activeShipmentId).toLocaleUpperCase('de-DE');
  var all=[].concat(arr(s.shipments),arr(s.savedShipments),arr(s.shipmentArchive),arr(s.archivedShipments),arr(s.salesSharedShipments),arr(s.sharedShipments));
+ if(view==='shipmentview'&&viewId){var viewed=all.find(function(x){return x&&(q(x.id||x.shipmentId).toLocaleUpperCase('de-DE')===viewId||ref(x).toLocaleUpperCase('de-DE')===viewId)});if(viewed)return viewed}
+ var direct=s.currentShipment||s.shipment||s.activeShipment||null;if(direct&&obj(direct))return direct;
+ var id=q(s.currentShipmentId||s.selectedShipmentId||s.shipmentId),r=q(s.currentShipmentRef||s.selectedShipmentRef||s.reference);
  return all.find(function(x){return x&&((id&&q(x.id||x.shipmentId)===id)||(r&&ref(x)===r))})||null
 }
 function collections(){var s=state();return['shipments','savedShipments','shipmentArchive','archivedShipments','salesSharedShipments','sharedShipments'].map(function(k){return s[k]}).filter(Array.isArray)}
@@ -231,7 +233,6 @@ function printBubble(ev){
 }
 function click(ev){
  var el=ev.target&&ev.target.closest&&ev.target.closest('button,a,[role="button"]');if(!el)return;
- // The AVIS draft flow logs its own shipment and must never imply mail delivery.
  if(el.closest&&el.closest('#rc1166AvisReminderDialog,[data-rc1166-avis-reminder],[data-rc1166-mail-draft]'))return;
  var sh=currentShipment();if(!sh)return;
  var text=q(el.textContent)+' '+q(el.getAttribute&&el.getAttribute('title'))+' '+q(el.getAttribute&&el.getAttribute('data-action')),actionText=low(text),contextText=elementContext(el,text),l=low(contextText);
@@ -259,9 +260,6 @@ function click(ev){
  if(knownDoc&&(/öffnen|open|anzeigen|view|pdf/.test(actionText)||(/\.pdf(?:[?#]|$)/i.test(href)))){
    if(actionOnce('document-open|'+identity(sh)+'|'+doc+'|'+file,1800))recordDocumentAction(sh,'open',doc,file);return
  }
- // RC1305: Ein Dokument gilt nur dann als geöffnet, wenn die konkrete Aktion
- // ausdrücklich Öffnen/Anzeigen/PDF auslöst. Reine Navigation wie
- // "Ladeliste & CMR" darf keinen Audit-Eintrag "CMR – geöffnet" erzeugen.
  if(/speichern/.test(l)&&!/einstellung|vorlage|stammdaten/.test(l)){
    if(actionOnce('save|'+identity(sh),2500))append(sh,{type:'saved',label:de('shipmentHistory.action.shipmentSavedManually'),actor:actorFrom(currentUser()),details:{status:statusOf(sh)}});return
  }
@@ -270,6 +268,7 @@ function fileChange(ev){var input=ev.target;if(!input||String(input.type||'').to
 function avisUpdated(ev){var sh=currentShipment();if(!sh)return;var d=ev&&ev.detail||{},enabled=d.enabled!==false;append(sh,{type:'avis',label:enabled?de('shipmentHistory.action.avisCreated'):de('shipmentHistory.action.avisDisabled'),actor:actorFrom(currentUser()),details:{reference:q(d.reference)||ref(sh)}})}
 function documentActionEvent(ev){var sh=currentShipment();if(!sh)return;var d=ev&&ev.detail||{},action=q(d.action),doc=q(d.document)||de('shipmentHistory.document.generic'),file=q(d.fileName);if(action!=='open'&&action!=='download'&&action!=='print')return;var key=(action==='print'?'print':'document-event|'+action)+'|'+identity(sh)+'|'+doc+'|'+file;if(actionOnce(key,action==='print'?1800:1200))recordDocumentAction(sh,action,doc,file)}
 function markWorkStarted(){
+ if(viewName()==='shipmentview')return false;
  var sh=currentShipment();if(!sh||!shipmentView())return false;
  var actor=actorFrom(currentUser()),events=mergedHistory(sh),cutoff=Date.now()-4*60*60*1000;
  var recent=events.some(function(e){return e.type==='work-start'&&e.actor&&q(e.actor.id||e.actor.name)===q(actor.id||actor.name)&&(Date.parse(e.at||0)||0)>=cutoff});
@@ -288,5 +287,5 @@ try{w.addEventListener('click',printBubble,false)}catch(_){}
 try{w.addEventListener('exporthub:customer-avis-updated',avisUpdated)}catch(_){}
 try{w.addEventListener('exporthub:document-action',documentActionEvent)}catch(_){}
 setInterval(function(){try{hookPersist();monitor()}catch(_){}},2500);
-w.ExportHUBShipmentHistory1071=Object.freeze({version:'RC1305',append:append,events:allEvents,render:render,currentShipment:currentShipment,actor:actorFrom,monitor:monitor,markWorkStarted:markWorkStarted,documentLabel:documentLabel,documentActionFileName:documentActionFileName,recordDocumentAction:recordDocumentAction,printFromElement:printFromElement,printBubble:printBubble,mailTypeFrom:mailTypeFrom,mailSentLabel:mailSentLabel,statusLabel:statusLabel,displayAction:displayAction,creatorMetaText:creatorMetaText,repairCreatorMetaSpacing:repairCreatorMetaSpacing});
+w.ExportHUBShipmentHistory1071=Object.freeze({version:'RC1468',append:append,events:allEvents,render:render,currentShipment:currentShipment,actor:actorFrom,monitor:monitor,markWorkStarted:markWorkStarted,documentLabel:documentLabel,documentActionFileName:documentActionFileName,recordDocumentAction:recordDocumentAction,printFromElement:printFromElement,printBubble:printBubble,mailTypeFrom:mailTypeFrom,mailSentLabel:mailSentLabel,statusLabel:statusLabel,displayAction:displayAction,creatorMetaText:creatorMetaText,repairCreatorMetaSpacing:repairCreatorMetaSpacing});
 })(window);
