@@ -29,10 +29,8 @@ async function store(name,buffer){
 }
 
 test('server PDF normalizer turns extracted DNC text into canonical document metadata',()=>{
-  const normalizer=require('../assets/document-reference-normalizer.js');
-  assert.equal(typeof normalizer.normalizedPdfName,'function');
-  assert.equal(normalizer.normalizedPdfName('scan.pdf','DNC 3019222063').name,'DNC3019222063.pdf');
   const pdf=require('../api/shared/pdf-document-reference.js');
+  assert.equal(pdf.normalizedPdfName('scan.pdf','DNC 3019222063').name,'DNC3019222063.pdf');
   const out=pdf.normalizePdfDocument({name:'scan.pdf',mimeType:'application/pdf'},plainPdf('DNC 3019222063'),'application/pdf');
   assert.equal(out.name,'DNC3019222063.pdf');
   assert.equal(out.documentReference,'DNC3019222063');
