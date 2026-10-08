@@ -30,7 +30,16 @@
         <section class="pack-section">
           <h2>Sendung</h2>
           <div class="pack-grid pack-grid-two">
-            <label>Kunde *<input id="packCustomer" name="customer" type="text" maxlength="200" autocomplete="organization" required></label>
+            <div class="pack-customer-field">
+              <label for="packCustomer">Kunde *</label>
+              <input id="packCustomer" name="customer" type="text" maxlength="200" autocomplete="off" aria-autocomplete="list" aria-controls="packCustomerResults" required>
+              <div id="packCustomerResults" class="pack-customer-results" role="listbox" hidden></div>
+              <div id="packCustomerManual" class="pack-customer-manual" hidden>
+                <span>Kunde nicht im Kundenstamm gefunden.</span>
+                <button id="packCustomerManualConfirm" type="button">Kunde trotzdem verwenden</button>
+              </div>
+              <div id="packCustomerSelected" class="pack-customer-selected" hidden></div>
+            </div>
             <label>Lieferschein / Referenz *<input id="packDeliveryNote" name="deliveryNoteReference" type="text" maxlength="200" autocomplete="off" required></label>
             <label>Packstücktyp *
               <select id="packPackageType" name="packageType" required>
