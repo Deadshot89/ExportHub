@@ -19,8 +19,8 @@ test('public qr pack page is standalone and has no ExportHUB login/navigation sh
 test('pack client creates one fresh session per page instance and locks logical submit',()=>{
   const js=read('assets/pack-notification.js');
   assert.match(js,/crypto\.randomUUID/);
-  assert.match(js,/action=session/);
-  assert.match(js,/action=submit/);
+  assert.match(js,/api\('session'/);
+  assert.match(js,/api\('submit'/);
   assert.match(js,/sessionId/);
   assert.match(js,/submitLocked/);
   assert.match(js,/FileReader/);
