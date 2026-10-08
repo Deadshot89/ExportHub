@@ -64,6 +64,13 @@ jobs:
           code=${PIPESTATUS[0]}
           echo "exit_code=$code" >> "$GITHUB_OUTPUT"
           exit "$code"
+      - name: Upload deepfix i18n unit diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deepfix-rc1267-unit-diagnostics
+          path: rc1267-verify.log
+          if-no-files-found: warn
       - name: Full regression test suite
         run: npm test
       - name: Restore clean checkout after mutation-heavy regression tests
@@ -92,7 +99,6 @@ jobs:
         with:
           name: deepfix-rc1267-diagnostics
           path: |
-            rc1267-verify.log
             rc1267-audit.json
             rc1267-strict.log
           if-no-files-found: warn
