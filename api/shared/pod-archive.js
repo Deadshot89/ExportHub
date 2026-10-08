@@ -68,7 +68,7 @@ async function createPodPdf(record, signatureBuffer, signatureType) {
     const lines=wrap(content,Math.max(18,Math.floor((w-20)/4.8))).slice(0,3);
     lines.forEach((s,i)=>draw(s,cx+10,top-30-i*11,9,i===0?bold:normal));
   }
-  draw('ESSENTRA',x,796,16,bold,navy);
+  draw('ExportHUB360',x,796,16,bold,navy);
   draw('LADELISTE / ABLIEFERNACHWEIS',x+126,796,16,bold,navy);
   card('Sendungsreferenz',value(record.reference),x+355,781,156,55);
   page.drawLine({start:{x,y:719},end:{x:x+width,y:719},thickness:1.4,color:navy});
