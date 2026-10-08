@@ -4,6 +4,7 @@ import {fileURLToPath,pathToFileURL} from 'node:url';
 import {execFileSync} from 'node:child_process';
 
 export const PACK_ASSETS=Object.freeze([
+  'packaging-catalog.js',
   'pack-notification.css',
   'pack-notification.js',
   'pack-notification-internal.css',
