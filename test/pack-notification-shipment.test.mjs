@@ -11,7 +11,7 @@ function load(){
 }
 function state(){return{packNotifications:[{id:'pn-1',reference:'PK-1',customer:'BSH',deliveryNoteReference:'LS1',packageType:'Europalette',packageCount:2,totalWeight:600,packages:[{packageNo:1,length:120,width:80,height:140,unit:'cm'},{packageNo:2,length:120,width:80,height:130,unit:'cm'}],documents:[{id:'d1',name:'LS1.pdf',storage:'blob',blobName:'rc1059/production/aa/'+('a'.repeat(64)),mimeType:'application/pdf',size:12}],status:'in_review'}],tasks:[{id:'task:pack:pn-1',sourceType:'pack_notification',sourceId:'pn-1',sourceRef:'PK-1'}],shipments:[]};}
 
-test('shipment prefill preserves pack origin, dimensions, weight and document references',()=>{
+test('shipment prefill preserves pack origin, dimensions, weight and private document references',()=>{
   const api=load(),s=state(),n=s.packNotifications[0];
   const prefill=api.shipmentPrefill(n);
   assert.equal(prefill.packNotificationId,'pn-1');
@@ -23,6 +23,7 @@ test('shipment prefill preserves pack origin, dimensions, weight and document re
   assert.equal(prefill.deliveryFiles.length,1);
   assert.equal(prefill.deliveryFiles[0].blobName,n.documents[0].blobName);
   assert.equal(prefill.deliveryFiles[0].customerVisible,false);
+  assert.equal(prefill.deliveryFiles[0].customerAvisVisible,false);
 });
 
 test('existing shipment linked to pack notification is found and prevents duplicate creation',()=>{
@@ -41,4 +42,5 @@ test('linkShipment writes bidirectional relation and marks notification shipment
   assert.equal(shipment.packNotificationRef,'PK-1');
   assert.equal(shipment.deliveryFiles.length,1);
   assert.equal(shipment.deliveryFiles[0].blobName,s.packNotifications[0].documents[0].blobName);
+  assert.equal(shipment.deliveryFiles[0].customerAvisVisible,false);
 });
