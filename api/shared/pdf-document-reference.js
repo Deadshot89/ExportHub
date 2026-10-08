@@ -1,6 +1,5 @@
 'use strict';
 const zlib=require('zlib');
-const normalizer=require('../../assets/document-reference-normalizer.js');
 
 function decodePdfString(value){
   return String(value||'')
@@ -47,12 +46,31 @@ function extractPdfText(buffer){
   for(const source of sources)parts.push(...textStrings(source));
   return parts.join('\n');
 }
+function extractDocumentReferences(value){
+  const input=String(value==null?'':value),pattern=/\b(DNC|SIDE)\s*(?:[-_:]\s*)?([0-9]{6,20})\b/gi,seen=new Set(),out=[];
+  let match;
+  while((match=pattern.exec(input))){
+    const type=String(match[1]||'').toUpperCase(),number=String(match[2]||''),canonical=type+number;
+    if(seen.has(canonical))continue;
+    seen.add(canonical);out.push({type,number,canonical});
+  }
+  return out;
+}
+function normalizedPdfName(originalName,extractedText){
+  const original=String(originalName==null?'':originalName);
+  if(!/\.pdf$/i.test(original))return{name:original,renamed:false,reference:null,reason:'none'};
+  const refs=extractDocumentReferences(extractedText);
+  if(!refs.length)return{name:original,renamed:false,reference:null,reason:'none'};
+  if(refs.length!==1)return{name:original,renamed:false,reference:null,reason:'ambiguous'};
+  const reference=refs[0];
+  return{name:reference.canonical+'.pdf',renamed:(reference.canonical+'.pdf')!==original,reference:reference.canonical,reason:reference.type==='SIDE'?'side':'dncs'};
+}
 function normalizePdfDocument(file,buffer,mimeType){
   const input=file&&typeof file==='object'?file:{};
   const original=String(input.name||input.fileName||input.filename||'');
   if(String(mimeType||input.mimeType||input.type||'').toLowerCase()!=='application/pdf'||!/\.pdf$/i.test(original))return Object.assign({},input);
-  const text=extractPdfText(buffer),result=normalizer.normalizedPdfName(original,text);
+  const result=normalizedPdfName(original,extractPdfText(buffer));
   if(!result.renamed)return Object.assign({},input);
   return Object.assign({},input,{originalName:input.originalName||original,name:result.name,documentReference:result.reference,documentReferenceType:result.reason==='side'?'SIDE':'DNC'});
 }
-module.exports={extractPdfText,normalizePdfDocument};
+module.exports={extractPdfText,extractDocumentReferences,normalizedPdfName,normalizePdfDocument};
