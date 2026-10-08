@@ -41,7 +41,6 @@
               </div>
               <div id="packCustomerSelected" class="pack-customer-selected" hidden></div>
             </div>
-            <label>Lieferschein / Referenz *<input id="packDeliveryNote" name="deliveryNoteReference" type="text" maxlength="200" autocomplete="off" required></label>
             <label>Packstücktyp *
               <select id="packPackageType" name="packageType" required>
                 <option value="">Bitte wählen</option>
@@ -59,7 +58,7 @@
 
         <section class="pack-section">
           <h2>Lieferscheine</h2>
-          <p class="pack-help">Mindestens eine PDF-, JPG- oder PNG-Datei hochladen. Mehrere Lieferscheine sind möglich.</p>
+          <p class="pack-help">Mindestens eine PDF-, JPG- oder PNG-Datei hochladen. Mehrere Lieferscheine sind möglich. DNC/SIDE werden automatisch aus PDFs erkannt und korrekt benannt.</p>
           <label class="pack-upload" for="packDocuments">
             <strong>Dateien auswählen</strong>
             <span>PDF · JPG · PNG</span>
@@ -81,7 +80,7 @@
       <section id="packSuccess" class="pack-success" hidden aria-live="polite">
         <div class="pack-success-icon" aria-hidden="true">✓</div>
         <h2>Packmeldung übermittelt</h2>
-        <p>Die Aufgabe wurde in ExportHUB360 erstellt.</p>
+        <p>Die Packmeldung wurde in ExportHUB360 gespeichert.</p>
         <dl>
           <div><dt>Referenz</dt><dd id="packSuccessReference">–</dd></div>
           <div><dt>Kunde</dt><dd id="packSuccessCustomer">–</dd></div>
