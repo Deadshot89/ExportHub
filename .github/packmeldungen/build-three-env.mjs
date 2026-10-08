@@ -5,6 +5,7 @@ import {execFileSync} from 'node:child_process';
 
 export const PACK_ASSETS=Object.freeze([
   'packaging-catalog.js',
+  'document-print-name.js',
   'pack-notification.css',
   'pack-notification.js',
   'pack-notification-internal.css',
@@ -21,7 +22,8 @@ const STYLE_TAGS=[
 const SCRIPT_TAGS=[
   '<script id="exporthub-pack-notification-internal" defer src="/assets/pack-notification-internal.js?v=1"></script>',
   '<script id="exporthub-pack-notification-shipment" defer src="/assets/pack-notification-shipment.js?v=1"></script>',
-  '<script id="exporthub-pack-notification-avis" defer src="/assets/pack-notification-avis.js?v=1"></script>'
+  '<script id="exporthub-pack-notification-avis" defer src="/assets/pack-notification-avis.js?v=1"></script>',
+  '<script id="exporthub-document-print-name" defer src="/assets/document-print-name.js?v=1"></script>'
 ];
 
 export function injectPackRuntime(html,file='index.html'){
