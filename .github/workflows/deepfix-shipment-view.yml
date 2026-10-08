@@ -46,20 +46,113 @@ jobs:
           build_source = build_source.replace(old_replace,new_replace,1).replace(old_guard,new_guard,1).replace(synthetic_status,'',1)
           build.write_text(build_source,encoding='utf-8')
           PY
+      - name: Restore POD archive and reconcile contract on current main runtime
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess
+
+          MAIN = subprocess.check_output(['git','show','origin/main:api/shared/pod-archive.js'], text=True)
+          LEGACY = subprocess.check_output(['git','show','18fef7964926acb552ebac8faeb51e04da296fc8:api/shared/pod-archive.js'], text=True)
+
+          def between(src, start, end):
+            a = src.index(start)
+            b = src.index(end, a)
+            return src[a:b]
+
+          # Keep the proven Azure archive/reconcile implementation, but preserve the
+          # current structured POD PDF and layout-version invalidation from main.
+          merged = LEGACY
+          if "const POD_PDF_LAYOUT_VERSION" not in merged:
+            merged = merged.replace(
+              "const TEAM_POD_LINK_VERSION = 'RC1340';\n",
+              "const TEAM_POD_LINK_VERSION = 'RC1340';\nconst POD_PDF_LAYOUT_VERSION = 'RC1361-STRUCTURED-V1';\n",
+              1
+            )
+
+          main_is_current = between(MAIN, 'function isCurrentAutomaticPod(file) {', 'function fileNameFor(record) {')
+          if 'function isCurrentAutomaticPod(file) {' not in merged:
+            merged = merged.replace('function fileNameFor(record) {', main_is_current + 'function fileNameFor(record) {', 1)
+
+          main_pdf = between(MAIN, 'async function createPodPdf(record, signatureBuffer, signatureType) {', 'async function readAutomaticPodBuffer(accessKey, environment, record) {')
+          old_pdf = between(merged, 'async function createPodPdf(record, signatureBuffer, signatureType) {', 'async function readAutomaticPodBuffer(accessKey, environment, record) {')
+          merged = merged.replace(old_pdf, main_pdf, 1)
+
+          persist = between(merged, 'async function persistBackupState(accessKey, environment, patch, podFile) {', 'async function saveAzurePod(accessKey, environment, record, pdf, requestedName) {')
+          persist = persist.replace('  return store.mutateRecord(accessKey, environment, function(record) {', '  const updated = await store.mutateRecord(accessKey, environment, function(record) {', 1)
+          persist = persist.rsplit('  });\n}', 1)[0] + '  });\n  return updated && updated.record ? updated.record : updated;\n}\n'
+          old_persist = between(merged, 'async function persistBackupState(accessKey, environment, patch, podFile) {', 'async function saveAzurePod(accessKey, environment, record, pdf, requestedName) {')
+          merged = merged.replace(old_persist, persist, 1)
+
+          main_save = between(MAIN, 'async function saveAzurePod(accessKey, environment, record, pdf, requestedName) {', 'async function queueGraphPodBackup(accessKey, environment, record, pdf, file) {')
+          main_save = main_save.replace('return { file, record: next.record, clients: next.clients };', 'return { record: next, file, hash, pdf, clients: got.clients };')
+          old_save = between(merged, 'async function saveAzurePod(accessKey, environment, record, pdf, requestedName) {', 'async function verifyAzureArchiveBlob(blob, expectedHash, expectedSize, fullRead) {')
+          merged = merged.replace(old_save, main_save, 1)
+
+          ensure = between(merged, 'async function ensureAutomaticPod(accessKey, environment, options) {', 'async function saveSuppliedPod(accessKey, environment, record, pdf, requestedName) {')
+          ensure = ensure.replace('  if (file) {', '  if (file && isCurrentAutomaticPod(file)) {', 1)
+          old_ensure = between(merged, 'async function ensureAutomaticPod(accessKey, environment, options) {', 'async function saveSuppliedPod(accessKey, environment, record, pdf, requestedName) {')
+          merged = merged.replace(old_ensure, ensure, 1)
+
+          main_share = between(MAIN, 'async function createShareLink(accessKey, environment) {', 'async function getPodDownload(accessKey, environment, fileId) {')
+          main_download = between(MAIN, 'async function getPodDownload(accessKey, environment, fileId) {', 'module.exports = {')
+          insertion = main_share + main_download
+          export_pos = merged.index('module.exports = {')
+          merged = merged[:export_pos] + insertion + merged[export_pos:]
+
+          old_exports = merged[merged.index('module.exports = {'):]
+          new_exports = """module.exports = {
+  automaticPod,
+  isCurrentAutomaticPod,
+  fileNameFor,
+  createPodPdf,
+  ensureAutomaticPod,
+  createShareLink,
+  getPodDownload,
+  readAutomaticPodBuffer,
+  retryArchiveBackup,
+  retryDriveBackup,
+  saveAzureArchive,
+  verifyAzureArchiveBlob,
+  checkAzureArchive,
+  saveSuppliedPod,
+  reconcilePendingBackups,
+  POD_PDF_LAYOUT_VERSION,
+  TEAM_POD_LINK_VERSION
+};
+"""
+          merged = merged[:merged.index('module.exports = {')] + new_exports
+
+          required = [
+            'await saveAzurePod(accessKey, environment, record, pdf)',
+            'await saveAzureArchive(accessKey, environment, record, pdf, file)',
+            'async function reconcilePendingBackups(',
+            'candidates.sort(',
+            'listBlobsFlat({ prefix }).byPage({',
+            'POD_PDF_LAYOUT_VERSION',
+            'function isCurrentAutomaticPod(file)'
+          ]
+          for marker in required:
+            if marker not in merged:
+              raise SystemExit('merged POD contract missing: ' + marker)
+          Path('api/shared/pod-archive.js').write_text(merged, encoding='utf-8')
+          PY
       - name: Verify focused regressions before commit
         run: |
           node --check assets/rc1071-shipment-history.js
           node --check .github/rc1112/build-three-env.mjs
+          node --check api/shared/pod-archive.js
           node --test --test-concurrency=1 test/rc1468-shipment-view-context-regression.test.mjs
           node --test --test-concurrency=1 test/rc1071-shipment-history.test.mjs
           node --test --test-concurrency=1 --test-name-pattern='RC1305:' test/rc1305-shipment-view-documents-history.test.mjs
-      - name: Commit normalized minimal fix
+          node --test --test-concurrency=1 test/rc1114-pod-reliability.test.mjs
+      - name: Commit normalized fixes
         run: |
           git config user.name "Deadshot89"
           git config user.email "86518220+Deadshot89@users.noreply.github.com"
-          git add assets/rc1071-shipment-history.js .github/rc1112/build-three-env.mjs
+          git add assets/rc1071-shipment-history.js .github/rc1112/build-three-env.mjs api/shared/pod-archive.js
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m "fix: normalize shipment view context timeline and cache patch [deepfix-clean]"
+          git commit -m "fix: restore POD archive reliability without losing structured PDF [deepfix-clean]"
           git push origin HEAD:deepfix/shipment-view-context-20261008
       - name: Full repository test suite with compact failure diagnostics
         shell: bash
