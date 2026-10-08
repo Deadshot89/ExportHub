@@ -80,6 +80,24 @@ test('pack client loads saved packaging master data and merges it with safe fall
   assert.match(js,/source\s*===\s*'fixed'/);
 });
 
+test('packaging options are sorted into a practical warehouse order',()=>{
+  const js=read('assets/pack-notification.js');
+  assert.match(js,/function packagingSortRank/);
+  assert.match(js,/Euro Palette/);
+  assert.match(js,/Einwegpalette/);
+  assert.match(js,/Industrie Palette/);
+  assert.match(js,/Düsseldorfer Palette/);
+  assert.match(js,/^|[^A-Za-z]E0[^A-Za-z]|E0/);
+  assert.match(js,/localeCompare/);
+});
+
+test('desktop pack page uses a compact content width and control sizing',()=>{
+  const css=read('assets/pack-notification.css');
+  assert.match(css,/\.pack-shell\{[^}]*width:min\(760px,100%\)/);
+  assert.match(css,/input,select,textarea\{[^}]*min-height:40px/);
+  assert.match(css,/\.pack-section\{[^}]*padding:14px 0/);
+});
+
 test('pack client autofills known length width and height from selected master packaging without inventing missing height',()=>{
   const js=read('assets/pack-notification.js');
   assert.match(js,/applyPackageDimensions/);
