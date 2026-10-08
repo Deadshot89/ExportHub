@@ -13,13 +13,20 @@ test('runtime injection is idempotent and ordered after existing document head',
   assert.match(once,/pack-notification-internal\.css\?v=1/);
   assert.match(once,/pack-notification-avis\.css\?v=1/);
   const a=once.indexOf('pack-notification-internal.js?v=1');
+  const nav=once.indexOf('pack-notification-nav.js?v=1');
   const b=once.indexOf('pack-notification-shipment.js?v=1');
   const c=once.indexOf('pack-notification-avis.js?v=1');
-  assert.ok(a>0&&b>a&&c>b);
+  assert.ok(a>0&&nav>a&&b>nav&&c>b);
 });
 
-test('pack build contract includes the shared packaging catalog used by pack.html',()=>{
+test('pack build contract includes shared catalog and standalone inbox navigation runtime',()=>{
   assert.ok(PACK_ASSETS.includes('packaging-catalog.js'));
+  assert.ok(PACK_ASSETS.includes('pack-notification-nav.js'));
+  const nav=fs.readFileSync('assets/pack-notification-nav.js','utf8');
+  assert.match(nav,/#packmeldungen/);
+  assert.match(nav,/renderPackInbox/);
+  assert.match(nav,/data-pack-notifications-nav/);
+  assert.match(nav,/MutationObserver/);
 });
 
 test('copyPackFiles carries public qr page and every runtime asset into build output',()=>{
