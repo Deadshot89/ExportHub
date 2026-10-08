@@ -17,7 +17,7 @@ function loadInternal(){
 
 function state(){return{
   packNotifications:[{
-    id:'pn-1',reference:'PK-20261008ABCDEF',customer:'BSH Hausgeräte',packStationId:'PT01',packStationName:'Packtisch 01',deliveryNoteReference:'LS123',packageType:'Europalette',packageCount:2,totalWeight:680,packages:[{packageNo:1,length:120,width:80,height:145,unit:'cm'},{packageNo:2,length:120,width:80,height:130,unit:'cm'}],documents:[{id:'doc-1',name:'LS123.pdf',storage:'blob',blobName:'rc1059/production/aa/'+('a'.repeat(64)),mimeType:'application/pdf',size:100}],status:'new',createdAt:'2026-10-08T10:42:00.000Z'
+    id:'pn-1',reference:'PK-20261008ABCDEF',customer:'BSH Hausgeräte',packStationId:'PT01',packStationName:'Packtisch 01',deliveryNoteReference:'',packageType:'Europalette',packageCount:2,totalWeight:680,packages:[{packageNo:1,length:120,width:80,height:145,unit:'cm'},{packageNo:2,length:120,width:80,height:130,unit:'cm'}],documents:[{id:'doc-1',name:'DNC3019222063.pdf',storage:'blob',blobName:'rc1059/production/aa/'+('a'.repeat(64)),mimeType:'application/pdf',size:100}],status:'new',createdAt:'2026-10-08T10:42:00.000Z'
   }],
   tasks:[{
     id:'task:pack:pn-1',sourceType:'pack_notification',sourceId:'pn-1',sourceRef:'PK-20261008ABCDEF',group:'Packmeldungen',title:'Neue Packmeldung · BSH Hausgeräte',status:'open',priority:'P2',unread:true,createdAt:'2026-10-08T10:42:00.000Z'
@@ -60,7 +60,26 @@ test('pack task section model includes customer, weight, station and documents',
   assert.equal(model.stationName,'Packtisch 01');
   assert.equal(model.packages.length,2);
   assert.equal(model.documents.length,1);
-  assert.equal(model.documents[0].name,'LS123.pdf');
+  assert.equal(model.documents[0].name,'DNC3019222063.pdf');
+});
+
+test('pack inbox is derived from packNotifications and works without tasks',()=>{
+  const internal=loadInternal(),s=state();
+  s.tasks=[];
+  const items=internal.inboxItems(s);
+  assert.equal(items.length,1);
+  assert.equal(items[0].notificationId,'pn-1');
+  assert.equal(items[0].customer,'BSH Hausgeräte');
+  assert.equal(items[0].unread,true);
+  assert.equal(internal.inboxUnreadCount(s),1);
+});
+
+test('pack inbox owns a separate navigation target and does not require tasks view',()=>{
+  const adapter=fs.readFileSync('assets/pack-notification-internal.js','utf8');
+  assert.match(adapter,/data-pack-notifications-nav/);
+  assert.match(adapter,/renderPackInbox/);
+  assert.match(adapter,/packnotifications/);
+  assert.doesNotMatch(adapter,/currentView\(\)!==['"]tasks['"][\s\S]*renderPackInbox/);
 });
 
 test('existing rc1014 five-group contract remains untouched and adapter owns pack-specific UI',()=>{
@@ -70,6 +89,6 @@ test('existing rc1014 five-group contract remains untouched and adapter owns pac
   assert.match(lifecycle,/Object\.freeze\(\['Offene Sendungen','Fehlende POD','Kunde angemeldet','Picks','Offene ABDs'\]\)/);
   assert.doesNotMatch(runtime,/pack_notification|ExportHUBPackNotifications/);
   assert.match(adapter,/pack_notification/);
-  assert.match(adapter,/renderTaskSection/);
-  assert.match(adapter,/openTaskDetail/);
+  assert.match(adapter,/renderPackInbox/);
+  assert.match(adapter,/openNotificationDetail/);
 });
