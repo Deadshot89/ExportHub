@@ -64,6 +64,8 @@ jobs:
         run: |
           git reset --hard HEAD
           git clean -fd
+      - name: Prepare release runtime after clean checkout
+        run: npm run pretest
       - name: Three-environment release build
         run: node .github/rc1112/build-three-env.mjs
       - name: Full i18n audit JSON

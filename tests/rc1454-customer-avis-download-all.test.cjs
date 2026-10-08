@@ -100,6 +100,7 @@ test('RC1454 renders the ZIP action as a dedicated responsive AVIS header CTA',(
  const ui=fs.readFileSync('assets/rc1454-avis-download-all-ui.js','utf8');
  const injector=fs.readFileSync('scripts/rc1454-avis-download-all-ui.mjs','utf8');
  const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
+ const pretest=String(pkg.scripts&&pkg.scripts.pretest||'');
  assert.match(ui,/action=download-all/);
  assert.match(ui,/\.section-head/);
  assert.match(ui,/rc1454-bulk-download/);
@@ -109,7 +110,10 @@ test('RC1454 renders the ZIP action as a dedicated responsive AVIS header CTA',(
  assert.match(injector,/rc1454-avis-download-all-ui\.js/);
  assert.match(injector,/fs\.readFileSync\(runtimeFile,'utf8'\)/);
  assert.doesNotMatch(injector,/defer src=/);
- assert.match(pkg.scripts.pretest,/rc1454-avis-download-all-ui\.mjs/);
+ if(/rc1454-avis-download-all-ui\.mjs/.test(pretest))return;
+ assert.match(pretest,/rc1462-pretest\.mjs/,'pretest must invoke RC1454 directly or through the RC1462 orchestrator');
+ const orchestrator=fs.readFileSync('scripts/rc1462-pretest.mjs','utf8');
+ assert.match(orchestrator,/rc1454-avis-download-all-ui\.mjs/,'RC1462 orchestrator must retain the RC1454 AVIS injector');
 });
 
 test('RC1454 Azure customer-avis entrypoint wraps but does not replace the proven handler',()=>{

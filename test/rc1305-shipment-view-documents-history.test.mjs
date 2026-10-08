@@ -74,7 +74,7 @@ test('RC1305: eine ausdrückliche Dokumentöffnung wird weiterhin protokolliert'
 
 test('RC1305: Sendungsansicht verbindet Ref-Ordner, gespeicherte Anhänge und Blob-Dokumente',()=>{
   assert.match(buildSource,/function mergeReferenceDocs\(live,fallback\)/);
-  assert.match(buildSource,/fallback=arr\(fallback\)\.filter\(fallbackDocUsable\)/);
+  assert.match(buildSource,/fallback=arr\(fallback\)\.concat\(extra\)\.filter\(Boolean\)\.filter\(fallbackDocUsable\)/);
   assert.match(buildSource,/ExportHUBDocumentBlob1059/);
   assert.match(buildSource,/source==='combined'/);
   assert.match(buildSource,/Ref-Ordner \+ gespeicherte Anhänge/);
@@ -107,8 +107,10 @@ test('RC1460: Statusverlauf zeigt den ausführenden Benutzer',()=>{
   assert.match(buildSource,/row&&row\.actor&&row\.actor\.name/);
 });
 
-test('RC1460: aktives Lieferavis erhält Öffnen- und Kopieren-Aktion',()=>{
-  assert.match(shipmentViewFixSource,/AVIS öffnen/);
+test('RC1460: aktives Lieferavis erhält zentral übersetzte Öffnen- und Kopieren-Aktion',()=>{
+  assert.match(shipmentViewFixSource,/function tr\(key,fallback\)/);
+  assert.match(shipmentViewFixSource,/tr\('common\.open','Öffnen'\)/);
+  assert.doesNotMatch(shipmentViewFixSource,/a\.textContent='AVIS öffnen'/);
   assert.match(shipmentViewFixSource,/Link kopieren/);
   assert.match(shipmentViewFixSource,/customerAvisUrl\|\|sh\.avisUrl\|\|sh\.customerAvisLink\|\|sh\.avisLink/);
 });
