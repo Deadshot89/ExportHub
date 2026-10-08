@@ -36,10 +36,11 @@ function functionBlock(source,startMarker,endMarker,label){
   write(rel,source);
 }
 
-// Force browsers to request the corrected Lieferavis runtime. Keep v=1383 as the
-// historical release identifier so existing release contracts continue to match.
+// Force browsers to request the corrected Lieferavis runtime. The current RC1112
+// wrapper builds on the historical RC1013/RC1048 chain, so the cache key has to be
+// changed at the historical source that actually injects this runtime.
 {
-  const rel='.github/rc1112/build-three-env.mjs';
+  const rel='.github/rc1013/build-three-env.mjs';
   let source=read(rel);
   const oldUrl='/assets/rc1015-lieferavis-mail-flow.js?v=1383';
   const newUrl='/assets/rc1015-lieferavis-mail-flow.js?v=1383&rc=1467';
@@ -52,7 +53,7 @@ function functionBlock(source,startMarker,endMarker,label){
 
 const flow=read('assets/rc1015-lieferavis-mail-flow.js');
 const target=functionBlock(flow,'async function rc1021AutoEnable(reason){','function stripAvisBlocks(text){','RC1467 final verify');
-const builder=read('.github/rc1112/build-three-env.mjs');
+const builder=read('.github/rc1013/build-three-env.mjs');
 if(!target.block.includes('RC1467: background/startup auto-enable')||/rc1015PersistBeforeAvis\s*\(/.test(target.block))throw new Error('RC1467 startup guard unvollständig');
 if(!builder.includes('/assets/rc1015-lieferavis-mail-flow.js?v=1383&rc=1467'))throw new Error('RC1467 cache bust fehlt');
 console.log('RC1467 startup Lieferavis guard + cache bust applied');
