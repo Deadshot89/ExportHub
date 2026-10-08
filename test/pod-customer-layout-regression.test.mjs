@@ -9,13 +9,17 @@ const block=source.slice(start,end);
 
 test('P0 POD: structured loading-list layout is used in downloaded archive PDF',()=>{
   assert.ok(start>=0&&end>start,'POD PDF renderer missing');
-  for(const label of ['LADELISTE / ABLIEFERNACHWEIS','Sendungsreferenz','Absender','Empfaenger / Kunde','Transport / Anmeldung','Packstueck','SENDUNG ABGEHOLT','Fahrer','Kennzeichen','Verlader','Spedition','Fahrerunterschrift','Europaletten']){
+  for(const label of ['LADELISTE / ABLIEFERNACHWEIS','Sendungsreferenz','Absender','Empfaenger / Kunde','Transport / Anmeldung','VERPACKUNG','SENDUNG ABGEHOLT','Fahrer','Kennzeichen','Verlader','Spedition','Fahrerunterschrift','Europaletten']){
     assert.ok(block.includes(label),'Missing POD field: '+label);
   }
   assert.match(block,/pdf\.addPage\(\[595\.28, 841\.89\]\)/,'POD must use A4');
   assert.match(block,/Math\.min\(maxW\/dims\.width,maxH\/dims\.height\)/,'Signature must fit within its cell');
   assert.match(block,/page\.drawImage\(image,/,'Signature must be rendered inside POD');
   assert.doesNotMatch(block,/function newPage\(/,'POD should not silently paginate its signature section');
+});
+
+test('P0 POD: table header has complete rectangle geometry',()=>{
+  assert.match(block,/page\.drawRectangle\(\{x,y:y-25,width,height:25,color:pale,borderColor:border,borderWidth:\.7\}\)/,'Table header must define its height or pdf-lib rendering can fail');
 });
 
 test('P0 POD: signature and customer fields are drawn as separate bordered cells',()=>{
