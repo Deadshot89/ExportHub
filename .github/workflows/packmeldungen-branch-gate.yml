@@ -40,6 +40,7 @@ jobs:
           node --check assets/pack-notification-internal.js
           node --check assets/pack-notification-shipment.js
           node --check assets/pack-notification-avis.js
+          node --check e2e/specs/pack-notification.spec.mjs
           node --check .github/packmeldungen/build-three-env.mjs
       - name: Existing task and AVIS regressions
         run: |
