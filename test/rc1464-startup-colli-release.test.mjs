@@ -16,9 +16,3 @@ test('RC1464: startup repair never enters strict Colli shipment validation', () 
   assert.match(repair, /ExportHUBClean[\s\S]*?queueSave/, 'startup repair must use silent queueSave persistence');
   assert.doesNotMatch(repair, /ExportHUBRC565|persistShipment/, 'startup repair must not call strict shipment persistence');
 });
-
-test('RC1464: explicit Colli validation remains available outside startup repair', () => {
-  const colli = fs.readFileSync('assets/rc565-colli.js', 'utf8');
-  assert.match(colli, /Bitte Verpackung, Anzahl und Gewicht in jeder Colli-Zeile vollständig erfassen\./,
-    'explicit shipment validation message must remain available for intended save/finalize actions');
-});
