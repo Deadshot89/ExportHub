@@ -1,4 +1,9 @@
-(function(root){
+(function(root,factory){
+  'use strict';
+  const api=factory();
+  if(root)root.ExportHubDocumentReferenceNormalizer=api;
+  if(typeof module==='object'&&module&&module.exports)module.exports=api;
+})(typeof window!=='undefined'?window:globalThis,function(){
   'use strict';
 
   function extractDocumentReferences(value){
@@ -33,9 +38,5 @@
     return String(name==null?'':name).replace(/\.pdf$/i,'');
   }
 
-  root.ExportHubDocumentReferenceNormalizer=Object.freeze({
-    extractDocumentReferences,
-    normalizedPdfName,
-    printDocumentName
-  });
-})(typeof window!=='undefined'?window:globalThis);
+  return Object.freeze({extractDocumentReferences,normalizedPdfName,printDocumentName});
+});
