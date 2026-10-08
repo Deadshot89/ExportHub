@@ -16,7 +16,7 @@ const storeStub={
   pickupCollectedColliCount:r=>r.pickupCollectedColliCount
 };
 const createPodPdf=new Function('require','Buffer','store',helpers+source.slice(start,end)+'\nreturn createPodPdf;')(apiRequire,Buffer,storeStub);
-const signaturePng=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l1sAAAAASUVORK5CYII=','base64');
+const signaturePng=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Z8R8AAAAASUVORK5CYII=','base64');
 const record={
   reference:'ABC123',customer:'Testkunde',recipient:'Muster GmbH',
   address:'Musterstrasse 1, 12345 Musterstadt',carrier:'Fedex',confirmedAt:'2026-10-08T12:00:00Z',
