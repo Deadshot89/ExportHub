@@ -21,6 +21,14 @@ function patchInsideFunction(source,functionStart,nextFunction,before,after,labe
   return source.slice(0,start)+patched+source.slice(end);
 }
 
+function startupRepairUsesSilentPersistence(source){
+  const start=source.indexOf('function repairContaminatedGoodsDescription(');
+  const end=start<0?-1:source.indexOf('function snapshotShipmentDraft(',start);
+  if(start<0||end<0)return false;
+  const block=source.slice(start,end);
+  return /ExportHUBClean[\s\S]*?queueSave/.test(block)&&!/ExportHUBRC565|persistShipment/.test(block);
+}
+
 // RC1452 root cause repair: clean every shipment collection, not only the currently
 // edited shipment. The document/print view keeps the selected shipment in its own
 // runtime, so the previous active-id-only repair could miss the exact object printed.
@@ -32,11 +40,11 @@ function patchInsideFunction(source,functionStart,nextFunction,before,after,labe
   const after=" applicationStateRoots().forEach(function(root){\n  shipmentDraftTargets(root).forEach(function(shipment){if(targets.indexOf(shipment)<0)targets.push(shipment)});\n  ['shipments','savedShipments','salesSharedShipments','sharedShipments','shipmentArchive','archivedShipments','archive'].forEach(function(name){\n   var list=root&&root[name];if(!Array.isArray(list))return;\n   list.forEach(function(shipment){if(shipment&&typeof shipment==='object'&&targets.indexOf(shipment)<0)targets.push(shipment)})\n  });\n  ['shipment','currentShipment','selectedShipment','activeShipment','editingShipment','documentShipment'].forEach(function(name){var shipment=root&&root[name];if(shipment&&typeof shipment==='object'&&targets.indexOf(shipment)<0)targets.push(shipment)});\n });";
   source=patchInsideFunction(source,'function repairContaminatedGoodsDescription(){','function snapshotShipmentDraft(){',before,after,'RC1452 shipment repair');
 
-  // RC1458: this repair runs during state/login startup. It must never call the full
-  // shipment persistence bridge because that bridge validates customer/location/Colli
-  // and can therefore show user-facing Pflichtfeld alerts while the app is still loading.
-  // The repair only mutates already loaded state, so persist it through the silent state
-  // queue instead. Normal manual shipment saving keeps the strict Colli validation.
+  // RC1458/RC1464: this repair runs during state/login startup. It must never call
+  // the full shipment persistence bridge because that bridge validates customer,
+  // location and Colli while the app is still loading. RC1464 may already have
+  // converted this block to silent ExportHUBClean.queueSave persistence in source;
+  // in that case the older RC1458 transform must be skipped, not reapplied.
   const persistBefore=` if(repaired&&!contaminatedRepairPending){
   var core=w.ExportHUBRC565;
   if(core&&typeof core.persistShipment==='function'){
@@ -53,7 +61,9 @@ function patchInsideFunction(source,functionStart,nextFunction,before,after,labe
    }catch(error){contaminatedRepairPending=false;try{console.error('[ExportHUB RC1458 silent repair]',error)}catch(_){}}
   }
  }`;
-  source=patchInsideFunction(source,'function repairContaminatedGoodsDescription(){','function snapshotShipmentDraft(){',persistBefore,persistAfter,'RC1458 silent startup repair');
+  if(!startupRepairUsesSilentPersistence(source)){
+    source=patchInsideFunction(source,'function repairContaminatedGoodsDescription(){','function snapshotShipmentDraft(){',persistBefore,persistAfter,'RC1458 silent startup repair');
+  }
 
   // Run the repair synchronously before document actions. This guarantees that an
   // already open production session is cleaned before Ladeliste/CMR HTML is built.
@@ -110,7 +120,7 @@ const runtime=read('assets/rc1267-i18n.js');
 const builder=read('.github/rc1112/build-three-env.mjs');
 const repairBlock=runtime.slice(runtime.indexOf('function repairContaminatedGoodsDescription('),runtime.indexOf('function snapshotShipmentDraft('));
 if(!runtime.includes("var VERSION='RC1452';")||!runtime.includes('rc1452DocumentActionRepair'))throw new Error('RC1452 Runtime-Hotfix unvollständig');
-if(!repairBlock.includes("queueSave('RC1458 Warenbeschreibung Hintergrundreparatur')")||/ExportHUBRC565|persistShipment/.test(repairBlock))throw new Error('RC1458 Login-/Startup-Reparatur ist nicht still');
+if(!/ExportHUBClean[\s\S]*?queueSave/.test(repairBlock)||/ExportHUBRC565|persistShipment/.test(repairBlock))throw new Error('RC1458/RC1464 Login-/Startup-Reparatur ist nicht still');
 if(!builder.includes('function rc1452PrintGoodsDescription(sh)')||!builder.includes('/assets/rc1267-i18n.js?v=1458'))throw new Error('RC1452/RC1458 Druck-/Cache-Hotfix unvollständig');
 if(!builder.includes('function resetMountedFreshVolatile()')||!builder.includes('resetMountedFreshVolatile();safePatchDuringEdit();return true'))throw new Error('RC1453 Neue-Sendung-Reset unvollständig');
-console.log('RC1452 mail/goodsDescription hotfix + RC1453 reset + RC1458 silent startup repair applied');
+console.log('RC1452 mail/goodsDescription hotfix + RC1453 reset + RC1458/RC1464 silent startup repair applied');
