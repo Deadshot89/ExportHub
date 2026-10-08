@@ -15,7 +15,7 @@
     return{
       packNotificationId:q(n.id),packNotificationRef:q(n.reference),customerName:q(n.customer),deliveryNoteReference:q(n.deliveryNoteReference),packageType:q(n.packageType),packageCount:count,totalWeight:weight,note:q(n.note),
       rows:arr(n.packages).map((p,index)=>({count:1,packaging:q(n.packageType),l:Number(p&&p.length)||0,w:Number(p&&p.width)||0,h:Number(p&&p.height)||0,weight:perWeight,packageNo:Number(p&&p.packageNo)||index+1})),
-      deliveryFiles:arr(n.documents).map(doc=>Object.assign({},doc,{customerVisible:false,source:'pack_notification',packNotificationId:q(n.id),packNotificationRef:q(n.reference)}))
+      deliveryFiles:arr(n.documents).map(doc=>Object.assign({},doc,{customerVisible:false,customerAvisVisible:false,source:'pack_notification',packNotificationId:q(n.id),packNotificationRef:q(n.reference)}))
     };
   }
   function findShipmentForNotification(state,notification){
