@@ -75,3 +75,10 @@ test('RC1468: Build erzwingt einen neuen Cache-Key für die korrigierte History-
   assert.match(build,/rc1071-shipment-history\.js\?v=1468/);
   assert.match(build,/RC1468 Dokument-History Cache-Key fehlt/);
 });
+
+test('RC1468: Statusverlauf erfindet keinen aktuellen Status als historisches Ereignis',()=>{
+  const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
+  assert.doesNotMatch(build,/Aktueller Status: '\+current/);
+  assert.doesNotMatch(build,/current\|'+low\(current\)/);
+  assert.match(build,/raw\.forEach\(function\(row\)\{var h=historyItem\(row\)/);
+});
