@@ -51,105 +51,69 @@ function formatDate(value) {
   }
 }
 async function createPodPdf(record, signatureBuffer, signatureType) {
-  const { PDFDocument, StandardFonts } = require('pdf-lib');
+  const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
   const pdf = await PDFDocument.create();
   const normal = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
-  let page = pdf.addPage([595.28, 841.89]);
-  let y = 800;
-  const left = 48;
-  const width = 499;
-
-  function newPage() {
-    page = pdf.addPage([595.28, 841.89]);
-    y = 800;
-  }
-  function ensure(space) {
-    if (y - space < 54) newPage();
-  }
-  function line(label, value) {
-    const lines = wrap(value, 72);
-    ensure(18 + Math.max(0, lines.length - 1) * 13);
-    page.drawText(label, { x: left, y, size: 10, font: bold });
-    page.drawText(lines[0], { x: left + 135, y, size: 10, font: normal });
-    for (let i = 1; i < lines.length; i++) {
-      y -= 13;
-      page.drawText(lines[i], { x: left + 135, y, size: 10, font: normal });
-    }
-    y -= 18;
-  }
-  function heading(value) {
-    ensure(28);
-    y -= 4;
-    page.drawText(value, { x: left, y, size: 12, font: bold });
-    y -= 20;
-  }
-
-  page.drawText('ExportHUB - Abliefernachweis (POD)', { x: left, y, size: 19, font: bold });
-  y -= 28;
-  page.drawText('Automatisch nach digital bestaetigter Abholung erzeugt', { x: left, y, size: 9, font: normal });
-  y -= 28;
-
-  line('Referenz', record.reference || '-');
-  if (record.subShipmentLabel) line('Teilsendung', record.subShipmentLabel);
-  line('Kunde', record.customer || '-');
-  line('Empfaenger', record.recipient || '-');
-  line('Lieferadresse', record.address || '-');
-  line('Spedition', record.carrierName || record.speditionName || record.carrier || record.spedition || '-');
-
-  heading('Abholung');
+  const page = pdf.addPage([595.28, 841.89]);
+  const navy = rgb(.13,.22,.36), muted = rgb(.38,.44,.53), border = rgb(.76,.81,.87), pale = rgb(.96,.98,1), green = rgb(.91,.97,.93);
+  const x = 42, width = 511;
   const history = typeof store.pickupHistory === 'function' ? store.pickupHistory(record) : (Array.isArray(record.pickupHistory) ? record.pickupHistory : []);
   const last = history.length ? history[history.length - 1] : {};
-  line('Zeitpunkt', formatDate(record.confirmedAt || last.confirmedAt));
-  line('Fahrer', last.driverName || record.driverName || '-');
-  line('Kennzeichen', last.licensePlate || record.licensePlate || '-');
-  line('Verlader', last.loaderName || record.loaderName || record.loadedBy || '-');
-  line('Colli gesamt', String(typeof store.expectedCollis === 'function' ? store.expectedCollis(record) : (record.expectedColliCount || record.colliCount || '-')));
-  line('Colli abgeholt', String(typeof store.pickupCollectedColliCount === 'function' ? store.pickupCollectedColliCount(record) : (record.pickupCollectedColliCount || record.collectedPickupCollis || '-')));
-
-  const rows = Array.isArray(record.rows) ? record.rows : [];
-  if (rows.length) {
-    heading('Packstuecke');
-    for (let i = 0; i < Math.min(rows.length, 40); i++) {
-      const row = rows[i] || {};
-      const packaging = text(row.type || row.packaging || row.verpackung || row.packageType || row.packagingType) || 'Colli';
-      const count = row.count != null ? row.count : (row.quantity != null ? row.quantity : (row.qty != null ? row.qty : ''));
-      const weight = row.weight != null ? row.weight : (row.kg != null ? row.kg : '');
-      line((i + 1) + '.', packaging + (count !== '' ? ' - Anzahl ' + count : '') + (weight !== '' ? ' - ' + weight + ' kg' : ''));
-    }
-    if (rows.length > 40) line('Hinweis', 'Weitere ' + (rows.length - 40) + ' Positionen sind im ExportHUB-Datensatz dokumentiert.');
+  const value = (...parts) => parts.find(v => v !== undefined && v !== null && text(v)) || '-';
+  const draw = (s, px, py, size=9, font=normal, color=navy) => page.drawText(pdfText(s).slice(0,250), {x:px,y:py,size,font,color});
+  function card(label, content, cx, top, w, h=57) {
+    page.drawRectangle({x:cx,y:top-h,width:w,height:h,borderColor:border,borderWidth:.7,color:rgb(1,1,1)});
+    draw(label.toUpperCase(),cx+10,top-15,7,bold,muted);
+    const lines=wrap(content,Math.max(18,Math.floor((w-20)/4.8))).slice(0,3);
+    lines.forEach((s,i)=>draw(s,cx+10,top-30-i*11,9,i===0?bold:normal));
   }
-
-  heading('Fahrerunterschrift');
-  ensure(180);
-  let image = null;
-  try {
-    if (/png/i.test(signatureType || '')) image = await pdf.embedPng(signatureBuffer);
-    else image = await pdf.embedJpg(signatureBuffer);
-  } catch (_) {
-    image = null;
+  draw('ESSENTRA',x,796,16,bold,navy);
+  draw('LADELISTE / ABLIEFERNACHWEIS',x+126,796,16,bold,navy);
+  card('Sendungsreferenz',value(record.reference),x+355,781,156,55);
+  page.drawLine({start:{x,y:719},end:{x:x+width,y:719},thickness:1.4,color:navy});
+  card('Absender',value(record.senderName,record.sender,'Essentra Components Ltd'),x,706,247,65);
+  card('Empfaenger / Kunde',value(record.recipient,record.customer),x+259,706,252,65);
+  card('Transport / Anmeldung',value(record.carrierName,record.speditionName,record.carrier,record.spedition),x,629,247,56);
+  card('Lieferadresse',value(record.address),x+259,629,252,56);
+  const rows=Array.isArray(record.rows)?record.rows:[];
+  let y=557;
+  page.drawRectangle({x,y:y-25,width,color:pale,borderColor:border,borderWidth:.7});
+  draw('POS.',x+8,y-16,8,bold);draw('VERPACKUNG',x+48,y-16,8,bold);draw('ANZAHL',x+230,y-16,8,bold);draw('GEWICHT KG',x+335,y-16,8,bold);
+  y-=25;
+  for(const [i,row] of rows.slice(0,6).entries()){
+    const r=row||{};page.drawRectangle({x,y:y-21,width,height:21,borderColor:border,borderWidth:.45});
+    draw(String(i+1),x+8,y-14,8);draw(value(r.type,r.packaging,r.verpackung,r.packageType,r.packagingType),x+48,y-14,8);
+    draw(String(value(r.count,r.quantity,r.qty)),x+230,y-14,8);draw(String(value(r.weight,r.kg)),x+335,y-14,8);y-=21;
   }
-  if (image) {
-    const dims = image.scale(1);
-    const maxW = width;
-    const maxH = 150;
-    const scale = Math.min(maxW / dims.width, maxH / dims.height, 1);
-    page.drawRectangle({ x: left, y: y - maxH + 8, width: maxW, height: maxH, borderWidth: 1 });
-    page.drawImage(image, { x: left + 8, y: y - Math.min(maxH - 16, dims.height * scale), width: dims.width * scale, height: dims.height * scale });
-    y -= maxH + 10;
-  } else {
-    page.drawText('Unterschrift ist im geschuetzten ExportHUB-POD-Speicher hinterlegt.', { x: left, y, size: 10, font: normal });
-    y -= 22;
-  }
-
-
-  ensure(55);
-  page.drawText('Nachweis-ID: ' + text(record.accessKey || '').slice(0, 20), { x: left, y, size: 8, font: normal });
-  y -= 12;
-  page.drawText('Erzeugt: ' + formatDate(new Date().toISOString()), { x: left, y, size: 8, font: normal });
-  y -= 12;
-  page.drawText('Quelle: ExportHUB QR-Abholung', { x: left, y, size: 8, font: normal });
-
+  if(rows.length>6){draw('Weitere '+(rows.length-6)+' Packstueckpositionen im ExportHUB-Datensatz',x+8,y-12,8);y-=19;}
+  y-=13;
+  card('Colli gesamt',String(typeof store.expectedCollis==='function'?store.expectedCollis(record):value(record.expectedColliCount,record.colliCount)),x,y,247,49);
+  card('Colli abgeholt',String(typeof store.pickupCollectedColliCount==='function'?store.pickupCollectedColliCount(record):value(record.pickupCollectedColliCount,record.collectedPickupCollis)),x+259,y,252,49);
+  y-=64;
+  const top=y;
+  page.drawRectangle({x,y:top-24,width,height:24,color:green,borderColor:border,borderWidth:.7});
+  draw('SENDUNG ABGEHOLT',x+10,top-16,10,bold);
+  draw(formatDate(value(record.confirmedAt,last.confirmedAt)),x+320,top-16,8,bold);
+  y=top-30;
+  const cellW=(width-12)/3;
+  card('Fahrer',value(last.driverName,record.driverName),x,y,cellW,51);
+  card('Kennzeichen',value(last.licensePlate,record.licensePlate),x+cellW+6,y,cellW,51);
+  card('Verlader',value(last.loaderName,record.loaderName,record.loadedBy),x+2*(cellW+6),y,cellW,51);
+  y-=57;
+  card('Spedition',value(record.carrierName,record.speditionName,record.carrier,record.spedition),x,y,cellW,76);
+  card('Fahrerunterschrift','',x+cellW+6,y,cellW,76);
+  const palletOut=value(last.euroPalletsOut,record.euroPalletsOut,record.palletsOut,0);
+  const palletIn=value(last.euroPalletsIn,record.euroPalletsIn,record.palletsIn,0);
+  card('Europaletten','Ausgang: '+palletOut+' / Eingang: '+palletIn,x+2*(cellW+6),y,cellW,76);
+  let image=null;
+  try { image=/png/i.test(signatureType||'')?await pdf.embedPng(signatureBuffer):await pdf.embedJpg(signatureBuffer); }catch(_){}
+  if(image){
+    const dims=image.scale(1),maxW=cellW-20,maxH=43,scale=Math.min(maxW/dims.width,maxH/dims.height);
+    page.drawImage(image,{x:x+cellW+16,y:y-68,width:dims.width*scale,height:dims.height*scale});
+  }else draw('Unterschrift gespeichert',x+cellW+16,y-48,8);
+  draw('Nachweis-ID: '+text(record.accessKey||'').slice(0,20),x,49,7,normal,muted);
+  draw('Quelle: ExportHUB QR-Abholung',x+245,49,7,normal,muted);
   return Buffer.from(await pdf.save());
 }
 async function readAutomaticPodBuffer(accessKey, environment, record) {
