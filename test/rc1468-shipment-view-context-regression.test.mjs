@@ -69,3 +69,9 @@ test('RC1468: bloßes Öffnen der Nur-Lesen-Sendungsansicht erzeugt keinen Arbei
   assert.equal(viewed.shipmentHistory.length,0);
   assert.equal(calls.length,0);
 });
+
+test('RC1468: Build erzwingt einen neuen Cache-Key für die korrigierte History-Runtime',()=>{
+  const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
+  assert.match(build,/rc1071-shipment-history\.js\?v=1468/);
+  assert.match(build,/RC1468 Dokument-History Cache-Key fehlt/);
+});
