@@ -4,9 +4,7 @@ import {appEntry,waitReady,openExportHubView,installE2ESession,settleStateSave,a
 const token=String(process.env.EXPORTHUB_E2E_PACK_STATION_TOKEN||'').trim();
 
 async function createPackNotification(page,suffix='A'){
-  const base=new URL(appEntry());
-  const url=new URL(`/pack/${encodeURIComponent(token)}`,base.origin);
-  await page.goto(url.href,{waitUntil:'domcontentloaded'});
+  await page.goto(`/pack/${encodeURIComponent(token)}`,{waitUntil:'domcontentloaded'});
   await expect(page.locator('#packForm')).toBeVisible({timeout:20_000});
   await page.locator('#packCustomer').fill(`E2E PACK CUSTOMER ${suffix}`);
   await page.locator('#packDeliveryNote').fill(`E2E-LS-${suffix}`);
@@ -60,7 +58,7 @@ test('QR pack flow creates isolated task, notification detail and shipment hando
   await expect(page.locator('#packNotificationDetail')).toBeVisible();
   await expect(page.locator('#packNotificationDetail')).toContainText('680 kg');
   await expect(page.locator('#packNotificationDetail')).toContainText('120 × 80 × 145');
-  await expect(page.locator('#packNotificationDetail')).toContainText(`E2E-A.pdf`);
+  await expect(page.locator('#packNotificationDetail')).toContainText('E2E-A.pdf');
 
   await page.locator('[data-pack-action="shipment"]').click();
   await expect(page.locator('#rc363BlockCustomer')).toBeVisible({timeout:30_000});
