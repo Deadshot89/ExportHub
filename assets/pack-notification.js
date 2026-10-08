@@ -1,8 +1,8 @@
 (function(){
   'use strict';
   const $=id=>document.getElementById(id);
-  const state={stationToken:'',sessionId:'',stationName:'',idempotencyKey:'',documents:[],submitLocked:false};
-  const els={form:$('packForm'),loading:$('packLoading'),error:$('packError'),station:$('packStation'),customer:$('packCustomer'),delivery:$('packDeliveryNote'),type:$('packPackageType'),count:$('packPackageCount'),weight:$('packWeight'),rows:$('packPackageRows'),files:$('packDocuments'),fileList:$('packDocumentList'),note:$('packNote'),submit:$('packSubmit'),hint:$('packValidationHint'),success:$('packSuccess'),successRef:$('packSuccessReference'),successCustomer:$('packSuccessCustomer'),restart:$('packRestart')};
+  const state={stationToken:'',sessionId:'',stationName:'',idempotencyKey:'',documents:[],submitLocked:false,selectedCustomer:null,customCustomerConfirmed:false,customerSearchTimer:null,customerQuerySeq:0};
+  const els={form:$('packForm'),loading:$('packLoading'),error:$('packError'),station:$('packStation'),customer:$('packCustomer'),customerResults:$('packCustomerResults'),customerManual:$('packCustomerManual'),customerManualConfirm:$('packCustomerManualConfirm'),customerSelected:$('packCustomerSelected'),delivery:$('packDeliveryNote'),type:$('packPackageType'),count:$('packPackageCount'),weight:$('packWeight'),rows:$('packPackageRows'),files:$('packDocuments'),fileList:$('packDocumentList'),note:$('packNote'),submit:$('packSubmit'),hint:$('packValidationHint'),success:$('packSuccess'),successRef:$('packSuccessReference'),successCustomer:$('packSuccessCustomer'),restart:$('packRestart')};
 
   function tokenFromPath(){
     const parts=location.pathname.split('/').filter(Boolean);
@@ -37,15 +37,26 @@
   function escapeHtml(value){return String(value||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
   function formatBytes(bytes){const n=Number(bytes)||0;if(n<1024)return`${n} B`;if(n<1024*1024)return`${(n/1024).toFixed(1)} KB`;return`${(n/1024/1024).toFixed(1)} MB`;}
   function collectPackages(){return packageRows().map((row,index)=>({packageNo:index+1,length:positive(row.querySelector('[data-dim="length"]')?.value),width:positive(row.querySelector('[data-dim="width"]')?.value),height:positive(row.querySelector('[data-dim="height"]')?.value),unit:'cm'}));}
+  function customerReady(){return !!state.selectedCustomer||state.customCustomerConfirmed;}
   function valid(){
-    if(!state.sessionId||!els.customer.value.trim()||!els.delivery.value.trim()||!els.type.value)return false;
+    if(!state.sessionId||!els.customer.value.trim()||!customerReady()||!els.delivery.value.trim()||!els.type.value)return false;
     const count=Number(els.count.value);if(!Number.isInteger(count)||count<1||!positive(els.weight.value))return false;
     const rows=collectPackages();if(rows.length!==count||rows.some(x=>!x.length||!x.width||!x.height))return false;
     return state.documents.length>0;
   }
-  function validateForm(){const ok=valid()&&!state.submitLocked;els.submit.disabled=!ok;els.hint.textContent=ok?'Bereit zum Senden.':'Bitte alle Pflichtfelder, Maße und mindestens einen Lieferschein erfassen.';return ok;}
+  function validateForm(){const ok=valid()&&!state.submitLocked;els.submit.disabled=!ok;els.hint.textContent=ok?'Bereit zum Senden.':'Bitte Kunde bestätigen, alle Pflichtfelder, Maße und mindestens einen Lieferschein erfassen.';return ok;}
   function fileToData(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve({id:crypto.randomUUID(),name:file.name,mimeType:file.type,size:file.size,data:String(reader.result||'')});reader.onerror=()=>reject(new Error(`Datei ${file.name} konnte nicht gelesen werden.`));reader.readAsDataURL(file);});}
   async function api(action,payload){const res=await fetch(`/api/pack-notification?action=${encodeURIComponent(action)}`,{method:'POST',credentials:'omit',cache:'no-store',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(payload)});const data=await res.json().catch(()=>({}));if(!res.ok||data.ok===false){const err=new Error(data.message||`HTTP ${res.status}`);err.code=data.code||'PACK_REQUEST_FAILED';throw err;}return data;}
+  function clearCustomerResults(){els.customerResults.innerHTML='';els.customerResults.hidden=true;}
+  function showManualCustomer(){const value=els.customer.value.trim();els.customerManual.hidden=value.length<2||!!state.selectedCustomer||state.customCustomerConfirmed;els.customerSelected.hidden=true;}
+  function selectCustomer(customer){state.selectedCustomer={id:String(customer.id||''),account:String(customer.account||''),name:String(customer.name||'')};state.customCustomerConfirmed=false;els.customer.value=state.selectedCustomer.name;clearCustomerResults();els.customerManual.hidden=true;els.customerSelected.textContent=`${state.selectedCustomer.name}${state.selectedCustomer.account?` · ${state.selectedCustomer.account}`:''}`;els.customerSelected.hidden=false;validateForm();}
+  function renderCustomerResults(customers){clearCustomerResults();const list=Array.isArray(customers)?customers:[];if(!list.length){showManualCustomer();validateForm();return;}for(const customer of list){const button=document.createElement('button');button.type='button';button.dataset.customerId=String(customer.id||'');button.innerHTML=`<strong>${escapeHtml(customer.name||'')}</strong><small>${escapeHtml(customer.account||'')}</small>`;button.addEventListener('click',()=>selectCustomer(customer));els.customerResults.appendChild(button);}els.customerResults.hidden=false;els.customerManual.hidden=true;}
+  function scheduleCustomerSearch(){
+    state.selectedCustomer=null;state.customCustomerConfirmed=false;els.customerSelected.hidden=true;clearCustomerResults();els.customerManual.hidden=true;validateForm();
+    clearTimeout(state.customerSearchTimer);const query=els.customer.value.trim();if(query.length<2)return;
+    const seq=++state.customerQuerySeq;
+    state.customerSearchTimer=setTimeout(async()=>{try{const data=await api('customer-search',{stationToken:state.stationToken,query});if(seq!==state.customerQuerySeq)return;renderCustomerResults(data.customers);}catch(err){if(seq!==state.customerQuerySeq)return;clearCustomerResults();showManualCustomer();}},250);
+  }
   async function startSession(){
     clearError();state.stationToken=tokenFromPath();state.idempotencyKey=crypto.randomUUID();
     if(!state.stationToken){els.loading.hidden=true;showError('Ungültiger QR-Code: Packtisch-Token fehlt.');return;}
@@ -56,12 +67,16 @@
     event.preventDefault();if(state.submitLocked||!validateForm())return;
     state.submitLocked=true;validateForm();clearError();els.submit.textContent='Wird gesendet …';
     try{
-      const payload={stationToken:state.stationToken,sessionId:state.sessionId,idempotencyKey:state.idempotencyKey,customer:els.customer.value.trim(),deliveryNoteReference:els.delivery.value.trim(),packageType:els.type.value,packageCount:Number(els.count.value),totalWeight:Number(els.weight.value),packages:collectPackages(),note:els.note.value.trim(),documents:state.documents};
+      const selected=state.selectedCustomer;
+      const payload={stationToken:state.stationToken,sessionId:state.sessionId,idempotencyKey:state.idempotencyKey,customer:els.customer.value.trim(),customerId:selected?selected.id:'',customerAccount:selected?selected.account:'',customerSource:selected?'master':'manual',deliveryNoteReference:els.delivery.value.trim(),packageType:els.type.value,packageCount:Number(els.count.value),totalWeight:Number(els.weight.value),packages:collectPackages(),note:els.note.value.trim(),documents:state.documents};
       const data=await api('submit',payload);els.form.hidden=true;els.success.hidden=false;els.successRef.textContent=data.reference||'–';els.successCustomer.textContent=payload.customer;els.station.textContent=state.stationName;history.replaceState(null,'',location.pathname);
     }catch(err){state.submitLocked=false;els.submit.textContent='An ExportHUB senden';showError(err.message||'Packmeldung konnte nicht gesendet werden.');validateForm();}
   }
+  els.customer.addEventListener('input',scheduleCustomerSearch);
+  els.customer.addEventListener('focus',()=>{if(els.customer.value.trim().length>=2&&!state.selectedCustomer&&!state.customCustomerConfirmed)scheduleCustomerSearch();});
+  els.customerManualConfirm.addEventListener('click',()=>{if(els.customer.value.trim().length<2)return;state.selectedCustomer=null;state.customCustomerConfirmed=true;clearCustomerResults();els.customerManual.hidden=true;els.customerSelected.textContent=`Manueller Kunde · ${els.customer.value.trim()}`;els.customerSelected.hidden=false;validateForm();});
   els.count.addEventListener('input',renderPackages);
-  els.form.addEventListener('input',validateForm);
+  els.form.addEventListener('input',event=>{if(event.target!==els.customer)validateForm();});
   els.form.addEventListener('change',validateForm);
   els.form.addEventListener('submit',submit);
   els.files.addEventListener('change',async()=>{clearError();try{const files=Array.from(els.files.files||[]);const converted=[];for(const file of files)converted.push(await fileToData(file));state.documents=[...state.documents,...converted];els.files.value='';renderDocuments();}catch(err){showError(err.message);}});
