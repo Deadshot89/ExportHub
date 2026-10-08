@@ -31,7 +31,7 @@ function validSubmit(token,sessionId,overrides={}){
   return{
     stationToken:token,sessionId,idempotencyKey:'idem-001',customer:'BSH Hausgeräte',deliveryNoteReference:'LS123456',packageType:'Europalette',packageCount:1,totalWeight:480,
     packages:[{packageNo:1,length:120,width:80,height:140,unit:'cm'}],note:'',
-    documents:[{id:'doc-1',name:'LS123456.pdf',mimeType:'application/pdf',size:32,data:'data:application/pdf;base64,JVBERi0xLjQKJSVFT0Y='}],
+    documents:[{id:'doc-1',name:'LS123456.pdf',mimeType:'application/pdf',size:14,data:'data:application/pdf;base64,JVBERi0xLjQKJSVFT0Y='}],
     ...overrides
   };
 }
@@ -69,16 +69,24 @@ test('submit rejects missing fields and non-positive dimensions or weight',async
 test('submit accepts PDF JPEG and PNG but rejects extension/MIME mismatch',async()=>{
   const api=require('../api/pack-notification/index.js');
   for(const doc of [
-    {name:'a.pdf',mimeType:'application/pdf',size:10,data:'data:application/pdf;base64,JVBERg=='},
-    {name:'a.jpg',mimeType:'image/jpeg',size:10,data:'data:image/jpeg;base64,/9j/2Q=='},
-    {name:'a.png',mimeType:'image/png',size:10,data:'data:image/png;base64,iVBORw0KGgo='}
+    {name:'a.pdf',mimeType:'application/pdf',data:'data:application/pdf;base64,JVBERi0xLjQ='},
+    {name:'a.jpg',mimeType:'image/jpeg',data:'data:image/jpeg;base64,/9j/2Q=='},
+    {name:'a.png',mimeType:'image/png',data:'data:image/png;base64,iVBORw0KGgo='}
   ]) assert.equal(api.validateDocuments([doc],1024).length,1);
-  assert.throws(()=>api.validateDocuments([{name:'fake.pdf',mimeType:'image/png',size:10,data:'data:image/png;base64,iVBORw0KGgo='}],1024),e=>e&&e.code==='PACK_DOCUMENT_TYPE_MISMATCH');
+  assert.throws(()=>api.validateDocuments([{name:'fake.pdf',mimeType:'image/png',data:'data:image/png;base64,iVBORw0KGgo='}],1024),e=>e&&e.code==='PACK_DOCUMENT_TYPE_MISMATCH');
 });
 
-test('submit rejects files above configured size limit',()=>{
+test('submit rejects forged client size when decoded payload exceeds limit',()=>{
   const api=require('../api/pack-notification/index.js');
-  assert.throws(()=>api.validateDocuments([{name:'a.pdf',mimeType:'application/pdf',size:2048,data:'data:application/pdf;base64,JVBERg=='}],1024),e=>e&&e.code==='PACK_DOCUMENT_TOO_LARGE');
+  const bytes=Buffer.concat([Buffer.from('%PDF-1.4\n'),Buffer.alloc(2048,65)]);
+  const data='data:application/pdf;base64,'+bytes.toString('base64');
+  assert.throws(()=>api.validateDocuments([{name:'a.pdf',mimeType:'application/pdf',size:10,data}],1024),e=>e&&e.code==='PACK_DOCUMENT_TOO_LARGE');
+});
+
+test('submit validates actual file signature and rejects MIME-correct fake content',()=>{
+  const api=require('../api/pack-notification/index.js');
+  const fake='data:application/pdf;base64,'+Buffer.from('NOT A PDF').toString('base64');
+  assert.throws(()=>api.validateDocuments([{name:'fake.pdf',mimeType:'application/pdf',data:fake}],1024),e=>e&&e.code==='PACK_DOCUMENT_SIGNATURE_INVALID');
 });
 
 test('submit rejects an expired session',async()=>{
