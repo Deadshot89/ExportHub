@@ -676,8 +676,6 @@ function historyHtml(sh){
  var completedAt=q(sh&&sh.completedAt),archivedAt=q(sh&&sh.archivedAt);
  if(completedAt)add(completedAt,'Abgeschlossen',q(sh.completedBy),'completed|'+completedAt);
  if(archivedAt)add(archivedAt,'Archiviert',q(sh.archivedBy),'archived|'+archivedAt);
- var current=status(sh),currentAt=q(sh&&(sh.statusChangedAt||sh.statusUpdatedAt||sh.updatedAt||sh._syncUpdatedAt));
- if(current&&!list.some(function(x){return low(x.label).indexOf(low(current))>=0}))add(currentAt,'Aktueller Status: '+current,'','current|'+low(current));
  list.sort(function(a,b){var aa=a.stamp||Number.MAX_SAFE_INTEGER,bb=b.stamp||Number.MAX_SAFE_INTEGER;return aa-bb});
  if(!list.length)return '<div class="rc776-empty">Für diese Sendung sind noch keine fachlichen Bewegungsdaten gespeichert.</div>';
  return '<div class="rc776-history">'+list.slice(-30).map(function(x){return '<div class="rc776-history-row"><time>'+esc(x.at?fmtDate(x.at):'–')+'</time><div><b>'+esc(x.label)+'</b>'+(x.detail?'<small> · '+esc(x.detail)+'</small>':'')+'</div></div>'}).join('')+'</div>'
