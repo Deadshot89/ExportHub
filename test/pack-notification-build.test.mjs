@@ -18,6 +18,10 @@ test('runtime injection is idempotent and ordered after existing document head',
   assert.ok(a>0&&b>a&&c>b);
 });
 
+test('pack build contract includes the shared packaging catalog used by pack.html',()=>{
+  assert.ok(PACK_ASSETS.includes('packaging-catalog.js'));
+});
+
 test('copyPackFiles carries public qr page and every runtime asset into build output',()=>{
   const root=fs.mkdtempSync(path.join(os.tmpdir(),'pack-build-src-'));
   const out=fs.mkdtempSync(path.join(os.tmpdir(),'pack-build-out-'));
