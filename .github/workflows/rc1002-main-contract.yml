@@ -18,6 +18,7 @@ on:
       - 'api/**'
       - 'assets/**'
       - 'android-app/**'
+      - 'scripts/**'
       - 'test/**'
       - '.github/rc1000/**'
       - '.github/rc1001/**'
