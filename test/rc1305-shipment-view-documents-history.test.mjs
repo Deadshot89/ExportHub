@@ -74,7 +74,7 @@ test('RC1305: eine ausdrückliche Dokumentöffnung wird weiterhin protokolliert'
 
 test('RC1305: Sendungsansicht verbindet Ref-Ordner, gespeicherte Anhänge und Blob-Dokumente',()=>{
   assert.match(buildSource,/function mergeReferenceDocs\(live,fallback\)/);
-  assert.match(buildSource,/fallback=arr\(fallback\)\.filter\(fallbackDocUsable\)/);
+  assert.match(buildSource,/fallback=arr\(fallback\)\.concat\(extra\)\.filter\(Boolean\)\.filter\(fallbackDocUsable\)/);
   assert.match(buildSource,/ExportHUBDocumentBlob1059/);
   assert.match(buildSource,/source==='combined'/);
   assert.match(buildSource,/Ref-Ordner \+ gespeicherte Anhänge/);
