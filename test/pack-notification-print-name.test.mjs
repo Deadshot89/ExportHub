@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const runtime=fs.readFileSync('assets/rc1305-loading-list-print.js','utf8');
+const printNames=fs.readFileSync('assets/document-print-name.js','utf8');
 
 function api(){
   const document={
@@ -11,8 +12,10 @@ function api(){
     head:{appendChild(){}},
     createElement(tag){return{tagName:String(tag||'').toUpperCase(),style:{},setAttribute(){},appendChild(){},querySelector(){return null},querySelectorAll(){return[]},className:'',textContent:''};}
   };
-  const window={document,console,ExportHUBI18n:null};
-  vm.runInContext(runtime,vm.createContext({window,document,console,Array,Object,String,Number,Math,RegExp,Date}));
+  const window={document,console,ExportHUBI18n:null,setTimeout(fn){fn();return 1;}};
+  const context=vm.createContext({window,document,console,Array,Object,String,Number,Math,RegExp,Date,globalThis:window});
+  vm.runInContext(runtime,context);
+  vm.runInContext(printNames,context);
   return window.ExportHUBRC1305LoadingListPrint;
 }
 
