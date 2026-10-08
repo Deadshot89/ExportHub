@@ -83,11 +83,14 @@ test('pack client loads saved packaging master data and merges it with safe fall
 test('packaging options are sorted into a practical warehouse order',()=>{
   const js=read('assets/pack-notification.js');
   assert.match(js,/function packagingSortRank/);
-  assert.match(js,/Euro Palette/);
-  assert.match(js,/Einwegpalette/);
-  assert.match(js,/Industrie Palette/);
-  assert.match(js,/Düsseldorfer Palette/);
-  assert.match(js,/^|[^A-Za-z]E0[^A-Za-z]|E0/);
+  assert.match(js,/europalette:10/);
+  assert.match(js,/einwegpalette:20/);
+  assert.match(js,/industriepalette:30/);
+  assert.match(js,/dusseldorferpalette:40/);
+  assert.match(js,/kunststoffpalette:50/);
+  assert.match(js,/palettengestell:60/);
+  assert.match(js,/\^e\(\[0-6\]\)\$/);
+  assert.match(js,/gestapelteuropalette/);
   assert.match(js,/localeCompare/);
 });
 
