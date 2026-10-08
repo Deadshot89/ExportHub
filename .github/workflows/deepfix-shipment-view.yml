@@ -61,5 +61,14 @@ jobs:
           if git diff --cached --quiet; then exit 0; fi
           git commit -m "fix: normalize shipment view context timeline and cache patch [deepfix-clean]"
           git push origin HEAD:deepfix/shipment-view-context-20261008
-      - name: Full repository test suite
-        run: npm test
+      - name: Full repository test suite with compact failure diagnostics
+        shell: bash
+        run: |
+          set +e
+          npm test > /tmp/npm-test.log 2>&1
+          code=$?
+          echo '=== FAILURES ==='
+          grep -nE '(^not ok|FAIL|AssertionError|ERR_|Error:|Expected|Actual|✗|⨯)' /tmp/npm-test.log | tail -n 300 || true
+          echo '=== FINAL 260 LINES ==='
+          tail -n 260 /tmp/npm-test.log
+          exit "$code"
