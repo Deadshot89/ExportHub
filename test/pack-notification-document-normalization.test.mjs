@@ -28,6 +28,12 @@ async function store(name,buffer){
   return mod.storeInlineDocument({id:'D1',name,mimeType:'application/pdf',data:dataUrl(buffer)},{environment:'testservice',container:fakeContainer()});
 }
 
+test('PDF text extractor reads literal and FlateDecode text used for DNC SIDE detection',()=>{
+  const pdf=require('../api/shared/pdf-document-reference.js');
+  assert.match(pdf.extractPdfText(plainPdf('Delivery note DNC 3019222063 customer copy')),/DNC 3019222063/);
+  assert.match(pdf.extractPdfText(flatePdf('Packing Slip SIDE-250071282')),/SIDE-250071282/);
+});
+
 test('central document storage renames a text PDF to its unique DNC reference',async()=>{
   const out=await store('scan-4711.pdf',plainPdf('Delivery note DNC 3019222063 customer copy'));
   assert.equal(out.name,'DNC3019222063.pdf');
