@@ -23,7 +23,7 @@ test('RC1467: bewusste Lieferavis-Aktivierung behält die normale Save-/Colli-Pr
   assert.match(manual,/rc1015PersistBeforeAvis\s*\(/,'Manuelle Aktivierung muss weiterhin den normalen validierten Save-Pfad verwenden');
 });
 
-test('RC1467: Produktionsbuild erzwingt frischen Lieferavis-Runtime-Request',()=>{
-  const builder=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
-  assert.match(builder,/\/assets\/rc1015-lieferavis-mail-flow\.js\?v=1383&rc=1467/,'RC1467 Cache-Bust fehlt im Produktionsbuild');
+test('RC1467: tatsächliche Build-Quelle erzwingt frischen Lieferavis-Runtime-Request',()=>{
+  const builder=fs.readFileSync('.github/rc1013/build-three-env.mjs','utf8');
+  assert.match(builder,/\/assets\/rc1015-lieferavis-mail-flow\.js\?v=1383&rc=1467/,'RC1467 Cache-Bust fehlt an der tatsächlichen historischen Build-Quelle');
 });
