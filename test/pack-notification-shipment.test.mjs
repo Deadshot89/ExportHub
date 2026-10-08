@@ -4,10 +4,10 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 function load(){
-  const source=fs.readFileSync('assets/pack-notification-internal.js','utf8');
+  const source=fs.readFileSync('assets/pack-notification-shipment.js','utf8');
   const root={};
-  vm.runInContext(source,vm.createContext({window:root,globalThis:root,console,Date,Intl,setTimeout,clearTimeout}),{filename:'pack-notification-internal.js'});
-  return root.ExportHUBPackNotifications;
+  vm.runInContext(source,vm.createContext({window:root,globalThis:root,console,Date,Intl,setTimeout,clearTimeout}),{filename:'pack-notification-shipment.js'});
+  return root.ExportHUBPackShipment;
 }
 function state(){return{packNotifications:[{id:'pn-1',reference:'PK-1',customer:'BSH',deliveryNoteReference:'LS1',packageType:'Europalette',packageCount:2,totalWeight:600,packages:[{packageNo:1,length:120,width:80,height:140,unit:'cm'},{packageNo:2,length:120,width:80,height:130,unit:'cm'}],documents:[{id:'d1',name:'LS1.pdf',storage:'blob',blobName:'rc1059/production/aa/'+('a'.repeat(64)),mimeType:'application/pdf',size:12}],status:'in_review'}],tasks:[{id:'task:pack:pn-1',sourceType:'pack_notification',sourceId:'pn-1',sourceRef:'PK-1'}],shipments:[]};}
 
