@@ -15,7 +15,7 @@ function escRe(v){return q(v).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}
 function arr(v){return Array.isArray(v)?v:[]}
 function obj(v){return v&&typeof v==='object'&&!Array.isArray(v)}
 function now(){return new Date().toISOString()}
-function esc(v){return q(v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]})}
+function esc(v){return q(v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function state(){try{if(typeof w.__EXPORTHUB_GET_STATE__==='function')return w.__EXPORTHUB_GET_STATE__()||{}}catch(_){}return w.ExportHUBClean&&w.ExportHUBClean.state||w.appState||{}}
 function currentUser(){var s=state();try{if(typeof w.__EXPORTHUB_GET_CURRENT_USER__==='function'){var u=w.__EXPORTHUB_GET_CURRENT_USER__();if(u)return u}}catch(_){}return s.currentUser||s.activeUser||w.currentUser||{}}
 function actorFrom(user){user=user||{};return{name:q(user.name||user.displayName||user.fullName||user.user||user.username||user.login)||de('shipmentHistory.actor.unknown'),id:q(user.id||user.userId||user.user||user.username||user.login),role:q(user.role||user.rolle)}}
@@ -233,6 +233,7 @@ function printBubble(ev){
 }
 function click(ev){
  var el=ev.target&&ev.target.closest&&ev.target.closest('button,a,[role="button"]');if(!el)return;
+ // The AVIS draft flow logs its own shipment and must never imply mail delivery.
  if(el.closest&&el.closest('#rc1166AvisReminderDialog,[data-rc1166-avis-reminder],[data-rc1166-mail-draft]'))return;
  var sh=currentShipment();if(!sh)return;
  var text=q(el.textContent)+' '+q(el.getAttribute&&el.getAttribute('title'))+' '+q(el.getAttribute&&el.getAttribute('data-action')),actionText=low(text),contextText=elementContext(el,text),l=low(contextText);
@@ -260,6 +261,9 @@ function click(ev){
  if(knownDoc&&(/öffnen|open|anzeigen|view|pdf/.test(actionText)||(/\.pdf(?:[?#]|$)/i.test(href)))){
    if(actionOnce('document-open|'+identity(sh)+'|'+doc+'|'+file,1800))recordDocumentAction(sh,'open',doc,file);return
  }
+ // RC1305: Ein Dokument gilt nur dann als geöffnet, wenn die konkrete Aktion
+ // ausdrücklich Öffnen/Anzeigen/PDF auslöst. Reine Navigation wie
+ // "Ladeliste & CMR" darf keinen Audit-Eintrag "CMR – geöffnet" erzeugen.
  if(/speichern/.test(l)&&!/einstellung|vorlage|stammdaten/.test(l)){
    if(actionOnce('save|'+identity(sh),2500))append(sh,{type:'saved',label:de('shipmentHistory.action.shipmentSavedManually'),actor:actorFrom(currentUser()),details:{status:statusOf(sh)}});return
  }
@@ -287,5 +291,5 @@ try{w.addEventListener('click',printBubble,false)}catch(_){}
 try{w.addEventListener('exporthub:customer-avis-updated',avisUpdated)}catch(_){}
 try{w.addEventListener('exporthub:document-action',documentActionEvent)}catch(_){}
 setInterval(function(){try{hookPersist();monitor()}catch(_){}},2500);
-w.ExportHUBShipmentHistory1071=Object.freeze({version:'RC1468',append:append,events:allEvents,render:render,currentShipment:currentShipment,actor:actorFrom,monitor:monitor,markWorkStarted:markWorkStarted,documentLabel:documentLabel,documentActionFileName:documentActionFileName,recordDocumentAction:recordDocumentAction,printFromElement:printFromElement,printBubble:printBubble,mailTypeFrom:mailTypeFrom,mailSentLabel:mailSentLabel,statusLabel:statusLabel,displayAction:displayAction,creatorMetaText:creatorMetaText,repairCreatorMetaSpacing:repairCreatorMetaSpacing});
+w.ExportHUBShipmentHistory1071=Object.freeze({version:'RC1305',append:append,events:allEvents,render:render,currentShipment:currentShipment,actor:actorFrom,monitor:monitor,markWorkStarted:markWorkStarted,documentLabel:documentLabel,documentActionFileName:documentActionFileName,recordDocumentAction:recordDocumentAction,printFromElement:printFromElement,printBubble:printBubble,mailTypeFrom:mailTypeFrom,mailSentLabel:mailSentLabel,statusLabel:statusLabel,displayAction:displayAction,creatorMetaText:creatorMetaText,repairCreatorMetaSpacing:repairCreatorMetaSpacing});
 })(window);
