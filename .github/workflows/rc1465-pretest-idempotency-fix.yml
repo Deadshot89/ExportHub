@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/rc1465-pretest-idempotency-fix.yml'
+      - 'test/rc1464-startup-colli-release.test.mjs'
   workflow_dispatch:
 
 permissions:
