@@ -1,0 +1,105 @@
+name: RC1465 Pretest Idempotency Fix
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/rc1465-pretest-idempotency-fix.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rc1465-pretest-idempotency-fix
+  cancel-in-progress: true
+
+jobs:
+  patch_verify_commit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout current main
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 2
+
+      - name: Node 20
+        uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+
+      - name: Confirm current pretest failure
+        id: before
+        continue-on-error: true
+        run: node scripts/rc1462-pretest.mjs
+
+      - name: Require failing release gate before patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ steps.before.outcome }}" != "failure" ]; then
+            echo 'Expected current RC1462 pretest to fail before the idempotency fix.' >&2
+            exit 1
+          fi
+
+      - name: Make RC1458 startup hotfix idempotent
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('fs');
+          const path='scripts/rc1452-mail-goods-print-hotfix.mjs';
+          let source=fs.readFileSync(path,'utf8');
+
+          const patchLine="  source=patchInsideFunction(source,'function repairContaminatedGoodsDescription(){','function snapshotShipmentDraft(){',persistBefore,persistAfter,'RC1458 silent startup repair');";
+          const guarded=[
+            "  const startupRepairStart=source.indexOf('function repairContaminatedGoodsDescription(){');",
+            "  const startupRepairEnd=startupRepairStart<0?-1:source.indexOf('function snapshotShipmentDraft(){',startupRepairStart);",
+            "  if(startupRepairStart<0||startupRepairEnd<0)throw new Error('RC1458 silent startup repair: Funktionsgrenze fehlt');",
+            "  const startupRepairBlock=source.slice(startupRepairStart,startupRepairEnd);",
+            "  if(/ExportHUBRC565|persistShipment/.test(startupRepairBlock)){",
+            "   source=patchInsideFunction(source,'function repairContaminatedGoodsDescription(){','function snapshotShipmentDraft(){',persistBefore,persistAfter,'RC1458 silent startup repair');",
+            "  }else if(!/ExportHUBClean[\\s\\S]*?queueSave/.test(startupRepairBlock)){",
+            "   throw new Error('RC1458 silent startup repair: stille Persistenz fehlt');",
+            "  }"
+          ].join('\n');
+          if(!source.includes(patchLine))throw new Error('RC1458 patch call anchor missing');
+          source=source.replace(patchLine,guarded);
+
+          const oldValidation="if(!repairBlock.includes(\"queueSave('RC1458 Warenbeschreibung Hintergrundreparatur')\")||/ExportHUBRC565|persistShipment/.test(repairBlock))throw new Error('RC1458 Login-/Startup-Reparatur ist nicht still');";
+          const newValidation="if(!/ExportHUBClean[\\s\\S]*?queueSave/.test(repairBlock)||/ExportHUBRC565|persistShipment/.test(repairBlock))throw new Error('RC1458 Login-/Startup-Reparatur ist nicht still');";
+          if(!source.includes(oldValidation))throw new Error('RC1458 final validation anchor missing');
+          source=source.replace(oldValidation,newValidation);
+
+          fs.writeFileSync(path,source);
+          NODE
+
+      - name: Pretest is now repeatable and green
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/rc1462-pretest.mjs
+          node scripts/rc1462-pretest.mjs
+
+      - name: Verify startup Colli regressions
+        run: node --test test/rc1267-i18n.test.mjs test/rc1464-startup-colli-release.test.mjs
+
+      - name: Run full release regression
+        run: npm test
+
+      - name: Commit verified pretest fix to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/rc1452-mail-goods-print-hotfix.mjs
+          if git diff --cached --quiet; then
+            echo 'No pretest fix to commit.' >&2
+            exit 1
+          fi
+          git commit -m "fix: make startup Colli hotfix pretest idempotent"
+          git push origin HEAD:main
