@@ -82,6 +82,16 @@ test('pack inbox owns a separate navigation target and does not require tasks vi
   assert.doesNotMatch(adapter,/currentView\(\)!==['"]tasks['"][\s\S]*renderPackInbox/);
 });
 
+test('pack navigation is a true SPA view and reuses the existing menu item structure',()=>{
+  const internal=fs.readFileSync('assets/pack-notification-internal.js','utf8');
+  const nav=fs.readFileSync('assets/pack-notification-nav.js','utf8');
+  assert.match(internal,/cloneNode\(true\)/,'menu structure must be cloned, not rebuilt');
+  assert.match(internal,/setPackNavLabel/,'cloned menu label must be replaced without flattening structure');
+  assert.doesNotMatch(internal,/href\s*,?\s*['"]#packmeldungen|setAttribute\(['"]href['"],[ ]*['"]#packmeldungen/);
+  assert.doesNotMatch(nav,/location\.hash\s*=\s*['"]#packmeldungen/,'pack nav must not invoke the legacy hash router');
+  assert.match(nav,/openInbox\(\)/,'click should render the inbox directly');
+});
+
 test('existing rc1014 five-group contract remains untouched and adapter owns pack-specific UI',()=>{
   const lifecycle=fs.readFileSync('assets/rc1014-task-lifecycle.js','utf8');
   const runtime=fs.readFileSync('assets/rc1014-task-runtime.js','utf8');
