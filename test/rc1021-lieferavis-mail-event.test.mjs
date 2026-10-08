@@ -14,16 +14,17 @@ test('RC1021: jeder erfolgreiche Lieferavis-Statuswechsel meldet die Mailruntime
 });
 
 
-test('RC1383 P1: bestätigter Sync oder Shipment-Saved Event kann auch über einen gewrappten Toggle keinen zweiten Save auslösen',()=>{
+test('RC1383/RC1467 P1: manueller Toggle speichert validiert, Startup-/Sync-AutoEnable löst keinen zweiten Save aus',()=>{
   const manual=source.slice(source.indexOf('async function rc1015Toggle(on)'),source.indexOf('async function rc1021AutoEnable'));
   const automatic=source.slice(source.indexOf('async function rc1021AutoEnable'),source.indexOf('function stripAvisBlocks'));
   assert.match(source,/autoEnableSaveConfirmed=Object\.create\(null\)/);
-  assert.match(automatic,/saveAlreadyConfirmed=reason==='exporthub:sync'\|\|reason==='exporthub:shipment-saved'/);
-  assert.match(automatic,/if\(!saveAlreadyConfirmed\)await rc1015PersistBeforeAvis\(\)/);
+  assert.match(manual,/if\(!autoEnableSaveConfirmed\[refBeforeToggle\]\)await rc1015PersistBeforeAvis\(\)/,'Bewusste Aktivierung muss weiterhin den validierten Save-Pfad verwenden.');
+  assert.match(automatic,/RC1467: background\/startup auto-enable/,'Startup-Guard fehlt im automatischen Lieferavis-Pfad.');
+  assert.match(automatic,/var saveAlreadyConfirmed=true;/,'Automatischer Lifecycle muss als bereits persistierter Hintergrundpfad behandelt werden.');
+  assert.doesNotMatch(automatic,/rc1015PersistBeforeAvis\s*\(/,'Startup-/Sync-AutoEnable darf keinen zweiten strikten Sendungs-Save auslösen.');
   assert.match(automatic,/if\(saveAlreadyConfirmed\)autoEnableSaveConfirmed\[ref\]=true/);
-  assert.match(manual,/if\(!autoEnableSaveConfirmed\[refBeforeToggle\]\)await rc1015PersistBeforeAvis\(\)/);
   assert.match(automatic,/delete autoEnableSaveConfirmed\[ref\]/);
-  assert.match(automatic,/await base\.toggle\(true\)/,'Avis-Aktivierung muss nach bestätigtem Save weiterhin erfolgen.');
+  assert.match(automatic,/await base\.toggle\(true\)/,'Avis-Aktivierung muss im Hintergrundpfad weiterhin erfolgen.');
 });
 
 test('RC1236: normale Navigation startet außerhalb der Sendungsansicht keinen Avis-Autosave',()=>{
