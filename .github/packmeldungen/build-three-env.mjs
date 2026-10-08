@@ -10,6 +10,7 @@ export const PACK_ASSETS=Object.freeze([
   'pack-notification.js',
   'pack-notification-internal.css',
   'pack-notification-internal.js',
+  'pack-notification-nav.js',
   'pack-notification-shipment.js',
   'pack-notification-avis.css',
   'pack-notification-avis.js'
@@ -21,6 +22,7 @@ const STYLE_TAGS=[
 ];
 const SCRIPT_TAGS=[
   '<script id="exporthub-pack-notification-internal" defer src="/assets/pack-notification-internal.js?v=1"></script>',
+  '<script id="exporthub-pack-notification-nav" defer src="/assets/pack-notification-nav.js?v=1"></script>',
   '<script id="exporthub-pack-notification-shipment" defer src="/assets/pack-notification-shipment.js?v=1"></script>',
   '<script id="exporthub-pack-notification-avis" defer src="/assets/pack-notification-avis.js?v=1"></script>',
   '<script id="exporthub-document-print-name" defer src="/assets/document-print-name.js?v=1"></script>'
