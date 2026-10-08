@@ -17,3 +17,13 @@ test('RC1464: startup repair never enters strict Colli shipment validation', () 
   assert.doesNotMatch(repair, /ExportHUBRC565|persistShipment/, 'startup repair must not call strict shipment persistence');
   assert.doesNotMatch(repair, /Bitte Verpackung, Anzahl und Gewicht in jeder Colli-Zeile vollständig erfassen/, 'startup repair must not emit the Colli validation alert');
 });
+
+test('RC1465: RC1452 release transform accepts an already silent RC1464 startup repair', () => {
+  const hotfix = fs.readFileSync('scripts/rc1452-mail-goods-print-hotfix.mjs', 'utf8');
+  assert.match(hotfix, /function startupRepairUsesSilentPersistence\(source\)/,
+    'RC1452 hotfix must detect an already repaired startup persistence block');
+  assert.match(hotfix, /if\(!startupRepairUsesSilentPersistence\(source\)\)/,
+    'RC1458 transform must only run when silent startup persistence is still missing');
+  assert.match(hotfix, /ExportHUBClean\[\\s\\S\]\*\?queueSave/,
+    'final RC1458/RC1464 verification must use the semantic queueSave contract');
+});
