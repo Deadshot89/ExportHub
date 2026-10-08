@@ -38,6 +38,25 @@ test('pack page supports responsive package rows and confirmation state',()=>{
   assert.match(css,/overflow-wrap/);
 });
 
+test('pack customer input searches master data and requires explicit manual confirmation',()=>{
+  const html=read('pack.html');
+  const js=read('assets/pack-notification.js');
+  const css=read('assets/pack-notification.css');
+  assert.match(html,/id="packCustomerResults"/);
+  assert.match(html,/id="packCustomerManualConfirm"/);
+  assert.match(html,/Kunde trotzdem verwenden/);
+  assert.match(js,/customer-search/);
+  assert.match(js,/selectedCustomer/);
+  assert.match(js,/customCustomerConfirmed/);
+  assert.match(js,/customerSource/);
+  assert.match(js,/customerId/);
+  assert.match(js,/customerAccount/);
+  assert.match(js,/setTimeout[\s\S]*customer-search/);
+  assert.match(js,/selectedCustomer\s*=\s*null/);
+  assert.match(css,/\.pack-customer-results/);
+  assert.match(css,/\.pack-customer-manual/);
+});
+
 test('static web app routes /pack/* to public pack.html and excludes it from SPA fallback',()=>{
   const config=JSON.parse(read('staticwebapp.config.json'));
   const route=config.routes.find(r=>r.route==='/pack/*');
