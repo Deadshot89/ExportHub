@@ -1,0 +1,20 @@
+name: Deepfix shipment view context
+
+on:
+  push:
+    branches:
+      - deepfix/shipment-view-context-20261008
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run shipment view context regression
+        run: node --test test/rc1468-shipment-view-context-regression.test.mjs
