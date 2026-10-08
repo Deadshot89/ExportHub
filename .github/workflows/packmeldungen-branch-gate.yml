@@ -8,11 +8,13 @@ on:
     paths:
       - 'pack.html'
       - 'assets/pack-notification*'
+      - 'assets/packaging-catalog.js'
       - 'api/pack-notification/**'
       - 'api/shared/pack-notification-store.js'
       - 'api/shared/document-blob-store.js'
       - 'staticwebapp*.config.json'
       - 'test/pack-notification-*.test.mjs'
+      - 'test/packaging-catalog.test.mjs'
       - 'e2e/specs/pack-notification.spec.mjs'
       - '.github/packmeldungen/**'
       - '.github/workflows/packmeldungen-branch-gate.yml'
@@ -31,12 +33,13 @@ jobs:
           node-version: '20'
           package-manager-cache: false
       - name: Packmeldungen unit and contract tests
-        run: node --test --test-concurrency=1 test/pack-notification-*.test.mjs
+        run: node --test --test-concurrency=1 test/pack-notification-*.test.mjs test/packaging-catalog.test.mjs
       - name: JavaScript syntax
         run: |
           node --check api/shared/pack-notification-store.js
           node --check api/pack-notification/index.js
           node --check assets/pack-notification.js
+          if [ -f assets/packaging-catalog.js ]; then node --check assets/packaging-catalog.js; fi
           node --check assets/pack-notification-internal.js
           node --check assets/pack-notification-shipment.js
           node --check assets/pack-notification-avis.js
