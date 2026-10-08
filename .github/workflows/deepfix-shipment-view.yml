@@ -6,15 +6,92 @@ on:
       - deepfix/shipment-view-context-20261008
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  regression:
+  normalize:
+    if: ${{ !contains(github.event.head_commit.message, '[deepfix-clean]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Rebuild history runtime from current main with only the two deepfix changes
+        run: |
+          git fetch origin main
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess
+
+          path = Path('assets/rc1071-shipment-history.js')
+          source = subprocess.check_output(
+              ['git','show','origin/main:assets/rc1071-shipment-history.js'],
+              text=True,
+          )
+
+          old_current = """function currentShipment(){
+           var s=state(),direct=s.currentShipment||s.shipment||s.activeShipment||null;if(direct&&obj(direct))return direct;
+           var id=q(s.currentShipmentId||s.selectedShipmentId||s.shipmentId),r=q(s.currentShipmentRef||s.selectedShipmentRef||s.reference);
+           var all=[].concat(arr(s.shipments),arr(s.savedShipments),arr(s.shipmentArchive),arr(s.archivedShipments),arr(s.salesSharedShipments),arr(s.sharedShipments));
+           return all.find(function(x){return x&&((id&&q(x.id||x.shipmentId)===id)||(r&&ref(x)===r))})||null
+          }"""
+          new_current = """function currentShipment(){
+           var s=state(),view=low(s.view||s.currentView||s.activeView||''),viewId=q(s.shipmentViewId||s.selectedShipmentId||s.activeShipmentId).toLocaleUpperCase('de-DE');
+           var all=[].concat(arr(s.shipments),arr(s.savedShipments),arr(s.shipmentArchive),arr(s.archivedShipments),arr(s.salesSharedShipments),arr(s.sharedShipments));
+           if(view==='shipmentview'&&viewId){var viewed=all.find(function(x){return x&&(q(x.id||x.shipmentId).toLocaleUpperCase('de-DE')===viewId||ref(x).toLocaleUpperCase('de-DE')===viewId)});if(viewed)return viewed}
+           var direct=s.currentShipment||s.shipment||s.activeShipment||null;if(direct&&obj(direct))return direct;
+           var id=q(s.currentShipmentId||s.selectedShipmentId||s.shipmentId),r=q(s.currentShipmentRef||s.selectedShipmentRef||s.reference);
+           return all.find(function(x){return x&&((id&&q(x.id||x.shipmentId)===id)||(r&&ref(x)===r))})||null
+          }"""
+          old_work = """function markWorkStarted(){
+           var sh=currentShipment();if(!sh||!shipmentView())return false;"""
+          new_work = """function markWorkStarted(){
+           if(viewName()==='shipmentview')return false;
+           var sh=currentShipment();if(!sh||!shipmentView())return false;"""
+
+          if source.count(old_current) != 1:
+              raise SystemExit('currentShipment base contract changed; refusing automatic rewrite')
+          if source.count(old_work) != 1:
+              raise SystemExit('markWorkStarted base contract changed; refusing automatic rewrite')
+
+          source = source.replace(old_current, new_current, 1).replace(old_work, new_work, 1)
+          path.write_text(source, encoding='utf-8')
+          PY
+      - name: Verify focused regressions before commit
+        run: |
+          node --check assets/rc1071-shipment-history.js
+          node --test --test-concurrency=1 \
+            test/rc1468-shipment-view-context-regression.test.mjs \
+            test/rc1305-shipment-view-documents-history.test.mjs \
+            test/rc1071-shipment-history.test.mjs
+      - name: Commit normalized minimal fix
+        run: |
+          git config user.name "Deadshot89"
+          git config user.email "86518220+Deadshot89@users.noreply.github.com"
+          git add assets/rc1071-shipment-history.js
+          if git diff --cached --quiet; then
+            echo "No normalization commit needed"
+            exit 0
+          fi
+          git commit -m "fix: normalize shipment view context patch [deepfix-clean]"
+          git push origin HEAD:deepfix/shipment-view-context-20261008
+
+  verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Run shipment view context regression
-        run: node --test test/rc1468-shipment-view-context-regression.test.mjs
+      - name: Focused shipment-view verification
+        run: |
+          node --check assets/rc1071-shipment-history.js
+          node --test --test-concurrency=1 \
+            test/rc1468-shipment-view-context-regression.test.mjs \
+            test/rc1305-shipment-view-documents-history.test.mjs \
+            test/rc1071-shipment-history.test.mjs
+      - name: Full repository test suite
+        run: npm test
