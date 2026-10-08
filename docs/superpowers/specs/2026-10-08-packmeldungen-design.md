@@ -70,6 +70,30 @@ Optionale Felder:
 
 Die Oberfläche wird mobile-first und packtischtauglich umgesetzt: große Eingabefelder, eindeutige Pflichtfeldmarkierung, wenige Schritte, keine ExportHUB-Navigation.
 
+### 5.1 Kundensuche
+
+Das Kundenfeld verwendet denselben bestehenden ExportHUB-Kundenstamm wie die normale Sendungserfassung. Gesucht wird mindestens nach Kundenname und Kundennummer (`name/customerName`, `account/customerNumber`).
+
+Verhalten:
+- Treffer werden während der Eingabe angezeigt.
+- Ein Treffer kann direkt ausgewählt werden.
+- Existiert kein passender Kunde, bleibt Freitext erlaubt.
+- Ein nicht im Kundenstamm vorhandener Kunde muss vor dem Absenden explizit bestätigt werden (`Kunde nicht im Stamm gefunden – trotzdem verwenden`).
+- Ein Freitextkunde darf nicht stillschweigend einem ähnlich benannten Stammdatensatz zugeordnet werden.
+
+### 5.2 Verpackungsstamm und Maßübernahme
+
+Die Packmeldung verwendet denselben Verpackungsstamm bzw. dieselbe kanonische Verpackungslogik wie die normale Sendungserfassung. Eine parallele hart codierte Packmeldungs-Liste ist nicht zulässig.
+
+Bei Auswahl einer Verpackungsart werden hinterlegte Standardmaße automatisch in die Packstückzeilen übernommen. Bestehende Grundmaße wie Euro-/Einwegpalette 120×80, Industriepalette 120×100, Düsseldorfer Palette 80×60, Kunststoffpalette 122×116 oder Palettengestell 120×90 werden aus der vorhandenen ExportHUB-Logik wiederverwendet.
+
+Regeln:
+- Anzahl Packstücke erzeugt die entsprechende Anzahl Maßzeilen.
+- Für gleichartige Packstücke werden die Standardmaße vorbelegt.
+- Maße bleiben sichtbar und können für den konkreten Versandfall korrigiert werden.
+- Fehlende Höhenwerte werden nicht erfunden.
+- Bei Mischsendungen kann jedes Packstück eine eigene Verpackungsart erhalten.
+
 ## 6. Datei-Uploads
 
 Mehrere Lieferscheine pro Packmeldung sind erlaubt.
@@ -82,6 +106,45 @@ Unterstützte Dokumente in der ersten Version:
 Dateien werden serverseitig geprüft. Dateityp und Dateigröße werden begrenzt. Dateinamen werden nicht als vertrauenswürdige Identität verwendet.
 
 Nach Absenden bleiben die Dokumente mit der Packmeldung verknüpft. Beim Erstellen einer Sendung werden die vorhandenen Dokumentreferenzen übernommen; die Dateien sollen nicht unnötig physisch dupliziert werden.
+
+### 6.1 Zentrale DNC-/SIDE-Erkennung und automatische PDF-Umbenennung
+
+Die DNC-/SIDE-Erkennung ist keine Packmeldungs-Sonderfunktion, sondern eine gemeinsame ExportHUB-Funktion für alle PDF-Uploads auf der Website.
+
+Ziel:
+- PDF-Inhalt auswerten.
+- Eindeutige DNC- oder SIDE-Referenz erkennen.
+- Nur bei eindeutigem Treffer den gespeicherten/angezeigten PDF-Dateinamen normalisieren.
+
+Namensregeln:
+- erkannte DNC -> `DNC<Nummer>.pdf`
+- erkannte SIDE -> `SIDE<Nummer>.pdf`
+- weder DNC noch SIDE erkannt -> Originaldateiname unverändert
+- widersprüchliche oder mehrere nicht eindeutig auflösbare Treffer -> Originaldateiname unverändert
+
+Beispiele:
+- `scan_001.pdf` mit eindeutig erkanntem `DNC3019222063` -> `DNC3019222063.pdf`
+- `Dokument.pdf` mit eindeutig erkanntem `SIDE250071282` -> `SIDE250071282.pdf`
+- `Lieferschein.pdf` ohne eindeutige DNC-/SIDE-Referenz -> bleibt `Lieferschein.pdf`
+
+Weitere Regeln:
+- Mehrere hochgeladene PDFs werden einzeln ausgewertet.
+- Bereits korrekt benannte PDFs werden nicht unnötig umbenannt.
+- Der PDF-Inhalt selbst wird nicht verändert; nur der gespeicherte/angezeigte Dateiname.
+- Die Erkennung darf keine Nummer erfinden oder aus unsicheren Treffern raten.
+- Normale textbasierte PDFs werden direkt analysiert.
+- Reine Scan-/Bild-PDFs werden ohne zuverlässige Texterkennung nicht blind umbenannt; eine spätere OCR-Erweiterung ist separat möglich.
+- Die zentrale Funktion wird von Packmeldung, normaler Sendungserfassung, Anhängen und allen weiteren PDF-Uploadpfaden wiederverwendet.
+
+### 6.2 Druckdarstellung von DNC/SIDE
+
+Auf Deckblatt und Ladeliste werden erkannte bzw. normalisierte DNC-/SIDE-Dokumente ohne Dateiendung dargestellt:
+- `DNC3019222063.pdf` -> `DNC3019222063`
+- `SIDE250071282.pdf` -> `SIDE250071282`
+
+Die tatsächliche gespeicherte Datei behält die Endung `.pdf`; nur die Druckdarstellung blendet die Erweiterung aus.
+
+Für nicht normalisierte Dateien wird der vorhandene Dateiname in der Druckdarstellung nicht inhaltlich umgeschrieben.
 
 ## 7. Absenden und Idempotenz
 
@@ -236,6 +299,9 @@ Packtisch-Token müssen administrativ deaktivierbar/rotierbar sein.
 - pack_session_id
 - pack_station_id
 - customer
+- customer_id nullable
+- customer_account nullable
+- customer_is_custom boolean
 - delivery_note_reference
 - package_type
 - package_count
@@ -250,6 +316,7 @@ Packtisch-Token müssen administrativ deaktivierbar/rotierbar sein.
 - id
 - pack_notification_id
 - package_no
+- packaging_type
 - length
 - width
 - height
@@ -260,10 +327,13 @@ Packtisch-Token müssen administrativ deaktivierbar/rotierbar sein.
 - pack_notification_id
 - document_id
 - original_name
+- normalized_name nullable
+- detected_reference_type nullable (`DNC`/`SIDE`)
+- detected_reference nullable
 - customer_visible default false
 - created_at
 
-Bestehende ExportHUB-Dokument-, Aufgaben- und Benachrichtigungsmodelle sind wiederzuverwenden, wo dies ohne Datenkopien und Sonderpfade möglich ist.
+Bestehende ExportHUB-Dokument-, Aufgaben-, Kunden-, Verpackungs- und Benachrichtigungsmodelle sind wiederzuverwenden, wo dies ohne Datenkopien und Sonderpfade möglich ist.
 
 ## 15. Parallelität
 
@@ -279,6 +349,8 @@ Die Architektur muss explizit folgenden Fall unterstützen:
 ## 16. Fehlerfälle
 
 - Upload schlägt fehl -> Meldung bleibt ungesendet und kann erneut versucht werden.
+- DNC/SIDE nicht eindeutig erkannt -> Datei bleibt unter Originalname erhalten; kein automatisches Raten.
+- Kundenstamm ohne Treffer -> Freitext ist erst nach expliziter Bestätigung zulässig.
 - Aufgabe konnte nicht erzeugt werden -> Packmeldung darf nicht fälschlich als vollständig übermittelt gelten.
 - Benachrichtigung schlägt fehl -> Packmeldung/Aufgabe bleibt bestehen; Fehler wird protokolliert und Benachrichtigung kann nacherzeugt werden.
 - Sendungserstellung schlägt fehl -> Packmeldung bleibt `in_review`; kein shipment_created ohne reale Sendungs-ID.
@@ -318,6 +390,18 @@ Mindestens folgende Tests müssen vor Freigabe bestehen:
 14. AVIS zeigt nur explizit freigegebene Dokumente.
 15. Mobile Darstellung funktioniert ohne horizontales Scrollen oder überlappende Bedienelemente.
 16. Bestehende Aufgaben-, Sendungs-, Druck- und AVIS-Funktionen bleiben regressionsfrei.
+17. Kundensuche findet bestehende Kunden über Name und Kundennummer.
+18. Freitextkunde ist nur nach expliziter Bestätigung zulässig.
+19. Verpackungsauswahl übernimmt bestehende Standardmaße in die Packstückzeilen.
+20. Mischsendungen erlauben unterschiedliche Verpackungstypen je Packstück.
+21. Eindeutige DNC im PDF-Inhalt benennt die Datei in `DNC<Nummer>.pdf` um.
+22. Eindeutige SIDE im PDF-Inhalt benennt die Datei in `SIDE<Nummer>.pdf` um.
+23. Ohne DNC/SIDE bleibt der Originaldateiname unverändert.
+24. Mehrdeutige Treffer führen zu keiner Umbenennung.
+25. Mehrere PDFs werden unabhängig voneinander erkannt und normalisiert.
+26. Die zentrale DNC/SIDE-Erkennung greift in allen unterstützten PDF-Uploadpfaden.
+27. Deckblatt und Ladeliste zeigen normalisierte DNC/SIDE-Namen ohne `.pdf`.
+28. Download/Dokumentablage behalten technisch den vollständigen `.pdf`-Dateinamen.
 
 ## 19. Rollout
 
@@ -325,11 +409,15 @@ Empfohlener Rollout:
 1. Testumgebung mit einem Packtisch-Token.
 2. E2E mit zwei parallelen mobilen Sessions.
 3. Test einer realistischen BSH-Packmeldung mit mehreren Lieferscheinen.
-4. Prüfung Aufgabe -> Sendung -> AVIS.
-5. Prüfung Benachrichtigung/Badge.
-6. Regression bestehender Sendungs- und AVIS-Prozesse.
-7. Erst danach Produktion und QR-Code-Druck für alle Packtische.
+4. Test der Kundensuche inklusive Freitext-Fallback.
+5. Test Verpackungsstamm -> automatische Maßübernahme.
+6. Test DNC/SIDE-Erkennung mit echten textbasierten Beispieldokumenten.
+7. Prüfung Aufgabe -> Sendung -> AVIS.
+8. Prüfung Deckblatt/Ladeliste ohne `.pdf` bei DNC/SIDE.
+9. Prüfung Benachrichtigung/Badge.
+10. Regression bestehender Sendungs-, Dokument-, Druck- und AVIS-Prozesse.
+11. Erst danach Produktion und QR-Code-Druck für alle Packtische.
 
 ## 20. Definition of Done
 
-Die Funktion gilt erst als fertig, wenn ein Packer ohne Login per QR eine unabhängige Packmeldung inklusive Lieferscheinen absenden kann, diese sofort als Aufgabe und Benachrichtigung in ExportHUB360 erscheint, daraus ohne doppelte Datenerfassung eine reguläre Sendung erzeugt werden kann und dieselben Lieferscheine intern downloadbar sowie gezielt auf der AVIS-Seite freigebbar sind.
+Die Funktion gilt erst als fertig, wenn ein Packer ohne Login per QR eine unabhängige Packmeldung inklusive Lieferscheinen absenden kann, Kunden aus dem bestehenden Kundenstamm suchen oder einen fehlenden Kunden explizit bestätigen kann, Verpackungen aus der bestehenden ExportHUB-Logik inklusive Maßvorbelegung verwenden kann, PDF-Uploads zentral und zuverlässig auf DNC/SIDE geprüft und nur bei eindeutigem Treffer korrekt umbenannt werden, Deckblatt/Ladeliste DNC/SIDE ohne `.pdf` anzeigen, die Packmeldung sofort als Aufgabe und Benachrichtigung in ExportHUB360 erscheint, daraus ohne doppelte Datenerfassung eine reguläre Sendung erzeugt werden kann und dieselben Lieferscheine intern downloadbar sowie gezielt auf der AVIS-Seite freigebbar sind.
