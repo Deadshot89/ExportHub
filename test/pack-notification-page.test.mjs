@@ -57,6 +57,30 @@ test('pack customer input searches master data and requires explicit manual conf
   assert.match(css,/\.pack-customer-manual/);
 });
 
+test('pack page loads shared packaging catalog before client and builds package type options from it',()=>{
+  const html=read('pack.html');
+  const catalogIndex=html.indexOf('/assets/packaging-catalog.js');
+  const clientIndex=html.indexOf('/assets/pack-notification.js');
+  assert.ok(catalogIndex>=0,'packaging catalog script missing');
+  assert.ok(clientIndex>catalogIndex,'catalog must load before pack client');
+  assert.match(html,/id="packPackageType"/);
+  assert.doesNotMatch(html,/<option value="Europalette">Europalette<\/option>/);
+  const js=read('assets/pack-notification.js');
+  assert.match(js,/ExportHubPackagingCatalog/);
+  assert.match(js,/populatePackageTypes/);
+});
+
+test('pack client autofills known length and width for every package row but never invents unknown height',()=>{
+  const js=read('assets/pack-notification.js');
+  assert.match(js,/applyPackageDimensions/);
+  assert.match(js,/catalog\.get\(els\.type\.value\)/);
+  assert.match(js,/data-dim="length"/);
+  assert.match(js,/data-dim="width"/);
+  assert.match(js,/data-dim="height"/);
+  assert.match(js,/entry\.height\s*!=\s*null/);
+  assert.match(js,/els\.type\.addEventListener\('change'/);
+});
+
 test('static web app routes /pack/* to public pack.html and excludes it from SPA fallback',()=>{
   const config=JSON.parse(read('staticwebapp.config.json'));
   const route=config.routes.find(r=>r.route==='/pack/*');
