@@ -167,10 +167,11 @@ function repairContaminatedGoodsDescription(){
   if(draft&&typeof draft==='object')['goodsDescription','description','warenbeschreibung'].forEach(function(key){if(mailLikeGoodsDescription(draft[key]))draft[key]=''});
  }catch(_){}
  if(repaired&&!contaminatedRepairPending){
-  var core=w.ExportHUBRC565;
-  if(core&&typeof core.persistShipment==='function'){
+  var silentQueueSave=w.ExportHUBClean&&w.ExportHUBClean.queueSave;
+  if(typeof silentQueueSave==='function'){
    contaminatedRepairPending=true;
-   Promise.resolve(core.persistShipment()).catch(function(error){try{console.error('[ExportHUB RC1451 repair]',error)}catch(_){}}).finally(function(){contaminatedRepairPending=false})
+   try{silentQueueSave('RC1464 Warenbeschreibung Hintergrundreparatur')}catch(error){try{console.error('[ExportHUB RC1464 repair]',error)}catch(_){}}
+   contaminatedRepairPending=false
   }
  }
  return repaired
