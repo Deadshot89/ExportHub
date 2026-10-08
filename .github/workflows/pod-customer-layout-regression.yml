@@ -1,0 +1,21 @@
+name: POD customer layout regression
+on:
+  push:
+    paths:
+      - 'api/shared/pod-archive.js'
+      - 'test/pod-customer-layout-regression.test.mjs'
+      - '.github/workflows/pod-customer-layout-regression.yml'
+  workflow_dispatch:
+jobs:
+  pod-layout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Check POD JavaScript syntax
+        run: node --check api/shared/pod-archive.js
+      - name: Check POD layout contract
+        run: node --test test/pod-customer-layout-regression.test.mjs test/rc1114-pod-lazy-pdflib.test.mjs
