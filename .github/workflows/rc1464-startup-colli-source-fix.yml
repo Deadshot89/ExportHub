@@ -53,46 +53,39 @@ jobs:
           const fs = require('fs');
           const path = 'assets/rc1267-i18n.js';
           let source = fs.readFileSync(path, 'utf8');
-
           const functionStart = source.indexOf('function repairContaminatedGoodsDescription()');
           const functionEnd = source.indexOf('function snapshotShipmentDraft()', functionStart);
           if (functionStart < 0 || functionEnd < 0) throw new Error('repairContaminatedGoodsDescription block not found');
-
           let block = source.slice(functionStart, functionEnd);
-          if (!/ExportHUBRC565|persistShipment/.test(block)) {
-            throw new Error('Expected startup repair to still contain strict Colli persistence before patch');
-          }
-
-          const before = ` if(repaired&&!contaminatedRepairPending){
-  var core=w.ExportHUBRC565;
-  if(core&&typeof core.persistShipment==='function'){
-   contaminatedRepairPending=true;
-   Promise.resolve(core.persistShipment()).catch(function(error){try{console.error('[ExportHUB RC1451 repair]',error)}catch(_){}}).finally(function(){contaminatedRepairPending=false})
-  }
- }`;
-
-          const after = ` if(repaired&&!contaminatedRepairPending){
-  var silentQueueSave=w.ExportHUBClean&&w.ExportHUBClean.queueSave;
-  if(typeof silentQueueSave==='function'){
-   contaminatedRepairPending=true;
-   try{silentQueueSave('RC1464 Warenbeschreibung Hintergrundreparatur')}catch(error){try{console.error('[ExportHUB RC1464 repair]',error)}catch(_){}}
-   contaminatedRepairPending=false
-  }
- }`;
-
-          if (!block.includes(before)) {
-            throw new Error('Exact current startup persistence block not found; refusing an unsafe broad replacement');
-          }
-
+          if (!/ExportHUBRC565|persistShipment/.test(block)) throw new Error('Expected strict Colli persistence before patch');
+          const before = [
+            ' if(repaired&&!contaminatedRepairPending){',
+            '  var core=w.ExportHUBRC565;',
+            "  if(core&&typeof core.persistShipment==='function'){",
+            '   contaminatedRepairPending=true;',
+            "   Promise.resolve(core.persistShipment()).catch(function(error){try{console.error('[ExportHUB RC1451 repair]',error)}catch(_){}}).finally(function(){contaminatedRepairPending=false})",
+            '  }',
+            ' }'
+          ].join('\n');
+          const after = [
+            ' if(repaired&&!contaminatedRepairPending){',
+            '  var silentQueueSave=w.ExportHUBClean&&w.ExportHUBClean.queueSave;',
+            "  if(typeof silentQueueSave==='function'){",
+            '   contaminatedRepairPending=true;',
+            "   try{silentQueueSave('RC1464 Warenbeschreibung Hintergrundreparatur')}catch(error){try{console.error('[ExportHUB RC1464 repair]',error)}catch(_){}}",
+            '   contaminatedRepairPending=false',
+            '  }',
+            ' }'
+          ].join('\n');
+          if (!block.includes(before)) throw new Error('Exact current startup persistence block not found; refusing unsafe replacement');
           block = block.replace(before, after);
-          if (/ExportHUBRC565|persistShipment/.test(block)) throw new Error('Strict shipment persistence still remains in startup repair');
-          if (!/ExportHUBClean[\s\S]*?queueSave/.test(block)) throw new Error('Silent queueSave is missing from startup repair');
-
+          if (/ExportHUBRC565|persistShipment/.test(block)) throw new Error('Strict shipment persistence remains in startup repair');
+          if (!/ExportHUBClean[\s\S]*?queueSave/.test(block)) throw new Error('Silent queueSave missing from startup repair');
           source = source.slice(0, functionStart) + block + source.slice(functionEnd);
           fs.writeFileSync(path, source);
           NODE
 
-      - name: Verify RC1458/RC1464 regression is GREEN
+      - name: Verify RC1458 regression is GREEN
         run: node --test test/rc1267-i18n.test.mjs
 
       - name: Verify runtime syntax
@@ -109,7 +102,7 @@ jobs:
           const b=source.indexOf('function snapshotShipmentDraft()',a);
           if(a<0||b<0) throw new Error('startup repair block missing');
           const block=source.slice(a,b);
-          if(/ExportHUBRC565|persistShipment/.test(block)) throw new Error('strict Colli validation is still reachable from startup repair');
+          if(/ExportHUBRC565|persistShipment/.test(block)) throw new Error('strict Colli validation remains reachable from startup repair');
           if(!/ExportHUBClean[\s\S]*?queueSave/.test(block)) throw new Error('silent persistence missing');
           console.log('RC1464 startup repair is isolated from strict Colli validation.');
           NODE
@@ -122,7 +115,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add assets/rc1267-i18n.js
           if git diff --cached --quiet; then
-            echo 'No source change to commit.'
+            echo 'No source change to commit.' >&2
             exit 1
           fi
           git commit -m "fix: stop Colli validation during startup repair"
