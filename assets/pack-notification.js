@@ -1,6 +1,7 @@
 (function(){
   'use strict';
   const $=id=>document.getElementById(id);
+  const catalog=window.ExportHubPackagingCatalog;
   const state={stationToken:'',sessionId:'',stationName:'',idempotencyKey:'',documents:[],submitLocked:false,selectedCustomer:null,customCustomerConfirmed:false,customerSearchTimer:null,customerQuerySeq:0};
   const els={form:$('packForm'),loading:$('packLoading'),error:$('packError'),station:$('packStation'),customer:$('packCustomer'),customerResults:$('packCustomerResults'),customerManual:$('packCustomerManual'),customerManualConfirm:$('packCustomerManualConfirm'),customerSelected:$('packCustomerSelected'),delivery:$('packDeliveryNote'),type:$('packPackageType'),count:$('packPackageCount'),weight:$('packWeight'),rows:$('packPackageRows'),files:$('packDocuments'),fileList:$('packDocumentList'),note:$('packNote'),submit:$('packSubmit'),hint:$('packValidationHint'),success:$('packSuccess'),successRef:$('packSuccessReference'),successCustomer:$('packSuccessCustomer'),restart:$('packRestart')};
 
@@ -14,13 +15,35 @@
   function clearError(){els.error.hidden=true;els.error.textContent='';}
   function positive(value){const n=Number(value);return Number.isFinite(n)&&n>0?n:0;}
   function packageRows(){return Array.from(els.rows.querySelectorAll('[data-pack-package]'));}
+  function populatePackageTypes(){
+    const current=els.type.value;
+    els.type.innerHTML='<option value="">Bitte wählen</option>';
+    if(!catalog||typeof catalog.list!=='function')return;
+    for(const entry of catalog.list()){
+      const option=document.createElement('option');option.value=entry.label;option.textContent=entry.label;els.type.appendChild(option);
+    }
+    if(current&&catalog.get(current))els.type.value=catalog.get(current).label;
+  }
+  function selectedPackageEntry(){return catalog&&typeof catalog.get==='function'?catalog.get(els.type.value):null;}
+  function applyPackageDimensions(){
+    const entry=catalog.get(els.type.value);if(!entry)return;
+    for(const row of packageRows()){
+      const length=row.querySelector('[data-dim="length"]'),width=row.querySelector('[data-dim="width"]'),height=row.querySelector('[data-dim="height"]');
+      if(length)length.value=String(entry.length);
+      if(width)width.value=String(entry.width);
+      if(height&&entry.height != null)height.value=String(entry.height);
+    }
+    validateForm();
+  }
   function renderPackages(){
     const count=Math.max(1,Math.min(99,Number(els.count.value)||1));
     const prior=packageRows().map(row=>({l:row.querySelector('[data-dim="length"]')?.value||'',w:row.querySelector('[data-dim="width"]')?.value||'',h:row.querySelector('[data-dim="height"]')?.value||''}));
+    const entry=selectedPackageEntry();
     els.rows.innerHTML='';
     for(let i=0;i<count;i++){
+      const dimensions=prior[i]||{l:entry?String(entry.length):'',w:entry?String(entry.width):'',h:entry&&entry.height!=null?String(entry.height):''};
       const row=document.createElement('article');row.className='pack-package';row.dataset.packPackage=String(i+1);
-      row.innerHTML=`<h3>Packstück ${i+1}</h3><div class="pack-package-grid"><label>Länge *<input data-dim="length" type="number" min="0.01" step="0.01" inputmode="decimal" value="${prior[i]?.l||''}" required></label><label>Breite *<input data-dim="width" type="number" min="0.01" step="0.01" inputmode="decimal" value="${prior[i]?.w||''}" required></label><label>Höhe *<input data-dim="height" type="number" min="0.01" step="0.01" inputmode="decimal" value="${prior[i]?.h||''}" required></label></div>`;
+      row.innerHTML=`<h3>Packstück ${i+1}</h3><div class="pack-package-grid"><label>Länge *<input data-dim="length" type="number" min="0.01" step="0.01" inputmode="decimal" value="${dimensions.l}" required></label><label>Breite *<input data-dim="width" type="number" min="0.01" step="0.01" inputmode="decimal" value="${dimensions.w}" required></label><label>Höhe *<input data-dim="height" type="number" min="0.01" step="0.01" inputmode="decimal" value="${dimensions.h}" required></label></div>`;
       els.rows.appendChild(row);
     }
     validateForm();
@@ -75,6 +98,7 @@
   els.customer.addEventListener('input',scheduleCustomerSearch);
   els.customer.addEventListener('focus',()=>{if(els.customer.value.trim().length>=2&&!state.selectedCustomer&&!state.customCustomerConfirmed)scheduleCustomerSearch();});
   els.customerManualConfirm.addEventListener('click',()=>{if(els.customer.value.trim().length<2)return;state.selectedCustomer=null;state.customCustomerConfirmed=true;clearCustomerResults();els.customerManual.hidden=true;els.customerSelected.textContent=`Manueller Kunde · ${els.customer.value.trim()}`;els.customerSelected.hidden=false;validateForm();});
+  els.type.addEventListener('change',applyPackageDimensions);
   els.count.addEventListener('input',renderPackages);
   els.form.addEventListener('input',event=>{if(event.target!==els.customer)validateForm();});
   els.form.addEventListener('change',validateForm);
@@ -82,5 +106,6 @@
   els.files.addEventListener('change',async()=>{clearError();try{const files=Array.from(els.files.files||[]);const converted=[];for(const file of files)converted.push(await fileToData(file));state.documents=[...state.documents,...converted];els.files.value='';renderDocuments();}catch(err){showError(err.message);}});
   els.fileList.addEventListener('click',event=>{const button=event.target.closest('[data-remove-file]');if(!button)return;state.documents.splice(Number(button.dataset.removeFile),1);renderDocuments();});
   els.restart.addEventListener('click',()=>location.reload());
+  populatePackageTypes();
   startSession();
 })();
