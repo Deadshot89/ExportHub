@@ -58,7 +58,16 @@ jobs:
       - name: RC1267 unit and contract tests
         run: npm run verify:i18n
       - name: Full regression test suite
-        run: npm test
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee deepfix-full-regression.log
+      - name: Preserve full regression output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deepfix-full-regression-${{ github.run_id }}
+          path: deepfix-full-regression.log
+          if-no-files-found: error
       - name: Restore clean checkout after mutation-heavy regression tests
         if: always()
         run: |
