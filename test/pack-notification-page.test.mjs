@@ -70,10 +70,19 @@ test('pack page loads shared packaging catalog before client and builds package 
   assert.match(js,/populatePackageTypes/);
 });
 
-test('pack client autofills known length and width for every package row but never invents unknown height',()=>{
+test('pack client loads saved packaging master data and merges it with safe fallback catalog',()=>{
+  const js=read('assets/pack-notification.js');
+  assert.match(js,/api\('packaging-list'/);
+  assert.match(js,/loadPackagingMaster/);
+  assert.match(js,/state\.packagingMaster/);
+  assert.match(js,/mergePackagingOptions/);
+  assert.match(js,/source\s*===\s*'fixed'/);
+});
+
+test('pack client autofills known length width and height from selected master packaging without inventing missing height',()=>{
   const js=read('assets/pack-notification.js');
   assert.match(js,/applyPackageDimensions/);
-  assert.match(js,/catalog\.get\(els\.type\.value\)/);
+  assert.match(js,/selectedPackageEntry/);
   assert.match(js,/data-dim="length"/);
   assert.match(js,/data-dim="width"/);
   assert.match(js,/data-dim="height"/);
