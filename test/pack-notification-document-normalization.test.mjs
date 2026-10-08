@@ -28,6 +28,16 @@ async function store(name,buffer){
   return mod.storeInlineDocument({id:'D1',name,mimeType:'application/pdf',data:dataUrl(buffer)},{environment:'testservice',container:fakeContainer()});
 }
 
+test('server PDF normalizer turns extracted DNC text into canonical document metadata',()=>{
+  const normalizer=require('../assets/document-reference-normalizer.js');
+  assert.equal(typeof normalizer.normalizedPdfName,'function');
+  assert.equal(normalizer.normalizedPdfName('scan.pdf','DNC 3019222063').name,'DNC3019222063.pdf');
+  const pdf=require('../api/shared/pdf-document-reference.js');
+  const out=pdf.normalizePdfDocument({name:'scan.pdf',mimeType:'application/pdf'},plainPdf('DNC 3019222063'),'application/pdf');
+  assert.equal(out.name,'DNC3019222063.pdf');
+  assert.equal(out.documentReference,'DNC3019222063');
+});
+
 test('PDF text extractor reads literal and FlateDecode text used for DNC SIDE detection',()=>{
   const pdf=require('../api/shared/pdf-document-reference.js');
   assert.match(pdf.extractPdfText(plainPdf('Delivery note DNC 3019222063 customer copy')),/DNC 3019222063/);
