@@ -32,11 +32,9 @@ function patchInsideFunction(source,functionStart,nextFunction,before,after,labe
   const after=" applicationStateRoots().forEach(function(root){\n  shipmentDraftTargets(root).forEach(function(shipment){if(targets.indexOf(shipment)<0)targets.push(shipment)});\n  ['shipments','savedShipments','salesSharedShipments','sharedShipments','shipmentArchive','archivedShipments','archive'].forEach(function(name){\n   var list=root&&root[name];if(!Array.isArray(list))return;\n   list.forEach(function(shipment){if(shipment&&typeof shipment==='object'&&targets.indexOf(shipment)<0)targets.push(shipment)})\n  });\n  ['shipment','currentShipment','selectedShipment','activeShipment','editingShipment','documentShipment'].forEach(function(name){var shipment=root&&root[name];if(shipment&&typeof shipment==='object'&&targets.indexOf(shipment)<0)targets.push(shipment)});\n });";
   source=patchInsideFunction(source,'function repairContaminatedGoodsDescription(){','function snapshotShipmentDraft(){',before,after,'RC1452 shipment repair');
 
-  // RC1458: this repair runs during state/login startup. It must never call the full
-  // shipment persistence bridge because that bridge validates customer/location/Colli
-  // and can therefore show user-facing Pflichtfeld alerts while the app is still loading.
-  // The repair only mutates already loaded state, so persist it through the silent state
-  // queue instead. Normal manual shipment saving keeps the strict Colli validation.
+  // RC1458/RC1464: this repair runs during state/login startup. It must never call
+  // the full shipment persistence bridge because that bridge validates Colli and may
+  // show Pflichtfeld alerts while the app is still loading. Persist only via queueSave.
   const persistBefore=` if(repaired&&!contaminatedRepairPending){
   var core=w.ExportHUBRC565;
   if(core&&typeof core.persistShipment==='function'){
@@ -63,43 +61,39 @@ function patchInsideFunction(source,functionStart,nextFunction,before,after,labe
    throw new Error('RC1458 silent startup repair: stille Persistenz fehlt');
   }
 
-  // Run the repair synchronously before document actions. This guarantees that an
-  // already open production session is cleaned before Ladeliste/CMR HTML is built.
   const clickAnchor="d.addEventListener('change',captureLanguageChange,true);";
   const clickPatch=`d.addEventListener('change',captureLanguageChange,true);\nfunction rc1452DocumentActionRepair(event){\n var target=event&&event.target&&event.target.closest?event.target.closest('[data-rc1283-action],[data-index352-action],[data-index352-doc],[data-rc1315-print-qr]'):null;\n if(target)repairContaminatedGoodsDescription();\n}\nd.addEventListener('click',rc1452DocumentActionRepair,true);`;
   source=replaceOnce(source,clickAnchor,clickPatch,'RC1452 print action repair');
   write(rel,source);
 }
 
-// RC1452 print safety net: even if a historic shipment is already contaminated in
-// persisted data or a stale runtime copy, mail/AVIS text may never render in either
-// the Ladeliste or CMR goods-description fields.
+// RC1466: RC1464 changed the runtime contents after v=1458 had already been served.
+// Reusing v=1458 can leave browsers on the stale startup code. Bump the URL so every
+// client is forced to request the repaired runtime after this deployment.
 {
   const rel='.github/rc1112/build-three-env.mjs';
   let source=read(rel);
-  source=source.replaceAll('/assets/rc1267-i18n.js?v=1267','/assets/rc1267-i18n.js?v=1458').replaceAll('/assets/rc1267-i18n.js?v=1452','/assets/rc1267-i18n.js?v=1458');
+  source=source
+    .replaceAll('/assets/rc1267-i18n.js?v=1267','/assets/rc1267-i18n.js?v=1466')
+    .replaceAll('/assets/rc1267-i18n.js?v=1452','/assets/rc1267-i18n.js?v=1466')
+    .replaceAll('/assets/rc1267-i18n.js?v=1458','/assets/rc1267-i18n.js?v=1466');
   const anchor="  let loadBlock=html.slice(loadStart,loadEnd);\n\n  loadBlock=loadBlock.replace(\"withQr?'1 / 1 · mit QR-Code':'ohne QR-Code'\"";
   const replacement=`  let loadBlock=html.slice(loadStart,loadEnd);\n\n  const rc1452GoodsHelper=\"function rc1452PrintGoodsDescription(sh){var v=q(sh&&(sh.goodsDescription||sh.warenbeschreibung||sh.description));if(!v)return'';var score=0;if(/(?:^|\\\\n)\\\\s*(?:LIEFERAVIS|COLLECTION NOTICE)\\\\b/i.test(v))score+=2;if(/Sehr geehrte Damen und Herren|Dear Sir or Madam|Mit freundlichen Gr[uü][sß]en|Kind regards/i.test(v))score++;if(/https?:\\\\/\\\\/|\\\\/avis\\\\/|customer-avis/i.test(v))score++;if(/Abholdatum|Zeitfenster|Kennzeichen des Abholfahrzeugs|pickup date|time window|license plate/i.test(v))score++;return score>=2?'':v}\";\n  loadBlock=rc1452GoodsHelper+String.fromCharCode(10)+loadBlock;\n  loadBlock=loadBlock.replace(/esc\\\\(q\\\\(sh&&sh\\\\.goodsDescription\\\\)\\\\)/g,'esc(rc1452PrintGoodsDescription(sh))');\n  loadBlock=loadBlock.replace(/q\\\\(sh&&sh\\\\.goodsDescription\\\\)/g,'rc1452PrintGoodsDescription(sh)');\n  loadBlock=loadBlock.replace(/esc\\\\(q\\\\(sh&&sh\\\\.warenbeschreibung\\\\)\\\\)/g,'esc(rc1452PrintGoodsDescription(sh))');\n  loadBlock=loadBlock.replace(/q\\\\(sh&&sh\\\\.warenbeschreibung\\\\)/g,'rc1452PrintGoodsDescription(sh)');\n  loadBlock=loadBlock.replace(/esc\\\\(q\\\\(sh&&sh\\\\.description\\\\)\\\\)/g,'esc(rc1452PrintGoodsDescription(sh))');\n  if(!loadBlock.includes('function rc1452PrintGoodsDescription(sh)'))throw new Error(file+': RC1452 Druck-Sanitizer fehlt');\n\n  loadBlock=loadBlock.replace(\"withQr?'1 / 1 · mit QR-Code':'ohne QR-Code'\"`;
   source=replaceOnce(source,anchor,replacement,'RC1452 print sanitizer');
   write(rel,source);
 }
 
-// Force the repaired i18n/runtime through browser caches for all public pages that
-// can carry the central runtime directly. Build-generated main pages are covered by
-// the RC1112 builder patch above.
 for(const rel of ['pickup.html','customer-avis.html','location.html','pod-notfall.html','dist-rc1048/index.html','dist-rc1048/TESTVERSION.html','dist-rc1048/demo.html']){
   const file=path.join(ROOT,rel);
   if(!fs.existsSync(file))continue;
   const source=fs.readFileSync(file,'utf8');
-  const next=source.replaceAll('/assets/rc1267-i18n.js?v=1267','/assets/rc1267-i18n.js?v=1458').replaceAll('/assets/rc1267-i18n.js?v=1452','/assets/rc1267-i18n.js?v=1458');
+  const next=source
+    .replaceAll('/assets/rc1267-i18n.js?v=1267','/assets/rc1267-i18n.js?v=1466')
+    .replaceAll('/assets/rc1267-i18n.js?v=1452','/assets/rc1267-i18n.js?v=1466')
+    .replaceAll('/assets/rc1267-i18n.js?v=1458','/assets/rc1267-i18n.js?v=1466');
   if(next!==source)fs.writeFileSync(file,next,'utf8');
 }
 
-// RC1453: "Neue Sendung" keeps the mounted shipment DOM for performance. RC1414
-// reset only the Colli rows, so remark textareas and file inputs could survive into
-// the next draft. Extend the local reset without restoring the old full-page render.
-// Input/change events are fired after clearing so the fresh draft state is updated,
-// while the previously saved shipment stays untouched.
 {
   const rel='.github/rc1112/build-three-env.mjs';
   let source=read(rel);
@@ -119,6 +113,6 @@ const builder=read('.github/rc1112/build-three-env.mjs');
 const repairBlock=runtime.slice(runtime.indexOf('function repairContaminatedGoodsDescription('),runtime.indexOf('function snapshotShipmentDraft('));
 if(!runtime.includes("var VERSION='RC1452';")||!runtime.includes('rc1452DocumentActionRepair'))throw new Error('RC1452 Runtime-Hotfix unvollständig');
 if(!/ExportHUBClean[\s\S]*?queueSave/.test(repairBlock)||/ExportHUBRC565|persistShipment/.test(repairBlock))throw new Error('RC1458 Login-/Startup-Reparatur ist nicht still');
-if(!builder.includes('function rc1452PrintGoodsDescription(sh)')||!builder.includes('/assets/rc1267-i18n.js?v=1458'))throw new Error('RC1452/RC1458 Druck-/Cache-Hotfix unvollständig');
+if(!builder.includes('function rc1452PrintGoodsDescription(sh)')||!builder.includes('/assets/rc1267-i18n.js?v=1466'))throw new Error('RC1452/RC1466 Druck-/Cache-Hotfix unvollständig');
 if(!builder.includes('function resetMountedFreshVolatile()')||!builder.includes('resetMountedFreshVolatile();safePatchDuringEdit();return true'))throw new Error('RC1453 Neue-Sendung-Reset unvollständig');
-console.log('RC1452 mail/goodsDescription hotfix + RC1453 reset + RC1458 silent startup repair applied');
+console.log('RC1452 mail/goodsDescription hotfix + RC1453 reset + RC1458 silent startup repair + RC1466 cache bust applied');
