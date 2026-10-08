@@ -6,17 +6,20 @@ import vm from 'node:vm';
 function load(){
   const source=fs.readFileSync('assets/pack-notification-shipment.js','utf8');
   const root={};
-  vm.runInContext(source,vm.createContext({window:root,globalThis:root,console,Date,Intl,setTimeout,clearTimeout}),{filename:'pack-notification-shipment.js'});
+  vm.runInContext(source,vm.createContext({window:root,globalThis:root,console,Date,Intl,setTimeout,clearTimeout,Event:function(){},KeyboardEvent:function(){}}),{filename:'pack-notification-shipment.js'});
   return root.ExportHUBPackShipment;
 }
-function state(){return{packNotifications:[{id:'pn-1',reference:'PK-1',customer:'BSH',deliveryNoteReference:'LS1',packageType:'Europalette',packageCount:2,totalWeight:600,packages:[{packageNo:1,length:120,width:80,height:140,unit:'cm'},{packageNo:2,length:120,width:80,height:130,unit:'cm'}],documents:[{id:'d1',name:'LS1.pdf',storage:'blob',blobName:'rc1059/production/aa/'+('a'.repeat(64)),mimeType:'application/pdf',size:12}],status:'in_review'}],tasks:[{id:'task:pack:pn-1',sourceType:'pack_notification',sourceId:'pn-1',sourceRef:'PK-1'}],shipments:[]};}
+function state(){return{packNotifications:[{id:'pn-1',reference:'PK-1',customer:'BSH',customerId:'C100',customerAccount:'9000003004',customerSource:'master',deliveryNoteReference:'LS1',packageType:'Europalette',packageCount:2,totalWeight:600,packages:[{packageNo:1,length:120,width:80,height:140,unit:'cm'},{packageNo:2,length:120,width:80,height:130,unit:'cm'}],documents:[{id:'d1',name:'LS1.pdf',storage:'blob',blobName:'rc1059/production/aa/'+('a'.repeat(64)),mimeType:'application/pdf',size:12}],status:'in_review'}],tasks:[{id:'task:pack:pn-1',sourceType:'pack_notification',sourceId:'pn-1',sourceRef:'PK-1'}],shipments:[]};}
 
-test('shipment prefill preserves pack origin, dimensions, weight and private document references',()=>{
+test('shipment prefill preserves pack origin, customer identity, dimensions, weight and private document references',()=>{
   const api=load(),s=state(),n=s.packNotifications[0];
   const prefill=api.shipmentPrefill(n);
   assert.equal(prefill.packNotificationId,'pn-1');
   assert.equal(prefill.packNotificationRef,'PK-1');
   assert.equal(prefill.customerName,'BSH');
+  assert.equal(prefill.customerId,'C100');
+  assert.equal(prefill.customerAccount,'9000003004');
+  assert.equal(prefill.customerSource,'master');
   assert.equal(prefill.totalWeight,600);
   assert.equal(prefill.rows.length,2);
   assert.equal(prefill.rows[0].l,120);
@@ -24,6 +27,16 @@ test('shipment prefill preserves pack origin, dimensions, weight and private doc
   assert.equal(prefill.deliveryFiles[0].blobName,n.documents[0].blobName);
   assert.equal(prefill.deliveryFiles[0].customerVisible,false);
   assert.equal(prefill.deliveryFiles[0].customerAvisVisible,false);
+});
+
+test('manual customer remains a valid prefill without a fake customer id',()=>{
+  const api=load(),s=state(),n=s.packNotifications[0];
+  n.customer='Neuer Kunde GmbH';n.customerId='';n.customerAccount='';n.customerSource='manual';
+  const prefill=api.shipmentPrefill(n);
+  assert.equal(prefill.customerName,'Neuer Kunde GmbH');
+  assert.equal(prefill.customerId,'');
+  assert.equal(prefill.customerAccount,'');
+  assert.equal(prefill.customerSource,'manual');
 });
 
 test('existing shipment linked to pack notification is found and prevents duplicate creation',()=>{
