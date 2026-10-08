@@ -15,4 +15,5 @@ test('RC1464: startup repair never enters strict Colli shipment validation', () 
   const repair = startupRepairBlock();
   assert.match(repair, /ExportHUBClean[\s\S]*?queueSave/, 'startup repair must use silent queueSave persistence');
   assert.doesNotMatch(repair, /ExportHUBRC565|persistShipment/, 'startup repair must not call strict shipment persistence');
+  assert.doesNotMatch(repair, /Bitte Verpackung, Anzahl und Gewicht in jeder Colli-Zeile vollständig erfassen/, 'startup repair must not emit the Colli validation alert');
 });
