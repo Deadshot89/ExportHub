@@ -3,7 +3,7 @@ const crypto=require('crypto');
 
 const DOCUMENT_CONTAINER=process.env.EXPORTHUB_DOCUMENT_CONTAINER||'exporthub-documents';
 const DOCUMENT_FIELDS=['deliveryFiles','deliveryNotesFiles','podFiles','abdFiles','documents','generatedDocuments','files','attachments','invoiceFiles','mailAttachments','lieferscheine'];
-const ROOT_COLLECTIONS=['shipments','savedShipments','abdRequests'];
+const ROOT_COLLECTIONS=['shipments','savedShipments','abdRequests','packNotifications'];
 const INLINE_FIELDS=['data','dataUrl','payload','content','base64'];
 const CONTAINER_READY=new WeakMap();
 
