@@ -56,7 +56,14 @@ jobs:
           node --check api/exporthub-state/index.js
           node --check api/avis-reminder-mail/index.js
       - name: RC1267 unit and contract tests
-        run: npm run verify:i18n
+        id: deepfix_verify_i18n
+        shell: bash
+        run: |
+          set +e
+          npm run verify:i18n 2>&1 | tee rc1267-verify.log
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit "$code"
       - name: Full regression test suite
         run: npm test
       - name: Restore clean checkout after mutation-heavy regression tests
@@ -68,7 +75,24 @@ jobs:
         run: node .github/rc1112/build-three-env.mjs
       - name: Full i18n audit JSON
         if: always()
-        run: node scripts/i18n-audit.mjs --json
+        run: node scripts/i18n-audit.mjs --json | tee rc1267-audit.json
       - name: Strict i18n release gate
         if: always()
-        run: npm run i18n:audit:strict
+        id: deepfix_strict_i18n
+        shell: bash
+        run: |
+          set +e
+          npm run i18n:audit:strict 2>&1 | tee rc1267-strict.log
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit "$code"
+      - name: Upload deepfix i18n diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deepfix-rc1267-diagnostics
+          path: |
+            rc1267-verify.log
+            rc1267-audit.json
+            rc1267-strict.log
+          if-no-files-found: warn
