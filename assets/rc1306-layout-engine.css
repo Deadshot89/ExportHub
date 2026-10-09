@@ -411,17 +411,22 @@ html[data-eh-layout-mode="neon"] .rc1306-generic-primary{
      theme-workspace. Force the real shared container to one physical column
      on phones so Customer controls can never sit below Shipment content. */
   #rc383TopPair.rc894-full-stack{
-    grid-template-columns:minmax(0,1fr)!important;
-    grid-auto-flow:row!important;
+    display:block!important;
+    width:100%!important;
+    min-width:0!important;
   }
   #rc383TopPair.rc894-full-stack > :is(
     #rc363BlockCustomer,#rc363BlockShipment,#rc363BlockColli,#rc573ColliCard,#rc363BlockDocuments
   ){
-    grid-column:1/-1!important;
-    grid-row:auto!important;
+    position:relative!important;
+    inset:auto!important;
+    transform:none!important;
+    display:block!important;
     width:100%!important;
     max-width:none!important;
     min-width:0!important;
+    margin-left:0!important;
+    margin-right:0!important;
   }
   #rc383TopPair.rc894-full-stack > #rc363BlockCustomer .rc363-process-body{
     width:100%!important;
