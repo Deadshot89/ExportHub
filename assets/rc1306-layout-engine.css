@@ -407,16 +407,15 @@ html[data-eh-layout-mode="neon"] .rc1306-generic-primary{
     flex:0 0 auto;
   }
 
-  /* RC1469 P0: the generic RC1306 card rule above has two IDs and therefore
-     beats the older RC978 container rule even though both declarations use
-     !important. Keep the canonical shipment cards in one physical column on
-     phones so controls from Customer cannot sit underneath Shipment. */
-  html[data-eh-layout-mode] #rc1306Workspace #rc383TopPair.rc894-full-stack{
+  /* RC1469 P0: Classic keeps the canonical shipment stack outside the
+     theme-workspace. Force the real shared container to one physical column
+     on phones so Customer controls can never sit below Shipment content. */
+  #rc383TopPair.rc894-full-stack{
     grid-template-columns:minmax(0,1fr)!important;
     grid-auto-flow:row!important;
   }
-  html[data-eh-layout-mode] #rc1306Workspace #rc383TopPair.rc894-full-stack > :is(
-    #rc363BlockCustomer,#rc363BlockShipment,#rc363BlockColli,#rc363BlockDocuments
+  #rc383TopPair.rc894-full-stack > :is(
+    #rc363BlockCustomer,#rc363BlockShipment,#rc363BlockColli,#rc573ColliCard,#rc363BlockDocuments
   ){
     grid-column:1/-1!important;
     grid-row:auto!important;
@@ -424,7 +423,7 @@ html[data-eh-layout-mode="neon"] .rc1306-generic-primary{
     max-width:none!important;
     min-width:0!important;
   }
-  html[data-eh-layout-mode] #rc1306Workspace #rc383TopPair.rc894-full-stack > #rc363BlockCustomer .rc363-process-body{
+  #rc383TopPair.rc894-full-stack > #rc363BlockCustomer .rc363-process-body{
     width:100%!important;
     min-width:0!important;
   }
