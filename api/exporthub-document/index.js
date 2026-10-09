@@ -2,6 +2,7 @@
 const auth=require('../shared/fast-auth-store');
 const {createBlobServiceClient}=require('../shared/blob-rest');
 const {DOCUMENT_CONTAINER}=require('../shared/document-blob-store');
+const podArchive=require('../shared/pod-archive');
 const apiI18n=require('../shared/i18n');
 const POD_CONTAINER=process.env.EXPORTHUB_POD_CONTAINER||'exporthub-pod';
 
@@ -22,6 +23,9 @@ function validDocumentBlobName(value){return /^rc1059\/(production|testservice)\
 function validPickupPodBlobName(value){return /^rc995\/(production|testservice)\/[a-f0-9]{64}\/automatic\/[^/]+\.pdf$/i.test(text(value))}
 function validBlobName(value){return validDocumentBlobName(value)||validPickupPodBlobName(value)}
 function blobEnvironment(name){const m=text(name).match(/^rc(?:1059|995)\/(production|testservice)\//);return m?m[1]:''}
+function pickupPodParts(name){const m=text(name).match(/^rc995\/(production|testservice)\/([a-f0-9]{64})\/automatic\/[^/]+\.pdf$/i);return m?{environment:m[1].toLowerCase(),accessKey:m[2].toLowerCase()}:null}
+function safeFileName(value){return(text(value)||'POD.pdf').replace(/[\r\n"\\/]+/g,'_').slice(0,160)}
+function inlinePdf(buffer,fileName){return{status:200,headers:{'Content-Type':'application/pdf','Content-Length':String(buffer.length),'Cache-Control':'private, no-store','Content-Disposition':'inline; filename="'+safeFileName(fileName)+'"','X-Content-Type-Options':'nosniff','X-ExportHUB-POD-Layout':String(podArchive.POD_PDF_LAYOUT_VERSION||'')},body:buffer}}
 async function readBuffer(blob){const r=await blob.download(0),chunks=[];for await(const c of r.readableStreamBody)chunks.push(Buffer.from(c));return{buffer:Buffer.concat(chunks),contentType:text(r.contentType)||'application/octet-stream'} }
 
 module.exports=async function(context,req){
@@ -32,6 +36,15 @@ module.exports=async function(context,req){
   const environment=requestEnvironment(req),blobName=text(req&&req.query&&req.query.blob);
   if(!validBlobName(blobName))throw error('DOCUMENT_BLOB_INVALID',apiI18n.t(req,'api.document.referenceInvalid'),400);
   if(blobEnvironment(blobName)!==environment)throw error('ENVIRONMENT_MISMATCH',apiI18n.t(req,'api.document.environmentMismatch'),409);
+  const pod=pickupPodParts(blobName);
+  if(pod&&pod.environment===environment){
+   try{
+    const current=await podArchive.getPodDownload(pod.accessKey,environment,'');
+    if(current&&current.buffer&&current.buffer.length){context.res=inlinePdf(current.buffer,current.file&&current.file.name);return}
+   }catch(regenerationError){
+    try{context.log&&context.log.warn&&context.log.warn('RC1461 POD regeneration fallback',regenerationError&&regenerationError.message)}catch(_){}
+   }
+  }
   const cs=connectionString();if(!cs)throw error('STORAGE_NOT_CONFIGURED',apiI18n.t(req,'api.common.storageNotConfigured'),503);
   const service=createBlobServiceClient(cs),containerName=validPickupPodBlobName(blobName)?POD_CONTAINER:DOCUMENT_CONTAINER,container=service.getContainerClient(containerName),blob=container.getBlockBlobClient(blobName),downloaded=await readBuffer(blob);
   context.res={status:200,headers:{'Content-Type':downloaded.contentType,'Content-Length':String(downloaded.buffer.length),'Cache-Control':'private, no-store','Content-Disposition':'inline; filename="document"','X-Content-Type-Options':'nosniff'},body:downloaded.buffer};
