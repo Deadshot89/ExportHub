@@ -14,7 +14,7 @@ test('RC1469 P0: Neue Sendung verwirft Alt-Daten im echten Browser',async({page}
   await waitReady(page);
   await openExportHubView(page,'shipment',['Sendung erstellen','Neue Sendung','Sendung anlegen'],/Kunde|Empfänger/i);
 
-  const result=await page.evaluate(async()=>{
+  const contaminated=await page.evaluate(()=>{
     const state=typeof window.__EXPORTHUB_GET_STATE__==='function'?window.__EXPORTHUB_GET_STATE__():null;
     if(!state)throw new Error('ExportHUB-State fehlt');
     const stale=state.currentShipment||state.shipment;
@@ -32,14 +32,20 @@ test('RC1469 P0: Neue Sendung verwirft Alt-Daten im echten Browser',async({page}
 
     const remarks=Array.from(document.querySelectorAll('#rc363FixedShipmentLayout textarea, #rc573ShipmentShell textarea'));
     const remark=remarks.find(el=>/comment|remark|bemerk/i.test(((el.name||'')+' '+(el.id||'')+' '+((el.closest&&el.closest('label')||{}).textContent||''))));
-    if(remark)remark.value='ALT BEMERKUNG DOM';
+    if(remark){remark.value='ALT BEMERKUNG DOM';remark.dispatchEvent(new Event('input',{bubbles:true}));remark.dispatchEvent(new Event('change',{bubbles:true}))}
+    return{remarkPresent:!!remark};
+  });
 
-    if(typeof window.startFreshShipment!=='function')throw new Error('startFreshShipment ist nicht verfügbar');
-    window.startFreshShipment();
-    await new Promise(resolve=>setTimeout(resolve,160));
+  const newShipment=page.locator('#rc380NewShipment').or(page.getByRole('button',{name:/^\+?\s*Neue Sendung$/i})).first();
+  await expect(newShipment).toBeVisible();
+  await newShipment.click();
+  await expect.poll(()=>page.evaluate(()=>String((window.__EXPORTHUB_GET_STATE__?.().currentShipment||window.__EXPORTHUB_GET_STATE__?.().shipment||{}).reference||'')),{timeout:10_000}).not.toBe('ALT-REF-1469');
 
-    const after=typeof window.__EXPORTHUB_GET_STATE__==='function'?window.__EXPORTHUB_GET_STATE__():state;
-    const sh=after.currentShipment||after.shipment||{};
+  const result=await page.evaluate(remarkPresent=>{
+    const state=typeof window.__EXPORTHUB_GET_STATE__==='function'?window.__EXPORTHUB_GET_STATE__():{};
+    const sh=state.currentShipment||state.shipment||{};
+    const remarks=Array.from(document.querySelectorAll('#rc363FixedShipmentLayout textarea, #rc573ShipmentShell textarea'));
+    const remark=remarks.find(el=>/comment|remark|bemerk/i.test(((el.name||'')+' '+(el.id||'')+' '+((el.closest&&el.closest('label')||{}).textContent||''))));
     return{
       ref:String(sh.ref||sh.reference||''),customerId:String(sh.customerId||''),customerName:String(sh.customerName||''),
       carrier:String(sh.carrier||sh.carrierName||''),comments:String(sh.comments||sh.remarks||sh.remark||''),
@@ -52,9 +58,10 @@ test('RC1469 P0: Neue Sendung verwirft Alt-Daten im echten Browser',async({page}
       abdFiles:Array.isArray(sh.abdFiles)?sh.abdFiles.length:-1,
       cmrFiles:Array.isArray(sh.cmrFiles)?sh.cmrFiles.length:0,
       podFiles:Array.isArray(sh.podFiles)?sh.podFiles.length:-1,
+      remarkPresent,
       remarkDom:remark?String(remark.value||''):''
     };
-  });
+  },contaminated.remarkPresent);
 
   expect(result.ref).not.toBe('ALT-REF-1469');
   expect(result.ref).toBeTruthy();
@@ -75,7 +82,7 @@ test('RC1469 P0: Neue Sendung verwirft Alt-Daten im echten Browser',async({page}
   expect(result.abdFiles).toBe(0);
   expect(result.cmrFiles).toBe(0);
   expect(result.podFiles).toBe(0);
-  expect(result.remarkDom).toBe('');
+  if(result.remarkPresent)expect(result.remarkDom).toBe('');
 
   await assertNoHorizontalOverflow(page);
   await assertRuntimeClean(runtime,testInfo);
