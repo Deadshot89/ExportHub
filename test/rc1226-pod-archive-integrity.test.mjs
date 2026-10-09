@@ -43,7 +43,7 @@ test('RC1226: beschädigte vorhandene Kopie bleibt fail-closed und wird nicht ü
 test('RC1226: Reconcile und Workflow melden Integritäts- und Reparaturzähler',()=>{
   assert.match(archive,/verifiedCount,/);
   assert.match(archive,/repairedStateCount,/);
-  assert.match(archive,/const errors = integrityErrors\.slice\(\)/);
+  assert.match(archive,/errors\s*=\s*integrityErrors\.slice\(\)/);
   assert.match(reconcile,/version: 'RC1241'/);
   assert.match(workflow,/verifiedCount:v\.verifiedCount/);
   assert.match(workflow,/repairedStateCount:v\.repairedStateCount/);
