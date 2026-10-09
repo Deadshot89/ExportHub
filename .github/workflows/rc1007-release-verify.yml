@@ -24,6 +24,8 @@ jobs:
         run: |
           set -euo pipefail
           node --test test/rc1007-*.test.mjs
+      - name: API Runtime-Abhängigkeiten installieren
+        run: npm install --prefix api --ignore-scripts --no-audit --no-fund --package-lock=false
       - name: Gesamte Node-Regression prüfen
         run: npm test
       - name: RC1007 Syntax prüfen
