@@ -63,6 +63,8 @@ jobs:
         with:
           node-version: '20'
           package-manager-cache: false
+      - name: API-Abhängigkeiten für vollständige Regression installieren
+        run: npm install --prefix api --ignore-scripts --no-audit --no-fund
       - name: RC1088 Security Gate
         run: npm run test:security
       - name: RC1088 Accessibility & Responsive Gate
