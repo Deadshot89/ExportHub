@@ -1,0 +1,38 @@
+name: POD layout release repair
+
+on:
+  push:
+    branches:
+      - release/verify-c5f956-20261008
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: ${{ !contains(github.event.head_commit.message, 'fix(pod): apply layout compatibility repair') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: release/verify-c5f956-20261008
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+      - name: Apply targeted repair
+        run: node scripts/repair-pod-layout-release.mjs
+      - name: Verify repaired source
+        run: |
+          node --check api/shared/pod-archive.js
+          node --test test/pod-customer-layout-regression.test.mjs
+          node --test test/rc1114-pod-reliability.test.mjs
+          git diff --check
+      - name: Commit repaired source
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add api/shared/pod-archive.js
+          git diff --cached --quiet && exit 0
+          git commit -m "fix(pod): apply layout compatibility repair"
+          git push origin HEAD:release/verify-c5f956-20261008
