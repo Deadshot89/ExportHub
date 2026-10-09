@@ -39,6 +39,9 @@ test('public and internal builds load pack locale runtime before pack UI runtime
   const builder=fs.readFileSync('.github/packmeldungen/build-three-env.mjs','utf8');
   assert.ok(page.indexOf('/assets/i18n/pack-notification.js')>=0);
   assert.ok(page.indexOf('/assets/i18n/pack-notification.js')<page.indexOf('/assets/pack-notification.js'));
-  assert.ok(builder.indexOf('exporthub-pack-notification-i18n')>=0);
-  assert.ok(builder.indexOf('exporthub-pack-notification-i18n')<builder.indexOf('exporthub-pack-notification-internal'));
+  const i18nScript=builder.indexOf('<script id="exporthub-pack-notification-i18n"');
+  const internalScript=builder.indexOf('<script id="exporthub-pack-notification-internal"');
+  assert.ok(i18nScript>=0,'pack i18n script injection missing');
+  assert.ok(internalScript>=0,'pack internal script injection missing');
+  assert.ok(i18nScript<internalScript,'pack locale runtime must load before internal pack UI runtime');
 });
