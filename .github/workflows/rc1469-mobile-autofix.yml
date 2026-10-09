@@ -1,15 +1,17 @@
 name: RC1469 Mobile Autofix
 
 on:
-  push:
+  pull_request:
     branches:
-      - releasefix/p0-clean-shipment-print-mobile-20261009
+      - main
+    types: [opened, synchronize, reopened]
 
 permissions:
   contents: write
 
 jobs:
   repair:
+    if: github.head_ref == 'releasefix/p0-clean-shipment-print-mobile-20261009'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
