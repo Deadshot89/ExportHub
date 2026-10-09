@@ -4,7 +4,7 @@ const crypto = require('crypto');
 const store = require('./pickup-store');
 const graphDrive = require('./graph-drive');
 const TEAM_POD_LINK_VERSION = 'RC1340';
-const POD_PDF_LAYOUT_VERSION = 'RC1361-STRUCTURED-V1';
+const POD_PDF_LAYOUT_VERSION = 'RC1461-STRUCTURED-V2';
 
 function text(value) {
   return String(value == null ? '' : value).replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -100,21 +100,24 @@ async function createPodPdf(record, signatureBuffer, signatureType) {
   draw('SENDUNG ABGEHOLT',x+10,top-16,10,bold);
   draw(formatDate(value(record.confirmedAt,last.confirmedAt)),x+320,top-16,8,bold);
   y=top-30;
+  const metaW=(width-18)/4;
   const cellW=(width-12)/3;
-  card('Fahrer',value(last.driverName,record.driverName),x,y,cellW,51);
-  card('Kennzeichen',value(last.licensePlate,record.licensePlate),x+cellW+6,y,cellW,51);
-  card('Verlader',value(last.loaderName,record.loaderName,record.loadedBy),x+2*(cellW+6),y,cellW,51);
+  card('Fahrer',value(last.driverName,record.driverName),x,y,metaW,51);
+  card('Kennzeichen',value(last.licensePlate,record.licensePlate),x+metaW+6,y,metaW,51);
+  card('Verlader',value(last.loaderName,record.loaderName,record.loadedBy),x+2*(metaW+6),y,metaW,51);
+  card('Spedition',value(record.carrierName,record.speditionName,record.carrier,record.spedition),x+3*(metaW+6),y,metaW,51);
   y-=57;
-  card('Spedition',value(record.carrierName,record.speditionName,record.carrier,record.spedition),x,y,cellW,76);
-  card('Fahrerunterschrift','',x+cellW+6,y,cellW,76);
   const palletOut=value(last.euroPalletsOut,record.euroPalletsOut,record.palletsOut,0);
   const palletIn=value(last.euroPalletsIn,record.euroPalletsIn,record.palletsIn,0);
-  card('Europaletten','Ausgang: '+palletOut+' / Eingang: '+palletIn,x+2*(cellW+6),y,cellW,76);
+  card('Europaletten','Ausgang: '+palletOut+' / Eingang: '+palletIn,x,y,cellW,76);
+  card('Fahrerunterschrift','',x+cellW+6,y,cellW,76);
+  const customsConfirmed=last.customsDocumentsConfirmed===true||last.customsDocumentsReceived===true||record.customsDocumentsConfirmed===true||record.customsDocumentsReceived===true;
+  card('Zolldokumente',customsConfirmed?'Uebergeben / bestaetigt':'Nicht erforderlich',x+2*(cellW+6),y,cellW,76);
   let image=null;
   try { image=/png/i.test(signatureType||'')?await pdf.embedPng(signatureBuffer):await pdf.embedJpg(signatureBuffer); }catch(_){}
   if(image){
-    const dims=image.scale(1),maxW=cellW-20,maxH=43,scale=Math.min(maxW/dims.width,maxH/dims.height);
-    page.drawImage(image,{x:x+cellW+16,y:y-68,width:dims.width*scale,height:dims.height*scale});
+    const dims=image.scale(1),maxW=cellW-24,maxH=36;let scale=Math.min(maxW/dims.width,maxH/dims.height);if(scale>1)scale=1;
+    page.drawImage(image,{x:x+cellW+18,y:y-62,width:dims.width*scale,height:dims.height*scale});
   }else draw('Unterschrift gespeichert',x+cellW+16,y-48,8);
   draw('Nachweis-ID: '+text(record.accessKey||'').slice(0,20),x,49,7,normal,muted);
   draw('Quelle: ExportHUB QR-Abholung',x+245,49,7,normal,muted);
@@ -265,9 +268,6 @@ async function saveAzureArchive(accessKey, environment, record, pdf, file) {
   return { record: next, blobName, container: store.POD_BACKUP_CONTAINER, hash };
 }
 function m365Enabled() {
-  // RC1386: Sobald das explizite Microsoft-POD-Ziel vollständig konfiguriert ist,
-  // muss die Drive-Kopie automatisch aktiv sein. Der historische Enable-Schalter
-  // darf vorhandene PODs nicht mehr von der verpflichtenden Nachsicherung ausschließen.
   return graphDrive.readiness().configured;
 }
 async function copyToDrive(accessKey, environment, record, pdf, file) {
@@ -434,22 +434,14 @@ async function reconcilePendingBackups(environment, options) {
     let driveOnly = false;
     if (backup.archiveSaved === true) {
       const lastVerifiedMs = Date.parse(backup.archiveVerifiedAt || '');
-      const verificationFresh = !reference &&
-        Number.isFinite(lastVerifiedMs) &&
-        Date.now() - lastVerifiedMs < 24 * 60 * 60 * 1000;
-      // RC1404: Bereits innerhalb der letzten 24h vollständig verifizierte
-      // Archivkopien nicht bei jedem Reconcile erneut remote abfragen. Das
-      // verhindert den Azure-Functions-Timeout bei großen Production-Beständen,
-      // ohne die tägliche vollständige Integritätsprüfung zu schwächen.
+      const verificationFresh = !reference && Number.isFinite(lastVerifiedMs) && Date.now() - lastVerifiedMs < 24 * 60 * 60 * 1000;
       if (!verificationFresh && integrityChecks >= remoteWorkBudget) {
         pageWorkDeferred = true;
         requiredWorkDeferred = true;
         continue;
       }
       if (!verificationFresh) integrityChecks += 1;
-      const integrity = verificationFresh
-        ? { ok: true, verifiedAt: backup.archiveVerifiedAt, cached: true }
-        : await checkAzureArchive(clients, record, match[1].toLowerCase(), true);
+      const integrity = verificationFresh ? { ok: true, verifiedAt: backup.archiveVerifiedAt, cached: true } : await checkAzureArchive(clients, record, match[1].toLowerCase(), true);
       if (integrity.ok) {
         verifiedCount += 1;
         if (!verificationFresh) {
@@ -457,12 +449,7 @@ async function reconcilePendingBackups(environment, options) {
           backup = record.podBackup || backup;
         }
         if (text(record.teamPodLinkVersion) !== TEAM_POD_LINK_VERSION) {
-          teamRelinkCandidates.push({
-            accessKey: match[1].toLowerCase(),
-            reference: recordReference || text(record.reference),
-            confirmedAtMs: Date.parse(record.confirmedAt || '') || 0,
-            record
-          });
+          teamRelinkCandidates.push({ accessKey: match[1].toLowerCase(), reference: recordReference || text(record.reference), confirmedAtMs: Date.parse(record.confirmedAt || '') || 0, record });
         }
         const driveBackfillRequired = m365Enabled() && graphDrive.readiness().configured && backup.driveSaved !== true;
         if (reference) alreadySaved.push({ reference: recordReference || text(record.reference), fileName: text(backup.fileName), attempts: Math.max(0, Number(backup.attempts) || 0) });
@@ -474,11 +461,7 @@ async function reconcilePendingBackups(environment, options) {
           integrityErrors.push({ reference: recordReference || text(record.reference), code: integrity.code, error: integrity.message });
           continue;
         }
-        record = await persistBackupState(match[1].toLowerCase(), environment, {
-          status: 'pending',
-          archiveSaved: false,
-          lastError: integrity.code + ': ' + integrity.message
-        });
+        record = await persistBackupState(match[1].toLowerCase(), environment, { status: 'pending', archiveSaved: false, lastError: integrity.code + ': ' + integrity.message });
         backup = record.podBackup || backup;
         forceRepair = true;
         repairedStateCount += 1;
@@ -486,17 +469,10 @@ async function reconcilePendingBackups(environment, options) {
     }
     const lastAttemptMs = Date.parse(backup.lastAttemptAt || '');
     if (!forceRepair && !reference && minAgeMs > 0 && Number.isFinite(lastAttemptMs) && Date.now() - lastAttemptMs < minAgeMs) {
-      if (driveOnly) driveBackfillSkippedRecent += 1;
-      else skippedRecent += 1;
+      if (driveOnly) driveBackfillSkippedRecent += 1; else skippedRecent += 1;
       continue;
     }
-    candidates.push({
-      accessKey: match[1].toLowerCase(),
-      reference: recordReference || text(record.reference),
-      lastAttemptMs: Number.isFinite(lastAttemptMs) ? lastAttemptMs : 0,
-      confirmedAtMs: Date.parse(record.confirmedAt || '') || 0,
-      driveOnly
-    });
+    candidates.push({ accessKey: match[1].toLowerCase(), reference: recordReference || text(record.reference), lastAttemptMs: Number.isFinite(lastAttemptMs) ? lastAttemptMs : 0, confirmedAtMs: Date.parse(record.confirmedAt || '') || 0, driveOnly });
     }
     break;
   }
@@ -504,9 +480,6 @@ async function reconcilePendingBackups(environment, options) {
   teamRelinkCandidates.sort((a, b) => a.confirmedAtMs - b.confirmedAtMs || a.reference.localeCompare(b.reference));
   candidates.sort((a, b) => Number(!!a.driveOnly) - Number(!!b.driveOnly) || a.lastAttemptMs - b.lastAttemptMs || a.confirmedAtMs - b.confirmedAtMs || a.reference.localeCompare(b.reference));
   let remainingRemoteBudget = Math.max(0, remoteWorkBudget - integrityChecks);
-  // Required Azure/archive work always has first claim on the remaining budget.
-  // RC1410: one shared remote-work budget covers integrity reads, Azure archive
-  // repairs, team relinks and optional Graph backfill together.
   const requiredCandidates = candidates.filter(candidate => !candidate.driveOnly);
   const driveBackfillCandidates = candidates.filter(candidate => candidate.driveOnly);
   const requiredBackupBudget = reference ? limit : remainingRemoteBudget;
@@ -523,11 +496,7 @@ async function reconcilePendingBackups(environment, options) {
   const requiredSelected = selectedRequiredCandidates.length;
   const driveBackfillSelected = selectedDriveCandidates.length;
   if (!reference) {
-    if (
-      requiredWorkDeferred ||
-      teamRelinkCandidates.length > selectedRelinks.length ||
-      requiredCandidates.length > selectedRequiredCandidates.length
-    ) {
+    if (requiredWorkDeferred || teamRelinkCandidates.length > selectedRelinks.length || requiredCandidates.length > selectedRequiredCandidates.length) {
       requiredWorkDeferred = true;
       pageWorkDeferred = true;
     }
@@ -544,9 +513,6 @@ async function reconcilePendingBackups(environment, options) {
   let teamRelinkedCount = 0;
   let teamRelinkSkippedCount = 0;
 
-  // RC1340: Older browser state could replace the durable automatic POD with a
-  // short-lived /api/pickup-pod?token=... URL. Re-link archived PODs once from
-  // the authoritative pickup record so already affected signed loading lists recover.
   for (const candidate of selectedRelinks) {
     try {
       await store.updateTeam(candidate.record, [], '');
@@ -558,12 +524,6 @@ async function reconcilePendingBackups(environment, options) {
       teamRelinkedCount += 1;
     } catch (error) {
       const code = text(error && error.code) || 'TEAM_POD_RELINK_FAILED';
-      // RC1348: TESTSERVICE may retain completed pickup records after the
-      // corresponding disposable team-state shipment has been cleaned up.
-      // The durable POD archive is already verified above; there is no live
-      // team-state target to repair. Mark only this TESTSERVICE orphan as
-      // terminally checked so the maintenance queue can drain. Production
-      // remains fail-closed for the same condition.
       if (environment === 'testservice' && code === 'TEAM_SHIPMENT_NOT_FOUND') {
         try {
           await store.mutateRecord(candidate.accessKey, environment, function(record) {
@@ -576,11 +536,7 @@ async function reconcilePendingBackups(environment, options) {
           teamRelinkSkippedCount += 1;
           continue;
         } catch (markError) {
-          errors.push({
-            reference: candidate.reference,
-            code: text(markError && markError.code) || 'TEAM_POD_RELINK_SKIP_MARK_FAILED',
-            error: text(markError && markError.message).slice(0, 300)
-          });
+          errors.push({ reference: candidate.reference, code: text(markError && markError.code) || 'TEAM_POD_RELINK_SKIP_MARK_FAILED', error: text(markError && markError.message).slice(0, 300) });
           continue;
         }
       }
@@ -601,11 +557,7 @@ async function reconcilePendingBackups(environment, options) {
         if (!candidate.driveOnly) saved.push({ reference: candidate.reference, fileName: text(backup.fileName), attempts: Math.max(0, Number(backup.attempts) || 0) });
         if (driveRequired) {
           if (driveWasSaved) driveSaved.push({ reference: candidate.reference, fileName: text(backup.fileName) });
-          else drivePending.push({
-            reference: candidate.reference,
-            providerCode: safeCode(backup.driveProviderCode || (driveError && driveError.graphCode)),
-            error: text(backup.driveLastError || ((text(driveError && driveError.code) ? text(driveError && driveError.code) + ': ' : '') + text(driveError && driveError.message || 'Microsoft-365-Zusatzkopie ist noch offen.'))).slice(0, 300)
-          });
+          else drivePending.push({ reference: candidate.reference, providerCode: safeCode(backup.driveProviderCode || (driveError && driveError.graphCode)), error: text(backup.driveLastError || ((text(driveError && driveError.code) ? text(driveError && driveError.code) + ': ' : '') + text(driveError && driveError.message || 'Microsoft-365-Zusatzkopie ist noch offen.'))).slice(0, 300) });
         }
       } else {
         pending.push({ reference: candidate.reference, error: text(backup.lastError || driveError && driveError.message).slice(0, 300) });
@@ -628,11 +580,7 @@ async function reconcilePendingBackups(environment, options) {
     savedNowCount: saved.length,
     pendingCount: pending.length,
     errorCount: errors.length,
-    status: referenceMatched === 0 ? 'not-found' :
-      referencePodReady === 0 ? 'pod-not-ready' :
-      errors.length > 0 ? 'error' :
-      pending.length > 0 ? 'pending' :
-      (alreadySaved.length + saved.length >= referencePodReady ? (saved.length > 0 ? 'saved-now' : 'already-saved') : 'incomplete')
+    status: referenceMatched === 0 ? 'not-found' : referencePodReady === 0 ? 'pod-not-ready' : errors.length > 0 ? 'error' : pending.length > 0 ? 'pending' : (alreadySaved.length + saved.length >= referencePodReady ? (saved.length > 0 ? 'saved-now' : 'already-saved') : 'incomplete')
   } : null;
   return {
     ok: errors.length === 0,
@@ -680,12 +628,7 @@ async function createShareLink(accessKey, environment) {
   const live = await store.getRecord(accessKey, environment);
   const file = automaticPod(live.record);
   if (!file || !isCurrentAutomaticPod(file)) throw new Error('Aktueller automatischer POD ist nicht gespeichert');
-  return {
-    file,
-    url: store.podDownloadUrl(accessKey, environment, file.id),
-    expiresAt: store.podLinkExpiry(live.record),
-    version: TEAM_POD_LINK_VERSION
-  };
+  return { file, url: store.podDownloadUrl(accessKey, environment, file.id), expiresAt: store.podLinkExpiry(live.record), version: TEAM_POD_LINK_VERSION };
 }
 async function getPodDownload(accessKey, environment, fileId) {
   const got = await store.getRecord(accessKey, environment);
