@@ -12,14 +12,16 @@ test('runtime injection is idempotent and ordered after existing document head',
   assert.equal(once,twice);
   assert.match(once,/pack-notification-internal\.css\?v=1/);
   assert.match(once,/pack-notification-avis\.css\?v=1/);
+  const i18n=once.indexOf('i18n/pack-notification.js?v=1');
   const a=once.indexOf('pack-notification-internal.js?v=1');
   const nav=once.indexOf('pack-notification-nav.js?v=1');
   const b=once.indexOf('pack-notification-shipment.js?v=1');
   const c=once.indexOf('pack-notification-avis.js?v=1');
-  assert.ok(a>0&&nav>a&&b>nav&&c>b);
+  assert.ok(i18n>0&&a>i18n&&nav>a&&b>nav&&c>b);
 });
 
-test('pack build contract includes shared catalog and standalone inbox navigation runtime',()=>{
+test('pack build contract includes shared catalog, locale runtime and standalone inbox navigation runtime',()=>{
+  assert.ok(PACK_ASSETS.includes('i18n/pack-notification.js'));
   assert.ok(PACK_ASSETS.includes('packaging-catalog.js'));
   assert.ok(PACK_ASSETS.includes('pack-notification-nav.js'));
   const nav=fs.readFileSync('assets/pack-notification-nav.js','utf8');
@@ -35,7 +37,11 @@ test('copyPackFiles carries public qr page and every runtime asset into build ou
   const out=fs.mkdtempSync(path.join(os.tmpdir(),'pack-build-out-'));
   fs.mkdirSync(path.join(root,'assets'),{recursive:true});
   fs.writeFileSync(path.join(root,'pack.html'),'pack');
-  for(const asset of PACK_ASSETS)fs.writeFileSync(path.join(root,'assets',asset),asset);
+  for(const asset of PACK_ASSETS){
+    const target=path.join(root,'assets',asset);
+    fs.mkdirSync(path.dirname(target),{recursive:true});
+    fs.writeFileSync(target,asset);
+  }
   copyPackFiles(root,out);
   assert.equal(fs.readFileSync(path.join(out,'pack.html'),'utf8'),'pack');
   for(const asset of PACK_ASSETS)assert.equal(fs.readFileSync(path.join(out,'assets',asset),'utf8'),asset);
