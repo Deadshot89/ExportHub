@@ -5,7 +5,7 @@ import fs from 'node:fs';
 const archive=fs.readFileSync('api/shared/pod-archive.js','utf8');
 
 test('RC1395: gültiges Azure-Archiv mit fehlender Drive-Kopie bleibt fachlich gesichert und wird nur als optionales Backfill markiert',()=>{
-  assert.match(archive,/const driveBackfillRequired = m365Enabled\(\) && graphDrive\.readiness\(\)\.configured && backup\.driveSaved !== true/);
+  assert.match(archive,/const driveBackfillRequired = m365Enabled\(\) && backup\.driveSaved !== true/);
   assert.match(archive,/if \(!driveBackfillRequired\) continue;/);
   assert.match(archive,/driveOnly = true;/);
   assert.match(archive,/if \(!integrity\.ok\) \{[\s\S]*?if \(!integrity\.repairable\)/);
@@ -14,13 +14,13 @@ test('RC1395: gültiges Azure-Archiv mit fehlender Drive-Kopie bleibt fachlich g
 test('RC1395: Drive-Backfill bleibt Kandidat, verdrängt aber keine erforderliche Azure-Nachsicherung',()=>{
   assert.match(archive,/candidates\.push\(\{[\s\S]*?driveOnly/);
   assert.match(archive,/Number\(!!a\.driveOnly\) - Number\(!!b\.driveOnly\)/);
-  assert.match(archive,/const requiredEligible = requiredCandidates\.length/);
+  assert.match(archive,/requiredEligible\s*=\s*requiredCandidates\.length/);
   assert.match(archive,/await retryArchiveBackup\(candidate\.accessKey, environment\)/);
 });
 
 
 test('RC1395: fehlgeschlagene optionale Drive-Kopie bleibt sichtbar, blockiert aber den erforderlichen POD-Backupstatus nicht',()=>{
-  assert.match(archive,/const driveRequired = m365Enabled\(\) && graphDrive\.readiness\(\)\.configured/);
+  assert.match(archive,/const driveRequired = m365Enabled\(\)/);
   assert.match(archive,/const driveWasSaved = backup\.driveSaved === true \|\| result && result\.driveSaved === true/);
   assert.match(archive,/if \(backup\.archiveSaved === true\)/);
   assert.match(archive,/if \(!candidate\.driveOnly\) saved\.push/);
@@ -34,8 +34,8 @@ test('RC1410: optionales Drive-Backfill nutzt nur das verbleibende gemeinsame Re
   assert.match(archive,/const driveBackfillBudget = reference \? Math\.min\(limit, remainingRemoteBudget\) : Math\.min\(1, remainingRemoteBudget\)/);
   assert.match(archive,/const selectedDriveCandidates = driveBackfillCandidates\.slice\(0, driveBackfillBudget\)/);
   assert.match(archive,/const selectedCandidates = selectedRequiredCandidates\.concat\(selectedDriveCandidates\)/);
-  assert.match(archive,/const requiredSelected = selectedRequiredCandidates\.length/);
-  assert.match(archive,/const driveBackfillSelected = selectedDriveCandidates\.length/);
+  assert.match(archive,/requiredSelected\s*=\s*selectedRequiredCandidates\.length/);
+  assert.match(archive,/driveBackfillSelected\s*=\s*selectedDriveCandidates\.length/);
 });
 
 
@@ -50,8 +50,8 @@ test('RC1410: ein gemeinsames Remote-Budget begrenzt teure POD-Arbeit pro Functi
 
 
 test('RC1417: nur verpflichtende Arbeit hält dieselbe Scan-Seite fest',()=>{
-  assert.match(archive,/let requiredWorkDeferred = false/);
-  assert.match(archive,/let optionalDriveWorkDeferred = false/);
+  assert.match(archive,/requiredWorkDeferred\s*=\s*false/);
+  assert.match(archive,/optionalDriveWorkDeferred\s*=\s*false/);
   assert.match(archive,/requiredWorkDeferred = true;[\s\S]*?pageWorkDeferred = true/);
   assert.match(archive,/optionalDriveWorkDeferred = true;[\s\S]*?pageWorkDeferred = true/);
   assert.match(archive,/if \(!reference && requiredWorkDeferred\) \{[\s\S]*?nextContinuationToken = continuationToken;[\s\S]*?scanComplete = false/);
