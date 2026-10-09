@@ -36,6 +36,16 @@ test('RC1112 bewahrt die RC1018 Mail- und Sprachruntime unverändert',()=>{
   assert.match(flow,/assets\/rc1018-public-language\.js\?v=1018/);
 });
 
+test('RC1112 Deploy-Freigabevertrag installiert API-Runtime-Abhängigkeiten vor der Vollregression',()=>{
+  const flow=read(workflow);
+  const install='npm install --prefix api --ignore-scripts --no-audit --no-fund';
+  const installAt=flow.indexOf(install);
+  const npmTestAt=flow.indexOf('npm test');
+  assert.ok(installAt>=0,'Deploy-Workflow installiert die API-Runtime-Abhängigkeiten nicht.');
+  assert.ok(npmTestAt>=0,'Deploy-Freigabevertrag enthält keine Vollregression.');
+  assert.ok(installAt<npmTestAt,'API-Runtime-Abhängigkeiten müssen vor npm test installiert werden.');
+});
+
 test('RC1112 Deploypakete und Liveprüfung verwenden überall denselben sichtbaren Release',()=>{
   const flow=read(workflow);
   assert.match(flow,/\.rc1112_production_app/);
