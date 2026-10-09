@@ -36,7 +36,7 @@ function harness(){
       prepend(child){child.parentNode=this;child.parentElement=this;this.children.unshift(child);notify(this,child);return child},
       closest(selector){
         if(selector==='#rc626Shipping')return nearestId(this,'rc626Shipping');
-        if(selector==='#rc1013-gate41-status')return nearestId(this,'rc1013-gate41-status');
+        if(selector==='#rc1013GateStatus')return nearestId(this,'rc1013GateStatus');
         return null;
       }
     };
