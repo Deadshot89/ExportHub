@@ -89,7 +89,18 @@ jobs:
       - name: RC1018 Mail- und Sprachbasis
         run: node --test --test-concurrency=1 test/rc1018-mail-language-standard.test.mjs test/rc1018-production-deploy.test.mjs
       - name: Gesamte Node-Regression
-        run: npm test
+        id: node-regression
+        shell: bash
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee node-regression.log
+      - name: Node-Regression Diagnose sichern
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-regression-log
+          path: node-regression.log
+          if-no-files-found: warn
       - name: Historischen RC1013 Drei-Umgebungen-Build reproduzieren
         run: node .github/rc1013/build-three-env.mjs
       - name: RC1013 Baseline und RC1112 Produktionsmarker prüfen
