@@ -57,6 +57,8 @@ jobs:
           node --check api/avis-reminder-mail/index.js
       - name: RC1267 unit and contract tests
         run: npm run verify:i18n
+      - name: API Runtime-Abhängigkeiten installieren
+        run: npm install --prefix api --ignore-scripts --no-audit --no-fund --package-lock=false
       - name: Full regression test suite
         run: npm test
       - name: Restore clean checkout after mutation-heavy regression tests
