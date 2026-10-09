@@ -1,4 +1,4 @@
-// ExportHUB RC1165 – sichtbarer, read-only POD-Sicherungsstatus in der Sendungsübersicht.
+// ExportHUB RC1165 / RC1461 – sichtbarer POD-Nachweis und read-only Sicherungsstatus in der Sendungsübersicht.
 (function(root){
 'use strict';
 if(!root||root.__EXPORTHUB_RC1165_POD_BACKUP_STATUS__)return;
@@ -64,6 +64,29 @@ function backupMeta(sh){
  }
  return{key:'pending',label:tr('podBackup.pending.label'),title:tr('podBackup.pending.title')};
 }
+function podFilesOf(sh){
+ const out=[],seen=new Set();
+ function add(file){
+  if(!file||typeof file!=='object')return;
+  const name=q(file.name||file.fileName||file.filename),blob=q(file.blobName||file.storageBlobName),id=q(file.id),kind=q(file.kind).toLowerCase(),type=q(file.type||file.contentType||file.mimeType).toLowerCase();
+  if(!blob&&!id&&!file.url&&!file.downloadUrl&&!file.data&&!file.dataUrl)return;
+  if(kind&&kind!=='automatic-pod'&&!/pod|proof.?of.?delivery|abliefer/i.test(kind+' '+name))return;
+  if(type&&type!=='application/pdf'&&!/\.pdf(?:$|[?#])/i.test(name))return;
+  const key=blob||id||q(file.url||file.downloadUrl)||name;
+  if(!key||seen.has(key))return;
+  seen.add(key);out.push(file);
+ }
+ arr(sh&&sh.podFiles).forEach(add);
+ arr(sh&&sh.subShipments).forEach(sub=>arr(sub&&sub.podFiles).forEach(add));
+ if(!out.length&&q(sh&&sh.automaticPodBlobName))add({kind:'automatic-pod',name:q(sh.automaticPodFileName)||'POD_Abliefernachweis.pdf',type:'application/pdf',storage:'azure',blobName:q(sh.automaticPodBlobName),storageBlobName:q(sh.automaticPodBlobName)});
+ return out;
+}
+function podFileOf(sh){return podFilesOf(sh)[0]||null}
+function openPod(file){
+ const helper=root.ExportHUBDocumentBlob1059;
+ if(!file||!helper||typeof helper.open!=='function')return Promise.reject(new Error('POD-Dokument ist derzeit nicht öffnungsfähig.'));
+ return helper.open(file,{name:q(file.name||file.fileName||file.filename)||'POD_Abliefernachweis.pdf',download:false});
+}
 function inOverview(doc){
  const body=doc&&doc.body;
  if(!body||typeof body.getAttribute!=='function')return false;
@@ -83,18 +106,31 @@ function cardShipment(card,shipments){
 function ensureStyle(doc){
  if(!doc||doc.getElementById('rc1165PodBackupStatusStyle'))return;
  const s=doc.createElement('style');s.id='rc1165PodBackupStatusStyle';
- s.textContent='.rc1165-pod-backup{display:inline-flex;align-items:center;gap:5px;margin-top:6px;padding:5px 9px;border:1px solid #cbd5e1;border-radius:999px;font-size:11px;font-weight:800;line-height:1.2;max-width:100%;box-sizing:border-box}.rc1165-pod-backup.saved{background:#dcfce7;border-color:#86efac;color:#166534}.rc1165-pod-backup.pending{background:#fffbeb;border-color:#fde68a;color:#92400e}.rc1165-pod-backup.error,.rc1165-pod-backup.unknown{background:#fff7ed;border-color:#fdba74;color:#9a3412}@media(max-width:640px){.rc1165-pod-backup{white-space:normal;border-radius:10px}}body.dark .rc1165-pod-backup.saved,[data-theme="dark"] .rc1165-pod-backup.saved{background:#052e16;color:#bbf7d0;border-color:#166534}body.dark .rc1165-pod-backup.pending,[data-theme="dark"] .rc1165-pod-backup.pending{background:#422006;color:#fde68a;border-color:#92400e}body.dark .rc1165-pod-backup.error,body.dark .rc1165-pod-backup.unknown,[data-theme="dark"] .rc1165-pod-backup.error,[data-theme="dark"] .rc1165-pod-backup.unknown{background:#431407;color:#fed7aa;border-color:#9a3412}';
+ s.textContent='.rc1165-pod-backup{display:inline-flex;align-items:center;gap:5px;margin-top:6px;padding:5px 9px;border:1px solid #cbd5e1;border-radius:999px;font-size:11px;font-weight:800;line-height:1.2;max-width:100%;box-sizing:border-box}.rc1165-pod-backup.saved{background:#dcfce7;border-color:#86efac;color:#166534}.rc1165-pod-backup.pending{background:#fffbeb;border-color:#fde68a;color:#92400e}.rc1165-pod-backup.error,.rc1165-pod-backup.unknown{background:#fff7ed;border-color:#fdba74;color:#9a3412}.rc1461-pod-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}.rc1461-pod-open{appearance:none;border:1px solid #2563eb;border-radius:9px;background:#eff6ff;color:#1d4ed8;padding:6px 10px;font:inherit;font-size:11px;font-weight:850;line-height:1.2;cursor:pointer}.rc1461-pod-open:hover,.rc1461-pod-open:focus-visible{background:#dbeafe;border-color:#1d4ed8;outline:2px solid rgba(37,99,235,.2);outline-offset:1px}@media(max-width:640px){.rc1165-pod-backup{white-space:normal;border-radius:10px}.rc1461-pod-actions{width:100%}.rc1461-pod-open{min-height:36px}}body.dark .rc1165-pod-backup.saved,[data-theme="dark"] .rc1165-pod-backup.saved{background:#052e16;color:#bbf7d0;border-color:#166534}body.dark .rc1165-pod-backup.pending,[data-theme="dark"] .rc1165-pod-backup.pending{background:#422006;color:#fde68a;border-color:#92400e}body.dark .rc1165-pod-backup.error,body.dark .rc1165-pod-backup.unknown,[data-theme="dark"] .rc1165-pod-backup.error,[data-theme="dark"] .rc1165-pod-backup.unknown{background:#431407;color:#fed7aa;border-color:#9a3412}body.dark .rc1461-pod-open,[data-theme="dark"] .rc1461-pod-open{background:#172554;color:#bfdbfe;border-color:#3b82f6}';
  (doc.head||doc.documentElement).appendChild(s);
 }
-function removeBadge(card){
- const badge=card&&card.querySelector&&card.querySelector('[data-rc1165-pod-backup]');
- if(badge&&typeof badge.remove==='function')badge.remove();
+function removeEvidence(card){
+ if(!card||!card.querySelectorAll)return;
+ card.querySelectorAll('[data-rc1165-pod-backup],[data-rc1461-pod-actions]').forEach(node=>{if(node&&typeof node.remove==='function')node.remove()});
+}
+function renderPodActions(card,sh,doc){
+ const files=podFilesOf(sh);
+ let actions=card.querySelector&&card.querySelector('[data-rc1461-pod-actions]');
+ if(!files.length){if(actions&&typeof actions.remove==='function')actions.remove();return 0}
+ if(!actions){actions=doc.createElement('div');actions.className='rc1461-pod-actions';actions.setAttribute('data-rc1461-pod-actions','1');const host=card.querySelector&&card.querySelector('[data-rc1014-shipment-meta]')||card;if(host&&typeof host.appendChild==='function')host.appendChild(actions)}
+ while(actions.firstChild)actions.removeChild(actions.firstChild);
+ files.forEach((file,index)=>{
+  const button=doc.createElement('button');button.type='button';button.className='rc1461-pod-open';button.setAttribute('data-rc1461-pod-open',String(index));button.textContent=index?'POD '+(index+1)+' öffnen':'POD öffnen';button.setAttribute('aria-label',button.textContent+' '+(q(file.name)||''));
+  button.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();if(typeof event.stopImmediatePropagation==='function')event.stopImmediatePropagation();button.disabled=true;openPod(file).catch(error=>{try{root.alert('POD konnte nicht geöffnet werden.\n\n'+q(error&&error.message||error))}catch(_){}}).finally(()=>{button.disabled=false})},true);
+  actions.appendChild(button);
+ });
+ return files.length;
 }
 function render(){
  const doc=root.document;
  if(!doc||typeof doc.querySelectorAll!=='function')return 0;
  if(!inOverview(doc)){
-  doc.querySelectorAll('[data-rc1165-pod-backup]').forEach(n=>{if(n&&typeof n.remove==='function')n.remove()});
+  doc.querySelectorAll('[data-rc1165-pod-backup],[data-rc1461-pod-actions]').forEach(n=>{if(n&&typeof n.remove==='function')n.remove()});
   return 0;
  }
  ensureStyle(doc);
@@ -102,7 +138,7 @@ function render(){
  let count=0;
  cards.forEach(card=>{
   const sh=cardShipment(card,shipments),meta=backupMeta(sh);
-  if(!meta){removeBadge(card);return}
+  if(!meta){removeEvidence(card);return}
   let badge=card.querySelector&&card.querySelector('[data-rc1165-pod-backup]');
   if(!badge){
    badge=doc.createElement('span');
@@ -114,18 +150,19 @@ function render(){
   badge.textContent=meta.label;
   badge.setAttribute('title',meta.title);
   badge.setAttribute('aria-label',meta.label);
+  renderPodActions(card,sh,doc);
   count++;
  });
  return count;
 }
 function schedule(){
  if(timer||!root.setTimeout)return false;
- timer=root.setTimeout(()=>{timer=0;try{render()}catch(e){try{console.warn('RC1165 POD-Status',e)}catch(_){}}},0);
+ timer=root.setTimeout(()=>{timer=0;try{render()}catch(e){try{console.warn('RC1461 POD-Nachweis',e)}catch(_){}}},0);
  return true;
 }
 if(root.addEventListener){
  ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded','exporthub:shipment-updated','exporthub:overview-updated','exporthub:language-changed'].forEach(name=>root.addEventListener(name,schedule));
 }
 if(root.document&&root.document.readyState==='loading')root.document.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
-root.ExportHUBRC1165PodBackupStatus=Object.freeze({version:'RC1165',backupMeta,pickupRelevant,render});
+root.ExportHUBRC1165PodBackupStatus=Object.freeze({version:'RC1461',backupMeta,pickupRelevant,podFileOf,podFilesOf,openPod,render});
 })(globalThis);
