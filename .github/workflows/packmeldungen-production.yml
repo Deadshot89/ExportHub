@@ -1,0 +1,113 @@
+name: ExportHUB Packmeldungen PRODUCTION
+
+on:
+  workflow_run:
+    workflows: ["ExportHUB RC1112 Drei-Umgebungen Deploy"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: exporthub-packmeldungen-production
+  cancel-in-progress: true
+
+jobs:
+  deploy_pack_production:
+    if: >-
+      ${{
+        github.event_name == 'workflow_dispatch' ||
+        (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
+      }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Main auschecken
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Node 20
+        uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+
+      - name: Packmeldungen Release-Vertrag prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test --test-concurrency=1 test/pack-notification-*.test.mjs test/packaging-catalog.test.mjs test/document-reference-normalizer.test.mjs
+          node --check api/pack-notification/index.js
+          node --check api/shared/pack-notification-store.js
+          node --check assets/pack-notification.js
+          node --check assets/pack-notification-internal.js
+          node --check assets/pack-notification-nav.js
+          node --check assets/pack-notification-shipment.js
+          node --check assets/pack-notification-avis.js
+
+      - name: Production-Build mit Packmeldungen bauen
+        shell: bash
+        run: |
+          set -euo pipefail
+          node .github/packmeldungen/build-three-env.mjs
+          grep -q 'pack-notification-nav.js?v=1' dist-rc1112/index.html
+          grep -q 'pack-notification-internal.js?v=1' dist-rc1112/index.html
+          grep -q 'pack-notification-shipment.js?v=1' dist-rc1112/index.html
+          test -s dist-rc1112/pack.html
+          test -s dist-rc1112/assets/pack-notification-nav.js
+          test -s dist-rc1112/assets/pack-notification-internal.css
+
+      - name: Production-Paket vorbereiten
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .packmeldungen_production_app
+          mkdir -p .packmeldungen_production_app
+          cp dist-rc1112/index.html .packmeldungen_production_app/index.html
+          cp dist-rc1112/pack.html .packmeldungen_production_app/pack.html
+          cp dist-rc1112/pickup.html dist-rc1112/customer-avis.html dist-rc1112/location.html dist-rc1112/pod-notfall.html dist-rc1112/migration-recovery.html .packmeldungen_production_app/
+          cp dist-rc1112/production-version.js .packmeldungen_production_app/production-version.js
+          cp staticwebapp.config.json .packmeldungen_production_app/staticwebapp.config.json
+          cp -R assets .packmeldungen_production_app/assets
+          cp -R dist-rc1112/assets/. .packmeldungen_production_app/assets/
+          test -s .packmeldungen_production_app/pack.html
+          test -s .packmeldungen_production_app/assets/pack-notification-nav.js
+          grep -q 'pack-notification-nav.js?v=1' .packmeldungen_production_app/index.html
+
+      - name: Packmeldungen nach Production deployen
+        uses: Azure/static-web-apps-deploy@4d27395796ac319302594769cfe812bd207490b1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_FOREST_0F315E310 }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: upload
+          app_location: .packmeldungen_production_app
+          api_location: api
+          output_location: ''
+          skip_app_build: true
+
+      - name: Production Packmeldungen live prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          index="$(mktemp)"
+          pack="$(mktemp)"
+          trap 'rm -f "$index" "$pack"' EXIT
+          ready=0
+          for attempt in {1..24}; do
+            ic="$(curl -sS -L -o "$index" -w '%{http_code}' --max-time 20 "$base/?packrelease=${GITHUB_SHA}-${attempt}" || true)"
+            pc="$(curl -sS -L -o "$pack" -w '%{http_code}' --max-time 20 "$base/pack/production-smoke?packrelease=${GITHUB_SHA}-${attempt}" || true)"
+            if [ "$ic" = '200' ] && [ "$pc" = '200' ] \
+              && grep -q 'pack-notification-nav.js?v=1' "$index" \
+              && grep -q 'pack-notification-internal.js?v=1' "$index" \
+              && grep -q 'Packmeldung' "$pack"; then
+              ready=1
+              break
+            fi
+            sleep 5
+          done
+          [ "$ready" = '1' ] || { echo "Packmeldungen Production-Liveprüfung fehlgeschlagen: index=$ic pack=$pc" >&2; exit 1; }
+          echo 'Packmeldungen Production erfolgreich live verifiziert.'

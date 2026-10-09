@@ -1,0 +1,80 @@
+name: ExportHUB Packmeldungen Branch Gate
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/packmeldungen
+    paths:
+      - 'pack.html'
+      - 'assets/pack-notification*'
+      - 'assets/packaging-catalog.js'
+      - 'assets/document-reference-normalizer.js'
+      - 'assets/document-print-name.js'
+      - 'api/pack-notification/**'
+      - 'api/shared/pack-notification-store.js'
+      - 'api/shared/pdf-document-reference.js'
+      - 'api/shared/document-blob-store.js'
+      - 'staticwebapp*.config.json'
+      - 'test/pack-notification-*.test.mjs'
+      - 'test/packaging-catalog.test.mjs'
+      - 'test/document-reference-normalizer.test.mjs'
+      - 'test/rc1059-document-blob-store.test.mjs'
+      - 'test/rc1293-packing-slip-wrap.test.mjs'
+      - 'test/rc1315-loading-list-quick-print.test.mjs'
+      - 'e2e/specs/pack-notification.spec.mjs'
+      - '.github/packmeldungen/**'
+      - '.github/workflows/packmeldungen-branch-gate.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: Packmeldungen unit and document contracts
+        run: |
+          node --test --test-concurrency=1 test/pack-notification-*.test.mjs test/packaging-catalog.test.mjs test/document-reference-normalizer.test.mjs
+          node --test --test-concurrency=1 test/rc1059-document-blob-store.test.mjs test/rc1293-packing-slip-wrap.test.mjs test/rc1315-loading-list-quick-print.test.mjs
+      - name: JavaScript syntax
+        run: |
+          node --check api/shared/pack-notification-store.js
+          node --check api/shared/pdf-document-reference.js
+          node --check api/shared/document-blob-store.js
+          node --check api/pack-notification/index.js
+          node --check assets/packaging-catalog.js
+          node --check assets/document-reference-normalizer.js
+          node --check assets/document-print-name.js
+          node --check assets/pack-notification.js
+          node --check assets/pack-notification-internal.js
+          node --check assets/pack-notification-shipment.js
+          node --check assets/pack-notification-avis.js
+          node --check e2e/specs/pack-notification.spec.mjs
+          node --check .github/packmeldungen/build-three-env.mjs
+      - name: Existing task and AVIS regressions
+        run: |
+          node --test --test-concurrency=1 test/rc1002-task-groups.test.mjs test/rc1014-task-lifecycle.test.mjs test/rc1014-task-runtime-integration.test.mjs test/rc1089-avis-post-pickup-downloads.test.mjs
+      - name: Build RC1112 candidate with pack runtime
+        run: |
+          node .github/packmeldungen/build-three-env.mjs
+          test -s dist-rc1112/pack.html
+          test -s dist-rc1112/assets/packaging-catalog.js
+          test -s dist-rc1112/assets/document-print-name.js
+          test -s dist-rc1112/assets/pack-notification-internal.js
+          test -s dist-rc1112/assets/pack-notification-shipment.js
+          test -s dist-rc1112/assets/pack-notification-avis.js
+          grep -q 'pack-notification-internal.js?v=1' dist-rc1112/index.html
+          grep -q 'pack-notification-internal.js?v=1' dist-rc1112/TESTVERSION.html
+          grep -q 'pack-notification-avis.js?v=1' dist-rc1112/index.html
+          grep -q 'pack-notification-shipment.js?v=1' dist-rc1112/TESTVERSION.html
+          grep -q 'document-print-name.js?v=1' dist-rc1112/index.html
+          grep -q 'document-print-name.js?v=1' dist-rc1112/TESTVERSION.html
+      - name: No deployment
+        run: echo 'Branch gate only - no production or testservice deployment is performed.'

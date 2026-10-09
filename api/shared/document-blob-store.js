@@ -1,9 +1,10 @@
 'use strict';
 const crypto=require('crypto');
+const pdfReferences=require('./pdf-document-reference');
 
 const DOCUMENT_CONTAINER=process.env.EXPORTHUB_DOCUMENT_CONTAINER||'exporthub-documents';
 const DOCUMENT_FIELDS=['deliveryFiles','deliveryNotesFiles','podFiles','abdFiles','documents','generatedDocuments','files','attachments','invoiceFiles','mailAttachments','lieferscheine'];
-const ROOT_COLLECTIONS=['shipments','savedShipments','abdRequests'];
+const ROOT_COLLECTIONS=['shipments','savedShipments','abdRequests','packNotifications'];
 const INLINE_FIELDS=['data','dataUrl','payload','content','base64'];
 const CONTAINER_READY=new WeakMap();
 
@@ -147,23 +148,28 @@ async function readBlobBuffer(blob){
  }
  const e=new Error('Blob-Verifikation wird vom Client nicht unterstützt.');e.code='BLOB_VERIFY_UNSUPPORTED';throw e;
 }
+function normalizeInlineDocumentName(file,parsed){
+ try{return pdfReferences.normalizePdfDocument(file,parsed.buffer,parsed.mimeType)}catch(_){return clone(file)}
+}
 async function verifiedStoreInlineDocument(file,options={}){
  const parsed=extractInlinePayload(file);if(!parsed)return clone(file);
+ const normalizedFile=normalizeInlineDocumentName(file,parsed);
  const environment=normalizeEnvironment(options.environment),container=options.container||createDocumentContainer();
  await ensureDocumentContainer(container);
  const hash=crypto.createHash('sha256').update(parsed.buffer).digest('hex'),blobName=`rc1059/${environment}/${hash.slice(0,2)}/${hash}`,blob=container.getBlockBlobClient(blobName);
  await uploadIdempotent(blob,parsed.buffer,parsed.mimeType,{sha256:hash,environment,kind:'exporthub-document'});
  const verified=await readBlobBuffer(blob),verifiedHash=crypto.createHash('sha256').update(verified).digest('hex');
  if(verified.length!==parsed.buffer.length||verifiedHash!==hash){const e=new Error('Blob-Verifikation fehlgeschlagen.');e.code='BLOB_VERIFY_FAILED';throw e}
- return Object.assign(stripInlineFields(file),{storage:'blob',blobName,sha256:hash,size:parsed.buffer.length,mimeType:parsed.mimeType});
+ return Object.assign(stripInlineFields(normalizedFile),{storage:'blob',blobName,sha256:hash,size:parsed.buffer.length,mimeType:parsed.mimeType});
 }
 async function storeInlineDocument(file,options={}){
  const parsed=extractInlinePayload(file);if(!parsed)return clone(file);
+ const normalizedFile=normalizeInlineDocumentName(file,parsed);
  const environment=normalizeEnvironment(options.environment),container=options.container||createDocumentContainer();
  await ensureDocumentContainer(container);
  const hash=crypto.createHash('sha256').update(parsed.buffer).digest('hex'),blobName=`rc1059/${environment}/${hash.slice(0,2)}/${hash}`,blob=container.getBlockBlobClient(blobName);
  await uploadIdempotent(blob,parsed.buffer,parsed.mimeType,{sha256:hash,environment,kind:'exporthub-document'});
- return Object.assign(stripInlineFields(file),{storage:'blob',blobName,sha256:hash,size:parsed.buffer.length,mimeType:parsed.mimeType});
+ return Object.assign(stripInlineFields(normalizedFile),{storage:'blob',blobName,sha256:hash,size:parsed.buffer.length,mimeType:parsed.mimeType});
 }
 async function externalizeDocumentCollections(state,options={}){
  const scan=incomingDocumentScan(state),stats={externalized:0,inlineBytes:0,scanned:scan.scanned,legacySkipped:0,blobReused:0,fastPath:!scan.hasInlineFields};
@@ -203,4 +209,4 @@ async function migrateLegacyDocuments(state,options={}){
  return{state:out,found:inventory.found,migrated,skipped:inventory.skipped,failed,remaining,bytesMoved,done:remaining===0};
 }
 
-module.exports={DOCUMENT_CONTAINER,DOCUMENT_FIELDS,ROOT_COLLECTIONS,INLINE_FIELDS,normalizeEnvironment,extractInlinePayload,inlineCandidateStats,legacyDocumentInventory,storeInlineDocument,externalizeDocumentCollections,migrateLegacyDocuments,createDocumentContainer,ensureDocumentContainer};
+module.exports={DOCUMENT_CONTAINER,DOCUMENT_FIELDS,ROOT_COLLECTIONS,INLINE_FIELDS,normalizeEnvironment,extractInlinePayload,inlineCandidateStats,legacyDocumentInventory,storeInlineDocument,externalizeDocumentCollections,migrateLegacyDocuments,createDocumentContainer,ensureDocumentContainer,normalizeInlineDocumentName};

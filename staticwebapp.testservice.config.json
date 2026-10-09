@@ -116,6 +116,31 @@
       }
     },
     {
+      "route": "/pack/*",
+      "rewrite": "/pack.html",
+      "allowedRoles": [
+        "anonymous"
+      ],
+      "headers": {
+        "Cache-Control": "no-store",
+        "Referrer-Policy": "no-referrer",
+        "X-Content-Type-Options": "nosniff",
+        "X-ExportHUB-Environment": "test"
+      }
+    },
+    {
+      "route": "/pack.html",
+      "allowedRoles": [
+        "anonymous"
+      ],
+      "headers": {
+        "Cache-Control": "no-store",
+        "Referrer-Policy": "no-referrer",
+        "X-Content-Type-Options": "nosniff",
+        "X-ExportHUB-Environment": "test"
+      }
+    },
+    {
       "route": "/location",
       "rewrite": "/location.html",
       "allowedRoles": [
@@ -198,6 +223,8 @@
       "/pickup.html",
       "/customer-avis",
       "/customer-avis.html",
+      "/pack/*",
+      "/pack.html",
       "/assets/*",
       "/testservice-environment.json",
       "/*.{css,js,json,png,jpg,jpeg,gif,svg,ico,pdf,webp,woff,woff2}",
