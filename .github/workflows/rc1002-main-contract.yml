@@ -90,6 +90,40 @@ jobs:
         run: node --test --test-concurrency=1 test/rc1018-mail-language-standard.test.mjs test/rc1018-production-deploy.test.mjs
       - name: Gesamte Node-Regression
         run: npm test
+      - name: Ersten Node-Regressionsfehler isolieren
+        if: failure()
+        shell: bash
+        run: |
+          set +e
+          diag="${RUNNER_TEMP}/node-first-fail.txt"
+          current="${RUNNER_TEMP}/node-current-test.log"
+          : > "$diag"
+          found=0
+          for f in test/*.test.mjs tests/*.test.cjs; do
+            printf '\n### %s\n' "$f" >> "$diag"
+            node --test --test-concurrency=1 "$f" > "$current" 2>&1
+            code=$?
+            cat "$current" >> "$diag"
+            printf '\nEXIT_CODE=%s\n' "$code" >> "$diag"
+            if [ "$code" -ne 0 ]; then
+              printf 'FIRST_FAIL=%s\n' "$f" | tee -a "$diag"
+              found=$code
+              break
+            fi
+          done
+          if [ "$found" -eq 0 ]; then
+            echo 'NO_INDIVIDUAL_FAILURE=1' | tee -a "$diag"
+          fi
+          cat "$diag"
+          exit "$found"
+      - name: Node-Regressionsdiagnose sichern
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-first-fail
+          path: ${{ runner.temp }}/node-first-fail.txt
+          if-no-files-found: error
+          retention-days: 1
       - name: Historischen RC1013 Drei-Umgebungen-Build reproduzieren
         run: node .github/rc1013/build-three-env.mjs
       - name: RC1013 Baseline und RC1112 Produktionsmarker prüfen
