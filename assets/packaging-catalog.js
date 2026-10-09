@@ -1,7 +1,7 @@
 (function(root){
   'use strict';
   const entries=[
-    {key:'duesseldorfer-palette',label:'Düsseldorfer Palette',length:80,width:60,height:null,aliases:['Dusseldorfer Palette','Düsseldorfer Palette','Dusseldorf Pallet','Düsseldorf Palette']},
+    {key:'duesseldorfer-palette',label:'D\u00fcsseldorfer Palette',length:80,width:60,height:null,aliases:['Dusseldorfer Palette','D\u00fcsseldorfer Palette','Dusseldorf Pallet','D\u00fcsseldorf Palette']},
     {key:'kunststoffpalette',label:'Kunststoffpalette',length:122,width:116,height:null,aliases:['Kunststoff Palette','Kunststoffpalette','Plastic Palette','Plastic Pallet']},
     {key:'industrie-palette',label:'Industrie Palette',length:120,width:100,height:null,aliases:['Industriepalette','Industrie Palette','Industrial Pallet','Industrial Palette']},
     {key:'palettengestell',label:'Palettengestell',length:120,width:90,height:null,aliases:['Palettengestell','Paletten Gestell','Pallet Rack']},
