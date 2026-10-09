@@ -71,6 +71,11 @@ test('draft-save updates the same draft and draft-get restores the saved form da
   assert.equal(loaded.body.draft.deliveryNoteReference,'DNC999');
 });
 
+test('draft delivery-note files use the central blob document storage path',()=>{
+  const documents=require('../api/shared/document-blob-store.js');
+  assert.ok(documents.ROOT_COLLECTIONS.includes('packDrafts'));
+});
+
 test('non-Essentra shipment can be submitted with typed DNC and without an uploaded delivery note',async()=>{
   const f=fixture();
   const sid=await session(f,f.tokenA);
