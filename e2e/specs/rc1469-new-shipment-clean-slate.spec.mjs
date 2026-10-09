@@ -43,15 +43,13 @@ test('RC1469 P0: Neue Sendung verwirft Alt-Daten im echten Browser',async({page}
     const geometry=await page.evaluate(()=>{
       const button=document.getElementById('rc380NewShipment');
       const shipment=document.getElementById('rc363BlockShipment');
+      const customer=document.getElementById('rc363BlockCustomer');
       const rect=el=>{const r=el?.getBoundingClientRect();return r?{x:r.x,y:r.y,width:r.width,height:r.height,top:r.top,right:r.right,bottom:r.bottom,left:r.left}:null};
-      const style=el=>{if(!el)return null;const s=getComputedStyle(el);return{display:s.display,position:s.position,zIndex:s.zIndex,overflow:s.overflow,overflowX:s.overflowX,overflowY:s.overflowY,height:s.height,minHeight:s.minHeight,maxHeight:s.maxHeight,transform:s.transform,pointerEvents:s.pointerEvents}};
       const br=button?.getBoundingClientRect();
       const cx=br?Math.max(0,Math.min(innerWidth-1,br.left+br.width/2)):0;
       const cy=br?Math.max(0,Math.min(innerHeight-1,br.top+br.height/2)):0;
       const hit=document.elementFromPoint(cx,cy);
-      const parents=[];let node=button;
-      for(let i=0;node&&i<7;i++,node=node.parentElement)parents.push({tag:node.tagName,id:node.id||'',className:String(node.className||''),rect:rect(node),style:style(node)});
-      return{viewport:{width:innerWidth,height:innerHeight,scrollY},button:{rect:rect(button),style:style(button)},shipment:{rect:rect(shipment),style:style(shipment)},hit:{tag:hit?.tagName||'',id:hit?.id||'',className:String(hit?.className||''),text:String(hit?.textContent||'').trim().slice(0,120),rect:rect(hit),style:style(hit)},parents};
+      return{viewport:{width:innerWidth,height:innerHeight,scrollY},button:rect(button),customer:rect(customer),shipment:rect(shipment),hit:{tag:hit?.tagName||'',id:hit?.id||'',className:String(hit?.className||'')}};
     });
     console.log('RC1469_MOBILE_HITTEST '+JSON.stringify(geometry));
   }
@@ -100,6 +98,13 @@ test('RC1469 P0: Neue Sendung verwirft Alt-Daten im echten Browser',async({page}
   expect(result.cmrFiles).toBe(0);
   expect(result.podFiles).toBe(0);
   if(result.remarkPresent)expect(result.remarkDom).toBe('');
+
+  // Fake-Demo blocks external Lieferavis side effects by contract. Starting a
+  // fresh draft legitimately triggers draft-change; keep only this known 403
+  // out of the runtime guard while every other browser error stays fatal.
+  runtime.consoleErrors=runtime.consoleErrors.filter(line=>
+    !/RC1033 Lieferavis Fast-Path draft-change Error: Diese Außenwirkung ist in der Fake-Demo absichtlich deaktiviert\./i.test(line)
+  );
 
   await assertNoHorizontalOverflow(page);
   await assertRuntimeClean(runtime,testInfo);
