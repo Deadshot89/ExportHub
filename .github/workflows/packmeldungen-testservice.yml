@@ -29,7 +29,10 @@ jobs:
             echo 'Packmeldungs-Testservice-Deploy ist ohne exakte Bestätigung gesperrt.'
             exit 1
           fi
-      - uses: actions/checkout@v5
+      - name: Packmeldungs-Branch auschecken
+        uses: actions/checkout@v5
+        with:
+          ref: feature/packmeldungen
       - uses: actions/setup-node@v5
         with:
           node-version: '20'
@@ -38,6 +41,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          test "$(git branch --show-current)" = "feature/packmeldungen"
           node --test --test-concurrency=1 test/pack-notification-*.test.mjs test/packaging-catalog.test.mjs test/document-reference-normalizer.test.mjs
           node --test --test-concurrency=1 test/rc1059-document-blob-store.test.mjs test/rc1293-packing-slip-wrap.test.mjs test/rc1315-loading-list-quick-print.test.mjs
           node --check api/shared/pack-notification-store.js
