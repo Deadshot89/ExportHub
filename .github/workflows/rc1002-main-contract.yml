@@ -89,7 +89,7 @@ jobs:
       - name: RC1018 Mail- und Sprachbasis
         run: node --test --test-concurrency=1 test/rc1018-mail-language-standard.test.mjs test/rc1018-production-deploy.test.mjs
       - name: API Runtime-Abhängigkeiten installieren
-        run: npm ci --prefix api --ignore-scripts
+        run: npm install --prefix api --ignore-scripts --no-audit --no-fund --package-lock=false
       - name: Gesamte Node-Regression
         id: node-regression
         shell: bash
