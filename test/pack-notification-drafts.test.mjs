@@ -44,13 +44,13 @@ test('draft-save persists an incomplete shipment without creating notification o
     stationToken:f.tokenA,sessionId:sid,
     draft:{customer:'BSH Hausgeräte',deliveryNoteReference:'DNC3019222063',packageType:'Europalette',packageCount:3,totalWeight:0,packages:[],documents:[]}
   }));
-  assert.equal(saved.status,200);
+  assert.equal(saved.status,200,JSON.stringify(saved.body));
   assert.match(saved.body.draft.id,/^[a-f0-9-]{32,}$/i);
   assert.equal(f.state().packNotifications.length,0);
   assert.equal(f.state().tasks.length,0);
 
   const listed=await f.handler(request('draft-list',{stationToken:f.tokenB}));
-  assert.equal(listed.status,200);
+  assert.equal(listed.status,200,JSON.stringify(listed.body));
   assert.equal(listed.body.drafts.length,1);
   assert.equal(listed.body.drafts[0].customer,'BSH Hausgeräte');
   assert.equal(listed.body.drafts[0].deliveryNoteReference,'DNC3019222063');
@@ -61,12 +61,14 @@ test('draft-save updates the same draft and draft-get restores the saved form da
   const f=fixture();
   const sid=await session(f,f.tokenA);
   const first=await f.handler(request('draft-save',{stationToken:f.tokenA,sessionId:sid,draft:{customer:'Kunde A',packageType:'Europalette',packageCount:1,totalWeight:100,packages:[],documents:[]}}));
+  assert.equal(first.status,200,JSON.stringify(first.body));
   const id=first.body.draft.id;
   const second=await f.handler(request('draft-save',{stationToken:f.tokenA,sessionId:sid,draft:{id,customer:'Kunde A',deliveryNoteReference:'DNC999',packageType:'Europalette',packageCount:4,totalWeight:400,packages:[],documents:[]}}));
+  assert.equal(second.status,200,JSON.stringify(second.body));
   assert.equal(second.body.draft.id,id);
   assert.equal(f.state().packDrafts.length,1);
   const loaded=await f.handler(request('draft-get',{stationToken:f.tokenB,draftId:id}));
-  assert.equal(loaded.status,200);
+  assert.equal(loaded.status,200,JSON.stringify(loaded.body));
   assert.equal(loaded.body.draft.packageCount,4);
   assert.equal(loaded.body.draft.deliveryNoteReference,'DNC999');
 });
@@ -80,7 +82,7 @@ test('non-Essentra shipment can be submitted with typed DNC and without an uploa
   const f=fixture();
   const sid=await session(f,f.tokenA);
   const res=await f.handler(request('submit',completePayload(f.tokenA,sid)));
-  assert.equal(res.status,201);
+  assert.equal(res.status,201,JSON.stringify(res.body));
   assert.equal(f.state().packNotifications[0].deliveryNoteReference,'DNC3019222063');
   assert.deepEqual(f.state().packNotifications[0].documents,[]);
 });
@@ -89,7 +91,7 @@ test('non-Essentra shipment still requires either a DNC/reference or at least on
   const f=fixture();
   const sid=await session(f,f.tokenA);
   const res=await f.handler(request('submit',completePayload(f.tokenA,sid,{deliveryNoteReference:'',documents:[]})));
-  assert.equal(res.status,400);
+  assert.equal(res.status,400,JSON.stringify(res.body));
   assert.equal(res.body.code,'PACK_DELIVERY_NOTE_OR_DOCUMENT_REQUIRED');
 });
 
@@ -99,7 +101,7 @@ test('Essentra shipment can be submitted without DNC/reference and without deliv
   const res=await f.handler(request('submit',completePayload(f.tokenA,sid,{
     customer:'Essentra Components GmbH',customerId:'essentra-de',customerAccount:'9000003004',deliveryNoteReference:'',documents:[]
   })));
-  assert.equal(res.status,201);
+  assert.equal(res.status,201,JSON.stringify(res.body));
   assert.equal(f.state().packNotifications[0].customer,'Essentra Components GmbH');
 });
 
@@ -107,9 +109,10 @@ test('submitting an existing draft closes it so it disappears from the open-draf
   const f=fixture();
   const sid=await session(f,f.tokenA);
   const saved=await f.handler(request('draft-save',{stationToken:f.tokenA,sessionId:sid,draft:{customer:'BSH Hausgeräte',deliveryNoteReference:'DNC3019222063',packageType:'Europalette',packageCount:2,totalWeight:680,packages:[],documents:[]}}));
+  assert.equal(saved.status,200,JSON.stringify(saved.body));
   const draftId=saved.body.draft.id;
   const res=await f.handler(request('submit',completePayload(f.tokenA,sid,{draftId})));
-  assert.equal(res.status,201);
+  assert.equal(res.status,201,JSON.stringify(res.body));
   const listed=await f.handler(request('draft-list',{stationToken:f.tokenB}));
   assert.equal(listed.body.drafts.length,0);
   assert.equal(f.state().packDrafts.find(x=>x.id===draftId).status,'submitted');
