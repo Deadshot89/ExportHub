@@ -32,7 +32,7 @@ test('RC1469 P0: Neue Sendung verwirft Alt-Daten im echten Browser',async({page}
 
     const remarks=Array.from(document.querySelectorAll('#rc363FixedShipmentLayout textarea, #rc573ShipmentShell textarea'));
     const remark=remarks.find(el=>/comment|remark|bemerk/i.test(((el.name||'')+' '+(el.id||'')+' '+((el.closest&&el.closest('label')||{}).textContent||''))));
-    if(remark){remark.value='ALT BEMERKUNG DOM';remark.dispatchEvent(new Event('input',{bubbles:true}));remark.dispatchEvent(new Event('change',{bubbles:true}))}
+    if(remark)remark.value='ALT BEMERKUNG DOM';
     return{remarkPresent:!!remark};
   });
 
