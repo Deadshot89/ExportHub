@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {execFileSync} from 'node:child_process';
 
+execFileSync(process.execPath,['scripts/rc1462-pretest.mjs'],{stdio:'pipe'});
+
 function freshBlock(html){
   const start=html.indexOf('function startFreshShipment(){');
   const end=html.indexOf('function enforceFreshDraft(){',start);
@@ -10,28 +12,45 @@ function freshBlock(html){
   return html.slice(start,end);
 }
 
-test('RC1469 P0: Neue Sendung ersetzt einen vorhandenen Draft immer durch einen Clean-Slate-Draft',()=>{
+function build(){
   execFileSync(process.execPath,['.github/rc1112/build-three-env.mjs'],{stdio:'pipe'});
+}
+
+test('RC1469 P0: Neue Sendung baut einen vollständigen Clean-Slate-Draft statt Altwerte zu übernehmen',()=>{
+  build();
   for(const file of ['index.html','TESTVERSION.html','demo.html']){
     const block=freshBlock(fs.readFileSync('dist-rc1112/'+file,'utf8'));
-    assert.match(block,/window\.currentCreateShipment=\{id:'R-NEU',customer:'',reference:'',status:'Offen',planned:_rc1413Today\(\),documents:0\};/,file+': neuer Draft wird nicht initialisiert');
-    assert.doesNotMatch(block,/if\(!form\|\|!window\.currentCreateShipment\)\{window\.currentCreateShipment=/,file+': alter Draft kann weiterhin wiederverwendet werden');
+    assert.match(block,/ref=createReference\(\)/,file+': neue Referenz wird nicht erzeugt');
+    assert.match(block,/template=\{[\s\S]*?customerId:'',customerNo:'',customerNumber:'',customerAccount:'',customerName:'',customerSearch:'',customerDisplay:'',customerCode:'',kundennummer:'',customer:\{\},customerData:\{\},selectedCustomer:\{\}/,file+': Kundendaten sind nicht leer initialisiert');
+    assert.match(block,/carrier:'',carrierName:'',carrierEmail:'',spedition:'',speditionMail:'',incoterm:'',goodsDescription:'',comments:'',notes:'',deliveryNotes:'',licensePlate:'',loader:''/,file+': Versand-/Bemerkungsfelder sind nicht leer initialisiert');
+    assert.match(block,/documents:\[\],files:\[\],docs:\[\],deliveryFiles:\[\],deliveryNotesFiles:\[\],deliveryNotesList:\[\],lieferscheine:\[\],podFiles:\[\],abdFiles:\[\],invoiceFiles:\[\],mailAttachments:\[\],attachments:\[\]/,file+': Dokument-/Lieferschein-/ABD-/Anhangslisten sind nicht leer initialisiert');
+    assert.match(block,/totalWeight:0,totalColli:0,totalLdm:0,goodsValue:0/,file+': Maße/Gewicht-Summen sind nicht zurückgesetzt');
+    assert.match(block,/rootState\.shipment=sh;rootState\.currentShipment=sh;rootState\.selectedShipment=null/,file+': State-Roots erhalten keinen frischen Draft');
+    assert.match(block,/runtime\.lastSnapshot\.shipment=clone\(template\);runtime\.lastSnapshot\.currentShipment=clone\(template\)/,file+': letzter Runtime-Snapshot bleibt alt');
+    assert.match(block,/Object\.keys\(sh\)\.forEach\(function\(k\)\{try\{delete sh\[k\]\}/,file+': Altobjekt wird vor dem Fresh-Assign nicht entkernt');
+    assert.match(block,/Object\.assign\(sh,clone\(template\)\)/,file+': frisches Template wird nicht final übernommen');
+    assert.doesNotMatch(block,/localStorage|sessionStorage|indexedDB/i,file+': Fresh-Start darf keine alten lokalen Draft-Caches einlesen');
   }
 });
 
-test('RC1469 P0: Clean-Slate-Vertrag schützt die bekannten Datenintegritätsfelder',()=>{
-  const contract={
-    customer:'ALT Kunde',reference:'ALT-REF',remarks:'Altbemerkung',
-    deliveryNotes:['ALT-DNC.pdf'],attachments:['ALT.pdf'],
-    dimensions:[{l:120,w:80,h:90}],weight:850,
-    abdFiles:['ALT-ABD.pdf'],cmrFiles:['ALT-CMR.pdf'],status:'Abgeholt'
-  };
-  const fresh={id:'R-NEU',customer:'',reference:'',status:'Offen',planned:'2026-10-09',documents:0};
-  assert.notStrictEqual(fresh,contract,'neue Sendung muss eine neue Objekt-Referenz erhalten');
-  for(const key of ['remarks','deliveryNotes','attachments','dimensions','weight','abdFiles','cmrFiles']){
-    assert.equal(Object.prototype.hasOwnProperty.call(fresh,key),false,key+' darf nicht aus dem alten Draft übernommen werden');
+test('RC1469 P0: Release-Pfad löscht volatile Bemerkungs- und Dateiwerte im gemounteten Formular',()=>{
+  build();
+  for(const file of ['index.html','TESTVERSION.html','demo.html']){
+    const block=freshBlock(fs.readFileSync('dist-rc1112/'+file,'utf8'));
+    assert.match(block,/function resetMountedFreshVolatile\(\)/,file+': volatile Reset-Funktion fehlt');
+    assert.match(block,/querySelectorAll\('textarea'\)/,file+': Bemerkungsfelder werden nicht geprüft');
+    assert.match(block,/comment\|remark\|bemerk/,file+': Bemerkungs-Erkennung fehlt');
+    assert.match(block,/querySelectorAll\('input\[type=file\]'\)/,file+': Datei-Inputs werden nicht geleert');
+    assert.match(block,/resetMountedFreshVolatile\(\);safePatchDuringEdit\(\);return true/,file+': volatile Felder werden im lokalen Fresh-Reset nicht geleert');
   }
-  assert.equal(fresh.customer,'');
-  assert.equal(fresh.reference,'');
-  assert.equal(fresh.status,'Offen');
+});
+
+test('RC1469 P0: DOM-Finalizer deckt Kunde, Standort, Colli, Maße/Gewicht, ABD, Dokumente und Versanddaten ab',()=>{
+  build();
+  const block=freshBlock(fs.readFileSync('dist-rc1112/index.html','utf8'));
+  assert.match(block,/if\(el\.type==='file'\)\{try\{el\.value=''\}/);
+  assert.match(block,/if\(el\.type==='checkbox'\|\|el\.type==='radio'\)\{el\.checked=false/);
+  for(const token of ['kunde','customer','standort','location','colli','gewicht','weight','lademeter','ldm','abd','dokument','document','lieferschein','spedition','carrier','abholdatum','pickup','kennzeichen','warenbeschreibung','goods','incoterm']){
+    assert.ok(block.includes(token),token+' fehlt im DOM-Clean-Slate-Vertrag');
+  }
 });
