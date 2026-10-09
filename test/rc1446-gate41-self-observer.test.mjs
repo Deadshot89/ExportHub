@@ -10,9 +10,15 @@ function harness(){
   let observer=null;
 
   function isInside(target,root){
-    let node=target;
-    while(node){if(node===root)return true;node=node.parentNode}
+    let current=target;
+    while(current){if(current===root)return true;current=current.parentNode}
     return false;
+  }
+
+  function nearestId(target,id){
+    let current=target;
+    while(current){if(current.id===id)return current;current=current.parentElement}
+    return null;
   }
 
   function notify(target,added){
@@ -28,7 +34,11 @@ function harness(){
       setAttribute(name,value){attrs.set(name,String(value))},
       getAttribute(name){return attrs.has(name)?attrs.get(name):null},
       prepend(child){child.parentNode=this;child.parentElement=this;this.children.unshift(child);notify(this,child);return child},
-      closest(selector){return selector==='#rc626Shipping'&&isInside(this,shipping)?shipping:null}
+      closest(selector){
+        if(selector==='#rc626Shipping')return nearestId(this,'rc626Shipping');
+        if(selector==='#rc1013-gate41-status')return nearestId(this,'rc1013-gate41-status');
+        return null;
+      }
     };
     Object.defineProperty(el,'textContent',{
       get(){return text},
@@ -38,7 +48,6 @@ function harness(){
   }
 
   const shipping=node('rc626Shipping');
-  shipping.closest=selector=>selector==='#rc626Shipping'?shipping:null;
 
   function findById(root,id){
     if(!root)return null;
@@ -97,14 +106,14 @@ test('RC1446: eigenes Gate41-Update erzeugt keinen redundanten Folge-Timer',()=>
   const h=harness();
   assert.equal(h.timers.length,1,'Initialisierung muss genau einen Gate41-Timer planen');
   assert.equal(h.runNextTimer(),true,'Initialer Gate41-Timer muss ausführbar sein');
-  assert.equal(h.deliver(),false,'eigene DOM-Schreibvorgänge dürfen keine Observer-Records erzeugen');
+  assert.equal(h.deliver(),true,'eigene DOM-Schreibvorgänge werden vom Observer zugestellt und müssen gefiltert werden');
   assert.equal(h.timers.length,1,'eigene Gate41-DOM-Änderungen dürfen keinen zweiten Timer planen');
 });
 
 test('RC1446: externe Shipping-DOM-Mutation bleibt reaktiv',()=>{
   const h=harness();
   h.runNextTimer();
-  h.observer.pending.length=0;
+  h.deliver();
   const before=h.timers.length;
   h.externalMutation();
   assert.equal(h.deliver(),true,'externe Shipping-Mutation muss beobachtet werden');
