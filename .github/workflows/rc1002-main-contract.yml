@@ -88,6 +88,8 @@ jobs:
         run: node --test test/rc1017-three-env-release.test.mjs
       - name: RC1018 Mail- und Sprachbasis
         run: node --test --test-concurrency=1 test/rc1018-mail-language-standard.test.mjs test/rc1018-production-deploy.test.mjs
+      - name: API Runtime-Abhängigkeiten installieren
+        run: npm ci --prefix api --ignore-scripts
       - name: Gesamte Node-Regression
         id: node-regression
         shell: bash
@@ -96,7 +98,7 @@ jobs:
           npm test 2>&1 | tee node-regression.log
       - name: Node-Regression Diagnose sichern
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: node-regression-log
           path: node-regression.log
