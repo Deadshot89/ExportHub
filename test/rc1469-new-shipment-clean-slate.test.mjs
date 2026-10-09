@@ -61,8 +61,8 @@ test('RC1469 P0: Classic und Themes stapeln die Sendungskarten auf Telefonen wir
   const end=css.indexOf('@media print{',start);
   const mobile=start>=0&&end>start?css.slice(start,end):'';
   assert.ok(mobile,'RC1469 Mobile-Regel fehlt in der Layout-Engine');
-  assert.match(mobile,/#rc383TopPair\.rc894-full-stack\{[\s\S]*?grid-template-columns:minmax\(0,1fr\)!important;[\s\S]*?grid-auto-flow:row!important;/i,'TopPair wird auf Telefonen nicht hart einspaltig gehalten');
+  assert.match(mobile,/#rc383TopPair\.rc894-full-stack\{[\s\S]*?display:block!important;[\s\S]*?width:100%!important;[\s\S]*?min-width:0!important;/i,'TopPair wird auf Telefonen nicht in normalen einspaltigen Dokumentfluss gesetzt');
   assert.doesNotMatch(mobile,/html\[data-eh-layout-mode\][^\{]*#rc383TopPair\.rc894-full-stack\{/i,'Classic darf nicht von einem Theme-Workspace abhängen');
-  assert.match(mobile,/#rc363BlockCustomer,#rc363BlockShipment,#rc363BlockColli,#rc573ColliCard,#rc363BlockDocuments[\s\S]*?grid-column:1\/-1!important;[\s\S]*?grid-row:auto!important;[\s\S]*?width:100%!important;/i,'Prozesskarten werden auf Telefonen nicht vollbreit gestapelt');
+  assert.match(mobile,/#rc363BlockCustomer,#rc363BlockShipment,#rc363BlockColli,#rc573ColliCard,#rc363BlockDocuments[\s\S]*?position:relative!important;[\s\S]*?inset:auto!important;[\s\S]*?display:block!important;[\s\S]*?width:100%!important;/i,'Prozesskarten werden auf Telefonen nicht ohne Überlagerung vollbreit gestapelt');
   assert.match(mobile,/#rc363BlockCustomer \.rc363-process-body\{[\s\S]*?width:100%!important;[\s\S]*?min-width:0!important;/i,'Kunden-Body kann weiterhin auf 0px kollabieren');
 });
