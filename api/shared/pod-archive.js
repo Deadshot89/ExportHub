@@ -4,7 +4,7 @@ const crypto = require('crypto');
 const store = require('./pickup-store');
 const graphDrive = require('./graph-drive');
 const TEAM_POD_LINK_VERSION = 'RC1340';
-const POD_PDF_LAYOUT_VERSION = 'RC1361-STRUCTURED-V1';
+const POD_PDF_LAYOUT_VERSION = 'RC1461-STRUCTURED-V2';
 
 function text(value) {
   return String(value == null ? '' : value).replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -100,21 +100,24 @@ async function createPodPdf(record, signatureBuffer, signatureType) {
   draw('SENDUNG ABGEHOLT',x+10,top-16,10,bold);
   draw(formatDate(value(record.confirmedAt,last.confirmedAt)),x+320,top-16,8,bold);
   y=top-30;
+  const metaW=(width-18)/4;
   const cellW=(width-12)/3;
-  card('Fahrer',value(last.driverName,record.driverName),x,y,cellW,51);
-  card('Kennzeichen',value(last.licensePlate,record.licensePlate),x+cellW+6,y,cellW,51);
-  card('Verlader',value(last.loaderName,record.loaderName,record.loadedBy),x+2*(cellW+6),y,cellW,51);
+  card('Fahrer',value(last.driverName,record.driverName),x,y,metaW,51);
+  card('Kennzeichen',value(last.licensePlate,record.licensePlate),x+metaW+6,y,metaW,51);
+  card('Verlader',value(last.loaderName,record.loaderName,record.loadedBy),x+2*(metaW+6),y,metaW,51);
+  card('Spedition',value(record.carrierName,record.speditionName,record.carrier,record.spedition),x+3*(metaW+6),y,metaW,51);
   y-=57;
-  card('Spedition',value(record.carrierName,record.speditionName,record.carrier,record.spedition),x,y,cellW,76);
-  card('Fahrerunterschrift','',x+cellW+6,y,cellW,76);
   const palletOut=value(last.euroPalletsOut,record.euroPalletsOut,record.palletsOut,0);
   const palletIn=value(last.euroPalletsIn,record.euroPalletsIn,record.palletsIn,0);
-  card('Europaletten','Ausgang: '+palletOut+' / Eingang: '+palletIn,x+2*(cellW+6),y,cellW,76);
+  card('Europaletten','Ausgang: '+palletOut+' / Eingang: '+palletIn,x,y,cellW,76);
+  card('Fahrerunterschrift','',x+cellW+6,y,cellW,76);
+  const customsConfirmed=last.customsDocumentsConfirmed===true||last.customsDocumentsReceived===true||record.customsDocumentsConfirmed===true||record.customsDocumentsReceived===true;
+  card('Zolldokumente',customsConfirmed?'Uebergeben / bestaetigt':'Nicht erforderlich',x+2*(cellW+6),y,cellW,76);
   let image=null;
   try { image=/png/i.test(signatureType||'')?await pdf.embedPng(signatureBuffer):await pdf.embedJpg(signatureBuffer); }catch(_){}
   if(image){
-    const dims=image.scale(1),maxW=cellW-20,maxH=43,scale=Math.min(maxW/dims.width,maxH/dims.height);
-    page.drawImage(image,{x:x+cellW+16,y:y-68,width:dims.width*scale,height:dims.height*scale});
+    const dims=image.scale(1),maxW=cellW-24,maxH=36;let scale=Math.min(maxW/dims.width,maxH/dims.height);if(scale>1)scale=1;
+    page.drawImage(image,{x:x+cellW+18,y:y-62,width:dims.width*scale,height:dims.height*scale});
   }else draw('Unterschrift gespeichert',x+cellW+16,y-48,8);
   draw('Nachweis-ID: '+text(record.accessKey||'').slice(0,20),x,49,7,normal,muted);
   draw('Quelle: ExportHUB QR-Abholung',x+245,49,7,normal,muted);
