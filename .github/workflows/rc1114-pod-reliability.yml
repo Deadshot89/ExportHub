@@ -19,41 +19,9 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  repair-verify-branch:
-    if: ${{ github.event_name == 'pull_request' && github.head_ref == 'release/verify-c5f956-20261008' }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          ref: release/verify-c5f956-20261008
-          fetch-depth: 0
-      - uses: actions/setup-node@v5
-        with:
-          node-version: '20'
-          package-manager-cache: false
-      - name: Apply targeted POD layout compatibility repair
-        run: |
-          if grep -q "POD_PDF_LAYOUT_VERSION = 'RC1361-STRUCTURED-V1'" api/shared/pod-archive.js; then
-            echo 'POD layout repair already present.'
-            exit 0
-          fi
-          node scripts/repair-pod-layout-release.mjs
-          node --check api/shared/pod-archive.js
-          node --test test/pod-customer-layout-regression.test.mjs
-          node --test test/rc1114-pod-reliability.test.mjs
-          git diff --check
-      - name: Commit repaired runtime only
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add api/shared/pod-archive.js
-          git diff --cached --quiet && exit 0
-          git commit -m "fix(pod): apply layout compatibility repair"
-          git push origin HEAD:release/verify-c5f956-20261008
-
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 25
