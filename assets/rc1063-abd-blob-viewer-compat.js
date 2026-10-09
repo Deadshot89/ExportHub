@@ -34,7 +34,7 @@ function inferType(d,fallback){
  if(/ladeliste/.test(raw))return'Ladeliste';
  return fallback||'Dokument'
 }
-function docKey(d){var f=fileOf(d)||{},type=inferType(d,'Dokument');return q(f.blobName||f.id||f.url||f.downloadUrl||f.href||nameOf(d))+'|'+type}
+function docKey(d){var f=fileOf(d)||{},type=inferType(d,'Dokument');return q(f.blobName||f.storageBlobName||f.id||f.url||f.downloadUrl||f.href||nameOf(d))+'|'+type}
 function wrapped(file,type,field){return{file:file,name:q(file&&file.name||file&&file.fileName||file&&file.filename)||type,documentType:type,sourceField:field}}
 function docs(){
  var out=[],seen=Object.create(null),add=function(d){if(!d)return;var key=docKey(d);if(!key||seen[key])return;seen[key]=1;out.push(d)};
@@ -54,6 +54,7 @@ function docs(){
    ['attachments','Dokument'],
    ['mailAttachments','Dokument']
   ].forEach(function(def){arr(sh[def[0]]).forEach(function(file){add(wrapped(file,inferType(file,def[1]),def[0]))})})
+  arr(sh.subShipments).forEach(function(sub){arr(sub&&sub.podFiles).forEach(function(file){add(wrapped(file,'POD','subShipments.podFiles'))})})
  }
  return out
 }
@@ -74,20 +75,27 @@ function createRow(d,index){
  actions.appendChild(actionButton('open',index,tr('documentViewer.open')));actions.appendChild(actionButton('download',index,tr('documentViewer.download')));
  row.appendChild(main);row.appendChild(actions);return row
 }
+function rowMatchesDocument(row,d){
+ if(!row||!d)return false;
+ var key=q(row.getAttribute&&row.getAttribute('data-rc1151-document-row'));
+ if(key)return key===docKey(d);
+ var name=low(nameOf(d)),raw=low(row.textContent);
+ return !!name&&!!raw&&raw.indexOf(name)>=0
+}
 function patchRows(){
  if(!w.document)return false;
  var panel=w.document.getElementById('rc786ReferenceFilesPanel');if(!panel)return false;
  var list=docs(),rows=Array.prototype.slice.call(panel.querySelectorAll('.rc786-doc-row')),changed=false;
- rows.forEach(function(row,index){
-  var d=list[index];if(!sourceAvailable(d))return;
+ list.forEach(function(d,index){
+  if(!sourceAvailable(d))return;
+  var row=rows.find(function(candidate){return rowMatchesDocument(candidate,d)});
+  if(!row){row=createRow(d,index);panel.appendChild(row);rows.push(row);changed=true;return}
+  if(!q(row.getAttribute('data-rc1151-document-row'))){row.setAttribute('data-rc1151-document-row',docKey(d));changed=true}
   var actions=row.querySelector('.rc786-doc-actions');if(!actions)return;
-  if(!actions.querySelector('[data-rc1063-open-blob]')){actions.appendChild(actionButton('open',index,tr('documentViewer.open')));changed=true}
-  if(!actions.querySelector('[data-rc1063-download-blob]')){actions.appendChild(actionButton('download',index,tr('documentViewer.download')));changed=true}
+  var open=actions.querySelector('[data-rc1063-open-blob]'),download=actions.querySelector('[data-rc1063-download-blob]');
+  if(!open){open=actionButton('open',index,tr('documentViewer.open'));actions.appendChild(open);changed=true}else open.setAttribute('data-rc1063-open-blob',String(index));
+  if(!download){download=actionButton('download',index,tr('documentViewer.download'));actions.appendChild(download);changed=true}else download.setAttribute('data-rc1063-download-blob',String(index));
  });
- for(var i=rows.length;i<list.length;i++){
-  var d=list[i];if(!sourceAvailable(d))continue;
-  panel.appendChild(createRow(d,i));changed=true
- }
  return changed
 }
 function emitAction(d,download){
@@ -149,6 +157,6 @@ if(w.document){
  try{w.addEventListener('exporthub:sync',function(){scheduleViewerRefresh(false)})}catch(_){}
  if(w.document.readyState==='loading')w.document.addEventListener('DOMContentLoaded',function(){startViewerProbe()},{once:true});else startViewerProbe();
 }
-w.ExportHUBRC1063AbdBlobCompat={version:'RC1248',patch:patchRows,isBlob:isBlob,open:openBlob,documents:docs};
-w.ExportHUBDocumentActions1151={version:'RC1248',patch:patchRows,documents:docs,open:openBlob};
+w.ExportHUBRC1063AbdBlobCompat={version:'RC1461',patch:patchRows,isBlob:isBlob,open:openBlob,documents:docs};
+w.ExportHUBDocumentActions1151={version:'RC1461',patch:patchRows,documents:docs,open:openBlob};
 })(window);
