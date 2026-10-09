@@ -43,6 +43,21 @@
       "headers": {"Cache-Control": "no-store, no-cache, must-revalidate"}
     },
     {
+      "route": "/assets/rc1018-public-language.js",
+      "allowedRoles": ["anonymous"],
+      "headers": {"Cache-Control": "no-store, no-cache, must-revalidate"}
+    },
+    {
+      "route": "/assets/rc1063-abd-blob-viewer-compat.js",
+      "allowedRoles": ["anonymous"],
+      "headers": {"Cache-Control": "no-store, no-cache, must-revalidate"}
+    },
+    {
+      "route": "/assets/rc1165-pod-backup-status.js",
+      "allowedRoles": ["anonymous"],
+      "headers": {"Cache-Control": "no-store, no-cache, must-revalidate"}
+    },
+    {
       "route": "/assets/rc1017-multi-truck.js",
       "allowedRoles": ["anonymous"],
       "headers": {"Cache-Control": "no-store, no-cache, must-revalidate"}
