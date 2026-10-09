@@ -42,6 +42,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+          package-manager-cache: false
       - name: Syntax check RC1267 changed runtimes
         run: |
           node --check assets/rc1267-i18n.js
@@ -57,6 +58,8 @@ jobs:
           node --check api/avis-reminder-mail/index.js
       - name: RC1267 unit and contract tests
         run: npm run verify:i18n
+      - name: API runtime dependencies for full regression
+        run: npm install --prefix api --ignore-scripts --no-audit --no-fund
       - name: Full regression test suite
         run: npm test
       - name: Restore clean checkout after mutation-heavy regression tests
@@ -70,7 +73,19 @@ jobs:
         run: node .github/rc1112/build-three-env.mjs
       - name: Full i18n audit JSON
         if: always()
-        run: node scripts/i18n-audit.mjs --json
+        shell: bash
+        run: |
+          report="${RUNNER_TEMP}/rc1267-i18n-audit.json"
+          node scripts/i18n-audit.mjs --json > "$report"
+          cat "$report"
       - name: Strict i18n release gate
         if: always()
         run: npm run i18n:audit:strict
+      - name: Preserve i18n audit diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: rc1267-i18n-audit
+          path: ${{ runner.temp }}/rc1267-i18n-audit.json
+          if-no-files-found: error
+          retention-days: 1
