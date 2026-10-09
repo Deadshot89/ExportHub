@@ -1,9 +1,45 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import {createRequire} from 'node:module';
+import {execFileSync} from 'node:child_process';
 
 const ROOT=process.cwd();
 const runtimePath=path.join(ROOT,'assets/rc1267-i18n.js');
 const builderPath=path.join(ROOT,'.github/rc1112/build-three-env.mjs');
+const API_RUNTIME_DEPENDENCIES=Object.freeze([
+  '@azure/storage-blob',
+  'pdf-lib',
+  'pdf-parse',
+  'exceljs'
+]);
+
+function ensureApiRuntimeDependencies(){
+  const apiRequire=createRequire(path.join(ROOT,'api','package.json'));
+  const missing=[];
+  for(const dependency of API_RUNTIME_DEPENDENCIES){
+    try{apiRequire.resolve(dependency);}catch{missing.push(dependency);}
+  }
+  if(!missing.length){
+    console.log('RC1468 API runtime dependencies already available; skipping install');
+    return;
+  }
+  console.log(`RC1468 installing missing API runtime dependencies: ${missing.join(', ')}`);
+  const npmCommand=process.platform==='win32'?'npm.cmd':'npm';
+  execFileSync(npmCommand,[
+    'install',
+    '--prefix','api',
+    '--ignore-scripts',
+    '--no-audit',
+    '--no-fund',
+    '--package-lock=false'
+  ],{cwd:ROOT,stdio:'inherit'});
+  for(const dependency of API_RUNTIME_DEPENDENCIES){
+    apiRequire.resolve(dependency);
+  }
+  console.log('RC1468 API runtime dependencies verified');
+}
+
+ensureApiRuntimeDependencies();
 
 await import('./rc1454-avis-download-all-ui.mjs');
 
