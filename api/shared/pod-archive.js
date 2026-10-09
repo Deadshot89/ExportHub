@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const store = require('./pickup-store');
 const graphDrive = require('./graph-drive');
 const TEAM_POD_LINK_VERSION = 'RC1340';
+const POD_PDF_LAYOUT_VERSION = 'RC1361-STRUCTURED-V1';
 
 function text(value) {
   return String(value == null ? '' : value).replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -19,6 +20,9 @@ function pdfText(value) {
 }
 function automaticPod(record) {
   return (Array.isArray(record && record.podFiles) ? record.podFiles : []).find(file => String(file && file.kind || '').toLowerCase() === 'automatic-pod') || null;
+}
+function isCurrentAutomaticPod(file) {
+  return !!file && String(file.kind || '').toLowerCase() === 'automatic-pod' && text(file.layoutVersion) === POD_PDF_LAYOUT_VERSION;
 }
 function fileNameFor(record) {
   const ref = safeFilePart(record && record.reference);
@@ -78,7 +82,7 @@ async function createPodPdf(record, signatureBuffer, signatureType) {
   card('Lieferadresse',value(record.address),x+259,629,252,56);
   const rows=Array.isArray(record.rows)?record.rows:[];
   let y=557;
-  page.drawRectangle({x,y:y-25,width,color:pale,borderColor:border,borderWidth:.7});
+  page.drawRectangle({x,y:y-25,width,height:25,color:pale,borderColor:border,borderWidth:.7});
   draw('POS.',x+8,y-16,8,bold);draw('VERPACKUNG',x+48,y-16,8,bold);draw('ANZAHL',x+230,y-16,8,bold);draw('GEWICHT KG',x+335,y-16,8,bold);
   y-=25;
   for(const [i,row] of rows.slice(0,6).entries()){
@@ -125,7 +129,7 @@ async function readAutomaticPodBuffer(accessKey, environment, record) {
   return { buffer: read.buffer, file, record: got.record, clients: got.clients };
 }
 async function persistBackupState(accessKey, environment, patch, podFile) {
-  return store.mutateRecord(accessKey, environment, function(record) {
+  const updated = await store.mutateRecord(accessKey, environment, function(record) {
     const files = Array.isArray(record.podFiles) ? record.podFiles.slice() : [];
     if (podFile) {
       const filtered = files.filter(file => String(file && file.kind || '').toLowerCase() !== 'automatic-pod');
@@ -139,6 +143,7 @@ async function persistBackupState(accessKey, environment, patch, podFile) {
     record.updatedAt = store.now();
     return record;
   });
+  return updated && updated.record ? updated.record : updated;
 }
 async function saveAzurePod(accessKey, environment, record, pdf, requestedName) {
   const got = await store.getRecord(accessKey, environment);
@@ -152,7 +157,8 @@ async function saveAzurePod(accessKey, environment, record, pdf, requestedName) 
       accesshash: String(accessKey),
       reference: String(record.reference || ''),
       kind: 'automatic-pod',
-      sha256: hash
+      sha256: hash,
+      layoutversion: POD_PDF_LAYOUT_VERSION
     }
   });
   const uploadedAt = store.now();
@@ -167,7 +173,8 @@ async function saveAzurePod(accessKey, environment, record, pdf, requestedName) 
     storageBlobName: blobName,
     storage: 'azure',
     hash,
-    source: 'pickup-confirm-v2'
+    layoutVersion: POD_PDF_LAYOUT_VERSION,
+    source: 'pickup-confirm-v3'
   };
   const next = await persistBackupState(accessKey, environment, {
     status: 'azure-saved',
@@ -178,7 +185,7 @@ async function saveAzurePod(accessKey, environment, record, pdf, requestedName) 
     hash,
     lastError: ''
   }, file);
-  return { record: next, file, hash, pdf };
+  return { record: next, file, hash, pdf, clients: got.clients };
 }
 async function verifyAzureArchiveBlob(blob, expectedHash, expectedSize, fullRead) {
   const props = await blob.getProperties();
@@ -309,7 +316,7 @@ async function ensureAutomaticPod(accessKey, environment, options) {
 
   let pdf = null;
   let file = automaticPod(record);
-  if (file) {
+  if (file && isCurrentAutomaticPod(file)) {
     try {
       const existing = await readAutomaticPodBuffer(accessKey, environment, record);
       if (existing && existing.buffer && existing.buffer.length) pdf = existing.buffer;
@@ -667,16 +674,55 @@ async function reconcilePendingBackups(environment, options) {
   };
 }
 
+async function createShareLink(accessKey, environment) {
+  await ensureAutomaticPod(accessKey, environment, {});
+  const live = await store.getRecord(accessKey, environment);
+  const file = automaticPod(live.record);
+  if (!file || !isCurrentAutomaticPod(file)) throw new Error('Aktueller automatischer POD ist nicht gespeichert');
+  return {
+    file,
+    url: store.podDownloadUrl(accessKey, environment, file.id),
+    expiresAt: store.podLinkExpiry(live.record),
+    version: TEAM_POD_LINK_VERSION
+  };
+}
+async function getPodDownload(accessKey, environment, fileId) {
+  const got = await store.getRecord(accessKey, environment);
+  const record = got.record;
+  let file = null;
+  if (fileId) file = (Array.isArray(record.podFiles) ? record.podFiles : []).find(item => text(item.id) === text(fileId));
+  if (!file) file = automaticPod(record);
+  if (!file) {
+    const created = await ensureAutomaticPod(accessKey, environment, {});
+    return { buffer: created.buffer, file: created.file, record: created.record };
+  }
+  if (file && !isCurrentAutomaticPod(file) && String(file.kind || '').toLowerCase() === 'automatic-pod') {
+    const regenerated = await ensureAutomaticPod(accessKey, environment, { force: true });
+    return { buffer: regenerated.buffer, file: regenerated.file, record: regenerated.record };
+  }
+  const blobName = text(file.blobName || file.storageBlobName);
+  if (!blobName) throw new Error('POD-Datei ohne Speicherreferenz');
+  const blob = got.clients.pods.getBlobClient(blobName);
+  const read = await store.readBuffer(blob);
+  return { buffer: read.buffer, file, record };
+}
+
 module.exports = {
   automaticPod,
+  isCurrentAutomaticPod,
   fileNameFor,
   createPodPdf,
   ensureAutomaticPod,
+  createShareLink,
+  getPodDownload,
+  readAutomaticPodBuffer,
   retryArchiveBackup,
   retryDriveBackup,
   saveAzureArchive,
   verifyAzureArchiveBlob,
   checkAzureArchive,
   saveSuppliedPod,
-  reconcilePendingBackups
+  reconcilePendingBackups,
+  POD_PDF_LAYOUT_VERSION,
+  TEAM_POD_LINK_VERSION
 };
