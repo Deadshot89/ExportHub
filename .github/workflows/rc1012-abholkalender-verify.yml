@@ -34,6 +34,8 @@ jobs:
         run: node --test test/rc1003-android-native-direct-open.test.mjs test/rc1003-three-env-sync.test.mjs
       - name: QR- und Lieferavis-Regression
         run: node --test .github/rc998/partial-pickup-avis-contract.test.mjs
+      - name: API Runtime-Abhängigkeiten installieren
+        run: npm install --prefix api --ignore-scripts --no-audit --no-fund --package-lock=false
       - name: Gesamte Node-Regression
         run: npm test
       - name: RC1012 Drei-Umgebungen-Build
