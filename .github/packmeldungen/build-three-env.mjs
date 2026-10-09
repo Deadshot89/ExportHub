@@ -4,6 +4,7 @@ import {fileURLToPath,pathToFileURL} from 'node:url';
 import {execFileSync} from 'node:child_process';
 
 export const PACK_ASSETS=Object.freeze([
+  'i18n/pack-notification.js',
   'packaging-catalog.js',
   'document-print-name.js',
   'pack-notification.css',
@@ -21,6 +22,7 @@ const STYLE_TAGS=[
   '<link id="exporthub-pack-notification-avis-style" rel="stylesheet" href="/assets/pack-notification-avis.css?v=1">'
 ];
 const SCRIPT_TAGS=[
+  '<script id="exporthub-pack-notification-i18n" defer src="/assets/i18n/pack-notification.js?v=1"></script>',
   '<script id="exporthub-pack-notification-internal" defer src="/assets/pack-notification-internal.js?v=1"></script>',
   '<script id="exporthub-pack-notification-nav" defer src="/assets/pack-notification-nav.js?v=1"></script>',
   '<script id="exporthub-pack-notification-shipment" defer src="/assets/pack-notification-shipment.js?v=1"></script>',
@@ -46,7 +48,11 @@ export function injectPackRuntime(html,file='index.html'){
 export function copyPackFiles(root,out){
   fs.mkdirSync(path.join(out,'assets'),{recursive:true});
   fs.copyFileSync(path.join(root,'pack.html'),path.join(out,'pack.html'));
-  for(const asset of PACK_ASSETS)fs.copyFileSync(path.join(root,'assets',asset),path.join(out,'assets',asset));
+  for(const asset of PACK_ASSETS){
+    const target=path.join(out,'assets',asset);
+    fs.mkdirSync(path.dirname(target),{recursive:true});
+    fs.copyFileSync(path.join(root,'assets',asset),target);
+  }
 }
 
 export function build(root=process.cwd()){

@@ -63,6 +63,8 @@ jobs:
         with:
           node-version: '20'
           package-manager-cache: false
+      - name: API-Abhängigkeiten für vollständige Regression installieren
+        run: npm install --prefix api --ignore-scripts --no-audit --no-fund
       - name: RC1088 Security Gate
         run: npm run test:security
       - name: RC1088 Accessibility & Responsive Gate
@@ -88,8 +90,21 @@ jobs:
         run: node --test test/rc1017-three-env-release.test.mjs
       - name: RC1018 Mail- und Sprachbasis
         run: node --test --test-concurrency=1 test/rc1018-mail-language-standard.test.mjs test/rc1018-production-deploy.test.mjs
+      - name: API Runtime-Abhängigkeiten installieren
+        run: npm install --prefix api --ignore-scripts --no-audit --no-fund --package-lock=false
       - name: Gesamte Node-Regression
-        run: npm test
+        id: node-regression
+        shell: bash
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee node-regression.log
+      - name: Node-Regression Diagnose sichern
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: node-regression-log
+          path: node-regression.log
+          if-no-files-found: warn
       - name: Historischen RC1013 Drei-Umgebungen-Build reproduzieren
         run: node .github/rc1013/build-three-env.mjs
       - name: RC1013 Baseline und RC1112 Produktionsmarker prüfen
