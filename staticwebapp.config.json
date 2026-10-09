@@ -58,6 +58,11 @@
       "headers": {"Cache-Control": "no-store, no-cache, must-revalidate"}
     },
     {
+      "route": "/assets/rc1460-shipment-view-files-avis-preview.js",
+      "allowedRoles": ["anonymous"],
+      "headers": {"Cache-Control": "no-store, no-cache, must-revalidate"}
+    },
+    {
       "route": "/pickup",
       "rewrite": "/pickup.html",
       "allowedRoles": ["anonymous"],
