@@ -1,0 +1,27 @@
+name: RC1469 P0 New Shipment Clean Slate
+
+on:
+  pull_request:
+    paths:
+      - 'test/rc1469-new-shipment-clean-slate.test.mjs'
+      - 'scripts/rc1469-new-shipment-clean-slate.mjs'
+      - 'scripts/rc1462-pretest.mjs'
+      - '.github/rc1112/build-three-env.mjs'
+      - '.github/workflows/rc1469-new-shipment-clean-slate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: Reproduce and verify clean-slate shipment creation
+        run: node --test test/rc1469-new-shipment-clean-slate.test.mjs
