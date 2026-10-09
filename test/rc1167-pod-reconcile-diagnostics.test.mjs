@@ -49,9 +49,9 @@ test('RC1347: Reconcile-Diagnose nennt deduplizierte Fehlercodes ohne sensible F
 });
 
 
-test('RC1423: M365-POD-Diagnose transportiert ausschließlich bereinigte Graph-Provider-Codes',()=>{
+test('RC1423: M365-POD-Diagnose transportiert ausschließlich bereinigte Provider-Codes',()=>{
   assert.match(podArchive,/function safeCode\(value\)/);
-  assert.match(podArchive,/driveProviderCode: safeCode\(error && error\.graphCode\)/);
+  assert.match(podArchive,/driveProviderCode: safeCode\(error && \(error\.graphCode \|\| error\.code\)\)/);
   assert.match(podArchive,/providerCode: safeCode\(backup\.driveProviderCode \|\| \(driveError && driveError\.graphCode\)\)/);
   assert.match(workflow,/const driveProviderCodes=Array\.from\(new Set\(/);
   assert.match(workflow,/replace\(\/\[\^A-Za-z0-9_\.\-\]\/g,''\)\.slice\(0,80\)/);
