@@ -128,7 +128,7 @@ jobs:
           exit "$found"
       - name: Node-Regressionsdiagnose sichern
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: node-first-fail
           path: ${{ runner.temp }}/node-first-fail.txt
