@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import vm from 'node:vm';
 
 const ROOT=process.cwd();
 const LANGS=['de','en','pl','es','fr','it'];
@@ -75,6 +76,13 @@ function loadPacks(){
   }
   return packs;
 }
+function loadFeatureGerman(rel,globalName){
+  const file=path.join(ROOT,rel);if(!fs.existsSync(file))return[];
+  const sandbox={console,Intl,URL,setTimeout,clearTimeout};
+  vm.runInNewContext(fs.readFileSync(file,'utf8'),sandbox,{filename:rel});
+  const runtime=sandbox[globalName],pack=runtime&&runtime.packs&&runtime.packs.de;
+  return pack&&typeof pack==='object'?Object.values(pack):[];
+}
 function keyAudit(packs){
   const base=Object.keys(packs.de).sort(),issues=[];
   for(const lang of LANGS){
@@ -86,7 +94,7 @@ function keyAudit(packs){
   }
   return{baseKeyCount:base.length,issues}
 }
-const packs=loadPacks(),keys=keyAudit(packs),files=walk(ROOT),hardcoded=[],visibleKeys=[],apiDePath=path.join(ROOT,'api','shared','i18n','de.json'),apiDe=fs.existsSync(apiDePath)?JSON.parse(fs.readFileSync(apiDePath,'utf8')):{},registeredGerman=new Set([...Object.values(packs.de),...Object.values(apiDe)].filter(v=>typeof v==='string'&&v.trim()));
+const packs=loadPacks(),keys=keyAudit(packs),files=walk(ROOT),hardcoded=[],visibleKeys=[],apiDePath=path.join(ROOT,'api','shared','i18n','de.json'),apiDe=fs.existsSync(apiDePath)?JSON.parse(fs.readFileSync(apiDePath,'utf8')):{},featureGerman=loadFeatureGerman('assets/i18n/pack-notification.js','ExportHUBPackI18n'),registeredGerman=new Set([...Object.values(packs.de),...Object.values(apiDe),...featureGerman].filter(v=>typeof v==='string'&&v.trim()));
 for(const file of files){
   const source=fs.readFileSync(file.abs,'utf8');
   hardcoded.push(...scanVisibleGerman(file,source,registeredGerman));
