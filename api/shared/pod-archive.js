@@ -305,7 +305,7 @@ async function copyToDrive(accessKey, environment, record, pdf, file) {
   }
 }
 async function ensureAutomaticPod(accessKey, environment, options) {
-  options = Object.assign({ copyToDrive: true }, options || {});
+  const opt = Object.assign({ copyToDrive: true }, options || {});
   accessKey = text(accessKey).toLowerCase();
   environment = store.normalizeEnvironment(environment);
   let got = await store.getRecord(accessKey, environment);
@@ -315,11 +315,12 @@ async function ensureAutomaticPod(accessKey, environment, options) {
   if (!record.signatureBlobName) throw store.err('SIGNATURE_NOT_FOUND', 'Fahrerunterschrift fuer den POD fehlt.', 409);
 
   let pdf = null;
-  let file = automaticPod(record);
-  if (file && isCurrentAutomaticPod(file)) {
+  const existing = automaticPod(record);
+  let file = existing;
+  if (existing && isCurrentAutomaticPod(existing) && !opt.force) {
     try {
-      const existing = await readAutomaticPodBuffer(accessKey, environment, record);
-      if (existing && existing.buffer && existing.buffer.length) pdf = existing.buffer;
+      const existingRead = await readAutomaticPodBuffer(accessKey, environment, record);
+      if (existingRead && existingRead.buffer && existingRead.buffer.length) pdf = existingRead.buffer;
     } catch (_) {
       pdf = null;
     }
@@ -335,7 +336,7 @@ async function ensureAutomaticPod(accessKey, environment, options) {
   if (!file) file = automaticPod(record);
   const archive = await saveAzureArchive(accessKey, environment, record, pdf, file);
   record = archive.record || record;
-  if (!options.copyToDrive || !m365Enabled() || !graphDrive.readiness().configured) {
+  if (!opt.copyToDrive || !m365Enabled() || !graphDrive.readiness().configured) {
     return { ok: true, record, file, pdf, backup: record.podBackup || {}, archiveSaved: true, driveSaved: record.podBackup && record.podBackup.driveSaved === true };
   }
 
