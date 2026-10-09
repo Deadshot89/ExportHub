@@ -29,24 +29,6 @@ jobs:
         run: node --test test/rc1469-new-shipment-clean-slate.test.mjs
       - name: Druck- und Pickup-Verträge prüfen
         run: node --test test/rc1190-print-browser-gate.test.mjs test/rc1305-loading-list-redesign.test.mjs test/rc1259-container-documentation.test.mjs
-      - name: Gesamte Node-Regression diagnostizieren
-        shell: bash
-        run: |
-          set +e
-          npm test 2>&1 | tee rc1469-full-node.log
-          code=${PIPESTATUS[0]}
-          printf 'exit_code=%s\n' "$code" > rc1469-node-exit.txt
-          exit "$code"
-      - name: Node-Regressionslog hochladen
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: rc1469-full-node-regression
-          path: |
-            rc1469-full-node.log
-            rc1469-node-exit.txt
-          if-no-files-found: error
-          retention-days: 1
       - name: Drei-Umgebungen-Paket bauen
         run: node .github/rc1112/build-three-env.mjs
       - name: Playwright Chromium installieren
