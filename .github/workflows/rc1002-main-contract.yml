@@ -88,6 +88,14 @@ jobs:
         run: node --test test/rc1017-three-env-release.test.mjs
       - name: RC1018 Mail- und Sprachbasis
         run: node --test --test-concurrency=1 test/rc1018-mail-language-standard.test.mjs test/rc1018-production-deploy.test.mjs
+      - name: Lieferavis Pretest-Vertrag anwenden
+        run: npm run pretest
+      - name: Lieferavis Fix - einzelner reproduzierbarer Test
+        run: node --test --test-name-pattern='RC1015 Lieferavis-Korrektur wird über den gemeinsamen Drei-Umgebungen-Build ausgerollt' test/rc1015-lieferavis-mail-flow.test.mjs
+      - name: Lieferavis Fix - betroffene Testdatei
+        run: node --test --test-concurrency=1 test/rc1015-lieferavis-mail-flow.test.mjs
+      - name: Lieferavis Fix - betroffene Suite
+        run: node --test --test-concurrency=1 test/rc1015-lieferavis-mail-flow.test.mjs test/rc1467-startup-avis-guard.test.mjs
       - name: API-Runtime-Abhaengigkeiten fuer Node-Regression
         run: npm install --prefix api --ignore-scripts --no-audit --no-fund
       - name: Gesamte Node-Regression
