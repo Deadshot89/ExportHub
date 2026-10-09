@@ -1,0 +1,63 @@
+name: P0 POD reliability source repair
+
+on:
+  push:
+    branches:
+      - fix/p0-node-regression-diagnostics-20261009
+    paths:
+      - '.github/workflows/p0-pod-reliability-source-repair.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Restore reliability baseline and merge current POD layout contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          git show 64e660f53646d615a418dae37ed0ee74b95c5dd5:api/shared/pod-archive.js > api/shared/pod-archive.js
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('api/shared/pod-archive.js')
+          s=p.read_text()
+          def once(old,new,label):
+              global s
+              count=s.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected 1 anchor, got {count}')
+              s=s.replace(old,new,1)
+
+          once("const TEAM_POD_LINK_VERSION = 'RC1340';\n", "const TEAM_POD_LINK_VERSION = 'RC1340';\nconst POD_PDF_LAYOUT_VERSION = 'RC1361-STRUCTURED-V1';\n", 'layout version constant')
+          once("function automaticPod(record) {\n  return (Array.isArray(record && record.podFiles) ? record.podFiles : []).find(file => String(file && file.kind || '').toLowerCase() === 'automatic-pod') || null;\n}\n", "function automaticPod(record) {\n  return (Array.isArray(record && record.podFiles) ? record.podFiles : []).find(file => String(file && file.kind || '').toLowerCase() === 'automatic-pod') || null;\n}\nfunction isCurrentAutomaticPod(file) {\n  return !!file && String(file.kind || '').toLowerCase() === 'automatic-pod' && text(file.layoutVersion) === POD_PDF_LAYOUT_VERSION;\n}\n", 'layout predicate')
+          once("page.drawRectangle({x,y:y-25,width,color:pale,borderColor:border,borderWidth:.7});", "page.drawRectangle({x,y:y-25,width,height:25,color:pale,borderColor:border,borderWidth:.7});", 'table header height')
+          once("      kind: 'automatic-pod',\n      sha256: hash\n", "      kind: 'automatic-pod',\n      sha256: hash,\n      layoutversion: POD_PDF_LAYOUT_VERSION\n", 'blob layout metadata')
+          once("    storage: 'azure',\n    hash,\n    source: 'pickup-confirm-v2'\n", "    storage: 'azure',\n    hash,\n    layoutVersion: POD_PDF_LAYOUT_VERSION,\n    source: 'pickup-confirm-v3'\n", 'descriptor layout version')
+          once("  let pdf = null;\n  let file = automaticPod(record);\n  if (file) {\n    try {\n      const existing = await readAutomaticPodBuffer(accessKey, environment, record);\n      if (existing && existing.buffer && existing.buffer.length) pdf = existing.buffer;\n    } catch (_) {\n      pdf = null;\n    }\n  }\n", "  const opt = options;\n  const existing = automaticPod(record);\n  let pdf = null;\n  let file = existing;\n  if (existing && isCurrentAutomaticPod(existing) && !opt.force) {\n    try {\n      const existingRead = await readAutomaticPodBuffer(accessKey, environment, record);\n      if (existingRead && existingRead.buffer && existingRead.buffer.length) pdf = existingRead.buffer;\n    } catch (_) {\n      pdf = null;\n    }\n  } else if (existing && !isCurrentAutomaticPod(existing)) {\n    file = null;\n  }\n", 'stale POD regeneration')
+          marker="async function saveSuppliedPod(accessKey, environment, record, pdf, requestedName) {"
+          helpers="""async function createShareLink(accessKey, environment) {\n  await ensureAutomaticPod(accessKey, environment, {});\n  const live = await store.getRecord(accessKey, environment);\n  const file = automaticPod(live.record);\n  if (!file || !isCurrentAutomaticPod(file)) throw new Error('Aktueller automatischer POD ist nicht gespeichert');\n  return {\n    file,\n    url: store.podDownloadUrl(accessKey, environment, file.id),\n    expiresAt: store.podLinkExpiry(live.record),\n    version: TEAM_POD_LINK_VERSION\n  };\n}\nasync function getPodDownload(accessKey, environment, fileId) {\n  const got = await store.getRecord(accessKey, environment);\n  const record = got.record;\n  let file = null;\n  if (fileId) file = (Array.isArray(record.podFiles) ? record.podFiles : []).find(item => text(item.id) === text(fileId));\n  if (!file) file = automaticPod(record);\n  if (!file) {\n    const created = await ensureAutomaticPod(accessKey, environment, {});\n    return { buffer: created.pdf || created.buffer, file: created.file, record: created.record };\n  }\n  if (file && !isCurrentAutomaticPod(file) && String(file.kind || '').toLowerCase() === 'automatic-pod') {\n    const regenerated = await ensureAutomaticPod(accessKey, environment, { force: true });\n    return { buffer: regenerated.pdf || regenerated.buffer, file: regenerated.file, record: regenerated.record };\n  }\n  const blobName = text(file.blobName || file.storageBlobName);\n  if (!blobName) throw new Error('POD-Datei ohne Speicherreferenz');\n  const blob = got.clients.pods.getBlobClient(blobName);\n  const read = await store.readBuffer(blob);\n  return { buffer: read.buffer, file, record };\n}\n"""
+          once(marker,helpers+marker,'download helpers')
+          once("module.exports = {\n  automaticPod,\n  fileNameFor,\n  createPodPdf,\n  ensureAutomaticPod,\n", "module.exports = {\n  automaticPod,\n  isCurrentAutomaticPod,\n  fileNameFor,\n  createPodPdf,\n  ensureAutomaticPod,\n  createShareLink,\n  getPodDownload,\n  POD_PDF_LAYOUT_VERSION,\n", 'module exports')
+          p.write_text(s)
+          PY
+          node --check api/shared/pod-archive.js
+          git diff --check
+      - name: Commit repaired source
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- api/shared/pod-archive.js; then
+            echo 'No source change required.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add api/shared/pod-archive.js
+          git commit -m 'fix(p0): merge POD reliability with current layout regeneration'
+          git push origin HEAD:fix/p0-node-regression-diagnostics-20261009
