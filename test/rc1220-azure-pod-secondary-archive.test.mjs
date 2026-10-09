@@ -36,7 +36,11 @@ test('RC1386: Primärspeicher kommt vor Archiv; konfiguriertes M365-Ziel wird da
   const secondary=archive.indexOf('await saveAzureArchive(accessKey, environment, record, pdf, file)');
   const optional=archive.indexOf('await copyToDrive(accessKey, environment, record, pdf, file)');
   assert.ok(primary>=0&&secondary>primary&&optional>secondary);
-  assert.match(archive,/function m365Enabled\(\) \{[\s\S]*?return graphDrive\.readiness\(\)\.configured/);
+  const start=archive.indexOf('function m365Enabled()');
+  const end=archive.indexOf('async function copyToDrive',start);
+  const block=archive.slice(start,end);
+  assert.match(block,/graphDrive\.readiness\(\)\.configured/);
+  assert.match(block,/typeof graphDrive\.readiness === 'function'/);
   assert.doesNotMatch(archive,/process\.env\.EXPORTHUB_POD_M365_ENABLED/);
 });
 
