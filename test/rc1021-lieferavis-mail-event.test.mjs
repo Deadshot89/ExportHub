@@ -14,16 +14,17 @@ test('RC1021: jeder erfolgreiche Lieferavis-Statuswechsel meldet die Mailruntime
 });
 
 
-test('RC1383 P1: bestätigter Sync oder Shipment-Saved Event kann auch über einen gewrappten Toggle keinen zweiten Save auslösen',()=>{
+test('RC1383/RC1467 P1: automatischer Lifecycle löst über den gewrappten Toggle keinen zweiten Save aus',()=>{
   const manual=source.slice(source.indexOf('async function rc1015Toggle(on)'),source.indexOf('async function rc1021AutoEnable'));
   const automatic=source.slice(source.indexOf('async function rc1021AutoEnable'),source.indexOf('function stripAvisBlocks'));
   assert.match(source,/autoEnableSaveConfirmed=Object\.create\(null\)/);
-  assert.match(automatic,/saveAlreadyConfirmed=reason==='exporthub:sync'\|\|reason==='exporthub:shipment-saved'/);
-  assert.match(automatic,/if\(!saveAlreadyConfirmed\)await rc1015PersistBeforeAvis\(\)/);
+  assert.match(source,/function rc1021ShouldAutoEnable\(sh\)[\s\S]*!rc1021Persisted\(sh\)\)return false;/,'Auto-Enable darf nur für bereits persistierte Sendungen freigegeben werden.');
+  assert.match(automatic,/var saveAlreadyConfirmed=true;/,'Der automatische Lifecycle muss als bereits bestätigter Persistenzpfad behandelt werden.');
+  assert.doesNotMatch(automatic,/rc1015PersistBeforeAvis\s*\(/,'Der automatische Lifecycle darf die strikte Benutzer-Speicherung nicht erneut starten.');
   assert.match(automatic,/if\(saveAlreadyConfirmed\)autoEnableSaveConfirmed\[ref\]=true/);
-  assert.match(manual,/if\(!autoEnableSaveConfirmed\[refBeforeToggle\]\)await rc1015PersistBeforeAvis\(\)/);
+  assert.match(manual,/if\(!autoEnableSaveConfirmed\[refBeforeToggle\]\)await rc1015PersistBeforeAvis\(\)/,'Bewusste manuelle Aktivierung muss weiterhin speichern, sofern kein bestätigter Auto-Pfad vorliegt.');
   assert.match(automatic,/delete autoEnableSaveConfirmed\[ref\]/);
-  assert.match(automatic,/await base\.toggle\(true\)/,'Avis-Aktivierung muss nach bestätigtem Save weiterhin erfolgen.');
+  assert.match(automatic,/await base\.toggle\(true\)/,'Avis-Aktivierung muss nach bestätigter Persistenz weiterhin erfolgen.');
 });
 
 test('RC1236: normale Navigation startet außerhalb der Sendungsansicht keinen Avis-Autosave',()=>{
