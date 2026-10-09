@@ -19,7 +19,7 @@
         <div>
           <span class="pack-eyebrow">ExportHUB360</span>
           <h1 id="packTitle">Packmeldung</h1>
-          <p>Versanddaten erfassen und direkt an ExportHUB übermitteln.</p>
+          <p>Neue Sendung erfassen oder einen offenen Entwurf fortsetzen.</p>
         </div>
         <span id="packStation" class="pack-station">Packtisch wird geladen …</span>
       </header>
@@ -27,7 +27,24 @@
       <div id="packLoading" class="pack-notice" role="status">Sichere Pack-Session wird erstellt …</div>
       <div id="packError" class="pack-alert" role="alert" hidden></div>
 
+      <section id="packHome" class="pack-home" hidden aria-labelledby="packHomeTitle">
+        <div class="pack-home-head">
+          <div>
+            <span class="pack-eyebrow">Lagerweit</span>
+            <h2 id="packHomeTitle">Offene Sendungen</h2>
+            <p>Entwürfe können an jedem Packtisch weiterbearbeitet werden.</p>
+          </div>
+          <button id="packNewShipment" class="pack-primary" type="button">+ Neue Sendung melden</button>
+        </div>
+        <div id="packDraftEmpty" class="pack-empty">Keine offenen Sendungen vorhanden.</div>
+        <div id="packDraftGrid" class="pack-draft-grid" aria-live="polite"></div>
+      </section>
+
       <form id="packForm" novalidate hidden>
+        <div class="pack-form-head">
+          <button id="packBackHome" class="pack-link-button" type="button">← Übersicht</button>
+          <strong id="packFormMode">Neue Sendung</strong>
+        </div>
         <section class="pack-section">
           <h2>Sendung</h2>
           <div class="pack-grid pack-grid-two">
@@ -41,6 +58,9 @@
               </div>
               <div id="packCustomerSelected" class="pack-customer-selected" hidden></div>
             </div>
+            <label>DNC / Lieferscheinnummer
+              <input id="packDeliveryNoteReference" name="deliveryNoteReference" type="text" maxlength="200" autocomplete="off" placeholder="z. B. DNC3019222063">
+            </label>
             <label>Packstücktyp *
               <select id="packPackageType" name="packageType" required>
                 <option value="">Bitte wählen</option>
@@ -57,13 +77,13 @@
         </section>
 
         <section class="pack-section">
-          <h2>Lieferscheine</h2>
-          <p class="pack-help">Mindestens eine PDF-, JPG- oder PNG-Datei hochladen. Mehrere Lieferscheine sind möglich. DNC/SIDE werden automatisch aus PDFs erkannt und korrekt benannt.</p>
+          <h2>Lieferscheine <span class="pack-optional">optional</span></h2>
+          <p class="pack-help">Du kannst Lieferscheine als PDF, JPG oder PNG hochladen oder oben nur die DNC/Lieferscheinnummer eingeben. Bei Essentra-Lieferungen ist beides optional.</p>
           <label class="pack-upload" for="packDocuments">
             <strong>Dateien auswählen</strong>
             <span>PDF · JPG · PNG</span>
           </label>
-          <input id="packDocuments" class="pack-file-input" name="documents" type="file" accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png" multiple required>
+          <input id="packDocuments" class="pack-file-input" name="documents" type="file" accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png" multiple>
           <div id="packDocumentList" class="pack-document-list" aria-live="polite"></div>
         </section>
 
@@ -72,8 +92,11 @@
         </section>
 
         <div class="pack-actions">
-          <p id="packValidationHint" class="pack-validation-hint">Bitte alle Pflichtfelder ausfüllen.</p>
-          <button id="packSubmit" class="pack-primary" type="submit" disabled>An ExportHUB senden</button>
+          <p id="packValidationHint" class="pack-validation-hint">Entwurf kann jederzeit gespeichert werden.</p>
+          <div class="pack-action-buttons">
+            <button id="packSaveDraft" class="pack-secondary" type="button">Entwurf speichern</button>
+            <button id="packSubmit" class="pack-primary" type="submit" disabled>An ExportHUB senden</button>
+          </div>
         </div>
       </form>
 
@@ -85,7 +108,7 @@
           <div><dt>Referenz</dt><dd id="packSuccessReference">–</dd></div>
           <div><dt>Kunde</dt><dd id="packSuccessCustomer">–</dd></div>
         </dl>
-        <button id="packRestart" class="pack-secondary" type="button">Neue Packmeldung starten</button>
+        <button id="packRestart" class="pack-secondary" type="button">Zur Übersicht</button>
       </section>
     </section>
   </main>

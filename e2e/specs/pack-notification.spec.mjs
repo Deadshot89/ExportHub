@@ -5,9 +5,13 @@ const token=String(process.env.EXPORTHUB_E2E_PACK_STATION_TOKEN||'').trim();
 
 async function createPackNotification(page,suffix='A'){
   await page.goto(`/pack/${encodeURIComponent(token)}`,{waitUntil:'domcontentloaded'});
-  await expect(page.locator('#packForm')).toBeVisible({timeout:20_000});
+  await expect(page.locator('#packHome')).toBeVisible({timeout:20_000});
+  await page.locator('#packNewShipment').click();
+  await expect(page.locator('#packForm')).toBeVisible();
   await page.locator('#packCustomer').fill(`E2E PACK CUSTOMER ${suffix}`);
-  await page.locator('#packDeliveryNote').fill(`E2E-LS-${suffix}`);
+  await expect(page.locator('#packCustomerManualConfirm')).toBeVisible({timeout:10_000});
+  await page.locator('#packCustomerManualConfirm').click();
+  await page.locator('#packDeliveryNoteReference').fill(`DNC-E2E-${suffix}`);
   await page.locator('#packPackageType').selectOption({label:'Europalette'});
   await page.locator('#packPackageCount').fill('2');
   await page.locator('#packWeight').fill('680');
@@ -19,6 +23,20 @@ async function createPackNotification(page,suffix='A'){
     await rows.nth(i).locator('[data-dim="height"]').fill(i===0?'145':'130');
   }
   await page.locator('#packDocuments').setInputFiles({name:`E2E-${suffix}.pdf`,mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4\n%%EOF')});
+
+  await page.locator('#packSaveDraft').click();
+  await expect(page.locator('#packValidationHint')).toContainText('Entwurf gespeichert',{timeout:20_000});
+  await page.locator('#packBackHome').click();
+  await expect(page.locator('#packHome')).toBeVisible();
+  const card=page.locator('[data-draft-id]').filter({hasText:`E2E PACK CUSTOMER ${suffix}`}).first();
+  await expect(card).toBeVisible({timeout:20_000});
+  await expect(card).toContainText('Anzahl Paletten');
+  await card.click();
+  await expect(page.locator('#packFormMode')).toContainText('Entwurf weiterbearbeiten');
+  await expect(page.locator('#packCustomer')).toHaveValue(`E2E PACK CUSTOMER ${suffix}`);
+  await expect(page.locator('#packDeliveryNoteReference')).toHaveValue(`DNC-E2E-${suffix}`);
+  await expect(page.locator('#packPackageCount')).toHaveValue('2');
+
   await expect(page.locator('#packSubmit')).toBeEnabled();
   await page.locator('#packSubmit').click();
   await expect(page.locator('#packSuccess')).toBeVisible({timeout:30_000});
@@ -27,7 +45,7 @@ async function createPackNotification(page,suffix='A'){
   return reference;
 }
 
-test('QR pack flow creates isolated task, notification detail and shipment handoff',async({browser},testInfo)=>{
+test('QR pack flow saves and resumes draft, then creates notification detail and shipment handoff',async({browser},testInfo)=>{
   test.setTimeout(180_000);
   test.skip(process.env.EXPORTHUB_E2E_LIVE!=='1'||process.env.EXPORTHUB_E2E_MUTATION!=='1'||!token,'requires live mutable TESTSERVICE and EXPORTHUB_E2E_PACK_STATION_TOKEN');
   test.skip(testInfo.project.name!=='laptop','runs once on laptop profile');
