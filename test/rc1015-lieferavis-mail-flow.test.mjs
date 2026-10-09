@@ -63,7 +63,7 @@ for(const file of ['index.html','TESTVERSION.html','demo.html']){
 
 test('RC1015 Lieferavis-Korrektur wird über den gemeinsamen Drei-Umgebungen-Build ausgerollt',()=>{
   const source=fs.readFileSync(BUILD,'utf8');
-  assert.match(source,/LIEFERAVIS_SRC=['"]\/assets\/rc1015-lieferavis-mail-flow\.js\?v=1383['"]/);
+  assert.match(source,/LIEFERAVIS_SRC=['"]\/assets\/rc1015-lieferavis-mail-flow\.js\?v=1383(?:&rc=\d+)?['"]/,'Der gemeinsame Build muss weiterhin dieselbe RC1015-Runtime ausrollen; ein zusätzlicher Release-Cache-Key ist zulässig.');
   assert.match(source,/copy\(['"]assets\/rc1015-lieferavis-mail-flow\.js['"]\)/);
   assert.match(source,/lieferavis:/,'Der gemeinsame Manifest-Eintrag für die Korrektur fehlt.');
 });
