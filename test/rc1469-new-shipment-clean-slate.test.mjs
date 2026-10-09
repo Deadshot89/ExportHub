@@ -54,3 +54,12 @@ test('RC1469 P0: DOM-Finalizer deckt Kunde, Standort, Colli, Maße/Gewicht, ABD,
     assert.ok(block.includes(token),token+' fehlt im DOM-Clean-Slate-Vertrag');
   }
 });
+
+test('RC1469 P0: spätere Layout-Engine kann RC978 Mobile-Stacking nicht mehr überschreiben',()=>{
+  const css=fs.readFileSync('assets/rc1306-layout-engine.css','utf8');
+  const mobile=(css.match(/@media\(max-width:760px\)\{[\s\S]*?\n\}@media print\{/i)||[''])[0];
+  assert.ok(mobile,'RC1469 Mobile-Regel fehlt in der Layout-Engine');
+  assert.match(mobile,/html\[data-eh-layout-mode\] #rc1306Workspace #rc383TopPair\.rc894-full-stack\{[\s\S]*?grid-template-columns:minmax\(0,1fr\)!important;[\s\S]*?grid-auto-flow:row!important;/i,'TopPair wird auf Telefonen nicht hart einspaltig gehalten');
+  assert.match(mobile,/#rc363BlockCustomer,#rc363BlockShipment,#rc363BlockColli,#rc363BlockDocuments[\s\S]*?grid-column:1\/-1!important;[\s\S]*?grid-row:auto!important;[\s\S]*?width:100%!important;/i,'Prozesskarten werden auf Telefonen nicht vollbreit gestapelt');
+  assert.match(mobile,/#rc363BlockCustomer \.rc363-process-body\{[\s\S]*?width:100%!important;[\s\S]*?min-width:0!important;/i,'Kunden-Body kann weiterhin auf 0px kollabieren');
+});
