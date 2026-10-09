@@ -38,6 +38,23 @@ test('RC1469 P0: Neue Sendung verwirft Alt-Daten im echten Browser',async({page}
 
   const newShipment=page.locator('#rc380NewShipment').or(page.getByRole('button',{name:/^\+?\s*Neue Sendung$/i})).first();
   await expect(newShipment).toBeVisible();
+  await newShipment.scrollIntoViewIfNeeded();
+  if((page.viewportSize()?.width||1366)<=390){
+    const geometry=await page.evaluate(()=>{
+      const button=document.getElementById('rc380NewShipment');
+      const shipment=document.getElementById('rc363BlockShipment');
+      const rect=el=>{const r=el?.getBoundingClientRect();return r?{x:r.x,y:r.y,width:r.width,height:r.height,top:r.top,right:r.right,bottom:r.bottom,left:r.left}:null};
+      const style=el=>{if(!el)return null;const s=getComputedStyle(el);return{display:s.display,position:s.position,zIndex:s.zIndex,overflow:s.overflow,overflowX:s.overflowX,overflowY:s.overflowY,height:s.height,minHeight:s.minHeight,maxHeight:s.maxHeight,transform:s.transform,pointerEvents:s.pointerEvents}};
+      const br=button?.getBoundingClientRect();
+      const cx=br?Math.max(0,Math.min(innerWidth-1,br.left+br.width/2)):0;
+      const cy=br?Math.max(0,Math.min(innerHeight-1,br.top+br.height/2)):0;
+      const hit=document.elementFromPoint(cx,cy);
+      const parents=[];let node=button;
+      for(let i=0;node&&i<7;i++,node=node.parentElement)parents.push({tag:node.tagName,id:node.id||'',className:String(node.className||''),rect:rect(node),style:style(node)});
+      return{viewport:{width:innerWidth,height:innerHeight,scrollY},button:{rect:rect(button),style:style(button)},shipment:{rect:rect(shipment),style:style(shipment)},hit:{tag:hit?.tagName||'',id:hit?.id||'',className:String(hit?.className||''),text:String(hit?.textContent||'').trim().slice(0,120),rect:rect(hit),style:style(hit)},parents};
+    });
+    console.log('RC1469_MOBILE_HITTEST '+JSON.stringify(geometry));
+  }
   await newShipment.click();
   await expect.poll(()=>page.evaluate(()=>String((window.__EXPORTHUB_GET_STATE__?.().currentShipment||window.__EXPORTHUB_GET_STATE__?.().shipment||{}).reference||'')),{timeout:10_000}).not.toBe('ALT-REF-1469');
 
