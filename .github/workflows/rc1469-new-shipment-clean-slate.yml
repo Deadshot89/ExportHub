@@ -18,7 +18,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -27,6 +27,8 @@ jobs:
           package-manager-cache: false
       - name: Clean-slate contract prüfen
         run: node --test test/rc1469-new-shipment-clean-slate.test.mjs
+      - name: Druck- und Pickup-Verträge prüfen
+        run: node --test test/rc1190-print-browser-gate.test.mjs test/rc1305-loading-list-redesign.test.mjs test/rc1259-container-documentation.test.mjs
       - name: Drei-Umgebungen-Paket bauen
         run: node .github/rc1112/build-three-env.mjs
       - name: Playwright Chromium installieren
@@ -39,3 +41,14 @@ jobs:
           EXPORTHUB_E2E_ENTRY: /demo.html
           EXPORTHUB_E2E_PUBLIC_ENV: testservice
         run: npx playwright test e2e/specs/rc1469-new-shipment-clean-slate.spec.mjs --project=mobile-small --project=mobile-standard --project=laptop
+      - name: Mobile Pickup und Avis prüfen
+        env:
+          EXPORTHUB_E2E_STATIC: '1'
+          EXPORTHUB_E2E_PUBLIC_ENV: testservice
+        run: npx playwright test e2e/specs/public-smoke.spec.mjs --project=mobile-small --project=mobile-standard
+      - name: Gesamtdruck im echten Chromium-Druckkontext prüfen
+        env:
+          EXPORTHUB_E2E_STATIC: '1'
+          EXPORTHUB_E2E_ENTRY: /demo.html
+          EXPORTHUB_E2E_PUBLIC_ENV: testservice
+        run: npx playwright test e2e/specs/print-documents.spec.mjs --project=laptop
