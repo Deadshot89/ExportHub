@@ -41,8 +41,14 @@ replaceOnce(
 );
 
 replaceOnce(
-  "  if (file) {\n    try {\n      const existing = await readAutomaticPodBuffer(accessKey, environment, record);",
-  "  if (file && isCurrentAutomaticPod(file) && !options.force) {\n    try {\n      const existing = await readAutomaticPodBuffer(accessKey, environment, record);",
+  "async function ensureAutomaticPod(accessKey, environment, options) {\n  options = Object.assign({ copyToDrive: true }, options || {});",
+  "async function ensureAutomaticPod(accessKey, environment, options) {\n  const opt = Object.assign({ copyToDrive: true }, options || {});\n  options = opt;",
+  'ensure options alias'
+);
+
+replaceOnce(
+  "  let pdf = null;\n  let file = automaticPod(record);\n  if (file) {\n    try {\n      const existing = await readAutomaticPodBuffer(accessKey, environment, record);\n      if (existing && existing.buffer && existing.buffer.length) pdf = existing.buffer;",
+  "  let pdf = null;\n  let file = automaticPod(record);\n  const existing = file;\n  if (existing && isCurrentAutomaticPod(existing) && !opt.force) {\n    try {\n      const existingRead = await readAutomaticPodBuffer(accessKey, environment, record);\n      if (existingRead && existingRead.buffer && existingRead.buffer.length) pdf = existingRead.buffer;",
   'ensure current layout only'
 );
 
