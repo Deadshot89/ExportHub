@@ -14,12 +14,13 @@ test('RC1021: jeder erfolgreiche Lieferavis-Statuswechsel meldet die Mailruntime
 });
 
 
-test('RC1383 P1: bestätigter Sync oder Shipment-Saved Event kann auch über einen gewrappten Toggle keinen zweiten Save auslösen',()=>{
+test('RC1383/RC1467 P1: automatischer Lifecycle kann auch über einen gewrappten Toggle keinen zweiten Save auslösen',()=>{
   const manual=source.slice(source.indexOf('async function rc1015Toggle(on)'),source.indexOf('async function rc1021AutoEnable'));
   const automatic=source.slice(source.indexOf('async function rc1021AutoEnable'),source.indexOf('function stripAvisBlocks'));
   assert.match(source,/autoEnableSaveConfirmed=Object\.create\(null\)/);
-  assert.match(automatic,/saveAlreadyConfirmed=reason==='exporthub:sync'\|\|reason==='exporthub:shipment-saved'/);
-  assert.match(automatic,/if\(!saveAlreadyConfirmed\)await rc1015PersistBeforeAvis\(\)/);
+  assert.match(automatic,/RC1467: background\/startup auto-enable operates only on an already persisted shipment/,'Der RC1467 Lifecycle-Vertrag fehlt.');
+  assert.match(automatic,/var saveAlreadyConfirmed=true;/,'Automatische Lifecycle-Events müssen als bereits persistiert behandelt werden.');
+  assert.doesNotMatch(automatic,/rc1015PersistBeforeAvis\s*\(/,'Automatischer Lifecycle darf den User-Save-Bridge niemals erneut aufrufen.');
   assert.match(automatic,/if\(saveAlreadyConfirmed\)autoEnableSaveConfirmed\[ref\]=true/);
   assert.match(manual,/if\(!autoEnableSaveConfirmed\[refBeforeToggle\]\)await rc1015PersistBeforeAvis\(\)/);
   assert.match(automatic,/delete autoEnableSaveConfirmed\[ref\]/);
