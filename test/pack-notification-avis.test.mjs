@@ -37,10 +37,12 @@ test('publicPackDocuments returns only explicitly released pack documents',()=>{
   assert.deepEqual(api.publicPackDocuments(sh).map(x=>x.id),['d2']);
 });
 
-test('AVIS adapter renders a shipment panel only for pack-linked shipments',()=>{
+test('AVIS adapter renders a shipment panel only for pack-linked shipments and localizes visibility actions',()=>{
   const source=fs.readFileSync('assets/pack-notification-avis.js','utf8');
   assert.match(source,/renderPanel/);
   assert.match(source,/packNotificationId/);
   assert.match(source,/customerAvisVisible/);
-  assert.match(source,/Für AVIS freigeben|Auf AVIS sichtbar/);
+  assert.match(source,/tr\('pack\.avis\.release'\)/);
+  assert.match(source,/tr\('pack\.avis\.visible'\)/);
+  assert.doesNotMatch(source,/Für AVIS freigeben|Auf AVIS sichtbar/,'AVIS action labels must come from the six-language pack catalog.');
 });
