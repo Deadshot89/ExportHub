@@ -66,6 +66,11 @@
     const host=doc.querySelector('nav,[role="navigation"],.sidebar,.side-nav,.navigation')||doc.body;
     const node=doc.createElement('button');node.type='button';node.className='pack-notification-nav-fallback';node.setAttribute('data-pack-notifications-nav','');node.setAttribute('aria-label','Packmeldungen');node.textContent='Packmeldungen';host.appendChild(node);return node;
   }
+  function mutationNeedsRoute(){
+    const existing=doc.querySelector('[data-pack-notifications-nav]');
+    if(!existing)return true;
+    return !!(existing.classList&&existing.classList.contains('pack-notification-nav-fallback')&&taskAnchor());
+  }
   function route(){ensureEntry();}
   function schedule(){clearTimeout(timer);timer=setTimeout(route,50);}
   function click(event){
@@ -76,7 +81,7 @@
   function install(){
     ensureEntry();
     doc.addEventListener('click',click,true);
-    if(typeof root.MutationObserver==='function'){observer=new root.MutationObserver(schedule);observer.observe(doc.documentElement||doc.body,{childList:true,subtree:true});}
+    if(typeof root.MutationObserver==='function'){observer=new root.MutationObserver(function(){if(mutationNeedsRoute())schedule()});observer.observe(doc.documentElement||doc.body,{childList:true,subtree:true});}
     schedule();return true;
   }
   root.ExportHUBPackNotificationNav=Object.freeze({ensureEntry,openInbox,route,install,setPackNavLabel});
