@@ -73,9 +73,11 @@ test('RC1418: MutationObserver ist nur lokal in aktiver Palettenansicht gebunden
 
 test('RC1481: fachfremde Mutation im Paletten-Host startet keinen neuen Tabellen-Enhance-Scan',()=>{
   const h=observerHarness(),before=h.pendingZero();
-  const unrelated={nodeType:1,matches(){return false},querySelector(){return null},closest(){return null}};
-  h.callback([{type:'childList',target:h.host,addedNodes:[unrelated],removedNodes:[]}]);
-  assert.equal(h.pendingZero()-before,0,'unrelated pallet-view DOM churn must not schedule enhanceAdminDeleteButtons');
+  const palletRoot={nodeType:1};
+  const target={nodeType:1,closest(selector){return selector.includes('[data-exporthub-rendered-view="pallet"]')?palletRoot:null}};
+  const unrelated={nodeType:1,matches(){return false},querySelector(){return null},closest(){return target}};
+  h.callback([{type:'childList',target,addedNodes:[unrelated],removedNodes:[]}]);
+  assert.equal(h.pendingZero()-before,0,'unrelated nested pallet-view DOM churn must not schedule enhanceAdminDeleteButtons');
 });
 
 test('RC1481: neue Tabellenzeile bleibt für den Paletten-Observer relevant',()=>{
