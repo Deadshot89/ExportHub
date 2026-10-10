@@ -190,7 +190,7 @@ function disconnectObserver(){
   if(observer){try{observer.disconnect()}catch(_){}observer=null}
   observerRoot=null;
 }
-var PALLET_OBSERVER_SELECTOR='.rc542-table,#rc542PalIn,#rc542PalOut,[data-exporthub-rendered-view="pallet"]';
+var PALLET_MUTATION_SELECTOR='.rc542-table,#rc542PalIn,#rc542PalOut';
 function observerElement(node){return node&&node.nodeType===1?node:null}
 function ownDeleteButton(node){
   var el=observerElement(node);if(!el)return false;
@@ -198,7 +198,7 @@ function ownDeleteButton(node){
 }
 function nodeTouchesPalletUi(node){
   var el=observerElement(node);if(!el)return false;
-  try{return !!((el.matches&&el.matches(PALLET_OBSERVER_SELECTOR))||(el.querySelector&&el.querySelector(PALLET_OBSERVER_SELECTOR)))}catch(_){return false}
+  try{return !!((el.matches&&el.matches(PALLET_MUTATION_SELECTOR))||(el.querySelector&&el.querySelector(PALLET_MUTATION_SELECTOR)))}catch(_){return false}
 }
 function mutationNeedsEnhance(record){
   if(!record||record.type!=='childList')return false;
@@ -206,7 +206,7 @@ function mutationNeedsEnhance(record){
   if(!added.length&&!removed.length)return false;
   if(added.length&&!removed.length&&added.every(ownDeleteButton))return false;
   var target=observerElement(record.target);
-  try{if(target&&target.closest&&target.closest(PALLET_OBSERVER_SELECTOR))return true}catch(_){}
+  try{if(target&&target.closest&&target.closest(PALLET_MUTATION_SELECTOR))return true}catch(_){}
   return added.concat(removed).some(nodeTouchesPalletUi)
 }
 function syncObserver(){
