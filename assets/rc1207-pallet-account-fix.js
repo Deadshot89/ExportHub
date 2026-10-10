@@ -190,6 +190,25 @@ function disconnectObserver(){
   if(observer){try{observer.disconnect()}catch(_){}observer=null}
   observerRoot=null;
 }
+var PALLET_OBSERVER_SELECTOR='.rc542-table,#rc542PalIn,#rc542PalOut,[data-exporthub-rendered-view="pallet"]';
+function observerElement(node){return node&&node.nodeType===1?node:null}
+function ownDeleteButton(node){
+  var el=observerElement(node);if(!el)return false;
+  try{return !!((el.matches&&el.matches('[data-rc1207-delete-pallet]'))||(el.closest&&el.closest('[data-rc1207-delete-pallet]')))}catch(_){return false}
+}
+function nodeTouchesPalletUi(node){
+  var el=observerElement(node);if(!el)return false;
+  try{return !!((el.matches&&el.matches(PALLET_OBSERVER_SELECTOR))||(el.querySelector&&el.querySelector(PALLET_OBSERVER_SELECTOR)))}catch(_){return false}
+}
+function mutationNeedsEnhance(record){
+  if(!record||record.type!=='childList')return false;
+  var added=Array.from(record.addedNodes||[]),removed=Array.from(record.removedNodes||[]);
+  if(!added.length&&!removed.length)return false;
+  if(added.length&&!removed.length&&added.every(ownDeleteButton))return false;
+  var target=observerElement(record.target);
+  try{if(target&&target.closest&&target.closest(PALLET_OBSERVER_SELECTOR))return true}catch(_){}
+  return added.concat(removed).some(nodeTouchesPalletUi)
+}
 function syncObserver(){
   if(!palletViewActive()){disconnectObserver();return false}
   var host=palletHost();if(!host)return false;
@@ -197,7 +216,10 @@ function syncObserver(){
   disconnectObserver();
   if(typeof root.MutationObserver==='function'){
     try{
-      observer=new root.MutationObserver(function(){if(palletViewActive())scheduleEnhance();else disconnectObserver()});
+      observer=new root.MutationObserver(function(records){
+        if(!palletViewActive()){disconnectObserver();return}
+        if(arr(records).some(mutationNeedsEnhance))scheduleEnhance()
+      });
       observer.observe(host,{childList:true,subtree:true});
       observerRoot=host;
     }catch(_){observer=null;observerRoot=null}
