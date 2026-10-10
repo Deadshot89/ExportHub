@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
 const scriptPath='.github/rc1473/verify-main-pr-provenance.mjs';
+const sharedContractPath='test/rc1018-production-deploy.test.mjs';
 const contractPath='.github/workflows/rc1002-main-contract.yml';
 const deployPath='.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml';
 
@@ -23,7 +24,6 @@ function pushEnv(overrides={}){
     GITHUB_REF:'refs/heads/main',
     GITHUB_REPOSITORY:'Deadshot89/ExportHub',
     GITHUB_SHA:'abc123',
-    GITHUB_TOKEN:'token',
     ...overrides
   };
 }
@@ -81,14 +81,23 @@ test('RC1473: PR- und manuelle Verifikationsläufe werden nicht fälschlich bloc
   assert.equal(calls,0);
 });
 
-test('RC1473: Main-Contract und Production-Deploy führen Herkunftsprüfung fail-closed vor Release aus',()=>{
-  for(const rel of [contractPath,deployPath]){
-    const source=fs.readFileSync(rel,'utf8');
-    assert.match(source,/pull-requests:\s*read/,'Workflow braucht Leserecht für PR-Zuordnung');
-    assert.match(source,/RC1473 Main PR Herkunft prüfen/,'Workflow muss RC1473 Gate ausführen');
-    assert.match(source,/node \.github\/rc1473\/verify-main-pr-provenance\.mjs/,'Workflow muss den gemeinsamen Gate-Script verwenden');
-    const gate=source.indexOf('RC1473 Main PR Herkunft prüfen');
-    const release=Math.min(...['RC1088 Security Gate','RC1112 Freigabevertrag prüfen'].map(name=>{const i=source.indexOf(name);return i<0?Number.POSITIVE_INFINITY:i}));
-    assert.ok(gate>=0&&gate<release,`${rel}: Herkunftsprüfung muss vor den Release-Gates liegen`);
+test('RC1473: gemeinsamer Production-Vertrag erzwingt die Herkunftsprüfung auf Modulebene',()=>{
+  const shared=fs.readFileSync(sharedContractPath,'utf8');
+  assert.match(shared,/verifyMainPrProvenance/,'Production-Vertrag muss den gemeinsamen RC1473-Gate importieren');
+  assert.match(shared,/await\s+verifyMainPrProvenance\(\);/,'Production-Vertrag muss die Herkunft vor seinen Assertions fail-closed prüfen');
+});
+
+test('RC1473: Main-Contract und Production-Deploy führen den geschützten gemeinsamen Vertrag vor Freigabe/Deployment aus',()=>{
+  const main=fs.readFileSync(contractPath,'utf8');
+  const deploy=fs.readFileSync(deployPath,'utf8');
+  for(const [rel,source,releaseMarker] of [
+    [contractPath,main,'Gesamte Node-Regression'],
+    [deployPath,deploy,'RC1112 Produktion TESTSERVICE und Demo gemeinsam bauen']
+  ]){
+    const gate=source.indexOf('test/rc1018-production-deploy.test.mjs');
+    const release=source.indexOf(releaseMarker);
+    assert.ok(gate>=0,`${rel}: gemeinsamer Production-Vertrag fehlt`);
+    assert.ok(release>=0,`${rel}: Release-/Deploy-Marker fehlt`);
+    assert.ok(gate<release,`${rel}: Herkunftsprüfung muss vor Freigabe/Deployment liegen`);
   }
 });
