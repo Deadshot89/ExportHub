@@ -5,12 +5,37 @@ import vm from 'node:vm';
 
 const source=fs.readFileSync('assets/rc1092-customer-mail-contacts.js','utf8');
 
+function node(id=''){
+  return{
+    id,
+    nodeType:1,
+    parentElement:null,
+    children:[],
+    contains(other){
+      let current=other;
+      while(current){if(current===this)return true;current=current.parentElement}
+      return false;
+    },
+    querySelector(selector){
+      if(selector==='#rc819ReusableContacts'){
+        const stack=[...this.children];
+        while(stack.length){
+          const current=stack.shift();
+          if(current&&current.id==='rc819ReusableContacts')return current;
+          if(current&&Array.isArray(current.children))stack.push(...current.children);
+        }
+      }
+      return null;
+    }
+  };
+}
+
 function harness(initialView='shipments'){
   const events=new Map(),observers=[],frames=[],timers=[];
   const state={view:initialView,customers:[]};
-  const content={id:'content',nodeType:1};
-  const documentElement={id:'documentElement',nodeType:1};
-  const body={id:'body',nodeType:1};
+  const content=node('content');
+  const documentElement=node('documentElement');
+  const body=node('body');
   const document={
     readyState:'complete',
     documentElement,
@@ -36,7 +61,7 @@ function harness(initialView='shipments'){
   };
   vm.runInNewContext(source,{window,document,console,String,Array,Object,JSON,Date,Promise,CustomEvent:function(){},Math,Set},{filename:'rc1092-customer-mail-contacts.js'});
   return{
-    events,observers,frames,timers,state,content,documentElement,
+    events,observers,frames,timers,state,content,documentElement,node,
     flushFrames(){while(frames.length){frames.shift()()}},
     flushTimers(){while(timers.length){timers.shift().fn()}}
   };
@@ -69,12 +94,34 @@ test('RC1399: View-Wechsel aktiviert und deaktiviert den lokalen Observer',()=>{
   assert.equal(h.observers[0].disconnected,true);
 });
 
-test('RC1399: 100 Mutationssignale werden auf einen Render-Frame zusammengefasst',()=>{
+test('RC1478: fachfremde Kunden-DOM-Mutationen starten keinen Kontakt-Installationslauf',()=>{
   const h=harness('customers');
   const observer=h.observers[0];
   h.flushFrames();
   const before=h.frames.length;
-  for(let i=0;i<100;i++)observer.callback([]);
+  const unrelated=h.node('shipment-summary');
+  observer.callback([{type:'childList',target:h.content,addedNodes:[unrelated],removedNodes:[]}]);
+  assert.equal(h.frames.length-before,0,'unrelated customer DOM churn must not queue the RC1092 installer');
+});
+
+test('RC1478: neu eingefügter Kontakt-Host startet weiterhin die Installation',()=>{
+  const h=harness('customers');
+  const observer=h.observers[0];
+  h.flushFrames();
+  const before=h.frames.length;
+  const host=h.node('rc819ReusableContacts');
+  observer.callback([{type:'childList',target:h.content,addedNodes:[host],removedNodes:[]}]);
+  assert.equal(h.frames.length-before,1,'the reusable contact host must still trigger installation');
+});
+
+test('RC1399: 100 relevante Mutationssignale werden auf einen Render-Frame zusammengefasst',()=>{
+  const h=harness('customers');
+  h.flushFrames();
+  const observer=h.observers[0];
+  const before=h.frames.length;
+  const host=h.node('rc819ReusableContacts');
+  const record={type:'childList',target:h.content,addedNodes:[host],removedNodes:[]};
+  for(let i=0;i<100;i++)observer.callback([record]);
   assert.equal(h.frames.length-before,1);
 });
 
