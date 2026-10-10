@@ -65,6 +65,10 @@ function observerHarness(){
   };
   sandbox.window=sandbox;
   vm.runInNewContext(runtime,sandbox,{filename:'rc1166-avis-reminder-overview.js'});
+  const bootTimer=timers.shift();
+  assert.equal(typeof bootTimer,'function','RC1166 boot must queue its initial render');
+  bootTimer();
+  timers.length=0;
   return{timers,content,callback(records){assert.equal(typeof observerCallback,'function');observerCallback(records)}};
 }
 
