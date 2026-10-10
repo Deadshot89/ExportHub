@@ -4,6 +4,7 @@
 if(!w||!d||w.__EXPORTHUB_RC1077_CUSTOMER_LABELS__)return;
 w.__EXPORTHUB_RC1077_CUSTOMER_LABELS__=true;
 
+var LABEL_SELECTOR='th,[role="columnheader"],h1,h2,h3,h4,button,[role="tab"],span,div';
 function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
 function low(v){return q(v).toLowerCase()}
 function state(){try{if(typeof w.__EXPORTHUB_GET_STATE__==='function')return w.__EXPORTHUB_GET_STATE__()||{}}catch(_){}return w.ExportHUBClean&&w.ExportHUBClean.state||w.appState||{}}
@@ -32,7 +33,7 @@ function labelCandidate(el){
 }
 function renameLabels(root){
  if(!root||!root.querySelectorAll)return 0;
- var changed=0,nodes=root.querySelectorAll('th,[role="columnheader"],h1,h2,h3,h4,button,[role="tab"],span,div');
+ var changed=0,nodes=root.querySelectorAll(LABEL_SELECTOR);
  for(var i=0;i<nodes.length;i++){
    var el=nodes[i];
    if(!labelCandidate(el))continue;
@@ -61,12 +62,39 @@ function apply(){
 var observer=null,observerRoot=null,scheduled=false;
 function customerHost(){return d.getElementById('content')||d.querySelector('main')||d.body||null}
 function disconnectObserver(){if(observer){try{observer.disconnect()}catch(_){}observer=null}observerRoot=null}
+function nodeNeedsApply(node){
+ if(!node||node.nodeType!==1)return false;
+ if(labelCandidate(node))return true;
+ if(!node.querySelectorAll)return false;
+ var nodes=node.querySelectorAll(LABEL_SELECTOR);
+ for(var i=0;i<nodes.length;i++)if(labelCandidate(nodes[i]))return true;
+ return false
+}
+function targetOrAncestorNeedsApply(node){
+ var current=node;
+ while(current&&current.nodeType===1){
+   if(labelCandidate(current))return true;
+   if(current===observerRoot)break;
+   current=current.parentElement
+ }
+ return false
+}
+function mutationNeedsApply(records){
+ records=Array.from(records||[]);
+ for(var i=0;i<records.length;i++){
+   var record=records[i];
+   if(record&&targetOrAncestorNeedsApply(record.target))return true;
+   var added=Array.from(record&&record.addedNodes||[]);
+   for(var j=0;j<added.length;j++)if(nodeNeedsApply(added[j]))return true;
+ }
+ return false
+}
 function syncObserver(){
  if(!customerView()){disconnectObserver();return false}
  var root=customerHost();if(!root)return false;
  if(observer&&observerRoot===root)return true;
  disconnectObserver();
- if(w.MutationObserver){try{observer=new w.MutationObserver(function(){schedule()});observer.observe(root,{subtree:true,childList:true});observerRoot=root}catch(_){observer=null;observerRoot=null}}
+ if(w.MutationObserver){try{observer=new w.MutationObserver(function(records){if(mutationNeedsApply(records))schedule()});observer.observe(root,{subtree:true,childList:true});observerRoot=root}catch(_){observer=null;observerRoot=null}}
  return true
 }
 function schedule(){
