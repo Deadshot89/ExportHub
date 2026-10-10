@@ -1,0 +1,66 @@
+name: RC1482 Apply Provenance Auth
+
+on:
+  push:
+    branches: [rc1482-release-provenance-auth]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: rc1482-release-provenance-auth
+          fetch-depth: 0
+      - name: RC1482 minimalen Provenienz-Fix anwenden
+        shell: python
+        run: |
+          from pathlib import Path
+
+          guard = Path('.github/rc1473/verify-main-pr-provenance.mjs')
+          text = guard.read_text()
+          old = """      const response=await fetchImpl(url,{\n        method:'GET',\n        headers:{\n          'Accept':'application/vnd.github+json',\n          'X-GitHub-Api-Version':API_VERSION,\n          'User-Agent':'ExportHUB-RC1473-Release-Provenance'\n        }\n      });"""
+          new = """      const headers={\n        'Accept':'application/vnd.github+json',\n        'X-GitHub-Api-Version':API_VERSION,\n        'User-Agent':'ExportHUB-RC1473-Release-Provenance'\n      };\n      const token=text(env.GITHUB_TOKEN);\n      if(token)headers.Authorization=`Bearer ${token}`;\n      const response=await fetchImpl(url,{method:'GET',headers});"""
+          assert text.count(old) == 1, 'Guard-Zielstelle nicht eindeutig'
+          guard.write_text(text.replace(old,new))
+
+          main = Path('.github/workflows/rc1002-main-contract.yml')
+          text = main.read_text()
+          old = "permissions:\n  contents: read\n"
+          new = "permissions:\n  contents: read\n  pull-requests: read\n"
+          assert text.count(old) == 1, 'Main permissions-Zielstelle nicht eindeutig'
+          text = text.replace(old,new)
+          old = "  verify:\n    runs-on: ubuntu-latest\n    timeout-minutes: 30\n"
+          new = "  verify:\n    runs-on: ubuntu-latest\n    timeout-minutes: 30\n    env:\n      GITHUB_TOKEN: ${{ github.event_name == 'push' && github.token || '' }}\n"
+          assert text.count(old) == 1, 'Main job-Zielstelle nicht eindeutig'
+          main.write_text(text.replace(old,new))
+
+          deploy = Path('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml')
+          text = deploy.read_text()
+          old = "permissions:\n  contents: read\n  id-token: write\n"
+          new = "permissions:\n  contents: read\n  pull-requests: read\n  id-token: write\n"
+          assert text.count(old) == 1, 'Deploy permissions-Zielstelle nicht eindeutig'
+          text = text.replace(old,new)
+          old = "  build_and_deploy_job:\n    runs-on: ubuntu-latest\n    timeout-minutes: 75\n"
+          new = "  build_and_deploy_job:\n    runs-on: ubuntu-latest\n    timeout-minutes: 75\n    env:\n      GITHUB_TOKEN: ${{ github.event_name == 'push' && github.token || '' }}\n"
+          assert text.count(old) == 1, 'Deploy job-Zielstelle nicht eindeutig'
+          deploy.write_text(text.replace(old,new))
+      - name: Diff und Tests vor Commit prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          node --test test/rc1473-main-pr-provenance.test.mjs
+          test "$(git diff --name-only | sort | tr '\n' ' ')" = ".github/rc1473/verify-main-pr-provenance.mjs .github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml .github/workflows/rc1002-main-contract.yml "
+      - name: Fix auf RC1482-Branch committen
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/rc1473/verify-main-pr-provenance.mjs .github/workflows/rc1002-main-contract.yml .github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml
+          git commit -m 'fix(RC1482): authenticate release provenance GitHub API'
+          git push origin HEAD:rc1482-release-provenance-auth
