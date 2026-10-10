@@ -676,8 +676,6 @@ function historyHtml(sh){
  var completedAt=q(sh&&sh.completedAt),archivedAt=q(sh&&sh.archivedAt);
  if(completedAt)add(completedAt,'Abgeschlossen',q(sh.completedBy),'completed|'+completedAt);
  if(archivedAt)add(archivedAt,'Archiviert',q(sh.archivedBy),'archived|'+archivedAt);
- var current=status(sh),currentAt=q(sh&&(sh.statusChangedAt||sh.statusUpdatedAt||sh.updatedAt||sh._syncUpdatedAt));
- if(current&&!list.some(function(x){return low(x.label).indexOf(low(current))>=0}))add(currentAt,'Aktueller Status: '+current,'','current|'+low(current));
  list.sort(function(a,b){var aa=a.stamp||Number.MAX_SAFE_INTEGER,bb=b.stamp||Number.MAX_SAFE_INTEGER;return aa-bb});
  if(!list.length)return '<div class="rc776-empty">Für diese Sendung sind noch keine fachlichen Bewegungsdaten gespeichert.</div>';
  return '<div class="rc776-history">'+list.slice(-30).map(function(x){return '<div class="rc776-history-row"><time>'+esc(x.at?fmtDate(x.at):'–')+'</time><div><b>'+esc(x.label)+'</b>'+(x.detail?'<small> · '+esc(x.detail)+'</small>':'')+'</div></div>'}).join('')+'</div>'
@@ -911,7 +909,7 @@ function patchHtml(file){
   html=html.replace(/assets\/rc1013-diagnostics\.js\?v=(?:1085|1125|1364)/g,'assets/rc1013-diagnostics.js?v=1364');
   html=html.replace(/assets\/exporthub-environment-hub\.js\?v=\d+/g,'assets/exporthub-environment-hub.js?v=1174');
   html=html.replace(/assets\/rc1081-audit-history\.js\?v=(?:1087|1126|1160|1163)/g,'assets/rc1081-audit-history.js?v=1177');
-  html=html.replace(/assets\/rc1071-shipment-history\.js\?v=(?:1095|1151|1178|1305)/g,'assets/rc1071-shipment-history.js?v=1434');
+  html=html.replace(/assets\/rc1071-shipment-history\.js\?v=(?:1095|1151|1178|1305|1434)/g,'assets/rc1071-shipment-history.js?v=1468');
   html=html.replace(/assets\/rc1063-abd-blob-viewer-compat\.js\?v=(?:1063|1151|1248)/g,'assets/rc1063-abd-blob-viewer-compat.js?v=1248');
   html=injectDeferredRuntimeInHead(html,'<!-- id="exporthub-rc1148-history-compat-marker" assets/rc1071-shipment-history.js?v=1095 -->','exporthub-rc1148-history-compat-marker');
   html=injectDeferredRuntimeInHead(html,RC1267_I18N_TAG,'exporthub-rc1267-i18n');
@@ -945,7 +943,7 @@ function patchHtml(file){
   if(!html.includes('assets/rc1013-diagnostics.js?v=1364'))throw new Error(file+': RC1364 Diagnose Cache-Key fehlt');
   if(!html.includes('assets/exporthub-environment-hub.js?v=1174'))throw new Error(file+': RC1174 Android-Diagnose-Hub Cache-Key fehlt');
   if(!html.includes('assets/rc1081-audit-history.js?v=1177'))throw new Error(file+': RC1177 Historie Cache-Key fehlt');
-  if(!html.includes('assets/rc1071-shipment-history.js?v=1434'))throw new Error(file+': RC1305 Dokument-History Cache-Key fehlt');
+  if(!html.includes('assets/rc1071-shipment-history.js?v=1468'))throw new Error(file+': RC1468 Dokument-History Cache-Key fehlt');
   if(file!=='demo.html'&&!html.includes('assets/rc1063-abd-blob-viewer-compat.js?v=1248'))throw new Error(file+': RC1248 Dokumentaktionen Cache-Key fehlt');
   if(!html.includes('assets/rc1071-shipment-history.js?v=1095'))throw new Error(file+': RC1148 History-Kompatibilitätsmarker fehlt');
   if(!html.includes('assets/rc1126-customer-delete.js?v=1387'))throw new Error(file+': RC1126 Kundenlöschung fehlt');
