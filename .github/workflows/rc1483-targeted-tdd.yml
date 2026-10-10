@@ -34,15 +34,8 @@ jobs:
           else:
               assert new in text, 'collect-Signatur weder alt noch RC1483'
 
-          old = """    const original=text(current),source=sourceLanguageFor(value,key,fallback),previous=value[SIDE_CAR][key];
-    const meta=stableMeta(original,source,previous);
-    value[SIDE_CAR][key]=meta;
-    if(!complete(meta)||text(meta.originalText)!==original)rows.push({object:value,key,original,source,meta});"""
-          new = """    const original=text(current),source=sourceLanguageFor(value,key,fallback),previous=value[SIDE_CAR][key],sourceHash=hashText(original);
-    const samePrevious=!!(previous&&text(previous.originalText)===original&&text(previous.sourceHash)===sourceHash);
-    const meta=stableMeta(original,source,previous);
-    value[SIDE_CAR][key]=meta;
-    if(!complete(meta)&&(retryPending||!samePrevious))rows.push({object:value,key,original,source,meta});"""
+          old = "    const original=text(current),source=sourceLanguageFor(value,key,fallback),previous=value[SIDE_CAR][key];\n    const meta=stableMeta(original,source,previous);\n    value[SIDE_CAR][key]=meta;\n    if(!complete(meta)||text(meta.originalText)!==original)rows.push({object:value,key,original,source,meta});"
+          new = "    const original=text(current),source=sourceLanguageFor(value,key,fallback),previous=value[SIDE_CAR][key],sourceHash=hashText(original);\n    const samePrevious=!!(previous&&text(previous.originalText)===original&&text(previous.sourceHash)===sourceHash);\n    const meta=stableMeta(original,source,previous);\n    value[SIDE_CAR][key]=meta;\n    if(!complete(meta)&&(retryPending||!samePrevious))rows.push({object:value,key,original,source,meta});"
           if old in text:
               assert text.count(old) == 1, 'collect-Auswahl nicht eindeutig'
               text = text.replace(old, new)
