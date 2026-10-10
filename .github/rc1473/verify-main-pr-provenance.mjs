@@ -53,14 +53,14 @@ export async function verifyMainPrProvenance({
 
   for(let attempt=1;attempt<=maxAttempts;attempt++){
     try{
-      const response=await fetchImpl(url,{
-        method:'GET',
-        headers:{
-          'Accept':'application/vnd.github+json',
-          'X-GitHub-Api-Version':API_VERSION,
-          'User-Agent':'ExportHUB-RC1473-Release-Provenance'
-        }
-      });
+      const headers={
+        'Accept':'application/vnd.github+json',
+        'X-GitHub-Api-Version':API_VERSION,
+        'User-Agent':'ExportHUB-RC1473-Release-Provenance'
+      };
+      const token=text(env.GITHUB_TOKEN);
+      if(token)headers.Authorization=`Bearer ${token}`;
+      const response=await fetchImpl(url,{method:'GET',headers});
       if(response&&response.ok){
         const items=await response.json();
         const prs=Array.isArray(items)?items:[];
