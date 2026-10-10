@@ -55,6 +55,8 @@ jobs:
           assert text.count(old) == 1, 'Guard-Zielstelle nicht eindeutig'
           guard.write_text(text.replace(old,new))
 
+          token_expr = '$' + "{{ github.event_name == 'push' && github.token || '' }}"
+
           main = Path('.github/workflows/rc1002-main-contract.yml')
           text = main.read_text()
           old = "permissions:\n  contents: read\n"
@@ -62,7 +64,7 @@ jobs:
           assert text.count(old) == 1, 'Main permissions-Zielstelle nicht eindeutig'
           text = text.replace(old,new)
           old = "  verify:\n    runs-on: ubuntu-latest\n    timeout-minutes: 30\n"
-          new = "  verify:\n    runs-on: ubuntu-latest\n    timeout-minutes: 30\n    env:\n      GITHUB_TOKEN: ${{ github.event_name == 'push' && github.token || '' }}\n"
+          new = "  verify:\n    runs-on: ubuntu-latest\n    timeout-minutes: 30\n    env:\n      GITHUB_TOKEN: " + token_expr + "\n"
           assert text.count(old) == 1, 'Main job-Zielstelle nicht eindeutig'
           main.write_text(text.replace(old,new))
 
@@ -73,7 +75,7 @@ jobs:
           assert text.count(old) == 1, 'Deploy permissions-Zielstelle nicht eindeutig'
           text = text.replace(old,new)
           old = "  build_and_deploy_job:\n    runs-on: ubuntu-latest\n    timeout-minutes: 75\n"
-          new = "  build_and_deploy_job:\n    runs-on: ubuntu-latest\n    timeout-minutes: 75\n    env:\n      GITHUB_TOKEN: ${{ github.event_name == 'push' && github.token || '' }}\n"
+          new = "  build_and_deploy_job:\n    runs-on: ubuntu-latest\n    timeout-minutes: 75\n    env:\n      GITHUB_TOKEN: " + token_expr + "\n"
           assert text.count(old) == 1, 'Deploy job-Zielstelle nicht eindeutig'
           deploy.write_text(text.replace(old,new))
       - name: RC1482 targeted GREEN vor Commit
