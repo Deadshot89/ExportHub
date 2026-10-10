@@ -33,6 +33,41 @@ function load(state={}){
   return sandbox.ExportHUBRC1166AvisReminder;
 }
 
+function observerHarness(){
+  const timers=[];
+  let observerCallback=null;
+  const content={id:'content',nodeType:1};
+  const document={
+    readyState:'complete',
+    addEventListener(){},
+    getElementById(id){return id==='content'?content:null},
+    querySelectorAll(){return[]},
+    createElement(){return{setAttribute(){},appendChild(){},addEventListener(){},remove(){},style:{}}},
+    body:{getAttribute(name){return name==='data-exporthub-view'?'shipmentoverview':''},appendChild(){}},
+    head:{appendChild(){}},
+    documentElement:{appendChild(){}}
+  };
+  class MutationObserver{
+    constructor(callback){observerCallback=callback}
+    observe(){}
+    disconnect(){}
+  }
+  const sandbox={
+    document,
+    location:{href:'https://example.test/'},
+    MutationObserver,
+    setTimeout(fn){timers.push(fn);return timers.length},
+    addEventListener(){},
+    __EXPORTHUB_GET_STATE__(){return{shipments:[]}},
+    ExportHUBCustomerAvis706:{link(){return''}},
+    console:{warn(){}},
+    URL
+  };
+  sandbox.window=sandbox;
+  vm.runInNewContext(runtime,sandbox,{filename:'rc1166-avis-reminder-overview.js'});
+  return{timers,content,callback(records){assert.equal(typeof observerCallback,'function');observerCallback(records)}};
+}
+
 test('RC1434: Outlook-Runtime ist syntaktisch gültig',()=>{
   execFileSync(process.execPath,['--check','assets/rc1166-avis-reminder-overview.js'],{stdio:'pipe'});
 });
@@ -143,6 +178,20 @@ test('RC1358: Sendungsübersicht injiziert Avis-Erinnerung auch nach späteren K
   assert.match(runtime,/exporthub:design-changed/);
   assert.match(runtime,/version:'RC1358'/);
   assert.match(runtime,/if\(q\(btn\.textContent\)!==q\(label\)\)btn\.textContent=label/,'Bestehende Buttons dürfen den MutationObserver nicht durch unnötige Text-DOM-Writes triggern');
+});
+
+test('RC1480: fachfremde DOM-Mutation außerhalb einer Sendungskarte startet keinen neuen Reminder-Scan',()=>{
+  const h=observerHarness(),before=h.timers.length;
+  const unrelated={nodeType:1,id:'unrelated-status',matches(){return false},querySelector(){return null},closest(){return null}};
+  h.callback([{type:'childList',target:h.content,addedNodes:[unrelated],removedNodes:[]}]);
+  assert.equal(h.timers.length-before,0,'unrelated overview DOM churn must not queue a full RC1166 reminder scan');
+});
+
+test('RC1480: neu eingefügte Sendungskarte bleibt für den Reminder-Observer relevant',()=>{
+  const h=observerHarness(),before=h.timers.length;
+  const card={nodeType:1,className:'shipment-card',matches(selector){return selector.includes('.shipment-card')},querySelector(){return null},closest(){return null}};
+  h.callback([{type:'childList',target:h.content,addedNodes:[card],removedNodes:[]}]);
+  assert.equal(h.timers.length-before,1,'new shipment cards must still queue the RC1166 reminder scan');
 });
 
 
