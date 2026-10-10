@@ -131,12 +131,19 @@ function render(){
 function removeDeleteBox(){var x=d.getElementById('rc1126CustomerDelete');if(x)x.remove()}
 function customerHost(){return d.getElementById('content')||d.querySelector('main')||d.body||null}
 function disconnectObserver(){if(observer){try{observer.disconnect()}catch(_){}observer=null}observerRoot=null}
+function observerNeedsRender(){
+ if(!customerView())return false;
+ var box=d.getElementById('rc1126CustomerDelete'),c=currentCustomer();
+ if(!c||!canDelete())return !!box;
+ if(!box)return true;
+ return box.getAttribute('data-customer-key')!==customerKey(c)
+}
 function syncObserver(){
  if(!customerView()){disconnectObserver();removeDeleteBox();return false}
  var root=customerHost();if(!root)return false;
  if(observer&&observerRoot===root)return true;
  disconnectObserver();
- if(w.MutationObserver){try{observer=new w.MutationObserver(function(){if(customerView())schedule();else{disconnectObserver();removeDeleteBox()}});observer.observe(root,{childList:true,subtree:true});observerRoot=root}catch(_){observer=null;observerRoot=null}}
+ if(w.MutationObserver){try{observer=new w.MutationObserver(function(){if(!customerView()){disconnectObserver();removeDeleteBox();return}if(observerNeedsRender())schedule()});observer.observe(root,{childList:true,subtree:true});observerRoot=root}catch(_){observer=null;observerRoot=null}}
  return true
 }
 function schedule(){if(timer)return;timer=w.setTimeout(function(){timer=0;try{syncObserver();render()}catch(e){try{console.warn('RC1126 Kunden löschen',e)}catch(_){}}},20)}
