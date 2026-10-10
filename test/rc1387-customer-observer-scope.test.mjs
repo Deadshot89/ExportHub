@@ -6,7 +6,7 @@ import vm from 'node:vm';
 const source=fs.readFileSync('assets/rc1126-customer-delete.js','utf8');
 
 function harness(initialView='home'){
-  const events=new Map(),observers=[],timers=[];
+  const events=new Map(),observers=[],timers=[],nodes={};
   const state={view:initialView,customers:[]};
   const content={id:'content',nodeType:1};
   const documentElement={id:'documentElement',nodeType:1};
@@ -15,7 +15,7 @@ function harness(initialView='home'){
     documentElement,
     body:{id:'body',nodeType:1},
     head:{appendChild(){}},
-    getElementById(id){return id==='content'?content:null},
+    getElementById(id){return id==='content'?content:(nodes[id]||null)},
     querySelector(){return null},
     createElement(){return {style:{},setAttribute(){},appendChild(){},addEventListener(){}}},
     addEventListener(){}
@@ -33,7 +33,7 @@ function harness(initialView='home'){
     setTimeout(fn,ms){timers.push({fn,ms});return timers.length}
   };
   vm.runInNewContext(source,{window,document,console,String,Array,Object,JSON,Date,Promise,CustomEvent:function(){}},{filename:'rc1126-customer-delete.js'});
-  return{events,observers,timers,state,content,documentElement};
+  return{events,observers,timers,state,content,documentElement,nodes,window};
 }
 
 test('RC1387: außerhalb der Kundenansicht existiert kein DOM-Observer',()=>{
@@ -61,6 +61,36 @@ test('RC1387: View-Wechsel aktiviert und deaktiviert den lokalen Observer',()=>{
   h.state.view='shipments';
   viewchange();
   assert.equal(h.observers[0].disconnected,true);
+});
+
+test('RC1479: fachfremde Kunden-DOM-Mutationen rendern vorhandene Löschbox nicht erneut',()=>{
+  const h=harness('customers');
+  const customer={id:'C1',name:'Kunde 1'};
+  h.state.customers=[customer];
+  h.state.currentCustomer=customer;
+  h.window.currentUser={role:'admin'};
+  h.nodes.rc1126CustomerDelete={
+    id:'rc1126CustomerDelete',
+    nodeType:1,
+    getAttribute(name){return name==='data-customer-key'?'C1':null},
+    remove(){delete h.nodes.rc1126CustomerDelete}
+  };
+  h.timers.shift().fn();
+  const before=h.timers.length;
+  h.observers[0].callback([{type:'childList',target:h.content,addedNodes:[{id:'shipment-summary',nodeType:1}],removedNodes:[]}]);
+  assert.equal(h.timers.length-before,0,'unrelated customer DOM churn must not queue RC1126 render when the correct delete box already exists');
+});
+
+test('RC1479: fehlende Löschbox wird bei ausgewähltem Admin-Kunden weiterhin nachgerendert',()=>{
+  const h=harness('customers');
+  h.timers.shift().fn();
+  const customer={id:'C1',name:'Kunde 1'};
+  h.state.customers=[customer];
+  h.state.currentCustomer=customer;
+  h.window.currentUser={role:'admin'};
+  const before=h.timers.length;
+  h.observers[0].callback([{type:'childList',target:h.content,addedNodes:[{id:'customer-details',nodeType:1}],removedNodes:[]}]);
+  assert.equal(h.timers.length-before,1,'missing RC1126 delete box must still queue a render for an admin customer');
 });
 
 test('RC1387: kein documentElement-MutationObserver bleibt in der Runtime',()=>{
