@@ -83,12 +83,23 @@ test('RC1394: View-Wechsel aktiviert und deaktiviert den lokalen Observer',()=>{
   assert.equal(h.observers[0].disconnected,true);
 });
 
-test('RC1394: 100 Mutationssignale werden auf einen Render-Frame zusammengefasst',()=>{
+test('RC1394: 100 relevante Mutationssignale werden auf einen Render-Frame zusammengefasst',()=>{
   const h=harness('customers');
   h.flush();
   const observer=h.observers[0];
   const before=h.frames.length;
-  for(let i=0;i<100;i++)observer.callback([]);
+  const heading={
+    nodeType:1,
+    textContent:'Firma',
+    className:'',
+    tagName:'H2',
+    parentElement:h.content,
+    closest(){return null},
+    matches(){return true},
+    querySelectorAll(){return[]}
+  };
+  const record={type:'childList',target:h.content,addedNodes:[heading],removedNodes:[]};
+  for(let i=0;i<100;i++)observer.callback([record]);
   assert.equal(h.frames.length-before,1);
 });
 
