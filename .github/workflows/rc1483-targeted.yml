@@ -1,0 +1,19 @@
+name: RC1483 Targeted
+
+on:
+  push:
+    branches: [rc1483-i18n-save-performance]
+
+permissions:
+  contents: read
+
+jobs:
+  targeted:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+      - run: node --test tests/rc1267-dynamic-i18n.test.cjs tests/rc1483-i18n-save-performance.test.cjs
