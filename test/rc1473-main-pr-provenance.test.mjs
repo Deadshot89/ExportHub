@@ -27,13 +27,14 @@ function pushEnv(overrides={}){
     ...overrides
   };
 }
+function pushEvent(overrides={}){return{before:'base123',after:'abc123',...overrides}}
 
 test('RC1473: direkter Main-Push ohne zugeordneten gemergten PR wird fail-closed blockiert',async()=>{
   const {verifyMainPrProvenance}=await loadGate();
   let calls=0;
   await assert.rejects(
     verifyMainPrProvenance({
-      env:pushEnv(),
+      env:pushEnv(),eventPayload:pushEvent(),
       fetchImpl:async()=>{calls++;return response(200,[])},
       sleepImpl:async()=>{},
       attempts:2
@@ -43,31 +44,43 @@ test('RC1473: direkter Main-Push ohne zugeordneten gemergten PR wird fail-closed
   assert.equal(calls,2,'leere PR-Zuordnung soll kurz gegen GitHub-Eventual-Consistency erneut geprüft werden');
 });
 
-test('RC1473: gemergter PR nach main erlaubt den Main-Push',async()=>{
+test('RC1473: gemergter PR nach main mit passender Push-Basis erlaubt den Main-Push',async()=>{
   const {verifyMainPrProvenance}=await loadGate();
   const result=await verifyMainPrProvenance({
-    env:pushEnv(),
-    fetchImpl:async()=>response(200,[{number:619,merged_at:'2026-10-10T12:39:53Z',base:{ref:'main'}}]),
+    env:pushEnv(),eventPayload:pushEvent(),
+    fetchImpl:async()=>response(200,[{number:619,merged_at:'2026-10-10T12:39:53Z',base:{ref:'main',sha:'base123'}}]),
     sleepImpl:async()=>{}
   });
   assert.equal(result.checked,true);
   assert.equal(result.pullRequest,619);
+  assert.equal(result.before,'base123');
 });
 
-test('RC1473: offener oder fremd basierter PR reicht nicht als Release-Herkunft',async()=>{
+test('RC1473: offener, fremd basierter oder historisch alter PR reicht nicht als Release-Herkunft',async()=>{
   const {verifyMainPrProvenance}=await loadGate();
   await assert.rejects(
     verifyMainPrProvenance({
-      env:pushEnv(),
+      env:pushEnv(),eventPayload:pushEvent(),
       fetchImpl:async()=>response(200,[
-        {number:1,merged_at:null,base:{ref:'main'}},
-        {number:2,merged_at:'2026-10-10T12:39:53Z',base:{ref:'develop'}}
+        {number:1,merged_at:null,base:{ref:'main',sha:'base123'}},
+        {number:2,merged_at:'2026-10-10T12:39:53Z',base:{ref:'develop',sha:'base123'}},
+        {number:3,merged_at:'2026-09-01T10:00:00Z',base:{ref:'main',sha:'old-base'}}
       ]),
       sleepImpl:async()=>{},
       attempts:1
     }),
     /DIRECT_MAIN_PUSH_BLOCKED|gemergten PR/i
   );
+});
+
+test('RC1473: manipuliertes oder unpassendes Push-Event wird vor API-Abfrage blockiert',async()=>{
+  const {verifyMainPrProvenance}=await loadGate();
+  let calls=0;
+  await assert.rejects(
+    verifyMainPrProvenance({env:pushEnv(),eventPayload:pushEvent({after:'other-sha'}),fetchImpl:async()=>{calls++;return response(200,[])}}),
+    /DIRECT_MAIN_PUSH_BLOCKED|passt nicht/i
+  );
+  assert.equal(calls,0);
 });
 
 test('RC1473: PR- und manuelle Verifikationsläufe werden nicht fälschlich blockiert',async()=>{
