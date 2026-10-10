@@ -52,8 +52,8 @@ function sourceLanguageFor(obj,key,fallback){
   fallback
  )
 }
-function collect(root,fallback='de'){
- const rows=[],seen=new WeakSet();
+function collect(root,fallback='de',options={}){
+ const retryPending=options.retryPending!==false,rows=[],seen=new WeakSet();
  function walk(value,depth){
   if(value==null||depth>12||typeof value!=='object'||seen.has(value))return;
   seen.add(value);
@@ -62,10 +62,11 @@ function collect(root,fallback='de'){
   for(const [key,current] of Object.entries(value)){
    if(key===SIDE_CAR||SKIP_BRANCH.test(key))continue;
    if(typeof current==='string'&&LOCALIZABLE_FIELD.test(key)&&useful(current)){
-    const original=text(current),source=sourceLanguageFor(value,key,fallback),previous=value[SIDE_CAR][key];
+    const original=text(current),source=sourceLanguageFor(value,key,fallback),previous=value[SIDE_CAR][key],sourceHash=hashText(original);
+    const samePrevious=!!(previous&&text(previous.originalText)===original&&text(previous.sourceHash)===sourceHash);
     const meta=stableMeta(original,source,previous);
     value[SIDE_CAR][key]=meta;
-    if(!complete(meta)||text(meta.originalText)!==original)rows.push({object:value,key,original,source,meta});
+    if(!complete(meta)&&(retryPending||!samePrevious))rows.push({object:value,key,original,source,meta});
     continue
    }
    if(current&&typeof current==='object')walk(current,depth+1)
@@ -110,7 +111,7 @@ async function azureTranslateBatch(items,source,fetchImpl=globalThis.fetch){
  })
 }
 async function enrichDynamicTranslations(root,fallbackLanguage='de',options={}){
- const sourceFallback=normalizeLanguage(fallbackLanguage),rows=collect(root,sourceFallback),limit=Math.max(1,Math.min(1000,Number(options.limit||50)||50));
+ const sourceFallback=normalizeLanguage(fallbackLanguage),rows=collect(root,sourceFallback,options),limit=Math.max(1,Math.min(1000,Number(options.limit||50)||50));
  const selected=rows.slice(0,limit),translator=typeof options.translator==='function'?options.translator:async(items,source)=>azureTranslateBatch(items,source,options.fetchImpl);
  const groups=new Map();
  selected.forEach(row=>{const list=groups.get(row.source)||[];list.push(row);groups.set(row.source,list)});
