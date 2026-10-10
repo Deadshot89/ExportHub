@@ -497,7 +497,7 @@
       else if(typeof host.prepend==='function')host.prepend(section);
       else host.insertBefore(section,host.firstChild||null);
     }
-    section.innerHTML=`<div class="rc1307-task-plan-head">
+    const planHtml=`<div class="rc1307-task-plan-head">
       <div><span class="rc1307-task-plan-eyebrow">${esc(tr('taskPlan.eyebrow'))}</span><h2>${esc(tr('taskPlan.title'))}</h2><p>${esc(tr('taskPlan.help'))}</p></div>
       <span class="rc1307-task-plan-count">${esc(tr('taskPlan.count',{count:items.length}))}</span>
     </div>
@@ -508,6 +508,7 @@
       <div class="rc1307-task-plan-meta"><span>${esc(item.schedule)}</span>${item.today?`<strong>${esc(tr('taskPlan.today'))}</strong>`:''}</div>
       ${item.checklist.length?`<div class="rc1307-task-plan-checklist">${item.checklist.map(entry=>`<span>${esc(entry)}</span>`).join('')}</div>`:''}
     </article>`).join('')}</div>`;
+    if(section.innerHTML!==planHtml)section.innerHTML=planHtml;
     return true;
   }
 
@@ -520,12 +521,19 @@
       const task=cardTask(card,tasks);
       if(!task||!sameScope(task,ctx))return;
       const meta=taskCardMeta(task,ctx);
+      const priorityText=tr('taskDetail.priority',{priority:meta.priority});
+      const dueText=tr('taskDetail.dueLabel',{due:meta.dueLabel});
+      const assigneeText=tr('taskDetail.ownerLabel',{owner:meta.assignee});
+      const metaFingerprint=JSON.stringify([meta.priority,meta.dueBucket,meta.dueAt,meta.assignee,priorityText,dueText,assigneeText]);
       let row=card.querySelector&&card.querySelector('.rc1014-task-meta');
       if(!row){row=doc.createElement('div');row.className='rc1014-task-meta';if(typeof card.appendChild==='function')card.appendChild(row);}
-      row.textContent='';
-      row.appendChild(createSpan(doc,'rc1014-priority','data-rc1014-priority',meta.priority,tr('taskDetail.priority',{priority:meta.priority})));
-      row.appendChild(createSpan(doc,'rc1014-due','data-rc1014-due',meta.dueBucket,tr('taskDetail.dueLabel',{due:meta.dueLabel})));
-      row.appendChild(createSpan(doc,'rc1014-assignee','data-rc1014-assignee',meta.assignee,tr('taskDetail.ownerLabel',{owner:meta.assignee})));
+      if(!row.getAttribute||row.getAttribute('data-rc1477-task-meta-fingerprint')!==metaFingerprint){
+        row.textContent='';
+        row.appendChild(createSpan(doc,'rc1014-priority','data-rc1014-priority',meta.priority,priorityText));
+        row.appendChild(createSpan(doc,'rc1014-due','data-rc1014-due',meta.dueBucket,dueText));
+        row.appendChild(createSpan(doc,'rc1014-assignee','data-rc1014-assignee',meta.assignee,assigneeText));
+        if(row.setAttribute)row.setAttribute('data-rc1477-task-meta-fingerprint',metaFingerprint);
+      }
       let button=card.querySelector&&card.querySelector('[data-rc1014-open-task]');
       if(!button){
         button=doc.createElement('button');button.type='button';button.className='btn primary rc1014-open-task';button.setAttribute('data-rc1014-open-task','1');button.textContent=tr('taskDetail.openTask');

@@ -245,9 +245,13 @@
     let panel=card.querySelector&&card.querySelector('[data-rc1259-container-docs]');
     const shouldShow=meta.required||meta.seal||meta.photos.length;
     if(!shouldShow){if(panel&&typeof panel.remove==='function'){panel.remove();lastMutationAt=Date.now()}return false}
+    const fingerprint=JSON.stringify([shipmentReference(shipment),meta.required,meta.seal,meta.photos.map(photo=>[q(photo&&photo.id),q(photo&&photo.kind),q(photo&&photo.label),q(photo&&photo.name)])]);
+    if(panel&&panel.getAttribute&&panel.getAttribute('data-rc1477-container-fingerprint')===fingerprint)return true;
     if(panel&&typeof panel.remove==='function')panel.remove();
     if(typeof card.appendChild!=='function'||typeof doc.createElement!=='function')return false;
-    panel=createContainerCard(doc,shipment);card.appendChild(panel);lastMutationAt=Date.now();return true;
+    panel=createContainerCard(doc,shipment);
+    if(panel&&panel.setAttribute)panel.setAttribute('data-rc1477-container-fingerprint',fingerprint);
+    card.appendChild(panel);lastMutationAt=Date.now();return true;
   }
 
   function enhanceShipmentOverview(shipments=remembered){
