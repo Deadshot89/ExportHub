@@ -218,6 +218,7 @@ async function cleanupProductionDayOnce(){
   if(!clean||typeof clean.queueSave!=='function'||typeof clean.flushSave!=='function')return false;
   var rows=arr(s.palletAccount),matches=[];
   rows.forEach(function(b,i){if(bookingDay(b)===CLEANUP_DATE)matches.push({row:b,index:i,id:bookingId(b,i)})});
+  if(!matches.length)return false;
   cleanupInFlight=true;
   var prev={palletAccount:clone(s.palletAccount),palletSettlements:clone(s.palletSettlements),meta:clone(s._teamSyncMeta),audit:clone(s.auditLog),marker:s.rc1207PalletCleanup20260921At};
   try{
