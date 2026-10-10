@@ -308,13 +308,30 @@ function render(){
  rows.forEach(function(row){if(row.shipment&&ensureButton(row.card,row.shipment))count++});return count
 }
 function schedule(){if(timer)return;timer=w.setTimeout(function(){timer=0;try{render()}catch(e){try{console.warn('RC1316 Avis-Erinnerung',e)}catch(_){}}},0)}
+var observerCardSelector='.rc524-shipment-card,.rc485-overview-card,.rc229-shipment-card,.shipment-card,.overview-card,[data-shipment-id],[data-shipment-ref],[data-ref],[data-reference],article,.card,[role="article"]';
+function observerElement(node){return node&&node.nodeType===1?node:null}
+function ownReminderNode(node){
+ var el=observerElement(node);if(!el)return false;
+ try{return !!((el.matches&&el.matches('[data-rc1166-avis-reminder],.rc1166-reminder-row,.rc1166-dialog'))||(el.closest&&el.closest('[data-rc1166-avis-reminder],.rc1166-reminder-row,.rc1166-dialog')))}catch(_){return false}
+}
+function nodeTouchesOverviewCard(node){
+ var el=observerElement(node);if(!el)return false;
+ try{return !!((el.matches&&el.matches(observerCardSelector))||(el.querySelector&&el.querySelector(observerCardSelector)))}catch(_){return false}
+}
+function mutationNeedsReminderScan(m){
+ if(!m||m.type!=='childList')return false;
+ var changed=Array.from(m.addedNodes||[]).concat(Array.from(m.removedNodes||[]));if(!changed.length)return false;
+ if(changed.every(ownReminderNode))return false;
+ var target=observerElement(m.target);
+ try{if(target&&target.closest&&target.closest(observerCardSelector))return true}catch(_){}
+ return changed.some(nodeTouchesOverviewCard)
+}
 function ensureObserver(){
  if(observer||typeof w.MutationObserver!=='function')return false;
  var root=d.getElementById&&d.getElementById('content')||d.body;if(!root)return false;
  observer=new w.MutationObserver(function(mutations){
   if(!inOverview())return;
-  var relevant=arr(mutations).some(function(m){return m&&m.type==='childList'&&(m.addedNodes&&m.addedNodes.length||m.removedNodes&&m.removedNodes.length)});
-  if(relevant)schedule()
+  if(arr(mutations).some(mutationNeedsReminderScan))schedule()
  });
  observer.observe(root,{childList:true,subtree:true});return true
 }
