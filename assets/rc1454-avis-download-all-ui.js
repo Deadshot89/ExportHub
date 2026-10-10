@@ -23,6 +23,19 @@ function enhanceLink(link){
 }
 function enhance(){installStyle();Array.from(d.querySelectorAll(LINK_SELECTOR)).forEach(enhanceLink)}
 function schedule(){if(queued)return;queued=true;(w.requestAnimationFrame||w.setTimeout)(function(){queued=false;enhance()},0)}
-function boot(){enhance();var root=d.getElementById('content')||d.body;if(!root||typeof MutationObserver!=='function')return;observer=new MutationObserver(schedule);observer.observe(root,{childList:true,subtree:true})}
+function mutationNeedsEnhance(records){
+ records=Array.from(records||[]);
+ for(var i=0;i<records.length;i++){
+  var nodes=Array.from(records[i]&&records[i].addedNodes||[]);
+  for(var j=0;j<nodes.length;j++){
+   var node=nodes[j];if(!node||node.nodeType!==1)continue;
+   if(node.matches&&node.matches(LINK_SELECTOR))return true;
+   if(node.querySelector&&node.querySelector(LINK_SELECTOR))return true;
+  }
+ }
+ return false
+}
+function scheduleMutations(records){if(mutationNeedsEnhance(records))schedule()}
+function boot(){enhance();var root=d.getElementById('content')||d.body;if(!root||typeof MutationObserver!=='function')return;observer=new MutationObserver(scheduleMutations);observer.observe(root,{childList:true,subtree:true})}
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })(window,document);
