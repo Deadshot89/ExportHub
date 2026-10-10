@@ -64,9 +64,10 @@ function collect(root,fallback='de',options={}){
    if(typeof current==='string'&&LOCALIZABLE_FIELD.test(key)&&useful(current)){
     const original=text(current),source=sourceLanguageFor(value,key,fallback),previous=value[SIDE_CAR][key],sourceHash=hashText(original);
     const samePrevious=!!(previous&&text(previous.originalText)===original&&text(previous.sourceHash)===sourceHash);
+    const previousFailed=!!(samePrevious&&text(previous&&previous.translationError));
     const meta=stableMeta(original,source,previous);
     value[SIDE_CAR][key]=meta;
-    if(!complete(meta)&&(retryPending||!samePrevious))rows.push({object:value,key,original,source,meta});
+    if(!complete(meta)&&(retryPending||!previousFailed))rows.push({object:value,key,original,source,meta});
     continue
    }
    if(current&&typeof current==='object')walk(current,depth+1)
