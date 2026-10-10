@@ -248,12 +248,25 @@ function install(){
 }
 function customerHost(){return d.getElementById('content')||d.querySelector('main')||d.body||null}
 function disconnectObserver(){if(observer){try{observer.disconnect()}catch(_){}observer=null}observerRoot=null}
+function nodeHasContactHost(node){
+ if(!node||node.nodeType!==1)return false;
+ if(node.id==='rc819ReusableContacts')return true;
+ try{return !!(node.querySelector&&node.querySelector('#rc819ReusableContacts'))}catch(_){return false}
+}
+function mutationNeedsInstall(records){
+ records=Array.from(records||[]);
+ for(var i=0;i<records.length;i++){
+  var record=records[i],added=Array.from(record&&record.addedNodes||[]);
+  for(var j=0;j<added.length;j++)if(nodeHasContactHost(added[j]))return true
+ }
+ return false
+}
 function syncObserver(){
  if(!customerFolderVisible()){disconnectObserver();return false}
  var root=customerHost();if(!root)return false;
  if(observer&&observerRoot===root)return true;
  disconnectObserver();
- if(w.MutationObserver){try{observer=new w.MutationObserver(function(){schedule()});observer.observe(root,{childList:true,subtree:true});observerRoot=root}catch(_){observer=null;observerRoot=null}}
+ if(w.MutationObserver){try{observer=new w.MutationObserver(function(records){if(mutationNeedsInstall(records))schedule()});observer.observe(root,{childList:true,subtree:true});observerRoot=root}catch(_){observer=null;observerRoot=null}}
  return true
 }
 function schedule(){
