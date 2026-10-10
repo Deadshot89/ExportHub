@@ -61,6 +61,22 @@ function update(){
 window.ExportHUBRC1041Gate41Diagnostics=Object.freeze({diagnosticMessage:diagnosticMessage,nationalOnly:true});
 var timer=0,observer=null,observerRoot=null;
 function schedule(){clearTimeout(timer);timer=setTimeout(update,80);}
+function ownStatusNode(node){
+  if(!node)return false;
+  var element=node.nodeType===1?node:(node.parentElement||node.parentNode);
+  if(!element||element.nodeType!==1)return false;
+  if(element.id==='rc1013GateStatus')return true;
+  try{return !!(element.closest&&element.closest('#rc1013GateStatus'));}catch(_){return false;}
+}
+function isOwnMutation(record){
+  if(ownStatusNode(record&&record.target))return true;
+  var changed=Array.from(record&&record.addedNodes||[]).concat(Array.from(record&&record.removedNodes||[]));
+  return changed.length>0&&changed.every(ownStatusNode);
+}
+function shouldScheduleMutation(records){
+  var list=Array.from(records||[]);
+  return list.length===0||list.some(function(record){return !isOwnMutation(record);});
+}
 function bindObserver(){
   var root=document.getElementById('rc626Shipping');
   if(root===observerRoot)return root;
@@ -68,7 +84,7 @@ function bindObserver(){
   observerRoot=root||null;
   if(window.MutationObserver&&root){
     try{
-      observer=new window.MutationObserver(function(){schedule();});
+      observer=new window.MutationObserver(function(records){if(shouldScheduleMutation(records))schedule();});
       observer.observe(root,{subtree:true,childList:true});
     }catch(_){observer=null;observerRoot=null;}
   }
