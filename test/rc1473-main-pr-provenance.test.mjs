@@ -114,3 +114,26 @@ test('RC1473: Main-Contract und Production-Deploy führen den geschützten gemei
     assert.ok(gate<release,`${rel}: Herkunftsprüfung muss vor Freigabe/Deployment liegen`);
   }
 });
+
+test('RC1482: Main-Push Provenienzabfrage nutzt den Workflow-Token statt anonymer GitHub-API',async()=>{
+  const {verifyMainPrProvenance}=await loadGate();
+  let requestOptions=null;
+  const result=await verifyMainPrProvenance({
+    env:pushEnv({GITHUB_TOKEN:'read-only-token'}),eventPayload:pushEvent(),
+    fetchImpl:async(_url,options)=>{
+      requestOptions=options;
+      return response(200,[{number:631,merged_at:'2026-10-10T19:54:36Z',base:{ref:'main',sha:'base123'}}]);
+    },
+    sleepImpl:async()=>{}
+  });
+  assert.equal(result.checked,true);
+  assert.equal(requestOptions?.headers?.Authorization,'Bearer read-only-token','Provenienz-Gate muss GitHub API authentifiziert aufrufen');
+});
+
+test('RC1482: Release-Workflows geben dem Provenienz-Gate nur lesenden PR-Zugriff und Token auf Main-Push',()=>{
+  for(const rel of [contractPath,deployPath]){
+    const source=fs.readFileSync(rel,'utf8');
+    assert.match(source,/permissions:\s*[\s\S]*?contents:\s*read[\s\S]*?pull-requests:\s*read/,`${rel}: pull-requests: read fehlt`);
+    assert.match(source,/GITHUB_TOKEN:\s*\$\{\{\s*github\.event_name\s*==\s*'push'\s*&&\s*github\.token\s*\|\|\s*''\s*\}\}/,`${rel}: GitHub-Token muss nur bei Push-Läufen an den Job gegeben werden`);
+  }
+});
