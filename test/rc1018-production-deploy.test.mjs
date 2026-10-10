@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { verifyMainPrProvenance } from '../.github/rc1473/verify-main-pr-provenance.mjs';
+
+await verifyMainPrProvenance();
 
 const read=p=>fs.readFileSync(p,'utf8');
 const workflow='.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml';
