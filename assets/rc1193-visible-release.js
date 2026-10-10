@@ -80,7 +80,7 @@ function scheduleMutations(records){
   var added=record.addedNodes||[];
   for(var j=0;j<added.length;j++)queued=queueRoot(added[j])||queued
  }
- if(!queued){pendingFull=true;pendingRoots.length=0}
+ if(!queued)return false;
  return arm()
 }
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
