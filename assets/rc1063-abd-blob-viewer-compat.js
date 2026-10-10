@@ -112,6 +112,16 @@ function disconnectPanelObserver(){
  if(panelObserver){try{panelObserver.disconnect()}catch(_){}}
  panelObserver=null;observedPanel=null
 }
+function patchObservedPanel(){
+ var observer=panelObserver,panel=observedPanel;
+ if(observer&&panel){try{observer.disconnect()}catch(_){}}
+ try{return patchRows()}
+ finally{
+  if(observer&&panelObserver===observer&&observedPanel===panel&&panel&&panel.isConnected!==false){
+   try{observer.observe(panel,{childList:true,subtree:true})}catch(_){}
+  }
+ }
+}
 function bindViewerPanel(){
  if(!w.document)return false;
  var panel=w.document.getElementById('rc786ReferenceFilesPanel');
@@ -119,11 +129,11 @@ function bindViewerPanel(){
  if(observedPanel!==panel){
   disconnectPanelObserver();observedPanel=panel;
   if(typeof w.MutationObserver==='function'){
-   panelObserver=new w.MutationObserver(function(){patchRows()});
+   panelObserver=new w.MutationObserver(function(){patchObservedPanel()});
    try{panelObserver.observe(panel,{childList:true,subtree:true})}catch(_){panelObserver=null}
   }
  }
- patchRows();stopViewerProbe();return true
+ patchObservedPanel();stopViewerProbe();return true
 }
 function startViewerProbe(){
  if(bindViewerPanel())return true;
