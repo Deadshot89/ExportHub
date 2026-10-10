@@ -78,7 +78,26 @@ jobs:
         run: node --test --test-concurrency=1 test/rc1477-shipment-container-idempotent.test.mjs test/rc1477-task-meta-idempotent.test.mjs test/rc1477-task-plan-idempotent.test.mjs
 
       - name: Verify complete Node regression
-        run: npm test
+        id: full_node
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee node-full.log
+
+      - name: Upload complete Node regression log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rc1477-node-full-log
+          path: node-full.log
+          if-no-files-found: error
+
+      - name: Enforce complete Node regression gate
+        if: steps.full_node.outcome == 'failure'
+        run: |
+          echo 'Complete Node regression failed; verified runtime fix will not be committed.'
+          exit 1
 
       - name: Verify diff integrity
         run: |
