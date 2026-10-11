@@ -5,7 +5,7 @@ import {fileURLToPath} from 'node:url';
 
 const SCRIPT_ID='exporthub-rc1488-auto-update';
 const SCRIPT_SRC='/assets/rc1488-auto-update.js?v=1488';
-const MANIFEST_NAME='exporthub-update.json';
+const PROBE_NAME='production-version.js';
 const CACHE_CONTROL='no-store, no-cache, must-revalidate';
 
 function q(value){return String(value==null?'':value).trim();}
@@ -55,8 +55,8 @@ export function injectAutoUpdate(html,{buildId,visibleRelease,file='index.html'}
 export function ensureManifestNoStore(config){
   const next=JSON.parse(JSON.stringify(config||{}));
   const routes=Array.isArray(next.routes)?next.routes.slice():[];
-  const wanted={route:'/exporthub-update.json',allowedRoles:['anonymous'],headers:{'Cache-Control':CACHE_CONTROL,'X-Content-Type-Options':'nosniff'}};
-  const index=routes.findIndex(route=>route&&route.route==='/exporthub-update.json');
+  const wanted={route:'/production-version.js',allowedRoles:['anonymous'],headers:{'Cache-Control':CACHE_CONTROL,'X-Content-Type-Options':'nosniff'}};
+  const index=routes.findIndex(route=>route&&route.route==='/production-version.js');
   if(index>=0)routes[index]=Object.assign({},routes[index],wanted,{headers:Object.assign({},routes[index].headers||{},wanted.headers)});
   else routes.splice(Math.min(2,routes.length),0,wanted);
   next.routes=routes;
@@ -88,7 +88,14 @@ export function finalizeAutoUpdate({root=process.cwd(),out=path.join(process.cwd
     technicalBuild:marker.technicalBuild,
     builtAt:now().toISOString()
   };
-  fs.writeFileSync(path.join(out,MANIFEST_NAME),JSON.stringify(manifest,null,2)+'\n');
+  const probeFile=path.join(out,PROBE_NAME);
+  if(!fs.existsSync(probeFile))throw new Error('RC1488: '+PROBE_NAME+' fehlt im Build');
+  let probe=fs.readFileSync(probeFile,'utf8');
+  probe=probe.replace(/\n?window\.__EXPORTHUB_UPDATE_BUILD__\s*=\s*['"][^'"]*['"];?/g,'');
+  probe=probe.replace(/\n?window\.__EXPORTHUB_UPDATE_RELEASE__\s*=\s*['"][^'"]*['"];?/g,'');
+  probe=probe.replace(/\n?window\.__EXPORTHUB_UPDATE_BUILT_AT__\s*=\s*['"][^'"]*['"];?/g,'');
+  probe=probe.trimEnd()+`\nwindow.__EXPORTHUB_UPDATE_BUILD__='${manifest.buildId}';\nwindow.__EXPORTHUB_UPDATE_RELEASE__='${manifest.visibleRelease}';\nwindow.__EXPORTHUB_UPDATE_BUILT_AT__='${manifest.builtAt}';\n`;
+  fs.writeFileSync(probeFile,probe);
 
   for(const name of ['staticwebapp.config.json','staticwebapp.testservice.config.json']){
     const target=path.join(out,name);
