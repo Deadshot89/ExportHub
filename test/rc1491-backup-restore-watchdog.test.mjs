@@ -13,21 +13,30 @@ function workflowScript(){
   return source.slice(start+marker.length).split('\n').map(line=>line.startsWith('            ')?line.slice(12):line).join('\n');
 }
 
-function harness({backup='success',restore='success',issue=null}={}){
+function harness({backup='success',restore='success',restoreJob=restore,issue=null}={}){
   const calls={created:[],updated:[],comments:[],warnings:[],infos:[]};
   const conclusions={
     'rc1267-state-backup.yml':backup,
     'rc1137-state-compaction.yml':restore
   };
+  const runIds={
+    'rc1267-state-backup.yml':1001,
+    'rc1137-state-compaction.yml':1002
+  };
   const github={
     rest:{
       actions:{
         listWorkflowRuns:async({workflow_id})=>({data:{workflow_runs:[{
+          id:runIds[workflow_id],
           conclusion:conclusions[workflow_id],
           html_url:`https://github.example/actions/${workflow_id}`,
           run_number:42,
           updated_at:'2026-10-11T17:00:00Z'
-        }]}})
+        }]}}),
+        listJobsForWorkflowRun:async({run_id})=>({data:{jobs:run_id===1002?[{
+          name:'TESTSERVICE State kompaktieren',
+          conclusion:restoreJob
+        }]:[]}})
       },
       issues:{
         listForRepo:async()=>({data:issue?[issue]:[]}),
@@ -117,10 +126,18 @@ test('RC1491: erneuter Fehler öffnet ein bereits geschlossenes Watchdog-Issue w
   assert.equal(h.calls.comments.length,1);
 });
 
-test('RC1491: Recovery schließt Issue nur wenn beide Workflows erfolgreich sind',async()=>{
+test('RC1491: reiner PRODUCTION-Fehler in RC1137 markiert Restore-Drill nicht als gestört',async()=>{
+  const h=harness({backup:'success',restore:'failure',restoreJob:'success'});
+  await execute(h);
+  assert.equal(h.calls.created.length,0);
+  assert.ok(h.calls.infos.some(message=>message.includes('Beide überwachten Workflows sind gesund')));
+});
+
+test('RC1491: Recovery schließt Issue nur wenn Backup und Restore-Drill erfolgreich sind',async()=>{
   const h=harness({
     backup:'success',
     restore:'success',
+    restoreJob:'success',
     issue:{number:55,state:'open',title:'[OPS] State Backup/Restore Watchdog',body:'<!-- exporthub-ops:state-backup-restore-watchdog -->'}
   });
   await execute(h);
