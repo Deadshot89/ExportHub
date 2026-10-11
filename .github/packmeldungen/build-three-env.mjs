@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import {execFileSync} from 'node:child_process';
+import {finalizeAutoUpdate} from '../rc1488/finalize-auto-update.mjs';
 
 export const PACK_ASSETS=Object.freeze([
   'i18n/pack-notification.js',
@@ -67,6 +68,7 @@ export function build(root=process.cwd()){
   for(const config of ['staticwebapp.config.json','staticwebapp.testservice.config.json']){
     const src=path.join(root,config);if(fs.existsSync(src))fs.copyFileSync(src,path.join(out,config));
   }
+  finalizeAutoUpdate({root,out});
   return out;
 }
 
