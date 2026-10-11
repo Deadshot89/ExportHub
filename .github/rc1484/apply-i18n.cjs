@@ -26,21 +26,4 @@ runtime=replaceOnce(runtime,
 ` add('customer','de',tr('avisReminder.customer')+' DE',customer);add('customer','en',tr('avisReminder.customer')+' EN',customer);add('carrier','de',tr('avisReminder.carrier')+' DE',carrier);add('carrier','en',tr('avisReminder.carrier')+' EN',carrier);`,
 'localized reminder button labels');
 fs.writeFileSync(runtimePath,runtime);
-
-const testPath='test/rc1484-generic-pickup-reminder.test.mjs';
-let test=fs.readFileSync(testPath,'utf8');
-test=replaceOnce(test,
-`    __EXPORTHUB_GET_STATE__(){return{}},
-    ExportHUBIndex236:legacyApi,`,
-`    __EXPORTHUB_GET_STATE__(){return{}},
-    ExportHUBI18n:{t(key){return ({
-      'avisReminder.button':'Abholerinnerung öffnen',
-      'avisReminder.customer':'Kunde',
-      'avisReminder.carrier':'Spedition',
-      'avisReminder.missingCustomer':'Keine E-Mail-Adresse für Kunde hinterlegt',
-      'avisReminder.missingCarrier':'Keine E-Mail-Adresse für Spedition hinterlegt'
-    })[key]||key}},
-    ExportHUBIndex236:legacyApi,`,
-'unit-test i18n stub');
-fs.writeFileSync(testPath,test);
-console.log('RC1484 i18n patch applied');
+console.log('RC1484 i18n runtime patch applied');
