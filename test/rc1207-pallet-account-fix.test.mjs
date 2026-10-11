@@ -131,3 +131,28 @@ test('RC1484: einzelner Flush darf laufende Zielgeneration nachträglich bestät
   assert.equal(x.state.rc1207PalletCleanup20260921At.deletedCount,1);
   assert.equal(cleanRuntime.lastSavedGeneration,cleanRuntime.changeGeneration);
 });
+
+test('RC1485: verzögert geplante Background-Speicherung darf ohne zweiten Flush bestätigen',async()=>{
+  const calls=[];
+  const cleanRuntime={changeGeneration:7,lastSavedGeneration:7,saving:false};
+  let timerTicks=0;
+  const clean={
+    runtime:cleanRuntime,
+    native:{setTimeout(fn){timerTicks++;if(timerTicks===4)cleanRuntime.lastSavedGeneration=cleanRuntime.changeGeneration;fn();return timerTicks}},
+    queueSave(reason){calls.push(['queue',reason]);cleanRuntime.changeGeneration++;return true},
+    flushSave(reason,options){calls.push(['flush',reason,options]);return false}
+  };
+  const x=makeRoot({
+    root:{ExportHUBClean:clean},
+    state:{
+      palletAccount:[{id:'PAL-DELAYED',date:'2026-09-21',direction:'Eingang',count:5}],
+      palletSettlements:[],auditLog:[],_teamSyncMeta:{fields:{},tombstones:[]}
+    }
+  });
+  assert.equal(await x.api.cleanupProductionDayOnce(),true);
+  assert.equal(calls.filter(c=>c[0]==='flush').length,1,'verzögerte Bestätigung darf keinen Save-Sturm erzeugen');
+  assert.ok(timerTicks>=4,'Bestätigung muss auch nach mehr als zwei passiven Prüfungen akzeptiert werden');
+  assert.equal(x.state.palletAccount.length,0,'bestätigte Zielgeneration darf nicht zurückgerollt werden');
+  assert.equal(x.state.rc1207PalletCleanup20260921At.deletedCount,1);
+  assert.equal(cleanRuntime.lastSavedGeneration,cleanRuntime.changeGeneration);
+});
