@@ -86,6 +86,8 @@ test('pack navigation is a true SPA view and reuses the existing menu item struc
   const nav=fs.readFileSync('assets/pack-notification-nav.js','utf8');
   assert.match(nav,/cloneNode\(true\)/,'menu structure must be cloned, not rebuilt');
   assert.match(nav,/setPackNavLabel/,'cloned menu label must be replaced without flattening structure');
+  assert.match(nav,/setPackNavIcon/,'Packmeldungen needs a dedicated menu icon without flattening the cloned structure');
+  assert.match(nav,/data-pack-notifications-icon/,'dedicated Packmeldungen icon must be identifiable');
   assert.doesNotMatch(nav,/location\.hash\s*=\s*['"]#packmeldungen/,'pack nav must not invoke the legacy hash router');
   assert.doesNotMatch(nav,/setAttribute\(['"]href['"],[ ]*['"]#packmeldungen/);
   assert.match(nav,/openInbox\(\)/,'click should render the inbox directly');
