@@ -3,6 +3,8 @@ import path from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 
+const I18N_SCRIPT_ID='exporthub-rc1488-auto-update-i18n';
+const I18N_SCRIPT_SRC='/assets/i18n/rc1488-auto-update.js?v=1488';
 const SCRIPT_ID='exporthub-rc1488-auto-update';
 const SCRIPT_SRC='/assets/rc1488-auto-update.js?v=1488';
 const PROBE_NAME='production-version.js';
@@ -32,22 +34,28 @@ export function releaseMarker(root=process.cwd()){
   return {visibleRelease,technicalBuild};
 }
 
+function i18nScriptTag(){
+  return `<script id="${I18N_SCRIPT_ID}" defer src="${I18N_SCRIPT_SRC}"></script>`;
+}
 function scriptTag(buildId,visibleRelease){
   return `<script id="${SCRIPT_ID}" defer src="${SCRIPT_SRC}" data-build-id="${buildId}" data-visible-release="${visibleRelease}"></script>`;
 }
+function removeScriptById(html,id){
+  const rx=new RegExp(`\\s*<script\\b[^>]*id=["']${id}["'][^>]*><\\/script>\\s*`,`ig`);
+  return String(html||'').replace(rx,'\n');
+}
 
 export function injectAutoUpdate(html,{buildId,visibleRelease,file='index.html'}={}){
-  let out=String(html||'');
-  const tag=scriptTag(buildId,visibleRelease);
-  const rx=new RegExp(`<script\\b[^>]*id=["']${SCRIPT_ID}["'][^>]*><\\/script>`,`i`);
-  if(rx.test(out))out=out.replace(rx,tag);
-  else{
-    const headClose=out.search(/<\/head\s*>/i);
-    if(headClose<0)throw new Error(`RC1488 ${file}: </head> fehlt`);
-    out=out.slice(0,headClose)+tag+'\n'+out.slice(headClose);
+  let out=removeScriptById(removeScriptById(html,I18N_SCRIPT_ID),SCRIPT_ID);
+  const headClose=out.search(/<\/head\s*>/i);
+  if(headClose<0)throw new Error(`RC1488 ${file}: </head> fehlt`);
+  const tags=i18nScriptTag()+'\n'+scriptTag(buildId,visibleRelease)+'\n';
+  out=out.slice(0,headClose)+tags+out.slice(headClose);
+  for(const id of [I18N_SCRIPT_ID,SCRIPT_ID]){
+    const matches=out.match(new RegExp(`id=["']${id}["']`,'g'))||[];
+    if(matches.length!==1)throw new Error(`RC1488 ${file}: ${id} ${matches.length}x statt 1x`);
   }
-  const matches=out.match(new RegExp(`id=["']${SCRIPT_ID}["']`,'g'))||[];
-  if(matches.length!==1)throw new Error(`RC1488 ${file}: Auto-Update-Runtime ${matches.length}x statt 1x`);
+  if(out.indexOf(`id="${I18N_SCRIPT_ID}"`)>out.indexOf(`id="${SCRIPT_ID}"`))throw new Error(`RC1488 ${file}: Sprachpaket muss vor Auto-Update-Runtime stehen`);
   if(!out.includes(`data-build-id="${buildId}"`))throw new Error(`RC1488 ${file}: Build-ID fehlt`);
   return out;
 }
@@ -68,11 +76,15 @@ export function finalizeAutoUpdate({root=process.cwd(),out=path.join(process.cwd
   const marker=releaseMarker(root);
   if(!fs.existsSync(out))throw new Error('RC1488: Build-Ausgabe fehlt: '+out);
 
-  const sourceAsset=path.join(root,'assets','rc1488-auto-update.js');
-  const targetAsset=path.join(out,'assets','rc1488-auto-update.js');
-  if(!fs.existsSync(sourceAsset))throw new Error('RC1488: Auto-Update-Runtime fehlt: '+sourceAsset);
-  fs.mkdirSync(path.dirname(targetAsset),{recursive:true});
-  fs.copyFileSync(sourceAsset,targetAsset);
+  const assets=[
+    {source:path.join(root,'assets','i18n','rc1488-auto-update.js'),target:path.join(out,'assets','i18n','rc1488-auto-update.js'),label:'Auto-Update-Sprachpaket'},
+    {source:path.join(root,'assets','rc1488-auto-update.js'),target:path.join(out,'assets','rc1488-auto-update.js'),label:'Auto-Update-Runtime'}
+  ];
+  for(const asset of assets){
+    if(!fs.existsSync(asset.source))throw new Error('RC1488: '+asset.label+' fehlt: '+asset.source);
+    fs.mkdirSync(path.dirname(asset.target),{recursive:true});
+    fs.copyFileSync(asset.source,asset.target);
+  }
 
   for(const file of ['index.html','TESTVERSION.html']){
     const target=path.join(out,file);
