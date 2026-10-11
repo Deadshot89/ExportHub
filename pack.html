@@ -20,7 +20,7 @@
         <div>
           <span class="pack-eyebrow">ExportHUB360</span>
           <h1 id="packTitle">Packmeldung</h1>
-          <p>Neue Sendung erfassen oder einen offenen Entwurf fortsetzen.</p>
+          <p id="packSubtitle">Neue Sendung erfassen oder einen offenen Entwurf fortsetzen.</p>
         </div>
         <span id="packStation" class="pack-station">Packtisch wird geladen …</span>
       </header>
@@ -31,9 +31,9 @@
       <section id="packHome" class="pack-home" hidden aria-labelledby="packHomeTitle">
         <div class="pack-home-head">
           <div>
-            <span class="pack-eyebrow">Lagerweit</span>
+            <span id="packDraftScope" class="pack-eyebrow">Lagerweit</span>
             <h2 id="packHomeTitle">Offene Sendungen</h2>
-            <p>Entwürfe können an jedem Packtisch weiterbearbeitet werden.</p>
+            <p id="packHomeHelp">Entwürfe können an jedem Packtisch weiterbearbeitet werden.</p>
           </div>
           <button id="packNewShipment" class="pack-primary" type="button">+ Neue Sendung melden</button>
         </div>
@@ -59,7 +59,7 @@
               </div>
               <div id="packCustomerSelected" class="pack-customer-selected" hidden></div>
             </div>
-            <label>DNC / Lieferscheinnummer
+            <label><span id="packDeliveryRefLabel">DNC / Lieferscheinnummer</span>
               <input id="packDeliveryNoteReference" name="deliveryNoteReference" type="text" maxlength="200" autocomplete="off" placeholder="z. B. DNC3019222063">
             </label>
             <label>Packstücktyp *
@@ -79,7 +79,7 @@
 
         <section class="pack-section">
           <h2>Lieferscheine <span class="pack-optional">optional</span></h2>
-          <p class="pack-help">Du kannst Lieferscheine als PDF, JPG oder PNG hochladen oder oben nur die DNC/Lieferscheinnummer eingeben. Bei Essentra-Lieferungen ist beides optional.</p>
+          <p id="packDeliveryNotesHelp" class="pack-help">Du kannst Lieferscheine als PDF, JPG oder PNG hochladen oder oben nur die DNC/Lieferscheinnummer eingeben. Bei Essentra-Lieferungen ist beides optional.</p>
           <label class="pack-upload" for="packDocuments">
             <strong>Dateien auswählen</strong>
             <span>PDF · JPG · PNG</span>
