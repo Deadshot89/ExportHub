@@ -308,16 +308,16 @@ function ensureGenericReminderActions(card,sh){
  var id=q(sh&&(sh.id||sh.shipmentId||sh.ref||sh.reference||sh.shipmentRef));if(!id)return false;
  var customer=genericReminderRecipient(api,sh,'customer'),carrier=genericReminderRecipient(api,sh,'carrier');
  var wrap=d.createElement('div');wrap.className='index236-reminder-actions rc1484-generic-reminder-actions';
- var title=d.createElement('span');title.className='rc820-reminder-label';title.textContent='Abholerinnerung öffnen';wrap.appendChild(title);
+ var title=d.createElement('span'),legacyLabel=d.querySelector&&d.querySelector('.index236-reminder-actions .rc820-reminder-label');title.className='rc820-reminder-label';title.textContent=q(legacyLabel&&legacyLabel.textContent)||tr('avisReminder.button');wrap.appendChild(title);
  function add(target,lang,label,recipient){
   var button=d.createElement('button');button.type='button';button.className='soft';button.textContent=label;
   button.setAttribute('data-rc1484-reminder-target',target);button.setAttribute('data-rc1484-reminder-lang',lang);
-  if(!recipient.available){button.disabled=true;button.setAttribute('aria-disabled','true');button.title='Keine E-Mail-Adresse für diesen Empfänger hinterlegt'}
-  else button.title=(target==='carrier'?'Erinnerungsmail an Spedition':'Erinnerungsmail an Kunde')+' ('+lang.toUpperCase()+')';
+  if(!recipient.available){button.disabled=true;button.setAttribute('aria-disabled','true');button.title=tr(target==='carrier'?'avisReminder.missingCarrier':'avisReminder.missingCustomer')}
+  else button.title=label;
   button.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();if(button.disabled)return false;return api.reminderMail(id,target,lang)});
   wrap.appendChild(button)
  }
- add('customer','de','Kunde DE',customer);add('customer','en','Kunde EN',customer);add('carrier','de','Spedition DE',carrier);add('carrier','en','Spedition EN',carrier);
+ add('customer','de',tr('avisReminder.customer')+' DE',customer);add('customer','en',tr('avisReminder.customer')+' EN',customer);add('carrier','de',tr('avisReminder.carrier')+' DE',carrier);add('carrier','en',tr('avisReminder.carrier')+' EN',carrier);
  var danger=card.querySelector&&card.querySelector('.rc524-dangerbar');
  if(danger&&danger.parentNode&&typeof danger.parentNode.insertBefore==='function')danger.parentNode.insertBefore(wrap,danger);else if(typeof card.appendChild==='function')card.appendChild(wrap);else return false;
  return true
