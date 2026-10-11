@@ -76,11 +76,11 @@ Produktionsdaten werden durch den Restore-Drill nicht überschrieben.
 
 ## Betriebsüberwachung RC1491
 
-Der Workflow `.github/workflows/rc1491-state-backup-restore-watchdog.yml` überwacht automatisch die jeweils letzten abgeschlossenen `main`-Läufe von RC1267 und RC1137. Damit werden sowohl Fehler im geplanten State-Backup als auch ein nicht erfolgreich abgeschlossener TESTSERVICE-Restore-Drill als Betriebsfehler sichtbar.
+Der Workflow `.github/workflows/rc1491-state-backup-restore-watchdog.yml` überwacht automatisch den jeweils letzten abgeschlossenen `main`-Lauf von RC1267. Für RC1137 wird gezielt der Job `TESTSERVICE State kompaktieren` des letzten abgeschlossenen `main`-Laufs bewertet, weil dort der Restore-Drill ausgeführt wird. Ein späterer, ausschließlich produktionsseitiger RC1137-Fehler wird deshalb nicht fälschlich als Restore-Drill-Fehler gemeldet.
 
-Wenn mindestens einer der beiden überwachten Workflows nicht erfolgreich ist, wird genau ein GitHub-Betriebs-Issue `[OPS] State Backup/Restore Watchdog` erstellt, wieder geöffnet oder aktualisiert. Wiederholte Fehler erzeugen dadurch keine fortlaufenden Duplikate.
+Wenn das geplante State-Backup oder der TESTSERVICE-Restore-Job nicht erfolgreich ist, wird genau ein GitHub-Betriebs-Issue `[OPS] State Backup/Restore Watchdog` erstellt, wieder geöffnet oder aktualisiert. Wiederholte Fehler erzeugen dadurch keine fortlaufenden Duplikate.
 
-Erst wenn beide überwachten Workflows wieder erfolgreich sind, wird der Betriebszustand als wiederhergestellt markiert und das offene Watchdog-Issue automatisch geschlossen.
+Erst wenn Backup und TESTSERVICE-Restore-Drill wieder erfolgreich sind, wird der Betriebszustand als wiederhergestellt markiert und das offene Watchdog-Issue automatisch geschlossen.
 
 Das Watchdog-Issue enthält nur Workflowname, Conclusion, Run-Nummer, Zeitbezug und GitHub-Actions-Link. Es werden keine Backup-Inhalte, State-Daten, Dokumente, Sendungsreferenzen, Hashwerte oder Secrets in das Betriebs-Issue übernommen.
 
