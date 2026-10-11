@@ -65,9 +65,25 @@
   function inboxUnreadCount(state){return inboxItems(state).filter(item=>item.unread).length;}
   async function persist(reason){
     try{
-      const clean=root.ExportHUBClean;
-      if(clean&&typeof clean.queueSave==='function')await Promise.resolve(clean.queueSave(reason||'Packmeldung geändert'));
-      if(clean&&typeof clean.flushSave==='function')await Promise.resolve(clean.flushSave(reason||'Packmeldung geändert'));
+      const clean=root.ExportHUBClean,text=reason||'Packmeldung geändert';
+      if(clean&&typeof clean.queueSave==='function'){
+        const queued=await Promise.resolve(clean.queueSave(text));
+        if(queued===false)return false;
+      }
+      const runtime=clean&&clean.runtime||null,target=runtime?Number(runtime.changeGeneration||0):0;
+      if(runtime&&target>0&&Number(runtime.lastSavedGeneration||0)>=target)return true;
+      if(clean&&typeof clean.flushSave==='function'){
+        let flushed=await Promise.resolve(clean.flushSave(text));
+        if(flushed===false&&runtime&&target>0){
+          const timer=clean.native&&typeof clean.native.setTimeout==='function'?clean.native.setTimeout.bind(clean.native):(root.setTimeout||setTimeout);
+          for(let checks=0;checks<20&&Number(runtime.lastSavedGeneration||0)<target;checks+=1){
+            if(!runtime.saving&&checks>=2)break;
+            await new Promise(resolve=>timer(resolve,100));
+          }
+          flushed=Number(runtime.lastSavedGeneration||0)>=target;
+        }
+        if(flushed===false)return false;
+      }
       return true;
     }catch(_){return false;}
   }
@@ -103,11 +119,20 @@
   function notificationById(state,id){return packNotifications(state).find(item=>q(item.id)===q(id))||null;}
   async function markNotificationOpened(notification){
     const state=sharedState(),now=new Date().toISOString(),id=q(notification&&notification.id);
-    const live=notificationById(state,id);
+    const live=notificationById(state,id),liveBefore=live?{status:live.status,updatedAt:live.updatedAt}:null,taskBefore=[];
     if(live&&q(live.status).toLowerCase()==='new'){live.status='in_review';live.updatedAt=now;}
-    for(const task of packTasks(state)){if(q(task.sourceId)===id)markRead(state,q(task.id),now);}
-    await persist('Packmeldung geöffnet');
+    for(const task of packTasks(state)){
+      if(q(task.sourceId)!==id)continue;
+      taskBefore.push({task,unread:task.unread,readAt:task.readAt,updatedAt:task.updatedAt});
+      markRead(state,q(task.id),now);
+    }
+    const saved=await persist('Packmeldung geöffnet');
+    if(!saved){
+      if(live&&liveBefore){live.status=liveBefore.status;if(liveBefore.updatedAt===undefined)delete live.updatedAt;else live.updatedAt=liveBefore.updatedAt;}
+      for(const before of taskBefore){before.task.unread=before.unread;if(before.readAt===undefined)delete before.task.readAt;else before.task.readAt=before.readAt;if(before.updatedAt===undefined)delete before.task.updatedAt;else before.task.updatedAt=before.updatedAt;}
+    }
     renderNavBadge();
+    return saved;
   }
   async function markTaskOpened(task){const notification=findNotification(sharedState(),task);if(notification)await markNotificationOpened(notification);}
   function packageHtml(item,index){return `<div class="pack-internal-package"><strong>${esc(tr('pack.packageNumber',{number:Number(item&&item.packageNo)||index+1}))}</strong><span>${esc(item&&item.length)} × ${esc(item&&item.width)} × ${esc(item&&item.height)} ${esc(item&&item.unit||'cm')}</span></div>`;}
@@ -159,7 +184,7 @@
     section.addEventListener('click',event=>{const target=event.target&&event.target.closest&&event.target.closest('[data-pack-action],[data-pack-doc-open],[data-pack-doc-download]');if(!target)return;if(target.hasAttribute('data-pack-doc-open'))openDocument(model,target.getAttribute('data-pack-doc-open'),false);else if(target.hasAttribute('data-pack-doc-download'))openDocument(model,target.getAttribute('data-pack-doc-download'),true);else{const action=target.getAttribute('data-pack-action');if(action==='back')renderPackInbox();else if(action==='shipment')dispatchShipment(model);}});
     host.appendChild(section);try{doc.body.setAttribute('data-exporthub-view','packnotification');}catch(_){}return true;
   }
-  function openTaskDetail(task){const notification=findNotification(sharedState(),task);if(!notification)return false;markTaskOpened(task).catch(()=>{});return openNotificationDetail(notification);}
+  function openTaskDetail(task){const notification=findNotification(sharedState(),task);if(!notification)return false;return openNotificationDetail(notification);}
   function currentView(){try{return q(root.document&&root.document.body&&root.document.body.getAttribute('data-exporthub-view')).toLowerCase()||q(sharedState().view).toLowerCase();}catch(_){return'';}}
   function ensurePackNav(){
     const doc=root.document;if(!doc||!doc.querySelector)return false;let node=doc.querySelector('[data-pack-notifications-nav]');if(node)return true;
