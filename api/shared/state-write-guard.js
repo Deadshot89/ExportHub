@@ -2,7 +2,7 @@
 
 const { isDeepStrictEqual } = require('node:util');
 const { DOCUMENT_FIELDS } = require('./document-blob-store');
-const { mergeCollection } = require('./merge');
+const { mergeCollection, isLocalOnlyKey } = require('./merge');
 const { isAdmin } = require('./user-policy');
 
 const DOCUMENT_FIELD_SET = new Set(DOCUMENT_FIELDS || []);
@@ -155,6 +155,15 @@ function assertKeyChangeAllowed(serverState, incomingState, user, key) {
   forbidden(key, domain);
 }
 
+function assertUnmappedIncomingKeysAllowed(serverState, incomingState) {
+  const incoming = incomingState && typeof incomingState === 'object' ? incomingState : {};
+  for (const key of Object.keys(incoming)) {
+    if (key === '_teamSyncMeta' || isLocalOnlyKey(key) || requiredModulesForKey(key)) continue;
+    const effect = effectiveKeyChange(serverState, incoming, key);
+    if (effect.changed) forbidden(key, []);
+  }
+}
+
 function tombstoneIdentity(item) {
   if (!item || typeof item !== 'object') return '';
   return JSON.stringify(item);
@@ -197,6 +206,7 @@ function assertMergedStateWriteAllowed(serverState, mergedState, incomingState, 
   const server = serverState && typeof serverState === 'object' ? serverState : {};
   const incoming = incomingState && typeof incomingState === 'object' ? incomingState : {};
 
+  assertUnmappedIncomingKeysAllowed(server, incoming);
   for (const key of Object.keys(DIRECT_RIGHTS)) assertKeyChangeAllowed(server, incoming, user, key);
   for (const key of Object.keys(DOCUMENT_AWARE)) assertKeyChangeAllowed(server, incoming, user, key);
   assertMetadataAllowed(server, incoming, user);
