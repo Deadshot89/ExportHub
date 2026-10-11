@@ -67,10 +67,12 @@ if(!rc1452Prepared()){
 // release build against startup lifecycle events entering strict shipment validation.
 await import('./rc1467-startup-avis-guard.mjs');
 await import('./rc1470-new-shipment-clean-slate-hotfix.mjs');
+await import('./rc1471-reminder-eligibility-hotfix.mjs');
 await import('./rc1454-release-gate-hotfix.mjs');
 await import('./rc1461-release-deepfix.mjs');
 
 if(!rc1452Prepared())throw new Error('RC1462 pretest verification failed: RC1452/1453/1458/1466 preparation incomplete');
 const rc1470Builder=fs.readFileSync(builderPath,'utf8');
 if(!rc1470Builder.includes('function patchRc1470NewShipmentCleanSlate(html,file){')||!rc1470Builder.includes('html=patchRc1470NewShipmentCleanSlate(html,file);'))throw new Error('RC1462 pretest verification failed: RC1470 clean-slate preparation incomplete');
-console.log('RC1462 pretest orchestration verified idempotent with RC1467 startup guard and RC1470 clean-slate reset');
+if(!rc1470Builder.includes('function patchRc1471ReminderEligibility(html,file){')||!rc1470Builder.includes('html=patchRc1471ReminderEligibility(html,file);'))throw new Error('RC1462 pretest verification failed: RC1471 reminder eligibility preparation incomplete');
+console.log('RC1462 pretest orchestration verified idempotent with RC1467 startup guard, RC1470 clean-slate reset and RC1471 reminder eligibility');
