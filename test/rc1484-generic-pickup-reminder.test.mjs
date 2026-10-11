@@ -103,3 +103,10 @@ test('RC1484: Runtime nutzt die bestehende Legacy-Mail-API statt eine zweite Mai
   assert.match(runtime,/Spedition DE/);
   assert.match(runtime,/Spedition EN/);
 });
+
+test('RC1484: ausgelieferter HTML-Shell stellt die wiederverwendete Legacy-Mail-API bereit',()=>{
+  const html=fs.readFileSync('TESTVERSION.html','utf8');
+  assert.match(html,/ExportHUBIndex236\s*=\s*Object\.freeze/,'ExportHUBIndex236 fehlt im ausgelieferten Shell');
+  assert.match(html,/recipientState\s*:\s*reminderRecipientState/,'Empfängerstatus-API fehlt im ausgelieferten Shell');
+  assert.match(html,/reminderMail\s*:\s*reminderMail/,'Reminder-Mail-API fehlt im ausgelieferten Shell');
+});
