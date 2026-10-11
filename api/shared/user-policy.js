@@ -1,7 +1,7 @@
 'use strict';
 const MODULES = [
   'start','dashboard','tasks','vacation','planning','shipment','abd','shipmentoverview',
-  'cmr','documents','pallet','customers','customerfolder','calculator','customs','sop',
+  'cmr','documents','pallet','customers','customerfolder','calculator','shippingcosts','customs','sop',
   'academy','ideas','notifications','reports','update','rights','teamfile','archive','history','settings','pickupcalendar'
 ];
 
