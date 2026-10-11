@@ -1,0 +1,159 @@
+name: RC1491 State Backup Restore Watchdog
+
+on:
+  workflow_run:
+    workflows:
+      - RC1267 State Backup Lifecycle
+      - RC1137 State Compaction
+    types:
+      - completed
+    branches:
+      - main
+
+permissions:
+  actions: read
+  contents: read
+  issues: write
+
+concurrency:
+  group: rc1491-state-backup-restore-watchdog
+  cancel-in-progress: false
+
+jobs:
+  watchdog:
+    name: Backup-/Restore-Betriebszustand synchronisieren
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Zentrales Betriebs-Issue aktualisieren
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker='<!-- exporthub-ops:state-backup-restore-watchdog -->';
+            const issueTitle='[OPS] State Backup/Restore Watchdog';
+            const monitored=[
+              {name:'RC1267 State Backup Lifecycle',workflowId:'rc1267-state-backup.yml'},
+              {
+                name:'RC1137 State Compaction / TESTSERVICE Restore-Drill',
+                workflowId:'rc1137-state-compaction.yml',
+                jobName:'TESTSERVICE State kompaktieren'
+              }
+            ];
+
+            const health=[];
+            for(const item of monitored){
+              const {data}=await github.rest.actions.listWorkflowRuns({
+                owner:context.repo.owner,
+                repo:context.repo.repo,
+                workflow_id:item.workflowId,
+                branch:'main',
+                status:'completed',
+                per_page:1
+              });
+              const run=data.workflow_runs[0]||null;
+              let conclusion=run?.conclusion||'missing';
+              let healthy=Boolean(run)&&run.conclusion === 'success';
+
+              if(run&&item.jobName){
+                const {data:jobData}=await github.rest.actions.listJobsForWorkflowRun({
+                  owner:context.repo.owner,
+                  repo:context.repo.repo,
+                  run_id:run.id,
+                  per_page:100
+                });
+                const job=(jobData.jobs||[]).find(candidate=>candidate.name===item.jobName)||null;
+                conclusion=job?.conclusion||'missing-job';
+                healthy=Boolean(job)&&job.conclusion==='success';
+              }
+
+              health.push({
+                name:item.name,
+                healthy,
+                conclusion,
+                html_url:run?.html_url||null,
+                run_number:run?.run_number||null,
+                updated_at:run?.updated_at||null
+              });
+            }
+
+            const allHealthy=health.every(item => item.healthy);
+            const issues=await github.paginate(github.rest.issues.listForRepo,{
+              owner:context.repo.owner,
+              repo:context.repo.repo,
+              state:'all',
+              per_page:100
+            });
+            let issue=issues.find(item=>!item.pull_request&&item.title===issueTitle&&String(item.body||'').includes(marker));
+
+            const statusLines=health.map(item=>{
+              const state=item.healthy?'✅ gesund':'🔴 gestört';
+              const run=item.html_url?`[Run #${item.run_number}](${item.html_url})`:'kein abgeschlossener Lauf gefunden';
+              return `- ${state} · ${item.name} · conclusion=${item.conclusion} · ${run}`;
+            });
+            const body=[
+              marker,
+              'Dieser Eintrag wird automatisch durch RC1491 gepflegt.',
+              '',
+              'Überwachte Betriebszustände:',
+              ...statusLines,
+              '',
+              `Letzte Synchronisierung: ${new Date().toISOString()}`,
+              '',
+              'Enthalten sind ausschließlich Workflow-Statusmetadaten und Links zu GitHub Actions. Es werden keine State-, Dokument- oder Sicherungsinhalte in dieses Issue geschrieben.'
+            ].join('\n');
+
+            if(!allHealthy){
+              if(!issue){
+                const created=await github.rest.issues.create({
+                  owner:context.repo.owner,
+                  repo:context.repo.repo,
+                  title:issueTitle,
+                  body
+                });
+                issue=created.data;
+                core.warning(`Betriebsfehler eskaliert: #${issue.number}`);
+              }else{
+                if(issue.state==='closed'){
+                  await github.rest.issues.update({
+                    owner:context.repo.owner,
+                    repo:context.repo.repo,
+                    issue_number:issue.number,
+                    state:'open',
+                    body
+                  });
+                }else{
+                  await github.rest.issues.update({
+                    owner:context.repo.owner,
+                    repo:context.repo.repo,
+                    issue_number:issue.number,
+                    body
+                  });
+                }
+                await github.rest.issues.createComment({
+                  owner:context.repo.owner,
+                  repo:context.repo.repo,
+                  issue_number:issue.number,
+                  body:`Erneute RC1491-Prüfung meldet weiterhin einen gestörten Betriebszustand.\n\n${statusLines.join('\n')}`
+                });
+              }
+              return;
+            }
+
+            if(issue&&issue.state==='open'){
+              await github.rest.issues.createComment({
+                owner:context.repo.owner,
+                repo:context.repo.repo,
+                issue_number:issue.number,
+                body:`RC1491: Backup und TESTSERVICE-Restore-Drill sind wieder gesund.\n\n${statusLines.join('\n')}`
+              });
+              await github.rest.issues.update({
+                owner:context.repo.owner,
+                repo:context.repo.repo,
+                issue_number:issue.number,
+                state:'closed',
+                body
+              });
+              core.info(`Betriebszustand wiederhergestellt; Issue #${issue.number} geschlossen.`);
+            }else{
+              core.info('RC1491: Beide überwachten Workflows sind gesund; kein offenes Betriebs-Issue erforderlich.');
+            }
