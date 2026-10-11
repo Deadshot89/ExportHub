@@ -53,6 +53,16 @@ test('RC1485: Packmeldung bleibt ungelesen/neuwertig wenn persist explizit fehls
   assert.equal(x.state.tasks[0].readAt,undefined);
 });
 
+test('RC1485: Öffnen über Aufgabe persistiert Packmeldung nur einmal',async()=>{
+  const x=internalHarness();
+  x.setFlush(true);
+  assert.equal(x.api.openTaskDetail(x.state.tasks[0]),true);
+  await tick();await tick();
+  assert.equal(x.calls.filter(call=>call[0]==='flush').length,1,'Task-Öffnung darf nicht zusätzlich zum Detail-Öffnen ein zweites Save auslösen');
+  assert.equal(x.state.packNotifications[0].status,'in_review');
+  assert.equal(x.state.tasks[0].unread,false);
+});
+
 function shipmentHarness(){
   const state=makeState(),calls=[],listeners={};
   state.packNotifications[0].status='in_review';
