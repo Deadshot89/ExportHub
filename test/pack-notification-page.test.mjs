@@ -9,6 +9,7 @@ test('public qr pack page is standalone and has no ExportHUB login/navigation sh
   assert.match(html,/id="packForm"/);
   assert.match(html,/id="packCustomer"/);
   assert.doesNotMatch(html,/id="packDeliveryNote"|Lieferschein \/ Referenz/);
+  assert.match(html,/id="packDeliveryNoteReference"/);
   assert.match(html,/id="packPackageCount"/);
   assert.match(html,/id="packWeight"/);
   assert.match(html,/id="packDocuments"[^>]*multiple/);
@@ -25,7 +26,9 @@ test('pack client creates one fresh session per page instance and locks logical 
   assert.match(js,/submitLocked/);
   assert.match(js,/FileReader/);
   assert.match(js,/documents/);
-  assert.doesNotMatch(js,/packDeliveryNote|deliveryNoteReference:els\.delivery/);
+  assert.match(js,/packDeliveryNoteReference/);
+  assert.match(js,/deliveryRef/);
+  assert.doesNotMatch(js,/deliveryNoteReference:els\.delivery(?:[,}])/);
 });
 
 test('pack page supports responsive package rows and confirmation state',()=>{
