@@ -2,6 +2,7 @@
 
 const { isDeepStrictEqual } = require('node:util');
 const { DOCUMENT_FIELDS } = require('./document-blob-store');
+const { isAdmin } = require('./user-policy');
 
 const DOCUMENT_FIELD_SET = new Set(DOCUMENT_FIELDS || []);
 
@@ -41,16 +42,6 @@ const DOCUMENT_AWARE = Object.freeze({
 });
 
 function text(value) { return String(value == null ? '' : value).trim().toLowerCase(); }
-
-function isAdmin(user) {
-  const role = text(user && (user.role || user.rolle));
-  return Boolean(user && (
-    user.globalAdmin === true ||
-    user.isGlobalAdmin === true ||
-    ['global admin','global administrator','globaler administrator','globaler admin','administrator','admin','vollzugriff'].includes(role) ||
-    (Array.isArray(user.permissions) && user.permissions.includes('*'))
-  ));
-}
 
 function canEditModule(user, moduleId) {
   if (isAdmin(user)) return true;
