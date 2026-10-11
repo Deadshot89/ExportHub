@@ -55,13 +55,13 @@ jobs:
               let healthy=Boolean(run)&&run.conclusion === 'success';
 
               if(run&&item.jobName){
-                const jobs=await github.paginate(github.rest.actions.listJobsForWorkflowRun,{
+                const {data:jobData}=await github.rest.actions.listJobsForWorkflowRun({
                   owner:context.repo.owner,
                   repo:context.repo.repo,
                   run_id:run.id,
                   per_page:100
                 });
-                const job=jobs.find(candidate=>candidate.name===item.jobName)||null;
+                const job=(jobData.jobs||[]).find(candidate=>candidate.name===item.jobName)||null;
                 conclusion=job?.conclusion||'missing-job';
                 healthy=Boolean(job)&&job.conclusion==='success';
               }
