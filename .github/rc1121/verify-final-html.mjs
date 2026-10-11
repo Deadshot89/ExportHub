@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import {finalizeAutoUpdate} from '../rc1488/finalize-auto-update.mjs';
 
 const ROOT=process.cwd();
 const OUT=path.join(ROOT,'dist-rc1112');
@@ -9,6 +10,7 @@ const FILES=ARGS.length?ARGS.map(p=>path.resolve(ROOT,p)):[
   path.join(OUT,'TESTVERSION.html'),
   path.join(OUT,'demo.html')
 ];
+const RC1488_MANIFEST=ARGS.length?null:finalizeAutoUpdate({root:ROOT,out:OUT});
 const LEAKS=[
   /RC824_SOP_DETAILS/,
   /window\.rc524OpenTaskEditor/,
@@ -44,6 +46,15 @@ function verify(p){
     const at=html.indexOf(needle);
     if(at<headOpen.index||at>headClose)throw new Error(file+': '+id+' steht nicht im echten <head>');
   }
+  if(!ARGS.length&&(file==='index.html'||file==='TESTVERSION.html')){
+    const id='exporthub-rc1488-auto-update',needle='id="'+id+'"',n=count(html,needle);
+    if(n!==1)throw new Error(file+': '+id+' muss exakt 1x vorkommen, gefunden '+n);
+    const at=html.indexOf(needle);
+    if(at<headOpen.index||at>headClose)throw new Error(file+': '+id+' steht nicht im echten <head>');
+    if(!RC1488_MANIFEST||!html.includes('data-build-id="'+RC1488_MANIFEST.buildId+'"'))throw new Error(file+': RC1488 Build-ID stimmt nicht mit dem Update-Manifest überein');
+    if(!html.includes('/assets/rc1488-auto-update.js?v=1488'))throw new Error(file+': RC1488 Auto-Update-Runtime fehlt');
+  }
+  if(!ARGS.length&&file==='demo.html'&&html.includes('id="exporthub-rc1488-auto-update"'))throw new Error(file+': RC1488 darf Demo nicht automatisch neu laden');
   const stow=html.indexOf('function printStow(){');
   const stowEnd=stow>=0?html.indexOf('function normalizeActionButtons',stow):-1;
   if(stow>=0&&stowEnd>stow){
@@ -69,3 +80,19 @@ function verify(p){
   console.log(file+': vollständiger finaler HTML-/Script-Vertrag OK');
 }
 for(const file of FILES)verify(file);
+
+if(!ARGS.length){
+  const asset=path.join(OUT,'assets','rc1488-auto-update.js');
+  const manifestFile=path.join(OUT,'exporthub-update.json');
+  if(!fs.existsSync(asset)||fs.statSync(asset).size===0)throw new Error('RC1488 Auto-Update-Asset fehlt im finalen Build');
+  if(!fs.existsSync(manifestFile))throw new Error('RC1488 Update-Manifest fehlt im finalen Build');
+  const manifest=JSON.parse(fs.readFileSync(manifestFile,'utf8'));
+  if(!RC1488_MANIFEST||manifest.buildId!==RC1488_MANIFEST.buildId||manifest.schema!=='exporthub-update-v1')throw new Error('RC1488 Update-Manifest ist inkonsistent');
+  for(const name of ['staticwebapp.config.json','staticwebapp.testservice.config.json']){
+    const configFile=path.join(OUT,name);if(!fs.existsSync(configFile))continue;
+    const config=JSON.parse(fs.readFileSync(configFile,'utf8'));
+    const route=(config.routes||[]).find(row=>row&&row.route==='/exporthub-update.json');
+    if(!route||!route.headers||!/no-store/i.test(String(route.headers['Cache-Control']||'')))throw new Error(name+': RC1488 Update-Manifest ist nicht no-store');
+  }
+  console.log('RC1488: Auto-Update Build-/Cache-Vertrag OK · '+manifest.buildId);
+}
