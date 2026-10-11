@@ -28,6 +28,27 @@ function pushEnv(overrides={}){
   };
 }
 function pushEvent(overrides={}){return{before:'base123',after:'abc123',...overrides}}
+function validMergedPr(overrides={}){
+  return {
+    number:619,
+    merged_at:'2026-10-10T12:39:53Z',
+    merge_commit_sha:'abc123',
+    base:{ref:'main',sha:'stale-base'},
+    head:{sha:'head123'},
+    ...overrides
+  };
+}
+function validCommit(overrides={}){
+  return {sha:'abc123',parents:[{sha:'base123'},{sha:'head123'}],...overrides};
+}
+function provenanceFetch({pr=validMergedPr(),commit=validCommit(),onRequest=()=>{}}={}){
+  return async(url,options)=>{
+    onRequest(url,options);
+    if(url.endsWith('/pulls'))return response(200,[pr]);
+    if(url.endsWith('/commits/abc123'))return response(200,commit);
+    return response(404,{});
+  };
+}
 
 test('RC1473: direkter Main-Push ohne zugeordneten gemergten PR wird fail-closed blockiert',async()=>{
   const {verifyMainPrProvenance}=await loadGate();
@@ -44,11 +65,11 @@ test('RC1473: direkter Main-Push ohne zugeordneten gemergten PR wird fail-closed
   assert.equal(calls,2,'leere PR-Zuordnung soll kurz gegen GitHub-Eventual-Consistency erneut geprüft werden');
 });
 
-test('RC1473: gemergter PR nach main mit passender Push-Basis erlaubt den Main-Push',async()=>{
+test('RC1473: gemergter PR nach main mit tatsächlicher Push-Basis erlaubt den Main-Push auch bei veralteter PR-base.sha',async()=>{
   const {verifyMainPrProvenance}=await loadGate();
   const result=await verifyMainPrProvenance({
     env:pushEnv(),eventPayload:pushEvent(),
-    fetchImpl:async()=>response(200,[{number:619,merged_at:'2026-10-10T12:39:53Z',base:{ref:'main',sha:'base123'}}]),
+    fetchImpl:provenanceFetch(),
     sleepImpl:async()=>{}
   });
   assert.equal(result.checked,true);
@@ -56,15 +77,15 @@ test('RC1473: gemergter PR nach main mit passender Push-Basis erlaubt den Main-P
   assert.equal(result.before,'base123');
 });
 
-test('RC1473: offener, fremd basierter oder historisch alter PR reicht nicht als Release-Herkunft',async()=>{
+test('RC1473: offener, fremd basierter oder nicht zum Merge-Commit gehörender PR reicht nicht als Release-Herkunft',async()=>{
   const {verifyMainPrProvenance}=await loadGate();
   await assert.rejects(
     verifyMainPrProvenance({
       env:pushEnv(),eventPayload:pushEvent(),
       fetchImpl:async()=>response(200,[
-        {number:1,merged_at:null,base:{ref:'main',sha:'base123'}},
-        {number:2,merged_at:'2026-10-10T12:39:53Z',base:{ref:'develop',sha:'base123'}},
-        {number:3,merged_at:'2026-09-01T10:00:00Z',base:{ref:'main',sha:'old-base'}}
+        {number:1,merged_at:null,merge_commit_sha:'abc123',base:{ref:'main',sha:'base123'},head:{sha:'head123'}},
+        {number:2,merged_at:'2026-10-10T12:39:53Z',merge_commit_sha:'abc123',base:{ref:'develop',sha:'base123'},head:{sha:'head123'}},
+        {number:3,merged_at:'2026-09-01T10:00:00Z',merge_commit_sha:'other-merge',base:{ref:'main',sha:'old-base'},head:{sha:'head123'}}
       ]),
       sleepImpl:async()=>{},
       attempts:1
@@ -115,19 +136,19 @@ test('RC1473: Main-Contract und Production-Deploy führen den geschützten gemei
   }
 });
 
-test('RC1482: Main-Push Provenienzabfrage nutzt den Workflow-Token statt anonymer GitHub-API',async()=>{
+test('RC1482: Main-Push Provenienzabfragen nutzen den Workflow-Token statt anonymer GitHub-API',async()=>{
   const {verifyMainPrProvenance}=await loadGate();
-  let requestOptions=null;
+  const requests=[];
   const result=await verifyMainPrProvenance({
     env:pushEnv({GITHUB_TOKEN:'read-only-token'}),eventPayload:pushEvent(),
-    fetchImpl:async(_url,options)=>{
-      requestOptions=options;
-      return response(200,[{number:631,merged_at:'2026-10-10T19:54:36Z',base:{ref:'main',sha:'base123'}}]);
-    },
+    fetchImpl:provenanceFetch({onRequest:(url,options)=>requests.push({url,options})}),
     sleepImpl:async()=>{}
   });
   assert.equal(result.checked,true);
-  assert.equal(requestOptions?.headers?.Authorization,'Bearer read-only-token','Provenienz-Gate muss GitHub API authentifiziert aufrufen');
+  assert.equal(requests.length,2,'PR-Zuordnung und tatsächlicher Commit müssen geprüft werden');
+  for(const request of requests){
+    assert.equal(request.options?.headers?.Authorization,'Bearer read-only-token','Provenienz-Gate muss GitHub API authentifiziert aufrufen');
+  }
 });
 
 test('RC1482: Release-Workflows geben dem Provenienz-Gate nur lesenden PR-Zugriff und Token auf Main-Push',()=>{
