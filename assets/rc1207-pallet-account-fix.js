@@ -132,7 +132,7 @@ function chosenDirection(){
 function syncDirectionUi(){
   var s=state(),d=root.document;if(!s||!d||!d.getElementById)return false;
   var dir=q(s.rc542PalDirection);if(dir!=='Eingang'&&dir!=='Ausgang'){dir='Eingang';s.rc542PalDirection=dir}
-  var inBtn=d.getElementById('rc542PalIn'),outBtn=d.getElementById&&d.getElementById('rc542PalOut');
+  var inBtn=d.getElementById('rc542PalIn'),outBtn=d.getElementById('rc542PalOut');
   if(inBtn&&inBtn.classList)inBtn.classList.toggle('active',dir==='Eingang');
   if(outBtn&&outBtn.classList)outBtn.classList.toggle('active',dir==='Ausgang');
   return true;
