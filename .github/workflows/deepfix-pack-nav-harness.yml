@@ -1,0 +1,22 @@
+name: Deepfix Pack Nav Harness
+
+on:
+  push:
+    branches:
+      - deepfix/packmeldungen-nav-flow-20261011
+
+permissions:
+  contents: read
+
+jobs:
+  nav-harness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: Packmeldungen Nav Harness Regression
+        run: node --test test/rc1474-pack-nav-observer-scope.test.mjs
