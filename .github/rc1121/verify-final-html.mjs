@@ -51,7 +51,7 @@ function verify(p){
     if(n!==1)throw new Error(file+': '+id+' muss exakt 1x vorkommen, gefunden '+n);
     const at=html.indexOf(needle);
     if(at<headOpen.index||at>headClose)throw new Error(file+': '+id+' steht nicht im echten <head>');
-    if(!RC1488_MANIFEST||!html.includes('data-build-id="'+RC1488_MANIFEST.buildId+'"'))throw new Error(file+': RC1488 Build-ID stimmt nicht mit dem Update-Manifest überein');
+    if(!RC1488_MANIFEST||!html.includes('data-build-id="'+RC1488_MANIFEST.buildId+'"'))throw new Error(file+': RC1488 Build-ID stimmt nicht mit dem Update-Probe überein');
     if(!html.includes('/assets/rc1488-auto-update.js?v=1488'))throw new Error(file+': RC1488 Auto-Update-Runtime fehlt');
   }
   if(!ARGS.length&&file==='demo.html'&&html.includes('id="exporthub-rc1488-auto-update"'))throw new Error(file+': RC1488 darf Demo nicht automatisch neu laden');
@@ -83,16 +83,17 @@ for(const file of FILES)verify(file);
 
 if(!ARGS.length){
   const asset=path.join(OUT,'assets','rc1488-auto-update.js');
-  const manifestFile=path.join(OUT,'exporthub-update.json');
+  const probeFile=path.join(OUT,'production-version.js');
   if(!fs.existsSync(asset)||fs.statSync(asset).size===0)throw new Error('RC1488 Auto-Update-Asset fehlt im finalen Build');
-  if(!fs.existsSync(manifestFile))throw new Error('RC1488 Update-Manifest fehlt im finalen Build');
-  const manifest=JSON.parse(fs.readFileSync(manifestFile,'utf8'));
-  if(!RC1488_MANIFEST||manifest.buildId!==RC1488_MANIFEST.buildId||manifest.schema!=='exporthub-update-v1')throw new Error('RC1488 Update-Manifest ist inkonsistent');
+  if(!fs.existsSync(probeFile))throw new Error('RC1488 production-version.js fehlt im finalen Build');
+  const probe=fs.readFileSync(probeFile,'utf8');
+  if(!RC1488_MANIFEST||!probe.includes("window.__EXPORTHUB_UPDATE_BUILD__='"+RC1488_MANIFEST.buildId+"';"))throw new Error('RC1488 Build-ID fehlt im production-version.js Probe');
+  if(!probe.includes("window.__EXPORTHUB_UPDATE_RELEASE__='"+RC1488_MANIFEST.visibleRelease+"';"))throw new Error('RC1488 sichtbare Release-ID fehlt im production-version.js Probe');
   for(const name of ['staticwebapp.config.json','staticwebapp.testservice.config.json']){
     const configFile=path.join(OUT,name);if(!fs.existsSync(configFile))continue;
     const config=JSON.parse(fs.readFileSync(configFile,'utf8'));
-    const route=(config.routes||[]).find(row=>row&&row.route==='/exporthub-update.json');
-    if(!route||!route.headers||!/no-store/i.test(String(route.headers['Cache-Control']||'')))throw new Error(name+': RC1488 Update-Manifest ist nicht no-store');
+    const route=(config.routes||[]).find(row=>row&&row.route==='/production-version.js');
+    if(!route||!route.headers||!/no-store/i.test(String(route.headers['Cache-Control']||'')))throw new Error(name+': RC1488 production-version.js ist nicht no-store');
   }
-  console.log('RC1488: Auto-Update Build-/Cache-Vertrag OK · '+manifest.buildId);
+  console.log('RC1488: Auto-Update Build-/Cache-Vertrag OK · '+RC1488_MANIFEST.buildId);
 }
