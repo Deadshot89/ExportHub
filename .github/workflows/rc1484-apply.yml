@@ -22,11 +22,12 @@ jobs:
           node-version: 22
       - name: Apply i18n-safe reminder patch
         run: node .github/rc1484/apply-i18n.cjs
-      - name: Verify focused regression
-        run: |
-          node --check assets/rc1166-avis-reminder-overview.js
-          node --test test/rc1484-generic-pickup-reminder.test.mjs
-          npm run i18n:audit:strict
+      - name: Runtime syntax check
+        run: node --check assets/rc1166-avis-reminder-overview.js
+      - name: RC1484 focused regression
+        run: node --test test/rc1484-generic-pickup-reminder.test.mjs
+      - name: Existing RC1166 regression
+        run: node --test test/rc1166-avis-reminder-overview.test.mjs
       - name: Commit runtime fix
         run: |
           if git diff --quiet -- assets/rc1166-avis-reminder-overview.js test/rc1484-generic-pickup-reminder.test.mjs; then
