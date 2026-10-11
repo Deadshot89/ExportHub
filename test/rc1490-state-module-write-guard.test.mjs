@@ -155,6 +155,26 @@ test('RC1490: fremde TeamSync-Metadaten und Tombstones dürfen Rechte nicht umge
   expectForbidden(user,serverTombstone,incomingTombstone);
 });
 
+test('RC1490: parallele Requests teilen niemals den Rechtekontext',async()=>{
+  const userA={...userWithRights({tasks:right('edit')}),id:'UA',user:'user-a'};
+  const userB={...userWithRights({customers:right('edit')}),id:'UB',user:'user-b'};
+  const seen=await Promise.all([userA,userB].map(user=>writeContext.run(async()=>{
+    writeContext.captureUser(user);
+    await new Promise(resolve=>setTimeout(resolve,0));
+    return writeContext.currentUser()&&writeContext.currentUser().id;
+  })));
+  assert.deepEqual(seen,['UA','UB']);
+  assert.equal(writeContext.currentUser(),null);
+});
+
+test('RC1490: sicherer Merge bleibt außerhalb des State-Request-Kontexts neutral',()=>{
+  const server=baseState();
+  const incoming=structuredClone(server);
+  incoming.customers[0]={...incoming.customers[0],name:'Interner Merge',updatedAt:'2026-10-11T13:00:00.000Z'};
+  const merged=secureMerge.mergeState(server,incoming);
+  assert.equal(merged.customers[0].name,'Interner Merge');
+});
+
 test('RC1490: State-Runtime lädt sicheren Merge im isolierten Request-Kontext',()=>{
   const runtime=fs.readFileSync(new URL('../api/exporthub-state/runtime.js',import.meta.url),'utf8');
   const functionJson=JSON.parse(fs.readFileSync(new URL('../api/exporthub-state/function.json',import.meta.url),'utf8'));
