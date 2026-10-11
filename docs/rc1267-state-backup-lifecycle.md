@@ -78,7 +78,7 @@ Produktionsdaten werden durch den Restore-Drill nicht überschrieben.
 
 Der Workflow `.github/workflows/rc1491-state-backup-restore-watchdog.yml` überwacht automatisch den jeweils letzten abgeschlossenen `main`-Lauf von RC1267. Für RC1137 wird gezielt der Job `TESTSERVICE State kompaktieren` des letzten abgeschlossenen `main`-Laufs bewertet, weil dort der Restore-Drill ausgeführt wird. Ein späterer, ausschließlich produktionsseitiger RC1137-Fehler wird deshalb nicht fälschlich als Restore-Drill-Fehler gemeldet.
 
-Wenn das geplante State-Backup oder der TESTSERVICE-Restore-Job nicht erfolgreich ist, wird genau ein GitHub-Betriebs-Issue `[OPS] State Backup/Restore Watchdog` erstellt, wieder geöffnet oder aktualisiert. Wiederholte Fehler erzeugen dadurch keine fortlaufenden Duplikate.
+Wenn das geplante State-Backup oder der TESTSERVICE-Restore-Job nicht erfolgreich ist, gilt das als Betriebsfehler. Es wird genau ein GitHub-Betriebs-Issue `[OPS] State Backup/Restore Watchdog` erstellt, wieder geöffnet oder aktualisiert. Wiederholte Fehler erzeugen dadurch keine fortlaufenden Duplikate.
 
 Erst wenn Backup und TESTSERVICE-Restore-Drill wieder erfolgreich sind, wird der Betriebszustand als wiederhergestellt markiert und das offene Watchdog-Issue automatisch geschlossen.
 
