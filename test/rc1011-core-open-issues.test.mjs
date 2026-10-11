@@ -56,11 +56,12 @@ test('Aktive Abhol- und Kunden-Avis-Links bleiben wiederverwendbar',()=>{
 
 test('QR-Teilabholung bleibt offen; Abschluss ist synchronisiert und wiederaufnehmbar',()=>{
   assert.match(pickupConfirm,/remainingAfter/);
-  const guardedConsume=/if\(complete\)(?:\{|\s*)await access\.consume/.test(pickupConfirm);
+  assert.match(pickupConfirm,/async function consumePickupAccess[\s\S]*?await access\.consume\(resolved\.environment,'pickup',resolved\.tokenHash/,'QR-Verbrauch muss weiter über Public-Access laufen');
+  const guardedConsume=/if\(complete\)(?:\{|\s*)oneTimeConsumed=await consumePickupAccess/.test(pickupConfirm);
   assert.equal(guardedConsume,true,'QR-Verbrauch muss weiterhin ausdrücklich an complete gebunden sein');
   const teamSync=pickupConfirm.indexOf("await store.updateTeam(rec,[],'')");
-  const consume=pickupConfirm.indexOf("await access.consume(resolved.environment,'pickup',resolved.tokenHash",teamSync);
-  assert.ok(teamSync>=0&&consume>teamSync,'QR-Abschluss darf erst nach erfolgreicher Team-State-Synchronisierung verbraucht werden');
+  const consume=pickupConfirm.indexOf('consumePickupAccess(context,resolved,loader,rec)',teamSync);
+  assert.ok(teamSync>=0&&consume>teamSync,'QR-Abschluss darf erst nach dem ersten Team-State-Synchronisierungsversuch verbraucht werden');
   assert.match(pickupConfirm,/completeOf\(current\)\|\|current\.status==='confirmed'/,'Bereits gespeicherte Abholung muss idempotent wiederaufnehmbar sein');
   assert.match(pickupConfirm,/if\(!complete(?:&&[^)]*)?\).*access\.clearFailures/);
   assert.match(accessStore,/record\.usedAt&&!allowUsed&&!reusableKind/,'Abgeschlossene QR-Links müssen weiterhin lesbar bleiben');

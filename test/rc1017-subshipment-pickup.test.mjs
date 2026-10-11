@@ -147,8 +147,9 @@ test('RC1339: Teilsendungs-Pickup findet die Hauptsendung notfalls über subShip
 test('RC1413 P0: dauerhaft gespeicherte Pickup-Abholung bleibt bei nachgelagertem Team-State-Fehler erfolgreich',()=>{
   const src=fs.readFileSync('api/pickup-confirm-v2/index.js','utf8');
   const update=src.indexOf("await store.updateTeam(rec,[],'')");
-  const consume=src.indexOf("await access.consume(resolved.environment,'pickup',resolved.tokenHash",update);
+  const consume=src.indexOf('consumePickupAccess(context,resolved,loader,rec)',update);
   assert.ok(update>=0&&consume>update,'QR wird weiter erst nach dem ersten Team-State-Sync-Versuch verbraucht');
+  assert.match(src,/async function consumePickupAccess[\s\S]*?await access\.consume\(resolved\.environment,'pickup',resolved\.tokenHash/,'QR-Verbrauch muss weiter über Public-Access laufen');
   assert.doesNotMatch(src,/throw store\.err\('TEAM_STATE_UPDATE_FAILED'/);
   assert.match(src,/teamStateSynced=false;teamStateSyncError=shortError\(e\)/);
   assert.match(src,/teamStateSyncPending:!teamStateSynced/);
