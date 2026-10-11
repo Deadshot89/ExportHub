@@ -17,7 +17,10 @@ test('RC1241: exporthub-state Runtime leitet das Signatur-Secret aus derselben F
   assert.match(runtimeSource,/function sessionSigningConnectionString\(\)\s*\{\s*return process\.env\.EXPORTHUB_STORAGE_CONNECTION_STRING \|\| process\.env\.AzureWebJobsStorage \|\| '';\s*\}/);
   assert.match(runtimeSource,/const source=configured\|\|sessionSigningConnectionString\(\);/);
   assert.match(runtimeSource,/if\(!configured&&source\)process\.env\.EXPORTHUB_AUTH_SIGNING_SECRET=source;/);
-  assert.match(runtimeSource,/module\.exports = require\('\.\/index'\);/);
+  // Der Runtime-Einstieg muss weiterhin an denselben index-Handler delegieren. Seit RC1490
+  // darf davor ein serverseitiger Sicherheitswrapper installiert werden; die Signaturquelle
+  // und der kanonische State-Handler bleiben unverändert.
+  assert.match(runtimeSource,/(?:module\.exports = require\('\.\/index'\);|return require\('\.\/index'\);)/);
 });
 
 test('RC1241: breitere Storage-Aliase inklusive AzureWebJobsStorage fuer den State-Zugriff bleiben unveraendert',()=>{
