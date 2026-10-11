@@ -121,6 +121,7 @@ test('submitting an existing draft closes it so it disappears from the open-draf
 test('public QR page starts with a new-shipment action and warehouse-wide open-draft cards and keeps delivery-note upload optional',()=>{
   const html=fs.readFileSync('pack.html','utf8');
   const client=fs.readFileSync('assets/pack-notification.js','utf8');
+  const draftI18n=fs.readFileSync('assets/i18n/pack-notification-drafts.js','utf8');
   assert.match(html,/id="packHome"/);
   assert.match(html,/id="packNewShipment"/);
   assert.match(html,/id="packDraftGrid"/);
@@ -130,5 +131,5 @@ test('public QR page starts with a new-shipment action and warehouse-wide open-d
   assert.match(client,/draft-list/);
   assert.match(client,/draft-save/);
   assert.match(client,/draft-get/);
-  assert.match(client,/Anzahl Paletten/);
+  assert.match(draftI18n,/Anzahl Paletten/);
 });
