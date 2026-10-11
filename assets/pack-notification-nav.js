@@ -44,6 +44,11 @@
     const label=doc.createElement('span');label.className='pack-notification-nav-label';label.textContent='Packmeldungen';node.appendChild(label);
   }
   function isCanonical(node){return !!(node&&node.getAttribute&&node.getAttribute('data-pack-notifications-nav-owner')==='nav-runtime');}
+  function removeEntry(node){
+    if(!node)return;
+    if(typeof node.remove==='function'){node.remove();return;}
+    if(node.parentNode&&typeof node.parentNode.removeChild==='function')node.parentNode.removeChild(node);
+  }
   function buildFromExistingMenu(){
     const anchor=taskAnchor();if(!anchor||!anchor.parentNode)return null;
     const node=anchor.cloneNode(true);
@@ -61,7 +66,7 @@
   function ensureEntry(){
     let existing=doc.querySelector('[data-pack-notifications-nav]');
     const anchor=taskAnchor();
-    if(existing&&anchor&&(!isCanonical(existing)||(existing.classList&&existing.classList.contains('pack-notification-nav-fallback')))){existing.remove();existing=null;}
+    if(existing&&anchor&&(!isCanonical(existing)||(existing.classList&&existing.classList.contains('pack-notification-nav-fallback')))){removeEntry(existing);existing=null;}
     if(existing)return existing;
     const built=buildFromExistingMenu();if(built)return built;
     injectFallbackStyle();
