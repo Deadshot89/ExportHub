@@ -59,3 +59,12 @@ test('RC1488: bestehender Script-Tag wird auf den aktuellen Build aktualisiert s
   assert.match(html,/data-build-id="abcdef0"/);
   assert.doesNotMatch(html,/data-build-id="old"/);
 });
+
+test('RC1488: Standard-Finalgate und Packmeldungen-Build verwenden denselben Auto-Update-Finalizer',()=>{
+  const verifier=fs.readFileSync('.github/rc1121/verify-final-html.mjs','utf8');
+  const packBuild=fs.readFileSync('.github/packmeldungen/build-three-env.mjs','utf8');
+  assert.match(verifier,/from '\.\.\/rc1488\/finalize-auto-update\.mjs'/);
+  assert.match(verifier,/finalizeAutoUpdate\(\{root:ROOT,out:OUT\}\)/);
+  assert.match(packBuild,/from '\.\.\/rc1488\/finalize-auto-update\.mjs'/);
+  assert.match(packBuild,/finalizeAutoUpdate\(\{root,out\}\)/);
+});
