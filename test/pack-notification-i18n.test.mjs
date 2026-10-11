@@ -4,12 +4,15 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 function loadPackI18n(){
-  const source=fs.readFileSync('assets/i18n/pack-notification.js','utf8');
-  const draftSource=fs.readFileSync('assets/i18n/pack-notification-drafts.js','utf8');
+  const files=[
+    'assets/i18n/pack-notification.js',
+    'assets/i18n/pack-notification-draft-bridge.js',
+    'assets/i18n/pack-notification-drafts.js',
+    'assets/i18n/pack-notification-draft-contract.js'
+  ];
   const root={};
   const context=vm.createContext({window:root,globalThis:root,console,Intl,URL,setTimeout,clearTimeout});
-  vm.runInContext(source,context,{filename:'assets/i18n/pack-notification.js'});
-  vm.runInContext(draftSource,context,{filename:'assets/i18n/pack-notification-drafts.js'});
+  for(const file of files)vm.runInContext(fs.readFileSync(file,'utf8'),context,{filename:file});
   return root.ExportHUBPackI18n;
 }
 
@@ -28,7 +31,7 @@ test('pack notification locale runtime exposes all six supported languages with 
 test('pack notification locale runtime translates public, AVIS, internal and draft UI contracts',()=>{
   const runtime=loadPackI18n();
   for(const lang of runtime.supported){
-    for(const key of ['pack.title','pack.submit','pack.avis.title','pack.internal.inboxTitle','pack.internal.createShipment','pack.api.PACK_SESSION_NOT_FOUND','pack.draft.openShipments','pack.draft.save','pack.draft.continue','pack.api.PACK_DRAFT_NOT_FOUND']){
+    for(const key of ['pack.title','pack.submit','pack.avis.title','pack.internal.inboxTitle','pack.internal.createShipment','pack.api.PACK_SESSION_NOT_FOUND','pack.draft.openShipments','pack.draft.save','pack.draft.continue','pack.api.PACK_DRAFT_NOT_FOUND','pack.api.PACK_DOCUMENT_REQUIRED']){
       assert.notEqual(runtime.packs[lang][key],undefined,`${lang}: missing ${key}`);
     }
   }
@@ -36,18 +39,22 @@ test('pack notification locale runtime translates public, AVIS, internal and dra
   assert.equal(runtime.t('pack.packageNumber',{number:3},'en'),'Package 3');
   assert.equal(runtime.t('pack.draft.packageCountLabel',{},'de'),'Anzahl Paletten');
   assert.equal(runtime.t('pack.draft.packageCountLabel',{},'en'),'Number of pallets');
+  assert.equal(runtime.t('pack.draft.deliveryRequirement',{},'de'),'Mindestens einen Lieferschein hochladen.');
 });
 
 test('public and internal builds load pack locale runtime before pack UI runtimes',()=>{
   const page=fs.readFileSync('pack.html','utf8');
   const builder=fs.readFileSync('.github/packmeldungen/build-three-env.mjs','utf8');
   const coreI18n=page.indexOf('/assets/i18n/pack-notification.js');
+  const bridge=page.indexOf('/assets/i18n/pack-notification-draft-bridge.js');
   const draftI18n=page.indexOf('/assets/i18n/pack-notification-drafts.js');
+  const draftContract=page.indexOf('/assets/i18n/pack-notification-draft-contract.js');
   const publicClient=page.indexOf('/assets/pack-notification.js');
   assert.ok(coreI18n>=0);
-  assert.ok(draftI18n>=0,'draft i18n extension missing');
-  assert.ok(coreI18n<draftI18n,'core pack locale runtime must load before draft locale extension');
-  assert.ok(draftI18n<publicClient,'draft locale extension must load before public pack client');
+  assert.ok(bridge>coreI18n,'draft bridge must load after core pack locale runtime');
+  assert.ok(draftI18n>bridge,'draft locale extension must load after draft bridge');
+  assert.ok(draftContract>draftI18n,'current draft contract must load after legacy draft translations');
+  assert.ok(publicClient>draftContract,'pack client must load after complete draft locale runtime');
   const i18nScript=builder.indexOf('<script id="exporthub-pack-notification-i18n"');
   const internalScript=builder.indexOf('<script id="exporthub-pack-notification-internal"');
   assert.ok(i18nScript>=0,'pack i18n script injection missing');
