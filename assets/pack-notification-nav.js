@@ -43,11 +43,13 @@
     }
     const label=doc.createElement('span');label.className='pack-notification-nav-label';label.textContent='Packmeldungen';node.appendChild(label);
   }
+  function isCanonical(node){return !!(node&&node.getAttribute&&node.getAttribute('data-pack-notifications-nav-owner')==='nav-runtime');}
   function buildFromExistingMenu(){
     const anchor=taskAnchor();if(!anchor||!anchor.parentNode)return null;
     const node=anchor.cloneNode(true);
     clearIdentity(node);
     node.setAttribute('data-pack-notifications-nav','');
+    node.setAttribute('data-pack-notifications-nav-owner','nav-runtime');
     node.setAttribute('aria-label','Packmeldungen');
     node.setAttribute('title','Packmeldungen');
     if(node.tagName==='BUTTON')node.setAttribute('type','button');
@@ -59,17 +61,18 @@
   function ensureEntry(){
     let existing=doc.querySelector('[data-pack-notifications-nav]');
     const anchor=taskAnchor();
-    if(existing&&anchor&&existing.classList&&existing.classList.contains('pack-notification-nav-fallback')){existing.remove();existing=null;}
+    if(existing&&anchor&&(!isCanonical(existing)||(existing.classList&&existing.classList.contains('pack-notification-nav-fallback')))){existing.remove();existing=null;}
     if(existing)return existing;
     const built=buildFromExistingMenu();if(built)return built;
     injectFallbackStyle();
     const host=doc.querySelector('nav,[role="navigation"],.sidebar,.side-nav,.navigation')||doc.body;
-    const node=doc.createElement('button');node.type='button';node.className='pack-notification-nav-fallback';node.setAttribute('data-pack-notifications-nav','');node.setAttribute('aria-label','Packmeldungen');node.textContent='Packmeldungen';host.appendChild(node);return node;
+    const node=doc.createElement('button');node.type='button';node.className='pack-notification-nav-fallback';node.setAttribute('data-pack-notifications-nav','');node.setAttribute('data-pack-notifications-nav-owner','nav-runtime');node.setAttribute('aria-label','Packmeldungen');node.textContent='Packmeldungen';host.appendChild(node);return node;
   }
   function mutationNeedsRoute(){
     const existing=doc.querySelector('[data-pack-notifications-nav]');
     if(!existing)return true;
-    return !!(existing.classList&&existing.classList.contains('pack-notification-nav-fallback')&&taskAnchor());
+    const anchor=taskAnchor();
+    return !!(anchor&&(!isCanonical(existing)||(existing.classList&&existing.classList.contains('pack-notification-nav-fallback'))));
   }
   function route(){ensureEntry();}
   function schedule(){clearTimeout(timer);timer=setTimeout(route,50);}
