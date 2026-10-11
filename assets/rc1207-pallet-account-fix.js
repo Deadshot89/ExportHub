@@ -107,6 +107,13 @@ async function persistOnce(reason){
   if(runtime&&runtime.saving)throw new Error(tr('palletDelete.storageUnconfirmed'));
   if(runtime&&target>0&&Number(runtime.lastSavedGeneration||0)>=target)return true;
   var ok=await Promise.resolve(clean.flushSave(reason,{force:true,userInitiated:false}));
+  if(ok!==true&&runtime&&target>0&&Number(runtime.lastSavedGeneration||0)<target){
+    var checks=0;
+    while(Number(runtime.lastSavedGeneration||0)<target&&checks<120&&Date.now()<deadline){
+      if(!runtime.saving&&checks>=2)break;
+      await saveDelay(100);checks++
+    }
+  }
   if(ok!==true&&runtime&&target>0&&Number(runtime.lastSavedGeneration||0)>=target)ok=true;
   if(ok!==true)throw new Error(tr('palletDelete.storageUnconfirmed'));
   return true;
@@ -125,7 +132,7 @@ function chosenDirection(){
 function syncDirectionUi(){
   var s=state(),d=root.document;if(!s||!d||!d.getElementById)return false;
   var dir=q(s.rc542PalDirection);if(dir!=='Eingang'&&dir!=='Ausgang'){dir='Eingang';s.rc542PalDirection=dir}
-  var inBtn=d.getElementById('rc542PalIn'),outBtn=d.getElementById('rc542PalOut');
+  var inBtn=d.getElementById('rc542PalIn'),outBtn=d.getElementById&&d.getElementById('rc542PalOut');
   if(inBtn&&inBtn.classList)inBtn.classList.toggle('active',dir==='Eingang');
   if(outBtn&&outBtn.classList)outBtn.classList.toggle('active',dir==='Ausgang');
   return true;
