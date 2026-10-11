@@ -40,6 +40,13 @@ function runAs(user,fn){
   });
 }
 
+function expectForbidden(server,incoming){
+  assert.throws(
+    ()=>runAs(restrictedTaskEditor(),()=>secureMerge.mergeState(server,incoming)),
+    error=>error&&error.code==='STATE_MODULE_WRITE_FORBIDDEN'&&error.status===403
+  );
+}
+
 test('RC1491: eingeschraenkter Editor darf keinen unbekannten serverpersistierten State-Bereich veraendern',()=>{
   const server={
     tasks:[{id:'T1',title:'Alt',updatedAt:'2026-10-11T10:00:00.000Z'}],
@@ -49,9 +56,43 @@ test('RC1491: eingeschraenkter Editor darf keinen unbekannten serverpersistierte
   const incoming=structuredClone(server);
   incoming.tasks[0]={...incoming.tasks[0],title:'Erlaubt',updatedAt:'2026-10-11T13:00:00.000Z'};
   incoming.futureSensitiveState={enabled:true,secretPolicy:'manipulated'};
+  expectForbidden(server,incoming);
+});
 
-  assert.throws(
-    ()=>runAs(restrictedTaskEditor(),()=>secureMerge.mergeState(server,incoming)),
-    error=>error&&error.code==='STATE_MODULE_WRITE_FORBIDDEN'&&error.status===403
-  );
+test('RC1491: unbekannte persistierte Field-Metadaten duerfen nicht vergiftet werden',()=>{
+  const server={
+    tasks:[{id:'T1',title:'Alt',updatedAt:'2026-10-11T10:00:00.000Z'}],
+    futureSensitiveState:{enabled:false},
+    _teamSyncMeta:{fields:{futureSensitiveState:'2026-10-11T10:00:00.000Z'},tombstones:[]}
+  };
+  const incoming=structuredClone(server);
+  incoming._teamSyncMeta.fields.futureSensitiveState='2099-01-01T00:00:00.000Z';
+  expectForbidden(server,incoming);
+});
+
+test('RC1491: unbekannte Tombstone-Collection darf keine serverseitigen Daten loeschen',()=>{
+  const server={
+    tasks:[{id:'T1',title:'Alt',updatedAt:'2026-10-11T10:00:00.000Z'}],
+    futureSensitiveItems:[{id:'F1',value:'server-owned',updatedAt:'2026-10-11T10:00:00.000Z'}],
+    _teamSyncMeta:{fields:{},tombstones:[]}
+  };
+  const incoming=structuredClone(server);
+  incoming._teamSyncMeta.tombstones.push({
+    collection:'futureSensitiveItems',
+    id:'F1',
+    deletedAt:'2099-01-01T00:00:00.000Z'
+  });
+  expectForbidden(server,incoming);
+});
+
+test('RC1491: lokale UI-Felder bleiben fuer den State-Guard neutral',()=>{
+  const server={
+    tasks:[{id:'T1',title:'Alt',updatedAt:'2026-10-11T10:00:00.000Z'}],
+    taskSearch:'alt',
+    _teamSyncMeta:{fields:{},tombstones:[]}
+  };
+  const incoming=structuredClone(server);
+  incoming.taskSearch='neu';
+  const merged=runAs(restrictedTaskEditor(),()=>secureMerge.mergeState(server,incoming));
+  assert.equal(merged.taskSearch,undefined);
 });
