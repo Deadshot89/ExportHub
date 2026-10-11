@@ -16,6 +16,14 @@
 
   function q(value){return String(value==null?'':value).trim();}
 
+  function tr(key,fallback){
+    try{
+      var i18n=root.ExportHUBAutoUpdateI18n;
+      if(i18n&&typeof i18n.t==='function')return i18n.t(key)||fallback;
+    }catch(_){}
+    return fallback;
+  }
+
   function isDirty(){
     try{
       if(typeof root.__EXPORTHUB_UPDATE_DIRTY__==='function'&&root.__EXPORTHUB_UPDATE_DIRTY__())return true;
@@ -92,7 +100,7 @@
       var button=doc.createElement('button');
       button.type='button';
       button.id='exporthub-rc1488-update-button';
-      button.textContent='Jetzt aktualisieren';
+      button.textContent=tr('updateNow','Jetzt aktualisieren');
       if(button.style){
         button.style.marginLeft='12px';
         button.style.padding='7px 10px';
@@ -104,7 +112,7 @@
       button.addEventListener&&button.addEventListener('click',function(){
         if(isDirty()){
           var note=doc.getElementById&&doc.getElementById('exporthub-rc1488-update-text');
-          if(note)note.textContent='Neue ExportHUB360-Version verfügbar. Bitte zuerst speichern; deine Änderungen bleiben geschützt.';
+          if(note)note.textContent=tr('saveFirst','Neue ExportHUB360-Version verfügbar. Bitte zuerst speichern; deine Änderungen bleiben geschützt.');
           return;
         }
         reloadTo(pendingBuild);
@@ -115,8 +123,8 @@
     var message=doc.getElementById&&doc.getElementById('exporthub-rc1488-update-text');
     if(message){
       message.textContent=reason==='reload-locked'
-        ?'Neue ExportHUB360-Version verfügbar. Automatisches Neuladen wurde zum Schutz vor einer Reload-Schleife angehalten.'
-        :'Neue ExportHUB360-Version verfügbar. Deine aktuellen Änderungen bleiben geschützt.';
+        ?tr('reloadLocked','Neue ExportHUB360-Version verfügbar. Automatisches Neuladen wurde zum Schutz vor einer Reload-Schleife angehalten.')
+        :tr('available','Neue ExportHUB360-Version verfügbar. Deine aktuellen Änderungen bleiben geschützt.');
     }
     return banner;
   }
