@@ -108,3 +108,26 @@ test('RC1299: automatischer Palettenkonto-Cleanup sendet bei fehlender Azure-Bes
   assert.equal(x.state.palletAccount.length,1,'fehlgeschlagener Hintergrund-Save muss vollständig zurückrollen');
   assert.equal(x.state.rc1207PalletCleanup20260921At,undefined,'Cleanup-Marker darf ohne Azure-Bestätigung nicht gesetzt bleiben');
 });
+
+test('RC1484: einzelner Flush darf laufende Zielgeneration nachträglich bestätigen',async()=>{
+  const calls=[];
+  const cleanRuntime={changeGeneration:7,lastSavedGeneration:7,saving:false};
+  const clean={
+    runtime:cleanRuntime,
+    native:{setTimeout(fn){cleanRuntime.lastSavedGeneration=cleanRuntime.changeGeneration;fn();return 1}},
+    queueSave(reason){calls.push(['queue',reason]);cleanRuntime.changeGeneration++;return true},
+    flushSave(reason,options){calls.push(['flush',reason,options]);return false}
+  };
+  const x=makeRoot({
+    root:{ExportHUBClean:clean},
+    state:{
+      palletAccount:[{id:'PAL-INFLIGHT',date:'2026-09-21',direction:'Ausgang',count:4}],
+      palletSettlements:[],auditLog:[],_teamSyncMeta:{fields:{},tombstones:[]}
+    }
+  });
+  assert.equal(await x.api.cleanupProductionDayOnce(),true);
+  assert.equal(calls.filter(c=>c[0]==='flush').length,1,'Hintergrund-Cleanup darf keinen zweiten Save senden');
+  assert.equal(x.state.palletAccount.length,0,'nachträglich bestätigte Zielgeneration darf nicht zurückgerollt werden');
+  assert.equal(x.state.rc1207PalletCleanup20260921At.deletedCount,1);
+  assert.equal(cleanRuntime.lastSavedGeneration,cleanRuntime.changeGeneration);
+});
