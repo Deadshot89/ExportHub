@@ -10,4 +10,42 @@ const configured = String(process.env.EXPORTHUB_AUTH_SIGNING_SECRET || process.e
 const source=configured||sessionSigningConnectionString();
 if(!configured&&source)process.env.EXPORTHUB_AUTH_SIGNING_SECRET=source;
 
-module.exports = require('./index');
+// RC1490: Der große State-Kern bleibt unverändert. Nur für diesen Azure-Endpunkt
+// werden Merge und isAdmin beim Laden gezielt abgesichert. Der Request-Kontext
+// nutzt AsyncLocalStorage, damit parallele Benutzer niemals Rechte teilen.
+const writeContext = require('../shared/state-write-context');
+const secureMerge = require('../shared/secure-merge');
+const basePolicy = require('../shared/user-policy');
+
+function loadSecuredStateHandler() {
+  const mergePath = require.resolve('../shared/merge');
+  const policyPath = require.resolve('../shared/user-policy');
+  const indexPath = require.resolve('./index');
+  const mergeModule = require.cache[mergePath];
+  const policyModule = require.cache[policyPath];
+  const previousMergeExports = mergeModule && mergeModule.exports;
+  const previousPolicyExports = policyModule && policyModule.exports;
+
+  const securedPolicy = Object.assign({}, basePolicy, {
+    isAdmin(user) {
+      writeContext.captureUser(user);
+      return basePolicy.isAdmin(user);
+    }
+  });
+
+  try {
+    if (mergeModule) mergeModule.exports = secureMerge;
+    if (policyModule) policyModule.exports = securedPolicy;
+    delete require.cache[indexPath];
+    return require('./index');
+  } finally {
+    if (mergeModule) mergeModule.exports = previousMergeExports;
+    if (policyModule) policyModule.exports = previousPolicyExports;
+  }
+}
+
+const stateHandler = loadSecuredStateHandler();
+
+module.exports = function securedStateRuntime(context, req) {
+  return writeContext.run(() => stateHandler(context, req));
+};
