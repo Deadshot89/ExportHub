@@ -4,6 +4,20 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const runtime=fs.readFileSync('assets/rc1166-avis-reminder-overview.js','utf8');
+const DE={
+  'avisReminder.button':'Abholerinnerung öffnen',
+  'avisReminder.customer':'Kunde',
+  'avisReminder.carrier':'Spedition',
+  'avisReminder.missingCustomer':'Keine E-Mail-Adresse für Kunde hinterlegt',
+  'avisReminder.missingCarrier':'Keine E-Mail-Adresse für Spedition hinterlegt'
+};
+const EN={
+  'avisReminder.button':'Open pickup reminder',
+  'avisReminder.customer':'Customer',
+  'avisReminder.carrier':'Carrier',
+  'avisReminder.missingCustomer':'No customer email address stored',
+  'avisReminder.missingCarrier':'No carrier email address stored'
+};
 
 function element(tag='div'){
   const node={
@@ -18,11 +32,12 @@ function element(tag='div'){
   return node;
 }
 
-function load(legacyApi){
+function load(legacyApi,translations=DE){
   const document={
     readyState:'loading',
     addEventListener(){},
     getElementById(){return null},
+    querySelector(){return null},
     querySelectorAll(){return[]},
     createElement(tag){return element(tag)},
     body:{getAttribute(){return''},appendChild(){}},
@@ -35,6 +50,7 @@ function load(legacyApi){
     setTimeout(){return 1},
     addEventListener(){},
     __EXPORTHUB_GET_STATE__(){return{}},
+    ExportHUBI18n:{t(key){return translations[key]||key}},
     ExportHUBIndex236:legacyApi,
     console:{warn(){}},
     URL
@@ -72,7 +88,7 @@ test('RC1484: Sendung ohne Abholdatum erhält sichtbar vier Erinnerungsaktionen'
     recipientState(_sh,target){return target==='customer'?{available:true,to:['kunde@example.com']}:{available:false,to:[]}},
     reminderMail(id,target,lang){calls.push({id,target,lang});return false}
   };
-  const api=load(legacy),view=card(),shipment={id:'SHIP-1',reference:'PABJJ5',status:'Bereit zur Abholung'};
+  const api=load(legacy,DE),view=card(),shipment={id:'SHIP-1',reference:'PABJJ5',status:'Bereit zur Abholung'};
   assert.equal(api.ensureGenericReminderActions(view.root,shipment),true);
   const reminder=view.root.querySelector('.index236-reminder-actions');
   assert.ok(reminder,'Erinnerungsblock fehlt');
@@ -81,8 +97,17 @@ test('RC1484: Sendung ohne Abholdatum erhält sichtbar vier Erinnerungsaktionen'
   const customerDe=reminder.children[1],carrierDe=reminder.children[3];
   assert.equal(customerDe.disabled,false);
   assert.equal(carrierDe.disabled,true,'fehlender Speditionskontakt deaktiviert nur die Speditionsaktion');
+  assert.equal(carrierDe.title,'Keine E-Mail-Adresse für Spedition hinterlegt');
   customerDe._onclick({preventDefault(){},stopPropagation(){}});
   assert.deepEqual(calls,[{id:'SHIP-1',target:'customer',lang:'de'}]);
+});
+
+test('RC1484: neue Erinnerungsaktionen respektieren die aktive UI-Sprache',()=>{
+  const legacy={recipientState(){return{available:true,to:['x@example.com']}},reminderMail(){}};
+  const api=load(legacy,EN),view=card();
+  assert.equal(api.ensureGenericReminderActions(view.root,{id:'SHIP-EN',status:'Ready for pickup'}),true);
+  const reminder=view.root.querySelector('.index236-reminder-actions');
+  assert.deepEqual(reminder.children.map(x=>x.textContent),['Open pickup reminder','Customer DE','Customer EN','Carrier DE','Carrier EN']);
 });
 
 test('RC1484: bestehender Legacy-Erinnerungsblock wird nicht dupliziert',()=>{
@@ -92,16 +117,17 @@ test('RC1484: bestehender Legacy-Erinnerungsblock wird nicht dupliziert',()=>{
   assert.equal(view.root.children.filter(x=>String(x.className).includes('index236-reminder-actions')).length,1);
 });
 
-test('RC1484: Runtime nutzt die bestehende Legacy-Mail-API statt eine zweite Mail-Logik einzuführen',()=>{
+test('RC1484: Runtime nutzt die bestehende Legacy-Mail-API und i18n statt eine zweite Mail-Logik einzuführen',()=>{
   assert.match(runtime,/function ensureGenericReminderActions\(/);
   assert.match(runtime,/ExportHUBIndex236/);
   assert.match(runtime,/recipientState/);
   assert.match(runtime,/reminderMail/);
   assert.match(runtime,/rc1484-generic-reminder-actions/);
-  assert.match(runtime,/Kunde DE/);
-  assert.match(runtime,/Kunde EN/);
-  assert.match(runtime,/Spedition DE/);
-  assert.match(runtime,/Spedition EN/);
+  assert.match(runtime,/tr\('avisReminder\.button'\)/);
+  assert.match(runtime,/tr\('avisReminder\.customer'\)/);
+  assert.match(runtime,/tr\('avisReminder\.carrier'\)/);
+  assert.match(runtime,/avisReminder\.missingCustomer/);
+  assert.match(runtime,/avisReminder\.missingCarrier/);
 });
 
 test('RC1484: ausgelieferter HTML-Shell stellt die wiederverwendete Legacy-Mail-API bereit',()=>{
