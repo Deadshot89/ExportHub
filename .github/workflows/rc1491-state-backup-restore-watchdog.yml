@@ -33,7 +33,11 @@ jobs:
             const issueTitle='[OPS] State Backup/Restore Watchdog';
             const monitored=[
               {name:'RC1267 State Backup Lifecycle',workflowId:'rc1267-state-backup.yml'},
-              {name:'RC1137 State Compaction / TESTSERVICE Restore-Drill',workflowId:'rc1137-state-compaction.yml'}
+              {
+                name:'RC1137 State Compaction / TESTSERVICE Restore-Drill',
+                workflowId:'rc1137-state-compaction.yml',
+                jobName:'TESTSERVICE State kompaktieren'
+              }
             ];
 
             const health=[];
@@ -47,10 +51,25 @@ jobs:
                 per_page:1
               });
               const run=data.workflow_runs[0]||null;
+              let conclusion=run?.conclusion||'missing';
+              let healthy=Boolean(run)&&run.conclusion === 'success';
+
+              if(run&&item.jobName){
+                const jobs=await github.paginate(github.rest.actions.listJobsForWorkflowRun,{
+                  owner:context.repo.owner,
+                  repo:context.repo.repo,
+                  run_id:run.id,
+                  per_page:100
+                });
+                const job=jobs.find(candidate=>candidate.name===item.jobName)||null;
+                conclusion=job?.conclusion||'missing-job';
+                healthy=Boolean(job)&&job.conclusion==='success';
+              }
+
               health.push({
                 name:item.name,
-                healthy:Boolean(run)&&run.conclusion === 'success',
-                conclusion:run?.conclusion||'missing',
+                healthy,
+                conclusion,
                 html_url:run?.html_url||null,
                 run_number:run?.run_number||null,
                 updated_at:run?.updated_at||null
@@ -125,7 +144,7 @@ jobs:
                 owner:context.repo.owner,
                 repo:context.repo.repo,
                 issue_number:issue.number,
-                body:`RC1491: Beide überwachten Workflows sind wieder gesund.\n\n${statusLines.join('\n')}`
+                body:`RC1491: Backup und TESTSERVICE-Restore-Drill sind wieder gesund.\n\n${statusLines.join('\n')}`
               });
               await github.rest.issues.update({
                 owner:context.repo.owner,
