@@ -1,0 +1,22 @@
+name: RC1485 Targeted TDD
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'assets/pack-notification-internal.js'
+      - 'assets/pack-notification-shipment.js'
+      - 'test/rc1485-pack-persistence-confirmation.test.mjs'
+      - '.github/workflows/rc1485-targeted.yml'
+permissions:
+  contents: read
+jobs:
+  targeted:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: RC1485 persistence regression
+        run: node --test test/rc1485-pack-persistence-confirmation.test.mjs
