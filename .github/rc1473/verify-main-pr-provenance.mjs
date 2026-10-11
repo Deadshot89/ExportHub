@@ -22,6 +22,17 @@ function readPushEvent(env,eventPayload,readFileImpl){
   }
 }
 
+function requestHeaders(env){
+  const headers={
+    'Accept':'application/vnd.github+json',
+    'X-GitHub-Api-Version':API_VERSION,
+    'User-Agent':'ExportHUB-RC1473-Release-Provenance'
+  };
+  const token=text(env.GITHUB_TOKEN);
+  if(token)headers.Authorization=`Bearer ${token}`;
+  return headers;
+}
+
 export async function verifyMainPrProvenance({
   env=process.env,
   fetchImpl=globalThis.fetch,
@@ -48,29 +59,43 @@ export async function verifyMainPrProvenance({
   }
 
   const maxAttempts=Math.max(1,Number(attempts)||1);
-  const url=`https://api.github.com/repos/${repository}/commits/${encodeURIComponent(sha)}/pulls`;
-  let lastReason='kein zugeordneter gemergter PR nach main mit passender Merge-Basis gefunden';
+  const encodedSha=encodeURIComponent(sha);
+  const pullsUrl=`https://api.github.com/repos/${repository}/commits/${encodedSha}/pulls`;
+  const commitUrl=`https://api.github.com/repos/${repository}/commits/${encodedSha}`;
+  const headers=requestHeaders(env);
+  let lastReason='kein zugeordneter gemergter PR nach main für den aktuellen Merge-Commit gefunden';
 
   for(let attempt=1;attempt<=maxAttempts;attempt++){
     try{
-      const headers={
-        'Accept':'application/vnd.github+json',
-        'X-GitHub-Api-Version':API_VERSION,
-        'User-Agent':'ExportHUB-RC1473-Release-Provenance'
-      };
-      const token=text(env.GITHUB_TOKEN);
-      if(token)headers.Authorization=`Bearer ${token}`;
-      const response=await fetchImpl(url,{method:'GET',headers});
+      const response=await fetchImpl(pullsUrl,{method:'GET',headers});
       if(response&&response.ok){
         const items=await response.json();
         const prs=Array.isArray(items)?items:[];
-        const merged=prs.find(pr=>pr&&pr.merged_at&&pr.base&&text(pr.base.ref)==='main'&&text(pr.base.sha)===before);
+        const merged=prs.find(pr=>pr&&pr.merged_at&&pr.base&&text(pr.base.ref)==='main'&&text(pr.merge_commit_sha)===sha);
         if(merged){
-          return{checked:true,pullRequest:Number(merged.number)||null,sha,before};
+          const commitResponse=await fetchImpl(commitUrl,{method:'GET',headers});
+          if(commitResponse&&commitResponse.ok){
+            const commit=await commitResponse.json();
+            const parents=Array.isArray(commit&&commit.parents)?commit.parents:[];
+            const firstParent=text(parents[0]&&parents[0].sha);
+            if(firstParent!==before){
+              lastReason=`tatsächlicher Merge-Commit hat nicht die Push-Basis ${before} als ersten Parent`;
+            }else{
+              const headSha=text(merged.head&&merged.head.sha);
+              if(parents.length>1&&headSha&&!parents.slice(1).some(parent=>text(parent&&parent.sha)===headSha)){
+                lastReason='tatsächlicher Merge-Commit enthält nicht den Head des zugeordneten Pull Requests';
+              }else{
+                return{checked:true,pullRequest:Number(merged.number)||null,sha,before};
+              }
+            }
+          }else{
+            lastReason=`GitHub Commit-API antwortet mit HTTP ${commitResponse&&commitResponse.status||'unbekannt'}`;
+          }
+        }else{
+          lastReason='kein zugeordneter gemergter PR nach main für den aktuellen Merge-Commit gefunden';
         }
-        lastReason='kein zugeordneter gemergter PR nach main mit passender Merge-Basis gefunden';
       }else{
-        lastReason=`GitHub API antwortet mit HTTP ${response&&response.status||'unbekannt'}`;
+        lastReason=`GitHub PR-API antwortet mit HTTP ${response&&response.status||'unbekannt'}`;
       }
     }catch(error){
       lastReason=`GitHub API nicht erreichbar: ${text(error&&error.message||error)}`;
