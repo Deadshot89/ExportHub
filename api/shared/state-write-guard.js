@@ -2,6 +2,7 @@
 
 const { isDeepStrictEqual } = require('node:util');
 const { DOCUMENT_FIELDS } = require('./document-blob-store');
+const { mergeCollection } = require('./merge');
 const { isAdmin } = require('./user-policy');
 
 const DOCUMENT_FIELD_SET = new Set(DOCUMENT_FIELDS || []);
@@ -42,6 +43,8 @@ const DOCUMENT_AWARE = Object.freeze({
 });
 
 function text(value) { return String(value == null ? '' : value).trim().toLowerCase(); }
+function isObject(value) { return !!value && typeof value === 'object' && !Array.isArray(value); }
+function hasOwn(value, key) { return !!value && Object.prototype.hasOwnProperty.call(value, key); }
 
 function canEditModule(user, moduleId) {
   if (isAdmin(user)) return true;
@@ -74,6 +77,54 @@ function documentOnlyChange(before, after) {
   return changed(before, after) && !changed(stripDocumentFields(before), stripDocumentFields(after));
 }
 
+function fieldTime(state, key) {
+  const fields = state && state._teamSyncMeta && isObject(state._teamSyncMeta.fields)
+    ? state._teamSyncMeta.fields : {};
+  const value = fields[key];
+  const stamp = value && typeof value === 'object' ? value.updatedAt : value;
+  const parsed = Date.parse(stamp || '');
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function mergeObjectProjection(serverValue, incomingValue) {
+  if (!isObject(serverValue)) return incomingValue;
+  if (!isObject(incomingValue)) return serverValue;
+  const out = Object.assign({}, serverValue);
+  for (const [key, value] of Object.entries(incomingValue)) {
+    out[key] = isObject(value) && isObject(out[key])
+      ? mergeObjectProjection(out[key], value)
+      : value;
+  }
+  return out;
+}
+
+function effectiveKeyChange(serverState, incomingState, key) {
+  const server = serverState && typeof serverState === 'object' ? serverState : {};
+  const incoming = incomingState && typeof incomingState === 'object' ? incomingState : {};
+  const serverValue = server[key];
+  if (!hasOwn(incoming, key)) return { changed: false, before: serverValue, after: serverValue };
+  const incomingValue = incoming[key];
+
+  if (Array.isArray(serverValue) || Array.isArray(incomingValue)) {
+    // RC1490: mergeCollection normalisiert einzelne Collections (z. B. customerHistory/processStatus).
+    // Deshalb wird die angeforderte Änderung gegen denselben normalisierten Server-Baseline-Merge
+    // verglichen. So zählen ausschließlich wirksame Client-Änderungen, nicht Merge-Nebenwirkungen.
+    const tombstones = new Map();
+    const before = mergeCollection(key, serverValue, serverValue, tombstones);
+    const after = mergeCollection(key, serverValue, incomingValue, tombstones);
+    return { changed: changed(before, after), before, after };
+  }
+
+  const serverTs = fieldTime(server, key);
+  const incomingTs = fieldTime(incoming, key);
+  let after;
+  if (incomingTs > serverTs) after = incomingValue;
+  else if (serverTs > incomingTs) after = serverValue;
+  else if (isObject(serverValue) || isObject(incomingValue)) after = mergeObjectProjection(serverValue, incomingValue);
+  else after = incomingValue !== undefined ? incomingValue : serverValue;
+  return { changed: changed(serverValue, after), before: serverValue, after };
+}
+
 function forbidden(key, modules) {
   const error = new Error('api.state.writeForbidden');
   error.code = 'STATE_MODULE_WRITE_FORBIDDEN';
@@ -86,10 +137,9 @@ function requiredModulesForKey(key) {
   return DIRECT_RIGHTS[key] || DOCUMENT_AWARE[key] || null;
 }
 
-function assertKeyChangeAllowed(serverState, mergedState, user, key) {
-  const before = serverState && serverState[key];
-  const after = mergedState && mergedState[key];
-  if (!changed(before, after)) return;
+function assertKeyChangeAllowed(serverState, incomingState, user, key) {
+  const effect = effectiveKeyChange(serverState, incomingState, key);
+  if (!effect.changed) return;
 
   const direct = DIRECT_RIGHTS[key];
   if (direct) {
@@ -100,7 +150,7 @@ function assertKeyChangeAllowed(serverState, mergedState, user, key) {
   const domain = DOCUMENT_AWARE[key];
   if (!domain) return;
   if (canEditAny(user, domain)) return;
-  if (documentOnlyChange(before, after) && canEditModule(user, 'documents')) return;
+  if (documentOnlyChange(effect.before, effect.after) && canEditModule(user, 'documents')) return;
   forbidden(key, domain);
 }
 
@@ -118,7 +168,7 @@ function newIncomingTombstones(serverState, incomingState) {
   return incoming.filter((item) => !existing.has(tombstoneIdentity(item)));
 }
 
-function assertMetadataAllowed(serverState, mergedState, incomingState, user) {
+function assertMetadataAllowed(serverState, incomingState, user) {
   const serverFields = serverState && serverState._teamSyncMeta && serverState._teamSyncMeta.fields || {};
   const incomingFields = incomingState && incomingState._teamSyncMeta && incomingState._teamSyncMeta.fields || {};
 
@@ -128,9 +178,8 @@ function assertMetadataAllowed(serverState, mergedState, incomingState, user) {
     if (!modules) continue;
 
     if (DOCUMENT_AWARE[key]) {
-      const before = serverState && serverState[key];
-      const after = mergedState && mergedState[key];
-      if (documentOnlyChange(before, after) && canEditModule(user, 'documents')) continue;
+      const effect = effectiveKeyChange(serverState, incomingState, key);
+      if (effect.changed && documentOnlyChange(effect.before, effect.after) && canEditModule(user, 'documents')) continue;
     }
     if (!canEditAny(user, modules)) forbidden(`_teamSyncMeta.fields.${key}`, modules);
   }
@@ -145,12 +194,11 @@ function assertMetadataAllowed(serverState, mergedState, incomingState, user) {
 function assertMergedStateWriteAllowed(serverState, mergedState, incomingState, user) {
   if (!user || isAdmin(user)) return true;
   const server = serverState && typeof serverState === 'object' ? serverState : {};
-  const merged = mergedState && typeof mergedState === 'object' ? mergedState : {};
   const incoming = incomingState && typeof incomingState === 'object' ? incomingState : {};
 
-  for (const key of Object.keys(DIRECT_RIGHTS)) assertKeyChangeAllowed(server, merged, user, key);
-  for (const key of Object.keys(DOCUMENT_AWARE)) assertKeyChangeAllowed(server, merged, user, key);
-  assertMetadataAllowed(server, merged, incoming, user);
+  for (const key of Object.keys(DIRECT_RIGHTS)) assertKeyChangeAllowed(server, incoming, user, key);
+  for (const key of Object.keys(DOCUMENT_AWARE)) assertKeyChangeAllowed(server, incoming, user, key);
+  assertMetadataAllowed(server, incoming, user);
   return true;
 }
 
@@ -161,5 +209,6 @@ module.exports = {
   canEditAny,
   stripDocumentFields,
   documentOnlyChange,
+  effectiveKeyChange,
   assertMergedStateWriteAllowed
 };
