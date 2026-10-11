@@ -66,6 +66,17 @@
       }
     },
     {
+      "route": "/production-version.js",
+      "allowedRoles": [
+        "anonymous"
+      ],
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+        "X-Content-Type-Options": "nosniff",
+        "X-ExportHUB-Environment": "test"
+      }
+    },
+    {
       "route": "/pickup",
       "rewrite": "/pickup.html",
       "allowedRoles": [
