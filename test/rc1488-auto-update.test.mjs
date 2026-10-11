@@ -24,7 +24,7 @@ function runtime(extra={}){
         addEventListener(type,fn){this._listeners=this._listeners||{};this._listeners[type]=fn},remove(){if(this.id)elements.delete(this.id)}};
     },
     addEventListener(type,fn){listeners['document:'+type]=fn},
-    currentScript:{dataset:{buildId:extra.buildId||'build-a',visibleRelease:'RC1488'}}
+    currentScript:{dataset:{buildId:extra.buildId||'aaaaaaa',visibleRelease:'RC1488'}}
   };
   const root={
     __EXPORTHUB_AUTO_UPDATE_DISABLE_AUTO_INSTALL__:true,
@@ -32,7 +32,7 @@ function runtime(extra={}){
     location:{reload(){reloads++}},
     sessionStorage:storage(extra.sessionStorage||{}),
     ExportHUBClean:{runtime:Object.assign({changeGeneration:1,lastSavedGeneration:1,saving:false},extra.cleanRuntime||{})},
-    fetch:async(url,options)=>{fetchCalls.push([String(url),options||{}]);return extra.fetchResponse||{ok:true,json:async()=>({schema:'exporthub-update-v1',buildId:extra.remoteBuildId||'build-b',visibleRelease:'RC1488'})}},
+    fetch:async(url,options)=>{fetchCalls.push([String(url),options||{}]);return extra.fetchResponse||{ok:true,text:async()=>`window.__EXPORTHUB_UPDATE_BUILD__='${extra.remoteBuildId||'bbbbbbb'}';\nwindow.__EXPORTHUB_UPDATE_RELEASE__='RC1488';\n`}},
     addEventListener(type,fn){listeners[type]=fn},
     setInterval(fn,ms){intervals.push([fn,ms]);return intervals.length},clearInterval(){},setTimeout(fn){if(extra.runTimeouts)fn();return 1},clearTimeout(){},
     Date,Promise,console:{warn(){},error(){},info(){}},
@@ -59,46 +59,46 @@ test('RC1488: Dirty-State nutzt die echte ExportHUB-Speichergeneration',()=>{
 });
 
 test('RC1488: gleiche Build-ID lädt die Seite nicht neu',async()=>{
-  const rt=runtime({remoteBuildId:'build-a'});
+  const rt=runtime({remoteBuildId:'aaaaaaa'});
   const result=await rt.api.check();
   assert.equal(result.status,'current');
   assert.equal(rt.reloads,0);
 });
 
 test('RC1488: neue Build-ID lädt bei sauberem Zustand automatisch neu',async()=>{
-  const rt=runtime({remoteBuildId:'build-b'});
+  const rt=runtime({remoteBuildId:'bbbbbbb'});
   const result=await rt.api.check();
   assert.equal(result.status,'reloading');
   assert.equal(rt.reloads,1);
 });
 
 test('RC1488: neue Build-ID lädt bei ungespeicherten Änderungen niemals automatisch neu',async()=>{
-  const rt=runtime({remoteBuildId:'build-b',cleanRuntime:{changeGeneration:3,lastSavedGeneration:2}});
+  const rt=runtime({remoteBuildId:'bbbbbbb',cleanRuntime:{changeGeneration:3,lastSavedGeneration:2}});
   const result=await rt.api.check();
   assert.equal(result.status,'blocked-dirty');
   assert.equal(rt.reloads,0);
   assert.ok(rt.elements.get('exporthub-rc1488-update-banner'),'Update-Hinweis fehlt');
 });
 
-test('RC1488: Versionsprüfung umgeht Browsercache',async()=>{
-  const rt=runtime({remoteBuildId:'build-a'});
+test('RC1488: Versionsprüfung nutzt den ohnehin deployten Produktionsmarker und umgeht Browsercache',async()=>{
+  const rt=runtime({remoteBuildId:'aaaaaaa'});
   await rt.api.check();
   assert.equal(rt.fetchCalls.length,1);
-  assert.match(rt.fetchCalls[0][0],/^\/exporthub-update\.json\?_/);
+  assert.match(rt.fetchCalls[0][0],/^\/production-version\.js\?_/);
   assert.equal(rt.fetchCalls[0][1].cache,'no-store');
   assert.equal(rt.fetchCalls[0][1].credentials,'same-origin');
 });
 
 test('RC1488: Reload-Lock verhindert eine Aktualisierungsschleife',async()=>{
-  const lock=JSON.stringify({from:'build-a',to:'build-b',at:Date.now()});
-  const rt=runtime({remoteBuildId:'build-b',sessionStorage:{'exporthub:rc1488:reload-lock':lock}});
+  const lock=JSON.stringify({from:'aaaaaaa',to:'bbbbbbb',at:Date.now()});
+  const rt=runtime({remoteBuildId:'bbbbbbb',sessionStorage:{'exporthub:rc1488:reload-lock':lock}});
   const result=await rt.api.check();
   assert.equal(result.status,'reload-locked');
   assert.equal(rt.reloads,0);
 });
 
 test('RC1488: install prüft alle fünf Minuten sowie bei Fokus/Online/Rückkehr',()=>{
-  const rt=runtime({remoteBuildId:'build-a'});
+  const rt=runtime({remoteBuildId:'aaaaaaa'});
   rt.api.install();
   assert.equal(rt.intervals[0][1],300000);
   assert.equal(typeof rt.listeners.focus,'function');
