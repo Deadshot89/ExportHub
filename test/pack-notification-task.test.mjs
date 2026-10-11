@@ -101,3 +101,21 @@ test('existing rc1014 five-group contract remains untouched and adapter owns pac
   assert.match(adapter,/renderPackInbox/);
   assert.match(adapter,/openNotificationDetail/);
 });
+
+test('Packmeldungen navigation has exactly one DOM owner',()=>{
+  const adapter=fs.readFileSync('assets/pack-notification-internal.js','utf8');
+  const nav=fs.readFileSync('assets/pack-notification-nav.js','utf8');
+  assert.doesNotMatch(adapter,/function\s+ensurePackNav\s*\(/,'internal inbox runtime must not create its own navigation entry');
+  assert.doesNotMatch(adapter,/closest\([^\n]*data-pack-notifications-nav/,'internal inbox runtime must not intercept navigation clicks');
+  assert.match(nav,/cloneNode\(true\)/,'navigation owner must preserve the existing menu item structure');
+  assert.match(nav,/data-pack-notifications-nav-owner/,'canonical navigation entries must be identifiable and replace stale malformed entries');
+});
+
+test('live pack E2E follows the current public form and standalone inbox',()=>{
+  const e2e=fs.readFileSync('e2e/specs/pack-notification.spec.mjs','utf8');
+  assert.doesNotMatch(e2e,/#packDeliveryNote/,'removed delivery-note field must not be used');
+  assert.match(e2e,/#packCustomerManualConfirm/,'manual E2E customer must be explicitly confirmed');
+  assert.match(e2e,/data-pack-notifications-nav/,'E2E must open the dedicated Packmeldungen navigation');
+  assert.match(e2e,/#packNotificationInbox/,'E2E must verify the standalone Packmeldungen inbox');
+  assert.doesNotMatch(e2e,/#packNotificationTaskSection/,'obsolete Aufgaben integration must not be used');
+});
