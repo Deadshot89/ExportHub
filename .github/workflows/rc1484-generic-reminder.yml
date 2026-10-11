@@ -8,8 +8,7 @@ on:
       - 'test/rc1484-generic-pickup-reminder.test.mjs'
       - '.github/workflows/rc1484-generic-reminder.yml'
   push:
-    branches:
-      - 'fix/rc1484-generic-pickup-reminder'
+    branches: [main]
     paths:
       - 'assets/rc1166-avis-reminder-overview.js'
       - 'test/rc1484-generic-pickup-reminder.test.mjs'
