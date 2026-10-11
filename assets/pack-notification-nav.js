@@ -43,7 +43,11 @@
     }
     const label=doc.createElement('span');label.className='pack-notification-nav-label';label.textContent='Packmeldungen';node.appendChild(label);
   }
-  function isCanonical(node){return !!(node&&node.getAttribute&&node.getAttribute('data-pack-notifications-nav-owner')==='nav-runtime');}
+  function isCanonical(node){
+    if(!node)return false;
+    if(typeof node.getAttribute!=='function')return true;
+    return node.getAttribute('data-pack-notifications-nav-owner')==='nav-runtime';
+  }
   function removeEntry(node){
     if(!node)return;
     if(typeof node.remove==='function'){node.remove();return;}
