@@ -14,11 +14,12 @@ function fixture(){
   fs.writeFileSync(path.join(root,'release-version.json'),JSON.stringify({visibleRelease:'RC1488',technicalBuild:'RC1112'}));
   fs.writeFileSync(path.join(out,'index.html'),'<!doctype html><html><head><title>P</title></head><body></body></html>');
   fs.writeFileSync(path.join(out,'TESTVERSION.html'),'<!doctype html><html><head><title>T</title></head><body></body></html>');
+  fs.writeFileSync(path.join(out,'production-version.js'),"window.__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1112';\n");
   for(const name of ['staticwebapp.config.json','staticwebapp.testservice.config.json'])fs.writeFileSync(path.join(out,name),JSON.stringify({routes:[{route:'/',headers:{'Cache-Control':'no-store'}}]}));
   return {root,out};
 }
 
-test('RC1488: Finalizer erzeugt deploymentgenaues Manifest und bindet Runtime in Produktion + TESTSERVICE ein',()=>{
+test('RC1488: Finalizer schreibt deploymentgenaue Marker in den ohnehin deployten Produktionsprobe und bindet Runtime ein',()=>{
   const {root,out}=fixture();
   const sha='0123456789abcdef0123456789abcdef01234567';
   const manifest=finalizeAutoUpdate({root,out,env:{EXPORTHUB_BUILD_ID:sha},now:()=>new Date('2026-10-11T12:00:00.000Z')});
@@ -30,10 +31,13 @@ test('RC1488: Finalizer erzeugt deploymentgenaues Manifest und bindet Runtime in
     assert.match(html,/src="\/assets\/rc1488-auto-update\.js\?v=1488"/);
     assert.match(html,new RegExp(`data-build-id="${sha}"`));
   }
-  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(out,'exporthub-update.json'),'utf8')),manifest);
+  const probe=fs.readFileSync(path.join(out,'production-version.js'),'utf8');
+  assert.match(probe,new RegExp(`__EXPORTHUB_UPDATE_BUILD__='${sha}'`));
+  assert.match(probe,/__EXPORTHUB_UPDATE_RELEASE__='RC1488'/);
+  assert.match(probe,/__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1112'/);
 });
 
-test('RC1488: Finalizer ist idempotent und erzeugt niemals doppelte Script-Tags',()=>{
+test('RC1488: Finalizer ist idempotent und erzeugt niemals doppelte Script- oder Probe-Marker',()=>{
   const {root,out}=fixture();
   const env={EXPORTHUB_BUILD_ID:'abcdef0123456789abcdef0123456789abcdef01'};
   finalizeAutoUpdate({root,out,env});
@@ -42,11 +46,14 @@ test('RC1488: Finalizer ist idempotent und erzeugt niemals doppelte Script-Tags'
     const html=fs.readFileSync(path.join(out,file),'utf8');
     assert.equal((html.match(/id="exporthub-rc1488-auto-update"/g)||[]).length,1);
   }
+  const probe=fs.readFileSync(path.join(out,'production-version.js'),'utf8');
+  assert.equal((probe.match(/__EXPORTHUB_UPDATE_BUILD__/g)||[]).length,1);
+  assert.equal((probe.match(/__EXPORTHUB_UPDATE_RELEASE__/g)||[]).length,1);
 });
 
-test('RC1488: Update-Manifest wird am Azure-CDN explizit auf no-store gesetzt',()=>{
-  const next=ensureManifestNoStore({routes:[{route:'/'},{route:'/exporthub-update.json',headers:{'X-Test':'1'}}]});
-  const route=next.routes.find(row=>row.route==='/exporthub-update.json');
+test('RC1488: production-version.js wird am Azure-CDN explizit auf no-store gesetzt',()=>{
+  const next=ensureManifestNoStore({routes:[{route:'/'},{route:'/production-version.js',headers:{'X-Test':'1'}}]});
+  const route=next.routes.find(row=>row.route==='/production-version.js');
   assert.match(route.headers['Cache-Control'],/no-store/);
   assert.equal(route.headers['X-Content-Type-Options'],'nosniff');
   assert.equal(route.headers['X-Test'],'1');
@@ -67,4 +74,13 @@ test('RC1488: Standard-Finalgate und Packmeldungen-Build verwenden denselben Aut
   assert.match(verifier,/finalizeAutoUpdate\(\{root:ROOT,out:OUT\}\)/);
   assert.match(packBuild,/from '\.\.\/rc1488\/finalize-auto-update\.mjs'/);
   assert.match(packBuild,/finalizeAutoUpdate\(\{root,out\}\)/);
+});
+
+test('RC1488: beide deployten Static-Web-App-Konfigurationen halten production-version.js cachefrei',()=>{
+  for(const file of ['staticwebapp.config.json','staticwebapp.testservice.config.json']){
+    const config=JSON.parse(fs.readFileSync(file,'utf8'));
+    const route=(config.routes||[]).find(row=>row&&row.route==='/production-version.js');
+    assert.ok(route,file+': production-version.js Route fehlt');
+    assert.match(String(route.headers&&route.headers['Cache-Control']||''),/no-store/i,file+': production-version.js ist nicht no-store');
+  }
 });
