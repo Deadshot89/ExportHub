@@ -2,7 +2,7 @@
 
 const { isDeepStrictEqual } = require('node:util');
 const { DOCUMENT_FIELDS } = require('./document-blob-store');
-const { mergeCollection } = require('./merge');
+const { mergeCollection, isLocalOnlyKey } = require('./merge');
 const { isAdmin } = require('./user-policy');
 
 const DOCUMENT_FIELD_SET = new Set(DOCUMENT_FIELDS || []);
@@ -43,6 +43,7 @@ const DOCUMENT_AWARE = Object.freeze({
 });
 
 function text(value) { return String(value == null ? '' : value).trim().toLowerCase(); }
+function rawText(value) { return String(value == null ? '' : value).trim(); }
 function isObject(value) { return !!value && typeof value === 'object' && !Array.isArray(value); }
 function hasOwn(value, key) { return !!value && Object.prototype.hasOwnProperty.call(value, key); }
 
@@ -107,9 +108,6 @@ function effectiveKeyChange(serverState, incomingState, key) {
   if (isDeepStrictEqual(serverValue, incomingValue)) return { changed: false, before: serverValue, after: serverValue };
 
   if (Array.isArray(serverValue) || Array.isArray(incomingValue)) {
-    // RC1490: mergeCollection normalisiert einzelne Collections (z. B. customerHistory/processStatus).
-    // Nur bei einer real abweichenden Client-Collection wird deshalb gegen denselben normalisierten
-    // Server-Baseline-Merge projiziert. Unveränderte große Collections werden nicht doppelt gemerged.
     const tombstones = new Map();
     const before = mergeCollection(key, serverValue, serverValue, tombstones);
     const after = mergeCollection(key, serverValue, incomingValue, tombstones);
@@ -155,6 +153,15 @@ function assertKeyChangeAllowed(serverState, incomingState, user, key) {
   forbidden(key, domain);
 }
 
+function assertUnmappedIncomingKeysAllowed(serverState, incomingState) {
+  const incoming = incomingState && typeof incomingState === 'object' ? incomingState : {};
+  for (const key of Object.keys(incoming)) {
+    if (key === '_teamSyncMeta' || isLocalOnlyKey(key) || requiredModulesForKey(key)) continue;
+    const effect = effectiveKeyChange(serverState, incoming, key);
+    if (effect.changed) forbidden(key, []);
+  }
+}
+
 function tombstoneIdentity(item) {
   if (!item || typeof item !== 'object') return '';
   return JSON.stringify(item);
@@ -174,9 +181,9 @@ function assertMetadataAllowed(serverState, incomingState, user) {
   const incomingFields = incomingState && incomingState._teamSyncMeta && incomingState._teamSyncMeta.fields || {};
 
   for (const [key, stamp] of Object.entries(incomingFields)) {
-    if (isDeepStrictEqual(serverFields[key], stamp)) continue;
+    if (isDeepStrictEqual(serverFields[key], stamp) || isLocalOnlyKey(key)) continue;
     const modules = requiredModulesForKey(key);
-    if (!modules) continue;
+    if (!modules) forbidden(`_teamSyncMeta.fields.${key}`, []);
 
     if (DOCUMENT_AWARE[key]) {
       const effect = effectiveKeyChange(serverState, incomingState, key);
@@ -186,9 +193,11 @@ function assertMetadataAllowed(serverState, incomingState, user) {
   }
 
   for (const tombstone of newIncomingTombstones(serverState, incomingState)) {
-    const collection = text(tombstone && tombstone.collection);
-    const modules = DIRECT_RIGHTS[collection] || DOCUMENT_AWARE[collection];
-    if (modules && !canEditAny(user, modules)) forbidden(`_teamSyncMeta.tombstones.${collection}`, modules);
+    const collection = rawText(tombstone && tombstone.collection);
+    if (collection && isLocalOnlyKey(collection)) continue;
+    const modules = requiredModulesForKey(collection);
+    if (!modules) forbidden(`_teamSyncMeta.tombstones.${collection || 'unknown'}`, []);
+    if (!canEditAny(user, modules)) forbidden(`_teamSyncMeta.tombstones.${collection}`, modules);
   }
 }
 
@@ -197,6 +206,7 @@ function assertMergedStateWriteAllowed(serverState, mergedState, incomingState, 
   const server = serverState && typeof serverState === 'object' ? serverState : {};
   const incoming = incomingState && typeof incomingState === 'object' ? incomingState : {};
 
+  assertUnmappedIncomingKeysAllowed(server, incoming);
   for (const key of Object.keys(DIRECT_RIGHTS)) assertKeyChangeAllowed(server, incoming, user, key);
   for (const key of Object.keys(DOCUMENT_AWARE)) assertKeyChangeAllowed(server, incoming, user, key);
   assertMetadataAllowed(server, incoming, user);
