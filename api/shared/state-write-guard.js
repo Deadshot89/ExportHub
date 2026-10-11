@@ -43,6 +43,7 @@ const DOCUMENT_AWARE = Object.freeze({
 });
 
 function text(value) { return String(value == null ? '' : value).trim().toLowerCase(); }
+function rawText(value) { return String(value == null ? '' : value).trim(); }
 function isObject(value) { return !!value && typeof value === 'object' && !Array.isArray(value); }
 function hasOwn(value, key) { return !!value && Object.prototype.hasOwnProperty.call(value, key); }
 
@@ -183,9 +184,9 @@ function assertMetadataAllowed(serverState, incomingState, user) {
   const incomingFields = incomingState && incomingState._teamSyncMeta && incomingState._teamSyncMeta.fields || {};
 
   for (const [key, stamp] of Object.entries(incomingFields)) {
-    if (isDeepStrictEqual(serverFields[key], stamp)) continue;
+    if (isDeepStrictEqual(serverFields[key], stamp) || isLocalOnlyKey(key)) continue;
     const modules = requiredModulesForKey(key);
-    if (!modules) continue;
+    if (!modules) forbidden(`_teamSyncMeta.fields.${key}`, []);
 
     if (DOCUMENT_AWARE[key]) {
       const effect = effectiveKeyChange(serverState, incomingState, key);
@@ -195,9 +196,11 @@ function assertMetadataAllowed(serverState, incomingState, user) {
   }
 
   for (const tombstone of newIncomingTombstones(serverState, incomingState)) {
-    const collection = text(tombstone && tombstone.collection);
-    const modules = DIRECT_RIGHTS[collection] || DOCUMENT_AWARE[collection];
-    if (modules && !canEditAny(user, modules)) forbidden(`_teamSyncMeta.tombstones.${collection}`, modules);
+    const collection = rawText(tombstone && tombstone.collection);
+    if (collection && isLocalOnlyKey(collection)) continue;
+    const modules = requiredModulesForKey(collection);
+    if (!modules) forbidden(`_teamSyncMeta.tombstones.${collection || 'unknown'}`, []);
+    if (!canEditAny(user, modules)) forbidden(`_teamSyncMeta.tombstones.${collection}`, modules);
   }
 }
 
