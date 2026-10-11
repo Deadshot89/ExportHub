@@ -1,3 +1,4 @@
+// RC1484 one-shot helper; real release i18n gate runs in the repository verification workflow.
 const fs=require('node:fs');
 
 function replaceOnce(source,from,to,label){
