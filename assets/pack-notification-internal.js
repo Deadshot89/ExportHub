@@ -186,28 +186,20 @@
   }
   function openTaskDetail(task){const notification=findNotification(sharedState(),task);if(!notification)return false;return openNotificationDetail(notification);}
   function currentView(){try{return q(root.document&&root.document.body&&root.document.body.getAttribute('data-exporthub-view')).toLowerCase()||q(sharedState().view).toLowerCase();}catch(_){return'';}}
-  function ensurePackNav(){
-    const doc=root.document;if(!doc||!doc.querySelector)return false;let node=doc.querySelector('[data-pack-notifications-nav]');if(node)return true;
-    const anchor=doc.querySelector('[data-view="tasks"],[data-page="tasks"],[data-nav="tasks"]');if(!anchor||!anchor.parentNode)return false;
-    node=anchor.cloneNode(false);node.removeAttribute('id');node.removeAttribute('data-view');node.removeAttribute('data-page');node.removeAttribute('data-nav');node.setAttribute('data-pack-notifications-nav','');node.setAttribute('aria-label',tr('pack.internal.inboxTitle'));
-    if(node.tagName==='A')node.setAttribute('href','#packmeldungen');else if(node.tagName==='BUTTON')node.setAttribute('type','button');
-    node.textContent=tr('pack.internal.inboxTitle');anchor.parentNode.insertBefore(node,anchor.nextSibling);return true;
-  }
   function renderNavBadge(){
-    const doc=root.document;if(!doc||!doc.querySelector)return 0;ensurePackNav();const node=doc.querySelector('[data-pack-notifications-nav]');if(!node)return 0;const count=inboxUnreadCount(sharedState());let badge=node.querySelector&&node.querySelector('.pack-internal-nav-badge');if(!count){if(badge)badge.remove();return 0;}if(!badge){badge=doc.createElement('span');badge.className='pack-internal-nav-badge';node.appendChild(badge);}badge.textContent=String(count);badge.setAttribute('aria-label',tr('pack.internal.newMessagesAria',{count}));return 1;
+    const doc=root.document;if(!doc||!doc.querySelector)return 0;const node=doc.querySelector('[data-pack-notifications-nav]');if(!node)return 0;const count=inboxUnreadCount(sharedState());let badge=node.querySelector&&node.querySelector('.pack-internal-nav-badge');if(!count){if(badge)badge.remove();return 0;}if(!badge){badge=doc.createElement('span');badge.className='pack-internal-nav-badge';node.appendChild(badge);}badge.textContent=String(count);badge.setAttribute('aria-label',tr('pack.internal.newMessagesAria',{count}));return 1;
   }
   function findTaskFromNode(node){
     const state=sharedState(),direct=q(node&&node.getAttribute&&node.getAttribute('data-pack-task-id'));if(direct)return taskById(state,direct);
     const textContent=q(node&&node.textContent);return packTasks(state).find(task=>(q(task.sourceRef)&&textContent.includes(q(task.sourceRef)))||(q(task.title)&&textContent.includes(q(task.title))))||null;
   }
   function onClickCapture(event){
-    const nav=event.target&&event.target.closest&&event.target.closest('[data-pack-notifications-nav]');if(nav){event.preventDefault();event.stopPropagation();if(typeof event.stopImmediatePropagation==='function')event.stopImmediatePropagation();renderPackInbox();return;}
     const notificationNode=event.target&&event.target.closest&&event.target.closest('[data-pack-notification-id]');if(notificationNode){const notification=notificationById(sharedState(),notificationNode.getAttribute('data-pack-notification-id'));if(notification){event.preventDefault();event.stopPropagation();openNotificationDetail(notification);}return;}
     const target=event.target&&event.target.closest&&event.target.closest('[data-pack-task-id],.rc229-task-card.rc628-unified-task,.task-card,.index236-item');if(!target)return;
     const task=findTaskFromNode(target);if(!task)return;
     event.preventDefault();event.stopPropagation();if(typeof event.stopImmediatePropagation==='function')event.stopImmediatePropagation();openTaskDetail(task);
   }
-  function scheduleRender(){clearTimeout(renderTimer);renderTimer=setTimeout(()=>{ensurePackNav();renderNavBadge();},40);}
+  function scheduleRender(){clearTimeout(renderTimer);renderTimer=setTimeout(renderNavBadge,40);}
   function refresh(){if(currentView()==='packnotifications')renderPackInbox();else scheduleRender();}
   function install(){
     const doc=root.document;if(!doc||doc.__packNotificationsInstalled)return false;doc.__packNotificationsInstalled=true;
@@ -217,6 +209,6 @@
     scheduleRender();return true;
   }
 
-  root.ExportHUBPackNotifications=Object.freeze({isPackTask,packTasks,packNotifications,findNotification,unreadCount,markRead,detailModel,inboxItems,inboxUnreadCount,documentUrl,renderPackInbox,renderNavBadge,openNotificationDetail,openTaskDetail,ensurePackNav,install});
+  root.ExportHUBPackNotifications=Object.freeze({isPackTask,packTasks,packNotifications,findNotification,unreadCount,markRead,detailModel,inboxItems,inboxUnreadCount,documentUrl,renderPackInbox,renderNavBadge,openNotificationDetail,openTaskDetail,install});
   install();
 })(typeof window!=='undefined'?window:globalThis);

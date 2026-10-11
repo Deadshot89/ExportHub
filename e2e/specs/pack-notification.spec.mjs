@@ -1,5 +1,5 @@
 import {test,expect} from '@playwright/test';
-import {appEntry,waitReady,openExportHubView,installE2ESession,settleStateSave,attachRuntimeGuards,assertRuntimeClean,assertNoHorizontalOverflow} from '../helpers/exporthub-browser.mjs';
+import {appEntry,waitReady,installE2ESession,settleStateSave,attachRuntimeGuards,assertRuntimeClean,assertNoHorizontalOverflow} from '../helpers/exporthub-browser.mjs';
 
 const token=String(process.env.EXPORTHUB_E2E_PACK_STATION_TOKEN||'').trim();
 
@@ -7,7 +7,8 @@ async function createPackNotification(page,suffix='A'){
   await page.goto(`/pack/${encodeURIComponent(token)}`,{waitUntil:'domcontentloaded'});
   await expect(page.locator('#packForm')).toBeVisible({timeout:20_000});
   await page.locator('#packCustomer').fill(`E2E PACK CUSTOMER ${suffix}`);
-  await page.locator('#packDeliveryNote').fill(`E2E-LS-${suffix}`);
+  await expect(page.locator('#packCustomerManualConfirm')).toBeVisible({timeout:10_000});
+  await page.locator('#packCustomerManualConfirm').click();
   await page.locator('#packPackageType').selectOption({label:'Europalette'});
   await page.locator('#packPackageCount').fill('2');
   await page.locator('#packWeight').fill('680');
@@ -27,7 +28,7 @@ async function createPackNotification(page,suffix='A'){
   return reference;
 }
 
-test('QR pack flow creates isolated task, notification detail and shipment handoff',async({browser},testInfo)=>{
+test('QR pack flow creates isolated notifications, detail and shipment handoff',async({browser},testInfo)=>{
   test.setTimeout(180_000);
   test.skip(process.env.EXPORTHUB_E2E_LIVE!=='1'||process.env.EXPORTHUB_E2E_MUTATION!=='1'||!token,'requires live mutable TESTSERVICE and EXPORTHUB_E2E_PACK_STATION_TOKEN');
   test.skip(testInfo.project.name!=='laptop','runs once on laptop profile');
@@ -47,13 +48,15 @@ test('QR pack flow creates isolated task, notification detail and shipment hando
   await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
   await waitReady(page);
   await settleStateSave(page,{timeout:30_000});
-  await openExportHubView(page,'tasks',['Aufgaben'],/Aufgaben|Packmeldungen/i,{allowProgrammaticFallback:true});
 
-  const section=page.locator('#packNotificationTaskSection');
+  const nav=page.locator('[data-pack-notifications-nav]');
+  await expect(nav).toBeVisible({timeout:30_000});
+  await nav.click();
+  const section=page.locator('#packNotificationInbox');
   await expect(section).toBeVisible({timeout:30_000});
   await expect(section).toContainText(refA);
   await expect(section).toContainText(refB);
-  const task=section.locator('[data-pack-task-id]').filter({hasText:refA}).first();
+  const task=section.locator('[data-pack-notification-id]').filter({hasText:refA}).first();
   await task.click();
   await expect(page.locator('#packNotificationDetail')).toBeVisible();
   await expect(page.locator('#packNotificationDetail')).toContainText('680 kg');
