@@ -104,11 +104,12 @@ function effectiveKeyChange(serverState, incomingState, key) {
   const serverValue = server[key];
   if (!hasOwn(incoming, key)) return { changed: false, before: serverValue, after: serverValue };
   const incomingValue = incoming[key];
+  if (isDeepStrictEqual(serverValue, incomingValue)) return { changed: false, before: serverValue, after: serverValue };
 
   if (Array.isArray(serverValue) || Array.isArray(incomingValue)) {
     // RC1490: mergeCollection normalisiert einzelne Collections (z. B. customerHistory/processStatus).
-    // Deshalb wird die angeforderte Änderung gegen denselben normalisierten Server-Baseline-Merge
-    // verglichen. So zählen ausschließlich wirksame Client-Änderungen, nicht Merge-Nebenwirkungen.
+    // Nur bei einer real abweichenden Client-Collection wird deshalb gegen denselben normalisierten
+    // Server-Baseline-Merge projiziert. Unveränderte große Collections werden nicht doppelt gemerged.
     const tombstones = new Map();
     const before = mergeCollection(key, serverValue, serverValue, tombstones);
     const after = mergeCollection(key, serverValue, incomingValue, tombstones);
