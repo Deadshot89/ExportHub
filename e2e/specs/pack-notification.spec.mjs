@@ -11,7 +11,6 @@ async function createPackNotification(page,suffix='A'){
   await page.locator('#packCustomer').fill(`E2E PACK CUSTOMER ${suffix}`);
   await expect(page.locator('#packCustomerManualConfirm')).toBeVisible({timeout:10_000});
   await page.locator('#packCustomerManualConfirm').click();
-  await page.locator('#packDeliveryNoteReference').fill(`DNC-E2E-${suffix}`);
   await page.locator('#packPackageType').selectOption({label:'Europalette'});
   await page.locator('#packPackageCount').fill('2');
   await page.locator('#packWeight').fill('680');
@@ -34,8 +33,8 @@ async function createPackNotification(page,suffix='A'){
   await card.click();
   await expect(page.locator('#packFormMode')).toContainText('Entwurf weiterbearbeiten');
   await expect(page.locator('#packCustomer')).toHaveValue(`E2E PACK CUSTOMER ${suffix}`);
-  await expect(page.locator('#packDeliveryNoteReference')).toHaveValue(`DNC-E2E-${suffix}`);
   await expect(page.locator('#packPackageCount')).toHaveValue('2');
+  await expect(page.locator('#packDocumentList')).toContainText(`E2E-${suffix}.pdf`);
 
   await expect(page.locator('#packSubmit')).toBeEnabled();
   await page.locator('#packSubmit').click();
