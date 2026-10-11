@@ -19,4 +19,4 @@ jobs:
           node-version: '20'
           package-manager-cache: false
       - name: Packmeldungen Nav Harness Regression
-        run: node --test test/rc1474-pack-nav-observer-scope.test.mjs
+        run: node --test test/rc1474-pack-nav-observer-scope.test.mjs test/pack-notification-task.test.mjs
