@@ -28,6 +28,7 @@ function restrictedTaskEditor(){
       customers:right('none'),
       shipment:right('none'),
       documents:right('none'),
+      pallet:right('none'),
       settings:right('none')
     }
   };
@@ -80,6 +81,21 @@ test('RC1491: unbekannte Tombstone-Collection darf keine serverseitigen Daten lo
   incoming._teamSyncMeta.tombstones.push({
     collection:'futureSensitiveItems',
     id:'F1',
+    deletedAt:'2099-01-01T00:00:00.000Z'
+  });
+  expectForbidden(server,incoming);
+});
+
+test('RC1491: camelCase Tombstone-Collection behaelt ihr Modulrecht',()=>{
+  const server={
+    tasks:[{id:'T1',title:'Alt',updatedAt:'2026-10-11T10:00:00.000Z'}],
+    palletAccount:[{id:'P1',count:1,updatedAt:'2026-10-11T10:00:00.000Z'}],
+    _teamSyncMeta:{fields:{},tombstones:[]}
+  };
+  const incoming=structuredClone(server);
+  incoming._teamSyncMeta.tombstones.push({
+    collection:'palletAccount',
+    id:'P1',
     deletedAt:'2099-01-01T00:00:00.000Z'
   });
   expectForbidden(server,incoming);
