@@ -110,7 +110,6 @@ async function persistOnce(reason){
   if(ok!==true&&runtime&&target>0&&Number(runtime.lastSavedGeneration||0)<target){
     var checks=0;
     while(Number(runtime.lastSavedGeneration||0)<target&&checks<120&&Date.now()<deadline){
-      if(!runtime.saving&&checks>=2)break;
       await saveDelay(100);checks++
     }
   }
