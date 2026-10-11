@@ -47,14 +47,20 @@ function verify(p){
     if(at<headOpen.index||at>headClose)throw new Error(file+': '+id+' steht nicht im echten <head>');
   }
   if(!ARGS.length&&(file==='index.html'||file==='TESTVERSION.html')){
-    const id='exporthub-rc1488-auto-update',needle='id="'+id+'"',n=count(html,needle);
-    if(n!==1)throw new Error(file+': '+id+' muss exakt 1x vorkommen, gefunden '+n);
-    const at=html.indexOf(needle);
-    if(at<headOpen.index||at>headClose)throw new Error(file+': '+id+' steht nicht im echten <head>');
+    const i18nNeedle='id="exporthub-rc1488-auto-update-i18n"';
+    const runtimeNeedle='id="exporthub-rc1488-auto-update"';
+    const i18nCount=count(html,i18nNeedle),runtimeCount=count(html,runtimeNeedle);
+    if(i18nCount!==1)throw new Error(file+': RC1488 Sprachpaket muss exakt 1x vorkommen, gefunden '+i18nCount);
+    if(runtimeCount!==1)throw new Error(file+': RC1488 Runtime muss exakt 1x vorkommen, gefunden '+runtimeCount);
+    const i18nAt=html.indexOf(i18nNeedle),runtimeAt=html.indexOf(runtimeNeedle);
+    if(i18nAt<headOpen.index||i18nAt>headClose)throw new Error(file+': RC1488 Sprachpaket steht nicht im echten <head>');
+    if(runtimeAt<headOpen.index||runtimeAt>headClose)throw new Error(file+': RC1488 Runtime steht nicht im echten <head>');
+    if(i18nAt>=runtimeAt)throw new Error(file+': RC1488 Sprachpaket muss vor der Runtime geladen werden');
     if(!RC1488_MANIFEST||!html.includes('data-build-id="'+RC1488_MANIFEST.buildId+'"'))throw new Error(file+': RC1488 Build-ID stimmt nicht mit dem Update-Probe überein');
+    if(!html.includes('/assets/i18n/rc1488-auto-update.js?v=1488'))throw new Error(file+': RC1488 Update-Sprachpaket fehlt');
     if(!html.includes('/assets/rc1488-auto-update.js?v=1488'))throw new Error(file+': RC1488 Auto-Update-Runtime fehlt');
   }
-  if(!ARGS.length&&file==='demo.html'&&html.includes('id="exporthub-rc1488-auto-update"'))throw new Error(file+': RC1488 darf Demo nicht automatisch neu laden');
+  if(!ARGS.length&&file==='demo.html'&&(html.includes('id="exporthub-rc1488-auto-update"')||html.includes('id="exporthub-rc1488-auto-update-i18n"')))throw new Error(file+': RC1488 darf Demo nicht automatisch neu laden');
   const stow=html.indexOf('function printStow(){');
   const stowEnd=stow>=0?html.indexOf('function normalizeActionButtons',stow):-1;
   if(stow>=0&&stowEnd>stow){
@@ -82,9 +88,11 @@ function verify(p){
 for(const file of FILES)verify(file);
 
 if(!ARGS.length){
-  const asset=path.join(OUT,'assets','rc1488-auto-update.js');
+  const runtimeAsset=path.join(OUT,'assets','rc1488-auto-update.js');
+  const i18nAsset=path.join(OUT,'assets','i18n','rc1488-auto-update.js');
   const probeFile=path.join(OUT,'production-version.js');
-  if(!fs.existsSync(asset)||fs.statSync(asset).size===0)throw new Error('RC1488 Auto-Update-Asset fehlt im finalen Build');
+  if(!fs.existsSync(runtimeAsset)||fs.statSync(runtimeAsset).size===0)throw new Error('RC1488 Auto-Update-Asset fehlt im finalen Build');
+  if(!fs.existsSync(i18nAsset)||fs.statSync(i18nAsset).size===0)throw new Error('RC1488 Auto-Update-Sprachpaket fehlt im finalen Build');
   if(!fs.existsSync(probeFile))throw new Error('RC1488 production-version.js fehlt im finalen Build');
   const probe=fs.readFileSync(probeFile,'utf8');
   if(!RC1488_MANIFEST||!probe.includes("window.__EXPORTHUB_UPDATE_BUILD__='"+RC1488_MANIFEST.buildId+"';"))throw new Error('RC1488 Build-ID fehlt im production-version.js Probe');
