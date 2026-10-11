@@ -4,7 +4,7 @@
   var CHECK_INTERVAL_MS=300000;
   var INITIAL_CHECK_DELAY_MS=15000;
   var RELOAD_LOCK_TTL_MS=60000;
-  var MANIFEST_URL='/exporthub-update.json';
+  var MANIFEST_URL='/production-version.js';
   var RELOAD_LOCK_KEY='exporthub:rc1488:reload-lock';
   var script=root.document&&root.document.currentScript||null;
   var currentBuild=String(root.__EXPORTHUB_BUILD_ID__||(script&&script.dataset&&script.dataset.buildId)||'').trim();
@@ -141,12 +141,15 @@
     if(!currentBuild)return {status:'no-current-build'};
     var response=await root.fetch(MANIFEST_URL+'?_='+Date.now(),{cache:'no-store',credentials:'same-origin',headers:{'Cache-Control':'no-cache'}});
     if(!response||!response.ok)return {status:'unavailable'};
-    var manifest=await response.json();
-    var next=q(manifest&&manifest.buildId);
-    if(!next)return {status:'invalid-manifest'};
+    var probe=await response.text();
+    var buildMatch=String(probe||'').match(/__EXPORTHUB_UPDATE_BUILD__\s*=\s*['"]([0-9a-f]{7,40})['"]/i);
+    if(!buildMatch)return {status:'invalid-manifest'};
+    var next=q(buildMatch[1]).toLowerCase();
+    var releaseMatch=String(probe||'').match(/__EXPORTHUB_UPDATE_RELEASE__\s*=\s*['"](RC\d+)['"]/i);
+    var remoteRelease=releaseMatch?q(releaseMatch[1]).toUpperCase():visibleRelease;
     if(next===currentBuild){
       clearResolvedLock();
-      return {status:'current',buildId:currentBuild,visibleRelease:q(manifest.visibleRelease)||visibleRelease};
+      return {status:'current',buildId:currentBuild,visibleRelease:remoteRelease};
     }
     return reloadTo(next);
   }
