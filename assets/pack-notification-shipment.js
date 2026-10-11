@@ -36,7 +36,30 @@
     const task=arr(state&&state.tasks).find(t=>q(t&&t.sourceType)==='pack_notification'&&q(t&&t.sourceId)===q(notification.id));if(task){task.status='in_progress';task.updatedAt=when;}
     return true;
   }
-  async function persist(reason){try{const clean=root.ExportHUBClean;if(clean&&typeof clean.queueSave==='function')await Promise.resolve(clean.queueSave(reason));if(clean&&typeof clean.flushSave==='function')await Promise.resolve(clean.flushSave(reason));return true;}catch(_){return false;}}
+  async function persist(reason){
+    try{
+      const clean=root.ExportHUBClean;
+      if(clean&&typeof clean.queueSave==='function'){
+        const queued=await Promise.resolve(clean.queueSave(reason));
+        if(queued===false)return false;
+      }
+      const runtime=clean&&clean.runtime||null,target=runtime?Number(runtime.changeGeneration||0):0;
+      if(runtime&&target>0&&Number(runtime.lastSavedGeneration||0)>=target)return true;
+      if(clean&&typeof clean.flushSave==='function'){
+        let flushed=await Promise.resolve(clean.flushSave(reason));
+        if(flushed===false&&runtime&&target>0){
+          const timer=clean.native&&typeof clean.native.setTimeout==='function'?clean.native.setTimeout.bind(clean.native):(root.setTimeout||setTimeout);
+          for(let checks=0;checks<20&&Number(runtime.lastSavedGeneration||0)<target;checks+=1){
+            if(!runtime.saving&&checks>=2)break;
+            await new Promise(resolve=>timer(resolve,100));
+          }
+          flushed=Number(runtime.lastSavedGeneration||0)>=target;
+        }
+        if(flushed===false)return false;
+      }
+      return true;
+    }catch(_){return false;}
+  }
   function openShipment(sh){
     const target=q(sh&&(sh.ref||sh.reference||sh.id||sh.shipmentId));if(!target)return false;
     try{if(root.ExportHUBShipmentView&&typeof root.ExportHUBShipmentView.open==='function'){root.ExportHUBShipmentView.open(target,'tasks');return true;}}catch(_){}
@@ -82,8 +105,20 @@
   async function onShipmentSaved(event){
     if(!pending)return;const state=sharedState(),notification=notificationById(state,pending.notificationId);if(!notification){pending=null;return;}
     const detail=event&&event.detail||{},saved=detail.shipment||findShipmentForNotification(state,notification)||(state.shipment||state.currentShipment||state.selectedShipment);
-    if(!saved||!shipmentId(saved))return;
-    linkShipment(state,notification,saved,new Date().toISOString());pending=null;root.__EXPORTHUB_PACK_SHIPMENT_PREFILL__=null;await persist('Packmeldung mit Sendung verknüpft');
+    if(!saved||!shipmentId(saved))return false;
+    const task=arr(state&&state.tasks).find(t=>q(t&&t.sourceType)==='pack_notification'&&q(t&&t.sourceId)===q(notification.id));
+    const notificationBefore={shipmentId:notification.shipmentId,shipmentRef:notification.shipmentRef,status:notification.status,updatedAt:notification.updatedAt};
+    const shipmentBefore={packNotificationId:saved.packNotificationId,packNotificationRef:saved.packNotificationRef,packNotificationLinkedAt:saved.packNotificationLinkedAt,deliveryFiles:saved.deliveryFiles};
+    const taskBefore=task?{status:task.status,updatedAt:task.updatedAt}:null;
+    linkShipment(state,notification,saved,new Date().toISOString());
+    const persisted=await persist('Packmeldung mit Sendung verknüpft');
+    if(!persisted){
+      for(const [key,value] of Object.entries(notificationBefore)){if(value===undefined)delete notification[key];else notification[key]=value;}
+      for(const [key,value] of Object.entries(shipmentBefore)){if(value===undefined)delete saved[key];else saved[key]=value;}
+      if(task&&taskBefore){for(const [key,value] of Object.entries(taskBefore)){if(value===undefined)delete task[key];else task[key]=value;}}
+      return false;
+    }
+    pending=null;root.__EXPORTHUB_PACK_SHIPMENT_PREFILL__=null;return true;
   }
   function install(){
     if(typeof root.addEventListener!=='function'||root.__packShipmentBridgeInstalled)return false;root.__packShipmentBridgeInstalled=true;
