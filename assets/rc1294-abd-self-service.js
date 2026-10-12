@@ -80,11 +80,11 @@ function rowsHtml(positions){
  }).join('')
 }
 function copyFieldButtons(group){
- var hs=q(group&&group.commodityCode),origin=q(group&&group.originCountry),value=group&&group.value!=null?formatNumber(group.value,2):'';
+ var hs=q(group&&group.commodityCode),origin=q(group&&group.originCountry),value=group&&group.value!=null?formatNumber(group.value,2):'',currency=q(group&&group.currency)||'VAL';
  return '<div class="rc1294-copy-actions">'+
   (hs?'<button type="button" class="ghost" data-rc1294-copy-value="'+esc(hs)+'" title="'+esc(xtr('copyHs'))+'">HS</button>':'')+
   (origin?'<button type="button" class="ghost" data-rc1294-copy-value="'+esc(origin)+'" title="'+esc(xtr('copyOrigin'))+'">COO</button>':'')+
-  (value?'<button type="button" class="ghost" data-rc1294-copy-value="'+esc(value)+'" title="'+esc(xtr('copyValue'))+'">€</button>':'')+
+  (value?'<button type="button" class="ghost" data-rc1294-copy-value="'+esc(value)+'" title="'+esc(xtr('copyValue'))+'">'+esc(currency)+'</button>':'')+
   '</div>'
 }
 function groupRowsHtml(groups){
