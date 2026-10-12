@@ -78,12 +78,18 @@ test('RC1499 export: incomplete or mismatching analysis snapshots are blocked',a
   await assert.rejects(()=>exporter.createXlsx(unassigned),/ABD_EXPORT_NOT_READY/);
 });
 
-test('RC1499 export: analysis endpoint and invoice UI expose PDF/XLSX actions through the shared snapshot',()=>{
-  const api=fs.readFileSync(new URL('../api/abd-analysis/index.js',import.meta.url),'utf8');
-  const ui=fs.readFileSync(new URL('../assets/rc1294-abd-self-service.js',import.meta.url),'utf8');
-  assert.match(api,/require\(['"]\.\.\/shared\/abd-analysis-export['"]\)/,'Shared Exportmodul fehlt im Endpoint');
-  assert.match(api,/action==='export'/,'Export-Aktion fehlt im ABD-Analysis-Endpoint');
+test('RC1499 export: dedicated endpoint and isolated UI use the immutable RC1294 snapshot',()=>{
+  const endpoint=fs.readFileSync(new URL('../api/abd-analysis-export/index.js',import.meta.url),'utf8');
+  const route=fs.readFileSync(new URL('../api/abd-analysis-export/function.json',import.meta.url),'utf8');
+  const runtime=fs.readFileSync(new URL('../assets/rc1294-abd-self-service.js',import.meta.url),'utf8');
+  const ui=fs.readFileSync(new URL('../assets/rc1499-abd-export.js',import.meta.url),'utf8');
+  const handoff=fs.readFileSync(new URL('../assets/rc1499-exportexperte-handoff.js',import.meta.url),'utf8');
+  assert.match(endpoint,/require\(['"]\.\.\/shared\/abd-analysis-export['"]\)/,'Shared Exportmodul fehlt im Endpoint');
+  assert.match(route,/abd-analysis\/export/,'Dedizierte Export-Route fehlt');
+  assert.match(runtime,/snapshot:snapshot/,'RC1294 stellt keinen unveränderlichen Analyse-Snapshot bereit');
   assert.match(ui,/data-rc1499-export-pdf/,'PDF-Exportaktion fehlt in der UI');
   assert.match(ui,/data-rc1499-export-xlsx/,'Excel-Exportaktion fehlt in der UI');
-  assert.match(ui,/action:'export'/,'UI übergibt Analyse-Snapshot nicht an Exportendpoint');
+  assert.match(ui,/action:'export'[\s\S]*snapshot:data/,'UI übergibt den geprüften Analyse-Snapshot nicht an den Exportendpoint');
+  assert.match(ui,/\/api\/abd-analysis\/export/,'UI verwendet nicht die dedizierte Export-Route');
+  assert.match(handoff,/rc1499-abd-export\.js\?v=1499/,'Isoliertes Exportmodul wird nicht geladen');
 });
