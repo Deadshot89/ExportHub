@@ -14,6 +14,14 @@
     return api;
   }
   function recurrence(){return root.ExportHUBTaskRecurrenceV2||null;}
+  function tr(key,vars,fallback){
+    try{if(root.ExportHUBI18n&&typeof root.ExportHUBI18n.t==='function'){const value=root.ExportHUBI18n.t(key,vars);if(value&&value!==key)return value;}}catch(_){}
+    return fallback||key;
+  }
+  function statusLabel(status){
+    const key={planned:'taskV2.status.planned',open:'taskV2.status.open',in_progress:'taskV2.status.inProgress',waiting:'taskV2.status.waiting',waiting_feedback:'taskV2.status.waitingFeedback',blocked:'taskV2.status.blocked',done:'taskV2.status.done',cancelled:'taskV2.status.cancelled'}[q(status)];
+    return key?tr(key,null,q(status)):q(status);
+  }
   function nowOf(ctx){return q(ctx&&ctx.now)||new Date().toISOString();}
   function stateOf(ctx){
     if(!ctx||!obj(ctx.state))throw new Error('TaskPlanner V2 UI benötigt ctx.state');
@@ -54,13 +62,13 @@
   }
 
   function taskCardHtml(task,ctx={}){
-    const t=detailModel(task,ctx),derived=core().derive(t,ctx.now),overdue=derived.overdue?`<span class="tpv2-badge tpv2-overdue">${derived.overdueDays} Tage überfällig</span>`:'';
+    const t=detailModel(task,ctx),derived=core().derive(t,ctx.now),overdue=derived.overdue?`<span class="tpv2-badge tpv2-overdue">${escapeHtml(tr('taskV2.overdueDays',{count:derived.overdueDays},`${derived.overdueDays} days overdue`))}</span>`:'';
     return `<article class="tpv2-task-card" data-task-id="${escapeHtml(t.id)}" data-priority="${escapeHtml(t.priority)}" data-status="${escapeHtml(t.status)}">
       <div class="tpv2-task-card-head"><span class="tpv2-priority">${escapeHtml(t.priority)}</span>${overdue}</div>
-      <h3>${escapeHtml(t.title||'Aufgabe')}</h3>
+      <h3>${escapeHtml(t.title||tr('taskV2.task',null,'Task'))}</h3>
       <p class="tpv2-task-customer">${escapeHtml(t.customerName||'')}</p>
-      <div class="tpv2-task-meta"><span>${escapeHtml(t.status)}</span><span>Fällig ${escapeHtml(formatDateTime(t.dueAt))}</span></div>
-      <button type="button" class="tpv2-button tpv2-button-secondary" data-action="open" data-task-id="${escapeHtml(t.id)}">Details</button>
+      <div class="tpv2-task-meta"><span>${escapeHtml(statusLabel(t.status))}</span><span>${escapeHtml(tr('taskV2.due',null,'Due'))} ${escapeHtml(formatDateTime(t.dueAt))}</span></div>
+      <button type="button" class="tpv2-button tpv2-button-secondary" data-action="open" data-task-id="${escapeHtml(t.id)}">${escapeHtml(tr('taskV2.detail',null,'Task details'))}</button>
     </article>`;
   }
 
@@ -71,21 +79,21 @@
 
   function renderDetail(target,taskId,ctx={}){
     if(!target)throw new Error('Task-Detailziel fehlt');const task=arr(ctx.state&&ctx.state.tasks).find(t=>q(t&&t.id)===q(taskId));
-    if(!task){target.innerHTML='<aside class="tpv2-detail" data-taskplanner-v2-detail><p>Aufgabe nicht gefunden.</p></aside>';return target;}
+    if(!task){target.innerHTML=`<aside class="tpv2-detail" data-taskplanner-v2-detail><p>${escapeHtml(tr('taskV2.notFound',null,'Task not found.'))}</p></aside>`;return target;}
     const t=detailModel(task,ctx),checklist=t.checklist.map(item=>`<li data-done="${item&&item.done===true?'1':'0'}">${escapeHtml(item&&item.text||item&&item.label||'')}</li>`).join(''),history=t.history.slice().reverse().map(h=>`<li><strong>${escapeHtml(h&&h.action)}</strong><span>${escapeHtml(formatDateTime(h&&h.at))}</span></li>`).join('');
-    target.innerHTML=`<aside class="tpv2-detail" data-taskplanner-v2-detail data-task-id="${escapeHtml(t.id)}" aria-label="Aufgabendetails">
-      <header class="tpv2-detail-head"><div><span class="tpv2-eyebrow">Aufgabe</span><h2>${escapeHtml(t.title)}</h2><p>${escapeHtml(t.customerName)}</p></div><button type="button" class="tpv2-icon-button" data-action="close" aria-label="Schließen">×</button></header>
+    target.innerHTML=`<aside class="tpv2-detail" data-taskplanner-v2-detail data-task-id="${escapeHtml(t.id)}" aria-label="${escapeHtml(tr('taskV2.detail',null,'Task details'))}">
+      <header class="tpv2-detail-head"><div><span class="tpv2-eyebrow">${escapeHtml(tr('taskV2.task',null,'Task'))}</span><h2>${escapeHtml(t.title)}</h2><p>${escapeHtml(t.customerName)}</p></div><button type="button" class="tpv2-icon-button" data-action="close" aria-label="${escapeHtml(tr('taskV2.close',null,'Close'))}">×</button></header>
       <div class="tpv2-detail-grid">
-        <section><h3>Status & Priorität</h3><p>${escapeHtml(t.status)} · ${escapeHtml(t.priority)}</p></section>
-        <section><h3>Planung</h3><p>Start ${escapeHtml(formatDateTime(t.startAt))}<br>Geplant ${escapeHtml(formatDateTime(t.plannedAt))}<br>Fällig ${escapeHtml(formatDateTime(t.dueAt))}<br>Spätestens ${escapeHtml(formatDateTime(t.latestCompletionAt))}</p></section>
-        <section><h3>Prozess</h3><p>${escapeHtml(t.area)} · ${escapeHtml(t.processId)}</p></section>
-        <section><h3>Wiederholung</h3><p>${escapeHtml(t.seriesId||'Keine')} · ${escapeHtml(t.holidayPolicy)}</p></section>
-        <section class="tpv2-detail-wide"><h3>Beschreibung</h3><p>${escapeHtml(t.description)}</p></section>
-        <section class="tpv2-detail-wide" data-section="checklist"><h3>Checkliste</h3><ul class="tpv2-checklist">${checklist||'<li>Keine Punkte</li>'}</ul></section>
-        <section class="tpv2-detail-wide"><h3>Ansprechpartner</h3><p>${escapeHtml(t.contact||'—')}</p></section>
-        <section class="tpv2-detail-wide" data-section="history"><h3>Historie</h3><ul class="tpv2-history">${history||'<li>Noch keine Historie</li>'}</ul></section>
+        <section><h3>${escapeHtml(tr('taskV2.statusPriority',null,'Status & priority'))}</h3><p>${escapeHtml(statusLabel(t.status))} · ${escapeHtml(t.priority)}</p></section>
+        <section><h3>${escapeHtml(tr('taskV2.planning',null,'Planning'))}</h3><p>${escapeHtml(tr('taskV2.start',null,'Start'))} ${escapeHtml(formatDateTime(t.startAt))}<br>${escapeHtml(tr('taskV2.planned',null,'Planned'))} ${escapeHtml(formatDateTime(t.plannedAt))}<br>${escapeHtml(tr('taskV2.due',null,'Due'))} ${escapeHtml(formatDateTime(t.dueAt))}<br>${escapeHtml(tr('taskV2.latestCompletion',null,'Complete no later than'))} ${escapeHtml(formatDateTime(t.latestCompletionAt))}</p></section>
+        <section><h3>${escapeHtml(tr('taskV2.process',null,'Process'))}</h3><p>${escapeHtml(t.area)} · ${escapeHtml(t.processId)}</p></section>
+        <section><h3>${escapeHtml(tr('taskV2.recurrence',null,'Recurrence'))}</h3><p>${escapeHtml(t.seriesId||tr('taskV2.noSeries',null,'None'))} · ${escapeHtml(t.holidayPolicy)}</p></section>
+        <section class="tpv2-detail-wide"><h3>${escapeHtml(tr('taskV2.description',null,'Description'))}</h3><p>${escapeHtml(t.description)}</p></section>
+        <section class="tpv2-detail-wide" data-section="checklist"><h3>${escapeHtml(tr('taskV2.checklist',null,'Checklist'))}</h3><ul class="tpv2-checklist">${checklist||`<li>${escapeHtml(tr('taskV2.noneChecklist',null,'No checklist items'))}</li>`}</ul></section>
+        <section class="tpv2-detail-wide"><h3>${escapeHtml(tr('taskV2.contact',null,'Contact'))}</h3><p>${escapeHtml(t.contact||'—')}</p></section>
+        <section class="tpv2-detail-wide" data-section="history"><h3>${escapeHtml(tr('taskV2.history',null,'History'))}</h3><ul class="tpv2-history">${history||`<li>${escapeHtml(tr('taskV2.noneHistory',null,'No history yet'))}</li>`}</ul></section>
       </div>
-      <footer class="tpv2-detail-actions"><button type="button" class="tpv2-button tpv2-button-secondary" data-action="cancel">Stornieren</button><button type="button" class="tpv2-button tpv2-button-primary" data-action="complete">Erledigt</button></footer>
+      <footer class="tpv2-detail-actions"><button type="button" class="tpv2-button tpv2-button-secondary" data-action="cancel">${escapeHtml(tr('taskV2.cancel',null,'Cancel task'))}</button><button type="button" class="tpv2-button tpv2-button-primary" data-action="complete">${escapeHtml(tr('taskV2.complete',null,'Complete'))}</button></footer>
     </aside>`;return target;
   }
 
