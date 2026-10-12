@@ -6,7 +6,7 @@ function q(v){return String(v==null?'':v).trim()}
 function tr(key,vars){try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.t==='function'){var out=w.ExportHUBI18n.t(key,vars);if(out&&out!==key)return out}}catch(_){}return key}
 function locale(){var lang=q(d.documentElement&&d.documentElement.lang);try{if(!lang&&w.navigator)lang=q(w.navigator.language)}catch(_){}return lang||undefined}
 function arr(v){return Array.isArray(v)?v:[]}
-function esc(v){return q(v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]})}
+function esc(v){return q(v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function fileName(v){if(!v)return'';if(typeof v==='string')return q(v);return q(v.name||v.fileName||v.filename||v.originalName||v.title||v.file&&v.file.name)}
 function safeSignatureSource(v){v=q(v);return /^data:image\//i.test(v)||/^\/api\/pickup-pod\?/i.test(v)?v:''}
 function customsSignatureUrl(driverUrl){var url=safeSignatureSource(driverUrl);if(!/^\/api\/pickup-pod\?/i.test(url))return'';try{var parsed=new URL(url,w.location&&w.location.origin||'http://localhost');parsed.searchParams.delete('signature');parsed.searchParams.set('customsSignature','1');return parsed.pathname+parsed.search}catch(_){return''}}
