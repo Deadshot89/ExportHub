@@ -1,6 +1,7 @@
 'use strict';
 
 const {groupPositionsByHsOrigin}=require('./abd-grouping');
+const legacyAnalyzer=require('./abd-analysis');
 
 function text(value){return String(value==null?'':value).trim()}
 function numberOrNull(value){
@@ -104,6 +105,22 @@ function buildAbdAnalysis(input){
  const grouped=groupPositionsByHsOrigin(positions),totals=calculateAnalysisTotals(header,grouped.groups,grouped.unassigned),review=buildReview(grouped.groups,grouped.unassigned,totals);
  return{header,positions,groups:grouped.groups,unassigned:grouped.unassigned,totals,review}
 }
+function normalizeReviewedPosition(position,index){
+ const source=position&&typeof position==='object'?position:{};
+ const input=Object.assign({},source,{
+  _source:text(source.source||source.sourceFile),
+  _row:Number(source.sourceRow||source._row||0)||null
+ });
+ const normalized=legacyAnalyzer.normalizePosition(input,index);
+ normalized.warnings=uniqueText([].concat(Array.isArray(source.warnings)?source.warnings:[],normalized.warnings||[]));
+ if(source.confirmed===false)normalized.confirmed=false;
+ else if(source.confirmed===true)normalized.confirmed=true;
+ return normalized
+}
+function rebuildReviewedAnalysis(input){
+ const source=input&&typeof input==='object'?input:{},positions=(Array.isArray(source.positions)?source.positions:[]).slice(0,500).map(normalizeReviewedPosition);
+ return buildAbdAnalysis({header:source.header,positions})
+}
 function deriveHeader(legacy,header){
  const positions=legacy&&Array.isArray(legacy.positions)?legacy.positions:[],input=Object.assign({},header&&typeof header==='object'?header:{});
  if(!text(input.invoiceNumber)){
@@ -121,4 +138,4 @@ function enrichLegacyAnalysis(legacy,header){
  return Object.assign({},source,abd,{totals:Object.assign({},legacyTotals,abd.totals)})
 }
 
-module.exports={normalizeHeader,calculateAnalysisTotals,buildAbdAnalysis,enrichLegacyAnalysis};
+module.exports={normalizeHeader,calculateAnalysisTotals,buildAbdAnalysis,rebuildReviewedAnalysis,enrichLegacyAnalysis};
