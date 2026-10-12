@@ -7,6 +7,7 @@
   const arr=v=>Array.isArray(v)?v:[];
   const obj=v=>v&&typeof v==='object'&&!Array.isArray(v);
   const esc=value=>q(value).replace(/[&<>'"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));
+  const DEFAULT_PUBLIC_FIELDS=Object.freeze(['description','status','plannedAt','dueAt','latestCompletionAt','checklist','customerName']);
 
   function core(){
     const api=root.ExportHUBTaskCoreV2;
@@ -39,7 +40,7 @@
   function taskCardHtml(raw,ctx={}){
     const task=typeof base.detailModel==='function'?base.detailModel(raw,ctx):raw;
     const overdue=isOverdue(task,ctx.now),classes='tpv2-task-card'+(overdue?' is-overdue':'');
-    return `<article class="${classes}" data-task-id="${esc(task.id)}" data-priority="${esc(task.priority)}" data-status="${esc(task.status)}" tabindex="0">
+    return `<article class="${classes}" data-task-id="${esc(task.id)}" data-priority="${esc(task.priority)}" data-status="${esc(task.status)}" tabindex="0" role="button">
       <div class="tpv2-task-card-head"><span class="tpv2-priority">${esc(task.priority||'P2')}</span>${overdue?`<span class="tpv2-badge tpv2-overdue">${esc(translated('taskV2.planner.overdue',null,'Overdue'))}</span>`:''}</div>
       <h3>${esc(task.title||translated('taskV2.task',null,'Task'))}</h3>
       <p class="tpv2-task-customer">${esc(task.customerName||'')}</p>
@@ -94,6 +95,40 @@
   function renderMonth(target,ctx={}){if(!target)throw new Error('Planner month target missing');target.innerHTML=monthHtml(ctx);return target;}
 
   function runtimeOf(ctx){return ctx&&ctx.runtime||root.ExportHUBRC1014TaskRuntime||null;}
+  function actionContext(ctx={}){
+    const next={...(ctx||{})};
+    if(!obj(next.state))next.state={tasks:[]};
+    if(!Array.isArray(next.state.tasks))next.state.tasks=[];
+    if(typeof next.persist!=='function'){
+      next.persist=tasks=>{
+        next.state.tasks=tasks;
+        try{if(root.ExportHUBClean&&typeof root.ExportHUBClean.queueSave==='function')return root.ExportHUBClean.queueSave('TaskPlanner V2 task update');}catch(_){}
+        return false;
+      };
+    }
+    return next;
+  }
+  async function copyPublicUrl(url){
+    if(!q(url))return false;
+    try{if(root.navigator&&root.navigator.clipboard&&typeof root.navigator.clipboard.writeText==='function'){await root.navigator.clipboard.writeText(url);return true;}}catch(_){}
+    return false;
+  }
+  async function handlePublicLinkAction(action,taskId,ctx={}){
+    const type=q(action),id=q(taskId);if(!id)return{changed:false,task:null};
+    const resolved=actionContext(ctx);
+    if(type==='public-link-create'){
+      const fields=arr(ctx.publicLinkFields).length?arr(ctx.publicLinkFields):DEFAULT_PUBLIC_FIELDS;
+      const result=await base.createPublicLink(id,fields,resolved);
+      if(result&&result.changed){await copyPublicUrl(result.url);if(typeof ctx.onPublicLinkCreated==='function')ctx.onPublicLinkCreated(result);}
+      return result;
+    }
+    if(type==='public-link-revoke'){
+      const result=base.revokePublicLink(id,resolved);
+      if(result&&result.changed&&typeof ctx.onPublicLinkRevoked==='function')ctx.onPublicLinkRevoked(result);
+      return result;
+    }
+    return{changed:false,task:null};
+  }
   function plannedAtForDate(task,date){
     const source=q(task&&task.plannedAt)||q(task&&task.dueAt),time=(source.match(/T(\d{2}:\d{2})(?::\d{2})?/)||[])[1]||'09:00',offset=(source.match(/(Z|[+-]\d{2}:\d{2})$/)||[])[1]||'';
     return `${date}T${time}:00${offset}`;
@@ -122,6 +157,7 @@
     return `<section class="tpv2-planner" data-taskplanner-v2-planner data-view="${current}">
       <header class="tpv2-planner-head"><div><span class="tpv2-eyebrow">TaskPlanner V2</span><h1>${esc(translated('taskV2.planner.title',null,'Task planner'))}</h1></div><div class="tpv2-view-toggle" role="group"><button type="button" data-tpv2-view="workweek" aria-pressed="${current==='workweek'}">${esc(translated('taskV2.planner.workweek',null,'Workweek'))}</button><button type="button" data-tpv2-view="month" aria-pressed="${current==='month'}">${esc(translated('taskV2.planner.month',null,'Month'))}</button></div></header>
       ${dailySummaryHtml(ctx)}${overdueHtml(ctx)}<div class="tpv2-planner-view" data-tpv2-planner-view>${current==='month'?monthHtml(ctx):workweekHtml(ctx)}</div>
+      <div class="tpv2-planner-detail-host" data-tpv2-detail-host></div>
     </section>`;
   }
   function renderPlannerPage(target,ctx={}){
@@ -131,10 +167,27 @@
     target.__tpv2DndCleanup=view==='workweek'?bindPlannerDnD(target,{...ctx,state:ctx.state||{},runtime:runtimeOf(ctx)}):null;
     if(typeof target.addEventListener==='function'&&!target.__tpv2ViewBound){
       target.__tpv2ViewBound=true;
-      target.addEventListener('click',event=>{const button=event&&event.target&&typeof event.target.closest==='function'?event.target.closest('[data-tpv2-view]'):null;if(!button)return;const next=q(button.getAttribute('data-tpv2-view'));if(!['workweek','month'].includes(next))return;target.__tpv2View=next;renderPlannerPage(target,{...(target.__tpv2Ctx||ctx),view:next});});
+      target.addEventListener('click',async event=>{
+        const eventTarget=event&&event.target,closest=selector=>eventTarget&&typeof eventTarget.closest==='function'?eventTarget.closest(selector):null;
+        const viewButton=closest('[data-tpv2-view]');
+        if(viewButton){const next=q(viewButton.getAttribute('data-tpv2-view'));if(['workweek','month'].includes(next)){target.__tpv2View=next;renderPlannerPage(target,{...(target.__tpv2Ctx||ctx),view:next});}return;}
+        const detailHost=typeof target.querySelector==='function'?target.querySelector('[data-tpv2-detail-host]'):null,currentCtx=target.__tpv2Ctx||ctx;
+        const actionButton=closest('[data-action]');
+        if(actionButton){
+          const action=q(actionButton.getAttribute&&actionButton.getAttribute('data-action')),owner=closest('[data-task-id]'),taskId=q(owner&&owner.getAttribute&&owner.getAttribute('data-task-id'));
+          if(action==='close'){if(detailHost)detailHost.innerHTML='';return;}
+          if(action==='public-link-create'||action==='public-link-revoke'){
+            const result=await handlePublicLinkAction(action,taskId,currentCtx);if(result&&result.changed&&detailHost)base.renderDetail(detailHost,taskId,currentCtx);return;
+          }
+          if(action==='complete'&&taskId&&typeof base.completeTask==='function'){const result=base.completeTask(taskId,{},actionContext(currentCtx));if(result&&result.changed)renderPlannerPage(target,{...currentCtx,view:target.__tpv2View});return;}
+          if(action==='cancel'&&taskId&&typeof base.cancelTask==='function'){const result=base.cancelTask(taskId,actionContext(currentCtx));if(result&&result.changed)renderPlannerPage(target,{...currentCtx,view:target.__tpv2View});return;}
+        }
+        const card=closest('.tpv2-task-card[data-task-id]');
+        if(card&&detailHost&&typeof base.renderDetail==='function'){const taskId=q(card.getAttribute&&card.getAttribute('data-task-id'));if(taskId)base.renderDetail(detailHost,taskId,currentCtx);}
+      });
     }
     return target;
   }
 
-  root.ExportHUBTaskUIV2=Object.freeze({...base,renderDailySummary,renderOverdue,renderWorkweek,renderMonth,bindPlannerDnD,renderPlannerPage});
+  root.ExportHUBTaskUIV2=Object.freeze({...base,renderDailySummary,renderOverdue,renderWorkweek,renderMonth,bindPlannerDnD,handlePublicLinkAction,renderPlannerPage});
 })(globalThis);
