@@ -13,6 +13,15 @@ async function openDashboard(page){
   await expect(page.locator('[data-eh-dashboard-personalized="1"]')).toHaveCount(1);
 }
 
+async function setStableDashboardTestUser(page){
+  await page.evaluate(()=>{
+    const user={id:'rc1371-e2e-user',username:'rc1371-e2e-user'};
+    window.currentUser=user;
+    window.__EXPORTHUB_GET_CURRENT_USER__=()=>user;
+    if(window.ExportHUBDashboard1371)window.ExportHUBDashboard1371.remount();
+  });
+}
+
 async function clean(page,runtime,testInfo){
   await assertNoSourceLeak(page);
   await assertNoHorizontalOverflow(page);
@@ -51,6 +60,7 @@ test('RC1371: dashboard mounts once, preserves live cards and exposes editor con
 test('RC1371: add, resize and reorder persist after reload for the current user',async({page},testInfo)=>{
   const runtime=attachRuntimeGuards(page,testInfo);
   await openDashboard(page);
+  await setStableDashboardTestUser(page);
   const before=await page.evaluate(()=>{
     const api=window.ExportHUBDashboard1371;
     const user=api.resolveUserIdentity();
@@ -61,6 +71,7 @@ test('RC1371: add, resize and reorder persist after reload for the current user'
     const row=api.currentLayout().widgets.find(item=>item.id==='quick-shipment');
     return{user,key:api.layoutStorageKey(user),row};
   });
+  expect(before.user).toBe('rc1371-e2e-user');
   expect(before.key).toMatch(/^exporthub\.dashboard\.layout\.v1\./);
   expect(before.row.visible).toBe(true);
   expect(before.row.size).toBe('M');
@@ -68,12 +79,15 @@ test('RC1371: add, resize and reorder persist after reload for the current user'
   await waitReady(page);
   await openExportHubView(page,'dashboard',['Dashboard'],/Dashboard|Arbeitsfokus|Sendungen|Aufgaben/i,{allowProgrammaticFallback:true});
   await expect.poll(()=>page.evaluate(()=>!!window.ExportHUBDashboard1371)).toBe(true);
+  await setStableDashboardTestUser(page);
   const after=await page.evaluate(()=>{
-    window.ExportHUBDashboard1371.remount();
-    const row=window.ExportHUBDashboard1371.currentLayout().widgets.find(item=>item.id==='quick-shipment');
+    const api=window.ExportHUBDashboard1371;
+    const user=api.resolveUserIdentity();
+    const row=api.currentLayout().widgets.find(item=>item.id==='quick-shipment');
     const node=document.querySelector('[data-rc1371-widget-id="quick-shipment"]');
-    return{row,hidden:node?node.hidden:null,size:node&&node.getAttribute('data-rc1371-size'),order:node&&node.style.order};
+    return{user,row,hidden:node?node.hidden:null,size:node&&node.getAttribute('data-rc1371-size'),order:node&&node.style.order};
   });
+  expect(after.user).toBe('rc1371-e2e-user');
   expect(after.row.visible).toBe(true);
   expect(after.row.size).toBe('M');
   expect(after.hidden).toBe(false);
