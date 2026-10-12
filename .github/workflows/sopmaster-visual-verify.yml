@@ -1,0 +1,31 @@
+name: SOPMaster Visual Verify
+
+on:
+  push:
+    branches:
+      - design/sopmaster-training-tour-2026-10-12
+    paths:
+      - 'assets/sop/rc1502-sop-*'
+      - 'test/rc1502-sop-*.test.mjs'
+      - '.github/workflows/sopmaster-visual-verify.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sopmaster-visual-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  visual-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: RC1502 visual contract
+        run: node --test test/rc1502-sop-*.test.mjs
