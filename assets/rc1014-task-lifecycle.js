@@ -97,7 +97,7 @@
   }
   function lifecycleFingerprint(task){const t=task||{};return[q(t.status),q(t.completedAt),q(t.completedBy),q(t.effectiveAssignee),q(t.substitutionReason),q(t.occurrenceKey),q(t.id)].join('|');}
   function reconcile(tasks,domain={},ctx={}){
-    const input=arr(tasks);let changed=false;const out=input.map(original=>{
+    const input=arr(tasks);let changed=false;let out=input.map(original=>{
       if(!sameScope(original,ctx))return{...original};let task=normalizeTask(original,ctx),before=lifecycleFingerprint(task);task=resolveAssignee(task,ctx);
       if(task.status==='open'||task.status==='in_progress'){
         if(task.group==='Fehlende POD'){const shipment=findShipment(task,domain);if(shipment&&fullyCollected(shipment)&&hasPod(shipment))task=markDone(task,'system:pod',ctx);}
@@ -108,7 +108,12 @@
       }
       if(lifecycleFingerprint(task)!==before)changed=true;return task;
     });
-    if(!root.ExportHUBTaskRecurrenceV2){
+    const recurrenceApi=root.ExportHUBTaskRecurrenceV2;
+    if(recurrenceApi&&typeof recurrenceApi.materialize==='function'){
+      const materialized=recurrenceApi.materialize({series:arr(domain&&domain.taskSeries),tasks:out,calendar:recurrenceApi.calendar(domain&&domain.taskCalendar||{}),now:ctx.now});
+      out=materialized.tasks;if(materialized.changed)changed=true;
+      if(typeof recurrenceApi.materializeLegacy==='function'){const legacy=recurrenceApi.materializeLegacy(out,ctx.now,arr(domain&&domain.taskSeries));out=legacy.tasks;if(legacy.changed)changed=true;}
+    }else{
       const keys=new Set(out.map(identityKey)),generated=[];for(const task of out){if(task.status!=='done'||!q(task.recurrence))continue;const next=nextOccurrence(task,ctx.now),key=identityKey(next);if(keys.has(key))continue;keys.add(key);generated.push(next);}if(generated.length){out.push(...generated);changed=true;}
     }
     return{tasks:out,changed};

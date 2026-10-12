@@ -72,3 +72,9 @@ test('completeTask ergänzt Historie und completionMode unabhängig von Checklis
   assert.equal(done.history.at(-1).action,'completed');
   assert.equal(done.history.at(-1).comment,'fertig');
 });
+
+test('lokale Uhrzeiten erhalten den Europe-Berlin-Offset statt timezone-los zu bleiben',()=>{
+  const api=load();
+  assert.equal(api.normalizeTask({id:'time1',title:'Zeit',dueAt:'2026-10-12T13:00:00'}).dueAt,'2026-10-12T13:00:00+02:00');
+  assert.equal(api.normalizeTask({id:'time2',title:'Zeit',dueAt:'2026-12-12 13:00'}).dueAt,'2026-12-12T13:00:00+01:00');
+});

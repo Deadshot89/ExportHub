@@ -34,7 +34,10 @@ jobs:
             test/taskplanner-v2-state-rights.test.mjs \
             test/taskplanner-v2-build-wiring.test.mjs \
             test/taskplanner-v2-api-backup-wiring.test.mjs \
-            test/taskplanner-v2-pretest-orchestration.test.mjs
+            test/taskplanner-v2-pretest-orchestration.test.mjs \
+            test/taskplanner-v2-recurrence.test.mjs \
+            test/taskplanner-v2-calendar.test.mjs \
+            test/taskplanner-v2-lifecycle-recurrence.test.mjs
       - name: Existing task regressions
         run: |
           node --test --test-concurrency=1 \

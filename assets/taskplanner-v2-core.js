@@ -39,7 +39,17 @@
 
   function localDateTime(value,defaultTime){
     const s=q(value);if(!s)return'';
-    if(/T\d{2}:\d{2}/.test(s))return s;
+    const local=s.match(/^(\d{4}-\d{2}-\d{2})[T\s](\d{2}):(\d{2})(?::(\d{2}))?(?:\.(\d+))?([zZ]|[+-]\d{2}:?\d{2})?$/);
+    if(local){
+      const date=local[1],second=local[4]||'00',fraction=local[5]?'.'+local[5]:'',zone=local[6];
+      const base=`${date}T${local[2]}:${local[3]}:${second}${fraction}`;
+      if(zone){
+        if(/^z$/i.test(zone))return base+'Z';
+        const normalized=/^[+-]\d{4}$/.test(zone)?zone.slice(0,3)+':'+zone.slice(3):zone;
+        return base+normalized;
+      }
+      return base+berlinOffset(date);
+    }
     const date=dayKey(s);if(!date)return s;
     const time=defaultTime||'00:00';
     return `${date}T${time}:00${berlinOffset(date)}`;
