@@ -73,12 +73,20 @@ export function patchBuilderSource(source){
   if(!out.includes("'assets/taskplanner-v2-ui.js'"))out=out.replace(workflowCopy,workflowCopy+"\n  'assets/taskplanner-v2-ui.js',\n  'assets/taskplanner-v2.css',");
   const uiCopy="  'assets/taskplanner-v2-ui.js',";
   if(!out.includes("'assets/taskplanner-v2-planner-ui.js'"))out=out.replace(uiCopy,uiCopy+"\n  'assets/taskplanner-v2-planner-ui.js',");
+  const plannerUiCopy="  'assets/taskplanner-v2-planner-ui.js',";
+  if(!out.includes("'assets/task-public-read.js'"))out=out.replace(plannerUiCopy,plannerUiCopy+"\n  'assets/task-public-read.js',");
+
+  const publicPageAnchor="fs.copyFileSync(rc1114PickupSource,path.join(OUT,'pickup.html'));";
+  if(out.includes(publicPageAnchor)&&!out.includes("const taskPublicPageSource=path.join(ROOT,'task.html');")){
+    out=out.replace(publicPageAnchor,publicPageAnchor+"\nconst taskPublicPageSource=path.join(ROOT,'task.html');\nif(!fs.existsSync(taskPublicPageSource))throw new Error('TaskPlanner V2 task.html fehlt');\nfs.copyFileSync(taskPublicPageSource,path.join(OUT,'task.html'));\nif(!fs.existsSync(path.join(OUT,'task.html')))throw new Error('TaskPlanner V2 task.html wurde nicht gebaut');");
+  }
   return out;
 }
 
 export function patchRepository(root=process.cwd()){
   const builder=path.join(root,'.github/rc1112/build-three-env.mjs');
   if(!fs.existsSync(builder))throw new Error('TaskPlanner V2: RC1112 Builder fehlt');
+  for(const required of ['task.html','assets/task-public-read.js'])if(!fs.existsSync(path.join(root,required)))throw new Error('TaskPlanner V2: Public-Link-Datei fehlt '+required);
   const before=fs.readFileSync(builder,'utf8');
   const after=patchBuilderSource(before);
   if(after!==before)fs.writeFileSync(builder,after);
