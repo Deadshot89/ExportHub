@@ -20,5 +20,7 @@ jobs:
           package-manager-cache: false
       - name: API-Abhängigkeiten installieren
         run: npm install --prefix api --ignore-scripts --no-audit --no-fund --package-lock=false
-      - name: RC1498 PPR6UC-Statequelle und Statussync prüfen
-        run: node --test test/rc1498-qr-state-source-completion.test.mjs test/rc1498-qr-status-sync.test.mjs
+      - name: RC1498 PPR6UC-Statequelle prüfen
+        run: node --test --test-concurrency=1 test/rc1498-qr-state-source-completion.test.mjs
+      - name: RC1498 QR-Statussync prüfen
+        run: node --test --test-concurrency=1 test/rc1498-qr-status-sync.test.mjs
