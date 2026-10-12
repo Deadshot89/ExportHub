@@ -16,6 +16,7 @@ function load(){
 function baseTask(id,extra={}){
   return {id,title:id,status:'open',priority:'P2',dueAt:'2026-10-16T16:15:00+02:00',...extra};
 }
+const plain=value=>JSON.parse(JSON.stringify(value));
 
 test('Planner priorisiert überfällig vor P0-P3 und sortiert danach nach Deadline',()=>{
   const {planner}=load();
@@ -27,7 +28,7 @@ test('Planner priorisiert überfällig vor P0-P3 und sortiert danach nach Deadli
     baseTask('p1',{priority:'P1',latestCompletionAt:'2026-10-13T16:15:00+02:00',dueAt:'2026-10-16T16:15:00+02:00'})
   ];
   const ordered=planner.orderTasks(tasks,'2026-10-12T08:00:00+02:00');
-  assert.deepEqual(ordered.map(t=>t.id),['overdue','p0-early','p0-late','p1','p2']);
+  assert.deepEqual(Array.from(ordered,t=>t.id),['overdue','p0-early','p0-late','p1','p2']);
 });
 
 test('Abhängigkeitsprüfung erkennt Zyklen und fehlende Vorgänger',()=>{
@@ -35,10 +36,10 @@ test('Abhängigkeitsprüfung erkennt Zyklen und fehlende Vorgänger',()=>{
   const cyclic=[baseTask('A',{dependencies:['B']}),baseTask('B',{dependencies:['A']})];
   const c=planner.validateDependencies(cyclic);
   assert.equal(c.valid,false);
-  assert.deepEqual(c.cycles.sort(),['A','B']);
+  assert.deepEqual(Array.from(c.cycles).sort(),['A','B']);
   const missing=planner.validateDependencies([baseTask('C',{dependencies:['NOPE']})]);
   assert.equal(missing.valid,false);
-  assert.deepEqual(missing.missing,[{taskId:'C',dependencyId:'NOPE'}]);
+  assert.deepEqual(plain(missing.missing),[{taskId:'C',dependencyId:'NOPE'}]);
 });
 
 test('buildWeekDraft mutiert Eingangsdaten nicht und schützt manuelle Planung',()=>{
@@ -111,7 +112,7 @@ test('weekSummary zählt Planung, Verschiebungen, Feiertage und Abhängigkeiten'
     {taskId:'1',plannedDate:'2026-10-12',autoMoved:true,holidayConflict:false,dependencyBlocked:false,manualChanged:false},
     {taskId:'2',plannedDate:'2026-10-13',autoMoved:false,holidayConflict:true,dependencyBlocked:true,manualChanged:true}
   ]});
-  assert.deepEqual(summary,{planned:2,autoMoved:1,holidayConflicts:1,dependencyConflicts:1,manualChanges:1});
+  assert.deepEqual(plain(summary),{planned:2,autoMoved:1,holidayConflicts:1,dependencyConflicts:1,manualChanges:1});
 });
 
 test('monthProjection liefert Tageszusammenfassungen statt Vollkarten',()=>{
