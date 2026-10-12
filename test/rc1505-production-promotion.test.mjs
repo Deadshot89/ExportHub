@@ -5,6 +5,7 @@ import fs from 'node:fs';
 const read = (path) => fs.readFileSync(path, 'utf8');
 const MAIN_WORKFLOW = '.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml';
 const PRODUCTION_WORKFLOW = '.github/workflows/exporthub-production-release.yml';
+const PACK_PRODUCTION_WORKFLOW = '.github/workflows/packmeldungen-production.yml';
 const OLD_RELEASE_NAME = 'ExportHUB RC1112 Drei-Umgebungen Deploy';
 const MAIN_VERIFY_NAME = 'ExportHUB RC1112 Main Verification';
 const PRODUCTION_RELEASE_NAME = 'ExportHUB Production Release';
@@ -47,11 +48,18 @@ test('RC1505: production release is fixed to an explicit main-reachable SHA', ()
   assert.match(workflow, /\.github\/rc1112\/build-three-env\.mjs/);
 });
 
+test('RC1505: Packmeldungen are built inside the SHA-pinned production release', () => {
+  const production = requireFile(PRODUCTION_WORKFLOW);
+  const pack = requireFile(PACK_PRODUCTION_WORKFLOW);
+  assert.match(production, /\.github\/packmeldungen\/build-three-env\.mjs/);
+  assert.match(production, /dist-rc1112\/pack\.html/);
+  assert.match(pack, /workflow_dispatch:/);
+  assert.doesNotMatch(pack, /workflow_run:/);
+  assert.doesNotMatch(pack, new RegExp(OLD_RELEASE_NAME));
+});
+
 test('RC1505: production followers no longer treat normal main verification as production promotion', () => {
-  const productionOnly = [
-    '.github/workflows/packmeldungen-production.yml',
-    '.github/workflows/rc1453-mail-cleanup.yml'
-  ];
+  const productionOnly = ['.github/workflows/rc1453-mail-cleanup.yml'];
   for (const path of productionOnly) {
     const workflow = requireFile(path);
     assert.match(workflow, new RegExp(PRODUCTION_RELEASE_NAME), `${path} muss auf den echten Production-Release hören`);
