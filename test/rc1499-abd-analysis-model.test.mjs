@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 
 const require=createRequire(import.meta.url);
-const analysis=require('../api/shared/abd-analysis.js');
+const analysis=require('../api/shared/abd-analysis-model.js');
 
 function pos(overrides={}){
  return Object.assign({position:'1',commodityCode:'39269097',originCountry:'DE',value:100,currency:'EUR',missing:[],warnings:[]},overrides);
