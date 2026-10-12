@@ -233,8 +233,13 @@ function beginTargetPick(stepId,options={}){
     const checked=testTarget(key,scope);
     if(!checked.ok){reportError(checked.error,{status:checked.status,stableKey:key});return;}
     let next;
-    try{next=updateStep(session.document,{version:session.version,stepId:id,patch:{target:{stableKey:key,selector:selectorForTarget(key)}}});}
-    catch(error){reportError('TARGET_SAVE_FAILED',{message:text(error&&error.message)});return;}
+    try{
+      next=mutation(session.document,session.version,(nextDoc,nextDraft)=>{
+        const nextSteps=stepsOfDraft(nextDraft);const stepIndex=indexById(nextSteps,id);
+        if(stepIndex<0)throw new Error(`Schritt nicht gefunden: ${id}`);
+        nextSteps[stepIndex].target={stableKey:key,selector:selectorForTarget(key)};
+      });
+    }catch(error){reportError('TARGET_SAVE_FAILED',{message:text(error&&error.message)});return;}
     const target={stableKey:key,selector:selectorForTarget(key)};
     cancelTargetPick();
     if(typeof session.onSelected==='function')session.onSelected({ok:true,stepId:id,target,document:next});
