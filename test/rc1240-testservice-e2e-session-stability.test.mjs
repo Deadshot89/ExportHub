@@ -16,7 +16,7 @@ test('RC1240: Prepare entfernt ausschließlich gültig E2E-markierte Alt-Testdat
   assert.match(source,/\^E2E-\[A-Za-z0-9\._-\]\{3,100\}\$/);
   assert.match(source,/function removeStaleE2ERecords\(state\)/);
   assert.match(source,/team\.users=team\.users\.filter\(u=>!e2eMarked\(u\)\)/);
-  assert.match(source,/purgedStaleRecords:staleState\.removed/);
+  assert.match(source,/purgedStaleRecords:(?:stalePack\.removed\+)?staleState\.removed/);
   assert.match(source,/purgedStaleUsers/);
 });
 

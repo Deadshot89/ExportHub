@@ -4,6 +4,7 @@ const crypto=require('crypto');
 const https=require('https');
 const {createBlobServiceClient}=require('../shared/blob-rest');
 const auth=require('../shared/auth-store');
+const packStore=require('../shared/pack-notification-store');
 const {MODULES,normalizeUser,publicUser}=require('../shared/user-policy');
 
 const TEAM_CONTAINER=process.env.EXPORTHUB_STORAGE_CONTAINER||process.env.EXPORTHUB_CONTAINER||'exporthub-data';
@@ -129,6 +130,22 @@ function e2eCustomer(runId){
   updatedAt:now()
  };
 }
+function e2ePackStation(runId){
+ const suffix=crypto.createHash('sha256').update(runId+'|pack-station').digest('hex').slice(0,10).toUpperCase();
+ const packStationToken='E2E-PACK-'+crypto.randomBytes(24).toString('base64url');
+ return{
+  packStationToken,
+  station:{
+   id:'E2E-PACK-STATION-'+suffix,
+   name:'E2E Packtisch '+suffix,
+   tokenHash:packStore.hashStationToken(packStationToken),
+   active:true,
+   _e2eRunId:runId,
+   createdAt:now(),
+   updatedAt:now()
+  }
+ };
+}
 function e2eNonAdminRights(){
  const allowed=new Set(['start','dashboard','rights','pickupcalendar']);
  const rights={};
@@ -213,6 +230,33 @@ function removeRunRecords(state,runId){
  }
  return{state:out,removed};
 }
+function removePackStationRecords(state,stationIds){
+ const out=state&&typeof state==='object'&&!Array.isArray(state)?clone(state):{};
+ const ids=stationIds instanceof Set?stationIds:new Set(stationIds||[]);
+ if(!ids.size)return{state:out,removed:0};
+ const notifications=Array.isArray(out.packNotifications)?out.packNotifications:[];
+ const notificationIds=new Set(notifications.filter(item=>item&&ids.has(text(item.packStationId))).map(item=>text(item.id)).filter(Boolean));
+ let removed=0;
+ const filter=(key,predicate)=>{const list=Array.isArray(out[key])?out[key]:[];const before=list.length;out[key]=list.filter(item=>!predicate(item));removed+=before-out[key].length;};
+ filter('packStations',item=>item&&ids.has(text(item.id)));
+ filter('packSessions',item=>item&&ids.has(text(item.packStationId)));
+ filter('packDrafts',item=>item&&(ids.has(text(item.createdPackStationId))||ids.has(text(item.lastPackStationId))));
+ filter('packNotifications',item=>item&&ids.has(text(item.packStationId)));
+ filter('tasks',item=>item&&text(item.sourceType)==='pack_notification'&&notificationIds.has(text(item.sourceId)));
+ return{state:out,removed};
+}
+function removePackRunRecords(state,runId){
+ const out=state&&typeof state==='object'&&!Array.isArray(state)?clone(state):{};
+ const stations=Array.isArray(out.packStations)?out.packStations:[];
+ const stationIds=new Set(stations.filter(item=>item&&text(item._e2eRunId)===runId).map(item=>text(item.id)).filter(Boolean));
+ return removePackStationRecords(out,stationIds);
+}
+function removeStalePackRecords(state){
+ const out=state&&typeof state==='object'&&!Array.isArray(state)?clone(state):{};
+ const stations=Array.isArray(out.packStations)?out.packStations:[];
+ const stationIds=new Set(stations.filter(e2eMarked).map(item=>text(item.id)).filter(Boolean));
+ return removePackStationRecords(out,stationIds);
+}
 async function mutateTestTeam(mutator){
  const container=service().getContainerClient(TEAM_CONTAINER),blob=container.getBlockBlobClient(TEST_TEAM_BLOB);
  for(let attempt=0;attempt<MAX_RETRIES;attempt++){
@@ -245,10 +289,12 @@ function signedSessionFor(user,runId,label){
  return{token:auth.createSignedSessionToken(session),expiresAt:session.expiresAt};
 }
 async function prepare(runId){
+ const pack=e2ePackStation(runId);
  const mutation=await mutateTestTeam(async team=>{
   team.state=team.state&&typeof team.state==='object'?team.state:{};
   team.users=Array.isArray(team.users)?team.users:[];
-  const staleState=removeStaleE2ERecords(team.state);
+  const stalePack=removeStalePackRecords(team.state);
+  const staleState=removeStaleE2ERecords(stalePack.state);
   team.state=staleState.state;
   const beforeUsers=team.users.length;
   team.users=team.users.filter(u=>!e2eMarked(u));
@@ -260,11 +306,14 @@ async function prepare(runId){
   team.state.users=cleaned.map(u=>publicUser(u,false));
   team.state.customers=Array.isArray(team.state.customers)?team.state.customers.filter(x=>text(x&&x.id)!==customer.id):[];
   team.state.customers.push(customer);
-  return{team,value:{user,nonAdminUser,customer,purgedStaleRecords:staleState.removed,purgedStaleUsers},changed:true};
+  team.state.packStations=Array.isArray(team.state.packStations)?team.state.packStations.filter(x=>text(x&&x.id)!==pack.station.id):[];
+  team.state.packStations.push(pack.station);
+  return{team,value:{user,nonAdminUser,customer,purgedStaleRecords:stalePack.removed+staleState.removed,purgedStaleUsers},changed:true};
  });
  const user=mutation.result.user,nonAdminUser=mutation.result.nonAdminUser,customer=mutation.result.customer;
  const adminSession=signedSessionFor(user,runId,'ADMIN'),nonAdminSession=signedSessionFor(nonAdminUser,runId,'NONADMIN');
- return{ok:true,action:'prepare',environment:'testservice',runId,token:adminSession.token,user:publicUser(user,false),expiresAt:adminSession.expiresAt,nonAdminToken:nonAdminSession.token,nonAdminUser:publicUser(nonAdminUser,false),nonAdminExpiresAt:nonAdminSession.expiresAt,customer:{id:customer.id,account:customer.account,name:customer.name,locationId:customer.locations[0].id,locationName:customer.locations[0].name},purgedStaleRecords:mutation.result.purgedStaleRecords,purgedStaleUsers:mutation.result.purgedStaleUsers,teamBytes:mutation.bytes};
+ const e2eAdminUser=Object.assign({},publicUser(user,false),{_e2ePackStationToken:pack.packStationToken});
+ return{ok:true,action:'prepare',environment:'testservice',runId,token:adminSession.token,user:e2eAdminUser,expiresAt:adminSession.expiresAt,nonAdminToken:nonAdminSession.token,nonAdminUser:publicUser(nonAdminUser,false),nonAdminExpiresAt:nonAdminSession.expiresAt,customer:{id:customer.id,account:customer.account,name:customer.name,locationId:customer.locations[0].id,locationName:customer.locations[0].name},packStation:{id:pack.station.id,name:pack.station.name},purgedStaleRecords:mutation.result.purgedStaleRecords,purgedStaleUsers:mutation.result.purgedStaleUsers,teamBytes:mutation.bytes};
 }
 async function cleanup(runId){
  const mutation=await mutateTestTeam(async team=>{
@@ -272,10 +321,11 @@ async function cleanup(runId){
   team.users=Array.isArray(team.users)?team.users:[];
   const beforeUsers=team.users.length;
   team.users=team.users.filter(u=>text(u&&u._e2eRunId)!==runId);
-  const cleaned=removeRunRecords(team.state,runId);team.state=cleaned.state;
+  const packCleaned=removePackRunRecords(team.state,runId);
+  const cleaned=removeRunRecords(packCleaned.state,runId);team.state=cleaned.state;
   team.state.users=team.users.map(u=>publicUser(u,false));
-  const removedUsers=beforeUsers-team.users.length,removed=removedUsers+cleaned.removed;
-  return{team,value:{removed,removedUsers,removedRecords:cleaned.removed},changed:removed>0};
+  const removedUsers=beforeUsers-team.users.length,removed=removedUsers+packCleaned.removed+cleaned.removed;
+  return{team,value:{removed,removedUsers,removedRecords:packCleaned.removed+cleaned.removed},changed:removed>0};
  });
  return{ok:true,action:'cleanup',environment:'testservice',runId,...mutation.result,teamBytes:mutation.bytes};
 }

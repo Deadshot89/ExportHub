@@ -4,6 +4,10 @@ import {
   attachRuntimeGuards,
   assertRuntimeClean
 } from '../helpers/exporthub-browser.mjs';
+import {
+  packStationTokenFromFixture,
+  runPackNotificationLiveFlow
+} from '../helpers/pack-notification-live.mjs';
 
 const publicPages=[
   ['/pickup.html','Pickup'],
@@ -46,4 +50,13 @@ test('RC1124 public: ungültiger Lieferavis-Token endet kontrolliert',async({pag
   await expect.poll(()=>page.locator('body').innerText(),{timeout:15_000}).toMatch(/ungültig|invalid|abgelaufen|nicht gefunden|nicht verfügbar|nicht freigegeben|Zugriff|Token|Fehler/i);
   await assertNoSourceLeak(page);
   await assertRuntimeClean(runtime,testInfo);
+});
+
+test('RC1499: echter QR-Packmeldungsfluss blockiert Production bei TESTSERVICE-Regression',async({browser},testInfo)=>{
+  test.setTimeout(180_000);
+  test.skip(process.env.EXPORTHUB_E2E_LIVE!=='1'||process.env.EXPORTHUB_E2E_MUTATION!=='1','RC1499 läuft nur im mutierenden TESTSERVICE-Gate.');
+  test.skip(testInfo.project.name!=='laptop','RC1499 läuft genau einmal auf dem Laptop-Profil.');
+  const token=packStationTokenFromFixture();
+  expect(token,'Temporärer RC1499 Packtisch-Token fehlt').toMatch(/^E2E-PACK-/);
+  await runPackNotificationLiveFlow(browser,testInfo,token);
 });

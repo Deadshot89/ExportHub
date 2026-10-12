@@ -53,7 +53,7 @@ test('RC1171: Erfolg wird erst nach echtem shipment-saved und Server-Reload akze
 
 test('RC1171: Testdaten werden ausschließlich per _e2eRunId markiert und Fixture-Cleanup entfernt sie',()=>{
   assert.match(spec,/s\.shipment\._e2eRunId=runId/);
-  assert.match(fixture,/removeRunRecords\(team\.state,runId\)/);
+  assert.match(fixture,/removeRunRecords\((?:team\.state|packCleaned\.state),runId\)/);
   assert.doesNotMatch(spec,/customerName:'E2E TEST CUSTOMER'/);
   assert.doesNotMatch(spec,/state:\{shipments,savedShipments\}/);
 });
