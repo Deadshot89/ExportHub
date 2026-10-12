@@ -28,7 +28,7 @@ function evaluatePersisted(source,shipment,state){
   return context.result===true;
 }
 
-test('RC1495: serverseitig gespeicherte Altdaten-Sendung darf QR auch ohne technische ID aktivieren',()=>{
+test('RC1495/RC1496: serverseitig gespeicherte Altdaten-Sendung darf QR auch ohne moderne technische ID aktivieren',()=>{
   build();
   const html=fs.readFileSync('dist-rc1112/index.html','utf8');
   const source=persistedSource(html);
@@ -61,10 +61,17 @@ test('RC1495: serverseitig gespeicherte Altdaten-Sendung darf QR auch ohne techn
     'Ein Objekt mit Referenz allein darf ohne gespeicherten State-Eintrag nicht als persistiert gelten'
   );
 
-  const draft={id:'DRAFT-4711',ref:'ABC123',customerName:'Entwurf'};
+  const canonicalDraft={id:'DRAFT-4711',ref:'ABC123',customerName:'Historischer Entwurf'};
   assert.equal(
-    evaluatePersisted(source,draft,{shipments:[draft],savedShipments:[]}),
+    evaluatePersisted(source,canonicalDraft,{shipments:[canonicalDraft],savedShipments:[]}),
+    true,
+    'Eine historische DRAFT-ID darf eine kanonisch gespeicherte Sendung nicht mehr fälschlich blockieren'
+  );
+
+  const orphanDraft={id:'DRAFT-4711',ref:'ABC123',customerName:'Nur lokaler Entwurf'};
+  assert.equal(
+    evaluatePersisted(source,orphanDraft,{shipments:[],savedShipments:[]}),
     false,
-    'DRAFT-IDs bleiben trotz State-Eintrag fail-closed'
+    'Ein nur lokaler DRAFT ohne kanonischen State-Eintrag bleibt fail-closed'
   );
 });
