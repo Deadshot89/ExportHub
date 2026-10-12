@@ -2,7 +2,7 @@
 'use strict';
 if(!root||root.ExportHUBRC1499Handoff)return;
 
-var pending=null,observer=null,timer=0;
+var pending=null,observer=null,observerRoot=null,timer=0;
 function q(v){return String(v==null?'':v).trim()}
 function tr(key){
   try{var i=root.ExportHUBRC1499I18n;if(i&&typeof i.t==='function')return i.t(key,typeof i.language==='function'?i.language():undefined)}catch(_){}
@@ -110,12 +110,23 @@ function enhance(){
   renderPending()
 }
 function schedule(){if(timer)return;timer=root.setTimeout?root.setTimeout(function(){timer=0;enhance()},0):0;if(!root.setTimeout)enhance()}
-function mount(){
-  var d=root.document;if(!d||!d.documentElement)return false;ensureStyle();ensureExport();schedule();
-  if(typeof root.MutationObserver==='function'&&!observer){observer=new root.MutationObserver(schedule);observer.observe(d.documentElement,{childList:true,subtree:true})}
-  return true
+function disconnectObserver(){if(observer){try{observer.disconnect()}catch(_){}observer=null}observerRoot=null}
+function observerHost(){
+  var d=root.document;if(!d)return null;
+  return d.querySelector&&d.querySelector('[data-rc1294-results]')||d.getElementById&&d.getElementById('rc1294AbdAnalysis')||d.getElementById&&d.getElementById('rc626Abd')||null
 }
+function bindObserver(){
+  var host=observerHost();if(!host||typeof root.MutationObserver!=='function'){disconnectObserver();return false}
+  if(observer&&observerRoot===host)return true;
+  disconnectObserver();
+  try{observer=new root.MutationObserver(schedule);observer.observe(host,{childList:true,subtree:true});observerRoot=host;return true}catch(_){disconnectObserver();return false}
+}
+function mount(){
+  var d=root.document;if(!d||!d.documentElement)return false;ensureStyle();ensureExport();schedule();bindObserver();return true
+}
+function remount(){if(root.setTimeout)root.setTimeout(mount,0);else mount()}
 
 root.ExportHUBRC1499Handoff=Object.freeze({prepare:prepare,peek:peek,clear:clear,validate:validate,mount:mount});
 mount();
+if(typeof root.addEventListener==='function')['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync','exporthub:language-changed'].forEach(function(name){root.addEventListener(name,remount)});
 })(typeof window!=='undefined'?window:globalThis);
