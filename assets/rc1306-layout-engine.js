@@ -287,12 +287,12 @@ function apply(){
   try{
     restoreAll();
     lastAppliedDesign=mode;
+    if(mode==='classic')return;
     if(dashboardOwnsLayout()){
-      if(mode!=='classic')setMode(mode==='modern'?'business':mode);
+      setMode(mode==='modern'?'business':mode);
       if(w.ExportHUBDashboard1371&&typeof w.ExportHUBDashboard1371.applyTheme==='function')w.ExportHUBDashboard1371.applyTheme(mode);
       return
     }
-    if(mode==='classic')return;
 
     var shell=shipmentShell(),b=blocks();
     if(shell&&isShipmentCreate()){
