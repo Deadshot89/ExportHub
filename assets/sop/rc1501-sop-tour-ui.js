@@ -14,18 +14,51 @@ function text(value){return String(value==null?'':value).trim();}
 function esc(value){return String(value==null?'':value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
 function arr(value){return Array.isArray(value)?value:[];}
 function hasEnabledTour(sop){return arr(sop&&sop.steps).some(step=>step&&step.tour&&step.tour.enabled===true);}
+function hasEnabledExam(sop){return arr(sop&&sop.steps).some(step=>step&&step.exam&&step.exam.relevant===true);}
 function startButtonHtml(sop){
-  if(!hasEnabledTour(sop))return '';
+  const tourEnabled=hasEnabledTour(sop);
+  const examEnabled=hasEnabledExam(sop);
+  if(!tourEnabled&&!examEnabled)return '';
   const number=esc(sop&&sop.number);
-  return `<button type="button" data-sop-tour-start="${number}">▶ Anleitung starten</button><button type="button" data-sop-training-start="${number}">🎓 Training starten</button>`;
+  let html='';
+  if(tourEnabled)html+=`<button type="button" data-sop-tour-start="${number}">▶ Anleitung starten</button><button type="button" data-sop-training-start="${number}">🎓 Training starten</button>`;
+  if(examEnabled)html+=`<button type="button" data-sop-exam-start="${number}">📝 Prüfung starten</button>`;
+  return html;
 }
 function firstTip(step){return text(arr(step&&step.warnings)[0]||arr(step&&step.troubleshooting)[0]||'');}
+function isExam(session){return text(session&&session.mode).toLowerCase()==='exam';}
 function trainingHeader(session){
   if(text(session&&session.mode).toLowerCase()!=='training')return '';
   return `<div class="rc1503-sop-training-banner" data-sop-training-banner role="status" aria-live="polite"><strong>TRAININGSMODUS</strong><span>Keine produktiven Daten werden verändert.</span></div><div class="rc1503-sop-training-simulation" data-sop-training-simulation-label><span aria-hidden="true">🧪</span><span>Simulation · Aktionen und Ergebnisse bleiben in der Demo.</span></div>`;
 }
+function countLabel(value,singular,plural){const n=Math.max(0,Number(value)||0);return `${n} ${n===1?singular:plural}`;}
+function renderExam(session){
+  if(!session)return '';
+  const required=arr(session.requiredSteps).length;
+  const correct=arr(session.correctSteps).length;
+  const errors=arr(session.errors).length;
+  const skipped=arr(session.skippedSteps).length;
+  const help=Math.max(0,Number(session.helpCount)||0);
+  const completed=session.status==='completed';
+  const percent=required?Math.min(100,Math.round((correct/required)*100)):0;
+  const title=text(session.title)||text(session.sopNumber)||'SOP-Prüfung';
+  const task=text(session.task)||`Führe den Prozess „${title}“ vollständig durch.`;
+  const result=completed?(session.passed===true?'✅ Bestanden':'❌ Noch nicht bestanden'):'';
+  return `<aside class="rc1503-sop-exam-panel" data-sop-exam-shell role="complementary" aria-label="SOP-Prüfung">
+    <div class="rc1503-sop-exam-banner" role="status" aria-live="polite"><strong>PRÜFUNGSMODUS</strong><span>Arbeite selbstständig. Während der Prüfung werden keine Lösungshinweise angezeigt.</span></div>
+    <div class="rc1503-sop-exam-head"><div><span class="rc1503-sop-exam-kicker">${esc(session.sopNumber)}</span><h2>${esc(title)}</h2></div><button type="button" data-sop-exam-end aria-label="Prüfung schließen">×</button></div>
+    <section class="rc1503-sop-exam-task" aria-labelledby="rc1503SopExamTaskTitle"><h3 id="rc1503SopExamTaskTitle">Aufgabe</h3><p>${esc(task)}</p></section>
+    <div class="rc1503-sop-exam-progress" aria-label="Prüfungsfortschritt ${correct} von ${required}"><div><strong>${correct} von ${required}</strong><span>${percent} %</span></div><progress max="100" value="${percent}">${percent} %</progress></div>
+    ${completed?`<section class="rc1503-sop-exam-result" aria-live="polite"><h3>${result}</h3><div class="rc1503-sop-exam-summary"><span>${countLabel(correct,'korrekter Schritt','korrekte Schritte')}</span><span>${countLabel(errors,'Fehler','Fehler')}</span><span>${countLabel(skipped,'ausgelassen','ausgelassen')}</span><span>${countLabel(help,'Hilfe','Hilfen')}</span></div></section>`:`<div class="rc1503-sop-exam-status" role="status" aria-live="polite">Prüfung läuft</div>`}
+    <div class="rc1503-sop-exam-controls">
+      ${completed?'':`<button type="button" data-sop-exam-help>Hilfe anfordern</button><button type="button" data-sop-exam-finish>Prüfung abschließen</button>`}
+      <button type="button" data-sop-exam-end>${completed?'Schließen':'Prüfung abbrechen'}</button>
+    </div>
+  </aside>`;
+}
 function render(session){
   if(!session)return '';
+  if(isExam(session))return renderExam(session);
   const step=session.currentStep||{};
   const paused=session.status==='paused';
   const completed=session.status==='completed';
@@ -61,6 +94,7 @@ function clearHighlight(){
   highlightedKey='';
 }
 function highlightCurrent(session){
+  if(isExam(session)){clearHighlight();return;}
   if(!session||session.status!=='active'){clearHighlight();return;}
   const key=text(session.currentStep&&session.currentStep.target&&session.currentStep.target.stableKey);
   if(!key){clearHighlight();return;}
@@ -74,18 +108,30 @@ function highlightCurrent(session){
   if(highlighted.classList&&typeof highlighted.classList.add==='function')highlighted.classList.add('rc1501-sop-tour-target');
   if(typeof highlighted.scrollIntoView==='function'){try{highlighted.scrollIntoView({block:'center',inline:'nearest',behavior:'smooth'});}catch(_){}}
 }
-function paint(){
+function visibleSession(){
+  const exam=root.ExportHubSopExam;
+  const examSession=exam&&typeof exam.current==='function'?exam.current():null;
+  if(examSession&&(examSession.status==='active'||examSession.status==='completed'))return examSession;
   const tour=root.ExportHubSopTour;
-  const session=tour&&typeof tour.current==='function'?tour.current():null;
+  return tour&&typeof tour.current==='function'?tour.current():null;
+}
+function paint(){
+  const session=visibleSession();
   if(!panel)return session;
   if(!session){panel.innerHTML='';panel.hidden=true;clearHighlight();return null;}
   panel.hidden=false;panel.innerHTML=render(session);highlightCurrent(session);return session;
 }
 function reportAction(action,element,context){
-  const tour=root.ExportHubSopTour;
-  if(!tour||typeof tour.handleAction!=='function')return null;
+  const exam=root.ExportHubSopExam;
+  const examSession=exam&&typeof exam.current==='function'?exam.current():null;
   const target=element&&typeof element.closest==='function'?element.closest('[data-tour-key]'):element;
   const stableKey=text(target&&typeof target.getAttribute==='function'?target.getAttribute('data-tour-key'):'');
+  if(examSession&&examSession.status==='active'&&typeof exam.recordAction==='function'){
+    const result=exam.recordAction({action:text(action),stableKey,context:context&&typeof context==='object'?context:currentContext()});
+    paint();return result;
+  }
+  const tour=root.ExportHubSopTour;
+  if(!tour||typeof tour.handleAction!=='function')return null;
   const result=tour.handleAction({action:text(action),stableKey,context:context&&typeof context==='object'?context:currentContext()});
   paint();return result;
 }
@@ -97,8 +143,13 @@ function onWorkEvent(event){
 }
 function onCustomAction(event){const d=event&&event.detail&&typeof event.detail==='object'?event.detail:{};reportAction(d.action,d.element||event.target,d.context||currentContext());}
 function onPanelClick(event){
-  const tour=root.ExportHubSopTour;if(!tour)return;
   const t=event&&event.target;
+  const exam=root.ExportHubSopExam;
+  const examSession=exam&&typeof exam.current==='function'?exam.current():null;
+  if(t&&t.closest&&t.closest('[data-sop-exam-help]')&&examSession&&examSession.status==='active'){if(typeof exam.requestHelp==='function')exam.requestHelp();paint();return;}
+  if(t&&t.closest&&t.closest('[data-sop-exam-finish]')&&examSession&&examSession.status==='active'){if(typeof exam.finish==='function')exam.finish(currentContext());paint();return;}
+  if(t&&t.closest&&t.closest('[data-sop-exam-end]')&&examSession){if(typeof exam.end==='function')exam.end();paint();return;}
+  const tour=root.ExportHubSopTour;if(!tour)return;
   if(t&&t.closest&&t.closest('[data-sop-tour-previous]')){tour.previous();paint();return;}
   if(t&&t.closest&&t.closest('[data-sop-tour-pause]')){const s=tour.current();if(s&&s.status==='paused')tour.resume();else tour.pause();paint();return;}
   if(t&&t.closest&&t.closest('[data-sop-tour-end]')){const s=tour.current();if(s&&text(s.mode).toLowerCase()==='training'&&root.ExportHubSopTraining&&typeof root.ExportHubSopTraining.end==='function')root.ExportHubSopTraining.end();else tour.end();paint();return;}
@@ -106,10 +157,10 @@ function onPanelClick(event){
 }
 function annotate(){const registry=root.ExportHubSopTourTargets;if(registry&&typeof registry.annotatePilotTargets==='function')registry.annotatePilotTargets(mountedRoot||root.document);}
 function enhanceSopDocument(scope,sop){
-  if(!scope||!hasEnabledTour(sop))return false;
+  if(!scope||(!hasEnabledTour(sop)&&!hasEnabledExam(sop)))return false;
   const actions=typeof scope.querySelector==='function'?scope.querySelector('.rc1007-sop-doc-actions'):null;
   if(!actions||typeof actions.insertAdjacentHTML!=='function')return false;
-  if(typeof actions.querySelector==='function'&&actions.querySelector('[data-sop-tour-start]'))return true;
+  if(typeof actions.querySelector==='function'&&(actions.querySelector('[data-sop-tour-start]')||actions.querySelector('[data-sop-exam-start]')))return true;
   actions.insertAdjacentHTML('beforeend',startButtonHtml(sop));return true;
 }
 function mount(target,options={}){
@@ -123,7 +174,7 @@ function mount(target,options={}){
   for(const type of ['click','change','input']){mountedRoot.addEventListener(type,onWorkEvent,true);listeners.push([mountedRoot,type,onWorkEvent,true]);}
   mountedRoot.addEventListener('exporthub:sop-tour-action',onCustomAction);listeners.push([mountedRoot,'exporthub:sop-tour-action',onCustomAction]);
   annotate();
-  if(typeof root.MutationObserver==='function'){observer=new root.MutationObserver(()=>{annotate();highlightCurrent(root.ExportHubSopTour&&root.ExportHubSopTour.current?root.ExportHubSopTour.current():null);});observer.observe(mountedRoot,{childList:true,subtree:true});}
+  if(typeof root.MutationObserver==='function'){observer=new root.MutationObserver(()=>{annotate();highlightCurrent(visibleSession());});observer.observe(mountedRoot,{childList:true,subtree:true});}
   paint();return {paint,reportAction,enhanceSopDocument};
 }
 function unmount(){
@@ -132,5 +183,5 @@ function unmount(){
   clearHighlight();if(panel){panel.innerHTML='';panel.hidden=true;}panel=null;mountedRoot=null;contextProvider=null;
 }
 
-root.ExportHubSopTourUi=Object.freeze({render,mount,unmount,paint,reportAction,eventDescriptor,hasEnabledTour,startButtonHtml,enhanceSopDocument,highlightCurrent});
+root.ExportHubSopTourUi=Object.freeze({render,renderExam,mount,unmount,paint,reportAction,eventDescriptor,hasEnabledTour,hasEnabledExam,startButtonHtml,enhanceSopDocument,highlightCurrent});
 })(typeof globalThis!=='undefined'?globalThis:this);
