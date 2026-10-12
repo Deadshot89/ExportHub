@@ -22,12 +22,24 @@ test('aktueller gemeinsamer Versionsmarker darf nicht auf RC1011 zurückfallen',
   assert.ok(currentRc()>1011);
 });
 
-test('aktueller Standarddeploy darf RC1011 nicht mehr als Freigabestand festschreiben',()=>{
+test('RC1505: aktueller Main-Workflow deployt TESTSERVICE, aber niemals Production',()=>{
   const flow=read('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml');
   assert.doesNotMatch(flow,/ExportHUB RC1011 Drei-Umgebungen Deploy/);
   assert.doesNotMatch(flow,/node \.github\/rc1011\/build-three-env\.mjs/);
-  assert.match(flow,/Deploy ExportHUB production/);
+  assert.match(flow,/name:\s*ExportHUB RC1112 Main Verification/);
   assert.match(flow,/Deploy ExportHUB TESTSERVICE/);
+  assert.doesNotMatch(flow,/Deploy ExportHUB production/);
+  assert.doesNotMatch(flow,/AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_FOREST_0F315E310/);
+});
+
+test('RC1505: Production-Freigabe liegt im separaten manuellen Workflow',()=>{
+  const flow=read('.github/workflows/exporthub-production-release.yml');
+  assert.match(flow,/name:\s*ExportHUB Production Release/);
+  assert.match(flow,/workflow_dispatch:/);
+  assert.match(flow,/release_sha:/);
+  assert.match(flow,/confirm_production:/);
+  assert.match(flow,/PRODUCTION FREIGEBEN/);
+  assert.match(flow,/Deploy ExportHUB production/);
 });
 
 test('Main-Contract folgt dem aktuellen Release statt RC1011',()=>{
