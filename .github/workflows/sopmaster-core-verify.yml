@@ -14,7 +14,7 @@ on:
       - 'test/rc1018-sop-image-coverage-complete.test.mjs'
       - 'test/rc1500-sop-*.test.mjs'
       - 'test/rc1501-sop-*.test.mjs'
-      - '.github/rc1112/build-three-env.mjs'
+      - '.github/rc1501/**'
       - 'e2e/specs/sopmaster-tour.spec.mjs'
       - 'playwright.config.mjs'
       - '.github/workflows/sopmaster-core-verify.yml'
@@ -22,6 +22,10 @@ on:
 
 permissions:
   contents: read
+
+concurrency:
+  group: sopmaster-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   verify:
@@ -37,3 +41,35 @@ jobs:
         run: node --test test/rc1007-sop-workflow.test.mjs test/rc1016-sop-consolidation.test.mjs test/rc1018-sop-image-coverage-complete.test.mjs test/rc1500-sop-*.test.mjs test/rc1501-sop-*.test.mjs
       - name: Full Node regression
         run: npm test
+
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Build current three-environment package with RC1501 tour layer
+        run: node .github/rc1501/build-three-env.mjs
+      - name: Install Playwright
+        run: |
+          npm install --no-save @playwright/test@1.63.0
+          npx playwright install --with-deps chromium
+      - name: Verify guided SOP tour on desktop and mobile
+        env:
+          EXPORTHUB_E2E_STATIC: '1'
+          EXPORTHUB_E2E_ENTRY: /demo.html
+          EXPORTHUB_E2E_PUBLIC_ENV: testservice
+        run: npx playwright test e2e/specs/sopmaster-tour.spec.mjs --project=desktop --project=mobile-standard
+      - name: Upload browser artifacts
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: sopmaster-tour-browser
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: ignore
+          retention-days: 14
