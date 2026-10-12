@@ -163,7 +163,41 @@
     return result;
   }
 
+  function shipmentCreatedFromSave(domEvent){
+    const detail=obj(domEvent&&domEvent.detail)?domEvent.detail:{};
+    if(detail.azureSaved!==true||detail.updated!==false)return null;
+    const shipment=obj(detail.shipment)?detail.shipment:{};
+    const shipmentId=q(shipment.id||shipment.shipmentId||detail.id),shipmentRef=q(shipment.ref||shipment.reference||shipment.shipmentRef||detail.reference);
+    if(!shipmentId&&!shipmentRef)return null;
+    const stableId=shipmentId||shipmentRef;
+    return {
+      eventId:`shipment.created:${stableId}`,
+      type:'shipment.created',
+      occurredAt:q(shipment.updatedAt||shipment.createdAt||detail.savedAt),
+      customerId:q(shipment.customerId||shipment.customerNumber||shipment.customerAccount||shipment.account),
+      customerName:q(shipment.customerName||shipment.deliveryName||shipment.customer),
+      shipmentId,shipmentRef,
+      orderId:q(shipment.orderId||shipment.salesOrder||shipment.order),
+      processId:q(shipment.processId),workflowId:q(shipment.workflowId),taskType:'shipment'
+    };
+  }
+
+  function forwardConfirmedShipmentSave(domEvent){
+    const event=shipmentCreatedFromSave(domEvent);if(!event)return null;
+    const runtime=root.ExportHUBRC1014TaskRuntime;
+    if(!runtime||typeof runtime.emitWorkflowEvent!=='function')return null;
+    try{return runtime.emitWorkflowEvent(event)}catch(_){return null;}
+  }
+
+  function installConfirmedBindings(){
+    if(typeof root.addEventListener!=='function'||root.__EXPORTHUB_TASK_WORKFLOW_BINDINGS__)return false;
+    root.__EXPORTHUB_TASK_WORKFLOW_BINDINGS__=true;
+    root.addEventListener('exporthub:shipment-saved',forwardConfirmedShipmentSave);
+    return true;
+  }
+
   root.ExportHUBTaskWorkflowV2=Object.freeze({
-    version:'2.0',types:TYPES,normalizeEvent,match,apply,emit,processedKey
+    version:'2.0',types:TYPES,normalizeEvent,match,apply,emit,processedKey,shipmentCreatedFromSave,installConfirmedBindings
   });
+  installConfirmedBindings();
 })(globalThis);
