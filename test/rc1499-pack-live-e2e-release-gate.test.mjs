@@ -5,6 +5,9 @@ import {execFileSync} from 'node:child_process';
 
 const fixturePath='api/e2e-test-fixture/index.js';
 const workflowPath='.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml';
+const packBuildPath='.github/packmeldungen/build-three-env.mjs';
+const productionConfigPath='staticwebapp.config.json';
+const testserviceConfigPath='staticwebapp.testservice.config.json';
 const packSpecPath='e2e/specs/pack-notification.spec.mjs';
 const publicSmokePath='e2e/specs/public-smoke.spec.mjs';
 const helperPath='e2e/helpers/pack-notification-live.mjs';
@@ -16,6 +19,10 @@ function stepBlock(workflow,name,nextName){
   assert.ok(start>=0,`${name} fehlt`);
   const end=nextName?workflow.indexOf(`- name: ${nextName}`,start+1):-1;
   return workflow.slice(start,end>start?end:undefined);
+}
+
+function route(config,path){
+  return (config.routes||[]).find(row=>row&&row.route===path);
 }
 
 test('RC1499: TESTSERVICE-Fixture erzeugt pro Release einen nur gehasht gespeicherten Packtisch-Token',()=>{
@@ -63,12 +70,19 @@ test('RC1499: echter Packmeldungsfluss läuft im bestehenden mutierenden TESTSER
   assert.match(helper,/data-pack-action="shipment"/,'Sendungs-Handoff fehlt im Livefluss');
 });
 
-test('RC1499: gemeinsames Deploypaket enthält pack.html vor dem TESTSERVICE-Pack-Gate',()=>{
-  const workflow=read(workflowPath);
+test('RC1499: Packseite bleibt in beiden gemeinsamen Deploypaketen erreichbar',()=>{
+  const workflow=read(workflowPath),packBuild=read(packBuildPath);
+  const productionConfig=JSON.parse(read(productionConfigPath));
+  const testserviceConfig=JSON.parse(read(testserviceConfigPath));
   const packageStep=stepBlock(workflow,'Gemeinsame RC1112 Deploy-Pakete vorbereiten','RC1124 Playwright installieren');
-  assert.match(packageStep,/cp\s+dist-rc1112\/pack\.html[^\n]*\"\$dir\/\"/,'pack.html wird nicht in beide Deploypakete kopiert');
-  assert.match(packageStep,/test -s \.rc1112_testservice_app\/pack\.html/,'TESTSERVICE-Paket prüft pack.html nicht');
-  assert.match(packageStep,/test -s \.rc1112_production_app\/pack\.html/,'Production-Paket prüft pack.html nicht');
+
+  assert.match(packBuild,/copyFileSync\(path\.join\(root,'pack\.html'\),path\.join\(out,'assets','pack\.html'\)\)/,'Packseite wird nicht in den gemeinsam kopierten dist-assets gespiegelt');
+  assert.match(packageStep,/cp -R dist-rc1112\/assets\/\. \"\$dir\/assets\/\"/,'dist-assets werden nicht in beide Deploypakete kopiert');
+
+  for(const [name,config] of [['production',productionConfig],['testservice',testserviceConfig]]){
+    assert.equal(route(config,'/pack/*')?.rewrite,'/assets/pack.html',`${name}: /pack/* zeigt nicht auf die paketierte Packseite`);
+    assert.equal(route(config,'/pack.html')?.rewrite,'/assets/pack.html',`${name}: /pack.html zeigt nicht auf die paketierte Packseite`);
+  }
 });
 
 test('RC1499: Production bleibt read-only; RC1499 überspringt dort automatisch',()=>{
