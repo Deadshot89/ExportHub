@@ -35,7 +35,11 @@ jobs:
             console.log(h.slice(Math.max(0,i-before),Math.min(h.length,i+after)));
           }
           dump('PERSISTED','function persisted(sh)',3000,5000);
+          dump('COLLI','function colliCount(sh)',1600,4000);
           dump('ELIGIBLE','function eligible(sh)',1800,3500);
+          dump('QR API','function api(path',1600,5000);
+          dump('METADATA','function metadata(sh',1800,6500);
           dump('QR SUCCESS','pickupQrRegistered:true',3500,7000);
-          dump('LOCATION REGISTER','location-booking',3500,7000);
+          dump('LEGACY LABEL','Altdaten',5000,7000);
+          dump('CREATED BY LABEL','Erstellt von',5000,7000);
           NODE
