@@ -10,6 +10,8 @@ on:
       - 'assets/sop/rc1502-sop-*'
       - 'browser/rc1502-sop-screenshots.mjs'
       - 'test/rc1502-sop-*.test.mjs'
+      - 'e2e/specs/sopmaster-target-picker.spec.mjs'
+      - 'e2e/helpers/exporthub-browser.mjs'
       - '.github/rc1502/**'
       - '.github/workflows/sopmaster-visual-verify.yml'
   workflow_dispatch:
@@ -37,7 +39,7 @@ jobs:
   browser-capture:
     needs: visual-contract
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 18
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -48,7 +50,7 @@ jobs:
         run: node .github/rc1502/build-three-env.mjs
       - name: Install Playwright Chromium
         run: |
-          npm install --no-save playwright@1.63.0
+          npm install --no-save @playwright/test@1.63.0
           npx playwright install --with-deps chromium
       - name: Capture RC1502 demo screenshots
         shell: bash
@@ -62,10 +64,24 @@ jobs:
           done
           curl -fsS http://127.0.0.1:4173/demo.html >/dev/null
           RC1502_BROWSER_URL=http://127.0.0.1:4173/demo.html node browser/rc1502-sop-screenshots.mjs
+      - name: Verify target picker on desktop and mobile
+        env:
+          EXPORTHUB_E2E_STATIC: '1'
+          EXPORTHUB_E2E_ENTRY: '/demo.html'
+        run: npx playwright test e2e/specs/sopmaster-target-picker.spec.mjs --project=desktop --project=mobile-standard
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: sopmaster-rc1502-screenshots
           path: artifacts/rc1502-sop-screenshots
           if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: sopmaster-rc1502-target-picker-debug
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: ignore
           retention-days: 14
