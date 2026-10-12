@@ -24,7 +24,7 @@ function releasedDocument(number='SOP-EH-060',options={}){
   const visual=options.image===false?[]:[{type:'screenshot',stepId,src:'/assets/sop/screenshots/abd.png',required:true,annotations:[]}];
   const status=options.status||'Freigegeben';
   return {
-    id:`DOC-${number}`,type:'process',number,title:`${number} Test`,currentVersion:'2.0',version:'2.0',status,
+    id:`DOC-${number}`,type:'process',number,title:`${number} Test`,area:options.area||'Zoll',currentVersion:'2.0',version:'2.0',status,
     approvedBy:status==='Freigegeben'?'QA':'',
     versions:[{version:'2.0',status,title:`${number} Test`,approvedBy:status==='Freigegeben'?'QA':'',content:{steps:[step]},visuals:visual}]
   };
@@ -95,7 +95,7 @@ test('Bild-Metadaten mit fehlender Datei bleiben gelb',()=>{
   assert.equal(row.capabilities.image.present,false);
 });
 
-test('fehlender oder doppelter data-tour-key wird gelb und fail-closed',()=>{
+test('fehlender oder doppelter data-tour-key wird bei explizitem Live-Scope gelb und fail-closed',()=>{
   const missing=scanOne({scope:scopeWith(0)});
   assert.equal(missing.status,'yellow');
   assert.ok(missing.reasons.includes('TARGET_MISSING'));
@@ -103,6 +103,20 @@ test('fehlender oder doppelter data-tour-key wird gelb und fail-closed',()=>{
   const duplicate=scanOne({scope:scopeWith(2)});
   assert.equal(duplicate.status,'yellow');
   assert.ok(duplicate.reasons.includes('TARGET_DUPLICATE'));
+});
+
+test('zentraler Metadaten-Scan verlangt ohne Live-Scope kein aktuell gemountetes Ziel',()=>{
+  const result=coverage.scan({entries:[entry()],documents:[releasedDocument()],assetExists:()=>true});
+  const row=result.items[0];
+  assert.equal(row.status,'green');
+  assert.equal(row.capabilities.tour.present,true);
+  assert.ok(!row.reasons.includes('TARGET_MISSING'));
+  assert.ok(!row.reasons.includes('TARGET_UNAVAILABLE'));
+});
+
+test('Coverage-Zeile übernimmt den fachlichen SOP-Bereich für Adminfilter',()=>{
+  const row=scanOne({document:releasedDocument('SOP-EH-060',{area:'Export / Zoll'})});
+  assert.equal(row.area,'Export / Zoll');
 });
 
 test('vollständige SOP ist grün und kann gleichzeitig blaue Tour- und lila Bild-Capability tragen',()=>{
