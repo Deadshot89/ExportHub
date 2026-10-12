@@ -12,18 +12,20 @@ test('RC1501 Packmeldungen navigation is standalone and no longer clones Aufgabe
   assert.match(nav,/data-pack-notifications-nav-owner/);
   assert.match(nav,/packnotifications/,'Packmeldungen must own a dedicated view identity');
   assert.match(nav,/renderPackInbox/,'Packmeldungen click must render the dedicated inbox');
+  assert.match(nav,/pack-station-admin\.js\?v=1501/,'stable Packmeldungen navigation must load the station admin runtime');
 });
 
 test('RC1501 Packmeldungen exposes Packtische & QR-Codes administration inside the dedicated view',()=>{
-  const internal=read('assets/pack-notification-internal.js');
-  assert.match(internal,/Packtische\s*&\s*QR-Codes/);
-  assert.match(internal,/renderPackStations/);
-  assert.match(internal,/data-pack-tab=["']stations["']/);
-  assert.match(internal,/data-pack-station-action=["']create["']/);
-  assert.match(internal,/data-pack-station-action=["']show-qr["']/);
-  assert.match(internal,/data-pack-station-action=["']rotate["']/);
-  assert.match(internal,/data-pack-station-action=["']print["']/);
-  assert.match(internal,/data-pack-station-action=["']copy["']/);
+  const admin=read('assets/pack-station-admin.js');
+  assert.match(admin,/Packtische\s*&\s*QR-Codes/);
+  assert.match(admin,/renderPackStations/);
+  assert.match(admin,/data-pack-tab=\\?['"]stations/);
+  assert.match(admin,/data-pack-station-action=\\?['"]create/);
+  assert.match(admin,/data-pack-station-action=\\?['"]show-qr/);
+  assert.match(admin,/data-pack-station-action=\\?['"]rotate/);
+  assert.match(admin,/data-pack-station-action=\\?['"]print/);
+  assert.match(admin,/data-pack-station-action=\\?['"]copy/);
+  assert.match(admin,/data-pack-station-action=\\?['"]toggle/);
 });
 
 test('RC1501 pack station admin API derives recoverable tokens without persisting plaintext token',()=>{
@@ -35,9 +37,10 @@ test('RC1501 pack station admin API derives recoverable tokens without persistin
   assert.match(api,/action\s*===\s*['"]rotate['"]/);
   assert.match(api,/action\s*===\s*['"]qr['"]/);
   assert.match(api,/createHmac\(['"]sha256['"]/,'station token must be derived with server-side HMAC');
-  assert.match(api,/tokenHash\s*:/,'only the token hash belongs in persisted station state');
-  assert.doesNotMatch(api,/token\s*:\s*stationToken[^,}]*[,}]/,'raw station token must not be persisted on the station record');
+  assert.match(api,/station\.tokenHash\s*=\s*packStore\.hashStationToken/,'only the derived token hash belongs in persisted station state');
+  assert.doesNotMatch(api,/station\.(?:token|stationToken)\s*=/,'raw station token must never be persisted on the station record');
   assert.match(api,/QRCode\.toString/,'server must create a scannable SVG QR code');
+  assert.match(api,/GLOBAL_ADMIN_REQUIRED/,'QR management must remain admin-protected');
 });
 
 test('RC1501 API runtime includes QR generator dependency',()=>{
