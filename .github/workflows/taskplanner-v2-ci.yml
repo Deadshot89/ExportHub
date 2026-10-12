@@ -42,7 +42,8 @@ jobs:
             test/taskplanner-v2-planner.test.mjs \
             test/taskplanner-v2-runtime-bridge.test.mjs \
             test/taskplanner-v2-task-ui.test.mjs \
-            test/taskplanner-v2-reminders.test.mjs
+            test/taskplanner-v2-reminders.test.mjs \
+            test/taskplanner-v2-i18n.test.mjs
       - name: Existing task regressions
         run: |
           node --test --test-concurrency=1 \
@@ -56,5 +57,9 @@ jobs:
             .github/rc996/tasks-contract.test.mjs
       - name: State write guard regression
         run: node --test --test-concurrency=1 test/rc1490-state-module-write-guard.test.mjs
+      - name: TaskPlanner V2 locale audit
+        run: |
+          node scripts/taskplanner-v2-i18n-pretest.mjs
+          npm run i18n:audit:strict
       - name: Full repository regression
         run: npm test
