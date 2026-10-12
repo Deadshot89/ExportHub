@@ -5,6 +5,8 @@ on:
     branches:
       - design/sopmaster-training-tour-2026-10-12
     paths:
+      - 'assets/sop/rc1007-sop-ui.js'
+      - 'assets/sop/rc1007-sop.css'
       - 'assets/sop/rc1502-sop-*'
       - 'test/rc1502-sop-*.test.mjs'
       - '.github/workflows/sopmaster-visual-verify.yml'
@@ -27,5 +29,5 @@ jobs:
         with:
           node-version: '20'
           package-manager-cache: false
-      - name: RC1502 visual contract
-        run: node --test test/rc1502-sop-*.test.mjs
+      - name: RC1502 visual and legacy SOP regression
+        run: node --test test/rc1007-sop-workflow.test.mjs test/rc1502-sop-*.test.mjs
