@@ -188,7 +188,7 @@ function translationStatus(root){
   }
   for(const [key,next] of Object.entries(value)){if(key!==SIDE_CAR&&!SKIP_BRANCH.test(key))walk(next,depth+1)}
  }
- walk(root,0);return{total,complete:completeCount,pending,stale,languages:LANGUAGES.slice()}
+ walk(root,0);return{total,complete:completeCount,pending,stale,languages:LANGUAGES.slice(),translator:translatorStatus()}
 }
 function localizedValue(record,key,language){
  if(!record||typeof record!=='object')return'';
