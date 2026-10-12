@@ -16,4 +16,16 @@ Dieses Addendum präzisiert die freigegebene Variante B und ändert den Bestands
 7. **Bestandsschutz:** Manuell erstellte ABD-Anfragen und aus Sendungen erzeugte ABD-Anfragen bleiben technisch und fachlich in ihrem bestehenden Ablauf. Die neue Startauswahl ist ausschließlich Routing; neue Analysefunktionen dürfen die alten Wege nicht voraussetzen.
 8. **Rückwärtskompatibilität:** Bestehende `abdRequests` ohne neue Analyse-, AV- oder Customs-Felder bleiben vollständig lesbar und bearbeitbar.
 
-Diese Punkte sind in allen Implementierungsplänen und Release-Gates mitzunehmen.
+## Plan-Aufteilung nach Self-Review
+
+Die Umsetzung ist in eigenständig testbare Pläne getrennt:
+
+- `docs/superpowers/plans/2026-10-12-exportexperte-invoice-analysis.md`
+- `docs/superpowers/plans/2026-10-12-exportexperte-abd-history-av.md`
+- `docs/superpowers/plans/2026-10-12-exportexperte-customs-knowledge-updates.md`
+- `docs/superpowers/plans/2026-10-12-exportexperte-ai-customs-expert.md`
+- `docs/superpowers/plans/2026-10-12-exportexperte-integration-release.md`
+
+Der Integrationsplan schließt insbesondere die beim Self-Review identifizierten Querschnittspunkte: vollständige Zollwissen-Taxonomie, exakte Zoll-Update-Kategorien, deterministische KI-Antworten auf Analysefragen, einheitliche Fehlerzustände, Responsive-/Accessibility-Verträge, PDF-Layout-Sicherheit, Performance und abschließende Requirement-Matrix.
+
+Diese Punkte sind in allen Implementierungs- und Release-Gates verbindlich.
