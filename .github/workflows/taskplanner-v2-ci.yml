@@ -33,6 +33,7 @@ jobs:
           node scripts/taskplanner-v2-cutover-pretest.mjs
           node scripts/taskplanner-v2-i18n-pretest.mjs
           node scripts/taskplanner-v2-planner-i18n-pretest.mjs
+          node scripts/taskplanner-v2-workflow-i18n-pretest.mjs
       - name: TaskPlanner V2 RED-GREEN contracts
         run: |
           node --test --test-concurrency=1 \
