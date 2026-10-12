@@ -144,18 +144,19 @@ test('RC1510 dynamic i18n never classifies names references numbers codes or tra
  for(const key of ['customerName','referenceNumber','itemNumber','trackingNumber','customerCode'])assert.equal(meta[key],undefined,key+' must stay untouched');
 });
 
-test('RC1512 translator diagnostics expose configuration state without credentials',()=>{
+test('RC1512 existing admin i18n status includes safe translator diagnostics without credentials',()=>{
  const stateApi=fs.readFileSync('api/exporthub-state/index.js','utf8');
- const dynamic=fs.readFileSync('api/shared/dynamic-i18n.js','utf8');
+ assert.match(stateApi,/mode==='i18n-status'/);
+ assert.match(stateApi,/translation:translationStatus/,'existing admin endpoint must continue returning translationStatus');
  assert.equal(typeof mod.translatorStatus,'function','translatorStatus helper must be exported');
- assert.match(dynamic,/regionConfigured/);
- assert.match(dynamic,/endpointHost/);
- assert.match(stateApi,/translatorStatus/);
  const status=mod.translatorStatus();
  assert.equal(typeof status.configured,'boolean');
  assert.equal(typeof status.regionConfigured,'boolean');
  assert.equal(typeof status.provider,'string');
  assert.equal(typeof status.endpointHost,'string');
  assert.equal(Object.prototype.hasOwnProperty.call(status,'key'),false,'translator key must never be exposed');
- assert.equal(JSON.stringify(status).includes(String(process.env.EXPORTHUB_TRANSLATOR_KEY||process.env.AZURE_TRANSLATOR_KEY||'__no_key__')),false,'translator credentials must never be serialized');
+ const publicStatus=mod.translationStatus({});
+ assert.deepEqual(publicStatus.translator,status,'admin i18n status must include the safe translator diagnostics');
+ const secret=String(process.env.EXPORTHUB_TRANSLATOR_KEY||process.env.AZURE_TRANSLATOR_KEY||'');
+ if(secret)assert.equal(JSON.stringify(publicStatus).includes(secret),false,'translator credentials must never be serialized');
 });
