@@ -34,8 +34,8 @@
     const source=clone(document&&typeof document==='object'?document:{})||{};
     const current=currentVersionRecord(source);
     const sectionSteps=source.sections&&Array.isArray(source.sections.steps)?source.sections.steps:[];
-    const versionSteps=current&&current.content&&Array.isArray(current.content.steps)?current.content.steps:[];
-    const rawSteps=versionSteps.length?versionSteps:(Array.isArray(source.steps)&&source.steps.length?source.steps:sectionSteps);
+    const hasVersionSteps=!!(current&&current.content&&Array.isArray(current.content.steps));
+    const rawSteps=hasVersionSteps?current.content.steps:(Array.isArray(source.steps)?source.steps:sectionSteps);
     const contract=root.ExportHubSopStepContract;
     source.type=text(source.type)||'process';
     source.overlays=Array.isArray(source.overlays)?clone(source.overlays):[];

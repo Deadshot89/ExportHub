@@ -9,8 +9,10 @@ function model(){return root.ExportHubIsoSopModel;}
 function normalize(doc){const m=model();return m&&typeof m.normalizeDocument==='function'?m.normalizeDocument(doc):clone(doc);}
 function current(doc){const m=model();return m&&typeof m.currentVersionRecord==='function'?m.currentVersionRecord(doc):null;}
 function statusOf(doc){const version=current(doc);return text(version&&version.status)||text(doc&&doc.status);}
-function operationsOf(doc){
-  const version=current(doc);
+function versionById(doc,version){const wanted=text(version);return (Array.isArray(doc&&doc.versions)?doc.versions:[]).find(item=>text(item&&item.version)===wanted)||null;}
+function draftVersionOf(doc){const draft=versionById(doc,doc&&doc.draftVersion);return draft&&text(draft.status)!=='Freigegeben'?draft:null;}
+function operationsOf(doc,selectedVersion){
+  const version=selectedVersion||current(doc);
   const content=version&&version.content&&typeof version.content==='object'?version.content:{};
   if(Array.isArray(content.overlays))return clone(content.overlays);
   if(Array.isArray(content.overlayOps))return clone(content.overlayOps);
@@ -27,12 +29,12 @@ function dedupeConcat(left,right){
 }
 function renumber(steps){steps.forEach((step,index)=>{step.order=index+1;});return steps;}
 
-function applyOverlay(base,overlay){
+function applyOverlay(base,overlay,selectedVersion){
   const contract=root.ExportHubSopStepContract;
   const working=clone(base);
   const baseSnapshot=clone(base);
   const conflicts=[];
-  const ops=operationsOf(overlay);
+  const ops=operationsOf(overlay,selectedVersion);
   const customerId=text(overlay&&overlay.customerId);
   const overlayNumber=text(overlay&&overlay.number);
   for(const op of ops){
@@ -79,6 +81,7 @@ function resolve(input){
   const baseSopNumber=text(source.baseSopNumber);
   const customerId=text(source.customerId);
   const rights=rightsOf(source.rights);
+  if(!rights.read)return {ok:false,document:null,overlay:null,conflicts:[conflict('NO_READ_PERMISSION','Keine Leseberechtigung für SOP-Inhalte')],preview:false};
   const rawBase=documents.find(doc=>text(doc&&doc.number)===baseSopNumber&&text(doc&&doc.type)!=='customer');
   if(!rawBase)return {ok:false,document:null,overlay:null,conflicts:[conflict('BASE_NOT_FOUND',`Basis-SOP nicht gefunden: ${baseSopNumber}`)],preview:false};
   const base=normalize(rawBase);
@@ -86,15 +89,15 @@ function resolve(input){
   const released=candidates.filter(doc=>statusOf(doc)==='Freigegeben');
   if(released.length>1)return {ok:false,document:base,overlay:null,conflicts:[conflict('AMBIGUOUS_OVERLAY','Mehrere freigegebene Kunden-Overlays gefunden',{numbers:released.map(doc=>text(doc.number))})],preview:false};
   let selected=released[0]||null;
+  let selectedVersion=selected?current(selected):null;
   let preview=false;
-  if(!selected&&rights.edit){
-    const drafts=candidates.filter(doc=>statusOf(doc)!=='Freigegeben');
-    if(drafts.length>1)return {ok:false,document:base,overlay:null,conflicts:[conflict('AMBIGUOUS_DRAFT_OVERLAY','Mehrere nicht freigegebene Kunden-Overlays gefunden',{numbers:drafts.map(doc=>text(doc.number))})],preview:true};
-    selected=drafts[0]||null;
-    preview=!!selected;
+  if(rights.edit){
+    const draftCandidates=candidates.map(doc=>{const draft=draftVersionOf(doc);if(draft)return {doc,version:draft};if(statusOf(doc)!=='Freigegeben')return {doc,version:current(doc)};return null;}).filter(Boolean);
+    if(draftCandidates.length>1)return {ok:false,document:base,overlay:null,conflicts:[conflict('AMBIGUOUS_DRAFT_OVERLAY','Mehrere nicht freigegebene Kunden-Overlays gefunden',{numbers:draftCandidates.map(item=>text(item.doc&&item.doc.number))})],preview:true};
+    if(draftCandidates.length===1){selected=draftCandidates[0].doc;selectedVersion=draftCandidates[0].version;preview=true;}
   }
   if(!selected)return {ok:true,document:base,overlay:null,conflicts:[],preview:false};
-  const applied=applyOverlay(base,selected);
+  const applied=applyOverlay(base,selected,selectedVersion);
   return {ok:applied.ok,document:applied.document,overlay:selected,conflicts:applied.conflicts,preview};
 }
 

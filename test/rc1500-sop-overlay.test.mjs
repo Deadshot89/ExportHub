@@ -88,3 +88,29 @@ test('destruktives replace-step ist verboten und fail-closed',()=>{
   assert.ok(result.conflicts.some(item=>item.code==='UNSUPPORTED_DESTRUCTIVE_ACTION'));
   assert.deepEqual(result.document.steps.map(step=>step.id),['a','b']);
 });
+
+test('bei freigegebener Overlay-Fassung plus neuer Entwurfsfassung sehen Leser die Freigabe und Editoren den Entwurf als Preview',()=>{
+  const versioned={
+    number:'SOP-CUST-C1-060',title:'Kunde C1 ABD',type:'customer',customerId:'C1',baseProcessSop:'SOP-EH-060',
+    status:'Freigegeben',version:'1.0',currentVersion:'1.0',draftVersion:'1.1',
+    versions:[
+      {version:'1.0',status:'Freigegeben',title:'Kunde C1 ABD',content:{overlays:[{action:'add-step',afterStepId:'a',step:{id:'released-only',text:'Freigegebener Zusatz'}}]},visuals:[]},
+      {version:'1.1',status:'Entwurf',title:'Kunde C1 ABD',content:{overlays:[{action:'add-step',afterStepId:'a',step:{id:'draft-only',text:'Entwurfs-Zusatz'}}]},visuals:[]}
+    ],auditTrail:[]
+  };
+  const reader=overlay.resolve({documents:[base,versioned],baseSopNumber:'SOP-EH-060',customerId:'C1',rights:{read:true}});
+  assert.equal(reader.preview,false);
+  assert.ok(reader.document.steps.some(step=>step.id==='released-only'));
+  assert.equal(reader.document.steps.some(step=>step.id==='draft-only'),false);
+  const editor=overlay.resolve({documents:[base,versioned],baseSopNumber:'SOP-EH-060',customerId:'C1',rights:{read:true,edit:true}});
+  assert.equal(editor.preview,true);
+  assert.ok(editor.document.steps.some(step=>step.id==='draft-only'));
+  assert.equal(editor.document.steps.some(step=>step.id==='released-only'),false);
+});
+
+test('Overlay-Resolver gibt ohne Leserecht keine SOP-Inhalte zurück',()=>{
+  const result=overlay.resolve({documents:[base,customer()],baseSopNumber:'SOP-EH-060',customerId:'C1',rights:{}});
+  assert.equal(result.ok,false);
+  assert.equal(result.document,null);
+  assert.ok(result.conflicts.some(item=>item.code==='NO_READ_PERMISSION'));
+});

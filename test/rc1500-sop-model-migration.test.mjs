@@ -44,3 +44,13 @@ test('approveVersion blockiert doppelte Step-IDs aus dem freizugebenden Versions
   };
   assert.throws(()=>model.approveVersion(doc,{version:'1.0',actor:'Admin'}),/Step-ID doppelt/);
 });
+
+test('normalizeDocument respektiert eine explizit leere aktuelle Step-Liste statt auf alte Root-Schritte zurückzufallen',()=>{
+  const source={
+    number:'SOP-EH-902',title:'Leerer Entwurf',version:'2.0',currentVersion:'2.0',status:'Entwurf',
+    sections:{steps:[{id:'legacy-root',text:'Veralteter Root-Schritt'}]},
+    versions:[{version:'2.0',status:'Entwurf',title:'Leerer Entwurf',content:{steps:[]},visuals:[]}],auditTrail:[]
+  };
+  const normalized=model.normalizeDocument(source);
+  assert.deepEqual(normalized.steps,[]);
+});
