@@ -66,6 +66,7 @@ export function injectPackRuntime(html,file='index.html'){
 export function copyPackFiles(root,out){
   fs.mkdirSync(path.join(out,'assets'),{recursive:true});
   fs.copyFileSync(path.join(root,'pack.html'),path.join(out,'pack.html'));
+  fs.copyFileSync(path.join(root,'pack.html'),path.join(out,'assets','pack.html'));
   for(const asset of PACK_ASSETS){
     const target=path.join(out,'assets',asset);
     fs.mkdirSync(path.dirname(target),{recursive:true});
