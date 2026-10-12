@@ -5,6 +5,7 @@ on:
     branches:
       - design/sopmaster-training-tour-2026-10-12
     paths:
+      - 'assets/exporthub-demo-bootstrap.js'
       - 'assets/sop/rc1007-sop-ui.js'
       - 'assets/sop/rc1007-sop.css'
       - 'assets/sop/rc1500-sop-step-contract.js'
