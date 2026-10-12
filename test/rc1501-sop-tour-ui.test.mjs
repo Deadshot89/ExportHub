@@ -48,6 +48,26 @@ test('eventDescriptor liest nur beobachtete Benutzeraktion und nächsten stabile
   assert.deepEqual(descriptor,{action:'click',stableKey:'shipment-abd-decision'});
 });
 
+test('Highlight desselben Tour-Ziels scrollt nur einmal und bleibt stabil',()=>{
+  assert.equal(typeof ui.highlightCurrent,'function','highlightCurrent fehlt');
+  let scrolls=0,adds=0,removes=0;
+  const target={
+    classList:{add(){adds+=1;},remove(){removes+=1;}},
+    scrollIntoView(){scrolls+=1;}
+  };
+  const previous=globalThis.ExportHubSopTourTargets;
+  globalThis.ExportHubSopTourTargets={find(){return {ok:true,element:target};}};
+  const active=session();
+  ui.highlightCurrent(active);
+  ui.highlightCurrent(active);
+  assert.equal(scrolls,1,'gleiches Ziel darf Smooth-Scroll nicht wiederholt neu starten');
+  assert.equal(adds,1,'gleiches Ziel darf Highlight nicht wiederholt neu aufbauen');
+  assert.equal(removes,0,'gleiches Ziel darf Highlight nicht zwischen Mutationen entfernen');
+  ui.highlightCurrent(session({status:'paused'}));
+  assert.equal(removes,1,'bei Pause muss Highlight entfernt werden');
+  globalThis.ExportHubSopTourTargets=previous;
+});
+
 test('CSS besitzt responsive Tour-Steuerung, Fokusmarkierung und reduziert Bewegung',()=>{
   const css=fs.readFileSync('assets/sop/rc1501-sop-tour.css','utf8');
   assert.match(css,/\.rc1501-sop-tour-panel/);
