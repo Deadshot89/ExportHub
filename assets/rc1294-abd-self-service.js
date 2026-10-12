@@ -144,7 +144,7 @@ function mount(){
  p.innerHTML='<h3>'+esc(tr('abd.analysis.title'))+'</h3>'+
   '<p>'+esc(tr('abd.analysis.help'))+'</p>'+
   '<div class="rc1294-note">'+esc(tr('abd.analysis.previewOnly'))+'</div>'+
-  '<div class="rc1294-controls"><label class="rc1294-file"><span>'+esc(tr('abd.analysis.chooseFiles'))+'</span><input type="file" multiple accept=".pdf,.xlsx,.csv,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"></label>'+
+  '<div class="rc1294-controls"><label class="rc1294-file"><span>'+esc(tr('abd.analysis.chooseFiles'))+'</span><input type="file" multiple data-rc1294-files accept=".pdf,.jpg,.jpeg,.png,.xlsx,.csv,application/pdf,image/jpeg,image/png,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"></label>'+
   '<button type="button" class="btn" data-rc1294-start>'+esc(tr('abd.analysis.start'))+'</button></div>'+
   '<div class="rc1294-status" data-rc1294-status hidden></div><div class="rc1294-results" data-rc1294-results hidden></div>';
  var head=host.querySelector('.rc626-head');if(head&&head.parentNode)head.parentNode.insertBefore(p,head.nextSibling);else host.insertBefore(p,host.firstChild);
