@@ -105,3 +105,51 @@ test('RC1371 mount ist bei wiederholtem Render idempotent',()=>{
   assert.equal(api.mount(r),true);
   assert.equal(api.mountedRoot(),first);
 });
+
+test('RC1371 sichtbarer Editor verdrahtet Bibliothek hinzufügen und schließen',()=>{
+  assert.match(source,/action==='libraryAdd'[\s\S]{0,180}addWidget\s*\(/);
+  assert.match(source,/action==='libraryClose'[\s\S]{0,120}closeLibrary\s*\(/);
+});
+
+test('RC1371 Widget-Steuerung bietet nur erlaubte S M L XL Größen an',()=>{
+  assert.match(source,/data-rc1371-size-choice/);
+  assert.match(source,/allowedSizes\(def\)/);
+  assert.match(source,/action==='resizeWidget'[\s\S]{0,180}resizeWidget\s*\(/);
+});
+
+test('RC1371 Toolbar bietet alle fünf Vorlagen und reagiert auf Auswahl',()=>{
+  assert.match(source,/data-rc1371-template-select/);
+  for(const name of ['standard','management','operativ','kompakt','analyse'])assert.ok(source.includes(name));
+  assert.match(source,/applyTemplate\s*\(/);
+});
+
+test('RC1371 Widget-Bibliothek filtert Suchtext ohne neue Datenabfrage',()=>{
+  assert.match(source,/function filterLibrary\s*\(/);
+  assert.match(source,/data-rc1371-library-search/);
+  assert.match(source,/addEventListener\(['"]input['"]/);
+  assert.doesNotMatch(source,/filterLibrary[\s\S]{0,600}\bfetch\s*\(/);
+});
+
+test('RC1371 Reihenfolge wird im CSS-Grid sichtbar angewendet',()=>{
+  assert.match(source,/node\.style\.order\s*=\s*String\(/);
+});
+
+test('RC1371 Layout-State darf bestehende Rechte niemals sichtbar überschreiben',()=>{
+  assert.match(source,/canUseWidget\(def\)/);
+  assert.match(source,/node\.hidden\s*=\s*!permitted\s*\|\|\s*row\.visible===false/);
+});
+
+test('RC1371 Vorlagen unterscheiden sich funktional statt nur im Namen',()=>{
+  const {api}=load();
+  const standard=api.templateLayout('standard',api.registry());
+  const compact=api.templateLayout('kompakt',api.registry());
+  const analysis=api.templateLayout('analyse',api.registry());
+  const signature=s=>JSON.stringify(s.widgets.map(w=>[w.id,w.visible,w.size,w.order]));
+  assert.notEqual(signature(standard),signature(compact));
+  assert.notEqual(signature(standard),signature(analysis));
+});
+
+test('RC1371 inferiert ohne View-State nicht jedes #content als Dashboard',()=>{
+  assert.doesNotMatch(source,/return view==='dashboard'\|\|\(!view&&!!discoverDashboardRoot\(\)\)/);
+  assert.match(source,/function explicitDashboardRoot\s*\(/);
+});
