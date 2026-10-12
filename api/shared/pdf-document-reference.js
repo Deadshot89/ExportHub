@@ -11,14 +11,36 @@ function decodePdfString(value){
     .replace(/\\f/g,'\f')
     .replace(/\\([0-7]{1,3})/g,(_m,oct)=>String.fromCharCode(parseInt(oct,8)));
 }
+function decodeUtf16(bytes,littleEndian,offset=0){
+  let out='';
+  for(let i=offset;i+1<bytes.length;i+=2){
+    const code=littleEndian?(bytes[i]|(bytes[i+1]<<8)):((bytes[i]<<8)|bytes[i+1]);
+    out+=String.fromCharCode(code);
+  }
+  return out;
+}
+function decodeHexPdfString(value){
+  const raw=String(value||'').replace(/\s+/g,''),even=raw.length%2?raw+'0':raw;
+  let bytes;
+  try{bytes=Buffer.from(even,'hex')}catch(_){return''}
+  if(bytes.length>=2&&bytes[0]===0xfe&&bytes[1]===0xff)return decodeUtf16(bytes,false,2);
+  if(bytes.length>=2&&bytes[0]===0xff&&bytes[1]===0xfe)return decodeUtf16(bytes,true,2);
+  if(bytes.length>=4&&bytes.length%2===0){
+    let beZeros=0,leZeros=0,pairs=0;
+    for(let i=0;i+1<bytes.length;i+=2){pairs++;if(bytes[i]===0)beZeros++;if(bytes[i+1]===0)leZeros++;}
+    if(pairs&&beZeros/pairs>=0.6)return decodeUtf16(bytes,false,0);
+    if(pairs&&leZeros/pairs>=0.6)return decodeUtf16(bytes,true,0);
+  }
+  return bytes.toString('latin1');
+}
 function textStrings(source){
   const input=String(source||''),out=[];
   const literal=/\((?:\\.|[^\\)])*\)/gs;
   let m;
   while((m=literal.exec(input)))out.push(decodePdfString(m[0].slice(1,-1)));
-  const hex=/<([0-9A-Fa-f]{4,})>/g;
+  const hex=/<([0-9A-Fa-f\s]{4,})>/g;
   while((m=hex.exec(input))){
-    try{out.push(Buffer.from(m[1].length%2?m[1]+'0':m[1],'hex').toString('latin1'))}catch(_){}
+    try{out.push(decodeHexPdfString(m[1]))}catch(_){}
   }
   return out;
 }
@@ -68,7 +90,8 @@ function normalizedPdfName(originalName,extractedText){
 function normalizePdfDocument(file,buffer,mimeType){
   const input=file&&typeof file==='object'?file:{};
   const original=String(input.name||input.fileName||input.filename||'');
-  if(String(mimeType||input.mimeType||input.type||'').toLowerCase()!=='application/pdf'||!/\.pdf$/i.test(original))return Object.assign({},input);
+  const mime=String(mimeType||input.mimeType||input.type||'').toLowerCase();
+  if((mime!=='application/pdf'&&mime!=='application/x-pdf')||!/\.pdf$/i.test(original))return Object.assign({},input);
   const result=normalizedPdfName(original,extractPdfText(buffer));
   if(!result.renamed)return Object.assign({},input);
   return Object.assign({},input,{originalName:input.originalName||original,name:result.name,documentReference:result.reference,documentReferenceType:result.reason==='side'?'SIDE':'DNC'});
