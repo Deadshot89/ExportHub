@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - taskplannerpro/v2-design
+      - taskplannerpro/v2-task4
   workflow_dispatch:
 
 permissions:
@@ -39,7 +40,9 @@ jobs:
             test/taskplanner-v2-calendar.test.mjs \
             test/taskplanner-v2-lifecycle-recurrence.test.mjs \
             test/taskplanner-v2-planner.test.mjs \
-            test/taskplanner-v2-runtime-bridge.test.mjs
+            test/taskplanner-v2-runtime-bridge.test.mjs \
+            test/taskplanner-v2-task-ui.test.mjs \
+            test/taskplanner-v2-reminders.test.mjs
       - name: Existing task regressions
         run: |
           node --test --test-concurrency=1 \
