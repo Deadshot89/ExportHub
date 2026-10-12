@@ -68,6 +68,7 @@ if(!rc1452Prepared()){
 await import('./rc1467-startup-avis-guard.mjs');
 await import('./rc1470-new-shipment-clean-slate-hotfix.mjs');
 await import('./rc1471-reminder-eligibility-hotfix.mjs');
+await import('./rc1495-legacy-qr-persistence-hotfix.mjs');
 await import('./rc1454-release-gate-hotfix.mjs');
 await import('./rc1461-release-deepfix.mjs');
 
@@ -75,4 +76,5 @@ if(!rc1452Prepared())throw new Error('RC1462 pretest verification failed: RC1452
 const rc1470Builder=fs.readFileSync(builderPath,'utf8');
 if(!rc1470Builder.includes('function patchRc1470NewShipmentCleanSlate(html,file){')||!rc1470Builder.includes('html=patchRc1470NewShipmentCleanSlate(html,file);'))throw new Error('RC1462 pretest verification failed: RC1470 clean-slate preparation incomplete');
 if(!rc1470Builder.includes('function patchRc1471ReminderEligibility(html,file){')||!rc1470Builder.includes('html=patchRc1471ReminderEligibility(html,file);'))throw new Error('RC1462 pretest verification failed: RC1471 reminder eligibility preparation incomplete');
-console.log('RC1462 pretest orchestration verified idempotent with RC1467 startup guard, RC1470 clean-slate reset and RC1471 reminder eligibility');
+if(!rc1470Builder.includes('function patchRc1495LegacyQrPersistence(html,file){')||!rc1470Builder.includes('html=patchRc1495LegacyQrPersistence(html,file);'))throw new Error('RC1462 pretest verification failed: RC1495 legacy QR persistence preparation incomplete');
+console.log('RC1462 pretest orchestration verified idempotent with RC1467 startup guard, RC1470 clean-slate reset, RC1471 reminder eligibility and RC1495 legacy QR persistence');
