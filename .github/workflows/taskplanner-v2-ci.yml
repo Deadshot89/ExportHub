@@ -1,0 +1,47 @@
+name: TaskPlannerPro V2 Branch Verification
+
+on:
+  push:
+    branches:
+      - taskplannerpro/v2-design
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: taskplanner-v2-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: Install root dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: TaskPlanner V2 RED-GREEN contracts
+        run: |
+          node --test --test-concurrency=1 \
+            test/taskplanner-v2-core.test.mjs \
+            test/taskplanner-v2-migration.test.mjs \
+            test/taskplanner-v2-compat.test.mjs \
+            test/taskplanner-v2-state-rights.test.mjs \
+            test/taskplanner-v2-build-wiring.test.mjs \
+            test/taskplanner-v2-api-backup-wiring.test.mjs \
+            test/taskplanner-v2-pretest-orchestration.test.mjs
+      - name: Existing task regressions
+        run: |
+          node --test --test-concurrency=1 \
+            test/rc1014-task-lifecycle.test.mjs \
+            test/rc1014-task-runtime-integration.test.mjs \
+            test/rc1054-task-shared-source.test.mjs
+      - name: State write guard regression
+        run: node --test --test-concurrency=1 test/rc1490-state-module-write-guard.test.mjs
+      - name: Full repository regression
+        run: npm test
