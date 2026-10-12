@@ -263,5 +263,14 @@ function t(key,lang,vars){
   var selected=normalize(lang||language()),pack=packs[selected]||packs.de,value=pack[key]||packs.de[key]||String(key||'');
   return interpolate(value,vars)
 }
+function ensureHandoff(){
+  try{if(root.ExportHUBRC1499Handoff&&typeof root.ExportHUBRC1499Handoff.prepare==='function')return true}catch(_){}
+  var d=root.document;if(!d||!d.createElement||d.getElementById('exporthub-rc1499-handoff'))return false;
+  try{
+    var s=d.createElement('script');s.id='exporthub-rc1499-handoff';s.src='/assets/rc1499-exportexperte-handoff.js?v=1499';s.defer=true;
+    (d.head||d.documentElement).appendChild(s);return true
+  }catch(_){return false}
+}
 root.ExportHUBRC1499I18n=Object.freeze({packs:packs,language:language,t:t});
+ensureHandoff();
 })(typeof window!=='undefined'?window:globalThis);
