@@ -47,3 +47,12 @@ test('RC1501 API runtime includes QR generator dependency',()=>{
   const pkg=JSON.parse(read('api/package.json'));
   assert.equal(pkg.dependencies.qrcode,'1.5.4');
 });
+
+test('RC1501 deployable pack page keeps translated draft controls strict-i18n clean',()=>{
+  const html=read('assets/pack.html');
+  const draftI18n=read('assets/i18n/pack-notification-drafts.js');
+  for(const id of ['packSubtitle','packHomeTitle','packHomeHelp','packNewShipment','packDraftEmpty','packBackHome','packDeliveryNotesHelp','packValidationHint','packSaveDraft','packRestart']){
+    assert.match(html,new RegExp(`id=["']${id}["'][^>]*>…<`),`${id} must use a neutral pre-i18n placeholder in the deploy copy`);
+    assert.match(draftI18n,new RegExp(`${id}:['"]pack\\.`),`${id} must be translated by the pack draft i18n runtime`);
+  }
+});
