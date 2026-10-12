@@ -21,7 +21,8 @@ function contextFor(windowObject,shipment){
     window:windowObject,
     sh:shipment,
     result:false,
-    q(value){return String(value==null?'':value).replace(/\s+/g,' ').trim();}
+    q(value){return String(value==null?'':value).replace(/\s+/g,' ').trim();},
+    arr(value){return Array.isArray(value)?value:[];}
   };
   context.window.window=context.window;
   context.structuredClone=value=>JSON.parse(JSON.stringify(value));
@@ -44,7 +45,7 @@ const ppr6uc=()=>({
   rows:[{type:'Palette',count:18}]
 });
 
-test('RC1496 RED: ein kanonisch gespeicherter Alt-Datensatz darf trotz alter DRAFT-ID nicht als ungespeichert gelten',()=>{
+test('RC1496: ein kanonisch gespeicherter Alt-Datensatz darf trotz alter DRAFT-ID nicht als ungespeichert gelten',()=>{
   build();
   const html=fs.readFileSync('dist-rc1112/index.html','utf8');
   const source=runtimeBlock(html);
