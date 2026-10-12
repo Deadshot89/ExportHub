@@ -99,7 +99,7 @@ jobs:
           node --check api/exporthub-state/index.js
           node --check api/avis-upload-mail-readiness/index.js
           node --check api/customer-portal-readiness/index.js
-          node --test test/rc1505-production-promotion.test.mjs test/rc1005-three-env-sync.test.mjs test/rc1018-production-deploy.test.mjs test/rc1381-stale-deploy-guard.test.mjs test/pack-notification-production.test.mjs test/rc1249-avis-upload-mail-readiness.test.mjs test/rc1124-browser-release-gate.test.mjs test/rc1193-visible-release-version.test.mjs test/rc1170-customer-portal-release-readiness.test.mjs test/rc1172-testservice-gate-order.test.mjs
+          node --test test/rc1505-production-promotion.test.mjs test/rc1005-three-env-sync.test.mjs test/rc1018-production-deploy.test.mjs test/rc1381-stale-deploy-guard.test.mjs test/pack-notification-production.test.mjs test/rc1249-avis-upload-mail-readiness.test.mjs test/rc1124-browser-release-gate.test.mjs test/rc1193-visible-release-version.test.mjs test/rc1170-customer-portal-release-readiness.test.mjs test/rc1172-testservice-gate-order.test.mjs test/rc1233-pickup-live-gate.test.mjs test/rc1228-customer-avis-slot-live-gate.test.mjs
           npm test
 
       - name: RC1112 Production-Kandidat aus freigegebenem SHA bauen
@@ -209,7 +209,6 @@ jobs:
           "
 
       - name: RC1249 PRODUCTION AVIS-Mail-Konfiguration prüfen
-        # Optionale automatische Upload-Mail; bekannte fehlende Mail.Send-Berechtigung bleibt P2.
         continue-on-error: true
         shell: bash
         run: |
@@ -237,6 +236,80 @@ jobs:
             console.error('RC1249 '+env+' automatische Upload-Mail weiterhin nicht verfügbar',JSON.stringify({status,ok:v.ok,configured:v.configured,authenticated:v.authenticated,audienceOk:v.audienceOk,mailSendGranted:v.mailSendGranted,code:v.code}));
             process.exit(1);
           "
+
+      - name: RC1233 QR-Abholung und POD-Ladelisten-Viewer live prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for env in production testservice; do
+            if [ "$env" = "production" ]; then base="$prod"; else base="$testservice"; fi
+            pickup="$(mktemp)"; viewer="$(mktemp)"; health="$(mktemp)"; protected="$(mktemp)"
+            trap 'rm -f "$pickup" "$viewer" "$health" "$protected"' EXIT
+            ready=0
+            for attempt in {1..18}; do
+              pc=$(curl -sS -L -o "$pickup" -w '%{http_code}' --max-time 20 "$base/pickup.html?rc1233=$RELEASE_SHA-$attempt" || true)
+              vc=$(curl -sS -L -o "$viewer" -w '%{http_code}' --max-time 20 "$base/assets/rc1059-document-blob.js?rc1233=$RELEASE_SHA-$attempt" || true)
+              hc=$(curl -sS -L -o "$health" -w '%{http_code}' --max-time 20 "$base/api/pickup-health?rc1233=$RELEASE_SHA-$attempt" || true)
+              key='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+              blob="rc995/$env/$key/automatic/POD_RC1233.pdf"
+              dc=$(curl -sS -L -o "$protected" -w '%{http_code}' --max-time 20 "$base/api/exporthub-document?blob=$(node -p "encodeURIComponent(process.argv[1])" "$blob")&environment=$env&rc1233=$RELEASE_SHA-$attempt" || true)
+              if [ "$pc" = "200" ] \
+                && [ "$vc" = "200" ] \
+                && [ "$hc" = "200" ] \
+                && [ "$dc" = "401" ] \
+                && grep -Fq "fetch('/api/'" "$pickup" \
+                && grep -Fq "request('pickup-status?token='" "$pickup" \
+                && grep -Fq "request('pickup-confirm-v2'" "$pickup" \
+                && grep -Fq "storage==='azure'||storage==='pod'" "$viewer" \
+                && grep -Fq 'automatic' "$viewer" \
+                && grep -Fq '/api/exporthub-document?blob=' "$viewer" \
+                && grep -Eq '"ok"[[:space:]]*:[[:space:]]*true' "$health" \
+                && grep -Eq 'AUTH_REQUIRED|SESSION_INVALID' "$protected"; then
+                ready=1
+                break
+              fi
+              sleep 5
+            done
+            if [ "$ready" != "1" ]; then
+              echo "RC1233 Pickup/POD-Live-Gate fehlgeschlagen: env=$env pickup=$pc viewer=$vc health=$hc protected=$dc" >&2
+              exit 1
+            fi
+            rm -f "$pickup" "$viewer" "$health" "$protected"
+            trap - EXIT
+          done
+          echo 'RC1233 QR-Abholung und geschützter POD-Ladelisten-Viewer live in Produktion und TESTSERVICE bestätigt.'
+
+      - name: RC1228 Lieferavis-Slotlogik live prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          for base in "$prod" "$testservice"; do
+            body="$(mktemp)"
+            trap 'rm -f "$body"' EXIT
+            code='000'
+            for attempt in {1..12}; do
+              code=$(curl -sS -L -o "$body" -w '%{http_code}' --max-time 20 "$base/customer-avis.html?rc1228=$RELEASE_SHA-$attempt" || true)
+              if [ "$code" = "200" ] \
+                && grep -Fq 'Buchbar sind ausschließlich 2-Stunden-Zeitfenster innerhalb von 08:30–16:00 Uhr.' "$body" \
+                && grep -Fq "Noch '+esc(x.remaining)+' von 3 gleichzeitig frei" "$body" \
+                && grep -Fq "action:'availability'" "$body" \
+                && grep -Fq "err.code==='PICKUP_SLOT_FULL'" "$body"; then
+                break
+              fi
+              if [ "$attempt" = "12" ]; then
+                echo "RC1228 Lieferavis-Slotlogik fehlt live: base=$base http=$code" >&2
+                exit 1
+              fi
+              sleep 5
+            done
+            rm -f "$body"
+            trap - EXIT
+          done
+          echo 'RC1228 Lieferavis-Slotlogik live in Produktion und TESTSERVICE bestätigt.'
 
       - name: RC1505 Production Release Basis-Liveprüfung
         shell: bash
