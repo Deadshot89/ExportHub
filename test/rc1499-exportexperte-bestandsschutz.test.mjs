@@ -1,3 +1,4 @@
+// RC1499 Bestandsschutz: dieser Test friert den vorhandenen ABD-Kern vor dem Upgrade ein.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
