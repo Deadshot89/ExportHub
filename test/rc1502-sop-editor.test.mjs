@@ -5,6 +5,7 @@ await import('../assets/sop/rc1007-sop-model.js');
 await import('../assets/sop/rc1007-sop-catalog.js');
 await import('../assets/sop/rc1016-sop-consolidation.js');
 await import('../assets/sop/rc1500-sop-overlay.js');
+await import('../assets/sop/rc1501-sop-tour-targets.js');
 await import('../assets/sop/rc1502-sop-visuals.js');
 await import('../assets/sop/rc1502-sop-editor.js').catch(()=>{});
 
@@ -95,4 +96,68 @@ test('Editor-Validierung meldet Draft-Probleme statt sie still zu speichern',()=
   assert.equal(summary.version,'2.1');
   assert.ok(Array.isArray(summary.errors));
   assert.ok(Array.isArray(summary.warnings));
+});
+
+function targetElement(key){
+  return {
+    getAttribute(name){return name==='data-tour-key'?key:'';},
+    closest(selector){return selector==='[data-tour-key]'?this:null;}
+  };
+}
+function targetScope(elements=[]){
+  const listeners=new Map();
+  return {
+    listeners,
+    addEventListener(name,handler,capture){listeners.set(name,{handler,capture});},
+    removeEventListener(name,handler){const item=listeners.get(name);if(item&&item.handler===handler)listeners.delete(name);},
+    querySelectorAll(selector){
+      const match=String(selector).match(/data-tour-key="([^"]+)"/);
+      const key=match?match[1]:'';
+      return elements.filter(element=>element.getAttribute('data-tour-key')===key);
+    }
+  };
+}
+
+test('Target Picker übernimmt ausschließlich data-tour-key und speichert stableKey plus abgeleiteten Selector im Draft-Step',()=>{
+  assert.equal(typeof editor.beginTargetPick,'function','beginTargetPick fehlt');
+  assert.equal(typeof editor.cancelTargetPick,'function','cancelTargetPick fehlt');
+  let doc=editor.createDraft(released(),{version:'2.1',actor:'Admin',reason:'Tourziel pflegen'});
+  const stepId=current(doc,'2.1').content.steps[0].id;
+  const element=targetElement('shipment-abd-decision');
+  const scope=targetScope([element]);
+  let selected=null;
+  const state=editor.beginTargetPick(stepId,{document:doc,version:'2.1',scope,onSelected(result){selected=result;}});
+  assert.equal(state.active,true);
+  assert.equal(state.stepId,stepId);
+  const click=scope.listeners.get('click');
+  assert.ok(click&&click.capture===true,'Picker muss Clicks im Capture-Modus beobachten');
+  click.handler({target:element,preventDefault(){},stopPropagation(){},stopImmediatePropagation(){}});
+  assert.ok(selected,'Auswahl wurde nicht gemeldet');
+  doc=selected.document;
+  const step=current(doc,'2.1').content.steps.find(item=>item.id===stepId);
+  assert.deepEqual(step.target,{stableKey:'shipment-abd-decision',selector:'[data-tour-key="shipment-abd-decision"]'});
+  assert.equal(scope.listeners.has('click'),false,'Picker wurde nach erfolgreicher Auswahl nicht beendet');
+});
+
+test('Target Picker bleibt fail-closed wenn angeklicktes Element keinen data-tour-key besitzt',()=>{
+  const scope=targetScope([]);
+  let error=null;
+  const noKey={getAttribute(){return'';},closest(){return null;}};
+  const doc=editor.createDraft(released(),{version:'2.1',actor:'Admin',reason:'Tourziel pflegen'});
+  const stepId=current(doc,'2.1').content.steps[0].id;
+  editor.beginTargetPick(stepId,{document:doc,version:'2.1',scope,onError(result){error=result;}});
+  scope.listeners.get('click').handler({target:noKey,preventDefault(){},stopPropagation(){},stopImmediatePropagation(){}});
+  assert.equal(error.code,'TARGET_KEY_REQUIRED');
+  assert.equal(scope.listeners.has('click'),true,'Picker darf bei ungültigem Klick nicht still beendet werden');
+  assert.equal(editor.cancelTargetPick().cancelled,true);
+  assert.equal(scope.listeners.has('click'),false);
+});
+
+test('testTarget unterscheidet eindeutiges fehlendes und doppeltes Tourziel',()=>{
+  assert.equal(typeof editor.testTarget,'function','testTarget fehlt');
+  const one=targetElement('shipment-documents');
+  const duplicate=targetElement('shipment-documents');
+  assert.deepEqual(editor.testTarget('shipment-documents',targetScope([one])),{ok:true,status:'unique',stableKey:'shipment-documents',error:null});
+  assert.deepEqual(editor.testTarget('shipment-documents',targetScope([])),{ok:false,status:'missing',stableKey:'shipment-documents',error:'TARGET_NOT_FOUND'});
+  assert.deepEqual(editor.testTarget('shipment-documents',targetScope([one,duplicate])),{ok:false,status:'duplicate',stableKey:'shipment-documents',error:'TARGET_AMBIGUOUS'});
 });
