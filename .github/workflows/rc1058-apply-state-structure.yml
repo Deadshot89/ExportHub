@@ -1,42 +1,34 @@
-name: RC1058 Apply State Structure
+name: RC1058 State Structure Legacy Verify
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/rc1058-apply-state-structure.yml'
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  apply:
+  verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
       - uses: actions/setup-node@v5
         with:
           node-version: '24'
           package-manager-cache: false
-      - name: RC1058 aggregierte State-Diagnose anwenden
-        run: node .github/rc1058/apply-state-structure.mjs
       - name: RC1058 gezielte Regression
         run: |
           node --test test/rc1058-state-structure-diagnostics.test.mjs
           node --test test/rc1057-team-state-size-health.test.mjs
           node --test test/rc1050-storage-timeout-regression.test.mjs
           node --test test/rc1051-storage-hotpath-container.test.mjs
-      - name: Änderung committen
+      - name: Historischen Apply-Stand nur lokal prüfen
+        shell: bash
         run: |
-          if git diff --quiet -- api/exporthub-state/index.js; then
-            echo 'Keine Änderung erforderlich.'
-            exit 0
+          set -euo pipefail
+          node .github/rc1058/apply-state-structure.mjs
+          if ! git diff --quiet; then
+            echo 'RC1058 würde den aktuellen Stand verändern. Änderung muss über einen normalen Pull Request erfolgen.' >&2
+            git diff --stat >&2
+            exit 1
           fi
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add api/exporthub-state/index.js
-          git commit -m 'RC1058: Team-State-Struktur aggregiert diagnostizieren'
-          git push origin HEAD:main
+          echo 'RC1058 ist bereits vollständig im Repository enthalten.'
