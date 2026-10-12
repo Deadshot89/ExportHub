@@ -42,7 +42,8 @@ test('shipment_abd_flow_contract_remains_available',()=>{
 });
 
 test('invoice_analysis_is_additive_only',()=>{
-  assert.match(analysis,/appendChild\(p\)/,'Analysepanel muss additiv eingehängt werden');
+  assert.match(analysis,/insertBefore\(p,/,'Analysepanel muss additiv in den bestehenden ABD-Bereich eingehängt werden');
   assert.match(analysis,/data-rc1294-abd-analysis/,'Analysepanel braucht eigenen Scope');
   assert.doesNotMatch(analysis,/replaceChildren\(/,'Analyse darf bestehende ABD-Kinder nicht ersetzen');
+  assert.doesNotMatch(analysis,/host\.innerHTML\s*=/,'Analyse darf den bestehenden ABD-Inhalt nicht überschreiben');
 });
