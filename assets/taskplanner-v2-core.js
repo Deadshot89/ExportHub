@@ -6,6 +6,8 @@
   const arr=v=>Array.isArray(v)?v:[];
   const obj=v=>v&&typeof v==='object'&&!Array.isArray(v);
   const clone=v=>v==null?v:JSON.parse(JSON.stringify(v));
+  const PUBLIC_FIELD_ALLOWLIST=Object.freeze(['description','status','plannedAt','dueAt','latestCompletionAt','checklist','customerName']);
+  const PUBLIC_FIELD_SET=new Set(PUBLIC_FIELD_ALLOWLIST);
 
   const STATUS_MAP=Object.freeze({
     'geplant':'planned','planned':'planned',
@@ -138,6 +140,19 @@
     return normalized;
   }
 
+  function sanitizePublicFields(fields){
+    const out=[];
+    for(const field of arr(fields).map(q))if(PUBLIC_FIELD_SET.has(field)&&!out.includes(field))out.push(field);
+    return out;
+  }
+
+  function publicTaskView(input,fields){
+    const task=normalizeTask(input||{}),allowed=new Set(sanitizePublicFields(fields)),out={title:task.title};
+    for(const field of ['description','status','plannedAt','dueAt','latestCompletionAt','customerName'])if(allowed.has(field)&&q(task[field]))out[field]=task[field];
+    if(allowed.has('checklist'))out.checklist=arr(task.checklist).filter(item=>item&&(item.public===true||item.isPublic===true)).map(item=>({text:q(item.text||item.label),done:item.done===true}));
+    return out;
+  }
+
   function derive(task,now){
     const t=normalizeTask(task,{now});
     const nowMs=Date.parse(q(now)||new Date().toISOString());
@@ -249,7 +264,7 @@
   }
 
   root.ExportHUBTaskCoreV2=Object.freeze({
-    version:'2.0',timeZone:TZ,normalizeTask,normalizeState,migrateState,derive,
-    completeTask,reopenTask,cancelTask,archiveCompleted,historyEntry,dayKey,localDateTime
+    version:'2.0',timeZone:TZ,PUBLIC_FIELD_ALLOWLIST,normalizeTask,normalizeState,migrateState,derive,
+    completeTask,reopenTask,cancelTask,archiveCompleted,historyEntry,dayKey,localDateTime,sanitizePublicFields,publicTaskView
   });
 })(globalThis);
