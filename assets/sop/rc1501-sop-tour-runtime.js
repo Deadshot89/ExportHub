@@ -7,6 +7,7 @@ let uiBridge=null;
 let observer=null;
 let clickHandler=null;
 let trainingAutoStarted=false;
+let examAutoStarted=false;
 
 function text(value){return String(value==null?'':value).trim();}
 function state(){try{return typeof root.__EXPORTHUB_GET_STATE__==='function'?(root.__EXPORTHUB_GET_STATE__()||{}):{};}catch(_){return {};}}
@@ -51,6 +52,19 @@ function dataEnvironment(){
   const named=text(current&&current._exporthubEnvironment&&current._exporthubEnvironment.name).toLowerCase();
   return named||'production';
 }
+function currentUser(){
+  let user={};
+  try{if(typeof root.__EXPORTHUB_GET_CURRENT_USER__==='function')user=root.__EXPORTHUB_GET_CURRENT_USER__()||{};}catch(_){}
+  if(user&&typeof user==='object'&&Object.keys(user).length)return user;
+  const current=state();
+  return current&&current.currentUser&&typeof current.currentUser==='object'?current.currentUser:
+    current&&current.activeUser&&typeof current.activeUser==='object'?current.activeUser:
+    root.currentUser&&typeof root.currentUser==='object'?root.currentUser:{};
+}
+function currentUserId(){
+  const user=currentUser();
+  return text(user&&user.id||user&&user.userId||user&&user.user||user&&user.username||user&&user.login);
+}
 function demoTrainingUrl(number){
   const code=text(number);
   try{
@@ -59,6 +73,15 @@ function demoTrainingUrl(number){
     url.searchParams.set('sopTraining',code);
     return `${url.pathname}${url.search}`;
   }catch(_){return `/demo.html?sopTraining=${encodeURIComponent(code)}`;}
+}
+function demoExamUrl(number){
+  const code=text(number);
+  try{
+    const base=root.location&&root.location.href?root.location.href:'https://exporthub360.com/';
+    const url=new URL('/demo.html',base);
+    url.searchParams.set('sopExam',code);
+    return `${url.pathname}${url.search}`;
+  }catch(_){return `/demo.html?sopExam=${encodeURIComponent(code)}`;}
 }
 function enhanceVisibleDocuments(){
   if(!uiBridge||typeof uiBridge.enhanceSopDocument!=='function'||!root.document)return;
@@ -94,6 +117,26 @@ function startTrainingByNumber(number,options={}){
   if(result&&result.ok&&uiBridge&&typeof uiBridge.paint==='function')uiBridge.paint();
   return result;
 }
+function startExamByNumber(number,options={}){
+  const code=text(number);
+  const environment=dataEnvironment();
+  if(environment!=='demo'){
+    const demoUrl=demoExamUrl(code);
+    if(options.navigate!==false&&root.location){
+      try{if(typeof root.location.assign==='function')root.location.assign(demoUrl);else root.location.href=demoUrl;}catch(_){}
+    }
+    return {ok:false,reason:'EXAM_DEMO_ONLY',environment,demoUrl,routed:options.navigate!==false};
+  }
+  const sop=effectiveSop(code);
+  if(!sop)return {ok:false,reason:'EXAM_SOP_NOT_FOUND',environment:'demo'};
+  const userId=currentUserId();
+  if(!userId)return {ok:false,reason:'EXAM_USER_REQUIRED',environment:'demo'};
+  const exam=root.ExportHubSopExam;
+  if(!exam||typeof exam.start!=='function')return {ok:false,reason:'EXAM_UNAVAILABLE',environment:'demo'};
+  const result=exam.start({sop,userId});
+  if(result&&result.status==='active'&&uiBridge&&typeof uiBridge.paint==='function')uiBridge.paint();
+  return result;
+}
 function maybeStartTrainingFromLocation(){
   if(trainingAutoStarted||dataEnvironment()!=='demo'||!root.location)return null;
   let number='';
@@ -101,6 +144,14 @@ function maybeStartTrainingFromLocation(){
   if(!number)return null;
   trainingAutoStarted=true;
   return startTrainingByNumber(number,{navigate:false});
+}
+function maybeStartExamFromLocation(){
+  if(examAutoStarted||dataEnvironment()!=='demo'||!root.location)return null;
+  let number='';
+  try{number=text(new URL(root.location.href).searchParams.get('sopExam'));}catch(_){}
+  if(!number)return null;
+  examAutoStarted=true;
+  return startExamByNumber(number,{navigate:false});
 }
 function mount(){
   if(mounted)return root.ExportHubSopTourRuntime;
@@ -111,6 +162,13 @@ function mount(){
   if(!uiBridge)return null;
   clickHandler=event=>{
     const target=event&&event.target&&typeof event.target.closest==='function'?event.target:null;
+    const examButton=target&&target.closest?target.closest('[data-sop-exam-start]'):null;
+    if(examButton){
+      event.preventDefault();
+      event.stopPropagation();
+      startExamByNumber(examButton.getAttribute('data-sop-exam-start'));
+      return;
+    }
     const trainingButton=target&&target.closest?target.closest('[data-sop-training-start]'):null;
     if(trainingButton){
       event.preventDefault();
@@ -131,7 +189,8 @@ function mount(){
     observer.observe(root.document.body||root.document.documentElement,{childList:true,subtree:true});
   }
   mounted=true;
-  maybeStartTrainingFromLocation();
+  const trainingResult=maybeStartTrainingFromLocation();
+  if(!trainingResult)maybeStartExamFromLocation();
   return root.ExportHubSopTourRuntime;
 }
 function unmount(){
@@ -150,6 +209,6 @@ function autoMount(){
   if(root.document.readyState==='loading')root.document.addEventListener('DOMContentLoaded',tryMount,{once:true});else tryMount();
 }
 
-root.ExportHubSopTourRuntime=Object.freeze({mount,unmount,startByNumber,startTrainingByNumber,demoTrainingUrl,dataEnvironment,effectiveSop,validationContext,enhanceVisibleDocuments});
+root.ExportHubSopTourRuntime=Object.freeze({mount,unmount,startByNumber,startTrainingByNumber,startExamByNumber,demoTrainingUrl,demoExamUrl,dataEnvironment,currentUserId,effectiveSop,validationContext,enhanceVisibleDocuments});
 autoMount();
 })(typeof globalThis!=='undefined'?globalThis:this);
