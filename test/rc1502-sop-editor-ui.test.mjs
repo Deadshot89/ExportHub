@@ -70,15 +70,19 @@ test('SOP-UI bindet Editoraktionen an denselben Dokumentzustand und bestehenden 
   assert.match(source,/data-sop-editor-action/);
   assert.match(source,/root\.save/);
   assert.match(source,/state\.documents/);
+  assert.match(source,/onEditorChange/);
 });
 
-test('SOP-Editor bestätigt persistente Änderungen über queueSave und erzwungenen flushSave',()=>{
-  const source=fs.readFileSync('assets/sop/rc1007-sop-ui.js','utf8');
+test('RC1502 Persistenzbrücke bestätigt Editoränderungen über queueSave und erzwungenen flushSave',()=>{
+  assert.ok(fs.existsSync('assets/sop/rc1502-sop-persistence.js'),'Persistenzbrücke fehlt');
+  const source=fs.readFileSync('assets/sop/rc1502-sop-persistence.js','utf8');
   assert.match(source,/ExportHUBClean/);
   assert.match(source,/queueSave/);
   assert.match(source,/flushSave/);
   assert.match(source,/force\s*:\s*true/);
   assert.match(source,/userInitiated\s*:\s*true/);
+  assert.match(source,/onEditorChange/);
+  assert.match(source,/data-sop-persist-status/);
 });
 
 test('Draft-Schritte zeigen Tourziel, Ziel auswählen, Ziel testen und Picker-Abbruch',()=>{
@@ -93,23 +97,14 @@ test('Draft-Schritte zeigen Tourziel, Ziel auswählen, Ziel testen und Picker-Ab
   assert.match(html,/shipment-abd-decision/);
 });
 
-test('Target-Picker UI nutzt die fail-closed Editor-API und speichert über denselben Dokumentpfad',()=>{
+test('Target-Picker UI nutzt die fail-closed Editor-API und meldet Änderungen über denselben Editor-Change-Pfad',()=>{
   const source=fs.readFileSync('assets/sop/rc1502-sop-target-picker-ui.js','utf8');
   assert.match(source,/beginTargetPick/);
   assert.match(source,/cancelTargetPick/);
   assert.match(source,/testTarget/);
   assert.match(source,/TARGET_KEY_REQUIRED|TARGET_NOT_FOUND|TARGET_AMBIGUOUS/);
   assert.match(source,/replaceDocument/);
-  assert.match(source,/persist/);
-});
-
-test('Target-Picker bestätigt ausgewählte Tourziele über denselben erzwungenen Speicherpfad',()=>{
-  const source=fs.readFileSync('assets/sop/rc1502-sop-target-picker-ui.js','utf8');
-  assert.match(source,/ExportHUBClean/);
-  assert.match(source,/queueSave/);
-  assert.match(source,/flushSave/);
-  assert.match(source,/force\s*:\s*true/);
-  assert.match(source,/userInitiated\s*:\s*true/);
+  assert.match(source,/onEditorChange/);
 });
 
 test('Target-Picker CSS hebt ausschließlich stabile Tourziele hervor und unterstützt Mobile',()=>{
