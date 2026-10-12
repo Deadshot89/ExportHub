@@ -8,6 +8,7 @@ on:
       - 'assets/sop/rc1503-sop-*'
       - 'assets/sop/rc1501-sop-tour-ui.js'
       - 'assets/sop/rc1501-sop-tour-runtime.js'
+      - 'api/shared/merge.js'
       - 'test/rc1503-sop-*.test.mjs'
       - '.github/rc1503/**'
       - '.github/workflows/sopmaster-training-verify.yml'
