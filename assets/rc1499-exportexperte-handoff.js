@@ -51,7 +51,7 @@ function prepare(input){
   };
   var legacy=root.ExportHUBRC626;
   if(!legacy||typeof legacy.openAbd!=='function'){pending=null;throw new Error('ABD_HANDOFF_LEGACY_UNAVAILABLE')}
-  legacy.openAbd(true);
+  legacy.openAbd();
   try{
     if(typeof root.CustomEvent==='function'&&root.document&&typeof root.document.dispatchEvent==='function')root.document.dispatchEvent(new root.CustomEvent('exporthub:abd-analysis-prepared',{detail:clone(pending)}));
   }catch(_){}
@@ -65,8 +65,10 @@ function collect(){
   var d=root.document,box=d&&d.querySelector&&d.querySelector('[data-rc1294-results]');if(!box)return null;
   var docs=box.querySelectorAll('.rc1294-document'),rows=box.querySelectorAll('.rc1294-group-table tbody tr');if(!docs.length||!rows.length)return null;
   if(box.querySelector('.rc1294-state.review'))return null;
-  var metrics=docs[0].querySelectorAll('.rc1294-metric'),difference=metrics.length?number(metrics[metrics.length-1].querySelector('strong')&&metrics[metrics.length-1].querySelector('strong').textContent):null;
-  if(difference!==0)return null;
+  for(var docIndex=0;docIndex<docs.length;docIndex++){
+    var metrics=docs[docIndex].querySelectorAll('.rc1294-metric'),diff=metrics.length?number(metrics[metrics.length-1].querySelector('strong')&&metrics[metrics.length-1].querySelector('strong').textContent):null;
+    if(diff!==0)return null
+  }
   var groups=[];
   for(var i=0;i<rows.length;i++){
     var cells=rows[i].querySelectorAll('td');if(cells.length<5)continue;
