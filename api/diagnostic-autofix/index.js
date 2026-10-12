@@ -259,7 +259,7 @@ module.exports=async function(context,req){
   if(action==='request')result=await requestAutofix(req,payload,env);
   else if(action==='claim'){if(!(await callbackAuthorized(req,WORKFLOW)))throw error('AUTOFIX_CALLBACK_UNAUTHORIZED','api.autofix.callbackUnauthorized',401);result=await claim(payload,env)}
   else if(action==='workflow-status'){if(!(await callbackAuthorized(req,WORKFLOW)))throw error('AUTOFIX_CALLBACK_UNAUTHORIZED','api.autofix.callbackUnauthorized',401);result=await workflowStatus(payload,env)}
-  else if(action==='finalize'){if(!(await callbackAuthorized(req,RC1496_AUTOFIX_FINALIZE_WORKFLOW,['workflow_run'])))throw error('AUTOFIX_CALLBACK_UNAUTHORIZED','api.autofix.callbackUnauthorized',401);result=await finalizeAutofix(payload,env)}
+  else if(action==='finalize'){if(!(await githubOidcAuthorized(req,RC1496_AUTOFIX_FINALIZE_WORKFLOW,['workflow_run'])))throw error('AUTOFIX_CALLBACK_UNAUTHORIZED','api.autofix.callbackUnauthorized',401);result=await finalizeAutofix(payload,env)}
   else if(action==='preflight'){
    if(!(await callbackAuthorized(req,PREFLIGHT_WORKFLOW,['push','workflow_dispatch'])))throw error('AUTOFIX_CALLBACK_UNAUTHORIZED','api.autofix.preflightUnauthorized',401);
    result={ok:true,githubDispatchConfigured:Boolean(text(process.env.EXPORTHUB_GITHUB_AUTOFIX_TOKEN)),autofixEnabled:autofixEnabled(),callbackMode:'github-oidc',repo:REPO,workflow:WORKFLOW,environment:env}
