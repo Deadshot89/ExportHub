@@ -15,6 +15,11 @@
     if(!api||typeof api.applyWeekDraft!=='function')throw new Error('TaskPlanner V2 Planner fehlt');
     return api;
   }
+  function workflow(){
+    const api=root.ExportHUBTaskWorkflowV2;
+    if(!api||typeof api.emit!=='function')throw new Error('TaskPlanner V2 Workflow fehlt');
+    return api;
+  }
   function stateOf(ctx){
     if(!ctx||!ctx.state||typeof ctx.state!=='object')throw new Error('TaskPlanner V2 Runtime benötigt ctx.state');
     if(!Array.isArray(ctx.state.tasks))ctx.state.tasks=[];
@@ -57,6 +62,11 @@
     return{...result,state};
   }
 
+  function emitWorkflowEvent(event,ctx={}){
+    stateOf(ctx);
+    return workflow().emit(event,ctx);
+  }
+
   const previous=root.ExportHUBRC1014TaskRuntime&&typeof root.ExportHUBRC1014TaskRuntime==='object'?root.ExportHUBRC1014TaskRuntime:{};
-  root.ExportHUBRC1014TaskRuntime=Object.freeze({...previous,applyTaskPatch,applyWeekPlan,moveTaskOccurrence});
+  root.ExportHUBRC1014TaskRuntime=Object.freeze({...previous,applyTaskPatch,applyWeekPlan,moveTaskOccurrence,emitWorkflowEvent});
 })(globalThis);
