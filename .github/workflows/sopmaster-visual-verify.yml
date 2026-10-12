@@ -10,9 +10,12 @@ on:
       - 'assets/sop/rc1500-sop-step-contract.js'
       - 'assets/sop/rc1502-sop-*'
       - 'browser/rc1502-sop-screenshots.mjs'
+      - 'test/rc1018-sop-system-images.test.mjs'
+      - 'test/rc1018-sop-image-coverage-complete.test.mjs'
       - 'test/rc1500-sop-step-contract.test.mjs'
       - 'test/rc1502-sop-*.test.mjs'
       - 'e2e/specs/sopmaster-target-picker.spec.mjs'
+      - 'e2e/specs/sopmaster-visual-editor.spec.mjs'
       - 'e2e/helpers/exporthub-browser.mjs'
       - '.github/rc1502/**'
       - '.github/workflows/sopmaster-visual-verify.yml'
@@ -28,20 +31,35 @@ concurrency:
 jobs:
   visual-contract:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
           node-version: '20'
           package-manager-cache: false
-      - name: RC1502 visual and legacy SOP regression
-        run: node --test test/rc1007-sop-workflow.test.mjs test/rc1500-sop-step-contract.test.mjs test/rc1502-sop-*.test.mjs
+      - name: RC1502 visual editor and historical image regression
+        run: node --test test/rc1007-sop-workflow.test.mjs test/rc1018-sop-system-images.test.mjs test/rc1018-sop-image-coverage-complete.test.mjs test/rc1500-sop-step-contract.test.mjs test/rc1502-sop-*.test.mjs
+
+  accessibility-and-full:
+    needs: visual-contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: Accessibility regression
+        run: npm run test:accessibility
+      - name: Full Node regression
+        run: npm test
 
   browser-capture:
     needs: visual-contract
     runs-on: ubuntu-latest
-    timeout-minutes: 18
+    timeout-minutes: 22
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -71,6 +89,11 @@ jobs:
           EXPORTHUB_E2E_STATIC: '1'
           EXPORTHUB_E2E_ENTRY: '/demo.html'
         run: npx playwright test e2e/specs/sopmaster-target-picker.spec.mjs --project=desktop --project=mobile-standard
+      - name: Verify visual editor save reload on desktop and mobile
+        env:
+          EXPORTHUB_E2E_STATIC: '1'
+          EXPORTHUB_E2E_ENTRY: '/demo.html'
+        run: npx playwright test e2e/specs/sopmaster-visual-editor.spec.mjs --project=desktop --project=mobile-standard
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -81,7 +104,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: sopmaster-rc1502-target-picker-debug
+          name: sopmaster-rc1502-editor-debug
           path: |
             playwright-report
             test-results
