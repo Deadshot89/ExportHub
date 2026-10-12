@@ -1,0 +1,26 @@
+name: RC1496 Autofix Finalize Verify
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'api/diagnostic-autofix/**'
+      - '.github/workflows/rc1496-autofix-finalize.yml'
+      - '.github/workflows/rc1496-autofix-finalize-verify.yml'
+      - 'test/rc1496-autofix-finalize.test.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: RC1496 Autofix-Abschlussvertrag
+        run: node --test test/rc1496-autofix-finalize.test.mjs
