@@ -18,6 +18,17 @@
     return api;
   }
 
+  function translated(key){
+    try{
+      const i18n=root.ExportHUBI18n;
+      if(i18n&&typeof i18n.t==='function'){
+        const value=q(i18n.t(key));
+        if(value&&value!==key)return value;
+      }
+    }catch(_){}
+    return key;
+  }
+
   function normalizeEvent(input){
     const source=obj(input)?input:{};
     const eventId=q(source.eventId||source.id);
@@ -109,7 +120,7 @@
     if(candidates.length===0)return unchanged(source,'unmatched',{event});
     if(candidates.length>1){
       return unchanged(source,'ambiguous',{
-        event,message:'Zuordnung prüfen',ambiguousTaskIds:candidates.map(task=>q(task&&task.id)).filter(Boolean)
+        event,messageKey:'taskV2.workflow.reviewMapping',message:translated('taskV2.workflow.reviewMapping'),ambiguousTaskIds:candidates.map(task=>q(task&&task.id)).filter(Boolean)
       });
     }
 
