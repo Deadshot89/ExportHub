@@ -17,7 +17,12 @@ function runtimeBlock(html){
 }
 
 function contextFor(windowObject,shipment){
-  const context={window:windowObject,sh:shipment,result:false};
+  const context={
+    window:windowObject,
+    sh:shipment,
+    result:false,
+    q(value){return String(value==null?'':value).replace(/\s+/g,' ').trim();}
+  };
   context.window.window=context.window;
   context.structuredClone=value=>JSON.parse(JSON.stringify(value));
   return context;
@@ -53,7 +58,7 @@ test('RC1496 RED: ein kanonisch gespeicherter Alt-Datensatz darf trotz alter DRA
   );
 });
 
-test('RC1496 RED: QR-Persistenz muss dieselbe ExportHUBClean.state-Quelle wie die Sendungsübersicht sehen',()=>{
+test('RC1496: QR-Persistenz muss dieselbe ExportHUBClean.state-Quelle wie die Sendungsübersicht sehen',()=>{
   build();
   const html=fs.readFileSync('dist-rc1112/index.html','utf8');
   const source=runtimeBlock(html);
