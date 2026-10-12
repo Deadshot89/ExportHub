@@ -88,6 +88,9 @@ for(const viewport of ['desktop','mobile-standard']){
     expect(saved.visuals.some(item=>item.stepId===STEP_ID&&item.src===IMAGE&&item.caption==='RC1502 E2E ABD-Schrittbild')).toBe(true);
     expect(saved.released).toBe(before.released);
 
+    const persistence=page.locator('[data-sop-persist-status]').first();
+    await expect(persistence).toHaveAttribute('data-sop-persist-status','saved',{timeout:15000});
+
     await page.reload({waitUntil:'domcontentloaded'});
     await waitReady(page);
     doc=await openSop(page);
