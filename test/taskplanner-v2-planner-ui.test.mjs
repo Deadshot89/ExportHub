@@ -6,8 +6,19 @@ import vm from 'node:vm';
 function load(){
   const context={console,Date,Intl,setTimeout,clearTimeout};
   context.globalThis=context;
-  context.ExportHUBI18n={t:key=>key};
-  for(const file of ['assets/taskplanner-v2-core.js','assets/taskplanner-v2-planner.js','assets/taskplanner-v2-ui.js']){
+  const de={
+    'taskV2.planner.todaySummary':'Heute: {count} Aufgaben · {critical} kritisch · {overdue} überfällig',
+    'taskV2.planner.overload':'Diese Woche ist überlastet.',
+    'taskV2.planner.overdue':'Überfällig',
+    'taskV2.planner.noOverdue':'Keine überfälligen Aufgaben',
+    'taskV2.planner.currentWeek':'Aktuelle Woche',
+    'taskV2.planner.nextWeek':'Nächste Woche',
+    'taskV2.planner.month':'Monat',
+    'taskV2.planner.workweek':'Arbeitswoche',
+    'taskV2.planner.title':'Aufgabenplaner'
+  };
+  context.ExportHUBI18n={t(key,vars){let value=de[key]||key;if(vars)for(const [name,v] of Object.entries(vars))value=value.replaceAll('{'+name+'}',String(v));return value;}};
+  for(const file of ['assets/taskplanner-v2-core.js','assets/taskplanner-v2-planner.js','assets/taskplanner-v2-ui.js','assets/taskplanner-v2-planner-ui.js']){
     vm.runInNewContext(fs.readFileSync(file,'utf8'),context,{filename:file});
   }
   return context;
