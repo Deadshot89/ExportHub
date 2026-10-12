@@ -11,6 +11,7 @@ export const RC1502_ASSETS=Object.freeze([
   'assets/sop/rc1502-sop-visuals.js',
   'assets/sop/rc1502-sop-screenshot-manifest.js',
   'assets/sop/rc1502-sop-editor.js',
+  'assets/sop/rc1502-sop-target-picker-ui.js',
   'assets/sop/rc1502-sop-editor.css'
 ]);
 
@@ -18,7 +19,8 @@ const STYLE_TAG='<link id="exporthub-rc1502-sop-editor-style" rel="stylesheet" h
 const SCRIPT_TAGS=[
   '<script id="exporthub-rc1502-sop-visuals" defer src="/assets/sop/rc1502-sop-visuals.js?v=1502"></script>',
   '<script id="exporthub-rc1502-sop-screenshot-manifest" defer src="/assets/sop/rc1502-sop-screenshot-manifest.js?v=1502"></script>',
-  '<script id="exporthub-rc1502-sop-editor" defer src="/assets/sop/rc1502-sop-editor.js?v=1502"></script>'
+  '<script id="exporthub-rc1502-sop-editor" defer src="/assets/sop/rc1502-sop-editor.js?v=1502"></script>',
+  '<script id="exporthub-rc1502-sop-target-picker-ui" defer src="/assets/sop/rc1502-sop-target-picker-ui.js?v=1502"></script>'
 ];
 
 function injectTags(html,file){
@@ -61,7 +63,8 @@ export function integrateEditor(root=ROOT,out=OUT){
     assets:RC1502_ASSETS.slice(),
     entries:['index.html','TESTVERSION.html','demo.html'],
     editorPersistence:'existing-isoSops-save-path',
-    releasedVersions:'immutable'
+    releasedVersions:'immutable',
+    targetPicker:'stable-data-tour-key-only'
   };
   fs.writeFileSync(path.join(out,'rc1502-sop-editor-manifest.json'),JSON.stringify(manifest,null,2)+'\n');
   return manifest;
