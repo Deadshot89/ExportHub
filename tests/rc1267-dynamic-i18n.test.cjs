@@ -109,3 +109,37 @@ test('RC1351 dedupe never crosses source-language boundaries',async()=>{
  assert.equal(report.attempted,2);
  assert.equal(report.completedNow,2);
 });
+
+test('RC1510 dynamic i18n covers future note and hint field variants',async()=>{
+ const state={customers:[{
+  customerNote:'Abholung nur über Tor 3.',
+  internalNote:'Vor Versand Rücksprache halten.',
+  externalHint:'Fahrer zuerst am Empfang anmelden.',
+  taskDescription:'Dokumente prüfen.'
+ }]};
+ const fake=async(items,source)=>items.map(original=>({original,translations:Object.fromEntries(mod.LANGUAGES.map(lang=>[lang,lang+':'+original]))}));
+ const report=await mod.enrichDynamicTranslations(state,'de',{translator:fake,limit:20});
+ const meta=state.customers[0]._localizedText;
+ for(const key of ['customerNote','internalNote','externalHint','taskDescription']){
+  assert.ok(meta&&meta[key],key+' must be classified as dynamic localizable text');
+  assert.equal(meta[key].status,'complete');
+  assert.match(meta[key].translations.en,/^en:/);
+ }
+ assert.equal(report.completedNow,4);
+});
+
+test('RC1510 dynamic i18n never classifies names references numbers codes or tracking identifiers',async()=>{
+ const state={customers:[{
+  customerName:'Essentra Components GmbH',
+  referenceNumber:'ABC123',
+  itemNumber:'10340967',
+  trackingNumber:'1Z999AA10123456784',
+  customerCode:'9000003004',
+  note:'Nur diese Notiz wird übersetzt.'
+ }]};
+ const fake=async(items,source)=>items.map(original=>({original,translations:Object.fromEntries(mod.LANGUAGES.map(lang=>[lang,lang+':'+original]))}));
+ await mod.enrichDynamicTranslations(state,'de',{translator:fake,limit:20});
+ const meta=state.customers[0]._localizedText||{};
+ assert.ok(meta.note);
+ for(const key of ['customerName','referenceNumber','itemNumber','trackingNumber','customerCode'])assert.equal(meta[key],undefined,key+' must stay untouched');
+});
