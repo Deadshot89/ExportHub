@@ -76,7 +76,11 @@ Produktionsdaten werden durch den Restore-Drill nicht überschrieben.
 
 ## Betriebsüberwachung RC1491
 
-Der Workflow `.github/workflows/rc1491-state-backup-restore-watchdog.yml` überwacht automatisch den jeweils letzten abgeschlossenen `main`-Lauf von RC1267. Für RC1137 wird gezielt der Job `TESTSERVICE State kompaktieren` des letzten abgeschlossenen `main`-Laufs bewertet, weil dort der Restore-Drill ausgeführt wird. Ein späterer, ausschließlich produktionsseitiger RC1137-Fehler wird deshalb nicht fälschlich als Restore-Drill-Fehler gemeldet.
+Der Workflow `.github/workflows/rc1491-state-backup-restore-watchdog.yml` überwacht automatisch den letzten relevanten abgeschlossenen `main`-Lauf von RC1267. Für RC1137 wird gezielt der Job `TESTSERVICE State kompaktieren` des letzten relevanten abgeschlossenen `main`-Laufs bewertet, weil dort der Restore-Drill ausgeführt wird. Ein späterer, ausschließlich produktionsseitiger RC1137-Fehler wird deshalb nicht fälschlich als Restore-Drill-Fehler gemeldet.
+
+Ein `workflow_run` kann regulär mit `conclusion=skipped` enden, wenn der vorgelagerte Deployment-Lauf die Bedingungen für Backup oder Restore nicht erfüllt. Ein solcher **neutraler workflow_run-Skip** gilt nicht als eigener Betriebsfehler und verdrängt deshalb nicht den davorliegenden relevanten Nachweis. Der Watchdog sucht dafür in den letzten abgeschlossenen Läufen nach dem jüngsten Lauf, der nicht zugleich `event=workflow_run` und `conclusion=skipped` ist.
+
+Diese Ausnahme gilt bewusst nur für neutrale `workflow_run`-Skips. Ein `skipped` aus einem geplanten oder manuellen Lauf sowie `failure`, `cancelled` und andere nicht erfolgreiche relevante Conclusions bleiben fail-closed und werden als Betriebsfehler behandelt.
 
 Wenn das geplante State-Backup oder der TESTSERVICE-Restore-Job nicht erfolgreich ist, gilt das als Betriebsfehler. Es wird genau ein GitHub-Betriebs-Issue `[OPS] State Backup/Restore Watchdog` erstellt, wieder geöffnet oder aktualisiert. Wiederholte Fehler erzeugen dadurch keine fortlaufenden Duplikate.
 
