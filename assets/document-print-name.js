@@ -7,6 +7,15 @@ function printName(value){
  var name=q(value);
  return /^(?:DNC|SIDE)[0-9]{6,20}\.pdf$/i.test(name)?name.replace(/\.pdf$/i,''):name
 }
+function canonicalDeliveryKey(value){
+ var name=q(value).replace(/[?#].*$/,'').replace(/^.*[\\/]/,'').trim();
+ return printName(name).toLocaleLowerCase()
+}
+function documentColumnCount(count){return Math.max(0,Number(count)||0)>=6?2:1}
+function documentGridCss(){return '[data-rc1504-document-columns]{display:flex!important;flex-direction:column!important;align-items:flex-start!important}'+
+ '@media print{[data-rc1504-document-columns="1"]{display:grid!important;grid-template-columns:minmax(0,1fr)!important;align-items:start!important}'+
+ '[data-rc1504-document-columns="2"]{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;align-items:start!important}'+
+ '[data-rc1504-document-columns] [data-rc1293-packing-slip]{justify-self:start!important;max-width:100%!important}}'}
 function cloneFile(value){
  if(typeof value==='string')return printName(value);
  if(!value||typeof value!=='object')return value;
@@ -64,6 +73,30 @@ function putSignature(card,source,stored){
  else node.textContent=stored?'Digital gespeichert':notRecorded();
  card.appendChild(node);return true
 }
+function normalizeDeliveryGrid(html){
+ if(!d||!d.createElement||typeof html!=='string')return html;
+ try{
+  var tpl=d.createElement('template');tpl.innerHTML=html;var scope=tpl.content&&tpl.content.querySelectorAll?tpl.content:null;if(!scope)return html;
+  var grids=Array.from(scope.querySelectorAll('[data-rc1305-document-grid],.rc1305-document-grid'));if(!grids.length)return html;
+  var style=scope.querySelector&&scope.querySelector('[data-rc1504-document-print-style]');
+  if(!style){style=d.createElement('style');style.setAttribute('data-rc1504-document-print-style','1');style.textContent=documentGridCss();var parent=grids[0].parentNode;if(parent&&parent.insertBefore)parent.insertBefore(style,grids[0])}
+  grids.forEach(function(grid){
+   var items=Array.from(grid.querySelectorAll('[data-rc1293-packing-slip],.rc1305-document-item')),seen={},kept=0;
+   items.forEach(function(item){
+    if(item.classList&&item.classList.contains('rc1305-document-empty')){kept++;return}
+    var shown=printName(q(item.textContent)),key=canonicalDeliveryKey(shown);
+    if(key&&seen[key]){item.remove();return}
+    if(key)seen[key]=1;
+    if(shown!==q(item.textContent))item.textContent=shown;
+    kept++
+   });
+   var columns=documentColumnCount(kept);
+   if(grid.style&&grid.style.removeProperty){grid.style.removeProperty('display');grid.style.removeProperty('flex-direction');grid.style.removeProperty('align-items')}
+   grid.setAttribute('data-rc1504-document-columns',String(columns))
+  });
+  return tpl.innerHTML
+ }catch(e){try{console.warn('RC1504 Ladelisten-Dokumentraster',e)}catch(_){}return html}
+}
 function restorePickupFields(html,sh){
  if(!d||!d.createElement||typeof html!=='string')return html;
  try{
@@ -94,14 +127,14 @@ function install(){
  var base=w.ExportHUBRC1305LoadingListPrint;
  if(!base||typeof base.enhance!=='function'||base.__dncSidePrintNames===true)return !!base;
  var wrapped={};Object.keys(base).forEach(function(key){wrapped[key]=base[key]});
- wrapped.__dncSidePrintNames=true;wrapped.__image4PickupFields=true;wrapped.version='RC1503';
+ wrapped.__dncSidePrintNames=true;wrapped.__image4PickupFields=true;wrapped.__documentGridRC1504=true;wrapped.version='RC1504';
  wrapped.deliveryFiles=function(sh){return typeof base.deliveryFiles==='function'?base.deliveryFiles(printShipment(sh)):[]};
- wrapped.enhance=function(html,sh,withQr){var safe=printShipment(sh);return restorePickupFields(base.enhance(html,safe,withQr),safe)};
+ wrapped.enhance=function(html,sh,withQr){var safe=printShipment(sh);return restorePickupFields(normalizeDeliveryGrid(base.enhance(html,safe,withQr)),safe)};
  wrapped.enhanceCover=function(html,sh){return typeof base.enhanceCover==='function'?base.enhanceCover(html,printShipment(sh)):html};
  w.ExportHUBRC1305LoadingListPrint=Object.freeze(wrapped);
  return true
 }
-w.ExportHUBDocumentPrintNames=Object.freeze({printName:printName,printShipment:printShipment,restorePickupFields:restorePickupFields,install:install});
+w.ExportHUBDocumentPrintNames=Object.freeze({printName:printName,canonicalDeliveryKey:canonicalDeliveryKey,documentColumnCount:documentColumnCount,printShipment:printShipment,normalizeDeliveryGrid:normalizeDeliveryGrid,restorePickupFields:restorePickupFields,install:install});
 if(!install()){
  if(d&&d.readyState==='loading'&&typeof d.addEventListener==='function')d.addEventListener('DOMContentLoaded',install,{once:true});
  if(typeof w.setTimeout==='function')w.setTimeout(install,0)
