@@ -36,6 +36,7 @@ function annotatePilotTargets(scope){
   const annotated=[];const errors=[];
   if(!targetRoot||typeof targetRoot.querySelectorAll!=='function')return {ok:false,annotated,errors:[{code:'ROOT_UNAVAILABLE'}]};
   annotateOne(targetRoot,'[data-sop-open="SOP-EH-060"]','sop-open-SOP-EH-060',annotated,errors);
+  annotateOne(targetRoot,'#rc363BlockDocuments','shipment-documents',annotated,errors);
   annotateOne(targetRoot,'#rc363BlockAbdDecision','shipment-abd-decision',annotated,errors);
   return {ok:errors.length===0,annotated,errors};
 }
