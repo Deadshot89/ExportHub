@@ -139,6 +139,26 @@ function libraryWidgets(){return registry().filter(canUseWidget)}
 function visibleLayout(state){
   var normalized=normalizeLayout(state,registry());normalized.widgets=normalized.widgets.filter(function(row){var def=registryStore.get(row.id);return!!def&&canUseWidget(def)&&row.visible!==false}).map(function(row,index){return Object.assign({},row,{order:index})});return normalized
 }
+function registerQuickAccessWidgets(){
+  [
+    ['quick-shipment','nav.shipment','shipment'],
+    ['quick-shipmentoverview','nav.shipmentoverview','shipmentoverview'],
+    ['quick-tasks','nav.tasks','tasks'],
+    ['quick-notifications','nav.notifications','notifications'],
+    ['quick-sop','nav.sop','sop'],
+    ['quick-abd','nav.abd','abd']
+  ].forEach(function(row){if(!registryStore.has(row[0]))registerWidget({id:row[0],titleKey:row[1],category:'quickaccess',defaultSize:'S',allowedSizes:['S','M'],requiredModule:row[2],detailModule:row[2],defaultVisible:false,generated:true})});
+  return registry().filter(function(def){return def.generated===true&&def.category==='quickaccess'})
+}
+function ensureGeneratedQuickAccess(root){
+  var d=(root&&root.ownerDocument)||w.document;if(!root||!d||typeof d.createElement!=='function')return 0;var added=0;
+  registerQuickAccessWidgets().forEach(function(def){
+    if(!canUseWidget(def))return;var existing=null;try{existing=root.querySelector&&root.querySelector('[data-rc1371-widget-id="'+def.id+'"],[data-widget-id="'+def.id+'"]')}catch(_){}if(existing)return;
+    var card=d.createElement('article');card.className='dashboard-card rc1371-quick-access';card.id='rc1371-'+def.id;card.setAttribute('data-dashboard-widget','1');card.setAttribute('data-widget-id',def.id);card.setAttribute('data-rc1371-generated','1');
+    var button=makeButton('quickAccess',def.titleKey,tr(def.titleKey,def.detailModule));if(button){button.setAttribute('data-widget-id',def.id);card.appendChild(button)}root.appendChild(card);added++
+  });return added
+}
+function openQuickAccess(id){var def=registryStore.get(cleanId(id));if(!def||def.generated!==true||!def.detailModule||!canUseWidget(def))return false;if(typeof w.setView==='function'){w.setView(def.detailModule);return true}return false}
 
 var mountedDashboardRoot=null,currentLayoutState=null,currentLayoutUser='',editMode=false,widgetNodes=new Map(),libraryPanel=null,draggedWidgetId='';
 function cloneLayout(state){var source=state&&typeof state==='object'?state:templateLayout('standard',registry());return{schema:SCHEMA,template:allowedTemplate(source.template),widgets:(source.widgets||[]).map(function(row){return{id:row.id,visible:row.visible!==false,size:row.size,order:row.order}})}}
@@ -202,6 +222,7 @@ function bindRootEvents(){
     else if(action==='addWidget')openLibrary();
     else if(action==='libraryAdd'&&id){addWidget(id);closeLibrary()}
     else if(action==='libraryClose')closeLibrary();
+    else if(action==='quickAccess'&&id)openQuickAccess(id);
     else if(action==='restoreStandard')restoreStandard();
     else if(action==='moveUp'&&id)moveWidgetBy(id,-1);
     else if(action==='moveDown'&&id)moveWidgetBy(id,1);
@@ -215,7 +236,7 @@ function bindRootEvents(){
 }
 function mount(root){
   root=root||discoverDashboardRoot();if(!root)return false;if(mountedDashboardRoot&&mountedDashboardRoot!==root)unmount();mountedDashboardRoot=root;
-  try{root.setAttribute('data-eh-dashboard-personalized','1')}catch(_){}widgetNodes.clear();discoverWidgets(root).forEach(function(item){if(item&&!item.fixed&&item.definition)widgetNodes.set(item.definition.id,item.node)});
+  try{root.setAttribute('data-eh-dashboard-personalized','1')}catch(_){}widgetNodes.clear();registerQuickAccessWidgets();ensureGeneratedQuickAccess(root);discoverWidgets(root).forEach(function(item){if(item&&!item.fixed&&item.definition)widgetNodes.set(item.definition.id,item.node)});
   currentLayoutUser=resolveUserIdentity();currentLayoutState=readLayout(currentLayoutUser,registry());ensureToolbar();bindRootEvents();applyStateToDom();if(editMode)ensureWidgetControls();return true
 }
 function unmount(){
@@ -263,9 +284,10 @@ function installLifecycle(){
 
 w.ExportHUBDashboard1371=Object.freeze({
   version:VERSION,schema:SCHEMA,sizes:SIZES.slice(),templates:TEMPLATES.slice(),normalizeLayout:normalizeLayout,resolveUserIdentity:resolveUserIdentity,layoutStorageKey:layoutStorageKey,readLayout:readLayout,writeLayout:writeLayout,resetLayout:resetLayout,templateLayout:templateLayout,
-  registerWidget:registerWidget,registry:registry,discoverDashboardRoot:discoverDashboardRoot,discoverWidgets:discoverWidgets,canUseWidget:canUseWidget,resolveStableWidgetId:resolveStableWidgetId,libraryWidgets:libraryWidgets,visibleLayout:visibleLayout,
+  registerWidget:registerWidget,registry:registry,discoverDashboardRoot:discoverDashboardRoot,discoverWidgets:discoverWidgets,canUseWidget:canUseWidget,resolveStableWidgetId:resolveStableWidgetId,libraryWidgets:libraryWidgets,visibleLayout:visibleLayout,registerQuickAccessWidgets:registerQuickAccessWidgets,openQuickAccess:openQuickAccess,
   mount:mount,unmount:unmount,mountedRoot:mountedRoot,currentLayout:currentLayout,enterEditMode:enterEditMode,exitEditMode:exitEditMode,isEditing:isEditing,addWidget:addWidget,hideWidget:hideWidget,moveWidget:moveWidget,moveWidgetBy:moveWidgetBy,resizeWidget:resizeWidget,applyTemplate:applyTemplate,restoreStandard:restoreStandard,openLibrary:openLibrary,closeLibrary:closeLibrary,ownsLayout:ownsLayout,applyTheme:applyTheme,remount:remount,filterLibrary:filterLibrary
 });
+registerQuickAccessWidgets();
 installLifecycle();
 if(w.document&&w.document.readyState&&w.document.readyState!=='loading')scheduleRemount();else if(w.document&&typeof w.document.addEventListener==='function')w.document.addEventListener('DOMContentLoaded',scheduleRemount,{once:true});
 })(window);
