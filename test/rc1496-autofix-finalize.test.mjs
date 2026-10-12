@@ -24,6 +24,10 @@ test('RC1496: nur der vertrauenswürdige OIDC-Finalizer darf testing auf fixed a
   assert.match(api,/githubOidcAuthorized\(req,RC1496_AUTOFIX_FINALIZE_WORKFLOW,\['workflow_run'\]\)/);
   assert.doesNotMatch(api,/action==='finalize'[\s\S]{0,240}callbackAuthorized\(req,RC1496_AUTOFIX_FINALIZE_WORKFLOW/);
   assert.match(api,/async function finalizeAutofix\(/);
+  assert.match(api,/!diagnosticId\|\|diagnosticId!==id/);
+  assert.match(api,/!\/\^\[0-9a-f\]\{40\}\$\/i\.test\(autofixCommit\)/);
+  assert.match(api,/!existingCommit\|\|autofixCommit!==existingCommit/);
+  assert.match(api,/!currentCommit\|\|autofixCommit!==currentCommit/);
   assert.match(api,/existingStatus!=='testing'/);
   assert.match(api,/AUTOFIX_NOT_READY_FOR_FINALIZE/);
   assert.match(api,/existingPrUrl!==pullRequestUrl/);
