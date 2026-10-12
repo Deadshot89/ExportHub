@@ -6,6 +6,8 @@ on:
       - design/sopmaster-training-tour-2026-10-12
     paths:
       - 'assets/sop/rc1503-sop-*'
+      - 'assets/sop/rc1501-sop-tour-ui.js'
+      - 'assets/sop/rc1501-sop-tour-runtime.js'
       - 'test/rc1503-sop-*.test.mjs'
       - '.github/rc1503/**'
       - '.github/workflows/sopmaster-training-verify.yml'
@@ -28,5 +30,5 @@ jobs:
         with:
           node-version: '20'
           package-manager-cache: false
-      - name: RC1503 training contract
-        run: node --test test/rc1503-sop-training.test.mjs
+      - name: RC1503 training contracts
+        run: node --test test/rc1503-sop-*.test.mjs
