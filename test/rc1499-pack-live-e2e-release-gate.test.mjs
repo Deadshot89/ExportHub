@@ -4,7 +4,8 @@ import fs from 'node:fs';
 import {execFileSync} from 'node:child_process';
 
 const fixturePath='api/e2e-test-fixture/index.js';
-const workflowPath='.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml';
+const mainWorkflowPath='.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml';
+const productionWorkflowPath='.github/workflows/exporthub-production-release.yml';
 const packSpecPath='e2e/specs/pack-notification.spec.mjs';
 const publicSmokePath='e2e/specs/public-smoke.spec.mjs';
 const helperPath='e2e/helpers/pack-notification-live.mjs';
@@ -44,14 +45,16 @@ test('RC1499: Prepare bereinigt auch verwaiste Pack-Daten eines abgebrochenen fr
   assert.match(fixture,/purgedStaleRecords:stalePack\.removed\+staleState\.removed/,'Recovery-Zähler berücksichtigt verknüpfte Pack-Daten nicht');
 });
 
-test('RC1499: echter Packmeldungsfluss läuft im bestehenden mutierenden TESTSERVICE-Gate vor Production',()=>{
-  const workflow=read(workflowPath),publicSmoke=read(publicSmokePath),helper=read(helperPath);
+test('RC1505/RC1499: echter Packmeldungsfluss läuft im mutierenden TESTSERVICE-Gate und ist Voraussetzung für Production-Promotion',()=>{
+  const workflow=read(mainWorkflowPath),production=read(productionWorkflowPath),publicSmoke=read(publicSmokePath),helper=read(helperPath);
   const gate=stepBlock(workflow,'RC1124 TESTSERVICE Browser Gate','RC1124 TESTSERVICE Browser-Artefakte');
-  const production=workflow.indexOf('- name: Deploy ExportHUB production');
-  const gateStart=workflow.indexOf('- name: RC1124 TESTSERVICE Browser Gate');
-  assert.ok(production>gateStart,'Production muss nach dem TESTSERVICE Browser Gate liegen');
   assert.match(gate,/e2e\/specs\/public-smoke\.spec\.mjs/,'Pflicht-Smoke fehlt im mutierenden TESTSERVICE-Gate');
   assert.match(gate,/export EXPORTHUB_E2E_MUTATION=['"]1['"]/,'TESTSERVICE-Gate ist nicht mutierend aktiviert');
+  assert.match(gate,/EXPORTHUB_E2E_PACK_STATION_TOKEN/,'temporärer Packtisch-Token wird dem TESTSERVICE-Browsergate nicht übergeben');
+  assert.doesNotMatch(workflow,/Deploy ExportHUB production/,'Main-Verifikation darf Production nicht deployen');
+  const verify=production.indexOf('RC1505 Erfolgreiche Main Verification für Release-SHA verlangen');
+  const prodDeploy=production.indexOf('Deploy ExportHUB production');
+  assert.ok(verify>=0&&prodDeploy>verify,'Production-Promotion muss erfolgreichen Main-Verification-Lauf für denselben SHA voraussetzen');
   assert.match(publicSmoke,/RC1499: echter QR-Packmeldungsfluss/,'Packmeldungs-Livefall ist nicht Teil des Pflicht-Smokes');
   assert.match(publicSmoke,/EXPORTHUB_E2E_LIVE/);
   assert.match(publicSmoke,/EXPORTHUB_E2E_MUTATION/);
@@ -63,8 +66,8 @@ test('RC1499: echter Packmeldungsfluss läuft im bestehenden mutierenden TESTSER
   assert.match(helper,/data-pack-action="shipment"/,'Sendungs-Handoff fehlt im Livefluss');
 });
 
-test('RC1499: Production bleibt read-only; RC1499 überspringt dort automatisch',()=>{
-  const workflow=read(workflowPath);
+test('RC1505/RC1499: Production bleibt read-only; RC1499 überspringt dort automatisch',()=>{
+  const workflow=read(productionWorkflowPath);
   const smoke=stepBlock(workflow,'RC1124 Produktion Read-only Browser Smoke','RC1124 Produktion Browser-Artefakte');
   assert.match(smoke,/public-smoke\.spec\.mjs/);
   assert.doesNotMatch(smoke,/EXPORTHUB_E2E_MUTATION/);
