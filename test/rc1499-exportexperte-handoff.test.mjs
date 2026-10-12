@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 
-const runtimePath='assets/rc1294-abd-self-service.js';
 const bridgePath='assets/rc1499-exportexperte-handoff.js';
+const packPath='assets/i18n/rc1499-exportexperte.js';
 
 test('RC1499: ABD handoff bridge exists and transfers only supported customs fields',()=>{
   assert.equal(fs.existsSync(bridgePath),true,'ABD handoff bridge fehlt');
@@ -55,10 +55,12 @@ test('RC1499: handoff is blocked until review and totals are valid',()=>{
   assert.equal(opened,0,'Gesperrte Übergabe darf Legacy-ABD nicht öffnen');
 });
 
-test('RC1499: invoice UI exposes guarded prepare action without save/send/confirm side effects',()=>{
-  const runtime=fs.readFileSync(runtimePath,'utf8');
-  assert.match(runtime,/rc1499-exportexperte-handoff\.js\?v=1499/,'Handoff bridge wird nicht geladen');
-  assert.match(runtime,/data-rc1499-prepare-abd/,'Vorbereitungsaktion fehlt');
-  assert.match(runtime,/ExportHUBRC1499Handoff[\s\S]*?\.prepare\(/,'UI ruft Bridge nicht auf');
-  assert.doesNotMatch(runtime,/data-rc1499-prepare-abd[\s\S]{0,900}(confirmRc626Abd|confirmAbd|saveAbd|sendAbd|openOutlook)/i,'Vorbereitungsaktion darf Legacy-Speichern/Senden nicht auslösen');
+test('RC1499: isolated loader exposes guarded prepare action without save/send/confirm side effects',()=>{
+  const bridge=fs.readFileSync(bridgePath,'utf8');
+  const pack=fs.readFileSync(packPath,'utf8');
+  assert.match(pack,/rc1499-exportexperte-handoff\.js\?v=1499/,'Handoff bridge wird nicht geladen');
+  assert.match(bridge,/data-rc1499-prepare-abd/,'Vorbereitungsaktion fehlt');
+  assert.match(bridge,/function prepare\(input\)/,'Bridge-Prepare fehlt');
+  assert.match(bridge,/ExportHUBRC626[\s\S]*?openAbd/,'Bestehender ABD-Dialog wird nicht verwendet');
+  assert.doesNotMatch(bridge,/(confirmRc626Abd|confirmAbd|saveAbd|sendAbd|openOutlook)/i,'Bridge darf Legacy-Speichern/Senden/Bestätigen nicht auslösen');
 });
