@@ -1,0 +1,41 @@
+name: RC1496 PPR6UC QR Diagnose
+
+on:
+  push:
+    branches:
+      - fix/rc1496-ppr6uc-qr-status
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: Release-Runtime erzeugen
+        run: |
+          node scripts/rc1462-pretest.mjs
+          node .github/rc1112/build-three-env.mjs
+      - name: QR-Persistenz und Statuspfad ausgeben
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs=require('fs');
+          const h=fs.readFileSync('dist-rc1112/index.html','utf8');
+          function dump(label,needle,before=1200,after=5000){
+            const i=h.indexOf(needle);
+            console.log('\n===== '+label+' @ '+i+' =====');
+            if(i<0)return;
+            console.log(h.slice(Math.max(0,i-before),Math.min(h.length,i+after)));
+          }
+          dump('PERSISTED','function persisted(sh)',3000,5000);
+          dump('ELIGIBLE','function eligible(sh)',1800,3500);
+          dump('QR SUCCESS','pickupQrRegistered:true',3500,7000);
+          dump('LOCATION REGISTER','location-booking',3500,7000);
+          NODE
