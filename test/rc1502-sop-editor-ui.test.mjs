@@ -70,3 +70,34 @@ test('SOP-UI bindet Editoraktionen an denselben Dokumentzustand und bestehenden 
   assert.match(source,/root\.save/);
   assert.match(source,/state\.documents/);
 });
+
+test('Draft-Schritte zeigen Tourziel, Ziel auswählen, Ziel testen und Picker-Abbruch',()=>{
+  let doc=editor.createDraft(released(),{version:'2.1',actor:'Admin',reason:'Tourziel pflegen'});
+  const stepId=doc.versions.find(v=>v.version==='2.1').content.steps[0].id;
+  doc=editor.updateStep(doc,{version:'2.1',stepId,patch:{target:{stableKey:'shipment-abd-decision',selector:'[data-tour-key="shipment-abd-decision"]'}}});
+  const html=ui.renderDocument(doc,{rights:{read:true,edit:true,admin:true},embedded:true});
+  assert.match(html,/data-sop-editor-target-key="shipment-abd-decision"/);
+  assert.match(html,/data-sop-editor-action="pick-target"/);
+  assert.match(html,/data-sop-editor-action="test-target"/);
+  assert.match(html,/data-sop-editor-action="cancel-target-pick"/);
+  assert.match(html,/shipment-abd-decision/);
+});
+
+test('Target-Picker UI nutzt die fail-closed Editor-API und speichert über denselben Dokumentpfad',()=>{
+  const source=fs.readFileSync('assets/sop/rc1007-sop-ui.js','utf8');
+  assert.match(source,/beginTargetPick/);
+  assert.match(source,/cancelTargetPick/);
+  assert.match(source,/testTarget/);
+  assert.match(source,/TARGET_KEY_REQUIRED|TARGET_NOT_FOUND|TARGET_AMBIGUOUS/);
+  assert.match(source,/replaceDocument/);
+  assert.match(source,/persist/);
+});
+
+test('Target-Picker CSS hebt ausschließlich stabile Tourziele hervor und unterstützt Mobile',()=>{
+  const css=fs.readFileSync('assets/sop/rc1502-sop-editor.css','utf8');
+  assert.match(css,/\.rc1502-sop-target-picking/);
+  assert.match(css,/\[data-tour-key\]/);
+  assert.match(css,/cursor:\s*crosshair/);
+  assert.match(css,/\.rc1502-sop-target-status/);
+  assert.match(css,/@media\s*\(max-width:\s*760px\)/);
+});
