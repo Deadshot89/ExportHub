@@ -7,8 +7,10 @@ function load(){
   const events=[];
   const context={console,Date,Intl,setTimeout,clearTimeout,dispatchEvent:event=>events.push(event)};
   context.globalThis=context;
+  context.CustomEvent=class CustomEvent{constructor(type,options={}){this.type=type;this.detail=options.detail;}};
+  context.ExportHUBI18n={t:key=>key==='taskV2.workflow.reviewMapping'?'Zuordnung prüfen':key};
   context.ExportHUBRC1014TaskRuntime=Object.freeze({legacy:true});
-  for(const file of ['assets/taskplanner-v2-core.js','assets/taskplanner-v2-recurrence.js','assets/taskplanner-v2-planner.js','assets/taskplanner-v2-runtime-bridge.js']){
+  for(const file of ['assets/taskplanner-v2-core.js','assets/taskplanner-v2-recurrence.js','assets/taskplanner-v2-planner.js','assets/taskplanner-v2-runtime-bridge.js','assets/taskplanner-v2-workflow.js']){
     vm.runInNewContext(fs.readFileSync(file,'utf8'),context,{filename:file});
   }
   return {runtime:context.ExportHUBRC1014TaskRuntime,events};
@@ -20,6 +22,7 @@ test('Runtime-Bridge erweitert den bestehenden RC1014 Runtime-Owner statt ihn zu
   assert.equal(typeof runtime.applyTaskPatch,'function');
   assert.equal(typeof runtime.applyWeekPlan,'function');
   assert.equal(typeof runtime.moveTaskOccurrence,'function');
+  assert.equal(typeof runtime.emitWorkflowEvent,'function');
 });
 
 test('applyTaskPatch verändert nur die adressierte Aufgabe und persistiert exakt einmal',()=>{
@@ -62,4 +65,15 @@ test('applyWeekPlan übernimmt mehrere Planner-Patches mit nur einem Persist-Auf
   assert.equal(state.tasks[0].plannedAt.startsWith('2026-10-14'),true);
   assert.equal(state.tasks[1].plannedAt.startsWith('2026-10-15'),true);
   assert.equal(saves,1);
+});
+
+test('emitWorkflowEvent führt strukturiertes Auto-Complete über den kanonischen Runtime-State aus',()=>{
+  const {runtime,events}=load();
+  const state={tasks:[{id:'A',title:'A',status:'open',priority:'P2',customerId:'C1',shipmentId:'S1',processId:'pick',workflowId:'shipping',taskType:'pick',workflowEvents:['shipment.picked'],dueAt:'2026-10-12T16:15:00+02:00'}]};
+  let saves=0;
+  const result=runtime.emitWorkflowEvent({eventId:'EVT-A',type:'shipment.picked',customerId:'C1',shipmentId:'S1',processId:'pick',workflowId:'shipping',taskType:'pick',occurredAt:'2026-10-12T10:00:00+02:00'},{state,persist:()=>saves++});
+  assert.equal(result.changed,true);
+  assert.equal(state.tasks[0].status,'done');
+  assert.equal(saves,1);
+  assert.equal(events.filter(event=>event.type==='exporthub:tasks-updated').length,1);
 });
