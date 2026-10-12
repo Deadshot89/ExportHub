@@ -145,7 +145,7 @@
       const day=hit&&typeof hit.closest==='function'?hit.closest('[data-tpv2-drop-date], [data-i218-drop-date]'):null;if(!day)return;
       const date=q(day.getAttribute&&day.getAttribute('data-tpv2-drop-date'))||q(day.getAttribute&&day.getAttribute('data-i218-drop-date'));if(!date)return;
       const state=obj(ctx.state)?ctx.state:{tasks:[]},task=arr(state.tasks).find(t=>q(t&&t.id)===taskId);if(!task)return;
-      const runtime=runtimeOf(ctx),move=runtime&&runtime.plannerV2&&runtime.plannerV2.moveTaskOccurrence;if(typeof move!=='function')return;
+      const runtime=runtimeOf(ctx),move=runtime&&(typeof runtime.moveTaskOccurrence==='function'?runtime.moveTaskOccurrence:(runtime.plannerV2&&runtime.plannerV2.moveTaskOccurrence));if(typeof move!=='function')return;
       move(taskId,plannedAtForDate(task,date),{...ctx,state});
     };
     target.addEventListener('pointerdown',down);target.addEventListener('pointerup',up);
