@@ -1,0 +1,58 @@
+name: RC1511 One-Shot Customer AVIS Locale Patch
+
+on:
+  push:
+    branches:
+      - fix/rc1510-i18n-completion-gate
+    paths:
+      - '.github/workflows/rc1511-source-patch.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: fix/rc1510-i18n-completion-gate
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+
+      - name: Patch only the verified locale formatter blocks
+        shell: python
+        run: |
+          from pathlib import Path
+          p=Path('customer-avis.html')
+          s=p.read_text(encoding='utf-8')
+          old_date="function fmtDate(v){if(!v)return'–';try{var d=/^\\d{4}-\\d{2}-\\d{2}$/.test(v)?new Date(v+'T12:00:00'):new Date(v);if(!isFinite(d))return q(v);return d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'})+(String(v).indexOf('T')>=0?' · '+d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}):'')}catch(_){return q(v)}}"
+          new_date="function fmtDate(v){if(!v)return'–';try{var i18n=window.ExportHUBI18n,dateOnly=/^\\d{4}-\\d{2}-\\d{2}$/.test(v),base=dateOnly?v+'T12:00:00':v;if(i18n&&typeof i18n.formatDate==='function'){var dateText=i18n.formatDate(base,{day:'2-digit',month:'2-digit',year:'numeric'});return String(v).indexOf('T')>=0?dateText+' · '+i18n.formatDate(v,{hour:'2-digit',minute:'2-digit'}):dateText}var d=new Date(base);if(!isFinite(d))return q(v);return d.toLocaleDateString(undefined,{day:'2-digit',month:'2-digit',year:'numeric'})+(String(v).indexOf('T')>=0?' · '+d.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'}):'')}catch(_){return q(v)}}"
+          old_num="function fmtNum(v,d){var n=Number(v||0);return Number.isFinite(n)?n.toLocaleString('de-DE',{minimumFractionDigits:d||0,maximumFractionDigits:d||0}):'0'}"
+          new_num="function fmtNum(v,d){var n=Number(v||0),options={minimumFractionDigits:d||0,maximumFractionDigits:d||0};if(!Number.isFinite(n))return'0';try{var i18n=window.ExportHUBI18n;if(i18n&&typeof i18n.formatNumber==='function')return i18n.formatNumber(n,options)}catch(_){}try{return n.toLocaleString(undefined,options)}catch(_){return String(n)}}"
+          old_size="function fileSize(v){var n=Number(v||0);if(!(n>0))return'';if(n>=1048576)return(n/1048576).toLocaleString('de-DE',{maximumFractionDigits:1})+' MB';if(n>=1024)return Math.round(n/1024).toLocaleString('de-DE')+' KB';return Math.round(n).toLocaleString('de-DE')+' B'}"
+          new_size="function fileSize(v){var n=Number(v||0);if(!(n>0))return'';if(n>=1048576)return fmtNum(n/1048576,1)+' MB';if(n>=1024)return fmtNum(Math.round(n/1024),0)+' KB';return fmtNum(Math.round(n),0)+' B'}"
+          for label,old,new in [('fmtDate',old_date,new_date),('fmtNum',old_num,new_num),('fileSize',old_size,new_size)]:
+              count=s.count(old)
+              if count!=1:
+                  raise SystemExit(f'{label}: expected exactly 1 source block, found {count}')
+              s=s.replace(old,new,1)
+          p.write_text(s,encoding='utf-8')
+
+      - name: Verify focused RC1511 contract
+        run: node --test test/rc1511-i18n-browser-proof.test.mjs
+
+      - name: Commit patched source to feature branch
+        run: |
+          if git diff --quiet -- customer-avis.html; then
+            echo 'No source change produced.'
+            exit 1
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add customer-avis.html
+          git commit -m 'fix(rc1511): localize customer avis formatting'
+          git push origin HEAD:fix/rc1510-i18n-completion-gate
