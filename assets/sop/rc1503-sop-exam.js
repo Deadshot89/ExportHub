@@ -19,16 +19,28 @@ function isRelevant(step){return !!(step&&step.exam&&step.exam.relevant===true);
 function isRequired(step){return isRelevant(step)&&step.exam.required!==false;}
 function stableKeyOf(step){return text(step&&step.target&&(step.target.stableKey||step.target.key));}
 function expectedActionOf(step){return text(step&&step.expectedAction).toLowerCase();}
-function publicSession(){return active?clone(active):null;}
-function errorEntry(type,stepId,details){
+function safeSession(){
+  if(!active)return null;
+  const snapshot=clone(active);
+  for(const key of ['_sop','_requiredSteps','_cursor','_diagnostics'])delete snapshot[key];
+  return snapshot;
+}
+function errorEntry(type,stepId){
   const entry={type:text(type)};
   if(text(stepId))entry.stepId=text(stepId);
+  return entry;
+}
+function diagnosticEntry(type,stepId,details){
+  const entry=errorEntry(type,stepId);
   if(details&&typeof details==='object')entry.details=clone(details);
   return entry;
 }
 function fail(reason,stepId,details){
-  if(active)active.errors.push(errorEntry(reason,stepId,details));
-  return {ok:false,reason:text(reason),stepId:text(stepId),session:publicSession()};
+  if(active){
+    active.errors.push(errorEntry(reason,stepId));
+    active._diagnostics.push(diagnosticEntry(reason,stepId,details));
+  }
+  return {ok:false,reason:text(reason),stepId:text(stepId),session:safeSession()};
 }
 function validator(){
   const api=root.ExportHubSopTourValidator;
@@ -43,6 +55,12 @@ function validateChecks(checks,context){
     return {ok:false,reason:'VALIDATOR_ERROR',details:{message:text(error&&error.message)}};
   }
 }
+function neutralTask(sop){
+  const configured=text(sop&&sop.examConfig&&(sop.examConfig.task||sop.examConfig.assignment));
+  if(configured)return configured;
+  const title=text(sop&&sop.title)||text(sop&&sop.number)||'SOP-Prüfung';
+  return `Führe den Prozess „${title}“ vollständig durch.`;
+}
 function start(options={}){
   const sop=options.sop&&typeof options.sop==='object'?clone(options.sop):null;
   if(!sop)return {ok:false,reason:'EXAM_SOP_REQUIRED'};
@@ -53,10 +71,13 @@ function start(options={}){
   const requiredSteps=relevantSteps.filter(isRequired);
   const startedAt=now();
   active={
+    mode:'exam',
     status:'active',
     userId,
     sopNumber:text(sop.number),
+    title:text(sop.title),
     version:text(sop.version||sop.currentVersion),
+    task:neutralTask(sop),
     startedAt,
     completedAt:null,
     durationMs:0,
@@ -69,22 +90,12 @@ function start(options={}){
     passed:null,
     _sop:sop,
     _requiredSteps:requiredSteps,
-    _cursor:0
+    _cursor:0,
+    _diagnostics:[]
   };
-  const snapshot=publicSession();
-  delete snapshot._sop;
-  delete snapshot._requiredSteps;
-  delete snapshot._cursor;
-  return snapshot;
+  return safeSession();
 }
-function current(){
-  const snapshot=publicSession();
-  if(!snapshot)return null;
-  delete snapshot._sop;
-  delete snapshot._requiredSteps;
-  delete snapshot._cursor;
-  return snapshot;
-}
+function current(){return safeSession();}
 function recordAction(input={}){
   if(!active||active.status!=='active')return {ok:false,reason:'EXAM_NOT_ACTIVE'};
   const action=text(input.action).toLowerCase();
@@ -114,12 +125,12 @@ function recordAction(input={}){
   const stepId=text(expected.id);
   if(stepId&&!active.correctSteps.includes(stepId))active.correctSteps.push(stepId);
   active._cursor=cursor+1;
-  return {ok:true,reason:'OK',stepId,session:current()};
+  return {ok:true,reason:'OK',stepId,session:safeSession()};
 }
 function requestHelp(){
   if(!active||active.status!=='active')return {ok:false,reason:'EXAM_NOT_ACTIVE'};
   active.helpCount+=1;
-  return {ok:true,reason:'OK',helpCount:active.helpCount,session:current()};
+  return {ok:true,reason:'OK',helpCount:active.helpCount,session:safeSession()};
 }
 function finish(finalContext={}){
   if(!active||active.status!=='active')return {ok:false,reason:'EXAM_NOT_ACTIVE'};
@@ -129,15 +140,24 @@ function finish(finalContext={}){
   const finalResult=validateChecks(finalChecks,finalContext);
   active.finalStateOk=!!finalResult.ok;
   if(!finalResult.ok){
-    active.errors.push(errorEntry('FINAL_STATE_FAILED','',{validatorReason:text(finalResult.reason),validatorDetails:finalResult.details||{}}));
+    active.errors.push(errorEntry('FINAL_STATE_FAILED',''));
+    active._diagnostics.push(diagnosticEntry('FINAL_STATE_FAILED','',{validatorReason:text(finalResult.reason),validatorDetails:finalResult.details||{}}));
   }
   active.completedAt=now();
   active.durationMs=Math.max(0,active.completedAt-active.startedAt);
   active.passed=active.errors.length===0&&active.skippedSteps.length===0&&active.finalStateOk;
   active.status='completed';
-  const result=current();
-  return result;
+  return safeSession();
+}
+function end(){
+  if(!active)return null;
+  if(active.status==='active'){
+    active.completedAt=now();
+    active.durationMs=Math.max(0,active.completedAt-active.startedAt);
+  }
+  active.status='ended';
+  return safeSession();
 }
 
-root.ExportHubSopExam=Object.freeze({start,recordAction,requestHelp,finish,current});
+root.ExportHubSopExam=Object.freeze({start,recordAction,requestHelp,finish,end,current});
 })(typeof globalThis!=='undefined'?globalThis:this);
