@@ -21,6 +21,9 @@ export function packStationTokenFromFixture(){
 }
 
 async function createPackNotification(page,token,suffix='A'){
+  const expected=suffix==='B'
+    ?{sourceName:`E2E-${suffix}.pdf`,canonicalName:'SIDE250071282.pdf',pdfText:'Delivery note SIDE 250071282'}
+    :{sourceName:`E2E-${suffix}.pdf`,canonicalName:'DNC3019222063.pdf',pdfText:'Delivery note DNC 3019222063'};
   await page.goto(`/pack/${encodeURIComponent(token)}`,{waitUntil:'domcontentloaded'});
   await expect(page.locator('#packHome')).toBeVisible({timeout:20_000});
   await page.locator('#packNewShipment').click();
@@ -39,10 +42,12 @@ async function createPackNotification(page,token,suffix='A'){
     await rows.nth(i).locator('[data-dim="height"]').fill(i===0?'145':'130');
   }
   await page.locator('#packDocuments').setInputFiles({
-    name:`E2E-${suffix}.pdf`,
+    name:expected.sourceName,
     mimeType:'application/pdf',
-    buffer:Buffer.from('%PDF-1.4\n%%EOF')
+    buffer:Buffer.from(`%PDF-1.4\n1 0 obj\n<< /Length 48 >>\nstream\nBT (${expected.pdfText}) Tj ET\nendstream\nendobj\n%%EOF`,'latin1')
   });
+  await expect(page.locator('#packDocumentList')).toContainText(expected.canonicalName,{timeout:10_000});
+  await expect(page.locator('#packDocumentList')).not.toContainText(expected.sourceName);
 
   await page.locator('#packSaveDraft').click();
   await expect(page.locator('#packValidationHint')).toContainText('Entwurf gespeichert',{timeout:20_000});
@@ -55,14 +60,15 @@ async function createPackNotification(page,token,suffix='A'){
   await expect(page.locator('#packFormMode')).toContainText('Entwurf weiterbearbeiten');
   await expect(page.locator('#packCustomer')).toHaveValue(`E2E PACK CUSTOMER ${suffix}`);
   await expect(page.locator('#packPackageCount')).toHaveValue('2');
-  await expect(page.locator('#packDocumentList')).toContainText(`E2E-${suffix}.pdf`);
+  await expect(page.locator('#packDocumentList')).toContainText(expected.canonicalName);
+  await expect(page.locator('#packDocumentList')).not.toContainText(expected.sourceName);
 
   await expect(page.locator('#packSubmit')).toBeEnabled();
   await page.locator('#packSubmit').click();
   await expect(page.locator('#packSuccess')).toBeVisible({timeout:30_000});
   const reference=String(await page.locator('#packSuccessReference').innerText()).trim();
   expect(reference).toMatch(/^PK-/);
-  return reference;
+  return{reference,canonicalName:expected.canonicalName};
 }
 
 export async function runPackNotificationLiveFlow(browser,testInfo,token){
@@ -72,10 +78,11 @@ export async function runPackNotificationLiveFlow(browser,testInfo,token){
   try{
     const pageA=await packA.newPage();
     const pageB=await packB.newPage();
-    const [refA,refB]=await Promise.all([
+    const [resultA,resultB]=await Promise.all([
       createPackNotification(pageA,token,'A'),
       createPackNotification(pageB,token,'B')
     ]);
+    const refA=resultA.reference,refB=resultB.reference;
     expect(refA).not.toBe(refB);
 
     const internal=await browser.newContext();
@@ -99,7 +106,7 @@ export async function runPackNotificationLiveFlow(browser,testInfo,token){
       await expect(page.locator('#packNotificationDetail')).toBeVisible();
       await expect(page.locator('#packNotificationDetail')).toContainText('680 kg');
       await expect(page.locator('#packNotificationDetail')).toContainText('120 × 80 × 145');
-      await expect(page.locator('#packNotificationDetail')).toContainText('E2E-A.pdf');
+      await expect(page.locator('#packNotificationDetail')).toContainText(resultA.canonicalName);
 
       await page.locator('[data-pack-action="shipment"]').click();
       await expect(page.locator('#rc363BlockCustomer')).toBeVisible({timeout:30_000});
@@ -110,7 +117,7 @@ export async function runPackNotificationLiveFlow(browser,testInfo,token){
         return{packNotificationId:sh.packNotificationId,deliveryFiles:sh.deliveryFiles||[]};
       });
       expect(draft.packNotificationId).toBeTruthy();
-      expect(draft.deliveryFiles.some(file=>file.source==='pack_notification'&&file.customerAvisVisible===false)).toBe(true);
+      expect(draft.deliveryFiles.some(file=>file.source==='pack_notification'&&file.customerAvisVisible===false&&file.name===resultA.canonicalName)).toBe(true);
 
       await assertNoHorizontalOverflow(page);
       await assertRuntimeClean(runtime,testInfo);

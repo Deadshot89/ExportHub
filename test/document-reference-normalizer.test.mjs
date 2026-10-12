@@ -2,14 +2,17 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import zlib from 'node:zlib';
 
 function load(){
   const source=fs.readFileSync('assets/document-reference-normalizer.js','utf8');
   const root={};
-  vm.runInContext(source,vm.createContext({window:root,globalThis:root,String,Object,Array,Set,RegExp}),{filename:'document-reference-normalizer.js'});
+  vm.runInContext(source,vm.createContext({window:root,globalThis:root,String,Object,Array,Set,RegExp,Uint8Array,ArrayBuffer,Promise,DecompressionStream}),{filename:'document-reference-normalizer.js'});
   return root.ExportHubDocumentReferenceNormalizer;
 }
 function plain(value){return JSON.parse(JSON.stringify(value));}
+function fileFromBytes(name,bytes,type='application/pdf'){const view=bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength);return{name,type,size:bytes.length,arrayBuffer:async()=>view};}
+function utf16beHex(value){return Buffer.from(String(value),'utf16le').swap16().toString('hex').toUpperCase();}
 
 test('extractDocumentReferences recognizes DNC and SIDE formatting variants case-insensitively',()=>{
   const api=load();
@@ -52,4 +55,39 @@ test('printDocumentName hides only a terminal PDF extension for presentation',()
   assert.equal(api.printDocumentName('SIDE250071282.PDF'),'SIDE250071282');
   assert.equal(api.printDocumentName('datei.pdf.backup'),'datei.pdf.backup');
   assert.equal(api.printDocumentName('bild.png'),'bild.png');
+});
+
+test('normalizePdfFile reads an embedded DNC reference and returns the canonical upload name',async()=>{
+  const api=load();
+  const bytes=Buffer.from('%PDF-1.4\n1 0 obj\n<< /Length 42 >>\nstream\nBT (Delivery note DNC 3019222063) Tj ET\nendstream\nendobj\n%%EOF','latin1');
+  const result=await api.normalizePdfFile(fileFromBytes('Scanner Export 4711.pdf',bytes));
+  assert.equal(result.name,'DNC3019222063.pdf');
+  assert.equal(result.reference,'DNC3019222063');
+  assert.equal(result.renamed,true);
+});
+
+test('normalizePdfFile reads a SIDE reference from a FlateDecode stream',async()=>{
+  const api=load();
+  const compressed=zlib.deflateSync(Buffer.from('BT (Packing Slip SIDE-250071282) Tj ET','latin1'));
+  const bytes=Buffer.concat([Buffer.from(`%PDF-1.4\n1 0 obj\n<< /Length ${compressed.length} /Filter /FlateDecode >>\nstream\n`,'latin1'),compressed,Buffer.from('\nendstream\nendobj\n%%EOF','latin1')]);
+  const result=await api.normalizePdfFile(fileFromBytes('scan.pdf',bytes));
+  assert.equal(result.name,'SIDE250071282.pdf');
+  assert.equal(result.reference,'SIDE250071282');
+});
+
+test('normalizePdfFile decodes UTF-16BE hex text used by generated PDFs',async()=>{
+  const api=load();
+  const encoded=utf16beHex('Delivery note DNC 3019222063');
+  const bytes=Buffer.from(`%PDF-1.4\n1 0 obj\n<< /Length ${encoded.length+12} >>\nstream\nBT <${encoded}> Tj ET\nendstream\nendobj\n%%EOF`,'latin1');
+  const result=await api.normalizePdfFile(fileFromBytes('unicode-scan.pdf',bytes));
+  assert.equal(result.name,'DNC3019222063.pdf');
+  assert.equal(result.reference,'DNC3019222063');
+});
+
+test('normalizePdfFile treats application/x-pdf as a PDF instead of bypassing normalization',async()=>{
+  const api=load();
+  const bytes=Buffer.from('%PDF-1.4\nBT (SIDE 250071282) Tj ET\n%%EOF','latin1');
+  const result=await api.normalizePdfFile(fileFromBytes('legacy.pdf',bytes,'application/x-pdf'));
+  assert.equal(result.name,'SIDE250071282.pdf');
+  assert.equal(result.reference,'SIDE250071282');
 });

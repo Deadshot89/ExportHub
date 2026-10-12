@@ -53,4 +53,22 @@ test('desktop pack page uses a compact content width and control sizing',()=>{co
 
 test('pack client autofills known length width and height from selected master packaging without inventing missing height',()=>{const js=read('assets/pack-notification.js');assert.match(js,/applyPackageDimensions/);assert.match(js,/selectedPackageEntry/);assert.match(js,/data-dim="length"/);assert.match(js,/data-dim="width"/);assert.match(js,/data-dim="height"/);assert.match(js,/entry\.height\s*!=\s*null/);assert.match(js,/els\.type\.addEventListener\('change'/);});
 
+test('pack PDF upload loads the shared DNC SIDE normalizer before the client and applies it before metadata is persisted',()=>{
+  const html=read('pack.html'),js=read('assets/pack-notification.js'),build=read('.github/packmeldungen/build-three-env.mjs');
+  const normalizerIndex=html.indexOf('/assets/document-reference-normalizer.js');
+  const clientIndex=html.indexOf('/assets/pack-notification.js');
+  assert.ok(normalizerIndex>=0,'document reference normalizer script missing');
+  assert.ok(clientIndex>normalizerIndex,'document reference normalizer must load before pack client');
+  assert.match(js,/ExportHubDocumentReferenceNormalizer/);
+  assert.match(js,/normalizePdfFile/);
+  assert.match(js,/originalName/);
+  assert.match(js,/documentReference/);
+  assert.match(build,/document-reference-normalizer\.js/,'pack deployment must copy the normalizer asset');
+});
+
+test('pack PDF rename change preserves valid semicolon-terminated quote escaping',()=>{
+  const js=read('assets/pack-notification.js');
+  assert.match(js,/&quot;/,'double quotes must remain escaped as &quot;');
+});
+
 test('static web app routes /pack/* to public pack.html and excludes it from SPA fallback',()=>{const config=JSON.parse(read('staticwebapp.config.json')),route=config.routes.find(r=>r.route==='/pack/*');assert.ok(route);assert.equal(route.rewrite,'/pack.html');assert.ok(Array.isArray(route.allowedRoles)&&route.allowedRoles.includes('anonymous'));assert.ok(config.navigationFallback.exclude.includes('/pack/*'));assert.ok(config.navigationFallback.exclude.includes('/pack.html'));});
