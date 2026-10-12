@@ -55,6 +55,31 @@ test('invalid and deactivated station tokens are rejected',async()=>{
   assert.equal(res.status,403);
 });
 
+test('TESTSERVICE forwarded host wins over the internal backend host',async()=>{
+  const token='PT01-testservice-proxy-token';
+  let environment='';
+  let state={
+    packStations:[{id:'PT01',name:'Packtisch 01',tokenHash:packStore.hashStationToken(token),active:true}],
+    packSessions:[],packNotifications:[],tasks:[]
+  };
+  const api=require('../api/pack-notification/index.js');
+  const handler=api.createHandler({
+    now:()=>new Date('2026-10-08T10:00:00.000Z'),
+    mutateState:async(resolvedEnvironment,mutator)=>{
+      environment=resolvedEnvironment;
+      const result=await mutator(JSON.parse(JSON.stringify(state)));
+      state=result.state;
+      return result;
+    }
+  });
+  const res=await handler(request('session',{stationToken:token},{headers:{
+    host:'exporthub-api.azurewebsites.net',
+    'x-forwarded-host':'ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+  }}));
+  assert.equal(res.status,201);
+  assert.equal(environment,'testservice');
+});
+
 test('submit rejects missing fields and non-positive dimensions or weight',async()=>{
   const f=fixture();
   const session=await f.handler(request('session',{stationToken:f.token}));
