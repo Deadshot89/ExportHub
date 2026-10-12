@@ -72,7 +72,8 @@ jobs:
         run: |
           set -euo pipefail
           node --check api/exporthub-state/index.js
-          node --test test/rc1505-production-promotion.test.mjs test/rc1005-three-env-sync.test.mjs test/rc1018-production-deploy.test.mjs test/rc1381-stale-deploy-guard.test.mjs test/pack-notification-production.test.mjs
+          node --check api/avis-upload-mail-readiness/index.js
+          node --test test/rc1505-production-promotion.test.mjs test/rc1005-three-env-sync.test.mjs test/rc1018-production-deploy.test.mjs test/rc1381-stale-deploy-guard.test.mjs test/pack-notification-production.test.mjs test/rc1249-avis-upload-mail-readiness.test.mjs
           npm test
 
       - name: RC1112 Production-Kandidat aus freigegebenem SHA bauen
@@ -150,6 +151,41 @@ jobs:
           api_location: api
           output_location: ''
           skip_app_build: true
+
+      - name: RC1249 PRODUCTION AVIS-Mail-Konfiguration prüfen
+        # Optionale automatische Upload-Mail; bekannte fehlende Mail.Send-Berechtigung bleibt P2.
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +x
+          base='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          response="$(mktemp)"
+          trap 'rm -f "$response"' EXIT
+          oidc_token="$(
+            curl -fsSL \
+              -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+              "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=exporthub-avis-upload-mail-readiness" \
+            | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s).value;if(!v)process.exit(2);process.stdout.write(v)})"
+          )"
+          echo "::add-mask::$oidc_token"
+          status="$(
+            curl -sS -o "$response" -w '%{http_code}' --max-time 20 -X POST \
+              -H "x-exporthub-github-oidc: $oidc_token" \
+              -H 'x-exporthub-environment: production' \
+              "$base/api/avis-upload-mail-readiness" || true
+          )"
+          STATUS="$status" ENVIRONMENT='production' RESPONSE="$response" node -e "
+            const fs=require('fs'),status=Number(process.env.STATUS||0),env=process.env.ENVIRONMENT,v=JSON.parse(fs.readFileSync(process.env.RESPONSE,'utf8')||'{}');
+            const recipient='DespatchNettetal@essentra.com';
+            const requirement=v.requiredPermission||{};
+            const ready=status===200&&v.ok===true&&v.configured===true&&v.authenticated===true&&v.audienceOk===true&&v.mailSendGranted===true&&v.environment===env&&v.recipient===recipient;
+            if(ready){console.log('RC1249 '+env+' automatische Upload-Mail bereit');process.exit(0)}
+            const knownMailSendBlocker=status===503&&v.ok===false&&v.configured===true&&v.authenticated===true&&v.audienceOk===true&&v.mailSendGranted===false&&v.environment===env&&v.recipientConfigured===true&&v.code==='GRAPH_MAIL_PERMISSION_MISSING'&&requirement.resource==='Microsoft Graph'&&requirement.type==='Application'&&requirement.name==='Mail.Send'&&requirement.id==='b633e1c5-b582-4048-a93e-9f11b44c7e96'&&requirement.adminConsentRequired===true;
+            if(knownMailSendBlocker){console.log('::warning title=RC1290 AVIS-Mail P2::Microsoft Graph > Application > Mail.Send (b633e1c5-b582-4048-a93e-9f11b44c7e96) fehlt in '+env+'. Admin Consent erforderlich; Release läuft weiter, Mailversand bleibt offen.');process.exit(0)}
+            console.error('RC1249 '+env+' automatische Upload-Mail weiterhin nicht verfügbar',JSON.stringify({status,ok:v.ok,configured:v.configured,authenticated:v.authenticated,audienceOk:v.audienceOk,mailSendGranted:v.mailSendGranted,code:v.code}));
+            process.exit(1);
+          "
 
       - name: RC1505 Production Release Basis-Liveprüfung
         shell: bash
