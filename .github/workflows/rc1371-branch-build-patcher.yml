@@ -1,0 +1,44 @@
+name: RC1371 branch build patcher
+
+on:
+  push:
+    branches:
+      - feature/dashboard-personalization
+    paths:
+      - '.github/workflows/rc1371-branch-build-patcher.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: feature/dashboard-personalization
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: Apply anchored RC1371 build patch
+        run: node .github/rc1371/apply-dashboard-build-patch.mjs
+      - name: Verify generated diff is limited
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          changed="$(git diff --name-only)"
+          test "$changed" = ".github/rc1112/build-three-env.mjs"
+          grep -q 'RC1371_DASHBOARD_STYLE_TAG' .github/rc1112/build-three-env.mjs
+          grep -q 'html=patchRc1371Dashboard(html,file);' .github/rc1112/build-three-env.mjs
+      - name: Commit generated build integration
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'exporthub-rc1371-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add .github/rc1112/build-three-env.mjs
+          git commit -m 'feat: integrate RC1371 dashboard into three-environment build'
+          git push origin HEAD:feature/dashboard-personalization
