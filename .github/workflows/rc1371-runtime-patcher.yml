@@ -1,0 +1,85 @@
+name: RC1371 runtime patcher
+
+on:
+  push:
+    branches:
+      - feature/dashboard-personalization
+    paths:
+      - '.github/workflows/rc1371-runtime-patcher.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: feature/dashboard-personalization
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: Apply anchored quick-access patch
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs=require('fs');
+          const file='assets/rc1371-dashboard-personalization.js';
+          let src=fs.readFileSync(file,'utf8');
+          function one(before,after,label){const count=src.split(before).length-1;if(count!==1)throw new Error(label+' anchor '+count+'x');src=src.replace(before,after)}
+          const visible="function visibleLayout(state){\n  var normalized=normalizeLayout(state,registry());normalized.widgets=normalized.widgets.filter(function(row){var def=registryStore.get(row.id);return!!def&&canUseWidget(def)&&row.visible!==false}).map(function(row,index){return Object.assign({},row,{order:index})});return normalized\n}\n";
+          const helpers=visible+`function registerQuickAccessWidgets(){
+            [
+              ['quick-shipment','nav.shipment','shipment'],
+              ['quick-shipmentoverview','nav.shipmentoverview','shipmentoverview'],
+              ['quick-tasks','nav.tasks','tasks'],
+              ['quick-notifications','nav.notifications','notifications'],
+              ['quick-sop','nav.sop','sop'],
+              ['quick-abd','nav.abd','abd']
+            ].forEach(function(row){if(!registryStore.has(row[0]))registerWidget({id:row[0],titleKey:row[1],category:'quickaccess',defaultSize:'S',allowedSizes:['S','M'],requiredModule:row[2],detailModule:row[2],defaultVisible:false,generated:true})});
+            return registry().filter(function(def){return def.generated===true&&def.category==='quickaccess'})
+          }
+          function ensureGeneratedQuickAccess(root){
+            var d=(root&&root.ownerDocument)||w.document;if(!root||!d||typeof d.createElement!=='function')return 0;var added=0;
+            registerQuickAccessWidgets().forEach(function(def){
+              if(!canUseWidget(def))return;var existing=null;try{existing=root.querySelector&&root.querySelector('[data-rc1371-widget-id="'+def.id+'"],[data-widget-id="'+def.id+'"]')}catch(_){}if(existing)return;
+              var card=d.createElement('article');card.className='dashboard-card rc1371-quick-access';card.id='rc1371-'+def.id;card.setAttribute('data-dashboard-widget','1');card.setAttribute('data-widget-id',def.id);card.setAttribute('data-rc1371-generated','1');
+              var button=makeButton('quickAccess',def.titleKey,tr(def.titleKey,def.detailModule));if(button){button.setAttribute('data-widget-id',def.id);card.appendChild(button)}root.appendChild(card);added++
+            });return added
+          }
+          function openQuickAccess(id){var def=registryStore.get(cleanId(id));if(!def||def.generated!==true||!def.detailModule||!canUseWidget(def))return false;if(typeof w.setView==='function'){w.setView(def.detailModule);return true}return false}
+          `;
+          one(visible,helpers,'quick helpers');
+          const mountOld="try{root.setAttribute('data-eh-dashboard-personalized','1')}catch(_){}widgetNodes.clear();discoverWidgets(root).forEach(function(item){if(item&&!item.fixed&&item.definition)widgetNodes.set(item.definition.id,item.node)});";
+          const mountNew="try{root.setAttribute('data-eh-dashboard-personalized','1')}catch(_){}widgetNodes.clear();registerQuickAccessWidgets();ensureGeneratedQuickAccess(root);discoverWidgets(root).forEach(function(item){if(item&&!item.fixed&&item.definition)widgetNodes.set(item.definition.id,item.node)});";
+          one(mountOld,mountNew,'mount generated');
+          const clickOld="else if(action==='libraryClose')closeLibrary();\n    else if(action==='restoreStandard')restoreStandard();";
+          const clickNew="else if(action==='libraryClose')closeLibrary();\n    else if(action==='quickAccess'&&id)openQuickAccess(id);\n    else if(action==='restoreStandard')restoreStandard();";
+          one(clickOld,clickNew,'quick click');
+          const exportOld="registerWidget:registerWidget,registry:registry,discoverDashboardRoot:discoverDashboardRoot,discoverWidgets:discoverWidgets,canUseWidget:canUseWidget,resolveStableWidgetId:resolveStableWidgetId,libraryWidgets:libraryWidgets,visibleLayout:visibleLayout,";
+          const exportNew="registerWidget:registerWidget,registry:registry,discoverDashboardRoot:discoverDashboardRoot,discoverWidgets:discoverWidgets,canUseWidget:canUseWidget,resolveStableWidgetId:resolveStableWidgetId,libraryWidgets:libraryWidgets,visibleLayout:visibleLayout,registerQuickAccessWidgets:registerQuickAccessWidgets,openQuickAccess:openQuickAccess,";
+          one(exportOld,exportNew,'export api');
+          const lifecycle="installLifecycle();\nif(w.document&&w.document.readyState";
+          one(lifecycle,"registerQuickAccessWidgets();\ninstallLifecycle();\nif(w.document&&w.document.readyState",'startup register');
+          for(const marker of ['function registerQuickAccessWidgets()','function openQuickAccess(id)','w.setView(def.detailModule)','registerQuickAccessWidgets:registerQuickAccessWidgets'])if(!src.includes(marker))throw new Error('missing '+marker);
+          fs.writeFileSync(file,src);
+          NODE
+      - name: Verify limited change
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          test "$(git diff --name-only)" = "assets/rc1371-dashboard-personalization.js"
+          node --check assets/rc1371-dashboard-personalization.js
+      - name: Commit runtime patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'exporthub-rc1371-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add assets/rc1371-dashboard-personalization.js
+          git commit -m 'feat: add permission-safe dashboard quick access widgets'
+          git push origin HEAD:feature/dashboard-personalization
