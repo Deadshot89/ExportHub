@@ -63,6 +63,14 @@ test('RC1499: echter Packmeldungsfluss läuft im bestehenden mutierenden TESTSER
   assert.match(helper,/data-pack-action="shipment"/,'Sendungs-Handoff fehlt im Livefluss');
 });
 
+test('RC1499: gemeinsames Deploypaket enthält pack.html vor dem TESTSERVICE-Pack-Gate',()=>{
+  const workflow=read(workflowPath);
+  const packageStep=stepBlock(workflow,'Gemeinsame RC1112 Deploy-Pakete vorbereiten','RC1124 Playwright installieren');
+  assert.match(packageStep,/cp\s+dist-rc1112\/pack\.html[^\n]*\"\$dir\/\"/,'pack.html wird nicht in beide Deploypakete kopiert');
+  assert.match(packageStep,/test -s \.rc1112_testservice_app\/pack\.html/,'TESTSERVICE-Paket prüft pack.html nicht');
+  assert.match(packageStep,/test -s \.rc1112_production_app\/pack\.html/,'Production-Paket prüft pack.html nicht');
+});
+
 test('RC1499: Production bleibt read-only; RC1499 überspringt dort automatisch',()=>{
   const workflow=read(workflowPath);
   const smoke=stepBlock(workflow,'RC1124 Produktion Read-only Browser Smoke','RC1124 Produktion Browser-Artefakte');
