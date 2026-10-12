@@ -88,7 +88,7 @@
     const canonical=Array.isArray(canonicalDocuments)?canonicalDocuments:[];
     const stored=Array.isArray(storedDocuments)?storedDocuments:[];
     const storedByNumber=new Map(stored.filter(doc=>/^SOP-EH-\d{3}$/.test(text(doc&&doc.number))).map(doc=>[text(doc.number),clone(doc)]));
-    return canonical.filter(doc=>/^SOP-EH-\d{3}$/.test(text(doc&&doc.number))).map(source=>{
+    const reconciled=canonical.filter(doc=>/^SOP-EH-\d{3}$/.test(text(doc&&doc.number))).map(source=>{
       const base=seedDocument(source);
       const existing=storedByNumber.get(text(base.number));
       if(!existing) return base;
@@ -119,6 +119,8 @@
       }
       return merged;
     });
+    const customerOverlays=stored.filter(doc=>text(doc&&doc.type)==='customer').map(clone);
+    return reconciled.concat(customerOverlays);
   }
 
   function createDraftVersion(document,options){

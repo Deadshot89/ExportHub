@@ -85,6 +85,7 @@ function resolve(input){
   const rawBase=documents.find(doc=>text(doc&&doc.number)===baseSopNumber&&text(doc&&doc.type)!=='customer');
   if(!rawBase)return {ok:false,document:null,overlay:null,conflicts:[conflict('BASE_NOT_FOUND',`Basis-SOP nicht gefunden: ${baseSopNumber}`)],preview:false};
   const base=normalize(rawBase);
+  if(!customerId)return {ok:true,document:base,overlay:null,conflicts:[],preview:false};
   const candidates=documents.filter(doc=>text(doc&&doc.type)==='customer'&&text(doc&&doc.customerId)===customerId&&text(doc&&doc.baseProcessSop)===baseSopNumber);
   const released=candidates.filter(doc=>statusOf(doc)==='Freigegeben');
   if(released.length>1)return {ok:false,document:base,overlay:null,conflicts:[conflict('AMBIGUOUS_OVERLAY','Mehrere freigegebene Kunden-Overlays gefunden',{numbers:released.map(doc=>text(doc.number))})],preview:false};

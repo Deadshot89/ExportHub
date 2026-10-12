@@ -54,3 +54,14 @@ test('normalizeDocument respektiert eine explizit leere aktuelle Step-Liste stat
   const normalized=model.normalizeDocument(source);
   assert.deepEqual(normalized.steps,[]);
 });
+
+test('reconcileCatalog bewahrt versionierte Kunden-Overlays aus isoSops zusätzlich zu kanonischen Prozess-SOPs',()=>{
+  const canonical={number:'SOP-EH-060',title:'ABD',version:'2.0',currentVersion:'2.0',status:'Freigegeben',sections:{steps:[{id:'a',text:'Prüfen'}]},versions:[{version:'2.0',status:'Freigegeben',title:'ABD',content:{steps:[{id:'a',text:'Prüfen'}]},visuals:[]}],auditTrail:[]};
+  const customer={number:'SOP-CUST-C1-060',title:'C1 ABD',type:'customer',customerId:'C1',baseProcessSop:'SOP-EH-060',version:'1.0',currentVersion:'1.0',status:'Freigegeben',versions:[{version:'1.0',status:'Freigegeben',title:'C1 ABD',content:{overlays:[]},visuals:[]}],auditTrail:[{action:'Erstellt',version:'1.0',actor:'Admin',at:'2026-10-12T00:00:00Z',reason:'Kunde'}]};
+  const before=JSON.stringify(customer);
+  const reconciled=model.reconcileCatalog([customer],[canonical]);
+  assert.equal(reconciled.length,2);
+  assert.equal(reconciled[0].number,'SOP-EH-060');
+  assert.equal(reconciled[1].number,'SOP-CUST-C1-060');
+  assert.equal(JSON.stringify(reconciled[1]),before);
+});

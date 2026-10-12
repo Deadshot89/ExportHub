@@ -114,3 +114,11 @@ test('Overlay-Resolver gibt ohne Leserecht keine SOP-Inhalte zurück',()=>{
   assert.equal(result.document,null);
   assert.ok(result.conflicts.some(item=>item.code==='NO_READ_PERMISSION'));
 });
+
+test('ohne Kundenkontext wird kein malformed Kunden-Overlay mit leerer customerId angewendet',()=>{
+  const malformed={...customer('Freigegeben',[{action:'add-step',afterStepId:'a',step:{id:'wrong-global',text:'Darf nicht global gelten'}}]),customerId:''};
+  const result=overlay.resolve({documents:[base,malformed],baseSopNumber:'SOP-EH-060',customerId:'',rights:{read:true}});
+  assert.equal(result.ok,true);
+  assert.equal(result.overlay,null);
+  assert.equal(result.document.steps.some(step=>step.id==='wrong-global'),false);
+});
