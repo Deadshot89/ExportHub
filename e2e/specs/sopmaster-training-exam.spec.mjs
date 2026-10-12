@@ -37,6 +37,13 @@ async function learningRecord(page){
   });
 }
 
+async function reloadAndReadProgress(page){
+  await page.reload({waitUntil:'domcontentloaded'});
+  await waitReady(page);
+  await expect.poll(async()=>Boolean((await learningRecord(page)).record),{timeout:12_000,message:'SOP-Lernfortschritt fehlt nach Browser-Reload'}).toBe(true);
+  return learningRecord(page);
+}
+
 for(const viewport of ['desktop','mobile-standard']){
   test(`RC1503: Demo-Training bleibt simuliert und protokolliert Tour-Fortschritt (${viewport})`,async({page},testInfo)=>{
     test.skip(testInfo.project.name!==viewport,`nur ${viewport}`);
@@ -68,6 +75,12 @@ for(const viewport of ['desktop','mobile-standard']){
     expect(progress.record?.viewedAt).toBeTruthy();
     expect(progress.record?.startedAt).toBeTruthy();
     expect(progress.record?.tourCompletedAt).toBeTruthy();
+
+    const restored=await reloadAndReadProgress(page);
+    expect(restored.record?.viewedAt).toBe(progress.record?.viewedAt);
+    expect(restored.record?.startedAt).toBe(progress.record?.startedAt);
+    expect(restored.record?.tourCompletedAt).toBe(progress.record?.tourCompletedAt);
+    expect(productive).toEqual([]);
     await assertNoHorizontalOverflow(page);
   });
 
@@ -90,6 +103,11 @@ for(const viewport of ['desktop','mobile-standard']){
     expect(progress.record?.examAttempts).toHaveLength(1);
     expect(progress.record?.examAttempts?.[0]?.passed).toBe(true);
     expect(progress.record?.completedAt).toBeTruthy();
+
+    const restored=await reloadAndReadProgress(page);
+    expect(restored.record?.examAttempts).toHaveLength(1);
+    expect(restored.record?.examAttempts?.[0]?.passed).toBe(true);
+    expect(restored.record?.completedAt).toBe(progress.record?.completedAt);
     await assertNoHorizontalOverflow(page);
   });
 
@@ -111,6 +129,13 @@ for(const viewport of ['desktop','mobile-standard']){
     expect(attempt?.passed).toBe(false);
     expect(Array.isArray(attempt?.errors)&&attempt.errors.length>0).toBe(true);
     expect(Array.isArray(attempt?.skippedSteps)&&attempt.skippedSteps.length>0).toBe(true);
+
+    const restored=await reloadAndReadProgress(page);
+    expect(restored.record?.examAttempts).toHaveLength(1);
+    const restoredAttempt=restored.record?.examAttempts?.[0];
+    expect(restoredAttempt?.passed).toBe(false);
+    expect(Array.isArray(restoredAttempt?.errors)&&restoredAttempt.errors.length>0).toBe(true);
+    expect(Array.isArray(restoredAttempt?.skippedSteps)&&restoredAttempt.skippedSteps.length>0).toBe(true);
     await assertNoHorizontalOverflow(page);
   });
 }
