@@ -17,11 +17,12 @@ test('RC1496: erfolgreicher RC1112-Live-Deploy finalisiert einen Autofix-PR fail
   assert.match(finalizer,/audience=exporthub-diagnostic-autofix/);
 });
 
-test('RC1496: nur der vertrauenswürdige Finalizer darf testing auf fixed abschließen',()=>{
+test('RC1496: nur der vertrauenswürdige OIDC-Finalizer darf testing auf fixed abschließen',()=>{
   assert.match(api,/RC1496_AUTOFIX_FINALIZE_WORKFLOW/);
   assert.match(api,/rc1496-autofix-finalize\.yml/);
   assert.match(api,/action==='finalize'/);
-  assert.match(api,/callbackAuthorized\(req,RC1496_AUTOFIX_FINALIZE_WORKFLOW,\['workflow_run'\]\)/);
+  assert.match(api,/githubOidcAuthorized\(req,RC1496_AUTOFIX_FINALIZE_WORKFLOW,\['workflow_run'\]\)/);
+  assert.doesNotMatch(api,/action==='finalize'[\s\S]{0,240}callbackAuthorized\(req,RC1496_AUTOFIX_FINALIZE_WORKFLOW/);
   assert.match(api,/async function finalizeAutofix\(/);
   assert.match(api,/existingStatus!=='testing'/);
   assert.match(api,/AUTOFIX_NOT_READY_FOR_FINALIZE/);
