@@ -60,6 +60,13 @@ test('saveTask setzt bei Fälligkeit ohne Uhrzeit 16:15 und löscht keine Legacy
   assert.equal(saves,1);
 });
 
+test('saveTask übernimmt ein neues dueDate auch wenn die V2-Aufgabe bereits dueAt besitzt',()=>{
+  const api=load(),state={tasks:[baseTask()]};
+  const result=api.saveTask({id:'task-1',dueDate:'2026-10-20'},{state,persist:()=>{},now:'2026-10-12T10:00:00+02:00'});
+  assert.equal(result.task.dueAt,'2026-10-20T16:15:00+02:00');
+  assert.equal(result.task.dueDate,'2026-10-20');
+});
+
 test('fachliches Entfernen storniert gespeicherte Aufgabe statt sie physisch zu löschen',()=>{
   const api=load(),state={tasks:[baseTask()]};let saves=0;
   api.cancelTask('task-1',{state,persist:()=>saves++,now:'2026-10-12T11:00:00+02:00'});
