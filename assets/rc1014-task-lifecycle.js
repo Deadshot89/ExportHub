@@ -95,16 +95,17 @@
     if(c&&typeof c.cancelTask==='function'){const cancelled=c.cancelTask(task,{at,source:'workflow'});return{...cancelled,priority:task.priority,v2Priority:cancelled.priority,completedAt:at,completedBy:'system:cancel',updatedAt:at};}
     return{...task,status:'cancelled',completedAt:at,completedBy:'system:cancel',updatedAt:at};
   }
+  function workflowOwned(task){return arr(task&&task.workflowEvents).concat(arr(task&&task.autoCompleteEvents)).map(q).some(Boolean)||!!q(task&&task.workflowEvent||task&&task.autoCompleteEvent);}
   function lifecycleFingerprint(task){const t=task||{};return[q(t.status),q(t.completedAt),q(t.completedBy),q(t.effectiveAssignee),q(t.substitutionReason),q(t.occurrenceKey),q(t.id)].join('|');}
   function reconcile(tasks,domain={},ctx={}){
     const input=arr(tasks);let changed=false;let out=input.map(original=>{
-      if(!sameScope(original,ctx))return{...original};let task=normalizeTask(original,ctx),before=lifecycleFingerprint(task);task=resolveAssignee(task,ctx);
+      if(!sameScope(original,ctx))return{...original};let task=normalizeTask(original,ctx),before=lifecycleFingerprint(task);task=resolveAssignee(task,ctx);const workflowBound=workflowOwned(task);
       if(task.status==='open'||task.status==='in_progress'){
-        if(task.group==='Fehlende POD'){const shipment=findShipment(task,domain);if(shipment&&fullyCollected(shipment)&&hasPod(shipment))task=markDone(task,'system:pod',ctx);}
-        else if(task.group==='Offene ABDs'){const shipment=findShipment(task,domain);if(shipment&&shipment.abdRequired===false)task=markCancelled(task,ctx);else if(shipment&&hasAbd(shipment))task=markDone(task,'system:abd',ctx);}
-        else if(task.group==='Picks'){const pick=findPick(task,domain);if(pickCompleted(pick))task=markDone(task,'system:pick',ctx);}
-        else if(task.group==='Kunde angemeldet'){const shipment=findShipment(task,domain);if(shipmentCancelled(shipment))task=markCancelled(task,ctx);else if(shipment&&fullyCollected(shipment))task=markDone(task,'system:pickup',ctx);}
-        else if(task.group==='Offene Sendungen'){const shipment=findShipment(task,domain);if(shipmentCancelled(shipment))task=markCancelled(task,ctx);else if(shipmentCompleted(shipment))task=markDone(task,'system:shipment',ctx);}
+        if(task.group==='Fehlende POD'){const shipment=findShipment(task,domain);if(!workflowBound&&shipment&&fullyCollected(shipment)&&hasPod(shipment))task=markDone(task,'system:pod',ctx);}
+        else if(task.group==='Offene ABDs'){const shipment=findShipment(task,domain);if(shipment&&shipment.abdRequired===false)task=markCancelled(task,ctx);else if(!workflowBound&&shipment&&hasAbd(shipment))task=markDone(task,'system:abd',ctx);}
+        else if(task.group==='Picks'){const pick=findPick(task,domain);if(!workflowBound&&pickCompleted(pick))task=markDone(task,'system:pick',ctx);}
+        else if(task.group==='Kunde angemeldet'){const shipment=findShipment(task,domain);if(shipmentCancelled(shipment))task=markCancelled(task,ctx);else if(!workflowBound&&shipment&&fullyCollected(shipment))task=markDone(task,'system:pickup',ctx);}
+        else if(task.group==='Offene Sendungen'){const shipment=findShipment(task,domain);if(shipmentCancelled(shipment))task=markCancelled(task,ctx);else if(!workflowBound&&shipmentCompleted(shipment))task=markDone(task,'system:shipment',ctx);}
       }
       if(lifecycleFingerprint(task)!==before)changed=true;return task;
     });
