@@ -81,6 +81,10 @@
     if(!target)throw new Error('Task-Detailziel fehlt');const task=arr(ctx.state&&ctx.state.tasks).find(t=>q(t&&t.id)===q(taskId));
     if(!task){target.innerHTML=`<aside class="tpv2-detail" data-taskplanner-v2-detail><p>${escapeHtml(tr('taskV2.notFound',null,'Task not found.'))}</p></aside>`;return target;}
     const t=detailModel(task,ctx),checklist=t.checklist.map(item=>`<li data-done="${item&&item.done===true?'1':'0'}">${escapeHtml(item&&item.text||item&&item.label||'')}</li>`).join(''),history=t.history.slice().reverse().map(h=>`<li><strong>${escapeHtml(h&&h.action)}</strong><span>${escapeHtml(formatDateTime(h&&h.at))}</span></li>`).join('');
+    const publicLink=obj(t.publicLink)?t.publicLink:null,publicActive=!!(publicLink&&q(publicLink.tokenHash)&&!q(publicLink.revokedAt));
+    const publicLinkAction=publicActive
+      ?`<button type="button" class="tpv2-button tpv2-button-secondary" data-action="public-link-revoke">${escapeHtml(tr('taskV2.publicLink.revoke',null,'Revoke public link'))}</button>`
+      :`<button type="button" class="tpv2-button tpv2-button-secondary" data-action="public-link-create">${escapeHtml(tr('taskV2.publicLink.create',null,'Create public link'))}</button>`;
     target.innerHTML=`<aside class="tpv2-detail" data-taskplanner-v2-detail data-task-id="${escapeHtml(t.id)}" aria-label="${escapeHtml(tr('taskV2.detail',null,'Task details'))}">
       <header class="tpv2-detail-head"><div><span class="tpv2-eyebrow">${escapeHtml(tr('taskV2.task',null,'Task'))}</span><h2>${escapeHtml(t.title)}</h2><p>${escapeHtml(t.customerName)}</p></div><button type="button" class="tpv2-icon-button" data-action="close" aria-label="${escapeHtml(tr('taskV2.close',null,'Close'))}">×</button></header>
       <div class="tpv2-detail-grid">
@@ -91,6 +95,7 @@
         <section class="tpv2-detail-wide"><h3>${escapeHtml(tr('taskV2.description',null,'Description'))}</h3><p>${escapeHtml(t.description)}</p></section>
         <section class="tpv2-detail-wide" data-section="checklist"><h3>${escapeHtml(tr('taskV2.checklist',null,'Checklist'))}</h3><ul class="tpv2-checklist">${checklist||`<li>${escapeHtml(tr('taskV2.noneChecklist',null,'No checklist items'))}</li>`}</ul></section>
         <section class="tpv2-detail-wide"><h3>${escapeHtml(tr('taskV2.contact',null,'Contact'))}</h3><p>${escapeHtml(t.contact||'—')}</p></section>
+        <section class="tpv2-detail-wide" data-section="public-link"><h3>${escapeHtml(tr('taskV2.publicLink.title',null,'Public read-only link'))}</h3><p>${escapeHtml(publicActive?tr('taskV2.publicLink.active',null,'Active'):tr('taskV2.publicLink.inactive',null,'Not active'))}</p>${publicLinkAction}</section>
         <section class="tpv2-detail-wide" data-section="history"><h3>${escapeHtml(tr('taskV2.history',null,'History'))}</h3><ul class="tpv2-history">${history||`<li>${escapeHtml(tr('taskV2.noneHistory',null,'No history yet'))}</li>`}</ul></section>
       </div>
       <footer class="tpv2-detail-actions"><button type="button" class="tpv2-button tpv2-button-secondary" data-action="cancel">${escapeHtml(tr('taskV2.cancel',null,'Cancel task'))}</button><button type="button" class="tpv2-button tpv2-button-primary" data-action="complete">${escapeHtml(tr('taskV2.complete',null,'Complete'))}</button></footer>
@@ -112,6 +117,35 @@
   function cancelTask(taskId,ctx={}){
     const state=stateOf(ctx),index=state.tasks.findIndex(t=>q(t&&t.id)===q(taskId));if(index<0)return{changed:false,task:null};
     const cancelled=core().cancelTask(state.tasks[index],{at:nowOf(ctx),source:'manual'});state.tasks=state.tasks.slice();state.tasks[index]=cancelled;persist(ctx,state.tasks);emit('task_cancelled',[cancelled.id],ctx);return{changed:true,task:cancelled};
+  }
+
+  function environmentOf(ctx={}){
+    const explicit=q(ctx.environment).toLowerCase();if(explicit==='testservice'||explicit==='production')return explicit;
+    const origin=q(root.location&&root.location.origin).toLowerCase();return /-testservice\./.test(origin)?'testservice':'production';
+  }
+  function randomPublicToken(){
+    const cryptoApi=root.crypto;if(!cryptoApi||typeof cryptoApi.getRandomValues!=='function')throw new Error('Sichere Zufallsquelle fehlt');
+    const bytes=new Uint8Array(32);cryptoApi.getRandomValues(bytes);return Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');
+  }
+  async function hashPublicToken(token){
+    const cryptoApi=root.crypto;if(!cryptoApi||!cryptoApi.subtle||typeof cryptoApi.subtle.digest!=='function')throw new Error('Sichere Hashfunktion fehlt');
+    const Encoder=root.TextEncoder||TextEncoder,data=new Encoder().encode(q(token)),digest=await cryptoApi.subtle.digest('SHA-256',data);
+    return Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
+  }
+  async function createPublicLink(taskId,fields=[],ctx={}){
+    const state=stateOf(ctx),index=state.tasks.findIndex(t=>q(t&&t.id)===q(taskId));if(index<0)return{changed:false,task:null,token:''};
+    const token=randomPublicToken(),tokenHash=await hashPublicToken(token),at=nowOf(ctx),allowed=core().sanitizePublicFields(fields),before=state.tasks[index],history=arr(before.history).map(clone);
+    history.push(core().historyEntry('public_link_created',{at,source:'manual',after:{fields:allowed,environment:environmentOf(ctx)}}));
+    const next={...clone(before),publicLink:{schemaVersion:1,tokenHash,fields:allowed,environment:environmentOf(ctx),createdAt:at,revokedAt:''},history,updatedAt:at};
+    state.tasks=state.tasks.slice();state.tasks[index]=next;persist(ctx,state.tasks);emit('public_link_created',[next.id],ctx);
+    const origin=q(root.location&&root.location.origin).replace(/\/$/,'');
+    return{changed:true,task:next,token,url:(origin||'')+'/task?token='+encodeURIComponent(token)};
+  }
+  function revokePublicLink(taskId,ctx={}){
+    const state=stateOf(ctx),index=state.tasks.findIndex(t=>q(t&&t.id)===q(taskId));if(index<0)return{changed:false,task:null};
+    const before=state.tasks[index],link=obj(before.publicLink)?clone(before.publicLink):null;if(!link||!q(link.tokenHash)||q(link.revokedAt))return{changed:false,task:before};
+    const at=nowOf(ctx),history=arr(before.history).map(clone);link.revokedAt=at;history.push(core().historyEntry('public_link_revoked',{at,source:'manual'}));
+    const next={...clone(before),publicLink:link,history,updatedAt:at};state.tasks=state.tasks.slice();state.tasks[index]=next;persist(ctx,state.tasks);emit('public_link_revoked',[next.id],ctx);return{changed:true,task:next};
   }
 
   function templateFromTask(input){
@@ -161,7 +195,7 @@
   }
 
   root.ExportHUBTaskUIV2=Object.freeze({
-    version:'2.0',DEFAULT_REMINDER_SLOTS,detailModel,renderTasks,renderDetail,saveTask,completeTask,cancelTask,
+    version:'2.0',DEFAULT_REMINDER_SLOTS,detailModel,renderTasks,renderDetail,saveTask,completeTask,cancelTask,createPublicLink,revokePublicLink,
     templateFromTask,saveTemplate,viewPreference,setViewPreference,reminderKey,reminderCandidates,markReminderDelivered
   });
 })(globalThis);
