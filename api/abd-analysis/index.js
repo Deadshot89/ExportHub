@@ -6,6 +6,7 @@ const apiI18n=require('../shared/i18n');
 const pdfSecurity=require('../shared/customer-avis-pdf-security');
 const pdfContent=require('../shared/customer-avis-document-content');
 const analyzer=require('../shared/abd-analysis');
+const analysisModel=require('../shared/abd-analysis-model');
 
 const CONTAINER=process.env.EXPORTHUB_ABD_QUARANTINE_CONTAINER||'exporthub-abd-quarantine';
 const MAX_BYTES=Math.max(1024,Math.min(20*1024*1024,Number(process.env.EXPORTHUB_ABD_ANALYSIS_MAX_BYTES||12*1024*1024)));
@@ -74,6 +75,12 @@ function cellText(cell){
  if(cell.richText)return cell.richText.map(x=>text(x&&x.text)).join('');
  return text(cell)
 }
+function groupedEnvelope(result){
+ const source=result&&typeof result==='object'?result:{};
+ let positions=Array.isArray(source.positions)?source.positions:[];
+ if(source.extraction==='pdf-text-candidates')positions=positions.map(position=>Object.assign({},position,{confirmed:false}));
+ return analysisModel.enrichLegacyAnalysis(Object.assign({},source,{positions}),{})
+}
 async function analyzeXlsx(buffer,name){
  let ExcelJS;try{ExcelJS=require('exceljs')}catch(_){throw error('ABD_XLSX_RUNTIME_MISSING','Excel-Auswertung ist auf dem Server nicht verfügbar.',503)}
  const workbook=new ExcelJS.Workbook();await workbook.xlsx.load(buffer);
@@ -82,15 +89,15 @@ async function analyzeXlsx(buffer,name){
   const matrix=[];ws.eachRow({includeEmpty:false},(row,rowNumber)=>{if(matrix.length>=1000)return;const values=[];for(let i=1;i<=Math.min(row.cellCount||row.actualCellCount||40,40);i++)values.push(cellText(row.getCell(i).value));matrix.push(values)});
   const parsed=analyzer.matrixToObjects(matrix,name+' · '+ws.name);if(parsed.length){objects.push(...parsed);sheets.push(ws.name)}
  });
- return Object.assign(analyzer.analyzeObjects(objects),{fileName:name,fileType:'xlsx',sheets,requiresReview:true})
+ return groupedEnvelope(Object.assign(analyzer.analyzeObjects(objects),{fileName:name,fileType:'xlsx',sheets,requiresReview:true}))
 }
 function analyzeCsv(buffer,name){
  const matrix=analyzer.parseDelimited(buffer.toString('utf8')),objects=analyzer.matrixToObjects(matrix,name);
- return Object.assign(analyzer.analyzeObjects(objects),{fileName:name,fileType:'csv',requiresReview:true})
+ return groupedEnvelope(Object.assign(analyzer.analyzeObjects(objects),{fileName:name,fileType:'csv',requiresReview:true}))
 }
 async function analyzePdf(buffer,name){
  const extracted=await pdfContent.extractPdfText(buffer);
- return Object.assign(analyzer.extractPdfCandidates(extracted,name),{fileName:name,fileType:'pdf'})
+ return groupedEnvelope(Object.assign(analyzer.extractPdfCandidates(extracted,name),{fileName:name,fileType:'pdf'}))
 }
 async function analyzeFile(buffer,name,kind){
  if(kind==='pdf')return analyzePdf(buffer,name);
