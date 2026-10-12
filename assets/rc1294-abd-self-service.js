@@ -5,7 +5,7 @@ w.__EXPORTHUB_RC1294_ABD_SELF_SERVICE__=true;
 
 var busy=false,reviewBusy={},lastPositions=[],lastResults=[],lastGroups=[],lastUnassigned=[],mountTimer=0,hostObserver=null,hostObserverRoot=null,bootstrapObserver=null,bootstrapObserverRoot=null;
 function q(v){return String(v==null?'':v).trim()}
-function esc(v){return q(v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function esc(v){return q(v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]})}
 function lang(){try{return w.ExportHUBI18n&&w.ExportHUBI18n.language?w.ExportHUBI18n.language():'de'}catch(_){return'de'}}
 function tr(key,vars,fallback){try{var i=w.ExportHUBI18n;if(i&&typeof i.t==='function'){var value=i.t(key,vars,lang());if(value&&value!==key)return value}}catch(_){}return fallback||key}
 function xtr(key,vars){try{var i=w.ExportHUBRC1499I18n;if(i&&typeof i.t==='function')return i.t(key,lang(),vars)}catch(_){}return key}
@@ -217,6 +217,11 @@ function copyGroupedResults(){
 }
 function copyField(value){value=q(value);if(!value)return false;writeClipboard(value,xtr('copiedField'));return false}
 function copyResults(){return copyGroupedResults()}
+function snapshot(index){
+ index=Number(index);if(!Number.isInteger(index)||index<0||index>=lastResults.length)return null;
+ var analysis=lastResults[index]&&lastResults[index].analysis||{};
+ try{return JSON.parse(JSON.stringify({header:analysis.header||{},positions:Array.isArray(analysis.positions)?analysis.positions:[],groups:Array.isArray(analysis.groups)?analysis.groups:[],unassigned:Array.isArray(analysis.unassigned)?analysis.unassigned:[],totals:analysis.totals||{},review:analysis.review||{}}))}catch(_){return null}
+}
 function fallbackCopy(raw,message){
  var ta=d.createElement('textarea');ta.value=raw;ta.style.position='fixed';ta.style.left='-9999px';d.body.appendChild(ta);ta.select();try{d.execCommand('copy');setStatus(message||xtr('copiedGrouped'),'ok')}catch(_){}ta.remove()
 }
@@ -304,5 +309,5 @@ function activate(){syncObserver();schedule()}
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',activate,{once:true});else activate();
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(name){w.addEventListener(name,activate)});
 w.addEventListener('exporthub:language-changed',function(){var old=panel();if(old)old.remove();activate()});
-w.ExportHUBRC1294ABDAnalysis=Object.freeze({version:'RC1294',mount:mount,start:start,setMode:setMode,copyResults:copyResults,copyGroupedResults:copyGroupedResults});
+w.ExportHUBRC1294ABDAnalysis=Object.freeze({version:'RC1294',mount:mount,start:start,setMode:setMode,copyResults:copyResults,copyGroupedResults:copyGroupedResults,snapshot:snapshot});
 })(window,document);
