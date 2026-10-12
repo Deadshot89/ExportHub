@@ -11,7 +11,8 @@ const required=[
   'dashboard.personalize.moveUp','dashboard.personalize.moveDown','dashboard.personalize.size','dashboard.personalize.sizeS','dashboard.personalize.sizeM','dashboard.personalize.sizeL','dashboard.personalize.sizeXL',
   'dashboard.personalize.restoreStandard','dashboard.personalize.searchWidgets','dashboard.personalize.template','dashboard.personalize.templateStandard','dashboard.personalize.templateManagement','dashboard.personalize.templateOperative','dashboard.personalize.templateCompact','dashboard.personalize.templateAnalysis',
   'dashboard.personalize.category.kpis','dashboard.personalize.category.productivity','dashboard.personalize.category.shipping','dashboard.personalize.category.orders','dashboard.personalize.category.warehouse','dashboard.personalize.category.stock','dashboard.personalize.category.employees','dashboard.personalize.category.quality','dashboard.personalize.category.dates','dashboard.personalize.category.warnings','dashboard.personalize.category.analyses','dashboard.personalize.category.charts','dashboard.personalize.category.quickAccess',
-  'dashboard.personalize.status.critical','dashboard.personalize.status.attention','dashboard.personalize.status.watch','dashboard.personalize.status.onTarget','dashboard.personalize.status.info'
+  'dashboard.personalize.status.critical','dashboard.personalize.status.attention','dashboard.personalize.status.watch','dashboard.personalize.status.onTarget','dashboard.personalize.status.info',
+  'dashboard.personalize.quick.shipment','dashboard.personalize.quick.shipmentoverview','dashboard.personalize.quick.tasks','dashboard.personalize.quick.notifications','dashboard.personalize.quick.sop','dashboard.personalize.quick.abd'
 ];
 
 function loadPack(){
