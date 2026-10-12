@@ -42,12 +42,25 @@ test('erhält strukturierte Felder und ergänzt nur sichere Defaults',()=>{
   const step=contract.normalizeStep(source,0);
   assert.equal(step.id,'abd-request-07');
   assert.equal(step.order,7);
+  assert.equal(step.target.type,'button');
   assert.equal(step.target.stableKey,'shipment-abd-request');
   assert.equal(step.tour.enabled,true);
   assert.equal(step.training.enabled,true);
   assert.equal(step.exam.relevant,true);
   assert.deepEqual(step.checks,source.checks);
   assert.notEqual(step.checks,source.checks);
+});
+
+test('stable Tourziel ohne Typ bleibt exakt stableKey plus selector und bekommt kein leeres type-Feld',()=>{
+  const source={id:'abd-target',instruction:'ABD prüfen',target:{stableKey:'shipment-abd-decision',selector:'[data-tour-key="shipment-abd-decision"]'}};
+  const step=contract.normalizeStep(source,0);
+  assert.deepEqual(step.target,{stableKey:'shipment-abd-decision',selector:'[data-tour-key="shipment-abd-decision"]'});
+  assert.equal(Object.prototype.hasOwnProperty.call(step.target,'type'),false);
+});
+
+test('expliziter nichtleerer Target-Typ bleibt für bestehende strukturierte SOPs erhalten',()=>{
+  const step=contract.normalizeStep({id:'with-type',instruction:'Öffnen',target:{type:'button',stableKey:'open-key',selector:'[data-tour-key="open-key"]'}},0);
+  assert.deepEqual(step.target,{type:'button',stableKey:'open-key',selector:'[data-tour-key="open-key"]'});
 });
 
 test('normalizeSteps liefert deterministische IDs',()=>{
