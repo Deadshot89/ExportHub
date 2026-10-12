@@ -76,9 +76,15 @@ function collect(){
   var firstMeta=docs[0].querySelector('.rc1294-meta > div strong');
   return{review:{complete:true},totals:{difference:0},header:{invoiceNumber:firstMeta?q(firstMeta.textContent):''},groups:groups}
 }
+function ensureStyle(){
+  var d=root.document;if(!d||!d.createElement||d.getElementById('rc1499HandoffStyle'))return;
+  var s=d.createElement('style');s.id='rc1499HandoffStyle';s.textContent='.rc1499-abd-prepared{margin:0 0 14px;padding:12px;border:1px solid #93c5fd;border-left:4px solid #2563eb;border-radius:10px;background:#eff6ff;color:#0f172a}.rc1499-abd-prepared-head{display:grid;gap:3px;margin-bottom:9px}.rc1499-abd-prepared-head small{color:#475569}.rc1499-abd-prepared-scroll{overflow:auto;border:1px solid #bfdbfe;border-radius:8px;background:#fff}.rc1499-abd-prepared table{width:100%;min-width:560px;border-collapse:collapse;font-size:12px}.rc1499-abd-prepared th,.rc1499-abd-prepared td{padding:7px 9px;text-align:left;border-bottom:1px solid #e2e8f0}.rc1499-abd-prepared th{background:#f8fafc}';
+  (d.head||d.documentElement).appendChild(s)
+}
 function renderPending(){
   if(!pending)return;
   var d=root.document,host=d&&d.getElementById&&d.getElementById('rc626Abd');if(!host)return;
+  ensureStyle();
   var old=host.querySelector&&host.querySelector('[data-rc1499-abd-prepared]');if(old&&old.remove)old.remove();
   var section=d.createElement('section');section.setAttribute('data-rc1499-abd-prepared','');section.className='rc1499-abd-prepared';
   var rows=pending.groups.map(function(g){return'<tr><td><b>'+esc(g.commodityCode)+'</b></td><td>'+esc(g.originCountry)+'</td><td>'+esc(g.value)+'</td><td>'+esc(g.currency)+'</td><td>'+esc(g.positionCount)+'</td></tr>'}).join('');
@@ -90,12 +96,12 @@ function enhance(){
   var head=box.querySelector('.rc1294-result-head');if(!head)return;
   var button=head.querySelector('[data-rc1499-prepare-abd]');
   if(!button){button=d.createElement('button');button.type='button';button.className='ghost';button.setAttribute('data-rc1499-prepare-abd','');button.addEventListener('click',function(){var data=collect();if(!data)return;try{prepare(data)}catch(_){}});head.appendChild(button)}
-  var data=collect();button.textContent=tr('customsPortalData');button.disabled=!data;button.setAttribute('aria-disabled',data?'false':'true');
+  var data=collect();button.textContent=tr('prepareAbd');button.disabled=!data;button.setAttribute('aria-disabled',data?'false':'true');button.title=data?tr('prepareAbdHint'):tr('prepareAbdBlocked');
   renderPending()
 }
 function schedule(){if(timer)return;timer=root.setTimeout?root.setTimeout(function(){timer=0;enhance()},0):0;if(!root.setTimeout)enhance()}
 function mount(){
-  var d=root.document;if(!d||!d.documentElement)return false;schedule();
+  var d=root.document;if(!d||!d.documentElement)return false;ensureStyle();schedule();
   if(typeof root.MutationObserver==='function'&&!observer){observer=new root.MutationObserver(schedule);observer.observe(d.documentElement,{childList:true,subtree:true})}
   return true
 }
