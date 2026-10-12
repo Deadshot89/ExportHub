@@ -99,7 +99,7 @@ jobs:
           node --check api/exporthub-state/index.js
           node --check api/avis-upload-mail-readiness/index.js
           node --check api/customer-portal-readiness/index.js
-          node --test test/rc1505-production-promotion.test.mjs test/rc1005-three-env-sync.test.mjs test/rc1018-production-deploy.test.mjs test/rc1381-stale-deploy-guard.test.mjs test/pack-notification-production.test.mjs test/rc1249-avis-upload-mail-readiness.test.mjs test/rc1124-browser-release-gate.test.mjs test/rc1193-visible-release-version.test.mjs test/rc1170-customer-portal-release-readiness.test.mjs test/rc1172-testservice-gate-order.test.mjs test/rc1233-pickup-live-gate.test.mjs test/rc1228-customer-avis-slot-live-gate.test.mjs
+          node --test test/rc1505-production-promotion.test.mjs test/rc1505-production-html-integrity.test.mjs test/rc1005-three-env-sync.test.mjs test/rc1018-production-deploy.test.mjs test/rc1381-stale-deploy-guard.test.mjs test/pack-notification-production.test.mjs test/rc1249-avis-upload-mail-readiness.test.mjs test/rc1124-browser-release-gate.test.mjs test/rc1193-visible-release-version.test.mjs test/rc1170-customer-portal-release-readiness.test.mjs test/rc1172-testservice-gate-order.test.mjs test/rc1233-pickup-live-gate.test.mjs test/rc1228-customer-avis-slot-live-gate.test.mjs
           npm test
 
       - name: RC1112 Production-Kandidat aus freigegebenem SHA bauen
@@ -310,6 +310,35 @@ jobs:
             trap - EXIT
           done
           echo 'RC1228 Lieferavis-Slotlogik live in Produktion und TESTSERVICE bestätigt.'
+
+      - name: Live RC1122 HTML-Integrität prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          p=$(mktemp); t=$(mktemp); d=$(mktemp)
+          trap 'rm -f "$p" "$t" "$d"' EXIT
+          for attempt in {1..24}; do
+            pc=$(curl -sS -L -o "$p" -w '%{http_code}' --max-time 20 "$prod/?rc1122=$RELEASE_SHA-$attempt" || true)
+            tc=$(curl -sS -L -o "$t" -w '%{http_code}' --max-time 20 "$testservice/?rc1122=$RELEASE_SHA-$attempt" || true)
+            dc=$(curl -sS -L -o "$d" -w '%{http_code}' --max-time 20 "$testservice/demo.html?rc1122=$RELEASE_SHA-$attempt" || true)
+            if [ "$pc" = "200" ] && [ "$tc" = "200" ] && [ "$dc" = "200" ] \
+              && grep -q 'ExportHUB RC1112 environment=production-candidate' "$p" \
+              && grep -q 'ExportHUB RC1112 environment=testservice' "$t" \
+              && grep -q 'ExportHUB RC1112 environment=demo' "$d" \
+              && grep -q "version:'RC1112'" "$p" \
+              && grep -q "version:'RC1112'" "$t" \
+              && grep -q "version:'RC1112'" "$d"; then
+              node .github/rc1121/verify-final-html.mjs "$p" "$t" "$d"
+              break
+            fi
+            if [ "$attempt" = "24" ]; then
+              echo "RC1122 Live-HTML konnte nicht verifiziert werden: prod=$pc test=$tc demo=$dc" >&2
+              exit 1
+            fi
+            sleep 5
+          done
 
       - name: RC1505 Production Release Basis-Liveprüfung
         shell: bash
