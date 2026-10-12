@@ -11,6 +11,7 @@
   background:var(--surface,#fff);
   color:var(--text,#0f172a);
   box-shadow:0 18px 50px rgba(15,23,42,.18);
+  pointer-events:auto;
 }
 .rc1503-sop-exam-banner{
   display:grid;
