@@ -6,6 +6,7 @@
   const arr=v=>Array.isArray(v)?v:[];
   const obj=v=>v&&typeof v==='object'&&!Array.isArray(v);
   const clone=v=>v==null?v:JSON.parse(JSON.stringify(v));
+  const has=(value,key)=>Object.prototype.hasOwnProperty.call(value||{},key);
 
   function core(){
     const api=root.ExportHUBTaskCoreV2;
@@ -89,8 +90,9 @@
   }
 
   function saveTask(form,ctx={}){
-    const state=stateOf(ctx),data=obj(form)?clone(form):{},id=q(data.id),index=id?state.tasks.findIndex(t=>q(t&&t.id)===id):-1,base=index>=0?clone(state.tasks[index]):{};
-    const task=core().normalizeTask({...base,...data},{now:nowOf(ctx)});
+    const state=stateOf(ctx),data=obj(form)?clone(form):{},id=q(data.id),index=id?state.tasks.findIndex(t=>q(t&&t.id)===id):-1,base=index>=0?clone(state.tasks[index]):{},merged={...base,...data};
+    if(has(data,'dueDate')&&!has(data,'dueAt'))merged.dueAt=data.dueDate;
+    const task=core().normalizeTask(merged,{now:nowOf(ctx)});
     if(index>=0){state.tasks=state.tasks.slice();state.tasks[index]=task;}else state.tasks=state.tasks.concat(task);
     persist(ctx,state.tasks);emit(index>=0?'task_updated':'task_created',[task.id],ctx);return{changed:true,task,index:index>=0?index:state.tasks.length-1};
   }
