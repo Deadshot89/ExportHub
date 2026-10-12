@@ -1,0 +1,31 @@
+name: SOPMaster Coverage Verify
+
+on:
+  push:
+    branches:
+      - design/sopmaster-training-tour-2026-10-12
+    paths:
+      - 'assets/sop/rc1505-sop-*'
+      - 'test/rc1505-sop-*.test.mjs'
+      - '.github/workflows/sopmaster-coverage-verify.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sopmaster-coverage-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  coverage-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: RC1505 coverage contracts
+        run: node --test test/rc1505-sop-*.test.mjs
