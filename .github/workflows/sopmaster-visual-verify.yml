@@ -39,7 +39,7 @@ jobs:
           node-version: '20'
           package-manager-cache: false
       - name: RC1502 visual editor and historical image regression
-        run: node --test test/rc1007-sop-workflow.test.mjs test/rc1018-sop-system-images.test.mjs test/rc1018-sop-image-coverage-complete.test.mjs test/rc1500-sop-step-contract.test.mjs test/rc1502-sop-*.test.mjs
+        run: node --test --test-concurrency=1 test/rc1007-sop-workflow.test.mjs test/rc1018-sop-system-images.test.mjs test/rc1018-sop-image-coverage-complete.test.mjs test/rc1500-sop-step-contract.test.mjs test/rc1502-sop-*.test.mjs
 
   accessibility-and-full:
     needs: visual-contract
