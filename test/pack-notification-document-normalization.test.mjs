@@ -22,6 +22,8 @@ function flatePdf(text){
   const stream=zlib.deflateSync(Buffer.from(`BT (${text}) Tj ET`,'latin1'));
   return Buffer.concat([Buffer.from(`%PDF-1.4\n1 0 obj\n<< /Length ${stream.length} /Filter /FlateDecode >>\nstream\n`,'latin1'),stream,Buffer.from('\nendstream\nendobj\n%%EOF','latin1')]);
 }
+function utf16beHex(value){return Buffer.from(String(value),'utf16le').swap16().toString('hex').toUpperCase();}
+function hexPdf(text){const encoded=utf16beHex(text);return Buffer.from(`%PDF-1.4\n1 0 obj\n<< /Length ${encoded.length+12} >>\nstream\nBT <${encoded}> Tj ET\nendstream\nendobj\n%%EOF`,'latin1');}
 
 async function store(name,buffer){
   const mod=require('../api/shared/document-blob-store.js');
@@ -40,6 +42,20 @@ test('PDF text extractor reads literal and FlateDecode text used for DNC SIDE de
   const pdf=require('../api/shared/pdf-document-reference.js');
   assert.match(pdf.extractPdfText(plainPdf('Delivery note DNC 3019222063 customer copy')),/DNC 3019222063/);
   assert.match(pdf.extractPdfText(flatePdf('Packing Slip SIDE-250071282')),/SIDE-250071282/);
+});
+
+test('server PDF extractor decodes UTF-16BE hex text references',()=>{
+  const pdf=require('../api/shared/pdf-document-reference.js');
+  assert.match(pdf.extractPdfText(hexPdf('Delivery note DNC 3019222063')),/DNC 3019222063/);
+  const out=pdf.normalizePdfDocument({name:'unicode.pdf',mimeType:'application/pdf'},hexPdf('SIDE 250071282'),'application/pdf');
+  assert.equal(out.name,'SIDE250071282.pdf');
+});
+
+test('server PDF normalizer accepts application/x-pdf as a PDF MIME alias',()=>{
+  const pdf=require('../api/shared/pdf-document-reference.js');
+  const out=pdf.normalizePdfDocument({name:'legacy.pdf',mimeType:'application/x-pdf'},plainPdf('DNC 3019222063'),'application/x-pdf');
+  assert.equal(out.name,'DNC3019222063.pdf');
+  assert.equal(out.documentReference,'DNC3019222063');
 });
 
 test('central document storage renames a text PDF to its unique DNC reference',async()=>{

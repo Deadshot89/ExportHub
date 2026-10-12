@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {finalizeAutoUpdate} from '../rc1488/finalize-auto-update.mjs';
+import {copyPackFiles,injectPackRuntime,injectDocumentUploadRuntime} from '../packmeldungen/build-three-env.mjs';
 
 const ROOT=process.cwd();
 const OUT=path.join(ROOT,'dist-rc1112');
@@ -10,6 +11,21 @@ const FILES=ARGS.length?ARGS.map(p=>path.resolve(ROOT,p)):[
   path.join(OUT,'TESTVERSION.html'),
   path.join(OUT,'demo.html')
 ];
+if(!ARGS.length){
+  copyPackFiles(ROOT,OUT);
+  for(const file of ['index.html','TESTVERSION.html','demo.html']){
+    const target=path.join(OUT,file);
+    const html=fs.readFileSync(target,'utf8');
+    fs.writeFileSync(target,injectPackRuntime(html,file));
+  }
+  const customerAvis=path.join(OUT,'customer-avis.html');
+  if(fs.existsSync(customerAvis)){
+    const avisHtml=fs.readFileSync(customerAvis,'utf8');
+    const normalizedAvis=injectDocumentUploadRuntime(avisHtml,'customer-avis.html');
+    if(!normalizedAvis.includes('id="exporthub-document-reference-normalizer"')||!normalizedAvis.includes('id="exporthub-document-upload-normalizer"'))throw new Error('customer-avis.html: Dokument-Upload-Normalisierung fehlt');
+    fs.writeFileSync(customerAvis,normalizedAvis);
+  }
+}
 const RC1488_MANIFEST=ARGS.length?null:finalizeAutoUpdate({root:ROOT,out:OUT});
 const LEAKS=[
   /RC824_SOP_DETAILS/,

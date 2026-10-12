@@ -7,6 +7,8 @@ import {finalizeAutoUpdate} from '../rc1488/finalize-auto-update.mjs';
 export const PACK_ASSETS=Object.freeze([
   'i18n/pack-notification.js',
   'packaging-catalog.js',
+  'document-reference-normalizer.js',
+  'document-upload-normalizer.js',
   'document-print-name.js',
   'pack-notification.css',
   'pack-notification.js',
@@ -22,7 +24,11 @@ const STYLE_TAGS=[
   '<link id="exporthub-pack-notification-internal-style" rel="stylesheet" href="/assets/pack-notification-internal.css?v=1">',
   '<link id="exporthub-pack-notification-avis-style" rel="stylesheet" href="/assets/pack-notification-avis.css?v=1">'
 ];
-const SCRIPT_TAGS=[
+const DOCUMENT_SCRIPT_TAGS=[
+  '<script id="exporthub-document-reference-normalizer" defer src="/assets/document-reference-normalizer.js?v=2"></script>',
+  '<script id="exporthub-document-upload-normalizer" defer src="/assets/document-upload-normalizer.js?v=1"></script>'
+];
+const PACK_SCRIPT_TAGS=[
   '<script id="exporthub-pack-notification-i18n" defer src="/assets/i18n/pack-notification.js?v=1"></script>',
   '<script id="exporthub-pack-notification-internal" defer src="/assets/pack-notification-internal.js?v=1"></script>',
   '<script id="exporthub-pack-notification-nav" defer src="/assets/pack-notification-nav.js?v=1"></script>',
@@ -31,18 +37,29 @@ const SCRIPT_TAGS=[
   '<script id="exporthub-document-print-name" defer src="/assets/document-print-name.js?v=1"></script>'
 ];
 
-export function injectPackRuntime(html,file='index.html'){
+function injectTags(html,tags,file,label){
   let out=String(html||'');
   if(!/<\/head>/i.test(out))throw new Error(`${file}: </head> fehlt`);
-  const tags=[...STYLE_TAGS,...SCRIPT_TAGS].filter(tag=>{
+  const missing=tags.filter(tag=>{
     const id=(tag.match(/id="([^"]+)"/)||[])[1];
     return !id||!out.includes(`id="${id}"`);
   });
-  if(tags.length)out=out.replace(/<\/head>/i,`${tags.join('\n')}\n</head>`);
-  for(const tag of [...STYLE_TAGS,...SCRIPT_TAGS]){
+  if(missing.length)out=out.replace(/<\/head>/i,`${missing.join('\n')}\n</head>`);
+  for(const tag of tags){
     const id=(tag.match(/id="([^"]+)"/)||[])[1];
-    if(id&&!out.includes(`id="${id}"`))throw new Error(`${file}: Pack-Runtime ${id} fehlt`);
+    if(id&&!out.includes(`id="${id}"`))throw new Error(`${file}: ${label} ${id} fehlt`);
   }
+  return out;
+}
+
+export function injectDocumentUploadRuntime(html,file='customer-avis.html'){
+  return injectTags(html,DOCUMENT_SCRIPT_TAGS,file,'Dokument-Runtime');
+}
+
+export function injectPackRuntime(html,file='index.html'){
+  let out=injectDocumentUploadRuntime(html,file);
+  out=injectTags(out,STYLE_TAGS,file,'Pack-Runtime');
+  out=injectTags(out,PACK_SCRIPT_TAGS,file,'Pack-Runtime');
   return out;
 }
 
@@ -64,6 +81,11 @@ export function build(root=process.cwd()){
     const target=path.join(out,file);
     const html=fs.readFileSync(target,'utf8');
     fs.writeFileSync(target,injectPackRuntime(html,file));
+  }
+  const customerAvis=path.join(out,'customer-avis.html');
+  if(fs.existsSync(customerAvis)){
+    const avisHtml=fs.readFileSync(customerAvis,'utf8');
+    fs.writeFileSync(customerAvis,injectDocumentUploadRuntime(avisHtml,'customer-avis.html'));
   }
   for(const config of ['staticwebapp.config.json','staticwebapp.testservice.config.json']){
     const src=path.join(root,config);if(fs.existsSync(src))fs.copyFileSync(src,path.join(out,config));
