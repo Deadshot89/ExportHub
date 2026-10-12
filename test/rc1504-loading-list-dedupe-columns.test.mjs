@@ -8,6 +8,38 @@ const context={};
 vm.runInNewContext(source,context,{filename:'assets/document-print-name.js'});
 const api=context.ExportHUBDocumentPrintNames;
 
+function gridHarness(labels){
+  const inserted=[];
+  const removedProperties=[];
+  const attributes={};
+  const items=labels.map(text=>({
+    textContent:text,
+    removed:false,
+    classList:{contains(){return false;}},
+    remove(){this.removed=true;}
+  }));
+  const grid={
+    parentNode:{insertBefore(node){inserted.push(node);}},
+    style:{removeProperty(name){removedProperties.push(name);}},
+    querySelectorAll(){return items;},
+    setAttribute(name,value){attributes[name]=String(value);}
+  };
+  const scope={querySelectorAll(){return[grid];},querySelector(){return null;}};
+  const template={content:scope,_html:'',set innerHTML(value){this._html=String(value);},get innerHTML(){return this._html;}};
+  const document={
+    readyState:'complete',documentElement:{},addEventListener(){},
+    createElement(tag){
+      if(tag==='template')return template;
+      if(tag==='style')return{attributes:{},textContent:'',setAttribute(name,value){this.attributes[name]=String(value);}};
+      return{};
+    }
+  };
+  const window={document};
+  const browserContext=vm.createContext({window,document,console,Array,Object,String,Number,Math,RegExp,Date,globalThis:window});
+  vm.runInContext(source,browserContext,{filename:'assets/document-print-name.js'});
+  return{api:window.ExportHUBDocumentPrintNames,items,inserted,removedProperties,attributes};
+}
+
 test('RC1504: normale Lieferschein-PDFs behalten die Endung, DNC/SIDE nicht',()=>{
   assert.ok(api);
   assert.equal(api.printName('DNC3019222063.pdf'),'DNC3019222063');
@@ -40,4 +72,22 @@ test('RC1504: zwei Spalten gelten nur im Druck und veraendern die Bildschirmansi
   assert.match(source,/@media print\{/);
   assert.match(source,/grid-template-columns:repeat\(2,minmax\(0,1fr\)\)!important/);
   assert.doesNotMatch(source,/grid\.style\.setProperty\('display','grid','important'\)/);
+});
+
+test('RC1504: Grid-Normalisierung entfernt DNC-Dubletten, behaelt normale PDF-Namen und markiert sechs Eintraege zweispaltig',()=>{
+  const h=gridHarness([
+    'DNC3019222063.pdf','DNC3019222063',
+    'Lieferschein 1.pdf','Lieferschein 2.pdf','Lieferschein 3.pdf','Lieferschein 4.pdf','Lieferschein 5.pdf'
+  ]);
+  h.api.normalizeDeliveryGrid('<div>print</div>');
+  assert.equal(h.items.filter(item=>!item.removed).length,6);
+  assert.equal(h.items[0].textContent,'DNC3019222063');
+  assert.equal(h.items[1].removed,true);
+  assert.equal(h.items[2].textContent,'Lieferschein 1.pdf');
+  assert.equal(h.attributes['data-rc1504-document-columns'],'2');
+  assert.ok(h.removedProperties.includes('display'));
+  assert.ok(h.removedProperties.includes('flex-direction'));
+  assert.ok(h.removedProperties.includes('align-items'));
+  assert.equal(h.inserted.length,1);
+  assert.match(h.inserted[0].textContent,/@media print\{/);
 });
