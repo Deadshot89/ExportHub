@@ -175,6 +175,9 @@ function validateDraft(document,options={}){
   }
   if(text(next.type)!=='customer'){
     const visualDoc=clone(next);visualDoc.currentVersion=version;visualDoc.version=version;
+    const visualVersion=versionById(visualDoc,version);
+    if(visualVersion&&Array.isArray(visualVersion.visuals))visualVersion.visuals=visualVersion.visuals.filter(item=>text(item&&item.type)!=='process');
+    if(Array.isArray(visualDoc.visuals))visualDoc.visuals=visualDoc.visuals.filter(item=>text(item&&item.type)!=='process');
     const api=visualApi();
     if(api&&typeof api.validateForDocument==='function'){
       const visualResult=api.validateForDocument(visualDoc);
