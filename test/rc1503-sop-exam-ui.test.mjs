@@ -28,7 +28,7 @@ test('Prüfungsmodus rendert nur Aufgabe und neutralen Fortschritt ohne Lösungs
   assert.doesNotMatch(html,/GEHEIMES ERGEBNIS/);
   assert.doesNotMatch(html,/GEHEIMER TIPP/);
   assert.doesNotMatch(html,/geheimes-ziel/);
-  assert.doesNotMatch(html />/Tipp/);
+  assert.doesNotMatch(html,/Tipp/);
 });
 
 test('Prüfungsmarkup enthält keine versteckte Lösungs-DOM',()=>{
