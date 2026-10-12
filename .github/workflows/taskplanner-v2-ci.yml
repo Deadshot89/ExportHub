@@ -76,5 +76,11 @@ jobs:
         run: node --test --test-concurrency=1 test/rc1490-state-module-write-guard.test.mjs
       - name: TaskPlanner V2 locale audit
         run: npm run i18n:audit:strict
+      - name: Public link release-hardening contracts
+        run: |
+          node --test --test-concurrency=1 \
+            test/taskplanner-v2-public-link.test.mjs \
+            test/taskplanner-v2-public-link-ui.test.mjs \
+            test/rc1088-release-hardening.test.mjs
       - name: Full repository regression
         run: npm test
