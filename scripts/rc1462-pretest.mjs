@@ -39,6 +39,8 @@ const {patchRepository:patchTaskPlannerV2Api}=await import('./taskplanner-v2-api
 patchTaskPlannerV2Api(ROOT);
 const {patchRepository:patchTaskPlannerV2I18n}=await import('./taskplanner-v2-i18n-pretest.mjs');
 const taskPlannerI18n=patchTaskPlannerV2I18n(ROOT);
+const {patchRepository:patchTaskPlannerV2PlannerI18n}=await import('./taskplanner-v2-planner-i18n-pretest.mjs');
+const taskPlannerPlannerI18n=patchTaskPlannerV2PlannerI18n(ROOT);
 
 await import('./rc1467-startup-avis-guard.mjs');
 await import('./rc1470-new-shipment-clean-slate-hotfix.mjs');
@@ -57,6 +59,7 @@ if(!rc1470Builder.includes('function patchTaskPlannerV2UiCutover(html,file){')||
 if(!taskPlannerTestservice.includes('__EXPORTHUB_TASKPLANNER_V2_UI_CUTOVER__')||!taskPlannerTestservice.includes('return window.ExportHUBTaskUIV2.renderPlannerPage'))throw new Error('RC1462 pretest verification failed: TaskPlanner V2 TESTSERVICE cutover incomplete');
 if(!taskPlannerApi.includes("mode==='task-migration-backup'")||!taskPlannerApi.includes('createVerifiedSnapshot(c.container'))throw new Error('RC1462 pretest verification failed: TaskPlanner V2 API wiring incomplete');
 if(!taskPlannerI18n||taskPlannerI18n.locales.length!==6||taskPlannerI18n.keyCount<30)throw new Error('RC1462 pretest verification failed: TaskPlanner V2 i18n preparation incomplete');
+if(!taskPlannerPlannerI18n||taskPlannerPlannerI18n.locales.length!==6||taskPlannerPlannerI18n.keyCount<9)throw new Error('RC1462 pretest verification failed: TaskPlanner V2 planner i18n preparation incomplete');
 if(!rc1470Builder.includes('function patchRc1470NewShipmentCleanSlate(html,file){')||!rc1470Builder.includes('html=patchRc1470NewShipmentCleanSlate(html,file);'))throw new Error('RC1462 pretest verification failed: RC1470 clean-slate preparation incomplete');
 if(!rc1470Builder.includes('function patchRc1471ReminderEligibility(html,file){')||!rc1470Builder.includes('html=patchRc1471ReminderEligibility(html,file);'))throw new Error('RC1462 pretest verification failed: RC1471 reminder eligibility preparation incomplete');
 if(!rc1470Builder.includes('function patchRc1495LegacyQrPersistence(html,file){')||!rc1470Builder.includes('html=patchRc1495LegacyQrPersistence(html,file);'))throw new Error('RC1462 pretest verification failed: RC1495/RC1498 legacy QR persistence preparation incomplete');
