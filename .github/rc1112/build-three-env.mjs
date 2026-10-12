@@ -49,6 +49,9 @@ const RC1304_THEME_STYLE_TAG='<link id="exporthub-rc1304-theme-style" rel="style
 const RC1304_THEME_SCRIPT_TAG='<script id="exporthub-rc1304-theme-script" src="/assets/rc1304-theme-switcher.js?v=1305"><\/script>';
 const RC1306_LAYOUT_STYLE_TAG='<link id="exporthub-rc1306-layout-style" rel="stylesheet" href="/assets/rc1306-layout-engine.css?v=1306">';
 const RC1306_LAYOUT_SCRIPT_TAG='<script id="exporthub-rc1306-layout-script" defer src="/assets/rc1306-layout-engine.js?v=1306"><\/script>';
+const RC1371_DASHBOARD_STYLE_TAG='<link id="exporthub-rc1371-dashboard-style" rel="stylesheet" href="/assets/rc1371-dashboard-personalization.css?v=1371">';
+const RC1371_DASHBOARD_I18N_TAG='<script id="exporthub-rc1371-dashboard-i18n" defer src="/assets/i18n/rc1371-dashboard-personalization.js?v=1371"><\/script>';
+const RC1371_DASHBOARD_SCRIPT_TAG='<script id="exporthub-rc1371-dashboard-script" defer src="/assets/rc1371-dashboard-personalization.js?v=1371"><\/script>';
 const RC1328_MULTI_TRUCK_REFRESH_TAG='<script id="exporthub-rc1328-multi-truck-refresh" defer src="/assets/rc1328-multi-truck-ui-refresh.js?v=1333"><\/script>';
 
 function patchRc1296BrowserBranding(html,file){
@@ -100,6 +103,16 @@ function patchRc1400MobileNavigationCache(html,file){
   if(count!==1)throw new Error(file+': RC1400 Mobile-Navigation Cache-Anker '+count+'x gefunden');
   html=html.replace(before,after);
   if(!html.includes(after))throw new Error(file+': RC1400 Mobile-Navigation Cache-Key fehlt');
+  return html;
+}
+
+function patchRc1371Dashboard(html,file){
+  html=injectDeferredRuntimeInHead(html,RC1371_DASHBOARD_STYLE_TAG,'exporthub-rc1371-dashboard-style');
+  html=injectDeferredRuntimeInHead(html,RC1371_DASHBOARD_I18N_TAG,'exporthub-rc1371-dashboard-i18n');
+  html=injectDeferredRuntimeInHead(html,RC1371_DASHBOARD_SCRIPT_TAG,'exporthub-rc1371-dashboard-script');
+  if(!html.includes('rc1371-dashboard-personalization.css?v=1371'))throw new Error(file+': RC1371 Dashboard-CSS fehlt');
+  if(!html.includes('i18n/rc1371-dashboard-personalization.js?v=1371'))throw new Error(file+': RC1371 Dashboard-I18n fehlt');
+  if(!html.includes('rc1371-dashboard-personalization.js?v=1371'))throw new Error(file+': RC1371 Dashboard-Runtime fehlt');
   return html;
 }
 
@@ -865,6 +878,7 @@ function patchHtml(file){
   html=patchRc1289AuthTransportFallback(html,file);
   html=patchRc1304ThemeRedesign(html,file);
   html=patchRc1400MobileNavigationCache(html,file);
+  html=patchRc1371Dashboard(html,file);
   html=patchRc1306LayoutEngine(html,file);
   html=patchRc1329MultiTruckUiRuntime(html,file);
   html=patchRc1328MultiTruckRefresh(html,file);
@@ -1015,6 +1029,8 @@ for(const rel of [
   'assets/rc1304-theme-switcher.js',
   'assets/rc1306-layout-engine.css',
   'assets/rc1306-layout-engine.js',
+  'assets/rc1371-dashboard-personalization.css',
+  'assets/rc1371-dashboard-personalization.js',
   'assets/rc1460-shipment-view-files-avis-preview.js'
 ]){
   const src=path.join(ROOT,rel),dst=path.join(OUT,rel);
