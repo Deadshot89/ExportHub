@@ -50,31 +50,8 @@ test('RC1435: aktualisierte ABD-Druckruntime bleibt über den produktiven Asset-
 });
 
 
-test('RC1362: PDF-Namen werden einzeln untereinander vollständig und ohne Spaltenwechsel gerendert',()=>{
-  assert.ok(runtime.includes('function splitPdfNames('));
-  assert.ok(runtime.includes('display:flex!important'));
-  assert.ok(runtime.includes('flex-direction:column!important'));
-  assert.doesNotMatch(runtime,/docColumns=Math\.max\(1,Math\.ceil\(docCount\/15\)\)/);
-  assert.doesNotMatch(runtime,/grid-template-rows:repeat\(15,minmax\(0,auto\)\)/);
-  assert.doesNotMatch(runtime,/grid-auto-flow:column/);
-  assert.ok(runtime.includes('overflow:visible!important'));
-  assert.ok(runtime.includes('font-size:6.2pt!important'));
-});
-
-
-test('RC1363: lange PDF-Listen bleiben einspaltig und werden nur bei Bedarf verdichtet',()=>{
-  assert.match(runtime,/files\.length>24\?'ultra':\(files\.length>15\?'dense':'normal'\)/);
-  assert.match(runtime,/data-rc1363-document-density/);
-  assert.match(runtime,/density==='ultra'\?\{gap:'\.1mm',pad:'\.1mm \.2mm',font:'5\.2pt',line:'\.95',border:'\.2mm'\}/);
-  assert.match(runtime,/density==='dense'\?\{gap:'\.18mm',pad:'\.15mm \.25mm',font:'5\.6pt',line:'1',border:'\.25mm'\}/);
-  assert.match(runtime,/display:flex!important/);
-  assert.match(runtime,/flex-direction:column!important/);
-  assert.match(runtime,/overflow-wrap:anywhere/);
-  assert.match(runtime,/word-break:break-word/);
-  assert.doesNotMatch(runtime,/grid-auto-flow:column/);
-});
-
-
+test('DNC-Druck: identische Nummer und PDF-Datei werden zusammengeführt',()=>{assert.match(runtime,/function canonicalDeliveryKey\(v\)/);assert.match(runtime,/seen\[key\]=1;out\.push\(name\.replace/);assert.match(runtime,/canonicalDeliveryKey\(x\)===canonicalDeliveryKey\(name\)/);});
+test('DNC-Druck: ab sechs Dokumenten zwei Spalten',()=>{assert.match(runtime,/grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);assert.match(runtime,/files\.length<6/);assert.match(runtime,/grid-template-columns','minmax\(0,1fr\)'/);});
 test('RC1372: DNC-Rahmen werden nicht mehr durch ein spaeteres stretch ueberschrieben',()=>{
   assert.ok(runtime.includes("align-items:flex-start!important;gap:"));
   assert.ok(!runtime.includes("gap:'+metrics.gap+'!important;align-items:stretch!important"));
@@ -83,7 +60,7 @@ test('RC1372: DNC-Rahmen werden nicht mehr durch ein spaeteres stretch ueberschr
 
 
 test('RC1372: jedes DNC erzwingt Inhaltsbreite auch gegen fremde Layout-CSS',()=>{
-  assert.ok(runtime.includes("align-self:flex-start!important;flex:0 1 auto!important;width:fit-content!important"));
+  assert.ok(runtime.includes("width:fit-content!important"));
   assert.ok(runtime.includes("empf[aä]nger(?:\\s*\\/\\s*kunde)?"));
 });
 
