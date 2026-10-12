@@ -13,30 +13,46 @@ function workflowScript(){
   return source.slice(start+marker.length).split('\n').map(line=>line.startsWith('            ')?line.slice(12):line).join('\n');
 }
 
-function harness({backup='success',restore='success',restoreJob=restore,issue=null}={}){
+function run({id,conclusion='success',event='workflow_run',runNumber=42,updatedAt='2026-10-11T17:00:00Z'}={}){
+  return{
+    id,
+    status:'completed',
+    conclusion,
+    event,
+    html_url:`https://github.example/actions/${id}`,
+    run_number:runNumber,
+    updated_at:updatedAt
+  };
+}
+
+function harness({backup='success',restore='success',restoreJob=restore,backupRuns=null,restoreRuns=null,issue=null}={}){
   const calls={created:[],updated:[],comments:[],warnings:[],infos:[]};
-  const conclusions={
-    'rc1267-state-backup.yml':backup,
-    'rc1137-state-compaction.yml':restore
+  const workflowRuns={
+    'rc1267-state-backup.yml':backupRuns||[run({id:1001,conclusion:backup})],
+    'rc1137-state-compaction.yml':restoreRuns||[run({id:1002,conclusion:restore})]
   };
-  const runIds={
-    'rc1267-state-backup.yml':1001,
-    'rc1137-state-compaction.yml':1002
-  };
+  const restoreJobByRunId=new Map(
+    workflowRuns['rc1137-state-compaction.yml'].map(entry=>[
+      entry.id,
+      entry.conclusion==='skipped'?null:(entry.id===1002?restoreJob:'success')
+    ])
+  );
   const github={
     rest:{
       actions:{
-        listWorkflowRuns:async({workflow_id})=>({data:{workflow_runs:[{
-          id:runIds[workflow_id],
-          conclusion:conclusions[workflow_id],
-          html_url:`https://github.example/actions/${workflow_id}`,
-          run_number:42,
-          updated_at:'2026-10-11T17:00:00Z'
-        }]}}),
-        listJobsForWorkflowRun:async({run_id})=>({data:{jobs:run_id===1002?[{
-          name:'TESTSERVICE State kompaktieren',
-          conclusion:restoreJob
-        }]:[]}})
+        listWorkflowRuns:async({workflow_id,per_page,page=1})=>{
+          const all=workflowRuns[workflow_id];
+          const size=per_page||all.length;
+          const start=(page-1)*size;
+          return{data:{workflow_runs:all.slice(start,start+size)}};
+        },
+        listJobsForWorkflowRun:async({run_id})=>{
+          const conclusion=restoreJobByRunId.get(run_id);
+          return{data:{jobs:conclusion?[{
+            name:'TESTSERVICE State kompaktieren',
+            conclusion
+          }]:[]}};
+        }
       },
       issues:{
         listForRepo:async()=>({data:issue?[issue]:[]}),
@@ -59,8 +75,8 @@ function harness({backup='success',restore='success',restoreJob=restore,issue=nu
 
 async function execute(h){
   const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
-  const run=new AsyncFunction('github','context','core',workflowScript());
-  await run(h.github,{repo:{owner:'Deadshot89',repo:'ExportHub'}},h.core);
+  const runWorkflow=new AsyncFunction('github','context','core',workflowScript());
+  await runWorkflow(h.github,{repo:{owner:'Deadshot89',repo:'ExportHub'}},h.core);
 }
 
 test('RC1491: Backup- und Restore-Betriebsfehler werden GitHub-intern idempotent eskaliert',()=>{
@@ -75,6 +91,9 @@ test('RC1491: Backup- und Restore-Betriebsfehler werden GitHub-intern idempotent
   assert.match(source,/rc1267-state-backup\.yml/);
   assert.match(source,/rc1137-state-compaction\.yml/);
   assert.match(source,/listWorkflowRuns/);
+  assert.match(source,/per_page:100/);
+  assert.match(source,/page<=10/);
+  assert.match(source,/conclusion==='skipped'&&run\.event==='workflow_run'/);
   assert.match(source,/\[OPS\] State Backup\/Restore Watchdog/);
   assert.match(source,/exporthub-ops:state-backup-restore-watchdog/);
   assert.match(source,/listForRepo/);
@@ -87,6 +106,52 @@ test('RC1491: Watchdog schließt erst wenn beide überwachten Workflows gesund s
   const source=fs.readFileSync(WATCHDOG,'utf8');
   assert.match(source,/every\(item\s*=>\s*item\.healthy\)/);
   assert.match(source,/run\.conclusion\s*===\s*['"]success['"]/);
+});
+
+test('RC1491: neutraler workflow_run-Skip verdrängt letzten relevanten Erfolg nicht',async()=>{
+  const h=harness({
+    backupRuns:[
+      run({id:1101,conclusion:'skipped',event:'workflow_run',runNumber:44,updatedAt:'2026-10-12T08:11:23Z'}),
+      run({id:1100,conclusion:'success',event:'schedule',runNumber:43,updatedAt:'2026-10-12T07:20:30Z'})
+    ],
+    restoreRuns:[
+      run({id:1201,conclusion:'skipped',event:'workflow_run',runNumber:794,updatedAt:'2026-10-12T08:11:23Z'}),
+      run({id:1200,conclusion:'success',event:'workflow_run',runNumber:793,updatedAt:'2026-10-12T07:20:34Z'})
+    ],
+    issue:{number:652,state:'open',title:'[OPS] State Backup/Restore Watchdog',body:'<!-- exporthub-ops:state-backup-restore-watchdog -->'}
+  });
+  await execute(h);
+  assert.equal(h.calls.created.length,0);
+  assert.ok(h.calls.updated.some(call=>call.issue_number===652&&call.state==='closed'),'neutraler Skip darf Recovery nicht blockieren');
+  assert.equal(h.calls.comments.length,1);
+  assert.match(h.calls.comments[0].body,/wieder gesund/);
+});
+
+test('RC1497: auch mehr als 100 neutrale Skips verdrängen den letzten relevanten Erfolg nicht',async()=>{
+  const neutralSkips=Array.from({length:105},(_,index)=>run({
+    id:2000+index,
+    conclusion:'skipped',
+    event:'workflow_run',
+    runNumber:900-index
+  }));
+  const h=harness({
+    backupRuns:[...neutralSkips,run({id:1999,conclusion:'success',event:'schedule',runNumber:794})],
+    restore:'success',
+    issue:{number:652,state:'open',title:'[OPS] State Backup/Restore Watchdog',body:'<!-- exporthub-ops:state-backup-restore-watchdog -->'}
+  });
+  await execute(h);
+  assert.equal(h.calls.created.length,0);
+  assert.ok(h.calls.updated.some(call=>call.issue_number===652&&call.state==='closed'),'paginierte Suche muss den relevanten Erfolg auf Folgeseiten finden');
+});
+
+test('RC1497: geplanter Skip bleibt ein Betriebsfehler',async()=>{
+  const h=harness({
+    backupRuns:[run({id:1301,conclusion:'skipped',event:'schedule',runNumber:45})],
+    restore:'success'
+  });
+  await execute(h);
+  assert.equal(h.calls.created.length,1,'ein geplanter Skip darf nicht stillschweigend ignoriert werden');
+  assert.match(h.calls.created[0].body,/conclusion=skipped/);
 });
 
 test('RC1491: neuer Betriebsfehler erstellt genau ein Watchdog-Issue',async()=>{
@@ -156,7 +221,7 @@ test('RC1491: Betriebs-Issue enthält nur Statusmetadaten, keine Backup-Nutzdate
 
 test('RC1491: Runbook dokumentiert Fehlereskalation und Recovery',()=>{
   const source=fs.readFileSync(RUNBOOK,'utf8');
-  for(const marker of ['Betriebsfehler','automatisch','wiederhergestellt','keine Backup-Inhalte']){
+  for(const marker of ['Betriebsfehler','automatisch','wiederhergestellt','keine Backup-Inhalte','neutraler workflow_run-Skip']){
     assert.ok(source.includes(marker),marker+' fehlt im Backup-Runbook');
   }
 });
