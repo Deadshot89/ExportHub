@@ -160,7 +160,7 @@ git commit -m "refactor(rc1505): stop main workflow before production"
 - ausschließlich `workflow_dispatch`.
 - Inputs `release_sha` und `confirm_production`, beide required.
 - `contents: read`, `id-token: write` nur soweit bestehende Production-Readiness das benötigt.
-- eigener Concurrency-Key, z. B. `exporthub-production-release`, `cancel-in-progress: false`.
+- eigener Concurrency-Key `exporthub-production-release`, `cancel-in-progress: false`.
 
 - [ ] **Step 3: Implement pre-deploy approval and provenance guards**
 
@@ -265,13 +265,18 @@ Ihre `if:`-Guards weiterhin auf erfolgreichen `workflow_run` begrenzen; alte Abh
 - `schedule` und manuellen Dispatch unverändert behalten,
 - `workflow_run`-Trigger auf `ExportHUB Production Release` umstellen, damit ein normaler Main-Merge keine automatischen Production-Backup-Schreibvorgänge mehr auslöst.
 
-- [ ] **Step 5: Preserve non-production verification follower**
+- [ ] **Step 5: Split frame-protection live semantics**
 
-`rc1251-frame-protection.yml` auf den neuen Namen `ExportHUB RC1112 Main Verification` umstellen, sofern der Job ausschließlich Contract/Verifikation ausführt und keine Production-Mutation enthält. Keinen Production-Release-Trigger hinzufügen.
+`rc1251-frame-protection.yml` behält `push`/`pull_request` für den statischen Security-Vertrag und hört beim `workflow_run` auf **beide** neuen Workflow-Namen:
+- nach `ExportHUB RC1112 Main Verification` prüft der `live`-Job ausschließlich TESTSERVICE-Headers,
+- nach `ExportHUB Production Release` prüft der `live`-Job ausschließlich Production-Headers,
+- der `contract`-Job bleibt für `workflow_run` deaktiviert und läuft weiter nur auf `push`/`pull_request`.
+
+Damit wird Production nicht mehr nach einem Main-Merge als „frisch deployed“ geprüft.
 
 - [ ] **Step 6: Migrate follower tests**
 
-Die zugehörigen Tests so ändern, dass sie die neuen Trigger-Namen und Environment-Routen exakt prüfen. `test/rc1505-production-promotion.test.mjs` zusätzlich alle `.github/workflows/*.yml` auf Production-Folgepfade prüfen lassen, die noch den alten Main-Deploy als Production-Signal verwenden.
+Die zugehörigen Tests so ändern, dass sie die neuen Trigger-Namen und Environment-Routen exakt prüfen. `test/rc1505-production-promotion.test.mjs` zusätzlich alle `.github/workflows/*.yml` auf Production-Folgepfade prüfen lassen, die noch den alten Main-Deploy als Production-Signal verwenden; `rc1251-frame-protection.yml` muss dabei die getrennte TESTSERVICE-/Production-Liveprüfung belegen.
 
 - [ ] **Step 7: Run follower contracts**
 
