@@ -9,12 +9,12 @@ const packPath='assets/i18n/rc1499-exportexperte.js';
 test('RC1499: ABD handoff bridge exists and transfers only supported customs fields',()=>{
   assert.equal(fs.existsSync(bridgePath),true,'ABD handoff bridge fehlt');
   const source=fs.readFileSync(bridgePath,'utf8');
-  let opened=0,confirmed=0;
+  let opened=0,confirmed=0,openArgs=null;
   const sandbox={
     console,
     window:null,
     ExportHUBRC626:{
-      openAbd(){opened++},
+      openAbd(...args){opened++;openArgs=args},
       confirmRc626Abd(){confirmed++}
     }
   };
@@ -32,6 +32,7 @@ test('RC1499: ABD handoff bridge exists and transfers only supported customs fie
     }]
   });
   assert.equal(opened,1,'Legacy-ABD wird nicht geöffnet');
+  assert.deepEqual(openArgs,[],'Rechnungsanalyse darf nicht den Sendungsmodus openAbd(true) aktivieren');
   assert.equal(confirmed,0,'ABD darf nicht automatisch bestätigt werden');
   assert.deepEqual(JSON.parse(JSON.stringify(prepared.groups)),[{
     commodityCode:'39269097',originCountry:'CN',value:125.5,currency:'EUR',positionCount:2
@@ -62,5 +63,6 @@ test('RC1499: isolated loader exposes guarded prepare action without save/send/c
   assert.match(bridge,/data-rc1499-prepare-abd/,'Vorbereitungsaktion fehlt');
   assert.match(bridge,/function prepare\(input\)/,'Bridge-Prepare fehlt');
   assert.match(bridge,/ExportHUBRC626[\s\S]*?openAbd/,'Bestehender ABD-Dialog wird nicht verwendet');
+  assert.doesNotMatch(bridge,/openAbd\(true\)/,'Rechnungsanalyse darf den Sendungsmodus nicht aktivieren');
   assert.doesNotMatch(bridge,/(confirmRc626Abd|confirmAbd|saveAbd|sendAbd|openOutlook)/i,'Bridge darf Legacy-Speichern/Senden/Bestätigen nicht auslösen');
 });
