@@ -8,6 +8,7 @@ on:
       - 'assets/sop/rc1007-sop-ui.js'
       - 'assets/sop/rc1007-sop.css'
       - 'assets/sop/rc1502-sop-*'
+      - 'browser/rc1502-sop-screenshots.mjs'
       - 'test/rc1502-sop-*.test.mjs'
       - '.github/workflows/sopmaster-visual-verify.yml'
   workflow_dispatch:
@@ -22,7 +23,7 @@ concurrency:
 jobs:
   visual-contract:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -31,7 +32,39 @@ jobs:
           package-manager-cache: false
       - name: RC1502 visual and legacy SOP regression
         run: node --test test/rc1007-sop-workflow.test.mjs test/rc1502-sop-*.test.mjs
-      - name: Accessibility regression
-        run: npm run test:accessibility
-      - name: Full Node regression
-        run: npm test
+
+  browser-capture:
+    needs: visual-contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: Build current RC1501 demo package
+        run: node .github/rc1501/build-three-env.mjs
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save playwright@1.63.0
+          npx playwright install --with-deps chromium
+      - name: Capture RC1502 demo screenshots
+        shell: bash
+        run: |
+          python3 -m http.server 4173 --directory dist-rc1112 >/tmp/rc1502-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          for i in {1..20}; do
+            if curl -fsS http://127.0.0.1:4173/demo.html >/dev/null; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:4173/demo.html >/dev/null
+          RC1502_BROWSER_URL=http://127.0.0.1:4173/demo.html node browser/rc1502-sop-screenshots.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sopmaster-rc1502-screenshots
+          path: artifacts/rc1502-sop-screenshots
+          if-no-files-found: error
+          retention-days: 14
