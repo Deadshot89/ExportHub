@@ -34,3 +34,25 @@ jobs:
         run: node --test test/rc1503-sop-*.test.mjs
       - name: Accessibility regression
         run: npm run test:accessibility
+
+  full-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: Full Node regression
+        shell: bash
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee node-regression.log
+      - name: Upload Node regression log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rc1503-node-regression-log
+          path: node-regression.log
+          if-no-files-found: error
