@@ -11,6 +11,25 @@ var SIZES=['S','M','L','XL'];
 var TEMPLATES=['standard','management','operativ','kompakt','analyse'];
 
 function q(value){return String(value==null?'':value).replace(/\s+/g,' ').trim()}
+function currentLang(){
+  try{
+    if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.current==='function')return q(w.ExportHUBI18n.current()).toLowerCase()
+  }catch(_){}
+  try{return q(w.document&&w.document.documentElement&&w.document.documentElement.lang||'de').toLowerCase()}catch(_){return 'de'}
+}
+function tr(key,fallback){
+  try{
+    if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.t==='function'){
+      var value=w.ExportHUBI18n.t(key);if(value&&value!==key)return value
+    }
+  }catch(_){}
+  try{
+    if(w.ExportHUBDashboard1371I18n&&typeof w.ExportHUBDashboard1371I18n.t==='function'){
+      var own=w.ExportHUBDashboard1371I18n.t(key,null,currentLang());if(own&&own!==key)return own
+    }
+  }catch(_){}
+  return fallback||key
+}
 function normalizedUserId(value){return q(value).toLowerCase()}
 function allowedTemplate(value){value=q(value).toLowerCase();return TEMPLATES.indexOf(value)>=0?value:'standard'}
 function defs(registry){return Array.isArray(registry)?registry.filter(function(row){return row&&q(row.id)}):[]}
@@ -218,6 +237,191 @@ function visibleLayout(state){
   return normalized
 }
 
+var mountedDashboardRoot=null;
+var currentLayoutState=null;
+var currentLayoutUser='';
+var editMode=false;
+var widgetNodes=new Map();
+var libraryPanel=null;
+var draggedWidgetId='';
+
+function cloneLayout(state){
+  var source=state&&typeof state==='object'?state:templateLayout('standard',registry());
+  return {schema:SCHEMA,template:allowedTemplate(source.template),widgets:(source.widgets||[]).map(function(row){return {id:row.id,visible:row.visible!==false,size:row.size,order:row.order}})}
+}
+function currentLayout(){
+  if(!currentLayoutState)currentLayoutState=readLayout(resolveUserIdentity(),registry());
+  return cloneLayout(currentLayoutState)
+}
+function emitLayoutChange(reason){
+  try{
+    if(typeof w.dispatchEvent==='function'&&typeof w.CustomEvent==='function')w.dispatchEvent(new w.CustomEvent('exporthub:dashboard-layoutchange',{detail:{reason:q(reason),layout:currentLayout()}}))
+  }catch(_){}
+}
+function applyStateToDom(){
+  if(!mountedDashboardRoot||!currentLayoutState)return false;
+  var ordered=(currentLayoutState.widgets||[]).slice().sort(function(a,b){return a.order-b.order});
+  ordered.forEach(function(row){
+    var node=widgetNodes.get(row.id);
+    if(!node)return;
+    try{
+      node.hidden=row.visible===false;
+      node.setAttribute('data-rc1371-size',row.size||'M');
+      node.setAttribute('data-rc1371-visible',row.visible===false?'0':'1');
+    }catch(_){}
+  });
+  return true
+}
+function persistCurrent(reason){
+  if(!currentLayoutState)return false;
+  var ok=writeLayout(currentLayoutUser,currentLayoutState);
+  applyStateToDom();
+  emitLayoutChange(reason);
+  return ok||!currentLayoutUser
+}
+function doc(){return (mountedDashboardRoot&&mountedDashboardRoot.ownerDocument)||w.document||null}
+function makeButton(action,key,text){
+  var d=doc();if(!d||typeof d.createElement!=='function')return null;
+  var btn=d.createElement('button');btn.type='button';btn.setAttribute('data-rc1371-action',action);btn.setAttribute('data-i18n-key',key);btn.textContent=tr(key,text||key);btn.setAttribute('aria-label',tr(key,text||key));return btn
+}
+function removeGenerated(){
+  if(!mountedDashboardRoot||typeof mountedDashboardRoot.querySelectorAll!=='function')return;
+  try{Array.prototype.slice.call(mountedDashboardRoot.querySelectorAll('[data-rc1371-generated="1"]')).forEach(function(node){if(node&&node.parentNode)node.parentNode.removeChild(node)})}catch(_){}
+}
+function ensureToolbar(){
+  if(!mountedDashboardRoot)return null;
+  try{
+    var existing=mountedDashboardRoot.querySelector&&mountedDashboardRoot.querySelector('[data-rc1371-toolbar="1"]');
+    if(existing)return existing
+  }catch(_){}
+  var d=doc();if(!d||typeof d.createElement!=='function'||typeof mountedDashboardRoot.appendChild!=='function')return null;
+  var bar=d.createElement('div');bar.className='rc1371-dashboard-toolbar';bar.setAttribute('data-rc1371-generated','1');bar.setAttribute('data-rc1371-toolbar','1');
+  var edit=makeButton('toggleEdit','dashboard.personalize.edit');
+  var add=makeButton('addWidget','dashboard.personalize.addWidget');
+  var reset=makeButton('restoreStandard','dashboard.personalize.restoreStandard');
+  if(edit)bar.appendChild(edit);if(add)bar.appendChild(add);if(reset)bar.appendChild(reset);
+  mountedDashboardRoot.insertBefore?mountedDashboardRoot.insertBefore(bar,mountedDashboardRoot.firstChild||null):mountedDashboardRoot.appendChild(bar);
+  return bar
+}
+function removeWidgetControls(){
+  if(!mountedDashboardRoot||typeof mountedDashboardRoot.querySelectorAll!=='function')return;
+  try{Array.prototype.slice.call(mountedDashboardRoot.querySelectorAll('[data-rc1371-widget-controls="1"]')).forEach(function(node){if(node&&node.parentNode)node.parentNode.removeChild(node)})}catch(_){}
+}
+function ensureWidgetControls(){
+  if(!editMode)return;
+  var d=doc();if(!d||typeof d.createElement!=='function')return;
+  widgetNodes.forEach(function(node,id){
+    if(!node||typeof node.appendChild!=='function')return;
+    try{if(node.querySelector&&node.querySelector('[data-rc1371-widget-controls="1"]'))return}catch(_){}
+    var controls=d.createElement('div');controls.className='rc1371-widget-controls';controls.setAttribute('data-rc1371-generated','1');controls.setAttribute('data-rc1371-widget-controls','1');controls.setAttribute('data-widget-id',id);
+    var up=makeButton('moveUp','dashboard.personalize.moveUp','↑');var down=makeButton('moveDown','dashboard.personalize.moveDown','↓');var hide=makeButton('hideWidget','dashboard.personalize.hideWidget','×');
+    if(up)controls.appendChild(up);if(down)controls.appendChild(down);if(hide)controls.appendChild(hide);
+    node.appendChild(controls);
+    try{node.setAttribute('draggable','true')}catch(_){}
+  })
+}
+function bindRootEvents(){
+  if(!mountedDashboardRoot||mountedDashboardRoot.__rc1371Bound||typeof mountedDashboardRoot.addEventListener!=='function')return;
+  mountedDashboardRoot.__rc1371Bound=true;
+  mountedDashboardRoot.addEventListener('click',function(event){
+    var target=event&&event.target&&event.target.closest?event.target.closest('[data-rc1371-action]'):null;if(!target)return;
+    var action=target.getAttribute('data-rc1371-action'),owner=target.closest&&target.closest('[data-widget-id],[data-rc1371-widget-id]'),id=owner&&q(owner.getAttribute('data-widget-id')||owner.getAttribute('data-rc1371-widget-id'));
+    if(action==='toggleEdit'){if(editMode)exitEditMode();else enterEditMode()}
+    else if(action==='addWidget')openLibrary();
+    else if(action==='restoreStandard')restoreStandard();
+    else if(action==='moveUp'&&id)moveWidgetBy(id,-1);
+    else if(action==='moveDown'&&id)moveWidgetBy(id,1);
+    else if(action==='hideWidget'&&id)hideWidget(id)
+  });
+  mountedDashboardRoot.addEventListener('dragstart',function(event){var node=event&&event.target&&event.target.closest?event.target.closest('[data-rc1371-widget-id]'):null;draggedWidgetId=node?q(node.getAttribute('data-rc1371-widget-id')):''});
+  mountedDashboardRoot.addEventListener('dragover',function(event){if(editMode&&event&&typeof event.preventDefault==='function')event.preventDefault()});
+  mountedDashboardRoot.addEventListener('drop',function(event){
+    if(!editMode||!draggedWidgetId)return;
+    if(event&&typeof event.preventDefault==='function')event.preventDefault();
+    var node=event&&event.target&&event.target.closest?event.target.closest('[data-rc1371-widget-id]'):null,before=node?q(node.getAttribute('data-rc1371-widget-id')):'';
+    if(before&&before!==draggedWidgetId)moveWidget(draggedWidgetId,before);draggedWidgetId=''
+  })
+}
+function mount(root){
+  root=root||discoverDashboardRoot();if(!root)return false;
+  if(mountedDashboardRoot&&mountedDashboardRoot!==root)unmount();
+  mountedDashboardRoot=root;
+  try{root.setAttribute('data-eh-dashboard-personalized','1')}catch(_){}
+  widgetNodes.clear();
+  discoverWidgets(root).forEach(function(item){if(item&&!item.fixed&&item.definition)widgetNodes.set(item.definition.id,item.node)});
+  currentLayoutUser=resolveUserIdentity();
+  currentLayoutState=readLayout(currentLayoutUser,registry());
+  ensureToolbar();bindRootEvents();applyStateToDom();if(editMode)ensureWidgetControls();
+  return true
+}
+function unmount(){
+  if(!mountedDashboardRoot)return true;
+  removeWidgetControls();closeLibrary();removeGenerated();
+  try{mountedDashboardRoot.removeAttribute('data-eh-dashboard-personalized');mountedDashboardRoot.removeAttribute('data-rc1371-editing')}catch(_){}
+  mountedDashboardRoot=null;widgetNodes.clear();currentLayoutState=null;currentLayoutUser='';editMode=false;return true
+}
+function mountedRoot(){return mountedDashboardRoot}
+function isEditing(){return editMode}
+function enterEditMode(){editMode=true;if(mountedDashboardRoot)try{mountedDashboardRoot.setAttribute('data-rc1371-editing','1')}catch(_){}ensureWidgetControls();return true}
+function exitEditMode(){editMode=false;if(mountedDashboardRoot)try{mountedDashboardRoot.removeAttribute('data-rc1371-editing')}catch(_){}removeWidgetControls();return true}
+function rowFor(id){if(!currentLayoutState)currentLayoutState=readLayout(currentLayoutUser||resolveUserIdentity(),registry());return (currentLayoutState.widgets||[]).find(function(row){return row.id===cleanId(id)})||null}
+function addWidget(id){var key=cleanId(id),def=registryStore.get(key),row=rowFor(key);if(!def||!canUseWidget(def)||!row)return false;row.visible=true;return persistCurrent('add')}
+function hideWidget(id){var row=rowFor(id);if(!row)return false;row.visible=false;return persistCurrent('hide')}
+function resizeWidget(id,size){var key=cleanId(id),def=registryStore.get(key),row=rowFor(key),next=q(size).toUpperCase();if(!def||!row||allowedSizes(def).indexOf(next)<0)return false;row.size=next;return persistCurrent('resize')}
+function normalizeOrders(){(currentLayoutState.widgets||[]).forEach(function(row,index){row.order=index})}
+function moveWidget(id,beforeId){
+  var key=cleanId(id),before=cleanId(beforeId),rows=currentLayoutState?(currentLayoutState.widgets||[]):[];var from=rows.findIndex(function(row){return row.id===key}),to=rows.findIndex(function(row){return row.id===before});if(from<0||to<0||from===to)return false;
+  var moved=rows.splice(from,1)[0];if(from<to)to--;rows.splice(to,0,moved);normalizeOrders();return persistCurrent('move')
+}
+function moveWidgetBy(id,delta){
+  var key=cleanId(id),rows=currentLayoutState?(currentLayoutState.widgets||[]):[];var from=rows.findIndex(function(row){return row.id===key});if(from<0)return false;var to=Math.max(0,Math.min(rows.length-1,from+Number(delta||0)));if(to===from)return false;var moved=rows.splice(from,1)[0];rows.splice(to,0,moved);normalizeOrders();return persistCurrent('move')
+}
+function applyTemplate(name){var next=allowedTemplate(name);if(TEMPLATES.indexOf(next)<0)return false;currentLayoutState=templateLayout(next,registry());return persistCurrent('template')}
+function restoreStandard(){var user=currentLayoutUser||resolveUserIdentity();resetLayout(user);currentLayoutState=templateLayout('standard',registry());applyStateToDom();emitLayoutChange('restoreStandard');return true}
+function openLibrary(){
+  if(libraryPanel)return true;var d=doc();if(!d||typeof d.createElement!=='function'||!mountedDashboardRoot)return true;
+  var panel=d.createElement('aside');panel.className='rc1371-widget-library';panel.setAttribute('data-rc1371-generated','1');panel.setAttribute('data-rc1371-library','1');
+  var input=d.createElement('input');input.type='search';input.setAttribute('data-rc1371-library-search','1');input.placeholder=tr('dashboard.personalize.searchWidgets');input.setAttribute('aria-label',tr('dashboard.personalize.searchWidgets'));panel.appendChild(input);
+  var list=d.createElement('div');list.className='rc1371-widget-library-list';libraryWidgets().forEach(function(def){var btn=makeButton('libraryAdd','dashboard.personalize.addWidget',tr(def.titleKey,def.titleKey));if(btn){btn.setAttribute('data-widget-id',def.id);list.appendChild(btn)}});panel.appendChild(list);
+  var close=makeButton('libraryClose','common.close','×');if(close)panel.appendChild(close);mountedDashboardRoot.appendChild(panel);libraryPanel=panel;return true
+}
+function closeLibrary(){if(libraryPanel&&libraryPanel.parentNode)libraryPanel.parentNode.removeChild(libraryPanel);libraryPanel=null;return true}
+
+function activeView(){
+  try{
+    if(typeof w.__EXPORTHUB_GET_STATE__==='function'){
+      var state=w.__EXPORTHUB_GET_STATE__();
+      var value=q(state&&(state.view||state.currentView||state.activeView));
+      if(value)return value.toLowerCase()
+    }
+  }catch(_){}
+  var d=w.document;
+  try{return q(d&&d.body&&(d.body.getAttribute('data-exporthub-view')||d.body.getAttribute('data-current-view'))).toLowerCase()}catch(_){return ''}
+}
+function isDashboardView(){var view=activeView();return view==='dashboard'||(!view&&!!discoverDashboardRoot())}
+function ownsLayout(){return isDashboardView()&&!!(mountedDashboardRoot||discoverDashboardRoot())}
+function applyTheme(mode){
+  var theme=q(mode||'classic').toLowerCase();
+  if(!isDashboardView()){if(mountedDashboardRoot)unmount();return false}
+  if(!mountedDashboardRoot)mount(discoverDashboardRoot());
+  if(mountedDashboardRoot)try{mountedDashboardRoot.setAttribute('data-rc1371-theme',theme)}catch(_){}
+  applyStateToDom();return !!mountedDashboardRoot
+}
+function remount(){
+  if(!isDashboardView()){if(mountedDashboardRoot)unmount();return false}
+  return mount(discoverDashboardRoot()||mountedDashboardRoot)
+}
+function scheduleRemount(){
+  if(typeof w.setTimeout==='function')w.setTimeout(remount,0);else remount()
+}
+function installLifecycle(){
+  if(typeof w.addEventListener!=='function')return;
+  w.addEventListener('exporthub:viewchange',scheduleRemount);
+  w.addEventListener('exporthub:rendered',scheduleRemount);
+  w.addEventListener('pageshow',scheduleRemount);
+  w.addEventListener('exporthub:designchange',function(event){var mode=event&&event.detail&&event.detail.design;applyTheme(mode||'classic')})
+}
+
 function resetLayout(userId){
   var key=layoutStorageKey(userId);
   if(!key)return false;
@@ -247,6 +451,28 @@ w.ExportHUBDashboard1371=Object.freeze({
   canUseWidget:canUseWidget,
   resolveStableWidgetId:resolveStableWidgetId,
   libraryWidgets:libraryWidgets,
-  visibleLayout:visibleLayout
+  visibleLayout:visibleLayout,
+  mount:mount,
+  unmount:unmount,
+  mountedRoot:mountedRoot,
+  currentLayout:currentLayout,
+  enterEditMode:enterEditMode,
+  exitEditMode:exitEditMode,
+  isEditing:isEditing,
+  addWidget:addWidget,
+  hideWidget:hideWidget,
+  moveWidget:moveWidget,
+  moveWidgetBy:moveWidgetBy,
+  resizeWidget:resizeWidget,
+  applyTemplate:applyTemplate,
+  restoreStandard:restoreStandard,
+  openLibrary:openLibrary,
+  closeLibrary:closeLibrary,
+  ownsLayout:ownsLayout,
+  applyTheme:applyTheme,
+  remount:remount
 });
+installLifecycle();
+if(w.document&&w.document.readyState&&w.document.readyState!=='loading')scheduleRemount();
+else if(w.document&&typeof w.document.addEventListener==='function')w.document.addEventListener('DOMContentLoaded',scheduleRemount,{once:true});
 })(window);
