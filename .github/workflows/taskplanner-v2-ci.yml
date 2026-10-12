@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - taskplannerpro/v2-design
-      - taskplannerpro/v2-task4
   workflow_dispatch:
 
 permissions:
