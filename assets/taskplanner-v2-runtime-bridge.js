@@ -20,10 +20,28 @@
     if(!api||typeof api.emit!=='function')throw new Error('TaskPlanner V2 Workflow fehlt');
     return api;
   }
+  function sharedState(){
+    try{if(typeof root.__EXPORTHUB_GET_STATE__==='function')return root.__EXPORTHUB_GET_STATE__()||null;}catch(_){}
+    try{if(root.ExportHUBState&&typeof root.ExportHUBState.get==='function')return root.ExportHUBState.get()||null;}catch(_){}
+    return root.ExportHUBClean&&root.ExportHUBClean.state||root.__EXPORTHUB_STATE__||root.appState||root.state||null;
+  }
   function stateOf(ctx){
     if(!ctx||!ctx.state||typeof ctx.state!=='object')throw new Error('TaskPlanner V2 Runtime benötigt ctx.state');
     if(!Array.isArray(ctx.state.tasks))ctx.state.tasks=[];
     return ctx.state;
+  }
+  function workflowContext(ctx={}){
+    const next={...(ctx||{})};
+    if(!next.state)next.state=sharedState();
+    stateOf(next);
+    if(typeof next.persist!=='function'){
+      next.persist=tasks=>{
+        next.state.tasks=tasks;
+        try{if(root.ExportHUBClean&&typeof root.ExportHUBClean.queueSave==='function')return root.ExportHUBClean.queueSave('TaskPlanner V2 workflow update');}catch(_){}
+        return false;
+      };
+    }
+    return next;
   }
   function same(a,b){return JSON.stringify(a)===JSON.stringify(b);}
   function persist(ctx,tasks){if(ctx&&typeof ctx.persist==='function')ctx.persist(tasks);}
@@ -63,8 +81,8 @@
   }
 
   function emitWorkflowEvent(event,ctx={}){
-    stateOf(ctx);
-    return workflow().emit(event,ctx);
+    const resolved=workflowContext(ctx);
+    return workflow().emit(event,resolved);
   }
 
   const previous=root.ExportHUBRC1014TaskRuntime&&typeof root.ExportHUBRC1014TaskRuntime==='object'?root.ExportHUBRC1014TaskRuntime:{};
