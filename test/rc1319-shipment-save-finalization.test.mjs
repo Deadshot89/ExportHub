@@ -19,7 +19,7 @@ test('RC1319: gespeicherte Entwürfe werden erstellt und Status bleibt definiert
   }
 });
 
-test('RC1319: erfolgreicher Save übergibt exakt die persistierte Sendung an den vorhandenen QR-Pfad',()=>{
+test('RC1319/RC1496: erfolgreicher Save übergibt exakt die persistierte Sendung an den vorhandenen QR-Pfad',()=>{
   build();
   const perf=read('assets/rc1069-performance.js');
   assert.match(perf,/\['exporthub:shipment-saved','exporthub:documents-opening'\]/);
@@ -33,7 +33,8 @@ test('RC1319: erfolgreicher Save übergibt exakt die persistierte Sendung an den
     const eligibleAt=html.indexOf('function eligible(sh)',persistedAt);
     assert.ok(persistedAt>=0&&eligibleAt>persistedAt,file+': QR-Persistenz-/Zulassungsfunktion fehlt');
     const persistedBlock=html.slice(persistedAt,eligibleAt);
-    assert.match(persistedBlock,/\^DRAFT-/i,file+': QR-Persistenz muss Draft-IDs ablehnen');
+    assert.match(persistedBlock,/if\(ref&&xref===ref\)return true/,file+': kanonisch gespeicherte Altdaten müssen über die 6-stellige Referenz als persistiert erkannt werden');
+    assert.match(persistedBlock,/id&&!\/\^DRAFT-\/i\.test\(id\)&&xid&&xid===id/,file+': eine DRAFT-ID allein darf weiterhin nicht als Persistenznachweis gelten');
     assert.match(persistedBlock,/states\(\)\.some/,file+': QR-Persistenz muss gespeicherte State-Kopien prüfen');
     const eligibleBlock=html.slice(eligibleAt,html.indexOf('function historicalQr',eligibleAt));
     assert.match(eligibleBlock,/persisted\(sh\)/,file+': QR-Zulassung muss Persistenz verlangen');
