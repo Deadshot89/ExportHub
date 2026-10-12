@@ -35,3 +35,9 @@ test('RC1504: Druck-Wrapper normalisiert das Dokumentraster vor der Bild-4-Wiede
   assert.match(source,/restorePickupFields\(normalizeDeliveryGrid\(base\.enhance\(html,safe,withQr\)\),safe\)/);
   assert.match(source,/data-rc1504-document-columns/);
 });
+
+test('RC1504: zwei Spalten gelten nur im Druck und veraendern die Bildschirmansicht nicht',()=>{
+  assert.match(source,/@media print\{/);
+  assert.match(source,/grid-template-columns:repeat\(2,minmax\(0,1fr\)\)!important/);
+  assert.doesNotMatch(source,/grid\.style\.setProperty\('display','grid','important'\)/);
+});
