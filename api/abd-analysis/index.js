@@ -7,6 +7,7 @@ const pdfSecurity=require('../shared/customer-avis-pdf-security');
 const pdfContent=require('../shared/customer-avis-document-content');
 const analyzer=require('../shared/abd-analysis');
 const analysisModel=require('../shared/abd-analysis-model');
+const documentIntelligence=require('../shared/abd-document-intelligence');
 
 const CONTAINER=process.env.EXPORTHUB_ABD_QUARANTINE_CONTAINER||'exporthub-abd-quarantine';
 const MAX_BYTES=Math.max(1024,Math.min(20*1024*1024,Number(process.env.EXPORTHUB_ABD_ANALYSIS_MAX_BYTES||12*1024*1024)));
@@ -36,7 +37,12 @@ function safeName(value){
  if(name.length>180)name=name.slice(0,180);
  return name
 }
-function kindFromName(name){const m=safeName(name).toLowerCase().match(/\.(pdf|xlsx|csv)$/);return m?m[1]:''}
+function kindFromName(name){
+ const m=safeName(name).toLowerCase().match(/\.(pdf|xlsx|csv|jpg|jpeg|png)$/);if(!m)return'';
+ return m[1]==='jpeg'?'jpg':m[1]
+}
+function jpegSignature(buffer){return buffer.length>=3&&buffer[0]===0xff&&buffer[1]===0xd8&&buffer[2]===0xff}
+function pngSignature(buffer){return buffer.length>=8&&buffer[0]===0x89&&buffer[1]===0x50&&buffer[2]===0x4e&&buffer[3]===0x47&&buffer[4]===0x0d&&buffer[5]===0x0a&&buffer[6]===0x1a&&buffer[7]===0x0a}
 function genericFile(file,req){
  if(!file||typeof file!=='object'||Array.isArray(file))throw error('ABD_FILE_REQUIRED',apiI18n.t(req,'api.abdAnalysis.fileRequired'),400);
  const name=safeName(file.name||file.fileName||file.filename),kind=kindFromName(name);
@@ -50,21 +56,31 @@ function genericFile(file,req){
  const buffer=pdfSecurity.strictBase64(raw);
  if(!buffer)throw error('ABD_FILE_INVALID',apiI18n.t(req,'api.abdAnalysis.fileInvalid'),400);
  if(buffer.length>MAX_BYTES)throw error('ABD_FILE_TOO_LARGE',apiI18n.t(req,'api.abdAnalysis.fileTooLarge',{max:Math.floor(MAX_BYTES/1048576)}),413);
- const claimed=lower(file.type||file.mimeType||file.contentType);
+ const claimed=lower(file.type||file.mimeType||file.contentType);let mimeType='';
  if(kind==='xlsx'){
   const allowedMime=['','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','application/octet-stream'];
-  if(!allowedMime.includes(claimed)||buffer.length<4||buffer[0]!==0x50||buffer[1]!==0x4b)throw error('ABD_FILE_INVALID',apiI18n.t(req,'api.abdAnalysis.fileInvalid'),400)
+  if(!allowedMime.includes(claimed)||buffer.length<4||buffer[0]!==0x50||buffer[1]!==0x4b)throw error('ABD_FILE_INVALID',apiI18n.t(req,'api.abdAnalysis.fileInvalid'),400);
+  mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+ }else if(kind==='jpg'){
+  const allowedMime=['','image/jpeg','image/jpg','application/octet-stream'];
+  if(!allowedMime.includes(claimed)||!jpegSignature(buffer))throw error('ABD_FILE_INVALID',apiI18n.t(req,'api.abdAnalysis.fileInvalid'),400);
+  mimeType='image/jpeg'
+ }else if(kind==='png'){
+  const allowedMime=['','image/png','application/octet-stream'];
+  if(!allowedMime.includes(claimed)||!pngSignature(buffer))throw error('ABD_FILE_INVALID',apiI18n.t(req,'api.abdAnalysis.fileInvalid'),400);
+  mimeType='image/png'
  }else{
   const allowedMime=['','text/csv','text/plain','application/csv','application/vnd.ms-excel'];
-  if(!allowedMime.includes(claimed)||buffer.includes(0))throw error('ABD_FILE_INVALID',apiI18n.t(req,'api.abdAnalysis.fileInvalid'),400)
+  if(!allowedMime.includes(claimed)||buffer.includes(0))throw error('ABD_FILE_INVALID',apiI18n.t(req,'api.abdAnalysis.fileInvalid'),400);
+  mimeType='text/csv'
  }
  const sha256=crypto.createHash('sha256').update(buffer).digest('hex');
- return{name,kind,buffer,size:buffer.length,sha256,mimeType:kind==='xlsx'?'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':'text/csv'}
+ return{name,kind,buffer,size:buffer.length,sha256,mimeType}
 }
 function identity(current){return text(current&&current.user&&(current.user.id||current.user.userId||current.user.username||current.user.user||current.user.name))||'user'}
 function scope(environment,current){return pdfSecurity.scopeHash('abd-analysis|'+environment+'|'+identity(current))}
 function uploadId(hash,kind){return hash+':'+kind}
-function parseUploadId(value){const m=text(value).toLowerCase().match(/^([a-f0-9]{64}):(pdf|xlsx|csv)$/);return m?{sha256:m[1],kind:m[2]}:null}
+function parseUploadId(value){const m=text(value).toLowerCase().match(/^([a-f0-9]{64}):(pdf|xlsx|csv|jpg|png)$/);return m?{sha256:m[1],kind:m[2]}:null}
 function blobName(environment,current,id){return'rc1294/'+environment+'/'+scope(environment,current)+'/'+id.sha256+'.'+id.kind}
 async function readBuffer(blob){const r=await blob.download(0),chunks=[];for await(const part of r.readableStreamBody)chunks.push(Buffer.from(part));return Buffer.concat(chunks)}
 function cellText(cell){
@@ -75,11 +91,11 @@ function cellText(cell){
  if(cell.richText)return cell.richText.map(x=>text(x&&x.text)).join('');
  return text(cell)
 }
-function groupedEnvelope(result){
+function groupedEnvelope(result,header){
  const source=result&&typeof result==='object'?result:{};
  let positions=Array.isArray(source.positions)?source.positions:[];
- if(source.extraction==='pdf-text-candidates')positions=positions.map(position=>Object.assign({},position,{confirmed:false}));
- return analysisModel.enrichLegacyAnalysis(Object.assign({},source,{positions}),{})
+ if(source.extraction==='pdf-text-candidates'||source.extraction==='azure-document-intelligence')positions=positions.map(position=>Object.assign({},position,{confirmed:false}));
+ return analysisModel.enrichLegacyAnalysis(Object.assign({},source,{positions}),header||{})
 }
 async function analyzeXlsx(buffer,name){
  let ExcelJS;try{ExcelJS=require('exceljs')}catch(_){throw error('ABD_XLSX_RUNTIME_MISSING','Excel-Auswertung ist auf dem Server nicht verfügbar.',503)}
@@ -95,12 +111,24 @@ function analyzeCsv(buffer,name){
  const matrix=analyzer.parseDelimited(buffer.toString('utf8')),objects=analyzer.matrixToObjects(matrix,name);
  return groupedEnvelope(Object.assign(analyzer.analyzeObjects(objects),{fileName:name,fileType:'csv',requiresReview:true}))
 }
+async function analyzeWithOcr(buffer,name,kind){
+ const ocr=await documentIntelligence.analyzeInvoiceBuffer(buffer,{name,mimeType:kind==='pdf'?'application/pdf':kind==='png'?'image/png':'image/jpeg'});
+ let legacy=analyzer.extractPdfCandidates(ocr.content,name);
+ if(!legacy.positions.length&&Array.isArray(ocr.items)&&ocr.items.length){
+  const objects=ocr.items.map((item,index)=>Object.assign({_source:name,_row:index+1},item));
+  legacy=analyzer.analyzeObjects(objects)
+ }
+ legacy.positions=(legacy.positions||[]).map(position=>Object.assign({},position,{confirmed:false,warnings:Array.from(new Set([].concat(position.warnings||[],'ocr-review-required')))}));
+ return groupedEnvelope(Object.assign({},legacy,{fileName:name,fileType:kind,requiresReview:true,extraction:'azure-document-intelligence',ocr:{provider:'Azure Document Intelligence',modelId:ocr.modelId,apiVersion:ocr.apiVersion}}),ocr.header)
+}
 async function analyzePdf(buffer,name){
- const extracted=await pdfContent.extractPdfText(buffer);
+ let extracted='';try{extracted=await pdfContent.extractPdfText(buffer)}catch(_){}
+ if(text(extracted).length<40)return analyzeWithOcr(buffer,name,'pdf');
  return groupedEnvelope(Object.assign(analyzer.extractPdfCandidates(extracted,name),{fileName:name,fileType:'pdf'}))
 }
 async function analyzeFile(buffer,name,kind){
  if(kind==='pdf')return analyzePdf(buffer,name);
+ if(kind==='jpg'||kind==='png')return analyzeWithOcr(buffer,name,kind);
  if(kind==='xlsx')return analyzeXlsx(buffer,name);
  return analyzeCsv(buffer,name)
 }
