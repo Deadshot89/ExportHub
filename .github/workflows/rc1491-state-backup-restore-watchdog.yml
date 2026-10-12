@@ -40,6 +40,10 @@ jobs:
               }
             ];
 
+            function neutralWorkflowRunSkip(run){
+              return Boolean(run)&&run.status==='completed'&&run.conclusion==='skipped'&&run.event==='workflow_run';
+            }
+
             const health=[];
             for(const item of monitored){
               const {data}=await github.rest.actions.listWorkflowRuns({
@@ -48,9 +52,9 @@ jobs:
                 workflow_id:item.workflowId,
                 branch:'main',
                 status:'completed',
-                per_page:1
+                per_page:10
               });
-              const run=data.workflow_runs[0]||null;
+              const run=(data.workflow_runs||[]).find(candidate=>!neutralWorkflowRunSkip(candidate))||null;
               let conclusion=run?.conclusion||'missing';
               let healthy=Boolean(run)&&run.conclusion === 'success';
 
