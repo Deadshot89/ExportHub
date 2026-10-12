@@ -31,6 +31,27 @@ async function stateSnapshot(page){
   },{sop:SOP,draft:DRAFT,stepId:STEP_ID});
 }
 
+async function durableSnapshot(page){
+  return page.evaluate(async({sop,draft,stepId})=>{
+    const summarize=state=>{
+      const doc=state&&Array.isArray(state.isoSops)?state.isoSops.find(item=>item&&item.number===sop):null;
+      const draftVersion=doc&&Array.isArray(doc.versions)?doc.versions.find(item=>item&&item.version===draft):null;
+      const step=draftVersion&&draftVersion.content&&Array.isArray(draftVersion.content.steps)?draftVersion.content.steps.find(item=>item&&item.id===stepId):null;
+      return {draftVersion:doc&&doc.draftVersion||'',step,visuals:draftVersion&&Array.isArray(draftVersion.visuals)?draftVersion.visuals:[]};
+    };
+    let local={};
+    try{local=JSON.parse(localStorage.getItem('exporthub-team-state')||'{}')||{};}catch(_){}
+    const demo=window.__EXPORTHUB_DEMO_STATE__&&window.__EXPORTHUB_DEMO_STATE__.state||{};
+    let api={};
+    try{
+      const response=await fetch('/api/exporthub-state?mode=read&full=1',{method:'GET',credentials:'same-origin',cache:'no-store'});
+      const payload=await response.json();
+      api=payload&&payload.state||payload&&payload.team&&payload.team.state||{};
+    }catch(_){}
+    return {local:summarize(local),demo:summarize(demo),api:summarize(api)};
+  },{sop:SOP,draft:DRAFT,stepId:STEP_ID});
+}
+
 for(const viewport of ['desktop','mobile-standard']){
   test(`RC1502: Visual Editor speichert Draft vollständig und erhält Released 2.0 nach Reload (${viewport})`,async({page},testInfo)=>{
     test.skip(testInfo.project.name!==viewport,`nur ${viewport}`);
@@ -90,6 +111,14 @@ for(const viewport of ['desktop','mobile-standard']){
 
     const persistence=page.locator('[data-sop-persist-status]').first();
     await expect(persistence).toHaveAttribute('data-sop-persist-status','saved',{timeout:15000});
+
+    const durable=await durableSnapshot(page);
+    for(const [layer,snapshot] of Object.entries(durable)){
+      expect(snapshot.draftVersion,`${layer}: Draft-Version muss vor Reload dauerhaft gespeichert sein`).toBe(DRAFT);
+      expect(snapshot.step,`${layer}: Schritt muss vor Reload dauerhaft gespeichert sein`).toBeTruthy();
+      expect(snapshot.step.target,`${layer}: Tourziel muss vor Reload dauerhaft gespeichert sein`).toEqual({stableKey:TARGET,selector:`[data-tour-key="${TARGET}"]`});
+      expect(snapshot.visuals.some(item=>item.stepId===STEP_ID&&item.src===IMAGE),`${layer}: Schrittbild muss vor Reload dauerhaft gespeichert sein`).toBe(true);
+    }
 
     await page.reload({waitUntil:'domcontentloaded'});
     await waitReady(page);
