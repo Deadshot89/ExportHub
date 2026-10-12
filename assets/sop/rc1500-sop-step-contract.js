@@ -6,12 +6,19 @@ function clone(value){return value===undefined?undefined:JSON.parse(JSON.stringi
 function text(value){return String(value==null?'':value).trim();}
 function arr(value){return Array.isArray(value)?clone(value):[];}
 function obj(value){return value&&typeof value==='object'&&!Array.isArray(value)?clone(value):{};}
+function normalizeTarget(value){
+  const source=obj(value);
+  const target={stableKey:text(source.stableKey),selector:text(source.selector)};
+  const type=text(source.type);
+  if(type)target.type=type;
+  return target;
+}
 
 function normalizeStep(step,index){
   const position=Number.isInteger(index)&&index>=0?index:0;
   const source=typeof step==='string'?{text:step}:(step&&typeof step==='object'?clone(step):{});
   const fallbackId=`step-${position+1}`;
-  const target=Object.assign({type:'',stableKey:'',selector:''},obj(source.target));
+  const target=normalizeTarget(source.target);
   const tour=Object.assign({enabled:false,highlight:false,blockWrongNavigation:false},obj(source.tour));
   const training=Object.assign({enabled:false,sideEffectPolicy:'sandbox'},obj(source.training));
   const exam=Object.assign({relevant:false,weight:1,allowHint:false},obj(source.exam));
