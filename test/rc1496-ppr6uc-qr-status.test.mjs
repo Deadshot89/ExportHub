@@ -22,7 +22,8 @@ function contextFor(windowObject,shipment){
     sh:shipment,
     result:false,
     q(value){return String(value==null?'':value).replace(/\s+/g,' ').trim();},
-    arr(value){return Array.isArray(value)?value:[];}
+    arr(value){return Array.isArray(value)?value:[];},
+    obj(value){return !!value&&typeof value==='object'&&!Array.isArray(value);}
   };
   context.window.window=context.window;
   context.structuredClone=value=>JSON.parse(JSON.stringify(value));
@@ -59,17 +60,17 @@ test('RC1496: ein kanonisch gespeicherter Alt-Datensatz darf trotz alter DRAFT-I
   );
 });
 
-test('RC1496: QR-Persistenz muss dieselbe ExportHUBClean.state-Quelle wie die Sendungsübersicht sehen',()=>{
+test('RC1496: QR-Persistenz liest auch den produktiven ExportHUBClean.runtime.state',()=>{
   build();
   const html=fs.readFileSync('dist-rc1112/index.html','utf8');
   const source=runtimeBlock(html);
   const shipment={...ppr6uc(),id:'LEGACY-PPR6UC'};
   const state={shipments:[shipment],savedShipments:[]};
-  const win={ExportHUBClean:{state}};
+  const win={ExportHUBClean:{runtime:{state}}};
   assert.equal(
     evaluatePersisted(source,win,shipment),
     true,
-    'Eine in ExportHUBClean.state.shipments sichtbare Sendung darf der QR-Controller nicht als ungespeichert ablehnen'
+    'Eine in ExportHUBClean.runtime.state.shipments gespeicherte Sendung darf der QR-Controller nicht als ungespeichert ablehnen'
   );
 });
 
