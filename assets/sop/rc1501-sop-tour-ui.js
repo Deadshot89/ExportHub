@@ -8,6 +8,7 @@ let observer=null;
 let contextProvider=null;
 let listeners=[];
 let highlighted=null;
+let highlightedKey='';
 
 function text(value){return String(value==null?'':value).trim();}
 function esc(value){return String(value==null?'':value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
@@ -47,16 +48,22 @@ function eventDescriptor(event){
   const stableKey=text(target&&typeof target.getAttribute==='function'?target.getAttribute('data-tour-key'):'');
   return {action,stableKey};
 }
-function clearHighlight(){if(highlighted&&highlighted.classList&&typeof highlighted.classList.remove==='function')highlighted.classList.remove('rc1501-sop-tour-target');highlighted=null;}
+function clearHighlight(){
+  if(highlighted&&highlighted.classList&&typeof highlighted.classList.remove==='function')highlighted.classList.remove('rc1501-sop-tour-target');
+  highlighted=null;
+  highlightedKey='';
+}
 function highlightCurrent(session){
-  clearHighlight();
-  if(!session||session.status!=='active')return;
+  if(!session||session.status!=='active'){clearHighlight();return;}
   const key=text(session.currentStep&&session.currentStep.target&&session.currentStep.target.stableKey);
-  if(!key)return;
+  if(!key){clearHighlight();return;}
   const registry=root.ExportHubSopTourTargets;
   const found=registry&&typeof registry.find==='function'?registry.find(key,mountedRoot||root.document):{ok:false};
-  if(!found.ok||!found.element)return;
+  if(!found.ok||!found.element){clearHighlight();return;}
+  if(highlighted===found.element&&highlightedKey===key)return;
+  clearHighlight();
   highlighted=found.element;
+  highlightedKey=key;
   if(highlighted.classList&&typeof highlighted.classList.add==='function')highlighted.classList.add('rc1501-sop-tour-target');
   if(typeof highlighted.scrollIntoView==='function'){try{highlighted.scrollIntoView({block:'center',inline:'nearest',behavior:'smooth'});}catch(_){}}
 }
@@ -118,5 +125,5 @@ function unmount(){
   clearHighlight();if(panel){panel.innerHTML='';panel.hidden=true;}panel=null;mountedRoot=null;contextProvider=null;
 }
 
-root.ExportHubSopTourUi=Object.freeze({render,mount,unmount,paint,reportAction,eventDescriptor,hasEnabledTour,startButtonHtml,enhanceSopDocument});
+root.ExportHubSopTourUi=Object.freeze({render,mount,unmount,paint,reportAction,eventDescriptor,hasEnabledTour,startButtonHtml,enhanceSopDocument,highlightCurrent});
 })(typeof globalThis!=='undefined'?globalThis:this);
