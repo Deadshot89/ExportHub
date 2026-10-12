@@ -72,6 +72,15 @@ test('SOP-UI bindet Editoraktionen an denselben Dokumentzustand und bestehenden 
   assert.match(source,/state\.documents/);
 });
 
+test('SOP-Editor bestätigt persistente Änderungen über queueSave und erzwungenen flushSave',()=>{
+  const source=fs.readFileSync('assets/sop/rc1007-sop-ui.js','utf8');
+  assert.match(source,/ExportHUBClean/);
+  assert.match(source,/queueSave/);
+  assert.match(source,/flushSave/);
+  assert.match(source,/force\s*:\s*true/);
+  assert.match(source,/userInitiated\s*:\s*true/);
+});
+
 test('Draft-Schritte zeigen Tourziel, Ziel auswählen, Ziel testen und Picker-Abbruch',()=>{
   let doc=editor.createDraft(released(),{version:'2.1',actor:'Admin',reason:'Tourziel pflegen'});
   const stepId=doc.versions.find(v=>v.version==='2.1').content.steps[0].id;
@@ -92,6 +101,15 @@ test('Target-Picker UI nutzt die fail-closed Editor-API und speichert über dens
   assert.match(source,/TARGET_KEY_REQUIRED|TARGET_NOT_FOUND|TARGET_AMBIGUOUS/);
   assert.match(source,/replaceDocument/);
   assert.match(source,/persist/);
+});
+
+test('Target-Picker bestätigt ausgewählte Tourziele über denselben erzwungenen Speicherpfad',()=>{
+  const source=fs.readFileSync('assets/sop/rc1502-sop-target-picker-ui.js','utf8');
+  assert.match(source,/ExportHUBClean/);
+  assert.match(source,/queueSave/);
+  assert.match(source,/flushSave/);
+  assert.match(source,/force\s*:\s*true/);
+  assert.match(source,/userInitiated\s*:\s*true/);
 });
 
 test('Target-Picker CSS hebt ausschließlich stabile Tourziele hervor und unterstützt Mobile',()=>{
