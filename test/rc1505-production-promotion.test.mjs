@@ -22,6 +22,8 @@ test('RC1505: main verifies TESTSERVICE without a production deploy path', () =>
   assert.match(workflow, /push:\s*[\s\S]*branches:\s*\[main\]/);
   assert.match(workflow, /Deploy ExportHUB TESTSERVICE/);
   assert.match(workflow, /deployment_environment:\s*testservice/);
+  assert.match(workflow, /RC1124 Lokales Browser-Gate/);
+  assert.match(workflow, /RC1124 TESTSERVICE Browser Gate/);
   assert.doesNotMatch(workflow, /Deploy ExportHUB production/);
   assert.doesNotMatch(workflow, new RegExp(PRODUCTION_SECRET));
 });
@@ -48,6 +50,20 @@ test('RC1505: production release is fixed to an explicit main-reachable SHA', ()
   assert.match(workflow, /\.github\/rc1112\/build-three-env\.mjs/);
 });
 
+test('RC1505: production promotion requires successful Main Verification for the exact release SHA', () => {
+  const workflow = requireFile(PRODUCTION_WORKFLOW);
+  const guard = workflow.indexOf('RC1505 Erfolgreiche Main Verification für Release-SHA verlangen');
+  const deploy = workflow.indexOf('Deploy ExportHUB production');
+  assert.ok(guard >= 0 && deploy > guard, 'Main-Verification-Guard muss vor Production-Deploy liegen');
+  const block = workflow.slice(guard, deploy);
+  assert.match(block, /actions\/workflows\/azure-static-web-apps-wonderful-forest-0f315e310\.yml\/runs/);
+  assert.match(block, /head_sha/);
+  assert.match(block, /conclusion/);
+  assert.match(block, /success/);
+  assert.match(block, /RELEASE_SHA/);
+  assert.match(block, /GITHUB_TOKEN/);
+});
+
 test('RC1505: Packmeldungen are built inside the SHA-pinned production release', () => {
   const production = requireFile(PRODUCTION_WORKFLOW);
   const pack = requireFile(PACK_PRODUCTION_WORKFLOW);
@@ -56,6 +72,18 @@ test('RC1505: Packmeldungen are built inside the SHA-pinned production release',
   assert.match(pack, /workflow_dispatch:/);
   assert.doesNotMatch(pack, /workflow_run:/);
   assert.doesNotMatch(pack, new RegExp(OLD_RELEASE_NAME));
+});
+
+test('RC1505: browser safety is split without losing the production smoke', () => {
+  const main = requireFile(MAIN_WORKFLOW);
+  const production = requireFile(PRODUCTION_WORKFLOW);
+  const local = main.indexOf('RC1124 Lokales Browser-Gate');
+  const testDeploy = main.indexOf('Deploy ExportHUB TESTSERVICE');
+  const testGate = main.indexOf('RC1124 TESTSERVICE Browser Gate');
+  assert.ok(local >= 0 && testDeploy > local && testGate > testDeploy, 'Main muss lokal prüfen, TESTSERVICE deployen und danach live prüfen');
+  assert.match(production, /RC1124 Produktion Read-only Browser Smoke/);
+  assert.match(production, /public-smoke\.spec\.mjs/);
+  assert.match(production, /version-display\.spec\.mjs/);
 });
 
 test('RC1505: production followers no longer treat normal main verification as production promotion', () => {
