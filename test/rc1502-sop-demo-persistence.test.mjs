@@ -5,17 +5,20 @@ import vm from 'node:vm';
 
 const SOURCE=fs.readFileSync(new URL('../assets/exporthub-demo-bootstrap.js',import.meta.url),'utf8');
 
-class DemoStorage {
-  constructor(map){this.map=map;}
-  get length(){return this.map.size;}
-  getItem(key){return this.map.has(String(key))?this.map.get(String(key)):null;}
-  setItem(key,value){this.map.set(String(key),String(value));}
-  removeItem(key){this.map.delete(String(key));}
-  clear(){this.map.clear();}
-  key(index){return Array.from(this.map.keys())[index]??null;}
+function storageClass(){
+  return class DemoStorage {
+    constructor(map){this.map=map;}
+    get length(){return this.map.size;}
+    getItem(key){return this.map.has(String(key))?this.map.get(String(key)):null;}
+    setItem(key,value){this.map.set(String(key),String(value));}
+    removeItem(key){this.map.delete(String(key));}
+    clear(){this.map.clear();}
+    key(index){return Array.from(this.map.keys())[index]??null;}
+  };
 }
 
 function boot(persistedMap){
+  const DemoStorage=storageClass();
   const sessionMap=new Map();
   const localStorage=new DemoStorage(persistedMap);
   const sessionStorage=new DemoStorage(sessionMap);
