@@ -118,6 +118,106 @@ function writeLayout(userId,state){
   }catch(_){return false}
 }
 
+var registryStore=new Map();
+
+function cleanId(value){
+  return q(value).toLowerCase().replace(/[^a-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'')
+}
+
+function normalizeDefinition(definition){
+  if(!definition||typeof definition!=='object')return null;
+  var id=cleanId(definition.id);
+  if(!id)return null;
+  var allowed=allowedSizes(definition);
+  return {
+    id:id,
+    titleKey:q(definition.titleKey||('dashboard.personalize.widget.'+id)),
+    category:q(definition.category||'analyses').toLowerCase(),
+    defaultSize:(allowed.indexOf(q(definition.defaultSize).toUpperCase())>=0?q(definition.defaultSize).toUpperCase():allowed[0]||'M'),
+    allowedSizes:allowed.slice(),
+    requiredModule:q(definition.requiredModule),
+    detailModule:q(definition.detailModule),
+    selector:q(definition.selector),
+    defaultVisible:definition.defaultVisible!==false
+  }
+}
+
+function registerWidget(definition){
+  var def=normalizeDefinition(definition);
+  if(!def)return false;
+  registryStore.set(def.id,def);
+  return def
+}
+
+function registry(){return Array.from(registryStore.values()).map(function(row){return Object.assign({},row,{allowedSizes:row.allowedSizes.slice()})})}
+
+function resolveStableWidgetId(node){
+  if(!node)return '';
+  var fromData='';
+  try{fromData=q(node.getAttribute&&(
+    node.getAttribute('data-dashboard-widget-id')||
+    node.getAttribute('data-widget-id')||
+    node.getAttribute('data-dashboard-id')
+  ))}catch(_){}
+  return cleanId(fromData||node.id||'')
+}
+
+function discoverDashboardRoot(){
+  var d=w.document;
+  if(!d||typeof d.querySelector!=='function')return null;
+  var selectors=['[data-exporthub-dashboard]','#dashboardView','#dashboard','.dashboard-view','[data-view="dashboard"]','#content'];
+  for(var i=0;i<selectors.length;i++){
+    var node=d.querySelector(selectors[i]);
+    if(node)return node
+  }
+  return null
+}
+
+function childCandidates(root){
+  if(!root)return [];
+  var selectors='[data-dashboard-widget],[data-widget-id],.dashboard-card,.kpi-card,.metric,.card';
+  try{
+    var found=Array.prototype.slice.call(root.querySelectorAll(selectors));
+    if(found.length)return found.filter(function(node,index,list){return list.indexOf(node)===index})
+  }catch(_){}
+  return Array.prototype.slice.call(root.children||[])
+}
+
+function discoverWidgets(root){
+  root=root||discoverDashboardRoot();
+  return childCandidates(root).map(function(node){
+    var id=resolveStableWidgetId(node);
+    if(!id){
+      try{node.setAttribute('data-rc1371-fixed-system','1')}catch(_){}
+      return {node:node,definition:null,fixed:true}
+    }
+    var existing=registryStore.get(id);
+    if(!existing){
+      existing=registerWidget({id:id,titleKey:'dashboard.personalize.widget.'+id,category:'analyses',defaultSize:'M',allowedSizes:['S','M','L','XL'],selector:node.id?'#'+node.id:''})
+    }
+    try{node.setAttribute('data-rc1371-widget-id',id)}catch(_){}
+    return {node:node,definition:existing,fixed:false}
+  })
+}
+
+function canUseWidget(definition){
+  var def=definition&&definition.id?definition:registryStore.get(cleanId(definition&&definition.id));
+  if(!def)return false;
+  if(!q(def.requiredModule))return true;
+  if(typeof w.canView==='function'){
+    try{return w.canView(def.requiredModule)!==false}catch(_){return false}
+  }
+  return true
+}
+
+function libraryWidgets(){return registry().filter(canUseWidget)}
+
+function visibleLayout(state){
+  var normalized=normalizeLayout(state,registry());
+  normalized.widgets=normalized.widgets.filter(function(row){var def=registryStore.get(row.id);return !!def&&canUseWidget(def)&&row.visible!==false}).map(function(row,index){return Object.assign({},row,{order:index})});
+  return normalized
+}
+
 function resetLayout(userId){
   var key=layoutStorageKey(userId);
   if(!key)return false;
@@ -139,6 +239,14 @@ w.ExportHUBDashboard1371=Object.freeze({
   readLayout:readLayout,
   writeLayout:writeLayout,
   resetLayout:resetLayout,
-  templateLayout:templateLayout
+  templateLayout:templateLayout,
+  registerWidget:registerWidget,
+  registry:registry,
+  discoverDashboardRoot:discoverDashboardRoot,
+  discoverWidgets:discoverWidgets,
+  canUseWidget:canUseWidget,
+  resolveStableWidgetId:resolveStableWidgetId,
+  libraryWidgets:libraryWidgets,
+  visibleLayout:visibleLayout
 });
 })(window);
