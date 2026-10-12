@@ -95,11 +95,14 @@ test('öffentlicher Task-Link verwendet kryptografischen Zufall und persistiert 
   assert.equal(saves,1);
   assert.equal(state.tasks[0].history.at(-1).action,'public_link_created');
   const source=read('assets/taskplanner-v2-ui.js');
-  const start=source.indexOf('function createPublicLink('),end=source.indexOf('function revokePublicLink(',start);
-  assert.ok(start>=0&&end>start,'createPublicLink Implementierung fehlt');
-  const block=source.slice(start,end);
-  assert.match(block,/getRandomValues|randomBytes/);
-  assert.doesNotMatch(block,/Math\.random/);
+  const createStart=source.indexOf('function createPublicLink('),createEnd=source.indexOf('function revokePublicLink(',createStart);
+  const randomStart=source.indexOf('function randomPublicToken('),randomEnd=source.indexOf('async function hashPublicToken(',randomStart);
+  assert.ok(createStart>=0&&createEnd>createStart,'createPublicLink Implementierung fehlt');
+  assert.ok(randomStart>=0&&randomEnd>randomStart,'randomPublicToken Implementierung fehlt');
+  const createBlock=source.slice(createStart,createEnd),randomBlock=source.slice(randomStart,randomEnd);
+  assert.match(createBlock,/randomPublicToken\(\)/,'createPublicLink muss den kryptografischen Token-Helper verwenden');
+  assert.match(randomBlock,/getRandomValues|randomBytes/);
+  assert.doesNotMatch(createBlock+randomBlock,/Math\.random/);
 });
 
 test('Widerruf läuft über normalen Task-State-Pfad und protokolliert Historie',async()=>{
