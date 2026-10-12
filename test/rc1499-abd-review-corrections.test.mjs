@@ -65,5 +65,6 @@ test('RC1499: review UI edits fields but delegates recalculation to API',()=>{
   assert.match(uiSource,/data-rc1499-edit-value/,'Warenwert-Korrekturfeld fehlt');
   assert.match(uiSource,/data-rc1499-confirm/,'explizite Bestätigung für Vorschlagsdaten fehlt');
   assert.match(uiSource,/action\s*:\s*['"]reanalyze['"]/,'UI muss Re-Analyse über die API auslösen');
+  assert.match(uiSource,/p\.confirmed===false/,'unbestätigte Vorschlagsdaten müssen auch in Detailzeilen prüfpflichtig bleiben');
   assert.doesNotMatch(uiSource,/groupPositionsByHsOrigin/,'Browser darf keine eigene Zoll-Gruppierungslogik enthalten');
 });
