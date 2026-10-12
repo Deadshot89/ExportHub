@@ -37,7 +37,7 @@ function boot(persistedMap){
     addEventListener(){},removeEventListener(){},setTimeout,clearTimeout
   };
   window.window=window;
-  const context={window,document,location,Storage:DemoStorage,Response,URL,Date,JSON,Map,Set,String,Number,Boolean,Array,Object,RegExp,Promise,console,setTimeout,clearTimeout};
+  const context={window,document,location,localStorage,sessionStorage,Storage:DemoStorage,Response,URL,Date,JSON,Map,Set,String,Number,Boolean,Array,Object,RegExp,Promise,console,setTimeout,clearTimeout};
   vm.runInNewContext(SOURCE,context,{filename:'exporthub-demo-bootstrap.js'});
   return window;
 }
