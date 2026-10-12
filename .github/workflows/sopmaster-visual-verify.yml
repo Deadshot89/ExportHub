@@ -55,7 +55,17 @@ jobs:
       - name: Accessibility regression
         run: npm run test:accessibility
       - name: Full Node regression
-        run: npm test
+        shell: bash
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee node-regression.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sopmaster-full-node-regression
+          path: node-regression.log
+          if-no-files-found: error
+          retention-days: 7
 
   browser-capture:
     needs: visual-contract
