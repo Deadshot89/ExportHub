@@ -37,3 +37,32 @@ test('RC1499: Exportexperte runtime loads feature i18n and contains no new Germa
     'Der bestehende Sendungs-ABD-Ablauf ist derzeit nicht verfügbar.'
   ])assert.equal(runtime.includes(literal),false,'Hardcoded UI-Text verbleibt: '+literal);
 });
+
+test('RC1499: handoff loader waits for analysis results and does not create abort-prone navigation requests',()=>{
+  const source=fs.readFileSync(packPath,'utf8');
+  let hasResults=false,observerCallback=null;
+  const appended=[];
+  class MutationObserver{
+    constructor(callback){observerCallback=callback}
+    observe(){}
+    disconnect(){}
+  }
+  const document={
+    documentElement:{},
+    head:{appendChild(node){appended.push(node)}},
+    querySelector(selector){
+      if(selector!=='[data-rc1294-results]')return null;
+      return hasResults?{hidden:false,querySelector(inner){return inner==='.rc1294-document'?{}:null}}:null;
+    },
+    getElementById(){return null},
+    createElement(tag){return{tagName:String(tag).toUpperCase(),id:'',src:'',async:false,addEventListener(){},remove(){}}}
+  };
+  const sandbox={console,Intl,URL,setTimeout,clearTimeout,document,MutationObserver};
+  vm.runInNewContext(source,sandbox,{filename:packPath});
+  assert.equal(appended.length,0,'Handoff-Script darf beim bloßen Betreten der ABD-Ansicht nicht laden');
+  assert.equal(typeof observerCallback,'function','Analyseergebnisse werden nicht beobachtet');
+  hasResults=true;observerCallback();
+  assert.equal(appended.length,1,'Handoff-Script wird nach Analyseergebnissen nicht geladen');
+  assert.equal(appended[0].src,'/assets/rc1499-exportexperte-handoff.js?v=1499');
+  assert.equal(appended[0].async,true,'Handoff-Script soll die UI nicht blockieren');
+});
