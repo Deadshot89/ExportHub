@@ -5,6 +5,7 @@ on:
     branches:
       - taskplannerpro/v2-design
       - taskplannerpro/v2-task5
+      - taskplannerpro/v2-task6
   workflow_dispatch:
 
 permissions:
@@ -51,7 +52,8 @@ jobs:
             test/taskplanner-v2-reminders.test.mjs \
             test/taskplanner-v2-i18n.test.mjs \
             test/taskplanner-v2-planner-ui.test.mjs \
-            test/taskplanner-v2-planner-i18n.test.mjs
+            test/taskplanner-v2-planner-i18n.test.mjs \
+            test/taskplanner-v2-workflow.test.mjs
       - name: Existing task regressions
         run: |
           node --test --test-concurrency=1 \
