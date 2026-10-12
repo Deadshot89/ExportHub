@@ -94,6 +94,16 @@ function translatorConfig(){
  const endpoint=text(process.env.EXPORTHUB_TRANSLATOR_ENDPOINT||process.env.AZURE_TRANSLATOR_ENDPOINT||'https://api.cognitive.microsofttranslator.com').replace(/\/+$/,'');
  return{key,region,endpoint,configured:!!key}
 }
+function translatorStatus(){
+ const cfg=translatorConfig();let endpointHost='';
+ try{endpointHost=new URL(cfg.endpoint).host}catch(_){}
+ return{
+  provider:cfg.configured?'azure-translator':'not-configured',
+  configured:cfg.configured,
+  regionConfigured:!!cfg.region,
+  endpointHost
+ }
+}
 async function azureTranslateBatch(items,source,fetchImpl=globalThis.fetch){
  const cfg=translatorConfig();
  if(!cfg.configured)throw Object.assign(new Error('Azure Translator ist nicht konfiguriert.'),{code:'TRANSLATOR_NOT_CONFIGURED'});
@@ -187,4 +197,4 @@ function localizedValue(record,key,language){
  return text(meta.translations&&meta.translations[lang])||original
 }
 
-module.exports={LANGUAGES,SIDE_CAR,normalizeLanguage,hashText,collect,enrichDynamicTranslations,translationStatus,localizedValue,azureTranslateBatch,translatorConfig};
+module.exports={LANGUAGES,SIDE_CAR,normalizeLanguage,hashText,collect,enrichDynamicTranslations,translationStatus,localizedValue,azureTranslateBatch,translatorConfig,translatorStatus};
