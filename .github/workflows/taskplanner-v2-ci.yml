@@ -26,6 +26,12 @@ jobs:
           package-manager-cache: false
       - name: Install root dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Prepare TaskPlanner V2 branch artifacts
+        run: |
+          node scripts/taskplanner-v2-pretest.mjs
+          node scripts/taskplanner-v2-cutover-pretest.mjs
+          node scripts/taskplanner-v2-i18n-pretest.mjs
+          node scripts/taskplanner-v2-planner-i18n-pretest.mjs
       - name: TaskPlanner V2 RED-GREEN contracts
         run: |
           node --test --test-concurrency=1 \
@@ -44,7 +50,8 @@ jobs:
             test/taskplanner-v2-task-ui.test.mjs \
             test/taskplanner-v2-reminders.test.mjs \
             test/taskplanner-v2-i18n.test.mjs \
-            test/taskplanner-v2-planner-ui.test.mjs
+            test/taskplanner-v2-planner-ui.test.mjs \
+            test/taskplanner-v2-planner-i18n.test.mjs
       - name: Existing task regressions
         run: |
           node --test --test-concurrency=1 \
@@ -59,8 +66,6 @@ jobs:
       - name: State write guard regression
         run: node --test --test-concurrency=1 test/rc1490-state-module-write-guard.test.mjs
       - name: TaskPlanner V2 locale audit
-        run: |
-          node scripts/taskplanner-v2-i18n-pretest.mjs
-          npm run i18n:audit:strict
+        run: npm run i18n:audit:strict
       - name: Full repository regression
         run: npm test
