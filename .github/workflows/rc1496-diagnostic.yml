@@ -18,28 +18,5 @@ jobs:
         with:
           node-version: '20'
           package-manager-cache: false
-      - name: Release-Runtime erzeugen
-        run: |
-          node scripts/rc1462-pretest.mjs
-          node .github/rc1112/build-three-env.mjs
-      - name: QR-Persistenz und Statuspfad ausgeben
-        shell: bash
-        run: |
-          node <<'NODE'
-          const fs=require('fs');
-          const h=fs.readFileSync('dist-rc1112/index.html','utf8');
-          function dump(label,needle,before=1200,after=5000){
-            const i=h.indexOf(needle);
-            console.log('\n===== '+label+' @ '+i+' =====');
-            if(i<0)return;
-            console.log(h.slice(Math.max(0,i-before),Math.min(h.length,i+after)));
-          }
-          dump('PERSISTED','function persisted(sh)',3000,5000);
-          dump('COLLI','function colliCount(sh)',1600,4000);
-          dump('ELIGIBLE','function eligible(sh)',1800,3500);
-          dump('QR API','function api(path',1600,5000);
-          dump('METADATA','function metadata(sh',1800,6500);
-          dump('QR SUCCESS','pickupQrRegistered:true',3500,7000);
-          dump('LEGACY LABEL','Altdaten',5000,7000);
-          dump('CREATED BY LABEL','Erstellt von',5000,7000);
-          NODE
+      - name: PPR6UC QR-Regression reproduzieren
+        run: node --test test/rc1496-ppr6uc-qr-status.test.mjs
