@@ -1,0 +1,22 @@
+name: RC1496 PPR6UC QR Diagnose
+
+on:
+  push:
+    branches:
+      - fix/rc1496-ppr6uc-qr-status
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: PPR6UC QR-Regression reproduzieren
+        run: node --test test/rc1496-ppr6uc-qr-status.test.mjs
