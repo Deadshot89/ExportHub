@@ -225,8 +225,9 @@ async function workflowStatus(payload,env){
  return {ok:true,jobId,diagnosticId:id,status,record:sanitize(record)};
 }
 async function finalizeAutofix(payload,env){
- const jobId=text(payload.jobId),diagnosticId=text(payload.diagnosticId),pullRequestUrl=text(payload.pullRequestUrl).slice(0,500),autofixCommit=text(payload.autofixCommit).slice(0,80),mergeCommit=text(payload.mergeCommit).slice(0,80),deploymentRunUrl=text(payload.deploymentRunUrl).slice(0,500),message=(text(payload.message)||'Autofix-PR wurde regulär gemergt und der RC1112 Drei-Umgebungen-Deploy erfolgreich abgeschlossen.').slice(0,4000);
+ const jobId=text(payload.jobId),diagnosticId=text(payload.diagnosticId),pullRequestUrl=text(payload.pullRequestUrl).slice(0,500),autofixCommit=text(payload.autofixCommit).slice(0,80),mergeCommit=text(payload.mergeCommit).slice(0,80),deploymentRunUrl=text(payload.deploymentRunUrl).slice(0,500),message=text(payload.message).slice(0,4000);
  if(!jobId)throw error('AUTOFIX_JOB_REQUIRED','api.autofix.jobRequired',400);
+ if(!message)throw error('AUTOFIX_MESSAGE_REQUIRED','api.autofix.failed',400);
  if(!diagnosticId)throw error('DIAGNOSTIC_ID_REQUIRED','api.autofix.diagnosticIdRequired',400);
  if(!pullRequestUrl||!/^https:\/\/github\.com\/Deadshot89\/ExportHub\/pull\/\d+$/.test(pullRequestUrl))throw error('AUTOFIX_PR_REQUIRED','Autofix-PR ist für die Finalisierung erforderlich.',400);
  if(!/^[0-9a-f]{40}$/i.test(autofixCommit))throw error('AUTOFIX_COMMIT_REQUIRED','Autofix-Commit ist für die Finalisierung erforderlich.',400);
