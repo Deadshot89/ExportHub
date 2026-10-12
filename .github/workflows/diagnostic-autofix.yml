@@ -175,6 +175,7 @@ jobs:
         run: |
           set -euo pipefail
           diagnostic_id=$(cat .exporthub-autofix/diagnostic-id.txt)
+          echo "diagnostic_id=$diagnostic_id" >> "$GITHUB_OUTPUT"
           cp .exporthub-autofix/final.txt /tmp/exporthub-autofix-final.txt
           if git diff --quiet && git diff --cached --quiet; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
@@ -201,7 +202,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          diagnostic_id=$(cat .exporthub-autofix/diagnostic-id.txt 2>/dev/null || true)
+          diagnostic_id="${{ steps.commit.outputs.diagnostic_id }}"
           final=$(head -c 2500 /tmp/exporthub-autofix-final.txt 2>/dev/null || true)
           cat > /tmp/autofix-pr.md <<EOF
           ## ExportHUB Diagnose-Autofix
