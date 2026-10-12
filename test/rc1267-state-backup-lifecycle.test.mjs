@@ -101,11 +101,14 @@ test('RC1267: Wartungs-API erlaubt Backups nur für den eng gebundenen Backup-Wo
   assert.match(source,/GLOBAL_ADMIN_OR_WORKFLOW_REQUIRED/);
 });
 
-test('RC1267: Workflow läuft täglich und kann Monats-/Jahresbackups deterministisch auslösen',()=>{
+test('RC1505/RC1267: Workflow läuft täglich, manuell oder nach echtem Production-Release',()=>{
   const source=fs.readFileSync(WF,'utf8');
   assert.match(source,/cron:\s*'17 1 \* \* \*'/);
   assert.match(source,/workflow_run:/);
+  assert.match(source,/ExportHUB Production Release/);
+  assert.doesNotMatch(source,/ExportHUB RC1112 Drei-Umgebungen Deploy/);
   assert.match(source,/workflow_dispatch:/);
+  assert.match(source,/github\.event\.workflow_run\.conclusion == 'success'/);
   assert.match(source,/tiers=\(daily\)/);
   assert.match(source,/tiers\+=\(monthly\)/);
   assert.match(source,/tiers\+=\(yearly\)/);
