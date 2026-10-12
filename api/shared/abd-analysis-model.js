@@ -9,6 +9,7 @@ function numberOrNull(value){
  return Number.isFinite(number)?number:null
 }
 function money(value){return value==null?null:Math.round(Number(value)*100)/100}
+function uniqueText(values){return Array.from(new Set((values||[]).map(text).filter(Boolean)))}
 function normalizeHeader(header){
  const source=header&&typeof header==='object'?header:{};
  return{
@@ -76,5 +77,21 @@ function buildAbdAnalysis(input){
  const grouped=groupPositionsByHsOrigin(positions),totals=calculateAnalysisTotals(header,grouped.groups,grouped.unassigned),review=buildReview(grouped.groups,grouped.unassigned,totals);
  return{header,positions,groups:grouped.groups,unassigned:grouped.unassigned,totals,review}
 }
+function deriveHeader(legacy,header){
+ const positions=legacy&&Array.isArray(legacy.positions)?legacy.positions:[],input=Object.assign({},header&&typeof header==='object'?header:{});
+ if(!text(input.invoiceNumber)){
+  const invoiceNumbers=uniqueText(positions.map(position=>position&&position.invoiceNumber));
+  if(invoiceNumbers.length===1)input.invoiceNumber=invoiceNumbers[0]
+ }
+ if(!text(input.currency)){
+  const currencies=uniqueText(positions.map(position=>text(position&&position.currency).toUpperCase()));
+  if(currencies.length===1)input.currency=currencies[0]
+ }
+ return input
+}
+function enrichLegacyAnalysis(legacy,header){
+ const source=legacy&&typeof legacy==='object'?legacy:{},abd=buildAbdAnalysis({header:deriveHeader(source,header),positions:Array.isArray(source.positions)?source.positions:[]}),legacyTotals=source.totals&&typeof source.totals==='object'?source.totals:{};
+ return Object.assign({},source,abd,{totals:Object.assign({},legacyTotals,abd.totals)})
+}
 
-module.exports={normalizeHeader,calculateAnalysisTotals,buildAbdAnalysis};
+module.exports={normalizeHeader,calculateAnalysisTotals,buildAbdAnalysis,enrichLegacyAnalysis};
