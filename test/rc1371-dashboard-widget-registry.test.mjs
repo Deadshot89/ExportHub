@@ -84,3 +84,22 @@ test('RC1371 enthält keine Ersatzimplementierung bestehender Dashboard-Fachlogi
     assert.doesNotMatch(source,new RegExp('function\\s+'+name+'\\s*\\('));
   }
 });
+
+test('RC1371 stellt optionale Schnellzugriffe auf bestehende ExportHUB-Module bereit',()=>{
+  const api=load({canView:()=>true});
+  assert.equal(typeof api.registerQuickAccessWidgets,'function');
+  api.registerQuickAccessWidgets();
+  const quick=api.registry().filter(row=>row.category==='quickaccess');
+  const modules=quick.map(row=>row.detailModule);
+  for(const module of ['shipment','shipmentoverview','tasks','notifications','sop','abd'])assert.ok(modules.includes(module),'Schnellzugriff fehlt: '+module);
+  assert.ok(quick.every(row=>row.generated===true));
+  assert.ok(quick.every(row=>row.defaultVisible===false));
+});
+
+test('RC1371 Schnellzugriff navigiert nur nach bestehendem Rechtecheck über setView',()=>{
+  assert.match(source,/function openQuickAccess\s*\(/);
+  assert.match(source,/canUseWidget\(def\)/);
+  assert.match(source,/typeof w\.setView==='function'/);
+  assert.match(source,/w\.setView\(def\.detailModule\)/);
+  assert.doesNotMatch(source,/openQuickAccess[\s\S]{0,800}\bfetch\s*\(/);
+});
