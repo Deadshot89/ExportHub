@@ -1,0 +1,32 @@
+name: SOPMaster Training Verify
+
+on:
+  push:
+    branches:
+      - design/sopmaster-training-tour-2026-10-12
+    paths:
+      - 'assets/sop/rc1503-sop-*'
+      - 'test/rc1503-sop-*.test.mjs'
+      - '.github/rc1503/**'
+      - '.github/workflows/sopmaster-training-verify.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sopmaster-training-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  training-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: RC1503 training contract
+        run: node --test test/rc1503-sop-training.test.mjs
