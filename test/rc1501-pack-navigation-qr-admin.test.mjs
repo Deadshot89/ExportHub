@@ -51,8 +51,16 @@ test('RC1501 API runtime includes QR generator dependency',()=>{
 test('RC1501 deployable pack page keeps translated draft controls strict-i18n clean',()=>{
   const html=read('assets/pack.html');
   const draftI18n=read('assets/i18n/pack-notification-drafts.js');
-  for(const id of ['packSubtitle','packHomeTitle','packHomeHelp','packNewShipment','packDraftEmpty','packBackHome','packDeliveryNotesHelp','packValidationHint','packSaveDraft','packRestart']){
+  const client=read('assets/pack-notification.js');
+  const placeholderIds=['packSubtitle','packHomeTitle','packHomeHelp','packNewShipment','packDraftEmpty','packBackHome','packDeliveryNotesHelp','packValidationHint','packSaveDraft','packRestart'];
+  for(const id of placeholderIds){
     assert.match(html,new RegExp(`id=["']${id}["'][^>]*>…<`),`${id} must use a neutral pre-i18n placeholder in the deploy copy`);
-    assert.match(draftI18n,new RegExp(`${id}:['"]pack\\.`),`${id} must be translated by the pack draft i18n runtime`);
   }
+  for(const id of ['packSubtitle','packHomeTitle','packHomeHelp','packNewShipment','packDraftEmpty','packBackHome','packDeliveryNotesHelp','packRestart']){
+    assert.match(draftI18n,new RegExp(`${id}:['"]pack\\.`),`${id} must be translated by the static pack draft i18n runtime`);
+  }
+  assert.match(client,/els\.saveDraft\.textContent=tr\(['"]pack\.draft\.save['"]\)/,'packSaveDraft must be translated before the form becomes visible');
+  assert.match(client,/els\.hint\.textContent=tr\(['"]pack\.draft\.ready['"]\)/,'ready validation hint must use i18n');
+  assert.match(client,/els\.hint\.textContent=tr\(['"]pack\.draft\.deliveryRequirement['"]\)/,'delivery-note validation hint must use i18n');
+  assert.match(client,/els\.hint\.textContent=tr\(['"]pack\.draft\.validation['"]\)/,'general validation hint must use i18n');
 });
