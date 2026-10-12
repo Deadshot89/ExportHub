@@ -57,3 +57,15 @@ test('both static web app configs expose anonymous /pack route',()=>{
     assert.ok(config.navigationFallback.exclude.includes('/pack/*'));
   }
 });
+
+test('RC1500 main release packages carry pack.html into TESTSERVICE and production apps',()=>{
+  const workflow=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
+  const start=workflow.indexOf('- name: Gemeinsame RC1112 Deploy-Pakete vorbereiten');
+  const end=workflow.indexOf('- name: RC1124 Playwright installieren',start);
+  assert.ok(start>=0&&end>start,'gemeinsamer RC1112 Deploy-Paket-Block fehlt');
+  const block=workflow.slice(start,end);
+  assert.match(block,/for dir in \.rc1112_production_app \.rc1112_testservice_app; do/);
+  assert.match(block,/dist-rc1112\/pack\.html/,'pack.html wird nicht in beide Deploy-Pakete kopiert');
+  assert.match(block,/cp staticwebapp\.config\.json \.rc1112_production_app\/staticwebapp\.config\.json/);
+  assert.match(block,/cp staticwebapp\.testservice\.config\.json \.rc1112_testservice_app\/staticwebapp\.config\.json/);
+});
