@@ -58,6 +58,19 @@ test('falsche Aktion wird als Fehler protokolliert und führt nicht weiter',()=>
   assert.ok(result.errors.some(item=>item.type==='WRONG_ACTION'));
 });
 
+test('öffentliche Exam-Payloads enthalten keine interne SOP oder Lösungsschritte',()=>{
+  start();
+  const wrong=exam.recordAction({action:'input',stableKey:'wrong-target',context:{state:{}}});
+  for(const session of [wrong.session,exam.current()]){
+    assert.ok(session,'öffentliche Session fehlt');
+    assert.equal(Object.hasOwn(session,'_sop'),false);
+    assert.equal(Object.hasOwn(session,'_requiredSteps'),false);
+    assert.equal(Object.hasOwn(session,'_cursor'),false);
+    const raw=JSON.stringify(session);
+    assert.doesNotMatch(raw,/Ersten Schritt ausführen|Zweiten Schritt ausführen|step-one|step-two/);
+  }
+});
+
 test('ausgelassener Pflichtschritt wird beim Abschluss ausgewiesen',()=>{
   start();
   doS1();
