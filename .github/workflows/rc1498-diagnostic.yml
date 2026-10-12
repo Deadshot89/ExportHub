@@ -1,0 +1,24 @@
+name: RC1498 PPR6UC QR State Diagnose
+
+on:
+  push:
+    branches:
+      - deepfix/rc1498-qr-state-completion
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: API-Abhängigkeiten installieren
+        run: npm install --prefix api --ignore-scripts --no-audit --no-fund --package-lock=false
+      - name: RC1498 PPR6UC-Statequelle reproduzieren
+        run: node --test test/rc1498-qr-state-source-completion.test.mjs
