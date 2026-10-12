@@ -16,21 +16,28 @@ function arr(value){return Array.isArray(value)?value:[];}
 function hasEnabledTour(sop){return arr(sop&&sop.steps).some(step=>step&&step.tour&&step.tour.enabled===true);}
 function startButtonHtml(sop){
   if(!hasEnabledTour(sop))return '';
-  return `<button type="button" data-sop-tour-start="${esc(sop&&sop.number)}">▶ Anleitung starten</button>`;
+  const number=esc(sop&&sop.number);
+  return `<button type="button" data-sop-tour-start="${number}">▶ Anleitung starten</button><button type="button" data-sop-training-start="${number}">🎓 Training starten</button>`;
 }
 function firstTip(step){return text(arr(step&&step.warnings)[0]||arr(step&&step.troubleshooting)[0]||'');}
+function trainingHeader(session){
+  if(text(session&&session.mode).toLowerCase()!=='training')return '';
+  return `<div class="rc1503-sop-training-banner" data-sop-training-banner role="status" aria-live="polite"><strong>TRAININGSMODUS</strong><span>Keine produktiven Daten werden verändert.</span></div><div class="rc1503-sop-training-simulation" data-sop-training-simulation-label><span aria-hidden="true">🧪</span><span>Simulation · Aktionen und Ergebnisse bleiben in der Demo.</span></div>`;
+}
 function render(session){
   if(!session)return '';
   const step=session.currentStep||{};
   const paused=session.status==='paused';
   const completed=session.status==='completed';
-  const statusText=completed?'Anleitung abgeschlossen':paused?'Anleitung pausiert':session.feedback&&session.feedback.reason==='STEP_COMPLETED'?'Schritt abgeschlossen':'Anleitung aktiv';
+  const training=text(session.mode).toLowerCase()==='training';
+  const statusText=completed?(training?'Training abgeschlossen':'Anleitung abgeschlossen'):paused?(training?'Training pausiert':'Anleitung pausiert'):session.feedback&&session.feedback.reason==='STEP_COMPLETED'?'Schritt abgeschlossen':training?'Training aktiv':'Anleitung aktiv';
   const tip=firstTip(step);
-  return `<aside class="rc1501-sop-tour-panel" role="complementary" aria-label="Geführte SOP-Anleitung">
-    <div class="rc1501-sop-tour-head"><div><span class="rc1501-sop-tour-kicker">${esc(session.sopNumber)}</span><h2>${esc(session.title||'SOP-Anleitung')}</h2></div><button type="button" data-sop-tour-end aria-label="Anleitung beenden">×</button></div>
+  return `<aside class="rc1501-sop-tour-panel${training?' rc1503-sop-training-panel':''}" role="complementary" aria-label="${training?'Geführtes SOP-Training':'Geführte SOP-Anleitung'}">
+    ${trainingHeader(session)}
+    <div class="rc1501-sop-tour-head"><div><span class="rc1501-sop-tour-kicker">${esc(session.sopNumber)}</span><h2>${esc(session.title||(training?'SOP-Training':'SOP-Anleitung'))}</h2></div><button type="button" data-sop-tour-end aria-label="${training?'Training':'Anleitung'} beenden">×</button></div>
     <div class="rc1501-sop-tour-progress" aria-label="Fortschritt ${Number(session.percent)||0} Prozent"><div><strong>Schritt ${Number(session.stepNumber)||0} von ${Number(session.total)||0}</strong><span>${Number(session.percent)||0} %</span></div><progress max="100" value="${Number(session.percent)||0}">${Number(session.percent)||0} %</progress></div>
     <div class="rc1501-sop-tour-status" role="status" aria-live="polite">${esc(statusText)}</div>
-    ${completed?'<p class="rc1501-sop-tour-complete">✅ Anleitung abgeschlossen.</p>':`<section class="rc1501-sop-tour-task"><h3>Aktuelle Aufgabe</h3><p>${esc(step.instruction||step.title||'')}</p>${tip?`<div class="rc1501-sop-tour-tip"><strong>Tipp</strong><span>${esc(tip)}</span></div>`:''}</section>`}
+    ${completed?`<p class="rc1501-sop-tour-complete">✅ ${training?'Training':'Anleitung'} abgeschlossen.</p>`:`<section class="rc1501-sop-tour-task"><h3>Aktuelle Aufgabe</h3><p>${esc(step.instruction||step.title||'')}</p>${tip?`<div class="rc1501-sop-tour-tip"><strong>Tipp</strong><span>${esc(tip)}</span></div>`:''}</section>`}
     <div class="rc1501-sop-tour-controls">
       <button type="button" data-sop-tour-previous${Number(session.index)<=0?' disabled':''}>Vorheriger Schritt</button>
       <button type="button" data-sop-tour-pause>${paused?'Fortsetzen':'Pausieren'}</button>
@@ -94,7 +101,7 @@ function onPanelClick(event){
   const t=event&&event.target;
   if(t&&t.closest&&t.closest('[data-sop-tour-previous]')){tour.previous();paint();return;}
   if(t&&t.closest&&t.closest('[data-sop-tour-pause]')){const s=tour.current();if(s&&s.status==='paused')tour.resume();else tour.pause();paint();return;}
-  if(t&&t.closest&&t.closest('[data-sop-tour-end]')){tour.end();paint();return;}
+  if(t&&t.closest&&t.closest('[data-sop-tour-end]')){const s=tour.current();if(s&&text(s.mode).toLowerCase()==='training'&&root.ExportHubSopTraining&&typeof root.ExportHubSopTraining.end==='function')root.ExportHubSopTraining.end();else tour.end();paint();return;}
   if(t&&t.closest&&t.closest('[data-sop-tour-open-sop]')){try{mountedRoot&&mountedRoot.dispatchEvent&&mountedRoot.dispatchEvent(new CustomEvent('exporthub:sop-tour-open-sop',{detail:{sopNumber:tour.current()?.sopNumber}}));}catch(_){}return;}
 }
 function annotate(){const registry=root.ExportHubSopTourTargets;if(registry&&typeof registry.annotatePilotTargets==='function')registry.annotatePilotTargets(mountedRoot||root.document);}
