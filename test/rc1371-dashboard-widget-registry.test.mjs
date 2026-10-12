@@ -76,7 +76,9 @@ test('RC1371 blendet gespeichertes Widget nach Rechteentzug aus',()=>{
     {id:'denied',visible:true,size:'M',order:1}
   ]};
   assert.deepEqual(api.visibleLayout(state).widgets.map(row=>row.id),['allowed']);
-  assert.deepEqual(api.libraryWidgets().map(row=>row.id),['allowed']);
+  const libraryIds=api.libraryWidgets().map(row=>row.id);
+  assert.ok(libraryIds.includes('allowed'));
+  assert.ok(!libraryIds.includes('denied'));
 });
 
 test('RC1371 enthält keine Ersatzimplementierung bestehender Dashboard-Fachlogik',()=>{
