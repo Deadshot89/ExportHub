@@ -61,14 +61,18 @@ test('RC1083: Autofix-Anforderung ist Global-Admin-geschützt und Diagnoseanhang
   assert.match(api,/action==='workflow-status'/);
 });
 
-test('RC1083: erfolgreicher Workflow markiert Fehler erst nach Test und Live-Deploy als behoben',()=>{
+test('RC1083/RC1495: erfolgreicher Autofix wird getestet und als PR vorbereitet statt main direkt zu verändern',()=>{
   assert.match(workflow,/ChatGPT Codex analysiert und behebt den Fehler/);
   assert.match(workflow,/codex --ask-for-approval never exec/);
   assert.match(workflow,/diagnostic-attachment\.json/);
   assert.match(workflow,/npm test/);
-  assert.match(workflow,/Autofix committen und nach main übernehmen/);
-  assert.match(workflow,/Produktions-\/TESTSERVICE-Deploy abwarten/);
+  assert.match(workflow,/Autofix committen und PR-Branch veröffentlichen/);
+  assert.match(workflow,/Pull Request für getesteten Autofix erstellen/);
+  assert.match(workflow,/gh pr create/);
+  assert.match(workflow,/--base main/);
+  assert.match(workflow,/status:"testing"/);
   assert.match(workflow,/status:"fixed"/);
+  assert.doesNotMatch(workflow,/git push origin HEAD:main/);
   assert.match(api,/resolvedBy:'ChatGPT \/ Codex Autofix'/);
   assert.match(api,/resolvedAt:now\(\)/);
 });
