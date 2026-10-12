@@ -83,11 +83,11 @@
 
   function monthHtml(ctx={}){
     const now=nowOf(ctx),today=dayKey(now),date=new Date((ctx.year||Number(today.slice(0,4)))+'-'+String(ctx.month||Number(today.slice(5,7))).padStart(2,'0')+'-01T12:00:00Z');
-    const year=Number(ctx.year||date.getUTCFullYear()),month=Number(ctx.month||date.getUTCMonth()+1),projection=planner().monthProjection(arr(ctx.state&&ctx.state.tasks),{year,month,now});
-    const byDate=new Map(arr(projection).map(row=>[q(row.date),row])),days=new Date(Date.UTC(year,month,0)).getUTCDate(),cells=[];
+    const year=Number(ctx.year||date.getUTCFullYear()),month=Number(ctx.month||date.getUTCMonth()+1),projection=planner().monthProjection({tasks:arr(ctx.state&&ctx.state.tasks),year,month,now,calendar:ctx.calendar});
+    const byDate=new Map(arr(projection&&projection.days).map(row=>[q(row.date),row])),days=new Date(Date.UTC(year,month,0)).getUTCDate(),cells=[];
     for(let day=1;day<=days;day++){
-      const key=`${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`,row=byDate.get(key)||{total:0,overdue:0,critical:0,done:0,waiting:0};
-      cells.push(`<button type="button" class="tpv2-month-day${key===today?' is-today':''}" data-day-summary="${key}" aria-label="${key}"><strong>${day}</strong><span>${row.total}</span>${row.overdue?`<em>${row.overdue}</em>`:''}</button>`);
+      const key=`${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`,row=byDate.get(key)||{taskCount:0,overdueCount:0,criticalCount:0,doneCount:0};
+      cells.push(`<button type="button" class="tpv2-month-day${key===today?' is-today':''}" data-day-summary="${key}" aria-label="${key}"><strong>${day}</strong><span>${row.taskCount}</span>${row.overdueCount?`<em>${row.overdueCount}</em>`:''}</button>`);
     }
     return `<section class="tpv2-month" data-tpv2-month><header class="tpv2-month-head"><h2>${esc(translated('taskV2.planner.month',null,'Month'))}</h2><span>${String(month).padStart(2,'0')}/${year}</span></header><div class="tpv2-month-grid">${cells.join('')}</div></section>`;
   }
