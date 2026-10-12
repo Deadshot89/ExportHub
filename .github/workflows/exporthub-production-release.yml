@@ -72,7 +72,7 @@ jobs:
         run: |
           set -euo pipefail
           node --check api/exporthub-state/index.js
-          node --test test/rc1505-production-promotion.test.mjs test/rc1005-three-env-sync.test.mjs test/rc1018-production-deploy.test.mjs test/rc1381-stale-deploy-guard.test.mjs
+          node --test test/rc1505-production-promotion.test.mjs test/rc1005-three-env-sync.test.mjs test/rc1018-production-deploy.test.mjs test/rc1381-stale-deploy-guard.test.mjs test/pack-notification-production.test.mjs
           npm test
 
       - name: RC1112 Production-Kandidat aus freigegebenem SHA bauen
@@ -83,12 +83,17 @@ jobs:
           node .github/rc1018/apply-public-language.mjs
           node .github/rc1018/fix-mail-wording.mjs
           node .github/rc1112/build-three-env.mjs
+          node .github/packmeldungen/build-three-env.mjs
           node .github/rc1121/verify-final-html.mjs
           grep -q 'ExportHUB RC1112 environment=production-candidate' dist-rc1112/index.html
           grep -q 'ExportHUB RC1112 environment=testservice' dist-rc1112/TESTVERSION.html
           grep -q 'ExportHUB RC1112 environment=demo' dist-rc1112/demo.html
           grep -q "version:'RC1112'" dist-rc1112/index.html
           grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1112'" dist-rc1112/production-version.js
+          grep -q 'pack-notification-nav.js?v=1' dist-rc1112/index.html
+          test -s dist-rc1112/pack.html
+          test -s dist-rc1112/assets/pack-notification-nav.js
+          test -s dist-rc1112/assets/pack-notification-internal.js
 
       - name: RC1112 Production-Paket aus freigegebenem SHA vorbereiten
         shell: bash
@@ -96,7 +101,7 @@ jobs:
           set -euo pipefail
           rm -rf .rc1112_production_app
           mkdir -p .rc1112_production_app
-          cp dist-rc1112/pickup.html dist-rc1112/customer-avis.html dist-rc1112/location.html dist-rc1112/pod-notfall.html dist-rc1112/migration-recovery.html .rc1112_production_app/
+          cp dist-rc1112/pickup.html dist-rc1112/customer-avis.html dist-rc1112/location.html dist-rc1112/pod-notfall.html dist-rc1112/migration-recovery.html dist-rc1112/pack.html .rc1112_production_app/
           cp dist-rc1112/production-version.js .rc1112_production_app/production-version.js
           cp -R assets .rc1112_production_app/assets
           cp -R dist-rc1112/assets/. .rc1112_production_app/assets/
@@ -104,6 +109,7 @@ jobs:
           cp dist-rc1112/index.html .rc1112_production_app/index.html
           test -s .rc1112_production_app/index.html
           test -s .rc1112_production_app/production-version.js
+          test -s .rc1112_production_app/pack.html
           test -s .rc1112_production_app/assets/rc1016-mobile-navigation.js
           test -s .rc1112_production_app/assets/rc1017-multi-truck.js
           test -s .rc1112_production_app/assets/rc1018-mail-language-standard.js
@@ -111,6 +117,8 @@ jobs:
           test -s .rc1112_production_app/assets/rc1113-stowplan-persist.js
           test -s .rc1112_production_app/assets/abholkalender.js
           test -s .rc1112_production_app/assets/rc1012-abholkalender-runtime.js
+          test -s .rc1112_production_app/assets/pack-notification-nav.js
+          test -s .rc1112_production_app/assets/pack-notification-internal.js
 
       - name: RC1381 PRODUCTION stale-deploy guard
         shell: bash
@@ -130,6 +138,7 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$RELEASE_SHA"
           test -s .rc1112_production_app/index.html
+          test -s .rc1112_production_app/pack.html
 
       - name: Deploy ExportHUB production
         uses: Azure/static-web-apps-deploy@4d27395796ac319302594769cfe812bd207490b1
@@ -149,8 +158,10 @@ jobs:
           for attempt in 1 2 3 4 5; do
             version="$(curl -fsS --max-time 20 "https://exporthub360.com/production-version.js?rc1505=${RELEASE_SHA}-${attempt}" || true)"
             home="$(curl -fsS --max-time 20 "https://exporthub360.com/?rc1505=${RELEASE_SHA}-${attempt}" || true)"
+            pack="$(curl -fsS --max-time 20 "https://exporthub360.com/pack/production-smoke?rc1505=${RELEASE_SHA}-${attempt}" || true)"
             if printf '%s' "$version" | grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1112'" \
-              && printf '%s' "$home" | grep -q 'ExportHUB'; then
+              && printf '%s' "$home" | grep -q 'ExportHUB' \
+              && printf '%s' "$pack" | grep -q 'Packmeldung'; then
               echo "RC1505 Production-Basisprüfung erfolgreich für $RELEASE_SHA."
               exit 0
             fi
