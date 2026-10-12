@@ -85,10 +85,11 @@ function targetStatus(key,options){
       return {ok:false,reason:'TARGET_UNAVAILABLE'};
     }catch(_){return {ok:false,reason:'TARGET_UNAVAILABLE'};}
   }
+  if(options.scope===undefined||options.scope===null)return {ok:true,reason:'STATIC_METADATA_ONLY'};
   const api=targets();
   if(!api||typeof api.find!=='function')return {ok:false,reason:'TARGET_UNAVAILABLE'};
   let found;
-  try{found=api.find(stableKey,options.scope||(root&&root.document));}catch(_){return {ok:false,reason:'TARGET_UNAVAILABLE'};}
+  try{found=api.find(stableKey,options.scope);}catch(_){return {ok:false,reason:'TARGET_UNAVAILABLE'};}
   if(found&&found.ok===true)return {ok:true,reason:''};
   const error=text(found&&found.error);
   if(error==='TARGET_AMBIGUOUS')return {ok:false,reason:'TARGET_DUPLICATE'};
@@ -117,7 +118,7 @@ function overlayInfo(documents,entry,customerId){
 function rowBase(entry){
   const source=clone(entry&&typeof entry==='object'?entry:{})||{};
   return {
-    id:text(source.id),view:text(source.view),action:text(source.action),sopNumber:text(source.sopNumber),stepId:text(source.stepId),targetKey:text(source.targetKey),
+    id:text(source.id),view:text(source.view),action:text(source.action),sopNumber:text(source.sopNumber),stepId:text(source.stepId),targetKey:text(source.targetKey),area:text(source.area),
     required:source.required===true,requiredImage:source.requiredImage===true,requiredTour:source.requiredTour===true,requiredExam:source.requiredExam===true,
     customerScoped:source.customerScoped===true,customerOverlayRequired:source.customerOverlayRequired===true,
     status:'',symbol:'',reasons:[],version:'',
@@ -136,6 +137,7 @@ function evaluateEntry(entry,options={}){
   const released=releasedSnapshot(raw);
   if(!released)return finish(row,STATUS.MISSING,['SOP_NOT_RELEASED']);
   row.version=released.version;
+  row.area=text(released.document&&released.document.area||raw&&raw.area||row.area);
 
   const reasons=[];
   const step=row.stepId?stepOf(released.document,row.stepId):null;
