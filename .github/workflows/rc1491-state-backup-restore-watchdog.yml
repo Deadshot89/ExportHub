@@ -44,17 +44,29 @@ jobs:
               return Boolean(run)&&run.status==='completed'&&run.conclusion==='skipped'&&run.event==='workflow_run';
             }
 
+            async function latestRelevantRun(item){
+              for(let page=1;page<=10;page+=1){
+                const {data}=await github.rest.actions.listWorkflowRuns({
+                  owner:context.repo.owner,
+                  repo:context.repo.repo,
+                  workflow_id:item.workflowId,
+                  branch:'main',
+                  status:'completed',
+                  per_page:100,
+                  page
+                });
+                const runs=data.workflow_runs||[];
+                const relevant=runs.find(candidate=>!neutralWorkflowRunSkip(candidate))||null;
+                if(relevant) return relevant;
+                if(runs.length<100) return null;
+              }
+              core.warning(`RC1491: Kein relevanter Lauf für ${item.name} innerhalb der letzten 1000 abgeschlossenen Läufe gefunden.`);
+              return null;
+            }
+
             const health=[];
             for(const item of monitored){
-              const {data}=await github.rest.actions.listWorkflowRuns({
-                owner:context.repo.owner,
-                repo:context.repo.repo,
-                workflow_id:item.workflowId,
-                branch:'main',
-                status:'completed',
-                per_page:10
-              });
-              const run=(data.workflow_runs||[]).find(candidate=>!neutralWorkflowRunSkip(candidate))||null;
+              const run=await latestRelevantRun(item);
               let conclusion=run?.conclusion||'missing';
               let healthy=Boolean(run)&&run.conclusion === 'success';
 
