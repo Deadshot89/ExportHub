@@ -37,6 +37,13 @@ test('RC1499: Fixture-Cleanup entfernt Packstation, Sessions, Entwürfe, Packmel
   assert.match(fixture,/removePackRunRecords\(team\.state,runId\)/,'Pack-Cleanup wird beim Fixture-Cleanup nicht ausgeführt');
 });
 
+test('RC1499: Prepare bereinigt auch verwaiste Pack-Daten eines abgebrochenen früheren E2E-Laufs',()=>{
+  const fixture=read(fixturePath);
+  assert.match(fixture,/function removeStalePackRecords\(/,'stale Pack-Recovery fehlt');
+  assert.match(fixture,/removeStalePackRecords\(team\.state\)/,'stale Pack-Recovery wird vor neuer Fixture nicht ausgeführt');
+  assert.match(fixture,/purgedStaleRecords:stalePack\.removed\+staleState\.removed/,'Recovery-Zähler berücksichtigt verknüpfte Pack-Daten nicht');
+});
+
 test('RC1499: echter Packmeldungsfluss läuft im bestehenden mutierenden TESTSERVICE-Gate vor Production',()=>{
   const workflow=read(workflowPath),publicSmoke=read(publicSmokePath),helper=read(helperPath);
   const gate=stepBlock(workflow,'RC1124 TESTSERVICE Browser Gate','RC1124 TESTSERVICE Browser-Artefakte');
@@ -53,7 +60,7 @@ test('RC1499: echter Packmeldungsfluss läuft im bestehenden mutierenden TESTSER
   assert.match(helper,/Promise\.all\(/,'zwei parallele Packer werden nicht gleichzeitig geprüft');
   assert.match(helper,/packSaveDraft/,'Entwurfsspeicherung fehlt im Livefluss');
   assert.match(helper,/packSubmit/,'finales Übermitteln fehlt im Livefluss');
-  assert.match(helper,/data-pack-action=\\"shipment\\"/,'Sendungs-Handoff fehlt im Livefluss');
+  assert.match(helper,/data-pack-action="shipment"/,'Sendungs-Handoff fehlt im Livefluss');
 });
 
 test('RC1499: Production bleibt read-only; RC1499 überspringt dort automatisch',()=>{
