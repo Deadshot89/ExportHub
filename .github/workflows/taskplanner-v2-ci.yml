@@ -46,6 +46,11 @@ jobs:
             test/rc1014-task-lifecycle.test.mjs \
             test/rc1014-task-runtime-integration.test.mjs \
             test/rc1054-task-shared-source.test.mjs
+      - name: Planner drag hotpath regressions
+        run: |
+          node --test --test-concurrency=1 \
+            test/rc994-drag-performance.test.mjs \
+            .github/rc996/tasks-contract.test.mjs
       - name: State write guard regression
         run: node --test --test-concurrency=1 test/rc1490-state-module-write-guard.test.mjs
       - name: Full repository regression
