@@ -108,5 +108,128 @@ function recordHelp(state,meta,event={}){
   });
 }
 
-root.ExportHubSopProgress=Object.freeze({key,get,markViewed,markStarted,markCompleted,recordTourCompletion,recordExamAttempt,recordHelp});
+function applicationState(){
+  try{if(typeof root.__EXPORTHUB_GET_STATE__==='function')return root.__EXPORTHUB_GET_STATE__()||{};}catch(_){}
+  try{if(root.ExportHUBClean&&root.ExportHUBClean.state)return root.ExportHUBClean.state;}catch(_){}
+  return root.appState&&typeof root.appState==='object'?root.appState:{};
+}
+function currentUserId(){
+  let user=null;
+  try{if(typeof root.__EXPORTHUB_GET_CURRENT_USER__==='function')user=root.__EXPORTHUB_GET_CURRENT_USER__()||null;}catch(_){}
+  const state=applicationState();
+  user=user||state.currentUser||state.activeUser||root.currentUser||{};
+  return text(user&& (user.id||user.userId||user.user||user.username||user.login));
+}
+function progressMeta(session,sop,userId){
+  const source=session&&typeof session==='object'?session:{};
+  const document=sop&&typeof sop==='object'?sop:{};
+  const meta={
+    userId:text(userId)||currentUserId(),
+    sopNumber:text(source.sopNumber||document.number),
+    version:text(source.version||document.version||document.currentVersion)
+  };
+  return identity(meta)?meta:null;
+}
+function persistProgress(reason){
+  const clean=root.ExportHUBClean;
+  if(!clean||typeof clean.queueSave!=='function')return;
+  try{
+    Promise.resolve(clean.queueSave(reason||'SOP-Lernfortschritt gespeichert')).then(queued=>{
+      if(queued===false||typeof clean.flushSave!=='function')return queued;
+      return clean.flushSave(reason||'SOP-Lernfortschritt gespeichert',{force:true});
+    }).catch(error=>{try{console.error('[ExportHUB SOP Progress Save]',error);}catch(_){}});
+  }catch(error){try{console.error('[ExportHUB SOP Progress Save]',error);}catch(_){}}
+}
+function applyTransform(transform,meta,payload,reason){
+  if(typeof transform!=='function'||!identity(meta))return false;
+  const current=applicationState();
+  if(!current||typeof current!=='object'||Array.isArray(current))return false;
+  let next;
+  try{next=payload===undefined?transform(current,meta):transform(current,meta,payload);}catch(_){return false;}
+  if(next===current)return false;
+  try{current.sopLearningProgress=clone(next.sopLearningProgress)||[];}catch(_){return false;}
+  persistProgress(reason);
+  return true;
+}
+function recordStarted(meta){
+  if(!meta)return false;
+  const viewed=applyTransform(markViewed,meta,undefined,'SOP-Lernfortschritt angesehen');
+  const started=applyTransform(markStarted,meta,undefined,'SOP-Lernfortschritt gestartet');
+  return viewed||started;
+}
+
+let wrappedTour=null;
+let wrappedExam=null;
+function installRuntimeHooks(){
+  const tour=root.ExportHubSopTour;
+  if(tour&&typeof tour==='object'&&tour!==wrappedTour){
+    const original=tour;
+    const next=Object.assign({},original);
+    if(typeof original.start==='function')next.start=function(options={}){
+      const result=original.start.apply(original,arguments);
+      recordStarted(progressMeta(result,options&&options.sop,''));
+      return result;
+    };
+    if(typeof original.handleAction==='function')next.handleAction=function(){
+      const result=original.handleAction.apply(original,arguments);
+      const session=result&&result.session;
+      if(session&&text(session.status)==='completed'){
+        const meta=progressMeta(session,null,'');
+        if(meta)applyTransform(recordTourCompletion,meta,undefined,'SOP-Tour abgeschlossen');
+      }
+      return result;
+    };
+    wrappedTour=Object.freeze(next);
+    root.ExportHubSopTour=wrappedTour;
+  }
+
+  const exam=root.ExportHubSopExam;
+  if(exam&&typeof exam==='object'&&exam!==wrappedExam){
+    const original=exam;
+    const next=Object.assign({},original);
+    if(typeof original.start==='function')next.start=function(options={}){
+      const result=original.start.apply(original,arguments);
+      if(result&&text(result.status)==='active')recordStarted(progressMeta(result,options&&options.sop,options&&options.userId));
+      return result;
+    };
+    if(typeof original.requestHelp==='function')next.requestHelp=function(){
+      const result=original.requestHelp.apply(original,arguments);
+      if(result&&result.ok===true){
+        const session=result.session||(typeof original.current==='function'?original.current():null);
+        const meta=progressMeta(session,null,session&&session.userId);
+        if(meta){
+          const at=new Date().toISOString();
+          const event={
+            helpId:`exam-help:${text(session&&session.startedAt)}:${Number(result.helpCount||session&&session.helpCount)||1}:${at}`,
+            at,
+            source:'exam'
+          };
+          applyTransform(recordHelp,meta,event,'SOP-Prüfung Hilfe verwendet');
+        }
+      }
+      return result;
+    };
+    if(typeof original.finish==='function')next.finish=function(){
+      const result=original.finish.apply(original,arguments);
+      if(result&&text(result.status)==='completed'){
+        const meta=progressMeta(result,null,result.userId);
+        if(meta){
+          const attempt=clone(result)||{};
+          attempt.attemptId=`exam:${text(result.startedAt)}:${text(result.completedAt)}`;
+          applyTransform(recordExamAttempt,meta,attempt,'SOP-Prüfungsversuch gespeichert');
+          if(result.passed===true)applyTransform(markCompleted,meta,undefined,'SOP-Prüfung bestanden');
+        }
+      }
+      return result;
+    };
+    wrappedExam=Object.freeze(next);
+    root.ExportHubSopExam=wrappedExam;
+  }
+  return !!(wrappedTour||wrappedExam);
+}
+
+root.ExportHubSopProgress=Object.freeze({
+  key,get,markViewed,markStarted,markCompleted,recordTourCompletion,recordExamAttempt,recordHelp,installRuntimeHooks
+});
+installRuntimeHooks();
 })(typeof globalThis!=='undefined'?globalThis:this);
