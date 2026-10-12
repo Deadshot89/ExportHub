@@ -9,6 +9,7 @@ function numberOrNull(value){
  return Number.isFinite(number)?number:null
 }
 function money(value){return value==null?null:Math.round(Number(value)*100)/100}
+function moneySum(values){return Math.round((values||[]).reduce((sum,value)=>sum+Math.round(Number(value||0)*100),0))/100}
 function uniqueText(values){return Array.from(new Set((values||[]).map(text).filter(Boolean)))}
 function normalizeHeader(header){
  const source=header&&typeof header==='object'?header:{};
@@ -32,21 +33,46 @@ function groupCurrencies(groups){
  }
  return Array.from(out)
 }
+function unassignedValueSummary(unassigned){
+ const list=Array.isArray(unassigned)?unassigned:[],currencies=new Set(),values=[];
+ let valueCoverageComplete=true,currencyCoverageComplete=true;
+ for(const position of list){
+  const value=numberOrNull(position&&position.value);
+  if(value==null){valueCoverageComplete=false;continue}
+  values.push(value);
+  const currency=text(position&&position.currency).toUpperCase().slice(0,3);
+  if(currency)currencies.add(currency);else currencyCoverageComplete=false
+ }
+ return{
+  rawKnownValue:moneySum(values),
+  currencies:Array.from(currencies),
+  valueCoverageComplete,
+  currencyCoverageComplete
+ }
+}
 function calculateAnalysisTotals(header,groups,unassigned){
- const normalized=normalizeHeader(header),list=Array.isArray(groups)?groups:[];
- const currencies=groupCurrencies(list);
+ const normalized=normalizeHeader(header),list=Array.isArray(groups)?groups:[],unassignedList=Array.isArray(unassigned)?unassigned:[];
+ const groupedCurrencies=groupCurrencies(list),unassignedSummary=unassignedValueSummary(unassignedList),currencies=uniqueText(groupedCurrencies.concat(unassignedSummary.currencies));
  const groupsHaveSingleCurrency=list.every(group=>group&&group.value!=null&&group.currency&&!(group.warnings||[]).includes('multiple-currencies'));
- const currencyCompatible=Boolean(normalized.currency)&&groupsHaveSingleCurrency&&currencies.length<=1&&(currencies.length===0||currencies[0]===normalized.currency);
- const groupedTotal=currencyCompatible?money(list.reduce((sum,group)=>sum+Number(group.value||0),0)):null;
- const difference=normalized.invoiceTotal!=null&&groupedTotal!=null?money(normalized.invoiceTotal-groupedTotal):null;
+ const groupedCurrencyCompatible=Boolean(normalized.currency)&&groupsHaveSingleCurrency&&groupedCurrencies.every(currency=>currency===normalized.currency);
+ const unassignedCurrencyCompatible=unassignedSummary.currencyCoverageComplete&&unassignedSummary.currencies.every(currency=>currency===normalized.currency);
+ const currencyCompatible=Boolean(normalized.currency)&&groupedCurrencyCompatible&&unassignedCurrencyCompatible;
+ const groupedTotal=groupedCurrencyCompatible?moneySum(list.map(group=>group.value)):null;
+ const unassignedKnownValue=unassignedCurrencyCompatible?unassignedSummary.rawKnownValue:null;
+ const valueCoverageComplete=unassignedSummary.valueCoverageComplete;
+ const accountedTotal=currencyCompatible&&valueCoverageComplete&&groupedTotal!=null&&unassignedKnownValue!=null?money(groupedTotal+unassignedKnownValue):null;
+ const difference=normalized.invoiceTotal!=null&&accountedTotal!=null?money(normalized.invoiceTotal-accountedTotal):null;
  return{
   invoiceTotal:normalized.invoiceTotal,
   groupedTotal,
+  unassignedKnownValue,
+  accountedTotal,
   difference,
   currency:normalized.currency,
   currencies,
   currencyCompatible,
-  unassignedCount:Array.isArray(unassigned)?unassigned.length:0
+  valueCoverageComplete,
+  unassignedCount:unassignedList.length
  }
 }
 function missingCount(positions,field){
@@ -56,10 +82,11 @@ function buildReview(groups,unassigned,totals){
  const groupList=Array.isArray(groups)?groups:[],unassignedList=Array.isArray(unassigned)?unassigned:[],warnings=[];
  if(!totals.currencyCompatible)warnings.push('currency-mismatch');
  if(totals.invoiceTotal==null)warnings.push('invoice-total-missing');
+ if(!totals.valueCoverageComplete)warnings.push('value-coverage-incomplete');
  if(unassignedList.length)warnings.push('unassigned-positions');
  if(totals.difference!=null&&totals.difference!==0)warnings.push('invoice-total-mismatch');
  const reviewGroupCount=groupList.filter(group=>!group||group.status!=='complete').length;
- const complete=groupList.length>0&&unassignedList.length===0&&reviewGroupCount===0&&totals.currencyCompatible&&totals.invoiceTotal!=null&&totals.difference===0;
+ const complete=groupList.length>0&&unassignedList.length===0&&reviewGroupCount===0&&totals.currencyCompatible&&totals.valueCoverageComplete&&totals.invoiceTotal!=null&&totals.difference===0;
  return{
   groupCount:groupList.length,
   readyGroupCount:groupList.length-reviewGroupCount,
