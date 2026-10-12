@@ -54,7 +54,7 @@ for(const viewport of ['desktop','mobile-standard']){
 
     await openShipment(page);
     await page.locator('#rc363BlockAbdDecision').click({position:{x:8,y:8}});
-    await expect(page.locator('.rc1501-sop-tour-panel')).toContainText(/Anleitung abgeschlossen/i);
+    await expect(page.locator('.rc1501-sop-tour-panel')).toContainText(/Training abgeschlossen/i);
 
     const simulation=await page.evaluate(()=>window.ExportHubSopTraining?.simulate?.('status',{reference:'DEMO-E2E',status:'Bereit zur Abholung'}));
     expect(simulation?.ok).toBe(true);
