@@ -114,7 +114,9 @@ test('Packmeldungen navigation has exactly one DOM owner',()=>{
 });
 
 test('live pack E2E follows the current public form and standalone inbox',()=>{
-  const e2e=fs.readFileSync('e2e/specs/pack-notification.spec.mjs','utf8');
+  const spec=fs.readFileSync('e2e/specs/pack-notification.spec.mjs','utf8');
+  const helper=fs.readFileSync('e2e/helpers/pack-notification-live.mjs','utf8');
+  const e2e=spec+'\n'+helper;
   assert.doesNotMatch(e2e,/#packDeliveryNote/,'removed delivery-note field must not be used');
   assert.match(e2e,/#packCustomerManualConfirm/,'manual E2E customer must be explicitly confirmed');
   assert.match(e2e,/data-pack-notifications-nav/,'E2E must open the dedicated Packmeldungen navigation');
