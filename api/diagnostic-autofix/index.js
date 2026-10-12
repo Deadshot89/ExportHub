@@ -14,6 +14,7 @@ const DIAG_TEST_BLOB = process.env.EXPORTHUB_TEST_DIAGNOSTICS_BLOB || 'testservi
 const REPO = process.env.EXPORTHUB_GITHUB_AUTOFIX_REPO || 'Deadshot89/ExportHub';
 const WORKFLOW = process.env.EXPORTHUB_GITHUB_AUTOFIX_WORKFLOW || 'diagnostic-autofix.yml';
 const PREFLIGHT_WORKFLOW = process.env.EXPORTHUB_AUTOFIX_PREFLIGHT_WORKFLOW || 'rc1083-autofix-preflight.yml';
+const RC1496_AUTOFIX_FINALIZE_WORKFLOW = process.env.EXPORTHUB_AUTOFIX_FINALIZE_WORKFLOW || 'rc1496-autofix-finalize.yml';
 const MAX_RETRIES = 6;
 const OIDC_ISSUER = 'https://token.actions.githubusercontent.com';
 const OIDC_JWKS_URL = 'https://token.actions.githubusercontent.com/.well-known/jwks';
@@ -223,6 +224,31 @@ async function workflowStatus(payload,env){
  }
  return {ok:true,jobId,diagnosticId:id,status,record:sanitize(record)};
 }
+async function finalizeAutofix(payload,env){
+ const jobId=text(payload.jobId),diagnosticId=text(payload.diagnosticId),pullRequestUrl=text(payload.pullRequestUrl).slice(0,500),autofixCommit=text(payload.autofixCommit).slice(0,80),mergeCommit=text(payload.mergeCommit).slice(0,80),deploymentRunUrl=text(payload.deploymentRunUrl).slice(0,500),message=(text(payload.message)||'Autofix-PR wurde regulär gemergt und der RC1112 Drei-Umgebungen-Deploy erfolgreich abgeschlossen.').slice(0,4000);
+ if(!jobId)throw error('AUTOFIX_JOB_REQUIRED','api.autofix.jobRequired',400);
+ if(!pullRequestUrl||!/^https:\/\/github\.com\/Deadshot89\/ExportHub\/pull\/\d+$/.test(pullRequestUrl))throw error('AUTOFIX_PR_REQUIRED','Autofix-PR ist für die Finalisierung erforderlich.',400);
+ if(!/^[0-9a-f]{40}$/i.test(mergeCommit))throw error('AUTOFIX_MERGE_COMMIT_REQUIRED','Merge-Commit ist für die Finalisierung erforderlich.',400);
+ if(!deploymentRunUrl||!/^https:\/\/github\.com\/Deadshot89\/ExportHub\/actions\/runs\/\d+$/.test(deploymentRunUrl))throw error('AUTOFIX_DEPLOYMENT_RUN_REQUIRED','Deploy-Lauf ist für die Finalisierung erforderlich.',400);
+ const found=await findJob(env,jobId),id=text(found.id),existing=found.autofix&&typeof found.autofix==='object'?found.autofix:{},existingStatus=lower(existing.status),existingPrUrl=text(existing.runUrl),existingCommit=text(existing.commit);
+ if(diagnosticId&&diagnosticId!==id)throw error('AUTOFIX_DIAGNOSTIC_MISMATCH','Diagnose-ID passt nicht zum Autofix-Auftrag.',409);
+ if(existingPrUrl!==pullRequestUrl)throw error('AUTOFIX_PR_MISMATCH','Autofix-PR passt nicht zum gespeicherten Auftrag.',409);
+ if(autofixCommit&&existingCommit&&autofixCommit!==existingCommit)throw error('AUTOFIX_COMMIT_MISMATCH','Autofix-Commit passt nicht zum gespeicherten Auftrag.',409);
+ if(existingStatus==='fixed')return {ok:true,alreadyFixed:true,jobId,diagnosticId:id,status:'fixed',record:sanitize(found)};
+ if(existingStatus!=='testing')throw error('AUTOFIX_NOT_READY_FOR_FINALIZE','Autofix ist nicht zur Finalisierung bereit.',409);
+ const completedAt=now();
+ const record=await mutateRecord(env,id,current=>{
+  const currentAf=current.autofix&&typeof current.autofix==='object'?current.autofix:{};
+  const status=lower(currentAf.status),currentPrUrl=text(currentAf.runUrl),currentCommit=text(currentAf.commit);
+  if(status!=='testing')throw error('AUTOFIX_NOT_READY_FOR_FINALIZE','Autofix ist nicht zur Finalisierung bereit.',409);
+  if(currentPrUrl!==pullRequestUrl)throw error('AUTOFIX_PR_MISMATCH','Autofix-PR passt nicht zum gespeicherten Auftrag.',409);
+  if(autofixCommit&&currentCommit&&autofixCommit!==currentCommit)throw error('AUTOFIX_COMMIT_MISMATCH','Autofix-Commit passt nicht zum gespeicherten Auftrag.',409);
+  const af=Object.assign({},currentAf,{status:'fixed',lastMessage:message,mergeCommit,deploymentRunUrl,completedAt,updatedAt:completedAt});
+  return Object.assign({},current,{autofix:af,resolvedAt:completedAt,resolvedBy:'ChatGPT / Codex Autofix',resolutionMessage:message});
+ });
+ try{await appendAudit(env,'DIAGNOSTIC_AUTOFIX_FIXED','ChatGPT / Codex Autofix',{diagnosticId:id,jobId,status:'fixed',pullRequestUrl,autofixCommit:existingCommit,mergeCommit,deploymentRunUrl,message})}catch(_){}
+ return {ok:true,jobId,diagnosticId:id,status:'fixed',record:sanitize(record)};
+}
 
 module.exports=async function(context,req){
  if(req.method==='OPTIONS'){context.res={status:204,headers:{'Cache-Control':'no-store','Allow':'POST, OPTIONS'},body:''};return}
@@ -233,6 +259,7 @@ module.exports=async function(context,req){
   if(action==='request')result=await requestAutofix(req,payload,env);
   else if(action==='claim'){if(!(await callbackAuthorized(req,WORKFLOW)))throw error('AUTOFIX_CALLBACK_UNAUTHORIZED','api.autofix.callbackUnauthorized',401);result=await claim(payload,env)}
   else if(action==='workflow-status'){if(!(await callbackAuthorized(req,WORKFLOW)))throw error('AUTOFIX_CALLBACK_UNAUTHORIZED','api.autofix.callbackUnauthorized',401);result=await workflowStatus(payload,env)}
+  else if(action==='finalize'){if(!(await callbackAuthorized(req,RC1496_AUTOFIX_FINALIZE_WORKFLOW,['workflow_run'])))throw error('AUTOFIX_CALLBACK_UNAUTHORIZED','api.autofix.callbackUnauthorized',401);result=await finalizeAutofix(payload,env)}
   else if(action==='preflight'){
    if(!(await callbackAuthorized(req,PREFLIGHT_WORKFLOW,['push','workflow_dispatch'])))throw error('AUTOFIX_CALLBACK_UNAUTHORIZED','api.autofix.preflightUnauthorized',401);
    result={ok:true,githubDispatchConfigured:Boolean(text(process.env.EXPORTHUB_GITHUB_AUTOFIX_TOKEN)),autofixEnabled:autofixEnabled(),callbackMode:'github-oidc',repo:REPO,workflow:WORKFLOW,environment:env}
