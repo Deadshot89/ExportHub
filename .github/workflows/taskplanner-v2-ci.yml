@@ -47,6 +47,7 @@ jobs:
             test/taskplanner-v2-recurrence.test.mjs \
             test/taskplanner-v2-calendar.test.mjs \
             test/taskplanner-v2-lifecycle-recurrence.test.mjs \
+            test/taskplanner-v2-lifecycle-workflow-owner.test.mjs \
             test/taskplanner-v2-planner.test.mjs \
             test/taskplanner-v2-runtime-bridge.test.mjs \
             test/taskplanner-v2-task-ui.test.mjs \
@@ -54,7 +55,8 @@ jobs:
             test/taskplanner-v2-i18n.test.mjs \
             test/taskplanner-v2-planner-ui.test.mjs \
             test/taskplanner-v2-planner-i18n.test.mjs \
-            test/taskplanner-v2-workflow.test.mjs
+            test/taskplanner-v2-workflow.test.mjs \
+            test/taskplanner-v2-workflow-bindings.test.mjs
       - name: Existing task regressions
         run: |
           node --test --test-concurrency=1 \
