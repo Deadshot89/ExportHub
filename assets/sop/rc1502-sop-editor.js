@@ -8,6 +8,7 @@ function nowIso(){return new Date().toISOString();}
 function model(){return root.ExportHubIsoSopModel;}
 function contract(){return root.ExportHubSopStepContract;}
 function visualApi(){return root.ExportHubSopVisuals;}
+function targetApi(){return root.ExportHubSopTourTargets&&typeof root.ExportHubSopTourTargets.find==='function'?root.ExportHubSopTourTargets:null;}
 function versionsOf(doc){return Array.isArray(doc&&doc.versions)?doc.versions:[];}
 function versionById(doc,version){const wanted=text(version);return versionsOf(doc).find(item=>text(item&&item.version)===wanted)||null;}
 function draftOf(doc,version){
@@ -188,5 +189,61 @@ function validateDraft(document,options={}){
   return {ok:errors.length===0,version,errors,warnings};
 }
 
-root.ExportHubSopEditor=Object.freeze({createDraft,copyDocument,addStep,moveStep,removeStep,updateStep,createCustomerOverlay,assignVisual,validateDraft});
+function selectorForTarget(stableKey){
+  const key=text(stableKey).replace(/\\/g,'\\\\').replace(/"/g,'\\"');
+  return `[data-tour-key="${key}"]`;
+}
+function testTarget(stableKey,scope){
+  const key=text(stableKey);const api=targetApi();
+  if(!key)return {ok:false,status:'invalid',stableKey:key,error:'KEY_REQUIRED'};
+  if(!api)return {ok:false,status:'unavailable',stableKey:key,error:'TARGET_API_UNAVAILABLE'};
+  const result=api.find(key,scope);
+  if(result&&result.ok)return {ok:true,status:'unique',stableKey:key,error:null};
+  const error=text(result&&result.error)||'TARGET_INVALID';
+  const status=error==='TARGET_NOT_FOUND'?'missing':error==='TARGET_AMBIGUOUS'?'duplicate':'invalid';
+  return {ok:false,status,stableKey:key,error};
+}
+
+let targetPickSession=null;
+function cancelTargetPick(){
+  const active=targetPickSession;
+  if(!active)return {cancelled:false,stepId:''};
+  if(active.scope&&typeof active.scope.removeEventListener==='function'&&active.handler)active.scope.removeEventListener('click',active.handler,true);
+  if(active.rootElement&&active.rootElement.classList&&typeof active.rootElement.classList.remove==='function')active.rootElement.classList.remove('rc1502-sop-target-picking');
+  targetPickSession=null;
+  return {cancelled:true,stepId:active.stepId};
+}
+function beginTargetPick(stepId,options={}){
+  const id=text(stepId);if(!id)throw new Error('Schritt-ID fehlt');
+  const document=options.document;if(!document||typeof document!=='object')throw new Error('SOP-Dokument fehlt');
+  const version=text(options.version||document.draftVersion);const draft=draftOf(document,version);const steps=stepsOfDraft(draft);
+  if(indexById(steps,id)<0)throw new Error(`Schritt nicht gefunden: ${id}`);
+  const scope=options.scope||(root&&root.document);if(!scope||typeof scope.addEventListener!=='function'||typeof scope.removeEventListener!=='function')throw new Error('Target-Picker-Zielbereich nicht verfügbar');
+  cancelTargetPick();
+  const rootElement=scope.documentElement||(root&&root.document&&root.document.documentElement)||null;
+  const session={stepId:id,document,version,scope,handler:null,rootElement,onSelected:options.onSelected,onError:options.onError};
+  const reportError=(code,detail={})=>{const result=Object.assign({ok:false,code,stepId:id},detail);if(typeof session.onError==='function')session.onError(result);return result;};
+  session.handler=event=>{
+    if(event&&typeof event.preventDefault==='function')event.preventDefault();
+    if(event&&typeof event.stopPropagation==='function')event.stopPropagation();
+    if(event&&typeof event.stopImmediatePropagation==='function')event.stopImmediatePropagation();
+    const source=event&&event.target;const element=source&&typeof source.closest==='function'?source.closest('[data-tour-key]'):null;
+    const key=text(element&&typeof element.getAttribute==='function'?element.getAttribute('data-tour-key'):'');
+    if(!key){reportError('TARGET_KEY_REQUIRED');return;}
+    const checked=testTarget(key,scope);
+    if(!checked.ok){reportError(checked.error,{status:checked.status,stableKey:key});return;}
+    let next;
+    try{next=updateStep(session.document,{version:session.version,stepId:id,patch:{target:{stableKey:key,selector:selectorForTarget(key)}}});}
+    catch(error){reportError('TARGET_SAVE_FAILED',{message:text(error&&error.message)});return;}
+    const target={stableKey:key,selector:selectorForTarget(key)};
+    cancelTargetPick();
+    if(typeof session.onSelected==='function')session.onSelected({ok:true,stepId:id,target,document:next});
+  };
+  scope.addEventListener('click',session.handler,true);
+  if(rootElement&&rootElement.classList&&typeof rootElement.classList.add==='function')rootElement.classList.add('rc1502-sop-target-picking');
+  targetPickSession=session;
+  return {active:true,stepId:id,version};
+}
+
+root.ExportHubSopEditor=Object.freeze({createDraft,copyDocument,addStep,moveStep,removeStep,updateStep,createCustomerOverlay,assignVisual,validateDraft,beginTargetPick,cancelTargetPick,testTarget});
 })(typeof globalThis!=='undefined'?globalThis:this);
