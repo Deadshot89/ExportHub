@@ -20,12 +20,19 @@ test('aktueller autoritativer Versionsmarker fällt nicht hinter RC1013 zurück'
   assert.ok(currentRc()>=1013,`Aktueller RC ${currentRc()} ist älter als RC1013`);
 });
 
-test('aktueller Standarddeploy veröffentlicht Produktion und TESTSERVICE gemeinsam und prüft alle drei Umgebungen live',()=>{
-  const flow=read('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml');
-  assert.match(flow,/Deploy ExportHUB production/);
-  assert.match(flow,/Deploy ExportHUB TESTSERVICE/);
-  assert.match(flow,/Produktion TESTSERVICE und Demo prüfen|Produktion, TESTSERVICE und Demo|Live RC\d+ Produktion TESTSERVICE und Demo prüfen/);
-  assert.match(flow,/node \.github\/rc\d+\/build-three-env\.mjs/);
+test('RC1505: Main verifiziert Buildbasis und TESTSERVICE, Production wird separat freigegeben',()=>{
+  const main=read('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml');
+  const production=read('.github/workflows/exporthub-production-release.yml');
+  assert.match(main,/name:\s*ExportHUB RC1112 Main Verification/);
+  assert.match(main,/Deploy ExportHUB TESTSERVICE/);
+  assert.doesNotMatch(main,/Deploy ExportHUB production/);
+  assert.match(main,/node \.github\/rc\d+\/build-three-env\.mjs/);
+  assert.match(production,/name:\s*ExportHUB Production Release/);
+  assert.match(production,/workflow_dispatch:/);
+  assert.match(production,/release_sha:/);
+  assert.match(production,/PRODUCTION FREIGEBEN/);
+  assert.match(production,/Deploy ExportHUB production/);
+  assert.match(production,/node \.github\/rc1112\/build-three-env\.mjs|node \.github\/packmeldungen\/build-three-env\.mjs/);
 });
 
 test('Main-Contract bewahrt die RC1013-Regression und folgt einem aktuellen gemeinsamen Release',()=>{
