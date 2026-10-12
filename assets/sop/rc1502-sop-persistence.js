@@ -22,7 +22,6 @@ function hasPendingChange(clean){
 async function confirmedPersist(reason,host){
   const label=text(reason)||'RC1502 SOP-Editor bestätigt gespeichert';
   const clean=root.ExportHUBClean;
-  setStatus(host,'saving',label);
   try{
     if(!clean||typeof clean.flushSave!=='function'){
       if(typeof root.save==='function')await Promise.resolve(root.save(label));
@@ -47,7 +46,9 @@ function mount(target,options={}){
   const originalChange=typeof options.onEditorChange==='function'?options.onEditorChange:null;
   let chain=Promise.resolve(true);
   function schedule(reason){
-    chain=chain.catch(()=>false).then(()=>confirmedPersist(reason,host));
+    const label=text(reason)||'RC1502 SOP-Editor bestätigt gespeichert';
+    setStatus(host,'saving',label);
+    chain=chain.catch(()=>false).then(()=>confirmedPersist(label,host));
     return chain;
   }
   const bridged=Object.assign({},options,{onEditorChange(change){
