@@ -402,7 +402,7 @@ test('RC1275 P1: Europaletten erscheinen im echten Ladelisten-Druck als Paletten
     const capture=()=>{try{window.__RC1275_PALLET_PRINT_CAPTURE__={
       text:String(document.body&&document.body.innerText||''),
       html:String(document.documentElement&&document.documentElement.outerHTML||'')
-    }}catch(_){}};
+    }}catch(_){} };
     try{Object.defineProperty(window,'print',{configurable:true,writable:true,value:capture})}catch(_){try{window.print=capture}catch(__){}}
   });
 
@@ -442,7 +442,7 @@ test('RC1275 P1: Europaletten erscheinen im echten Ladelisten-Druck als Paletten
 
 
 
-test('RC1363 P1: lange Lieferscheinlisten bleiben auf A4 einspaltig und überlappungsfrei',async({page},testInfo)=>{
+test('RC1504 P1: lange Lieferscheinlisten bleiben auf A4 ohne Überlappung; die Ladeliste nutzt zwei Spalten',async({page},testInfo)=>{
   test.skip(testInfo.project.name!=='laptop','Lange Lieferscheinlisten werden einmal im echten Chromium geprüft.');
   test.setTimeout(45_000);
   const guard=attachRuntimeGuards(page,testInfo);
@@ -453,7 +453,7 @@ test('RC1363 P1: lange Lieferscheinlisten bleiben auf A4 einspaltig und überlap
 
   const layouts=await page.evaluate(()=>{
     const api=window.ExportHUBRC1305LoadingListPrint;
-    if(!api||typeof api.enhance!=='function'||typeof api.enhanceCover!=='function')throw new Error('RC1363 Druckruntime fehlt');
+    if(!api||typeof api.enhance!=='function'||typeof api.enhanceCover!=='function')throw new Error('RC1504 Druckruntime fehlt');
     const deliveryFiles=Array.from({length:28},(_,i)=>({
       name:'DNC_'+String(i+1).padStart(2,'0')+'_Kundenauftrag_Sehr_Langer_Dateiname_'+String(47110000+i)+'.pdf'
     }));
@@ -464,7 +464,7 @@ test('RC1363 P1: lange Lieferscheinlisten bleiben auf A4 einspaltig und überlap
         :'<section class="rc390-page rc390-load"><div data-rc1363-fixture-fill="1"></div><div class="rc390-card"><div class="rc390-label">Lieferscheine / DNCs</div><div class="rc390-txt"></div></div></section>';
       document.body.innerHTML=kind==='cover'?api.enhanceCover(raw,shipment):api.enhance(raw,shipment,true);
       const root=document.querySelector(kind==='cover'?'.rc390-cover':'.rc390-load'),fill=root&&root.querySelector('[data-rc1363-fixture-fill]');
-      if(!root||!fill)throw new Error('RC1363 '+kind+' Fixture fehlt');
+      if(!root||!fill)throw new Error('RC1504 '+kind+' Fixture fehlt');
       root.style.setProperty('box-sizing','border-box','important');
       root.style.setProperty('width','194mm','important');
       root.style.setProperty('height','281mm','important');
@@ -477,12 +477,17 @@ test('RC1363 P1: lange Lieferscheinlisten bleiben auf A4 einspaltig und überlap
       fill.style.setProperty('height',kind==='cover'?'158mm':'170mm','important');
       const grid=root.querySelector('[data-rc1305-document-grid]'),items=grid?Array.from(grid.querySelectorAll('[data-rc1293-packing-slip]')):[];
       const rr=root.getBoundingClientRect(),gr=grid&&grid.getBoundingClientRect(),rects=items.map(node=>node.getBoundingClientRect());
-      let overlap=false;for(let i=1;i<rects.length;i++){if(rects[i].top<rects[i-1].bottom-1)overlap=true}
+      let overlap=false;
+      for(let i=0;i<rects.length;i++)for(let j=i+1;j<rects.length;j++){
+        const a=rects[i],b=rects[j],x=Math.min(a.right,b.right)-Math.max(a.left,b.left),y=Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top);
+        if(x>1&&y>1)overlap=true;
+      }
       return{
         kind,
         count:items.length,
         density:grid&&grid.getAttribute('data-rc1363-document-density'),
-        sameColumn:rects.every((r,i)=>i===0||Math.abs(r.left-rects[0].left)<=2),
+        columnMarker:grid&&grid.getAttribute('data-rc1504-document-columns'),
+        columnCount:new Set(rects.map(r=>Math.round(r.left))).size,
         overlap,
         gridBottom:gr&&gr.bottom,
         rootBottom:rr.bottom,
@@ -497,7 +502,8 @@ test('RC1363 P1: lange Lieferscheinlisten bleiben auf A4 einspaltig und überlap
   for(const layout of layouts){
     expect(layout.count,layout.kind+' verliert Lieferscheine/DNCs').toBe(28);
     expect(layout.density,layout.kind+' aktiviert für 28 Anhänge nicht die Ultra-Verdichtung').toBe('ultra');
-    expect(layout.sameColumn,layout.kind+' verteilt Anhänge auf mehrere Spalten').toBe(true);
+    expect(layout.columnCount,layout.kind+' hat eine unerwartete Spaltenanzahl').toBe(layout.kind==='load'?2:1);
+    if(layout.kind==='load')expect(layout.columnMarker,'Ladeliste markiert die RC1504-Zweispaltenlogik nicht').toBe('2');
     expect(layout.overlap,layout.kind+' enthält überlappende Anhangzeilen').toBe(false);
     expect(layout.allNamed,layout.kind+' enthält einen unvollständigen Dateinamen').toBe(true);
     expect(layout.gridBottom<=layout.rootBottom+2,layout.kind+' Dokumentliste ragt aus A4 heraus').toBe(true);
@@ -541,7 +547,7 @@ test('RC1376: kurze DNC-Rahmen und EMPFÄNGER / KUNDE sind auf Deckblatt und Lad
   await assertRuntimeClean(guard,testInfo);
 });
 
-test('RC1379: POD-Ladeliste nutzt wieder eine Fahrerunterschrift und ordnet Verlader/Kennzeichen korrekt zu',async({page},testInfo)=>{
+test('RC1503/RC1379: POD-Ladeliste behält die Bild-4-Felder und blendet den alten Abholblock aus',async({page},testInfo)=>{
   test.skip(testInfo.project.name!=='laptop','POD-Ladelistenlayout wird einmal im echten Chromium geprüft.');
   test.setTimeout(45_000);
   const guard=attachRuntimeGuards(page,testInfo);
@@ -552,16 +558,19 @@ test('RC1379: POD-Ladeliste nutzt wieder eine Fahrerunterschrift und ordnet Verl
 
   const layout=await page.evaluate(()=>{
     const api=window.ExportHUBRC1305LoadingListPrint;
-    if(!api||typeof api.enhance!=='function')throw new Error('RC1305 Ladelisten-Enhancer fehlt');
+    if(!api||typeof api.enhance!=='function')throw new Error('RC1503 Ladelisten-Enhancer fehlt');
     const sig='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
     const raw='<section class="rc390-page rc390-load">'+
       '<div data-rc1379-fixture-content="1"></div>'+
-      '<div class="field"><strong>Unterschrift Fahrer</strong></div>'+
-      '<div class="field"><strong>Fahrername</strong></div>'+
-      '<div class="field"><strong>Datum / Uhrzeit</strong></div>'+
-      '<div class="field"><strong>Kennzeichen</strong></div>'+
-      '<div class="field"><strong>Verlader</strong></div>'+
-      '<div class="field"><strong>Europaletten Ausgang</strong></div>'+
+      '<div data-rc1503-fixture-qr="1">QR</div>'+
+      '<div data-rc1503-fixture-fields="1" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2mm">'+
+        '<div class="field"><strong>Unterschrift Fahrer</strong></div>'+
+        '<div class="field"><strong>Fahrername</strong></div>'+
+        '<div class="field"><strong>Datum / Uhrzeit</strong></div>'+
+        '<div class="field"><strong>Kennzeichen</strong></div>'+
+        '<div class="field"><strong>Verlader</strong></div>'+
+        '<div class="field"><strong>Europaletten Ausgang</strong></div>'+
+      '</div>'+
       '</section>';
     const shipment={
       reference:'ABD001',
@@ -581,7 +590,7 @@ test('RC1379: POD-Ladeliste nutzt wieder eine Fahrerunterschrift und ordnet Verl
     document.body.innerHTML=api.enhance(raw,shipment);
     const root=document.querySelector('[data-rc1305-loading-list]');
     const filler=root&&root.querySelector('[data-rc1379-fixture-content]');
-    if(!root||!filler)throw new Error('RC1379 Druckfixture konnte nicht aufgebaut werden');
+    if(!root||!filler)throw new Error('RC1503 Druckfixture konnte nicht aufgebaut werden');
     root.style.setProperty('box-sizing','border-box','important');
     root.style.setProperty('width','194mm','important');
     root.style.setProperty('height','281mm','important');
@@ -597,44 +606,51 @@ test('RC1379: POD-Ladeliste nutzt wieder eine Fahrerunterschrift und ordnet Verl
 
     const summary=root.querySelector('[data-rc1305-pickup-summary]');
     const primary=root.querySelector('.rc1305-signature-primary');
-    const customs=root.querySelector('.rc1305-signature-customs');
-    const loader=root.querySelector('.rc1305-meta-loader');
+    const driver=root.querySelector('.rc1305-meta-driver');
+    const date=root.querySelector('.rc1503-pickup-date');
     const plate=root.querySelector('.rc1305-meta-plate');
+    const loader=root.querySelector('.rc1305-meta-loader');
+    const pallet=root.querySelector('.rc1305-meta-pallet');
+    const qr=root.querySelector('[data-rc1503-fixture-qr]');
     const images=Array.from(root.querySelectorAll('.rc1305-signature-image'));
-    if(!summary||!primary||!loader||!plate||images.length!==1)throw new Error('POD-Felder wurden nicht korrekt gerendert');
-    const rr=root.getBoundingClientRect(),sr=summary.getBoundingClientRect();
-    const itemRects=Array.from(summary.querySelectorAll('.rc1305-pickup-item')).map(node=>node.getBoundingClientRect());
-    let overlap=false;
-    for(let i=0;i<itemRects.length;i++)for(let j=i+1;j<itemRects.length;j++){
-      const a=itemRects[i],b=itemRects[j],x=Math.min(a.right,b.right)-Math.max(a.left,b.left),y=Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top);
-      if(x>1&&y>1)overlap=true;
-    }
+    if(!summary||!primary||!driver||!date||!plate||!loader||!pallet||!qr||images.length!==1)throw new Error('Bild-4-POD-Felder wurden nicht vollständig gerendert');
     const image=images[0],ir=image.getBoundingClientRect(),parent=image.closest('.rc1305-pickup-signature').getBoundingClientRect();
     const imageInside=ir.left>=parent.left-1&&ir.right<=parent.right+1&&ir.top>=parent.top-1&&ir.bottom<=parent.bottom+1;
+    const pickupFields=Array.from(root.querySelectorAll('[data-rc1503-pickup-field]'));
     return{
-      scrollHeight:root.scrollHeight,
-      clientHeight:root.clientHeight,
-      summaryBottom:sr.bottom,
-      rootBottom:rr.bottom,
-      summaryHeight:sr.height,
+      image4Marker:root.getAttribute('data-rc1503-image4-pickup-layout'),
+      summaryHidden:getComputedStyle(summary).display==='none'&&String(summary.textContent||'').trim()==='',
+      replacedFieldCount:root.querySelectorAll('[data-rc1305-replaced-pickup-field]').length,
+      pickupFieldCount:pickupFields.length,
+      fieldLabels:pickupFields.map(node=>String((node.querySelector('strong,b,.rc390-label,.rc352-label')||{}).textContent||'').trim()),
       signatureCount:images.length,
-      customsSignaturePresent:!!customs,
-      loaderText:String(loader.textContent||''),
+      imageInside,
+      driverText:String(driver.textContent||''),
+      dateText:String(date.textContent||''),
       plateText:String(plate.textContent||''),
-      overlap,
-      imageInside
+      loaderText:String(loader.textContent||''),
+      palletText:String(pallet.textContent||''),
+      visibleText:String(root.innerText||''),
+      qrPresent:!!qr
     };
   });
 
+  expect(layout.image4Marker).toBe('1');
+  expect(layout.summaryHidden,'Der alte sichtbare SENDUNG-ABGEHOLT-Block ist noch aktiv').toBe(true);
+  expect(layout.replacedFieldCount,'Bild-4-Felder dürfen nach der Abholung nicht ausgeblendet bleiben').toBe(0);
+  expect(layout.pickupFieldCount,'Alle sechs vorhandenen Bild-4-Abholfelder müssen erhalten bleiben').toBe(6);
+  expect(layout.fieldLabels).toEqual(['Unterschrift Fahrer','Fahrername','Datum / Uhrzeit','Kennzeichen','Verlader','Europaletten Ausgang']);
   expect(layout.signatureCount).toBe(1);
-  expect(layout.customsSignaturePresent,'Eine zweite Zoll-Unterschrift darf nicht mehr erscheinen').toBe(false);
-  expect(layout.loaderText).toContain('Tobias');
+  expect(layout.imageInside,'Die Fahrerunterschrift ragt aus ihrem vorhandenen Feld').toBe(true);
+  expect(layout.driverText).toContain('Max Mustermann');
+  expect(layout.dateText).toMatch(/01\.10\.2026/);
   expect(layout.plateText).toContain('KLE-AB 1234');
-  expect(layout.overlap,'Elemente des Abholnachweises überlappen sich').toBe(false);
-  expect(layout.imageInside,'Die Fahrerunterschrift ragt aus ihrem Feld').toBe(true);
-  expect(layout.summaryHeight,'Der Abholblock ist für A4 zu hoch').toBeLessThan(160);
-  expect(layout.summaryBottom<=layout.rootBottom+2,'Der Abholblock ragt aus der A4-Ladeliste heraus').toBe(true);
-  expect(layout.scrollHeight<=layout.clientHeight+2,'Die POD-Ladeliste würde auf eine zweite Seite überlaufen').toBe(true);
+  expect(layout.loaderText).toContain('Tobias');
+  expect(layout.palletText).toContain('Ausgang: 4');
+  expect(layout.palletText).toContain('Eingang/Rückgabe: 2');
+  expect(layout.visibleText).not.toMatch(/SENDUNG ABGEHOLT/i);
+  expect(layout.visibleText).not.toContain('Beispiel Spedition GmbH');
+  expect(layout.qrPresent,'Der bestehende QR-Bereich darf durch die POD-Wiederherstellung nicht verschwinden').toBe(true);
 
   await assertRuntimeClean(guard,testInfo);
 });
@@ -653,7 +669,7 @@ test('RC1315 P1: Druck-QR oder REF in Ladeliste startet den vollständigen Sendu
         load2Count:document.querySelectorAll('.rc390-load.rc576-load2').length,
         cmrCount:document.querySelectorAll('.rc390-cmr-wrap').length
       };
-    }catch(_){}};
+    }catch(_){} };
     try{Object.defineProperty(window,'print',{configurable:true,writable:true,value:capture})}
     catch(_){try{window.print=capture}catch(__){}}
   });
