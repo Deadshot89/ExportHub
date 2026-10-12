@@ -1,0 +1,46 @@
+/* ExportHUB360 RC1371 – scoped personalized dashboard */
+[data-eh-dashboard-personalized="1"]{
+  --rc1371-gap:16px;
+  display:grid;
+  grid-template-columns:repeat(12,minmax(0,1fr));
+  gap:var(--rc1371-gap);
+  align-items:start;
+  min-width:0;
+}
+[data-eh-dashboard-personalized="1"] > *{min-width:0;box-sizing:border-box}
+[data-eh-dashboard-personalized="1"] > :not([data-rc1371-widget-id]):not([data-rc1371-toolbar="1"]):not([data-rc1371-library="1"]){grid-column:1/-1}
+[data-eh-dashboard-personalized="1"] [data-rc1371-toolbar="1"]{
+  grid-column:1/-1;display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;
+}
+[data-eh-dashboard-personalized="1"] [data-rc1371-widget-id]{position:relative;min-width:0;overflow:visible}
+[data-eh-dashboard-personalized="1"] [data-rc1371-size="S"]{grid-column:span 3}
+[data-eh-dashboard-personalized="1"] [data-rc1371-size="M"]{grid-column:span 4}
+[data-eh-dashboard-personalized="1"] [data-rc1371-size="L"]{grid-column:span 6}
+[data-eh-dashboard-personalized="1"] [data-rc1371-size="XL"]{grid-column:1/-1}
+[data-eh-dashboard-personalized="1"] [data-rc1371-visible="0"]{display:none!important}
+[data-eh-dashboard-personalized="1"][data-rc1371-editing="1"] [data-rc1371-widget-id]{outline:2px dashed color-mix(in srgb,currentColor 22%,transparent);outline-offset:3px}
+[data-eh-dashboard-personalized="1"] .rc1371-widget-controls{position:absolute;z-index:20;top:8px;right:8px;display:flex;gap:4px;padding:4px;border-radius:10px;background:Canvas;box-shadow:0 6px 20px rgba(15,23,42,.14)}
+[data-eh-dashboard-personalized="1"] .rc1371-widget-controls button,
+[data-eh-dashboard-personalized="1"] .rc1371-dashboard-toolbar button{min-height:36px;border-radius:10px;cursor:pointer}
+[data-eh-dashboard-personalized="1"] .rc1371-widget-library{grid-column:1/-1;display:grid;gap:12px;padding:16px;border:1px solid color-mix(in srgb,currentColor 16%,transparent);border-radius:16px;background:Canvas;box-shadow:0 18px 42px rgba(15,23,42,.12)}
+[data-eh-dashboard-personalized="1"] .rc1371-widget-library-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+html[data-eh-design="modern"] [data-eh-dashboard-personalized="1"] [data-rc1371-widget-id]{border-radius:16px}
+html[data-eh-design="glass"] [data-eh-dashboard-personalized="1"] [data-rc1371-widget-id]{border-radius:24px;backdrop-filter:blur(18px) saturate(135%)}
+html[data-eh-design="neon"] [data-eh-dashboard-personalized="1"]{--rc1371-gap:10px}
+html[data-eh-design="neon"] [data-eh-dashboard-personalized="1"] [data-rc1371-widget-id]{border-radius:10px}
+@media(max-width:1120px){
+  [data-eh-dashboard-personalized="1"]{grid-template-columns:repeat(8,minmax(0,1fr))}
+  [data-eh-dashboard-personalized="1"] [data-rc1371-size="S"]{grid-column:span 2}
+  [data-eh-dashboard-personalized="1"] [data-rc1371-size="M"]{grid-column:span 4}
+  [data-eh-dashboard-personalized="1"] [data-rc1371-size="L"],
+  [data-eh-dashboard-personalized="1"] [data-rc1371-size="XL"]{grid-column:1/-1}
+  [data-eh-dashboard-personalized="1"] .rc1371-widget-library-list{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:760px){
+  [data-eh-dashboard-personalized="1"]{grid-template-columns:1fr;gap:12px}
+  [data-eh-dashboard-personalized="1"] [data-rc1371-size="S"],
+  [data-eh-dashboard-personalized="1"] [data-rc1371-size="M"],
+  [data-eh-dashboard-personalized="1"] [data-rc1371-size="L"],
+  [data-eh-dashboard-personalized="1"] [data-rc1371-size="XL"]{grid-column:1/-1}
+  [data-eh-dashboard-personalized="1"] .rc1371-widget-library-list{grid-template-columns:1fr}
+}
