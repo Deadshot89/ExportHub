@@ -227,13 +227,15 @@ async function workflowStatus(payload,env){
 async function finalizeAutofix(payload,env){
  const jobId=text(payload.jobId),diagnosticId=text(payload.diagnosticId),pullRequestUrl=text(payload.pullRequestUrl).slice(0,500),autofixCommit=text(payload.autofixCommit).slice(0,80),mergeCommit=text(payload.mergeCommit).slice(0,80),deploymentRunUrl=text(payload.deploymentRunUrl).slice(0,500),message=(text(payload.message)||'Autofix-PR wurde regulär gemergt und der RC1112 Drei-Umgebungen-Deploy erfolgreich abgeschlossen.').slice(0,4000);
  if(!jobId)throw error('AUTOFIX_JOB_REQUIRED','api.autofix.jobRequired',400);
+ if(!diagnosticId)throw error('DIAGNOSTIC_ID_REQUIRED','api.autofix.diagnosticIdRequired',400);
  if(!pullRequestUrl||!/^https:\/\/github\.com\/Deadshot89\/ExportHub\/pull\/\d+$/.test(pullRequestUrl))throw error('AUTOFIX_PR_REQUIRED','Autofix-PR ist für die Finalisierung erforderlich.',400);
+ if(!/^[0-9a-f]{40}$/i.test(autofixCommit))throw error('AUTOFIX_COMMIT_REQUIRED','Autofix-Commit ist für die Finalisierung erforderlich.',400);
  if(!/^[0-9a-f]{40}$/i.test(mergeCommit))throw error('AUTOFIX_MERGE_COMMIT_REQUIRED','Merge-Commit ist für die Finalisierung erforderlich.',400);
  if(!deploymentRunUrl||!/^https:\/\/github\.com\/Deadshot89\/ExportHub\/actions\/runs\/\d+$/.test(deploymentRunUrl))throw error('AUTOFIX_DEPLOYMENT_RUN_REQUIRED','Deploy-Lauf ist für die Finalisierung erforderlich.',400);
  const found=await findJob(env,jobId),id=text(found.id),existing=found.autofix&&typeof found.autofix==='object'?found.autofix:{},existingStatus=lower(existing.status),existingPrUrl=text(existing.runUrl),existingCommit=text(existing.commit);
- if(diagnosticId&&diagnosticId!==id)throw error('AUTOFIX_DIAGNOSTIC_MISMATCH','Diagnose-ID passt nicht zum Autofix-Auftrag.',409);
+ if(!diagnosticId||diagnosticId!==id)throw error('AUTOFIX_DIAGNOSTIC_MISMATCH','Diagnose-ID passt nicht zum Autofix-Auftrag.',409);
  if(existingPrUrl!==pullRequestUrl)throw error('AUTOFIX_PR_MISMATCH','Autofix-PR passt nicht zum gespeicherten Auftrag.',409);
- if(autofixCommit&&existingCommit&&autofixCommit!==existingCommit)throw error('AUTOFIX_COMMIT_MISMATCH','Autofix-Commit passt nicht zum gespeicherten Auftrag.',409);
+ if(!existingCommit||autofixCommit!==existingCommit)throw error('AUTOFIX_COMMIT_MISMATCH','Autofix-Commit passt nicht zum gespeicherten Auftrag.',409);
  if(existingStatus==='fixed')return {ok:true,alreadyFixed:true,jobId,diagnosticId:id,status:'fixed',record:sanitize(found)};
  if(existingStatus!=='testing')throw error('AUTOFIX_NOT_READY_FOR_FINALIZE','Autofix ist nicht zur Finalisierung bereit.',409);
  const completedAt=now();
@@ -242,7 +244,7 @@ async function finalizeAutofix(payload,env){
   const status=lower(currentAf.status),currentPrUrl=text(currentAf.runUrl),currentCommit=text(currentAf.commit);
   if(status!=='testing')throw error('AUTOFIX_NOT_READY_FOR_FINALIZE','Autofix ist nicht zur Finalisierung bereit.',409);
   if(currentPrUrl!==pullRequestUrl)throw error('AUTOFIX_PR_MISMATCH','Autofix-PR passt nicht zum gespeicherten Auftrag.',409);
-  if(autofixCommit&&currentCommit&&autofixCommit!==currentCommit)throw error('AUTOFIX_COMMIT_MISMATCH','Autofix-Commit passt nicht zum gespeicherten Auftrag.',409);
+  if(!currentCommit||autofixCommit!==currentCommit)throw error('AUTOFIX_COMMIT_MISMATCH','Autofix-Commit passt nicht zum gespeicherten Auftrag.',409);
   const af=Object.assign({},currentAf,{status:'fixed',lastMessage:message,mergeCommit,deploymentRunUrl,completedAt,updatedAt:completedAt});
   return Object.assign({},current,{autofix:af,resolvedAt:completedAt,resolvedBy:'ChatGPT / Codex Autofix',resolutionMessage:message});
  });
