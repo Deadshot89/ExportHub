@@ -70,13 +70,13 @@ function fieldLabel(key){
 }
 function rowsHtml(positions){
  return positions.map(function(p){
-  var missing=(p.missing||[]).map(fieldLabel),state=missing.length?tr('abd.analysis.review'):tr('abd.analysis.complete');
+  var missing=(p.missing||[]).map(fieldLabel),reviewRequired=missing.length>0||p.confirmed===false,state=reviewRequired?tr('abd.analysis.review'):tr('abd.analysis.complete');
   return '<tr data-rc1294-position="'+esc(p.position)+'">'+
    '<td>'+esc(p.position)+'</td><td>'+esc(p.itemNumber)+'</td><td class="rc1294-desc">'+esc(p.description)+'</td>'+
    '<td><b>'+esc(p.commodityCode)+'</b></td><td>'+esc(p.originCountry)+'</td><td>'+esc(formatNumber(p.quantity,3))+'</td>'+
    '<td>'+esc(formatNumber(p.netMassKg,3))+'</td><td>'+esc(formatNumber(p.grossMassKg,3))+'</td>'+
    '<td>'+esc(formatNumber(p.value,2))+'</td><td>'+esc(p.currency)+'</td><td>'+esc((p.supplementaryCodes||[]).join(', '))+'</td>'+
-   '<td>'+esc(p.source)+'</td><td><span class="rc1294-state '+(missing.length?'review':'ok')+'">'+esc(state)+'</span>'+(missing.length?'<small>'+esc(tr('abd.analysis.missing',{fields:missing.join(', ')}))+'</small>':'')+'</td></tr>'
+   '<td>'+esc(p.source)+'</td><td><span class="rc1294-state '+(reviewRequired?'review':'ok')+'">'+esc(state)+'</span>'+(missing.length?'<small>'+esc(tr('abd.analysis.missing',{fields:missing.join(', ')}))+'</small>':'')+'</td></tr>'
  }).join('')
 }
 function copyFieldButtons(group){
