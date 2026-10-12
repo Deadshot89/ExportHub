@@ -30,6 +30,18 @@ test('RC1505: lokale Save-Bestätigung ohne Paralleländerung löst keinen Shipm
   }
 });
 
+test('RC1505: lokale No-Merge-ACKs starten keine zweite große Prozess-Nachbearbeitung',()=>{
+  build();
+  for(const file of ['index.html','TESTVERSION.html','demo.html']){
+    const html=read('dist-rc1112/'+file);
+    assert.match(
+      html,
+      /addEventListener\('exporthub:sync',function\(event\)\{var detail=event&&event\.detail\|\|\{\};if\(detail\.reason==='save-confirmation'&&detail\.concurrentMerge!==true\)return;schedulePost\(220,true\)\}\)/,
+      file+': lokale No-Merge-ACKs lösen weiterhin schedulePost(220,true) aus'
+    );
+  }
+});
+
 test('RC1505: Save-Sync transportiert Paralleländerungs-Metadaten bis zum UI-Listener',()=>{
   build();
   for(const file of ['index.html','TESTVERSION.html','demo.html']){
