@@ -6,7 +6,12 @@ const api=fs.readFileSync('api/abd-analysis/index.js','utf8');
 const client=fs.readFileSync('assets/rc1294-abd-self-service.js','utf8');
 
 test('RC1499 invoice intake advertises PDF JPG JPEG PNG XLSX CSV',()=>{
- assert.match(client,/accept="[^"]*\.pdf[^"]*\.jpg[^"]*\.jpeg[^"]*\.png[^"]*\.xlsx[^"]*\.csv/i);
+ assert.match(client,/accept="[^"]*\.pdf/i);
+ assert.match(client,/accept="[^"]*\.xlsx/i);
+ assert.match(client,/accept="[^"]*\.csv/i);
+ assert.match(client,/accept="[^"]*\.jpg/i);
+ assert.match(client,/accept="[^"]*\.jpeg/i);
+ assert.match(client,/accept="[^"]*\.png/i);
 });
 
 test('RC1499 server accepts only validated image extensions and MIME/signatures',()=>{
