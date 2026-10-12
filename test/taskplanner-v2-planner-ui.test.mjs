@@ -18,7 +18,7 @@ function load(){
     'taskV2.planner.title':'Aufgabenplaner'
   };
   context.ExportHUBI18n={t(key,vars){let value=de[key]||key;if(vars)for(const [name,v] of Object.entries(vars))value=value.replaceAll('{'+name+'}',String(v));return value;}};
-  for(const file of ['assets/taskplanner-v2-core.js','assets/taskplanner-v2-planner.js','assets/taskplanner-v2-ui.js','assets/taskplanner-v2-planner-ui.js']){
+  for(const file of ['assets/taskplanner-v2-core.js','assets/taskplanner-v2-recurrence.js','assets/taskplanner-v2-planner.js','assets/taskplanner-v2-ui.js','assets/taskplanner-v2-planner-ui.js']){
     vm.runInNewContext(fs.readFileSync(file,'utf8'),context,{filename:file});
   }
   return context;
