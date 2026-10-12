@@ -128,7 +128,7 @@
     },
     {
       "route": "/pack/*",
-      "rewrite": "/pack.html",
+      "rewrite": "/assets/pack.html",
       "allowedRoles": [
         "anonymous"
       ],
@@ -141,6 +141,7 @@
     },
     {
       "route": "/pack.html",
+      "rewrite": "/assets/pack.html",
       "allowedRoles": [
         "anonymous"
       ],

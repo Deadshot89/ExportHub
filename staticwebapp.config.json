@@ -97,12 +97,13 @@
     },
     {
       "route": "/pack/*",
-      "rewrite": "/pack.html",
+      "rewrite": "/assets/pack.html",
       "allowedRoles": ["anonymous"],
       "headers": {"Cache-Control": "no-store","Referrer-Policy": "no-referrer","X-Content-Type-Options": "nosniff"}
     },
     {
       "route": "/pack.html",
+      "rewrite": "/assets/pack.html",
       "allowedRoles": ["anonymous"],
       "headers": {"Cache-Control": "no-store","Referrer-Policy": "no-referrer","X-Content-Type-Options": "nosniff"}
     },

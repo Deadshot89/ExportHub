@@ -82,14 +82,16 @@ test('pack inbox owns a separate navigation target and does not require tasks vi
   assert.doesNotMatch(adapter,/currentView\(\)!==['"]tasks['"][\s\S]*renderPackInbox/);
 });
 
-test('pack navigation is a true SPA view and reuses the existing menu item structure',()=>{
+test('pack navigation is a true standalone SPA entry and never clones Aufgaben',()=>{
   const nav=fs.readFileSync('assets/pack-notification-nav.js','utf8');
-  assert.match(nav,/cloneNode\(true\)/,'menu structure must be cloned, not rebuilt');
-  assert.match(nav,/setPackNavLabel/,'cloned menu label must be replaced without flattening structure');
-  assert.match(nav,/setPackNavIcon/,'Packmeldungen needs a dedicated menu icon without flattening the cloned structure');
+  assert.doesNotMatch(nav,/cloneNode\(true\)/,'Packmeldungen must not inherit the Aufgaben navigation identity');
+  assert.doesNotMatch(nav,/MutationObserver/,'Packmeldungen must not continuously rebuild from unrelated DOM mutations');
+  assert.match(nav,/createElement\(['"]button['"]\)/,'Packmeldungen needs its own navigation element');
+  assert.match(nav,/setPackNavLabel/);
+  assert.match(nav,/setPackNavIcon/);
   assert.match(nav,/data-pack-notifications-icon/,'dedicated Packmeldungen icon must be identifiable');
+  assert.match(nav,/data-view['"],['"]packnotifications/,'dedicated view identity must be explicit');
   assert.doesNotMatch(nav,/location\.hash\s*=\s*['"]#packmeldungen/,'pack nav must not invoke the legacy hash router');
-  assert.doesNotMatch(nav,/setAttribute\(['"]href['"],[ ]*['"]#packmeldungen/);
   assert.match(nav,/openInbox\(\)/,'click should render the inbox directly');
 });
 
@@ -109,8 +111,9 @@ test('Packmeldungen navigation has exactly one DOM owner',()=>{
   const nav=fs.readFileSync('assets/pack-notification-nav.js','utf8');
   assert.doesNotMatch(adapter,/function\s+ensurePackNav\s*\(/,'internal inbox runtime must not create its own navigation entry');
   assert.doesNotMatch(adapter,/closest\([^\n]*data-pack-notifications-nav/,'internal inbox runtime must not intercept navigation clicks');
-  assert.match(nav,/cloneNode\(true\)/,'navigation owner must preserve the existing menu item structure');
-  assert.match(nav,/data-pack-notifications-nav-owner/,'canonical navigation entries must be identifiable and replace stale malformed entries');
+  assert.match(nav,/createEntry\(anchor\)/,'navigation runtime must own creation of the dedicated menu entry');
+  assert.match(nav,/data-pack-notifications-nav-owner/,'canonical navigation entry must have an explicit owner');
+  assert.doesNotMatch(nav,/cloneNode\(true\)/,'navigation owner must not copy the Aufgaben element');
 });
 
 test('live pack E2E follows the current public form and standalone inbox',()=>{

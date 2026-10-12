@@ -1,133 +1,67 @@
 (function(root){
   'use strict';
-  const doc=root.document;
-  if(!doc)return;
-  let observer=null;
-  let timer=0;
+  const doc=root.document;if(!doc)return;
+  let timer=0,packViewActive=false;
 
   function runtime(){return root.ExportHUBPackNotifications||null;}
-  function openInbox(){const api=runtime();return !!(api&&typeof api.renderPackInbox==='function'&&api.renderPackInbox());}
-  function injectFallbackStyle(){
-    if(doc.getElementById('exporthub-pack-nav-fallback-style'))return;
-    const style=doc.createElement('style');style.id='exporthub-pack-nav-fallback-style';
-    style.textContent='[data-pack-notifications-nav].pack-notification-nav-fallback{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:8px 12px;border:1px solid var(--rc990-card-border,#dbe4ee);border-radius:12px;background:var(--rc990-card-bg,#fff);color:var(--rc990-text,#172033);font:800 13px/1.2 Inter,ui-sans-serif,system-ui,sans-serif;box-shadow:0 4px 14px rgba(15,23,42,.08);cursor:pointer}[data-pack-notifications-nav].pack-notification-nav-fallback:hover,[data-pack-notifications-nav].pack-notification-nav-fallback:focus-visible{outline:none;border-color:#60a5fa;box-shadow:0 0 0 3px rgba(59,130,246,.12)}.pack-notification-nav-icon{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;font-size:16px;line-height:1}';
-    (doc.head||doc.documentElement).appendChild(style);
-  }
   function taskAnchor(){
     const direct=doc.querySelector('[data-view="tasks"],[data-page="tasks"],[data-nav="tasks"]');
     if(direct)return direct;
     const candidates=Array.from(doc.querySelectorAll('nav a,nav button,[role="navigation"] a,[role="navigation"] button,.sidebar a,.sidebar button'));
     return candidates.find(node=>String(node.textContent||'').trim()==='Aufgaben')||null;
   }
-  function clearIdentity(node){
-    if(!node)return;
-    node.removeAttribute&&node.removeAttribute('id');
-    node.removeAttribute&&node.removeAttribute('data-view');
-    node.removeAttribute&&node.removeAttribute('data-page');
-    node.removeAttribute&&node.removeAttribute('data-nav');
-    node.removeAttribute&&node.removeAttribute('href');
-    node.removeAttribute&&node.removeAttribute('aria-current');
-    node.removeAttribute&&node.removeAttribute('onclick');
-    if(node.classList){node.classList.remove('active','is-active','selected','current');}
-    if(node.querySelectorAll)for(const child of node.querySelectorAll('[id]'))child.removeAttribute('id');
+  function injectStyle(){
+    if(doc.getElementById('exporthub-pack-nav-style'))return;
+    const style=doc.createElement('style');style.id='exporthub-pack-nav-style';
+    style.textContent='[data-pack-notifications-nav]{position:relative}[data-pack-notifications-nav].pack-notification-nav-entry{cursor:pointer}.pack-notification-nav-entry .pack-notification-nav-icon{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;font-size:16px;line-height:1}.pack-notification-nav-entry.pack-notification-nav-fallback{display:inline-flex;align-items:center;justify-content:flex-start;gap:8px;min-height:40px;padding:8px 12px;border:1px solid var(--rc990-card-border,#dbe4ee);border-radius:12px;background:var(--rc990-card-bg,#fff);color:var(--rc990-text,#172033);font:800 13px/1.2 Inter,ui-sans-serif,system-ui,sans-serif;box-shadow:0 4px 14px rgba(15,23,42,.08)}.pack-notification-nav-entry.is-active,.pack-notification-nav-entry[aria-current="page"]{outline:none;box-shadow:inset 3px 0 0 #2563eb;background:rgba(37,99,235,.08)}';
+    (doc.head||doc.documentElement).appendChild(style);
   }
-  function setPackNavLabel(node){
-    if(!node)return;
-    const descendants=node.querySelectorAll?Array.from(node.querySelectorAll('*')):[];
-    const exact=descendants.reverse().find(child=>String(child.textContent||'').trim()==='Aufgaben');
-    if(exact){exact.textContent='Packmeldungen';return;}
-    if(node.childNodes){
-      for(const child of Array.from(node.childNodes)){
-        if(child&&child.nodeType===3&&String(child.nodeValue||'').trim()==='Aufgaben'){child.nodeValue='Packmeldungen';return;}
-      }
-    }
-    const label=doc.createElement('span');label.className='pack-notification-nav-label';label.textContent='Packmeldungen';node.appendChild(label);
-  }
-  function setPackNavIcon(node){
-    if(!node)return false;
-    const marked=node.querySelector&&node.querySelector('[data-pack-notifications-icon]');
-    if(marked)return true;
-    const svg=node.querySelector&&node.querySelector('svg');
-    if(svg){
-      svg.setAttribute&&svg.setAttribute('data-pack-notifications-icon','');
-      svg.setAttribute&&svg.setAttribute('viewBox','0 0 24 24');
-      svg.setAttribute&&svg.setAttribute('aria-hidden','true');
-      svg.innerHTML='<path d="M4.5 7.25 12 3l7.5 4.25v9.5L12 21l-7.5-4.25v-9.5Z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="m4.75 7.4 7.25 4.1 7.25-4.1M12 11.5V21" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>';
-      return true;
-    }
-    const descendants=node.querySelectorAll?Array.from(node.querySelectorAll('*')):[];
-    const iconTarget=descendants.find(child=>{
-      const text=String(child.textContent||'').trim();
-      const classes=String(child.className&&child.className.baseVal||child.className||'').toLowerCase();
-      return text!=='Packmeldungen'&&(classes.includes('icon')||classes.includes('glyph')||classes.includes('symbol')||['✓','✔','☑'].includes(text));
-    });
-    if(iconTarget){
-      iconTarget.textContent='▣';
-      iconTarget.setAttribute&&iconTarget.setAttribute('data-pack-notifications-icon','');
-      iconTarget.setAttribute&&iconTarget.setAttribute('aria-hidden','true');
-      return true;
-    }
-    const icon=doc.createElement('span');icon.className='pack-notification-nav-icon';icon.textContent='▣';icon.setAttribute('data-pack-notifications-icon','');icon.setAttribute('aria-hidden','true');
-    const label=descendants.find(child=>String(child.textContent||'').trim()==='Packmeldungen');
-    if(label&&label.parentNode&&typeof label.parentNode.insertBefore==='function'){label.parentNode.insertBefore(icon,label);return true;}
-    if(typeof node.insertBefore==='function'){node.insertBefore(icon,node.firstChild||null);return true;}
-    if(typeof node.appendChild==='function'){node.appendChild(icon);return true;}
-    return false;
-  }
-  function isCanonical(node){
-    if(!node)return false;
-    if(typeof node.getAttribute!=='function')return true;
-    return node.getAttribute('data-pack-notifications-nav-owner')==='nav-runtime';
-  }
-  function removeEntry(node){
-    if(!node)return;
-    if(typeof node.remove==='function'){node.remove();return;}
-    if(node.parentNode&&typeof node.parentNode.removeChild==='function')node.parentNode.removeChild(node);
-  }
-  function buildFromExistingMenu(){
-    const anchor=taskAnchor();if(!anchor||!anchor.parentNode)return null;
-    const node=anchor.cloneNode(true);
-    clearIdentity(node);
-    node.setAttribute('data-pack-notifications-nav','');
-    node.setAttribute('data-pack-notifications-nav-owner','nav-runtime');
-    node.setAttribute('aria-label','Packmeldungen');
-    node.setAttribute('title','Packmeldungen');
-    if(node.tagName==='BUTTON')node.setAttribute('type','button');
-    if(node.tagName==='A')node.setAttribute('role','button');
-    setPackNavLabel(node);
-    setPackNavIcon(node);
-    anchor.parentNode.insertBefore(node,anchor.nextSibling);
-    return node;
+  function setPackNavLabel(node){if(!node)return;let label=node.querySelector&&node.querySelector('.pack-notification-nav-label');if(!label){label=doc.createElement('span');label.className='pack-notification-nav-label';node.appendChild(label);}label.textContent='Packmeldungen';}
+  function setPackNavIcon(node){if(!node)return false;let icon=node.querySelector&&node.querySelector('[data-pack-notifications-icon]');if(!icon){icon=doc.createElement('span');icon.className='pack-notification-nav-icon';icon.setAttribute('data-pack-notifications-icon','');icon.setAttribute('aria-hidden','true');if(typeof node.insertBefore==='function')node.insertBefore(icon,node.firstChild||null);else node.appendChild(icon);}icon.textContent='▣';return true;}
+  function createEntry(anchor){
+    injectStyle();const node=doc.createElement('button');node.type='button';node.className='pack-notification-nav-entry';
+    if(anchor&&typeof anchor.className==='string'&&anchor.className.trim())node.className+=' '+anchor.className.trim();
+    node.removeAttribute&&node.removeAttribute('id');node.setAttribute('data-pack-notifications-nav','');node.setAttribute('data-pack-notifications-nav-owner','nav-runtime');node.setAttribute('data-view','packnotifications');node.setAttribute('aria-label','Packmeldungen');node.setAttribute('title','Packmeldungen');
+    setPackNavIcon(node);setPackNavLabel(node);return node;
   }
   function ensureEntry(){
-    let existing=doc.querySelector('[data-pack-notifications-nav]');
-    const anchor=taskAnchor();
-    if(existing&&anchor&&(!isCanonical(existing)||(existing.classList&&existing.classList.contains('pack-notification-nav-fallback')))){removeEntry(existing);existing=null;}
-    if(existing)return existing;
-    const built=buildFromExistingMenu();if(built)return built;
-    injectFallbackStyle();
-    const host=doc.querySelector('nav,[role="navigation"],.sidebar,.side-nav,.navigation')||doc.body;
-    const node=doc.createElement('button');node.type='button';node.className='pack-notification-nav-fallback';node.setAttribute('data-pack-notifications-nav','');node.setAttribute('data-pack-notifications-nav-owner','nav-runtime');node.setAttribute('aria-label','Packmeldungen');const icon=doc.createElement('span');icon.className='pack-notification-nav-icon';icon.textContent='▣';icon.setAttribute('data-pack-notifications-icon','');icon.setAttribute('aria-hidden','true');node.appendChild(icon);const label=doc.createElement('span');label.textContent='Packmeldungen';node.appendChild(label);host.appendChild(node);return node;
+    const existing=doc.querySelector('[data-pack-notifications-nav]');if(existing)return existing;
+    const anchor=taskAnchor();const node=createEntry(anchor);
+    if(anchor&&anchor.parentNode){anchor.parentNode.insertBefore(node,anchor.nextSibling);return node;}
+    node.classList&&node.classList.add('pack-notification-nav-fallback');
+    const host=doc.querySelector('nav,[role="navigation"],.sidebar,.side-nav,.navigation')||doc.body;host.appendChild(node);return node;
   }
-  function mutationNeedsRoute(){
-    const existing=doc.querySelector('[data-pack-notifications-nav]');
-    if(!existing)return true;
-    const anchor=taskAnchor();
-    return !!(anchor&&(!isCanonical(existing)||(existing.classList&&existing.classList.contains('pack-notification-nav-fallback'))));
+  function setActive(active){
+    const node=doc.querySelector('[data-pack-notifications-nav]');if(!node)return;
+    node.classList&&node.classList.toggle('is-active',!!active);if(active)node.setAttribute('aria-current','page');else node.removeAttribute('aria-current');
   }
-  function route(){ensureEntry();}
-  function schedule(){clearTimeout(timer);timer=setTimeout(route,50);}
-  function click(event){
-    const node=event.target&&event.target.closest&&event.target.closest('[data-pack-notifications-nav]');if(!node)return;
-    event.preventDefault();event.stopPropagation();if(typeof event.stopImmediatePropagation==='function')event.stopImmediatePropagation();
-    openInbox();
+  function ensureStationAdmin(){
+    if(root.ExportHUBPackStationAdmin)return Promise.resolve(root.ExportHUBPackStationAdmin);
+    return new Promise(resolve=>{
+      let script=doc.getElementById('exporthub-pack-station-admin');
+      if(script){script.addEventListener&&script.addEventListener('load',()=>resolve(root.ExportHUBPackStationAdmin||null),{once:true});root.setTimeout&&root.setTimeout(()=>resolve(root.ExportHUBPackStationAdmin||null),1500);return;}
+      script=doc.createElement('script');script.id='exporthub-pack-station-admin';script.src='/assets/pack-station-admin.js?v=1501';script.defer=true;script.onload=()=>resolve(root.ExportHUBPackStationAdmin||null);script.onerror=()=>resolve(null);(doc.head||doc.documentElement).appendChild(script);
+    });
   }
+  function notifyInboxOpened(){try{if(typeof root.CustomEvent==='function'&&typeof root.dispatchEvent==='function')root.dispatchEvent(new root.CustomEvent('exporthub:pack-inbox-opened'));}catch(_){} }
+  function openInbox(){
+    const api=runtime();if(!(api&&typeof api.renderPackInbox==='function'))return false;
+    packViewActive=true;const rendered=!!api.renderPackInbox();try{doc.body&&doc.body.setAttribute('data-exporthub-view','packnotifications');}catch(_){}setActive(rendered);
+    if(rendered){ensureStationAdmin().then(admin=>{if(admin&&typeof admin.decorateInbox==='function')admin.decorateInbox();notifyInboxOpened();});}
+    return rendered;
+  }
+  function click(event){const node=event.target&&event.target.closest&&event.target.closest('[data-pack-notifications-nav]');if(!node)return;event.preventDefault();event.stopPropagation();if(typeof event.stopImmediatePropagation==='function')event.stopImmediatePropagation();openInbox();}
+  function currentView(){try{return String(doc.body&&doc.body.getAttribute('data-exporthub-view')||'').toLowerCase();}catch(_){return'';}}
+  function repairAfterViewChange(){clearTimeout(timer);timer=setTimeout(()=>{const node=ensureEntry();const active=packViewActive&&currentView()==='packnotifications';setActive(active);if(active){const api=runtime();if(api&&typeof api.renderPackInbox==='function'&&!doc.getElementById('packNotificationInbox'))api.renderPackInbox();ensureStationAdmin().then(admin=>admin&&admin.decorateInbox&&admin.decorateInbox());}},30);}
   function install(){
-    ensureEntry();
-    doc.addEventListener('click',click,true);
-    if(typeof root.MutationObserver==='function'){observer=new root.MutationObserver(function(){if(mutationNeedsRoute())schedule()});observer.observe(doc.documentElement||doc.body,{childList:true,subtree:true});}
-    schedule();return true;
+    if(doc.__exporthubPackNavInstalled)return true;doc.__exporthubPackNavInstalled=true;ensureEntry();doc.addEventListener('click',click,true);
+    if(doc.readyState==='loading')doc.addEventListener('DOMContentLoaded',repairAfterViewChange,{once:true});
+    if(typeof root.addEventListener==='function'){
+      root.addEventListener('exporthub:view-changed',()=>{if(currentView()!=='packnotifications')packViewActive=false;repairAfterViewChange();});
+      root.addEventListener('exporthub:pack-language-changed',repairAfterViewChange);
+    }
+    ensureStationAdmin();return true;
   }
-  root.ExportHUBPackNotificationNav=Object.freeze({ensureEntry,openInbox,route,install,setPackNavLabel,setPackNavIcon});
+  root.ExportHUBPackNotificationNav=Object.freeze({ensureEntry,openInbox,repairAfterViewChange,install,setPackNavLabel,setPackNavIcon});
   install();
 })(typeof window!=='undefined'?window:globalThis);
