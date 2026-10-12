@@ -40,7 +40,12 @@ function harness({backup='success',restore='success',restoreJob=restore,backupRu
   const github={
     rest:{
       actions:{
-        listWorkflowRuns:async({workflow_id,per_page})=>({data:{workflow_runs:workflowRuns[workflow_id].slice(0,per_page||workflowRuns[workflow_id].length)}}),
+        listWorkflowRuns:async({workflow_id,per_page,page=1})=>{
+          const all=workflowRuns[workflow_id];
+          const size=per_page||all.length;
+          const start=(page-1)*size;
+          return{data:{workflow_runs:all.slice(start,start+size)}};
+        },
         listJobsForWorkflowRun:async({run_id})=>{
           const conclusion=restoreJobByRunId.get(run_id);
           return{data:{jobs:conclusion?[{
@@ -86,7 +91,8 @@ test('RC1491: Backup- und Restore-Betriebsfehler werden GitHub-intern idempotent
   assert.match(source,/rc1267-state-backup\.yml/);
   assert.match(source,/rc1137-state-compaction\.yml/);
   assert.match(source,/listWorkflowRuns/);
-  assert.match(source,/per_page:10/);
+  assert.match(source,/per_page:100/);
+  assert.match(source,/page<=10/);
   assert.match(source,/conclusion==='skipped'&&run\.event==='workflow_run'/);
   assert.match(source,/\[OPS\] State Backup\/Restore Watchdog/);
   assert.match(source,/exporthub-ops:state-backup-restore-watchdog/);
@@ -119,6 +125,23 @@ test('RC1491: neutraler workflow_run-Skip verdrängt letzten relevanten Erfolg n
   assert.ok(h.calls.updated.some(call=>call.issue_number===652&&call.state==='closed'),'neutraler Skip darf Recovery nicht blockieren');
   assert.equal(h.calls.comments.length,1);
   assert.match(h.calls.comments[0].body,/wieder gesund/);
+});
+
+test('RC1497: auch mehr als 100 neutrale Skips verdrängen den letzten relevanten Erfolg nicht',async()=>{
+  const neutralSkips=Array.from({length:105},(_,index)=>run({
+    id:2000+index,
+    conclusion:'skipped',
+    event:'workflow_run',
+    runNumber:900-index
+  }));
+  const h=harness({
+    backupRuns:[...neutralSkips,run({id:1999,conclusion:'success',event:'schedule',runNumber:794})],
+    restore:'success',
+    issue:{number:652,state:'open',title:'[OPS] State Backup/Restore Watchdog',body:'<!-- exporthub-ops:state-backup-restore-watchdog -->'}
+  });
+  await execute(h);
+  assert.equal(h.calls.created.length,0);
+  assert.ok(h.calls.updated.some(call=>call.issue_number===652&&call.state==='closed'),'paginierte Suche muss den relevanten Erfolg auf Folgeseiten finden');
 });
 
 test('RC1497: geplanter Skip bleibt ein Betriebsfehler',async()=>{
