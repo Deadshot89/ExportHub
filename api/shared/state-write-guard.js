@@ -9,6 +9,12 @@ const DOCUMENT_FIELD_SET = new Set(DOCUMENT_FIELDS || []);
 
 const DIRECT_RIGHTS = Object.freeze({
   tasks: ['tasks'],
+  taskSeries: ['tasks'],
+  taskTemplates: ['tasks'],
+  taskCalendar: ['tasks'],
+  taskSettings: ['tasks'],
+  taskArchive: ['tasks'],
+  taskMigrationMeta: ['tasks'],
   taskWeek: ['tasks'],
   taskMasterRC848: ['tasks'],
   taskMasterSourceVersion: ['tasks'],
@@ -108,9 +114,6 @@ function effectiveKeyChange(serverState, incomingState, key) {
   if (isDeepStrictEqual(serverValue, incomingValue)) return { changed: false, before: serverValue, after: serverValue };
 
   if (Array.isArray(serverValue) || Array.isArray(incomingValue)) {
-    // RC1490: mergeCollection normalisiert einzelne Collections (z. B. customerHistory/processStatus).
-    // Nur bei einer real abweichenden Client-Collection wird deshalb gegen denselben normalisierten
-    // Server-Baseline-Merge projiziert. Unveränderte große Collections werden nicht doppelt gemerged.
     const tombstones = new Map();
     const before = mergeCollection(key, serverValue, serverValue, tombstones);
     const after = mergeCollection(key, serverValue, incomingValue, tombstones);
