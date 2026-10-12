@@ -139,6 +139,11 @@ async function upload(req,current,environment,payload){
  }catch(e){if(!e||![409,412].includes(Number(e.statusCode||e.status)))throw e}
  return{ok:true,status:'scanning',upload:{id:uploadId(file.sha256,file.kind),name:file.name,size:file.size,fileType:file.kind,provider:'Microsoft Defender for Storage'}}
 }
+function reanalyze(req,payload){
+ const positions=Array.isArray(payload&&payload.positions)?payload.positions:null;
+ if(!positions||positions.length>500)throw error('ABD_REANALYZE_INVALID',apiI18n.t(req,'api.abdAnalysis.failed'),400);
+ return{ok:true,status:'ready',analysis:analysisModel.rebuildReviewedAnalysis({header:payload&&payload.header,positions})}
+}
 async function status(req,current,environment,payload){
  const id=parseUploadId(payload.uploadId);if(!id)throw error('ABD_UPLOAD_ID_INVALID',apiI18n.t(req,'api.abdAnalysis.uploadInvalid'),400);
  const container=await quarantine(),blob=container.getBlockBlobClient(blobName(environment,current,id));
@@ -168,6 +173,7 @@ module.exports=async function(context,req){
   const payload=auth.body(req),environment=auth.environmentFromRequest(req),action=lower(payload.action);
   if(action==='upload')context.res=response(202,await upload(req,current,environment,payload));
   else if(action==='status'){const result=await status(req,current,environment,payload);context.res=response(result.httpStatus,result.body)}
+  else if(action==='reanalyze')context.res=response(200,reanalyze(req,payload));
   else throw error('ABD_ACTION_INVALID',apiI18n.t(req,'api.abdAnalysis.actionInvalid'),400)
  }catch(e){
   try{context.log&&context.log.error&&context.log.error('RC1294 ABD analysis',e&&e.code,e&&e.message)}catch(_){}
