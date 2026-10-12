@@ -83,7 +83,7 @@ test('genau ein Kandidat wird automatisch erledigt, Historie erhält eventId und
   const result=api.apply(event(),state,{now:'2026-10-12T10:00:00+02:00'});
   assert.equal(result.changed,true);
   assert.equal(result.status,'completed');
-  assert.deepEqual(result.patches.map(p=>p.taskId),['target']);
+  assert.deepEqual(plain(result.patches.map(p=>p.taskId)),['target']);
   const done=result.state.tasks.find(t=>t.id==='target');
   assert.equal(done.status,'done');
   assert.equal(done.completionMode,'automatic');
