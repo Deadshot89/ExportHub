@@ -230,21 +230,32 @@ function removeRunRecords(state,runId){
  }
  return{state:out,removed};
 }
+function removePackStationRecords(state,stationIds){
+ const out=state&&typeof state==='object'&&!Array.isArray(state)?clone(state):{};
+ const ids=stationIds instanceof Set?stationIds:new Set(stationIds||[]);
+ if(!ids.size)return{state:out,removed:0};
+ const notifications=Array.isArray(out.packNotifications)?out.packNotifications:[];
+ const notificationIds=new Set(notifications.filter(item=>item&&ids.has(text(item.packStationId))).map(item=>text(item.id)).filter(Boolean));
+ let removed=0;
+ const filter=(key,predicate)=>{const list=Array.isArray(out[key])?out[key]:[];const before=list.length;out[key]=list.filter(item=>!predicate(item));removed+=before-out[key].length;};
+ filter('packStations',item=>item&&ids.has(text(item.id)));
+ filter('packSessions',item=>item&&ids.has(text(item.packStationId)));
+ filter('packDrafts',item=>item&&(ids.has(text(item.createdPackStationId))||ids.has(text(item.lastPackStationId))));
+ filter('packNotifications',item=>item&&ids.has(text(item.packStationId)));
+ filter('tasks',item=>item&&text(item.sourceType)==='pack_notification'&&notificationIds.has(text(item.sourceId)));
+ return{state:out,removed};
+}
 function removePackRunRecords(state,runId){
  const out=state&&typeof state==='object'&&!Array.isArray(state)?clone(state):{};
  const stations=Array.isArray(out.packStations)?out.packStations:[];
  const stationIds=new Set(stations.filter(item=>item&&text(item._e2eRunId)===runId).map(item=>text(item.id)).filter(Boolean));
- if(!stationIds.size)return{state:out,removed:0};
- const notifications=Array.isArray(out.packNotifications)?out.packNotifications:[];
- const notificationIds=new Set(notifications.filter(item=>item&&stationIds.has(text(item.packStationId))).map(item=>text(item.id)).filter(Boolean));
- let removed=0;
- const filter=(key,predicate)=>{const list=Array.isArray(out[key])?out[key]:[];const before=list.length;out[key]=list.filter(item=>!predicate(item));removed+=before-out[key].length;};
- filter('packStations',item=>item&&stationIds.has(text(item.id)));
- filter('packSessions',item=>item&&stationIds.has(text(item.packStationId)));
- filter('packDrafts',item=>item&&(stationIds.has(text(item.createdPackStationId))||stationIds.has(text(item.lastPackStationId))));
- filter('packNotifications',item=>item&&stationIds.has(text(item.packStationId)));
- filter('tasks',item=>item&&text(item.sourceType)==='pack_notification'&&notificationIds.has(text(item.sourceId)));
- return{state:out,removed};
+ return removePackStationRecords(out,stationIds);
+}
+function removeStalePackRecords(state){
+ const out=state&&typeof state==='object'&&!Array.isArray(state)?clone(state):{};
+ const stations=Array.isArray(out.packStations)?out.packStations:[];
+ const stationIds=new Set(stations.filter(e2eMarked).map(item=>text(item.id)).filter(Boolean));
+ return removePackStationRecords(out,stationIds);
 }
 async function mutateTestTeam(mutator){
  const container=service().getContainerClient(TEAM_CONTAINER),blob=container.getBlockBlobClient(TEST_TEAM_BLOB);
@@ -282,7 +293,8 @@ async function prepare(runId){
  const mutation=await mutateTestTeam(async team=>{
   team.state=team.state&&typeof team.state==='object'?team.state:{};
   team.users=Array.isArray(team.users)?team.users:[];
-  const staleState=removeStaleE2ERecords(team.state);
+  const stalePack=removeStalePackRecords(team.state);
+  const staleState=removeStaleE2ERecords(stalePack.state);
   team.state=staleState.state;
   const beforeUsers=team.users.length;
   team.users=team.users.filter(u=>!e2eMarked(u));
@@ -296,7 +308,7 @@ async function prepare(runId){
   team.state.customers.push(customer);
   team.state.packStations=Array.isArray(team.state.packStations)?team.state.packStations.filter(x=>text(x&&x.id)!==pack.station.id):[];
   team.state.packStations.push(pack.station);
-  return{team,value:{user,nonAdminUser,customer,purgedStaleRecords:staleState.removed,purgedStaleUsers},changed:true};
+  return{team,value:{user,nonAdminUser,customer,purgedStaleRecords:stalePack.removed+staleState.removed,purgedStaleUsers},changed:true};
  });
  const user=mutation.result.user,nonAdminUser=mutation.result.nonAdminUser,customer=mutation.result.customer;
  const adminSession=signedSessionFor(user,runId,'ADMIN'),nonAdminSession=signedSessionFor(nonAdminUser,runId,'NONADMIN');
