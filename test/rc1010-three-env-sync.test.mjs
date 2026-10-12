@@ -21,12 +21,12 @@ test('autoritativer Produktionsmarker darf nach RC1010 nicht zurückfallen',()=>
   assert.ok(Number(match[1])>=1010,`Produktionsmarker RC${match[1]} liegt hinter RC1010`);
 });
 
-test('aktueller Standard-Deploy hält Produktion TESTSERVICE und Demo weiterhin gemeinsam',()=>{
+test('RC1505: Main Verification hält Buildstände gemeinsam, Production aber getrennt',()=>{
   const flow=read('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml');
-  assert.match(flow,/Drei-Umgebungen Deploy/);
-  assert.match(flow,/Deploy ExportHUB production/);
+  assert.match(flow,/ExportHUB RC1112 Main Verification/);
   assert.match(flow,/Deploy ExportHUB TESTSERVICE/);
-  assert.match(flow,/Produktion TESTSERVICE und Demo/);
+  assert.match(flow,/Produktion TESTSERVICE und Demo|production-candidate/);
+  assert.doesNotMatch(flow,/Deploy ExportHUB production/);
 });
 
 test('TESTSERVICE Einzeldeploy bleibt nach RC1010 nur als genehmigte Ausnahme möglich',()=>{
