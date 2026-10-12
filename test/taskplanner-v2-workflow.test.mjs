@@ -6,6 +6,7 @@ import vm from 'node:vm';
 function load(){
   const context={console,Date,Intl,setTimeout,clearTimeout};
   context.globalThis=context;
+  context.ExportHUBI18n={t(key){return key==='taskV2.workflow.reviewMapping'?'Zuordnung prüfen':key;}};
   context.__events=[];
   context.dispatchEvent=event=>{context.__events.push(event);return true;};
   context.CustomEvent=class CustomEvent{constructor(type,options={}){this.type=type;this.detail=options.detail;}};
