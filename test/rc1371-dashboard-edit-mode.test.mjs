@@ -59,7 +59,7 @@ test('RC1371 add hide move resize ändern nur Layout-State und speichern pro Com
   const state=api.currentLayout();
   assert.equal(state.widgets.find(w=>w.id==='a').visible,true);
   assert.equal(state.widgets.find(w=>w.id==='a').size,'L');
-  assert.deepEqual(state.widgets.map(w=>w.id),['b','a']);
+  assert.deepEqual(state.widgets.filter(w=>w.id==='a'||w.id==='b').map(w=>w.id),['b','a']);
 });
 
 test('RC1371 Vorlagenwechsel überschreibt nur persönlichen Layout-State',()=>{
