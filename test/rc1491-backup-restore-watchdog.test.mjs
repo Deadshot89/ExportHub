@@ -86,6 +86,8 @@ test('RC1491: Backup- und Restore-Betriebsfehler werden GitHub-intern idempotent
   assert.match(source,/rc1267-state-backup\.yml/);
   assert.match(source,/rc1137-state-compaction\.yml/);
   assert.match(source,/listWorkflowRuns/);
+  assert.match(source,/per_page:10/);
+  assert.match(source,/conclusion==='skipped'&&run\.event==='workflow_run'/);
   assert.match(source,/\[OPS\] State Backup\/Restore Watchdog/);
   assert.match(source,/exporthub-ops:state-backup-restore-watchdog/);
   assert.match(source,/listForRepo/);
@@ -117,6 +119,16 @@ test('RC1491: neutraler workflow_run-Skip verdrängt letzten relevanten Erfolg n
   assert.ok(h.calls.updated.some(call=>call.issue_number===652&&call.state==='closed'),'neutraler Skip darf Recovery nicht blockieren');
   assert.equal(h.calls.comments.length,1);
   assert.match(h.calls.comments[0].body,/wieder gesund/);
+});
+
+test('RC1497: geplanter Skip bleibt ein Betriebsfehler',async()=>{
+  const h=harness({
+    backupRuns:[run({id:1301,conclusion:'skipped',event:'schedule',runNumber:45})],
+    restore:'success'
+  });
+  await execute(h);
+  assert.equal(h.calls.created.length,1,'ein geplanter Skip darf nicht stillschweigend ignoriert werden');
+  assert.match(h.calls.created[0].body,/conclusion=skipped/);
 });
 
 test('RC1491: neuer Betriebsfehler erstellt genau ein Watchdog-Issue',async()=>{
@@ -186,7 +198,7 @@ test('RC1491: Betriebs-Issue enthält nur Statusmetadaten, keine Backup-Nutzdate
 
 test('RC1491: Runbook dokumentiert Fehlereskalation und Recovery',()=>{
   const source=fs.readFileSync(RUNBOOK,'utf8');
-  for(const marker of ['Betriebsfehler','automatisch','wiederhergestellt','keine Backup-Inhalte']){
+  for(const marker of ['Betriebsfehler','automatisch','wiederhergestellt','keine Backup-Inhalte','neutraler workflow_run-Skip']){
     assert.ok(source.includes(marker),marker+' fehlt im Backup-Runbook');
   }
 });
