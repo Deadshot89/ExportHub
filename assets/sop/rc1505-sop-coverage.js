@@ -2,20 +2,9 @@
 'use strict';
 if(root.ExportHubSopCoverage)return;
 
-const STATUS=Object.freeze({
-  MISSING:'MISSING',
-  INCOMPLETE:'INCOMPLETE',
-  COVERED:'COVERED',
-  CUSTOMER_OVERLAY:'CUSTOMER_OVERLAY',
-  NO_SOP_NEEDED:'NO_SOP_NEEDED'
-});
-const SYMBOL=Object.freeze({
-  [STATUS.MISSING]:'🔴',
-  [STATUS.INCOMPLETE]:'🟡',
-  [STATUS.COVERED]:'🟢',
-  [STATUS.CUSTOMER_OVERLAY]:'🔵',
-  [STATUS.NO_SOP_NEEDED]:'🟣'
-});
+const STATUS=Object.freeze({MISSING:'red',INCOMPLETE:'yellow',COMPLETE:'green'});
+const SYMBOL=Object.freeze({red:'🔴',yellow:'🟡',green:'🟢'});
+const CAPABILITY_SYMBOL=Object.freeze({tour:'🔵',image:'🟣'});
 
 function text(value){return String(value==null?'':value).trim();}
 function clone(value){return value===undefined?undefined:JSON.parse(JSON.stringify(value));}
@@ -53,11 +42,8 @@ function releasedSnapshot(document){
   if(status!=='Freigegeben')return null;
   const version=text(current&&current.version||document.currentVersion||document.version);
   const snapshot=clone(document)||{};
-  if(version)snapshot.currentVersion=version;
-  if(current){
-    snapshot.version=version;
-    snapshot.status='Freigegeben';
-  }
+  if(version){snapshot.currentVersion=version;snapshot.version=version;}
+  snapshot.status='Freigegeben';
   return {document:snapshot,version,record:clone(current)};
 }
 function processDocument(documents,sopNumber){
@@ -76,89 +62,75 @@ function stepOf(document,stepId){
   const normalized=normalizedDocument(document);
   return list(normalized&&normalized.steps).find(step=>text(step&&step.id)===wanted)||null;
 }
-function hasValidImage(document,stepId){
+function screenshotsForStep(document,stepId){
   const api=visuals();
-  if(!api||typeof api.visualsForStep!=='function')return false;
-  let items=[];
-  try{items=api.visualsForStep(document,stepId);}catch(_){return false;}
-  return list(items).some(item=>text(item&&item.type)==='screenshot'&&!!text(item&&item.src));
+  if(!api||typeof api.visualsForStep!=='function')return [];
+  try{return list(api.visualsForStep(document,stepId)).filter(item=>text(item&&item.type)==='screenshot'&&!!text(item&&item.src));}
+  catch(_){return [];}
 }
-function tourValid(step){
-  if(!step||typeof step!=='object')return false;
-  return !!(step.tour&&step.tour.enabled===true&&text(step.expectedAction)&&text(step.target&&step.target.stableKey));
+function tourStructureValid(step){
+  return !!(step&&step.tour&&step.tour.enabled===true&&text(step.expectedAction)&&text(step.target&&step.target.stableKey));
 }
-function examValid(step){
-  return !!(step&&step.exam&&step.exam.relevant===true);
-}
-function targetStatus(key,scope){
+function examValid(step){return !!(step&&step.exam&&step.exam.relevant===true);}
+function targetStatus(key,options){
   const stableKey=text(key);
   if(!stableKey)return {ok:false,reason:'TARGET_MISSING'};
+  if(typeof options.targetResolver==='function'){
+    try{
+      const custom=options.targetResolver(stableKey);
+      if(custom===true||custom&&custom.ok===true)return {ok:true,reason:''};
+      const code=text(custom&&custom.error||custom&&custom.reason);
+      if(code==='TARGET_AMBIGUOUS'||code==='TARGET_DUPLICATE')return {ok:false,reason:'TARGET_DUPLICATE'};
+      if(code==='TARGET_NOT_FOUND'||code==='TARGET_MISSING')return {ok:false,reason:'TARGET_MISSING'};
+      return {ok:false,reason:'TARGET_UNAVAILABLE'};
+    }catch(_){return {ok:false,reason:'TARGET_UNAVAILABLE'};}
+  }
   const api=targets();
   if(!api||typeof api.find!=='function')return {ok:false,reason:'TARGET_UNAVAILABLE'};
   let found;
-  try{found=api.find(stableKey,scope||(root&&root.document));}catch(_){return {ok:false,reason:'TARGET_UNAVAILABLE'};}
+  try{found=api.find(stableKey,options.scope||(root&&root.document));}catch(_){return {ok:false,reason:'TARGET_UNAVAILABLE'};}
   if(found&&found.ok===true)return {ok:true,reason:''};
   const error=text(found&&found.error);
   if(error==='TARGET_AMBIGUOUS')return {ok:false,reason:'TARGET_DUPLICATE'};
   if(error==='TARGET_NOT_FOUND'||error==='KEY_REQUIRED')return {ok:false,reason:'TARGET_MISSING'};
   return {ok:false,reason:'TARGET_UNAVAILABLE'};
 }
-function overlayCandidate(documents,entry,customerId){
+function overlayCandidates(documents,entry,customerId){
   const customer=text(customerId),base=text(entry&&entry.sopNumber);
   if(!customer||entry&&entry.customerScoped!==true)return [];
   return list(documents).filter(doc=>text(doc&&doc.type)==='customer'&&text(doc&&doc.customerId)===customer&&text(doc&&doc.baseProcessSop)===base);
 }
-function overlayResult(documents,entry,customerId){
-  const candidates=overlayCandidate(documents,entry,customerId);
-  if(!candidates.length)return {active:false,invalid:false,overlay:null};
+function overlayInfo(documents,entry,customerId){
+  const candidates=overlayCandidates(documents,entry,customerId);
+  if(!text(customerId)||entry&&entry.customerScoped!==true)return {present:false,number:'',released:false,invalid:false,candidates:0};
+  if(!candidates.length)return {present:false,number:'',released:false,invalid:false,candidates:0};
+  const released=candidates.filter(doc=>!!releasedSnapshot(doc));
+  if(!released.length)return {present:false,number:'',released:false,invalid:false,candidates:candidates.length};
   const api=overlays();
-  if(!api||typeof api.resolve!=='function')return {active:false,invalid:true,overlay:null};
+  if(!api||typeof api.resolve!=='function')return {present:false,number:'',released:true,invalid:true,candidates:candidates.length};
   let result;
-  try{
-    result=api.resolve({documents,baseSopNumber:text(entry.sopNumber),customerId:text(customerId),rights:{read:true}});
-  }catch(_){return {active:false,invalid:true,overlay:null};}
-  if(!result||result.ok===false)return {active:false,invalid:true,overlay:null};
-  return {active:!!result.overlay,invalid:false,overlay:result.overlay||null};
+  try{result=api.resolve({documents,baseSopNumber:text(entry.sopNumber),customerId:text(customerId),rights:{read:true}});}
+  catch(_){return {present:false,number:'',released:true,invalid:true,candidates:candidates.length};}
+  if(!result||result.ok===false)return {present:false,number:'',released:true,invalid:true,candidates:candidates.length};
+  return {present:!!result.overlay,number:text(result.overlay&&result.overlay.number),released:true,invalid:false,candidates:candidates.length};
 }
 function rowBase(entry){
   const source=clone(entry&&typeof entry==='object'?entry:{})||{};
   return {
-    id:text(source.id),
-    view:text(source.view),
-    action:text(source.action),
-    sopNumber:text(source.sopNumber),
-    stepId:text(source.stepId),
-    targetKey:text(source.targetKey),
-    required:source.required===true,
-    requiredImage:source.requiredImage===true,
-    requiredTour:source.requiredTour===true,
-    requiredExam:source.requiredExam===true,
-    customerScoped:source.customerScoped===true,
-    coveragePolicy:text(source.coveragePolicy),
-    statusCode:'',
-    symbol:'',
-    reasons:[],
-    version:'',
-    customerId:'',
-    overlayNumber:''
+    id:text(source.id),view:text(source.view),action:text(source.action),sopNumber:text(source.sopNumber),stepId:text(source.stepId),targetKey:text(source.targetKey),
+    required:source.required===true,requiredImage:source.requiredImage===true,requiredTour:source.requiredTour===true,requiredExam:source.requiredExam===true,
+    customerScoped:source.customerScoped===true,customerOverlayRequired:source.customerOverlayRequired===true,
+    status:'',symbol:'',reasons:[],version:'',
+    capabilities:{tour:{present:false,symbol:''},image:{present:false,symbol:''},exam:{present:false}},
+    customerOverlay:{present:false,number:'',required:source.customerOverlayRequired===true}
   };
 }
-function finish(row,status,reasons){
-  row.statusCode=status;
-  row.symbol=SYMBOL[status]||'';
-  row.reasons=unique(reasons);
-  return row;
-}
+function finish(row,status,reasons){row.status=status;row.symbol=SYMBOL[status]||'';row.reasons=unique(reasons);return row;}
 
 function evaluateEntry(entry,options={}){
   const row=rowBase(entry);
   const documents=list(options.documents);
-  const customerId=text(options.customerId);
-  row.customerId=customerId;
-
-  if(row.coveragePolicy==='no-sop-needed')return finish(row,STATUS.NO_SOP_NEEDED,['NO_SOP_NEEDED']);
   if(!row.sopNumber)return finish(row,STATUS.MISSING,['SOP_NUMBER_REQUIRED']);
-
   const raw=processDocument(documents,row.sopNumber);
   if(!raw)return finish(row,STATUS.MISSING,['SOP_MISSING']);
   const released=releasedSnapshot(raw);
@@ -169,32 +141,66 @@ function evaluateEntry(entry,options={}){
   const step=row.stepId?stepOf(released.document,row.stepId):null;
   if(row.stepId&&!step)reasons.push('STEP_MISSING');
 
-  if(row.requiredImage&&(!step||!hasValidImage(released.document,row.stepId)))reasons.push('IMAGE_MISSING');
-  if(row.requiredTour&&(!step||!tourValid(step)))reasons.push('TOUR_MISSING');
-  if(row.requiredExam&&(!step||!examValid(step)))reasons.push('EXAM_MISSING');
-
-  const expectedTarget=row.targetKey||text(step&&step.target&&step.target.stableKey);
-  if((row.targetKey||row.requiredTour)&&step){
-    if(row.targetKey&&text(step&&step.target&&step.target.stableKey)!==row.targetKey)reasons.push('TARGET_MISMATCH');
-    const status=targetStatus(expectedTarget,options.scope);
-    if(!status.ok)reasons.push(status.reason);
+  const screenshots=step?screenshotsForStep(released.document,row.stepId):[];
+  let imagePresent=screenshots.length>0;
+  if(imagePresent&&typeof options.assetExists==='function'){
+    imagePresent=screenshots.some(item=>{
+      try{return options.assetExists(text(item&&item.src),row)!==false;}catch(_){return false;}
+    });
+  }
+  row.capabilities.image={present:imagePresent,symbol:imagePresent?CAPABILITY_SYMBOL.image:''};
+  if(row.requiredImage&&!imagePresent){
+    if(screenshots.length&&typeof options.assetExists==='function')reasons.push('IMAGE_FILE_MISSING');
+    else reasons.push('IMAGE_MISSING');
   }
 
-  const customerOverlay=overlayResult(documents,entry,customerId);
-  if(customerOverlay.invalid)reasons.push('CUSTOMER_OVERLAY_INVALID');
-  if(reasons.length)return finish(row,STATUS.INCOMPLETE,reasons);
-  if(customerOverlay.active){
-    row.overlayNumber=text(customerOverlay.overlay&&customerOverlay.overlay.number);
-    return finish(row,STATUS.CUSTOMER_OVERLAY,['CUSTOMER_OVERLAY_ACTIVE']);
+  const structureOk=!!step&&tourStructureValid(step);
+  let targetOk=false;
+  if(structureOk){
+    const stepTarget=text(step&&step.target&&step.target.stableKey);
+    if(row.targetKey&&stepTarget!==row.targetKey)reasons.push('TARGET_MISMATCH');
+    const checked=targetStatus(row.targetKey||stepTarget,options);
+    targetOk=checked.ok;
+    if(row.requiredTour&&!checked.ok)reasons.push(checked.reason);
   }
-  return finish(row,STATUS.COVERED,[]);
+  const tourPresent=structureOk&&targetOk&&(!row.targetKey||text(step&&step.target&&step.target.stableKey)===row.targetKey);
+  row.capabilities.tour={present:tourPresent,symbol:tourPresent?CAPABILITY_SYMBOL.tour:''};
+  if(row.requiredTour&&!structureOk)reasons.push('TOUR_MISSING');
+
+  const examPresent=!!step&&examValid(step);
+  row.capabilities.exam={present:examPresent};
+  if(row.requiredExam&&!examPresent)reasons.push('EXAM_MISSING');
+
+  const customerId=text(options.customerId);
+  const overlay=overlayInfo(documents,entry,customerId);
+  row.customerOverlay={present:overlay.present,number:overlay.number,required:row.customerOverlayRequired};
+  if(overlay.invalid)reasons.push('CUSTOMER_OVERLAY_INVALID');
+  if(row.customerOverlayRequired&&customerId){
+    if(!overlay.candidates)reasons.push('CUSTOMER_OVERLAY_MISSING');
+    else if(!overlay.released)reasons.push('CUSTOMER_OVERLAY_NOT_RELEASED');
+    else if(!overlay.present&&!overlay.invalid)reasons.push('CUSTOMER_OVERLAY_MISSING');
+  }
+
+  return finish(row,reasons.length?STATUS.INCOMPLETE:STATUS.COMPLETE,reasons);
 }
 
 function scan(options={}){
-  const entries=Array.isArray(options.entries)?options.entries:defaultEntries();
+  const sourceEntries=Array.isArray(options.entries)?options.entries:defaultEntries();
   const documents=Array.isArray(options.documents)?options.documents:stateDocuments();
-  return entries.map(entry=>evaluateEntry(entry,{documents,scope:options.scope,customerId:options.customerId}));
+  const entries=sourceEntries.filter(entry=>entry&&entry.required===true);
+  const items=entries.map(entry=>evaluateEntry(entry,{documents,scope:options.scope,targetResolver:options.targetResolver,assetExists:options.assetExists,customerId:options.customerId}));
+  const counts={
+    total:items.length,
+    red:items.filter(item=>item.status===STATUS.MISSING).length,
+    yellow:items.filter(item=>item.status===STATUS.INCOMPLETE).length,
+    green:items.filter(item=>item.status===STATUS.COMPLETE).length,
+    tour:items.filter(item=>item.capabilities.tour.present).length,
+    image:items.filter(item=>item.capabilities.image.present).length,
+    exam:items.filter(item=>item.capabilities.exam.present).length
+  };
+  const percentage=counts.total?Math.round((counts.green/counts.total)*100):100;
+  return {items,counts,percentage};
 }
 
-root.ExportHubSopCoverage=Object.freeze({STATUS,SYMBOL,evaluateEntry,scan});
+root.ExportHubSopCoverage=Object.freeze({STATUS,SYMBOL,CAPABILITY_SYMBOL,evaluateEntry,scan});
 })(typeof globalThis!=='undefined'?globalThis:this);
