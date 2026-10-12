@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 
+await import('../assets/sop/rc1500-sop-step-contract.js');
 await import('../assets/sop/rc1007-sop-model.js');
 await import('../assets/sop/rc1007-sop-catalog.js');
 await import('../assets/sop/rc1010-sop-release.js');
@@ -10,6 +11,7 @@ await import('../assets/sop/rc1016-sop-consolidation.js');
 await import('../assets/sop/rc1018-sop-system-images.js');
 
 const catalog=globalThis.ExportHubIsoSopCatalog;
+const model=globalThis.ExportHubIsoSopModel;
 
 test('RC1018: alle 24 konsolidierten SOPs besitzen ein eigenes echtes Systembild',()=>{
   assert.equal(catalog.documents.length,24,'erwartet werden 24 konsolidierte SOPs');
@@ -28,4 +30,13 @@ test('RC1018: alle 24 konsolidierten SOPs besitzen ein eigenes echtes Systembild
   assert.deepEqual(missing,[],`SOPs ohne echtes Systembild: ${missing.join(', ')}`);
   assert.equal(new Set(sources).size,24,'jede konsolidierte SOP benötigt einen eigenen Systemausschnitt');
   assert.equal(new Set(hashes).size,24,'jede konsolidierte SOP benötigt auch einen eigenständigen Bildinhalt');
+});
+
+test('SOPMaster-Normalisierung erhält sämtliche RC1018-Screenshot-Zuordnungen exakt',()=>{
+  for(const doc of catalog.documents){
+    const before=(doc.visuals||[]).filter(v=>v&&v.type==='screenshot').map(v=>`${v.stepId||''}|${v.src||''}|${v.caption||''}`);
+    const view=model.normalizeDocument(doc);
+    const after=(view.visuals||[]).filter(v=>v&&v.type==='screenshot').map(v=>`${v.stepId||''}|${v.src||''}|${v.caption||''}`);
+    assert.deepEqual(after,before,`${doc.number}: Screenshot-Mapping verändert`);
+  }
 });
