@@ -9,6 +9,7 @@ await import('../assets/sop/rc1500-sop-overlay.js');
 await import('../assets/sop/rc1502-sop-visuals.js');
 await import('../assets/sop/rc1502-sop-editor.js');
 await import('../assets/sop/rc1007-sop-ui.js');
+await import('../assets/sop/rc1502-sop-target-picker-ui.js');
 
 const model=globalThis.ExportHubIsoSopModel;
 const catalog=globalThis.ExportHubIsoSopCatalog;
@@ -84,7 +85,7 @@ test('Draft-Schritte zeigen Tourziel, Ziel auswählen, Ziel testen und Picker-Ab
 });
 
 test('Target-Picker UI nutzt die fail-closed Editor-API und speichert über denselben Dokumentpfad',()=>{
-  const source=fs.readFileSync('assets/sop/rc1007-sop-ui.js','utf8');
+  const source=fs.readFileSync('assets/sop/rc1502-sop-target-picker-ui.js','utf8');
   assert.match(source,/beginTargetPick/);
   assert.match(source,/cancelTargetPick/);
   assert.match(source,/testTarget/);
