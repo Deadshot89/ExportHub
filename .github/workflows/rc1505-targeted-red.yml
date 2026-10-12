@@ -5,7 +5,6 @@ on:
     branches: [ main ]
     paths:
       - 'test/rc1505-save-confirmation-render-gate.test.mjs'
-      - 'scripts/rc1505-save-confirmation-render-hotfix.mjs'
       - 'scripts/rc1462-pretest.mjs'
       - '.github/rc1112/build-three-env.mjs'
       - '.github/workflows/rc1505-targeted-red.yml'
@@ -23,4 +22,4 @@ jobs:
         with:
           node-version: 20
       - name: RC1505 targeted regression
-        run: node --test test/rc1505-save-confirmation-render-gate.test.mjs
+        run: node scripts/rc1462-pretest.mjs && node --test test/rc1505-save-confirmation-render-gate.test.mjs
