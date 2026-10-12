@@ -12,6 +12,7 @@ export const RC1502_ASSETS=Object.freeze([
   'assets/sop/rc1502-sop-screenshot-manifest.js',
   'assets/sop/rc1502-sop-editor.js',
   'assets/sop/rc1502-sop-target-picker-ui.js',
+  'assets/sop/rc1502-sop-persistence.js',
   'assets/sop/rc1502-sop-editor.css'
 ]);
 
@@ -20,7 +21,8 @@ const SCRIPT_TAGS=[
   '<script id="exporthub-rc1502-sop-visuals" defer src="/assets/sop/rc1502-sop-visuals.js?v=1502"></script>',
   '<script id="exporthub-rc1502-sop-screenshot-manifest" defer src="/assets/sop/rc1502-sop-screenshot-manifest.js?v=1502"></script>',
   '<script id="exporthub-rc1502-sop-editor" defer src="/assets/sop/rc1502-sop-editor.js?v=1502"></script>',
-  '<script id="exporthub-rc1502-sop-target-picker-ui" defer src="/assets/sop/rc1502-sop-target-picker-ui.js?v=1502"></script>'
+  '<script id="exporthub-rc1502-sop-target-picker-ui" defer src="/assets/sop/rc1502-sop-target-picker-ui.js?v=1502"></script>',
+  '<script id="exporthub-rc1502-sop-persistence" defer src="/assets/sop/rc1502-sop-persistence.js?v=1502"></script>'
 ];
 
 function injectTags(html,file){
@@ -62,7 +64,7 @@ export function integrateEditor(root=ROOT,out=OUT){
     baseBuilder:'.github/rc1501/build-three-env.mjs',
     assets:RC1502_ASSETS.slice(),
     entries:['index.html','TESTVERSION.html','demo.html'],
-    editorPersistence:'existing-isoSops-save-path',
+    editorPersistence:'confirmed-shared-state-flush',
     releasedVersions:'immutable',
     targetPicker:'stable-data-tour-key-only'
   };
