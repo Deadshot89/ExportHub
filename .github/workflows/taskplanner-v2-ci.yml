@@ -24,7 +24,7 @@ jobs:
           node-version: '20'
           package-manager-cache: false
       - name: Install root dependencies
-        run: npm ci --ignore-scripts --no-audit --no-fund
+        run: npm install --ignore-scripts --no-audit --no-fund
       - name: TaskPlanner V2 RED-GREEN contracts
         run: |
           node --test --test-concurrency=1 \
