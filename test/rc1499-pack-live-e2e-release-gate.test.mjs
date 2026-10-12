@@ -5,7 +5,9 @@ import {execFileSync} from 'node:child_process';
 
 const fixturePath='api/e2e-test-fixture/index.js';
 const workflowPath='.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml';
-const specPath='e2e/specs/pack-notification.spec.mjs';
+const packSpecPath='e2e/specs/pack-notification.spec.mjs';
+const publicSmokePath='e2e/specs/public-smoke.spec.mjs';
+const helperPath='e2e/helpers/pack-notification-live.mjs';
 
 function read(path){return fs.readFileSync(path,'utf8')}
 
@@ -23,32 +25,52 @@ test('RC1499: TESTSERVICE-Fixture erzeugt pro Release einen nur gehasht gespeich
   assert.match(fixture,/team\.state\.packStations\s*=\s*Array\.isArray\(team\.state\.packStations\)/,'Packstationen werden im TESTSERVICE-Fixture nicht vorbereitet');
   assert.match(fixture,/tokenHash\s*:\s*packStore\.hashStationToken\(packStationToken\)/,'Packtisch-Token wird nicht gehasht gespeichert');
   assert.match(fixture,/_e2eRunId\s*:\s*runId/,'temporäre Packstation ist nicht dem E2E-Run zugeordnet');
-  assert.match(fixture,/packStationToken\s*[:,]\s*packStationToken/,'Prepare-Antwort liefert den temporären Packtisch-Token nicht');
-  assert.doesNotMatch(fixture,/packStations[\s\S]{0,500}\btoken\s*:\s*packStationToken/,'roher Packtisch-Token darf nicht im Team-State gespeichert werden');
+  assert.match(fixture,/_e2ePackStationToken\s*:\s*pack\.packStationToken/,'temporärer Token wird nicht ausschließlich an den E2E-Client übergeben');
+  assert.doesNotMatch(fixture,/station\s*:\s*\{[\s\S]{0,500}\btoken\s*:\s*packStationToken/,'roher Packtisch-Token darf nicht im Team-State gespeichert werden');
 });
 
-test('RC1499: Packmeldungs-E2E läuft im bestehenden mutierenden TESTSERVICE-Gate vor Production',()=>{
-  const workflow=read(workflowPath);
+test('RC1499: Fixture-Cleanup entfernt Packstation, Sessions, Entwürfe, Packmeldungen und projizierte Aufgaben',()=>{
+  const fixture=read(fixturePath);
+  assert.match(fixture,/function removePackRunRecords\(/);
+  for(const key of ['packStations','packSessions','packDrafts','packNotifications','tasks'])assert.match(fixture,new RegExp(`filter\\('${key}'`),`${key} fehlt im Pack-Cleanup`);
+  assert.match(fixture,/sourceType\)==='pack_notification'/,'Packmeldungs-Aufgaben werden nicht gezielt bereinigt');
+  assert.match(fixture,/removePackRunRecords\(team\.state,runId\)/,'Pack-Cleanup wird beim Fixture-Cleanup nicht ausgeführt');
+});
+
+test('RC1499: echter Packmeldungsfluss läuft im bestehenden mutierenden TESTSERVICE-Gate vor Production',()=>{
+  const workflow=read(workflowPath),publicSmoke=read(publicSmokePath),helper=read(helperPath);
   const gate=stepBlock(workflow,'RC1124 TESTSERVICE Browser Gate','RC1124 TESTSERVICE Browser-Artefakte');
   const production=workflow.indexOf('- name: Deploy ExportHUB production');
   const gateStart=workflow.indexOf('- name: RC1124 TESTSERVICE Browser Gate');
   assert.ok(production>gateStart,'Production muss nach dem TESTSERVICE Browser Gate liegen');
-  assert.match(gate,/pack_station_token=.*packStationToken/,'Workflow liest den temporären Packtisch-Token nicht aus dem Fixture');
-  assert.match(gate,/::add-mask::\$pack_station_token/,'Packtisch-Token wird in Actions-Logs nicht maskiert');
-  assert.match(gate,/export EXPORTHUB_E2E_PACK_STATION_TOKEN="\$pack_station_token"/,'Packtisch-Token wird nicht an Playwright übergeben');
-  assert.match(gate,/e2e\/specs\/pack-notification\.spec\.mjs/,'Packmeldungs-E2E fehlt im mutierenden TESTSERVICE-Gate');
-  assert.match(gate,/export EXPORTHUB_E2E_MUTATION=['"]1['"]/,'Packmeldungs-E2E muss im mutierenden TESTSERVICE-Gate laufen');
+  assert.match(gate,/e2e\/specs\/public-smoke\.spec\.mjs/,'Pflicht-Smoke fehlt im mutierenden TESTSERVICE-Gate');
+  assert.match(gate,/export EXPORTHUB_E2E_MUTATION=['"]1['"]/,'TESTSERVICE-Gate ist nicht mutierend aktiviert');
+  assert.match(publicSmoke,/RC1499: echter QR-Packmeldungsfluss/,'Packmeldungs-Livefall ist nicht Teil des Pflicht-Smokes');
+  assert.match(publicSmoke,/EXPORTHUB_E2E_LIVE/);
+  assert.match(publicSmoke,/EXPORTHUB_E2E_MUTATION/);
+  assert.match(publicSmoke,/runPackNotificationLiveFlow/);
+  assert.match(helper,/_e2ePackStationToken/,'Live-Helper liest den temporären Fixture-Token nicht');
+  assert.match(helper,/Promise\.all\(/,'zwei parallele Packer werden nicht gleichzeitig geprüft');
+  assert.match(helper,/packSaveDraft/,'Entwurfsspeicherung fehlt im Livefluss');
+  assert.match(helper,/packSubmit/,'finales Übermitteln fehlt im Livefluss');
+  assert.match(helper,/data-pack-action=\\"shipment\\"/,'Sendungs-Handoff fehlt im Livefluss');
 });
 
-test('RC1499: Production bleibt read-only und führt keinen Packmeldungs-Mutationstest aus',()=>{
+test('RC1499: Production bleibt read-only; RC1499 überspringt dort automatisch',()=>{
   const workflow=read(workflowPath);
   const smoke=stepBlock(workflow,'RC1124 Produktion Read-only Browser Smoke','RC1124 Produktion Browser-Artefakte');
-  assert.doesNotMatch(smoke,/pack-notification\.spec\.mjs/);
+  assert.match(smoke,/public-smoke\.spec\.mjs/);
   assert.doesNotMatch(smoke,/EXPORTHUB_E2E_MUTATION/);
   assert.doesNotMatch(smoke,/EXPORTHUB_E2E_PACK_STATION_TOKEN/);
 });
 
-test('RC1499: E2E-Fixture und Packmeldungs-Spec bleiben syntaktisch gültig',()=>{
-  execFileSync(process.execPath,['--check',fixturePath],{stdio:'pipe'});
-  execFileSync(process.execPath,['--check',specPath],{stdio:'pipe'});
+test('RC1499: manueller Pack-E2E und Pflicht-Smoke verwenden denselben Live-Helper',()=>{
+  const packSpec=read(packSpecPath),publicSmoke=read(publicSmokePath);
+  assert.match(packSpec,/pack-notification-live\.mjs/);
+  assert.match(packSpec,/runPackNotificationLiveFlow/);
+  assert.match(publicSmoke,/pack-notification-live\.mjs/);
+});
+
+test('RC1499: geänderte E2E-Dateien bleiben syntaktisch gültig',()=>{
+  for(const path of [fixturePath,packSpecPath,publicSmokePath,helperPath])execFileSync(process.execPath,['--check',path],{stdio:'pipe'});
 });
