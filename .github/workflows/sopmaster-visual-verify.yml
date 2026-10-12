@@ -10,6 +10,7 @@ on:
       - 'assets/sop/rc1502-sop-*'
       - 'browser/rc1502-sop-screenshots.mjs'
       - 'test/rc1502-sop-*.test.mjs'
+      - '.github/rc1502/**'
       - '.github/workflows/sopmaster-visual-verify.yml'
   workflow_dispatch:
 
@@ -43,8 +44,8 @@ jobs:
         with:
           node-version: '20'
           package-manager-cache: false
-      - name: Build current RC1501 demo package
-        run: node .github/rc1501/build-three-env.mjs
+      - name: Build current RC1502 demo package
+        run: node .github/rc1502/build-three-env.mjs
       - name: Install Playwright Chromium
         run: |
           npm install --no-save playwright@1.63.0
