@@ -40,7 +40,10 @@ var packs=Object.freeze({
     statusMissing:'Fehlt',
     copyHs:'HS-Code kopieren',
     copyOrigin:'Ursprungsland kopieren',
-    copyValue:'Warenwert kopieren'
+    copyValue:'Warenwert kopieren',
+    prepareAbd:'ABD-Anfrage vorbereiten',
+    prepareAbdHint:'Geprüfte Zolldaten in den bestehenden ABD-Prozess übernehmen.',
+    prepareAbdBlocked:'Erst alle Positionen prüfen und die Differenz auf 0 setzen.'
   }),
   en:Object.freeze({
     entryTitle:'Export expert · create export declaration',
@@ -81,7 +84,10 @@ var packs=Object.freeze({
     statusMissing:'Missing',
     copyHs:'Copy HS code',
     copyOrigin:'Copy country of origin',
-    copyValue:'Copy customs value'
+    copyValue:'Copy customs value',
+    prepareAbd:'Prepare export declaration request',
+    prepareAbdHint:'Transfer the reviewed customs data into the existing export declaration flow.',
+    prepareAbdBlocked:'Review all items first and reduce the difference to 0.'
   }),
   pl:Object.freeze({
     entryTitle:'Ekspert eksportowy · utwórz ABD',
@@ -122,7 +128,10 @@ var packs=Object.freeze({
     statusMissing:'Brak',
     copyHs:'Kopiuj kod HS',
     copyOrigin:'Kopiuj kraj pochodzenia',
-    copyValue:'Kopiuj wartość towaru'
+    copyValue:'Kopiuj wartość towaru',
+    prepareAbd:'Przygotuj zgłoszenie ABD',
+    prepareAbdHint:'Przenieś sprawdzone dane celne do istniejącego procesu ABD.',
+    prepareAbdBlocked:'Najpierw sprawdź wszystkie pozycje i ustaw różnicę na 0.'
   }),
   es:Object.freeze({
     entryTitle:'Experto de exportación · crear ABD',
@@ -163,7 +172,10 @@ var packs=Object.freeze({
     statusMissing:'Falta',
     copyHs:'Copiar código HS',
     copyOrigin:'Copiar país de origen',
-    copyValue:'Copiar valor de mercancía'
+    copyValue:'Copiar valor de mercancía',
+    prepareAbd:'Preparar solicitud ABD',
+    prepareAbdHint:'Transfiere los datos aduaneros revisados al proceso ABD existente.',
+    prepareAbdBlocked:'Revisa primero todas las partidas y lleva la diferencia a 0.'
   }),
   fr:Object.freeze({
     entryTitle:'Expert export · créer un ABD',
@@ -204,7 +216,10 @@ var packs=Object.freeze({
     statusMissing:'Manquant',
     copyHs:'Copier le code SH',
     copyOrigin:'Copier le pays d’origine',
-    copyValue:'Copier la valeur des marchandises'
+    copyValue:'Copier la valeur des marchandises',
+    prepareAbd:'Préparer la demande ABD',
+    prepareAbdHint:'Transférer les données douanières vérifiées vers le processus ABD existant.',
+    prepareAbdBlocked:'Vérifiez d’abord toutes les positions et ramenez l’écart à 0.'
   }),
   it:Object.freeze({
     entryTitle:'Esperto export · crea ABD',
@@ -245,7 +260,10 @@ var packs=Object.freeze({
     statusMissing:'Mancante',
     copyHs:'Copia codice HS',
     copyOrigin:'Copia paese di origine',
-    copyValue:'Copia valore merce'
+    copyValue:'Copia valore merce',
+    prepareAbd:'Prepara richiesta ABD',
+    prepareAbdHint:'Trasferisci i dati doganali verificati nel processo ABD esistente.',
+    prepareAbdBlocked:'Verifica prima tutte le posizioni e porta la differenza a 0.'
   })
 });
 function normalize(value){
