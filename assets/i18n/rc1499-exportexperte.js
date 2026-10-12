@@ -3,7 +3,7 @@
 var packs=Object.freeze({
   de:Object.freeze({
     entryTitle:'Exportexperte · ABD erstellen',
-    entryHelp:'Wähle den passenden Einstieg. Der bestehende manuelle und sendungsbezogene ABD-Ablauf bleibt unverändert.',
+    entryHelp:'Wähle den passenden Einstieg. Der bestehende manuelle und sendungsbezogene ABD-Ablauf bleibt unverändert. Die Rechnungsanalyse führt dich durch die Positionsprüfung.',
     entryAria:'ABD-Einstieg auswählen',
     manualMode:'Manuell',
     shipmentMode:'Aus Sendung',
@@ -281,14 +281,34 @@ function t(key,lang,vars){
   var selected=normalize(lang||language()),pack=packs[selected]||packs.de,value=pack[key]||packs.de[key]||String(key||'');
   return interpolate(value,vars)
 }
+var handoffObserver=null;
+function handoffNeeded(){
+  var d=root.document,box=d&&d.querySelector&&d.querySelector('[data-rc1294-results]');
+  return !!(box&&!box.hidden&&box.querySelector&&box.querySelector('.rc1294-document'))
+}
+function disconnectHandoffObserver(){
+  if(handoffObserver){try{handoffObserver.disconnect()}catch(_){}handoffObserver=null}
+}
 function ensureHandoff(){
-  try{if(root.ExportHUBRC1499Handoff&&typeof root.ExportHUBRC1499Handoff.prepare==='function')return true}catch(_){}
-  var d=root.document;if(!d||!d.createElement||d.getElementById('exporthub-rc1499-handoff'))return false;
+  try{if(root.ExportHUBRC1499Handoff&&typeof root.ExportHUBRC1499Handoff.prepare==='function'){disconnectHandoffObserver();return true}}catch(_){}
+  var d=root.document;if(!d||!d.createElement)return false;
+  var existing=d.getElementById('exporthub-rc1499-handoff');if(existing)return false;
   try{
-    var s=d.createElement('script');s.id='exporthub-rc1499-handoff';s.src='/assets/rc1499-exportexperte-handoff.js?v=1499';s.defer=true;
+    var s=d.createElement('script');s.id='exporthub-rc1499-handoff';s.src='/assets/rc1499-exportexperte-handoff.js?v=1499';s.async=true;
+    s.addEventListener('load',function(){disconnectHandoffObserver()},{once:true});
+    s.addEventListener('error',function(){try{s.remove()}catch(_){}},{once:true});
     (d.head||d.documentElement).appendChild(s);return true
   }catch(_){return false}
 }
+function watchHandoff(){
+  var d=root.document;if(!d||!d.documentElement)return false;
+  if(handoffNeeded())return ensureHandoff();
+  if(typeof root.MutationObserver!=='function'||handoffObserver)return false;
+  try{
+    handoffObserver=new root.MutationObserver(function(){if(handoffNeeded())ensureHandoff()});
+    handoffObserver.observe(d.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});return true
+  }catch(_){handoffObserver=null;return false}
+}
 root.ExportHUBRC1499I18n=Object.freeze({packs:packs,language:language,t:t});
-ensureHandoff();
+watchHandoff();
 })(typeof window!=='undefined'?window:globalThis);
