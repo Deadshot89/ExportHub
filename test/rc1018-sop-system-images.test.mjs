@@ -75,21 +75,22 @@ test('RC1018: SOP-Systembilder werden aus der echten Demo-Oberfläche erzeugt un
   assert.doesNotMatch(source,/data:image\/svg\+xml/i);
 });
 
-test('RC1018: SOP-Bildlayer wird im gemeinsamen Drei-Umgebungen-Build geladen',()=>{
+test('RC1018: historischer SOP-Bildlayer bleibt als Herkunftsnachweis definiert',()=>{
   const build=fs.readFileSync('.github/rc1018/build-three-env.mjs','utf8');
   assert.match(build,/rc1018-sop-system-images\.js/);
   assert.match(build,/exporthub-rc1018-sop-system-images/);
   assert.match(build,/assets\/sop\/rc1018-sop-system-images\.js/);
 });
 
-test('RC1018: alle neun SOP-Systembilder werden real in Produktion TESTSERVICE und Demo ausgeliefert',()=>{
-  execFileSync(process.execPath,['.github/rc1018/build-three-env.mjs'],{cwd:process.cwd(),stdio:'pipe'});
-  const out=path.join(process.cwd(),'dist-rc1018');
+test('RC1018: alle neun historischen Systembilder werden im aktuellen RC1502 Build in Produktion TESTSERVICE und Demo ausgeliefert',()=>{
+  execFileSync(process.execPath,['.github/rc1502/build-three-env.mjs'],{cwd:process.cwd(),stdio:'pipe'});
+  const out=path.join(process.cwd(),'dist-rc1112');
   for(const htmlFile of ['index.html','TESTVERSION.html','demo.html']){
     const html=fs.readFileSync(path.join(out,htmlFile),'utf8');
-    assert.match(html,/id=["']exporthub-rc1018-sop-system-images["']/i,`${htmlFile}: SOP-Bildlayer fehlt`);
+    assert.match(html,/id=["']exporthub-rc1018-sop-system-images["']/i,`${htmlFile}: historischer RC1018 SOP-Bildlayer fehlt im aktuellen Build`);
+    assert.match(html,/id=["']exporthub-rc1502-sop-visuals["']/i,`${htmlFile}: RC1502 Visual-Layer fehlt im aktuellen Build`);
   }
-  for(const file of Object.values(expected))assert.ok(fs.existsSync(path.join(out,'assets/sop/screenshots',file)),`dist-rc1018: ${file} fehlt`);
-  const manifest=JSON.parse(fs.readFileSync(path.join(out,'rc1018-manifest.json'),'utf8'));
-  assert.equal(manifest.sop?.systemImages,'assets/sop/rc1018-sop-system-images.js');
+  for(const file of Object.values(expected))assert.ok(fs.existsSync(path.join(out,'assets/sop/screenshots',file)),`aktueller RC1502 Build: ${file} fehlt`);
+  const manifest=JSON.parse(fs.readFileSync(path.join(out,'rc1502-sop-editor-manifest.json'),'utf8'));
+  assert.equal(manifest.version,'RC1502');
 });
