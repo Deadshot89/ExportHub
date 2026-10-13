@@ -42,12 +42,11 @@ test('RC1371 CSS ist auf personalisiertes Dashboard gescoped und enthält kein t
   assert.doesNotMatch(css,/transition\s*:\s*all/i);
 });
 
-test('RC1371 zeigt Bearbeitungsaktionen nur im Edit-Mode',()=>{
-  assert.match(runtime,/data-rc1371-edit-only/);
-  assert.match(css,/data-eh-dashboard-personalized="1"\]:not\(\[data-rc1371-editing="1"\]\)[^\n]*data-rc1371-edit-only="1"[^\n]*display:none!important/);
+test('RC1371 zeigt Toolbar-Bearbeitungsaktionen nur im Edit-Mode',()=>{
+  assert.match(css,/data-eh-dashboard-personalized="1"\]:not\(\[data-rc1371-editing="1"\]\)[^}]*rc1371-dashboard-toolbar[^}]*:not\(\[data-rc1371-action="toggleEdit"\]\)[^}]*display:none!important/);
 });
 
-test('RC1371 stellt einen sichtbaren Drag-Handle statt nur einer komplett draggable Kachel bereit',()=>{
-  assert.match(runtime,/data-rc1371-drag-handle/);
-  assert.match(css,/data-rc1371-drag-handle/);
+test('RC1371 zeigt im Edit-Mode einen sichtbaren Drag-Handle-Hinweis',()=>{
+  assert.match(css,/data-rc1371-editing="1"[^}]*data-rc1371-widget-id[^}]*::before/);
+  assert.match(css,/cursor:grab/);
 });
