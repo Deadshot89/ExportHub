@@ -66,6 +66,15 @@ test('RC1505/RC1499: echter Packmeldungsfluss läuft im mutierenden TESTSERVICE-
   assert.match(helper,/data-pack-action="shipment"/,'Sendungs-Handoff fehlt im Livefluss');
 });
 
+test('RC1507: Pack-Live-Gate prüft den Ablauf ohne lokalisierte Anzeige-Texte',()=>{
+  const helper=read(helperPath);
+  assert.doesNotMatch(helper,/locator\('#packValidationHint'\)\)\.toContainText\(/,'Speicherprüfung darf nicht von übersetztem Hinweistext abhängen');
+  assert.doesNotMatch(helper,/locator\('#packFormMode'\)\)\.toContainText\(/,'Entwurfsmodus darf nicht über übersetzten Modustext erkannt werden');
+  assert.doesNotMatch(helper,/expect\(card\)\.toContainText\(['"]Anzahl Paletten['"]\)/,'Entwurfskarte darf nicht über deutsches Label geprüft werden');
+  assert.match(helper,/locator\('#packCustomer'\)\)\.toHaveValue/,'Entwurf muss semantisch über gespeicherte Kundendaten verifiziert werden');
+  assert.match(helper,/locator\('#packPackageCount'\)\)\.toHaveValue/,'Entwurf muss semantisch über gespeicherte Packstückzahl verifiziert werden');
+});
+
 test('RC1505/RC1499: Production bleibt read-only; RC1499 überspringt dort automatisch',()=>{
   const workflow=read(productionWorkflowPath);
   const smoke=stepBlock(workflow,'RC1124 Produktion Read-only Browser Smoke','RC1124 Produktion Browser-Artefakte');

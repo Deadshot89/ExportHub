@@ -115,3 +115,13 @@ test('RC1458: startup repair persists silently and never triggers full shipment 
   assert.doesNotMatch(repair,/ExportHUBRC565|persistShipment/,'startup repair must never call full shipment validation');
   assert.match(runtime,/exporthub:state-loaded[\s\S]*?repairContaminatedGoodsDescription/,'repair must run when shared state is loaded');
 });
+
+test('RC1510: verify:i18n includes the strict audit gate',()=>{
+  const pkg=JSON.parse(read('package.json'));
+  assert.match(pkg.scripts['verify:i18n']||'',/i18n:audit:strict/,'verify:i18n must fail on strict audit violations');
+});
+
+test('RC1510: every production asset change triggers the i18n pull-request gate',()=>{
+  const workflow=read('.github/workflows/rc1267-i18n-verify.yml');
+  assert.match(workflow,/\- 'assets\/\*\*'/,'i18n workflow must cover every production asset, including future runtimes');
+});

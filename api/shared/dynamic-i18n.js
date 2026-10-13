@@ -4,10 +4,22 @@ const crypto=require('crypto');
 
 const LANGUAGES=Object.freeze(['de','en','pl','es','fr','it']);
 const SIDE_CAR='_localizedText';
-const LOCALIZABLE_FIELD=/^(?:note|notes|hints?|processNotes|pickupHint|pickupNotes|pickupInstruction|pickupInstructions|shippingHint|shippingNotes|shippingInstruction|shippingInstructions|description|taskDescription|documentDescription|message|instruction|instructions|remark|remarks|bemerkung|bemerkungen|hinweis|hinweise|beschreibung|abholhinweis|versandhinweis|aufgabenbeschreibung|dokumentbeschreibung)$/i;
+const LOCALIZABLE_EXACT=/^(?:note|notes|hints?|processNotes|pickupHint|pickupNotes|pickupInstruction|pickupInstructions|shippingHint|shippingNotes|shippingInstruction|shippingInstructions|description|taskDescription|documentDescription|message|instruction|instructions|remark|remarks|bemerkung|bemerkungen|hinweis|hinweise|beschreibung|abholhinweis|versandhinweis|aufgabenbeschreibung|dokumentbeschreibung)$/i;
+const LOCALIZABLE_SUFFIX=/^(?:note|notes|hint|hints|description|instruction|instructions|remark|remarks|bemerkung|bemerkungen|hinweis|hinweise|beschreibung)$/i;
+const IDENTIFIER_SUFFIX=/^(?:name|code|number|nummer|no|id|ref|reference|referenz|tracking|article|artikel|item|sku|ean|gtin)$/i;
 const SKIP_BRANCH=/^(?:_localizedText|customerHistory|shipmentHistory|mailHistory|auditLog|history|files|attachments|deliveryFiles|deliveryNotesFiles|podFiles|abdFiles|documents|generatedDocuments|invoiceFiles|mailAttachments|containerPhotos)$/i;
 
 function text(v){return String(v==null?'':v).trim()}
+function fieldTokens(key){
+ return text(key).replace(/([a-z0-9])([A-Z])/g,'$1 $2').replace(/[-_.]+/g,' ').toLowerCase().split(/\s+/).filter(Boolean)
+}
+function isLocalizableField(key){
+ const raw=text(key);if(!raw)return false;
+ if(LOCALIZABLE_EXACT.test(raw))return true;
+ const tokens=fieldTokens(raw),last=tokens[tokens.length-1]||'';
+ if(!last||IDENTIFIER_SUFFIX.test(last))return false;
+ return LOCALIZABLE_SUFFIX.test(last)
+}
 function normalizeLanguage(v,fallback='de'){
  const raw=text(v).toLowerCase().replace('_','-');
  const m=raw.match(/^(de|en|pl|es|fr|it)(?:-|$)/);
@@ -61,7 +73,7 @@ function collect(root,fallback='de',options={}){
   if(!value[SIDE_CAR]||typeof value[SIDE_CAR]!=='object'||Array.isArray(value[SIDE_CAR]))value[SIDE_CAR]={};
   for(const [key,current] of Object.entries(value)){
    if(key===SIDE_CAR||SKIP_BRANCH.test(key))continue;
-   if(typeof current==='string'&&LOCALIZABLE_FIELD.test(key)&&useful(current)){
+   if(typeof current==='string'&&isLocalizableField(key)&&useful(current)){
     const original=text(current),source=sourceLanguageFor(value,key,fallback),previous=value[SIDE_CAR][key],sourceHash=hashText(original);
     const samePrevious=!!(previous&&text(previous.originalText)===original&&text(previous.sourceHash)===sourceHash);
     const previousFailed=!!(samePrevious&&text(previous&&previous.translationError));
@@ -81,6 +93,16 @@ function translatorConfig(){
  const region=text(process.env.EXPORTHUB_TRANSLATOR_REGION||process.env.AZURE_TRANSLATOR_REGION);
  const endpoint=text(process.env.EXPORTHUB_TRANSLATOR_ENDPOINT||process.env.AZURE_TRANSLATOR_ENDPOINT||'https://api.cognitive.microsofttranslator.com').replace(/\/+$/,'');
  return{key,region,endpoint,configured:!!key}
+}
+function translatorStatus(){
+ const cfg=translatorConfig();let endpointHost='';
+ try{endpointHost=new URL(cfg.endpoint).host}catch(_){}
+ return{
+  provider:cfg.configured?'azure-translator':'not-configured',
+  configured:cfg.configured,
+  regionConfigured:!!cfg.region,
+  endpointHost
+ }
 }
 async function azureTranslateBatch(items,source,fetchImpl=globalThis.fetch){
  const cfg=translatorConfig();
@@ -166,7 +188,7 @@ function translationStatus(root){
   }
   for(const [key,next] of Object.entries(value)){if(key!==SIDE_CAR&&!SKIP_BRANCH.test(key))walk(next,depth+1)}
  }
- walk(root,0);return{total,complete:completeCount,pending,stale,languages:LANGUAGES.slice()}
+ walk(root,0);return{total,complete:completeCount,pending,stale,languages:LANGUAGES.slice(),translator:translatorStatus()}
 }
 function localizedValue(record,key,language){
  if(!record||typeof record!=='object')return'';
@@ -175,4 +197,4 @@ function localizedValue(record,key,language){
  return text(meta.translations&&meta.translations[lang])||original
 }
 
-module.exports={LANGUAGES,SIDE_CAR,normalizeLanguage,hashText,collect,enrichDynamicTranslations,translationStatus,localizedValue,azureTranslateBatch,translatorConfig};
+module.exports={LANGUAGES,SIDE_CAR,normalizeLanguage,hashText,collect,enrichDynamicTranslations,translationStatus,localizedValue,azureTranslateBatch,translatorConfig,translatorStatus};
