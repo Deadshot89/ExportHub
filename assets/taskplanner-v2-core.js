@@ -261,8 +261,14 @@
     };
   }
 
+  function calendarDayOrdinal(value){
+    const day=dayKey(value);
+    if(!day)return NaN;
+    return Date.parse(day+'T00:00:00Z')/86400000;
+  }
+
   function archiveCompleted(input,now){
-    const state=clone(obj(input)?input:{}),archivedAt=q(now)||new Date().toISOString(),cutoff=Date.parse(archivedAt)-7*86400000;
+    const state=clone(obj(input)?input:{}),archivedAt=q(now)||new Date().toISOString(),todayOrdinal=calendarDayOrdinal(archivedAt);
     const active=[],archive=[],archivedIds=new Set();
     for(const raw of arr(state.taskArchive)){
       const copy=clone(raw),id=q(copy&&copy.id||copy&&copy.taskId||copy&&copy.uuid);
@@ -270,8 +276,9 @@
       archive.push(copy);if(id)archivedIds.add(id);
     }
     for(const task of arr(state.tasks)){
-      const t=normalizeTask(task,{now:archivedAt}),completed=Date.parse(t.completedAt);
-      if(t.status==='done'&&Number.isFinite(completed)&&completed<=cutoff){
+      const t=normalizeTask(task,{now:archivedAt}),completedOrdinal=calendarDayOrdinal(t.completedAt);
+      const elapsedDays=Number.isFinite(todayOrdinal)&&Number.isFinite(completedOrdinal)?todayOrdinal-completedOrdinal:NaN;
+      if(t.status==='done'&&Number.isFinite(elapsedDays)&&elapsedDays>7){
         if(!archivedIds.has(t.id)){archive.push(compactArchiveTask(t,archivedAt));archivedIds.add(t.id);}
       }else active.push(t);
     }
