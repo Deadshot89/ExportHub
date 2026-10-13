@@ -30,6 +30,13 @@ test('RC1499: TESTSERVICE-Fixture erzeugt pro Release einen nur gehasht gespeich
   assert.doesNotMatch(fixture,/station\s*:\s*\{[\s\S]{0,500}\btoken\s*:\s*packStationToken/,'roher Packtisch-Token darf nicht im Team-State gespeichert werden');
 });
 
+test('RC1513: TESTSERVICE-Fixture erfüllt den Root-Token-Vertrag des Release-Gates',()=>{
+  const fixture=read(fixturePath),workflow=read(mainWorkflowPath);
+  const gate=stepBlock(workflow,'RC1124 TESTSERVICE Browser Gate','RC1124 TESTSERVICE Browser-Artefakte');
+  assert.match(gate,/v\._e2ePackStationToken/,'Release-Gate erwartet den Packtisch-Token nicht am dokumentierten Root-Feld');
+  assert.match(fixture,/runId,_e2ePackStationToken\s*:\s*pack\.packStationToken,token:adminSession\.token/,'Fixture liefert den vom Release-Gate erwarteten Root-Token nicht');
+});
+
 test('RC1499: Fixture-Cleanup entfernt Packstation, Sessions, Entwürfe, Packmeldungen und projizierte Aufgaben',()=>{
   const fixture=read(fixturePath);
   assert.match(fixture,/function removePackRunRecords\(/);
