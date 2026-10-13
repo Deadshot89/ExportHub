@@ -31,7 +31,7 @@ async function createPackNotification(page,token,suffix='A'){
   await page.locator('#packCustomer').fill(`E2E PACK CUSTOMER ${suffix}`);
   await expect(page.locator('#packCustomerManualConfirm')).toBeVisible({timeout:10_000});
   await page.locator('#packCustomerManualConfirm').click();
-  await page.locator('#packPackageType').selectOption({label:'Europalette'});
+  await page.locator('#packPackageType').selectOption({label:'Euro Palette'});
   await page.locator('#packPackageCount').fill('2');
   await page.locator('#packWeight').fill('680');
   const rows=page.locator('[data-pack-package]');
