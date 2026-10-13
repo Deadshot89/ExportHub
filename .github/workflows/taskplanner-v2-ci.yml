@@ -45,6 +45,7 @@ jobs:
             test/taskplanner-v2-migration.test.mjs \
             test/taskplanner-v2-compat.test.mjs \
             test/taskplanner-v2-state-rights.test.mjs \
+            test/taskplanner-v2-state-merge.test.mjs \
             test/taskplanner-v2-build-wiring.test.mjs \
             test/taskplanner-v2-api-backup-wiring.test.mjs \
             test/taskplanner-v2-pretest-orchestration.test.mjs \
