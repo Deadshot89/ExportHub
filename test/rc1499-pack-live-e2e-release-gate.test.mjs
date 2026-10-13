@@ -66,6 +66,12 @@ test('RC1505/RC1499: echter Packmeldungsfluss läuft im mutierenden TESTSERVICE-
   assert.match(helper,/data-pack-action="shipment"/,'Sendungs-Handoff fehlt im Livefluss');
 });
 
+test('RC1520: TESTSERVICE-Gate liest den Packtisch-Token aus dem Fixture-Uservertrag',()=>{
+  const workflow=read(mainWorkflowPath);
+  const gate=stepBlock(workflow,'RC1124 TESTSERVICE Browser Gate','RC1124 TESTSERVICE Browser-Artefakte');
+  assert.match(gate,/v\.user\s*&&\s*v\.user\._e2ePackStationToken/,'Workflow liest den Packtisch-Token nicht aus prepared.user._e2ePackStationToken');
+});
+
 test('RC1507: Pack-Live-Gate prüft den Ablauf ohne lokalisierte Anzeige-Texte',()=>{
   const helper=read(helperPath);
   assert.doesNotMatch(helper,/locator\('#packValidationHint'\)\)\.toContainText\(/,'Speicherprüfung darf nicht von übersetztem Hinweistext abhängen');
