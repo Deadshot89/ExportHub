@@ -11,9 +11,20 @@ const AUDIT=path.join(ROOT,'scripts/taskplanner-v2-migration-audit.mjs');
 const PRETEST=path.join(ROOT,'scripts/rc1462-pretest.mjs');
 const BUILDER=path.join(ROOT,'.github/rc1112/build-three-env.mjs');
 const RELEASE_MARKER=path.join(ROOT,'release-version.json');
+const DIST=path.join(ROOT,'dist-rc1112');
 
 function runNode(args,options={}){
   return spawnSync(process.execPath,args,{cwd:ROOT,encoding:'utf8',...options});
+}
+
+function walk(dir){
+  if(!fs.existsSync(dir))return[];
+  const out=[];
+  for(const entry of fs.readdirSync(dir,{withFileTypes:true})){
+    const full=path.join(dir,entry.name);
+    if(entry.isDirectory())out.push(...walk(full));else out.push(full);
+  }
+  return out;
 }
 
 function sampleState(){
@@ -79,17 +90,44 @@ test('RC1462 Pretest bleibt idempotent und verändert den sichtbaren Produktions
   assert.equal(fs.readFileSync(RELEASE_MARKER,'utf8'),beforeMarker,'sichtbarer Produktionsmarker darf durch TaskPlanner-Pretest nicht geändert werden');
 });
 
-test('Release-Builder führt alle drei Umgebungen und erforderlichen V2/Public-Link-Artefakte ohne temporäre Shipping-Muster',()=>{
+test('Release-Build enthält V2/Public-Link-Artefakte in Produktion-Candidate, TESTSERVICE und Demo in stabiler Reihenfolge',()=>{
   const source=fs.readFileSync(BUILDER,'utf8');
   assert.match(source,/environments:\{production:'index\.html',testservice:'TESTVERSION\.html',demo:'demo\.html'\}/);
-  for(const rel of [
+  const assets=[
     'assets/taskplanner-v2-core.js','assets/taskplanner-v2-recurrence.js','assets/taskplanner-v2-planner.js',
     'assets/taskplanner-v2-projections.js','assets/taskplanner-v2-runtime-bridge.js','assets/taskplanner-v2-workflow.js',
     'assets/taskplanner-v2-ui.js','assets/taskplanner-v2-projection-ui.js','assets/taskplanner-v2-planner-ui.js',
     'assets/taskplanner-v2.css','assets/taskplanner-v2-projections.css','assets/task-public-read.js'
-  ])assert.ok(source.includes(`'${rel}'`),`Builder muss ${rel} ausliefern`);
+  ];
+  for(const rel of assets)assert.ok(source.includes(`'${rel}'`),`Builder muss ${rel} ausliefern`);
   assert.ok(source.includes("path.join(OUT,'task.html')"),'öffentliche Read-only-Seite muss gebaut werden');
   for(const required of ['api/task-public/index.js','api/task-public/function.json','task.html','assets/task-public-read.js'])assert.ok(fs.existsSync(path.join(ROOT,required)),`${required} fehlt`);
-  assert.doesNotMatch(source,/taskplanner[^'"\n]*\.map['"]/i,'TaskPlanner Source-Maps dürfen nicht als Release-Artefakt verdrahtet sein');
-  assert.doesNotMatch(source,/taskplanner[^'"\n]*(fixture|tmp|temp)[^'"\n]*['"]/i,'temporäre TaskPlanner-Fixtures dürfen nicht ausgeliefert werden');
+
+  const prepared=runNode([PRETEST]);
+  assert.equal(prepared.status,0,prepared.stderr||prepared.stdout);
+  const build=runNode([BUILDER]);
+  assert.equal(build.status,0,build.stderr||build.stdout);
+
+  const orderedMarkers=[
+    'exporthub-taskplanner-v2-core','exporthub-taskplanner-v2-recurrence','exporthub-taskplanner-v2-planner',
+    'exporthub-taskplanner-v2-projections','exporthub-taskplanner-v2-runtime-bridge','exporthub-taskplanner-v2-workflow',
+    'exporthub-taskplanner-v2-ui','exporthub-taskplanner-v2-projection-ui','exporthub-taskplanner-v2-planner-ui'
+  ];
+  for(const file of ['index.html','TESTVERSION.html','demo.html']){
+    const built=path.join(DIST,file);
+    assert.ok(fs.existsSync(built),`${file} muss im Release-Build vorhanden sein`);
+    const html=fs.readFileSync(built,'utf8');
+    let last=-1;
+    for(const marker of orderedMarkers){
+      const at=html.indexOf(marker);
+      assert.ok(at>last,`${file}: ${marker} fehlt oder Load-Reihenfolge ist falsch`);
+      last=at;
+    }
+  }
+  for(const rel of assets)assert.ok(fs.existsSync(path.join(DIST,rel)),`gebautes Artefakt fehlt: ${rel}`);
+  assert.ok(fs.existsSync(path.join(DIST,'task.html')),'gebautes task.html fehlt');
+
+  const shipped=walk(DIST).map(file=>path.relative(DIST,file).replaceAll('\\','/'));
+  assert.ok(!shipped.some(file=>/taskplanner.*\.map$/i.test(file)),'TaskPlanner Source-Maps dürfen nicht ausgeliefert werden');
+  assert.ok(!shipped.some(file=>/taskplanner.*(fixture|tmp|temp)/i.test(file)),'temporäre TaskPlanner-Fixtures dürfen nicht ausgeliefert werden');
 });
