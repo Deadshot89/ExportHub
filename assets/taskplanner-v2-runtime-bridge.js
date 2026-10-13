@@ -110,11 +110,14 @@
     if(!state){if(reconcileRequested&&originalPersist)originalPersist(reconciledTasks||prepared);return prepared;}
     if(!Array.isArray(state.taskArchive))state.taskArchive=[];
     const beforeArchive=JSON.stringify(state.taskArchive),rolled=core().archiveCompleted({...state,tasks:prepared,taskArchive:state.taskArchive},q(ctx.now)||new Date().toISOString());
-    const archiveChanged=beforeArchive!==JSON.stringify(rolled.taskArchive)||rolled.tasks.length!==prepared.length;
-    state.tasks=rolled.tasks;state.taskArchive=rolled.taskArchive;
-    if((reconcileRequested||archiveChanged)&&originalPersist)originalPersist(rolled.tasks);
-    if(archiveChanged)emit('archive_rollover',prepared.filter(t=>!rolled.tasks.some(r=>q(r&&r.id)===q(t&&t.id))).map(t=>t&&t.id),ctx);
-    return rolled.tasks;
+    const survivorIds=new Set(arr(rolled.tasks).map(t=>q(t&&t.id)).filter(Boolean));
+    const archivedIds=new Set(prepared.map(t=>q(t&&t.id)).filter(id=>id&&!survivorIds.has(id)));
+    const finalTasks=archivedIds.size?prepared.filter(t=>!archivedIds.has(q(t&&t.id))):prepared;
+    const archiveChanged=beforeArchive!==JSON.stringify(rolled.taskArchive)||archivedIds.size>0;
+    state.tasks=finalTasks;state.taskArchive=rolled.taskArchive;
+    if((reconcileRequested||archiveChanged)&&originalPersist)originalPersist(finalTasks);
+    if(archiveChanged)emit('archive_rollover',Array.from(archivedIds),ctx);
+    return finalTasks;
   }
 
   root.ExportHUBRC1014TaskRuntime=Object.freeze({...previous,prepareTasks,applyTaskPatch,applyWeekPlan,moveTaskOccurrence,emitWorkflowEvent,taskDashboardProjection,taskCustomerProjection,taskArchiveProjection,taskStatsProjection});
