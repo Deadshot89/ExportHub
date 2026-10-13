@@ -1,0 +1,16 @@
+name: RC1514 Draft Parallelism
+on:
+  push:
+    branches:
+      - fix/rc1514-pack-draft-parallelism
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: RC1514 parallel pack mutation regression
+        run: node --test test/rc1514-pack-draft-parallelism.test.mjs
