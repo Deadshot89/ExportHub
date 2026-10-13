@@ -15,7 +15,8 @@ async function openDashboard(page){
 
 async function setStableDashboardTestUser(page){
   await page.evaluate(()=>{
-    const user={id:'rc1371-e2e-user',username:'rc1371-e2e-user'};
+    const current=(typeof window.__EXPORTHUB_GET_CURRENT_USER__==='function'&&window.__EXPORTHUB_GET_CURRENT_USER__())||window.currentUser||{};
+    const user={...current,id:'rc1371-e2e-user',username:'rc1371-e2e-user'};
     window.currentUser=user;
     window.__EXPORTHUB_GET_CURRENT_USER__=()=>user;
     if(window.ExportHUBDashboard1371)window.ExportHUBDashboard1371.remount();
