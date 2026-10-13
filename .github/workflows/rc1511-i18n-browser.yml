@@ -1,0 +1,75 @@
+name: RC1511 Six-Language Browser Proof
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'customer-avis.html'
+      - 'assets/rc1267-i18n.js'
+      - 'assets/rc1018-public-language.js'
+      - 'assets/i18n/**'
+      - 'e2e/specs/rc1511-six-language-i18n.spec.mjs'
+      - 'e2e/helpers/**'
+      - 'test/rc1511-i18n-browser-proof.test.mjs'
+      - 'playwright.config.mjs'
+      - '.github/rc1112/**'
+      - '.github/workflows/rc1511-i18n-browser.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'customer-avis.html'
+      - 'assets/rc1267-i18n.js'
+      - 'assets/rc1018-public-language.js'
+      - 'assets/i18n/**'
+      - 'e2e/specs/rc1511-six-language-i18n.spec.mjs'
+      - 'e2e/helpers/**'
+      - 'test/rc1511-i18n-browser-proof.test.mjs'
+      - 'playwright.config.mjs'
+      - '.github/rc1112/**'
+      - '.github/workflows/rc1511-i18n-browser.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rc1511-i18n-browser-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+
+      - name: RC1511 contract
+        run: node --test test/rc1511-i18n-browser-proof.test.mjs
+
+      - name: Build current three-environment package
+        run: node .github/rc1112/build-three-env.mjs
+
+      - name: Install Playwright
+        run: |
+          npm install --no-save @playwright/test@1.63.0
+          npx playwright install --with-deps chromium
+
+      - name: Six languages on mobile and laptop
+        env:
+          EXPORTHUB_E2E_STATIC: '1'
+          EXPORTHUB_E2E_PUBLIC_ENV: testservice
+        run: npx playwright test e2e/specs/rc1511-six-language-i18n.spec.mjs --project=mobile-standard --project=laptop
+
+      - name: Upload browser diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: rc1511-six-language-browser
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: ignore
+          retention-days: 14
