@@ -1,0 +1,275 @@
+name: RC1505 Build Diagnostic
+
+on:
+  push:
+    branches:
+      - debug/rc1505-build-contract-20261013
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rc1505-build-diagnostic-${{ github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+
+      - name: Normalize sources like Main Verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          node .github/rc1018/apply-public-language.mjs
+          node .github/rc1018/fix-mail-wording.mjs
+
+      - name: Build RC1112 three environments
+        shell: bash
+        run: |
+          set -euo pipefail
+          node .github/rc1112/build-three-env.mjs
+
+      - name: Verify final HTML
+        shell: bash
+        run: |
+          set -euo pipefail
+          node .github/rc1121/verify-final-html.mjs
+
+      - name: RC1505 basic pages and build markers
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s dist-rc1112/index.html
+          test -s dist-rc1112/TESTVERSION.html
+          test -s dist-rc1112/demo.html
+          grep -Fq 'ExportHUB RC1112 environment=production-candidate' dist-rc1112/index.html
+          grep -Fq 'ExportHUB RC1112 environment=testservice' dist-rc1112/TESTVERSION.html
+          grep -Fq 'ExportHUB RC1112 environment=demo' dist-rc1112/demo.html
+          grep -Fq "version:'RC1112'" dist-rc1112/index.html
+          grep -Fq "version:'RC1112'" dist-rc1112/TESTVERSION.html
+          grep -Fq "version:'RC1112'" dist-rc1112/demo.html
+          grep -Fq "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1112'" dist-rc1112/production-version.js
+
+      - name: RC1505 common markers index
+        shell: bash
+        run: |
+          set -euo pipefail
+          file=dist-rc1112/index.html
+          while IFS= read -r marker; do grep -Fq "$marker" "$file"; done <<'EOF'
+          assets/rc1016-mobile-navigation.js?v=1400
+          assets/rc1014-task-runtime.js?v=1359
+          assets/rc1014-shipment-overview.js?v=1370
+          assets/rc1014-shipment-overview.css?v=1370
+          assets/rc1065-registration-cc.js?v=1093
+          assets/rc1077-customer-labels.js?v=1394
+          assets/rc1079-profile-settings.js?v=1079
+          assets/rc1080-customer-history.js?v=1080
+          assets/rc1081-audit-history.js?v=1177
+          assets/rc1092-customer-mail-contacts.js?v=1399
+          assets/rc1015-lieferavis-mail-flow.js?v=1383
+          assets/abholkalender.js?v=1012
+          assets/rc1012-abholkalender-runtime.js?v=1012
+          assets/rc1018-mail-language-standard.js?v=1018
+          assets/rc1113-stowplan-persist.js?v=1113
+          assets/rc1114-shipping-neutral.js?v=1386
+          assets/rc1017-multi-truck.js?v=1017
+          assets/rc1013-gate41-ui.js?v=1385
+          assets/rc1074-login-clean.js?v=1349
+          assets/rc1305-loading-list-print.js?v=1379
+          assets/rc1315-loading-list-quick-print.js?v=1322
+          assets/rc1283-loading-list-search.js?v=1305
+          assets/rc1027-lieferavis-immediate.js?v=20261005
+          assets/rc1177-release-notes.js?v=
+          EOF
+
+      - name: RC1505 common markers TESTVERSION
+        shell: bash
+        run: |
+          set -euo pipefail
+          file=dist-rc1112/TESTVERSION.html
+          while IFS= read -r marker; do grep -Fq "$marker" "$file"; done <<'EOF'
+          assets/rc1016-mobile-navigation.js?v=1400
+          assets/rc1014-task-runtime.js?v=1359
+          assets/rc1014-shipment-overview.js?v=1370
+          assets/rc1014-shipment-overview.css?v=1370
+          assets/rc1065-registration-cc.js?v=1093
+          assets/rc1077-customer-labels.js?v=1394
+          assets/rc1079-profile-settings.js?v=1079
+          assets/rc1080-customer-history.js?v=1080
+          assets/rc1081-audit-history.js?v=1177
+          assets/rc1092-customer-mail-contacts.js?v=1399
+          assets/rc1015-lieferavis-mail-flow.js?v=1383
+          assets/abholkalender.js?v=1012
+          assets/rc1012-abholkalender-runtime.js?v=1012
+          assets/rc1018-mail-language-standard.js?v=1018
+          assets/rc1113-stowplan-persist.js?v=1113
+          assets/rc1114-shipping-neutral.js?v=1386
+          assets/rc1017-multi-truck.js?v=1017
+          assets/rc1013-gate41-ui.js?v=1385
+          assets/rc1074-login-clean.js?v=1349
+          assets/rc1305-loading-list-print.js?v=1379
+          assets/rc1315-loading-list-quick-print.js?v=1322
+          assets/rc1283-loading-list-search.js?v=1305
+          assets/rc1027-lieferavis-immediate.js?v=20261005
+          assets/rc1177-release-notes.js?v=
+          EOF
+
+      - name: RC1505 common markers demo
+        shell: bash
+        run: |
+          set -euo pipefail
+          file=dist-rc1112/demo.html
+          while IFS= read -r marker; do grep -Fq "$marker" "$file"; done <<'EOF'
+          assets/rc1016-mobile-navigation.js?v=1400
+          assets/rc1014-task-runtime.js?v=1359
+          assets/rc1014-shipment-overview.js?v=1370
+          assets/rc1014-shipment-overview.css?v=1370
+          assets/rc1065-registration-cc.js?v=1093
+          assets/rc1077-customer-labels.js?v=1394
+          assets/rc1079-profile-settings.js?v=1079
+          assets/rc1080-customer-history.js?v=1080
+          assets/rc1081-audit-history.js?v=1177
+          assets/rc1092-customer-mail-contacts.js?v=1399
+          assets/rc1015-lieferavis-mail-flow.js?v=1383
+          assets/abholkalender.js?v=1012
+          assets/rc1012-abholkalender-runtime.js?v=1012
+          assets/rc1018-mail-language-standard.js?v=1018
+          assets/rc1113-stowplan-persist.js?v=1113
+          assets/rc1114-shipping-neutral.js?v=1386
+          assets/rc1017-multi-truck.js?v=1017
+          assets/rc1013-gate41-ui.js?v=1385
+          assets/rc1074-login-clean.js?v=1349
+          assets/rc1305-loading-list-print.js?v=1379
+          assets/rc1315-loading-list-quick-print.js?v=1322
+          assets/rc1283-loading-list-search.js?v=1305
+          assets/rc1027-lieferavis-immediate.js?v=20261005
+          assets/rc1177-release-notes.js?v=
+          EOF
+
+      - name: RC1505 admin markers production
+        shell: bash
+        run: |
+          set -euo pipefail
+          file=dist-rc1112/index.html
+          grep -Fq 'assets/rc1061-document-migration-admin.js?v=1073' "$file"
+          grep -Fq 'assets/rc1067-startup-recovery.js?v=1067' "$file"
+          grep -Fq 'assets/rc1075-loader-pin-admin.js?v=1075' "$file"
+          grep -Fq 'assets/rc1126-customer-delete.js?v=1387' "$file"
+          grep -Fq 'assets/rc1013-diagnostics.js?v=1364' "$file"
+          grep -Fq "view:'history',label:'Historie',right:'history'" "$file"
+
+      - name: RC1505 admin markers TESTVERSION
+        shell: bash
+        run: |
+          set -euo pipefail
+          file=dist-rc1112/TESTVERSION.html
+          grep -Fq 'assets/rc1061-document-migration-admin.js?v=1073' "$file"
+          grep -Fq 'assets/rc1067-startup-recovery.js?v=1067' "$file"
+          grep -Fq 'assets/rc1075-loader-pin-admin.js?v=1075' "$file"
+          grep -Fq 'assets/rc1126-customer-delete.js?v=1387' "$file"
+          grep -Fq 'assets/rc1013-diagnostics.js?v=1364' "$file"
+          grep -Fq "view:'history',label:'Historie',right:'history'" "$file"
+
+      - name: RC1505 demo admin exclusions
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -Fq 'assets/rc1061-document-migration-admin.js' dist-rc1112/demo.html
+          ! grep -Fq 'assets/rc1067-startup-recovery.js' dist-rc1112/demo.html
+          ! grep -Fq 'assets/rc1075-loader-pin-admin.js' dist-rc1112/demo.html
+
+      - name: RC1505 public-page markers
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'assets/rc1018-public-language.js?v=1231' dist-rc1112/customer-avis.html
+          grep -Fq 'customerPdfUpload' dist-rc1112/customer-avis.html
+          grep -Fq 'document-upload-status' dist-rc1112/customer-avis.html
+          grep -Fq 'assets/rc1018-public-language.js?v=1018' dist-rc1112/pickup.html
+          grep -Fq 'assets/rc1018-public-language.js?v=1018' dist-rc1112/location.html
+          grep -Fq 'assets/rc1016-demo-task-seed.js?v=1016' dist-rc1112/demo.html
+
+      - name: RC1505 required build files
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r file; do test -s "$file"; done <<'EOF'
+          dist-rc1112/assets/rc1016-mobile-navigation.js
+          dist-rc1112/assets/rc1017-multi-truck.js
+          dist-rc1112/assets/rc1018-mail-language-standard.js
+          dist-rc1112/assets/rc1018-public-language.js
+          dist-rc1112/assets/rc1065-registration-cc.js
+          dist-rc1112/assets/rc1061-document-migration-admin.js
+          dist-rc1112/assets/rc1067-startup-recovery.js
+          dist-rc1112/assets/rc1069-performance.js
+          dist-rc1112/assets/rc1075-loader-pin-admin.js
+          dist-rc1112/assets/rc1077-customer-labels.js
+          dist-rc1112/assets/rc1079-profile-settings.js
+          dist-rc1112/assets/rc1080-customer-history.js
+          dist-rc1112/assets/rc1081-audit-history.js
+          dist-rc1112/assets/rc1092-customer-mail-contacts.js
+          dist-rc1112/assets/rc1096-packaging-groups.js
+          dist-rc1112/assets/rc1126-customer-delete.js
+          dist-rc1112/assets/rc1133-avis-upload-notifications.js
+          dist-rc1112/assets/rc1015-lieferavis-mail-flow.js
+          dist-rc1112/assets/rc1027-lieferavis-immediate.js
+          dist-rc1112/assets/rc1013-diagnostics.js
+          dist-rc1112/assets/rc1013-gate41-ui.js
+          dist-rc1112/assets/rc1071-shipment-history.js
+          dist-rc1112/assets/abholkalender.js
+          dist-rc1112/assets/rc1012-abholkalender-runtime.js
+          dist-rc1112/assets/rc1113-stowplan-persist.js
+          dist-rc1112/assets/rc1114-shipping-neutral.js
+          dist-rc1112/assets/rc1305-loading-list-print.js
+          dist-rc1112/assets/rc1315-loading-list-quick-print.js
+          dist-rc1112/assets/rc1283-loading-list-search.js
+          dist-rc1112/assets/rc1177-release-notes.js
+          dist-rc1112/migration-recovery.html
+          dist-rc1112/assets/sop/screenshots/rc1016-tasks.png
+          dist-rc1112/assets/sop/screenshots/rc1016-shipmentoverview.png
+          dist-rc1112/assets/sop/screenshots/rc1016-pickupcalendar.png
+          EOF
+
+      - name: RC1505 i18n content markers
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'customerDelete.finalDelete' dist-rc1112/assets/rc1126-customer-delete.js
+          grep -Fq 'diagnostics.fixWithChatgpt' dist-rc1112/assets/rc1013-diagnostics.js
+          grep -Fq 'diagnostics.title' dist-rc1112/assets/rc1013-diagnostics.js
+          grep -Fq 'stowplan.instructionTitle' dist-rc1112/assets/rc1113-stowplan-persist.js
+          grep -Fq 'avisUploads.noticeTitle' dist-rc1112/assets/rc1133-avis-upload-notifications.js
+          grep -Fq 'avisUploads.openPrint' dist-rc1112/assets/rc1133-avis-upload-notifications.js
+          grep -Fq 'migration.runAll' dist-rc1112/assets/rc1061-document-migration-admin.js
+          grep -Fq 'gate41.calculated' dist-rc1112/assets/rc1013-gate41-ui.js
+          grep -Fq 'shipmentHistory.action.abdMailSent' dist-rc1112/assets/rc1071-shipment-history.js
+          grep -Fq 'shipmentHistory.action.workStarted' dist-rc1112/assets/rc1071-shipment-history.js
+          grep -Fq 'shipmentHistory.action.registrationStarted' dist-rc1112/assets/rc1071-shipment-history.js
+          grep -Fq 'history.customer.customer-created' dist-rc1112/assets/rc1080-customer-history.js
+          grep -Fq 'history.customer.customer-updated' dist-rc1112/assets/rc1080-customer-history.js
+          grep -Fq 'history.title' dist-rc1112/assets/rc1081-audit-history.js
+          grep -Fq 'customerContacts.savePerson' dist-rc1112/assets/rc1092-customer-mail-contacts.js
+          grep -Fq 'customerContacts.addToMail' dist-rc1112/assets/rc1092-customer-mail-contacts.js
+          grep -Fq 'packaging.packages' dist-rc1112/assets/rc1096-packaging-groups.js
+          grep -Fq 'packaging.pallets' dist-rc1112/assets/rc1096-packaging-groups.js
+          grep -Fq 'packaging.other' dist-rc1112/assets/rc1096-packaging-groups.js
+          grep -Fq '"api.avis.mailPassed"' api/shared/i18n/de.json
+
+      - name: RC1505 runtime compatibility markers
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq '__EXPORTHUB_RC1092_CUSTOMER_MAIL_CONTACTS__' dist-rc1112/assets/rc1092-customer-mail-contacts.js
+          grep -Fq 'customerDelete.finalDelete' dist-rc1112/assets/rc1126-customer-delete.js
+          grep -Fq '__EXPORTHUB_RC1081_AUDIT_HISTORY__' dist-rc1112/assets/rc1081-audit-history.js
+          grep -Fq '__EXPORTHUB_RC1113_STOWPLAN_PERSIST__' dist-rc1112/assets/rc1113-stowplan-persist.js
+          grep -Fq '__EXPORTHUB_RC1114_SHIPPING_NEUTRAL__' dist-rc1112/assets/rc1114-shipping-neutral.js
+          grep -Fq 'Dokumentspeicher wird optimiert' dist-rc1112/migration-recovery.html
