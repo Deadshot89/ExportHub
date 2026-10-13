@@ -1,0 +1,25 @@
+name: RC1507 Targeted i18n Performance Regression
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'assets/rc1267-i18n.js'
+      - 'test/rc1507-i18n-save-confirmation-gate.test.mjs'
+      - 'scripts/rc1462-pretest.mjs'
+      - '.github/workflows/rc1507-targeted-regression.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  targeted:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+      - name: RC1507 targeted regression
+        run: node scripts/rc1462-pretest.mjs && node --test test/rc1507-i18n-save-confirmation-gate.test.mjs

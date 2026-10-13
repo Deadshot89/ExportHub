@@ -1,0 +1,33 @@
+name: RC1516 Browser Runtime Performance Verification
+
+on:
+  pull_request:
+    paths:
+      - 'assets/rc1499-exportexperte-handoff.js'
+      - 'assets/rc1499-abd-export.js'
+      - 'e2e/specs/rc1516-browser-runtime-performance.spec.mjs'
+      - '.github/workflows/rc1516-browser-runtime-performance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  chromium-runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+      - name: Build ExportHUB locally
+        run: node .github/rc1112/build-three-env.mjs
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save @playwright/test@1.63.0
+          npx playwright install --with-deps chromium
+      - name: Verify real-browser off-view runtime cost and visible ABD refresh
+        env:
+          EXPORTHUB_E2E_STATIC: '1'
+        run: npx playwright test e2e/specs/rc1516-browser-runtime-performance.spec.mjs --project=laptop

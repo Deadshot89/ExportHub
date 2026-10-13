@@ -1,0 +1,24 @@
+name: RC1513 Targeted ABD Off-View Sync Regression
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'assets/rc1294-abd-self-service.js'
+      - 'test/rc1513-abd-self-service-offview-sync-gate.test.mjs'
+      - '.github/workflows/rc1513-targeted-regression.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  targeted:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+      - name: RC1513 targeted regression
+        run: node --test test/rc1513-abd-self-service-offview-sync-gate.test.mjs

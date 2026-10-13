@@ -1,0 +1,24 @@
+name: RC1515 Targeted ABD Export Off-View Sync Regression
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'assets/rc1499-abd-export.js'
+      - 'test/rc1515-abd-export-offview-sync-gate.test.mjs'
+      - '.github/workflows/rc1515-targeted-regression.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  targeted:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+      - name: RC1515 targeted regression
+        run: node --test test/rc1515-abd-export-offview-sync-gate.test.mjs

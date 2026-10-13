@@ -1,0 +1,33 @@
+name: RC1517 Save Confirmation Browser No-Rerender
+
+on:
+  pull_request:
+    paths:
+      - 'e2e/specs/rc1517-save-confirmation-no-rerender.spec.mjs'
+      - '.github/workflows/rc1517-save-confirmation-browser.yml'
+      - '.github/rc1112/build-three-env.mjs'
+      - 'playwright.config.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  chromium-save-confirmation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+      - name: Build ExportHUB locally
+        run: node .github/rc1112/build-three-env.mjs
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save @playwright/test@1.63.0
+          npx playwright install --with-deps chromium
+      - name: Verify save-confirmation keeps Shipment DOM identity
+        env:
+          EXPORTHUB_E2E_STATIC: '1'
+        run: npx playwright test e2e/specs/rc1517-save-confirmation-no-rerender.spec.mjs --project=laptop
