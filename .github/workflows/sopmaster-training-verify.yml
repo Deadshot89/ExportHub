@@ -10,6 +10,7 @@ on:
       - 'assets/sop/rc1501-sop-tour-runtime.js'
       - 'api/shared/merge.js'
       - 'test/rc1503-sop-*.test.mjs'
+      - 'test/rc1506-sop-progress-reload-durability.test.mjs'
       - '.github/rc1503/**'
       - '.github/workflows/sopmaster-training-verify.yml'
   workflow_dispatch:
@@ -31,8 +32,11 @@ jobs:
         with:
           node-version: '20'
           package-manager-cache: false
-      - name: RC1503 training contracts
-        run: node --test test/rc1503-sop-*.test.mjs
+      - name: RC1503 training contracts and RC1506 reload durability
+        run: >-
+          node --test
+          test/rc1503-sop-*.test.mjs
+          test/rc1506-sop-progress-reload-durability.test.mjs
       - name: Accessibility regression
         run: npm run test:accessibility
 
@@ -54,6 +58,6 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: rc1503-node-regression-log
+          name: rc1506-training-node-regression-log
           path: node-regression.log
           if-no-files-found: error
