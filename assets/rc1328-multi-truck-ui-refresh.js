@@ -68,7 +68,16 @@ function schedule(sh){
  if(hasMultiTruck(sh)&&refresh(sh))return true;
  return watchCurrent(50)
 }
-function scheduleCurrent(){return watchCurrent(50)}
+function shouldWatchCurrent(){
+ if(panel())return false;
+ if(card())return true;
+ var s=state();if(!s)return false;
+ var current=[s.shipment,s.currentShipment,s.selectedShipment].filter(Boolean);
+ if(current.some(hasMultiTruck))return true;
+ var ref=activeReference(s);if(!ref)return false;
+ return arr(s.shipments).some(function(sh){return refOf(sh)===ref&&hasMultiTruck(sh)})
+}
+function scheduleCurrent(){return shouldWatchCurrent()?watchCurrent(50):false}
 
 function onSaved(event){
  var detail=event&&event.detail||{},sh=detail.shipment;
@@ -84,7 +93,7 @@ w.addEventListener('exporthub:sync',function(event){if(isNoMergeSaveConfirmation
 });
 w.addEventListener('click',function(event){
  var target=event&&event.target,button=target&&target.closest&&target.closest('#rc363SaveShipment');
- if(button)watchCurrent(50)
+ if(button)scheduleCurrent()
 },true);
 if(d.readyState==='loading'&&typeof d.addEventListener==='function')d.addEventListener('DOMContentLoaded',scheduleCurrent,{once:true});
 else scheduleCurrent();
