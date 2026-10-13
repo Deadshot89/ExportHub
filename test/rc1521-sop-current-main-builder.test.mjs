@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-// Finaler RC1521 Release-Prep-Checkpoint nach Synchronisierung mit dem aktuellen Main-/TaskPlanner-Stand.
+// Finaler RC1521/RC1522 Release-Checkpoint: aktuelles Main/TaskPlanner + Pack + SOPMaster über den stabilen RC1112-Pfad.
 const builder='.github/rc1521/build-three-env.mjs';
 const read=p=>fs.readFileSync(p,'utf8');
 
