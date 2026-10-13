@@ -32,9 +32,15 @@ async function clean(page,runtime,testInfo){
 test('RC1371: dashboard mounts once, preserves live cards and exposes editor controls',async({page},testInfo)=>{
   const runtime=attachRuntimeGuards(page,testInfo);
   await openDashboard(page);
+  const addButton=page.locator('[data-eh-dashboard-personalized="1"] [data-rc1371-action="addWidget"]');
+  const editButton=page.locator('[data-eh-dashboard-personalized="1"] [data-rc1371-action="toggleEdit"]');
+  await expect(editButton).toBeVisible();
+  await expect(addButton).toBeHidden();
+  await page.evaluate(()=>window.ExportHUBDashboard1371.enterEditMode());
+  await expect(addButton).toBeVisible();
+  await expect(editButton).toHaveAttribute('data-i18n-key','dashboard.personalize.done');
   const result=await page.evaluate(()=>{
     const api=window.ExportHUBDashboard1371;
-    api.enterEditMode();
     const root=api.mountedRoot();
     const widgets=[...root.querySelectorAll('[data-rc1371-widget-id]')];
     const unique=new Set(widgets.map(node=>node.getAttribute('data-rc1371-widget-id')));
@@ -97,25 +103,42 @@ test('RC1371: add, resize and reorder persist after reload for the current user'
   await clean(page,runtime,testInfo);
 });
 
-test('RC1371: widget library searches locally and only exposes permitted widgets',async({page},testInfo)=>{
+test('RC1371: widget library searches, filters categories and exposes metadata only for permitted widgets',async({page},testInfo)=>{
   const runtime=attachRuntimeGuards(page,testInfo);
   await openDashboard(page);
-  await page.evaluate(()=>window.ExportHUBDashboard1371.openLibrary());
+  await page.evaluate(()=>{window.ExportHUBDashboard1371.enterEditMode();window.ExportHUBDashboard1371.openLibrary()});
   const root=page.locator('[data-eh-dashboard-personalized="1"]');
   const search=root.locator('[data-rc1371-library-search="1"]');
+  const category=root.locator('[data-rc1371-library-category="1"]');
   await expect(search).toBeVisible();
-  await search.fill('quick-sop');
-  const library=await page.evaluate(()=>{
+  await expect(category).toBeVisible();
+  const metadata=await page.evaluate(()=>{
     const api=window.ExportHUBDashboard1371;
     const allowed=api.libraryWidgets();
+    const items=[...document.querySelectorAll('[data-rc1371-library-item="1"]')];
+    const active=items.filter(node=>node.getAttribute('data-active')==='1');
     return{
       allPermitted:allowed.every(def=>api.canUseWidget(def)),
-      visibleItems:[...document.querySelectorAll('[data-rc1371-library-item="1"]')].filter(node=>!node.hidden).map(node=>node.getAttribute('data-widget-id'))
+      itemCount:items.length,
+      descriptionCount:items.filter(node=>node.querySelector('[data-rc1371-library-description="1"]')).length,
+      defaultSizeCount:items.filter(node=>node.hasAttribute('data-rc1371-library-default-size')).length,
+      activeCount:active.length,
+      activeBadgeCount:active.filter(node=>node.querySelector('.rc1371-library-active')).length
     };
   });
-  expect(library.allPermitted).toBe(true);
-  expect(library.visibleItems).toContain('quick-sop');
-  expect(library.visibleItems.length).toBe(1);
+  expect(metadata.allPermitted).toBe(true);
+  expect(metadata.itemCount).toBeGreaterThan(0);
+  expect(metadata.descriptionCount).toBe(metadata.itemCount);
+  expect(metadata.defaultSizeCount).toBe(metadata.itemCount);
+  expect(metadata.activeBadgeCount).toBe(metadata.activeCount);
+  await category.selectOption('quickaccess');
+  const categoryIds=await page.evaluate(()=>[...document.querySelectorAll('[data-rc1371-library-item="1"]')].filter(node=>!node.hidden).map(node=>({id:node.getAttribute('data-widget-id'),category:node.getAttribute('data-category')})));
+  expect(categoryIds.length).toBeGreaterThan(0);
+  expect(categoryIds.every(item=>item.category==='quickaccess')).toBe(true);
+  await search.fill('quick-sop');
+  const visibleItems=await page.evaluate(()=>[...document.querySelectorAll('[data-rc1371-library-item="1"]')].filter(node=>!node.hidden).map(node=>node.getAttribute('data-widget-id')));
+  expect(visibleItems).toContain('quick-sop');
+  expect(visibleItems.length).toBe(1);
   await clean(page,runtime,testInfo);
 });
 
