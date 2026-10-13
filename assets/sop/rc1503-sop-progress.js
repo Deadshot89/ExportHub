@@ -2,6 +2,8 @@
 'use strict';
 if(root.ExportHubSopProgress)return;
 
+const PENDING_PREFIX='exporthub:sop-progress-pending:';
+
 function text(value){return String(value==null?'':value).trim();}
 function lower(value){return text(value).toLowerCase();}
 function clone(value){return value===undefined?undefined:JSON.parse(JSON.stringify(value));}
@@ -32,11 +34,76 @@ function baseRecord(meta){
 }
 function records(state){return list(state&&state.sopLearningProgress);}
 function findIndex(state,id){return records(state).findIndex(item=>item&&text(item.id||item.key)===id);}
+function sessionStore(){try{return root.sessionStorage||null;}catch(_){return null;}}
+function pendingKey(meta){const id=identity(meta);return id?`${PENDING_PREFIX}${id.id}`:'';}
+function readPending(meta){
+  const store=sessionStore(),storageKey=pendingKey(meta);if(!store||!storageKey)return null;
+  try{const parsed=JSON.parse(store.getItem(storageKey)||'null');return parsed&&typeof parsed==='object'&&!Array.isArray(parsed)?parsed:null;}catch(_){return null;}
+}
+function writePending(meta,record){
+  const store=sessionStore(),storageKey=pendingKey(meta);if(!store||!storageKey||!record)return false;
+  try{store.setItem(storageKey,JSON.stringify(record));return true;}catch(_){return false;}
+}
+function progressIso(a,b,mode){
+  const av=text(a),bv=text(b);if(!av)return bv;if(!bv)return av;
+  const at=Date.parse(av),bt=Date.parse(bv);if(!Number.isFinite(at))return bv;if(!Number.isFinite(bt))return av;
+  return mode==='latest'?(bt>=at?bv:av):(bt<=at?bv:av);
+}
+function historyIdentity(item,fields){
+  for(const field of fields){const value=text(item&&item[field]);if(value)return value;}
+  const fallback=text(item&&item.at||item&&item.completedAt||item&&item.startedAt);return fallback?`fallback:${fallback}`:'';
+}
+function mergeHistory(a,b,fields){
+  const map=new Map();
+  for(const item of list(a).concat(list(b))){
+    if(!item||typeof item!=='object')continue;
+    const id=historyIdentity(item,fields);if(!id)continue;
+    const previous=map.get(id);
+    if(!previous){map.set(id,clone(item));continue;}
+    const prevAt=Date.parse(text(previous.updatedAt||previous.at||previous.completedAt||previous.startedAt))||0;
+    const nextAt=Date.parse(text(item.updatedAt||item.at||item.completedAt||item.startedAt))||0;
+    map.set(id,nextAt>=prevAt?Object.assign({},clone(previous),clone(item)):Object.assign({},clone(item),clone(previous)));
+  }
+  return Array.from(map.values());
+}
+function mergeRecord(base,pending){
+  if(!base&&!pending)return null;if(!base)return clone(pending);if(!pending)return clone(base);
+  const baseAt=Date.parse(text(base.updatedAt||base._syncUpdatedAt))||0,pendingAt=Date.parse(text(pending.updatedAt||pending._syncUpdatedAt))||0;
+  const newer=pendingAt>=baseAt?pending:base,older=pendingAt>=baseAt?base:pending;
+  const out=Object.assign({},clone(older)||{},clone(newer)||{});
+  for(const field of ['id','key','userId','sopNumber','version'])out[field]=text(newer[field])?clone(newer[field]):clone(older[field]);
+  for(const field of ['viewedAt','startedAt','completedAt','tourCompletedAt'])out[field]=progressIso(base[field],pending[field],'earliest');
+  out.examAttempts=mergeHistory(base.examAttempts,pending.examAttempts,['attemptId','id']);
+  out.helpEvents=mergeHistory(base.helpEvents,pending.helpEvents,['helpId','id']);
+  out.helpCount=Math.max(Number(base.helpCount)||0,Number(pending.helpCount)||0,out.helpEvents.length);
+  out.updatedAt=progressIso(base.updatedAt,pending.updatedAt,'latest');
+  out._syncUpdatedAt=progressIso(base._syncUpdatedAt,pending._syncUpdatedAt,'latest');
+  return out;
+}
+function clearPending(meta,expectedUpdatedAt){
+  const store=sessionStore(),storageKey=pendingKey(meta);if(!store||!storageKey)return false;
+  try{
+    const current=readPending(meta);if(!current)return true;
+    if(text(expectedUpdatedAt)&&text(current.updatedAt)!==text(expectedUpdatedAt))return false;
+    store.removeItem(storageKey);return true;
+  }catch(_){return false;}
+}
+function hydratePending(state,meta){
+  const id=identity(meta);if(!id||!state||typeof state!=='object'||Array.isArray(state))return null;
+  const pending=readPending(meta);if(!pending)return null;
+  const source=records(state),index=findIndex(state,id.id),current=index>=0?source[index]:null,merged=mergeRecord(current,pending);
+  if(!merged)return null;
+  const next=source.slice();if(index>=0)next[index]=merged;else next.push(merged);
+  state.sopLearningProgress=next;
+  return merged;
+}
 function get(state,userId,sopNumber,version){
-  const id=key(userId,sopNumber,version);
+  const meta={userId,sopNumber,version},id=key(userId,sopNumber,version);
   if(!id)return null;
-  const record=records(state).find(item=>item&&text(item.id||item.key)===id);
-  return record?clone(record):null;
+  const record=records(state).find(item=>item&&text(item.id||item.key)===id)||null;
+  const pending=readPending(meta);
+  const merged=mergeRecord(record,pending);
+  return merged?clone(merged):null;
 }
 function mutate(state,meta,updater){
   const currentState=state&&typeof state==='object'&&!Array.isArray(state)?state:{};
@@ -130,13 +197,16 @@ function progressMeta(session,sop,userId){
   };
   return identity(meta)?meta:null;
 }
-function persistProgress(reason){
+function persistProgress(reason,meta,expectedUpdatedAt){
   const clean=root.ExportHUBClean;
   if(!clean||typeof clean.queueSave!=='function')return;
   try{
     Promise.resolve(clean.queueSave(reason||'SOP-Lernfortschritt gespeichert')).then(queued=>{
       if(queued===false||typeof clean.flushSave!=='function')return queued;
       return clean.flushSave(reason||'SOP-Lernfortschritt gespeichert',{force:true});
+    }).then(saved=>{
+      if(saved===true&&meta)clearPending(meta,expectedUpdatedAt);
+      return saved;
     }).catch(error=>{try{console.error('[ExportHUB SOP Progress Save]',error);}catch(_){}});
   }catch(error){try{console.error('[ExportHUB SOP Progress Save]',error);}catch(_){}}
 }
@@ -144,11 +214,14 @@ function applyTransform(transform,meta,payload,reason){
   if(typeof transform!=='function'||!identity(meta))return false;
   const current=applicationState();
   if(!current||typeof current!=='object'||Array.isArray(current))return false;
+  hydratePending(current,meta);
   let next;
   try{next=payload===undefined?transform(current,meta):transform(current,meta,payload);}catch(_){return false;}
   if(next===current)return false;
   try{current.sopLearningProgress=clone(next.sopLearningProgress)||[];}catch(_){return false;}
-  persistProgress(reason);
+  const id=identity(meta),saved=id?records(current).find(item=>item&&text(item.id||item.key)===id.id):null;
+  if(saved)writePending(meta,saved);
+  persistProgress(reason,meta,text(saved&&saved.updatedAt));
   return true;
 }
 function recordStarted(meta){
