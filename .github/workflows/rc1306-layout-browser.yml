@@ -35,7 +35,7 @@ jobs:
           node-version: '24'
 
       - name: RC1306 and RC1371 contract tests
-        run: node --test test/rc1306-true-layout-redesign.test.mjs test/rc1371-dashboard-personalization-state.test.mjs test/rc1371-dashboard-widget-registry.test.mjs test/rc1371-dashboard-edit-mode.test.mjs test/rc1371-dashboard-layout-integration.test.mjs test/rc1371-dashboard-i18n.test.mjs test/rc1371-dashboard-build-contract.test.mjs
+        run: node --test test/rc1306-true-layout-redesign.test.mjs test/rc1371-dashboard-personalization-state.test.mjs test/rc1371-dashboard-widget-registry.test.mjs test/rc1371-dashboard-root-selection.test.mjs test/rc1371-dashboard-edit-mode.test.mjs test/rc1371-dashboard-layout-integration.test.mjs test/rc1371-dashboard-i18n.test.mjs test/rc1371-dashboard-build-contract.test.mjs
 
       - name: Build current three-environment package
         run: node .github/rc1112/build-three-env.mjs
