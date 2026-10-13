@@ -31,14 +31,16 @@ test('RC1505 bewahrt RC1112 als gemeinsame Buildbasis, trennt aber Production vo
 });
 
 test('RC1112 Main Verification bewahrt die RC1018 Mail- und Sprachruntime unverändert',()=>{
-  const flow=read(mainWorkflow);
+  const flow=read(mainWorkflow),contract=read('.github/rc1505/verify-build-contract.mjs');
   assert.match(flow,/test\/rc1018-mail-language-standard\.test\.mjs/);
   assert.match(flow,/test\/rc1018-production-deploy\.test\.mjs/);
   assert.match(flow,/test\/rc1015-lieferavis-mail-flow\.test\.mjs/);
   assert.match(flow,/npm test/);
   assert.match(flow,/assets\/rc1015-lieferavis-mail-flow\.js\?v=1383/);
   assert.match(flow,/assets\/rc1018-mail-language-standard\.js\?v=1018/);
-  assert.match(flow,/assets\/rc1018-public-language\.js\?v=1018/);
+  assert.match(flow,/node \.github\/rc1505\/verify-build-contract\.mjs/);
+  assert.match(contract,/includes\('dist-rc1112\/pickup\.html','assets\/rc1018-public-language\.js\?v=1018'\)/);
+  assert.match(contract,/includes\('dist-rc1112\/location\.html','assets\/rc1018-public-language\.js\?v=1018'\)/);
 });
 
 test('RC1519 Main Verification erzwingt die Public-Page-Sprachruntime nicht auf der internen index.html',()=>{
