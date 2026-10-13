@@ -12,13 +12,16 @@
 [data-eh-dashboard-personalized="1"] [data-rc1371-toolbar="1"]{
   grid-column:1/-1;display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;
 }
+[data-eh-dashboard-personalized="1"]:not([data-rc1371-editing="1"]) .rc1371-dashboard-toolbar > :not([data-rc1371-action="toggleEdit"]){display:none!important}
 [data-eh-dashboard-personalized="1"] [data-rc1371-widget-id]{position:relative;min-width:0;overflow:visible}
 [data-eh-dashboard-personalized="1"] [data-rc1371-size="S"]{grid-column:span 3}
 [data-eh-dashboard-personalized="1"] [data-rc1371-size="M"]{grid-column:span 4}
 [data-eh-dashboard-personalized="1"] [data-rc1371-size="L"]{grid-column:span 6}
 [data-eh-dashboard-personalized="1"] [data-rc1371-size="XL"]{grid-column:1/-1}
 [data-eh-dashboard-personalized="1"] [data-rc1371-visible="0"]{display:none!important}
-[data-eh-dashboard-personalized="1"][data-rc1371-editing="1"] [data-rc1371-widget-id]{outline:2px dashed color-mix(in srgb,currentColor 22%,transparent);outline-offset:3px}
+[data-eh-dashboard-personalized="1"][data-rc1371-editing="1"] [data-rc1371-widget-id]{outline:2px dashed color-mix(in srgb,currentColor 22%,transparent);outline-offset:3px;cursor:grab}
+[data-eh-dashboard-personalized="1"][data-rc1371-editing="1"] [data-rc1371-widget-id]:active{cursor:grabbing}
+[data-eh-dashboard-personalized="1"][data-rc1371-editing="1"] [data-rc1371-widget-id]::before{content:"⋮⋮";position:absolute;z-index:19;top:0;left:14px;transform:translateY(-50%);display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:22px;padding:0 6px;border:1px solid color-mix(in srgb,currentColor 18%,transparent);border-radius:999px;background:Canvas;color:CanvasText;font-weight:800;line-height:1;letter-spacing:-2px;box-shadow:0 4px 12px rgba(15,23,42,.12);pointer-events:none}
 [data-eh-dashboard-personalized="1"] .rc1371-widget-controls{position:absolute;z-index:20;top:8px;right:8px;display:flex;gap:4px;padding:4px;border-radius:10px;background:Canvas;box-shadow:0 6px 20px rgba(15,23,42,.14)}
 [data-eh-dashboard-personalized="1"] .rc1371-widget-controls button,
 [data-eh-dashboard-personalized="1"] .rc1371-dashboard-toolbar button{min-height:36px;border-radius:10px;cursor:pointer}
