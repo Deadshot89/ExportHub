@@ -36,6 +36,9 @@ function currentView(){
   }catch(_){}
   return q(d.body&&(d.body.getAttribute('data-exporthub-view')||d.body.getAttribute('data-current-view'))).toLowerCase()
 }
+function dashboardOwnsLayout(){
+  return currentView()==='dashboard'&&!!(w.ExportHUBDashboard1371&&typeof w.ExportHUBDashboard1371.ownsLayout==='function'&&w.ExportHUBDashboard1371.ownsLayout())
+}
 function remember(node){
   if(!node)return;
   if(!originals.has(node))originals.set(node,{parent:node.parentNode,next:node.nextSibling});
@@ -254,6 +257,7 @@ function genericLayout(mode){
 
 function layoutHealthy(mode){
   var expected=mode==='modern'?'business':mode;
+  if(dashboardOwnsLayout())return true;
   if(d.documentElement.getAttribute('data-eh-layout-mode')!==expected)return false;
   if(isShipmentCreate()){
     var workspace=d.getElementById('rc1306Workspace');
@@ -284,6 +288,11 @@ function apply(){
     restoreAll();
     lastAppliedDesign=mode;
     if(mode==='classic')return;
+    if(dashboardOwnsLayout()){
+      setMode(mode==='modern'?'business':mode);
+      if(w.ExportHUBDashboard1371&&typeof w.ExportHUBDashboard1371.applyTheme==='function')w.ExportHUBDashboard1371.applyTheme(mode);
+      return
+    }
 
     var shell=shipmentShell(),b=blocks();
     if(shell&&isShipmentCreate()){
@@ -294,7 +303,7 @@ function apply(){
       genericLayout(mode==='modern'?'business':mode)
     }
   }finally{
-    if(observer&&d.body&&design()!=='classic')observer.observe(d.body,{childList:true,subtree:true})
+    if(observer&&d.body&&design()!=='classic'&&!dashboardOwnsLayout())observer.observe(d.body,{childList:true,subtree:true})
   }
 }
 function schedule(){
@@ -318,7 +327,7 @@ function watch(){
     })
   }
   observer.disconnect();
-  if(design()!=='classic')observer.observe(d.body,{childList:true,subtree:true});
+  if(design()!=='classic'&&!dashboardOwnsLayout())observer.observe(d.body,{childList:true,subtree:true});
 
   if(!designObserver){
     designObserver=new MutationObserver(function(records){
