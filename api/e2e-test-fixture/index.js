@@ -313,7 +313,7 @@ async function prepare(runId){
  const user=mutation.result.user,nonAdminUser=mutation.result.nonAdminUser,customer=mutation.result.customer;
  const adminSession=signedSessionFor(user,runId,'ADMIN'),nonAdminSession=signedSessionFor(nonAdminUser,runId,'NONADMIN');
  const e2eAdminUser=Object.assign({},publicUser(user,false),{_e2ePackStationToken:pack.packStationToken});
- return{ok:true,action:'prepare',environment:'testservice',runId,token:adminSession.token,user:e2eAdminUser,expiresAt:adminSession.expiresAt,nonAdminToken:nonAdminSession.token,nonAdminUser:publicUser(nonAdminUser,false),nonAdminExpiresAt:nonAdminSession.expiresAt,customer:{id:customer.id,account:customer.account,name:customer.name,locationId:customer.locations[0].id,locationName:customer.locations[0].name},packStation:{id:pack.station.id,name:pack.station.name},purgedStaleRecords:mutation.result.purgedStaleRecords,purgedStaleUsers:mutation.result.purgedStaleUsers,teamBytes:mutation.bytes};
+ return{ok:true,action:'prepare',environment:'testservice',runId,_e2ePackStationToken:pack.packStationToken,token:adminSession.token,user:e2eAdminUser,expiresAt:adminSession.expiresAt,nonAdminToken:nonAdminSession.token,nonAdminUser:publicUser(nonAdminUser,false),nonAdminExpiresAt:nonAdminSession.expiresAt,customer:{id:customer.id,account:customer.account,name:customer.name,locationId:customer.locations[0].id,locationName:customer.locations[0].name},packStation:{id:pack.station.id,name:pack.station.name},purgedStaleRecords:mutation.result.purgedStaleRecords,purgedStaleUsers:mutation.result.purgedStaleUsers,teamBytes:mutation.bytes};
 }
 async function cleanup(runId){
  const mutation=await mutateTestTeam(async team=>{
