@@ -41,6 +41,14 @@ test('RC1112 Main Verification bewahrt die RC1018 Mail- und Sprachruntime unverÃ
   assert.match(flow,/assets\/rc1018-public-language\.js\?v=1018/);
 });
 
+test('RC1519 Main Verification erzwingt die Public-Page-Sprachruntime nicht auf der internen index.html',()=>{
+  const flow=read(mainWorkflow),contract=read('.github/rc1505/verify-build-contract.mjs');
+  assert.doesNotMatch(flow,/grep -q 'assets\/rc1018-public-language\.js\?v=1018' dist-rc1112\/index\.html/);
+  assert.match(flow,/node \.github\/rc1505\/verify-build-contract\.mjs/);
+  assert.match(contract,/includes\('dist-rc1112\/pickup\.html','assets\/rc1018-public-language\.js\?v=1018'\)/);
+  assert.match(contract,/includes\('dist-rc1112\/location\.html','assets\/rc1018-public-language\.js\?v=1018'\)/);
+});
+
 test('RC1505: Production verwendet denselben RC1112-Build Ã¼ber manuellen SHA-festen Release',()=>{
   assert.equal(fs.existsSync(productionWorkflow),true,'Production-Release-Workflow fehlt');
   const flow=read(productionWorkflow);
