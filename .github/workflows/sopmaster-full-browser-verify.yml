@@ -9,6 +9,7 @@ on:
       - 'e2e/specs/sopmaster-*.spec.mjs'
       - 'e2e/helpers/exporthub-browser.mjs'
       - '.github/rc1503/**'
+      - '.github/rc1506/**'
       - '.github/workflows/sopmaster-full-browser-verify.yml'
   workflow_dispatch:
 
@@ -29,8 +30,8 @@ jobs:
         with:
           node-version: '20'
           package-manager-cache: false
-      - name: Build latest pre-integration SOPMaster three-environment package
-        run: node .github/rc1503/build-three-env.mjs
+      - name: Build integrated RC1506 SOPMaster three-environment package
+        run: node .github/rc1506/build-three-env.mjs
       - name: Install Playwright Chromium
         run: |
           npm install --no-save @playwright/test@1.63.0
@@ -46,6 +47,7 @@ jobs:
           e2e/specs/sopmaster-visual-editor.spec.mjs
           e2e/specs/sopmaster-training-exam.spec.mjs
           e2e/specs/sopmaster-coverage-dashboard.spec.mjs
+          e2e/specs/sopmaster-coverage-integration.spec.mjs
           --project=desktop
           --project=mobile-standard
       - uses: actions/upload-artifact@v4
