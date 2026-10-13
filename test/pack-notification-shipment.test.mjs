@@ -3,12 +3,13 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 
-function load(){
+function loadWithRoot(root={}){
   const source=fs.readFileSync('assets/pack-notification-shipment.js','utf8');
-  const root={};
-  vm.runInContext(source,vm.createContext({window:root,globalThis:root,console,Date,Intl,setTimeout,clearTimeout,Event:function(){},KeyboardEvent:function(){}}),{filename:'pack-notification-shipment.js'});
-  return root.ExportHUBPackShipment;
+  class FakeEvent{constructor(type,options={}){this.type=type;Object.assign(this,options);}}
+  vm.runInContext(source,vm.createContext({window:root,globalThis:root,console,Date,Intl,setTimeout,clearTimeout,Event:FakeEvent,KeyboardEvent:FakeEvent}),{filename:'pack-notification-shipment.js'});
+  return{api:root.ExportHUBPackShipment,root};
 }
+function load(){return loadWithRoot().api;}
 function state(){return{packNotifications:[{id:'pn-1',reference:'PK-1',customer:'BSH',customerId:'C100',customerAccount:'9000003004',customerSource:'master',deliveryNoteReference:'LS1',packageType:'Europalette',packageCount:2,totalWeight:600,packages:[{packageNo:1,length:120,width:80,height:140,unit:'cm'},{packageNo:2,length:120,width:80,height:130,unit:'cm'}],documents:[{id:'d1',name:'LS1.pdf',storage:'blob',blobName:'rc1059/production/aa/'+('a'.repeat(64)),mimeType:'application/pdf',size:12}],status:'in_review'}],tasks:[{id:'task:pack:pn-1',sourceType:'pack_notification',sourceId:'pn-1',sourceRef:'PK-1'}],shipments:[]};}
 
 test('shipment prefill preserves pack origin, customer identity, dimensions, weight and private document references',()=>{
@@ -37,6 +38,40 @@ test('manual customer remains a valid prefill without a fake customer id',()=>{
   assert.equal(prefill.customerId,'');
   assert.equal(prefill.customerAccount,'');
   assert.equal(prefill.customerSource,'manual');
+});
+
+test('manual pack customer stays visible in shipment form without master-data normalization',()=>{
+  const draft={deliveryFiles:[]};
+  const input={
+    value:'',
+    events:[],
+    dispatchEvent(event){
+      this.events.push(event&&event.type||'');
+      if(event&&event.type==='change')this.value=' ·  · ';
+      return true;
+    }
+  };
+  const document={
+    getElementById(id){return id==='shipmentCustomerSearch'?input:null;},
+    querySelectorAll(){return[];}
+  };
+  const {api}=loadWithRoot({document,__EXPORTHUB_GET_STATE__:()=>({shipment:draft})});
+  api.applyPrefillToMountedForm({
+    packNotificationId:'pn-manual',
+    packNotificationRef:'PK-MANUAL',
+    customerName:'E2E PACK CUSTOMER A',
+    customerId:'',
+    customerAccount:'',
+    customerSource:'manual',
+    packageCount:1,totalWeight:680,rows:[],deliveryFiles:[]
+  });
+  assert.equal(input.value,'E2E PACK CUSTOMER A');
+  assert.equal(input.events.includes('change'),false);
+  assert.equal(draft.customerName,'E2E PACK CUSTOMER A');
+  assert.equal(draft.customerId,'');
+  assert.equal(draft.customerAccount,'');
+  assert.equal(draft.customerSource,'manual');
+  assert.equal(draft.packNotificationId,'pn-manual');
 });
 
 test('existing shipment linked to pack notification is found and prevents duplicate creation',()=>{
