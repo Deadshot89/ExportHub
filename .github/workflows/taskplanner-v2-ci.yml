@@ -91,5 +91,11 @@ jobs:
             test/taskplanner-v2-public-link.test.mjs \
             test/taskplanner-v2-public-link-ui.test.mjs \
             test/rc1088-release-hardening.test.mjs
+      - name: Security release gate
+        run: npm run test:security
+      - name: Accessibility release gate
+        run: npm run test:accessibility
+      - name: Full i18n release gate
+        run: npm run verify:i18n
       - name: Full repository regression
         run: npm test
