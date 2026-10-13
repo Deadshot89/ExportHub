@@ -31,6 +31,12 @@ function adminAllowed(scope){
   const node=scope&&scope.querySelector?scope.querySelector('[data-sop-approve]'):null;
   return !!node;
 }
+function activeSopView(){
+  if(!root.document)return null;
+  const content=root.document.getElementById('content');
+  if(content&&content.classList&&content.classList.contains('rc1007-sop-view'))return content;
+  return root.document.querySelector?root.document.querySelector('.rc1007-sop-view'):null;
+}
 function documents(){
   const s=state();
   if(Array.isArray(s.isoSops)&&s.isoSops.length)return s.isoSops;
@@ -87,7 +93,7 @@ function destroyController(){
 }
 function ensurePanel(){
   if(!root.document)return null;
-  const sopView=root.document.getElementById('sop-view');
+  const sopView=activeSopView();
   if(!sopView||!adminAllowed(sopView)){
     if(panel&&panel.isConnected&&panel.remove)panel.remove();
     panel=null;destroyController();return null;
@@ -136,6 +142,6 @@ function stop(){
   if(panel&&panel.remove)panel.remove();panel=null;
 }
 
-root.ExportHubSopCoverageRuntime=Object.freeze({start,refresh,stop,ensurePanel,openSop,adminAllowed,documents,customers});
+root.ExportHubSopCoverageRuntime=Object.freeze({start,refresh,stop,ensurePanel,openSop,adminAllowed,activeSopView,documents,customers});
 start();
 })(typeof globalThis!=='undefined'?globalThis:this);
