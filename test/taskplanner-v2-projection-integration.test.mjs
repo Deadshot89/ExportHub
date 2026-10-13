@@ -20,7 +20,7 @@ function loadRuntime(){
   return {runtime:context.ExportHUBRC1014TaskRuntime,context};
 }
 
-const task=(id,extra={})=>({id,title:`Task ${id}`,customerId:'C1',customerName:'Customer',status:'open',priority:'P2',plannedAt:'2026-10-13T09:00:00+02:00',dueAt:'2026-10-13T16:15:00+02:00',...extra});
+const task=(id,extra={})=>({id,schemaVersion:2,title:`Task ${id}`,customerId:'C1',customerName:'Customer',status:'open',priority:'P2',plannedAt:'2026-10-13T09:00:00+02:00',dueAt:'2026-10-13T16:15:00+02:00',...extra});
 
 test('UI rendert Dashboard, Kundenaufgaben, Archiv und Statistik ausschließlich über Shared Projections',()=>{
   const ui=loadUi(),state={tasks:[task('a'),task('done',{status:'done',completedAt:'2026-10-13T10:00:00+02:00'})],taskArchive:[]};
@@ -45,7 +45,7 @@ test('RC1014 Runtime stellt dieselben Shared Projections bereit',()=>{
   assert.equal(runtime.taskStatsProjection({customerId:'C1'},ctx).open,1);
 });
 
-test('prepareTasks rollt erledigte Aufgaben nach sieben Tagen einmalig in taskArchive und persistiert nur einmal',()=>{
+test('prepareTasks rollt erledigte V2-Aufgaben nach sieben Tagen einmalig in taskArchive und persistiert nur einmal',()=>{
   const {runtime}=loadRuntime(),state={rc1152TaskRosterAt:'2026-10-01T00:00:00Z',tasks:[],taskArchive:[]},writes=[];
   const old=task('old',{status:'done',completedAt:'2026-10-01T10:00:00+02:00',createdAt:'2026-09-30T10:00:00+02:00'});
   const current=task('current');
