@@ -1,0 +1,192 @@
+name: SOPMaster RC1520 Release Candidate
+
+on:
+  push:
+    branches:
+      - integration/sopmaster-rc1519-validation
+    paths:
+      - 'assets/sop/**'
+      - 'api/shared/merge.js'
+      - 'assets/exporthub-demo-bootstrap.js'
+      - '.github/rc1112/**'
+      - '.github/rc1501/**'
+      - '.github/rc1502/**'
+      - '.github/rc1503/**'
+      - '.github/rc1505/**'
+      - '.github/rc1506/**'
+      - 'e2e/**'
+      - 'test/rc150*.test.mjs'
+      - 'test/rc151*.test.mjs'
+      - 'test/rc1520-sop-release-candidate.test.mjs'
+      - 'package.json'
+      - 'playwright.config.mjs'
+      - '.github/workflows/sopmaster-release-candidate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: sopmaster-rc1520-release-candidate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  full-node:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Require current main as ancestor
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          git merge-base --is-ancestor origin/main HEAD
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: RC1520 targeted release contracts
+        run: >-
+          node --test --test-concurrency=1
+          test/rc1520-sop-release-candidate.test.mjs
+          test/rc1505-production-promotion.test.mjs
+          test/rc1506-sop-protected-core-gate.test.mjs
+          test/rc1507-sop-testservice-gate.test.mjs
+          test/rc1018-production-deploy.test.mjs
+      - name: Full Node regression
+        run: npm test
+      - name: Upload Node log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rc1520-node-debug
+          path: |
+            npm-debug.log
+          if-no-files-found: ignore
+          retention-days: 14
+
+  integrated-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Require current main as ancestor
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          git merge-base --is-ancestor origin/main HEAD
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: Build RC1519 plus integrated RC1506 package
+        run: node .github/rc1506/build-three-env.mjs
+      - name: Verify current main release build contract
+        run: node .github/rc1505/verify-build-contract.mjs
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save @playwright/test@1.63.0
+          npx playwright install --with-deps chromium
+      - name: Protect ExportHUB core browser flows
+        env:
+          EXPORTHUB_E2E_STATIC: '1'
+          EXPORTHUB_E2E_ENTRY: '/demo.html'
+        run: >-
+          npx playwright test
+          e2e/specs/navigation.spec.mjs
+          e2e/specs/notifications.spec.mjs
+          --project=desktop
+          --project=mobile-standard
+      - name: Protect total print and document composition
+        env:
+          EXPORTHUB_E2E_STATIC: '1'
+          EXPORTHUB_E2E_ENTRY: '/demo.html'
+        run: npx playwright test e2e/specs/print-documents.spec.mjs --project=laptop
+      - name: Protect complete SOPMaster browser path
+        env:
+          EXPORTHUB_E2E_STATIC: '1'
+          EXPORTHUB_E2E_ENTRY: '/demo.html'
+        run: >-
+          npx playwright test
+          e2e/specs/sopmaster-target-picker.spec.mjs
+          e2e/specs/sopmaster-tour.spec.mjs
+          e2e/specs/sopmaster-visual-editor.spec.mjs
+          e2e/specs/sopmaster-training-exam.spec.mjs
+          e2e/specs/sopmaster-coverage-dashboard.spec.mjs
+          e2e/specs/sopmaster-coverage-integration.spec.mjs
+          --project=desktop
+          --project=mobile-standard
+      - name: Upload browser artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rc1520-browser-debug
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: ignore
+          retention-days: 14
+
+  environment-package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Require current main as ancestor
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          git merge-base --is-ancestor origin/main HEAD
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: Build integrated three-environment candidate
+        run: node .github/rc1506/build-three-env.mjs
+      - name: Verify current main release build contract
+        run: node .github/rc1505/verify-build-contract.mjs
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save @playwright/test@1.63.0
+          npx playwright install --with-deps chromium
+      - name: Verify Production candidate package read-only
+        env:
+          EXPORTHUB_E2E_STATIC: '1'
+          EXPORTHUB_E2E_ENTRY: '/index.html'
+          EXPORTHUB_RC_EXPECTED_MARKER: 'ExportHUB RC1112 environment=production-candidate'
+          EXPORTHUB_RC_EXPECT_DEMO: '0'
+        run: npx playwright test e2e/specs/sopmaster-release-candidate.spec.mjs --project=laptop --project=mobile-standard
+      - name: Verify TESTSERVICE package read-only
+        env:
+          EXPORTHUB_E2E_STATIC: '1'
+          EXPORTHUB_E2E_ENTRY: '/TESTVERSION.html'
+          EXPORTHUB_RC_EXPECTED_MARKER: 'ExportHUB RC1112 environment=testservice'
+          EXPORTHUB_RC_EXPECT_DEMO: '0'
+        run: npx playwright test e2e/specs/sopmaster-release-candidate.spec.mjs --project=laptop --project=mobile-standard
+      - name: Verify Demo package read-only
+        env:
+          EXPORTHUB_E2E_STATIC: '1'
+          EXPORTHUB_E2E_ENTRY: '/demo.html'
+          EXPORTHUB_RC_EXPECTED_MARKER: 'ExportHUB RC1112 environment=demo'
+          EXPORTHUB_RC_EXPECT_DEMO: '1'
+        run: npx playwright test e2e/specs/sopmaster-release-candidate.spec.mjs --project=laptop --project=mobile-standard
+      - name: Upload package artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rc1520-package-debug
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: ignore
+          retention-days: 14
