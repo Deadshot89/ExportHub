@@ -3,12 +3,13 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import {execFileSync} from 'node:child_process';
+import {readReleaseContract} from './helpers/rc1505-release-contract.mjs';
 
 const historySource=fs.readFileSync('assets/rc1081-audit-history.js','utf8');
 const historyDe=JSON.parse(fs.readFileSync('assets/i18n/de.json','utf8'));
 const notesSource=fs.readFileSync('assets/rc1177-release-notes.js','utf8');
 const builder=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
-const deploy=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
+const deploy=readReleaseContract();
 
 function historyApi(){
   const shipment={
@@ -88,6 +89,7 @@ test('RC1177: Historie und Release Notes werden in alle drei Umgebungen gebaut u
   assert.match(builder,/'assets\/rc1177-release-notes\.js'/);
   assert.match(deploy,/rc1081-audit-history\.js\?v=1177/);
   assert.doesNotMatch(deploy,/rc1081-audit-history\.js\?v=1163/);
+  assert.match(deploy,/RC1177 Release Notes/);
 });
 
 test('RC1177: geänderte JavaScript-Dateien bleiben syntaktisch gültig',()=>{

@@ -1,13 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {readReleaseContract} from './helpers/rc1505-release-contract.mjs';
 
 const read=p=>fs.readFileSync(p,'utf8');
-const workflow=read('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml');
+const release=readReleaseContract();
 const de=JSON.parse(read('assets/i18n/de.json'));
 const apiDe=JSON.parse(read('api/shared/i18n/de.json'));
 
-test('RC1295: Drei-Umgebungen-Deploy prüft i18n-Schlüssel statt entfernte deutsche Runtime-Literale',()=>{
+test('RC1295: gesplitteter Releasevertrag prüft i18n-Schlüssel statt entfernte deutsche Runtime-Literale',()=>{
   const required=[
     'customerDelete.finalDelete',
     'diagnostics.fixWithChatgpt',
@@ -29,7 +30,7 @@ test('RC1295: Drei-Umgebungen-Deploy prüft i18n-Schlüssel statt entfernte deut
     'packaging.other',
     'diagnostics.title'
   ];
-  for(const marker of required)assert.ok(workflow.includes(marker),marker+' fehlt im Release-Gate');
+  for(const marker of required)assert.ok(release.includes(marker),marker+' fehlt im Release-Vertrag');
 
   const stale=[
     "grep -q 'Endgültig löschen' dist-rc1112/assets/rc1126-customer-delete.js",
@@ -39,7 +40,7 @@ test('RC1295: Drei-Umgebungen-Deploy prüft i18n-Schlüssel statt entfernte deut
     "grep -q 'Neues AVIS-Dokument' dist-rc1112/assets/rc1133-avis-upload-notifications.js",
     "grep -q 'PDF öffnen / drucken' dist-rc1112/assets/rc1133-avis-upload-notifications.js"
   ];
-  for(const marker of stale)assert.equal(workflow.includes(marker),false,'veralteter Literalcheck bleibt aktiv: '+marker);
+  for(const marker of stale)assert.equal(release.includes(marker),false,'veralteter Literalcheck bleibt aktiv: '+marker);
 });
 
 test('RC1295: Runtime und deutsche Locale liefern die vom Gate geprüften Schlüssel',()=>{
@@ -75,5 +76,6 @@ test('RC1295: Runtime und deutsche Locale liefern die vom Gate geprüften Schlü
 });
 
 test('RC1295: AVIS-Mail-Gate prüft den API-i18n-Vertrag',()=>{
-  assert.ok(workflow.includes("grep -q '\"api.avis.mailPassed\"' api/shared/i18n/de.json"));
+  assert.ok(release.includes('api/shared/i18n/de.json'));
+  assert.ok(release.includes('"api.avis.mailPassed"'));
 });

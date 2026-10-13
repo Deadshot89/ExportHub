@@ -5,13 +5,14 @@ import fs from 'node:fs';
 const flow=fs.readFileSync('.github/workflows/rc1083-live-probe.yml','utf8');
 const diagnostics=fs.readFileSync('assets/rc1013-diagnostics.js','utf8');
 
-test('RC1364: Standalone-Diagnose-Liveprobe läuft erst nach erfolgreichem Drei-Umgebungen-Deploy',()=>{
+test('RC1505/RC1364: Standalone-Diagnose-Liveprobe läuft erst nach erfolgreichem Production-Release',()=>{
   assert.match(flow,/workflow_run:/);
-  assert.match(flow,/ExportHUB RC1112 Drei-Umgebungen Deploy/);
+  assert.match(flow,/ExportHUB Production Release/);
+  assert.doesNotMatch(flow,/ExportHUB RC1112 Drei-Umgebungen Deploy/);
   assert.match(flow,/types:\s*\[completed\]/);
   assert.match(flow,/github\.event\.workflow_run\.conclusion == 'success'/);
   assert.match(flow,/github\.event\.workflow_run\.head_branch == 'main'/);
-  assert.doesNotMatch(flow,/^\s{2}push:/m,'Liveprobe darf nicht vor dem Deployment direkt auf Push starten');
+  assert.doesNotMatch(flow,/^\s{2}push:/m,'Liveprobe darf nicht vor dem Production-Release direkt auf Push starten');
   assert.match(flow,/github\.event\.workflow_run\.head_sha \|\| github\.sha/);
 });
 

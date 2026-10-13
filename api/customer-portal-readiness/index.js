@@ -6,7 +6,8 @@ const store=require('../shared/customer-portal-store');
 const apiI18n=require('../shared/i18n');
 
 const REPO='Deadshot89/ExportHub';
-const WORKFLOW='azure-static-web-apps-wonderful-forest-0f315e310.yml';
+const MAIN_WORKFLOW='azure-static-web-apps-wonderful-forest-0f315e310.yml';
+const PRODUCTION_WORKFLOW='exporthub-production-release.yml';
 const OIDC_ISSUER='https://token.actions.githubusercontent.com';
 const OIDC_JWKS_URL='https://token.actions.githubusercontent.com/.well-known/jwks';
 const OIDC_AUDIENCE='exporthub-customer-portal-readiness';
@@ -51,7 +52,9 @@ async function githubOidcAuthorized(req){
   const nowSec=Math.floor(Date.now()/1000),aud=Array.isArray(claims.aud)?claims.aud:[claims.aud];
   if(claims.iss!==OIDC_ISSUER||!aud.includes(OIDC_AUDIENCE))return false;
   if(claims.repository!==REPO||claims.ref!=='refs/heads/main'||!ALLOWED_EVENTS.includes(text(claims.event_name)))return false;
-  if(claims.workflow_ref!==REPO+'/.github/workflows/'+WORKFLOW+'@refs/heads/main')return false;
+  const workflowRef=text(claims.workflow_ref),mainRef=REPO+'/.github/workflows/'+MAIN_WORKFLOW+'@refs/heads/main',productionRef=REPO+'/.github/workflows/'+PRODUCTION_WORKFLOW+'@refs/heads/main';
+  if(workflowRef!==mainRef&&workflowRef!==productionRef)return false;
+  if(workflowRef===productionRef&&text(claims.event_name)!=='workflow_dispatch')return false;
   if(!Number(claims.exp)||Number(claims.exp)<=nowSec-30)return false;
   if(Number(claims.nbf||0)>nowSec+60||Number(claims.iat||0)>nowSec+60||Number(claims.iat||0)<nowSec-1800)return false;
   if(!oidcCache.keys.length||oidcCache.expiresAt<Date.now()){

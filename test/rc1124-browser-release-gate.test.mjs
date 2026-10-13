@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-const workflowPath='.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml';
+const mainWorkflowPath='.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml';
+const productionWorkflowPath='.github/workflows/exporthub-production-release.yml';
 const requiredFiles=[
   'playwright.config.mjs',
   'e2e/helpers/exporthub-browser.mjs',
@@ -62,45 +63,47 @@ test('RC1124: Browser-Helfer schützen Navigation, Quellcode-Leaks, Overflow und
   assert.match(helper,/RC1033 Lieferavis Fast-Path exporthub:\(\?:viewchange\|rendered\) Error: Diese Außenwirkung ist in der Fake-Demo absichtlich deaktiviert/);
 });
 
-test('RC1124: TESTSERVICE Browser-Gate liegt zwingend vor Produktion',()=>{
-  const workflow=read(workflowPath);
-  const testservice=workflow.indexOf('- name: Deploy ExportHUB TESTSERVICE');
-  const gate=workflow.indexOf('- name: RC1124 TESTSERVICE Browser Gate');
-  const production=workflow.indexOf('- name: Deploy ExportHUB production');
+test('RC1505/RC1124: TESTSERVICE Browser-Gate bleibt im Main-Workflow und Production ist davon getrennt',()=>{
+  const main=read(mainWorkflowPath);
+  const production=read(productionWorkflowPath);
+  const testservice=main.indexOf('- name: Deploy ExportHUB TESTSERVICE');
+  const gate=main.indexOf('- name: RC1124 TESTSERVICE Browser Gate');
   assert.ok(testservice>=0,'TESTSERVICE-Deploy fehlt');
   assert.ok(gate>testservice,'TESTSERVICE Browser Gate muss nach TESTSERVICE-Deploy laufen');
-  assert.ok(production>gate,'Produktion darf erst nach grünem TESTSERVICE Browser Gate laufen');
-  assert.match(workflow,/'e2e\/\*\*'/);
-  assert.match(workflow,/'playwright\.config\.mjs'/);
-  assert.match(workflow,/npm install --no-save @playwright\/test@1\.63\.0/);
-  assert.match(workflow,/npx playwright install --with-deps chromium/);
-  assert.match(workflow,/RC1124 Lokales Browser-Gate/);
-  assert.match(workflow,/Live RC1122 HTML-Integrität prüfen/);
-  assert.match(workflow,/actions\/upload-artifact@v7/);
-  assert.match(workflow,/retention-days:\s*14/);
+  assert.doesNotMatch(main,/Deploy ExportHUB production/);
+  assert.match(production,/RC1505 Erfolgreiche Main Verification für Release-SHA verlangen/);
+  assert.match(production,/Deploy ExportHUB production/);
+  assert.match(main,/'e2e\/\*\*'/);
+  assert.match(main,/'playwright\.config\.mjs'/);
+  assert.match(main,/npm install --no-save @playwright\/test@1\.63\.0/);
+  assert.match(main,/npx playwright install --with-deps chromium/);
+  assert.match(main,/RC1124 Lokales Browser-Gate/);
+  assert.match(main,/actions\/upload-artifact@v7/);
+  assert.match(main,/retention-days:\s*14/);
 });
 
-test('RC1124: Produktion führt nur read-only Browser-Smokes aus',()=>{
-  const workflow=read(workflowPath);
+test('RC1505/RC1124: Produktion führt nur read-only Browser-Smokes im manuellen Release aus',()=>{
+  const workflow=read(productionWorkflowPath);
   const prod=workflow.indexOf('- name: Deploy ExportHUB production');
   const smoke=workflow.indexOf('- name: RC1124 Produktion Read-only Browser Smoke');
   assert.ok(prod>=0&&smoke>prod,'Produktions-Smoke muss nach dem Deploy liegen');
-  const block=workflow.slice(smoke,workflow.indexOf('\n      - name:',smoke+10)>0?workflow.indexOf('\n      - name:',smoke+10):undefined);
+  const end=workflow.indexOf('\n      - name:',smoke+10);
+  const block=workflow.slice(smoke,end>0?end:undefined);
   assert.match(block,/public-smoke\.spec\.mjs/);
-  assert.doesNotMatch(block,/navigation\.spec\.mjs|notifications\.spec\.mjs/);
+  assert.match(block,/version-display\.spec\.mjs/);
+  assert.doesNotMatch(block,/navigation\.spec\.mjs|notifications\.spec\.mjs|shipment-create\.spec\.mjs|testservice-mutation\.spec\.mjs/);
 });
 
-
-test('RC1124: aktuelle Lieferavis-Runtimes werden wirklich in RC1112 ausgeliefert',()=>{
+test('RC1124: aktuelle Lieferavis-Runtimes werden wirklich in RC1112 geprüft',()=>{
   const build=read('.github/rc1112/build-three-env.mjs');
-  const workflow=read(workflowPath);
+  const main=read(mainWorkflowPath);
   for(const rel of [
     'assets/rc1027-lieferavis-immediate.js',
     'assets/rc1037-lieferavis-timing-diagnostics.js',
     'assets/rc1049-abd-avis-policy.js'
   ]){
     assert.ok(build.includes(rel),'RC1112 Build kopiert nicht: '+rel);
-    assert.ok(workflow.includes('test -s dist-rc1112/'+rel),'Deploy-Vertrag prüft nicht: '+rel);
+    assert.ok(main.includes('test -s dist-rc1112/'+rel),'Main-Vertrag prüft nicht: '+rel);
   }
 });
 

@@ -3,7 +3,7 @@ name: RC1137 State Compaction
 on:
   workflow_run:
     workflows:
-      - ExportHUB RC1112 Drei-Umgebungen Deploy
+      - ExportHUB Production Release
     types:
       - completed
     branches:
@@ -33,12 +33,20 @@ jobs:
           set +x
 
           oidc_token="$(
-            curl -fsSL               -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN"               "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=exporthub-state-compaction"             | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s).value;if(!v)process.exit(2);process.stdout.write(v)})"
+            curl -fsSL \
+              -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+              "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=exporthub-state-compaction" \
+            | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s).value;if(!v)process.exit(2);process.stdout.write(v)})"
           )"
 
           call_maintenance() {
             local action="$1"
-            curl -fsSL               -H "Content-Type: application/json"               -H "x-exporthub-github-oidc: $oidc_token"               -H "x-exporthub-environment: $TARGET_ENV"               -d "{\"action\":\"$action\",\"environment\":\"$TARGET_ENV\"}"               "$BASE_URL/api/state-maintenance"
+            curl -fsSL \
+              -H "Content-Type: application/json" \
+              -H "x-exporthub-github-oidc: $oidc_token" \
+              -H "x-exporthub-environment: $TARGET_ENV" \
+              -d "{\"action\":\"$action\",\"environment\":\"$TARGET_ENV\"}" \
+              "$BASE_URL/api/state-maintenance"
           }
 
           preview="$(call_maintenance preview)"
@@ -104,7 +112,6 @@ jobs:
               console.log('TESTSERVICE restore drill',JSON.stringify({verified:v.verified,bytes:v.bytes,revision:v.revision,shipmentReferenceCount:v.shipmentReferenceCount,backupReadBackVerified:v.backupReadBackVerified}));
             })"
 
-
   production:
     name: PRODUCTION State kompaktieren
     needs:
@@ -122,12 +129,20 @@ jobs:
           set +x
 
           oidc_token="$(
-            curl -fsSL               -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN"               "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=exporthub-state-compaction"             | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s).value;if(!v)process.exit(2);process.stdout.write(v)})"
+            curl -fsSL \
+              -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+              "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=exporthub-state-compaction" \
+            | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s).value;if(!v)process.exit(2);process.stdout.write(v)})"
           )"
 
           call_maintenance() {
             local action="$1"
-            curl -fsSL               -H "Content-Type: application/json"               -H "x-exporthub-github-oidc: $oidc_token"               -H "x-exporthub-environment: $TARGET_ENV"               -d "{\"action\":\"$action\",\"environment\":\"$TARGET_ENV\"}"               "$BASE_URL/api/state-maintenance"
+            curl -fsSL \
+              -H "Content-Type: application/json" \
+              -H "x-exporthub-github-oidc: $oidc_token" \
+              -H "x-exporthub-environment: $TARGET_ENV" \
+              -d "{\"action\":\"$action\",\"environment\":\"$TARGET_ENV\"}" \
+              "$BASE_URL/api/state-maintenance"
           }
 
           preview="$(call_maintenance preview)"

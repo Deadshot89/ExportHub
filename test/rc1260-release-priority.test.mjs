@@ -2,13 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-const workflow=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
+const mainWorkflow=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
+const productionWorkflow=fs.readFileSync('.github/workflows/exporthub-production-release.yml','utf8');
 
 test('RC1260: harter TESTSERVICE-Gate behält alle Browser-Specs und schließt nur RC1255 P2 aus',()=>{
-  const start=workflow.indexOf('- name: RC1124 TESTSERVICE Browser Gate');
-  const end=workflow.indexOf('- name: RC1124 TESTSERVICE Browser-Artefakte');
+  const start=mainWorkflow.indexOf('- name: RC1124 TESTSERVICE Browser Gate');
+  const end=mainWorkflow.indexOf('- name: RC1124 TESTSERVICE Browser-Artefakte');
   assert.ok(start>=0&&end>start);
-  const block=workflow.slice(start,end);
+  const block=mainWorkflow.slice(start,end);
   for(const spec of [
     'e2e/specs/navigation.spec.mjs',
     'e2e/specs/notifications.spec.mjs',
@@ -21,30 +22,33 @@ test('RC1260: harter TESTSERVICE-Gate behält alle Browser-Specs und schließt n
 });
 
 test('RC1260/RC1346: RC1255-Outlook-Test bleibt hart und automatische Upload-Mail wird separat diagnostiziert',()=>{
-  assert.match(workflow,/npx playwright test e2e\/specs\/testservice-mutation\.spec\.mjs --project=laptop --grep 'RC1255 P2:'/);
-  assert.doesNotMatch(workflow,/rc1255_mail_status=\$\?/);
-  assert.doesNotMatch(workflow,/set \+e[\s\S]{0,500}RC1255 P2:/);
-  assert.doesNotMatch(workflow,/::warning title=RC1255 AVIS-Mail P2::/);
-  assert.match(workflow,/RC1249 TESTSERVICE AVIS-Mail-Konfiguration prüfen/);
-  assert.match(workflow,/GRAPH_MAIL_PERMISSION_MISSING/);
-  assert.match(workflow,/::warning title=RC1290 AVIS-Mail P2::/);
-  assert.match(workflow,/Microsoft Graph > Application > Mail\.Send/);
-  assert.match(workflow,/Admin Consent erforderlich/);
-  assert.doesNotMatch(workflow,/zuletzt Microsoft Graph HTTP 401/);
-  assert.doesNotMatch(workflow,/P0-MFA-Rollout/);
+  assert.match(mainWorkflow,/npx playwright test e2e\/specs\/testservice-mutation\.spec\.mjs --project=laptop --grep 'RC1255 P2:'/);
+  assert.doesNotMatch(mainWorkflow,/rc1255_mail_status=\$\?/);
+  assert.doesNotMatch(mainWorkflow,/set \+e[\s\S]{0,500}RC1255 P2:/);
+  assert.doesNotMatch(mainWorkflow,/::warning title=RC1255 AVIS-Mail P2::/);
+  assert.match(mainWorkflow,/RC1249 TESTSERVICE AVIS-Mail-Konfiguration prüfen/);
+  assert.match(mainWorkflow,/GRAPH_MAIL_PERMISSION_MISSING/);
+  assert.match(mainWorkflow,/::warning title=RC1290 AVIS-Mail P2::/);
+  assert.match(mainWorkflow,/Microsoft Graph > Application > Mail\.Send/);
+  assert.match(mainWorkflow,/Admin Consent erforderlich/);
+  assert.doesNotMatch(mainWorkflow,/zuletzt Microsoft Graph HTTP 401/);
+  assert.doesNotMatch(mainWorkflow,/P0-MFA-Rollout/);
 });
 
-test('RC1260: Produktionsdeploy bleibt hinter dem harten TESTSERVICE-Gate',()=>{
-  const hard=workflow.indexOf('- name: RC1124 TESTSERVICE Browser Gate');
-  const prod=workflow.indexOf('- name: Deploy ExportHUB production');
-  assert.ok(hard>=0&&prod>hard);
+test('RC1505/RC1260: Production bleibt hinter erfolgreicher harter TESTSERVICE-Verifikation',()=>{
+  assert.match(mainWorkflow,/RC1124 TESTSERVICE Browser Gate/);
+  assert.doesNotMatch(mainWorkflow,/Deploy ExportHUB production/);
+  const verify=productionWorkflow.indexOf('- name: RC1505 Erfolgreiche Main Verification für Release-SHA verlangen');
+  const prod=productionWorkflow.indexOf('- name: Deploy ExportHUB production');
+  assert.ok(verify>=0&&prod>verify,'Production muss hinter dem SHA-festen erfolgreichen Main-Verification-Nachweis liegen');
+  assert.match(productionWorkflow.slice(verify,prod),/head_sha/);
+  assert.match(productionWorkflow.slice(verify,prod),/conclusion==='success'/);
 });
-
 
 test('RC1279: bekannte Mail.Send-Berechtigungslücke blockiert weder TESTSERVICE noch Produktion',()=>{
-  for(const [name,env] of [
-    ['RC1249 TESTSERVICE AVIS-Mail-Konfiguration prüfen','testservice'],
-    ['RC1249 PRODUCTION AVIS-Mail-Konfiguration prüfen','production']
+  for(const [workflow,name,env] of [
+    [mainWorkflow,'RC1249 TESTSERVICE AVIS-Mail-Konfiguration prüfen','testservice'],
+    [productionWorkflow,'RC1249 PRODUCTION AVIS-Mail-Konfiguration prüfen','production']
   ]){
     const start=workflow.indexOf('- name: '+name);
     const end=workflow.indexOf('\n      - name:',start+10);
@@ -64,7 +68,7 @@ test('RC1279: bekannte Mail.Send-Berechtigungslücke blockiert weder TESTSERVICE
   }
 });
 
-test('RC1279: optionale Upload-Mail-Readiness meldet Fehler sichtbar',()=>{
+test('RC1279: optionale Upload-Mail-Readiness meldet Fehler sichtbar in beiden Umgebungen',()=>{
   const markers=[
     "const ready=status===200",
     "v.configured===true",
@@ -74,5 +78,7 @@ test('RC1279: optionale Upload-Mail-Readiness meldet Fehler sichtbar',()=>{
     "console.error('RC1249 '+env+' automatische Upload-Mail weiterhin nicht verfügbar'",
     "process.exit(1);"
   ];
-  for(const marker of markers)assert.ok(workflow.includes(marker),'Fehlender RC1279 Fail-closed-Marker: '+marker);
+  for(const [name,workflow] of [['TESTSERVICE',mainWorkflow],['PRODUCTION',productionWorkflow]]){
+    for(const marker of markers)assert.ok(workflow.includes(marker),`${name}: Fehlender RC1279 Fail-closed-Marker: ${marker}`);
+  }
 });

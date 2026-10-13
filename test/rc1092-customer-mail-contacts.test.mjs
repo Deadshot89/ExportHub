@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {execFileSync} from 'node:child_process';
+import {readBuildContract,readLiveContract} from './helpers/rc1505-release-contract.mjs';
 
 const read=p=>fs.readFileSync(p,'utf8');
 const runtime=read('assets/rc1092-customer-mail-contacts.js');
@@ -62,11 +63,13 @@ test('RC1092 wird in alle drei RC1048 Umgebungen ausgeliefert',()=>{
  assert.equal(manifest.retainedPatches.customerMailContacts.separateLibraryAndMailAssignment,true);
 });
 
-test('RC1092 Produktionsworkflow prüft Build und Live-Auslieferung',()=>{
- const flow=read('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml');
- assert.match(flow,/Live RC1092 Kundenkontakte prüfen/);
- assert.match(flow,/assets\/rc1092-customer-mail-contacts\.js\?v=1399/);
- assert.match(flow,/data-rc1092-avis-toggle/);
- assert.match(flow,/function rc1330AvisPolicyBlock/);
- assert.match(flow,/RC1380 Kundenordner: Kontakte und AVIS-Kundensteuerung live bestätigt/);
+test('RC1092 getrennter Releasevertrag prüft Build und Production-Live-Auslieferung',()=>{
+ const build=readBuildContract(),live=readLiveContract();
+ assert.match(build,/assets\/rc1092-customer-mail-contacts\.js\?v=1399/);
+ assert.match(live,/RC1092 Kundenkontakte/);
+ assert.match(live,/data-rc1092-avis-toggle/);
+ assert.match(live,/function rc1330AvisPolicyBlock/);
+ assert.match(live,/customerAvisLinkEnabled/);
+ assert.match(live,/customerContacts\.savePerson/);
+ assert.match(live,/customerContacts\.addToMail/);
 });

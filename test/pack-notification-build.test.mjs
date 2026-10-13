@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {injectPackRuntime,copyPackFiles,PACK_ASSETS} from '../.github/packmeldungen/build-three-env.mjs';
+import {readMainFlow,readProductionFlow} from './helpers/rc1505-release-contract.mjs';
 
 test('runtime injection is idempotent and ordered after existing document head',()=>{
   const base='<!doctype html><html><head><title>ExportHUB360</title></head><body><main id="content"></main></body></html>';
@@ -62,15 +63,20 @@ test('both static web app configs expose anonymous /pack route through the share
   }
 });
 
-test('RC1500 main release packages carry the shared assets folder into TESTSERVICE and production apps',()=>{
-  const workflow=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
-  const start=workflow.indexOf('- name: Gemeinsame RC1112 Deploy-Pakete vorbereiten');
-  const end=workflow.indexOf('- name: RC1124 Playwright installieren',start);
-  assert.ok(start>=0&&end>start,'gemeinsamer RC1112 Deploy-Paket-Block fehlt');
-  const block=workflow.slice(start,end);
-  assert.match(block,/for dir in \.rc1112_production_app \.rc1112_testservice_app; do/);
-  assert.match(block,/cp -R assets "\$dir\/assets"/,'shared assets folder is not copied into both deploy packages');
+test('RC1500 split release packages carry the shared assets folder into TESTSERVICE and production apps',()=>{
+  const main=readMainFlow(),production=readProductionFlow();
+  const testStart=main.indexOf('- name: RC1112 TESTSERVICE-Paket vorbereiten');
+  const testEnd=main.indexOf('- name: RC1124 Playwright installieren',testStart);
+  assert.ok(testStart>=0&&testEnd>testStart,'RC1112 TESTSERVICE-Paket-Block fehlt');
+  const testBlock=main.slice(testStart,testEnd);
+  assert.match(testBlock,/cp -R assets \.rc1112_testservice_app\/assets/,'shared assets folder is not copied into TESTSERVICE package');
+  assert.match(testBlock,/cp staticwebapp\.testservice\.config\.json \.rc1112_testservice_app\/staticwebapp\.config\.json/);
+
+  const prodStart=production.indexOf('- name: RC1112 Production-Paket aus freigegebenem SHA vorbereiten');
+  const prodEnd=production.indexOf('- name: RC1124 Playwright für Production-Smoke installieren',prodStart);
+  assert.ok(prodStart>=0&&prodEnd>prodStart,'RC1112 Production-Paket-Block fehlt');
+  const prodBlock=production.slice(prodStart,prodEnd);
+  assert.match(prodBlock,/cp -R assets \.rc1112_production_app\/assets/,'shared assets folder is not copied into production package');
+  assert.match(prodBlock,/cp staticwebapp\.config\.json \.rc1112_production_app\/staticwebapp\.config\.json/);
   assert.ok(fs.existsSync('assets/pack.html'),'pack page is not part of the shared assets deploy source');
-  assert.match(block,/cp staticwebapp\.config\.json \.rc1112_production_app\/staticwebapp\.config\.json/);
-  assert.match(block,/cp staticwebapp\.testservice\.config\.json \.rc1112_testservice_app\/staticwebapp\.config\.json/);
 });

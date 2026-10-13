@@ -58,14 +58,15 @@ test('RC1171: Testdaten werden ausschließlich per _e2eRunId markiert und Fixtur
   assert.doesNotMatch(spec,/state:\{shipments,savedShipments\}/);
 });
 
-test('RC1171: TESTSERVICE-Release-Gate führt den UI-Test tatsächlich aus',()=>{
+test('RC1505/RC1171: TESTSERVICE Main-Verification-Gate führt den UI-Test tatsächlich aus',()=>{
   const start=workflow.indexOf('- name: RC1124 TESTSERVICE Browser Gate');
-  const end=workflow.indexOf('- name: Deploy ExportHUB production',start);
+  const end=workflow.indexOf('- name: RC1124 TESTSERVICE Browser-Artefakte',start);
   assert.ok(start>=0&&end>start);
   const gate=workflow.slice(start,end);
   assert.match(gate,/e2e\/specs\/shipment-create\.spec\.mjs/);
   assert.match(gate,/EXPORTHUB_E2E_MUTATION='1'/);
   assert.match(gate,/EXPORTHUB_E2E_REFERENCE=/);
+  assert.doesNotMatch(workflow,/Deploy ExportHUB production/,'Main Verification darf Production nicht deployen');
 });
 
 test('RC1171: geänderte E2E-Dateien sind syntaktisch gültig und manifestiert',()=>{

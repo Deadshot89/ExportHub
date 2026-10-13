@@ -67,11 +67,12 @@ test('RC1453: dedicated API is production-only, OIDC-protected, backed up, ETag 
   assert.match(src,/4UXU92/);
 });
 
-test('RC1453: production workflow runs only after successful main deploy and fails unless both references are verified clean',()=>{
+test('RC1505: RC1453 production cleanup runs only after successful Production Release',()=>{
   assert.ok(fs.existsSync(WORKFLOW),'RC1453 production workflow is missing');
   const workflow=fs.readFileSync(WORKFLOW,'utf8');
   assert.match(workflow,/workflow_run:/);
-  assert.match(workflow,/ExportHUB RC1112 Drei-Umgebungen Deploy/);
+  assert.match(workflow,/ExportHUB Production Release/);
+  assert.doesNotMatch(workflow,/ExportHUB RC1112 Drei-Umgebungen Deploy/);
   assert.match(workflow,/id-token: write/);
   assert.match(workflow,/github\.event\.workflow_run\.conclusion == 'success'/);
   assert.match(workflow,/github\.event\.workflow_run\.head_branch == 'main'/);

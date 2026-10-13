@@ -1,12 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import vm from 'node:vm';
 import {execFileSync} from 'node:child_process';
+import {readBuildContract,readLiveContract} from './helpers/rc1505-release-contract.mjs';
 
 const runtime=fs.readFileSync('assets/rc1074-login-clean.js','utf8');
 const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
-const workflow=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
 
 test('RC1298 P1: redundante Login-Informationen sind ausgeblendet',()=>{
   assert.match(runtime,/#login \.clean-version-badge,#login \.eh-login-mode-head,#login \.eh-login-environment-note\{display:none!important\}/);
@@ -45,10 +44,12 @@ test('RC1298 P1: Produktion hält den Browser-Tab dauerhaft auf ExportHUB360',()
   assert.match(runtime,/observer\.observe\(root,\{subtree:true,childList:true,characterData:true\}\)/);
 });
 
-test('RC1298 P1: Login-Runtime wird cache-frisch gebaut und live geprüft',()=>{
+test('RC1298 P1: Login-Runtime wird cache-frisch gebaut und im manuellen Production-Live-Vertrag geprüft',()=>{
+  const releaseBuild=readBuildContract(),live=readLiveContract();
   assert.ok(build.includes("assets\\/rc1074-login-clean\\.js\\?v=(?:1074|1112|1298|1301|1303|1311)"),'Builder muss alte Login-Cache-Keys auf RC1349 anheben');
   assert.match(build,/assets\/rc1074-login-clean\.js\?v=1349/);
-  assert.match(workflow,/assets\/rc1074-login-clean\.js\?v=1349/);
+  assert.match(releaseBuild,/assets\/rc1074-login-clean\.js\?v=1349/);
+  assert.match(live,/\/assets\/rc1074-login-clean\.js/);
 });
 
 test('RC1298 P1: Login-Runtime bleibt syntaktisch gültig',()=>{

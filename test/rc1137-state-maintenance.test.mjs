@@ -58,16 +58,19 @@ test('RC1137: API ist OIDC-geschützt, erstellt vor Apply ein Backup und schreib
   assert.match(source,/action\s*===?\s*['"]apply['"]/,'Apply-Aktion fehlt');
 });
 
-test('RC1137: Workflow läuft erst nach erfolgreichem Deploy, TESTSERVICE vollständig vor Produktion',()=>{
+test('RC1505/RC1137: State-Compaction läuft erst nach erfolgreichem Production-Release, TESTSERVICE vollständig vor Produktion',()=>{
   assert.ok(fs.existsSync(WF),'RC1137 Workflow fehlt');
   const source=fs.readFileSync(WF,'utf8');
   assert.match(source,/workflow_run:/);
-  assert.match(source,/ExportHUB RC1112 Drei-Umgebungen Deploy/);
+  assert.match(source,/ExportHUB Production Release/);
+  assert.doesNotMatch(source,/ExportHUB RC1112 Drei-Umgebungen Deploy/);
   assert.match(source,/id-token:\s*write/);
   assert.match(source,/conclusion\s*==\s*['"]success['"]/);
   const testPos=source.indexOf('TESTSERVICE');
   const prodPos=source.indexOf('PRODUCTION');
   assert.ok(testPos>=0&&prodPos>testPos,'TESTSERVICE muss vor Produktion stehen');
+  assert.match(source,/needs:\s*\n\s*- testservice/,'PRODUCTION muss den erfolgreichen TESTSERVICE-Job voraussetzen');
+  assert.match(source,/needs\.testservice\.result == 'success'/);
   assert.match(source,/preview/);
   assert.match(source,/apply/);
   assert.match(source,/teamStateBytes/,'Live-Größenprüfung fehlt');
