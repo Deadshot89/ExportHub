@@ -1,0 +1,24 @@
+name: RC1514 Targeted Handoff Off-View Sync Regression
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'assets/rc1499-exportexperte-handoff.js'
+      - 'test/rc1514-exportexperte-handoff-offview-sync-gate.test.mjs'
+      - '.github/workflows/rc1514-targeted-regression.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  targeted:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+      - name: RC1514 targeted regression
+        run: node --test test/rc1514-exportexperte-handoff-offview-sync-gate.test.mjs
