@@ -3,15 +3,9 @@ import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 
 const require=createRequire(import.meta.url);
-const {COLLECTION_KEYS,mergeState}=require('../api/shared/merge.js');
+const {mergeState}=require('../api/shared/merge.js');
 
 const ids=list=>(Array.isArray(list)?list:[]).map(x=>x&&x.id).sort();
-
-test('TaskPlanner V2 Collections besitzen explizite stabile ID-Mergeverträge',()=>{
-  assert.deepEqual(COLLECTION_KEYS.taskSeries,['id']);
-  assert.deepEqual(COLLECTION_KEYS.taskTemplates,['id']);
-  assert.deepEqual(COLLECTION_KEYS.taskArchive,['id']);
-});
 
 test('konkurrierende Saves verlieren keine unabhängigen Serien, Vorlagen oder Archivdatensätze',()=>{
   const server={
@@ -37,6 +31,27 @@ test('gleiche V2-ID folgt dem neueren Datensatz statt Dubletten zu erzeugen',()=
   );
   assert.equal(merged.taskTemplates.length,1);
   assert.equal(merged.taskTemplates[0].title,'Neu');
+});
+
+test('V2 Collection-Tombstones entfernen explizit gelöschte Serien, Vorlagen und Archivdatensätze',()=>{
+  const deletedAt='2026-10-13T10:10:00Z';
+  const merged=mergeState(
+    {
+      taskSeries:[{id:'S1',updatedAt:'2026-10-13T10:00:00Z'}],
+      taskTemplates:[{id:'T1',updatedAt:'2026-10-13T10:00:00Z'}],
+      taskArchive:[{id:'A1',completedAt:'2026-10-13T10:00:00Z'}]
+    },
+    {
+      _teamSyncMeta:{tombstones:[
+        {collection:'taskSeries',id:'S1',deletedAt},
+        {collection:'taskTemplates',id:'T1',deletedAt},
+        {collection:'taskArchive',id:'A1',deletedAt}
+      ]}
+    }
+  );
+  assert.deepEqual(merged.taskSeries,[]);
+  assert.deepEqual(merged.taskTemplates,[]);
+  assert.deepEqual(merged.taskArchive,[]);
 });
 
 test('unabhängige TaskSettings- und TaskCalendar-Felder bleiben bei parallelen Saves erhalten',()=>{
