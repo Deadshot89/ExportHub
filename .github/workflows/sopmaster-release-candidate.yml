@@ -14,10 +14,13 @@ on:
       - '.github/rc1503/**'
       - '.github/rc1505/**'
       - '.github/rc1506/**'
+      - '.github/rc1521/**'
+      - '.github/packmeldungen/**'
       - 'e2e/**'
       - 'test/rc150*.test.mjs'
       - 'test/rc151*.test.mjs'
       - 'test/rc1520-sop-release-candidate.test.mjs'
+      - 'test/rc1521-sop-current-main-builder.test.mjs'
       - 'package.json'
       - 'playwright.config.mjs'
       - '.github/workflows/sopmaster-release-candidate.yml'
@@ -53,6 +56,7 @@ jobs:
         run: >-
           node --test --test-concurrency=1
           test/rc1520-sop-release-candidate.test.mjs
+          test/rc1521-sop-current-main-builder.test.mjs
           test/rc1505-production-promotion.test.mjs
           test/rc1506-sop-protected-core-gate.test.mjs
           test/rc1507-sop-testservice-gate.test.mjs
@@ -86,8 +90,12 @@ jobs:
         with:
           node-version: '20'
           package-manager-cache: false
-      - name: Build RC1519 plus integrated RC1506 package
-        run: node .github/rc1506/build-three-env.mjs
+      - name: Apply official current-main release preparation
+        run: |
+          node .github/rc1018/apply-public-language.mjs
+          node .github/rc1018/fix-mail-wording.mjs
+      - name: Build RC1519 plus current Pack plus SOPMaster candidate
+        run: node .github/rc1521/build-three-env.mjs
       - name: Verify current main release build contract
         run: node .github/rc1505/verify-build-contract.mjs
       - name: Install Playwright Chromium
@@ -151,8 +159,12 @@ jobs:
         with:
           node-version: '20'
           package-manager-cache: false
+      - name: Apply official current-main release preparation
+        run: |
+          node .github/rc1018/apply-public-language.mjs
+          node .github/rc1018/fix-mail-wording.mjs
       - name: Build integrated three-environment candidate
-        run: node .github/rc1506/build-three-env.mjs
+        run: node .github/rc1521/build-three-env.mjs
       - name: Verify current main release build contract
         run: node .github/rc1505/verify-build-contract.mjs
       - name: Install Playwright Chromium
