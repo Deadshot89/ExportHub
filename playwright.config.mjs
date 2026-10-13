@@ -9,6 +9,7 @@ export default defineConfig({
   workers:1,
   retries:0,
   timeout:45_000,
+  globalTimeout:LIVE?15*60*1000:10*60*1000,
   expect:{timeout:10_000},
   reporter:[
     ['list'],
