@@ -31,7 +31,7 @@ async function createPackNotification(page,token,suffix='A'){
   await page.locator('#packCustomer').fill(`E2E PACK CUSTOMER ${suffix}`);
   await expect(page.locator('#packCustomerManualConfirm')).toBeVisible({timeout:10_000});
   await page.locator('#packCustomerManualConfirm').click();
-  await page.locator('#packPackageType').selectOption({label:'Europalette'});
+  await page.locator('#packPackageType').selectOption({label:'Euro Palette'});
   await page.locator('#packPackageCount').fill('2');
   await page.locator('#packWeight').fill('680');
   const rows=page.locator('[data-pack-package]');
@@ -49,15 +49,29 @@ async function createPackNotification(page,token,suffix='A'){
   await expect(page.locator('#packDocumentList')).toContainText(expected.canonicalName,{timeout:10_000});
   await expect(page.locator('#packDocumentList')).not.toContainText(expected.sourceName);
 
-  await page.locator('#packSaveDraft').click();
-  await expect(page.locator('#packValidationHint')).toContainText('Entwurf gespeichert',{timeout:20_000});
+  const saveDraft=page.locator('#packSaveDraft');
+  const saveResponsePromise=page.waitForResponse(response=>{
+    try{
+      const url=new URL(response.url());
+      return url.pathname.endsWith('/api/pack-notification')&&url.searchParams.get('action')==='draft-save';
+    }catch(_){return false;}
+  },{timeout:30_000});
+  await saveDraft.click();
+  const saveResponse=await saveResponsePromise;
+  expect(saveResponse.ok(),`draft-save HTTP ${saveResponse.status()}`).toBeTruthy();
+  const savePayload=await saveResponse.json();
+  expect(savePayload?.ok).toBe(true);
+  expect(savePayload?.draft?.id).toBeTruthy();
+  await expect(saveDraft).toBeEnabled({timeout:5_000});
+  await expect(page.locator('#packError')).toBeHidden();
   await page.locator('#packBackHome').click();
   await expect(page.locator('#packHome')).toBeVisible();
   const card=page.locator('[data-draft-id]').filter({hasText:`E2E PACK CUSTOMER ${suffix}`}).first();
   await expect(card).toBeVisible({timeout:20_000});
-  await expect(card).toContainText('Anzahl Paletten');
+  const draftId=await card.getAttribute('data-draft-id');
+  expect(draftId).toBe(String(savePayload.draft.id));
   await card.click();
-  await expect(page.locator('#packFormMode')).toContainText('Entwurf weiterbearbeiten');
+  await expect(page.locator('#packForm')).toBeVisible({timeout:20_000});
   await expect(page.locator('#packCustomer')).toHaveValue(`E2E PACK CUSTOMER ${suffix}`);
   await expect(page.locator('#packPackageCount')).toHaveValue('2');
   await expect(page.locator('#packDocumentList')).toContainText(expected.canonicalName);
