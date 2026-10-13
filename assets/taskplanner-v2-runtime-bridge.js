@@ -20,6 +20,11 @@
     if(!api||typeof api.emit!=='function')throw new Error('TaskPlanner V2 Workflow fehlt');
     return api;
   }
+  function projections(){
+    const api=root.ExportHUBTaskProjectionsV2;
+    if(!api||typeof api.dashboard!=='function')throw new Error('TaskPlanner V2 Projections fehlen');
+    return api;
+  }
   function sharedState(){
     try{if(typeof root.__EXPORTHUB_GET_STATE__==='function')return root.__EXPORTHUB_GET_STATE__()||null;}catch(_){}
     try{if(root.ExportHUBState&&typeof root.ExportHUBState.get==='function')return root.ExportHUBState.get()||null;}catch(_){}
@@ -28,12 +33,16 @@
   function stateOf(ctx){
     if(!ctx||!ctx.state||typeof ctx.state!=='object')throw new Error('TaskPlanner V2 Runtime benötigt ctx.state');
     if(!Array.isArray(ctx.state.tasks))ctx.state.tasks=[];
+    if(!Array.isArray(ctx.state.taskArchive))ctx.state.taskArchive=[];
     return ctx.state;
   }
-  function workflowContext(ctx={}){
+  function projectionContext(ctx={}){
     const next={...(ctx||{})};
     if(!next.state)next.state=sharedState();
-    stateOf(next);
+    stateOf(next);return next;
+  }
+  function workflowContext(ctx={}){
+    const next=projectionContext(ctx);
     if(typeof next.persist!=='function'){
       next.persist=tasks=>{
         next.state.tasks=tasks;
@@ -85,6 +94,28 @@
     return workflow().emit(event,resolved);
   }
 
+  function taskDashboardProjection(ctx={}){const resolved=projectionContext(ctx);return projections().dashboard(resolved.state,resolved);}
+  function taskCustomerProjection(customerId,ctx={}){const resolved=projectionContext(ctx);return projections().customer(customerId,resolved.state,resolved);}
+  function taskArchiveProjection(query={},ctx={}){const resolved=projectionContext(ctx);return projections().archive(query,resolved.state,resolved);}
+  function taskStatsProjection(query={},ctx={}){const resolved=projectionContext(ctx);return projections().stats(query,resolved.state,resolved);}
+
   const previous=root.ExportHUBRC1014TaskRuntime&&typeof root.ExportHUBRC1014TaskRuntime==='object'?root.ExportHUBRC1014TaskRuntime:{};
-  root.ExportHUBRC1014TaskRuntime=Object.freeze({...previous,applyTaskPatch,applyWeekPlan,moveTaskOccurrence,emitWorkflowEvent});
+  const previousPrepare=typeof previous.prepareTasks==='function'?previous.prepareTasks.bind(previous):tasks=>arr(tasks);
+  function prepareTasks(tasks,ctx={}){
+    let reconcileRequested=false,reconciledTasks=null;
+    const originalPersist=typeof ctx.persist==='function'?ctx.persist:null;
+    const intercepted={...(ctx||{}),persist:next=>{reconcileRequested=true;reconciledTasks=arr(next);}};
+    const prepared=arr(previousPrepare(tasks,intercepted));
+    const state=(ctx&&ctx.state&&typeof ctx.state==='object')?ctx.state:sharedState();
+    if(!state){if(reconcileRequested&&originalPersist)originalPersist(reconciledTasks||prepared);return prepared;}
+    if(!Array.isArray(state.taskArchive))state.taskArchive=[];
+    const beforeArchive=JSON.stringify(state.taskArchive),rolled=core().archiveCompleted({...state,tasks:prepared,taskArchive:state.taskArchive},q(ctx.now)||new Date().toISOString());
+    const archiveChanged=beforeArchive!==JSON.stringify(rolled.taskArchive)||rolled.tasks.length!==prepared.length;
+    state.tasks=rolled.tasks;state.taskArchive=rolled.taskArchive;
+    if((reconcileRequested||archiveChanged)&&originalPersist)originalPersist(rolled.tasks);
+    if(archiveChanged)emit('archive_rollover',prepared.filter(t=>!rolled.tasks.some(r=>q(r&&r.id)===q(t&&t.id))).map(t=>t&&t.id),ctx);
+    return rolled.tasks;
+  }
+
+  root.ExportHUBRC1014TaskRuntime=Object.freeze({...previous,prepareTasks,applyTaskPatch,applyWeekPlan,moveTaskOccurrence,emitWorkflowEvent,taskDashboardProjection,taskCustomerProjection,taskArchiveProjection,taskStatsProjection});
 })(globalThis);
