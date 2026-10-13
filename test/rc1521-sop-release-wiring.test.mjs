@@ -54,9 +54,19 @@ test('Packmeldungen bauen weiterhin auf RC1112 auf und entfernen keine SOPMaster
   assert.doesNotMatch(src,/unlinkSync\([^\n]*assets\/sop/);
 });
 
-test('RC1112 SOPMaster-Hook bleibt ein lokaler Buildschritt ohne Deployment oder Netzwerkzugriff',()=>{
+test('RC1112 SOPMaster-Hook bleibt ein lokaler additiver Buildschritt ohne Deployment oder Netzwerkzugriff',()=>{
   const src=read(builder);
-  assert.doesNotMatch(src,/Azure\/static-web-apps-deploy/i);
-  assert.doesNotMatch(src,/PRODUCTION FREIGEBEN/);
-  assert.doesNotMatch(src,/fetch\s*\(/);
+  const start=src.indexOf('// RC1522: SOPMaster is an additive layer of the stable RC1112 release build.');
+  assert.ok(start>=0,'RC1522 Hookmarker fehlt');
+  const end=src.indexOf("console.log('RC1112 build pipeline ready",start);
+  assert.ok(end>start,'RC1522 Hookende fehlt');
+  const hook=src.slice(start,end);
+  assert.match(hook,/integrateTour\(ROOT,OUT\);/);
+  assert.match(hook,/integrateEditor\(ROOT,OUT\);/);
+  assert.match(hook,/integrateTraining\(ROOT,OUT\);/);
+  assert.match(hook,/integrateCoverageAdmin\(ROOT,OUT\);/);
+  assert.doesNotMatch(hook,/Azure\/static-web-apps-deploy/i);
+  assert.doesNotMatch(hook,/PRODUCTION FREIGEBEN/);
+  assert.doesNotMatch(hook,/fetch\s*\(/);
+  assert.doesNotMatch(hook,/https?:\/\//);
 });
