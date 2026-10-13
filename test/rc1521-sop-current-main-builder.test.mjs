@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-// Finaler RC1521 Release-Prep-Checkpoint: dieser Vertrag triggert bewusst das vollständige RC1520-Gate.
+// Finaler RC1521 Release-Prep-Checkpoint nach Synchronisierung mit dem aktuellen Main-/TaskPlanner-Stand.
 const builder='.github/rc1521/build-three-env.mjs';
 const read=p=>fs.readFileSync(p,'utf8');
 
