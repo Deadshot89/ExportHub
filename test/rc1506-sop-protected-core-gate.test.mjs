@@ -10,6 +10,11 @@ test('geschützte Kernprozess-Regression baut den integrierten RC1506 Stand',()=
   assert.doesNotMatch(src,/rc1501\/build-three-env\.mjs/);
 });
 
+test('historische Build-Verträge laufen seriell und kollidieren nicht im gemeinsamen dist-Verzeichnis',()=>{
+  const src=workflow();
+  assert.match(src,/node --test --test-concurrency=1/);
+});
+
 test('Kernprozess-Gate schützt Navigation, Benachrichtigungen und Gesamtdruck',()=>{
   const src=workflow();
   assert.match(src,/e2e\/specs\/navigation\.spec\.mjs/);
