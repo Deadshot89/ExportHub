@@ -249,15 +249,30 @@
 
   function normalizeState(input,ctx={}){return migrateState(input,ctx).state;}
 
+  function compactArchiveTask(task,archivedAt){
+    const t=normalizeTask(task,{now:archivedAt});
+    return {
+      id:t.id,schemaVersion:2,seriesId:t.seriesId,occurrenceKey:t.occurrenceKey,templateId:t.templateId,
+      title:t.title,customerId:t.customerId,customerName:t.customerName,area:t.area,processId:t.processId,workflowId:t.workflowId,
+      shipmentId:t.shipmentId,shipmentRef:t.shipmentRef,orderId:t.orderId,taskType:t.taskType,ownerId:t.ownerId,owner:t.owner,
+      priority:t.priority,status:'done',startAt:t.startAt,plannedAt:t.plannedAt,dueAt:t.dueAt,latestCompletionAt:t.latestCompletionAt,
+      estimatedMinutes:t.estimatedMinutes,manualOverride:t.manualOverride,createdAt:t.createdAt,completedAt:t.completedAt,
+      completionMode:t.completionMode,archivedAt,history:[...arr(t.history),historyEntry('archived',{at:archivedAt,source:'archive'})]
+    };
+  }
+
   function archiveCompleted(input,now){
-    const state=clone(obj(input)?input:{}),cutoff=Date.parse(q(now)||new Date().toISOString())-7*86400000;
-    const active=[],archive=arr(state.taskArchive).map(clone);
+    const state=clone(obj(input)?input:{}),archivedAt=q(now)||new Date().toISOString(),cutoff=Date.parse(archivedAt)-7*86400000;
+    const active=[],archive=[],archivedIds=new Set();
+    for(const raw of arr(state.taskArchive)){
+      const copy=clone(raw),id=q(copy&&copy.id||copy&&copy.taskId||copy&&copy.uuid);
+      if(id&&archivedIds.has(id))continue;
+      archive.push(copy);if(id)archivedIds.add(id);
+    }
     for(const task of arr(state.tasks)){
-      const t=normalizeTask(task,{now});
-      const completed=Date.parse(t.completedAt);
+      const t=normalizeTask(task,{now:archivedAt}),completed=Date.parse(t.completedAt);
       if(t.status==='done'&&Number.isFinite(completed)&&completed<=cutoff){
-        const archivedAt=q(now)||new Date().toISOString();
-        archive.push({...t,archivedAt,history:[...arr(t.history),historyEntry('archived',{at:archivedAt,source:'archive'})]});
+        if(!archivedIds.has(t.id)){archive.push(compactArchiveTask(t,archivedAt));archivedIds.add(t.id);}
       }else active.push(t);
     }
     state.tasks=active;state.taskArchive=archive;return state;
