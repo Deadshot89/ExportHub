@@ -21,6 +21,7 @@ function loadCore(){
 }
 
 function arr(value){return Array.isArray(value)?value:[];}
+function nativeArray(value){return Array.from(arr(value),item=>JSON.parse(JSON.stringify(item)));}
 
 function summarizeState(state,core,ctx){
   const tasks=arr(state&&state.tasks);
@@ -49,8 +50,8 @@ export function auditState(input,ctx={}){
   const migration=core.migrateState(source,ctx);
   const report=migration&&migration.report||{};
   const after=summarizeState(migration&&migration.state||{},core,ctx);
-  const collisions=arr(report.collisions).map(item=>JSON.parse(JSON.stringify(item)));
-  const unresolvedRelationships=arr(report.unresolvedRelationships).map(item=>JSON.parse(JSON.stringify(item)));
+  const collisions=nativeArray(report.collisions);
+  const unresolvedRelationships=nativeArray(report.unresolvedRelationships);
   return {
     before,
     after,
