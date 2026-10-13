@@ -9,7 +9,7 @@ const api=require('../api/pack-notification/index.js');
 function fixture(){
   const tokenA='PT01-draft-secret-token',tokenB='PT02-draft-secret-token';
   let state={packStations:[{id:'PT01',name:'Packtisch 01',tokenHash:packStore.hashStationToken(tokenA),active:true},{id:'PT02',name:'Packtisch 02',tokenHash:packStore.hashStationToken(tokenB),active:true}],packSessions:[],packNotifications:[],packDrafts:[],tasks:[]};
-  const handler=api.createHandler({now:()=>new Date('2026-10-09T10:00:00.000Z'),rateLimit:()=>{},mutateState:async(_environment,mutator)=>{const result=await mutator(JSON.parse(JSON.stringify(state)));state=result.state;return result;}});
+  const handler=api.createHandler({now:()=>new Date('2026-10-09T10:00:00.000Z'),rateLimit:()=>{},readState:async()=>JSON.parse(JSON.stringify(state)),mutateState:async(_environment,mutator)=>{const result=await mutator(JSON.parse(JSON.stringify(state)));state=result.state;return result;}});
   return{tokenA,tokenB,handler,state:()=>state};
 }
 function request(action,body){return{method:'POST',query:{action},headers:{host:'www.exporthub360.de'},body};}
