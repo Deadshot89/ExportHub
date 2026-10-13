@@ -19,11 +19,19 @@ test('RC1520 verlangt den aktuellen main-Stand als Vorfahr des Kandidaten',()=>{
   assert.match(src,/git merge-base --is-ancestor origin\/main HEAD/);
 });
 
-test('RC1520 prüft vollständige Regression und den integrierten RC1506-Build auf der RC1519-Basis',()=>{
+test('RC1520 reproduziert den offiziellen Main-Vorlauf und baut anschließend RC1521',()=>{
+  const src=read();
+  assert.match(src,/node \.github\/rc1018\/apply-public-language\.mjs/);
+  assert.match(src,/node \.github\/rc1018\/fix-mail-wording\.mjs/);
+  assert.match(src,/node \.github\/rc1521\/build-three-env\.mjs/);
+  assert.doesNotMatch(src,/node \.github\/rc1506\/build-three-env\.mjs/);
+  assert.match(src,/node \.github\/rc1505\/verify-build-contract\.mjs/);
+});
+
+test('RC1520 prüft vollständige Regression und alle Releaseverträge auf der RC1519-Basis',()=>{
   const src=read();
   assert.match(src,/npm test/);
-  assert.match(src,/node \.github\/rc1506\/build-three-env\.mjs/);
-  assert.match(src,/node \.github\/rc1505\/verify-build-contract\.mjs/);
+  assert.match(src,/test\/rc1521-sop-current-main-builder\.test\.mjs/);
   assert.match(src,/test\/rc1505-production-promotion\.test\.mjs/);
   assert.match(src,/test\/rc1506-sop-protected-core-gate\.test\.mjs/);
   assert.match(src,/test\/rc1507-sop-testservice-gate\.test\.mjs/);
