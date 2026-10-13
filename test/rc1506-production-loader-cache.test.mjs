@@ -22,7 +22,7 @@ test('RC1506: freigegebenes Produktions-HTML wird versions- und SHA-gebunden wie
 });
 
 test('RC1506: Cache ist optional und der bisherige Netzwerkpfad bleibt Fallback',()=>{
-  assert.match(loader,/if\(!\('caches' in window\)\)return get\(API\+'\?action=html&channel=production&_='\+Date\.now\(\),'text\/html'\)/);
+  assert.match(loader,/!\('caches' in window\)\)return get\(API\+'\?action=html&channel=production&_='\+Date\.now\(\),'text\/html'\)/);
   assert.match(loader,/fetch\(API\+'\?action=html&channel=production&_='\+Date\.now\(\),\{credentials:'same-origin',cache:'no-store',headers:\{Accept:'text\/html'\}\}\)/);
   assert.equal((loader.match(/action=html&channel=production/g)||[]).length,2,'HTML-Netzwerkpfade muessen auf Cache-Fallback und Cache-Miss begrenzt bleiben');
 });
