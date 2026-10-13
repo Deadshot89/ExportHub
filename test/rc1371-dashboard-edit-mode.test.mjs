@@ -130,6 +130,17 @@ test('RC1371 Widget-Bibliothek filtert Suchtext ohne neue Datenabfrage',()=>{
   assert.doesNotMatch(source,/filterLibrary[\s\S]{0,600}\bfetch\s*\(/);
 });
 
+test('RC1371 Widget-Bibliothek zeigt Kategorien Beschreibung Standardgröße und Aktivstatus',()=>{
+  assert.match(source,/data-rc1371-library-category/);
+  assert.match(source,/data-rc1371-library-description/);
+  assert.match(source,/data-rc1371-library-default-size/);
+  assert.match(source,/data-active/);
+  assert.match(source,/dashboard\.personalize\.categoryAll/);
+  assert.match(source,/dashboard\.personalize\.widgetDescription/);
+  assert.match(source,/dashboard\.personalize\.defaultSize/);
+  assert.match(source,/dashboard\.personalize\.active/);
+});
+
 test('RC1371 Reihenfolge wird im CSS-Grid sichtbar angewendet',()=>{
   assert.match(source,/node\.style\.order\s*=\s*String\(/);
 });
