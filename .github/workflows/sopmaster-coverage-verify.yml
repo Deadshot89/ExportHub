@@ -6,8 +6,11 @@ on:
       - design/sopmaster-training-tour-2026-10-12
     paths:
       - 'assets/sop/rc1505-sop-*'
+      - 'assets/sop/rc1506-sop-*'
       - 'test/rc1505-sop-*.test.mjs'
+      - 'test/rc1506-sop-*.test.mjs'
       - '.github/rc1505/**'
+      - '.github/rc1506/**'
       - '.github/workflows/sopmaster-coverage-verify.yml'
   workflow_dispatch:
 
@@ -28,8 +31,8 @@ jobs:
         with:
           node-version: '20'
           package-manager-cache: false
-      - name: RC1505 coverage contracts
-        run: node --test test/rc1505-sop-*.test.mjs
+      - name: RC1505 + RC1506 coverage contracts
+        run: node --test test/rc1505-sop-*.test.mjs test/rc1506-sop-*.test.mjs
 
   full-regression:
     runs-on: ubuntu-latest
@@ -49,6 +52,6 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: rc1505-node-regression-log
+          name: rc1506-node-regression-log
           path: node-regression.log
           if-no-files-found: error
