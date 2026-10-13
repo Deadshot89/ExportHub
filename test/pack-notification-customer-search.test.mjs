@@ -26,6 +26,7 @@ function fixture(){
   const handler=api.createHandler({
     now:()=>new Date('2026-10-08T10:00:00.000Z'),
     rateLimit:()=>{},
+    readState:async()=>JSON.parse(JSON.stringify(state)),
     mutateState:async(_environment,mutator)=>{
       const result=await mutator(JSON.parse(JSON.stringify(state)));
       state=result.state;
