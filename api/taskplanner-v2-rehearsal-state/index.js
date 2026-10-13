@@ -21,6 +21,10 @@ function header(req,name){const h=req&&req.headers||{};return h[name.toLowerCase
 function body(req){if(req&&req.body&&typeof req.body==='object')return req.body;try{return JSON.parse(req&&req.body||'{}')}catch(_){return{}}}
 function json(status,value){return{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store, no-cache, must-revalidate','Pragma':'no-cache','X-Content-Type-Options':'nosniff','X-Robots-Tag':'noindex, nofollow, noarchive'},body:JSON.stringify(value)}}
 function connectionString(){return process.env.EXPORTHUB_STORAGE_CONNECTION_STRING||process.env.EXPORTHUB_STORAGE_CONNECTION||process.env.EXPORTHUB_AZURE_STORAGE_CONNECTION_STRING||process.env.AzureWebJobsStorage||''}
+function requestEnvironmentEvidence(req){
+ const h=req&&req.headers||{};
+ return [h.origin,h.Origin,h.referer,h.Referer,h['x-forwarded-host'],h['X-Forwarded-Host'],h['x-original-host'],h['X-Original-Host'],h['x-ms-original-url'],h['X-MS-Original-URL'],h.host,h.Host].map(text).filter(Boolean).join(' ');
+}
 function httpsJson(url){return new Promise((resolve,reject)=>{const request=https.request(url,{method:'GET',headers:{Accept:'application/json','User-Agent':'ExportHUB-TaskPlanner-V2-Rehearsal'}},res=>{const chunks=[];res.on('data',c=>chunks.push(Buffer.from(c)));res.on('end',()=>{const raw=Buffer.concat(chunks).toString('utf8');if(res.statusCode>=200&&res.statusCode<300){try{return resolve(JSON.parse(raw||'{}'))}catch(e){return reject(e)}}reject(new Error('OIDC_JWKS_FAILED'))})});request.on('error',reject);request.end()})}
 async function authorized(req){
  const token=text(header(req,'x-exporthub-github-oidc'));if(!token)return false;
@@ -41,8 +45,8 @@ async function authorized(req){
 }
 function requireTestservice(req,payload){
  const requested=lower(payload&&payload.environment||header(req,'x-exporthub-environment'));
- const host=lower(header(req,'x-forwarded-host')||header(req,'x-original-host')||header(req,'host'));
- if(requested!=='testservice'||!/-testservice\./.test(host))throw Object.assign(new Error('TESTSERVICE_ONLY'),{status:403});
+ const evidence=lower(requestEnvironmentEvidence(req));
+ if(requested!=='testservice'||!/-testservice\./.test(evidence))throw Object.assign(new Error('TESTSERVICE_ONLY'),{status:403});
 }
 async function readTeam(){
  const cs=connectionString();if(!cs)throw Object.assign(new Error('STORAGE_NOT_CONFIGURED'),{status:503});
