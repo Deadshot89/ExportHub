@@ -107,7 +107,7 @@ function resolveStableWidgetId(node){
 }
 function explicitDashboardRoot(){
   var d=w.document;if(!d||typeof d.querySelector!=='function')return null;
-  var selectors=['[data-exporthub-dashboard]','#dashboardView','#dashboard','.dashboard-view','[data-view="dashboard"]'];
+  var selectors=['[data-exporthub-dashboard]','#dashboardView','#dashboard','.dashboard-view','#content[data-view="dashboard"]','main[data-view="dashboard"]','section[data-view="dashboard"]'];
   for(var i=0;i<selectors.length;i++){var node=d.querySelector(selectors[i]);if(node)return node}return null
 }
 function discoverDashboardRoot(){
@@ -197,7 +197,7 @@ function ensureToolbar(){
   if(edit)bar.appendChild(edit);if(add)bar.appendChild(add);bar.appendChild(label);if(reset)bar.appendChild(reset);
   mountedDashboardRoot.insertBefore?mountedDashboardRoot.insertBefore(bar,mountedDashboardRoot.firstChild||null):mountedDashboardRoot.appendChild(bar);syncToolbarTemplate();return bar
 }
-function removeWidgetControls(){if(!mountedDashboardRoot||typeof mountedDashboardRoot.querySelectorAll!=='function')return;try{Array.prototype.slice.call(mountedDashboardRoot.querySelectorAll('[data-rc1371-widget-controls="1"]')).forEach(function(node){if(node&&node.parentNode)node.parentNode.removeChild(node)})}catch(_){}}
+function removeWidgetControls(){if(!mountedDashboardRoot||typeof mountedDashboardRoot.querySelectorAll!=='function')return;try{Array.prototype.slice.call(mountedDashboardRoot.querySelectorAll('[data-rc1371-widget-controls="1"]')).forEach(function(node){if(node&&node.parentNode)node.parentNode.removeChild(node)})}catch(_){}
 function ensureWidgetControls(){
   if(!editMode)return;var d=doc();if(!d||typeof d.createElement!=='function')return;
   widgetNodes.forEach(function(node,id){
