@@ -7,6 +7,7 @@ on:
       - taskplannerpro/v2-task5
       - taskplannerpro/v2-task6
       - taskplannerpro/v2-task7
+      - taskplannerpro/v2-task8
   workflow_dispatch:
 
 permissions:
@@ -60,7 +61,9 @@ jobs:
             test/taskplanner-v2-workflow-bindings.test.mjs \
             test/taskplanner-v2-public-link.test.mjs \
             test/taskplanner-v2-public-link-ui.test.mjs \
-            test/taskplanner-v2-dnd-runtime-owner.test.mjs
+            test/taskplanner-v2-dnd-runtime-owner.test.mjs \
+            test/taskplanner-v2-projections.test.mjs \
+            test/taskplanner-v2-performance.test.mjs
       - name: Existing task regressions
         run: |
           node --test --test-concurrency=1 \
