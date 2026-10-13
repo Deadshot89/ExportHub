@@ -109,3 +109,54 @@ test('RC1351 dedupe never crosses source-language boundaries',async()=>{
  assert.equal(report.attempted,2);
  assert.equal(report.completedNow,2);
 });
+
+test('RC1510 dynamic i18n covers future note and hint field variants',async()=>{
+ const state={customers:[{
+  customerNote:'Abholung nur über Tor 3.',
+  internalNote:'Vor Versand Rücksprache halten.',
+  externalHint:'Fahrer zuerst am Empfang anmelden.',
+  taskDescription:'Dokumente prüfen.'
+ }]};
+ const fake=async(items,source)=>items.map(original=>({original,translations:Object.fromEntries(mod.LANGUAGES.map(lang=>[lang,lang+':'+original]))}));
+ const report=await mod.enrichDynamicTranslations(state,'de',{translator:fake,limit:20});
+ const meta=state.customers[0]._localizedText;
+ for(const key of ['customerNote','internalNote','externalHint','taskDescription']){
+  assert.ok(meta&&meta[key],key+' must be classified as dynamic localizable text');
+  assert.equal(meta[key].status,'complete');
+  assert.match(meta[key].translations.en,/^en:/);
+ }
+ assert.equal(report.completedNow,4);
+});
+
+test('RC1510 dynamic i18n never classifies names references numbers codes or tracking identifiers',async()=>{
+ const state={customers:[{
+  customerName:'Essentra Components GmbH',
+  referenceNumber:'ABC123',
+  itemNumber:'10340967',
+  trackingNumber:'1Z999AA10123456784',
+  customerCode:'9000003004',
+  note:'Nur diese Notiz wird übersetzt.'
+ }]};
+ const fake=async(items,source)=>items.map(original=>({original,translations:Object.fromEntries(mod.LANGUAGES.map(lang=>[lang,lang+':'+original]))}));
+ await mod.enrichDynamicTranslations(state,'de',{translator:fake,limit:20});
+ const meta=state.customers[0]._localizedText||{};
+ assert.ok(meta.note);
+ for(const key of ['customerName','referenceNumber','itemNumber','trackingNumber','customerCode'])assert.equal(meta[key],undefined,key+' must stay untouched');
+});
+
+test('RC1512 existing admin i18n status includes safe translator diagnostics without credentials',()=>{
+ const stateApi=fs.readFileSync('api/exporthub-state/index.js','utf8');
+ assert.match(stateApi,/mode==='i18n-status'/);
+ assert.match(stateApi,/translation:translationStatus/,'existing admin endpoint must continue returning translationStatus');
+ assert.equal(typeof mod.translatorStatus,'function','translatorStatus helper must be exported');
+ const status=mod.translatorStatus();
+ assert.equal(typeof status.configured,'boolean');
+ assert.equal(typeof status.regionConfigured,'boolean');
+ assert.equal(typeof status.provider,'string');
+ assert.equal(typeof status.endpointHost,'string');
+ assert.equal(Object.prototype.hasOwnProperty.call(status,'key'),false,'translator key must never be exposed');
+ const publicStatus=mod.translationStatus({});
+ assert.deepEqual(publicStatus.translator,status,'admin i18n status must include the safe translator diagnostics');
+ const secret=String(process.env.EXPORTHUB_TRANSLATOR_KEY||process.env.AZURE_TRANSLATOR_KEY||'');
+ if(secret)assert.equal(JSON.stringify(publicStatus).includes(secret),false,'translator credentials must never be serialized');
+});

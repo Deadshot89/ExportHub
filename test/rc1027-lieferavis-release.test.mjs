@@ -4,10 +4,12 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {execFileSync} from 'node:child_process';
+import {readMainFlow,readProductionFlow} from './helpers/rc1505-release-contract.mjs';
 
 const ROOT=process.cwd();
 const PATCH=path.join(ROOT,'.github/rc1018/fix-mail-wording.mjs');
-const WORKFLOW=fs.readFileSync(path.join(ROOT,'.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml'),'utf8');
+const WORKFLOW=readMainFlow();
+const PRODUCTION_WORKFLOW=readProductionFlow();
 const ASSET=fs.readFileSync(path.join(ROOT,'assets/rc1027-lieferavis-immediate.js'),'utf8');
 
 test('RC1027/RC1069: Release-Vorbereitung injiziert oder aktualisiert den Avis-Layer mit frischem Cache-Key',()=>{
@@ -32,13 +34,14 @@ test('RC1027/RC1069: Release-Vorbereitung injiziert oder aktualisiert den Avis-L
   }finally{fs.rmSync(tmp,{recursive:true,force:true})}
 });
 
-test('RC1027: Standarddeploy führt Release-Vorbereitung vor dem gemeinsamen Drei-Umgebungen-Build aus',()=>{
+test('RC1027: Main Verification führt Release-Vorbereitung vor dem gemeinsamen Drei-Umgebungen-Build aus und beide Promotion-Pakete übernehmen assets',()=>{
   const patchAt=WORKFLOW.indexOf('node .github/rc1018/fix-mail-wording.mjs');
   const buildAt=WORKFLOW.indexOf('node .github/rc1112/build-three-env.mjs');
   assert.ok(patchAt>=0&&buildAt>patchAt,'RC1027-Injektion muss vor dem aktuellen gemeinsamen Build stattfinden.');
   assert.match(fs.readFileSync(path.join(ROOT,'.github/rc1112/build-three-env.mjs'),'utf8'),/\.github\/rc1048\/build-three-env\.mjs/,'RC1112 muss den geprüften RC1048-Vorgänger verwenden.');
   assert.match(fs.readFileSync(path.join(ROOT,'.github/rc1048/build-three-env.mjs'),'utf8'),/\.github\/rc1047\/build-three-env\.mjs/,'Historische RC1048-Basis muss den geprüften RC1047-Vorgänger verwenden.');
-  assert.match(WORKFLOW,/cp -R assets "\$dir\/assets"/,'Das neue RC1027-Asset muss in beide Deploypakete übernommen werden.');
+  assert.match(WORKFLOW,/cp -R assets \.rc1112_testservice_app\/assets/,'Das RC1027-Asset muss in das TESTSERVICE-Paket übernommen werden.');
+  assert.match(PRODUCTION_WORKFLOW,/cp -R assets \.rc1112_production_app\/assets/,'Das RC1027-Asset muss in das Production-Paket übernommen werden.');
 });
 
 test('RC1027: exklusive Avis-Mail enthält keinen Versanddetail-Renderer und eigene Mail wird delegiert',()=>{

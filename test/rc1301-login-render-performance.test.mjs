@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {readBuildContract,readLiveContract} from './helpers/rc1505-release-contract.mjs';
 
 const runtime=fs.readFileSync('assets/rc1074-login-clean.js','utf8');
 const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
-const workflow=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
 
 test('RC1301: Login beobachtet nur noch den eigenen DOM-Bereich statt das komplette Dokument',()=>{
   assert.match(runtime,/function installLoginObserver\(\)/);
@@ -32,7 +32,9 @@ test('RC1301: Umgebungswechsel verwendet stabile URL ohne Zeitstempel-Cache-Bust
   assert.match(runtime,/w\.addEventListener\('click',stableEnvironmentClick,true\)/);
 });
 
-test('RC1301: Login-Runtime wird mit neuem Cache-Key in Build und Live-Gate ausgeliefert',()=>{
+test('RC1301: Login-Runtime wird mit neuem Cache-Key in Build und manuellem Live-Gate ausgeliefert',()=>{
+  const releaseBuild=readBuildContract(),live=readLiveContract();
   assert.match(build,/rc1074-login-clean\.js\?v=1349/);
-  assert.match(workflow,/rc1074-login-clean\.js\?v=1349/);
+  assert.match(releaseBuild,/rc1074-login-clean\.js\?v=1349/);
+  assert.match(live,/\/assets\/rc1074-login-clean\.js/);
 });

@@ -2,8 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {execFileSync} from 'node:child_process';
-
-const DEPLOY_PATH='.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml';
+import {readLiveContract} from './helpers/rc1505-release-contract.mjs';
 
 function buildRc1018(){
   execFileSync(process.execPath,['.github/rc1018/build-three-env.mjs'],{stdio:'pipe'});
@@ -61,13 +60,9 @@ test('RC1018 stellt die Mehr-LKW-Synchronisierung dem RC565-Speichercontroller �
   }
 });
 
-test('RC1018 Livepr체fung best채tigt die Mehr-LKW-Browserintegration in Produktion TESTSERVICE und Demo',()=>{
-  const deploy=fs.readFileSync(DEPLOY_PATH,'utf8');
-  for(const target of ['$p','$t','$d']){
-    for(const marker of ['function rc1017SyncSubShipments(','rc1017-qr-subshipment','rc1017-print-subshipment']){
-      const escaped=marker.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-      const variable=target.replace('$','\\$');
-      assert.match(deploy,new RegExp(`grep -q ['"]${escaped}['"] ["']${variable}["']`),`Livepr체fung fehlt f체r ${target}: ${marker}`);
-    }
-  }
+test('RC1505 Production-Livepr체fung best채tigt die Mehr-LKW-Browserintegration in Produktion TESTSERVICE und Demo',()=>{
+  const live=readLiveContract();
+  assert.match(live,/\['production',production\],\['testservice',testservice\],\['demo',demo\]/);
+  for(const marker of ['function rc1017SyncSubShipments(','rc1017-qr-subshipment','rc1017-print-subshipment'])assert.ok(live.includes(marker),`Livepr체fung fehlt: ${marker}`);
+  assert.match(live,/ExportHubMultiTruck/);
 });

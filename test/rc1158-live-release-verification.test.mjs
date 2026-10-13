@@ -51,14 +51,15 @@ test('RC1158: TESTSERVICE-Historie prüft Dokumentaktionen Mail Benutzer Persist
   assert.match(source,/Versandanmeldung versendet/);
 });
 
-test('RC1158: Releaseworkflow führt die verschärften TESTSERVICE-Browserprüfungen tatsächlich aus',()=>{
+test('RC1505/RC1158: Main Verification führt die verschärften TESTSERVICE-Browserprüfungen tatsächlich aus',()=>{
   const workflow=read('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml');
-  const gate=workflow.slice(
-    workflow.indexOf('- name: RC1124 TESTSERVICE Browser Gate'),
-    workflow.indexOf('- name: Deploy ExportHUB production')
-  );
+  const start=workflow.indexOf('- name: RC1124 TESTSERVICE Browser Gate');
+  const end=workflow.indexOf('- name: RC1124 TESTSERVICE Browser-Artefakte',start);
+  assert.ok(start>=0&&end>start,'TESTSERVICE Browser Gate ist nicht sauber begrenzt');
+  const gate=workflow.slice(start,end);
   assert.match(gate,/e2e\/specs\/navigation\.spec\.mjs/);
   assert.match(gate,/e2e\/specs\/testservice-mutation\.spec\.mjs/);
+  assert.doesNotMatch(workflow,/Deploy ExportHUB production/,'Main Verification darf Production nicht deployen');
 });
 
 test('RC1159: Deckblatt-Referenzrahmen ist im finalen Print-Artefakt mindestens 3mm stark',()=>{

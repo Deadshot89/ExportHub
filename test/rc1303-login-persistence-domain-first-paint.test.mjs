@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {readBuildContract,readLiveContract} from './helpers/rc1505-release-contract.mjs';
 
 const runtime=fs.readFileSync('assets/rc1074-login-clean.js','utf8');
 const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
-const workflow=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
 
 test('RC1303: Produktionswechsel führt auf die öffentliche ExportHUB360-Domain',()=>{
   assert.match(runtime,/RC1303_PRODUCTION_URL='https:\/\/www\.exporthub360\.de\/'/);
@@ -30,6 +30,8 @@ test('RC1303: gespeicherte Browser-Credentials werden bei aktiviertem Merken akt
 });
 
 test('RC1303: Login-Runtime wird cache-frisch ausgeliefert',()=>{
+  const releaseBuild=readBuildContract(),live=readLiveContract();
   assert.match(build,/rc1074-login-clean\.js\?v=1349/);
-  assert.match(workflow,/rc1074-login-clean\.js\?v=1349/);
+  assert.match(releaseBuild,/rc1074-login-clean\.js\?v=1349/);
+  assert.match(live,/\/assets\/rc1074-login-clean\.js/);
 });

@@ -12,30 +12,31 @@ test('RC1501 Packmeldungen navigation is standalone and no longer clones Aufgabe
   assert.match(nav,/data-pack-notifications-nav-owner/);
   assert.match(nav,/packnotifications/,'Packmeldungen must own a dedicated view identity');
   assert.match(nav,/renderPackInbox/,'Packmeldungen click must render the dedicated inbox');
-  assert.match(nav,/pack-station-admin\.js\?v=1501/,'stable Packmeldungen navigation must load the station admin runtime');
+  assert.match(nav,/pack-station-admin\.js\?v=1501/,'stable Packmeldungen navigation must load the QR admin runtime');
 });
 
-test('RC1501 Packmeldungen exposes Packtische & QR-Codes administration inside the dedicated view',()=>{
+test('RC1502 Packmeldungen exposes exactly one shared Pack-QR instead of a multi-station UI',()=>{
   const admin=read('assets/pack-station-admin.js');
-  assert.match(admin,/Packtische\s*&\s*QR-Codes/);
+  assert.match(admin,/Pack-QR-Code/);
+  assert.match(admin,/Gemeinsamer QR-Code für alle Packplätze/);
   assert.match(admin,/renderPackStations/);
-  assert.match(admin,/data-pack-tab=\\?['"]stations/);
-  assert.match(admin,/data-pack-station-action=\\?['"]create/);
+  assert.match(admin,/data-pack-tab=\\?['"]qr/);
   assert.match(admin,/data-pack-station-action=\\?['"]show-qr/);
   assert.match(admin,/data-pack-station-action=\\?['"]rotate/);
   assert.match(admin,/data-pack-station-action=\\?['"]print/);
   assert.match(admin,/data-pack-station-action=\\?['"]copy/);
-  assert.match(admin,/data-pack-station-action=\\?['"]toggle/);
+  assert.doesNotMatch(admin,/data-pack-station-action=\\?['"]create/);
+  assert.doesNotMatch(admin,/data-pack-station-action=\\?['"]toggle/);
+  assert.doesNotMatch(admin,/Name des Packtischs|Packtisch anlegen/);
 });
 
-test('RC1501 pack station admin API derives recoverable tokens without persisting plaintext token',()=>{
+test('RC1502 pack QR admin API derives one recoverable shared token without persisting plaintext token',()=>{
   const api=read('api/pack-stations-admin/index.js');
   const fn=JSON.parse(read('api/pack-stations-admin/function.json'));
   assert.equal(fn.bindings[0].type,'httpTrigger');
-  assert.match(api,/action\s*===\s*['"]list['"]/);
-  assert.match(api,/action\s*===\s*['"]create['"]/);
-  assert.match(api,/action\s*===\s*['"]rotate['"]/);
-  assert.match(api,/action\s*===\s*['"]qr['"]/);
+  assert.match(api,/SHARED_STATION_ID=['"]PACK-SHARED['"]/);
+  assert.match(api,/action===['"]shared['"]/);
+  assert.match(api,/action===['"]rotate-shared['"]/);
   assert.match(api,/createHmac\(['"]sha256['"]/,'station token must be derived with server-side HMAC');
   assert.match(api,/station\.tokenHash\s*=\s*packStore\.hashStationToken/,'only the derived token hash belongs in persisted station state');
   assert.doesNotMatch(api,/station\.(?:token|stationToken)\s*=/,'raw station token must never be persisted on the station record');

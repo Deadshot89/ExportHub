@@ -2,6 +2,7 @@ import test,{before} from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {execFileSync} from 'node:child_process';
+import {readLiveContract} from './helpers/rc1505-release-contract.mjs';
 
 const read=p=>fs.readFileSync(p,'utf8');
 
@@ -30,11 +31,15 @@ test('RC1095: Palettenkonto-Zahl invalidiert den Ladelisten-Dokumentcache',()=>{
   assert.match(block,/String\(rc1095LoadPalletCount\(sh,rows\(sh\)\)\)/);
 });
 
-test('RC1095: Release-Builder und Live-Deploy prüfen den Ladelisten-Palettenhinweis',()=>{
+test('RC1095: Release-Builder und getrennte Production-Liveprüfung prüfen den Ladelisten-Palettenhinweis',()=>{
   const build=read('.github/rc1048/build-three-env.mjs');
-  const flow=read('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml');
+  const live=readLiveContract();
   assert.match(build,/patchLoadingListPalletAccount/);
   assert.match(build,/loadingListPalletAccount:\{version:'RC1095'/);
-  assert.match(flow,/Live RC1095 Palettenkonto auf Ladeliste prüfen/);
-  assert.match(flow,/Palettenkonto auf Ladeliste live in Produktion und TESTSERVICE bestätigt/);
+  assert.match(live,/RC1095 Palettenkonto/);
+  assert.match(live,/function rc1095LoadPalletHtml/);
+  assert.match(live,/rc1095-pallet-account/);
+  assert.match(live,/Palettenkonto/);
+  assert.match(live,/Ausgang:/);
+  assert.match(live,/rc1095LoadPalletCount\(sh,rows\(sh\)\)/);
 });

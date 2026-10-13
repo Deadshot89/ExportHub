@@ -67,13 +67,22 @@
     try{if(typeof root.__EXPORTHUB_OPEN_SHIPMENT__==='function'){root.__EXPORTHUB_OPEN_SHIPMENT__(target);return true;}}catch(_){}
     return false;
   }
-  function nativeSet(input,value){
+  function nativeValue(input,value){
     if(!input)return;const descriptor=Object.getOwnPropertyDescriptor(Object.getPrototypeOf(input),'value');if(descriptor&&descriptor.set)descriptor.set.call(input,String(value));else input.value=String(value);
-    ['input','change'].forEach(type=>input.dispatchEvent(new Event(type,{bubbles:true})));
+  }
+  function nativeSet(input,value){
+    if(!input)return;nativeValue(input,value);['input','change'].forEach(type=>input.dispatchEvent(new Event(type,{bubbles:true})));
+  }
+  function nativeInputOnly(input,value){
+    if(!input)return;nativeValue(input,value);input.dispatchEvent(new Event('input',{bubbles:true}));
   }
   function applyPrefillToMountedForm(prefill){
     const doc=root.document;if(!doc)return false;
-    const customer=doc.getElementById('shipmentCustomerSearch');if(customer&&prefill.customerName){nativeSet(customer,prefill.customerName);try{customer.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',code:'Enter',bubbles:true}));}catch(_){}}
+    const customer=doc.getElementById('shipmentCustomerSearch');if(customer&&prefill.customerName){
+      const manualWithoutIdentity=q(prefill.customerSource).toLowerCase()==='manual'&&!q(prefill.customerId)&&!q(prefill.customerAccount);
+      if(manualWithoutIdentity)nativeInputOnly(customer,prefill.customerName);
+      else{nativeSet(customer,prefill.customerName);try{customer.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',code:'Enter',bubbles:true}));}catch(_){}}
+    }
     const rows=Array.from(doc.querySelectorAll('#rc573ColliCard .rc363-owned-row'));
     const first=rows[0];if(first){
       const set=(field,value)=>nativeSet(first.querySelector(`[data-rc363-field="${field}"] input`),value);
@@ -94,7 +103,9 @@
   }
   function startNew(notification){
     const prefill=shipmentPrefill(notification);pending={notificationId:q(notification.id),prefill};root.__EXPORTHUB_PACK_SHIPMENT_PREFILL__=prefill;
-    try{if(typeof root.setView==='function')root.setView('shipment');}catch(_){}
+    let freshStarted=false;
+    try{const shipmentApi=root.ExportHUBShipment420;if(shipmentApi&&typeof shipmentApi.startNewShipment==='function'){shipmentApi.startNewShipment();freshStarted=true;}}catch(_){}
+    if(!freshStarted)try{if(typeof root.setView==='function')root.setView('shipment');}catch(_){}
     setTimeout(()=>waitForShipmentForm(prefill),20);return true;
   }
   function begin(notificationId){

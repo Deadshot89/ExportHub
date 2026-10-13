@@ -1,6 +1,6 @@
 # ExportHUB – aktueller Main-Stand
 
-ExportHUB verwendet weiterhin die gemeinsame **RC1112-Releasebasis** für Produktion, TESTSERVICE, Demo und Android. Die fachlichen und technischen Korrekturen auf `main` reichen aktuell bis **RC1370**. Der technische Build-/Produktionsmarker bleibt bewusst RC1112; die sichtbare Produktversion wird getrennt geführt.
+ExportHUB verwendet weiterhin die gemeinsame **RC1112-Buildbasis** für Production-Candidate, TESTSERVICE, Demo und Android. Seit **RC1505** ist der Releaseweg jedoch bewusst getrennt: normale `main`-Integration verifiziert und aktualisiert ausschließlich TESTSERVICE; ein Production-Deploy ist nur noch über einen ausdrücklich bestätigten manuellen Production-Release möglich. Die fachlichen und technischen Korrekturen auf `main` reichen aktuell bis **RC1370**. Der technische Build-/Produktionsmarker bleibt bewusst RC1112; die sichtbare Produktversion wird getrennt geführt.
 
 ## Aktueller Release-Stand
 
@@ -36,15 +36,18 @@ Seit RC1223 wurden unter anderem folgende releasekritische Punkte ergänzt oder 
 - **RC1320** – Mehr-LKW-Ablauf mit getrennten Teilabholungen und Statusaggregation als mutierender TESTSERVICE-E2E in das Release-Gate aufgenommen.
 - **RC1322** – PC-Direktdruck vorbereitet: Edge ≥144 kann per offizieller Silent-Printing-Policy ohne Druckdialog auf den Windows-Standarddrucker drucken; Setup ist direkt im Schnelldruck verlinkt.
 - **RC1370** – Sendungsansicht unterstützt eine interne manuelle Abholterminbuchung als Alternative zum Kunden-AVIS. Sie verwendet dieselben 2-Stunden-Slots und Kapazitätsgrenzen, speichert Abholdatum/-zeit, Spedition, Sendungsnummer und optional Kennzeichen und setzt den Status nicht vorzeitig auf `Abgeholt`.
+- **RC1505** – Release-Architektur getrennt: `main` führt Main Verification und TESTSERVICE-Deploy aus; Production erfordert einen manuellen `ExportHUB Production Release` mit vollständigem Main-SHA, erfolgreicher Main Verification für exakt diesen SHA und der Bestätigung `PRODUCTION FREIGEBEN`.
 
 Die sichtbare Produktversionsanzeige ist von der stabilen technischen RC1112-Buildkette getrennt. Die autoritative sichtbare Version steht in `release-version.json`; reine Dokumentations- oder Testcommits erhöhen sie nicht automatisch. Dadurch können fachliche Korrekturen unabhängig vom technischen Buildmarker ausgeliefert werden.
 
 ## Website und Umgebungen
 
-- Produktion, TESTSERVICE und Demo werden gemeinsam über den RC1112-Drei-Umgebungen-Deploy gebaut.
-- TESTSERVICE wird vor Produktion durch ein echtes Playwright-Browser-Gate geprüft.
-- Produktion wird erst nach grünem TESTSERVICE-Gate freigegeben.
-- Nach dem Produktionsdeploy laufen zusätzliche Read-only Browser-Smokes und Live-Prüfungen.
+- Die gemeinsame RC1112-Buildbasis erzeugt weiterhin Production-Candidate, TESTSERVICE und Demo aus demselben Funktionsstand; **Buildbasis und Deploy-Freigabe sind seit RC1505 getrennte Verträge**.
+- Normale `main`-Integration läuft über **ExportHUB RC1112 Main Verification** und darf ausschließlich TESTSERVICE aktualisieren. Production-Secrets und Production-Upload sind aus diesem Main-Pfad entfernt.
+- Die Main Verification führt vor bzw. um den TESTSERVICE-Deploy die vorgesehenen Vertrags-, Node-, Build-, Playwright-, mutierenden TESTSERVICE-E2E- und Readiness-Prüfungen aus.
+- Production wird ausschließlich über **ExportHUB Production Release** freigegeben. Der Workflow ist manuell, verlangt einen vollständigen 40-stelligen `release_sha` aus `main`, die exakte Bestätigung `PRODUCTION FREIGEBEN` und einen erfolgreichen Main-Verification-Push-Lauf für denselben SHA.
+- Checkout, Build und Pre-Deploy-Prüfung des Production-Releases bleiben auf exakt diesem freigegebenen SHA fixiert; ein normaler Merge nach `main` darf dadurch keinen Production-Deploy auslösen.
+- Nach einem ausdrücklich gestarteten Production-Deploy laufen zusätzliche Read-only Browser-Smokes, Readiness- und Production-Live-Prüfungen.
 - Der TESTSERVICE-E2E-Fixture verwendet ausschließlich signierte, TESTSERVICE-isolierte 45-Minuten-Sitzungen; vor jedem Lauf werden nur eindeutig `E2E-*`-markierte Alt-Testdaten bereinigt.
 - `index.html`, `TESTVERSION.html` und `demo.html` verwenden denselben RC1112-Funktionsstand.
 - Topbar, Navigation, globale Suche, Warncenter, persönliche Benachrichtigungen, Fehlerdiagnose, Historie, Abholkalender und Sendungsübersicht sind Bestandteil des aktuellen Stands.
@@ -162,21 +165,23 @@ Der Build-Workflow erzeugt ein geprüftes Debug-APK-Artefakt für die RC1112-Bas
 
 Die zentralen dauerhaft aktiven Pfade sind:
 
-- Hauptprüfung: `.github/workflows/rc1002-main-contract.yml`  
+- PR-/Pre-Merge-Prüfung: `.github/workflows/rc1002-main-contract.yml`  
   Workflow-Name: **RC1112 Main Contract**
-- Gemeinsamer Produktion / TESTSERVICE / Demo Deploy: `.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml`  
-  Workflow-Name: **ExportHUB RC1112 Drei-Umgebungen Deploy**
+- Main Verification und regulärer TESTSERVICE-Deploy: `.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml`  
+  Workflow-Name: **ExportHUB RC1112 Main Verification**
+- Manueller Production-Release: `.github/workflows/exporthub-production-release.yml`  
+  Workflow-Name: **ExportHUB Production Release**
 - TESTSERVICE Einzel-Deploy nur als ausdrücklich bestätigte Ausnahme: `.github/workflows/exporthub-testservice.yml`
 - Android: `.github/workflows/exporthub-android-test-app.yml`
 - POD-Backup-Nachholung: `.github/workflows/rc1144-pod-backup-reconcile.yml`
 - Multi-Layout Browser Gate: `.github/workflows/rc1306-layout-browser.yml`
 - Stündliches Runtime-Monitoring: `.github/workflows/rc1050-storage-probe.yml`
 
-Historische RC-Regressionstests bleiben bewusst erhalten und werden vom aktuellen Releasevertrag weiter ausgeführt, damit frühere Funktionen nicht unbemerkt regressieren.
+Historische RC-Regressionstests bleiben bewusst erhalten und werden vom aktuellen Releasevertrag weiter ausgeführt, damit frühere Funktionen nicht unbemerkt regressieren. Historische Verträge, die früher einen gemeinsamen Production-/TESTSERVICE-Deploy voraussetzten, prüfen seit RC1505 die getrennten Main-Verification-, Build- und Production-Live-Verträge, ohne Production wieder an `main` zu koppeln.
 
 ## Release-Sicherheit
 
-Ein Produktionsstand gilt erst als freigegeben, wenn die vorgesehenen Vertrags-, Node-, Build-, TESTSERVICE-, Browser- und Production-Live-Gates erfolgreich sind.
+Ein Production-Deploy ist seit RC1505 **nie die automatische Folge eines normalen `main`-Laufs**. Vor einer manuellen Production-Freigabe müssen die vorgesehenen Vertrags-, Node-, Build-, TESTSERVICE-, Browser- und Readiness-Gates erfolgreich sein; zusätzlich muss der freizugebende 40-stellige SHA auf `main` liegen und für exakt diesen SHA ein erfolgreicher **ExportHUB RC1112 Main Verification**-Push-Lauf existieren. Der manuelle Workflow akzeptiert die Freigabe nur mit der exakten Bestätigung `PRODUCTION FREIGEBEN`.
 
 Der Main Contract prüft unter anderem:
 
@@ -190,7 +195,9 @@ Der Main Contract prüft unter anderem:
 - Mehr-LKW-Vertrag,
 - Mail- und Sprachbasis,
 - gesamte Node-Regression,
-- reproduzierbaren Drei-Umgebungen-Build.
+- reproduzierbare gemeinsame RC1112-Buildbasis.
+
+Der manuelle Production-Release baut RC1112 und Packmeldungen auf demselben freigegebenen SHA und führt die vorgesehenen Production-Readiness-, read-only Browser- und Live-Verträge erst im ausdrücklich gestarteten Production-Pfad aus. Production-Secrets werden nicht im normalen Main-Verification-Pfad verwendet.
 
 Für die POD-Sicherung gilt zusätzlich: offene Sicherungen dürfen im Production-Reconcile weder `pendingCount > 0` noch `errorCount > 0` hinterlassen.
 

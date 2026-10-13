@@ -2,13 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {readReleaseContract} from './helpers/rc1505-release-contract.mjs';
 
 const runtime=fs.readFileSync('assets/rc1013-diagnostics.js','utf8');
 const context={module:{exports:{}},exports:{},console};
 vm.runInNewContext(runtime,context,{filename:'assets/rc1013-diagnostics.js'});
 const diagnostics=context.module.exports;
 const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
-const workflow=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
 
 function fakeWindow(view,host){
   return {
@@ -48,9 +48,10 @@ test('RC1125: Diagnoseansicht entfernt ihren eigenen Diagnoseblock nicht',async(
   assert.equal(host.removed,false,'Diagnoseblock wurde in der Diagnose-Ansicht unerwartet entfernt');
 });
 
-test('RC1364: finaler RC1112 Build erzwingt den aktuellen Diagnose-Cache-Key',()=>{
+test('RC1364: finaler RC1112 Build und RC1505 Release-Vertrag erzwingen den aktuellen Diagnose-Cache-Key',()=>{
+  const release=readReleaseContract();
   assert.match(build,/1085\|1125\|1364/,'historische Diagnose-Cache-Keys müssen beim Build weiter migriert werden');
   assert.match(build,/assets\/rc1013-diagnostics\.js\?v=1364/);
-  assert.match(workflow,/assets\/rc1013-diagnostics\.js\?v=1364/);
-  assert.match(workflow,/__EXPORTHUB_RC1125_DIAGNOSTICS_VIEW_ISOLATION__/);
+  assert.match(release,/assets\/rc1013-diagnostics\.js\?v=1364/);
+  assert.match(release,/__EXPORTHUB_RC1125_DIAGNOSTICS_VIEW_ISOLATION__/);
 });

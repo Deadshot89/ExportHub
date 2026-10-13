@@ -7,7 +7,8 @@ const runtime=fs.readFileSync('assets/rc1193-visible-release.js','utf8');
 const builder=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
 const notes=fs.readFileSync('assets/rc1177-release-notes.js','utf8');
 const spec=fs.readFileSync('e2e/specs/version-display.spec.mjs','utf8');
-const workflow=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
+const mainWorkflow=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
+const productionWorkflow=fs.readFileSync('.github/workflows/exporthub-production-release.yml','utf8');
 const releaseMarker=JSON.parse(fs.readFileSync('release-version.json','utf8'));
 
 test('RC1314: sichtbare Release-Version wird aus dem expliziten Release-Marker ermittelt',()=>{
@@ -62,18 +63,21 @@ test('RC1265: Browser-Spec erwartet den aktuellen RC statt einer festen RC1231',
   assert.doesNotMatch(spec,/toHaveAttribute\('data-exporthub-visible-version','RC1231'\)/);
 });
 
-test('RC1265: lokale, TESTSERVICE- und Produktions-Browsergates prüfen die sichtbare Version',()=>{
-  const local=workflow.slice(workflow.indexOf('- name: RC1124 Lokales Browser-Gate'),workflow.indexOf('- name: RC1124 Lokale Browser-Artefakte'));
-  const live=workflow.slice(workflow.indexOf('- name: RC1124 TESTSERVICE Browser Gate'),workflow.indexOf('- name: RC1124 TESTSERVICE Browser-Artefakte'));
-  const prod=workflow.slice(workflow.indexOf('- name: RC1124 Produktion Read-only Browser Smoke'),workflow.indexOf('- name: RC1124 Produktion Browser-Artefakte'));
+test('RC1505/RC1265: lokale und TESTSERVICE-Browsergates prüfen die sichtbare Version im Main-Workflow',()=>{
+  const local=mainWorkflow.slice(mainWorkflow.indexOf('- name: RC1124 Lokales Browser-Gate'),mainWorkflow.indexOf('- name: RC1124 Lokale Browser-Artefakte'));
+  const live=mainWorkflow.slice(mainWorkflow.indexOf('- name: RC1124 TESTSERVICE Browser Gate'),mainWorkflow.indexOf('- name: RC1124 TESTSERVICE Browser-Artefakte'));
   assert.match(local,/version-display\.spec\.mjs/);
   assert.match(live,/version-display\.spec\.mjs/);
+});
+
+test('RC1505/RC1265: Produktions-Browsergate prüft die sichtbare Version im manuellen Production-Release',()=>{
+  const prod=productionWorkflow.slice(productionWorkflow.indexOf('- name: RC1124 Produktion Read-only Browser Smoke'),productionWorkflow.indexOf('- name: RC1124 Produktion Browser-Artefakte'));
   assert.match(prod,/version-display\.spec\.mjs/);
 });
 
-test('RC1335: nur der neueste main-Stand darf den Drei-Umgebungen-Deploy abschließen',()=>{
-  assert.match(workflow,/group:\s*exporthub-rc1112-three-env-\$\{\{ github\.ref \}\}/);
-  assert.match(workflow,/cancel-in-progress:\s*true/);
+test('RC1335: nur der neueste main-Stand darf die Main-Verifikation abschließen',()=>{
+  assert.match(mainWorkflow,/group:\s*exporthub-rc1112-three-env-\$\{\{ github\.ref \}\}/);
+  assert.match(mainWorkflow,/cancel-in-progress:\s*true/);
 });
 
 test('RC1265: statischer UI-Nachweis ignoriert erwartete fehlende API, Live-Gate bleibt streng',()=>{

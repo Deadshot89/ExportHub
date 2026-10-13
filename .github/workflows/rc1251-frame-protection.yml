@@ -15,7 +15,7 @@ on:
       - 'test/rc1088-release-hardening.test.mjs'
       - '.github/workflows/rc1251-frame-protection.yml'
   workflow_run:
-    workflows: ['ExportHUB RC1112 Drei-Umgebungen Deploy']
+    workflows: ['ExportHUB Production Release']
     types: [completed]
 jobs:
   contract:

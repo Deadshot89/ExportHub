@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import {EventEmitter} from 'node:events';
+import {readMainFlow,readProductionFlow} from './helpers/rc1505-release-contract.mjs';
 
 async function failedSend({tokenStatus=200,sendStatus=401,senders=['DespatchNettetal@essentra.com'],environment={},domainTenant='sender-tenant',lookupStatus=200,lookup={id:'mailbox-id',mail:'DespatchNettetal@essentra.com',userPrincipalName:'despatch@tenant.example',userType:'Member'},headers={}}={}){
  const calls=[],claims={aud:'https://graph.microsoft.com',roles:['Mail.Send'],tid:'app-tenant',appid:'client-test',exp:Math.floor(Date.now()/1000)+3600};
@@ -66,12 +67,13 @@ test('guest sender is distinguished from a local member account',async()=>{
  assert.equal(error.diagnostics.senderDirectory.guest,true);
 });
 
-test('Outlook draft gate runs before broad browser matrix and both remain required',()=>{
- const source=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
- const mail=source.indexOf("npx playwright test e2e/specs/testservice-mutation.spec.mjs --project=laptop --grep 'RC1255 P2:'");
- const broad=source.indexOf('npx playwright test             e2e/specs/navigation.spec.mjs',source.indexOf('id: rc1124_testservice_browser_gate'));
+test('Outlook draft gate runs before broad TESTSERVICE browser matrix and production stays in the manual workflow',()=>{
+ const main=readMainFlow(),production=readProductionFlow();
+ const mail=main.indexOf("npx playwright test e2e/specs/testservice-mutation.spec.mjs --project=laptop --grep 'RC1255 P2:'");
+ const broad=main.indexOf('e2e/specs/navigation.spec.mjs',main.indexOf('id: rc1124_testservice_browser_gate'));
  assert.ok(mail>=0&&broad>mail);
- assert.ok(source.indexOf('Deploy ExportHUB production',broad)>broad);
+ assert.doesNotMatch(main,/Deploy ExportHUB production/);
+ assert.match(production,/Deploy ExportHUB production/);
 });
 
 test('Essentra sender keeps the tenant paired with the configured shared Graph app',async()=>{

@@ -5,7 +5,8 @@ const https=require('https');
 const graphMail=require('../shared/graph-mail');
 
 const REPO='Deadshot89/ExportHub';
-const RELEASE_WORKFLOW='azure-static-web-apps-wonderful-forest-0f315e310.yml';
+const MAIN_WORKFLOW='azure-static-web-apps-wonderful-forest-0f315e310.yml';
+const PRODUCTION_WORKFLOW='exporthub-production-release.yml';
 const VERIFY_WORKFLOW='avis-mail-verify.yml';
 const OIDC_ISSUER='https://token.actions.githubusercontent.com';
 const OIDC_JWKS_URL='https://token.actions.githubusercontent.com/.well-known/jwks';
@@ -53,8 +54,9 @@ async function githubOidcAuthorized(req){
   const nowSec=Math.floor(Date.now()/1000),aud=Array.isArray(claims.aud)?claims.aud:[claims.aud];
   if(claims.iss!==OIDC_ISSUER||!aud.includes(OIDC_AUDIENCE))return false;
   if(claims.repository!==REPO||claims.ref!=='refs/heads/main'||!ALLOWED_EVENTS.includes(text(claims.event_name)))return false;
-  const workflowRef=text(claims.workflow_ref),releaseRef=REPO+'/.github/workflows/'+RELEASE_WORKFLOW+'@refs/heads/main',verifyRef=REPO+'/.github/workflows/'+VERIFY_WORKFLOW+'@refs/heads/main';
-  if(workflowRef!==releaseRef&&workflowRef!==verifyRef)return false;
+  const workflowRef=text(claims.workflow_ref),mainRef=REPO+'/.github/workflows/'+MAIN_WORKFLOW+'@refs/heads/main',productionRef=REPO+'/.github/workflows/'+PRODUCTION_WORKFLOW+'@refs/heads/main',verifyRef=REPO+'/.github/workflows/'+VERIFY_WORKFLOW+'@refs/heads/main';
+  if(workflowRef!==mainRef&&workflowRef!==productionRef&&workflowRef!==verifyRef)return false;
+  if(workflowRef===productionRef&&text(claims.event_name)!=='workflow_dispatch')return false;
   if(workflowRef===verifyRef&&text(claims.event_name)!=='workflow_dispatch')return false;
   if(!Number(claims.exp)||Number(claims.exp)<=nowSec-30)return false;
   if(Number(claims.nbf||0)>nowSec+60||Number(claims.iat||0)>nowSec+60||Number(claims.iat||0)<nowSec-1800)return false;
@@ -71,7 +73,7 @@ module.exports=async function(context,req){
  if(req.method==='OPTIONS'){context.res={status:204,headers:{Allow:'POST, OPTIONS','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'},body:''};return}
  if(req.method!=='POST'){context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED'});return}
  try{
-  if(!await githubOidcAuthorized(req))throw error('WORKFLOW_REQUIRED','Readiness darf nur durch den signierten ExportHUB-Releaseworkflow geprüft werden.',403);
+  if(!await githubOidcAuthorized(req))throw error('WORKFLOW_REQUIRED','Readiness darf nur durch einen signierten ExportHUB-Release- oder Verifikationsworkflow geprüft werden.',403);
   const environment=environmentOf(req),action=lower(req&&req.body&&req.body.action),cfg=graphMail.readiness(),permission=graphMail.permissionRequirement(),recipient=text(process.env.EXPORTHUB_AVIS_UPLOAD_NOTIFICATION_TO)||DEFAULT_RECIPIENT;
   const avisMailSender=text(process.env.EXPORTHUB_AVIS_MAIL_SENDER)||DEFAULT_RECIPIENT;
   if(!cfg.configured||!validEmail(recipient)||!validEmail(avisMailSender)){
