@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 
+// RC1505 compatibility reader: historical tests inspect the complete split release contract without re-coupling Production to Main.
 export const MAIN_FLOW='.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml';
 export const PRODUCTION_FLOW='.github/workflows/exporthub-production-release.yml';
 export const BUILD_CONTRACT='.github/rc1505/verify-build-contract.mjs';
