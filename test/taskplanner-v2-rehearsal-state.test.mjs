@@ -10,9 +10,18 @@ test('TaskPlanner V2 rehearsal endpoint is TESTSERVICE-only and branch/workflow 
   assert.match(source,/WORKFLOW='taskplanner-v2-rehearsal\.yml'/);
   assert.match(source,/AUDIENCE='exporthub-taskplanner-v2-rehearsal'/);
   assert.match(source,/requested!==['"]testservice['"]/);
-  assert.ok(source.includes("!/-testservice\\./.test(host)"));
+  assert.match(source,/requestEnvironmentEvidence/);
+  assert.match(source,/x-ms-original-url/i);
+  assert.match(source,/-testservice\\\./);
   assert.match(source,/claims\.repository!==REPO\|\|claims\.ref!==REF/);
   assert.match(source,/claims\.event_name\)!==['"]push['"]/);
+});
+
+test('TaskPlanner V2 rehearsal TESTSERVICE evidence does not let an internal forwarded host mask the external TESTSERVICE URL',()=>{
+  assert.match(source,/\[h\.origin,h\.Origin,h\.referer,h\.Referer/);
+  assert.match(source,/h\[['"]x-forwarded-host['"]\]/i);
+  assert.match(source,/h\[['"]x-ms-original-url['"]\]/i);
+  assert.doesNotMatch(source,/const host=lower\(header\(req,'x-forwarded-host'\)\|\|header\(req,'x-original-host'\)\|\|header\(req,'host'\)\)/);
 });
 
 test('TaskPlanner V2 rehearsal endpoint is read-only and exports task state only',()=>{
