@@ -305,7 +305,7 @@ function schedule(){
  if(mountTimer)return true;
  mountTimer=w.setTimeout(function(){mountTimer=0;syncObserver();mount()},0);return true
 }
-function activate(){syncObserver();schedule()}
+function activate(){if(syncObserver())schedule()}
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',activate,{once:true});else activate();
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(name){w.addEventListener(name,activate)});
 w.addEventListener('exporthub:language-changed',function(){var old=panel();if(old)old.remove();activate()});
