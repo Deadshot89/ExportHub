@@ -10,7 +10,7 @@ test('TaskPlanner V2 rehearsal endpoint is TESTSERVICE-only and branch/workflow 
   assert.match(source,/WORKFLOW='taskplanner-v2-rehearsal\.yml'/);
   assert.match(source,/AUDIENCE='exporthub-taskplanner-v2-rehearsal'/);
   assert.match(source,/requested!==['"]testservice['"]/);
-  assert.match(source,/\/-testservice\\\.\//);
+  assert.ok(source.includes("!/-testservice\\./.test(host)"));
   assert.match(source,/claims\.repository!==REPO\|\|claims\.ref!==REF/);
   assert.match(source,/claims\.event_name\)!==['"]push['"]/);
 });
