@@ -1,0 +1,59 @@
+name: SOPMaster Full Browser E2E
+
+on:
+  push:
+    branches:
+      - design/sopmaster-training-tour-2026-10-12
+    paths:
+      - 'assets/sop/**'
+      - 'e2e/specs/sopmaster-*.spec.mjs'
+      - 'e2e/helpers/exporthub-browser.mjs'
+      - '.github/rc1503/**'
+      - '.github/workflows/sopmaster-full-browser-verify.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sopmaster-full-browser-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  full-browser-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: Build latest pre-integration SOPMaster three-environment package
+        run: node .github/rc1503/build-three-env.mjs
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save @playwright/test@1.63.0
+          npx playwright install --with-deps chromium
+      - name: Run complete SOPMaster browser path on desktop and mobile
+        env:
+          EXPORTHUB_E2E_STATIC: '1'
+          EXPORTHUB_E2E_ENTRY: '/demo.html'
+        run: >-
+          npx playwright test
+          e2e/specs/sopmaster-target-picker.spec.mjs
+          e2e/specs/sopmaster-tour.spec.mjs
+          e2e/specs/sopmaster-visual-editor.spec.mjs
+          e2e/specs/sopmaster-training-exam.spec.mjs
+          e2e/specs/sopmaster-coverage-dashboard.spec.mjs
+          --project=desktop
+          --project=mobile-standard
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: sopmaster-full-browser-e2e-debug
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: ignore
+          retention-days: 14
