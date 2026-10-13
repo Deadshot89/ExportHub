@@ -77,6 +77,31 @@
       }
     },
     {
+      "route": "/task",
+      "rewrite": "/task.html",
+      "allowedRoles": [
+        "anonymous"
+      ],
+      "headers": {
+        "Cache-Control": "no-store",
+        "Referrer-Policy": "no-referrer",
+        "X-Content-Type-Options": "nosniff",
+        "X-ExportHUB-Environment": "test"
+      }
+    },
+    {
+      "route": "/task.html",
+      "allowedRoles": [
+        "anonymous"
+      ],
+      "headers": {
+        "Cache-Control": "no-store",
+        "Referrer-Policy": "no-referrer",
+        "X-Content-Type-Options": "nosniff",
+        "X-ExportHUB-Environment": "test"
+      }
+    },
+    {
       "route": "/pickup",
       "rewrite": "/pickup.html",
       "allowedRoles": [
@@ -231,6 +256,8 @@
     "exclude": [
       "/api/*",
       "/.auth/*",
+      "/task",
+      "/task.html",
       "/pickup",
       "/pickup.html",
       "/customer-avis",
