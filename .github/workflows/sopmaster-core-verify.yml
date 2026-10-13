@@ -50,7 +50,7 @@ jobs:
           package-manager-cache: false
       - name: SOPMaster targeted core regression
         run: >-
-          node --test
+          node --test --test-concurrency=1
           test/rc1007-sop-workflow.test.mjs
           test/rc1016-sop-consolidation.test.mjs
           test/rc1018-sop-image-coverage-complete.test.mjs
