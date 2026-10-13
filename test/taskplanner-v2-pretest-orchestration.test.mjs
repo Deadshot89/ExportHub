@@ -30,3 +30,12 @@ test('RC1462 pretest führt TaskPlanner-V2-Builder-, Cutover-, API- und i18n-Wir
   assert.match(source,/TaskPlanner V2 workflow i18n preparation incomplete/);
   assert.match(source,/TaskPlanner V2 projection i18n preparation incomplete/);
 });
+
+test('RC1462 pretest verifiziert Migrationsaudit ausschließlich mit synthetischem In-Memory-State',()=>{
+  const source=fs.readFileSync('scripts/rc1462-pretest.mjs','utf8');
+  assert.match(source,/taskplanner-v2-migration-audit\.mjs/);
+  assert.match(source,/auditState/);
+  assert.match(source,/tasks:\[\],taskSeries:\[\],taskArchive:\[\]/);
+  assert.match(source,/TaskPlanner V2 migration audit readiness incomplete/);
+  assert.doesNotMatch(source,/api\/exporthub-state|AZURE|blob|fetch\(/i,'Pretest-Audit darf keine Live-/Azure-Statequelle lesen');
+});
