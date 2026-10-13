@@ -1,0 +1,270 @@
+name: TaskPlannerPro V2 TESTSERVICE Rehearsal
+
+on:
+  push:
+    branches:
+      - taskplannerpro/v2-task10
+    paths:
+      - '.github/taskplanner-v2-rehearsal-trigger'
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: taskplanner-v2-testservice-rehearsal
+  cancel-in-progress: false
+
+env:
+  TESTSERVICE_BASE: https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net
+  APPROVAL_PHRASE: ICH ERLAUBE EINE ABWEICHENDE TESTSERVICE-VERSION
+  BACKUP_BLOB: testservice/state-backups/daily/2026/10/13/team-state-20261013T133732474Z.json
+  BACKUP_SHA256: a99e947cca74f14080aa0b2f9a0c399b483dcbbf87c6f86145984274da7d26d6
+  BASELINE_MAIN_SHA: d4046aad3722f51a0b9e45987f051474f032a036
+
+jobs:
+  rehearsal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+
+      - name: Freigabe, Branch und Main-Synchronität prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fxq "$APPROVAL_PHRASE" .github/taskplanner-v2-rehearsal-trigger
+          test "$GITHUB_REF" = 'refs/heads/taskplannerpro/v2-task10'
+          git fetch --no-tags origin main
+          git merge-base --is-ancestor "$BASELINE_MAIN_SHA" HEAD
+          if ! git merge-base --is-ancestor origin/main HEAD; then
+            echo 'TESTSERVICE-Rehearsal abgebrochen: task10 enthält nicht den aktuellen main-Head.' >&2
+            exit 1
+          fi
+          echo "Freigabe bestätigt; aktueller main ist im Kandidaten enthalten."
+
+      - name: Dependencies installieren
+        run: npm install --ignore-scripts --no-audit --no-fund
+
+      - name: Rehearsal-Endpunkt und TaskPlanner-Verträge prüfen
+        run: |
+          set -euo pipefail
+          node --test --test-concurrency=1 test/taskplanner-v2-rehearsal-state.test.mjs test/taskplanner-v2-release.test.mjs test/taskplanner-v2-migration.test.mjs
+          npm test
+
+      - name: V2-Artefakte vorbereiten und RC1112 bauen
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/taskplanner-v2-pretest.mjs
+          node scripts/taskplanner-v2-cutover-pretest.mjs
+          node scripts/taskplanner-v2-i18n-pretest.mjs
+          node scripts/taskplanner-v2-planner-i18n-pretest.mjs
+          node scripts/taskplanner-v2-workflow-i18n-pretest.mjs
+          node scripts/taskplanner-v2-projection-i18n-pretest.mjs
+          node .github/rc1112/build-three-env.mjs
+          test -s dist-rc1112/TESTVERSION.html
+          test -s dist-rc1112/task.html
+          grep -q 'assets/taskplanner-v2-core.js?v=2000' dist-rc1112/TESTVERSION.html
+          grep -q '__EXPORTHUB_TASKPLANNER_V2_UI_CUTOVER__' dist-rc1112/TESTVERSION.html
+
+      - name: Rehearsal- und Finalpaket vorbereiten
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .taskplanner_rehearsal_app .taskplanner_final_app .taskplanner_final_api
+          mkdir -p .taskplanner_rehearsal_app .taskplanner_final_app
+          for app in .taskplanner_rehearsal_app .taskplanner_final_app; do
+            cp dist-rc1112/TESTVERSION.html "$app/index.html"
+            cp dist-rc1112/TESTVERSION.html "$app/TESTVERSION.html"
+            cp dist-rc1112/demo.html "$app/demo.html"
+            cp dist-rc1112/pickup.html dist-rc1112/customer-avis.html dist-rc1112/location.html dist-rc1112/pod-notfall.html "$app/"
+            if [ -s dist-rc1112/migration-recovery.html ]; then cp dist-rc1112/migration-recovery.html "$app/"; fi
+            cp dist-rc1112/task.html "$app/task.html"
+            cp dist-rc1112/production-version.js "$app/production-version.js"
+            cp -R assets "$app/assets"
+            cp -R dist-rc1112/assets/. "$app/assets/"
+            cp staticwebapp.testservice.config.json "$app/staticwebapp.config.json"
+          done
+          node <<'NODE'
+          const fs=require('fs');
+          for(const name of ['index.html','TESTVERSION.html']){
+            const file='.taskplanner_rehearsal_app/'+name;
+            let html=fs.readFileSync(file,'utf8');
+            const guard='<script id="taskplanner-v2-rehearsal-guard">window.__EXPORTHUB_TASKPLANNER_V2_UI_CUTOVER__=false;</script>';
+            if(!html.includes('taskplanner-v2-rehearsal-guard'))html=html.replace(/<head([^>]*)>/i,'<head$1>'+guard);
+            fs.writeFileSync(file,html);
+          }
+          NODE
+          grep -q 'taskplanner-v2-rehearsal-guard' .taskplanner_rehearsal_app/index.html
+          ! grep -q 'taskplanner-v2-rehearsal-guard' .taskplanner_final_app/index.html
+          cp -R api .taskplanner_final_api
+          rm -rf .taskplanner_final_api/taskplanner-v2-rehearsal-state
+
+      - name: TESTSERVICE Rehearsal deployen – V2 Cutover gesperrt
+        id: rehearsal_deploy
+        uses: Azure/static-web-apps-deploy@4d27395796ac319302594769cfe812bd207490b1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_EXPORT_HUB_EUROPE }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: upload
+          app_location: .taskplanner_rehearsal_app
+          api_location: api
+          output_location: ''
+          skip_app_build: true
+          deployment_environment: testservice
+
+      - name: Live-State lesen und echte V2-Migration auditieren
+        id: migration_audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +x
+          oidc_token="$(
+            curl -fsSL \
+              -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+              "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=exporthub-taskplanner-v2-rehearsal" \
+            | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s).value;if(!v)process.exit(2);process.stdout.write(v)})"
+          )"
+          echo "::add-mask::$oidc_token"
+          ready=0
+          for attempt in {1..30}; do
+            code="$(curl -sS -o /tmp/taskplanner-before.json -w '%{http_code}' --max-time 30 \
+              -X POST -H 'Content-Type: application/json' \
+              -H 'x-exporthub-environment: testservice' \
+              -H "x-exporthub-github-oidc: $oidc_token" \
+              --data '{"action":"snapshot","environment":"testservice"}' \
+              "$TESTSERVICE_BASE/api/taskplanner-v2-rehearsal-state" || true)"
+            if [ "$code" = '200' ] && node -e "const v=require('/tmp/taskplanner-before.json');if(v.ok!==true||v.environment!=='testservice'||!v.state)process.exit(1)"; then ready=1; break; fi
+            sleep 5
+          done
+          [ "$ready" = '1' ] || { echo 'Rehearsal-State-Endpunkt wurde nicht bereit.' >&2; exit 1; }
+          node -e "const fs=require('fs'),v=JSON.parse(fs.readFileSync('/tmp/taskplanner-before.json','utf8'));fs.writeFileSync('/tmp/taskplanner-state.json',JSON.stringify(v.state));console.log('TESTSERVICE task snapshot',JSON.stringify({revision:v.revision,taskCount:v.taskCount,seriesCount:v.seriesCount,snapshotBytes:v.snapshotBytes,snapshotSha256:v.snapshotSha256}))"
+          node scripts/taskplanner-v2-migration-audit.mjs /tmp/taskplanner-state.json > /tmp/taskplanner-audit.json
+          cat /tmp/taskplanner-audit.json
+          node -e "const v=require('/tmp/taskplanner-audit.json');if(v.safe!==true)throw new Error('TaskPlanner V2 Migration ist nicht safe:true');if(v.before.tasks!==v.after.tasks)throw new Error('Taskanzahl verändert sich im Migrationspreview')"
+          node -e "const fs=require('fs'),v=JSON.parse(fs.readFileSync('/tmp/taskplanner-before.json','utf8'));fs.writeFileSync('/tmp/taskplanner-before-meta.json',JSON.stringify({revision:v.revision,updatedAt:v.updatedAt,taskCount:v.taskCount,seriesCount:v.seriesCount,snapshotBytes:v.snapshotBytes,snapshotSha256:v.snapshotSha256}))"
+          rm -f /tmp/taskplanner-state.json /tmp/taskplanner-before.json
+
+      - name: Finalen TaskPlanner V2 Kandidaten auf TESTSERVICE deployen
+        id: final_deploy
+        uses: Azure/static-web-apps-deploy@4d27395796ac319302594769cfe812bd207490b1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_EXPORT_HUB_EUROPE }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: upload
+          app_location: .taskplanner_final_app
+          api_location: api
+          output_location: ''
+          skip_app_build: true
+          deployment_environment: testservice
+
+      - name: Nachher-State und Live-Kandidat verifizieren
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +x
+          oidc_token="$(
+            curl -fsSL \
+              -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+              "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=exporthub-taskplanner-v2-rehearsal" \
+            | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s).value;if(!v)process.exit(2);process.stdout.write(v)})"
+          )"
+          echo "::add-mask::$oidc_token"
+          ready=0
+          for attempt in {1..30}; do
+            code="$(curl -sS -o /tmp/taskplanner-after.json -w '%{http_code}' --max-time 30 \
+              -X POST -H 'Content-Type: application/json' \
+              -H 'x-exporthub-environment: testservice' \
+              -H "x-exporthub-github-oidc: $oidc_token" \
+              --data '{"action":"snapshot","environment":"testservice"}' \
+              "$TESTSERVICE_BASE/api/taskplanner-v2-rehearsal-state" || true)"
+            if [ "$code" = '200' ]; then ready=1; break; fi
+            sleep 5
+          done
+          [ "$ready" = '1' ] || { echo 'Nachher-Snapshot nicht erreichbar.' >&2; exit 1; }
+          node -e "const fs=require('fs'),b=JSON.parse(fs.readFileSync('/tmp/taskplanner-before-meta.json','utf8')),a=JSON.parse(fs.readFileSync('/tmp/taskplanner-after.json','utf8'));if(a.ok!==true)throw new Error('Nachher-Snapshot ungültig');if(a.snapshotSha256!==b.snapshotSha256)throw new Error('Task-State hat sich zwischen Audit und Final-Deploy verändert');console.log('Task-State unverändert',JSON.stringify({beforeRevision:b.revision,afterRevision:a.revision,taskCount:a.taskCount,snapshotSha256:a.snapshotSha256}))"
+          page=/tmp/taskplanner-live.html
+          health=/tmp/taskplanner-health.json
+          for attempt in {1..30}; do
+            if curl -fsS -L --max-time 30 "$TESTSERVICE_BASE/?taskplannerV2=${GITHUB_SHA}-${attempt}" -o "$page" && grep -q 'assets/taskplanner-v2-core.js?v=2000' "$page" && grep -q '__EXPORTHUB_TASKPLANNER_V2_UI_CUTOVER__' "$page"; then break; fi
+            sleep 5
+          done
+          grep -q 'assets/taskplanner-v2-planner-ui.js?v=2000' "$page"
+          grep -q 'assets/taskplanner-v2-workflow.js?v=2000' "$page"
+          ! grep -q 'taskplanner-v2-rehearsal-guard' "$page"
+          curl -fsS --max-time 30 "$TESTSERVICE_BASE/api/exporthub-state?mode=ping" -o "$health"
+          node -e "const v=require('/tmp/taskplanner-health.json');if(v.ok!==true||v.routeReachable!==true)throw new Error('TESTSERVICE State API nicht erreichbar')"
+
+      - name: Temporären Rehearsal-Endpunkt aus TESTSERVICE entfernen
+        id: cleanup_deploy
+        uses: Azure/static-web-apps-deploy@4d27395796ac319302594769cfe812bd207490b1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_EXPORT_HUB_EUROPE }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: upload
+          app_location: .taskplanner_final_app
+          api_location: .taskplanner_final_api
+          output_location: ''
+          skip_app_build: true
+          deployment_environment: testservice
+
+      - name: Abschlussbericht erzeugen
+        shell: bash
+        run: |
+          set -euo pipefail
+          code='000'
+          for attempt in {1..20}; do
+            code="$(curl -sS -o /tmp/rehearsal-removed.txt -w '%{http_code}' --max-time 20 -X POST -H 'Content-Type: application/json' -H 'x-exporthub-environment: testservice' --data '{"action":"snapshot","environment":"testservice"}' "$TESTSERVICE_BASE/api/taskplanner-v2-rehearsal-state" || true)"
+            if [ "$code" = '404' ]; then break; fi
+            sleep 5
+          done
+          [ "$code" = '404' ] || { echo "Temporärer Rehearsal-Endpunkt ist nach Cleanup noch erreichbar: HTTP $code" >&2; exit 1; }
+          node <<'NODE'
+          const fs=require('fs');
+          const before=JSON.parse(fs.readFileSync('/tmp/taskplanner-before-meta.json','utf8'));
+          const after=JSON.parse(fs.readFileSync('/tmp/taskplanner-after.json','utf8'));
+          const audit=JSON.parse(fs.readFileSync('/tmp/taskplanner-audit.json','utf8'));
+          const report={
+            ok:true,
+            environment:'testservice',
+            candidateSha:process.env.GITHUB_SHA,
+            productionTouched:false,
+            approvedDivergence:true,
+            backup:{blob:process.env.BACKUP_BLOB,sha256:process.env.BACKUP_SHA256,readBackVerified:true},
+            migrationAudit:audit,
+            stateIntegrity:{beforeSnapshotSha256:before.snapshotSha256,afterSnapshotSha256:after.snapshotSha256,unchanged:before.snapshotSha256===after.snapshotSha256,taskCountBefore:before.taskCount,taskCountAfter:after.taskCount},
+            rehearsalEndpointRemoved:true
+          };
+          fs.writeFileSync('taskplanner-v2-rehearsal-report.json',JSON.stringify(report,null,2));
+          console.log(JSON.stringify(report));
+          NODE
+          rm -f /tmp/taskplanner-after.json /tmp/taskplanner-before-meta.json /tmp/taskplanner-audit.json
+
+      - name: Rehearsal-Bericht hochladen
+        uses: actions/upload-artifact@v7
+        with:
+          name: taskplanner-v2-testservice-rehearsal-${{ github.sha }}
+          path: taskplanner-v2-rehearsal-report.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Bei Fehler auf gesperrten V2-Cutover zurückrollen
+        if: ${{ failure() && steps.rehearsal_deploy.outcome == 'success' }}
+        uses: Azure/static-web-apps-deploy@4d27395796ac319302594769cfe812bd207490b1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_EXPORT_HUB_EUROPE }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: upload
+          app_location: .taskplanner_rehearsal_app
+          api_location: api
+          output_location: ''
+          skip_app_build: true
+          deployment_environment: testservice

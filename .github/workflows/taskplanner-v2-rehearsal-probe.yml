@@ -1,0 +1,35 @@
+name: TaskPlanner V2 TESTSERVICE Rehearsal Endpoint Probe
+
+on:
+  push:
+    branches:
+      - taskplannerpro/v2-task10
+    paths:
+      - '.github/workflows/taskplanner-v2-rehearsal-probe.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Probe temporary TESTSERVICE endpoint without credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          code="$(curl -sS -o /tmp/rehearsal-probe.json -w '%{http_code}' --max-time 30 \
+            -X POST -H 'Content-Type: application/json' \
+            -H 'x-exporthub-environment: testservice' \
+            --data '{"action":"snapshot","environment":"testservice"}' \
+            "$base/api/taskplanner-v2-rehearsal-state" || true)"
+          safe_code="$(node -e "const fs=require('fs');try{const v=JSON.parse(fs.readFileSync('/tmp/rehearsal-probe.json','utf8'));process.stdout.write(String(v.code||''))}catch(_){process.stdout.write('NON_JSON')}" )"
+          echo "TESTSERVICE rehearsal endpoint probe: HTTP $code / $safe_code"
+          if [ "$code" = '403' ] && [ "$safe_code" = 'WORKFLOW_REQUIRED' ]; then
+            echo 'Endpoint exists and its fail-closed OIDC guard is active.'
+            exit 0
+          fi
+          echo "Unexpected endpoint probe result: HTTP $code / $safe_code" >&2
+          exit 1
