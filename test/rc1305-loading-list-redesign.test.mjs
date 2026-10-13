@@ -76,7 +76,7 @@ test('RC1374: getrennter Production-Live-Vertrag prüft dieselbe aktuelle Ladeli
   assert.match(LIVE_CONTRACT,/important\(code,'width','12mm'\)/);
   assert.match(LIVE_CONTRACT,/important\(svg,'width','12mm'\)/);
   assert.doesNotMatch(LIVE_CONTRACT,/assets\/rc1305-loading-list-print\.js\?v=1362/);
-  assert.doesNotMatch(LIVE_CONTRACT,/docColumns=Math\.max\(1,Math\.ceil\(docCount\/15\)\)/);
+  assert.match(LIVE_CONTRACT,/\['rc1305-signature-customs','docColumns=Math\.max\(1,Math\.ceil\(docCount\/15\)\)'\]\);/,'Live-Vertrag muss das veraltete Spaltenlayout explizit verbieten');
 });
 
 test('RC1305: geänderte JavaScript-Dateien sind syntaktisch gültig',()=>{
