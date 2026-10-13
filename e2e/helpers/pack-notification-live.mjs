@@ -50,13 +50,26 @@ async function createPackNotification(page,token,suffix='A'){
   await expect(page.locator('#packDocumentList')).not.toContainText(expected.sourceName);
 
   const saveDraft=page.locator('#packSaveDraft');
+  const saveResponsePromise=page.waitForResponse(response=>{
+    try{
+      const url=new URL(response.url());
+      return url.pathname.endsWith('/api/pack-notification')&&url.searchParams.get('action')==='draft-save';
+    }catch(_){return false;}
+  },{timeout:30_000});
   await saveDraft.click();
-  await expect(saveDraft).toBeEnabled({timeout:20_000});
+  const saveResponse=await saveResponsePromise;
+  expect(saveResponse.ok(),`draft-save HTTP ${saveResponse.status()}`).toBeTruthy();
+  const savePayload=await saveResponse.json();
+  expect(savePayload?.ok).toBe(true);
+  expect(savePayload?.draft?.id).toBeTruthy();
+  await expect(saveDraft).toBeEnabled({timeout:5_000});
   await expect(page.locator('#packError')).toBeHidden();
   await page.locator('#packBackHome').click();
   await expect(page.locator('#packHome')).toBeVisible();
   const card=page.locator('[data-draft-id]').filter({hasText:`E2E PACK CUSTOMER ${suffix}`}).first();
   await expect(card).toBeVisible({timeout:20_000});
+  const draftId=await card.getAttribute('data-draft-id');
+  expect(draftId).toBe(String(savePayload.draft.id));
   await card.click();
   await expect(page.locator('#packForm')).toBeVisible({timeout:20_000});
   await expect(page.locator('#packCustomer')).toHaveValue(`E2E PACK CUSTOMER ${suffix}`);
