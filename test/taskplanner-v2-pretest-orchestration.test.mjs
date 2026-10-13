@@ -33,9 +33,13 @@ test('RC1462 pretest führt TaskPlanner-V2-Builder-, Cutover-, API- und i18n-Wir
 
 test('RC1462 pretest verifiziert Migrationsaudit ausschließlich mit synthetischem In-Memory-State',()=>{
   const source=fs.readFileSync('scripts/rc1462-pretest.mjs','utf8');
-  assert.match(source,/taskplanner-v2-migration-audit\.mjs/);
-  assert.match(source,/auditState/);
-  assert.match(source,/tasks:\[\],taskSeries:\[\],taskArchive:\[\]/);
-  assert.match(source,/TaskPlanner V2 migration audit readiness incomplete/);
-  assert.doesNotMatch(source,/api\/exporthub-state|AZURE|blob|fetch\(/i,'Pretest-Audit darf keine Live-/Azure-Statequelle lesen');
+  const start=source.indexOf("const {auditState}=await import('./taskplanner-v2-migration-audit.mjs')");
+  const end=source.indexOf("await import('./rc1467-startup-avis-guard.mjs')",start);
+  assert.ok(start>=0&&end>start,'Audit-Block muss klar abgegrenzt sein');
+  const auditBlock=source.slice(start,end);
+  assert.match(auditBlock,/taskplanner-v2-migration-audit\.mjs/);
+  assert.match(auditBlock,/auditState/);
+  assert.match(auditBlock,/tasks:\[\],taskSeries:\[\],taskArchive:\[\]/);
+  assert.match(auditBlock,/TaskPlanner V2 migration audit readiness incomplete/);
+  assert.doesNotMatch(auditBlock,/api\/exporthub-state|AZURE|blob|fetch\(/i,'Pretest-Audit darf keine Live-/Azure-Statequelle lesen');
 });
