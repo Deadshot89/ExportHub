@@ -16,4 +16,9 @@ test('RC1516 P0: pickup-init verarbeitet resetPickup fuer bestaetigte Fehlscans'
   assert.match(init,/signatureBlobName\s*=\s*''/,'falsche Fahrerunterschrift darf nicht aktiv bleiben');
   assert.match(init,/podFiles\s*=\s*\[\]/,'POD des Fehlscans darf nicht aktiv bleiben');
   assert.match(init,/uploadKeyHash\s*=\s*''/,'POD-Uploadschluessel des Fehlscans muss invalidiert werden');
+  assert.match(init,/sealNumber\s*=\s*''/,'falsche Siegelnummer muss entfernt werden');
+  assert.match(init,/containerPhotos\s*=\s*\[\]/,'Containerfotos des Fehlscans duerfen nicht aktiv bleiben');
+  assert.match(init,/carrierName\s*=\s*''/,'falsch erfasste Spedition muss vor dem Metadaten-Refresh entfernt werden');
+  assert.match(init,/customsDocumentsSignatureBlobName\s*=\s*''/,'historische Zollunterschrift eines Fehlscans muss entfernt werden');
+  assert.match(init,/automaticPodBlobName\s*=\s*''/,'alter automatischer POD-Verweis darf nicht aktiv bleiben');
 });
