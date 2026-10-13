@@ -321,7 +321,7 @@ test('RC1127 P0: Sendungsübersicht zeigt vom Kunden erfasstes Abholdatum in der
 });
 
 
-test('RC1294 P2: ABD-Bereich zeigt sicheren PDF/XLSX/CSV-Datenimport als zusätzliche Vorschau',async({page},testInfo)=>{
+test('RC1294 P2: ABD-Bereich routet sicher in PDF/XLSX/CSV-Rechnungsanalyse',async({page},testInfo)=>{
   test.skip(testInfo.project.name!=='laptop','ABD-Datenimport wird einmal auf dem Laptop-Profil geprüft.');
   const runtime=attachRuntimeGuards(page,testInfo);
   await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
@@ -331,7 +331,15 @@ test('RC1294 P2: ABD-Bereich zeigt sicheren PDF/XLSX/CSV-Datenimport als zusätz
   const panel=page.locator('[data-rc1294-abd-analysis="1"]');
   await expect(panel).toBeVisible({timeout:10_000});
   await expect(panel).toContainText(/ABD-Datenimport|Positionsprüfung|Export declaration/i);
+  const invoicePanel=panel.locator('[data-rc1294-invoice-panel]');
+  const invoiceMode=panel.locator('[data-rc1294-mode="invoice"]');
   const input=panel.locator('input[type="file"]');
+  await expect(invoiceMode).toBeVisible();
+  await expect(invoiceMode).toHaveAttribute('aria-pressed','false');
+  await expect(invoicePanel).toBeHidden();
+  await invoiceMode.click();
+  await expect(invoiceMode).toHaveAttribute('aria-pressed','true');
+  await expect(invoicePanel).toBeVisible();
   await expect(input).toHaveAttribute('multiple','');
   await expect(input).toHaveAttribute('accept',/\.pdf.*\.xlsx.*\.csv/i);
   await expect(panel.locator('[data-rc1294-start]')).toBeVisible();
