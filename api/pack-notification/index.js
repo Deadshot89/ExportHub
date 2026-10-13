@@ -54,3 +54,6 @@ module.exports.validateSubmitPayload=validateSubmitPayload;
 module.exports.validateDraftPayload=validateDraftPayload;
 module.exports.resolveEnvironment=resolveEnvironment;
 module.exports.sanitizeFilename=sanitizeFilename;
+module.exports.customerSearch=customerSearch;
+module.exports.packagingList=packagingList;
+module.exports.taskFor=taskFor;
