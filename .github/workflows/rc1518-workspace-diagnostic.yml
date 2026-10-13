@@ -14,34 +14,34 @@ jobs:
         with:
           node-version: '20'
           package-manager-cache: false
-      - name: Release-Vertrag mit RC1488-Integritätsproben
+      - name: Pretest mit RC1488-Integritätsprobe
         shell: bash
         run: |
           set -euo pipefail
-          probe() {
-            local label="$1"
-            echo "===== RC1518 PROBE: $label ====="
-            if [ -f .github/rc1488/finalize-auto-update.mjs ]; then
-              echo 'RC1488_FINALIZER=present'
-              sha256sum .github/rc1488/finalize-auto-update.mjs
-            else
-              echo 'RC1488_FINALIZER=MISSING'
-              git status --short
-              git diff --name-status || true
-              git ls-files --deleted || true
-              find .github -maxdepth 2 -type f -path '*rc1488*' -print || true
+          test -f .github/rc1488/finalize-auto-update.mjs
+          npm run pretest
+          test -f .github/rc1488/finalize-auto-update.mjs || { echo 'RC1518: Finalizer bereits nach pretest verschwunden' >&2; git status --short; exit 86; }
+      - name: Jede Testdatei einzeln auf Workspace-Schaden prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in test/*.test.mjs tests/*.test.cjs; do
+            echo "===== RC1518 TEST: $f ====="
+            node --test --test-concurrency=1 "$f"
+            if [ ! -f .github/rc1488/finalize-auto-update.mjs ]; then
+              echo "RC1518_CULPRIT=$f" >&2
+              git status --short >&2 || true
+              git diff --name-status >&2 || true
+              git ls-files --deleted >&2 || true
               exit 86
             fi
-          }
-          probe checkout
-          node .github/rc1018/apply-public-language.mjs
-          probe after-rc1018-language
-          node .github/rc1018/fix-mail-wording.mjs
-          probe after-rc1018-mail
-          npm test
-          probe after-npm-test
+          done
+          echo 'RC1518: alle Einzeltests lassen RC1488 bestehen'
+      - name: Zweiten Build nach allen Tests prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
           node .github/rc1112/build-three-env.mjs
-          probe after-rc1112-build
+          test -f .github/rc1488/finalize-auto-update.mjs
           node .github/rc1121/verify-final-html.mjs
-          probe after-rc1121-verify
           git status --short
