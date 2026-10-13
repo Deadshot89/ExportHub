@@ -1,0 +1,24 @@
+name: RC1511 Targeted Customer Delete Off-View Sync Regression
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'assets/rc1126-customer-delete.js'
+      - 'test/rc1511-customer-delete-offview-sync-gate.test.mjs'
+      - '.github/workflows/rc1511-targeted-regression.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  targeted:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+      - name: RC1511 targeted regression
+        run: node --test test/rc1511-customer-delete-offview-sync-gate.test.mjs
