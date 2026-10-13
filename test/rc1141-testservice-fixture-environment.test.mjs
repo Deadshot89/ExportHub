@@ -22,12 +22,16 @@ test('RC1141: Fixture kann ausschließlich den TESTSERVICE-Teamblob öffnen',()=
   assert.match(source,/testservice\//,'Fallback-Testservice-Präfix fehlt');
 });
 
-test('RC1141: OIDC bleibt zwingend und Workflow fordert explizit testservice an',()=>{
+test('RC1505/RC1141: OIDC bleibt zwingend und Main Verification fordert explizit testservice an',()=>{
   const api=fs.readFileSync(API,'utf8');
   const workflow=fs.readFileSync(WF,'utf8');
   assert.match(api,/githubOidcAuthorized/,'GitHub-OIDC muss Pflicht bleiben');
   assert.match(api,/E2E_FIXTURE_FORBIDDEN/,'OIDC-Fehler muss fail-closed bleiben');
-  const gate=workflow.slice(workflow.indexOf('- name: RC1124 TESTSERVICE Browser Gate'),workflow.indexOf('- name: Deploy ExportHUB production'));
+  const start=workflow.indexOf('- name: RC1124 TESTSERVICE Browser Gate');
+  const end=workflow.indexOf('- name: RC1124 TESTSERVICE Browser-Artefakte',start);
+  assert.ok(start>=0&&end>start,'TESTSERVICE Browser Gate fehlt');
+  const gate=workflow.slice(start,end);
   assert.match(gate,/x-exporthub-environment: testservice/,'Workflow muss Testservice-Umgebung mitsenden');
   assert.match(gate,/-d[^\n]*environment[^\n]*testservice/,'Payload muss Testservice-Umgebung binden');
+  assert.doesNotMatch(workflow,/Deploy ExportHUB production/,'Main Verification darf Production nicht deployen');
 });

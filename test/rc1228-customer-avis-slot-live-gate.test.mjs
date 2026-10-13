@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-test('RC1228: Lieferavis-Slotlogik ist als Live-Release-Gate abgesichert', () => {
-  const workflow = fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
+test('RC1505/RC1228: Lieferavis-Slotlogik ist im manuellen Production-Release als Live-Gate abgesichert', () => {
+  const workflow = fs.readFileSync('.github/workflows/exporthub-production-release.yml','utf8');
   const avis = fs.readFileSync('customer-avis.html','utf8');
   const api = fs.readFileSync('api/customer-avis/index.js','utf8');
   const slots = fs.readFileSync('api/shared/customer-avis-slots.js','utf8');
@@ -11,7 +11,8 @@ test('RC1228: Lieferavis-Slotlogik ist als Live-Release-Gate abgesichert', () =>
   const liveStep = 'RC1228 Lieferavis-Slotlogik live prüfen';
   assert.ok(workflow.includes(liveStep), 'RC1228 Live-Gate fehlt.');
   assert.ok(workflow.indexOf(liveStep) > workflow.indexOf('Deploy ExportHUB production'), 'RC1228 Live-Gate muss nach dem Produktionsdeploy laufen.');
-  assert.ok(workflow.indexOf(liveStep) < workflow.indexOf('Live RC1122 HTML-Integrität prüfen'), 'RC1228 Live-Gate muss vor den allgemeinen Live-Prüfungen laufen.');
+  assert.ok(workflow.indexOf(liveStep) > workflow.indexOf('RC1233 QR-Abholung und POD-Ladelisten-Viewer live prüfen'), 'RC1228 Live-Gate muss nach RC1233 laufen.');
+  assert.ok(workflow.indexOf(liveStep) < workflow.indexOf('RC1505 Production Release Basis-Liveprüfung'), 'RC1228 Live-Gate muss vor den allgemeinen Production-Smokes laufen.');
 
   for (const marker of [
     'Buchbar sind ausschließlich 2-Stunden-Zeitfenster innerhalb von 08:30–16:00 Uhr.',

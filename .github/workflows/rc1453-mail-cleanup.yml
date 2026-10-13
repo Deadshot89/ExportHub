@@ -3,7 +3,7 @@ name: RC1453 Mail Contamination Cleanup
 on:
   workflow_run:
     workflows:
-      - ExportHUB RC1112 Drei-Umgebungen Deploy
+      - ExportHUB Production Release
     types:
       - completed
     branches:

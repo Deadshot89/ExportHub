@@ -6,15 +6,18 @@ import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
 const source=fs.readFileSync('api/avis-upload-mail-readiness/index.js','utf8');
 const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
-const workflow=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
+const mainWorkflow=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
+const productionWorkflow=fs.readFileSync('.github/workflows/exporthub-production-release.yml','utf8');
 
-test('RC1249/RC1352: AVIS-Mail-Readiness akzeptiert nur signierten Release- oder manuellen Verify-Workflow auf main',()=>{
+test('RC1505/RC1352: AVIS-Mail-Readiness akzeptiert Main-Verifikation, Production-Release oder manuellen Verify-Workflow',()=>{
   assert.match(source,/OIDC_AUDIENCE='exporthub-avis-upload-mail-readiness'/);
   assert.match(source,/claims\.repository!==REPO/);
   assert.match(source,/claims\.ref!=='refs\/heads\/main'/);
-  assert.match(source,/RELEASE_WORKFLOW='azure-static-web-apps-wonderful-forest-0f315e310\.yml'/);
+  assert.match(source,/MAIN_WORKFLOW='azure-static-web-apps-wonderful-forest-0f315e310\.yml'/);
+  assert.match(source,/PRODUCTION_WORKFLOW='exporthub-production-release\.yml'/);
   assert.match(source,/VERIFY_WORKFLOW='avis-mail-verify\.yml'/);
-  assert.match(source,/workflowRef!==releaseRef&&workflowRef!==verifyRef/);
+  assert.match(source,/productionRef/);
+  assert.match(source,/workflowRef===productionRef&&text\(claims\.event_name\)!=='workflow_dispatch'/);
   assert.match(source,/workflowRef===verifyRef&&text\(claims\.event_name\)!=='workflow_dispatch'/);
   assert.match(source,/WORKFLOW_REQUIRED/);
   assert.doesNotMatch(source,/clientSecret/,'Readiness-Endpunkt darf Graph-Secrets nicht selbst ausgeben oder verarbeiten');
@@ -41,19 +44,25 @@ test('RC1270/RC1352: Readiness fordert einen echten Graph-Token an ohne Token- o
   assert.match(source,/authenticated:false/);
   assert.match(source,/upstreamStatus/);
   assert.doesNotMatch(source,/access_token|clientSecret/,'Readiness darf weder Graph-Token noch Client-Secret ausgeben');
-  assert.match(workflow,/v\.authenticated===true/);
-  assert.match(workflow,/v\.audienceOk===true/);
-  assert.match(workflow,/console\.error\('RC1249 '\+env\+' automatische Upload-Mail weiterhin nicht verfügbar'/);
+  assert.match(mainWorkflow,/v\.authenticated===true/);
+  assert.match(mainWorkflow,/v\.audienceOk===true/);
+  assert.match(productionWorkflow,/v\.authenticated===true/);
+  assert.match(productionWorkflow,/v\.audienceOk===true/);
 });
 
-test('RC1271/RC1279: Mail.Send bleibt geprüft und der bekannte Permission-Blocker sichtbar',()=>{
+test('RC1271/RC1279: Mail.Send bleibt in TESTSERVICE und Production geprüft',()=>{
   assert.match(source,/mailSendGranted/);
   assert.match(source,/GRAPH_MAIL_PERMISSION_MISSING/);
-  assert.match(workflow,/v\.mailSendGranted===true/);
-  assert.match(workflow,/v\.mailSendGranted===false/);
-  assert.match(workflow,/knownMailSendBlocker/);
-  assert.match(workflow,/GRAPH_MAIL_PERMISSION_MISSING/);
-  assert.match(workflow,/::warning title=RC1290 AVIS-Mail P2::/);
+  assert.match(mainWorkflow,/v\.mailSendGranted===true/);
+  assert.match(mainWorkflow,/v\.mailSendGranted===false/);
+  assert.match(mainWorkflow,/knownMailSendBlocker/);
+  assert.match(mainWorkflow,/GRAPH_MAIL_PERMISSION_MISSING/);
+  assert.match(mainWorkflow,/::warning title=RC1290 AVIS-Mail P2::/);
+  assert.match(productionWorkflow,/v\.mailSendGranted===true/);
+  assert.match(productionWorkflow,/v\.mailSendGranted===false/);
+  assert.match(productionWorkflow,/knownMailSendBlocker/);
+  assert.match(productionWorkflow,/GRAPH_MAIL_PERMISSION_MISSING/);
+  assert.match(productionWorkflow,/::warning title=RC1290 AVIS-Mail P2::/);
 });
 
 test('RC1249: finaler Build verlangt den Readiness-Endpunkt',()=>{
@@ -71,17 +80,18 @@ test('RC1249: anonymer Readiness-Aufruf wird abgewiesen',async()=>{
   assert.equal(body.code,'WORKFLOW_REQUIRED');
 });
 
-test('RC1249: Release diagnostiziert optionale Upload-Mail getrennt vom verpflichtenden Outlook-Ablauf',()=>{
-  const testReady=workflow.indexOf('RC1249 TESTSERVICE AVIS-Mail-Konfiguration prüfen');
-  const prodDeploy=workflow.indexOf('Deploy ExportHUB production');
-  const prodReady=workflow.indexOf('RC1249 PRODUCTION AVIS-Mail-Konfiguration prüfen');
-  const liveQr=workflow.indexOf('RC1233 QR-Abholung und POD-Ladelisten-Viewer live prüfen');
-  assert.ok(testReady>=0&&prodDeploy>testReady,'TESTSERVICE-Diagnose muss vor Produktion liegen');
-  assert.ok(prodReady>prodDeploy&&liveQr>prodReady,'PRODUCTION Mail-Readiness muss direkt nach Deployment verifiziert werden');
-  assert.match(workflow,/audience=exporthub-avis-upload-mail-readiness/);
-  assert.match(workflow,/DespatchNettetal@essentra\.com/);
-  for(const env of ['TESTSERVICE','PRODUCTION']){
-    const start=workflow.indexOf('RC1249 '+env+' AVIS-Mail-Konfiguration prüfen');
-    assert.match(workflow.slice(start,start+280),/continue-on-error: true/);
-  }
+test('RC1505: TESTSERVICE und Production besitzen jeweils eigene AVIS-Mail-Readiness nach ihrem Deploy',()=>{
+  const testDeploy=mainWorkflow.indexOf('Deploy ExportHUB TESTSERVICE');
+  const testReady=mainWorkflow.indexOf('RC1249 TESTSERVICE AVIS-Mail-Konfiguration prüfen');
+  assert.ok(testDeploy>=0&&testReady>testDeploy,'TESTSERVICE Mail-Readiness muss nach TESTSERVICE-Deploy liegen');
+  assert.match(mainWorkflow,/audience=exporthub-avis-upload-mail-readiness/);
+  assert.match(mainWorkflow,/DespatchNettetal@essentra\.com/);
+  assert.match(mainWorkflow.slice(testReady,testReady+280),/continue-on-error: true/);
+
+  const prodDeploy=productionWorkflow.indexOf('Deploy ExportHUB production');
+  const prodReady=productionWorkflow.indexOf('RC1249 PRODUCTION AVIS-Mail-Konfiguration prüfen');
+  assert.ok(prodDeploy>=0&&prodReady>prodDeploy,'PRODUCTION Mail-Readiness muss nach Production-Deploy liegen');
+  assert.match(productionWorkflow,/audience=exporthub-avis-upload-mail-readiness/);
+  assert.match(productionWorkflow,/DespatchNettetal@essentra\.com/);
+  assert.match(productionWorkflow.slice(prodReady,prodReady+280),/continue-on-error: true/);
 });

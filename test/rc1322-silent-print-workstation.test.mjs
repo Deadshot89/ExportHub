@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {readMainFlow,readProductionFlow} from './helpers/rc1505-release-contract.mjs';
 
 const setup=fs.readFileSync('assets/tools/ExportHUB-DirectPrint-Setup.ps1','utf8');
 const quick=fs.readFileSync('assets/rc1315-loading-list-quick-print.js','utf8');
 const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
-const workflow=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
 
 test('RC1322: Direktdruck nutzt ausschließlich offizielle Edge-Policies für Silent Printing und Windows-Standarddrucker',()=>{
   assert.match(setup,/HKLM:\\SOFTWARE\\Policies\\Microsoft\\Edge/);
@@ -36,6 +36,8 @@ test('RC1322: Ladelisten-Schnelldruck bietet die geprüfte Arbeitsplatz-Einricht
 });
 
 test('RC1322: Direktdruck-Setup wird mit den statischen Assets in Produktion und TESTSERVICE ausgeliefert',()=>{
-  assert.match(workflow,/cp -R assets "\$dir\/assets"/);
+  const main=readMainFlow(),production=readProductionFlow();
+  assert.match(main,/cp -R assets \.rc1112_testservice_app\/assets/);
+  assert.match(production,/cp -R assets \.rc1112_production_app\/assets/);
   assert.match(build,/loadingListQuickPrint:'RC1322[^']*Edge silent-print workstation setup/);
 });

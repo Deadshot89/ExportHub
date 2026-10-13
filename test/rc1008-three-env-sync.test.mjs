@@ -13,13 +13,14 @@ test('historischer RC1008 Drei-Umgebungen-Build bleibt als reproduzierbare Basel
   assert.match(build,/environment=demo/);
 });
 
-test('aktueller Standard-Deploy darf RC1008 nicht mehr als Freigabestand festschreiben',()=>{
+test('RC1505: aktueller Main-Release verifiziert gemeinsam, deployt aber nicht Production',()=>{
   const marker=read('production-version.js');
   assert.doesNotMatch(marker,/__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1008'/);
   const workflow=read('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml');
-  assert.match(workflow,/Deploy ExportHUB production/);
+  assert.match(workflow,/ExportHUB RC1112 Main Verification/);
   assert.match(workflow,/Deploy ExportHUB TESTSERVICE/);
   assert.match(workflow,/demo\.html/);
+  assert.doesNotMatch(workflow,/Deploy ExportHUB production/);
 });
 
 test('Einzel-TESTSERVICE-Deploy bleibt weiterhin nur als explizite Ausnahme möglich',()=>{

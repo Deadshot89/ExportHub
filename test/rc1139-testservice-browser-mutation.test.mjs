@@ -85,13 +85,13 @@ test('RC1145: mutierender Browser-Test validiert Sitzung im isolierten TESTSERVI
   assert.match(source,/shipmentoverview/,'UI-Nachweis in Sendungsübersicht fehlt');
 });
 
-test('RC1139: TESTSERVICE Release-Gate fordert OIDC an, nutzt echte App statt Demo und räumt immer auf',()=>{
+test('RC1505/RC1139: TESTSERVICE Release-Gate fordert OIDC an, nutzt echte App statt Demo und räumt immer auf',()=>{
   const source=fs.readFileSync(WF,'utf8');
-  assert.match(source,/id-token:\s*write/,'Workflow darf keine OIDC-ID anfordern');
+  assert.match(source,/id-token:\s*write/,'Workflow muss OIDC-ID anfordern');
   const gate=source.indexOf('- name: RC1124 TESTSERVICE Browser Gate');
-  const prod=source.indexOf('- name: Deploy ExportHUB production');
-  assert.ok(gate>=0&&prod>gate,'TESTSERVICE-Gate muss weiter vor Produktion liegen');
-  const block=source.slice(gate,prod);
+  const end=source.indexOf('- name: RC1124 TESTSERVICE Browser-Artefakte',gate);
+  assert.ok(gate>=0&&end>gate,'TESTSERVICE-Gate muss sauber begrenzt sein');
+  const block=source.slice(gate,end);
   assert.match(block,/audience=exporthub-e2e-fixture/,'Fixture-OIDC fehlt');
   assert.match(block,/\/api\/e2e-test-fixture/,'Fixture-Aufruf fehlt');
   assert.match(block,/EXPORTHUB_E2E_ENTRY:\s*\//,'echte App muss getestet werden');
@@ -99,4 +99,5 @@ test('RC1139: TESTSERVICE Release-Gate fordert OIDC an, nutzt echte App statt De
   assert.match(block,/testservice-mutation\.spec\.mjs/,'Mutation-Spec fehlt');
   assert.match(block,/trap .*cleanup|cleanup.*trap/s,'Cleanup muss auch bei Testfehler laufen');
   assert.match(block,/::add-mask::/,'Sessiontoken muss in GitHub-Logs maskiert werden');
+  assert.doesNotMatch(source,/Deploy ExportHUB production/,'Main Verification darf Production nicht deployen');
 });

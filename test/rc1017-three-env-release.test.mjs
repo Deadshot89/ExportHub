@@ -5,7 +5,8 @@ import fs from 'node:fs';
 const rc1013Build=fs.readFileSync('.github/rc1013/build-three-env.mjs','utf8');
 const rc1016Build=fs.readFileSync('.github/rc1016/build-three-env.mjs','utf8');
 const mainContract=fs.readFileSync('.github/workflows/rc1002-main-contract.yml','utf8');
-const deploy=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
+const mainVerify=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
+const production=fs.readFileSync('.github/workflows/exporthub-production-release.yml','utf8');
 const testservice=fs.readFileSync('.github/workflows/exporthub-testservice.yml','utf8');
 const productionVersion=fs.readFileSync('production-version.js','utf8');
 
@@ -39,16 +40,18 @@ test('RC1017: Main-Contract prüft den Releasevertrag und alle drei gebauten HTM
   }
 });
 
-test('RC1017: gemeinsamer Drei-Umgebungen-Deploy behält Multi-Truck im aktuellen Release vor und nach Deploy',()=>{
+test('RC1505/RC1017: Main Verification hält Multi-Truck im Release und Production bleibt separater SHA-Pfad',()=>{
   const rc=currentRc();
   assert.ok(rc>=1017,`Aktueller Release RC${rc} darf nicht hinter RC1017 zurückfallen`);
-  has(deploy,/\.github\/rc1017\/\*\*/,'RC1017 Hilfsdateien lösen den gemeinsamen Deploy nicht aus');
-  has(deploy,/test\/rc1017-\*\.test\.mjs/,'RC1017 Tests lösen den gemeinsamen Deploy nicht aus');
-  has(deploy,/test\/rc1017-three-env-release\.test\.mjs/,'RC1017 Release-Test fehlt im Deploy-Gate');
-  for(const file of [`dist-rc${rc}/index.html`,`dist-rc${rc}/TESTVERSION.html`,`dist-rc${rc}/demo.html`]){
-    has(deploy,new RegExp(file.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'.*rc1017-multi-truck|rc1017-multi-truck.*'+file.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'s'),file+' wird vor Deploy nicht auf RC1017 geprüft');
-  }
-  has(deploy,/assets\/rc1017-multi-truck\.js/,'Live-/Paketprüfung des RC1017 Assets fehlt');
+  has(mainVerify,/\.github\/rc\*\/\*\*/,'RC-Hilfsdateien lösen die Main Verification nicht aus');
+  has(mainVerify,/test\/\*\*/,'RC1017 Tests lösen die Main Verification nicht aus');
+  has(mainVerify,/test\/rc1017-three-env-release\.test\.mjs/,'RC1017 Release-Test fehlt im Main-Verification-Gate');
+  has(mainVerify,/test -s dist-rc1112\/assets\/rc1017-multi-truck\.js/,'RC1017 Assetprüfung fehlt vor TESTSERVICE-Deploy');
+  assert.doesNotMatch(mainVerify,/Deploy ExportHUB production/,'Main Verification darf Production nicht deployen');
+  has(production,/name:\s*ExportHUB Production Release/,'separater Production-Release fehlt');
+  has(production,/release_sha:/,'Production-Release ist nicht SHA-fest');
+  has(production,/RC1505 Erfolgreiche Main Verification für Release-SHA verlangen/,'Production verlangt keinen erfolgreichen Main-Verification-Lauf');
+  has(production,/test -s \.rc1112_production_app\/assets\/rc1017-multi-truck\.js/,'RC1017 Assetprüfung fehlt im Production-Paket');
 });
 
 test('RC1017: ausdrücklicher TESTSERVICE-Ausnahmeweg prüft denselben Multi-Truck-Bestand',()=>{

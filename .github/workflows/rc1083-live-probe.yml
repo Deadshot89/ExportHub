@@ -3,7 +3,7 @@ name: RC1083 Live Probe
 on:
   workflow_run:
     workflows:
-      - ExportHUB RC1112 Drei-Umgebungen Deploy
+      - ExportHUB Production Release
     types: [completed]
   workflow_dispatch:
 
@@ -47,7 +47,7 @@ jobs:
               rm -f "$page" "$asset" "$api"
             done
             if [[ "$failed" == '0' ]]; then
-              echo 'RC1083 Diagnose-Autofix ist nach erfolgreichem Deploy live und gegen anonymen Zugriff geschützt.'
+              echo 'RC1083 Diagnose-Autofix ist nach erfolgreichem Production-Release live und gegen anonymen Zugriff geschützt.'
               exit 0
             fi
             sleep 5

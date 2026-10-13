@@ -2,12 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {readBuildContract} from './helpers/rc1505-release-contract.mjs';
 
 const ui=fs.readFileSync('assets/rc1014-shipment-overview.js','utf8');
 const css=fs.readFileSync('assets/rc1014-shipment-overview.css','utf8');
 const api=fs.readFileSync('api/customer-avis/index.js','utf8');
 const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
-const flow=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
 
 test('RC1370: Sendungsansicht bietet die manuelle Abholbuchung mit den geforderten Feldern',()=>{
   for(const marker of [
@@ -67,8 +67,9 @@ test('RC1370: UI liest bestehende manuelle Buchungsdaten wieder ein',()=>{
   assert.equal(meta.plate,'KLE-AB 123');
 });
 
-test('RC1370: Produktionsbuild erzwingt den neuen Cache-Key',()=>{
-  for(const source of [build,flow]){
+test('RC1370: gemeinsamer Produktionsbuild erzwingt den neuen Cache-Key vor jeder Promotion',()=>{
+  const releaseBuild=readBuildContract();
+  for(const source of [build,releaseBuild]){
     assert.match(source,/rc1014-shipment-overview\.js\?v=1370/);
     assert.match(source,/rc1014-shipment-overview\.css\?v=1370/);
   }

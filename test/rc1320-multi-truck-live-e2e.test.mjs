@@ -26,7 +26,7 @@ test('RC1320: Mehr-LKW-Live-E2E ist syntaktisch gültig und mutierend',()=>{
 
 test('RC1320: TESTSERVICE-Release-Gate führt den vollständigen Mehr-LKW-Test aus',()=>{
   const start=workflow.indexOf('- name: RC1124 TESTSERVICE Browser Gate');
-  const end=workflow.indexOf('- name: Deploy ExportHUB production',start);
+  const end=workflow.indexOf('- name: RC1124 TESTSERVICE Browser-Artefakte',start);
   assert.ok(start>=0&&end>start,'TESTSERVICE Browser Gate fehlt');
   const gate=workflow.slice(start,end);
   assert.match(gate,/e2e\/specs\/multi-truck-live\.spec\.mjs/);
