@@ -3,50 +3,41 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const read=p=>fs.readFileSync(p,'utf8');
-const migration='scripts/rc1521-wire-release.mjs';
+const builder='.github/rc1112/build-three-env.mjs';
 const main='.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml';
 const production='.github/workflows/exporthub-production-release.yml';
 const testservice='.github/workflows/exporthub-testservice.yml';
+const pack='.github/packmeldungen/build-three-env.mjs';
 
-test('RC1521 Release-Verdrahtung liegt als explizite fail-closed Migration vor',()=>{
-  assert.ok(fs.existsSync(migration),'RC1521 Verdrahtungsmigration fehlt');
-  const src=read(migration);
-  assert.match(src,/replaceExact/);
-  assert.match(src,/insertAfter/);
-  assert.match(src,/erwartete \$\{count\} Vorkommen nicht gefunden/);
-  assert.match(src,/Unerwartete Patch-Dateien|RC1521 Verdrahtung fehlt nach Migration/);
+test('RC1521 verdrahtet SOPMaster additiv in die stabile RC1112-Buildbasis',()=>{
+  const src=read(builder);
+  assert.match(src,/integrateTour.*rc1501\/build-three-env\.mjs/s);
+  assert.match(src,/integrateEditor.*rc1502\/build-three-env\.mjs/s);
+  assert.match(src,/integrateTraining.*rc1503\/build-three-env\.mjs/s);
+  assert.match(src,/integrateCoverageAdmin.*rc1506\/build-three-env\.mjs/s);
+  const order=[
+    'integrateTour(ROOT,OUT)',
+    'integrateEditor(ROOT,OUT)',
+    'integrateTraining(ROOT,OUT)',
+    'integrateCoverageAdmin(ROOT,OUT)'
+  ].map(token=>src.indexOf(token));
+  assert.ok(order.every(pos=>pos>=0),'RC1521 SOPMaster-Hook fehlt in RC1112');
+  for(let i=1;i<order.length;i++)assert.ok(order[i]>order[i-1],`RC1521 Overlay-Reihenfolge ist an Position ${i} falsch`);
 });
 
-test('RC1521 Migration zielt ausschließlich auf die drei Releasepfade und zwei historischen Verträge plus RC1520',()=>{
-  const src=read(migration);
-  for(const path of [
-    '.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml',
-    '.github/workflows/exporthub-production-release.yml',
-    '.github/workflows/exporthub-testservice.yml',
-    '.github/workflows/sopmaster-release-candidate.yml',
-    'test/rc1018-production-deploy.test.mjs',
-    'test/pack-notification-production.test.mjs'
-  ]) assert.ok(src.includes(path),`RC1521 Migrationsziel fehlt: ${path}`);
+test('RC1521 lässt Main-, Production- und TESTSERVICE-Workflows auf ihren bewährten Buildaufrufen',()=>{
+  const mainSrc=read(main),productionSrc=read(production),testserviceSrc=read(testservice);
+  assert.match(mainSrc,/node \.github\/rc1112\/build-three-env\.mjs/);
+  assert.match(productionSrc,/node \.github\/rc1112\/build-three-env\.mjs/);
+  assert.match(productionSrc,/node \.github\/packmeldungen\/build-three-env\.mjs/);
+  assert.match(testserviceSrc,/node \.github\/rc1112\/build-three-env\.mjs/);
+  assert.doesNotMatch(mainSrc,/node \.github\/rc1521\/build-three-env\.mjs/);
+  assert.doesNotMatch(productionSrc,/node \.github\/rc1521\/build-three-env\.mjs/);
+  assert.doesNotMatch(testserviceSrc,/node \.github\/rc1521\/build-three-env\.mjs/);
 });
 
-test('RC1521 Migration ersetzt alte Release-Buildaufrufe durch den finalen Kombinations-Builder',()=>{
-  const src=read(migration);
-  assert.match(src,/node \.github\/rc1521\/build-three-env\.mjs/);
-  assert.match(src,/node \.github\/rc1112\/build-three-env\.mjs/);
-  assert.match(src,/node \.github\/packmeldungen\/build-three-env\.mjs/);
-  assert.match(src,/Production würde Packmeldungen nach RC1521 erneut bauen/);
-  for(const asset of [
-    'rc1501-sop-tour-runtime.js',
-    'rc1502-sop-editor.js',
-    'rc1503-sop-training.js',
-    'rc1506-sop-coverage-runtime.js'
-  ]) assert.ok(src.includes(asset),`RC1521 Pflichtasset fehlt in Migration: ${asset}`);
-});
-
-test('Aktuelle Release-Schutzregeln bleiben bis zur expliziten Anwendung der Migration unverändert',()=>{
-  const mainSrc=read(main);
-  const productionSrc=read(production);
-  const testserviceSrc=read(testservice);
+test('RC1521 erhält alle bestehenden Release-Schutzregeln unverändert',()=>{
+  const mainSrc=read(main),productionSrc=read(production),testserviceSrc=read(testservice);
   assert.match(mainSrc,/Deploy ExportHUB TESTSERVICE/);
   assert.doesNotMatch(mainSrc,/Deploy ExportHUB production/);
   assert.match(productionSrc,/release_sha:/);
@@ -54,4 +45,18 @@ test('Aktuelle Release-Schutzregeln bleiben bis zur expliziten Anwendung der Mig
   assert.match(productionSrc,/git merge-base --is-ancestor "\$RELEASE_SHA" origin\/main/);
   assert.match(testserviceSrc,/ICH ERLAUBE EINE ABWEICHENDE TESTSERVICE-VERSION/);
   assert.match(testserviceSrc,/Deploy TESTSERVICE explicit only/);
+});
+
+test('Packmeldungen bauen weiterhin auf RC1112 auf und entfernen keine SOPMaster-Schicht',()=>{
+  const src=read(pack);
+  assert.match(src,/rc1112\/build-three-env\.mjs/);
+  assert.doesNotMatch(src,/rmSync\([^\n]*assets\/sop/);
+  assert.doesNotMatch(src,/unlinkSync\([^\n]*assets\/sop/);
+});
+
+test('RC1112 SOPMaster-Hook bleibt ein lokaler Buildschritt ohne Deployment oder Netzwerkzugriff',()=>{
+  const src=read(builder);
+  assert.doesNotMatch(src,/Azure\/static-web-apps-deploy/i);
+  assert.doesNotMatch(src,/PRODUCTION FREIGEBEN/);
+  assert.doesNotMatch(src,/fetch\s*\(/);
 });
