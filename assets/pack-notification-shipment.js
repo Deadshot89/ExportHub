@@ -92,12 +92,20 @@
     }
     return true;
   }
-  function waitForShipmentForm(prefill,attempt=0){
+  function waitForShipmentForm(prefill,attempt=0,settleAttempt=0,lastCustomer=null){
     const doc=root.document;if(!doc||attempt>100)return;
     const form=doc.getElementById('rc363BlockCustomer');
-    if(form){applyPrefillToMountedForm(prefill);return;}
+    if(form){
+      const customer=doc.getElementById('shipmentCustomerSearch');
+      const manualWithoutIdentity=q(prefill.customerName)&&q(prefill.customerSource).toLowerCase()==='manual'&&!q(prefill.customerId)&&!q(prefill.customerAccount);
+      const customerWasReplaced=Boolean(lastCustomer&&customer&&customer!==lastCustomer);
+      const customerLostValue=Boolean(manualWithoutIdentity&&customer&&q(customer.value)!==q(prefill.customerName));
+      if(settleAttempt===0||customerWasReplaced||customerLostValue)applyPrefillToMountedForm(prefill);
+      if(manualWithoutIdentity&&settleAttempt<10)setTimeout(()=>waitForShipmentForm(prefill,attempt,settleAttempt+1,customer),80);
+      return;
+    }
     const button=doc.getElementById('rc380NewShipment');if(button&&!button.__packClicked){button.__packClicked=true;button.click();}
-    setTimeout(()=>waitForShipmentForm(prefill,attempt+1),80);
+    setTimeout(()=>waitForShipmentForm(prefill,attempt+1,0,null),80);
   }
   function startNew(notification){
     const prefill=shipmentPrefill(notification);pending={notificationId:q(notification.id),prefill};root.__EXPORTHUB_PACK_SHIPMENT_PREFILL__=prefill;
