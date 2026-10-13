@@ -1,0 +1,93 @@
+name: RC1124 TESTSERVICE Diagnostic
+
+on:
+  push:
+    branches:
+      - diag/rc1124-testservice-gate-20261013
+    paths:
+      - '.github/workflows/rc1124-testservice-diagnostic.yml'
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  fixture_probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+
+      - name: RC1124 Diagnose Erreichbarkeit OIDC Fixture
+        shell: bash
+        env:
+          TARGET_SHA: de2715b212026ef5d570a3d88eed2f3cc099abbd
+        run: |
+          set -euo pipefail
+          set +x
+          base='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          run_id="E2E-DIAG-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          stage='reachability'
+          response=''
+
+          cleanup() {
+            if [ -n "${oidc_token:-}" ]; then
+              curl -sS -o /dev/null \
+                -H 'Content-Type: application/json' \
+                -H "x-exporthub-github-oidc: $oidc_token" \
+                -H 'x-exporthub-environment: testservice' \
+                -d "{\"action\":\"cleanup\",\"environment\":\"testservice\",\"runId\":\"$run_id\"}" \
+                "$base/api/e2e-test-fixture" || true
+            fi
+            [ -n "$response" ] && rm -f "$response" || true
+          }
+          trap cleanup EXIT
+
+          echo 'RC1124_DIAG stage=reachability start'
+          curl -fsS -L --max-time 20 "$base/?rc1124diag=${TARGET_SHA}-${GITHUB_RUN_ID}" >/dev/null
+          echo 'RC1124_DIAG stage=reachability ok'
+
+          stage='oidc'
+          echo 'RC1124_DIAG stage=oidc start'
+          oidc_token="$(
+            curl -fsSL \
+              -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+              "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=exporthub-e2e-fixture" \
+            | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s).value;if(!v)process.exit(2);process.stdout.write(v)})"
+          )"
+          echo "::add-mask::$oidc_token"
+          test -n "$oidc_token"
+          echo 'RC1124_DIAG stage=oidc ok'
+
+          stage='fixture_prepare'
+          echo 'RC1124_DIAG stage=fixture_prepare start'
+          response="$(mktemp)"
+          status="$(curl -sS -o "$response" -w '%{http_code}' \
+            -H 'Content-Type: application/json' \
+            -H "x-exporthub-github-oidc: $oidc_token" \
+            -H 'x-exporthub-environment: testservice' \
+            -d "{\"action\":\"prepare\",\"environment\":\"testservice\",\"runId\":\"$run_id\"}" \
+            "$base/api/e2e-test-fixture")"
+          echo "RC1124_DIAG stage=fixture_prepare http=$status"
+          STATUS="$status" RESPONSE="$response" node -e "
+            const fs=require('fs');
+            const status=Number(process.env.STATUS||0);
+            let v={};try{v=JSON.parse(fs.readFileSync(process.env.RESPONSE,'utf8')||'{}')}catch(e){console.error('RC1124_DIAG invalid_json');process.exit(20)}
+            if(status<200||status>=300){console.error('RC1124_DIAG fixture_error',JSON.stringify({status,code:v.code,message:v.message}));process.exit(21)}
+            const checks={ok:v.ok===true,token:!!v.token,user:!!v.user,nonAdminToken:!!v.nonAdminToken,nonAdminUser:!!v.nonAdminUser,packStationToken:!!v._e2ePackStationToken};
+            console.log('RC1124_DIAG fixture_fields',JSON.stringify(checks));
+            if(Object.values(checks).some(x=>!x))process.exit(22);
+          "
+          echo 'RC1124_DIAG stage=fixture_prepare ok'
+
+          stage='cleanup'
+          echo 'RC1124_DIAG stage=cleanup start'
+          cleanup
+          trap - EXIT
+          echo 'RC1124_DIAG stage=cleanup ok'
+          echo 'RC1124_DIAG result=PASS pre_playwright_gate'
