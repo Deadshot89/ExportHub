@@ -9,14 +9,14 @@ function loadUi(){
   const context={console,Date,Intl,setTimeout,clearTimeout,crypto:globalThis.crypto,TextEncoder};
   context.globalThis=context;
   context.ExportHUBI18n={t:key=>key};
-  for(const file of ['assets/taskplanner-v2-core.js','assets/taskplanner-v2-recurrence.js','assets/taskplanner-v2-planner.js','assets/taskplanner-v2-projections.js','assets/taskplanner-v2-ui.js'])vm.runInNewContext(read(file),context,{filename:file});
+  for(const file of ['assets/taskplanner-v2-core.js','assets/taskplanner-v2-recurrence.js','assets/taskplanner-v2-planner.js','assets/taskplanner-v2-projections.js','assets/taskplanner-v2-ui.js','assets/taskplanner-v2-projection-ui.js'])vm.runInNewContext(read(file),context,{filename:file});
   return context.ExportHUBTaskUIV2;
 }
 
 function loadRuntime(){
   const context={console,Date,Intl,setTimeout,clearTimeout};
   context.globalThis=context;
-  for(const file of ['assets/taskplanner-v2-core.js','assets/taskplanner-v2-recurrence.js','assets/taskplanner-v2-projections.js','assets/rc1014-task-lifecycle.js','assets/rc1014-task-runtime.js'])vm.runInNewContext(read(file),context,{filename:file});
+  for(const file of ['assets/taskplanner-v2-core.js','assets/taskplanner-v2-recurrence.js','assets/taskplanner-v2-projections.js','assets/rc1014-task-lifecycle.js','assets/rc1014-task-runtime.js','assets/taskplanner-v2-runtime-bridge.js'])vm.runInNewContext(read(file),context,{filename:file});
   return {runtime:context.ExportHUBRC1014TaskRuntime,context};
 }
 
