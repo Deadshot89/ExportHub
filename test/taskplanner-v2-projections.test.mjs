@@ -105,3 +105,14 @@ test('7-Tage-Archivierung entfernt Alt-Erledigte aus aktiv, dedupliziert IDs und
   assert.equal(compact.customerId,'C1');
   assert.equal(compact.history.at(-1).action,'archived');
 });
+
+test('Archivierung wartet sieben volle Kalendertage und ist unabhängig von Uhrzeit/DST',()=>{
+  const {ExportHUBTaskCoreV2:core}=load();
+  const state={tasks:[
+    task('exact-seven',{status:'done',completedAt:'2026-10-06T00:01:00+02:00'}),
+    task('older-than-seven',{status:'done',completedAt:'2026-10-05T23:59:00+02:00'})
+  ],taskArchive:[]};
+  const next=plain(core.archiveCompleted(state,'2026-10-13T23:59:00+02:00'));
+  assert.deepEqual(next.tasks.map(x=>x.id),['exact-seven'],'am siebten Kalendertag muss die Aufgabe noch sichtbar bleiben');
+  assert.deepEqual(next.taskArchive.map(x=>x.id),['older-than-seven'],'erst ab mehr als sieben vergangenen Kalendertagen archivieren');
+});
