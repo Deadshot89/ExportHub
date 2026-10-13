@@ -9,6 +9,7 @@ on:
       - taskplannerpro/v2-task7
       - taskplannerpro/v2-task8
       - taskplannerpro/v2-task9
+      - taskplannerpro/v2-task10
   workflow_dispatch:
 
 permissions:
