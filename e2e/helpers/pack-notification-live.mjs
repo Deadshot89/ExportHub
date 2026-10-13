@@ -24,7 +24,7 @@ async function createPackNotification(page,token,suffix='A'){
   const expected=suffix==='B'
     ?{sourceName:`E2E-${suffix}.pdf`,canonicalName:'SIDE250071282.pdf',pdfText:'Delivery note SIDE 250071282'}
     :{sourceName:`E2E-${suffix}.pdf`,canonicalName:'DNC3019222063.pdf',pdfText:'Delivery note DNC 3019222063'};
-  await page.goto(`/pack/${encodeURIComponent(token)}`,{waitUntil:'domcontentloaded'});
+  await page.goto(`/pack/${encodeURIComponent(token)}?lang=de`,{waitUntil:'domcontentloaded'});
   await expect(page.locator('#packHome')).toBeVisible({timeout:20_000});
   await page.locator('#packNewShipment').click();
   await expect(page.locator('#packForm')).toBeVisible();
