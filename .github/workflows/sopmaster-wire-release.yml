@@ -10,11 +10,11 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: sopmaster-rc1521-wire-release
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   wire:
@@ -54,19 +54,16 @@ jobs:
           printf '%s\n' "$changed" | grep -qx 'test/pack-notification-production.test.mjs'
           count="$(printf '%s\n' "$changed" | sed '/^$/d' | wc -l)"
           [ "$count" = '6' ] || { echo "Unerwartete Patch-Dateien: $count" >&2; exit 1; }
-      - name: Commit wiring only to isolated integration branch
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add \
-            .github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml \
-            .github/workflows/exporthub-production-release.yml \
-            .github/workflows/exporthub-testservice.yml \
-            .github/workflows/sopmaster-release-candidate.yml \
-            test/rc1018-production-deploy.test.mjs \
+      - name: Export validated wiring files
+        uses: actions/upload-artifact@v4
+        with:
+          name: rc1521-release-wiring-files
+          path: |
+            .github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml
+            .github/workflows/exporthub-production-release.yml
+            .github/workflows/exporthub-testservice.yml
+            .github/workflows/sopmaster-release-candidate.yml
+            test/rc1018-production-deploy.test.mjs
             test/pack-notification-production.test.mjs
-          git diff --cached --quiet && exit 0
-          git commit -m 'build(sop): wire RC1521 into release paths'
-          git push origin HEAD:integration/sopmaster-rc1519-validation
+          if-no-files-found: error
+          retention-days: 14
