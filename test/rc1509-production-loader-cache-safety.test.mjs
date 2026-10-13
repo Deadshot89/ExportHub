@@ -12,8 +12,8 @@ test('RC1509: nur eindeutig versionierte Releases mit SHA sind cachefähig',()=>
   );
   assert.match(
     loader,
-    /if\(!cacheableRelease\(meta\)\)return get\(API\+'\?action=html&channel=production&_='\+Date\.now\(\),'text\/html'\)/,
-    'Legacy-/SHA-lose Releases müssen den unveränderten Netzwerkpfad verwenden'
+    /if\(!cacheableRelease\(meta\)\|\|!\('caches' in window\)\)return get\(API\+'\?action=html&channel=production&_='\+Date\.now\(\),'text\/html'\)/,
+    'Legacy-/SHA-lose Releases und Browser ohne Cache API müssen denselben unveränderten Netzwerkpfad verwenden'
   );
 });
 
