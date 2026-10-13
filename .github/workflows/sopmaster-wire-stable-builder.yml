@@ -68,9 +68,24 @@ jobs:
         run: |
           set -euo pipefail
           git diff --check
-          changed="$(git diff --name-only)"
+          changed="$(git diff --name-only | sort)"
+          expected="$(printf '%s\n' \
+            '.github/rc1112/build-three-env.mjs' \
+            'TESTVERSION.html' \
+            'api/customer-avis/index.js' \
+            'api/exporthub-state/index.js' \
+            'customer-avis.html' \
+            'index.html' | sort)"
           printf '%s\n' "$changed"
-          [ "$changed" = '.github/rc1112/build-three-env.mjs' ] || { echo 'RC1522 produced an unexpected diff.' >&2; exit 1; }
+          [ "$changed" = "$expected" ] || { echo 'RC1522 produced an unexpected pre-cleanup diff.' >&2; exit 1; }
+          git checkout -- \
+            TESTVERSION.html \
+            api/customer-avis/index.js \
+            api/exporthub-state/index.js \
+            customer-avis.html \
+            index.html
+          remaining="$(git diff --name-only)"
+          [ "$remaining" = '.github/rc1112/build-three-env.mjs' ] || { echo 'RC1522 cleanup did not isolate the stable builder diff.' >&2; exit 1; }
       - name: Commit stable builder wiring only to isolated integration branch
         shell: bash
         run: |
