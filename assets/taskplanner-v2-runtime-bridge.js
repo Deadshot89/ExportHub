@@ -99,13 +99,21 @@
   function taskArchiveProjection(query={},ctx={}){const resolved=projectionContext(ctx);return projections().archive(query,resolved.state,resolved);}
   function taskStatsProjection(query={},ctx={}){const resolved=projectionContext(ctx);return projections().stats(query,resolved.state,resolved);}
 
+  function legacyOwnerInput(tasks){
+    return arr(tasks).map(task=>{
+      if(!task||typeof task!=='object')return task;
+      if(Number(task.schemaVersion)>=2&&!q(task.sourceType))return{...task,sourceType:'manual'};
+      return task;
+    });
+  }
+
   const previous=root.ExportHUBRC1014TaskRuntime&&typeof root.ExportHUBRC1014TaskRuntime==='object'?root.ExportHUBRC1014TaskRuntime:{};
   const previousPrepare=typeof previous.prepareTasks==='function'?previous.prepareTasks.bind(previous):tasks=>arr(tasks);
   function prepareTasks(tasks,ctx={}){
     let reconcileRequested=false,reconciledTasks=null;
     const originalPersist=typeof ctx.persist==='function'?ctx.persist:null;
     const intercepted={...(ctx||{}),persist:next=>{reconcileRequested=true;reconciledTasks=arr(next);}};
-    const prepared=arr(previousPrepare(tasks,intercepted));
+    const prepared=arr(previousPrepare(legacyOwnerInput(tasks),intercepted));
     const state=(ctx&&ctx.state&&typeof ctx.state==='object')?ctx.state:sharedState();
     if(!state){if(reconcileRequested&&originalPersist)originalPersist(reconciledTasks||prepared);return prepared;}
     if(!Array.isArray(state.taskArchive))state.taskArchive=[];
