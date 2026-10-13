@@ -14,34 +14,65 @@ jobs:
         with:
           node-version: '20'
           package-manager-cache: false
-      - name: Pretest mit RC1488-Integritätsprobe
+      - name: Exakten Main-Freigabevertrag mit RC1488-Proben ausführen
         shell: bash
         run: |
           set -euo pipefail
-          test -f .github/rc1488/finalize-auto-update.mjs
-          npm run pretest
-          test -f .github/rc1488/finalize-auto-update.mjs || { echo 'RC1518: Finalizer bereits nach pretest verschwunden' >&2; git status --short; exit 86; }
-      - name: Jede Testdatei einzeln auf Workspace-Schaden prüfen
-        shell: bash
-        run: |
-          set -euo pipefail
-          for f in test/*.test.mjs tests/*.test.cjs; do
-            echo "===== RC1518 TEST: $f ====="
-            node --test --test-concurrency=1 "$f"
+          probe() {
+            local label="$1"
+            echo "===== RC1518 PROBE: $label ====="
             if [ ! -f .github/rc1488/finalize-auto-update.mjs ]; then
-              echo "RC1518_CULPRIT=$f" >&2
+              echo "RC1518_FINALIZER_MISSING_AFTER=$label" >&2
               git status --short >&2 || true
               git diff --name-status >&2 || true
               git ls-files --deleted >&2 || true
               exit 86
             fi
-          done
-          echo 'RC1518: alle Einzeltests lassen RC1488 bestehen'
-      - name: Zweiten Build nach allen Tests prüfen
+            sha256sum .github/rc1488/finalize-auto-update.mjs
+          }
+          probe checkout
+          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1112'" production-version.js
+          node --check api/exporthub-state/index.js
+          node --check .github/rc1505/verify-build-contract.mjs
+          node --check .github/rc1505/verify-production-live.mjs
+          node --test test/p0-state-conditional-write-conflict.test.mjs
+          probe p0-state
+          node .github/rc1018/apply-public-language.mjs
+          probe rc1018-language
+          node .github/rc1018/fix-mail-wording.mjs
+          probe rc1018-mail
+          node --test --test-concurrency=1 test/rc1018-mail-language-standard.test.mjs test/rc1018-production-deploy.test.mjs
+          probe rc1018-tests
+          node --test test/rc1017-three-env-release.test.mjs
+          probe rc1017
+          node --test --test-concurrency=1 test/rc1016-production-deploy.test.mjs test/rc1016-release-sync.test.mjs test/rc1016-sop-consolidation.test.mjs test/rc1016-demo-tasks.test.mjs
+          probe rc1016
+          node --test --test-concurrency=1 test/rc1014-task-lifecycle.test.mjs test/rc1014-task-runtime-integration.test.mjs test/rc1014-task-design.test.mjs test/rc1014-shipment-overview-meta.test.mjs test/rc1014-fixed-pickup-seed.test.mjs test/rc1014-demo-environment.test.mjs test/rc1014-demo-session-calendar.test.mjs
+          probe rc1014
+          node --test --test-concurrency=1 test/rc1015-lieferavis-mail-flow.test.mjs test/rc1013-restpunkte.test.mjs test/rc1013-three-env-sync.test.mjs test/rc1011-core-open-issues.test.mjs test/rc1011-project-isolation.test.mjs
+          probe rc1015-1013-1011
+          node --test test/rc1013-pickup-readonly-flow.test.mjs
+          probe rc1013-pickup
+          node --test --test-name-pattern='RC995 Pickup-PIN' .github/rc995/rc995-flow.test.cjs
+          probe rc995
+          node --test --test-concurrency=1 .github/rc998/partial-pickup-avis-contract.test.mjs .github/rc1000/rc1000-production-pickup.test.mjs
+          probe rc998-1000
+          npm test
+          probe npm-test
+      - name: Exakten zweiten Main-Build prüfen
         shell: bash
         run: |
           set -euo pipefail
-          node .github/rc1112/build-three-env.mjs
           test -f .github/rc1488/finalize-auto-update.mjs
+          node .github/rc1112/build-three-env.mjs
           node .github/rc1121/verify-final-html.mjs
-          git status --short
+          node .github/rc1505/verify-build-contract.mjs
+          grep -q 'ExportHUB RC1112 environment=production-candidate' dist-rc1112/index.html
+          grep -q 'ExportHUB RC1112 environment=testservice' dist-rc1112/TESTVERSION.html
+          grep -q 'ExportHUB RC1112 environment=demo' dist-rc1112/demo.html
+          grep -q "version:'RC1112'" dist-rc1112/index.html
+          grep -q "version:'RC1112'" dist-rc1112/TESTVERSION.html
+          grep -q "version:'RC1112'" dist-rc1112/demo.html
+          grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1112'" dist-rc1112/production-version.js
+          test -f .github/rc1488/finalize-auto-update.mjs
+          echo 'RC1518: exakte Main-Sequenz inklusive zweitem Build grün'
