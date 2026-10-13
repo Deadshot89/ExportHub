@@ -16,6 +16,11 @@ test('RC1462 pretest führt TaskPlanner-V2-Builder-, Cutover-, API- und i18n-Wir
   assert.match(source,/patchTaskPlannerV2PlannerI18n\(ROOT\)/);
   assert.match(source,/patchRepository:patchTaskPlannerV2WorkflowI18n/);
   assert.match(source,/patchTaskPlannerV2WorkflowI18n\(ROOT\)/);
+  assert.match(source,/patchRepository:patchTaskPlannerV2ProjectionI18n/);
+  assert.match(source,/patchTaskPlannerV2ProjectionI18n\(ROOT\)/);
+  assert.match(source,/exporthub-taskplanner-v2-projections/);
+  assert.match(source,/exporthub-taskplanner-v2-projection-ui/);
+  assert.match(source,/taskplanner-v2-projections\.css/);
   assert.match(source,/TaskPlanner V2 builder wiring incomplete/);
   assert.match(source,/TaskPlanner V2 planner cutover wiring incomplete/);
   assert.match(source,/TaskPlanner V2 TESTSERVICE cutover incomplete/);
@@ -23,4 +28,5 @@ test('RC1462 pretest führt TaskPlanner-V2-Builder-, Cutover-, API- und i18n-Wir
   assert.match(source,/TaskPlanner V2 i18n preparation incomplete/);
   assert.match(source,/TaskPlanner V2 planner i18n preparation incomplete/);
   assert.match(source,/TaskPlanner V2 workflow i18n preparation incomplete/);
+  assert.match(source,/TaskPlanner V2 projection i18n preparation incomplete/);
 });
