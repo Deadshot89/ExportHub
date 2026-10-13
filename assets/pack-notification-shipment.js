@@ -103,7 +103,9 @@
   }
   function startNew(notification){
     const prefill=shipmentPrefill(notification);pending={notificationId:q(notification.id),prefill};root.__EXPORTHUB_PACK_SHIPMENT_PREFILL__=prefill;
-    try{if(typeof root.setView==='function')root.setView('shipment');}catch(_){}
+    let freshStarted=false;
+    try{const shipmentApi=root.ExportHUBShipment420;if(shipmentApi&&typeof shipmentApi.startNewShipment==='function'){shipmentApi.startNewShipment();freshStarted=true;}}catch(_){}
+    if(!freshStarted)try{if(typeof root.setView==='function')root.setView('shipment');}catch(_){}
     setTimeout(()=>waitForShipmentForm(prefill),20);return true;
   }
   function begin(notificationId){
