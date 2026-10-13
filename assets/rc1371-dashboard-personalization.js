@@ -197,7 +197,7 @@ function ensureToolbar(){
   if(edit)bar.appendChild(edit);if(add)bar.appendChild(add);bar.appendChild(label);if(reset)bar.appendChild(reset);
   mountedDashboardRoot.insertBefore?mountedDashboardRoot.insertBefore(bar,mountedDashboardRoot.firstChild||null):mountedDashboardRoot.appendChild(bar);syncToolbarTemplate();return bar
 }
-function removeWidgetControls(){if(!mountedDashboardRoot||typeof mountedDashboardRoot.querySelectorAll!=='function')return;try{Array.prototype.slice.call(mountedDashboardRoot.querySelectorAll('[data-rc1371-widget-controls="1"]')).forEach(function(node){if(node&&node.parentNode)node.parentNode.removeChild(node)})}catch(_){}
+function removeWidgetControls(){if(!mountedDashboardRoot||typeof mountedDashboardRoot.querySelectorAll!=='function')return;try{Array.prototype.slice.call(mountedDashboardRoot.querySelectorAll('[data-rc1371-widget-controls="1"]')).forEach(function(node){if(node&&node.parentNode)node.parentNode.removeChild(node)})}catch(_){}}
 function ensureWidgetControls(){
   if(!editMode)return;var d=doc();if(!d||typeof d.createElement!=='function')return;
   widgetNodes.forEach(function(node,id){
