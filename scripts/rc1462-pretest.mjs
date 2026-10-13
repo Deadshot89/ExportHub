@@ -45,6 +45,9 @@ const {patchRepository:patchTaskPlannerV2WorkflowI18n}=await import('./taskplann
 const taskPlannerWorkflowI18n=patchTaskPlannerV2WorkflowI18n(ROOT);
 const {patchRepository:patchTaskPlannerV2ProjectionI18n}=await import('./taskplanner-v2-projection-i18n-pretest.mjs');
 const taskPlannerProjectionI18n=patchTaskPlannerV2ProjectionI18n(ROOT);
+const {auditState}=await import('./taskplanner-v2-migration-audit.mjs');
+const taskPlannerMigrationAudit=auditState({tasks:[],taskSeries:[],taskArchive:[]},{now:'2026-10-13T12:00:00+02:00'});
+if(!taskPlannerMigrationAudit||taskPlannerMigrationAudit.safe!==true||taskPlannerMigrationAudit.before.tasks!==0||taskPlannerMigrationAudit.after.tasks!==0)throw new Error('RC1462 pretest verification failed: TaskPlanner V2 migration audit readiness incomplete');
 
 await import('./rc1467-startup-avis-guard.mjs');
 await import('./rc1470-new-shipment-clean-slate-hotfix.mjs');
@@ -74,4 +77,4 @@ if(!rc1470Builder.includes('function patchRc1470NewShipmentCleanSlate(html,file)
 if(!rc1470Builder.includes('function patchRc1471ReminderEligibility(html,file){')||!rc1470Builder.includes('html=patchRc1471ReminderEligibility(html,file);'))throw new Error('RC1462 pretest verification failed: RC1471 reminder eligibility preparation incomplete');
 if(!rc1470Builder.includes('function patchRc1495LegacyQrPersistence(html,file){')||!rc1470Builder.includes('html=patchRc1495LegacyQrPersistence(html,file);'))throw new Error('RC1462 pretest verification failed: RC1495/RC1498 legacy QR persistence preparation incomplete');
 if(!rc1470Builder.includes('function patchRc1498QrStatusSync(html,file){')||!rc1470Builder.includes('html=patchRc1498QrStatusSync(html,file);'))throw new Error('RC1462 pretest verification failed: RC1498 QR status sync preparation incomplete');
-console.log('RC1462 pretest orchestration verified with TaskPlanner V2 core/recurrence/planner/projections/runtime/UI/projection-UI/cutover/i18n/workflow-i18n/projection-i18n/public-task/API wiring, RC1467 startup guard, RC1470 clean-slate reset, RC1471 reminder eligibility and RC1498 QR persistence/status sync');
+console.log('RC1462 pretest orchestration verified with TaskPlanner V2 core/recurrence/planner/projections/runtime/UI/projection-UI/cutover/i18n/workflow-i18n/projection-i18n/public-task/API/migration-audit wiring, RC1467 startup guard, RC1470 clean-slate reset, RC1471 reminder eligibility and RC1498 QR persistence/status sync');
