@@ -27,6 +27,7 @@ for(const file of pages){
   includes(file,'assets/rc1080-customer-history.js?v=1080');
   includes(file,'assets/rc1081-audit-history.js?v=1177');
   includes(file,'assets/rc1092-customer-mail-contacts.js?v=1399');
+  includes(file,'assets/rc1015-lieferavis-mail-flow.js?v=1383');
   includes(file,'assets/abholkalender.js?v=1012');
   includes(file,'assets/rc1012-abholkalender-runtime.js?v=1012');
   includes(file,'assets/rc1018-mail-language-standard.js?v=1018');
@@ -79,6 +80,7 @@ for(const file of [
   'dist-rc1112/assets/rc1096-packaging-groups.js',
   'dist-rc1112/assets/rc1126-customer-delete.js',
   'dist-rc1112/assets/rc1133-avis-upload-notifications.js',
+  'dist-rc1112/assets/rc1015-lieferavis-mail-flow.js',
   'dist-rc1112/assets/rc1027-lieferavis-immediate.js',
   'dist-rc1112/assets/rc1013-diagnostics.js',
   'dist-rc1112/assets/rc1013-gate41-ui.js',
