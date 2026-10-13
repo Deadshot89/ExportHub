@@ -12,6 +12,7 @@ on:
       - 'e2e/specs/public-smoke.spec.mjs'
       - 'test/rc1507-sop-testservice-gate.test.mjs'
       - '.github/workflows/sopmaster-testservice-verify.yml'
+      - '.github/workflows/sopmaster-testservice-live-readonly.yml'
   workflow_dispatch:
 
 permissions:
