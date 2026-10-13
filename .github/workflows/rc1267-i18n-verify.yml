@@ -8,14 +8,7 @@ on:
     branches:
       - main
     paths:
-      - 'assets/i18n/**'
-      - 'assets/rc1267-i18n.js'
-      - 'assets/rc1018-mail-language-standard.js'
-      - 'assets/rc1018-public-language.js'
-      - 'assets/rc1015-lieferavis-mail-flow.js'
-      - 'assets/rc1027-lieferavis-immediate.js'
-      - 'assets/rc1079-profile-settings.js'
-      - 'assets/rc1166-avis-reminder-overview.js'
+      - 'assets/**'
       - 'api/**'
       - '*.html'
       - 'scripts/i18n-audit.mjs'
