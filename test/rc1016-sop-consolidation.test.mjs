@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
+await import('../assets/sop/rc1500-sop-step-contract.js');
 await import('../assets/sop/rc1007-sop-model.js');
 await import('../assets/sop/rc1007-sop-catalog.js');
 await import('../assets/sop/rc1010-sop-release.js');
@@ -30,6 +31,20 @@ test('jede aktive RC1016-SOP ist gelenkte Version 2.0 mit vollständiger Pflicht
     for(const key of required)assert.ok(Object.hasOwn(doc.sections,key),`${doc.number}: Pflichtabschnitt ${key} fehlt`);
     assert.ok(Array.isArray(doc.sections.steps)&&doc.sections.steps.length>=1,`${doc.number}: keine Arbeitsschritte`);
     assert.ok(Array.isArray(doc.processFlow)&&doc.processFlow.length>=1,`${doc.number}: Prozessübersicht fehlt`);
+  }
+});
+
+test('SOPMaster kann alle 24 kanonischen Prozesse ohne Datenverlust normalisieren',()=>{
+  assert.equal(catalog.documents.length,24);
+  for(const doc of catalog.documents){
+    const view=model.normalizeDocument(doc);
+    assert.notEqual(view,doc,`${doc.number}: Normalisierung muss eine Clone-Ansicht liefern`);
+    assert.equal(view.type,'process',doc.number);
+    assert.equal(view.steps.length,doc.sections.steps.length,`${doc.number}: Step-Anzahl verändert`);
+    const validation=globalThis.ExportHubSopStepContract.validateSteps(view.steps);
+    assert.equal(validation.ok,true,`${doc.number}: ${validation.errors.join('; ')}`);
+    assert.equal(JSON.stringify(view.versions),JSON.stringify(doc.versions),`${doc.number}: Versionshistorie verändert`);
+    assert.equal(JSON.stringify(view.auditTrail),JSON.stringify(doc.auditTrail),`${doc.number}: Audit-Trail verändert`);
   }
 });
 
