@@ -60,12 +60,15 @@ jobs:
           set -euo pipefail
           grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1112'" production-version.js
           node --check api/exporthub-state/index.js
+          node --check .github/rc1505/verify-build-contract.mjs
+          node --check .github/rc1505/verify-production-live.mjs
           node --test test/p0-state-conditional-write-conflict.test.mjs
           node .github/rc1018/apply-public-language.mjs
           node .github/rc1018/fix-mail-wording.mjs
           node --test --test-concurrency=1 test/rc1018-mail-language-standard.test.mjs test/rc1018-production-deploy.test.mjs
           node --test test/rc1017-three-env-release.test.mjs
           node --test --test-concurrency=1 test/rc1016-production-deploy.test.mjs test/rc1016-release-sync.test.mjs test/rc1016-sop-consolidation.test.mjs test/rc1016-demo-tasks.test.mjs
+          node --test --test-concurrency=1 test/rc1014-task-lifecycle.test.mjs test/rc1014-task-runtime-integration.test.mjs test/rc1014-task-design.test.mjs test/rc1014-shipment-overview-meta.test.mjs test/rc1014-fixed-pickup-seed.test.mjs test/rc1014-demo-environment.test.mjs test/rc1014-demo-session-calendar.test.mjs
           node --test --test-concurrency=1 test/rc1015-lieferavis-mail-flow.test.mjs test/rc1013-restpunkte.test.mjs test/rc1013-three-env-sync.test.mjs test/rc1011-core-open-issues.test.mjs test/rc1011-project-isolation.test.mjs
           node --test test/rc1013-pickup-readonly-flow.test.mjs
           node --test --test-name-pattern='RC995 Pickup-PIN' .github/rc995/rc995-flow.test.cjs
@@ -78,6 +81,7 @@ jobs:
           set -euo pipefail
           node .github/rc1112/build-three-env.mjs
           node .github/rc1121/verify-final-html.mjs
+          node .github/rc1505/verify-build-contract.mjs
           grep -q 'ExportHUB RC1112 environment=production-candidate' dist-rc1112/index.html
           grep -q 'ExportHUB RC1112 environment=testservice' dist-rc1112/TESTVERSION.html
           grep -q 'ExportHUB RC1112 environment=demo' dist-rc1112/demo.html
@@ -88,6 +92,9 @@ jobs:
           grep -q 'assets/rc1015-lieferavis-mail-flow.js?v=1383' dist-rc1112/index.html
           grep -q 'assets/rc1018-mail-language-standard.js?v=1018' dist-rc1112/index.html
           grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1112/index.html
+          grep -q 'assets/rc1065-registration-cc.js?v=1093' dist-rc1112/index.html
+          grep -q 'assets/rc1014-shipment-overview.js?v=1370' dist-rc1112/index.html
+          grep -q 'assets/rc1014-shipment-overview.css?v=1370' dist-rc1112/index.html
           test -s dist-rc1112/assets/rc1016-mobile-navigation.js
           test -s dist-rc1112/assets/rc1017-multi-truck.js
           test -s dist-rc1112/assets/rc1018-mail-language-standard.js
@@ -180,6 +187,55 @@ jobs:
           output_location: ''
           skip_app_build: true
           deployment_environment: testservice
+
+      - name: Release-Center aktive Testversion auf deployten Stand setzen
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          ready=0
+          page="$(mktemp)"
+          response="$(mktemp)"
+          trap 'rm -f "$page" "$response"' EXIT
+          for attempt in {1..24}; do
+            code="$(curl -sS -L -o "$page" -w '%{http_code}' --max-time 20 "$base/TESTVERSION.html?rc1153=${GITHUB_SHA}-${attempt}" || true)"
+            if [ "$code" = "200" ] && grep -q "version:'RC1112'" "$page"; then
+              ready=1
+              break
+            fi
+            sleep 5
+          done
+          [ "$ready" = "1" ] || { echo 'RC1153: deploytes TESTVERSION.html meldet RC1112 nicht.' >&2; exit 1; }
+
+          oidc_token="$(
+            curl -fsSL \
+              -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+              "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=exporthub-release-activate-test" \
+            | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s).value;if(!v)process.exit(2);process.stdout.write(v)})"
+          )"
+          echo "::add-mask::$oidc_token"
+
+          payload='{"version":"RC1112","sha":"'"$GITHUB_SHA"'","title":"RC1112 TESTSERVICE Deploy"}'
+          status="$(
+            curl -sS \
+              -o "$response" \
+              -w '%{http_code}' \
+              -X POST \
+              -H 'Content-Type: application/json' \
+              -H "x-exporthub-github-oidc: $oidc_token" \
+              -d "$payload" \
+              "$base/api/exporthub-release?action=activate-deployed-test"
+          )"
+          if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
+            cat "$response" >&2
+            echo "RC1153: Release-Center-Aktivierung HTTP $status" >&2
+            exit 1
+          fi
+          node -e "const fs=require('fs'),v=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));if(v.ok!==true||v.test!=='RC1112')process.exit(2)" "$response"
+
+          active="$(curl -fsS "$base/api/exporthub-release?action=active&channel=test&_=${GITHUB_SHA}")"
+          ACTIVE="$active" node -e "const v=JSON.parse(process.env.ACTIVE);if(v.ok!==true||v.version!=='RC1112')throw new Error('Aktive Testversion ist '+String(v.version||'leer')+' statt RC1112')"
+          echo 'RC1153: Release-Center aktive Testversion = RC1112'
 
       - name: RC1124 TESTSERVICE Browser Gate
         id: rc1124_testservice_browser_gate

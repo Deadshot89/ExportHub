@@ -2,11 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {execFileSync} from 'node:child_process';
+import {readBuildContract,readLiveContract} from './helpers/rc1505-release-contract.mjs';
 
 const search=fs.readFileSync('assets/rc1283-loading-list-search.js','utf8');
 const print=fs.readFileSync('assets/rc1305-loading-list-print.js','utf8');
 const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
-const FLOW=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
+const BUILD_CONTRACT=readBuildContract();
+const LIVE_CONTRACT=readLiveContract();
 
 test('RC1305: Ladelistensuche wird aus der schmalen Seitenzelle in eine volle Arbeitsfläche gehoben',()=>{
   assert.match(search,/function promotePanel\(panel,host,select\)/);
@@ -65,16 +67,16 @@ test('RC1368: Drei-Umgebungen-Build liefert die aktuelle Ladelisten-Druckruntime
   assert.match(build,/loadingListPrintRedesign:'RC1379/); assert.match(print,/data-rc1363-document-density/);
 });
 
-test('RC1374: Production- und Live-Gate prüfen dieselbe aktuelle Ladelisten-Druckruntime wie der Build',()=>{
-  assert.match(FLOW,/RC1379 Produktions-Drucklayout live verifizieren/);
+test('RC1374: getrennter Production-Live-Vertrag prüft dieselbe aktuelle Ladelisten-Druckruntime wie der Build',()=>{
+  assert.match(LIVE_CONTRACT,/RC1379 Produktions-Drucklayout live verifizieren/);
   assert.match(build,/assets\/rc1305-loading-list-print\.js\?v=1379/);
-  assert.match(FLOW,/assets\/rc1305-loading-list-print\.js\?v=1379/);
-  assert.match(FLOW,/display:flex!important/);
-  assert.match(FLOW,/flex-direction:column!important/);
-  assert.match(FLOW,/important\(code,'width','12mm'\)/);
-  assert.match(FLOW,/important\(svg,'width','12mm'\)/);
-  assert.doesNotMatch(FLOW,/assets\/rc1305-loading-list-print\.js\?v=1362/);
-  assert.doesNotMatch(FLOW,/docColumns=Math\.max\(1,Math\.ceil\(docCount\/15\)\)/);
+  assert.match(BUILD_CONTRACT,/assets\/rc1305-loading-list-print\.js\?v=1379/);
+  assert.match(LIVE_CONTRACT,/display:flex!important/);
+  assert.match(LIVE_CONTRACT,/flex-direction:column!important/);
+  assert.match(LIVE_CONTRACT,/important\(code,'width','12mm'\)/);
+  assert.match(LIVE_CONTRACT,/important\(svg,'width','12mm'\)/);
+  assert.doesNotMatch(LIVE_CONTRACT,/assets\/rc1305-loading-list-print\.js\?v=1362/);
+  assert.doesNotMatch(LIVE_CONTRACT,/docColumns=Math\.max\(1,Math\.ceil\(docCount\/15\)\)/);
 });
 
 test('RC1305: geänderte JavaScript-Dateien sind syntaktisch gültig',()=>{
@@ -104,8 +106,8 @@ test('RC1435: Druck-QR bleibt 12mm gross',()=>{
 
 
 test('RC1379: Build lädt die aktuelle Druckruntime cache-sicher',()=>{
-  assert.match(FLOW,/assets\/rc1305-loading-list-print\.js\?v=1379/);
-  assert.doesNotMatch(FLOW,/assets\/rc1305-loading-list-print\.js\?v=1363/);
+  assert.match(BUILD_CONTRACT,/assets\/rc1305-loading-list-print\.js\?v=1379/);
+  assert.doesNotMatch(BUILD_CONTRACT,/assets\/rc1305-loading-list-print\.js\?v=1363/);
   assert.match(build,/loadingListPrintRedesign:'RC1379/);
 });
 
@@ -121,15 +123,12 @@ test('RC1372: blaue Lieferscheinrahmen bleiben inhaltsbreit und Dateischrift ist
 });
 
 
-test('RC1393: produktive AVIS-Marken-Domain ist .de und blockiert Release bei Ausfall',()=>{
-  assert.match(FLOW,/RC1374 ExportHUB360 Marken-Domain prüfen/);
-  const brandedStart=FLOW.indexOf('RC1374 ExportHUB360 Marken-Domain prüfen');
-  assert.ok(brandedStart>=0,'RC1374 Marken-Domain-Gate fehlt');
-  const brandedBlock=FLOW.slice(brandedStart,FLOW.indexOf('Live RC1071 Sendungshistorie prüfen',brandedStart));
-  assert.doesNotMatch(brandedBlock,/continue-on-error:\s*true/);
-  assert.match(brandedBlock,/branded='https:\/\/www\.exporthub360\.de'/);
-  assert.match(brandedBlock,/::error::RC1374 ExportHUB360 Marken-Domain/);
-  assert.doesNotMatch(brandedBlock,/exporthub360\.com/);
+test('RC1393: produktive AVIS-Marken-Domain ist .de und blockiert den manuellen Release bei Ausfall',()=>{
+  assert.match(LIVE_CONTRACT,/RC1374 ExportHUB360 Marken-Domain prüfen/);
+  assert.doesNotMatch(LIVE_CONTRACT,/continue-on-error:\s*true/);
+  assert.match(LIVE_CONTRACT,/const BRANDED='https:\/\/www\.exporthub360\.de'/);
+  assert.match(LIVE_CONTRACT,/BRANDED\}\/avis\/RC1374TEST/);
+  assert.doesNotMatch(LIVE_CONTRACT,/exporthub360\.com/);
 });
 
 

@@ -112,6 +112,7 @@ jobs:
           node .github/rc1112/build-three-env.mjs
           node .github/packmeldungen/build-three-env.mjs
           node .github/rc1121/verify-final-html.mjs
+          node .github/rc1505/verify-build-contract.mjs
           grep -q 'ExportHUB RC1112 environment=production-candidate' dist-rc1112/index.html
           grep -q 'ExportHUB RC1112 environment=testservice' dist-rc1112/TESTVERSION.html
           grep -q 'ExportHUB RC1112 environment=demo' dist-rc1112/demo.html
@@ -352,12 +353,20 @@ jobs:
               && printf '%s' "$home" | grep -q 'ExportHUB' \
               && printf '%s' "$pack" | grep -q 'Packmeldung'; then
               echo "RC1505 Production-Basisprüfung erfolgreich für $RELEASE_SHA."
-              exit 0
+              break
+            fi
+            if [ "$attempt" = '5' ]; then
+              echo 'RC1505 Production-Basisprüfung fehlgeschlagen.'
+              exit 1
             fi
             sleep 12
           done
-          echo 'RC1505 Production-Basisprüfung fehlgeschlagen.'
-          exit 1
+
+      - name: RC1505 Historische Production-Live-Verträge prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          node .github/rc1505/verify-production-live.mjs
 
       - name: RC1124 Produktion Read-only Browser Smoke
         id: rc1124_production_browser_smoke
