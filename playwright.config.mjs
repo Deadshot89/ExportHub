@@ -10,6 +10,7 @@ export default defineConfig({
   retries:0,
   timeout:45_000,
   globalTimeout:LIVE?15*60*1000:10*60*1000,
+  globalSetup:'./e2e/helpers/testservice-readiness.mjs',
   expect:{timeout:10_000},
   reporter:[
     ['list'],
