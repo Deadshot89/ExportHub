@@ -156,7 +156,7 @@ if(w.document){
  ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:language-changed'].forEach(function(name){
   try{w.addEventListener(name,function(){scheduleViewerRefresh(true)})}catch(_){}
  });
- try{w.addEventListener('exporthub:sync',function(){scheduleViewerRefresh(false)})}catch(_){}
+ try{w.addEventListener('exporthub:sync',function(){if(!w.document||!w.document.getElementById('rc786ReferenceFilesPanel'))return;scheduleViewerRefresh(false)})}catch(_){}
  if(w.document.readyState==='loading')w.document.addEventListener('DOMContentLoaded',function(){startViewerProbe()},{once:true});else startViewerProbe();
 }
 w.ExportHUBRC1063AbdBlobCompat={version:'RC1248',patch:patchRows,isBlob:isBlob,open:openBlob,documents:docs};
