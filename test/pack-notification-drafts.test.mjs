@@ -73,3 +73,37 @@ test('public QR page keeps draft actions while preserving the current mandatory 
   assert.doesNotMatch(client,/packDeliveryNoteReference/);
   assert.match(client,/draft-list/);assert.match(client,/draft-save/);assert.match(client,/draft-get/);assert.match(draftI18n,/Anzahl Paletten/);
 });
+
+test('RC1499 read-only pack actions do not write the shared team state',async()=>{
+  const token='PT01-read-only-token';
+  const state={
+    packStations:[{id:'PT01',name:'Packtisch 01',tokenHash:packStore.hashStationToken(token),active:true}],
+    packDrafts:[{id:'draft-read-1',status:'draft',customer:'Kunde A',packageType:'Europalette',packageCount:2,totalWeight:680,packages:[],documents:[]}],
+    customers:[{id:'c-1',account:'100200',name:'Kunde A'}],
+    colliTypes:[{name:'Europalette',length:120,width:80,height:140}]
+  };
+  let writes=0;
+  const handler=api.createHandler({
+    now:()=>new Date('2026-10-13T08:00:00.000Z'),
+    rateLimit:()=>{},
+    readState:async()=>JSON.parse(JSON.stringify(state)),
+    mutateState:async()=>{writes++;throw Object.assign(new Error('read path attempted a state write'),{status:500,statusCode:500,code:'UNEXPECTED_WRITE'});}
+  });
+  const cases=[
+    request('customer-search',{stationToken:token,query:'Kunde'}),
+    request('packaging-list',{stationToken:token}),
+    request('draft-list',{stationToken:token}),
+    request('draft-get',{stationToken:token,draftId:'draft-read-1'})
+  ];
+  for(const req of cases){const res=await handler(req);assert.equal(res.status,200,JSON.stringify(res.body));}
+  assert.equal(writes,0,'read-only pack actions must not increment the shared-state revision or contend on its ETag');
+});
+
+test('RC1499 storage precondition conflicts are returned as a stable pack concurrency error, not raw Azure 412',async()=>{
+  const token='PT01-conflict-token';
+  const conflict=Object.assign(new Error('ConditionNotMet'),{status:412,statusCode:412,code:'ConditionNotMet'});
+  const handler=api.createHandler({now:()=>new Date('2026-10-13T08:00:00.000Z'),rateLimit:()=>{},mutateState:async()=>{throw conflict;}});
+  const res=await handler(request('session',{stationToken:token}));
+  assert.equal(res.status,409,JSON.stringify(res.body));
+  assert.equal(res.body.code,'PACK_CONCURRENT_UPDATE');
+});
