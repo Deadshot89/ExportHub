@@ -71,6 +71,45 @@ test('RC1515: manual pack customer prefill must not trigger destructive customer
   assert.equal(draft.packNotificationCustomer.name,'E2E PACK CUSTOMER A');
 });
 
+test('RC1516: pack task starts the canonical blank shipment before applying a manual customer',async()=>{
+  const notification={id:'pn-manual',reference:'PK-MANUAL',customer:'E2E PACK CUSTOMER A',customerId:'',customerAccount:'',customerSource:'manual',packageCount:1,totalWeight:680,packages:[{packageNo:1,length:120,width:80,height:145}],documents:[]};
+  const draft={customerId:'FOREIGN-CUSTOMER',customerAccount:'9000009999',customerSearch:' ·  · ',recipientAddress:'Wrong customer address'};
+  const shared={packNotifications:[notification],shipments:[],shipment:draft};
+  let canonicalStarts=0;
+  const customer={
+    value:'',
+    dispatchEvent(event){if(event.type==='input')draft.customerSearch=this.value;}
+  };
+  const root={
+    __EXPORTHUB_GET_STATE__:()=>shared,
+    ExportHUBShipment420:{
+      startNewShipment(){
+        canonicalStarts+=1;
+        for(const key of ['customerId','customerAccount','customerSearch','recipientAddress'])draft[key]='';
+        draft.__rc562Fresh=true;
+      }
+    },
+    setView(){},
+    document:{
+      getElementById(id){
+        if(id==='rc363BlockCustomer')return{};
+        if(id==='shipmentCustomerSearch')return customer;
+        return null;
+      },
+      querySelectorAll:()=>[]
+    }
+  };
+  const api=loadWithRoot(root);
+  assert.equal(api.begin('pn-manual'),true);
+  await new Promise(resolve=>setTimeout(resolve,60));
+  assert.equal(canonicalStarts,1,'Packmeldung muss den kanonischen frischen Sendungsentwurf starten');
+  assert.equal(draft.customerId,'','vorselektierter Fremdkunde darf nicht erhalten bleiben');
+  assert.equal(draft.customerAccount,'','fremde Kundennummer darf nicht erhalten bleiben');
+  assert.equal(draft.recipientAddress,'','fremde Empfängeradresse darf nicht erhalten bleiben');
+  assert.equal(draft.customerSearch,'E2E PACK CUSTOMER A');
+  assert.equal(customer.value,'E2E PACK CUSTOMER A');
+});
+
 test('existing shipment linked to pack notification is found and prevents duplicate creation',()=>{
   const api=load(),s=state();
   s.shipments.push({id:'sh-1',ref:'ABC123',packNotificationId:'pn-1'});
