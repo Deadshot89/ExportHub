@@ -6,6 +6,7 @@ on:
       - integration/sopmaster-rc1519-validation
     paths:
       - 'scripts/rc1522-wire-stable-builder.mjs'
+      - 'test/rc1521-sop-release-wiring.test.mjs'
       - '.github/workflows/sopmaster-wire-stable-builder.yml'
   workflow_dispatch:
 
