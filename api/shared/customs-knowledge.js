@@ -1,5 +1,8 @@
 'use strict';
 
+const path=require('node:path');
+const fs=require('node:fs');
+
 function text(value,max=4000){return String(value==null?'':value).trim().slice(0,max)}
 function slug(value){return text(value,120).toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,100)}
 function list(value,maxItems=40,maxLen=80){return Array.from(new Set((Array.isArray(value)?value:[]).map(item=>text(item,maxLen)).filter(Boolean))).slice(0,maxItems)}
@@ -50,4 +53,11 @@ function publishedArticles(rows){
  }
  return out
 }
-module.exports={normalizeKnowledgeArticle,validateKnowledgeArticle,publishedArticles};
+function loadBundledKnowledge(){
+ try{
+  const file=path.resolve(__dirname,'../../data/customs-knowledge.json');
+  const parsed=JSON.parse(fs.readFileSync(file,'utf8'));
+  return publishedArticles(parsed)
+ }catch(_){return[]}
+}
+module.exports={normalizeKnowledgeArticle,validateKnowledgeArticle,publishedArticles,loadBundledKnowledge};
