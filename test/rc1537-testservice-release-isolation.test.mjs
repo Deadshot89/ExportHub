@@ -2,14 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-const workflowPath='.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml';
-const workflow=fs.readFileSync(workflowPath,'utf8');
+const guardPath='.github/workflows/rc1537-testservice-main-supersession.yml';
 
-test('RC1537: Main Verification serialisiert die mutable TESTSERVICE-Umgebung pro Branch',()=>{
-  const block=workflow.match(/concurrency:\s*\n([\s\S]*?)\n\s*jobs:/);
-  assert.ok(block,'Concurrency-Block der Main Verification fehlt');
-  const text=block[1];
-  assert.match(text,/group:\s*exporthub-rc1112-three-env-\$\{\{\s*github\.ref\s*\}\}/,'TESTSERVICE-Main-Verification muss pro Ref/Branch serialisiert werden');
-  assert.doesNotMatch(text,/github\.sha/,'SHA-spezifische Concurrency erlaubt parallele Main-Versionen gegen dieselbe TESTSERVICE-Umgebung');
-  assert.match(text,/cancel-in-progress:\s*true/,'ein neuer Main-Stand muss den älteren TESTSERVICE-Lauf abbrechen dürfen');
+test('RC1537: neuer main beendet ältere mutable TESTSERVICE-Main-Verifications',()=>{
+  assert.ok(fs.existsSync(guardPath),'RC1537 Main-Supersession-Workflow fehlt');
+  const guard=fs.readFileSync(guardPath,'utf8');
+  assert.match(guard,/push:\s*\n\s*branches:\s*\[main\]/,'Supersession muss bei jedem main-Push laufen');
+  assert.match(guard,/actions:\s*write/,'Supersession braucht ausschließlich für Run-Cancel Actions-Schreibrecht');
+  assert.match(guard,/\/branches\/main/,'Guard muss zuerst prüfen, ob sein SHA noch aktueller main ist');
+  assert.match(guard,/azure-static-web-apps-wonderful-forest-0f315e310\.yml/,'Guard muss ausschließlich die ExportHUB Main Verification betrachten');
+  assert.match(guard,/run\.head_sha!==currentSha/,'aktueller Main-SHA darf niemals selbst beendet werden');
+  assert.match(guard,/run\.status==='queued'\|\|run\.status==='in_progress'/,'nur noch laufende oder wartende Alt-Runs dürfen beendet werden');
+  assert.match(guard,/actions\/runs\/\$\{run\.id\}\/cancel/,'ältere Main-Verifications müssen über den GitHub-Cancel-Endpunkt beendet werden');
 });
