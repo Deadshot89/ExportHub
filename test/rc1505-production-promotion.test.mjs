@@ -28,6 +28,7 @@ test('RC1505: main verifies TESTSERVICE without a production deploy path', () =>
   assert.doesNotMatch(workflow, new RegExp(PRODUCTION_SECRET));
 });
 
+// Regression: grep -q unter pipefail kann bei großem Live-HTML einen SIGPIPE-Fehlalarm auslösen.
 test('RC1505: TESTSERVICE readiness avoids pipefail-sensitive grep pipelines', () => {
   const workflow = requireFile(MAIN_WORKFLOW);
   const start = workflow.indexOf('RC1505 TESTSERVICE Readiness prüfen');
