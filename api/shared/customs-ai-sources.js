@@ -4,11 +4,28 @@ const knowledge=require('./customs-knowledge');
 
 function text(value,max=5000){return String(value==null?'':value).trim().slice(0,max)}
 function fold(value){return text(value).toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim()}
+const ALIASES=Object.freeze([
+ {canonical:'praferenz',prefixes:['praferenz','preferen','preferenc','preferency']},
+ {canonical:'ursprung',prefixes:['ursprung','origin','origine','origen','pochodzen']},
+ {canonical:'ausfuhr',prefixes:['ausfuhr','export','eksport','esportaz']},
+ {canonical:'zolltarif',prefixes:['zolltarif','customstariff','tariff','tarif','taryf','arancel']},
+ {canonical:'formalitat',prefixes:['formalitat','formaliti','formalidad']},
+ {canonical:'beschrank',prefixes:['beschrank','restriction','restriccion','restric','ogranicz']},
+ {canonical:'exportanforder',prefixes:['exportanforder','requirement','requisito','exigence','wymagan','requisiti']}
+]);
+function canonicalAliases(token){
+ const out=[];
+ for(const rule of ALIASES){if(rule.prefixes.some(prefix=>token.startsWith(prefix)))out.push(rule.canonical)}
+ return out
+}
 function tokens(value){
  const raw=fold(value).split(/\s+/).filter(token=>token.length>=3),out=new Set(raw);
  const stems=['praferenz','ursprung','ausfuhr','zolltarif','warentarif','tarifier','formalitat','beschrank','exportanforder'];
- for(const token of raw){for(const stem of stems){if(token.includes(stem))out.add(stem)}}
- return Array.from(out).slice(0,80)
+ for(const token of raw){
+  for(const stem of stems){if(token.includes(stem))out.add(stem)}
+  for(const alias of canonicalAliases(token))out.add(alias)
+ }
+ return Array.from(out).slice(0,100)
 }
 function terms(article){
  const high=[article.title,...(article.topics||[])].map(fold).join(' ');
