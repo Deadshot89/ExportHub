@@ -5,22 +5,27 @@ import {execFileSync} from 'node:child_process';
 
 const page=fs.readFileSync('pickup.html','utf8');
 
-test('RC1258: Colli-Prüfung steht visuell vor Sendungsdetails und Fahrer',()=>{
-  const details=page.indexOf('<div id="details"></div>');
+test('RC1258: Colli-Prüfung steht visuell vor Container, Sendungsdetails und Fahrer',()=>{
   const colli=page.indexOf('<section id="colliSection"');
+  const container=page.indexOf('<section id="containerSection"');
+  const details=page.indexOf('<div id="details"></div>');
   const driver=page.indexOf('<div id="driverStep" hidden>');
-  assert.ok(colli>=0&&details>colli&&driver>details,'Colli-Prüfung muss vor Sendungsdetails und Fahrerdaten stehen');
+  assert.ok(colli>=0&&container>colli&&details>container&&driver>details,'Colli-Prüfung muss vor Container-Dokumentation, Sendungsdetails und Fahrerdaten stehen');
   assert.match(page,/1 · Sendung/);
   assert.match(page,/2 · Collis/);
-  assert.match(page,/3 · Fahrer/);
+  assert.match(page,/3 · Container/);
+  assert.match(page,/4 · Fahrer/);
+  assert.match(page,/5 · Bestätigung/);
 });
 
-test('RC1242: Fahrerdaten bleiben bis erfolgreicher Colli-Bestätigung gesperrt',()=>{
+test('RC1242: Collis sperren Container und Fahrer fail-closed; Fahrer folgt erst nach Container-Prüfung',()=>{
   assert.match(page,/function setDriverStepUnlocked\(on\)/);
-  assert.match(page,/step\.hidden=!on/);
-  assert.match(page,/setDriverStepUnlocked\(true\);status\('Collis bestätigt\. Bitte jetzt die Fahrerdaten erfassen\.'/);
+  assert.match(page,/container\.hidden=!on/);
+  assert.match(page,/driver\.hidden=true/);
+  assert.match(page,/function unlockDriverAfterContainerDocs\(\)/);
+  assert.match(page,/containerRequired&&!containerDocsComplete\(\)/);
   assert.match(page,/colliOk=false;setDriverStepUnlocked\(false\)/);
-  assert.match(page,/Bitte zuerst die Collis prüfen und bestätigen\. Fahrerdaten werden erst danach freigeschaltet/);
+  assert.match(page,/Bitte zuerst die Collis prüfen und bestätigen\. Siegelnummer, Containerfotos und Fahrerdaten werden erst danach freigeschaltet/);
 });
 
 test('RC1242: fehlende erwartete Colli-Anzahl blockiert die Abholung fail-closed',()=>{
@@ -30,7 +35,7 @@ test('RC1242: fehlende erwartete Colli-Anzahl blockiert die Abholung fail-closed
   assert.doesNotMatch(page,/if\(!\(expected>0\)\)\{colliOk=true;return true\}/);
 });
 
-test('RC1242: Fahrer, Kennzeichen, Spedition, Unterschrift und PIN liegen hinter dem Colli-Schritt',()=>{
+test('RC1242: Fahrer, Kennzeichen, Spedition, Unterschrift und PIN liegen hinter dem Colli- und Container-Schritt',()=>{
   const start=page.indexOf('<div id="driverStep" hidden>');
   const end=page.indexOf('</form>',start);
   const block=page.slice(start,end);
