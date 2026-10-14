@@ -30,6 +30,22 @@
     return seeded;
   }
 
+  function normalizeDocument(document){
+    const source=clone(document&&typeof document==='object'?document:{})||{};
+    const current=currentVersionRecord(source);
+    const sectionSteps=source.sections&&Array.isArray(source.sections.steps)?source.sections.steps:[];
+    const hasVersionSteps=!!(current&&current.content&&Array.isArray(current.content.steps));
+    const rawSteps=hasVersionSteps?current.content.steps:(Array.isArray(source.steps)?source.steps:sectionSteps);
+    const contract=root.ExportHubSopStepContract;
+    source.type=text(source.type)||'process';
+    source.overlays=Array.isArray(source.overlays)?clone(source.overlays):[];
+    source.tourConfig=Object.assign({enabled:false},source.tourConfig&&typeof source.tourConfig==='object'?clone(source.tourConfig):{});
+    source.trainingConfig=Object.assign({enabled:false},source.trainingConfig&&typeof source.trainingConfig==='object'?clone(source.trainingConfig):{});
+    source.examConfig=Object.assign({enabled:false},source.examConfig&&typeof source.examConfig==='object'?clone(source.examConfig):{});
+    source.steps=contract&&typeof contract.normalizeSteps==='function'?contract.normalizeSteps(rawSteps):clone(rawSteps);
+    return source;
+  }
+
   function validateRelease(input){
     const source=input&&typeof input==='object'?input:{};
     const errors=[];const warnings=[];
@@ -39,6 +55,11 @@
     if(!text(source.approvedBy)) errors.push('Freigabeverantwortlicher fehlt');
     const visuals=Array.isArray(source.visuals)?source.visuals:[];
     if(visuals.some(v=>v&&v.required===true&&v.type==='placeholder')) warnings.push('Pflicht-Bildplatzhalter offen');
+    const contract=root.ExportHubSopStepContract;
+    if(contract&&typeof contract.validateSteps==='function'&&Array.isArray(source.steps)){
+      const stepValidation=contract.validateSteps(source.steps);
+      if(!stepValidation.ok) errors.push(...stepValidation.errors);
+    }
     return {ok:errors.length===0,errors,warnings};
   }
 
@@ -67,7 +88,7 @@
     const canonical=Array.isArray(canonicalDocuments)?canonicalDocuments:[];
     const stored=Array.isArray(storedDocuments)?storedDocuments:[];
     const storedByNumber=new Map(stored.filter(doc=>/^SOP-EH-\d{3}$/.test(text(doc&&doc.number))).map(doc=>[text(doc.number),clone(doc)]));
-    return canonical.filter(doc=>/^SOP-EH-\d{3}$/.test(text(doc&&doc.number))).map(source=>{
+    const reconciled=canonical.filter(doc=>/^SOP-EH-\d{3}$/.test(text(doc&&doc.number))).map(source=>{
       const base=seedDocument(source);
       const existing=storedByNumber.get(text(base.number));
       if(!existing) return base;
@@ -98,6 +119,8 @@
       }
       return merged;
     });
+    const customerOverlays=stored.filter(doc=>text(doc&&doc.type)==='customer').map(clone);
+    return reconciled.concat(customerOverlays);
   }
 
   function createDraftVersion(document,options){
@@ -119,7 +142,8 @@
     const source=clone(document&&typeof document==='object'?document:{});const opts=options&&typeof options==='object'?options:{};const version=text(opts.version||source.draftVersion||source.currentVersion);const target=findVersion(source,version);
     if(!target) throw new Error('Version nicht gefunden');if(target.status!==STATUS.REVIEW) throw new Error('Nur geprüfte Fassungen können freigegeben werden');
     target.reviewedBy=text(opts.reviewedBy||opts.actor);target.reviewedAt=opts.reviewedAt||nowIso();target.approvedBy=text(opts.actor);target.approvedAt=nowIso();target.validFrom=text(opts.validFrom)||target.approvedAt.slice(0,10);
-    const release=validateRelease({number:source.number,title:target.title||source.title,version:target.version,approvedBy:target.approvedBy,visuals:target.visuals||source.visuals});if(!release.ok) throw new Error(release.errors.join('; '));
+    const targetSteps=target.content&&Array.isArray(target.content.steps)?target.content.steps:(Array.isArray(source.steps)?source.steps:(source.sections&&Array.isArray(source.sections.steps)?source.sections.steps:[]));
+    const release=validateRelease({number:source.number,title:target.title||source.title,version:target.version,approvedBy:target.approvedBy,visuals:target.visuals||source.visuals,steps:targetSteps});if(!release.ok) throw new Error(release.errors.join('; '));
     for(const item of versionsOf(source)){if(item!==target&&item.status===STATUS.APPROVED){item.status=STATUS.ARCHIVED;item.archivedAt=target.approvedAt;item.archivedBy=target.approvedBy;item.archiveReason='Durch neu freigegebene Version ersetzt';}}
     target.status=STATUS.APPROVED;source.currentVersion=target.version;source.draftVersion='';source.version=target.version;source.status=STATUS.APPROVED;source.validFrom=target.validFrom;source.reviewedBy=target.reviewedBy;source.approvedBy=target.approvedBy;source.updatedAt=target.approvedAt;addAudit(source,'Freigegeben',version,opts.actor,opts.reason,target.approvedAt);return source;
   }
@@ -135,5 +159,5 @@
     return list.filter(doc=>{if(area&&text(doc&&doc.area)!==area)return false;if(status&&documentStatus(doc)!==status)return false;if(!query)return true;const haystack=[doc&&doc.number,doc&&doc.title,doc&&doc.area].concat(Array.isArray(doc&&doc.keywords)?doc.keywords:[]).map(text).join(' ').toLowerCase();return haystack.includes(query);});
   }
 
-  root.ExportHubIsoSopModel=Object.freeze({STATUS,seedState,reconcileCatalog,createDraftVersion,submitForReview,approveVersion,archiveVersion,validateRelease,completeness,filterDocuments,currentVersionRecord});
+  root.ExportHubIsoSopModel=Object.freeze({STATUS,seedState,reconcileCatalog,createDraftVersion,submitForReview,approveVersion,archiveVersion,validateRelease,completeness,filterDocuments,currentVersionRecord,normalizeDocument});
 })(typeof globalThis!=='undefined'?globalThis:this);

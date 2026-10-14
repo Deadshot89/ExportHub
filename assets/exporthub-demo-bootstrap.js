@@ -1,5 +1,8 @@
 (()=>{
 'use strict';
+const RC1523_DE=Object.freeze({
+  "sop.demo.stateRequired":"Für die Demo-Speicherung fehlt ein gültiger State."
+});
 if(window.__EXPORTHUB_DEMO_BOOTSTRAP__)return;
 window.__EXPORTHUB_DEMO_BOOTSTRAP__=true;
 window.__EXPORTHUB_DEMO_MODE__=true;
@@ -32,15 +35,14 @@ const warnings=[
   {id:'DEMO-WARN-1',type:'Dokumente',title:'Fake Warnung: ABD fehlt',message:'Für DEMO03 ist ein ABD erforderlich.',shipmentRef:'DEMO03',severity:'hoch'},
   {id:'DEMO-WARN-2',type:'Abholung',title:'Fake Warnung: Abholung heute',message:'DEMO01 ist bereit zur Abholung.',shipmentRef:'DEMO01',severity:'mittel'}
 ];
-const state={
+let state={
   customers,shipments,savedShipments:shipments,tasks,notifications,warnings,
   currentUser:demoUser,activeUser:demoUser,
   _exporthubEnvironment:{name:'demo',isolated:true,seededAt:new Date().toISOString(),fakeData:true},
   notificationCenter:{items:notifications,unread:notifications.length},
   warningCenter:{items:warnings,count:warnings.length}
 };
-const team={schemaVersion:3,revision:996,updatedAt:new Date().toISOString(),updatedBy:'ExportHUB Demo',clientVersion:'RC996-demo',dataEnvironment:'demo',state,users:[demoUser]};
-window.__EXPORTHUB_DEMO_STATE__=team;
+let team={schemaVersion:3,revision:996,updatedAt:new Date().toISOString(),updatedBy:'ExportHUB Demo',clientVersion:'RC996-demo',dataEnvironment:'demo',state,users:[demoUser]};
 window.__EXPORTHUB_DEMO_USER__=demoUser;
 window.__EXPORTHUB_DEMO_TOKEN__='demo-session-token';
 
@@ -65,8 +67,51 @@ try{
   }
 }catch(_){ }
 
+function isObject(value){return !!value&&typeof value==='object'&&!Array.isArray(value);}
+function normalizedDemoState(value){
+  const incoming=isObject(value)?value:{};
+  const next=Object.assign({},state,incoming);
+  next.currentUser=demoUser;
+  next.activeUser=demoUser;
+  next._exporthubEnvironment=Object.assign({},state._exporthubEnvironment||{},incoming._exporthubEnvironment||{},{name:'demo',isolated:true,fakeData:true});
+  return next;
+}
+function syncDemoGlobals(){
+  team=Object.assign({},team,{state,users:[demoUser],dataEnvironment:'demo'});
+  window.__EXPORTHUB_DEMO_STATE__=team;
+}
+function persistDemoState(){
+  try{localStorage.setItem('exporthub-team-state',JSON.stringify(state));return true;}catch(_){return false;}
+}
+function hydrateDemoState(){
+  try{
+    const raw=localStorage.getItem('exporthub-team-state');
+    if(!raw)return false;
+    const stored=JSON.parse(raw);
+    if(!isObject(stored))return false;
+    state=normalizedDemoState(stored);
+    syncDemoGlobals();
+    return true;
+  }catch(_){return false;}
+}
+function commitDemoState(nextState,payload){
+  if(!isObject(nextState))return false;
+  state=normalizedDemoState(nextState);
+  const requestedBase=Number(payload&&payload.baseRevision||0);
+  const previousRevision=Number(team&&team.revision||0);
+  const revision=Math.max(previousRevision+1,Number.isFinite(requestedBase)?requestedBase+1:0);
+  team=Object.assign({},team,{revision,updatedAt:new Date().toISOString(),updatedBy:'ExportHUB Demo',clientVersion:String(payload&&payload.clientVersion||team.clientVersion||'RC996-demo'),dataEnvironment:'demo',state,users:[demoUser]});
+  window.__EXPORTHUB_DEMO_STATE__=team;
+  persistDemoState();
+  return true;
+}
+
+hydrateDemoState();
+syncDemoGlobals();
+
 function json(data,status=200){return new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-ExportHUB-Demo':'1'}});}
 function text(v){return String(v==null?'':v);}
+function i18n(key,fallback){try{const api=window.ExportHUBI18n;if(api&&typeof api.t==='function'){const value=api.t(key);if(value&&value!==key)return value;}}catch(_){}return fallback;}
 function parseBody(init){
   try{if(!init||init.body==null)return{};if(typeof init.body==='string')return JSON.parse(init.body||'{}');return{};}catch(_){return{};}
 }
@@ -87,7 +132,10 @@ window.fetch=async function(input,init){
   }
   if(path.includes('/api/exporthub-state')){
     if(method==='GET'||payload.action==='read'||payload.mode==='read')return json({ok:true,demo:true,environment:'demo',revision:team.revision,updatedAt:team.updatedAt,state:team.state,users:team.users,team});
-    return json({ok:true,demo:true,environment:'demo',revision:team.revision+1,updatedAt:new Date().toISOString(),state:state,users:[demoUser],simulated:true});
+    const incoming=isObject(payload.state)?payload.state:(isObject(payload.team)&&isObject(payload.team.state)?payload.team.state:null);
+    if(!incoming)return json({ok:false,demo:true,environment:'demo',code:'DEMO_STATE_REQUIRED',message:i18n('sop.demo.stateRequired',RC1523_DE['sop.demo.stateRequired'])},400);
+    commitDemoState(incoming,payload);
+    return json({ok:true,demo:true,environment:'demo',revision:team.revision,updatedAt:team.updatedAt,state:team.state,users:team.users,team,simulated:true,ackOnly:u.searchParams.get('ack')==='1'});
   }
   if(/pickup|customer-avis|pod-backup|mail|email|outlook|send/i.test(path)){
     return json({ok:false,demo:true,code:'DEMO_EXTERNAL_BLOCKED',message:'Diese Außenwirkung ist in der Fake-Demo absichtlich deaktiviert.'},403);
@@ -101,7 +149,7 @@ try{
   localStorage.setItem('exporthub-auth-token','demo-session-token');
   localStorage.setItem('exporthub-session-token','demo-session-token');
   localStorage.setItem('exporthub-current-user',JSON.stringify(demoUser));
-  localStorage.setItem('exporthub-team-state',JSON.stringify(state));
+  persistDemoState();
 }catch(_){ }
 
 function banner(){

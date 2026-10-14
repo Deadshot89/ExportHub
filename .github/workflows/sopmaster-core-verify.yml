@@ -1,0 +1,120 @@
+name: SOPMaster Core Verify
+
+on:
+  push:
+    branches:
+      - design/sopmaster-training-tour-2026-10-12
+    paths:
+      - 'assets/sop/rc1007-sop-model.js'
+      - 'assets/sop/rc1016-sop-consolidation.js'
+      - 'assets/sop/rc1500-sop-*.js'
+      - 'assets/sop/rc1501-sop-*'
+      - 'assets/sop/rc1502-sop-*'
+      - 'assets/sop/rc1503-sop-*'
+      - 'assets/sop/rc1505-sop-*'
+      - 'assets/sop/rc1506-sop-*'
+      - 'test/rc1007-sop-workflow.test.mjs'
+      - 'test/rc1016-sop-consolidation.test.mjs'
+      - 'test/rc1018-sop-image-coverage-complete.test.mjs'
+      - 'test/rc1500-sop-*.test.mjs'
+      - 'test/rc1501-sop-*.test.mjs'
+      - 'test/rc1502-sop-*.test.mjs'
+      - 'test/rc1503-sop-*.test.mjs'
+      - 'test/rc1505-sop-*.test.mjs'
+      - 'test/rc1506-sop-*.test.mjs'
+      - '.github/rc1506/**'
+      - 'e2e/specs/navigation.spec.mjs'
+      - 'e2e/specs/notifications.spec.mjs'
+      - 'e2e/specs/print-documents.spec.mjs'
+      - 'e2e/helpers/exporthub-browser.mjs'
+      - 'playwright.config.mjs'
+      - '.github/workflows/sopmaster-core-verify.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sopmaster-core-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: SOPMaster targeted core regression
+        run: >-
+          node --test --test-concurrency=1
+          test/rc1007-sop-workflow.test.mjs
+          test/rc1016-sop-consolidation.test.mjs
+          test/rc1018-sop-image-coverage-complete.test.mjs
+          test/rc1500-sop-*.test.mjs
+          test/rc1501-sop-*.test.mjs
+          test/rc1502-sop-*.test.mjs
+          test/rc1503-sop-*.test.mjs
+          test/rc1505-sop-*.test.mjs
+          test/rc1506-sop-*.test.mjs
+      - name: Full Node regression
+        shell: bash
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee core-node-regression.log
+      - name: Upload Node log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rc1506-core-node-regression
+          path: core-node-regression.log
+          if-no-files-found: ignore
+
+  browser-core:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: Build integrated RC1506 three-environment package
+        run: node .github/rc1506/build-three-env.mjs
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save @playwright/test@1.63.0
+          npx playwright install --with-deps chromium
+      - name: Protect navigation and notifications on desktop and mobile
+        env:
+          EXPORTHUB_E2E_STATIC: '1'
+          EXPORTHUB_E2E_ENTRY: '/demo.html'
+          EXPORTHUB_E2E_PUBLIC_ENV: testservice
+        run: >-
+          npx playwright test
+          e2e/specs/navigation.spec.mjs
+          e2e/specs/notifications.spec.mjs
+          --project=desktop
+          --project=mobile-standard
+      - name: Protect total print and document composition
+        env:
+          EXPORTHUB_E2E_STATIC: '1'
+          EXPORTHUB_E2E_ENTRY: '/demo.html'
+          EXPORTHUB_E2E_PUBLIC_ENV: testservice
+        run: >-
+          npx playwright test
+          e2e/specs/print-documents.spec.mjs
+          --project=laptop
+      - name: Upload browser artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rc1506-protected-core-browser
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: ignore
+          retention-days: 14

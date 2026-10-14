@@ -1,0 +1,46 @@
+name: RC1503 Progress Merge Patch
+
+on:
+  push:
+    branches:
+      - design/sopmaster-training-tour-2026-10-12
+    paths:
+      - '.github/workflows/rc1503-progress-merge-patch.yml'
+      - '.github/rc1503/apply-progress-merge-patch.mjs'
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: Apply isolated learning progress merge rule
+        run: node .github/rc1503/apply-progress-merge-patch.mjs
+      - name: Targeted progress and state regression
+        run: >-
+          node --test
+          test/rc1503-sop-progress.test.mjs
+          .github/rc996/state-merge-contract.test.mjs
+          test/rc992-state-save-performance.test.mjs
+          test/rc1016-lieferavis-persistence.test.mjs
+      - name: Commit verified merge rule
+        shell: bash
+        run: |
+          if git diff --quiet -- api/shared/merge.js; then
+            echo 'No merge change produced' >&2
+            exit 1
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add api/shared/merge.js
+          git commit -m 'feat(sop): merge learning progress histories'
+          git push origin HEAD:design/sopmaster-training-tour-2026-10-12

@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+await import('../assets/sop/rc1500-sop-step-contract.js');
 await import('../assets/sop/rc1007-sop-model.js');
 await import('../assets/sop/rc1007-sop-catalog.js');
 await import('../assets/sop/rc1007-sop-ui.js');
@@ -49,4 +50,15 @@ test('UI kann Workflow-Aktionen über das Modell ausführen',()=>{
   assert.equal(doc.versions[0].status,'In Prüfung');
   doc=ui.applyWorkflowAction(doc,'approve',{version:'1.0',actor:'Freigeber',reviewedBy:'Prüfer'});
   assert.equal(doc.versions[0].status,'Freigegeben');
+});
+
+test('SOPMaster-Normalisierung ergänzt nur die Laufzeitansicht und bewahrt Workflow-Historie',()=>{
+  const doc=seeded();
+  const versions=JSON.stringify(doc.versions);
+  const audit=JSON.stringify(doc.auditTrail);
+  const view=model.normalizeDocument(doc);
+  assert.equal(view.type,'process');
+  assert.deepEqual(view.tourConfig,{enabled:false});
+  assert.equal(JSON.stringify(doc.versions),versions);
+  assert.equal(JSON.stringify(doc.auditTrail),audit);
 });

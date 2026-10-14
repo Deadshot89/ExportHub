@@ -1,0 +1,92 @@
+name: SOPMaster TESTSERVICE Verify
+
+on:
+  push:
+    branches:
+      - design/sopmaster-training-tour-2026-10-12
+    paths:
+      - 'assets/sop/rc1505-sop-*'
+      - 'assets/sop/rc1506-sop-*'
+      - '.github/rc1506/**'
+      - 'e2e/specs/sopmaster-testservice-package.spec.mjs'
+      - 'e2e/specs/public-smoke.spec.mjs'
+      - 'test/rc1507-sop-testservice-gate.test.mjs'
+      - '.github/workflows/sopmaster-testservice-verify.yml'
+      - '.github/workflows/sopmaster-testservice-live-readonly.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sopmaster-testservice-package-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: RC1507 TESTSERVICE read-only contract
+        run: node --test --test-concurrency=1 test/rc1507-sop-testservice-gate.test.mjs
+
+  testservice-package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: Build integrated RC1506 three-environment package
+        run: node .github/rc1506/build-three-env.mjs
+      - name: Verify TESTSERVICE package identity and RC1506 assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'ExportHUB RC1112 environment=testservice' dist-rc1112/TESTVERSION.html
+          if grep -q 'ExportHUB RC1112 environment=demo' dist-rc1112/TESTVERSION.html; then exit 1; fi
+          grep -q 'id="exporthub-rc1505-sop-function-registry"' dist-rc1112/TESTVERSION.html
+          grep -q 'id="exporthub-rc1505-sop-coverage"' dist-rc1112/TESTVERSION.html
+          grep -q 'id="exporthub-rc1506-sop-coverage-dashboard"' dist-rc1112/TESTVERSION.html
+          grep -q 'id="exporthub-rc1506-sop-coverage-runtime"' dist-rc1112/TESTVERSION.html
+          grep -q 'id="exporthub-rc1506-sop-coverage-dashboard-style"' dist-rc1112/TESTVERSION.html
+          test -s dist-rc1112/assets/sop/rc1506-sop-coverage-dashboard.js
+          test -s dist-rc1112/assets/sop/rc1506-sop-coverage-runtime.js
+          test -s dist-rc1112/assets/sop/rc1506-sop-coverage-dashboard.css
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save @playwright/test@1.63.0
+          npx playwright install --with-deps chromium
+      - name: Verify TESTVERSION read-only on laptop and mobile
+        env:
+          EXPORTHUB_E2E_STATIC: '1'
+          EXPORTHUB_E2E_ENTRY: '/TESTVERSION.html'
+          EXPORTHUB_E2E_PUBLIC_ENV: testservice
+        run: >-
+          npx playwright test
+          e2e/specs/sopmaster-testservice-package.spec.mjs
+          --project=laptop
+          --project=mobile-standard
+      - name: Verify public TESTSERVICE surfaces read-only
+        env:
+          EXPORTHUB_E2E_STATIC: '1'
+          EXPORTHUB_E2E_ENTRY: '/TESTVERSION.html'
+          EXPORTHUB_E2E_PUBLIC_ENV: testservice
+        run: npx playwright test e2e/specs/public-smoke.spec.mjs --project=laptop
+      - name: Upload TESTSERVICE package artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rc1507-testservice-package-debug
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: ignore
+          retention-days: 14
