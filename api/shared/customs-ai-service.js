@@ -5,6 +5,7 @@ const deterministic=require('./customs-ai-deterministic');
 const sourceSelector=require('./customs-ai-sources');
 const policy=require('./customs-ai-policy');
 const provider=require('./customs-ai-provider');
+const apiI18n=require('./i18n');
 
 function text(value,max=5000){return String(value==null?'':value).trim().slice(0,max)}
 function contextSummary(context){
@@ -30,25 +31,25 @@ function publicSources(sources,ids){
 function invalid(code,answer){return{ok:false,code,answer,mode:'validation',sources:[],checkedAt:'',uncertainty:true,recoverable:true,contextSummary:{}}}
 
 async function answerCustomsQuestion(options={}){
- const raw=String(options.question==null?'':options.question),question=raw.trim();
- if(!question)return invalid('QUESTION_REQUIRED','Bitte eine Zollfrage eingeben.');
- if(raw.length>2000)return invalid('QUESTION_TOO_LONG','Die Zollfrage ist zu lang. Bitte auf maximal 2.000 Zeichen kürzen.');
+ const language=apiI18n.normalize(options.language)||'de',raw=String(options.question==null?'':options.question),question=raw.trim();
+ if(!question)return invalid('QUESTION_REQUIRED',apiI18n.tLang(language,'api.customsAi.questionRequired'));
+ if(raw.length>2000)return invalid('QUESTION_TOO_LONG',apiI18n.tLang(language,'api.customsAi.questionTooLong'));
  const invoiceAnalysis=options.invoiceAnalysis&&typeof options.invoiceAnalysis==='object'?options.invoiceAnalysis:{};
  const safeContext=contextBuilder.buildCustomsAiContext({reference:options.reference,destinationCountry:options.destinationCountry,abdRequest:options.abdRequest,invoiceAnalysis});
  const summary=contextSummary(safeContext);
- const direct=deterministic.answerDeterministicCustomsQuestion({question,analysis:invoiceAnalysis});
+ const direct=deterministic.answerDeterministicCustomsQuestion({question,analysis:invoiceAnalysis,language});
  if(direct.matched){
   return{ok:true,mode:'deterministic',answer:direct.answer,facts:direct.facts,sources:[],checkedAt:'',uncertainty:direct.uncertainty===true,recoverable:true,contextSummary:summary,evidence:'invoice-analysis'}
  }
  const sources=sourceSelector.selectCustomsAiSources({question,context:safeContext,articles:options.articles,limit:6,minScore:2});
  if(!sources.length){
-  return{ok:true,mode:'no-source',answer:'Für diese Frage ist in der aktuell geprüften Zoll-Wissensbasis keine ausreichend passende Quelle hinterlegt. Ich stelle deshalb keine Zollbehauptung als Fakt dar.',sources:[],checkedAt:'',uncertainty:true,recoverable:true,contextSummary:summary}
+  return{ok:true,mode:'no-source',answer:apiI18n.tLang(language,'api.customsAi.noSource'),sources:[],checkedAt:'',uncertainty:true,recoverable:true,contextSummary:summary}
  }
  const askModel=typeof options.askModel==='function'?options.askModel:provider.askCustomsModel;
- const modelResult=await askModel({systemInstructions:policy.buildSystemInstructions(),question,context:safeContext,sources,env:options.env,fetchImpl:options.fetchImpl,timeoutMs:options.timeoutMs});
+ const modelResult=await askModel({systemInstructions:policy.buildSystemInstructions(language),question,context:safeContext,sources,env:options.env,fetchImpl:options.fetchImpl,timeoutMs:options.timeoutMs});
  const checkedAt=latestCheckedAt(sources);
  if(!modelResult||modelResult.ok!==true){
-  return{ok:false,mode:'provider-error',code:text(modelResult&&modelResult.code,80)||'AI_PROVIDER_ERROR',answer:text(modelResult&&modelResult.message,400)||'Der KI-Zollexperte ist vorübergehend nicht verfügbar.',sources:publicSources(sources),checkedAt,uncertainty:true,recoverable:modelResult&&modelResult.recoverable!==false,contextSummary:summary}
+  return{ok:false,mode:'provider-error',code:text(modelResult&&modelResult.code,80)||'AI_PROVIDER_ERROR',answer:text(modelResult&&modelResult.message,400)||apiI18n.tLang(language,'api.customsAi.unavailable'),sources:publicSources(sources),checkedAt,uncertainty:true,recoverable:modelResult&&modelResult.recoverable!==false,contextSummary:summary}
  }
  const citations=Array.isArray(modelResult.citations)?modelResult.citations:[],citedSources=publicSources(sources,citations);
  return{ok:true,mode:'ai',answer:text(modelResult.answer,12000),sources:citedSources,checkedAt,uncertainty:citations.length===0,modelInfo:modelResult.modelInfo&&typeof modelResult.modelInfo==='object'?{provider:text(modelResult.modelInfo.provider,40),model:text(modelResult.modelInfo.model,120)}:undefined,recoverable:true,contextSummary:summary}
