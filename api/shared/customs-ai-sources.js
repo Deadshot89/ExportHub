@@ -29,7 +29,8 @@ function toSource(article){
  return{id:article.id,title:article.title,excerpt:excerpt(article),sourceName:article.sourceName,sourceUrl:article.sourceUrl,publishedAt:article.publishedAt,checkedAt:article.checkedAt}
 }
 function selectCustomsAiSources(options={}){
- const published=knowledge.publishedArticles(options.articles),limit=Math.min(8,Math.max(1,Number(options.limit)||6)),minScore=Math.max(1,Number(options.minScore)||1);
+ const rows=Array.isArray(options.articles)?options.articles:knowledge.loadBundledKnowledge();
+ const published=knowledge.publishedArticles(rows),limit=Math.min(8,Math.max(1,Number(options.limit)||6)),minScore=Math.max(1,Number(options.minScore)||1);
  const questionTokens=tokens(options.question),contextTokens=tokens(JSON.stringify(options.context&&typeof options.context==='object'?options.context:{}));
  if(!questionTokens.length)return[];
  return published.map((article,index)=>({article,index,score:scoreArticle(article,questionTokens,contextTokens)}))
