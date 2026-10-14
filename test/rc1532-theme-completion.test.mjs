@@ -2,14 +2,22 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-const css=fs.readFileSync('assets/rc1304-theme-switcher.css','utf8');
+const runtime=fs.readFileSync('assets/rc1304-theme-switcher.js','utf8');
 const marker='RC1532 THEME COMPLETION PASS';
 
 function completionCss(){
-  const start=css.indexOf(marker);
+  const start=runtime.indexOf(marker);
   assert.ok(start>=0,`${marker} fehlt`);
-  return css.slice(start);
+  return runtime.slice(start);
 }
+
+test('RC1532: completion style is injected once before the UI starts',()=>{
+  assert.match(runtime,/RC1532_COMPLETION_STYLE_ID/);
+  assert.match(runtime,/function ensureCompletionStyles\(\)/);
+  assert.match(runtime,/document\.createElement\('style'\)/);
+  assert.match(runtime,/style\.textContent=RC1532_COMPLETION_CSS/);
+  assert.match(runtime,/ensureCompletionStyles\(\);[\s\S]*setRoot\(read\(\)\)/);
+});
 
 test('RC1532: completion pass remains outside Klassisch',()=>{
   const completion=completionCss();
