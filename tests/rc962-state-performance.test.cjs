@@ -15,6 +15,12 @@ function loadStateInternals() {
   return mod.exports.__rc962Test;
 }
 
+function readableJson(value) {
+  return (async function*(){
+    yield Buffer.from(JSON.stringify(value), 'utf8');
+  })();
+}
+
 async function main() {
   const api = loadStateInternals();
   api.TEAM_WARM_CACHE.clear();
@@ -32,21 +38,51 @@ async function main() {
     authBootstrap: { secret: 'server-only' },
     recentOperations: [{ id: 'op-1' }]
   };
-  const c = {
-    environment: 'testservice',
-    teamBlobName: 'testservice/exporthub-state.json',
-    team: { getProperties: async () => ({ etag: 'etag-42' }) }
+
+  const production = {
+    environment: 'production',
+    teamBlobName: 'team-state.json',
+    team: { getProperties: async () => { throw new Error('RC1537: Production-save darf weiterhin ohne ETag-Roundtrip aus dem Warm-Cache lesen.'); } }
   };
 
-  assert.strictEqual(api.rememberWarmTeam(c, team, 'etag-42'), true);
+  assert.strictEqual(api.rememberWarmTeam(production, team, 'etag-42'), true);
 
-  const saveHit = await api.readTeamCachedForSession(c, 'save');
+  const saveHit = await api.readTeamCachedForSession(production, 'save');
   assert.strictEqual(saveHit.cacheMode, 'memory-save');
-  assert.strictEqual(saveHit.value, team, 'RC962: memory-save darf den kompletten Teamstand nicht tief kopieren.');
+  assert.strictEqual(saveHit.value, team, 'RC962: Production-memory-save darf den kompletten Teamstand nicht tief kopieren.');
 
-  const readHit = await api.readTeamCachedForSession(c, 'read');
+  const readHit = await api.readTeamCachedForSession(production, 'read');
   assert.strictEqual(readHit.cacheMode, 'memory-etag');
   assert.strictEqual(readHit.value, team, 'RC962: memory-etag darf den kompletten Teamstand nicht tief kopieren.');
+
+  api.TEAM_WARM_CACHE.clear();
+  const fixtureTeam = {
+    ...team,
+    revision: 43,
+    updatedAt: '2026-10-14T18:48:00.000Z',
+    users: team.users.concat([{ id: 'E2E-U1', name: 'E2E TEST Browser', user: 'e2e-browser', active: true, role: 'Admin', authVersion: 1 }])
+  };
+  let propertyReads = 0;
+  let blobReads = 0;
+  const testservice = {
+    environment: 'testservice',
+    teamBlobName: 'testservice/team-state.json',
+    team: {
+      getProperties: async () => { propertyReads += 1; return { etag: 'etag-43' }; },
+      download: async () => {
+        blobReads += 1;
+        return { etag: 'etag-43', readableStreamBody: readableJson(fixtureTeam) };
+      }
+    }
+  };
+
+  assert.strictEqual(api.rememberWarmTeam(testservice, team, 'etag-42'), true);
+  const testserviceSave = await api.readTeamCachedForSession(testservice, 'save');
+  assert.strictEqual(propertyReads, 1, 'RC1537: TESTSERVICE-save muss den Blob-ETag vor Nutzung eines Warm-Caches prüfen.');
+  assert.strictEqual(blobReads, 1, 'RC1537: Bei geändertem TESTSERVICE-ETag muss der aktuelle Team-State neu geladen werden.');
+  assert.strictEqual(testserviceSave.cacheMode, 'full-read');
+  assert.strictEqual(testserviceSave.value.revision, 43);
+  assert.ok(testserviceSave.value.users.some(user => user.id === 'E2E-U1' && user.active === true), 'RC1537: Der vom Fixture neu angelegte E2E-Benutzer muss beim Save sichtbar sein.');
 
   const client = api.sanitizeForClient(team, false);
   assert.notStrictEqual(client, team, 'Client-Antwort braucht ein eigenes Root-Objekt.');
@@ -61,7 +97,7 @@ async function main() {
   assert.strictEqual(team.users[0].password, 'secret', 'Die Quellstruktur darf bei der Bereinigung nicht mutiert werden.');
 
   JSON.stringify(client);
-  console.log('RC962 state performance regression test: OK');
+  console.log('RC962/RC1537 state performance regression test: OK');
 }
 
 main().catch((error) => {
