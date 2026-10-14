@@ -128,3 +128,16 @@ test('RC1528: production basis live gate uses the canonical production domain', 
   assert.match(block, /https:\/\/www\.exporthub360\.de\/pack\/production-smoke/);
   assert.doesNotMatch(block, /https:\/\/exporthub360\.com/);
 });
+
+// RC1529 Regression: Production darf den bereits in TESTSERVICE behobenen grep-q/SIGPIPE-Fehlalarm nicht wiederholen.
+test('RC1529: production basis live gate avoids pipefail-sensitive grep pipelines', () => {
+  const workflow = requireFile(PRODUCTION_WORKFLOW);
+  const start = workflow.indexOf('RC1505 Production Release Basis-Liveprüfung');
+  const end = workflow.indexOf('RC1505 Historische Production-Live-Verträge prüfen', start);
+  assert.ok(start >= 0 && end > start, 'RC1505 Production-Basisprüfung muss isolierbar sein');
+  const block = workflow.slice(start, end);
+  assert.doesNotMatch(block, /printf\s+'%s'\s+"\$(?:version|home|pack)"\s*\|\s*grep\s+-q/);
+  assert.match(block, /\[\[\s*"\$version"\s*==\s*\*"__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1112'"\*\s*\]\]/);
+  assert.match(block, /\[\[\s*"\$home"\s*==\s*\*ExportHUB\*\s*\]\]/);
+  assert.match(block, /\[\[\s*"\$pack"\s*==\s*\*Packmeldung\*\s*\]\]/);
+});
