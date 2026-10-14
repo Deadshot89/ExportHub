@@ -39,10 +39,11 @@ async function main() {
     recentOperations: [{ id: 'op-1' }]
   };
 
+  let productionPropertyReads = 0;
   const production = {
     environment: 'production',
     teamBlobName: 'team-state.json',
-    team: { getProperties: async () => { throw new Error('RC1537: Production-save darf weiterhin ohne ETag-Roundtrip aus dem Warm-Cache lesen.'); } }
+    team: { getProperties: async () => { productionPropertyReads += 1; return { etag: 'etag-42' }; } }
   };
 
   assert.strictEqual(api.rememberWarmTeam(production, team, 'etag-42'), true);
@@ -50,8 +51,10 @@ async function main() {
   const saveHit = await api.readTeamCachedForSession(production, 'save');
   assert.strictEqual(saveHit.cacheMode, 'memory-save');
   assert.strictEqual(saveHit.value, team, 'RC962: Production-memory-save darf den kompletten Teamstand nicht tief kopieren.');
+  assert.strictEqual(productionPropertyReads, 0, 'RC1537: Production-save muss den schnellen Warm-Cache ohne ETag-Roundtrip behalten.');
 
   const readHit = await api.readTeamCachedForSession(production, 'read');
+  assert.strictEqual(productionPropertyReads, 1, 'RC962: normaler Production-read darf den Warm-Cache per ETag validieren.');
   assert.strictEqual(readHit.cacheMode, 'memory-etag');
   assert.strictEqual(readHit.value, team, 'RC962: memory-etag darf den kompletten Teamstand nicht tief kopieren.');
 
