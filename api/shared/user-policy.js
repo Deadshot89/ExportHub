@@ -228,6 +228,7 @@ module.exports = {
   normalizeUser,
   normalizeRights,
   normalizeCustomerPortalRights,
+  repairLegacySevastianExportRights,
   dedupeUsers,
   isAdmin,
   isPrivilegedUser,
