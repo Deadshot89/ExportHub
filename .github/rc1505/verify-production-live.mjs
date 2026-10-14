@@ -210,4 +210,13 @@ for(const base of [PROD,TEST]){
   markers('RC1322 Direktdruck-Setup',setup,['SilentPrintingEnabled','PrintPreviewUseSystemDefaultPrinter','Get-CimInstance Win32_Printer']);
 }
 
+// RC1525 QR-Abholseite: Siegelnummer, alle drei Containerfotos und ABD-Bestaetigung muessen live ausgeliefert werden.
+await page(PROD,'/pickup.html',[
+  'id="sealNumber"',
+  'id="containerPhotoLoaded"',
+  'id="containerPhotoNumber"',
+  'id="containerPhotoSealed"',
+  'id="customsDocumentsField"'
+]);
+
 console.log('RC1505 historische Production-/TESTSERVICE-Live-Verträge erfolgreich bestätigt.');
