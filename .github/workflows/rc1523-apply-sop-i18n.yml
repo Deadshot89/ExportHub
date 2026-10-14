@@ -1,0 +1,116 @@
+name: RC1523 Apply SOP i18n Fix
+
+on:
+  push:
+    branches:
+      - integration/sopmaster-rc1519-validation
+    paths:
+      - '.github/workflows/rc1523-apply-sop-i18n.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rc1523-apply-sop-i18n-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  apply-and-verify:
+    if: github.ref == 'refs/heads/integration/sopmaster-rc1519-validation'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact integration candidate
+        uses: actions/checkout@v4
+        with:
+          ref: integration/sopmaster-rc1519-validation
+          fetch-depth: 1
+
+      - name: Guard integration-only execution
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/integration/sopmaster-rc1519-validation"
+          test "$(git branch --show-current)" = "integration/sopmaster-rc1519-validation"
+
+      - name: Decode and validate locally tested patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          xz -dc .github/rc1523/sop-i18n.patch.xz > /tmp/rc1523.patch
+          echo '7ea3c1fcc39a6820f4807c23203dbe698a5be136670cda6b28a9cff13a86f26f  /tmp/rc1523.patch' | sha256sum -c -
+          git apply --check -p1 /tmp/rc1523.patch
+          git apply -p1 /tmp/rc1523.patch
+          git diff --check
+
+      - name: Syntax check changed SOP runtimes
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in \
+            assets/exporthub-demo-bootstrap.js \
+            assets/sop/rc1007-sop-ui.js \
+            assets/sop/rc1501-sop-tour-catalog.js \
+            assets/sop/rc1501-sop-tour-ui.js \
+            assets/sop/rc1502-sop-editor.js \
+            assets/sop/rc1502-sop-persistence.js \
+            assets/sop/rc1502-sop-target-picker-ui.js \
+            assets/sop/rc1503-sop-exam.js \
+            assets/sop/rc1506-sop-coverage-dashboard.js
+          do
+            node --check "$f"
+          done
+
+      - name: Strict i18n audit
+        run: node scripts/i18n-audit.mjs --strict
+
+      - name: Targeted SOPMaster regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test --test-concurrency=1 \
+            test/rc1007-sop-ui.test.mjs \
+            test/rc1007-sop-print-mobile.test.mjs \
+            test/rc1501-sop-tour-ui.test.mjs \
+            test/rc1501-sop-tour-integration.test.mjs \
+            test/rc1502-sop-editor-ui.test.mjs \
+            test/rc1502-sop-editor.test.mjs \
+            test/rc1502-sop-visual-ui.test.mjs \
+            test/rc1503-sop-exam.test.mjs \
+            test/rc1503-sop-exam-ui.test.mjs \
+            test/rc1503-sop-training-ui.test.mjs \
+            test/rc1506-sop-coverage-dashboard.test.mjs \
+            test/rc1523-sop-i18n-release-gate.test.mjs \
+            test/rc1523-sop-six-language-runtime.test.mjs
+
+      - name: Create local candidate commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets test/rc1523-sop-six-language-runtime.test.mjs
+          git diff --cached --check
+          git commit -m 'fix(sop): localize SOPMaster across six languages'
+
+      - name: Full repository i18n verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run verify:i18n
+          git reset --hard HEAD
+          git clean -fd
+
+      - name: Verify committed candidate remains clean
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/i18n-audit.mjs --strict
+          node --test --test-concurrency=1 test/rc1523-sop-i18n-release-gate.test.mjs test/rc1523-sop-six-language-runtime.test.mjs
+          test -z "$(git status --porcelain)"
+
+      - name: Push verified integration commit only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git push origin HEAD:integration/sopmaster-rc1519-validation
