@@ -103,11 +103,10 @@ test('RC1537: Planner-DnD besitzt einen Persist-Fallback und schreibt den Move i
   const day={closest:selector=>selector==='[data-tpv2-drop-date], [data-i218-drop-date]'?day:null,getAttribute:name=>name==='data-tpv2-drop-date'?'2026-10-15':null};
   const card={closest:selector=>selector==='[data-task-id]'?card:null,getAttribute:name=>name==='data-task-id'?'move':null};
   const target={
-    innerHTML:'',ownerDocument:{elementFromPoint:()=>day},
+    ownerDocument:{elementFromPoint:()=>day},
     addEventListener(type,fn){handlers[type]=fn;},removeEventListener(){}
   };
-  const runtime={
-    currentTasks(raw){return raw;},
+  const runtime={plannerV2:{
     moveTaskOccurrence(id,plannedAt,ctx){
       assert.equal(typeof ctx.persist,'function','Planner muss dem Runtime-Move einen Persist-Callback geben');
       const next=ctx.state.tasks.map(task=>task.id===id?{...task,plannedAt}:task);
@@ -115,8 +114,8 @@ test('RC1537: Planner-DnD besitzt einen Persist-Fallback und schreibt den Move i
       ctx.persist(next);
       return{changed:true,task:next.find(task=>task.id===id)};
     }
-  };
-  ui.renderPlannerPage(target,{state,runtime,weekStart:'2026-10-12',now:'2026-10-14T10:00:00+02:00'});
+  }};
+  ui.bindPlannerDnD(target,{state,runtime,now:'2026-10-14T10:00:00+02:00'});
   assert.equal(typeof handlers.pointerup,'function');
   handlers.pointerup({clientX:10,clientY:10,target:card});
   assert.match(state.tasks[0].plannedAt,/^2026-10-15T/,'Move muss im echten State ankommen');
