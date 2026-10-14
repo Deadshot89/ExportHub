@@ -37,7 +37,8 @@ function loadRuntime(){
     'assets/taskplanner-v2-recurrence.js',
     'assets/rc1014-task-lifecycle.js',
     'assets/rc1014-task-runtime.js',
-    'assets/taskplanner-v2-runtime-bridge.js'
+    'assets/taskplanner-v2-runtime-bridge.js',
+    'assets/rc1537-taskplanner-canonical-source.js'
   ]) vm.runInNewContext(fs.readFileSync(file,'utf8'),sandbox,{filename:file});
   return window;
 }
@@ -56,13 +57,13 @@ function loadPlanner(){
   }};
   for(const file of [
     'assets/taskplanner-v2-core.js','assets/taskplanner-v2-recurrence.js','assets/taskplanner-v2-planner.js',
-    'assets/taskplanner-v2-ui.js','assets/taskplanner-v2-planner-ui.js'
+    'assets/taskplanner-v2-ui.js','assets/taskplanner-v2-planner-ui.js','assets/rc1537-taskplanner-canonical-source.js'
   ]) vm.runInNewContext(fs.readFileSync(file,'utf8'),context,{filename:file});
   return context;
 }
 
-function plannerTask(id,date,title){
-  return {id,title,status:'open',priority:'P2',plannedAt:`${date}T09:00:00+02:00`,dueAt:`${date}T16:15:00+02:00`};
+function plannerTask(id,date,title,extra={}){
+  return {id,title,status:'open',priority:'P2',plannedAt:`${date}T09:00:00+02:00`,dueAt:`${date}T16:15:00+02:00`,...extra};
 }
 
 test('RC1537: persönlicher Wochenstamm materialisiert in Produktion aktuelle plus nächste Arbeitswoche',()=>{
@@ -79,6 +80,21 @@ test('RC1537: persönlicher Wochenstamm materialisiert in Produktion aktuelle pl
   assert.ok(writes>=1,'Materialisierung muss über den bestehenden Persist-Pfad gespeichert werden');
 });
 
+test('RC1537: verschobene zukünftige Regelaufgabe bleibt materialisiert und wird nicht am alten Tag neu erzeugt',()=>{
+  const window=loadRuntime(),api=window.ExportHUBRC1014TaskRuntime;
+  const state={companyId:'essentra',environment:'production',currentUser:{id:'USER-Tobias',user:'Tobias'},tasks:[],taskSeries:[],taskCalendar:{},taskArchive:[],_teamSyncMeta:{fields:{},tombstones:[]}};
+  const ctx={companyId:'essentra',environment:'production',currentUserId:'USER-Tobias',currentUser:state.currentUser,now:'2026-10-14T10:00:00+02:00',state,persist(next){state.tasks=next;}};
+  state.tasks=api.prepareTasks(state.tasks,ctx);
+  const id='managed:gaggenau:2026-10-19';
+  assert.ok(state.tasks.some(task=>task.id===id),'zukünftiges Vorkommen muss vor dem Verschieben fest vorhanden sein');
+  const moved=api.moveTaskOccurrence(id,'2026-10-20T09:00:00+02:00',ctx);
+  assert.equal(moved.changed,true);
+  state.tasks=api.prepareTasks(state.tasks,ctx);
+  const matches=state.tasks.filter(task=>task.id===id);
+  assert.equal(matches.length,1,'verschobenes Vorkommen darf nicht dupliziert werden');
+  assert.match(matches[0].plannedAt,/^2026-10-20T/,'manuelle Verschiebung muss den neuen Tag behalten');
+});
+
 test('RC1537: V2-Planner bezieht seinen sichtbaren Bestand vom Runtime-Owner statt direkt aus rohem state.tasks',()=>{
   const context=loadPlanner(),ui=context.ExportHUBTaskUIV2;
   const state={tasks:[]};
@@ -92,6 +108,17 @@ test('RC1537: V2-Planner bezieht seinen sichtbaren Bestand vom Runtime-Owner sta
   ui.renderPlannerPage(target,{state,runtime,weekStart:'2026-10-12',now:'2026-10-14T10:00:00+02:00'});
   assert.ok(calls>0,'Planner muss den Runtime-Owner nach dem kanonischen Aufgabenbestand fragen');
   assert.match(target.innerHTML,/Kanonische Aufgabe nächste Woche/);
+});
+
+test('RC1537: Planner-Tageszusammenfassung interpoliert Platzhalter auch bei roher i18n-Vorlage',()=>{
+  const context=loadPlanner(),ui=context.ExportHUBTaskUIV2;
+  const today=plannerTask('today','2026-10-14','Heute erledigen',{priority:'P0'});
+  const state={tasks:[today]};
+  const runtime={currentTasks(){return state.tasks;},prepareTasks(){return state.tasks;}};
+  const target={innerHTML:''};
+  ui.renderPlannerPage(target,{state,runtime,weekStart:'2026-10-12',now:'2026-10-14T10:00:00+02:00'});
+  assert.doesNotMatch(target.innerHTML,/\{(?:count|critical|overdue)\}/,'sichtbare Platzhalter dürfen nicht stehen bleiben');
+  assert.match(target.innerHTML,/Heute: 1 Aufgaben · 1 kritisch · 0 überfällig/);
 });
 
 test('RC1537: Planner-DnD besitzt einen Persist-Fallback und schreibt den Move in den echten State',()=>{
@@ -120,4 +147,10 @@ test('RC1537: Planner-DnD besitzt einen Persist-Fallback und schreibt den Move i
   handlers.pointerup({clientX:10,clientY:10,target:card});
   assert.match(state.tasks[0].plannedAt,/^2026-10-15T/,'Move muss im echten State ankommen');
   assert.equal(saves,1,'Move muss genau einen Save auslösen');
+});
+
+test('RC1537: Release-Wiring liefert den Canonical-Source-Hotfix nach dem Planner UI aus',()=>{
+  const source=fs.readFileSync('scripts/taskplanner-v2-pretest.mjs','utf8');
+  assert.match(source,/rc1537-taskplanner-canonical-source\.js/,'RC1537 Asset muss vom Release-Builder kopiert werden');
+  assert.match(source,/exporthub-taskplanner-rc1537-canonical-source/,'RC1537 Script-Tag muss im Release-Wiring vorhanden sein');
 });
