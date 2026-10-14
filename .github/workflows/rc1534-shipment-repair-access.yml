@@ -1,0 +1,29 @@
+name: RC1534 Shipment Repair Access Verify
+
+on:
+  push:
+    branches: [feature/rc1534-shipment-repair-access]
+  pull_request:
+    branches: [main]
+    paths:
+      - 'assets/rc1534-shipment-repair-access.js'
+      - '.github/rc1534/build-three-env.mjs'
+      - '.github/rc1506/build-three-env.mjs'
+      - 'test/rc1534-shipment-repair-access.test.mjs'
+      - '.github/workflows/rc1534-shipment-repair-access.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: RC1534 targeted contract
+        run: node --test test/rc1534-shipment-repair-access.test.mjs
