@@ -1,0 +1,21 @@
+name: RC1530 Red Proof
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  rc1530_red_proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: RC1530 gezielte MA-Versandanmeldungs-Regression
+        run: node --test test/rc1530-employee-shipment-registration-write.test.mjs
