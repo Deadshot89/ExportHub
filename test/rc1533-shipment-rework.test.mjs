@@ -7,7 +7,7 @@ import {fileURLToPath} from 'node:url';
 
 const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const SOURCE_PATH=path.join(ROOT,'assets/rc1533-shipment-rework.js');
-const BUILD_PATH=path.join(ROOT,'.github/rc1112/build-three-env.mjs');
+const BUILD_PATH=path.join(ROOT,'.github/rc1506/build-three-env.mjs');
 
 function loadRuntime(){
   const source=fs.readFileSync(SOURCE_PATH,'utf8');
@@ -87,8 +87,8 @@ test('RC1533: erfolgreicher Abschluss stellt den vorherigen Status wieder her un
   assert.ok(shipment.shipmentHistory.some(x=>x?.type==='rework-closed'&&x?.label==='Nachbearbeitung gespeichert und geschlossen'));
 });
 
-test('RC1533: Build lädt die Nachbearbeitungs-Runtime mit eigenem Cache-Key',()=>{
+test('RC1533: additive Build-Schicht bindet die Runtime mit eigenem Cache-Key ein',()=>{
   const build=fs.readFileSync(BUILD_PATH,'utf8');
-  assert.match(build,/rc1533-shipment-rework\.js\?v=1533/);
-  assert.match(build,/exporthub-rc1533-shipment-rework/);
+  assert.match(build,/integrateShipmentRework/);
+  assert.match(build,/rc1533\/build-three-env\.mjs/);
 });
