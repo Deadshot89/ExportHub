@@ -33,11 +33,21 @@ jobs:
           test "$GITHUB_REF" = "refs/heads/integration/sopmaster-rc1519-validation"
           test "$(git branch --show-current)" = "integration/sopmaster-rc1519-validation"
 
-      - name: Decode and validate locally tested patch
+      - name: Reassemble and validate locally tested patch
         shell: bash
         run: |
           set -euo pipefail
-          xz -dc .github/rc1523/sop-i18n.patch.xz > /tmp/rc1523.patch
+          cat \
+            .github/rc1523/sop-i18n.part00.b64 \
+            .github/rc1523/sop-i18n.part01.b64 \
+            .github/rc1523/sop-i18n.part02.b64 \
+            .github/rc1523/sop-i18n.part03.b64 \
+            .github/rc1523/sop-i18n.part04.b64 \
+            > /tmp/rc1523.patch.xz.b64
+          echo '060f5a692ea3a89d9cefb1db96a1ff5d776b3174424b57300aabb9b290078871  /tmp/rc1523.patch.xz.b64' | sha256sum -c -
+          base64 -d /tmp/rc1523.patch.xz.b64 > /tmp/rc1523.patch.xz
+          echo 'd81774ef579bd3546e23ccb737bd0cfad07101cc065e614d0fc411e6bc1d8b9c  /tmp/rc1523.patch.xz' | sha256sum -c -
+          xz -dc /tmp/rc1523.patch.xz > /tmp/rc1523.patch
           echo '7ea3c1fcc39a6820f4807c23203dbe698a5be136670cda6b28a9cff13a86f26f  /tmp/rc1523.patch' | sha256sum -c -
           git apply --check -p1 /tmp/rc1523.patch
           git apply -p1 /tmp/rc1523.patch
