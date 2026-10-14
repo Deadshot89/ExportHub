@@ -38,17 +38,19 @@ test('RC1532 Service: Modellantwort ohne Citation zeigt keine Kandidatenquelle a
  assert.deepEqual(result.sources,[]);
 });
 
-test('RC1532 Service: keine geprüfte Quelle ruft Provider nicht auf',async()=>{
+test('RC1532 Service: keine geprüfte Quelle ruft Provider nicht auf und antwortet in gewählter Sprache',async()=>{
  let called=0;
- const result=await service.answerCustomsQuestion({question:'Was ist die Mondzoll-Regel?',invoiceAnalysis:invoice(),articles,askModel:async()=>{called++;return{ok:true}}});
+ const result=await service.answerCustomsQuestion({question:'What is the moon customs rule?',language:'en',invoiceAnalysis:invoice(),articles,askModel:async()=>{called++;return{ok:true}}});
  assert.equal(called,0);assert.equal(result.ok,true);assert.equal(result.mode,'no-source');assert.equal(result.uncertainty,true);
- assert.deepEqual(result.sources,[]);assert.match(result.answer,/keine geprüfte Quelle/i);
+ assert.deepEqual(result.sources,[]);assert.match(result.answer,/knowledge base|source/i);assert.doesNotMatch(result.answer,/Zoll-Wissensbasis|keine geprüfte Quelle/i);
 });
 
-test('RC1532 Service: Providerfehler bleibt recoverable und Quellen bleiben sichtbar',async()=>{
- const result=await service.answerCustomsQuestion({question:'Welche Präferenzregel muss ich für die Schweiz prüfen?',invoiceAnalysis:invoice(),articles,askModel:async()=>({ok:false,code:'AI_TIMEOUT',recoverable:true,message:'timeout',citations:[]})});
+test('RC1532 Service: Providerfehler bleibt recoverable, lokalisiert und Quellen bleiben sichtbar',async()=>{
+ const result=await service.answerCustomsQuestion({question:'Which preference rule should I check for Switzerland?',language:'en',invoiceAnalysis:invoice(),articles,askModel:async()=>({ok:false,code:'AI_TIMEOUT',recoverable:true,message:'interner deutscher providertext',citations:[]})});
  assert.equal(result.ok,false);assert.equal(result.code,'AI_TIMEOUT');assert.equal(result.recoverable,true);
  assert.equal(result.sources.length,1);assert.equal(result.uncertainty,true);
+ assert.match(result.answer,/temporarily unavailable|timed out|took too long/i);
+ assert.doesNotMatch(result.answer,/interner deutscher providertext/i);
 });
 
 test('RC1532 Service: Kontextzusammenfassung enthält keine Gruppenwerte oder Secrets',async()=>{
