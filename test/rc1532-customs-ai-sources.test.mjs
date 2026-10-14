@@ -53,6 +53,37 @@ test('RC1532 Quellen: zusammengesetzte Fachbegriffe treffen die gebündelte Wiss
   assert.deepEqual(unknown,[]);
 });
 
+test('RC1532 Quellen: Präferenz-/Ursprungsfragen funktionieren in allen sechs UI-Sprachen',()=>{
+  const bundled=knowledge.loadBundledKnowledge();
+  const questions={
+    de:'Welche Präferenzregel muss ich für die Schweiz prüfen?',
+    en:'Which preferential origin rule should I check for Switzerland?',
+    pl:'Jaką regułę preferencyjnego pochodzenia sprawdzić dla Szwajcarii?',
+    es:'¿Qué regla de origen preferencial debo comprobar para Suiza?',
+    fr:'Quelle règle d’origine préférentielle dois-je vérifier pour la Suisse ?',
+    it:'Quale regola di origine preferenziale devo verificare per la Svizzera?'
+  };
+  for(const [lang,question] of Object.entries(questions)){
+    const out=sources.selectCustomsAiSources({question,context:{destinationCountry:'CH'},articles:bundled,limit:4,minScore:2});
+    assert.ok(out.some(row=>row.id==='preferential-origin'),lang+' findet preferential-origin nicht');
+  }
+});
+
+test('RC1532 Quellen: mehrsprachige Tarif- und Ausfuhrbegriffe werden kanonisch erkannt',()=>{
+  const bundled=knowledge.loadBundledKnowledge();
+  const cases=[
+    ['en','Which customs tariff should I check for this export?','taric'],
+    ['pl','Jaką taryfę celną sprawdzić dla tego eksportu?','taric'],
+    ['es','¿Qué arancel aduanero debo comprobar para esta exportación?','taric'],
+    ['fr','Quel tarif douanier dois-je vérifier pour cette exportation ?','taric'],
+    ['it','Quale tariffa doganale devo verificare per questa esportazione?','taric']
+  ];
+  for(const [lang,question,expected] of cases){
+    const out=sources.selectCustomsAiSources({question,articles:bundled,limit:4,minScore:2});
+    assert.ok(out.some(row=>String(row.id).includes(expected)),lang+' findet TARIC nicht');
+  }
+});
+
 test('RC1532 Quellen: keine passende belastbare Quelle ergibt leere Liste statt erfundener Quelle',()=>{
   const out=sources.selectCustomsAiSources({question:'Wie ist die Mondzoll-Regel?',articles:[article()],limit:4,minScore:2});
   assert.deepEqual(out,[]);
