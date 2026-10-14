@@ -1,9 +1,16 @@
 (function(root){
 'use strict';
+const RC1523_DE=Object.freeze({
+  "sop.editor.customer":"Kunde",
+  "sop.editor.reasonCustomerCreated":"RC1502 Kunden-SOP angelegt",
+  "sop.target.invalid":"Tourziel konnte nicht geprüft werden"
+});
 if(root.ExportHubSopEditor)return;
 
 function clone(value){return value===undefined?undefined:JSON.parse(JSON.stringify(value));}
 function text(value){return String(value==null?'':value).trim();}
+function interpolate(value,vars){return String(value==null?'':value).replace(/\{\{\s*([\w.-]+)\s*\}\}/g,(_,key)=>vars&&Object.prototype.hasOwnProperty.call(vars,key)?String(vars[key]):'');}
+function tr(key,fallback,vars){try{const api=root.ExportHUBI18n;if(api&&typeof api.t==='function'){const value=api.t(key,vars);if(value&&value!==key)return value;}}catch(_){}return interpolate(fallback,vars);}
 function nowIso(){return new Date().toISOString();}
 function model(){return root.ExportHubIsoSopModel;}
 function contract(){return root.ExportHubSopStepContract;}
@@ -140,8 +147,8 @@ function createCustomerOverlay(baseDocument,options={}){
   if(!customerId)throw new Error('Kunde fehlt');
   if(!text(base.number))throw new Error('Basis-SOP fehlt');
   const at=nowIso();
-  const title=text(options.title)||`${text(base.title)||text(base.number)} – Kunde ${customerId}`;
-  const reason=text(options.reason)||'Kunden-Overlay erstellt';
+  const title=text(options.title)||`${text(base.title)||text(base.number)} – ${tr('sop.editor.customer',RC1523_DE['sop.editor.customer'])} ${customerId}`;
+  const reason=text(options.reason)||tr('sop.editor.reasonCustomerCreated',RC1523_DE['sop.editor.reasonCustomerCreated']);
   const draft={version,status:'Entwurf',title,content:{overlays:[]},visuals:[],createdBy:text(options.actor),createdAt:at,changeReason:reason,reviewedBy:'',reviewedAt:'',approvedBy:'',approvedAt:''};
   return {
     id:number,number,title,type:'customer',area:text(base.area),customerId,baseProcessSop:text(base.number),version,currentVersion:version,draftVersion:version,status:'Entwurf',createdBy:text(options.actor),createdAt:at,updatedAt:at,changeReason:reason,
@@ -218,7 +225,7 @@ function beginTargetPick(stepId,options={}){
   const document=options.document;if(!document||typeof document!=='object')throw new Error('SOP-Dokument fehlt');
   const version=text(options.version||document.draftVersion);const draft=draftOf(document,version);const steps=stepsOfDraft(draft);
   if(indexById(steps,id)<0)throw new Error(`Schritt nicht gefunden: ${id}`);
-  const scope=options.scope||(root&&root.document);if(!scope||typeof scope.addEventListener!=='function'||typeof scope.removeEventListener!=='function')throw new Error('Target-Picker-Zielbereich nicht verfügbar');
+  const scope=options.scope||(root&&root.document);if(!scope||typeof scope.addEventListener!=='function'||typeof scope.removeEventListener!=='function')throw new Error(tr('sop.target.invalid',RC1523_DE['sop.target.invalid']));
   cancelTargetPick();
   const rootElement=scope.documentElement||(root&&root.document&&root.document.documentElement)||null;
   const session={stepId:id,document,version,scope,handler:null,rootElement,onSelected:options.onSelected,onError:options.onError};

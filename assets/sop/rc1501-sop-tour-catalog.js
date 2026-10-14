@@ -1,16 +1,20 @@
 (function(root){
 'use strict';
+const RC1523_DE=Object.freeze({
+  "sop.catalog.abdOpenTitle":"ABD-Bereich öffnen"
+});
 if(root.__EXPORTHUB_RC1501_SOP_TOUR_CATALOG__)return;
 const catalog=root.ExportHubIsoSopCatalog;
 if(!catalog||!Array.isArray(catalog.documents))return;
 
 function clone(value){return value===undefined?undefined:JSON.parse(JSON.stringify(value));}
 function text(value){return String(value==null?'':value).trim();}
+function tr(key,fallback){try{const api=root.ExportHUBI18n;if(api&&typeof api.t==='function'){const value=api.t(key);if(value&&value!==key)return value;}}catch(_){}return fallback;}
 function decorateStep(step){
   const copy=clone(step)||{};
   const instruction=text(copy.text||copy.instruction);
   if(!/ABD-\/Dokumentenbereich öffnen/i.test(instruction))return copy;
-  copy.title='ABD-Bereich öffnen';
+  copy.title=tr('sop.catalog.abdOpenTitle',RC1523_DE['sop.catalog.abdOpenTitle']);
   copy.instruction='Öffne in der Sendung den ABD-Bereich und prüfe, dass die ABD-Entscheidung sichtbar ist.';
   copy.page='Sendung';
   copy.target={type:'element',stableKey:'shipment-abd-decision',selector:''};

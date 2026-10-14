@@ -20,7 +20,7 @@ function hasPendingChange(clean){
   return changed>saved;
 }
 async function confirmedPersist(reason,host){
-  const label=text(reason)||'RC1502 SOP-Editor bestätigt gespeichert';
+  const label=text(reason)||'RC1502_SOP_EDITOR_CONFIRMED_SAVED';
   const clean=root.ExportHUBClean;
   try{
     if(!clean||typeof clean.flushSave!=='function'){
@@ -46,7 +46,7 @@ function mount(target,options={}){
   const originalChange=typeof options.onEditorChange==='function'?options.onEditorChange:null;
   let chain=Promise.resolve(true);
   function schedule(reason){
-    const label=text(reason)||'RC1502 SOP-Editor bestätigt gespeichert';
+    const label=text(reason)||'RC1502_SOP_EDITOR_CONFIRMED_SAVED';
     setStatus(host,'saving',label);
     chain=chain.catch(()=>false).then(()=>confirmedPersist(label,host));
     return chain;
@@ -61,7 +61,7 @@ function mount(target,options={}){
   if(!bridge||!host)return bridge;
   function onClick(event){
     const button=event&&event.target&&typeof event.target.closest==='function'?event.target.closest('[data-sop-editor-action="create-overlay"]'):null;
-    if(button)schedule('RC1502 Kunden-SOP angelegt');
+    if(button)schedule('RC1502_CUSTOMER_SOP_CREATED');
   }
   host.addEventListener('click',onClick);
   const originalDestroy=typeof bridge.destroy==='function'?bridge.destroy.bind(bridge):null;

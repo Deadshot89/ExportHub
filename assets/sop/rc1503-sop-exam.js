@@ -1,10 +1,16 @@
 (function(root){
 'use strict';
+const RC1523_DE=Object.freeze({
+  "sop.exam.title":"SOP-Prüfung",
+  "sop.exam.defaultTask":"Führe den Prozess „{{title}}“ vollständig durch."
+});
 if(root.ExportHubSopExam)return;
 
 let active=null;
 
 function text(value){return String(value==null?'':value).trim();}
+function interpolate(value,vars){return String(value==null?'':value).replace(/\{\{\s*([\w.-]+)\s*\}\}/g,(_,key)=>vars&&Object.prototype.hasOwnProperty.call(vars,key)?String(vars[key]):'');}
+function tr(key,fallback,vars){try{const api=root.ExportHUBI18n;if(api&&typeof api.t==='function'){const value=api.t(key,vars);if(value&&value!==key)return value;}}catch(_){}return interpolate(fallback,vars);}
 function clone(value){return value===undefined?undefined:JSON.parse(JSON.stringify(value));}
 function list(value){return Array.isArray(value)?value:[];}
 function now(){return Date.now();}
@@ -58,8 +64,8 @@ function validateChecks(checks,context){
 function neutralTask(sop){
   const configured=text(sop&&sop.examConfig&&(sop.examConfig.task||sop.examConfig.assignment));
   if(configured)return configured;
-  const title=text(sop&&sop.title)||text(sop&&sop.number)||'SOP-Prüfung';
-  return `Führe den Prozess „${title}“ vollständig durch.`;
+  const title=text(sop&&sop.title)||text(sop&&sop.number)||tr('sop.exam.title',RC1523_DE['sop.exam.title']);
+  return tr('sop.exam.defaultTask',RC1523_DE['sop.exam.defaultTask'],{title});
 }
 function start(options={}){
   const sop=options.sop&&typeof options.sop==='object'?clone(options.sop):null;

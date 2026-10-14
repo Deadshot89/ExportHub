@@ -1,12 +1,65 @@
 (function(root){
 'use strict';
+const RC1523_DE=Object.freeze({
+  "common.close":"Schließen",
+  "sop.imageHint":"Bildhinweis",
+  "sop.zoomImage":"Bild vergrößern",
+  "sop.expectedResult":"Erwartetes Ergebnis",
+  "sop.editor.validationError":"Fehler",
+  "sop.editor.validationWarning":"Hinweis",
+  "sop.editor.noStructuralErrors":"Keine strukturellen Fehler erkannt.",
+  "sop.editor.field.title":"Titel",
+  "sop.editor.field.targetPage":"Ziel/Seite",
+  "sop.editor.field.instruction":"Anweisung",
+  "sop.editor.moveUp":"Hoch",
+  "sop.editor.moveDown":"Runter",
+  "sop.editor.typeCustomer":"Kunden-SOP / Overlay",
+  "sop.editor.typeProcess":"Prozess-SOP",
+  "sop.editor.validationFailed":"Validierung fehlgeschlagen",
+  "sop.editor.type":"Typ",
+  "sop.editor.draft":"Entwurf",
+  "sop.editor.noDraft":"Kein Entwurf",
+  "sop.editor.changeReason":"Änderungsgrund",
+  "sop.editor.customerContext":"Kundenbezug",
+  "sop.editor.customer":"Kunde",
+  "sop.editor.baseSop":"Basis-SOP",
+  "sop.editor.customerOverlayNote":"Kundenabweichungen ergänzen die Basis-SOP; die freigegebene Prozess-SOP wird nicht überschrieben.",
+  "sop.editor.newDraft":"Neue Entwurfsfassung",
+  "sop.editor.version":"Version",
+  "sop.editor.changePlaceholder":"Was wird geändert?",
+  "sop.editor.createDraft":"Entwurf anlegen",
+  "sop.editor.createCustomerSop":"Kunden-SOP anlegen",
+  "sop.editor.customerNumber":"Kundennummer",
+  "sop.editor.sopNumber":"SOP-Nummer",
+  "sop.editor.customerDeviationPlaceholder":"Kundenspezifische Abweichung",
+  "sop.editor.createCustomerButton":"Kunden-SOP erstellen",
+  "sop.editor.workSteps":"Arbeitsschritte",
+  "sop.editor.noDraftSteps":"Noch keine Schritte im Entwurf.",
+  "sop.editor.addStep":"Schritt hinzufügen",
+  "sop.editor.stepId":"Schritt-ID",
+  "sop.editor.validation":"Validierung",
+  "sop.editor.assignStepImage":"Schrittbild zuordnen",
+  "sop.editor.step":"Schritt",
+  "sop.editor.imageSource":"Bildquelle",
+  "sop.editor.assignImage":"Bild zuordnen",
+  "sop.editor.customerDeviations":"Kundenabweichungen",
+  "sop.editor.overlaySeparateNote":"Dieses Overlay bleibt getrennt von der freigegebenen Basis-SOP und wird beim Aufruf anhand des Kundenkontexts aufgelöst.",
+  "sop.editor.title":"SOP-Editor",
+  "sop.editor.intro":"Änderungen werden nur in Entwürfen gespeichert. Freigegebene Fassungen bleiben unverändert.",
+  "sop.editor.draftValid":"Entwurf gültig",
+  "sop.editor.checkDraft":"Entwurf prüfen",
+  "sop.editor.reasonEdited":"SOP überarbeitet",
+  "sop.editor.reasonCustomerCreated":"RC1502 Kunden-SOP angelegt"
+});
 
 function esc(value){return String(value==null?'':value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
 function arr(value){return Array.isArray(value)?value:[];}
 function text(value){return String(value==null?'':value).trim();}
 function tr(key,vars){try{if(root.ExportHUBI18n&&typeof root.ExportHUBI18n.t==='function')return root.ExportHUBI18n.t(key,vars);}catch(_){}return key;}
 function th(key,vars){return esc(tr(key,vars));}
-function tl(key,fallback){const translated=tr(key);return translated===key?fallback:translated;}
+function interpolate(value,vars){return String(value==null?'':value).replace(/\{\{\s*([\w.-]+)\s*\}\}/g,(_,key)=>vars&&Object.prototype.hasOwnProperty.call(vars,key)?String(vars[key]):'');}
+function tl(key,fallback,vars){const translated=tr(key,vars);return translated===key?interpolate(fallback,vars):translated;}
+function tlh(key,fallback,vars){return esc(tl(key,fallback,vars));}
 const SOP_STATUSES=Object.freeze({draft:'Entwurf',review:'In Prüfung',released:'Freigegeben',archived:'Archiviert'});
 function statusDisplay(value){const raw=text(value);const key=raw===SOP_STATUSES.draft?'sop.status.draft':raw===SOP_STATUSES.review?'sop.status.review':raw===SOP_STATUSES.released?'sop.status.released':raw===SOP_STATUSES.archived?'sop.status.archived':'';return key?tr(key):raw;}
 function rightsOf(value){const r=value&&typeof value==='object'?value:{};const admin=r.admin===true||r.functionAdmin===true||r.level==='admin';const edit=admin||r.edit===true||r.level==='edit';const read=edit||r.read===true||r.visible===true||r.level==='view';return {read,edit,admin,functionAdmin:admin};}
@@ -46,13 +99,13 @@ function annotationHtml(annotation,index){
   return'';
 }
 function annotationLayer(visual){const annotations=arr(visual&&visual.annotations);const html=annotations.map(annotationHtml).join('');return html?`<span class="rc1502-sop-annotation-layer" aria-hidden="true">${html}</span>`:'';}
-function expectedResultHtml(visual){const item=arr(visual&&visual.annotations).find(annotation=>text(annotation&&annotation.type)==='expectedResult');const result=annotationText(item);return result?`<p class="rc1502-sop-expected-result"><strong>${esc(tl('sop.expectedResult','Erwartetes Ergebnis'))}:</strong> ${esc(result)}</p>`:'';}
+function expectedResultHtml(visual){const item=arr(visual&&visual.annotations).find(annotation=>text(annotation&&annotation.type)==='expectedResult');const result=annotationText(item);return result?`<p class="rc1502-sop-expected-result"><strong>${esc(tl('sop.expectedResult',RC1523_DE['sop.expectedResult']))}:</strong> ${esc(result)}</p>`:'';}
 function visualStage(visual,caption,zoom=false){return `<div class="rc1502-sop-visual-stage${zoom?' is-zoom':''}"><img src="${esc(visual.src)}" alt="${esc(caption)}" loading="${zoom?'eager':'lazy'}">${annotationLayer(visual)}</div>`;}
 function renderVisual(visual,index){
   if(!visual||visual.type==='process')return'';
-  const item=normalizedVisual(visual)||visual;const caption=text(item.caption)||tl('sop.imageHint','Bildhinweis');const safeCaption=esc(caption);
+  const item=normalizedVisual(visual)||visual;const caption=text(item.caption)||tl('sop.imageHint',RC1523_DE['sop.imageHint']);const safeCaption=esc(caption);
   if(item.type==='screenshot'&&item.src){
-    const zoomId=`rc1502-sop-zoom-${index}`;const titleId=`${zoomId}-title`;const zoomLabel=tl('sop.zoomImage','Bild vergrößern');const closeLabel=tl('common.close','Schließen');
+    const zoomId=`rc1502-sop-zoom-${index}`;const titleId=`${zoomId}-title`;const zoomLabel=tl('sop.zoomImage',RC1523_DE['sop.zoomImage']);const closeLabel=tl('common.close',RC1523_DE['common.close']);
     return `<figure class="rc1007-sop-visual" data-visual-index="${index}">${visualStage(item,caption,false)}<div class="rc1502-sop-visual-actions"><button type="button" class="rc1502-sop-zoom-button" data-sop-visual-zoom="${zoomId}" aria-controls="${zoomId}" aria-label="${esc(zoomLabel)}: ${safeCaption}">⤢ ${esc(zoomLabel)}</button></div>${expectedResultHtml(item)}<figcaption>${th('sop.image')} ${index} – ${safeCaption}</figcaption><dialog id="${zoomId}" class="rc1502-sop-zoom" aria-modal="true" aria-labelledby="${titleId}"><div class="rc1502-sop-zoom-shell"><div class="rc1502-sop-zoom-head"><h3 id="${titleId}">${safeCaption}</h3><button type="button" class="rc1502-sop-zoom-close" data-sop-visual-close aria-label="${esc(closeLabel)}">×</button></div>${visualStage(item,caption,true)}${expectedResultHtml(item)}</div></dialog></figure>`;
   }
   return `<figure class="rc1007-sop-visual rc1007-sop-placeholder" data-visual-index="${index}"><div class="rc1007-sop-placeholder-box" aria-label="${th('sop.imagePlaceholder')}"><span aria-hidden="true">▧</span><strong>${safeCaption}</strong></div><figcaption>${th('sop.image')} ${index} – ${safeCaption}</figcaption></figure>`;
@@ -78,21 +131,31 @@ function renderHistory(doc,sections){const history=arr(doc&&doc.history).length?
 function sopEditorApi(){return root.ExportHubSopEditor&&typeof root.ExportHubSopEditor.validateDraft==='function'?root.ExportHubSopEditor:null;}
 function draftRecord(doc){const version=text(doc&&doc.draftVersion);return version?arr(doc&&doc.versions).find(item=>text(item&&item.version)===version&&text(item&&item.status)===SOP_STATUSES.draft)||null:null;}
 function suggestedDraftVersion(doc){const raw=text(doc&&doc.currentVersion)||versionOf(doc);const parts=raw.split('.');const major=Number(parts[0])||1;const minor=Number(parts[1]);return `${major}.${Number.isFinite(minor)?minor+1:1}`;}
-function validationLines(result){const errors=arr(result&&result.errors),warnings=arr(result&&result.warnings);const items=[...errors.map(item=>`<li>${esc(typeof item==='string'?item:(item.message||item.code||'Fehler'))}</li>`),...warnings.map(item=>`<li>${esc(typeof item==='string'?item:(item.message||item.code||'Hinweis'))}</li>`)];return items.length?`<ul class="rc1502-sop-editor-validation">${items.join('')}</ul>`:'<p class="rc1502-sop-editor-note">Keine strukturellen Fehler erkannt.</p>';}
-function renderEditorStep(step,index,total){const id=text(step&&step.id)||`step-${index+1}`;return `<article class="rc1502-sop-editor-step" data-sop-editor-step="${esc(id)}"><div class="rc1502-sop-editor-step-head"><strong>Schritt ${index+1}</strong><small>${esc(id)}</small></div><div class="rc1502-sop-editor-fields"><label>Titel<input data-sop-editor-step-field="title" value="${esc(step&&step.title)}"></label><label>Ziel/Seite<input data-sop-editor-step-field="page" value="${esc(step&&step.page)}"></label></div><label>Anweisung<textarea data-sop-editor-step-field="instruction">${esc(step&&step.instruction||step&&step.text)}</textarea></label><label>Erwartetes Ergebnis<textarea data-sop-editor-step-field="expectedResult">${esc(step&&step.expectedResult)}</textarea></label><div class="rc1502-sop-editor-step-actions"><button type="button" data-sop-editor-action="update-step">Speichern</button><button type="button" data-sop-editor-action="move-up"${index===0?' disabled':''}>↑ Hoch</button><button type="button" data-sop-editor-action="move-down"${index===total-1?' disabled':''}>↓ Runter</button><button type="button" data-sop-editor-action="remove-step" data-danger="true">Entfernen</button></div></article>`;}
+function validationLines(result){
+  const errors=arr(result&&result.errors),warnings=arr(result&&result.warnings);
+  const errorFallback=tl('sop.editor.validationError',RC1523_DE['sop.editor.validationError']),warningFallback=tl('sop.editor.validationWarning',RC1523_DE['sop.editor.validationWarning']);
+  const items=[...errors.map(item=>`<li>${esc(typeof item==='string'?item:(item.message||item.code||errorFallback))}</li>`),...warnings.map(item=>`<li>${esc(typeof item==='string'?item:(item.message||item.code||warningFallback))}</li>`)];
+  return items.length?`<ul class="rc1502-sop-editor-validation">${items.join('')}</ul>`:`<p class="rc1502-sop-editor-note">${tlh('sop.editor.noStructuralErrors',RC1523_DE['sop.editor.noStructuralErrors'])}</p>`;
+}
+function renderEditorStep(step,index,total){
+  const id=text(step&&step.id)||`step-${index+1}`;
+  return `<article class="rc1502-sop-editor-step" data-sop-editor-step="${esc(id)}"><div class="rc1502-sop-editor-step-head"><strong>${th('sop.step',{number:index+1})}</strong><small>${esc(id)}</small></div><div class="rc1502-sop-editor-fields"><label>${tlh('sop.editor.field.title',RC1523_DE['sop.editor.field.title'])}<input data-sop-editor-step-field="title" value="${esc(step&&step.title)}"></label><label>${tlh('sop.editor.field.targetPage',RC1523_DE['sop.editor.field.targetPage'])}<input data-sop-editor-step-field="page" value="${esc(step&&step.page)}"></label></div><label>${tlh('sop.editor.field.instruction',RC1523_DE['sop.editor.field.instruction'])}<textarea data-sop-editor-step-field="instruction">${esc(step&&step.instruction||step&&step.text)}</textarea></label><label>${tlh('sop.expectedResult',RC1523_DE['sop.expectedResult'])}<textarea data-sop-editor-step-field="expectedResult">${esc(step&&step.expectedResult)}</textarea></label><div class="rc1502-sop-editor-step-actions"><button type="button" data-sop-editor-action="update-step">${th('common.save')}</button><button type="button" data-sop-editor-action="move-up"${index===0?' disabled':''}>↑ ${tlh('sop.editor.moveUp',RC1523_DE['sop.editor.moveUp'])}</button><button type="button" data-sop-editor-action="move-down"${index===total-1?' disabled':''}>↓ ${tlh('sop.editor.moveDown',RC1523_DE['sop.editor.moveDown'])}</button><button type="button" data-sop-editor-action="remove-step" data-danger="true">${th('common.remove')}</button></div></article>`;
+}
 function renderEditorPanel(doc,rights){
-  const r=rightsOf(rights);if(!r.edit&&!r.admin)return'';const api=sopEditorApi();const type=text(doc&&doc.type)||'process';const draft=draftRecord(doc);const typeLabel=type==='customer'?'Kunden-SOP / Overlay':'Prozess-SOP';
-  const version=draft?text(draft.version):'';let validation={ok:true,errors:[],warnings:[]};if(draft&&api){try{validation=api.validateDraft(doc,{version});}catch(error){validation={ok:false,errors:[text(error&&error.message)||'Validierung fehlgeschlagen'],warnings:[]};}}
-  const validationState=draft?(validation.ok?'valid':'invalid'):'none';const summary=`<div class="rc1502-sop-editor-summary"><div><span>Typ</span><strong>${esc(typeLabel)}</strong></div><div><span>Entwurf</span><strong>${esc(version||'Kein Entwurf')}</strong></div><div><span>Änderungsgrund</span><strong>${esc(draft&&draft.changeReason||doc&&doc.changeReason||'—')}</strong></div></div>`;
-  const customerInfo=type==='customer'?`<div class="rc1502-sop-editor-card"><h3>Kundenbezug</h3><div class="rc1502-sop-editor-customer"><div><span>Kunde</span><strong>${esc(doc.customerId||'—')}</strong></div><div><span>Basis-SOP</span><strong>${esc(doc.baseProcessSop||'—')}</strong></div></div><p class="rc1502-sop-editor-note">Kundenabweichungen ergänzen die Basis-SOP; die freigegebene Prozess-SOP wird nicht überschrieben.</p></div>`:'';
-  const createDraft=`<div class="rc1502-sop-editor-card"><h3>Neue Entwurfsfassung</h3><div class="rc1502-sop-editor-fields"><label>Version<input data-sop-editor-field="draft-version" value="${esc(suggestedDraftVersion(doc))}"></label><label>Änderungsgrund<input data-sop-editor-field="draft-reason" placeholder="Was wird geändert?"></label></div><div class="rc1502-sop-editor-inline-actions"><button type="button" data-sop-editor-action="create-draft" data-primary="true">Entwurf anlegen</button></div></div>`;
-  const overlayCreate=type==='process'?`<div class="rc1502-sop-editor-card"><h3>Kunden-SOP anlegen</h3><div class="rc1502-sop-editor-fields"><label>Kundennummer<input data-sop-editor-field="overlay-customer" placeholder="z. B. 9000003019"></label><label>SOP-Nummer<input data-sop-editor-field="overlay-number" placeholder="SOP-CUST-..."></label></div><label>Änderungsgrund<input data-sop-editor-field="overlay-reason" placeholder="Kundenspezifische Abweichung"></label><div class="rc1502-sop-editor-inline-actions"><button type="button" data-sop-editor-action="create-overlay" data-sop-editor-create-overlay data-primary="true">Kunden-SOP erstellen</button></div></div>`:'';
+  const r=rightsOf(rights);if(!r.edit&&!r.admin)return'';const api=sopEditorApi();const type=text(doc&&doc.type)||'process';const draft=draftRecord(doc);const typeLabel=type==='customer'?tl('sop.editor.typeCustomer',RC1523_DE['sop.editor.typeCustomer']):tl('sop.editor.typeProcess',RC1523_DE['sop.editor.typeProcess']);
+  const version=draft?text(draft.version):'';let validation={ok:true,errors:[],warnings:[]};if(draft&&api){try{validation=api.validateDraft(doc,{version});}catch(error){validation={ok:false,errors:[text(error&&error.message)||tl('sop.editor.validationFailed',RC1523_DE['sop.editor.validationFailed'])],warnings:[]};}}
+  const validationState=draft?(validation.ok?'valid':'invalid'):'none';
+  const summary=`<div class="rc1502-sop-editor-summary"><div><span>${tlh('sop.editor.type',RC1523_DE['sop.editor.type'])}</span><strong>${esc(typeLabel)}</strong></div><div><span>${tlh('sop.editor.draft',RC1523_DE['sop.editor.draft'])}</span><strong>${esc(version||tl('sop.editor.noDraft',RC1523_DE['sop.editor.noDraft']))}</strong></div><div><span>${tlh('sop.editor.changeReason',RC1523_DE['sop.editor.changeReason'])}</span><strong>${esc(draft&&draft.changeReason||doc&&doc.changeReason||'—')}</strong></div></div>`;
+  const customerInfo=type==='customer'?`<div class="rc1502-sop-editor-card"><h3>${tlh('sop.editor.customerContext',RC1523_DE['sop.editor.customerContext'])}</h3><div class="rc1502-sop-editor-customer"><div><span>${tlh('sop.editor.customer',RC1523_DE['sop.editor.customer'])}</span><strong>${esc(doc.customerId||'—')}</strong></div><div><span>${tlh('sop.editor.baseSop',RC1523_DE['sop.editor.baseSop'])}</span><strong>${esc(doc.baseProcessSop||'—')}</strong></div></div><p class="rc1502-sop-editor-note">${tlh('sop.editor.customerOverlayNote',RC1523_DE['sop.editor.customerOverlayNote'])}</p></div>`:'';
+  const createDraft=`<div class="rc1502-sop-editor-card"><h3>${tlh('sop.editor.newDraft',RC1523_DE['sop.editor.newDraft'])}</h3><div class="rc1502-sop-editor-fields"><label>${tlh('sop.editor.version',RC1523_DE['sop.editor.version'])}<input data-sop-editor-field="draft-version" value="${esc(suggestedDraftVersion(doc))}"></label><label>${tlh('sop.editor.changeReason',RC1523_DE['sop.editor.changeReason'])}<input data-sop-editor-field="draft-reason" placeholder="${tlh('sop.editor.changePlaceholder',RC1523_DE['sop.editor.changePlaceholder'])}"></label></div><div class="rc1502-sop-editor-inline-actions"><button type="button" data-sop-editor-action="create-draft" data-primary="true">${tlh('sop.editor.createDraft',RC1523_DE['sop.editor.createDraft'])}</button></div></div>`;
+  const overlayCreate=type==='process'?`<div class="rc1502-sop-editor-card"><h3>${tlh('sop.editor.createCustomerSop',RC1523_DE['sop.editor.createCustomerSop'])}</h3><div class="rc1502-sop-editor-fields"><label>${tlh('sop.editor.customerNumber',RC1523_DE['sop.editor.customerNumber'])}<input data-sop-editor-field="overlay-customer" placeholder="z. B. 9000003019"></label><label>${tlh('sop.editor.sopNumber',RC1523_DE['sop.editor.sopNumber'])}<input data-sop-editor-field="overlay-number" placeholder="SOP-CUST-..."></label></div><label>${tlh('sop.editor.changeReason',RC1523_DE['sop.editor.changeReason'])}<input data-sop-editor-field="overlay-reason" placeholder="${tlh('sop.editor.customerDeviationPlaceholder',RC1523_DE['sop.editor.customerDeviationPlaceholder'])}"></label><div class="rc1502-sop-editor-inline-actions"><button type="button" data-sop-editor-action="create-overlay" data-sop-editor-create-overlay data-primary="true">${tlh('sop.editor.createCustomerButton',RC1523_DE['sop.editor.createCustomerButton'])}</button></div></div>`:'';
   let draftBody=createDraft;
   if(draft&&type==='process'){
     const steps=arr(draft.content&&draft.content.steps);const stepRows=steps.map((step,index)=>renderEditorStep(step,index,steps.length)).join('');const stepOptions=steps.map(step=>`<option value="${esc(step.id)}">${esc(step.id)} – ${esc(step.title||step.instruction||step.text)}</option>`).join('');
-    draftBody=`<div class="rc1502-sop-editor-grid"><div class="rc1502-sop-editor-main"><div class="rc1502-sop-editor-card"><h3>Arbeitsschritte</h3><div class="rc1502-sop-editor-step-list">${stepRows||'<p class="rc1502-sop-editor-note">Noch keine Schritte im Entwurf.</p>'}</div></div><div class="rc1502-sop-editor-card" data-sop-editor-add-step><h3>Schritt hinzufügen</h3><div class="rc1502-sop-editor-fields"><label>Schritt-ID<input data-sop-editor-field="new-step-id" placeholder="step-neu"></label><label>Titel<input data-sop-editor-field="new-step-title"></label></div><label>Anweisung<textarea data-sop-editor-field="new-step-instruction"></textarea></label><div class="rc1502-sop-editor-inline-actions"><button type="button" data-sop-editor-action="add-step" data-primary="true">Schritt hinzufügen</button></div></div></div><aside class="rc1502-sop-editor-side"><div class="rc1502-sop-editor-card"><h3>Validierung</h3>${validationLines(validation)}</div><div class="rc1502-sop-editor-card"><h3>Schrittbild zuordnen</h3><label>Schritt<select data-sop-editor-field="visual-step">${stepOptions}</select></label><label>Bildquelle<input data-sop-editor-visual-src data-sop-editor-field="visual-src" placeholder="/assets/sop/screenshots/..."></label><label>Bildhinweis<input data-sop-editor-field="visual-caption"></label><div class="rc1502-sop-editor-inline-actions"><button type="button" data-sop-editor-action="assign-visual">Bild zuordnen</button></div></div>${overlayCreate}</aside></div>`;
-  }else if(draft&&type==='customer')draftBody=`<div class="rc1502-sop-editor-grid"><div class="rc1502-sop-editor-main">${customerInfo}<div class="rc1502-sop-editor-card"><h3>Kundenabweichungen</h3><p class="rc1502-sop-editor-note">Dieses Overlay bleibt getrennt von der freigegebenen Basis-SOP und wird beim Aufruf anhand des Kundenkontexts aufgelöst.</p></div></div><aside class="rc1502-sop-editor-side"><div class="rc1502-sop-editor-card"><h3>Validierung</h3>${validationLines(validation)}</div></aside></div>`;
-  return `<section class="rc1502-sop-editor" data-sop-editor data-sop-editor-type="${esc(type)}"${version?` data-sop-editor-version="${esc(version)}"`:''} data-sop-editor-validation="${validationState}" aria-label="SOP-Editor"><div class="rc1502-sop-editor-head"><div><h2>SOP-Editor</h2><p>Änderungen werden nur in Entwürfen gespeichert. Freigegebene Fassungen bleiben unverändert.</p></div><div class="rc1502-sop-editor-badges"><span class="rc1502-sop-editor-badge">${esc(typeLabel)}</span><span class="rc1502-sop-editor-badge" data-kind="${validationState}">${esc(draft?(validation.ok?'Entwurf gültig':'Entwurf prüfen'):'Kein Entwurf')}</span></div></div><div class="rc1502-sop-editor-body">${summary}${draftBody}${!draft?overlayCreate:''}</div></section>`;
+    draftBody=`<div class="rc1502-sop-editor-grid"><div class="rc1502-sop-editor-main"><div class="rc1502-sop-editor-card"><h3>${tlh('sop.editor.workSteps',RC1523_DE['sop.editor.workSteps'])}</h3><div class="rc1502-sop-editor-step-list">${stepRows||`<p class="rc1502-sop-editor-note">${tlh('sop.editor.noDraftSteps',RC1523_DE['sop.editor.noDraftSteps'])}</p>`}</div></div><div class="rc1502-sop-editor-card" data-sop-editor-add-step><h3>${tlh('sop.editor.addStep',RC1523_DE['sop.editor.addStep'])}</h3><div class="rc1502-sop-editor-fields"><label>${tlh('sop.editor.stepId',RC1523_DE['sop.editor.stepId'])}<input data-sop-editor-field="new-step-id" placeholder="step-neu"></label><label>${tlh('sop.editor.field.title',RC1523_DE['sop.editor.field.title'])}<input data-sop-editor-field="new-step-title"></label></div><label>${tlh('sop.editor.field.instruction',RC1523_DE['sop.editor.field.instruction'])}<textarea data-sop-editor-field="new-step-instruction"></textarea></label><div class="rc1502-sop-editor-inline-actions"><button type="button" data-sop-editor-action="add-step" data-primary="true">${tlh('sop.editor.addStep',RC1523_DE['sop.editor.addStep'])}</button></div></div></div><aside class="rc1502-sop-editor-side"><div class="rc1502-sop-editor-card"><h3>${tlh('sop.editor.validation',RC1523_DE['sop.editor.validation'])}</h3>${validationLines(validation)}</div><div class="rc1502-sop-editor-card"><h3>${tlh('sop.editor.assignStepImage',RC1523_DE['sop.editor.assignStepImage'])}</h3><label>${tlh('sop.editor.step',RC1523_DE['sop.editor.step'])}<select data-sop-editor-field="visual-step">${stepOptions}</select></label><label>${tlh('sop.editor.imageSource',RC1523_DE['sop.editor.imageSource'])}<input data-sop-editor-visual-src data-sop-editor-field="visual-src" placeholder="/assets/sop/screenshots/..."></label><label>${th('sop.imageHint')}<input data-sop-editor-field="visual-caption"></label><div class="rc1502-sop-editor-inline-actions"><button type="button" data-sop-editor-action="assign-visual">${tlh('sop.editor.assignImage',RC1523_DE['sop.editor.assignImage'])}</button></div></div>${overlayCreate}</aside></div>`;
+  }else if(draft&&type==='customer')draftBody=`<div class="rc1502-sop-editor-grid"><div class="rc1502-sop-editor-main">${customerInfo}<div class="rc1502-sop-editor-card"><h3>${tlh('sop.editor.customerDeviations',RC1523_DE['sop.editor.customerDeviations'])}</h3><p class="rc1502-sop-editor-note">${tlh('sop.editor.overlaySeparateNote',RC1523_DE['sop.editor.overlaySeparateNote'])}</p></div></div><aside class="rc1502-sop-editor-side"><div class="rc1502-sop-editor-card"><h3>${tlh('sop.editor.validation',RC1523_DE['sop.editor.validation'])}</h3>${validationLines(validation)}</div></aside></div>`;
+  const draftBadge=draft?(validation.ok?tl('sop.editor.draftValid',RC1523_DE['sop.editor.draftValid']):tl('sop.editor.checkDraft',RC1523_DE['sop.editor.checkDraft'])):tl('sop.editor.noDraft',RC1523_DE['sop.editor.noDraft']);
+  return `<section class="rc1502-sop-editor" data-sop-editor data-sop-editor-type="${esc(type)}"${version?` data-sop-editor-version="${esc(version)}"`:''} data-sop-editor-validation="${validationState}" aria-label="${tlh('sop.editor.title',RC1523_DE['sop.editor.title'])}"><div class="rc1502-sop-editor-head"><div><h2>${tlh('sop.editor.title',RC1523_DE['sop.editor.title'])}</h2><p>${tlh('sop.editor.intro',RC1523_DE['sop.editor.intro'])}</p></div><div class="rc1502-sop-editor-badges"><span class="rc1502-sop-editor-badge">${esc(typeLabel)}</span><span class="rc1502-sop-editor-badge" data-kind="${validationState}">${esc(draftBadge)}</span></div></div><div class="rc1502-sop-editor-body">${summary}${draftBody}${!draft?overlayCreate:''}</div></section>`;
 }
 
 function renderDocument(doc,options={}){
@@ -141,7 +204,7 @@ function mount(target,options={}){
     const api=sopEditorApi();if(!api)return false;const panel=button&&button.closest?button.closest('[data-sop-editor]'):null;if(!panel)return false;const action=text(button.getAttribute('data-sop-editor-action'));let doc=find(state.activeNumber);if(!doc)return false;
     try{
       let next=null;
-      if(action==='create-draft'){next=api.createDraft(doc,{version:field(panel,'draft-version')||suggestedDraftVersion(doc),actor:text(options.actor)||'SOP-Editor',reason:field(panel,'draft-reason')||'SOP überarbeitet'});}
+      if(action==='create-draft'){next=api.createDraft(doc,{version:field(panel,'draft-version')||suggestedDraftVersion(doc),actor:text(options.actor)||'SOP-Editor',reason:field(panel,'draft-reason')||tl('sop.editor.reasonEdited',RC1523_DE['sop.editor.reasonEdited'])});}
       else if(action==='create-overlay'){const overlay=api.createCustomerOverlay(doc,{number:field(panel,'overlay-number'),customerId:field(panel,'overlay-customer'),version:'1.0',actor:text(options.actor)||'SOP-Editor',reason:field(panel,'overlay-reason')||'Kundenabweichung'});state.documents.push(overlay);state.activeNumber=overlay.number;persist('RC1502 Kunden-SOP angelegt');paint();return true;}
       else if(action==='add-step'){next=api.addStep(doc,{version:doc.draftVersion,step:{id:field(panel,'new-step-id'),title:field(panel,'new-step-title'),instruction:field(panel,'new-step-instruction')}});}
       else if(action==='assign-visual'){next=api.assignVisual(doc,{version:doc.draftVersion,stepId:field(panel,'visual-step'),visual:{type:'screenshot',src:field(panel,'visual-src'),caption:field(panel,'visual-caption')}});}

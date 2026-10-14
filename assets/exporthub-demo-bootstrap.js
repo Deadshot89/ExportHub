@@ -1,5 +1,8 @@
 (()=>{
 'use strict';
+const RC1523_DE=Object.freeze({
+  "sop.demo.stateRequired":"Für die Demo-Speicherung fehlt ein gültiger State."
+});
 if(window.__EXPORTHUB_DEMO_BOOTSTRAP__)return;
 window.__EXPORTHUB_DEMO_BOOTSTRAP__=true;
 window.__EXPORTHUB_DEMO_MODE__=true;
@@ -108,6 +111,7 @@ syncDemoGlobals();
 
 function json(data,status=200){return new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-ExportHUB-Demo':'1'}});}
 function text(v){return String(v==null?'':v);}
+function i18n(key,fallback){try{const api=window.ExportHUBI18n;if(api&&typeof api.t==='function'){const value=api.t(key);if(value&&value!==key)return value;}}catch(_){}return fallback;}
 function parseBody(init){
   try{if(!init||init.body==null)return{};if(typeof init.body==='string')return JSON.parse(init.body||'{}');return{};}catch(_){return{};}
 }
@@ -129,7 +133,7 @@ window.fetch=async function(input,init){
   if(path.includes('/api/exporthub-state')){
     if(method==='GET'||payload.action==='read'||payload.mode==='read')return json({ok:true,demo:true,environment:'demo',revision:team.revision,updatedAt:team.updatedAt,state:team.state,users:team.users,team});
     const incoming=isObject(payload.state)?payload.state:(isObject(payload.team)&&isObject(payload.team.state)?payload.team.state:null);
-    if(!incoming)return json({ok:false,demo:true,environment:'demo',code:'DEMO_STATE_REQUIRED',message:'Für die Demo-Speicherung fehlt ein gültiger State.'},400);
+    if(!incoming)return json({ok:false,demo:true,environment:'demo',code:'DEMO_STATE_REQUIRED',message:i18n('sop.demo.stateRequired',RC1523_DE['sop.demo.stateRequired'])},400);
     commitDemoState(incoming,payload);
     return json({ok:true,demo:true,environment:'demo',revision:team.revision,updatedAt:team.updatedAt,state:team.state,users:team.users,team,simulated:true,ackOnly:u.searchParams.get('ack')==='1'});
   }

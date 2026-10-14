@@ -1,5 +1,57 @@
 (function(root){
 'use strict';
+const RC1523_DE=Object.freeze({
+  "common.close":"Schließen",
+  "sop.tour.startGuide":"▶ Anleitung starten",
+  "sop.tour.startTraining":"🎓 Training starten",
+  "sop.tour.startExam":"📝 Prüfung starten",
+  "sop.training.mode":"TRAININGSMODUS",
+  "sop.training.noProductionChanges":"Keine produktiven Daten werden verändert.",
+  "sop.training.simulation":"Simulation · Aktionen und Ergebnisse bleiben in der Demo.",
+  "sop.exam.title":"SOP-Prüfung",
+  "sop.exam.defaultTask":"Führe den Prozess „{{title}}“ vollständig durch.",
+  "sop.exam.passed":"✅ Bestanden",
+  "sop.exam.notPassed":"❌ Noch nicht bestanden",
+  "sop.exam.mode":"PRÜFUNGSMODUS",
+  "sop.exam.selfDirected":"Arbeite selbstständig. Während der Prüfung werden keine Lösungshinweise angezeigt.",
+  "sop.exam.close":"Prüfung schließen",
+  "sop.exam.task":"Aufgabe",
+  "sop.exam.progress":"Prüfungsfortschritt {{correct}} von {{required}}",
+  "sop.exam.countCorrectOne":"{{count}} korrekter Schritt",
+  "sop.exam.countCorrectMany":"{{count}} korrekte Schritte",
+  "sop.exam.countErrors":"{{count}} Fehler",
+  "sop.exam.countSkipped":"{{count}} ausgelassen",
+  "sop.exam.countHelpOne":"{{count}} Hilfe",
+  "sop.exam.countHelpMany":"{{count}} Hilfen",
+  "sop.exam.running":"Prüfung läuft",
+  "sop.exam.requestHelp":"Hilfe anfordern",
+  "sop.exam.finish":"Prüfung abschließen",
+  "sop.exam.cancel":"Prüfung abbrechen",
+  "sop.tour.guideAria":"Geführte SOP-Anleitung",
+  "sop.tour.trainingAria":"Geführtes SOP-Training",
+  "sop.tour.trainingTitle":"SOP-Training",
+  "sop.tour.guideTitle":"SOP-Anleitung",
+  "sop.tour.endTraining":"Training beenden",
+  "sop.tour.endGuide":"Anleitung beenden",
+  "sop.tour.progress":"Fortschritt {{percent}} Prozent",
+  "sop.tour.stepProgress":"Schritt {{current}} von {{total}}",
+  "sop.tour.trainingCompleted":"Training abgeschlossen",
+  "sop.tour.guideCompleted":"Anleitung abgeschlossen",
+  "sop.tour.trainingPaused":"Training pausiert",
+  "sop.tour.guidePaused":"Anleitung pausiert",
+  "sop.tour.stepCompleted":"Schritt abgeschlossen",
+  "sop.tour.trainingActive":"Training aktiv",
+  "sop.tour.guideActive":"Anleitung aktiv",
+  "sop.tour.completedLineTraining":"✅ Training abgeschlossen.",
+  "sop.tour.completedLineGuide":"✅ Anleitung abgeschlossen.",
+  "sop.tour.currentTask":"Aktuelle Aufgabe",
+  "sop.tour.tip":"Tipp",
+  "sop.tour.previous":"Vorheriger Schritt",
+  "sop.tour.continue":"Fortsetzen",
+  "sop.tour.pause":"Pausieren",
+  "sop.tour.openSop":"SOP öffnen",
+  "sop.tour.end":"Beenden"
+});
 if(root.ExportHubSopTourUi)return;
 
 let panel=null;
@@ -13,72 +65,63 @@ let highlightedKey='';
 function text(value){return String(value==null?'':value).trim();}
 function esc(value){return String(value==null?'':value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
 function arr(value){return Array.isArray(value)?value:[];}
+function interpolate(value,vars){return String(value==null?'':value).replace(/\{\{\s*([\w.-]+)\s*\}\}/g,(_,key)=>vars&&Object.prototype.hasOwnProperty.call(vars,key)?String(vars[key]):'');}
+function tr(key,fallback,vars){try{const api=root.ExportHUBI18n;if(api&&typeof api.t==='function'){const value=api.t(key,vars);if(value&&value!==key)return value;}}catch(_){}return interpolate(fallback,vars);}
+function th(key,fallback,vars){return esc(tr(key,fallback,vars));}
 function hasEnabledTour(sop){return arr(sop&&sop.steps).some(step=>step&&step.tour&&step.tour.enabled===true);}
 function hasEnabledExam(sop){return arr(sop&&sop.steps).some(step=>step&&step.exam&&step.exam.relevant===true);}
 function startButtonHtml(sop){
-  const tourEnabled=hasEnabledTour(sop);
-  const examEnabled=hasEnabledExam(sop);
-  if(!tourEnabled&&!examEnabled)return '';
-  const number=esc(sop&&sop.number);
-  let html='';
-  if(tourEnabled)html+=`<button type="button" data-sop-tour-start="${number}">▶ Anleitung starten</button><button type="button" data-sop-training-start="${number}">🎓 Training starten</button>`;
-  if(examEnabled)html+=`<button type="button" data-sop-exam-start="${number}">📝 Prüfung starten</button>`;
+  const tourEnabled=hasEnabledTour(sop),examEnabled=hasEnabledExam(sop);if(!tourEnabled&&!examEnabled)return '';
+  const number=esc(sop&&sop.number);let html='';
+  if(tourEnabled)html+=`<button type="button" data-sop-tour-start="${number}">${th('sop.tour.startGuide',RC1523_DE['sop.tour.startGuide'])}</button><button type="button" data-sop-training-start="${number}">${th('sop.tour.startTraining',RC1523_DE['sop.tour.startTraining'])}</button>`;
+  if(examEnabled)html+=`<button type="button" data-sop-exam-start="${number}">${th('sop.tour.startExam',RC1523_DE['sop.tour.startExam'])}</button>`;
   return html;
 }
 function firstTip(step){return text(arr(step&&step.warnings)[0]||arr(step&&step.troubleshooting)[0]||'');}
 function isExam(session){return text(session&&session.mode).toLowerCase()==='exam';}
 function trainingHeader(session){
   if(text(session&&session.mode).toLowerCase()!=='training')return '';
-  return `<div class="rc1503-sop-training-banner" data-sop-training-banner role="status" aria-live="polite"><strong>TRAININGSMODUS</strong><span>Keine produktiven Daten werden verändert.</span></div><div class="rc1503-sop-training-simulation" data-sop-training-simulation-label><span aria-hidden="true">🧪</span><span>Simulation · Aktionen und Ergebnisse bleiben in der Demo.</span></div>`;
+  return `<div class="rc1503-sop-training-banner" data-sop-training-banner role="status" aria-live="polite"><strong>${th('sop.training.mode',RC1523_DE['sop.training.mode'])}</strong><span>${th('sop.training.noProductionChanges',RC1523_DE['sop.training.noProductionChanges'])}</span></div><div class="rc1503-sop-training-simulation" data-sop-training-simulation-label><span aria-hidden="true">🧪</span><span>${th('sop.training.simulation',RC1523_DE['sop.training.simulation'])}</span></div>`;
 }
-function countLabel(value,singular,plural){const n=Math.max(0,Number(value)||0);return `${n} ${n===1?singular:plural}`;}
+function countTranslated(value,oneKey,oneFallback,manyKey,manyFallback){const n=Math.max(0,Number(value)||0);return tr(n===1?oneKey:manyKey,n===1?oneFallback:manyFallback,{count:n});}
 function renderExam(session){
   if(!session)return '';
-  const required=arr(session.requiredSteps).length;
-  const correct=arr(session.correctSteps).length;
-  const errors=arr(session.errors).length;
-  const skipped=arr(session.skippedSteps).length;
-  const help=Math.max(0,Number(session.helpCount)||0);
-  const completed=session.status==='completed';
-  const percent=required?Math.min(100,Math.round((correct/required)*100)):0;
-  const title=text(session.title)||text(session.sopNumber)||'SOP-Prüfung';
-  const task=text(session.task)||`Führe den Prozess „${title}“ vollständig durch.`;
-  const result=completed?(session.passed===true?'✅ Bestanden':'❌ Noch nicht bestanden'):'';
-  return `<aside class="rc1503-sop-exam-panel" data-sop-exam-shell role="complementary" aria-label="SOP-Prüfung">
-    <div class="rc1503-sop-exam-banner" role="status" aria-live="polite"><strong>PRÜFUNGSMODUS</strong><span>Arbeite selbstständig. Während der Prüfung werden keine Lösungshinweise angezeigt.</span></div>
-    <div class="rc1503-sop-exam-head"><div><span class="rc1503-sop-exam-kicker">${esc(session.sopNumber)}</span><h2>${esc(title)}</h2></div><button type="button" data-sop-exam-end aria-label="Prüfung schließen">×</button></div>
-    <section class="rc1503-sop-exam-task" aria-labelledby="rc1503SopExamTaskTitle"><h3 id="rc1503SopExamTaskTitle">Aufgabe</h3><p>${esc(task)}</p></section>
-    <div class="rc1503-sop-exam-progress" aria-label="Prüfungsfortschritt ${correct} von ${required}"><div><strong>${correct} von ${required}</strong><span>${percent} %</span></div><progress max="100" value="${percent}">${percent} %</progress></div>
-    ${completed?`<section class="rc1503-sop-exam-result" aria-live="polite"><h3>${result}</h3><div class="rc1503-sop-exam-summary"><span>${countLabel(correct,'korrekter Schritt','korrekte Schritte')}</span><span>${countLabel(errors,'Fehler','Fehler')}</span><span>${countLabel(skipped,'ausgelassen','ausgelassen')}</span><span>${countLabel(help,'Hilfe','Hilfen')}</span></div></section>`:`<div class="rc1503-sop-exam-status" role="status" aria-live="polite">Prüfung läuft</div>`}
+  const required=arr(session.requiredSteps).length,correct=arr(session.correctSteps).length,errors=arr(session.errors).length,skipped=arr(session.skippedSteps).length,help=Math.max(0,Number(session.helpCount)||0),completed=session.status==='completed',percent=required?Math.min(100,Math.round((correct/required)*100)):0;
+  const title=text(session.title)||text(session.sopNumber)||tr('sop.exam.title',RC1523_DE['sop.exam.title']);
+  const task=text(session.task)||tr('sop.exam.defaultTask',RC1523_DE['sop.exam.defaultTask'],{title});
+  const result=completed?(session.passed===true?tr('sop.exam.passed',RC1523_DE['sop.exam.passed']):tr('sop.exam.notPassed',RC1523_DE['sop.exam.notPassed'])):'';
+  return `<aside class="rc1503-sop-exam-panel" data-sop-exam-shell role="complementary" aria-label="${th('sop.exam.title',RC1523_DE['sop.exam.title'])}">
+    <div class="rc1503-sop-exam-banner" role="status" aria-live="polite"><strong>${th('sop.exam.mode',RC1523_DE['sop.exam.mode'])}</strong><span>${th('sop.exam.selfDirected',RC1523_DE['sop.exam.selfDirected'])}</span></div>
+    <div class="rc1503-sop-exam-head"><div><span class="rc1503-sop-exam-kicker">${esc(session.sopNumber)}</span><h2>${esc(title)}</h2></div><button type="button" data-sop-exam-end aria-label="${th('sop.exam.close',RC1523_DE['sop.exam.close'])}">×</button></div>
+    <section class="rc1503-sop-exam-task" aria-labelledby="rc1503SopExamTaskTitle"><h3 id="rc1503SopExamTaskTitle">${th('sop.exam.task',RC1523_DE['sop.exam.task'])}</h3><p>${esc(task)}</p></section>
+    <div class="rc1503-sop-exam-progress" aria-label="${th('sop.exam.progress',RC1523_DE['sop.exam.progress'],{correct,required})}"><div><strong>${esc(tr('sop.tour.stepProgress',RC1523_DE['sop.tour.stepProgress'],{current:correct,total:required}).replace(/^Schritt\s+/,'').replace(/^Step\s+/,'').replace(/^Krok\s+/,'').replace(/^Paso\s+/,'').replace(/^Étape\s+/,'').replace(/^Passaggio\s+/,''))}</strong><span>${percent} %</span></div><progress max="100" value="${percent}">${percent} %</progress></div>
+    ${completed?`<section class="rc1503-sop-exam-result" aria-live="polite"><h3>${esc(result)}</h3><div class="rc1503-sop-exam-summary"><span>${esc(countTranslated(correct,'sop.exam.countCorrectOne',RC1523_DE['sop.exam.countCorrectOne'],'sop.exam.countCorrectMany',RC1523_DE['sop.exam.countCorrectMany']))}</span><span>${esc(tr('sop.exam.countErrors',RC1523_DE['sop.exam.countErrors'],{count:errors}))}</span><span>${esc(tr('sop.exam.countSkipped',RC1523_DE['sop.exam.countSkipped'],{count:skipped}))}</span><span>${esc(countTranslated(help,'sop.exam.countHelpOne',RC1523_DE['sop.exam.countHelpOne'],'sop.exam.countHelpMany',RC1523_DE['sop.exam.countHelpMany']))}</span></div></section>`:`<div class="rc1503-sop-exam-status" role="status" aria-live="polite">${th('sop.exam.running',RC1523_DE['sop.exam.running'])}</div>`}
     <div class="rc1503-sop-exam-controls">
-      ${completed?'':`<button type="button" data-sop-exam-help>Hilfe anfordern</button><button type="button" data-sop-exam-finish>Prüfung abschließen</button>`}
-      <button type="button" data-sop-exam-end>${completed?'Schließen':'Prüfung abbrechen'}</button>
+      ${completed?'':`<button type="button" data-sop-exam-help>${th('sop.exam.requestHelp',RC1523_DE['sop.exam.requestHelp'])}</button><button type="button" data-sop-exam-finish>${th('sop.exam.finish',RC1523_DE['sop.exam.finish'])}</button>`}
+      <button type="button" data-sop-exam-end>${completed?th('common.close',RC1523_DE['common.close']):th('sop.exam.cancel',RC1523_DE['sop.exam.cancel'])}</button>
     </div>
   </aside>`;
 }
 function render(session){
-  if(!session)return '';
-  if(isExam(session))return renderExam(session);
-  const step=session.currentStep||{};
-  const paused=session.status==='paused';
-  const completed=session.status==='completed';
-  const training=text(session.mode).toLowerCase()==='training';
-  const statusText=completed?(training?'Training abgeschlossen':'Anleitung abgeschlossen'):paused?(training?'Training pausiert':'Anleitung pausiert'):session.feedback&&session.feedback.reason==='STEP_COMPLETED'?'Schritt abgeschlossen':training?'Training aktiv':'Anleitung aktiv';
-  const tip=firstTip(step);
-  return `<aside class="rc1501-sop-tour-panel${training?' rc1503-sop-training-panel':''}" role="complementary" aria-label="${training?'Geführtes SOP-Training':'Geführte SOP-Anleitung'}">
+  if(!session)return '';if(isExam(session))return renderExam(session);
+  const step=session.currentStep||{},paused=session.status==='paused',completed=session.status==='completed',training=text(session.mode).toLowerCase()==='training';
+  const statusText=completed?(training?tr('sop.tour.trainingCompleted',RC1523_DE['sop.tour.trainingCompleted']):tr('sop.tour.guideCompleted',RC1523_DE['sop.tour.guideCompleted'])):paused?(training?tr('sop.tour.trainingPaused',RC1523_DE['sop.tour.trainingPaused']):tr('sop.tour.guidePaused',RC1523_DE['sop.tour.guidePaused'])):session.feedback&&session.feedback.reason==='STEP_COMPLETED'?tr('sop.tour.stepCompleted',RC1523_DE['sop.tour.stepCompleted']):training?tr('sop.tour.trainingActive',RC1523_DE['sop.tour.trainingActive']):tr('sop.tour.guideActive',RC1523_DE['sop.tour.guideActive']);
+  const tip=firstTip(step),percent=Number(session.percent)||0,stepNumber=Number(session.stepNumber)||0,total=Number(session.total)||0;
+  return `<aside class="rc1501-sop-tour-panel${training?' rc1503-sop-training-panel':''}" role="complementary" aria-label="${training?th('sop.tour.trainingAria',RC1523_DE['sop.tour.trainingAria']):th('sop.tour.guideAria',RC1523_DE['sop.tour.guideAria'])}">
     ${trainingHeader(session)}
-    <div class="rc1501-sop-tour-head"><div><span class="rc1501-sop-tour-kicker">${esc(session.sopNumber)}</span><h2>${esc(session.title||(training?'SOP-Training':'SOP-Anleitung'))}</h2></div><button type="button" data-sop-tour-end aria-label="${training?'Training':'Anleitung'} beenden">×</button></div>
-    <div class="rc1501-sop-tour-progress" aria-label="Fortschritt ${Number(session.percent)||0} Prozent"><div><strong>Schritt ${Number(session.stepNumber)||0} von ${Number(session.total)||0}</strong><span>${Number(session.percent)||0} %</span></div><progress max="100" value="${Number(session.percent)||0}">${Number(session.percent)||0} %</progress></div>
+    <div class="rc1501-sop-tour-head"><div><span class="rc1501-sop-tour-kicker">${esc(session.sopNumber)}</span><h2>${esc(session.title||(training?tr('sop.tour.trainingTitle',RC1523_DE['sop.tour.trainingTitle']):tr('sop.tour.guideTitle',RC1523_DE['sop.tour.guideTitle'])))}</h2></div><button type="button" data-sop-tour-end aria-label="${training?th('sop.tour.endTraining',RC1523_DE['sop.tour.endTraining']):th('sop.tour.endGuide',RC1523_DE['sop.tour.endGuide'])}">×</button></div>
+    <div class="rc1501-sop-tour-progress" aria-label="${th('sop.tour.progress',RC1523_DE['sop.tour.progress'],{percent})}"><div><strong>${th('sop.tour.stepProgress',RC1523_DE['sop.tour.stepProgress'],{current:stepNumber,total})}</strong><span>${percent} %</span></div><progress max="100" value="${percent}">${percent} %</progress></div>
     <div class="rc1501-sop-tour-status" role="status" aria-live="polite">${esc(statusText)}</div>
-    ${completed?`<p class="rc1501-sop-tour-complete">✅ ${training?'Training':'Anleitung'} abgeschlossen.</p>`:`<section class="rc1501-sop-tour-task"><h3>Aktuelle Aufgabe</h3><p>${esc(step.instruction||step.title||'')}</p>${tip?`<div class="rc1501-sop-tour-tip"><strong>Tipp</strong><span>${esc(tip)}</span></div>`:''}</section>`}
+    ${completed?`<p class="rc1501-sop-tour-complete">${training?th('sop.tour.completedLineTraining',RC1523_DE['sop.tour.completedLineTraining']):th('sop.tour.completedLineGuide',RC1523_DE['sop.tour.completedLineGuide'])}</p>`:`<section class="rc1501-sop-tour-task"><h3>${th('sop.tour.currentTask',RC1523_DE['sop.tour.currentTask'])}</h3><p>${esc(step.instruction||step.title||'')}</p>${tip?`<div class="rc1501-sop-tour-tip"><strong>${th('sop.tour.tip',RC1523_DE['sop.tour.tip'])}</strong><span>${esc(tip)}</span></div>`:''}</section>`}
     <div class="rc1501-sop-tour-controls">
-      <button type="button" data-sop-tour-previous${Number(session.index)<=0?' disabled':''}>Vorheriger Schritt</button>
-      <button type="button" data-sop-tour-pause>${paused?'Fortsetzen':'Pausieren'}</button>
-      <button type="button" data-sop-tour-open-sop>SOP öffnen</button>
-      <button type="button" data-sop-tour-end>Beenden</button>
+      <button type="button" data-sop-tour-previous${Number(session.index)<=0?' disabled':''}>${th('sop.tour.previous',RC1523_DE['sop.tour.previous'])}</button>
+      <button type="button" data-sop-tour-pause>${paused?th('sop.tour.continue',RC1523_DE['sop.tour.continue']):th('sop.tour.pause',RC1523_DE['sop.tour.pause'])}</button>
+      <button type="button" data-sop-tour-open-sop>${th('sop.tour.openSop',RC1523_DE['sop.tour.openSop'])}</button>
+      <button type="button" data-sop-tour-end>${th('sop.tour.end',RC1523_DE['sop.tour.end'])}</button>
     </div>
   </aside>`;
 }
+
 function currentContext(){try{return typeof contextProvider==='function'?(contextProvider()||{}):{};}catch(_){return {};}}
 function eventDescriptor(event){
   const type=text(event&&event.type).toLowerCase();
