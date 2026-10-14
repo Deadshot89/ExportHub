@@ -5,6 +5,7 @@ import fs from 'node:fs';
 const runtime=fs.readFileSync(new URL('../assets/rc1532-customs-ai.js',import.meta.url),'utf8');
 const css=fs.readFileSync(new URL('../assets/rc1532-customs-ai.css',import.meta.url),'utf8');
 const builder=fs.readFileSync(new URL('../.github/rc1532/build-three-env.mjs',import.meta.url),'utf8');
+const currentBuilder=fs.readFileSync(new URL('../.github/rc1506/build-three-env.mjs',import.meta.url),'utf8');
 
 test('RC1532 UI: KI-Zollexperte wird additiv in den bestehenden Exportexperten eingebaut',()=>{
   assert.match(runtime,/rc1294AbdAnalysis/);
@@ -42,4 +43,11 @@ test('RC1532 Build: Asset wird in alle drei Umgebungen kopiert und genau einmal 
   assert.match(builder,/assets\/rc1532-customs-ai\.css/);
   for(const name of ['index.html','TESTVERSION.html','demo.html'])assert.match(builder,new RegExp(name.replace('.','\\.')));
   assert.match(builder,/exporthub-rc1532-customs-ai/);
+});
+
+test('RC1532 Build: aktuelle additive Release-Stufe bindet RC1532 nach RC1506 ein',()=>{
+  assert.match(currentBuilder,/import\s*\{integrateCustomsAi\}\s*from\s*['"]\.\.\/rc1532\/build-three-env\.mjs['"]/);
+  const coverage=currentBuilder.indexOf("fs.writeFileSync(path.join(out,'rc1506-sop-coverage-manifest.json')");
+  const customs=currentBuilder.indexOf('integrateCustomsAi(root,out)');
+  assert.ok(coverage>=0&&customs>coverage,'RC1532 muss additiv nach der bestehenden RC1506-Stufe ausgeführt werden');
 });
