@@ -28,6 +28,16 @@ test('RC1505: main verifies TESTSERVICE without a production deploy path', () =>
   assert.doesNotMatch(workflow, new RegExp(PRODUCTION_SECRET));
 });
 
+test('RC1505: TESTSERVICE readiness avoids pipefail-sensitive grep pipelines', () => {
+  const workflow = requireFile(MAIN_WORKFLOW);
+  const start = workflow.indexOf('RC1505 TESTSERVICE Readiness prüfen');
+  assert.ok(start >= 0, 'RC1505 TESTSERVICE Readiness fehlt');
+  const block = workflow.slice(start);
+  assert.doesNotMatch(block, /printf\s+'%s'\s+"\$(?:body|version)"\s*\|\s*grep\s+-q/);
+  assert.match(block, /\[\[\s*"\$body"\s*==\s*\*ExportHUB\*\s*\]\]/);
+  assert.match(block, /\[\[\s*"\$version"\s*==\s*\*"__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1112'"\*\s*\]\]/);
+});
+
 test('RC1505: production release is manual and requires exact confirmation', () => {
   const workflow = requireFile(PRODUCTION_WORKFLOW);
   assert.match(workflow, new RegExp(`name:\\s*${PRODUCTION_RELEASE_NAME}`));
