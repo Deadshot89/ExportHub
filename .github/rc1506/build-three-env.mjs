@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {build as buildRc1503} from '../rc1503/build-three-env.mjs';
+import {integrateShipmentRework} from '../rc1533/build-three-env.mjs';
 
 const HERE=path.dirname(fileURLToPath(import.meta.url));
 const ROOT=path.resolve(HERE,'../..');
@@ -69,6 +70,7 @@ export function integrateCoverageAdmin(root=ROOT,out=OUT){
     if(!fs.existsSync(target))throw new Error(`RC1506 Build-Datei fehlt: ${file}`);
     fs.writeFileSync(target,injectCoverageAdmin(fs.readFileSync(target,'utf8'),file));
   }
+  const shipmentRework=integrateShipmentRework(root,out);
   const manifest={
     version:'RC1506',
     baseBuilder:'.github/rc1503/build-three-env.mjs',
@@ -78,6 +80,7 @@ export function integrateCoverageAdmin(root=ROOT,out=OUT){
     dashboard:'admin-read-only',
     statusSource:'RC1505-only',
     customerFilter:'coverage-context-not-denominator',
+    shipmentRework:shipmentRework&&shipmentRework.version||'RC1533',
     productionDeploy:false
   };
   fs.writeFileSync(path.join(out,'rc1506-sop-coverage-manifest.json'),JSON.stringify(manifest,null,2)+'\n');
