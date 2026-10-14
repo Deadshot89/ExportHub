@@ -3,6 +3,30 @@ name: RC1537 TESTSERVICE Main Supersession
 on:
   push:
     branches: [main]
+    paths:
+      - 'index.html'
+      - 'TESTVERSION.html'
+      - 'demo.html'
+      - 'production-version.js'
+      - 'release-version.json'
+      - 'pickup.html'
+      - 'customer-avis.html'
+      - 'location.html'
+      - 'pod-notfall.html'
+      - 'migration-recovery.html'
+      - 'assets/**'
+      - 'api/**'
+      - 'android-app/**'
+      - 'staticwebapp.config.json'
+      - 'staticwebapp.testservice.config.json'
+      - '.github/rc*/**'
+      - '.github/workflows/**'
+      - 'test/**'
+      - 'e2e/**'
+      - 'tests/**'
+      - 'playwright.config.mjs'
+      - 'package.json'
+      - 'package-lock.json'
 
 permissions:
   contents: read
