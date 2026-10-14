@@ -1,0 +1,62 @@
+name: RC1530 Dashboard Browser Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'assets/rc1371-dashboard-personalization.js'
+      - 'assets/rc1371-dashboard-personalization.css'
+      - 'assets/i18n/rc1371-dashboard-personalization.js'
+      - 'e2e/specs/dashboard-personalization-production.spec.mjs'
+      - 'test/rc1530-dashboard-production-live-gate.test.mjs'
+      - '.github/rc1112/**'
+      - '.github/workflows/exporthub-production-release.yml'
+      - '.github/workflows/rc1530-dashboard-browser.yml'
+      - 'playwright.config.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rc1530-dashboard-browser-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dashboard_browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+
+      - name: RC1530 Release-Vertrag prüfen
+        run: node --test test/rc1530-dashboard-production-live-gate.test.mjs
+
+      - name: Aktuelles Drei-Umgebungen-Paket bauen
+        run: node .github/rc1112/build-three-env.mjs
+
+      - name: Playwright installieren
+        run: |
+          npm install --no-save @playwright/test@1.63.0
+          npx playwright install --with-deps chromium
+
+      - name: RC1530 Dashboard-Personalisierung vor Merge im Browser prüfen
+        env:
+          EXPORTHUB_E2E_PUBLIC_ENV: production
+        run: npx playwright test e2e/specs/dashboard-personalization-production.spec.mjs --project=laptop
+
+      - name: RC1530 Browser-Fehlerartefakte hochladen
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: rc1530-dashboard-browser
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: ignore
+          retention-days: 14
