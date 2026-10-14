@@ -1,0 +1,29 @@
+name: RC1525 Sevastian Write Rights
+
+on:
+  push:
+    branches:
+      - deepfix/sevastian-write-rights-rc1525
+    paths:
+      - 'api/shared/user-policy.js'
+      - 'api/exporthub-state/runtime.js'
+      - 'test/rc1525-sevastian-write-rights.test.mjs'
+      - '.github/workflows/rc1525-sevastian-write-rights.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: Install API runtime dependencies
+        run: npm install --prefix api --ignore-scripts --no-audit --no-fund
+      - name: Run Sevastian write-rights regression
+        run: node --test --test-concurrency=1 test/rc1525-sevastian-write-rights.test.mjs
