@@ -23,10 +23,13 @@ test('RC1527: Schrittleiste bildet Sendung, Collis, Container, Fahrer und Bestä
   assert.match(page,/id="stepConfirm"/);
 });
 
-test('RC1527: Containerdaten werden erst nach erfolgreicher Colli-Prüfung freigeschaltet',()=>{
+test('RC1527: Containerdaten werden nach Colli freigeschaltet, Fahrer bleibt bis Container-Prüfung gesperrt',()=>{
   assert.match(page,/<section id="containerSection" class="section" hidden>/);
-  assert.match(page,/function setDriverStepUnlocked\(on\)[\s\S]*?container\.hidden=!on[\s\S]*?driver\.hidden=!on/);
-  assert.match(page,/setPickupFlowStage\(on\?'container':'colli'\)/);
+  assert.match(page,/function setDriverStepUnlocked\(on\)[\s\S]*?container\.hidden=!on[\s\S]*?driver\.hidden=true/);
+  assert.match(page,/function unlockDriverAfterContainerDocs\(\)[\s\S]*?driver\.hidden=false/);
+  assert.match(page,/containerRequired&&!containerDocsComplete\(\)/);
+  assert.match(page,/setPickupFlowStage\('container'\)/);
+  assert.match(page,/setPickupFlowStage\('driver'\)/);
 });
 
 test('RC1527: sichtbare Reihenfolge ist Collis, Siegel, drei Bilder, Fahrer, Zollbestätigung, Unterschrift, PIN',()=>{
