@@ -117,6 +117,21 @@ test('RC1532 Security: Benutzer ohne SOP-Leserecht darf auch eigenen Lernfortsch
   );
 });
 
+test('RC1532 Security: eigener Fortschritt darf fremde unveraenderte Fortschritte nicht veraendern',()=>{
+  const server={
+    sopLearningProgress:[progress('USER-Daniel','2026-10-14T08:00:00.000Z')],
+    _teamSyncMeta:{fields:{sopLearningProgress:'2026-10-14T08:00:00.000Z'},tombstones:[]}
+  };
+  const incoming=structuredClone(server);
+  incoming.sopLearningProgress.push(progress('USER-Sevastian','2026-10-14T09:00:00.000Z'));
+  incoming._teamSyncMeta.fields.sopLearningProgress='2026-10-14T09:00:00.000Z';
+
+  const merged=runAs(normalUser(),()=>secureMerge.mergeState(server,incoming));
+  assert.equal(merged.sopLearningProgress.length,2);
+  assert.equal(merged.sopLearningProgress.find(item=>item.userId==='USER-Daniel').updatedAt,'2026-10-14T08:00:00.000Z');
+  assert.equal(merged.sopLearningProgress.find(item=>item.userId==='USER-Sevastian').updatedAt,'2026-10-14T09:00:00.000Z');
+});
+
 test('RC1532 Security: unbekannte persistierte State-Bereiche bleiben fuer normale Benutzer fail-closed',()=>{
   const server={
     sopLearningProgress:[],
