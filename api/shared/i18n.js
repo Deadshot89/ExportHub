@@ -7,6 +7,7 @@ const packs={
  fr:require('./i18n/fr.json'),
  it:require('./i18n/it.json')
 };
+const customsAiPacks=require('./i18n/customs-ai.json');
 const overrides=Object.freeze({
  de:Object.freeze({
   'api.avis.downloadAll':'Alle Anhänge herunterladen',
@@ -70,8 +71,13 @@ function language(req,payload){
 function interpolate(value,vars){
  return String(value==null?'':value).replace(/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g,function(_,key){return vars&&Object.prototype.hasOwnProperty.call(vars,key)?String(vars[key]==null?'':vars[key]):''});
 }
+function featureValue(code,key){
+ const pack=customsAiPacks[code]||{},fallback=customsAiPacks.de||{};
+ return pack[key]!=null?pack[key]:fallback[key];
+}
 function valueFor(lang,key){
- const code=normalize(lang)||'de',override=overrides[code]&&overrides[code][key],pack=packs[code]||packs.de;
+ const code=normalize(lang)||'de',feature=featureValue(code,key),override=overrides[code]&&overrides[code][key],pack=packs[code]||packs.de;
+ if(feature!=null)return feature;
  if(override!=null)return override;
  return pack[key]!=null?pack[key]:packs.de[key];
 }
