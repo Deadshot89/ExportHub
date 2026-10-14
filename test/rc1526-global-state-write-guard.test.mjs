@@ -56,7 +56,7 @@ test('RC1526: authorized save is not rejected by unrelated unmapped full-state f
   incoming.shipments[0] = {...incoming.shipments[0], status:'Bereit zur Abholung', updatedAt:'2026-10-14T09:00:00.000Z'};
   incoming._teamSyncMeta.fields.shipments = {updatedAt:'2026-10-14T09:00:00.000Z'};
 
-  // Simulate a legacy/full-state client carrying an unrelated, unmapped mutation.
+  // Simulate a legacy/full-state client carrying unrelated unmapped noise.
   incoming.futureSensitiveState = {enabled:true,secretPolicy:'must-not-be-written'};
   incoming._teamSyncMeta.fields.futureSensitiveState = {updatedAt:'2099-01-01T00:00:00.000Z'};
   incoming._teamSyncMeta.tombstones.push({
@@ -73,7 +73,7 @@ test('RC1526: authorized save is not rejected by unrelated unmapped full-state f
   assert.equal(merged._teamSyncMeta.tombstones.length, 0);
 });
 
-test('RC1526: an unmapped-only mutation still cannot change server-owned state', () => {
+test('RC1526: unmapped-only mutation remains fail-closed', () => {
   const server = {
     futureSensitiveState:{enabled:false,secretPolicy:'server-owned'},
     _teamSyncMeta:{fields:{futureSensitiveState:{updatedAt:'2026-10-14T08:00:00.000Z'}},tombstones:[]}
@@ -82,7 +82,8 @@ test('RC1526: an unmapped-only mutation still cannot change server-owned state',
   incoming.futureSensitiveState = {enabled:true,secretPolicy:'must-not-be-written'};
   incoming._teamSyncMeta.fields.futureSensitiveState = {updatedAt:'2099-01-01T00:00:00.000Z'};
 
-  const merged = runAs(shipmentEditor(), () => secureMerge.mergeState(server, incoming));
-  assert.deepEqual(merged.futureSensitiveState, server.futureSensitiveState);
-  assert.deepEqual(merged._teamSyncMeta.fields.futureSensitiveState, server._teamSyncMeta.fields.futureSensitiveState);
+  assert.throws(
+    () => runAs(shipmentEditor(), () => secureMerge.mergeState(server, incoming)),
+    error => error && error.code === 'STATE_MODULE_WRITE_FORBIDDEN' && error.status === 403
+  );
 });
