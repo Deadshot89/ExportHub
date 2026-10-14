@@ -2,6 +2,7 @@
 
 const auth=require('../shared/fast-auth-store');
 const service=require('../shared/customs-ai-service');
+const apiI18n=require('../shared/i18n');
 
 const RATE_WINDOW_MS=60_000;
 const RATE_MAX=20;
@@ -26,18 +27,19 @@ function consumeRate(key,now=Date.now()){
 
 module.exports=async function(context,req){
  if(req.method==='OPTIONS'){context.res={status:204,headers:{Allow:'POST, OPTIONS','Cache-Control':'no-store'},body:''};return}
- if(req.method!=='POST'){context.res=response(405,{ok:false,code:'METHOD_NOT_ALLOWED',answer:'Nur POST ist erlaubt.'});return}
+ if(req.method!=='POST'){context.res=response(405,{ok:false,code:'METHOD_NOT_ALLOWED',answer:apiI18n.t(req,'api.customsAi.methodNotAllowed')});return}
  try{
   const current=await auth.validateSession(req);
-  if(!current||!allowed(current.user))throw error('CUSTOMS_AI_FORBIDDEN','Keine Berechtigung für den KI-Zollexperten.',403);
+  if(!current||!allowed(current.user))throw error('CUSTOMS_AI_FORBIDDEN',apiI18n.t(req,'api.customsAi.forbidden'),403);
   const rate=consumeRate(userKey(current.user));
   if(!rate.allowed){
-   context.res=response(429,{ok:false,code:'RATE_LIMITED',answer:'Zu viele KI-Anfragen. Bitte kurz warten.',recoverable:true,retryAfterSeconds:Math.max(1,Math.ceil(rate.retryAfterMs/1000))});return
+   context.res=response(429,{ok:false,code:'RATE_LIMITED',answer:apiI18n.t(req,'api.customsAi.rateLimited'),recoverable:true,retryAfterSeconds:Math.max(1,Math.ceil(rate.retryAfterMs/1000))});return
   }
-  const payload=auth.body(req),question=String(payload&&payload.question==null?'':payload.question);
-  if(question.length>2000){context.res=response(400,{ok:false,code:'QUESTION_TOO_LONG',answer:'Die Zollfrage darf maximal 2.000 Zeichen lang sein.',recoverable:true});return}
+  const payload=auth.body(req),question=String(payload&&payload.question==null?'':payload.question),language=apiI18n.language(req,payload);
+  if(question.length>2000){context.res=response(400,{ok:false,code:'QUESTION_TOO_LONG',answer:apiI18n.t(req,'api.customsAi.questionTooLong',null,payload),recoverable:true});return}
   const result=await service.answerCustomsQuestion({
    question,
+   language:apiI18n.language(req,payload),
    reference:payload&&payload.reference,
    destinationCountry:payload&&payload.destinationCountry,
    abdRequest:payload&&payload.abdRequest,
@@ -47,6 +49,6 @@ module.exports=async function(context,req){
   context.res=response(status,result)
  }catch(e){
   try{context.log&&context.log.error&&context.log.error('RC1532 customs AI',e&&e.code,e&&e.message)}catch(_){}
-  context.res=response(Number(e&&e.status||e&&e.statusCode||500),{ok:false,code:e&&e.code||'CUSTOMS_AI_FAILED',answer:e&&e.status&&e.status<500?text(e.message,300):'Der KI-Zollexperte ist vorübergehend nicht verfügbar.',recoverable:true})
+  context.res=response(Number(e&&e.status||e&&e.statusCode||500),{ok:false,code:e&&e.code||'CUSTOMS_AI_FAILED',answer:e&&e.status&&e.status<500?text(e.message,300):apiI18n.t(req,'api.customsAi.unavailable'),recoverable:true})
  }
 };
