@@ -5,6 +5,13 @@ const MODULES = [
   'academy','ideas','notifications','reports','update','rights','teamfile','archive','history','settings','pickupcalendar'
 ];
 
+const LEGACY_EXPORT_RIGHTS_REPAIR_VERSION = 'RC1525';
+const LEGACY_SEVASTIAN_OPERATIONAL_EDIT_MODULES = new Set([
+  'tasks','vacation','planning','shipment','abd','shipmentoverview','cmr','documents','pallet',
+  'customers','customerfolder','calculator','shippingcosts','customs','sop','academy','ideas',
+  'notifications','reports','teamfile','archive','pickupcalendar'
+]);
+
 function clone(value) { return value === undefined ? undefined : JSON.parse(JSON.stringify(value)); }
 function text(value) { return String(value == null ? '' : value).trim(); }
 function lower(value) { return text(value).toLowerCase(); }
@@ -32,6 +39,35 @@ function isPrivilegedUser(user) {
   return Object.values(rights).some((right) => right && typeof right === 'object' && (
     right.admin === true || right.functionAdmin === true || right.level === 'admin' || right.manage === true
   ));
+}
+
+function hasAnyEditRight(rights) {
+  return Object.values(rights && typeof rights === 'object' ? rights : {}).some((right) => right && typeof right === 'object' && (
+    right.edit === true || right.admin === true || right.functionAdmin === true ||
+    lower(right.level || right.access) === 'edit' || lower(right.level || right.access) === 'admin'
+  ));
+}
+
+function repairLegacySevastianExportRights(user) {
+  const source = user && typeof user === 'object' ? user : {};
+  if (userName(source) !== 'sevastian' || lower(source.role || source.rolle) !== 'export') return source;
+  if (text(source.rightsRepairVersion) === LEGACY_EXPORT_RIGHTS_REPAIR_VERSION) return source;
+  if (hasAnyEditRight(source.rights)) return source;
+
+  const rights = source.rights && typeof source.rights === 'object' ? Object.assign({}, source.rights) : {};
+  for (const id of LEGACY_SEVASTIAN_OPERATIONAL_EDIT_MODULES) {
+    rights[id] = {
+      level: 'edit',
+      visible: true,
+      read: true,
+      edit: true,
+      admin: false,
+      functionAdmin: false
+    };
+  }
+  source.rights = rights;
+  source.rightsRepairVersion = LEGACY_EXPORT_RIGHTS_REPAIR_VERSION;
+  return source;
 }
 
 function normalizeCustomerPortalRights(value, admin) {
@@ -103,6 +139,7 @@ function normalizeUser(user, index) {
   source.globalAdmin = admin;
   source.role = admin ? 'Globaler Administrator' : (text(source.role) || 'Benutzer');
   source.permissions = admin ? ['*'] : (Array.isArray(source.permissions) ? source.permissions.filter((x) => x !== '*') : []);
+  repairLegacySevastianExportRights(source);
   source.rights = normalizeRights(source.rights, admin);
   source.active = source.active !== false && source.disabled !== true && source.status !== 'Deaktiviert';
   source.disabled = !source.active;
