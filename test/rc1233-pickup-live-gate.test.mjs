@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const workflow=fs.readFileSync('.github/workflows/exporthub-production-release.yml','utf8');
+const productionLive=fs.readFileSync('.github/rc1505/verify-production-live.mjs','utf8');
 
 test('RC1505/RC1233: Produktionsrelease prueft QR-Abholung und POD-Viewer explizit live',()=>{
   assert.match(workflow,/name: RC1233 QR-Abholung und POD-Ladelisten-Viewer live prüfen/);
@@ -41,4 +42,15 @@ test('RC1235: Live-Gate prüft keine Endpunkte, die pickup.html nicht direkt ver
   assert.doesNotMatch(workflow,/grep -Fq '\/api\/pickup-pod' "\$pickup"/);
   assert.match(workflow,/request\('pickup-status\?token='/);
   assert.match(workflow,/request\('pickup-confirm-v2'/);
+});
+
+test('RC1525: Production-Live-Gate blockiert Releases ohne Siegel, drei Containerfotos und ABD-Bestaetigung',()=>{
+  assert.match(productionLive,/page\(PROD,'\/pickup\.html'/);
+  for(const marker of [
+    'id="sealNumber"',
+    'id="containerPhotoLoaded"',
+    'id="containerPhotoNumber"',
+    'id="containerPhotoSealed"',
+    'id="customsDocumentsField"'
+  ])assert.ok(productionLive.includes(marker),'Production-Live-Gate muss Marker pruefen: '+marker);
 });
