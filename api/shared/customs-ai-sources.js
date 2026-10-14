@@ -42,12 +42,14 @@ function terms(article){
  return{high,medium,low}
 }
 function scoreArticle(article,queryTokens,contextTokens){
- const fields=terms(article);let score=0;
+ const fields=terms(article);let queryScore=0;
  for(const token of queryTokens){
-  if(fields.high.includes(token))score+=4;
-  else if(fields.medium.includes(token))score+=2;
-  else if(fields.low.includes(token))score+=1;
+  if(fields.high.includes(token))queryScore+=4;
+  else if(fields.medium.includes(token))queryScore+=2;
+  else if(fields.low.includes(token))queryScore+=1;
  }
+ if(queryScore<=0)return 0;
+ let score=queryScore;
  for(const token of contextTokens){
   if(fields.high.includes(token))score+=2;
   else if(fields.medium.includes(token))score+=1;
