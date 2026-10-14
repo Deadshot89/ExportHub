@@ -16,7 +16,7 @@ jobs:
         with:
           ref: hotfix/rc1531-production-livecheck
           fetch-depth: 0
-      - name: RC1531 Production-Livecheck minimal korrigieren
+      - name: RC1531 korrigierten Production-Workflow als Staging-Datei erzeugen
         shell: bash
         run: |
           set -euo pipefail
@@ -51,12 +51,16 @@ jobs:
               ]
               path.write_text('\n'.join(lines) + '\n')
               print('RC1531: pipefail-sensitive grep-q Pipelines ersetzt.')
+
+          staging = Path('.rc1531/exporthub-production-release.yml')
+          staging.parent.mkdir(parents=True, exist_ok=True)
+          staging.write_text(path.read_text())
           PY
-          if git diff --quiet -- .github/workflows/exporthub-production-release.yml; then
-            exit 0
-          fi
           git config user.name 'Deadshot89'
           git config user.email '86518220+Deadshot89@users.noreply.github.com'
-          git add .github/workflows/exporthub-production-release.yml
-          git commit -m 'RC1531: Production-Livecheck gegen pipefail absichern'
+          git add .rc1531/exporthub-production-release.yml
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m 'RC1531: korrigierten Production-Workflow stagen'
           git push origin HEAD:hotfix/rc1531-production-livecheck
