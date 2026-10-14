@@ -28,6 +28,14 @@ function loadSecuredStateHandler() {
 
   const securedPolicy = Object.assign({}, basePolicy, {
     isAdmin(user) {
+      // RC1525: Der State-Kern validiert den Benutzer erneut direkt gegen den
+      // gespeicherten Team-State. Repariere den bekannten Legacy-Export-Datensatz
+      // deshalb in-place, bevor hasAnyEditRight und secureMerge ihn auswerten.
+      // Die Mutation landet bei einem erfolgreichen State-Save in current.users
+      // und macht die Migration durch rightsRepairVersion dauerhaft/einmalig.
+      if (typeof basePolicy.repairLegacySevastianExportRights === 'function') {
+        basePolicy.repairLegacySevastianExportRights(user);
+      }
       writeContext.captureUser(user);
       return basePolicy.isAdmin(user);
     }
