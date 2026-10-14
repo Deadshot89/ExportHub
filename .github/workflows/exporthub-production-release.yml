@@ -346,9 +346,9 @@ jobs:
         run: |
           set -euo pipefail
           for attempt in 1 2 3 4 5; do
-            version="$(curl -fsS --max-time 20 "https://exporthub360.com/production-version.js?rc1505=${RELEASE_SHA}-${attempt}" || true)"
-            home="$(curl -fsS --max-time 20 "https://exporthub360.com/?rc1505=${RELEASE_SHA}-${attempt}" || true)"
-            pack="$(curl -fsS --max-time 20 "https://exporthub360.com/pack/production-smoke?rc1505=${RELEASE_SHA}-${attempt}" || true)"
+            version="$(curl -fsS --max-time 20 "https://www.exporthub360.de/production-version.js?rc1505=${RELEASE_SHA}-${attempt}" || true)"
+            home="$(curl -fsS --max-time 20 "https://www.exporthub360.de/?rc1505=${RELEASE_SHA}-${attempt}" || true)"
+            pack="$(curl -fsS --max-time 20 "https://www.exporthub360.de/pack/production-smoke?rc1505=${RELEASE_SHA}-${attempt}" || true)"
             if printf '%s' "$version" | grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1112'" \
               && printf '%s' "$home" | grep -q 'ExportHUB' \
               && printf '%s' "$pack" | grep -q 'Packmeldung'; then

@@ -116,3 +116,15 @@ test('RC1505: production followers no longer treat normal main verification as p
     assert.doesNotMatch(workflow, new RegExp(OLD_RELEASE_NAME), `${path} darf den alten Drei-Umgebungen-Deploy nicht mehr als Release-Ereignis verwenden`);
   }
 });
+
+test('RC1528: production basis live gate uses the canonical production domain', () => {
+  const workflow = requireFile(PRODUCTION_WORKFLOW);
+  const start = workflow.indexOf('RC1505 Production Release Basis-Liveprüfung');
+  const end = workflow.indexOf('RC1505 Historische Production-Live-Verträge prüfen', start);
+  assert.ok(start >= 0 && end > start, 'RC1505 Production-Basisprüfung muss vor den historischen Live-Verträgen liegen');
+  const block = workflow.slice(start, end);
+  assert.match(block, /https:\/\/www\.exporthub360\.de\/production-version\.js/);
+  assert.match(block, /https:\/\/www\.exporthub360\.de\/\?rc1505=/);
+  assert.match(block, /https:\/\/www\.exporthub360\.de\/pack\/production-smoke/);
+  assert.doesNotMatch(block, /https:\/\/exporthub360\.com/);
+});
