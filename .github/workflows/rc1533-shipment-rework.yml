@@ -1,0 +1,28 @@
+name: RC1533 Shipment Rework Verify
+
+on:
+  push:
+    branches: [feature/rc1533-shipment-rework]
+  pull_request:
+    branches: [main]
+    paths:
+      - 'assets/rc1533-shipment-rework.js'
+      - 'assets/rc1177-release-notes.js'
+      - 'test/rc1533-shipment-rework.test.mjs'
+      - '.github/workflows/rc1533-shipment-rework.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: RC1533 targeted contract
+        run: node --test test/rc1533-shipment-rework.test.mjs
