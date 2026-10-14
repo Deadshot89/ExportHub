@@ -24,7 +24,7 @@ function hasAny(q,values){return values.some(value=>q.includes(value))}
 function valueIntent(q){return hasAny(q,['warenwert','wert','summe','betrag','value','amount','wartosc','suma','valor','importe','valeur','montant','valore','totale'])}
 function reconciliationIntent(q){return hasAny(q,['kontrollsumme','rechnungssumme','summe stimmt','summen stimmen','control total','invoice total','suma kontrolna','suma faktury','suma de control','total de factura','total de controle','total facture','totale di controllo','totale fattura'])||/abgleich.*summe/.test(q)}
 function unresolvedIntent(q){
- const position=hasAny(q,['position','positionen','positions','pozyc','partid','posizioni','item','items']);
+ const position=hasAny(q,['position','positionen','positions','pozyc','partid','posicion','posizioni','item','items']);
  const unresolved=hasAny(q,['ungeklart','offen','unassigned','nicht zugeordnet','fehlend','fehlt','unresolved','niewyjasn','sin resolver','non resolu','irrisolt']);
  return unresolved&&(position||q.includes('unassigned'))
 }
