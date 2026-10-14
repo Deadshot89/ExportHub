@@ -1,0 +1,57 @@
+name: RC1537 Apply Fix Once
+
+on:
+  push:
+    branches:
+      - fix/rc1537-testservice-save-cache-etag
+    paths:
+      - '.github/workflows/rc1537-apply-fix-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: fix/rc1537-testservice-save-cache-etag
+          fetch-depth: 2
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: RC1537 minimalen Produktfix anwenden
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('fs');
+          function replaceOnce(path,from,to){
+            const source=fs.readFileSync(path,'utf8');
+            const first=source.indexOf(from);
+            if(first<0)throw new Error('RC1537: erwarteter Quelltext fehlt in '+path);
+            if(source.indexOf(from,first+from.length)>=0)throw new Error('RC1537: Quelltext ist nicht eindeutig in '+path);
+            fs.writeFileSync(path,source.slice(0,first)+to+source.slice(first+from.length));
+          }
+          replaceOnce(
+            'api/exporthub-state/index.js',
+            "if(requestedMode==='save')return {value:cached.value,etag:String(cached.etag),warmCache:true,optimisticSave:true,cacheMode:'memory-save'};",
+            "if(requestedMode==='save'&&c&&c.environment!=='testservice')return {value:cached.value,etag:String(cached.etag),warmCache:true,optimisticSave:true,cacheMode:'memory-save'};"
+          );
+          replaceOnce(
+            '.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml',
+            'group: exporthub-rc1112-three-env-${{ github.ref }}-${{ github.sha }}',
+            'group: exporthub-rc1112-three-env-${{ github.ref }}'
+          );
+          NODE
+          node tests/rc962-state-performance.test.cjs
+          node --test test/rc1537-testservice-release-isolation.test.mjs
+          rm .github/workflows/rc1537-apply-fix-once.yml
+          git config user.name 'Deadshot89'
+          git config user.email '86518220+Deadshot89@users.noreply.github.com'
+          git add api/exporthub-state/index.js .github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml .github/workflows/rc1537-apply-fix-once.yml
+          git commit -m 'fix(RC1537): isolate TESTSERVICE state and release runs'
+          git push origin HEAD:refs/heads/fix/rc1537-testservice-save-cache-etag
