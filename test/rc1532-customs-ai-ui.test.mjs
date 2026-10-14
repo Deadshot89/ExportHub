@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const runtime=fs.readFileSync(new URL('../assets/rc1532-customs-ai.js',import.meta.url),'utf8');
+const featureI18n=fs.readFileSync(new URL('../assets/i18n/rc1532-customs-ai.js',import.meta.url),'utf8');
 const css=fs.readFileSync(new URL('../assets/rc1532-customs-ai.css',import.meta.url),'utf8');
 const builder=fs.readFileSync(new URL('../.github/rc1532/build-three-env.mjs',import.meta.url),'utf8');
 const currentBuilder=fs.readFileSync(new URL('../.github/rc1506/build-three-env.mjs',import.meta.url),'utf8');
@@ -11,7 +12,8 @@ test('RC1532 UI: KI-Zollexperte wird additiv in den bestehenden Exportexperten e
   assert.match(runtime,/rc1294AbdAnalysis/);
   assert.match(runtime,/rc1294-router/);
   assert.match(runtime,/data-rc1294-mode['"]?,?\s*['"]ai|data-rc1294-mode=[\\"']ai/i);
-  assert.match(runtime,/KI-Zollexperte/);
+  assert.match(runtime,/ExportHUBRC1532I18n/);
+  assert.match(featureI18n,/KI-Zollexperte/);
   assert.doesNotMatch(runtime,/replaceChildren\(.*rc626Abd|rc626Abd\.innerHTML|remove\(.*rc626Abd/i);
 });
 
@@ -28,7 +30,8 @@ test('RC1532 UI: Antwort zeigt Quellen, Prüfstand, Unsicherheit und sichere Lin
   assert.match(runtime,/uncertainty/);
   assert.match(runtime,/sourceUrl/);
   assert.match(runtime,/noopener/);
-  assert.match(runtime,/Aktuelle Rechnungsanalyse|Rechnungsanalyse/);
+  assert.match(runtime,/tr\(['"]analysis['"]\)/);
+  assert.match(featureI18n,/Aktuelle Rechnungsanalyse/);
 });
 
 test('RC1532 UI: responsive Layout ohne Überlagerung',()=>{
@@ -38,9 +41,10 @@ test('RC1532 UI: responsive Layout ohne Überlagerung',()=>{
   assert.match(css,/min-width:0/);
 });
 
-test('RC1532 Build: Asset wird in alle drei Umgebungen kopiert und genau einmal injiziert',()=>{
+test('RC1532 Build: Assets werden in alle drei Umgebungen kopiert und Runtime genau einmal injiziert',()=>{
   assert.match(builder,/assets\/rc1532-customs-ai\.js/);
   assert.match(builder,/assets\/rc1532-customs-ai\.css/);
+  assert.match(builder,/assets\/i18n\/rc1532-customs-ai\.js/);
   for(const name of ['index.html','TESTVERSION.html','demo.html'])assert.match(builder,new RegExp(name.replace('.','\\.')));
   assert.match(builder,/exporthub-rc1532-customs-ai/);
 });
