@@ -349,9 +349,9 @@ jobs:
             version="$(curl -fsS --max-time 20 "https://www.exporthub360.de/production-version.js?rc1505=${RELEASE_SHA}-${attempt}" || true)"
             home="$(curl -fsS --max-time 20 "https://www.exporthub360.de/?rc1505=${RELEASE_SHA}-${attempt}" || true)"
             pack="$(curl -fsS --max-time 20 "https://www.exporthub360.de/pack/production-smoke?rc1505=${RELEASE_SHA}-${attempt}" || true)"
-            if printf '%s' "$version" | grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1112'" \
-              && printf '%s' "$home" | grep -q 'ExportHUB' \
-              && printf '%s' "$pack" | grep -q 'Packmeldung'; then
+            if [[ "$version" == *"__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1112'"* ]] \
+              && [[ "$home" == *ExportHUB* ]] \
+              && [[ "$pack" == *Packmeldung* ]]; then
               echo "RC1505 Production-Basisprüfung erfolgreich für $RELEASE_SHA."
               break
             fi
