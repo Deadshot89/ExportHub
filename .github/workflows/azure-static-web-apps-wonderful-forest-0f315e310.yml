@@ -389,8 +389,8 @@ jobs:
           for attempt in 1 2 3 4 5 6; do
             body="$(curl -fsS -L --max-time 20 "$base/?rc1505=${GITHUB_SHA}-${attempt}" || true)"
             version="$(curl -fsS -L --max-time 20 "$base/production-version.js?rc1505=${GITHUB_SHA}-${attempt}" || true)"
-            if printf '%s' "$body" | grep -q 'ExportHUB' \
-              && printf '%s' "$version" | grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1112'"; then
+            if [[ "$body" == *ExportHUB* ]] \
+              && [[ "$version" == *"__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1112'"* ]]; then
               ready=1
               break
             fi
