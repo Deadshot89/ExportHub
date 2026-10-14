@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-// RC1530 intentionally keeps the pre-release and production contracts in one verification surface.
+// RC1530 keeps the pre-release and production contracts in one verification surface; latest-main revalidation is intentional.
 const workflowPath='.github/workflows/exporthub-production-release.yml';
 const browserWorkflowPath='.github/workflows/rc1530-dashboard-browser.yml';
 const specPath='e2e/specs/dashboard-personalization-production.spec.mjs';
