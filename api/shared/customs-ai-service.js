@@ -40,7 +40,7 @@ async function answerCustomsQuestion(options={}){
  if(direct.matched){
   return{ok:true,mode:'deterministic',answer:direct.answer,facts:direct.facts,sources:[],checkedAt:'',uncertainty:direct.uncertainty===true,recoverable:true,contextSummary:summary,evidence:'invoice-analysis'}
  }
- const sources=sourceSelector.selectCustomsAiSources({question,context:safeContext,articles:options.articles,limit:6,minScore:1});
+ const sources=sourceSelector.selectCustomsAiSources({question,context:safeContext,articles:options.articles,limit:6,minScore:2});
  if(!sources.length){
   return{ok:true,mode:'no-source',answer:'Für diese Frage ist in der aktuell geprüften Zoll-Wissensbasis keine ausreichend passende Quelle hinterlegt. Ich stelle deshalb keine Zollbehauptung als Fakt dar.',sources:[],checkedAt:'',uncertainty:true,recoverable:true,contextSummary:summary}
  }
