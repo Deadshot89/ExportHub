@@ -132,27 +132,96 @@
     }
 
     function canonicalContext(ctx={}){
-      const liveState=liveStateOf(ctx),runtime=runtimeOf(ctx);
+      const liveState=liveStateOf(ctx),runtime=runtimeOf(ctx),persist=persistFor(ctx,liveState);
       let tasks=arr(liveState.tasks);
-      if(runtime&&typeof runtime.currentTasks==='function'){
+      if(runtime&&typeof runtime.prepareTasks==='function'){
+        tasks=arr(runtime.prepareTasks(tasks,{...ctx,state:liveState,persist}));
+      }else if(runtime&&typeof runtime.currentTasks==='function'){
         tasks=arr(runtime.currentTasks(tasks,{...ctx,state:liveState}));
       }
+      liveState.tasks=tasks;
       return{
         liveState,
         runtime,
         viewState:{...liveState,tasks},
-        persist:persistFor(ctx,liveState)
+        persist
       };
+    }
+
+    function activeTask(task){
+      const status=q(task&&task.status).toLowerCase();
+      return !['done','cancelled'].includes(status)&&!q(task&&task.archivedAt);
+    }
+
+    function taskDay(task){
+      return dateKey(task&&((task.plannedAt||task.dueAt||task.date||task.day)));
+    }
+
+    function overdue(task,now){
+      try{
+        const core=root.ExportHUBTaskCoreV2;
+        if(core&&typeof core.derive==='function')return core.derive(task,now).overdue===true;
+      }catch(_){}
+      const due=q(task&&task.dueAt);
+      const dueMs=Date.parse(due),nowMs=Date.parse(q(now));
+      return Number.isFinite(dueMs)&&Number.isFinite(nowMs)&&dueMs<nowMs&&activeTask(task);
+    }
+
+    function repairSummary(target,tasks,ctx={}){
+      if(!target||typeof target.innerHTML!=='string')return;
+      const now=q(ctx.now)||new Date().toISOString(),today=dateKey(now);
+      const todayTasks=arr(tasks).filter(task=>activeTask(task)&&taskDay(task)===today);
+      const vars={
+        count:todayTasks.length,
+        critical:todayTasks.filter(task=>q(task&&task.priority)==='P0').length,
+        overdue:todayTasks.filter(task=>overdue(task,now)).length
+      };
+      target.innerHTML=target.innerHTML
+        .replaceAll('{count}',String(vars.count))
+        .replaceAll('{critical}',String(vars.critical))
+        .replaceAll('{overdue}',String(vars.overdue));
     }
 
     function renderPlannerPage(target,ctx={}){
       const resolved=canonicalContext(ctx);
-      return previous.renderPlannerPage(target,{
+      const result=previous.renderPlannerPage(target,{
         ...ctx,
         state:resolved.viewState,
         runtime:resolved.runtime,
         persist:resolved.persist
       });
+      repairSummary(target,resolved.viewState.tasks,ctx);
+      return result;
+    }
+
+    function renderDailySummary(target,ctx={}){
+      const resolved=canonicalContext(ctx);
+      const result=typeof previous.renderDailySummary==='function'
+        ?previous.renderDailySummary(target,{...ctx,state:resolved.viewState,runtime:resolved.runtime,persist:resolved.persist})
+        :target;
+      repairSummary(target,resolved.viewState.tasks,ctx);
+      return result;
+    }
+
+    function renderOverdue(target,ctx={}){
+      const resolved=canonicalContext(ctx);
+      return typeof previous.renderOverdue==='function'
+        ?previous.renderOverdue(target,{...ctx,state:resolved.viewState,runtime:resolved.runtime,persist:resolved.persist})
+        :target;
+    }
+
+    function renderWorkweek(target,ctx={}){
+      const resolved=canonicalContext(ctx);
+      return typeof previous.renderWorkweek==='function'
+        ?previous.renderWorkweek(target,{...ctx,state:resolved.viewState,runtime:resolved.runtime,persist:resolved.persist})
+        :target;
+    }
+
+    function renderMonth(target,ctx={}){
+      const resolved=canonicalContext(ctx);
+      return typeof previous.renderMonth==='function'
+        ?previous.renderMonth(target,{...ctx,state:resolved.viewState,runtime:resolved.runtime,persist:resolved.persist})
+        :target;
     }
 
     function bindPlannerDnD(target,ctx={}){
@@ -168,6 +237,10 @@
     root.ExportHUBTaskUIV2=Object.freeze({
       ...previous,
       renderPlannerPage,
+      renderDailySummary,
+      renderOverdue,
+      renderWorkweek,
+      renderMonth,
       bindPlannerDnD,
       __rc1537CanonicalSource:true
     });
