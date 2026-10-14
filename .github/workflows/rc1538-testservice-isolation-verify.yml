@@ -1,0 +1,30 @@
+name: RC1538 TESTSERVICE Isolation Verify
+
+on:
+  pull_request:
+    paths:
+      - 'api/exporthub-state/index.js'
+      - '.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml'
+      - '.github/workflows/rc1538-testservice-main-supersession.yml'
+      - '.github/workflows/rc1538-testservice-isolation-verify.yml'
+      - 'tests/rc962-state-performance.test.cjs'
+      - 'test/rc1538-testservice-release-isolation.test.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: RC1538 TESTSERVICE Save-Cache und Release-Isolation
+        run: |
+          set -euo pipefail
+          node tests/rc962-state-performance.test.cjs
+          node --test test/rc1538-testservice-release-isolation.test.mjs
