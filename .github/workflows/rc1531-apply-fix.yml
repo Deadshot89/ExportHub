@@ -22,18 +22,34 @@ jobs:
           set -euo pipefail
           python - <<'PY'
           from pathlib import Path
-          path=Path('.github/workflows/exporthub-production-release.yml')
-          text=path.read_text()
-          old='''            if printf '%s' "$version" | grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1112'" \\
-              && printf '%s' "$home" | grep -q 'ExportHUB' \\
-              && printf '%s' "$pack" | grep -q 'Packmeldung'; then'''
-          new='''            if [[ "$version" == *"__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1112'"* ]] \\
-              && [[ "$home" == *ExportHUB* ]] \\
-              && [[ "$pack" == *Packmeldung* ]]; then'''
-          if old not in text:
-              print('RC1531: Production-Livecheck ist bereits korrigiert.')
+
+          path = Path('.github/workflows/exporthub-production-release.yml')
+          text = path.read_text()
+          lines = text.splitlines()
+          idx = next((
+              i for i, line in enumerate(lines)
+              if "if printf '%s' \"$version\" | grep -q" in line
+              and "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1112'" in line
+          ), None)
+          if idx is None:
+              if any('if [[ "$version" == *"__EXPORTHUB_PRODUCTION_VERSION_PROBE__=' in line for line in lines):
+                  print('RC1531: Production-Livecheck ist bereits korrigiert.')
+              else:
+                  raise SystemExit('RC1531: erwarteter Production-Livecheck wurde nicht gefunden')
           else:
-              path.write_text(text.replace(old,new,1))
+              if idx + 2 >= len(lines):
+                  raise SystemExit('RC1531: Production-Livecheck ist unvollständig')
+              if "$home" not in lines[idx + 1] or "grep -q 'ExportHUB'" not in lines[idx + 1]:
+                  raise SystemExit('RC1531: unerwartete Home-Prüfung')
+              if "$pack" not in lines[idx + 2] or "grep -q 'Packmeldung'" not in lines[idx + 2]:
+                  raise SystemExit('RC1531: unerwartete Pack-Prüfung')
+              indent = lines[idx][:len(lines[idx]) - len(lines[idx].lstrip())]
+              lines[idx:idx + 3] = [
+                  indent + '''if [[ "$version" == *"__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1112'"* ]] \\''',
+                  indent + '''  && [[ "$home" == *ExportHUB* ]] \\''',
+                  indent + '''  && [[ "$pack" == *Packmeldung* ]]; then'''
+              ]
+              path.write_text('\n'.join(lines) + '\n')
               print('RC1531: pipefail-sensitive grep-q Pipelines ersetzt.')
           PY
           if git diff --quiet -- .github/workflows/exporthub-production-release.yml; then
