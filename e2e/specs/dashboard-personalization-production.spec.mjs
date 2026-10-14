@@ -83,6 +83,7 @@ test('RC1530 Production: Dashboard-Personalisierung speichert Editorzustand übe
       stored:JSON.parse(raw),
       a,
       b,
+      orderPersisted:Boolean(a&&b&&b.order<a.order),
       aSize:document.getElementById('rc1530-a').getAttribute('data-rc1371-size'),
       bHidden:document.getElementById('rc1530-b').hidden,
       editing:api.isEditing()
@@ -94,6 +95,7 @@ test('RC1530 Production: Dashboard-Personalisierung speichert Editorzustand übe
   expect(changed.aSize).toBe('L');
   expect(changed.b?.visible).toBe(false);
   expect(changed.bHidden).toBe(true);
+  expect(changed.orderPersisted).toBe(true);
   expect(changed.editing).toBe(true);
   expect(changed.stored.widgets.some(row=>row.id==='rc1530-a'&&row.size==='L')).toBe(true);
   expect(changed.stored.widgets.some(row=>row.id==='rc1530-b'&&row.visible===false)).toBe(true);
@@ -112,6 +114,7 @@ test('RC1530 Production: Dashboard-Personalisierung speichert Editorzustand übe
       persisted:localStorage.getItem(key)!==null,
       a,
       b,
+      orderRestored:Boolean(a&&b&&b.order<a.order),
       aSize:document.getElementById('rc1530-a').getAttribute('data-rc1371-size'),
       bHidden:document.getElementById('rc1530-b').hidden
     };
@@ -126,6 +129,7 @@ test('RC1530 Production: Dashboard-Personalisierung speichert Editorzustand übe
   expect(restored.aSize).toBe('L');
   expect(restored.b?.visible).toBe(false);
   expect(restored.bHidden).toBe(true);
+  expect(restored.orderRestored).toBe(true);
   expect(restored.resetRemoved).toBe(true);
   expect(restored.templateAfterReset).toBe('standard');
 
