@@ -13,13 +13,21 @@ const ALIASES=Object.freeze([
  {canonical:'beschrank',prefixes:['beschrank','restriction','restriccion','restric','ogranicz']},
  {canonical:'exportanforder',prefixes:['exportanforder','requirement','requisito','exigence','wymagan','requisiti']}
 ]);
+const STOPWORDS=new Set([
+ 'wie','ist','sind','die','der','das','den','dem','des','ein','eine','einen','einem','einer','und','oder','fur','mit','von','zur','zum','welche','welcher','welches','welchen','muss','soll','ich','wir','diese','dieser','dieses','prufen','regel','regeln',
+ 'what','which','is','are','the','a','an','and','or','for','with','from','to','should','must','check','this','that','rule','rules',
+ 'jaka','jakie','jest','sa','dla','oraz','lub','czy','mam','sprawdzic','tego','tej','regula','reguly','zasada','zasady',
+ 'que','cual','cuales','es','son','el','la','los','las','un','una','y','o','para','con','de','del','debo','comprobar','esta','este','regla','reglas',
+ 'quel','quelle','quels','quelles','est','sont','le','la','les','un','une','et','ou','pour','avec','de','des','dois','verifier','cette','ce','regle','regles',
+ 'quale','quali','e','sono','il','lo','la','i','gli','le','un','una','e','o','per','con','di','del','devo','verificare','questa','questo','regola','regole'
+]);
 function canonicalAliases(token){
  const out=[];
  for(const rule of ALIASES){if(rule.prefixes.some(prefix=>token.startsWith(prefix)))out.push(rule.canonical)}
  return out
 }
 function tokens(value){
- const raw=fold(value).split(/\s+/).filter(token=>token.length>=3),out=new Set(raw);
+ const raw=fold(value).split(/\s+/).filter(token=>token.length>=3&&!STOPWORDS.has(token)),out=new Set(raw);
  const stems=['praferenz','ursprung','ausfuhr','zolltarif','warentarif','tarifier','formalitat','beschrank','exportanforder'];
  for(const token of raw){
   for(const stem of stems){if(token.includes(stem))out.add(stem)}
