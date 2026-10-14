@@ -32,6 +32,12 @@ test('RC1532 Service: Fachfrage nutzt nur verifizierte Quellen und gefilterte Ci
  assert.equal(received.sources.length,1);assert.equal(received.context.invoice.invoiceNumber,'INV-4711');
 });
 
+test('RC1532 Service: Modellantwort ohne Citation zeigt keine Kandidatenquelle als Beleg',async()=>{
+ const result=await service.answerCustomsQuestion({question:'Welche Präferenzregel muss ich für die Schweiz prüfen?',destinationCountry:'CH',invoiceAnalysis:invoice(),articles,askModel:async()=>({ok:true,answer:'Allgemeine Einordnung ohne Quellenmarker.',citations:[],modelInfo:{provider:'test',model:'test-model'}})});
+ assert.equal(result.ok,true);assert.equal(result.mode,'ai');assert.equal(result.uncertainty,true);
+ assert.deepEqual(result.sources,[]);
+});
+
 test('RC1532 Service: keine geprüfte Quelle ruft Provider nicht auf',async()=>{
  let called=0;
  const result=await service.answerCustomsQuestion({question:'Was ist die Mondzoll-Regel?',invoiceAnalysis:invoice(),articles,askModel:async()=>{called++;return{ok:true}}});
