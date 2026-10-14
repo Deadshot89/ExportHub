@@ -136,6 +136,15 @@ test('RC1530: MA darf auch den bestätigten Versandanmeldungs-Mailversand protok
   assert.equal(merged.shipments[0].shipmentHistory.at(-1).label,'Versandanmeldung versendet');
 });
 
+test('RC1530: Leserecht aus der Sendungsübersicht reicht für die Versandanmeldung',()=>{
+  const server=baseState();
+  const incoming=structuredClone(server);
+  addRegistrationToCopies(incoming,registrationEvent('REG-3','registration','Versandanmeldung gestartet'));
+
+  const merged=runAs(employee({shipment:right('none'),shipmentoverview:right('view')}),()=>secureMerge.mergeState(server,incoming));
+  assert.equal(merged.shipments[0].shipmentHistory.at(-1).label,'Versandanmeldung gestartet');
+});
+
 test('RC1530: Versandanmeldung gibt MA kein Recht auf Status- oder Fachdatenänderungen',()=>{
   const server=baseState();
   const incoming=structuredClone(server);
@@ -161,6 +170,24 @@ test('RC1530: Sendungs-Leserecht erlaubt keine beliebigen Historienereignisse',(
     ...registrationEvent('FAKE-1','pickup','Abholung bestätigt'),
     details:{reference:'ABC123',status:'Abgeholt'}
   });
+
+  expectForbidden(employee(),server,incoming);
+});
+
+test('RC1530: gleicher Event-Typ mit fremdem Label bleibt gesperrt',()=>{
+  const server=baseState();
+  const incoming=structuredClone(server);
+  addRegistrationToCopies(incoming,registrationEvent('FAKE-2','registration','Registration frei erfunden'));
+
+  expectForbidden(employee(),server,incoming);
+});
+
+test('RC1530: Versandanmeldung darf nicht unter fremder Benutzeridentität protokolliert werden',()=>{
+  const server=baseState();
+  const incoming=structuredClone(server);
+  const event=registrationEvent('FAKE-3');
+  event.actor={name:'Anderer Benutzer',id:'U-FREMD',role:'Benutzer'};
+  addRegistrationToCopies(incoming,event);
 
   expectForbidden(employee(),server,incoming);
 });
