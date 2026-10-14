@@ -150,7 +150,7 @@ button:focus-visible,input:focus-visible{outline:3px solid #1d4ed8;outline-offse
 'use strict';
 
 function q(v){return String(v==null?'':v).trim()}
-function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]})}
+function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function deep(data,names){
   var seen=[];
   function walk(x,d){
