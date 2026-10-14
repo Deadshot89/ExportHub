@@ -73,14 +73,11 @@
   function nativeSet(input,value){
     if(!input)return;nativeValue(input,value);['input','change'].forEach(type=>input.dispatchEvent(new Event(type,{bubbles:true})));
   }
-  function nativeInputOnly(input,value){
-    if(!input)return;nativeValue(input,value);input.dispatchEvent(new Event('input',{bubbles:true}));
-  }
   function applyPrefillToMountedForm(prefill){
     const doc=root.document;if(!doc)return false;
+    const manualWithoutIdentity=q(prefill.customerSource).toLowerCase()==='manual'&&!q(prefill.customerId)&&!q(prefill.customerAccount);
     const customer=doc.getElementById('shipmentCustomerSearch');if(customer&&prefill.customerName){
-      const manualWithoutIdentity=q(prefill.customerSource).toLowerCase()==='manual'&&!q(prefill.customerId)&&!q(prefill.customerAccount);
-      if(manualWithoutIdentity)nativeInputOnly(customer,prefill.customerName);
+      if(manualWithoutIdentity)nativeValue(customer,prefill.customerName);
       else{nativeSet(customer,prefill.customerName);try{customer.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',code:'Enter',bubbles:true}));}catch(_){}}
     }
     const rows=Array.from(doc.querySelectorAll('#rc573ColliCard .rc363-owned-row'));
@@ -89,6 +86,7 @@
       set('count',prefill.packageCount);const p=prefill.rows[0]||{};set('l',p.l||'');set('w',p.w||'');set('h',p.h||'');set('weight',prefill.totalWeight||'');
     }
     const state=sharedState(),draft=state.shipment||state.currentShipment||state.selectedShipment;if(draft&&typeof draft==='object'){
+      if(manualWithoutIdentity&&prefill.customerName)draft.customerSearch=prefill.customerName;
       draft.packNotificationId=prefill.packNotificationId;draft.packNotificationRef=prefill.packNotificationRef;draft.packNotificationCustomer={id:prefill.customerId,account:prefill.customerAccount,name:prefill.customerName,source:prefill.customerSource};draft.packNotificationPrefill={deliveryNoteReference:prefill.deliveryNoteReference,packageType:prefill.packageType,packageCount:prefill.packageCount,totalWeight:prefill.totalWeight,rows:prefill.rows,note:prefill.note};
       draft.deliveryFiles=mergeDocuments(draft.deliveryFiles,prefill.deliveryFiles);
     }
