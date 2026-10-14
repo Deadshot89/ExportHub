@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
@@ -54,6 +55,25 @@ test('RC1525: repaired Sevastian can persist a shipment through the server write
   incoming._teamSyncMeta.fields.shipments={updatedAt:'2026-10-14T09:00:00.000Z'};
   const merged=runAs(user,()=>secureMerge.mergeState(server,incoming));
   assert.equal(merged.shipments[0].status,'Bereit zur Abholung');
+});
+
+test('RC1525: persisted State user is repaired in place so the next team-state write stores the migration marker',()=>{
+  assert.equal(typeof policy.repairLegacySevastianExportRights,'function');
+  const stored=staleSevastian();
+  const returned=policy.repairLegacySevastianExportRights(stored);
+  assert.equal(returned,stored);
+  assert.equal(stored.rights.shipment.edit,true);
+  assert.equal(stored.rights.tasks.edit,true);
+  assert.equal(stored.rightsRepairVersion,'RC1525');
+});
+
+test('RC1525: state runtime repairs the raw stored user before capture and permission evaluation',()=>{
+  const runtime=fs.readFileSync(new URL('../api/exporthub-state/runtime.js',import.meta.url),'utf8');
+  const repairCall='basePolicy.repairLegacySevastianExportRights(user)';
+  const captureCall='writeContext.captureUser(user)';
+  assert.match(runtime,/repairLegacySevastianExportRights\(user\)/);
+  assert.ok(runtime.indexOf(repairCall)>=0,'state runtime must call the legacy rights repair');
+  assert.ok(runtime.indexOf(repairCall)<runtime.indexOf(captureCall),'repair must happen before the user is captured for secure merge');
 });
 
 test('RC1525: repair is one-time and does not undo a later deliberate rights restriction',()=>{
