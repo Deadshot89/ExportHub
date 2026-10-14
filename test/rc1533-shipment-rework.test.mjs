@@ -9,6 +9,14 @@ const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const SOURCE_PATH=path.join(ROOT,'assets/rc1533-shipment-rework.js');
 const BUILD_PATH=path.join(ROOT,'.github/rc1506/build-three-env.mjs');
 
+const DE={
+  'status.rework':'Nachbearbeitung','common.open':'Öffnen','status.saved':'Gespeichert',
+  'shipment.title':'Sendung','shipment.status':'Status','shipment.actualPickup':'Tatsächliche Abholung',
+  'document.pod':'POD','pickup.signature':'Unterschrift','shipment.sealNumber':'Siegelnummer','shipment.container':'Container',
+  'common.save':'Speichern','common.edit':'Bearbeiten','errors.unauthorized':'Keine Berechtigung für diese Aktion.',
+  'errors.generic':'Es ist ein Fehler aufgetreten.','status.checking':'Prüfung läuft','common.loading':'Wird geladen …','common.other':'Sonstiges'
+};
+
 function loadRuntime(){
   const source=fs.readFileSync(SOURCE_PATH,'utf8');
   const window={};
@@ -17,6 +25,7 @@ function loadRuntime(){
   window.dispatchEvent=()=>true;
   window.setTimeout=setTimeout;
   window.clearTimeout=clearTimeout;
+  window.ExportHUBI18n={t(key){return DE[key]||key;}};
   const document={readyState:'complete',body:null,head:null,documentElement:null,querySelector(){return null},getElementById(){return null},createElement(){return {setAttribute(){},appendChild(){},remove(){},style:{}}}};
   const context={window,document,console,setTimeout,clearTimeout,CustomEvent:class CustomEvent{constructor(type,init={}){this.type=type;this.detail=init.detail}},Date,Map,Set,Array,Object,String,Number,Boolean,RegExp,Math,JSON,Promise};
   vm.runInNewContext(source,context,{filename:'rc1533-shipment-rework.js'});
@@ -70,15 +79,13 @@ test('RC1533: Wiederöffnen setzt Nachbearbeitung, protokolliert den Admin und v
   assert.equal(shipment.shipmentRework?.previous?.status,'POD vorhanden');
   assert.equal(shipment.shipmentRework?.openedBy?.id,'U1');
   assert.deepEqual(proofSnapshot(shipment),before);
-  assert.ok(shipment.shipmentHistory.some(x=>x?.type==='rework-opened'&&x?.label==='Sendung zur Nachbearbeitung geöffnet'));
+  assert.ok(shipment.shipmentHistory.some(x=>x?.type==='rework-opened'&&x?.label==='Nachbearbeitung · Öffnen'));
 });
 
 test('RC1533: aktive Nachbearbeitung bleibt trotz bestehender Status-Neuberechnung aktiv',()=>{
   const api=loadRuntime(),shipment=proofShipment('POD vorhanden');
   assert.equal(api.applyOpen(shipment,adminUser(),'2026-10-14T15:00:00.000Z'),true);
-  shipment.status='POD vorhanden';
-  shipment.processStatus='POD vorhanden';
-  shipment.shipmentStatus='POD vorhanden';
+  shipment.status='POD vorhanden';shipment.processStatus='POD vorhanden';shipment.shipmentStatus='POD vorhanden';
   assert.equal(api.activeRework(shipment),true);
   assert.equal(api.applyClose(shipment,adminUser(),'2026-10-14T15:10:00.000Z'),true);
   assert.equal(shipment.status,'POD vorhanden');
@@ -89,13 +96,17 @@ test('RC1533: erfolgreicher Abschluss stellt den vorherigen Status wieder her un
   assert.equal(api.applyOpen(shipment,adminUser(),'2026-10-14T15:00:00.000Z'),true);
   shipment.customerName='Korrigierter Empfänger';
   assert.equal(api.applyClose(shipment,adminUser(),'2026-10-14T15:10:00.000Z'),true);
-  assert.equal(shipment.status,'Abgeschlossen');
-  assert.equal(shipment.processStatus,'Abgeschlossen');
-  assert.equal(shipment.shipmentStatus,'Abgeschlossen');
+  assert.equal(shipment.status,'Abgeschlossen');assert.equal(shipment.processStatus,'Abgeschlossen');assert.equal(shipment.shipmentStatus,'Abgeschlossen');
   assert.equal(shipment.shipmentRework?.active,false);
   assert.equal(shipment.customerName,'Korrigierter Empfänger');
   assert.deepEqual(proofSnapshot(shipment),before);
-  assert.ok(shipment.shipmentHistory.some(x=>x?.type==='rework-closed'&&x?.label==='Nachbearbeitung gespeichert und geschlossen'));
+  assert.ok(shipment.shipmentHistory.some(x=>x?.type==='rework-closed'&&x?.label==='Nachbearbeitung · Gespeichert'));
+});
+
+test('RC1533: Runtime verwendet ausschließlich zentrale i18n-Keys für sichtbare Texte',()=>{
+  const source=fs.readFileSync(SOURCE_PATH,'utf8');
+  for(const key of ['status.rework','common.open','status.saved','shipment.title','shipment.status','errors.unauthorized','errors.generic'])assert.match(source,new RegExp(key.replace('.','\\.')));
+  assert.doesNotMatch(source,/Sendung wieder öffnen|Geschlossene Sendung korrigieren|Nachbearbeitung aktiv|Für dein Benutzerkonto/);
 });
 
 test('RC1533: additive Build-Schicht bindet die Runtime mit eigenem Cache-Key ein',()=>{
