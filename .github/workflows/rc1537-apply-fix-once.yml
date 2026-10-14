@@ -23,37 +23,24 @@ jobs:
         with:
           node-version: '20'
           package-manager-cache: false
-      - name: RC1537 minimalen Produktfix anwenden
+      - name: RC1537 TESTSERVICE Save-Cache absichern
         shell: bash
         run: |
           set -euo pipefail
           node <<'NODE'
           const fs=require('fs');
-          function replaceOnce(path,from,to){
-            const source=fs.readFileSync(path,'utf8');
-            const first=source.indexOf(from);
-            if(first<0)throw new Error('RC1537: erwarteter Quelltext fehlt in '+path);
-            if(source.indexOf(from,first+from.length)>=0)throw new Error('RC1537: Quelltext ist nicht eindeutig in '+path);
-            fs.writeFileSync(path,source.slice(0,first)+to+source.slice(first+from.length));
-          }
-          replaceOnce(
-            'api/exporthub-state/index.js',
-            "if(requestedMode==='save')return {value:cached.value,etag:String(cached.etag),warmCache:true,optimisticSave:true,cacheMode:'memory-save'};",
-            "if(requestedMode==='save'&&c&&c.environment!=='testservice')return {value:cached.value,etag:String(cached.etag),warmCache:true,optimisticSave:true,cacheMode:'memory-save'};"
-          );
-          const exprRef='$'+'{{ github.ref }}';
-          const exprSha='$'+'{{ github.sha }}';
-          replaceOnce(
-            '.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml',
-            'group: exporthub-rc1112-three-env-'+exprRef+'-'+exprSha,
-            'group: exporthub-rc1112-three-env-'+exprRef
-          );
+          const path='api/exporthub-state/index.js';
+          const from="if(requestedMode==='save')return {value:cached.value,etag:String(cached.etag),warmCache:true,optimisticSave:true,cacheMode:'memory-save'};";
+          const to="if(requestedMode==='save'&&c&&c.environment!=='testservice')return {value:cached.value,etag:String(cached.etag),warmCache:true,optimisticSave:true,cacheMode:'memory-save'};";
+          const source=fs.readFileSync(path,'utf8');
+          const first=source.indexOf(from);
+          if(first<0)throw new Error('RC1537: erwarteter Save-Cache-Quelltext fehlt');
+          if(source.indexOf(from,first+from.length)>=0)throw new Error('RC1537: Save-Cache-Quelltext ist nicht eindeutig');
+          fs.writeFileSync(path,source.slice(0,first)+to+source.slice(first+from.length));
           NODE
           node tests/rc962-state-performance.test.cjs
-          node --test test/rc1537-testservice-release-isolation.test.mjs
-          rm .github/workflows/rc1537-apply-fix-once.yml
           git config user.name 'Deadshot89'
           git config user.email '86518220+Deadshot89@users.noreply.github.com'
-          git add api/exporthub-state/index.js .github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml .github/workflows/rc1537-apply-fix-once.yml
-          git commit -m 'fix(RC1537): isolate TESTSERVICE state and release runs'
+          git add api/exporthub-state/index.js
+          git commit -m 'fix(RC1537): validate TESTSERVICE save cache by etag'
           git push origin HEAD:refs/heads/fix/rc1537-testservice-save-cache-etag
