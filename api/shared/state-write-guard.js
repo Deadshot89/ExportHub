@@ -48,6 +48,13 @@ const DOCUMENT_AWARE = Object.freeze({
   abdRequests: ['abd']
 });
 
+const REGISTRATION_AUDIT_COLLECTIONS = new Set([
+  'shipments',
+  'savedShipments',
+  'salesSharedShipments',
+  'sharedShipments'
+]);
+
 function text(value) { return String(value == null ? '' : value).trim().toLowerCase(); }
 function rawText(value) { return String(value == null ? '' : value).trim(); }
 function isObject(value) { return !!value && typeof value === 'object' && !Array.isArray(value); }
@@ -63,6 +70,18 @@ function canEditModule(user, moduleId) {
 
 function canEditAny(user, modules) {
   return isAdmin(user) || (modules || []).some((moduleId) => canEditModule(user, moduleId));
+}
+
+function canReadModule(user, moduleId) {
+  if (isAdmin(user)) return true;
+  const right = user && user.rights && user.rights[moduleId];
+  if (!right || typeof right !== 'object') return false;
+  const level = text(right.level || right.access);
+  return right.read === true || right.visible === true || right.edit === true || right.admin === true || right.functionAdmin === true || ['view', 'read', 'edit', 'admin'].includes(level);
+}
+
+function canReadAny(user, modules) {
+  return isAdmin(user) || (modules || []).some((moduleId) => canReadModule(user, moduleId));
 }
 
 function stripDocumentFields(value) {
@@ -82,6 +101,129 @@ function changed(before, after) {
 
 function documentOnlyChange(before, after) {
   return changed(before, after) && !changed(stripDocumentFields(before), stripDocumentFields(after));
+}
+
+function stableValue(value) {
+  if (Array.isArray(value)) return value.map(stableValue);
+  if (!isObject(value)) return value;
+  const out = {};
+  for (const key of Object.keys(value).sort()) out[key] = stableValue(value[key]);
+  return out;
+}
+
+function historySignature(event) {
+  if (!isObject(event)) return JSON.stringify(stableValue(event));
+  const copy = Object.assign({}, event);
+  delete copy.id;
+  delete copy.version;
+  delete copy.source;
+  return JSON.stringify(stableValue(copy));
+}
+
+function userIdentityValues(user) {
+  const values = [
+    user && user.id,
+    user && user.userId,
+    user && user.user,
+    user && user.login,
+    user && user.username,
+    user && user.name,
+    user && user.displayName,
+    user && user.fullName
+  ].map(text).filter(Boolean);
+  return new Set(values);
+}
+
+function registrationEventBelongsToUser(event, user) {
+  if (!isObject(event) || !isObject(event.actor)) return false;
+  const identities = userIdentityValues(user);
+  const actorId = text(event.actor.id);
+  const actorName = text(event.actor.name);
+  if (actorId) return identities.has(actorId);
+  return Boolean(actorName && identities.has(actorName));
+}
+
+function isRegistrationAuditEvent(event, user) {
+  if (!isObject(event) || !registrationEventBelongsToUser(event, user)) return false;
+  const type = text(event.type);
+  const label = text(event.label || event.action);
+  const mailType = text(event.details && event.details.mailType);
+  const registrationMarker = /versandanmeld|shipping registration|shipment registration|registration/.test(`${label} ${mailType}`);
+  if (type === 'registration') return registrationMarker;
+  return type === 'mail-sent' && registrationMarker;
+}
+
+function shipmentIdentity(item, index) {
+  if (!isObject(item)) return `index:${index}`;
+  const fields = ['id', 'shipmentId', 'ref', 'reference', 'referenceNumber', 'shipmentRef', 'sendungsreferenz'];
+  for (const field of fields) {
+    const value = text(item[field]);
+    if (value) return `${field}:${value}`;
+  }
+  return `index:${index}`;
+}
+
+function shipmentWithoutHistory(item) {
+  if (!isObject(item)) return item;
+  const out = Object.assign({}, item);
+  delete out.shipmentHistory;
+  return out;
+}
+
+function registrationHistoryAppendOnly(beforeHistory, afterHistory, user) {
+  const before = Array.isArray(beforeHistory) ? beforeHistory : [];
+  const after = Array.isArray(afterHistory) ? afterHistory : [];
+  if (after.length <= before.length) return false;
+
+  const remaining = new Map();
+  for (const event of before) {
+    const signature = historySignature(event);
+    remaining.set(signature, (remaining.get(signature) || 0) + 1);
+  }
+
+  const added = [];
+  for (const event of after) {
+    const signature = historySignature(event);
+    const count = remaining.get(signature) || 0;
+    if (count > 0) {
+      if (count === 1) remaining.delete(signature);
+      else remaining.set(signature, count - 1);
+      continue;
+    }
+    added.push(event);
+  }
+
+  if (remaining.size > 0 || added.length === 0) return false;
+  return added.every((event) => isRegistrationAuditEvent(event, user));
+}
+
+function registrationAuditOnlyChange(before, after, user) {
+  const serverList = Array.isArray(before) ? before : [];
+  const incomingList = Array.isArray(after) ? after : [];
+  if (serverList.length !== incomingList.length || serverList.length === 0) return false;
+
+  const serverMap = new Map(serverList.map((item, index) => [shipmentIdentity(item, index), item]));
+  const incomingMap = new Map(incomingList.map((item, index) => [shipmentIdentity(item, index), item]));
+  if (serverMap.size !== serverList.length || incomingMap.size !== incomingList.length || serverMap.size !== incomingMap.size) return false;
+
+  let audited = false;
+  for (const [identity, serverItem] of serverMap.entries()) {
+    const incomingItem = incomingMap.get(identity);
+    if (!incomingItem) return false;
+    if (!isDeepStrictEqual(shipmentWithoutHistory(serverItem), shipmentWithoutHistory(incomingItem))) return false;
+    const serverHistory = serverItem && serverItem.shipmentHistory;
+    const incomingHistory = incomingItem && incomingItem.shipmentHistory;
+    if (isDeepStrictEqual(serverHistory, incomingHistory)) continue;
+    if (!registrationHistoryAppendOnly(serverHistory, incomingHistory, user)) return false;
+    audited = true;
+  }
+  return audited;
+}
+
+function canWriteRegistrationAudit(user, key, before, after) {
+  return REGISTRATION_AUDIT_COLLECTIONS.has(key)
+    && canReadAny(user, ['shipment', 'shipmentoverview'])
+    && registrationAuditOnlyChange(before, after, user);
 }
 
 function fieldTime(state, key) {
@@ -150,6 +292,7 @@ function keyChangeAllowed(serverState, incomingState, user, key) {
   const domain = DOCUMENT_AWARE[key];
   if (!domain) return false;
   if (canEditAny(user, domain)) return true;
+  if (canWriteRegistrationAudit(user, key, effect.before, effect.after)) return true;
   return documentOnlyChange(effect.before, effect.after) && canEditModule(user, 'documents');
 }
 
@@ -217,6 +360,7 @@ function assertKeyChangeAllowed(serverState, incomingState, user, key) {
   const domain = DOCUMENT_AWARE[key];
   if (!domain) return;
   if (canEditAny(user, domain)) return;
+  if (canWriteRegistrationAudit(user, key, effect.before, effect.after)) return;
   if (documentOnlyChange(effect.before, effect.after) && canEditModule(user, 'documents')) return;
   forbidden(key, domain);
 }
@@ -255,6 +399,7 @@ function assertMetadataAllowed(serverState, incomingState, user) {
 
     if (DOCUMENT_AWARE[key]) {
       const effect = effectiveKeyChange(serverState, incomingState, key);
+      if (effect.changed && canWriteRegistrationAudit(user, key, effect.before, effect.after)) continue;
       if (effect.changed && documentOnlyChange(effect.before, effect.after) && canEditModule(user, 'documents')) continue;
     }
     if (!canEditAny(user, modules)) forbidden(`_teamSyncMeta.fields.${key}`, modules);
@@ -286,8 +431,11 @@ module.exports = {
   DOCUMENT_AWARE,
   canEditModule,
   canEditAny,
+  canReadModule,
+  canReadAny,
   stripDocumentFields,
   documentOnlyChange,
+  registrationAuditOnlyChange,
   effectiveKeyChange,
   sanitizeUnmappedNoise,
   assertMergedStateWriteAllowed
