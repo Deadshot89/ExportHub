@@ -1,0 +1,90 @@
+name: RC1525 Customer Email Red Green
+
+on:
+  push:
+    branches:
+      - fix/customer-email-delete-persist-20261014
+    paths:
+      - '.github/workflows/rc1525-customer-email-red-green.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  red-green:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+
+      - name: RED – Regressionsfehler muss reproduzierbar sein
+        shell: bash
+        run: |
+          set +e
+          node --test test/rc1525-customer-email-delete-persist.test.mjs > rc1525-red.log 2>&1
+          status=$?
+          cat rc1525-red.log
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo 'RC1525 RED fehlgeschlagen: Der Regressionstest war bereits grün.' >&2
+            exit 1
+          fi
+          grep -q "bewusst entfernte Kunden-Mailadressen" rc1525-red.log
+          echo 'RC1525 RED bestätigt: Die alte Server-Merge-Logik stellt gelöschte Mailadressen wieder her.'
+
+      - name: Minimalen Merge-Fix anwenden
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('api/shared/merge.js')
+          source = path.read_text(encoding='utf-8')
+          old = """  // Customer master data is loss-protected: an empty/missing value from a newer partial client
+          // may not erase a previously persisted non-empty value.
+          for (const [key, value] of Object.entries(older)) {
+            if (!meaningfulValue(out[key]) && meaningfulValue(value)) out[key] = clone(value);
+          }
+          """
+          new = """  // Customer master data stays loss-protected when a field is absent. For mail/contact
+          // fields, an explicitly present empty value is a deliberate deletion and must not
+          // resurrect an older address on the next reload.
+          const explicitlyClearableCustomerFields = new Set([
+            'email', 'customerEmail', 'customerMail', 'mail', 'carrierEmail',
+            'salesMail', 'salesEmail', 'salesPersonMail', 'salesPersonEmail',
+            'salesContactMail', 'salesContactEmail', 'rc385SalesMail', 'salesCc',
+            'salesPersonName', 'salesContactName', 'salesName',
+            'salesContacts', 'customerSalesContacts',
+            'cc', 'mailCc', 'rc385Cc', 'ccContacts', 'customerCcContacts'
+          ]);
+          for (const [key, value] of Object.entries(older)) {
+            const explicitlyCleared = explicitlyClearableCustomerFields.has(key)
+              && Object.prototype.hasOwnProperty.call(newer, key)
+              && !meaningfulValue(newer[key]);
+            if (!explicitlyCleared && !meaningfulValue(out[key]) && meaningfulValue(value)) out[key] = clone(value);
+          }
+          """
+          count = source.count(old)
+          if count != 1:
+              raise SystemExit(f'Expected exactly one customer loss-protection block, found {count}')
+          path.write_text(source.replace(old, new, 1), encoding='utf-8')
+          PY
+          git diff --check
+          git diff -- api/shared/merge.js
+
+      - name: GREEN – gezielte Regression
+        run: node --test test/rc1525-customer-email-delete-persist.test.mjs
+
+      - name: Fix auf Branch committen
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add api/shared/merge.js
+          git commit -m 'fix: persist customer email deletions'
+          git push origin HEAD:fix/customer-email-delete-persist-20261014
