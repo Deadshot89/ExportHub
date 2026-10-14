@@ -23,16 +23,23 @@ function addressOf(loc){
  if(!obj(loc))return'';
  var direct=q(loc.address||loc.formattedAddress||loc.fullAddress||loc.addressText||loc.deliveryAddress||loc.recipientAddress||loc.shipToAddress);
  if(direct)return direct;
- var street=q(loc.street||loc.strasse||loc.streetName||loc.addressLine1),zip=q(loc.zip||loc.postalCode||loc.postcode||loc.plz),city=q(loc.city||loc.ort||loc.town||loc.place),country=q(loc.country||loc.land||loc.countryName);
+ var street=q(loc.street||loc.strasse||loc.streetName||loc.addressLine1),zip=q(loc.zip||loc.postalCode||loc.postcode||loc.plz),city=q(loc.city||loc.ort||loc.town||loc.place),country=q(loc.country||loc.land||loc.countryName||loc.countryCode||loc.iso||loc.iso2);
  return [street,[zip,city].filter(Boolean).join(' '),country].filter(Boolean).join(', ')
 }
+function emailOf(loc){
+ if(!obj(loc))return'';
+ var direct=loc.email||loc.mail||loc.customerEmail||loc.customerMail||loc.recipientEmail||loc.recipientMail||loc.destinationEmail||loc.destinationMail||loc.avisEmail||loc.notificationEmail||loc.contactEmail;
+ if(obj(direct))direct=direct.email||direct.mail||direct.value;
+ return q(direct)
+}
+function countryOf(loc){return obj(loc)?q(loc.country||loc.land||loc.countryName||loc.countryCode||loc.iso||loc.iso2):''}
 function locationId(loc){return q(loc&&(loc.id||loc.locationId||loc.selectedLocationId||loc.siteId||loc.destinationId||loc.deliveryLocationId||loc.shipToLocationId||loc.recipientLocationId||loc.code||loc.number))}
 function locations(c){
  var out=[];
  [c&&c.locations,c&&c.sites,c&&c.standorte,c&&c.deliveryLocations,c&&c.shippingLocations,c&&c.addresses,c&&c.deliveryAddresses,c&&c.shipToLocations,c&&c.shipToAddresses,c&&c.recipientAddresses,c&&c.customerLocations].forEach(function(list){arr(list).forEach(function(x){if(obj(x))out.push(x)})});
  if(obj(c)&&addressOf(c)){
   var key=q(c.id||c.customerId||c.account||c.customerNumber||'CUSTOMER');
-  out.unshift({id:'MAIN-'+key,locationId:'MAIN-'+key,selectedLocationId:'MAIN-'+key,siteId:'MAIN-'+key,destinationId:'MAIN-'+key,deliveryLocationId:'MAIN-'+key,shipToLocationId:'MAIN-'+key,recipientLocationId:'MAIN-'+key,name:q(c.locationName||c.siteName)||'Hauptadresse',address:addressOf(c),country:q(c.country||c.land||c.countryName),_derivedMain:true})
+  out.unshift({id:'MAIN-'+key,locationId:'MAIN-'+key,selectedLocationId:'MAIN-'+key,siteId:'MAIN-'+key,destinationId:'MAIN-'+key,deliveryLocationId:'MAIN-'+key,shipToLocationId:'MAIN-'+key,recipientLocationId:'MAIN-'+key,name:q(c.locationName||c.siteName)||'Hauptadresse',address:addressOf(c),country:countryOf(c),email:emailOf(c),_derivedMain:true})
  }
  return out
 }
@@ -57,11 +64,12 @@ function targets(s,active){
  return out
 }
 function writeLocation(sh,value,loc){
- var name=q(loc.name||loc.locationName||loc.siteName||loc.standort||loc.city||loc.ort),address=addressOf(loc),country=q(loc.country||loc.land||loc.countryName);
+ var name=q(loc.name||loc.locationName||loc.siteName||loc.standort||loc.city||loc.ort),address=addressOf(loc),country=countryOf(loc),email=emailOf(loc);
  sh.locationId=value;sh.selectedLocationId=value;sh.siteId=value;sh.destinationId=value;sh.deliveryLocationId=value;sh.shipToLocationId=value;sh.recipientLocationId=value;
  if(name){sh.locationName=name;sh.siteName=name;sh.destinationName=name}
  if(address){sh.recipientAddress=address;sh.deliveryAddress=address;sh.destinationAddress=address}
- if(country){sh.recipientCountry=country;sh.destinationCountry=country}
+ if(country){sh.country=country;sh.recipientCountry=country;sh.destinationCountry=country}
+ if(email){sh.customerEmail=email;sh.customerMail=email;sh.recipientEmail=email;sh.email=email}
 }
 function applyLocation(value,expectedCustomerKey){
  value=q(value);if(!value)return false;
