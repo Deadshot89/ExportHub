@@ -100,6 +100,23 @@ test('RC1532 Security: normaler Benutzer darf Lernfortschritt eines anderen Benu
   );
 });
 
+test('RC1532 Security: Benutzer ohne SOP-Leserecht darf auch eigenen Lernfortschritt nicht schreiben',()=>{
+  const user=normalUser();
+  user.rights.sop=right('none');
+  const server={
+    sopLearningProgress:[],
+    _teamSyncMeta:{fields:{sopLearningProgress:'2026-10-14T08:00:00.000Z'},tombstones:[]}
+  };
+  const incoming=structuredClone(server);
+  incoming.sopLearningProgress=[progress('USER-Sevastian')];
+  incoming._teamSyncMeta.fields.sopLearningProgress='2026-10-14T09:00:00.000Z';
+
+  assert.throws(
+    ()=>runAs(user,()=>secureMerge.mergeState(server,incoming)),
+    error=>error&&error.code==='STATE_MODULE_WRITE_FORBIDDEN'&&error.status===403
+  );
+});
+
 test('RC1532 Security: unbekannte persistierte State-Bereiche bleiben fuer normale Benutzer fail-closed',()=>{
   const server={
     sopLearningProgress:[],
