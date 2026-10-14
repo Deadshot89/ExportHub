@@ -1,0 +1,46 @@
+name: RC1531 Apply Fix
+
+on:
+  push:
+    branches: [hotfix/rc1531-production-livecheck]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: hotfix/rc1531-production-livecheck
+          fetch-depth: 0
+      - name: RC1531 Production-Livecheck minimal korrigieren
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          path=Path('.github/workflows/exporthub-production-release.yml')
+          text=path.read_text()
+          old='''            if printf '%s' "$version" | grep -q "__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1112'" \\
+              && printf '%s' "$home" | grep -q 'ExportHUB' \\
+              && printf '%s' "$pack" | grep -q 'Packmeldung'; then'''
+          new='''            if [[ "$version" == *"__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1112'"* ]] \\
+              && [[ "$home" == *ExportHUB* ]] \\
+              && [[ "$pack" == *Packmeldung* ]]; then'''
+          if old not in text:
+              print('RC1531: Production-Livecheck ist bereits korrigiert.')
+          else:
+              path.write_text(text.replace(old,new,1))
+              print('RC1531: pipefail-sensitive grep-q Pipelines ersetzt.')
+          PY
+          if git diff --quiet -- .github/workflows/exporthub-production-release.yml; then
+            exit 0
+          fi
+          git config user.name 'Deadshot89'
+          git config user.email '86518220+Deadshot89@users.noreply.github.com'
+          git add .github/workflows/exporthub-production-release.yml
+          git commit -m 'RC1531: Production-Livecheck gegen pipefail absichern'
+          git push origin HEAD:hotfix/rc1531-production-livecheck
