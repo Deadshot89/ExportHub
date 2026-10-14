@@ -24,8 +24,8 @@ function latestCheckedAt(sources){
  return (Array.isArray(sources)?sources:[]).map(item=>text(item&&item.checkedAt,40)).filter(Boolean).sort().reverse()[0]||''
 }
 function publicSources(sources,ids){
- const list=Array.isArray(sources)?sources:[],allowed=Array.isArray(ids)&&ids.length?new Set(ids):null;
- return list.filter(item=>!allowed||allowed.has(item.id)).map(item=>({id:item.id,title:item.title,sourceName:item.sourceName,sourceUrl:item.sourceUrl,publishedAt:item.publishedAt,checkedAt:item.checkedAt}))
+ const list=Array.isArray(sources)?sources:[],hasFilter=Array.isArray(ids),allowed=hasFilter?new Set(ids):null;
+ return list.filter(item=>!hasFilter||allowed.has(item.id)).map(item=>({id:item.id,title:item.title,sourceName:item.sourceName,sourceUrl:item.sourceUrl,publishedAt:item.publishedAt,checkedAt:item.checkedAt}))
 }
 function invalid(code,answer){return{ok:false,code,answer,mode:'validation',sources:[],checkedAt:'',uncertainty:true,recoverable:true,contextSummary:{}}}
 
