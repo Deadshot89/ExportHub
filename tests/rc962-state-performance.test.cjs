@@ -51,7 +51,7 @@ async function main() {
   const saveHit = await api.readTeamCachedForSession(production, 'save');
   assert.strictEqual(saveHit.cacheMode, 'memory-save');
   assert.strictEqual(saveHit.value, team, 'RC962: Production-memory-save darf den kompletten Teamstand nicht tief kopieren.');
-  assert.strictEqual(productionPropertyReads, 0, 'RC1537: Production-save muss den schnellen Warm-Cache ohne ETag-Roundtrip behalten.');
+  assert.strictEqual(productionPropertyReads, 0, 'RC1538: Production-save muss den schnellen Warm-Cache ohne ETag-Roundtrip behalten.');
 
   const readHit = await api.readTeamCachedForSession(production, 'read');
   assert.strictEqual(productionPropertyReads, 1, 'RC962: normaler Production-read darf den Warm-Cache per ETag validieren.');
@@ -81,11 +81,11 @@ async function main() {
 
   assert.strictEqual(api.rememberWarmTeam(testservice, team, 'etag-42'), true);
   const testserviceSave = await api.readTeamCachedForSession(testservice, 'save');
-  assert.strictEqual(propertyReads, 1, 'RC1537: TESTSERVICE-save muss den Blob-ETag vor Nutzung eines Warm-Caches prüfen.');
-  assert.strictEqual(blobReads, 1, 'RC1537: Bei geändertem TESTSERVICE-ETag muss der aktuelle Team-State neu geladen werden.');
+  assert.strictEqual(propertyReads, 1, 'RC1538: TESTSERVICE-save muss den Blob-ETag vor Nutzung eines Warm-Caches prüfen.');
+  assert.strictEqual(blobReads, 1, 'RC1538: Bei geändertem TESTSERVICE-ETag muss der aktuelle Team-State neu geladen werden.');
   assert.strictEqual(testserviceSave.cacheMode, 'full-read');
   assert.strictEqual(testserviceSave.value.revision, 43);
-  assert.ok(testserviceSave.value.users.some(user => user.id === 'E2E-U1' && user.active === true), 'RC1537: Der vom Fixture neu angelegte E2E-Benutzer muss beim Save sichtbar sein.');
+  assert.ok(testserviceSave.value.users.some(user => user.id === 'E2E-U1' && user.active === true), 'RC1538: Der vom Fixture neu angelegte E2E-Benutzer muss beim Save sichtbar sein.');
 
   const client = api.sanitizeForClient(team, false);
   assert.notStrictEqual(client, team, 'Client-Antwort braucht ein eigenes Root-Objekt.');
@@ -100,7 +100,7 @@ async function main() {
   assert.strictEqual(team.users[0].password, 'secret', 'Die Quellstruktur darf bei der Bereinigung nicht mutiert werden.');
 
   JSON.stringify(client);
-  console.log('RC962/RC1537 state performance regression test: OK');
+  console.log('RC962/RC1538 state performance regression test: OK');
 }
 
 main().catch((error) => {

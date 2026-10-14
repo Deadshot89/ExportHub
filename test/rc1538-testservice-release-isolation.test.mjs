@@ -2,10 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-const guardPath='.github/workflows/rc1537-testservice-main-supersession.yml';
+const guardPath='.github/workflows/rc1538-testservice-main-supersession.yml';
 
-test('RC1537: neuer deploy-relevanter main beendet ältere mutable TESTSERVICE-Main-Verifications',()=>{
-  assert.ok(fs.existsSync(guardPath),'RC1537 Main-Supersession-Workflow fehlt');
+test('RC1538: neuer deploy-relevanter main beendet ältere mutable TESTSERVICE-Main-Verifications',()=>{
+  assert.ok(fs.existsSync(guardPath),'RC1538 Main-Supersession-Workflow fehlt');
   const guard=fs.readFileSync(guardPath,'utf8');
   assert.match(guard,/push:\s*\n\s*branches:\s*\[main\]/,'Supersession muss bei deploy-relevanten main-Pushes laufen');
   assert.match(guard,/paths:\s*\n[\s\S]*?'api\/\*\*'/,'Supersession muss API-Änderungen als deploy-relevant behandeln');

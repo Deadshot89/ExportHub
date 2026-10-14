@@ -1,4 +1,4 @@
-name: RC1537 TESTSERVICE Main Supersession
+name: RC1538 TESTSERVICE Main Supersession
 
 on:
   push:
@@ -37,7 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: RC1537 ältere Main-Verifications für TESTSERVICE beenden
+      - name: RC1538 ältere Main-Verifications für TESTSERVICE beenden
         shell: bash
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -66,7 +66,7 @@ jobs:
           const main=await request(`https://api.github.com/repos/${repo}/branches/main`);
           const liveMain=main&&main.commit&&main.commit.sha;
           if(liveMain!==currentSha){
-            console.log(`RC1537: ${currentSha} ist nicht mehr aktueller main (${liveMain}); kein Supersession-Eingriff.`);
+            console.log(`RC1538: ${currentSha} ist nicht mehr aktueller main (${liveMain}); kein Supersession-Eingriff.`);
             process.exit(0);
           }
           const workflow='azure-static-web-apps-wonderful-forest-0f315e310.yml';
@@ -75,7 +75,7 @@ jobs:
           const older=runs.filter(run=>run&&run.head_sha!==currentSha&&(run.status==='queued'||run.status==='in_progress'));
           for(const run of older){
             await request(`https://api.github.com/repos/${repo}/actions/runs/${run.id}/cancel`,{method:'POST'});
-            console.log(`RC1537: ältere Main Verification ${run.id} (${run.head_sha}) beendet.`);
+            console.log(`RC1538: ältere Main Verification ${run.id} (${run.head_sha}) beendet.`);
           }
-          console.log(`RC1537: ${older.length} ältere TESTSERVICE-Main-Verifications beendet; aktueller SHA ${currentSha}.`);
+          console.log(`RC1538: ${older.length} ältere TESTSERVICE-Main-Verifications beendet; aktueller SHA ${currentSha}.`);
           NODE
