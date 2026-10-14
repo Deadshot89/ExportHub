@@ -5,9 +5,12 @@ const writeContext = require('./state-write-context');
 const writeGuard = require('./state-write-guard');
 
 function mergeState(serverState, incomingState) {
-  const merged = base.mergeState(serverState, incomingState);
   const user = writeContext.currentUser();
-  if (user) writeGuard.assertMergedStateWriteAllowed(serverState, merged, incomingState, user);
+  const safeIncoming = user
+    ? writeGuard.sanitizeUnmappedNoise(serverState, incomingState, user)
+    : incomingState;
+  const merged = base.mergeState(serverState, safeIncoming);
+  if (user) writeGuard.assertMergedStateWriteAllowed(serverState, merged, safeIncoming, user);
   return merged;
 }
 
