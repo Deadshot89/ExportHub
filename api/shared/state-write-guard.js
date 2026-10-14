@@ -142,6 +142,68 @@ function requiredModulesForKey(key) {
   return DIRECT_RIGHTS[key] || DOCUMENT_AWARE[key] || null;
 }
 
+function keyChangeAllowed(serverState, incomingState, user, key) {
+  const effect = effectiveKeyChange(serverState, incomingState, key);
+  if (!effect.changed) return false;
+  const direct = DIRECT_RIGHTS[key];
+  if (direct) return canEditAny(user, direct);
+  const domain = DOCUMENT_AWARE[key];
+  if (!domain) return false;
+  if (canEditAny(user, domain)) return true;
+  return documentOnlyChange(effect.before, effect.after) && canEditModule(user, 'documents');
+}
+
+function hasAuthorizedMappedChange(serverState, incomingState, user) {
+  for (const key of Object.keys(DIRECT_RIGHTS)) {
+    if (keyChangeAllowed(serverState, incomingState, user, key)) return true;
+  }
+  for (const key of Object.keys(DOCUMENT_AWARE)) {
+    if (keyChangeAllowed(serverState, incomingState, user, key)) return true;
+  }
+  return false;
+}
+
+function sanitizeUnmappedNoise(serverState, incomingState, user) {
+  if (!user || isAdmin(user) || !isObject(incomingState)) return incomingState;
+  if (!hasAuthorizedMappedChange(serverState, incomingState, user)) return incomingState;
+
+  const server = isObject(serverState) ? serverState : {};
+  const incoming = incomingState;
+  const out = Object.assign({}, incoming);
+
+  for (const key of Object.keys(incoming)) {
+    if (key === '_teamSyncMeta' || isLocalOnlyKey(key) || requiredModulesForKey(key)) continue;
+    if (effectiveKeyChange(server, incoming, key).changed) delete out[key];
+  }
+
+  if (isObject(incoming._teamSyncMeta)) {
+    const serverMeta = isObject(server._teamSyncMeta) ? server._teamSyncMeta : {};
+    const serverFields = isObject(serverMeta.fields) ? serverMeta.fields : {};
+    const incomingFields = isObject(incoming._teamSyncMeta.fields) ? incoming._teamSyncMeta.fields : {};
+    const fields = {};
+    for (const [key, stamp] of Object.entries(incomingFields)) {
+      if (isLocalOnlyKey(key)) continue;
+      if (!requiredModulesForKey(key)) {
+        if (isDeepStrictEqual(serverFields[key], stamp)) continue;
+        continue;
+      }
+      fields[key] = stamp;
+    }
+
+    const serverTombstones = Array.isArray(serverMeta.tombstones) ? serverMeta.tombstones : [];
+    const knownServerTombstones = new Set(serverTombstones.map(tombstoneIdentity));
+    const tombstones = (Array.isArray(incoming._teamSyncMeta.tombstones) ? incoming._teamSyncMeta.tombstones : []).filter((item) => {
+      if (knownServerTombstones.has(tombstoneIdentity(item))) return true;
+      const collection = rawText(item && item.collection);
+      return Boolean(collection && (isLocalOnlyKey(collection) || requiredModulesForKey(collection)));
+    });
+
+    out._teamSyncMeta = Object.assign({}, incoming._teamSyncMeta, { fields, tombstones });
+  }
+
+  return out;
+}
+
 function assertKeyChangeAllowed(serverState, incomingState, user, key) {
   const effect = effectiveKeyChange(serverState, incomingState, key);
   if (!effect.changed) return;
@@ -227,5 +289,6 @@ module.exports = {
   stripDocumentFields,
   documentOnlyChange,
   effectiveKeyChange,
+  sanitizeUnmappedNoise,
   assertMergedStateWriteAllowed
 };

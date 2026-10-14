@@ -48,7 +48,7 @@ function expectForbidden(server,incoming){
   );
 }
 
-test('RC1492: eingeschraenkter Editor darf keinen unbekannten serverpersistierten State-Bereich veraendern',()=>{
+test('RC1492/RC1526: erlaubte Änderung verwirft unbekannte Vollzustands-Fremdänderung statt den ganzen Save zu blockieren',()=>{
   const server={
     tasks:[{id:'T1',title:'Alt',updatedAt:'2026-10-11T10:00:00.000Z'}],
     futureSensitiveState:{enabled:false,secretPolicy:'server-owned'},
@@ -57,7 +57,9 @@ test('RC1492: eingeschraenkter Editor darf keinen unbekannten serverpersistierte
   const incoming=structuredClone(server);
   incoming.tasks[0]={...incoming.tasks[0],title:'Erlaubt',updatedAt:'2026-10-11T13:00:00.000Z'};
   incoming.futureSensitiveState={enabled:true,secretPolicy:'manipulated'};
-  expectForbidden(server,incoming);
+  const merged=runAs(restrictedTaskEditor(),()=>secureMerge.mergeState(server,incoming));
+  assert.equal(merged.tasks[0].title,'Erlaubt');
+  assert.deepEqual(merged.futureSensitiveState,server.futureSensitiveState);
 });
 
 test('RC1492: unbekannte persistierte Field-Metadaten duerfen nicht vergiftet werden',()=>{
