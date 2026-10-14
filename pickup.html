@@ -41,10 +41,10 @@ button:disabled{opacity:.55;cursor:wait}
 canvas{display:block;width:100%;height:min(42vh,360px);touch-action:none;background:#fff}
 .actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:12px}
 .actions .secondary{background:#fff;color:#334155;border:1px solid #cbd5e1}
-.pickup-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.pickup-actions .partial{background:#fff;color:#1d4ed8;border:2px solid #60a5fa}.pickup-actions button{min-height:52px}.container-photo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.container-photo-card{border:1px solid #bfdbfe;border-radius:16px;background:#fff;padding:10px;display:grid;gap:8px;align-content:start}.container-photo-card input[type=file]{font-size:13px;padding:8px}.container-photo-card img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;border:1px solid #cbd5e1}.container-photo-card .photo-state{font-size:11px;font-weight:800;color:#64748b}.container-photo-card .photo-state.ok{color:#166534}.container-required{color:#991b1b}.container-optional{color:#64748b}.pickup-stepbar{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:18px 0 8px}.pickup-step{padding:10px 8px;border-radius:12px;background:#e2e8f0;color:#475569;text-align:center;font-size:12px;font-weight:800}.pickup-step.active{background:#dbeafe;color:#1d4ed8;box-shadow:inset 0 0 0 2px #60a5fa}.pickup-step.done{background:#dcfce7;color:#166534}
+.pickup-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.pickup-actions .partial{background:#fff;color:#1d4ed8;border:2px solid #60a5fa}.pickup-actions button{min-height:52px}.container-photo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.container-photo-card{border:1px solid #bfdbfe;border-radius:16px;background:#fff;padding:10px;display:grid;gap:8px;align-content:start}.container-photo-card input[type=file]{font-size:13px;padding:8px}.container-photo-card img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;border:1px solid #cbd5e1}.container-photo-card .photo-state{font-size:11px;font-weight:800;color:#64748b}.container-photo-card .photo-state.ok{color:#166534}.container-required{color:#991b1b}.container-optional{color:#64748b}.pickup-stepbar{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:18px 0 8px}.pickup-step{padding:10px 8px;border-radius:12px;background:#e2e8f0;color:#475569;text-align:center;font-size:12px;font-weight:800}.pickup-step.active{background:#dbeafe;color:#1d4ed8;box-shadow:inset 0 0 0 2px #60a5fa}.pickup-step.done{background:#dcfce7;color:#166534}
 .success{text-align:center;padding:26px 10px}.success .icon{width:74px;height:74px;border-radius:50%;margin:0 auto 16px;background:#dcfce7;color:#166534;display:grid;place-items:center;font-size:38px;font-weight:1000}.success h2{font-size:28px;margin:0 0 10px;color:#166534}
 button:focus-visible,input:focus-visible{outline:3px solid #1d4ed8;outline-offset:3px}
-@media(max-width:620px){main{padding:10px}.card{padding:18px;border-radius:20px}.info-grid,.grid,.container-photo-grid{grid-template-columns:1fr}}
+@media(max-width:620px){main{padding:10px}.card{padding:18px;border-radius:20px}.info-grid,.grid,.container-photo-grid{grid-template-columns:1fr}.pickup-stepbar{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 <script id="exporthub-rc1267-i18n" defer src="/assets/rc1267-i18n.js?v=1267"></script>
 <script id="exporthub-rc1018-public-language" defer src="/assets/rc1018-public-language.js?v=1018"></script>
@@ -66,7 +66,9 @@ button:focus-visible,input:focus-visible{outline:3px solid #1d4ed8;outline-offse
 <div class="pickup-stepbar" aria-label="Abholablauf">
   <span class="pickup-step done">1 · Sendung</span>
   <span id="stepColli" class="pickup-step active">2 · Collis</span>
-  <span id="stepDriver" class="pickup-step">3 · Fahrer</span>
+  <span id="stepContainer" class="pickup-step">3 · Container</span>
+  <span id="stepDriver" class="pickup-step">4 · Fahrer</span>
+  <span id="stepConfirm" class="pickup-step">5 · Bestätigung</span>
 </div>
 
 <section id="colliSection" class="section">
@@ -78,10 +80,10 @@ button:focus-visible,input:focus-visible{outline:3px solid #1d4ed8;outline-offse
 </div>
 <label>Auf diesem LKW verladenen Colli<input id="colli" type="number" min="1" step="1" inputmode="numeric" autofocus></label>
 <button id="checkColli" type="button">Collis bestätigen und weiter</button>
-<div id="colliResult" class="help">Bitte zuerst die verladenen Collis bestätigen. Danach werden die Fahrerdaten freigeschaltet.</div>
+<div id="colliResult" class="help">Bitte zuerst die verladenen Collis bestätigen. Danach werden Siegelnummer und Containerfotos freigeschaltet.</div>
 </section>
 
-<section id="containerSection" class="section">
+<section id="containerSection" class="section" hidden>
 <h2>🚢 Container-Dokumentation <span id="containerModeLabel" class="help container-optional">(optional)</span></h2>
 <div class="help">Bei Seefracht mit verpflichtender Container-Dokumentation müssen vor der vollständigen Abholung die Siegelnummer und genau diese drei Nachweise gespeichert sein. Bei anderen Sendungen können die Angaben freiwillig genutzt werden.</div>
 <label>Siegelnummer <span id="sealRequiredLabel" class="help">(optional)</span><input id="sealNumber" autocomplete="off" maxlength="120" placeholder="z. B. ABCD123456"></label>
@@ -109,6 +111,10 @@ button:focus-visible,input:focus-visible{outline:3px solid #1d4ed8;outline-offse
 
 <section class="section">
 <h2>Digitale Bestätigung</h2>
+<label id="customsDocumentsField" hidden>
+<span><input id="customsDocumentsConfirmed" type="checkbox" style="width:auto;min-height:0;margin-right:8px"> <strong>Zolldokumente wurden an den Fahrer übergeben</strong></span>
+<span class="help">Pflicht, sobald für diese Sendung ein ABD erstellt wurde. Der Verlader bestätigt hier nur die Übergabe; eine zweite Unterschrift ist nicht erforderlich.</span>
+</label>
 <label>Unterschrift des Fahrers
 <button id="signatureOpen" class="signature" type="button">
 <span id="signaturePrompt">Zum Unterschreiben hier antippen</span>
@@ -116,10 +122,6 @@ button:focus-visible,input:focus-visible{outline:3px solid #1d4ed8;outline-offse
 </button>
 <span class="help">Unterschrift, Kennzeichen und Speditionsname sind verpflichtend.</span>
 <input id="signatureData" type="hidden">
-</label>
-<label id="customsDocumentsField" hidden>
-<span><input id="customsDocumentsConfirmed" type="checkbox" style="width:auto;min-height:0;margin-right:8px"> <strong>Zolldokumente wurden an den Fahrer übergeben</strong></span>
-<span class="help">Pflicht, sobald für diese Sendung ein ABD erstellt wurde. Der Verlader bestätigt hier nur die Übergabe; eine zweite Unterschrift ist nicht erforderlich.</span>
 </label>
 <label>Persönlicher PIN des Verladers<input id="pin" inputmode="numeric" autocomplete="one-time-code" maxlength="4" pattern="[0-9]{4}" required></label>
 </section>
@@ -148,7 +150,7 @@ button:focus-visible,input:focus-visible{outline:3px solid #1d4ed8;outline-offse
 'use strict';
 
 function q(v){return String(v==null?'':v).trim()}
-function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]})}
 function deep(data,names){
   var seen=[];
   function walk(x,d){
@@ -244,11 +246,26 @@ function expectedCollis(data){
   return colliNumber(deep(data,['pickupColliCount','enteredColliCount','colliCount']));
 }
 
+function setPickupFlowStage(stage){
+  var stages=['colli','container','driver','confirm'],ids={colli:'stepColli',container:'stepContainer',driver:'stepDriver',confirm:'stepConfirm'},activeIndex=stages.indexOf(stage);
+  if(activeIndex<0)activeIndex=0;
+  stages.forEach(function(name,index){
+    var el=document.getElementById(ids[name]);if(!el)return;
+    el.classList.toggle('active',index===activeIndex);
+    el.classList.toggle('done',index<activeIndex);
+  });
+}
 function setDriverStepUnlocked(on){
-  var step=document.getElementById('driverStep'),colliStep=document.getElementById('stepColli'),driverStep=document.getElementById('stepDriver');
-  if(step)step.hidden=!on;
-  if(colliStep)colliStep.className='pickup-step '+(on?'done':'active');
-  if(driverStep)driverStep.className='pickup-step '+(on?'active':'');
+  var container=document.getElementById('containerSection'),driver=document.getElementById('driverStep');
+  if(container)container.hidden=!on;
+  if(driver)driver.hidden=!on;
+  setPickupFlowStage(on?'container':'colli');
+}
+function bindPickupFlowStage(ids,stage){
+  ids.forEach(function(id){
+    var el=document.getElementById(id);if(!el)return;
+    ['focus','click'].forEach(function(eventName){el.addEventListener(eventName,function(){setPickupFlowStage(stage)})});
+  });
 }
 function blockMissingColli(){
   var input=document.getElementById('colli'),button=document.getElementById('checkColli'),out=document.getElementById('colliResult');
@@ -387,14 +404,14 @@ function checkColli(mode){
   if(!(expected>0)){colliOk=false;setDriverStepUnlocked(false);return false}
   var input=document.getElementById('colli'),n=colliNumber(input.value),out=document.getElementById('colliResult'),open=remainingBefore||expected;
   if(mode==='partial'){
-    if(n>0&&n<open){colliOk=true;out.textContent='✓ Teilabholung: '+n+' Colli bestätigt. Danach bleiben '+(open-n)+' Colli offen.';out.style.color='#166534';input.readOnly=true;setDriverStepUnlocked(true);status('Collis bestätigt. Bitte jetzt die Fahrerdaten erfassen.','ok');return true}
+    if(n>0&&n<open){colliOk=true;out.textContent='✓ Teilabholung: '+n+' Colli bestätigt. Danach bleiben '+(open-n)+' Colli offen.';out.style.color='#166534';input.readOnly=true;setDriverStepUnlocked(true);status('Collis bestätigt. Bitte jetzt Siegelnummer und Containerfotos erfassen; anschließend Fahrer und Bestätigung.','ok');return true}
     colliOk=false;setDriverStepUnlocked(false);out.textContent=n===open?'Die komplette Restmenge bitte mit „Vollständige Abholung bestätigen“ abschließen.':'Für eine Teilabholung bitte 1 bis '+Math.max(1,open-1)+' Colli eingeben.';out.style.color='#991b1b';input.readOnly=false;input.focus();return false;
   }
-  if(n===open){colliOk=true;out.textContent='✓ Vollständige Abholung: alle '+open+' offenen Collis bestätigt.';out.style.color='#166534';input.readOnly=true;setDriverStepUnlocked(true);status('Collis bestätigt. Bitte jetzt die Fahrerdaten erfassen.','ok');return true}
+  if(n===open){colliOk=true;out.textContent='✓ Vollständige Abholung: alle '+open+' offenen Collis bestätigt.';out.style.color='#166534';input.readOnly=true;setDriverStepUnlocked(true);status('Collis bestätigt. Bitte jetzt Siegelnummer und Containerfotos erfassen; anschließend Fahrer und Bestätigung.','ok');return true}
   colliOk=false;setDriverStepUnlocked(false);out.textContent='Für die vollständige Abholung müssen alle '+open+' noch offenen Colli bestätigt werden.';out.style.color='#991b1b';input.readOnly=false;input.focus();return false;
 }
 document.getElementById('checkColli').addEventListener('click',function(){var n=colliNumber(document.getElementById('colli').value),open=remainingBefore||expected;checkColli(n>0&&n<open?'partial':'complete')});
-document.getElementById('colli').addEventListener('input',function(){colliOk=false;setDriverStepUnlocked(false);this.readOnly=false;document.getElementById('colliResult').textContent='Colli-Anzahl geändert. Bitte erneut bestätigen, bevor Fahrerdaten erfasst werden.'});
+document.getElementById('colli').addEventListener('input',function(){colliOk=false;setDriverStepUnlocked(false);this.readOnly=false;document.getElementById('colliResult').textContent='Colli-Anzahl geändert. Bitte erneut bestätigen, bevor Siegelnummer, Containerfotos und Fahrerdaten erfasst werden.'});
 
 [
  ['loaded','containerPhotoLoaded','containerPreviewLoaded','containerStateLoaded'],
@@ -402,6 +419,9 @@ document.getElementById('colli').addEventListener('input',function(){colliOk=fal
  ['sealed','containerPhotoSealed','containerPreviewSealed','containerStateSealed']
 ].forEach(function(row){var input=document.getElementById(row[1]);if(input)input.addEventListener('change',function(){uploadContainerPhoto(row[0],input,row[2],row[3])})});
 document.getElementById('sealNumber').addEventListener('input',function(){this.value=this.value.toUpperCase().replace(/[\r\n]/g,' ').slice(0,120)});
+bindPickupFlowStage(['sealNumber','containerPhotoLoaded','containerPhotoNumber','containerPhotoSealed'],'container');
+bindPickupFlowStage(['driver','plate','carrier','returned'],'driver');
+bindPickupFlowStage(['customsDocumentsConfirmed','signatureOpen','pin'],'confirm');
 
 ctx.lineCap='round';ctx.lineJoin='round';ctx.lineWidth=5;ctx.strokeStyle='#0f172a';
 function clearSig(){ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);drawn=false}
@@ -411,6 +431,7 @@ canvas.addEventListener('pointerdown',function(e){e.preventDefault();drawing=tru
 canvas.addEventListener('pointermove',function(e){if(!drawing)return;e.preventDefault();var p=point(e);ctx.lineTo(p.x,p.y);ctx.stroke()});
 ['pointerup','pointercancel','pointerleave'].forEach(function(n){canvas.addEventListener(n,function(e){if(!drawing)return;e.preventDefault();drawing=false;ctx.closePath()})});
 function openSignature(){
+  setPickupFlowStage('confirm');
   document.getElementById('signatureDialogTitle').textContent='Unterschrift des Fahrers';
   var dialog=document.getElementById('signatureDialogTitle').nextElementSibling;if(dialog)dialog.textContent='Bitte im großen Feld mit Finger, Stift oder Maus unterschreiben.';
   document.getElementById('signatureModal').hidden=false;document.body.style.overflow='hidden';clearSig()
@@ -427,6 +448,7 @@ document.getElementById('saveSig').addEventListener('click',function(){
   var img=document.getElementById('signaturePreview');img.src=data;img.hidden=false;
   document.getElementById('signaturePrompt').textContent='Unterschrift erfasst – zum Ändern antippen';
   document.getElementById('signatureOpen').classList.add('has');
+  setPickupFlowStage('confirm');
   status('Unterschrift erfasst. Bitte Verlader-PIN eingeben.','info');
   document.getElementById('signatureModal').hidden=true;document.body.style.overflow='';
 });
@@ -438,16 +460,16 @@ form.addEventListener('submit',function(e){
   e.preventDefault();
   var mode=e.submitter&&e.submitter.dataset&&e.submitter.dataset.mode==='partial'?'partial':'complete';
   var pin=q(document.getElementById('pin').value),driver=q(document.getElementById('driver').value),plate=q(document.getElementById('plate').value),carrier=q(document.getElementById('carrier').value),sig=q(document.getElementById('signatureData').value),customsConfirmed=!!(document.getElementById('customsDocumentsConfirmed')&&document.getElementById('customsDocumentsConfirmed').checked),seal=q(document.getElementById('sealNumber').value),returned=Math.max(0,Math.round(Number(document.getElementById('returned').value||0))),entered=colliNumber(document.getElementById('colli').value),btn=mode==='partial'?document.getElementById('confirmPartial'):document.getElementById('confirm');
-  if(!(expected>0)||!colliOk){setDriverStepUnlocked(false);status('Bitte zuerst die Collis prüfen und bestätigen. Fahrerdaten werden erst danach freigeschaltet.','bad');document.getElementById('colli').focus();return}
-  if(!plate){status('Bitte das Kennzeichen eingeben.','bad');return}
-  if(!carrier){status('Bitte den Speditionsnamen eingeben.','bad');return}
+  if(!(expected>0)||!colliOk){setDriverStepUnlocked(false);status('Bitte zuerst die Collis prüfen und bestätigen. Siegelnummer, Containerfotos und Fahrerdaten werden erst danach freigeschaltet.','bad');document.getElementById('colli').focus();return}
   if(expected>0&&!checkColli(mode)){status(mode==='partial'?'Die Teilabholung konnte mit dieser Colli-Anzahl nicht bestätigt werden.':'Die eingegebene Rest-Colli-Anzahl stimmt nicht.','bad');return}
-  if(containerUploadBusy){status('Bitte den laufenden Containerfoto-Upload zuerst abschließen.','bad');return}
-  if(mode==='complete'&&containerRequired&&!seal){status('Für diese Sendung ist die Siegelnummer verpflichtend.','bad');document.getElementById('sealNumber').focus();return}
-  if(mode==='complete'&&containerRequired&&(!containerPhotos.loaded||!containerPhotos.number||!containerPhotos.sealed)){status('Für diese Sendung müssen alle 3 Containerfotos gespeichert sein.','bad');return}
-  if(!/^\d{4}$/.test(pin)){status('Der persönliche Verlader-PIN muss genau vier Ziffern enthalten.','bad');return}
-  if(!/^data:image\/jpeg;base64,/i.test(sig)){status('Bitte die Unterschrift des Fahrers erfassen.','bad');return}
-  if(customsDocumentsRequired&&!customsConfirmed){status('Bitte bestätigen, dass die Zolldokumente an den Fahrer übergeben wurden.','bad');document.getElementById('customsDocumentsConfirmed').focus();return}
+  if(containerUploadBusy){setPickupFlowStage('container');status('Bitte den laufenden Containerfoto-Upload zuerst abschließen.','bad');return}
+  if(mode==='complete'&&containerRequired&&!seal){setPickupFlowStage('container');status('Für diese Sendung ist die Siegelnummer verpflichtend.','bad');document.getElementById('sealNumber').focus();return}
+  if(mode==='complete'&&containerRequired&&(!containerPhotos.loaded||!containerPhotos.number||!containerPhotos.sealed)){setPickupFlowStage('container');status('Für diese Sendung müssen alle 3 Containerfotos gespeichert sein.','bad');return}
+  if(!plate){setPickupFlowStage('driver');status('Bitte das Kennzeichen eingeben.','bad');document.getElementById('plate').focus();return}
+  if(!carrier){setPickupFlowStage('driver');status('Bitte den Speditionsnamen eingeben.','bad');document.getElementById('carrier').focus();return}
+  if(customsDocumentsRequired&&!customsConfirmed){setPickupFlowStage('confirm');status('Bitte bestätigen, dass die Zolldokumente an den Fahrer übergeben wurden.','bad');document.getElementById('customsDocumentsConfirmed').focus();return}
+  if(!/^data:image\/jpeg;base64,/i.test(sig)){setPickupFlowStage('confirm');status('Bitte die Unterschrift des Fahrers erfassen.','bad');document.getElementById('signatureOpen').focus();return}
+  if(!/^\d{4}$/.test(pin)){setPickupFlowStage('confirm');status('Der persönliche Verlader-PIN muss genau vier Ziffern enthalten.','bad');document.getElementById('pin').focus();return}
   if(submitting)return;
   submitting=true;document.getElementById('confirmPartial').disabled=true;document.getElementById('confirm').disabled=true;status(mode==='partial'?'Teilabholung wird übertragen …':'Abholung und POD werden übertragen …','info');
   var body={token:token,pin:pin,loaderPin:pin,personalLoaderPin:pin,driverName:driver,licensePlate:plate,carrierName:carrier,speditionName:carrier,carrier:carrier,spedition:carrier,signatureDataUrl:sig,customsDocumentsReceived:customsConfirmed,customsDocumentsConfirmed:customsConfirmed,abdDocumentsHandedOver:customsConfirmed,returnedEuroPallets:returned,enteredColliCount:entered,colliCount:entered,expectedColliCount:expected,colliConfirmed:expected>0?colliOk:true,colliCountConfirmed:expected>0?colliOk:true,pickupMode:mode,sealNumber:seal,containerSealNumber:seal,siegelnummer:seal,environment:env};
