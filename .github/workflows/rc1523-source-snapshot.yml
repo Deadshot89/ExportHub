@@ -1,0 +1,44 @@
+name: RC1523 SOP i18n source snapshot
+
+on:
+  push:
+    branches:
+      - integration/sopmaster-rc1519-validation
+    paths:
+      - .github/workflows/rc1523-source-snapshot.yml
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify integration-only source
+        shell: bash
+        run: |
+          test "${GITHUB_REF}" = "refs/heads/integration/sopmaster-rc1519-validation"
+          git status --short
+          git rev-parse HEAD | tee rc1523-snapshot-head.txt
+      - name: Upload exact source snapshot
+        uses: actions/upload-artifact@v7
+        with:
+          name: rc1523-source-snapshot
+          path: |
+            .github/rc1501
+            .github/rc1502
+            .github/rc1503
+            .github/rc1506
+            assets/sop
+            assets/i18n
+            assets/exporthub-demo-bootstrap.js
+            assets/rc1267-i18n.js
+            scripts/i18n-audit.mjs
+            test
+            tests
+            package.json
+            package-lock.json
+            rc1523-snapshot-head.txt
+          if-no-files-found: error
+          retention-days: 1
