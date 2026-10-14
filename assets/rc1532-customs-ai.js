@@ -3,17 +3,24 @@
 if(!root||root.ExportHUBRC1532CustomsAI)return;
 
 var d=root.document,observer=null,timer=0,busy=false;
-var I18N={
- de:{tab:'KI-Zollexperte',title:'KI-Zollexperte',subtitle:'Beratende Zollhilfe mit geprüften Quellen und direktem Rechnungs-Kontext.',advisory:'Beratend · keine automatische Änderung an ABD, Sendung oder Aufgabe',context:'Aktueller Kontext',noContext:'Keine Rechnungsanalyse aktiv. Allgemeine Zollfragen sind trotzdem möglich.',question:'Zollfrage',placeholder:'z. B. Welche Präferenzregel muss ich für die Schweiz prüfen?',ask:'Frage prüfen',working:'Prüfe Analyse und Quellen …',answer:'Antwort',sources:'Quellen',checked:'Prüfstand',uncertain:'Prüfung erforderlich',grounded:'Belegt',analysis:'Aktuelle Rechnungsanalyse',provider:'KI-Dienst',noSources:'Keine externen Quellen zitiert.',error:'Die Zollfrage konnte nicht verarbeitet werden.',quickHs:'Welche HS-Codes sind in der Rechnung?',quickOpen:'Welche Positionen sind noch ungeklärt?',quickSum:'Stimmt die Kontrollsumme mit der Rechnungssumme?',quickOrigin:'Welche Ursprungsländer sind enthalten?'},
- en:{tab:'AI Customs Expert',title:'AI Customs Expert',subtitle:'Advisory customs help with reviewed sources and current invoice context.',advisory:'Advisory only · no automatic changes to export declarations, shipments or tasks',context:'Current context',noContext:'No invoice analysis is active. General customs questions are still available.',question:'Customs question',placeholder:'e.g. Which preference rule should I check for Switzerland?',ask:'Check question',working:'Checking analysis and sources …',answer:'Answer',sources:'Sources',checked:'Checked',uncertain:'Review required',grounded:'Grounded',analysis:'Current invoice analysis',provider:'AI service',noSources:'No external sources cited.',error:'The customs question could not be processed.',quickHs:'Which HS codes are in the invoice?',quickOpen:'Which positions are still unresolved?',quickSum:'Does the control total match the invoice total?',quickOrigin:'Which origin countries are included?'},
- pl:{tab:'Ekspert AI ds. ceł',title:'Ekspert AI ds. ceł',subtitle:'Doradcza pomoc celna z weryfikowanymi źródłami i kontekstem faktury.',advisory:'Tylko doradztwo · bez automatycznych zmian w zgłoszeniu, wysyłce lub zadaniu',context:'Bieżący kontekst',noContext:'Brak aktywnej analizy faktury. Nadal można zadawać ogólne pytania celne.',question:'Pytanie celne',placeholder:'np. Jaką regułę preferencji sprawdzić dla Szwajcarii?',ask:'Sprawdź pytanie',working:'Sprawdzam analizę i źródła …',answer:'Odpowiedź',sources:'Źródła',checked:'Sprawdzono',uncertain:'Wymaga sprawdzenia',grounded:'Potwierdzone',analysis:'Bieżąca analiza faktury',provider:'Usługa AI',noSources:'Brak cytowanych źródeł zewnętrznych.',error:'Nie udało się przetworzyć pytania celnego.',quickHs:'Jakie kody HS są na fakturze?',quickOpen:'Które pozycje są jeszcze niewyjaśnione?',quickSum:'Czy suma kontrolna zgadza się z sumą faktury?',quickOrigin:'Jakie kraje pochodzenia występują?'},
- es:{tab:'Experto aduanero IA',title:'Experto aduanero IA',subtitle:'Asistencia aduanera consultiva con fuentes verificadas y contexto de factura.',advisory:'Solo asesoramiento · sin cambios automáticos en declaraciones, envíos o tareas',context:'Contexto actual',noContext:'No hay un análisis de factura activo. Las preguntas aduaneras generales siguen disponibles.',question:'Pregunta aduanera',placeholder:'p. ej. ¿Qué regla preferencial debo comprobar para Suiza?',ask:'Comprobar pregunta',working:'Comprobando análisis y fuentes …',answer:'Respuesta',sources:'Fuentes',checked:'Revisado',uncertain:'Requiere revisión',grounded:'Verificado',analysis:'Análisis actual de factura',provider:'Servicio IA',noSources:'No se citaron fuentes externas.',error:'No se pudo procesar la pregunta aduanera.',quickHs:'¿Qué códigos HS contiene la factura?',quickOpen:'¿Qué posiciones siguen sin resolver?',quickSum:'¿Coincide la suma de control con el total de factura?',quickOrigin:'¿Qué países de origen aparecen?'},
- fr:{tab:'Expert douane IA',title:'Expert douane IA',subtitle:'Aide douanière consultative avec sources vérifiées et contexte de facture.',advisory:'Conseil uniquement · aucune modification automatique des déclarations, expéditions ou tâches',context:'Contexte actuel',noContext:'Aucune analyse de facture active. Les questions douanières générales restent possibles.',question:'Question douanière',placeholder:'ex. Quelle règle préférentielle vérifier pour la Suisse ?',ask:'Vérifier la question',working:'Vérification de l’analyse et des sources …',answer:'Réponse',sources:'Sources',checked:'Vérifié',uncertain:'Vérification requise',grounded:'Étaye',analysis:'Analyse actuelle de facture',provider:'Service IA',noSources:'Aucune source externe citée.',error:'La question douanière n’a pas pu être traitée.',quickHs:'Quels codes SH figurent sur la facture ?',quickOpen:'Quelles positions restent non résolues ?',quickSum:'Le total de contrôle correspond-il au total de facture ?',quickOrigin:'Quels pays d’origine sont présents ?'},
- it:{tab:'Esperto doganale IA',title:'Esperto doganale IA',subtitle:'Assistenza doganale consultiva con fonti verificate e contesto fattura.',advisory:'Solo consulenza · nessuna modifica automatica a dichiarazioni, spedizioni o attività',context:'Contesto attuale',noContext:'Nessuna analisi fattura attiva. È comunque possibile porre domande doganali generali.',question:'Domanda doganale',placeholder:'es. Quale regola preferenziale devo verificare per la Svizzera?',ask:'Verifica domanda',working:'Verifica di analisi e fonti …',answer:'Risposta',sources:'Fonti',checked:'Verificato',uncertain:'Verifica necessaria',grounded:'Supportato',analysis:'Analisi fattura attuale',provider:'Servizio IA',noSources:'Nessuna fonte esterna citata.',error:'Impossibile elaborare la domanda doganale.',quickHs:'Quali codici HS sono presenti in fattura?',quickOpen:'Quali posizioni sono ancora irrisolte?',quickSum:'Il totale di controllo coincide con il totale fattura?',quickOrigin:'Quali paesi di origine sono presenti?'}
-};
 function q(value){return String(value==null?'':value).trim()}
-function lang(){try{var raw=root.ExportHUBI18n&&root.ExportHUBI18n.language?root.ExportHUBI18n.language():'de';raw=q(raw).toLowerCase().slice(0,2);return I18N[raw]?raw:'de'}catch(_){return'de'}}
-function tr(key){var dict=I18N[lang()]||I18N.de;return dict[key]||I18N.de[key]||key}
+function featureI18n(){try{return root.ExportHUBRC1532I18n&&typeof root.ExportHUBRC1532I18n.t==='function'?root.ExportHUBRC1532I18n:null}catch(_){return null}}
+function lang(){
+ try{var i=featureI18n();if(i&&typeof i.language==='function')return i.language()}catch(_){}
+ try{var raw=root.ExportHUBI18n&&root.ExportHUBI18n.language?root.ExportHUBI18n.language():'de';raw=q(raw).toLowerCase().slice(0,2);return /^(?:de|en|pl|es|fr|it)$/.test(raw)?raw:'de'}catch(_){return'de'}
+}
+function tr(key,vars){try{var i=featureI18n();if(i)return i.t(key,lang(),vars)}catch(_){}return String(key||'')}
+function ensureFeatureI18n(){
+ if(featureI18n())return true;
+ if(!d||!d.createElement)return false;
+ if(d.getElementById('exporthub-rc1532-i18n'))return false;
+ try{
+  var s=d.createElement('script');s.id='exporthub-rc1532-i18n';s.src='/assets/i18n/rc1532-customs-ai.js?v=1532';s.defer=true;
+  s.addEventListener('load',schedule,{once:true});
+  s.addEventListener('error',function(){try{s.remove()}catch(_){}},{once:true});
+  (d.head||d.documentElement).appendChild(s);return false
+ }catch(_){return false}
+}
 function authToken(){
  try{var rt=root.ExportHUBClean&&root.ExportHUBClean.runtime||{},token=q(rt.authToken||rt.sessionToken);if(token)return token}catch(_){}
  try{for(var i=0;root.sessionStorage&&i<root.sessionStorage.length;i++){var raw=root.sessionStorage.getItem(root.sessionStorage.key(i));if(!raw||raw.charAt(0)!=='{')continue;var parsed=JSON.parse(raw);if(parsed&&parsed.token)return q(parsed.token)}}catch(_){}
@@ -35,10 +42,10 @@ function el(tag,className,text){var node=d.createElement(tag);if(className)node.
 function clear(node){while(node&&node.firstChild)node.removeChild(node.firstChild)}
 function formatContext(snapshot){
  var header=snapshot&&snapshot.header||{},review=snapshot&&snapshot.review||{},groups=Array.isArray(snapshot&&snapshot.groups)?snapshot.groups:[],parts=[];
- if(q(header.invoiceNumber))parts.push('Invoice '+q(header.invoiceNumber));
+ if(q(header.invoiceNumber))parts.push(tr('contextInvoice',{number:q(header.invoiceNumber)}));
  if(q(header.destinationCountry))parts.push(q(header.destinationCountry));
- if(groups.length)parts.push(groups.length+' HS/Ursprung');
- if(Number(review.unassignedCount)>0)parts.push(Number(review.unassignedCount)+' offen');
+ if(groups.length)parts.push(tr('contextGroups',{count:groups.length}));
+ if(Number(review.unassignedCount)>0)parts.push(tr('contextOpen',{count:Number(review.unassignedCount)}));
  return parts.join(' · ')
 }
 function refreshContext(){var box=d.querySelector('[data-rc1532-context]');if(!box)return;var snapshot=latestSnapshot(),value=formatContext(snapshot);box.textContent=value||tr('noContext');box.classList.toggle('is-empty',!value)}
@@ -77,11 +84,13 @@ async function ask(question){
 }
 function show(active){var ai=d.querySelector('[data-rc1532-ai-panel]');if(ai)ai.hidden=!active;if(active)refreshContext()}
 function bindModes(host,button){
+ if(button.__rc1532Bound)return;button.__rc1532Bound=true;
  button.addEventListener('click',function(){try{var api=root.ExportHUBRC1294ABDAnalysis;if(api&&typeof api.setMode==='function')api.setMode('ai')}catch(_){}show(true)});
- var others=host.querySelectorAll('[data-rc1294-mode]');for(var i=0;i<others.length;i++){if(others[i]===button)continue;others[i].addEventListener('click',function(){show(false)})}
+ var others=host.querySelectorAll('[data-rc1294-mode]');for(var i=0;i<others.length;i++){if(others[i]===button||others[i].__rc1532HideBound)continue;others[i].__rc1532HideBound=true;others[i].addEventListener('click',function(){show(false)})}
 }
 function mount(){
- if(!d)return false;var host=panel();if(!host)return false;var router=host.querySelector('.rc1294-router');if(!router)return false;
+ if(!d)return false;if(!featureI18n()){ensureFeatureI18n();return false}
+ var host=panel();if(!host)return false;var router=host.querySelector('.rc1294-router');if(!router)return false;
  var button=host.querySelector('[data-rc1532-ai-tab]');
  if(!button){button=d.createElement('button');button.type='button';button.setAttribute('data-rc1294-mode','ai');button.setAttribute('data-rc1532-ai-tab','');button.setAttribute('aria-pressed','false');button.textContent=tr('tab');router.appendChild(button)}else button.textContent=tr('tab');
  var ai=host.querySelector('[data-rc1532-ai-panel]');
@@ -101,7 +110,11 @@ function mount(){
 function schedule(){if(timer)return;timer=root.setTimeout?root.setTimeout(function(){timer=0;mount()},0):0;if(!root.setTimeout)mount()}
 function observe(){if(!d||!root.MutationObserver)return;var host=d.getElementById('rc626Abd')||d.body;if(!host)return;try{if(observer)observer.disconnect();observer=new root.MutationObserver(schedule);observer.observe(host,{childList:true,subtree:true})}catch(_){}}
 function remount(){schedule();observe()}
+function remountLanguage(){try{var ai=d&&d.querySelector&&d.querySelector('[data-rc1532-ai-panel]');if(ai&&ai.parentNode)ai.parentNode.removeChild(ai)}catch(_){}schedule()}
 root.ExportHUBRC1532CustomsAI=Object.freeze({mount:mount,ask:ask,latestSnapshot:latestSnapshot});
-mount();observe();
-if(typeof root.addEventListener==='function')['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync','exporthub:language-changed'].forEach(function(name){root.addEventListener(name,remount)});
+ensureFeatureI18n();mount();observe();
+if(typeof root.addEventListener==='function'){
+ ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(name){root.addEventListener(name,remount)});
+ root.addEventListener('exporthub:language-changed',remountLanguage)
+}
 })(typeof window!=='undefined'?window:globalThis);
