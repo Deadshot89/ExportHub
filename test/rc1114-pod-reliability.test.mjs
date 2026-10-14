@@ -132,6 +132,7 @@ test('RC1406: POD-Reconcile verarbeitet Produktion paginiert statt als Vollscan'
 
 test('RC1144: POD-Nachholung läuft nach Deployments und zusätzlich alle 15 Minuten',()=>{
   assert.ok(reconcileWorkflow,'POD-Reconcile-Workflow fehlt');
+  assert.match(reconcileWorkflow,/workflows:\s*\n\s*- ExportHUB RC1112 Drei-Umgebungen Deploy\s*\n\s*- ExportHUB Production Release/);
   assert.match(reconcileWorkflow,/schedule:\s*\n\s*- cron:\s*['"]7,22,37,52 \* \* \* \*['"]/);
   assert.match(reconcileWorkflow,/POD-Backup-Nachholung TESTSERVICE/);
   assert.match(reconcileWorkflow,/POD-Backup-Nachholung PRODUCTION/);
