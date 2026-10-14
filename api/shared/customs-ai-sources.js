@@ -4,7 +4,12 @@ const knowledge=require('./customs-knowledge');
 
 function text(value,max=5000){return String(value==null?'':value).trim().slice(0,max)}
 function fold(value){return text(value).toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim()}
-function tokens(value){return Array.from(new Set(fold(value).split(/\s+/).filter(token=>token.length>=3))).slice(0,80)}
+function tokens(value){
+ const raw=fold(value).split(/\s+/).filter(token=>token.length>=3),out=new Set(raw);
+ const stems=['praferenz','ursprung','ausfuhr','zolltarif','warentarif','tarifier','formalitat','beschrank','exportanforder'];
+ for(const token of raw){for(const stem of stems){if(token.includes(stem))out.add(stem)}}
+ return Array.from(out).slice(0,80)
+}
 function terms(article){
  const high=[article.title,...(article.topics||[])].map(fold).join(' ');
  const medium=[article.summary,...(article.countries||[])].map(fold).join(' ');
