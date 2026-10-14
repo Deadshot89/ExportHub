@@ -39,6 +39,20 @@ test('RC1505: TESTSERVICE readiness avoids pipefail-sensitive grep pipelines', (
   assert.match(block, /\[\[\s*"\$version"\s*==\s*\*"__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1112'"\*\s*\]\]/);
 });
 
+// RC1528 Regression: derselbe SIGPIPE-Fehlalarm darf auch im Production-Basis-Livecheck nicht auftreten.
+test('RC1528: production basis livecheck avoids pipefail-sensitive grep pipelines', () => {
+  const workflow = requireFile(PRODUCTION_WORKFLOW);
+  const start = workflow.indexOf('RC1505 Production Release Basis-Liveprüfung');
+  const end = workflow.indexOf('RC1505 Historische Production-Live-Verträge prüfen', start);
+  assert.ok(start >= 0, 'RC1505 Production Release Basis-Liveprüfung fehlt');
+  assert.ok(end > start, 'RC1505 Production Release Basis-Liveprüfung kann nicht isoliert werden');
+  const block = workflow.slice(start, end);
+  assert.doesNotMatch(block, /printf\s+'%s'\s+"\$(?:version|home|pack)"\s*\|\s*grep\s+-q/);
+  assert.match(block, /\[\[\s*"\$version"\s*==\s*\*"__EXPORTHUB_PRODUCTION_VERSION_PROBE__='RC1112'"\*\s*\]\]/);
+  assert.match(block, /\[\[\s*"\$home"\s*==\s*\*ExportHUB\*\s*\]\]/);
+  assert.match(block, /\[\[\s*"\$pack"\s*==\s*\*Packmeldung\*\s*\]\]/);
+});
+
 test('RC1505: production release is manual and requires exact confirmation', () => {
   const workflow = requireFile(PRODUCTION_WORKFLOW);
   assert.match(workflow, new RegExp(`name:\\s*${PRODUCTION_RELEASE_NAME}`));
