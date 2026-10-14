@@ -55,7 +55,7 @@ function publishedArticles(rows){
 }
 function loadBundledKnowledge(){
  try{
-  const file=path.resolve(__dirname,'../../data/customs-knowledge.json');
+  const file=path.resolve(__dirname,'../data/customs-knowledge.json');
   const parsed=JSON.parse(fs.readFileSync(file,'utf8'));
   return publishedArticles(parsed)
  }catch(_){return[]}
