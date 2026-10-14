@@ -5,6 +5,7 @@ on:
     paths:
       - 'api/exporthub-state/index.js'
       - '.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml'
+      - '.github/workflows/rc1537-testservice-main-supersession.yml'
       - '.github/workflows/rc1537-testservice-isolation-verify.yml'
       - 'tests/rc962-state-performance.test.cjs'
       - 'test/rc1537-testservice-release-isolation.test.mjs'
