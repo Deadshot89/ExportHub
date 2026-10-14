@@ -73,6 +73,17 @@ test('RC1533: Wiederöffnen setzt Nachbearbeitung, protokolliert den Admin und v
   assert.ok(shipment.shipmentHistory.some(x=>x?.type==='rework-opened'&&x?.label==='Sendung zur Nachbearbeitung geöffnet'));
 });
 
+test('RC1533: aktive Nachbearbeitung bleibt trotz bestehender Status-Neuberechnung aktiv',()=>{
+  const api=loadRuntime(),shipment=proofShipment('POD vorhanden');
+  assert.equal(api.applyOpen(shipment,adminUser(),'2026-10-14T15:00:00.000Z'),true);
+  shipment.status='POD vorhanden';
+  shipment.processStatus='POD vorhanden';
+  shipment.shipmentStatus='POD vorhanden';
+  assert.equal(api.activeRework(shipment),true);
+  assert.equal(api.applyClose(shipment,adminUser(),'2026-10-14T15:10:00.000Z'),true);
+  assert.equal(shipment.status,'POD vorhanden');
+});
+
 test('RC1533: erfolgreicher Abschluss stellt den vorherigen Status wieder her und lässt Abholung/POD unverändert',()=>{
   const api=loadRuntime(),shipment=proofShipment('Abgeschlossen'),before=proofSnapshot(shipment);
   assert.equal(api.applyOpen(shipment,adminUser(),'2026-10-14T15:00:00.000Z'),true);
