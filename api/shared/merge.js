@@ -373,10 +373,22 @@ function mergeCustomerProtected(serverItem, incomingItem) {
   const older = incomingTs >= serverTs ? serverItem : incomingItem;
   const out = clone(newer) || {};
 
-  // Customer master data is loss-protected: an empty/missing value from a newer partial client
-  // may not erase a previously persisted non-empty value.
+  // Customer master data stays loss-protected when a field is absent. For mail/contact
+  // fields, an explicitly present empty value is a deliberate deletion and must not
+  // resurrect an older address on the next reload.
+  const explicitlyClearableCustomerFields = new Set([
+    'email', 'customerEmail', 'customerMail', 'mail', 'carrierEmail',
+    'salesMail', 'salesEmail', 'salesPersonMail', 'salesPersonEmail',
+    'salesContactMail', 'salesContactEmail', 'rc385SalesMail', 'salesCc',
+    'salesPersonName', 'salesContactName', 'salesName',
+    'salesContacts', 'customerSalesContacts',
+    'cc', 'mailCc', 'rc385Cc', 'ccContacts', 'customerCcContacts'
+  ]);
   for (const [key, value] of Object.entries(older)) {
-    if (!meaningfulValue(out[key]) && meaningfulValue(value)) out[key] = clone(value);
+    const explicitlyCleared = explicitlyClearableCustomerFields.has(key)
+      && Object.prototype.hasOwnProperty.call(newer, key)
+      && !meaningfulValue(newer[key]);
+    if (!explicitlyCleared && !meaningfulValue(out[key]) && meaningfulValue(value)) out[key] = clone(value);
   }
 
   // Template/profile objects need the same protection recursively.
