@@ -6,7 +6,7 @@ const STORAGE_PREFIX='exporthub.dashboard.layout.v1.';
 async function prepareDashboardSandbox(page){
   return page.evaluate(({userId})=>{
     const api=window.ExportHUBDashboard1371;
-    if(!api)throw new Error('RC1530: ExportHUBDashboard1371 fehlt auf Production.');
+    if(!api)throw new Error('RC1530: ExportHUBDashboard1371 fehlt im geprüften Build.');
 
     try{api.unmount()}catch(_){}
     window.__EXPORTHUB_GET_CURRENT_USER__=()=>({id:userId,username:userId});
@@ -45,9 +45,11 @@ async function prepareDashboardSandbox(page){
   },{userId:USER_ID});
 }
 
-test('RC1530 Production: Dashboard-Personalisierung speichert Editorzustand über Reload und lässt sich sauber zurücksetzen',async({page})=>{
-  test.skip(process.env.EXPORTHUB_E2E_LIVE!=='1','RC1530 läuft nur im Live-Release-Gate.');
-  test.skip(String(process.env.EXPORTHUB_E2E_PUBLIC_ENV||'').toLowerCase()!=='production','RC1530 läuft ausschließlich gegen Production.');
+test('RC1530: Dashboard-Personalisierung speichert Editorzustand über Reload und lässt sich sauber zurücksetzen',async({page},testInfo)=>{
+  test.skip(testInfo.project.name!=='laptop','RC1530 läuft einmal im Laptop-Profil.');
+  const live=process.env.EXPORTHUB_E2E_LIVE==='1';
+  const environment=String(process.env.EXPORTHUB_E2E_PUBLIC_ENV||'').toLowerCase();
+  test.skip(live&&environment!=='production','RC1530 Live-Gate läuft ausschließlich gegen Production.');
 
   await page.goto('/?rc1530='+Date.now(),{waitUntil:'domcontentloaded'});
   await expect(page.locator('body')).toBeVisible();
