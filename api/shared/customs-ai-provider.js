@@ -14,7 +14,7 @@ function resolveConfig(env){
  env=env&&typeof env==='object'?env:{};
  const apiKey=text(env.EXPORTHUB_CUSTOMS_AI_API_KEY||env.OPENAI_API_KEY,8000);
  const provider=text(env.EXPORTHUB_CUSTOMS_AI_PROVIDER||'openai',40).toLowerCase();
- const model=text(env.EXPORTHUB_CUSTOMS_AI_MODEL||'gpt-6-sol',120);
+ const model=text(env.EXPORTHUB_CUSTOMS_AI_MODEL||'gpt-6.1-sol',120);
  const endpoint=safeHttpsUrl(env.EXPORTHUB_CUSTOMS_AI_ENDPOINT,'https://api.openai.com/v1/responses');
  const timeoutMs=int(env.EXPORTHUB_CUSTOMS_AI_TIMEOUT_MS,18000,1000,30000);
  const maxOutputTokens=int(env.EXPORTHUB_CUSTOMS_AI_MAX_OUTPUT_TOKENS,1200,200,3000);
