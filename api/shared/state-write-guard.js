@@ -54,6 +54,11 @@ const REGISTRATION_AUDIT_COLLECTIONS = new Set([
   'salesSharedShipments',
   'sharedShipments'
 ]);
+const REGISTRATION_START_LABELS = new Set([
+  'versandanmeldung per e-mail gestartet',
+  'versandanmeldung gestartet'
+]);
+const REGISTRATION_SENT_LABEL = 'versandanmeldung versendet';
 
 function text(value) { return String(value == null ? '' : value).trim().toLowerCase(); }
 function rawText(value) { return String(value == null ? '' : value).trim(); }
@@ -120,37 +125,43 @@ function historySignature(event) {
   return JSON.stringify(stableValue(copy));
 }
 
-function userIdentityValues(user) {
-  const values = [
+function userIdValues(user) {
+  return new Set([
     user && user.id,
     user && user.userId,
     user && user.user,
     user && user.login,
-    user && user.username,
+    user && user.username
+  ].map(text).filter(Boolean));
+}
+
+function userNameValues(user) {
+  return new Set([
     user && user.name,
     user && user.displayName,
-    user && user.fullName
-  ].map(text).filter(Boolean);
-  return new Set(values);
+    user && user.fullName,
+    user && user.user,
+    user && user.login,
+    user && user.username
+  ].map(text).filter(Boolean));
 }
 
 function registrationEventBelongsToUser(event, user) {
   if (!isObject(event) || !isObject(event.actor)) return false;
-  const identities = userIdentityValues(user);
   const actorId = text(event.actor.id);
   const actorName = text(event.actor.name);
-  if (actorId) return identities.has(actorId);
-  return Boolean(actorName && identities.has(actorName));
+  if (actorId) return userIdValues(user).has(actorId);
+  return Boolean(actorName && (userNameValues(user).has(actorName) || userIdValues(user).has(actorName)));
 }
 
 function isRegistrationAuditEvent(event, user) {
   if (!isObject(event) || !registrationEventBelongsToUser(event, user)) return false;
   const type = text(event.type);
   const label = text(event.label || event.action);
+  if (type === 'registration') return REGISTRATION_START_LABELS.has(label);
+  if (type !== 'mail-sent' || label !== REGISTRATION_SENT_LABEL) return false;
   const mailType = text(event.details && event.details.mailType);
-  const registrationMarker = /versandanmeld|shipping registration|shipment registration|registration/.test(`${label} ${mailType}`);
-  if (type === 'registration') return registrationMarker;
-  return type === 'mail-sent' && registrationMarker;
+  return mailType === 'versandanmeldung' || mailType === 'registration';
 }
 
 function shipmentIdentity(item, index) {
