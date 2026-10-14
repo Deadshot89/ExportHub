@@ -13,6 +13,7 @@ const WORKFLOW_TAG='<script id="exporthub-taskplanner-v2-workflow" defer src="/a
 const UI_TAG='<script id="exporthub-taskplanner-v2-ui" defer src="/assets/taskplanner-v2-ui.js?v=2000"></script>';
 const PROJECTION_UI_TAG='<script id="exporthub-taskplanner-v2-projection-ui" defer src="/assets/taskplanner-v2-projection-ui.js?v=2000"></script>';
 const PLANNER_UI_TAG='<script id="exporthub-taskplanner-v2-planner-ui" defer src="/assets/taskplanner-v2-planner-ui.js?v=2000"></script>';
+const RC1537_TAG='<script id="exporthub-taskplanner-rc1537-canonical-source" defer src="/assets/rc1537-taskplanner-canonical-source.js?v=1537"></script>';
 
 export function patchBuilderSource(source){
   let out=String(source||'');
@@ -44,30 +45,33 @@ export function patchBuilderSource(source){
     }
   }
 
-  const desiredRuntimeInjection=`html=html.replace(taskRuntimeMatch[0],taskRuntimeMatch[0]+'\\n${RUNTIME_BRIDGE_TAG}\\n${WORKFLOW_TAG}\\n${UI_TAG}\\n${PROJECTION_UI_TAG}\\n${PLANNER_UI_TAG}');`;
+  const desiredRuntimeInjection=`html=html.replace(taskRuntimeMatch[0],taskRuntimeMatch[0]+'\\n${RUNTIME_BRIDGE_TAG}\\n${WORKFLOW_TAG}\\n${UI_TAG}\\n${PROJECTION_UI_TAG}\\n${PLANNER_UI_TAG}\\n${RC1537_TAG}');`;
   if(!out.includes('exporthub-taskplanner-v2-runtime-bridge')){
     const bridgeWiring=`${anchor}\n  const taskRuntimeTag=/<script\\b[^>]*src=[\"']\\/assets\\/rc1014-task-runtime\\.js\\?v=[^\"']+[\"'][^>]*><\\/script>/i;\n  if(!html.includes('id=\"exporthub-taskplanner-v2-runtime-bridge\"')){\n    const taskRuntimeMatch=html.match(taskRuntimeTag);\n    if(!taskRuntimeMatch)throw new Error(file+': TaskPlanner V2 Runtime-Anker fehlt');\n    ${desiredRuntimeInjection}\n  }`;
     out=out.replace(anchor,bridgeWiring);
-  }else if(!out.includes('exporthub-taskplanner-v2-workflow')||!out.includes('exporthub-taskplanner-v2-planner-ui')||!out.includes('exporthub-taskplanner-v2-projection-ui')){
+  }else if(!out.includes('exporthub-taskplanner-v2-workflow')||!out.includes('exporthub-taskplanner-v2-planner-ui')||!out.includes('exporthub-taskplanner-v2-projection-ui')||!out.includes('exporthub-taskplanner-rc1537-canonical-source')){
     const candidates=[
+      `html=html.replace(taskRuntimeMatch[0],taskRuntimeMatch[0]+'\\n${RUNTIME_BRIDGE_TAG}\\n${WORKFLOW_TAG}\\n${UI_TAG}\\n${PROJECTION_UI_TAG}\\n${PLANNER_UI_TAG}');`,
       `html=html.replace(taskRuntimeMatch[0],taskRuntimeMatch[0]+'\\n${RUNTIME_BRIDGE_TAG}\\n${WORKFLOW_TAG}\\n${UI_TAG}\\n${PLANNER_UI_TAG}');`,
       `html=html.replace(taskRuntimeMatch[0],taskRuntimeMatch[0]+'\\n${RUNTIME_BRIDGE_TAG}\\n${UI_TAG}\\n${PLANNER_UI_TAG}');`,
       `html=html.replace(taskRuntimeMatch[0],taskRuntimeMatch[0]+'\\n${RUNTIME_BRIDGE_TAG}\\n${UI_TAG}');`,
       `html=html.replace(taskRuntimeMatch[0],taskRuntimeMatch[0]+'\\n${RUNTIME_BRIDGE_TAG}');`
     ];
     const old=candidates.find(x=>out.includes(x));
-    if(!old)throw new Error('TaskPlanner V2: vorhandenes Runtime-Wiring konnte nicht um Workflow/Projection-UI ergänzt werden');
+    if(!old)throw new Error('TaskPlanner V2: vorhandenes Runtime-Wiring konnte nicht um Workflow/Projection-UI/RC1537 ergänzt werden');
     out=out.replace(old,desiredRuntimeInjection);
   }
 
   const validation="if(!html.includes('assets/rc1014-task-runtime.js?v=1359'))throw new Error(file+': RC1359 Aufgaben-Runtime Cache-Key fehlt');";
   if(out.includes(validation)&&!out.includes("TaskPlanner V2 Core fehlt")){
-    out=out.replace(validation,validation+"\n  if(!html.includes('assets/taskplanner-v2.css?v=2000'))throw new Error(file+': TaskPlanner V2 Styles fehlen');\n  if(!html.includes('assets/taskplanner-v2-projections.css?v=2000'))throw new Error(file+': TaskPlanner V2 Projection Styles fehlen');\n  if(!html.includes('assets/taskplanner-v2-core.js?v=2000'))throw new Error(file+': TaskPlanner V2 Core fehlt');\n  if(!html.includes('assets/taskplanner-v2-recurrence.js?v=2000'))throw new Error(file+': TaskPlanner V2 Recurrence fehlt');\n  if(!html.includes('assets/taskplanner-v2-planner.js?v=2000'))throw new Error(file+': TaskPlanner V2 Planner fehlt');\n  if(!html.includes('assets/taskplanner-v2-projections.js?v=2000'))throw new Error(file+': TaskPlanner V2 Projections fehlen');\n  if(!html.includes('assets/taskplanner-v2-runtime-bridge.js?v=2000'))throw new Error(file+': TaskPlanner V2 Runtime Bridge fehlt');\n  if(!html.includes('assets/taskplanner-v2-workflow.js?v=2000'))throw new Error(file+': TaskPlanner V2 Workflow fehlt');\n  if(!html.includes('assets/taskplanner-v2-ui.js?v=2000'))throw new Error(file+': TaskPlanner V2 UI fehlt');\n  if(!html.includes('assets/taskplanner-v2-projection-ui.js?v=2000'))throw new Error(file+': TaskPlanner V2 Projection UI fehlt');\n  if(!html.includes('assets/taskplanner-v2-planner-ui.js?v=2000'))throw new Error(file+': TaskPlanner V2 Planner UI fehlt');");
+    out=out.replace(validation,validation+"\n  if(!html.includes('assets/taskplanner-v2.css?v=2000'))throw new Error(file+': TaskPlanner V2 Styles fehlen');\n  if(!html.includes('assets/taskplanner-v2-projections.css?v=2000'))throw new Error(file+': TaskPlanner V2 Projection Styles fehlen');\n  if(!html.includes('assets/taskplanner-v2-core.js?v=2000'))throw new Error(file+': TaskPlanner V2 Core fehlt');\n  if(!html.includes('assets/taskplanner-v2-recurrence.js?v=2000'))throw new Error(file+': TaskPlanner V2 Recurrence fehlt');\n  if(!html.includes('assets/taskplanner-v2-planner.js?v=2000'))throw new Error(file+': TaskPlanner V2 Planner fehlt');\n  if(!html.includes('assets/taskplanner-v2-projections.js?v=2000'))throw new Error(file+': TaskPlanner V2 Projections fehlen');\n  if(!html.includes('assets/taskplanner-v2-runtime-bridge.js?v=2000'))throw new Error(file+': TaskPlanner V2 Runtime Bridge fehlt');\n  if(!html.includes('assets/taskplanner-v2-workflow.js?v=2000'))throw new Error(file+': TaskPlanner V2 Workflow fehlt');\n  if(!html.includes('assets/taskplanner-v2-ui.js?v=2000'))throw new Error(file+': TaskPlanner V2 UI fehlt');\n  if(!html.includes('assets/taskplanner-v2-projection-ui.js?v=2000'))throw new Error(file+': TaskPlanner V2 Projection UI fehlt');\n  if(!html.includes('assets/taskplanner-v2-planner-ui.js?v=2000'))throw new Error(file+': TaskPlanner V2 Planner UI fehlt');\n  if(!html.includes('assets/rc1537-taskplanner-canonical-source.js?v=1537'))throw new Error(file+': RC1537 Canonical Source fehlt');");
   }else{
     const plannerValidation="if(!html.includes('assets/taskplanner-v2-planner.js?v=2000'))throw new Error(file+': TaskPlanner V2 Planner fehlt');";
     if(out.includes(plannerValidation)&&!out.includes("TaskPlanner V2 Projections fehlen"))out=out.replace(plannerValidation,plannerValidation+"\n  if(!html.includes('assets/taskplanner-v2-projections.js?v=2000'))throw new Error(file+': TaskPlanner V2 Projections fehlen');");
     const uiValidation="if(!html.includes('assets/taskplanner-v2-ui.js?v=2000'))throw new Error(file+': TaskPlanner V2 UI fehlt');";
     if(out.includes(uiValidation)&&!out.includes("TaskPlanner V2 Projection UI fehlt"))out=out.replace(uiValidation,uiValidation+"\n  if(!html.includes('assets/taskplanner-v2-projection-ui.js?v=2000'))throw new Error(file+': TaskPlanner V2 Projection UI fehlt');");
+    const plannerUiValidation="if(!html.includes('assets/taskplanner-v2-planner-ui.js?v=2000'))throw new Error(file+': TaskPlanner V2 Planner UI fehlt');";
+    if(out.includes(plannerUiValidation)&&!out.includes("RC1537 Canonical Source fehlt"))out=out.replace(plannerUiValidation,plannerUiValidation+"\n  if(!html.includes('assets/rc1537-taskplanner-canonical-source.js?v=1537'))throw new Error(file+': RC1537 Canonical Source fehlt');");
   }
 
   const copyAnchor="  'assets/rc1014-task-runtime.js',";
@@ -90,7 +94,9 @@ export function patchBuilderSource(source){
   const projectionUiCopy="  'assets/taskplanner-v2-projection-ui.js',";
   if(!out.includes("'assets/taskplanner-v2-planner-ui.js'"))out=out.replace(projectionUiCopy,projectionUiCopy+"\n  'assets/taskplanner-v2-planner-ui.js',");
   const plannerUiCopy="  'assets/taskplanner-v2-planner-ui.js',";
-  if(!out.includes("'assets/task-public-read.js'"))out=out.replace(plannerUiCopy,plannerUiCopy+"\n  'assets/task-public-read.js',");
+  if(!out.includes("'assets/rc1537-taskplanner-canonical-source.js'"))out=out.replace(plannerUiCopy,plannerUiCopy+"\n  'assets/rc1537-taskplanner-canonical-source.js',");
+  const rc1537Copy="  'assets/rc1537-taskplanner-canonical-source.js',";
+  if(!out.includes("'assets/task-public-read.js'"))out=out.replace(rc1537Copy,rc1537Copy+"\n  'assets/task-public-read.js',");
 
   const publicPageAnchor="fs.copyFileSync(rc1114PickupSource,path.join(OUT,'pickup.html'));";
   if(out.includes(publicPageAnchor)&&!out.includes("const taskPublicPageSource=path.join(ROOT,'task.html');")){
@@ -102,7 +108,7 @@ export function patchBuilderSource(source){
 export function patchRepository(root=process.cwd()){
   const builder=path.join(root,'.github/rc1112/build-three-env.mjs');
   if(!fs.existsSync(builder))throw new Error('TaskPlanner V2: RC1112 Builder fehlt');
-  for(const required of ['task.html','assets/task-public-read.js','assets/taskplanner-v2-projections.js','assets/taskplanner-v2-projection-ui.js','assets/taskplanner-v2-projections.css'])if(!fs.existsSync(path.join(root,required)))throw new Error('TaskPlanner V2: erforderliche Datei fehlt '+required);
+  for(const required of ['task.html','assets/task-public-read.js','assets/taskplanner-v2-projections.js','assets/taskplanner-v2-projection-ui.js','assets/taskplanner-v2-projections.css','assets/rc1537-taskplanner-canonical-source.js'])if(!fs.existsSync(path.join(root,required)))throw new Error('TaskPlanner V2: erforderliche Datei fehlt '+required);
   const before=fs.readFileSync(builder,'utf8');
   const after=patchBuilderSource(before);
   if(after!==before)fs.writeFileSync(builder,after);
