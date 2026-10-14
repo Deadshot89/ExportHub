@@ -228,7 +228,7 @@ async function readTeamCachedForSession(c,requestedMode){
  if(requestedMode==='recovery-preview'||requestedMode==='recover-shipments'||requestedMode==='recovery-preview-customers'||requestedMode==='recover-customers'){const recovered=await readTeamForSession(c,requestedMode);recovered.cacheMode='recovery-read';return recovered}
  const cached=TEAM_WARM_CACHE.get(teamWarmCacheKey(c));
  if(cached&&cached.value&&cached.etag){
-  if(requestedMode==='save')return {value:cached.value,etag:String(cached.etag),warmCache:true,optimisticSave:true,cacheMode:'memory-save'};
+  if(requestedMode==='save'&&c&&c.environment!=='testservice')return {value:cached.value,etag:String(cached.etag),warmCache:true,optimisticSave:true,cacheMode:'memory-save'};
   try{const props=await c.team.getProperties(),etag=props&&props.etag?String(props.etag):'';if(etag&&etag===String(cached.etag))return {value:cached.value,etag:etag,warmCache:true,cacheMode:'memory-etag'};forgetWarmTeam(c)}
   catch(e){forgetWarmTeam(c);if(Number(e&&e.statusCode||0)!==404)throw e}
  }
