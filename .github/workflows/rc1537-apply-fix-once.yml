@@ -41,10 +41,12 @@ jobs:
             "if(requestedMode==='save')return {value:cached.value,etag:String(cached.etag),warmCache:true,optimisticSave:true,cacheMode:'memory-save'};",
             "if(requestedMode==='save'&&c&&c.environment!=='testservice')return {value:cached.value,etag:String(cached.etag),warmCache:true,optimisticSave:true,cacheMode:'memory-save'};"
           );
+          const exprRef='$'+'{{ github.ref }}';
+          const exprSha='$'+'{{ github.sha }}';
           replaceOnce(
             '.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml',
-            'group: exporthub-rc1112-three-env-${{ github.ref }}-${{ github.sha }}',
-            'group: exporthub-rc1112-three-env-${{ github.ref }}'
+            'group: exporthub-rc1112-three-env-'+exprRef+'-'+exprSha,
+            'group: exporthub-rc1112-three-env-'+exprRef
           );
           NODE
           node tests/rc962-state-performance.test.cjs
