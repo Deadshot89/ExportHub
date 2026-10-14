@@ -49,7 +49,7 @@
     const n=notification||{};
     return{
       taskId:q(task&&task.id),notificationId:q(n.id),reference:q(n.reference||task&&task.sourceRef),
-      customer:q(n.customer),stationName:q(n.packStationName||n.packStationId),createdAt:q(n.createdAt),
+      customer:q(n.customer),customerId:q(n.customerId),customerAccount:q(n.customerAccount),stationName:q(n.packStationName||n.packStationId),createdAt:q(n.createdAt),
       packageType:q(n.packageType),packageCount:Number(n.packageCount)||0,totalWeight:Number(n.totalWeight)||0,
       packages:arr(n.packages).map(x=>({...x})),documents:arr(n.documents).map(x=>({...x})),note:q(n.note),
       status:q(n.status||task&&task.status||'new'),shipmentId:q(n.shipmentId)
@@ -143,11 +143,15 @@
       return `<div class="pack-internal-document"><div><strong>${esc(name)}</strong><small>${esc(formatBytes(doc.size))}</small></div><div class="pack-internal-document-actions">${url?`<button type="button" class="btn" data-pack-doc-open="${index}">${esc(tr('pack.internal.open'))}</button><button type="button" class="btn" data-pack-doc-download="${index}">${esc(tr('pack.internal.download'))}</button>`:`<span>${esc(tr('pack.internal.fileUnavailable'))}</span>`}</div></div>`;
     }).join('');
   }
+  function customerIdentityHtml(model){
+    const number=q(model.customerAccount||model.customerId);
+    return `<div><dt>${esc(tr('shipment.customer'))}</dt><dd>${esc(model.customer||'–')}</dd></div>${number?`<div><dt>${esc(tr('shipment.customerNumber'))}</dt><dd>${esc(number)}</dd></div>`:''}`;
+  }
   function detailHtml(model){
     return `<div class="pack-internal-shell">
       <header class="pack-internal-detail-head"><button type="button" class="btn" data-pack-action="back">${esc(tr('pack.internal.backToInbox'))}</button><div><span class="pack-internal-eyebrow">${esc(tr('pack.internal.eyebrow',{reference:model.reference}))}</span><h1>${esc(model.customer||tr('pack.title'))}</h1></div><span class="pack-internal-status" data-status="${esc(model.status)}">${esc(statusLabel(model.status))}</span></header>
       <div class="pack-internal-detail-grid">
-        <article class="pack-internal-panel pack-internal-summary"><h2>${esc(tr('pack.internal.summary'))}</h2><dl><div><dt>${esc(tr('pack.internal.packages'))}</dt><dd>${esc(model.packageCount)} · ${esc(model.packageType)}</dd></div><div><dt>${esc(tr('pack.internal.totalWeight'))}</dt><dd>${esc(model.totalWeight)} kg</dd></div><div><dt>${esc(tr('pack.internal.station'))}</dt><dd>${esc(model.stationName||'–')}</dd></div><div><dt>${esc(tr('pack.internal.reported'))}</dt><dd>${esc(formatDate(model.createdAt))}</dd></div></dl></article>
+        <article class="pack-internal-panel pack-internal-summary"><h2>${esc(tr('pack.internal.summary'))}</h2><dl>${customerIdentityHtml(model)}<div><dt>${esc(tr('pack.internal.packages'))}</dt><dd>${esc(model.packageCount)} · ${esc(model.packageType)}</dd></div><div><dt>${esc(tr('pack.internal.totalWeight'))}</dt><dd>${esc(model.totalWeight)} kg</dd></div><div><dt>${esc(tr('pack.internal.station'))}</dt><dd>${esc(model.stationName||'–')}</dd></div><div><dt>${esc(tr('pack.internal.reported'))}</dt><dd>${esc(formatDate(model.createdAt))}</dd></div></dl></article>
         <article class="pack-internal-panel"><h2>${esc(tr('pack.dimensions'))}</h2><div class="pack-internal-packages">${model.packages.map(packageHtml).join('')||`<p class="pack-internal-empty">${esc(tr('pack.internal.noDimensions'))}</p>`}</div></article>
         <article class="pack-internal-panel pack-internal-documents"><h2>${esc(tr('pack.deliveryNotes'))}</h2>${documentsHtml(model)}</article>
         <article class="pack-internal-panel"><h2>${esc(tr('pack.note'))}</h2><p>${esc(model.note||tr('pack.internal.noNote'))}</p></article>
