@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-// RC1523 RED-Checkpoint: aktuelles Main bis 2e433e7c + TaskPlanner + Pack-Prefill-Fix + SOPMaster über den stabilen RC1112-Pfad; i18n-Gate muss vor dem Fix gezielt rot werden.
+// RC1523 FINAL-Checkpoint: aktuelles Main bis 2e433e7c + TaskPlanner + Pack-Prefill-Fix + SOPMaster über den stabilen RC1112-Pfad; sechs Sprachen und i18n-Release-Gate sind integriert und verifiziert.
 const builder='.github/rc1521/build-three-env.mjs';
 const read=p=>fs.readFileSync(p,'utf8');
 
