@@ -71,6 +71,34 @@ test('RC1515: manual pack customer prefill must not trigger destructive customer
   assert.equal(draft.packNotificationCustomer.name,'E2E PACK CUSTOMER A');
 });
 
+test('RC1535: live input lookup must not erase a manual pack customer during shipment handoff',()=>{
+  const draft={customerSearch:''};
+  const customer={
+    value:'',events:[],
+    dispatchEvent(event){
+      this.events.push(event.type);
+      if(event.type==='input'||event.type==='change'||(event.type==='keydown'&&event.key==='Enter')){
+        this.value='';
+        draft.customerSearch='';
+      }
+    }
+  };
+  const root={
+    __EXPORTHUB_GET_STATE__:()=>({shipment:draft}),
+    document:{
+      getElementById:id=>id==='shipmentCustomerSearch'?customer:null,
+      querySelectorAll:()=>[]
+    }
+  };
+  const api=loadWithRoot(root);
+  const prefill=api.shipmentPrefill({id:'pn-live',reference:'PK-LIVE',customer:'E2E PACK CUSTOMER A',customerId:'',customerAccount:'',customerSource:'manual',packageCount:1,documents:[]});
+  api.applyPrefillToMountedForm(prefill);
+  assert.equal(customer.value,'E2E PACK CUSTOMER A','sichtbarer manueller Kunde muss erhalten bleiben');
+  assert.deepEqual(customer.events,[],'manueller Packkunde darf keinen Kundensuch-Lookup auslösen');
+  assert.equal(draft.customerSearch,'E2E PACK CUSTOMER A','Entwurfswert muss ohne Lookup direkt synchronisiert werden');
+  assert.equal(draft.packNotificationCustomer.name,'E2E PACK CUSTOMER A');
+});
+
 test('RC1516: pack task starts the canonical blank shipment before applying a manual customer',async()=>{
   const notification={id:'pn-manual',reference:'PK-MANUAL',customer:'E2E PACK CUSTOMER A',customerId:'',customerAccount:'',customerSource:'manual',packageCount:1,totalWeight:680,packages:[{packageNo:1,length:120,width:80,height:145}],documents:[]};
   const draft={customerId:'FOREIGN-CUSTOMER',customerAccount:'9000009999',customerSearch:' ·  · ',recipientAddress:'Wrong customer address'};
