@@ -6,6 +6,11 @@ const ROOT=process.cwd();
 const LANGS=['de','en','pl','es','fr','it'];
 const STRICT=process.argv.includes('--strict');
 const JSON_MODE=process.argv.includes('--json');
+const SCOPE_ARG=process.argv.find(arg=>arg.startsWith('--scope='));
+const SCOPE_REL=SCOPE_ARG?String(SCOPE_ARG.slice('--scope='.length)).replace(/\\/g,'/').replace(/^\.\//,'').replace(/\/$/,''):'';
+const SCOPE_ROOT=SCOPE_REL?path.resolve(ROOT,SCOPE_REL):ROOT;
+if(SCOPE_REL&&SCOPE_ROOT!==ROOT&&!SCOPE_ROOT.startsWith(ROOT+path.sep))throw new Error('Ungültiger i18n-Audit-Scope: '+SCOPE_REL);
+if(SCOPE_REL&&!fs.existsSync(SCOPE_ROOT))throw new Error('i18n-Audit-Scope fehlt: '+SCOPE_REL);
 
 const EXCLUDED_DIRS=new Set(['.git','.github','node_modules','test','tests','docs','dist','dist-rc1018','android','migration','scripts']);
 const EXCLUDED_FILES=[
@@ -32,14 +37,7 @@ function walk(dir,out=[]){
   }
   return out;
 }
-function lineNo(source,index){let n=1;for(let i=0;i<index;i++)if(source.charCodeAt(i)===10)n++;return n}
 function compact(value){return String(value||'').replace(/\s+/g,' ').trim().slice(0,220)}
-function likelyVisible(line){
-  if(!GERMAN_HINT.test(line))return false;
-  if(/^\s*(?:\/\/|\*|\/\*)/.test(line))return false;
-  if(/(?:console\.|throw\s+new\s+Error|\.code\s*=|test\(|assert\.|RegExp\(|\/[^/]+\/)/.test(line)&&!UI_CONTEXT.test(line))return false;
-  return UI_CONTEXT.test(line);
-}
 function literalTexts(line){
   const values=[],rx=/'((?:\\.|[^'\\])*)'|"((?:\\.|[^"\\])*)"|\`((?:\\.|[^\`\\])*)\`/g;let m;
   while((m=rx.exec(line))){const value=(m[1]??m[2]??m[3]??'').replace(/\\n/g,' ').trim();if(value)values.push(value)}
@@ -96,7 +94,7 @@ function keyAudit(packs){
   }
   return{baseKeyCount:base.length,issues}
 }
-const packs=loadPacks(),keys=keyAudit(packs),files=walk(ROOT),hardcoded=[],visibleKeys=[],apiDePath=path.join(ROOT,'api','shared','i18n','de.json'),apiDe=fs.existsSync(apiDePath)?JSON.parse(fs.readFileSync(apiDePath,'utf8')):{},featureGerman=loadFeatureGerman('assets/i18n/pack-notification.js','ExportHUBPackI18n'),trainingGerman=loadFeatureGerman('assets/training-center/i18n.js','ExportHubTrainingCenterI18n'),registeredGerman=new Set([...Object.values(packs.de),...Object.values(apiDe),...featureGerman,...trainingGerman].filter(v=>typeof v==='string'&&v.trim()));
+const packs=loadPacks(),keys=keyAudit(packs),files=walk(SCOPE_ROOT),hardcoded=[],visibleKeys=[],apiDePath=path.join(ROOT,'api','shared','i18n','de.json'),apiDe=fs.existsSync(apiDePath)?JSON.parse(fs.readFileSync(apiDePath,'utf8')):{},featureGerman=loadFeatureGerman('assets/i18n/pack-notification.js','ExportHUBPackI18n'),trainingGerman=loadFeatureGerman('assets/training-center/i18n.js','ExportHubTrainingCenterI18n'),registeredGerman=new Set([...Object.values(packs.de),...Object.values(apiDe),...featureGerman,...trainingGerman].filter(v=>typeof v==='string'&&v.trim()));
 for(const file of files){
   const source=fs.readFileSync(file.abs,'utf8');
   hardcoded.push(...scanVisibleGerman(file,source,registeredGerman));
@@ -104,6 +102,7 @@ for(const file of files){
 }
 const report={
   version:'RC1267',
+  scope:SCOPE_REL||'.',
   languages:LANGS,
   scannedFiles:files.length,
   translationKeys:keys.baseKeyCount,
@@ -119,6 +118,7 @@ const report={
 if(JSON_MODE)process.stdout.write(JSON.stringify(report,null,2)+'\n');
 else{
   console.log('ExportHUB RC1267 i18n audit');
+  console.log('Scope:',report.scope);
   console.log('Sprachen:',LANGS.join(', '));
   console.log('Gescannte produktive Dateien:',report.scannedFiles);
   console.log('Translation Keys:',report.translationKeys);
