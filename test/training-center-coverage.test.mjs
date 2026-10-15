@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const files=[
+  'assets/training-center/i18n.js',
   'assets/training-center/coverage-registry.js',
   'assets/training-center/coverage.js',
   'assets/training-center/coverage-dashboard.js'
