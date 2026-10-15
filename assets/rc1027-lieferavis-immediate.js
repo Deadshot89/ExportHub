@@ -63,7 +63,7 @@ function customerName(sh){
  return''
 }
 function selectedLocation(sh){return q(sh&&(sh.selectedLocationId||sh.locationId||sh.siteId||sh.destinationId||sh.deliveryLocationId||sh.shipToLocationId||sh.recipientLocationId))}
-function draftAvisReady(sh){return !!(customerName(sh)&&selectedLocation(sh))}
+function draftAvisReady(sh){return !!(customerName(sh)||selectedLocation(sh))}
 function manualDisabled(sh){return !!q(sh&&(sh.customerAvisDisabledAt||sh.avisDisabledAt))}
 function closed(sh){
  if(!sh||typeof sh!=='object')return true;
