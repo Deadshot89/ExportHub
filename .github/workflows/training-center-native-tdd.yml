@@ -13,12 +13,13 @@ on:
       - 'api/shared/merge.js'
       - 'test/training-center-*.test.mjs'
       - 'e2e/specs/training-center-*.spec.mjs'
+      - 'docs/superpowers/native-patches/*.patch'
       - '.github/training-center/**'
       - '.github/workflows/training-center-native-tdd.yml'
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   node-contracts:
@@ -26,9 +27,32 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+          fetch-depth: 0
       - uses: actions/setup-node@v5
         with:
           node-version: '20'
+      - name: Apply pending reviewed patch on implementation branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          patches=(docs/superpowers/native-patches/*.patch)
+          if [ ${#patches[@]} -gt 1 ]; then
+            echo "Mehr als ein ausstehender Patch gefunden: ${#patches[@]}" >&2
+            exit 1
+          fi
+          if [ ${#patches[@]} -eq 1 ]; then
+            git apply --check "${patches[0]}"
+            git apply "${patches[0]}"
+            rm "${patches[0]}"
+            git config user.name 'exporthub-training-center-bot'
+            git config user.email 'actions@users.noreply.github.com'
+            git add -A
+            git commit -m 'feat(training-center): integrate isolated center merge'
+            git push origin HEAD:${{ github.event.pull_request.head.ref || github.ref_name }}
+          fi
       - name: Training-Center Node contracts
         shell: bash
         run: |
