@@ -13,6 +13,17 @@ function replaceRequired(rel,before,after,label){
   return true;
 }
 
+function replaceAllRequired(rel,before,after,label,minCount=1){
+  const target=path.join(ROOT,rel);
+  let source=fs.readFileSync(target,'utf8');
+  const count=source.split(before).length-1;
+  if(count===0&&source.includes(after))return false;
+  if(count<minCount)throw new Error(`RC1545 ${label||rel}: erwartete Patch-Anker ${minCount}, gefunden ${count}.`);
+  source=source.split(before).join(after);
+  fs.writeFileSync(target,source,'utf8');
+  return true;
+}
+
 replaceRequired(
   'assets/rc1027-lieferavis-immediate.js',
   "var RC1333_PROD_AVIS_ORIGIN='https://www.exporthub360.de';",
@@ -57,23 +68,17 @@ replaceRequired(
 
 replaceRequired(
   'test/rc1331-canonical-avis-url.test.mjs',
-  "https:\\\/\\\/www\\.exporthub360\\.de",
-  "https:\\\/\\\/exporthub360\\.com",
-  'RC1331 erster kanonischer Hostvertrag'
-);
-
-for(let i=0;i<3;i++)replaceRequired(
-  'test/rc1331-canonical-avis-url.test.mjs',
-  "https:\\\/\\\/www\\.exporthub360\\.de",
-  "https:\\\/\\\/exporthub360\\.com",
-  `RC1331 kanonischer Hostvertrag ${i+2}`
-);
-
-replaceRequired(
-  'test/rc1331-canonical-avis-url.test.mjs',
   "test('RC1420: neue Produktions-AVIS-Links bleiben verbindlich auf exporthub360.de',()=>{\n  const canonical=/https:\\\/\\\/www\\.exporthub360\\.de/;\n  const wrongCanonical=/PROD(?:UCTION)?_AVIS_ORIGIN='https:\\\/\\\/(?:www\\.)?exporthub360\\.com'/;\n  assert.match(immediate,canonical,'Client muss neue Produktions-AVIS-Links auf exporthub360.de erzeugen');\n  assert.match(api,canonical,'Server muss neue Produktions-AVIS-Links auf exporthub360.de erzeugen');\n  assert.match(reminder,canonical,'Erinnerungslogik muss Produktions-AVIS-Links auf exporthub360.de normalisieren');\n  assert.doesNotMatch(immediate,wrongCanonical,'Client darf .com nicht als kanonischen Produktions-Host setzen');\n  assert.doesNotMatch(api,wrongCanonical,'Server darf .com nicht als kanonischen Produktions-Host setzen');\n  assert.doesNotMatch(reminder,wrongCanonical,'Erinnerungslogik darf .com nicht als kanonischen Produktions-Host setzen');\n});",
   "test('RC1545: neue Produktions-AVIS-Links bleiben verbindlich auf exporthub360.com',()=>{\n  const canonical=/https:\\\/\\\/exporthub360\\.com/;\n  const legacyCanonical=/PROD(?:UCTION)?_AVIS_ORIGIN='https:\\\/\\\/(?:www\\.)?exporthub360\\.de'/;\n  assert.match(immediate,canonical,'Client muss neue Produktions-AVIS-Links auf exporthub360.com erzeugen');\n  assert.match(api,canonical,'Server muss neue Produktions-AVIS-Links auf exporthub360.com erzeugen');\n  assert.match(reminder,canonical,'Erinnerungslogik muss Produktions-AVIS-Links auf exporthub360.com normalisieren');\n  assert.doesNotMatch(immediate,legacyCanonical,'Client darf .de nicht mehr als kanonischen Produktions-Host setzen');\n  assert.doesNotMatch(api,legacyCanonical,'Server darf .de nicht mehr als kanonischen Produktions-Host setzen');\n  assert.doesNotMatch(reminder,legacyCanonical,'Erinnerungslogik darf .de nicht mehr als kanonischen Produktions-Host setzen');\n});",
   'RC1420 veralteter .de Kanonikalvertrag'
+);
+
+replaceAllRequired(
+  'test/rc1331-canonical-avis-url.test.mjs',
+  "https:\\\/\\\/www\\.exporthub360\\.de",
+  "https:\\\/\\\/exporthub360\\.com",
+  'RC1331 kanonische Host-Assertions',
+  4
 );
 
 replaceRequired(
