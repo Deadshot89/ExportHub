@@ -17,6 +17,16 @@ function loading(){
   return /ExportHUB\s+wird\s+geladen|Teamdaten\s+werden\s+wiederhergestellt|Gespeicherte\s+Sitzung\s+und\s+Teamdaten/i.test(txt)
  }catch(_){return false}
 }
+function usable(){
+ try{
+  var d=w.document,body=d&&d.body,host=d&&d.getElementById&&d.getElementById('content');
+  var view=q(body&&body.getAttribute&&body.getAttribute('data-exporthub-view'));
+  var text=q(host&&host.textContent||'');
+  var interactive=typeof w.setView==='function'||!!(d&&d.querySelector&&d.querySelector('[data-view],[data-target],[data-nav]'));
+  return !!host&&text.length>10&&!!view&&interactive
+ }catch(_){return false}
+}
+function isBroken(){return loading()&&!usable()}
 function environment(){return /-testservice\./i.test(String(w.location&&w.location.hostname||''))?'testservice':'production'}
 function recoveryUrl(){return '/migration-recovery.html?environment='+encodeURIComponent(environment())+'&return='+encodeURIComponent((w.location&&w.location.pathname)||'/')+'&_='+Date.now()}
 function addManualLink(){
@@ -41,5 +51,5 @@ if(w.document){
  if(w.document.readyState==='loading')w.document.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
  w.addEventListener('exporthub:ready',function(){if(TIMER)w.clearTimeout(TIMER);var b=w.document.getElementById('rc1067MigrationRecoveryLink');if(b)b.remove()},{once:true})
 }
-w.ExportHUBRC1067StartupRecovery={session:session,admin:admin,loading:loading,check:check,recoveryUrl:recoveryUrl};
+w.ExportHUBRC1067StartupRecovery={session:session,admin:admin,loading:loading,usable:usable,isBroken:isBroken,check:check,recoveryUrl:recoveryUrl};
 })(window);
