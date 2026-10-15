@@ -130,6 +130,14 @@ export async function waitReady(page){
       return !!content&&text.length>10&&!!view&&interactive;
     },null,{timeout:20_000});
   }
+  if(process.env.EXPORTHUB_E2E_LIVE==='1'){
+    await page.waitForFunction(()=>{
+      const text=String(document.body&&document.body.innerText||'');
+      return !/ExportHUB\s+wird\s+geladen/i.test(text)&&
+        !/Teamdaten\s+werden\s+wiederhergestellt/i.test(text)&&
+        !/Gespeicherte\s+Sitzung\s+und\s+Teamdaten/i.test(text);
+    },null,{timeout:20_000});
+  }
   await pause(220);
 }
 
