@@ -36,14 +36,14 @@ function addManualLink(){
  b.onclick=function(){w.location.href=recoveryUrl()};w.document.body.appendChild(b)
 }
 async function check(){
- var s=session();if(!admin(s)||!loading())return;
+ var s=session();if(!admin(s)||!isBroken())return;
  var controller=typeof AbortController!=='undefined'?new AbortController():null,kill=controller&&w.setTimeout(function(){try{controller.abort()}catch(_){}},12000);
  try{
   var r=await w.fetch('/api/exporthub-state?mode=health',{method:'GET',credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json','Cache-Control':'no-cache'},signal:controller&&controller.signal}),data=await r.json().catch(function(){return{}});
   if(!r.ok)throw new Error('HTTP '+r.status);
   var count=Number(data&&data.stateDiagnostics&&data.stateDiagnostics.inlinePayloadCount||0);
-  if(count>0&&loading()){w.location.replace(recoveryUrl());return}
- }catch(_){if(loading())addManualLink()}
+  if(count>0&&isBroken()){w.location.replace(recoveryUrl());return}
+ }catch(_){if(isBroken())addManualLink()}
  finally{if(kill)w.clearTimeout(kill)}
 }
 function schedule(){if(TIMER)w.clearTimeout(TIMER);TIMER=w.setTimeout(check,5000)}
