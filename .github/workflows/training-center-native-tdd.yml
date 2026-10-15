@@ -1,0 +1,31 @@
+name: Training Center Native TDD
+
+on:
+  push:
+    branches:
+      - design/sop-training-center-rebuild-2026-10-15
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  node-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+      - name: Training-Center Node contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          tests=(test/training-center-*.test.mjs)
+          if [ ${#tests[@]} -eq 0 ]; then
+            echo 'Keine Training-Center-Tests gefunden.' >&2
+            exit 1
+          fi
+          node --test --test-concurrency=1 "${tests[@]}"
