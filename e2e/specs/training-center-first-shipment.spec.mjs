@@ -4,6 +4,7 @@ import fs from 'node:fs';
 const read=file=>fs.readFileSync(file,'utf8');
 const scenarioFile='assets/training-center/scenarios/first-shipment.js';
 const runtimeFiles=[
+  'assets/training-center/i18n.js',
   'assets/training-center/training-state.js',
   'assets/training-center/demo-adapter.js',
   'assets/training-center/training-write-guard.js',
@@ -16,7 +17,7 @@ const runtimeFiles=[
 
 async function boot(page){
   await page.setContent(`
-    <main id="app">
+    <html lang="de"><body><main id="app">
       <button id="rc380NewShipment" data-training-target="shipment.new">Neue Sendung</button>
       <label>Kunde
         <select id="shipmentCustomerSearch" data-training-target="shipment.customer-search">
@@ -39,7 +40,7 @@ async function boot(page){
       <button id="trainingCustoms" data-training-target="shipment.customs">Zollinformationen prüfen</button>
       <button id="rc363SaveShipment" data-training-target="shipment.save">Sendung speichern</button>
       <button id="trainingShipmentStatus" data-training-target="shipment.status">Ergebnis kontrollieren</button>
-    </main>
+    </main></body></html>
   `);
   await page.addStyleTag({content:read('assets/training-center/tour.css')});
   await page.evaluate(()=>{
@@ -78,9 +79,11 @@ test('„Meine erste Sendung“ läuft über 13 reale Trainingsaktionen bis 100 
   await expectStep(page,4,'Sendungsdaten erfassen');
   await page.locator('#trainingShipmentDetails').fill('Demo Expresssendung');
   await expectStep(page,5,'Colli erfassen');
-  await page.locator('#trainingColli').fill('1');
+  await page.locator('#trainingColli').fill('2');
+  await page.locator('#rc573ColliCard').dispatchEvent('input');
   await expectStep(page,6,'Gewicht erfassen');
-  await page.locator('#trainingWeight').fill('12.5');
+  await page.locator('#trainingWeight').fill('24.5');
+  await page.locator('#rc363WeightModal').dispatchEvent('input');
   await expectStep(page,7,'Dokumente kontrollieren');
   await page.locator('#rc363BlockDocuments').click();
   await expectStep(page,8,'Fehlendes Dokument erkennen');
@@ -97,29 +100,31 @@ test('„Meine erste Sendung“ läuft über 13 reale Trainingsaktionen bis 100 
   await page.locator('#trainingShipmentStatus').click();
 
   await expect(page.getByText('100 %')).toBeVisible();
-  await expect(page.getByRole('heading',{name:'Training abgeschlossen'})).toBeVisible();
-
   const proof=await page.evaluate(()=>({
-    tour:window.__firstShipmentTour.state(),
-    state:window.ExportHubTrainingState.snapshot(),
-    fetchCalls:window.__trainingFetchCalls.slice(),
-    storageWrites:window.__trainingStorageWrites.slice()
+    state:window.ExportHubTrainingController.snapshot(),
+    fetchCalls:window.__trainingFetchCalls,
+    storageWrites:window.__trainingStorageWrites,
+    localKeys:Object.keys(localStorage),sessionKeys:Object.keys(sessionStorage)
   }));
-  expect(proof.tour.finished).toBe(true);
-  expect(proof.state.shipment.saved).toBe(true);
-  expect(proof.state.shipment.id).toBe('DEMO-SHIP-001');
   expect(proof.fetchCalls).toEqual([]);
   expect(proof.storageWrites).toEqual([]);
+  expect(proof.localKeys).toEqual([]);
+  expect(proof.sessionKeys).toEqual([]);
+  expect(proof.state?.active).toBe(true);
+  expect(proof.state?.data?.shipments?.[0]?.status).toBe('demo-complete');
+  expect(proof.state?.data?.documents?.some(item=>item.missing===true)).toBe(true);
+  expect(proof.state?.data?.abd?.[0]?.required).toBe(true);
 });
 
-test('Training-Ende und Reload lassen keine Demo-Sendung wiederauferstehen',async({page})=>{
+test('falsche Aktion avanciert nicht und Ende verwirft Demo-Geschäftsdaten',async({page})=>{
   await boot(page);
-  await page.evaluate(()=>window.ExportHubTrainingController.end());
-  expect(await page.evaluate(()=>window.ExportHubTrainingState.snapshot())).toBe(null);
-  expect(await page.evaluate(()=>window.__trainingFetchCalls.length)).toBe(0);
-  expect(await page.evaluate(()=>window.__trainingStorageWrites.length)).toBe(0);
-
-  await page.reload();
-  await page.addScriptTag({content:read('assets/training-center/training-state.js')});
-  expect(await page.evaluate(()=>window.ExportHubTrainingState.snapshot())).toBe(null);
+  await page.locator('#rc363SaveShipment').click({force:true});
+  await expectStep(page,1,'Neue Sendung öffnen');
+  await page.locator('#rc380NewShipment').click();
+  await expectStep(page,2,'Demo-Kunden auswählen');
+  await page.keyboard.press('Escape');
+  await page.getByRole('dialog').getByRole('button',{name:'Tour beenden'}).click();
+  const proof=await page.evaluate(()=>window.ExportHubTrainingController.snapshot());
+  expect(proof.active).toBe(false);
+  expect(proof.data).toBe(null);
 });
