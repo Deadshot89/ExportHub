@@ -19,7 +19,9 @@ test('RC1544: Browser-Release-Gate prüft den geführten Workspace auf Desktop u
   assert.match(workflow,/--project=mobile-standard/);
 });
 
-test('RC1544: Bedienoberfläche ist in allen sechs ExportHUB-Sprachen vorbereitet',()=>{
+test('RC1544: Bedienoberfläche ist in allen sechs ExportHUB-Sprachen vorbereitet',async()=>{
+  await import('../assets/sop/rc1544-sop-guided-workspace.js');
+  const translations=globalThis.ExportHubSopGuidedWorkspace&&globalThis.ExportHubSopGuidedWorkspace.translations;
   const languages=['de','en','pl','es','fr','it'];
   const keys=[
     'sop.guided.catalog',
@@ -31,8 +33,9 @@ test('RC1544: Bedienoberfläche ist in allen sechs ExportHUB-Sprachen vorbereite
     'sop.guided.requiredInfo',
     'sop.guided.risk'
   ];
+  assert.ok(translations,'lokales RC1544 Sprachwörterbuch fehlt');
   for(const language of languages){
-    const data=JSON.parse(read(`assets/i18n/${language}.json`));
-    for(const key of keys)assert.equal(typeof data[key],'string',`${language}: ${key} fehlt`);
+    assert.ok(translations[language],`${language}: Sprachsatz fehlt`);
+    for(const key of keys)assert.equal(typeof translations[language][key],'string',`${language}: ${key} fehlt`);
   }
 });
