@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const source=fs.readFileSync('assets/document-print-name.js','utf8');
+const loadingListSearchSource=fs.readFileSync('assets/rc1283-loading-list-search.js','utf8');
 
 function memoryStorage(){
   const values=new Map();
@@ -81,6 +82,12 @@ test('RC1543: Palettenkontostand wird vor dem Kontextwechsel als kurzlebiger Dru
   const restored=isolatedPrintContext.api.palletBalanceForShipment(shipment);
   assert.equal(restored.balance,7);
   assert.equal(isolatedPrintContext.api.palletBalanceText(restored),'Zu Gunsten Essentra: 7 Europaletten / In favour of Essentra: 7 EUR pallets');
+});
+
+test('RC1543: konkrete Ladelistenauswahl sichert den Kontostand im Hauptkontext vor Druck und Download',()=>{
+  assert.match(loadingListSearchSource,/function\s+preparePalletPrintSnapshot\(sh\)/,'Ladelisten-Suche braucht einen expliziten Übergabepunkt');
+  assert.match(loadingListSearchSource,/rc1285CaptureSelection[\s\S]*preparePalletPrintSnapshot\(row\.shipment\)/,'Auswahl muss den Snapshot direkt mit der konkreten Sendung erzeugen');
+  assert.match(loadingListSearchSource,/function\s+act\(kind,panel,select\)[\s\S]*preparePalletPrintSnapshot\(row\.shipment\)/,'Aktion muss den Snapshot unmittelbar vor Öffnen, Druck oder Download auffrischen');
 });
 
 test('RC1543: Palettenkontostand wird auch vor der Abholung unabhängig vom Pickup-Summary ersetzt',()=>{
