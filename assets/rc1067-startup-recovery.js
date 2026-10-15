@@ -14,7 +14,7 @@ function admin(s){var u=s&&s.user||{},role=low(u.role||u.rolle||u.level||u.type)
 function loading(){
  try{
   var host=w.document&&w.document.getElementById('content'),txt=q(host&&host.textContent||w.document&&w.document.body&&w.document.body.textContent||'');
-  return /ExportHUB\s+wird\s+geladen|Teamdaten\s+werden\s+wiederhergestellt|Gespeicherte\s+Sitzung\s+und\s+Teamdaten/i.test(txt)
+  return /ExportHUB\s+wird\s+geladen|ExportHUB\s+wird\s+vorbereitet|Azure-Teamdaten\s+werden\s+geladen|Teamdaten\s+werden\s+wiederhergestellt|Gespeicherte\s+Sitzung\s+und\s+Teamdaten/i.test(txt)
  }catch(_){return false}
 }
 function usable(){
