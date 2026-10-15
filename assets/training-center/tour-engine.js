@@ -47,7 +47,13 @@ function validateStep(step,descriptor){
   for(const rule of step.validation||[]){
     try{
       if(typeof rule==='function'){if(rule(context)!==true)return false;continue;}
-      if(typeof rule==='string'){if(descriptor&&descriptor.validation&&descriptor.validation[rule]===true)continue;if(descriptor&&descriptor[rule]===true)continue;return false;}
+      if(typeof rule==='string'){
+        const named=session.scenario&&session.scenario.validators&&session.scenario.validators[rule];
+        if(typeof named==='function'){if(named(context)!==true)return false;continue;}
+        if(descriptor&&descriptor.validation&&descriptor.validation[rule]===true)continue;
+        if(descriptor&&descriptor[rule]===true)continue;
+        return false;
+      }
       if(rule&&typeof rule==='object'&&rule.field){if(descriptor&&descriptor[rule.field]===rule.equals)continue;return false;}
       if(rule===true)continue;
       return false;
