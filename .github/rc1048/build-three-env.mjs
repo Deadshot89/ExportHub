@@ -35,6 +35,8 @@ const RC1092_CONTACTS_ID='exporthub-rc1092-customer-mail-contacts';
 const RC1092_CONTACTS_TAG='<script id="'+RC1092_CONTACTS_ID+'" defer src="/assets/rc1092-customer-mail-contacts.js?v=1399"></script>';
 const RC1096_PACKAGING_ID='exporthub-rc1096-packaging-groups';
 const RC1096_PACKAGING_TAG='<script id="'+RC1096_PACKAGING_ID+'" defer src="/assets/rc1096-packaging-groups.js?v=1110"></script>';
+const RC1543_PRINT_HELPER_ID='exporthub-document-print-name';
+const RC1543_PRINT_HELPER_TAG='<script id="'+RC1543_PRINT_HELPER_ID+'" defer src="/assets/document-print-name.js?v=1543"></script>';
 
 function replaceBetween(source,start,end,replacement,label){
   const a=source.indexOf(start),b=a>=0?source.indexOf(end,a+start.length):-1;
@@ -488,6 +490,7 @@ function patchHtml(file,canonicalPrintStow,canonicalController){
   html=html.replace(/assets\/rc1014-shipment-overview\.js\?v=1016/g,'assets/rc1014-shipment-overview.js?v=1370');
   html=html.replace(/assets\/rc1014-shipment-overview\.css\?v=1016/g,'assets/rc1014-shipment-overview.css?v=1370');
   html=html.replace(/assets\/rc1013-diagnostics\.js\?v=1013/g,'assets/rc1013-diagnostics.js?v=1364');
+  html=injectBeforeHeadClose(html,RC1543_PRINT_HELPER_TAG,RC1543_PRINT_HELPER_ID);
   html=injectBeforeHeadClose(html,RC1065_CC_TAG,RC1065_CC_ID);
   html=injectBeforeHeadClose(html,RC1069_PERF_TAG,RC1069_PERF_ID);
   html=injectBeforeHeadClose(html,RC1071_HISTORY_TAG,RC1071_HISTORY_ID);
@@ -517,6 +520,7 @@ function patchHtml(file,canonicalPrintStow,canonicalController){
   html=patchLoginScreenStatus(html,file);
   if(!html.includes(`version:'${VERSION}'`))throw new Error(file+': BUILD '+VERSION+' fehlt');
   if(!html.includes(`ExportHUB ${VERSION} environment=`))throw new Error(file+': Environment '+VERSION+' fehlt');
+  if(!html.includes('assets/document-print-name.js?v=1543'))throw new Error(file+': RC1543 Dokument-Druckhelper fehlt');
   fs.writeFileSync(target,html);
 }
 
@@ -538,7 +542,7 @@ if(!fs.existsSync(rc1065AssetSource))throw new Error('RC1065 Pflicht-CC Runtime 
 fs.mkdirSync(path.dirname(rc1065AssetTarget),{recursive:true});
 fs.copyFileSync(rc1065AssetSource,rc1065AssetTarget);
 
-for(const rel of ['assets/rc1092-customer-mail-contacts.js','assets/rc1096-packaging-groups.js','assets/rc1014-shipment-overview.js','assets/rc1013-diagnostics.js','assets/rc1061-document-migration-admin.js','assets/rc1063-abd-blob-viewer-compat.js','assets/rc1067-startup-recovery.js','assets/rc1069-performance.js','assets/rc1071-shipment-history.js','assets/rc1074-login-clean.js','assets/rc1075-loader-pin-admin.js','assets/rc1077-customer-labels.js','assets/rc1079-profile-settings.js','assets/rc1080-customer-history.js','assets/rc1081-audit-history.js']){
+for(const rel of ['assets/document-print-name.js','assets/rc1092-customer-mail-contacts.js','assets/rc1096-packaging-groups.js','assets/rc1014-shipment-overview.js','assets/rc1013-diagnostics.js','assets/rc1061-document-migration-admin.js','assets/rc1063-abd-blob-viewer-compat.js','assets/rc1067-startup-recovery.js','assets/rc1069-performance.js','assets/rc1071-shipment-history.js','assets/rc1074-login-clean.js','assets/rc1075-loader-pin-admin.js','assets/rc1077-customer-labels.js','assets/rc1079-profile-settings.js','assets/rc1080-customer-history.js','assets/rc1081-audit-history.js']){
   const src=path.join(ROOT,rel),dst=path.join(OUT,rel);
   if(!fs.existsSync(src))throw new Error(rel+' fehlt für den finalen RC1048-Build');
   fs.mkdirSync(path.dirname(dst),{recursive:true});
