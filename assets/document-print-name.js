@@ -100,9 +100,10 @@ function putValue(card,text,className){
 }
 function putPalletBalance(card,account){
  if(!card)return false;
- var label=findLabel(card,/europaletten.*ausgang|euro\s*pallet|palettenkonto/i);if(label)label.textContent='Europaletten-Kontostand / EUR pallet balance';
- card.setAttribute('data-rc1543-pallet-balance','1');
- return putValue(card,palletBalanceText(account),'rc1305-meta-pallet rc1543-pallet-balance')
+ var label=findLabel(card,/europaletten.*ausgang|euro\s*pallet/i);if(label)label.textContent='Europaletten-Kontostand / EUR pallet balance';
+ Array.from(card.querySelectorAll('strong')).forEach(function(node){if(/(?:ausgang|outgoing).*?(?:europalette|eur\s*pallet)/i.test(q(node.textContent)))node.remove()});
+ card.setAttribute('data-rc1543-pallet-balance','1');card.classList.add('rc1543-pallet-balance');
+ return putValue(card,palletBalanceText(account),'rc1305-meta-pallet')
 }
 function putSignature(card,source,stored){
  if(!card)return false;
