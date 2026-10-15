@@ -63,6 +63,7 @@ function customerName(sh){
  return''
 }
 function selectedLocation(sh){return q(sh&&(sh.selectedLocationId||sh.locationId||sh.siteId||sh.destinationId||sh.deliveryLocationId||sh.shipToLocationId||sh.recipientLocationId))}
+function draftAvisReady(sh){return !!(customerName(sh)&&selectedLocation(sh))}
 function manualDisabled(sh){return !!q(sh&&(sh.customerAvisDisabledAt||sh.avisDisabledAt))}
 function closed(sh){
  if(!sh||typeof sh!=='object')return true;
@@ -203,14 +204,15 @@ async function ensureCustomerAvis(reason){
  var blocked=exception(sh);
  if(blocked){if(avisUrl(sh)){try{await disableDraftAvis(sh)}catch(e){console.error('RC1069 Lieferavis Ausnahme deaktivieren',e)}}return false}
  if(manualDisabled(sh)||closed(sh))return false;
- var ref=ensureReference(sh);if(!ref||!previous)return false;
  if(avisUrl(sh))return true;
+ if(!draftAvisReady(sh))return false;
+ var ref=ensureReference(sh);if(!ref||!previous)return false;
  if(!eligible(sh))return false;
  if(earlyPending)return earlyPending;
  earlyPending=(async function(){
   try{
    var current=shipment()||sh;
-   if(!eligible(current))return false;
+   if(!eligible(current)||!draftAvisReady(current))return false;
    if(avisUrl(current))return true;
    await issueDraftAvis(current);
    current=shipment()||current;
