@@ -10,6 +10,7 @@ on:
       - main
     paths:
       - 'assets/training-center/**'
+      - 'assets/sop/**'
       - 'api/shared/training-center.js'
       - 'api/shared/merge.js'
       - 'test/training-center-*.test.mjs'
@@ -27,7 +28,7 @@ permissions:
 jobs:
   node-contracts:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
         with:
@@ -59,6 +60,23 @@ jobs:
             git rebase "origin/$branch"
             git push origin HEAD:"$branch"
           fi
+      - name: Apply one-time retired SOP source cutover
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch='${{ github.event.pull_request.head.ref || github.ref_name }}'
+          sentinel='.github/training-center/remove-retired-sop-source.once'
+          if [ -f "$sentinel" ]; then
+            test -d assets/sop
+            git config user.name 'exporthub-training-center-bot'
+            git config user.email 'actions@users.noreply.github.com'
+            git rm -r assets/sop
+            git rm "$sentinel"
+            git commit -m 'refactor(training-center): remove retired SOPMaster source'
+            git fetch origin "$branch"
+            git rebase "origin/$branch"
+            git push origin HEAD:"$branch"
+          fi
       - name: Training-Center Node contracts
         shell: bash
         run: |
@@ -72,6 +90,7 @@ jobs:
           node --test --test-concurrency=1 "${tests[@]}"
 
   browser-shell:
+    needs: node-contracts
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
