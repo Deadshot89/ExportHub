@@ -15,6 +15,15 @@ test('RC1544: integrierter Release-Builder liefert Guided-Workspace in allen dre
   assert.match(builder,/exporthub-rc1544-sop-guided-workspace-style/);
 });
 
+test('RC1544: stabiler RC1112-Produktionsbuilder übernimmt Guided-Workspace additiv',()=>{
+  const builder=read('.github/rc1112/build-three-env.mjs');
+  assert.match(builder,/integrateGuidedWorkspace/,'RC1112 importiert Guided-Integration nicht');
+  assert.match(builder,/integrateGuidedWorkspace\(ROOT,OUT\)/,'RC1112 ruft Guided-Integration nicht auf');
+  const guidedAt=builder.indexOf('integrateGuidedWorkspace(ROOT,OUT)');
+  const coverageAt=builder.indexOf('integrateCoverageAdmin(ROOT,OUT)');
+  assert.ok(guidedAt>coverageAt,'Guided-Workspace muss nach den bestehenden SOPMaster-Overlays integriert werden');
+});
+
 test('RC1544: Browser-Release-Gate prüft den geführten Workspace auf Desktop und Mobile',()=>{
   const workflow=read('.github/workflows/sopmaster-release-candidate.yml');
   assert.match(workflow,/sopmaster-guided-workspace\.spec\.mjs/);
