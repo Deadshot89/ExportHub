@@ -8,6 +8,7 @@ function replaceOnce(source,before,after,label){
   return source.replace(before,after);
 }
 
+// RC1543 one-shot: apply the verified pre-pickup integration patch, then remove this helper.
 // Product fix: pallet balance replacement must not depend on pickup-summary existence.
 {
   const path='assets/document-print-name.js';
