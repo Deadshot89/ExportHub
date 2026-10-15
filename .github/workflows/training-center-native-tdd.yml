@@ -109,6 +109,7 @@ jobs:
             e2e/specs/training-center-isolation.spec.mjs \
             e2e/specs/training-center-tour.spec.mjs \
             e2e/specs/training-center-first-shipment.spec.mjs \
+            e2e/specs/training-center-coverage.spec.mjs \
             --config=training-center.playwright.temp.mjs
       - name: Generate safe Training-Center screenshots
         shell: bash
