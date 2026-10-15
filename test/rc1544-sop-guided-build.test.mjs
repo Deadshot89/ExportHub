@@ -6,6 +6,7 @@ const read=path=>fs.readFileSync(path,'utf8');
 
 test('RC1544: integrierter Release-Builder liefert Guided-Workspace in allen drei Umgebungen aus',()=>{
   const builder=read('.github/rc1521/build-three-env.mjs');
+  assert.match(builder,/rc1544-sop-guided-i18n\.js/);
   assert.match(builder,/rc1544-sop-guided-workspace\.js/);
   assert.match(builder,/rc1544-sop-guided-workspace\.css/);
   assert.match(builder,/exporthub-rc1544-sop-guided-workspace/);
@@ -20,8 +21,8 @@ test('RC1544: Browser-Release-Gate prüft den geführten Workspace auf Desktop u
 });
 
 test('RC1544: Bedienoberfläche ist in allen sechs ExportHUB-Sprachen vorbereitet',async()=>{
-  await import('../assets/sop/rc1544-sop-guided-workspace.js');
-  const translations=globalThis.ExportHubSopGuidedWorkspace&&globalThis.ExportHubSopGuidedWorkspace.translations;
+  await import('../assets/sop/rc1544-sop-guided-i18n.js');
+  const translations=globalThis.ExportHubSopGuidedI18n;
   const languages=['de','en','pl','es','fr','it'];
   const keys=[
     'sop.guided.catalog',
