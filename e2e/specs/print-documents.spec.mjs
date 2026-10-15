@@ -393,7 +393,7 @@ test('RC1340 P1: echte Lieferschein-PDFs werden im Gesamtdruck exakt einmal gedr
   await assertRuntimeClean(guard,testInfo);
 });
 
-test('RC1275 P1: Europaletten erscheinen im echten Ladelisten-Druck als Palettenkonto-Ausgang',async({page,context},testInfo)=>{
+test('RC1543 P1: Europaletten erscheinen im echten Ladelisten-Druck als aktueller Palettenkonto-Kontostand',async({page,context},testInfo)=>{
   test.skip(testInfo.project.name!=='laptop','Palettenkonto-Druckabnahme läuft einmal auf dem Laptop-Profil.');
   test.setTimeout(60_000);
 
@@ -413,6 +413,14 @@ test('RC1275 P1: Europaletten erscheinen im echten Ladelisten-Druck als Paletten
 
   await selectLoadingListShipment(page,'DEMO01',/DEMO01|Nord/i);
   await expect(page.locator('#content')).toContainText(/DEMO01/,{timeout:10_000});
+
+  await page.evaluate(()=>{
+    window.__RC1543_ORIGINAL_PALLET_LEDGER__=window.ExportHUBPalletLedger;
+    window.ExportHUBPalletLedger=Object.freeze({
+      balanceFor:key=>({key:String(key||''),type:'customer',name:'Nord',balance:7}),
+      accounts:()=>[]
+    });
+  });
 
   let printButton=page.locator('[data-index352-action="print-all"]').first();
   if(!(await printButton.count())||!(await printButton.isVisible().catch(()=>false))){
@@ -434,8 +442,16 @@ test('RC1275 P1: Europaletten erscheinen im echten Ladelisten-Druck als Paletten
   },{timeout:20_000,message:'Palettenkonto-Druck hat keinen druckbaren Dokumentkontext erzeugt'}).toBeGreaterThan(500);
 
   expect(capture.text).toMatch(/Palettenkonto/i);
-  expect(capture.text).toMatch(/Ausgang:\s*2\s*Europaletten/i);
+  expect(capture.text).toMatch(/Europaletten-Kontostand\s*\/\s*EUR pallet balance/i);
+  expect(capture.text).toMatch(/Zu Gunsten Essentra:\s*7\s*Europaletten/i);
+  expect(capture.text).toMatch(/In favour of Essentra:\s*7\s*EUR pallets/i);
+  expect(capture.text).not.toMatch(/Ausgang:\s*2\s*Europaletten/i);
   expect(capture.html).toMatch(/rc1095-pallet-account/i);
+  expect(capture.html).toMatch(/data-rc1543-pallet-balance/i);
+  await page.evaluate(()=>{
+    if(window.__RC1543_ORIGINAL_PALLET_LEDGER__)window.ExportHUBPalletLedger=window.__RC1543_ORIGINAL_PALLET_LEDGER__;
+    delete window.__RC1543_ORIGINAL_PALLET_LEDGER__;
+  });
   await assertRuntimeClean(guard,testInfo);
 });
 
