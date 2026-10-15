@@ -1,30 +1,37 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {isExportHubLiveReady} from '../e2e/helpers/exporthub-browser.mjs';
+import vm from 'node:vm';
 
 const helper=fs.readFileSync('e2e/helpers/exporthub-browser.mjs','utf8');
+const recoverySource=fs.readFileSync('assets/rc1067-startup-recovery.js','utf8');
 
-function runtimeContext({loading=false,view='',text='',interactive=false,marker=false}={}){
-  const attrs={'data-exporthub-view':view};
-  const content={innerText:text,textContent:text};
+function recoveryRuntime({view='',text='',interactive=false}={}){
+  const content={textContent:text};
   const body={
-    innerText:text,
     textContent:text,
-    getAttribute(name){return attrs[name]||'';}
+    getAttribute(name){return name==='data-exporthub-view'?view:'';},
+    appendChild(){}
   };
   const document={
+    readyState:'complete',
     body,
     getElementById(id){return id==='content'?content:null;},
-    querySelector(){return interactive?{}:null;}
+    querySelector(){return interactive?{}:null;},
+    createElement(){return {style:{},remove(){}};}
   };
   const root={
     document,
-    __EXPORTHUB_READY__:marker?{ready:true}:undefined,
-    ExportHUBRC1067StartupRecovery:{loading(){return loading;}}
+    location:{hostname:'example.test',pathname:'/'},
+    sessionStorage:{length:0,getItem(){return null;},key(){return null;}},
+    setTimeout(){return 1;},
+    clearTimeout(){},
+    addEventListener(){},
+    fetch:async()=>({ok:true,json:async()=>({})})
   };
   if(interactive)root.setView=()=>{};
-  return {root,document};
+  vm.runInNewContext(recoverySource,{window:root,AbortController});
+  return root.ExportHUBRC1067StartupRecovery;
 }
 
 test('RC1540: Live-waitReady wartet bis der bekannte Startup-Ladezustand beendet ist',()=>{
@@ -33,38 +40,27 @@ test('RC1540: Live-waitReady wartet bis der bekannte Startup-Ladezustand beendet
   assert.ok(start>=0&&end>start,'waitReady-Block fehlt');
   const block=helper.slice(start,end);
   assert.match(block,/process\.env\.EXPORTHUB_E2E_LIVE==='1'/);
-  assert.match(block,/ExportHUBRC1067StartupRecovery|isExportHubLiveReady/,'kanonische Startup-Ladeerkennung wird nicht verwendet');
+  assert.match(block,/ExportHUBRC1067StartupRecovery/,'kanonische Startup-Ladeerkennung wird nicht verwendet');
+  assert.match(block,/typeof recovery\.isBroken==='function'/,'Live-Gate muss die Recovery-Zustandsbewertung verwenden');
 });
 
-test('RC1541: echter frueher Startup-Zustand bleibt NICHT READY',()=>{
-  const ctx=runtimeContext({
-    loading:true,
+test('RC1541: echter 11-Prozent-Startup bleibt gebrochen',()=>{
+  const recovery=recoveryRuntime({
     text:'ExportHUB wird geladen · 11 %',
     view:'',
-    interactive:false,
-    marker:false
+    interactive:false
   });
-  assert.equal(isExportHubLiveReady(ctx),false);
+  assert.equal(typeof recovery.isBroken,'function');
+  assert.equal(recovery.isBroken(),true);
 });
 
-test('RC1541: bedienbare Runtime ist trotz stale Startup-Text READY',()=>{
-  const ctx=runtimeContext({
-    loading:true,
+test('RC1541: bedienbare Runtime ist trotz stale Startup-Text nicht gebrochen',()=>{
+  const recovery=recoveryRuntime({
     text:'Dashboard · Sendungsübersicht · ExportHUB wird geladen · 11 %',
     view:'dashboard',
-    interactive:true,
-    marker:false
+    interactive:true
   });
-  assert.equal(isExportHubLiveReady(ctx),true);
-});
-
-test('RC1541: Ready-Marker ohne benutzbare Runtime ueberstimmt aktiven Startup nicht',()=>{
-  const ctx=runtimeContext({
-    loading:true,
-    text:'ExportHUB wird geladen · 11 %',
-    view:'',
-    interactive:false,
-    marker:true
-  });
-  assert.equal(isExportHubLiveReady(ctx),false);
+  assert.equal(typeof recovery.isBroken,'function');
+  assert.equal(recovery.loading(),true,'Fixture muss den stale Ladehinweis wirklich erkennen');
+  assert.equal(recovery.isBroken(),false);
 });
