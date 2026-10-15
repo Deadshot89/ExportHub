@@ -23,6 +23,13 @@ const GUIDED_SCRIPTS=[
 ];
 
 function countId(html,id){return String(html||'').split(`id="${id}"`).length-1;}
+function insertBeforeLastClosingTag(html,tag,payload,file){
+  const source=String(html||'');
+  const token=`</${String(tag||'').toLowerCase()}>`;
+  const index=source.toLowerCase().lastIndexOf(token);
+  if(index<0)throw new Error(`RC1544 ${file}: ${token} fehlt`);
+  return `${source.slice(0,index)}${payload}\n${source.slice(index)}`;
+}
 function guidedDataTag(root){
   const source=path.join(root,GUIDED_I18N_DATA);
   if(!fs.existsSync(source))throw new Error(`RC1544 Pflicht-Asset fehlt: ${GUIDED_I18N_DATA}`);
@@ -48,8 +55,7 @@ export function integrateGuidedWorkspace(root,out){
     let html=fs.readFileSync(target,'utf8');
 
     if(!html.includes('id="exporthub-rc1544-sop-guided-workspace-style"')){
-      if(!/<\/head>/i.test(html))throw new Error(`RC1544 ${file}: </head> fehlt`);
-      html=html.replace(/<\/head>/i,`${GUIDED_STYLE}\n</head>`);
+      html=insertBeforeLastClosingTag(html,'head',GUIDED_STYLE,file);
     }
 
     const payload=[];
@@ -58,10 +64,7 @@ export function integrateGuidedWorkspace(root,out){
       const id=(tag.match(/id="([^"]+)"/)||[])[1];
       if(id&&!html.includes(`id="${id}"`))payload.push(tag);
     }
-    if(payload.length){
-      if(!/<\/body>/i.test(html))throw new Error(`RC1544 ${file}: </body> fehlt`);
-      html=html.replace(/<\/body>/i,`${payload.join('\n')}\n</body>`);
-    }
+    if(payload.length)html=insertBeforeLastClosingTag(html,'body',payload.join('\n'),file);
 
     for(const id of GUIDED_MARKERS){
       if(countId(html,id)!==1)throw new Error(`RC1544 ${file}: ${id} muss genau einmal vorhanden sein`);
