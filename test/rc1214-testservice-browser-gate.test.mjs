@@ -76,6 +76,18 @@ test('RC1239: View-Inhalt wird atomar aus dem DOM gelesen und wartet nicht auf a
   assert.doesNotMatch(block,/\.innerText\(\)/);
 });
 
+test('RC1540: Live-Ready wartet nach dem Ready-Marker auf das Ende der sichtbaren Startup-Wiederherstellung',()=>{
+  const start=helper.indexOf('export async function waitReady(page)');
+  const end=helper.indexOf('function responsiveViewport',start);
+  assert.ok(start>=0&&end>start);
+  const block=helper.slice(start,end);
+  assert.match(block,/EXPORTHUB_E2E_LIVE/);
+  assert.match(block,/ExportHUB\\s\+wird\\s\+geladen/);
+  assert.match(block,/Teamdaten\\s\+werden\\s\+wiederhergestellt/);
+  assert.match(block,/Gespeicherte\\s\+Sitzung\\s\+und\\s\+Teamdaten/);
+  assert.match(block,/waitForFunction/);
+});
+
 test('RC1214: geänderte E2E-Dateien sind syntaktisch gültig',()=>{
   for(const file of ['e2e/helpers/exporthub-browser.mjs','e2e/specs/navigation.spec.mjs','e2e/specs/testservice-mutation.spec.mjs']){
     execFileSync(process.execPath,['--check',file],{stdio:'pipe'});
