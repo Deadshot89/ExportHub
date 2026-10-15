@@ -95,4 +95,47 @@ replaceRequired(
   'Essentra branded production link'
 );
 
+replaceAllRequired(
+  'test/rc1027-lieferavis-immediate-link-mail-only.test.mjs',
+  "www\\.exporthub360\\.de",
+  "exporthub360\\.com",
+  'RC1027/RC1291/RC1292 kanonische Mail-Link-Assertions',
+  10
+);
+
+replaceRequired(
+  'test/rc1027-lieferavis-immediate-link-mail-only.test.mjs',
+  "'https://www.exporthub360.de/avis/server-token'",
+  "'https://exporthub360.com/avis/server-token'",
+  'RC1069 kanonischer Draft-Link'
+);
+
+replaceRequired(
+  'test/rc1031-diagnostics-lieferavis-storage.test.mjs',
+  "/^https:\\/\\/www\\.exporthub360\\.de\\/avis\\/[A-Za-z0-9_-]+$/",
+  "/^https:\\/\\/exporthub360\\.com\\/avis\\/[A-Za-z0-9_-]+$/",
+  'RC1052 kanonischer API-Link'
+);
+
+replaceRequired(
+  'test/rc1031-diagnostics-lieferavis-storage.test.mjs',
+  "const canonical='https://www.exporthub360.de/avis/server-token';",
+  "const canonical='https://exporthub360.com/avis/server-token';",
+  'RC1031 kanonischer lokaler Link'
+);
+
+replaceRequired(
+  'test/rc1326-avis-exporthub360.test.mjs',
+  "assert.match(api,/https:\\/\\/www\\.exporthub360\\.de/);",
+  "assert.match(api,/https:\\/\\/exporthub360\\.com/);",
+  'RC1360 kanonischer Server-Link'
+);
+
+replaceRequired(
+  'test/rc1326-avis-exporthub360.test.mjs',
+  "  assert.match(reminder,/www\\.exporthub360\\.de/);\n  assert.match(reminder,/www\\.exporthub360\\.de/);",
+  "  assert.match(reminder,/exporthub360\\.com/);\n  assert.match(reminder,/www\\.exporthub360\\.de/);",
+  'RC1326 Reminder kanonisch plus Legacy-.de'
+);
+
 console.log('RC1545 AVIS canonical domain prepared: new production links use https://exporthub360.com/avis/<TOKEN>; legacy .de/.com hosts remain accepted.');
