@@ -102,4 +102,9 @@ jobs:
             ]
           });
           EOF
-          npx playwright test e2e/specs/training-center-shell.spec.mjs e2e/specs/training-center-isolation.spec.mjs --config=training-center.playwright.temp.mjs
+          npx playwright test \
+            e2e/specs/training-center-shell.spec.mjs \
+            e2e/specs/training-center-isolation.spec.mjs \
+            e2e/specs/training-center-tour.spec.mjs \
+            e2e/specs/training-center-first-shipment.spec.mjs \
+            --config=training-center.playwright.temp.mjs
