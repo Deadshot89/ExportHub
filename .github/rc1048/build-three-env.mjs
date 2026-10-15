@@ -35,6 +35,8 @@ const RC1092_CONTACTS_ID='exporthub-rc1092-customer-mail-contacts';
 const RC1092_CONTACTS_TAG='<script id="'+RC1092_CONTACTS_ID+'" defer src="/assets/rc1092-customer-mail-contacts.js?v=1399"></script>';
 const RC1096_PACKAGING_ID='exporthub-rc1096-packaging-groups';
 const RC1096_PACKAGING_TAG='<script id="'+RC1096_PACKAGING_ID+'" defer src="/assets/rc1096-packaging-groups.js?v=1110"></script>';
+const RC1543_PRINT_HELPER_ID='exporthub-document-print-name';
+const RC1543_PRINT_HELPER_TAG='<script id="'+RC1543_PRINT_HELPER_ID+'" defer src="/assets/document-print-name.js?v=1543"></script>';
 
 function replaceBetween(source,start,end,replacement,label){
   const a=source.indexOf(start),b=a>=0?source.indexOf(end,a+start.length):-1;
@@ -438,7 +440,7 @@ function patchLoadingListPalletAccount(html,file){
   block=block.replace(head,"'+rc1095LoadPalletHtml(sh,rs)+'"+head);
   const helper=[
     "function rc1095LoadPalletCount(sh,rs){var direct=Math.max(0,Math.round(Number(sh&&(sh.palletOut||sh.euroPallets||sh.euroPalletCount))||0));if(direct>0)return direct;return(Array.isArray(rs)?rs:[]).reduce(function(total,row){var kind=String(row&&(row.type||row.packaging||row.verpackung||row.packageType||row.packagingType)||'');if(!/euro.*pal|eur.*pal/i.test(kind))return total;var raw=row&&(row.count!=null?row.count:(row.quantity!=null?row.quantity:(row.qty!=null?row.qty:(row.amount!=null?row.amount:row.number))));return total+Math.max(0,Math.round(Number(raw)||0))},0)}",
-    "function rc1095LoadPalletHtml(sh,rs){var count=rc1095LoadPalletCount(sh,rs);if(!(count>0))return'';return '<div class=rc1095-pallet-account style=display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:10px;padding:8px;background:#f8fafc;color:#0f172a;border-radius:9px><b>Palettenkonto</b><span>Ausgang: '+count+' Europalette'+(count===1?'':'n')+'</span></div>'}"
+    "function rc1095LoadPalletHtml(sh,rs){var count=rc1095LoadPalletCount(sh,rs);if(!(count>0))return'';var api=window.ExportHUBDocumentPrintNames,account=null,text='Kontostand nicht erfasst / Balance not recorded';try{if(api&&typeof api.palletBalanceForShipment==='function'&&typeof api.palletBalanceText==='function'){account=api.palletBalanceForShipment(sh);text=api.palletBalanceText(account)}}catch(_){}return '<div class=rc1095-pallet-account data-rc1543-pallet-balance=1 style=display:grid;grid-template-columns:minmax(0,1fr);gap:3px;margin-bottom:10px;padding:8px 10px;border:1px solid #cbd5e1;border-radius:8px;background:#f8fafc><b>Palettenkonto</b><span>Europaletten-Kontostand / EUR pallet balance</span><strong>'+text+'</strong></div>'}"
   ].join('\n');
   let out=html.slice(0,start)+helper+'\n'+block+html.slice(end);
   const cacheStart=out.indexOf('function documentCacheKey',start+helper.length);
@@ -447,9 +449,9 @@ function patchLoadingListPalletAccount(html,file){
   let cache=out.slice(cacheStart,cacheEnd);
   const cacheAnchor='String(totals(sh).ldm)]';
   if(!cache.includes(cacheAnchor))throw new Error(file+': RC1095 Dokumentcache-Anker fehlt');
-  cache=cache.replace(cacheAnchor,"String(totals(sh).ldm),String(rc1095LoadPalletCount(sh,rows(sh)))]");
+  cache=cache.replace(cacheAnchor,"String(totals(sh).ldm),String(rc1095LoadPalletCount(sh,rows(sh))),String(window.ExportHUBDocumentPrintNames&&typeof window.ExportHUBDocumentPrintNames.palletBalanceCacheKey==='function'?window.ExportHUBDocumentPrintNames.palletBalanceCacheKey(sh):'pallet-balance-not-recorded')]");
   out=out.slice(0,cacheStart)+cache+out.slice(cacheEnd);
-  if(!out.includes('rc1095-pallet-account')||!out.includes('String(rc1095LoadPalletCount(sh,rows(sh)))'))throw new Error(file+': RC1095 Palettenkonto-Druckpatch unvollständig');
+  if(!out.includes('rc1095-pallet-account')||!out.includes('String(rc1095LoadPalletCount(sh,rows(sh)))')||!out.includes('palletBalanceCacheKey(sh)')||!out.includes('data-rc1543-pallet-balance'))throw new Error(file+': RC1543 Palettenkonto-Kontostand-Druckpatch unvollständig');
   return out;
 }
 
@@ -488,6 +490,7 @@ function patchHtml(file,canonicalPrintStow,canonicalController){
   html=html.replace(/assets\/rc1014-shipment-overview\.js\?v=1016/g,'assets/rc1014-shipment-overview.js?v=1370');
   html=html.replace(/assets\/rc1014-shipment-overview\.css\?v=1016/g,'assets/rc1014-shipment-overview.css?v=1370');
   html=html.replace(/assets\/rc1013-diagnostics\.js\?v=1013/g,'assets/rc1013-diagnostics.js?v=1364');
+  html=injectBeforeHeadClose(html,RC1543_PRINT_HELPER_TAG,RC1543_PRINT_HELPER_ID);
   html=injectBeforeHeadClose(html,RC1065_CC_TAG,RC1065_CC_ID);
   html=injectBeforeHeadClose(html,RC1069_PERF_TAG,RC1069_PERF_ID);
   html=injectBeforeHeadClose(html,RC1071_HISTORY_TAG,RC1071_HISTORY_ID);
@@ -517,6 +520,7 @@ function patchHtml(file,canonicalPrintStow,canonicalController){
   html=patchLoginScreenStatus(html,file);
   if(!html.includes(`version:'${VERSION}'`))throw new Error(file+': BUILD '+VERSION+' fehlt');
   if(!html.includes(`ExportHUB ${VERSION} environment=`))throw new Error(file+': Environment '+VERSION+' fehlt');
+  if(!html.includes('assets/document-print-name.js?v=1543'))throw new Error(file+': RC1543 Dokument-Druckhelper fehlt');
   fs.writeFileSync(target,html);
 }
 
@@ -538,7 +542,7 @@ if(!fs.existsSync(rc1065AssetSource))throw new Error('RC1065 Pflicht-CC Runtime 
 fs.mkdirSync(path.dirname(rc1065AssetTarget),{recursive:true});
 fs.copyFileSync(rc1065AssetSource,rc1065AssetTarget);
 
-for(const rel of ['assets/rc1092-customer-mail-contacts.js','assets/rc1096-packaging-groups.js','assets/rc1014-shipment-overview.js','assets/rc1013-diagnostics.js','assets/rc1061-document-migration-admin.js','assets/rc1063-abd-blob-viewer-compat.js','assets/rc1067-startup-recovery.js','assets/rc1069-performance.js','assets/rc1071-shipment-history.js','assets/rc1074-login-clean.js','assets/rc1075-loader-pin-admin.js','assets/rc1077-customer-labels.js','assets/rc1079-profile-settings.js','assets/rc1080-customer-history.js','assets/rc1081-audit-history.js']){
+for(const rel of ['assets/document-print-name.js','assets/rc1092-customer-mail-contacts.js','assets/rc1096-packaging-groups.js','assets/rc1014-shipment-overview.js','assets/rc1013-diagnostics.js','assets/rc1061-document-migration-admin.js','assets/rc1063-abd-blob-viewer-compat.js','assets/rc1067-startup-recovery.js','assets/rc1069-performance.js','assets/rc1071-shipment-history.js','assets/rc1074-login-clean.js','assets/rc1075-loader-pin-admin.js','assets/rc1077-customer-labels.js','assets/rc1079-profile-settings.js','assets/rc1080-customer-history.js','assets/rc1081-audit-history.js']){
   const src=path.join(ROOT,rel),dst=path.join(OUT,rel);
   if(!fs.existsSync(src))throw new Error(rel+' fehlt für den finalen RC1048-Build');
   fs.mkdirSync(path.dirname(dst),{recursive:true});
