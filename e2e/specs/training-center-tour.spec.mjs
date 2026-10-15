@@ -49,7 +49,7 @@ test('Tour zeigt permanenten Trainingsbanner, Fortschritt und verdeckt das aktue
 
 test('echter Klick auf korrektes Ziel avanciert; falsches Ziel nicht',async({page})=>{
   await boot(page);
-  await page.locator('#step-two').click();
+  await page.locator('#step-two').click({force:true});
   await expect(page.getByText('Schritt 1 von 2')).toBeVisible();
   await page.locator('#step-one').click();
   await expect(page.getByText('Schritt 2 von 2')).toBeVisible();
@@ -64,7 +64,7 @@ test('Escape verlangt Bestätigung und Tour-Ende stellt vorherigen Fokus wieder 
   await page.getByRole('button',{name:/Abbrechen/i}).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await page.keyboard.press('Escape');
-  await page.getByRole('button',{name:/Tour beenden/i}).click();
+  await page.getByRole('dialog').getByRole('button',{name:'Tour beenden'}).click();
   await expect(page.locator('[data-training-tour-root]')).toHaveCount(0);
   await expect(page.locator('#focus-return')).toBeFocused();
 });
