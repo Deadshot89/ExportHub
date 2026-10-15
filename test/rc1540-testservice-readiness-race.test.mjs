@@ -14,3 +14,12 @@ test('RC1540: Live-waitReady wartet bis der bekannte Startup-Ladezustand beendet
   assert.match(block,/\.loading\(\)/,'Startup-Ladezustand wird nicht abgefragt');
   assert.match(block,/ExportHUB\\s\+wird\\s\+geladen|Teamdaten\\s\+werden\\s\+wiederhergestellt|Gespeicherte\\s\+Sitzung\\s\+und\\s\+Teamdaten/,'Fallback erkennt den sichtbaren Ladezustand nicht');
 });
+
+test('RC1541: Live-waitReady blockiert nicht auf stale Lade-Text wenn die Recovery den Zustand bereits als benutzbar bewertet',()=>{
+  const start=helper.indexOf('export async function waitReady(page)');
+  const end=helper.indexOf('function responsiveViewport',start);
+  assert.ok(start>=0&&end>start,'waitReady-Block fehlt');
+  const block=helper.slice(start,end);
+  assert.match(block,/typeof recovery\.isBroken==='function'/,'waitReady muss die kanonische Recovery-Bewertung berücksichtigen');
+  assert.match(block,/return !recovery\.isBroken\(\)/,'ein nicht gebrochener Recovery-Zustand darf das Live-Gate nicht weiter blockieren');
+});
