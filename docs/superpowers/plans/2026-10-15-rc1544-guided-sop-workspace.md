@@ -3,6 +3,7 @@
 **Datum:** 15.10.2026  
 **PR:** #769  
 **Basis:** aktuelles `main` / SOPMaster  
+**Status:** Implementiert; Freigabe erst nach grünen PR-/SOPMaster-Gates, Merge, Production-Deploy und Live-Verifikation.  
 **Ziel:** Alle aktiven SOPMaster-SOPs verwenden denselben geführten Arbeitsbereich. Vorhandene SOPMaster-Funktionen bleiben erhalten.
 
 ## Verbindliche Oberfläche
