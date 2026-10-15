@@ -14,8 +14,10 @@ on:
       - 'api/shared/merge.js'
       - 'test/training-center-*.test.mjs'
       - 'e2e/specs/training-center-*.spec.mjs'
-      - 'docs/superpowers/native-patches/*.patch'
+      - 'browser/training-center-screenshots.mjs'
       - '.github/training-center/**'
+      - '.github/rc1521/build-three-env.mjs'
+      - 'docs/superpowers/native-patches/*.patch'
       - '.github/workflows/training-center-native-tdd.yml'
   workflow_dispatch:
 
@@ -108,3 +110,17 @@ jobs:
             e2e/specs/training-center-tour.spec.mjs \
             e2e/specs/training-center-first-shipment.spec.mjs \
             --config=training-center.playwright.temp.mjs
+      - name: Generate safe Training-Center screenshots
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf assets/training-center/screenshots
+          node browser/training-center-screenshots.mjs
+          count=$(find assets/training-center/screenshots -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')
+          test "$count" = "17"
+          test -s assets/training-center/screenshots/shipment-open.png
+          test -s assets/training-center/screenshots/shipment-completion.png
+          if git status --short -- assets/training-center/screenshots | grep -v '^?? ' >/dev/null; then
+            echo 'Screenshot-Generator darf keine bestehenden Quelldateien verändern.' >&2
+            exit 1
+          fi
