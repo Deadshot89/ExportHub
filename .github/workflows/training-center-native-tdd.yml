@@ -82,7 +82,7 @@ jobs:
           node-version: '20'
       - name: Install browser test dependencies
         run: |
-          npm ci --ignore-scripts
+          npm install --no-save @playwright/test@1.63.0
           npx playwright install --with-deps chromium
       - name: Run isolated responsive Training-Center browser contract
         shell: bash
