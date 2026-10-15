@@ -33,3 +33,13 @@ test('RC1033/RC1052: API übernimmt einen noch ungespeicherten Sendungsentwurf o
   assert.match(issue, /sanitizeDraftSnapshot\(payload\.shipmentSnapshot/, 'Issue-Pfad muss den Draft als kleinen sicheren Snapshot übernehmen');
   assert.doesNotMatch(issue, /ensureDraftShipment\(state,subjectId,reference,payload\.shipmentSnapshot\)/, 'RC1052 darf den kompletten Team-State bei der Link-Erstellung nicht mehr schreiben');
 });
+
+test('RC1539: automatischer Lieferavis wartet auf Kunde und Standort', () => {
+  assert.match(CLIENT, /function draftAvisReady\(/, 'Client braucht eine explizite fachliche Readiness-Prüfung vor dem Auto-Avis');
+  const ensure = bodyOf(CLIENT, 'async function ensureCustomerAvis', 'function localizedUrl');
+  assert.match(ensure, /draftAvisReady\(current\)/, 'Auto-Avis muss den aktuellen Entwurf direkt vor dem Issue erneut auf Kunde und Standort prüfen');
+  assert.ok(
+    ensure.indexOf('draftAvisReady(current)') < ensure.indexOf('issueDraftAvis(current)'),
+    'Die Readiness-Prüfung muss vor dem Netzwerkaufruf erfolgen'
+  );
+});
