@@ -39,6 +39,7 @@ jobs:
         run: |
           set -euo pipefail
           shopt -s nullglob
+          branch='${{ github.event.pull_request.head.ref || github.ref_name }}'
           patches=(docs/superpowers/native-patches/*.patch)
           if [ ${#patches[@]} -gt 1 ]; then
             echo "Mehr als ein ausstehender Patch gefunden: ${#patches[@]}" >&2
@@ -51,8 +52,10 @@ jobs:
             git config user.name 'exporthub-training-center-bot'
             git config user.email 'actions@users.noreply.github.com'
             git add -A
-            git commit -m 'feat(training-center): integrate isolated center merge'
-            git push origin HEAD:${{ github.event.pull_request.head.ref || github.ref_name }}
+            git commit -m 'feat(training-center): apply reviewed native patch'
+            git fetch origin "$branch"
+            git rebase "origin/$branch"
+            git push origin HEAD:"$branch"
           fi
       - name: Training-Center Node contracts
         shell: bash
