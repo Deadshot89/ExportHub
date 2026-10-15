@@ -78,7 +78,27 @@ test('RC1541: bedienbare Runtime ist trotz stale Startup-Text nicht gebrochen',(
   assert.equal(recovery.isBroken(),false);
 });
 
-test('RC1541: Recovery-Check leitet benutzbare Runtime mit stale Ladehinweis nicht um',async()=>{
+test('RC1542: real beobachteter Azure-Teamdaten-Ladezustand wird zentral erkannt',()=>{
+  const {recovery}=recoveryRuntime({
+    text:'Azure-Teamdaten werden geladen … · 9 s',
+    view:'',
+    interactive:false
+  });
+  assert.equal(recovery.loading(),true,'Der im RC1540-Live-Artefakt beobachtete Azure-Teamdaten-Hinweis muss als Startup-Ladezustand erkannt werden');
+  assert.equal(recovery.isBroken(),true,'Azure-Teamdaten-Ladezustand ohne bedienbare Runtime muss gebrochen bleiben');
+});
+
+test('RC1542: bedienbare Runtime darf trotz stale Azure-Teamdaten-Hinweis fortfahren',()=>{
+  const {recovery}=recoveryRuntime({
+    text:'Dashboard · Sendungsübersicht · Azure-Teamdaten werden geladen … · 9 s',
+    view:'dashboard',
+    interactive:true
+  });
+  assert.equal(recovery.loading(),true,'Stale Azure-Teamdaten-Hinweis muss durch denselben zentralen Vertrag laufen');
+  assert.equal(recovery.isBroken(),false,'Bedienbare Runtime mit stale Azure-Teamdaten-Hinweis darf nicht blockiert werden');
+});
+
+test('RC1541: Recovery-Check leitet benutzbare Runtime mit stale Startup-Text nicht um',async()=>{
   const {recovery,redirects}=recoveryRuntime({
     text:'Dashboard · Sendungsübersicht · ExportHUB wird geladen · 11 %',
     view:'dashboard',
