@@ -98,3 +98,15 @@ test('RC1540: Live-Ready-Fallback darf sichtbaren Ladezustand nicht als bereit a
   assert.match(block,/loadingVisible/);
   assert.match(block,/return !!content&&text\.length>10&&!!view&&interactive&&!loadingVisible;/);
 });
+
+test('RC1540: RC1158 quittiert höchstens einen gezielten State-Read-Abbruch vor Runtime-Clean',()=>{
+  const start=navigation.indexOf("test('RC1158 P1:");
+  const next=navigation.indexOf("\ntest('",start+1);
+  assert.ok(start>=0&&next>start);
+  const block=navigation.slice(start,next);
+  assert.match(navigation.slice(0,start),/acknowledgeReadStateNavigationAbort/);
+  const acknowledge=block.indexOf('acknowledgeReadStateNavigationAbort(runtime)');
+  const clean=block.indexOf('assertRuntimeClean(runtime,testInfo)');
+  assert.ok(acknowledge>=0&&clean>acknowledge);
+  assert.match(block,/readNavigationAborts[\s\S]*toBeLessThanOrEqual\(1\)/);
+});
