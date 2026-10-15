@@ -130,6 +130,19 @@ export async function waitReady(page){
       return !!content&&text.length>10&&!!view&&interactive;
     },null,{timeout:20_000});
   }
+  if(process.env.EXPORTHUB_E2E_LIVE==='1'){
+    await page.waitForFunction(()=>{
+      const recovery=window.ExportHUBRC1067StartupRecovery;
+      if(recovery&&typeof recovery.loading==='function'){
+        try{if(recovery.loading())return false}catch(_){}
+      }
+      const content=document.getElementById('content');
+      const text=String(content&&content.textContent||document.body&&document.body.textContent||'').trim();
+      const startupLoading=/ExportHUB\s+wird\s+geladen|Teamdaten\s+werden\s+wiederhergestellt|Gespeicherte\s+Sitzung\s+und\s+Teamdaten/i.test(text)||
+        /ExportHUB\s+wird\s+vorbereitet|Azure-Teamdaten\s+werden\s+geladen/i.test(text);
+      return !startupLoading;
+    },null,{timeout:25_000});
+  }
   await pause(220);
 }
 
