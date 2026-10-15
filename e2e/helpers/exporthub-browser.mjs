@@ -134,7 +134,12 @@ export async function waitReady(page){
     await page.waitForFunction(()=>{
       const recovery=window.ExportHUBRC1067StartupRecovery;
       if(recovery&&typeof recovery.loading==='function'){
-        try{if(recovery.loading())return false}catch(_){}
+        try{
+          if(recovery.loading()){
+            if(typeof recovery.isBroken==='function')return !recovery.isBroken();
+            return false;
+          }
+        }catch(_){}
       }
       const content=document.getElementById('content');
       const text=String(content&&content.textContent||document.body&&document.body.textContent||'').trim();
