@@ -3,6 +3,7 @@ import fs from 'node:fs';
 
 const read=file=>fs.readFileSync(file,'utf8');
 const files=[
+  'assets/training-center/i18n.js',
   'assets/training-center/target-registry.js',
   'assets/training-center/tour-engine.js',
   'assets/training-center/tour-ui.js'
@@ -10,11 +11,11 @@ const files=[
 
 async function boot(page){
   await page.setContent(`
-    <main id="app">
+    <html lang="de"><body><main id="app">
       <button id="step-one">Ziel Eins</button>
       <button id="step-two">Ziel Zwei</button>
       <button id="focus-return">Vorheriger Fokus</button>
-    </main>
+    </main></body></html>
   `);
   await page.addStyleTag({content:read('assets/training-center/tour.css')});
   for(const file of files)await page.addScriptTag({content:read(file)});
