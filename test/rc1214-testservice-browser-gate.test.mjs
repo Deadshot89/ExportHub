@@ -88,7 +88,7 @@ test('RC1215: mutierender TESTSERVICE-Live-Test hat ausreichend Zeit für mehrer
   assert.doesNotMatch(mutation,/test\.setTimeout\(90_000\);/);
 });
 
-test('RC1540: Live-Ready-Fallback darf sichtbaren Ladezustand nicht als bereit akzeptieren',()=>{
+test('RC1540: Live-Ready wartet bis der sichtbare Startup-Ladezustand vollständig beendet ist',()=>{
   const start=helper.indexOf('export async function waitReady(page)');
   const end=helper.indexOf('function responsiveViewport(page)',start);
   assert.ok(start>=0&&end>start);
@@ -97,16 +97,7 @@ test('RC1540: Live-Ready-Fallback darf sichtbaren Ladezustand nicht als bereit a
   assert.match(block,/ExportHUB wird geladen/);
   assert.match(block,/loadingVisible/);
   assert.match(block,/return !!content&&text\.length>10&&!!view&&interactive&&!loadingVisible;/);
-});
-
-test('RC1540: RC1158 quittiert höchstens einen gezielten State-Read-Abbruch vor Runtime-Clean',()=>{
-  const start=navigation.indexOf("test('RC1158 P1:");
-  const next=navigation.indexOf("\ntest('",start+1);
-  assert.ok(start>=0&&next>start);
-  const block=navigation.slice(start,next);
-  assert.match(navigation.slice(0,start),/acknowledgeReadStateNavigationAbort/);
-  const acknowledge=block.indexOf('acknowledgeReadStateNavigationAbort(runtime)');
-  const clean=block.indexOf('assertRuntimeClean(runtime,testInfo)');
-  assert.ok(acknowledge>=0&&clean>acknowledge);
-  assert.match(block,/readNavigationAborts[\s\S]*toBeLessThanOrEqual\(1\)/);
+  assert.match(block,/ExportHUBRC1067StartupRecovery/);
+  assert.match(block,/startupLoading/);
+  assert.match(block,/return !startupLoading;/);
 });
