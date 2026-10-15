@@ -1,2 +1,0 @@
-One-time sentinel for the approved SOP & Training Center clean cutover.
-The Training Center Native TDD workflow deletes assets/sop/** and removes this sentinel in the same commit.
