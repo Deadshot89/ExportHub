@@ -3,6 +3,7 @@ import path from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import {execFileSync} from 'node:child_process';
 import {finalizeAutoUpdate} from '../rc1488/finalize-auto-update.mjs';
+import {integrateGuidedWorkspace} from '../rc1544/integrate-guided-workspace.mjs';
 
 export const PACK_ASSETS=Object.freeze([
   'i18n/pack-notification.js',
@@ -92,6 +93,7 @@ export function build(root=process.cwd()){
     const src=path.join(root,config);if(fs.existsSync(src))fs.copyFileSync(src,path.join(out,config));
   }
   finalizeAutoUpdate({root,out});
+  integrateGuidedWorkspace(root,out);
   return out;
 }
 
