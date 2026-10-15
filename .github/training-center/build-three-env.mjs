@@ -13,6 +13,9 @@ const REQUIRED_ASSETS=Object.freeze([
   'store.js',
   'customer-sop.js',
   'screenshots.js',
+  'coverage-registry.js',
+  'coverage.js',
+  'coverage-dashboard.js',
   'catalog/shipment-registration.js',
   'catalog/dhl-express.js',
   'training-state.js',
@@ -45,6 +48,9 @@ const SCRIPT_TAGS=Object.freeze([
   '<script id="exporthub-training-center-store" defer src="/assets/training-center/store.js?v=1"></script>',
   '<script id="exporthub-training-center-customer-sop" defer src="/assets/training-center/customer-sop.js?v=1"></script>',
   '<script id="exporthub-training-center-screenshots" defer src="/assets/training-center/screenshots.js?v=1"></script>',
+  '<script id="exporthub-training-coverage-registry" defer src="/assets/training-center/coverage-registry.js?v=1"></script>',
+  '<script id="exporthub-training-coverage" defer src="/assets/training-center/coverage.js?v=1"></script>',
+  '<script id="exporthub-training-coverage-dashboard" defer src="/assets/training-center/coverage-dashboard.js?v=1"></script>',
   '<script id="exporthub-training-center-shipment-sop" defer src="/assets/training-center/catalog/shipment-registration.js?v=1"></script>',
   '<script id="exporthub-training-center-dhl-express" defer src="/assets/training-center/catalog/dhl-express.js?v=1"></script>',
   '<script id="exporthub-training-state" defer src="/assets/training-center/training-state.js?v=1"></script>',
@@ -99,6 +105,7 @@ function assertPackage(out){
     const html=fs.readFileSync(target,'utf8');
     if(!html.includes('id="exporthub-training-center-runtime"'))throw new Error(`${file}: Training-Center Runtime fehlt`);
     if(!html.includes('id="exporthub-training-center-style"'))throw new Error(`${file}: Training-Center Styles fehlen`);
+    if(!html.includes('id="exporthub-training-coverage-dashboard"'))throw new Error(`${file}: Training-Center Coverage fehlt`);
     if(LEGACY_RE.test(html))throw new Error(`${file}: Legacy-SOP-Runtime ist noch verdrahtet`);
   }
   for(const rel of REQUIRED_ASSETS){
