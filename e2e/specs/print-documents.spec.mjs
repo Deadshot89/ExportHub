@@ -565,7 +565,7 @@ test('RC1376: kurze DNC-Rahmen und EMPFÄNGER / KUNDE sind auf Deckblatt und Lad
   await assertRuntimeClean(guard,testInfo);
 });
 
-test('RC1503/RC1379: POD-Ladeliste behält die Bild-4-Felder und blendet den alten Abholblock aus',async({page},testInfo)=>{
+test('RC1503/RC1379/RC1543: POD-Ladeliste behält die Bild-4-Felder und nutzt den aktuellen Palettenkonto-Vertrag',async({page},testInfo)=>{
   test.skip(testInfo.project.name!=='laptop','POD-Ladelistenlayout wird einmal im echten Chromium geprüft.');
   test.setTimeout(45_000);
   const guard=attachRuntimeGuards(page,testInfo);
@@ -623,7 +623,7 @@ test('RC1503/RC1379: POD-Ladeliste behält die Bild-4-Felder und blendet den alt
     filler.style.setProperty('padding','0','important');
 
     const summary=root.querySelector('[data-rc1305-pickup-summary]');
-    const primary=root.querySelector('.rc1305-signature-primary');
+    const primary=root&&root.querySelector('.rc1305-signature-primary');
     const driver=root.querySelector('.rc1305-meta-driver');
     const date=root.querySelector('.rc1503-pickup-date');
     const plate=root.querySelector('.rc1305-meta-plate');
@@ -657,15 +657,16 @@ test('RC1503/RC1379: POD-Ladeliste behält die Bild-4-Felder und blendet den alt
   expect(layout.summaryHidden,'Der alte sichtbare SENDUNG-ABGEHOLT-Block ist noch aktiv').toBe(true);
   expect(layout.replacedFieldCount,'Bild-4-Felder dürfen nach der Abholung nicht ausgeblendet bleiben').toBe(0);
   expect(layout.pickupFieldCount,'Alle sechs vorhandenen Bild-4-Abholfelder müssen erhalten bleiben').toBe(6);
-  expect(layout.fieldLabels).toEqual(['Unterschrift Fahrer','Fahrername','Datum / Uhrzeit','Kennzeichen','Verlader','Europaletten Ausgang']);
+  expect(layout.fieldLabels).toEqual(['Unterschrift Fahrer','Fahrername','Datum / Uhrzeit','Kennzeichen','Verlader','Europaletten-Kontostand / EUR pallet balance']);
   expect(layout.signatureCount).toBe(1);
   expect(layout.imageInside,'Die Fahrerunterschrift ragt aus ihrem vorhandenen Feld').toBe(true);
   expect(layout.driverText).toContain('Max Mustermann');
   expect(layout.dateText).toMatch(/01\.10\.2026/);
   expect(layout.plateText).toContain('KLE-AB 1234');
   expect(layout.loaderText).toContain('Tobias');
-  expect(layout.palletText).toContain('Ausgang: 4');
-  expect(layout.palletText).toContain('Eingang/Rückgabe: 2');
+  expect(layout.palletText).toContain('Kontostand nicht erfasst / Balance not recorded');
+  expect(layout.palletText).not.toContain('Ausgang: 4');
+  expect(layout.palletText).not.toContain('Eingang/Rückgabe: 2');
   expect(layout.visibleText).not.toMatch(/SENDUNG ABGEHOLT/i);
   expect(layout.visibleText).not.toContain('Beispiel Spedition GmbH');
   expect(layout.qrPresent,'Der bestehende QR-Bereich darf durch die POD-Wiederherstellung nicht verschwinden').toBe(true);
