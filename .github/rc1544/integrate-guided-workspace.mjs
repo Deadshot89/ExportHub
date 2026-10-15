@@ -14,6 +14,7 @@ export const GUIDED_MARKERS=Object.freeze([
   'exporthub-rc1544-sop-guided-i18n',
   'exporthub-rc1544-sop-guided-workspace'
 ]);
+export const GUIDED_ANCHOR_ID='exporthub-rc1502-sop-persistence';
 
 const ENTRIES=['index.html','TESTVERSION.html','demo.html'];
 const GUIDED_STYLE='<link id="exporthub-rc1544-sop-guided-workspace-style" rel="stylesheet" href="/assets/sop/rc1544-sop-guided-workspace.css?v=1544">';
@@ -23,13 +24,6 @@ const GUIDED_SCRIPTS=[
 ];
 
 function countId(html,id){return String(html||'').split(`id="${id}"`).length-1;}
-function insertBeforeLastClosingTag(html,tag,payload,file){
-  const source=String(html||'');
-  const token=`</${String(tag||'').toLowerCase()}>`;
-  const index=source.toLowerCase().lastIndexOf(token);
-  if(index<0)throw new Error(`RC1544 ${file}: ${token} fehlt`);
-  return `${source.slice(0,index)}${payload}\n${source.slice(index)}`;
-}
 function guidedDataTag(root){
   const source=path.join(root,GUIDED_I18N_DATA);
   if(!fs.existsSync(source))throw new Error(`RC1544 Pflicht-Asset fehlt: ${GUIDED_I18N_DATA}`);
@@ -38,6 +32,24 @@ function guidedDataTag(root){
   catch(error){throw new Error(`RC1544 Guided-i18n JSON ungültig: ${error&&error.message?error.message:error}`);}
   const safe=JSON.stringify(parsed).replace(/</g,'\\u003c');
   return `<script id="exporthub-rc1544-sop-guided-i18n-data" type="application/json">${safe}</script>`;
+}
+function anchorRegex(){
+  return new RegExp(`<script\\b(?=[^>]*\\bid=["']${GUIDED_ANCHOR_ID}["'])[^>]*>\\s*<\\/script>`,'i');
+}
+function validateBundle(html,file){
+  for(const id of GUIDED_MARKERS){
+    const count=countId(html,id);
+    if(count!==1)throw new Error(`RC1544 ${file}: ${id} muss genau einmal vorhanden sein, gefunden ${count}`);
+  }
+  const anchor=html.indexOf(`id="${GUIDED_ANCHOR_ID}"`);
+  const style=html.indexOf('id="exporthub-rc1544-sop-guided-workspace-style"');
+  const data=html.indexOf('id="exporthub-rc1544-sop-guided-i18n-data"');
+  const i18n=html.indexOf('id="exporthub-rc1544-sop-guided-i18n"',data+1);
+  const workspace=html.indexOf('id="exporthub-rc1544-sop-guided-workspace"',style+1);
+  if(anchor<0)throw new Error(`RC1544 ${file}: SOPMaster-Persistenzanker ${GUIDED_ANCHOR_ID} fehlt`);
+  if(style<=anchor||data<=style||i18n<=data||workspace<=i18n){
+    throw new Error(`RC1544 ${file}: Reihenfolge muss Persistenzanker → Style → Sprachdaten → Sprachmodul → Guided-Workspace sein`);
+  }
 }
 
 export function integrateGuidedWorkspace(root,out){
@@ -48,32 +60,26 @@ export function integrateGuidedWorkspace(root,out){
     fs.copyFileSync(source,target);
   }
 
-  const dataTag=guidedDataTag(root);
+  const bundle=[GUIDED_STYLE,guidedDataTag(root),...GUIDED_SCRIPTS].join('\n');
   for(const file of ENTRIES){
     const target=path.join(out,file);
     if(!fs.existsSync(target))throw new Error(`RC1544 Build-Datei fehlt: ${file}`);
     let html=fs.readFileSync(target,'utf8');
+    const markerCounts=GUIDED_MARKERS.map(id=>countId(html,id));
+    const hasAny=markerCounts.some(count=>count>0);
+    const hasAll=markerCounts.every(count=>count===1);
 
-    if(!html.includes('id="exporthub-rc1544-sop-guided-workspace-style"')){
-      html=insertBeforeLastClosingTag(html,'head',GUIDED_STYLE,file);
+    if(hasAny&&!hasAll){
+      throw new Error(`RC1544 ${file}: unvollständige Guided-Injection (${markerCounts.join(',')})`);
+    }
+    if(!hasAny){
+      const rx=anchorRegex();
+      const match=html.match(rx);
+      if(!match)throw new Error(`RC1544 ${file}: SOPMaster-Persistenzanker ${GUIDED_ANCHOR_ID} ist nicht eindeutig injizierbar`);
+      html=html.replace(rx,`${match[0]}\n${bundle}`);
     }
 
-    const payload=[];
-    if(!html.includes('id="exporthub-rc1544-sop-guided-i18n-data"'))payload.push(dataTag);
-    for(const tag of GUIDED_SCRIPTS){
-      const id=(tag.match(/id="([^"]+)"/)||[])[1];
-      if(id&&!html.includes(`id="${id}"`))payload.push(tag);
-    }
-    if(payload.length)html=insertBeforeLastClosingTag(html,'body',payload.join('\n'),file);
-
-    for(const id of GUIDED_MARKERS){
-      if(countId(html,id)!==1)throw new Error(`RC1544 ${file}: ${id} muss genau einmal vorhanden sein`);
-    }
-    const data=html.indexOf('id="exporthub-rc1544-sop-guided-i18n-data"');
-    const i18n=html.indexOf('id="exporthub-rc1544-sop-guided-i18n"');
-    const workspace=html.indexOf('id="exporthub-rc1544-sop-guided-workspace"');
-    if(data<0||i18n<=data||workspace<=i18n)throw new Error(`RC1544 ${file}: Reihenfolge muss Sprachdaten → Sprachmodul → Guided-Workspace sein`);
-
+    validateBundle(html,file);
     fs.writeFileSync(target,html);
   }
   return out;
