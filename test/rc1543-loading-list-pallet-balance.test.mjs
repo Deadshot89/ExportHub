@@ -5,6 +5,7 @@ import vm from 'node:vm';
 
 const source=fs.readFileSync('assets/document-print-name.js','utf8');
 const loadingListSearchSource=fs.readFileSync('assets/rc1283-loading-list-search.js','utf8');
+const baseBuildSource=fs.readFileSync('.github/rc1048/build-three-env.mjs','utf8');
 const buildSource=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
 
 function memoryStorage(){
@@ -91,14 +92,12 @@ test('RC1543: konkrete Ladelistenauswahl sichert den Kontostand im Hauptkontext 
   assert.match(loadingListSearchSource,/function\s+act\(kind,panel,select\)[\s\S]*preparePalletPrintSnapshot\(row\.shipment\)/,'Aktion muss den Snapshot unmittelbar vor Öffnen, Druck oder Download auffrischen');
 });
 
-test('RC1543: Drei-Umgebungen-Build lädt den Print-Helper vor der Ladelistensuche',()=>{
-  const helperTag='document-print-name.js?v=1543';
-  const searchTag='rc1283-loading-list-search.js?v=1305';
-  assert.match(buildSource,/exporthub-document-print-name/,'Drei-Umgebungen-Build muss den gemeinsamen Print-Helper als Runtime einbinden');
-  assert.match(buildSource,/document-print-name\.js\?v=1543/,'RC1543 braucht einen eigenen Cache-Key für den Print-Helper');
-  const helperAt=buildSource.indexOf(helperTag);
-  const searchAt=buildSource.indexOf(searchTag);
-  assert.ok(helperAt>=0&&searchAt>=0&&helperAt<searchAt,'Print-Helper muss vor der Ladelistensuche geladen werden');
+test('RC1543: Basisbuild lädt und kopiert den Print-Helper vor der späteren Ladelistensuche',()=>{
+  assert.match(baseBuildSource,/exporthub-document-print-name/,'RC1048-Basisbuild muss den gemeinsamen Print-Helper als Runtime einbinden');
+  assert.match(baseBuildSource,/document-print-name\.js\?v=1543/,'RC1543 braucht einen eigenen Cache-Key für den Print-Helper');
+  assert.match(baseBuildSource,/assets\/document-print-name\.js/,'RC1048-Basisbuild muss den Print-Helper in das Build-Artefakt kopieren');
+  assert.match(buildSource,/const SRC=path\.join\(ROOT,'dist-rc1048'\)/,'RC1112 muss weiterhin auf dem RC1048-Basisbuild aufsetzen');
+  assert.match(buildSource,/assets\/rc1283-loading-list-search\.js\?v=1305/,'RC1112 muss die Ladelistensuche weiterhin einbinden');
 });
 
 test('RC1543: Palettenkontostand wird auch vor der Abholung unabhängig vom Pickup-Summary ersetzt',()=>{
