@@ -2,18 +2,16 @@ import {test,expect} from '@playwright/test';
 import fs from 'node:fs';
 
 const read=file=>fs.readFileSync(file,'utf8');
+const i18n=read('assets/training-center/i18n.js');
 const registry=read('assets/training-center/coverage-registry.js');
 const coverage=read('assets/training-center/coverage.js');
 const dashboard=read('assets/training-center/coverage-dashboard.js');
 const css=read('assets/training-center/ui.css');
 
-function completeStep(stepId,targetElement){
-  return {stepId,title:'Schritt',shortInstruction:'Kurz',explanation:'Erklärung',purpose:'Zweck',checkpoints:['Prüfung'],commonErrors:['Fehler'],warnings:['Hinweis'],targetElement,expectedAction:'click',validation:['ok'],helpText:'Hilfe',successText:'Erfolg',screenshotId:stepId};
-}
-
 async function mount(page){
-  await page.setContent('<html data-eh-design="modern"><head></head><body><main id="coverage"></main></body></html>');
+  await page.setContent('<html lang="de" data-eh-design="modern"><head></head><body><main id="coverage"></main></body></html>');
   await page.addStyleTag({content:css});
+  await page.addScriptTag({content:i18n});
   await page.addScriptTag({content:registry});
   await page.addScriptTag({content:coverage});
   await page.addScriptTag({content:dashboard});
