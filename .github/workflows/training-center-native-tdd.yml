@@ -17,12 +17,16 @@ on:
       - 'e2e/specs/training-center-*.spec.mjs'
       - 'browser/training-center-screenshots.mjs'
       - '.github/training-center/**'
+      - '.github/rc1013/build-three-env.mjs'
+      - '.github/rc1016/build-three-env.mjs'
+      - '.github/rc1018/build-three-env.mjs'
+      - '.github/rc1112/build-three-env.mjs'
       - '.github/rc1521/build-three-env.mjs'
       - '.github/workflows/training-center-native-tdd.yml'
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   node-contracts:
@@ -33,6 +37,23 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
           fetch-depth: 0
+      - name: Apply pending retired SOP build cutover
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          set -euo pipefail
+          patcher='.github/training-center/apply-retired-sop-build-cutover.mjs'
+          if [ ! -f "$patcher" ]; then
+            echo 'Kein ausstehender Build-Cutover.'
+            exit 0
+          fi
+          node "$patcher"
+          rm "$patcher"
+          git config user.name 'exporthub-training-center-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add .github/rc1013/build-three-env.mjs .github/rc1016/build-three-env.mjs .github/rc1018/build-three-env.mjs .github/rc1112/build-three-env.mjs "$patcher"
+          git commit -m 'build(training-center): detach retired SOPMaster build hooks'
+          git push origin HEAD:${{ github.ref_name }}
       - uses: actions/setup-node@v5
         with:
           node-version: '20'
