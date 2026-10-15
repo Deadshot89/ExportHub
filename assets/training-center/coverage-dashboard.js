@@ -6,6 +6,8 @@ function list(value){return Array.isArray(value)?value:[];}
 function esc(value){return String(value==null?'':value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
 function coverage(){const api=g.ExportHubTrainingCoverage;if(!api||typeof api.scan!=='function')throw new Error('TRAINING_COVERAGE_MISSING');return api;}
 function registry(){const api=g.ExportHubTrainingCoverageRegistry;if(!api||!Array.isArray(api.entries))throw new Error('TRAINING_COVERAGE_REGISTRY_MISSING');return api;}
+function i18n(){const api=g.ExportHubTrainingCenterI18n;if(!api||typeof api.t!=='function')throw new Error('TRAINING_CENTER_I18N_MISSING');return api;}
+function tr(key,vars){return i18n().t(key,vars);}
 function unique(values){return Array.from(new Set(values.map(text).filter(Boolean)));}
 function customersOf(center){
   const seen=new Set();const out=[];
@@ -13,7 +15,7 @@ function customersOf(center){
     const id=text(item&&item.customerId);if(!id||seen.has(id))continue;seen.add(id);
     out.push({id,name:text(item.customerName)||id});
   }
-  return out.sort((a,b)=>a.name.localeCompare(b.name,'de'));
+  return out.sort((a,b)=>a.name.localeCompare(b.name));
 }
 function buildModel(center,options={}){
   const result=coverage().scan(center,{entries:registry().entries,customerId:options.customerId||''});
@@ -21,7 +23,7 @@ function buildModel(center,options={}){
     center,
     items:result.items,
     summary:{...result.counts,percentage:result.percentage},
-    areas:unique(result.items.map(item=>item.area)).sort((a,b)=>a.localeCompare(b,'de')),
+    areas:unique(result.items.map(item=>item.area)).sort((a,b)=>a.localeCompare(b)),
     customers:customersOf(center),
     selectedCustomerId:text(options.customerId)
   };
@@ -41,52 +43,52 @@ function card(kind,label,value,symbol,suffix=''){
   return `<article class="training-coverage-kpi training-coverage-kpi-${esc(kind)}" data-kpi="${esc(kind)}"><span class="training-coverage-kpi-symbol" aria-hidden="true">${symbol}</span><div><span>${esc(label)}</span><strong>${esc(value)}${esc(suffix)}</strong></div></article>`;
 }
 function statusLabel(status){
-  if(status==='missing')return '🔴 SOP fehlt';
-  if(status==='incomplete')return '🟡 SOP unvollständig';
-  if(status==='complete')return '🟢 SOP vollständig';
+  if(status==='missing')return `🔴 ${esc(tr('coverage.missing'))}`;
+  if(status==='incomplete')return `🟡 ${esc(tr('coverage.incomplete'))}`;
+  if(status==='complete')return `🟢 ${esc(tr('coverage.complete'))}`;
   return esc(status);
 }
 function reasons(row){
-  const labels={SOP_MISSING:'SOP fehlt',SOP_NOT_RELEASED:'SOP ist nicht freigegeben',STEP_INCOMPLETE:'Pflichtschritt fehlt oder ist unvollständig',IMAGE_MISSING:'Bildanleitung fehlt',TOUR_MISSING:'Interaktive Tour fehlt'};
+  const keys={SOP_MISSING:'coverage.reason.sopMissing',SOP_NOT_RELEASED:'coverage.reason.notReleased',STEP_INCOMPLETE:'coverage.reason.stepIncomplete',IMAGE_MISSING:'coverage.reason.imageMissing',TOUR_MISSING:'coverage.reason.tourMissing'};
   const source=list(row&&row.reasons);
-  return source.length?`<ul class="training-coverage-reasons">${source.map(code=>`<li>${esc(labels[code]||code)}</li>`).join('')}</ul>`:'<span class="training-coverage-muted">Keine offenen Punkte</span>';
+  return source.length?`<ul class="training-coverage-reasons">${source.map(code=>`<li>${esc(tr(keys[code]||code))}</li>`).join('')}</ul>`:`<span class="training-coverage-muted">${esc(tr('coverage.noOpenIssues'))}</span>`;
 }
 function capabilityBadges(row){
   const caps=[];
-  if(row&&row.capabilities&&row.capabilities.tour)caps.push('<span class="training-coverage-capability">🔵 Tour vorhanden</span>');
-  if(row&&row.capabilities&&row.capabilities.image)caps.push('<span class="training-coverage-capability">🟣 Bildanleitung vorhanden</span>');
-  return caps.length?caps.join(''):'<span class="training-coverage-muted">Keine Zusatzfähigkeit</span>';
+  if(row&&row.capabilities&&row.capabilities.tour)caps.push(`<span class="training-coverage-capability">🔵 ${esc(tr('coverage.tourPresent'))}</span>`);
+  if(row&&row.capabilities&&row.capabilities.image)caps.push(`<span class="training-coverage-capability">🟣 ${esc(tr('coverage.imagePresent'))}</span>`);
+  return caps.length?caps.join(''):`<span class="training-coverage-muted">${esc(tr('coverage.noneCapability'))}</span>`;
 }
 function rowHtml(row){
-  const overlay=row&&row.customerOverlay&&row.customerOverlay.present?`<span class="training-coverage-overlay">${esc(row.customerOverlay.id)}</span>`:'<span class="training-coverage-muted">—</span>';
+  const overlay=row&&row.customerOverlay&&row.customerOverlay.present?`<span class="training-coverage-overlay">${esc(row.customerOverlay.id)}</span>`:`<span class="training-coverage-muted">${esc(tr('coverage.noOverlay'))}</span>`;
   return `<tr data-coverage-row="${esc(row.id)}" data-status="${esc(row.status)}"><td>${esc(row.area)}</td><td><strong>${esc(row.title)}</strong><small>${esc(row.id)}</small></td><td><span class="training-coverage-status training-coverage-status-${esc(row.status)}">${statusLabel(row.status)}</span>${reasons(row)}</td><td><div class="training-coverage-capabilities">${capabilityBadges(row)}</div></td><td>${overlay}</td></tr>`;
 }
 function render(model,filters={}){
   const filtered=filterItems(model.items,filters);
   const s=model.summary;
-  const areaOptions=['<option value="">Alle Bereiche</option>',...model.areas.map(value=>option(value,value,filters.area))].join('');
-  const statusOptions=['<option value="">Alle Status</option>',option('missing','🔴 SOP fehlt',filters.status),option('incomplete','🟡 SOP unvollständig',filters.status),option('complete','🟢 SOP vollständig',filters.status)].join('');
-  const customerOptions=['<option value="">Alle Kunden / Basiskontext</option>',...model.customers.map(customer=>option(customer.id,customer.name,filters.customer))].join('');
-  const capabilityOptions=['<option value="">Alle Fähigkeiten</option>',option('tour','🔵 Tour vorhanden',filters.capability),option('image','🟣 Bildanleitung vorhanden',filters.capability)].join('');
+  const areaOptions=[`<option value="">${esc(tr('coverage.allAreas'))}</option>`,...model.areas.map(value=>option(value,value,filters.area))].join('');
+  const statusOptions=[`<option value="">${esc(tr('coverage.allStatuses'))}</option>`,option('missing',`🔴 ${tr('coverage.missing')}`,filters.status),option('incomplete',`🟡 ${tr('coverage.incomplete')}`,filters.status),option('complete',`🟢 ${tr('coverage.complete')}`,filters.status)].join('');
+  const customerOptions=[`<option value="">${esc(tr('coverage.allCustomers'))}</option>`,...model.customers.map(customer=>option(customer.id,customer.name,filters.customer))].join('');
+  const capabilityOptions=[`<option value="">${esc(tr('coverage.allCapabilities'))}</option>`,option('tour',`🔵 ${tr('coverage.tourPresent')}`,filters.capability),option('image',`🟣 ${tr('coverage.imagePresent')}`,filters.capability)].join('');
   return `<section class="training-coverage" data-training-coverage>
-    <header class="training-coverage-header"><div><h1>SOP &amp; Training Center Coverage</h1><p>Abdeckung, Vollständigkeit und Zusatzfähigkeiten der registrierten ExportHUB-Prozesse.</p></div><span class="training-coverage-readonly">Nur Lesen</span></header>
+    <header class="training-coverage-header"><div><h1>${esc(tr('coverage.title'))}</h1><p>${esc(tr('coverage.intro'))}</p></div><span class="training-coverage-readonly">${esc(tr('coverage.readOnly'))}</span></header>
     <div class="training-coverage-kpis">
-      ${card('rate','Abdeckungsquote',s.percentage,'◉','%')}
-      ${card('missing','SOP fehlt',s.missing,'🔴')}
-      ${card('incomplete','SOP unvollständig',s.incomplete,'🟡')}
-      ${card('complete','SOP vollständig',s.complete,'🟢')}
-      ${card('tour','Tour vorhanden',s.tour,'🔵')}
-      ${card('image','Bildanleitung vorhanden',s.image,'🟣')}
+      ${card('rate',tr('coverage.rate'),s.percentage,'◉','%')}
+      ${card('missing',tr('coverage.missing'),s.missing,'🔴')}
+      ${card('incomplete',tr('coverage.incomplete'),s.incomplete,'🟡')}
+      ${card('complete',tr('coverage.complete'),s.complete,'🟢')}
+      ${card('tour',tr('coverage.tourPresent'),s.tour,'🔵')}
+      ${card('image',tr('coverage.imagePresent'),s.image,'🟣')}
     </div>
-    <form class="training-coverage-filters" data-coverage-filters aria-label="Coverage filtern">
-      <label>Bereich<select data-coverage-filter="area">${areaOptions}</select></label>
-      <label>Status<select data-coverage-filter="status">${statusOptions}</select></label>
-      <label>Kunde<select data-coverage-filter="customer">${customerOptions}</select></label>
-      <label>Fähigkeit<select data-coverage-filter="capability">${capabilityOptions}</select></label>
-      <button type="button" data-coverage-reset>Filter zurücksetzen</button>
+    <form class="training-coverage-filters" data-coverage-filters aria-label="${esc(tr('coverage.title'))}">
+      <label>${esc(tr('coverage.area'))}<select data-coverage-filter="area">${areaOptions}</select></label>
+      <label>${esc(tr('coverage.status'))}<select data-coverage-filter="status">${statusOptions}</select></label>
+      <label>${esc(tr('coverage.customer'))}<select data-coverage-filter="customer">${customerOptions}</select></label>
+      <label>${esc(tr('coverage.capability'))}<select data-coverage-filter="capability">${capabilityOptions}</select></label>
+      <button type="button" data-coverage-reset>${esc(tr('coverage.reset'))}</button>
     </form>
-    <div class="training-coverage-meta">${filtered.length} von ${model.items.length} registrierten Prozessbereichen sichtbar</div>
-    <div class="training-coverage-table-wrap"><table class="training-coverage-table"><caption>SOP-Abdeckung nach Prozessbereich</caption><thead><tr><th>Bereich</th><th>Funktion / SOP</th><th>Hauptstatus</th><th>Fähigkeiten</th><th>Kunde / Overlay</th></tr></thead><tbody>${filtered.map(rowHtml).join('')}</tbody></table></div>
+    <div class="training-coverage-meta">${esc(tr('coverage.resultMeta',{shown:filtered.length,total:model.items.length}))}</div>
+    <div class="training-coverage-table-wrap"><table class="training-coverage-table"><caption>${esc(tr('coverage.tableCaption'))}</caption><thead><tr><th>${esc(tr('coverage.area'))}</th><th>${esc(tr('coverage.header.function'))}</th><th>${esc(tr('coverage.header.mainStatus'))}</th><th>${esc(tr('coverage.header.capabilities'))}</th><th>${esc(tr('coverage.header.customerOverlay'))}</th></tr></thead><tbody>${filtered.map(rowHtml).join('')}</tbody></table></div>
   </section>`;
 }
 function mount(target,options={}){
