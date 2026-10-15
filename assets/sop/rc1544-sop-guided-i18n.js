@@ -21,5 +21,24 @@ const dictionary={
     'sop.guided.steps':'Passaggi SOP','sop.guided.catalog':'Selezione SOP','sop.guided.details':'Dettagli','sop.guided.search':'Cerca passaggio','sop.guided.searchPlaceholder':'ad es. MRN, pagatore, documento','sop.guided.back':'← Indietro','sop.guided.complete':'Completa passaggio','sop.guided.next':'Avanti →','sop.guided.required':'Obbligatorio','sop.guided.missingImage':'Non è ancora stata aggiunta un’immagine per questo passaggio.','sop.guided.requiredInfo':'Informazioni necessarie','sop.guided.risk':'Nota / rischio','sop.guided.context':'Informazioni sul passaggio','sop.guided.check':'Controlla','sop.guided.completionCheck':'Controllo finale','sop.guided.deviations':'Scostamenti / chiarimento','sop.guided.stepOf':'Passaggio {{current}} di {{total}}'
   }
 };
-root.ExportHubSopGuidedI18n=Object.freeze(Object.fromEntries(Object.entries(dictionary).map(([lang,values])=>[lang,Object.freeze({...values})])));
+const frozen=Object.freeze(Object.fromEntries(Object.entries(dictionary).map(([lang,values])=>[lang,Object.freeze({...values})])));
+root.ExportHubSopGuidedI18n=frozen;
+
+let attempts=0;
+function format(value,vars){let out=String(value==null?'':value);for(const [key,replacement] of Object.entries(vars||{}))out=out.replaceAll(`{{${key}}}`,String(replacement));return out;}
+function install(){
+  const base=root.ExportHUBI18n;
+  if(!base||typeof base.t!=='function'){
+    attempts+=1;if(attempts<120&&typeof root.setTimeout==='function')root.setTimeout(install,25);return false;
+  }
+  if(base.__rc1544GuidedI18n)return true;
+  const language=()=>{try{return typeof base.language==='function'?String(base.language()||'de').toLowerCase().slice(0,2):'de';}catch(_){return'de';}};
+  const wrapped=Object.freeze(Object.assign({},base,{__rc1544GuidedI18n:true,t(key,vars){
+    let value='';try{value=base.t(key,vars);}catch(_){}
+    if(value&&value!==key)return value;
+    const lang=language(),local=frozen[lang]||frozen.de;return Object.prototype.hasOwnProperty.call(local,key)?format(local[key],vars):(value||key);
+  }}));
+  root.ExportHUBI18n=wrapped;return true;
+}
+install();
 })(typeof globalThis!=='undefined'?globalThis:this);
