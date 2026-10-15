@@ -1,0 +1,38 @@
+name: RC1543 Apply Loading List Pallet Balance
+
+on:
+  push:
+    branches: [fix/rc1543-loading-list-pallet-balance]
+    paths:
+      - 'scripts/rc1543-apply-loading-list-pallet-balance.mjs'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: fix/rc1543-loading-list-pallet-balance
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: RC1543 Release- und Browserverträge anpassen
+        run: node scripts/rc1543-apply-loading-list-pallet-balance.mjs
+      - name: Änderungen committen
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo 'Keine Änderungen erforderlich.'
+            exit 0
+          fi
+          git config user.name 'Deadshot89'
+          git config user.email '86518220+Deadshot89@users.noreply.github.com'
+          git add .github/rc1048/build-three-env.mjs .github/rc1505/verify-production-live.mjs e2e/specs/print-documents.spec.mjs test/rc1095-loading-list-pallet-account.test.mjs test/rc1190-print-browser-gate.test.mjs
+          git commit -m 'test(rc1543): align loading-list pallet balance release contracts'
+          git push origin HEAD:fix/rc1543-loading-list-pallet-balance
