@@ -55,4 +55,32 @@ replaceRequired(
   'alte .de Normalisierung'
 );
 
+replaceRequired(
+  'test/rc1331-canonical-avis-url.test.mjs',
+  "https:\\\/\\\/www\\.exporthub360\\.de",
+  "https:\\\/\\\/exporthub360\\.com",
+  'RC1331 erster kanonischer Hostvertrag'
+);
+
+for(let i=0;i<3;i++)replaceRequired(
+  'test/rc1331-canonical-avis-url.test.mjs',
+  "https:\\\/\\\/www\\.exporthub360\\.de",
+  "https:\\\/\\\/exporthub360\\.com",
+  `RC1331 kanonischer Hostvertrag ${i+2}`
+);
+
+replaceRequired(
+  'test/rc1331-canonical-avis-url.test.mjs',
+  "test('RC1420: neue Produktions-AVIS-Links bleiben verbindlich auf exporthub360.de',()=>{\n  const canonical=/https:\\\/\\\/www\\.exporthub360\\.de/;\n  const wrongCanonical=/PROD(?:UCTION)?_AVIS_ORIGIN='https:\\\/\\\/(?:www\\.)?exporthub360\\.com'/;\n  assert.match(immediate,canonical,'Client muss neue Produktions-AVIS-Links auf exporthub360.de erzeugen');\n  assert.match(api,canonical,'Server muss neue Produktions-AVIS-Links auf exporthub360.de erzeugen');\n  assert.match(reminder,canonical,'Erinnerungslogik muss Produktions-AVIS-Links auf exporthub360.de normalisieren');\n  assert.doesNotMatch(immediate,wrongCanonical,'Client darf .com nicht als kanonischen Produktions-Host setzen');\n  assert.doesNotMatch(api,wrongCanonical,'Server darf .com nicht als kanonischen Produktions-Host setzen');\n  assert.doesNotMatch(reminder,wrongCanonical,'Erinnerungslogik darf .com nicht als kanonischen Produktions-Host setzen');\n});",
+  "test('RC1545: neue Produktions-AVIS-Links bleiben verbindlich auf exporthub360.com',()=>{\n  const canonical=/https:\\\/\\\/exporthub360\\.com/;\n  const legacyCanonical=/PROD(?:UCTION)?_AVIS_ORIGIN='https:\\\/\\\/(?:www\\.)?exporthub360\\.de'/;\n  assert.match(immediate,canonical,'Client muss neue Produktions-AVIS-Links auf exporthub360.com erzeugen');\n  assert.match(api,canonical,'Server muss neue Produktions-AVIS-Links auf exporthub360.com erzeugen');\n  assert.match(reminder,canonical,'Erinnerungslogik muss Produktions-AVIS-Links auf exporthub360.com normalisieren');\n  assert.doesNotMatch(immediate,legacyCanonical,'Client darf .de nicht mehr als kanonischen Produktions-Host setzen');\n  assert.doesNotMatch(api,legacyCanonical,'Server darf .de nicht mehr als kanonischen Produktions-Host setzen');\n  assert.doesNotMatch(reminder,legacyCanonical,'Erinnerungslogik darf .de nicht mehr als kanonischen Produktions-Host setzen');\n});",
+  'RC1420 veralteter .de Kanonikalvertrag'
+);
+
+replaceRequired(
+  'test/essentra-avis-domain.test.mjs',
+  "const branded='https://www.exporthub360.de/avis/abc';",
+  "const branded='https://exporthub360.com/avis/abc';",
+  'Essentra branded production link'
+);
+
 console.log('RC1545 AVIS canonical domain prepared: new production links use https://exporthub360.com/avis/<TOKEN>; legacy .de/.com hosts remain accepted.');
