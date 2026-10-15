@@ -19,6 +19,7 @@ on:
       - 'e2e/**'
       - 'test/rc150*.test.mjs'
       - 'test/rc151*.test.mjs'
+      - 'test/rc1544*.test.mjs'
       - 'test/rc1520-sop-release-candidate.test.mjs'
       - 'test/rc1521-sop-current-main-builder.test.mjs'
       - 'package.json'
@@ -61,6 +62,8 @@ jobs:
           test/rc1506-sop-protected-core-gate.test.mjs
           test/rc1507-sop-testservice-gate.test.mjs
           test/rc1018-production-deploy.test.mjs
+          test/rc1544-sop-guided-workspace.test.mjs
+          test/rc1544-sop-guided-build.test.mjs
       - name: Full Node regression
         run: npm test
       - name: Upload Node log on failure
@@ -129,6 +132,7 @@ jobs:
           e2e/specs/sopmaster-training-exam.spec.mjs
           e2e/specs/sopmaster-coverage-dashboard.spec.mjs
           e2e/specs/sopmaster-coverage-integration.spec.mjs
+          e2e/specs/sopmaster-guided-workspace.spec.mjs
           --project=desktop
           --project=mobile-standard
       - name: Upload browser artifacts on failure
