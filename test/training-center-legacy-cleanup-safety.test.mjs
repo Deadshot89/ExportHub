@@ -52,7 +52,7 @@ test('Cleanup entfernt nur explizit allowlistete Legacy-SOP-Schlüssel und mutie
   assert.deepEqual(Array.from(api.LEGACY_SOP_KEYS||[]).sort(),LEGACY_KEYS.slice().sort());
   const input=fixture();
   const before=clone(input);
-  const next=api.cleanup(input);
+  const next=clone(api.cleanup(input));
   assert.deepEqual(input,before,'Cleanup darf den Eingabestate nicht mutieren');
   for(const key of LEGACY_KEYS)assert.equal(Object.prototype.hasOwnProperty.call(next,key),false,`Legacy-Key blieb erhalten: ${key}`);
   assert.deepEqual(next.sopTrainingCenter,before.sopTrainingCenter,'neues Training Center darf nicht entfernt/verändert werden');
