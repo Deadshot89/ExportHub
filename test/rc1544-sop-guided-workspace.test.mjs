@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 
 await import('../assets/sop/rc1544-sop-guided-workspace.js');
 
@@ -46,11 +47,29 @@ function unifiedDoc(){
   };
 }
 
+function optionalDoc(){
+  return {
+    number:'SOP-OPTIONAL',
+    title:'Optionaler Zwischenschritt',
+    sections:{steps:[
+      {id:'required-1',title:'Pflicht 1',instruction:'Pflichtschritt',required:true},
+      {id:'optional-2',title:'Optional',instruction:'Optionaler Hinweis',required:false},
+      {id:'required-3',title:'Pflicht 3',instruction:'Nächster Pflichtschritt',required:true}
+    ]}
+  };
+}
+
 test('RC1544: Workspace API ist vorhanden',()=>{
   assert.ok(workspace,'ExportHubSopGuidedWorkspace fehlt');
   for(const name of ['documentModel','progressState','canOpenStep','completeStep','renderNavigation','renderContext']){
     assert.equal(typeof workspace[name],'function',`${name} fehlt`);
   }
+});
+
+test('RC1544: Decorator bindet an die reale rc1007 SOP-Einzelansicht und nicht an eine erfundene rc1009-Dokumentklasse',()=>{
+  const source=fs.readFileSync('assets/sop/rc1544-sop-guided-workspace.js','utf8');
+  assert.match(source,/querySelector\('\.rc1007-sop-document\[data-sop-number\]'\)/);
+  assert.doesNotMatch(source,/querySelector\('\.rc1009-sop-document\[data-sop-number\]'\)/);
 });
 
 test('RC1544: Legacy- und Unified-Schritte laufen durch dasselbe Modell ohne Textverlust',()=>{
@@ -80,6 +99,22 @@ test('RC1544: Pflichtschritte verhindern Überspringen und erlauben Rücksprung'
   assert.equal(progress.completed['dhl-1']!==undefined,true);
   assert.equal(workspace.canOpenStep(model.steps,progress,1),true);
   assert.equal(workspace.canOpenStep(model.steps,progress,0),true,'Rücksprung muss möglich bleiben');
+});
+
+test('RC1544: optionale Schritte blockieren den nächsten Pflichtschritt nicht',()=>{
+  const model=workspace.documentModel(optionalDoc());
+  let progress=workspace.progressState(model.steps,null);
+  assert.equal(workspace.canOpenStep(model.steps,progress,1),false);
+  progress=workspace.completeStep(model.steps,progress,0);
+  assert.equal(workspace.canOpenStep(model.steps,progress,1),true);
+  assert.equal(workspace.canOpenStep(model.steps,progress,2),true,'Optionaler Schritt darf den nächsten Pflichtschritt nicht sperren');
+});
+
+test('RC1544: gespeicherter Fortschritt ignoriert unbekannte alte Schritt-IDs sicher',()=>{
+  const model=workspace.documentModel(unifiedDoc());
+  const progress=workspace.progressState(model.steps,{currentStep:99,completed:{'dhl-1':'ok','removed-step':'stale'}});
+  assert.equal(progress.currentStep,1);
+  assert.deepEqual(Object.keys(progress.completed),['dhl-1']);
 });
 
 test('RC1544: Navigation kennzeichnet aktiven, erledigten und gesperrten Schritt barrierefrei',()=>{
