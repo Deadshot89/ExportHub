@@ -1,3 +1,4 @@
+# Temporary native execution gate; remove before merge.
 name: Training Center Native TDD
 
 on:
