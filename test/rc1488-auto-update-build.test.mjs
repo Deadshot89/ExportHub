@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import {finalizeAutoUpdate,injectAutoUpdate,ensureManifestNoStore} from '../.github/rc1488/finalize-auto-update.mjs';
+import {execFileSync} from 'node:child_process';
+import {finalizeAutoUpdate,injectAutoUpdate,ensureManifestNoStore,resolveBuildId} from '../.github/rc1488/finalize-auto-update.mjs';
 
 function fixture(){
   const root=fs.mkdtempSync(path.join(os.tmpdir(),'exporthub-rc1488-'));
@@ -19,6 +20,20 @@ function fixture(){
   for(const name of ['staticwebapp.config.json','staticwebapp.testservice.config.json'])fs.writeFileSync(path.join(out,name),JSON.stringify({routes:[{route:'/',headers:{'Cache-Control':'no-store'}}]}));
   return {root,out};
 }
+
+test('RC1538: ausgecheckter Release-SHA gewinnt gegen den Workflow-Dispatch GITHUB_SHA',()=>{
+  const root=fs.mkdtempSync(path.join(os.tmpdir(),'exporthub-rc1538-git-'));
+  execFileSync('git',['init'],{cwd:root,stdio:'ignore'});
+  execFileSync('git',['config','user.email','rc1538@example.invalid'],{cwd:root,stdio:'ignore'});
+  execFileSync('git',['config','user.name','RC1538 Test'],{cwd:root,stdio:'ignore'});
+  fs.writeFileSync(path.join(root,'marker.txt'),'release sha fixture\n');
+  execFileSync('git',['add','marker.txt'],{cwd:root,stdio:'ignore'});
+  execFileSync('git',['commit','-m','fixture'],{cwd:root,stdio:'ignore'});
+  const checkedOutSha=execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim().toLowerCase();
+  const workflowHead='ffffffffffffffffffffffffffffffffffffffff';
+  assert.notEqual(checkedOutSha,workflowHead);
+  assert.equal(resolveBuildId(root,{GITHUB_SHA:workflowHead}),checkedOutSha);
+});
 
 test('RC1488: Finalizer schreibt deploymentgenaue Marker und bindet Sprachpaket + Runtime ein',()=>{
   const {root,out}=fixture();
