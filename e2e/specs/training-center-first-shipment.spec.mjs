@@ -113,9 +113,13 @@ test('„Meine erste Sendung“ läuft über 13 reale Trainingsaktionen bis 100 
   expect(proof.localKeys).toEqual([]);
   expect(proof.sessionKeys).toEqual([]);
   expect(proof.state?.active).toBe(true);
-  expect(proof.state?.data?.shipments?.[0]?.status).toBe('demo-complete');
-  expect(proof.state?.data?.documents?.some(item=>item.missing===true)).toBe(true);
-  expect(proof.state?.data?.abd?.[0]?.required).toBe(true);
+  expect(proof.state?.data?.shipment?.status).toBe('Erstellt');
+  expect(proof.state?.data?.shipment?.saved).toBe(true);
+  expect(proof.state?.data?.completion?.reviewed).toBe(true);
+  expect(proof.state?.data?.completion?.status).toBe('Erstellt');
+  expect(proof.state?.data?.documents?.some(item=>item.status==='missing')).toBe(true);
+  expect(proof.state?.data?.abdDecision?.required).toBe(true);
+  expect(proof.state?.data?.__trainingActions?.length).toBe(12);
 });
 
 test('falsche Aktion avanciert nicht und Ende verwirft Demo-Geschäftsdaten',async({page})=>{
