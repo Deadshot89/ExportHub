@@ -83,7 +83,7 @@ jobs:
         run: |
           npm install --no-save @playwright/test@1.63.0
           npx playwright install --with-deps chromium
-      - name: Run isolated responsive Training-Center browser contract
+      - name: Run isolated responsive and persistence Training-Center browser contracts
         shell: bash
         run: |
           cat > training-center.playwright.temp.mjs <<'EOF'
@@ -102,4 +102,4 @@ jobs:
             ]
           });
           EOF
-          npx playwright test e2e/specs/training-center-shell.spec.mjs --config=training-center.playwright.temp.mjs
+          npx playwright test e2e/specs/training-center-shell.spec.mjs e2e/specs/training-center-isolation.spec.mjs --config=training-center.playwright.temp.mjs
