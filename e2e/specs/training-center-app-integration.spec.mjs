@@ -32,12 +32,13 @@ test('echte sop-Route zeigt ausschließlich das neue Training Center und neue Co
     document.querySelector('#content').innerHTML='<section class="rc1007-sop-overview">Alte SOPMaster Ansicht</section>';
     document.body.setAttribute('data-exporthub-view','sop');
   });
+  const shell=page.locator('[data-training-center-shell]');
   await expect(page.locator('[data-training-center-route]')).toBeVisible();
-  await expect(page.locator('[data-training-center-shell]')).toBeVisible();
+  await expect(shell).toBeVisible();
   await expect(page.locator('[data-training-coverage]')).toBeVisible();
   await expect(page.locator('.rc1007-sop-overview')).toHaveCount(0);
-  await expect(page.getByText('Sendung in ExportHUB360 anmelden',{exact:true})).toBeVisible();
-  await expect(page.getByText('DHL Express – Sendung anmelden',{exact:true})).toBeVisible();
+  await expect(shell.getByRole('heading',{name:'Sendung in ExportHUB360 anmelden',exact:true})).toBeVisible();
+  await expect(shell.getByRole('heading',{name:'DHL Express – Sendung anmelden',exact:true})).toBeVisible();
   await expect(page.locator('[data-kpi="rate"] strong')).toHaveText('8%');
   await expect(page.locator('[data-kpi="missing"] strong')).toHaveText('23');
   await expect(page.locator('[data-kpi="complete"] strong')).toHaveText('2');
@@ -50,7 +51,7 @@ test('Legacy-Rerender im sop-View wird wieder durch das neue Training Center ers
   await page.evaluate(()=>{document.querySelector('#content').innerHTML='<div class="rc1007-sop-overview">Legacy rerender</div>';});
   await expect(page.locator('.rc1007-sop-overview')).toHaveCount(0);
   await expect(page.locator('[data-training-center-route]')).toBeVisible();
-  await expect(page.getByRole('heading',{name:'SOP & Training Center'})).toBeVisible();
+  await expect(page.locator('[data-training-center-shell]').getByRole('heading',{name:'SOP & Training Center',exact:true,level:1})).toBeVisible();
 });
 
 test('Verlassen der sop-Route überschreibt keine fachfremde Ansicht',async({page})=>{
