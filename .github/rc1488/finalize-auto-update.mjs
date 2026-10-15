@@ -13,15 +13,15 @@ const CACHE_CONTROL='no-store, no-cache, must-revalidate';
 function q(value){return String(value==null?'':value).trim();}
 
 export function resolveBuildId(root=process.cwd(),env=process.env){
-  for(const candidate of [env.EXPORTHUB_BUILD_ID,env.GITHUB_SHA]){
-    const value=q(candidate).toLowerCase();
-    if(/^[0-9a-f]{7,40}$/.test(value))return value;
-  }
+  const explicit=q(env.EXPORTHUB_BUILD_ID).toLowerCase();
+  if(/^[0-9a-f]{7,40}$/.test(explicit))return explicit;
   try{
     const value=q(execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'})).toLowerCase();
     if(/^[0-9a-f]{7,40}$/.test(value))return value;
   }catch(_){}
-  throw new Error('RC1488: keine sichere Build-ID aus EXPORTHUB_BUILD_ID, GITHUB_SHA oder git HEAD verfügbar');
+  const workflowSha=q(env.GITHUB_SHA).toLowerCase();
+  if(/^[0-9a-f]{7,40}$/.test(workflowSha))return workflowSha;
+  throw new Error('RC1488: keine sichere Build-ID aus EXPORTHUB_BUILD_ID, git HEAD oder GITHUB_SHA verfügbar');
 }
 
 export function releaseMarker(root=process.cwd()){
