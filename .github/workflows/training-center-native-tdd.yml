@@ -18,12 +18,11 @@ on:
       - 'browser/training-center-screenshots.mjs'
       - '.github/training-center/**'
       - '.github/rc1521/build-three-env.mjs'
-      - 'docs/superpowers/native-patches/*.patch'
       - '.github/workflows/training-center-native-tdd.yml'
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   node-contracts:
@@ -37,46 +36,6 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: '20'
-      - name: Apply pending reviewed patch on implementation branch
-        shell: bash
-        run: |
-          set -euo pipefail
-          shopt -s nullglob
-          branch='${{ github.event.pull_request.head.ref || github.ref_name }}'
-          patches=(docs/superpowers/native-patches/*.patch)
-          if [ ${#patches[@]} -gt 1 ]; then
-            echo "Mehr als ein ausstehender Patch gefunden: ${#patches[@]}" >&2
-            exit 1
-          fi
-          if [ ${#patches[@]} -eq 1 ]; then
-            git apply --check "${patches[0]}"
-            git apply "${patches[0]}"
-            rm "${patches[0]}"
-            git config user.name 'exporthub-training-center-bot'
-            git config user.email 'actions@users.noreply.github.com'
-            git add -A
-            git commit -m 'feat(training-center): apply reviewed native patch'
-            git fetch origin "$branch"
-            git rebase "origin/$branch"
-            git push origin HEAD:"$branch"
-          fi
-      - name: Apply one-time retired SOP source cutover
-        shell: bash
-        run: |
-          set -euo pipefail
-          branch='${{ github.event.pull_request.head.ref || github.ref_name }}'
-          sentinel='.github/training-center/remove-retired-sop-source.once'
-          if [ -f "$sentinel" ]; then
-            test -d assets/sop
-            git config user.name 'exporthub-training-center-bot'
-            git config user.email 'actions@users.noreply.github.com'
-            git rm -r assets/sop
-            git rm "$sentinel"
-            git commit -m 'refactor(training-center): remove retired SOPMaster source'
-            git fetch origin "$branch"
-            git rebase "origin/$branch"
-            git push origin HEAD:"$branch"
-          fi
       - name: Training-Center Node contracts
         shell: bash
         run: |
