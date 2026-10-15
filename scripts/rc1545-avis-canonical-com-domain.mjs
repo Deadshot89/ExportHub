@@ -82,6 +82,13 @@ replaceAllRequired(
 );
 
 replaceRequired(
+  'test/avis-reminder-outlook.test.mjs',
+  "wanted:'https://www.exporthub360.de/avis/abc?lang=de'",
+  "wanted:'https://exporthub360.com/avis/abc?lang=de'",
+  'Outlook branded production link'
+);
+
+replaceRequired(
   'test/essentra-avis-domain.test.mjs',
   "const branded='https://www.exporthub360.de/avis/abc';",
   "const branded='https://exporthub360.com/avis/abc';",
