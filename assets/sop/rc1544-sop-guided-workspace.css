@@ -69,6 +69,7 @@
 .rc1544-sop-active-work>h2{display:none}
 .rc1544-sop-active-work .rc1007-sop-steps{margin:0;padding:0;list-style:none;min-width:0}
 .rc1544-sop-active-work .rc1007-sop-steps>li{min-width:0;margin:0!important;padding:clamp(16px,2vw,24px)!important;border:1px solid var(--rc1544-line)!important;border-radius:16px!important;background:var(--rc1544-bg)!important;box-shadow:0 10px 30px rgba(15,23,42,.05)}
+.rc1544-sop-active-work .rc1007-sop-steps>li[hidden]{display:none!important}
 .rc1544-sop-active-work .rc1007-sop-step-content{min-width:0;display:grid!important;gap:16px}
 .rc1544-sop-active-work .rc1007-sop-step-text{min-width:0}
 .rc1544-sop-active-work .rc1007-sop-step-text strong{font-size:1.05rem;color:var(--rc1544-text)}
@@ -96,6 +97,7 @@
 .rc1544-sop-footer button:disabled{opacity:.44;cursor:not-allowed}
 .rc1544-sop-supporting{display:none!important}
 .rc1544-sop-supporting.is-visible{display:block!important;margin-top:16px}
+.rc1544-sop-supporting[data-sop-editor]{display:block!important;margin-top:16px}
 
 @media (max-width:1180px){
   .rc1544-sop-grid{grid-template-columns:minmax(190px,230px) minmax(0,1fr)}
