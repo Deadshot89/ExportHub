@@ -132,6 +132,12 @@ test('RC1544: Navigation kennzeichnet aktiven, erledigten und gesperrten Schritt
   assert.match(html,/data-sop-guided-step="dhl-2"[^>]*aria-current="step"/);
 });
 
+test('RC1544: Navigation escaped Sonderzeichen vollständig',()=>{
+  const html=workspace.renderNavigation([{id:'unsafe',title:'A & B "Test" <X>',instruction:'',required:true}],{currentStep:0,completed:{}});
+  assert.match(html,/A &amp; B &quot;Test&quot; &lt;X&gt;/);
+  assert.doesNotMatch(html,/A & B "Test" <X>/);
+});
+
 test('RC1544: Kontextpanel zeigt allgemeine und schrittspezifische Hinweise',()=>{
   const model=workspace.documentModel(unifiedDoc());
   const html=workspace.renderContext(model,model.steps[0]);
