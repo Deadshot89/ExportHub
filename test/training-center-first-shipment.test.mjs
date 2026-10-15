@@ -12,6 +12,8 @@ const runtimeFiles=[
   'assets/training-center/tour-engine.js'
 ];
 
+const plain=value=>JSON.parse(JSON.stringify(value));
+
 function contextWith(files=[]){
   const context={};
   context.globalThis=context;
@@ -51,7 +53,7 @@ test('„Meine erste Sendung“ enthält exakt die 13 freigegebenen Trainingssch
   assert.equal(scenario.processId,'shipment-registration');
   assert.equal(scenario.version,'1.0');
   assert.equal(scenario.steps.length,13);
-  assert.deepEqual(scenario.steps.map(step=>[step.stepId,step.title,step.targetElement,step.expectedAction,step.validation?.[0]]),expected);
+  assert.deepEqual(plain(scenario.steps.map(step=>[step.stepId,step.title,step.targetElement,step.expectedAction,step.validation?.[0]])),expected);
   scenario.steps.forEach((step,index)=>{
     assert.equal(step.order,index+1);
     assert.equal(step.nextStep,index<scenario.steps.length-1?scenario.steps[index+1].stepId:null);
@@ -62,7 +64,7 @@ test('„Meine erste Sendung“ enthält exakt die 13 freigegebenen Trainingssch
 
 test('Demo-Seed enthält nur eindeutig markierte Beispiel-Geschäftsdaten inklusive absichtlich fehlendem Dokument',()=>{
   const scenario=loadScenario();
-  const seed=JSON.parse(JSON.stringify(scenario.demoSeed));
+  const seed=plain(scenario.demoSeed);
   assert.equal(seed.__trainingDemo,true);
   assert.match(seed.customer.id,/^DEMO-/);
   assert.match(seed.location.id,/^DEMO-/);
@@ -79,9 +81,9 @@ test('Demo-Seed enthält nur eindeutig markierte Beispiel-Geschäftsdaten inklus
 test('Fehlendes Dokument und ABD/Zoll-Entscheidung sind deterministisch validierbar',()=>{
   const scenario=loadScenario();
   const byId=Object.fromEntries(scenario.steps.map(step=>[step.stepId,step]));
-  assert.deepEqual(byId['first-shipment-missing-document'].validation,['missing-document-detected']);
-  assert.deepEqual(byId['first-shipment-abd'].validation,['abd-decision-correct']);
-  assert.deepEqual(byId['first-shipment-customs'].validation,['customs-info-reviewed']);
+  assert.deepEqual(plain(byId['first-shipment-missing-document'].validation),['missing-document-detected']);
+  assert.deepEqual(plain(byId['first-shipment-abd'].validation),['abd-decision-correct']);
+  assert.deepEqual(plain(byId['first-shipment-customs'].validation),['customs-info-reviewed']);
   assert.equal(byId['first-shipment-save'].expectedAction,'save-demo');
 });
 
