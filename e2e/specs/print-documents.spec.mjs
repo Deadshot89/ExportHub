@@ -411,9 +411,6 @@ test('RC1543 P1: Europaletten erscheinen im echten Ladelisten-Druck als aktuelle
   await waitReady(page);
   await openExportHubView(page,'documents',['Ladeliste & CMR','Dokumente & CMR','Dokumente','CMR'],/Ladeliste|CMR|Dokument/i,{allowProgrammaticFallback:true});
 
-  await selectLoadingListShipment(page,'DEMO01',/DEMO01|Nord/i);
-  await expect(page.locator('#content')).toContainText(/DEMO01/,{timeout:10_000});
-
   await page.evaluate(()=>{
     window.__RC1543_ORIGINAL_PALLET_LEDGER__=window.ExportHUBPalletLedger;
     window.ExportHUBPalletLedger=Object.freeze({
@@ -421,6 +418,11 @@ test('RC1543 P1: Europaletten erscheinen im echten Ladelisten-Druck als aktuelle
       accounts:()=>[]
     });
   });
+  expect(await page.evaluate(()=>window.ExportHUBPalletLedger&&window.ExportHUBPalletLedger.balanceFor('customer:probe')?.balance)).toBe(7);
+
+  await selectLoadingListShipment(page,'DEMO01',/DEMO01|Nord/i);
+  await expect(page.locator('#content')).toContainText(/DEMO01/,{timeout:10_000});
+  expect(await page.evaluate(()=>window.ExportHUBPalletLedger&&window.ExportHUBPalletLedger.balanceFor('customer:probe')?.balance)).toBe(7);
 
   let printButton=page.locator('[data-index352-action="print-all"]').first();
   if(!(await printButton.count())||!(await printButton.isVisible().catch(()=>false))){

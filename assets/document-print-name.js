@@ -141,27 +141,33 @@ function normalizeDeliveryGrid(html){
 function restorePickupFields(html,sh){
  if(!d||!d.createElement||typeof html!=='string')return html;
  try{
-  var tpl=d.createElement('template');tpl.innerHTML=html;var root=tpl.content&&tpl.content.querySelector?tpl.content.querySelector('.rc390-load,.rc352-load,.rc390-page,.rc352-page'):null;if(!root)return html;
-  var summary=root.querySelector('[data-rc1305-pickup-summary]');if(!summary)return html;
+  var tpl=d.createElement('template');tpl.innerHTML=html;var scope=tpl.content&&tpl.content.querySelectorAll?tpl.content:null;if(!scope)return html;
+  var roots=Array.from(scope.querySelectorAll('.rc390-load,.rc352-load'));
+  if(!roots.length){var fallback=scope.querySelector('.rc390-page,.rc352-page');if(fallback)roots=[fallback]}
+  if(!roots.length)return html;
   ensureImage4Style();
-  summary.innerHTML='';summary.setAttribute('aria-hidden','true');summary.setAttribute('data-rc1503-legacy-summary-hidden','1');summary.style.setProperty('display','none','important');
-  Array.from(root.querySelectorAll('[data-rc1305-replaced-pickup-field]')).forEach(function(card){card.style.removeProperty('display');card.removeAttribute('data-rc1305-replaced-pickup-field')});
-  var last=lastPickup(sh||{}),missing=notRecorded();
+  var last=lastPickup(sh||{}),missing=notRecorded(),palletAccount=palletBalanceForShipment(sh||{});
   var driver=value(sh,last,['driverName','pickupDriverName','fahrerName'])||missing;
   var plate=value(sh,last,['licensePlate','pickupLicensePlate','vehicleRegistration','vehiclePlate','kennzeichen'])||missing;
   var loader=value(sh,last,['loaderName','pickupLoaderName','loadedBy','warehouseLoader','loader','verlader'])||missing;
   var confirmed=value(sh,last,['confirmedAt','pickupConfirmedAt','pickedUpAt','actualPickupAt']);
   var signature=safeSignatureSource(value(sh,last,['driverSignature','signature','signatureData','driverSignatureUrl','pickupDriverSignatureUrl']));
   var signatureStored=!!(signature||value(sh,last,['signatureBlobName','signatureStoredAt'])||last&&last.signatureStored===true||sh&&sh.signatureAvailable===true);
-  var palletCard=findCard(root,/europaletten.*ausgang|euro\s*pallet|palettenkonto/i),palletAccount=palletBalanceForShipment(sh||{});
-  putSignature(findCard(root,/unterschrift.*fahrer|fahrer.*unterschrift|driver.*signature|signature/i),signature,signatureStored);
-  putValue(findCard(root,/^fahrername$|^fahrer$|driver\s*name/i),driver,'rc1305-meta-driver');
-  putValue(findCard(root,/datum\s*\/\s*uhrzeit|date\s*\/\s*time/i),formatDate(confirmed),'rc1503-pickup-date');
-  putValue(findCard(root,/kennzeichen|license\s*plate|vehicle\s*registration/i),plate,'rc1305-meta-plate');
-  putValue(findCard(root,/^verlader$|^loader$/i),loader,'rc1305-meta-loader');
-  putPalletBalance(palletCard,palletAccount);
-  root.setAttribute('data-rc1503-image4-pickup-layout','1');
-  root.setAttribute('data-rc1543-pallet-balance','1');
+  roots.forEach(function(root){
+   var palletCard=findCard(root,/europaletten.*ausgang|euro\s*pallet|palettenkonto/i);
+   putPalletBalance(palletCard,palletAccount);
+   root.setAttribute('data-rc1543-pallet-balance','1');
+   var summary=root.querySelector('[data-rc1305-pickup-summary]');
+   if(!summary)return;
+   summary.innerHTML='';summary.setAttribute('aria-hidden','true');summary.setAttribute('data-rc1503-legacy-summary-hidden','1');summary.style.setProperty('display','none','important');
+   Array.from(root.querySelectorAll('[data-rc1305-replaced-pickup-field]')).forEach(function(card){card.style.removeProperty('display');card.removeAttribute('data-rc1305-replaced-pickup-field')});
+   putSignature(findCard(root,/unterschrift.*fahrer|fahrer.*unterschrift|driver.*signature|signature/i),signature,signatureStored);
+   putValue(findCard(root,/^fahrername$|^fahrer$|driver\s*name/i),driver,'rc1305-meta-driver');
+   putValue(findCard(root,/datum\s*\/\s*uhrzeit|date\s*\/\s*time/i),formatDate(confirmed),'rc1503-pickup-date');
+   putValue(findCard(root,/kennzeichen|license\s*plate|vehicle\s*registration/i),plate,'rc1305-meta-plate');
+   putValue(findCard(root,/^verlader$|^loader$/i),loader,'rc1305-meta-loader');
+   root.setAttribute('data-rc1503-image4-pickup-layout','1');
+  });
   return tpl.innerHTML
  }catch(e){try{console.warn('RC1543 Ladelisten-Palettenkontostand',e)}catch(_){}return html}
 }

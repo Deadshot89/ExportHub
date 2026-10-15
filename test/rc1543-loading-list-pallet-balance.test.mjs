@@ -52,3 +52,10 @@ test('RC1543: ausgeglichenes Palettenkonto wird als Kontostand 0 und nicht als B
   const account=h.api.palletBalanceForShipment({customerId:'C3',customerName:'Kunde C',palletOut:5});
   assert.equal(h.api.palletBalanceText(account),'Ausgeglichen: 0 Europaletten / Balanced: 0 EUR pallets');
 });
+
+
+test('RC1543: Palettenkontostand wird auch vor der Abholung unabhängig vom Pickup-Summary ersetzt',()=>{
+  assert.doesNotMatch(source,/if\(!summary\)return html/,'Palettenkontostand darf nicht vom Pickup-Summary abhängen');
+  assert.match(source,/querySelectorAll\('\.rc390-load,\.rc352-load'\)/,'alle Ladelisten müssen den Kontostand erhalten');
+  assert.match(source,/roots\.forEach\(function\(root\)/,'Kontostand muss je Ladeliste ersetzt werden');
+});
