@@ -3,6 +3,8 @@
 
 const CLICK_ACTIONS=new Set(['click','open-modal','close-modal','navigate','decision','save-demo','confirm']);
 function engine(){const api=g.ExportHubTrainingTourEngine;if(!api||typeof api.start!=='function')throw new Error('TRAINING_TOUR_ENGINE_MISSING');return api;}
+function i18n(){const api=g.ExportHubTrainingCenterI18n;if(!api||typeof api.t!=='function')throw new Error('TRAINING_CENTER_I18N_MISSING');return api;}
+function tr(key,vars){return i18n().t(key,vars);}
 function esc(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
 function clamp(value,min,max){return Math.max(min,Math.min(max,value));}
 
@@ -55,18 +57,18 @@ function mount({root,scenario,registry,startStepId}={}){
     const step=state.current;
     overlay.innerHTML=`
       <div class="training-tour-banner" role="status" aria-live="polite">
-        <strong>TRAININGSMODUS – KEINE PRODUKTIVDATEN</strong>
-        <span>Alle Kunden, Sendungen, Dokumente und Zollinformationen dieser Tour sind Beispieldaten und werden nicht produktiv gespeichert.</span>
+        <strong>${esc(tr('tour.bannerTitle'))}</strong>
+        <span>${esc(tr('tour.bannerText'))}</span>
       </div>
-      <aside class="training-tour-panel" data-training-tour-panel aria-label="Training">
-        <div class="training-tour-progress"><span>Schritt ${state.index} von ${state.total}</span><strong>${state.progressPercent} %</strong></div>
+      <aside class="training-tour-panel" data-training-tour-panel aria-label="${esc(tr('tour.label'))}">
+        <div class="training-tour-progress"><span>${esc(tr('tour.progress',{index:state.index,total:state.total}))}</span><strong>${state.progressPercent} %</strong></div>
         <div class="training-tour-meter" aria-hidden="true"><i style="width:${state.progressPercent}%"></i></div>
-        ${step?`<h2>${esc(step.title||step.stepId)}</h2><p>${esc(step.helpText||step.instruction||'')}</p>`:'<h2>Training abgeschlossen</h2>'}
+        ${step?`<h2>${esc(step.title||step.stepId)}</h2><p>${esc(step.helpText||step.instruction||'')}</p>`:`<h2>${esc(tr('tour.completed'))}</h2>`}
         <ol class="training-tour-steps">${progressList(state)}</ol>
         <div class="training-tour-actions">
-          <button type="button" data-tour-pause>${state.paused?'Fortsetzen':'Pause'}</button>
-          <button type="button" data-tour-restart>Neu starten</button>
-          <button type="button" data-tour-end>Tour beenden</button>
+          <button type="button" data-tour-pause>${esc(state.paused?tr('tour.resume'):tr('tour.pause'))}</button>
+          <button type="button" data-tour-restart>${esc(tr('tour.restart'))}</button>
+          <button type="button" data-tour-end>${esc(tr('tour.end'))}</button>
         </div>
       </aside>`;
     root.appendChild(overlay);
@@ -110,8 +112,8 @@ function mount({root,scenario,registry,startStepId}={}){
     if(dialog)return;
     dialog=doc.createElement('div');
     dialog.className='training-tour-confirm';
-    dialog.setAttribute('role','dialog');dialog.setAttribute('aria-modal','true');dialog.setAttribute('aria-label','Training beenden');
-    dialog.innerHTML=`<div class="training-tour-confirm__card"><h2>Training wirklich beenden?</h2><p>Der temporäre Trainingszustand wird verworfen.</p><div><button type="button" data-tour-cancel>Abbrechen</button><button type="button" data-tour-confirm-end>Tour beenden</button></div></div>`;
+    dialog.setAttribute('role','dialog');dialog.setAttribute('aria-modal','true');dialog.setAttribute('aria-label',tr('tour.endAria'));
+    dialog.innerHTML=`<div class="training-tour-confirm__card"><h2>${esc(tr('tour.confirmTitle'))}</h2><p>${esc(tr('tour.confirmText'))}</p><div><button type="button" data-tour-cancel>${esc(tr('tour.cancel'))}</button><button type="button" data-tour-confirm-end>${esc(tr('tour.end'))}</button></div></div>`;
     root.appendChild(dialog);
     dialog.querySelector('[data-tour-cancel]')?.addEventListener('click',closeDialog);
     dialog.querySelector('[data-tour-confirm-end]')?.addEventListener('click',end);
