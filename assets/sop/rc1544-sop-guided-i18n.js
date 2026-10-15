@@ -49,6 +49,9 @@ function install(){
     }
   }));
   root.ExportHUBI18n=wrapped;
+  try{
+    if(typeof root.dispatchEvent==='function'&&typeof root.CustomEvent==='function')root.dispatchEvent(new root.CustomEvent('exporthub:sop-guided-i18n-ready'));
+  }catch(_){}
   return true;
 }
 install();
