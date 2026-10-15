@@ -7,9 +7,16 @@ function arr(value){return Array.isArray(value)?value:[];}
 function clone(value){try{return JSON.parse(JSON.stringify(value));}catch(_){return value;}}
 function esc(value){return String(value==null?'':value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
 function unique(values){const seen=new Set();return arr(values).filter(item=>{const key=typeof item==='string'?item:JSON.stringify(item);if(seen.has(key))return false;seen.add(key);return true;});}
-function tr(key,fallback,vars){
-  try{if(root.ExportHUBI18n&&typeof root.ExportHUBI18n.t==='function'){const value=root.ExportHUBI18n.t(key,vars);if(value&&value!==key)return value;}}catch(_){}
-  let value=String(fallback||key);for(const [name,replacement] of Object.entries(vars||{}))value=value.replaceAll(`{{${name}}}`,String(replacement));return value;
+function tr(key,vars){
+  try{
+    if(root.ExportHUBI18n&&typeof root.ExportHUBI18n.t==='function'){
+      const value=root.ExportHUBI18n.t(key,vars);
+      if(value)return value;
+    }
+  }catch(_){}
+  let value=String(key||'');
+  for(const [name,replacement] of Object.entries(vars||{}))value=value.replaceAll(`{{${name}}}`,String(replacement));
+  return value;
 }
 
 function currentVersionRecord(doc){
@@ -26,7 +33,6 @@ function currentVersionRecord(doc){
   if(wanted){const exact=versions.find(item=>text(item&&item.version)===wanted);if(exact)return exact;}
   return versions[versions.length-1]||null;
 }
-
 function sectionsOf(doc){
   const version=currentVersionRecord(doc);
   if(version&&version.content&&typeof version.content==='object')return version.content;
@@ -49,7 +55,7 @@ function fallbackNormalizeStep(step,index){
     ...source,
     id:text(source.id)||`step-${index+1}`,
     order:Number.isFinite(Number(source.order))?Number(source.order):index+1,
-    title:text(source.title)||instruction||`Schritt ${index+1}`,
+    title:text(source.title)||instruction||tr('sop.guided.stepLabel',{number:index+1}),
     instruction,
     checks:arr(source.checks||source.check),
     warnings:arr(source.warnings||source.warning),
@@ -73,7 +79,7 @@ function normalizeStep(step,index){
     ...clone(base),
     id:text(base.id)||text(source.id)||`step-${index+1}`,
     order:Number.isFinite(Number(base.order))?Number(base.order):index+1,
-    title:text(base.title)||text(source.title)||instruction||`Schritt ${index+1}`,
+    title:text(base.title)||text(source.title)||instruction||tr('sop.guided.stepLabel',{number:index+1}),
     instruction,
     checks:arr(base.checks).length?arr(base.checks):arr(source.checks||source.check),
     warnings:arr(base.warnings).length?arr(base.warnings):arr(source.warnings||source.warning),
@@ -140,10 +146,10 @@ function completeStep(steps,progress,index){
 
 function renderNavigation(steps,progress){
   const list=arr(steps);const state=progressState(list,progress);
-  return `<nav class="rc1544-sop-steps" aria-label="${esc(tr('sop.guided.steps','SOP-Schritte'))}">${list.map((step,index)=>{
+  return `<nav class="rc1544-sop-steps" aria-label="${esc(tr('sop.guided.steps'))}">${list.map((step,index)=>{
     const active=index===state.currentStep,done=isCompleted(state,step),allowed=canOpenStep(list,state,index);
     const stepState=done?'done':active?'active':allowed?'open':'locked';
-    return `<button type="button" class="rc1544-sop-step${active?' is-active':''}${done?' is-done':''}" data-sop-guided-step="${esc(step.id)}" data-step-index="${index}" data-step-state="${stepState}"${active?' aria-current="step"':''}${allowed?'':` disabled aria-disabled="true"`}><span class="rc1544-sop-step-number">${done?'✓':index+1}</span><span class="rc1544-sop-step-label">${esc(step.title||step.instruction||tr('sop.step','Schritt {{number}}',{number:index+1}))}</span>${step.required!==false?`<span class="rc1544-sop-required" aria-label="${esc(tr('sop.guided.required','Pflichtschritt'))}">${esc(tr('sop.guided.required','Pflicht'))}</span>`:''}</button>`;
+    return `<button type="button" class="rc1544-sop-step${active?' is-active':''}${done?' is-done':''}" data-sop-guided-step="${esc(step.id)}" data-step-index="${index}" data-step-state="${stepState}"${active?' aria-current="step"':''}${allowed?'':` disabled aria-disabled="true"`}><span class="rc1544-sop-step-number">${done?'✓':index+1}</span><span class="rc1544-sop-step-label">${esc(step.title||step.instruction||tr('sop.guided.stepLabel',{number:index+1}))}</span>${step.required!==false?`<span class="rc1544-sop-required" aria-label="${esc(tr('sop.guided.required'))}">${esc(tr('sop.guided.required'))}</span>`:''}</button>`;
   }).join('')}</nav>`;
 }
 function itemText(item){return text(typeof item==='string'?item:item&&item.text||item&&item.label);}
@@ -153,13 +159,14 @@ function listBlock(title,items,kind){
 }
 function renderContext(model,step){
   const current=step||{};const warnings=arr(current.warnings).concat(arr(current.commonErrors));
-  return `<aside class="rc1544-sop-context" aria-label="${esc(tr('sop.guided.context','Informationen zum Arbeitsschritt'))}">${listBlock(tr('sop.guided.requiredInfo','Benötigte Informationen'),model&&model.prerequisites,'required')}${listBlock(tr('sop.guided.check','Prüfen'),arr(current.checks),'check')}${text(current.expectedResult)?`<section class="rc1544-sop-context-card" data-kind="result"><h3>${esc(tr('sop.expectedResult','Erwartetes Ergebnis'))}</h3><p>${esc(current.expectedResult)}</p></section>`:''}${listBlock(tr('sop.guided.risk','Hinweis / Risiko'),warnings,'warning')}${listBlock(tr('sop.guided.completionCheck','Abschlusskontrolle'),model&&model.checks,'check')}${listBlock(tr('sop.guided.deviations','Abweichungen / Klärung'),model&&model.deviations,'warning')}</aside>`;
+  return `<aside class="rc1544-sop-context" aria-label="${esc(tr('sop.guided.context'))}">${listBlock(tr('sop.guided.requiredInfo'),model&&model.prerequisites,'required')}${listBlock(tr('sop.guided.check'),arr(current.checks),'check')}${text(current.expectedResult)?`<section class="rc1544-sop-context-card" data-kind="result"><h3>${esc(tr('sop.guided.expectedResult'))}</h3><p>${esc(current.expectedResult)}</p></section>`:''}${listBlock(tr('sop.guided.risk'),warnings,'warning')}${listBlock(tr('sop.guided.completionCheck'),model&&model.checks,'check')}${listBlock(tr('sop.guided.deviations'),model&&model.deviations,'warning')}</aside>`;
 }
 
 function applicationState(){try{return typeof root.__EXPORTHUB_GET_STATE__==='function'?(root.__EXPORTHUB_GET_STATE__()||{}):{};}catch(_){return {};}}
 function sourceDocuments(options){
+  const state=applicationState();
+  if(Array.isArray(state.isoSops)&&state.isoSops.length)return state.isoSops;
   if(Array.isArray(options&&options.documents)&&options.documents.length)return options.documents;
-  const state=applicationState();if(Array.isArray(state.isoSops)&&state.isoSops.length)return state.isoSops;
   return arr(root.ExportHubIsoSopCatalog&&root.ExportHubIsoSopCatalog.documents);
 }
 function findDocument(options,number){
@@ -175,8 +182,6 @@ function readSession(model){
 function writeSession(model,progress){
   try{if(root.sessionStorage)root.sessionStorage.setItem(sessionKey(model),JSON.stringify(progressState(model.steps,progress)));}catch(_){}
 }
-function stepNodeFor(workSection,step,index){return workSection&&workSection.querySelector(`#${cssEscape(step.id)}`)||workSection&&workSection.querySelectorAll('.rc1007-sop-steps > li')[index]||null;}
-function cssEscape(value){try{return root.CSS&&typeof root.CSS.escape==='function'?root.CSS.escape(value):String(value).replace(/[^a-zA-Z0-9_-]/g,'\\$&');}catch(_){return String(value);}}
 function supportingNodes(documentNode,workSection){
   return Array.from(documentNode.children).filter(node=>node!==workSection&&!node.classList.contains('rc1007-sop-doc-actions')&&!node.classList.contains('rc1544-sop-guided'));
 }
@@ -192,7 +197,7 @@ function decorateDocument(host,options){
   let progress=readSession(model);if(!canOpenStep(model.steps,progress,progress.currentStep))progress.currentStep=0;
 
   const shell=root.document.createElement('section');shell.className='rc1544-sop-guided';shell.setAttribute('data-rc1544-guided','');
-  shell.innerHTML=`<header class="rc1544-sop-guided-head"><div><p class="rc1544-sop-eyebrow">${esc(model.area||tr('sop.defaultArea','SOP'))}</p><h1>${esc(model.title)}</h1><p>${esc(model.number)} · ${esc(tr('sop.version','Version'))} ${esc(model.version)}</p></div><div class="rc1544-sop-progress-wrap"><div class="rc1544-sop-progress-text"><strong data-sop-guided-count></strong><span data-sop-guided-percent></span></div><progress class="rc1544-sop-progress" max="100" value="0"></progress><div class="rc1544-sop-head-actions"><button type="button" data-sop-guided-catalog-toggle aria-expanded="false">${esc(tr('sop.guided.catalog','SOP-Auswahl'))}</button><button type="button" data-sop-guided-support-toggle aria-expanded="false">${esc(tr('sop.guided.details','Details'))}</button></div></div></header><div class="rc1544-sop-grid"><aside class="rc1544-sop-nav"><label class="rc1544-sop-search"><span>${esc(tr('sop.guided.search','Schritt suchen'))}</span><input type="search" data-sop-guided-search placeholder="${esc(tr('sop.guided.searchPlaceholder','z. B. MRN, Zahler, Dokument'))}"></label><div data-sop-guided-nav></div></aside><main class="rc1544-sop-main" data-sop-guided-main></main><div data-sop-guided-context></div></div><footer class="rc1544-sop-footer"><button type="button" data-sop-guided-back>${esc(tr('sop.guided.back','← Zurück'))}</button><span data-sop-guided-footer-count></span><button type="button" class="rc1544-sop-complete" data-sop-guided-complete>${esc(tr('sop.guided.complete','Schritt erledigt'))}</button><button type="button" class="rc1544-sop-next" data-sop-guided-next>${esc(tr('sop.guided.next','Weiter →'))}</button></footer>`;
+  shell.innerHTML=`<header class="rc1544-sop-guided-head"><div><p class="rc1544-sop-eyebrow">${esc(model.area||'SOP')}</p><h1>${esc(model.title)}</h1><p>${esc(model.number)} · <span data-sop-guided-version-label>${esc(tr('sop.guided.version'))}</span> ${esc(model.version)}</p></div><div class="rc1544-sop-progress-wrap"><div class="rc1544-sop-progress-text"><strong data-sop-guided-count></strong><span data-sop-guided-percent></span></div><progress class="rc1544-sop-progress" max="100" value="0"></progress><div class="rc1544-sop-head-actions"><button type="button" data-sop-guided-catalog-toggle aria-expanded="false"></button><button type="button" data-sop-guided-support-toggle aria-expanded="false"></button></div></div></header><div class="rc1544-sop-grid"><aside class="rc1544-sop-nav"><label class="rc1544-sop-search"><span data-sop-guided-search-label></span><input type="search" data-sop-guided-search></label><div data-sop-guided-nav></div></aside><main class="rc1544-sop-main" data-sop-guided-main></main><div data-sop-guided-context></div></div><footer class="rc1544-sop-footer"><button type="button" data-sop-guided-back></button><span data-sop-guided-footer-count></span><button type="button" class="rc1544-sop-complete" data-sop-guided-complete></button><button type="button" class="rc1544-sop-next" data-sop-guided-next></button></footer>`;
   const controls=documentNode.querySelector('.rc1007-sop-doc-actions');if(controls&&controls.nextSibling)documentNode.insertBefore(shell,controls.nextSibling);else documentNode.prepend(shell);
   const main=shell.querySelector('[data-sop-guided-main]');main.appendChild(workSection);
   workSection.classList.add('rc1544-sop-active-work');
@@ -201,17 +206,36 @@ function decorateDocument(host,options){
   const outerWorkspace=host.querySelector('.rc1009-sop-workspace');const catalog=outerWorkspace&&outerWorkspace.querySelector(':scope > .rc1009-sop-sidebar');if(catalog){catalog.hidden=true;outerWorkspace.classList.add('rc1544-sop-catalog-collapsed');}
   const supportNodes=Array.from(documentNode.querySelectorAll(':scope > .rc1544-sop-supporting'));
 
+  function syncLabels(){
+    const catalogButton=shell.querySelector('[data-sop-guided-catalog-toggle]');if(catalogButton)catalogButton.textContent=tr('sop.guided.catalog');
+    const supportButton=shell.querySelector('[data-sop-guided-support-toggle]');if(supportButton)supportButton.textContent=tr('sop.guided.details');
+    const searchLabel=shell.querySelector('[data-sop-guided-search-label]');if(searchLabel)searchLabel.textContent=tr('sop.guided.search');
+    const search=shell.querySelector('[data-sop-guided-search]');if(search)search.placeholder=tr('sop.guided.searchPlaceholder');
+    const back=shell.querySelector('[data-sop-guided-back]');if(back)back.textContent=tr('sop.guided.back');
+    const complete=shell.querySelector('[data-sop-guided-complete]');if(complete)complete.textContent=tr('sop.guided.complete');
+    const next=shell.querySelector('[data-sop-guided-next]');if(next)next.textContent=tr('sop.guided.next');
+    const versionLabel=shell.querySelector('[data-sop-guided-version-label]');if(versionLabel)versionLabel.textContent=tr('sop.guided.version');
+  }
   function sync(){
     progress=progressState(model.steps,progress);const index=progress.currentStep;const step=model.steps[index];
-    writeSession(model,progress);
+    writeSession(model,progress);syncLabels();
     shell.querySelector('[data-sop-guided-nav]').innerHTML=renderNavigation(model.steps,progress);
     shell.querySelector('[data-sop-guided-context]').innerHTML=renderContext(model,step);
-    const nodes=Array.from(workList.children);nodes.forEach((node,nodeIndex)=>{const normalized=model.steps[nodeIndex];const visible=nodeIndex===index;node.hidden=!visible;if(visible){node.setAttribute('data-rc1544-active-step','true');}else node.removeAttribute('data-rc1544-active-step');if(normalized&&!node.querySelector('.rc1007-sop-visual')&&!node.querySelector('.rc1544-sop-media-placeholder')){const placeholder=root.document.createElement('div');placeholder.className='rc1544-sop-media-placeholder';placeholder.setAttribute('role','note');placeholder.textContent=tr('sop.guided.missingImage','Bild für diesen Schritt noch nicht hinterlegt.');node.querySelector('.rc1007-sop-step-content')?.appendChild(placeholder);}});
+    const nodes=Array.from(workList.children);nodes.forEach((node,nodeIndex)=>{
+      const normalized=model.steps[nodeIndex];const visible=nodeIndex===index;node.hidden=!visible;
+      if(visible)node.setAttribute('data-rc1544-active-step','true');else node.removeAttribute('data-rc1544-active-step');
+      if(normalized&&!node.querySelector('.rc1007-sop-visual')&&!node.querySelector('.rc1544-sop-media-placeholder')){
+        const placeholder=root.document.createElement('div');placeholder.className='rc1544-sop-media-placeholder';placeholder.setAttribute('role','note');placeholder.textContent=tr('sop.guided.missingImage');node.querySelector('.rc1007-sop-step-content')?.appendChild(placeholder);
+      }else{
+        const placeholder=node.querySelector('.rc1544-sop-media-placeholder');if(placeholder)placeholder.textContent=tr('sop.guided.missingImage');
+      }
+    });
     const done=model.steps.filter(candidate=>isCompleted(progress,candidate)).length;const percent=model.steps.length?Math.round(done/model.steps.length*100):0;
-    shell.querySelector('[data-sop-guided-count]').textContent=tr('sop.guided.stepOf','Schritt {{current}} von {{total}}',{current:index+1,total:model.steps.length});
+    const count=tr('sop.guided.stepOf',{current:index+1,total:model.steps.length});
+    shell.querySelector('[data-sop-guided-count]').textContent=count;
     shell.querySelector('[data-sop-guided-percent]').textContent=`${percent} %`;
     shell.querySelector('.rc1544-sop-progress').value=percent;
-    shell.querySelector('[data-sop-guided-footer-count]').textContent=tr('sop.guided.stepOf','Schritt {{current}} von {{total}}',{current:index+1,total:model.steps.length});
+    shell.querySelector('[data-sop-guided-footer-count]').textContent=count;
     shell.querySelector('[data-sop-guided-back]').disabled=index===0;
     shell.querySelector('[data-sop-guided-complete]').disabled=isCompleted(progress,step);
     const next=shell.querySelector('[data-sop-guided-next]');next.disabled=index>=model.steps.length-1||!canOpenStep(model.steps,progress,index+1);
@@ -230,18 +254,24 @@ function decorateDocument(host,options){
     const input=event.target&&event.target.matches&&event.target.matches('[data-sop-guided-search]')?event.target:null;if(!input)return;const query=text(input.value).toLowerCase();
     shell.querySelectorAll('[data-sop-guided-step]').forEach(button=>{const step=model.steps[Number(button.getAttribute('data-step-index'))];const hay=[step&&step.title,step&&step.instruction,...arr(step&&step.checks),...arr(step&&step.warnings)].map(text).join(' ').toLowerCase();button.hidden=!!query&&!hay.includes(query);});
   }
-  shell.addEventListener('click',onClick);shell.addEventListener('input',onInput);sync();
-  documentNode.__rc1544Destroy=()=>{shell.removeEventListener('click',onClick);shell.removeEventListener('input',onInput);};
+  const onLanguage=()=>sync();
+  shell.addEventListener('click',onClick);shell.addEventListener('input',onInput);
+  if(root.addEventListener){root.addEventListener('exporthub:language-changed',onLanguage);root.addEventListener('exporthub:sop-guided-i18n-ready',onLanguage);}
+  sync();
+  documentNode.__rc1544Sync=sync;
+  documentNode.__rc1544Destroy=()=>{
+    shell.removeEventListener('click',onClick);shell.removeEventListener('input',onInput);
+    if(root.removeEventListener){root.removeEventListener('exporthub:language-changed',onLanguage);root.removeEventListener('exporthub:sop-guided-i18n-ready',onLanguage);}
+  };
   return true;
 }
 
-let installedBase=null;let attempts=0;
+let attempts=0;
 function install(){
   const base=root.ExportHubIsoSopUi;if(!base||typeof base.mount!=='function'){
     attempts+=1;if(attempts<120&&typeof root.setTimeout==='function')root.setTimeout(install,25);return false;
   }
   if(base.__rc1544Guided)return true;
-  installedBase=base;
   function mount(target,options={}){
     const host=typeof target==='string'&&root.document?root.document.querySelector(target):target;const controller=base.mount(target,options);if(!host)return controller;
     let scheduled=false;const paint=()=>{if(scheduled)return;scheduled=true;Promise.resolve().then(()=>{scheduled=false;decorateDocument(host,options);});};paint();
