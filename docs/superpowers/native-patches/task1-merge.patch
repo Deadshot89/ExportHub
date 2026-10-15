@@ -9,7 +9,7 @@ index 4ba3cdf..0000000 100644
  const COLLECTION_KEYS = {
    shipments: ['id', 'ref'],
    tasks: ['id'],
-@@ -828,6 +829,20 @@ function mergeState(serverState, incomingState) {
+@@ -828,6 +829,21 @@ function mergeState(serverState, incomingState) {
      const fieldMetaChanged = incomingFieldMeta !== undefined && JSON.stringify(incomingFieldMeta) !== JSON.stringify(serverFields[key]);
      const tombstoneChanged = changedTombstoneCollections.has(lower(key));
  
@@ -31,7 +31,7 @@ index 4ba3cdf..0000000 100644
      if (!incomingHasValue && !fieldMetaChanged && !tombstoneChanged) {
        out[key] = serverValue;
        continue;
-@@ -878,6 +893,10 @@ function sanitizeState(state) {
+@@ -878,6 +894,10 @@ function sanitizeState(state) {
    const out = {};
    for (const [key, value] of Object.entries(source)) {
      if (isLocalOnlyKey(key)) continue;
