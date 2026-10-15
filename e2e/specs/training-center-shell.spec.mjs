@@ -48,9 +48,9 @@ for(const design of ['classic','modern','glass','neon']){
   test(`Training Center Shell ist in ${design} responsiv und ohne horizontalen Overflow`,async({page})=>{
     await mount(page,design);
     await expect(page.locator('[data-training-center-shell]')).toBeVisible();
-    await expect(page.getByRole('button',{name:'Standardprozesse'})).toBeVisible();
-    await expect(page.getByRole('button',{name:'Kundenspezifische SOPs'})).toBeVisible();
-    await expect(page.getByRole('button',{name:'Interaktive Touren / Trainings'})).toBeVisible();
+    await expect(page.getByRole('tab',{name:'Standardprozesse'})).toBeVisible();
+    await expect(page.getByRole('tab',{name:'Kundenspezifische SOPs'})).toBeVisible();
+    await expect(page.getByRole('tab',{name:'Interaktive Touren / Trainings'})).toBeVisible();
     const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth);
     expect(overflow).toBeLessThanOrEqual(1);
   });
@@ -59,16 +59,17 @@ for(const design of ['classic','modern','glass','neon']){
 test('Shell-Suche filtert Karten und Section-Tabs sind per Tastatur erreichbar',async({page})=>{
   await mount(page,'modern');
   const search=page.locator('[data-training-center-search]');
+  const main=page.locator('.training-center-main');
   await search.fill('nicht vorhanden');
-  await expect(page.getByText('Sendung anmelden')).toHaveCount(0);
+  await expect(main.getByText('Sendung anmelden')).toHaveCount(0);
   await search.fill('Sendung');
-  await expect(page.getByText('Sendung anmelden')).toBeVisible();
+  await expect(main.getByText('Sendung anmelden')).toBeVisible();
 
-  const standard=page.getByRole('button',{name:'Standardprozesse'});
-  const customer=page.getByRole('button',{name:'Kundenspezifische SOPs'});
+  const standard=page.getByRole('tab',{name:'Standardprozesse'});
+  const customer=page.getByRole('tab',{name:'Kundenspezifische SOPs'});
   await standard.focus();
   await page.keyboard.press('ArrowRight');
   await expect(customer).toBeFocused();
   await page.keyboard.press('End');
-  await expect(page.getByRole('button',{name:'Interaktive Touren / Trainings'})).toBeFocused();
+  await expect(page.getByRole('tab',{name:'Interaktive Touren / Trainings'})).toBeFocused();
 });
