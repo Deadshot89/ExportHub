@@ -113,8 +113,9 @@ test('Coverage Dashboard behält KPI- und Filterlayout, verwendet aber die neue 
   const g=load();
   const model=g.ExportHubTrainingCoverageDashboard.buildModel(centerFixture());
   const html=g.ExportHubTrainingCoverageDashboard.render(model);
-  for(const text of ['SOP & Training Center Coverage','Abdeckungsquote','SOP fehlt','SOP unvollständig','SOP vollständig','Tour vorhanden','Bildanleitung vorhanden','Bereich','Status','Kunde','Fähigkeit','Filter zurücksetzen']){
-    assert.match(html,new RegExp(text.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
+  assert.match(html,/SOP &amp; Training Center Coverage/);
+  for(const label of ['Abdeckungsquote','SOP fehlt','SOP unvollständig','SOP vollständig','Tour vorhanden','Bildanleitung vorhanden','Bereich','Status','Kunde','Fähigkeit','Filter zurücksetzen']){
+    assert.match(html,new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
   }
   assert.match(html,/8%/);
   assert.match(html,/data-coverage-filter="area"/);
