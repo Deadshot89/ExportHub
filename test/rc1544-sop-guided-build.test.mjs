@@ -6,9 +6,11 @@ const read=path=>fs.readFileSync(path,'utf8');
 
 test('RC1544: integrierter Release-Builder liefert Guided-Workspace in allen drei Umgebungen aus',()=>{
   const builder=read('.github/rc1521/build-three-env.mjs');
+  assert.match(builder,/rc1544-sop-guided-i18n\.json/);
   assert.match(builder,/rc1544-sop-guided-i18n\.js/);
   assert.match(builder,/rc1544-sop-guided-workspace\.js/);
   assert.match(builder,/rc1544-sop-guided-workspace\.css/);
+  assert.match(builder,/exporthub-rc1544-sop-guided-i18n-data/);
   assert.match(builder,/exporthub-rc1544-sop-guided-workspace/);
   assert.match(builder,/exporthub-rc1544-sop-guided-workspace-style/);
 });
@@ -20,9 +22,8 @@ test('RC1544: Browser-Release-Gate prüft den geführten Workspace auf Desktop u
   assert.match(workflow,/--project=mobile-standard/);
 });
 
-test('RC1544: Bedienoberfläche ist in allen sechs ExportHUB-Sprachen vorbereitet',async()=>{
-  await import('../assets/sop/rc1544-sop-guided-i18n.js');
-  const translations=globalThis.ExportHubSopGuidedI18n;
+test('RC1544: Bedienoberfläche ist in allen sechs ExportHUB-Sprachen vorbereitet',()=>{
+  const translations=JSON.parse(read('assets/sop/rc1544-sop-guided-i18n.json'));
   const languages=['de','en','pl','es','fr','it'];
   const keys=[
     'sop.guided.catalog',
@@ -34,9 +35,17 @@ test('RC1544: Bedienoberfläche ist in allen sechs ExportHUB-Sprachen vorbereite
     'sop.guided.requiredInfo',
     'sop.guided.risk'
   ];
-  assert.ok(translations,'lokales RC1544 Sprachwörterbuch fehlt');
   for(const language of languages){
     assert.ok(translations[language],`${language}: Sprachsatz fehlt`);
     for(const key of keys)assert.equal(typeof translations[language][key],'string',`${language}: ${key} fehlt`);
+  }
+});
+
+test('RC1544: produktive Guided-JavaScripts enthalten keine fest codierten deutschen UI-Fallbacks',()=>{
+  const workspace=read('assets/sop/rc1544-sop-guided-workspace.js');
+  const bridge=read('assets/sop/rc1544-sop-guided-i18n.js');
+  for(const literal of ['Zurück','Weiter','Benötigte Informationen','Hinweis / Risiko','Bild für diesen Schritt noch nicht hinterlegt']){
+    assert.equal(workspace.includes(literal),false,`Workspace enthält deutschen Fallback: ${literal}`);
+    assert.equal(bridge.includes(literal),false,`i18n-Bridge enthält deutschen Fallback: ${literal}`);
   }
 });
