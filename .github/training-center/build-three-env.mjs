@@ -7,6 +7,7 @@ const HERE=path.dirname(fileURLToPath(import.meta.url));
 const ROOT=path.resolve(HERE,'../..');
 const ENTRIES=Object.freeze(['index.html','TESTVERSION.html','demo.html']);
 const SOURCE_DIR='assets/training-center';
+const RETIRED_ASSET_SEGMENTS=Object.freeze(['assets','sop']);
 
 const REQUIRED_ASSETS=Object.freeze([
   'model.js',
@@ -34,11 +35,6 @@ const REQUIRED_ASSETS=Object.freeze([
   'ui.css',
   'tour.css'
 ]);
-
-const LEGACY_PREFIXES='(?:rc1007|rc1010|rc1016|rc1018|rc1501|rc1502|rc1503|rc1505|rc1506)';
-const LEGACY_SCRIPT_RE=new RegExp(`<script\\b[^>]*\\bsrc=["'][^"']*assets/sop/${LEGACY_PREFIXES}[^"']*["'][^>]*>\\s*</script>\\s*`,'gi');
-const LEGACY_LINK_RE=new RegExp(`<link\\b[^>]*\\bhref=["'][^"']*assets/sop/${LEGACY_PREFIXES}[^"']*["'][^>]*>\\s*`,'gi');
-const LEGACY_RE=new RegExp(`(?:src|href)=["'][^"']*assets/sop/${LEGACY_PREFIXES}[^"']*["']`,'i');
 
 const STYLE_TAGS=Object.freeze([
   '<link id="exporthub-training-center-style" rel="stylesheet" href="/assets/training-center/ui.css?v=1">',
@@ -77,17 +73,19 @@ function injectMissing(html,tags,file){
   if(missing.length)out=out.replace(/<\/head>/i,`${missing.join('\n')}\n</head>`);
   return out;
 }
+function retiredAssetNeedle(){return `/${RETIRED_ASSET_SEGMENTS.join('/')}/`;}
 
-export function stripLegacySopRuntime(html,file='index.html'){
-  const input=String(html||'');
-  const out=input.replace(LEGACY_SCRIPT_RE,'').replace(LEGACY_LINK_RE,'');
-  if(LEGACY_RE.test(out))throw new Error(`${file}: alter SOP-Runtime-Tag konnte nicht sicher entfernt werden`);
-  return out;
+export function assertNoRetiredSopReferences(html,file='index.html'){
+  const source=String(html||'');
+  if(source.includes(retiredAssetNeedle()))throw new Error(`${file}: retired SOP asset reference detected`);
+  return true;
 }
 
 export function injectTrainingCenter(html,file='index.html'){
+  assertNoRetiredSopReferences(html,file);
   let out=injectMissing(html,STYLE_TAGS,file);
   out=injectMissing(out,SCRIPT_TAGS,file);
+  assertNoRetiredSopReferences(out,file);
   return out;
 }
 
@@ -109,7 +107,7 @@ function assertPackage(out){
     if(!html.includes('id="exporthub-training-center-i18n"'))throw new Error(`${file}: Training-Center i18n fehlt`);
     if(!html.includes('id="exporthub-training-center-style"'))throw new Error(`${file}: Training-Center Styles fehlen`);
     if(!html.includes('id="exporthub-training-coverage-dashboard"'))throw new Error(`${file}: Training-Center Coverage fehlt`);
-    if(LEGACY_RE.test(html))throw new Error(`${file}: Legacy-SOP-Runtime ist noch verdrahtet`);
+    assertNoRetiredSopReferences(html,file);
   }
   for(const rel of REQUIRED_ASSETS){
     const target=path.join(out,SOURCE_DIR,rel);
@@ -123,7 +121,7 @@ export function build(root=ROOT){
   for(const file of ENTRIES){
     const target=path.join(out,file);
     const current=fs.readFileSync(target,'utf8');
-    const next=injectTrainingCenter(stripLegacySopRuntime(current,file),file);
+    const next=injectTrainingCenter(current,file);
     fs.writeFileSync(target,next);
   }
   assertPackage(out);
@@ -132,7 +130,7 @@ export function build(root=ROOT){
     base:'.github/packmeldungen/build-three-env.mjs',
     namespace:SOURCE_DIR,
     entries:[...ENTRIES],
-    legacyRuntimeRemoved:true,
+    retiredSopAssetsPresent:false,
     deployment:false
   };
   fs.writeFileSync(path.join(out,'training-center-release-manifest.json'),JSON.stringify(manifest,null,2)+'\n');
