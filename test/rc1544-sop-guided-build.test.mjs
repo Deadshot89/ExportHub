@@ -6,22 +6,26 @@ const read=path=>fs.readFileSync(path,'utf8');
 
 test('RC1544: integrierter Release-Builder liefert Guided-Workspace in allen drei Umgebungen aus',()=>{
   const builder=read('.github/rc1521/build-three-env.mjs');
-  assert.match(builder,/rc1544-sop-guided-i18n\.json/);
-  assert.match(builder,/rc1544-sop-guided-i18n\.js/);
-  assert.match(builder,/rc1544-sop-guided-workspace\.js/);
-  assert.match(builder,/rc1544-sop-guided-workspace\.css/);
-  assert.match(builder,/exporthub-rc1544-sop-guided-i18n-data/);
-  assert.match(builder,/exporthub-rc1544-sop-guided-workspace/);
-  assert.match(builder,/exporthub-rc1544-sop-guided-workspace-style/);
+  assert.match(builder,/integrateGuidedWorkspace/);
+  assert.match(builder,/GUIDED_ASSETS/);
+  assert.match(builder,/GUIDED_MARKERS/);
+  const integration=read('.github/rc1544/integrate-guided-workspace.mjs');
+  assert.match(integration,/rc1544-sop-guided-i18n\.json/);
+  assert.match(integration,/rc1544-sop-guided-i18n\.js/);
+  assert.match(integration,/rc1544-sop-guided-workspace\.js/);
+  assert.match(integration,/rc1544-sop-guided-workspace\.css/);
+  assert.match(integration,/exporthub-rc1544-sop-guided-i18n-data/);
+  assert.match(integration,/exporthub-rc1544-sop-guided-workspace/);
+  assert.match(integration,/exporthub-rc1544-sop-guided-workspace-style/);
 });
 
-test('RC1544: stabiler RC1112-Produktionsbuilder übernimmt Guided-Workspace additiv',()=>{
-  const builder=read('.github/rc1112/build-three-env.mjs');
-  assert.match(builder,/integrateGuidedWorkspace/,'RC1112 importiert Guided-Integration nicht');
-  assert.match(builder,/integrateGuidedWorkspace\(ROOT,OUT\)/,'RC1112 ruft Guided-Integration nicht auf');
-  const guidedAt=builder.indexOf('integrateGuidedWorkspace(ROOT,OUT)');
-  const coverageAt=builder.indexOf('integrateCoverageAdmin(ROOT,OUT)');
-  assert.ok(guidedAt>coverageAt,'Guided-Workspace muss nach den bestehenden SOPMaster-Overlays integriert werden');
+test('RC1544: finaler Pack-/Production-Builder integriert Guided-Workspace nach dem finalen Build-Schritt',()=>{
+  const builder=read('.github/packmeldungen/build-three-env.mjs');
+  assert.match(builder,/integrateGuidedWorkspace/,'Pack-/Production-Builder importiert Guided-Integration nicht');
+  assert.match(builder,/integrateGuidedWorkspace\(root,out\)/,'Pack-/Production-Builder ruft Guided-Integration nicht auf');
+  const guidedAt=builder.indexOf('integrateGuidedWorkspace(root,out)');
+  const finalizeAt=builder.indexOf('finalizeAutoUpdate({root,out})');
+  assert.ok(guidedAt>finalizeAt,'Guided-Workspace muss nach dem finalen Auto-Update in das fertige Production-Paket integriert werden');
 });
 
 test('RC1544: Browser-Release-Gate prüft den geführten Workspace auf Desktop und Mobile',()=>{
