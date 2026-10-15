@@ -70,7 +70,6 @@ jobs:
           node --test --test-concurrency=1 "${tests[@]}"
 
   browser-shell:
-    needs: node-contracts
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
