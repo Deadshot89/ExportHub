@@ -5,18 +5,30 @@ import vm from 'node:vm';
 
 const source=fs.readFileSync('assets/document-print-name.js','utf8');
 
-function runtime({state,accounts}){
+function memoryStorage(){
+  const values=new Map();
+  return{
+    getItem(key){return values.has(String(key))?values.get(String(key)):null;},
+    setItem(key,value){values.set(String(key),String(value));},
+    removeItem(key){values.delete(String(key));}
+  };
+}
+
+function runtime({state,accounts={},storage=memoryStorage(),withLedger=true}){
   const requested=[];
   const context={
     console,
-    __EXPORTHUB_GET_STATE__:()=>state,
-    ExportHUBPalletLedger:{
+    sessionStorage:storage,
+    __EXPORTHUB_GET_STATE__:()=>state
+  };
+  if(withLedger){
+    context.ExportHUBPalletLedger={
       balanceFor(key){requested.push(String(key));return accounts[String(key)]||null;},
       accounts(){return Object.values(accounts);}
-    }
-  };
+    };
+  }
   vm.runInNewContext(source,context,{filename:'assets/document-print-name.js'});
-  return{api:context.ExportHUBDocumentPrintNames,requested};
+  return{api:context.ExportHUBDocumentPrintNames,requested,storage};
 }
 
 test('RC1543: Ladeliste nutzt den aktuellen Palettenkontostand statt des Sendungs-Ausgangs',()=>{
@@ -53,6 +65,23 @@ test('RC1543: ausgeglichenes Palettenkonto wird als Kontostand 0 und nicht als B
   assert.equal(h.api.palletBalanceText(account),'Ausgeglichen: 0 Europaletten / Balanced: 0 EUR pallets');
 });
 
+test('RC1543: Palettenkontostand wird vor dem Kontextwechsel als kurzlebiger Drucksnapshot uebergeben',()=>{
+  const storage=memoryStorage();
+  const shipment={id:'SHIP-C4',customerId:'C4',customerName:'Kunde D',palletOut:3};
+  const parent=runtime({
+    state:{customers:[{id:'C4',name:'Kunde D'}]},
+    accounts:{'customer:c4':{key:'customer:c4',type:'customer',name:'Kunde D',balance:7}},
+    storage
+  });
+  const prepared=parent.api.preparePalletBalanceSnapshot(shipment);
+  assert.equal(prepared.balance,7);
+  assert.match(storage.getItem('exporthub:rc1543:pallet-print-snapshot:v1')||'',/"balance":7/);
+
+  const isolatedPrintContext=runtime({state:{},storage,withLedger:false});
+  const restored=isolatedPrintContext.api.palletBalanceForShipment(shipment);
+  assert.equal(restored.balance,7);
+  assert.equal(isolatedPrintContext.api.palletBalanceText(restored),'Zu Gunsten Essentra: 7 Europaletten / In favour of Essentra: 7 EUR pallets');
+});
 
 test('RC1543: Palettenkontostand wird auch vor der Abholung unabhängig vom Pickup-Summary ersetzt',()=>{
   assert.doesNotMatch(source,/if\(!summary\)return html/,'Palettenkontostand darf nicht vom Pickup-Summary abhängen');
