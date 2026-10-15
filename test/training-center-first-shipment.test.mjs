@@ -30,6 +30,20 @@ function loadScenario(){
   return context.ExportHubTrainingScenarioFirstShipment;
 }
 
+function descriptorFor(step){
+  const descriptor={action:step.expectedAction,targetElement:step.targetElement};
+  switch(step.stepId){
+    case 'first-shipment-new': descriptor.eventType='click'; break;
+    case 'first-shipment-customer': descriptor.value='DEMO-CUST-001'; break;
+    case 'first-shipment-location': descriptor.value='DEMO-LOC-001'; break;
+    case 'first-shipment-details': descriptor.value='Demo Expresssendung'; break;
+    case 'first-shipment-colli': descriptor.value='1'; break;
+    case 'first-shipment-weight': descriptor.value='12.5'; break;
+    case 'first-shipment-abd': descriptor.value='required'; break;
+  }
+  return descriptor;
+}
+
 const expected=[
   ['first-shipment-new','Neue Sendung öffnen','shipment.new','click','shipment-new-opened'],
   ['first-shipment-customer','Demo-Kunden auswählen','shipment.customer-search','select','demo-customer-selected'],
@@ -102,19 +116,25 @@ test('kompletter 13-Schritt-Ablauf avanciert nur mit korrekter Aktion und bleibt
   assert.equal(before.__trainingDemo,true);
 
   for(const step of scenario.steps){
-    const wrong=engine.handleAction({action:'wrong',targetElement:step.targetElement,validation:{[step.validation[0]]:true}});
+    const descriptor=descriptorFor(step);
+    const wrong=engine.handleAction({...descriptor,action:'wrong'});
     assert.equal(wrong.advanced,false);
-    const descriptor={action:step.expectedAction,targetElement:step.targetElement,validation:{[step.validation[0]]:true}};
+    assert.equal(wrong.reason,'ACTION_MISMATCH');
+
     const result=engine.handleAction(descriptor);
     assert.equal(result.advanced,true,`Schritt muss avancieren: ${step.stepId}`);
-    if(step.stepId==='first-shipment-save'){
-      const write=guard.execute({mode:'training',operation:'shipment.save',payload:{id:'DEMO-SHIP-001',saved:true,status:'Erstellt'}});
-      assert.equal(write.persisted,false);
+
+    if(step.demoOperation){
+      const write=guard.execute({mode:'training',operation:step.demoOperation,payload:plain(step.demoPayload)});
+      assert.equal(write.persisted,false,`Demo-Write darf nicht persistieren: ${step.stepId}`);
     }
   }
 
   assert.equal(engine.current().finished,true);
-  assert.equal(state.snapshot().shipment.saved,true);
+  const completed=state.snapshot();
+  assert.equal(completed.shipment.saved,true);
+  assert.equal(completed.shipment.id,'DEMO-SHIP-001');
+  assert.equal(completed.__trainingActions.length,12);
   controller.end();
   assert.equal(state.snapshot(),null);
 });
