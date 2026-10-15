@@ -3,6 +3,7 @@
 if(!w)return;
 function q(v){return String(v==null?'':v).trim()}
 function arr(v){return Array.isArray(v)?v:[]}
+function low(v){return q(v).toLocaleLowerCase()}
 function printName(value){
  var name=q(value);
  return /^(?:DNC|SIDE)[0-9]{6,20}\.pdf$/i.test(name)?name.replace(/\.pdf$/i,''):name
@@ -45,8 +46,41 @@ function findLabel(root,re){return Array.from(root.querySelectorAll('.rc390-labe
 function cardFor(el,root){if(!el)return null;var n=el;for(var i=0;i<6&&n&&n!==root;i++,n=n.parentElement){if(n.nodeType===1&&/(?:card|field|sign|box|cell|pickup)/i.test(q(n.className)))return n}return el.parentElement&&el.parentElement!==root?el.parentElement:el}
 function findCard(root,re){return cardFor(findLabel(root,re),root)}
 function palletOut(sh){try{if(typeof w.rc1095LoadPalletCount==='function'){var rs=typeof w.rows==='function'?w.rows(sh):[];return Math.max(0,Math.round(Number(w.rc1095LoadPalletCount(sh,rs))||0))}}catch(_){}return Math.max(0,Math.round(Number(sh&&(sh.palletOut||sh.euroPallets||sh.euroPalletCount))||0))}
+function state(){
+ try{if(typeof w.__EXPORTHUB_GET_STATE__==='function'){var live=w.__EXPORTHUB_GET_STATE__();if(live&&typeof live==='object')return live}}catch(_){}
+ try{if(w.ExportHUBClean&&w.ExportHUBClean.runtime&&w.ExportHUBClean.runtime.state)return w.ExportHUBClean.runtime.state}catch(_){}
+ return{}
+}
+function isDhlFreight(value){var n=low(value).replace(/[^a-z0-9]/g,'');return n==='dhlfreight'||n==='dhlfreightgmbh'||n==='customerdhlfreight'||n==='carrierdhlfreight'||n==='speditiondhlfreight'}
+function shipmentCustomer(sh){
+ sh=sh||{};var s=state(),customers=arr(s.customers),id=low(sh.customerId),account=low(sh.customerAccount||sh.customerNumber),name=low(sh.customerName||sh.customerDisplay||sh.customerSearch);
+ var found=customers.find(function(c){return !!((id&&low(c&&(c.id||c.customerId))===id)||(account&&low(c&&(c.account||c.customerNumber||c.kundennummer))===account)||(name&&low(c&&(c.name||c.customerName))===name))});
+ return found||(sh.customer&&typeof sh.customer==='object'?sh.customer:{})
+}
+function palletPartyForShipment(sh){
+ sh=sh||{};var c=shipmentCustomer(sh),own=q(c.name||c.customerName||c.account||c.customerNumber||sh.customerName),carrier=q(c.carrier||c.spedition||c.carrierName||sh.carrier||sh.spedition||sh.carrierName||sh.speditionName);
+ if(isDhlFreight(own))carrier='DHL Freight';
+ if(carrier)return{type:'carrier',key:'carrier:'+low(carrier),name:carrier};
+ var id=q(c.id||c.customerId||c.account||c.customerNumber||c.kundennummer||sh.customerId||sh.customerAccount||sh.customerNumber),name=q(c.name||c.customerName||sh.customerName||sh.customerDisplay||sh.customerSearch);
+ return{type:'customer',key:'customer:'+low(id||name),name:name||id||'Kunde'}
+}
+function palletBalanceForShipment(sh){
+ var ledger=w.ExportHUBPalletLedger,party=palletPartyForShipment(sh);if(!ledger||!party.key)return null;
+ var account=null;
+ try{if(typeof ledger.balanceFor==='function')account=ledger.balanceFor(party.key)||null}catch(_){}
+ if(!account){try{if(typeof ledger.accounts==='function'){var list=arr(ledger.accounts());account=list.find(function(x){return low(x&&x.key)===low(party.key)})||list.find(function(x){return low(x&&x.name)===low(party.name)&&(!x.type||low(x.type)===low(party.type))})||null}}catch(_){}}
+ if(!account||!Number.isFinite(Number(account.balance)))return null;
+ return Object.assign({},account,{key:q(account.key)||party.key,type:q(account.type)||party.type,name:q(account.name)||party.name,balance:Math.round(Number(account.balance))})
+}
+function palletBalanceText(account){
+ if(!account||!Number.isFinite(Number(account.balance)))return'Kontostand nicht erfasst / Balance not recorded';
+ var balance=Math.round(Number(account.balance)),amount=Math.abs(balance),name=q(account.name)||'Kunde / customer';
+ if(balance>0)return'Zu Gunsten Essentra: '+amount+' Europaletten / In favour of Essentra: '+amount+' EUR pallets';
+ if(balance<0)return'Zu Gunsten '+name+': '+amount+' Europaletten / In favour of '+name+': '+amount+' EUR pallets';
+ return'Ausgeglichen: 0 Europaletten / Balanced: 0 EUR pallets'
+}
+function palletBalanceCacheKey(sh){var account=palletBalanceForShipment(sh);return account?q(account.key)+'|'+String(account.balance)+'|'+q(account.name):'pallet-balance-not-recorded'}
 function notRecorded(){try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.t==='function'){var t=w.ExportHUBI18n.t('loadingListPrint.notRecorded');if(t&&t!=='loadingListPrint.notRecorded')return t}}catch(_){}return'Nicht erfasst'}
-function palletMovement(out,returned){try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.t==='function'){var t=w.ExportHUBI18n.t('loadingListPrint.palletMovement',{out:out,returned:returned});if(t&&t!=='loadingListPrint.palletMovement')return t}}catch(_){}return'Ausgang: '+out+' · Eingang/Rückgabe: '+returned}
 function ensureImage4Style(){
  if(!d||!d.createElement||!d.getElementById||d.getElementById('exporthub-rc1503-loading-list-fields'))return;
  var st=d.createElement('style');st.id='exporthub-rc1503-loading-list-fields';st.textContent=
@@ -63,6 +97,12 @@ function putValue(card,text,className){
  if(className)card.classList.add(className);
  Array.from(card.querySelectorAll('[data-rc1503-pickup-value]')).forEach(function(node){node.remove()});
  var node=d.createElement('div');node.className='rc1503-pickup-value';node.setAttribute('data-rc1503-pickup-value','1');node.textContent=q(text)||notRecorded();card.appendChild(node);return true
+}
+function putPalletBalance(card,account){
+ if(!card)return false;
+ var label=findLabel(card,/europaletten.*ausgang|euro\s*pallet|palettenkonto/i);if(label)label.textContent='Europaletten-Kontostand / EUR pallet balance';
+ card.setAttribute('data-rc1543-pallet-balance','1');
+ return putValue(card,palletBalanceText(account),'rc1305-meta-pallet rc1543-pallet-balance')
 }
 function putSignature(card,source,stored){
  if(!card)return false;
@@ -112,29 +152,30 @@ function restorePickupFields(html,sh){
   var confirmed=value(sh,last,['confirmedAt','pickupConfirmedAt','pickedUpAt','actualPickupAt']);
   var signature=safeSignatureSource(value(sh,last,['driverSignature','signature','signatureData','driverSignatureUrl','pickupDriverSignatureUrl']));
   var signatureStored=!!(signature||value(sh,last,['signatureBlobName','signatureStoredAt'])||last&&last.signatureStored===true||sh&&sh.signatureAvailable===true);
-  var out=palletOut(sh||{}),returned=Math.max(0,Math.round(Number(last&&last.returnedEuroPallets||sh&&sh.returnedEuroPallets||sh&&sh.palletIn)||0));
+  var palletCard=findCard(root,/europaletten.*ausgang|euro\s*pallet|palettenkonto/i),palletAccount=palletBalanceForShipment(sh||{});
   putSignature(findCard(root,/unterschrift.*fahrer|fahrer.*unterschrift|driver.*signature|signature/i),signature,signatureStored);
   putValue(findCard(root,/^fahrername$|^fahrer$|driver\s*name/i),driver,'rc1305-meta-driver');
   putValue(findCard(root,/datum\s*\/\s*uhrzeit|date\s*\/\s*time/i),formatDate(confirmed),'rc1503-pickup-date');
   putValue(findCard(root,/kennzeichen|license\s*plate|vehicle\s*registration/i),plate,'rc1305-meta-plate');
   putValue(findCard(root,/^verlader$|^loader$/i),loader,'rc1305-meta-loader');
-  putValue(findCard(root,/europaletten.*ausgang|euro\s*pallet/i),palletMovement(out,returned),'rc1305-meta-pallet');
+  putPalletBalance(palletCard,palletAccount);
   root.setAttribute('data-rc1503-image4-pickup-layout','1');
+  root.setAttribute('data-rc1543-pallet-balance','1');
   return tpl.innerHTML
- }catch(e){try{console.warn('RC1503 Ladelisten-Felder',e)}catch(_){}return html}
+ }catch(e){try{console.warn('RC1543 Ladelisten-Palettenkontostand',e)}catch(_){}return html}
 }
 function install(){
  var base=w.ExportHUBRC1305LoadingListPrint;
  if(!base||typeof base.enhance!=='function'||base.__dncSidePrintNames===true)return !!base;
  var wrapped={};Object.keys(base).forEach(function(key){wrapped[key]=base[key]});
- wrapped.__dncSidePrintNames=true;wrapped.__image4PickupFields=true;wrapped.__documentGridRC1504=true;wrapped.version='RC1504';
+ wrapped.__dncSidePrintNames=true;wrapped.__image4PickupFields=true;wrapped.__documentGridRC1504=true;wrapped.__palletBalanceRC1543=true;wrapped.version='RC1504';
  wrapped.deliveryFiles=function(sh){return typeof base.deliveryFiles==='function'?base.deliveryFiles(printShipment(sh)):[]};
  wrapped.enhance=function(html,sh,withQr){var safe=printShipment(sh);return restorePickupFields(normalizeDeliveryGrid(base.enhance(html,safe,withQr)),safe)};
  wrapped.enhanceCover=function(html,sh){return typeof base.enhanceCover==='function'?base.enhanceCover(html,printShipment(sh)):html};
  w.ExportHUBRC1305LoadingListPrint=Object.freeze(wrapped);
  return true
 }
-w.ExportHUBDocumentPrintNames=Object.freeze({printName:printName,canonicalDeliveryKey:canonicalDeliveryKey,documentColumnCount:documentColumnCount,printShipment:printShipment,normalizeDeliveryGrid:normalizeDeliveryGrid,restorePickupFields:restorePickupFields,install:install});
+w.ExportHUBDocumentPrintNames=Object.freeze({printName:printName,canonicalDeliveryKey:canonicalDeliveryKey,documentColumnCount:documentColumnCount,printShipment:printShipment,normalizeDeliveryGrid:normalizeDeliveryGrid,restorePickupFields:restorePickupFields,palletPartyForShipment:palletPartyForShipment,palletBalanceForShipment:palletBalanceForShipment,palletBalanceText:palletBalanceText,palletBalanceCacheKey:palletBalanceCacheKey,install:install});
 if(!install()){
  if(d&&d.readyState==='loading'&&typeof d.addEventListener==='function')d.addEventListener('DOMContentLoaded',install,{once:true});
  if(typeof w.setTimeout==='function')w.setTimeout(install,0)
