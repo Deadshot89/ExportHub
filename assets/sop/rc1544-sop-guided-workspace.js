@@ -203,7 +203,7 @@ function decorateDocument(host,options){
   workSection.classList.add('rc1544-sop-active-work');
   supportingNodes(documentNode,workSection).forEach(node=>node.classList.add('rc1544-sop-supporting'));
 
-  const outerWorkspace=host.querySelector('.rc1009-sop-workspace');const catalog=outerWorkspace&&outerWorkspace.querySelector(':scope > .rc1009-sop-sidebar');if(catalog){catalog.hidden=true;outerWorkspace.classList.add('rc1544-sop-catalog-collapsed');}
+  const outerWorkspace=host.querySelector('.rc1009-sop-workspace');const catalog=outerWorkspace&&outerWorkspace.querySelector(':scope > .rc1009-sop-sidebar');const catalogButton=shell.querySelector('[data-sop-guided-catalog-toggle]');if(catalogButton)catalogButton.setAttribute('aria-expanded',String(!!catalog&&!catalog.hidden));
   const supportNodes=Array.from(documentNode.querySelectorAll(':scope > .rc1544-sop-supporting'));
 
   function syncLabels(){
