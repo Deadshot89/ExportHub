@@ -121,16 +121,22 @@ function mount({root,scenario,registry,startStepId}={}){
   }
   function onKey(event){if(event.key==='Escape'&&!dialog){event.preventDefault();showEndDialog();}}
   function onResize(){if(activeTarget)positionPanel(activeTarget);}
+  function disposeTrainingSession(){
+    const controller=g.ExportHubTrainingController;
+    if(controller&&typeof controller.end==='function'){
+      try{controller.end();return;}catch(_){}
+    }
+    const state=g.ExportHubTrainingState;
+    if(state&&typeof state.dispose==='function'){
+      try{state.dispose();}catch(_){}
+    }
+  }
   function end(){
     if(destroyed)return;
     destroyed=true;clearTarget();dialog?.remove();overlay?.remove();dialog=null;overlay=null;
     doc.removeEventListener('click',onInteraction,true);doc.removeEventListener('input',onInteraction,true);doc.removeEventListener('change',onInteraction,true);doc.removeEventListener('keydown',onKey,true);win.removeEventListener?.('resize',onResize);
+    disposeTrainingSession();
     engine().end();
-    const controller=g.ExportHubTrainingController;
-    if(controller&&typeof controller.end==='function'){
-      const controllerStatus=typeof controller.status==='function'?controller.status():null;
-      if(!controllerStatus||controllerStatus.mode==='training')controller.end();
-    }
     try{previousFocus?.focus();}catch(_){}
   }
   doc.addEventListener('click',onInteraction,true);doc.addEventListener('input',onInteraction,true);doc.addEventListener('change',onInteraction,true);doc.addEventListener('keydown',onKey,true);win.addEventListener?.('resize',onResize);
