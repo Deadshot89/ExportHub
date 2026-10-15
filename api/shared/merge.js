@@ -1,5 +1,6 @@
 'use strict';
 
+const { sanitizeTrainingCenterPatch } = require('./training-center');
 const COLLECTION_KEYS = {
   shipments: ['id', 'ref'],
   tasks: ['id'],
@@ -839,6 +840,21 @@ function mergeState(serverState, incomingState) {
     const fieldMetaChanged = incomingFieldMeta !== undefined && JSON.stringify(incomingFieldMeta) !== JSON.stringify(serverFields[key]);
     const tombstoneChanged = changedTombstoneCollections.has(lower(key));
 
+    if (key === 'sopTrainingCenter') {
+      const cleanServer = sanitizeTrainingCenterPatch(serverValue);
+      if (!incomingHasValue) {
+        out[key] = cleanServer;
+        continue;
+      }
+      const cleanIncoming = sanitizeTrainingCenterPatch(incomingValue);
+      const serverTs = fieldTime(serverMeta, key);
+      const incomingTs = fieldTime(incomingMeta, key);
+      if (incomingTs > serverTs) out[key] = cleanIncoming;
+      else if (serverTs > incomingTs) out[key] = cleanServer;
+      else out[key] = sanitizeTrainingCenterPatch(mergePlainObject(cleanServer, cleanIncoming));
+      continue;
+    }
+
     if (!incomingHasValue && !fieldMetaChanged && !tombstoneChanged) {
       out[key] = serverValue;
       continue;
@@ -876,6 +892,10 @@ function sanitizeState(state) {
   const out = {};
   for (const [key, value] of Object.entries(source)) {
     if (isLocalOnlyKey(key)) continue;
+    if (key === 'sopTrainingCenter') {
+      out[key] = sanitizeTrainingCenterPatch(value);
+      continue;
+    }
     out[key] = clone(value);
   }
   if (!isObject(out._teamSyncMeta)) out._teamSyncMeta = { fields: {}, tombstones: [] };
