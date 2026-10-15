@@ -1,7 +1,7 @@
 diff --git a/assets/i18n/de.json b/assets/i18n/de.json
 --- a/assets/i18n/de.json
 +++ b/assets/i18n/de.json
-@@ -1,2 +1,17 @@
+@@ -343,2 +343,17 @@
    "sop.unknownWorkflowAction": "Unbekannte SOP-Workflow-Aktion",
 +  "trainingCenter.title": "SOP & Training Center",
 +  "trainingCenter.section.standard": "Standardprozesse",
@@ -22,7 +22,7 @@ diff --git a/assets/i18n/de.json b/assets/i18n/de.json
 diff --git a/assets/i18n/en.json b/assets/i18n/en.json
 --- a/assets/i18n/en.json
 +++ b/assets/i18n/en.json
-@@ -1,2 +1,17 @@
+@@ -343,2 +343,17 @@
    "sop.unknownWorkflowAction": "Unknown SOP workflow action",
 +  "trainingCenter.title": "SOP & Training Center",
 +  "trainingCenter.section.standard": "Standard processes",
@@ -43,7 +43,7 @@ diff --git a/assets/i18n/en.json b/assets/i18n/en.json
 diff --git a/assets/i18n/pl.json b/assets/i18n/pl.json
 --- a/assets/i18n/pl.json
 +++ b/assets/i18n/pl.json
-@@ -1,2 +1,17 @@
+@@ -343,2 +343,17 @@
    "sop.unknownWorkflowAction": "Nieznana akcja przepływu SOP",
 +  "trainingCenter.title": "Centrum SOP i szkoleń",
 +  "trainingCenter.section.standard": "Procesy standardowe",
@@ -64,7 +64,7 @@ diff --git a/assets/i18n/pl.json b/assets/i18n/pl.json
 diff --git a/assets/i18n/es.json b/assets/i18n/es.json
 --- a/assets/i18n/es.json
 +++ b/assets/i18n/es.json
-@@ -1,2 +1,17 @@
+@@ -343,2 +343,17 @@
    "sop.unknownWorkflowAction": "Acción de flujo SOP desconocida",
 +  "trainingCenter.title": "Centro de SOP y formación",
 +  "trainingCenter.section.standard": "Procesos estándar",
@@ -85,7 +85,7 @@ diff --git a/assets/i18n/es.json b/assets/i18n/es.json
 diff --git a/assets/i18n/fr.json b/assets/i18n/fr.json
 --- a/assets/i18n/fr.json
 +++ b/assets/i18n/fr.json
-@@ -1,2 +1,17 @@
+@@ -343,2 +343,17 @@
    "sop.unknownWorkflowAction": "Action de workflow SOP inconnue",
 +  "trainingCenter.title": "Centre SOP & Formation",
 +  "trainingCenter.section.standard": "Processus standard",
@@ -106,7 +106,7 @@ diff --git a/assets/i18n/fr.json b/assets/i18n/fr.json
 diff --git a/assets/i18n/it.json b/assets/i18n/it.json
 --- a/assets/i18n/it.json
 +++ b/assets/i18n/it.json
-@@ -1,2 +1,17 @@
+@@ -343,2 +343,17 @@
    "sop.unknownWorkflowAction": "Azione workflow SOP sconosciuta",
 +  "trainingCenter.title": "Centro SOP e formazione",
 +  "trainingCenter.section.standard": "Processi standard",
