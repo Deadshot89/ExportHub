@@ -61,7 +61,7 @@ const SCRIPT_TAGS=Object.freeze([
   '<script id="exporthub-training-center-runtime" defer src="/assets/training-center/runtime.js?v=1"></script>'
 ]);
 
-function idOf(tag){return (tag.match(/\\bid="([^"]+)"/)||[])[1]||'';}
+function idOf(tag){return (tag.match(/\bid="([^"]+)"/)||[])[1]||'';}
 function injectMissing(html,tags,file){
   let out=String(html||'');
   if(!/<\/head>/i.test(out))throw new Error(`${file}: </head> fehlt`);
