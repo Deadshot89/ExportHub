@@ -9,8 +9,12 @@ const entries=['index.html','TESTVERSION.html','demo.html'];
 const requiredAssets=[
   'assets/training-center/model.js',
   'assets/training-center/store.js',
+  'assets/training-center/i18n.js',
   'assets/training-center/customer-sop.js',
   'assets/training-center/screenshots.js',
+  'assets/training-center/coverage-registry.js',
+  'assets/training-center/coverage.js',
+  'assets/training-center/coverage-dashboard.js',
   'assets/training-center/catalog/shipment-registration.js',
   'assets/training-center/catalog/dhl-express.js',
   'assets/training-center/training-state.js',
@@ -28,34 +32,32 @@ const requiredAssets=[
   'assets/training-center/tour.css',
   'assets/training-center/legacy-cleanup.js'
 ];
-const legacyRuntime=/(?:src|href)=["'][^"']*assets\/sop\/(?:rc1007|rc1010|rc1016|rc1018|rc1501|rc1502|rc1503|rc1505|rc1506)[^"']*["']/i;
+const retiredPath=['assets','sop'].join('/');
+const retiredRuntime=new RegExp(`(?:src|href)=["'][^"']*${retiredPath.replace('/','\\/')}\\/[^"']*["']`,'i');
 
 async function loadBuilder(){
   assert.ok(fs.existsSync(builder),'Training-Center Drei-Umgebungs-Builder fehlt');
   return import(pathToFileURL(path.resolve(builder)).href+`?t=${Date.now()}`);
 }
 
-test('Build-Helfer entfernt ausschließlich alte SOPMaster-Runtime-Tags und injiziert die neue Runtime genau einmal',async()=>{
+test('Build-Helfer lehnt jeden retired SOP-Asset-Verweis fail-closed ab und injiziert neue Runtime idempotent',async()=>{
   const mod=await loadBuilder();
-  assert.equal(typeof mod.stripLegacySopRuntime,'function');
+  assert.equal(typeof mod.assertNoRetiredSopReferences,'function');
   assert.equal(typeof mod.injectTrainingCenter,'function');
-  const html=`<!doctype html><html><head>
-    <script id="business-runtime" src="/assets/business.js"></script>
-    <link rel="stylesheet" href="/assets/sop/rc1018-sop.css?v=1">
-    <script src="/assets/sop/rc1503-sop-training.js?v=1"></script>
-  </head><body></body></html>`;
-  const stripped=mod.stripLegacySopRuntime(html,'fixture.html');
-  assert.match(stripped,/business-runtime/);
-  assert.doesNotMatch(stripped,legacyRuntime);
-  assert.doesNotMatch(stripped,/assets\/sop\/rc1018-sop\.css/);
-  const once=mod.injectTrainingCenter(stripped,'fixture.html');
+  const clean='<!doctype html><html><head><script id="business-runtime" src="/assets/business.js"></script></head><body></body></html>';
+  assert.equal(mod.assertNoRetiredSopReferences(clean,'fixture.html'),true);
+  const retired=`<!doctype html><html><head><script src="/${retiredPath}/retired-runtime.js"></script></head><body></body></html>`;
+  assert.throws(()=>mod.assertNoRetiredSopReferences(retired,'fixture.html'),/retired SOP asset reference detected/);
+  assert.throws(()=>mod.injectTrainingCenter(retired,'fixture.html'),/retired SOP asset reference detected/);
+  const once=mod.injectTrainingCenter(clean,'fixture.html');
   const twice=mod.injectTrainingCenter(once,'fixture.html');
-  for(const id of ['exporthub-training-center-style','exporthub-training-tour-style','exporthub-training-center-model','exporthub-training-center-runtime']){
+  assert.match(twice,/business-runtime/,'fachfremde Business-Runtime muss erhalten bleiben');
+  for(const id of ['exporthub-training-center-style','exporthub-training-tour-style','exporthub-training-center-model','exporthub-training-center-i18n','exporthub-training-coverage-dashboard','exporthub-training-center-runtime']){
     assert.equal((twice.match(new RegExp(`id="${id}"`,'g'))||[]).length,1,`${id} muss exakt einmal vorkommen`);
   }
 });
 
-test('echter Drei-Umgebungs-Build enthält neue Training-Center-Assets und keine alte SOPMaster-Runtime',async()=>{
+test('echter Drei-Umgebungs-Build enthält ausschließlich neue Training-Center-Assets und keine retired SOP-Runtime',async()=>{
   const mod=await loadBuilder();
   assert.equal(typeof mod.build,'function');
   const out=mod.build(process.cwd());
@@ -66,7 +68,9 @@ test('echter Drei-Umgebungs-Build enthält neue Training-Center-Assets und keine
     const html=fs.readFileSync(target,'utf8');
     assert.match(html,/exporthub-training-center-runtime/,`${file}: neue Runtime fehlt`);
     assert.match(html,/exporthub-training-center-style/,`${file}: neues CSS fehlt`);
-    assert.doesNotMatch(html,legacyRuntime,`${file}: alte SOPMaster-Runtime ist noch verdrahtet`);
+    assert.match(html,/exporthub-training-coverage-dashboard/,`${file}: neue Coverage fehlt`);
+    assert.doesNotMatch(html,retiredRuntime,`${file}: retired SOP-Runtime ist noch verdrahtet`);
   }
   for(const rel of requiredAssets)assert.ok(fs.existsSync(path.join(out,rel)),`Build-Asset fehlt: ${rel}`);
+  assert.equal(fs.existsSync(path.join(out,retiredPath)),false,'retired SOP-Assetverzeichnis darf nicht im Release-Paket existieren');
 });
