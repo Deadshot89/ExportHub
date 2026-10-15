@@ -59,12 +59,16 @@ test('render enthält alle drei Hauptbereiche, Suche, Kategorien, Favoriten, Rec
   assert.doesNotMatch(html,/SOPMaster|rc150[1-6]|rc101[068]-sop/i);
 });
 
-test('Suche und Kategorie filtern die sichtbaren Karten rein funktional',()=>{
+test('Suche und Kategorie filtern die sichtbaren Hauptkarten rein funktional',()=>{
   assert.ok(ui,'ExportHubTrainingCenterUi fehlt');
-  const shipment=ui.render(center,{t:tr,section:'standard',query:'Sendung',categoryId:'shipping'});
-  assert.match(shipment,/Sendung anmelden/);
-  const none=ui.render(center,{t:tr,section:'standard',query:'Zoll',categoryId:'shipping'});
-  assert.doesNotMatch(none,/Sendung anmelden/);
+  const matching=ui.filterEntries(center.standardProcesses,{query:'Sendung',categoryId:'shipping'});
+  assert.deepEqual(matching.map((entry)=>entry.id),['shipment-registration']);
+  const none=ui.filterEntries(center.standardProcesses,{query:'Zoll',categoryId:'shipping'});
+  assert.deepEqual(none,[]);
+  const html=ui.render(center,{t:tr,section:'standard',query:'Zoll',categoryId:'shipping'});
+  const main=html.match(/<main class="training-center-main"[\s\S]*?<\/main>/)?.[0]||'';
+  assert.doesNotMatch(main,/Sendung anmelden/);
+  assert.match(main,/Keine Einträge/);
 });
 
 test('CSS enthält responsive Einspalten-/Drawer-Regeln, Fokuszustände und Theme-Token ohne Legacy-Klassen',()=>{
