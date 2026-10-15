@@ -4,6 +4,17 @@ on:
   push:
     branches:
       - design/sop-training-center-rebuild-2026-10-15
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'assets/training-center/**'
+      - 'api/shared/training-center.js'
+      - 'api/shared/merge.js'
+      - 'test/training-center-*.test.mjs'
+      - 'e2e/specs/training-center-*.spec.mjs'
+      - '.github/training-center/**'
+      - '.github/workflows/training-center-native-tdd.yml'
   workflow_dispatch:
 
 permissions:
