@@ -35,6 +35,26 @@ for(const action of ACTIONS){
   });
 }
 
+test('benannte Szenario-Validatoren werden für reale UI-Deskriptoren ausgeführt und können nicht umgangen werden',()=>{
+  assert.ok(Engine,'ExportHubTrainingTourEngine fehlt');
+  const scenario={
+    id:'named-validator',
+    validators:{'value-is-ok':({descriptor})=>descriptor.value==='ok'},
+    steps:[
+      {stepId:'named',title:'Benannter Validator',targetElement:'target.named',expectedAction:'input',validation:['value-is-ok'],helpText:'Wert prüfen',successText:'OK',nextStep:null}
+    ]
+  };
+  Engine.start({scenario});
+  const invalid=Engine.handleAction({action:'input',targetElement:'target.named',value:'falsch'});
+  assert.equal(invalid.advanced,false);
+  assert.equal(invalid.reason,'VALIDATION_FAILED');
+  assert.equal(Engine.current().stepId,'named');
+  const valid=Engine.handleAction({action:'input',targetElement:'target.named',value:'ok'});
+  assert.equal(valid.advanced,true);
+  assert.equal(Engine.current().finished,true);
+  Engine.end();
+});
+
 test('falsche Aktion, falsches Ziel und fehlgeschlagene Validierung bewegen den Fortschritt niemals',()=>{
   assert.ok(Engine,'ExportHubTrainingTourEngine fehlt');
   Engine.start({scenario:scenarioFor('click')});
