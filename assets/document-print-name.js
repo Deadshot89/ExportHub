@@ -46,10 +46,27 @@ function findLabel(root,re){return Array.from(root.querySelectorAll('.rc390-labe
 function cardFor(el,root){if(!el)return null;var n=el;for(var i=0;i<6&&n&&n!==root;i++,n=n.parentElement){if(n.nodeType===1&&/(?:card|field|sign|box|cell|pickup)/i.test(q(n.className)))return n}return el.parentElement&&el.parentElement!==root?el.parentElement:el}
 function findCard(root,re){return cardFor(findLabel(root,re),root)}
 function palletOut(sh){try{if(typeof w.rc1095LoadPalletCount==='function'){var rs=typeof w.rows==='function'?w.rows(sh):[];return Math.max(0,Math.round(Number(w.rc1095LoadPalletCount(sh,rs))||0))}}catch(_){}return Math.max(0,Math.round(Number(sh&&(sh.palletOut||sh.euroPallets||sh.euroPalletCount))||0))}
+function sameOriginWindows(){
+ var out=[w],candidates=[];
+ try{candidates.push(w.parent)}catch(_){}
+ try{candidates.push(w.top)}catch(_){}
+ try{candidates.push(w.opener)}catch(_){}
+ candidates.forEach(function(x){try{if(x&&out.indexOf(x)<0&&x.location&&x.document)out.push(x)}catch(_){}});
+ return out
+}
 function state(){
- try{if(typeof w.__EXPORTHUB_GET_STATE__==='function'){var live=w.__EXPORTHUB_GET_STATE__();if(live&&typeof live==='object')return live}}catch(_){}
- try{if(w.ExportHUBClean&&w.ExportHUBClean.runtime&&w.ExportHUBClean.runtime.state)return w.ExportHUBClean.runtime.state}catch(_){}
+ var sources=sameOriginWindows();
+ for(var i=0;i<sources.length;i++){
+  var source=sources[i];
+  try{if(typeof source.__EXPORTHUB_GET_STATE__==='function'){var live=source.__EXPORTHUB_GET_STATE__();if(live&&typeof live==='object')return live}}catch(_){}
+  try{if(source.ExportHUBClean&&source.ExportHUBClean.runtime&&source.ExportHUBClean.runtime.state)return source.ExportHUBClean.runtime.state}catch(_){}
+ }
  return{}
+}
+function palletLedger(){
+ var sources=sameOriginWindows();
+ for(var i=0;i<sources.length;i++){try{if(sources[i].ExportHUBPalletLedger)return sources[i].ExportHUBPalletLedger}catch(_){}}
+ return null
 }
 function isDhlFreight(value){var n=low(value).replace(/[^a-z0-9]/g,'');return n==='dhlfreight'||n==='dhlfreightgmbh'||n==='customerdhlfreight'||n==='carrierdhlfreight'||n==='speditiondhlfreight'}
 function shipmentCustomer(sh){
@@ -65,7 +82,7 @@ function palletPartyForShipment(sh){
  return{type:'customer',key:'customer:'+low(id||name),name:name||id||'Kunde'}
 }
 function palletBalanceForShipment(sh){
- var ledger=w.ExportHUBPalletLedger,party=palletPartyForShipment(sh);if(!ledger||!party.key)return null;
+ var ledger=palletLedger(),party=palletPartyForShipment(sh);if(!ledger||!party.key)return null;
  var account=null;
  try{if(typeof ledger.balanceFor==='function')account=ledger.balanceFor(party.key)||null}catch(_){}
  if(!account){try{if(typeof ledger.accounts==='function'){var list=arr(ledger.accounts());account=list.find(function(x){return low(x&&x.key)===low(party.key)})||list.find(function(x){return low(x&&x.name)===low(party.name)&&(!x.type||low(x.type)===low(party.type))})||null}}catch(_){}}
