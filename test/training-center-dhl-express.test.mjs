@@ -30,11 +30,12 @@ test('DHL-Quellregeln aus der bereitgestellten SOP sind vollständig abgebildet'
   const sop=load();
   const all=JSON.stringify(sop);
   for(const required of [
-    'Manifest','Lieferscheine','Rechnungen','Warenwert','ABD','1000','ExportHUB',
+    'Manifest','Lieferscheine','Rechnungen','Warenwert','ABD','ExportHUB',
     'mydhl.express.dhl','Warensendung','Commercial','Herkunftsland','HS-Code',
     'Lieferscheinnummer','MRN','Zollrechnung','Rechnungsnummer','EX WORKS',
     'End of Day','Abholung','Serbien','Label'
   ]) assert.ok(all.toLowerCase().includes(required.toLowerCase()),`DHL-Regel fehlt: ${required}`);
+  assert.match(all,/1\.000|1000/,'ABD-Grenze 1.000 € fehlt');
 });
 
 test('Artikelzusammenfassung ist nur bei gleichem Herkunftsland und HS-Code erlaubt',()=>{
@@ -62,8 +63,9 @@ test('DHL-Abschluss bildet digitale Dokumente, Serbien-Ausnahme und Label-only-D
   const print=sop.steps.find(x=>x.stepId==='dhl-print-label');
   assert.ok(digital && print);
   assert.match(JSON.stringify(digital),/Serbien/);
-  assert.match(JSON.stringify(print),/nur.*Label|Label.*nur/i);
-  assert.doesNotMatch(JSON.stringify(print),/Beleg.*drucken/i);
+  assert.match(print.shortInstruction,/nur das Label drucken/i);
+  assert.ok(print.checkpoints.some(x=>/nur das Label/i.test(x)),'Label-only-Prüfpunkt fehlt');
+  assert.equal(print.checkpoints.some(x=>/Beleg.*drucken/i.test(x)),false,'Ein Beleg darf nicht als Druckschritt gefordert werden');
 });
 
 test('alle neun Dokumentseiten sind als Bild-/Quellreferenz abgedeckt',()=>{
