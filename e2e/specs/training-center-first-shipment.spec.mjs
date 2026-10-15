@@ -16,7 +16,7 @@ const runtimeFiles=[
 ];
 
 async function boot(page){
-  await page.setContent(`
+  const html=`
     <html lang="de"><body><main id="app">
       <button id="rc380NewShipment" data-training-target="shipment.new">Neue Sendung</button>
       <label>Kunde
@@ -41,7 +41,9 @@ async function boot(page){
       <button id="rc363SaveShipment" data-training-target="shipment.save">Sendung speichern</button>
       <button id="trainingShipmentStatus" data-training-target="shipment.status">Ergebnis kontrollieren</button>
     </main></body></html>
-  `);
+  `;
+  await page.route('http://training.local/**',route=>route.fulfill({status:200,contentType:'text/html',body:html}));
+  await page.goto('http://training.local/');
   await page.addStyleTag({content:read('assets/training-center/tour.css')});
   await page.evaluate(()=>{
     window.__trainingFetchCalls=[];
