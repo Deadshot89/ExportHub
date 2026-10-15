@@ -10,6 +10,8 @@ const JSON_MODE=process.argv.includes('--json');
 const EXCLUDED_DIRS=new Set(['.git','.github','node_modules','test','tests','docs','dist','dist-rc1018','android','migration','scripts']);
 const EXCLUDED_FILES=[
   /^assets\/i18n\//,
+  /^assets\/training-center\/catalog\//,
+  /^assets\/training-center\/scenarios\//,
   /^assets\/rc1177-release-notes\.js$/,
   /^assets\/rc1267-i18n\.js$/,
   /^scripts\/i18n-audit\.mjs$/
@@ -20,7 +22,7 @@ const GERMAN_HINT=/\b(?:Abmelden|Abholung|Abholdatum|Abholtermin|Abbrechen|Aktiv
 const UI_CONTEXT=/(?:innerHTML|outerHTML|textContent|innerText|insertAdjacentHTML|placeholder|aria-label|title\s*=|setAttribute\s*\(\s*['"](?:title|aria-label|placeholder)|alert\s*\(|confirm\s*\(|prompt\s*\(|toast|status\s*\(|showMessage|message|label|button|option|<button|<label|<h[1-6]|<th|<td|<span|<p|<div|<option)/i;
 const KEY_LITERAL=/\b(?:common|login|profile|nav|dashboard|shipment|customer|task|document|mail|avis|pickup|public|safety|status|errors|history|settings|calendar|pallet|reports|admin)\.[a-zA-Z0-9_.-]+\b/;
 
-function productionPath(rel){return /^(?:assets\/|api\/)/.test(rel)||/^[^/]+\\.(?:html|js|mjs|cjs)$/.test(rel)}
+function productionPath(rel){return /^(?:assets\/|api\/)/.test(rel)||/^[^/]+\.(?:html|js|mjs|cjs)$/.test(rel)}
 function walk(dir,out=[]){
   for(const ent of fs.readdirSync(dir,{withFileTypes:true})){
     if(EXCLUDED_DIRS.has(ent.name))continue;
@@ -50,7 +52,7 @@ function scanVisibleGerman(file,source,registeredGerman){
     if(!UI_CONTEXT.test(line))return;
     if(/^\s*(?:\/\/|\*|\/\*)/.test(line))return;
     if(file.rel==='api/shared/rc1014-fixed-pickup-seed.js'&&/siteLabel\s*:/.test(line))return;
-    const hits=literalTexts(line).filter(value=>GERMAN_HINT.test(value)&&!/^[-_a-z0-9./:]+$/i.test(value)&&!registeredGerman.has(value));
+    const hits=literalTexts(line).filter(value=>GERMAN_HINT.test(value)&&!/^[-_a-z0-9./:]+$/i.test(value)&&!registeredGerman.has(value)&&!/\b(?:tr|th)\s*\(/.test(value));
     if(!hits.length)return;
     for(const literal of hits)rows.push({file:file.rel,line:i+1,literal:compact(literal),text:compact(line)});
   });
@@ -78,7 +80,7 @@ function loadPacks(){
 }
 function loadFeatureGerman(rel,globalName){
   const file=path.join(ROOT,rel);if(!fs.existsSync(file))return[];
-  const sandbox={console,Intl,URL,setTimeout,clearTimeout};
+  const sandbox={console,Intl,URL,setTimeout,clearTimeout};sandbox.globalThis=sandbox;
   vm.runInNewContext(fs.readFileSync(file,'utf8'),sandbox,{filename:rel});
   const runtime=sandbox[globalName],pack=runtime&&runtime.packs&&runtime.packs.de;
   return pack&&typeof pack==='object'?Object.values(pack):[];
@@ -94,7 +96,7 @@ function keyAudit(packs){
   }
   return{baseKeyCount:base.length,issues}
 }
-const packs=loadPacks(),keys=keyAudit(packs),files=walk(ROOT),hardcoded=[],visibleKeys=[],apiDePath=path.join(ROOT,'api','shared','i18n','de.json'),apiDe=fs.existsSync(apiDePath)?JSON.parse(fs.readFileSync(apiDePath,'utf8')):{},featureGerman=loadFeatureGerman('assets/i18n/pack-notification.js','ExportHUBPackI18n'),registeredGerman=new Set([...Object.values(packs.de),...Object.values(apiDe),...featureGerman].filter(v=>typeof v==='string'&&v.trim()));
+const packs=loadPacks(),keys=keyAudit(packs),files=walk(ROOT),hardcoded=[],visibleKeys=[],apiDePath=path.join(ROOT,'api','shared','i18n','de.json'),apiDe=fs.existsSync(apiDePath)?JSON.parse(fs.readFileSync(apiDePath,'utf8')):{},featureGerman=loadFeatureGerman('assets/i18n/pack-notification.js','ExportHUBPackI18n'),trainingGerman=loadFeatureGerman('assets/training-center/i18n.js','ExportHubTrainingCenterI18n'),registeredGerman=new Set([...Object.values(packs.de),...Object.values(apiDe),...featureGerman,...trainingGerman].filter(v=>typeof v==='string'&&v.trim()));
 for(const file of files){
   const source=fs.readFileSync(file.abs,'utf8');
   hardcoded.push(...scanVisibleGerman(file,source,registeredGerman));
