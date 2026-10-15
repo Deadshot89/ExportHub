@@ -8,13 +8,13 @@ const guardSrc=()=>read('assets/training-center/training-write-guard.js');
 const controllerSrc=()=>read('assets/training-center/training-controller.js');
 
 async function boot(page){
-  await page.setContent('<main id="app"></main>');
-  await page.addInitScript(()=>{
+  await page.route('https://training.local/**',route=>route.fulfill({status:200,contentType:'text/html',body:'<main id="app"></main>'}));
+  await page.goto('https://training.local/');
+  await page.evaluate(()=>{
     localStorage.setItem('productive-sentinel','keep-local');
     sessionStorage.setItem('productive-sentinel','keep-session');
     window.__productiveWrites=[];
   });
-  await page.reload();
   await page.addScriptTag({content:stateSrc()});
   await page.addScriptTag({content:demoSrc()});
   await page.addScriptTag({content:guardSrc()});
@@ -42,8 +42,9 @@ test('Training business writes bleiben memory-only und verschwinden nach end/rel
 
   await page.reload();
   expect(await page.evaluate(()=>localStorage.getItem('productive-sentinel'))).toBe('keep-local');
-  expect(await page.evaluate(()=>sessionStorage.getItem('productive-sentinel'))).toBeNull();
+  expect(await page.evaluate(()=>sessionStorage.getItem('productive-sentinel'))).toBe('keep-session');
   expect(await page.evaluate(()=>JSON.stringify(localStorage))).not.toContain('DEMO-SHIPMENT');
+  expect(await page.evaluate(()=>JSON.stringify(sessionStorage))).not.toContain('DEMO-SHIPMENT');
 });
 
 test('produktiver Callback kann im Trainingsmodus nicht ausgelöst werden',async({page})=>{
