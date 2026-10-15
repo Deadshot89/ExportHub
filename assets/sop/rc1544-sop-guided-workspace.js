@@ -5,7 +5,7 @@ if(root.ExportHubSopGuidedWorkspace)return;
 function text(value){return String(value==null?'':value).trim();}
 function arr(value){return Array.isArray(value)?value:[];}
 function clone(value){try{return JSON.parse(JSON.stringify(value));}catch(_){return value;}}
-function esc(value){return String(value==null?'':value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
+function esc(value){return String(value==null?'':value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[ch]));}
 function unique(values){const seen=new Set();return arr(values).filter(item=>{const key=typeof item==='string'?item:JSON.stringify(item);if(seen.has(key))return false;seen.add(key);return true;});}
 function tr(key,vars){
   try{
@@ -188,7 +188,7 @@ function supportingNodes(documentNode,workSection){
 
 function decorateDocument(host,options){
   if(!host||!host.querySelector)return false;
-  const documentNode=host.querySelector('.rc1009-sop-document[data-sop-number]');
+  const documentNode=host.querySelector('.rc1007-sop-document[data-sop-number]');
   if(!documentNode||documentNode.hasAttribute('data-rc1544-decorated'))return false;
   const number=text(documentNode.getAttribute('data-sop-number'));const doc=findDocument(options,number);if(!doc)return false;
   const model=documentModel(doc);if(!model.steps.length){documentNode.setAttribute('data-rc1544-decorated','empty');return false;}
