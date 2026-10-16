@@ -8,6 +8,7 @@ const customerAvisApi=fs.readFileSync('api/customer-avis/index.js','utf8');
 const reminderMailApi=fs.readFileSync('api/avis-reminder-mail/index.js','utf8');
 const reminderContract=fs.readFileSync('test/rc1166-avis-reminder-overview.test.mjs','utf8');
 const packageJson=fs.readFileSync('package.json','utf8');
+const staticConfig=JSON.parse(fs.readFileSync('staticwebapp.config.json','utf8'));
 
 const canonical='https://www.exporthub360.de';
 const forbiddenCanonical=/PROD(?:UCTION)?_(?:AVIS_ORIGIN|PUBLIC_HOST)='(?:https:\/\/)?(?:www\.)?exporthub360\.com'/;
@@ -31,4 +32,12 @@ test('RC1552: alte .com-Links bleiben als Legacy-Eingang akzeptiert und werden a
   assert.match(reminderMailApi,/LEGACY_COM_PRODUCTION_PUBLIC_HOST='exporthub360\.com'/);
   assert.match(reminderContract,/customerAvisUrl:'https:\/\/exporthub360\.com\/avis\/legacy-token'/);
   assert.match(reminderContract,/https:\/\/www\.exporthub360\.de\/avis\/legacy-token/);
+});
+
+test('RC1552: produktive AVIS-Runtimes dürfen nicht aus einem veralteten Browsercache kommen',()=>{
+  for(const routeName of ['/assets/rc1027-lieferavis-immediate.js','/assets/rc1166-avis-reminder-overview.js']){
+    const route=(staticConfig.routes||[]).find(row=>row.route===routeName);
+    assert.ok(route,`${routeName}: explizite Cache-Schutzroute fehlt`);
+    assert.match(String(route.headers&&route.headers['Cache-Control']||''),/no-store/i,`${routeName}: Cache-Control muss no-store enthalten`);
+  }
 });
