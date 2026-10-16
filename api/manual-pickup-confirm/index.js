@@ -12,13 +12,14 @@ const TEST_TEAM_BLOB=process.env.EXPORTHUB_TEST_STORAGE_BLOB||('testservice/'+St
 const MAX_RETRIES=8;
 
 function text(value){return String(value==null?'':value).trim()}
+function lower(value){return text(value).toLowerCase()}
 function upper(value){return text(value).toUpperCase()}
 function arr(value){return Array.isArray(value)?value:[]}
 function obj(value){return!!value&&typeof value==='object'&&!Array.isArray(value)}
 function now(){return new Date().toISOString()}
 function body(req){return auth.body(req)}
 function json(status,payload){return auth.json(status,payload,{'Cache-Control':'no-store, no-cache, must-revalidate'})}
-function connectionString(){return process.env.EXPORTHUB_STORAGE_CONNECTION_STRING||process.env.AzureWebJobsStorage||''}
+function connectionString(){return process.env.EXPORTHUB_STORAGE_CONNECTION_STRING||process.env.EXPORTHUB_STORAGE_CONNECTION||process.env.EXPORTHUB_AZURE_STORAGE_CONNECTION_STRING||process.env.AzureWebJobsStorage||''}
 function teamBlobName(environment){return environment==='testservice'?TEST_TEAM_BLOB:TEAM_BLOB_BASE}
 function isConflict(error){return!!(error&&(Number(error.statusCode||error.status)===412||['ConditionNotMet','TargetConditionNotMet'].includes(String(error.code||''))))}
 function wait(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
@@ -28,10 +29,20 @@ async function validateSession(req){
   return auth.validateSession(req);
 }
 
+function requestEnvironmentEvidence(req){
+  const headers=req&&req.headers||{};
+  return [headers.origin,headers.Origin,headers.referer,headers.Referer,headers['x-forwarded-host'],headers['X-Forwarded-Host'],headers['x-original-host'],headers['X-Original-Host'],headers['x-ms-original-url'],headers['X-MS-Original-URL'],headers.host,headers.Host].map(text).filter(Boolean).join(' ');
+}
 function resolveEnvironment(req,payload){
   const headers=req&&req.headers||{};
-  const requested=text(payload&&payload.environment||headers['x-exporthub-environment']||headers['X-ExportHUB-Environment']||req&&req.query&&req.query.environment).toLowerCase();
-  return requested==='testservice'?'testservice':'production';
+  const raw=lower(headers['x-exporthub-environment']||headers['X-ExportHUB-Environment']||(payload&&payload.environment)||'');
+  if(raw&&raw!=='production'&&raw!=='testservice')throw auth.error('ENVIRONMENT_INVALID',apiI18n.t(req,'api.common.environmentInvalid'),400);
+  const evidence=requestEnvironmentEvidence(req),origin=lower(headers.origin||headers.Origin||headers.referer||headers.Referer||'');
+  const originTest=/-testservice\./i.test(origin),originAzure=/\.azurestaticapps\.net(?:[:/]|$)/i.test(origin),originProd=originAzure&&!originTest;
+  if(originTest){if(raw&&raw!=='testservice')throw auth.error('ENVIRONMENT_MISMATCH',apiI18n.t(req,'api.pickup.environmentMismatchTest'),409);return'testservice'}
+  if(originProd){if(raw&&raw!=='production')throw auth.error('ENVIRONMENT_MISMATCH',apiI18n.t(req,'api.pickup.environmentMismatchProduction'),409);return'production'}
+  if(raw)return raw;
+  return /-testservice\./i.test(evidence)?'testservice':'production';
 }
 
 async function teamBlob(environment){
@@ -207,4 +218,4 @@ module.exports=async function(context,req){
   }
 };
 
-module.exports._test={sanitizePayload,statusRank,preserveLaterStatus,applyManualPickup,sameShipment};
+module.exports._test={sanitizePayload,statusRank,preserveLaterStatus,applyManualPickup,sameShipment,resolveEnvironment};
