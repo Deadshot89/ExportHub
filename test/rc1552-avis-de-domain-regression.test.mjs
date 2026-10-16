@@ -6,6 +6,7 @@ const immediate=fs.readFileSync('assets/rc1027-lieferavis-immediate.js','utf8');
 const reminder=fs.readFileSync('assets/rc1166-avis-reminder-overview.js','utf8');
 const customerAvisApi=fs.readFileSync('api/customer-avis/index.js','utf8');
 const reminderMailApi=fs.readFileSync('api/avis-reminder-mail/index.js','utf8');
+const reminderContract=fs.readFileSync('test/rc1166-avis-reminder-overview.test.mjs','utf8');
 const packageJson=fs.readFileSync('package.json','utf8');
 
 const canonical='https://www.exporthub360.de';
@@ -25,8 +26,9 @@ test('RC1552: Tests dürfen den produktiven AVIS-Domainvertrag nicht mehr auf .c
   assert.doesNotMatch(packageJson,/rc1545-avis-canonical-com-domain\.mjs/);
 });
 
-test('RC1552: alte .com-Links bleiben als Legacy-Eingang akzeptiert, aber nicht kanonisch',()=>{
-  assert.match(immediate,/exporthub360\.com/);
-  assert.match(reminder,/exporthub360\.com/);
-  assert.match(reminderMailApi,/exporthub360\.com/);
+test('RC1552: alte .com-Links bleiben als Legacy-Eingang akzeptiert und werden auf .de normalisiert',()=>{
+  assert.match(immediate,/h==='exporthub360\.com'/);
+  assert.match(reminderMailApi,/LEGACY_COM_PRODUCTION_PUBLIC_HOST='exporthub360\.com'/);
+  assert.match(reminderContract,/customerAvisUrl:'https:\/\/exporthub360\.com\/avis\/legacy-token'/);
+  assert.match(reminderContract,/https:\/\/www\.exporthub360\.de\/avis\/legacy-token/);
 });
