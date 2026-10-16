@@ -7,10 +7,13 @@ on:
       - 'api/shared/packaging-admin-store.js'
       - 'api/shared/packaging-seed.js'
       - 'api/shared/state-compaction.js'
+      - 'api/shared/pack-notification-store.js'
       - 'api/packaging-admin/**'
       - 'api/packaging-public-state/**'
+      - 'api/pack-notification/**'
       - 'assets/packaging-admin.js'
       - 'assets/packaging-catalog.js'
+      - 'assets/pack-notification.js'
       - 'assets/rc1555-packaging-store.js'
       - 'assets/rc1555-packaging-management.js'
       - 'assets/rc1555-packaging-management.css'
@@ -28,6 +31,7 @@ on:
       - 'test/rc1555-packaging-management-ui.test.mjs'
       - 'test/rc1555-packaging-i18n.test.mjs'
       - 'test/rc1555-packaging-build.test.mjs'
+      - 'test/rc1555-pack-notification-canonical.test.mjs'
       - '.github/workflows/rc1555-packaging-hardening.yml'
   workflow_dispatch:
 
@@ -46,6 +50,8 @@ jobs:
           package-manager-cache: false
       - name: RC1554 baseline and RC1555 hardening contracts
         run: node --test --test-concurrency=1 test/packaging-catalog.test.mjs test/rc1554-packaging-admin.test.mjs test/rc1555-packaging-hardening.test.mjs test/rc1555-packaging-client.test.mjs test/rc1555-packaging-management-ui.test.mjs test/rc1555-packaging-i18n.test.mjs test/rc1555-packaging-build.test.mjs
+      - name: RC1555 canonical QR packaging contracts
+        run: node --test --test-concurrency=1 test/rc1555-pack-notification-canonical.test.mjs
       - name: RC1555 packaging consumer regression
         run: node --test --test-concurrency=1 test/pack-notification-customer-search.test.mjs test/pack-notification-page.test.mjs test/rc1005-e3-packaging-dimensions.test.mjs test/rc1005-e3-packaging-precedence.test.mjs test/rc1171-shipment-create-ui-e2e.test.mjs test/rc1548-shipping-cost-autofill.test.mjs test/rc1190-print-browser-gate.test.mjs
       - name: RC1555 final three-environment build proof
