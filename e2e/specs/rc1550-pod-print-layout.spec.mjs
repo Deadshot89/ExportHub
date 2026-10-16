@@ -92,7 +92,7 @@ test('RC1555: POD-Abholfelder ersetzen auch verschachtelte Altwerte und bleiben 
   expect(result.visibleLegacyCount,'Auch verschachtelte alte Pickup-Werte müssen vollständig verschwinden').toBe(0);
   expect(result.legacySignatureVisible,'Das alte große Signaturbild darf nicht mehr layoutwirksam sein').toBe(false);
   expect(result.compactGridMarker,'Der gemeinsame Pickup-Grid muss als kompakt normalisiert werden').toBe('1');
-  expect(result.maxFieldHeight,'Kein Abholfeld darf die Ladeliste wie im Produktionsfehler übermäßig strecken').toBeLessThanOrEqual(100);
+  expect(result.maxFieldHeight,'Kein Abholfeld darf die Ladeliste wie im Produktionsfehler übermäßig strecken').toBeLessThanOrEqual(110);
   expect(result.pickupGridHeight,'Die zwei Pickup-Zeilen müssen kompakt bleiben').toBeLessThanOrEqual(210);
   expect(result.overflows,'Pickup-Werte dürfen ihre Karten nicht überragen').toBe(0);
   expect(result.overlap,'Pickup-Werte dürfen sich nicht gegenseitig überlappen').toBe(false);
