@@ -22,9 +22,10 @@ function sendAndroid(payload){
 }
 function notifyAndroid(){
   if(!androidBridgeReady())return false;
-  const notificationCount=countOf(['[data-index236-notification-count]','#index236NotificationCount','#index236NotificationCenter [data-count]','.index236-notification-count']);
+  // Task reminders are task-specific and are delivered only by the RC1014
+  // snapshot -> native ReminderReceiver path. A notification-center count is
+  // not actionable and must never create a generic Android task push.
   const warningCount=countOf(['[data-rc885-warning-count]','#rc885WarningCount','#rc885WarningDrawer [data-count]','.rc885-warning-count']);
-  if(notificationCount>0)sendAndroid({channel:'notification',key:`tasks:${notificationCount}`,title:tr('android.tasksTitle',null,'ExportHUB Tasks'),body:tr(notificationCount===1?'android.taskOpenOne':'android.taskOpenMany',{count:notificationCount},notificationCount+' personal task(s) open.'),route:'notifications'});
   if(warningCount>0)sendAndroid({channel:'warning',key:`warnings:${warningCount}`,title:tr('android.warningsTitle',null,'ExportHUB Warning Center'),body:tr(warningCount===1?'android.warningOpenOne':'android.warningOpenMany',{count:warningCount},warningCount+' operational shipment warning(s) open.'),route:'warnings'});
 }
 function diagnosticMarkerKey(){return `exporthub-native-diagnostic-last:${currentEnvironment()}`;}
