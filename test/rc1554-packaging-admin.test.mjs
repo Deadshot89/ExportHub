@@ -121,3 +121,10 @@ test('RC1554 public pack fallback is used only when the packaging master request
   assert.notEqual(failedWindow.ExportHUBPackagingMasterAuthoritative,true);
   assert.ok(failedWindow.ExportHubPackagingCatalog.list().length>0,'fallback must remain available when master request fails');
 });
+
+test('RC1554 internal shipment build suppresses inactive packaging before the legacy PACK fallback is merged',()=>{
+  const build=fs.readFileSync('.github/packmeldungen/build-three-env.mjs','utf8');
+  assert.match(build,/injectInactivePackagingSuppression/,'build must patch the legacy shipment packaging list');
+  assert.match(build,/inactiveColliTypes/,'inactive master entries must seed the packaging seen-set');
+  assert.match(build,/!\/\^E\[0-6\]\$\/i|\^E\[0-6\]\$/,'fixed E0-E6 protection must remain visible in the suppression contract');
+});
