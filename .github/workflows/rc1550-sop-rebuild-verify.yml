@@ -8,6 +8,7 @@ on:
       - 'assets/sop/rc1007-sop-model.js'
       - 'assets/sop/rc1550-sop-*.js'
       - 'assets/sop/rc1550-sop.css'
+      - 'assets/sop/screenshots/bsh/**'
       - 'test/rc1550-sop-*.test.mjs'
       - '.github/rc1550/**'
       - '.github/packmeldungen/build-three-env.mjs'
@@ -24,18 +25,33 @@ concurrency:
 jobs:
   compatibility:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
           node-version: '20'
           package-manager-cache: false
-      - name: RC1550 non-asset compatibility tests
+      - name: RC1550 targeted regression
         run: >-
           node --test --test-concurrency=1
           test/rc1550-sop-model.test.mjs
           test/rc1550-sop-catalog.test.mjs
+          test/rc1550-sop-assets.test.mjs
           test/rc1550-sop-runtime-isolation.test.mjs
           test/rc1550-sop-ui.test.mjs
           test/rc1550-sop-responsive.test.mjs
+          test/rc1550-sop-build.test.mjs
+      - name: Full Node regression
+        shell: bash
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee rc1550-node-regression.log
+      - name: Upload Node log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rc1550-node-regression
+          path: rc1550-node-regression.log
+          if-no-files-found: ignore
+          retention-days: 14
