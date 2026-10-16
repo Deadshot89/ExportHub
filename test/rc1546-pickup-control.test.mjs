@@ -10,13 +10,13 @@ const FINALIZER='.github/rc1488/finalize-auto-update.mjs';
 const PROD='.github/workflows/exporthub-production-release.yml';
 const TESTSERVICE='.github/workflows/exporthub-testservice.yml';
 
-test('RC1546: Abholkontrolle und manuelles Nachtragen sind als eigener Runtime-Baustein vorhanden',()=>{
-  assert.ok(fs.existsSync(UI),'RC1546 Pickup-Control Runtime fehlt');
-  assert.ok(fs.existsSync(API),'RC1546 Manual-Pickup API fehlt');
-  assert.ok(fs.existsSync(ROUTE),'RC1546 Manual-Pickup Route fehlt');
+test('RC1547: Abholkontrolle und manuelles Nachtragen sind als eigener Runtime-Baustein vorhanden',()=>{
+  assert.ok(fs.existsSync(UI),'Pickup-Control Runtime fehlt');
+  assert.ok(fs.existsSync(API),'Manual-Pickup API fehlt');
+  assert.ok(fs.existsSync(ROUTE),'Manual-Pickup Route fehlt');
 });
 
-test('RC1546: offene Abholungen schließen Entwurf, Storniert und bereits abgeholte Sendungen aus',()=>{
+test('RC1547: offene Abholungen schließen Entwurf, Storniert und bereits abgeholte Sendungen aus',()=>{
   const source=fs.readFileSync(UI,'utf8');
   const context={console,setTimeout(){return 1},clearTimeout(){},setInterval(){return 1},clearInterval(){}};
   context.globalThis=context;
@@ -34,7 +34,7 @@ test('RC1546: offene Abholungen schließen Entwurf, Storniert und bereits abgeho
   assert.deepEqual(Array.from(rows,r=>r.reference),['OPEN01','CREAT1']);
 });
 
-test('RC1546: Print-Control enthält Kontrollfelder, Alter und manuelle Nachtragsaktion',()=>{
+test('RC1547: Print-Control enthält Kontrollfelder, Alter und manuelle Nachtragsaktion',()=>{
   const ui=fs.readFileSync(UI,'utf8');
   for(const marker of [
     'Abholkontrolle',
@@ -48,7 +48,7 @@ test('RC1546: Print-Control enthält Kontrollfelder, Alter und manuelle Nachtrag
   ]) assert.ok(ui.includes(marker),marker+' fehlt');
 });
 
-test('RC1546: manuelle Abholung verlangt Datum und Begründung und schreibt revisionssichere Felder',()=>{
+test('RC1547: manuelle Abholung verlangt Datum und Begründung und schreibt revisionssichere Felder',()=>{
   const api=fs.readFileSync(API,'utf8');
   for(const marker of [
     "require('../shared/fast-auth-store')",
@@ -65,7 +65,7 @@ test('RC1546: manuelle Abholung verlangt Datum und Begründung und schreibt revi
   assert.match(api,/reason.*required|reason.*erforderlich|Begr/i);
 });
 
-test('RC1546: spätere Status werden durch manuelles Nachtragen niemals zurückgestuft',()=>{
+test('RC1547: spätere Status werden durch manuelles Nachtragen niemals zurückgestuft',()=>{
   const source=fs.readFileSync(API,'utf8');
   assert.match(source,/POD vorhanden/);
   assert.match(source,/Abgeschlossen/);
@@ -73,7 +73,13 @@ test('RC1546: spätere Status werden durch manuelles Nachtragen niemals zurückg
   assert.match(source,/preserve|nicht zur.ck|laterStatus|statusRank/i);
 });
 
-test('RC1546: aktueller RC1112-Build nimmt Runtime und API in das Deploy-Paket auf',()=>{
+test('RC1547: Pickup-Control beobachtet nicht den kompletten DOM-Baum auf Child-Mutations',()=>{
+  const ui=fs.readFileSync(UI,'utf8');
+  assert.doesNotMatch(ui,/childList\s*:\s*true/,'Pickup-Control darf keine globalen Child-Mutations beobachten');
+  assert.match(ui,/attributeFilter\s*:\s*\['data-exporthub-view'\]/,'View-Wechsel sollen gezielt beobachtet werden');
+});
+
+test('RC1547: aktueller RC1112-Build nimmt Runtime und API in das Deploy-Paket auf',()=>{
   const finalizer=fs.readFileSync(FINALIZER,'utf8');
   assert.match(finalizer,/rc1546-pickup-control\.js\?v=1546/);
   assert.match(finalizer,/assets[^\n]+rc1546-pickup-control\.js/);
