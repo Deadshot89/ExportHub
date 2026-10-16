@@ -32,7 +32,7 @@ test('RC1556: reale verschachtelte POD-Abholfelder bleiben kompakt und zeigen je
       reference:'Y826DM',
       status:'Abgeholt',
       palletOut:12,
-      signatureData:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Zl9sAAAAASUVORK5CYII=',
+      signatureData:'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMjAiIGhlaWdodD0iNDAiPjxwYXRoIGQ9Ik01IDI4IEMyNSA1IDQwIDM1IDYwIDEyIFM5NSAzMCAxMTUgOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJibGFjayIgc3Ryb2tlLXdpZHRoPSIzIi8+PC9zdmc+',
       pickupHistory:[{
         complete:true,
         driverName:'Balletanu',
@@ -102,6 +102,7 @@ test('RC1556: reale verschachtelte POD-Abholfelder bleiben kompakt und zeigen je
   expect(result.signatureHeight,'Fahrerunterschrift darf maximal 16mm hoch sein').toBeLessThanOrEqual(62);
   expect(result.signatureHeight).toBeGreaterThan(0);
   expect(result.signatureImageHeight,'Signaturbild darf maximal 15mm hoch sein').toBeLessThanOrEqual(58);
+  expect(result.signatureImageHeight,'Signaturbild muss sichtbar bleiben').toBeGreaterThan(0);
   expect(result.signatureCardHeight,'Das äußere Unterschriftsfeld darf nicht mehr wie im Produktionsfehler aufgezogen werden').toBeLessThanOrEqual(92);
   expect(result.maxPickupCardHeight,'Kein Abholfeld darf durch versteckte Altinhalte riesig werden').toBeLessThanOrEqual(92);
   expect(result.maxPickupCardHeight-result.minPickupCardHeight,'Abholfelder derselben Grid-Zeilen sollen kompakt bleiben').toBeLessThanOrEqual(16);

@@ -7,7 +7,8 @@ const base=fs.readFileSync('assets/rc1305-loading-list-print.js','utf8');
 const wrapper=fs.readFileSync('assets/document-print-name.js','utf8');
 
 test('POD: final print layer constrains the driver signature to 16mm',()=>{
-  assert.match(wrapper,/height:16mm!important;min-height:0!important;max-height:16mm!important/);
+  assert.match(wrapper,/height:16mm!important;min-height:16mm!important;max-height:16mm!important/);
+  assert.match(wrapper,/\[data-rc1503-pickup-field\] \[data-rc1503-pickup-value\]\.rc1503-signature-value/);
   assert.match(wrapper,/max-height:15mm!important;object-fit:contain!important/);
 });
 test('RC1556 POD: final print layer recursively suppresses nested legacy pickup text',()=>{
@@ -15,8 +16,9 @@ test('RC1556 POD: final print layer recursively suppresses nested legacy pickup 
   assert.match(wrapper,/querySelectorAll\('\.rc390-txt,\.rc352-txt'\)/);
   assert.doesNotMatch(wrapper,/\[data-rc1503-pickup-field\]>\.rc390-txt/);
   assert.doesNotMatch(wrapper,/\[data-rc1503-pickup-field\]>\.rc352-txt/);
-  assert.match(wrapper,/\[data-rc1503-pickup-field\] \.rc390-txt/);
-  assert.match(wrapper,/\[data-rc1503-pickup-field\] \.rc352-txt/);
+  assert.match(wrapper,/\[data-rc1556-legacy-pickup-hidden\]\{display:none!important/);
+  assert.doesNotMatch(wrapper,/\[data-rc1503-pickup-field\] \.rc390-txt/);
+  assert.doesNotMatch(wrapper,/\[data-rc1503-pickup-field\] \.rc352-txt/);
   assert.match(wrapper,/data-rc1556-legacy-pickup-hidden/);
   assert.match(wrapper,/align-self:start!important/);
 });
