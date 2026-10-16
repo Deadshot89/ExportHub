@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import vm from 'node:vm';
 import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
 
@@ -103,4 +104,20 @@ test('RC1554 edit success keeps edit identity after the modal closes',()=>{
 test('RC1554 packaging administration asset is copied into every final Packmeldungen build',()=>{
   const build=fs.readFileSync('.github/packmeldungen/build-three-env.mjs','utf8');
   assert.match(build,/['"]packaging-admin\.js['"]/, 'PACK_ASSETS must include packaging-admin.js so the dynamic runtime exists in dist-rc1112');
+});
+
+test('RC1554 public pack fallback is used only when the packaging master request is unavailable',async()=>{
+  const source=fs.readFileSync('assets/packaging-catalog.js','utf8');
+  const okWindow={fetch:async()=>({ok:true})};
+  vm.runInNewContext(source,{window:okWindow,globalThis:okWindow});
+  assert.ok(okWindow.ExportHubPackagingCatalog.list().length>0,'fallback must exist before the server master is confirmed');
+  await okWindow.fetch('/api/pack-notification?action=packaging-list',{method:'POST'});
+  assert.equal(okWindow.ExportHUBPackagingMasterAuthoritative,true,'successful packaging-list request must mark server master authoritative');
+  assert.equal(okWindow.ExportHubPackagingCatalog.list().length,0,'fallback must not re-add packaging after authoritative master load');
+
+  const failedWindow={fetch:async()=>({ok:false})};
+  vm.runInNewContext(source,{window:failedWindow,globalThis:failedWindow});
+  await failedWindow.fetch('/api/pack-notification?action=packaging-list',{method:'POST'});
+  assert.notEqual(failedWindow.ExportHUBPackagingMasterAuthoritative,true);
+  assert.ok(failedWindow.ExportHubPackagingCatalog.list().length>0,'fallback must remain available when master request fails');
 });
