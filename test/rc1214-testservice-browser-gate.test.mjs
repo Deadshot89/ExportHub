@@ -87,3 +87,17 @@ test('RC1215: mutierender TESTSERVICE-Live-Test hat ausreichend Zeit für mehrer
   assert.match(mutation,/test\.setTimeout\(180_000\);/);
   assert.doesNotMatch(mutation,/test\.setTimeout\(90_000\);/);
 });
+
+test('RC1540: Live-Ready wartet bis der sichtbare Startup-Ladezustand vollständig beendet ist',()=>{
+  const start=helper.indexOf('export async function waitReady(page)');
+  const end=helper.indexOf('function responsiveViewport(page)',start);
+  assert.ok(start>=0&&end>start);
+  const block=helper.slice(start,end);
+  assert.match(block,/ExportHUB wird vorbereitet/);
+  assert.match(block,/ExportHUB wird geladen/);
+  assert.match(block,/loadingVisible/);
+  assert.match(block,/return !!content&&text\.length>10&&!!view&&interactive&&!loadingVisible;/);
+  assert.match(block,/ExportHUBRC1067StartupRecovery/);
+  assert.match(block,/startupLoading/);
+  assert.match(block,/return !startupLoading;/);
+});

@@ -126,9 +126,24 @@ export async function waitReady(page){
       const body=document.body,content=document.getElementById('content');
       const view=String(body&&body.getAttribute&&body.getAttribute('data-exporthub-view')||'').trim();
       const text=String(content&&content.innerText||'').trim();
+      const allText=String(document.body&&document.body.innerText||'').trim();
       const interactive=typeof window.setView==='function'||!!document.querySelector('[data-view],[data-target],[data-nav]');
-      return !!content&&text.length>10&&!!view&&interactive;
-    },null,{timeout:20_000});
+      const loadingVisible=/ExportHUB\s+wird\s+vorbereitet|ExportHUB\s+wird\s+geladen|Azure-Teamdaten\s+werden\s+geladen|Teamdaten\s+werden\s+wiederhergestellt|Gespeicherte\s+Sitzung\s+und\s+Teamdaten/i.test(allText);
+      return !!content&&text.length>10&&!!view&&interactive&&!loadingVisible;
+    },null,{timeout:25_000});
+  }
+  if(process.env.EXPORTHUB_E2E_LIVE==='1'){
+    await page.waitForFunction(()=>{
+      const recovery=window.ExportHUBRC1067StartupRecovery;
+      if(recovery&&typeof recovery.loading==='function'){
+        try{if(recovery.loading())return false}catch(_){}
+      }
+      const content=document.getElementById('content');
+      const text=String(content&&content.textContent||document.body&&document.body.textContent||'').trim();
+      const startupLoading=/ExportHUB\s+wird\s+geladen|Teamdaten\s+werden\s+wiederhergestellt|Gespeicherte\s+Sitzung\s+und\s+Teamdaten/i.test(text)||
+        /ExportHUB\s+wird\s+vorbereitet|Azure-Teamdaten\s+werden\s+geladen/i.test(text);
+      return !startupLoading;
+    },null,{timeout:25_000});
   }
   if(process.env.EXPORTHUB_E2E_LIVE==='1'){
     await page.waitForFunction(()=>{
