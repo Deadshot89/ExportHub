@@ -103,6 +103,27 @@ test('RC1553: production workflow materializes the explicitly checked-out releas
   assert.ok(productionWorkflow.indexOf('RC1553 deployment metadata')<productionWorkflow.indexOf('Deploy ExportHUB production'));
 });
 
+test('RC1553: TESTSERVICE verifies the live health build identity after deployment',()=>{
+  assert.match(testserviceWorkflow,/RC1553 TESTSERVICE deployment identity prüfen/);
+  assert.match(testserviceWorkflow,/\/api\/exporthub-health/);
+  assert.match(testserviceWorkflow,/deployment\.buildId/);
+  assert.match(testserviceWorkflow,/deployment\.verified/);
+  const deploy=testserviceWorkflow.indexOf('Deploy ExportHUB TESTSERVICE');
+  const verify=testserviceWorkflow.indexOf('RC1553 TESTSERVICE deployment identity prüfen');
+  assert.ok(deploy>=0&&verify>deploy,'Live-Identität muss nach TESTSERVICE-Deploy geprüft werden');
+});
+
+test('RC1553: production verifies the live health build identity against RELEASE_SHA after deployment',()=>{
+  assert.match(productionWorkflow,/RC1553 PRODUCTION deployment identity prüfen/);
+  assert.match(productionWorkflow,/\/api\/exporthub-health/);
+  assert.match(productionWorkflow,/deployment\.buildId/);
+  assert.match(productionWorkflow,/deployment\.verified/);
+  assert.match(productionWorkflow,/RELEASE_SHA/);
+  const deploy=productionWorkflow.indexOf('Deploy ExportHUB production');
+  const verify=productionWorkflow.indexOf('RC1553 PRODUCTION deployment identity prüfen');
+  assert.ok(deploy>=0&&verify>deploy,'Live-Identität muss nach Production-Deploy geprüft werden');
+});
+
 test('RC1553: legacy RC1060 health contract remains present for existing probes',()=>{
   const source=fs.readFileSync(new URL('../api/exporthub-health/index.js',import.meta.url),'utf8');
   assert.match(source,/version:\s*['"]RC1060['"]/);
