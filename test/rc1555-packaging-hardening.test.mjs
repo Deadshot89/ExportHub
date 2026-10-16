@@ -40,7 +40,8 @@ test('RC1555 server migration seeds canonical packaging defaults and protects E3
 test('RC1555 public pack metadata endpoint returns active canonical packaging, not only disabled names',()=>{
   const source=fs.readFileSync('api/packaging-public-state/index.js','utf8');
   assert.match(source,/packaging-admin-store/,'public station endpoint must consume canonical packaging domain');
-  assert.match(source,/packaging\s*:/,'public station response must include active canonical packaging records');
+  assert.match(source,/const\s+packaging\s*=\s*publicPackaging\(state\)/,'public station endpoint must materialize canonical active packaging');
+  assert.match(source,/context\.res=json\(200,\{ok:true,packaging,/,'public station response must include active canonical packaging records');
 });
 
 test('RC1555 enforces case-insensitive unique packaging codes across active and inactive records',()=>{
