@@ -1,0 +1,25 @@
+name: RC1547 TaskPlanner Production Gate Contract
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/exporthub-production-release.yml'
+      - '.github/workflows/rc1547-taskplanner-production-gate.yml'
+      - 'e2e/specs/taskplanner-v2-production.spec.mjs'
+      - 'test/rc1547-taskplanner-v2-production-live-gate.test.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+      - name: RC1547 Production-Live-Vertrag prüfen
+        run: node --test test/rc1547-taskplanner-v2-production-live-gate.test.mjs
