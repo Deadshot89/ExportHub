@@ -4,6 +4,7 @@ const crypto=require('crypto');
 const {BlobServiceClient}=require('@azure/storage-blob');
 const auth=require('../shared/auth-store');
 const fastAuth=require('../shared/fast-auth-store');
+const apiI18n=require('../shared/i18n');
 
 const TEAM_CONTAINER=process.env.EXPORTHUB_STORAGE_CONTAINER||process.env.EXPORTHUB_CONTAINER||'exporthub-data';
 const TEAM_BLOB_BASE=process.env.EXPORTHUB_STORAGE_BLOB||process.env.EXPORTHUB_STATE_BLOB||'team-state.json';
@@ -157,7 +158,8 @@ function applyManualPickup(shipment,input,actor,stamp,eventId){
     id:eventId,
     at:stamp,
     type:'pickup-manual-confirmation',
-    label:oldDate?'Abholdatum manuell geändert':'Abholung manuell bestätigt',
+    label:apiI18n.tLang('de',oldDate?'api.pickup.manualDateChanged':'api.pickup.manualConfirmed'),
+    labelKey:oldDate?'api.pickup.manualDateChanged':'api.pickup.manualConfirmed',
     actor:{name:actor,role:'ExportHUB'},
     details:revision
   });
@@ -177,7 +179,7 @@ async function confirmManualPickup(environment,id,reference,payload,user){
     copies.forEach((shipment,index)=>{const next=applyManualPickup(shipment,input,actor,stamp,eventId);if(index===0)values=next});
     team.revision=Math.max(0,Number(team.revision)||0)+1;
     team.updatedAt=stamp;
-    team.clientVersion='RC1546';
+    team.clientVersion='RC1547';
     try{
       await writeTeam(blob,team,loaded.etag);
       const primary=copies[0],status=text(primary.status||primary.processStatus||primary.shipmentStatus)||'Abgeholt';
@@ -201,7 +203,7 @@ module.exports=async function(context,req){
     const result=await confirmManualPickup(environment,id,reference,payload,session.user);
     context.res=json(200,{ok:true,environment,reference,shipmentId:id,values:result.values,eventId:result.eventId,actor:result.actor,confirmedAt:result.confirmedAt});
   }catch(error){
-    context.res=json(Number(error&&(error.status||error.statusCode))||500,{ok:false,code:text(error&&error.code)||'MANUAL_PICKUP_FAILED',message:text(error&&error.message)||'Manuelle Abholung konnte nicht gespeichert werden.'});
+    context.res=json(Number(error&&(error.status||error.statusCode))||500,{ok:false,code:text(error&&error.code)||'MANUAL_PICKUP_FAILED',message:text(error&&error.message)||apiI18n.t(req,'api.pickup.manualFailed')});
   }
 };
 
