@@ -58,3 +58,39 @@ test('Issue 780: website routes first and opens only the matching rendered task 
   assert.match(hub, /ExportHUBRC325\.route\(spec\.route,'android-notification'\)/);
   assert.match(hub, /spec\.taskId\?openTaskCard\(spec\.taskId\):true/);
 });
+
+test('Issue 780: scheduled receiver processes every valid snapshot task, not only tasks[0]', () => {
+  const receiver = read('android-app/app/src/main/java/de/exporthub/test/ReminderReceiver.java');
+  assert.doesNotMatch(receiver, /tasks\.optJSONObject\(0\)/, 'receiver must not be limited to the first task');
+  assert.match(receiver, /for\s*\(int\s+i\s*=\s*0;\s*i\s*<\s*tasks\.length\(\);\s*i\+\+\)/);
+  assert.match(receiver, /JSONObject task = tasks\.optJSONObject\(i\)/);
+  assert.match(receiver, /if\s*\(task\s*==\s*null\)\s*continue/);
+  assert.match(receiver, /if\s*\(taskId\.isEmpty\(\)\s*\|\|\s*title\.isEmpty\(\)\)\s*continue/);
+});
+
+test('Issue 780: each task keeps its own slot-scoped dedupe key and task-specific route', () => {
+  const receiver = read('android-app/app/src/main/java/de/exporthub/test/ReminderReceiver.java');
+  assert.match(receiver, /String key = taskId \+ "\\|" \+ day \+ "\\|" \+ hour \+ "\\|" \+ env \+ "\\|" \+ userId/);
+  assert.match(receiver, /\? "tasks:" \+ taskId/);
+  assert.match(receiver, /NotificationHelper\.show\([\s\S]{0,700}key,[\s\S]{0,700}directRoute\)/);
+});
+
+test('Issue 780: task notification dedupe is isolated per safeKey while warning and diagnostic semantics stay unchanged', () => {
+  const helper = read('android-app/app/src/main/java/de/exporthub/test/NotificationHelper.java');
+  assert.match(helper, /String dedupeKey = "last:" \+ env \+ ":" \+ normalizedChannel/);
+  assert.match(helper, /"notification"\.equals\(normalizedChannel\)[\s\S]{0,180}safeKey/);
+  assert.match(helper, /prefs\.getString\(dedupeKey/);
+});
+
+test('Issue 780: multiple tasks get an Android group summary without replacing individual task notifications', () => {
+  const receiver = read('android-app/app/src/main/java/de/exporthub/test/ReminderReceiver.java');
+  const helper = read('android-app/app/src/main/java/de/exporthub/test/NotificationHelper.java');
+  assert.match(receiver, /validTaskCount\+\+/);
+  assert.match(receiver, /if\s*\(validTaskCount\s*>\s*1\)/);
+  assert.match(receiver, /NotificationHelper\.showTaskSummary\s*\(/);
+  assert.match(receiver, /highestPriority/);
+  assert.match(helper, /showTaskSummary\s*\(/);
+  assert.match(helper, /setGroup\s*\(/);
+  assert.match(helper, /setGroupSummary\s*\(true\)/);
+  assert.match(helper, /offene Aufgaben/);
+});
