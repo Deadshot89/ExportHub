@@ -49,6 +49,9 @@ public class ReminderReceiver extends BroadcastReceiver {
             String body = title
                     + (sourceRef.isEmpty() ? "" : " · " + sourceRef)
                     + " · " + dueText;
+            String directRoute = route.isEmpty() || "tasks".equalsIgnoreCase(route)
+                    ? "tasks:" + taskId
+                    : route;
 
             NotificationHelper.show(
                     context,
@@ -57,7 +60,7 @@ public class ReminderReceiver extends BroadcastReceiver {
                     key,
                     "ExportHUB Aufgabe · " + priority,
                     body,
-                    route.isEmpty() ? "tasks" : route);
+                    directRoute);
         } catch (Exception ignored) {
             // Corrupt/stale snapshots must fail closed. The next successful website
             // sync replaces the snapshot; no generic or misleading task is shown.
