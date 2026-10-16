@@ -101,6 +101,7 @@ test('RC1555: POD-Abholfelder ersetzen auch verschachtelte Altwerte und bleiben 
   expect(result.signatureImageHeight,'Signaturbild darf maximal 15mm hoch sein').toBeLessThanOrEqual(58);
   expect(result.palletMarker,'Palettenkonto muss als normalisierter Einzelwert markiert sein').toBe(true);
   expect(result.palletValueCount,'Palettenkonto darf nur einen dynamischen Wert enthalten').toBe(1);
+  expect(result.palletText,'Ein bereits eingebetteter Paletten-Kontostand darf nicht durch ein leeres Demo-/Live-Ledger verloren gehen').toMatch(/Zu Gunsten Essentra:\s*12 Europaletten/i);
   expect(result.palletText).not.toMatch(/Ausgang:\s*99|Eingang\/Rückgabe:\s*88/i);
   expect(result.bodyText).not.toMatch(/ALTE UNTERSCHRIFT|ALTER FAHRER|ALTES DATUM|ALTES KENNZEICHEN|ALTER VERLADER/i);
 
