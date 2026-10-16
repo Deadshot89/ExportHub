@@ -38,10 +38,12 @@ jobs:
 
           test "$(git log -1 --pretty=%s)" = 'RC1546: No-Rerender Performance-Fix auf aktuellen main portieren'
 
-          # GitHub-Actions-Tokens dürfen keine Workflow-Dateien ändern. Daher
-          # bleiben alle Workflow-Dateien exakt auf dem Elternstand; nur
-          # Produktcode, Tests und E2E-Beweise werden vom Runner gepusht.
-          git checkout HEAD^ -- .github/workflows
+          # Der Runner darf keine Workflow-Dateien pushen. Die Migration erzeugt
+          # lokal bereits den fertigen Produkt-/Testcommit; vor dem Push entfernen
+          # wir nur die neu erzeugte Workflow-Datei und stellen den einmaligen
+          # Workflow aus dem Elterncommit wieder her.
+          git rm -f --ignore-unmatch .github/workflows/rc1546-performance-regression.yml
+          git checkout HEAD^ -- .github/workflows/rc1546-forward-port-once.yml
           git add .github/workflows
           git commit --amend --no-edit
           git push origin HEAD:perf/rc1546-no-rerender-current-main
