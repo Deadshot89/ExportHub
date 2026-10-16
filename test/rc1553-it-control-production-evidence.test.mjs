@@ -59,6 +59,38 @@ test('RC1553: Health exposes verified deployment identity from runtime metadata'
   });
 });
 
+test('RC1553: deployed release-metadata file stays authoritative when runtime metadata is only partial',async()=>{
+  const metadataPath=path.join(os.tmpdir(),`exporthub-release-metadata-${process.pid}-${Date.now()}.json`);
+  fs.writeFileSync(metadataPath,JSON.stringify({
+    buildId:'89abcdef0123456789abcdef0123456789abcdef',
+    visibleRelease:'RC1548',
+    technicalBuild:'RC1112',
+    builtAt:'2026-10-16T14:30:00.000Z',
+    environment:'production'
+  }));
+  try{
+    await withEnv({
+      EXPORTHUB_DEPLOY_BUILD_ID:null,
+      EXPORTHUB_DEPLOY_VISIBLE_RELEASE:null,
+      EXPORTHUB_DEPLOY_TECHNICAL_BUILD:null,
+      EXPORTHUB_DEPLOY_BUILT_AT:null,
+      EXPORTHUB_DEPLOY_ENVIRONMENT:'production',
+      EXPORTHUB_RELEASE_METADATA_PATH:metadataPath
+    },async()=>{
+      const result=await invoke();
+      assert.equal(result.body.deployment.verified,true);
+      assert.equal(result.body.deployment.status,'verified');
+      assert.equal(result.body.deployment.buildId,'89abcdef0123456789abcdef0123456789abcdef');
+      assert.equal(result.body.deployment.visibleRelease,'RC1548');
+      assert.equal(result.body.deployment.technicalBuild,'RC1112');
+      assert.equal(result.body.deployment.environment,'production');
+      assert.equal(result.body.deployment.source,'release-metadata');
+    });
+  }finally{
+    fs.rmSync(metadataPath,{force:true});
+  }
+});
+
 test('RC1553: Missing deployment metadata fails closed instead of claiming a verified version',async()=>{
   await withEnv({
     EXPORTHUB_DEPLOY_BUILD_ID:null,
