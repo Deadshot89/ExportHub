@@ -11,6 +11,7 @@ on:
       - '.github/rc1112/build-three-env.mjs'
       - 'test/rc1152-task-detail-roster.test.mjs'
       - 'test/rc1207-ups-toolbox.test.mjs'
+      - 'test/rc1548-shipping-cost-autofill.test.mjs'
       - 'assets/rc1014-task-runtime.js'
       - 'assets/rc1206-shipping-rules.js'
       - 'test/rc1151-document-download-history.test.mjs'
@@ -28,5 +29,7 @@ jobs:
       - run: node --test test/rc1151-document-download-history.test.mjs
       - name: RC1266 UPS und Aufgaben Regression
         run: node --test test/rc1207-ups-toolbox.test.mjs test/rc1152-task-detail-roster.test.mjs
+      - name: RC1548 Versandkosten Autoübernahme Regression
+        run: node --test test/rc1548-shipping-cost-autofill.test.mjs
       - name: RC1266 Drei-Umgebungen-Build
         run: node .github/rc1112/build-three-env.mjs
