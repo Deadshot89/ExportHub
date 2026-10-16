@@ -1,0 +1,27 @@
+name: RC1548 Pickup Host Regression
+
+on:
+  push:
+    branches:
+      - fix/rc1548-pickup-detail-host-reference
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'assets/rc1546-pickup-control.js'
+      - 'test/rc1548-pickup-detail-host-reference.test.mjs'
+      - '.github/workflows/rc1548-pickup-host-regression.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+      - name: RC1548 pickup detail host regression
+        run: node --test test/rc1548-pickup-detail-host-reference.test.mjs
