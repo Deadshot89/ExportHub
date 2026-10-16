@@ -1,0 +1,30 @@
+name: RC1547 Pickup Control Verify
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'assets/rc1546-pickup-control.js'
+      - 'api/manual-pickup-confirm/**'
+      - 'api/shared/i18n.js'
+      - 'test/rc1546-pickup-control.test.mjs'
+      - 'test/rc1547-abd-age-kpi.test.mjs'
+      - '.github/rc1488/finalize-auto-update.mjs'
+      - '.github/workflows/rc1547-pickup-control-verify.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: RC1547 gezielte Abholkontrolle-Regression
+        run: node --test --test-concurrency=1 test/rc1546-pickup-control.test.mjs test/rc1547-abd-age-kpi.test.mjs
