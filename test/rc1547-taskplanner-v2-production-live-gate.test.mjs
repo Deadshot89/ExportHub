@@ -21,7 +21,7 @@ test('RC1547: Production Release enthält dedizierte TaskPlanner-V2 Read-only Li
   assert.match(block,/EXPORTHUB_E2E_LIVE:\s*'1'/);
   assert.match(block,/EXPORTHUB_E2E_BASE_URL:\s*https:\/\/wonderful-forest-0f315e310\.7\.azurestaticapps\.net/);
   assert.match(block,/EXPORTHUB_E2E_PUBLIC_ENV:\s*production/);
-  assert.match(block,/npx playwright test e2e\/specs\/taskplanner-v2-production\.spec\.mjs --project=laptop/);
+  assert.match(block,/npx playwright test ['"]?\$gate_spec['"]? --project=laptop/);
 });
 
 test('RC1547: TaskPlanner-Production-Smoke bleibt explizit read-only',()=>{
