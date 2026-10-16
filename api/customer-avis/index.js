@@ -22,7 +22,7 @@ const MAX_UPLOADS_PER_HOUR=8;
 const AVIS_CONFIRMED_STATUS='bestätigt';
 const AVIS_UPLOAD_NOTIFICATION_TO=process.env.EXPORTHUB_AVIS_UPLOAD_NOTIFICATION_TO||'DespatchNettetal@essentra.com';
 // RC1366: canonical ExportHUB360 AVIS production origin.
-const PRODUCTION_AVIS_ORIGIN='https://exporthub360.com';
+const PRODUCTION_AVIS_ORIGIN='https://www.exporthub360.de';
 const TESTSERVICE_AVIS_ORIGIN='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net';
 function essentraAvisCustomer(sh,c){
  sh=sh||{};c=c||{};

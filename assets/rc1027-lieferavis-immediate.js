@@ -5,7 +5,7 @@ window.__EXPORTHUB_RC1027_LIEFERAVIS_IMMEDIATE__=true;
 
 var previous=null,wrapper=null,earlyPending=null,visibleSyncing=false,draftSyncTimer=0,draftSyncPending=null,lastDraftSignature='',avisLinkCache=Object.create(null);
 function q(v){return String(v==null?'':v).trim()}
-var RC1333_PROD_AVIS_ORIGIN='https://exporthub360.com';
+var RC1333_PROD_AVIS_ORIGIN='https://www.exporthub360.de';
 var RC1333_TEST_AVIS_ORIGIN='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net';
 function rc1331AvisToken(sh,url){
  var token=q(sh&&(sh.customerAvisToken||sh.avisToken));
