@@ -12,10 +12,17 @@ test('POD: both print layers constrain the driver signature to 16mm',()=>{
     assert.match(source,/max-height:15mm!important;object-fit:contain!important/);
   }
 });
-test('POD: both print layers suppress replaced legacy pickup text',()=>{
+test('RC1555 POD: both print layers suppress nested legacy pickup text',()=>{
   for(const source of [base,wrapper]){
-    assert.match(source,/\[data-rc1503-pickup-field\]>\.rc390-txt/);
-    assert.match(source,/\[data-rc1503-pickup-field\]>\.rc352-txt/);
+    assert.match(source,/\[data-rc1503-pickup-field\] \.rc390-txt/);
+    assert.match(source,/\[data-rc1503-pickup-field\] \.rc352-txt/);
+    assert.doesNotMatch(source,/\[data-rc1503-pickup-field\]>\.rc390-txt/);
+  }
+});
+test('RC1555 POD: card lookup prefers the real outer loading-list card before generic field wrappers',()=>{
+  for(const source of [base,wrapper]){
+    assert.match(source,/el\.closest\('\.rc390-card,\.rc352-card'\)/);
+    assert.match(source,/explicit&&explicit!==root/);
   }
 });
 test('POD: pallet balance is rendered as a single normalized value',()=>{
