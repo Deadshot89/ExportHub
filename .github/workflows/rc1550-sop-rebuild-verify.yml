@@ -52,8 +52,44 @@ jobs:
             .github/rc1550/bsh-upload/part-13_14
           )
           for chunk in "${chunks[@]}"; do test -s "$chunk" || { echo "Fehlender Archivteil: $chunk"; exit 1; }; done
-          cat "${chunks[@]}" | tr -d '\r\n\t ' > /tmp/bsh-screenshots.tar.gz.b64
-          base64 --decode /tmp/bsh-screenshots.tar.gz.b64 > /tmp/bsh-screenshots.tar.gz
+          python - <<'PY'
+          from pathlib import Path
+          import base64, binascii, re
+          paths = [
+            '.github/rc1550/bsh-upload/part-00',
+            '.github/rc1550/bsh-upload/part-01',
+            '.github/rc1550/bsh-upload/part-02',
+            '.github/rc1550/bsh-upload/part-03',
+            '.github/rc1550/bsh-upload/part-04',
+            '.github/rc1550/bsh-upload/part-05',
+            '.github/rc1550/bsh-upload/part-06',
+            '.github/rc1550/bsh-upload/part-07_08',
+            '.github/rc1550/bsh-upload/part-09_10',
+            '.github/rc1550/bsh-upload/part-11_12',
+            '.github/rc1550/bsh-upload/part-13_14',
+          ]
+          allowed = set('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=')
+          pieces=[]
+          any_bad=False
+          for path in paths:
+              raw=Path(path).read_text('utf-8')
+              clean=''.join(raw.split())
+              bad=[(i, repr(ch), ord(ch)) for i,ch in enumerate(clean) if ch not in allowed]
+              print(f'{path}: len={len(clean)} mod4={len(clean)%4} start={clean[:12]!r} end={clean[-12:]!r} invalid={bad[:12]}')
+              if bad: any_bad=True
+              pieces.append(clean)
+          data=''.join(pieces)
+          print(f'assembled: len={len(data)} mod4={len(data)%4} padding={data.count("=")}')
+          Path('/tmp/bsh-screenshots.tar.gz.b64').write_text(data, encoding='ascii', errors='strict')
+          if any_bad:
+              raise SystemExit('Nicht-Base64-Zeichen in Staging-Chunks gefunden')
+          try:
+              decoded=base64.b64decode(data, validate=True)
+          except binascii.Error as exc:
+              raise SystemExit(f'Base64-Struktur ungueltig: {exc}')
+          Path('/tmp/bsh-screenshots.tar.gz').write_bytes(decoded)
+          print(f'decoded bytes={len(decoded)} magic={decoded[:8].hex()}')
+          PY
           gzip -t /tmp/bsh-screenshots.tar.gz
           rm -rf /tmp/bsh-extract
           mkdir -p /tmp/bsh-extract
@@ -75,7 +111,7 @@ jobs:
           mkdir -p assets/sop/screenshots/bsh
           for name in "${required[@]}"; do
             src="$(find /tmp/bsh-extract -type f -name "$name" -print -quit)"
-            test -n "$src" || { echo "Pflichtbild fehlt im Archiv: $name"; find /tmp/bsh-extract -type f -maxdepth 4 -print; exit 1; }
+            test -n "$src" || { echo "Pflichtbild fehlt im Archiv: $name"; find /tmp/bsh-extract -maxdepth 4 -type f -print; exit 1; }
             cp "$src" "assets/sop/screenshots/bsh/$name"
           done
           test "$(find assets/sop/screenshots/bsh -maxdepth 1 -type f -name '*.png' | wc -l)" -eq 11
