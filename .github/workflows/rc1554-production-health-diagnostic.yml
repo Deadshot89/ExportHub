@@ -1,0 +1,70 @@
+name: RC1554 Production Health Diagnostic
+
+on:
+  push:
+    branches:
+      - rc1554-production-health-diagnostic
+    paths:
+      - '.github/workflows/rc1554-production-health-diagnostic.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: Capture sanitized production health response
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          body="$RUNNER_TEMP/exporthub-health-body.txt"
+          headers="$RUNNER_TEMP/exporthub-health-headers.txt"
+          code="$(curl -sS -L -D "$headers" -o "$body" -w '%{http_code}' --max-time 30 "$base/api/exporthub-health?rc1554-diagnostic=${GITHUB_SHA}" || true)"
+          HTTP_CODE="$code" BODY="$body" HEADERS="$headers" node <<'NODE'
+          const fs=require('fs');
+          const crypto=require('crypto');
+          const code=process.env.HTTP_CODE||'';
+          const raw=fs.existsSync(process.env.BODY)?fs.readFileSync(process.env.BODY,'utf8'):'';
+          const headers=fs.existsSync(process.env.HEADERS)?fs.readFileSync(process.env.HEADERS,'utf8'):'';
+          let parsed=null;
+          try{parsed=raw?JSON.parse(raw):null}catch(_){}
+          const out={
+            httpStatus:code,
+            contentType:(headers.match(/^content-type:\s*([^\r\n]+)/im)||[])[1]||null,
+            bodySha256:crypto.createHash('sha256').update(raw).digest('hex'),
+            json:parsed?{
+              ok:parsed.ok??null,
+              service:parsed.service??null,
+              version:parsed.version??null,
+              release:parsed.release??null,
+              deployment:parsed.deployment?{
+                status:parsed.deployment.status??null,
+                verified:parsed.deployment.verified??null,
+                buildId:parsed.deployment.buildId??null,
+                visibleRelease:parsed.deployment.visibleRelease??null,
+                technicalBuild:parsed.deployment.technicalBuild??null,
+                builtAt:parsed.deployment.builtAt??null,
+                environment:parsed.deployment.environment??null,
+                source:parsed.deployment.source??null
+              }:null
+            }:null,
+            nonJsonPreview:parsed?null:raw.slice(0,400).replace(/[\r\n\t]+/g,' ')
+          };
+          fs.writeFileSync('production-health-diagnostic.json',JSON.stringify(out,null,2)+'\n');
+          console.log(JSON.stringify(out));
+          NODE
+      - name: Upload diagnostic artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: rc1554-production-health-diagnostic-${{ github.sha }}
+          path: production-health-diagnostic.json
+          if-no-files-found: error
+          retention-days: 2
