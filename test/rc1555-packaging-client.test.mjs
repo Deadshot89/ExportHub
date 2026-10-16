@@ -72,6 +72,15 @@ test('RC1555 QR client preserves canonical packaging id and sends it with draft 
   assert.match(source,/packageTypeId:packageEntry\?packageEntry\.id:''/,'submit payload must send selected canonical packaging id');
 });
 
+test('RC1555 QR client keeps active master packaging selectable when dimensions are intentionally empty',()=>{
+  const source=read('assets/pack-notification.js');
+  assert.doesNotMatch(source,/if\s*\(!length\s*\|\|\s*!width\)\s*return null/,'master packaging without preset dimensions must not disappear from QR selection');
+  assert.match(source,/length\s*=\s*positive\(raw&&raw\.length\)\s*\|\|\s*null/,'missing master length should remain null until the packer enters it');
+  assert.match(source,/width\s*=\s*positive\(raw&&raw\.width\)\s*\|\|\s*null/,'missing master width should remain null until the packer enters it');
+  assert.doesNotMatch(source,/String\(entry\.length\)/,'dimension defaults must not render the literal string null into an input');
+  assert.doesNotMatch(source,/String\(entry\.width\)/,'dimension defaults must not render the literal string null into an input');
+});
+
 test('RC1555 shipment packaging chooser is searchable without replacing the existing RC682 selection behavior',()=>{
   assert.equal(fs.existsSync('assets/rc1555-packaging-shipment.js'),true,'shipment packaging search runtime missing');
   const source=read('assets/rc1555-packaging-shipment.js');
