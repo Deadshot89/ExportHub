@@ -94,6 +94,13 @@ public final class NotificationHelper {
         String safeTitle = safe(title, "ExportHUB");
         String safeBody = safe(body, "ExportHUB hat einen neuen Hinweis.");
         String safeRoute = safe(route, normalizedChannel);
+        // A generic task-check reminder carries no actionable task details.
+        // Do not interrupt users with it; real task notifications remain unchanged.
+        if ("notification".equals(normalizedChannel)
+                && "ExportHUB Aufgaben prüfen".equals(safeTitle)
+                && "Prüfe deine persönlichen offenen Aufgaben in ExportHUB.".equals(safeBody)) {
+            return false;
+        }
         String signature = safeKey + "|" + safeBody;
 
         SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
