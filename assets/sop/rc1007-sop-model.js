@@ -85,10 +85,11 @@
   }
 
   function reconcileCatalog(storedDocuments,canonicalDocuments){
-    const canonical=Array.isArray(canonicalDocuments)?canonicalDocuments:[];
+    const canonical=(Array.isArray(canonicalDocuments)?canonicalDocuments:[]).filter(doc=>text(doc&&doc.number));
     const stored=Array.isArray(storedDocuments)?storedDocuments:[];
-    const storedByNumber=new Map(stored.filter(doc=>/^SOP-EH-\d{3}$/.test(text(doc&&doc.number))).map(doc=>[text(doc.number),clone(doc)]));
-    const reconciled=canonical.filter(doc=>/^SOP-EH-\d{3}$/.test(text(doc&&doc.number))).map(source=>{
+    const canonicalNumbers=new Set(canonical.map(doc=>text(doc&&doc.number)));
+    const storedByNumber=new Map(stored.filter(doc=>canonicalNumbers.has(text(doc&&doc.number))).map(doc=>[text(doc.number),clone(doc)]));
+    const reconciled=canonical.map(source=>{
       const base=seedDocument(source);
       const existing=storedByNumber.get(text(base.number));
       if(!existing) return base;
@@ -119,7 +120,12 @@
       }
       return merged;
     });
-    const customerOverlays=stored.filter(doc=>text(doc&&doc.type)==='customer').map(clone);
+    const customerOverlays=stored.filter(doc=>{
+      if(text(doc&&doc.type)!=='customer')return false;
+      const number=text(doc&&doc.number);if(!number||canonicalNumbers.has(number))return false;
+      const baseNumber=text(doc&&doc.baseSopNumber)||text(doc&&doc.baseProcessSop);
+      return !!baseNumber&&canonicalNumbers.has(baseNumber);
+    }).map(clone);
     return reconciled.concat(customerOverlays);
   }
 
@@ -156,7 +162,7 @@
   function documentStatus(document){const current=currentVersionRecord(document);return text(current&&current.status)||text(document&&document.status);}
   function filterDocuments(documents,filters){
     const list=Array.isArray(documents)?documents:[];const f=filters&&typeof filters==='object'?filters:{};const query=text(f.query||f.q).toLowerCase();const area=text(f.area);const status=text(f.status);
-    return list.filter(doc=>{if(area&&text(doc&&doc.area)!==area)return false;if(status&&documentStatus(doc)!==status)return false;if(!query)return true;const haystack=[doc&&doc.number,doc&&doc.title,doc&&doc.area].concat(Array.isArray(doc&&doc.keywords)?doc.keywords:[]).map(text).join(' ').toLowerCase();return haystack.includes(query);});
+    return list.filter(doc=>{if(area&&text(doc&&doc.area)!==area)return false;if(status&&documentStatus(doc)!==status)return false;if(!query)return true;const haystack=[doc&&doc.number,doc&&doc.title,doc&&doc.area,doc&&doc.category,doc&&doc.group,doc&&doc.carrier].concat(Array.isArray(doc&&doc.customerIds)?doc.customerIds:[]).concat(Array.isArray(doc&&doc.keywords)?doc.keywords:[]).map(text).join(' ').toLowerCase();return haystack.includes(query);});
   }
 
   root.ExportHubIsoSopModel=Object.freeze({STATUS,seedState,reconcileCatalog,createDraftVersion,submitForReview,approveVersion,archiveVersion,validateRelease,completeness,filterDocuments,currentVersionRecord,normalizeDocument});
