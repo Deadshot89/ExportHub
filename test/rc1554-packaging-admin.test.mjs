@@ -66,6 +66,14 @@ test('RC1554 hard-deletes unused packaging but archives packaging already refere
   assert.equal(soft.packaging.active,false);
   assert.equal(soft.state.inactiveColliTypes.some(x=>x.id==='CT1'),true);
   assert.equal(soft.state.packNotifications[0].packageType,'Euro Palette');
+
+  const savedOnly=baseState();
+  savedOnly.shipments=[];
+  savedOnly.packNotifications=[];
+  savedOnly.savedShipments=[{id:'S2',colli:[{type:'Euro Palette',count:1}]}];
+  const savedSoft=store.removePackaging(savedOnly,'CT1','Admin','2026-10-16T15:38:00.000Z');
+  assert.equal(savedSoft.deleted,false,'packaging used only in savedShipments must not be hard-deleted');
+  assert.equal(savedSoft.archived,true);
 });
 
 test('RC1554 admin API and UI surface expose CRUD without changing normal-user pack flow',()=>{
