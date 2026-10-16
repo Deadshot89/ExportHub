@@ -1,0 +1,46 @@
+'use strict';
+const auth=require('../shared/auth-store');
+const packaging=require('../shared/packaging-admin-store');
+
+function text(v){return String(v==null?'':v).trim();}
+function json(status,body){return{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'},body:JSON.stringify(body)};}
+function body(req){if(req&&req.body&&typeof req.body==='object')return req.body;try{return JSON.parse(req&&req.body||'{}')}catch(_){return{}}}
+function adminName(user){return text(user&&(user.name||user.displayName||user.user||user.username))||'Administrator';}
+function audit(team,event,actor,result,extra){const p=result&&result.packaging||{};auth.addAudit(team,event,actor,Object.assign({packagingId:text(p.id),packagingName:text(p.name),active:p.active!==false},extra||{}));}
+
+module.exports=async function(context,req){
+  if(req.method==='OPTIONS'){context.res={status:204,headers:{Allow:'POST, OPTIONS','Cache-Control':'no-store'},body:''};return;}
+  if(req.method!=='POST'){context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED',message:'Nur POST ist erlaubt.'});return;}
+  try{
+    const payload=body(req),current=await auth.validateSession(req),user=current.user;
+    if(!auth.isAdmin(user))throw auth.error('GLOBAL_ADMIN_REQUIRED','Nur Administratoren dürfen Verpackungen verwalten.',403);
+    const environment=auth.environmentFromRequest(req),action=text(payload.action||'list').toLowerCase(),actor=adminName(user);
+    if(action==='list'){
+      const list=packaging.listPackaging(current.team&&current.team.state||{});
+      context.res=json(200,{ok:true,packaging:list,count:list.length,environment});return;
+    }
+    const changed=await auth.mutateTeamForEnvironment(environment,team=>{
+      team.state=team.state&&typeof team.state==='object'?team.state:{};
+      let result;
+      if(action==='create'){
+        result=packaging.createPackaging(team.state,payload,actor,new Date().toISOString());
+        team.state=result.state;audit(team,'PACKAGING_CREATED',actor,result,{code:text(result.packaging.code)});
+      }else if(action==='update'){
+        result=packaging.updatePackaging(team.state,payload.id,payload,actor,new Date().toISOString());
+        team.state=result.state;audit(team,'PACKAGING_UPDATED',actor,result,{code:text(result.packaging.code)});
+      }else if(action==='toggle'){
+        result=packaging.setPackagingActive(team.state,payload.id,payload.active!==false,actor,new Date().toISOString());
+        team.state=result.state;audit(team,'PACKAGING_STATUS_CHANGED',actor,result);
+      }else if(action==='delete'){
+        result=packaging.removePackaging(team.state,payload.id,actor,new Date().toISOString());
+        team.state=result.state;audit(team,result.archived?'PACKAGING_ARCHIVED':'PACKAGING_DELETED',actor,result,{archived:!!result.archived,deleted:!!result.deleted});
+      }else throw auth.error('INVALID_ACTION','Unbekannte Verpackungs-Aktion.',400);
+      return result;
+    });
+    const result=changed.result||{};
+    context.res=json(200,{ok:true,packaging:result.packaging||null,deleted:!!result.deleted,archived:!!result.archived,changed:result.changed!==false,environment});
+  }catch(e){
+    context.log&&context.log.error&&context.log.error('packaging-admin',e&&e.code,e&&e.message);
+    context.res=json(e.status||e.statusCode||500,{ok:false,code:e.code||'SERVER_ERROR',message:e.message||'Verpackungen konnten nicht verwaltet werden.'});
+  }
+};
