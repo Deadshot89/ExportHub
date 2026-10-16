@@ -111,7 +111,6 @@ function rebuildColumns(columnsHost,names,current){
 }
 function refreshPackagingOptions(){
   var names=activePackagingNames();
-  if(!names.length)return false;
   var changed=false;
   Array.prototype.forEach.call(doc.querySelectorAll('.rc682-packaging-picker'),function(picker){
     var select=picker.querySelector('.rc682-packaging-native');
