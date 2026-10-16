@@ -29,8 +29,9 @@ test('RC1555 masterdata view provides requested columns search status filter sor
   for(const marker of ['data-packaging-search','data-packaging-status-filter','data-packaging-sort','data-packaging-rows'])assert.ok(js.includes(marker),`${marker} missing`);
   for(const value of ['name','status','updatedAt'])assert.match(js,new RegExp(`value=[\\]?['\"]${value}[\\]?['\"]`),`sort ${value} missing`);
   assert.match(js,/\['name','code','description','status','updatedAt','updatedBy','actions'\]/,'requested table column model missing');
-  assert.match(js,/packaging\.masterdata\.['"]?\s*\+\s*key|packaging\.masterdata\.\+key/,'column labels must resolve through packaging.masterdata.* i18n keys');
-  for(const action of ['create','edit','duplicate','toggle','delete'])assert.match(js,new RegExp(`data-packaging-action=[\\]?['\"]${action}`),`action ${action} missing`);
+  assert.match(js,/tr\('packaging\.masterdata\.'\+key\)/,'column labels must resolve through packaging.masterdata.* i18n keys');
+  for(const action of ['edit','duplicate','toggle','delete'])assert.ok(js.includes(`button('${action}'`),`action ${action} missing`);
+  assert.ok(js.includes('data-packaging-action="create"'),'action create missing');
 });
 
 test('RC1555 create/edit form stays in requested masterdata scope and supports active status',()=>{
