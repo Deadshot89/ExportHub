@@ -117,7 +117,7 @@ test('existing initial registration from the normal Outlook mail area enables th
 });
 
 test('other customers keep branded links and TESTSERVICE remains isolated in the Outlook text',async()=>{
- for(const fixture of [{hostname:'www.exporthub360.de',customerName:'Hitachi',wanted:'https://www.exporthub360.de/avis/abc?lang=de'},{hostname:'ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net',customerName:'Essentra Sweden',wanted:'https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net/customer-avis.html?token=abc&environment=testservice&lang=de'}]){
+ for(const fixture of [{hostname:'www.exporthub360.de',customerName:'Hitachi',wanted:'https://exporthub360.com/avis/abc?lang=de'},{hostname:'ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net',customerName:'Essentra Sweden',wanted:'https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net/customer-avis.html?token=abc&environment=testservice&lang=de'}]){
   const {api,sh,state,launches}=setup(fixture);sh.customerName=fixture.customerName;state.customers[0].name=fixture.customerName;
   await api.sendReminder(sh,'carrier@example.com','carrier','de',sh.customerAvisUrl,'reminder');
   assert.ok(new URL(launches[0]).searchParams.get('body').includes(fixture.wanted));
