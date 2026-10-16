@@ -41,7 +41,7 @@ const testVerify=`      - name: RC1553 TESTSERVICE deployment identity prüfen
           body="$(mktemp)"
           trap 'rm -f "$body"' EXIT
           for attempt in {1..24}; do
-            code="$(curl -sS -L -o "$body" -w '%{http_code}' --max-time 20 "$base/api/exporthub-health?rc1553=${expected}-${attempt}" || true)"
+            code="$(curl -sS -L -o "$body" -w '%{http_code}' --max-time 20 "$base/api/exporthub-health?rc1553=\${expected}-\${attempt}" || true)"
             if [ "$code" = '200' ] && EXPECTED_BUILD_ID="$expected" BODY="$body" node -e "const fs=require('fs'),v=JSON.parse(fs.readFileSync(process.env.BODY,'utf8')||'{}');if(v.deployment&&v.deployment.verified===true&&v.deployment.buildId===process.env.EXPECTED_BUILD_ID&&v.deployment.environment==='testservice')process.exit(0);process.exit(1)"; then
               echo "RC1553 TESTSERVICE deployment.buildId=$expected deployment.verified=true"
               exit 0
@@ -84,7 +84,7 @@ const productionVerify=`      - name: RC1553 PRODUCTION deployment identity prü
           body="$(mktemp)"
           trap 'rm -f "$body"' EXIT
           for attempt in {1..24}; do
-            code="$(curl -sS -L -o "$body" -w '%{http_code}' --max-time 20 "$base/api/exporthub-health?rc1553=${RELEASE_SHA}-${attempt}" || true)"
+            code="$(curl -sS -L -o "$body" -w '%{http_code}' --max-time 20 "$base/api/exporthub-health?rc1553=\${RELEASE_SHA}-\${attempt}" || true)"
             if [ "$code" = '200' ] && EXPECTED_BUILD_ID="$RELEASE_SHA" BODY="$body" node -e "const fs=require('fs'),v=JSON.parse(fs.readFileSync(process.env.BODY,'utf8')||'{}');if(v.deployment&&v.deployment.verified===true&&v.deployment.buildId===process.env.EXPECTED_BUILD_ID&&v.deployment.environment==='production')process.exit(0);process.exit(1)"; then
               echo "RC1553 PRODUCTION deployment.buildId=$RELEASE_SHA deployment.verified=true"
               exit 0
