@@ -4,6 +4,7 @@ import {fileURLToPath} from 'node:url';
 import {build as buildRc1503} from '../rc1503/build-three-env.mjs';
 import {integrateShipmentRepairAccess} from '../rc1534/build-three-env.mjs';
 import {integrateCustomsAi} from '../rc1532/build-three-env.mjs';
+import {integratePackagingMasterdata} from '../rc1555/integrate-packaging-masterdata.mjs';
 
 const HERE=path.dirname(fileURLToPath(import.meta.url));
 const ROOT=path.resolve(HERE,'../..');
@@ -86,6 +87,7 @@ export function integrateCoverageAdmin(root=ROOT,out=OUT){
   };
   fs.writeFileSync(path.join(out,'rc1506-sop-coverage-manifest.json'),JSON.stringify(manifest,null,2)+'\n');
   integrateCustomsAi(root,out);
+  integratePackagingMasterdata(root,out);
   return manifest;
 }
 

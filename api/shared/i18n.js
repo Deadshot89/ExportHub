@@ -8,6 +8,7 @@ const packs={
  it:require('./i18n/it.json')
 };
 const customsAiPacks=require('./i18n/customs-ai.json');
+const packagingPacks=require('./i18n/packaging.json');
 const overrides=Object.freeze({
  de:Object.freeze({
   'api.avis.downloadAll':'Alle Anhänge herunterladen',
@@ -84,8 +85,8 @@ const overrides=Object.freeze({
   'api.pickup.manualConfirmed':'Ritiro confermato manualmente',
   'api.pickup.manualDateChanged':'Data di ritiro modificata manualmente',
   'api.pickup.manualFailed':'Non è stato possibile salvare il ritiro manuale.',
-  'api.pickup.environmentMismatchTest':'Una richiesta del servizio di test non può modificare i dati di produzione.',
-  'api.pickup.environmentMismatchProduction':'Il sito di produzione non può modificare i dati del servizio di test.'
+  'api.pickup.environmentMismatchTest':'Una richiesta del servizio di prova non può modificare i dati di produzione.',
+  'api.pickup.environmentMismatchProduction':'Il sito di produzione non può modificare i dati del servizio di prova.'
  })
 });
 const supported=Object.freeze(Object.keys(packs));
@@ -102,8 +103,9 @@ function interpolate(value,vars){
  return String(value==null?'':value).replace(/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g,function(_,key){return vars&&Object.prototype.hasOwnProperty.call(vars,key)?String(vars[key]==null?'':vars[key]):''});
 }
 function featureValue(code,key){
- const pack=customsAiPacks[code]||{},fallback=customsAiPacks.de||{};
- return pack[key]!=null?pack[key]:fallback[key];
+ const sources=[packagingPacks,customsAiPacks];
+ for(const source of sources){const pack=source[code]||{},fallback=source.de||{};if(pack[key]!=null)return pack[key];if(fallback[key]!=null)return fallback[key];}
+ return undefined;
 }
 function valueFor(lang,key){
  const code=normalize(lang)||'de',feature=featureValue(code,key),override=overrides[code]&&overrides[code][key],pack=packs[code]||packs.de;
