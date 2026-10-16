@@ -170,7 +170,7 @@ function applyManualPickup(shipment,input,actor,stamp,eventId){
 async function confirmManualPickup(environment,id,reference,payload,user){
   const input=sanitizePayload(payload),blob=await teamBlob(environment),actor=actorName(user);
   for(let attempt=0;attempt<MAX_RETRIES;attempt++){
-    const loaded=await readTeam(blob),team=obj(loaded.value)?loaded.value:{schemaVersion:3,revision:0,state:{}},state=obj(team.state)?team.state:team;
+    const loaded=await readTeam(blob),team=obj(loaded.value)?loaded.value:{schemaVersion:3,revision:0,state:{}},state=obj(team.state)?team.state:{};
     if(!obj(team.state))team.state=state;
     const copies=shipmentCopies(state,id,reference);
     if(!copies.length)throw auth.error('SHIPMENT_NOT_FOUND','Sendung wurde nicht gefunden.',404);
