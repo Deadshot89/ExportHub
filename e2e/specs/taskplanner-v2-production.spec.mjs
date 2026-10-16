@@ -90,7 +90,7 @@ test('RC1547: TaskPlanner V2 rendert auf Production read-only aus isoliertem In-
       return {
         coreVersion:String(core.version||''),
         uiVersion:String(ui.version||''),
-        taskCount:list.querySelectorAll('[data-task-id="rc1547-prod-smoke"]').length,
+        taskCount:list.querySelectorAll('.tpv2-task-card[data-task-id="rc1547-prod-smoke"]').length,
         hasList:Boolean(list.querySelector('[data-taskplanner-v2-list]')),
         hasDetail:Boolean(detail.querySelector('[data-taskplanner-v2-detail][data-task-id="rc1547-prod-smoke"]')),
         hasChecklist:Boolean(detail.querySelector('[data-section="checklist"]')),
