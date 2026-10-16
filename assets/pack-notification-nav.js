@@ -43,16 +43,25 @@
       script=doc.createElement('script');script.id='exporthub-pack-station-admin';script.src='/assets/pack-station-admin.js?v=1501';script.defer=true;script.onload=()=>resolve(root.ExportHUBPackStationAdmin||null);script.onerror=()=>resolve(null);(doc.head||doc.documentElement).appendChild(script);
     });
   }
+  function ensurePackagingAdmin(){
+    if(root.ExportHUBPackagingAdmin)return Promise.resolve(root.ExportHUBPackagingAdmin);
+    return new Promise(resolve=>{
+      let script=doc.getElementById('exporthub-packaging-admin');
+      if(script){script.addEventListener&&script.addEventListener('load',()=>resolve(root.ExportHUBPackagingAdmin||null),{once:true});root.setTimeout&&root.setTimeout(()=>resolve(root.ExportHUBPackagingAdmin||null),1500);return;}
+      script=doc.createElement('script');script.id='exporthub-packaging-admin';script.src='/assets/packaging-admin.js?v=1554';script.defer=true;script.onload=()=>resolve(root.ExportHUBPackagingAdmin||null);script.onerror=()=>resolve(null);(doc.head||doc.documentElement).appendChild(script);
+    });
+  }
   function notifyInboxOpened(){try{if(typeof root.CustomEvent==='function'&&typeof root.dispatchEvent==='function')root.dispatchEvent(new root.CustomEvent('exporthub:pack-inbox-opened'));}catch(_){} }
+  function decorateAdmins(){return Promise.all([ensureStationAdmin(),ensurePackagingAdmin()]).then(([stationAdmin,packagingAdmin])=>{if(stationAdmin&&typeof stationAdmin.decorateInbox==='function')stationAdmin.decorateInbox();if(packagingAdmin&&typeof packagingAdmin.decorate==='function')packagingAdmin.decorate();notifyInboxOpened();return true;});}
   function openInbox(){
     const api=runtime();if(!(api&&typeof api.renderPackInbox==='function'))return false;
     packViewActive=true;const rendered=!!api.renderPackInbox();try{doc.body&&doc.body.setAttribute('data-exporthub-view','packnotifications');}catch(_){}setActive(rendered);
-    if(rendered){ensureStationAdmin().then(admin=>{if(admin&&typeof admin.decorateInbox==='function')admin.decorateInbox();notifyInboxOpened();});}
+    if(rendered)decorateAdmins();
     return rendered;
   }
   function click(event){const node=event.target&&event.target.closest&&event.target.closest('[data-pack-notifications-nav]');if(!node)return;event.preventDefault();event.stopPropagation();if(typeof event.stopImmediatePropagation==='function')event.stopImmediatePropagation();openInbox();}
   function currentView(){try{return String(doc.body&&doc.body.getAttribute('data-exporthub-view')||'').toLowerCase();}catch(_){return'';}}
-  function repairAfterViewChange(){clearTimeout(timer);timer=setTimeout(()=>{const node=ensureEntry();const active=packViewActive&&currentView()==='packnotifications';setActive(active);if(active){const api=runtime();if(api&&typeof api.renderPackInbox==='function'&&!doc.getElementById('packNotificationInbox'))api.renderPackInbox();ensureStationAdmin().then(admin=>admin&&admin.decorateInbox&&admin.decorateInbox());}},30);}
+  function repairAfterViewChange(){clearTimeout(timer);timer=setTimeout(()=>{const node=ensureEntry();const active=packViewActive&&currentView()==='packnotifications';setActive(active);if(active){const api=runtime();if(api&&typeof api.renderPackInbox==='function'&&!doc.getElementById('packNotificationInbox'))api.renderPackInbox();decorateAdmins();}},30);}
   function install(){
     if(doc.__exporthubPackNavInstalled)return true;doc.__exporthubPackNavInstalled=true;ensureEntry();doc.addEventListener('click',click,true);
     if(doc.readyState==='loading')doc.addEventListener('DOMContentLoaded',repairAfterViewChange,{once:true});
@@ -60,7 +69,7 @@
       root.addEventListener('exporthub:view-changed',()=>{if(currentView()!=='packnotifications')packViewActive=false;repairAfterViewChange();});
       root.addEventListener('exporthub:pack-language-changed',repairAfterViewChange);
     }
-    ensureStationAdmin();return true;
+    ensureStationAdmin();ensurePackagingAdmin();return true;
   }
   root.ExportHUBPackNotificationNav=Object.freeze({ensureEntry,openInbox,repairAfterViewChange,install,setPackNavLabel,setPackNavIcon});
   install();
