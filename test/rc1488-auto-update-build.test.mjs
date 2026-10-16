@@ -13,6 +13,7 @@ function fixture(){
   fs.mkdirSync(out,{recursive:true});
   fs.writeFileSync(path.join(root,'assets','rc1488-auto-update.js'),'window.__RC1488__=true;\n');
   fs.writeFileSync(path.join(root,'assets','i18n','rc1488-auto-update.js'),'window.__RC1488_I18N__=true;\n');
+  fs.writeFileSync(path.join(root,'assets','rc1546-pickup-control.js'),'window.__RC1546__=true;\n');
   fs.writeFileSync(path.join(root,'release-version.json'),JSON.stringify({visibleRelease:'RC1488',technicalBuild:'RC1112'}));
   fs.writeFileSync(path.join(out,'index.html'),'<!doctype html><html><head><title>P</title></head><body></body></html>');
   fs.writeFileSync(path.join(out,'TESTVERSION.html'),'<!doctype html><html><head><title>T</title></head><body></body></html>');
@@ -42,13 +43,17 @@ test('RC1488: Finalizer schreibt deploymentgenaue Marker und bindet Sprachpaket 
   assert.deepEqual(manifest,{schema:'exporthub-update-v1',buildId:sha,visibleRelease:'RC1488',technicalBuild:'RC1112',builtAt:'2026-10-11T12:00:00.000Z'});
   assert.equal(fs.existsSync(path.join(out,'assets','rc1488-auto-update.js')),true);
   assert.equal(fs.existsSync(path.join(out,'assets','i18n','rc1488-auto-update.js')),true);
+  assert.equal(fs.existsSync(path.join(out,'assets','rc1546-pickup-control.js')),true);
   for(const file of ['index.html','TESTVERSION.html']){
     const html=fs.readFileSync(path.join(out,file),'utf8');
     assert.match(html,/id="exporthub-rc1488-auto-update-i18n"/);
     assert.match(html,/src="\/assets\/i18n\/rc1488-auto-update\.js\?v=1488"/);
     assert.match(html,/id="exporthub-rc1488-auto-update"/);
     assert.match(html,/src="\/assets\/rc1488-auto-update\.js\?v=1488"/);
+    assert.match(html,/id="exporthub-rc1546-pickup-control"/);
+    assert.match(html,/src="\/assets\/rc1546-pickup-control\.js\?v=1546"/);
     assert.ok(html.indexOf('id="exporthub-rc1488-auto-update-i18n"')<html.indexOf('id="exporthub-rc1488-auto-update" defer'),'Sprachpaket steht nicht vor Runtime');
+    assert.ok(html.indexOf('id="exporthub-rc1488-auto-update" defer')<html.indexOf('id="exporthub-rc1546-pickup-control"'),'Pickup-Control steht nicht nach Auto-Update-Runtime');
     assert.match(html,new RegExp(`data-build-id="${sha}"`));
   }
   const probe=fs.readFileSync(path.join(out,'production-version.js'),'utf8');
@@ -66,6 +71,7 @@ test('RC1488: Finalizer ist idempotent und erzeugt niemals doppelte Script- oder
     const html=fs.readFileSync(path.join(out,file),'utf8');
     assert.equal((html.match(/id="exporthub-rc1488-auto-update-i18n"/g)||[]).length,1);
     assert.equal((html.match(/id="exporthub-rc1488-auto-update" defer/g)||[]).length,1);
+    assert.equal((html.match(/id="exporthub-rc1546-pickup-control"/g)||[]).length,1);
   }
   const probe=fs.readFileSync(path.join(out,'production-version.js'),'utf8');
   assert.equal((probe.match(/__EXPORTHUB_UPDATE_BUILD__/g)||[]).length,1);
@@ -85,6 +91,7 @@ test('RC1488: bestehende Script-Tags werden auf den aktuellen Build aktualisiert
   const html=injectAutoUpdate(old,{buildId:'abcdef0',visibleRelease:'RC1488',file:'index.html'});
   assert.equal((html.match(/id="exporthub-rc1488-auto-update-i18n"/g)||[]).length,1);
   assert.equal((html.match(/id="exporthub-rc1488-auto-update" defer/g)||[]).length,1);
+  assert.equal((html.match(/id="exporthub-rc1546-pickup-control"/g)||[]).length,1);
   assert.match(html,/data-build-id="abcdef0"/);
   assert.doesNotMatch(html,/data-build-id="old"/);
 });
