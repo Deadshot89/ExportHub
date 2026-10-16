@@ -40,3 +40,14 @@ test('RC1547: eigener Browser-Artefakt-Schritt sichert Fehlnachweis',()=>{
   assert.match(block,/test-results/);
   assert.match(block,/playwright-report/);
 });
+
+test('RC1547: Live-Gate-Spec kommt aus dem Workflow-SHA statt aus einem älteren Release-Snapshot',()=>{
+  const block=stepBlock(
+    'RC1547 TaskPlanner V2 Production Read-only Liveprüfung',
+    'RC1530 Dashboard-Personalisierung Production-Liveprüfung'
+  );
+  assert.match(block,/source_spec=['"]e2e\/specs\/taskplanner-v2-production\.spec\.mjs['"]/);
+  assert.match(block,/gate_spec=['"]e2e\/specs\/rc1547-workflow-production\.spec\.mjs['"]/);
+  assert.match(block,/git show ['"]?\$GITHUB_SHA:\$source_spec['"]? > ['"]?\$gate_spec['"]?/);
+  assert.match(block,/npx playwright test ['"]?\$gate_spec['"]? --project=laptop/);
+});
