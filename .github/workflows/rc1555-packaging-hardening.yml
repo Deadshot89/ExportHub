@@ -5,13 +5,16 @@ on:
     branches: [main]
     paths:
       - 'api/shared/packaging-admin-store.js'
+      - 'api/shared/packaging-seed.js'
       - 'api/shared/state-compaction.js'
       - 'api/packaging-admin/**'
+      - 'api/packaging-public-state/**'
       - 'assets/packaging-admin.js'
       - 'assets/packaging-catalog.js'
       - 'assets/rc1555-packaging-store.js'
       - 'pack.html'
       - 'assets/pack.html'
+      - 'test/packaging-catalog.test.mjs'
       - 'test/rc1554-packaging-admin.test.mjs'
       - 'test/rc1555-packaging-hardening.test.mjs'
       - 'test/rc1555-packaging-client.test.mjs'
@@ -32,4 +35,4 @@ jobs:
           node-version: '20'
           package-manager-cache: false
       - name: RC1554 baseline and RC1555 hardening contracts
-        run: node --test --test-concurrency=1 test/rc1554-packaging-admin.test.mjs test/rc1555-packaging-hardening.test.mjs test/rc1555-packaging-client.test.mjs
+        run: node --test --test-concurrency=1 test/packaging-catalog.test.mjs test/rc1554-packaging-admin.test.mjs test/rc1555-packaging-hardening.test.mjs test/rc1555-packaging-client.test.mjs
