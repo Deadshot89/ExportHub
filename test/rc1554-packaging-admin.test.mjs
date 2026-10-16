@@ -91,3 +91,8 @@ test('RC1554 edit success keeps edit identity after the modal closes',()=>{
   assert.match(ui,/const\s+wasEdit=!!editingId/,'submit flow must capture whether this was an edit before closeForm resets editingId');
   assert.match(ui,/status\(wasEdit\?t\(['"]updated['"]\):t\(['"]created['"]\)/,'success feedback must distinguish edit from create');
 });
+
+test('RC1554 packaging administration asset is copied into every final Packmeldungen build',()=>{
+  const build=fs.readFileSync('.github/packmeldungen/build-three-env.mjs','utf8');
+  assert.match(build,/['"]packaging-admin\.js['"]/, 'PACK_ASSETS must include packaging-admin.js so the dynamic runtime exists in dist-rc1112');
+});
