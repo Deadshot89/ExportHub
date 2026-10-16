@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url);
 
 const locales=['de','en','pl','es','fr','it'];
 const required=[
@@ -15,6 +17,10 @@ const required=[
   'packaging.masterdata.confirmDelete','packaging.masterdata.duplicateSuffix','packaging.masterdata.empty','packaging.masterdata.loading',
   'packaging.masterdata.failed','packaging.masterdata.adminOnly'
 ];
+const requiredApi=[
+  'api.packaging.methodNotAllowed','api.packaging.adminRequired','api.packaging.invalidAction','api.packaging.serverError',
+  'api.packaging.timeInvalid','api.packaging.notFound','api.packaging.nameRequired','api.packaging.nameExists','api.packaging.codeExists'
+];
 
 test('RC1555 packaging masterdata feature packs exist with identical non-empty keys in all six languages',()=>{
   const packs={};
@@ -28,4 +34,18 @@ test('RC1555 packaging management uses central language selection and only falls
   assert.match(source,/ExportHUBI18n\.language/,'central language selection must drive the feature pack');
   assert.match(source,/\/assets\/i18n\/rc1555-packaging-masterdata\//,'central feature pack path missing');
   assert.doesNotMatch(source,/\b(?:de|en|pl|es|fr|it)\s*:\s*\{[^}]*title\s*:/s,'private six-language object must not be reintroduced');
+});
+
+test('RC1555 packaging admin API errors use the central six-language API i18n contract',()=>{
+  const source=fs.readFileSync('api/packaging-admin/index.js','utf8');
+  assert.match(source,/require\('\.\.\/shared\/i18n'\)/,'packaging admin API must use central API i18n');
+  assert.match(source,/apiI18n\.t\(req,/,'packaging admin API must localize user-facing errors per request');
+  const apiI18n=require('../api/shared/i18n.js');
+  for(const lang of locales){
+    for(const key of requiredApi){
+      const translated=apiI18n.tLang(lang,key);
+      assert.notEqual(translated,key,`${lang}: missing ${key}`);
+      assert.ok(String(translated||'').trim(),`${lang}: empty ${key}`);
+    }
+  }
 });
