@@ -1,0 +1,1 @@
+BSH SOP screenshots are managed as binary PNG assets for RC1550.
