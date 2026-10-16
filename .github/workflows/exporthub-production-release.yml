@@ -379,6 +379,16 @@ jobs:
           set -euo pipefail
           npx playwright test e2e/specs/public-smoke.spec.mjs e2e/specs/version-display.spec.mjs --project=laptop
 
+      - name: RC1547 TaskPlanner V2 Production Read-only Liveprüfung
+        id: rc1547_taskplanner_v2_production
+        shell: bash
+        env:
+          EXPORTHUB_E2E_LIVE: '1'
+          EXPORTHUB_E2E_BASE_URL: https://wonderful-forest-0f315e310.7.azurestaticapps.net
+          EXPORTHUB_E2E_PUBLIC_ENV: production
+        run: |
+          set -euo pipefail
+          npx playwright test e2e/specs/taskplanner-v2-production.spec.mjs --project=laptop
       - name: RC1530 Dashboard-Personalisierung Production-Liveprüfung
         id: rc1530_dashboard_personalization_production
         shell: bash
@@ -390,6 +400,16 @@ jobs:
           set -euo pipefail
           npx playwright test e2e/specs/dashboard-personalization-production.spec.mjs --project=laptop
 
+      - name: RC1547 TaskPlanner V2 Production Browser-Artefakte
+        if: ${{ failure() && steps.rc1547_taskplanner_v2_production.outcome == 'failure' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: rc1547-taskplanner-production-${{ inputs.release_sha }}
+          path: |
+            test-results
+            playwright-report
+          if-no-files-found: ignore
+          retention-days: 14
       - name: RC1530 Dashboard Production Browser-Artefakte
         if: ${{ failure() && steps.rc1530_dashboard_personalization_production.outcome == 'failure' }}
         uses: actions/upload-artifact@v7
