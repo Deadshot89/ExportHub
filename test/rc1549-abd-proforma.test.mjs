@@ -9,7 +9,8 @@ const model=require('../api/shared/abd-analysis-model.js');
 const exporter=require('../api/shared/abd-analysis-export.js');
 const {extractPdfText}=require('../api/shared/customer-avis-document-content.js');
 const runtime=fs.readFileSync('assets/rc1294-abd-self-service.js','utf8');
-const exportUi=fs.readFileSync('assets/rc1499-abd-export.js','utf8');
+const proformaUi=fs.readFileSync('assets/rc1549-abd-proforma.js','utf8');
+const releaseBuilder=fs.readFileSync('.github/rc1521/build-three-env.mjs','utf8');
 
 test('RC1549: Excel/manuelle Positionen erkennen Volumen und Einzelpreis',()=>{
  const matrix=parser.parseDelimited('Artikelnummer;Warenbeschreibung;Menge;Einzelpreis;Warenwert;Währung;Nettogewicht;Bruttogewicht;Volumen m3;HS Code;Herkunftsland\nA-10;Kunststoffteil;100;2,459;245,90;EUR;12,5;13,1;0,045;39269097;DE');
@@ -59,9 +60,16 @@ test('RC1549: Proforma-PDF enthält Essentra Branding, Positionen und Zollzusamm
 
 test('RC1549: ABD UI bietet Upload, manuelle Positionen und Proforma an',()=>{
  assert.match(runtime,/accept="[^"]*\.pdf[^"]*\.xlsx[^"]*\.csv/);
- assert.match(runtime,/data-rc1549-manual-add/);
- assert.match(runtime,/data-rc1549-manual-list/);
- assert.match(runtime,/data-rc1549-manual-create/);
- assert.match(exportUi,/data-rc1549-proforma/);
- assert.match(exportUi,/['"]proforma['"]/);
+ assert.match(proformaUi,/data-rc1549-manual-add/);
+ assert.match(proformaUi,/data-rc1549-manual-list/);
+ assert.match(proformaUi,/data-rc1549-manual-create/);
+ assert.match(proformaUi,/data-rc1549-proforma/);
+ assert.match(proformaUi,/['"]proforma['"]/);
+});
+
+test('RC1549: produktiver Drei-Umgebungen-Build liefert die isolierte ABD-Proforma-Runtime aus',()=>{
+ assert.match(releaseBuilder,/integrateAbdProforma.*rc1549\/integrate-abd-proforma\.mjs/s);
+ assert.match(releaseBuilder,/integrateAbdProforma\(root,out\)/);
+ assert.match(releaseBuilder,/ABD_PROFORMA_ASSETS/);
+ assert.match(releaseBuilder,/ABD_PROFORMA_MARKERS/);
 });
