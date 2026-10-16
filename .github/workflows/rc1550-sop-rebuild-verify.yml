@@ -1,0 +1,41 @@
+name: RC1550 SOP Rebuild Verify
+
+on:
+  push:
+    branches:
+      - feature/rc1550-sop-rebuild-current
+    paths:
+      - 'assets/sop/rc1007-sop-model.js'
+      - 'assets/sop/rc1550-sop-*.js'
+      - 'assets/sop/rc1550-sop.css'
+      - 'test/rc1550-sop-*.test.mjs'
+      - '.github/rc1550/**'
+      - '.github/packmeldungen/build-three-env.mjs'
+      - '.github/workflows/rc1550-sop-rebuild-verify.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rc1550-sop-rebuild-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compatibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: RC1550 non-asset compatibility tests
+        run: >-
+          node --test --test-concurrency=1
+          test/rc1550-sop-model.test.mjs
+          test/rc1550-sop-catalog.test.mjs
+          test/rc1550-sop-runtime-isolation.test.mjs
+          test/rc1550-sop-ui.test.mjs
+          test/rc1550-sop-responsive.test.mjs
