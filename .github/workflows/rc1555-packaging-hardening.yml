@@ -37,6 +37,7 @@ on:
       - 'test/rc1555-packaging-hardening.test.mjs'
       - 'test/rc1555-packaging-audit-actions.test.mjs'
       - 'test/rc1555-packaging-client.test.mjs'
+      - 'test/rc1555-packaging-live-refresh.test.mjs'
       - 'test/rc1555-packaging-management-ui.test.mjs'
       - 'test/rc1555-packaging-i18n.test.mjs'
       - 'test/rc1555-packaging-build.test.mjs'
@@ -58,7 +59,7 @@ jobs:
           node-version: '20'
           package-manager-cache: false
       - name: RC1554 baseline and RC1555 hardening contracts
-        run: node --test --test-concurrency=1 test/packaging-catalog.test.mjs test/rc1554-packaging-admin.test.mjs test/rc1555-packaging-hardening.test.mjs test/rc1555-packaging-audit-actions.test.mjs test/rc1555-packaging-client.test.mjs test/rc1555-packaging-management-ui.test.mjs test/rc1555-packaging-i18n.test.mjs test/rc1555-packaging-build.test.mjs
+        run: node --test --test-concurrency=1 test/packaging-catalog.test.mjs test/rc1554-packaging-admin.test.mjs test/rc1555-packaging-hardening.test.mjs test/rc1555-packaging-audit-actions.test.mjs test/rc1555-packaging-client.test.mjs test/rc1555-packaging-live-refresh.test.mjs test/rc1555-packaging-management-ui.test.mjs test/rc1555-packaging-i18n.test.mjs test/rc1555-packaging-build.test.mjs
       - name: RC1555 canonical QR packaging contracts
         run: node --test --test-concurrency=1 test/rc1555-pack-notification-canonical.test.mjs
       - name: RC1555 legacy pack notification compatibility
