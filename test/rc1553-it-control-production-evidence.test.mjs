@@ -193,11 +193,16 @@ test('RC1553: legacy RC1060 health contract remains present for existing probes'
   assert.match(source,/release:\s*['"]legacy-document-migration['"]/);
 });
 
-test('RC1555: production upload uses GitHub OIDC and proves critical app/API files before deploy',()=>{
+test('RC1557: production upload uses the official GitHub OIDC token flow and proves critical app/API files before deploy',()=>{
   assert.match(productionWorkflow,/permissions:[\s\S]*id-token:\s*write/);
   assert.match(productionWorkflow,/Acquire GitHub OIDC token for Azure Static Web Apps/);
-  assert.match(productionWorkflow,/ACTIONS_ID_TOKEN_REQUEST_TOKEN/);
-  assert.match(productionWorkflow,/github_id_token:\s*\$\{\{\s*steps\.swa_oidc\.outputs\.token\s*\}\}/);
+  assert.match(productionWorkflow,/uses:\s*actions\/github-script@v7/);
+  assert.match(productionWorkflow,/script:\s*return await core\.getIDToken\(\)/);
+  assert.match(productionWorkflow,/result-encoding:\s*string/);
+  assert.match(productionWorkflow,/github_id_token:\s*\$\{\{\s*steps\.swa_oidc\.outputs\.result\s*\}\}/);
+  assert.doesNotMatch(productionWorkflow,/Acquire GitHub OIDC token for Azure Static Web Apps[\s\S]*?ACTIONS_ID_TOKEN_REQUEST_TOKEN[\s\S]*?Deploy ExportHUB production/);
+  assert.doesNotMatch(productionWorkflow,/github_id_token:\s*\$\{\{\s*steps\.swa_oidc\.outputs\.token\s*\}\}/);
+  assert.match(productionWorkflow,/azure_static_web_apps_api_token:\s*\$\{\{\s*secrets\.AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_FOREST_0F315E310\s*\}\}/);
   assert.match(productionWorkflow,/test -s \.rc1112_production_app\/assets\/packaging-admin\.js/);
   assert.match(productionWorkflow,/test -s api\/exporthub-health\/index\.js/);
   assert.match(productionWorkflow,/test -s api\/release-metadata\.json/);
