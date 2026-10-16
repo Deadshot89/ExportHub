@@ -15,7 +15,10 @@ const overrides=Object.freeze({
   'api.avis.zipNoDocuments':'Für diese Sendung sind keine Anhänge verfügbar.',
   'api.avis.zipTooManyDocuments':'Zu viele Anhänge für einen Sammeldownload.',
   'api.avis.zipDocumentFailed':'Der Sammeldownload wurde abgebrochen, weil „{{name}}“ nicht vollständig geladen werden konnte.',
-  'api.avis.zipTooLarge':'Die Anhänge sind zusammen zu groß für einen Sammeldownload.'
+  'api.avis.zipTooLarge':'Die Anhänge sind zusammen zu groß für einen Sammeldownload.',
+  'api.pickup.manualConfirmed':'Abholung manuell bestätigt',
+  'api.pickup.manualDateChanged':'Abholdatum manuell geändert',
+  'api.pickup.manualFailed':'Manuelle Abholung konnte nicht gespeichert werden.'
  }),
  en:Object.freeze({
   'api.avis.downloadAll':'Download all attachments',
@@ -23,7 +26,10 @@ const overrides=Object.freeze({
   'api.avis.zipNoDocuments':'No attachments are available for this shipment.',
   'api.avis.zipTooManyDocuments':'There are too many attachments for a bulk download.',
   'api.avis.zipDocumentFailed':'The bulk download was cancelled because “{{name}}” could not be loaded completely.',
-  'api.avis.zipTooLarge':'The attachments are too large in total for a bulk download.'
+  'api.avis.zipTooLarge':'The attachments are too large in total for a bulk download.',
+  'api.pickup.manualConfirmed':'Pickup confirmed manually',
+  'api.pickup.manualDateChanged':'Pickup date changed manually',
+  'api.pickup.manualFailed':'The manual pickup could not be saved.'
  }),
  pl:Object.freeze({
   'api.avis.downloadAll':'Pobierz wszystkie załączniki',
@@ -31,7 +37,10 @@ const overrides=Object.freeze({
   'api.avis.zipNoDocuments':'Dla tej przesyłki nie są dostępne żadne załączniki.',
   'api.avis.zipTooManyDocuments':'Za dużo załączników do pobrania zbiorczego.',
   'api.avis.zipDocumentFailed':'Pobieranie zbiorcze zostało przerwane, ponieważ nie udało się w pełni wczytać pliku „{{name}}”.',
-  'api.avis.zipTooLarge':'Łączny rozmiar załączników jest zbyt duży do pobrania zbiorczego.'
+  'api.avis.zipTooLarge':'Łączny rozmiar załączników jest zbyt duży do pobrania zbiorczego.',
+  'api.pickup.manualConfirmed':'Odbiór potwierdzono ręcznie',
+  'api.pickup.manualDateChanged':'Datę odbioru zmieniono ręcznie',
+  'api.pickup.manualFailed':'Nie udało się zapisać ręcznego odbioru.'
  }),
  es:Object.freeze({
   'api.avis.downloadAll':'Descargar todos los archivos adjuntos',
@@ -39,7 +48,10 @@ const overrides=Object.freeze({
   'api.avis.zipNoDocuments':'No hay archivos adjuntos disponibles para este envío.',
   'api.avis.zipTooManyDocuments':'Hay demasiados archivos adjuntos para una descarga conjunta.',
   'api.avis.zipDocumentFailed':'La descarga conjunta se canceló porque no se pudo cargar completamente «{{name}}».',
-  'api.avis.zipTooLarge':'El tamaño total de los archivos adjuntos es demasiado grande para una descarga conjunta.'
+  'api.avis.zipTooLarge':'El tamaño total de los archivos adjuntos es demasiado grande para una descarga conjunta.',
+  'api.pickup.manualConfirmed':'Recogida confirmada manualmente',
+  'api.pickup.manualDateChanged':'Fecha de recogida modificada manualmente',
+  'api.pickup.manualFailed':'No se pudo guardar la recogida manual.'
  }),
  fr:Object.freeze({
   'api.avis.downloadAll':'Télécharger toutes les pièces jointes',
@@ -47,7 +59,10 @@ const overrides=Object.freeze({
   'api.avis.zipNoDocuments':'Aucune pièce jointe n’est disponible pour cet envoi.',
   'api.avis.zipTooManyDocuments':'Il y a trop de pièces jointes pour un téléchargement groupé.',
   'api.avis.zipDocumentFailed':'Le téléchargement groupé a été annulé car « {{name}} » n’a pas pu être chargé complètement.',
-  'api.avis.zipTooLarge':'La taille totale des pièces jointes est trop importante pour un téléchargement groupé.'
+  'api.avis.zipTooLarge':'La taille totale des pièces jointes est trop importante pour un téléchargement groupé.',
+  'api.pickup.manualConfirmed':'Enlèvement confirmé manuellement',
+  'api.pickup.manualDateChanged':'Date d’enlèvement modifiée manuellement',
+  'api.pickup.manualFailed':'L’enlèvement manuel n’a pas pu être enregistré.'
  }),
  it:Object.freeze({
   'api.avis.downloadAll':'Scarica tutti gli allegati',
@@ -55,7 +70,10 @@ const overrides=Object.freeze({
   'api.avis.zipNoDocuments':'Non sono disponibili allegati per questa spedizione.',
   'api.avis.zipTooManyDocuments':'Ci sono troppi allegati per un download cumulativo.',
   'api.avis.zipDocumentFailed':'Il download cumulativo è stato annullato perché non è stato possibile caricare completamente “{{name}}”.',
-  'api.avis.zipTooLarge':'La dimensione totale degli allegati è troppo grande per un download cumulativo.'
+  'api.avis.zipTooLarge':'La dimensione totale degli allegati è troppo grande per un download cumulativo.',
+  'api.pickup.manualConfirmed':'Ritiro confermato manualmente',
+  'api.pickup.manualDateChanged':'Data di ritiro modificata manualmente',
+  'api.pickup.manualFailed':'Non è stato possibile salvare il ritiro manuale.'
  })
 });
 const supported=Object.freeze(Object.keys(packs));
