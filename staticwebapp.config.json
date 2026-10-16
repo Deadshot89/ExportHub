@@ -53,6 +53,16 @@
       "headers": {"Cache-Control": "no-store, no-cache, must-revalidate"}
     },
     {
+      "route": "/assets/rc1027-lieferavis-immediate.js",
+      "allowedRoles": ["anonymous"],
+      "headers": {"Cache-Control": "no-store, no-cache, must-revalidate"}
+    },
+    {
+      "route": "/assets/rc1166-avis-reminder-overview.js",
+      "allowedRoles": ["anonymous"],
+      "headers": {"Cache-Control": "no-store, no-cache, must-revalidate"}
+    },
+    {
       "route": "/assets/rc1017-multi-truck.js",
       "allowedRoles": ["anonymous"],
       "headers": {"Cache-Control": "no-store, no-cache, must-revalidate"}
