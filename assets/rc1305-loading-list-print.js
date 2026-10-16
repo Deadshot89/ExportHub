@@ -6,7 +6,7 @@ function q(v){return String(v==null?'':v).trim()}
 function tr(key,vars){try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.t==='function'){var out=w.ExportHUBI18n.t(key,vars);if(out&&out!==key)return out}}catch(_){}return key}
 function locale(){var lang=q(d.documentElement&&d.documentElement.lang);try{if(!lang&&w.navigator)lang=q(w.navigator.language)}catch(_){}return lang||undefined}
 function arr(v){return Array.isArray(v)?v:[]}
-function esc(v){return q(v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]})}
+function esc(v){return q(v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function fileName(v){if(!v)return'';if(typeof v==='string')return q(v);return q(v.name||v.fileName||v.filename||v.originalName||v.title||v.file&&v.file.name)}
 function printName(v){var name=q(v);return /^(?:DNC|SIDE)[0-9]{6,20}\.pdf$/i.test(name)?name.replace(/\.pdf$/i,''):name}
 function canonicalDeliveryKey(v){var name=q(v).replace(/[?#].*$/,'').replace(/^.*[\\/]/,'').trim();return printName(name).toLocaleLowerCase()}
