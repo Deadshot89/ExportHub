@@ -50,15 +50,16 @@ test('RC1555 shared packaging catalog is an adapter and no longer owns hard-code
 
 test('RC1555 pack pages load canonical store before catalog and pack client',()=>{
   for(const file of ['pack.html','assets/pack.html']){
-    const html=read(file),store=html.indexOf('rc1555-packaging-store.js'),catalog=html.indexOf('packaging-catalog.js'),client=html.indexOf('pack-notification.js');
+    const html=read(file),store=html.indexOf('/assets/rc1555-packaging-store.js'),catalog=html.indexOf('/assets/packaging-catalog.js'),client=html.indexOf('src="/assets/pack-notification.js?v=2"');
     assert.ok(store>=0,`${file}: canonical packaging store missing`);
     assert.ok(catalog>store,`${file}: catalog must load after store`);
     assert.ok(client>catalog,`${file}: pack client must load after catalog`);
   }
 });
 
-test('RC1555 packaging admin syncs canonical packagingTypes and emits packaging-specific event',()=>{
-  const source=read('assets/packaging-admin.js');
-  assert.match(source,/packagingTypes\s*=/,'admin client must keep canonical packagingTypes in local state');
-  assert.match(source,/exporthub:packaging-masterdata-changed/,'admin mutation must refresh packaging consumers at collection granularity');
+test('RC1555 packaging management syncs canonical packagingTypes and emits packaging-specific event',()=>{
+  assert.equal(fs.existsSync('assets/rc1555-packaging-management.js'),true,'primary packaging master-data management runtime missing');
+  const source=read('assets/rc1555-packaging-management.js');
+  assert.match(source,/packagingTypes\s*=/,'management client must keep canonical packagingTypes in local state');
+  assert.match(source,/exporthub:packaging-masterdata-changed/,'management mutation must refresh packaging consumers at collection granularity');
 });
