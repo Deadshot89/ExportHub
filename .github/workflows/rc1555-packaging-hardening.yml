@@ -15,6 +15,7 @@ on:
       - 'assets/packaging-catalog.js'
       - 'assets/pack-notification.js'
       - 'assets/rc1555-packaging-store.js'
+      - 'assets/rc1555-packaging-shipment.js'
       - 'assets/rc1555-packaging-management.js'
       - 'assets/rc1555-packaging-management.css'
       - 'assets/i18n/**'
@@ -70,10 +71,12 @@ jobs:
           node .github/rc1112/build-three-env.mjs
           for file in index.html TESTVERSION.html demo.html; do
             grep -q 'id="exporthub-rc1555-packaging-store"' "dist-rc1112/$file"
+            grep -q 'id="exporthub-rc1555-packaging-shipment"' "dist-rc1112/$file"
             grep -q 'id="exporthub-rc1555-packaging-management"' "dist-rc1112/$file"
-            node -e "const fs=require('fs'); const h=fs.readFileSync('dist-rc1112/$file','utf8'); const i=h.indexOf('id=\"exporthub-rc1267-i18n\"'),s=h.indexOf('id=\"exporthub-rc1555-packaging-store\"'),m=h.indexOf('id=\"exporthub-rc1555-packaging-management\"'); if(!(i>=0&&s>i&&m>s))throw new Error('$file RC1555 Script-Reihenfolge falsch');"
+            node -e "const fs=require('fs'); const h=fs.readFileSync('dist-rc1112/$file','utf8'); const i=h.indexOf('id=\"exporthub-rc1267-i18n\"'),s=h.indexOf('id=\"exporthub-rc1555-packaging-store\"'),p=h.indexOf('id=\"exporthub-rc1555-packaging-shipment\"'),m=h.indexOf('id=\"exporthub-rc1555-packaging-management\"'); if(!(i>=0&&s>i&&p>s&&m>p))throw new Error('$file RC1555 Script-Reihenfolge falsch');"
           done
           test -s dist-rc1112/assets/rc1555-packaging-store.js
+          test -s dist-rc1112/assets/rc1555-packaging-shipment.js
           test -s dist-rc1112/assets/rc1555-packaging-management.js
           test -s dist-rc1112/assets/rc1555-packaging-management.css
           for lang in de en pl es fr it; do test -s "dist-rc1112/assets/i18n/rc1555-packaging-masterdata/$lang.json"; done
