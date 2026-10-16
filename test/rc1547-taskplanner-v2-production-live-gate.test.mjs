@@ -1,0 +1,42 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+
+const workflowPath='.github/workflows/exporthub-production-release.yml';
+const workflow=fs.readFileSync(workflowPath,'utf8');
+
+function stepBlock(name,nextName){
+  const start=workflow.indexOf(`      - name: ${name}`);
+  assert.notEqual(start,-1,`${name} fehlt im Production-Release`);
+  const next=nextName?workflow.indexOf(`      - name: ${nextName}`,start+1):-1;
+  return workflow.slice(start,next>start?next:workflow.length);
+}
+
+test('RC1547: Production Release enthält dedizierte TaskPlanner-V2 Read-only Liveprüfung',()=>{
+  const block=stepBlock(
+    'RC1547 TaskPlanner V2 Production Read-only Liveprüfung',
+    'RC1530 Dashboard-Personalisierung Production-Liveprüfung'
+  );
+  assert.match(block,/id:\s*rc1547_taskplanner_v2_production/);
+  assert.match(block,/EXPORTHUB_E2E_LIVE:\s*'1'/);
+  assert.match(block,/EXPORTHUB_E2E_BASE_URL:\s*https:\/\/wonderful-forest-0f315e310\.7\.azurestaticapps\.net/);
+  assert.match(block,/EXPORTHUB_E2E_PUBLIC_ENV:\s*production/);
+  assert.match(block,/npx playwright test e2e\/specs\/taskplanner-v2-production\.spec\.mjs --project=laptop/);
+});
+
+test('RC1547: TaskPlanner-Production-Smoke bleibt explizit read-only',()=>{
+  const block=stepBlock(
+    'RC1547 TaskPlanner V2 Production Read-only Liveprüfung',
+    'RC1530 Dashboard-Personalisierung Production-Liveprüfung'
+  );
+  assert.doesNotMatch(block,/taskplanner-v2-(?:mutation|write|migration|rehearsal)/i);
+  assert.doesNotMatch(block,/POST|PUT|PATCH|DELETE/);
+});
+
+test('RC1547: eigener Browser-Artefakt-Schritt sichert Fehlnachweis',()=>{
+  const block=stepBlock('RC1547 TaskPlanner V2 Production Browser-Artefakte','RC1530 Dashboard Production Browser-Artefakte');
+  assert.match(block,/failure\(\).*steps\.rc1547_taskplanner_v2_production\.outcome == 'failure'/);
+  assert.match(block,/name:\s*rc1547-taskplanner-production-\$\{\{ inputs\.release_sha \}\}/);
+  assert.match(block,/test-results/);
+  assert.match(block,/playwright-report/);
+});
