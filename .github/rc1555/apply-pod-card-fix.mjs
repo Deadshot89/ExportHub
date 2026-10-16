@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+// RC1555 one-shot guarded patch trigger.
 
 function replaceExact(path, oldText, newText, label){
   let source=fs.readFileSync(path,'utf8');
