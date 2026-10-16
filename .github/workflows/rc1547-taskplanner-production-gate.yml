@@ -22,4 +22,6 @@ jobs:
         with:
           node-version: 20
       - name: RC1547 Production-Live-Vertrag prüfen
-        run: node --test test/rc1547-taskplanner-v2-production-live-gate.test.mjs
+        run: |
+          node --check e2e/specs/taskplanner-v2-production.spec.mjs
+          node --test test/rc1547-taskplanner-v2-production-live-gate.test.mjs
