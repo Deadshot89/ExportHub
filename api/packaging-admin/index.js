@@ -49,8 +49,9 @@ module.exports=async function(context,req){
         result=packaging.updatePackaging(team.state,payload.id,payload,actor,new Date().toISOString());
         team.state=result.state;audit(team,'PACKAGING_UPDATED',actor,result,{code:text(result.packaging.code)});
       }else if(action==='toggle'){
-        result=packaging.setPackagingActive(team.state,payload.id,payload.active!==false,actor,new Date().toISOString());
-        team.state=result.state;audit(team,'PACKAGING_STATUS_CHANGED',actor,result);
+        const active=payload.active!==false;
+        result=packaging.setPackagingActive(team.state,payload.id,active,actor,new Date().toISOString());
+        team.state=result.state;audit(team,active?'PACKAGING_ACTIVATED':'PACKAGING_DEACTIVATED',actor,result);
       }else if(action==='delete'){
         result=packaging.removePackaging(team.state,payload.id,actor,new Date().toISOString());
         team.state=result.state;audit(team,result.archived?'PACKAGING_ARCHIVED':'PACKAGING_DELETED',actor,result,{archived:!!result.archived,deleted:!!result.deleted});
