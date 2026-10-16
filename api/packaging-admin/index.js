@@ -6,7 +6,7 @@ function text(v){return String(v==null?'':v).trim();}
 function json(status,body){return{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'},body:JSON.stringify(body)};}
 function body(req){if(req&&req.body&&typeof req.body==='object')return req.body;try{return JSON.parse(req&&req.body||'{}')}catch(_){return{}}}
 function adminName(user){return text(user&&(user.name||user.displayName||user.user||user.username))||'Administrator';}
-function audit(team,event,actor,result,extra){const p=result&&result.packaging||{};auth.addAudit(team,event,actor,Object.assign({packagingId:text(p.id),packagingName:text(p.name),active:p.active!==false},extra||{}));}
+function audit(team,event,actor,result,extra){const p=result&&result.packaging||{},before=result&&Object.prototype.hasOwnProperty.call(result,'before')?result.before:null,after=result&&Object.prototype.hasOwnProperty.call(result,'after')?result.after:(p&&Object.keys(p).length?p:null);auth.addAudit(team,event,actor,Object.assign({packagingId:text(p.id||before&&before.id||after&&after.id),packagingName:text(p.name||before&&before.name||after&&after.name),active:p.active!==false,before,after},extra||{}));}
 
 module.exports=async function(context,req){
   if(req.method==='OPTIONS'){context.res={status:204,headers:{Allow:'POST, OPTIONS','Cache-Control':'no-store'},body:''};return;}
