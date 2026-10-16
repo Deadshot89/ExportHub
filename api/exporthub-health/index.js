@@ -12,6 +12,18 @@ function clean(value, maxLength = 200) {
   return text ? text.slice(0, maxLength) : null;
 }
 
+function completeMetadata(metadata) {
+  return Boolean(
+    metadata &&
+    metadata.buildId &&
+    SHA40_PATTERN.test(metadata.buildId) &&
+    metadata.visibleRelease &&
+    metadata.technicalBuild &&
+    metadata.builtAt &&
+    metadata.environment
+  );
+}
+
 function incomingCorrelationId(req) {
   const headers = req && req.headers && typeof req.headers === 'object' ? req.headers : {};
   const value = clean(headers['x-correlation-id'] || headers['X-Correlation-ID'], 128);
@@ -39,7 +51,7 @@ function runtimeMetadata() {
     builtAt: clean(process.env.EXPORTHUB_DEPLOY_BUILT_AT, 80),
     environment: clean(process.env.EXPORTHUB_DEPLOY_ENVIRONMENT, 40)
   };
-  return Object.values(metadata).some(Boolean) ? metadata : null;
+  return completeMetadata(metadata) ? metadata : null;
 }
 
 function fileMetadata() {
@@ -70,14 +82,7 @@ function deploymentIdentity() {
     builtAt: null,
     environment: null
   };
-  const complete = Boolean(
-    metadata.buildId &&
-    SHA40_PATTERN.test(metadata.buildId) &&
-    metadata.visibleRelease &&
-    metadata.technicalBuild &&
-    metadata.builtAt &&
-    metadata.environment
-  );
+  const complete = completeMetadata(metadata);
   return {
     status: complete ? 'verified' : 'unknown',
     verified: complete,
