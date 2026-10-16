@@ -10,7 +10,7 @@ test('RC1556: reale verschachtelte POD-Abholfelder bleiben kompakt und zeigen je
   await waitReady(page);
   await page.emulateMedia({media:'print'});
 
-  const result=await page.evaluate(()=>{
+  const result=await page.evaluate(async()=>{
     const api=window.ExportHUBRC1305LoadingListPrint;
     if(!api||typeof api.enhance!=='function')throw new Error('RC1556 Ladelisten-Runtime fehlt');
 
@@ -48,6 +48,25 @@ test('RC1556: reale verschachtelte POD-Abholfelder bleiben kompakt und zeigen je
     if(!root)throw new Error('RC1556 Ladeliste wurde nicht gerendert');
     const signature=root.querySelector('.rc1503-signature-value');
     const signatureImage=root.querySelector('.rc1503-signature-value .rc1305-signature-image');
+    if(signatureImage){
+      try{
+        if(typeof signatureImage.decode==='function'){
+          await Promise.race([
+            signatureImage.decode(),
+            new Promise(resolve=>setTimeout(resolve,1200))
+          ]);
+        }else if(!signatureImage.complete){
+          await Promise.race([
+            new Promise(resolve=>{
+              signatureImage.addEventListener('load',resolve,{once:true});
+              signatureImage.addEventListener('error',resolve,{once:true});
+            }),
+            new Promise(resolve=>setTimeout(resolve,1200))
+          ]);
+        }
+      }catch(_){}
+      await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+    }
     const signatureCardNode=signature&&signature.closest('[data-rc1503-pickup-field]');
     const pallet=root.querySelector('[data-rc1543-pallet-single-value="1"]');
     const fields=Array.from(root.querySelectorAll('[data-rc1503-pickup-field]'));
