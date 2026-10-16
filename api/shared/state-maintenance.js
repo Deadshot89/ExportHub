@@ -12,7 +12,7 @@ function bytes(value){
 function previewCompaction(team){
  const source=team&&typeof team==='object'&&!Array.isArray(team)?team:{schemaVersion:3,revision:0,state:{},users:[]};
  const compacted=clone(source);
- compacted.state=compactStateForStorage(source.state||{});
+ compacted.state=compactStateForStorage(source.state||{},{packagingSnapshots:false});
  const beforeBytes=bytes(source),afterBytes=bytes(compacted),savedBytes=Math.max(0,beforeBytes-afterBytes);
  return {changed:savedBytes>0,beforeBytes,afterBytes,savedBytes,compacted};
 }
