@@ -1,0 +1,42 @@
+name: RC1556 Apply Signature Style Fix
+
+on:
+  push:
+    branches: [fix/rc1556-loading-list-real-dom]
+    paths:
+      - '.github/rc1556/apply-signature-style.mjs'
+
+permissions:
+  contents: write
+
+jobs:
+  apply_and_verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: fix/rc1556-loading-list-real-dom
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Apply focused RC1556 style patch
+        run: node .github/rc1556/apply-signature-style.mjs
+      - name: Verify JavaScript and POD contracts
+        run: |
+          node --check assets/document-print-name.js
+          node --test test/rc1547-loading-list-single-page.test.mjs test/rc1550-pod-print-layout.test.mjs
+      - name: Commit verified runtime/test fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'ExportHUB RC1556'
+          git config user.email '86518220+Deadshot89@users.noreply.github.com'
+          git add assets/document-print-name.js test/rc1550-pod-print-layout.test.mjs e2e/specs/rc1550-pod-print-layout.spec.mjs
+          if git diff --cached --quiet; then
+            echo 'No RC1556 runtime changes to commit.'
+            exit 0
+          fi
+          git commit -m 'fix(RC1556): keep compact signature visible after nested cleanup'
+          git push origin HEAD:fix/rc1556-loading-list-real-dom
