@@ -1,0 +1,50 @@
+name: RC1546 Production Dispatch Once
+
+on:
+  push:
+    branches:
+      - ops/rc1546-production-dispatch-once
+    paths:
+      - .github/workflows/rc1546-production-dispatch-once.yml
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  dispatch_production:
+    runs-on: ubuntu-latest
+    steps:
+      - name: RC1546 main-SHA verifizieren und Production Release auslösen
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          RELEASE_SHA: bd8fe6dded3fe476ef38ec95c303fd94aba69c44
+        run: |
+          set -euo pipefail
+          main_sha="$(curl -fsSL \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/git/ref/heads/main" \
+            | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>process.stdout.write(JSON.parse(s).object.sha))")"
+          if [ "$main_sha" != "$RELEASE_SHA" ]; then
+            echo "RC1546 Dispatch abgebrochen: main=$main_sha erwartet=$RELEASE_SHA" >&2
+            exit 1
+          fi
+
+          payload="$(node -e "process.stdout.write(JSON.stringify({ref:'main',inputs:{release_sha:process.env.RELEASE_SHA,confirm_production:'PRODUCTION FREIGEBEN'}}))")"
+          code="$(curl -sS -o /tmp/dispatch.out -w '%{http_code}' \
+            -X POST \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            -H 'Content-Type: application/json' \
+            -d "$payload" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/exporthub-production-release.yml/dispatches")"
+          if [ "$code" != '204' ]; then
+            cat /tmp/dispatch.out >&2 || true
+            echo "RC1546 Production Dispatch fehlgeschlagen: HTTP $code" >&2
+            exit 1
+          fi
+          echo "RC1546 Production Release für $RELEASE_SHA ausgelöst."
