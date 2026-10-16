@@ -1,0 +1,41 @@
+name: RC1553 Apply Production Evidence Once
+
+on:
+  push:
+    branches:
+      - rc1553-it-control-production-evidence
+    paths:
+      - '.github/workflows/rc1553-apply-production-evidence-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: rc1553-it-control-production-evidence
+          fetch-depth: 2
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: RC1553 Release-Workflows patchen
+        run: node .github/rc1553/apply-production-evidence.mjs
+      - name: RC1553 Vertrag nach Patch prüfen
+        run: node --test test/rc1553-it-control-production-evidence.test.mjs
+      - name: RC1553 Patch committen
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/rc1553-apply-production-evidence-once.yml
+          rm -f .github/rc1553/apply-production-evidence.mjs
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml .github/workflows/exporthub-production-release.yml .github/workflows/rc1553-apply-production-evidence-once.yml .github/rc1553/apply-production-evidence.mjs
+          git diff --cached --check
+          git commit -m 'feat(RC1553): verify deployed build identity'
+          git push origin HEAD:rc1553-it-control-production-evidence
