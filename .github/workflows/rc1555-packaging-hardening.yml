@@ -1,0 +1,30 @@
+name: RC1555 Packaging Hardening
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'api/shared/packaging-admin-store.js'
+      - 'api/packaging-admin/**'
+      - 'assets/packaging-admin.js'
+      - 'assets/packaging-catalog.js'
+      - 'test/rc1554-packaging-admin.test.mjs'
+      - 'test/rc1555-packaging-hardening.test.mjs'
+      - '.github/workflows/rc1555-packaging-hardening.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: RC1554 baseline and RC1555 hardening contracts
+        run: node --test --test-concurrency=1 test/rc1554-packaging-admin.test.mjs test/rc1555-packaging-hardening.test.mjs
