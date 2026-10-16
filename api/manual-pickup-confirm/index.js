@@ -208,7 +208,9 @@ module.exports=async function(context,req){
   if(method==='OPTIONS'){context.res=json(204,{});return}
   try{
     if(method!=='POST')throw auth.error('METHOD_NOT_ALLOWED','Methode nicht erlaubt.',405);
-    const session=await validateSession(req),payload=body(req),environment=resolveEnvironment(req,payload);
+    const session=await validateSession(req);
+    if(!auth.hasAnyEditRight(session.user))throw auth.error('WRITE_FORBIDDEN',apiI18n.t(req,'api.state.writeForbidden'),403);
+    const payload=body(req),environment=resolveEnvironment(req,payload);
     const id=text(payload.shipmentId||payload.id),reference=upper(payload.reference||payload.ref);
     if(!id&&!reference)throw auth.error('SHIPMENT_REQUIRED','Sendungsreferenz fehlt.',400);
     const result=await confirmManualPickup(environment,id,reference,payload,session.user);
