@@ -115,3 +115,33 @@ test('RC1555 central storage compaction applies packaging snapshots before Expor
   assert.equal(compacted.shipments[0].rows[0].packagingTypeId,'CT1');
   assert.equal(compacted.shipments[0].rows[0].packagingSnapshot.name,'Euro Palette');
 });
+
+test('RC1555 safe delete treats shipment, pickup, AVIS and shipping histories as usage evidence',()=>{
+  const store=loadStore();
+  const cases=[
+    ['shipmentArchive',{shipmentArchive:[{rows:[{packagingTypeId:'CT1'}]}]}],
+    ['pickupHistory',{pickupHistory:[{packagingSnapshot:{name:'Euro Palette',code:'EUR'}}]}],
+    ['avisHistory',{avisHistory:[{packagingType:'Euro Palette'}]}],
+    ['shippingHistory',{shippingHistory:[{packageTypeId:'CT1'}]}]
+  ];
+  for(const [label,extra] of cases){
+    const state=Object.assign(legacyState(),extra);
+    const result=store.removePackaging(state,'CT1','Admin','2026-10-16T17:00:00.000Z');
+    assert.equal(result.deleted,false,`${label}: historically used packaging must never be hard-deleted`);
+    assert.equal(result.archived,true,`${label}: usage evidence must deactivate/archive packaging`);
+    assert.equal(result.packaging.active,false,`${label}: packaging must be inactive after safe-delete fallback`);
+  }
+});
+
+test('RC1555 safe delete recognizes code references conservatively but ignores its own master and audit metadata',()=>{
+  const store=loadStore(),state=legacyState();
+  state.auditLog=[{entityType:'packaging_type',after:{id:'CT1',name:'Euro Palette',code:'EUR'}}];
+  const unused=store.removePackaging(state,'CT1','Admin','2026-10-16T17:01:00.000Z');
+  assert.equal(unused.deleted,true,'audit metadata alone must not make an unused packaging undeletable');
+
+  const usedState=legacyState();
+  usedState.shippingHistory=[{packagingCode:'EUR'}];
+  const used=store.removePackaging(usedState,'CT1','Admin','2026-10-16T17:02:00.000Z');
+  assert.equal(used.deleted,false,'packaging code in operational history is usage evidence');
+  assert.equal(used.archived,true);
+});
