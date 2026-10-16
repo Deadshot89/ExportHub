@@ -7,6 +7,8 @@ const UI='assets/rc1546-pickup-control.js';
 const API='api/manual-pickup-confirm/index.js';
 const ROUTE='api/manual-pickup-confirm/function.json';
 const FINALIZER='.github/rc1488/finalize-auto-update.mjs';
+const PROD='.github/workflows/exporthub-production-release.yml';
+const TESTSERVICE='.github/workflows/exporthub-testservice.yml';
 
 test('RC1546: Abholkontrolle und manuelles Nachtragen sind als eigener Runtime-Baustein vorhanden',()=>{
   assert.ok(fs.existsSync(UI),'RC1546 Pickup-Control Runtime fehlt');
@@ -75,5 +77,8 @@ test('RC1546: aktueller RC1112-Build nimmt Runtime und API in das Deploy-Paket a
   const finalizer=fs.readFileSync(FINALIZER,'utf8');
   assert.match(finalizer,/rc1546-pickup-control\.js\?v=1546/);
   assert.match(finalizer,/assets[^\n]+rc1546-pickup-control\.js/);
-  assert.match(finalizer,/manual-pickup-confirm/);
+  for(const workflow of [PROD,TESTSERVICE]){
+    const yaml=fs.readFileSync(workflow,'utf8');
+    assert.match(yaml,/api_location:\s*api\/?/,'API-Verzeichnis fehlt im Deploy '+workflow);
+  }
 });
