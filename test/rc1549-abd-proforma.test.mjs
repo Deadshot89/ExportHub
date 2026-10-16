@@ -1,7 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import {createRequire} from 'node:module';
+import {integrateAbdProforma} from '../.github/rc1549/integrate-abd-proforma.mjs';
 
 const require=createRequire(import.meta.url);
 const parser=require('../api/shared/abd-analysis.js');
@@ -72,4 +75,23 @@ test('RC1549: produktiver Drei-Umgebungen-Build liefert die isolierte ABD-Profor
  assert.match(releaseBuilder,/integrateAbdProforma\(root,out\)/);
  assert.match(releaseBuilder,/ABD_PROFORMA_ASSETS/);
  assert.match(releaseBuilder,/ABD_PROFORMA_MARKERS/);
+});
+
+test('RC1549: Integrator injiziert nur in den echten Dokument-Head und niemals in spätere Druckvorlagen',()=>{
+ const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'rc1549-head-'));
+ const root=path.join(tmp,'root'),out=path.join(tmp,'out');
+ fs.mkdirSync(path.join(root,'assets'),{recursive:true});fs.mkdirSync(out,{recursive:true});
+ fs.writeFileSync(path.join(root,'assets/rc1549-abd-proforma.js'),'window.__RC1549__=true;\n');
+ const fixture='<!doctype html><html><head><meta charset="utf-8"></head><body><script>function print(){var html=\'<!doctype html><html><head><title>Print</title></head><body>OK</body></html>\';return html}</script></body></html>';
+ for(const file of ['index.html','TESTVERSION.html','demo.html'])fs.writeFileSync(path.join(out,file),fixture);
+ try{
+  integrateAbdProforma(root,out);
+  for(const file of ['index.html','TESTVERSION.html','demo.html']){
+   const html=fs.readFileSync(path.join(out,file),'utf8');
+   const tag='<script id="exporthub-rc1549-abd-proforma" defer src="/assets/rc1549-abd-proforma.js?v=1549"></script>';
+   assert.equal((html.match(/exporthub-rc1549-abd-proforma/g)||[]).length,1);
+   assert.ok(html.indexOf(tag)<html.indexOf('</head>'),'RC1549-Tag muss vor dem echten ersten </head> stehen');
+   assert.match(html,/var html='<!doctype html><html><head><title>Print<\/title><\/head><body>OK<\/body><\/html>'/);
+  }
+ }finally{fs.rmSync(tmp,{recursive:true,force:true})}
 });
