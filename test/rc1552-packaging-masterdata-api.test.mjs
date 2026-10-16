@@ -79,6 +79,14 @@ test('RC1552 used DELETE auto-deactivates with required history message',async()
   const del=context();await handler(del,{method:'DELETE',headers:{},body:{id}});const payload=bodyOf(del.res);assert.equal(del.res.status,200);assert.equal(payload.deleted,false);assert.equal(payload.archived,true);assert.equal(payload.message,'Diese Verpackung wurde bereits verwendet und kann aus Gründen der Datenhistorie nicht vollständig gelöscht werden. Sie wird deaktiviert und künftig nicht mehr zur Auswahl angeboten.');
 });
 
+test('RC1552 packaging delete messages use request language',async()=>{
+  const f=fixture({id:'A1',name:'Admin',role:'admin',globalAdmin:true}),handler=loadHandler(f.auth);
+  const used=context();await handler(used,{method:'POST',headers:{'accept-language':'en'},body:{action:'create',name:'Used Test'}});const usedId=bodyOf(used.res).item.id;f.team.state.shipments=[{rows:[{packagingTypeId:usedId,type:'Used Test'}]}];
+  const archived=context();await handler(archived,{method:'DELETE',headers:{'accept-language':'en'},body:{id:usedId}});assert.equal(bodyOf(archived.res).message,'This packaging type has already been used and cannot be completely deleted for historical data reasons. It will be deactivated and will no longer be available for new selections.');
+  const fresh=context();await handler(fresh,{method:'POST',headers:{'accept-language':'en'},body:{action:'create',name:'Fresh Test'}});const freshId=bodyOf(fresh.res).item.id;
+  const deleted=context();await handler(deleted,{method:'DELETE',headers:{'accept-language':'en'},body:{id:freshId}});assert.equal(bodyOf(deleted.res).message,'Packaging type was deleted.');
+});
+
 test('RC1552 endpoint uses environment-aware team mutation and keeps unrelated state',async()=>{
   const f=fixture({id:'A1',name:'Admin',role:'admin',globalAdmin:true},{unrelated:{keep:true}});let mutations=0;const original=f.auth.mutateTeamForRequest;f.auth.mutateTeamForRequest=async(req,fn)=>{mutations++;return original(req,fn);};
   const handler=loadHandler(f.auth),ctx=context();await handler(ctx,{method:'POST',headers:{'x-exporthub-environment':'testservice'},body:{action:'create',name:'Concurrent Safe'}});assert.equal(ctx.res.status,201);assert.equal(mutations,1);assert.deepEqual(f.team.state.unrelated,{keep:true});
