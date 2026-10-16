@@ -388,7 +388,11 @@ jobs:
           EXPORTHUB_E2E_PUBLIC_ENV: production
         run: |
           set -euo pipefail
-          npx playwright test e2e/specs/taskplanner-v2-production.spec.mjs --project=laptop
+          source_spec='e2e/specs/taskplanner-v2-production.spec.mjs'
+          gate_spec='e2e/specs/rc1547-workflow-production.spec.mjs'
+          git show "$GITHUB_SHA:$source_spec" > "$gate_spec"
+          trap 'rm -f "$gate_spec"' EXIT
+          npx playwright test "$gate_spec" --project=laptop
       - name: RC1530 Dashboard-Personalisierung Production-Liveprüfung
         id: rc1530_dashboard_personalization_production
         shell: bash
