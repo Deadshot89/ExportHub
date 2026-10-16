@@ -63,3 +63,11 @@ test('RC1555 packaging management syncs canonical packagingTypes and emits packa
   assert.match(source,/packagingTypes\s*=/,'management client must keep canonical packagingTypes in local state');
   assert.match(source,/exporthub:packaging-masterdata-changed/,'management mutation must refresh packaging consumers at collection granularity');
 });
+
+test('RC1555 QR client preserves canonical packaging id and sends it with draft and submit payloads',()=>{
+  const source=read('assets/pack-notification.js');
+  assert.match(source,/id:String\(raw&&raw\.id\|\|''\)/,'master packaging entry must retain canonical id');
+  assert.match(source,/code:String\(raw&&raw\.code\|\|''\)/,'master packaging entry must retain canonical code');
+  assert.match(source,/packageTypeId:entry\?entry\.id:''/,'draft payload must send selected canonical packaging id');
+  assert.match(source,/packageTypeId:packageEntry\?packageEntry\.id:''/,'submit payload must send selected canonical packaging id');
+});
