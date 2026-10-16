@@ -10,6 +10,14 @@ const FINALIZER='.github/rc1488/finalize-auto-update.mjs';
 const PROD='.github/workflows/exporthub-production-release.yml';
 const TESTSERVICE='.github/workflows/exporthub-testservice.yml';
 
+function loadUi(){
+  const source=fs.readFileSync(UI,'utf8');
+  const context={console,setTimeout(){return 1},clearTimeout(){},setInterval(){return 1},clearInterval(){}};
+  context.globalThis=context;
+  vm.runInNewContext(source,context,{filename:UI});
+  return context.ExportHUBRC1546PickupControl;
+}
+
 test('RC1547: Abholkontrolle und manuelles Nachtragen sind als eigener Runtime-Baustein vorhanden',()=>{
   assert.ok(fs.existsSync(UI),'Pickup-Control Runtime fehlt');
   assert.ok(fs.existsSync(API),'Manual-Pickup API fehlt');
@@ -17,11 +25,7 @@ test('RC1547: Abholkontrolle und manuelles Nachtragen sind als eigener Runtime-B
 });
 
 test('RC1547: offene Abholungen schließen Entwurf, Storniert und bereits abgeholte Sendungen aus',()=>{
-  const source=fs.readFileSync(UI,'utf8');
-  const context={console,setTimeout(){return 1},clearTimeout(){},setInterval(){return 1},clearInterval(){}};
-  context.globalThis=context;
-  vm.runInNewContext(source,context,{filename:UI});
-  const api=context.ExportHUBRC1546PickupControl;
+  const api=loadUi();
   assert.ok(api&&typeof api.openPickupShipments==='function','openPickupShipments fehlt');
   const rows=api.openPickupShipments([
     {reference:'OPEN01',status:'Bereit zur Abholung',plannedPickupDate:'2026-10-15'},
@@ -46,6 +50,22 @@ test('RC1547: Print-Control enthält Kontrollfelder, Alter und manuelle Nachtrag
     'Geprüft von',
     'window.print'
   ]) assert.ok(ui.includes(marker),marker+' fehlt');
+});
+
+test('RC1547: Druckkontrolle erzwingt A4 Querformat und wiederholbare Tabellenköpfe',()=>{
+  const ui=fs.readFileSync(UI,'utf8');
+  assert.match(ui,/@page\s*\{[^}]*size\s*:\s*A4\s+landscape/i,'A4-Querformat fehlt im Druckvertrag');
+  assert.match(ui,/thead\s*\{[^}]*display\s*:\s*table-header-group/i,'Tabellenkopf ist für Mehrseiten-Druck nicht abgesichert');
+});
+
+test('RC1547: Wartet auf ABD wird als Versandblockade und nicht als versäumte Abholung gewertet',()=>{
+  const api=loadUi();
+  assert.ok(api&&typeof api.rowPresentation==='function','rowPresentation fehlt');
+  const blocked=api.rowPresentation({status:'Wartet auf ABD'},5);
+  assert.equal(blocked.level,'blocked');
+  assert.match(blocked.note,/ABD/i);
+  const overdue=api.rowPresentation({status:'Bereit zur Abholung'},5);
+  assert.equal(overdue.level,'3');
 });
 
 test('RC1547: manuelle Abholung verlangt Datum und Begründung und schreibt revisionssichere Felder',()=>{
