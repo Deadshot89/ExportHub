@@ -1,0 +1,31 @@
+name: RC1549 ABD Proforma
+
+on:
+  pull_request:
+    paths:
+      - 'api/shared/abd-analysis.js'
+      - 'api/shared/abd-analysis-model.js'
+      - 'api/shared/abd-grouping.js'
+      - 'api/shared/abd-analysis-export.js'
+      - 'api/abd-analysis/**'
+      - 'api/abd-analysis-export/**'
+      - 'assets/rc1549-abd-proforma.js'
+      - 'assets/rc1499-abd-export.js'
+      - 'assets/rc1499-exportexperte-handoff.js'
+      - '.github/rc1549/**'
+      - '.github/rc1521/build-three-env.mjs'
+      - 'test/rc1549-abd-proforma.test.mjs'
+      - '.github/workflows/rc1549-abd-proforma.yml'
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+      - name: Install API runtime dependencies
+        run: npm ci --prefix api
+      - name: RC1549 ABD Proforma contract
+        run: node --test test/rc1549-abd-proforma.test.mjs
