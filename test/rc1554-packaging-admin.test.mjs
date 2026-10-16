@@ -85,3 +85,9 @@ test('RC1554 admin API and UI surface expose CRUD without changing normal-user p
   assert.match(ui,/data-packaging-action=[\\]?['\"]delete/);
   assert.match(nav,/packaging-admin\.js\?v=1554/,'Packmeldungen navigation must load the packaging admin runtime');
 });
+
+test('RC1554 edit success keeps edit identity after the modal closes',()=>{
+  const ui=fs.readFileSync('assets/packaging-admin.js','utf8');
+  assert.match(ui,/const\s+wasEdit=!!editingId/,'submit flow must capture whether this was an edit before closeForm resets editingId');
+  assert.match(ui,/status\(wasEdit\?t\(['"]updated['"]\):t\(['"]created['"]\)/,'success feedback must distinguish edit from create');
+});
