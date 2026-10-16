@@ -58,3 +58,40 @@ test('RC1555 historical snapshot helper returns id plus immutable packaging fiel
   const snap=store.snapshotPackaging({id:'CT1',name:'Euro Palette',code:'EUR',description:'Test',l:120,w:80,h:145,ldm:0.4});
   assert.deepEqual(snap,{name:'Euro Palette',code:'EUR',description:'Test',lengthCm:120,widthCm:80,heightCm:145,ldm:0.4});
 });
+
+test('RC1555 state save snapshots a newly selected packaging with id and actual row dimensions',()=>{
+  const store=loadStore(),state=legacyState();
+  state.shipments=[{id:'S1',rows:[{type:'Euro Palette',count:1,l:121,w:81,h:146,ldm:0.41}]}];
+  const result=store.applyPackagingSnapshots(state);
+  const row=result.shipments[0].rows[0];
+  assert.equal(row.packagingTypeId,'CT1');
+  assert.deepEqual(row.packagingSnapshot,{name:'Euro Palette',code:'EUR',description:'',lengthCm:121,widthCm:81,heightCm:146,ldm:0.41});
+});
+
+test('RC1555 unrelated saves preserve an existing historical snapshot after master rename',()=>{
+  const store=loadStore(),state=legacyState();
+  state.shipments=[{id:'S1',rows:[{type:'Euro Palette',packagingTypeId:'CT1',packagingSnapshot:{name:'Euro Palette',code:'EUR',description:'',lengthCm:120,widthCm:80,heightCm:145,ldm:0.4},l:120,w:80,h:145,ldm:0.4}]}];
+  const renamed=store.updatePackaging(state,'CT1',{name:'Euro Palette Neu',code:'EUR2'},'Admin','2026-10-16T16:50:00.000Z');
+  const snapState=store.applyPackagingSnapshots(renamed.state);
+  const row=snapState.shipments[0].rows[0];
+  assert.equal(row.packagingTypeId,'CT1');
+  assert.equal(row.packagingSnapshot.name,'Euro Palette');
+  assert.equal(row.packagingSnapshot.code,'EUR');
+});
+
+test('RC1555 deliberate packaging change refreshes the snapshot exactly once',()=>{
+  const store=loadStore(),state=legacyState();
+  state.shipments=[{id:'S1',rows:[{type:'Euro Palette',packagingTypeId:'CT1',packagingSnapshot:{name:'Euro Palette',code:'EUR',description:'',lengthCm:120,widthCm:80,heightCm:145,ldm:0.4},l:40,w:30,h:20,ldm:0.2}]}];
+  const row=state.shipments[0].rows[0];row.type='Alte Kiste';
+  const result=store.applyPackagingSnapshots(state),saved=result.shipments[0].rows[0];
+  assert.equal(saved.packagingTypeId,'CT2');
+  assert.equal(saved.packagingSnapshot.name,'Alte Kiste');
+  assert.equal(saved.packagingSnapshot.code,'OLD');
+  assert.equal(saved.packagingSnapshot.lengthCm,40);
+});
+
+test('RC1555 exporthub-state applies packaging snapshots during incoming state normalization',()=>{
+  const api=fs.readFileSync('api/exporthub-state/index.js','utf8');
+  assert.match(api,/packaging-admin-store/,'state API must share the packaging snapshot domain');
+  assert.match(api,/applyPackagingSnapshots\(state\)/,'incoming state must be enriched before persistence');
+});
