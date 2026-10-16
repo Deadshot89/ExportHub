@@ -78,3 +78,11 @@ test('RC1555 QR submit rejects inactive or unknown packaging instead of trusting
   assert.equal(res.body.code,'PACK_PACKAGE_TYPE_INACTIVE');
   assert.equal(f.state().packNotifications.length,0);
 });
+
+test('RC1555 canonical resolver keeps legacy no-space aliases such as Europalette compatible',()=>{
+  const resolved=api.resolvePackagingSelection({colliTypes:[],inactiveColliTypes:[],disabledPackagingAliases:[]},'Europalette','');
+  assert.equal(resolved.packagingTypeId,'PKG-EURO-PALETTE');
+  assert.equal(resolved.packageType,'Euro Palette');
+  assert.equal(resolved.packagingSnapshot.lengthCm,120);
+  assert.equal(resolved.packagingSnapshot.widthCm,80);
+});
