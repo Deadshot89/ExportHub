@@ -23,4 +23,25 @@ jobs:
           node-version: '20'
           package-manager-cache: false
       - name: RC1546 Forward-Port ausführen
-        run: node scripts/rc1546-forward-port-once.mjs
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          node scripts/rc1546-forward-port-once.mjs
+          rc=$?
+          set -e
+
+          if [ "$rc" -eq 0 ]; then
+            echo 'RC1546 Forward-Port wurde bereits vollständig gepusht.'
+            exit 0
+          fi
+
+          test "$(git log -1 --pretty=%s)" = 'RC1546: No-Rerender Performance-Fix auf aktuellen main portieren'
+
+          # GitHub-Actions-Tokens dürfen keine Workflow-Dateien ändern. Daher
+          # bleiben alle Workflow-Dateien exakt auf dem Elternstand; nur
+          # Produktcode, Tests und E2E-Beweise werden vom Runner gepusht.
+          git checkout HEAD^ -- .github/workflows
+          git add .github/workflows
+          git commit --amend --no-edit
+          git push origin HEAD:perf/rc1546-no-rerender-current-main
