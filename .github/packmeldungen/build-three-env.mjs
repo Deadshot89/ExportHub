@@ -17,6 +17,7 @@ export const PACK_ASSETS=Object.freeze([
   'pack-notification-internal.js',
   'pack-notification-nav.js',
   'pack-station-admin.js',
+  'packaging-admin.js',
   'pack-notification-shipment.js',
   'pack-notification-avis.css',
   'pack-notification-avis.js'
