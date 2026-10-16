@@ -37,8 +37,24 @@ test('Issue 780: task-specific snapshot path remains active', () => {
   assert.match(receiver, /String body = title/);
 });
 
-test('Issue 780: native notification still opens through environment route', () => {
+test('Issue 780: reminder carries exact task id through the existing route extra', () => {
+  const receiver = read('android-app/app/src/main/java/de/exporthub/test/ReminderReceiver.java');
   const detail = read('android-app/app/src/main/java/de/exporthub/test/NotificationDetailActivity.java');
+  assert.match(receiver, /String directRoute = route\.isEmpty\(\) \|\| "tasks"\.equalsIgnoreCase\(route\)/);
+  assert.match(receiver, /\? "tasks:" \+ taskId/);
+  assert.match(receiver, /NotificationHelper\.show\([\s\S]{0,500}directRoute\)/);
   assert.match(detail, /intent\.putExtra\(EnvironmentActivity\.EXTRA_ROUTE, route\)/);
   assert.match(detail, /intent\.putExtra\(EnvironmentActivity\.EXTRA_ENVIRONMENT, environment\)/);
+});
+
+test('Issue 780: website routes first and opens only the matching rendered task card', () => {
+  const hub = read('assets/exporthub-environment-hub.js');
+  assert.match(hub, /function requestedRouteSpec\s*\(/);
+  assert.match(hub, /route!==['"]tasks['"]/);
+  assert.match(hub, /\[A-Za-z0-9_\.:@-\]\{1,200\}/);
+  assert.match(hub, /function openTaskCard\s*\(taskId\)/);
+  assert.match(hub, /querySelectorAll\('\[data-task-id\]'\)/);
+  assert.match(hub, /getAttribute\('data-task-id'\).*taskId/);
+  assert.match(hub, /ExportHUBRC325\.route\(spec\.route,'android-notification'\)/);
+  assert.match(hub, /spec\.taskId\?openTaskCard\(spec\.taskId\):true/);
 });
