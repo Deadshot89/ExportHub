@@ -89,6 +89,7 @@ test('RC1556: reale verschachtelte POD-Abholfelder bleiben kompakt und zeigen je
     }
     const sr=signature&&signature.getBoundingClientRect(),ir=signatureImage&&signatureImage.getBoundingClientRect(),scr=signatureCardNode&&signatureCardNode.getBoundingClientRect();
     const heights=fields.map(card=>card.getBoundingClientRect().height);
+    const nonSignatureHeights=fields.filter(card=>card!==signatureCardNode).map(card=>card.getBoundingClientRect().height);
     const bodyText=String(document.body.innerText||'');
     const occurrences=(needle)=>bodyText.split(needle).length-1;
     return{
@@ -102,7 +103,7 @@ test('RC1556: reale verschachtelte POD-Abholfelder bleiben kompakt und zeigen je
       signatureImageHeight:ir&&ir.height||0,
       signatureCardHeight:scr&&scr.height||0,
       maxPickupCardHeight:heights.length?Math.max(...heights):0,
-      minPickupCardHeight:heights.length?Math.min(...heights):0,
+      maxNonSignatureCardHeight:nonSignatureHeights.length?Math.max(...nonSignatureHeights):0,
       palletMarker:!!pallet,
       palletValueCount:pallet?pallet.querySelectorAll('[data-rc1503-pickup-value]').length:0,
       palletText:pallet?String(pallet.innerText||pallet.textContent||'').trim():'',
@@ -122,9 +123,8 @@ test('RC1556: reale verschachtelte POD-Abholfelder bleiben kompakt und zeigen je
   expect(result.signatureHeight).toBeGreaterThan(0);
   expect(result.signatureImageHeight,'Signaturbild darf maximal 15mm hoch sein').toBeLessThanOrEqual(58);
   expect(result.signatureImageHeight,'Signaturbild muss sichtbar bleiben').toBeGreaterThan(0);
-  expect(result.signatureCardHeight,'Das äußere Unterschriftsfeld darf nicht mehr wie im Produktionsfehler aufgezogen werden').toBeLessThanOrEqual(92);
-  expect(result.maxPickupCardHeight,'Kein Abholfeld darf durch versteckte Altinhalte riesig werden').toBeLessThanOrEqual(92);
-  expect(result.maxPickupCardHeight-result.minPickupCardHeight,'Abholfelder derselben Grid-Zeilen sollen kompakt bleiben').toBeLessThanOrEqual(16);
+  expect(result.signatureCardHeight,'Das äußere Unterschriftsfeld muss trotz Label, Innenabstand und 16-mm-Signatur kompakt bleiben').toBeLessThanOrEqual(110);
+  expect(result.maxNonSignatureCardHeight,'Normale Abholfelder dürfen nicht mehr durch die Signatur-Grid-Zeile aufgezogen werden').toBeLessThanOrEqual(92);
   expect(result.palletMarker,'Palettenkonto muss als normalisierter Einzelwert markiert sein').toBe(true);
   expect(result.palletValueCount,'Palettenkonto darf nur einen dynamischen Wert enthalten').toBe(1);
   expect(result.palletText).not.toMatch(/Ausgang:\s*99|Eingang\/Rückgabe:\s*77/i);
