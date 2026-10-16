@@ -25,6 +25,13 @@ on:
       - '.github/rc1555/**'
       - '.github/packmeldungen/build-three-env.mjs'
       - 'test/packaging-catalog.test.mjs'
+      - 'test/pack-notification-api.test.mjs'
+      - 'test/pack-notification-customer-search.test.mjs'
+      - 'test/pack-notification-drafts.test.mjs'
+      - 'test/pack-notification-page.test.mjs'
+      - 'test/pack-notification-shipment.test.mjs'
+      - 'test/pack-notification-store.test.mjs'
+      - 'test/pack-notification-task.test.mjs'
       - 'test/rc1554-packaging-admin.test.mjs'
       - 'test/rc1555-packaging-hardening.test.mjs'
       - 'test/rc1555-packaging-client.test.mjs'
@@ -52,6 +59,8 @@ jobs:
         run: node --test --test-concurrency=1 test/packaging-catalog.test.mjs test/rc1554-packaging-admin.test.mjs test/rc1555-packaging-hardening.test.mjs test/rc1555-packaging-client.test.mjs test/rc1555-packaging-management-ui.test.mjs test/rc1555-packaging-i18n.test.mjs test/rc1555-packaging-build.test.mjs
       - name: RC1555 canonical QR packaging contracts
         run: node --test --test-concurrency=1 test/rc1555-pack-notification-canonical.test.mjs
+      - name: RC1555 legacy pack notification compatibility
+        run: node --test --test-concurrency=1 test/pack-notification-api.test.mjs test/pack-notification-drafts.test.mjs test/pack-notification-store.test.mjs test/pack-notification-task.test.mjs test/pack-notification-shipment.test.mjs
       - name: RC1555 packaging consumer regression
         run: node --test --test-concurrency=1 test/pack-notification-customer-search.test.mjs test/pack-notification-page.test.mjs test/rc1005-e3-packaging-dimensions.test.mjs test/rc1005-e3-packaging-precedence.test.mjs test/rc1171-shipment-create-ui-e2e.test.mjs test/rc1548-shipping-cost-autofill.test.mjs test/rc1190-print-browser-gate.test.mjs
       - name: RC1555 final three-environment build proof
