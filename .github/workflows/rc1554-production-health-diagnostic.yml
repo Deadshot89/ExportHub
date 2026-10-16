@@ -20,51 +20,81 @@ jobs:
         with:
           node-version: '20'
           package-manager-cache: false
-      - name: Capture sanitized production health response
+      - name: Capture sanitized production and testservice runtime evidence
         shell: bash
         run: |
           set -euo pipefail
-          base='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
-          body="$RUNNER_TEMP/exporthub-health-body.txt"
-          headers="$RUNNER_TEMP/exporthub-health-headers.txt"
-          code="$(curl -sS -L -D "$headers" -o "$body" -w '%{http_code}' --max-time 30 "$base/api/exporthub-health?rc1554-diagnostic=${GITHUB_SHA}" || true)"
-          HTTP_CODE="$code" BODY="$body" HEADERS="$headers" node <<'NODE'
+          prod='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          out="$RUNNER_TEMP/rc1554-http"
+          mkdir -p "$out"
+
+          capture(){
+            local name="$1" url="$2"
+            curl -sS -L -D "$out/$name.headers" -o "$out/$name.body" -w '%{http_code}' --max-time 30 "$url" > "$out/$name.status" || true
+          }
+
+          capture prod_health "$prod/api/exporthub-health?rc1554-diagnostic=${GITHUB_SHA}"
+          capture test_health "$testservice/api/exporthub-health?rc1554-diagnostic=${GITHUB_SHA}"
+          capture prod_packaging "$prod/assets/packaging-admin.js?v=1554&diag=${GITHUB_SHA}"
+          capture test_packaging "$testservice/assets/packaging-admin.js?v=1554&diag=${GITHUB_SHA}"
+          capture prod_version "$prod/production-version.js?diag=${GITHUB_SHA}"
+          capture test_version "$testservice/production-version.js?diag=${GITHUB_SHA}"
+
+          OUT="$out" node <<'NODE'
           const fs=require('fs');
+          const path=require('path');
           const crypto=require('crypto');
-          const code=process.env.HTTP_CODE||'';
-          const raw=fs.existsSync(process.env.BODY)?fs.readFileSync(process.env.BODY,'utf8'):'';
-          const headers=fs.existsSync(process.env.HEADERS)?fs.readFileSync(process.env.HEADERS,'utf8'):'';
-          let parsed=null;
-          try{parsed=raw?JSON.parse(raw):null}catch(_){}
-          const out={
-            httpStatus:code,
-            contentType:(headers.match(/^content-type:\s*([^\r\n]+)/im)||[])[1]||null,
-            bodySha256:crypto.createHash('sha256').update(raw).digest('hex'),
-            json:parsed?{
-              ok:parsed.ok??null,
-              service:parsed.service??null,
-              version:parsed.version??null,
-              release:parsed.release??null,
-              deployment:parsed.deployment?{
-                status:parsed.deployment.status??null,
-                verified:parsed.deployment.verified??null,
-                buildId:parsed.deployment.buildId??null,
-                visibleRelease:parsed.deployment.visibleRelease??null,
-                technicalBuild:parsed.deployment.technicalBuild??null,
-                builtAt:parsed.deployment.builtAt??null,
-                environment:parsed.deployment.environment??null,
-                source:parsed.deployment.source??null
-              }:null
-            }:null,
-            nonJsonPreview:parsed?null:raw.slice(0,400).replace(/[\r\n\t]+/g,' ')
+          const root=process.env.OUT;
+          function read(name,suffix){const p=path.join(root,name+'.'+suffix);return fs.existsSync(p)?fs.readFileSync(p,'utf8'):''}
+          function header(headers,key){const m=headers.match(new RegExp('^'+key+':\\s*([^\\r\\n]+)','im'));return m?m[1].trim():null}
+          function base(name){
+            const raw=read(name,'body'),headers=read(name,'headers'),status=read(name,'status').trim();
+            let json=null;try{json=raw?JSON.parse(raw):null}catch(_){}
+            return{
+              httpStatus:status||null,
+              contentType:header(headers,'content-type'),
+              etag:header(headers,'etag'),
+              lastModified:header(headers,'last-modified'),
+              bodyBytes:Buffer.byteLength(raw),
+              bodySha256:crypto.createHash('sha256').update(raw).digest('hex'),
+              raw,
+              json
+            };
+          }
+          function health(name){
+            const x=base(name),p=x.json;
+            return{
+              httpStatus:x.httpStatus,contentType:x.contentType,etag:x.etag,lastModified:x.lastModified,bodySha256:x.bodySha256,
+              json:p?{ok:p.ok??null,service:p.service??null,version:p.version??null,release:p.release??null,
+                deployment:p.deployment?{status:p.deployment.status??null,verified:p.deployment.verified??null,buildId:p.deployment.buildId??null,visibleRelease:p.deployment.visibleRelease??null,technicalBuild:p.deployment.technicalBuild??null,builtAt:p.deployment.builtAt??null,environment:p.deployment.environment??null,source:p.deployment.source??null}:null}:null,
+              nonJsonPreview:p?null:x.raw.slice(0,250).replace(/[\r\n\t]+/g,' ')
+            };
+          }
+          function staticAsset(name,needle){
+            const x=base(name);
+            return{httpStatus:x.httpStatus,contentType:x.contentType,etag:x.etag,lastModified:x.lastModified,bodyBytes:x.bodyBytes,bodySha256:x.bodySha256,containsExpectedMarker:x.raw.includes(needle)};
+          }
+          const report={
+            expectedReleaseSha:'24329fe80952375be139305247465f361b358db6',
+            production:{
+              health:health('prod_health'),
+              packagingAdmin:staticAsset('prod_packaging','ExportHUBPackagingAdmin'),
+              productionVersion:staticAsset('prod_version','RC1112')
+            },
+            testservice:{
+              health:health('test_health'),
+              packagingAdmin:staticAsset('test_packaging','ExportHUBPackagingAdmin'),
+              productionVersion:staticAsset('test_version','RC1112')
+            }
           };
-          fs.writeFileSync('production-health-diagnostic.json',JSON.stringify(out,null,2)+'\n');
-          console.log(JSON.stringify(out));
+          fs.writeFileSync('runtime-split-diagnostic.json',JSON.stringify(report,null,2)+'\n');
+          console.log(JSON.stringify(report));
           NODE
       - name: Upload diagnostic artifact
         uses: actions/upload-artifact@v7
         with:
-          name: rc1554-production-health-diagnostic-${{ github.sha }}
-          path: production-health-diagnostic.json
+          name: rc1554-runtime-split-diagnostic-${{ github.sha }}
+          path: runtime-split-diagnostic.json
           if-no-files-found: error
           retention-days: 2
