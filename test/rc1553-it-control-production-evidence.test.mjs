@@ -7,7 +7,8 @@ import {createRequire} from 'node:module';
 
 const require=createRequire(import.meta.url);
 const health=require('../api/exporthub-health/index.js');
-const workflow=fs.readFileSync(new URL('../.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml',import.meta.url),'utf8');
+const testserviceWorkflow=fs.readFileSync(new URL('../.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml',import.meta.url),'utf8');
+const productionWorkflow=fs.readFileSync(new URL('../.github/workflows/exporthub-production-release.yml',import.meta.url),'utf8');
 
 function withEnv(values,fn){
   const previous={};
@@ -84,14 +85,22 @@ test('RC1553: unsafe incoming correlation IDs are not echoed',async()=>{
   });
 });
 
-test('RC1553: deploy workflow materializes checked-out release metadata before Azure deploys',()=>{
-  assert.match(workflow,/RC1553 deployment metadata/i);
-  assert.match(workflow,/git rev-parse HEAD/);
-  assert.match(workflow,/api\/release-metadata\.json/);
-  assert.match(workflow,/visibleRelease/);
-  assert.match(workflow,/technicalBuild/);
-  const metadataWrites=(workflow.match(/api\/release-metadata\.json/g)||[]).length;
-  assert.ok(metadataWrites>=2,'TESTSERVICE und Produktion brauchen jeweils Deployment-Metadaten');
+test('RC1553: TESTSERVICE workflow materializes checked-out release metadata before Azure deploy',()=>{
+  assert.match(testserviceWorkflow,/RC1553 deployment metadata/i);
+  assert.match(testserviceWorkflow,/git rev-parse HEAD/);
+  assert.match(testserviceWorkflow,/api\/release-metadata\.json/);
+  assert.match(testserviceWorkflow,/visibleRelease/);
+  assert.match(testserviceWorkflow,/technicalBuild/);
+  assert.ok(testserviceWorkflow.indexOf('RC1553 deployment metadata')<testserviceWorkflow.indexOf('Deploy ExportHUB TESTSERVICE'));
+});
+
+test('RC1553: production workflow materializes the explicitly checked-out release SHA before Azure deploy',()=>{
+  assert.match(productionWorkflow,/RC1553 deployment metadata/i);
+  assert.match(productionWorkflow,/git rev-parse HEAD/);
+  assert.match(productionWorkflow,/api\/release-metadata\.json/);
+  assert.match(productionWorkflow,/visibleRelease/);
+  assert.match(productionWorkflow,/technicalBuild/);
+  assert.ok(productionWorkflow.indexOf('RC1553 deployment metadata')<productionWorkflow.indexOf('Deploy ExportHUB production'));
 });
 
 test('RC1553: legacy RC1060 health contract remains present for existing probes',()=>{
