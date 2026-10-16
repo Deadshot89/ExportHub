@@ -41,7 +41,7 @@ const PACK_SCRIPT_TAGS=[
 ];
 
 const PACKAGING_LIST_PREFIX="function packagingList(){var s=state(),fixed=PACK.filter(function(x){return /^E[0-6]$/i.test(q(x.name))}),sources=[fixed,arr(s.colliTypes)],out=[],seen={};";
-const INACTIVE_PACKAGING_MARKER="arr(s.inactiveColliTypes).forEach(function(x){var n=q(x&&x.name);if(n&&!/^E[0-6]$/i.test(n))seen[n.toLowerCase()]=1});";
+const INACTIVE_PACKAGING_MARKER="arr(s.inactiveColliTypes).forEach(function(x){var n=q(x&&x.name);if(n&&!/^E[0-6]$/i.test(n))seen[n.toLowerCase()]=1});arr(s.disabledPackagingAliases).forEach(function(name){var n=q(name);if(n&&!/^E[0-6]$/i.test(n))seen[n.toLowerCase()]=1});";
 
 function injectTags(html,tags,file,label){
   let out=String(html||'');
