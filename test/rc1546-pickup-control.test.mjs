@@ -73,6 +73,12 @@ test('RC1547: spätere Status werden durch manuelles Nachtragen niemals zurückg
   assert.match(source,/preserve|nicht zur.ck|laterStatus|statusRank/i);
 });
 
+test('RC1547: Legacy-Teamdaten ohne state-Wrapper erzeugen keine zyklische JSON-Struktur',()=>{
+  const api=fs.readFileSync(API,'utf8');
+  assert.doesNotMatch(api,/state\s*=\s*obj\(team\.state\)\s*\?\s*team\.state\s*:\s*team\s*;/,'team.state darf niemals auf das Team-Dokument selbst zeigen');
+  assert.match(api,/state\s*=\s*obj\(team\.state\)\s*\?\s*team\.state\s*:\s*\{\}\s*;/,'fehlender state-Wrapper muss als eigenes Objekt initialisiert werden');
+});
+
 test('RC1547: Pickup-Control beobachtet nicht den kompletten DOM-Baum auf Child-Mutations',()=>{
   const ui=fs.readFileSync(UI,'utf8');
   assert.doesNotMatch(ui,/childList\s*:\s*true/,'Pickup-Control darf keine globalen Child-Mutations beobachten');
