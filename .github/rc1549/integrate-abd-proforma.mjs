@@ -13,7 +13,7 @@ function copyFile(root,out,rel){
 }
 function inject(html,file){
  if(html.includes('id="exporthub-rc1549-abd-proforma"'))return html;
- const index=html.toLowerCase().lastIndexOf('</head>');
+ const index=html.toLowerCase().indexOf('</head>');
  if(index<0)throw new Error(`RC1549 ${file}: </head>-Anker fehlt`);
  return html.slice(0,index)+TAG+'\n'+html.slice(index)
 }
