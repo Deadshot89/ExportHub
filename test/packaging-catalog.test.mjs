@@ -3,46 +3,41 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 
-function load(){
+function load(root={}){
   const source=fs.readFileSync('assets/packaging-catalog.js','utf8');
-  const root={};
-  vm.runInContext(source,vm.createContext({window:root,globalThis:root,Object,String,Array}),{filename:'packaging-catalog.js'});
+  vm.runInContext(source,vm.createContext({window:root,globalThis:root,Object,String,Array,Map,Set}),{filename:'packaging-catalog.js'});
   return root.ExportHubPackagingCatalog;
 }
+function plain(value){return value==null?value:JSON.parse(JSON.stringify(value));}
 
-test('shared packaging catalog exposes canonical ExportHUB pallet dimensions without invented height',()=>{
-  const catalog=load();
-  for(const [name,length,width] of [
-    ['Düsseldorfer Palette',80,60],
-    ['Kunststoffpalette',122,116],
-    ['Industrie Palette',120,100],
-    ['Palettengestell',120,90],
-    ['Euro Palette',120,80],
-    ['Einwegpalette',120,80]
-  ]){
-    const item=catalog.get(name);
-    assert.ok(item,`${name} fehlt`);
-    assert.equal(item.length,length);
-    assert.equal(item.width,width);
-    assert.equal(item.height,null,`${name}: unbekannte Höhe darf nicht erfunden werden`);
-  }
+test('RC1552 packaging catalog delegates list/get to the central packaging store',()=>{
+  const values=[
+    {id:'PKG-EUR',name:'Euro Palette',code:'EUR',active:true,lengthCm:120,widthCm:80,heightCm:null,ldm:null},
+    {id:'PKG-BOX',name:'Spezialkiste A',code:'BOXA',active:true,lengthCm:88,widthCm:55,heightCm:44,ldm:0.21}
+  ];
+  const root={ExportHUBPackagingStore:{
+    items:()=>values.map(x=>({...x})),
+    get:value=>values.find(x=>[x.id,x.name,x.code].some(v=>String(v).toLowerCase()===String(value).toLowerCase()))||null
+  }};
+  const catalog=load(root);
+  const list=plain(catalog.list());
+  assert.deepEqual(list.map(x=>x.label),['Euro Palette','Spezialkiste A']);
+  assert.deepEqual(plain(catalog.get('EUR')),{key:'PKG-EUR',label:'Euro Palette',length:120,width:80,height:null});
 });
 
-test('shared packaging catalog resolves aliases used by existing shipment UI',()=>{
-  const catalog=load();
-  assert.equal(catalog.get('Europalette').label,'Euro Palette');
-  assert.equal(catalog.get('Euro-Palette').label,'Euro Palette');
-  assert.equal(catalog.get('Industriepalette').label,'Industrie Palette');
-  assert.equal(catalog.get('Dusseldorfer Palette').label,'Düsseldorfer Palette');
-  assert.equal(catalog.get('Kunststoff Palette').label,'Kunststoffpalette');
+test('RC1552 packaging catalog keeps aliases only as normalization compatibility',()=>{
+  const catalog=load({});
+  assert.equal(catalog.canonicalLabel('Europalette'),'Euro Palette');
+  assert.equal(catalog.canonicalLabel('Euro-Palette'),'Euro Palette');
+  assert.equal(catalog.canonicalLabel('Industriepalette'),'Industrie Palette');
+  assert.equal(catalog.canonicalLabel('Dusseldorfer Palette'),'Düsseldorfer Palette');
+  assert.equal(catalog.canonicalLabel('Unbekannte Spezialkiste'),'Unbekannte Spezialkiste');
 });
 
-test('shared packaging catalog list returns safe copies and unknown packaging returns null',()=>{
-  const catalog=load();
-  const list=catalog.list();
-  assert.ok(Array.isArray(list));
-  assert.ok(list.some(item=>item.label==='Euro Palette'));
-  list[0].label='MUTATED';
-  assert.notEqual(catalog.list()[0].label,'MUTATED');
-  assert.equal(catalog.get('Unbekannte Spezialkiste'),null);
+test('RC1552 packaging catalog has no independent production packaging list without store',()=>{
+  const catalog=load({});
+  assert.deepEqual(plain(catalog.list()),[]);
+  assert.equal(catalog.get('Euro Palette'),null);
+  const source=fs.readFileSync('assets/packaging-catalog.js','utf8');
+  assert.doesNotMatch(source,/const\s+entries\s*=\s*\[/,'compatibility adapter must not own an independent production entries array');
 });

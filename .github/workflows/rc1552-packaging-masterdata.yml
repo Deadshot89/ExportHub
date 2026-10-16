@@ -1,0 +1,37 @@
+name: RC1552 Packaging Masterdata
+
+on:
+  pull_request:
+    paths:
+      - 'api/shared/packaging-*.js'
+      - 'api/packaging-masterdata/**'
+      - 'assets/packaging-catalog.js'
+      - 'assets/rc1552-packaging-*.js'
+      - 'assets/rc1552-packaging-*.css'
+      - 'test/rc1552-packaging-*.test.mjs'
+      - 'test/packaging-catalog.test.mjs'
+      - 'test/rc1005-e3-packaging-precedence.test.mjs'
+      - 'test/rc1506-pack-live-canonical-package-label.test.mjs'
+      - '.github/workflows/rc1552-packaging-masterdata.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+      - name: RC1552 focused contracts
+        run: >-
+          node --test
+          test/rc1552-packaging-masterdata-model.test.mjs
+          test/packaging-catalog.test.mjs
+          test/rc1005-e3-packaging-precedence.test.mjs
+          test/rc1506-pack-live-canonical-package-label.test.mjs
+          test/rc1552-packaging-masterdata-api.test.mjs
