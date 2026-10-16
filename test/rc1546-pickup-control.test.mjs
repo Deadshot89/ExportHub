@@ -84,7 +84,13 @@ test('RC1547: manueller Abhol-Endpoint trennt Production und TESTSERVICE wie der
   assert.match(api,/ENVIRONMENT_INVALID/,'ungültige Umgebungswerte müssen abgelehnt werden');
   assert.match(api,/ENVIRONMENT_MISMATCH/,'Host-/Origin-Widersprüche müssen abgelehnt werden');
   assert.match(api,/-testservice\\\./,'TESTSERVICE-Evidenz fehlt');
-  assert.match(api,/azurestaticapps\\?\\?\.net|azurestaticapps\\\.net|azurestaticapps/,'Produktionshost-Erkennung fehlt');
+  assert.match(api,/azurestaticapps/,'Produktionshost-Erkennung fehlt');
+});
+
+test('RC1547: nur Benutzer mit Bearbeitungsrecht dürfen Abholungen manuell verändern',()=>{
+  const api=fs.readFileSync(API,'utf8');
+  assert.match(api,/hasAnyEditRight\(session\.user\)/,'Bearbeitungsrechte werden vor der Mutation nicht geprüft');
+  assert.match(api,/WRITE_FORBIDDEN/,'403-Fehler für fehlende Bearbeitungsrechte fehlt');
 });
 
 test('RC1547: Pickup-Control beobachtet nicht den kompletten DOM-Baum auf Child-Mutations',()=>{
