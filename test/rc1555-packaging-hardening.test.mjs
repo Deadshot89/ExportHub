@@ -21,12 +21,26 @@ test('RC1555 migrates legacy packaging into one canonical packagingTypes collect
   const store=loadStore(),state=legacyState();
   const list=store.listPackaging(state);
   assert.equal(Array.isArray(state.packagingTypes),true,'canonical state.packagingTypes must be created on first access');
-  assert.equal(state.packagingTypes.length,2);
+  assert.ok(state.packagingTypes.length>=2);
   assert.equal(list.find(x=>x.id==='CT1').active,true);
   assert.equal(list.find(x=>x.id==='CT2').active,false);
   const created=store.createPackaging(state,{name:'Neue Kiste',code:'NEW'},'Admin','2026-10-16T16:45:00.000Z');
   assert.equal(created.state.packagingTypes.some(x=>x.name==='Neue Kiste'),true);
   assert.equal(created.state.colliTypes.some(x=>x.name==='Neue Kiste'),true,'legacy active projection must stay compatible during cutover');
+});
+
+test('RC1555 server migration seeds canonical packaging defaults and protects E3 from stale legacy dimensions',()=>{
+  const store=loadStore(),state={colliTypes:[{id:'OLD-E3',name:'E3',l:60,w:40,h:22,ldm:0.2}],inactiveColliTypes:[],disabledPackagingAliases:[]};
+  const list=store.listPackaging(state),names=new Set(list.map(x=>x.name));
+  for(const name of ['Düsseldorfer Palette','Kunststoffpalette','Industrie Palette','Palettengestell','Euro Palette','Einwegpalette','E3'])assert.ok(names.has(name),`${name} missing from canonical seed migration`);
+  const e3=list.find(x=>x.name==='E3');
+  assert.equal(e3.l,43);assert.equal(e3.w,31);assert.equal(e3.h,31);assert.equal(e3.ldm,0.06);
+});
+
+test('RC1555 public pack metadata endpoint returns active canonical packaging, not only disabled names',()=>{
+  const source=fs.readFileSync('api/packaging-public-state/index.js','utf8');
+  assert.match(source,/packaging-admin-store/,'public station endpoint must consume canonical packaging domain');
+  assert.match(source,/packaging\s*:/,'public station response must include active canonical packaging records');
 });
 
 test('RC1555 enforces case-insensitive unique packaging codes across active and inactive records',()=>{
