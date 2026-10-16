@@ -93,16 +93,40 @@ async function pollCentralDiagnostics(force){
   if(sent)writeDiagnosticMarker(latest,cloud);
   return sent;
 }
+function requestedRouteSpec(){
+  let raw='';try{raw=String(new URLSearchParams(location.search).get('ehRoute')||'').trim()}catch(_){return null}
+  if(!raw||raw.length>260)return null;
+  const split=raw.indexOf(':');
+  const route=(split>=0?raw.slice(0,split):raw).trim().toLowerCase();
+  const taskId=split>=0?raw.slice(split+1).trim():'';
+  if(!/^[a-z0-9_-]{1,40}$/.test(route))return null;
+  if(taskId&&(route!=='tasks'||!/^[A-Za-z0-9_.:@-]{1,200}$/.test(taskId)))return null;
+  return {route,taskId};
+}
+function openTaskCard(taskId){
+  if(!taskId)return true;
+  const nodes=document.querySelectorAll('[data-task-id]');
+  for(const node of nodes){
+    if(String(node.getAttribute('data-task-id')||'')!==taskId)continue;
+    if(typeof node.click!=='function')return false;
+    node.click();
+    return true;
+  }
+  return false;
+}
 function openRequestedRoute(){
-  let route='';try{route=String(new URLSearchParams(location.search).get('ehRoute')||'').trim().toLowerCase()}catch(_){return false}
-  if(!route||!/^[a-z0-9_-]{1,40}$/.test(route))return false;
-  let tries=0;
+  const spec=requestedRouteSpec();if(!spec)return false;
+  let tries=0,routeOpened=false;
   const open=()=>{
-    if(window.ExportHUBRC325&&typeof window.ExportHUBRC325.route==='function'){try{return window.ExportHUBRC325.route(route,'android-notification')!==false}catch(_){return false}}
-    return false;
+    if(!routeOpened){
+      if(!(window.ExportHUBRC325&&typeof window.ExportHUBRC325.route==='function'))return false;
+      try{routeOpened=window.ExportHUBRC325.route(spec.route,'android-notification')!==false}catch(_){return false}
+    }
+    if(!routeOpened)return false;
+    return spec.taskId?openTaskCard(spec.taskId):true;
   };
   if(open())return true;
-  const retry=()=>{if(open())return;if(++tries<20)setTimeout(retry,250)};
+  const retry=()=>{if(open())return;if(++tries<24)setTimeout(retry,250)};
   setTimeout(retry,50);
   return true;
 }
