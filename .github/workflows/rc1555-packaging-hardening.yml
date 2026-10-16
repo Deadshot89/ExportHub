@@ -18,6 +18,8 @@ on:
       - 'pack.html'
       - 'assets/pack.html'
       - '.github/rc1112/build-three-env.mjs'
+      - '.github/rc1506/build-three-env.mjs'
+      - '.github/rc1555/**'
       - '.github/packmeldungen/build-three-env.mjs'
       - 'test/packaging-catalog.test.mjs'
       - 'test/rc1554-packaging-admin.test.mjs'
@@ -35,7 +37,7 @@ permissions:
 jobs:
   contracts:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -44,3 +46,22 @@ jobs:
           package-manager-cache: false
       - name: RC1554 baseline and RC1555 hardening contracts
         run: node --test --test-concurrency=1 test/packaging-catalog.test.mjs test/rc1554-packaging-admin.test.mjs test/rc1555-packaging-hardening.test.mjs test/rc1555-packaging-client.test.mjs test/rc1555-packaging-management-ui.test.mjs test/rc1555-packaging-i18n.test.mjs test/rc1555-packaging-build.test.mjs
+      - name: RC1555 packaging consumer regression
+        run: node --test --test-concurrency=1 test/pack-notification-customer-search.test.mjs test/pack-notification-page.test.mjs test/rc1005-e3-packaging-dimensions.test.mjs test/rc1005-e3-packaging-precedence.test.mjs test/rc1171-shipment-create-ui-e2e.test.mjs test/rc1548-shipping-cost-autofill.test.mjs test/rc1190-print-browser-gate.test.mjs
+      - name: RC1555 final three-environment build proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          node .github/rc1112/build-three-env.mjs
+          for file in index.html TESTVERSION.html demo.html; do
+            grep -q 'id="exporthub-rc1555-packaging-store"' "dist-rc1112/$file"
+            grep -q 'id="exporthub-rc1555-packaging-management"' "dist-rc1112/$file"
+            node -e "const fs=require('fs'); const h=fs.readFileSync('dist-rc1112/$file','utf8'); const i=h.indexOf('id=\"exporthub-rc1267-i18n\"'),s=h.indexOf('id=\"exporthub-rc1555-packaging-store\"'),m=h.indexOf('id=\"exporthub-rc1555-packaging-management\"'); if(!(i>=0&&s>i&&m>s))throw new Error('$file RC1555 Script-Reihenfolge falsch');"
+          done
+          test -s dist-rc1112/assets/rc1555-packaging-store.js
+          test -s dist-rc1112/assets/rc1555-packaging-management.js
+          test -s dist-rc1112/assets/rc1555-packaging-management.css
+          for lang in de en pl es fr it; do test -s "dist-rc1112/assets/i18n/rc1555-packaging-masterdata/$lang.json"; done
+          node .github/packmeldungen/build-three-env.mjs
+          test -s dist-rc1112/assets/rc1555-packaging-store.js
+          grep -q 'rc1555-packaging-store.js' dist-rc1112/pack.html
