@@ -6,8 +6,7 @@ import vm from 'node:vm';
 const UI='assets/rc1546-pickup-control.js';
 const API='api/manual-pickup-confirm/index.js';
 const ROUTE='api/manual-pickup-confirm/function.json';
-const LOADER='assets/rc1488-auto-update.js';
-const MANIFEST='RELEASE_MANIFEST.txt';
+const FINALIZER='.github/rc1488/finalize-auto-update.mjs';
 
 test('RC1546: Abholkontrolle und manuelles Nachtragen sind als eigener Runtime-Baustein vorhanden',()=>{
   assert.ok(fs.existsSync(UI),'RC1546 Pickup-Control Runtime fehlt');
@@ -72,11 +71,9 @@ test('RC1546: spätere Status werden durch manuelles Nachtragen niemals zurückg
   assert.match(source,/preserve|nicht zur.ck|laterStatus|statusRank/i);
 });
 
-test('RC1546: Runtime wird geladen und in das Release-Paket aufgenommen',()=>{
-  const loader=fs.readFileSync(LOADER,'utf8');
-  const manifest=fs.readFileSync(MANIFEST,'utf8');
-  assert.match(loader,/rc1546-pickup-control\.js\?v=1546/);
-  assert.match(manifest,/assets\/rc1546-pickup-control\.js/);
-  assert.match(manifest,/api\/manual-pickup-confirm\/index\.js/);
-  assert.match(manifest,/api\/manual-pickup-confirm\/function\.json/);
+test('RC1546: aktueller RC1112-Build nimmt Runtime und API in das Deploy-Paket auf',()=>{
+  const finalizer=fs.readFileSync(FINALIZER,'utf8');
+  assert.match(finalizer,/rc1546-pickup-control\.js\?v=1546/);
+  assert.match(finalizer,/assets[^\n]+rc1546-pickup-control\.js/);
+  assert.match(finalizer,/manual-pickup-confirm/);
 });
