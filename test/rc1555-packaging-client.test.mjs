@@ -77,8 +77,10 @@ test('RC1555 QR client keeps active master packaging selectable when dimensions 
   assert.doesNotMatch(source,/if\s*\(!length\s*\|\|\s*!width\)\s*return null/,'master packaging without preset dimensions must not disappear from QR selection');
   assert.match(source,/length\s*=\s*positive\(raw&&raw\.length\)\s*\|\|\s*null/,'missing master length should remain null until the packer enters it');
   assert.match(source,/width\s*=\s*positive\(raw&&raw\.width\)\s*\|\|\s*null/,'missing master width should remain null until the packer enters it');
-  assert.doesNotMatch(source,/String\(entry\.length\)/,'dimension defaults must not render the literal string null into an input');
-  assert.doesNotMatch(source,/String\(entry\.width\)/,'dimension defaults must not render the literal string null into an input');
+  assert.match(source,/if\(length&&entry\.length!=null\)length\.value=String\(entry\.length\)/,'length autofill must only run when the master actually has a length');
+  assert.match(source,/if\(width&&entry\.width!=null\)width\.value=String\(entry\.width\)/,'width autofill must only run when the master actually has a width');
+  assert.match(source,/entry&&entry\.length!=null\?`\$\{entry\.length\}`:''/,'rendered package length must stay blank when master length is null');
+  assert.match(source,/entry&&entry\.width!=null\?`\$\{entry\.width\}`:''/,'rendered package width must stay blank when master width is null');
 });
 
 test('RC1555 shipment packaging chooser is searchable without replacing the existing RC682 selection behavior',()=>{
