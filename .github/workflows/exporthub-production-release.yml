@@ -202,19 +202,16 @@ jobs:
 
       - name: Acquire GitHub OIDC token for Azure Static Web Apps
         id: swa_oidc
-        shell: bash
-        run: |
-          set -euo pipefail
-          response="$(curl -fsSL -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL")"
-          token="$(printf '%s' "$response" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s);if(!v.value)process.exit(2);process.stdout.write(v.value)})")"
-          echo "::add-mask::$token"
-          echo "token=$token" >> "$GITHUB_OUTPUT"
+        uses: actions/github-script@v7
+        with:
+          script: return await core.getIDToken()
+          result-encoding: string
 
       - name: Deploy ExportHUB production
         uses: Azure/static-web-apps-deploy@4d27395796ac319302594769cfe812bd207490b1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_FOREST_0F315E310 }}
-          github_id_token: ${{ steps.swa_oidc.outputs.token }}
+          github_id_token: ${{ steps.swa_oidc.outputs.result }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: upload
           app_location: .rc1112_production_app
