@@ -26,7 +26,7 @@ test('RC1555 browser packaging store exposes canonical active records only and s
   ]};
   const {store}=loadStore(state);
   store.replace(state.packagingTypes,{silent:true});
-  assert.deepEqual(store.activeItems().map(x=>x.id),['P1']);
+  assert.equal(Array.from(store.activeItems(),x=>x.id).join(','),'P1');
   assert.equal(store.get('P1').name,'Euro Palette');
   assert.equal(store.get('euro palette').id,'P1');
   assert.equal(store.get('eur').id,'P1');
