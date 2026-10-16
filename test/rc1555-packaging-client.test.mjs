@@ -41,11 +41,11 @@ test('RC1555 browser packaging store updates locally and emits collection event 
   assert.ok(events.some(e=>e.type==='exporthub:packaging-masterdata-changed'));
 });
 
-test('RC1555 shared packaging catalog is an adapter and no longer owns hard-coded production entries',()=>{
+test('RC1555 shared packaging catalog is an adapter and no longer owns hard-coded production dimensions',()=>{
   const source=read('assets/packaging-catalog.js');
   assert.match(source,/ExportHUBPackagingStore/,'catalog must delegate to canonical browser store');
   assert.doesNotMatch(source,/const\s+entries\s*=\s*\[/,'catalog must not own a parallel entries array');
-  for(const literal of ['Düsseldorfer Palette','Kunststoffpalette','Industrie Palette','Palettengestell','Einwegpalette'])assert.equal(source.includes(literal),false,`hard-coded runtime entry remains: ${literal}`);
+  assert.doesNotMatch(source,/length\s*:\s*(?:43|80|120|122)|width\s*:\s*(?:31|60|80|90|100|116)|height\s*:\s*31|ldm\s*:\s*0\.06/,'catalog may keep aliases but must not own production dimensions');
 });
 
 test('RC1555 pack pages load canonical store before catalog and pack client',()=>{
