@@ -27,5 +27,7 @@ jobs:
           node-version: '20'
       - name: Install API runtime dependencies
         run: npm install --prefix api --ignore-scripts --no-audit --no-fund
+      - name: RC1549 browser runtime syntax
+        run: node --check assets/rc1549-abd-proforma.js
       - name: RC1549 ABD Proforma contract
         run: node --test test/rc1549-abd-proforma.test.mjs
