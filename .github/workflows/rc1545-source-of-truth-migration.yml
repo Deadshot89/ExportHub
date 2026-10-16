@@ -1,0 +1,71 @@
+name: RC1545 Source-of-Truth Migration
+
+on:
+  push:
+    branches:
+      - fix/rc1545-source-of-truth
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: fix/rc1545-source-of-truth
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+
+      - name: RC1545 produktive Source-Dateien direkt migrieren
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/rc1545-avis-canonical-com-domain.mjs
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
+          pkg.scripts.pretest='node scripts/rc1462-pretest.mjs';
+          fs.writeFileSync('package.json',JSON.stringify(pkg,null,2)+'\n');
+          NODE
+          rm scripts/rc1545-avis-canonical-com-domain.mjs
+          rm .github/workflows/rc1545-source-of-truth-migration.yml
+
+      - name: RC1545 Source-of-Truth direkt verifizieren
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq "RC1333_PROD_AVIS_ORIGIN='https://exporthub360.com'" assets/rc1027-lieferavis-immediate.js
+          grep -Fq "RC1333_PROD_AVIS_ORIGIN='https://exporthub360.com'" assets/rc1166-avis-reminder-overview.js
+          grep -Fq "PRODUCTION_AVIS_ORIGIN='https://exporthub360.com'" api/customer-avis/index.js
+          grep -Fq "PRODUCTION_PUBLIC_HOST='exporthub360.com'" api/avis-reminder-mail/index.js
+          if grep -Fq "RC1333_PROD_AVIS_ORIGIN='https://www.exporthub360.de'" assets/rc1027-lieferavis-immediate.js; then exit 21; fi
+          if grep -Fq "RC1333_PROD_AVIS_ORIGIN='https://www.exporthub360.de'" assets/rc1166-avis-reminder-overview.js; then exit 22; fi
+          if grep -Fq "PRODUCTION_AVIS_ORIGIN='https://www.exporthub360.de'" api/customer-avis/index.js; then exit 23; fi
+          node --test --test-concurrency=1 \
+            test/rc1545-avis-canonical-com-domain.test.mjs \
+            test/rc1166-avis-reminder-overview.test.mjs \
+            test/rc1331-canonical-avis-url.test.mjs \
+            test/avis-reminder-outlook.test.mjs \
+            test/essentra-avis-domain.test.mjs
+
+      - name: RC1545 direkte Änderungen committen
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if git diff --cached --quiet; then
+            echo 'Keine Änderungen zu committen.'
+            exit 0
+          fi
+          git commit -m 'RC1545: commit AVIS canonical .com source directly'
+          git push origin HEAD:fix/rc1545-source-of-truth
