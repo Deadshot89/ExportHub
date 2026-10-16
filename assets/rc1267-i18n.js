@@ -508,7 +508,11 @@ w.addEventListener('exporthub:user-profile-updated',function(ev){
 });
 w.addEventListener('exporthub:language-changed',function(){updateSelectorCaption()});
 w.addEventListener('exporthub:state-loaded',function(){repairContaminatedGoodsDescription();buildDynamicIndex();ensureSelector();if(d.body)queueFullTranslation()});
-['exporthub:sync','exporthub:customer-updated','exporthub:shipment-updated','exporthub:task-updated'].forEach(function(name){w.addEventListener(name,function(){repairContaminatedGoodsDescription();buildDynamicIndex();ensureSelector();if(d.body)queueFullTranslation()})});
+function isNoMergeSaveConfirmation(event){var detail=event&&event.detail||{};return detail.remote===true&&detail.reason==='save-confirmation'&&detail.concurrentMerge!==true}
+w.addEventListener('exporthub:sync',function(event){if(isNoMergeSaveConfirmation(event))return;repairContaminatedGoodsDescription();buildDynamicIndex();ensureSelector();if(d.body)queueFullTranslation()});
+w.addEventListener('exporthub:customer-updated',function(){repairContaminatedGoodsDescription();buildDynamicIndex();ensureSelector();if(d.body)queueFullTranslation()});
+w.addEventListener('exporthub:shipment-updated',function(){repairContaminatedGoodsDescription();buildDynamicIndex();ensureSelector();if(d.body)queueFullTranslation()});
+w.addEventListener('exporthub:task-updated',function(){repairContaminatedGoodsDescription();buildDynamicIndex();ensureSelector();if(d.body)queueFullTranslation()});
 ['exporthub:ready','exporthub:login','exporthub:authenticated','exporthub:user-changed','exporthub:profile-loaded'].forEach(function(name){w.addEventListener(name,function(){repairContaminatedGoodsDescription();syncProfileLanguage().catch(reportError)})});
 w.ExportHUBI18n=Object.freeze({
  version:VERSION,

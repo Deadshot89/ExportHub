@@ -442,6 +442,41 @@ function patchRc1418ShipmentSaveNoRerender(html,file){
   return html;
 }
 
+function patchRc1505SaveConfirmationRenderGate(html,file){
+  const syncBefore="reason:reason||'poll',remote:true";
+  const syncAfter="reason:reason||'poll',remote:true,concurrentMerge:options.concurrentMerge===true";
+  if(!html.includes(syncAfter)){
+    const hits=html.split(syncBefore).length-1;
+    if(hits!==1)throw new Error(file+': RC1505 Sync-Metadaten-Anker '+hits+'x gefunden');
+    html=html.replace(syncBefore,syncAfter);
+  }
+  const applyBefore="applyRemoteDocument(authoritative,'save-confirmation',{allowWhileSaving:true})";
+  const applyAfter="applyRemoteDocument(authoritative,'save-confirmation',{allowWhileSaving:true,concurrentMerge:authoritative&&authoritative.concurrentMerge===true})";
+  let afterCount=html.split(applyAfter).length-1;
+  if(afterCount!==2){
+    const hits=html.split(applyBefore).length-1;
+    if(hits!==2)throw new Error(file+': RC1505 Save-Confirmation-Apply-Anker '+hits+'x gefunden');
+    html=html.split(applyBefore).join(applyAfter);
+    afterCount=html.split(applyAfter).length-1;
+  }
+  if(afterCount!==2)throw new Error(file+': RC1505 concurrentMerge nicht an beide Save-Pfade weitergegeben');
+  const shipmentBefore="window.addEventListener('exporthub:sync',function(event){var detail=event&&event.detail||{},localSaveConfirmation=detail.remote===true&&detail.reason==='save-confirmation'&&window.__EXPORTHUB_SHIPMENT_SAVE_TX__===true;if(localSaveConfirmation)return;if(detail.remote===true)scheduleRemoteMerge(0)})";
+  const shipmentAfter="window.addEventListener('exporthub:sync',function(event){var detail=event&&event.detail||{},localSaveConfirmation=detail.remote===true&&detail.reason==='save-confirmation'&&window.__EXPORTHUB_SHIPMENT_SAVE_TX__===true,saveConfirmationNoMerge=detail.remote===true&&detail.reason==='save-confirmation'&&detail.concurrentMerge!==true;if(saveConfirmationNoMerge)return;if(localSaveConfirmation)return;if(detail.remote===true)scheduleRemoteMerge(0)})";
+  if(!html.includes(shipmentAfter)){
+    const hits=html.split(shipmentBefore).length-1;
+    if(hits!==1)throw new Error(file+': RC1505 Shipment-Sync-Anker '+hits+'x gefunden');
+    html=html.replace(shipmentBefore,shipmentAfter);
+  }
+  const postBefore="window.addEventListener('exporthub:sync',function(){schedulePost(220,true)})";
+  const postAfter="window.addEventListener('exporthub:sync',function(event){var detail=event&&event.detail||{};if(detail.reason==='save-confirmation'&&detail.concurrentMerge!==true)return;schedulePost(220,true)})";
+  if(!html.includes(postAfter)){
+    const hits=html.split(postBefore).length-1;
+    if(hits!==1)throw new Error(file+': RC1505 Postprocessing-Anker '+hits+'x gefunden');
+    html=html.replace(postBefore,postAfter);
+  }
+  return html;
+}
+
 function patchTaskDetailTab(html,file){
   const open='<script id="index321-single-navigation-controller">';
   const start=html.indexOf(open),end=start<0?-1:html.indexOf('</script>',start+open.length);
@@ -909,6 +944,7 @@ function patchHtml(file){
   html=patchRc1412ShipmentCreateDomPreserve(html,file);
   html=patchRc1414ShipmentCreateNoRerender(html,file);
   html=patchRc1418ShipmentSaveNoRerender(html,file);
+  html=patchRc1505SaveConfirmationRenderGate(html,file);
   html=patchRc1319ShipmentSaveFinalization(html,file);
   html=patchRc1296BrowserBranding(html,file);
   html=html.replace(/ExportHUB RC1048 environment=/g,`ExportHUB ${VERSION} environment=`);
