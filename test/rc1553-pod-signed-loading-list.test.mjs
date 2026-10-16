@@ -20,7 +20,7 @@ test('RC1553 P0: pickup fields remain separate and the driver signature is compa
     assert.ok(block.includes("card('" + label), 'missing separate POD field: ' + label);
   }
   assert.match(block, /SIGNATURE_CARD_HEIGHT\s*=\s*58/);
-  assert.match(block, /SIGNATURE_MAX_HEIGHT\s*=\s*42/);
+  assert.match(block, /SIGNATURE_MAX_HEIGHT\s*=\s*34/);
   assert.match(block, /Math\.min\(maxW\/dims\.width,SIGNATURE_MAX_HEIGHT\/dims\.height\)/);
 });
 
