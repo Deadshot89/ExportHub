@@ -13,17 +13,17 @@ function disabledPackaging(state){const out=[],seen=new Set();const add=value=>{
 
 module.exports=async function(context,req){
   if(req.method==='OPTIONS'){context.res={status:204,headers:{Allow:'POST, OPTIONS','Cache-Control':'no-store'},body:''};return;}
-  if(req.method!=='POST'){context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED',message:'Nur POST ist erlaubt.'});return;}
+  if(req.method!=='POST'){context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED',message:'Only POST is allowed.'});return;}
   try{
     const payload=body(req),token=text(payload.stationToken);
-    if(!token)throw auth.error('PACK_STATION_TOKEN_REQUIRED','Packtisch-Token fehlt.',400);
+    if(!token)throw auth.error('PACK_STATION_TOKEN_REQUIRED','Packing-station token is missing.',400);
     const environment=packApi.resolveEnvironment(req,payload),clients=await auth.clientsForEnvironment(environment),teamDoc=await auth.readJson(clients.team,auth.emptyTeam()),team=teamDoc.value||auth.emptyTeam(),state=team.state&&typeof team.state==='object'?team.state:{};
     validateStationToken(state,token);
     const disabled=disabledPackaging(state);
     context.res=json(200,{ok:true,disabledPackaging:disabled,count:disabled.length,environment});
   }catch(e){
     context.log&&context.log.warn&&context.log.warn('packaging-public-state',e&&e.code,e&&e.message);
-    context.res=json(e.status||e.statusCode||500,{ok:false,code:e.code||'PACKAGING_PUBLIC_STATE_FAILED',message:e.message||'Verpackungsstatus konnte nicht geladen werden.'});
+    context.res=json(e.status||e.statusCode||500,{ok:false,code:e.code||'PACKAGING_PUBLIC_STATE_FAILED',message:e.message||'Packaging status could not be loaded.'});
   }
 };
 
