@@ -86,3 +86,26 @@ window.ExportHUBRC1278MailAutoConfirm=Object.freeze({version:'RC1278',hideManual
 
 window.ExportHUBRC1049ABDPolicy=Object.freeze({version:'RC1049',policy:policy,notice:notice});
 })();
+/* RC1550: FERTIGES ABD UEBER ZENTRALEN UPLOAD START */
+(function(){
+'use strict';
+if(window.__EXPORTHUB_RC1550_ABD_UPLOAD_BRIDGE__)return;
+window.__EXPORTHUB_RC1550_ABD_UPLOAD_BRIDGE__=true;
+function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
+function low(v){return q(v).toLowerCase()}
+function state(){try{if(typeof window.__EXPORTHUB_GET_STATE__==='function')return window.__EXPORTHUB_GET_STATE__()||{}}catch(_){}return window.ExportHUBClean&&window.ExportHUBClean.runtime&&window.ExportHUBClean.runtime.state||window.ExportHUBClean&&window.ExportHUBClean.state||window.state||window.appState||{}}
+function refOf(x){return q(x&&(x.ref||x.reference||x.shipmentRef||x.referenceNumber||x.referenceNo)).toUpperCase()}
+function idOf(x){return q(x&&(x.id||x.shipmentId||x.uuid))}
+function sameShipment(sh,a){if(!sh||!a)return false;var linked=q(a.linkedShipmentId||a.shipmentId),sid=idOf(sh),ar=refOf(a),sr=refOf(sh);return !!((linked&&sid&&linked===sid)||(ar&&sr&&ar===sr))}
+function requestById(id){var s=state(),list=Array.isArray(s.abdRequests)?s.abdRequests:[],wanted=q(id);for(var i=list.length-1;i>=0;i--){if(q(list[i]&&list[i].id)===wanted)return list[i]}return null}
+function shipmentForRequest(a){var s=state(),candidates=[];if(Array.isArray(s.shipments))candidates=candidates.concat(s.shipments);[s.shipment,s.currentShipment,s.selectedShipment].forEach(function(x){if(x&&candidates.indexOf(x)<0)candidates.push(x)});for(var i=candidates.length-1;i>=0;i--){if(sameShipment(candidates[i],a))return candidates[i]}return null}
+function install(){var api=window.ExportHUBRC626;if(!api||api.__rc1550AbdUploadBridge||typeof api.uploadCompletedAbd!=='function')return false;var base=api.uploadCompletedAbd;function uploadCompletedAbd(id,input){var a=requestById(id),file=input&&input.files&&input.files[0];if(!a||!file)return base.apply(api,arguments);if(!/\.pdf$/i.test(q(file.name))&&low(file.type).indexOf('pdf')<0)return base.apply(api,arguments);var sh=shipmentForRequest(a),upload=window.rc524UploadFile;if(!sh||typeof upload!=='function')return base.apply(api,arguments);if(!input.dataset)input.dataset={};input.dataset.id=idOf(sh)||refOf(sh);return upload(input,'abdFiles')}
+var wrapped=Object.freeze(Object.assign({},api,{uploadCompletedAbd:uploadCompletedAbd,__rc1550AbdUploadBridge:true,__base1550:api}));window.ExportHUBRC626=wrapped;return true}
+function refreshAbdAfterVerifiedUpload(e){var d=e&&e.detail||{};if(low(d.kind)!=='abd'||d.azureVerified!==true)return;var s=state();if(q(s.view)!=='abd')return;setTimeout(function(){var api=window.ExportHUBRC626;if(api&&typeof api.renderAbd==='function')api.renderAbd()},0)}
+function boot(){install();setTimeout(install,0);setTimeout(install,250);setTimeout(install,1000)}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync'].forEach(function(n){window.addEventListener(n,function(){setTimeout(install,0)})});
+window.addEventListener('exporthub:shipment-document-uploaded',refreshAbdAfterVerifiedUpload);
+window.ExportHUBRC1550AbdUploadBridge=Object.freeze({version:'RC1550',install:install});
+})();
+/* RC1550: FERTIGES ABD UEBER ZENTRALEN UPLOAD END */
