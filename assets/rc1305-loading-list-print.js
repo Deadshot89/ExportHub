@@ -6,7 +6,7 @@ function q(v){return String(v==null?'':v).trim()}
 function tr(key,vars){try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.t==='function'){var out=w.ExportHUBI18n.t(key,vars);if(out&&out!==key)return out}}catch(_){}return key}
 function locale(){var lang=q(d.documentElement&&d.documentElement.lang);try{if(!lang&&w.navigator)lang=q(w.navigator.language)}catch(_){}return lang||undefined}
 function arr(v){return Array.isArray(v)?v:[]}
-function esc(v){return q(v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function esc(v){return q(v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]})}
 function fileName(v){if(!v)return'';if(typeof v==='string')return q(v);return q(v.name||v.fileName||v.filename||v.originalName||v.title||v.file&&v.file.name)}
 function printName(v){var name=q(v);return /^(?:DNC|SIDE)[0-9]{6,20}\.pdf$/i.test(name)?name.replace(/\.pdf$/i,''):name}
 function canonicalDeliveryKey(v){var name=q(v).replace(/[?#].*$/,'').replace(/^.*[\\/]/,'').trim();return printName(name).toLocaleLowerCase()}
@@ -33,6 +33,26 @@ function shrinkInlineFonts(root,deltaPt){
   if(m){var px=Math.max(7,Number(m[1])-Number(deltaPt)*1.3333);el.style.setProperty('font-size',String(Math.round(px*10)/10)+'px','important')}
  });
  root.setAttribute('data-rc1326-font-reduced',String(deltaPt));
+}
+function rc1547ApplySinglePageFit(root){
+ if(!root)return 1;
+ var rows=Array.from(root.querySelectorAll('tbody tr'));
+ var positionCount=rows.filter(function(row){return q(row&&row.textContent)&&!/^(?:gesamt|total)\b/i.test(q(row.textContent))}).length;
+ if(!positionCount){
+  positionCount=root.querySelectorAll('[data-position-row],[data-colli-row],[data-package-row],.rc390-load-row,.rc352-load-row').length
+ }
+ var documentCount=root.querySelectorAll('[data-rc1293-packing-slip]').length;
+ var effective=positionCount+Math.ceil(documentCount/2),extra=Math.max(0,effective-5);
+ var scale=extra?Math.max(.34,1/(1+extra*.045)):1;
+ root.setAttribute('data-rc1547-single-page','1');
+ root.setAttribute('data-rc1547-position-count',String(positionCount));
+ root.setAttribute('data-rc1547-document-count',String(documentCount));
+ root.setAttribute('data-rc1547-fit-scale',String(Math.round(scale*1000)/1000));
+ root.style.setProperty('zoom',String(scale),'important');
+ root.style.setProperty('break-inside','avoid-page','important');
+ root.style.setProperty('page-break-inside','avoid','important');
+ root.style.setProperty('overflow','visible','important');
+ return scale
 }
 function enhanceDocuments(root,sh){
  var label=findLabel(root,/lieferscheine|delivery\s*notes|\bdncs?\b/i);if(!label)return false;
@@ -139,7 +159,7 @@ function addQuickPrintQr(root,sh,withQr){
 function enhance(html,sh,withQr){
  try{
   var tpl=d.createElement('template');tpl.innerHTML=html;var root=tpl.content.querySelector('.rc390-load,.rc352-load,.rc390-page,.rc352-page')||tpl.content.firstElementChild;if(!root)return html;
-  root.setAttribute('data-rc1305-loading-list','1');shrinkInlineFonts(root,1);enhanceRecipient(root,sh||{});enhanceDocuments(root,sh||{});enhanceRemark(root,sh||{});pickupSummary(root,sh||{});
+  root.setAttribute('data-rc1305-loading-list','1');shrinkInlineFonts(root,1);enhanceRecipient(root,sh||{});enhanceDocuments(root,sh||{});enhanceRemark(root,sh||{});pickupSummary(root,sh||{});rc1547ApplySinglePageFit(root);
   return tpl.innerHTML
  }catch(e){try{console.warn('RC1305 Ladelisten-Darstellung',e)}catch(_){}return html}
 }
@@ -160,6 +180,7 @@ function style(){
  if(d.getElementById('exporthub-rc1305-loading-list-style'))return;
  var st=d.createElement('style');st.id='exporthub-rc1305-loading-list-style';st.textContent=
  '.rc390-load[data-rc1305-loading-list],.rc352-load[data-rc1305-loading-list]{box-sizing:border-box!important}'+
+ '.rc390-load[data-rc1547-single-page],.rc352-load[data-rc1547-single-page]{break-inside:avoid-page!important;page-break-inside:avoid!important;overflow:visible!important;transform-origin:top left!important}'+
  '[data-rc1342-recipient]{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'+
  '[data-rc1342-recipient][data-rc1364-recipient-kind="essentra"]{background:#fff3b0!important;border-color:#e5b51d!important}'+
  '[data-rc1342-recipient][data-rc1364-recipient-kind="customer"]{background:#dbeafe!important;border-color:#60a5fa!important}'+
@@ -196,5 +217,5 @@ function style(){
  (d.head||d.documentElement).appendChild(st)
 }
 style();
-w.ExportHUBRC1305LoadingListPrint=Object.freeze({version:'RC1517',enhance:enhance,enhanceCover:enhanceCover,isPicked:isPicked,deliveryFiles:deliveryFiles,canonicalDeliveryKey:canonicalDeliveryKey,printName:printName,printRef:printRef,qrSvg:rc1315QrSvg,addQuickPrintQr:addQuickPrintQr,style:style});
+w.ExportHUBRC1305LoadingListPrint=Object.freeze({version:'RC1517',singlePageVersion:'RC1547',enhance:enhance,enhanceCover:enhanceCover,isPicked:isPicked,deliveryFiles:deliveryFiles,canonicalDeliveryKey:canonicalDeliveryKey,printName:printName,printRef:printRef,qrSvg:rc1315QrSvg,addQuickPrintQr:addQuickPrintQr,applySinglePageFit:rc1547ApplySinglePageFit,style:style});
 })(window,document);
