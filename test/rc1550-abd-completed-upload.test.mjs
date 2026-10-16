@@ -61,3 +61,10 @@ test('RC1550: nicht verknuepfte ABD-Anfrage behaelt den bisherigen Fallback',()=
   assert.equal(result,'legacy');
   assert.equal(legacyCalls,1);
 });
+
+test('RC1550: geaenderte ABD-Runtime wird in Produktion nicht aus altem Browsercache geladen',()=>{
+  const config=JSON.parse(fs.readFileSync('staticwebapp.config.json','utf8'));
+  const route=(config.routes||[]).find(item=>item.route==='/assets/rc1049-abd-avis-policy.js');
+  assert.ok(route,'ABD-Runtime muss eine explizite Cache-Regel besitzen');
+  assert.match(String(route.headers&&route.headers['Cache-Control']||''),/no-store/i);
+});
