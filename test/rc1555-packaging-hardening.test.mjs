@@ -90,8 +90,13 @@ test('RC1555 deliberate packaging change refreshes the snapshot exactly once',()
   assert.equal(saved.packagingSnapshot.lengthCm,40);
 });
 
-test('RC1555 exporthub-state applies packaging snapshots during incoming state normalization',()=>{
-  const api=fs.readFileSync('api/exporthub-state/index.js','utf8');
-  assert.match(api,/packaging-admin-store/,'state API must share the packaging snapshot domain');
-  assert.match(api,/applyPackagingSnapshots\(state\)/,'incoming state must be enriched before persistence');
+test('RC1555 central storage compaction applies packaging snapshots before ExportHUB persistence',()=>{
+  const storage=fs.readFileSync('api/shared/state-compaction.js','utf8');
+  assert.match(storage,/packaging-admin-store/,'central persistence compaction must share the packaging snapshot domain');
+  assert.match(storage,/applyPackagingSnapshots\(/,'storage compaction must enrich shipment rows before persistence');
+  const {compactStateForStorage}=require('../api/shared/state-compaction.js');
+  const state=legacyState();state.shipments=[{id:'S1',rows:[{type:'Euro Palette',l:120,w:80,h:145,ldm:0.4}]}];
+  const compacted=compactStateForStorage(state);
+  assert.equal(compacted.shipments[0].rows[0].packagingTypeId,'CT1');
+  assert.equal(compacted.shipments[0].rows[0].packagingSnapshot.name,'Euro Palette');
 });
