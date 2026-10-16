@@ -8,6 +8,7 @@ var scheduled=false;
 
 function q(value){return String(value==null?'':value).trim();}
 function norm(value){return q(value).toLocaleLowerCase('de-DE').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();}
+function comparable(value){return norm(value).replace(/europalette/g,'euro palette').replace(/einwegpalette/g,'einweg palette').replace(/industriepalette/g,'industrie palette').replace(/\s+/g,' ');}
 function tr(key){
   try{
     if(root.ExportHUBI18n&&typeof root.ExportHUBI18n.t==='function'){
@@ -42,7 +43,7 @@ function enhanceMenu(menu){
   wrap.className='rc1555-packaging-search';
   wrap.setAttribute(SEARCH_ATTR,'');
   var input=doc.createElement('input');
-  input.type = 'search';
+  input.type='search';
   input.autocomplete='off';
   input.spellcheck=false;
   input.className='rc1555-packaging-search-input';
@@ -59,6 +60,73 @@ function enhanceMenu(menu){
   menu.setAttribute(ENHANCED_ATTR,'1');
   filterMenu(menu,input);
   return true;
+}
+function activePackagingNames(){
+  var store=root.ExportHUBPackagingStore;
+  if(!store||typeof store.activeItems!=='function')return[];
+  var seen=Object.create(null),names=[];
+  store.activeItems().forEach(function(item){
+    var name=q(item&&(item.name||item.type||item.label)),key=comparable(name);
+    if(!name||!key||seen[key])return;
+    seen[key]=true;
+    names.push(name);
+  });
+  return names;
+}
+function packagingCategory(name){
+  var value=norm(name);
+  if(/^e\s*\d+(?:\b|$)/i.test(q(name))||/\b(karton|kartons|paket|pakete|box|boxes|carton|cartons)\b/.test(value))return'packages';
+  if(/palette|palett|pallet|skid/.test(value))return'pallets';
+  return'other';
+}
+function replaceNativeOptions(select,names,current){
+  if(!select)return;
+  var blank=doc.createElement('option');blank.value='';blank.textContent='—';
+  while(select.firstChild)select.removeChild(select.firstChild);
+  select.appendChild(blank);
+  names.forEach(function(name){var option=doc.createElement('option');option.value=name;option.textContent=name;select.appendChild(option);});
+  if(current&&!names.some(function(name){return comparable(name)===comparable(current);})){
+    var historical=doc.createElement('option');historical.value=current;historical.textContent=current;historical.setAttribute('data-rc1555-historical','1');select.appendChild(historical);
+  }
+  select.value=current||'';
+}
+function rebuildColumns(columnsHost,names,current){
+  if(!columnsHost)return;
+  var groups={packages:[],pallets:[],other:[]};
+  names.forEach(function(name){groups[packagingCategory(name)].push(name);});
+  var columns=Array.prototype.slice.call(columnsHost.querySelectorAll('.rc682-packaging-column'));
+  ['packages','pallets','other'].forEach(function(category,index){
+    var column=columns[index];if(!column)return;
+    Array.prototype.forEach.call(column.querySelectorAll('.rc682-packaging-option,.rc682-packaging-empty'),function(node){node.remove();});
+    groups[category].forEach(function(name){
+      var button=doc.createElement('button');
+      button.type='button';
+      button.className='rc682-packaging-option';
+      button.setAttribute('data-rc682-packaging-option',name);
+      button.setAttribute('aria-pressed',comparable(name)===comparable(current)?'true':'false');
+      button.textContent=name;
+      column.appendChild(button);
+    });
+  });
+}
+function refreshPackagingOptions(){
+  var names=activePackagingNames();
+  if(!names.length)return false;
+  var changed=false;
+  Array.prototype.forEach.call(doc.querySelectorAll('.rc682-packaging-picker'),function(picker){
+    var select=picker.querySelector('.rc682-packaging-native');
+    var label=picker.querySelector('[data-rc682-packaging-value]');
+    var current=q(select&&select.value)||q(label&&label.textContent);
+    if(current==='—')current='';
+    replaceNativeOptions(select,names,current);
+    var columnsHost=picker.querySelector('.rc682-packaging-columns');
+    rebuildColumns(columnsHost,names,current);
+    var menu=picker.querySelector('.rc682-packaging-menu');
+    var input=menu&&menu.querySelector('[data-rc1555-packaging-search-input]');
+    if(menu&&input)filterMenu(menu,input);
+    changed=true;
+  });
+  return changed;
 }
 function ensureStyle(){
   if(doc.getElementById('exporthub-rc1555-packaging-shipment-style'))return;
@@ -88,9 +156,10 @@ if(typeof MutationObserver!=='undefined'){
   var observer=new MutationObserver(schedule);
   try{observer.observe(doc.documentElement,{childList:true,subtree:true});}catch(_){}
 }
-['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:packaging-masterdata-changed','exporthub:language-changed'].forEach(function(name){
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:language-changed'].forEach(function(name){
   try{root.addEventListener(name,schedule);}catch(_){}
 });
+try{root.addEventListener('exporthub:packaging-masterdata-changed',function(){refreshPackagingOptions();schedule();});}catch(_){}
 
-root.ExportHUBPackagingShipment1555=Object.freeze({version:'RC1555',enhance:enhance,filterMenu:filterMenu});
+root.ExportHUBPackagingShipment1555=Object.freeze({version:'RC1555',enhance:enhance,filterMenu:filterMenu,refreshPackagingOptions:refreshPackagingOptions});
 })(window,document);
