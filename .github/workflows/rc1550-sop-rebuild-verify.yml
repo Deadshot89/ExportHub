@@ -38,57 +38,43 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          chunks=(
-            .github/rc1550/bsh-upload/part-00
-            .github/rc1550/bsh-upload/part-01
-            .github/rc1550/bsh-upload/part-02
-            .github/rc1550/bsh-upload/part-03
-            .github/rc1550/bsh-upload/part-04
-            .github/rc1550/bsh-upload/part-05
-            .github/rc1550/bsh-upload/part-06
-            .github/rc1550/bsh-upload/part-07_08
-            .github/rc1550/bsh-upload/part-09_10
-            .github/rc1550/bsh-upload/part-11_12
-            .github/rc1550/bsh-upload/part-13_14
-          )
-          for chunk in "${chunks[@]}"; do test -s "$chunk" || { echo "Fehlender Archivteil: $chunk"; exit 1; }; done
           python - <<'PY'
           from pathlib import Path
-          import base64, binascii, re
-          paths = [
-            '.github/rc1550/bsh-upload/part-00',
-            '.github/rc1550/bsh-upload/part-01',
-            '.github/rc1550/bsh-upload/part-02',
-            '.github/rc1550/bsh-upload/part-03',
-            '.github/rc1550/bsh-upload/part-04',
-            '.github/rc1550/bsh-upload/part-05',
-            '.github/rc1550/bsh-upload/part-06',
-            '.github/rc1550/bsh-upload/part-07_08',
-            '.github/rc1550/bsh-upload/part-09_10',
-            '.github/rc1550/bsh-upload/part-11_12',
-            '.github/rc1550/bsh-upload/part-13_14',
+          import base64, binascii
+          specs = [
+            ('.github/rc1550/bsh-upload/part-00', 10000),
+            ('.github/rc1550/bsh-upload/part-01', 10000),
+            ('.github/rc1550/bsh-upload/part-02', 10000),
+            ('.github/rc1550/bsh-upload/part-03', 10000),
+            ('.github/rc1550/bsh-upload/part-04', 10000),
+            ('.github/rc1550/bsh-upload/part-05', 10000),
+            ('.github/rc1550/bsh-upload/part-06', 10000),
+            ('.github/rc1550/bsh-upload/part-07_08', 20000),
+            ('.github/rc1550/bsh-upload/part-09_10', 20000),
+            ('.github/rc1550/bsh-upload/part-11_12', 20000),
+            ('.github/rc1550/bsh-upload/part-13_14', 14730),
           ]
-          allowed = set('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=')
+          allowed=set('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=')
           pieces=[]
-          any_bad=False
-          for path in paths:
-              raw=Path(path).read_text('utf-8')
-              clean=''.join(raw.split())
-              bad=[(i, repr(ch), ord(ch)) for i,ch in enumerate(clean) if ch not in allowed]
-              print(f'{path}: len={len(clean)} mod4={len(clean)%4} start={clean[:12]!r} end={clean[-12:]!r} invalid={bad[:12]}')
-              if bad: any_bad=True
-              pieces.append(clean)
+          for path,wanted in specs:
+              p=Path(path)
+              if not p.is_file(): raise SystemExit(f'Fehlender Archivteil: {path}')
+              clean=''.join(p.read_text('utf-8').split())
+              bad=[(i,repr(ch)) for i,ch in enumerate(clean) if ch not in allowed]
+              if bad: raise SystemExit(f'Nicht-Base64-Zeichen in {path}: {bad[:10]}')
+              if len(clean) < wanted: raise SystemExit(f'{path} zu kurz: {len(clean)} < {wanted}')
+              extra=clean[wanted:]
+              print(f'{path}: raw={len(clean)} used={wanted} discarded={len(extra)} extra-head={extra[:24]!r}')
+              pieces.append(clean[:wanted])
           data=''.join(pieces)
-          print(f'assembled: len={len(data)} mod4={len(data)%4} padding={data.count("=")}')
-          Path('/tmp/bsh-screenshots.tar.gz.b64').write_text(data, encoding='ascii', errors='strict')
-          if any_bad:
-              raise SystemExit('Nicht-Base64-Zeichen in Staging-Chunks gefunden')
+          if len(data) != 144730: raise SystemExit(f'Unerwartete rekonstruierte Laenge: {len(data)}')
+          padded=data + ('=' * (-len(data) % 4))
           try:
-              decoded=base64.b64decode(data, validate=True)
+              decoded=base64.b64decode(padded, validate=True)
           except binascii.Error as exc:
               raise SystemExit(f'Base64-Struktur ungueltig: {exc}')
           Path('/tmp/bsh-screenshots.tar.gz').write_bytes(decoded)
-          print(f'decoded bytes={len(decoded)} magic={decoded[:8].hex()}')
+          print(f'reconstructed={len(data)} padded={len(padded)} decoded={len(decoded)} magic={decoded[:8].hex()}')
           PY
           gzip -t /tmp/bsh-screenshots.tar.gz
           rm -rf /tmp/bsh-extract
