@@ -5,8 +5,11 @@ on:
     branches: [main]
     paths:
       - 'assets/rc1305-loading-list-print.js'
+      - 'assets/document-print-name.js'
       - 'test/rc1547-loading-list-single-page.test.mjs'
+      - 'test/rc1550-pod-print-layout.test.mjs'
       - 'e2e/specs/rc1547-loading-list-single-page.spec.mjs'
+      - 'e2e/specs/rc1550-pod-print-layout.spec.mjs'
       - 'e2e/helpers/**'
       - '.github/rc1112/**'
       - '.github/workflows/rc1547-loading-list-single-page-verify.yml'
@@ -14,8 +17,11 @@ on:
     branches: [main]
     paths:
       - 'assets/rc1305-loading-list-print.js'
+      - 'assets/document-print-name.js'
       - 'test/rc1547-loading-list-single-page.test.mjs'
+      - 'test/rc1550-pod-print-layout.test.mjs'
       - 'e2e/specs/rc1547-loading-list-single-page.spec.mjs'
+      - 'e2e/specs/rc1550-pod-print-layout.spec.mjs'
       - 'e2e/helpers/**'
       - '.github/rc1112/**'
       - '.github/workflows/rc1547-loading-list-single-page-verify.yml'
@@ -37,8 +43,8 @@ jobs:
         with:
           node-version: '24'
 
-      - name: RC1547 Vertrag prüfen
-        run: node --test test/rc1547-loading-list-single-page.test.mjs
+      - name: Ladelisten- und POD-Verträge prüfen
+        run: node --test test/rc1547-loading-list-single-page.test.mjs test/rc1550-pod-print-layout.test.mjs
 
       - name: Aktuelles Drei-Umgebungen-Paket bauen
         run: node .github/rc1112/build-three-env.mjs
@@ -48,12 +54,12 @@ jobs:
           npm install --no-save @playwright/test@1.63.0
           npx playwright install --with-deps chromium
 
-      - name: Ein-Seiten-Ladeliste im echten Browser prüfen
+      - name: Ladeliste und POD im echten Browser prüfen
         env:
           EXPORTHUB_E2E_STATIC: '1'
           EXPORTHUB_E2E_ENTRY: /demo.html
           EXPORTHUB_E2E_PUBLIC_ENV: testservice
-        run: npx playwright test e2e/specs/rc1547-loading-list-single-page.spec.mjs --project=laptop
+        run: npx playwright test e2e/specs/rc1547-loading-list-single-page.spec.mjs e2e/specs/rc1550-pod-print-layout.spec.mjs --project=laptop
 
       - name: Browser-Fehlerartefakte hochladen
         if: failure()
