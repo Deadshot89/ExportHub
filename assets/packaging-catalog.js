@@ -12,7 +12,23 @@
   const lookup=new Map();
   for(const entry of entries){for(const value of [entry.key,entry.name,...entry.aliases])lookup.set(normalize(value),entry);}
   function copy(entry){return entry?{key:entry.key,label:entry.name,length:entry.length,width:entry.width,height:entry.height}:null;}
-  function list(){return entries.map(copy);}
-  function get(keyOrLabel){return copy(lookup.get(normalize(keyOrLabel))||null);}
+  function authoritative(){return root.ExportHUBPackagingMasterAuthoritative===true;}
+  function list(){return authoritative()?[]:entries.map(copy);}
+  function get(keyOrLabel){return authoritative()?null:copy(lookup.get(normalize(keyOrLabel))||null);}
+  function observePackagingMaster(){
+    const original=root.fetch;
+    if(typeof original!=='function'||original.__exporthubPackagingMasterObserver)return;
+    const wrapped=function(input,init){
+      const url=String(input&&input.url||input||'');
+      return Promise.resolve(original.call(this,input,init)).then(response=>{
+        if(response&&response.ok===true&&/\/api\/pack-notification(?:\?|$)/.test(url)&&/[?&]action=packaging-list(?:&|$)/.test(url))root.ExportHUBPackagingMasterAuthoritative=true;
+        return response;
+      });
+    };
+    wrapped.__exporthubPackagingMasterObserver=true;
+    wrapped.__exporthubOriginalFetch=original;
+    root.fetch=wrapped;
+  }
+  observePackagingMaster();
   root.ExportHubPackagingCatalog=Object.freeze({list,get});
 })(typeof window!=='undefined'?window:globalThis);
