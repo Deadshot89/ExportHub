@@ -79,6 +79,14 @@ test('RC1547: Legacy-Teamdaten ohne state-Wrapper erzeugen keine zyklische JSON-
   assert.match(api,/state\s*=\s*obj\(team\.state\)\s*\?\s*team\.state\s*:\s*\{\}\s*;/,'fehlender state-Wrapper muss als eigenes Objekt initialisiert werden');
 });
 
+test('RC1547: manueller Abhol-Endpoint trennt Production und TESTSERVICE wie der zentrale State-Endpoint',()=>{
+  const api=fs.readFileSync(API,'utf8');
+  assert.match(api,/ENVIRONMENT_INVALID/,'ungültige Umgebungswerte müssen abgelehnt werden');
+  assert.match(api,/ENVIRONMENT_MISMATCH/,'Host-/Origin-Widersprüche müssen abgelehnt werden');
+  assert.match(api,/-testservice\\\./,'TESTSERVICE-Evidenz fehlt');
+  assert.match(api,/azurestaticapps\\?\\?\.net|azurestaticapps\\\.net|azurestaticapps/,'Produktionshost-Erkennung fehlt');
+});
+
 test('RC1547: Pickup-Control beobachtet nicht den kompletten DOM-Baum auf Child-Mutations',()=>{
   const ui=fs.readFileSync(UI,'utf8');
   assert.doesNotMatch(ui,/childList\s*:\s*true/,'Pickup-Control darf keine globalen Child-Mutations beobachten');
