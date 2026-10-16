@@ -8,6 +8,7 @@ function load(root={}){
   vm.runInContext(source,vm.createContext({window:root,globalThis:root,Object,String,Array,Map,Set}),{filename:'packaging-catalog.js'});
   return root.ExportHubPackagingCatalog;
 }
+function plain(value){return value==null?value:JSON.parse(JSON.stringify(value));}
 
 test('RC1552 packaging catalog delegates list/get to the central packaging store',()=>{
   const values=[
@@ -19,9 +20,9 @@ test('RC1552 packaging catalog delegates list/get to the central packaging store
     get:value=>values.find(x=>[x.id,x.name,x.code].some(v=>String(v).toLowerCase()===String(value).toLowerCase()))||null
   }};
   const catalog=load(root);
-  const list=catalog.list();
+  const list=plain(catalog.list());
   assert.deepEqual(list.map(x=>x.label),['Euro Palette','Spezialkiste A']);
-  assert.deepEqual(catalog.get('EUR'),{key:'PKG-EUR',label:'Euro Palette',length:120,width:80,height:null});
+  assert.deepEqual(plain(catalog.get('EUR')),{key:'PKG-EUR',label:'Euro Palette',length:120,width:80,height:null});
 });
 
 test('RC1552 packaging catalog keeps aliases only as normalization compatibility',()=>{
@@ -35,7 +36,7 @@ test('RC1552 packaging catalog keeps aliases only as normalization compatibility
 
 test('RC1552 packaging catalog has no independent production packaging list without store',()=>{
   const catalog=load({});
-  assert.deepEqual(catalog.list(),[]);
+  assert.deepEqual(plain(catalog.list()),[]);
   assert.equal(catalog.get('Euro Palette'),null);
   const source=fs.readFileSync('assets/packaging-catalog.js','utf8');
   assert.doesNotMatch(source,/const\s+entries\s*=\s*\[/,'compatibility adapter must not own an independent production entries array');
