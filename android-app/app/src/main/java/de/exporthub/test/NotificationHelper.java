@@ -16,6 +16,7 @@ public final class NotificationHelper {
     public static final String CHANNEL_DIAGNOSTICS = "exporthub_diagnostics";
     private static final String PREFS = "exporthub_native_notifications";
     private static final String TASK_SNAPSHOT_PREFIX = "task_snapshot_";
+    private static final String TASK_GROUP_PREFIX = "exporthub_tasks_group_";
     private static final int MAX_TASK_SNAPSHOT = 128 * 1024;
 
     private NotificationHelper() {}
@@ -78,10 +79,7 @@ public final class NotificationHelper {
         }
 
         ensureChannels(context);
-        if (Build.VERSION.SDK_INT >= 33
-                && context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-            return false;
-        }
+        if (!notificationsAllowed(context)) return false;
 
         String normalizedChannel;
         if ("warning".equalsIgnoreCase(channel)) normalizedChannel = "warning";
@@ -104,19 +102,12 @@ public final class NotificationHelper {
         String signature = safeKey + "|" + safeBody;
 
         SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-        String dedupeKey = "last:" + env + ":" + normalizedChannel;
+        String dedupeKey = "last:" + env + ":" + normalizedChannel
+                + ("notification".equals(normalizedChannel) ? ":" + safeKey : "");
         if (signature.equals(prefs.getString(dedupeKey, ""))) return false;
         prefs.edit().putString(dedupeKey, signature).apply();
 
-        Intent intent = new Intent(context, NotificationDetailActivity.class);
-        intent.setAction("de.exporthub.OPEN_NOTIFICATION.NATIVE_DETAIL_V2." + env + "." + normalizedChannel + "." + safeKey);
-        intent.putExtra(EnvironmentActivity.EXTRA_ENVIRONMENT, env);
-        intent.putExtra(NotificationDetailActivity.EXTRA_NOTIFICATION_TITLE, safeTitle);
-        intent.putExtra(NotificationDetailActivity.EXTRA_NOTIFICATION_BODY, safeBody);
-        intent.putExtra(NotificationDetailActivity.EXTRA_NOTIFICATION_CHANNEL, normalizedChannel);
-        intent.putExtra(NotificationDetailActivity.EXTRA_NOTIFICATION_ROUTE, safeRoute);
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-
+        Intent intent = notificationIntent(context, env, normalizedChannel, safeKey, safeTitle, safeBody, safeRoute);
         int notificationId = Math.abs((env + ":" + normalizedChannel + ":" + safeKey).hashCode());
         int pendingIntentRequestCode = Math.abs(("native-detail-v2:" + env + ":" + normalizedChannel + ":" + safeKey).hashCode());
         PendingIntent pendingIntent = PendingIntent.getActivity(
@@ -126,19 +117,93 @@ public final class NotificationHelper {
                 PendingIntent.FLAG_CANCEL_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         int smallIcon = context.getApplicationInfo().icon;
-        android.app.Notification notification = new android.app.Notification.Builder(context, channelId)
+        android.app.Notification.Builder builder = new android.app.Notification.Builder(context, channelId)
                 .setSmallIcon(smallIcon)
                 .setContentTitle(safeTitle)
                 .setContentText(safeBody)
                 .setStyle(new android.app.Notification.BigTextStyle().bigText(safeBody))
                 .setAutoCancel(true)
+                .setContentIntent(pendingIntent);
+        if ("notification".equals(normalizedChannel)) builder.setGroup(taskGroup(env));
+
+        NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (manager == null) return false;
+        manager.notify(notificationId, builder.build());
+        return true;
+    }
+
+    public static boolean showTaskSummary(Context context,
+                                          String environment,
+                                          String key,
+                                          int count,
+                                          String highestPriority) {
+        if (context == null || count < 2) return false;
+        String env = EnvironmentActivity.normalizeEnvironment(environment);
+        ensureChannels(context);
+        if (!notificationsAllowed(context)) return false;
+
+        String safeKey = safe(key, "task-summary");
+        String priority = safe(highestPriority, "P4");
+        String title = "ExportHUB Aufgaben";
+        String body = count + " offene Aufgaben · höchste Priorität " + priority;
+        String signature = safeKey + "|" + body;
+
+        SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        String dedupeKey = "last:" + env + ":notification:summary:" + safeKey;
+        if (signature.equals(prefs.getString(dedupeKey, ""))) return false;
+        prefs.edit().putString(dedupeKey, signature).apply();
+
+        Intent intent = notificationIntent(context, env, "notification", safeKey, title, body, "tasks");
+        int requestCode = Math.abs(("native-summary-v1:" + env + ":" + safeKey).hashCode());
+        PendingIntent pendingIntent = PendingIntent.getActivity(
+                context,
+                requestCode,
+                intent,
+                PendingIntent.FLAG_CANCEL_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        android.app.Notification notification = new android.app.Notification.Builder(context, CHANNEL_TASKS)
+                .setSmallIcon(context.getApplicationInfo().icon)
+                .setContentTitle(title)
+                .setContentText(body)
+                .setStyle(new android.app.Notification.BigTextStyle().bigText(body))
+                .setAutoCancel(true)
                 .setContentIntent(pendingIntent)
+                .setGroup(taskGroup(env))
+                .setGroupSummary(true)
                 .build();
 
         NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         if (manager == null) return false;
+        int notificationId = Math.abs((env + ":task-summary:" + safeKey).hashCode());
         manager.notify(notificationId, notification);
         return true;
+    }
+
+    private static Intent notificationIntent(Context context,
+                                             String environment,
+                                             String channel,
+                                             String key,
+                                             String title,
+                                             String body,
+                                             String route) {
+        Intent intent = new Intent(context, NotificationDetailActivity.class);
+        intent.setAction("de.exporthub.OPEN_NOTIFICATION.NATIVE_DETAIL_V2." + environment + "." + channel + "." + key);
+        intent.putExtra(EnvironmentActivity.EXTRA_ENVIRONMENT, environment);
+        intent.putExtra(NotificationDetailActivity.EXTRA_NOTIFICATION_TITLE, title);
+        intent.putExtra(NotificationDetailActivity.EXTRA_NOTIFICATION_BODY, body);
+        intent.putExtra(NotificationDetailActivity.EXTRA_NOTIFICATION_CHANNEL, channel);
+        intent.putExtra(NotificationDetailActivity.EXTRA_NOTIFICATION_ROUTE, route);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        return intent;
+    }
+
+    private static boolean notificationsAllowed(Context context) {
+        return Build.VERSION.SDK_INT < 33
+                || context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private static String taskGroup(String environment) {
+        return TASK_GROUP_PREFIX + environment;
     }
 
     private static String safe(String value, String fallback) {
