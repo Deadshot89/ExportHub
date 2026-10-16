@@ -76,22 +76,22 @@ test('customer-search rejects an invalid station token',async()=>{
   assert.equal(res.body.ok,false);
 });
 
-test('packaging-list exposes saved colliTypes with only name and dimensions',async()=>{
+test('packaging-list exposes migrated canonical packaging with id code and safe dimensions',async()=>{
   const f=fixture();
   const res=await f.handler(request({stationToken:f.token},'packaging-list'));
   assert.equal(res.status,200);
   const special=res.body.packaging.find(x=>x.name==='Spezialkiste A');
-  assert.deepEqual(special,{name:'Spezialkiste A',length:88,width:55,height:44,ldm:0.21,source:'master'});
+  assert.deepEqual(special,{id:'CT1',name:'Spezialkiste A',code:'',length:88,width:55,height:44,ldm:0.21,source:'master'});
   assert.equal(Object.hasOwn(special,'note'),false);
-  assert.equal(Object.hasOwn(special,'id'),false);
+  assert.equal(Object.hasOwn(special,'secret'),false);
 });
 
-test('packaging-list keeps fixed E3 master dimensions ahead of stale saved E3 values',async()=>{
+test('packaging-list keeps protected E3 dimensions through the canonical master instead of a fixed QR list',async()=>{
   const f=fixture();
   const res=await f.handler(request({stationToken:f.token},'packaging-list'));
   assert.equal(res.status,200);
   const e3=res.body.packaging.find(x=>x.name==='E3');
-  assert.deepEqual(e3,{name:'E3',length:43,width:31,height:31,ldm:0.06,source:'fixed'});
+  assert.deepEqual(e3,{id:'OLD-E3',name:'E3',code:'E3',length:43,width:31,height:31,ldm:0.06,source:'master'});
 });
 
 test('packaging-list rejects an invalid station token',async()=>{
