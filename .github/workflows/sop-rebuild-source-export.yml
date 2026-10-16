@@ -1,0 +1,40 @@
+name: SOP Rebuild Source Export
+
+on:
+  push:
+    branches:
+      - feature/sop-rebuild-2026-10-16
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - name: Upload feature source
+        uses: actions/upload-artifact@v4
+        with:
+          name: sop-rebuild-source
+          path: |
+            .github
+            assets
+            browser
+            docs
+            e2e
+            scripts
+            test
+            tests
+            api
+            package.json
+            package-lock.json
+            playwright.config.mjs
+            index.html
+            TESTVERSION.html
+            demo.html
+            staticwebapp.config.json
+            staticwebapp.testservice.config.json
+          if-no-files-found: warn
+          retention-days: 1
