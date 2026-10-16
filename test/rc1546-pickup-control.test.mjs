@@ -65,6 +65,16 @@ test('RC1547: manuelle Abholung verlangt Datum und Begründung und schreibt revi
   assert.match(api,/reason.*required|reason.*erforderlich|Begr/i);
 });
 
+test('RC1547: tatsächliches manuelles Abholdatum darf nicht in der Zukunft liegen',()=>{
+  const api=fs.readFileSync(API,'utf8');
+  const ui=fs.readFileSync(UI,'utf8');
+  assert.match(api,/PICKUP_DATE_FUTURE/,'Backend-Fehlercode für zukünftiges Ist-Abholdatum fehlt');
+  assert.match(api,/Europe\/Berlin/,'fachliche Tagesgrenze muss in der ExportHUB-Zeitzone geprüft werden');
+  assert.match(api,/pickupDate\s*>\s*businessToday/,'Backend muss zukünftige Abholdaten tatsächlich blockieren');
+  assert.match(ui,/pickupDate\.max\s*=\s*ymd\(new Date\(\)\)/,'Datumsfeld muss heute als Maximalwert setzen');
+  assert.match(ui,/date\s*>\s*ymd\(new Date\(\)\)/,'UI muss Zukunftsdatum auch beim Submit abfangen');
+});
+
 test('RC1547: spätere Status werden durch manuelles Nachtragen niemals zurückgestuft',()=>{
   const source=fs.readFileSync(API,'utf8');
   assert.match(source,/POD vorhanden/);
