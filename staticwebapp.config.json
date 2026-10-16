@@ -48,6 +48,11 @@
       "headers": {"Cache-Control": "no-store, no-cache, must-revalidate"}
     },
     {
+      "route": "/assets/rc1049-abd-avis-policy.js",
+      "allowedRoles": ["anonymous"],
+      "headers": {"Cache-Control": "no-store, no-cache, must-revalidate"}
+    },
+    {
       "route": "/assets/rc1027-lieferavis-immediate.js",
       "allowedRoles": ["anonymous"],
       "headers": {"Cache-Control": "no-store, no-cache, must-revalidate"}
