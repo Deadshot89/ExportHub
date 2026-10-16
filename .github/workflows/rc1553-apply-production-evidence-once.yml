@@ -1,5 +1,5 @@
 name: RC1553 Apply Production Evidence Once
-# retry: corrected shell interpolation
+# retry: stage patched workflow blobs without workflow write permission
 
 on:
   push:
@@ -28,15 +28,16 @@ jobs:
         run: node .github/rc1553/apply-production-evidence.mjs
       - name: RC1553 Vertrag nach Patch prüfen
         run: node --test test/rc1553-it-control-production-evidence.test.mjs
-      - name: RC1553 Patch committen
+      - name: RC1553 geprüfte Workflow-Blobs bereitstellen
         shell: bash
         run: |
           set -euo pipefail
-          rm -f .github/workflows/rc1553-apply-production-evidence-once.yml
-          rm -f .github/rc1553/apply-production-evidence.mjs
+          cp .github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml .github/rc1553/staged-testservice.yml.txt
+          cp .github/workflows/exporthub-production-release.yml .github/rc1553/staged-production.yml.txt
+          git checkout -- .github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml .github/workflows/exporthub-production-release.yml
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add .github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml .github/workflows/exporthub-production-release.yml .github/workflows/rc1553-apply-production-evidence-once.yml .github/rc1553/apply-production-evidence.mjs
+          git add .github/rc1553/staged-testservice.yml.txt .github/rc1553/staged-production.yml.txt
           git diff --cached --check
-          git commit -m 'feat(RC1553): verify deployed build identity'
+          git commit -m 'build(RC1553): stage verified deployment workflows'
           git push origin HEAD:rc1553-it-control-production-evidence
