@@ -4,7 +4,7 @@
 
 **Goal:** Give the IT Control Center a trustworthy runtime identity so it can distinguish “code changed” from “the expected build is actually running”.
 
-**Architecture:** Extend the existing `exporthub-health` endpoint instead of creating a parallel health API. Preserve the legacy RC1060 health contract for existing probes, add a fail-closed `deployment` identity, and make the deployment workflow materialize the checked-out SHA plus visible/technical release metadata before Azure deploys the API.
+**Architecture:** Extend the existing `exporthub-health` endpoint instead of creating a parallel health API. Preserve the legacy RC1060 health contract for existing probes, add a fail-closed `deployment` identity, and make both the TESTSERVICE verification workflow and the manual Production Release workflow materialize the checked-out SHA plus visible/technical release metadata before Azure deploys the API.
 
 **Tech Stack:** Node.js 20, Azure Functions, GitHub Actions, `node:test`.
 
@@ -48,15 +48,17 @@
 
 **Files:**
 - Modify: `.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml`
+- Modify: `.github/workflows/exporthub-production-release.yml`
 - Test: `test/rc1553-it-control-production-evidence.test.mjs`
 
 **Interfaces:**
 - Consumes: checked-out `git rev-parse HEAD` and `release-version.json`.
 - Produces: `api/release-metadata.json` immediately before each Azure API deployment.
 
-- [ ] Add failing workflow contract assertions.
+- [ ] Add failing workflow contract assertions for TESTSERVICE and Production Release.
 - [ ] Verify RED.
-- [ ] Materialize metadata before TESTSERVICE and production deploys.
+- [ ] Materialize metadata before TESTSERVICE deploy.
+- [ ] Materialize metadata from the explicit `release_sha` checkout before production deploy.
 - [ ] Verify PR gates.
 
 ### Task 3: Release verification
