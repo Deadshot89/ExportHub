@@ -3,6 +3,7 @@ import path from 'node:path';
 
 export const RC1555_PACKAGING_ASSETS=Object.freeze([
   'assets/rc1555-packaging-store.js',
+  'assets/rc1555-packaging-shipment.js',
   'assets/rc1555-packaging-management.js',
   'assets/rc1555-packaging-management.css'
 ]);
@@ -10,6 +11,7 @@ export const RC1555_PACKAGING_ASSETS=Object.freeze([
 const LOCALE_DIR='assets/i18n/rc1555-packaging-masterdata';
 const STYLE_TAG='<link id="exporthub-rc1555-packaging-management-style" rel="stylesheet" href="/assets/rc1555-packaging-management.css?v=1555">';
 const STORE_TAG='<script id="exporthub-rc1555-packaging-store" defer src="/assets/rc1555-packaging-store.js?v=1555"></script>';
+const SHIPMENT_TAG='<script id="exporthub-rc1555-packaging-shipment" defer src="/assets/rc1555-packaging-shipment.js?v=1555"></script>';
 const MANAGEMENT_TAG='<script id="exporthub-rc1555-packaging-management" defer src="/assets/rc1555-packaging-management.js?v=1555"></script>';
 
 function countId(html,id){return String(html||'').split(`id="${id}"`).length-1;}
@@ -25,15 +27,18 @@ export function injectPackagingMasterdata(html,file='index.html'){
   if(!out.includes('id="exporthub-rc1267-i18n"'))throw new Error(`${file}: RC1555 zentrale i18n-Runtime fehlt`);
   out=injectBeforeHeadEnd(out,STYLE_TAG,'exporthub-rc1555-packaging-management-style',file);
   out=injectBeforeHeadEnd(out,STORE_TAG,'exporthub-rc1555-packaging-store',file);
+  out=injectBeforeHeadEnd(out,SHIPMENT_TAG,'exporthub-rc1555-packaging-shipment',file);
   out=injectBeforeHeadEnd(out,MANAGEMENT_TAG,'exporthub-rc1555-packaging-management',file);
-  for(const id of ['exporthub-rc1555-packaging-management-style','exporthub-rc1555-packaging-store','exporthub-rc1555-packaging-management']){
+  for(const id of ['exporthub-rc1555-packaging-management-style','exporthub-rc1555-packaging-store','exporthub-rc1555-packaging-shipment','exporthub-rc1555-packaging-management']){
     const count=countId(out,id);if(count!==1)throw new Error(`${file}: RC1555 Tag ${id} ${count}x gefunden`);
   }
   const i18n=out.indexOf('id="exporthub-rc1267-i18n"');
   const store=out.indexOf('id="exporthub-rc1555-packaging-store"');
+  const shipment=out.indexOf('id="exporthub-rc1555-packaging-shipment"');
   const management=out.indexOf('id="exporthub-rc1555-packaging-management"');
   if(i18n<0||store<=i18n)throw new Error(`${file}: RC1555 Store muss nach zentraler i18n-Runtime geladen werden`);
-  if(management<=store)throw new Error(`${file}: RC1555 Management muss nach Packaging Store geladen werden`);
+  if(shipment<=store)throw new Error(`${file}: RC1555 Shipment-Verpackungssuche muss nach Packaging Store geladen werden`);
+  if(management<=shipment)throw new Error(`${file}: RC1555 Management muss nach Shipment-Verpackungssuche geladen werden`);
   return out;
 }
 
