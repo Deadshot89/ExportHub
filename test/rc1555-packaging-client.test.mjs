@@ -71,3 +71,17 @@ test('RC1555 QR client preserves canonical packaging id and sends it with draft 
   assert.match(source,/packageTypeId:entry\?entry\.id:''/,'draft payload must send selected canonical packaging id');
   assert.match(source,/packageTypeId:packageEntry\?packageEntry\.id:''/,'submit payload must send selected canonical packaging id');
 });
+
+test('RC1555 shipment packaging chooser is searchable without replacing the existing RC682 selection behavior',()=>{
+  assert.equal(fs.existsSync('assets/rc1555-packaging-shipment.js'),true,'shipment packaging search runtime missing');
+  const source=read('assets/rc1555-packaging-shipment.js');
+  assert.match(source,/\.rc682-packaging-menu/,'runtime must enhance the existing RC682 packaging menu');
+  assert.match(source,/\.rc682-packaging-option/,'runtime must filter existing RC682 packaging options rather than replace selection logic');
+  assert.match(source,/type\s*=\s*['"]search['"]/,'shipment packaging chooser must contain a search input');
+  assert.match(source,/common\.search/,'search label must use the central six-language i18n key');
+  assert.match(source,/option\.hidden\s*=\s*!visible/,'search must filter packaging options in place');
+  assert.match(source,/rc1096-packaging-col/,'empty packaging groups must be hidden while filtering');
+  assert.match(source,/MutationObserver/,'dynamically rendered shipment rows/menus must be enhanced');
+  assert.match(source,/exporthub:packaging-masterdata-changed/,'masterdata changes must trigger selector re-enhancement without a page reload');
+  assert.doesNotMatch(source,/location\.reload|location\.assign|location\.replace/i,'searchable shipment selector must not reload the application');
+});
