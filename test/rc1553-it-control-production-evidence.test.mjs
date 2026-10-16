@@ -91,6 +91,37 @@ test('RC1553: deployed release-metadata file stays authoritative when runtime me
   }
 });
 
+test('RC1553: deployed release-metadata file wins over complete but stale runtime metadata',async()=>{
+  const metadataPath=path.join(os.tmpdir(),`exporthub-release-metadata-conflict-${process.pid}-${Date.now()}.json`);
+  fs.writeFileSync(metadataPath,JSON.stringify({
+    buildId:'fedcba9876543210fedcba9876543210fedcba98',
+    visibleRelease:'RC1553',
+    technicalBuild:'RC1112',
+    builtAt:'2026-10-16T15:30:00.000Z',
+    environment:'production'
+  }));
+  try{
+    await withEnv({
+      EXPORTHUB_DEPLOY_BUILD_ID:'0123456789abcdef0123456789abcdef01234567',
+      EXPORTHUB_DEPLOY_VISIBLE_RELEASE:'RC1548',
+      EXPORTHUB_DEPLOY_TECHNICAL_BUILD:'RC1112',
+      EXPORTHUB_DEPLOY_BUILT_AT:'2026-10-15T15:30:00.000Z',
+      EXPORTHUB_DEPLOY_ENVIRONMENT:'production',
+      EXPORTHUB_RELEASE_METADATA_PATH:metadataPath
+    },async()=>{
+      const result=await invoke();
+      assert.equal(result.body.deployment.verified,true);
+      assert.equal(result.body.deployment.status,'verified');
+      assert.equal(result.body.deployment.buildId,'fedcba9876543210fedcba9876543210fedcba98');
+      assert.equal(result.body.deployment.visibleRelease,'RC1553');
+      assert.equal(result.body.deployment.environment,'production');
+      assert.equal(result.body.deployment.source,'release-metadata');
+    });
+  }finally{
+    fs.rmSync(metadataPath,{force:true});
+  }
+});
+
 test('RC1553: Missing deployment metadata fails closed instead of claiming a verified version',async()=>{
   await withEnv({
     EXPORTHUB_DEPLOY_BUILD_ID:null,
@@ -160,4 +191,17 @@ test('RC1553: legacy RC1060 health contract remains present for existing probes'
   const source=fs.readFileSync(new URL('../api/exporthub-health/index.js',import.meta.url),'utf8');
   assert.match(source,/version:\s*['"]RC1060['"]/);
   assert.match(source,/release:\s*['"]legacy-document-migration['"]/);
+});
+
+test('RC1555: production upload uses GitHub OIDC and proves critical app/API files before deploy',()=>{
+  assert.match(productionWorkflow,/permissions:[\s\S]*id-token:\s*write/);
+  assert.match(productionWorkflow,/Acquire GitHub OIDC token for Azure Static Web Apps/);
+  assert.match(productionWorkflow,/ACTIONS_ID_TOKEN_REQUEST_TOKEN/);
+  assert.match(productionWorkflow,/github_id_token:\s*\$\{\{\s*steps\.swa_oidc\.outputs\.token\s*\}\}/);
+  assert.match(productionWorkflow,/test -s \.rc1112_production_app\/assets\/packaging-admin\.js/);
+  assert.match(productionWorkflow,/test -s api\/exporthub-health\/index\.js/);
+  assert.match(productionWorkflow,/test -s api\/release-metadata\.json/);
+  const acquire=productionWorkflow.indexOf('Acquire GitHub OIDC token for Azure Static Web Apps');
+  const deploy=productionWorkflow.indexOf('Deploy ExportHUB production');
+  assert.ok(acquire>=0&&deploy>acquire,'Production OIDC token must be acquired before Azure upload');
 });

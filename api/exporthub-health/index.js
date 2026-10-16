@@ -74,8 +74,10 @@ function fileMetadata() {
 }
 
 function deploymentIdentity() {
+  const fromFile = fileMetadata();
   const fromRuntime = runtimeMetadata();
-  const metadata = fromRuntime || fileMetadata() || {
+  const fileIsComplete = completeMetadata(fromFile);
+  const metadata = (fileIsComplete ? fromFile : fromRuntime) || fromFile || {
     buildId: null,
     visibleRelease: null,
     technicalBuild: null,
@@ -83,6 +85,11 @@ function deploymentIdentity() {
     environment: null
   };
   const complete = completeMetadata(metadata);
+  const source = fileIsComplete
+    ? 'release-metadata'
+    : (fromRuntime
+      ? 'runtime-env'
+      : (metadata.buildId || metadata.visibleRelease || metadata.technicalBuild || metadata.builtAt || metadata.environment ? 'release-metadata' : 'none'));
   return {
     status: complete ? 'verified' : 'unknown',
     verified: complete,
@@ -91,7 +98,7 @@ function deploymentIdentity() {
     technicalBuild: metadata.technicalBuild,
     builtAt: metadata.builtAt,
     environment: metadata.environment,
-    source: fromRuntime ? 'runtime-env' : (metadata.buildId || metadata.visibleRelease || metadata.technicalBuild || metadata.builtAt || metadata.environment ? 'release-metadata' : 'none')
+    source
   };
 }
 
