@@ -250,7 +250,14 @@ test('RC1320 P1: Mehr-LKW läuft im TESTSERVICE von UI-Aufteilung über getrennt
       await expect(article).toBeVisible();
       await expect(article.locator('[data-action="rc1017-print-subshipment"]')).toBeVisible();
       await expect(article.locator('[data-action="rc1017-stow-subshipment"]')).toBeVisible();
-      const responsePromise=page.waitForResponse(r=>r.url().includes('/api/pickup-init')&&r.request().method()==='POST',{timeout:45_000});
+      const responsePromise=page.waitForResponse(r=>{
+        if(!r.url().includes('/api/pickup-init')||r.request().method()!=='POST')return false;
+        try{
+          const body=r.request().postDataJSON();
+          const payload=body&&body.shipment&&typeof body.shipment==='object'?body.shipment:body;
+          return String(payload?.subShipmentId||'')===id;
+        }catch(_){return false}
+      },{timeout:45_000});
       await article.locator('[data-action="rc1017-qr-subshipment"]').click();
       const response=await responsePromise;
       expect(response.status()).toBe(200);
