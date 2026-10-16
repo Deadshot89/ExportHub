@@ -55,7 +55,7 @@ const production=await page(PROD,'/',[
   'assets/rc1013-diagnostics.js?v=1364',
   'assets/rc1013-gate41-ui.js?v=1385',
   'assets/rc1017-multi-truck.js?v=1017',
-  'assets/rc1305-loading-list-print.js?v=1379',
+  'assets/rc1305-loading-list-print.js?v=1555',
   'assets/rc1315-loading-list-quick-print.js?v=1322',
   'assets/rc1027-lieferavis-immediate.js?v=20261005'
 ]);
@@ -78,7 +78,7 @@ const testservice=await page(TEST,'/',[
   'assets/rc1013-diagnostics.js?v=1364',
   'assets/rc1013-gate41-ui.js?v=1385',
   'assets/rc1017-multi-truck.js?v=1017',
-  'assets/rc1305-loading-list-print.js?v=1379',
+  'assets/rc1305-loading-list-print.js?v=1555',
   'assets/rc1315-loading-list-quick-print.js?v=1322',
   'assets/rc1027-lieferavis-immediate.js?v=20261005'
 ]);
@@ -97,7 +97,7 @@ const demo=await page(TEST,'/demo.html',[
   'assets/rc1074-login-clean.js?v=1349',
   'assets/rc1013-gate41-ui.js?v=1385',
   'assets/rc1017-multi-truck.js?v=1017',
-  'assets/rc1305-loading-list-print.js?v=1379',
+  'assets/rc1305-loading-list-print.js?v=1555',
   'assets/rc1027-lieferavis-immediate.js?v=20261005'
 ]);
 
