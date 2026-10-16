@@ -17,6 +17,7 @@ export const RC1550_BSH_IMAGES=Object.freeze([
 
 export const SOP_REBUILD_ASSETS=Object.freeze([
   'assets/sop/rc1550-sop-active-catalog.js',
+  'assets/sop/rc1550-sop-runtime.js',
   'assets/sop/rc1550-sop-ui.js',
   'assets/sop/rc1550-sop.css',
   ...RC1550_BSH_IMAGES
@@ -25,6 +26,7 @@ export const SOP_REBUILD_ASSETS=Object.freeze([
 export const SOP_REBUILD_MARKERS=Object.freeze([
   'exporthub-rc1550-sop-style',
   'exporthub-rc1550-sop-active-catalog',
+  'exporthub-rc1550-sop-runtime',
   'exporthub-rc1550-sop-ui'
 ]);
 
@@ -33,6 +35,7 @@ const GUIDED_ANCHOR_ID='exporthub-rc1544-sop-guided-workspace';
 const STYLE_TAG='<link id="exporthub-rc1550-sop-style" rel="stylesheet" href="/assets/sop/rc1550-sop.css?v=1550">';
 const SCRIPT_TAGS=Object.freeze([
   '<script id="exporthub-rc1550-sop-active-catalog" defer src="/assets/sop/rc1550-sop-active-catalog.js?v=1550"></script>',
+  '<script id="exporthub-rc1550-sop-runtime" defer src="/assets/sop/rc1550-sop-runtime.js?v=1550"></script>',
   '<script id="exporthub-rc1550-sop-ui" defer src="/assets/sop/rc1550-sop-ui.js?v=1550"></script>'
 ]);
 
@@ -50,8 +53,8 @@ function injectScripts(html,file){
   if(counts.some(count=>count!==0))throw new Error(`RC1550 ${file}: unvollständige Script-Injection (${counts.join(',')})`);
   const rx=guidedAnchorRegex();const match=html.match(rx);
   if(!match)throw new Error(`RC1550 ${file}: Guided-Workspace-Anker ${GUIDED_ANCHOR_ID} fehlt`);
-  // Laufzeit-Reihenfolge: bestehende Persistenz/Guided-Wrapper → RC1550 active-catalog → sop-ui.
-  // So bleibt der Guided-Workspace aktiv und RC1550 wird anschließend der autoritative sichtbare Katalog.
+  // Laufzeit-Reihenfolge: bestehende Persistenz/Guided-Wrapper → RC1550 active-catalog → runtime → sop-ui.
+  // So bleibt der Guided-Workspace aktiv, der persistierte State wird bereinigt und RC1550 wird autoritativ sichtbar.
   return html.replace(rx,`${match[0]}\n${SCRIPT_TAGS.join('\n')}`);
 }
 
@@ -59,8 +62,9 @@ export function validateBundle(html,file='index.html'){
   for(const id of SOP_REBUILD_MARKERS){const count=countId(html,id);if(count!==1)throw new Error(`RC1550 ${file}: ${id} muss genau einmal vorhanden sein, gefunden ${count}`);}
   const guided=html.indexOf(`id="${GUIDED_ANCHOR_ID}"`);
   const catalog=html.indexOf('id="exporthub-rc1550-sop-active-catalog"');
+  const runtime=html.indexOf('id="exporthub-rc1550-sop-runtime"');
   const ui=html.indexOf('id="exporthub-rc1550-sop-ui"');
-  if(guided<0||catalog<=guided||ui<=catalog)throw new Error(`RC1550 ${file}: Reihenfolge muss Guided-Workspace → RC1550 active-catalog → sop-ui sein`);
+  if(guided<0||catalog<=guided||runtime<=catalog||ui<=runtime)throw new Error(`RC1550 ${file}: Reihenfolge muss Guided-Workspace → RC1550 active-catalog → runtime → sop-ui sein`);
 }
 
 export function integrateSopRebuild(root,out){
