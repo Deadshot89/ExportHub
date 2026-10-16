@@ -12,5 +12,6 @@ test('RC1555 already-rendered shipment packaging menus refresh from canonical ac
   assert.match(SOURCE,/\.rc682-packaging-native/,'hidden native selector must be refreshed together with the visible menu');
   assert.match(SOURCE,/\.rc682-packaging-columns/,'visible packaging menu columns must be rebuilt from current masterdata');
   assert.match(SOURCE,/exporthub:packaging-masterdata-changed[^\n]*refreshPackagingOptions/s,'masterdata event must invoke the live option refresh');
+  assert.doesNotMatch(SOURCE,/if\s*\(\s*!names\.length\s*\)\s*return\s+false/,'zero active packaging must clear stale choices instead of skipping refresh');
   assert.doesNotMatch(SOURCE,/location\.reload|location\.assign|location\.replace/i,'live refresh must not reload the application');
 });
