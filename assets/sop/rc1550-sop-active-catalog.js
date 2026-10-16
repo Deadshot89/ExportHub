@@ -7,16 +7,17 @@ const PORTAL='https://vendor.bsh-partner.com/su_launch/index.html#Shell-home';
 
 function text(value){return String(value==null?'':value).trim();}
 function freezeList(items){return Object.freeze(items.map(item=>item&&typeof item==='object'?Object.freeze(item):item));}
+function step(id,title,instruction,extra={}){return Object.freeze(Object.assign({id,title,instruction,text:instruction,required:true},extra));}
 
-const bshSteps=freezeList([
-  {id:'bsh-01-portal',title:'Portal öffnen',instruction:'BSH ONE Communication Platform öffnen. Ausschließlich die Funktion „Transportanmeldungen und Lieferavise“ verwenden.',required:true},
-  {id:'bsh-02-start',title:'Transportanmeldung starten',instruction:'Kunden anhand der Stadt auswählen, auf „Start“ und anschließend „Hinzufügen“ klicken. Werknummer merken.',required:true},
-  {id:'bsh-03-werk-termin',title:'Werk und Termin erfassen',instruction:'Auf der nächsten Seite den Kunden bzw. die passende Werknummer erneut auswählen. Datum und Uhrzeit eintragen.',required:true},
-  {id:'bsh-04-verpackung',title:'Verpackung auswählen',instruction:'Verpackung anhand der Packtischdaten auswählen. WPA bedeutet Einwegpalette und ist immer als nicht stapelbar zu erfassen.',warnings:['WPA bedeutet Einwegpalette und ist immer als nicht stapelbar zu erfassen.'],required:true},
-  {id:'bsh-05-referenz',title:'ExportHUB-Referenz hinterlegen',instruction:'Die REF aus ExportHUB360 in das vorgesehene Feld eintragen.',required:true},
-  {id:'bsh-06-lieferavis',title:'Lieferavis anlegen',instruction:'„Lieferavise anlegen“ wählen. Alle Lieferscheine mit den zugehörigen Mengen vollständig erfassen.',required:true},
-  {id:'bsh-07-sendungsnummer',title:'Sendungsnummer erzeugen',instruction:'Angaben prüfen, sichern und „Erstellen der Sendungsnummer“ wählen. Erfolgsmeldung und Nummer kontrollieren.',expectedResult:'Erfolgsmeldung und Sendungsnummer sind sichtbar und geprüft.',required:true},
-  {id:'bsh-08-exporthub-mail',title:'ExportHUB und Kundenmail aktualisieren',instruction:'Die erzeugte Sendungsnummer in der Info der ExportHUB360-Sendung eintragen und in die E-Mail an den Kunden übernehmen. Alle Lieferscheine an den Kunden senden.',required:true}
+const bshSteps=Object.freeze([
+  step('bsh-01-portal','Portal öffnen','BSH ONE Communication Platform öffnen. Ausschließlich die Funktion „Transportanmeldungen und Lieferavise“ verwenden.'),
+  step('bsh-02-start','Transportanmeldung starten','Kunden anhand der Stadt auswählen, auf „Start“ und anschließend „Hinzufügen“ klicken. Werknummer merken.'),
+  step('bsh-03-werk-termin','Werk und Termin erfassen','Auf der nächsten Seite den Kunden bzw. die passende Werknummer erneut auswählen. Datum und Uhrzeit eintragen.'),
+  step('bsh-04-verpackung','Verpackung auswählen','Verpackung anhand der Packtischdaten auswählen. WPA bedeutet Einwegpalette und ist immer als nicht stapelbar zu erfassen.',{warnings:Object.freeze(['WPA bedeutet Einwegpalette und ist immer als nicht stapelbar zu erfassen.'])}),
+  step('bsh-05-referenz','ExportHUB-Referenz hinterlegen','Die REF aus ExportHUB360 in das vorgesehene Feld eintragen.'),
+  step('bsh-06-lieferavis','Lieferavis anlegen','„Lieferavise anlegen“ wählen. Alle Lieferscheine mit den zugehörigen Mengen vollständig erfassen.'),
+  step('bsh-07-sendungsnummer','Sendungsnummer erzeugen','Angaben prüfen, sichern und „Erstellen der Sendungsnummer“ wählen. Erfolgsmeldung und Nummer kontrollieren.',{expectedResult:'Erfolgsmeldung und Sendungsnummer sind sichtbar und geprüft.'}),
+  step('bsh-08-exporthub-mail','ExportHUB und Kundenmail aktualisieren','Die erzeugte Sendungsnummer in der Info der ExportHUB360-Sendung eintragen und in die E-Mail an den Kunden übernehmen. Alle Lieferscheine an den Kunden senden.')
 ]);
 
 const bshVisuals=freezeList([
@@ -34,6 +35,7 @@ const bshVisuals=freezeList([
 ]);
 
 const bshSections=Object.freeze({
+  purpose:'Transportanmeldung und Lieferavis für die BSH-Gruppe korrekt erfassen.',
   scope:'Transportanmeldung und Lieferavis für die BSH-Gruppe korrekt erfassen.',
   prerequisites:freezeList([
     'Lieferscheine mit vollständigen Angaben kommen direkt vom Packtisch.',
