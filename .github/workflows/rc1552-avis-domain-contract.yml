@@ -1,0 +1,30 @@
+name: RC1552 AVIS Domain Contract
+
+on:
+  push:
+    branches:
+      - fix/rc1552-avis-de-domain-regression
+  pull_request:
+    paths:
+      - 'assets/rc1027-lieferavis-immediate.js'
+      - 'assets/rc1166-avis-reminder-overview.js'
+      - 'api/customer-avis/index.js'
+      - 'api/avis-reminder-mail/index.js'
+      - 'test/*avis*.test.mjs'
+      - '.github/workflows/rc1552-avis-domain-contract.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: AVIS .de Vertrag prüfen
+        run: node --test test/rc1552-avis-de-domain-regression.test.mjs
