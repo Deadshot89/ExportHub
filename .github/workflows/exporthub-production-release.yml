@@ -175,6 +175,28 @@ jobs:
           test -s .rc1112_production_app/index.html
           test -s .rc1112_production_app/pack.html
 
+      - name: RC1553 deployment metadata - PRODUCTION
+        shell: bash
+        run: |
+          set -euo pipefail
+          build_id="$(git rev-parse HEAD)"
+          test "$build_id" = "$RELEASE_SHA"
+          BUILD_ID="$build_id" DEPLOY_ENVIRONMENT='production' node -e "
+            const fs=require('fs');
+            const release=JSON.parse(fs.readFileSync('release-version.json','utf8'));
+            const metadata={
+              buildId:process.env.BUILD_ID,
+              visibleRelease:String(release.visibleRelease||'').trim(),
+              technicalBuild:String(release.technicalBuild||'').trim(),
+              builtAt:new Date().toISOString(),
+              environment:process.env.DEPLOY_ENVIRONMENT
+            };
+            if(!/^[0-9a-f]{40}$/i.test(metadata.buildId)||!metadata.visibleRelease||!metadata.technicalBuild)throw new Error('RC1553: unvollstaendige PRODUCTION Deployment-Metadaten');
+            fs.writeFileSync('api/release-metadata.json',JSON.stringify(metadata,null,2)+'\n');
+          "
+          test -s api/release-metadata.json
+          node -e "const v=require('./api/release-metadata.json'); console.log('RC1553 PRODUCTION deployment metadata',JSON.stringify({buildId:v.buildId,visibleRelease:v.visibleRelease,technicalBuild:v.technicalBuild,builtAt:v.builtAt,environment:v.environment}))"
+
       - name: Deploy ExportHUB production
         uses: Azure/static-web-apps-deploy@4d27395796ac319302594769cfe812bd207490b1
         with:
@@ -185,6 +207,25 @@ jobs:
           api_location: api
           output_location: ''
           skip_app_build: true
+
+      - name: RC1553 PRODUCTION deployment identity prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://wonderful-forest-0f315e310.7.azurestaticapps.net'
+          body="$(mktemp)"
+          trap 'rm -f "$body"' EXIT
+          for attempt in {1..24}; do
+            code="$(curl -sS -L -o "$body" -w '%{http_code}' --max-time 20 "$base/api/exporthub-health?rc1553=${RELEASE_SHA}-${attempt}" || true)"
+            if [ "$code" = '200' ] && EXPECTED_BUILD_ID="$RELEASE_SHA" BODY="$body" node -e "const fs=require('fs'),v=JSON.parse(fs.readFileSync(process.env.BODY,'utf8')||'{}');if(v.deployment&&v.deployment.verified===true&&v.deployment.buildId===process.env.EXPECTED_BUILD_ID&&v.deployment.environment==='production')process.exit(0);process.exit(1)"; then
+              echo "RC1553 PRODUCTION deployment.buildId=$RELEASE_SHA deployment.verified=true"
+              exit 0
+            fi
+            sleep 5
+          done
+          cat "$body" >&2 || true
+          echo "RC1553: PRODUCTION deployment identity stimmt nicht mit RELEASE_SHA=$RELEASE_SHA ueberein." >&2
+          exit 1
 
       - name: RC1170 PRODUCTION Kundenportal-Verschlüsselung prüfen
         shell: bash
