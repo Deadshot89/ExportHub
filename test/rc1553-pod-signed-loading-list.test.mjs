@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const source = fs.readFileSync(new URL('../api/shared/pod-archive.js', import.meta.url), 'utf8');
+const pickupPod = fs.readFileSync(new URL('../api/pickup-pod/index.js', import.meta.url), 'utf8');
 const start = source.indexOf('async function createPodPdf(');
 const end = source.indexOf('async function readAutomaticPodBuffer(', start);
 const block = source.slice(start, end);
@@ -34,4 +35,17 @@ test('RC1553 P0: pallet area has exactly one pallet-account value, not outgoing/
   assert.match(source, /function palletBalanceText\(record\)/, 'POD pallet-balance helper missing');
   assert.match(block, /Europaletten-Kontostand/);
   assert.doesNotMatch(block, /Ausgang:\s*'\+palletOut\+'\s*\/\s*Eingang:/);
+});
+
+test('RC1553 P0: public automatic-POD download must pass through the version-aware archive downloader', () => {
+  assert.match(pickupPod, /podArchive\s*=\s*require\(['"]\.\.\/shared\/pod-archive['"]\)/);
+  assert.match(pickupPod, /podArchive\.getPodDownload\(accessKey,resolved\.environment,fileId\)/);
+});
+
+test('RC1553 P0: backup retry must not re-archive an outdated automatic POD layout', () => {
+  const retryStart = source.indexOf('async function retryArchiveBackup(');
+  const retryEnd = source.indexOf('async function retryDriveBackup(', retryStart);
+  const retryBlock = source.slice(retryStart, retryEnd);
+  assert.match(retryBlock, /!isCurrentAutomaticPod\(currentFile\)/);
+  assert.match(retryBlock, /ensureAutomaticPod\(accessKey, environment, \{ force: true, copyToDrive: true \}\)/);
 });
