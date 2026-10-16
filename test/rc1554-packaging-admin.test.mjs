@@ -16,6 +16,7 @@ function baseState(){
   return {
     colliTypes:[{id:'CT1',name:'Euro Palette',code:'EUR',l:120,w:80,h:145,active:true}],
     inactiveColliTypes:[],
+    disabledPackagingAliases:[],
     packNotifications:[{id:'N1',packageType:'Euro Palette',packages:[{packageNo:1,length:120,width:80,height:145}]}],
     shipments:[{id:'S1',colli:[{type:'Euro Palette',count:1}]}]
   };
@@ -23,10 +24,13 @@ function baseState(){
 
 test('RC1554 creates packaging and rejects case-insensitive duplicates',()=>{
   const store=loadStore();
-  const created=store.createPackaging(baseState(),{name:'Spezialkiste',code:'SK',length:88,width:55,height:44,description:'intern'},'Admin','2026-10-16T15:30:00.000Z');
+  const state=baseState();
+  state.disabledPackagingAliases=['Spezialkiste'];
+  const created=store.createPackaging(state,{name:'Spezialkiste',code:'SK',length:88,width:55,height:44,description:'intern'},'Admin','2026-10-16T15:30:00.000Z');
   assert.equal(created.packaging.name,'Spezialkiste');
   assert.equal(created.packaging.active,true);
   assert.equal(created.state.colliTypes.some(x=>x.name==='Spezialkiste'),true);
+  assert.equal(created.state.disabledPackagingAliases.some(x=>String(x).toLowerCase()==='spezialkiste'),false,'re-created packaging must clear its fallback tombstone');
   assert.throws(()=>store.createPackaging(created.state,{name:' spezialKISTE '},'Admin','2026-10-16T15:31:00.000Z'),/existiert bereits/i);
 });
 
@@ -39,6 +43,7 @@ test('RC1554 edits master packaging without rewriting historical shipment snapsh
   assert.equal(result.packaging.l,121);
   assert.equal(JSON.stringify(result.state.packNotifications),before,'historical pack notification snapshot must stay unchanged');
   assert.equal(result.state.shipments[0].colli[0].type,'Euro Palette','historical shipment snapshot must stay unchanged');
+  assert.equal(result.state.disabledPackagingAliases.includes('Euro Palette'),true,'old fallback name must stay disabled after rename');
 });
 
 test('RC1554 deactivates and reactivates packaging by moving it out of the active colliTypes source',()=>{
@@ -60,6 +65,7 @@ test('RC1554 hard-deletes unused packaging but archives packaging already refere
   assert.equal(hard.deleted,true);
   assert.equal(hard.archived,false);
   assert.equal(store.listPackaging(hard.state).some(x=>x.id===unused.packaging.id),false);
+  assert.equal(hard.state.disabledPackagingAliases.includes('Nur Test'),true,'hard delete must leave a fallback tombstone');
 
   const soft=store.removePackaging(baseState(),'CT1','Admin','2026-10-16T15:37:00.000Z');
   assert.equal(soft.deleted,false);
@@ -80,12 +86,17 @@ test('RC1554 hard-deletes unused packaging but archives packaging already refere
 test('RC1554 admin API and UI surface expose CRUD without changing normal-user pack flow',()=>{
   assert.equal(fs.existsSync('api/packaging-admin/index.js'),true,'packaging admin API is missing');
   assert.equal(fs.existsSync('api/packaging-admin/function.json'),true,'packaging admin function binding is missing');
+  assert.equal(fs.existsSync('api/packaging-public-state/index.js'),true,'public packaging fallback state API is missing');
+  assert.equal(fs.existsSync('api/packaging-public-state/function.json'),true,'public packaging fallback state binding is missing');
   assert.equal(fs.existsSync('assets/packaging-admin.js'),true,'packaging admin UI is missing');
   const api=fs.readFileSync('api/packaging-admin/index.js','utf8');
+  const publicApi=fs.readFileSync('api/packaging-public-state/index.js','utf8');
   const ui=fs.readFileSync('assets/packaging-admin.js','utf8');
   const nav=fs.readFileSync('assets/pack-notification-nav.js','utf8');
   assert.match(api,/GLOBAL_ADMIN_REQUIRED/);
   for(const action of ['list','create','update','toggle','delete'])assert.match(api,new RegExp(`['\"]${action}['\"]`));
+  assert.match(publicApi,/validateStationToken/,'public fallback state must still require the pack-station token');
+  assert.match(publicApi,/disabledPackaging/);
   assert.match(ui,/Verpackungen/);
   assert.match(ui,/data-packaging-admin-open/);
   assert.match(ui,/data-packaging-action=[\\]?['\"]create/);
@@ -106,25 +117,34 @@ test('RC1554 packaging administration asset is copied into every final Packmeldu
   assert.match(build,/['"]packaging-admin\.js['"]/, 'PACK_ASSETS must include packaging-admin.js so the dynamic runtime exists in dist-rc1112');
 });
 
-test('RC1554 public pack fallback is used only when the packaging master request is unavailable',async()=>{
+test('RC1554 public pack fallback filters only packaging explicitly disabled by the central master',async()=>{
   const source=fs.readFileSync('assets/packaging-catalog.js','utf8');
-  const okWindow={fetch:async()=>({ok:true})};
+  const calls=[];
+  const okWindow={fetch:async(url,init)=>{
+    calls.push(String(url));
+    if(String(url).includes('/api/packaging-public-state'))return{ok:true,json:async()=>({ok:true,disabledPackaging:['Euro Palette']})};
+    return{ok:true};
+  }};
   vm.runInNewContext(source,{window:okWindow,globalThis:okWindow});
-  assert.ok(okWindow.ExportHubPackagingCatalog.list().length>0,'fallback must exist before the server master is confirmed');
-  await okWindow.fetch('/api/pack-notification?action=packaging-list',{method:'POST'});
-  assert.equal(okWindow.ExportHUBPackagingMasterAuthoritative,true,'successful packaging-list request must mark server master authoritative');
-  assert.equal(okWindow.ExportHubPackagingCatalog.list().length,0,'fallback must not re-add packaging after authoritative master load');
+  const before=okWindow.ExportHubPackagingCatalog.list().map(x=>x.label);
+  assert.ok(before.includes('Euro Palette'));
+  assert.ok(before.includes('Einwegpalette'));
+  await okWindow.fetch('/api/pack-notification?action=packaging-list',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({stationToken:'PT01-test'})});
+  const after=okWindow.ExportHubPackagingCatalog.list().map(x=>x.label);
+  assert.equal(calls.some(x=>x.includes('/api/packaging-public-state')),true,'packaging-list success must load the disabled-name metadata');
+  assert.equal(after.includes('Euro Palette'),false,'explicitly disabled fallback must stay hidden');
+  assert.equal(after.includes('Einwegpalette'),true,'unmodified fallback must remain available');
 
-  const failedWindow={fetch:async()=>({ok:false})};
+  const failedWindow={fetch:async(url)=>String(url).includes('/api/packaging-public-state')?{ok:false}:{ok:true}};
   vm.runInNewContext(source,{window:failedWindow,globalThis:failedWindow});
-  await failedWindow.fetch('/api/pack-notification?action=packaging-list',{method:'POST'});
-  assert.notEqual(failedWindow.ExportHUBPackagingMasterAuthoritative,true);
-  assert.ok(failedWindow.ExportHubPackagingCatalog.list().length>0,'fallback must remain available when master request fails');
+  await failedWindow.fetch('/api/pack-notification?action=packaging-list',{method:'POST',body:JSON.stringify({stationToken:'PT01-test'})});
+  assert.ok(failedWindow.ExportHubPackagingCatalog.list().some(x=>x.label==='Euro Palette'),'fallback must remain available if metadata lookup fails');
 });
 
-test('RC1554 internal shipment build suppresses inactive packaging before the legacy PACK fallback is merged',()=>{
+test('RC1554 internal shipment build suppresses inactive and renamed/deleted packaging before legacy PACK fallback is merged',()=>{
   const build=fs.readFileSync('.github/packmeldungen/build-three-env.mjs','utf8');
   assert.match(build,/injectInactivePackagingSuppression/,'build must patch the legacy shipment packaging list');
   assert.match(build,/inactiveColliTypes/,'inactive master entries must seed the packaging seen-set');
-  assert.match(build,/!\/\^E\[0-6\]\$\/i|\^E\[0-6\]\$/,'fixed E0-E6 protection must remain visible in the suppression contract');
+  assert.match(build,/disabledPackagingAliases/,'renamed or hard-deleted names must also seed the packaging seen-set');
+  assert.match(build,/\^E\[0-6\]\$/,'fixed E0-E6 protection must remain visible in the suppression contract');
 });
