@@ -10,6 +10,15 @@ const TEAM_CONTAINER=process.env.EXPORTHUB_STORAGE_CONTAINER||process.env.EXPORT
 const TEAM_BLOB_BASE=process.env.EXPORTHUB_STORAGE_BLOB||process.env.EXPORTHUB_STATE_BLOB||'team-state.json';
 const TEST_TEAM_BLOB=process.env.EXPORTHUB_TEST_STORAGE_BLOB||('testservice/'+String(TEAM_BLOB_BASE).replace(/^\/+/,''));
 const MAX_RETRIES=8;
+const BUSINESS_TIME_ZONE='Europe/Berlin';
+const FUTURE_DATE_MESSAGES=Object.freeze({
+  de:'Abholdatum darf nicht in der Zukunft liegen.',
+  en:'Pickup date must not be in the future.',
+  pl:'Data odbioru nie może być datą przyszłą.',
+  es:'La fecha de recogida no puede estar en el futuro.',
+  fr:'La date d’enlèvement ne peut pas être dans le futur.',
+  it:'La data di ritiro non può essere futura.'
+});
 
 function text(value){return String(value==null?'':value).trim()}
 function lower(value){return text(value).toLowerCase()}
@@ -112,9 +121,24 @@ function validDate(value){
   return !Number.isNaN(date.getTime())&&date.toISOString().slice(0,10)===raw;
 }
 function validTime(value){return !text(value)||/^([01]\d|2[0-3]):[0-5]\d$/.test(text(value))}
+function businessToday(value){
+  const date=value instanceof Date?value:new Date(value||Date.now());
+  if(Number.isNaN(date.getTime()))return'';
+  try{
+    const parts=new Intl.DateTimeFormat('en-CA',{timeZone:BUSINESS_TIME_ZONE,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(date),map={};
+    parts.forEach(part=>{if(part&&part.type!=='literal')map[part.type]=part.value});
+    if(map.year&&map.month&&map.day)return map.year+'-'+map.month+'-'+map.day;
+  }catch(_){}
+  return date.toISOString().slice(0,10);
+}
+function futureDateMessage(payload){
+  const code=lower(payload&&(payload.language||payload.lang)).slice(0,2);
+  return FUTURE_DATE_MESSAGES[code]||FUTURE_DATE_MESSAGES.de;
+}
 function sanitizePayload(payload){
   const pickupDate=text(payload&&payload.pickupDate),pickupTime=text(payload&&payload.pickupTime),reason=text(payload&&payload.reason).replace(/[\r\n\t]+/g,' ').slice(0,500);
   if(!validDate(pickupDate))throw auth.error('PICKUP_DATE_REQUIRED','Abholdatum ist erforderlich.',400);
+  if(pickupDate>businessToday())throw auth.error('PICKUP_DATE_FUTURE',futureDateMessage(payload),400);
   if(!validTime(pickupTime))throw auth.error('PICKUP_TIME_INVALID','Abholzeit ist ungültig.',400);
   if(!reason)throw auth.error('PICKUP_REASON_REQUIRED','Begründung für die manuelle Abholung ist erforderlich.',400);
   const pickupAt=text(payload&&payload.pickupAt);
@@ -220,4 +244,4 @@ module.exports=async function(context,req){
   }
 };
 
-module.exports._test={sanitizePayload,statusRank,preserveLaterStatus,applyManualPickup,sameShipment,resolveEnvironment};
+module.exports._test={sanitizePayload,statusRank,preserveLaterStatus,applyManualPickup,sameShipment,resolveEnvironment,businessToday};
