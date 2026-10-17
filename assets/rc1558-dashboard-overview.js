@@ -206,9 +206,11 @@ function openShipment(key){
   return route('shipmentoverview')
 }
 function route(view){
+  // setView is the app's navigation entry point; route/RC885 are older fallbacks.
+  try{if(typeof w.setView==='function'){w.setView(view);return true}}catch(_){}
+  try{if(typeof w.route==='function'){w.route(view,'rc1558-overview');return true}}catch(_){}
   var api=workspace();
   try{if(api&&typeof api.routeTo==='function')return api.routeTo(view)}catch(_){}
-  try{if(typeof w.route==='function'){w.route(view,'rc1558-overview');return true}}catch(_){}
   return false
 }
 
@@ -271,6 +273,7 @@ function install(){
     if(d.hidden)return;observe();
     if(isDashboard()&&!d.getElementById(SECTION_ID)&&hostRoot())schedule()
   };
+  d.addEventListener('visibilitychange',check);
   if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',check);else check();
   setInterval(check,1500);
   schedule()
