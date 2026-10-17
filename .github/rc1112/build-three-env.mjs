@@ -56,6 +56,7 @@ const RC1306_LAYOUT_SCRIPT_TAG='<script id="exporthub-rc1306-layout-script" defe
 const RC1371_DASHBOARD_STYLE_TAG='<link id="exporthub-rc1371-dashboard-style" rel="stylesheet" href="/assets/rc1371-dashboard-personalization.css?v=1371">';
 const RC1371_DASHBOARD_I18N_TAG='<script id="exporthub-rc1371-dashboard-i18n" defer src="/assets/i18n/rc1371-dashboard-personalization.js?v=1371"><\/script>';
 const RC1371_DASHBOARD_SCRIPT_TAG='<script id="exporthub-rc1371-dashboard-script" defer src="/assets/rc1371-dashboard-personalization.js?v=1371"><\/script>';
+const RC1560_FULL_WIDTH_STYLE_TAG='<link id="exporthub-rc1560-full-width" rel="stylesheet" href="/assets/rc1560-full-width.css?v=1560">';
 const RC1558_OVERVIEW_STYLE_TAG='<link id="exporthub-rc1558-overview-style" rel="stylesheet" href="/assets/rc1558-dashboard-overview.css?v=1558">';
 const RC1558_OVERVIEW_I18N_TAG='<script id="exporthub-rc1558-overview-i18n" defer src="/assets/i18n/rc1558-dashboard-overview.js?v=1558"><\/script>';
 const RC1558_OVERVIEW_SCRIPT_TAG='<script id="exporthub-rc1558-overview-script" defer src="/assets/rc1558-dashboard-overview.js?v=1558"><\/script>';
@@ -112,6 +113,13 @@ function patchRc1400MobileNavigationCache(html,file){
   if(count!==1)throw new Error(file+': RC1400 Mobile-Navigation Cache-Anker '+count+'x gefunden');
   html=html.replace(before,after);
   if(!html.includes(after))throw new Error(file+': RC1400 Mobile-Navigation Cache-Key fehlt');
+  return html;
+}
+
+function patchRc1560FullWidth(html,file){
+  // last stylesheet in <head>: lifts the screen width caps of #content and the view wrappers
+  html=injectDeferredRuntimeInHead(html,RC1560_FULL_WIDTH_STYLE_TAG,'exporthub-rc1560-full-width');
+  if(!html.includes('rc1560-full-width.css?v=1560'))throw new Error(file+': RC1560 Vollbreite-CSS fehlt');
   return html;
 }
 
@@ -942,6 +950,7 @@ function patchHtml(file){
   html=patchRc1371Dashboard(html,file);
   html=patchRc1558DashboardOverview(html,file);
   html=patchRc1306LayoutEngine(html,file);
+  html=patchRc1560FullWidth(html,file);
   html=patchRc1329MultiTruckUiRuntime(html,file);
   html=patchRc1328MultiTruckRefresh(html,file);
   html=patchRc1329MultiTruckRenderer(html,file);
@@ -1094,6 +1103,7 @@ for(const rel of [
   'assets/rc1306-layout-engine.js',
   'assets/rc1371-dashboard-personalization.css',
   'assets/rc1371-dashboard-personalization.js',
+  'assets/rc1560-full-width.css',
   'assets/rc1558-dashboard-overview.css',
   'assets/rc1558-dashboard-overview.js',
   'assets/rc1460-shipment-view-files-avis-preview.js'
