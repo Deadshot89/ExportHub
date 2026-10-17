@@ -19,6 +19,8 @@ test('api postinstall funktioniert auch aus einem Oryx-Staging-Unterordner', () 
       cwd: stageDir,
       encoding: 'utf8',
       env: process.env,
+      // Node refuses to spawn .cmd files without a shell on Windows (EINVAL).
+      shell: process.platform === 'win32',
     });
 
     assert.equal(
