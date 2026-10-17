@@ -1,0 +1,109 @@
+/* ExportHUB360 RC1558 – one-page dashboard overview. Colors come from the active design (--pc-*), with Classic fallbacks. */
+#rc1558Overview{
+  --rc1558-surface:var(--pc-card-bg,var(--pc-surface,#fff));
+  --rc1558-surface-2:var(--pc-field,#f6f8fb);
+  --rc1558-line:var(--pc-line,#dde3ec);
+  --rc1558-text:var(--pc-text,#152235);
+  --rc1558-muted:var(--pc-muted,#5d6b80);
+  --rc1558-primary:var(--pc-primary,#1f6fd1);
+  --rc1558-primary-soft:var(--pc-primary-soft,#e3eefc);
+  --rc1558-ok:var(--pc-success-text,var(--pc-success,#17824b));
+  --rc1558-ok-soft:var(--pc-success-soft,#e1f4e9);
+  --rc1558-warn:var(--pc-warning-text,var(--pc-warning,#a86200));
+  --rc1558-warn-soft:var(--pc-warning-soft,#fdf0d9);
+  --rc1558-crit:var(--pc-danger-text,var(--pc-danger,#c2332b));
+  --rc1558-crit-soft:var(--pc-danger-soft,#fbe4e2);
+  --rc1558-radius:var(--pc-card-radius,12px);
+  grid-column:1/-1;display:grid;gap:12px;margin:0 0 12px;min-width:0;color:var(--rc1558-text)
+}
+#rc1558Overview *{box-sizing:border-box}
+#rc1558Overview button{font:inherit;color:inherit}
+#rc1558Overview :is(button,[role="row"][tabindex]):focus-visible{outline:2px solid var(--pc-focus,var(--rc1558-primary));outline-offset:2px}
+
+.rc1558-kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+.rc1558-kpi{display:grid;gap:2px;align-content:start;text-align:left;cursor:pointer;min-width:0;
+  background:var(--rc1558-surface);border:1px solid var(--rc1558-line);border-radius:var(--rc1558-radius);padding:10px 12px}
+.rc1558-kpi:hover{border-color:var(--rc1558-primary)}
+.rc1558-kpi-label{font-size:12px;font-weight:600;color:var(--rc1558-muted)}
+.rc1558-kpi-value{font-size:26px;line-height:1.1;font-weight:750;font-variant-numeric:tabular-nums}
+.rc1558-kpi-sub{font-size:11.5px;color:var(--rc1558-muted);overflow-wrap:anywhere}
+.rc1558-kpi[data-tone="crit"]{background:var(--rc1558-crit-soft);border-color:var(--rc1558-crit)}
+.rc1558-kpi[data-tone="crit"] .rc1558-kpi-value{color:var(--rc1558-crit)}
+.rc1558-kpi[data-tone="warn"]{background:var(--rc1558-warn-soft);border-color:var(--rc1558-warn)}
+.rc1558-kpi[data-tone="warn"] .rc1558-kpi-value{color:var(--rc1558-warn)}
+
+.rc1558-grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:12px;align-items:start}
+.rc1558-stack{display:grid;gap:12px;min-width:0}
+.rc1558-panel{background:var(--rc1558-surface);border:1px solid var(--rc1558-line);border-radius:var(--rc1558-radius);padding:12px 14px;display:grid;gap:8px;align-content:start;min-width:0}
+.rc1558-head{display:flex;align-items:baseline;gap:8px;min-width:0}
+.rc1558-head h3{margin:0;font-size:15px;font-weight:650}
+.rc1558-count{font-size:12px;font-weight:600;color:var(--rc1558-muted);font-variant-numeric:tabular-nums}
+.rc1558-link{margin-left:auto;background:none;border:0;padding:2px 4px;cursor:pointer;font-size:12.5px;font-weight:600;color:var(--rc1558-primary)!important}
+.rc1558-empty{margin:0;font-size:13px;color:var(--rc1558-muted)}
+
+.rc1558-tablewrap{overflow-x:auto;min-width:0}
+.rc1558-table{min-width:600px;font-size:13px}
+.rc1558-tr{display:grid;grid-template-columns:52px 82px minmax(140px,1fr) 52px 104px 170px;align-items:center;border-bottom:1px solid var(--rc1558-line)}
+.rc1558-tr > [role]{padding:7px 8px;min-width:0}
+.rc1558-thead > [role]{padding-block:4px;font-size:11px;font-weight:650;letter-spacing:.05em;text-transform:uppercase;color:var(--rc1558-muted);white-space:nowrap}
+.rc1558-tr[data-rc1558-shipment]{cursor:pointer;border-radius:6px}
+.rc1558-tr[data-rc1558-shipment]:hover{background:var(--rc1558-surface-2)}
+[role="rowgroup"] > .rc1558-tr:last-child{border-bottom:0}
+.rc1558-time,.rc1558-num{font-variant-numeric:tabular-nums}
+.rc1558-tr .rc1558-num{text-align:right}
+.rc1558-time{color:var(--rc1558-muted)}
+.rc1558-ref{font-weight:650;font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;font-size:12.5px}
+.rc1558-customer{overflow-wrap:anywhere}
+.rc1558-country{font-size:11px;font-weight:650;color:var(--rc1558-muted);border:1px solid var(--rc1558-line);border-radius:4px;padding:0 4px}
+.rc1558-docs{display:flex;gap:4px}
+.rc1558-doc{font-size:10.5px;font-weight:650;border-radius:4px;padding:1px 5px}
+.rc1558-doc[data-ok="1"]{background:var(--rc1558-ok-soft);color:var(--rc1558-ok)}
+.rc1558-doc[data-ok="0"]{background:var(--rc1558-crit-soft);color:var(--rc1558-crit)}
+
+.rc1558-pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:2px 9px;font-size:11.5px;font-weight:650;background:var(--rc1558-surface-2);color:var(--rc1558-muted)}
+.rc1558-pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.rc1558-pill[data-tone="ok"]{background:var(--rc1558-ok-soft);color:var(--rc1558-ok)}
+.rc1558-pill[data-tone="warn"]{background:var(--rc1558-warn-soft);color:var(--rc1558-warn)}
+.rc1558-pill[data-tone="crit"]{background:var(--rc1558-crit-soft);color:var(--rc1558-crit)}
+.rc1558-pill[data-tone="info"]{background:var(--rc1558-primary-soft);color:var(--rc1558-primary)}
+
+.rc1558-list{list-style:none;margin:0;padding:0;display:grid}
+.rc1558-list li{display:grid;grid-template-columns:4px minmax(0,1fr) auto;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid var(--rc1558-line)}
+.rc1558-list li:last-child{border-bottom:0}
+.rc1558-sev{align-self:stretch;border-radius:2px;background:var(--rc1558-primary)}
+.rc1558-sev[data-tone="crit"]{background:var(--rc1558-crit)}
+.rc1558-sev[data-tone="warn"]{background:var(--rc1558-warn)}
+.rc1558-item{grid-column:2/-1;display:grid;gap:1px;text-align:left;background:none;border:0;padding:0;cursor:pointer;min-width:0}
+.rc1558-item b{font-size:13px;font-weight:600;overflow-wrap:anywhere}
+.rc1558-item small{font-size:12px;color:var(--rc1558-muted)}
+.rc1558-task{font-size:13px;overflow-wrap:anywhere;min-width:0}
+.rc1558-due{font-size:12px;color:var(--rc1558-muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.rc1558-due[data-late="1"]{color:var(--rc1558-crit);font-weight:650}
+
+/* The overview replaces the older "Arbeitsfokus" block and the "Heute geplante Sendungen" tile; the rest stays compact below it. */
+body[data-rc1558-overview="1"] #rc885Workspace,
+body[data-rc1558-overview="1"] #content .rc205-dashboard-grid > [data-dashboard-widget="todayShipments"]{display:none!important}
+body[data-rc1558-overview="1"] #content .rc205-quick-card{margin-bottom:10px}
+/* Compact ABD and pallet tiles so the whole dashboard fits one laptop screen; sizes only, colors stay with the design. */
+body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-mini-metrics{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important}
+body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-mini-metrics .metric{min-height:0!important;padding:8px 10px!important}
+body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-mini-metrics .metric::before,
+body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-mini-metrics .metric::after{display:none!important}
+body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-mini-metrics .metric strong{font-size:22px!important;line-height:1.15!important}
+
+@media (max-width:1250px){.rc1558-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.rc1558-grid{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:640px){
+  .rc1558-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.rc1558-kpi-value{font-size:22px}
+  /* phone: each pickup becomes a two-line row instead of a sideways-scrolling table */
+  .rc1558-table{min-width:0}
+  .rc1558-thead{display:none}
+  .rc1558-tr{grid-template-columns:44px minmax(0,1fr) auto;grid-template-areas:"time ref status" "time customer customer" "time docs colli";row-gap:2px;padding-block:6px}
+  .rc1558-tr > [role]{padding:0 6px}
+  .rc1558-tr > :nth-child(1){grid-area:time;align-self:start}
+  .rc1558-tr > :nth-child(2){grid-area:ref}
+  .rc1558-tr > :nth-child(3){grid-area:customer}
+  .rc1558-tr > :nth-child(4){grid-area:colli;font-size:12px;color:var(--rc1558-muted)}
+  .rc1558-tr > :nth-child(5){grid-area:docs}
+  .rc1558-tr > :nth-child(6){grid-area:status;justify-self:end}
+}
+@media print{#rc1558Overview{display:none!important}}
