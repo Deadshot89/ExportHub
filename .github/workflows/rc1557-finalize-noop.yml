@@ -1,0 +1,61 @@
+name: RC1557 finalize minimal patch
+
+on:
+  push:
+    branches:
+      - fix/storage-noop-saves
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Restore API exactly from main
+        run: |
+          git fetch origin main
+          git checkout origin/main -- api/exporthub-state/index.js
+
+      - name: Apply only RC1557 no-op guard
+        run: node scripts/rc1557-finalize-noop.mjs
+
+      - name: Verify targeted regression
+        run: node --test test/rc1557-storage-noop-save.test.mjs
+
+      - name: Syntax check State API
+        run: node --check api/exporthub-state/index.js
+
+      - name: Full test suite without mutating pretest
+        shell: bash
+        run: node --test --test-concurrency=1 test/*.test.mjs tests/*.test.cjs
+
+      - name: Verify final diff scope
+        shell: bash
+        run: |
+          files=$(git diff --name-only origin/main | sort)
+          printf '%s\n' "$files"
+          unexpected=$(printf '%s\n' "$files" | grep -v -E '^(api/exporthub-state/index\.js|test/rc1557-storage-noop-save\.test\.mjs|scripts/rc1557-finalize-noop\.mjs|\.github/workflows/rc1557-finalize-noop\.yml)$' || true)
+          if [ -n "$unexpected" ]; then
+            echo "Unexpected RC1557 diff:" >&2
+            echo "$unexpected" >&2
+            exit 1
+          fi
+
+      - name: Commit clean implementation and remove one-shot helpers
+        shell: bash
+        run: |
+          rm scripts/rc1557-finalize-noop.mjs
+          rm .github/workflows/rc1557-finalize-noop.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add api/exporthub-state/index.js test/rc1557-storage-noop-save.test.mjs scripts/rc1557-finalize-noop.mjs .github/workflows/rc1557-finalize-noop.yml
+          git commit -m "fix: finalize minimal no-op state save guard"
+          git push origin HEAD:fix/storage-noop-saves
