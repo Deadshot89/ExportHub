@@ -11,6 +11,7 @@ function numberOrNull(value){
 }
 function money(value){return value==null?null:Math.round(Number(value)*100)/100}
 function moneySum(values){return Math.round((values||[]).reduce((sum,value)=>sum+Math.round(Number(value||0)*100),0))/100}
+function metricSum(values){return Math.round((values||[]).reduce((sum,value)=>sum+Number(value||0),0)*1000)/1000}
 function uniqueText(values){return Array.from(new Set((values||[]).map(text).filter(Boolean)))}
 function normalizeHeader(header){
  const source=header&&typeof header==='object'?header:{};
@@ -76,6 +77,14 @@ function calculateAnalysisTotals(header,groups,unassigned){
   unassignedCount:unassignedList.length
  }
 }
+function physicalTotals(positions){
+ const list=Array.isArray(positions)?positions:[];
+ return{
+  netMassKg:metricSum(list.map(position=>numberOrNull(position&&position.netMassKg))),
+  grossMassKg:metricSum(list.map(position=>numberOrNull(position&&position.grossMassKg))),
+  volumeM3:metricSum(list.map(position=>numberOrNull(position&&position.volumeM3)))
+ }
+}
 function missingCount(positions,field){
  return (Array.isArray(positions)?positions:[]).filter(position=>Array.isArray(position&&position.missing)&&position.missing.includes(field)).length
 }
@@ -102,7 +111,7 @@ function buildReview(groups,unassigned,totals){
 }
 function buildAbdAnalysis(input){
  const source=input&&typeof input==='object'?input:{},header=normalizeHeader(source.header),positions=Array.isArray(source.positions)?source.positions:[];
- const grouped=groupPositionsByHsOrigin(positions),totals=calculateAnalysisTotals(header,grouped.groups,grouped.unassigned),review=buildReview(grouped.groups,grouped.unassigned,totals);
+ const grouped=groupPositionsByHsOrigin(positions),totals=Object.assign(calculateAnalysisTotals(header,grouped.groups,grouped.unassigned),physicalTotals(positions)),review=buildReview(grouped.groups,grouped.unassigned,totals);
  return{header,positions,groups:grouped.groups,unassigned:grouped.unassigned,totals,review}
 }
 function normalizeReviewedPosition(position,index){
