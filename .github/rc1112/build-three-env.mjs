@@ -56,6 +56,11 @@ const RC1306_LAYOUT_SCRIPT_TAG='<script id="exporthub-rc1306-layout-script" defe
 const RC1371_DASHBOARD_STYLE_TAG='<link id="exporthub-rc1371-dashboard-style" rel="stylesheet" href="/assets/rc1371-dashboard-personalization.css?v=1371">';
 const RC1371_DASHBOARD_I18N_TAG='<script id="exporthub-rc1371-dashboard-i18n" defer src="/assets/i18n/rc1371-dashboard-personalization.js?v=1371"><\/script>';
 const RC1371_DASHBOARD_SCRIPT_TAG='<script id="exporthub-rc1371-dashboard-script" defer src="/assets/rc1371-dashboard-personalization.js?v=1371"><\/script>';
+const RC1558_OVERVIEW_STYLE_TAG='<link id="exporthub-rc1558-overview-style" rel="stylesheet" href="/assets/rc1558-dashboard-overview.css?v=1558">';
+const RC1558_OVERVIEW_I18N_TAG='<script id="exporthub-rc1558-overview-i18n" defer src="/assets/i18n/rc1558-dashboard-overview.js?v=1558"><\/script>';
+const RC1558_OVERVIEW_SCRIPT_TAG='<script id="exporthub-rc1558-overview-script" defer src="/assets/rc1558-dashboard-overview.js?v=1558"><\/script>';
+const RC1558_WORKSPACE_MARKER='window.__EXPORTHUB_RC885_CLEAN_WORKSPACE__ = true;';
+const RC1558_WORKSPACE_EXPORT="window.ExportHUBWorkspace885=Object.freeze({shipments:shipments,tasks:tasks,shipmentOpenList:shipmentOpenList,taskOpenList:taskOpenList,dueTask:dueTask,shipmentNeedsDocuments:shipmentNeedsDocuments,shipmentNeedsPickup:shipmentNeedsPickup,shipmentNeedsPod:shipmentNeedsPod,routeTo:routeTo});";
 const RC1328_MULTI_TRUCK_REFRESH_TAG='<script id="exporthub-rc1328-multi-truck-refresh" defer src="/assets/rc1328-multi-truck-ui-refresh.js?v=1333"><\/script>';
 
 function patchRc1296BrowserBranding(html,file){
@@ -117,6 +122,23 @@ function patchRc1371Dashboard(html,file){
   if(!html.includes('rc1371-dashboard-personalization.css?v=1371'))throw new Error(file+': RC1371 Dashboard-CSS fehlt');
   if(!html.includes('i18n/rc1371-dashboard-personalization.js?v=1371'))throw new Error(file+': RC1371 Dashboard-I18n fehlt');
   if(!html.includes('rc1371-dashboard-personalization.js?v=1371'))throw new Error(file+': RC1371 Dashboard-Runtime fehlt');
+  return html;
+}
+
+function patchRc1558DashboardOverview(html,file){
+  // The overview reuses the canonical RC885 predicates instead of computing its own KPIs.
+  if(!html.includes(RC1558_WORKSPACE_EXPORT)){
+    const count=html.split(RC1558_WORKSPACE_MARKER).length-1;
+    if(count!==1)throw new Error(file+': RC1558 RC885-Workspace-Anker '+count+'x statt genau 1x gefunden');
+    html=html.replace(RC1558_WORKSPACE_MARKER,RC1558_WORKSPACE_MARKER+'\n  '+RC1558_WORKSPACE_EXPORT);
+  }
+  html=injectDeferredRuntimeInHead(html,RC1558_OVERVIEW_STYLE_TAG,'exporthub-rc1558-overview-style');
+  html=injectDeferredRuntimeInHead(html,RC1558_OVERVIEW_I18N_TAG,'exporthub-rc1558-overview-i18n');
+  html=injectDeferredRuntimeInHead(html,RC1558_OVERVIEW_SCRIPT_TAG,'exporthub-rc1558-overview-script');
+  if(!html.includes(RC1558_WORKSPACE_EXPORT))throw new Error(file+': RC1558 RC885-Workspace-Export fehlt');
+  if(!html.includes('rc1558-dashboard-overview.css?v=1558'))throw new Error(file+': RC1558 Dashboard-Übersicht-CSS fehlt');
+  if(!html.includes('i18n/rc1558-dashboard-overview.js?v=1558'))throw new Error(file+': RC1558 Dashboard-Übersicht-I18n fehlt');
+  if(!html.includes('rc1558-dashboard-overview.js?v=1558'))throw new Error(file+': RC1558 Dashboard-Übersicht-Runtime fehlt');
   return html;
 }
 
@@ -918,6 +940,7 @@ function patchHtml(file){
   html=patchRc1304ThemeRedesign(html,file);
   html=patchRc1400MobileNavigationCache(html,file);
   html=patchRc1371Dashboard(html,file);
+  html=patchRc1558DashboardOverview(html,file);
   html=patchRc1306LayoutEngine(html,file);
   html=patchRc1329MultiTruckUiRuntime(html,file);
   html=patchRc1328MultiTruckRefresh(html,file);
@@ -1071,6 +1094,8 @@ for(const rel of [
   'assets/rc1306-layout-engine.js',
   'assets/rc1371-dashboard-personalization.css',
   'assets/rc1371-dashboard-personalization.js',
+  'assets/rc1558-dashboard-overview.css',
+  'assets/rc1558-dashboard-overview.js',
   'assets/rc1460-shipment-view-files-avis-preview.js'
 ]){
   const src=path.join(ROOT,rel),dst=path.join(OUT,rel);
