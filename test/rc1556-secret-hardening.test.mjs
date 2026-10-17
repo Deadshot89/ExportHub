@@ -23,6 +23,11 @@ test('RC1556 Security: Scanner ignoriert Platzhalter und process.env',()=>{
   assert.deepEqual(scanText('safe.js',safe),[]);
 });
 
+test('RC1556 Security: expliziter Fake-Storage-Testwert ist kein Secret',()=>{
+  const fixture="EXPORTHUB_STORAGE_CONNECTION_STRING:'UseFakeStorage=true'";
+  assert.deepEqual(scanText('test-fixture.mjs',fixture),[]);
+});
+
 test('RC1556 Security: gitignore blockiert typische lokale Secret-Dateien',()=>{
   const ignore=fs.readFileSync(new URL('../.gitignore',import.meta.url),'utf8');
   for(const pattern of ['.env','local.settings.json','*.pfx','*.p12','*.key','*.pem','.secrets/']){
