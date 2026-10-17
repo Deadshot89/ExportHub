@@ -19,12 +19,21 @@
 #rc1558Overview *{box-sizing:border-box}
 #rc1558Overview button{font:inherit;color:inherit}
 #rc1558Overview :is(button,[role="row"][tabindex]):focus-visible{outline:2px solid var(--pc-focus,var(--rc1558-primary));outline-offset:2px}
+#rc1558Overview .rc1558-top .rc1558-kpi:focus-visible{outline:3px solid #fff;outline-offset:2px}
 
-/* greeting line above the figures */
-.rc1558-hello{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 16px;padding:0 2px}
-.rc1558-greeting{margin:0;font-size:17px;font-weight:650;letter-spacing:-.01em;text-wrap:balance}
-.rc1558-date{margin:0;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;font-size:13px;color:var(--rc1558-muted)}
-.rc1558-updated{font-size:12px;font-variant-numeric:tabular-nums;padding:1px 8px;border-radius:999px;background:var(--rc1558-surface-2);border:1px solid var(--rc1558-line)}
+/* Header band: greeting and figures on a deep band in the design's primary color (darkened for white text). */
+.rc1558-top{
+  --rc1558-band-a:color-mix(in srgb,var(--rc1558-primary) 88%,#ffffff);
+  --rc1558-band-b:color-mix(in srgb,var(--rc1558-primary) 62%,#0a1a3a);
+  --rc1558-band-c:color-mix(in srgb,var(--rc1558-primary) 40%,#08142e);
+  display:grid;gap:12px;padding:12px 12px 14px;border-radius:calc(var(--rc1558-radius) + 4px);
+  background:radial-gradient(120% 160% at 0% 0%,var(--rc1558-band-a) 0%,var(--rc1558-band-b) 55%,var(--rc1558-band-c) 100%);
+  box-shadow:0 8px 24px rgba(10,30,70,.18)
+}
+.rc1558-hello{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 16px;padding:0 4px}
+#rc1558Overview .rc1558-greeting{margin:0;font-size:18px;font-weight:650;letter-spacing:-.01em;text-wrap:balance;color:#fff}
+#rc1558Overview .rc1558-date{margin:0;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;font-size:13px;color:rgba(255,255,255,.86)}
+.rc1558-updated{font-size:12px;font-variant-numeric:tabular-nums;padding:1px 9px;border-radius:999px;color:#fff;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28)}
 
 .rc1558-kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
 .rc1558-kpi{display:grid;gap:3px;align-content:start;text-align:left;cursor:pointer;min-width:0;
@@ -41,9 +50,12 @@
 .rc1558-kpi[data-zero="1"] .rc1558-icon{color:var(--rc1558-muted);opacity:.6}
 .rc1558-kpi[data-tone="crit"] .rc1558-icon{color:var(--rc1558-crit)}
 .rc1558-kpi[data-tone="warn"] .rc1558-icon{color:var(--rc1558-warn)}
-.rc1558-kpi[data-tone="crit"]{background:var(--rc1558-crit-soft);border-color:var(--rc1558-crit)}
+/* tiles on the band: solid cards; blocked/missing figures get a colored frame */
+.rc1558-top .rc1558-kpi{border-color:transparent;box-shadow:0 6px 18px rgba(8,20,46,.22)}
+.rc1558-top .rc1558-kpi:hover{border-color:transparent;box-shadow:0 0 0 2px rgba(255,255,255,.75),0 10px 24px rgba(8,20,46,.3)}
+.rc1558-kpi[data-tone="crit"]{outline:2px solid var(--rc1558-crit);outline-offset:-2px}
 .rc1558-kpi[data-tone="crit"] .rc1558-kpi-value{color:var(--rc1558-crit)}
-.rc1558-kpi[data-tone="warn"]{background:var(--rc1558-warn-soft);border-color:var(--rc1558-warn)}
+.rc1558-kpi[data-tone="warn"]{outline:2px solid var(--rc1558-warn);outline-offset:-2px}
 .rc1558-kpi[data-tone="warn"] .rc1558-kpi-value{color:var(--rc1558-warn)}
 
 .rc1558-grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:12px;align-items:stretch}

@@ -151,9 +151,10 @@ function headerHtml(meta){
   var key=hour<11?'morning':hour<17?'day':'evening',name=firstName(meta&&meta.userName);
   var date='';try{date=now.toLocaleDateString(currentLang(),{weekday:'long',day:'numeric',month:'long',year:'numeric'})}catch(_){date=dayKey(now)}
   return'<div class="rc1558-hello">'+
-    '<p class="rc1558-greeting">'+esc(t('dashboard.overview.greeting.'+key,{name:name}).replace(/,\s*$/,''))+'</p>'+
-    '<p class="rc1558-date">'+esc(date)+' · '+esc(t('dashboard.overview.week',{week:isoWeek(now)}))+
-      '<span class="rc1558-updated">'+esc(t('dashboard.overview.updated',{time:hhmm(now)}))+'</span></p>'+
+    // divs, not <p>: the design layer forces every <p> to the muted color with !important
+    '<div class="rc1558-greeting" role="heading" aria-level="2">'+esc(t('dashboard.overview.greeting.'+key,{name:name}).replace(/,\s*$/,''))+'</div>'+
+    '<div class="rc1558-date">'+esc(date)+' · '+esc(t('dashboard.overview.week',{week:isoWeek(now)}))+
+      '<span class="rc1558-updated">'+esc(t('dashboard.overview.updated',{time:hhmm(now)}))+'</span></div>'+
   '</div>'
 }
 
@@ -205,7 +206,7 @@ function renderHtml(model,meta){
       (route?'<button type="button" class="rc1558-link" data-rc1558-route="'+esc(route)+'">'+esc(t(linkKey))+'</button>':'')+'</div>'
   }
 
-  return(meta?headerHtml(meta):'')+'<div class="rc1558-kpis">'+kpis+'</div>'+
+  return'<div class="rc1558-top">'+(meta?headerHtml(meta):'')+'<div class="rc1558-kpis">'+kpis+'</div></div>'+
     '<div class="rc1558-grid">'+
       '<section class="rc1558-panel rc1558-today">'+head('dashboard.overview.today.title',model.todayTotal,'shipmentoverview','dashboard.overview.today.link')+table+'</section>'+
       '<div class="rc1558-stack">'+

@@ -171,6 +171,17 @@ test('RC1558 Kopfzeile begrüßt nach Tageszeit, zeigt Kalenderwoche und Stand; 
   assert.doesNotMatch(api.renderHtml(model),/rc1558-hello/,'ohne Meta keine Kopfzeile');
 });
 
+test('RC1558 Kopfband umschließt Begrüßung und Kennzahlen; Kopfzeile ohne <p>, Farben aus dem Design',()=>{
+  const w=load();
+  const api=w.ExportHUBDashboardOverview1558;
+  const html=api.renderHtml(api.buildModel(fakeApi(shipments,tasks),shipments,NOW),{now:NOW,userName:'A'});
+  assert.match(html,/^<div class="rc1558-top"><div class="rc1558-hello">[\s\S]*<div class="rc1558-kpis">[\s\S]*?<\/div><\/div><div class="rc1558-grid">/);
+  const head=html.slice(0,html.indexOf('<div class="rc1558-kpis">'));
+  assert.doesNotMatch(head,/<p[\s>]/,'Design-Schicht färbt jedes <p> mit !important grau');
+  assert.match(css,/\.rc1558-top\{[\s\S]*?color-mix\(in srgb,var\(--rc1558-primary\)/);
+  assert.match(css,/\.rc1558-top \.rc1558-kpi:focus-visible\{outline:3px solid #fff/);
+});
+
 test('RC1558 CSS ersetzt Arbeitsfokus und Heute-Kachel nur bei aktiver Übersicht und nutzt Design-Variablen',()=>{
   assert.match(css,/body\[data-rc1558-overview="1"\] #rc885Workspace/);
   assert.match(css,/body\[data-rc1558-overview="1"\] #content \.rc205-dashboard-grid > \[data-dashboard-widget="todayShipments"\]/);
