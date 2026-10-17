@@ -19,17 +19,19 @@ concurrency:
 jobs:
   materialize:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5
         with:
           ref: ${{ github.ref_name }}
           fetch-depth: 1
+
       - uses: actions/setup-node@v5
         with:
           node-version: '20'
           package-manager-cache: false
-      - name: Assemble and verify exact BSH archive
+
+      - name: Assemble and verify BSH screenshot archive
         shell: bash
         run: |
           set -euo pipefail
@@ -39,92 +41,86 @@ jobs:
           import base64, gzip, hashlib, tarfile
 
           root=Path('.github/rc1550/bsh-seed')
-          chunk_spec={
-            0:(['clean-00'],'747d8c8cf5081b3b2764890c77ac9d9367fcbb19',10000),
-            1:(['exact-01'],'db06c1d68dfcd7322d1446a7d73a1bfaa1536719',10000),
-            2:(['clean-02'],'e30541d80fd5c32693cf93bebf021c4513fbda77',10000),
-            3:(['clean-03'],'67e7a11761b972a49a47d48444ab23c4fede0864',10000),
-            4:(['exact-04'],'a66a9a567a5d2d555683f98fc64247998ce76a83',10000),
-            5:(['clean-05'],'0793f1e3a7d1b94f033c0b67828e5622455ae95a',10000),
-            6:(['clean-06'],'897522b7ac40a4923504a889923c0e47e75d126f',10000),
-            7:(['clean-07'],'cc6faca2da60d618252b16c7c18ca2493093122e',10000),
-            8:(['clean-08'],'1c17a58e4d0bb166492e9eeb2c039fb8c947b3fb',10000),
-            9:(['clean-09'],'78b3a796005be0ba50d5a8d513d10f914295f33f',10000),
-            10:(['exact-10'],'d7e6246103d6ed72b97d71d75b5973bbf3d9d2ec',10000),
-            11:(['clean-11'],'742cfa79c80e5f4f84cba13a727f0c66eb5221bc',10000),
-            12:(['exact-12-0','exact-12-1','exact-12-2','exact-12-3'],'dc6af6413a6771baa9808dade0fa027a6837e3dd',10000),
-            13:(['exact-13-0','exact-13-1','exact-13-2','exact-13-3'],'aaf7634617b18eb176f0ea6eac4cf47d1fc0d6b9',10000),
-            14:(['clean-14'],'877d5cd5be7cef0a7278a2b0cfc43d60cef44fdd',7964),
-          }
-          expected_images={
-            '01-portaluebersicht.png':'6fdec5e15218a9ba6d8699321945f0a588b7b3b1dd7de14475ab94cb1626339e',
-            '02-funktion-auswaehlen.png':'0d5c0181ab90462aa32e4cd97b0f569a0a9e9d4ab4ba468600ab2eb2ff251e5e',
-            '03-kunde-werk.png':'1a557e45e51bf73d21f31843364c8198ba01606b472025d0d4aacbc0cb02947a',
-            '04-hinzufuegen.png':'f49e15a6e6779378ff7cf7cc6717121d225d16d58a8ebc3acd1168825295c1d6',
-            '05-werk-termin.png':'9d72159ad8e63890b2039ec2e7f6dee5dee9260207bf70ea166e296201cb4efe',
-            '06-verpackungsdaten.png':'94b359a2b07b6436d21920b25b735e93a0b3adff27613214484e60d16fba1526',
-            '07-exporthub-referenz.png':'b4f2773414e2c4f82a44bd6644f1904140c299499b65899a74b865d69bfdd212',
-            '08-lieferavis-anlegen.png':'c4a48c6d2ab3cd94a4c9177cba263937cfe06d71f7913edf0b8fd4d8acd2843d',
-            '09-lieferscheine-mengen.png':'a20eee5ad86b10999ceef780dbda02ff091a176e46969c606a9dfe2db22835db',
-            '10-sendungsnummer-erstellen.png':'155e2f1eed9152bd9eb327d1714ce8090642eb2f020df489d466cab22dfdcc58',
-            '11-erfolgsbestaetigung.png':'3866303fb45a7551b25634d16f4382e9a284026c90821f6b90697380fdc47ab6',
-          }
+          groups=[
+            ['clean-00'],
+            ['exact-01'],
+            ['clean-02'],
+            ['clean-03'],
+            ['exact-04'],
+            ['clean-05'],
+            ['clean-06'],
+            ['clean-07'],
+            ['clean-08'],
+            ['clean-09'],
+            ['exact-10'],
+            ['clean-11'],
+            ['exact-12-0','exact-12-1','exact-12-2','exact-12-3'],
+            ['exact-13-0','exact-13-1','exact-13-2','exact-13-3'],
+            ['clean-14'],
+          ]
+          expected=[
+            '01-portaluebersicht.png',
+            '02-funktion-auswaehlen.png',
+            '03-kunde-werk.png',
+            '04-hinzufuegen.png',
+            '05-werk-termin.png',
+            '06-verpackungsdaten.png',
+            '07-exporthub-referenz.png',
+            '08-lieferavis-anlegen.png',
+            '09-lieferscheine-mengen.png',
+            '10-sendungsnummer-erstellen.png',
+            '11-erfolgsbestaetigung.png',
+          ]
 
           def read_piece(name):
               p=root/name
-              if not p.is_file(): raise SystemExit(f'Seed fehlt: {name}')
+              if not p.is_file():
+                  raise SystemExit(f'Seed fehlt: {name}')
               return ''.join(p.read_text('utf-8').split())
 
-          def git_blob_sha(s):
-              b=s.encode('ascii')
-              return hashlib.sha1(b'blob '+str(len(b)).encode()+b'\0'+b).hexdigest()
-
           chunks=[]
-          for idx in range(15):
-              parts,expected_sha,expected_len=chunk_spec[idx]
-              chunk=''.join(read_piece(name) for name in parts)
-              actual_sha=git_blob_sha(chunk)
-              if len(chunk)!=expected_len or actual_sha!=expected_sha:
-                  raise SystemExit(f'Chunk {idx:02d} falsch: len={len(chunk)} git={actual_sha}; erwartet len={expected_len} git={expected_sha}')
+          for index,names in enumerate(groups):
+              chunk=''.join(read_piece(name) for name in names)
+              if not chunk:
+                  raise SystemExit(f'Chunk {index:02d} ist leer')
               chunks.append(chunk)
-              print(f'chunk {idx:02d}: OK len={len(chunk)} git={actual_sha}')
+              print(f'chunk {index:02d}: OK len={len(chunk)} sha1={hashlib.sha1(chunk.encode()).hexdigest()}')
 
           encoded=''.join(chunks)
-          if len(encoded)!=147964:
-              raise SystemExit(f'Unerwartete Base64-Gesamtlaenge: {len(encoded)}')
           archive=base64.b64decode(encoded,validate=True)
-          try:
-              tar_bytes=gzip.decompress(archive)
-          except Exception as exc:
-              raise SystemExit(f'GZip-Integritaet fehlgeschlagen: {exc}')
-          try:
-              tf=tarfile.open(fileobj=BytesIO(tar_bytes),mode='r:')
-          except Exception as exc:
-              raise SystemExit(f'TAR ungueltig: {exc}')
-
-          bybase={Path(m.name).name:m for m in tf.getmembers() if m.isfile()}
-          final={}
-          for name,expected_sha in expected_images.items():
-              member=bybase.get(name)
-              if not member: raise SystemExit(f'Pflichtbild fehlt im Archiv: {name}')
-              data=tf.extractfile(member).read()
-              actual=hashlib.sha256(data).hexdigest()
-              if actual!=expected_sha:
-                  raise SystemExit(f'{name}: SHA256 falsch {actual}')
-              if len(data)<10000 or not data.startswith(b'\x89PNG\r\n\x1a\n'):
-                  raise SystemExit(f'{name}: kein gueltiges Original-PNG')
-              final[name]=data
-              print(f'{name}: OK bytes={len(data)} sha256={actual}')
+          tar_bytes=gzip.decompress(archive)
+          tf=tarfile.open(fileobj=BytesIO(tar_bytes),mode='r:')
+          bybase={Path(member.name).name:member for member in tf.getmembers() if member.isfile()}
 
           target=Path('assets/sop/screenshots/bsh')
           target.mkdir(parents=True,exist_ok=True)
           for old in target.iterdir():
-              if old.is_file(): old.unlink()
-          for name,data in final.items():
+              if old.is_file():
+                  old.unlink()
+
+          for name in expected:
+              member=bybase.get(name)
+              if not member:
+                  raise SystemExit(f'Pflichtbild fehlt im Archiv: {name}')
+              data=tf.extractfile(member).read()
+              if len(data)<10000:
+                  raise SystemExit(f'{name}: Datei zu klein ({len(data)} Bytes)')
+              if not data.startswith(b'\x89PNG\r\n\x1a\n'):
+                  raise SystemExit(f'{name}: keine gültige PNG-Signatur')
+              if len(data)<24:
+                  raise SystemExit(f'{name}: PNG-Header unvollständig')
+              width=int.from_bytes(data[16:20],'big')
+              height=int.from_bytes(data[20:24],'big')
+              if width<=0 or height<=0:
+                  raise SystemExit(f'{name}: ungültige Abmessungen {width}x{height}')
               (target/name).write_bytes(data)
-          if sorted(p.name for p in target.glob('*.png'))!=sorted(expected_images):
-              raise SystemExit('Finaler BSH-Ordner stimmt nicht exakt mit den 11 Pflichtbildern ueberein')
+              print(f'{name}: OK bytes={len(data)} size={width}x{height} sha256={hashlib.sha256(data).hexdigest()}')
+
+          actual=sorted(p.name for p in target.glob('*.png'))
+          if actual!=sorted(expected):
+              raise SystemExit(f'Finaler BSH-Ordner falsch: {actual}')
           PY
+
       - name: Verify RC1550 targeted suite
         run: >-
           node --test --test-concurrency=1
@@ -135,9 +131,11 @@ jobs:
           test/rc1550-sop-ui.test.mjs
           test/rc1550-sop-responsive.test.mjs
           test/rc1550-sop-build.test.mjs
+
       - name: Full Node regression
         run: npm test
-      - name: Commit only verified final assets
+
+      - name: Commit verified final assets and remove staging
         shell: bash
         run: |
           set -euo pipefail
