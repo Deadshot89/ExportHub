@@ -13,7 +13,7 @@ test('POD: final print layer constrains the driver signature to 16mm',()=>{
 });
 test('RC1556 POD: final print layer recursively suppresses nested legacy pickup text',()=>{
   assert.match(wrapper,/function suppressLegacyPickupContent\(card\)/);
-  assert.match(wrapper,/querySelectorAll\('\.rc390-txt,\.rc352-txt'\)/);
+  assert.match(wrapper,/querySelectorAll\('\.rc390-txt,\.rc352-txt,\.rc390-line,\.rc390-hint'\)/);
   assert.doesNotMatch(wrapper,/\[data-rc1503-pickup-field\]>\.rc390-txt/);
   assert.doesNotMatch(wrapper,/\[data-rc1503-pickup-field\]>\.rc352-txt/);
   assert.match(wrapper,/\[data-rc1556-legacy-pickup-hidden\]\{display:none!important/);
