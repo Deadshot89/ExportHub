@@ -1189,8 +1189,12 @@ html[data-eh-design="neon"] :is(.modal,.dialog,[role="dialog"],.overlay-card){
   border:1px solid #234665!important;
   box-shadow:0 30px 80px rgba(0,0,0,.52),0 0 28px rgba(34,211,238,.05)!important;
 }
-html[data-eh-design="neon"] #login{
+/* RC1562: :not(.hidden) – this selector outranks "#login.hidden{display:none!important}", so after login
+   the Neon login screen used to stay on top of the app */
+html[data-eh-design="neon"] #login:not(.hidden){
   display:grid!important;
+}
+html[data-eh-design="neon"] #login{
   place-items:center!important;
   padding:20px!important;
 }
