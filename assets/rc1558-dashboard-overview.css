@@ -1,0 +1,148 @@
+/* ExportHUB360 RC1558 – one-page dashboard overview. Colors come from the active design (--pc-*), with Classic fallbacks. */
+#rc1558Overview{
+  --rc1558-surface:var(--pc-card-bg,var(--pc-surface,#fff));
+  --rc1558-surface-2:var(--pc-field,#f6f8fb);
+  --rc1558-line:var(--pc-line,#dde3ec);
+  --rc1558-text:var(--pc-text,#152235);
+  --rc1558-muted:var(--pc-muted,#5d6b80);
+  --rc1558-primary:var(--pc-primary,#1f6fd1);
+  --rc1558-primary-soft:var(--pc-primary-soft,#e3eefc);
+  --rc1558-ok:var(--pc-success-text,var(--pc-success,#17824b));
+  --rc1558-ok-soft:var(--pc-success-soft,#e1f4e9);
+  --rc1558-warn:var(--pc-warning-text,var(--pc-warning,#a86200));
+  --rc1558-warn-soft:var(--pc-warning-soft,#fdf0d9);
+  --rc1558-crit:var(--pc-danger-text,var(--pc-danger,#c2332b));
+  --rc1558-crit-soft:var(--pc-danger-soft,#fbe4e2);
+  --rc1558-radius:var(--pc-card-radius,12px);
+  grid-column:1/-1;display:grid;gap:12px;margin:0 0 12px;min-width:0;color:var(--rc1558-text)
+}
+#rc1558Overview *{box-sizing:border-box}
+#rc1558Overview button{font:inherit;color:inherit}
+#rc1558Overview :is(button,[role="row"][tabindex]):focus-visible{outline:2px solid var(--pc-focus,var(--rc1558-primary));outline-offset:2px}
+#rc1558Overview .rc1558-top .rc1558-kpi:focus-visible{outline:3px solid #fff;outline-offset:2px}
+
+/* Header band: greeting and figures on a deep band in the design's primary color (darkened for white text). */
+.rc1558-top{
+  --rc1558-band-a:color-mix(in srgb,var(--rc1558-primary) 88%,#ffffff);
+  --rc1558-band-b:color-mix(in srgb,var(--rc1558-primary) 62%,#0a1a3a);
+  --rc1558-band-c:color-mix(in srgb,var(--rc1558-primary) 40%,#08142e);
+  display:grid;gap:12px;padding:12px 12px 14px;border-radius:calc(var(--rc1558-radius) + 4px);
+  background:radial-gradient(120% 160% at 0% 0%,var(--rc1558-band-a) 0%,var(--rc1558-band-b) 55%,var(--rc1558-band-c) 100%);
+  box-shadow:0 8px 24px rgba(10,30,70,.18)
+}
+.rc1558-hello{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 16px;padding:0 4px}
+#rc1558Overview .rc1558-greeting{margin:0;font-size:18px;font-weight:650;letter-spacing:-.01em;text-wrap:balance;color:#fff}
+#rc1558Overview .rc1558-date{margin:0;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;font-size:13px;color:rgba(255,255,255,.86)}
+.rc1558-updated{font-size:12px;font-variant-numeric:tabular-nums;padding:1px 9px;border-radius:999px;color:#fff;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28)}
+
+.rc1558-kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.rc1558-kpi{display:grid;gap:3px;align-content:start;text-align:left;cursor:pointer;min-width:0;
+  background:var(--rc1558-surface);border:1px solid var(--rc1558-line);border-radius:var(--rc1558-radius);padding:11px 13px 12px;
+  box-shadow:var(--pc-shadow-soft,0 1px 2px rgba(15,35,65,.06));transition:border-color .15s ease,box-shadow .15s ease,transform .15s ease}
+.rc1558-kpi:hover{border-color:var(--rc1558-primary);transform:translateY(-1px);box-shadow:0 6px 16px rgba(15,35,65,.10)}
+.rc1558-kpi-top{display:flex;align-items:center;justify-content:space-between;gap:6px;min-width:0}
+.rc1558-kpi-top .rc1558-icon{flex:none;color:var(--rc1558-primary);opacity:.85}
+.rc1558-kpi-label{font-size:12px;font-weight:600;color:var(--rc1558-muted);overflow-wrap:anywhere}
+.rc1558-kpi-value{font-size:28px;line-height:1.05;font-weight:750;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.rc1558-kpi-sub{font-size:11.5px;color:var(--rc1558-muted);overflow-wrap:anywhere}
+/* nothing to do: quiet the tile so the figures that need work stand out */
+.rc1558-kpi[data-zero="1"] .rc1558-kpi-value{color:var(--rc1558-muted);font-weight:600}
+.rc1558-kpi[data-zero="1"] .rc1558-icon{color:var(--rc1558-muted);opacity:.6}
+.rc1558-kpi[data-tone="crit"] .rc1558-icon{color:var(--rc1558-crit)}
+.rc1558-kpi[data-tone="warn"] .rc1558-icon{color:var(--rc1558-warn)}
+/* tiles on the band: solid cards; blocked/missing figures get a colored frame */
+.rc1558-top .rc1558-kpi{border-color:transparent;box-shadow:0 6px 18px rgba(8,20,46,.22)}
+.rc1558-top .rc1558-kpi:hover{border-color:transparent;box-shadow:0 0 0 2px rgba(255,255,255,.75),0 10px 24px rgba(8,20,46,.3)}
+.rc1558-kpi[data-tone="crit"]{outline:2px solid var(--rc1558-crit);outline-offset:-2px}
+.rc1558-kpi[data-tone="crit"] .rc1558-kpi-value{color:var(--rc1558-crit)}
+.rc1558-kpi[data-tone="warn"]{outline:2px solid var(--rc1558-warn);outline-offset:-2px}
+.rc1558-kpi[data-tone="warn"] .rc1558-kpi-value{color:var(--rc1558-warn)}
+
+.rc1558-grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:12px;align-items:stretch}
+.rc1558-stack{display:grid;gap:12px;min-width:0;grid-auto-rows:minmax(0,auto)}
+.rc1558-panel{background:var(--rc1558-surface);border:1px solid var(--rc1558-line);border-radius:var(--rc1558-radius);padding:12px 14px;display:grid;gap:8px;align-content:start;min-width:0;
+  box-shadow:var(--pc-shadow-soft,0 1px 2px rgba(15,35,65,.06))}
+.rc1558-head{display:flex;align-items:baseline;gap:8px;min-width:0}
+.rc1558-head h3{margin:0;font-size:15px;font-weight:650}
+.rc1558-count{font-size:12px;font-weight:600;color:var(--rc1558-muted);font-variant-numeric:tabular-nums}
+.rc1558-link{margin-left:auto;background:none;border:0;padding:2px 4px;cursor:pointer;font-size:12.5px;font-weight:600;color:var(--rc1558-primary)!important}
+.rc1558-empty{margin:0;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--rc1558-muted);padding:6px 0}
+.rc1558-empty-icon{flex:none;color:var(--rc1558-ok)}
+
+.rc1558-tablewrap{overflow-x:auto;min-width:0}
+.rc1558-table{min-width:600px;font-size:13px}
+.rc1558-tr{display:grid;grid-template-columns:52px 82px minmax(140px,1fr) 52px 104px 170px;align-items:center;border-bottom:1px solid var(--rc1558-line)}
+.rc1558-tr > [role]{padding:7px 8px;min-width:0}
+.rc1558-thead > [role]{padding-block:4px;font-size:11px;font-weight:650;letter-spacing:.05em;text-transform:uppercase;color:var(--rc1558-muted);white-space:nowrap}
+.rc1558-tr[data-rc1558-shipment]{cursor:pointer;border-radius:6px}
+.rc1558-tr[data-rc1558-shipment]:hover{background:var(--rc1558-surface-2)}
+[role="rowgroup"] > .rc1558-tr:last-child{border-bottom:0}
+.rc1558-time,.rc1558-num{font-variant-numeric:tabular-nums}
+.rc1558-tr .rc1558-num{text-align:right}
+.rc1558-time{color:var(--rc1558-muted)}
+.rc1558-ref{font-weight:650;font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;font-size:12.5px}
+.rc1558-customer{overflow-wrap:anywhere}
+.rc1558-country{font-size:11px;font-weight:650;color:var(--rc1558-muted);border:1px solid var(--rc1558-line);border-radius:4px;padding:0 4px}
+.rc1558-docs{display:flex;gap:4px}
+.rc1558-doc{font-size:10.5px;font-weight:650;border-radius:4px;padding:1px 5px}
+.rc1558-doc[data-ok="1"]{background:var(--rc1558-ok-soft);color:var(--rc1558-ok)}
+.rc1558-doc[data-ok="0"]{background:var(--rc1558-crit-soft);color:var(--rc1558-crit)}
+
+.rc1558-pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:2px 9px;font-size:11.5px;font-weight:650;background:var(--rc1558-surface-2);color:var(--rc1558-muted)}
+.rc1558-pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.rc1558-pill[data-tone="ok"]{background:var(--rc1558-ok-soft);color:var(--rc1558-ok)}
+.rc1558-pill[data-tone="warn"]{background:var(--rc1558-warn-soft);color:var(--rc1558-warn)}
+.rc1558-pill[data-tone="crit"]{background:var(--rc1558-crit-soft);color:var(--rc1558-crit)}
+.rc1558-pill[data-tone="info"]{background:var(--rc1558-primary-soft);color:var(--rc1558-primary)}
+
+.rc1558-list{list-style:none;margin:0;padding:0;display:grid}
+.rc1558-list li{display:grid;grid-template-columns:4px minmax(0,1fr) auto;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid var(--rc1558-line)}
+.rc1558-list li:last-child{border-bottom:0}
+.rc1558-sev{align-self:stretch;border-radius:2px;background:var(--rc1558-primary)}
+.rc1558-sev[data-tone="crit"]{background:var(--rc1558-crit)}
+.rc1558-sev[data-tone="warn"]{background:var(--rc1558-warn)}
+.rc1558-item{grid-column:2/-1;display:flex;align-items:center;gap:8px;text-align:left;background:none;border:0;padding:2px 4px;margin:-2px -4px;border-radius:6px;cursor:pointer;min-width:0}
+.rc1558-item:hover{background:var(--rc1558-surface-2)}
+.rc1558-item-text{display:grid;gap:1px;min-width:0;flex:1}
+.rc1558-chevron{flex:none;color:var(--rc1558-muted);width:16px;height:16px;transition:transform .15s ease}
+.rc1558-item:hover .rc1558-chevron{transform:translateX(2px);color:var(--rc1558-primary)}
+.rc1558-item b{font-size:13px;font-weight:600;overflow-wrap:anywhere}
+.rc1558-item small{font-size:12px;color:var(--rc1558-muted)}
+.rc1558-task{font-size:13px;overflow-wrap:anywhere;min-width:0}
+.rc1558-due{font-size:12px;color:var(--rc1558-muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.rc1558-due[data-late="1"]{color:var(--rc1558-crit);font-weight:650}
+
+/* The overview replaces the older "Arbeitsfokus" block and the "Heute geplante Sendungen" tile; the rest stays compact below it. */
+body[data-rc1558-overview="1"] #rc885Workspace,
+body[data-rc1558-overview="1"] #content .rc205-dashboard-grid > [data-dashboard-widget="todayShipments"]{display:none!important}
+body[data-rc1558-overview="1"] #content .rc205-quick-card{margin-bottom:10px;padding-block:10px!important}
+body[data-rc1558-overview="1"] #content .rc205-quick-card h3{margin:0 0 8px!important;font-size:15px!important}
+/* quick access as one row of compact buttons instead of large tiles */
+body[data-rc1558-overview="1"] #content .rc205-quick-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))!important;gap:8px!important}
+body[data-rc1558-overview="1"] #content .rc205-quick{display:flex!important;flex-direction:row!important;align-items:center!important;gap:8px!important;min-height:0!important;padding:8px 10px!important;text-align:left!important}
+body[data-rc1558-overview="1"] #content .rc205-quick[hidden]{display:none!important}
+body[data-rc1558-overview="1"] #content .rc205-quick > span{font-size:16px!important;margin:0!important}
+/* Compact ABD and pallet tiles so the whole dashboard fits one laptop screen; sizes only, colors stay with the design. */
+body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-mini-metrics{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important}
+body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-mini-metrics .metric{min-height:0!important;padding:8px 10px!important}
+body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-mini-metrics .metric::before,
+body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-mini-metrics .metric::after{display:none!important}
+body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-mini-metrics .metric strong{font-size:22px!important;line-height:1.15!important}
+
+@media (max-width:1250px){.rc1558-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.rc1558-grid{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:640px){
+  .rc1558-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.rc1558-kpi-value{font-size:22px}
+  /* phone: each pickup becomes a two-line row instead of a sideways-scrolling table */
+  .rc1558-table{min-width:0}
+  .rc1558-thead{display:none}
+  .rc1558-tr{grid-template-columns:44px minmax(0,1fr) auto;grid-template-areas:"time ref status" "time customer customer" "time docs colli";row-gap:2px;padding-block:6px}
+  .rc1558-tr > [role]{padding:0 6px}
+  .rc1558-tr > :nth-child(1){grid-area:time;align-self:start}
+  .rc1558-tr > :nth-child(2){grid-area:ref}
+  .rc1558-tr > :nth-child(3){grid-area:customer}
+  .rc1558-tr > :nth-child(4){grid-area:colli;font-size:12px;color:var(--rc1558-muted)}
+  .rc1558-tr > :nth-child(5){grid-area:docs}
+  .rc1558-tr > :nth-child(6){grid-area:status;justify-self:end}
+}
+@media (prefers-reduced-motion:reduce){#rc1558Overview *{transition:none!important}.rc1558-kpi:hover{transform:none}}
+@media print{#rc1558Overview{display:none!important}}
