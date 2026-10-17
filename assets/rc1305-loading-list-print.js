@@ -193,6 +193,10 @@ function style(){
  '[data-rc1305-remark][data-rc1305-empty="1"] .rc390-txt,[data-rc1305-remark][data-rc1305-empty="1"] .rc352-txt{color:#64748b!important;font-weight:600!important}'+
  '[data-rc1503-pickup-field]{display:block!important;box-sizing:border-box!important;min-height:0!important;height:auto!important;max-height:none!important;overflow:visible!important;break-inside:avoid!important;page-break-inside:avoid!important}'+
  '[data-rc1503-pickup-field]>.rc390-txt,[data-rc1503-pickup-field]>.rc352-txt{display:none!important}'+
+ /* RC1559: the real loadHtml template puts the old value in .rc390-line and a helper text in .rc390-hint */
+ /* specificity above RC352's ".rc390-sign.rc929-proof-detail .rc390-line{display:flex!important}" (pallet card) */
+ '.rc390-load .rc390-sign[data-rc1503-pickup-field] .rc390-line,.rc390-load .rc390-sign[data-rc1503-pickup-field] .rc390-hint,'+
+ '[data-rc1503-pickup-field] .rc390-line,[data-rc1503-pickup-field] .rc390-hint{display:none!important}'+
  '[data-rc1503-pickup-field] .rc1503-pickup-value{position:relative!important;float:none!important;clear:both!important}'+
  '[data-rc1503-pickup-field].rc1305-signature-primary{min-height:0!important;max-height:none!important}'+
  '.rc1503-pickup-value{box-sizing:border-box!important;display:block!important;width:100%!important;min-width:0!important;margin:1.1mm 0 .4mm!important;color:#0f2942!important;font-size:8.1pt!important;line-height:1.1!important;font-weight:800!important;overflow-wrap:anywhere!important;word-break:break-word!important}'+
