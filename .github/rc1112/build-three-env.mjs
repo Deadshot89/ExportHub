@@ -56,6 +56,7 @@ const RC1306_LAYOUT_SCRIPT_TAG='<script id="exporthub-rc1306-layout-script" defe
 const RC1371_DASHBOARD_STYLE_TAG='<link id="exporthub-rc1371-dashboard-style" rel="stylesheet" href="/assets/rc1371-dashboard-personalization.css?v=1371">';
 const RC1371_DASHBOARD_I18N_TAG='<script id="exporthub-rc1371-dashboard-i18n" defer src="/assets/i18n/rc1371-dashboard-personalization.js?v=1371"><\/script>';
 const RC1371_DASHBOARD_SCRIPT_TAG='<script id="exporthub-rc1371-dashboard-script" defer src="/assets/rc1371-dashboard-personalization.js?v=1371"><\/script>';
+const RC1560_FULL_WIDTH_STYLE_TAG='<link id="exporthub-rc1560-full-width" rel="stylesheet" href="/assets/rc1560-full-width.css?v=1560">';
 const RC1328_MULTI_TRUCK_REFRESH_TAG='<script id="exporthub-rc1328-multi-truck-refresh" defer src="/assets/rc1328-multi-truck-ui-refresh.js?v=1333"><\/script>';
 
 function patchRc1296BrowserBranding(html,file){
@@ -107,6 +108,13 @@ function patchRc1400MobileNavigationCache(html,file){
   if(count!==1)throw new Error(file+': RC1400 Mobile-Navigation Cache-Anker '+count+'x gefunden');
   html=html.replace(before,after);
   if(!html.includes(after))throw new Error(file+': RC1400 Mobile-Navigation Cache-Key fehlt');
+  return html;
+}
+
+function patchRc1560FullWidth(html,file){
+  // last stylesheet in <head>: lifts the screen width caps of #content and the view wrappers
+  html=injectDeferredRuntimeInHead(html,RC1560_FULL_WIDTH_STYLE_TAG,'exporthub-rc1560-full-width');
+  if(!html.includes('rc1560-full-width.css?v=1560'))throw new Error(file+': RC1560 Vollbreite-CSS fehlt');
   return html;
 }
 
@@ -919,6 +927,7 @@ function patchHtml(file){
   html=patchRc1400MobileNavigationCache(html,file);
   html=patchRc1371Dashboard(html,file);
   html=patchRc1306LayoutEngine(html,file);
+  html=patchRc1560FullWidth(html,file);
   html=patchRc1329MultiTruckUiRuntime(html,file);
   html=patchRc1328MultiTruckRefresh(html,file);
   html=patchRc1329MultiTruckRenderer(html,file);
@@ -1071,6 +1080,7 @@ for(const rel of [
   'assets/rc1306-layout-engine.js',
   'assets/rc1371-dashboard-personalization.css',
   'assets/rc1371-dashboard-personalization.js',
+  'assets/rc1560-full-width.css',
   'assets/rc1460-shipment-view-files-avis-preview.js'
 ]){
   const src=path.join(ROOT,rel),dst=path.join(OUT,rel);
