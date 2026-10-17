@@ -29,32 +29,32 @@ jobs:
         with:
           node-version: '20'
           package-manager-cache: false
-      - name: Reconstruct exact verified BSH archive
+      - name: Assemble and verify exact BSH archive
         shell: bash
         run: |
           set -euo pipefail
           python - <<'PY'
           from pathlib import Path
           from io import BytesIO
-          import base64, gzip, hashlib, itertools, tarfile
+          import base64, gzip, hashlib, tarfile
 
           root=Path('.github/rc1550/bsh-seed')
-          expected_chunks={
-            0:('747d8c8cf5081b3b2764890c77ac9d9367fcbb19',10000),
-            1:('db06c1d68dfcd7322d1446a7d73a1bfaa1536719',10000),
-            2:('e30541d80fd5c32693cf93bebf021c4513fbda77',10000),
-            3:('67e7a11761b972a49a47d48444ab23c4fede0864',10000),
-            4:('a66a9a567a5d2d555683f98fc64247998ce76a83',10000),
-            5:('0793f1e3a7d1b94f033c0b67828e5622455ae95a',10000),
-            6:('897522b7ac40a4923504a889923c0e47e75d126f',10000),
-            7:('cc6faca2da60d618252b16c7c18ca2493093122e',10000),
-            8:('1c17a58e4d0bb166492e9eeb2c039fb8c947b3fb',10000),
-            9:('78b3a796005be0ba50d5a8d513d10f914295f33f',10000),
-            10:('d7e6246103d6ed72b97d71d75b5973bbf3d9d2ec',10000),
-            11:('742cfa79c80e5f4f84cba13a727f0c66eb5221bc',10000),
-            12:('dc6af6413a6771baa9808dade0fa027a6837e3dd',10000),
-            13:('aaf7634617b18eb176f0ea6eac4cf47d1fc0d6b9',10000),
-            14:('877d5cd5be7cef0a7278a2b0cfc43d60cef44fdd',7964),
+          chunk_spec={
+            0:(['clean-00'],'747d8c8cf5081b3b2764890c77ac9d9367fcbb19',10000),
+            1:(['exact-01'],'db06c1d68dfcd7322d1446a7d73a1bfaa1536719',10000),
+            2:(['clean-02'],'e30541d80fd5c32693cf93bebf021c4513fbda77',10000),
+            3:(['clean-03'],'67e7a11761b972a49a47d48444ab23c4fede0864',10000),
+            4:(['exact-04'],'a66a9a567a5d2d555683f98fc64247998ce76a83',10000),
+            5:(['clean-05'],'0793f1e3a7d1b94f033c0b67828e5622455ae95a',10000),
+            6:(['clean-06'],'897522b7ac40a4923504a889923c0e47e75d126f',10000),
+            7:(['clean-07'],'cc6faca2da60d618252b16c7c18ca2493093122e',10000),
+            8:(['clean-08'],'1c17a58e4d0bb166492e9eeb2c039fb8c947b3fb',10000),
+            9:(['clean-09'],'78b3a796005be0ba50d5a8d513d10f914295f33f',10000),
+            10:(['exact-10'],'d7e6246103d6ed72b97d71d75b5973bbf3d9d2ec',10000),
+            11:(['clean-11'],'742cfa79c80e5f4f84cba13a727f0c66eb5221bc',10000),
+            12:(['exact-12-0','exact-12-1','exact-12-2','exact-12-3'],'dc6af6413a6771baa9808dade0fa027a6837e3dd',10000),
+            13:(['exact-13-0','exact-13-1','exact-13-2','exact-13-3'],'aaf7634617b18eb176f0ea6eac4cf47d1fc0d6b9',10000),
+            14:(['clean-14'],'877d5cd5be7cef0a7278a2b0cfc43d60cef44fdd',7964),
           }
           expected_images={
             '01-portaluebersicht.png':'6fdec5e15218a9ba6d8699321945f0a588b7b3b1dd7de14475ab94cb1626339e',
@@ -70,7 +70,7 @@ jobs:
             '11-erfolgsbestaetigung.png':'3866303fb45a7551b25634d16f4382e9a284026c90821f6b90697380fdc47ab6',
           }
 
-          def text(name):
+          def read_piece(name):
               p=root/name
               if not p.is_file(): raise SystemExit(f'Seed fehlt: {name}')
               return ''.join(p.read_text('utf-8').split())
@@ -79,100 +79,51 @@ jobs:
               b=s.encode('ascii')
               return hashlib.sha1(b'blob '+str(len(b)).encode()+b'\0'+b).hexdigest()
 
-          def unique_strings(seq):
-              seen=set()
-              for s in seq:
-                  if s not in seen:
-                      seen.add(s); yield s
-
-          exact_files={
-            0:'clean-00',2:'clean-02',3:'clean-03',5:'clean-05',6:'clean-06',
-            7:'clean-07',8:'clean-08',9:'clean-09',11:'clean-11',14:'clean-14'
-          }
-          anomaly_files={
-            1:['clean-01a','clean-01b'],
-            4:['clean-04','clean-04a','clean-04b'],
-            10:['clean-10a','clean-10b'],
-            12:['clean-12','clean-12a','clean-12b'],
-            13:['clean-13','clean-13a'],
-          }
-
-          def find_exact_chunk(idx):
-              expected,wanted=expected_chunks[idx]
-              if idx in exact_files:
-                  s=text(exact_files[idx])
-                  if len(s)!=wanted or git_blob_sha(s)!=expected:
-                      raise SystemExit(f'Chunk {idx:02d} stimmt nicht exakt: len={len(s)} sha={git_blob_sha(s)}')
-                  return s
-
-              raw=[text(name) for name in anomaly_files[idx]]
-              sources=list(raw)
-              for r in range(2,len(raw)+1):
-                  for perm in itertools.permutations(raw,r):
-                      sources.append(''.join(perm))
-              matches=[]
-              checked=0
-              for source in unique_strings(sources):
-                  if len(source)<wanted: continue
-                  if len(source)==wanted:
-                      candidates=[source]
-                  else:
-                      candidates=(source[off:off+wanted] for off in range(len(source)-wanted+1))
-                  for candidate in candidates:
-                      checked+=1
-                      if git_blob_sha(candidate)==expected:
-                          matches.append(candidate)
-              matches=list(unique_strings(matches))
-              print(f'chunk {idx:02d}: checked={checked} exact_matches={len(matches)}')
-              if len(matches)!=1:
-                  raise SystemExit(f'Chunk {idx:02d}: erwartet genau 1 Git-SHA-Match, gefunden {len(matches)}')
-              return matches[0]
-
           chunks=[]
           for idx in range(15):
-              chunk=find_exact_chunk(idx)
-              exp_sha,exp_len=expected_chunks[idx]
-              assert len(chunk)==exp_len and git_blob_sha(chunk)==exp_sha
+              parts,expected_sha,expected_len=chunk_spec[idx]
+              chunk=''.join(read_piece(name) for name in parts)
+              actual_sha=git_blob_sha(chunk)
+              if len(chunk)!=expected_len or actual_sha!=expected_sha:
+                  raise SystemExit(f'Chunk {idx:02d} falsch: len={len(chunk)} git={actual_sha}; erwartet len={expected_len} git={expected_sha}')
               chunks.append(chunk)
-              print(f'chunk {idx:02d}: OK len={len(chunk)} git={exp_sha}')
+              print(f'chunk {idx:02d}: OK len={len(chunk)} git={actual_sha}')
 
           encoded=''.join(chunks)
           if len(encoded)!=147964:
               raise SystemExit(f'Unerwartete Base64-Gesamtlaenge: {len(encoded)}')
-          try:
-              archive=base64.b64decode(encoded,validate=True)
-          except Exception as exc:
-              raise SystemExit(f'Base64-Gesamtarchiv ungueltig: {exc}')
+          archive=base64.b64decode(encoded,validate=True)
           try:
               tar_bytes=gzip.decompress(archive)
           except Exception as exc:
               raise SystemExit(f'GZip-Integritaet fehlgeschlagen: {exc}')
-
           try:
               tf=tarfile.open(fileobj=BytesIO(tar_bytes),mode='r:')
           except Exception as exc:
               raise SystemExit(f'TAR ungueltig: {exc}')
+
           bybase={Path(m.name).name:m for m in tf.getmembers() if m.isfile()}
-          files={}
+          final={}
           for name,expected_sha in expected_images.items():
               member=bybase.get(name)
               if not member: raise SystemExit(f'Pflichtbild fehlt im Archiv: {name}')
               data=tf.extractfile(member).read()
               actual=hashlib.sha256(data).hexdigest()
-              if actual!=expected_sha: raise SystemExit(f'{name}: SHA256 falsch {actual}')
+              if actual!=expected_sha:
+                  raise SystemExit(f'{name}: SHA256 falsch {actual}')
               if len(data)<10000 or not data.startswith(b'\x89PNG\r\n\x1a\n'):
                   raise SystemExit(f'{name}: kein gueltiges Original-PNG')
-              files[name]=data
+              final[name]=data
               print(f'{name}: OK bytes={len(data)} sha256={actual}')
 
           target=Path('assets/sop/screenshots/bsh')
           target.mkdir(parents=True,exist_ok=True)
           for old in target.iterdir():
               if old.is_file(): old.unlink()
-          for name,data in files.items():
+          for name,data in final.items():
               (target/name).write_bytes(data)
-          if len(list(target.glob('*.png')))!=11:
-              raise SystemExit('Finaler BSH-Ordner enthaelt nicht exakt 11 PNGs')
+          if sorted(p.name for p in target.glob('*.png'))!=sorted(expected_images):
+              raise SystemExit('Finaler BSH-Ordner stimmt nicht exakt mit den 11 Pflichtbildern ueberein')
           PY
       - name: Verify RC1550 targeted suite
         run: >-
