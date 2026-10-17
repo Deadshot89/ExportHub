@@ -254,6 +254,9 @@ async function activateNavigationTarget(page,item,module,requiredText){
 
 export async function openExportHubView(page,module,labels=[],requiredText,options={}){
   const selectors=[
+    // Main navigation first: routed buttons inside #content (dashboard quick access, tile links) can sit
+    // behind the open mobile menu, and visible() picks the last match in DOM order.
+    `button[data-view="${module}"]:not(#content *)`,`a[data-view="${module}"]:not(#content *)`,
     `button[data-view="${module}"]`,`a[data-view="${module}"]`,`[role="button"][data-view="${module}"]`,
     `button[data-target="${module}"]`,`a[data-target="${module}"]`,`[role="button"][data-target="${module}"]`,
     `button[data-nav="${module}"]`,`a[data-nav="${module}"]`,`[role="button"][data-nav="${module}"]`
