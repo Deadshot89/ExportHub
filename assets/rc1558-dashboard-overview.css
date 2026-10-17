@@ -83,7 +83,13 @@
 /* The overview replaces the older "Arbeitsfokus" block and the "Heute geplante Sendungen" tile; the rest stays compact below it. */
 body[data-rc1558-overview="1"] #rc885Workspace,
 body[data-rc1558-overview="1"] #content .rc205-dashboard-grid > [data-dashboard-widget="todayShipments"]{display:none!important}
-body[data-rc1558-overview="1"] #content .rc205-quick-card{margin-bottom:10px}
+body[data-rc1558-overview="1"] #content .rc205-quick-card{margin-bottom:10px;padding-block:10px!important}
+body[data-rc1558-overview="1"] #content .rc205-quick-card h3{margin:0 0 8px!important;font-size:15px!important}
+/* quick access as one row of compact buttons instead of large tiles */
+body[data-rc1558-overview="1"] #content .rc205-quick-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))!important;gap:8px!important}
+body[data-rc1558-overview="1"] #content .rc205-quick{display:flex!important;flex-direction:row!important;align-items:center!important;gap:8px!important;min-height:0!important;padding:8px 10px!important;text-align:left!important}
+body[data-rc1558-overview="1"] #content .rc205-quick[hidden]{display:none!important}
+body[data-rc1558-overview="1"] #content .rc205-quick > span{font-size:16px!important;margin:0!important}
 /* Compact ABD and pallet tiles so the whole dashboard fits one laptop screen; sizes only, colors stay with the design. */
 body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-mini-metrics{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important}
 body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-mini-metrics .metric{min-height:0!important;padding:8px 10px!important}
