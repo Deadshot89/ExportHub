@@ -15,7 +15,7 @@ const HIGH_CONFIDENCE=[
 
 const SENSITIVE_SETTING=/\b(?:EXPORTHUB_INITIAL_ADMIN_PASSWORD|EXPORTHUB_AUTH_SIGNING_SECRET|EXPORTHUB_SESSION_SECRET|EXPORTHUB_STORAGE_CONNECTION_STRING|EXPORTHUB_CUSTOMER_PORTAL_KEY|EXPORTHUB_GRAPH_CLIENT_SECRET|EXPORTHUB_MAIL_GRAPH_CLIENT_SECRET|EXPORTHUB_CUSTOMS_AI_API_KEY|OPENAI_API_KEY|AZURE_STATIC_WEB_APPS_API_TOKEN)\b/i;
 const ASSIGNMENT=/^[\s"']*([A-Z0-9_]+)["']?\s*[:=]\s*["']([^"']{8,})["']\s*,?\s*$/i;
-const SAFE_VALUE=/^(?:<[^>]+>|\$\{\{\s*secrets\.|process\.env\.|example|placeholder|dummy|test|changeme)/i;
+const SAFE_VALUE=/^(?:<[^>]+>|\$\{\{\s*secrets\.|process\.env\.|example|placeholder|dummy|test|changeme|UseFakeStorage=true$)/i;
 
 export function scanText(file,text){
   const findings=[];
