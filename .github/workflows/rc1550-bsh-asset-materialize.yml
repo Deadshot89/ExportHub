@@ -36,10 +36,27 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           from io import BytesIO
-          import base64, hashlib, itertools, tarfile, zlib
+          import base64, gzip, hashlib, itertools, tarfile
 
           root=Path('.github/rc1550/bsh-seed')
-          expected={
+          expected_chunks={
+            0:('747d8c8cf5081b3b2764890c77ac9d9367fcbb19',10000),
+            1:('db06c1d68dfcd7322d1446a7d73a1bfaa1536719',10000),
+            2:('e30541d80fd5c32693cf93bebf021c4513fbda77',10000),
+            3:('67e7a11761b972a49a47d48444ab23c4fede0864',10000),
+            4:('a66a9a567a5d2d555683f98fc64247998ce76a83',10000),
+            5:('0793f1e3a7d1b94f033c0b67828e5622455ae95a',10000),
+            6:('897522b7ac40a4923504a889923c0e47e75d126f',10000),
+            7:('cc6faca2da60d618252b16c7c18ca2493093122e',10000),
+            8:('1c17a58e4d0bb166492e9eeb2c039fb8c947b3fb',10000),
+            9:('78b3a796005be0ba50d5a8d513d10f914295f33f',10000),
+            10:('d7e6246103d6ed72b97d71d75b5973bbf3d9d2ec',10000),
+            11:('742cfa79c80e5f4f84cba13a727f0c66eb5221bc',10000),
+            12:('dc6af6413a6771baa9808dade0fa027a6837e3dd',10000),
+            13:('aaf7634617b18eb176f0ea6eac4cf47d1fc0d6b9',10000),
+            14:('877d5cd5be7cef0a7278a2b0cfc43d60cef44fdd',7964),
+          }
+          expected_images={
             '01-portaluebersicht.png':'6fdec5e15218a9ba6d8699321945f0a588b7b3b1dd7de14475ab94cb1626339e',
             '02-funktion-auswaehlen.png':'0d5c0181ab90462aa32e4cd97b0f569a0a9e9d4ab4ba468600ab2eb2ff251e5e',
             '03-kunde-werk.png':'1a557e45e51bf73d21f31843364c8198ba01606b472025d0d4aacbc0cb02947a',
@@ -53,107 +70,109 @@ jobs:
             '11-erfolgsbestaetigung.png':'3866303fb45a7551b25634d16f4382e9a284026c90821f6b90697380fdc47ab6',
           }
 
-          def txt(name):
+          def text(name):
               p=root/name
               if not p.is_file(): raise SystemExit(f'Seed fehlt: {name}')
               return ''.join(p.read_text('utf-8').split())
 
-          def windows(strings, wanted=10000):
+          def git_blob_sha(s):
+              b=s.encode('ascii')
+              return hashlib.sha1(b'blob '+str(len(b)).encode()+b'\0'+b).hexdigest()
+
+          def unique_strings(seq):
               seen=set()
-              for s in strings:
-                  if len(s)<wanted: continue
-                  for off in range(0,len(s)-wanted+1):
-                      c=s[off:off+wanted]
-                      if c not in seen:
-                          seen.add(c); yield c
+              for s in seq:
+                  if s not in seen:
+                      seen.add(s); yield s
 
-          exact={
-            0:txt('clean-00'),2:txt('clean-02'),3:txt('clean-03'),5:txt('clean-05'),
-            6:txt('clean-06'),7:txt('clean-07'),8:txt('clean-08'),9:txt('clean-09'),
-            11:txt('clean-11'),14:txt('clean-14')
+          exact_files={
+            0:'clean-00',2:'clean-02',3:'clean-03',5:'clean-05',6:'clean-06',
+            7:'clean-07',8:'clean-08',9:'clean-09',11:'clean-11',14:'clean-14'
           }
-          groups={
-            1:[txt('clean-01a'),txt('clean-01b'),txt('clean-01a')+txt('clean-01b'),txt('clean-01b')+txt('clean-01a')],
-            4:[txt('clean-04'),txt('clean-04a')+txt('clean-04b'),txt('clean-04b')+txt('clean-04a')],
-            10:[txt('clean-10a')+txt('clean-10b'),txt('clean-10b')+txt('clean-10a'),txt('clean-10b')],
-            12:[txt('clean-12'),txt('clean-12a'),txt('clean-12a')+txt('clean-12b'),txt('clean-12b')+txt('clean-12a')],
-            13:[txt('clean-13'),txt('clean-13a'),txt('clean-13')+txt('clean-13a'),txt('clean-13a')+txt('clean-13')],
+          anomaly_files={
+            1:['clean-01a','clean-01b'],
+            4:['clean-04','clean-04a','clean-04b'],
+            10:['clean-10a','clean-10b'],
+            12:['clean-12','clean-12a','clean-12b'],
+            13:['clean-13','clean-13a'],
           }
 
-          def candidates(idx):
-              if idx in exact:
-                  s=exact[idx]
-                  if idx==14:
-                      yield s
-                  elif len(s)==10000:
-                      yield s
+          def find_exact_chunk(idx):
+              expected,wanted=expected_chunks[idx]
+              if idx in exact_files:
+                  s=text(exact_files[idx])
+                  if len(s)!=wanted or git_blob_sha(s)!=expected:
+                      raise SystemExit(f'Chunk {idx:02d} stimmt nicht exakt: len={len(s)} sha={git_blob_sha(s)}')
+                  return s
+
+              raw=[text(name) for name in anomaly_files[idx]]
+              sources=list(raw)
+              for r in range(2,len(raw)+1):
+                  for perm in itertools.permutations(raw,r):
+                      sources.append(''.join(perm))
+              matches=[]
+              checked=0
+              for source in unique_strings(sources):
+                  if len(source)<wanted: continue
+                  if len(source)==wanted:
+                      candidates=[source]
                   else:
-                      yield from windows([s])
-              else:
-                  yield from windows(groups[idx])
+                      candidates=(source[off:off+wanted] for off in range(len(source)-wanted+1))
+                  for candidate in candidates:
+                      checked+=1
+                      if git_blob_sha(candidate)==expected:
+                          matches.append(candidate)
+              matches=list(unique_strings(matches))
+              print(f'chunk {idx:02d}: checked={checked} exact_matches={len(matches)}')
+              if len(matches)!=1:
+                  raise SystemExit(f'Chunk {idx:02d}: erwartet genau 1 Git-SHA-Match, gefunden {len(matches)}')
+              return matches[0]
 
-          states=[(zlib.decompressobj(31),b'',[])]
+          chunks=[]
           for idx in range(15):
-              next_states=[]
-              tested=0
-              for cand in candidates(idx):
-                  tested+=1
-                  try:
-                      raw=base64.b64decode(cand,validate=True)
-                  except Exception:
-                      continue
-                  for decomp,out,choices in states:
-                      try:
-                          d=decomp.copy()
-                          piece=d.decompress(raw)
-                      except zlib.error:
-                          continue
-                      next_states.append((d,out+piece,choices+[hashlib.sha1(cand.encode()).hexdigest()[:10]]))
-              if not next_states:
-                  raise SystemExit(f'Keine gültige Rekonstruktion nach Chunk {idx}; getestet={tested}')
-              # DEFLATE rejects almost all wrong candidates. Keep unique output/state paths only.
-              dedup={}
-              for st in next_states:
-                  key=(len(st[1]),hashlib.sha256(st[1][-32768:]).digest(),st[0].eof)
-                  dedup.setdefault(key,st)
-              states=list(dedup.values())
-              print(f'chunk {idx}: tested={tested} surviving={len(states)}')
-              if len(states)>2000:
-                  raise SystemExit(f'Zu viele mehrdeutige Rekonstruktionen nach Chunk {idx}: {len(states)}')
+              chunk=find_exact_chunk(idx)
+              exp_sha,exp_len=expected_chunks[idx]
+              assert len(chunk)==exp_len and git_blob_sha(chunk)==exp_sha
+              chunks.append(chunk)
+              print(f'chunk {idx:02d}: OK len={len(chunk)} git={exp_sha}')
 
-          valid=[]
-          for d,out,choices in states:
-              try:
-                  out=out+d.flush()
-              except zlib.error:
-                  continue
-              if not d.eof or d.unused_data:
-                  continue
-              try:
-                  tf=tarfile.open(fileobj=BytesIO(out),mode='r:')
-                  bybase={Path(m.name).name:m for m in tf.getmembers() if m.isfile()}
-                  files={}
-                  for name,sha in expected.items():
-                      member=bybase.get(name)
-                      if not member: raise KeyError(name)
-                      data=tf.extractfile(member).read()
-                      if hashlib.sha256(data).hexdigest()!=sha: raise ValueError(name)
-                      if not data.startswith(b'\x89PNG\r\n\x1a\n') or len(data)<10000: raise ValueError(name)
-                      files[name]=data
-                  valid.append((files,choices))
-              except Exception:
-                  continue
-          if len(valid)!=1:
-              raise SystemExit(f'Erwartet genau eine SHA-verifizierte Rekonstruktion, gefunden: {len(valid)}')
-          files,choices=valid[0]
+          encoded=''.join(chunks)
+          if len(encoded)!=147964:
+              raise SystemExit(f'Unerwartete Base64-Gesamtlaenge: {len(encoded)}')
+          try:
+              archive=base64.b64decode(encoded,validate=True)
+          except Exception as exc:
+              raise SystemExit(f'Base64-Gesamtarchiv ungueltig: {exc}')
+          try:
+              tar_bytes=gzip.decompress(archive)
+          except Exception as exc:
+              raise SystemExit(f'GZip-Integritaet fehlgeschlagen: {exc}')
+
+          try:
+              tf=tarfile.open(fileobj=BytesIO(tar_bytes),mode='r:')
+          except Exception as exc:
+              raise SystemExit(f'TAR ungueltig: {exc}')
+          bybase={Path(m.name).name:m for m in tf.getmembers() if m.isfile()}
+          files={}
+          for name,expected_sha in expected_images.items():
+              member=bybase.get(name)
+              if not member: raise SystemExit(f'Pflichtbild fehlt im Archiv: {name}')
+              data=tf.extractfile(member).read()
+              actual=hashlib.sha256(data).hexdigest()
+              if actual!=expected_sha: raise SystemExit(f'{name}: SHA256 falsch {actual}')
+              if len(data)<10000 or not data.startswith(b'\x89PNG\r\n\x1a\n'):
+                  raise SystemExit(f'{name}: kein gueltiges Original-PNG')
+              files[name]=data
+              print(f'{name}: OK bytes={len(data)} sha256={actual}')
+
           target=Path('assets/sop/screenshots/bsh')
           target.mkdir(parents=True,exist_ok=True)
           for old in target.iterdir():
               if old.is_file(): old.unlink()
           for name,data in files.items():
               (target/name).write_bytes(data)
-              print(name,len(data),hashlib.sha256(data).hexdigest())
-          print('choices:',','.join(choices))
+          if len(list(target.glob('*.png')))!=11:
+              raise SystemExit('Finaler BSH-Ordner enthaelt nicht exakt 11 PNGs')
           PY
       - name: Verify RC1550 targeted suite
         run: >-
