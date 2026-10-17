@@ -128,10 +128,41 @@ function statusLabel(status){
   return text===key?status:text
 }
 
-function renderHtml(model){
+/* 24px stroke icons, drawn in currentColor so every design colors them. */
+var ICONS={
+  today:'<path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/>',
+  open:'<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/>',
+  abd:'<path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M12 8v5M12 16v.5"/>',
+  documents:'<path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M10 12h5M10 16h5"/>',
+  pod:'<path d="M4 17c3-1 4-5 6-5s1.5 4 3.5 4 2-3 3.5-3 2 1.5 3 2"/><path d="M4 21h16"/>',
+  tasks:'<path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/>',
+  check:'<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/>',
+  chevron:'<path d="M9 6l6 6-6 6"/>'
+};
+function icon(name,cls){return'<svg class="'+(cls||'rc1558-icon')+'" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'+(ICONS[name]||'')+'</svg>'}
+
+function isoWeek(d){
+  var x=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));var day=x.getUTCDay()||7;x.setUTCDate(x.getUTCDate()+4-day);
+  var y=new Date(Date.UTC(x.getUTCFullYear(),0,1));return Math.ceil(((x-y)/86400000+1)/7)
+}
+function firstName(name){name=q(name);if(!name)return'';return name.indexOf('@')>0?name.split('@')[0]:name.split(' ')[0]}
+function headerHtml(meta){
+  var now=meta&&meta.now||new Date(),hour=now.getHours();
+  var key=hour<11?'morning':hour<17?'day':'evening',name=firstName(meta&&meta.userName);
+  var date='';try{date=now.toLocaleDateString(currentLang(),{weekday:'long',day:'numeric',month:'long',year:'numeric'})}catch(_){date=dayKey(now)}
+  return'<div class="rc1558-hello">'+
+    '<p class="rc1558-greeting">'+esc(t('dashboard.overview.greeting.'+key,{name:name}).replace(/,\s*$/,''))+'</p>'+
+    '<p class="rc1558-date">'+esc(date)+' · '+esc(t('dashboard.overview.week',{week:isoWeek(now)}))+
+      '<span class="rc1558-updated">'+esc(t('dashboard.overview.updated',{time:hhmm(now)}))+'</span></p>'+
+  '</div>'
+}
+
+function emptyHtml(key){return'<p class="rc1558-empty">'+icon('check','rc1558-empty-icon')+'<span>'+esc(t(key))+'</span></p>'}
+
+function renderHtml(model,meta){
   var kpis=model.kpis.map(function(k){
-    return'<button type="button" class="rc1558-kpi" data-tone="'+k.tone+'" data-rc1558-route="'+esc(k.route)+'" data-rc1558-kpi="'+esc(k.id)+'">'+
-      '<span class="rc1558-kpi-label">'+esc(t('dashboard.overview.kpi.'+k.id))+'</span>'+
+    return'<button type="button" class="rc1558-kpi" data-tone="'+k.tone+'"'+(k.value?'':' data-zero="1"')+' data-rc1558-route="'+esc(k.route)+'" data-rc1558-kpi="'+esc(k.id)+'">'+
+      '<span class="rc1558-kpi-top"><span class="rc1558-kpi-label">'+esc(t('dashboard.overview.kpi.'+k.id))+'</span>'+icon(k.id)+'</span>'+
       '<strong class="rc1558-kpi-value">'+k.value+'</strong>'+
       '<span class="rc1558-kpi-sub">'+esc(k.sub)+'</span>'+
     '</button>'
@@ -157,24 +188,24 @@ function renderHtml(model){
         '<span role="columnheader">'+esc(t('dashboard.overview.col.time'))+'</span><span role="columnheader">'+esc(t('dashboard.overview.col.ref'))+'</span><span role="columnheader">'+esc(t('dashboard.overview.col.customer'))+'</span>'+
         '<span role="columnheader" class="rc1558-num">'+esc(t('dashboard.overview.col.colli'))+'</span><span role="columnheader">'+esc(t('dashboard.overview.col.documents'))+'</span><span role="columnheader">'+esc(t('dashboard.overview.col.status'))+'</span>'+
       '</div></div><div role="rowgroup">'+rows+'</div></div></div>'
-    :'<p class="rc1558-empty">'+esc(t('dashboard.overview.today.empty'))+'</p>';
+    :emptyHtml('dashboard.overview.today.empty');
 
   var attention=model.attention.length?'<ul class="rc1558-list">'+model.attention.map(function(a){
     return'<li><span class="rc1558-sev" data-tone="'+a.tone+'"></span><button type="button" class="rc1558-item" data-rc1558-shipment="'+esc(a.key)+'">'+
-      '<b>'+esc(a.ref)+' · '+esc(a.label)+'</b><small>'+esc(a.customer)+'</small></button></li>'
-  }).join('')+'</ul>':'<p class="rc1558-empty">'+esc(t('dashboard.overview.attention.empty'))+'</p>';
+      '<span class="rc1558-item-text"><b>'+esc(a.ref)+' · '+esc(a.label)+'</b><small>'+esc(a.customer)+'</small></span>'+icon('chevron','rc1558-chevron')+'</button></li>'
+  }).join('')+'</ul>':emptyHtml('dashboard.overview.attention.empty');
 
   var tasks=model.tasks.length?'<ul class="rc1558-list">'+model.tasks.map(function(task){
     return'<li><span class="rc1558-sev" data-tone="'+(task.late?'crit':'info')+'"></span><span class="rc1558-task">'+esc(task.title)+'</span>'+
       '<span class="rc1558-due"'+(task.late?' data-late="1"':'')+'>'+esc(dueLabel(task))+'</span></li>'
-  }).join('')+'</ul>':'<p class="rc1558-empty">'+esc(t('dashboard.overview.tasks.empty'))+'</p>';
+  }).join('')+'</ul>':emptyHtml('dashboard.overview.tasks.empty');
 
   function head(titleKey,count,route,linkKey){
     return'<div class="rc1558-head"><h3>'+esc(t(titleKey))+'</h3>'+(count!=null?'<span class="rc1558-count">'+count+'</span>':'')+
       (route?'<button type="button" class="rc1558-link" data-rc1558-route="'+esc(route)+'">'+esc(t(linkKey))+'</button>':'')+'</div>'
   }
 
-  return'<div class="rc1558-kpis">'+kpis+'</div>'+
+  return(meta?headerHtml(meta):'')+'<div class="rc1558-kpis">'+kpis+'</div>'+
     '<div class="rc1558-grid">'+
       '<section class="rc1558-panel rc1558-today">'+head('dashboard.overview.today.title',model.todayTotal,'shipmentoverview','dashboard.overview.today.link')+table+'</section>'+
       '<div class="rc1558-stack">'+
@@ -236,7 +267,8 @@ function refresh(){
     lastHtml='';
     return false
   }
-  var html=renderHtml(buildModel(api,arr(getState().shipments)));
+  var state=getState(),user=state.currentUser||state.activeUser||{};
+  var html=renderHtml(buildModel(api,arr(state.shipments)),{now:new Date(),userName:q(user.displayName||user.name||user.fullName||user.username||user.email)});
   var section=existing;
   if(!section||section.parentNode!==root){
     if(section)section.remove();
@@ -276,9 +308,11 @@ function install(){
   d.addEventListener('visibilitychange',check);
   if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',check);else check();
   setInterval(check,1500);
+  // keep "updated hh:mm" and due labels current while the dashboard stays open
+  setInterval(function(){if(!d.hidden&&d.getElementById(SECTION_ID))schedule()},60000);
   schedule()
 }
 
-w.ExportHUBDashboardOverview1558=Object.freeze({version:VERSION,buildModel:buildModel,renderHtml:renderHtml,statusTone:statusTone,refresh:refresh});
+w.ExportHUBDashboardOverview1558=Object.freeze({version:VERSION,buildModel:buildModel,renderHtml:renderHtml,statusTone:statusTone,isoWeek:isoWeek,refresh:refresh});
 install();
 })(typeof window!=='undefined'?window:globalThis);

@@ -153,6 +153,24 @@ test('RC1558 Englisch übersetzt Kennzahlen und kanonische Status',()=>{
   assert.doesNotMatch(html,/Abholungen heute/);
 });
 
+test('RC1558 Kopfzeile begrüßt nach Tageszeit, zeigt Kalenderwoche und Stand; Nullwerte sind ruhig',()=>{
+  const w=load();
+  const api=w.ExportHUBDashboardOverview1558;
+  const model=api.buildModel(fakeApi(shipments,tasks),shipments,NOW);
+  const morning=api.renderHtml(model,{now:new Date(2026,9,17,8,5),userName:'Tobias Muster'});
+  assert.match(morning,/Guten Morgen, Tobias</);
+  assert.match(morning,/KW 42/);
+  assert.match(morning,/Stand 08:05/);
+  assert.match(api.renderHtml(model,{now:new Date(2026,9,17,19,0),userName:''}),/>Guten Abend</,'ohne Namen kein hängendes Komma');
+  assert.equal(api.isoWeek(new Date(2026,0,1)),1);
+  assert.equal(api.isoWeek(new Date(2027,0,1)),53);
+  assert.equal((morning.match(/<svg class="rc1558-icon"/g)||[]).length,6,'ein Symbol pro Kennzahl');
+  const empty=api.renderHtml(api.buildModel(fakeApi([],[]),[],NOW),{now:NOW,userName:'A'});
+  assert.equal((empty.match(/data-zero="1"/g)||[]).length,6);
+  assert.match(empty,/rc1558-empty-icon/);
+  assert.doesNotMatch(api.renderHtml(model),/rc1558-hello/,'ohne Meta keine Kopfzeile');
+});
+
 test('RC1558 CSS ersetzt Arbeitsfokus und Heute-Kachel nur bei aktiver Übersicht und nutzt Design-Variablen',()=>{
   assert.match(css,/body\[data-rc1558-overview="1"\] #rc885Workspace/);
   assert.match(css,/body\[data-rc1558-overview="1"\] #content \.rc205-dashboard-grid > \[data-dashboard-widget="todayShipments"\]/);
