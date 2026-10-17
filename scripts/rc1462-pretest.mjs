@@ -14,7 +14,7 @@ function ensureApiRuntimeDependencies(){
   if(!missing.length){console.log('RC1468 API runtime dependencies already available; skipping install');return}
   console.log(`RC1468 installing missing API runtime dependencies: ${missing.join(', ')}`);
   const npmCommand=process.platform==='win32'?'npm.cmd':'npm';
-  execFileSync(npmCommand,['install','--prefix','api','--ignore-scripts','--no-audit','--no-fund','--package-lock=false'],{cwd:ROOT,stdio:'inherit'});
+  execFileSync(npmCommand,['install','--prefix','api','--ignore-scripts','--no-audit','--no-fund','--package-lock=false'],{cwd:ROOT,stdio:'inherit',shell:process.platform==='win32'});
   for(const dependency of API_RUNTIME_DEPENDENCIES)apiRequire.resolve(dependency);
   console.log('RC1468 API runtime dependencies verified');
 }
