@@ -1,0 +1,66 @@
+name: RC1561 ABD Invoice Analysis Verify
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'assets/rc1294-abd-self-service.js'
+      - 'test/rc1561-abd-invoice-mode.test.mjs'
+      - 'e2e/specs/rc1561-abd-invoice-mode.spec.mjs'
+      - 'e2e/helpers/**'
+      - '.github/rc1112/**'
+      - '.github/workflows/rc1561-abd-invoice-verify.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'assets/rc1294-abd-self-service.js'
+      - 'test/rc1561-abd-invoice-mode.test.mjs'
+      - 'e2e/specs/rc1561-abd-invoice-mode.spec.mjs'
+      - 'e2e/helpers/**'
+      - '.github/rc1112/**'
+      - '.github/workflows/rc1561-abd-invoice-verify.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rc1561-abd-invoice-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+
+      - name: ABD-Rechnungsanalyse Vertrag prüfen
+        run: node --test test/rc1561-abd-invoice-mode.test.mjs
+
+      - name: Drei-Umgebungen-Paket bauen
+        run: node .github/rc1112/build-three-env.mjs
+
+      - name: Playwright installieren
+        run: |
+          npm install --no-save @playwright/test@1.63.0
+          npx playwright install --with-deps chromium
+
+      - name: Rechnungsanalyse im echten Browser prüfen
+        env:
+          EXPORTHUB_E2E_STATIC: '1'
+          EXPORTHUB_E2E_ENTRY: /demo.html
+        run: npx playwright test e2e/specs/rc1561-abd-invoice-mode.spec.mjs --project=laptop
+
+      - name: Browser-Fehlerartefakte hochladen
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: rc1561-abd-invoice
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: ignore
+          retention-days: 14
