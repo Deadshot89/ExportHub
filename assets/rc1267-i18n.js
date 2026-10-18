@@ -399,9 +399,9 @@ function installApiLanguageFetch(){
 // 2–3x slower). New DOM is translated by the observer anyway, so the same language is a no-op unless forced.
 var appliedLanguage='';
 async function setLanguage(lang,options){
+ snapshotShipmentDraft();
  var next=normalize(lang)||'de',opts=options||{};
  if(next===appliedLanguage&&next===current&&!opts.force){if(selector&&selector.value!==next)selector.value=next;return next}
- snapshotShipmentDraft();
  await ensureResources(next);
  current=next;
  syncApplicationLanguage(next);
