@@ -18,7 +18,7 @@ function arr(v){return Array.isArray(v)?v:[]}
 function esc(v){return q(v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 
 function currentLang(){
-  try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.current==='function')return low(w.ExportHUBI18n.current())}catch(_){}
+  try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.language==='function')return low(w.ExportHUBI18n.language())}catch(_){}
   try{return low(w.document&&w.document.documentElement&&w.document.documentElement.lang||'de')}catch(_){return'de'}
 }
 function t(key,vars){
@@ -302,7 +302,7 @@ function schedule(){
 
 function install(){
   if(typeof w.addEventListener!=='function')return;
-  ['exporthub:ready','exporthub:viewchange','exporthub:rendered','exporthub:sync','exporthub:tasks-updated','exporthub:shipment-saved','exporthub:languagechange','exporthub:designchange','hashchange','popstate','pageshow'].forEach(function(name){w.addEventListener(name,schedule)});
+  ['exporthub:ready','exporthub:viewchange','exporthub:rendered','exporthub:sync','exporthub:tasks-updated','exporthub:shipment-saved','exporthub:language-changed','exporthub:designchange','hashchange','popstate','pageshow'].forEach(function(name){w.addEventListener(name,schedule)});
   w.addEventListener('load',schedule);
   var d=w.document;if(!d)return;
   // #content can be created late or swapped (login, design switch) without an event we hear.

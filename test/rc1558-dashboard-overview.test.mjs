@@ -10,7 +10,7 @@ const i18n=fs.readFileSync('assets/i18n/rc1558-dashboard-overview.js','utf8');
 
 function load(lang='de'){
   const win={document:undefined};
-  win.ExportHUBI18n={current:()=>lang,t:key=>key};
+  win.ExportHUBI18n={language:()=>lang,t:key=>key};
   const ctx=vm.createContext({window:win,globalThis:win,console});
   vm.runInContext(i18n,ctx);
   vm.runInContext(runtime,ctx);
