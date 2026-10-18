@@ -1,0 +1,89 @@
+/* ExportHUB360 RC1570 – task focus view. Colors come from the active design (--pc-*), with Classic fallbacks. */
+.rc1570-tasks,.rc1570-modal{
+  --rc1570-surface:var(--pc-card-bg,var(--pc-surface,#fff));
+  --rc1570-surface-2:var(--pc-field,#f6f8fb);
+  --rc1570-line:var(--pc-line,#dde3ec);
+  --rc1570-text:var(--pc-text,#152235);
+  --rc1570-muted:var(--pc-muted,#5d6b80);
+  --rc1570-primary:var(--pc-primary,#1f6fd1);
+  --rc1570-primary-soft:var(--pc-primary-soft,#e3eefc);
+  --rc1570-ok:var(--pc-success-text,var(--pc-success,#17824b));
+  --rc1570-ok-soft:var(--pc-success-soft,#e1f4e9);
+  --rc1570-warn:var(--pc-warning-text,var(--pc-warning,#a86200));
+  --rc1570-crit:var(--pc-danger-text,var(--pc-danger,#c2332b));
+  --rc1570-crit-soft:var(--pc-danger-soft,#fbe4e2);
+  --rc1570-radius:var(--pc-card-radius,12px);
+  color:var(--rc1570-text)
+}
+/* the focus view replaces the old list; the legacy markup stays in the DOM for its own scripts */
+body[data-rc1570-tasks="1"] #content > :not(#rc1570Tasks):not(#rc1569Drill):not(.rc1371-dashboard-toolbar){display:none!important}
+.rc1570-tasks{display:grid;gap:14px;min-width:0}
+.rc1570-tasks *{box-sizing:border-box}
+.rc1570-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+.rc1570-head h2{margin:0;font-size:26px;letter-spacing:-.01em}
+.rc1570-actions{display:flex;flex-wrap:wrap;gap:8px}
+.rc1570-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.rc1570-search{flex:1 1 260px;min-width:0;min-height:40px;padding:8px 12px;border:1px solid var(--rc1570-line);border-radius:10px;background:var(--rc1570-surface);color:inherit;font:inherit}
+.rc1570-scope{display:inline-flex;border:1px solid var(--rc1570-line);border-radius:10px;overflow:hidden;background:var(--rc1570-surface)}
+.rc1570-scope button{border:0;background:transparent;color:inherit;font:inherit;font-weight:700;padding:8px 14px;cursor:pointer;min-height:40px}
+.rc1570-scope button[aria-pressed="true"]{background:var(--rc1570-primary);color:#fff}
+.rc1570-chips{display:flex;flex-wrap:wrap;gap:6px}
+.rc1570-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;border:1px solid var(--rc1570-line);background:var(--rc1570-surface);color:inherit;text-decoration:none;font-size:13px;font-weight:700}
+.rc1570-chip b{font-variant-numeric:tabular-nums}
+.rc1570-chip[data-tone="crit"] b{color:var(--rc1570-crit)}
+.rc1570-chip[data-tone="ok"] b{color:var(--rc1570-ok)}
+.rc1570-section{display:grid;gap:10px;padding:14px 16px;border:1px solid var(--rc1570-line);border-radius:var(--rc1570-radius);background:var(--rc1570-surface)}
+.rc1570-section[data-tone="crit"]{border-color:color-mix(in srgb,var(--rc1570-crit) 45%,var(--rc1570-line));background:color-mix(in srgb,var(--rc1570-crit-soft) 45%,var(--rc1570-surface))}
+.rc1570-section > header,.rc1570-done > summary{display:flex;align-items:center;gap:10px}
+.rc1570-section h3{margin:0;font-size:16px}
+.rc1570-count{padding:2px 10px;border-radius:999px;background:var(--rc1570-surface-2);color:var(--rc1570-muted);font-size:12px;font-weight:800}
+.rc1570-area{display:grid;gap:8px}
+.rc1570-area h4{margin:4px 0 0;font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--rc1570-muted)}
+.rc1570-area h4 span{margin-left:4px;font-variant-numeric:tabular-nums}
+.rc1570-cards{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:8px}
+.rc1570-card{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid var(--rc1570-line);border-left:4px solid var(--rc1570-primary);border-radius:10px;background:var(--rc1570-surface);min-width:0}
+.rc1570-card.is-late{border-left-color:var(--rc1570-crit)}
+.rc1570-card.is-done{opacity:.65;border-left-color:var(--rc1570-ok)}
+.rc1570-card.is-done .rc1570-card-title{text-decoration:line-through}
+.rc1570-check{flex:none;width:28px;height:28px;min-height:28px!important;padding:0!important;border:2px solid var(--rc1570-line);border-radius:8px;background:var(--rc1570-surface);color:var(--rc1570-ok);font-weight:900;cursor:pointer;display:grid;place-items:center}
+.rc1570-check:hover{border-color:var(--rc1570-ok);background:var(--rc1570-ok-soft)}
+.rc1570-card.is-done .rc1570-check{border-color:var(--rc1570-ok);background:var(--rc1570-ok-soft)}
+.rc1570-card-main{flex:1 1 auto;min-width:0;display:grid;gap:3px}
+.rc1570-card-title{all:unset;cursor:pointer;font-weight:700;line-height:1.3;overflow-wrap:anywhere}
+.rc1570-card-title:hover{color:var(--rc1570-primary);text-decoration:underline}
+.rc1570-card-meta{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;font-size:12px;color:var(--rc1570-muted)}
+.rc1570-prio{padding:1px 7px;border-radius:6px;font-weight:800;background:var(--rc1570-surface-2)}
+.rc1570-prio[data-p="P0"],.rc1570-prio[data-p="P1"]{background:var(--rc1570-crit-soft);color:var(--rc1570-crit)}
+.rc1570-prio[data-p="P2"]{color:var(--rc1570-warn)}
+.rc1570-ref{all:unset;cursor:pointer;font-weight:700;color:var(--rc1570-primary)}
+.rc1570-ref:hover{text-decoration:underline}
+.rc1570-edit{flex:none;width:28px;height:28px;min-height:28px!important;padding:0!important;border:0;border-radius:8px;background:transparent;color:var(--rc1570-muted);cursor:pointer}
+.rc1570-edit:hover{background:var(--rc1570-surface-2);color:var(--rc1570-text)}
+.rc1570-day{border-top:1px solid var(--rc1570-line);padding-top:8px}
+.rc1570-day > summary{display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 0;list-style:revert}
+.rc1570-day > summary span:first-of-type{color:var(--rc1570-muted)}
+.rc1570-day > summary .rc1570-count{margin-left:auto}
+.rc1570-day[open]{display:grid;gap:8px}
+.rc1570-done > summary{cursor:pointer}
+.rc1570-more{justify-self:start}
+.rc1570-empty{margin:0;padding:12px;border:1px dashed var(--rc1570-line);border-radius:10px;text-align:center;font-weight:700;color:var(--rc1570-muted)}
+.rc1570-tasks :is(button,a,input,select,summary):focus-visible{outline:2px solid var(--rc1570-primary);outline-offset:2px}
+
+/* new task form */
+.rc1570-modal{position:fixed!important;inset:0;z-index:2147483000;display:grid!important;place-items:center;padding:16px;background:rgba(15,23,42,.45)!important}
+.rc1570-dialog{width:min(640px,100%);max-height:calc(100dvh - 32px);overflow:auto;display:grid;grid-template-columns:1fr 1fr;gap:12px 14px;padding:20px;border-radius:16px;background:var(--rc1570-surface);color:var(--rc1570-text);box-shadow:0 20px 50px rgba(15,23,42,.3)}
+.rc1570-dialog h2{grid-column:1/-1;margin:0 0 4px;font-size:20px}
+.rc1570-field{display:grid;gap:5px;font-weight:700;font-size:13px;min-width:0;border:0;padding:0;margin:0}
+.rc1570-field legend{padding:0;margin-bottom:5px}
+.rc1570-wide{grid-column:1/-1}
+.rc1570-field :is(input,select,textarea){min-height:40px;padding:8px 10px;border:1px solid var(--rc1570-line);border-radius:8px;background:var(--rc1570-surface);color:inherit;font:inherit;font-weight:400;width:100%}
+.rc1570-when{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:8px 10px;font-weight:400}
+.rc1570-when label{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.rc1570-error{grid-column:1/-1;margin:0;color:var(--rc1570-crit);font-weight:700}
+.rc1570-form-actions{grid-column:1/-1;display:flex;gap:8px;justify-content:flex-end}
+@media (max-width:640px){
+  .rc1570-dialog{grid-template-columns:1fr}
+  .rc1570-head h2{font-size:22px}
+  .rc1570-scope{width:100%}.rc1570-scope button{flex:1}
+}
+@media print{.rc1570-actions,.rc1570-toolbar,.rc1570-check,.rc1570-edit{display:none!important}}
