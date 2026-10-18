@@ -7,6 +7,7 @@ w.__EXPORTHUB_RC1558_DASHBOARD_OVERVIEW__=true;
 var VERSION='RC1558';
 var SECTION_ID='rc1558Overview';
 var BODY_FLAG='data-rc1558-overview';
+var FALLBACK_FLAG='data-rc1558-fallback';
 var MAX_TODAY=12;
 var MAX_ATTENTION=6;
 var MAX_TASKS=5;
@@ -154,7 +155,8 @@ function headerHtml(meta){
     // divs, not <p>: the design layer forces every <p> to the muted color with !important
     '<div class="rc1558-greeting" role="heading" aria-level="2">'+esc(t('dashboard.overview.greeting.'+key,{name:name}).replace(/,\s*$/,''))+'</div>'+
     '<div class="rc1558-date">'+esc(date)+' · '+esc(t('dashboard.overview.week',{week:isoWeek(now)}))+
-      '<span class="rc1558-updated">'+esc(t('dashboard.overview.updated',{time:hhmm(now)}))+'</span></div>'+
+      '<span class="rc1558-updated">'+esc(t('dashboard.overview.updated',{time:hhmm(now)}))+'</span>'+
+    '</div>'+
   '</div>'
 }
 
@@ -264,7 +266,12 @@ function refresh(){
   var d=w.document,api=workspace(),root=hostRoot(),existing=d&&d.getElementById(SECTION_ID);
   if(!d||!api||!root||!isDashboard()){
     if(existing)existing.remove();
-    if(d&&d.body)d.body.removeAttribute(BODY_FLAG);
+    if(d&&d.body){
+      d.body.removeAttribute(BODY_FLAG);
+      // The old "Arbeitsfokus" and today tile are hidden by CSS from the first paint on;
+      // if the overview cannot be built on the dashboard, show them again instead of an empty page.
+      if(root&&isDashboard()&&!api)d.body.setAttribute(FALLBACK_FLAG,'1');else d.body.removeAttribute(FALLBACK_FLAG);
+    }
     lastHtml='';
     return false
   }
@@ -281,8 +288,10 @@ function refresh(){
   if(html!==lastHtml){section.innerHTML=html;lastHtml=html}
   bind(section);
   d.body.setAttribute(BODY_FLAG,'1');
+  d.body.removeAttribute(FALLBACK_FLAG);
   return true
 }
+function refreshNow(){try{return refresh()}catch(err){try{console.warn('RC1558 overview',err)}catch(_){}return false}}
 
 var scheduled=0;
 function schedule(){
@@ -298,13 +307,17 @@ function install(){
   var d=w.document;if(!d)return;
   // #content can be created late or swapped (login, design switch) without an event we hear.
   // Watch whichever #content is current, and re-check cheaply every 1.5 s while the dashboard is visible.
+  // Mount synchronously in the observer callback: it runs as a microtask before the browser paints,
+  // so the dashboard never shows a frame without the overview (no second render, no flash of old tiles).
+  var mountIfMissing=function(){if(!d.getElementById(SECTION_ID)&&isDashboard()&&hostRoot())refreshNow()};
   var observe=function(){
     var content=d.getElementById('content');if(!content||content.__rc1558Observed)return;content.__rc1558Observed=true;
-    if(typeof w.MutationObserver==='function')new w.MutationObserver(function(){if(!d.getElementById(SECTION_ID)&&isDashboard())schedule()}).observe(content,{childList:true})
+    if(typeof w.MutationObserver==='function')new w.MutationObserver(mountIfMissing).observe(content,{childList:true})
   };
+  if(typeof w.MutationObserver==='function'&&d.body)new w.MutationObserver(mountIfMissing).observe(d.body,{attributes:true,attributeFilter:['data-exporthub-view','data-current-view']});
   var check=function(){
     if(d.hidden)return;observe();
-    if(isDashboard()&&!d.getElementById(SECTION_ID)&&hostRoot())schedule()
+    mountIfMissing()
   };
   d.addEventListener('visibilitychange',check);
   if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',check);else check();
