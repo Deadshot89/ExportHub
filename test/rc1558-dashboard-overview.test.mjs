@@ -202,7 +202,8 @@ test('RC1563 ein Bearbeiten-Button im Kopfband, RC205-Zeile nur im Bearbeiten-Mo
   assert.match(css,/body\[data-exporthub-view="dashboard"\] #rc97DashboardPanelMount\{display:none!important\}/);
   assert.match(css,/html body\[data-rc1558-overview="1"\] #content:not\(\[data-rc1371-editing="1"\]\) > \.page-head/);
   assert.match(css,/#content:not\(\[data-rc1371-editing="1"\]\) > \.rc1371-dashboard-toolbar\{position:absolute!important;top:12px;right:14px/);
-  assert.doesNotMatch(css,/\.rc1371-dashboard-toolbar[^{]*\{display:none/,'der RC1371-Editor-Button muss sichtbar bleiben');
+  // RC1573: the dashboard has its own "Dashboard bearbeiten" (tile panel); it replaces the RC1371 toolbar there
+  assert.match(runtime,/data-rc1573-edit="1"/,'eigener Bearbeiten-Button im Kopfband');
   assert.doesNotMatch(runtime,/rc1558-customize/);
 });
 

@@ -262,3 +262,71 @@ html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc13
 html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) .rc1558-stack .rc1558-list{flex:1 1 auto;min-height:150px;max-height:none;overflow-y:auto}
 /* the overview row grows with the overview's minimum height instead of letting it overlap the tiles below */
 html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]){grid-template-rows:minmax(400px,1fr)!important}
+
+/* RC1573 dashboard tiles: own "Dashboard bearbeiten" in the band replaces the old RC1371 toolbar on the dashboard */
+html body[data-rc1558-overview="1"] #content > .rc1371-dashboard-toolbar,
+html body[data-rc1558-overview="1"] #content > .rc1371-quick-access{display:none!important}
+html body[data-rc1558-overview="1"] #content #rc1558Overview .rc1558-hello{padding-right:0!important}
+#rc1558Overview .rc1558-edit{margin-left:auto;flex:none;padding:7px 14px;min-height:34px;border-radius:10px;border:1px solid rgba(255,255,255,.55);background:rgba(255,255,255,.12);color:#fff;font-weight:700;font-size:13px;cursor:pointer}
+#rc1558Overview .rc1558-edit:hover{background:rgba(255,255,255,.22)}
+html body[data-rc1558-overview="1"] #content [data-rc1573-off="1"]{display:none!important}
+/* one-page layout: ABD and pallet become grid items of their own so every tile shares the same row logic */
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) > .rc205-dashboard-grid{display:contents!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) > [data-rc1573-tile][data-rc1573-span],
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) > .rc205-dashboard-grid > [data-rc1573-tile][data-rc1573-span]{min-width:0;margin:0!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]){grid-template-columns:repeat(60,minmax(0,1fr))!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content [data-rc1573-tile][data-rc1573-span="12"]{grid-column:span 12!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content [data-rc1573-tile][data-rc1573-span="15"]{grid-column:span 15!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content [data-rc1573-tile][data-rc1573-span="20"]{grid-column:span 20!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content [data-rc1573-tile][data-rc1573-span="30"]{grid-column:span 30!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content [data-rc1573-tile][data-rc1573-span="60"]{grid-column:1/-1!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content > .rc205-dashboard-grid > [data-rc1573-tile] > .rc205-widget{height:100%}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content > #rc46SopEditorHolder{order:99}
+/* quick access buttons wrap inside a narrower tile */
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content > .rc205-quick-card[data-rc1573-tile]{flex-direction:column!important;align-items:stretch!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content > .rc205-quick-card[data-rc1573-tile] .rc205-quick-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important;flex:none}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content > .rc205-quick-card[data-rc1573-tile][data-rc1573-span="30"] .rc205-quick-grid,html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content > .rc205-quick-card[data-rc1573-tile][data-rc1573-span="60"] .rc205-quick-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content > .rc205-quick-card[data-rc1573-tile] .rc205-quick{padding:6px 8px!important;min-width:0}
+
+/* own tiles: warehouse occupancy and pickups this week as simple bar charts */
+.rc1573-tile{display:flex;flex-direction:column;gap:6px;padding:12px 14px!important;min-width:0;color:var(--pc-text,#152235)}
+.rc1573-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.rc1573-head h3{margin:0;font-size:16px}
+.rc1573-sub{margin:0;font-size:12px;color:var(--pc-muted,#5d6b80)}
+.rc1573-empty{margin:0;padding:12px;border:1px dashed var(--pc-line,#dde3ec);border-radius:10px;text-align:center;font-weight:700;color:var(--pc-muted,#5d6b80)}
+.rc1573-bars{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px;align-items:end;min-height:96px;flex:1 1 auto}
+.rc1573-bar{all:unset;box-sizing:border-box;display:grid;grid-template-rows:auto minmax(48px,1fr) auto;justify-items:center;gap:3px;height:100%;cursor:pointer;min-width:0}
+.rc1573-bar-value{font-size:12px;font-weight:800;font-variant-numeric:tabular-nums}
+.rc1573-bar-track{display:flex;align-items:flex-end;width:100%;max-width:34px;height:100%;border-radius:6px;background:var(--pc-field,#f1f4f9)}
+.rc1573-bar-fill{position:relative;display:block;width:100%;border-radius:6px;background:var(--pc-primary,#1f6fd1);transition:height .2s ease}
+.rc1573-bar-done{position:absolute;left:0;right:0;bottom:0;border-radius:6px;background:var(--pc-success,#17824b)}
+.rc1573-bar.is-current .rc1573-bar-fill{box-shadow:0 0 0 2px var(--pc-warning,#a86200)}
+.rc1573-bar.is-empty .rc1573-bar-value{color:var(--pc-muted,#5d6b80);font-weight:600}
+.rc1573-bar-label{font-size:10px;font-weight:700;color:var(--pc-muted,#5d6b80);white-space:nowrap;max-width:100%;letter-spacing:-.02em}
+.rc1573-bar:hover .rc1573-bar-fill,.rc1573-bar:focus-visible .rc1573-bar-fill{filter:brightness(1.1)}
+.rc1573-bar:focus-visible{outline:2px solid var(--pc-primary,#1f6fd1);outline-offset:2px;border-radius:6px}
+/* customise panel */
+.rc1573-modal{position:fixed!important;inset:0;z-index:2147483000;display:grid!important;place-items:center;padding:16px;background:rgba(15,23,42,.45)!important}
+.rc1573-dialog{width:min(560px,100%);max-height:calc(100dvh - 32px);overflow:auto;display:grid;gap:12px;padding:20px;border-radius:16px;background:var(--pc-card-bg,#fff);color:var(--pc-text,#152235);box-shadow:0 20px 50px rgba(15,23,42,.3)}
+.rc1573-dialog h2{margin:0;font-size:20px}
+.rc1573-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.rc1573-list li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid var(--pc-line,#dde3ec);border-radius:10px}
+.rc1573-list label{display:flex;align-items:flex-start;gap:10px;cursor:pointer;min-width:0}
+.rc1573-list label input{margin-top:3px;width:18px;height:18px;flex:none}
+.rc1573-list label span{display:grid;gap:2px}
+.rc1573-list small{color:var(--pc-muted,#5d6b80);font-size:12px}
+.rc1573-move{display:flex;gap:4px;flex:none}
+.rc1573-move button{min-width:34px;min-height:34px;padding:0!important}
+.rc1573-actions{display:flex;justify-content:space-between;gap:8px}
+/* low laptop screens: compact tiles so overview and tiles still share one page */
+@media (min-width:1250px) and (max-height:820px){
+  html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content [data-rc1573-tile]{padding-top:8px!important;padding-bottom:8px!important}
+  .rc1573-bars{min-height:60px}
+  .rc1573-bar{grid-template-rows:auto minmax(28px,1fr) auto}
+  .rc1573-sub{display:none}
+  html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content > .rc205-quick-card[data-rc1573-tile] h3{margin:0 0 4px!important}
+  html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content > .rc205-quick-card[data-rc1573-tile] .rc205-quick{padding:4px 6px!important;min-height:30px!important}
+  html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content .rc205-dashboard-grid .rc205-widget .rc205-card-head{margin-bottom:4px!important}
+}
+/* narrow quick access tile (five tiles in a row): labels wrap instead of being cut off */
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content > .rc205-quick-card[data-rc1573-tile] .rc205-quick b{white-space:normal!important;overflow-wrap:anywhere;line-height:1.15;font-size:12px!important;text-overflow:clip!important;overflow:visible!important}
