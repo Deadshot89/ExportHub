@@ -48,6 +48,7 @@ test('RC1569 Dashboard bleibt auf einer Seite: Höhe aus freiem Bildschirm, Übe
   assert.match(runtime,/h=Math\.floor\(w\.innerHeight-\(c\.getBoundingClientRect\(\)\.top\+\(w\.scrollY\|\|w\.pageYOffset\|\|0\)\)-16\);if\(h<460\)on=false/);
   assert.match(runtime,/c\.getAttribute\('data-rc1371-editing'\)!=='1'&&w\.innerWidth>=1250/,'nicht im Bearbeiten-Modus, nicht auf Tablet/Handy');
   assert.match(css,/\.rc1558-stack\{display:contents!important\}/,'RC1572: Aufmerksamkeit und Aufgaben stehen als eigene Spalten');
+  assert.ok(css.includes('{grid-template-rows:minmax(400px,1fr)!important}'),'RC1572: Übersicht überlappt die Kacheln nicht');
   assert.match(css,/\.rc1558-stack \.rc1558-list\{flex:1 1 auto;min-height:150px;max-height:none;overflow-y:auto\}/,'RC1572: Listen behalten Platz für ihre Zeilen');
   assert.match(css,/#content:not\(\[data-rc1371-editing="1"\]\)\{\n\s*display:grid!important;grid-template-columns:repeat\(12,minmax\(0,1fr\)\)!important;grid-template-rows:minmax\(0,1fr\)!important;/);
   assert.match(css,/height:var\(--rc1569-fit-h\)!important;max-height:var\(--rc1569-fit-h\)!important/);
