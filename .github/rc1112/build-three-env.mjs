@@ -61,6 +61,7 @@ const RC1558_OVERVIEW_STYLE_TAG='<link id="exporthub-rc1558-overview-style" rel=
 const RC1558_OVERVIEW_I18N_TAG='<script id="exporthub-rc1558-overview-i18n" defer src="/assets/i18n/rc1558-dashboard-overview.js?v=1558"><\/script>';
 const RC1558_OVERVIEW_SCRIPT_TAG='<script id="exporthub-rc1558-overview-script" defer src="/assets/rc1558-dashboard-overview.js?v=1558"><\/script>';
 const RC1570_TASKS_STYLE_TAG='<link id="exporthub-rc1570-tasks-style" rel="stylesheet" href="/assets/rc1570-tasks-focus.css?v=1570">';
+const RC1570_TASKS_I18N_TAG='<script id="exporthub-rc1570-tasks-i18n" defer src="/assets/i18n/rc1570-tasks-focus.js?v=1570"></script>';
 const RC1570_TASKS_SCRIPT_TAG='<script id="exporthub-rc1570-tasks-script" defer src="/assets/rc1570-tasks-focus.js?v=1570"></script>';
 const RC1558_WORKSPACE_MARKER='window.__EXPORTHUB_RC885_CLEAN_WORKSPACE__ = true;';
 const RC1558_WORKSPACE_EXPORT="window.ExportHUBWorkspace885=Object.freeze({shipments:shipments,tasks:tasks,shipmentOpenList:shipmentOpenList,taskOpenList:taskOpenList,dueTask:dueTask,shipmentNeedsDocuments:shipmentNeedsDocuments,shipmentNeedsPickup:shipmentNeedsPickup,shipmentNeedsPod:shipmentNeedsPod,routeTo:routeTo});";
@@ -151,8 +152,9 @@ function patchRc1558DashboardOverview(html,file){
   if(!html.includes('rc1558-dashboard-overview.js?v=1558'))throw new Error(file+': RC1558 Dashboard-Übersicht-Runtime fehlt');
   // RC1570 task focus view (overdue/today first, new-task form, working task detail view)
   html=injectDeferredRuntimeInHead(html,RC1570_TASKS_STYLE_TAG,'exporthub-rc1570-tasks-style');
+  html=injectDeferredRuntimeInHead(html,RC1570_TASKS_I18N_TAG,'exporthub-rc1570-tasks-i18n');
   html=injectDeferredRuntimeInHead(html,RC1570_TASKS_SCRIPT_TAG,'exporthub-rc1570-tasks-script');
-  if(!html.includes('rc1570-tasks-focus.js?v=1570')||!html.includes('rc1570-tasks-focus.css?v=1570'))throw new Error(file+': RC1570 Aufgaben-Fokus fehlt');
+  if(!html.includes('i18n/rc1570-tasks-focus.js?v=1570')||!html.includes('/assets/rc1570-tasks-focus.js?v=1570')||!html.includes('rc1570-tasks-focus.css?v=1570'))throw new Error(file+': RC1570 Aufgaben-Fokus fehlt');
   return html;
 }
 
@@ -1180,6 +1182,7 @@ for(const rel of [
   'assets/rc1558-dashboard-overview.js',
   'assets/rc1570-tasks-focus.css',
   'assets/rc1570-tasks-focus.js',
+  'assets/i18n/rc1570-tasks-focus.js',
   'assets/rc1460-shipment-view-files-avis-preview.js'
 ]){
   const src=path.join(ROOT,rel),dst=path.join(OUT,rel);

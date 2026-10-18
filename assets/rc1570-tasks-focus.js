@@ -13,32 +13,16 @@ var SCOPE_KEY='exporthub.rc1570.scope';
 var MAX_OVERDUE=12;
 var WEEKDAYS=['sonntag','montag','dienstag','mittwoch','donnerstag','freitag','samstag'];
 
-var I18N={
- de:{noMatch:'Keine Treffer für diese Suche.',title:'Aufgaben',newTask:'+ Neue Aufgabe',planner:'Aufgaben-Planer',search:'Aufgaben durchsuchen …',scopeMine:'Meine Aufgaben',scopeAll:'Alle Aufgaben',overdue:'Überfällig',today:'Heute',week:'Rest der Woche',later:'Später',noDate:'Ohne Datum',doneToday:'Heute erledigt',showAll:'Alle {count} anzeigen',showLess:'Weniger anzeigen',empty:'Keine offenen Aufgaben – alles erledigt.',emptyToday:'Für heute ist nichts mehr offen.',done:'Erledigt',reopen:'Wieder öffnen',open:'Öffnen',edit:'Bearbeiten',due:'fällig {date}',weekly:'wöchentlich',tasks:'{count} Aufgaben',task:'1 Aufgabe',other:'Sonstiges',
-  formTitle:'Neue Aufgabe',fTitle:'Was ist zu tun?',fArea:'Bereich',fOwner:'Zuständig',fWhen:'Wann',fOnce:'Einmalig am',fWeekly:'Jede Woche am',fTime:'Uhrzeit (optional)',fPriority:'Priorität',fRef:'Sendung / Referenz (optional)',fNote:'Notiz (optional)',save:'Aufgabe anlegen',cancel:'Abbrechen',required:'Bitte angeben, was zu tun ist.',noRights:'Keine Bearbeitungsrechte für Aufgaben.',saved:'Aufgabe angelegt.',pNormal:'Normal',pickTask:'Wähle eine Aufgabe, um sie in der Aufgabenansicht zu öffnen.'},
- en:{noMatch:'No tasks match this search.',title:'Tasks',newTask:'+ New task',planner:'Task planner',search:'Search tasks …',scopeMine:'My tasks',scopeAll:'All tasks',overdue:'Overdue',today:'Today',week:'Rest of the week',later:'Later',noDate:'No date',doneToday:'Done today',showAll:'Show all {count}',showLess:'Show less',empty:'No open tasks – all done.',emptyToday:'Nothing left open for today.',done:'Done',reopen:'Reopen',open:'Open',edit:'Edit',due:'due {date}',weekly:'weekly',tasks:'{count} tasks',task:'1 task',other:'Other',
-  formTitle:'New task',fTitle:'What needs to be done?',fArea:'Area',fOwner:'Assigned to',fWhen:'When',fOnce:'Once on',fWeekly:'Every week on',fTime:'Time (optional)',fPriority:'Priority',fRef:'Shipment / reference (optional)',fNote:'Note (optional)',save:'Create task',cancel:'Cancel',required:'Please enter what needs to be done.',noRights:'No permission to edit tasks.',saved:'Task created.',pNormal:'Normal',pickTask:'Choose a task to open it in the task view.'},
- pl:{noMatch:'Brak wyników dla tego wyszukiwania.',title:'Zadania',newTask:'+ Nowe zadanie',planner:'Planer zadań',search:'Szukaj zadań …',scopeMine:'Moje zadania',scopeAll:'Wszystkie zadania',overdue:'Po terminie',today:'Dziś',week:'Reszta tygodnia',later:'Później',noDate:'Bez daty',doneToday:'Wykonane dziś',showAll:'Pokaż wszystkie ({count})',showLess:'Pokaż mniej',empty:'Brak otwartych zadań – wszystko wykonane.',emptyToday:'Na dziś nic nie zostało.',done:'Wykonane',reopen:'Otwórz ponownie',open:'Otwórz',edit:'Edytuj',due:'termin {date}',weekly:'co tydzień',tasks:'Zadania: {count}',task:'1 zadanie',other:'Inne',
-  formTitle:'Nowe zadanie',fTitle:'Co trzeba zrobić?',fArea:'Obszar',fOwner:'Odpowiedzialny',fWhen:'Kiedy',fOnce:'Jednorazowo dnia',fWeekly:'Co tydzień w',fTime:'Godzina (opcjonalnie)',fPriority:'Priorytet',fRef:'Wysyłka / referencja (opcjonalnie)',fNote:'Notatka (opcjonalnie)',save:'Utwórz zadanie',cancel:'Anuluj',required:'Podaj, co trzeba zrobić.',noRights:'Brak uprawnień do edycji zadań.',saved:'Zadanie utworzone.',pNormal:'Normalny',pickTask:'Wybierz zadanie, aby otworzyć je w widoku zadania.'},
- es:{noMatch:'Ninguna tarea coincide con la búsqueda.',title:'Tareas',newTask:'+ Nueva tarea',planner:'Planificador de tareas',search:'Buscar tareas …',scopeMine:'Mis tareas',scopeAll:'Todas las tareas',overdue:'Vencidas',today:'Hoy',week:'Resto de la semana',later:'Más adelante',noDate:'Sin fecha',doneToday:'Hechas hoy',showAll:'Mostrar las {count}',showLess:'Mostrar menos',empty:'No hay tareas abiertas: todo hecho.',emptyToday:'No queda nada abierto para hoy.',done:'Hecho',reopen:'Reabrir',open:'Abrir',edit:'Editar',due:'vence {date}',weekly:'semanal',tasks:'{count} tareas',task:'1 tarea',other:'Otros',
-  formTitle:'Nueva tarea',fTitle:'¿Qué hay que hacer?',fArea:'Área',fOwner:'Responsable',fWhen:'Cuándo',fOnce:'Una vez el',fWeekly:'Cada semana el',fTime:'Hora (opcional)',fPriority:'Prioridad',fRef:'Envío / referencia (opcional)',fNote:'Nota (opcional)',save:'Crear tarea',cancel:'Cancelar',required:'Indica qué hay que hacer.',noRights:'Sin permiso para editar tareas.',saved:'Tarea creada.',pNormal:'Normal',pickTask:'Elige una tarea para abrirla en la vista de tarea.'},
- fr:{noMatch:'Aucune tâche ne correspond à la recherche.',title:'Tâches',newTask:'+ Nouvelle tâche',planner:'Planificateur de tâches',search:'Rechercher des tâches …',scopeMine:'Mes tâches',scopeAll:'Toutes les tâches',overdue:'En retard',today:'Aujourd’hui',week:'Reste de la semaine',later:'Plus tard',noDate:'Sans date',doneToday:'Terminées aujourd’hui',showAll:'Afficher les {count}',showLess:'Afficher moins',empty:'Aucune tâche ouverte – tout est fait.',emptyToday:'Plus rien d’ouvert pour aujourd’hui.',done:'Terminé',reopen:'Rouvrir',open:'Ouvrir',edit:'Modifier',due:'échéance {date}',weekly:'hebdomadaire',tasks:'{count} tâches',task:'1 tâche',other:'Autres',
-  formTitle:'Nouvelle tâche',fTitle:'Que faut-il faire ?',fArea:'Domaine',fOwner:'Responsable',fWhen:'Quand',fOnce:'Une fois le',fWeekly:'Chaque semaine le',fTime:'Heure (facultatif)',fPriority:'Priorité',fRef:'Expédition / référence (facultatif)',fNote:'Note (facultatif)',save:'Créer la tâche',cancel:'Annuler',required:'Indiquez ce qu’il faut faire.',noRights:'Pas de droit de modifier les tâches.',saved:'Tâche créée.',pNormal:'Normale',pickTask:'Choisissez une tâche pour l’ouvrir dans la vue tâche.'},
- it:{noMatch:'Nessuna attività corrisponde alla ricerca.',title:'Attività',newTask:'+ Nuova attività',planner:'Pianificatore attività',search:'Cerca attività …',scopeMine:'Le mie attività',scopeAll:'Tutte le attività',overdue:'Scadute',today:'Oggi',week:'Resto della settimana',later:'Più avanti',noDate:'Senza data',doneToday:'Completate oggi',showAll:'Mostra tutte ({count})',showLess:'Mostra meno',empty:'Nessuna attività aperta – tutto fatto.',emptyToday:'Per oggi non resta nulla.',done:'Fatto',reopen:'Riapri',open:'Apri',edit:'Modifica',due:'scade {date}',weekly:'settimanale',tasks:'{count} attività',task:'1 attività',other:'Altro',
-  formTitle:'Nuova attività',fTitle:'Cosa bisogna fare?',fArea:'Area',fOwner:'Responsabile',fWhen:'Quando',fOnce:'Una volta il',fWeekly:'Ogni settimana il',fTime:'Ora (facoltativa)',fPriority:'Priorità',fRef:'Spedizione / riferimento (facoltativo)',fNote:'Nota (facoltativa)',save:'Crea attività',cancel:'Annulla',required:'Indica cosa bisogna fare.',noRights:'Nessun permesso per modificare le attività.',saved:'Attività creata.',pNormal:'Normale',pickTask:'Scegli un’attività per aprirla nella vista attività.'}
-};
-var DAY_NAMES={
- de:['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'],en:['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
- pl:['Niedziela','Poniedziałek','Wtorek','Środa','Czwartek','Piątek','Sobota'],es:['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'],
- fr:['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'],it:['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato']
-};
+// texts live in assets/i18n/rc1570-tasks-focus.js (loaded first)
+function packs(){var p=w.ExportHUBTasksFocus1570I18n;return p&&p.packs||{de:{}}}
+function dayNames(l){var p=w.ExportHUBTasksFocus1570I18n,d=p&&p.days||{};return d[l]||d.de||['0','1','2','3','4','5','6']}
 
 function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
 function low(v){return q(v).toLowerCase()}
 function arr(v){return Array.isArray(v)?v:[]}
 function esc(v){return q(v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
-function lang(){try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.language==='function'){var l=low(w.ExportHUBI18n.language());if(I18N[l])return l}}catch(_){}return'de'}
-function t(key,vars){var pack=I18N[lang()]||I18N.de,text=pack[key]||I18N.de[key]||key;if(vars)Object.keys(vars).forEach(function(k){text=text.split('{'+k+'}').join(String(vars[k]))});return text}
+function lang(){try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.language==='function'){var l=low(w.ExportHUBI18n.language());if(packs()[l])return l}}catch(_){}return'de'}
+function t(key,vars){var all=packs(),pack=all[lang()]||all.de||{},text=pack[key]||(all.de||{})[key]||key;if(vars)Object.keys(vars).forEach(function(k){text=text.split('{'+k+'}').join(String(vars[k]))});return text}
 function state(){try{if(typeof w.__EXPORTHUB_GET_STATE__==='function'){var s=w.__EXPORTHUB_GET_STATE__();if(s&&typeof s==='object')return s}}catch(_){}return{}}
 function currentUser(){
   try{if(typeof w.__EXPORTHUB_GET_CURRENT_USER__==='function'){var u=w.__EXPORTHUB_GET_CURRENT_USER__();if(u)return u}}catch(_){}
@@ -76,7 +60,7 @@ function taskDate(task){
   var x=new Date(base);x.setDate(x.getDate()+((idx||7)-1));return x
 }
 function fmtDate(d){try{return d.toLocaleDateString(lang(),{weekday:'short',day:'2-digit',month:'2-digit'})}catch(_){return dayKey(d)}}
-function dayName(d){return(DAY_NAMES[lang()]||DAY_NAMES.de)[d.getDay()]}
+function dayName(d){return dayNames(lang())[d.getDay()]}
 
 /* task fields */
 function taskId(task){return q(task&&(task.id||task.taskId||task.uuid))}
@@ -230,7 +214,7 @@ function openForm(){
     '<label class="rc1570-field"><span>'+esc(t('fOwner'))+'</span><input name="owner" list="rc1570Owners" maxlength="80" value="'+esc(me)+'"><datalist id="rc1570Owners">'+knownOwners().map(function(o){return'<option value="'+esc(o)+'">'}).join('')+'</datalist></label>'+
     '<fieldset class="rc1570-field rc1570-wide"><legend>'+esc(t('fWhen'))+'</legend><div class="rc1570-when">'+
       '<label><input type="radio" name="repeat" value="once" checked> '+esc(t('fOnce'))+'</label><input type="date" name="date" value="'+today+'">'+
-      '<label><input type="radio" name="repeat" value="weekly"> '+esc(t('fWeekly'))+'</label><select name="weekday">'+[1,2,3,4,5,6,0].map(function(i){return'<option value="'+i+'"'+(i===wd?' selected':'')+'>'+esc((DAY_NAMES[lang()]||DAY_NAMES.de)[i])+'</option>'}).join('')+'</select></div></fieldset>'+
+      '<label><input type="radio" name="repeat" value="weekly"> '+esc(t('fWeekly'))+'</label><select name="weekday">'+[1,2,3,4,5,6,0].map(function(i){return'<option value="'+i+'"'+(i===wd?' selected':'')+'>'+esc(dayNames(lang())[i])+'</option>'}).join('')+'</select></div></fieldset>'+
     '<label class="rc1570-field"><span>'+esc(t('fTime'))+'</span><input type="time" name="time"></label>'+
     '<label class="rc1570-field"><span>'+esc(t('fPriority'))+'</span><select name="priority"><option value="P1">P1</option><option value="P2">P2</option><option value="Normal" selected>'+esc(t('pNormal'))+'</option><option value="P4">P4</option></select></label>'+
     '<label class="rc1570-field rc1570-wide"><span>'+esc(t('fRef'))+'</span><input name="ref" maxlength="40" autocomplete="off"></label>'+
@@ -247,7 +231,7 @@ function openForm(){
     var f=form.elements,err=form.querySelector('.rc1570-error'),name=q(f.title.value);
     if(!name){err.textContent=t('required');err.hidden=false;f.title.focus();return}
     var weekly=form.querySelector('[name="repeat"]:checked').value==='weekly';
-    var day=weekly?['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'][Number(f.weekday.value)]:q(f.date.value);
+    var day=weekly?dayNames('de')[Number(f.weekday.value)]:q(f.date.value);
     var created=saveTask({title:name,area:q(f.area.value)||'Manuell',owner:q(f.owner.value)||me,day:day,time:q(f.time.value),priority:q(f.priority.value),ref:q(f.ref.value),note:q(f.note.value)});
     if(created){close();lastHtml='';schedule()}
   })

@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const source=fs.readFileSync('assets/rc1570-tasks-focus.js','utf8');
+const texts=fs.readFileSync('assets/i18n/rc1570-tasks-focus.js','utf8');
 const css=fs.readFileSync('assets/rc1570-tasks-focus.css','utf8').replace(/\r\n/g,'\n');
 const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8').replace(/\r\n/g,'\n');
 
@@ -11,7 +12,7 @@ function load(tasks,user,now){
   const RealDate=Date,fixed=new RealDate(now);
   class FakeDate extends RealDate{constructor(...a){super(...(a.length?a:[fixed.getTime()]))}static now(){return fixed.getTime()}}
   const window={__EXPORTHUB_GET_STATE__:()=>({tasks,users:[]}),__EXPORTHUB_GET_CURRENT_USER__:()=>user,document:null,localStorage:{getItem:()=>null,setItem(){}}};
-  vm.runInNewContext(source,{window,Date:FakeDate,Intl,console});
+  const ctx={window,Date:FakeDate,Intl,console};vm.runInNewContext(texts,ctx);vm.runInNewContext(source,ctx);
   return window.ExportHUBTasksFocus1570;
 }
 const me={id:'U-1',name:'Tobias Limberg',user:'tobias'};
@@ -81,4 +82,14 @@ test('RC1570 Altansicht ausgeblendet, Formular-Rolle am inneren Dialog, Build bi
   assert.match(source,/<form class="rc1570-dialog" novalidate role="dialog" aria-modal="true"/);
   assert.match(build,/html=injectDeferredRuntimeInHead\(html,RC1570_TASKS_SCRIPT_TAG,'exporthub-rc1570-tasks-script'\);/);
   assert.match(build,/'assets\/rc1570-tasks-focus\.css',\n  'assets\/rc1570-tasks-focus\.js',/);
+});
+
+test('RC1570 Texte liegen in der Sprachdatei, alle sechs Sprachen haben dieselben Schlüssel',()=>{
+  const window={};vm.runInNewContext(texts,{window});
+  const packs=window.ExportHUBTasksFocus1570I18n.packs,keys=Object.keys(packs.de).sort();
+  for(const l of ['en','pl','es','fr','it'])assert.deepEqual(Object.keys(packs[l]).sort(),keys,l);
+  assert.equal(window.ExportHUBTasksFocus1570I18n.days.de[3],'Mittwoch');
+  assert.doesNotMatch(source,/Neue Aufgabe|Was ist zu tun/,'keine deutschen Texte im Modul-Code');
+  assert.ok(build.indexOf("RC1570_TASKS_I18N_TAG,'exporthub-rc1570-tasks-i18n'")>0&&build.indexOf("RC1570_TASKS_I18N_TAG,'exporthub-rc1570-tasks-i18n'")<build.indexOf("RC1570_TASKS_SCRIPT_TAG,'exporthub-rc1570-tasks-script'"),'Sprachdatei vor dem Modul');
+  assert.match(build,/'assets\/i18n\/rc1570-tasks-focus\.js',/);
 });
