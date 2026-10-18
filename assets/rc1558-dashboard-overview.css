@@ -199,3 +199,55 @@ body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-mini-metric
   body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-mini-metrics .metric{padding:6px 9px!important}
   body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-mini-metrics .metric strong{font-size:18px!important}
 }
+
+/* RC1569 drill-down from a dashboard tile: filter bar, matching records only */
+.rc1569-drill{margin:0 0 14px;display:grid;gap:10px}
+.rc1569-drill-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 14px;border-radius:12px;background:var(--eh-surface-strong,#eef4ff);border:1px solid var(--eh-border,#c7d7f2);box-shadow:0 1px 2px rgba(15,23,42,.06)}
+.rc1569-drill-kicker{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--eh-muted,#475569)}
+.rc1569-drill-bar strong{font-size:15px}
+.rc1569-drill-count{padding:2px 10px;border-radius:999px;background:var(--eh-accent,#1d4ed8);color:#fff;font-weight:800;font-size:12px}
+.rc1569-drill-clear{margin-left:auto}
+.rc1569-drill-empty{margin:0;padding:14px;border:1px dashed var(--eh-border,#cbd5e1);border-radius:12px;text-align:center;font-weight:700;color:var(--eh-muted,#475569)}
+.rc1569-drill-tasks{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.rc1569-drill-task{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;border-radius:12px;background:var(--eh-surface,#fff);border:1px solid var(--eh-border,#e2e8f0);border-left:4px solid var(--eh-warn,#d97706)}
+.rc1569-drill-task.is-late{border-left-color:var(--eh-danger,#dc2626)}
+.rc1569-drill-task-main{display:grid;gap:2px;min-width:0}
+.rc1569-drill-task-main strong{overflow-wrap:anywhere}
+.rc1569-drill-task-main span{font-size:12px;color:var(--eh-muted,#475569)}
+.rc1569-prio{font-weight:800;color:var(--eh-danger,#b91c1c)}
+.rc1569-drill-actions{display:flex;gap:8px;flex:0 0 auto}
+body[data-rc1569-drill="shipments"] #content [data-rc1569-out="1"]{display:none!important}
+body[data-rc1569-drill="shipments"] #content .rc543-overview-group[data-rc1569-in="1"] > .rc543-overview-group-body[hidden]{display:block!important}
+/* the task view shows only the focus list while the filter is active */
+body[data-rc1569-drill="tasks"] #content > :not(#rc1569Drill):not(.page-head){display:none!important}
+@media (max-width:640px){.rc1569-drill-task{flex-direction:column;align-items:stretch}.rc1569-drill-clear{margin-left:0}}
+
+/* RC1569 one-page fit (desktop, not while editing): #content is exactly as high as the free screen.
+   Row 1 = overview (takes the rest, scrolls inside); tiles below share a 12-column grid and wrap,
+   so adding tiles shrinks the overview instead of making the page scroll. */
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]){
+  display:grid!important;grid-template-columns:repeat(12,minmax(0,1fr))!important;grid-template-rows:minmax(0,1fr)!important;grid-auto-rows:auto!important;
+  gap:10px!important;align-content:stretch!important;height:var(--rc1569-fit-h)!important;max-height:var(--rc1569-fit-h)!important;min-height:0!important;overflow:hidden auto!important;padding-bottom:0!important
+}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) > *{margin:0!important;min-width:0;grid-column:1/-1}
+/* doubled id: RC1306 layout rules pin #content children to align-self:start/min-height:0 */
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) > #rc1558Overview#rc1558Overview{grid-row:1!important;align-self:stretch!important;height:auto!important;min-height:300px!important;display:flex!important;flex-direction:column!important;gap:10px!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) > #rc1558Overview#rc1558Overview > .rc1558-grid{flex:1 1 0!important;min-height:0!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) .rc1558-grid > *{min-height:0}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) .rc1558-stack{display:flex;flex-direction:column;min-height:0;overflow:hidden}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) .rc1558-stack > *{flex:1 1 0;min-height:0;display:flex;flex-direction:column}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) .rc1558-stack .rc1558-list{flex:1 1 0;max-height:none;min-height:0}
+/* tiles below the overview: quick access and the ABD/pallet tiles side by side, extra tiles four per row */
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) > .rc205-quick-card{grid-column:span 5;margin:0!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) > .rc205-dashboard-grid{grid-column:span 7}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) > .rc1371-quick-access,
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) > .dashboard-card{grid-column:span 3}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) > .rc205-quick-card .rc205-quick-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))!important}
+@media (max-width:1400px){
+  html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) > .rc205-quick-card,
+  html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) > .rc205-dashboard-grid{grid-column:span 6}
+  html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) > .rc1371-quick-access,
+  html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) > .dashboard-card{grid-column:span 4}
+}
+/* in the one-page layout the ABD/pallet figures keep their titles; the wrapping explanation lines are left out */
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) .rc205-dashboard-grid .rc205-mini-metrics .metric small{display:none!important}

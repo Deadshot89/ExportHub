@@ -113,7 +113,10 @@ function buildModel(api,shipments,now){
     return{title:q(task&&(task.title||task.name||task.subject))||t('dashboard.overview.tasks.untitled'),due:d,late:!!k&&k<today,today:k===today}
   });
 
-  return{kpis:kpis,today:today_rows,todayTotal:todayList.length,attention:attention.slice(0,MAX_ATTENTION),attentionTotal:attention.length,tasks:tasks,tasksTotal:openTasks.length}
+  // what each tile stands for – the drill-down filters the target view to exactly these records
+  var sets={today:todayList,open:open,abd:waitingAbd,documents:needsDocs,pod:needsPod,tasks:dueTasks};
+
+  return{kpis:kpis,today:today_rows,todayTotal:todayList.length,attention:attention.slice(0,MAX_ATTENTION),attentionTotal:attention.length,tasks:tasks,tasksTotal:openTasks.length,sets:sets}
 }
 
 function dueLabel(task){
@@ -248,10 +251,116 @@ function route(view){
   return false
 }
 
+/* RC1569 drill-down: a tile opens its function filtered to exactly the records it counts.
+   The filter is recomputed on every render of the target view, so finished records drop out. */
+var DRILL_ID='rc1569Drill';
+var drill=null;
+function currentView(){
+  var d=w.document;if(!d||!d.body)return'';
+  return low(d.body.getAttribute('data-exporthub-view')||d.body.getAttribute('data-current-view'))
+}
+function drillRecords(kpi){
+  var api=workspace();if(!api)return[];
+  var now=Date.now();
+  if(drill&&drill.cache&&now-drill.cache.at<400)return drill.cache.records;
+  var model=buildModel(api,arr(getState().shipments)),records=arr(model.sets&&model.sets[kpi]);
+  if(drill)drill.cache={at:now,records:records};
+  return records
+}
+function taskIdOf(t){return q(t&&(t.id||t.taskId||t.uuid))}
+function fmtDay(d){try{return d.toLocaleDateString(currentLang()||'de',{weekday:'short',day:'2-digit',month:'2-digit'})}catch(_){return dayKey(d)}}
+function drillBar(count,isTasks){
+  var label=t('dashboard.overview.kpi.'+drill.kpi);
+  var n=count===1?t(isTasks?'dashboard.overview.drill.task':'dashboard.overview.drill.shipment'):t(isTasks?'dashboard.overview.drill.tasks':'dashboard.overview.drill.shipments',{count:count});
+  return'<div class="rc1569-drill-bar" role="status"><span class="rc1569-drill-kicker">'+esc(t('dashboard.overview.drill.filter'))+'</span>'+
+    '<strong>'+esc(label)+'</strong><span class="rc1569-drill-count">'+esc(n)+'</span>'+
+    '<button type="button" class="rc1569-drill-clear" data-rc1569-clear="1">'+esc(t('dashboard.overview.drill.clear'))+'</button></div>'
+}
+function taskListHtml(tasks){
+  var today=dayKey(new Date());
+  if(!tasks.length)return'<p class="rc1569-drill-empty">'+esc(t('dashboard.overview.drill.emptyTasks'))+'</p>';
+  return'<ul class="rc1569-drill-tasks">'+tasks.slice().sort(function(a,b){var da=dueOf(a),db=dueOf(b);if(!da&&!db)return 0;if(!da)return 1;if(!db)return-1;return da-db}).map(function(task){
+    var d=dueOf(task),late=d&&dayKey(d)<today,id=taskIdOf(task),prio=q(task&&task.priority);
+    var meta=(late?t('dashboard.overview.drill.overdue')+' · ':'')+(d?t('dashboard.overview.drill.due',{date:fmtDay(d)}):t('dashboard.overview.drill.noDue'))+(q(task&&(task.assignedToName||task.owner))?' · '+q(task.assignedToName||task.owner):'');
+    return'<li class="rc1569-drill-task'+(late?' is-late':'')+'"><div class="rc1569-drill-task-main"><strong>'+esc(q(task&&(task.title||task.name||task.subject))||t('dashboard.overview.tasks.untitled'))+'</strong>'+
+      '<span>'+(/^P\d$/i.test(prio)?'<b class="rc1569-prio">'+esc(prio.toUpperCase())+'</b> ':'')+esc(meta)+'</span></div>'+
+      '<div class="rc1569-drill-actions"><button type="button" class="btn" data-rc1569-done="'+esc(id)+'">'+esc(t('dashboard.overview.drill.done'))+'</button>'+
+      '<button type="button" class="ghost" data-rc1569-open-task="'+esc(id)+'">'+esc(t('dashboard.overview.drill.open'))+'</button></div></li>'
+  }).join('')+'</ul>'
+}
+function clearDrill(){
+  drill=null;
+  var d=w.document;if(!d)return;
+  var box=d.getElementById(DRILL_ID);if(box)box.remove();
+  if(d.body)d.body.removeAttribute('data-rc1569-drill');
+  Array.prototype.forEach.call(d.querySelectorAll('[data-rc1569-out]'),function(n){n.removeAttribute('data-rc1569-out')});
+  Array.prototype.forEach.call(d.querySelectorAll('[data-rc1569-in]'),function(n){n.removeAttribute('data-rc1569-in')})
+}
+function applyDrill(){
+  var d=w.document;if(!drill||!d)return;
+  var view=currentView();
+  if(view!==drill.view){if(drill.seen)clearDrill();return}
+  var root=d.getElementById('content');if(!root)return;
+  drill.seen=true;
+  var records=drillRecords(drill.kpi),isTasks=drill.kpi==='tasks';
+  var box=d.getElementById(DRILL_ID);
+  if(!box||box.parentNode!==root){
+    if(box)box.remove();
+    box=d.createElement('section');box.id=DRILL_ID;box.className='rc1569-drill';
+    var head=root.querySelector(':scope > .page-head');
+    if(head&&head.nextSibling)root.insertBefore(box,head.nextSibling);else root.insertBefore(box,root.firstChild)
+  }
+  var html=drillBar(records.length,isTasks)+(isTasks?taskListHtml(records):(records.length?'':'<p class="rc1569-drill-empty">'+esc(t('dashboard.overview.drill.emptyShipments'))+'</p>'));
+  if(box.__html!==html){box.innerHTML=html;box.__html=html}
+  d.body.setAttribute('data-rc1569-drill',isTasks?'tasks':'shipments');
+  if(isTasks)return;
+  var wanted=Object.create(null);
+  records.forEach(function(s){[keyOf(s),refOf(s),q(s&&s.id)].forEach(function(k){if(k)wanted[k]=1})});
+  Array.prototype.forEach.call(root.querySelectorAll('[data-shipment]'),function(card){
+    var hit=!!wanted[q(card.getAttribute('data-shipment'))];
+    if(hit)card.removeAttribute('data-rc1569-out');else if(card.getAttribute('data-rc1569-out')!=='1')card.setAttribute('data-rc1569-out','1')
+  });
+  // status groups: hide groups without a match, open groups that contain one
+  Array.prototype.forEach.call(root.querySelectorAll('.rc543-overview-group'),function(group){
+    var any=group.querySelector('[data-shipment]:not([data-rc1569-out])');
+    if(any){group.removeAttribute('data-rc1569-out');if(group.getAttribute('data-rc1569-in')!=='1')group.setAttribute('data-rc1569-in','1')}
+    else{group.removeAttribute('data-rc1569-in');if(group.getAttribute('data-rc1569-out')!=='1')group.setAttribute('data-rc1569-out','1')}
+  })
+}
+var drillScheduled=0;
+function scheduleDrill(){
+  if(!drill||drillScheduled)return;
+  var raf=w.requestAnimationFrame||function(fn){return setTimeout(fn,16)};
+  drillScheduled=raf(function(){drillScheduled=0;try{applyDrill()}catch(err){try{console.warn('RC1569 drill',err)}catch(_){}}})
+}
+function startDrill(kpi,view){
+  clearDrill();
+  drill={kpi:kpi,view:view,seen:false};
+  var d=w.document;
+  if(d&&!d.__rc1569Observed&&typeof w.MutationObserver==='function'){
+    d.__rc1569Observed=true;
+    // apply synchronously before paint so the unfiltered list never flashes, then keep it applied on re-renders
+    new w.MutationObserver(function(){if(drill){try{applyDrill()}catch(_){scheduleDrill()}}}).observe(d.body,{childList:true,subtree:true,attributes:true,attributeFilter:['data-exporthub-view']});
+    d.addEventListener('click',function(e){
+      var target=e.target&&e.target.closest?e.target:null;if(!target||!drill)return;
+      if(target.closest('[data-rc1569-clear]')){e.preventDefault();clearDrill();return}
+      var done=target.closest('[data-rc1569-done]');
+      if(done){e.preventDefault();var id=done.getAttribute('data-rc1569-done');done.disabled=true;
+        try{if(typeof w.toggleTaskCard==='function')w.toggleTaskCard({preventDefault:function(){},stopPropagation:function(){}},id)}catch(err){try{console.warn('RC1569 done',err)}catch(_){}}
+        var box=d.getElementById(DRILL_ID);if(box)box.__html='';if(drill)drill.cache=null;scheduleDrill();return}
+      var open=target.closest('[data-rc1569-open-task]');
+      if(open){e.preventDefault();try{if(typeof w.rc524OpenTaskEditor==='function')w.rc524OpenTaskEditor(open.getAttribute('data-rc1569-open-task'))}catch(_){}}
+    },true)
+  }
+  route(view);
+  applyDrill()
+}
+
 function bind(section){
   if(!section||section.__rc1558Bound)return;section.__rc1558Bound=true;
   section.addEventListener('click',function(e){
     var target=e.target&&e.target.closest?e.target:null;if(!target)return;
+    var k=target.closest('[data-rc1558-kpi]');if(k){e.preventDefault();startDrill(k.getAttribute('data-rc1558-kpi'),k.getAttribute('data-rc1558-route'));return}
     var r=target.closest('[data-rc1558-route]');if(r){e.preventDefault();route(r.getAttribute('data-rc1558-route'));return}
     var s=target.closest('[data-rc1558-shipment]');if(s){e.preventDefault();openShipment(s.getAttribute('data-rc1558-shipment'))}
   });
@@ -262,12 +371,30 @@ function bind(section){
 }
 
 var lastHtml='';
+/* RC1569 one-page fit: the dashboard gets exactly the free screen height below the top bar;
+   the overview takes what the tiles below leave and scrolls inside, so added tiles never make the page scroll */
+var FIT_FLAG='data-rc1569-fit';
+function fit(){
+  var d=w.document;if(!d||!d.body)return;
+  var c=d.getElementById('content');
+  var on=c&&isDashboard()&&d.body.hasAttribute(BODY_FLAG)&&c.getAttribute('data-rc1371-editing')!=='1'&&w.innerWidth>=1024;
+  var h=0;
+  if(on){h=Math.floor(w.innerHeight-(c.getBoundingClientRect().top+(w.scrollY||w.pageYOffset||0))-16);if(h<460)on=false}
+  if(!on){if(d.body.hasAttribute(FIT_FLAG))d.body.removeAttribute(FIT_FLAG);return}
+  c.style.setProperty('--rc1569-fit-h',h+'px');
+  if(d.body.getAttribute(FIT_FLAG)!=='1')d.body.setAttribute(FIT_FLAG,'1');
+  // padding below #content (page wrapper) is not known up front: take it off once if the page still overflows
+  var se=d.scrollingElement||d.documentElement,over=se.scrollHeight-w.innerHeight;
+  if(over>0&&over<200)c.style.setProperty('--rc1569-fit-h',(h-over)+'px')
+}
+function fitNow(){try{fit()}catch(err){try{console.warn('RC1569 fit',err)}catch(_){}}}
+
 function refresh(){
   var d=w.document,api=workspace(),root=hostRoot(),existing=d&&d.getElementById(SECTION_ID);
   if(!d||!api||!root||!isDashboard()){
     if(existing)existing.remove();
     if(d&&d.body){
-      d.body.removeAttribute(BODY_FLAG);
+      d.body.removeAttribute(BODY_FLAG);d.body.removeAttribute(FIT_FLAG);
       // The old "Arbeitsfokus" and today tile are hidden by CSS from the first paint on;
       // if the overview cannot be built on the dashboard, show them again instead of an empty page.
       if(root&&isDashboard()&&!api)d.body.setAttribute(FALLBACK_FLAG,'1');else d.body.removeAttribute(FALLBACK_FLAG);
@@ -288,6 +415,7 @@ function refresh(){
   if(html!==lastHtml){section.innerHTML=html;lastHtml=html}
   bind(section);
   d.body.setAttribute(BODY_FLAG,'1');
+  fitNow();
   d.body.removeAttribute(FALLBACK_FLAG);
   return true
 }
@@ -304,6 +432,7 @@ function install(){
   if(typeof w.addEventListener!=='function')return;
   ['exporthub:ready','exporthub:viewchange','exporthub:rendered','exporthub:sync','exporthub:tasks-updated','exporthub:shipment-saved','exporthub:language-changed','exporthub:designchange','hashchange','popstate','pageshow'].forEach(function(name){w.addEventListener(name,schedule)});
   w.addEventListener('load',schedule);
+  var fitFrame=0;w.addEventListener('resize',function(){if(fitFrame)return;var raf=w.requestAnimationFrame||function(fn){return setTimeout(fn,16)};fitFrame=raf(function(){fitFrame=0;fitNow()})});
   var d=w.document;if(!d)return;
   // #content can be created late or swapped (login, design switch) without an event we hear.
   // Watch whichever #content is current, and re-check cheaply every 1.5 s while the dashboard is visible.
