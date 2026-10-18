@@ -112,9 +112,38 @@
 .rc1558-due{font-size:12px;color:var(--rc1558-muted);font-variant-numeric:tabular-nums;white-space:nowrap}
 .rc1558-due[data-late="1"]{color:var(--rc1558-crit);font-weight:650}
 
-/* The overview replaces the older "Arbeitsfokus" block and the "Heute geplante Sendungen" tile; the rest stays compact below it. */
-body[data-rc1558-overview="1"] #rc885Workspace,
-body[data-rc1558-overview="1"] #content .rc205-dashboard-grid > [data-dashboard-widget="todayShipments"]{display:none!important}
+/* The overview replaces the older "Arbeitsfokus" block and the "Heute geplante Sendungen" tile.
+   Hidden from the first paint on (not only after the overview mounted), so the old layout never flashes;
+   data-rc1558-fallback brings them back if the overview cannot be built. */
+html body:not([data-rc1558-fallback="1"]) #rc885Workspace,
+html body:not([data-rc1558-fallback="1"]) #content .rc205-dashboard-grid > [data-dashboard-widget="todayShipments"]{display:none!important}
+
+/* One way to customize the dashboard ("Dashboard anpassen"); RC1371's second toolbar button and the
+   quick-backup card (same actions as Backup/Import in the top bar) are duplicates on the dashboard. */
+body[data-exporthub-view="dashboard"] #content:not([data-rc1371-editing="1"]) .rc1371-dashboard-toolbar,
+body[data-exporthub-view="dashboard"] #rc97DashboardPanelMount{display:none!important}
+
+/* the band greets, dates and carries the "Dashboard anpassen" button: the old title row is not needed */
+html body[data-rc1558-overview="1"] #content > .page-head,html body[data-rc1558-overview="1"][data-eh-theme] #content > .page-head{display:none!important}
+#rc1558Overview .rc1558-customize{margin-left:4px;padding:3px 11px;border-radius:999px;border:1px solid rgba(255,255,255,.45);background:rgba(255,255,255,.12);color:#fff!important;font-size:12px;font-weight:650;cursor:pointer}
+#rc1558Overview .rc1558-customize:hover{background:rgba(255,255,255,.22)}
+
+/* today's pickups and the attention list show about five rows; the rest scrolls inside the panel */
+/* the table fills the height that the right column sets and scrolls inside, header row stays visible */
+.rc1558-grid>.rc1558-today{display:flex;flex-direction:column}
+.rc1558-today .rc1558-tablewrap{flex:1 1 0;min-height:120px;overflow:auto;overscroll-behavior:contain}
+.rc1558-today .rc1558-thead{position:sticky;top:0;z-index:1;background:var(--rc1558-surface)}
+.rc1558-stack .rc1558-list{max-height:168px;overflow-y:auto;overscroll-behavior:contain}
+
+/* quick access: title and buttons in one row */
+body[data-rc1558-overview="1"] #content .rc205-quick-card{display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:10px 14px!important;padding:8px 12px!important}
+body[data-rc1558-overview="1"] #content .rc205-quick-card h3{margin:0!important;flex:none}
+body[data-rc1558-overview="1"] #content .rc205-quick-card .rc205-quick-grid{flex:1 1 600px;min-width:0}
+/* ABD and pallet tiles: figures only, the explanatory lines stay in the full views */
+body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-widget > .rc205-card-head p,
+body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-widget > .rc205-list > p.muted{display:none!important}
+body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-widget{padding:10px 12px!important}
+body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-mini-metrics .metric small{font-size:10px!important}
 body[data-rc1558-overview="1"] #content .rc205-quick-card{margin-bottom:10px;padding-block:10px!important}
 body[data-rc1558-overview="1"] #content .rc205-quick-card h3{margin:0 0 8px!important;font-size:15px!important}
 /* quick access as one row of compact buttons instead of large tiles */
@@ -146,3 +175,17 @@ body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-mini-metric
 }
 @media (prefers-reduced-motion:reduce){#rc1558Overview *{transition:none!important}.rc1558-kpi:hover{transform:none}}
 @media print{#rc1558Overview{display:none!important}}
+
+/* lower screens (laptops around 900 px high): tighter band and lists so the dashboard still fits */
+@media (min-width:1251px) and (max-height:960px){
+  #rc1558Overview{gap:8px;margin-bottom:8px}
+  .rc1558-top{gap:8px;padding:8px 10px 10px}
+  .rc1558-kpi{padding:8px 11px 9px}
+  .rc1558-kpi-value{font-size:24px}
+  .rc1558-panel{padding:9px 12px;gap:5px}
+  .rc1558-tr > [role]{padding-block:5px}
+  .rc1558-stack .rc1558-list{max-height:90px}
+  .rc1558-list li{padding:4px 0}
+  body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-mini-metrics .metric{padding:6px 9px!important}
+  body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-mini-metrics .metric strong{font-size:18px!important}
+}

@@ -7,6 +7,7 @@ w.__EXPORTHUB_RC1558_DASHBOARD_OVERVIEW__=true;
 var VERSION='RC1558';
 var SECTION_ID='rc1558Overview';
 var BODY_FLAG='data-rc1558-overview';
+var FALLBACK_FLAG='data-rc1558-fallback';
 var MAX_TODAY=12;
 var MAX_ATTENTION=6;
 var MAX_TASKS=5;
@@ -154,7 +155,10 @@ function headerHtml(meta){
     // divs, not <p>: the design layer forces every <p> to the muted color with !important
     '<div class="rc1558-greeting" role="heading" aria-level="2">'+esc(t('dashboard.overview.greeting.'+key,{name:name}).replace(/,\s*$/,''))+'</div>'+
     '<div class="rc1558-date">'+esc(date)+' · '+esc(t('dashboard.overview.week',{week:isoWeek(now)}))+
-      '<span class="rc1558-updated">'+esc(t('dashboard.overview.updated',{time:hhmm(now)}))+'</span></div>'+
+      '<span class="rc1558-updated">'+esc(t('dashboard.overview.updated',{time:hhmm(now)}))+'</span>'+
+      // the one "customize" control; it drives the existing RC205 button, whose title row is hidden
+      (meta&&meta.customizeLabel?'<button type="button" class="rc1558-customize" data-rc1558-customize>'+esc(meta.customizeLabel)+'</button>':'')+
+    '</div>'+
   '</div>'
 }
 
@@ -232,6 +236,9 @@ function hostRoot(){
   return content&&content.querySelector('.rc205-dashboard-grid')?content:null
 }
 
+function customizeButton(){
+  var d=w.document;return d&&d.querySelector('#content > .page-head [data-rc205-action="dashboard-config"]')
+}
 function openShipment(key){
   key=q(key);if(!key)return false;
   try{if(w.ExportHUBShipmentView&&typeof w.ExportHUBShipmentView.open==='function')return w.ExportHUBShipmentView.open(key,'dashboard')}catch(_){}
@@ -250,6 +257,7 @@ function bind(section){
   if(!section||section.__rc1558Bound)return;section.__rc1558Bound=true;
   section.addEventListener('click',function(e){
     var target=e.target&&e.target.closest?e.target:null;if(!target)return;
+    var c=target.closest('[data-rc1558-customize]');if(c){e.preventDefault();var original=customizeButton();if(original)original.click();return}
     var r=target.closest('[data-rc1558-route]');if(r){e.preventDefault();route(r.getAttribute('data-rc1558-route'));return}
     var s=target.closest('[data-rc1558-shipment]');if(s){e.preventDefault();openShipment(s.getAttribute('data-rc1558-shipment'))}
   });
@@ -264,12 +272,17 @@ function refresh(){
   var d=w.document,api=workspace(),root=hostRoot(),existing=d&&d.getElementById(SECTION_ID);
   if(!d||!api||!root||!isDashboard()){
     if(existing)existing.remove();
-    if(d&&d.body)d.body.removeAttribute(BODY_FLAG);
+    if(d&&d.body){
+      d.body.removeAttribute(BODY_FLAG);
+      // The old "Arbeitsfokus" and today tile are hidden by CSS from the first paint on;
+      // if the overview cannot be built on the dashboard, show them again instead of an empty page.
+      if(root&&isDashboard()&&!api)d.body.setAttribute(FALLBACK_FLAG,'1');else d.body.removeAttribute(FALLBACK_FLAG);
+    }
     lastHtml='';
     return false
   }
-  var state=getState(),user=state.currentUser||state.activeUser||{};
-  var html=renderHtml(buildModel(api,arr(state.shipments)),{now:new Date(),userName:q(user.displayName||user.name||user.fullName||user.username||user.email)});
+  var state=getState(),user=state.currentUser||state.activeUser||{},original=customizeButton();
+  var html=renderHtml(buildModel(api,arr(state.shipments)),{now:new Date(),userName:q(user.displayName||user.name||user.fullName||user.username||user.email),customizeLabel:original?q(original.textContent):''});
   var section=existing;
   if(!section||section.parentNode!==root){
     if(section)section.remove();
@@ -281,8 +294,10 @@ function refresh(){
   if(html!==lastHtml){section.innerHTML=html;lastHtml=html}
   bind(section);
   d.body.setAttribute(BODY_FLAG,'1');
+  d.body.removeAttribute(FALLBACK_FLAG);
   return true
 }
+function refreshNow(){try{return refresh()}catch(err){try{console.warn('RC1558 overview',err)}catch(_){}return false}}
 
 var scheduled=0;
 function schedule(){
@@ -298,13 +313,17 @@ function install(){
   var d=w.document;if(!d)return;
   // #content can be created late or swapped (login, design switch) without an event we hear.
   // Watch whichever #content is current, and re-check cheaply every 1.5 s while the dashboard is visible.
+  // Mount synchronously in the observer callback: it runs as a microtask before the browser paints,
+  // so the dashboard never shows a frame without the overview (no second render, no flash of old tiles).
+  var mountIfMissing=function(){if(!d.getElementById(SECTION_ID)&&isDashboard()&&hostRoot())refreshNow()};
   var observe=function(){
     var content=d.getElementById('content');if(!content||content.__rc1558Observed)return;content.__rc1558Observed=true;
-    if(typeof w.MutationObserver==='function')new w.MutationObserver(function(){if(!d.getElementById(SECTION_ID)&&isDashboard())schedule()}).observe(content,{childList:true})
+    if(typeof w.MutationObserver==='function')new w.MutationObserver(mountIfMissing).observe(content,{childList:true})
   };
+  if(typeof w.MutationObserver==='function'&&d.body)new w.MutationObserver(mountIfMissing).observe(d.body,{attributes:true,attributeFilter:['data-exporthub-view','data-current-view']});
   var check=function(){
     if(d.hidden)return;observe();
-    if(isDashboard()&&!d.getElementById(SECTION_ID)&&hostRoot())schedule()
+    mountIfMissing()
   };
   d.addEventListener('visibilitychange',check);
   if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',check);else check();

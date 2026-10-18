@@ -182,11 +182,37 @@ test('RC1558 Kopfband umschließt Begrüßung und Kennzahlen; Kopfzeile ohne <p>
   assert.match(css,/\.rc1558-top \.rc1558-kpi:focus-visible\{outline:3px solid #fff/);
 });
 
-test('RC1558 CSS ersetzt Arbeitsfokus und Heute-Kachel nur bei aktiver Übersicht und nutzt Design-Variablen',()=>{
-  assert.match(css,/body\[data-rc1558-overview="1"\] #rc885Workspace/);
-  assert.match(css,/body\[data-rc1558-overview="1"\] #content \.rc205-dashboard-grid > \[data-dashboard-widget="todayShipments"\]/);
+test('RC1558 CSS blendet Arbeitsfokus und Heute-Kachel ab dem ersten Bild aus (Rückfall nur ohne Übersicht) und nutzt Design-Variablen',()=>{
+  assert.match(css,/html body:not\(\[data-rc1558-fallback="1"\]\) #rc885Workspace/);
+  assert.match(css,/html body:not\(\[data-rc1558-fallback="1"\]\) #content \.rc205-dashboard-grid > \[data-dashboard-widget="todayShipments"\]/);
+  assert.match(runtime,/FALLBACK_FLAG='data-rc1558-fallback'/);
   assert.match(css,/var\(--pc-primary/);
   assert.match(css,/var\(--pc-danger/);
   assert.doesNotMatch(css,/transition:\s*all/);
   assert.match(css,/@media \(max-width:640px\)/);
+});
+
+test('RC1563 Übersicht wird synchron im MutationObserver eingehängt, nicht erst im nächsten Frame',()=>{
+  assert.match(runtime,/var mountIfMissing=function\(\)\{if\(!d\.getElementById\(SECTION_ID\)&&isDashboard\(\)&&hostRoot\(\)\)refreshNow\(\)\}/);
+  assert.match(runtime,/new w\.MutationObserver\(mountIfMissing\)\.observe\(content,\{childList:true\}\)/);
+  assert.match(runtime,/new w\.MutationObserver\(mountIfMissing\)\.observe\(d\.body,\{attributes:true,attributeFilter:\['data-exporthub-view','data-current-view'\]\}\)/);
+});
+
+test('RC1563 nur ein Anpassen-Button und keine doppelte Backup-Karte auf dem Dashboard',()=>{
+  assert.match(css,/body\[data-exporthub-view="dashboard"\] #content:not\(\[data-rc1371-editing="1"\]\) \.rc1371-dashboard-toolbar/);
+  assert.match(css,/body\[data-exporthub-view="dashboard"\] #rc97DashboardPanelMount\{display:none!important\}|#rc97DashboardPanelMount/);
+  assert.match(css,/html body\[data-rc1558-overview="1"\] #content > \.page-head/);
+  assert.match(runtime,/data-rc1558-customize/);
+  assert.match(runtime,/querySelector\('#content > \.page-head \[data-rc205-action="dashboard-config"\]'\)/);
+  const w=load();const api=w.ExportHUBDashboardOverview1558;
+  const html=api.renderHtml(api.buildModel(fakeApi(shipments,tasks),shipments,NOW),{now:NOW,userName:'A',customizeLabel:'Dashboard anpassen'});
+  assert.match(html,/<button type="button" class="rc1558-customize" data-rc1558-customize>Dashboard anpassen<\/button>/);
+  assert.doesNotMatch(api.renderHtml(api.buildModel(fakeApi(shipments,tasks),shipments,NOW),{now:NOW,userName:'A'}),/rc1558-customize/);
+});
+
+test('RC1563 Listen scrollen im Panel; Tabelle füllt die Höhe der rechten Spalte; Stufe für niedrige Bildschirme',()=>{
+  assert.match(css,/\.rc1558-today \.rc1558-tablewrap\{flex:1 1 0;min-height:120px;overflow:auto/);
+  assert.match(css,/\.rc1558-today \.rc1558-thead\{position:sticky;top:0/);
+  assert.match(css,/\.rc1558-stack \.rc1558-list\{max-height:168px;overflow-y:auto/);
+  assert.match(css,/@media \(min-width:1251px\) and \(max-height:960px\)/);
 });
