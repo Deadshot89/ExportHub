@@ -33,5 +33,14 @@
   "packaging.masterdata.empty": "Aucun emballage ne correspond à la sélection actuelle.",
   "packaging.masterdata.loading": "Chargement des emballages …",
   "packaging.masterdata.failed": "Les emballages n’ont pas pu être traités.",
-  "packaging.masterdata.adminOnly": "Cette gestion des données de base est réservée aux administrateurs."
+  "packaging.masterdata.adminOnly": "Cette gestion des données de base est réservée aux administrateurs.",
+  "packaging.masterdata.dimensions": "Dimensions standard L × l × H",
+  "packaging.masterdata.length": "Longueur (cm)",
+  "packaging.masterdata.width": "Largeur (cm)",
+  "packaging.masterdata.height": "Hauteur (cm)",
+  "packaging.masterdata.ldm": "Mètres de chargement (LDM)",
+  "packaging.masterdata.dimensionsFixed": "Les dimensions normalisées sont fixes et ne peuvent pas être modifiées.",
+  "packaging.masterdata.dimensionsInvalid": "Les dimensions et les mètres de chargement doivent être des nombres positifs.",
+  "packaging.masterdata.demoNote": "Démo : les modifications ne valent que pour cet onglet du navigateur et ne sont pas enregistrées.",
+  "packaging.masterdata.duplicateName": "Un emballage portant ce nom ou ce code existe déjà."
 }

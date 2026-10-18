@@ -33,5 +33,14 @@
   "packaging.masterdata.empty": "Keine Verpackungen entsprechen der aktuellen Auswahl.",
   "packaging.masterdata.loading": "Verpackungen werden geladen …",
   "packaging.masterdata.failed": "Verpackungen konnten nicht verarbeitet werden.",
-  "packaging.masterdata.adminOnly": "Diese Stammdatenverwaltung ist nur für Administratoren verfügbar."
+  "packaging.masterdata.adminOnly": "Diese Stammdatenverwaltung ist nur für Administratoren verfügbar.",
+  "packaging.masterdata.dimensions": "Standardmaße L × B × H",
+  "packaging.masterdata.length": "Länge (cm)",
+  "packaging.masterdata.width": "Breite (cm)",
+  "packaging.masterdata.height": "Höhe (cm)",
+  "packaging.masterdata.ldm": "Lademeter (LDM)",
+  "packaging.masterdata.dimensionsFixed": "Normmaße sind fest vorgegeben und können nicht geändert werden.",
+  "packaging.masterdata.dimensionsInvalid": "Maße und Lademeter müssen positive Zahlen sein.",
+  "packaging.masterdata.demoNote": "Demo: Änderungen gelten nur in diesem Browser-Tab und werden nicht gespeichert.",
+  "packaging.masterdata.duplicateName": "Eine Verpackung mit dieser Bezeichnung oder diesem Code existiert bereits."
 }

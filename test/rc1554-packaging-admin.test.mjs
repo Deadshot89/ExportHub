@@ -99,17 +99,18 @@ test('RC1554 admin API and UI surface expose CRUD without changing normal-user p
   assert.match(publicApi,/disabledPackaging/);
   assert.match(ui,/Verpackungen/);
   assert.match(ui,/data-packaging-admin-open/);
-  assert.match(ui,/data-packaging-action=[\\]?['\"]create/);
-  assert.match(ui,/data-packaging-action=[\\]?['\"]edit/);
-  assert.match(ui,/data-packaging-action=[\\]?['\"]toggle/);
-  assert.match(ui,/data-packaging-action=[\\]?['\"]delete/);
+  // One maintenance place (decided 2026-10-18): the Packmeldungen tab opens the central master data view, which owns the CRUD actions.
+  assert.match(ui,/ExportHUBPackagingManagement1555/,'Packmeldungen tab must open the central packaging master data');
+  assert.doesNotMatch(ui,/data-packaging-action=/,'no second packaging editor inside Packmeldungen');
+  const central=fs.readFileSync('assets/rc1555-packaging-management.js','utf8');
+  for(const action of ['create','edit','toggle','delete'])assert.match(central,new RegExp(`data-packaging-action=[\\\\]?['\"]${action}|button\\('${action}'`),`central CRUD action ${action} missing`);
   assert.match(nav,/packaging-admin\.js\?v=1554/,'Packmeldungen navigation must load the packaging admin runtime');
 });
 
 test('RC1554 edit success keeps edit identity after the modal closes',()=>{
-  const ui=fs.readFileSync('assets/packaging-admin.js','utf8');
-  assert.match(ui,/const\s+wasEdit=!!editingId/,'submit flow must capture whether this was an edit before closeForm resets editingId');
-  assert.match(ui,/status\(wasEdit\?t\(['"]updated['"]\):t\(['"]created['"]\)/,'success feedback must distinguish edit from create');
+  const ui=fs.readFileSync('assets/rc1555-packaging-management.js','utf8');
+  assert.match(ui,/wasEdit=!!editingId/,'submit flow must capture whether this was an edit before closeForm resets editingId');
+  assert.match(ui,/message\(tr\(wasEdit\?'packaging\.masterdata\.updated':'packaging\.masterdata\.created'\)/,'success feedback must distinguish edit from create');
 });
 
 test('RC1554 packaging administration asset is copied into every final Packmeldungen build',()=>{

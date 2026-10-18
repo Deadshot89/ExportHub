@@ -33,5 +33,14 @@
   "packaging.masterdata.empty": "No packaging types match the current selection.",
   "packaging.masterdata.loading": "Loading packaging …",
   "packaging.masterdata.failed": "Packaging could not be processed.",
-  "packaging.masterdata.adminOnly": "This master-data management area is available to administrators only."
+  "packaging.masterdata.adminOnly": "This master-data management area is available to administrators only.",
+  "packaging.masterdata.dimensions": "Standard dimensions L × W × H",
+  "packaging.masterdata.length": "Length (cm)",
+  "packaging.masterdata.width": "Width (cm)",
+  "packaging.masterdata.height": "Height (cm)",
+  "packaging.masterdata.ldm": "Loading metres (LDM)",
+  "packaging.masterdata.dimensionsFixed": "Standard dimensions are fixed and cannot be changed.",
+  "packaging.masterdata.dimensionsInvalid": "Dimensions and loading metres must be positive numbers.",
+  "packaging.masterdata.demoNote": "Demo: changes apply only to this browser tab and are not saved.",
+  "packaging.masterdata.duplicateName": "A packaging type with this name or code already exists."
 }
