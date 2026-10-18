@@ -70,7 +70,9 @@ function requested(){
  try{var p=new URL(w.location.href).searchParams.get('lang'),fromUrl=normalize(p);if(fromUrl)return fromUrl}catch(_){}
  try{var saved=normalize(w.localStorage&&w.localStorage.getItem(STORAGE_KEY));if(saved)return saved}catch(_){}
  var ck=cookieGet();if(ck)return ck;
- var nav=normalize(w.navigator&&(w.navigator.language||(w.navigator.languages&&w.navigator.languages[0])));if(nav)return nav;
+ // the internal app (has a login) stays German until the user picks a language; public pages follow the browser
+ var internal=false;try{internal=!!(w.document&&w.document.getElementById('login'))}catch(_){}
+ if(!internal){var nav=normalize(w.navigator&&(w.navigator.language||(w.navigator.languages&&w.navigator.languages[0])));if(nav)return nav}
  return'de';
 }
 function resourceUrl(lang){return'/assets/i18n/'+lang+'.json?v=1267'}

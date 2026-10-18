@@ -25,3 +25,14 @@ test('RC1564 RC1018 nimmt ohne Profilsprache die Runtime-Sprache, nicht den Star
   const select=rc1018.indexOf("fromSelect=normalizedLanguage(nativeSelect&&nativeSelect.value)");
   assert.ok(at>0&&select>at,'Runtime-Sprache muss vor dem Auswahlfeld stehen');
 });
+
+test('RC1564 interne Oberfläche startet ohne gewählte Sprache auf Deutsch, öffentliche Seiten folgen dem Browser',()=>{
+  const src=fs.readFileSync('assets/rc1267-i18n.js','utf8').replace(/\r\n/g,'\n');
+  const start=src.indexOf('function requested(){');
+  const body=src.slice(start,src.indexOf('\n}\n',start)+2);
+  const run=(hasLogin)=>new Function('w','normalize','profileLanguage','cookieGet','STORAGE_KEY',body+'\nreturn requested();')(
+    {location:{href:'https://example.test/'},localStorage:{getItem:()=>null},navigator:{language:'en-US'},document:{getElementById:id=>id==='login'&&hasLogin?{}:null}},
+    v=>{const m=String(v||'').toLowerCase().match(/^(de|en|pl|es|fr|it)/);return m?m[1]:''},()=>'',()=>'','k');
+  assert.equal(run(true),'de');
+  assert.equal(run(false),'en');
+});
