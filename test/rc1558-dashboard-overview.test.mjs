@@ -212,3 +212,8 @@ test('RC1563 Listen scrollen im Panel; Tabelle füllt die Höhe der rechten Spal
   assert.match(css,/\.rc1558-stack \.rc1558-list\{max-height:168px;overflow-y:auto/);
   assert.match(css,/@media \(min-width:1251px\) and \(max-height:960px\)/);
 });
+
+test('RC1565 Dashboard scrollt auch mit langen ABD- und Palettenlisten nicht',()=>{
+  assert.match(css,/body\[data-rc1558-overview="1"\] #content \.rc205-dashboard-grid \.rc205-widget > \.rc205-list\{display:none!important\}/);
+  assert.match(css,/\.rc1558-stack \.rc1558-list\{overflow-x:hidden\}/);
+});

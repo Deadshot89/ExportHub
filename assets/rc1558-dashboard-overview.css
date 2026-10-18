@@ -147,6 +147,11 @@ body[data-rc1558-overview="1"] #content .rc205-quick-card .rc205-quick-grid{flex
 /* ABD and pallet tiles: figures only, the explanatory lines stay in the full views */
 body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-widget > .rc205-card-head p,
 body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-widget > .rc205-list > p.muted{display:none!important}
+/* with real data the ABD and pallet lists made the page scroll: the dashboard shows their figures only,
+   the full lists are one click away ("ABD öffnen", "Palettenkonto öffnen") */
+body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-widget > .rc205-list{display:none!important}
+/* long customer names must wrap instead of adding a horizontal scrollbar to the attention list */
+.rc1558-stack .rc1558-list{overflow-x:hidden}
 body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-widget{padding:10px 12px!important}
 body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-mini-metrics .metric small{font-size:10px!important}
 body[data-rc1558-overview="1"] #content .rc205-quick-card{margin-bottom:10px;padding-block:10px!important}

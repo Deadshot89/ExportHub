@@ -302,6 +302,54 @@ function patchNotificationTasks(html,file){
   return html.slice(0,a)+block+html.slice(b);
 }
 
+// RC1566: notifications recognise tasks assigned by user id (assignedTo/effectiveAssignee) and dated by dueAt,
+// and browser notifications/hints name the concrete tasks (title, priority, due date) instead of only a count.
+function patchNotificationTaskDetails(html,file){
+  const moduleStart='<script id="index236-notification-controller">';
+  const moduleEnd='<!-- INDEX 236 NOTIFICATION CENTER END -->';
+  const a=html.indexOf(moduleStart),b=a>=0?html.indexOf(moduleEnd,a+moduleStart.length):-1;
+  if(a<0||b<0)throw new Error(file+': RC1566 Benachrichtigungsmodul fehlt');
+  let block=html.slice(a,b);
+  const oldOwner=String.raw`function taskOwner(t){return q(t&&(t.owner||t.assignee||t.responsible||t.zustaendig||t.eowner||''))}`;
+  const newOwner=String.raw`function taskOwner(t){return q(t&&(t.assignedToName||t.owner||t.assignee||t.responsible||t.zustaendig||t.eowner||''))}
+function taskOwnerKeys(t){if(!t)return[];var eff=low(t.effectiveAssignee);if(eff)return[eff];return[t.owner,t.assignee,t.assigneeId,t.assignedTo,t.userId,t.responsible,t.zustaendig,t.eowner,t.assignedToName].map(low).filter(Boolean)}
+function taskPriorityRank(t){var m=q(t&&t.priority).match(/^P(\d)$/i);return m?Number(m[1]):9}
+function taskLine(t){var d=taskDate(t),p=q(t&&t.priority);return taskTitle(t)+(/^P\d$/i.test(p)?' · '+p.toUpperCase():'')+(d?' · fällig '+fmtDate(d):'')}
+function urgentTasks(){return openTasks().slice().sort(function(x,y){var dx=taskDate(x)||'9999-99-99',dy=taskDate(y)||'9999-99-99';if(dx!==dy)return dx<dy?-1:1;return taskPriorityRank(x)-taskPriorityRank(y)})}
+function hintTaskList(){var list=urgentTasks().slice(0,3);if(!list.length)return'';return '<ul class="index236-hint-tasks" style="list-style:none;margin:10px 0 0;padding:0;display:grid;gap:6px">'+list.map(function(t){return '<li><button type="button" class="soft" style="width:100%;text-align:left;white-space:normal" data-index236-action="open-task" data-id="'+esc(taskId(t))+'">'+esc(taskLine(t))+'</button></li>'}).join('')+'</ul>'}`;
+  const oldForUser=String.raw`function taskForUser(t){var own=low(taskOwner(t)),u=low(userName()),login=low(user().user||user().login||user().username);return !own||own==='alle'||own==='all'||own.indexOf(u)>=0||u.indexOf(own)>=0||(login&&own.indexOf(login)>=0)}`;
+  const newForUser=String.raw`function taskForUser(t){var keys=taskOwnerKeys(t);if(!keys.length)return true;var u=user(),ids=[u.id,u.userId].map(low).filter(Boolean),names=[userName(),u.user,u.login,u.username].map(low).filter(Boolean);return keys.some(function(own){if(own==='alle'||own==='all'||ids.indexOf(own)>=0)return true;return names.some(function(n){return own===n||(own.length>2&&n.length>2&&(own.indexOf(n)>=0||n.indexOf(own)>=0))})})}`;
+  const oldDate=String.raw`function taskDate(t){return iso(t&&(t.dueDate||t.date||t.targetDate||t.plannedDate||t.deadline))}`;
+  const newDate=String.raw`function taskDate(t){var v=q(t&&(t.dueDate||t.dueAt||t.date||t.targetDate||t.plannedDate||t.plannedAt||t.deadline));if(/T\d{2}:\d{2}/.test(v)&&/(?:Z|[+-]\d{2}:?\d{2})$/.test(v)){var d=new Date(v);if(!isNaN(d.getTime()))return localISO(d)}return iso(v)}`;
+  const oldNotify=String.raw`function nativeNotify(c,label){if(!('Notification' in window)||Notification.permission!=='granted'||!c.tasks)return;try{var n=new Notification('ExportHUB · '+label,{body:c.tasks+' offene Aufgabe'+(c.tasks===1?'':'n')+' · '+c.overdueTasks+' überfällig',tag:'exporthub-'+localISO()+'-'+label.replace(/\D/g,''),renotify:true,silent:true,requireInteraction:false});n.onclick=function(){try{window.focus()}catch(_){ }openView();try{n.close()}catch(_){ }}}catch(e){console.warn('Browser-Benachrichtigung',e)}}`;
+  const newNotify=String.raw`function nativeNotify(c,label){if(!('Notification' in window)||Notification.permission!=='granted'||!c.tasks)return;try{var list=urgentTasks(),one=list.length===1?list[0]:null,lines=list.slice(0,3).map(taskLine);if(list.length>3)lines.push('+'+(list.length-3)+' weitere');if(c.overdueTasks)lines.push(c.overdueTasks+' überfällig');var n=new Notification(one?'ExportHUB · '+taskTitle(one):'ExportHUB · '+c.tasks+' offene Aufgaben',{body:lines.join('\n')||label,tag:'exporthub-'+localISO()+'-'+label.replace(/\D/g,''),renotify:true,silent:true,requireInteraction:false});n.onclick=function(){try{window.focus()}catch(_){ }if(one)openTask(taskId(one));else openView();try{n.close()}catch(_){ }}}catch(e){console.warn('Browser-Benachrichtigung',e)}}`;
+  const oldHint=String.raw`+'<div class="index236-hint-actions"><button class="btn" data-index236-action="open-center">`;
+  const newHint=String.raw`+(empty?'':hintTaskList())+'<div class="index236-hint-actions"><button class="btn" data-index236-action="open-center">`;
+  const oldOpen=String.raw`function openTask(id){var t=findTask(id);`;
+  const newOpen=String.raw`function openTask(id){removeHint();var t=findTask(id);`;
+  const oldCenterList=String.raw`tasks=openTasks()`;
+  const newCenterList=String.raw`tasks=urgentTasks()`;
+  const oldCardMeta=String.raw`<p>'+esc(taskOwner(t)||'Alle')+`;
+  const newCardMeta=String.raw`<p>'+esc(taskOwner(t)||'Alle')+(/^P\d$/i.test(q(t&&t.priority))?' · '+esc(q(t.priority).toUpperCase()):'')+`;
+  // the start-up check ran before the real state (__EXPORTHUB_GET_STATE__) and the user were loaded, counted 0 and marked the due slot (e.g. 09:00) as done
+  const oldBoot=String.raw`updateBadge();checkSchedule(false);scheduleNext();`;
+  const newBoot=String.raw`updateBadge();bootCheck(0);scheduleNext();`;
+  const oldReady=String.raw`if(low(main().view)==='notifications')renderView();checkSchedule(false);scheduleNext()}`;
+  const newReady=String.raw`if(low(main().view)==='notifications')renderView();bootCheck(0);scheduleNext()}`;
+  const oldVisible=String.raw`if(!document.hidden){checkSchedule(false);`;
+  const newVisible=String.raw`if(!document.hidden){bootCheck(0);`;
+  const oldBootFn=String.raw`function boot(){`;
+  const newBootFn=String.raw`function bootCheck(n){var u=user();if((typeof window.__EXPORTHUB_GET_STATE__!=='function'||!arr(main().tasks).length||!q(u.id||u.user||u.login||u.username))&&n<20){later(function(){bootCheck(n+1)},1500);return}checkSchedule(false);updateBadge()}
+function boot(){`;
+  for(const [before,after,label] of [[oldBoot,newBoot,'boot'],[oldReady,newReady,'exporthub:ready'],[oldVisible,newVisible,'visibilitychange'],[oldBootFn,newBootFn,'bootCheck'],[oldOwner,newOwner,'taskOwner'],[oldForUser,newForUser,'taskForUser'],[oldDate,newDate,'taskDate'],[oldNotify,newNotify,'nativeNotify'],[oldHint,newHint,'hintHtml'],[oldOpen,newOpen,'openTask'],[oldCenterList,newCenterList,'renderView'],[oldCardMeta,newCardMeta,'taskCard']]){
+    const n=block.split(before).length-1;
+    if(n!==1)throw new Error(file+': RC1566 '+label+' im Benachrichtigungsmodul '+n+'x gefunden');
+    block=block.replace(before,()=>after);
+  }
+  if(!block.includes('function taskOwnerKeys(t)')||!block.includes('hintTaskList()'))throw new Error(file+': RC1566 konkrete Aufgaben-Benachrichtigung fehlt');
+  return html.slice(0,a)+block+html.slice(b);
+}
+
 function patchTaskMasterSaveScope(html,file){
   const before="function saveScopeForReason(reason){var r=lower(reason);if(/kundenstamm|kundenordner|kunden-mail|kundenmail|neuen kunden|kundendaten/.test(r))return new Set(['customers','customerNotes']);return null}";
   const after="function saveScopeForReason(reason){var r=lower(reason);if(/kundenstamm|kundenordner|kunden-mail|kundenmail|neuen kunden|kundendaten/.test(r))return new Set(['customers','customerNotes']);if(/aufgaben-master rc874/.test(r))return new Set(['tasks','taskWeek','taskMasterRC848','taskMasterSourceVersion','taskMasterUpdatedAt']);return null}";
@@ -962,6 +1010,7 @@ function patchHtml(file){
   html=patchMainCountryDetection(html,file);
   html=patchRc1206ShippingRules(html,file);
   html=patchNotificationTasks(html,file);
+  html=patchNotificationTaskDetails(html,file);
   html=patchTaskMasterSaveScope(html,file);
   html=patchTaskDetailTab(html,file);
   html=patchRc1259ContainerSearch(html,file);

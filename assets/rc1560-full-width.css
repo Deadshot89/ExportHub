@@ -18,3 +18,7 @@
   html body #content .rc894-full-stack,
   html body #content .rc1007-sop-overview.rc1009-sop-shell{max-width:none!important;width:100%!important}
 }
+
+/* RC1566: the canonical page head still renders the developer label "privatePill" (untranslated key)
+   as last pill in ten views (Aufgaben, Sendung erstellen, Zoll, Archiv …) – it carries no information */
+html body #content .page-head > span.pill.blue:last-child{display:none!important}
