@@ -118,15 +118,20 @@
 html body:not([data-rc1558-fallback="1"]) #rc885Workspace,
 html body:not([data-rc1558-fallback="1"]) #content .rc205-dashboard-grid > [data-dashboard-widget="todayShipments"]{display:none!important}
 
-/* One way to customize the dashboard ("Dashboard anpassen"); RC1371's second toolbar button and the
-   quick-backup card (same actions as Backup/Import in the top bar) are duplicates on the dashboard. */
-body[data-exporthub-view="dashboard"] #content:not([data-rc1371-editing="1"]) .rc1371-dashboard-toolbar,
+/* One button on the dashboard: RC1371 "Dashboard bearbeiten" (editor with templates, sizes, tile library).
+   RC205 "Dashboard anpassen" (areas, quick links) only appears while editing. The quick-backup card repeats
+   Backup/Import from the top bar and is not shown on the dashboard. */
 body[data-exporthub-view="dashboard"] #rc97DashboardPanelMount{display:none!important}
 
-/* the band greets, dates and carries the "Dashboard anpassen" button: the old title row is not needed */
-html body[data-rc1558-overview="1"] #content > .page-head,html body[data-rc1558-overview="1"][data-eh-theme] #content > .page-head{display:none!important}
-#rc1558Overview .rc1558-customize{margin-left:4px;padding:3px 11px;border-radius:999px;border:1px solid rgba(255,255,255,.45);background:rgba(255,255,255,.12);color:#fff!important;font-size:12px;font-weight:650;cursor:pointer}
-#rc1558Overview .rc1558-customize:hover{background:rgba(255,255,255,.22)}
+/* the band greets and dates the page; the old title row only returns while editing (for "Dashboard anpassen") */
+html body[data-rc1558-overview="1"] #content:not([data-rc1371-editing="1"]) > .page-head,
+html body[data-rc1558-overview="1"][data-eh-theme] #content:not([data-rc1371-editing="1"]) > .page-head{display:none!important}
+/* outside the editor the RC1371 toolbar is a single button in the top right corner of the band */
+html body[data-rc1558-overview="1"] #content{position:relative}
+html body[data-rc1558-overview="1"] #content:not([data-rc1371-editing="1"]) > .rc1371-dashboard-toolbar{position:absolute!important;top:12px;right:14px;z-index:3;margin:0!important;padding:0!important;background:none!important;border:0!important;box-shadow:none!important}
+/* the global button layer fixes the button at 36 px (layered !important), so the greeting row gets that height instead */
+html body[data-rc1558-overview="1"] #content:not([data-rc1371-editing="1"]) > .rc1371-dashboard-toolbar [data-rc1371-action="toggleEdit"]{border-radius:999px!important;border:1px solid rgba(255,255,255,.5)!important;background:rgba(255,255,255,.14)!important;color:#fff!important;box-shadow:none!important}
+html body[data-rc1558-overview="1"] #content:not([data-rc1371-editing="1"]) #rc1558Overview .rc1558-hello{padding-right:190px;min-height:36px;align-items:center}
 
 /* today's pickups and the attention list show about five rows; the rest scrolls inside the panel */
 /* the table fills the height that the right column sets and scrolls inside, header row stays visible */

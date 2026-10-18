@@ -156,8 +156,6 @@ function headerHtml(meta){
     '<div class="rc1558-greeting" role="heading" aria-level="2">'+esc(t('dashboard.overview.greeting.'+key,{name:name}).replace(/,\s*$/,''))+'</div>'+
     '<div class="rc1558-date">'+esc(date)+' · '+esc(t('dashboard.overview.week',{week:isoWeek(now)}))+
       '<span class="rc1558-updated">'+esc(t('dashboard.overview.updated',{time:hhmm(now)}))+'</span>'+
-      // the one "customize" control; it drives the existing RC205 button, whose title row is hidden
-      (meta&&meta.customizeLabel?'<button type="button" class="rc1558-customize" data-rc1558-customize>'+esc(meta.customizeLabel)+'</button>':'')+
     '</div>'+
   '</div>'
 }
@@ -236,9 +234,6 @@ function hostRoot(){
   return content&&content.querySelector('.rc205-dashboard-grid')?content:null
 }
 
-function customizeButton(){
-  var d=w.document;return d&&d.querySelector('#content > .page-head [data-rc205-action="dashboard-config"]')
-}
 function openShipment(key){
   key=q(key);if(!key)return false;
   try{if(w.ExportHUBShipmentView&&typeof w.ExportHUBShipmentView.open==='function')return w.ExportHUBShipmentView.open(key,'dashboard')}catch(_){}
@@ -257,7 +252,6 @@ function bind(section){
   if(!section||section.__rc1558Bound)return;section.__rc1558Bound=true;
   section.addEventListener('click',function(e){
     var target=e.target&&e.target.closest?e.target:null;if(!target)return;
-    var c=target.closest('[data-rc1558-customize]');if(c){e.preventDefault();var original=customizeButton();if(original)original.click();return}
     var r=target.closest('[data-rc1558-route]');if(r){e.preventDefault();route(r.getAttribute('data-rc1558-route'));return}
     var s=target.closest('[data-rc1558-shipment]');if(s){e.preventDefault();openShipment(s.getAttribute('data-rc1558-shipment'))}
   });
@@ -281,8 +275,8 @@ function refresh(){
     lastHtml='';
     return false
   }
-  var state=getState(),user=state.currentUser||state.activeUser||{},original=customizeButton();
-  var html=renderHtml(buildModel(api,arr(state.shipments)),{now:new Date(),userName:q(user.displayName||user.name||user.fullName||user.username||user.email),customizeLabel:original?q(original.textContent):''});
+  var state=getState(),user=state.currentUser||state.activeUser||{};
+  var html=renderHtml(buildModel(api,arr(state.shipments)),{now:new Date(),userName:q(user.displayName||user.name||user.fullName||user.username||user.email)});
   var section=existing;
   if(!section||section.parentNode!==root){
     if(section)section.remove();
