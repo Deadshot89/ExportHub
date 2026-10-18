@@ -160,6 +160,7 @@ function headerHtml(meta){
     '<div class="rc1558-date">'+esc(date)+' · '+esc(t('dashboard.overview.week',{week:isoWeek(now)}))+
       '<span class="rc1558-updated">'+esc(t('dashboard.overview.updated',{time:hhmm(now)}))+'</span>'+
     '</div>'+
+    '<button type="button" class="rc1558-edit" data-rc1573-edit="1">'+esc(t('dashboard.overview.tiles.edit'))+'</button>'+
   '</div>'
 }
 
@@ -360,6 +361,7 @@ function bind(section){
   if(!section||section.__rc1558Bound)return;section.__rc1558Bound=true;
   section.addEventListener('click',function(e){
     var target=e.target&&e.target.closest?e.target:null;if(!target)return;
+    if(target.closest('[data-rc1573-edit]')){e.preventDefault();openTilePanel();return}
     var k=target.closest('[data-rc1558-kpi]');if(k){e.preventDefault();startDrill(k.getAttribute('data-rc1558-kpi'),k.getAttribute('data-rc1558-route'));return}
     var r=target.closest('[data-rc1558-route]');if(r){e.preventDefault();route(r.getAttribute('data-rc1558-route'));return}
     var s=target.closest('[data-rc1558-shipment]');if(s){e.preventDefault();openShipment(s.getAttribute('data-rc1558-shipment'))}
@@ -371,6 +373,130 @@ function bind(section){
 }
 
 var lastHtml='';
+/* RC1573 tiles below the overview: the user chooses which tiles are shown and in which order ("Dashboard bearbeiten").
+   Legacy tiles (quick access, ABD, pallet account) are reused as they are; warehouse and week charts are rendered here.
+   Up to five tiles share one row, so the one-page layout stays intact when tiles are added. */
+var TILE_STORE='exporthub.rc1573.tiles.';
+var TILE_IDS=['quick','lager','abd','pallet','week'];
+var TILE_DEFAULT={quick:true,lager:true,abd:true,pallet:true,week:false};
+var TILE_TEXT={
+  quick:['dashboard.overview.tile.quick','dashboard.overview.tile.quickDesc'],lager:['dashboard.overview.tile.lager','dashboard.overview.tile.lagerDesc'],
+  abd:['dashboard.overview.tile.abd','dashboard.overview.tile.abdDesc'],pallet:['dashboard.overview.tile.pallet','dashboard.overview.tile.palletDesc'],
+  week:['dashboard.overview.tile.week','dashboard.overview.tile.weekDesc']
+};
+var tileOverride=null;
+function tileUserKey(){var s=getState(),u=s.currentUser||s.activeUser||{};try{if(typeof w.__EXPORTHUB_GET_CURRENT_USER__==='function')u=w.__EXPORTHUB_GET_CURRENT_USER__()||u}catch(_){}return TILE_STORE+low(u.id||u.user||u.username||u.login||'standard')}
+function readTiles(){
+  if(tileOverride)return tileOverride;
+  var raw=null;try{raw=JSON.parse(w.localStorage&&w.localStorage.getItem(tileUserKey())||'null')}catch(_){}
+  var order=arr(raw&&raw.order).filter(function(id){return TILE_IDS.indexOf(id)>=0});
+  TILE_IDS.forEach(function(id){if(order.indexOf(id)<0)order.push(id)});
+  var on={};TILE_IDS.forEach(function(id){on[id]=raw&&raw.on&&typeof raw.on[id]==='boolean'?raw.on[id]:TILE_DEFAULT[id]});
+  return{order:order,on:on}
+}
+function writeTiles(cfg){tileOverride=null;try{w.localStorage&&w.localStorage.setItem(tileUserKey(),JSON.stringify(cfg))}catch(_){tileOverride=cfg}}
+function legacyTile(root,id){
+  if(id==='quick')return root.querySelector(':scope > .rc205-quick-card');
+  if(id==='abd'||id==='pallet')return root.querySelector('.rc205-dashboard-grid [data-dashboard-widget="'+id+'"]');
+  return null
+}
+var LOCATION_CODES=[0,1,2,3,4,5,6,7,8];
+// short bar labels; the full location name is in the tooltip and aria-label
+var LOCATION_SHORT=['E','L1','L2','L3','L4','L5','R','VR','DAF'];
+var LOCATION_KEYS={0:'dashboard.overview.lager.loc0',6:'dashboard.overview.lager.loc6',7:'dashboard.overview.lager.loc7',8:'dashboard.overview.lager.loc8'};
+function locationLabel(code){return code>=1&&code<=5?t('dashboard.overview.lager.lane',{n:code}):t(LOCATION_KEYS[code])}
+function lagerModel(shipments){
+  var rows=LOCATION_CODES.map(function(code){return{code:code,count:0,colli:0}}),total=0,colli=0;
+  arr(shipments).forEach(function(s){
+    if(!s||isCancelled(s)||isPickedUp(s))return;
+    var code=Number(s.warehouseLocationCode);if(!Number.isFinite(code)||code<0||code>8)code=0;
+    var c=colliOf(s);rows[code].count++;rows[code].colli+=c;total++;colli+=c
+  });
+  return{rows:rows,total:total,colli:colli}
+}
+function weekModel(shipments,now){
+  now=now||new Date();var mon=new Date(now);mon.setHours(12,0,0,0);mon.setDate(mon.getDate()-((mon.getDay()||7)-1));
+  var days=[0,1,2,3,4].map(function(i){var d=new Date(mon);d.setDate(d.getDate()+i);return{key:dayKey(d),date:d,count:0,done:0}}),total=0,done=0;
+  arr(shipments).forEach(function(s){
+    if(!s||isCancelled(s))return;var d=dateOf(s);if(!d)return;var k=dayKey(d);
+    days.forEach(function(day){if(day.key===k){day.count++;total++;if(isPickedUp(s)){day.done++;done++}}})
+  });
+  return{days:days,total:total,done:done,today:dayKey(now)}
+}
+function barsHtml(items,max,kind){
+  return'<div class="rc1573-bars" data-kind="'+kind+'">'+items.map(function(it){
+    var pct=max?Math.max(it.value?6:0,Math.round(it.value/max*100)):0,donePct=it.value?Math.round((it.done||0)/it.value*pct):0;
+    return'<button type="button" class="rc1573-bar'+(it.current?' is-current':'')+(it.value?'':' is-empty')+'" data-rc1558-route="'+esc(it.route)+'" title="'+esc(it.title)+'" aria-label="'+esc(it.title)+'">'+
+      '<span class="rc1573-bar-value">'+it.value+'</span>'+
+      '<span class="rc1573-bar-track"><span class="rc1573-bar-fill" style="height:'+pct+'%">'+(donePct?'<span class="rc1573-bar-done" style="height:'+Math.round(donePct/pct*100)+'%"></span>':'')+'</span></span>'+
+      '<span class="rc1573-bar-label">'+esc(it.short)+'</span></button>'
+  }).join('')+'</div>'
+}
+function tileHtml(id,shipments){
+  if(id==='lager'){
+    var m=lagerModel(shipments),max=0;m.rows.forEach(function(r){if(r.count>max)max=r.count});
+    var items=m.rows.map(function(r){var label=locationLabel(r.code);return{value:r.count,route:'warehouse',short:LOCATION_SHORT[r.code],title:t('dashboard.overview.lager.bar',{label:label,count:r.count,colli:r.colli})}});
+    return'<div class="rc1573-head"><h3>'+esc(t('dashboard.overview.tile.lager'))+'</h3><button type="button" class="rc1558-link" data-rc1558-route="warehouse">'+esc(t('dashboard.overview.lager.open'))+'</button></div>'+
+      '<p class="rc1573-sub">'+esc(t('dashboard.overview.lager.sub',{count:m.total,colli:m.colli}))+'</p>'+
+      (m.total?barsHtml(items,max,'lager'):'<p class="rc1573-empty">'+esc(t('dashboard.overview.lager.empty'))+'</p>')
+  }
+  if(id==='week'){
+    var wk=weekModel(shipments,new Date()),wmax=0;wk.days.forEach(function(d){if(d.count>wmax)wmax=d.count});
+    var days=wk.days.map(function(d){var name='';try{name=d.date.toLocaleDateString(currentLang(),{weekday:'short'})}catch(_){name=d.key.slice(5)}return{value:d.count,done:d.done,current:d.key===wk.today,route:'pickupcalendar',short:name,title:t('dashboard.overview.week.bar',{day:name+' '+d.key.slice(8)+'.'+d.key.slice(5,7)+'.',count:d.count,done:d.done})}});
+    return'<div class="rc1573-head"><h3>'+esc(t('dashboard.overview.tile.week'))+'</h3><button type="button" class="rc1558-link" data-rc1558-route="pickupcalendar">'+esc(t('dashboard.overview.week.open'))+'</button></div>'+
+      '<p class="rc1573-sub">'+esc(t('dashboard.overview.week.sub',{count:wk.total,done:wk.done}))+'</p>'+barsHtml(days,wmax,'week')
+  }
+  return''
+}
+function applyTiles(root,shipments){
+  var d=w.document;if(!d||!root)return;
+  var cfg=readTiles(),visible=cfg.order.filter(function(id){return cfg.on[id]});
+  // rows of up to five tiles on a 60-column grid (5 → 12, 4 → 15, 3 → 20, 2 → 30, 1 → 60); a further row only from six tiles
+  var PER_ROW=5,rows=Math.ceil(visible.length/PER_ROW)||1,span={};
+  visible.forEach(function(id,i){var row=Math.floor(i/PER_ROW),inRow=row<rows-1?PER_ROW:visible.length-PER_ROW*(rows-1);span[id]=60/inRow});
+  cfg.order.forEach(function(id,index){
+    var el=legacyTile(root,id);
+    if(!el&&(id==='lager'||id==='week')){
+      el=root.querySelector(':scope > [data-rc1573-own="'+id+'"]');
+      if(cfg.on[id]){
+        if(!el){el=d.createElement('section');el.className='card rc1573-tile';el.setAttribute('data-rc1573-own',id);root.appendChild(el)}
+        var html=tileHtml(id,shipments);if(el.__html!==html){el.innerHTML=html;el.__html=html}
+      }else if(el){el.remove();el=null}
+    }
+    if(!el)return;
+    if(el.getAttribute('data-rc1573-tile')!==id)el.setAttribute('data-rc1573-tile',id);
+    var off=cfg.on[id]?'0':'1';if(el.getAttribute('data-rc1573-off')!==off)el.setAttribute('data-rc1573-off',off);
+    var sp=String(span[id]||60);if(el.getAttribute('data-rc1573-span')!==sp)el.setAttribute('data-rc1573-span',sp);
+    var order=String(10+index);if(el.style.order!==order)el.style.order=order
+  })
+}
+// own tiles live outside the overview section: route their links and bars from #content
+function bindTiles(root){
+  if(!root||root.__rc1573Bound)return;root.__rc1573Bound=true;
+  root.addEventListener('click',function(e){var el=e.target&&e.target.closest?e.target.closest('[data-rc1573-own] [data-rc1558-route]'):null;if(!el)return;e.preventDefault();route(el.getAttribute('data-rc1558-route'))})
+}
+function openTilePanel(){
+  var d=w.document;if(!d)return;var old=d.getElementById('rc1573Panel');if(old){old.remove();return}
+  var box=d.createElement('div');box.id='rc1573Panel';box.className='rc1573-modal';
+  var render=function(){
+    var cfg=readTiles();
+    box.innerHTML='<div class="rc1573-dialog" role="dialog" aria-modal="true" aria-labelledby="rc1573Title"><h2 id="rc1573Title">'+esc(t('dashboard.overview.tiles.title'))+'</h2><p class="rc1573-sub">'+esc(t('dashboard.overview.tiles.help'))+'</p>'+
+      '<ol class="rc1573-list">'+cfg.order.map(function(id,i){return'<li><label><input type="checkbox" data-rc1573-toggle="'+id+'"'+(cfg.on[id]?' checked':'')+'> <span><strong>'+esc(t(TILE_TEXT[id][0]))+'</strong><small>'+esc(t(TILE_TEXT[id][1]))+'</small></span></label>'+
+        '<span class="rc1573-move"><button type="button" class="ghost" data-rc1573-move="'+id+'" data-dir="-1" aria-label="'+esc(t('dashboard.overview.tiles.up'))+'"'+(i===0?' disabled':'')+'>↑</button><button type="button" class="ghost" data-rc1573-move="'+id+'" data-dir="1" aria-label="'+esc(t('dashboard.overview.tiles.down'))+'"'+(i===cfg.order.length-1?' disabled':'')+'>↓</button></span></li>'}).join('')+'</ol>'+
+      '<div class="rc1573-actions"><button type="button" class="ghost" data-rc1573-reset="1">'+esc(t('dashboard.overview.tiles.reset'))+'</button><button type="button" class="btn" data-rc1573-close="1">'+esc(t('dashboard.overview.tiles.done'))+'</button></div></div>'
+  };
+  var apply=function(cfg){writeTiles(cfg);render();refreshNow()};
+  box.addEventListener('click',function(e){
+    var el=e.target&&e.target.closest?e.target:null;if(!el)return;
+    if(el===box||el.closest('[data-rc1573-close]')){box.remove();return}
+    var mv=el.closest('[data-rc1573-move]');if(mv){var cfg=readTiles(),id=mv.getAttribute('data-rc1573-move'),i=cfg.order.indexOf(id),j=i+Number(mv.getAttribute('data-dir'));if(j<0||j>=cfg.order.length)return;cfg.order.splice(i,1);cfg.order.splice(j,0,id);apply(cfg);return}
+    if(el.closest('[data-rc1573-reset]')){var def={order:TILE_IDS.slice(),on:Object.assign({},TILE_DEFAULT)};apply(def)}
+  });
+  box.addEventListener('change',function(e){var id=e.target&&e.target.getAttribute&&e.target.getAttribute('data-rc1573-toggle');if(!id)return;var cfg=readTiles();cfg.on[id]=!!e.target.checked;apply(cfg)});
+  box.addEventListener('keydown',function(e){if(e.key==='Escape')box.remove()});
+  render();d.body.appendChild(box);var first=box.querySelector('input,button');if(first&&first.focus)first.focus()
+}
+
 /* RC1569 one-page fit: the dashboard gets exactly the free screen height below the top bar;
    the overview takes what the tiles below leave and scrolls inside, so added tiles never make the page scroll */
 var FIT_FLAG='data-rc1569-fit';
@@ -393,6 +519,7 @@ function refresh(){
   var d=w.document,api=workspace(),root=hostRoot(),existing=d&&d.getElementById(SECTION_ID);
   if(!d||!api||!root||!isDashboard()){
     if(existing)existing.remove();
+    if(root)Array.prototype.forEach.call(root.querySelectorAll(':scope > [data-rc1573-own]'),function(n){n.remove()});
     if(d&&d.body){
       d.body.removeAttribute(BODY_FLAG);d.body.removeAttribute(FIT_FLAG);
       // The old "Arbeitsfokus" and today tile are hidden by CSS from the first paint on;
@@ -414,6 +541,8 @@ function refresh(){
   }
   if(html!==lastHtml){section.innerHTML=html;lastHtml=html}
   bind(section);
+  applyTiles(root,arr(state.shipments));
+  bindTiles(root);
   d.body.setAttribute(BODY_FLAG,'1');
   fitNow();
   d.body.removeAttribute(FALLBACK_FLAG);
