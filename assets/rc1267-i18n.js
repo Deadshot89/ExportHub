@@ -96,6 +96,7 @@ function buildSourceIndex(){
  });
  // legacy texts with numbers ("25 offen", "Montag · 25"): only keys under legacyPattern.* become patterns
  sourcePatterns=[];
+ patternCache.clear();
  Object.keys(de).forEach(function(key){
   if(key.indexOf('legacyPattern.')!==0)return;
   var value=q(de[key]),names=[],parts=value.split(/\{\{\s*([\w.-]+)\s*\}\}/);
@@ -107,17 +108,26 @@ function buildSourceIndex(){
  });
  sourcePatterns.sort(function(a,b){return b.re.source.length-a.re.source.length});
 }
+// German is the source language: nothing to do. Results are cached per text and language, and long
+// texts (notes, release notes) are skipped – the patterns only cover short UI labels.
+var patternCache=new Map();
 function patternForSource(source,lang){
- if(!sourcePatterns.length||!source)return'';
+ var l=normalize(lang)||current||'de';
+ if(l==='de'||!sourcePatterns.length||!source||source.length>160)return'';
+ var cacheKey=l+''+source;
+ if(patternCache.has(cacheKey))return patternCache.get(cacheKey);
+ var out='';
  for(var i=0;i<sourcePatterns.length;i++){
   var p=sourcePatterns[i],m=p.re.exec(source);if(!m)continue;
   var vars={};
-  p.names.forEach(function(name,j){var part=m[j+1],key=keyForSource(part);vars[name]=key?t(key,null,lang):part});
-  var out=t(p.key,vars,lang);
+  p.names.forEach(function(name,j){var part=m[j+1],key=keyForSource(part);vars[name]=key?t(key,null,l):part});
+  var res=t(p.key,vars,l);
   // a broad pattern that changes nothing must not hide a more fitting one ("Montag · 25" vs "{{label}} {{count}}")
-  if(out!==source||normalize(lang)==='de')return out;
+  if(res!==source){out=res;break}
  }
- return'';
+ if(patternCache.size>5000)patternCache.clear();
+ patternCache.set(cacheKey,out);
+ return out;
 }
 function applicationState(){
  try{if(typeof w.__EXPORTHUB_GET_STATE__==='function')return w.__EXPORTHUB_GET_STATE__()||{}}catch(_){}
@@ -384,9 +394,14 @@ function installApiLanguageFetch(){
  };
  return true;
 }
+// RC1571: RC455 (since RC1564) calls setLanguage with the unchanged language on every render. Re-applying
+// the same language re-translated the whole page and fired exporthub:language-changed each time (navigation
+// 2–3x slower). New DOM is translated by the observer anyway, so the same language is a no-op unless forced.
+var appliedLanguage='';
 async function setLanguage(lang,options){
- snapshotShipmentDraft();
  var next=normalize(lang)||'de',opts=options||{};
+ if(next===appliedLanguage&&next===current&&!opts.force){if(selector&&selector.value!==next)selector.value=next;return next}
+ snapshotShipmentDraft();
  await ensureResources(next);
  current=next;
  syncApplicationLanguage(next);
@@ -394,6 +409,7 @@ async function setLanguage(lang,options){
  if(opts.persist!==false)persist(next);
  if(selector&&selector.value!==next)selector.value=next;
  translate(d.body,next);
+ appliedLanguage=next;
  try{w.dispatchEvent(new CustomEvent('exporthub:language-changed',{detail:{language:next,version:VERSION}}))}catch(_){}
  return next;
 }
@@ -527,6 +543,7 @@ async function boot(){
  selector.value=current;
  buildDynamicIndex();
  translate(d.body,current);
+ appliedLanguage=current;
  updateSelectorCaption();
  watch();
 }
