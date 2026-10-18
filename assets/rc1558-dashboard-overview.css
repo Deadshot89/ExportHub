@@ -251,3 +251,14 @@ html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc13
 }
 /* in the one-page layout the ABD/pallet figures keep their titles; the wrapping explanation lines are left out */
 html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) .rc205-dashboard-grid .rc205-mini-metrics .metric small{display:none!important}
+
+/* RC1572 readable lists in the one-page layout: with real data the attention list and "my tasks" shared one
+   column and were squeezed to half a line. Today, attention and tasks now stand side by side, each list keeps
+   room for its rows; if the screen is too low the dashboard area scrolls instead of shrinking the lists. */
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) > #rc1558Overview#rc1558Overview{min-height:400px!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) > #rc1558Overview#rc1558Overview > .rc1558-grid{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) minmax(0,1fr)!important;min-height:220px!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) .rc1558-stack{display:contents!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) .rc1558-stack > .rc1558-panel{min-height:0;display:flex;flex-direction:column}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) .rc1558-stack .rc1558-list{flex:1 1 auto;min-height:150px;max-height:none;overflow-y:auto}
+/* the overview row grows with the overview's minimum height instead of letting it overlap the tiles below */
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]){grid-template-rows:minmax(400px,1fr)!important}
