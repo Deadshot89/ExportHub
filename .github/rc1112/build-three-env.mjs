@@ -350,6 +350,22 @@ function boot(){`;
   return html.slice(0,a)+block+html.slice(b);
 }
 
+// RC1569: dashboard "Aufgaben fällig" / "Meine Aufgaben" (RC885 workspace) also count tasks assigned by user id
+// (assignedTo/effectiveAssignee) and dated by dueAt/plannedAt – same rule as the notification center (RC1566)
+function patchWorkspaceTaskOwnership(html,file){
+  const oldForUser=String.raw`function workspaceTaskForUser(t){var own=low(workspaceTaskOwner(t)),`;
+  const newForUser=String.raw`function workspaceTaskForUserId(t){if(!t)return false;var u=workspaceCurrentUser(),ids=[u.id,u.userId].map(low).filter(Boolean);if(!ids.length)return false;var eff=low(t.effectiveAssignee),keys=eff?[eff]:[t.owner,t.assignee,t.assigneeId,t.assignedTo,t.userId,t.eowner].map(low).filter(Boolean);return keys.some(function(k){return ids.indexOf(k)>=0})}
+  function workspaceTaskForUser(t){if(workspaceTaskForUserId(t))return true;var own=low(workspaceTaskOwner(t)),`;
+  const oldDate=String.raw`function workspaceTaskDate(t){var keys=['dueDate','due','date','plannedDate','targetDate','deadline'];`;
+  const newDate=String.raw`function workspaceTaskDate(t){var keys=['dueDate','dueAt','due','date','plannedDate','plannedAt','targetDate','deadline'];`;
+  for(const [before,after,label] of [[oldForUser,newForUser,'workspaceTaskForUser'],[oldDate,newDate,'workspaceTaskDate']]){
+    const n=html.split(before).length-1;
+    if(n!==1)throw new Error(file+': RC1569 '+label+' '+n+'x gefunden');
+    html=html.replace(before,()=>after);
+  }
+  return html;
+}
+
 function patchTaskMasterSaveScope(html,file){
   const before="function saveScopeForReason(reason){var r=lower(reason);if(/kundenstamm|kundenordner|kunden-mail|kundenmail|neuen kunden|kundendaten/.test(r))return new Set(['customers','customerNotes']);return null}";
   const after="function saveScopeForReason(reason){var r=lower(reason);if(/kundenstamm|kundenordner|kunden-mail|kundenmail|neuen kunden|kundendaten/.test(r))return new Set(['customers','customerNotes']);if(/aufgaben-master rc874/.test(r))return new Set(['tasks','taskWeek','taskMasterRC848','taskMasterSourceVersion','taskMasterUpdatedAt']);return null}";
@@ -1011,6 +1027,7 @@ function patchHtml(file){
   html=patchRc1206ShippingRules(html,file);
   html=patchNotificationTasks(html,file);
   html=patchNotificationTaskDetails(html,file);
+  html=patchWorkspaceTaskOwnership(html,file);
   html=patchTaskMasterSaveScope(html,file);
   html=patchTaskDetailTab(html,file);
   html=patchRc1259ContainerSearch(html,file);
