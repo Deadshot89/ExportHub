@@ -46,7 +46,9 @@ test('RC1569 Kachel-Klick öffnet die Funktion mit Filter, Filter wird live ange
 
 test('RC1569 Dashboard bleibt auf einer Seite: Höhe aus freiem Bildschirm, Übersicht nimmt den Rest',()=>{
   assert.match(runtime,/h=Math\.floor\(w\.innerHeight-\(c\.getBoundingClientRect\(\)\.top\+\(w\.scrollY\|\|w\.pageYOffset\|\|0\)\)-16\);if\(h<460\)on=false/);
-  assert.match(runtime,/c\.getAttribute\('data-rc1371-editing'\)!=='1'&&w\.innerWidth>=1024/,'nicht im Bearbeiten-Modus und nicht auf dem Handy');
+  assert.match(runtime,/c\.getAttribute\('data-rc1371-editing'\)!=='1'&&w\.innerWidth>=1250/,'nicht im Bearbeiten-Modus, nicht auf Tablet/Handy');
+  assert.match(css,/\.rc1558-stack\{display:contents!important\}/,'RC1572: Aufmerksamkeit und Aufgaben stehen als eigene Spalten');
+  assert.match(css,/\.rc1558-stack \.rc1558-list\{flex:1 1 auto;min-height:150px;max-height:none;overflow-y:auto\}/,'RC1572: Listen behalten Platz für ihre Zeilen');
   assert.match(css,/#content:not\(\[data-rc1371-editing="1"\]\)\{\n\s*display:grid!important;grid-template-columns:repeat\(12,minmax\(0,1fr\)\)!important;grid-template-rows:minmax\(0,1fr\)!important;/);
   assert.match(css,/height:var\(--rc1569-fit-h\)!important;max-height:var\(--rc1569-fit-h\)!important/);
   assert.match(css,/> #rc1558Overview#rc1558Overview\{grid-row:1!important;align-self:stretch!important;height:auto!important;min-height:300px!important;display:flex!important/);
@@ -72,4 +74,10 @@ test('RC1569 Build: Dashboard-Aufgaben erkennen Zuweisung per Benutzer-ID und du
   assert.match(out,/\['dueDate','dueAt','due','date','plannedDate','plannedAt','targetDate','deadline'\]/);
   assert.match(build,/html=patchNotificationTaskDetails\(html,file\);\n\s*html=patchWorkspaceTaskOwnership\(html,file\);/);
   assert.throws(()=>patch('kein dashboard','x.html'),/RC1569 workspaceTaskForUser 0x gefunden/);
+});
+
+test('RC1572 Packmeldungen-Menüpunkt wird nach jedem Neuzeichnen der Navigation wiederhergestellt',()=>{
+  const nav=fs.readFileSync('assets/pack-notification-nav.js','utf8');
+  assert.match(nav,/\['exporthub:viewchange','exporthub:rendered','exporthub:ready','exporthub:language-changed','exporthub:state-loaded'\]\.forEach\(name=>root\.addEventListener\(name,repairAfterViewChange\)\)/);
+  assert.match(nav,/if\(!doc\.hidden&&!doc\.querySelector\('\[data-pack-notifications-nav\]'\)\)repairAfterViewChange\(\)\},1500\)/);
 });
