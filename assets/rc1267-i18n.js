@@ -11,6 +11,7 @@ var SUPPORTED=Object.freeze(['de','en','pl','es','fr','it']);
 var LANGUAGE_NAMES=Object.freeze({de:'Deutsch',en:'English',pl:'Polski',es:'Español',fr:'Français',it:'Italiano'});
 var resources=Object.create(null);
 var sourceByText=Object.create(null);
+var sourcePatterns=[];
 var dynamicByText=Object.create(null);
 var textOriginal=new WeakMap();
 var attrOriginal=new WeakMap();
@@ -93,6 +94,30 @@ function buildSourceIndex(){
   var value=q(de[key]);
   if(value&&!sourceByText[value])sourceByText[value]=key;
  });
+ // legacy texts with numbers ("25 offen", "Montag · 25"): only keys under legacyPattern.* become patterns
+ sourcePatterns=[];
+ Object.keys(de).forEach(function(key){
+  if(key.indexOf('legacyPattern.')!==0)return;
+  var value=q(de[key]),names=[],parts=value.split(/\{\{\s*([\w.-]+)\s*\}\}/);
+  if(parts.length<3)return;
+  var source='^';
+  // count/seconds/days only match numbers, so "Picken 11" matches "{{label}} {{count}}" but "Fake Kunde Nord" does not
+  parts.forEach(function(part,i){if(i%2){names.push(part);source+=/^(count|seconds|days)$/.test(part)?'(\\d[\\d.,]*)':'(.+?)'}else source+=part.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')});
+  sourcePatterns.push({key:key,names:names,re:new RegExp(source+'$')});
+ });
+ sourcePatterns.sort(function(a,b){return b.re.source.length-a.re.source.length});
+}
+function patternForSource(source,lang){
+ if(!sourcePatterns.length||!source)return'';
+ for(var i=0;i<sourcePatterns.length;i++){
+  var p=sourcePatterns[i],m=p.re.exec(source);if(!m)continue;
+  var vars={};
+  p.names.forEach(function(name,j){var part=m[j+1],key=keyForSource(part);vars[name]=key?t(key,null,lang):part});
+  var out=t(p.key,vars,lang);
+  // a broad pattern that changes nothing must not hide a more fitting one ("Montag · 25" vs "{{label}} {{count}}")
+  if(out!==source||normalize(lang)==='de')return out;
+ }
+ return'';
 }
 function applicationState(){
  try{if(typeof w.__EXPORTHUB_GET_STATE__==='function')return w.__EXPORTHUB_GET_STATE__()||{}}catch(_){}
@@ -272,7 +297,8 @@ function keyForSource(source){
 }
 function translateLegacyValue(value,lang){
  var source=q(value),key=keyForSource(source);
- return key?t(key,null,lang):value;
+ if(key)return t(key,null,lang);
+ return patternForSource(source,lang)||value;
 }
 function translateTextNode(node,lang){
  if(!node||node.nodeType!==3)return;
