@@ -377,7 +377,7 @@ var FIT_FLAG='data-rc1569-fit';
 function fit(){
   var d=w.document;if(!d||!d.body)return;
   var c=d.getElementById('content');
-  var on=c&&isDashboard()&&d.body.hasAttribute(BODY_FLAG)&&c.getAttribute('data-rc1371-editing')!=='1'&&w.innerWidth>=1024;
+  var on=c&&isDashboard()&&d.body.hasAttribute(BODY_FLAG)&&c.getAttribute('data-rc1371-editing')!=='1'&&w.innerWidth>=1250;
   var h=0;
   if(on){h=Math.floor(w.innerHeight-(c.getBoundingClientRect().top+(w.scrollY||w.pageYOffset||0))-16);if(h<460)on=false}
   if(!on){if(d.body.hasAttribute(FIT_FLAG))d.body.removeAttribute(FIT_FLAG);return}

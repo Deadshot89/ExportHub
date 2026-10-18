@@ -15,7 +15,7 @@ function fn(name){
   return runtime.slice(start+1,runtime.indexOf('\n}\n',start)+2);
 }
 function engine(){
-  const ctx={resources:{...packs},sourceByText:Object.create(null),sourcePatterns:[],current:'de',SUPPORTED:LANGS,w:{dispatchEvent(){}},CustomEvent:class{}};
+  const ctx={resources:{...packs},sourceByText:Object.create(null),sourcePatterns:[],patternCache:new Map(),current:'de',SUPPORTED:LANGS,w:{dispatchEvent(){}},CustomEvent:class{}};
   vm.createContext(ctx);
   vm.runInContext(['q','normalize','interpolate','t','keyForSource','buildSourceIndex','patternForSource','translateLegacyValue'].map(fn).join('\n'),ctx);
   ctx.buildSourceIndex();
@@ -56,4 +56,18 @@ test('RC1567 Muster lassen fremde Daten unverändert und Deutsch bleibt Deutsch'
   assert.equal(tr('Montag · 25','de'),'Montag · 25');
   assert.equal(tr('25 offen','de'),'25 offen');
   for(const key of legacyKeys.filter(k=>k.startsWith('legacyPattern.')))assert.match(packs.de[key],/\{\{/,key+' braucht einen Platzhalter');
+});
+
+test('RC1567 Leistung: Deutsch prüft keine Muster, Ergebnisse werden zwischengespeichert, lange Texte übersprungen',()=>{
+  const e=engine();
+  let calls=0;const orig=e.sourcePatterns.map(p=>p.re);
+  e.sourcePatterns.forEach(p=>{const re=p.re;p.re={exec(s){calls++;return re.exec(s)}}});
+  assert.equal(e.translateLegacyValue('Montag · 25','de'),'Montag · 25');
+  assert.equal(calls,0,'im Deutschen keine Musterprüfung');
+  e.translateLegacyValue('Kunde Nord 3','en');const first=calls;
+  e.translateLegacyValue('Kunde Nord 3','en');
+  assert.equal(calls,first,'zweiter Aufruf kommt aus dem Zwischenspeicher');
+  e.translateLegacyValue('x'.repeat(200)+' 3','en');
+  assert.equal(calls,first,'lange Texte werden nicht gegen Muster geprüft');
+  e.sourcePatterns.forEach((p,i)=>{p.re=orig[i]});
 });

@@ -64,14 +64,23 @@
   }
   function click(event){const node=event.target&&event.target.closest&&event.target.closest('[data-pack-notifications-nav]');if(!node)return;event.preventDefault();event.stopPropagation();if(typeof event.stopImmediatePropagation==='function')event.stopImmediatePropagation();openInbox();}
   function currentView(){try{return String(doc.body&&doc.body.getAttribute('data-exporthub-view')||'').toLowerCase();}catch(_){return'';}}
-  function repairAfterViewChange(){clearTimeout(timer);timer=setTimeout(()=>{const node=ensureEntry();const active=packViewActive&&currentView()==='packnotifications';setActive(active);if(active){const api=runtime();if(api&&typeof api.renderPackInbox==='function'&&!doc.getElementById('packNotificationInbox'))api.renderPackInbox();decorateAdmins();}},30);}
+  function repairAfterViewChange(){clearTimeout(timer);timer=setTimeout(()=>{const node=ensureEntry();// RC1572: the app's own nav handler may switch to packnotifications before our click handler runs
+      const active=currentView()==='packnotifications';setActive(active);if(active){const api=runtime();if(api&&typeof api.renderPackInbox==='function'&&!doc.getElementById('packNotificationInbox'))api.renderPackInbox();decorateAdmins();}},30);}
   function install(){
     if(doc.__exporthubPackNavInstalled)return true;doc.__exporthubPackNavInstalled=true;ensureEntry();doc.addEventListener('click',click,true);
     if(doc.readyState==='loading')doc.addEventListener('DOMContentLoaded',repairAfterViewChange,{once:true});
     if(typeof root.addEventListener==='function'){
       root.addEventListener('exporthub:view-changed',()=>{if(currentView()!=='packnotifications')packViewActive=false;repairAfterViewChange();});
       root.addEventListener('exporthub:pack-language-changed',repairAfterViewChange);
+      // RC1572: the app fires exporthub:viewchange/rendered (not view-changed); the sidebar is re-rendered on
+      // navigation and the entry was only restored as a side effect of repeated language events (gone since RC1571)
+      ['exporthub:viewchange','exporthub:rendered','exporthub:ready','exporthub:language-changed','exporthub:state-loaded'].forEach(name=>root.addEventListener(name,repairAfterViewChange));
     }
+    // safety net for re-renders without any event: restore the entry if it is missing (cheap querySelector)
+    if(typeof root.setInterval==='function')root.setInterval(()=>{if(!doc.hidden&&!doc.querySelector('[data-pack-notifications-nav]'))repairAfterViewChange()},1500);
+    // the app re-renders #content for its own state view right after the inbox opened; put the inbox back
+    // (polling, no DOM observer: two cheap lookups, and it only acts while the pack view is active)
+    if(typeof root.setInterval==='function')root.setInterval(()=>{if(!doc.hidden&&currentView()==='packnotifications'&&!doc.getElementById('packNotificationInbox'))repairAfterViewChange()},400);
     ensureStationAdmin();ensurePackagingAdmin();return true;
   }
   root.ExportHUBPackNotificationNav=Object.freeze({ensureEntry,openInbox,repairAfterViewChange,install,setPackNavLabel,setPackNavIcon});

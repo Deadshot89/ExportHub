@@ -36,3 +36,12 @@ test('RC1564 interne Oberfläche startet ohne gewählte Sprache auf Deutsch, öf
   assert.equal(run(true),'de');
   assert.equal(run(false),'en');
 });
+
+test('RC1571 gleiche Sprache erneut setzen übersetzt nicht alles neu und meldet keinen Sprachwechsel',()=>{
+  const src=fs.readFileSync('assets/rc1267-i18n.js','utf8').replace(/\r\n/g,'\n');
+  assert.match(src,/if\(next===appliedLanguage&&next===current&&!opts\.force\)\{if\(selector&&selector\.value!==next\)selector\.value=next;return next\}/);
+  const set=src.slice(src.indexOf('async function setLanguage('),src.indexOf('\n}\n',src.indexOf('async function setLanguage('))+2);
+  assert.ok(set.indexOf('return next}')<set.indexOf('translate(d.body,next)'),'früher Ausstieg vor der Vollübersetzung');
+  assert.ok(set.indexOf('appliedLanguage=next;')<set.indexOf("'exporthub:language-changed'"));
+  assert.match(src,/translate\(d\.body,current\);\n appliedLanguage=current;/,'Start gilt als angewendet');
+});
