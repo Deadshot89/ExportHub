@@ -29,6 +29,21 @@ function usable(){
 function isBroken(){return loading()&&!usable()}
 function environment(){return /-testservice\./i.test(String(w.location&&w.location.hostname||''))?'testservice':'production'}
 function recoveryUrl(){return '/migration-recovery.html?environment='+encodeURIComponent(environment())+'&return='+encodeURIComponent((w.location&&w.location.pathname)||'/')+'&_='+Date.now()}
+/* RC1574: Failsafe bei endloser Azure-Teamdaten-Initialisierung.
+   Nur UI-Fehlerzustand, kein Loeschen von Cache/Sitzung/Teamdaten. */
+function showStall(){
+ if(!isBroken())return false;
+ var d=w.document;if(!d||!d.body||!d.createElement)return false;
+ if(d.getElementById('rc1574StartupStall'))return true;
+ var panel=d.createElement('section');panel.id='rc1574StartupStall';panel.setAttribute&&panel.setAttribute('role','alert');
+ panel.style.cssText='position:fixed;left:16px;right:16px;bottom:16px;max-width:580px;margin:auto;z-index:2147483001;background:#fff;color:#14273f;border:2px solid #d97706;border-radius:14px;padding:16px 18px;box-shadow:0 14px 38px rgba(15,23,42,.24);font:15px/1.45 Segoe UI,Arial,sans-serif';
+ var title=d.createElement('strong');title.textContent=tr('startup.stalled.title',null,'ExportHUB startet nicht vollständig');title.style.cssText='display:block;font-size:17px;margin-bottom:5px';panel.appendChild(title);
+ var message=d.createElement('div');message.textContent=tr('startup.stalled.message',null,'Die Azure-Teamdaten konnten noch nicht geladen werden. Du kannst den Start erneut versuchen. Sitzung und gespeicherte Daten bleiben erhalten.');panel.appendChild(message);
+ var retry=d.createElement('button');retry.type='button';retry.textContent=tr('startup.stalled.retry',null,'Erneut laden');retry.style.cssText='margin-top:12px;background:#0b5cad;color:#fff;border:0;border-radius:9px;padding:10px 14px;font-weight:700;cursor:pointer';
+ retry.onclick=function(){try{w.location.reload()}catch(_){}};panel.appendChild(retry);
+ d.body.appendChild(panel);return true
+}
+function clearStall(){try{var p=w.document&&w.document.getElementById('rc1574StartupStall');if(p&&p.remove)p.remove()}catch(_){}}
 function addManualLink(){
  if(!w.document||!w.document.body||w.document.getElementById('rc1067MigrationRecoveryLink'))return;
  var b=w.document.createElement('button');b.id='rc1067MigrationRecoveryLink';b.type='button';b.textContent=tr('startup.openStorageOptimization',null,'Open storage optimization');
@@ -43,13 +58,13 @@ async function check(){
   if(!r.ok)throw new Error('HTTP '+r.status);
   var count=Number(data&&data.stateDiagnostics&&data.stateDiagnostics.inlinePayloadCount||0);
   if(count>0&&isBroken()){w.location.replace(recoveryUrl());return}
- }catch(_){if(isBroken())addManualLink()}
+ }catch(_){/* Azure nicht erreichbar: keine unbelegte Dokumentmigration ausloesen; der Stall-Watchdog bietet Wiederholen an. */}
  finally{if(kill)w.clearTimeout(kill)}
 }
-function schedule(){if(TIMER)w.clearTimeout(TIMER);TIMER=w.setTimeout(check,5000)}
+function schedule(){if(TIMER)w.clearTimeout(TIMER);TIMER=w.setTimeout(check,5000);w.setTimeout(function(){if(isBroken())showStall()},25000)}
 if(w.document){
  if(w.document.readyState==='loading')w.document.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
- w.addEventListener('exporthub:ready',function(){if(TIMER)w.clearTimeout(TIMER);var b=w.document.getElementById('rc1067MigrationRecoveryLink');if(b)b.remove()},{once:true})
+ w.addEventListener('exporthub:ready',function(){if(TIMER)w.clearTimeout(TIMER);clearStall();var b=w.document.getElementById('rc1067MigrationRecoveryLink');if(b)b.remove()},{once:true})
 }
-w.ExportHUBRC1067StartupRecovery={session:session,admin:admin,loading:loading,usable:usable,isBroken:isBroken,check:check,recoveryUrl:recoveryUrl};
+w.ExportHUBRC1067StartupRecovery={session:session,admin:admin,loading:loading,usable:usable,isBroken:isBroken,check:check,recoveryUrl:recoveryUrl,showStall:showStall,clearStall:clearStall};
 })(window);
