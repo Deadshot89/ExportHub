@@ -8,26 +8,29 @@ const recoverySource=fs.readFileSync('assets/rc1067-startup-recovery.js','utf8')
 
 function recoveryRuntime({view='',text='',interactive=false,adminSession=false,inlinePayloadCount=0}={}){
   const content={textContent:text};
+  const appended=[];
   const body={
     textContent:text,
     getAttribute(name){return name==='data-exporthub-view'?view:'';},
-    appendChild(){}
+    appendChild(node){appended.push(node);}
   };
   const document={
     readyState:'complete',
     body,
     getElementById(id){return id==='content'?content:null;},
     querySelector(){return interactive?{}:null;},
-    createElement(){return {style:{},remove(){}};}
+    createElement(tag){return {tag,style:{},children:[],appendChild(child){this.children.push(child);},remove(){this.removed=true;},setAttribute(){}};}
   };
   const sessionValue=adminSession?JSON.stringify({token:'rc1541-test-token',user:{role:'admin'}}):null;
   const redirects=[];
+  const reloads=[];
   const root={
     document,
     location:{
       hostname:'example.test',
       pathname:'/',
-      replace(url){redirects.push(url);}
+      replace(url){redirects.push(url);},
+      reload(){reloads.push(true);}
     },
     sessionStorage:{
       length:adminSession?1:0,
@@ -44,7 +47,7 @@ function recoveryRuntime({view='',text='',interactive=false,adminSession=false,i
   };
   if(interactive)root.setView=()=>{};
   vm.runInNewContext(recoverySource,{window:root,AbortController});
-  return {recovery:root.ExportHUBRC1067StartupRecovery,root,redirects};
+  return {recovery:root.ExportHUBRC1067StartupRecovery,root,redirects,reloads,appended};
 }
 
 test('RC1540: Live-waitReady wartet bis der bekannte Startup-Ladezustand beendet ist',()=>{
@@ -123,4 +126,38 @@ test('RC1541: Recovery-Check leitet echten gebrochenen Startup weiterhin um',asy
   await recovery.check();
   assert.equal(redirects.length,1,'echter gebrochener Startup muss weiterhin die Recovery starten');
   assert.match(redirects[0],/^\/migration-recovery\.html\?/);
+});
+test('RC1574: blockierter Azure-Teamdaten-Start bietet sichere Wiederholung auch ohne Administratorrecht',()=>{
+  const {recovery,redirects,reloads,appended}=recoveryRuntime({
+    text:'ExportHUB wird vorbereitet\\nAzure-Teamdaten werden geladen … · 52 s\\n15 %',
+    view:'',
+    interactive:false,
+    adminSession:false
+  });
+  assert.equal(recovery.isBroken(),true);
+  assert.equal(recovery.showStall(),true);
+  assert.equal(appended.length,1,'sichtbare Fehleranzeige fuer alle Benutzer');
+  const retry=appended[0].children.find(node=>node.tag==='button');
+  assert.ok(retry,'Wiederholungsaktion vorhanden');
+  assert.match(retry.textContent,/Erneut laden/);
+  retry.onclick();
+  assert.deepEqual(reloads,[true],'Wiederholung ohne Loeschen lokaler Daten');
+  assert.deepEqual(redirects,[],'ohne Nachweis keine Migration und kein Redirect');
+});
+
+test('RC1574: bereits bedienbare App darf trotz altem Ladehinweis keine Fehlermeldung zeigen',()=>{
+  const {recovery,appended}=recoveryRuntime({
+    text:'Dashboard · Azure-Teamdaten werden geladen … · 52 s',
+    view:'dashboard',
+    interactive:true
+  });
+  assert.equal(recovery.isBroken(),false);
+  assert.equal(recovery.showStall(),false);
+  assert.equal(appended.length,0);
+});
+
+test('RC1574: Start-Watchdog ist zeitlich begrenzt und die Datenmigration bleibt an Health gebunden',()=>{
+  assert.match(recoverySource,/setTimeout\\(function\\(\\)\\{if\\(isBroken\\(\\)\\)showStall\\(\\)\\},25000\\)/);
+  assert.match(recoverySource,/count>0&&isBroken\\(\\)/);
+  assert.match(recoverySource,/clearStall\\(\\)/);
 });
