@@ -1104,6 +1104,8 @@ function patchHtml(file){
   html=injectDeferredRuntimeInHead(html,'<!-- id="exporthub-rc1148-history-compat-marker" assets/rc1071-shipment-history.js?v=1095 -->','exporthub-rc1148-history-compat-marker');
   html=injectDeferredRuntimeInHead(html,RC1267_I18N_TAG,'exporthub-rc1267-i18n');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1460-shipment-view-fix" defer src="/assets/rc1460-shipment-view-files-avis-preview.js?v=1460"></script>','exporthub-rc1460-shipment-view-fix');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-av-upload-i18n" defer src="/assets/i18n/av-upload.js?v=1"></script>','exporthub-av-upload-i18n');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-av-upload" defer src="/assets/av-upload.js?v=1"></script>','exporthub-av-upload');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1126-customer-delete" defer src="/assets/rc1126-customer-delete.js?v=1387"></script>','exporthub-rc1126-customer-delete');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1113-stowplan-persist" defer src="/assets/rc1113-stowplan-persist.js?v=1113"></script>','exporthub-rc1113-stowplan-persist');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1114-shipping-neutral" defer src="/assets/rc1114-shipping-neutral.js?v=1386"></script>','exporthub-rc1114-shipping-neutral');
@@ -1213,7 +1215,9 @@ for(const rel of [
   'assets/rc1570-tasks-focus.css',
   'assets/rc1570-tasks-focus.js',
   'assets/i18n/rc1570-tasks-focus.js',
-  'assets/rc1460-shipment-view-files-avis-preview.js'
+  'assets/rc1460-shipment-view-files-avis-preview.js',
+  'assets/i18n/av-upload.js',
+  'assets/av-upload.js'
 ]){
   const src=path.join(ROOT,rel),dst=path.join(OUT,rel);
   if(!fs.existsSync(src))throw new Error('RC1124 Pflicht-Runtime fehlt: '+rel);
