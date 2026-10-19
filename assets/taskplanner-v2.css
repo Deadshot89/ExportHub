@@ -127,6 +127,11 @@
 .tpv2-month-detail>header{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.tpv2-month-detail h3{margin:0;font-size:16px;flex:1 1 auto}
 .tpv2-month-detail-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 
+.tpv2-planner-detail-host:not(:empty){position:fixed;top:16px;right:16px;bottom:16px;z-index:60;width:min(520px,calc(100vw - 32px));overflow:auto;border-radius:22px;box-shadow:var(--tpv2-shadow)}
+.tpv2-planner-detail-host .tpv2-detail{width:100%;max-width:none;min-height:100%;margin:0;overflow:visible;box-shadow:none}
+.tpv2-planner-detail-host .tpv2-detail:focus{outline:none}
+@media (min-width:1400px){.tpv2-planner:has(.tpv2-planner-detail-host:not(:empty)){padding-right:548px}}
+
 @media (max-width:1100px){
   .tpv2-task-list{grid-template-columns:repeat(2,minmax(0,1fr))}.tpv2-detail{width:min(480px,100%)}
   .tpv2-overdue-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -138,6 +143,7 @@
   .tpv2-task-list{grid-template-columns:minmax(0,1fr)}
   .tpv2-task-card{padding:15px}
   .tpv2-detail{width:100%;max-width:none;margin:0;padding:16px;border-radius:16px;box-shadow:none}
+  .tpv2-planner-detail-host:not(:empty){top:auto;right:0;left:0;bottom:0;width:100%;max-height:85vh;border-radius:20px 20px 0 0}
   .tpv2-detail-grid{grid-template-columns:minmax(0,1fr)}
   .tpv2-detail-wide{grid-column:auto}
   .tpv2-detail-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px 0 0}
