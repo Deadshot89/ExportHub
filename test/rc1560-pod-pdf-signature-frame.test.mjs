@@ -30,7 +30,7 @@ test('RC1560: Palettenkonto steht im Europaletten-Feld unten rechts statt über 
   assert.match(restore,/var palletCard=palletCardFor\(root\);putPalletBalance\(palletCard,palletAccount\)/);
   const put=wrapper.slice(wrapper.indexOf('function putPalletBalance('),wrapper.indexOf('function palletCardFor('));
   assert.match(put,/label\.textContent='Palettenkonto \/ EUR pallet balance'/);
-  assert.match(put,/small\.textContent='Diese Sendung: '\+movement/,'Ausgang/Eingang der Sendung bleibt als Zusatzzeile sichtbar');
+  assert.match(put,/small\.textContent=movement/,'Ausgang/Eingang der Sendung bleibt als Zusatzzeile sichtbar');
   assert.match(wrapper,/\.rc1560-pallet-movement\{display:block!important/);
 });
 
