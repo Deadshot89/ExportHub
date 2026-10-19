@@ -34,7 +34,7 @@ function fixture(failure,{afterCommit=false,alreadySaved=false,remoteChanged=fal
   const error=(code,message,status,vars)=>Object.assign(new Error(message),{code,status,vars});
   const context={
     emptyTeam:empty,MAX_RETRIES:12,CONFLICT_BACKOFF_BASE_MS:12,
-    MAX_TRANSIENT_SAVE_RETRIES:2,TRANSIENT_SAVE_BACKOFF_BASE_MS:150,
+    MAX_TRANSIENT_SAVE_RETRIES:2,MAX_TRANSIENT_SAVE_RETRY_WINDOW_MS:15000,TRANSIENT_SAVE_BACKOFF_BASE_MS:150,
     sleep:async()=>{},
     clone:value=>structuredClone(value),
     readJson:async()=>{reads++;return {value:structuredClone(document),etag}},
