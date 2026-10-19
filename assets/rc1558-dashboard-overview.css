@@ -330,3 +330,11 @@ html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content > .rc205-quick
 }
 /* narrow quick access tile (five tiles in a row): labels wrap instead of being cut off */
 html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content > .rc205-quick-card[data-rc1573-tile] .rc205-quick b{white-space:normal!important;overflow-wrap:anywhere;line-height:1.15;font-size:12px!important;text-overflow:clip!important;overflow:visible!important}
+
+/* RC1574 old tiles no longer overlap: with the RC205 grid dissolved into the one-page grid, tiles the RC1573 editor
+   does not manage (old warehouse lanes, tasks, shipments from saved RC205 preferences) landed as 3-of-60 slivers whose
+   content spilled over their neighbours. They are covered by the overview and the Lagerbelegung tile, so they are left
+   out here (they stay in the RC205 editor and in the narrow layout). The RC205 masonry writes grid-row-end spans for
+   its 4px rows; in the one-page grid those spans pushed ABD/pallet over the quick access tile, so every tile takes one row. */
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) > .rc205-dashboard-grid > .rc205-layout-item:not([data-rc1573-tile]){display:none!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) > .rc205-dashboard-grid > [data-rc1573-tile]{grid-row:auto!important;align-self:stretch}

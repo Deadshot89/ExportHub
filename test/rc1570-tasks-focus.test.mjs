@@ -115,3 +115,60 @@ test('RC1570 Heute ist nach Arbeitsgruppen wie in der alten Liste gruppiert, Kar
   assert.match(source,/function cards\(rows,opts\)\{/);
   assert.doesNotMatch(source,/areaBlocks|byArea/);
 });
+
+test('RC1570 Filter kombinieren Kunde, Bereich, Prozess, Priorität, Status, Zuständig und Zeitraum',()=>{
+  const api=load([
+    {id:'a',title:'ABD Kunde A',customerName:'Kunde A',area:'Export',processId:'abd',priority:'P1',status:'open',dueDate:'2026-10-14',owner:'Tobias'},
+    {id:'b',title:'Pick Kunde B',customerName:'Kunde B',area:'Lager',processId:'pick',priority:'P2',status:'in_progress',dueDate:'2026-10-14',owner:'Tobias'},
+    {id:'c',title:'Alt Kunde A',customerName:'Kunde A',area:'Export',processId:'abd',priority:'P1',status:'blocked',dueDate:'2026-10-12',owner:'Tobias'},
+    {id:'d',title:'Später Kunde A',customerName:'Kunde A',area:'Export',priority:'P3',status:'open',dueDate:'2026-10-30',owner:'Tobias'}
+  ],me,'2026-10-14T10:00:00');
+  let m=api.buildModel();
+  assert.deepEqual([...m.filterOptions.customer],['Kunde A','Kunde B']);
+  assert.deepEqual([...m.filterOptions.process],['abd','pick']);
+  api.setFilter('customer','Kunde A');
+  m=api.buildModel();
+  assert.deepEqual(ids(m.today),['a']);assert.deepEqual(ids(m.overdue),['c']);assert.deepEqual(ids(m.later),['d']);
+  assert.deepEqual([...m.filterOptions.customer],['Kunde A','Kunde B'],'Optionen bleiben trotz Filter wählbar');
+  api.setFilter('priority','P1');
+  m=api.buildModel();
+  assert.equal(m.total,2);
+  api.setFilter('status','blocked');
+  m=api.buildModel();
+  assert.deepEqual(ids(m.overdue),['c']);assert.equal(m.today.length,0);
+  api.resetFilters();
+  api.setFilter('period','today');
+  m=api.buildModel();
+  assert.deepEqual(ids(m.today).sort(),['a','b']);
+  assert.equal(m.overdue.length+m.later.length+m.none.length,0);
+  assert.equal(m.total,2);
+  api.resetFilters();api.setFilter('process','pick');
+  assert.deepEqual(ids(api.buildModel().today),['b']);
+  api.resetFilters();
+});
+
+test('RC1570 Filterleiste rendert nur sinnvolle Auswahlen und einen Zurücksetzen-Button',()=>{
+  const api=load([
+    {id:'a',title:'Aufgabe A',area:'Export',priority:'P1',status:'open',dueDate:'2026-10-14',owner:'Tobias'}
+  ],me,'2026-10-14T10:00:00');
+  let html=api.renderHtml(api.buildModel());
+  assert.match(html,/data-rc1570-filter="area"/);
+  assert.match(html,/data-rc1570-filter="priority"/);
+  assert.match(html,/data-rc1570-filter="status"/);
+  assert.match(html,/data-rc1570-filter="period"/);
+  assert.doesNotMatch(html,/data-rc1570-filter="customer"/,'ohne Kunden kein Kundenfilter');
+  assert.doesNotMatch(html,/data-rc1570-filter="owner"/,'Zuständig nur bei Alle Aufgaben');
+  assert.doesNotMatch(html,/data-rc1570-filter-reset/);
+  api.setFilter('area','Lager');
+  html=api.renderHtml(api.buildModel());
+  assert.match(html,/data-rc1570-filter-reset/);
+  assert.match(html,/Keine Treffer/);
+  assert.match(html,/<option value="Lager" selected>/);
+  api.resetFilters();
+});
+
+test('RC1570 Filtertexte existieren in allen sechs Sprachen',()=>{
+  const ctx={window:{}};vm.runInNewContext(texts,ctx);
+  const packs=ctx.window.ExportHUBTasksFocus1570I18n.packs;
+  for(const l of ['de','en','pl','es','fr','it'])for(const k of ['filters','filterAll','filterReset','filter_customer','filter_area','filter_process','filter_priority','filter_status','filter_owner','filter_period','stOpen','stInProgress','stBlocked'])assert.ok(packs[l][k],l+':'+k);
+});

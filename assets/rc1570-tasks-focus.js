@@ -10,6 +10,7 @@ var VERSION='RC1570';
 var SECTION_ID='rc1570Tasks';
 var BODY_FLAG='data-rc1570-tasks';
 var SCOPE_KEY='exporthub.rc1570.scope';
+var FILTER_KEY='exporthub.rc1570.filters';
 var MAX_OVERDUE=12;
 var WEEKDAYS=['sonntag','montag','dienstag','mittwoch','donnerstag','freitag','samstag'];
 
@@ -88,7 +89,42 @@ function isWeekly(task){return !!(task&&(task.masterTaskRC848||task.weeklySeries
 function ref(task){return q(task&&(task.linkedShipmentRef||task.shipmentRef||task.sourceRef||task.reference))}
 
 /* model */
-var ui={search:'',scope:'',expanded:{}};
+var ui={search:'',scope:'',expanded:{},filters:null};
+// filters (spec §13): customer, area, process, priority, status, owner and period combine with AND
+var FILTERS=['customer','area','process','priority','status','owner','period'];
+var PERIODS=['overdue','today','week','later','none'];
+var STATUS_KEYS={open:'stOpen',planned:'stPlanned',in_progress:'stInProgress',waiting:'stWaiting',waiting_feedback:'stWaitingFeedback',blocked:'stBlocked'};
+function readFilters(){
+  if(ui.filters)return ui.filters;var f={};
+  try{var raw=w.localStorage&&w.localStorage.getItem(FILTER_KEY);if(raw){var o=JSON.parse(raw);if(o&&typeof o==='object')FILTERS.forEach(function(k){if(typeof o[k]==='string'&&o[k])f[k]=o[k]})}}catch(_){}
+  ui.filters=f;return f
+}
+function setFilter(key,value){var f=readFilters();if(FILTERS.indexOf(key)<0)return;if(q(value))f[key]=q(value);else delete f[key];try{w.localStorage.setItem(FILTER_KEY,JSON.stringify(f))}catch(_){}}
+function resetFilters(){ui.filters={};try{w.localStorage.removeItem(FILTER_KEY)}catch(_){}}
+function customer(task){return q(task&&(task.customerName||task.linkedCustomer||task.customer))}
+function processOf(task){return q(task&&(task.processId||task.process))}
+function priorityKey(task){return priority(task)||'P2'}
+function statusKey(task){
+  var core=w.ExportHUBTaskCoreV2;
+  try{if(core&&typeof core.normalizeTask==='function'){var s=q(core.normalizeTask(task).status);if(s)return s}}catch(_){}
+  var raw=low(task&&task.status).replace(/[\s-]+/g,'_');return STATUS_KEYS[raw]?raw:'open'
+}
+function filterValue(task,key,us){
+  if(key==='customer')return customer(task);
+  if(key==='area')return area(task);
+  if(key==='process')return processOf(task);
+  if(key==='priority')return priorityKey(task);
+  if(key==='status')return statusKey(task);
+  if(key==='owner')return ownerName(task,us);
+  return''
+}
+function matchesFilters(task,filters,us){return FILTERS.every(function(k){return k==='period'||!filters[k]||filterValue(task,k,us)===filters[k]})}
+function filterOptions(rows,us){
+  var out={};
+  FILTERS.forEach(function(k){if(k==='period')return;var seen={};rows.forEach(function(x){var v=filterValue(x,k,us);if(v)seen[v]=1});out[k]=Object.keys(seen).sort(function(a,b){return a.localeCompare(b)})});
+  return out
+}
+function activeFilterCount(filters){return FILTERS.filter(function(k){return !!filters[k]}).length}
 function readScope(){if(ui.scope)return ui.scope;try{ui.scope=w.localStorage&&w.localStorage.getItem(SCOPE_KEY)||''}catch(_){}return ui.scope||'mine'}
 function users(){var s=state();return arr(s.users).concat(arr(s.userAccounts))}
 function buildModel(now){
@@ -97,8 +133,10 @@ function buildModel(now){
   var scope=readScope(),needle=low(ui.search),us=users();
   var all=arr(state().tasks).filter(function(x){return x&&!isTemplate(x)&&title(x)});
   var scoped=all.filter(function(x){return scope==='all'||isMine(x)});
-  if(needle)scoped=scoped.filter(function(x){return low([title(x),area(x),q(x.group),ownerName(x,us),ref(x),q(x.note)].join(' ')).indexOf(needle)>=0});
-  var model={overdue:[],today:[],week:{},later:[],none:[],doneToday:[],total:0,scope:scope,users:us};
+  if(needle)scoped=scoped.filter(function(x){return low([title(x),area(x),q(x.group),ownerName(x,us),ref(x),q(x.note),customer(x)].join(' ')).indexOf(needle)>=0});
+  var filters=readFilters(),options=filterOptions(scoped.filter(function(x){return !isDone(x)}),us);
+  scoped=scoped.filter(function(x){return matchesFilters(x,filters,us)});
+  var model={overdue:[],today:[],week:{},later:[],none:[],doneToday:[],total:0,scope:scope,users:us,filters:filters,filterOptions:options};
   scoped.forEach(function(x){
     var d=taskDate(x),k=d?dayKey(d):'';
     var row={task:x,id:taskId(x),date:d,key:k};
@@ -110,6 +148,12 @@ function buildModel(now){
     else if(k<=weekEndKey)(model.week[k]=model.week[k]||[]).push(row);
     else model.later.push(row)
   });
+  var period=PERIODS.indexOf(filters.period)>=0?filters.period:'';
+  if(period){
+    if(period!=='overdue')model.overdue=[];if(period!=='today')model.today=[];if(period!=='week')model.week={};if(period!=='later')model.later=[];if(period!=='none')model.none=[];
+    model.doneToday=[];
+    model.total=model.overdue.length+model.today.length+model.later.length+model.none.length+Object.keys(model.week).reduce(function(n,k){return n+model.week[k].length},0)
+  }
   var byUrgency=function(a,b){if(a.key!==b.key)return a.key<b.key?-1:1;var p=priorityRank(a.task)-priorityRank(b.task);if(p)return p;return q(a.task.time).localeCompare(q(b.task.time))};
   model.overdue.sort(byUrgency);model.today.sort(byUrgency);model.later.sort(byUrgency);
   return model
@@ -159,6 +203,24 @@ function countLabel(n){return n===1?t('task'):t('tasks',{count:n})}
 function section(id,label,count,body,tone,extra){
   return'<section class="rc1570-section" data-rc1570-section="'+id+'"'+(tone?' data-tone="'+tone+'"':'')+'><header><h3>'+esc(label)+'</h3><span class="rc1570-count">'+esc(countLabel(count))+'</span>'+(extra||'')+'</header>'+body+'</section>'
 }
+function filterLabel(key,value){
+  if(key==='status')return STATUS_KEYS[value]?t(STATUS_KEYS[value]):value;
+  if(key==='period')return t({overdue:'overdue',today:'today',week:'week',later:'later',none:'noDate'}[value]||value);
+  return value
+}
+function filterSelect(key,values,current){
+  if(current&&values.indexOf(current)<0)values=values.concat(current);
+  return'<label class="rc1570-filter"><span>'+esc(t('filter_'+key))+'</span><select data-rc1570-filter="'+key+'"><option value="">'+esc(t('filterAll'))+'</option>'+
+    values.map(function(v){return'<option value="'+esc(v)+'"'+(v===current?' selected':'')+'>'+esc(filterLabel(key,v))+'</option>'}).join('')+'</select></label>'
+}
+function filtersHtml(model){
+  var f=model.filters||{},o=model.filterOptions||{},html='';
+  ['customer','area','process','priority','status'].forEach(function(k){var vals=o[k]||[];if(vals.length||f[k])html+=filterSelect(k,vals,f[k]||'')});
+  if(model.scope==='all'&&((o.owner||[]).length||f.owner))html+=filterSelect('owner',o.owner||[],f.owner||'');
+  html+=filterSelect('period',PERIODS.slice(),f.period||'');
+  var n=activeFilterCount(f);
+  return'<div class="rc1570-filters" role="group" aria-label="'+esc(t('filters'))+'">'+html+(n?'<button type="button" class="ghost rc1570-filter-reset" data-rc1570-filter-reset="1">'+esc(t('filterReset',{count:n}))+'</button>':'')+'</div>'
+}
 function renderHtml(model,now){
   now=now||new Date();
   var showOwner=model.scope==='all',opts={users:model.users,showOwner:showOwner};
@@ -171,8 +233,9 @@ function renderHtml(model,now){
       '<a href="#rc1570-overdue" class="rc1570-chip" data-tone="crit">'+esc(t('overdue'))+' <b>'+model.overdue.length+'</b></a>'+
       '<a href="#rc1570-today" class="rc1570-chip">'+esc(t('today'))+' <b>'+model.today.length+'</b></a>'+
       '<a href="#rc1570-week" class="rc1570-chip">'+esc(t('week'))+' <b>'+Object.keys(model.week).reduce(function(n,k){return n+model.week[k].length},0)+'</b></a>'+
-      '<span class="rc1570-chip" data-tone="ok">'+esc(t('doneToday'))+' <b>'+model.doneToday.length+'</b></span></div></div>';
-  if(!model.total&&!model.doneToday.length)return html+'<p class="rc1570-empty">'+esc(ui.search?t('noMatch'):t('empty'))+'</p>';
+      '<span class="rc1570-chip" data-tone="ok">'+esc(t('doneToday'))+' <b>'+model.doneToday.length+'</b></span></div></div>'+filtersHtml(model);
+  var filtered=!!ui.search||activeFilterCount(model.filters||{})>0;
+  if(!model.total&&!model.doneToday.length)return html+'<p class="rc1570-empty">'+esc(filtered?t('noMatch'):t('empty'))+'</p>';
   if(model.overdue.length){
     var expanded=!!ui.expanded.overdue,rows=expanded?model.overdue:model.overdue.slice(0,MAX_OVERDUE);
     var more=model.overdue.length>MAX_OVERDUE?'<button type="button" class="rc1570-more" data-rc1570-expand="overdue">'+esc(expanded?t('showLess'):t('showAll',{count:model.overdue.length}))+'</button>':'';
@@ -317,10 +380,12 @@ function bind(section){
     if((b=el.closest('[data-rc1570-new]'))){e.preventDefault();openForm();return}
     if((b=el.closest('[data-rc1570-route]'))){e.preventDefault();route(b.getAttribute('data-rc1570-route'));return}
     if((b=el.closest('[data-rc1570-scope]'))){e.preventDefault();ui.scope=b.getAttribute('data-rc1570-scope');try{w.localStorage.setItem(SCOPE_KEY,ui.scope)}catch(_){}refreshNow();return}
+    if((b=el.closest('[data-rc1570-filter-reset]'))){e.preventDefault();resetFilters();refreshNow();return}
     if((b=el.closest('[data-rc1570-expand]'))){e.preventDefault();var k=b.getAttribute('data-rc1570-expand');ui.expanded[k]=!ui.expanded[k];refreshNow();return}
     if((b=el.closest('a[href^="#rc1570-"]'))){e.preventDefault();var target=w.document.getElementById(b.getAttribute('href').slice(1));if(target&&target.scrollIntoView)target.scrollIntoView({behavior:'smooth',block:'start'})}
   });
   section.addEventListener('toggle',function(e){var det=e.target;if(!det||!det.getAttribute)return;var k=det.getAttribute('data-rc1570-day');if(!k)return;ui.expanded['day:'+k]=det.open;if(det.open)refreshNow()},true);
+  section.addEventListener('change',function(e){var k=e.target&&e.target.getAttribute&&e.target.getAttribute('data-rc1570-filter');if(!k)return;setFilter(k,e.target.value);refreshNow()});
   section.addEventListener('input',function(e){if(!e.target||!e.target.getAttribute||!e.target.getAttribute('data-rc1570-search'))return;ui.search=e.target.value;schedule()})
 }
 function install(){
@@ -336,6 +401,6 @@ function install(){
   setInterval(function(){if(!d.hidden&&view()==='tasks')schedule()},60000)
 }
 
-w.ExportHUBTasksFocus1570=Object.freeze({version:VERSION,buildModel:buildModel,renderHtml:renderHtml,taskDate:taskDate,isMine:isMine,workGroup:workGroup,refresh:refreshNow,openForm:openForm});
+w.ExportHUBTasksFocus1570=Object.freeze({version:VERSION,buildModel:buildModel,renderHtml:renderHtml,setFilter:setFilter,resetFilters:resetFilters,taskDate:taskDate,isMine:isMine,workGroup:workGroup,refresh:refreshNow,openForm:openForm});
 install();
 })(window);

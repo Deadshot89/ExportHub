@@ -14,6 +14,8 @@ on:
       - 'e2e/specs/rc1559-pod-real-template.spec.mjs'
       - 'test/rc1560-pod-pdf-signature-frame.test.mjs'
       - 'e2e/specs/rc1560-pod-pdf-signature.spec.mjs'
+      - 'test/rc1561-pod-bottom-tiles.test.mjs'
+      - 'e2e/specs/rc1561-pod-bottom-tiles.spec.mjs'
       - 'e2e/helpers/**'
       - '.github/rc1112/**'
       - '.github/workflows/rc1547-loading-list-single-page-verify.yml'
@@ -30,6 +32,8 @@ on:
       - 'e2e/specs/rc1559-pod-real-template.spec.mjs'
       - 'test/rc1560-pod-pdf-signature-frame.test.mjs'
       - 'e2e/specs/rc1560-pod-pdf-signature.spec.mjs'
+      - 'test/rc1561-pod-bottom-tiles.test.mjs'
+      - 'e2e/specs/rc1561-pod-bottom-tiles.spec.mjs'
       - 'e2e/helpers/**'
       - '.github/rc1112/**'
       - '.github/workflows/rc1547-loading-list-single-page-verify.yml'
@@ -52,7 +56,7 @@ jobs:
           node-version: '24'
 
       - name: Ladelisten- und POD-Verträge prüfen
-        run: node --test test/rc1547-loading-list-single-page.test.mjs test/rc1550-pod-print-layout.test.mjs test/rc1559-pod-real-template.test.mjs test/rc1560-pod-pdf-signature-frame.test.mjs
+        run: node --test test/rc1547-loading-list-single-page.test.mjs test/rc1550-pod-print-layout.test.mjs test/rc1559-pod-real-template.test.mjs test/rc1560-pod-pdf-signature-frame.test.mjs test/rc1561-pod-bottom-tiles.test.mjs
 
       - name: Aktuelles Drei-Umgebungen-Paket bauen
         run: node .github/rc1112/build-three-env.mjs
@@ -67,7 +71,7 @@ jobs:
           EXPORTHUB_E2E_STATIC: '1'
           EXPORTHUB_E2E_ENTRY: /demo.html
           EXPORTHUB_E2E_PUBLIC_ENV: testservice
-        run: npx playwright test e2e/specs/rc1547-loading-list-single-page.spec.mjs e2e/specs/rc1550-pod-print-layout.spec.mjs e2e/specs/rc1559-pod-real-template.spec.mjs e2e/specs/rc1560-pod-pdf-signature.spec.mjs --project=laptop
+        run: npx playwright test e2e/specs/rc1547-loading-list-single-page.spec.mjs e2e/specs/rc1550-pod-print-layout.spec.mjs e2e/specs/rc1559-pod-real-template.spec.mjs e2e/specs/rc1560-pod-pdf-signature.spec.mjs e2e/specs/rc1561-pod-bottom-tiles.spec.mjs --project=laptop
 
       - name: Browser-Fehlerartefakte hochladen
         if: failure()
