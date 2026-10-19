@@ -255,3 +255,37 @@ test('Klick ohne Tageswechsel verschiebt nichts, Alt+Pfeil verschiebt per Tastat
   handlers.keydown({target:card,altKey:false,key:'ArrowLeft'});
   assert.equal(calls.length,1);
 });
+
+test('Neu berechnen überschreibt manuelle Planung erst nach ausdrücklicher Wahl mit Warnung',async()=>{
+  const {ExportHUBTaskUIV2:ui}=load(),target=plannerTarget(),applied=[];
+  const state={tasks:[task('fixed','2026-10-16',{title:'Manuell Freitag',manualOverride:true,dueAt:'2026-10-13T16:15:00+02:00'})]};
+  const runtime={applyWeekPlan(draft,ctx){applied.push({draft,ctx});return{changed:true};}};
+  ui.renderPlannerPage(target,{state,runtime,weekStart:'2026-10-12',now:'2026-10-12T08:00:00+02:00',weekPlanMode:'recalculate'});
+  assert.match(target.innerHTML,/<li><strong>1<\/strong><span>Manually planned, kept/);
+  assert.match(target.innerHTML,/data-tpv2-weekplan="override"/);
+  assert.doesNotMatch(target.innerHTML,/manually planned tasks will be moved/);
+  await target.handlers.click({target:button('data-tpv2-weekplan','override')});
+  assert.match(target.innerHTML,/role="alert">1 manually planned tasks will be moved/);
+  assert.match(target.innerHTML,/<li><strong>1<\/strong><span>Manual plans overwritten/);
+  await target.handlers.click({target:button('data-tpv2-weekplan','apply')});
+  assert.equal(applied.length,1);
+  assert.equal(applied[0].ctx.allowManualOverride,true);
+  const item=applied[0].draft.items.find(x=>x.taskId==='fixed');
+  assert.equal(item.manualProtected,false);
+  assert.equal(item.plannedDate,'2026-10-13');
+});
+
+test('Aufgabendetails öffnen als Panel und schließen mit Escape',async()=>{
+  const {ExportHUBTaskUIV2:ui}=load(),host={innerHTML:'',querySelector:()=>null};
+  const target=plannerTarget();target.querySelector=sel=>sel==='[data-tpv2-detail-host]'?host:null;
+  ui.renderPlannerPage(target,{state:{tasks:[task('a','2026-10-13',{title:'Detailaufgabe'})]},weekStart:'2026-10-12',now:'2026-10-12T08:00:00+02:00'});
+  let focused=false;
+  const card={getAttribute:name=>name==='data-task-id'?'a':null,focus(){focused=true;}};
+  card.closest=sel=>sel==='.tpv2-task-card[data-task-id]'?card:null;
+  await target.handlers.click({target:card});
+  assert.match(host.innerHTML,/data-taskplanner-v2-detail/);
+  assert.match(host.innerHTML,/Detailaufgabe/);
+  target.handlers.keydown({key:'Escape',preventDefault(){}});
+  assert.equal(host.innerHTML,'');
+  assert.equal(focused,true,'Fokus kehrt zur Karte zurück');
+});
