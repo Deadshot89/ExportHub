@@ -358,7 +358,7 @@ function rc1080AuditCustomerChanges(beforeState,mergedState,actor,incomingState)
 
 function storageStateEquivalent(a,b){return isDeepStrictEqual(a&&typeof a==='object'?a:{},b&&typeof b==='object'?b:{})}
 
-async function saveMerged(blob,incoming,user,initialTeam,initialEtag,session){
+async function saveMerged(blob,incoming,user,initialTeam,initialEtag,session,optimisticInitial=false){
  let d={value:initialTeam||emptyTeam(),etag:initialEtag||null},retryReadMs=0,mergeMs=0,uploadMs=0,uploadBytes=0,conflictCount=0,transientSaveRetries=0;
  for(let attempt=0;attempt<MAX_RETRIES;attempt++){
   if(attempt>0){const retryStarted=Date.now();d=await readJson(blob,emptyTeam());retryReadMs+=Date.now()-retryStarted}
@@ -366,6 +366,14 @@ async function saveMerged(blob,incoming,user,initialTeam,initialEtag,session){
   if(operationId&&recentOperations.some(op=>text(op&&op.id)===operationId)){const replay=clone(current);replay.concurrentMerge=false;replay.idempotentReplay=true;replay.baseRevision=Number(incoming.baseRevision||0);try{Object.defineProperty(replay,'__storageEtag',{value:d.etag||null,enumerable:false});Object.defineProperty(replay,'__timing',{value:{retryReadMs,mergeMs,uploadMs,uploadBytes,conflictCount},enumerable:false})}catch(_){}return replay}
   const mergeStarted=Date.now(),merged=compactStateForStorage(pruneTombstones(mergeState(current.state||{},incoming.state||{})));delete merged.users;rc1080AuditCustomerChanges(current.state||{},merged,writeUser,incoming.state||{});const dynamicI18nReport=await enrichDynamicTranslations(merged,normalizeDynamicLanguage(writeUser.language||writeUser.uiLanguage||'de'),{limit:Number(process.env.EXPORTHUB_I18N_SAVE_LIMIT||50)||50,retryPending:false});mergeMs+=Date.now()-mergeStarted;
   if(storageStateEquivalent(current.state||{},merged)){
+   // A production save may start from an unverified process-wide warm cache.
+   // An apparent no-op must not claim durable Azure persistence from that cache.
+   if(attempt===0&&optimisticInitial){
+    let confirmedEtag='';
+    try{const properties=await blob.getProperties();confirmedEtag=text(properties&&properties.etag)}
+    catch(e){if(Number(e&&(e.statusCode||e.status)||0)!==404)throw e}
+    if(!confirmedEtag||confirmedEtag!==text(d.etag)){conflictCount++;continue}
+   }
    const noop=clone(current);noop.concurrentMerge=false;noop.baseRevision=Number(incoming.baseRevision||0);noop.noopSave=true;
    try{Object.defineProperty(noop,'__storageEtag',{value:d.etag||null,enumerable:false});Object.defineProperty(noop,'__timing',{value:{retryReadMs,mergeMs,uploadMs,uploadBytes:0,conflictCount},enumerable:false});Object.defineProperty(noop,'__dynamicI18n',{value:dynamicI18nReport,enumerable:false})}catch(_){}
    return noop;
@@ -1093,7 +1101,7 @@ module.exports=async function(context,req){
    if(!hasAnyEditRight(current.user))throw error('WRITE_FORBIDDEN','api.state.writeForbidden',403);
    let corruptBackup=null;if(current.teamRecoveredFromHistory===true&&current.teamCurrentCorrupt===true)corruptBackup=await safetyRawBackup(c.container,blob,'corrupt-team-state-before-RC855-save',c.recoveryPrefix);
    const normalized=normalizeIncoming(payload),documentExternalizeStarted=Date.now(),externalized=await externalizeDocumentCollections(normalized.state,{environment:c.environment,container:c.documentContainer,currentState:current.team&&current.team.state});normalized.state=externalized.state;
-   const saveStarted=Date.now(),saved=await saveMerged(blob,normalized,current.user,current.team,current.teamEtag,current.session),saveMs=Date.now()-saveStarted;rememberWarmTeam(c,saved,saved&&saved.__storageEtag||current.teamEtag);saved.dataEnvironment=c.environment;saved.documentExternalizeStats=externalized.stats;saved.documentExternalizeMs=Date.now()-documentExternalizeStarted;
+   const saveStarted=Date.now(),saved=await saveMerged(blob,normalized,current.user,current.team,current.teamEtag,current.session,current.timing&&current.timing.teamCache==='memory-save'),saveMs=Date.now()-saveStarted;rememberWarmTeam(c,saved,saved&&saved.__storageEtag||current.teamEtag);saved.dataEnvironment=c.environment;saved.documentExternalizeStats=externalized.stats;saved.documentExternalizeMs=Date.now()-documentExternalizeStarted;
    if(corruptBackup)saved.corruptBackup=corruptBackup;
    const phase=saved&&saved.__timing||{},serverMs=Date.now()-requestStarted,timing={serverMs,clientsMs,authMs:Number(current.timing&&current.timing.authMs||0),authCache:text(current.timing&&current.timing.authCache||'unknown')||'unknown',teamMs:Number(current.timing&&current.timing.teamMs||0),validationMs:Number(current.timing&&current.timing.validationMs||0),teamCache:current.timing&&current.timing.teamCache||'unknown',mergeMs:Number(phase.mergeMs||0),uploadMs:Number(phase.uploadMs||0),retryReadMs:Number(phase.retryReadMs||0),uploadBytes:Number(phase.uploadBytes||0),conflictCount:Number(phase.conflictCount||0),saveMs};
    const full=req.query&&String(req.query.full||'')==='1',ack=!full&&req.query&&(String(req.query.ack||'')==='1'||lower(req.query.mode)==='ack'||lower(req.query.mode)==='save');
