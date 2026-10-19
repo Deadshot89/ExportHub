@@ -113,3 +113,75 @@ test('kompakte und detaillierte Anzeigepräferenz wird pro Benutzer gespeichert'
   assert.equal(api.viewPreference({state,user:{id:'u1'}}),'detailed');
   assert.equal(saves,2);
 });
+
+test('Detail zeigt abhakbare Checkliste, Kommentare, Abhängigkeiten, Seriendatum und kommende Wiederholungen',()=>{
+  const api=load(),root={innerHTML:''};
+  const state={tasks:[baseTask(),{id:'task-0',title:'Rechnung anlegen',status:'open'}],taskSeries:[{id:'series-1',rule:{type:'weekly',weekdays:[1]}}]};
+  api.renderDetail(root,'task-1',{state,now:'2026-10-12T10:00:00+02:00'});
+  assert.match(root.innerHTML,/type="checkbox" data-action="checklist-toggle" data-index="0" checked/);
+  assert.match(root.innerHTML,/data-index="1"(?! checked)/);
+  assert.match(root.innerHTML,/1 of 2 done/);
+  assert.match(root.innerHTML,/data-section="comments"[\s\S]*Rückfrage offen/);
+  assert.match(root.innerHTML,/data-action="comment-add"/);
+  assert.match(root.innerHTML,/data-dependency-id="task-0" data-open="1"[\s\S]*Rechnung anlegen/);
+  assert.match(root.innerHTML,/Original series date 2026-10-12/);
+  assert.match(root.innerHTML,/data-complete-comment|data-tpv2-complete-comment/);
+  assert.match(root.innerHTML,/data-action="save-template"/);
+});
+
+test('Detail einer erledigten Aufgabe bietet kein Erledigen mehr an und sperrt die Checkliste',()=>{
+  const api=load(),root={innerHTML:''};
+  api.renderDetail(root,'task-1',{state:{tasks:[baseTask({status:'done',completedAt:'2026-10-12T12:00:00+02:00'})]}});
+  assert.doesNotMatch(root.innerHTML,/data-action="complete"/);
+  assert.match(root.innerHTML,/data-action="checklist-toggle"[^>]*disabled/);
+  assert.match(root.innerHTML,/data-action="save-template"/);
+});
+
+test('Checklistenpunkt wird einzeln abgehakt und zurückgesetzt, mit Historie',()=>{
+  const api=load(),state={tasks:[baseTask()]};let saves=0;
+  const ctx={state,persist:()=>saves++,now:'2026-10-12T11:00:00+02:00',user:{id:'u1'}};
+  let result=api.toggleChecklistItem('task-1',1,ctx);
+  assert.equal(result.changed,true);
+  assert.equal(state.tasks[0].checklist[1].done,true);
+  assert.equal(state.tasks[0].checklist[1].completedBy,'u1');
+  assert.equal(state.tasks[0].status,'in_progress','Checkliste schließt die Aufgabe nicht ab');
+  assert.equal(state.tasks[0].history.at(-1).action,'checklist_checked');
+  result=api.toggleChecklistItem('task-1',0,ctx);
+  assert.equal(state.tasks[0].checklist[0].done,false);
+  assert.equal(api.toggleChecklistItem('task-1',9,ctx).changed,false);
+  assert.equal(saves,2);
+});
+
+test('Kommentar wird mit Autor und Zeit gespeichert, leerer Kommentar nicht',()=>{
+  const api=load(),state={tasks:[baseTask()]};
+  const ctx={state,persist:()=>{},now:'2026-10-12T11:00:00+02:00',user:{id:'u1',name:'Tobias'}};
+  assert.equal(api.addComment('task-1','   ',ctx).changed,false);
+  api.addComment('task-1','Kunde angerufen',ctx);
+  const c=state.tasks[0].comments.at(-1);
+  assert.equal(c.text,'Kunde angerufen');
+  assert.equal(c.authorName,'Tobias');
+  assert.equal(c.at,'2026-10-12T11:00:00+02:00');
+  assert.equal(state.tasks[0].history.at(-1).action,'commented');
+});
+
+test('Abschlusskommentar erscheint zusätzlich bei den Kommentaren',()=>{
+  const api=load(),state={tasks:[baseTask()]};
+  api.completeTask('task-1',{comment:'Fertig geprüft'},{state,persist:()=>{},now:'2026-10-12T12:00:00+02:00'});
+  assert.equal(state.tasks[0].comments.at(-1).text,'Fertig geprüft');
+  assert.equal(state.tasks[0].comments.at(-1).kind,'completion');
+  const again=api.completeTask('task-1',{comment:'Nochmal'},{state,persist:()=>{},now:'2026-10-12T13:00:00+02:00'});
+  assert.equal(again.task.comments.filter(c=>c.kind==='completion').length,1);
+});
+
+test('Aufgabe als Vorlage speichern übernimmt keinen Status und keinen Checklistenfortschritt',()=>{
+  const api=load(),state={tasks:[baseTask({status:'done',completedAt:'2026-10-12T12:00:00+02:00'})]};
+  const result=api.saveTaskAsTemplate('task-1',{state,persist:()=>{},now:'2026-10-12T12:00:00+02:00'});
+  assert.equal(result.changed,true);
+  const tpl=state.taskTemplates[0];
+  assert.equal(tpl.sourceTaskId,'task-1');
+  assert.notEqual(tpl.id,'task-1');
+  assert.equal(Object.hasOwn(tpl,'status'),false);
+  assert.equal(tpl.checklist.every(i=>i.done===false),true);
+  assert.equal(tpl.comments.length,0);
+  assert.equal(state.tasks.length,1);
+});

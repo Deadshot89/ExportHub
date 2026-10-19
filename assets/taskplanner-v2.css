@@ -163,3 +163,29 @@
   .tpv2-detail-grid section,.tpv2-checklist li,.tpv2-history li{background:#172033;color:#e5e7eb}
   .tpv2-detail-grid section p{color:#cbd5e1}
 }
+/* Aufgabendetail: Checkliste abhaken, Kommentare, Abhängigkeiten, Abschlusskommentar, kompakte Karten */
+.tpv2-checklist label{display:flex;gap:8px;align-items:flex-start;cursor:pointer;min-height:24px}
+.tpv2-checklist input[type="checkbox"]{width:20px;height:20px;flex:0 0 auto;margin:0}
+.tpv2-checklist-progress{margin:0 0 8px;color:var(--tpv2-muted);font-size:13px}
+.tpv2-comments,.tpv2-dependencies,.tpv2-upcoming{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.tpv2-comments li,.tpv2-dependencies li,.tpv2-upcoming li{padding:10px 12px;border-radius:10px;background:#f8fafc;overflow-wrap:anywhere}
+.tpv2-comments li p{margin:0 0 4px}
+.tpv2-comments li span{color:var(--tpv2-muted);font-size:12px}
+.tpv2-dependencies li{display:flex;justify-content:space-between;gap:12px;align-items:center}
+.tpv2-dependency-open{background:var(--tpv2-warning-soft);color:var(--tpv2-warning)}
+.tpv2-history li em{display:block;flex-basis:100%;font-style:normal;color:var(--tpv2-muted)}
+.tpv2-history li{flex-wrap:wrap}
+.tpv2-comment-form{display:grid;gap:8px;margin-top:10px}
+.tpv2-comment-form textarea,.tpv2-complete-comment textarea{width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--tpv2-border);border-radius:10px;font:inherit;resize:vertical}
+.tpv2-comment-form button{justify-self:end}
+.tpv2-detail-actions{flex-direction:column;align-items:stretch}
+.tpv2-complete-comment{display:grid;gap:4px;font-size:13px;color:var(--tpv2-muted)}
+.tpv2-detail-buttons{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.tpv2-detail-note{margin:0 0 12px;padding:8px 12px;border-radius:10px;background:var(--tpv2-success-soft)}
+.tpv2-planner[data-density="compact"] .tpv2-task-card .tpv2-task-customer,.tpv2-planner[data-density="compact"] .tpv2-task-card .tpv2-task-meta{display:none}
+.tpv2-planner[data-density="compact"] .tpv2-task-card h3{margin:2px 0 0;font-size:14px}
+@media (prefers-color-scheme:dark){
+  .tpv2-comments li,.tpv2-dependencies li,.tpv2-upcoming li{background:#172033;color:#e5e7eb}
+  .tpv2-comment-form textarea,.tpv2-complete-comment textarea{background:#0b1220;color:#e5e7eb}
+  .tpv2-dependency-open{color:#fcd34d}
+}

@@ -289,3 +289,50 @@ test('Aufgabendetails öffnen als Panel und schließen mit Escape',async()=>{
   assert.equal(host.innerHTML,'');
   assert.equal(focused,true,'Fokus kehrt zur Karte zurück');
 });
+
+function detailSetup(state){
+  const {ExportHUBTaskUIV2:ui}=load(),host={innerHTML:'',querySelector:()=>null};
+  const target=plannerTarget();target.querySelector=sel=>sel==='[data-tpv2-detail-host]'?host:null;
+  const ctx={state,weekStart:'2026-10-12',now:'2026-10-12T08:00:00+02:00',persist:()=>{},user:{id:'u1',name:'Tobias'}};
+  ui.renderPlannerPage(target,ctx);
+  return {ui,host,target};
+}
+function detailAction(action,taskId,extra={}){
+  const owner={getAttribute:name=>name==='data-task-id'?taskId:null};
+  const fields=extra.fields||{};
+  const panel={querySelector:sel=>{const key=sel.slice(1,-1);return key in fields?{value:fields[key]}:null;}};
+  const node={getAttribute:name=>name==='data-action'?action:(name==='data-index'?extra.index:null)};
+  node.closest=sel=>sel==='[data-action]'?node:sel==='[data-task-id]'?owner:sel==='[data-taskplanner-v2-detail]'?panel:null;
+  return node;
+}
+
+test('Detailpanel im Planer: Checkliste abhaken, kommentieren, als Vorlage speichern, mit Kommentar erledigen',async()=>{
+  const state={tasks:[task('a','2026-10-13',{title:'Detailaufgabe',checklist:[{text:'Punkt 1'},{text:'Punkt 2'}]})]};
+  const {host,target}=detailSetup(state);
+  await target.handlers.click({target:detailAction('checklist-toggle','a',{index:'1'})});
+  assert.equal(state.tasks[0].checklist[1].done,true);
+  assert.match(host.innerHTML,/data-index="1" checked/);
+  await target.handlers.click({target:detailAction('comment-add','a',{fields:{'data-tpv2-comment-input':'Rückruf erledigt'}})});
+  assert.equal(state.tasks[0].comments.at(-1).text,'Rückruf erledigt');
+  assert.match(host.innerHTML,/Rückruf erledigt/);
+  await target.handlers.click({target:detailAction('save-template','a')});
+  assert.equal(state.taskTemplates.length,1);
+  assert.equal(state.tasks.length,1,'Vorlage überschreibt die Aufgaben nicht');
+  assert.match(host.innerHTML,/data-tpv2-detail-note/);
+  await target.handlers.click({target:detailAction('complete','a',{fields:{'data-tpv2-complete-comment':'Alles geprüft'}})});
+  assert.equal(state.tasks[0].status,'done');
+  assert.equal(state.tasks[0].history.at(-1).comment,'Alles geprüft');
+});
+
+test('Kompakt/Detailliert wird pro Benutzer gespeichert und auf den Planer angewendet',async()=>{
+  const state={tasks:[task('a','2026-10-13')]};
+  const {target}=detailSetup(state);
+  assert.match(target.innerHTML,/data-density="detailed"/);
+  await target.handlers.click({target:button('data-tpv2-density','compact')});
+  assert.equal(state.taskSettings.users.u1.viewMode,'compact');
+  assert.match(target.innerHTML,/data-density="compact"/);
+  assert.equal(state.tasks.length,1);
+  const fresh=plannerTarget(),{ExportHUBTaskUIV2:ui}=load();
+  ui.renderPlannerPage(fresh,{state,weekStart:'2026-10-12',now:'2026-10-12T08:00:00+02:00',user:{id:'u1'}});
+  assert.match(fresh.innerHTML,/data-density="compact"/);
+});
