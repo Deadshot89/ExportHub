@@ -63,7 +63,7 @@ test('RC1067: Recovery-Seite lädt nicht die normale 130-MB-Team-State-Antwort',
 
 test('RC1067: finaler RC1048-Build liefert Recovery nur für Produktion und TESTSERVICE',()=>{
   assert.match(builder,/RC1067_STARTUP_TAG/);
-  assert.match(builder,/rc1067-startup-recovery\.js\?v=1067/);
+  assert.match(builder,/rc1067-startup-recovery\.js\?v=1574/);
   assert.match(builder,/migration-recovery\.html/);
   assert.match(builder,/if\(file!==['"]demo\.html['"]\)/);
   assert.match(builder,/startupRecovery:/);
