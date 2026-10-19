@@ -359,6 +359,33 @@ function boot(){`;
   return html.slice(0,a)+block+html.slice(b);
 }
 
+// TaskPlanner V2 reminders (spec §15): per-task slots 09:00/13:00/15:30 are delivered by
+// ExportHUBTaskRemindersV2 with a synced ledger; the legacy centre keeps its list and manual check but
+// no longer fires its own global 09/12/15 summary, and "Erledigt" goes through the V2 core (history, sync)
+function patchNotificationTaskPlannerV2(html,file){
+  const moduleStart='<script id="index236-notification-controller">';
+  const moduleEnd='<!-- INDEX 236 NOTIFICATION CENTER END -->';
+  const a=html.indexOf(moduleStart),b=a>=0?html.indexOf(moduleEnd,a+moduleStart.length):-1;
+  if(a<0||b<0)throw new Error(file+': TaskPlanner V2 Benachrichtigungsmodul fehlt');
+  let block=html.slice(a,b);
+  const replacements=[
+    [String.raw`{id:'1200',label:'12:00 Uhr',minutes:720},`,String.raw`{id:'1300',label:'13:00 Uhr',minutes:780},`,'slot 13:00'],
+    [String.raw`{id:'1500',label:'15:00 Uhr',minutes:900}`,String.raw`{id:'1530',label:'15:30 Uhr',minutes:930}`,'slot 15:30'],
+    [String.raw`function checkSchedule(manual){var c=counts();if(manual){showHint(c,'Manuelle Prüfung',true);renderView();return false}`,
+     String.raw`function checkSchedule(manual){var c=counts();if(manual){showHint(c,'Manuelle Prüfung',true);renderView();return false}if(window.ExportHUBTaskRemindersV2&&typeof window.ExportHUBTaskRemindersV2.active==='function'&&window.ExportHUBTaskRemindersV2.active()){updateBadge();return false}`,'checkSchedule'],
+    [String.raw`function completeTask(id){var t=findTask(id);if(!t)return false;`,
+     String.raw`function completeTask(id){var t=findTask(id);if(!t)return false;var v2=window.ExportHUBTaskUIV2;if(v2&&typeof v2.completeTask==='function'){try{var res=v2.completeTask(taskId(t),{},{state:main(),user:user(),persist:function(){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')window.ExportHUBClean.queueSave('Aufgabe aus Benachrichtigung erledigt')}catch(_){ }}});if(res&&res.changed){renderView();updateBadge();return false}}catch(e){console.warn('TaskPlanner V2 Erledigen',e)}}`,'completeTask'],
+    [String.raw`ExportHUB erinnert an Arbeitstagen um 09:00, 12:00 und 15:00 Uhr.`,String.raw`ExportHUB erinnert an Arbeitstagen zu den Zeiten, die an der jeweiligen Aufgabe eingestellt sind (Standard 09:00, 13:00 und 15:30 Uhr).`,'center text'],
+    [String.raw`Erinnerungen erscheinen um 09:00, 12:00 und 15:00 Uhr, solange ExportHUB geöffnet ist.`,String.raw`Erinnerungen erscheinen zu den Zeiten der jeweiligen Aufgabe (Standard 09:00, 13:00 und 15:30 Uhr), solange ExportHUB geöffnet ist.`,'enable text']
+  ];
+  for(const [before,after,label] of replacements){
+    const n=block.split(before).length-1;
+    if(n!==1)throw new Error(file+': TaskPlanner V2 Benachrichtigung '+label+' '+n+'x gefunden');
+    block=block.replace(before,()=>after);
+  }
+  return html.slice(0,a)+block+html.slice(b);
+}
+
 // RC1569: dashboard "Aufgaben fällig" / "Meine Aufgaben" (RC885 workspace) also count tasks assigned by user id
 // (assignedTo/effectiveAssignee) and dated by dueAt/plannedAt – same rule as the notification center (RC1566)
 function patchWorkspaceTaskOwnership(html,file){
@@ -1038,6 +1065,7 @@ function patchHtml(file){
   html=patchNotificationTasks(html,file);
   html=patchNotificationTaskDetails(html,file);
   html=patchWorkspaceTaskOwnership(html,file);
+  html=patchNotificationTaskPlannerV2(html,file);
   html=patchTaskMasterSaveScope(html,file);
   html=patchTaskDetailTab(html,file);
   html=patchRc1259ContainerSearch(html,file);

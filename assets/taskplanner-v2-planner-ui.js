@@ -185,13 +185,16 @@
   }
 
   function runtimeOf(ctx){return ctx&&ctx.runtime||root.ExportHUBRC1014TaskRuntime||null;}
+  function userIdOf(ctx){const u=ctx&&ctx.user;return q(u&&(u.id||u.userId||u.username)||ctx&&ctx.userId);}
   function actionContext(ctx={}){
     const next={...(ctx||{})};
     if(!obj(next.state))next.state={tasks:[]};
     if(!Array.isArray(next.state.tasks))next.state.tasks=[];
+    if(!obj(next.user)){try{const u=typeof root.__EXPORTHUB_GET_CURRENT_USER__==='function'?root.__EXPORTHUB_GET_CURRENT_USER__():null;if(obj(u))next.user=u;}catch(_){}}
+    if(!obj(next.user)&&obj(next.state.currentUser))next.user=next.state.currentUser;
     if(typeof next.persist!=='function'){
-      next.persist=tasks=>{
-        next.state.tasks=tasks;
+      next.persist=value=>{
+        if(Array.isArray(value)&&value!==next.state.taskTemplates)next.state.tasks=value;
         try{if(root.ExportHUBClean&&typeof root.ExportHUBClean.queueSave==='function')return root.ExportHUBClean.queueSave('TaskPlanner V2 task update');}catch(_){}
         return false;
       };
@@ -283,8 +286,9 @@
       catch(error){weekPlan=`<p class="tpv2-weekplan-note" role="alert">${esc(error&&error.message||error)}</p>`;}
     }
     const viewCtx=draft?{...ctx,weekDraft:draft}:ctx;
-    return `<section class="tpv2-planner" data-taskplanner-v2-planner data-view="${current}">
-      <header class="tpv2-planner-head"><div><span class="tpv2-eyebrow">TaskPlanner V2</span><h1>${esc(translated('taskV2.planner.title',null,'Task planner'))}</h1></div><div class="tpv2-view-toggle" role="group"><button type="button" data-tpv2-view="workweek" aria-pressed="${current==='workweek'}">${esc(translated('taskV2.planner.workweek',null,'Workweek'))}</button><button type="button" data-tpv2-view="month" aria-pressed="${current==='month'}">${esc(translated('taskV2.planner.month',null,'Month'))}</button></div></header>
+    const density=q(ctx.density)==='compact'?'compact':'detailed';
+    return `<section class="tpv2-planner" data-taskplanner-v2-planner data-view="${current}" data-density="${density}">
+      <header class="tpv2-planner-head"><div><span class="tpv2-eyebrow">TaskPlanner V2</span><h1>${esc(translated('taskV2.planner.title',null,'Task planner'))}</h1></div><div class="tpv2-view-toggle" role="group" data-tpv2-density-toggle><button type="button" data-tpv2-density="compact" aria-pressed="${density==='compact'}">${esc(translated('taskV2.view.compact',null,'Compact'))}</button><button type="button" data-tpv2-density="detailed" aria-pressed="${density==='detailed'}">${esc(translated('taskV2.view.detailed',null,'Detailed'))}</button></div><div class="tpv2-view-toggle" role="group"><button type="button" data-tpv2-view="workweek" aria-pressed="${current==='workweek'}">${esc(translated('taskV2.planner.workweek',null,'Workweek'))}</button><button type="button" data-tpv2-view="month" aria-pressed="${current==='month'}">${esc(translated('taskV2.planner.month',null,'Month'))}</button></div></header>
       ${dailySummaryHtml(ctx)}${current==='workweek'?weekPlanToolbarHtml()+weekPlan:''}${overdueHtml(ctx)}<div class="tpv2-planner-view" data-tpv2-planner-view>${current==='month'?monthHtml(ctx):workweekHtml(viewCtx)}</div>
       <div class="tpv2-planner-detail-host" data-tpv2-detail-host></div>
     </section>`;
@@ -296,7 +300,9 @@
     const ym=ctx.year&&ctx.month?{year:Number(ctx.year),month:Number(ctx.month)}:target.__tpv2Month||monthOf(ctx);target.__tpv2Month=ym;
     const monthDay=ctx.monthDay!==undefined?q(ctx.monthDay):q(target.__tpv2MonthDay);target.__tpv2MonthDay=monthDay;
     const weekStart=q(target.__tpv2WeekStart)||ctx.weekStart;
-    target.innerHTML=plannerPageHtml({...ctx,weekStart,weekPlanMode:mode,navigation:true,year:ym.year,month:ym.month,monthDay},view);
+    let density=q(target.__tpv2Density);
+    if(!density){try{density=typeof base.viewPreference==='function'&&userIdOf(actionContext(ctx))?base.viewPreference(actionContext(ctx)):'';}catch(_){density='';}}
+    target.innerHTML=plannerPageHtml({...ctx,weekStart,weekPlanMode:mode,navigation:true,year:ym.year,month:ym.month,monthDay,density},view);
     if(target.__tpv2DndCleanup){try{target.__tpv2DndCleanup();}catch(_){}}
     target.__tpv2DndCleanup=view==='workweek'?bindPlannerDnD(target,{...ctx,weekStart,state:ctx.state||{},runtime:runtimeOf(ctx)}):null;
     if(typeof target.addEventListener==='function'&&!target.__tpv2ViewBound){
@@ -311,6 +317,13 @@
         const viewButton=closest('[data-tpv2-view]');
         if(viewButton){const next=q(viewButton.getAttribute('data-tpv2-view'));if(['workweek','month'].includes(next)){target.__tpv2View=next;renderPlannerPage(target,{...(target.__tpv2Ctx||ctx),view:next});}return;}
         const detailHost=typeof target.querySelector==='function'?target.querySelector('[data-tpv2-detail-host]'):null,currentCtx=target.__tpv2Ctx||ctx;
+        const densityButton=closest('[data-tpv2-density]');
+        if(densityButton){
+          const next=q(densityButton.getAttribute('data-tpv2-density'))==='compact'?'compact':'detailed',resolved=actionContext(currentCtx);
+          target.__tpv2Density=next;
+          if(userIdOf(resolved)&&typeof base.setViewPreference==='function'){try{base.setViewPreference(next,resolved);}catch(_){}}
+          renderPlannerPage(target,{...currentCtx,view:target.__tpv2View});return;
+        }
         const navButton=closest('[data-tpv2-nav]');
         if(navButton){
           const action=q(navButton.getAttribute('data-tpv2-nav')),now=nowOf(currentCtx);
@@ -352,7 +365,12 @@
           if(action==='public-link-create'||action==='public-link-revoke'){
             const result=await handlePublicLinkAction(action,taskId,currentCtx);if(result&&result.changed&&detailHost)base.renderDetail(detailHost,taskId,currentCtx);return;
           }
-          if(action==='complete'&&taskId&&typeof base.completeTask==='function'){const result=base.completeTask(taskId,{},actionContext(currentCtx));if(result&&result.changed)renderPlannerPage(target,{...currentCtx,view:target.__tpv2View});return;}
+          const panel=closest('[data-taskplanner-v2-detail]'),field=name=>panel&&typeof panel.querySelector==='function'?panel.querySelector(`[${name}]`):null,reopen=note=>{if(detailHost)openDetail(target,detailHost,taskId,{...currentCtx,detailNote:note||''},target.__tpv2DetailCard);};
+          if(action==='checklist-toggle'&&taskId&&typeof base.toggleChecklistItem==='function'){const result=base.toggleChecklistItem(taskId,actionButton.getAttribute('data-index'),actionContext(currentCtx));if(result&&result.changed)reopen();return;}
+          if((action==='reminder-toggle'||action==='reminder-email')&&taskId&&typeof base.toggleTaskReminder==='function'){const result=base.toggleTaskReminder(taskId,actionButton.getAttribute('data-time'),action==='reminder-email'?'email':'enabled',actionContext(currentCtx));if(result&&result.changed)reopen();return;}
+          if(action==='comment-add'&&taskId&&typeof base.addComment==='function'){const input=field('data-tpv2-comment-input'),result=base.addComment(taskId,input&&input.value,actionContext(currentCtx));if(result&&result.changed)reopen();return;}
+          if(action==='save-template'&&taskId&&typeof base.saveTaskAsTemplate==='function'){const result=base.saveTaskAsTemplate(taskId,actionContext(currentCtx));if(result&&result.changed)reopen(translated('taskV2.templateSaved',null,'Template saved'));return;}
+          if(action==='complete'&&taskId&&typeof base.completeTask==='function'){const input=field('data-tpv2-complete-comment'),result=base.completeTask(taskId,{comment:q(input&&input.value)},actionContext(currentCtx));if(result&&result.changed)renderPlannerPage(target,{...currentCtx,view:target.__tpv2View});return;}
           if(action==='cancel'&&taskId&&typeof base.cancelTask==='function'){const result=base.cancelTask(taskId,actionContext(currentCtx));if(result&&result.changed)renderPlannerPage(target,{...currentCtx,view:target.__tpv2View});return;}
         }
         const card=closest('.tpv2-task-card[data-task-id]');
@@ -361,6 +379,74 @@
     }
     return target;
   }
+
+  // Reminder runner (spec §15): per-task slots, website channel in the browser, delivery ledger in
+  // state.taskSettings so the same reminder is not shown again on another tab or device
+  const reminderRunner={timer:0,started:false,lastPrune:''};
+  function reminderEnvironment(){return /-testservice\./i.test(q(root.location&&root.location.hostname))?'testservice':'production';}
+  function reminderUser(){try{const u=typeof root.__EXPORTHUB_GET_CURRENT_USER__==='function'?root.__EXPORTHUB_GET_CURRENT_USER__():null;return obj(u)?u:{};}catch(_){return{};}}
+  function reminderState(){try{const s=typeof root.__EXPORTHUB_GET_STATE__==='function'?root.__EXPORTHUB_GET_STATE__():null;return obj(s)?s:null;}catch(_){return null;}}
+  function claimReminder(key){
+    try{const store=root.localStorage;if(!store)return true;const k='exporthub.tpv2.reminder:'+key;if(store.getItem(k))return false;store.setItem(k,String(Date.now()));return true;}catch(_){return true;}
+  }
+  function reminderToastHtml(rows){
+    const shown=rows.slice(0,3),more=rows.length-shown.length;
+    return `<section class="tpv2-reminder-toast" role="status" aria-live="polite" data-tpv2-reminder-toast>
+      <header><strong>${esc(translated('taskV2.reminderTitle',null,'Task reminder'))}</strong><button type="button" class="tpv2-icon-button" data-tpv2-reminder-close aria-label="${esc(translated('taskV2.close',null,'Close'))}">×</button></header>
+      <ul>${shown.map(r=>`<li data-task-id="${esc(r.taskId)}"><div><b>${esc(r.title)}</b><span>${esc([r.customerName,r.priority,r.slot].filter(Boolean).join(' · '))}</span></div><div class="tpv2-reminder-actions"><button type="button" class="tpv2-button tpv2-button-secondary" data-tpv2-reminder-open="${esc(r.taskId)}">${esc(translated('taskV2.open',null,'Open'))}</button><button type="button" class="tpv2-button tpv2-button-primary" data-tpv2-reminder-done="${esc(r.taskId)}">${esc(translated('taskV2.complete',null,'Complete'))}</button></div></li>`).join('')}</ul>
+      ${more>0?`<p>${esc(translated('taskV2.reminderMore',{count:more},'+{count} more'))}</p>`:''}
+    </section>`;
+  }
+  function closeReminderToast(){const doc=root.document,node=doc&&doc.getElementById&&doc.getElementById('tpv2ReminderToast');if(node)node.remove();}
+  function showReminderToast(rows){
+    const doc=root.document;if(!doc||!doc.body||typeof doc.createElement!=='function')return false;
+    closeReminderToast();const host=doc.createElement('div');host.id='tpv2ReminderToast';host.className='tpv2-reminder-host';host.innerHTML=reminderToastHtml(rows);
+    host.addEventListener('click',event=>{
+      const el=event&&event.target&&typeof event.target.closest==='function'?event.target:null;if(!el)return;
+      if(el.closest('[data-tpv2-reminder-close]')){closeReminderToast();return;}
+      const open=el.closest('[data-tpv2-reminder-open]'),done=el.closest('[data-tpv2-reminder-done]'),state=reminderState();
+      if(open&&state){const id=q(open.getAttribute('data-tpv2-reminder-open')),task=arr(state.tasks).find(t=>q(t&&t.id)===id),rt=runtimeOf({});closeReminderToast();try{if(task&&rt&&typeof rt.openTask==='function')rt.openTask(task,{state});}catch(_){}return;}
+      if(done&&state){const id=q(done.getAttribute('data-tpv2-reminder-done'));try{base.completeTask(id,{},actionContext({state,user:reminderUser()}));}catch(_){}const item=done.closest('li');if(item)item.remove();if(!host.querySelector('li'))closeReminderToast();}
+    });
+    host.addEventListener('keydown',event=>{if(event&&event.key==='Escape')closeReminderToast();});
+    doc.body.appendChild(host);return true;
+  }
+  function nativeReminder(rows){
+    const N=root.Notification;if(typeof N!=='function'||N.permission!=='granted'||!rows.length)return false;
+    try{
+      const one=rows.length===1?rows[0]:null,title=one?translated('taskV2.reminderTitle',null,'Task reminder')+' · '+one.title:translated('taskV2.reminderTitle',null,'Task reminder');
+      const body=rows.slice(0,3).map(r=>r.title).join('\n')+(rows.length>3?'\n'+translated('taskV2.reminderMore',{count:rows.length-3},'+{count} more'):'');
+      const n=new N(title,{body,tag:'exporthub-tpv2-'+rows.map(r=>r.key).join(',').slice(0,120),silent:true});
+      n.onclick=()=>{try{root.focus();}catch(_){}try{n.close();}catch(_){}};return true;
+    }catch(_){return false;}
+  }
+  function localNowIso(date){
+    const d=date||new Date(),z=n=>String(Math.abs(n)).padStart(2,'0'),off=-d.getTimezoneOffset();
+    return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}T${z(d.getHours())}:${z(d.getMinutes())}:${z(d.getSeconds())}${off>=0?'+':'-'}${z(Math.trunc(off/60))}:${z(off%60)}`;
+  }
+  function checkReminders(now){
+    const state=reminderState(),user=reminderUser(),id=q(user.id||user.userId||user.username);
+    if(!state||!id||typeof base.reminderCandidates!=='function')return[];
+    const at=q(now)||localNowIso(),ctx=actionContext({state,user,now:at});
+    const today=at.slice(0,10);
+    if(reminderRunner.lastPrune!==today&&typeof base.pruneReminderLedger==='function'){reminderRunner.lastPrune=today;try{base.pruneReminderLedger(ctx);}catch(_){}}
+    const rows=base.reminderCandidates(at,state,{id,environment:reminderEnvironment()},{catchUp:true}).filter(r=>r.channels&&r.channels.website===true);
+    const delivered=[];
+    for(const row of rows){if(!claimReminder(row.key))continue;const res=base.markReminderDelivered(row,ctx);if(res&&res.changed)delivered.push(row);}
+    if(delivered.length){showReminderToast(delivered);nativeReminder(delivered);}
+    return delivered;
+  }
+  function startReminders(){
+    if(reminderRunner.started||typeof root.setInterval!=='function')return false;reminderRunner.started=true;
+    const tick=()=>{try{checkReminders();}catch(error){try{console.warn('TaskPlanner V2 Erinnerungen',error);}catch(_){}}};
+    reminderRunner.timer=root.setInterval(tick,30000);
+    for(const name of ['exporthub:ready','exporthub:state-loaded','exporthub:sync'])try{root.addEventListener(name,tick);}catch(_){}
+    try{if(root.document)root.document.addEventListener('visibilitychange',()=>{if(!root.document.hidden)tick();});}catch(_){}
+    if(typeof root.setTimeout==='function')root.setTimeout(tick,5000);
+    return true;
+  }
+  root.ExportHUBTaskRemindersV2=Object.freeze({check:checkReminders,start:startReminders,active:()=>reminderRunner.started,toastHtml:reminderToastHtml});
+  if(root.document&&!root.__EXPORTHUB_PICKUP_MODE__&&!root.__EXPORTHUB_TPV2_REMINDERS_OFF__)startReminders();
 
   root.ExportHUBTaskUIV2=Object.freeze({...base,renderDailySummary,renderOverdue,renderWorkweek,renderMonth,bindPlannerDnD,handlePublicLinkAction,renderPlannerPage});
 })(globalThis);
