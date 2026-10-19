@@ -360,20 +360,19 @@ function storageStateEquivalent(a,b){return isDeepStrictEqual(a&&typeof a==='obj
 
 async function saveMerged(blob,incoming,user,initialTeam,initialEtag,session,optimisticInitial=false){
  let d={value:initialTeam||emptyTeam(),etag:initialEtag||null},retryReadMs=0,mergeMs=0,uploadMs=0,uploadBytes=0,conflictCount=0,transientSaveRetries=0;
+ async function optimisticCacheMatchesAzure(){
+  try{const props=await blob.getProperties();const etag=text(props&&props.etag);return !!etag&&etag===text(d.etag)}
+  catch(e){if(Number(e&&(e.statusCode||e.status)||0)===404)return false;throw e}
+ }
  for(let attempt=0;attempt<MAX_RETRIES;attempt++){
   if(attempt>0){const retryStarted=Date.now();d=await readJson(blob,emptyTeam());retryReadMs+=Date.now()-retryStarted}
   const current=d.value||emptyTeam(),writeUser=validateWriteUserAgainstTeam(current,user,session),operationId=text(incoming.operationId),recentOperations=Array.isArray(current.recentOperations)?current.recentOperations:[];
-  if(operationId&&recentOperations.some(op=>text(op&&op.id)===operationId)){const replay=clone(current);replay.concurrentMerge=false;replay.idempotentReplay=true;replay.baseRevision=Number(incoming.baseRevision||0);try{Object.defineProperty(replay,'__storageEtag',{value:d.etag||null,enumerable:false});Object.defineProperty(replay,'__timing',{value:{retryReadMs,mergeMs,uploadMs,uploadBytes,conflictCount},enumerable:false})}catch(_){}return replay}
+  if(operationId&&recentOperations.some(op=>text(op&&op.id)===operationId)){if(attempt===0&&optimisticInitial&&!(await optimisticCacheMatchesAzure())){conflictCount++;continue}const replay=clone(current);replay.concurrentMerge=false;replay.idempotentReplay=true;replay.baseRevision=Number(incoming.baseRevision||0);try{Object.defineProperty(replay,'__storageEtag',{value:d.etag||null,enumerable:false});Object.defineProperty(replay,'__timing',{value:{retryReadMs,mergeMs,uploadMs,uploadBytes,conflictCount},enumerable:false})}catch(_){}return replay}
   const mergeStarted=Date.now(),merged=compactStateForStorage(pruneTombstones(mergeState(current.state||{},incoming.state||{})));delete merged.users;rc1080AuditCustomerChanges(current.state||{},merged,writeUser,incoming.state||{});const dynamicI18nReport=await enrichDynamicTranslations(merged,normalizeDynamicLanguage(writeUser.language||writeUser.uiLanguage||'de'),{limit:Number(process.env.EXPORTHUB_I18N_SAVE_LIMIT||50)||50,retryPending:false});mergeMs+=Date.now()-mergeStarted;
   if(storageStateEquivalent(current.state||{},merged)){
    // A production save may start from an unverified process-wide warm cache.
    // An apparent no-op must not claim durable Azure persistence from that cache.
-   if(attempt===0&&optimisticInitial){
-    let confirmedEtag='';
-    try{const properties=await blob.getProperties();confirmedEtag=text(properties&&properties.etag)}
-    catch(e){if(Number(e&&(e.statusCode||e.status)||0)!==404)throw e}
-    if(!confirmedEtag||confirmedEtag!==text(d.etag)){conflictCount++;continue}
-   }
+   if(attempt===0&&optimisticInitial&&!(await optimisticCacheMatchesAzure())){conflictCount++;continue}
    const noop=clone(current);noop.concurrentMerge=false;noop.baseRevision=Number(incoming.baseRevision||0);noop.noopSave=true;
    try{Object.defineProperty(noop,'__storageEtag',{value:d.etag||null,enumerable:false});Object.defineProperty(noop,'__timing',{value:{retryReadMs,mergeMs,uploadMs,uploadBytes:0,conflictCount},enumerable:false});Object.defineProperty(noop,'__dynamicI18n',{value:dynamicI18nReport,enumerable:false})}catch(_){}
    return noop;
