@@ -67,6 +67,12 @@ jobs:
                 -d "{\"environment\":\"$TARGET_ENV\",\"limit\":40}" \
                 "$BASE_URL/api/av-check" || true
             )"
+            if [ "$http_code" = "404" ]; then
+              # Endpunkt ist in dieser Umgebung noch nicht ausgerollt (z. B. Production vor dem nächsten Release).
+              rm -f "$response_file"
+              echo "::notice::AV-Prüfung $TARGET_ENV übersprungen: /api/av-check ist dort noch nicht ausgerollt."
+              exit 0
+            fi
             verdict="$(node -e "
               const fs=require('fs');let v={};try{v=JSON.parse(fs.readFileSync(process.argv[1],'utf8')||'{}')}catch(_){}
               const status=Number(process.argv[2]||0);

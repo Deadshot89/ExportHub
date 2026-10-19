@@ -156,3 +156,8 @@ test('AV-Upload ist in den Build und die Sendungsansicht eingebunden',()=>{
   const i18n=fs.readFileSync('assets/i18n/av-upload.js','utf8');
   for(const l of ['de','en','pl','es','fr','it'])assert.match(i18n,new RegExp('\\n '+l+':\\{idle:'));
 });
+
+test('Workflow überspringt Umgebungen, in denen /api/av-check noch fehlt',()=>{
+  const wf=fs.readFileSync('.github/workflows/av-check.yml','utf8');
+  assert.match(wf,/if \[ "\$http_code" = "404" \]; then[\s\S]{0,300}exit 0/);
+});
