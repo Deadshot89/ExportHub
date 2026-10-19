@@ -52,7 +52,8 @@
       customer:q(n.customer),customerId:q(n.customerId),customerAccount:q(n.customerAccount),stationName:q(n.packStationName||n.packStationId),createdAt:q(n.createdAt),
       packageType:q(n.packageType),packageCount:Number(n.packageCount)||0,totalWeight:Number(n.totalWeight)||0,
       packages:arr(n.packages).map(x=>({...x})),documents:arr(n.documents).map(x=>({...x})),note:q(n.note),
-      status:q(n.status||task&&task.status||'new'),shipmentId:q(n.shipmentId)
+      status:q(n.status||task&&task.status||'new'),shipmentId:q(n.shipmentId),
+      deliveryNoteReference:q(n.deliveryNoteReference),cancelledAt:q(n.cancelledAt),editedAt:q(n.editedAt)
     };
   }
   function detailModel(state,task){return detailFromNotification(findNotification(state,task)||{},task);}
@@ -117,6 +118,38 @@
 
   function taskById(state,id){return packTasks(state).find(task=>q(task.id)===q(id))||null;}
   function notificationById(state,id){return packNotifications(state).find(item=>q(item.id)===q(id))||null;}
+  function isLocked(notification){return q(notification&&notification.status).toLowerCase()==='cancelled'||Boolean(q(notification&&notification.shipmentId));}
+  function positiveNumber(value){const n=Number(String(value==null?'':value).replace(',','.'));return Number.isFinite(n)&&n>0?n:0;}
+  function snapshot(items){return items.filter(Boolean).map(item=>({item,copy:JSON.parse(JSON.stringify(item))}));}
+  function restore(saved){for(const {item,copy} of saved){for(const key of Object.keys(item))if(!(key in copy))delete item[key];Object.assign(item,copy);}}
+  function sourceTasks(state,notificationId){return arr(state&&state.tasks).filter(task=>isPackTask(task)&&q(task.sourceId)===q(notificationId));}
+  function applyEdit(state,notificationId,patch,at){
+    const n=notificationById(state,notificationId);if(!n)return{ok:false,code:'notFound'};
+    if(isLocked(n))return{ok:false,code:'locked'};
+    const p=patch||{},count=Math.floor(Number(p.packageCount)),weight=positiveNumber(p.totalWeight);
+    if(!(count>=1&&count<=999))return{ok:false,code:'packageCount'};
+    if(!weight)return{ok:false,code:'totalWeight'};
+    const incoming=arr(p.packages),existing=arr(n.packages),packages=[];
+    for(let i=0;i<count;i+=1){
+      const source=incoming[i]||{},base=existing[i]||existing[existing.length-1]||{unit:'cm'};
+      const length=positiveNumber(source.length),width=positiveNumber(source.width),height=positiveNumber(source.height);
+      if(!length||!width||!height)return{ok:false,code:'dimensions',packageNo:i+1};
+      packages.push(Object.assign({},base,{packageNo:i+1,length,width,height,unit:q(base.unit)||'cm'}));
+    }
+    const when=q(at)||new Date().toISOString();
+    n.deliveryNoteReference=q(p.deliveryNoteReference).slice(0,120);
+    n.packageCount=count;n.totalWeight=weight;n.packages=packages;n.note=q(p.note).slice(0,2000);
+    n.editedAt=when;n.updatedAt=when;
+    return{ok:true,notification:n};
+  }
+  function cancelNotification(state,notificationId,at){
+    const n=notificationById(state,notificationId);if(!n)return{ok:false,code:'notFound'};
+    if(isLocked(n))return{ok:false,code:'locked'};
+    const when=q(at)||new Date().toISOString();
+    n.status='cancelled';n.cancelledAt=when;n.updatedAt=when;
+    for(const task of sourceTasks(state,n.id)){task.status='cancelled';task.unread=false;if(!q(task.readAt))task.readAt=when;task.updatedAt=when;}
+    return{ok:true,notification:n};
+  }
   async function markNotificationOpened(notification){
     const state=sharedState(),now=new Date().toISOString(),id=q(notification&&notification.id);
     const live=notificationById(state,id),liveBefore=live?{status:live.status,updatedAt:live.updatedAt}:null,taskBefore=[];
@@ -151,13 +184,73 @@
     return `<div class="pack-internal-shell">
       <header class="pack-internal-detail-head"><button type="button" class="btn" data-pack-action="back">${esc(tr('pack.internal.backToInbox'))}</button><div><span class="pack-internal-eyebrow">${esc(tr('pack.internal.eyebrow',{reference:model.reference}))}</span><h1>${esc(model.customer||tr('pack.title'))}</h1></div><span class="pack-internal-status" data-status="${esc(model.status)}">${esc(statusLabel(model.status))}</span></header>
       <div class="pack-internal-detail-grid">
-        <article class="pack-internal-panel pack-internal-summary"><h2>${esc(tr('pack.internal.summary'))}</h2><dl>${customerIdentityHtml(model)}<div><dt>${esc(tr('pack.internal.packages'))}</dt><dd>${esc(model.packageCount)} · ${esc(model.packageType)}</dd></div><div><dt>${esc(tr('pack.internal.totalWeight'))}</dt><dd>${esc(model.totalWeight)} kg</dd></div><div><dt>${esc(tr('pack.internal.station'))}</dt><dd>${esc(model.stationName||'–')}</dd></div><div><dt>${esc(tr('pack.internal.reported'))}</dt><dd>${esc(formatDate(model.createdAt))}</dd></div></dl></article>
+        <article class="pack-internal-panel pack-internal-summary"><h2>${esc(tr('pack.internal.summary'))}</h2><dl>${customerIdentityHtml(model)}<div><dt>${esc(tr('pack.internal.deliveryNoteReference'))}</dt><dd>${esc(model.deliveryNoteReference||'–')}</dd></div><div><dt>${esc(tr('pack.internal.packages'))}</dt><dd>${esc(model.packageCount)} · ${esc(model.packageType)}</dd></div><div><dt>${esc(tr('pack.internal.totalWeight'))}</dt><dd>${esc(model.totalWeight)} kg</dd></div><div><dt>${esc(tr('pack.internal.station'))}</dt><dd>${esc(model.stationName||'–')}</dd></div><div><dt>${esc(tr('pack.internal.reported'))}</dt><dd>${esc(formatDate(model.createdAt))}</dd></div></dl></article>
         <article class="pack-internal-panel"><h2>${esc(tr('pack.dimensions'))}</h2><div class="pack-internal-packages">${model.packages.map(packageHtml).join('')||`<p class="pack-internal-empty">${esc(tr('pack.internal.noDimensions'))}</p>`}</div></article>
         <article class="pack-internal-panel pack-internal-documents"><h2>${esc(tr('pack.deliveryNotes'))}</h2>${documentsHtml(model)}</article>
         <article class="pack-internal-panel"><h2>${esc(tr('pack.note'))}</h2><p>${esc(model.note||tr('pack.internal.noNote'))}</p></article>
       </div>
-      <footer class="pack-internal-detail-actions"><button type="button" class="btn" data-pack-action="back">${esc(tr('pack.internal.back'))}</button><button type="button" class="btn primary" data-pack-action="shipment">${esc(model.shipmentId?tr('pack.internal.openShipment'):tr('pack.internal.createShipment'))}</button></footer>
+      <footer class="pack-internal-detail-actions">${detailActionsHtml(model)}</footer>
     </div>`;
+  }
+  function detailActionsHtml(model){
+    const cancelled=q(model.status).toLowerCase()==='cancelled',editable=!cancelled&&!model.shipmentId;
+    const back=`<button type="button" class="btn" data-pack-action="back">${esc(tr('pack.internal.back'))}</button>`;
+    if(cancelled)return`${back}<span class="pack-internal-locked-hint">${esc(tr('pack.internal.cancelledHint'))}</span>`;
+    const edit=editable?`<button type="button" class="btn" data-pack-action="edit">${esc(tr('pack.internal.edit'))}</button><button type="button" class="btn pack-internal-danger" data-pack-action="cancel">${esc(tr('pack.internal.cancel'))}</button>`:'';
+    return`${back}${edit}<button type="button" class="btn primary" data-pack-action="shipment">${esc(model.shipmentId?tr('pack.internal.openShipment'):tr('pack.internal.createShipment'))}</button>`;
+  }
+  function editRowsHtml(packages,count){
+    const rows=[];
+    for(let i=0;i<count;i+=1){
+      const p=packages[i]||packages[packages.length-1]||{};
+      const field=(dim,label)=>`<label><span>${esc(tr(label))}</span><input type="number" inputmode="decimal" min="0" step="0.1" data-pack-edit-dim="${dim}" value="${esc(p[dim])}"></label>`;
+      rows.push(`<div class="pack-internal-edit-package" data-pack-edit-package="${i}"><strong>${esc(tr('pack.packageNumber',{number:i+1}))}</strong>${field('length','pack.lengthRequired')}${field('width','pack.widthRequired')}${field('height','pack.heightRequired')}</div>`);
+    }
+    return rows.join('');
+  }
+  function editHtml(model,draft,errorText){
+    const d=draft||model,count=Math.max(1,Math.floor(Number(d.packageCount))||1);
+    return `<div class="pack-internal-shell">
+      <header class="pack-internal-detail-head"><button type="button" class="btn" data-pack-action="edit-cancel">${esc(tr('pack.internal.backToDetail'))}</button><div><span class="pack-internal-eyebrow">${esc(tr('pack.internal.eyebrow',{reference:model.reference}))}</span><h1>${esc(tr('pack.internal.editTitle'))}</h1></div><span class="pack-internal-status" data-status="${esc(model.status)}">${esc(statusLabel(model.status))}</span></header>
+      <form class="pack-internal-edit" data-pack-edit-form novalidate>
+        ${errorText?`<p class="pack-internal-edit-error" role="alert">${esc(errorText)}</p>`:''}
+        <article class="pack-internal-panel"><h2>${esc(tr('pack.internal.summary'))}</h2>
+          <p class="pack-internal-edit-customer">${esc(tr('shipment.customer'))}: <strong>${esc(model.customer||'–')}</strong></p>
+          <label><span>${esc(tr('pack.internal.deliveryNoteReference'))}</span><input type="text" maxlength="120" name="deliveryNoteReference" value="${esc(d.deliveryNoteReference)}"></label>
+          <label><span>${esc(tr('pack.packageCountRequired'))}</span><input type="number" inputmode="numeric" min="1" max="999" step="1" name="packageCount" value="${esc(count)}"></label>
+          <label><span>${esc(tr('pack.totalWeightRequired'))}</span><input type="number" inputmode="decimal" min="0" step="0.1" name="totalWeight" value="${esc(d.totalWeight)}"></label>
+        </article>
+        <article class="pack-internal-panel"><h2>${esc(tr('pack.dimensions'))}</h2><div class="pack-internal-edit-packages">${editRowsHtml(arr(d.packages),count)}</div></article>
+        <article class="pack-internal-panel"><h2>${esc(tr('pack.note'))}</h2><label><textarea aria-label="${esc(tr('pack.note'))}" name="note" maxlength="2000" rows="4">${esc(d.note)}</textarea></label></article>
+      </form>
+      <footer class="pack-internal-detail-actions"><button type="button" class="btn" data-pack-action="edit-cancel">${esc(tr('pack.internal.discard'))}</button><button type="button" class="btn primary" data-pack-action="edit-save">${esc(tr('pack.internal.save'))}</button></footer>
+    </div>`;
+  }
+  function collectEditForm(section){
+    const form=section&&section.querySelector&&section.querySelector('[data-pack-edit-form]');if(!form)return null;
+    const value=name=>{const el=form.querySelector(`[name="${name}"]`);return el?el.value:'';};
+    const packages=Array.from(form.querySelectorAll('[data-pack-edit-package]')).map(row=>{const dim=name=>{const el=row.querySelector(`[data-pack-edit-dim="${name}"]`);return el?el.value:'';};return{length:dim('length'),width:dim('width'),height:dim('height')};});
+    return{deliveryNoteReference:value('deliveryNoteReference'),packageCount:value('packageCount'),totalWeight:value('totalWeight'),note:value('note'),packages};
+  }
+  function editErrorText(result){
+    const code=result&&result.code;
+    if(code==='dimensions')return tr('pack.internal.editError.dimensions',{number:result.packageNo});
+    if(code==='packageCount'||code==='totalWeight'||code==='locked'||code==='notFound')return tr(`pack.internal.editError.${code}`);
+    return tr('pack.internal.saveFailed');
+  }
+  async function saveEdit(notificationId,patch){
+    const state=sharedState(),live=notificationById(state,notificationId);if(!live)return{ok:false,code:'notFound'};
+    const saved=snapshot([live]),result=applyEdit(state,notificationId,patch,new Date().toISOString());
+    if(!result.ok)return result;
+    if(!await persist('Packmeldung bearbeitet')){restore(saved);return{ok:false,code:'persist'};}
+    return result;
+  }
+  async function cancelAndPersist(notificationId){
+    const state=sharedState(),live=notificationById(state,notificationId);if(!live)return{ok:false,code:'notFound'};
+    const saved=snapshot([live,...sourceTasks(state,notificationId)]),result=cancelNotification(state,notificationId,new Date().toISOString());
+    if(!result.ok)return result;
+    if(!await persist('Packmeldung storniert')){restore(saved);return{ok:false,code:'persist'};}
+    renderNavBadge();return result;
   }
   function inboxCardHtml(model){
     return `<button type="button" class="pack-internal-task${model.unread?' is-unread':''}" data-pack-notification-id="${esc(model.notificationId)}"><span class="pack-internal-task-main"><strong>${esc(model.customer||tr('pack.title'))}</strong><small>${esc(model.reference)} · ${esc(model.stationName||tr('pack.internal.station'))} · ${esc(formatDate(model.createdAt))}</small></span><span class="pack-internal-task-metrics"><b>${esc(tr('pack.internal.metricPackages',{count:model.packageCount}))}</b><b>${esc(model.totalWeight)} kg</b><b>${esc(statusLabel(model.status))}</b>${model.unread?`<em>${esc(tr('pack.internal.status.new'))}</em>`:''}</span></button>`;
@@ -185,7 +278,22 @@
     markNotificationOpened(notification).catch(()=>{});
     const host=doc.getElementById('content')||doc.querySelector('main');if(!host)return false;
     host.innerHTML='';const section=doc.createElement('section');section.id='packNotificationDetail';section.className='pack-internal-detail';section.innerHTML=detailHtml(model);
-    section.addEventListener('click',event=>{const target=event.target&&event.target.closest&&event.target.closest('[data-pack-action],[data-pack-doc-open],[data-pack-doc-download]');if(!target)return;if(target.hasAttribute('data-pack-doc-open'))openDocument(model,target.getAttribute('data-pack-doc-open'),false);else if(target.hasAttribute('data-pack-doc-download'))openDocument(model,target.getAttribute('data-pack-doc-download'),true);else{const action=target.getAttribute('data-pack-action');if(action==='back')renderPackInbox();else if(action==='shipment')dispatchShipment(model);}});
+    let busy=false;
+    const showEdit=(draft,errorText)=>{section.innerHTML=editHtml(model,draft,errorText);};
+    const reopen=()=>{const fresh=notificationById(sharedState(),model.notificationId);if(fresh)openNotificationDetail(fresh);};
+    section.addEventListener('change',event=>{const target=event.target;if(!target||target.getAttribute('name')!=='packageCount')return;const draft=collectEditForm(section);if(draft)showEdit(draft,'');});
+    section.addEventListener('click',async event=>{
+      const target=event.target&&event.target.closest&&event.target.closest('[data-pack-action],[data-pack-doc-open],[data-pack-doc-download]');if(!target)return;
+      if(target.hasAttribute('data-pack-doc-open')){openDocument(model,target.getAttribute('data-pack-doc-open'),false);return;}
+      if(target.hasAttribute('data-pack-doc-download')){openDocument(model,target.getAttribute('data-pack-doc-download'),true);return;}
+      const action=target.getAttribute('data-pack-action');
+      if(action==='back')renderPackInbox();
+      else if(action==='shipment')dispatchShipment(model);
+      else if(action==='edit')showEdit(null,'');
+      else if(action==='edit-cancel')reopen();
+      else if(action==='edit-save'){if(busy)return;busy=true;const draft=collectEditForm(section);const result=await saveEdit(model.notificationId,draft);busy=false;if(result.ok)reopen();else showEdit(draft,editErrorText(result));}
+      else if(action==='cancel'){if(busy)return;if(typeof root.confirm==='function'&&!root.confirm(tr('pack.internal.cancelConfirm',{reference:model.reference})))return;busy=true;const result=await cancelAndPersist(model.notificationId);busy=false;if(result.ok)reopen();else if(typeof root.alert==='function')root.alert(editErrorText(result));}
+    });
     host.appendChild(section);try{doc.body.setAttribute('data-exporthub-view','packnotification');}catch(_){}return true;
   }
   function openTaskDetail(task){const notification=findNotification(sharedState(),task);if(!notification)return false;return openNotificationDetail(notification);}
@@ -213,6 +321,6 @@
     scheduleRender();return true;
   }
 
-  root.ExportHUBPackNotifications=Object.freeze({isPackTask,packTasks,packNotifications,findNotification,unreadCount,markRead,detailModel,inboxItems,inboxUnreadCount,documentUrl,renderPackInbox,renderNavBadge,openNotificationDetail,openTaskDetail,install});
+  root.ExportHUBPackNotifications=Object.freeze({isPackTask,packTasks,packNotifications,findNotification,unreadCount,markRead,detailModel,isLocked,applyEdit,cancelNotification,detailHtml,editHtml,inboxItems,inboxUnreadCount,documentUrl,renderPackInbox,renderNavBadge,openNotificationDetail,openTaskDetail,install});
   install();
 })(typeof window!=='undefined'?window:globalThis);
