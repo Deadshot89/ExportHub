@@ -83,6 +83,11 @@
       "headers": {"Cache-Control": "no-store, no-cache, must-revalidate"}
     },
     {
+      "route": "/assets/av-upload.js",
+      "allowedRoles": ["anonymous"],
+      "headers": {"Cache-Control": "no-store, no-cache, must-revalidate"}
+    },
+    {
       "route": "/task",
       "rewrite": "/task.html",
       "allowedRoles": ["anonymous"],

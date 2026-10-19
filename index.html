@@ -10803,10 +10803,34 @@ html[data-exporthub-testportal="1"] #content textarea{height:auto!important;min-
     return true;
   }
 
+  function rendered(el){
+    /* RC1577: Felder in eingeklappten oder per content-visibility übersprungenen Kacheln erst messen, wenn sie sichtbar werden */
+    try{if(typeof el.checkVisibility==='function')return el.checkVisibility({contentVisibilityAuto:true})}catch(_){}
+    return true;
+  }
+
   function scan(root){
     var scope=root&&root.querySelectorAll?root:document;
-    if(root&&root.nodeType===1&&isEligible(root))resizeTextarea(root);
-    Array.prototype.forEach.call(scope.querySelectorAll('textarea'),resizeTextarea);
+    var list=Array.prototype.filter.call(scope.querySelectorAll('textarea'),isEligible);
+    if(root&&root.nodeType===1&&isEligible(root))list.unshift(root);
+    list=list.filter(rendered);
+    /* RC1577: reine Lesephase zuerst; nur Felder mit geändertem Inhalt oder geänderter Breite werden neu gemessen */
+    var keys=list.map(function(el){return String(el.value||'')+'|'+el.clientWidth});
+    var dirty=[],dirtyKeys=[];
+    list.forEach(function(el,i){if(el.__rc1577AutogrowKey!==keys[i]){dirty.push(el);dirtyKeys.push(keys[i])}});
+    if(!dirty.length)return;
+    /* erst alle Höhen zurücksetzen, dann alle messen, dann alle setzen – ein Layout statt eines Layouts je Textarea */
+    dirty.forEach(function(el){
+      el.setAttribute('data-rc973-autogrow','1');
+      el.style.setProperty('max-height','none','important');
+      el.style.setProperty('overflow-y','hidden','important');
+      el.style.setProperty('height','auto','important');
+    });
+    var targets=dirty.map(function(el){return Math.max(cssMinHeight(el),Number(el.scrollHeight||0))});
+    dirty.forEach(function(el,i){
+      if(targets[i]>0)el.style.setProperty('height',Math.ceil(targets[i])+'px','important');
+      el.__rc1577AutogrowKey=dirtyKeys[i];
+    });
   }
 
   function runScheduled(){
@@ -10831,6 +10855,7 @@ html[data-exporthub-testportal="1"] #content textarea{height:auto!important;min-
     window.addEventListener(name,schedule);
   });
   window.addEventListener('resize',schedule,{passive:true});
+  document.addEventListener('contentvisibilityautostatechange',function(ev){if(ev&&ev.skipped===false)schedule()},true);
 
   var observer=new MutationObserver(function(records){
     for(var i=0;i<records.length;i++){
@@ -22637,7 +22662,9 @@ function canonicalStatus(sh){
 function syncStatus(sh,next){var k=skey(sh),changed=false,stamp=new Date().toISOString();shipmentGroups().forEach(function(list){list.forEach(function(x){if(skey(x)!==k)return;var target=next,itemChanged=false;if(x.remotePickupStatusLocked===true&&pickupDone(x)&&podDone(x)&&rank(target)<rank('POD vorhanden'))target='POD vorhanden';else if(podDone(x)&&rank(target)<rank('POD vorhanden'))target='POD vorhanden';else if(pickupDone(x)&&rank(target)<rank('Abgeholt'))target='Abgeholt';if(q(x.status)!==target){x.status=target;itemChanged=true}if(q(x.processStatus)!==target){x.processStatus=target;itemChanged=true}if(target==='Bereit zur Abholung'){x.readyForPickup=true;x.readinessStatus=target}if(target==='Vorbereitet'){x.readyForPickup=true;x.readinessStatus='Bereit zur Abholung';x.warehousePrepared=true}if(target==='Abgeholt'){x.pickupStatus='abgeholt';x.readyForPickup=false}if(target==='POD vorhanden'||target==='Abgeschlossen'){x.pickupStatus='abgeholt';x.podStatus='POD vorhanden';x.podConfirmed=true;x.podScanConfirmed=true;x.podAvailable=true;x.readyForPickup=false}if(itemChanged){x.statusUpdatedAt=stamp;changed=true}})});return changed}
 function enforceStatus(sh,force){if(!sh)return false;var before=label(sh.status),next=canonicalStatus(sh),changed=syncStatus(sh,next);if(changed){sh.statusHistory=arr(sh.statusHistory);sh.statusHistory.push({at:new Date().toISOString(),from:before,to:next,source:'RC543 kanonischer Prozessstatus'});if(sh.statusHistory.length>100)sh.statusHistory=sh.statusHistory.slice(-100);if(force)persist('Sendungsstatus auf '+next+' synchronisiert')}return changed}
 function patchVisible(){
- allShipments().forEach(function(sh){var rf=sref(sh),st=canonicalStatus(sh);if(!rf)return;document.querySelectorAll('#content .rc524-shipment-card[data-shipment],#content tr').forEach(function(node){if(q(node.textContent).toUpperCase().indexOf(rf)<0&&q(node.getAttribute&&node.getAttribute('data-shipment')).toUpperCase()!==skey(sh))return;node.querySelectorAll('.pill,td').forEach(function(el){if(/^(Entwurf|Erstellt|In Bearbeitung|Wartet auf ABD|Bereit zur Abholung|Vorbereitet|Abgeholt|POD vorhanden|Abgeschlossen|Archiviert|Storniert|Nachbearbeitung erforderlich)$/i.test(q(el.textContent)))el.textContent=st})})
+ /* RC1577: Kacheln/Zeilen einmal einlesen statt je Sendung erneut (vorher quadratisch); Text nur schreiben, wenn er sich ändert */
+ var nodes=Array.prototype.slice.call(document.querySelectorAll('#content .rc524-shipment-card[data-shipment],#content tr')).map(function(node){return{node:node,text:q(node.textContent).toUpperCase(),key:q(node.getAttribute&&node.getAttribute('data-shipment')).toUpperCase(),pills:null}});
+ if(nodes.length)allShipments().forEach(function(sh){var rf=sref(sh),st=canonicalStatus(sh);if(!rf)return;var key=skey(sh);nodes.forEach(function(entry){if(entry.text.indexOf(rf)<0&&entry.key!==key)return;if(!entry.pills)entry.pills=Array.prototype.slice.call(entry.node.querySelectorAll('.pill,td'));entry.pills.forEach(function(el){if(/^(Entwurf|Erstellt|In Bearbeitung|Wartet auf ABD|Bereit zur Abholung|Vorbereitet|Abgeholt|POD vorhanden|Abgeschlossen|Archiviert|Storniert|Nachbearbeitung erforderlich)$/i.test(q(el.textContent))&&el.textContent!==st)el.textContent=st})})
  });
  var cur=currentShipment(),activeView=low((states()[0]||{}).view);if(cur&&activeView==='shipment'){var currentStatus=canonicalStatus(cur),shell=document.getElementById('rc573ShipmentShell')||document.getElementById('content');if(shell)Array.prototype.slice.call(shell.querySelectorAll('.pill,.status-pill,.rc210-status-pill,.rc573-status-pill,[data-shipment-status],[data-current-status]')).forEach(function(el){if(/^(Entwurf|Erstellt|In Bearbeitung|Wartet auf ABD|Bereit zur Abholung|Vorbereitet|Abgeholt|POD vorhanden|Abgeschlossen|Archiviert|Storniert|Nachbearbeitung erforderlich)$/i.test(q(el.textContent)))el.textContent=currentStatus})}
 }
