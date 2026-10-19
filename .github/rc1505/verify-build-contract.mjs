@@ -45,7 +45,7 @@ for(const file of pages){
 
 for(const file of ['dist-rc1112/index.html','dist-rc1112/TESTVERSION.html']){
   includes(file,'assets/rc1061-document-migration-admin.js?v=1073');
-  includes(file,'assets/rc1067-startup-recovery.js?v=1067');
+  includes(file,'assets/rc1067-startup-recovery.js?v=1577');
   includes(file,'assets/rc1075-loader-pin-admin.js?v=1075');
   includes(file,'assets/rc1126-customer-delete.js?v=1387');
   includes(file,'assets/rc1013-diagnostics.js?v=1364');

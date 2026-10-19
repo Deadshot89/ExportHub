@@ -14,7 +14,7 @@ const RC1061_MIGRATION_TAG='<script id="'+RC1061_MIGRATION_ID+'" defer src="/ass
 const RC1063_ABD_BLOB_ID='exporthub-rc1063-abd-blob-viewer-compat';
 const RC1063_ABD_BLOB_TAG='<script id="'+RC1063_ABD_BLOB_ID+'" defer src="/assets/rc1063-abd-blob-viewer-compat.js?v=1248"></script>';
 const RC1067_STARTUP_ID='exporthub-rc1067-startup-recovery';
-const RC1067_STARTUP_TAG='<script id="'+RC1067_STARTUP_ID+'" defer src="/assets/rc1067-startup-recovery.js?v=1067"></script>';
+const RC1067_STARTUP_TAG='<script id="'+RC1067_STARTUP_ID+'" defer src="/assets/rc1067-startup-recovery.js?v=1577"></script>';
 const RC1069_PERF_ID='exporthub-rc1069-performance';
 const RC1069_PERF_TAG='<script id="'+RC1069_PERF_ID+'" defer src="/assets/rc1069-performance.js?v=1069"></script>';
 const RC1071_HISTORY_ID='exporthub-rc1071-shipment-history';
