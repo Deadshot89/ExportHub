@@ -93,3 +93,25 @@ test('RC1570 Texte liegen in der Sprachdatei, alle sechs Sprachen haben dieselbe
   assert.ok(build.indexOf("RC1570_TASKS_I18N_TAG,'exporthub-rc1570-tasks-i18n'")>0&&build.indexOf("RC1570_TASKS_I18N_TAG,'exporthub-rc1570-tasks-i18n'")<build.indexOf("RC1570_TASKS_SCRIPT_TAG,'exporthub-rc1570-tasks-script'"),'Sprachdatei vor dem Modul');
   assert.match(build,/'assets\/i18n\/rc1570-tasks-focus\.js',/);
 });
+
+test('RC1570 Heute ist nach Arbeitsgruppen wie in der alten Liste gruppiert, Karten bleiben erhalten',()=>{
+  const day={day:'Mittwoch',weekKey:'2026-W42',owner:'Tobias'};
+  const api=load([
+    {id:'abd',title:'ABD prüfen',area:'Zoll',...day},
+    {id:'pick',title:'Ware picken',area:'Lager',...day},
+    {id:'avis',title:'Avis an Spedition',area:'Versand',...day},
+    {id:'pod',title:'POD anfordern',area:'Versand',pickedUp:true,...day},
+    {id:'podok',title:'POD anfordern',area:'Versand',pickedUp:true,podUrl:'x',...day},
+    {id:'ship',title:'Sendung vorbereiten',area:'Versand',...day}
+  ],me,'2026-10-14T10:00:00');
+  assert.equal(api.workGroup({title:'MRN eintragen'}),'abds');
+  assert.equal(api.workGroup({area:'Pickup',title:'Abholung'}),'shipments','Pickup ist kein Pick');
+  const html=api.renderHtml(api.buildModel(),new Date('2026-10-14T10:00:00'));
+  const order=[...html.matchAll(/data-rc1570-group="(\w+)"/g)].map(m=>m[1]);
+  assert.deepEqual(order,['shipments','pod','customer','picks','abds']);
+  assert.match(html,/<h4>Fehlende POD <span>1<\/span><\/h4><ul class="rc1570-cards"><li class="rc1570-card" data-rc1570-task="pod">/);
+  assert.match(html,/<h4>Offene Sendungen <span>2<\/span>/);
+  assert.match(source,/function card\(r,opts\)\{/);
+  assert.match(source,/function cards\(rows,opts\)\{/);
+  assert.doesNotMatch(source,/areaBlocks|byArea/);
+});
