@@ -319,7 +319,7 @@ html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content > .rc205-quick
 .rc1573-move button{min-width:34px;min-height:34px;padding:0!important}
 .rc1573-actions{display:flex;justify-content:space-between;gap:8px}
 /* low laptop screens: compact tiles so overview and tiles still share one page */
-@media (min-width:1250px) and (max-height:820px){
+@media (min-width:1000px) and (max-height:820px){
   html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content [data-rc1573-tile]{padding-top:8px!important;padding-bottom:8px!important}
   .rc1573-bars{min-height:60px}
   .rc1573-bar{grid-template-rows:auto minmax(28px,1fr) auto}
@@ -334,7 +334,38 @@ html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content > .rc205-quick
 /* RC1574 old tiles no longer overlap: with the RC205 grid dissolved into the one-page grid, tiles the RC1573 editor
    does not manage (old warehouse lanes, tasks, shipments from saved RC205 preferences) landed as 3-of-60 slivers whose
    content spilled over their neighbours. They are covered by the overview and the Lagerbelegung tile, so they are left
-   out here (they stay in the RC205 editor and in the narrow layout). The RC205 masonry writes grid-row-end spans for
+   out on the dashboard (they stay in the RC205 editor). The RC205 masonry writes grid-row-end spans for
    its 4px rows; in the one-page grid those spans pushed ABD/pallet over the quick access tile, so every tile takes one row. */
-html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) > .rc205-dashboard-grid > .rc205-layout-item:not([data-rc1573-tile]){display:none!important}
+html body[data-rc1558-overview="1"] #content:not([data-rc1371-editing="1"]) > .rc205-dashboard-grid > .rc205-layout-item:not([data-rc1573-tile]){display:none!important}
 html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) > .rc205-dashboard-grid > [data-rc1573-tile]{grid-row:auto!important;align-self:stretch}
+
+/* RC1575 whole screen, no scrolling: the overview and the tile row share the free height 3:2 and grow with the screen.
+   The tile row never gets less than its content needs; the overview gives way first and its lists scroll inside,
+   so the page itself never scrolls. Tiles stretch to the row height and their figures grow with the tile.
+   Triple id: RC1306 layout rules (#content > :is(section,.card,…):not(#loadListDoc)) pin cards to align-self:start. */
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]){grid-template-rows:minmax(0,3fr) minmax(140px,2fr)!important;overflow:hidden!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) > #rc1558Overview#rc1558Overview{min-height:0!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) > #rc1558Overview#rc1558Overview > .rc1558-grid{min-height:0!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) .rc1558-stack .rc1558-list{min-height:0!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) [data-rc1573-tile]{grid-row:2!important;align-self:stretch!important;height:auto!important;display:flex!important;flex-direction:column!important;flex-wrap:nowrap!important;container-type:size}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) > .rc205-dashboard-grid > [data-rc1573-tile] > .rc205-widget{flex:1 1 auto;align-self:stretch!important;width:auto!important;min-height:0;height:auto!important;display:flex!important;flex-direction:column!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) .rc205-dashboard-grid .rc205-mini-metrics{flex:1 1 auto;min-height:0;align-content:center}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) .rc205-dashboard-grid .rc205-mini-metrics .metric{display:flex!important;flex-direction:column;justify-content:center;min-height:min(120px,40cqh)!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) .rc205-dashboard-grid .rc205-mini-metrics .metric strong{font-size:clamp(22px,14cqh,44px)!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) > .rc205-quick-card[data-rc1573-tile] .rc205-quick-grid{flex:1 1 0;min-height:0;grid-auto-rows:minmax(30px,1fr);overflow-y:auto}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) .rc1573-tile .rc1573-bars{flex:1 1 auto;min-height:60px}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) .rc1573-tile .rc1573-bar-track{max-width:48px}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) > .rc205-quick-card[data-rc1573-tile] .rc205-quick b{overflow-wrap:break-word!important;word-break:normal!important;hyphens:auto}
+/* narrow laptop or zoomed browser (1000–1249px): figures stay in one row so the lists keep their height */
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) .rc1558-kpis{grid-template-columns:repeat(6,minmax(0,1fr))!important}
+/* low screens: the overview lists keep room for a few rows, the tiles give way (down to 120px) and the figures drop their sub line */
+@media (max-height:820px){
+  html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]){grid-template-rows:minmax(0,2fr) minmax(120px,1fr)!important}
+}
+@media (max-height:700px){
+  html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) .rc1558-kpi-sub{display:none!important}
+}
+/* narrow tiles: the quick access buttons drop their icons so the labels stay readable */
+@container (max-width:240px){
+  .rc205-quick-card[data-rc1573-tile] .rc205-quick > span{display:none!important}
+}

@@ -45,8 +45,10 @@ test('RC1569 Kachel-Klick öffnet die Funktion mit Filter, Filter wird live ange
 });
 
 test('RC1569 Dashboard bleibt auf einer Seite: Höhe aus freiem Bildschirm, Übersicht nimmt den Rest',()=>{
-  assert.match(runtime,/h=Math\.floor\(w\.innerHeight-\(c\.getBoundingClientRect\(\)\.top\+\(w\.scrollY\|\|w\.pageYOffset\|\|0\)\)-16\);if\(h<460\)on=false/);
-  assert.match(runtime,/c\.getAttribute\('data-rc1371-editing'\)!=='1'&&w\.innerWidth>=1250/,'nicht im Bearbeiten-Modus, nicht auf Tablet/Handy');
+  assert.match(runtime,/h=Math\.floor\(w\.innerHeight-\(c\.getBoundingClientRect\(\)\.top\+\(w\.scrollY\|\|w\.pageYOffset\|\|0\)\)-16\);if\(h<FIT_MIN_HEIGHT\)on=false/);
+  // RC1575: also narrower laptops and zoomed browsers (from 1100px) and lower screens (from 360px free height)
+  assert.match(runtime,/c\.getAttribute\('data-rc1371-editing'\)!=='1'&&w\.innerWidth>=FIT_MIN_WIDTH/,'nicht im Bearbeiten-Modus, nicht auf Tablet/Handy');
+  assert.match(runtime,/var FIT_MIN_WIDTH=1100,FIT_MIN_HEIGHT=360;/);
   assert.match(css,/\.rc1558-stack\{display:contents!important\}/,'RC1572: Aufmerksamkeit und Aufgaben stehen als eigene Spalten');
   assert.ok(css.includes('{grid-template-rows:minmax(400px,1fr)!important}'),'RC1572: Übersicht überlappt die Kacheln nicht');
   assert.match(css,/\.rc1558-stack \.rc1558-list\{flex:1 1 auto;min-height:150px;max-height:none;overflow-y:auto\}/,'RC1572: Listen behalten Platz für ihre Zeilen');

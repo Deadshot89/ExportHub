@@ -500,12 +500,14 @@ function openTilePanel(){
 /* RC1569 one-page fit: the dashboard gets exactly the free screen height below the top bar;
    the overview takes what the tiles below leave and scrolls inside, so added tiles never make the page scroll */
 var FIT_FLAG='data-rc1569-fit';
+// RC1575: laptops, zoomed browsers and small monitors also get the one-page layout; tablets and phones scroll as before
+var FIT_MIN_WIDTH=1100,FIT_MIN_HEIGHT=360;
 function fit(){
   var d=w.document;if(!d||!d.body)return;
   var c=d.getElementById('content');
-  var on=c&&isDashboard()&&d.body.hasAttribute(BODY_FLAG)&&c.getAttribute('data-rc1371-editing')!=='1'&&w.innerWidth>=1250;
+  var on=c&&isDashboard()&&d.body.hasAttribute(BODY_FLAG)&&c.getAttribute('data-rc1371-editing')!=='1'&&w.innerWidth>=FIT_MIN_WIDTH;
   var h=0;
-  if(on){h=Math.floor(w.innerHeight-(c.getBoundingClientRect().top+(w.scrollY||w.pageYOffset||0))-16);if(h<460)on=false}
+  if(on){h=Math.floor(w.innerHeight-(c.getBoundingClientRect().top+(w.scrollY||w.pageYOffset||0))-16);if(h<FIT_MIN_HEIGHT)on=false}
   if(!on){if(d.body.hasAttribute(FIT_FLAG))d.body.removeAttribute(FIT_FLAG);return}
   c.style.setProperty('--rc1569-fit-h',h+'px');
   if(d.body.getAttribute(FIT_FLAG)!=='1')d.body.setAttribute(FIT_FLAG,'1');
