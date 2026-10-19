@@ -48,6 +48,7 @@ function fixture(failure,{afterCommit=false}={}){
     isTransientStorageWriteError,
     error,
     Buffer,
+    process:{env:{}},
     uploadJson:async(_blob,next)=>{
       uploads++;
       if(uploads===1&&failure){
