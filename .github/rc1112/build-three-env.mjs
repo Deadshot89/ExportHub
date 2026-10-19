@@ -1064,8 +1064,8 @@ function patchHtml(file){
   html=patchRc1206ShippingRules(html,file);
   html=patchNotificationTasks(html,file);
   html=patchNotificationTaskDetails(html,file);
-  html=patchNotificationTaskPlannerV2(html,file);
   html=patchWorkspaceTaskOwnership(html,file);
+  html=patchNotificationTaskPlannerV2(html,file);
   html=patchTaskMasterSaveScope(html,file);
   html=patchTaskDetailTab(html,file);
   html=patchRc1259ContainerSearch(html,file);

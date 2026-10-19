@@ -158,3 +158,22 @@ test('Erinnerungshinweis enthält Öffnen und Erledigt pro Aufgabe',()=>{
   assert.doesNotMatch(html,/data-tpv2-reminder-open="t4"/);
   assert.match(html,/\+1 more/);
 });
+
+test('Build: Benachrichtigungscenter nutzt V2-Erinnerungen und V2-Erledigen, Quelltext passt genau einmal',()=>{
+  const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8').replace(/\r\n/g,'\n');
+  assert.match(build,/html=patchWorkspaceTaskOwnership\(html,file\);\n\s*html=patchNotificationTaskPlannerV2\(html,file\);/);
+  const html=fs.readFileSync('index.html','utf8'),a=html.indexOf('<script id="index236-notification-controller">'),b=html.indexOf('<!-- INDEX 236 NOTIFICATION CENTER END -->',a),block=html.slice(a,b);
+  for(const before of [
+    "{id:'1200',label:'12:00 Uhr',minutes:720},",
+    "{id:'1500',label:'15:00 Uhr',minutes:900}",
+    "function checkSchedule(manual){var c=counts();if(manual){showHint(c,'Manuelle Prüfung',true);renderView();return false}",
+    "function completeTask(id){var t=findTask(id);if(!t)return false;",
+    'ExportHUB erinnert an Arbeitstagen um 09:00, 12:00 und 15:00 Uhr.',
+    'Erinnerungen erscheinen um 09:00, 12:00 und 15:00 Uhr, solange ExportHUB geöffnet ist.'
+  ]){
+    assert.equal(block.split(before).length-1,1,before);
+    assert.ok(build.includes(before),before);
+  }
+  assert.match(build,/ExportHUBTaskRemindersV2\.active\(\)\)\{updateBadge\(\);return false\}/);
+  assert.match(build,/v2\.completeTask\(taskId\(t\)/);
+});
