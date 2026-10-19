@@ -36,6 +36,44 @@
     const task=arr(state&&state.tasks).find(t=>q(t&&t.sourceType)==='pack_notification'&&q(t&&t.sourceId)===q(notification.id));if(task){task.status='in_progress';task.updatedAt=when;}
     return true;
   }
+  const OPEN_AFTER_SHIPMENT=new Set(['shipment_created','registration_in_progress','registered','ready_for_dispatch']);
+  function shipmentStatusText(sh){return q(sh&&(sh.status||sh.shipmentStatus||sh.processStatus||sh.pickupStatus)).toLocaleLowerCase('de-DE');}
+  function shipmentCancelled(sh){return /^(?:storniert|cancelled|canceled)$/.test(shipmentStatusText(sh));}
+  function shipmentCompleted(sh){
+    try{const calendar=root.ExportHubPickupCalendar;if(calendar&&typeof calendar.shipmentIsCompleted==='function')return Boolean(calendar.shipmentIsCompleted(sh));}catch(_){}
+    if(q(sh&&(sh.pickedUpAt||sh.pickupConfirmedAt||sh.pickupCompletedAt||sh.podServerVerifiedAt)))return true;
+    return /^(?:abgeholt|pod vorhanden|abgeschlossen|archiviert|picked up|pod available|completed|archived)$/.test(shipmentStatusText(sh));
+  }
+  function statusFromShipment(sh){if(!sh)return'';if(shipmentCancelled(sh))return'cancelled';if(shipmentCompleted(sh))return'completed';return'';}
+  function syncStatuses(state,at){
+    const when=q(at)||new Date().toISOString(),changes=[];
+    for(const notification of arr(state&&state.packNotifications)){
+      if(!q(notification&&notification.shipmentId)||!OPEN_AFTER_SHIPMENT.has(q(notification.status).toLowerCase()))continue;
+      const next=statusFromShipment(findShipmentForNotification(state,notification));if(!next)continue;
+      const before={notification:{status:notification.status,updatedAt:notification.updatedAt,closedAt:notification.closedAt},tasks:[]};
+      notification.status=next;notification.updatedAt=when;notification.closedAt=when;
+      for(const task of arr(state&&state.tasks)){
+        if(q(task&&task.sourceType)!=='pack_notification'||q(task&&task.sourceId)!==q(notification.id))continue;
+        before.tasks.push({task,status:task.status,updatedAt:task.updatedAt,unread:task.unread});
+        task.status=next==='completed'?'done':'cancelled';task.unread=false;task.updatedAt=when;
+      }
+      changes.push({notification,before});
+    }
+    return changes;
+  }
+  function revertSync(changes){
+    for(const {notification,before} of changes){
+      for(const [key,value] of Object.entries(before.notification)){if(value===undefined)delete notification[key];else notification[key]=value;}
+      for(const t of before.tasks){for(const key of ['status','updatedAt','unread']){if(t[key]===undefined)delete t.task[key];else t.task[key]=t[key];}}
+    }
+  }
+  let syncing=false,syncTimer=0;
+  async function syncAndPersist(){
+    if(syncing)return false;syncing=true;
+    try{const changes=syncStatuses(sharedState(),new Date().toISOString());if(!changes.length)return false;if(!await persist('Packmeldung-Status aus Sendung übernommen')){revertSync(changes);return false;}return true;}
+    finally{syncing=false;}
+  }
+  function scheduleSync(){if(typeof setTimeout!=='function')return;if(typeof clearTimeout==='function')clearTimeout(syncTimer);syncTimer=setTimeout(()=>{syncAndPersist().catch(()=>{});},150);}
   async function persist(reason){
     try{
       const clean=root.ExportHUBClean;
@@ -121,6 +159,7 @@
     return startNew(notification);
   }
   async function onShipmentSaved(event){
+    scheduleSync();
     if(!pending)return;const state=sharedState(),notification=notificationById(state,pending.notificationId);if(!notification){pending=null;return;}
     const detail=event&&event.detail||{},saved=detail.shipment||findShipmentForNotification(state,notification)||(state.shipment||state.currentShipment||state.selectedShipment);
     if(!saved||!shipmentId(saved))return false;
@@ -141,9 +180,11 @@
   function install(){
     if(typeof root.addEventListener!=='function'||root.__packShipmentBridgeInstalled)return false;root.__packShipmentBridgeInstalled=true;
     root.addEventListener('exporthub:pack-create-shipment',event=>begin(event&&event.detail&&event.detail.notificationId));
-    root.addEventListener('exporthub:shipment-saved',onShipmentSaved);return true;
+    root.addEventListener('exporthub:shipment-saved',onShipmentSaved);
+    ['exporthub:shipment-updated','exporthub:state-loaded','exporthub:sync'].forEach(name=>root.addEventListener(name,scheduleSync));
+    scheduleSync();return true;
   }
 
-  root.ExportHUBPackShipment=Object.freeze({shipmentPrefill,findShipmentForNotification,linkShipment,begin,applyPrefillToMountedForm,install});
+  root.ExportHUBPackShipment=Object.freeze({shipmentPrefill,findShipmentForNotification,linkShipment,statusFromShipment,syncStatuses,begin,applyPrefillToMountedForm,install});
   install();
 })(typeof window!=='undefined'?window:globalThis);
