@@ -1,0 +1,156 @@
+/* RC1577 · Sendungsübersicht: kompakte Kacheln
+   Nur Darstellung: alle Buttons, Upload-Felder, Notiz und Status bleiben unverändert im DOM.
+   Wird im Build als letztes Stylesheet eingebunden. #content#content hebt die Spezifität über die globale
+   #content :is(.btn,…):not(#loadListDoc *)-Regel und die RC524/RC628-Kachelregeln. */
+@media screen{
+  /* Kacheln füllen nicht mehr die ganze Zeile, wenn eine Gruppe nur eine Sendung enthält */
+  html body #content#content.rc524-overview-view .rc543-overview-group-body{
+    grid-template-columns:repeat(auto-fill,minmax(330px,1fr))!important;
+    gap:10px!important;
+    padding:10px!important;
+  }
+  html body #content#content.rc524-overview-view .rc524-shipment-card{
+    padding:10px 12px!important;
+    gap:7px!important;
+    border-radius:12px!important;
+    contain-intrinsic-size:auto 340px!important;
+  }
+  html body #content#content.rc524-overview-view .rc524-shipment-card>.rc524-area-head{
+    text-align:left!important;
+    min-height:0!important;
+    gap:8px!important;
+  }
+  html body #content#content.rc524-overview-view .rc524-shipment-card .rc524-kicker{
+    font-size:11px!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+  }
+  html body #content#content.rc524-overview-view .rc524-shipment-card>.rc524-area-head>div{min-width:0!important}
+  html body #content#content.rc524-overview-view .rc524-shipment-card h2{margin:2px 0 0!important;font-size:17px!important}
+
+  /* Abholung / Erstellt von / Spedition / ABD als kompakte Zeilen statt hoher Boxen */
+  html body #content#content.rc524-overview-view .rc524-overview-meta{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:4px 10px!important;
+    margin:0!important;
+    padding:7px 9px!important;
+    border:1px solid rgba(148,163,184,.35)!important;
+    border-radius:9px!important;
+    background:rgba(148,163,184,.08)!important;
+    text-align:left!important;
+  }
+  html body #content#content.rc524-overview-view .rc524-overview-meta>span{
+    min-height:0!important;
+    padding:0!important;
+    border:0!important;
+    border-radius:0!important;
+    background:transparent!important;
+    color:inherit!important;
+    font-size:12px!important;
+    line-height:1.3!important;
+  }
+  html body #content#content.rc524-overview-view .rc524-overview-meta>span>b{
+    display:inline!important;
+    margin:0 4px 0 0!important;
+    color:inherit!important;
+    opacity:.68!important;
+    font-size:11px!important;
+    font-weight:800!important;
+  }
+  html body #content#content.rc524-overview-view .rc1014-shipment-meta{justify-content:flex-start!important;margin-top:0!important;gap:5px!important;font-size:11px!important}
+  html body #content#content.rc524-overview-view .rc1014-shipment-meta>span{min-height:22px!important;padding:2px 8px!important}
+
+  /* Dokument-Aktionen als eine umbrechende Zeile kleiner Buttons */
+  html body #content#content.rc524-overview-view .rc524-action-grid{
+    display:flex!important;
+    flex-wrap:wrap!important;
+    gap:5px!important;
+    width:auto!important;
+    align-self:stretch!important;
+  }
+  html body #content#content.rc524-overview-view .rc524-action-grid>button,
+  html body #content#content.rc524-overview-view .rc524-action-grid>.rc524-upload{
+    flex:0 1 auto!important;
+    width:auto!important;
+    min-width:0!important;
+    min-height:30px!important;
+    height:auto!important;
+    margin:0!important;
+    padding:5px 9px!important;
+    border-radius:8px!important;
+    font-size:11.5px!important;
+    line-height:1.2!important;
+    white-space:nowrap!important;
+    box-shadow:none!important;
+  }
+
+  /* POD-/ABD-Anbindung ohne feste Mindesthöhe */
+  html body #content#content.rc524-overview-view .rc524-link-columns{min-height:0!important;gap:6px!important}
+  html body #content#content.rc524-overview-view .rc524-link-columns>section{
+    min-height:0!important;
+    padding:6px 8px!important;
+    gap:3px!important;
+    border-radius:9px!important;
+  }
+  html body #content#content.rc524-overview-view .rc524-link-columns>section>h3{font-size:11.5px!important}
+  html body #content#content.rc524-overview-view .rc524-link-columns .muted{margin:0!important;font-size:11.5px!important;line-height:1.35!important}
+
+  /* Notiz: einzeilig, wächst beim Schreiben weiter mit (RC973) */
+  html body #content#content.rc524-overview-view .rc403-overview-note{
+    grid-template-columns:auto minmax(0,1fr)!important;
+    align-items:center!important;
+    justify-self:stretch!important;
+    align-self:stretch!important;
+    width:auto!important;
+    margin:0!important;
+    gap:3px 8px!important;
+    padding:6px 8px!important;
+    border-radius:9px!important;
+  }
+  html body #content#content.rc524-overview-view .rc403-overview-note>textarea{
+    grid-column:2!important;
+    min-height:32px!important;
+    padding:4px 8px!important;
+    line-height:1.3!important;
+    border-radius:8px!important;
+    font-size:12px!important;
+    font-weight:600!important;
+  }
+  html body #content#content.rc524-overview-view .rc403-overview-note>label{grid-column:1!important;grid-row:1!important}
+  html body #content#content.rc524-overview-view .rc403-overview-note>small{grid-column:2!important;min-height:0!important}
+
+  /* Sendungs-Aktionen: kleine Buttons in einer Zeile, Löschen bleibt rot */
+  html body #content#content.rc524-overview-view .rc576-shipment-secondary-actions,
+  html body #content#content.rc524-overview-view .rc524-dangerbar{
+    display:flex!important;
+    flex-wrap:wrap!important;
+    gap:5px!important;
+    margin-top:auto!important;
+    padding-top:7px!important;
+    border-top:1px solid rgba(148,163,184,.3)!important;
+  }
+  html body #content#content.rc524-overview-view .rc576-shipment-secondary-actions>*,
+  html body #content#content.rc524-overview-view .rc524-dangerbar>*{
+    flex:1 1 auto!important;
+    width:auto!important;
+    min-width:0!important;
+    min-height:30px!important;
+    height:auto!important;
+    margin:0!important;
+    padding:5px 9px!important;
+    border-radius:8px!important;
+    font-size:11.5px!important;
+    line-height:1.2!important;
+  }
+  html body #content#content.rc524-overview-view .rc524-dangerbar>[hidden]{display:none!important}
+}
+
+@media screen and (max-width:760px){
+  html body #content#content.rc524-overview-view .rc543-overview-group-body{grid-template-columns:1fr!important;padding:8px!important}
+  html body #content#content.rc524-overview-view .rc524-overview-meta{grid-template-columns:1fr 1fr!important}
+  html body #content#content.rc524-overview-view .rc524-overview-meta>span{min-height:0!important}
+  html body #content#content.rc524-overview-view .rc524-link-columns{grid-template-columns:1fr 1fr!important}
+  /* Touch-Ziele auf dem Smartphone nicht unter 36px */
+  html body #content#content.rc524-overview-view :is(.rc524-action-grid>button,.rc524-action-grid>.rc524-upload,.rc524-dangerbar>*,.rc576-shipment-secondary-actions>*){min-height:36px!important}
+}
