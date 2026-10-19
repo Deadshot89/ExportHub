@@ -58,6 +58,7 @@ const RC1371_DASHBOARD_STYLE_TAG='<link id="exporthub-rc1371-dashboard-style" re
 const RC1371_DASHBOARD_I18N_TAG='<script id="exporthub-rc1371-dashboard-i18n" defer src="/assets/i18n/rc1371-dashboard-personalization.js?v=1371"><\/script>';
 const RC1371_DASHBOARD_SCRIPT_TAG='<script id="exporthub-rc1371-dashboard-script" defer src="/assets/rc1371-dashboard-personalization.js?v=1371"><\/script>';
 const RC1560_FULL_WIDTH_STYLE_TAG='<link id="exporthub-rc1560-full-width" rel="stylesheet" href="/assets/rc1560-full-width.css?v=1560">';
+const RC1577_OVERVIEW_COMPACT_STYLE_TAG='<link id="exporthub-rc1577-overview-compact" rel="stylesheet" href="/assets/rc1577-shipment-overview-compact.css?v=1577">';
 const RC1558_OVERVIEW_STYLE_TAG='<link id="exporthub-rc1558-overview-style" rel="stylesheet" href="/assets/rc1558-dashboard-overview.css?v=1558">';
 const RC1558_OVERVIEW_I18N_TAG='<script id="exporthub-rc1558-overview-i18n" defer src="/assets/i18n/rc1558-dashboard-overview.js?v=1558"><\/script>';
 const RC1558_OVERVIEW_SCRIPT_TAG='<script id="exporthub-rc1558-overview-script" defer src="/assets/rc1558-dashboard-overview.js?v=1558"><\/script>';
@@ -124,6 +125,13 @@ function patchRc1560FullWidth(html,file){
   // last stylesheet in <head>: lifts the screen width caps of #content and the view wrappers
   html=injectDeferredRuntimeInHead(html,RC1560_FULL_WIDTH_STYLE_TAG,'exporthub-rc1560-full-width');
   if(!html.includes('rc1560-full-width.css?v=1560'))throw new Error(file+': RC1560 Vollbreite-CSS fehlt');
+  return html;
+}
+
+function patchRc1577OverviewCompact(html,file){
+  // after RC1560: compact shipment overview tiles, purely visual
+  html=injectDeferredRuntimeInHead(html,RC1577_OVERVIEW_COMPACT_STYLE_TAG,'exporthub-rc1577-overview-compact');
+  if(!html.includes('rc1577-shipment-overview-compact.css?v=1577'))throw new Error(file+': RC1577 kompakte Sendungsübersicht fehlt');
   return html;
 }
 
@@ -1052,6 +1060,7 @@ function patchHtml(file){
   html=patchRc1558DashboardOverview(html,file);
   html=patchRc1306LayoutEngine(html,file);
   html=patchRc1560FullWidth(html,file);
+  html=patchRc1577OverviewCompact(html,file);
   html=patchRc1329MultiTruckUiRuntime(html,file);
   html=patchRc1328MultiTruckRefresh(html,file);
   html=patchRc1329MultiTruckRenderer(html,file);
@@ -1104,6 +1113,8 @@ function patchHtml(file){
   html=injectDeferredRuntimeInHead(html,'<!-- id="exporthub-rc1148-history-compat-marker" assets/rc1071-shipment-history.js?v=1095 -->','exporthub-rc1148-history-compat-marker');
   html=injectDeferredRuntimeInHead(html,RC1267_I18N_TAG,'exporthub-rc1267-i18n');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1460-shipment-view-fix" defer src="/assets/rc1460-shipment-view-files-avis-preview.js?v=1460"></script>','exporthub-rc1460-shipment-view-fix');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-av-upload-i18n" defer src="/assets/i18n/av-upload.js?v=1"></script>','exporthub-av-upload-i18n');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-av-upload" defer src="/assets/av-upload.js?v=1"></script>','exporthub-av-upload');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1126-customer-delete" defer src="/assets/rc1126-customer-delete.js?v=1387"></script>','exporthub-rc1126-customer-delete');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1113-stowplan-persist" defer src="/assets/rc1113-stowplan-persist.js?v=1113"></script>','exporthub-rc1113-stowplan-persist');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1114-shipping-neutral" defer src="/assets/rc1114-shipping-neutral.js?v=1386"></script>','exporthub-rc1114-shipping-neutral');
@@ -1208,12 +1219,15 @@ for(const rel of [
   'assets/rc1371-dashboard-personalization.css',
   'assets/rc1371-dashboard-personalization.js',
   'assets/rc1560-full-width.css',
+  'assets/rc1577-shipment-overview-compact.css',
   'assets/rc1558-dashboard-overview.css',
   'assets/rc1558-dashboard-overview.js',
   'assets/rc1570-tasks-focus.css',
   'assets/rc1570-tasks-focus.js',
   'assets/i18n/rc1570-tasks-focus.js',
-  'assets/rc1460-shipment-view-files-avis-preview.js'
+  'assets/rc1460-shipment-view-files-avis-preview.js',
+  'assets/i18n/av-upload.js',
+  'assets/av-upload.js'
 ]){
   const src=path.join(ROOT,rel),dst=path.join(OUT,rel);
   if(!fs.existsSync(src))throw new Error('RC1124 Pflicht-Runtime fehlt: '+rel);

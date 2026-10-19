@@ -12,6 +12,7 @@ const runtimeSources = [
   'shared/pod-archive.js',
   'shared/container-document-store.js',
   'shared/reference-folder-upload.js',
+  'shared/av-check.js',
   'shared/customer-avis-pdf-security.js',
   'shared/customer-avis-document-content.js',
   'pickup-init/index.js',
@@ -22,6 +23,7 @@ const runtimeSources = [
   'container-document/index.js',
   'pod-backup/index.js',
   'customer-avis/index.js',
+  'av-check/index.js',
 ];
 
 for (const relativePath of runtimeSources) {

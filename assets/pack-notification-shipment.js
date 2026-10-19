@@ -155,6 +155,7 @@
   function begin(notificationId){
     const state=sharedState(),notification=notificationById(state,notificationId);if(!notification)return false;
     const existing=findShipmentForNotification(state,notification);if(existing)return openShipment(existing);
+    if(q(notification.status).toLowerCase()==='cancelled')return false;
     return startNew(notification);
   }
   async function onShipmentSaved(event){
