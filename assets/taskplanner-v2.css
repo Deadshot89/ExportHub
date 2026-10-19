@@ -69,6 +69,18 @@
 .tpv2-empty{margin:0;color:var(--tpv2-muted)}
 .tpv2-workweeks{display:grid;gap:20px;min-width:0}
 .tpv2-overload{padding:13px 16px;border:1px solid #f59e0b;border-radius:12px;background:var(--tpv2-warning-soft);color:var(--tpv2-warning);font-weight:850}
+.tpv2-weekplan-toolbar{display:flex;flex-wrap:wrap;gap:8px}
+.tpv2-weekplan{display:grid;gap:12px;padding:16px;border:1px solid var(--tpv2-primary);border-radius:var(--tpv2-radius);background:color-mix(in srgb,var(--tpv2-primary-soft) 30%,var(--tpv2-surface))}
+.tpv2-weekplan>header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.tpv2-weekplan h2{margin:0;font-size:18px}.tpv2-weekplan>header span{color:var(--tpv2-muted);font-size:13px;font-weight:700}
+.tpv2-weekplan-stats{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin:0;padding:0;list-style:none}
+.tpv2-weekplan-stats li{display:grid;gap:2px;padding:10px;border:1px solid var(--tpv2-border);border-radius:12px;background:var(--tpv2-surface)}
+.tpv2-weekplan-stats strong{font-size:20px}.tpv2-weekplan-stats span{color:var(--tpv2-muted);font-size:12px;font-weight:700}
+.tpv2-weekplan-conflicts{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.tpv2-weekplan-conflicts li{display:flex;justify-content:space-between;gap:12px;padding:8px 10px;border-radius:10px;background:var(--tpv2-warning-soft);color:var(--tpv2-warning);font-size:13px}
+.tpv2-weekplan-note{margin:0;color:var(--tpv2-warning);font-weight:750}
+.tpv2-weekplan-actions{display:flex;flex-wrap:wrap;gap:8px}
+.tpv2-weekplan-actions button[disabled]{opacity:.5;cursor:not-allowed}
 .tpv2-week{display:grid;gap:12px;padding:16px;border:1px solid var(--tpv2-border);border-radius:var(--tpv2-radius);background:var(--tpv2-surface);min-width:0}
 .tpv2-week-next{background:color-mix(in srgb,var(--tpv2-primary-soft) 24%,var(--tpv2-surface));border-style:dashed}
 .tpv2-week-head,.tpv2-month-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
@@ -92,6 +104,7 @@
 @media (max-width:1100px){
   .tpv2-task-list{grid-template-columns:repeat(2,minmax(0,1fr))}.tpv2-detail{width:min(480px,100%)}
   .tpv2-overdue-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .tpv2-weekplan-stats{grid-template-columns:repeat(3,minmax(0,1fr))}
   .tpv2-week-grid{grid-template-columns:repeat(5,minmax(170px,1fr));overflow-x:auto;padding-bottom:4px}
 }
 @media (max-width:760px){
@@ -104,6 +117,7 @@
   .tpv2-detail-actions .tpv2-button{width:100%;min-height:48px}
   .tpv2-planner-head{align-items:stretch}.tpv2-view-toggle{width:100%}
   .tpv2-overdue-grid{grid-template-columns:minmax(0,1fr)}
+  .tpv2-weekplan-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.tpv2-weekplan-actions button,.tpv2-weekplan-toolbar button{flex:1 1 auto;min-height:48px}
   .tpv2-week-grid{grid-template-columns:minmax(0,1fr);overflow:visible}
   .tpv2-day{min-height:0}.tpv2-day-tasks{grid-template-columns:minmax(0,1fr)}
   .tpv2-month{overflow-x:auto}.tpv2-month-grid{min-width:590px}

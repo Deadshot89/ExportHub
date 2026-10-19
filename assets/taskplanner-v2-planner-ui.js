@@ -33,7 +33,13 @@
   function activeTask(task){const status=q(task&&task.status).toLowerCase();return !['done','cancelled'].includes(status)&&!q(task&&task.archivedAt);}
   function taskDay(task){return dayKey(task&&((task.plannedAt||task.dueAt||task.date||task.day)));}
   function isOverdue(task,now){try{return activeTask(task)&&core().derive(task,now).overdue===true;}catch(_){return false;}}
-  function sorted(tasks,now){try{return planner().sortTasks(arr(tasks),now);}catch(_){return arr(tasks).slice();}}
+  function sorted(tasks,now){
+    const list=arr(tasks);
+    try{
+      const rank=new Map(planner().orderTasks(list,now).map((t,i)=>[q(t&&t.id),i]));
+      return list.slice().sort((a,b)=>(rank.get(q(a&&a.id))??Infinity)-(rank.get(q(b&&b.id))??Infinity));
+    }catch(_){return list.slice();}
+  }
   function interpolateFallback(template,vars){let text=String(template||'');for(const [name,value] of Object.entries(vars||{}))text=text.replaceAll('{'+name+'}',String(value));return text;}
   function translated(key,vars,fallback){const value=tr(key,vars,'');return value&&value!==key?value:interpolateFallback(fallback,vars);}
 
@@ -94,6 +100,52 @@
   }
   function renderMonth(target,ctx={}){if(!target)throw new Error('Planner month target missing');target.innerHTML=monthHtml(ctx);return target;}
 
+  const WEEK_PLAN_CONFLICTS=Object.freeze({
+    holiday:['taskV2.planner.conflictHoliday','Holiday or company closure'],
+    dependency_cycle:['taskV2.planner.conflictCycle','Circular dependency'],
+    missing_dependency:['taskV2.planner.conflictMissing','Dependency missing'],
+    manual_dependency:['taskV2.planner.conflictManualDependency','Manually planned before its dependency'],
+    deadline_dependency:['taskV2.planner.conflictDeadlineDependency','Dependency finishes after the deadline'],
+    deadline_outside_week:['taskV2.planner.conflictDeadline','Deadline cannot be met this week']
+  });
+  function weekPlanDraft(ctx,mode){
+    const state=obj(ctx&&ctx.state)?ctx.state:{tasks:[]};
+    return planner().buildWeekDraft({tasks:arr(state.tasks),weekStart:mondayOf(ctx.weekStart||nowOf(ctx)),now:nowOf(ctx),calendar:ctx.calendar,recalculate:mode==='recalculate'});
+  }
+  function weekPlanSummary(draft){
+    const items=arr(draft&&draft.items),base=planner().weekSummary(draft),start=q(draft&&draft.weekStart),end=q(draft&&draft.weekEnd);
+    const planned=items.filter(x=>{const d=q(x&&x.plannedDate);return d&&d>=start&&d<=end;}).length;
+    const changes=items.filter(x=>q(x&&x.plannedDate)&&q(x.plannedDate)!==q(x.originalPlannedDate)&&x.manualProtected!==true).length;
+    const blocking=base.holidayConflicts>0||arr(draft&&draft.conflicts).some(c=>c&&c.type==='dependency_cycle');
+    const manualKept=items.filter(x=>x&&x.manualProtected===true).length;
+    return{...base,planned,changes,manualKept,blocking};
+  }
+  function weekPlanHtml(draft,mode,ctx){
+    const summary=weekPlanSummary(draft),state=obj(ctx.state)?ctx.state:{tasks:[]};
+    const titleOf=id=>{const t=arr(state.tasks).find(x=>q(x&&x.id)===q(id));return q(t&&t.title)||q(id);};
+    const stats=[
+      [summary.planned,'taskV2.planner.planPlanned','Planned this week'],
+      [summary.changes,'taskV2.planner.planChanges','Dates that will change'],
+      [summary.autoMoved,'taskV2.planner.planAutoMoved','Moved automatically'],
+      [summary.holidayConflicts,'taskV2.planner.planHolidayConflicts','Holiday conflicts'],
+      [summary.dependencyConflicts,'taskV2.planner.planOpenDependencies','Open dependencies'],
+      [summary.manualKept,'taskV2.planner.planManualKept','Manually planned, kept']
+    ].map(([n,key,fallback])=>`<li><strong>${esc(n)}</strong><span>${esc(translated(key,null,fallback))}</span></li>`).join('');
+    const conflicts=arr(draft.conflicts).map(c=>{
+      const [key,fallback]=WEEK_PLAN_CONFLICTS[q(c&&c.type)]||['taskV2.planner.conflict','Conflict'];
+      return `<li data-conflict-type="${esc(c&&c.type)}"><strong>${esc(titleOf(c&&c.taskId))}</strong><span>${esc(translated(key,null,fallback))}</span></li>`;
+    }).join('');
+    const title=mode==='recalculate'?translated('taskV2.planner.recalculateTitle',null,'Recalculated week plan'):translated('taskV2.planner.planTitle',null,'Week plan draft');
+    const note=summary.blocking?`<p class="tpv2-weekplan-note" role="alert">${esc(translated('taskV2.planner.planBlocked',null,'Resolve holiday and dependency conflicts before applying the plan.'))}</p>`
+      :!summary.changes?`<p class="tpv2-weekplan-note">${esc(translated('taskV2.planner.planNoChanges',null,'The plan does not change any dates.'))}</p>`:'';
+    return `<section class="tpv2-weekplan" data-tpv2-weekplan-summary data-mode="${esc(mode)}"><header><h2>${esc(title)}</h2><span>${esc(draft.weekStart)} – ${esc(draft.weekEnd)}</span></header>
+      <ul class="tpv2-weekplan-stats">${stats}</ul>${conflicts?`<ul class="tpv2-weekplan-conflicts">${conflicts}</ul>`:''}${note}
+      <div class="tpv2-weekplan-actions"><button type="button" class="tpv2-button tpv2-button-primary" data-tpv2-weekplan="apply"${summary.blocking||!summary.changes?' disabled':''}>${esc(translated('taskV2.planner.planApply',null,'Apply week plan'))}</button><button type="button" class="tpv2-button tpv2-button-secondary" data-tpv2-weekplan="discard">${esc(translated('taskV2.planner.planDiscard',null,'Discard'))}</button></div></section>`;
+  }
+  function weekPlanToolbarHtml(){
+    return `<div class="tpv2-weekplan-toolbar" role="group"><button type="button" class="tpv2-button tpv2-button-secondary" data-tpv2-weekplan="plan">${esc(translated('taskV2.planner.planWeek',null,'Plan week'))}</button><button type="button" class="tpv2-button tpv2-button-secondary" data-tpv2-weekplan="recalculate">${esc(translated('taskV2.planner.recalculate',null,'Recalculate'))}</button></div>`;
+  }
+
   function runtimeOf(ctx){return ctx&&ctx.runtime||root.ExportHUBRC1014TaskRuntime||null;}
   function actionContext(ctx={}){
     const next={...(ctx||{})};
@@ -153,16 +205,24 @@
   }
 
   function plannerPageHtml(ctx,view){
-    const current=view==='month'?'month':'workweek';
+    const current=view==='month'?'month':'workweek',mode=current==='workweek'?q(ctx.weekPlanMode):'';
+    let draft=null,weekPlan='';
+    if(mode){
+      try{draft=weekPlanDraft(ctx,mode);weekPlan=weekPlanHtml(draft,mode,ctx);}
+      catch(error){weekPlan=`<p class="tpv2-weekplan-note" role="alert">${esc(error&&error.message||error)}</p>`;}
+    }
+    const viewCtx=draft?{...ctx,weekDraft:draft}:ctx;
     return `<section class="tpv2-planner" data-taskplanner-v2-planner data-view="${current}">
       <header class="tpv2-planner-head"><div><span class="tpv2-eyebrow">TaskPlanner V2</span><h1>${esc(translated('taskV2.planner.title',null,'Task planner'))}</h1></div><div class="tpv2-view-toggle" role="group"><button type="button" data-tpv2-view="workweek" aria-pressed="${current==='workweek'}">${esc(translated('taskV2.planner.workweek',null,'Workweek'))}</button><button type="button" data-tpv2-view="month" aria-pressed="${current==='month'}">${esc(translated('taskV2.planner.month',null,'Month'))}</button></div></header>
-      ${dailySummaryHtml(ctx)}${overdueHtml(ctx)}<div class="tpv2-planner-view" data-tpv2-planner-view>${current==='month'?monthHtml(ctx):workweekHtml(ctx)}</div>
+      ${dailySummaryHtml(ctx)}${current==='workweek'?weekPlanToolbarHtml()+weekPlan:''}${overdueHtml(ctx)}<div class="tpv2-planner-view" data-tpv2-planner-view>${current==='month'?monthHtml(ctx):workweekHtml(viewCtx)}</div>
       <div class="tpv2-planner-detail-host" data-tpv2-detail-host></div>
     </section>`;
   }
   function renderPlannerPage(target,ctx={}){
     if(!target)throw new Error('Planner target missing');
-    const view=q(ctx.view||target.__tpv2View)==='month'?'month':'workweek';target.__tpv2View=view;target.__tpv2Ctx=ctx;target.innerHTML=plannerPageHtml(ctx,view);
+    const view=q(ctx.view||target.__tpv2View)==='month'?'month':'workweek';target.__tpv2View=view;target.__tpv2Ctx=ctx;
+    const mode=ctx.weekPlanMode!==undefined?q(ctx.weekPlanMode):q(target.__tpv2WeekPlanMode);target.__tpv2WeekPlanMode=mode;
+    target.innerHTML=plannerPageHtml({...ctx,weekPlanMode:mode},view);
     if(target.__tpv2DndCleanup){try{target.__tpv2DndCleanup();}catch(_){}}
     target.__tpv2DndCleanup=view==='workweek'?bindPlannerDnD(target,{...ctx,state:ctx.state||{},runtime:runtimeOf(ctx)}):null;
     if(typeof target.addEventListener==='function'&&!target.__tpv2ViewBound){
@@ -172,6 +232,20 @@
         const viewButton=closest('[data-tpv2-view]');
         if(viewButton){const next=q(viewButton.getAttribute('data-tpv2-view'));if(['workweek','month'].includes(next)){target.__tpv2View=next;renderPlannerPage(target,{...(target.__tpv2Ctx||ctx),view:next});}return;}
         const detailHost=typeof target.querySelector==='function'?target.querySelector('[data-tpv2-detail-host]'):null,currentCtx=target.__tpv2Ctx||ctx;
+        const weekPlanButton=closest('[data-tpv2-weekplan]');
+        if(weekPlanButton){
+          const action=q(weekPlanButton.getAttribute('data-tpv2-weekplan')),rerender=mode=>renderPlannerPage(target,{...currentCtx,view:'workweek',weekPlanMode:mode});
+          if(action==='plan'||action==='recalculate'){rerender(action);return;}
+          if(action==='discard'){rerender('');return;}
+          if(action==='apply'){
+            const mode=q(target.__tpv2WeekPlanMode)||'plan',runtime=runtimeOf(currentCtx),apply=runtime&&typeof runtime.applyWeekPlan==='function'?runtime.applyWeekPlan:null;
+            if(!apply)return;
+            const resolved=actionContext(currentCtx),draft=weekPlanDraft(resolved,mode);
+            if(weekPlanSummary(draft).blocking){rerender(mode);return;}
+            apply(draft,resolved);rerender('');return;
+          }
+          return;
+        }
         const actionButton=closest('[data-action]');
         if(actionButton){
           const action=q(actionButton.getAttribute&&actionButton.getAttribute('data-action')),owner=closest('[data-task-id]'),taskId=q(owner&&owner.getAttribute&&owner.getAttribute('data-task-id'));

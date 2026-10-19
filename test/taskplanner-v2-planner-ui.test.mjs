@@ -114,3 +114,66 @@ test('generierter TESTSERVICE-Planer besitzt genau den V2-Cutover-Marker und del
   assert.match(head,/__EXPORTHUB_TASKPLANNER_V2_UI_CUTOVER__/,'V2 muss vor dem Legacy-Markup entscheiden');
   assert.match(head,/return window\.ExportHUBTaskUIV2\.renderPlannerPage/,'Legacy-Renderer muss bei aktivem V2 früh zurückkehren');
 });
+test('Tageskarten sind nach Überfälligkeit, Priorität und Frist sortiert',()=>{
+  const {ExportHUBTaskUIV2:ui}=load(),target=root(),state={tasks:[
+    task('low','2026-10-13',{title:'Niedrig',priority:'P3'}),
+    task('late','2026-10-13',{title:'Später fällig',priority:'P1',dueAt:'2026-10-16T16:15:00+02:00'}),
+    task('critical','2026-10-13',{title:'Kritisch',priority:'P0'}),
+    task('early','2026-10-13',{title:'Früher fällig',priority:'P1',dueAt:'2026-10-14T16:15:00+02:00'})
+  ]};
+  ui.renderWorkweek(target,{state,weekStart:'2026-10-12',now:'2026-10-12T08:00:00+02:00'});
+  const order=[...target.innerHTML.matchAll(/data-task-id="([^"]+)"/g)].map(m=>m[1]);
+  assert.deepEqual(order,['critical','early','late','low']);
+});
+
+function plannerTarget(){
+  const handlers={};
+  return {innerHTML:'',handlers,addEventListener:(type,fn)=>{handlers[type]=fn},querySelector:()=>null};
+}
+function button(attr,value){
+  const node={getAttribute:name=>name===attr?value:null};
+  node.closest=sel=>sel===`[${attr}]`?node:null;
+  return node;
+}
+
+test('Wochenplan-Entwurf zeigt vor der Übernahme die Zusammenfassung und speichert erst nach Bestätigung',async()=>{
+  const {ExportHUBTaskUIV2:ui}=load(),target=plannerTarget(),now='2026-10-12T08:00:00+02:00';
+  const state={tasks:[
+    {id:'open',title:'Ohne Termin',status:'open',priority:'P1',dueAt:'2026-10-14T16:15:00+02:00'},
+    task('fixed','2026-10-13',{title:'Fest geplant',manualOverride:true})
+  ]};
+  const applied=[];
+  const runtime={applyWeekPlan(draft,ctx){applied.push({draft,ctx});return{changed:true};}};
+  ui.renderPlannerPage(target,{state,runtime,weekStart:'2026-10-12',now});
+  assert.match(target.innerHTML,/data-tpv2-weekplan="plan"/);
+  assert.match(target.innerHTML,/data-tpv2-weekplan="recalculate"/);
+  assert.doesNotMatch(target.innerHTML,/data-tpv2-weekplan-summary/);
+
+  await target.handlers.click({target:button('data-tpv2-weekplan','plan')});
+  assert.match(target.innerHTML,/data-tpv2-weekplan-summary/);
+  assert.match(target.innerHTML,/<li><strong>2<\/strong><span>Planned this week/);
+  assert.match(target.innerHTML,/<li><strong>1<\/strong><span>Dates that will change/);
+  assert.match(target.innerHTML,/<li><strong>1<\/strong><span>Manually planned, kept/);
+  assert.doesNotMatch(target.innerHTML,/data-tpv2-weekplan="apply" disabled/);
+  assert.equal(applied.length,0,'Entwurf darf nichts speichern');
+
+  await target.handlers.click({target:button('data-tpv2-weekplan','apply')});
+  assert.equal(applied.length,1);
+  const item=applied[0].draft.items.find(x=>x.taskId==='open');
+  assert.equal(item.plannedDate,'2026-10-14');
+  assert.equal(applied[0].draft.items.find(x=>x.taskId==='fixed').manualProtected,true);
+  assert.doesNotMatch(target.innerHTML,/data-tpv2-weekplan-summary/,'nach der Übernahme schließt der Entwurf');
+});
+
+test('Wochenplan mit Feiertagskonflikt kann nicht übernommen werden',async()=>{
+  const {ExportHUBTaskUIV2:ui}=load(),target=plannerTarget(),applied=[];
+  const state={tasks:[task('xmas','2026-12-25',{title:'Am Feiertag',manualOverride:true})]};
+  ui.renderPlannerPage(target,{state,runtime:{applyWeekPlan:d=>applied.push(d)},weekStart:'2026-12-21',now:'2026-12-21T08:00:00+01:00',weekPlanMode:'plan'});
+  assert.match(target.innerHTML,/data-conflict-type="holiday"/);
+  assert.match(target.innerHTML,/data-tpv2-weekplan="apply" disabled/);
+  assert.match(target.innerHTML,/data-tpv2-overload/);
+  await target.handlers.click({target:button('data-tpv2-weekplan','apply')});
+  assert.equal(applied.length,0);
+  await target.handlers.click({target:button('data-tpv2-weekplan','discard')});
+  assert.doesNotMatch(target.innerHTML,/data-tpv2-weekplan-summary/);
+});

@@ -1,4 +1,4 @@
-/* ExportHUB360 RC1570 – task focus view: overdue and today first, rest of the week compact by area,
+/* ExportHUB360 RC1570 – task focus view: overdue and today first, rest of the week compact by work group,
    a real "new task" form and a working task detail view ("Aufgabenansicht").
    Data stays in state.tasks; completing uses the app's toggleTaskCard, saving uses the RC524 editor path. */
 (function(w){
@@ -114,11 +114,25 @@ function buildModel(now){
   model.overdue.sort(byUrgency);model.today.sort(byUrgency);model.later.sort(byUrgency);
   return model
 }
-function byArea(rows){
-  var groups={},order=[];
-  rows.forEach(function(r){var a=area(r.task);if(!groups[a]){groups[a]=[];order.push(a)}groups[a].push(r)});
-  order.sort(function(a,b){return a.localeCompare(b)});
-  return order.map(function(a){return{area:a,rows:groups[a].sort(function(x,y){return priorityRank(x.task)-priorityRank(y.task)||q(x.task.time).localeCompare(q(y.task.time))})}})
+// work groups as in the old task list (RC874): same rules, same order
+var GROUPS=['shipments','pod','customer','picks','abds'];
+var GROUP_KEYS={shipments:'gShipments',pod:'gPod',customer:'gCustomer',picks:'gPicks',abds:'gAbds'};
+function fold(v){return low(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim()}
+function workGroup(task){
+  var x=task||{},a=fold(x.area||x.category||x.section||x.type),tt=fold(x.title||x.name),hay=fold([a,tt,x.note,x.source,x.recurringSource].join(' '));
+  var ship=fold(x.shipmentStatus||x.linkedShipmentStatus||x.deliveryStatus);
+  var pickedUp=!!(x.pickedUp===true||x.pickupConfirmed===true||x.pickedUpAt||x.pickupAt||x.abgeholtAt)||/abgeholt|picked up|pickedup/.test(ship);
+  var hasPod=!!(x.pod===true||x.hasPod===true||x.podAvailable===true||x.podAt||x.podUrl||x.podFile||x.podDocument);
+  if((/pod/.test(hay)||x.requiresPod===true)&&pickedUp&&!hasPod)return'pod';
+  if(/abd|mrn|ausfuhr/.test(hay))return'abds';
+  if(/^(picken|pick|heute picken)$/.test(a)||(a.indexOf('pick')>=0&&a.indexOf('pickup')<0)||/picken|pick/.test(tt))return'picks';
+  if(/kunde.*angemeld|angemeld.*kunde|anmeld|avis|spedition|carrier/.test(hay))return'customer';
+  return'shipments'
+}
+function byGroup(rows){
+  var groups={};
+  rows.forEach(function(r){var g=workGroup(r.task);(groups[g]=groups[g]||[]).push(r)});
+  return GROUPS.filter(function(g){return groups[g]}).map(function(g){return{group:g,label:t(GROUP_KEYS[g]),rows:groups[g].sort(function(x,y){return priorityRank(x.task)-priorityRank(y.task)||q(x.task.time).localeCompare(q(y.task.time))})}})
 }
 
 /* render */
@@ -137,8 +151,9 @@ function card(r,opts){
     '<button type="button" class="rc1570-edit" data-rc1570-edit="'+esc(r.id)+'" aria-label="'+esc(t('edit'))+'" title="'+esc(t('edit'))+'">✎</button></li>'
 }
 function cards(rows,opts){return'<ul class="rc1570-cards">'+rows.map(function(r){return card(r,opts)}).join('')+'</ul>'}
-function areaBlocks(rows,opts){
-  return byArea(rows).map(function(g){return'<div class="rc1570-area"><h4>'+esc(g.area)+' <span>'+g.rows.length+'</span></h4>'+cards(g.rows,opts)+'</div>'}).join('')
+function groupBlocks(rows,opts){
+  var o=Object.assign({},opts,{showArea:true});
+  return byGroup(rows).map(function(g){return'<div class="rc1570-area" data-rc1570-group="'+g.group+'"><h4>'+esc(g.label)+' <span>'+g.rows.length+'</span></h4>'+cards(g.rows,o)+'</div>'}).join('')
 }
 function countLabel(n){return n===1?t('task'):t('tasks',{count:n})}
 function section(id,label,count,body,tone,extra){
@@ -164,16 +179,16 @@ function renderHtml(model,now){
     html+='<a id="rc1570-overdue"></a>'+section('overdue',t('overdue'),model.overdue.length,cards(rows,{users:model.users,showOwner:showOwner,showDate:true,showArea:true,late:true})+more,'crit')
   }
   html+='<a id="rc1570-today"></a>'+section('today',t('today')+' · '+dayName(now)+' '+fmtDate(now).replace(/^[^,\s]+,?\s*/,''),model.today.length,
-    model.today.length?areaBlocks(model.today,opts):'<p class="rc1570-empty">'+esc(t('emptyToday'))+'</p>');
+    model.today.length?groupBlocks(model.today,opts):'<p class="rc1570-empty">'+esc(t('emptyToday'))+'</p>');
   var days=Object.keys(model.week).sort();
   if(days.length){
     html+='<a id="rc1570-week"></a><section class="rc1570-section" data-rc1570-section="week"><header><h3>'+esc(t('week'))+'</h3></header>'+days.map(function(k){
       var rows=model.week[k],d=rows[0].date,open=!!ui.expanded['day:'+k];
-      return'<details class="rc1570-day"'+(open?' open':'')+' data-rc1570-day="'+esc(k)+'"><summary><strong>'+esc(dayName(d))+'</strong> <span>'+esc(fmtDate(d))+'</span><span class="rc1570-count">'+esc(countLabel(rows.length))+'</span></summary>'+(open?areaBlocks(rows,opts):'')+'</details>'
+      return'<details class="rc1570-day"'+(open?' open':'')+' data-rc1570-day="'+esc(k)+'"><summary><strong>'+esc(dayName(d))+'</strong> <span>'+esc(fmtDate(d))+'</span><span class="rc1570-count">'+esc(countLabel(rows.length))+'</span></summary>'+(open?groupBlocks(rows,opts):'')+'</details>'
     }).join('')+'</section>'
   }
   if(model.later.length)html+=section('later',t('later'),model.later.length,cards(model.later,{users:model.users,showOwner:showOwner,showDate:true,showArea:true}));
-  if(model.none.length)html+=section('none',t('noDate'),model.none.length,areaBlocks(model.none,opts));
+  if(model.none.length)html+=section('none',t('noDate'),model.none.length,groupBlocks(model.none,opts));
   if(model.doneToday.length)html+='<details class="rc1570-section rc1570-done"><summary><h3>'+esc(t('doneToday'))+'</h3><span class="rc1570-count">'+esc(countLabel(model.doneToday.length))+'</span></summary>'+cards(model.doneToday,{users:model.users,showOwner:showOwner})+'</details>';
   return html
 }
@@ -321,6 +336,6 @@ function install(){
   setInterval(function(){if(!d.hidden&&view()==='tasks')schedule()},60000)
 }
 
-w.ExportHUBTasksFocus1570=Object.freeze({version:VERSION,buildModel:buildModel,renderHtml:renderHtml,taskDate:taskDate,isMine:isMine,refresh:refreshNow,openForm:openForm});
+w.ExportHUBTasksFocus1570=Object.freeze({version:VERSION,buildModel:buildModel,renderHtml:renderHtml,taskDate:taskDate,isMine:isMine,workGroup:workGroup,refresh:refreshNow,openForm:openForm});
 install();
 })(window);
