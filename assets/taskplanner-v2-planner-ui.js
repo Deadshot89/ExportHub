@@ -367,6 +367,7 @@
           }
           const panel=closest('[data-taskplanner-v2-detail]'),field=name=>panel&&typeof panel.querySelector==='function'?panel.querySelector(`[${name}]`):null,reopen=note=>{if(detailHost)openDetail(target,detailHost,taskId,{...currentCtx,detailNote:note||''},target.__tpv2DetailCard);};
           if(action==='checklist-toggle'&&taskId&&typeof base.toggleChecklistItem==='function'){const result=base.toggleChecklistItem(taskId,actionButton.getAttribute('data-index'),actionContext(currentCtx));if(result&&result.changed)reopen();return;}
+          if((action==='reminder-toggle'||action==='reminder-email')&&taskId&&typeof base.toggleTaskReminder==='function'){const result=base.toggleTaskReminder(taskId,actionButton.getAttribute('data-time'),action==='reminder-email'?'email':'enabled',actionContext(currentCtx));if(result&&result.changed)reopen();return;}
           if(action==='comment-add'&&taskId&&typeof base.addComment==='function'){const input=field('data-tpv2-comment-input'),result=base.addComment(taskId,input&&input.value,actionContext(currentCtx));if(result&&result.changed)reopen();return;}
           if(action==='save-template'&&taskId&&typeof base.saveTaskAsTemplate==='function'){const result=base.saveTaskAsTemplate(taskId,actionContext(currentCtx));if(result&&result.changed)reopen(translated('taskV2.templateSaved',null,'Template saved'));return;}
           if(action==='complete'&&taskId&&typeof base.completeTask==='function'){const input=field('data-tpv2-complete-comment'),result=base.completeTask(taskId,{comment:q(input&&input.value)},actionContext(currentCtx));if(result&&result.changed)renderPlannerPage(target,{...currentCtx,view:target.__tpv2View});return;}
@@ -378,6 +379,74 @@
     }
     return target;
   }
+
+  // Reminder runner (spec §15): per-task slots, website channel in the browser, delivery ledger in
+  // state.taskSettings so the same reminder is not shown again on another tab or device
+  const reminderRunner={timer:0,started:false,lastPrune:''};
+  function reminderEnvironment(){return /-testservice\./i.test(q(root.location&&root.location.hostname))?'testservice':'production';}
+  function reminderUser(){try{const u=typeof root.__EXPORTHUB_GET_CURRENT_USER__==='function'?root.__EXPORTHUB_GET_CURRENT_USER__():null;return obj(u)?u:{};}catch(_){return{};}}
+  function reminderState(){try{const s=typeof root.__EXPORTHUB_GET_STATE__==='function'?root.__EXPORTHUB_GET_STATE__():null;return obj(s)?s:null;}catch(_){return null;}}
+  function claimReminder(key){
+    try{const store=root.localStorage;if(!store)return true;const k='exporthub.tpv2.reminder:'+key;if(store.getItem(k))return false;store.setItem(k,String(Date.now()));return true;}catch(_){return true;}
+  }
+  function reminderToastHtml(rows){
+    const shown=rows.slice(0,3),more=rows.length-shown.length;
+    return `<section class="tpv2-reminder-toast" role="status" aria-live="polite" data-tpv2-reminder-toast>
+      <header><strong>${esc(translated('taskV2.reminderTitle',null,'Task reminder'))}</strong><button type="button" class="tpv2-icon-button" data-tpv2-reminder-close aria-label="${esc(translated('taskV2.close',null,'Close'))}">×</button></header>
+      <ul>${shown.map(r=>`<li data-task-id="${esc(r.taskId)}"><div><b>${esc(r.title)}</b><span>${esc([r.customerName,r.priority,r.slot].filter(Boolean).join(' · '))}</span></div><div class="tpv2-reminder-actions"><button type="button" class="tpv2-button tpv2-button-secondary" data-tpv2-reminder-open="${esc(r.taskId)}">${esc(translated('taskV2.open',null,'Open'))}</button><button type="button" class="tpv2-button tpv2-button-primary" data-tpv2-reminder-done="${esc(r.taskId)}">${esc(translated('taskV2.complete',null,'Complete'))}</button></div></li>`).join('')}</ul>
+      ${more>0?`<p>${esc(translated('taskV2.reminderMore',{count:more},'+{count} more'))}</p>`:''}
+    </section>`;
+  }
+  function closeReminderToast(){const doc=root.document,node=doc&&doc.getElementById&&doc.getElementById('tpv2ReminderToast');if(node)node.remove();}
+  function showReminderToast(rows){
+    const doc=root.document;if(!doc||!doc.body||typeof doc.createElement!=='function')return false;
+    closeReminderToast();const host=doc.createElement('div');host.id='tpv2ReminderToast';host.className='tpv2-reminder-host';host.innerHTML=reminderToastHtml(rows);
+    host.addEventListener('click',event=>{
+      const el=event&&event.target&&typeof event.target.closest==='function'?event.target:null;if(!el)return;
+      if(el.closest('[data-tpv2-reminder-close]')){closeReminderToast();return;}
+      const open=el.closest('[data-tpv2-reminder-open]'),done=el.closest('[data-tpv2-reminder-done]'),state=reminderState();
+      if(open&&state){const id=q(open.getAttribute('data-tpv2-reminder-open')),task=arr(state.tasks).find(t=>q(t&&t.id)===id),rt=runtimeOf({});closeReminderToast();try{if(task&&rt&&typeof rt.openTask==='function')rt.openTask(task,{state});}catch(_){}return;}
+      if(done&&state){const id=q(done.getAttribute('data-tpv2-reminder-done'));try{base.completeTask(id,{},actionContext({state,user:reminderUser()}));}catch(_){}const item=done.closest('li');if(item)item.remove();if(!host.querySelector('li'))closeReminderToast();}
+    });
+    host.addEventListener('keydown',event=>{if(event&&event.key==='Escape')closeReminderToast();});
+    doc.body.appendChild(host);return true;
+  }
+  function nativeReminder(rows){
+    const N=root.Notification;if(typeof N!=='function'||N.permission!=='granted'||!rows.length)return false;
+    try{
+      const one=rows.length===1?rows[0]:null,title=one?translated('taskV2.reminderTitle',null,'Task reminder')+' · '+one.title:translated('taskV2.reminderTitle',null,'Task reminder');
+      const body=rows.slice(0,3).map(r=>r.title).join('\n')+(rows.length>3?'\n'+translated('taskV2.reminderMore',{count:rows.length-3},'+{count} more'):'');
+      const n=new N(title,{body,tag:'exporthub-tpv2-'+rows.map(r=>r.key).join(',').slice(0,120),silent:true});
+      n.onclick=()=>{try{root.focus();}catch(_){}try{n.close();}catch(_){}};return true;
+    }catch(_){return false;}
+  }
+  function localNowIso(date){
+    const d=date||new Date(),z=n=>String(Math.abs(n)).padStart(2,'0'),off=-d.getTimezoneOffset();
+    return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}T${z(d.getHours())}:${z(d.getMinutes())}:${z(d.getSeconds())}${off>=0?'+':'-'}${z(Math.trunc(off/60))}:${z(off%60)}`;
+  }
+  function checkReminders(now){
+    const state=reminderState(),user=reminderUser(),id=q(user.id||user.userId||user.username);
+    if(!state||!id||typeof base.reminderCandidates!=='function')return[];
+    const at=q(now)||localNowIso(),ctx=actionContext({state,user,now:at});
+    const today=at.slice(0,10);
+    if(reminderRunner.lastPrune!==today&&typeof base.pruneReminderLedger==='function'){reminderRunner.lastPrune=today;try{base.pruneReminderLedger(ctx);}catch(_){}}
+    const rows=base.reminderCandidates(at,state,{id,environment:reminderEnvironment()},{catchUp:true}).filter(r=>r.channels&&r.channels.website===true);
+    const delivered=[];
+    for(const row of rows){if(!claimReminder(row.key))continue;const res=base.markReminderDelivered(row,ctx);if(res&&res.changed)delivered.push(row);}
+    if(delivered.length){showReminderToast(delivered);nativeReminder(delivered);}
+    return delivered;
+  }
+  function startReminders(){
+    if(reminderRunner.started||typeof root.setInterval!=='function')return false;reminderRunner.started=true;
+    const tick=()=>{try{checkReminders();}catch(error){try{console.warn('TaskPlanner V2 Erinnerungen',error);}catch(_){}}};
+    reminderRunner.timer=root.setInterval(tick,30000);
+    for(const name of ['exporthub:ready','exporthub:state-loaded','exporthub:sync'])try{root.addEventListener(name,tick);}catch(_){}
+    try{if(root.document)root.document.addEventListener('visibilitychange',()=>{if(!root.document.hidden)tick();});}catch(_){}
+    if(typeof root.setTimeout==='function')root.setTimeout(tick,5000);
+    return true;
+  }
+  root.ExportHUBTaskRemindersV2=Object.freeze({check:checkReminders,start:startReminders,active:()=>reminderRunner.started,toastHtml:reminderToastHtml});
+  if(root.document&&!root.__EXPORTHUB_PICKUP_MODE__&&!root.__EXPORTHUB_TPV2_REMINDERS_OFF__)startReminders();
 
   root.ExportHUBTaskUIV2=Object.freeze({...base,renderDailySummary,renderOverdue,renderWorkweek,renderMonth,bindPlannerDnD,handlePublicLinkAction,renderPlannerPage});
 })(globalThis);

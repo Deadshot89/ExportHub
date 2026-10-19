@@ -101,6 +101,7 @@
     const publicLinkAction=publicActive
       ?`<button type="button" class="tpv2-button tpv2-button-secondary" data-action="public-link-revoke">${escapeHtml(tr('taskV2.publicLink.revoke',null,'Revoke public link'))}</button>`
       :`<button type="button" class="tpv2-button tpv2-button-secondary" data-action="public-link-create">${escapeHtml(tr('taskV2.publicLink.create',null,'Create public link'))}</button>`;
+    const reminders=taskReminderSettings(t).map(r=>`<li data-reminder-time="${escapeHtml(r.time)}"><label><input type="checkbox" data-action="reminder-toggle" data-time="${escapeHtml(r.time)}"${r.enabled?' checked':''}${terminal?' disabled':''}> <span>${escapeHtml(tr('taskV2.reminderAt',{time:r.time},r.time))}</span></label><label class="tpv2-reminder-email"><input type="checkbox" data-action="reminder-email" data-time="${escapeHtml(r.time)}"${r.email?' checked':''}${terminal||!r.enabled?' disabled':''}> <span>${escapeHtml(tr('taskV2.reminder.email',null,'Email reminder'))}</span></label></li>`).join('');
     const note=q(ctx.detailNote)?`<p class="tpv2-detail-note" role="status" data-tpv2-detail-note>${escapeHtml(ctx.detailNote)}</p>`:'';
     const actions=terminal
       ?`<button type="button" class="tpv2-button tpv2-button-secondary" data-action="save-template">${escapeHtml(tr('taskV2.saveTemplate',null,'Save as template'))}</button>`
@@ -120,6 +121,7 @@
         <section class="tpv2-detail-wide" data-section="dependencies"><h3>${escapeHtml(tr('taskV2.dependencies',null,'Dependencies'))}</h3><ul class="tpv2-dependencies">${dependencies||`<li>${escapeHtml(tr('taskV2.noneDependencies',null,'No dependencies'))}</li>`}</ul></section>
         ${upcoming?`<section class="tpv2-detail-wide" data-section="upcoming"><h3>${escapeHtml(tr('taskV2.upcomingOccurrences',null,'Upcoming occurrences'))}</h3><ul class="tpv2-upcoming">${upcoming}</ul></section>`:''}
         <section class="tpv2-detail-wide" data-section="comments"><h3>${escapeHtml(tr('taskV2.comments',null,'Comments'))}</h3><ul class="tpv2-comments">${comments||`<li>${escapeHtml(tr('taskV2.noneComments',null,'No comments yet'))}</li>`}</ul><div class="tpv2-comment-form"><textarea rows="2" data-tpv2-comment-input aria-label="${escapeHtml(tr('taskV2.addComment',null,'Add comment'))}"></textarea><button type="button" class="tpv2-button tpv2-button-secondary" data-action="comment-add">${escapeHtml(tr('taskV2.addComment',null,'Add comment'))}</button></div></section>
+        <section class="tpv2-detail-wide" data-section="reminders"><h3>${escapeHtml(tr('taskV2.reminders',null,'Reminders'))}</h3><ul class="tpv2-reminders">${reminders}</ul></section>
         <section class="tpv2-detail-wide" data-section="public-link"><h3>${escapeHtml(tr('taskV2.publicLink.title',null,'Public read-only link'))}</h3><p>${escapeHtml(publicActive?tr('taskV2.publicLink.active',null,'Active'):tr('taskV2.publicLink.inactive',null,'Not active'))}</p>${publicLinkAction}</section>
         <section class="tpv2-detail-wide" data-section="history"><h3>${escapeHtml(tr('taskV2.history',null,'History'))}</h3><ul class="tpv2-history">${history||`<li>${escapeHtml(tr('taskV2.noneHistory',null,'No history yet'))}</li>`}</ul></section>
       </div>
@@ -228,19 +230,50 @@
     if(explicit.length)return explicit.filter(r=>r&&r.enabled!==false).map(r=>({time:q(r.time||r.slot),channels:{website:r.channels&&r.channels.website!==undefined?r.channels.website!==false:userSettings.website!==false,email:r.channels&&r.channels.email!==undefined?r.channels.email===true:userSettings.email===true}}));
     return DEFAULT_REMINDER_SLOTS.map(time=>({time,channels:{website:userSettings.website!==false,email:userSettings.email===true}}));
   }
-  function reminderCandidates(now,state,user={}){
-    state=obj(state)?state:{},user=obj(user)?user:{id:q(user)},now=q(now)||new Date().toISOString();const date=core().dayKey(now),slot=clock(now),uid=q(user.id||user.userId||user.username),environment=q(user.environment)||'production',settings=obj(state.taskSettings)?state.taskSettings:{},userCfg=obj(settings.users&&settings.users[uid])?settings.users[uid]:{},channelDefaults=obj(userCfg.reminderChannels)?userCfg.reminderChannels:{website:true,email:false},ledger=obj(settings.reminderLedger)?settings.reminderLedger:{};
+  // options.catchUp: also deliver a slot that passed earlier today (tab was closed or asleep at that minute);
+  // per task only the latest passed slot counts, so a late start produces one reminder, not three
+  function reminderDue(task,date){
+    const day=core().dayKey(task.plannedAt||task.dueAt);if(!day||day>date)return false;
+    const start=core().dayKey(task.startAt),snooze=core().dayKey(task.snoozeUntil);
+    return !(start&&start>date)&&!(snooze&&snooze>date);
+  }
+  function reminderWorkday(date,state){
+    const api=recurrence();if(!api||typeof api.isWorkday!=='function')return true;
+    try{return api.isWorkday(date,typeof api.calendar==='function'?api.calendar(state.taskCalendar||{}):undefined)!==false;}catch(_){return true;}
+  }
+  function reminderCandidates(now,state,user={},options={}){
+    state=obj(state)?state:{},user=obj(user)?user:{id:q(user)},options=obj(options)?options:{},now=q(now)||new Date().toISOString();const date=core().dayKey(now),slot=clock(now),uid=q(user.id||user.userId||user.username),environment=q(user.environment)||'production',settings=obj(state.taskSettings)?state.taskSettings:{},userCfg=obj(settings.users&&settings.users[uid])?settings.users[uid]:{},channelDefaults=obj(userCfg.reminderChannels)?userCfg.reminderChannels:{website:true,email:false},ledger=obj(settings.reminderLedger)?settings.reminderLedger:{};
     if(!date||!slot||!uid)return[];
+    if(options.catchUp&&!reminderWorkday(date,state))return[];
     const out=[];
     for(const raw of arr(state.tasks)){
-      const task=core().normalizeTask(raw,{now});if(['done','cancelled'].includes(task.status))continue;
+      const task=core().normalizeTask(raw,{now});if(['done','cancelled'].includes(task.status)||q(task.archivedAt))continue;
       const owner=q(task.ownerId||task.owner);if(owner&&owner!==uid)continue;
-      const reminder=taskReminderRows(task,channelDefaults).find(r=>r.time===slot);if(!reminder)continue;
-      const key=reminderKey(task,date,slot,uid,environment);if(ledger[key])continue;
+      if(options.catchUp&&!reminderDue(task,date))continue;
+      const rows=taskReminderRows(task,channelDefaults),reminder=options.catchUp?rows.filter(r=>/^\d{2}:\d{2}$/.test(r.time)&&r.time<=slot).sort((a,b)=>a.time.localeCompare(b.time)).pop():rows.find(r=>r.time===slot);if(!reminder)continue;
+      const key=reminderKey(task,date,reminder.time,uid,environment);if(ledger[key])continue;
       if(reminder.channels.website!==true&&reminder.channels.email!==true)continue;
-      out.push({key,taskId:task.id,occurrenceKey:q(task.occurrenceKey),date,slot,userId:uid,environment,channels:reminder.channels,title:task.title,dueAt:task.dueAt});
+      out.push({key,taskId:task.id,occurrenceKey:q(task.occurrenceKey),date,slot:reminder.time,userId:uid,environment,channels:reminder.channels,title:task.title,dueAt:task.dueAt,priority:task.priority,customerName:task.customerName});
     }
     return out;
+  }
+  function pruneReminderLedger(ctx={},keepDays=14){
+    const state=stateOf(ctx),settings=ensureSettings(state),limit=new Date(Date.parse(nowOf(ctx))-keepDays*86400000).toISOString().slice(0,10);let removed=0;
+    for(const [key,record] of Object.entries(settings.reminderLedger)){const day=q(record&&record.deliveredAt).slice(0,10)||(q(key).match(/\|(\d{4}-\d{2}-\d{2})\|/)||[])[1]||'';if(day&&day<limit){delete settings.reminderLedger[key];removed++;}}
+    if(removed)persist(ctx,state.taskSettings);return removed;
+  }
+  function taskReminderSettings(task){
+    const t=core().normalizeTask(task||{}),explicit=arr(t.reminders);
+    return DEFAULT_REMINDER_SLOTS.map(time=>{const row=explicit.find(r=>q(r&&(r.time||r.slot))===time);return{time,enabled:explicit.length?!!(row&&row.enabled!==false):true,email:!!(row&&row.channels&&row.channels.email===true)};});
+  }
+  function toggleTaskReminder(taskId,time,field,ctx={}){
+    const state=stateOf(ctx),task=state.tasks.find(t=>q(t&&t.id)===q(taskId));if(!task||!DEFAULT_REMINDER_SLOTS.includes(q(time)))return{changed:false,task:task||null};
+    const rows=taskReminderSettings(task).map(r=>r.time!==q(time)?r:field==='email'?{...r,email:!r.email}:{...r,enabled:!r.enabled,email:r.enabled?false:r.email});
+    return setTaskReminders(taskId,rows,ctx);
+  }
+  function setTaskReminders(taskId,rows,ctx={}){
+    const list=DEFAULT_REMINDER_SLOTS.map(time=>{const row=arr(rows).find(r=>q(r&&r.time)===time)||{};return{time,enabled:row.enabled===true,channels:{website:true,email:row.email===true}};});
+    return updateTask(taskId,ctx,task=>{const before=taskReminderSettings(task);task.reminders=list;task.history=arr(task.history).concat(core().historyEntry('reminders_changed',{at:nowOf(ctx),source:'manual',before,after:list.map(r=>({time:r.time,enabled:r.enabled,email:r.channels.email}))}));return task;},'reminders_updated');
   }
   function markReminderDelivered(row,ctx={}){
     const state=stateOf(ctx),settings=ensureSettings(state),key=q(row&&row.key);if(!key)throw new Error('Reminder-Key fehlt');if(settings.reminderLedger[key])return{changed:false,record:settings.reminderLedger[key]};
@@ -249,6 +282,6 @@
 
   root.ExportHUBTaskUIV2=Object.freeze({
     version:'2.0',DEFAULT_REMINDER_SLOTS,detailModel,renderTasks,renderDetail,saveTask,completeTask,cancelTask,createPublicLink,revokePublicLink,
-    templateFromTask,saveTemplate,saveTaskAsTemplate,toggleChecklistItem,addComment,viewPreference,setViewPreference,reminderKey,reminderCandidates,markReminderDelivered
+    templateFromTask,saveTemplate,saveTaskAsTemplate,toggleChecklistItem,addComment,viewPreference,setViewPreference,reminderKey,reminderCandidates,markReminderDelivered,pruneReminderLedger,taskReminderSettings,setTaskReminders,toggleTaskReminder
   });
 })(globalThis);

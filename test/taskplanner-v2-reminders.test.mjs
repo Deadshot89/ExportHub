@@ -77,3 +77,84 @@ test('erledigte, stornierte und fremde Aufgaben erzeugen keine Reminder',()=>{
   const api=load(),state={tasks:[task({id:'done',status:'done'}),task({id:'cancel',status:'cancelled'}),task({id:'other',ownerId:'u2'})],taskSettings:{reminderLedger:{}}};
   assert.equal(api.reminderCandidates('2026-10-12T09:00:00+02:00',state,{id:'u1',environment:'production'}).length,0);
 });
+
+test('Nachholen: nach verpasster Zeit kommt pro Aufgabe genau eine Erinnerung für den letzten fälligen Slot',()=>{
+  const api=load(),state={tasks:[task()],taskSettings:{reminderLedger:{}}};
+  assert.equal(api.reminderCandidates('2026-10-12T14:10:00+02:00',state,{id:'u1'}).length,0,'ohne Nachholen nur zur exakten Minute');
+  const rows=plain(api.reminderCandidates('2026-10-12T14:10:00+02:00',state,{id:'u1'},{catchUp:true}));
+  assert.equal(rows.length,1);
+  assert.equal(rows[0].slot,'13:00');
+  assert.equal(rows[0].key,api.reminderKey(task(),'2026-10-12','13:00','u1','production'));
+  state.taskSettings.reminderLedger[rows[0].key]={deliveredAt:'2026-10-12T14:10:01+02:00'};
+  assert.equal(api.reminderCandidates('2026-10-12T14:40:00+02:00',state,{id:'u1'},{catchUp:true}).length,0,'derselbe Slot kommt nicht noch einmal');
+  assert.equal(plain(api.reminderCandidates('2026-10-12T15:31:00+02:00',state,{id:'u1'},{catchUp:true}))[0].slot,'15:30');
+  assert.equal(api.reminderCandidates('2026-10-12T08:59:00+02:00',state,{id:'u1'},{catchUp:true}).length,0,'vor 09:00 nichts');
+});
+
+test('Nachholen erinnert nur an Aufgaben, die heute oder früher fällig sind, und nicht am Wochenende',()=>{
+  const api=load(),state={tasks:[task({id:'today'}),task({id:'late',dueAt:'2026-10-09T16:15:00+02:00'}),task({id:'future',dueAt:'2026-10-20T16:15:00+02:00'}),task({id:'nodate',dueAt:''}),task({id:'snoozed',snoozeUntil:'2026-10-14'})],taskSettings:{reminderLedger:{}}};
+  const rows=plain(api.reminderCandidates('2026-10-12T09:05:00+02:00',state,{id:'u1'},{catchUp:true}));
+  assert.deepEqual(rows.map(r=>r.taskId).sort(),['late','today']);
+  assert.equal(api.reminderCandidates('2026-10-10T09:05:00+02:00',{tasks:[task({dueAt:'2026-10-09T16:15:00+02:00'})]},{id:'u1'},{catchUp:true}).length,0,'Samstag');
+});
+
+test('Erinnerungen pro Aufgabe: Slot abschalten und E-Mail gezielt setzen',()=>{
+  const api=load(),state={tasks:[task()],taskSettings:{reminderLedger:{}}};let saves=0;
+  const ctx={state,persist:()=>saves++,now:'2026-10-12T08:00:00+02:00'};
+  assert.deepEqual(plain(api.taskReminderSettings(state.tasks[0])),[{time:'09:00',enabled:true,email:false},{time:'13:00',enabled:true,email:false},{time:'15:30',enabled:true,email:false}]);
+  api.toggleTaskReminder('t1','13:00','enabled',ctx);
+  api.toggleTaskReminder('t1','09:00','email',ctx);
+  const settings=plain(api.taskReminderSettings(state.tasks[0]));
+  assert.deepEqual(settings.map(r=>r.enabled),[true,false,true]);
+  assert.equal(settings[0].email,true);
+  assert.equal(state.tasks[0].history.at(-1).action,'reminders_changed');
+  assert.equal(saves,2);
+  assert.equal(api.reminderCandidates('2026-10-12T13:00:00+02:00',state,{id:'u1'}).length,0,'abgeschalteter Slot erinnert nicht');
+  const nine=plain(api.reminderCandidates('2026-10-12T09:00:00+02:00',state,{id:'u1'}));
+  assert.deepEqual(nine[0].channels,{website:true,email:true});
+  assert.equal(api.toggleTaskReminder('t1','12:00','enabled',ctx).changed,false,'nur bekannte Slots');
+});
+
+test('Ledger wird nach 14 Tagen bereinigt',()=>{
+  const api=load(),state={taskSettings:{reminderLedger:{old:{deliveredAt:'2026-09-20T09:00:00+02:00'},fresh:{deliveredAt:'2026-10-11T09:00:00+02:00'}}}};
+  assert.equal(api.pruneReminderLedger({state,persist:()=>{},now:'2026-10-12T09:00:00+02:00'}),1);
+  assert.deepEqual(Object.keys(state.taskSettings.reminderLedger),['fresh']);
+});
+
+function loadRunner(state,user,extra={}){
+  const context={console,Date,Intl,setTimeout,clearTimeout,...extra};context.globalThis=context;
+  context.__EXPORTHUB_GET_STATE__=()=>state;context.__EXPORTHUB_GET_CURRENT_USER__=()=>user;
+  for(const file of ['assets/taskplanner-v2-core.js','assets/taskplanner-v2-recurrence.js','assets/taskplanner-v2-planner.js','assets/taskplanner-v2-ui.js','assets/taskplanner-v2-planner-ui.js'])vm.runInNewContext(fs.readFileSync(file,'utf8'),context,{filename:file});
+  return context;
+}
+
+test('Erinnerungs-Runner liefert einmal, schreibt den Ledger in den gemeinsamen Zustand und speichert',()=>{
+  const state={tasks:[task({title:'Zollprüfung'})],taskSettings:{}};let saves=0,notes=[];
+  class FakeNotification{constructor(title,opts){notes.push({title,opts});}static permission='granted';}
+  const ctx=loadRunner(state,{id:'u1'},{Notification:FakeNotification,ExportHUBClean:{queueSave:()=>{saves++;}}});
+  const runner=ctx.ExportHUBTaskRemindersV2;
+  assert.equal(runner.active(),false,'ohne document kein Autostart');
+  const first=runner.check('2026-10-12T13:02:00+02:00');
+  assert.equal(first.length,1);
+  assert.equal(Object.keys(state.taskSettings.reminderLedger).length,1);
+  assert.ok(saves>=1);
+  assert.equal(notes.length,1);
+  assert.match(notes[0].title,/Zollprüfung/);
+  assert.equal(runner.check('2026-10-12T13:03:00+02:00').length,0,'kein zweites Mal');
+  assert.equal(state.tasks.length,1,'Ledger-Speichern überschreibt die Aufgaben nicht');
+});
+
+test('Erinnerungs-Runner ohne angemeldeten Benutzer tut nichts',()=>{
+  const state={tasks:[task()]},ctx=loadRunner(state,{});
+  assert.equal(ctx.ExportHUBTaskRemindersV2.check('2026-10-12T13:02:00+02:00').length,0);
+  assert.equal(state.taskSettings,undefined);
+});
+
+test('Erinnerungshinweis enthält Öffnen und Erledigt pro Aufgabe',()=>{
+  const ctx=loadRunner({tasks:[]},{id:'u1'});
+  const html=ctx.ExportHUBTaskRemindersV2.toastHtml([{taskId:'t1',title:'A',slot:'09:00',key:'k1'},{taskId:'t2',title:'B',slot:'09:00',key:'k2'},{taskId:'t3',title:'C',slot:'09:00',key:'k3'},{taskId:'t4',title:'D',slot:'09:00',key:'k4'}]);
+  assert.match(html,/data-tpv2-reminder-open="t1"/);
+  assert.match(html,/data-tpv2-reminder-done="t3"/);
+  assert.doesNotMatch(html,/data-tpv2-reminder-open="t4"/);
+  assert.match(html,/\+1 more/);
+});
