@@ -24,7 +24,7 @@ test('P0: only temporary Azure and network write errors qualify for retry',()=>{
   assert.equal(isTransientStorageWriteError({code:'STORAGE_JSON_INVALID'}),false);
 });
 
-function fixture(failure,{afterCommit=false,alreadySaved=false,remoteChanged=false,optimistic=false,operationSeen=false}={}){
+function fixture(failure,{afterCommit=false,alreadySaved=false,remoteChanged=false,optimistic=false,operationSeen=false,slowClock=false}={}){
   const empty=()=>({schemaVersion:3,revision:1,users:[],state:{},recentOperations:[]});
   const initial=empty();
   if(alreadySaved)initial.state={customers:[{id:'C-1',name:'Kunde'}]};
@@ -53,6 +53,7 @@ function fixture(failure,{afterCommit=false,alreadySaved=false,remoteChanged=fal
     error,
     Buffer,
     process:{env:{}},
+    Date:slowClock?{now:(()=>{let call=0;return ()=>++call===1?0:20000})()}:Date,
     uploadJson:async(_blob,next)=>{
       uploads++;
       if(uploads===1&&failure){
@@ -141,4 +142,11 @@ test('P0: optimistic cache may replay an operation only after matching Azure ETa
   assert.equal(f.counts().heads,1);
   assert.equal(f.counts().reads,0);
   assert.equal(f.counts().uploads,0);
+});
+
+test('P0: slow Azure timeout cannot trigger an additional cascade of full retries',async()=>{
+  const slow=fixture({statusCode:503,failCount:10},{slowClock:true});
+  await assert.rejects(slow.save(),error=>error.code==='STORAGE_UNREACHABLE'&&error.status===503);
+  assert.equal(slow.counts().uploads,1,'already timed-out Azure writes must not be multiplied');
+  assert.equal(slow.counts().reads,0);
 });
