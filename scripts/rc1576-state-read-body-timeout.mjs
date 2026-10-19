@@ -24,9 +24,9 @@ export function patchRc1576StateBodyDeadline(html,file){
   try{
    txt=await Promise.race([res.text(),new Promise(function(_resolve,reject){
     rc1576Timer=native.setTimeout(function(){
-     try{var abort=rc1576ResponseAbort&&rc1576ResponseAbort.get(res);if(abort)abort()}catch(_){}
      var e=new Error('Zeitüberschreitung beim Lesen der Azure-Teamdaten ('+apiEndpointLabel(url)+').');
-     e.code='API_TIMEOUT';reject(e)
+     e.code='API_TIMEOUT';reject(e);
+     try{var abort=rc1576ResponseAbort&&rc1576ResponseAbort.get(res);if(abort)abort()}catch(_){}
     },rc1576Remaining)
    })])
   }finally{if(rc1576Timer!==null)native.clearTimeout(rc1576Timer);if(rc1576ResponseAbort)rc1576ResponseAbort.delete(res)}
