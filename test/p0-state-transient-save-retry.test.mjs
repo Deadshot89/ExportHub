@@ -128,7 +128,7 @@ test('P0: stale optimistic no-op must read current Azure state, not ACK the cach
 test('P0: optimistic cache must not replay an operation absent from current Azure',async()=>{
   const f=fixture(null,{alreadySaved:true,remoteChanged:true,optimistic:true,operationSeen:true});
   const saved=await f.save();
-  assert.equal(saved.idempotentReplay,true===false,'stale cache operationId must be rechecked');
+  assert.notEqual(saved.idempotentReplay,true,'stale cache operationId must be rechecked');
   assert.equal(saved.revision,2);
   assert.equal(f.counts().heads,1);
   assert.equal(f.counts().reads,1);
