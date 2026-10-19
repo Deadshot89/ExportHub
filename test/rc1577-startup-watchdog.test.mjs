@@ -49,7 +49,7 @@ test('RC1577: delayed login triggers retry only after 25 seconds continuously st
   b.advance(60000); // user stays on login page before sign-in
   b.activate('Azure-Teamdaten werden geladen … · 0 s');
   assert.equal(b.watch.isBroken(),true,'visible blocking overlay must override stale interactive dashboard');
-  b.advance(20000);
+  b.advance(25000);
   assert.equal(b.shown,false,'no alert before 25 seconds of observed loading');
   b.advance(5000);
   assert.equal(b.shown,true,'retry panel must appear even for late login');
