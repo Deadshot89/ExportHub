@@ -444,11 +444,12 @@ test('RC1543 P1: Europaletten erscheinen im echten Ladelisten-Druck als aktuelle
   },{timeout:20_000,message:'Palettenkonto-Druck hat keinen druckbaren Dokumentkontext erzeugt'}).toBeGreaterThan(500);
 
   expect(capture.text).toMatch(/Palettenkonto/i);
-  expect(capture.text).toMatch(/Europaletten-Kontostand\s*\/\s*EUR pallet balance/i);
+  expect(capture.text).toMatch(/Palettenkonto\s*\/\s*EUR pallet balance/i);
   expect(capture.text).toMatch(/Zu Gunsten Essentra:\s*7\s*Europaletten/i);
   expect(capture.text).toMatch(/In favour of Essentra:\s*7\s*EUR pallets/i);
   expect(capture.text).not.toMatch(/Ausgang:\s*2\s*Europaletten/i);
-  expect(capture.html).toMatch(/rc1095-pallet-account/i);
+  expect(capture.html).toMatch(/data-rc1560-pallet-card/i);
+  expect(capture.html,'RC1560: Palettenkonto steht im Feld unten rechts, nicht mehr über dem Ladelisten-Kopf').not.toMatch(/class="?rc1095-pallet-account/i);
   expect(capture.html).toMatch(/data-rc1543-pallet-balance/i);
   await page.evaluate(()=>{
     if(window.__RC1543_ORIGINAL_PALLET_LEDGER__)window.ExportHUBPalletLedger=window.__RC1543_ORIGINAL_PALLET_LEDGER__;
@@ -657,7 +658,7 @@ test('RC1503/RC1379/RC1543: POD-Ladeliste behält die Bild-4-Felder und nutzt de
   expect(layout.summaryHidden,'Der alte sichtbare SENDUNG-ABGEHOLT-Block ist noch aktiv').toBe(true);
   expect(layout.replacedFieldCount,'Bild-4-Felder dürfen nach der Abholung nicht ausgeblendet bleiben').toBe(0);
   expect(layout.pickupFieldCount,'Alle sechs vorhandenen Bild-4-Abholfelder müssen erhalten bleiben').toBe(6);
-  expect(layout.fieldLabels).toEqual(['Unterschrift Fahrer','Fahrername','Datum / Uhrzeit','Kennzeichen','Verlader','Europaletten-Kontostand / EUR pallet balance']);
+  expect(layout.fieldLabels).toEqual(['Unterschrift Fahrer','Fahrername','Datum / Uhrzeit','Kennzeichen','Verlader','Palettenkonto / EUR pallet balance']);
   expect(layout.signatureCount).toBe(1);
   expect(layout.imageInside,'Die Fahrerunterschrift ragt aus ihrem vorhandenen Feld').toBe(true);
   expect(layout.driverText).toContain('Max Mustermann');
