@@ -157,7 +157,10 @@ test('RC1574: bereits bedienbare App darf trotz altem Ladehinweis keine Fehlerme
 });
 
 test('RC1574: Start-Watchdog ist zeitlich begrenzt und die Datenmigration bleibt an Health gebunden',()=>{
-  assert.match(recoverySource,/setTimeout\\(function\\(\\)\\{if\\(isBroken\\(\\)\\)showStall\\(\\)\\},25000\\)/);
-  assert.match(recoverySource,/count>0&&isBroken\\(\\)/);
-  assert.match(recoverySource,/clearStall\\(\\)/);
+  assert.ok(recoverySource.includes('w.setTimeout(function(){if(isBroken())showStall()},25000)'),
+    '25-Sekunden-Failsafe muss registriert sein');
+  assert.ok(recoverySource.includes('if(count>0&&isBroken())'),
+    'Migration darf weiterhin nur bei positivem Health-Nachweis erfolgen');
+  assert.ok(recoverySource.includes('clearStall()'),
+    'Fehleranzeige wird bei erfolgreichem Start entfernt');
 });
