@@ -32,12 +32,12 @@ function usable(){
  try{
   var d=w.document,body=d&&d.body,host=d&&d.getElementById&&d.getElementById('content');
   var view=q(body&&body.getAttribute&&body.getAttribute('data-exporthub-view'));
-  var text=q(host&&host.textContent||'');
+  var hasContent=!!(host&&(host.firstElementChild||q(String(host.textContent||'').slice(0,150)).length>10));
   var interactive=typeof w.setView==='function'||!!(d&&d.querySelector&&d.querySelector('[data-view],[data-target],[data-nav]'));
-  return !!host&&text.length>10&&!!view&&interactive
+  return hasContent&&!!view&&interactive
  }catch(_){return false}
 }
-function isBroken(){return activeTeamLoad()||(loading()&&!usable())}
+function isBroken(){return activeTeamLoad()||(!usable()&&loading())}
 function environment(){return /-testservice\./i.test(String(w.location&&w.location.hostname||''))?'testservice':'production'}
 function recoveryUrl(){return '/migration-recovery.html?environment='+encodeURIComponent(environment())+'&return='+encodeURIComponent((w.location&&w.location.pathname)||'/')+'&_='+Date.now()}
 /* RC1574: Failsafe bei endloser Azure-Teamdaten-Initialisierung.
