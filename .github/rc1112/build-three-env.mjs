@@ -58,6 +58,9 @@ const RC1371_DASHBOARD_STYLE_TAG='<link id="exporthub-rc1371-dashboard-style" re
 const RC1371_DASHBOARD_I18N_TAG='<script id="exporthub-rc1371-dashboard-i18n" defer src="/assets/i18n/rc1371-dashboard-personalization.js?v=1371"><\/script>';
 const RC1371_DASHBOARD_SCRIPT_TAG='<script id="exporthub-rc1371-dashboard-script" defer src="/assets/rc1371-dashboard-personalization.js?v=1371"><\/script>';
 const RC1560_FULL_WIDTH_STYLE_TAG='<link id="exporthub-rc1560-full-width" rel="stylesheet" href="/assets/rc1560-full-width.css?v=1560">';
+const RC1579_MENU_STYLE_TAG='<link id="exporthub-rc1579-menu-style" rel="stylesheet" href="/assets/rc1579-menu-redesign.css?v=1579">';
+const RC1579_MENU_I18N_TAG='<script id="exporthub-rc1579-menu-i18n" defer src="/assets/i18n/rc1579-menu-redesign.js?v=1579"></script>';
+const RC1579_MENU_SCRIPT_TAG='<script id="exporthub-rc1579-menu-script" defer src="/assets/rc1579-menu-redesign.js?v=1579"></script>';
 const RC1577_OVERVIEW_COMPACT_STYLE_TAG='<link id="exporthub-rc1577-overview-compact" rel="stylesheet" href="/assets/rc1577-shipment-overview-compact.css?v=1577">';
 const RC1558_OVERVIEW_STYLE_TAG='<link id="exporthub-rc1558-overview-style" rel="stylesheet" href="/assets/rc1558-dashboard-overview.css?v=1558">';
 const RC1558_OVERVIEW_I18N_TAG='<script id="exporthub-rc1558-overview-i18n" defer src="/assets/i18n/rc1558-dashboard-overview.js?v=1558"><\/script>';
@@ -134,6 +137,15 @@ function patchRc1577OverviewCompact(html,file){
   // after RC1560: compact shipment overview tiles, purely visual
   html=injectDeferredRuntimeInHead(html,RC1577_OVERVIEW_COMPACT_STYLE_TAG,'exporthub-rc1577-overview-compact');
   if(!html.includes('rc1577-shipment-overview-compact.css?v=1577'))throw new Error(file+': RC1577 kompakte Sendungsübersicht fehlt');
+  return html;
+}
+
+function patchRc1579Menu(html,file){
+  // after RC1577: menu sections with submenus and one icon set; buttons stay canonical in #nav
+  html=injectDeferredRuntimeInHead(html,RC1579_MENU_STYLE_TAG,'exporthub-rc1579-menu-style');
+  html=injectDeferredRuntimeInHead(html,RC1579_MENU_I18N_TAG,'exporthub-rc1579-menu-i18n');
+  html=injectDeferredRuntimeInHead(html,RC1579_MENU_SCRIPT_TAG,'exporthub-rc1579-menu-script');
+  if(!html.includes('rc1579-menu-redesign.css?v=1579')||!html.includes('i18n/rc1579-menu-redesign.js?v=1579')||!html.includes('/assets/rc1579-menu-redesign.js?v=1579'))throw new Error(file+': RC1579 Menü fehlt');
   return html;
 }
 
@@ -1067,6 +1079,7 @@ function patchHtml(file){
   html=patchRc1306LayoutEngine(html,file);
   html=patchRc1560FullWidth(html,file);
   html=patchRc1577OverviewCompact(html,file);
+  html=patchRc1579Menu(html,file);
   html=patchRc1329MultiTruckUiRuntime(html,file);
   html=patchRc1328MultiTruckRefresh(html,file);
   html=patchRc1329MultiTruckRenderer(html,file);
@@ -1226,6 +1239,9 @@ for(const rel of [
   'assets/rc1371-dashboard-personalization.js',
   'assets/rc1560-full-width.css',
   'assets/rc1577-shipment-overview-compact.css',
+  'assets/rc1579-menu-redesign.css',
+  'assets/rc1579-menu-redesign.js',
+  'assets/i18n/rc1579-menu-redesign.js',
   'assets/rc1558-dashboard-overview.css',
   'assets/rc1558-dashboard-overview.js',
   'assets/rc1570-tasks-focus.css',
