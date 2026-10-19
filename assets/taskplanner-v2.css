@@ -101,9 +101,36 @@
 .tpv2-month-day strong{font-size:14px}.tpv2-month-day span{font-weight:900}.tpv2-month-day em{align-self:end;grid-column:1/-1;color:var(--tpv2-danger);font-style:normal;font-size:12px;font-weight:800}
 .tpv2-month-day.is-today{outline:3px solid color-mix(in srgb,var(--tpv2-primary) 35%,transparent);border-color:var(--tpv2-primary)}
 
+.tpv2-nav{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.tpv2-nav strong{margin-left:6px;font-size:13px;color:var(--tpv2-muted)}
+.tpv2-nav button{min-width:42px}.tpv2-nav button[disabled]{opacity:.45;cursor:not-allowed}
+.tpv2-day.is-nonwork{background:repeating-linear-gradient(135deg,var(--tpv2-page),var(--tpv2-page) 8px,color-mix(in srgb,var(--tpv2-warning-soft) 60%,var(--tpv2-page)) 8px,color-mix(in srgb,var(--tpv2-warning-soft) 60%,var(--tpv2-page)) 16px)}
+.tpv2-day.is-today{border-color:var(--tpv2-primary);box-shadow:0 0 0 2px color-mix(in srgb,var(--tpv2-primary) 25%,transparent)}
+.tpv2-day.is-drop-target{outline:3px dashed var(--tpv2-primary);outline-offset:2px}
+.tpv2-day-nonwork{margin:8px 0 0;padding:4px 8px;border-radius:8px;background:var(--tpv2-warning-soft);color:var(--tpv2-warning);font-size:12px;font-weight:800}
+.tpv2-task-card.is-dragging{opacity:.55;cursor:grabbing}
+.tpv2-task-card:focus-visible{outline:3px solid var(--tpv2-primary);outline-offset:2px}
+.tpv2-unplanned{display:grid;gap:10px;padding:16px;border:1px dashed var(--tpv2-border);border-radius:var(--tpv2-radius);background:var(--tpv2-surface)}
+.tpv2-unplanned>header{display:flex;align-items:center;justify-content:space-between;gap:12px}.tpv2-unplanned h2{margin:0;font-size:18px}
+.tpv2-unplanned>header span{display:grid;place-items:center;min-width:32px;height:32px;border-radius:999px;background:var(--tpv2-page);font-weight:900}
+.tpv2-unplanned-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.tpv2-unplanned .tpv2-task-card{padding:11px;box-shadow:none;cursor:grab}
+.tpv2-month-weekday{padding:0 4px;color:var(--tpv2-muted);font-size:12px;font-weight:800;text-transform:uppercase}
+.tpv2-month-day small{grid-column:1/-1;color:var(--tpv2-warning);font-size:11px;font-weight:800;overflow-wrap:anywhere}
+.tpv2-month-day.is-weekend{opacity:.65}
+.tpv2-month-day.is-nonwork{background:var(--tpv2-warning-soft)}
+.tpv2-month-day.is-selected{border-color:var(--tpv2-primary);box-shadow:0 0 0 2px color-mix(in srgb,var(--tpv2-primary) 30%,transparent)}
+.tpv2-month-status{grid-column:1/-1;display:flex;gap:4px;font-weight:800}
+.tpv2-dot{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 5px;border-radius:999px;font-style:normal;font-size:11px}
+.tpv2-dot.is-critical{background:var(--tpv2-danger-soft);color:var(--tpv2-danger)}.tpv2-dot.is-done{background:var(--tpv2-success-soft);color:var(--tpv2-success)}
+.tpv2-month-detail{display:grid;gap:10px;padding:14px;border:1px solid var(--tpv2-border);border-radius:14px;background:var(--tpv2-page)}
+.tpv2-month-detail>header{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.tpv2-month-detail h3{margin:0;font-size:16px;flex:1 1 auto}
+.tpv2-month-detail-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+
 @media (max-width:1100px){
   .tpv2-task-list{grid-template-columns:repeat(2,minmax(0,1fr))}.tpv2-detail{width:min(480px,100%)}
   .tpv2-overdue-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .tpv2-unplanned-grid,.tpv2-month-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .tpv2-weekplan-stats{grid-template-columns:repeat(3,minmax(0,1fr))}
   .tpv2-week-grid{grid-template-columns:repeat(5,minmax(170px,1fr));overflow-x:auto;padding-bottom:4px}
 }
@@ -117,6 +144,7 @@
   .tpv2-detail-actions .tpv2-button{width:100%;min-height:48px}
   .tpv2-planner-head{align-items:stretch}.tpv2-view-toggle{width:100%}
   .tpv2-overdue-grid{grid-template-columns:minmax(0,1fr)}
+  .tpv2-unplanned-grid,.tpv2-month-detail-grid{grid-template-columns:minmax(0,1fr)}.tpv2-nav button{min-height:48px}
   .tpv2-weekplan-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.tpv2-weekplan-actions button,.tpv2-weekplan-toolbar button{flex:1 1 auto;min-height:48px}
   .tpv2-week-grid{grid-template-columns:minmax(0,1fr);overflow:visible}
   .tpv2-day{min-height:0}.tpv2-day-tasks{grid-template-columns:minmax(0,1fr)}

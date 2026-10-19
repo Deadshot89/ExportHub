@@ -177,3 +177,81 @@ test('Wochenplan mit Feiertagskonflikt kann nicht übernommen werden',async()=>{
   await target.handlers.click({target:button('data-tpv2-weekplan','discard')});
   assert.doesNotMatch(target.innerHTML,/data-tpv2-weekplan-summary/);
 });
+
+test('Monatsansicht beginnt am richtigen Wochentag und markiert Feiertage und Wochenenden',()=>{
+  const {ExportHUBTaskUIV2:ui}=load(),target=root();
+  ui.renderMonth(target,{state:{tasks:[]},year:2026,month:12,now:'2026-12-01T08:00:00+01:00'});
+  assert.equal((target.innerHTML.match(/tpv2-month-pad/g)||[]).length,1,'1. Dezember 2026 ist ein Dienstag');
+  assert.match(target.innerHTML,/class="tpv2-month-day is-nonwork" data-day-summary="2026-12-25" aria-label="2026-12-25 · 1\. Weihnachtstag"/);
+  assert.match(target.innerHTML,/<small>1\. Weihnachtstag<\/small>/);
+  assert.match(target.innerHTML,/class="tpv2-month-day is-weekend" data-day-summary="2026-12-27"/);
+});
+
+test('Klick auf einen Monatstag zeigt erst dann dessen Aufgaben, Monatsnavigation blättert',async()=>{
+  const {ExportHUBTaskUIV2:ui}=load(),target=plannerTarget(),now='2026-10-12T08:00:00+02:00';
+  const state={tasks:[task('a','2026-10-14',{title:'Am Mittwoch'})]};
+  ui.renderPlannerPage(target,{state,now,view:'month'});
+  assert.doesNotMatch(target.innerHTML,/Am Mittwoch/);
+  await target.handlers.click({target:button('data-day-summary','2026-10-14')});
+  assert.match(target.innerHTML,/data-tpv2-month-detail="2026-10-14"/);
+  assert.match(target.innerHTML,/Am Mittwoch/);
+  await target.handlers.click({target:button('data-tpv2-month-day-close','')});
+  assert.doesNotMatch(target.innerHTML,/data-tpv2-month-detail/);
+  await target.handlers.click({target:button('data-tpv2-nav','month-next')});
+  assert.match(target.innerHTML,/11\/2026/);
+  assert.match(target.innerHTML,/data-day-summary="2026-11-01"/);
+  await target.handlers.click({target:button('data-tpv2-nav','month-prev')});
+  await target.handlers.click({target:button('data-tpv2-nav','month-prev')});
+  assert.match(target.innerHTML,/09\/2026/);
+  await target.handlers.click({target:button('data-tpv2-nav','month-today')});
+  assert.match(target.innerHTML,/10\/2026/);
+});
+
+test('Wochennavigation blättert vorwärts und nicht vor die aktuelle Woche',async()=>{
+  const {ExportHUBTaskUIV2:ui}=load(),target=plannerTarget(),now='2026-10-12T08:00:00+02:00';
+  ui.renderPlannerPage(target,{state:{tasks:[]},now,weekStart:'2026-10-12'});
+  assert.match(target.innerHTML,/data-tpv2-nav="week-prev"[^>]*disabled/);
+  await target.handlers.click({target:button('data-tpv2-nav','week-next')});
+  assert.match(target.innerHTML,/data-tpv2-drop-date="2026-10-19"/);
+  assert.doesNotMatch(target.innerHTML,/data-tpv2-drop-date="2026-10-12"/);
+  await target.handlers.click({target:button('data-tpv2-nav','week-prev')});
+  await target.handlers.click({target:button('data-tpv2-nav','week-prev')});
+  assert.match(target.innerHTML,/data-tpv2-drop-date="2026-10-12"/);
+});
+
+test('Wochenspalten markieren Feiertage, Karten nennen die Tage der Überfälligkeit',()=>{
+  const {ExportHUBTaskUIV2:ui}=load(),target=root();
+  const state={tasks:[task('late','2026-12-14',{title:'Lange überfällig',dueAt:'2026-12-14T16:15:00+01:00'})]};
+  ui.renderPlannerPage(target,{state,weekStart:'2026-12-21',now:'2026-12-21T10:00:00+01:00'});
+  assert.match(target.innerHTML,/class="tpv2-day is-nonwork" data-tpv2-drop-date="2026-12-25"[\s\S]*?1\. Weihnachtstag/);
+  assert.match(target.innerHTML,/7 days overdue/);
+});
+
+test('Aufgaben ohne Termin stehen im eigenen Bereich',()=>{
+  const {ExportHUBTaskUIV2:ui}=load(),target=root();
+  const state={tasks:[{id:'free',title:'Irgendwann',status:'open',priority:'P2'},task('dated','2026-10-13')]};
+  ui.renderPlannerPage(target,{state,weekStart:'2026-10-12',now:'2026-10-12T08:00:00+02:00'});
+  const section=target.innerHTML.slice(target.innerHTML.indexOf('data-tpv2-unplanned'));
+  assert.match(section,/Irgendwann/);
+  assert.ok(target.innerHTML.indexOf('data-tpv2-unplanned')>=0);
+  assert.doesNotMatch(section.slice(0,section.indexOf('data-week-scope')),/data-task-id="dated"/);
+});
+
+test('Klick ohne Tageswechsel verschiebt nichts, Alt+Pfeil verschiebt per Tastatur',()=>{
+  const {ExportHUBTaskUIV2:ui}=load(),calls=[];
+  const state={tasks:[task('t','2026-10-13')]};
+  const runtime={moveTaskOccurrence(id,plannedAt){calls.push({id,plannedAt});return{changed:true};}};
+  const dayNode=date=>({closest:sel=>sel==='[data-tpv2-drop-date], [data-i218-drop-date]'?dayNode(date):null,getAttribute:name=>name==='data-tpv2-drop-date'?date:null});
+  const card={closest:sel=>sel==='[data-task-id]'?card:null,getAttribute:name=>name==='data-task-id'?'t':null};
+  const handlers={},days=['2026-10-12','2026-10-13','2026-10-14'].map(dayNode);
+  const target={ownerDocument:{elementFromPoint:()=>days[1]},addEventListener:(type,fn)=>{handlers[type]=fn},querySelectorAll:()=>days};
+  ui.bindPlannerDnD(target,{state,runtime,now:'2026-10-12T08:00:00+02:00'});
+  handlers.pointerdown({target:card,clientX:5,clientY:5});
+  handlers.pointerup({target:card,clientX:5,clientY:5});
+  assert.equal(calls.length,0,'ein Klick darf keine manuelle Verschiebung erzeugen');
+  handlers.keydown({target:card,altKey:true,key:'ArrowRight',preventDefault(){}});
+  assert.equal(calls.length,1);
+  assert.match(calls[0].plannedAt,/^2026-10-14T09:00/);
+  handlers.keydown({target:card,altKey:false,key:'ArrowLeft'});
+  assert.equal(calls.length,1);
+});
