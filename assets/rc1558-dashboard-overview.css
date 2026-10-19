@@ -369,3 +369,12 @@ html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#conten
 @container (max-width:240px){
   .rc205-quick-card[data-rc1573-tile] .rc205-quick > span{display:none!important}
 }
+
+/* RC1578 proportions: the tile row was 40% of the screen and the overview lists spread their few rows over the
+   whole height. The tiles now get a bounded share (28% of the free height, 160–260px), the overview takes the
+   rest, and list rows keep their natural height at the top of their panel. */
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]){grid-template-rows:minmax(0,1fr) clamp(160px,28%,260px)!important}
+@media (max-height:820px){
+  html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]){grid-template-rows:minmax(0,1fr) clamp(130px,30%,200px)!important}
+}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) .rc1558-list{align-content:start!important}
