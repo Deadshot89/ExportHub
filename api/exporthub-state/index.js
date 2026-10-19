@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const { isDeepStrictEqual } = require('node:util');
 const { createBlobServiceClient } = require('../shared/blob-rest');
 const { mergeState, sanitizeState, pruneTombstones, clone, isLocalOnlyKey } = require('../shared/merge');
+const { isTransientStorageWriteError } = require('../shared/state-save-retry');
 const { externalizeDocumentCollections, DOCUMENT_CONTAINER, DOCUMENT_FIELDS, legacyDocumentInventory } = require('../shared/document-blob-store');
 const { isAdmin, isPrivilegedUser } = require('../shared/user-policy');
 const { compactStateForStorage } = require('../shared/state-compaction');
@@ -21,6 +22,8 @@ const DIAGNOSTICS_MAX_RECORDS = 5000;
 const DIAGNOSTICS_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_RETRIES = 12;
 const CONFLICT_BACKOFF_BASE_MS = 12;
+const MAX_TRANSIENT_SAVE_RETRIES = 2;
+const TRANSIENT_SAVE_BACKOFF_BASE_MS = 150;
 function sleep(ms){return new Promise(resolve=>setTimeout(resolve,Math.max(0,Number(ms)||0)))}
 const API_VERSION = 'RC1458';
 const TEAM_WARM_CACHE = new Map();
@@ -356,7 +359,7 @@ function rc1080AuditCustomerChanges(beforeState,mergedState,actor,incomingState)
 function storageStateEquivalent(a,b){return isDeepStrictEqual(a&&typeof a==='object'?a:{},b&&typeof b==='object'?b:{})}
 
 async function saveMerged(blob,incoming,user,initialTeam,initialEtag,session){
- let d={value:initialTeam||emptyTeam(),etag:initialEtag||null},retryReadMs=0,mergeMs=0,uploadMs=0,uploadBytes=0,conflictCount=0;
+ let d={value:initialTeam||emptyTeam(),etag:initialEtag||null},retryReadMs=0,mergeMs=0,uploadMs=0,uploadBytes=0,conflictCount=0,transientSaveRetries=0;
  for(let attempt=0;attempt<MAX_RETRIES;attempt++){
   if(attempt>0){const retryStarted=Date.now();d=await readJson(blob,emptyTeam());retryReadMs+=Date.now()-retryStarted}
   const current=d.value||emptyTeam(),writeUser=validateWriteUserAgainstTeam(current,user,session),operationId=text(incoming.operationId),recentOperations=Array.isArray(current.recentOperations)?current.recentOperations:[];
@@ -369,7 +372,18 @@ async function saveMerged(blob,incoming,user,initialTeam,initialEtag,session){
   }
   const next={schemaVersion:3,revision:Number(current.revision||0)+1,updatedAt:now(),updatedBy:text(writeUser.name||writeUser.user),updatedByUserId:text(writeUser.id),updatedByDevice:incoming.deviceId||null,clientVersion:incoming.clientVersion||null,state:merged,users:current.users||[],authBootstrap:current.authBootstrap&&typeof current.authBootstrap==='object'?clone(current.authBootstrap):undefined};
   next.recentOperations=(operationId?[{id:operationId,at:next.updatedAt,deviceId:incoming.deviceId||null,revision:next.revision}]:[]).concat(recentOperations.filter(op=>text(op&&op.id)!==operationId)).slice(0,50);
-  try{const uploadStarted=Date.now();let uploaded;try{uploaded=await uploadJson(blob,next,d.etag)}finally{uploadMs+=Date.now()-uploadStarted}uploadBytes=Number(uploaded&&uploaded.bytes||0);try{Object.defineProperty(next,'__storageEtag',{value:uploaded&&uploaded.etag||null,enumerable:false});Object.defineProperty(next,'__timing',{value:{retryReadMs,mergeMs,uploadMs,uploadBytes,conflictCount},enumerable:false});Object.defineProperty(next,'__dynamicI18n',{value:dynamicI18nReport,enumerable:false})}catch(_){}next.concurrentMerge=Number(incoming.baseRevision||0)!==Number(current.revision||0);next.baseRevision=Number(incoming.baseRevision||0);return next}catch(e){if(isStorageWriteConflict(e)){conflictCount++;if(attempt<MAX_RETRIES-1){await sleep(Math.min(250,CONFLICT_BACKOFF_BASE_MS*Math.pow(2,Math.min(attempt,4))));continue;}throw error('CONCURRENT_UPDATE','api.state.concurrentSaveFailed',409,{conflicts:conflictCount,lastError:e&&e.message||'CONDITIONAL_WRITE_CONFLICT'});}if(e&&Number(e.statusCode||e.status||0)>=500)throw error('STORAGE_UNREACHABLE','api.state.saveFailed',503,{error:e.message||'SERVER_ERROR'});throw e}
+  try{const uploadStarted=Date.now();let uploaded;try{uploaded=await uploadJson(blob,next,d.etag)}finally{uploadMs+=Date.now()-uploadStarted}uploadBytes=Number(uploaded&&uploaded.bytes||0);try{Object.defineProperty(next,'__storageEtag',{value:uploaded&&uploaded.etag||null,enumerable:false});Object.defineProperty(next,'__timing',{value:{retryReadMs,mergeMs,uploadMs,uploadBytes,conflictCount},enumerable:false});Object.defineProperty(next,'__dynamicI18n',{value:dynamicI18nReport,enumerable:false})}catch(_){}next.concurrentMerge=Number(incoming.baseRevision||0)!==Number(current.revision||0);next.baseRevision=Number(incoming.baseRevision||0);return next}catch(e){if(isStorageWriteConflict(e)){conflictCount++;if(attempt<MAX_RETRIES-1){await sleep(Math.min(250,CONFLICT_BACKOFF_BASE_MS*Math.pow(2,Math.min(attempt,4))));continue;}throw error('CONCURRENT_UPDATE','api.state.concurrentSaveFailed',409,{conflicts:conflictCount,lastError:e&&e.message||'CONDITIONAL_WRITE_CONFLICT'});}if(isTransientStorageWriteError(e)){
+   if(transientSaveRetries<MAX_TRANSIENT_SAVE_RETRIES&&attempt<MAX_RETRIES-1){
+    transientSaveRetries++;
+    // A write can have reached Azure even if its HTTP acknowledgement was lost.
+    // Retry only after the next loop rereads the authoritative state: the
+    // operationId replay/no-op checks then prevent a second logical mutation.
+    await sleep(TRANSIENT_SAVE_BACKOFF_BASE_MS*Math.pow(2,transientSaveRetries-1));
+    continue;
+   }
+   throw error('STORAGE_UNREACHABLE','api.state.saveFailed',503,{error:e&&e.message||'TRANSIENT_STORAGE_FAILURE',retries:transientSaveRetries});
+  }
+  if(e&&Number(e.statusCode||e.status||0)>=500)throw error('STORAGE_UNREACHABLE','api.state.saveFailed',503,{error:e.message||'SERVER_ERROR'});throw e}
  }
  throw error('CONCURRENT_UPDATE','api.state.concurrentSaveFailed',409);
 }
