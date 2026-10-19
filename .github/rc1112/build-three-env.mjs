@@ -5,6 +5,7 @@ import {integrateTour} from '../rc1501/build-three-env.mjs';
 import {integrateEditor} from '../rc1502/build-three-env.mjs';
 import {integrateTraining} from '../rc1503/build-three-env.mjs';
 import {integrateCoverageAdmin} from '../rc1506/build-three-env.mjs';
+import {patchRc1576StateBodyDeadline} from '../../scripts/rc1576-state-read-body-timeout.mjs';
 
 const ROOT=process.cwd();
 const SRC=path.join(ROOT,'dist-rc1048');
@@ -1017,6 +1018,7 @@ function patchHtml(file){
   const target=path.join(OUT,file);
   let html=fs.readFileSync(target,'utf8');
   html=patchRc1289AuthTransportFallback(html,file);
+  html=patchRc1576StateBodyDeadline(html,file);
   html=patchRc1304ThemeRedesign(html,file);
   html=patchRc1400MobileNavigationCache(html,file);
   html=patchRc1371Dashboard(html,file);
