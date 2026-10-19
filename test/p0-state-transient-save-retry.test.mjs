@@ -24,12 +24,13 @@ test('P0: only temporary Azure and network write errors qualify for retry',()=>{
   assert.equal(isTransientStorageWriteError({code:'STORAGE_JSON_INVALID'}),false);
 });
 
-function fixture(failure,{afterCommit=false,alreadySaved=false,remoteChanged=false,optimistic=false}={}){
+function fixture(failure,{afterCommit=false,alreadySaved=false,remoteChanged=false,optimistic=false,operationSeen=false}={}){
   const empty=()=>({schemaVersion:3,revision:1,users:[],state:{},recentOperations:[]});
   const initial=empty();
   if(alreadySaved)initial.state={customers:[{id:'C-1',name:'Kunde'}]};
+  if(operationSeen)initial.recentOperations=[{id:'op-123',revision:1}];
   let document=structuredClone(initial),etag='etag-1',uploads=0,reads=0,heads=0;
-  if(remoteChanged){document.revision=2;document.state.settings={serverOnly:true};etag='etag-2'}
+  if(remoteChanged){document.revision=2;document.state.settings={serverOnly:true};document.recentOperations=[];etag='etag-2'}
   const error=(code,message,status,vars)=>Object.assign(new Error(message),{code,status,vars});
   const context={
     emptyTeam:empty,MAX_RETRIES:12,CONFLICT_BACKOFF_BASE_MS:12,
@@ -121,5 +122,23 @@ test('P0: stale optimistic no-op must read current Azure state, not ACK the cach
   assert.equal(saved.state.settings.serverOnly,true);
   assert.equal(f.counts().heads,1);
   assert.equal(f.counts().reads,1);
+  assert.equal(f.counts().uploads,0);
+});
+
+test('P0: optimistic cache must not replay an operation absent from current Azure',async()=>{
+  const f=fixture(null,{alreadySaved:true,remoteChanged:true,optimistic:true,operationSeen:true});
+  const saved=await f.save();
+  assert.equal(saved.idempotentReplay,true===false,'stale cache operationId must be rechecked');
+  assert.equal(saved.revision,2);
+  assert.equal(f.counts().heads,1);
+  assert.equal(f.counts().reads,1);
+  assert.equal(f.counts().uploads,0);
+});
+test('P0: optimistic cache may replay an operation only after matching Azure ETag',async()=>{
+  const f=fixture(null,{alreadySaved:true,optimistic:true,operationSeen:true});
+  const saved=await f.save();
+  assert.equal(saved.idempotentReplay,true);
+  assert.equal(f.counts().heads,1);
+  assert.equal(f.counts().reads,0);
   assert.equal(f.counts().uploads,0);
 });
