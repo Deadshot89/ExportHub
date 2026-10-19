@@ -1,7 +1,7 @@
 (function(w){
 'use strict';
 if(w.__EXPORTHUB_RC1067_STARTUP_RECOVERY__)return;w.__EXPORTHUB_RC1067_STARTUP_RECOVERY__=true;
-var KEY='exporthub_rc301_tab_session',TIMER=null;
+var KEY='exporthub_rc301_tab_session',TIMER=null,STALL_TIMER=null,STALL_SINCE=0;
 function q(v){return String(v==null?'':v).trim()}
 function tr(key,vars,fallback){try{if(w.ExportHUBI18n&&typeof w.ExportHUBI18n.t==='function'){var v=w.ExportHUBI18n.t(key,vars);if(v&&v!==key)return v}}catch(_){}return fallback||key}
 function low(v){return q(v).toLowerCase()}
@@ -11,8 +11,19 @@ function session(){
  return null
 }
 function admin(s){var u=s&&s.user||{},role=low(u.role||u.rolle||u.level||u.type),p=Array.isArray(u.permissions)?u.permissions:[],roles=['global admin','globaler administrator','globaler admin','administrator','admin','vollzugriff'];return !!s&&!!s.token&&(u.globalAdmin===true||u.isGlobalAdmin===true||p.indexOf('*')>=0||roles.indexOf(role)>=0)}
+/* RC1577: Look at the visible loader itself; #content may contain stale interactive UI. */
+function activeTeamLoad(){
+ try{
+  var d=w.document,p=d&&d.getElementById('cleanLoadPanel');
+  if(!p||p.hidden||p.classList&&p.classList.contains('hidden'))return false;
+  if(p.getAttribute&&p.getAttribute('aria-hidden')==='true')return false;
+  var t=d.getElementById('cleanLoadText'),message=q(t&&t.textContent||'');
+  return /Azure-Teamdaten|Teamdaten werden (?:geladen|wiederhergestellt)|Sitzung und aktuelle Ansicht werden wiederhergestellt/i.test(message)
+ }catch(_){return false}
+}
 function loading(){
  try{
+  if(activeTeamLoad())return true;
   var host=w.document&&w.document.getElementById('content'),txt=q(host&&host.textContent||w.document&&w.document.body&&w.document.body.textContent||'');
   return /ExportHUB\s+wird\s+geladen|ExportHUB\s+wird\s+vorbereitet|Azure-Teamdaten\s+werden\s+geladen|Teamdaten\s+werden\s+wiederhergestellt|Gespeicherte\s+Sitzung\s+und\s+Teamdaten/i.test(txt)
  }catch(_){return false}
@@ -26,7 +37,7 @@ function usable(){
   return !!host&&text.length>10&&!!view&&interactive
  }catch(_){return false}
 }
-function isBroken(){return loading()&&!usable()}
+function isBroken(){return activeTeamLoad()||(loading()&&!usable())}
 function environment(){return /-testservice\./i.test(String(w.location&&w.location.hostname||''))?'testservice':'production'}
 function recoveryUrl(){return '/migration-recovery.html?environment='+encodeURIComponent(environment())+'&return='+encodeURIComponent((w.location&&w.location.pathname)||'/')+'&_='+Date.now()}
 /* RC1574: Failsafe bei endloser Azure-Teamdaten-Initialisierung.
@@ -61,10 +72,19 @@ async function check(){
  }catch(_){/* Azure nicht erreichbar: keine unbelegte Dokumentmigration ausloesen; der Stall-Watchdog bietet Wiederholen an. */}
  finally{if(kill)w.clearTimeout(kill)}
 }
-function schedule(){if(TIMER)w.clearTimeout(TIMER);TIMER=w.setTimeout(check,5000);w.setTimeout(function(){if(isBroken())showStall()},25000)}
+/* Poll continuously, because the user may sign in long after DOMContentLoaded. Only
+   show the retry after 25 seconds of uninterrupted Azure-team-state loading. */
+function watch(){
+ if(isBroken()){
+  if(!STALL_SINCE)STALL_SINCE=Date.now();
+  if(Date.now()-STALL_SINCE>=25000)showStall()
+ }else{STALL_SINCE=0;clearStall()}
+ STALL_TIMER=w.setTimeout(watch,5000)
+}
+function schedule(){if(TIMER)w.clearTimeout(TIMER);TIMER=w.setTimeout(check,5000);if(STALL_TIMER)w.clearTimeout(STALL_TIMER);watch()}
 if(w.document){
  if(w.document.readyState==='loading')w.document.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
- w.addEventListener('exporthub:ready',function(){if(TIMER)w.clearTimeout(TIMER);clearStall();var b=w.document.getElementById('rc1067MigrationRecoveryLink');if(b)b.remove()},{once:true})
+ w.addEventListener('exporthub:ready',function(){if(TIMER)w.clearTimeout(TIMER);STALL_SINCE=0;clearStall();var b=w.document.getElementById('rc1067MigrationRecoveryLink');if(b)b.remove()},{once:true})
 }
-w.ExportHUBRC1067StartupRecovery={session:session,admin:admin,loading:loading,usable:usable,isBroken:isBroken,check:check,recoveryUrl:recoveryUrl,showStall:showStall,clearStall:clearStall};
+w.ExportHUBRC1067StartupRecovery={session:session,admin:admin,loading:loading,usable:usable,isBroken:isBroken,activeTeamLoad:activeTeamLoad,watch:watch,check:check,recoveryUrl:recoveryUrl,showStall:showStall,clearStall:clearStall};
 })(window);
