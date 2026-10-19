@@ -5,6 +5,10 @@ const store = require('./pickup-store');
 const graphDrive = require('./graph-drive');
 const TEAM_POD_LINK_VERSION = 'RC1340';
 const POD_PDF_LAYOUT_VERSION = 'RC1553-SIGNED-LOADING-LIST-V2';
+// RC1577: layout of the signed loading list rendered in the browser (assets/document-print-name.js,
+// window.EXPORTHUB_POD_RENDER_LAYOUT). Supplied PODs carry it as renderLayout so the POD quality audit
+// can tell PODs rendered after the RC1560/RC1561 signature and bottom-tile fixes from older ones.
+const POD_RENDER_LAYOUT = 'RC1561';
 
 function text(value) {
   return String(value == null ? '' : value).replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -20,6 +24,10 @@ function pdfText(value) {
 }
 function automaticPod(record) {
   return (Array.isArray(record && record.podFiles) ? record.podFiles : []).find(file => String(file && file.kind || '').toLowerCase() === 'automatic-pod') || null;
+}
+function renderLayoutOf(value) {
+  const layout = text(value).toUpperCase();
+  return /^RC\d{3,5}$/.test(layout) ? layout : '';
 }
 function isCurrentAutomaticPod(file) {
   return !!file && String(file.kind || '').toLowerCase() === 'automatic-pod' && text(file.layoutVersion) === POD_PDF_LAYOUT_VERSION;
@@ -231,7 +239,8 @@ async function persistBackupState(accessKey, environment, patch, podFile) {
     return record;
   });
 }
-async function saveAzurePod(accessKey, environment, record, pdf, requestedName) {
+async function saveAzurePod(accessKey, environment, record, pdf, requestedName, options) {
+  const renderLayout = renderLayoutOf(options && options.renderLayout);
   const got = await store.getRecord(accessKey, environment);
   const name = safeFilePart(requestedName || fileNameFor(record));
   const hash = crypto.createHash('sha256').update(pdf).digest('hex');
@@ -244,7 +253,8 @@ async function saveAzurePod(accessKey, environment, record, pdf, requestedName) 
       reference: String(record.reference || ''),
       kind: 'automatic-pod',
       sha256: hash,
-      layoutversion: POD_PDF_LAYOUT_VERSION
+      layoutversion: POD_PDF_LAYOUT_VERSION,
+      ...(renderLayout ? { renderlayout: renderLayout } : {})
     }
   });
   const uploadedAt = store.now();
@@ -262,6 +272,7 @@ async function saveAzurePod(accessKey, environment, record, pdf, requestedName) 
     layoutVersion: POD_PDF_LAYOUT_VERSION,
     source: 'pickup-confirm-v3'
   };
+  if (renderLayout) file.renderLayout = renderLayout;
   const next = await persistBackupState(accessKey, environment, {
     status: 'azure-saved',
     azureSaved: true,
@@ -473,8 +484,8 @@ async function getPodDownload(accessKey, environment, fileId) {
   const read = await store.readBuffer(blob);
   return { buffer: read.buffer, file, record };
 }
-async function saveSuppliedPod(accessKey, environment, record, pdf, requestedName) {
-  const primary = await saveAzurePod(accessKey, environment, record, pdf, requestedName);
+async function saveSuppliedPod(accessKey, environment, record, pdf, requestedName, options) {
+  const primary = await saveAzurePod(accessKey, environment, record, pdf, requestedName, options);
   const archive = await saveAzureArchive(accessKey, environment, primary.record, pdf, primary.file);
   return { ok: true, record: archive.record || primary.record, file: primary.file, pdf, backup: (archive.record || primary.record).podBackup || {}, archiveSaved: true };
 }
@@ -807,6 +818,8 @@ module.exports = {
   createShareLink,
   getPodDownload,
   POD_PDF_LAYOUT_VERSION,
+  POD_RENDER_LAYOUT,
+  renderLayoutOf,
   retryArchiveBackup,
   retryDriveBackup,
   saveAzureArchive,
