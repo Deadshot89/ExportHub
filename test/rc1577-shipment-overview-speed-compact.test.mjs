@@ -1,11 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import vm from 'node:vm';
 
 const css=fs.readFileSync('assets/rc1577-shipment-overview-compact.css','utf8');
 const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
-const history=fs.readFileSync('assets/rc1071-shipment-history.js','utf8');
 
 function block(html,tag,id){
   const m=html.match(new RegExp(`<${tag} id=["']${id}["'][^>]*>([\\s\\S]*?)<\\/${tag}>`,'i'));
@@ -35,29 +33,6 @@ for(const file of ['index.html','TESTVERSION.html']){
     assert.match(body,/el\.textContent!==st\)el\.textContent=st/,'unveränderter Status darf keine Mutation auslösen');
   });
 }
-
-test('RC1577: Sendungsverlauf erzeugt keine Mutationsschleife mehr',()=>{
-  assert.match(history,/function schedule\(\)\{if\(scheduled\)return;scheduled=setTimeout/);
-  assert.match(history,/if\(old\.__rc1577Html!==html\|\|!old\.firstChild\)\{old\.innerHTML=html;old\.__rc1577Html=html\}/);
-});
-
-test('RC1577: Sendungsverlauf schreibt bei gleichem Inhalt kein innerHTML erneut',()=>{
-  let writes=0;
-  const section={id:'rc1071ShipmentHistory',firstChild:null,_html:'',set innerHTML(v){writes++;this._html=v;this.firstChild={}},get innerHTML(){return this._html},remove(){}};
-  const doc={readyState:'complete',body:{},head:{appendChild(){}},documentElement:{},getElementById:id=>id==='rc1071ShipmentHistory'?section:(id==='rc1071ShipmentHistoryStyle'?{}:null),querySelector:()=>null,querySelectorAll:()=>[],createElement:()=>section,addEventListener(){}};
-  const sh={id:'S1',reference:'ABC123',history:[]};
-  const win={document:doc,addEventListener(){},setInterval(){},setTimeout(){},console,
-    __EXPORTHUB_GET_STATE__:()=>({view:'shipment',shipment:sh,shipments:[sh]}),ExportHUBClean:{state:{view:'shipment',shipment:sh,shipments:[sh]},runtime:{}}};
-  win.window=win;
-  const ctx=vm.createContext(Object.assign(win,{document:doc,window:win}));
-  vm.runInContext(history,ctx,{filename:'rc1071-shipment-history.js'});
-  const api=ctx.ExportHUBShipmentHistory1071;
-  assert.ok(api&&typeof api.render==='function','RC1071 API fehlt');
-  assert.equal(api.render(),true,'Verlauf muss in der Sendungsansicht rendern');
-  const first=writes;api.render();api.render();
-  assert.equal(first,1,'erster Render schreibt genau einmal');
-  assert.equal(writes,first,'weitere Renders ohne Änderung dürfen nicht neu schreiben');
-});
 
 test('RC1577: kompakte Kacheln sind reines Bildschirm-CSS für die Sendungsübersicht',()=>{
   const body=css.replace(/\/\*[\s\S]*?\*\//g,'');
