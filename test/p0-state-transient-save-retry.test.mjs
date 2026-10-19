@@ -24,9 +24,12 @@ test('P0: only temporary Azure and network write errors qualify for retry',()=>{
   assert.equal(isTransientStorageWriteError({code:'STORAGE_JSON_INVALID'}),false);
 });
 
-function fixture(failure,{afterCommit=false}={}){
+function fixture(failure,{afterCommit=false,alreadySaved=false,remoteChanged=false,optimistic=false}={}){
   const empty=()=>({schemaVersion:3,revision:1,users:[],state:{},recentOperations:[]});
-  let document=empty(),etag='etag-1',uploads=0,reads=0;
+  const initial=empty();
+  if(alreadySaved)initial.state={customers:[{id:'C-1',name:'Kunde'}]};
+  let document=structuredClone(initial),etag='etag-1',uploads=0,reads=0,heads=0;
+  if(remoteChanged){document.revision=2;document.state.settings={serverOnly:true};etag='etag-2'}
   const error=(code,message,status,vars)=>Object.assign(new Error(message),{code,status,vars});
   const context={
     emptyTeam:empty,MAX_RETRIES:12,CONFLICT_BACKOFF_BASE_MS:12,
@@ -38,7 +41,7 @@ function fixture(failure,{afterCommit=false}={}){
     text:value=>String(value??'').trim(),
     compactStateForStorage:value=>value,
     pruneTombstones:value=>value,
-    mergeState:(_current,incoming)=>structuredClone(incoming),
+    mergeState:(current,incoming)=>structuredClone({...current,...incoming}),
     rc1080AuditCustomerChanges:()=>{},
     enrichDynamicTranslations:async()=>({}),
     normalizeDynamicLanguage:()=> 'de',
@@ -62,11 +65,12 @@ function fixture(failure,{afterCommit=false}={}){
     }
   };
   const saveMerged=vm.runInNewContext(saveBlock+'\nsaveMerged',context);
-  const save=()=>saveMerged({},{
+  const blob={getProperties:async()=>{heads++;return {etag}}};
+  const save=()=>saveMerged(blob,{
     state:{customers:[{id:'C-1',name:'Kunde'}]},
     operationId:'op-123',baseRevision:1,deviceId:'test'
-  },{id:'U-1',name:'Tester',language:'de'},empty(),'etag-1',{});
-  return {save,counts:()=>({uploads,reads,document})};
+  },{id:'U-1',name:'Tester',language:'de'},initial,'etag-1',{},optimistic);
+  return {save,counts:()=>({uploads,reads,heads,document})};
 }
 
 test('P0: transient Azure 503 retries with a fresh state read, then confirms the save',async()=>{
@@ -97,4 +101,25 @@ test('P0: authorization errors never retry, and persistent Azure failure remains
   await assert.rejects(down.save(),error=>error.code==='STORAGE_UNREACHABLE'&&error.status===503);
   assert.equal(down.counts().uploads,3);
   assert.equal(down.counts().reads,2);
+});
+
+test('P0: optimistic cached no-op must check Azure ETag before claiming persistence',async()=>{
+  const f=fixture(null,{alreadySaved:true,optimistic:true});
+  const saved=await f.save();
+  assert.equal(saved.noopSave,true);
+  assert.equal(saved.revision,1);
+  assert.equal(f.counts().heads,1);
+  assert.equal(f.counts().uploads,0);
+  assert.equal(f.counts().reads,0);
+});
+
+test('P0: stale optimistic no-op must read current Azure state, not ACK the cache',async()=>{
+  const f=fixture(null,{alreadySaved:true,remoteChanged:true,optimistic:true});
+  const saved=await f.save();
+  assert.equal(saved.noopSave,true);
+  assert.equal(saved.revision,2);
+  assert.equal(saved.state.settings.serverOnly,true);
+  assert.equal(f.counts().heads,1);
+  assert.equal(f.counts().reads,1);
+  assert.equal(f.counts().uploads,0);
 });
