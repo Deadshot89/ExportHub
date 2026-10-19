@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const { isDeepStrictEqual } = require('node:util');
 const { createBlobServiceClient } = require('../shared/blob-rest');
 const { mergeState, sanitizeState, pruneTombstones, clone, isLocalOnlyKey } = require('../shared/merge');
+const { isTransientStorageWriteError } = require('../shared/state-save-retry');
 const { externalizeDocumentCollections, DOCUMENT_CONTAINER, DOCUMENT_FIELDS, legacyDocumentInventory } = require('../shared/document-blob-store');
 const { isAdmin, isPrivilegedUser } = require('../shared/user-policy');
 const { compactStateForStorage } = require('../shared/state-compaction');
@@ -21,6 +22,9 @@ const DIAGNOSTICS_MAX_RECORDS = 5000;
 const DIAGNOSTICS_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_RETRIES = 12;
 const CONFLICT_BACKOFF_BASE_MS = 12;
+const MAX_TRANSIENT_SAVE_RETRIES = 2;
+const MAX_TRANSIENT_SAVE_RETRY_WINDOW_MS = 15000;
+const TRANSIENT_SAVE_BACKOFF_BASE_MS = 150;
 function sleep(ms){return new Promise(resolve=>setTimeout(resolve,Math.max(0,Number(ms)||0)))}
 const API_VERSION = 'RC1458';
 const TEAM_WARM_CACHE = new Map();
@@ -355,21 +359,39 @@ function rc1080AuditCustomerChanges(beforeState,mergedState,actor,incomingState)
 
 function storageStateEquivalent(a,b){return isDeepStrictEqual(a&&typeof a==='object'?a:{},b&&typeof b==='object'?b:{})}
 
-async function saveMerged(blob,incoming,user,initialTeam,initialEtag,session){
- let d={value:initialTeam||emptyTeam(),etag:initialEtag||null},retryReadMs=0,mergeMs=0,uploadMs=0,uploadBytes=0,conflictCount=0;
+async function saveMerged(blob,incoming,user,initialTeam,initialEtag,session,optimisticInitial=false){
+ let d={value:initialTeam||emptyTeam(),etag:initialEtag||null},retryReadMs=0,mergeMs=0,uploadMs=0,uploadBytes=0,conflictCount=0,transientSaveRetries=0,transientWindowStarted=Date.now();
+ async function optimisticCacheMatchesAzure(){
+  try{const props=await blob.getProperties();const etag=text(props&&props.etag);return !!etag&&etag===text(d.etag)}
+  catch(e){if(Number(e&&(e.statusCode||e.status)||0)===404)return false;throw e}
+ }
  for(let attempt=0;attempt<MAX_RETRIES;attempt++){
   if(attempt>0){const retryStarted=Date.now();d=await readJson(blob,emptyTeam());retryReadMs+=Date.now()-retryStarted}
   const current=d.value||emptyTeam(),writeUser=validateWriteUserAgainstTeam(current,user,session),operationId=text(incoming.operationId),recentOperations=Array.isArray(current.recentOperations)?current.recentOperations:[];
-  if(operationId&&recentOperations.some(op=>text(op&&op.id)===operationId)){const replay=clone(current);replay.concurrentMerge=false;replay.idempotentReplay=true;replay.baseRevision=Number(incoming.baseRevision||0);try{Object.defineProperty(replay,'__storageEtag',{value:d.etag||null,enumerable:false});Object.defineProperty(replay,'__timing',{value:{retryReadMs,mergeMs,uploadMs,uploadBytes,conflictCount},enumerable:false})}catch(_){}return replay}
+  if(operationId&&recentOperations.some(op=>text(op&&op.id)===operationId)){if(attempt===0&&optimisticInitial&&!(await optimisticCacheMatchesAzure())){conflictCount++;continue}const replay=clone(current);replay.concurrentMerge=false;replay.idempotentReplay=true;replay.baseRevision=Number(incoming.baseRevision||0);try{Object.defineProperty(replay,'__storageEtag',{value:d.etag||null,enumerable:false});Object.defineProperty(replay,'__timing',{value:{retryReadMs,mergeMs,uploadMs,uploadBytes,conflictCount},enumerable:false})}catch(_){}return replay}
   const mergeStarted=Date.now(),merged=compactStateForStorage(pruneTombstones(mergeState(current.state||{},incoming.state||{})));delete merged.users;rc1080AuditCustomerChanges(current.state||{},merged,writeUser,incoming.state||{});const dynamicI18nReport=await enrichDynamicTranslations(merged,normalizeDynamicLanguage(writeUser.language||writeUser.uiLanguage||'de'),{limit:Number(process.env.EXPORTHUB_I18N_SAVE_LIMIT||50)||50,retryPending:false});mergeMs+=Date.now()-mergeStarted;
   if(storageStateEquivalent(current.state||{},merged)){
+   // A production save may start from an unverified process-wide warm cache.
+   // An apparent no-op must not claim durable Azure persistence from that cache.
+   if(attempt===0&&optimisticInitial&&!(await optimisticCacheMatchesAzure())){conflictCount++;continue}
    const noop=clone(current);noop.concurrentMerge=false;noop.baseRevision=Number(incoming.baseRevision||0);noop.noopSave=true;
    try{Object.defineProperty(noop,'__storageEtag',{value:d.etag||null,enumerable:false});Object.defineProperty(noop,'__timing',{value:{retryReadMs,mergeMs,uploadMs,uploadBytes:0,conflictCount},enumerable:false});Object.defineProperty(noop,'__dynamicI18n',{value:dynamicI18nReport,enumerable:false})}catch(_){}
    return noop;
   }
   const next={schemaVersion:3,revision:Number(current.revision||0)+1,updatedAt:now(),updatedBy:text(writeUser.name||writeUser.user),updatedByUserId:text(writeUser.id),updatedByDevice:incoming.deviceId||null,clientVersion:incoming.clientVersion||null,state:merged,users:current.users||[],authBootstrap:current.authBootstrap&&typeof current.authBootstrap==='object'?clone(current.authBootstrap):undefined};
   next.recentOperations=(operationId?[{id:operationId,at:next.updatedAt,deviceId:incoming.deviceId||null,revision:next.revision}]:[]).concat(recentOperations.filter(op=>text(op&&op.id)!==operationId)).slice(0,50);
-  try{const uploadStarted=Date.now();let uploaded;try{uploaded=await uploadJson(blob,next,d.etag)}finally{uploadMs+=Date.now()-uploadStarted}uploadBytes=Number(uploaded&&uploaded.bytes||0);try{Object.defineProperty(next,'__storageEtag',{value:uploaded&&uploaded.etag||null,enumerable:false});Object.defineProperty(next,'__timing',{value:{retryReadMs,mergeMs,uploadMs,uploadBytes,conflictCount},enumerable:false});Object.defineProperty(next,'__dynamicI18n',{value:dynamicI18nReport,enumerable:false})}catch(_){}next.concurrentMerge=Number(incoming.baseRevision||0)!==Number(current.revision||0);next.baseRevision=Number(incoming.baseRevision||0);return next}catch(e){if(isStorageWriteConflict(e)){conflictCount++;if(attempt<MAX_RETRIES-1){await sleep(Math.min(250,CONFLICT_BACKOFF_BASE_MS*Math.pow(2,Math.min(attempt,4))));continue;}throw error('CONCURRENT_UPDATE','api.state.concurrentSaveFailed',409,{conflicts:conflictCount,lastError:e&&e.message||'CONDITIONAL_WRITE_CONFLICT'});}if(e&&Number(e.statusCode||e.status||0)>=500)throw error('STORAGE_UNREACHABLE','api.state.saveFailed',503,{error:e.message||'SERVER_ERROR'});throw e}
+  try{const uploadStarted=Date.now();let uploaded;try{uploaded=await uploadJson(blob,next,d.etag)}finally{uploadMs+=Date.now()-uploadStarted}uploadBytes=Number(uploaded&&uploaded.bytes||0);try{Object.defineProperty(next,'__storageEtag',{value:uploaded&&uploaded.etag||null,enumerable:false});Object.defineProperty(next,'__timing',{value:{retryReadMs,mergeMs,uploadMs,uploadBytes,conflictCount},enumerable:false});Object.defineProperty(next,'__dynamicI18n',{value:dynamicI18nReport,enumerable:false})}catch(_){}next.concurrentMerge=Number(incoming.baseRevision||0)!==Number(current.revision||0);next.baseRevision=Number(incoming.baseRevision||0);return next}catch(e){if(isStorageWriteConflict(e)){conflictCount++;if(attempt<MAX_RETRIES-1){await sleep(Math.min(250,CONFLICT_BACKOFF_BASE_MS*Math.pow(2,Math.min(attempt,4))));continue;}throw error('CONCURRENT_UPDATE','api.state.concurrentSaveFailed',409,{conflicts:conflictCount,lastError:e&&e.message||'CONDITIONAL_WRITE_CONFLICT'});}if(isTransientStorageWriteError(e)){
+   if(transientSaveRetries<MAX_TRANSIENT_SAVE_RETRIES&&attempt<MAX_RETRIES-1&&Date.now()-transientWindowStarted<MAX_TRANSIENT_SAVE_RETRY_WINDOW_MS){
+    transientSaveRetries++;
+    // A write can have reached Azure even if its HTTP acknowledgement was lost.
+    // Retry only after the next loop rereads the authoritative state: the
+    // operationId replay/no-op checks then prevent a second logical mutation.
+    await sleep(TRANSIENT_SAVE_BACKOFF_BASE_MS*Math.pow(2,transientSaveRetries-1));
+    continue;
+   }
+   throw error('STORAGE_UNREACHABLE','api.state.saveFailed',503,{error:e&&e.message||'TRANSIENT_STORAGE_FAILURE',retries:transientSaveRetries});
+  }
+  if(e&&Number(e.statusCode||e.status||0)>=500)throw error('STORAGE_UNREACHABLE','api.state.saveFailed',503,{error:e.message||'SERVER_ERROR'});throw e}
  }
  throw error('CONCURRENT_UPDATE','api.state.concurrentSaveFailed',409);
 }
@@ -1079,7 +1101,7 @@ module.exports=async function(context,req){
    if(!hasAnyEditRight(current.user))throw error('WRITE_FORBIDDEN','api.state.writeForbidden',403);
    let corruptBackup=null;if(current.teamRecoveredFromHistory===true&&current.teamCurrentCorrupt===true)corruptBackup=await safetyRawBackup(c.container,blob,'corrupt-team-state-before-RC855-save',c.recoveryPrefix);
    const normalized=normalizeIncoming(payload),documentExternalizeStarted=Date.now(),externalized=await externalizeDocumentCollections(normalized.state,{environment:c.environment,container:c.documentContainer,currentState:current.team&&current.team.state});normalized.state=externalized.state;
-   const saveStarted=Date.now(),saved=await saveMerged(blob,normalized,current.user,current.team,current.teamEtag,current.session),saveMs=Date.now()-saveStarted;rememberWarmTeam(c,saved,saved&&saved.__storageEtag||current.teamEtag);saved.dataEnvironment=c.environment;saved.documentExternalizeStats=externalized.stats;saved.documentExternalizeMs=Date.now()-documentExternalizeStarted;
+   const saveStarted=Date.now(),saved=await saveMerged(blob,normalized,current.user,current.team,current.teamEtag,current.session,current.timing&&current.timing.teamCache==='memory-save'),saveMs=Date.now()-saveStarted;rememberWarmTeam(c,saved,saved&&saved.__storageEtag||current.teamEtag);saved.dataEnvironment=c.environment;saved.documentExternalizeStats=externalized.stats;saved.documentExternalizeMs=Date.now()-documentExternalizeStarted;
    if(corruptBackup)saved.corruptBackup=corruptBackup;
    const phase=saved&&saved.__timing||{},serverMs=Date.now()-requestStarted,timing={serverMs,clientsMs,authMs:Number(current.timing&&current.timing.authMs||0),authCache:text(current.timing&&current.timing.authCache||'unknown')||'unknown',teamMs:Number(current.timing&&current.timing.teamMs||0),validationMs:Number(current.timing&&current.timing.validationMs||0),teamCache:current.timing&&current.timing.teamCache||'unknown',mergeMs:Number(phase.mergeMs||0),uploadMs:Number(phase.uploadMs||0),retryReadMs:Number(phase.retryReadMs||0),uploadBytes:Number(phase.uploadBytes||0),conflictCount:Number(phase.conflictCount||0),saveMs};
    const full=req.query&&String(req.query.full||'')==='1',ack=!full&&req.query&&(String(req.query.ack||'')==='1'||lower(req.query.mode)==='ack'||lower(req.query.mode)==='save');
