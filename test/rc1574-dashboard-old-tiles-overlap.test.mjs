@@ -8,9 +8,8 @@ const FIT='html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not
 
 test('RC1574 alte RC205-Kacheln ohne RC1573-Verwaltung werden im Ein-Seiten-Raster nicht als schmale Streifen gezeigt',()=>{
   assert.ok(css.includes(FIT+' > .rc205-dashboard-grid{display:contents!important}'),'RC205-Raster wird weiterhin aufgelöst');
-  assert.ok(css.includes(FIT+' > .rc205-dashboard-grid > .rc205-layout-item:not([data-rc1573-tile]){display:none!important}'),'alte Lager-/Aufgaben-/Sendungskacheln ausgeblendet');
-  const hide=css.indexOf('.rc205-layout-item:not([data-rc1573-tile]){display:none!important}');
-  assert.ok(hide>css.indexOf('{display:contents!important}'),'Regel steht nach dem Auflösen des Rasters');
+  // RC1575: on every dashboard width, not only in the one-page layout (Eingang stayed visible below 1250px)
+  assert.ok(css.includes('html body[data-rc1558-overview="1"] #content:not([data-rc1371-editing="1"]) > .rc205-dashboard-grid > .rc205-layout-item:not([data-rc1573-tile]){display:none!important}'),'alte Lager-/Aufgaben-/Sendungskacheln ausgeblendet');
 });
 
 test('RC1574 Masonry-Zeilenspannen des RC205-Rasters schieben ABD/Palettenkonto nicht über andere Kacheln',()=>{
@@ -20,10 +19,11 @@ test('RC1574 Masonry-Zeilenspannen des RC205-Rasters schieben ABD/Palettenkonto 
   assert.match(index,/item\.style\.gridRowEnd='span '\+span/,'Ursache im RC205-Masonry weiterhin vorhanden – Regel bleibt nötig');
 });
 
-test('RC1574 im Bearbeiten-Modus und auf schmalen Bildschirmen bleiben die alten Kacheln unverändert',()=>{
+test('RC1574 im Bearbeiten-Modus bleiben die alten Kacheln unverändert',()=>{
   const rules=css.split('\n').filter(l=>l.includes(':not([data-rc1573-tile]){display:none'));
   assert.equal(rules.length,1);
-  assert.ok(rules[0].startsWith(FIT),'nur im Ein-Seiten-Raster außerhalb des Bearbeitens');
+  assert.ok(rules[0].includes('#content:not([data-rc1371-editing="1"])'),'nur außerhalb des Bearbeitens');
+  assert.ok(rules[0].startsWith('html body[data-rc1558-overview="1"]'),'nur auf dem Dashboard');
 });
 
 const runtime=fs.readFileSync('assets/rc1558-dashboard-overview.js','utf8');
