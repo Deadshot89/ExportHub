@@ -186,12 +186,11 @@ test('Aufgabe als Vorlage speichern übernimmt keinen Status und keinen Checklis
   assert.equal(state.tasks.length,1);
 });
 
-test('Detail zeigt Erinnerungen pro Aufgabe mit Website- und E-Mail-Schalter',()=>{
+test('Detail zeigt Erinnerungen pro Aufgabe ohne E-Mail-Schalter',()=>{
   const api=load(),root={innerHTML:''};
   api.renderDetail(root,'task-1',{state:{tasks:[baseTask({reminders:[{time:'09:00',enabled:true,channels:{website:true,email:true}},{time:'13:00',enabled:false},{time:'15:30',enabled:true}]})]}});
   assert.match(root.innerHTML,/data-section="reminders"/);
   assert.match(root.innerHTML,/data-action="reminder-toggle" data-time="09:00" checked/);
   assert.match(root.innerHTML,/data-action="reminder-toggle" data-time="13:00">/);
-  assert.match(root.innerHTML,/data-action="reminder-email" data-time="09:00" checked/);
-  assert.match(root.innerHTML,/data-action="reminder-email" data-time="13:00" disabled/);
+  assert.doesNotMatch(root.innerHTML,/reminder-email/,'Erinnerungen nur im Browser, kein E-Mail-Schalter');
 });

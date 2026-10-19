@@ -101,7 +101,7 @@
     const publicLinkAction=publicActive
       ?`<button type="button" class="tpv2-button tpv2-button-secondary" data-action="public-link-revoke">${escapeHtml(tr('taskV2.publicLink.revoke',null,'Revoke public link'))}</button>`
       :`<button type="button" class="tpv2-button tpv2-button-secondary" data-action="public-link-create">${escapeHtml(tr('taskV2.publicLink.create',null,'Create public link'))}</button>`;
-    const reminders=taskReminderSettings(t).map(r=>`<li data-reminder-time="${escapeHtml(r.time)}"><label><input type="checkbox" data-action="reminder-toggle" data-time="${escapeHtml(r.time)}"${r.enabled?' checked':''}${terminal?' disabled':''}> <span>${escapeHtml(tr('taskV2.reminderAt',{time:r.time},r.time))}</span></label><label class="tpv2-reminder-email"><input type="checkbox" data-action="reminder-email" data-time="${escapeHtml(r.time)}"${r.email?' checked':''}${terminal||!r.enabled?' disabled':''}> <span>${escapeHtml(tr('taskV2.reminder.email',null,'Email reminder'))}</span></label></li>`).join('');
+    const reminders=taskReminderSettings(t).map(r=>`<li data-reminder-time="${escapeHtml(r.time)}"><label><input type="checkbox" data-action="reminder-toggle" data-time="${escapeHtml(r.time)}"${r.enabled?' checked':''}${terminal?' disabled':''}> <span>${escapeHtml(tr('taskV2.reminderAt',{time:r.time},r.time))}</span></label></li>`).join('');
     const note=q(ctx.detailNote)?`<p class="tpv2-detail-note" role="status" data-tpv2-detail-note>${escapeHtml(ctx.detailNote)}</p>`:'';
     const actions=terminal
       ?`<button type="button" class="tpv2-button tpv2-button-secondary" data-action="save-template">${escapeHtml(tr('taskV2.saveTemplate',null,'Save as template'))}</button>`

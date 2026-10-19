@@ -194,7 +194,6 @@
 .tpv2-reminders li{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 16px;padding:10px 12px;border-radius:10px;background:#f8fafc}
 .tpv2-reminders label{display:flex;gap:8px;align-items:center;min-height:24px;cursor:pointer}
 .tpv2-reminders input[type="checkbox"]{width:20px;height:20px;margin:0}
-.tpv2-reminder-email{color:var(--tpv2-muted);font-size:13px}
 .tpv2-reminder-host{position:fixed;right:16px;bottom:16px;z-index:9000;width:min(380px,calc(100vw - 32px))}
 .tpv2-reminder-toast{display:grid;gap:10px;padding:14px;border:1px solid var(--tpv2-border);border-radius:var(--tpv2-radius);background:var(--tpv2-surface);color:var(--tpv2-text);box-shadow:0 18px 40px rgba(15,23,42,.18)}
 .tpv2-reminder-toast header{display:flex;justify-content:space-between;align-items:center;gap:8px}
