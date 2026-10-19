@@ -567,7 +567,10 @@ function install(){
   // Watch whichever #content is current, and re-check cheaply every 1.5 s while the dashboard is visible.
   // Mount synchronously in the observer callback: it runs as a microtask before the browser paints,
   // so the dashboard never shows a frame without the overview (no second render, no flash of old tiles).
-  var mountIfMissing=function(){if(!d.getElementById(SECTION_ID)&&isDashboard()&&hostRoot())refreshNow()};
+  // Leaving the dashboard (a shipment or task opened from it) must drop the one-page flags at once: otherwise the
+  // 60-column, fixed-height #content grid stays on the next view and its cards overlap.
+  var leftDashboard=function(){return!isDashboard()&&!!d.body&&(d.body.hasAttribute(BODY_FLAG)||d.body.hasAttribute(FIT_FLAG)||!!d.getElementById(SECTION_ID))};
+  var mountIfMissing=function(){if(leftDashboard()||(!d.getElementById(SECTION_ID)&&isDashboard()&&hostRoot()))refreshNow()};
   var observe=function(){
     var content=d.getElementById('content');if(!content||content.__rc1558Observed)return;content.__rc1558Observed=true;
     if(typeof w.MutationObserver==='function')new w.MutationObserver(mountIfMissing).observe(content,{childList:true})
