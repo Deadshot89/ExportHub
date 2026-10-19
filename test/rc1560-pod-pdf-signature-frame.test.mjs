@@ -21,6 +21,19 @@ test('RC1560: Unterschrift-Begrenzung wandert als Inline-Stil mit jeder Ladelist
   assert.match(restore,/root\.setAttribute\('data-rc1503-image4-pickup-layout','1'\);embedPickupPrintStyle\(root\)/);
 });
 
+test('RC1560: Palettenkonto steht im Europaletten-Feld unten rechts statt über dem Ladelisten-Kopf',()=>{
+  const card=wrapper.slice(wrapper.indexOf('function palletCardFor('),wrapper.indexOf('function restorePickupFields('));
+  assert.ok(card.length>0,'palletCardFor fehlt');
+  assert.match(card,/querySelectorAll\('\.rc929-proof-pallet'\)/,'Das vorhandene Feld unten rechts muss bevorzugt werden');
+  assert.match(card,/closest\('\.rc1095-pallet-account'\)/,'Der alte Kopf-Hinweis darf nicht als Palettenfeld gelten');
+  assert.match(card,/querySelectorAll\('\.rc1095-pallet-account'\)\)\.forEach\(function\(node\)\{node\.remove\(\)\}\)/,'Der alte Kopf-Hinweis muss entfernt werden');
+  assert.match(restore,/var palletCard=palletCardFor\(root\);putPalletBalance\(palletCard,palletAccount\)/);
+  const put=wrapper.slice(wrapper.indexOf('function putPalletBalance('),wrapper.indexOf('function palletCardFor('));
+  assert.match(put,/label\.textContent='Palettenkonto \/ EUR pallet balance'/);
+  assert.match(put,/small\.textContent='Diese Sendung: '\+movement/,'Ausgang/Eingang der Sendung bleibt als Zusatzzeile sichtbar');
+  assert.match(wrapper,/\.rc1560-pallet-movement\{display:block!important/);
+});
+
 test('RC1560: Browser-Regression läuft im POD-Workflow mit',()=>{
   const wf=fs.readFileSync('.github/workflows/rc1547-loading-list-single-page-verify.yml','utf8');
   assert.match(wf,/e2e\/specs\/rc1560-pod-pdf-signature\.spec\.mjs/);

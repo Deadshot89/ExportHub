@@ -66,7 +66,7 @@ test('RC1543: Browserabnahme prüft aktuellen Palettenkonto-Kontostand in echtem
   assert.match(spec,/RC1543 P1: Europaletten erscheinen im echten Ladelisten-Druck als aktueller Palettenkonto-Kontostand/);
   assert.match(spec,/DEMO01\|Nord/);
   assert.match(spec,/Palettenkonto\/i/);
-  assert.match(spec,/Europaletten-Kontostand/);
+  assert.ok(spec.includes('Palettenkonto\\s*\\/\\s*EUR pallet balance'),'RC1560: Palettenkonto-Beschriftung im Feld unten rechts fehlt');
   assert.match(spec,/Zu Gunsten Essentra/);
   assert.match(spec,/In favour of Essentra/);
   assert.match(spec,/not\.toMatch\(\/Ausgang:/,'alter Ausgang muss im Browsertest ausdrücklich ausgeschlossen sein');

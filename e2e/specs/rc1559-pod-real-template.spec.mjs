@@ -24,7 +24,7 @@ async function openLoadingList(page,pickedUp){
     const load=document.querySelector('.rc390-load');
     const card=label=>{const l=[...load.querySelectorAll('.rc390-label')].find(x=>x.textContent.trim().startsWith(label));return l&&l.closest('.rc390-sign')};
     const out={};
-    for(const label of ['Unterschrift Fahrer','Fahrername','Datum / Uhrzeit','Kennzeichen','Verlader','Europaletten']){
+    for(const label of ['Unterschrift Fahrer','Fahrername','Datum / Uhrzeit','Kennzeichen','Verlader','Palettenkonto']){
       const c=card(label);
       out[label]=c?{text:c.innerText.split(/\s+/).join(' ').trim(),height:c.getBoundingClientRect().height,pickup:c.hasAttribute('data-rc1503-pickup-field'),
         lines:[...c.querySelectorAll('.rc390-line,.rc390-hint')].filter(n=>getComputedStyle(n).display!=='none').length}:null;
@@ -45,7 +45,7 @@ test('RC1559: POD aus der echten Ladelisten-Vorlage zeigt jeden Abholwert genau 
   once('Fahrername','Balletanu');
   once('Kennzeichen','KÜN R 764');
   once('Verlader','Daniel Ollmann');
-  once('Europaletten','Ausgang: 2');
+  once('Palettenkonto','Ausgang: 2');
   // labels are uppercased by CSS, innerText returns the rendered case
   expect(cards['Datum / Uhrzeit'].text.toLowerCase().split('datum / uhrzeit').length-1,'Label doppelt: '+cards['Datum / Uhrzeit'].text).toBe(1);
   expect(cards['Unterschrift Fahrer'].lines).toBe(0);

@@ -4,7 +4,7 @@ import {appEntry,waitReady} from '../helpers/exporthub-browser.mjs';
 // RC1560: the POD PDF is rendered by html2canvas inside an isolated iframe that only receives the RC352
 // document style. A real driver signature (1000×360 JPEG from pickup.html) then appeared in full size and
 // covered the loading list (e.g. Ladeliste e6apce). This spec checks the geometry inside that PDF frame.
-test('RC1560: Fahrerunterschrift bleibt im POD-PDF-Rahmen kompakt und überlagert nichts',async({page},testInfo)=>{
+test('RC1560: Fahrerunterschrift bleibt im POD-PDF-Rahmen kompakt, Palettenkonto steht unten rechts',async({page},testInfo)=>{
   test.skip(testInfo.project.name!=='laptop','POD-PDF wird einmal im echten Chromium geprüft.');
   test.setTimeout(90_000);
   await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
@@ -29,7 +29,9 @@ test('RC1560: Fahrerunterschrift bleibt im POD-PDF-Rahmen kompakt und überlager
         const cards=[...node.querySelectorAll('.rc390-sign')].map(card=>({label:String((card.querySelector('.rc390-label')||{}).textContent||'').trim(),box:box(card)}));
         const img=node.querySelector('.rc1503-signature-value .rc1305-signature-image');
         const sigCard=img&&img.closest('.rc390-sign');
-        measured={cards,image:img&&box(img),natural:img&&{w:img.naturalWidth,h:img.naturalHeight},signatureCard:sigCard&&box(sigCard)};
+        const pallet=node.querySelector('[data-rc1560-pallet-card]');
+        measured={cards,image:img&&box(img),natural:img&&{w:img.naturalWidth,h:img.naturalHeight},signatureCard:sigCard&&box(sigCard),
+          palletHint:!!node.querySelector('.rc1095-pallet-account'),palletText:pallet?String(pallet.innerText||'').replace(/\s+/g,' ').trim():'',palletIsBottomCard:!!(pallet&&pallet.matches('.rc929-proof-pallet'))};
         const out=node.ownerDocument.createElement('canvas');out.width=1588;out.height=2246;return out;
       };
     };
@@ -59,4 +61,9 @@ test('RC1560: Fahrerunterschrift bleibt im POD-PDF-Rahmen kompakt und überlager
     const y=Math.min(signatureCard.bottom,other.box.bottom)-Math.max(signatureCard.top,other.box.top);
     expect(x>1&&y>1,'Unterschriftsfeld überlappt '+other.label).toBe(false);
   }
+  expect(result.measured.palletHint,'Palettenkonto darf nicht mehr über dem Ladelisten-Kopf stehen').toBe(false);
+  expect(result.measured.palletIsBottomCard,'Palettenkonto gehört in das Europaletten-Feld unten rechts').toBe(true);
+  expect(result.measured.palletText).toMatch(/Palettenkonto \/ EUR pallet balance/i);
+  expect(result.measured.palletText).toMatch(/Europaletten \/ (?:Balanced|In favour of)/i);
+  expect(result.measured.palletText).toMatch(/Diese Sendung: Ausgang: 2/);
 });

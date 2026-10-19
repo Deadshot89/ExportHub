@@ -30,7 +30,7 @@ test('RC1556 POD: value and signature replacement clean legacy descendants befor
 });
 test('POD: pallet balance is rendered as a single normalized value',()=>{
   assert.match(wrapper,/data-rc1543-pallet-single-value/);
-  assert.match(wrapper,/return putValue\(card,palletBalanceText\(account\),'rc1305-meta-pallet'\)/);
+  assert.match(wrapper,/var done=putValue\(card,palletBalanceText\(account\),'rc1305-meta-pallet'\)/);
 });
 test('POD: print scripts remain valid JavaScript',()=>{
   for(const file of ['assets/rc1305-loading-list-print.js','assets/document-print-name.js']){
