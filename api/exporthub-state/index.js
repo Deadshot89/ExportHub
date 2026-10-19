@@ -23,6 +23,7 @@ const DIAGNOSTICS_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_RETRIES = 12;
 const CONFLICT_BACKOFF_BASE_MS = 12;
 const MAX_TRANSIENT_SAVE_RETRIES = 2;
+const MAX_TRANSIENT_SAVE_RETRY_WINDOW_MS = 15000;
 const TRANSIENT_SAVE_BACKOFF_BASE_MS = 150;
 function sleep(ms){return new Promise(resolve=>setTimeout(resolve,Math.max(0,Number(ms)||0)))}
 const API_VERSION = 'RC1458';
@@ -359,7 +360,7 @@ function rc1080AuditCustomerChanges(beforeState,mergedState,actor,incomingState)
 function storageStateEquivalent(a,b){return isDeepStrictEqual(a&&typeof a==='object'?a:{},b&&typeof b==='object'?b:{})}
 
 async function saveMerged(blob,incoming,user,initialTeam,initialEtag,session,optimisticInitial=false){
- let d={value:initialTeam||emptyTeam(),etag:initialEtag||null},retryReadMs=0,mergeMs=0,uploadMs=0,uploadBytes=0,conflictCount=0,transientSaveRetries=0;
+ let d={value:initialTeam||emptyTeam(),etag:initialEtag||null},retryReadMs=0,mergeMs=0,uploadMs=0,uploadBytes=0,conflictCount=0,transientSaveRetries=0,transientWindowStarted=Date.now();
  async function optimisticCacheMatchesAzure(){
   try{const props=await blob.getProperties();const etag=text(props&&props.etag);return !!etag&&etag===text(d.etag)}
   catch(e){if(Number(e&&(e.statusCode||e.status)||0)===404)return false;throw e}
@@ -380,7 +381,7 @@ async function saveMerged(blob,incoming,user,initialTeam,initialEtag,session,opt
   const next={schemaVersion:3,revision:Number(current.revision||0)+1,updatedAt:now(),updatedBy:text(writeUser.name||writeUser.user),updatedByUserId:text(writeUser.id),updatedByDevice:incoming.deviceId||null,clientVersion:incoming.clientVersion||null,state:merged,users:current.users||[],authBootstrap:current.authBootstrap&&typeof current.authBootstrap==='object'?clone(current.authBootstrap):undefined};
   next.recentOperations=(operationId?[{id:operationId,at:next.updatedAt,deviceId:incoming.deviceId||null,revision:next.revision}]:[]).concat(recentOperations.filter(op=>text(op&&op.id)!==operationId)).slice(0,50);
   try{const uploadStarted=Date.now();let uploaded;try{uploaded=await uploadJson(blob,next,d.etag)}finally{uploadMs+=Date.now()-uploadStarted}uploadBytes=Number(uploaded&&uploaded.bytes||0);try{Object.defineProperty(next,'__storageEtag',{value:uploaded&&uploaded.etag||null,enumerable:false});Object.defineProperty(next,'__timing',{value:{retryReadMs,mergeMs,uploadMs,uploadBytes,conflictCount},enumerable:false});Object.defineProperty(next,'__dynamicI18n',{value:dynamicI18nReport,enumerable:false})}catch(_){}next.concurrentMerge=Number(incoming.baseRevision||0)!==Number(current.revision||0);next.baseRevision=Number(incoming.baseRevision||0);return next}catch(e){if(isStorageWriteConflict(e)){conflictCount++;if(attempt<MAX_RETRIES-1){await sleep(Math.min(250,CONFLICT_BACKOFF_BASE_MS*Math.pow(2,Math.min(attempt,4))));continue;}throw error('CONCURRENT_UPDATE','api.state.concurrentSaveFailed',409,{conflicts:conflictCount,lastError:e&&e.message||'CONDITIONAL_WRITE_CONFLICT'});}if(isTransientStorageWriteError(e)){
-   if(transientSaveRetries<MAX_TRANSIENT_SAVE_RETRIES&&attempt<MAX_RETRIES-1){
+   if(transientSaveRetries<MAX_TRANSIENT_SAVE_RETRIES&&attempt<MAX_RETRIES-1&&Date.now()-transientWindowStarted<MAX_TRANSIENT_SAVE_RETRY_WINDOW_MS){
     transientSaveRetries++;
     // A write can have reached Azure even if its HTTP acknowledgement was lost.
     // Retry only after the next loop rereads the authoritative state: the
