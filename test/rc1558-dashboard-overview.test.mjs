@@ -193,7 +193,8 @@ test('RC1558 CSS blendet Arbeitsfokus und Heute-Kachel ab dem ersten Bild aus (R
 });
 
 test('RC1563 Übersicht wird synchron im MutationObserver eingehängt, nicht erst im nächsten Frame',()=>{
-  assert.match(runtime,/var mountIfMissing=function\(\)\{if\(!d\.getElementById\(SECTION_ID\)&&isDashboard\(\)&&hostRoot\(\)\)refreshNow\(\)\}/);
+  // RC1574: the same synchronous callback also tidies up when the dashboard was left
+  assert.match(runtime,/var mountIfMissing=function\(\)\{if\(leftDashboard\(\)\|\|\(!d\.getElementById\(SECTION_ID\)&&isDashboard\(\)&&hostRoot\(\)\)\)refreshNow\(\)\}/);
   assert.match(runtime,/new w\.MutationObserver\(mountIfMissing\)\.observe\(content,\{childList:true\}\)/);
   assert.match(runtime,/new w\.MutationObserver\(mountIfMissing\)\.observe\(d\.body,\{attributes:true,attributeFilter:\['data-exporthub-view','data-current-view'\]\}\)/);
 });
