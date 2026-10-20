@@ -444,11 +444,13 @@ test('RC1543 P1: Europaletten erscheinen im echten Ladelisten-Druck als aktuelle
   },{timeout:20_000,message:'Palettenkonto-Druck hat keinen druckbaren Dokumentkontext erzeugt'}).toBeGreaterThan(500);
 
   expect(capture.text).toMatch(/Palettenkonto/i);
-  expect(capture.text).toMatch(/Palettenkonto\s*\/\s*EUR pallet balance/i);
-  expect(capture.text).toMatch(/Zu Gunsten Essentra:\s*7\s*Europaletten/i);
-  expect(capture.text).toMatch(/In favour of Essentra:\s*7\s*EUR pallets/i);
+  expect(capture.text).toMatch(/Palettenkonto\s*\/\s*EUR pallets/i);
+  expect(capture.text).toMatch(/Aktueller Stand\s*\/\s*Balance\s*\+7\s*EP/i);
+  expect(capture.text).toMatch(/Eingang\s*\/\s*Return/i);
   expect(capture.text).not.toMatch(/Ausgang:\s*2\s*Europaletten/i);
   expect(capture.html).toMatch(/data-rc1560-pallet-card/i);
+  expect(capture.html).toMatch(/data-rc1580-pallet-compact/i);
+  expect(capture.html).toMatch(/rc1580-pallet-write/);
   expect(capture.html,'RC1560: Palettenkonto steht im Feld unten rechts, nicht mehr über dem Ladelisten-Kopf').not.toMatch(/class="?rc1095-pallet-account/i);
   expect(capture.html).toMatch(/data-rc1543-pallet-balance/i);
   await page.evaluate(()=>{
@@ -658,15 +660,16 @@ test('RC1503/RC1379/RC1543: POD-Ladeliste behält die Bild-4-Felder und nutzt de
   expect(layout.summaryHidden,'Der alte sichtbare SENDUNG-ABGEHOLT-Block ist noch aktiv').toBe(true);
   expect(layout.replacedFieldCount,'Bild-4-Felder dürfen nach der Abholung nicht ausgeblendet bleiben').toBe(0);
   expect(layout.pickupFieldCount,'Alle sechs vorhandenen Bild-4-Abholfelder müssen erhalten bleiben').toBe(6);
-  expect(layout.fieldLabels).toEqual(['Unterschrift Fahrer','Fahrername','Datum / Uhrzeit','Kennzeichen','Verlader','Palettenkonto / EUR pallet balance']);
+  expect(layout.fieldLabels).toEqual(['Unterschrift Fahrer','Fahrername','Datum / Uhrzeit','Kennzeichen','Verlader','Palettenkonto / EUR pallets']);
   expect(layout.signatureCount).toBe(1);
   expect(layout.imageInside,'Die Fahrerunterschrift ragt aus ihrem vorhandenen Feld').toBe(true);
   expect(layout.driverText).toContain('Max Mustermann');
   expect(layout.dateText).toMatch(/01\.10\.2026/);
   expect(layout.plateText).toContain('KLE-AB 1234');
   expect(layout.loaderText).toContain('Tobias');
-  expect(layout.palletText).toContain('Kontostand nicht erfasst / Balance not recorded');
+  expect(layout.palletText).toMatch(/Aktueller Stand\s*\/\s*Balance\s*[–-]/);
   expect(layout.palletText).not.toContain('Ausgang: 4');
+  expect(layout.palletText).toContain('Eingang / Return');
   expect(layout.palletText).not.toContain('Eingang/Rückgabe: 2');
   expect(layout.visibleText).not.toMatch(/SENDUNG ABGEHOLT/i);
   expect(layout.visibleText).not.toContain('Beispiel Spedition GmbH');
