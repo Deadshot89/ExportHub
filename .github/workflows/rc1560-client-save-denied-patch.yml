@@ -25,7 +25,7 @@ jobs:
       - name: Patch production and test HTML only
         run: node scripts/rc1560-client-save-denied-fix.mjs
       - name: Install API regression dependencies
-        run: npm ci --prefix api --no-audit --no-fund
+        run: npm install --prefix api --no-package-lock --ignore-scripts --no-audit --no-fund
       - name: Verify denied-save regression
         run: node --test test/diagnose-export-fixes.test.mjs test/rc1560-state-save-permission-gate.test.mjs
       - name: Commit verified UI correction to fix branch
