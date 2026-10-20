@@ -19,7 +19,7 @@ main{max-width:920px;margin:0 auto}.card{background:#fff;border:1px solid #d8e5e
 <body><main><section class="card">
 <div class="eyebrow" data-i18n="migrationRecovery.eyebrow">ExportHUB · sichere Wartung</div><h1 data-i18n="migrationRecovery.heading">Dokumentspeicher wird optimiert</h1>
 <p data-i18n="migrationRecovery.intro">Der normale ExportHUB-Teamstand wird auf dieser Seite bewusst nicht geladen. Alte eingebettete Dokumente werden in sicheren 5er-Paketen in den Blob-Speicher verschoben. Danach startet ExportHUB mit dem verkleinerten Datenbestand neu.</p>
-<div id="status" class="status" data-i18n="migrationRecovery.checking">Sitzung und Speicherstatus werden geprüft …</div>
+<div id="status" class="status">Sitzung und Speicherstatus werden geprüft …</div>
 <div class="bar"><div id="fill" class="fill"></div></div><div id="progressText" class="small">0 %</div>
 <div class="grid"><div class="metric"><span data-i18n="migrationRecovery.found">Gefunden</span><b id="found">–</b></div><div class="metric"><span data-i18n="migrationRecovery.completed">Erledigt</span><b id="migrated">0</b></div><div class="metric"><span data-i18n="migrationRecovery.remaining">Verbleibend</span><b id="remaining">–</b></div><div class="metric"><span data-i18n="migrationRecovery.batches">Pakete</span><b id="batches">0</b></div></div>
 <div class="actions"><button id="retry" class="primary" type="button" hidden data-i18n="migrationRecovery.retry">Migration erneut starten</button><button id="stop" class="secondary" type="button" hidden data-i18n="migrationRecovery.stop">Nach aktuellem Paket stoppen</button><button id="back" class="secondary" type="button" data-i18n="migrationRecovery.back">Zurück zu ExportHUB</button></div>
@@ -54,6 +54,7 @@ async function run(){
  finally{running=false;document.getElementById('stop').hidden=true}
 }
 function finish(){document.getElementById('fill').style.width='100%';document.getElementById('progressText').textContent='100 %';setTimeout(function(){location.replace('/?_rc1067='+Date.now())},1400)}
+window.addEventListener('exporthub:language-changed',function(){var api=window.ExportHUBI18n;if(api&&typeof api.t==='function')document.title=api.t('migrationRecovery.title')});
 document.getElementById('retry').onclick=run;document.getElementById('stop').onclick=function(){stopRequested=true;this.disabled=true;setStatus('Stop angefordert. Das aktuelle 5er-Paket wird noch sicher abgeschlossen …')};document.getElementById('back').onclick=function(){location.href='/'};
 run();
 })();
