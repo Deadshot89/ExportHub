@@ -45,12 +45,13 @@ function compact(value){return String(value||'').replace(/\s+/g,' ').trim().slic
 // Avoid unbounded quoted strings and backtracking quote expressions.
 // Process giant quoted tokens directly from their source spans.
 // Never append individual characters to retained rope strings.
-function literalTexts(line){
+function literalTexts(line,withOffsets=false){
   const values=[],limit=384,overlap=64,step=limit-overlap;
+  function record(value,position){values.push(withOffsets?{value,position}:value)}
   function addRange(start,end){
     for(let pos=start;pos<end;pos+=step){
       const value=line.slice(pos,Math.min(end,pos+limit)).replace(/\\n/g,' ').trim();
-      if(value)values.push(value);
+      if(value)record(value,pos);
       if(pos+limit>=end)break;
     }
   }
@@ -69,7 +70,7 @@ function literalTexts(line){
   for(let i=0;i<line.length;i++){
     if(line[i]==='>'){afterTag=i+1;continue}
     if(line[i]==='<'){
-      if(afterTag>=0&&i-afterTag<=384){const value=line.slice(afterTag,i).trim();if(value)values.push(value)}
+      if(afterTag>=0&&i-afterTag<=384){const value=line.slice(afterTag,i).trim();if(value)record(value,afterTag)}
       afterTag=-1;
     }
     if(afterTag>=0&&i-afterTag>384)afterTag=-1
@@ -88,9 +89,14 @@ function scanVisibleGerman(file,source,registeredGerman){
     if(!UI_CONTEXT.test(line))return;
     if(/^\s*(?:\/\/|\*|\/\*)/.test(line))return;
     if(file.rel==='api/shared/rc1014-fixed-pickup-seed.js'&&/siteLabel\s*:/.test(line))return;
-    const hits=literalTexts(line).filter(value=>GERMAN_HINT.test(value)&&!/^[-_a-z0-9./:]+$/i.test(value)&&!registeredGerman.has(value)&&!/\b(?:tr|th)\s*\(/.test(value));
+    const hits=literalTexts(line,true).filter(({value,position})=>{
+      // A minified JS line may contain thousands of unrelated strings.
+      // UI relevance must be established next to the literal, not anywhere on the line.
+      const nearby=line.length<=2400?line:line.slice(Math.max(0,position-320),Math.min(line.length,position+512));
+      return UI_CONTEXT.test(nearby)&&GERMAN_HINT.test(value)&&!/^[-_a-z0-9./:]+$/i.test(value)&&!registeredGerman.has(value)&&!/\b(?:tr|th)\s*\(/.test(value);
+    });
     if(!hits.length)return;
-    for(const literal of hits)rows.push({file:file.rel,line:i+1,literal:compact(literal),text:compact(line)});
+    for(const hit of hits)rows.push({file:file.rel,line:i+1,literal:compact(hit.value),text:compact(line.length<=2400?line:line.slice(Math.max(0,hit.position-120),Math.min(line.length,hit.position+250)))})
   });
   return rows;
 }
