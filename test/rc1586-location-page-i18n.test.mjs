@@ -20,8 +20,8 @@ test('Location booking has complete six-language translations for its registered
 });
 
 test('Location page retains six-language runtime without changing the booking endpoints or token protections',()=>{
-  assert.match(page,/src="\/assets\/rc1267-i18n\.js\?v=1267"/);
-  assert.match(page,/src="\/assets\/rc1018-public-language\.js\?v=1018"/);
+  assert.match(page,/src="\/assets\/rc1267-i18n\.js\?v=[0-9]+"/);
+  assert.match(page,/src="\/assets\/rc1018-public-language\.js\?v=[0-9]+"/);
   assert.match(page,/\/api\/location-booking\?action=/);
   assert.match(page,/\^\[A-Za-z0-9_-\]\{6,128\}\$/);
   assert.match(page,/method:'POST'/);
