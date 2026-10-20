@@ -1773,5 +1773,16 @@
   "migrationRecovery.batches": "Pakete",
   "migrationRecovery.retry": "Migration erneut starten",
   "migrationRecovery.stop": "Nach aktuellem Paket stoppen",
-  "migrationRecovery.back": "Zurück zu ExportHUB"
+  "migrationRecovery.back": "Zurück zu ExportHUB",
+  "migrationRecovery.sessionMissing": "Keine gültige ExportHUB-Sitzung gefunden. Bitte zur Anwendung zurückkehren und erneut anmelden.",
+  "migrationRecovery.noDocuments": "Keine eingebetteten Alt-Dokumente mehr vorhanden. ExportHUB wird neu gestartet.",
+  "migrationRecovery.runningStatus": "Migration läuft automatisch in sicheren 5er-Paketen …",
+  "migrationRecovery.stoppedWithRemaining": "Migration nach dem letzten sicheren Paket angehalten. {{remaining}} Dokumente verbleiben.",
+  "migrationRecovery.progressDetail": "Paket {{batch}} abgeschlossen · {{done}} erledigt · {{migrated}} in diesem Lauf neu migriert · {{remaining}} verbleiben.",
+  "migrationRecovery.failedDocument": "Mindestens ein Dokument konnte nicht migriert werden. Die Automatik wurde sicher angehalten.",
+  "migrationRecovery.stalled": "Die Migration macht keinen Fortschritt und wurde sicher angehalten.",
+  "migrationRecovery.completedNew": "Migration abgeschlossen. {{done}} Alt-Dokumente sind erledigt; {{migrated}} wurden in diesem Lauf neu übertragen. ExportHUB wird neu geladen.",
+  "migrationRecovery.alreadyComplete": "Migration abgeschlossen. Die zuvor gemeldeten Alt-Dokumente waren bereits ausgelagert. ExportHUB wird neu geladen.",
+  "migrationRecovery.errorState": "Migration angehalten: {{reason}}",
+  "migrationRecovery.stopRequested": "Stop angefordert. Das aktuelle 5er-Paket wird noch sicher abgeschlossen …"
 }

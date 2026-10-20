@@ -1773,5 +1773,16 @@
   "migrationRecovery.batches": "Partie",
   "migrationRecovery.retry": "Uruchom migrację ponownie",
   "migrationRecovery.stop": "Zatrzymaj po bieżącej partii",
-  "migrationRecovery.back": "Powrót do ExportHUB"
+  "migrationRecovery.back": "Powrót do ExportHUB",
+  "migrationRecovery.sessionMissing": "Nie znaleziono prawidłowej sesji ExportHUB. Wróć do aplikacji i zaloguj się ponownie.",
+  "migrationRecovery.noDocuments": "Nie ma już osadzonych starszych dokumentów. ExportHUB uruchamia się ponownie.",
+  "migrationRecovery.runningStatus": "Migracja przebiega automatycznie w bezpiecznych partiach po pięć …",
+  "migrationRecovery.stoppedWithRemaining": "Migracja zatrzymana po ostatniej bezpiecznej partii. Pozostało {{remaining}} dokumentów.",
+  "migrationRecovery.progressDetail": "Partia {{batch}} zakończona · ukończono {{done}} · nowo przeniesiono w tym przebiegu {{migrated}} · pozostało {{remaining}}.",
+  "migrationRecovery.failedDocument": "Nie udało się przenieść co najmniej jednego dokumentu. Proces automatyczny został bezpiecznie zatrzymany.",
+  "migrationRecovery.stalled": "Migracja nie postępuje i została bezpiecznie zatrzymana.",
+  "migrationRecovery.completedNew": "Migracja zakończona. Przetworzono {{done}} starszych dokumentów; {{migrated}} nowo przeniesiono w tym przebiegu. ExportHUB ładuje się ponownie.",
+  "migrationRecovery.alreadyComplete": "Migracja zakończona. Zgłoszone wcześniej starsze dokumenty były już przeniesione. ExportHUB ładuje się ponownie.",
+  "migrationRecovery.errorState": "Migracja zatrzymana: {{reason}}",
+  "migrationRecovery.stopRequested": "Zażądano zatrzymania. Bieżąca partia pięciu dokumentów zostanie bezpiecznie dokończona …"
 }

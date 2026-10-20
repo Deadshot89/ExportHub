@@ -1773,5 +1773,16 @@
   "migrationRecovery.batches": "Batches",
   "migrationRecovery.retry": "Restart migration",
   "migrationRecovery.stop": "Stop after current batch",
-  "migrationRecovery.back": "Back to ExportHUB"
+  "migrationRecovery.back": "Back to ExportHUB",
+  "migrationRecovery.sessionMissing": "No valid ExportHUB session found. Return to the application and sign in again.",
+  "migrationRecovery.noDocuments": "No embedded legacy documents remain. ExportHUB is restarting.",
+  "migrationRecovery.runningStatus": "Migration runs automatically in safe batches of five …",
+  "migrationRecovery.stoppedWithRemaining": "Migration stopped after the last safe batch. {{remaining}} documents remain.",
+  "migrationRecovery.progressDetail": "Batch {{batch}} complete · {{done}} completed · {{migrated}} newly migrated in this run · {{remaining}} remaining.",
+  "migrationRecovery.failedDocument": "At least one document could not be migrated. The automatic process was stopped safely.",
+  "migrationRecovery.stalled": "The migration is not making progress and was stopped safely.",
+  "migrationRecovery.completedNew": "Migration complete. {{done}} legacy documents processed; {{migrated}} newly transferred in this run. ExportHUB is reloading.",
+  "migrationRecovery.alreadyComplete": "Migration complete. The previously reported legacy documents had already been moved. ExportHUB is reloading.",
+  "migrationRecovery.errorState": "Migration stopped: {{reason}}",
+  "migrationRecovery.stopRequested": "Stop requested. The current batch of five will still finish safely …"
 }

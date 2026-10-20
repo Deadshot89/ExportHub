@@ -1773,5 +1773,16 @@
   "migrationRecovery.batches": "Lotti",
   "migrationRecovery.retry": "Riavvia migrazione",
   "migrationRecovery.stop": "Arresta dopo il lotto corrente",
-  "migrationRecovery.back": "Torna a ExportHUB"
+  "migrationRecovery.back": "Torna a ExportHUB",
+  "migrationRecovery.sessionMissing": "Nessuna sessione ExportHUB valida trovata. Torna all'applicazione e accedi di nuovo.",
+  "migrationRecovery.noDocuments": "Non rimangono vecchi documenti incorporati. ExportHUB si sta riavviando.",
+  "migrationRecovery.runningStatus": "La migrazione viene eseguita automaticamente in lotti sicuri da cinque …",
+  "migrationRecovery.stoppedWithRemaining": "Migrazione arrestata dopo l'ultimo lotto sicuro. Rimangono {{remaining}} documenti.",
+  "migrationRecovery.progressDetail": "Lotto {{batch}} completato · {{done}} completati · {{migrated}} migrati in questa esecuzione · {{remaining}} rimanenti.",
+  "migrationRecovery.failedDocument": "Impossibile migrare almeno un documento. Il processo automatico è stato arrestato in sicurezza.",
+  "migrationRecovery.stalled": "La migrazione non avanza ed è stata arrestata in sicurezza.",
+  "migrationRecovery.completedNew": "Migrazione completata. {{done}} vecchi documenti elaborati; {{migrated}} trasferiti in questa esecuzione. ExportHUB si sta ricaricando.",
+  "migrationRecovery.alreadyComplete": "Migrazione completata. I vecchi documenti segnalati erano già stati trasferiti. ExportHUB si sta ricaricando.",
+  "migrationRecovery.errorState": "Migrazione arrestata: {{reason}}",
+  "migrationRecovery.stopRequested": "Arresto richiesto. Il lotto corrente di cinque verrà completato in sicurezza …"
 }

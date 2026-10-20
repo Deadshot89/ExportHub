@@ -29,8 +29,9 @@ main{max-width:920px;margin:0 auto}.card{background:#fff;border:1px solid #d8e5e
 (function(){'use strict';
 var KEY='exporthub_rc301_tab_session',BATCH=5,running=false,stopRequested=false,totalFound=0,totalMigrated=0,batches=0,environment=/-testservice\./i.test(location.hostname)?'testservice':'production';
 function q(v){return String(v==null?'':v).trim()}
+function tr(key,fallback,vars){try{var api=window.ExportHUBI18n,res=api&&typeof api.t==='function'?api.t(key,vars):'';if(res&&res!==key)return res}catch(_){}return String(fallback||'').replace(/\{\{\s*([\w.-]+)\s*\}\}/g,function(_,name){return vars&&Object.prototype.hasOwnProperty.call(vars,name)?String(vars[name]):''})}
 function session(){try{var raw=sessionStorage.getItem(KEY);if(raw){var x=JSON.parse(raw);if(x&&x.token)return x}}catch(_){}try{for(var i=0;i<sessionStorage.length;i++){var k=sessionStorage.key(i),r=sessionStorage.getItem(k);if(!r||r.charAt(0)!=='{')continue;var x=JSON.parse(r);if(x&&x.token&&x.user)return x}}catch(_){}return null}
-function headers(){var s=session();if(!s||!s.token)throw new Error('Keine gültige ExportHUB-Sitzung gefunden. Bitte zur Anwendung zurückkehren und erneut anmelden.');return{'Content-Type':'application/json','Accept':'application/json','Cache-Control':'no-cache','X-ExportHUB-Token':s.token,'X-ExportHUB-Session':s.token,'Authorization':'Bearer '+s.token,'X-ExportHUB-Environment':environment}}
+function headers(){var s=session();if(!s||!s.token)throw new Error(tr('migrationRecovery.sessionMissing','Keine gültige ExportHUB-Sitzung gefunden. Bitte zur Anwendung zurückkehren und erneut anmelden.'));return{'Content-Type':'application/json','Accept':'application/json','Cache-Control':'no-cache','X-ExportHUB-Token':s.token,'X-ExportHUB-Session':s.token,'Authorization':'Bearer '+s.token,'X-ExportHUB-Environment':environment}}
 function setStatus(t,k){var e=document.getElementById('status');e.textContent=t;e.className='status'+(k?' '+k:'')}
 function render(remaining){remaining=Math.max(0,Number(remaining||0));var done=Math.max(0,totalFound-remaining),pct=totalFound?Math.round(done/totalFound*100):(remaining===0?100:0);document.getElementById('found').textContent=totalFound;document.getElementById('migrated').textContent=done;document.getElementById('remaining').textContent=remaining;document.getElementById('batches').textContent=batches;document.getElementById('fill').style.width=Math.min(100,pct)+'%';document.getElementById('progressText').textContent=done+' / '+totalFound+' · '+pct+' %'}
 async function health(){var r=await fetch('/api/exporthub-state?mode=health',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json','Cache-Control':'no-cache'}}),d=await r.json().catch(function(){return{}});if(!r.ok)throw new Error(q(d.message)||('Health HTTP '+r.status));return d}
@@ -39,23 +40,23 @@ async function run(){
  if(running)return;running=true;stopRequested=false;document.getElementById('retry').hidden=true;document.getElementById('stop').hidden=false;document.getElementById('stop').disabled=false;
  try{
   var h=await health(),remaining=Number(h&&h.stateDiagnostics&&h.stateDiagnostics.inlinePayloadCount||0);totalFound=remaining;totalMigrated=0;batches=0;render(remaining);
-  if(!remaining){setStatus('Keine eingebetteten Alt-Dokumente mehr vorhanden. ExportHUB wird neu gestartet.','ok');return finish()}
-  setStatus('Migration läuft automatisch in sicheren 5er-Paketen …');
+  if(!remaining){setStatus(tr('migrationRecovery.noDocuments','Keine eingebetteten Alt-Dokumente mehr vorhanden. ExportHUB wird neu gestartet.'),'ok');return finish()}
+  setStatus(tr('migrationRecovery.runningStatus','Migration läuft automatisch in sicheren 5er-Paketen …'));
   var previous=remaining;
   for(var guard=0;guard<1000&&remaining>0;guard++){
-   if(stopRequested){setStatus('Migration nach dem letzten sicheren Paket angehalten. '+remaining+' Dokumente verbleiben.');break}
-   var r=await batch();batches++;var m=Number(r.migrated||0),failed=Number(r.failed||0);remaining=Number(r.remaining||0);totalMigrated+=m;render(remaining);document.getElementById('detail').textContent='Paket '+batches+' abgeschlossen · '+Math.max(0,totalFound-remaining)+' erledigt · '+totalMigrated+' in diesem Lauf neu migriert · '+remaining+' verbleiben.';
-   if(failed>0)throw new Error('Mindestens ein Dokument konnte nicht migriert werden. Die Automatik wurde sicher angehalten.');
-   if(remaining===0||r.done===true){setStatus(totalMigrated>0?'Migration abgeschlossen. '+Math.max(0,totalFound-remaining)+' Alt-Dokumente sind erledigt; '+totalMigrated+' wurden in diesem Lauf neu übertragen. ExportHUB wird neu geladen.':'Migration abgeschlossen. Die zuvor gemeldeten Alt-Dokumente waren bereits ausgelagert. ExportHUB wird neu geladen.','ok');return finish()}
-   if(m<=0||remaining>=previous)throw new Error('Die Migration macht keinen Fortschritt und wurde sicher angehalten.');
+   if(stopRequested){setStatus(tr('migrationRecovery.stoppedWithRemaining','Migration nach dem letzten sicheren Paket angehalten. {{remaining}} Dokumente verbleiben.',{remaining:remaining}));break}
+   var r=await batch();batches++;var m=Number(r.migrated||0),failed=Number(r.failed||0);remaining=Number(r.remaining||0);totalMigrated+=m;render(remaining);document.getElementById('detail').textContent=tr('migrationRecovery.progressDetail','Paket {{batch}} abgeschlossen · {{done}} erledigt · {{migrated}} in diesem Lauf neu migriert · {{remaining}} verbleiben.',{batch:batches,done:Math.max(0,totalFound-remaining),migrated:totalMigrated,remaining:remaining});
+   if(failed>0)throw new Error(tr('migrationRecovery.failedDocument','Mindestens ein Dokument konnte nicht migriert werden. Die Automatik wurde sicher angehalten.'));
+   if(remaining===0||r.done===true){setStatus(totalMigrated>0?tr('migrationRecovery.completedNew','Migration abgeschlossen. {{done}} Alt-Dokumente sind erledigt; {{migrated}} wurden in diesem Lauf neu übertragen. ExportHUB wird neu geladen.',{done:Math.max(0,totalFound-remaining),migrated:totalMigrated}):tr('migrationRecovery.alreadyComplete','Migration abgeschlossen. Die zuvor gemeldeten Alt-Dokumente waren bereits ausgelagert. ExportHUB wird neu geladen.'),'ok');return finish()}
+   if(m<=0||remaining>=previous)throw new Error(tr('migrationRecovery.stalled','Die Migration macht keinen Fortschritt und wurde sicher angehalten.'));
    previous=remaining;await new Promise(function(resolve){setTimeout(resolve,150)})
   }
- }catch(e){setStatus('Migration angehalten: '+q(e&&e.message),'bad');document.getElementById('retry').hidden=false}
+ }catch(e){setStatus(tr('migrationRecovery.errorState','Migration angehalten: {{reason}}',{reason:q(e&&e.message)}),'bad');document.getElementById('retry').hidden=false}
  finally{running=false;document.getElementById('stop').hidden=true}
 }
 function finish(){document.getElementById('fill').style.width='100%';document.getElementById('progressText').textContent='100 %';setTimeout(function(){location.replace('/?_rc1067='+Date.now())},1400)}
 window.addEventListener('exporthub:language-changed',function(){var api=window.ExportHUBI18n;if(api&&typeof api.t==='function')document.title=api.t('migrationRecovery.title')});
-document.getElementById('retry').onclick=run;document.getElementById('stop').onclick=function(){stopRequested=true;this.disabled=true;setStatus('Stop angefordert. Das aktuelle 5er-Paket wird noch sicher abgeschlossen …')};document.getElementById('back').onclick=function(){location.href='/'};
+document.getElementById('retry').onclick=run;document.getElementById('stop').onclick=function(){stopRequested=true;this.disabled=true;setStatus(tr('migrationRecovery.stopRequested','Stop angefordert. Das aktuelle 5er-Paket wird noch sicher abgeschlossen …'))};document.getElementById('back').onclick=function(){location.href='/'};
 run();
 })();
 </script></body></html>
