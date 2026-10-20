@@ -1,0 +1,23 @@
+name: RC1514 TESTSERVICE Hardening Verify
+on:
+  pull_request:
+    paths:
+      - 'api/pack-notification/**'
+      - 'playwright.config.mjs'
+      - 'e2e/**'
+      - 'test/rc1514-testservice-backend-readiness-pack-conflict.test.mjs'
+      - '.github/workflows/rc1514-testservice-hardening-verify.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: RC1514 Regression
+        run: node --test test/rc1514-testservice-backend-readiness-pack-conflict.test.mjs
