@@ -62,12 +62,15 @@ test('RC1190: neue Browserdateien sind syntaktisch gültig',()=>{
 });
 
 
-test('RC1275: Browserabnahme prüft Palettenkonto in echtem Ladelisten-Druck',()=>{
-  assert.match(spec,/RC1275 P1: Europaletten erscheinen im echten Ladelisten-Druck als Palettenkonto-Ausgang/);
+test('RC1543: Browserabnahme prüft aktuellen Palettenkonto-Kontostand in echtem Ladelisten-Druck',()=>{
+  assert.match(spec,/RC1543 P1: Europaletten erscheinen im echten Ladelisten-Druck als aktueller Palettenkonto-Kontostand/);
   assert.match(spec,/DEMO01\|Nord/);
   assert.match(spec,/Palettenkonto\/i/);
-  assert.ok(spec.includes("expect(capture.text).toMatch(/Ausgang:\\s*2\\s*Europaletten/i);"),'Palettenkonto-Ausgang wird im Browsertest nicht geprüft');
-  assert.match(spec,/rc1095-pallet-account\/i/);
+  assert.ok(spec.includes('Palettenkonto\\s*\\/\\s*EUR pallets'),'RC1560: Palettenkonto-Beschriftung im Feld unten rechts fehlt');
+  assert.match(spec,/Aktueller Stand/);
+  assert.match(spec,/Eingang/);
+  assert.match(spec,/not\.toMatch\(\/Ausgang:/,'alter Ausgang muss im Browsertest ausdrücklich ausgeschlossen sein');
+  assert.match(spec,/data-rc1543-pallet-balance\/i/);
 });
 
 test('RC1340: Lieferschein-PDFs werden dedupliziert und über den Gesamtdruck ausgegeben',()=>{

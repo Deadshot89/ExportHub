@@ -122,9 +122,9 @@ function bindObserver(){
   try{observer=new root.MutationObserver(schedule);observer.observe(host,{childList:true,subtree:true});observerRoot=host;return true}catch(_){disconnectObserver();return false}
 }
 function mount(){
-  var d=root.document;if(!d||!d.documentElement)return false;ensureStyle();ensureExport();schedule();bindObserver();return true
+  var d=root.document;if(!d||!d.documentElement)return false;if(!observerHost()){disconnectObserver();return false}ensureStyle();ensureExport();schedule();bindObserver();return true
 }
-function remount(){if(root.setTimeout)root.setTimeout(mount,0);else mount()}
+function remount(){if(!observerHost()){disconnectObserver();return false}if(root.setTimeout)root.setTimeout(mount,0);else mount();return true}
 
 root.ExportHUBRC1499Handoff=Object.freeze({prepare:prepare,peek:peek,clear:clear,validate:validate,mount:mount});
 mount();

@@ -1,5 +1,6 @@
 'use strict';
 
+const packagingMaster=require('./packaging-admin-store');
 const SHIPMENT_COLLECTIONS=['shipments','savedShipments'];
 const DOCUMENT_COLLECTIONS=['shipments','savedShipments','abdRequests'];
 const CUSTOMER_SNAPSHOT_FIELDS=['customer','customerData','selectedCustomer'];
@@ -34,12 +35,13 @@ function compactCollection(list,options){
   return item;
  });
 }
-function compactStateForStorage(state){
- const out=clone(state&&typeof state==='object'&&!Array.isArray(state)?state:{});
+function compactStateForStorage(state,options={}){
+ let out=clone(state&&typeof state==='object'&&!Array.isArray(state)?state:{});
  for(const key of SHIPMENT_COLLECTIONS){
   if(Array.isArray(out[key]))out[key]=compactCollection(out[key],{customerSnapshots:true,legacyDocuments:true});
  }
  if(Array.isArray(out.abdRequests))out.abdRequests=compactCollection(out.abdRequests,{legacyDocuments:true});
+ if(options.packagingSnapshots!==false)out=packagingMaster.applyPackagingSnapshots(out);
  return out;
 }
 

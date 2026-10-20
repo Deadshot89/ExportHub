@@ -3,3 +3,16 @@ test-results/
 playwright-report/
 blob-report/
 .playwright/
+
+# Lokale Secrets und Umgebungsdateien
+.env
+.env.*
+!.env.example
+local.settings.json
+**/local.settings.json
+.secrets/
+*.pfx
+*.p12
+*.key
+*.pem
+*.publishsettings

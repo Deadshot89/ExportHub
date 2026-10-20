@@ -393,7 +393,7 @@ test('RC1340 P1: echte Lieferschein-PDFs werden im Gesamtdruck exakt einmal gedr
   await assertRuntimeClean(guard,testInfo);
 });
 
-test('RC1275 P1: Europaletten erscheinen im echten Ladelisten-Druck als Palettenkonto-Ausgang',async({page,context},testInfo)=>{
+test('RC1543 P1: Europaletten erscheinen im echten Ladelisten-Druck als aktueller Palettenkonto-Kontostand',async({page,context},testInfo)=>{
   test.skip(testInfo.project.name!=='laptop','Palettenkonto-Druckabnahme läuft einmal auf dem Laptop-Profil.');
   test.setTimeout(60_000);
 
@@ -411,8 +411,18 @@ test('RC1275 P1: Europaletten erscheinen im echten Ladelisten-Druck als Paletten
   await waitReady(page);
   await openExportHubView(page,'documents',['Ladeliste & CMR','Dokumente & CMR','Dokumente','CMR'],/Ladeliste|CMR|Dokument/i,{allowProgrammaticFallback:true});
 
+  await page.evaluate(()=>{
+    window.__RC1543_ORIGINAL_PALLET_LEDGER__=window.ExportHUBPalletLedger;
+    window.ExportHUBPalletLedger=Object.freeze({
+      balanceFor:key=>({key:String(key||''),type:'customer',name:'Nord',balance:7}),
+      accounts:()=>[]
+    });
+  });
+  expect(await page.evaluate(()=>window.ExportHUBPalletLedger&&window.ExportHUBPalletLedger.balanceFor('customer:probe')?.balance)).toBe(7);
+
   await selectLoadingListShipment(page,'DEMO01',/DEMO01|Nord/i);
   await expect(page.locator('#content')).toContainText(/DEMO01/,{timeout:10_000});
+  expect(await page.evaluate(()=>window.ExportHUBPalletLedger&&window.ExportHUBPalletLedger.balanceFor('customer:probe')?.balance)).toBe(7);
 
   let printButton=page.locator('[data-index352-action="print-all"]').first();
   if(!(await printButton.count())||!(await printButton.isVisible().catch(()=>false))){
@@ -434,8 +444,19 @@ test('RC1275 P1: Europaletten erscheinen im echten Ladelisten-Druck als Paletten
   },{timeout:20_000,message:'Palettenkonto-Druck hat keinen druckbaren Dokumentkontext erzeugt'}).toBeGreaterThan(500);
 
   expect(capture.text).toMatch(/Palettenkonto/i);
-  expect(capture.text).toMatch(/Ausgang:\s*2\s*Europaletten/i);
-  expect(capture.html).toMatch(/rc1095-pallet-account/i);
+  expect(capture.text).toMatch(/Palettenkonto\s*\/\s*EUR pallets/i);
+  expect(capture.text).toMatch(/Aktueller Stand\s*\/\s*Balance\s*\+7\s*EP/i);
+  expect(capture.text).toMatch(/Eingang\s*\/\s*Return/i);
+  expect(capture.text).not.toMatch(/Ausgang:\s*2\s*Europaletten/i);
+  expect(capture.html).toMatch(/data-rc1560-pallet-card/i);
+  expect(capture.html).toMatch(/data-rc1580-pallet-compact/i);
+  expect(capture.html).toMatch(/rc1580-pallet-write/);
+  expect(capture.html,'RC1560: Palettenkonto steht im Feld unten rechts, nicht mehr über dem Ladelisten-Kopf').not.toMatch(/class="?rc1095-pallet-account/i);
+  expect(capture.html).toMatch(/data-rc1543-pallet-balance/i);
+  await page.evaluate(()=>{
+    if(window.__RC1543_ORIGINAL_PALLET_LEDGER__)window.ExportHUBPalletLedger=window.__RC1543_ORIGINAL_PALLET_LEDGER__;
+    delete window.__RC1543_ORIGINAL_PALLET_LEDGER__;
+  });
   await assertRuntimeClean(guard,testInfo);
 });
 
@@ -547,7 +568,7 @@ test('RC1376: kurze DNC-Rahmen und EMPFÄNGER / KUNDE sind auf Deckblatt und Lad
   await assertRuntimeClean(guard,testInfo);
 });
 
-test('RC1503/RC1379: POD-Ladeliste behält die Bild-4-Felder und blendet den alten Abholblock aus',async({page},testInfo)=>{
+test('RC1503/RC1379/RC1543: POD-Ladeliste behält die Bild-4-Felder und nutzt den aktuellen Palettenkonto-Vertrag',async({page},testInfo)=>{
   test.skip(testInfo.project.name!=='laptop','POD-Ladelistenlayout wird einmal im echten Chromium geprüft.');
   test.setTimeout(45_000);
   const guard=attachRuntimeGuards(page,testInfo);
@@ -605,7 +626,7 @@ test('RC1503/RC1379: POD-Ladeliste behält die Bild-4-Felder und blendet den alt
     filler.style.setProperty('padding','0','important');
 
     const summary=root.querySelector('[data-rc1305-pickup-summary]');
-    const primary=root.querySelector('.rc1305-signature-primary');
+    const primary=root&&root.querySelector('.rc1305-signature-primary');
     const driver=root.querySelector('.rc1305-meta-driver');
     const date=root.querySelector('.rc1503-pickup-date');
     const plate=root.querySelector('.rc1305-meta-plate');
@@ -639,15 +660,17 @@ test('RC1503/RC1379: POD-Ladeliste behält die Bild-4-Felder und blendet den alt
   expect(layout.summaryHidden,'Der alte sichtbare SENDUNG-ABGEHOLT-Block ist noch aktiv').toBe(true);
   expect(layout.replacedFieldCount,'Bild-4-Felder dürfen nach der Abholung nicht ausgeblendet bleiben').toBe(0);
   expect(layout.pickupFieldCount,'Alle sechs vorhandenen Bild-4-Abholfelder müssen erhalten bleiben').toBe(6);
-  expect(layout.fieldLabels).toEqual(['Unterschrift Fahrer','Fahrername','Datum / Uhrzeit','Kennzeichen','Verlader','Europaletten Ausgang']);
+  expect(layout.fieldLabels).toEqual(['Unterschrift Fahrer','Fahrername','Datum / Uhrzeit','Kennzeichen','Verlader','Palettenkonto / EUR pallets']);
   expect(layout.signatureCount).toBe(1);
   expect(layout.imageInside,'Die Fahrerunterschrift ragt aus ihrem vorhandenen Feld').toBe(true);
   expect(layout.driverText).toContain('Max Mustermann');
   expect(layout.dateText).toMatch(/01\.10\.2026/);
   expect(layout.plateText).toContain('KLE-AB 1234');
   expect(layout.loaderText).toContain('Tobias');
-  expect(layout.palletText).toContain('Ausgang: 4');
-  expect(layout.palletText).toContain('Eingang/Rückgabe: 2');
+  expect(layout.palletText).toMatch(/Aktueller Stand\s*\/\s*Balance\s*[–-]/);
+  expect(layout.palletText).not.toContain('Ausgang: 4');
+  expect(layout.palletText).toContain('Eingang / Return');
+  expect(layout.palletText).not.toContain('Eingang/Rückgabe: 2');
   expect(layout.visibleText).not.toMatch(/SENDUNG ABGEHOLT/i);
   expect(layout.visibleText).not.toContain('Beispiel Spedition GmbH');
   expect(layout.qrPresent,'Der bestehende QR-Bereich darf durch die POD-Wiederherstellung nicht verschwinden').toBe(true);

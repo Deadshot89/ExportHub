@@ -132,9 +132,9 @@ for(const base of [PROD,TEST]){
   markers('RC1092 AVIS-Kundensteuerung',avis,['function rc1330AvisPolicyBlock','customer-policy','customerAvisLinkEnabled']);
 }
 
-// RC1095 Palettenkonto bleibt Teil der Ladeliste.
+// RC1543 Palettenkonto-Kontostand bleibt Teil der Ladeliste.
 for(const [label,body] of [['production',production],['testservice',testservice]]){
-  markers(`RC1095 Palettenkonto ${label}`,body,['function rc1095LoadPalletHtml','rc1095-pallet-account','Palettenkonto','Ausgang:','rc1095LoadPalletCount(sh,rows(sh))']);
+  markers(`RC1543 Palettenkonto-Kontostand ${label}`,body,['function rc1095LoadPalletHtml','rc1095-pallet-account','Palettenkonto','Europaletten-Kontostand / EUR pallet balance','data-rc1543-pallet-balance','palletBalanceCacheKey','rc1095LoadPalletCount(sh,rows(sh))']);
 }
 
 // RC1106/RC1177 Historie + Release Notes.

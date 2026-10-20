@@ -45,7 +45,7 @@ test('RC1220: Azure-Primärspeicher wird vor unveränderlicher Azure-Archivkopie
 
 test('RC1143: POD vorhanden wird erst bei echter herunterladbarer POD-Datei gesetzt',()=>{
   assert.match(store,/hasPodFile=realPodFiles\(record\)\.length>0/);
-  assert.match(store,/sh\.status=hasPodFile\?'POD vorhanden':'Abgeholt'/);
+  assert.match(store,/sh\.status=hasPodFile&&sh\.podReviewRequired!==true\?'POD vorhanden':'Abgeholt'/);
   assert.match(store,/sh\.podAvailable=hasPodFile/);
   assert.match(store,/sh\.podConfirmed=hasPodFile/);
   assert.match(store,/sh\.podStatus=hasPodFile\?'POD vorhanden':'POD-Datei wird erstellt'/);

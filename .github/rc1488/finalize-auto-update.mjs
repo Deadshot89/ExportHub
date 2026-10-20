@@ -7,6 +7,8 @@ const I18N_SCRIPT_ID='exporthub-rc1488-auto-update-i18n';
 const I18N_SCRIPT_SRC='/assets/i18n/rc1488-auto-update.js?v=1488';
 const SCRIPT_ID='exporthub-rc1488-auto-update';
 const SCRIPT_SRC='/assets/rc1488-auto-update.js?v=1488';
+const PICKUP_SCRIPT_ID='exporthub-rc1546-pickup-control';
+const PICKUP_SCRIPT_SRC='/assets/rc1546-pickup-control.js?v=1546';
 const PROBE_NAME='production-version.js';
 const CACHE_CONTROL='no-store, no-cache, must-revalidate';
 
@@ -40,22 +42,26 @@ function i18nScriptTag(){
 function scriptTag(buildId,visibleRelease){
   return `<script id="${SCRIPT_ID}" defer src="${SCRIPT_SRC}" data-build-id="${buildId}" data-visible-release="${visibleRelease}"></script>`;
 }
+function pickupScriptTag(){
+  return `<script id="${PICKUP_SCRIPT_ID}" defer src="${PICKUP_SCRIPT_SRC}"></script>`;
+}
 function removeScriptById(html,id){
   const rx=new RegExp(`\\s*<script\\b[^>]*id=["']${id}["'][^>]*><\\/script>\\s*`,`ig`);
   return String(html||'').replace(rx,'\n');
 }
 
 export function injectAutoUpdate(html,{buildId,visibleRelease,file='index.html'}={}){
-  let out=removeScriptById(removeScriptById(html,I18N_SCRIPT_ID),SCRIPT_ID);
+  let out=removeScriptById(removeScriptById(removeScriptById(html,I18N_SCRIPT_ID),SCRIPT_ID),PICKUP_SCRIPT_ID);
   const headClose=out.search(/<\/head\s*>/i);
   if(headClose<0)throw new Error(`RC1488 ${file}: </head> fehlt`);
-  const tags=i18nScriptTag()+'\n'+scriptTag(buildId,visibleRelease)+'\n';
+  const tags=i18nScriptTag()+'\n'+scriptTag(buildId,visibleRelease)+'\n'+pickupScriptTag()+'\n';
   out=out.slice(0,headClose)+tags+out.slice(headClose);
-  for(const id of [I18N_SCRIPT_ID,SCRIPT_ID]){
+  for(const id of [I18N_SCRIPT_ID,SCRIPT_ID,PICKUP_SCRIPT_ID]){
     const matches=out.match(new RegExp(`id=["']${id}["']`,'g'))||[];
     if(matches.length!==1)throw new Error(`RC1488 ${file}: ${id} ${matches.length}x statt 1x`);
   }
   if(out.indexOf(`id="${I18N_SCRIPT_ID}"`)>out.indexOf(`id="${SCRIPT_ID}"`))throw new Error(`RC1488 ${file}: Sprachpaket muss vor Auto-Update-Runtime stehen`);
+  if(out.indexOf(`id="${SCRIPT_ID}"`)>out.indexOf(`id="${PICKUP_SCRIPT_ID}"`))throw new Error(`RC1546 ${file}: Pickup-Control muss nach der Auto-Update-Runtime stehen`);
   if(!out.includes(`data-build-id="${buildId}"`))throw new Error(`RC1488 ${file}: Build-ID fehlt`);
   return out;
 }
@@ -78,7 +84,8 @@ export function finalizeAutoUpdate({root=process.cwd(),out=path.join(process.cwd
 
   const assets=[
     {source:path.join(root,'assets','i18n','rc1488-auto-update.js'),target:path.join(out,'assets','i18n','rc1488-auto-update.js'),label:'Auto-Update-Sprachpaket'},
-    {source:path.join(root,'assets','rc1488-auto-update.js'),target:path.join(out,'assets','rc1488-auto-update.js'),label:'Auto-Update-Runtime'}
+    {source:path.join(root,'assets','rc1488-auto-update.js'),target:path.join(out,'assets','rc1488-auto-update.js'),label:'Auto-Update-Runtime'},
+    {source:path.join(root,'assets','rc1546-pickup-control.js'),target:path.join(out,'assets','rc1546-pickup-control.js'),label:'RC1546 Abholkontrolle'}
   ];
   for(const asset of assets){
     if(!fs.existsSync(asset.source))throw new Error('RC1488: '+asset.label+' fehlt: '+asset.source);

@@ -26,7 +26,7 @@ test('RC1124: Playwright konfiguriert alle fünf verbindlichen Viewports und Feh
   assert.match(config,/workers\s*:\s*1/);
   assert.match(config,/retries\s*:\s*0/);
   assert.match(config,/timeout\s*:\s*45_?000/);
-  assert.match(config,/globalTimeout\s*:\s*LIVE\s*\?\s*15\s*\*\s*60\s*\*\s*1000\s*:\s*10\s*\*\s*60\s*\*\s*1000/);
+  assert.match(config,/globalTimeout\s*:\s*LIVE\s*\?\s*30\s*\*\s*60\s*\*\s*1000\s*:\s*10\s*\*\s*60\s*\*\s*1000/);
   assert.match(config,/trace\s*:\s*LIVE\?['"]off['"]\s*:\s*['"]retain-on-failure['"]/);
   assert.match(config,/screenshot\s*:\s*['"]only-on-failure['"]/);
   assert.match(config,/dist-rc1112/);

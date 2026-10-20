@@ -38,6 +38,6 @@ test('RC1114 erzeugt einen echten POD-PDF mit Signatur',async()=>{
 });
 
 test('RC1114 Dateiname bleibt deterministisch und teilsendungsfähig',()=>{
-  assert.equal(archive.fileNameFor({reference:'ABC123'}),'POD_ABC123_Abliefernachweis.pdf');
-  assert.equal(archive.fileNameFor({reference:'ABC123',subShipmentSequence:2,subShipmentTotal:3}),'POD_ABC123_Teil_2-von-3_Abliefernachweis.pdf');
+  assert.equal(archive.fileNameFor({reference:'ABC123'}),'POD_ABC123_Ladeliste_unterschrieben.pdf');
+  assert.equal(archive.fileNameFor({reference:'ABC123',subShipmentSequence:2,subShipmentTotal:3}),'POD_ABC123_Teil_2-von-3_Ladeliste_unterschrieben.pdf');
 });

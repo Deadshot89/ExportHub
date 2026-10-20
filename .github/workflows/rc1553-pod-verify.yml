@@ -1,0 +1,98 @@
+name: RC1553 POD Signed Loading List
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'api/shared/pod-archive.js'
+      - 'api/pickup-pod/index.js'
+      - 'test/rc1553-pod-signed-loading-list.test.mjs'
+      - 'test/pod-customer-layout-regression.test.mjs'
+      - 'test/pod-render-pdf.test.mjs'
+      - '.github/workflows/rc1553-pod-verify.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'api/shared/pod-archive.js'
+      - 'api/pickup-pod/index.js'
+      - 'test/rc1553-pod-signed-loading-list.test.mjs'
+      - 'test/pod-customer-layout-regression.test.mjs'
+      - 'test/pod-render-pdf.test.mjs'
+      - '.github/workflows/rc1553-pod-verify.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  rc1553:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: Syntax check POD runtimes
+        run: |
+          node --check api/shared/pod-archive.js
+          node --check api/pickup-pod/index.js
+      - name: Install API runtime dependencies
+        working-directory: api
+        run: npm install --ignore-scripts
+      - name: RC1553 focused POD regression
+        run: node --test test/rc1553-pod-signed-loading-list.test.mjs test/pod-customer-layout-regression.test.mjs test/pod-render-pdf.test.mjs
+      - name: Generate visual POD fixture
+        shell: bash
+        run: |
+          mkdir -p test-results/rc1553
+          node <<'NODE'
+          const fs=require('fs');
+          const archive=require('./api/shared/pod-archive');
+          const signature=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Z8R8AAAAASUVORK5CYII=','base64');
+          const record={
+            accessKey:'a'.repeat(64),
+            reference:'Y826DM-TEST',
+            customer:'Musterkunde mit langem Kundennamen GmbH',
+            recipient:'Wareneingang Musterkunde GmbH',
+            address:'Sehr lange Lieferadresse 123, 47638 Musterstadt, Deutschland',
+            carrierName:'Disposition | Muster Spedition GmbH & Co. KG',
+            confirmedAt:'2026-10-16T13:45:00.000Z',
+            driverName:'Max Mustermann Fahrer',
+            licensePlate:'KLE-AB 1234',
+            loaderName:'Carsten Muster-Verlader',
+            expectedColliCount:7,
+            pickupCollectedColliCount:7,
+            rows:[
+              {type:'Europalette',count:2,weight:420},
+              {type:'Karton',count:12,weight:96},
+              {type:'Gitterbox',count:1,weight:185},
+              {type:'Halbpalette',count:2,weight:130},
+              {type:'Karton',count:6,weight:44},
+              {type:'Sonderverpackung',count:1,weight:78}
+            ],
+            palletBalanceSnapshot:{balance:12,name:'Musterkunde'},
+            deliveryNotes:[
+              'SIDE250071282.pdf','SIDE250071640.pdf','DNC3019222063.pdf','DNC3019222475.pdf',
+              'SIDE250071804.pdf','SIDE250071618.pdf','SIDE250071999.pdf','SIDE250072000.pdf',
+              'SIDE250072001.pdf','SIDE250072002.pdf','SIDE250072003.pdf','SIDE250072004.pdf'
+            ],
+            pickupHistory:[{
+              confirmedAt:'2026-10-16T13:45:00.000Z',
+              driverName:'Max Mustermann Fahrer',
+              licensePlate:'KLE-AB 1234',
+              loaderName:'Carsten Muster-Verlader',
+              palletBalanceSnapshot:{balance:12,name:'Musterkunde'}
+            }]
+          };
+          archive.createPodPdf(record,signature,'image/png').then(bytes=>{
+            fs.writeFileSync('test-results/rc1553/POD_Y826DM-TEST_Ladeliste_unterschrieben.pdf',bytes);
+            console.log('RC1553 visual fixture bytes',bytes.length);
+          }).catch(error=>{console.error(error);process.exit(1)});
+          NODE
+      - name: Upload visual POD fixture
+        uses: actions/upload-artifact@v7
+        with:
+          name: rc1553-pod-visual-${{ github.sha }}
+          path: test-results/rc1553/POD_Y826DM-TEST_Ladeliste_unterschrieben.pdf
+          if-no-files-found: error
+          retention-days: 14

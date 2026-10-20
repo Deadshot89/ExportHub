@@ -1,0 +1,29 @@
+name: RC1543 Loading List Pallet Balance Verify
+
+on:
+  pull_request:
+    paths:
+      - 'assets/document-print-name.js'
+      - 'test/rc1543-loading-list-pallet-balance.test.mjs'
+      - 'test/rc1095-loading-list-pallet-account.test.mjs'
+      - 'test/rc1190-print-browser-gate.test.mjs'
+      - 'e2e/specs/print-documents.spec.mjs'
+      - '.github/rc1048/build-three-env.mjs'
+      - '.github/rc1505/verify-production-live.mjs'
+      - '.github/workflows/rc1543-loading-list-pallet-balance-verify.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: RC1543 aktueller Europaletten-Kontostand auf der Ladeliste
+        run: node --test test/rc1543-loading-list-pallet-balance.test.mjs

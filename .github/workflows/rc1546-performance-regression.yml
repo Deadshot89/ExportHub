@@ -1,0 +1,63 @@
+name: RC1546 Performance No-Rerender
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/rc1112/build-three-env.mjs'
+      - 'assets/rc1063-abd-blob-viewer-compat.js'
+      - 'assets/rc1092-customer-mail-contacts.js'
+      - 'assets/rc1126-customer-delete.js'
+      - 'assets/rc1267-i18n.js'
+      - 'assets/rc1294-abd-self-service.js'
+      - 'assets/rc1328-multi-truck-ui-refresh.js'
+      - 'assets/rc1499-abd-export.js'
+      - 'assets/rc1499-exportexperte-handoff.js'
+      - 'infra/production-loader.html'
+      - 'test/rc15*.test.mjs'
+      - 'e2e/specs/rc1516-browser-runtime-performance.spec.mjs'
+      - 'e2e/specs/rc1517-save-confirmation-no-rerender.spec.mjs'
+      - '.github/workflows/rc1546-performance-regression.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  performance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: Release-Vorbereitung
+        run: node scripts/rc1462-pretest.mjs
+      - name: Targeted Node Performance Regression
+        run: >-
+          node --test --test-concurrency=1
+          test/rc1505-save-confirmation-render-gate.test.mjs
+          test/rc1506-production-loader-cache.test.mjs
+          test/rc1507-i18n-save-confirmation-gate.test.mjs
+          test/rc1508-multi-truck-save-watch-gate.test.mjs
+          test/rc1509-production-loader-cache-safety.test.mjs
+          test/rc1510-customer-contacts-offview-sync-gate.test.mjs
+          test/rc1511-customer-delete-offview-sync-gate.test.mjs
+          test/rc1512-document-viewer-offview-sync-gate.test.mjs
+          test/rc1513-abd-self-service-offview-sync-gate.test.mjs
+          test/rc1514-exportexperte-handoff-offview-sync-gate.test.mjs
+          test/rc1515-abd-export-offview-sync-gate.test.mjs
+          test/rc1546-performance-source-of-truth.test.mjs
+      - name: Chromium installieren
+        run: |
+          npm install --no-save @playwright/test@1.63.0
+          npx playwright install --with-deps chromium
+      - name: Echter Browser – Runtime und DOM-Identität
+        env:
+          EXPORTHUB_E2E_STATIC: '1'
+        run: >-
+          npx playwright test
+          e2e/specs/rc1516-browser-runtime-performance.spec.mjs
+          e2e/specs/rc1517-save-confirmation-no-rerender.spec.mjs
+          --project=laptop
