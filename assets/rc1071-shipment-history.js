@@ -3,7 +3,7 @@
 if(!w||w.__EXPORTHUB_RC1071_SHIPMENT_HISTORY__)return;
 w.__EXPORTHUB_RC1071_SHIPMENT_HISTORY__=true;
 
-var MAX_EVENTS=1000,FLUSH_TIMER=0,LAST_ACTIONS=Object.create(null),SNAPSHOTS=Object.create(null),LAST_MAIL_META=Object.create(null);
+var MAX_EVENTS=1000,FLUSH_TIMER=0,LAST_ACTIONS=Object.create(null),SNAPSHOTS=Object.create(null),LAST_MAIL_META=Object.create(null),REGISTRATION_CONFIRM_PENDING=Object.create(null);
 
 function q(v){return String(v==null?'':v).trim()}
 function low(v){return q(v).toLocaleLowerCase('de-DE')}
@@ -174,6 +174,103 @@ function repairCreatorMetaSpacing(){
  });
  return changed
 }
+
+/* RC1590: Opening a prepared Outlook e-mail cannot confirm that it was sent.
+   An explicit post-send action persists the history proof and task change together. */
+function registrationMailEvent(e){
+ if(!e||q(e.type).toLowerCase()!=='mail-sent')return false;
+ var kind=low(e.details&&e.details.mailType),label=low(e.label);
+ return kind===low(de('shipmentHistory.mail.registration'))||kind==='registration'||
+   kind==='versandanmeldung'||label===low(de('shipmentHistory.action.registrationSent'));
+}
+function latestRegistrationMail(sh){
+ var list=mergedHistory(sh).filter(registrationMailEvent);
+ return list.length?list[list.length-1]:null
+}
+function registrationConfirmedForMail(sh,mail){
+ return !!mail&&mergedHistory(sh).some(function(e){
+  return q(e.type).toLowerCase()==='registration-confirmed'&&
+    q(e.details&&e.details.emailHistoryId)===q(mail.id)
+ })
+}
+function registrationFeedback(message,failed){
+ try{
+  var host=document.getElementById('rc1071ShipmentHistory');
+  var target=host&&host.querySelector&&host.querySelector('[data-rc1590-registration-feedback]');
+  if(target){
+   target.textContent=q(message);
+   target.setAttribute('role',failed?'alert':'status');
+   target.setAttribute('data-error',failed?'1':'0')
+  }
+ }catch(_){}
+}
+async function confirmRegistrationMail(sh){
+ var mail=latestRegistrationMail(sh),key=identity(sh);
+ if(!mail||!q(mail.id))return false;
+ if(registrationConfirmedForMail(sh,mail))return true;
+ if(REGISTRATION_CONFIRM_PENDING[key])return REGISTRATION_CONFIRM_PENDING[key];
+ var clean=w.ExportHUBClean,live=state(),workflow=w.ExportHUBTaskWorkflowV2;
+ if(!clean||typeof clean.queueSave!=='function'||typeof clean.flushSave!=='function'||
+    !workflow||typeof workflow.apply!=='function'||
+    typeof workflow.shipmentRegisteredFromSave!=='function'){
+  registrationFeedback(tr('shipmentHistory.registration.storageUnavailable'),true);
+  return false
+ }
+ var promise=(async function(){
+  var emailHistoryId=q(mail.id),event=append(sh,{
+   type:'registration-confirmed',
+   label:de('shipmentHistory.action.registrationConfirmed'),
+   actor:actorFrom(currentUser()),source:'manual-confirmation',
+   details:{reference:ref(sh),emailHistoryId:emailHistoryId,mailType:'registration'}
+  },{persist:false});
+  if(!event)return false;
+  var originalTasks=arr(live.tasks),result={changed:false,patches:[]},persisted=false;
+  try{
+   var registered=workflow.shipmentRegisteredFromSave({detail:{
+    azureSaved:true,savedAt:event.at,
+    shipment:{id:sh.id||sh.shipmentId,ref:ref(sh),
+      customerId:sh.customerId||sh.customerNumber||sh.customerAccount,
+      customerName:sh.customerName||sh.deliveryName||sh.customer,
+      shipmentHistory:[event]}
+   }},event.at);
+   if(registered){
+    result=workflow.apply(registered,{tasks:originalTasks},{now:event.at});
+    if(result.changed)live.tasks=result.state.tasks
+   }
+   registrationFeedback(tr('shipmentHistory.registration.saving'),false);
+   var queued=await Promise.resolve(clean.queueSave('Versandanmeldung bestätigt und Aufgabe abgeglichen'));
+   if(queued===false)throw new Error('QUEUE_SAVE_REJECTED');
+   var ack=await Promise.resolve(clean.flushSave('Versandanmeldung bestätigt und Aufgabe abgeglichen',{force:true,userInitiated:true}));
+   if(ack!==true)throw new Error('SAVE_NOT_CONFIRMED');
+   persisted=true;
+   render();
+   if(result.changed){
+    try{
+     if(typeof w.dispatchEvent==='function'&&typeof w.CustomEvent==='function')
+      w.dispatchEvent(new w.CustomEvent('exporthub:tasks-updated',{detail:{
+       type:'workflow_auto_complete',eventId:registered.eventId,
+       taskIds:result.patches.map(function(p){return p.taskId})
+      }}))
+    }catch(_){}
+   }
+   registrationFeedback(tr(result.changed?'shipmentHistory.registration.success':'shipmentHistory.registration.noTask'),false);
+   return true
+  }catch(error){
+   if(!persisted){
+    copiesOf(sh).forEach(function(copy){
+     copy.shipmentHistory=arr(copy.shipmentHistory).filter(function(item){return q(item&&item.id)!==q(event.id)})
+    });
+    if(result.changed&&live.tasks===result.state.tasks)live.tasks=originalTasks
+   }
+   render();
+   registrationFeedback(tr('shipmentHistory.registration.failed'),true);
+   return false
+  }
+ })();
+ REGISTRATION_CONFIRM_PENDING[key]=promise;
+ try{return await promise}finally{delete REGISTRATION_CONFIRM_PENDING[key]}
+}
+
 function render(){
  if(!w.document||!w.document.body)return false;var old=document.getElementById('rc1071ShipmentHistory'),sh=currentShipment();
  if(!sh||!shipmentView()){if(old)old.remove();return false}
@@ -182,11 +279,18 @@ function render(){
  var events=allEvents(sh),actionHead=tr('shipmentHistory.column.action'),userHead=tr('shipmentHistory.column.user'),timeHead=tr('shipmentHistory.column.time');
  var rows=events.length?events.map(function(e){return'<tr class="rc1071-history-row"><td data-label="'+esc(actionHead)+'" class="rc1071-history-action">'+esc(displayAction(e))+'</td><td data-label="'+esc(userHead)+'" class="rc1071-history-user">'+esc(actorDisplay(e.actor))+(e.actor&&e.actor.role?'<small>'+esc(roleDisplay(e.actor.role))+'</small>':'')+'</td><td data-label="'+esc(timeHead)+'" class="rc1071-history-time">'+esc(formatDate(e.at))+'</td></tr>'}).join(''):'<tr><td colspan="3" class="rc1071-history-empty">'+esc(tr('shipmentHistory.empty'))+'</td></tr>';
  var html='<div class="rc1071-history-head"><div><span class="pill blue">'+esc(tr('shipmentHistory.badge'))+'</span><h3>'+esc(tr('shipmentHistory.title'))+'</h3><div class="muted">'+esc(tr('shipmentHistory.subtitle',{reference:ref(sh)||identity(sh)}))+'</div></div><span class="pill gray">'+esc(tr('shipmentHistory.eventCount',{count:events.length}))+'</span></div><div class="rc1071-history-list"><table class="rc1071-history-table"><thead><tr><th>'+esc(actionHead)+'</th><th>'+esc(userHead)+'</th><th>'+esc(timeHead)+'</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+ var registrationMail=latestRegistrationMail(sh);
+ if(registrationMail){
+  var registrationDone=registrationConfirmedForMail(sh,registrationMail);
+  html+='<div class="rc1590-registration-confirm"><span>'+esc(tr(registrationDone?'shipmentHistory.registration.confirmed':'shipmentHistory.registration.help'))+'</span>'+
+   (registrationDone?'':'<button type="button" class="btn primary" data-rc1590-confirm-registration="1">'+esc(tr('shipmentHistory.registration.confirmButton'))+'</button>')+
+   '<small data-rc1590-registration-feedback role="status"></small></div>'
+ }
  /* Unveränderte Historie nicht neu schreiben: innerHTML löst sonst den eigenen MutationObserver aus und rendert endlos. */
  if(old.__rc1071Html!==html||!old.firstChild){old.innerHTML=html;old.__rc1071Html=html}
  ensureStyle();return true
 }
-function ensureStyle(){if(document.getElementById('rc1071ShipmentHistoryStyle'))return;var s=document.createElement('style');s.id='rc1071ShipmentHistoryStyle';s.textContent='.rc1071-history{margin-top:16px}.rc1071-history-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}.rc1071-history-head h3{margin:6px 0 2px}.rc1071-history-list{margin-top:12px;max-height:520px;overflow:auto;border:1px solid #dbe4ec;border-radius:12px;background:#fff}.rc1071-history-table{width:100%;border-collapse:collapse;min-width:680px}.rc1071-history-table th{padding:10px 12px;text-align:left;background:#f1f5f9;color:#475569;font-size:11px;text-transform:uppercase;letter-spacing:.03em;border-bottom:1px solid #dbe4ec}.rc1071-history-table td{padding:11px 12px;border-bottom:1px solid #e7edf3;vertical-align:top;font-size:12px}.rc1071-history-table tbody tr:last-child td{border-bottom:0}.rc1071-history-action{font-weight:800;color:#0f172a}.rc1071-history-user{font-weight:700}.rc1071-history-user small{display:block;margin-top:2px;color:#64748b;font-weight:500}.rc1071-history-time{white-space:nowrap;color:#475569}.rc1071-history-empty{text-align:center;color:#64748b;padding:20px!important}@media(max-width:720px){.rc1071-history-list{max-height:none}.rc1071-history-table{min-width:0}.rc1071-history-table thead{display:none}.rc1071-history-table,.rc1071-history-table tbody,.rc1071-history-table tr,.rc1071-history-table td{display:block;width:100%}.rc1071-history-table tr{padding:8px 10px;border-bottom:1px solid #dbe4ec}.rc1071-history-table td{display:grid;grid-template-columns:120px 1fr;gap:8px;padding:5px 0;border:0}.rc1071-history-table td:before{content:attr(data-label);font-size:10px;font-weight:800;text-transform:uppercase;color:#64748b}}';(document.head||document.documentElement).appendChild(s)}
+function ensureStyle(){if(document.getElementById('rc1071ShipmentHistoryStyle'))return;var s=document.createElement('style');s.id='rc1071ShipmentHistoryStyle';s.textContent='.rc1590-registration-confirm{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 2px}.rc1590-registration-confirm span{flex:1 1 240px}.rc1590-registration-confirm small{flex-basis:100%;font-size:12px;color:#166534}.rc1590-registration-confirm small[data-error="1"]{color:#b91c1c}.rc1071-history{margin-top:16px}.rc1071-history-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}.rc1071-history-head h3{margin:6px 0 2px}.rc1071-history-list{margin-top:12px;max-height:520px;overflow:auto;border:1px solid #dbe4ec;border-radius:12px;background:#fff}.rc1071-history-table{width:100%;border-collapse:collapse;min-width:680px}.rc1071-history-table th{padding:10px 12px;text-align:left;background:#f1f5f9;color:#475569;font-size:11px;text-transform:uppercase;letter-spacing:.03em;border-bottom:1px solid #dbe4ec}.rc1071-history-table td{padding:11px 12px;border-bottom:1px solid #e7edf3;vertical-align:top;font-size:12px}.rc1071-history-table tbody tr:last-child td{border-bottom:0}.rc1071-history-action{font-weight:800;color:#0f172a}.rc1071-history-user{font-weight:700}.rc1071-history-user small{display:block;margin-top:2px;color:#64748b;font-weight:500}.rc1071-history-time{white-space:nowrap;color:#475569}.rc1071-history-empty{text-align:center;color:#64748b;padding:20px!important}@media(max-width:720px){.rc1071-history-list{max-height:none}.rc1071-history-table{min-width:0}.rc1071-history-table thead{display:none}.rc1071-history-table,.rc1071-history-table tbody,.rc1071-history-table tr,.rc1071-history-table td{display:block;width:100%}.rc1071-history-table tr{padding:8px 10px;border-bottom:1px solid #dbe4ec}.rc1071-history-table td{display:grid;grid-template-columns:120px 1fr;gap:8px;padding:5px 0;border:0}.rc1071-history-table td:before{content:attr(data-label);font-size:10px;font-weight:800;text-transform:uppercase;color:#64748b}}';(document.head||document.documentElement).appendChild(s)}
 function documentLabel(text){text=low(text);if(/\babd\b|ausfuhrbegleit/.test(text))return'ABD';if(/\bpod\b|proof of delivery|abliefer/.test(text))return'POD';if(/cmr/.test(text))return'CMR';if(/rechnung|invoice/.test(text))return de('shipmentHistory.document.invoice');if(/lieferschein|liefer.?schein|delivery note/.test(text))return de('shipmentHistory.document.deliveryNote');if(/deckblatt/.test(text))return de('shipmentHistory.document.coverSheet');if(/stauplan/.test(text))return de('shipmentHistory.document.stowagePlan');if(/ladeliste/.test(text))return de('shipmentHistory.document.loadingList');if(/gesamt/.test(text)&&/druck|ausgabe|pdf/.test(text))return de('shipmentHistory.document.totalPrint');if(/l1/.test(text)&&/qr/.test(text))return'L1 QR';if(/\bl2\b/.test(text))return'L2';if(/pdf/.test(text))return'PDF';return de('shipmentHistory.document.generic')}
 function cleanDocumentFileName(value){
  value=q(value);if(!value||/^data:/i.test(value))return'';
@@ -238,6 +342,10 @@ function click(ev){
  // The AVIS draft flow logs its own shipment and must never imply mail delivery.
  if(el.closest&&el.closest('#rc1166AvisReminderDialog,[data-rc1166-avis-reminder],[data-rc1166-mail-draft]'))return;
  var sh=currentShipment();if(!sh)return;
+ if(el.matches&&el.matches('[data-rc1590-confirm-registration]')){
+  if(ev.preventDefault)ev.preventDefault();
+  void confirmRegistrationMail(sh);return
+ }
  var text=q(el.textContent)+' '+q(el.getAttribute&&el.getAttribute('title'))+' '+q(el.getAttribute&&el.getAttribute('data-action')),actionText=low(text),contextText=elementContext(el,text),l=low(contextText);
  var href=q(el.getAttribute&&el.getAttribute('href'));
  if(/^mailto:/i.test(href)||/outlook|e-?mail.*öffnen|mail.*öffnen|anmeldung.*mail/.test(actionText)){
