@@ -106,7 +106,7 @@ function scanVisibleKeys(file,source){
   const rows=[],lines=source.split(/\r?\n/),seen=new Set();
   const directSink=/(?:\.(?:textContent|innerText|placeholder|title)|\b(?:textContent|innerText|placeholder|aria-label|title)|\[\s*['"](?:textContent|innerText|placeholder|title|aria-label)['"]\s*\])\s*=\s*$/i;
   const attrSink=/\bsetAttribute\s*\(\s*['"](?:title|aria-label|placeholder)['"]\s*,\s*$/i;
-  const htmlKey=/(?:>\s*|\b(?:title|aria-label|placeholder)\s*=\s*['"])(?:common|login|profile|nav|dashboard|shipment|customer|task|document|mail|avis|pickup|public|safety|status|errors|history|settings|calendar|pallet|reports|admin)\.[a-zA-Z0-9_.-]+(?=\s*<|['"]|\s*$)/g;
+  const htmlKey=/(?:>\s*|\b(?:title|aria-label|placeholder)\s*=\s*['"])((?:common|login|profile|nav|dashboard|shipment|customer|task|document|mail|avis|pickup|public|safety|status|errors|history|settings|calendar|pallet|reports|admin)\.[a-zA-Z0-9_.-]+)(?=\s*<|['"]|\s*$)/;
   lines.forEach((line,i)=>{
     if(isNonUiPayloadLine(line)||!KEY_LITERAL.test(line)||!UI_CONTEXT.test(line))return;
     if(/^\s*(?:\/\/|\*|\/\*)/.test(line))return;
@@ -115,12 +115,12 @@ function scanVisibleKeys(file,source){
       const rawKey=new RegExp('^(?:'+KEY_LITERAL.source+')$').test(value);
       const nearbySink=directSink.test(left)||attrSink.test(left);
       const plainHtml=rawKey&&/>\s*$/.test(left);
-      const htmlString=htmlKey.test(value);
-      htmlKey.lastIndex=0;
-      if(!((rawKey&&(nearbySink||plainHtml))||htmlString))continue;
-      const unique=i+':'+hit.position+':'+value;
+      const htmlMatch=htmlKey.exec(value);
+      if(!((rawKey&&(nearbySink||plainHtml))||htmlMatch))continue;
+      const key=rawKey?value:htmlMatch[1];
+      const unique=i+':'+key;
       if(seen.has(unique))continue;seen.add(unique);
-      rows.push({file:file.rel,line:i+1,literal:compact(value),text:compact(line.length<=2400?line:line.slice(Math.max(0,hit.position-120),Math.min(line.length,hit.position+250)))});
+      rows.push({file:file.rel,line:i+1,literal:compact(key),text:compact(line.length<=2400?line:line.slice(Math.max(0,hit.position-120),Math.min(line.length,hit.position+250)))});
     }
   });
   return rows;
