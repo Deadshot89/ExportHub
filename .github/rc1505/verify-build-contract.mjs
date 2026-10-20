@@ -59,6 +59,11 @@ includes('dist-rc1112/customer-avis.html','assets/rc1018-public-language.js?v=12
 includes('dist-rc1112/customer-avis.html','customerPdfUpload');
 includes('dist-rc1112/customer-avis.html','document-upload-status');
 includes('dist-rc1112/pickup.html','assets/rc1018-public-language.js?v=1018');
+// RC1586: Build muss die vollständige RC1585-Abschlusslogik enthalten, bevor Azure etwas deployt.
+includes('dist-rc1112/pickup.html','function pickupCompletionState(data)');
+includes('dist-rc1112/pickup.html','data.podAzureSaved!==true||data.podArchiveSaved!==true');
+includes('dist-rc1112/pickup.html','if(showPendingPickupCompletion(data)){recoverPickup.disabled=false;return}');
+includes('dist-rc1112/pickup.html','if(showPendingPickupCompletion(data))return;');
 includes('dist-rc1112/location.html','assets/rc1018-public-language.js?v=1018');
 includes('dist-rc1112/demo.html','assets/rc1016-demo-task-seed.js?v=1016');
 
