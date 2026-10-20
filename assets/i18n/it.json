@@ -1761,5 +1761,17 @@
   "legacyUi.review.noAccess": "Il tuo account non ha accesso a questa sezione.",
   "legacyUi.review.avisClosed": "L'avviso di ritiro viene chiuso dopo il ritiro e non può essere riattivato.",
   "legacyUi.review.referenceNeeded": "La spedizione deve prima avere un numero di riferimento.",
-  "legacyUi.review.avisChangeFailed": "Impossibile modificare l'avviso al cliente."
+  "legacyUi.review.avisChangeFailed": "Impossibile modificare l'avviso al cliente.",
+  "migrationRecovery.title": "Ottimizzazione dell'archiviazione ExportHUB",
+  "migrationRecovery.eyebrow": "ExportHUB · Manutenzione sicura",
+  "migrationRecovery.heading": "Ottimizzazione dell'archiviazione dei documenti",
+  "migrationRecovery.intro": "I normali dati del team ExportHUB non vengono caricati deliberatamente in questa pagina. I vecchi documenti incorporati vengono spostati nell'archiviazione blob in lotti sicuri da cinque. ExportHUB si riavvia quindi con un insieme di dati più piccolo.",
+  "migrationRecovery.checking": "Verifica della sessione e dello stato dell'archiviazione …",
+  "migrationRecovery.found": "Trovati",
+  "migrationRecovery.completed": "Completati",
+  "migrationRecovery.remaining": "Rimanenti",
+  "migrationRecovery.batches": "Lotti",
+  "migrationRecovery.retry": "Riavvia migrazione",
+  "migrationRecovery.stop": "Arresta dopo il lotto corrente",
+  "migrationRecovery.back": "Torna a ExportHUB"
 }

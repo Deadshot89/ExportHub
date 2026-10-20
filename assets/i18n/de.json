@@ -1761,5 +1761,17 @@
   "legacyUi.review.noAccess": "Dieser Bereich ist für deinen Benutzer nicht freigegeben.",
   "legacyUi.review.avisClosed": "Der Lieferavis ist nach der Abholung geschlossen und kann nicht erneut aktiviert werden.",
   "legacyUi.review.referenceNeeded": "Die Sendung benötigt zuerst eine Referenznummer.",
-  "legacyUi.review.avisChangeFailed": "Kunden-Avis konnte nicht geändert werden."
+  "legacyUi.review.avisChangeFailed": "Kunden-Avis konnte nicht geändert werden.",
+  "migrationRecovery.title": "ExportHUB Speicheroptimierung",
+  "migrationRecovery.eyebrow": "ExportHUB · sichere Wartung",
+  "migrationRecovery.heading": "Dokumentspeicher wird optimiert",
+  "migrationRecovery.intro": "Der normale ExportHUB-Teamstand wird auf dieser Seite bewusst nicht geladen. Alte eingebettete Dokumente werden in sicheren 5er-Paketen in den Blob-Speicher verschoben. Danach startet ExportHUB mit dem verkleinerten Datenbestand neu.",
+  "migrationRecovery.checking": "Sitzung und Speicherstatus werden geprüft …",
+  "migrationRecovery.found": "Gefunden",
+  "migrationRecovery.completed": "Erledigt",
+  "migrationRecovery.remaining": "Verbleibend",
+  "migrationRecovery.batches": "Pakete",
+  "migrationRecovery.retry": "Migration erneut starten",
+  "migrationRecovery.stop": "Nach aktuellem Paket stoppen",
+  "migrationRecovery.back": "Zurück zu ExportHUB"
 }

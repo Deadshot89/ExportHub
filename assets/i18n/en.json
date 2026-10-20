@@ -1761,5 +1761,17 @@
   "legacyUi.review.noAccess": "Your account does not have access to this area.",
   "legacyUi.review.avisClosed": "The collection notice is closed after pickup and cannot be reactivated.",
   "legacyUi.review.referenceNeeded": "The shipment needs a reference number first.",
-  "legacyUi.review.avisChangeFailed": "Could not update the customer collection notice."
+  "legacyUi.review.avisChangeFailed": "Could not update the customer collection notice.",
+  "migrationRecovery.title": "ExportHUB Storage Optimization",
+  "migrationRecovery.eyebrow": "ExportHUB · Secure maintenance",
+  "migrationRecovery.heading": "Document storage is being optimized",
+  "migrationRecovery.intro": "The normal ExportHUB team data is deliberately not loaded on this page. Old embedded documents are moved to blob storage in safe batches of five. ExportHUB then restarts with a smaller data set.",
+  "migrationRecovery.checking": "Checking session and storage status …",
+  "migrationRecovery.found": "Found",
+  "migrationRecovery.completed": "Completed",
+  "migrationRecovery.remaining": "Remaining",
+  "migrationRecovery.batches": "Batches",
+  "migrationRecovery.retry": "Restart migration",
+  "migrationRecovery.stop": "Stop after current batch",
+  "migrationRecovery.back": "Back to ExportHUB"
 }

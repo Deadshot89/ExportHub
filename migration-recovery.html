@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ExportHUB Speicheroptimierung</title>
+<script id="exporthub-migration-recovery-i18n" defer src="/assets/rc1267-i18n.js?v=1267"></script>
 <style>
 :root{font-family:Segoe UI,Arial,sans-serif;color:#17324a;background:#eef8fc}*{box-sizing:border-box}
 body{margin:0;min-height:100vh;background:linear-gradient(180deg,#eefaff,#f8fbfd);padding:28px}
@@ -16,12 +17,12 @@ main{max-width:920px;margin:0 auto}.card{background:#fff;border:1px solid #d8e5e
 </style>
 </head>
 <body><main><section class="card">
-<div class="eyebrow">ExportHUB · sichere Wartung</div><h1>Dokumentspeicher wird optimiert</h1>
-<p>Der normale ExportHUB-Teamstand wird auf dieser Seite bewusst nicht geladen. Alte eingebettete Dokumente werden in sicheren 5er-Paketen in den Blob-Speicher verschoben. Danach startet ExportHUB mit dem verkleinerten Datenbestand neu.</p>
-<div id="status" class="status">Sitzung und Speicherstatus werden geprüft …</div>
+<div class="eyebrow" data-i18n="migrationRecovery.eyebrow">ExportHUB · sichere Wartung</div><h1 data-i18n="migrationRecovery.heading">Dokumentspeicher wird optimiert</h1>
+<p data-i18n="migrationRecovery.intro">Der normale ExportHUB-Teamstand wird auf dieser Seite bewusst nicht geladen. Alte eingebettete Dokumente werden in sicheren 5er-Paketen in den Blob-Speicher verschoben. Danach startet ExportHUB mit dem verkleinerten Datenbestand neu.</p>
+<div id="status" class="status" data-i18n="migrationRecovery.checking">Sitzung und Speicherstatus werden geprüft …</div>
 <div class="bar"><div id="fill" class="fill"></div></div><div id="progressText" class="small">0 %</div>
-<div class="grid"><div class="metric"><span>Gefunden</span><b id="found">–</b></div><div class="metric"><span>Erledigt</span><b id="migrated">0</b></div><div class="metric"><span>Verbleibend</span><b id="remaining">–</b></div><div class="metric"><span>Pakete</span><b id="batches">0</b></div></div>
-<div class="actions"><button id="retry" class="primary" type="button" hidden>Migration erneut starten</button><button id="stop" class="secondary" type="button" hidden>Nach aktuellem Paket stoppen</button><button id="back" class="secondary" type="button">Zurück zu ExportHUB</button></div>
+<div class="grid"><div class="metric"><span data-i18n="migrationRecovery.found">Gefunden</span><b id="found">–</b></div><div class="metric"><span data-i18n="migrationRecovery.completed">Erledigt</span><b id="migrated">0</b></div><div class="metric"><span data-i18n="migrationRecovery.remaining">Verbleibend</span><b id="remaining">–</b></div><div class="metric"><span data-i18n="migrationRecovery.batches">Pakete</span><b id="batches">0</b></div></div>
+<div class="actions"><button id="retry" class="primary" type="button" hidden data-i18n="migrationRecovery.retry">Migration erneut starten</button><button id="stop" class="secondary" type="button" hidden data-i18n="migrationRecovery.stop">Nach aktuellem Paket stoppen</button><button id="back" class="secondary" type="button" data-i18n="migrationRecovery.back">Zurück zu ExportHUB</button></div>
 <div id="detail" class="small"></div>
 </section></main>
 <script>

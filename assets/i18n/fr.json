@@ -1761,5 +1761,17 @@
   "legacyUi.review.noAccess": "Votre compte n'a pas accès à cette rubrique.",
   "legacyUi.review.avisClosed": "L'avis d'enlèvement est clôturé après la collecte et ne peut plus être réactivé.",
   "legacyUi.review.referenceNeeded": "L'expédition doit d'abord recevoir un numéro de référence.",
-  "legacyUi.review.avisChangeFailed": "Impossible de modifier l'avis client."
+  "legacyUi.review.avisChangeFailed": "Impossible de modifier l'avis client.",
+  "migrationRecovery.title": "Optimisation du stockage ExportHUB",
+  "migrationRecovery.eyebrow": "ExportHUB · Maintenance sécurisée",
+  "migrationRecovery.heading": "Optimisation du stockage des documents",
+  "migrationRecovery.intro": "Les données habituelles de l’équipe ExportHUB ne sont volontairement pas chargées sur cette page. Les anciens documents intégrés sont déplacés vers le stockage blob par lots sécurisés de cinq. ExportHUB redémarre ensuite avec moins de données.",
+  "migrationRecovery.checking": "Vérification de la session et du stockage …",
+  "migrationRecovery.found": "Trouvés",
+  "migrationRecovery.completed": "Terminés",
+  "migrationRecovery.remaining": "Restants",
+  "migrationRecovery.batches": "Lots",
+  "migrationRecovery.retry": "Relancer la migration",
+  "migrationRecovery.stop": "Arrêter après le lot en cours",
+  "migrationRecovery.back": "Retour à ExportHUB"
 }

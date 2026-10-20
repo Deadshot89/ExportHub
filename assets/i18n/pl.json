@@ -1761,5 +1761,17 @@
   "legacyUi.review.noAccess": "Twoje konto nie ma dostępu do tego obszaru.",
   "legacyUi.review.avisClosed": "Awizo odbioru jest zamknięte po odbiorze i nie może zostać ponownie aktywowane.",
   "legacyUi.review.referenceNeeded": "Najpierw należy nadać przesyłce numer referencyjny.",
-  "legacyUi.review.avisChangeFailed": "Nie udało się zmienić awiza klienta."
+  "legacyUi.review.avisChangeFailed": "Nie udało się zmienić awiza klienta.",
+  "migrationRecovery.title": "Optymalizacja pamięci ExportHUB",
+  "migrationRecovery.eyebrow": "ExportHUB · Bezpieczna konserwacja",
+  "migrationRecovery.heading": "Trwa optymalizacja przechowywania dokumentów",
+  "migrationRecovery.intro": "Standardowe dane zespołu ExportHUB nie są celowo wczytywane na tej stronie. Stare osadzone dokumenty są przenoszone do magazynu blob w bezpiecznych partiach po pięć. Następnie ExportHUB uruchamia się ponownie z mniejszym zestawem danych.",
+  "migrationRecovery.checking": "Sprawdzanie sesji i stanu pamięci …",
+  "migrationRecovery.found": "Znaleziono",
+  "migrationRecovery.completed": "Ukończono",
+  "migrationRecovery.remaining": "Pozostało",
+  "migrationRecovery.batches": "Partie",
+  "migrationRecovery.retry": "Uruchom migrację ponownie",
+  "migrationRecovery.stop": "Zatrzymaj po bieżącej partii",
+  "migrationRecovery.back": "Powrót do ExportHUB"
 }
