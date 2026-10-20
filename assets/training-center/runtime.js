@@ -135,9 +135,23 @@ function ensureRoute(options={}){
   routeRoot=root;
   return true;
 }
+function installLegacySopBridge(){
+  const legacy=g.renderSop;
+  if(typeof legacy!=='function'||legacy.__exporthubTrainingBridge===true)return false;
+  function renderTrainingCenterInstead(){
+    const render=()=>{try{ensureRoute();}catch(error){try{console.error('Training Center route failed',error);}catch(_){}}};
+    if(typeof g.queueMicrotask==='function')g.queueMicrotask(render);
+    else if(typeof g.setTimeout==='function')g.setTimeout(render,0);
+    return '<section data-training-center-route-pending="1" aria-label="SOP & Training Center"></section>';
+  }
+  Object.defineProperty(renderTrainingCenterInstead,'__exporthubTrainingBridge',{value:true});
+  try{g.renderSop=renderTrainingCenterInstead;}catch(_){}
+  return g.renderSop===renderTrainingCenterInstead;
+}
 function start(options={}){
   const doc=options.document||g.document;
   if(!doc)return Object.freeze({stop});
+  installLegacySopBridge();
   if(started){ensureRoute(options);return Object.freeze({stop});}
   started=true;
   ensureRoute(options);
