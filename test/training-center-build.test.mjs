@@ -76,9 +76,10 @@ test('echter Drei-Umgebungs-Build enthält ausschließlich neue Training-Center-
 });
 
 
-test('Training-Center final production pack excludes retired RC1544 SOP Guided Workspace',()=>{
-  const fsSource=fs.readFileSync('.github/packmeldungen/build-three-env.mjs','utf8');
-  assert.doesNotMatch(fsSource,/integrateGuidedWorkspace/);
+test('Training-Center release strips legacy SOP after the historical pack build and keeps RC1549 intact',()=>{
+  const source=fs.readFileSync('.github/training-center/build-three-env.mjs','utf8');
+  assert.match(source,/removeRetiredSopTagsFromBuild/);
+  assert.match(source,/fs\.rmSync\(path\.join\(out,'assets','sop'\)/);
   const integration=fs.readFileSync('.github/rc1521/build-three-env.mjs','utf8');
   assert.match(integration,/integrateAbdProforma\(root,out\)/);
   assert.match(integration,/ABD_PROFORMA_ASSETS/);

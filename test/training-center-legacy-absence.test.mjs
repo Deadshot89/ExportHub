@@ -27,8 +27,11 @@ function walk(dir,out=[]){
   return out;
 }
 
-test('alter SOPMaster-Quellbestand ist vollständig aus dem ausgelieferten Repository entfernt',()=>{
-  assert.equal(fs.existsSync(LEGACY_DIR),false,'assets/sop/** darf nach dem Clean Cutover nicht mehr existieren');
+test('historischer SOPMaster-Quellbestand bleibt für unveränderte Regressionen erhalten, ist aber kein Training-Center-Release-Asset',()=>{
+  assert.equal(fs.existsSync(LEGACY_DIR),true,'historische SOP-Verträge dürfen vor dem abgesicherten Cutover nicht verschwinden');
+  const builder=read('.github/training-center/build-three-env.mjs');
+  assert.match(builder,/removeRetiredSopTagsFromBuild/);
+  assert.match(builder,/fs\\.rmSync\\(path\\.join\\(out,'assets','sop'\\)/);
 });
 
 test('aktive Training-Center- und Release-Dateien referenzieren keine Legacy-SOP-Runtime',()=>{

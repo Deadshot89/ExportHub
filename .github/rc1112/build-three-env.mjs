@@ -1,6 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {execFileSync} from 'node:child_process';
+import {integrateTour} from '../rc1501/build-three-env.mjs';
+import {integrateEditor} from '../rc1502/build-three-env.mjs';
+import {integrateTraining} from '../rc1503/build-three-env.mjs';
+import {integrateCoverageAdmin} from '../rc1506/build-three-env.mjs';
 import {patchRc1576StateBodyDeadline} from '../../scripts/rc1576-state-read-body-timeout.mjs';
 
 const ROOT=process.cwd();
@@ -1363,5 +1367,10 @@ const rc1207Source=path.join(ROOT,'assets/rc1207-pallet-account-fix.js'),rc1207T
 if(!fs.existsSync(rc1207Source))throw new Error('RC1207 Palettenkonto-Runtime fehlt');
 fs.copyFileSync(rc1207Source,rc1207Target);
 
+// RC1522: SOPMaster is an additive layer of the stable RC1112 release build.
+integrateTour(ROOT,OUT);
+integrateEditor(ROOT,OUT);
+integrateTraining(ROOT,OUT);
+integrateCoverageAdmin(ROOT,OUT);
 
 console.log('RC1112 build pipeline ready: sichtbare Produktversion '+VISIBLE_VERSION+' auf geprüfter RC1048-Basis, RC1194 sichere Kundenportal-Key-Diagnose aktiv.');
