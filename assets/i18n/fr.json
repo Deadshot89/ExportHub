@@ -784,7 +784,7 @@
   "taskManaged.group.registration": "Enregistrement",
   "taskManaged.group.exportAbd": "Export / ABD",
   "taskManaged.group.swiss": "Contrôler les clients suisses",
-  "taskManaged.spanien.title": "Enregistrer l’Espagne",
+  "taskManaged.spanien.title": "Enregistrer Essentra Espagne",
   "taskManaged.spanien.description": "Enregistrer l’Espagne le lundi et le jeudi.",
   "taskManaged.wuerth.title": "Enregistrer Würth Industrie",
   "taskManaged.wuerth.description": "Enregistrer Würth Industrie le mardi et le jeudi.",
@@ -1692,5 +1692,10 @@
   "location.status.preparedBefore": "L'expédition est prête à l'emplacement",
   "location.status.preparedAfter": "et peut être déplacée si nécessaire.",
   "location.status.bookedBefore": "Expédition attribuée à l'emplacement",
-  "location.status.bookedAfter": "avec succès."
+  "location.status.bookedAfter": "avec succès.",
+  "abd.completedUpload.savedInvalid": "L'identité de l'expédition enregistrée est ambiguë ou incomplète. ABD non téléversé.",
+  "abd.completedUpload.savedConflict": "Identifiants d'expédition contradictoires. ABD non téléversé.",
+  "abd.completedUpload.saveUnavailable": "Expédition trouvée, mais l'enregistrement Azure confirmé n'est pas disponible. ABD non téléversé.",
+  "abd.completedUpload.saveUnconfirmed": "L'enregistrement de l'expédition n'a pas été confirmé. ABD non téléversé.",
+  "abd.completedUpload.savingShipment": "Enregistrement de l'expédition avant le téléversement de l'ABD."
 }

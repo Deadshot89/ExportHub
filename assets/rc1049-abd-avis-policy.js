@@ -96,15 +96,104 @@ function low(v){return q(v).toLowerCase()}
 function state(){try{if(typeof window.__EXPORTHUB_GET_STATE__==='function')return window.__EXPORTHUB_GET_STATE__()||{}}catch(_){}return window.ExportHUBClean&&window.ExportHUBClean.runtime&&window.ExportHUBClean.runtime.state||window.ExportHUBClean&&window.ExportHUBClean.state||window.state||window.appState||{}}
 function refOf(x){return q(x&&(x.ref||x.reference||x.shipmentRef||x.referenceNumber||x.referenceNo)).toUpperCase()}
 function idOf(x){return q(x&&(x.id||x.shipmentId||x.uuid))}
-function sameShipment(sh,a){if(!sh||!a)return false;var linked=q(a.linkedShipmentId||a.shipmentId),sid=idOf(sh),ar=refOf(a),sr=refOf(sh);return !!((linked&&sid&&linked===sid)||(ar&&sr&&ar===sr))}
+function sameShipment(sh,a){if(!sh||!a)return false;var linked=q(a.linkedShipmentId||a.shipmentId),sid=idOf(sh),ar=refOf(a),sr=refOf(sh);if(linked)return !!(sid&&linked===sid&&(!ar||!sr||ar===sr));return !!(ar&&sr&&ar===sr)}
 function requestById(id){var s=state(),list=Array.isArray(s.abdRequests)?s.abdRequests.slice():[],wanted=q(id);[s.abdRequest,s.abdDraft].forEach(function(a){if(a&&list.indexOf(a)<0)list.push(a)});for(var i=list.length-1;i>=0;i--){if(q(list[i]&&list[i].id)===wanted)return list[i]}return null}
-function shipmentForRequest(a){var s=state(),candidates=[];function add(x){if(x&&typeof x==='object'&&candidates.indexOf(x)<0)candidates.push(x)};[s.shipments,s.savedShipments,s.sharedShipments].forEach(function(list){if(Array.isArray(list))list.forEach(add)});[s.shipment,s.currentShipment,s.selectedShipment,s.activeShipment,s.documentShipment].forEach(add);var linked=q(a&& (a.linkedShipmentId||a.shipmentId));if(linked){for(var j=candidates.length-1;j>=0;j--){if(idOf(candidates[j])===linked)return candidates[j]}}var matches=candidates.filter(function(sh){return sameShipment(sh,a)}),ids={};matches.forEach(function(sh){ids[idOf(sh)||refOf(sh)]=true});return Object.keys(ids).length===1?matches[0]||null:null}
+function shipmentForRequest(a){var s=state(),candidates=[];function add(x){if(x&&typeof x==='object'&&candidates.indexOf(x)<0)candidates.push(x)};[s.shipments,s.savedShipments,s.sharedShipments].forEach(function(list){if(Array.isArray(list))list.forEach(add)});[s.shipment,s.currentShipment,s.selectedShipment,s.activeShipment,s.documentShipment].forEach(add);var linked=q(a&& (a.linkedShipmentId||a.shipmentId));if(linked){for(var j=candidates.length-1;j>=0;j--){if(idOf(candidates[j])===linked&&sameShipment(candidates[j],a))return candidates[j]}}var matches=candidates.filter(function(sh){return sameShipment(sh,a)}),ids={};matches.forEach(function(sh){ids[idOf(sh)||refOf(sh)]=true});return Object.keys(ids).length===1?matches[0]||null:null}
 function uploadMsg(key,vars,fallback){try{var i=window.ExportHUBI18n;if(i&&typeof i.t==='function'){var t=i.t(key,vars);if(t&&t!==key)return t}}catch(_){}return fallback}
 function uploadStatus(input,message,failed){try{if(input&&input.setAttribute)input.setAttribute('aria-invalid',failed?'true':'false');var host=input&&input.closest&&input.closest('.rc543-abd-upload,.rc524-upload,.rc626-upload')||input&&input.parentNode;if(host&&typeof document.createElement==='function'){var el=host.querySelector&&host.querySelector('[data-rc1584-abd-status]');if(!el){el=document.createElement('small');el.setAttribute('data-rc1584-abd-status','');host.appendChild(el)}el.textContent=message;el.setAttribute('role',failed?'alert':'status');el.style.display='block';el.style.marginTop='6px';el.style.fontWeight='600';el.style.color=failed?'#b91c1c':'#166534'}}catch(_){}}
 function uploadError(input,message){uploadStatus(input,message,true);try{if(typeof window.alert==='function')window.alert(message);else if(typeof alert==='function')alert(message)}catch(_){}return false}
 function requestMustLink(a){return !!q(a&&(a.linkedShipmentId||a.shipmentId))||/^(?:shipment|sendung|from.shipment)$/i.test(q(a&&(a.source||a.createdFrom||a.mode)))}
 
-function install(){var api=window.ExportHUBRC626;if(api&&api.__rc1550AbdUploadBridge)return true;if(!api||typeof api.uploadCompletedAbd!=='function')return false;var base=api.uploadCompletedAbd;function uploadCompletedAbd(id,input){var a=requestById(id),file=input&&input.files&&input.files[0];if(!a||!file)return base.apply(api,arguments);if(!/\.pdf$/i.test(q(file.name))&&low(file.type).indexOf('pdf')<0)return base.apply(api,arguments);var sh=shipmentForRequest(a),upload=window.rc524UploadFile;if(sh){var live=Array.isArray(state().shipments)?state().shipments:[];sh=live.find(function(x){return sameShipment(x,a)&&((idOf(sh)&&idOf(x)===idOf(sh))||(refOf(sh)&&refOf(x)===refOf(sh)))})||null}if(!sh){if(requestMustLink(a))return uploadError(input,uploadMsg('abd.completedUpload.shipmentMissing',null,'Linked shipment could not be identified. Open the shipment overview and retry.'));return base.apply(api,arguments)}if(typeof upload!=='function')return uploadError(input,uploadMsg('abd.completedUpload.runtimeMissing',null,'Secure ABD upload is not available. Reload and retry; the document was not saved.'));if(typeof window.canWrite==='function'&&!window.canWrite('abd'))return uploadError(input,uploadMsg('abd.completedUpload.forbidden',null,'No permission to upload ABD documents.'));if(!input.dataset)input.dataset={};input.dataset.id=idOf(sh)||refOf(sh);try{return upload(input,'abdFiles')}catch(error){return uploadError(input,uploadMsg('abd.completedUpload.failed',{message:q(error&&error.message||error)},'ABD upload failed: '+q(error&&error.message||error)))}}
+/* RC1585: Saved-only shipment promotion must be Azure-confirmed before the
+   existing verified document uploader is allowed to run. No fallback save. */
+var promotionPending={};
+function hasShipmentCollision(list,sh){
+ return (Array.isArray(list)?list:[]).some(function(other){
+  if(!other||other===sh)return false;
+  var leftId=idOf(sh),rightId=idOf(other),leftRef=refOf(sh),rightRef=refOf(other);
+  return !!((leftId&&rightId&&leftId===rightId&&leftRef!==rightRef)||
+    (leftRef&&rightRef&&leftRef===rightRef&&leftId!==rightId));
+ })
+}
+function promotionMessage(key,fallback){return uploadMsg(key,null,fallback)}
+function promotionAvailable(){
+ var clean=window.ExportHUBClean;
+ return clean&&typeof clean.queueSave==='function'&&typeof clean.flushSave==='function';
+}
+async function persistSavedShipment(sh){
+ var source=state(),id=idOf(sh),ref=refOf(sh),key=id+'|'+ref;
+ if(!id||!ref||!Array.isArray(source.savedShipments)||!source.savedShipments.includes(sh))
+  throw new Error(promotionMessage('abd.completedUpload.savedInvalid','Saved shipment identity is incomplete or not available. Nothing was uploaded.'));
+ if(hasShipmentCollision(source.shipments,sh)||hasShipmentCollision(source.savedShipments,sh))
+  throw new Error(promotionMessage('abd.completedUpload.savedConflict','Conflicting shipment identities detected. Nothing was uploaded.'));
+ if(promotionPending[key])return promotionPending[key];
+ var existing=(Array.isArray(source.shipments)?source.shipments:[]).find(function(item){
+  return idOf(item)===id&&refOf(item)===ref
+ });
+ if(existing)return existing;
+ if(!promotionAvailable())
+  throw new Error(promotionMessage('abd.completedUpload.saveUnavailable','Linked shipment found, but confirmed Azure saving is unavailable. ABD was not uploaded.'));
+ var work=(async function(){
+  var old=Array.isArray(source.shipments)?source.shipments:[],staged=Object.assign({},sh);
+  source.shipments=old.concat([staged]);
+  try{
+   var clean=window.ExportHUBClean;
+   await clean.queueSave('ABD: Sendung aus gespeicherten Sendungen übernehmen');
+   var saved=await clean.flushSave('ABD: Sendung dauerhaft übernehmen',{force:true,userInitiated:true});
+   if(saved!==true)throw new Error(promotionMessage('abd.completedUpload.saveUnconfirmed','Linked shipment save not confirmed. ABD was not uploaded.'));
+   var current=state(),verified=(Array.isArray(current.shipments)?current.shipments:[]).find(function(item){
+    return idOf(item)===id&&refOf(item)===ref
+   });
+   if(!verified)throw new Error(promotionMessage('abd.completedUpload.saveUnconfirmed','Linked shipment is missing after saving. ABD was not uploaded.'));
+   return verified;
+  }catch(error){
+   // Remove only our temporary exact object, never another user's changes.
+   if(Array.isArray(source.shipments))source.shipments=source.shipments.filter(function(item){return item!==staged});
+   throw error
+  }
+ })();
+ promotionPending[key]=work;
+ try{return await work}finally{delete promotionPending[key]}
+}
+function trackCentralAbd(input,sh){
+ centralPending.forEach(function(p){if(p.input===input)p.done=true});
+ var entry={input:input,id:idOf(sh),ref:refOf(sh),done:false};
+ centralPending.push(entry);
+ uploadStatus(input,uploadMsg('abd.completedUpload.processing',null,'ABD document is being processed. Waiting for storage confirmation.'),false);
+ setTimeout(function(){
+  if(entry.done)return;
+  entry.done=true;
+  uploadStatus(input,uploadMsg('abd.completedUpload.unconfirmed',null,'No confirmed ABD storage response. Check the shipment documents before retrying.'),true);
+  centralPending=centralPending.filter(function(p){return !p.done});
+ },90000);
+}
+var savedUploadInFlight=[];
+function uploadSavedShipment(sh,input){
+ var pending=savedUploadInFlight.find(function(item){return item.input===input});
+ if(pending)return pending.promise;
+ if(typeof window.canWrite==='function'&&!window.canWrite('abd'))
+  return uploadError(input,uploadMsg('abd.completedUpload.forbidden',null,'No permission to upload ABD documents.'));
+ if(typeof window.rc524UploadFile!=='function')
+  return uploadError(input,uploadMsg('abd.completedUpload.runtimeMissing',null,'Secure ABD upload is not available.'));
+ if(!promotionAvailable())
+  return uploadError(input,promotionMessage('abd.completedUpload.saveUnavailable','Linked shipment found, but confirmed Azure saving is unavailable. ABD was not uploaded.'));
+ uploadStatus(input,promotionMessage('abd.completedUpload.savingShipment','Sendung wird vor dem ABD-Upload dauerhaft gespeichert.'),false);
+ var promise=persistSavedShipment(sh).then(function(saved){
+  if(!input.dataset)input.dataset={};
+  input.dataset.id=idOf(saved);
+  trackCentralAbd(input,saved);
+  try{return window.rc524UploadFile(input,'abdFiles')}catch(error){
+   return uploadError(input,uploadMsg('abd.completedUpload.failed',{message:q(error&&error.message)},'ABD upload failed: '+q(error&&error.message)))
+  }
+ }).catch(function(error){
+  return uploadError(input,q(error&&error.message)||promotionMessage('abd.completedUpload.saveUnconfirmed','Linked shipment save not confirmed. ABD was not uploaded.'))
+ }).finally(function(){
+  savedUploadInFlight=savedUploadInFlight.filter(function(item){return item.input!==input})
+ });
+ savedUploadInFlight.push({input:input,promise:promise});
+ return promise
+}
+function install(){var api=window.ExportHUBRC626;if(api&&api.__rc1550AbdUploadBridge)return true;if(!api||typeof api.uploadCompletedAbd!=='function')return false;var base=api.uploadCompletedAbd;function uploadCompletedAbd(id,input){var a=requestById(id),file=input&&input.files&&input.files[0];if(!a||!file)return base.apply(api,arguments);if(!/\.pdf$/i.test(q(file.name))&&low(file.type).indexOf('pdf')<0)return base.apply(api,arguments);var activePromotion=savedUploadInFlight.find(function(p){return p.input===input});if(activePromotion)return activePromotion.promise;var sh=shipmentForRequest(a),upload=window.rc524UploadFile;if(sh){var live=Array.isArray(state().shipments)?state().shipments:[];sh=live.find(function(x){return sameShipment(x,a)&&((idOf(sh)&&idOf(x)===idOf(sh))||(refOf(sh)&&refOf(x)===refOf(sh)))})||null}if(!sh){var saved=shipmentForRequest(a);if(saved&&requestMustLink(a)&&Array.isArray(state().savedShipments)&&state().savedShipments.indexOf(saved)>=0)return uploadSavedShipment(saved,input);if(requestMustLink(a))return uploadError(input,uploadMsg('abd.completedUpload.shipmentMissing',null,'Linked shipment could not be identified. Open the shipment overview and retry.'));return base.apply(api,arguments)}if(typeof upload!=='function')return uploadError(input,uploadMsg('abd.completedUpload.runtimeMissing',null,'Secure ABD upload is not available. Reload and retry; the document was not saved.'));if(typeof window.canWrite==='function'&&!window.canWrite('abd'))return uploadError(input,uploadMsg('abd.completedUpload.forbidden',null,'No permission to upload ABD documents.'));if(!input.dataset)input.dataset={};input.dataset.id=idOf(sh)||refOf(sh);try{return upload(input,'abdFiles')}catch(error){return uploadError(input,uploadMsg('abd.completedUpload.failed',{message:q(error&&error.message||error)},'ABD upload failed: '+q(error&&error.message||error)))}}
 var wrapped=Object.freeze(Object.assign({},api,{uploadCompletedAbd:uploadCompletedAbd,__rc1550AbdUploadBridge:true,__base1550:api}));window.ExportHUBRC626=wrapped;return true}
 function refreshAbdAfterVerifiedUpload(e){var d=e&&e.detail||{};if(low(d.kind)!=='abd'||d.azureVerified!==true)return;var s=state();if(q(s.view)!=='abd')return;setTimeout(function(){var api=window.ExportHUBRC626;if(api&&typeof api.renderAbd==='function')api.renderAbd()},0)}
 /* RC1582: RC626 is loaded lazily on the first ABD view. Its file input may appear long after the initial retry timers. Install the verified-upload bridge during capture, before the input's inline onchange handler runs. */
@@ -122,20 +211,21 @@ function captureCentralAbdChange(event){
  var requested=q(input.dataset&&input.dataset.id),s=state(),list=Array.isArray(s.shipments)?s.shipments:[],
      hits=list.filter(function(sh){return !!requested&&(idOf(sh)===requested||refOf(sh)===requested.toUpperCase())}),first=hits[0];
  if(!first||!refOf(first)||hits.some(function(sh){return idOf(sh)!==idOf(first)})){
+  // The overview also reads savedShipments: promote the uniquely identified
+  // saved copy first; never switch silently to a different active shipment.
+  var savedHits=(Array.isArray(s.savedShipments)?s.savedShipments:[]).filter(function(sh){
+   return !!requested&&(idOf(sh)===requested||refOf(sh)===requested.toUpperCase())
+  });
+  if(!first&&savedHits.length===1&&idOf(savedHits[0])&&refOf(savedHits[0])&&
+     !hasShipmentCollision(list,savedHits[0])&&!hasShipmentCollision(s.savedShipments,savedHits[0])){
+   try{event.preventDefault();event.stopPropagation();event.stopImmediatePropagation()}catch(_){}
+   return uploadSavedShipment(savedHits[0],input)
+  }
   return blockAbdChange(event,input,uploadMsg('abd.completedUpload.noMatchingShipment',{reference:requested||'?'},'ABD upload not started: shipment '+(requested||'?')+' could not be uniquely identified. Reload shipment overview.'));
  }
  if(typeof window.rc524UploadFile!=='function')return blockAbdChange(event,input,uploadMsg('abd.completedUpload.runtimeMissing',null,'Secure ABD upload is not available. Reload and retry; the document was not saved.'));
  if(typeof window.canWrite==='function'&&!window.canWrite('abd'))return blockAbdChange(event,input,uploadMsg('abd.completedUpload.forbidden',null,'No permission to upload ABD documents.'));
- centralPending.forEach(function(p){if(p.input===input)p.done=true});
- var entry={input:input,id:idOf(first),ref:refOf(first),done:false};
- centralPending.push(entry);
- uploadStatus(input,uploadMsg('abd.completedUpload.processing',null,'ABD document is being processed. Waiting for storage confirmation.'),false);
- setTimeout(function(){
-  if(entry.done)return;
-  entry.done=true;
-  uploadStatus(input,uploadMsg('abd.completedUpload.unconfirmed',null,'No confirmed ABD storage response. Check the shipment documents before retrying.'),true);
-  centralPending=centralPending.filter(function(p){return !p.done});
- },90000);
+ trackCentralAbd(input,first);
 }
 function centralAbdUploaded(e){
  var d=e&&e.detail||{};

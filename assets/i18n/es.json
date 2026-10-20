@@ -784,8 +784,8 @@
   "taskManaged.group.registration": "Registro",
   "taskManaged.group.exportAbd": "Exportación / ABD",
   "taskManaged.group.swiss": "Comprobar clientes suizos",
-  "taskManaged.spanien.title": "Registrar España",
-  "taskManaged.spanien.description": "Registrar España los lunes y jueves.",
+  "taskManaged.spanien.title": "Registrar Essentra España",
+  "taskManaged.spanien.description": "Registrar Essentra España los lunes y jueves.",
   "taskManaged.wuerth.title": "Registrar Würth Industrie",
   "taskManaged.wuerth.description": "Registrar Würth Industrie los martes y jueves.",
   "taskManaged.bmp.title": "Registrar BMP",
@@ -1692,5 +1692,10 @@
   "location.status.preparedBefore": "El envío está preparado en la ubicación",
   "location.status.preparedAfter": "y se puede trasladar si es necesario.",
   "location.status.bookedBefore": "Envío asignado correctamente a la ubicación",
-  "location.status.bookedAfter": "y confirmado."
+  "location.status.bookedAfter": "y confirmado.",
+  "abd.completedUpload.savedInvalid": "La identidad del envío guardado es ambigua o incompleta. No se cargó el ABD.",
+  "abd.completedUpload.savedConflict": "Identificadores de envío contradictorios. No se cargó el ABD.",
+  "abd.completedUpload.saveUnavailable": "Se encontró el envío, pero no está disponible la confirmación de guardado en Azure. No se cargó el ABD.",
+  "abd.completedUpload.saveUnconfirmed": "No se confirmó el guardado del envío. No se cargó el ABD.",
+  "abd.completedUpload.savingShipment": "Guardando el envío antes de cargar el ABD."
 }

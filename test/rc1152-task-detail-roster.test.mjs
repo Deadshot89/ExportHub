@@ -43,7 +43,7 @@ test('RC1359: Donnerstag erzeugt Spanien Würth Polen und Schweizer Referenz',()
   const api=load(),state={tasks:[],_teamSyncMeta:{fields:{},tombstones:[]}};
   const out=api.prepareTasks(state.tasks,{companyId:'essentra',environment:'production',currentUserId:'tobias',now:'2026-09-17T10:00:00+02:00',state,persist(next){state.tasks=next}});
   const titles=new Set(out.map(t=>t.title));
-  for(const title of ['Spanien anmelden','Würth Industrie anmelden','Polen anmelden','Schweizer Kunden prüfen'])assert.ok(titles.has(title),title+' fehlt');
+  for(const title of ['Essentra Spanien anmelden','Würth Industrie anmelden','Polen anmelden','Schweizer Kunden prüfen'])assert.ok(titles.has(title),title+' fehlt');
   assert.ok(!titles.has('Essentra Schweden anmelden'));
 });
 
@@ -51,7 +51,7 @@ test('RC1359: Montag erzeugt Spanien Gaggenau FAURECIA und Schweizer Referenz',(
   const api=load(),state={tasks:[],_teamSyncMeta:{fields:{},tombstones:[]}};
   const out=api.prepareTasks(state.tasks,{companyId:'essentra',environment:'production',currentUserId:'tobias',now:'2026-09-14T10:00:00+02:00',state,persist(next){state.tasks=next}});
   const titles=new Set(out.map(t=>t.title));
-  for(const title of ['Spanien anmelden','Gaggenau anmelden','FAURECIA anmelden','Schweizer Kunden prüfen'])assert.ok(titles.has(title),title+' fehlt');
+  for(const title of ['Essentra Spanien anmelden','Gaggenau anmelden','FAURECIA anmelden','Schweizer Kunden prüfen'])assert.ok(titles.has(title),title+' fehlt');
 });
 
 test('RC1359: Dienstag erzeugt Würth BMP und Schweizer Referenz',()=>{
@@ -93,7 +93,7 @@ test('RC1266: fehlender Roster-Marker darf vorhandene manuelle Aufgaben nicht l�
   const out=api.prepareTasks(state.tasks,{companyId:'essentra',environment:'production',currentUser:{user:'tobias'},now:'2026-09-24T10:00:00+02:00',state,persist(next){state.tasks=next}});
   assert.ok(out.some(t=>t.id==='KEEP-MANUAL'),'manuelle Aufgabe wurde fälschlich entfernt');
   assert.ok(!state._teamSyncMeta.tombstones.some(t=>t.collection==='tasks'&&t.id==='KEEP-MANUAL'),'manuelle Aufgabe darf keinen Lösch-Tombstone bekommen');
-  for(const title of ['Spanien anmelden','Würth Industrie anmelden','Polen anmelden','Schweizer Kunden prüfen']) assert.ok(out.some(t=>t.title===title),title+' fehlt am Donnerstag');
+  for(const title of ['Essentra Spanien anmelden','Würth Industrie anmelden','Polen anmelden','Schweizer Kunden prüfen']) assert.ok(out.some(t=>t.title===title),title+' fehlt am Donnerstag');
 });
 
 test('RC1266: Benutzerkennung user und State-Kontext werden für Aufgaben übernommen',()=>{

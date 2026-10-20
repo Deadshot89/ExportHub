@@ -784,7 +784,7 @@
   "taskManaged.group.registration": "Registrazione",
   "taskManaged.group.exportAbd": "Export / ABD",
   "taskManaged.group.swiss": "Controlla clienti svizzeri",
-  "taskManaged.spanien.title": "Registra Spagna",
+  "taskManaged.spanien.title": "Registra Essentra Spagna",
   "taskManaged.spanien.description": "Registra la Spagna il lunedì e il giovedì.",
   "taskManaged.wuerth.title": "Registra Würth Industrie",
   "taskManaged.wuerth.description": "Registra Würth Industrie il martedì e il giovedì.",
@@ -1692,5 +1692,10 @@
   "location.status.preparedBefore": "La spedizione è pronta nella posizione",
   "location.status.preparedAfter": "e può essere spostata se necessario.",
   "location.status.bookedBefore": "Spedizione assegnata alla posizione",
-  "location.status.bookedAfter": "con successo."
+  "location.status.bookedAfter": "con successo.",
+  "abd.completedUpload.savedInvalid": "L'identità della spedizione salvata è ambigua o incompleta. ABD non caricato.",
+  "abd.completedUpload.savedConflict": "Identificativi della spedizione in conflitto. ABD non caricato.",
+  "abd.completedUpload.saveUnavailable": "Spedizione trovata, ma il salvataggio confermato su Azure non è disponibile. ABD non caricato.",
+  "abd.completedUpload.saveUnconfirmed": "Il salvataggio della spedizione non è stato confermato. ABD non caricato.",
+  "abd.completedUpload.savingShipment": "Salvataggio della spedizione prima del caricamento ABD."
 }

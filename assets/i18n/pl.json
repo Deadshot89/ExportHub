@@ -784,8 +784,8 @@
   "taskManaged.group.registration": "Rejestracja",
   "taskManaged.group.exportAbd": "Eksport / ABD",
   "taskManaged.group.swiss": "Sprawdź klientów ze Szwajcarii",
-  "taskManaged.spanien.title": "Zarejestruj Hiszpanię",
-  "taskManaged.spanien.description": "Rejestruj Hiszpanię w poniedziałki i czwartki.",
+  "taskManaged.spanien.title": "Zarejestruj Essentra Hiszpania",
+  "taskManaged.spanien.description": "Rejestruj Essentra Hiszpania w poniedziałki i czwartki.",
   "taskManaged.wuerth.title": "Zarejestruj Würth Industrie",
   "taskManaged.wuerth.description": "Rejestruj Würth Industrie we wtorki i czwartki.",
   "taskManaged.bmp.title": "Zarejestruj BMP",
@@ -1692,5 +1692,10 @@
   "location.status.preparedBefore": "Przesyłka jest przygotowana w lokalizacji",
   "location.status.preparedAfter": "i w razie potrzeby można ją przenieść.",
   "location.status.bookedBefore": "Przesyłkę pomyślnie przypisano do lokalizacji",
-  "location.status.bookedAfter": "i zapisano."
+  "location.status.bookedAfter": "i zapisano.",
+  "abd.completedUpload.savedInvalid": "Identyfikator zapisanej przesyłki jest niejednoznaczny lub niekompletny. ABD nie przesłano.",
+  "abd.completedUpload.savedConflict": "Sprzeczne identyfikatory przesyłki. ABD nie przesłano.",
+  "abd.completedUpload.saveUnavailable": "Znaleziono przesyłkę, ale potwierdzony zapis w Azure jest niedostępny. ABD nie przesłano.",
+  "abd.completedUpload.saveUnconfirmed": "Nie potwierdzono zapisu przesyłki. ABD nie przesłano.",
+  "abd.completedUpload.savingShipment": "Trwa zapisywanie przesyłki przed przesłaniem ABD."
 }

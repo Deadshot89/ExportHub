@@ -784,8 +784,8 @@
   "taskManaged.group.registration": "Registration",
   "taskManaged.group.exportAbd": "Export / ABD",
   "taskManaged.group.swiss": "Check Swiss customers",
-  "taskManaged.spanien.title": "Register Spain",
-  "taskManaged.spanien.description": "Register Spain on Mondays and Thursdays.",
+  "taskManaged.spanien.title": "Register Essentra Spain",
+  "taskManaged.spanien.description": "Register Essentra Spain on Mondays and Thursdays.",
   "taskManaged.wuerth.title": "Register Würth Industrie",
   "taskManaged.wuerth.description": "Register Würth Industrie on Tuesdays and Thursdays.",
   "taskManaged.bmp.title": "Register BMP",
@@ -1692,5 +1692,10 @@
   "location.status.preparedBefore": "The shipment is ready at",
   "location.status.preparedAfter": "and can be moved if necessary.",
   "location.status.bookedBefore": "Shipment successfully assigned to",
-  "location.status.bookedAfter": "and confirmed."
+  "location.status.bookedAfter": "and confirmed.",
+  "abd.completedUpload.savedInvalid": "Saved shipment identity is missing or incomplete. ABD was not uploaded.",
+  "abd.completedUpload.savedConflict": "Conflicting shipment identities. ABD was not uploaded.",
+  "abd.completedUpload.saveUnavailable": "Shipment found, but confirmed Azure saving is unavailable. ABD was not uploaded.",
+  "abd.completedUpload.saveUnconfirmed": "Shipment saving was not confirmed. ABD was not uploaded.",
+  "abd.completedUpload.savingShipment": "Saving the shipment securely before uploading the ABD."
 }
