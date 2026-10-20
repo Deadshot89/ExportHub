@@ -1,0 +1,37 @@
+name: RC1553 Production Evidence Contract
+
+on:
+  pull_request:
+    paths:
+      - 'api/exporthub-health/**'
+      - 'release-version.json'
+      - '.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml'
+      - '.github/workflows/exporthub-production-release.yml'
+      - '.github/workflows/rc1553-production-evidence.yml'
+      - 'test/rc1553-it-control-production-evidence.test.mjs'
+  push:
+    branches:
+      - main
+    paths:
+      - 'api/exporthub-health/**'
+      - 'release-version.json'
+      - '.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml'
+      - '.github/workflows/exporthub-production-release.yml'
+      - '.github/workflows/rc1553-production-evidence.yml'
+      - 'test/rc1553-it-control-production-evidence.test.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: RC1553 Produktionsnachweis-Vertrag
+        run: node --test test/rc1553-it-control-production-evidence.test.mjs

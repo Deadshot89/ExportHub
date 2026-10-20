@@ -11,6 +11,7 @@ var SUPPORTED=Object.freeze(['de','en','pl','es','fr','it']);
 var LANGUAGE_NAMES=Object.freeze({de:'Deutsch',en:'English',pl:'Polski',es:'Español',fr:'Français',it:'Italiano'});
 var resources=Object.create(null);
 var sourceByText=Object.create(null);
+var sourcePatterns=[];
 var dynamicByText=Object.create(null);
 var textOriginal=new WeakMap();
 var attrOriginal=new WeakMap();
@@ -70,7 +71,9 @@ function requested(){
  try{var p=new URL(w.location.href).searchParams.get('lang'),fromUrl=normalize(p);if(fromUrl)return fromUrl}catch(_){}
  try{var saved=normalize(w.localStorage&&w.localStorage.getItem(STORAGE_KEY));if(saved)return saved}catch(_){}
  var ck=cookieGet();if(ck)return ck;
- var nav=normalize(w.navigator&&(w.navigator.language||(w.navigator.languages&&w.navigator.languages[0])));if(nav)return nav;
+ // the internal app (has a login) stays German until the user picks a language; public pages follow the browser
+ var internal=false;try{internal=!!(w.document&&w.document.getElementById('login'))}catch(_){}
+ if(!internal){var nav=normalize(w.navigator&&(w.navigator.language||(w.navigator.languages&&w.navigator.languages[0])));if(nav)return nav}
  return'de';
 }
 function resourceUrl(lang){return'/assets/i18n/'+lang+'.json?v=1267'}
@@ -91,6 +94,40 @@ function buildSourceIndex(){
   var value=q(de[key]);
   if(value&&!sourceByText[value])sourceByText[value]=key;
  });
+ // legacy texts with numbers ("25 offen", "Montag · 25"): only keys under legacyPattern.* become patterns
+ sourcePatterns=[];
+ patternCache.clear();
+ Object.keys(de).forEach(function(key){
+  if(key.indexOf('legacyPattern.')!==0)return;
+  var value=q(de[key]),names=[],parts=value.split(/\{\{\s*([\w.-]+)\s*\}\}/);
+  if(parts.length<3)return;
+  var source='^';
+  // count/seconds/days only match numbers, so "Picken 11" matches "{{label}} {{count}}" but "Fake Kunde Nord" does not
+  parts.forEach(function(part,i){if(i%2){names.push(part);source+=/^(count|seconds|days)$/.test(part)?'(\\d[\\d.,]*)':'(.+?)'}else source+=part.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')});
+  sourcePatterns.push({key:key,names:names,re:new RegExp(source+'$')});
+ });
+ sourcePatterns.sort(function(a,b){return b.re.source.length-a.re.source.length});
+}
+// German is the source language: nothing to do. Results are cached per text and language, and long
+// texts (notes, release notes) are skipped – the patterns only cover short UI labels.
+var patternCache=new Map();
+function patternForSource(source,lang){
+ var l=normalize(lang)||current||'de';
+ if(l==='de'||!sourcePatterns.length||!source||source.length>160)return'';
+ var cacheKey=l+''+source;
+ if(patternCache.has(cacheKey))return patternCache.get(cacheKey);
+ var out='';
+ for(var i=0;i<sourcePatterns.length;i++){
+  var p=sourcePatterns[i],m=p.re.exec(source);if(!m)continue;
+  var vars={};
+  p.names.forEach(function(name,j){var part=m[j+1],key=keyForSource(part);vars[name]=key?t(key,null,l):part});
+  var res=t(p.key,vars,l);
+  // a broad pattern that changes nothing must not hide a more fitting one ("Montag · 25" vs "{{label}} {{count}}")
+  if(res!==source){out=res;break}
+ }
+ if(patternCache.size>5000)patternCache.clear();
+ patternCache.set(cacheKey,out);
+ return out;
 }
 function applicationState(){
  try{if(typeof w.__EXPORTHUB_GET_STATE__==='function')return w.__EXPORTHUB_GET_STATE__()||{}}catch(_){}
@@ -270,7 +307,8 @@ function keyForSource(source){
 }
 function translateLegacyValue(value,lang){
  var source=q(value),key=keyForSource(source);
- return key?t(key,null,lang):value;
+ if(key)return t(key,null,lang);
+ return patternForSource(source,lang)||value;
 }
 function translateTextNode(node,lang){
  if(!node||node.nodeType!==3)return;
@@ -356,9 +394,14 @@ function installApiLanguageFetch(){
  };
  return true;
 }
+// RC1571: RC455 (since RC1564) calls setLanguage with the unchanged language on every render. Re-applying
+// the same language re-translated the whole page and fired exporthub:language-changed each time (navigation
+// 2–3x slower). New DOM is translated by the observer anyway, so the same language is a no-op unless forced.
+var appliedLanguage='';
 async function setLanguage(lang,options){
  snapshotShipmentDraft();
  var next=normalize(lang)||'de',opts=options||{};
+ if(next===appliedLanguage&&next===current&&!opts.force){if(selector&&selector.value!==next)selector.value=next;return next}
  await ensureResources(next);
  current=next;
  syncApplicationLanguage(next);
@@ -366,6 +409,7 @@ async function setLanguage(lang,options){
  if(opts.persist!==false)persist(next);
  if(selector&&selector.value!==next)selector.value=next;
  translate(d.body,next);
+ appliedLanguage=next;
  try{w.dispatchEvent(new CustomEvent('exporthub:language-changed',{detail:{language:next,version:VERSION}}))}catch(_){}
  return next;
 }
@@ -499,6 +543,7 @@ async function boot(){
  selector.value=current;
  buildDynamicIndex();
  translate(d.body,current);
+ appliedLanguage=current;
  updateSelectorCaption();
  watch();
 }
@@ -508,7 +553,11 @@ w.addEventListener('exporthub:user-profile-updated',function(ev){
 });
 w.addEventListener('exporthub:language-changed',function(){updateSelectorCaption()});
 w.addEventListener('exporthub:state-loaded',function(){repairContaminatedGoodsDescription();buildDynamicIndex();ensureSelector();if(d.body)queueFullTranslation()});
-['exporthub:sync','exporthub:customer-updated','exporthub:shipment-updated','exporthub:task-updated'].forEach(function(name){w.addEventListener(name,function(){repairContaminatedGoodsDescription();buildDynamicIndex();ensureSelector();if(d.body)queueFullTranslation()})});
+function isNoMergeSaveConfirmation(event){var detail=event&&event.detail||{};return detail.remote===true&&detail.reason==='save-confirmation'&&detail.concurrentMerge!==true}
+w.addEventListener('exporthub:sync',function(event){if(isNoMergeSaveConfirmation(event))return;repairContaminatedGoodsDescription();buildDynamicIndex();ensureSelector();if(d.body)queueFullTranslation()});
+w.addEventListener('exporthub:customer-updated',function(){repairContaminatedGoodsDescription();buildDynamicIndex();ensureSelector();if(d.body)queueFullTranslation()});
+w.addEventListener('exporthub:shipment-updated',function(){repairContaminatedGoodsDescription();buildDynamicIndex();ensureSelector();if(d.body)queueFullTranslation()});
+w.addEventListener('exporthub:task-updated',function(){repairContaminatedGoodsDescription();buildDynamicIndex();ensureSelector();if(d.body)queueFullTranslation()});
 ['exporthub:ready','exporthub:login','exporthub:authenticated','exporthub:user-changed','exporthub:profile-loaded'].forEach(function(name){w.addEventListener(name,function(){repairContaminatedGoodsDescription();syncProfileLanguage().catch(reportError)})});
 w.ExportHUBI18n=Object.freeze({
  version:VERSION,

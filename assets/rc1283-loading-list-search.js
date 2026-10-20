@@ -62,6 +62,12 @@ function style(){
  (d.head||d.documentElement).appendChild(st)
 }
 function snapshot(row){return{value:row.value,label:row.label,shipment:row.shipment,reference:row.reference,customer:row.customer,status:row.status,documents:row.documents,documentList:arr(row.documentList).slice(),documentCount:Number(row.documentCount)||0,remark:row.remark,search:row.search}}
+function preparePalletPrintSnapshot(sh){
+ try{
+  var api=w.ExportHUBDocumentPrintNames;
+  return !!(sh&&api&&typeof api.preparePalletBalanceSnapshot==='function'&&api.preparePalletBalanceSnapshot(sh))
+ }catch(e){try{console.warn('RC1543 Palettenkonto-Drucksnapshot',e)}catch(_){}return false}
+}
 function updateSelectionUi(panel,row){
  var selected=panel&&panel.querySelector&&panel.querySelector('[data-rc1283-selected]'),detail=panel&&panel.querySelector&&panel.querySelector('[data-rc1305-selected-files]'),actions=Array.from(panel&&panel.querySelectorAll&&panel.querySelectorAll('[data-rc1283-action]')||[]);
  if(!row){
@@ -90,6 +96,7 @@ function rc1285CaptureSelection(event){
  if(!panel||!select)return false;
  var value=q(target.getAttribute&&target.getAttribute('data-rc1283-result')),row=candidates(select,state()).find(function(item){return item.value===value})||(selectedSnapshot&&selectedSnapshot.value===value?selectedSnapshot:null);
  if(!row)return false;
+ preparePalletPrintSnapshot(row.shipment);
  var input=panel.querySelector&&panel.querySelector('[data-rc1283-search]');
  lastSelected=row.value;lastSelectedRef=refOf(row.shipment)||row.reference||row.value;selectedSnapshot={value:row.value,label:row.label,shipment:row.shipment,reference:row.reference,customer:row.customer,status:row.status,documents:row.documents,documentList:arr(row.documentList).slice(),documentCount:Number(row.documentCount)||0,remark:row.remark,search:row.search};lastQuery=q(input&&input.value);
  updateSelectionUi(panel,row);
@@ -107,13 +114,14 @@ function render(panel,select){
   var b=d.createElement('button');b.type='button';b.className='rc1283-result';b.setAttribute('data-rc1283-result',row.value);
   var main=d.createElement('div');main.className='rc1283-result-main';var strong=d.createElement('strong');strong.textContent=row.reference||row.label;var customer=d.createElement('span');customer.className='rc1283-result-customer';customer.textContent=row.customer||'—';main.appendChild(strong);main.appendChild(customer);
   var meta=d.createElement('span');meta.className='rc1283-result-meta';meta.textContent=resultMeta(row)||row.label;b.appendChild(main);b.appendChild(meta);
-  b.addEventListener('click',function(){lastSelected=row.value;lastSelectedRef=refOf(row.shipment)||row.reference||row.value;selectedSnapshot=snapshot(row);lastQuery=query;updateSelectionUi(panel,row)});
+  b.addEventListener('click',function(){preparePalletPrintSnapshot(row.shipment);lastSelected=row.value;lastSelectedRef=refOf(row.shipment)||row.reference||row.value;selectedSnapshot=snapshot(row);lastQuery=query;updateSelectionUi(panel,row)});
   results.appendChild(b)
  });
  updateSelectionUi(panel,chosen)
 }
 function act(kind,panel,select){
  var row=currentRow(select);if(!row)return false;
+ preparePalletPrintSnapshot(row.shipment);
  if(kind==='open'||kind==='print'){
   if(typeof w.__EXPORTHUB_RC1283_OPEN_LOAD1__==='function')return w.__EXPORTHUB_RC1283_OPEN_LOAD1__(row.shipment,kind==='print');
   if(kind==='open'){var tab=d.querySelector('[data-index352-doc="load1"]')||buttonByText(/(?:Ladeliste\s*1|\bL1\b)/i);if(tab){tab.click();return true}}

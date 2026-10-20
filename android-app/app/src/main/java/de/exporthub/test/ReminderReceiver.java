@@ -34,34 +34,80 @@ public class ReminderReceiver extends BroadcastReceiver {
                 return;
             }
 
-            JSONObject task = tasks.optJSONObject(0);
-            if (task == null) return;
-            String taskId = task.optString("id", "").trim();
-            String priority = task.optString("priority", "P4").trim();
-            String title = task.optString("title", "").trim();
-            String sourceRef = task.optString("sourceRef", "").trim();
-            String dueBucket = task.optString("dueBucket", "none").trim();
-            String route = task.optString("route", "tasks").trim();
-            if (taskId.isEmpty() || title.isEmpty()) return;
+            int validTaskCount = 0;
+            String highestPriority = "P4";
 
-            String key = taskId + "|" + day + "|" + hour + "|" + env + "|" + userId;
-            String dueText = dueLabel(dueBucket);
-            String body = title
-                    + (sourceRef.isEmpty() ? "" : " · " + sourceRef)
-                    + " · " + dueText;
+            for (int i = 0; i < tasks.length(); i++) {
+                JSONObject task = tasks.optJSONObject(i);
+                if (task == null) continue;
 
-            NotificationHelper.show(
-                    context,
-                    env,
-                    "notification",
-                    key,
-                    "ExportHUB Aufgabe · " + priority,
-                    body,
-                    route.isEmpty() ? "tasks" : route);
+                String taskId = task.optString("id", "").trim();
+                String priority = normalizePriority(task.optString("priority", "P4"));
+                String title = task.optString("title", "").trim();
+                String sourceRef = task.optString("sourceRef", "").trim();
+                String dueBucket = task.optString("dueBucket", "none").trim();
+                String route = task.optString("route", "tasks").trim();
+                if (taskId.isEmpty() || title.isEmpty()) continue;
+
+                validTaskCount++;
+                highestPriority = higherPriority(highestPriority, priority);
+
+                String key = taskId + "|" + day + "|" + hour + "|" + env + "|" + userId;
+                String dueText = dueLabel(dueBucket);
+                String body = title
+                        + (sourceRef.isEmpty() ? "" : " · " + sourceRef)
+                        + " · " + dueText;
+                String directRoute = route.isEmpty() || "tasks".equalsIgnoreCase(route)
+                        ? "tasks:" + taskId
+                        : route;
+
+                NotificationHelper.show(
+                        context,
+                        env,
+                        "notification",
+                        key,
+                        "ExportHUB Aufgabe · " + priority,
+                        body,
+                        directRoute);
+            }
+
+            if (validTaskCount > 1) {
+                String summaryKey = "task-summary|" + day + "|" + hour + "|" + env + "|" + userId;
+                NotificationHelper.showTaskSummary(
+                        context,
+                        env,
+                        summaryKey,
+                        validTaskCount,
+                        highestPriority);
+            }
         } catch (Exception ignored) {
             // Corrupt/stale snapshots must fail closed. The next successful website
             // sync replaces the snapshot; no generic or misleading task is shown.
         }
+    }
+
+    private static String normalizePriority(String value) {
+        String priority = value == null ? "" : value.trim().toUpperCase(Locale.ROOT);
+        if ("P0".equals(priority)
+                || "P1".equals(priority)
+                || "P2".equals(priority)
+                || "P3".equals(priority)
+                || "P4".equals(priority)) {
+            return priority;
+        }
+        return "P4";
+    }
+
+    private static String higherPriority(String current, String candidate) {
+        return priorityRank(candidate) < priorityRank(current) ? candidate : current;
+    }
+
+    private static int priorityRank(String priority) {
+        if ("P0".equalsIgnoreCase(priority)) return 0;
+        if ("P1".equalsIgnoreCase(priority)) return 1;
+        if ("P2".equalsIgnoreCase(priority)) return 2;
+        if ("P3".equalsIgnoreCase(priority)) return 3;
+        return 4;
     }
 
     private static String dueLabel(String bucket) {

@@ -38,6 +38,8 @@ function latestSnapshot(){
   return last
  }catch(_){return null}
 }
+/* Nur bei echter Änderung schreiben: jeder textContent-Schreibvorgang ist eine childList-Mutation und weckt den eigenen Observer erneut. */
+function setText(node,text){text=String(text==null?'':text);if(node.textContent!==text)node.textContent=text}
 function el(tag,className,text){var node=d.createElement(tag);if(className)node.className=className;if(text!=null)node.textContent=text;return node}
 function clear(node){while(node&&node.firstChild)node.removeChild(node.firstChild)}
 function formatContext(snapshot){
@@ -48,7 +50,7 @@ function formatContext(snapshot){
  if(Number(review.unassignedCount)>0)parts.push(tr('contextOpen',{count:Number(review.unassignedCount)}));
  return parts.join(' · ')
 }
-function refreshContext(){var box=d.querySelector('[data-rc1532-context]');if(!box)return;var snapshot=latestSnapshot(),value=formatContext(snapshot);box.textContent=value||tr('noContext');box.classList.toggle('is-empty',!value)}
+function refreshContext(){var box=d.querySelector('[data-rc1532-context]');if(!box)return;var snapshot=latestSnapshot(),value=formatContext(snapshot);setText(box,value||tr('noContext'));if(box.classList.contains('is-empty')!==!value)box.classList.toggle('is-empty',!value)}
 function renderSources(host,result){
  clear(host);var sources=Array.isArray(result&&result.sources)?result.sources:[];
  if(result&&result.evidence==='invoice-analysis'){var local=el('div','rc1532-source rc1532-source-local');local.appendChild(el('strong','',tr('analysis')));host.appendChild(local)}
@@ -92,7 +94,7 @@ function mount(){
  if(!d)return false;if(!featureI18n()){ensureFeatureI18n();return false}
  var host=panel();if(!host)return false;var router=host.querySelector('.rc1294-router');if(!router)return false;
  var button=host.querySelector('[data-rc1532-ai-tab]');
- if(!button){button=d.createElement('button');button.type='button';button.setAttribute('data-rc1294-mode','ai');button.setAttribute('data-rc1532-ai-tab','');button.setAttribute('aria-pressed','false');button.textContent=tr('tab');router.appendChild(button)}else button.textContent=tr('tab');
+ if(!button){button=d.createElement('button');button.type='button';button.setAttribute('data-rc1294-mode','ai');button.setAttribute('data-rc1532-ai-tab','');button.setAttribute('aria-pressed','false');button.textContent=tr('tab');router.appendChild(button)}else setText(button,tr('tab'));
  var ai=host.querySelector('[data-rc1532-ai-panel]');
  if(!ai){
   ai=el('section','rc1532-ai');ai.setAttribute('data-rc1532-ai-panel','');ai.hidden=true;

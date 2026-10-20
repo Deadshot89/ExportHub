@@ -31,8 +31,11 @@ const ALIASES=Object.freeze({
  commodityCode:['hs code','hscode','hs-code','warennummer','zolltarifnummer','zolltarif','commodity code','taric','cn code','customs code'],
  originCountry:['herkunftsland','ursprungsland','ursprung','origin country','country of origin','origin','coo'],
  quantity:['menge','anzahl','qty','quantity','pieces','pcs'],
+ unit:['einheit','mengeneinheit','unit','uom','unit of measure'],
+ unitPrice:['einzelpreis','stuckpreis','stückpreis','unit price','price per unit','unit value'],
  netMassKg:['eigenmasse','nettomasse','nettogewicht','net mass','net weight','net kg','netto kg'],
  grossMassKg:['rohmasse','bruttomasse','bruttogewicht','gross mass','gross weight','gross kg','brutto kg'],
+ volumeM3:['volumen m3','volumen','volume m3','volume','cbm','m3'],
  value:['warenwert','positionswert','wert','item value','invoice value','customs value','amount','value','line value'],
  currency:['wahrung','waehrung','currency','currency code','curr'],
  supplementaryCodes:['y nummer','y nummern','y code','y codes','y-codes','unterlagencode','unterlagencodes','document code','document codes','additional code'],
@@ -101,7 +104,7 @@ function normalizedCountry(v){
 }
 function normalizePosition(row,index){
  row=row&&typeof row==='object'?row:{};
- const code=codeDigits(row.commodityCode),origin=normalizedCountry(row.originCountry),net=safeNumber(row.netMassKg),gross=safeNumber(row.grossMassKg),value=safeNumber(row.value),quantity=safeNumber(row.quantity);
+ const code=codeDigits(row.commodityCode),origin=normalizedCountry(row.originCountry),net=safeNumber(row.netMassKg),gross=safeNumber(row.grossMassKg),volume=safeNumber(row.volumeM3),value=safeNumber(row.value),quantity=safeNumber(row.quantity),unitPrice=safeNumber(row.unitPrice);
  const pos=text(row.position)||String(index+1),supp=unique([].concat(Array.isArray(row.supplementaryCodes)?row.supplementaryCodes:yCodes(row.supplementaryCodes)));
  const missing=[];
  if(!text(row.description))missing.push('description');
@@ -120,8 +123,11 @@ function normalizePosition(row,index){
   commodityCode:code,
   originCountry:origin,
   quantity:quantity==null?null:quantity,
+  unit:text(row.unit).slice(0,24),
+  unitPrice:unitPrice==null?null:unitPrice,
   netMassKg:net,
   grossMassKg:gross,
+  volumeM3:volume,
   value:value,
   currency:text(row.currency).toUpperCase().slice(0,3),
   supplementaryCodes:supp.slice(0,20),
@@ -134,11 +140,11 @@ function normalizePosition(row,index){
  }
 }
 function analyzeObjects(rows){
- const positions=(rows||[]).slice(0,500).map(normalizePosition).filter(p=>p.description||p.commodityCode||p.itemNumber||p.value!=null||p.netMassKg!=null||p.grossMassKg!=null);
- const currencies=unique(positions.map(p=>p.currency)),totalValue=positions.reduce((sum,p)=>sum+(p.value||0),0),totalNetMassKg=positions.reduce((sum,p)=>sum+(p.netMassKg||0),0),totalGrossMassKg=positions.reduce((sum,p)=>sum+(p.grossMassKg||0),0);
+ const positions=(rows||[]).slice(0,500).map(normalizePosition).filter(p=>p.description||p.commodityCode||p.itemNumber||p.value!=null||p.netMassKg!=null||p.grossMassKg!=null||p.volumeM3!=null);
+ const currencies=unique(positions.map(p=>p.currency)),totalValue=positions.reduce((sum,p)=>sum+(p.value||0),0),totalNetMassKg=positions.reduce((sum,p)=>sum+(p.netMassKg||0),0),totalGrossMassKg=positions.reduce((sum,p)=>sum+(p.grossMassKg||0),0),totalVolumeM3=positions.reduce((sum,p)=>sum+(p.volumeM3||0),0);
  return{
   positions,
-  totals:{value:Number(totalValue.toFixed(2)),netMassKg:Number(totalNetMassKg.toFixed(3)),grossMassKg:Number(totalGrossMassKg.toFixed(3))},
+  totals:{value:Number(totalValue.toFixed(2)),netMassKg:Number(totalNetMassKg.toFixed(3)),grossMassKg:Number(totalGrossMassKg.toFixed(3)),volumeM3:Number(totalVolumeM3.toFixed(3))},
   currencies,
   readyCount:positions.filter(p=>p.readyForReview).length,
   reviewCount:positions.filter(p=>!p.readyForReview).length

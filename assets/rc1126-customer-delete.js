@@ -147,7 +147,7 @@ function syncObserver(){
  return true
 }
 function schedule(){if(timer)return;timer=w.setTimeout(function(){timer=0;try{syncObserver();render()}catch(e){try{console.warn('RC1126 Kunden löschen',e)}catch(_){}}},20)}
-function activate(){syncObserver();schedule()}
+function activate(){if(!customerView()){syncObserver();return false}syncObserver();schedule();return true}
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',function(){activate();w.setTimeout(activate,250);w.setTimeout(activate,800)},{once:true});else{activate();w.setTimeout(activate,250);w.setTimeout(activate,800)}
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded','exporthub:sync','exporthub:customer-updated','exporthub:language-changed'].forEach(function(n){try{w.addEventListener(n,activate)}catch(_){}});
 

@@ -4,6 +4,7 @@ function text(value){return String(value==null?'':value).trim()}
 function normalizeCommodityCode(value){return text(value).replace(/\D/g,'').slice(0,10)}
 function normalizeOriginCountry(value){return text(value).toUpperCase().replace(/\s+/g,' ').slice(0,80)}
 function moneyAdd(a,b){return (Math.round(Number(a||0)*100)+Math.round(Number(b||0)*100))/100}
+function metricAdd(a,b){return Math.round((Number(a||0)+Number(b||0))*1000)/1000}
 function positionRef(position,index){
  const source=text(position&&position.source),row=Number(position&&position.sourceRow||0),pos=text(position&&position.position);
  return [source,row||'',pos||String(index+1)].join(':')
@@ -29,6 +30,10 @@ function groupPositionsByHsOrigin(positions){
   }
   const currency=text(position.currency).toUpperCase().slice(0,3),amount=Number(position.value);
   group.positionRefs.push(positionRef(position,index));group.positionCount++;
+  for(const field of ['netMassKg','grossMassKg','volumeM3']){
+   if(position[field]!=null&&Number.isFinite(Number(position[field])))
+    group[field]=metricAdd(group[field],position[field]);
+  }
   group.valuesByCurrency[currency]=moneyAdd(group.valuesByCurrency[currency]||0,amount);
   const currencies=Object.keys(group.valuesByCurrency);
   if(currencies.length===1){group.currency=currencies[0];group.value=group.valuesByCurrency[group.currency]}

@@ -7,13 +7,14 @@ const start=source.indexOf('async function createPodPdf(');
 const end=source.indexOf('async function readAutomaticPodBuffer(',start);
 const block=source.slice(start,end);
 
-test('P0 POD: structured loading-list layout is used in downloaded archive PDF',()=>{
+test('P0 POD: signed loading-list layout is used in downloaded archive PDF',()=>{
   assert.ok(start>=0&&end>start,'POD PDF renderer missing');
-  for(const label of ['LADELISTE / ABLIEFERNACHWEIS','Sendungsreferenz','Absender','Empfaenger / Kunde','Transport / Anmeldung','VERPACKUNG','SENDUNG ABGEHOLT','Fahrer','Kennzeichen','Verlader','Spedition','Fahrerunterschrift','Europaletten']){
+  for(const label of ['LADELISTE','Sendungsreferenz','Absender','Empfaenger / Kunde','Transport / Anmeldung','VERPACKUNG','SENDUNG ABGEHOLT','Fahrer','Kennzeichen','Verlader','Spedition','Fahrerunterschrift','Europaletten-Kontostand']){
     assert.ok(block.includes(label),'Missing POD field: '+label);
   }
+  assert.doesNotMatch(block,/LADELISTE \/ ABLIEFERNACHWEIS/,'POD is the signed loading list, not a separate document type');
   assert.match(block,/pdf\.addPage\(\[595\.28, 841\.89\]\)/,'POD must use A4');
-  assert.match(block,/Math\.min\(maxW\/dims\.width,maxH\/dims\.height\)/,'Signature must fit within its cell');
+  assert.match(block,/Math\.min\(maxW\/dims\.width,SIGNATURE_MAX_HEIGHT\/dims\.height\)/,'Signature must fit within its cell');
   assert.match(block,/page\.drawImage\(image,/,'Signature must be rendered inside POD');
   assert.doesNotMatch(block,/function newPage\(/,'POD should not silently paginate its signature section');
 });
@@ -24,8 +25,8 @@ test('P0 POD: table header has complete rectangle geometry',()=>{
 
 test('P0 POD: signature and customer fields are drawn as separate bordered cells',()=>{
   assert.match(block,/function card\(label, content, cx, top, w, h=57\)/);
-  assert.match(block,/card\('Fahrerunterschrift','',x\+cellW\+6,y,cellW,76\)/);
-  assert.match(block,/card\('Europaletten'/);
+  assert.match(block,/card\('Fahrerunterschrift','',signatureX,y,cellW,SIGNATURE_CARD_HEIGHT\)/);
+  assert.match(block,/card\('Europaletten-Kontostand'/);
   assert.match(block,/card\('Kennzeichen'/);
   assert.match(block,/card\('Verlader'/);
 });

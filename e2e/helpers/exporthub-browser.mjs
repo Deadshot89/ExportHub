@@ -126,15 +126,25 @@ export async function waitReady(page){
       const body=document.body,content=document.getElementById('content');
       const view=String(body&&body.getAttribute&&body.getAttribute('data-exporthub-view')||'').trim();
       const text=String(content&&content.innerText||'').trim();
+      const allText=String(document.body&&document.body.innerText||'').trim();
       const interactive=typeof window.setView==='function'||!!document.querySelector('[data-view],[data-target],[data-nav]');
-      return !!content&&text.length>10&&!!view&&interactive;
-    },null,{timeout:20_000});
+      const loadingVisible=/ExportHUB\s+wird\s+vorbereitet|ExportHUB\s+wird\s+geladen|Azure-Teamdaten\s+werden\s+geladen|Teamdaten\s+werden\s+wiederhergestellt|Gespeicherte\s+Sitzung\s+und\s+Teamdaten/i.test(allText);
+      const recovery=window.ExportHUBRC1067StartupRecovery;
+      let usableDespiteStaleLoading=false;
+      try{usableDespiteStaleLoading=!!(recovery&&typeof recovery.isBroken==='function'&&!recovery.isBroken())}catch(_){}
+      return !!content&&text.length>10&&!!view&&interactive&&(!loadingVisible||usableDespiteStaleLoading);
+    },null,{timeout:25_000});
   }
   if(process.env.EXPORTHUB_E2E_LIVE==='1'){
     await page.waitForFunction(()=>{
       const recovery=window.ExportHUBRC1067StartupRecovery;
       if(recovery&&typeof recovery.loading==='function'){
-        try{if(recovery.loading())return false}catch(_){}
+        try{
+          if(recovery.loading()){
+            if(typeof recovery.isBroken==='function')return !recovery.isBroken();
+            return false;
+          }
+        }catch(_){}
       }
       const content=document.getElementById('content');
       const text=String(content&&content.textContent||document.body&&document.body.textContent||'').trim();
@@ -225,6 +235,22 @@ export async function settleStateSave(page,options={}){
   throw new Error('Azure-Speicherung blieb vor Browser-Navigation aktiv: '+JSON.stringify(finalState));
 }
 
+// RC1579: menu items live in collapsible sections; open the section like a user would (click its header)
+async function expandMenuSection(page,module){
+  const key=await page.evaluate(mod=>{
+    const menu=window.ExportHUBMenu1579;
+    const section=menu&&menu.sections.find(s=>s.views.includes(mod));
+    if(!section)return '';
+    const header=document.querySelector(`#nav>.rc1579-section[data-rc1579-section="${section.key}"]`);
+    return header&&header.getAttribute('aria-expanded')==='false'?section.key:'';
+  },module).catch(()=>'');
+  if(!key)return;
+  const header=page.locator(`#nav>.rc1579-section[data-rc1579-section="${key}"]`);
+  const clicked=await header.click({timeout:3000}).then(()=>true).catch(()=>false);
+  if(!clicked)await page.evaluate(k=>window.ExportHUBMenu1579&&window.ExportHUBMenu1579.open(k),key).catch(()=>{});
+  await pause(120);
+}
+
 async function activateNavigationTarget(page,item,module,requiredText){
   const before=await page.evaluate(()=>String(document.getElementById('content')?.innerText||''));
   const actionTimeout=process.env.EXPORTHUB_E2E_LIVE==='1'?20_000:7000;
@@ -249,6 +275,9 @@ async function activateNavigationTarget(page,item,module,requiredText){
 
 export async function openExportHubView(page,module,labels=[],requiredText,options={}){
   const selectors=[
+    // Main navigation first: routed buttons inside #content (dashboard quick access, tile links) can sit
+    // behind the open mobile menu, and visible() picks the last match in DOM order.
+    `button[data-view="${module}"]:not(#content *)`,`a[data-view="${module}"]:not(#content *)`,
     `button[data-view="${module}"]`,`a[data-view="${module}"]`,`[role="button"][data-view="${module}"]`,
     `button[data-target="${module}"]`,`a[data-target="${module}"]`,`[role="button"][data-target="${module}"]`,
     `button[data-nav="${module}"]`,`a[data-nav="${module}"]`,`[role="button"][data-nav="${module}"]`
@@ -261,6 +290,7 @@ export async function openExportHubView(page,module,labels=[],requiredText,optio
     let menuOpened=false;
     if(responsiveViewport(page))menuOpened=(await menuIsOpen(page))||(await openMenu(page));
     const allowScroll=Boolean(menuOpened||(viewport&&viewport.width>=768));
+    await expandMenuSection(page,module);
 
     for(const selector of selectors){
       const item=await visible(page,page.locator(selector),{scrollIntoView:allowScroll});

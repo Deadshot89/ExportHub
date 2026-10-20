@@ -274,7 +274,7 @@ function schedule(){
  var run=function(){scheduledFrame=0;if(installTimer)return;installTimer=w.setTimeout(function(){installTimer=0;try{syncObserver();install()}catch(e){try{console.warn('RC1092 Kundenkontakte',e)}catch(_){}}},0)};
  try{if(typeof w.requestAnimationFrame==='function')scheduledFrame=w.requestAnimationFrame(run);else{scheduledFrame=1;w.setTimeout(run,0)}}catch(_){scheduledFrame=0}
 }
-function activate(){syncObserver();schedule()}
+function activate(){if(!customerFolderVisible()){syncObserver();return false}syncObserver();schedule();return true}
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',function(){activate();w.setTimeout(activate,180);w.setTimeout(activate,700)},{once:true});else{activate();w.setTimeout(activate,180);w.setTimeout(activate,700)}
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded','exporthub:sync','exporthub:language-changed'].forEach(function(n){try{w.addEventListener(n,activate)}catch(_){}});
 try{w.addEventListener('exporthub:language-changed',function(){refreshManager(currentCustomer());refreshStatusLanguage()})}catch(_){}

@@ -32,12 +32,23 @@ async function clean(page,runtime,testInfo){
 test('RC1371: dashboard mounts once, preserves live cards and exposes editor controls',async({page},testInfo)=>{
   const runtime=attachRuntimeGuards(page,testInfo);
   await openDashboard(page);
+  // RC1573 replaces the visible RC1371 toolbar with the new tile editor in
+  // the overview band. Verify the public UI rather than requiring a hidden legacy button.
+  const tileEditor=page.locator('#rc1558Overview [data-rc1573-edit="1"]');
+  await expect(tileEditor).toBeVisible();
+  await tileEditor.click();
+  const dialog=page.locator('#rc1573Panel [role="dialog"]');
+  await expect(dialog).toBeVisible();
+  await expect(dialog.locator('[data-rc1573-toggle]')).toHaveCount(5);
+  await dialog.locator('[data-rc1573-close="1"]').click();
+  await expect(page.locator('#rc1573Panel')).toHaveCount(0);
+
   const addButton=page.locator('[data-eh-dashboard-personalized="1"] [data-rc1371-action="addWidget"]');
   const editButton=page.locator('[data-eh-dashboard-personalized="1"] [data-rc1371-action="toggleEdit"]');
-  await expect(editButton).toBeVisible();
+  await expect(editButton).toBeHidden();
   await expect(addButton).toBeHidden();
+  // The RC1371 API and its editor controls remain available for compatibility.
   await page.evaluate(()=>window.ExportHUBDashboard1371.enterEditMode());
-  await expect(addButton).toBeVisible();
   await expect(editButton).toHaveAttribute('data-i18n-key','dashboard.personalize.done');
   const result=await page.evaluate(()=>{
     const api=window.ExportHUBDashboard1371;

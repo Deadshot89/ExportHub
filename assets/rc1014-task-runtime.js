@@ -125,9 +125,19 @@
     return values.some(value=>refs.includes(value));
   }
 
+  // weekly-plan tasks (task master RC848 series) share group names with shipment-derived tasks but have no
+  // shipment reference; they must never be treated as stale shipment tasks and removed
+  function recurringPlanTask(task){
+    if(!task)return false;
+    if(task.masterTaskRC848||task.masterTaskRC846||q(task.masterSourceId))return true;
+    if(q(task.recurringSeriesId)||q(task.weeklySeriesId)||q(task.seriesId))return true;
+    const recurrence=q(task.recurrence).toLowerCase();
+    return !!recurrence&&!/^(none|keine|einmalig|once|no)$/.test(recurrence);
+  }
+
   function systemTaskIsCurrent(task,state={}){
     const group=q(task&&task.group),type=q(task&&task.sourceType).toLowerCase();
-    if(!SYSTEM_GROUPS.has(group)||type==='manual')return true;
+    if(!SYSTEM_GROUPS.has(group)||type==='manual'||recurringPlanTask(task))return true;
     const refs=sourceRefs(task);
     if(!refs.length)return false;
     if(group==='Picks'){

@@ -114,3 +114,225 @@ test('generierter TESTSERVICE-Planer besitzt genau den V2-Cutover-Marker und del
   assert.match(head,/__EXPORTHUB_TASKPLANNER_V2_UI_CUTOVER__/,'V2 muss vor dem Legacy-Markup entscheiden');
   assert.match(head,/return window\.ExportHUBTaskUIV2\.renderPlannerPage/,'Legacy-Renderer muss bei aktivem V2 früh zurückkehren');
 });
+test('Tageskarten sind nach Überfälligkeit, Priorität und Frist sortiert',()=>{
+  const {ExportHUBTaskUIV2:ui}=load(),target=root(),state={tasks:[
+    task('low','2026-10-13',{title:'Niedrig',priority:'P3'}),
+    task('late','2026-10-13',{title:'Später fällig',priority:'P1',dueAt:'2026-10-16T16:15:00+02:00'}),
+    task('critical','2026-10-13',{title:'Kritisch',priority:'P0'}),
+    task('early','2026-10-13',{title:'Früher fällig',priority:'P1',dueAt:'2026-10-14T16:15:00+02:00'})
+  ]};
+  ui.renderWorkweek(target,{state,weekStart:'2026-10-12',now:'2026-10-12T08:00:00+02:00'});
+  const order=[...target.innerHTML.matchAll(/data-task-id="([^"]+)"/g)].map(m=>m[1]);
+  assert.deepEqual(order,['critical','early','late','low']);
+});
+
+function plannerTarget(){
+  const handlers={};
+  return {innerHTML:'',handlers,addEventListener:(type,fn)=>{handlers[type]=fn},querySelector:()=>null};
+}
+function button(attr,value){
+  const node={getAttribute:name=>name===attr?value:null};
+  node.closest=sel=>sel===`[${attr}]`?node:null;
+  return node;
+}
+
+test('Wochenplan-Entwurf zeigt vor der Übernahme die Zusammenfassung und speichert erst nach Bestätigung',async()=>{
+  const {ExportHUBTaskUIV2:ui}=load(),target=plannerTarget(),now='2026-10-12T08:00:00+02:00';
+  const state={tasks:[
+    {id:'open',title:'Ohne Termin',status:'open',priority:'P1',dueAt:'2026-10-14T16:15:00+02:00'},
+    task('fixed','2026-10-13',{title:'Fest geplant',manualOverride:true})
+  ]};
+  const applied=[];
+  const runtime={applyWeekPlan(draft,ctx){applied.push({draft,ctx});return{changed:true};}};
+  ui.renderPlannerPage(target,{state,runtime,weekStart:'2026-10-12',now});
+  assert.match(target.innerHTML,/data-tpv2-weekplan="plan"/);
+  assert.match(target.innerHTML,/data-tpv2-weekplan="recalculate"/);
+  assert.doesNotMatch(target.innerHTML,/data-tpv2-weekplan-summary/);
+
+  await target.handlers.click({target:button('data-tpv2-weekplan','plan')});
+  assert.match(target.innerHTML,/data-tpv2-weekplan-summary/);
+  assert.match(target.innerHTML,/<li><strong>2<\/strong><span>Planned this week/);
+  assert.match(target.innerHTML,/<li><strong>1<\/strong><span>Dates that will change/);
+  assert.match(target.innerHTML,/<li><strong>1<\/strong><span>Manually planned, kept/);
+  assert.doesNotMatch(target.innerHTML,/data-tpv2-weekplan="apply" disabled/);
+  assert.equal(applied.length,0,'Entwurf darf nichts speichern');
+
+  await target.handlers.click({target:button('data-tpv2-weekplan','apply')});
+  assert.equal(applied.length,1);
+  const item=applied[0].draft.items.find(x=>x.taskId==='open');
+  assert.equal(item.plannedDate,'2026-10-14');
+  assert.equal(applied[0].draft.items.find(x=>x.taskId==='fixed').manualProtected,true);
+  assert.doesNotMatch(target.innerHTML,/data-tpv2-weekplan-summary/,'nach der Übernahme schließt der Entwurf');
+});
+
+test('Wochenplan mit Feiertagskonflikt kann nicht übernommen werden',async()=>{
+  const {ExportHUBTaskUIV2:ui}=load(),target=plannerTarget(),applied=[];
+  const state={tasks:[task('xmas','2026-12-25',{title:'Am Feiertag',manualOverride:true})]};
+  ui.renderPlannerPage(target,{state,runtime:{applyWeekPlan:d=>applied.push(d)},weekStart:'2026-12-21',now:'2026-12-21T08:00:00+01:00',weekPlanMode:'plan'});
+  assert.match(target.innerHTML,/data-conflict-type="holiday"/);
+  assert.match(target.innerHTML,/data-tpv2-weekplan="apply" disabled/);
+  assert.match(target.innerHTML,/data-tpv2-overload/);
+  await target.handlers.click({target:button('data-tpv2-weekplan','apply')});
+  assert.equal(applied.length,0);
+  await target.handlers.click({target:button('data-tpv2-weekplan','discard')});
+  assert.doesNotMatch(target.innerHTML,/data-tpv2-weekplan-summary/);
+});
+
+test('Monatsansicht beginnt am richtigen Wochentag und markiert Feiertage und Wochenenden',()=>{
+  const {ExportHUBTaskUIV2:ui}=load(),target=root();
+  ui.renderMonth(target,{state:{tasks:[]},year:2026,month:12,now:'2026-12-01T08:00:00+01:00'});
+  assert.equal((target.innerHTML.match(/tpv2-month-pad/g)||[]).length,1,'1. Dezember 2026 ist ein Dienstag');
+  assert.match(target.innerHTML,/class="tpv2-month-day is-nonwork" data-day-summary="2026-12-25" aria-label="2026-12-25 · 1\. Weihnachtstag"/);
+  assert.match(target.innerHTML,/<small>1\. Weihnachtstag<\/small>/);
+  assert.match(target.innerHTML,/class="tpv2-month-day is-weekend" data-day-summary="2026-12-27"/);
+});
+
+test('Klick auf einen Monatstag zeigt erst dann dessen Aufgaben, Monatsnavigation blättert',async()=>{
+  const {ExportHUBTaskUIV2:ui}=load(),target=plannerTarget(),now='2026-10-12T08:00:00+02:00';
+  const state={tasks:[task('a','2026-10-14',{title:'Am Mittwoch'})]};
+  ui.renderPlannerPage(target,{state,now,view:'month'});
+  assert.doesNotMatch(target.innerHTML,/Am Mittwoch/);
+  await target.handlers.click({target:button('data-day-summary','2026-10-14')});
+  assert.match(target.innerHTML,/data-tpv2-month-detail="2026-10-14"/);
+  assert.match(target.innerHTML,/Am Mittwoch/);
+  await target.handlers.click({target:button('data-tpv2-month-day-close','')});
+  assert.doesNotMatch(target.innerHTML,/data-tpv2-month-detail/);
+  await target.handlers.click({target:button('data-tpv2-nav','month-next')});
+  assert.match(target.innerHTML,/11\/2026/);
+  assert.match(target.innerHTML,/data-day-summary="2026-11-01"/);
+  await target.handlers.click({target:button('data-tpv2-nav','month-prev')});
+  await target.handlers.click({target:button('data-tpv2-nav','month-prev')});
+  assert.match(target.innerHTML,/09\/2026/);
+  await target.handlers.click({target:button('data-tpv2-nav','month-today')});
+  assert.match(target.innerHTML,/10\/2026/);
+});
+
+test('Wochennavigation blättert vorwärts und nicht vor die aktuelle Woche',async()=>{
+  const {ExportHUBTaskUIV2:ui}=load(),target=plannerTarget(),now='2026-10-12T08:00:00+02:00';
+  ui.renderPlannerPage(target,{state:{tasks:[]},now,weekStart:'2026-10-12'});
+  assert.match(target.innerHTML,/data-tpv2-nav="week-prev"[^>]*disabled/);
+  await target.handlers.click({target:button('data-tpv2-nav','week-next')});
+  assert.match(target.innerHTML,/data-tpv2-drop-date="2026-10-19"/);
+  assert.doesNotMatch(target.innerHTML,/data-tpv2-drop-date="2026-10-12"/);
+  await target.handlers.click({target:button('data-tpv2-nav','week-prev')});
+  await target.handlers.click({target:button('data-tpv2-nav','week-prev')});
+  assert.match(target.innerHTML,/data-tpv2-drop-date="2026-10-12"/);
+});
+
+test('Wochenspalten markieren Feiertage, Karten nennen die Tage der Überfälligkeit',()=>{
+  const {ExportHUBTaskUIV2:ui}=load(),target=root();
+  const state={tasks:[task('late','2026-12-14',{title:'Lange überfällig',dueAt:'2026-12-14T16:15:00+01:00'})]};
+  ui.renderPlannerPage(target,{state,weekStart:'2026-12-21',now:'2026-12-21T10:00:00+01:00'});
+  assert.match(target.innerHTML,/class="tpv2-day is-nonwork" data-tpv2-drop-date="2026-12-25"[\s\S]*?1\. Weihnachtstag/);
+  assert.match(target.innerHTML,/7 days overdue/);
+});
+
+test('Aufgaben ohne Termin stehen im eigenen Bereich',()=>{
+  const {ExportHUBTaskUIV2:ui}=load(),target=root();
+  const state={tasks:[{id:'free',title:'Irgendwann',status:'open',priority:'P2'},task('dated','2026-10-13')]};
+  ui.renderPlannerPage(target,{state,weekStart:'2026-10-12',now:'2026-10-12T08:00:00+02:00'});
+  const section=target.innerHTML.slice(target.innerHTML.indexOf('data-tpv2-unplanned'));
+  assert.match(section,/Irgendwann/);
+  assert.ok(target.innerHTML.indexOf('data-tpv2-unplanned')>=0);
+  assert.doesNotMatch(section.slice(0,section.indexOf('data-week-scope')),/data-task-id="dated"/);
+});
+
+test('Klick ohne Tageswechsel verschiebt nichts, Alt+Pfeil verschiebt per Tastatur',()=>{
+  const {ExportHUBTaskUIV2:ui}=load(),calls=[];
+  const state={tasks:[task('t','2026-10-13')]};
+  const runtime={moveTaskOccurrence(id,plannedAt){calls.push({id,plannedAt});return{changed:true};}};
+  const dayNode=date=>({closest:sel=>sel==='[data-tpv2-drop-date], [data-i218-drop-date]'?dayNode(date):null,getAttribute:name=>name==='data-tpv2-drop-date'?date:null});
+  const card={closest:sel=>sel==='[data-task-id]'?card:null,getAttribute:name=>name==='data-task-id'?'t':null};
+  const handlers={},days=['2026-10-12','2026-10-13','2026-10-14'].map(dayNode);
+  const target={ownerDocument:{elementFromPoint:()=>days[1]},addEventListener:(type,fn)=>{handlers[type]=fn},querySelectorAll:()=>days};
+  ui.bindPlannerDnD(target,{state,runtime,now:'2026-10-12T08:00:00+02:00'});
+  handlers.pointerdown({target:card,clientX:5,clientY:5});
+  handlers.pointerup({target:card,clientX:5,clientY:5});
+  assert.equal(calls.length,0,'ein Klick darf keine manuelle Verschiebung erzeugen');
+  handlers.keydown({target:card,altKey:true,key:'ArrowRight',preventDefault(){}});
+  assert.equal(calls.length,1);
+  assert.match(calls[0].plannedAt,/^2026-10-14T09:00/);
+  handlers.keydown({target:card,altKey:false,key:'ArrowLeft'});
+  assert.equal(calls.length,1);
+});
+
+test('Neu berechnen überschreibt manuelle Planung erst nach ausdrücklicher Wahl mit Warnung',async()=>{
+  const {ExportHUBTaskUIV2:ui}=load(),target=plannerTarget(),applied=[];
+  const state={tasks:[task('fixed','2026-10-16',{title:'Manuell Freitag',manualOverride:true,dueAt:'2026-10-13T16:15:00+02:00'})]};
+  const runtime={applyWeekPlan(draft,ctx){applied.push({draft,ctx});return{changed:true};}};
+  ui.renderPlannerPage(target,{state,runtime,weekStart:'2026-10-12',now:'2026-10-12T08:00:00+02:00',weekPlanMode:'recalculate'});
+  assert.match(target.innerHTML,/<li><strong>1<\/strong><span>Manually planned, kept/);
+  assert.match(target.innerHTML,/data-tpv2-weekplan="override"/);
+  assert.doesNotMatch(target.innerHTML,/manually planned tasks will be moved/);
+  await target.handlers.click({target:button('data-tpv2-weekplan','override')});
+  assert.match(target.innerHTML,/role="alert">1 manually planned tasks will be moved/);
+  assert.match(target.innerHTML,/<li><strong>1<\/strong><span>Manual plans overwritten/);
+  await target.handlers.click({target:button('data-tpv2-weekplan','apply')});
+  assert.equal(applied.length,1);
+  assert.equal(applied[0].ctx.allowManualOverride,true);
+  const item=applied[0].draft.items.find(x=>x.taskId==='fixed');
+  assert.equal(item.manualProtected,false);
+  assert.equal(item.plannedDate,'2026-10-13');
+});
+
+test('Aufgabendetails öffnen als Panel und schließen mit Escape',async()=>{
+  const {ExportHUBTaskUIV2:ui}=load(),host={innerHTML:'',querySelector:()=>null};
+  const target=plannerTarget();target.querySelector=sel=>sel==='[data-tpv2-detail-host]'?host:null;
+  ui.renderPlannerPage(target,{state:{tasks:[task('a','2026-10-13',{title:'Detailaufgabe'})]},weekStart:'2026-10-12',now:'2026-10-12T08:00:00+02:00'});
+  let focused=false;
+  const card={getAttribute:name=>name==='data-task-id'?'a':null,focus(){focused=true;}};
+  card.closest=sel=>sel==='.tpv2-task-card[data-task-id]'?card:null;
+  await target.handlers.click({target:card});
+  assert.match(host.innerHTML,/data-taskplanner-v2-detail/);
+  assert.match(host.innerHTML,/Detailaufgabe/);
+  target.handlers.keydown({key:'Escape',preventDefault(){}});
+  assert.equal(host.innerHTML,'');
+  assert.equal(focused,true,'Fokus kehrt zur Karte zurück');
+});
+
+function detailSetup(state){
+  const {ExportHUBTaskUIV2:ui}=load(),host={innerHTML:'',querySelector:()=>null};
+  const target=plannerTarget();target.querySelector=sel=>sel==='[data-tpv2-detail-host]'?host:null;
+  const ctx={state,weekStart:'2026-10-12',now:'2026-10-12T08:00:00+02:00',persist:()=>{},user:{id:'u1',name:'Tobias'}};
+  ui.renderPlannerPage(target,ctx);
+  return {ui,host,target};
+}
+function detailAction(action,taskId,extra={}){
+  const owner={getAttribute:name=>name==='data-task-id'?taskId:null};
+  const fields=extra.fields||{};
+  const panel={querySelector:sel=>{const key=sel.slice(1,-1);return key in fields?{value:fields[key]}:null;}};
+  const node={getAttribute:name=>name==='data-action'?action:(name==='data-index'?extra.index:null)};
+  node.closest=sel=>sel==='[data-action]'?node:sel==='[data-task-id]'?owner:sel==='[data-taskplanner-v2-detail]'?panel:null;
+  return node;
+}
+
+test('Detailpanel im Planer: Checkliste abhaken, kommentieren, als Vorlage speichern, mit Kommentar erledigen',async()=>{
+  const state={tasks:[task('a','2026-10-13',{title:'Detailaufgabe',checklist:[{text:'Punkt 1'},{text:'Punkt 2'}]})]};
+  const {host,target}=detailSetup(state);
+  await target.handlers.click({target:detailAction('checklist-toggle','a',{index:'1'})});
+  assert.equal(state.tasks[0].checklist[1].done,true);
+  assert.match(host.innerHTML,/data-index="1" checked/);
+  await target.handlers.click({target:detailAction('comment-add','a',{fields:{'data-tpv2-comment-input':'Rückruf erledigt'}})});
+  assert.equal(state.tasks[0].comments.at(-1).text,'Rückruf erledigt');
+  assert.match(host.innerHTML,/Rückruf erledigt/);
+  await target.handlers.click({target:detailAction('save-template','a')});
+  assert.equal(state.taskTemplates.length,1);
+  assert.equal(state.tasks.length,1,'Vorlage überschreibt die Aufgaben nicht');
+  assert.match(host.innerHTML,/data-tpv2-detail-note/);
+  await target.handlers.click({target:detailAction('complete','a',{fields:{'data-tpv2-complete-comment':'Alles geprüft'}})});
+  assert.equal(state.tasks[0].status,'done');
+  assert.equal(state.tasks[0].history.at(-1).comment,'Alles geprüft');
+});
+
+test('Kompakt/Detailliert wird pro Benutzer gespeichert und auf den Planer angewendet',async()=>{
+  const state={tasks:[task('a','2026-10-13')]};
+  const {target}=detailSetup(state);
+  assert.match(target.innerHTML,/data-density="detailed"/);
+  await target.handlers.click({target:button('data-tpv2-density','compact')});
+  assert.equal(state.taskSettings.users.u1.viewMode,'compact');
+  assert.match(target.innerHTML,/data-density="compact"/);
+  assert.equal(state.tasks.length,1);
+  const fresh=plannerTarget(),{ExportHUBTaskUIV2:ui}=load();
+  ui.renderPlannerPage(fresh,{state,weekStart:'2026-10-12',now:'2026-10-12T08:00:00+02:00',user:{id:'u1'}});
+  assert.match(fresh.innerHTML,/data-density="compact"/);
+});

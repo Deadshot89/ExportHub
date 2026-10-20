@@ -20,6 +20,18 @@ async function openShipment(page){
   await expect(page.locator('#rc363BlockAbdDecision')).toHaveAttribute('data-tour-key','shipment-abd-decision');
 }
 
+// RC1560: the training panel must never cover the step target the trainee is asked to click.
+async function expectTargetNotCovered(page,selector){
+  await page.locator(selector).scrollIntoViewIfNeeded();
+  await expect.poll(()=>page.evaluate(sel=>{
+    const target=document.querySelector(sel),panel=document.querySelector('.rc1501-sop-tour-panel');
+    if(!target||!panel)return 'missing';
+    const a=target.getBoundingClientRect(),b=panel.getBoundingClientRect();
+    const x=Math.min(a.right,b.right)-Math.max(a.left,b.left),y=Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top);
+    return x>1&&y>1?'covered':'free';
+  },selector),{timeout:5_000,message:selector+' liegt unter dem SOP-Trainingspanel'}).toBe('free');
+}
+
 async function learningRecord(page){
   return page.evaluate(()=>{
     const state=typeof window.__EXPORTHUB_GET_STATE__==='function'?window.__EXPORTHUB_GET_STATE__():{};
@@ -60,6 +72,7 @@ for(const viewport of ['desktop','mobile-standard']){
     await expect(page.locator('[data-sop-training-banner]')).toContainText(/Keine produktiven Daten werden verändert/i);
 
     await openShipment(page);
+    if(viewport==='desktop')await expectTargetNotCovered(page,'#rc363BlockAbdDecision');
     await page.locator('#rc363BlockAbdDecision').click({position:{x:8,y:8}});
     await expect(page.locator('.rc1501-sop-tour-panel')).toContainText(/Training abgeschlossen/i);
 

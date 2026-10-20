@@ -1,0 +1,380 @@
+/* ExportHUB360 RC1558 – one-page dashboard overview. Colors come from the active design (--pc-*), with Classic fallbacks. */
+#rc1558Overview{
+  --rc1558-surface:var(--pc-card-bg,var(--pc-surface,#fff));
+  --rc1558-surface-2:var(--pc-field,#f6f8fb);
+  --rc1558-line:var(--pc-line,#dde3ec);
+  --rc1558-text:var(--pc-text,#152235);
+  --rc1558-muted:var(--pc-muted,#5d6b80);
+  --rc1558-primary:var(--pc-primary,#1f6fd1);
+  --rc1558-primary-soft:var(--pc-primary-soft,#e3eefc);
+  --rc1558-ok:var(--pc-success-text,var(--pc-success,#17824b));
+  --rc1558-ok-soft:var(--pc-success-soft,#e1f4e9);
+  --rc1558-warn:var(--pc-warning-text,var(--pc-warning,#a86200));
+  --rc1558-warn-soft:var(--pc-warning-soft,#fdf0d9);
+  --rc1558-crit:var(--pc-danger-text,var(--pc-danger,#c2332b));
+  --rc1558-crit-soft:var(--pc-danger-soft,#fbe4e2);
+  --rc1558-radius:var(--pc-card-radius,12px);
+  grid-column:1/-1;display:grid;gap:12px;margin:0 0 12px;min-width:0;color:var(--rc1558-text)
+}
+#rc1558Overview *{box-sizing:border-box}
+#rc1558Overview button{font:inherit;color:inherit}
+#rc1558Overview :is(button,[role="row"][tabindex]):focus-visible{outline:2px solid var(--pc-focus,var(--rc1558-primary));outline-offset:2px}
+#rc1558Overview .rc1558-top .rc1558-kpi:focus-visible{outline:3px solid #fff;outline-offset:2px}
+
+/* Header band: greeting and figures on a deep band in the design's primary color (darkened for white text). */
+.rc1558-top{
+  --rc1558-band-a:color-mix(in srgb,var(--rc1558-primary) 88%,#ffffff);
+  --rc1558-band-b:color-mix(in srgb,var(--rc1558-primary) 62%,#0a1a3a);
+  --rc1558-band-c:color-mix(in srgb,var(--rc1558-primary) 40%,#08142e);
+  display:grid;gap:12px;padding:12px 12px 14px;border-radius:calc(var(--rc1558-radius) + 4px);
+  background:radial-gradient(120% 160% at 0% 0%,var(--rc1558-band-a) 0%,var(--rc1558-band-b) 55%,var(--rc1558-band-c) 100%);
+  box-shadow:0 8px 24px rgba(10,30,70,.18)
+}
+.rc1558-hello{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 16px;padding:0 4px}
+#rc1558Overview .rc1558-greeting{margin:0;font-size:18px;font-weight:650;letter-spacing:-.01em;text-wrap:balance;color:#fff}
+#rc1558Overview .rc1558-date{margin:0;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;font-size:13px;color:rgba(255,255,255,.86)}
+.rc1558-updated{font-size:12px;font-variant-numeric:tabular-nums;padding:1px 9px;border-radius:999px;color:#fff;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28)}
+
+.rc1558-kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.rc1558-kpi{display:grid;gap:3px;align-content:start;text-align:left;cursor:pointer;min-width:0;
+  background:var(--rc1558-surface);border:1px solid var(--rc1558-line);border-radius:var(--rc1558-radius);padding:11px 13px 12px;
+  box-shadow:var(--pc-shadow-soft,0 1px 2px rgba(15,35,65,.06));transition:border-color .15s ease,box-shadow .15s ease,transform .15s ease}
+.rc1558-kpi:hover{border-color:var(--rc1558-primary);transform:translateY(-1px);box-shadow:0 6px 16px rgba(15,35,65,.10)}
+.rc1558-kpi-top{display:flex;align-items:center;justify-content:space-between;gap:6px;min-width:0}
+.rc1558-kpi-top .rc1558-icon{flex:none;color:var(--rc1558-primary);opacity:.85}
+.rc1558-kpi-label{font-size:12px;font-weight:600;color:var(--rc1558-muted);overflow-wrap:anywhere}
+.rc1558-kpi-value{font-size:28px;line-height:1.05;font-weight:750;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.rc1558-kpi-sub{font-size:11.5px;color:var(--rc1558-muted);overflow-wrap:anywhere}
+/* nothing to do: quiet the tile so the figures that need work stand out */
+.rc1558-kpi[data-zero="1"] .rc1558-kpi-value{color:var(--rc1558-muted);font-weight:600}
+.rc1558-kpi[data-zero="1"] .rc1558-icon{color:var(--rc1558-muted);opacity:.6}
+.rc1558-kpi[data-tone="crit"] .rc1558-icon{color:var(--rc1558-crit)}
+.rc1558-kpi[data-tone="warn"] .rc1558-icon{color:var(--rc1558-warn)}
+/* tiles on the band: solid cards; blocked/missing figures get a colored frame */
+.rc1558-top .rc1558-kpi{border-color:transparent;box-shadow:0 6px 18px rgba(8,20,46,.22)}
+.rc1558-top .rc1558-kpi:hover{border-color:transparent;box-shadow:0 0 0 2px rgba(255,255,255,.75),0 10px 24px rgba(8,20,46,.3)}
+.rc1558-kpi[data-tone="crit"]{outline:2px solid var(--rc1558-crit);outline-offset:-2px}
+.rc1558-kpi[data-tone="crit"] .rc1558-kpi-value{color:var(--rc1558-crit)}
+.rc1558-kpi[data-tone="warn"]{outline:2px solid var(--rc1558-warn);outline-offset:-2px}
+.rc1558-kpi[data-tone="warn"] .rc1558-kpi-value{color:var(--rc1558-warn)}
+
+.rc1558-grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:12px;align-items:stretch}
+.rc1558-stack{display:grid;gap:12px;min-width:0;grid-auto-rows:minmax(0,auto)}
+.rc1558-panel{background:var(--rc1558-surface);border:1px solid var(--rc1558-line);border-radius:var(--rc1558-radius);padding:12px 14px;display:grid;gap:8px;align-content:start;min-width:0;
+  box-shadow:var(--pc-shadow-soft,0 1px 2px rgba(15,35,65,.06))}
+.rc1558-head{display:flex;align-items:baseline;gap:8px;min-width:0}
+.rc1558-head h3{margin:0;font-size:15px;font-weight:650}
+.rc1558-count{font-size:12px;font-weight:600;color:var(--rc1558-muted);font-variant-numeric:tabular-nums}
+.rc1558-link{margin-left:auto;background:none;border:0;padding:2px 4px;cursor:pointer;font-size:12.5px;font-weight:600;color:var(--rc1558-primary)!important}
+.rc1558-empty{margin:0;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--rc1558-muted);padding:6px 0}
+.rc1558-empty-icon{flex:none;color:var(--rc1558-ok)}
+
+.rc1558-tablewrap{overflow-x:auto;min-width:0}
+.rc1558-table{min-width:600px;font-size:13px}
+.rc1558-tr{display:grid;grid-template-columns:52px 82px minmax(140px,1fr) 52px 104px 170px;align-items:center;border-bottom:1px solid var(--rc1558-line)}
+.rc1558-tr > [role]{padding:7px 8px;min-width:0}
+.rc1558-thead > [role]{padding-block:4px;font-size:11px;font-weight:650;letter-spacing:.05em;text-transform:uppercase;color:var(--rc1558-muted);white-space:nowrap}
+.rc1558-tr[data-rc1558-shipment]{cursor:pointer;border-radius:6px}
+.rc1558-tr[data-rc1558-shipment]:hover{background:var(--rc1558-surface-2)}
+[role="rowgroup"] > .rc1558-tr:last-child{border-bottom:0}
+.rc1558-time,.rc1558-num{font-variant-numeric:tabular-nums}
+.rc1558-tr .rc1558-num{text-align:right}
+.rc1558-time{color:var(--rc1558-muted)}
+.rc1558-ref{font-weight:650;font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;font-size:12.5px}
+.rc1558-customer{overflow-wrap:anywhere}
+.rc1558-country{font-size:11px;font-weight:650;color:var(--rc1558-muted);border:1px solid var(--rc1558-line);border-radius:4px;padding:0 4px}
+.rc1558-docs{display:flex;gap:4px}
+.rc1558-doc{font-size:10.5px;font-weight:650;border-radius:4px;padding:1px 5px}
+.rc1558-doc[data-ok="1"]{background:var(--rc1558-ok-soft);color:var(--rc1558-ok)}
+.rc1558-doc[data-ok="0"]{background:var(--rc1558-crit-soft);color:var(--rc1558-crit)}
+
+.rc1558-pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:2px 9px;font-size:11.5px;font-weight:650;background:var(--rc1558-surface-2);color:var(--rc1558-muted)}
+.rc1558-pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.rc1558-pill[data-tone="ok"]{background:var(--rc1558-ok-soft);color:var(--rc1558-ok)}
+.rc1558-pill[data-tone="warn"]{background:var(--rc1558-warn-soft);color:var(--rc1558-warn)}
+.rc1558-pill[data-tone="crit"]{background:var(--rc1558-crit-soft);color:var(--rc1558-crit)}
+.rc1558-pill[data-tone="info"]{background:var(--rc1558-primary-soft);color:var(--rc1558-primary)}
+
+.rc1558-list{list-style:none;margin:0;padding:0;display:grid}
+.rc1558-list li{display:grid;grid-template-columns:4px minmax(0,1fr) auto;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid var(--rc1558-line)}
+.rc1558-list li:last-child{border-bottom:0}
+.rc1558-sev{align-self:stretch;border-radius:2px;background:var(--rc1558-primary)}
+.rc1558-sev[data-tone="crit"]{background:var(--rc1558-crit)}
+.rc1558-sev[data-tone="warn"]{background:var(--rc1558-warn)}
+.rc1558-item{grid-column:2/-1;display:flex;align-items:center;gap:8px;text-align:left;background:none;border:0;padding:2px 4px;margin:-2px -4px;border-radius:6px;cursor:pointer;min-width:0}
+.rc1558-item:hover{background:var(--rc1558-surface-2)}
+.rc1558-item-text{display:grid;gap:1px;min-width:0;flex:1}
+.rc1558-chevron{flex:none;color:var(--rc1558-muted);width:16px;height:16px;transition:transform .15s ease}
+.rc1558-item:hover .rc1558-chevron{transform:translateX(2px);color:var(--rc1558-primary)}
+.rc1558-item b{font-size:13px;font-weight:600;overflow-wrap:anywhere}
+.rc1558-item small{font-size:12px;color:var(--rc1558-muted)}
+.rc1558-task{font-size:13px;overflow-wrap:anywhere;min-width:0}
+.rc1558-due{font-size:12px;color:var(--rc1558-muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.rc1558-due[data-late="1"]{color:var(--rc1558-crit);font-weight:650}
+
+/* The overview replaces the older "Arbeitsfokus" block and the "Heute geplante Sendungen" tile.
+   Hidden from the first paint on (not only after the overview mounted), so the old layout never flashes;
+   data-rc1558-fallback brings them back if the overview cannot be built. */
+html body:not([data-rc1558-fallback="1"]) #rc885Workspace,
+html body:not([data-rc1558-fallback="1"]) #content .rc205-dashboard-grid > [data-dashboard-widget="todayShipments"]{display:none!important}
+
+/* One button on the dashboard: RC1371 "Dashboard bearbeiten" (editor with templates, sizes, tile library).
+   RC205 "Dashboard anpassen" (areas, quick links) only appears while editing. The quick-backup card repeats
+   Backup/Import from the top bar and is not shown on the dashboard. */
+body[data-exporthub-view="dashboard"] #rc97DashboardPanelMount{display:none!important}
+
+/* the band greets and dates the page; the old title row only returns while editing (for "Dashboard anpassen") */
+html body[data-rc1558-overview="1"] #content:not([data-rc1371-editing="1"]) > .page-head,
+html body[data-rc1558-overview="1"][data-eh-theme] #content:not([data-rc1371-editing="1"]) > .page-head{display:none!important}
+/* outside the editor the RC1371 toolbar is a single button in the top right corner of the band */
+html body[data-rc1558-overview="1"] #content{position:relative}
+html body[data-rc1558-overview="1"] #content:not([data-rc1371-editing="1"]) > .rc1371-dashboard-toolbar{position:absolute!important;top:12px;right:14px;z-index:3;margin:0!important;padding:0!important;background:none!important;border:0!important;box-shadow:none!important}
+/* the global button layer fixes the button at 36 px (layered !important), so the greeting row gets that height instead */
+html body[data-rc1558-overview="1"] #content:not([data-rc1371-editing="1"]) > .rc1371-dashboard-toolbar [data-rc1371-action="toggleEdit"]{border-radius:999px!important;border:1px solid rgba(255,255,255,.5)!important;background:rgba(255,255,255,.14)!important;color:#fff!important;box-shadow:none!important}
+html body[data-rc1558-overview="1"] #content:not([data-rc1371-editing="1"]) #rc1558Overview .rc1558-hello{padding-right:190px;min-height:36px;align-items:center}
+
+/* today's pickups and the attention list show about five rows; the rest scrolls inside the panel */
+/* the table fills the height that the right column sets and scrolls inside, header row stays visible */
+.rc1558-grid>.rc1558-today{display:flex;flex-direction:column}
+.rc1558-today .rc1558-tablewrap{flex:1 1 0;min-height:120px;overflow:auto;overscroll-behavior:contain}
+.rc1558-today .rc1558-thead{position:sticky;top:0;z-index:1;background:var(--rc1558-surface)}
+.rc1558-stack .rc1558-list{max-height:168px;overflow-y:auto;overscroll-behavior:contain}
+
+/* quick access: title and buttons in one row */
+body[data-rc1558-overview="1"] #content .rc205-quick-card{display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:10px 14px!important;padding:8px 12px!important}
+body[data-rc1558-overview="1"] #content .rc205-quick-card h3{margin:0!important;flex:none}
+body[data-rc1558-overview="1"] #content .rc205-quick-card .rc205-quick-grid{flex:1 1 600px;min-width:0}
+/* ABD and pallet tiles: figures only, the explanatory lines stay in the full views */
+body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-widget > .rc205-card-head p,
+body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-widget > .rc205-list > p.muted{display:none!important}
+/* with real data the ABD and pallet lists made the page scroll: the dashboard shows their figures only,
+   the full lists are one click away ("ABD öffnen", "Palettenkonto öffnen") */
+body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-widget > .rc205-list{display:none!important}
+/* long customer names must wrap instead of adding a horizontal scrollbar to the attention list */
+.rc1558-stack .rc1558-list{overflow-x:hidden}
+body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-widget{padding:10px 12px!important}
+body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-mini-metrics .metric small{font-size:10px!important}
+body[data-rc1558-overview="1"] #content .rc205-quick-card{margin-bottom:10px;padding-block:10px!important}
+body[data-rc1558-overview="1"] #content .rc205-quick-card h3{margin:0 0 8px!important;font-size:15px!important}
+/* quick access as one row of compact buttons instead of large tiles */
+body[data-rc1558-overview="1"] #content .rc205-quick-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))!important;gap:8px!important}
+body[data-rc1558-overview="1"] #content .rc205-quick{display:flex!important;flex-direction:row!important;align-items:center!important;gap:8px!important;min-height:0!important;padding:8px 10px!important;text-align:left!important}
+body[data-rc1558-overview="1"] #content .rc205-quick[hidden]{display:none!important}
+body[data-rc1558-overview="1"] #content .rc205-quick > span{font-size:16px!important;margin:0!important}
+/* Compact ABD and pallet tiles so the whole dashboard fits one laptop screen; sizes only, colors stay with the design. */
+body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-mini-metrics{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important}
+body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-mini-metrics .metric{min-height:0!important;padding:8px 10px!important}
+body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-mini-metrics .metric::before,
+body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-mini-metrics .metric::after{display:none!important}
+body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-mini-metrics .metric strong{font-size:22px!important;line-height:1.15!important}
+
+@media (max-width:1250px){.rc1558-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.rc1558-grid{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:640px){
+  .rc1558-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.rc1558-kpi-value{font-size:22px}
+  /* phone: each pickup becomes a two-line row instead of a sideways-scrolling table */
+  .rc1558-table{min-width:0}
+  .rc1558-thead{display:none}
+  .rc1558-tr{grid-template-columns:44px minmax(0,1fr) auto;grid-template-areas:"time ref status" "time customer customer" "time docs colli";row-gap:2px;padding-block:6px}
+  .rc1558-tr > [role]{padding:0 6px}
+  .rc1558-tr > :nth-child(1){grid-area:time;align-self:start}
+  .rc1558-tr > :nth-child(2){grid-area:ref}
+  .rc1558-tr > :nth-child(3){grid-area:customer}
+  .rc1558-tr > :nth-child(4){grid-area:colli;font-size:12px;color:var(--rc1558-muted)}
+  .rc1558-tr > :nth-child(5){grid-area:docs}
+  .rc1558-tr > :nth-child(6){grid-area:status;justify-self:end}
+}
+@media (prefers-reduced-motion:reduce){#rc1558Overview *{transition:none!important}.rc1558-kpi:hover{transform:none}}
+@media print{#rc1558Overview{display:none!important}}
+
+/* lower screens (laptops around 900 px high): tighter band and lists so the dashboard still fits */
+@media (min-width:1251px) and (max-height:960px){
+  #rc1558Overview{gap:8px;margin-bottom:8px}
+  .rc1558-top{gap:8px;padding:8px 10px 10px}
+  .rc1558-kpi{padding:8px 11px 9px}
+  .rc1558-kpi-value{font-size:24px}
+  .rc1558-panel{padding:9px 12px;gap:5px}
+  .rc1558-tr > [role]{padding-block:5px}
+  .rc1558-stack .rc1558-list{max-height:90px}
+  .rc1558-list li{padding:4px 0}
+  body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-mini-metrics .metric{padding:6px 9px!important}
+  body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-mini-metrics .metric strong{font-size:18px!important}
+}
+
+/* RC1569 drill-down from a dashboard tile: filter bar, matching records only */
+.rc1569-drill{margin:0 0 14px;display:grid;gap:10px}
+.rc1569-drill-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 14px;border-radius:12px;background:var(--eh-surface-strong,#eef4ff);border:1px solid var(--eh-border,#c7d7f2);box-shadow:0 1px 2px rgba(15,23,42,.06)}
+.rc1569-drill-kicker{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--eh-muted,#475569)}
+.rc1569-drill-bar strong{font-size:15px}
+.rc1569-drill-count{padding:2px 10px;border-radius:999px;background:var(--eh-accent,#1d4ed8);color:#fff;font-weight:800;font-size:12px}
+.rc1569-drill-clear{margin-left:auto}
+.rc1569-drill-empty{margin:0;padding:14px;border:1px dashed var(--eh-border,#cbd5e1);border-radius:12px;text-align:center;font-weight:700;color:var(--eh-muted,#475569)}
+.rc1569-drill-tasks{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.rc1569-drill-task{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;border-radius:12px;background:var(--eh-surface,#fff);border:1px solid var(--eh-border,#e2e8f0);border-left:4px solid var(--eh-warn,#d97706)}
+.rc1569-drill-task.is-late{border-left-color:var(--eh-danger,#dc2626)}
+.rc1569-drill-task-main{display:grid;gap:2px;min-width:0}
+.rc1569-drill-task-main strong{overflow-wrap:anywhere}
+.rc1569-drill-task-main span{font-size:12px;color:var(--eh-muted,#475569)}
+.rc1569-prio{font-weight:800;color:var(--eh-danger,#b91c1c)}
+.rc1569-drill-actions{display:flex;gap:8px;flex:0 0 auto}
+body[data-rc1569-drill="shipments"] #content [data-rc1569-out="1"]{display:none!important}
+body[data-rc1569-drill="shipments"] #content .rc543-overview-group[data-rc1569-in="1"] > .rc543-overview-group-body[hidden]{display:block!important}
+/* the task view shows only the focus list while the filter is active */
+body[data-rc1569-drill="tasks"] #content > :not(#rc1569Drill):not(.page-head){display:none!important}
+@media (max-width:640px){.rc1569-drill-task{flex-direction:column;align-items:stretch}.rc1569-drill-clear{margin-left:0}}
+
+/* RC1569 one-page fit (desktop, not while editing): #content is exactly as high as the free screen.
+   Row 1 = overview (takes the rest, scrolls inside); tiles below share a 12-column grid and wrap,
+   so adding tiles shrinks the overview instead of making the page scroll. */
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]){
+  display:grid!important;grid-template-columns:repeat(12,minmax(0,1fr))!important;grid-template-rows:minmax(0,1fr)!important;grid-auto-rows:auto!important;
+  gap:10px!important;align-content:stretch!important;height:var(--rc1569-fit-h)!important;max-height:var(--rc1569-fit-h)!important;min-height:0!important;overflow:hidden auto!important;padding-bottom:0!important
+}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) > *{margin:0!important;min-width:0;grid-column:1/-1}
+/* doubled id: RC1306 layout rules pin #content children to align-self:start/min-height:0 */
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) > #rc1558Overview#rc1558Overview{grid-row:1!important;align-self:stretch!important;height:auto!important;min-height:300px!important;display:flex!important;flex-direction:column!important;gap:10px!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) > #rc1558Overview#rc1558Overview > .rc1558-grid{flex:1 1 0!important;min-height:0!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) .rc1558-grid > *{min-height:0}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) .rc1558-stack{display:flex;flex-direction:column;min-height:0;overflow:hidden}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) .rc1558-stack > *{flex:1 1 0;min-height:0;display:flex;flex-direction:column}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) .rc1558-stack .rc1558-list{flex:1 1 0;max-height:none;min-height:0}
+/* tiles below the overview: quick access and the ABD/pallet tiles side by side, extra tiles four per row */
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) > .rc205-quick-card{grid-column:span 5;margin:0!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) > .rc205-dashboard-grid{grid-column:span 7}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) > .rc1371-quick-access,
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) > .dashboard-card{grid-column:span 3}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) > .rc205-quick-card .rc205-quick-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))!important}
+@media (max-width:1400px){
+  html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) > .rc205-quick-card,
+  html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) > .rc205-dashboard-grid{grid-column:span 6}
+  html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) > .rc1371-quick-access,
+  html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) > .dashboard-card{grid-column:span 4}
+}
+/* in the one-page layout the ABD/pallet figures keep their titles; the wrapping explanation lines are left out */
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) .rc205-dashboard-grid .rc205-mini-metrics .metric small{display:none!important}
+
+/* RC1572 readable lists in the one-page layout: with real data the attention list and "my tasks" shared one
+   column and were squeezed to half a line. Today, attention and tasks now stand side by side, each list keeps
+   room for its rows; if the screen is too low the dashboard area scrolls instead of shrinking the lists. */
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) > #rc1558Overview#rc1558Overview{min-height:400px!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) > #rc1558Overview#rc1558Overview > .rc1558-grid{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) minmax(0,1fr)!important;min-height:220px!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) .rc1558-stack{display:contents!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) .rc1558-stack > .rc1558-panel{min-height:0;display:flex;flex-direction:column}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) .rc1558-stack .rc1558-list{flex:1 1 auto;min-height:150px;max-height:none;overflow-y:auto}
+/* the overview row grows with the overview's minimum height instead of letting it overlap the tiles below */
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]){grid-template-rows:minmax(400px,1fr)!important}
+
+/* RC1573 dashboard tiles: own "Dashboard bearbeiten" in the band replaces the old RC1371 toolbar on the dashboard */
+html body[data-rc1558-overview="1"] #content > .rc1371-dashboard-toolbar,
+html body[data-rc1558-overview="1"] #content > .rc1371-quick-access{display:none!important}
+html body[data-rc1558-overview="1"] #content #rc1558Overview .rc1558-hello{padding-right:0!important}
+#rc1558Overview .rc1558-edit{margin-left:auto;flex:none;padding:7px 14px;min-height:34px;border-radius:10px;border:1px solid rgba(255,255,255,.55);background:rgba(255,255,255,.12);color:#fff;font-weight:700;font-size:13px;cursor:pointer}
+#rc1558Overview .rc1558-edit:hover{background:rgba(255,255,255,.22)}
+html body[data-rc1558-overview="1"] #content [data-rc1573-off="1"]{display:none!important}
+/* one-page layout: ABD and pallet become grid items of their own so every tile shares the same row logic */
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) > .rc205-dashboard-grid{display:contents!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) > [data-rc1573-tile][data-rc1573-span],
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) > .rc205-dashboard-grid > [data-rc1573-tile][data-rc1573-span]{min-width:0;margin:0!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]){grid-template-columns:repeat(60,minmax(0,1fr))!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content [data-rc1573-tile][data-rc1573-span="12"]{grid-column:span 12!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content [data-rc1573-tile][data-rc1573-span="15"]{grid-column:span 15!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content [data-rc1573-tile][data-rc1573-span="20"]{grid-column:span 20!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content [data-rc1573-tile][data-rc1573-span="30"]{grid-column:span 30!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content [data-rc1573-tile][data-rc1573-span="60"]{grid-column:1/-1!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content > .rc205-dashboard-grid > [data-rc1573-tile] > .rc205-widget{height:100%}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content > #rc46SopEditorHolder{order:99}
+/* quick access buttons wrap inside a narrower tile */
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content > .rc205-quick-card[data-rc1573-tile]{flex-direction:column!important;align-items:stretch!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content > .rc205-quick-card[data-rc1573-tile] .rc205-quick-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important;flex:none}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content > .rc205-quick-card[data-rc1573-tile][data-rc1573-span="30"] .rc205-quick-grid,html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content > .rc205-quick-card[data-rc1573-tile][data-rc1573-span="60"] .rc205-quick-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content > .rc205-quick-card[data-rc1573-tile] .rc205-quick{padding:6px 8px!important;min-width:0}
+
+/* own tiles: warehouse occupancy and pickups this week as simple bar charts */
+.rc1573-tile{display:flex;flex-direction:column;gap:6px;padding:12px 14px!important;min-width:0;color:var(--pc-text,#152235)}
+.rc1573-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.rc1573-head h3{margin:0;font-size:16px}
+.rc1573-sub{margin:0;font-size:12px;color:var(--pc-muted,#5d6b80)}
+.rc1573-empty{margin:0;padding:12px;border:1px dashed var(--pc-line,#dde3ec);border-radius:10px;text-align:center;font-weight:700;color:var(--pc-muted,#5d6b80)}
+.rc1573-bars{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px;align-items:end;min-height:96px;flex:1 1 auto}
+.rc1573-bar{all:unset;box-sizing:border-box;display:grid;grid-template-rows:auto minmax(48px,1fr) auto;justify-items:center;gap:3px;height:100%;cursor:pointer;min-width:0}
+.rc1573-bar-value{font-size:12px;font-weight:800;font-variant-numeric:tabular-nums}
+.rc1573-bar-track{display:flex;align-items:flex-end;width:100%;max-width:34px;height:100%;border-radius:6px;background:var(--pc-field,#f1f4f9)}
+.rc1573-bar-fill{position:relative;display:block;width:100%;border-radius:6px;background:var(--pc-primary,#1f6fd1);transition:height .2s ease}
+.rc1573-bar-done{position:absolute;left:0;right:0;bottom:0;border-radius:6px;background:var(--pc-success,#17824b)}
+.rc1573-bar.is-current .rc1573-bar-fill{box-shadow:0 0 0 2px var(--pc-warning,#a86200)}
+.rc1573-bar.is-empty .rc1573-bar-value{color:var(--pc-muted,#5d6b80);font-weight:600}
+.rc1573-bar-label{font-size:10px;font-weight:700;color:var(--pc-muted,#5d6b80);white-space:nowrap;max-width:100%;letter-spacing:-.02em}
+.rc1573-bar:hover .rc1573-bar-fill,.rc1573-bar:focus-visible .rc1573-bar-fill{filter:brightness(1.1)}
+.rc1573-bar:focus-visible{outline:2px solid var(--pc-primary,#1f6fd1);outline-offset:2px;border-radius:6px}
+/* customise panel */
+.rc1573-modal{position:fixed!important;inset:0;z-index:2147483000;display:grid!important;place-items:center;padding:16px;background:rgba(15,23,42,.45)!important}
+.rc1573-dialog{width:min(560px,100%);max-height:calc(100dvh - 32px);overflow:auto;display:grid;gap:12px;padding:20px;border-radius:16px;background:var(--pc-card-bg,#fff);color:var(--pc-text,#152235);box-shadow:0 20px 50px rgba(15,23,42,.3)}
+.rc1573-dialog h2{margin:0;font-size:20px}
+.rc1573-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.rc1573-list li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid var(--pc-line,#dde3ec);border-radius:10px}
+.rc1573-list label{display:flex;align-items:flex-start;gap:10px;cursor:pointer;min-width:0}
+.rc1573-list label input{margin-top:3px;width:18px;height:18px;flex:none}
+.rc1573-list label span{display:grid;gap:2px}
+.rc1573-list small{color:var(--pc-muted,#5d6b80);font-size:12px}
+.rc1573-move{display:flex;gap:4px;flex:none}
+.rc1573-move button{min-width:34px;min-height:34px;padding:0!important}
+.rc1573-actions{display:flex;justify-content:space-between;gap:8px}
+/* low laptop screens: compact tiles so overview and tiles still share one page */
+@media (min-width:1000px) and (max-height:820px){
+  html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content [data-rc1573-tile]{padding-top:8px!important;padding-bottom:8px!important}
+  .rc1573-bars{min-height:60px}
+  .rc1573-bar{grid-template-rows:auto minmax(28px,1fr) auto}
+  .rc1573-sub{display:none}
+  html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content > .rc205-quick-card[data-rc1573-tile] h3{margin:0 0 4px!important}
+  html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content > .rc205-quick-card[data-rc1573-tile] .rc205-quick{padding:4px 6px!important;min-height:30px!important}
+  html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content .rc205-dashboard-grid .rc205-widget .rc205-card-head{margin-bottom:4px!important}
+}
+/* narrow quick access tile (five tiles in a row): labels wrap instead of being cut off */
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content > .rc205-quick-card[data-rc1573-tile] .rc205-quick b{white-space:normal!important;overflow-wrap:anywhere;line-height:1.15;font-size:12px!important;text-overflow:clip!important;overflow:visible!important}
+
+/* RC1574 old tiles no longer overlap: with the RC205 grid dissolved into the one-page grid, tiles the RC1573 editor
+   does not manage (old warehouse lanes, tasks, shipments from saved RC205 preferences) landed as 3-of-60 slivers whose
+   content spilled over their neighbours. They are covered by the overview and the Lagerbelegung tile, so they are left
+   out on the dashboard (they stay in the RC205 editor). The RC205 masonry writes grid-row-end spans for
+   its 4px rows; in the one-page grid those spans pushed ABD/pallet over the quick access tile, so every tile takes one row. */
+html body[data-rc1558-overview="1"] #content:not([data-rc1371-editing="1"]) > .rc205-dashboard-grid > .rc205-layout-item:not([data-rc1573-tile]){display:none!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content:not([data-rc1371-editing="1"]) > .rc205-dashboard-grid > [data-rc1573-tile]{grid-row:auto!important;align-self:stretch}
+
+/* RC1575 whole screen, no scrolling: the overview and the tile row share the free height 3:2 and grow with the screen.
+   The tile row never gets less than its content needs; the overview gives way first and its lists scroll inside,
+   so the page itself never scrolls. Tiles stretch to the row height and their figures grow with the tile.
+   Triple id: RC1306 layout rules (#content > :is(section,.card,…):not(#loadListDoc)) pin cards to align-self:start. */
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]){grid-template-rows:minmax(0,3fr) minmax(140px,2fr)!important;overflow:hidden!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) > #rc1558Overview#rc1558Overview{min-height:0!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) > #rc1558Overview#rc1558Overview > .rc1558-grid{min-height:0!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) .rc1558-stack .rc1558-list{min-height:0!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) [data-rc1573-tile]{grid-row:2!important;align-self:stretch!important;height:auto!important;display:flex!important;flex-direction:column!important;flex-wrap:nowrap!important;container-type:size}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) > .rc205-dashboard-grid > [data-rc1573-tile] > .rc205-widget{flex:1 1 auto;align-self:stretch!important;width:auto!important;min-height:0;height:auto!important;display:flex!important;flex-direction:column!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) .rc205-dashboard-grid .rc205-mini-metrics{flex:1 1 auto;min-height:0;align-content:center}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) .rc205-dashboard-grid .rc205-mini-metrics .metric{display:flex!important;flex-direction:column;justify-content:center;min-height:min(120px,40cqh)!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) .rc205-dashboard-grid .rc205-mini-metrics .metric strong{font-size:clamp(22px,14cqh,44px)!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) > .rc205-quick-card[data-rc1573-tile] .rc205-quick-grid{flex:1 1 0;min-height:0;grid-auto-rows:minmax(30px,1fr);overflow-y:auto}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) .rc1573-tile .rc1573-bars{flex:1 1 auto;min-height:60px}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) .rc1573-tile .rc1573-bar-track{max-width:48px}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) > .rc205-quick-card[data-rc1573-tile] .rc205-quick b{overflow-wrap:break-word!important;word-break:normal!important;hyphens:auto}
+/* narrow laptop or zoomed browser (1000–1249px): figures stay in one row so the lists keep their height */
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) .rc1558-kpis{grid-template-columns:repeat(6,minmax(0,1fr))!important}
+/* low screens: the overview lists keep room for a few rows, the tiles give way (down to 120px) and the figures drop their sub line */
+@media (max-height:820px){
+  html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]){grid-template-rows:minmax(0,2fr) minmax(120px,1fr)!important}
+}
+@media (max-height:700px){
+  html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) .rc1558-kpi-sub{display:none!important}
+}
+/* narrow tiles: the quick access buttons drop their icons so the labels stay readable */
+@container (max-width:240px){
+  .rc205-quick-card[data-rc1573-tile] .rc205-quick > span{display:none!important}
+}
+
+/* RC1578 proportions: the tile row was 40% of the screen and the overview lists spread their few rows over the
+   whole height. The tiles now get a bounded share (28% of the free height, 160–260px), the overview takes the
+   rest, and list rows keep their natural height at the top of their panel. */
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]){grid-template-rows:minmax(0,1fr) clamp(160px,28%,260px)!important}
+@media (max-height:820px){
+  html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]){grid-template-rows:minmax(0,1fr) clamp(130px,30%,200px)!important}
+}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) .rc1558-list{align-content:start!important}

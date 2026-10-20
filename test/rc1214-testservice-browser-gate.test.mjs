@@ -87,3 +87,19 @@ test('RC1215: mutierender TESTSERVICE-Live-Test hat ausreichend Zeit für mehrer
   assert.match(mutation,/test\.setTimeout\(180_000\);/);
   assert.doesNotMatch(mutation,/test\.setTimeout\(90_000\);/);
 });
+
+
+test('RC1540: Live-Ready gibt während sichtbarer Startup-Ladezustände nicht frei',()=>{
+  const start=helper.indexOf('export async function waitReady(page)');
+  const end=helper.indexOf('function responsiveViewport(page)',start);
+  assert.ok(start>=0&&end>start);
+  const block=helper.slice(start,end);
+  assert.match(block,/loadingVisible/);
+  assert.match(block,/usableDespiteStaleLoading/);
+  assert.match(block,/!loadingVisible\|\|usableDespiteStaleLoading/);
+  assert.match(block,/ExportHUBRC1067StartupRecovery/);
+  assert.match(block,/typeof recovery\.isBroken==='function'/);
+  assert.match(block,/return !recovery\.isBroken\(\)/);
+  assert.match(block,/startupLoading/);
+  assert.match(block,/return !startupLoading;/);
+});
