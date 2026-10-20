@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+import {assertUniqueNotificationCards} from '../helpers/notification-identity.mjs';
 import {
   appEntry,
   waitReady,
@@ -30,14 +31,14 @@ test('RC1124 P0: Benachrichtigungen enthalten keine leeren Ghost-Aufgaben und ZÃ
 
   const cards=center.locator('.rc229-task-card.rc628-unified-task, .task-card, .index236-item');
   const cardCount=await cards.count();
-  const titles=[];
+  // RC1586: Recurring tasks may legitimately share a title. A task identity, not its label,
+  // determines whether the same notification was rendered twice.
+  const taskCards=[];
   for(let i=0;i<cardCount;i++){
     const card=cards.nth(i);
     const title=await card.locator('h1,h2,h3,h4,[data-title],.title').first().innerText().catch(()=>card.innerText());
-    titles.push(String(title||'').trim().split('\n')[0].trim());
-  }
-  for(const title of titles){
-    expect(title,'Ghost-Aufgabe mit generischem Titel gefunden').not.toMatch(/^(?:Aufgabe|Task)$/i);
+    const id=await card.locator('[data-index236-action="open-task"]').first().getAttribute('data-id').catch(()=>null);
+    taskCards.push({title:String(title||'').trim().split('\n')[0].trim(),id});
   }
 
   const centerText=await center.innerText();
@@ -52,8 +53,7 @@ test('RC1124 P0: Benachrichtigungen enthalten keine leeren Ghost-Aufgaben und ZÃ
   expect(metric,'Metrik "Offene Aufgaben" fehlt').not.toBeNull();
   expect(cardCount,'Gerenderte Aufgabenmenge weicht vom ZÃ¤hler ab').toBe(metric);
 
-  const normalized=titles.map(x=>x.toLocaleLowerCase('de-DE')).filter(Boolean);
-  expect(new Set(normalized).size,'Doppelte fachlich identische Benachrichtigungen gefunden').toBe(normalized.length);
+  assertUniqueNotificationCards(taskCards);
 
   await assertNoSourceLeak(page);
   await assertNoHorizontalOverflow(page);
