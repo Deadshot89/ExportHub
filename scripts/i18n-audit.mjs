@@ -60,13 +60,27 @@ function literalTexts(line){
     if(part.length>=limit){addPart();part=part.slice(-overlap)}
   }
   if(quote&&part)addPart();
-  const tagRx=/>\s*([^<>\n]{1,384})\s*</g;let m;
-  while((m=tagRx.exec(line))){const value=m[1].trim();if(value)values.push(value)}
+  // Linear scan for bounded text between HTML tags (avoid RegExp backtracking).
+  let afterTag=-1;
+  for(let i=0;i<line.length;i++){
+    if(line[i]==='>'){afterTag=i+1;continue}
+    if(line[i]==='<'){
+      if(afterTag>=0&&i-afterTag<=384){const v=line.slice(afterTag,i).trim();if(v)values.push(v)}
+      afterTag=-1;
+    }
+    if(afterTag>=0&&i-afterTag>384)afterTag=-1
+  }
   return values
+}
+function isNonUiPayloadLine(line){
+  const head=line.slice(0,256);
+  return /^\s*<script\b/i.test(head)&&/(?:type=["']application\/json|id=["']exporthub-canonical-modules)/i.test(head);
 }
 function scanVisibleGerman(file,source,registeredGerman){
   const rows=[],lines=source.split(/\r?\n/);
   lines.forEach((line,i)=>{
+    if(isNonUiPayloadLine(line))return;
+    if(TRACE&&line.length>10000)diag('german line '+file.rel+':'+(i+1)+' chars='+line.length);
     if(!UI_CONTEXT.test(line))return;
     if(/^\s*(?:\/\/|\*|\/\*)/.test(line))return;
     if(file.rel==='api/shared/rc1014-fixed-pickup-seed.js'&&/siteLabel\s*:/.test(line))return;
@@ -79,6 +93,8 @@ function scanVisibleGerman(file,source,registeredGerman){
 function scanVisibleKeys(file,source){
   const rows=[],lines=source.split(/\r?\n/);
   lines.forEach((line,i)=>{
+    if(isNonUiPayloadLine(line))return;
+    if(TRACE&&line.length>10000)diag('keys line '+file.rel+':'+(i+1)+' chars='+line.length);
     if(!KEY_LITERAL.test(line)||!UI_CONTEXT.test(line))return;
     if(/data-i18n(?:-[a-z]+)?\s*=/.test(line))return;
     const visibleLiteral=/(?:>|textContent\s*=|innerText\s*=|placeholder\s*=|aria-label\s*=|title\s*=)\s*['"`]?(?:common|login|profile|nav|dashboard|shipment|customer|task|document|mail|avis|pickup|public|safety|status|errors|history|settings|calendar|pallet|reports|admin)\.[a-zA-Z0-9_.-]+/i.test(line);

@@ -32,3 +32,10 @@ test('i18n audit excludes generated distribution folders',()=>{
   assert.ok(walk.includes('/^dist'));
   assert.ok(walk.includes('playwright-report'));
 });
+
+test('i18n HTML text scan is linear for many malformed brackets',()=>{
+  const input=('>A'.repeat(100_000))+'><button>Sendung speichern</button>';
+  const values=texts(input);
+  assert.ok(values.some(v=>v.includes('Sendung speichern')));
+  assert.ok(values.every(v=>v.length<=384));
+});
