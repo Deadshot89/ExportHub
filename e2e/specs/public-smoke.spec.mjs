@@ -56,7 +56,7 @@ test('RC1555 production smoke: verschachtelte POD-Abholkarten zeigen nur die neu
   test.skip(testInfo.project.name!=='laptop','RC1555 POD-Liveprüfung läuft einmal im Laptop-Profil.');
   const runtime=attachRuntimeGuards(page,testInfo);
   await installStaticApiFallback(page);
-  await page.goto('/',{waitUntil:'domcontentloaded'});
+  await page.goto('/',{waitUntil:'load'});
   await page.waitForFunction(()=>window.ExportHUBRC1305LoadingListPrint&&typeof window.ExportHUBRC1305LoadingListPrint.enhance==='function',null,{timeout:15_000});
   await page.emulateMedia({media:'print'});
 
@@ -67,7 +67,7 @@ test('RC1555 production smoke: verschachtelte POD-Abholkarten zeigen nur die neu
         '<div class="rc390-field-head"><div class="rc390-label">'+label+'</div></div>'+
         '<div class="rc390-txt"><span>Alter Hilfetext</span><div style="min-height:'+legacyHeight+'">'+oldValue+'</div></div>'+
       '</div>';
-    const raw='<section class="rc390-page rc390-load" style="width:194mm;min-height:120mm;padding:8mm">'+
+    const raw='<section class="rc390-page rc390-load rc576-load1" style="width:194mm;min-height:120mm;padding:8mm">'+
       '<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2mm">'+
         card('Unterschrift Fahrer','ALTE UNTERSCHRIFT','52mm')+
         card('Fahrername','ALTER FAHRER')+
@@ -87,7 +87,7 @@ test('RC1555 production smoke: verschachtelte POD-Abholkarten zeigen nur die neu
     const enhanced=api.enhance(raw,shipment,true);
     document.body.classList.remove('print-docs-only');
     document.body.classList.add('print-rc390');
-    document.body.innerHTML='<div id="rc576DocumentStage" class="rc390-docview">'+
+    document.body.innerHTML='<div id="rc576DocumentStage" class="rc390-docview" data-doc="load1">'+
       '<div class="rc390-bundle">'+enhanced+'</div></div>';
     const root=document.querySelector('#rc576DocumentStage .rc390-bundle > .rc390-load');
     if(!root)throw new Error('RC1555: Druck-Ladeliste fehlt nach Enhance');
@@ -99,10 +99,14 @@ test('RC1555 production smoke: verschachtelte POD-Abholkarten zeigen nur die neu
     return {
       fieldCount:fields.length,
       outerCards:fields.every(field=>field.matches('.rc390-card,.rc352-card')),
+      rootDisplay:getComputedStyle(root).display,
+      rootVisibility:getComputedStyle(root).visibility,
+      rootHeight:root.getBoundingClientRect().height,
       visibleLegacy:visibleLegacy.length,
       signaturePresent:!!signature,
       signatureDisplay:signature?getComputedStyle(signature).display:'',
       signatureParentDisplay:signature?getComputedStyle(signature.parentElement).display:'',
+      signatureVisibility:signature?getComputedStyle(signature).visibility:'',
       signatureHeight:signature?signature.getBoundingClientRect().height:0,
       imageHeight:image?image.getBoundingClientRect().height:0,
       maxCardHeight:Math.max(...cards.map(card=>card.getBoundingClientRect().height)),
@@ -112,10 +116,14 @@ test('RC1555 production smoke: verschachtelte POD-Abholkarten zeigen nur die neu
 
   expect(layout.fieldCount).toBe(6);
   expect(layout.outerCards).toBe(true);
+  expect(layout.rootDisplay,'Ausgewählte Ladeliste muss als Dokument sichtbar sein').not.toBe('none');
+  expect(layout.rootVisibility,'Die Ladeliste darf nicht per CSS verborgen sein').toBe('visible');
+  expect(layout.rootHeight,'Die Ladeliste muss eine messbare Druckhöhe haben').toBeGreaterThan(0);
   expect(layout.visibleLegacy).toBe(0);
   expect(layout.signaturePresent,'Fahrerunterschrift muss nach Enhance im kanonischen Abholfeld existieren').toBe(true);
   expect(layout.signatureDisplay,'Signaturwert darf im Printmodus nicht display:none sein').not.toBe('none');
   expect(layout.signatureParentDisplay,'Unterschriftskarte darf im Printmodus nicht display:none sein').not.toBe('none');
+  expect(layout.signatureVisibility,'Fahrerunterschrift darf auch nicht über Eltern-CSS versteckt werden').toBe('visible');
   expect(layout.signatureHeight).toBeGreaterThan(0);
   expect(layout.signatureHeight).toBeLessThanOrEqual(62);
   expect(layout.imageHeight).toBeLessThanOrEqual(58);
