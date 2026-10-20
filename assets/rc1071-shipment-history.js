@@ -184,7 +184,13 @@ function registrationMailEvent(e){
    kind==='versandanmeldung'||label===low(de('shipmentHistory.action.registrationSent'));
 }
 function latestRegistrationMail(sh){
- var list=mergedHistory(sh).filter(registrationMailEvent);
+ // A historical draft-open is not a fresh registration. Never offer confirmation
+ // for an old shipment history entry or one dated in the future.
+ var nowMs=Date.now(),maxAgeMs=2*60*60*1000;
+ var list=mergedHistory(sh).filter(function(e){
+  var at=Date.parse(q(e&&e.at));
+  return registrationMailEvent(e)&&Number.isFinite(at)&&at<=nowMs&&nowMs-at<=maxAgeMs
+ });
  return list.length?list[list.length-1]:null
 }
 function registrationConfirmedForMail(sh,mail){
