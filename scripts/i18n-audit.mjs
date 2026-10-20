@@ -96,6 +96,22 @@ function candidateCategory(line,hit){
     return 'markup_text_review';
   return 'context_required';
 }
+// The standalone POD page embeds a verified six-language dictionary and translates
+// approved counter templates offline. Do not misclassify these proven localized literals.
+// Other visible German UI strings remain strict-gate failures.
+function coveredOfflinePodLiteral(file,value,registeredGerman){
+  if(file.rel!=='pod-notfall.html')return false;
+  const clean=String(value||'').trim();
+  const wrapper=clean.match(/^<div class="empty">([^<>]+)<\/div>$/);
+  const plain=wrapper?wrapper[1].trim():clean;
+  if(wrapper&&registeredGerman.has(plain))return true;
+  for(const translatedSource of registeredGerman){
+    if(typeof translatedSource==='string'&&/^\{\{count\}\}\s/.test(translatedSource)
+      &&translatedSource.replace(/^\{\{count\}\}\s*/, '')===plain)return true;
+  }
+  return false;
+}
+
 function scanVisibleGerman(file,source,registeredGerman){
   const rows=[],lines=source.split(/\r?\n/);
   lines.forEach((line,i)=>{
@@ -108,7 +124,7 @@ function scanVisibleGerman(file,source,registeredGerman){
       // A minified JS line may contain thousands of unrelated strings.
       // UI relevance must be established next to the literal, not anywhere on the line.
       const nearby=line.length<=2400?line:line.slice(Math.max(0,position-320),Math.min(line.length,position+512));
-      return UI_CONTEXT.test(nearby)&&GERMAN_HINT.test(value)&&!/^[-_a-z0-9./:]+$/i.test(value)&&!registeredGerman.has(value)&&!/\b(?:tr|th)\s*\(/.test(value);
+      return UI_CONTEXT.test(nearby)&&GERMAN_HINT.test(value)&&!/^[-_a-z0-9./:]+$/i.test(value)&&!registeredGerman.has(value)&&!coveredOfflinePodLiteral(file,value,registeredGerman)&&!/\b(?:tr|th)\s*\(/.test(value);
     });
     if(!hits.length)return;
     for(const hit of hits)rows.push({file:file.rel,line:i+1,category:candidateCategory(line,hit),literal:compact(hit.value),text:compact(line.length<=2400?line:line.slice(Math.max(0,hit.position-120),Math.min(line.length,hit.position+250)))})
