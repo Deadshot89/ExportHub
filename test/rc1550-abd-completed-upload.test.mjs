@@ -70,24 +70,27 @@ test('RC1550: geaenderte ABD-Runtime wird in Produktion nicht aus altem Browserc
 });
 
 
-test('RC1582: ABD 9Z7L82 findet die Sendung auch in gespeicherten Sendungen und nutzt nur den zentralen Uploader',()=>{
+test('RC1582: ABD 9Z7L82 darf aus savedShipments nicht an eine falsche aktive Sendung angehängt werden',()=>{
   const shipment={id:'SHIP-9Z7L82',ref:'9Z7L82',abdRequired:true,abdStatus:'Wartet auf ABD'};
+  const other={id:'SHIP-OTHER1',ref:'OTHER1',abdStatus:'Wartet auf ABD'};
   const request={id:'ABD-9Z7L82',ref:'9Z7L82',linkedShipmentId:'SHIP-9Z7L82',source:'shipment'};
-  const state={view:'abd',shipments:[],savedShipments:[shipment],abdRequests:[request]};
-  let legacyCalls=0;
-  const centralCalls=[];
+  const state={view:'abd',shipments:[other],shipment:other,savedShipments:[shipment],abdRequests:[request]};
+  let legacyCalls=0,centralCalls=0,notice='';
   const window={
     __EXPORTHUB_GET_STATE__:()=>state,
     ExportHUBRC626:Object.freeze({uploadCompletedAbd(){legacyCalls++;return 'legacy'}}),
-    rc524UploadFile:(input,key)=>{centralCalls.push({id:input.dataset.id,key});return false},
-    addEventListener(){},setTimeout:fn=>{fn();return 1}
+    rc524UploadFile(){centralCalls++},
+    alert:m=>{notice=m},addEventListener(){},setTimeout:fn=>{fn();return 1}
   };
   const document={readyState:'complete',addEventListener(){}};
   vm.runInNewContext(bridgeSource(),{window,document,setTimeout:window.setTimeout,console});
   const input={files:[{name:'ABD_9Z7L82.pdf',type:'application/pdf'}],dataset:{}};
-  window.ExportHUBRC626.uploadCompletedAbd('ABD-9Z7L82',input);
-  assert.deepEqual(centralCalls,[{id:'SHIP-9Z7L82',key:'abdFiles'}]);
+  const result=window.ExportHUBRC626.uploadCompletedAbd('ABD-9Z7L82',input);
+  assert.equal(result,false);
   assert.equal(legacyCalls,0);
+  assert.equal(centralCalls,0);
+  assert.equal(other.abdFiles,undefined);
+  assert.match(notice,/linked shipment|Sendung/i);
 });
 
 test('RC1582: verknüpfte ABD-Anfrage ohne Sendung wird nicht stillschweigend nur lokal gespeichert',()=>{
