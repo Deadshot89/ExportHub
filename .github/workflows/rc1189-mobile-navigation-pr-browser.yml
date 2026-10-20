@@ -44,7 +44,7 @@ jobs:
           EXPORTHUB_E2E_STATIC: '1'
           EXPORTHUB_E2E_ENTRY: /demo.html
           EXPORTHUB_E2E_PUBLIC_ENV: testservice
-        run: npx playwright test e2e/specs/navigation.spec.mjs
+        run: npx playwright test e2e/specs/navigation.spec.mjs e2e/specs/notifications.spec.mjs
 
       - name: Browser-Fehlerartefakte hochladen
         if: failure()
