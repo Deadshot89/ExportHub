@@ -25,7 +25,7 @@ function headers(token){
   };
 }
 
-test('RC1139 P0: TESTSERVICE Sitzung schreibt echten State, Reload liest ihn zurück und Übersicht zeigt die Sendung',async({page},testInfo)=>{
+test('RC1139 P0: TESTSERVICE Kunde und Sendung speichern, Reload und Azure-Readback',async({page},testInfo)=>{
   test.setTimeout(180_000);
   test.skip(process.env.EXPORTHUB_E2E_MUTATION!=='1','Mutierender RC1139-Test läuft nur im TESTSERVICE-Gate.');
   test.skip(testInfo.project.name!=='laptop','Mutierender RC1139-Test läuft genau einmal auf dem Laptop-Profil.');
@@ -76,12 +76,27 @@ test('RC1139 P0: TESTSERVICE Sitzung schreibt echten State, Reload liest ihn zur
   };
 
   const state=read.data?.state&&typeof read.data.state==='object'?read.data.state:{};
+  // P0: Persist and reload a customer independently from the shipment.
+  // The fixture cleanup removes only rows tagged with this E2E run ID.
+  const customer={
+    id:'E2E-CUSTOMER-SAVE-'+session.runId,
+    account:'E2E-SAVE-'+session.runId,
+    name:'E2E AZURE CUSTOMER '+session.runId,
+    customerName:'E2E AZURE CUSTOMER '+session.runId,
+    country:'DE',
+    active:true,
+    createdAt:stamp,
+    updatedAt:stamp,
+    _e2eRunId:session.runId
+  };
+  const customers=Array.isArray(state.customers)?state.customers.filter(x=>x&&x.id!==customer.id):[];
+  customers.push(customer);
   const shipments=Array.isArray(state.shipments)?state.shipments.filter(x=>x&&x._e2eRunId!==session.runId):[];
   const savedShipments=Array.isArray(state.savedShipments)?state.savedShipments.filter(x=>x&&x._e2eRunId!==session.runId):[];
   shipments.push(shipment);
   savedShipments.push({...shipment});
 
-  const saved=await page.evaluate(async({token,runId,ref,revision,shipments,savedShipments})=>{
+  const saved=await page.evaluate(async({token,runId,ref,revision,shipments,savedShipments,customers})=>{
     const response=await fetch('/api/exporthub-state?mode=save&ack=1',{
       method:'POST',
       credentials:'same-origin',
@@ -98,11 +113,11 @@ test('RC1139 P0: TESTSERVICE Sitzung schreibt echten State, Reload liest ihn zur
         deviceId:'e2e-playwright',
         operationId:'RC1145-'+runId+'-'+ref,
         reason:'RC1145 browser mutation gate',
-        state:{shipments,savedShipments}
+        state:{shipments,savedShipments,customers}
       })
     });
     return{status:response.status,data:await response.json().catch(()=>({}))};
-  },{token:session.token,runId:session.runId,ref,revision:read.data?.revision||0,shipments,savedShipments});
+  },{token:session.token,runId:session.runId,ref,revision:read.data?.revision||0,shipments,savedShipments,customers});
 
   expect(saved.status).toBe(200);
   expect(saved.data?.ok).toBe(true);
@@ -121,11 +136,21 @@ test('RC1139 P0: TESTSERVICE Sitzung schreibt echten State, Reload liest ihn zur
     const data=await response.json().catch(()=>({}));
     const shipments=Array.isArray(data&&data.state&&data.state.shipments)?data.state.shipments:[];
     const found=shipments.find(x=>x&&x._e2eRunId===runId&&String(x.ref||x.reference||'').toUpperCase()===ref);
-    return{status:response.status,ok:data&&data.ok===true,found:found?{ref:found.ref||found.reference,customerName:found.customerName||found.customer?.name,status:found.status||found.processStatus}:null};
+    const persistedCustomers=Array.isArray(data&&data.state&&data.state.customers)?data.state.customers:[];
+    const customer=persistedCustomers.find(x=>x&&x.id==='E2E-CUSTOMER-SAVE-'+runId&&x._e2eRunId===runId);
+    return{
+      status:response.status,
+      ok:data&&data.ok===true,
+      found:found?{ref:found.ref||found.reference,customerName:found.customerName||found.customer?.name,status:found.status||found.processStatus}:null,
+      customer:customer?{id:customer.id,name:customer.name,account:customer.account}:null
+    };
   },{token:session.token,runId:session.runId,ref});
 
   expect(persisted.status).toBe(200);
   expect(persisted.ok).toBe(true);
+  expect(persisted.customer?.id).toBe('E2E-CUSTOMER-SAVE-'+session.runId);
+  expect(persisted.customer?.name).toBe('E2E AZURE CUSTOMER '+session.runId);
+  expect(persisted.customer?.account).toBe('E2E-SAVE-'+session.runId);
   expect(persisted.found?.ref).toBe(ref);
   expect(persisted.found?.customerName).toMatch(/E2E TEST CUSTOMER/i);
 
