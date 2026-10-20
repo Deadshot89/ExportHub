@@ -43,29 +43,33 @@ function walk(dir,out=[]){
 function compact(value){return String(value||'').replace(/\s+/g,' ').trim().slice(0,220)}
 // Bounded linear scan: generated HTML contains multi-megabyte JS lines.
 // Avoid unbounded quoted strings and backtracking quote expressions.
+// Process giant quoted tokens directly from their source spans.
+// Never append individual characters to retained rope strings.
 function literalTexts(line){
-  const values=[],limit=384,overlap=64;
-  let quote='',escaped=false,part='';
-  function addPart(){const value=part.trim();if(value)values.push(value)}
+  const values=[],limit=384,overlap=64,step=limit-overlap;
+  function addRange(start,end){
+    for(let pos=start;pos<end;pos+=step){
+      const value=line.slice(pos,Math.min(end,pos+limit)).replace(/\\n/g,' ').trim();
+      if(value)values.push(value);
+      if(pos+limit>=end)break;
+    }
+  }
+  let quote='',start=0;
   for(let i=0;i<line.length;i++){
     const ch=line[i];
     if(!quote){
-      if(ch==="'"||ch==='"'||ch.charCodeAt(0)===96){quote=ch;escaped=false;part=''}
+      if(ch==="'"||ch==='"'||ch.charCodeAt(0)===96){quote=ch;start=i+1}
       continue
     }
-    if(escaped){escaped=false;part+=ch==='n'?' ':ch}
-    else if(ch==='\\'){escaped=true;continue}
-    else if(ch===quote){addPart();quote='';part='';continue}
-    else part+=ch;
-    if(part.length>=limit){addPart();part=part.slice(-overlap)}
+    if(ch==='\\'){i++;continue}
+    if(ch===quote){addRange(start,i);quote=''}
   }
-  if(quote&&part)addPart();
-  // Linear scan for bounded text between HTML tags (avoid RegExp backtracking).
+  if(quote&&start<line.length)addRange(start,line.length);
   let afterTag=-1;
   for(let i=0;i<line.length;i++){
     if(line[i]==='>'){afterTag=i+1;continue}
     if(line[i]==='<'){
-      if(afterTag>=0&&i-afterTag<=384){const v=line.slice(afterTag,i).trim();if(v)values.push(v)}
+      if(afterTag>=0&&i-afterTag<=384){const value=line.slice(afterTag,i).trim();if(value)values.push(value)}
       afterTag=-1;
     }
     if(afterTag>=0&&i-afterTag>384)afterTag=-1
