@@ -68,10 +68,8 @@ Object.keys(packs.de).forEach(function(key){
  if(key.indexOf('legacyPattern.')===0){
   var parts=de.split('{{count}}');
   if(parts.length===2){
-   var escape=function(v){return v.replace(/[.*+?^$()|[\]\\]/g,'\\</body>')};
-   patterns.push({key:key,re:new RegExp('^'+escape(parts[0])+'(\\d[\\d.,]*)'+escape(parts[1])+'
-</html>
-)});
+   var escape=function(v){return v.replace(/[.*+?^$()|[\]\\]/g,'\\$&')};
+   patterns.push({key:key,re:new RegExp('^'+escape(parts[0])+'(\\d[\\d.,]*)'+escape(parts[1])+'$')});
   }
  }else if(de&&!source[de])source[de]=key;
 });
