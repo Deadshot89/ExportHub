@@ -108,3 +108,38 @@ jobs:
             echo 'Screenshot-Generator darf keine bestehenden Quelldateien verändern.' >&2
             exit 1
           fi
+
+  main-ancestry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+          fetch-depth: 0
+      - name: Require latest main as a release ancestor
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor origin/main HEAD; then
+            echo 'BLOCKED: Training Center branch is not based on current main.' >&2
+            exit 1
+          fi
+
+  full-release-regression:
+    needs: node-contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+      - name: Full ExportHUB Node regression (no legacy test exclusions)
+        run: npm test
+      - name: Strict six-language i18n audit
+        run: npm run i18n:audit:strict
