@@ -81,6 +81,21 @@ function isNonUiPayloadLine(line){
   const head=line.slice(0,256);
   return /^\s*<script\b/i.test(head)&&/(?:type=["']application\/json|id=["']exporthub-canonical-modules)/i.test(head);
 }
+// Static classification is for human review, never a release bypass.
+// Even a diagnostic message can become user-visible through error handling.
+function candidateCategory(line,hit){
+  const before=line.slice(Math.max(0,hit.position-140),hit.position);
+  const value=hit.value;
+  if(/(?:\bnew\s+Error\s*\(|\bthrow\s+|\bconsole\.(?:log|warn|error|debug)\s*\(|\b(?:logger|diagnostic|telemetry|trace)\s*\()/i.test(before.slice(-100)))
+    return 'technical_or_diagnostic_review';
+  if(/<\s*(?:button|label|h[1-6]|p|li|th|td|option|span|strong|small)\b[^>]*>[^<]*[äöüßA-Za-z]/i.test(value))
+    return 'html_template_review';
+  if(/(?:\.(?:innerHTML|outerHTML|textContent|innerText|placeholder)|\b(?:alert|confirm|prompt|showMessage|toast|setStatus)\s*\()\s*(?:=|\s*,|\s*\()?\s*['"`]?$/i.test(before.trimEnd()))
+    return 'direct_ui_assignment_review';
+  if(/(?:<\s*(?:button|label|h[1-6]|p|li|th|td|option|span|strong|small)\b[^>]*>\s*)$/i.test(before))
+    return 'markup_text_review';
+  return 'context_required';
+}
 function scanVisibleGerman(file,source,registeredGerman){
   const rows=[],lines=source.split(/\r?\n/);
   lines.forEach((line,i)=>{
@@ -96,7 +111,7 @@ function scanVisibleGerman(file,source,registeredGerman){
       return UI_CONTEXT.test(nearby)&&GERMAN_HINT.test(value)&&!/^[-_a-z0-9./:]+$/i.test(value)&&!registeredGerman.has(value)&&!/\b(?:tr|th)\s*\(/.test(value);
     });
     if(!hits.length)return;
-    for(const hit of hits)rows.push({file:file.rel,line:i+1,literal:compact(hit.value),text:compact(line.length<=2400?line:line.slice(Math.max(0,hit.position-120),Math.min(line.length,hit.position+250)))})
+    for(const hit of hits)rows.push({file:file.rel,line:i+1,category:candidateCategory(line,hit),literal:compact(hit.value),text:compact(line.length<=2400?line:line.slice(Math.max(0,hit.position-120),Math.min(line.length,hit.position+250)))})
   });
   return rows;
 }
@@ -176,6 +191,8 @@ const report={
   emptyTranslationCount:keys.issues.reduce((n,x)=>n+x.empty.length,0),
   visibleTranslationKeyCount:visibleKeys.length,
   hardcodedGermanUiCount:hardcoded.length,
+  hardcodedGermanUiByCategory:Object.fromEntries(Object.entries(hardcoded.reduce((acc,row)=>{acc[row.category]=(acc[row.category]||0)+1;return acc},{})).sort((a,b)=>b[1]-a[1])),
+  hardcodedGermanUiByFile:Object.fromEntries(Object.entries(hardcoded.reduce((acc,row)=>{acc[row.file]=(acc[row.file]||0)+1;return acc},{})).sort((a,b)=>b[1]-a[1])),
   visibleTranslationKeys:visibleKeys.slice(0,500),
   hardcodedGermanUi:hardcoded.slice(0,2000)
 };
@@ -191,6 +208,8 @@ else{
   console.log('Leere Übersetzungen:',report.emptyTranslationCount);
   console.log('Sichtbare Translation-Key-Literale:',report.visibleTranslationKeyCount);
   console.log('Hardcodierte deutsche UI-Kandidaten:',report.hardcodedGermanUiCount);
+  console.log('Vorläufige Triage (alle Kategorien weiter prüfpflichtig):');
+  for(const [category,count] of Object.entries(report.hardcodedGermanUiByCategory))console.log('  '+String(count).padStart(4,' ')+'  '+category);
   const byFile=Object.entries(hardcoded.reduce((acc,row)=>{acc[row.file]=(acc[row.file]||0)+1;return acc},{})).sort((a,b)=>b[1]-a[1]);
   console.log('Hardcoded nach Datei:');
   for(const [file,count] of byFile.slice(0,40))console.log('  '+String(count).padStart(4,' ')+'  '+file);
