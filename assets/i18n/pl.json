@@ -1646,5 +1646,9 @@
   "abd.completedUpload.shipmentMissing": "Nie udało się jednoznacznie zidentyfikować powiązanej wysyłki. Otwórz przegląd wysyłek i ponów przesyłanie ABD.",
   "abd.completedUpload.runtimeMissing": "Bezpieczne przesyłanie ABD jest niedostępne. Odśwież stronę i spróbuj ponownie. Dokument nie został oznaczony jako zapisany.",
   "abd.completedUpload.forbidden": "Nie masz uprawnień do przesyłania dokumentów ABD.",
-  "abd.completedUpload.failed": "Przesyłanie ABD nie powiodło się: {{message}}"
+  "abd.completedUpload.failed": "Przesyłanie ABD nie powiodło się: {{message}}",
+  "abd.completedUpload.noMatchingShipment": "Nie rozpoczęto przesyłania ABD: nie udało się jednoznacznie zidentyfikować przesyłki {{reference}}. Otwórz ponownie listę przesyłek.",
+  "abd.completedUpload.processing": "Dokument ABD jest przetwarzany. Trwa weryfikacja zapisu.",
+  "abd.completedUpload.unconfirmed": "Nie otrzymano potwierdzenia zapisu ABD. Sprawdź folder przesyłki przed ponowną próbą.",
+  "abd.completedUpload.success": "Dokument ABD zapisano dla przesyłki {{reference}}."
 }
