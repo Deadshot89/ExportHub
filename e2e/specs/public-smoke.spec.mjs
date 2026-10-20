@@ -81,8 +81,16 @@ test('RC1555 production smoke: verschachtelte POD-Abholkarten zeigen nur die neu
       signatureData:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Zl9sAAAAASUVORK5CYII=',
       pickupHistory:[{complete:true,driverName:'Max Fahrer',licensePlate:'KLE-RC1555',loaderName:'Live Verlader',confirmedAt:'2026-10-16T12:00:00.000Z'}]
     };
-    document.body.innerHTML=api.enhance(raw,shipment,true);
-    const root=document.querySelector('.rc390-load');
+    // Render the synthetic shipment in the same print document hierarchy as
+    // the real UI. A bare rc390-load under <body> is hidden by print-scoped rules
+    // and can report a 0px signature even when the print renderer works.
+    const enhanced=api.enhance(raw,shipment,true);
+    document.body.classList.remove('print-docs-only');
+    document.body.classList.add('print-rc390');
+    document.body.innerHTML='<div id="rc576DocumentStage" class="rc390-docview">'+
+      '<div class="rc390-bundle">'+enhanced+'</div></div>';
+    const root=document.querySelector('#rc576DocumentStage .rc390-bundle > .rc390-load');
+    if(!root)throw new Error('RC1555: Druck-Ladeliste fehlt nach Enhance');
     const fields=Array.from(root.querySelectorAll('[data-rc1503-pickup-field]'));
     const visibleLegacy=Array.from(root.querySelectorAll('[data-rc1555-live-card="1"] .rc390-txt,[data-rc1555-live-card="1"] .rc352-txt')).filter(node=>getComputedStyle(node).display!=='none');
     const signature=root.querySelector('.rc1503-signature-value');
@@ -92,6 +100,9 @@ test('RC1555 production smoke: verschachtelte POD-Abholkarten zeigen nur die neu
       fieldCount:fields.length,
       outerCards:fields.every(field=>field.matches('.rc390-card,.rc352-card')),
       visibleLegacy:visibleLegacy.length,
+      signaturePresent:!!signature,
+      signatureDisplay:signature?getComputedStyle(signature).display:'',
+      signatureParentDisplay:signature?getComputedStyle(signature.parentElement).display:'',
       signatureHeight:signature?signature.getBoundingClientRect().height:0,
       imageHeight:image?image.getBoundingClientRect().height:0,
       maxCardHeight:Math.max(...cards.map(card=>card.getBoundingClientRect().height)),
@@ -102,6 +113,9 @@ test('RC1555 production smoke: verschachtelte POD-Abholkarten zeigen nur die neu
   expect(layout.fieldCount).toBe(6);
   expect(layout.outerCards).toBe(true);
   expect(layout.visibleLegacy).toBe(0);
+  expect(layout.signaturePresent,'Fahrerunterschrift muss nach Enhance im kanonischen Abholfeld existieren').toBe(true);
+  expect(layout.signatureDisplay,'Signaturwert darf im Printmodus nicht display:none sein').not.toBe('none');
+  expect(layout.signatureParentDisplay,'Unterschriftskarte darf im Printmodus nicht display:none sein').not.toBe('none');
   expect(layout.signatureHeight).toBeGreaterThan(0);
   expect(layout.signatureHeight).toBeLessThanOrEqual(62);
   expect(layout.imageHeight).toBeLessThanOrEqual(58);
