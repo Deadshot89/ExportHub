@@ -11,6 +11,7 @@ const { isAdmin, isPrivilegedUser } = require('../shared/user-policy');
 const { compactStateForStorage } = require('../shared/state-compaction');
 const { enrichDynamicTranslations, translationStatus, normalizeLanguage: normalizeDynamicLanguage } = require('../shared/dynamic-i18n');
 const apiI18n = require('../shared/i18n');
+const stateWriteGuard = require('../shared/state-write-guard');
 
 const TEAM_CONTAINER = process.env.EXPORTHUB_STORAGE_CONTAINER || process.env.EXPORTHUB_CONTAINER || 'exporthub-data';
 const TEAM_BLOB_BASE = process.env.EXPORTHUB_STORAGE_BLOB || process.env.EXPORTHUB_STATE_BLOB || 'team-state.json';
@@ -65,6 +66,13 @@ function isActive(user){ return Boolean(user && user.active!==false && user.disa
 function hasAnyEditRight(user){
  if(isAdmin(user))return true;
  return Object.values(user&&user.rights||{}).some(r=>r&&(r.edit===true||r.admin===true||r.functionAdmin===true||r.level==='edit'||r.level==='admin'));
+}
+// RC1560: Some non-edit users may append their own SOP learning progress
+// or a narrowly-scoped shipment registration audit. These writes must reach
+// secureMerge's field-level guard; the blanket edit-right precheck blocked them.
+// This grants no module edit rights and must not replace the secure merge guard.
+function canAttemptStateSave(user){
+ return hasAnyEditRight(user) || stateWriteGuard.canReadAny(user,['sop','shipment','shipmentoverview']);
 }
 function publicUser(user,adminView=false){
  const u=clone(user||{});
@@ -299,7 +307,7 @@ async function metadataOnly(blob){
  catch(e){if(e&&e.statusCode===404)return {schemaVersion:3,revision:0,updatedAt:null,clientVersion:null};throw e}
 }
 function normalizeIncoming(payload){const state=sanitizeState(payload.state||{});delete state.users;return {clientVersion:text(payload.clientVersion),baseRevision:Number(payload.baseRevision||0),deviceId:text(payload.deviceId),operationId:text(payload.operationId||payload.clientMutationId),reason:text(payload.reason||'save'),state}}
-function validateWriteUserAgainstTeam(team,user,session){const users=Array.isArray(team&&team.users)?team.users:[],fresh=users.find(u=>text(u.id)===text(user&&user.id)||usernameOf(u)===usernameOf(user));if(!fresh||!isActive(fresh))throw error('ACCOUNT_DISABLED','api.common.accountDisabled',403);if(session&&Number(session.authVersion||0)!==Number(fresh.authVersion||0))throw error('SESSION_REVOKED','api.common.sessionRevoked',401);if((session&&session.mustChange||fresh.mustChange)===true)throw error('PASSWORD_CHANGE_REQUIRED','api.common.passwordChangeRequired',403);if(!hasAnyEditRight(fresh))throw error('WRITE_FORBIDDEN','api.state.writeForbidden',403);return fresh}
+function validateWriteUserAgainstTeam(team,user,session){const users=Array.isArray(team&&team.users)?team.users:[],fresh=users.find(u=>text(u.id)===text(user&&user.id)||usernameOf(u)===usernameOf(user));if(!fresh||!isActive(fresh))throw error('ACCOUNT_DISABLED','api.common.accountDisabled',403);if(session&&Number(session.authVersion||0)!==Number(fresh.authVersion||0))throw error('SESSION_REVOKED','api.common.sessionRevoked',401);if((session&&session.mustChange||fresh.mustChange)===true)throw error('PASSWORD_CHANGE_REQUIRED','api.common.passwordChangeRequired',403);if(!canAttemptStateSave(fresh))throw error('WRITE_FORBIDDEN','api.state.writeForbidden',403);return fresh}
 function rc1080CustomerKey(c){
  if(!c||typeof c!=='object')return'';
  return lower(c.id||c.customerId||c.account||c.customerNumber||c.kundennummer||c.name||c.customerName);
@@ -1098,7 +1106,7 @@ module.exports=async function(context,req){
     context.res=json(200,await recoverCustomers(c.container,blob,payload,current.user,c.teamBlobName,c.recoveryPrefix,c.allowGenericRecoveryDiscovery));return
    }
    if(mode&&mode!=='save')throw error('UNKNOWN_STATE_ACTION','api.state.unknownAction',400);
-   if(!hasAnyEditRight(current.user))throw error('WRITE_FORBIDDEN','api.state.writeForbidden',403);
+   if(!canAttemptStateSave(current.user))throw error('WRITE_FORBIDDEN','api.state.writeForbidden',403);
    let corruptBackup=null;if(current.teamRecoveredFromHistory===true&&current.teamCurrentCorrupt===true)corruptBackup=await safetyRawBackup(c.container,blob,'corrupt-team-state-before-RC855-save',c.recoveryPrefix);
    const normalized=normalizeIncoming(payload),documentExternalizeStarted=Date.now(),externalized=await externalizeDocumentCollections(normalized.state,{environment:c.environment,container:c.documentContainer,currentState:current.team&&current.team.state});normalized.state=externalized.state;
    const saveStarted=Date.now(),saved=await saveMerged(blob,normalized,current.user,current.team,current.teamEtag,current.session,current.timing&&current.timing.teamCache==='memory-save'),saveMs=Date.now()-saveStarted;rememberWarmTeam(c,saved,saved&&saved.__storageEtag||current.teamEtag);saved.dataEnvironment=c.environment;saved.documentExternalizeStats=externalized.stats;saved.documentExternalizeMs=Date.now()-documentExternalizeStarted;
@@ -1111,6 +1119,7 @@ module.exports=async function(context,req){
   context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED'},{Allow:'GET, POST, OPTIONS'});
  }catch(e){
   try{context.log&&context.log.error&&context.log.error('ExportHUB state API error',e&&e.code,e&&e.message)}catch(_){}
-  context.res=json(e&&(e.status||e.statusCode)?Number(e.status||e.statusCode):500,{ok:false,code:e&&e.code?e.code:'SERVER_ERROR',message:localizedError(req,e,'api.state.unknownStorage')});
+  const denyInfo=e&&e.code==='STATE_MODULE_WRITE_FORBIDDEN'&&e.vars?{deniedField:text(e.vars.key),requiredModules:text(e.vars.modules).split(',').filter(Boolean)}:null;
+  context.res=json(e&&(e.status||e.statusCode)?Number(e.status||e.statusCode):500,Object.assign({ok:false,code:e&&e.code?e.code:'SERVER_ERROR',message:localizedError(req,e,'api.state.unknownStorage')},denyInfo?{permissionDetails:denyInfo}:{}));
  }
 };
