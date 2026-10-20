@@ -28,9 +28,11 @@ test('RC1556 POD: value and signature replacement clean legacy descendants befor
   assert.match(putValue,/suppressLegacyPickupContent\(card\)/);
   assert.match(putSignature,/suppressLegacyPickupContent\(card\)/);
 });
-test('POD: pallet balance is rendered as a single normalized value',()=>{
+test('POD: pallet balance and return are rendered as two compact fields',()=>{
   assert.match(wrapper,/data-rc1543-pallet-single-value/);
-  assert.match(wrapper,/var done=putValue\(card,palletBalanceText\(account\),'rc1305-meta-pallet'\)/);
+  assert.match(wrapper,/data-rc1580-pallet-compact/);
+  assert.ok(wrapper.includes("row('Aktueller Stand / Balance'"));
+  assert.ok(wrapper.includes("row('Eingang / Return'"));
 });
 test('POD: print scripts remain valid JavaScript',()=>{
   for(const file of ['assets/rc1305-loading-list-print.js','assets/document-print-name.js']){
