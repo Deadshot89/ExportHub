@@ -75,6 +75,16 @@ function injectMissing(html,tags,file){
 }
 function retiredAssetNeedle(){return `/${RETIRED_ASSET_SEGMENTS.join('/')}/`;}
 
+// Only the release-builder may retire already generated legacy SOP script/style tags.
+// Public injection helpers stay fail-closed when handed an unexpected retired runtime.
+function removeRetiredSopTagsFromBuild(html,file){
+ const source=String(html||'');
+ const oldTag=/<(?:script|link)\b[^>]*\b(?:src|href)\s*=\s*["'][^"']*\/assets\/sop\/[^"']*["'][^>]*>(?:\s*<\/script\s*>)?/gi;
+ const cleaned=source.replace(oldTag,'');
+ assertNoRetiredSopReferences(cleaned,file);
+ return cleaned;
+}
+
 export function assertNoRetiredSopReferences(html,file='index.html'){
   const source=String(html||'');
   if(source.includes(retiredAssetNeedle()))throw new Error(`${file}: retired SOP asset reference detected`);
@@ -121,9 +131,11 @@ export function build(root=ROOT){
   for(const file of ENTRIES){
     const target=path.join(out,file);
     const current=fs.readFileSync(target,'utf8');
-    const next=injectTrainingCenter(current,file);
+    const next=injectTrainingCenter(removeRetiredSopTagsFromBuild(current,file),file);
     fs.writeFileSync(target,next);
   }
+  // The previous builder can copy old SOP files even though the new runtime does not use them.
+  fs.rmSync(path.join(out,'assets','sop'),{recursive:true,force:true});
   assertPackage(out);
   const manifest={
     version:'TRAINING-CENTER-1',
