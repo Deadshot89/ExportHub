@@ -132,7 +132,7 @@ async function persistSavedShipment(sh){
  });
  if(existing)return existing;
  if(!promotionAvailable())
-  throw new Error(promotionMessage('abd.completedUpload.saveUnavailable','Sendung gefunden, aber eine bestätigte Azure-Speicherung ist nicht verfügbar. ABD wurde nicht hochgeladen.'));
+  throw new Error(promotionMessage('abd.completedUpload.saveUnavailable','Linked shipment found, but confirmed Azure saving is unavailable. ABD was not uploaded.'));
  var work=(async function(){
   var old=Array.isArray(source.shipments)?source.shipments:[],staged=Object.assign({},sh);
   source.shipments=old.concat([staged]);
@@ -140,11 +140,11 @@ async function persistSavedShipment(sh){
    var clean=window.ExportHUBClean;
    await clean.queueSave('ABD: Sendung aus gespeicherten Sendungen übernehmen');
    var saved=await clean.flushSave('ABD: Sendung dauerhaft übernehmen',{force:true,userInitiated:true});
-   if(saved!==true)throw new Error(promotionMessage('abd.completedUpload.saveUnconfirmed','Die Sendung wurde nicht bestätigt gespeichert. ABD wurde nicht hochgeladen.'));
+   if(saved!==true)throw new Error(promotionMessage('abd.completedUpload.saveUnconfirmed','Linked shipment save not confirmed. ABD was not uploaded.'));
    var current=state(),verified=(Array.isArray(current.shipments)?current.shipments:[]).find(function(item){
     return idOf(item)===id&&refOf(item)===ref
    });
-   if(!verified)throw new Error(promotionMessage('abd.completedUpload.saveUnconfirmed','Sendung fehlt nach dem Speichern. ABD wurde nicht hochgeladen.'));
+   if(!verified)throw new Error(promotionMessage('abd.completedUpload.saveUnconfirmed','Linked shipment is missing after saving. ABD was not uploaded.'));
    return verified;
   }catch(error){
    // Remove only our temporary exact object, never another user's changes.
@@ -176,7 +176,7 @@ function uploadSavedShipment(sh,input){
  if(typeof window.rc524UploadFile!=='function')
   return uploadError(input,uploadMsg('abd.completedUpload.runtimeMissing',null,'Secure ABD upload is not available.'));
  if(!promotionAvailable())
-  return uploadError(input,promotionMessage('abd.completedUpload.saveUnavailable','Sendung gefunden, aber eine bestätigte Azure-Speicherung ist nicht verfügbar. ABD wurde nicht hochgeladen.'));
+  return uploadError(input,promotionMessage('abd.completedUpload.saveUnavailable','Linked shipment found, but confirmed Azure saving is unavailable. ABD was not uploaded.'));
  uploadStatus(input,promotionMessage('abd.completedUpload.savingShipment','Sendung wird vor dem ABD-Upload dauerhaft gespeichert.'),false);
  var promise=persistSavedShipment(sh).then(function(saved){
   if(!input.dataset)input.dataset={};
@@ -186,7 +186,7 @@ function uploadSavedShipment(sh,input){
    return uploadError(input,uploadMsg('abd.completedUpload.failed',{message:q(error&&error.message)},'ABD upload failed: '+q(error&&error.message)))
   }
  }).catch(function(error){
-  return uploadError(input,q(error&&error.message)||promotionMessage('abd.completedUpload.saveUnconfirmed','Sendung wurde nicht bestätigt gespeichert. ABD wurde nicht hochgeladen.'))
+  return uploadError(input,q(error&&error.message)||promotionMessage('abd.completedUpload.saveUnconfirmed','Linked shipment save not confirmed. ABD was not uploaded.'))
  }).finally(function(){
   savedUploadInFlight=savedUploadInFlight.filter(function(item){return item.input!==input})
  });
