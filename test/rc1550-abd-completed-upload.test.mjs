@@ -148,3 +148,51 @@ test('RC1582: fehlende ABD-Berechtigung blockiert den verknüpften Upload vor de
   assert.equal(called,false);
   assert.match(notice,/permission|Berechtigung/i);
 });
+
+
+test('RC1582: lazy geladener ABD-Controller wird beim ersten Dateiauswahl-Event sicher umgebogen',()=>{
+  const sh={id:'SHIP-9Z7L82',ref:'9Z7L82',abdRequired:true};
+  const a={id:'ABD-9Z7L82',ref:'9Z7L82',linkedShipmentId:sh.id,source:'shipment'};
+  const s={view:'abd',shipments:[sh],abdRequests:[a]};
+  let onChange=null,legacyCalls=0,centralCalls=0;
+  const window={
+    __EXPORTHUB_GET_STATE__:()=>s,
+    rc524UploadFile(input,key){centralCalls++;assert.equal(input.dataset.id,sh.id);assert.equal(key,'abdFiles');return false},
+    addEventListener(){},setTimeout(fn){fn();return 1}
+  };
+  const document={
+    readyState:'complete',
+    addEventListener(name,fn,capture){if(name==='change'&&capture===true)onChange=fn}
+  };
+  vm.runInNewContext(bridgeSource(),{window,document,setTimeout:window.setTimeout,console});
+  assert.equal(typeof onChange,'function');
+  assert.equal(window.ExportHUBRC626,undefined,'ABD-Controller is loaded only after page boot');
+  window.ExportHUBRC626=Object.freeze({uploadCompletedAbd(){legacyCalls++;return 'legacy'},renderAbd(){}});
+  const input={
+    files:[{name:'ABD_9Z7L82.pdf',type:'application/pdf'}],
+    dataset:{},
+    matches(selector){return selector==='input[type="file"]'},
+    getAttribute(name){return name==='onchange'?"return window.ExportHUBRC626.uploadCompletedAbd('ABD-9Z7L82',this)":null}
+  };
+  let prevented=0;
+  const evt={target:input,preventDefault(){prevented++},stopPropagation(){prevented++},stopImmediatePropagation(){prevented++}};
+  onChange(evt);
+  assert.equal(prevented,0);
+  assert.equal(window.ExportHUBRC626.__rc1550AbdUploadBridge,true);
+  window.ExportHUBRC626.uploadCompletedAbd(a.id,input);
+  assert.equal(centralCalls,1);
+  assert.equal(legacyCalls,0);
+  onChange(evt);
+  assert.equal(prevented,0,'an already installed bridge must not block the file change');
+});
+
+test('RC1582: Dateiauswahl bei nicht ladbarer sicherer Upload-Runtime wird vor altem onchange blockiert',()=>{
+  let onChange=null,notice='',blocked=0;
+  const window={addEventListener(){},setTimeout(fn){fn();return 1},alert(m){notice=m}};
+  const document={readyState:'complete',addEventListener(name,fn,capture){if(name==='change'&&capture===true)onChange=fn}};
+  vm.runInNewContext(bridgeSource(),{window,document,setTimeout:window.setTimeout,console});
+  const input={matches:()=>true,getAttribute:()=> "return window.ExportHUBRC626.uploadCompletedAbd('ABD-9Z7L82',this)",setAttribute(){}};
+  onChange({target:input,preventDefault(){blocked++},stopPropagation(){blocked++},stopImmediatePropagation(){blocked++}});
+  assert.equal(blocked,3);
+  assert.match(notice,/Secure ABD upload|nicht verfügbar/i);
+});
