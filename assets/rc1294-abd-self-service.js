@@ -4,6 +4,8 @@ if(!w||!d||w.__EXPORTHUB_RC1294_ABD_SELF_SERVICE__)return;
 w.__EXPORTHUB_RC1294_ABD_SELF_SERVICE__=true;
 
 var busy=false,reviewBusy={},lastPositions=[],lastResults=[],lastGroups=[],lastUnassigned=[],mountTimer=0,hostObserver=null,hostObserverRoot=null,bootstrapObserver=null,bootstrapObserverRoot=null;
+// RC1561: survive a re-render of the ABD view (#rc626Abd) – the chosen mode and files must not be lost
+var currentMode='manual',pendingFiles=[];
 function q(v){return String(v==null?'':v).trim()}
 function esc(v){return q(v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function lang(){try{return w.ExportHUBI18n&&w.ExportHUBI18n.language?w.ExportHUBI18n.language():'de'}catch(_){return'de'}}
@@ -157,6 +159,7 @@ async function analyzeFile(file){
 }
 async function start(){
  if(busy)return false;var p=panel(),input=p&&p.querySelector('[data-rc1294-files]'),button=p&&p.querySelector('[data-rc1294-start]'),files=Array.from(input&&input.files||[]);
+ if(!files.length&&pendingFiles.length)files=pendingFiles.slice();
  clearStatus();var out=resultBox();if(out){out.hidden=true;out.innerHTML=''}
  if(!files.length){setStatus(tr('abd.analysis.fileRequired'),'bad');return false}
  if(files.length>5){setStatus(tr('abd.analysis.fileLimit'),'bad');return false}
@@ -226,7 +229,7 @@ function fallbackCopy(raw,message){
  var ta=d.createElement('textarea');ta.value=raw;ta.style.position='fixed';ta.style.left='-9999px';d.body.appendChild(ta);ta.select();try{d.execCommand('copy');setStatus(message||xtr('copiedGrouped'),'ok')}catch(_){}ta.remove()
 }
 function setMode(mode){
- var p=panel();if(!p)return false;mode=q(mode)||'manual';
+ var p=panel();if(!p)return false;mode=q(mode)||'manual';currentMode=mode==='invoice'?'invoice':'manual';
  var invoice=p.querySelector('[data-rc1294-invoice-panel]'),buttons=p.querySelectorAll('[data-rc1294-mode]');
  for(var i=0;i<buttons.length;i++){var active=buttons[i].getAttribute('data-rc1294-mode')===mode;buttons[i].setAttribute('aria-pressed',active?'true':'false');buttons[i].classList.toggle('active',active)}
  if(invoice)invoice.hidden=mode!=='invoice';
@@ -264,13 +267,21 @@ function mount(){
    '<div class="rc1294-status" data-rc1294-status hidden></div><div class="rc1294-results" data-rc1294-results hidden></div></div>';
  var head=host.querySelector('.rc626-head');if(head&&head.parentNode)head.parentNode.insertBefore(p,head.nextSibling);else host.insertBefore(p,host.firstChild);
  p.querySelector('[data-rc1294-start]').addEventListener('click',start);
- p.addEventListener('change',function(e){var input=e.target&&e.target.closest&&e.target.closest('[data-rc1499-edit-hs],[data-rc1499-edit-origin],[data-rc1499-edit-value]');if(input)applyReviewEdit(input)});
+ // The ABD form re-renders #rc626Abd on change/input events from its own fields; the file picker must not trigger that.
+ function keepFileEventLocal(e){var f=e.target&&e.target.closest&&e.target.closest('[data-rc1294-files]');if(!f)return false;e.stopPropagation();if(e.type==='change')pendingFiles=Array.from(f.files||[]);return true}
+ p.addEventListener('input',keepFileEventLocal);
+ p.addEventListener('change',function(e){if(keepFileEventLocal(e))return;var input=e.target&&e.target.closest&&e.target.closest('[data-rc1499-edit-hs],[data-rc1499-edit-origin],[data-rc1499-edit-value]');if(input)applyReviewEdit(input)});
  p.addEventListener('click',function(e){
   var mode=e.target&&e.target.closest&&e.target.closest('[data-rc1294-mode]');if(mode){e.preventDefault();setMode(mode.getAttribute('data-rc1294-mode'));return}
   var confirm=e.target&&e.target.closest&&e.target.closest('[data-rc1499-confirm]');if(confirm){e.preventDefault();confirmReviewPosition(confirm);return}
   var field=e.target&&e.target.closest&&e.target.closest('[data-rc1294-copy-value]');if(field){e.preventDefault();copyField(field.getAttribute('data-rc1294-copy-value'));return}
   var b=e.target&&e.target.closest&&e.target.closest('[data-rc1294-copy]');if(b){e.preventDefault();copyGroupedResults()}
  });
+ if(currentMode==='invoice'){
+  setMode('invoice');
+  // a re-rendered file input is empty again: show which files are still selected for the analysis
+  if(pendingFiles.length)setStatus(pendingFiles.map(function(f){return q(f&&f.name)}).filter(Boolean).join(', '),'scan');
+ }
  return true
 }
 function disconnectHostObserver(){if(hostObserver){try{hostObserver.disconnect()}catch(_){}hostObserver=null}hostObserverRoot=null}
