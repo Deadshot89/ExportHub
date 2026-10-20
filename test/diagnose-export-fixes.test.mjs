@@ -68,7 +68,7 @@ for(const file of ['index.html','TESTVERSION.html']){
   test(`Diagnose (${file}): fehlende Bearbeitungsrechte lösen keine wiederholten Hintergrund-Speicherungen und Fehlerfenster aus`,()=>{
     const save=block(html,'function currentUserKey(','function isSessionError(');
     assert.match(save,/if\(options\.userInitiated!==true&&writeForbiddenForCurrentUser\(\)\)return skipForbiddenSave\(\);/);
-    assert.match(save,/else if\(code==='WRITE_FORBIDDEN'\)\{runtime\.saveRetryCount=0;runtime\.writeForbiddenUser=currentUserKey\(\);skipForbiddenSave\(\);if\(options\.userInitiated===true\)alert\(/);
+    assert.match(save,/else if\(code==='WRITE_FORBIDDEN'\|\|code==='STATE_MODULE_WRITE_FORBIDDEN'\)\{runtime\.saveRetryCount=0;runtime\.writeForbiddenUser=currentUserKey\(\);skipForbiddenSave\(\);if\(options\.userInitiated===true\)alert\(/);
     assert.match(save,/runtime\.writeForbiddenUser='';if\(info\)info\.textContent=\(d\.concurrentMerge/,'Erfolgreiches Speichern hebt die Sperre auf');
     const helpers=block(html,'function currentUserKey(','async function flushSave(');
     const runtime={user:{id:'U-AMER'},pendingSave:true,dirty:true,saveTimer:null};
@@ -78,7 +78,7 @@ for(const file of ['index.html','TESTVERSION.html']){
     runtime.writeForbiddenUser=ctx.currentUserKey();
     assert.equal(ctx.writeForbiddenForCurrentUser(),true);
     assert.equal(ctx.skipForbiddenSave(),false);
-    assert.equal(runtime.pendingSave,false);assert.equal(runtime.dirty,false);
+    assert.equal(runtime.pendingSave,true,'Unsaved changes stay pending');assert.equal(runtime.dirty,true,'Unsaved edits cannot be marked clean');
     runtime.user={id:'U-ADMIN'};
     assert.equal(ctx.writeForbiddenForCurrentUser(),false,'Die Sperre gilt nur für den abgelehnten Benutzer');
   });
