@@ -94,9 +94,53 @@
     return nonCustomerBinding;
   }
 
-  function match(input,tasks){
+  // RC1585: Managed customer registrations are matched by their stable roster key
+  // and an explicit customer alias, never by a translated or user-edited task title.
+  // Additional customers need a verified exact alias before they can be enabled.
+  const MANAGED_REGISTRATION_CUSTOMERS=Object.freeze({
+    spanien:Object.freeze(['essentra spanien','essentra spain'])
+  });
+
+  function customerAlias(value){
+    return q(value).normalize('NFKC').toLocaleLowerCase('de-DE')
+      .replace(/\\s+/g,' ');
+  }
+
+  function berlinDay(value){
+    const at=value instanceof Date?value:new Date(value);
+    if(!Number.isFinite(at.getTime()))return '';
+    const parts=new Intl.DateTimeFormat('en-GB',{
+      timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'
+    }).formatToParts(at);
+    const get=type=>q((parts.find(part=>part.type===type)||{}).value);
+    return get('year')+'-'+get('month')+'-'+get('day');
+  }
+
+  function plannedDay(task){
+    const candidate=q(task&&task.manualOverride&&task.plannedAt||
+      task&&(task.dueAt||task.dueDate||task.occurrenceKey||task.plannedAt));
+    return (candidate.match(/^(\\d{4}-\\d{2}-\\d{2})/)||[])[1]||'';
+  }
+
+  function managedRegistrationMatch(event,task,ctx={}){
+    if(event.type!=='shipment.registered'||!active(task))return false;
+    if(q(task&&task.managedBy)!=='RC1152')return false;
+    const aliases=MANAGED_REGISTRATION_CUSTOMERS[q(task.managedKey)];
+    if(!aliases||!aliases.includes(customerAlias(event.customerName)))return false;
+    if(!event.shipmentId&&!event.shipmentRef)return false;
+    const effectiveDay=plannedDay(task);
+    const eventDay=berlinDay(event.occurredAt);
+    const today=berlinDay(ctx.now||new Date());
+    // Both the occurrence and its effective planned date must be today or earlier.
+    // A later registration must never clear a future task.
+    return !!(effectiveDay&&eventDay&&today&&eventDay<=today&&
+      effectiveDay<=eventDay&&effectiveDay<=today);
+  }
+
+  function match(input,tasks,ctx={}){
     const event=normalizeEvent(input);
-    return arr(tasks).filter(task=>structuredMatch(event,task));
+    return arr(tasks).filter(task=>structuredMatch(event,task)||
+      managedRegistrationMatch(event,task,ctx));
   }
 
   function duplicateProcessed(tasks,key){
@@ -116,7 +160,13 @@
   function apply(input,state,ctx={}){
     const event=normalizeEvent(input),source=obj(state)?state:{},tasks=arr(source.tasks),key=processedKey(event);
     if(duplicateProcessed(tasks,key))return unchanged(source,'duplicate',{event});
-    const candidates=match(event,tasks);
+    const matched=match(event,tasks,ctx);
+    // A customer may have an overdue Thursday task and a new Monday task.
+    // Complete only the newest eligible occurrence, not the whole recurring series.
+    const managed=matched.filter(task=>managedRegistrationMatch(event,task,ctx));
+    const mostRecent=managed.length?managed.map(plannedDay).sort().at(-1):'';
+    const candidates=managed.length===matched.length&&managed.length
+      ?managed.filter(task=>plannedDay(task)===mostRecent):matched;
     if(candidates.length===0)return unchanged(source,'unmatched',{event});
     if(candidates.length>1){
       return unchanged(source,'ambiguous',{
@@ -182,11 +232,48 @@
     };
   }
 
+  function shipmentRegisteredFromSave(domEvent,now){
+    const detail=obj(domEvent&&domEvent.detail)?domEvent.detail:{};
+    if(detail.azureSaved!==true)return null;
+    const shipment=obj(detail.shipment)?detail.shipment:{};
+    const shipmentId=q(shipment.id||shipment.shipmentId||detail.id);
+    const shipmentRef=q(shipment.ref||shipment.reference||shipment.shipmentRef||detail.reference);
+    if(!shipmentId&&!shipmentRef)return null;
+    const confirmedAt=Date.parse(q(detail.savedAt||now)||new Date().toISOString());
+    if(!Number.isFinite(confirmedAt))return null;
+    const confirmations=arr(shipment.shipmentHistory).filter(row=>{
+      if(!obj(row)||q(row.type).toLowerCase()!=='mail-sent')return false;
+      if(q(row.label).toLocaleLowerCase('de-DE')!=='versandanmeldung versendet')return false;
+      if(!['registration','versandanmeldung'].includes(q(row.details&&row.details.mailType).toLowerCase()))return false;
+      const eventTime=Date.parse(q(row.at));
+      // An old history entry is not proof that the current save sent another mail.
+      return !!(q(row.id)&&Number.isFinite(eventTime)&&
+        confirmedAt>=eventTime&&confirmedAt-eventTime<=15*60*1000);
+    }).sort((a,b)=>Date.parse(q(b.at))-Date.parse(q(a.at)));
+    if(!confirmations.length)return null;
+    const row=confirmations[0];
+    const customerId=q(shipment.customerId||shipment.customerNumber||shipment.customerAccount||shipment.account);
+    const customerName=q(shipment.customerName||shipment.deliveryName||shipment.customer);
+    if(!customerName)return null;
+    return {
+      eventId:'shipment.registered:'+(shipmentId||shipmentRef)+':'+q(row.id),
+      type:'shipment.registered',occurredAt:q(row.at),
+      customerId,customerName,shipmentId,shipmentRef,
+      processId:'registration',taskType:'registration'
+    };
+  }
+
   function forwardConfirmedShipmentSave(domEvent){
-    const event=shipmentCreatedFromSave(domEvent);if(!event)return null;
+    const created=shipmentCreatedFromSave(domEvent);
+    const registered=shipmentRegisteredFromSave(domEvent);
+    if(!created&&!registered)return null;
     const runtime=root.ExportHUBRC1014TaskRuntime;
     if(!runtime||typeof runtime.emitWorkflowEvent!=='function')return null;
-    try{return runtime.emitWorkflowEvent(event)}catch(_){return null;}
+    let result=null;
+    for(const event of [created,registered].filter(Boolean)){
+      try{result=runtime.emitWorkflowEvent(event)}catch(_){}
+    }
+    return result;
   }
 
   function installConfirmedBindings(){
@@ -197,7 +284,7 @@
   }
 
   root.ExportHUBTaskWorkflowV2=Object.freeze({
-    version:'2.0',types:TYPES,normalizeEvent,match,apply,emit,processedKey,shipmentCreatedFromSave,installConfirmedBindings
+    version:'2.0',types:TYPES,normalizeEvent,match,apply,emit,processedKey,shipmentCreatedFromSave,shipmentRegisteredFromSave,installConfirmedBindings
   });
   installConfirmedBindings();
 })(globalThis);
