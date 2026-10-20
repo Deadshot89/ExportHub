@@ -100,7 +100,7 @@ function sameShipment(sh,a){if(!sh||!a)return false;var linked=q(a.linkedShipmen
 function requestById(id){var s=state(),list=Array.isArray(s.abdRequests)?s.abdRequests.slice():[],wanted=q(id);[s.abdRequest,s.abdDraft].forEach(function(a){if(a&&list.indexOf(a)<0)list.push(a)});for(var i=list.length-1;i>=0;i--){if(q(list[i]&&list[i].id)===wanted)return list[i]}return null}
 function shipmentForRequest(a){var s=state(),candidates=[];function add(x){if(x&&typeof x==='object'&&candidates.indexOf(x)<0)candidates.push(x)};[s.shipments,s.savedShipments,s.sharedShipments].forEach(function(list){if(Array.isArray(list))list.forEach(add)});[s.shipment,s.currentShipment,s.selectedShipment,s.activeShipment,s.documentShipment].forEach(add);var linked=q(a&& (a.linkedShipmentId||a.shipmentId));if(linked){for(var j=candidates.length-1;j>=0;j--){if(idOf(candidates[j])===linked)return candidates[j]}}var matches=candidates.filter(function(sh){return sameShipment(sh,a)}),ids={};matches.forEach(function(sh){ids[idOf(sh)||refOf(sh)]=true});return Object.keys(ids).length===1?matches[0]||null:null}
 function uploadMsg(key,vars,fallback){try{var i=window.ExportHUBI18n;if(i&&typeof i.t==='function'){var t=i.t(key,vars);if(t&&t!==key)return t}}catch(_){}return fallback}
-function uploadStatus(input,message,failed){try{if(input&&input.setAttribute)input.setAttribute('aria-invalid',failed?'true':'false');var host=input&&input.closest&&input.closest('.rc543-abd-upload,.rc524-upload,.rc626-upload')||input&&input.parentNode;if(host&&typeof document.createElement==='function'){var el=host.querySelector&&host.querySelector('[data-rc1584-abd-status]');if(!el){el=document.createElement('small');el.setAttribute('data-rc1584-abd-status','');host.appendChild(el)}el.textContent=message;el.setAttribute('role',failed?'alert':'status');el.style.display='block';el.style.marginTop='6px';el.style.fontWeight='600';el.style.color=failed?'#b91c1c':'#166534'}}catch(_){}}
+function uploadStatus(input,message,failed){try{if(input&&input.setAttribute)input.setAttribute('aria-invalid',failed?'true':'false');var host=input&&input.closest&&input.closest('.rc543-abd-upload,.rc524-upload,.rc626-upload')||input&&input.parentNode;if(host&&typeof document.createElement==='function'){var el=host.querySelector&&host.querySelector('[data-rc1584-abd-status]');if(!el){el=document.createElement('small');el.setAttribute('data-rc1584-abd-status','');host.appendChild(el)}el.textContent=message;el.setAttribute('role',failed?'alert':'status');el.style.display='block';el.style.marginTop='6px';el.style.fontWeight='600';el.style.color=failed?'#b91c1c':'#166534'}var onchange=q(input&&input.getAttribute&&input.getAttribute('onchange'));if(/rc524UploadFile\\s*\\(\\s*this\\s*,\\s*['"]abdFiles['"]/.test(onchange)&&document.body&&typeof document.createElement==='function'){var banner=document.getElementById&&document.getElementById('rc1586AbdUploadStatus');if(!banner){banner=document.createElement('div');banner.id='rc1586AbdUploadStatus';banner.setAttribute('aria-live','polite');banner.style.cssText='position:fixed;right:16px;bottom:16px;z-index:2147482000;max-width:min(440px,calc(100vw - 32px));padding:12px 16px;background:#eff6ff;color:#1e3a8a;border:1px solid #93c5fd;border-radius:10px;box-shadow:0 8px 30px #0002;font:600 14px/1.5 Arial,sans-serif;white-space:normal';document.body.appendChild(banner)}banner.textContent=message;banner.setAttribute('role',failed?'alert':'status');banner.style.background=failed?'#fef2f2':'#eff6ff';banner.style.borderColor=failed?'#fca5a5':'#93c5fd';banner.style.color=failed?'#991b1b':'#1e3a8a'}}catch(_){}}
 function uploadError(input,message){uploadStatus(input,message,true);try{if(typeof window.alert==='function')window.alert(message);else if(typeof alert==='function')alert(message)}catch(_){}return false}
 function requestMustLink(a){return !!q(a&&(a.linkedShipmentId||a.shipmentId))||/^(?:shipment|sendung|from.shipment)$/i.test(q(a&&(a.source||a.createdFrom||a.mode)))}
 
@@ -120,12 +120,23 @@ function captureCentralAbdChange(event){
  var file=input.files&&input.files[0];
  if(!file)return;
  var requested=q(input.dataset&&input.dataset.id),s=state(),list=Array.isArray(s.shipments)?s.shipments:[],
-     hits=list.filter(function(sh){return !!requested&&(idOf(sh)===requested||refOf(sh)===requested.toUpperCase())}),first=hits[0];
- if(!first||!refOf(first)||hits.some(function(sh){return idOf(sh)!==idOf(first)})){
+     stored=Array.isArray(s.savedShipments)?s.savedShipments:[],
+     hits=list.filter(function(sh){return !!requested&&(idOf(sh)===requested||refOf(sh)===requested.toUpperCase())}),
+     savedHits=stored.filter(function(sh){return !!requested&&(idOf(sh)===requested||refOf(sh)===requested.toUpperCase())}),
+     first=hits[0]||savedHits[0],all=hits.concat(savedHits),
+     related=first?list.concat(stored).filter(function(sh){return refOf(sh)===refOf(first)||idOf(sh)===idOf(first)}):[],
+     conflicting=!!first&&related.some(function(sh){return idOf(sh)!==idOf(first)||(refOf(sh)!==refOf(first))});
+ if(!first||!refOf(first)||all.some(function(sh){return idOf(sh)!==idOf(first)||refOf(sh)!==refOf(first)})||conflicting){
   return blockAbdChange(event,input,uploadMsg('abd.completedUpload.noMatchingShipment',{reference:requested||'?'},'ABD upload not started: shipment '+(requested||'?')+' could not be uniquely identified. Reload shipment overview.'));
  }
  if(typeof window.rc524UploadFile!=='function')return blockAbdChange(event,input,uploadMsg('abd.completedUpload.runtimeMissing',null,'Secure ABD upload is not available. Reload and retry; the document was not saved.'));
  if(typeof window.canWrite==='function'&&!window.canWrite('abd'))return blockAbdChange(event,input,uploadMsg('abd.completedUpload.forbidden',null,'No permission to upload ABD documents.'));
+ /* RC1586: The overview renders shipments together with savedShipments, but rc524UploadFile only searches shipments. Link the exact existing saved object into the canonical collection for this explicit upload. Never create a blank draft or guess another shipment. */
+ if(!hits.length){
+  if(!Array.isArray(s.shipments))s.shipments=[];
+  if(s.shipments.some(function(sh){return idOf(sh)===idOf(first)||refOf(sh)===refOf(first)}))return blockAbdChange(event,input,uploadMsg('abd.completedUpload.noMatchingShipment',{reference:requested||'?'},'Conflicting shipment record. Upload blocked to prevent attaching ABD to another shipment.'));
+  s.shipments.push(first);
+ }
  centralPending.forEach(function(p){if(p.input===input)p.done=true});
  var entry={input:input,id:idOf(first),ref:refOf(first),done:false};
  centralPending.push(entry);
