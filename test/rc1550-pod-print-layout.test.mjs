@@ -39,3 +39,10 @@ test('POD: print scripts remain valid JavaScript',()=>{
     execFileSync(process.execPath,['--check',file],{stdio:'pipe'});
   }
 });
+
+test('RC1555 compatibility: beide Druckruntimes bevorzugen die äußere POD-Karte',()=>{
+  for(const source of [base,wrapper]){
+    assert.match(source,/el\.closest\('\.rc390-card,\.rc352-card'\)/);
+    assert.match(source,/explicit&&explicit!==root/);
+  }
+});
