@@ -1108,7 +1108,12 @@ module.exports=async function(context,req){
    if(mode&&mode!=='save')throw error('UNKNOWN_STATE_ACTION','api.state.unknownAction',400);
    if(!canAttemptStateSave(current.user))throw error('WRITE_FORBIDDEN','api.state.writeForbidden',403);
    let corruptBackup=null;if(current.teamRecoveredFromHistory===true&&current.teamCurrentCorrupt===true)corruptBackup=await safetyRawBackup(c.container,blob,'corrupt-team-state-before-RC855-save',c.recoveryPrefix);
-   const normalized=normalizeIncoming(payload),documentExternalizeStarted=Date.now(),externalized=await externalizeDocumentCollections(normalized.state,{environment:c.environment,container:c.documentContainer,currentState:current.team&&current.team.state});normalized.state=externalized.state;
+   const normalized=normalizeIncoming(payload);
+   // RC1560: A read-only self-service operation must pass the field-level guard
+   // before any document blob is uploaded. The authoritative guard still runs
+   // again inside saveMerged against the current Azure document and user rights.
+   if(!hasAnyEditRight(current.user))mergeState(current.team&&current.team.state||{},normalized.state);
+   const documentExternalizeStarted=Date.now(),externalized=await externalizeDocumentCollections(normalized.state,{environment:c.environment,container:c.documentContainer,currentState:current.team&&current.team.state});normalized.state=externalized.state;
    const saveStarted=Date.now(),saved=await saveMerged(blob,normalized,current.user,current.team,current.teamEtag,current.session,current.timing&&current.timing.teamCache==='memory-save'),saveMs=Date.now()-saveStarted;rememberWarmTeam(c,saved,saved&&saved.__storageEtag||current.teamEtag);saved.dataEnvironment=c.environment;saved.documentExternalizeStats=externalized.stats;saved.documentExternalizeMs=Date.now()-documentExternalizeStarted;
    if(corruptBackup)saved.corruptBackup=corruptBackup;
    const phase=saved&&saved.__timing||{},serverMs=Date.now()-requestStarted,timing={serverMs,clientsMs,authMs:Number(current.timing&&current.timing.authMs||0),authCache:text(current.timing&&current.timing.authCache||'unknown')||'unknown',teamMs:Number(current.timing&&current.timing.teamMs||0),validationMs:Number(current.timing&&current.timing.validationMs||0),teamCache:current.timing&&current.timing.teamCache||'unknown',mergeMs:Number(phase.mergeMs||0),uploadMs:Number(phase.uploadMs||0),retryReadMs:Number(phase.retryReadMs||0),uploadBytes:Number(phase.uploadBytes||0),conflictCount:Number(phase.conflictCount||0),saveMs};
