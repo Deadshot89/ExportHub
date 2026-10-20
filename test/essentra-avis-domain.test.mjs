@@ -5,7 +5,7 @@ import vm from 'node:vm';
 import crypto from 'node:crypto';
 
 const legacy='https://wonderful-forest-0f315e310.7.azurestaticapps.net/customer-avis.html?token=abc';
-const branded='https://exporthub360.com/avis/abc';
+const branded='https://www.exporthub360.de/avis/abc';
 const testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net/customer-avis.html?token=abc&environment=testservice';
 
 function browser(file,customers=[]){

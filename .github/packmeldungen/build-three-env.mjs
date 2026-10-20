@@ -7,6 +7,7 @@ import {integrateGuidedWorkspace} from '../rc1544/integrate-guided-workspace.mjs
 
 export const PACK_ASSETS=Object.freeze([
   'i18n/pack-notification.js',
+  'rc1555-packaging-store.js',
   'packaging-catalog.js',
   'document-reference-normalizer.js',
   'document-upload-normalizer.js',
@@ -17,6 +18,7 @@ export const PACK_ASSETS=Object.freeze([
   'pack-notification-internal.js',
   'pack-notification-nav.js',
   'pack-station-admin.js',
+  'packaging-admin.js',
   'pack-notification-shipment.js',
   'pack-notification-avis.css',
   'pack-notification-avis.js'
@@ -39,6 +41,9 @@ const PACK_SCRIPT_TAGS=[
   '<script id="exporthub-document-print-name" defer src="/assets/document-print-name.js?v=1"></script>'
 ];
 
+const PACKAGING_LIST_PREFIX="function packagingList(){var s=state(),fixed=PACK.filter(function(x){return /^E[0-6]$/i.test(q(x.name))}),sources=[fixed,arr(s.colliTypes)],out=[],seen={};";
+const INACTIVE_PACKAGING_MARKER="arr(s.inactiveColliTypes).forEach(function(x){var n=q(x&&x.name);if(n&&!/^E[0-6]$/i.test(n))seen[n.toLowerCase()]=1});arr(s.disabledPackagingAliases).forEach(function(name){var n=q(name);if(n&&!/^E[0-6]$/i.test(n))seen[n.toLowerCase()]=1});";
+
 function injectTags(html,tags,file,label){
   let out=String(html||'');
   if(!/<\/head>/i.test(out))throw new Error(`${file}: </head> fehlt`);
@@ -52,6 +57,18 @@ function injectTags(html,tags,file,label){
     if(id&&!out.includes(`id="${id}"`))throw new Error(`${file}: ${label} ${id} fehlt`);
   }
   return out;
+}
+
+export function injectInactivePackagingSuppression(html,file='index.html'){
+  const out=String(html||'');
+  if(out.includes(INACTIVE_PACKAGING_MARKER))return out;
+  if(!out.includes(PACKAGING_LIST_PREFIX)){
+    if(out.includes('function packagingList()'))throw new Error(`${file}: packagingList-Signatur hat sich geändert; RC1554-Inaktivschutz konnte nicht gesetzt werden.`);
+    return out;
+  }
+  const patched=out.replace(PACKAGING_LIST_PREFIX,PACKAGING_LIST_PREFIX+INACTIVE_PACKAGING_MARKER);
+  if(!patched.includes(INACTIVE_PACKAGING_MARKER))throw new Error(`${file}: inaktive Verpackungen konnten nicht gegen PACK-Fallback geschützt werden.`);
+  return patched;
 }
 
 export function injectDocumentUploadRuntime(html,file='customer-avis.html'){
@@ -82,7 +99,7 @@ export function build(root=process.cwd()){
   for(const file of ['index.html','TESTVERSION.html','demo.html']){
     const target=path.join(out,file);
     const html=fs.readFileSync(target,'utf8');
-    fs.writeFileSync(target,injectPackRuntime(html,file));
+    fs.writeFileSync(target,injectPackRuntime(injectInactivePackagingSuppression(html,file),file));
   }
   const customerAvis=path.join(out,'customer-avis.html');
   if(fs.existsSync(customerAvis)){

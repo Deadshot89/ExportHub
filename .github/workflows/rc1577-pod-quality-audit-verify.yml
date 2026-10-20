@@ -1,0 +1,89 @@
+name: RC1577 POD Quality Audit
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'api/pod-quality-audit/**'
+      - 'api/pod-backup/**'
+      - 'api/shared/pod-quality-audit.js'
+      - 'api/shared/pod-archive.js'
+      - 'api/shared/pod-integrity-audit.js'
+      - 'api/shared/pickup-store.js'
+      - 'assets/rc1577-pod-quality-audit.js'
+      - 'assets/i18n/rc1577-pod-quality-audit.js'
+      - 'assets/document-print-name.js'
+      - 'index.html'
+      - 'TESTVERSION.html'
+      - 'test/rc1577-pod-quality-audit.test.mjs'
+      - 'e2e/specs/rc1577-pod-quality-audit.spec.mjs'
+      - 'e2e/helpers/**'
+      - '.github/rc1112/**'
+      - '.github/workflows/rc1577-pod-quality-audit-verify.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'api/pod-quality-audit/**'
+      - 'api/pod-backup/**'
+      - 'api/shared/pod-quality-audit.js'
+      - 'api/shared/pod-archive.js'
+      - 'api/shared/pod-integrity-audit.js'
+      - 'api/shared/pickup-store.js'
+      - 'assets/rc1577-pod-quality-audit.js'
+      - 'assets/i18n/rc1577-pod-quality-audit.js'
+      - 'assets/document-print-name.js'
+      - 'index.html'
+      - 'TESTVERSION.html'
+      - 'test/rc1577-pod-quality-audit.test.mjs'
+      - 'e2e/specs/rc1577-pod-quality-audit.spec.mjs'
+      - 'e2e/helpers/**'
+      - '.github/rc1112/**'
+      - '.github/workflows/rc1577-pod-quality-audit-verify.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rc1577-pod-quality-audit-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+
+      - name: API-Abhängigkeiten installieren
+        run: npm install --prefix api --ignore-scripts --no-audit --no-fund --package-lock=false
+
+      - name: POD-Prüfung Verträge und Serverbericht
+        run: node --test test/rc1577-pod-quality-audit.test.mjs
+
+      - name: Aktuelles Drei-Umgebungen-Paket bauen
+        run: node .github/rc1112/build-three-env.mjs
+
+      - name: Playwright installieren
+        run: |
+          npm install --no-save @playwright/test@1.63.0
+          npx playwright install --with-deps chromium
+
+      - name: POD-Prüfung im echten Browser
+        env:
+          EXPORTHUB_E2E_STATIC: '1'
+          EXPORTHUB_E2E_ENTRY: /demo.html
+          EXPORTHUB_E2E_PUBLIC_ENV: testservice
+        run: npx playwright test e2e/specs/rc1577-pod-quality-audit.spec.mjs --project=laptop
+
+      - name: Browser-Fehlerartefakte hochladen
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: rc1577-pod-quality-audit
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: ignore

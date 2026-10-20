@@ -129,7 +129,7 @@ async function renderCustomerFolder(customer,r){
  var old=d.getElementById('rc1160CustomerFolderPortal');if(old)old.remove();
  var box=d.createElement('section');box.id='rc1160CustomerFolderPortal';box.className='rc1160-box';box.innerHTML='<div class="rc1160-head"><div><h3>'+th('portal.title')+'</h3><div class="rc1160-muted">'+th('portal.storageHelp')+'</div></div><span data-rc1162-readiness><span class="rc1160-badge">'+th('portal.checking')+'</span></span>'+(r.manage?'<button class="btn primary" data-add>'+th('portal.add')+'</button>':'')+'</div><div data-ready-hint></div><div data-body class="rc1160-muted">'+th('portal.loading')+'</div>';root.appendChild(box);
  var seq=++loadSeq;
- try{var results=await Promise.all([portalApi('list',{customerId:customerId(customer)}),portalApi('status',{})]),data=results[0],ready=results[1];if(seq!==loadSeq||customerId(customer)!==customerId(selectedCustomer()))return;var portals=arr(data.portals),body=box.querySelector('[data-body]'),badge=box.querySelector('[data-rc1162-readiness]'),hint=box.querySelector('[data-ready-hint]');if(badge)badge.innerHTML=readinessBadge(ready,r.manage);if(hint)hint.innerHTML=readinessHint(ready,r.manage);body.className='';body.innerHTML=portalRows(customer,portals,r.manage,ready.configured===true);wirePortalBox(box,customer,portals,r.manage,function(){schedule(true)});var add=box.querySelector('[data-add]');if(add){add.disabled=ready.configured!==true;if(add.disabled)add.title=tr('portal.encryptionNotReady');add.addEventListener('click',function(){portalForm(customer,null,function(){schedule(true)})})}}
+ try{var results=await loadPortals(customer),data=results[0],ready=results[1];if(seq!==loadSeq||customerId(customer)!==customerId(selectedCustomer()))return;var portals=arr(data.portals),body=box.querySelector('[data-body]'),badge=box.querySelector('[data-rc1162-readiness]'),hint=box.querySelector('[data-ready-hint]');if(badge)badge.innerHTML=readinessBadge(ready,r.manage);if(hint)hint.innerHTML=readinessHint(ready,r.manage);body.className='';body.innerHTML=portalRows(customer,portals,r.manage,ready.configured===true);wirePortalBox(box,customer,portals,r.manage,function(){schedule(true)});var add=box.querySelector('[data-add]');if(add){add.disabled=ready.configured!==true;if(add.disabled)add.title=tr('portal.encryptionNotReady');add.addEventListener('click',function(){portalForm(customer,null,function(){schedule(true)})})}}
  catch(e){var body=box.querySelector('[data-body]');if(body)body.textContent=e.message||tr('portal.loadFailed')}
 }
 async function renderShipment(customer,r){
@@ -137,7 +137,7 @@ async function renderShipment(customer,r){
  var old=d.getElementById('rc1160ShipmentPortal');if(old)old.remove();
  var box=d.createElement('section');box.id='rc1160ShipmentPortal';box.className='rc1160-box';box.innerHTML='<div class="rc1160-head"><div><h3>'+th('portal.title')+'</h3><div class="rc1160-muted">'+th('portal.shipmentHelp')+'</div></div><span data-rc1162-readiness><span class="rc1160-badge">'+th('portal.checking')+'</span></span></div><div data-ready-hint></div><div data-body class="rc1160-muted">'+th('portal.loading')+'</div>';host.appendChild(box);
  var seq=++loadSeq;
- try{var results=await Promise.all([portalApi('list',{customerId:customerId(customer)}),portalApi('status',{})]),data=results[0],ready=results[1];if(seq!==loadSeq||customerId(customer)!==customerId(selectedCustomer()))return;var portals=arr(data.portals).filter(function(p){return p.active!==false}),body=box.querySelector('[data-body]'),badge=box.querySelector('[data-rc1162-readiness]'),hint=box.querySelector('[data-ready-hint]');if(badge)badge.innerHTML=readinessBadge(ready,false);if(hint)hint.innerHTML=readinessHint(ready,false);body.className='';body.innerHTML=portalRows(customer,portals,false,ready.configured===true);wirePortalBox(box,customer,portals,false,function(){schedule(true)})}
+ try{var results=await loadPortals(customer),data=results[0],ready=results[1];if(seq!==loadSeq||customerId(customer)!==customerId(selectedCustomer()))return;var portals=arr(data.portals).filter(function(p){return p.active!==false}),body=box.querySelector('[data-body]'),badge=box.querySelector('[data-rc1162-readiness]'),hint=box.querySelector('[data-ready-hint]');if(badge)badge.innerHTML=readinessBadge(ready,false);if(hint)hint.innerHTML=readinessHint(ready,false);body.className='';body.innerHTML=portalRows(customer,portals,false,ready.configured===true);wirePortalBox(box,customer,portals,false,function(){schedule(true)})}
  catch(e){var body=box.querySelector('[data-body]');if(body)body.textContent=e.message||tr('portal.loadFailed')}
 }
 async function renderRights(){
@@ -156,6 +156,10 @@ async function renderRights(){
   sync()
  }catch(e){var body=box.querySelector('[data-body]');if(body)body.textContent=e.message||tr('portal.userRightsLoadFailed')}
 }
+/* Fehlerdiagnose: Jedes exporthub:rendered löste zwei langsame Portal-Abfragen (je 1,8-5 s) aus, auch wenn Kunde und Ansicht gleich blieben. Ergebnisse gelten jetzt 60 Sekunden pro Kunde; Bearbeiten im Dialog lädt bewusst neu. */
+var portalCache={key:'',at:0,promise:null},PORTAL_CACHE_MS=60000;
+function loadPortals(customer){var key=customerId(customer),now=Date.now();if(portalCache.promise&&portalCache.key===key&&now-portalCache.at<PORTAL_CACHE_MS)return portalCache.promise;var promise=Promise.all([portalApi('list',{customerId:key}),portalApi('status',{})]);portalCache={key:key,at:now,promise:promise};promise.catch(function(){if(portalCache.promise===promise)portalCache={key:'',at:0,promise:null}});return promise}
+function boxMounted(){var v=view();if(v==='customerfolder'||v==='customers')return !!d.getElementById('rc1160CustomerFolderPortal');if(v==='shipment')return !!d.getElementById('rc1160ShipmentPortal');if(v==='rights'||v==='benutzer'||v==='users')return !!d.getElementById('rc1160PortalRights');return true}
 function removeBoxes(){['rc1160CustomerFolderPortal','rc1160ShipmentPortal','rc1160PortalRights'].forEach(function(id){var n=d.getElementById(id);if(n)n.remove()})}
 function contextKey(){var c=selectedCustomer();return view()+'|'+customerId(c)+'|'+JSON.stringify(rights())}
 function schedule(force){
@@ -166,13 +170,16 @@ function schedule(force){
   if(sameRevealCustomer&&sameRevealView){lastContext=key||lastContext;return}
  }
  if(!force&&sameContext)return;
+ if(force==='event'&&sameContext&&boxMounted())return;
+ if(force===true)portalCache={key:'',at:0,promise:null};
  lastContext=key;clearRevealedSecrets();removeBoxes();
  var r=rights(),v=view(),c=selectedCustomer();if(!r.use)return;
  if((v==='customerfolder'||v==='customers')&&c)renderCustomerFolder(c,r);
  if(v==='shipment'&&c)renderShipment(c,r);
  if((v==='rights'||v==='benutzer'||v==='users')&&globalAdmin(user()))renderRights()
 }
-['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded','exporthub:customer-changed','exporthub:language-changed'].forEach(function(name){try{w.addEventListener(name,function(){schedule(true)})}catch(_){}});
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded','exporthub:customer-changed'].forEach(function(name){try{w.addEventListener(name,function(){schedule('event')})}catch(_){}});
+try{w.addEventListener('exporthub:language-changed',function(){schedule('render')})}catch(_){}
 w.addEventListener('pagehide',clearRevealedSecrets);w.addEventListener('beforeunload',clearRevealedSecrets);
 d.addEventListener('click',function(e){var t=e.target&&e.target.closest&&e.target.closest('button,a');if(t&&/abmelden|logout|konto wechseln/i.test(q(t.textContent)))clearRevealedSecrets()},true);
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',function(){schedule(true)},{once:true});else schedule(true);

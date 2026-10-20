@@ -78,17 +78,17 @@ test('RC1434: Outlook-Runtime ist syntaktisch gültig',()=>{
 
 test('RC1166: sichere Avis-Links werden nur vor Abholung und nicht für Ausnahmekunden angeboten',()=>{
   const api=load();
-  assert.equal(api.avisLink({reference:'ABC123',customerName:'Testkunde',testAvisLink:'https://example.test/customer-avis.html?token=abc'}),'https://exporthub360.com/avis/abc');
+  assert.equal(api.avisLink({reference:'ABC123',customerName:'Testkunde',testAvisLink:'https://example.test/customer-avis.html?token=abc'}),'https://www.exporthub360.de/avis/abc');
   assert.equal(api.avisLink({reference:'ABC123',customerName:'BMP',testAvisLink:'https://example.test/customer-avis.html?token=abc'}),'');
   assert.equal(api.avisLink({reference:'ABC123',customerName:'Böllhof',testAvisLink:'https://example.test/customer-avis.html?token=abc'}),'');
   assert.equal(api.avisLink({reference:'ABC123',status:'Abgeholt',testAvisLink:'https://example.test/customer-avis.html?token=abc'}),'');
 });
 
 
-test('RC1545: gespeicherter .com-Avis-Link bleibt kanonisch auf .com',()=>{
+test('RC1400: gespeicherter alter .com-Avis-Link wird in der Oberfläche zwingend auf .de normalisiert',()=>{
   const api=load();
   const sh={reference:'ABC123',customerName:'Testkunde',customerAvisUrl:'https://exporthub360.com/avis/legacy-token'};
-  assert.equal(api.avisLink(sh),'https://exporthub360.com/avis/legacy-token');
+  assert.equal(api.avisLink(sh),'https://www.exporthub360.de/avis/legacy-token');
 });
 test('RC1166: Kunde und Spedition erhalten getrennte hinterlegte Empfänger',()=>{
   const state={customers:[{

@@ -18,9 +18,9 @@ function allowed(user){
 function validEmail(v){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text(v))}
 function configuredAvisMailSender(){return text(process.env.EXPORTHUB_AVIS_MAIL_SENDER||DEFAULT_AVIS_MAIL_SENDER)}
 function avisRecipientExcluded(v){return lower(v)==='dispo@holenstein.de'}
-const PRODUCTION_PUBLIC_HOST='exporthub360.com';
-const LEGACY_BRANDED_PRODUCTION_PUBLIC_HOST='www.exporthub360.de';
-const LEGACY_COM_PRODUCTION_PUBLIC_HOST='exporthub360.de';
+const PRODUCTION_PUBLIC_HOST='www.exporthub360.de';
+const LEGACY_BRANDED_PRODUCTION_PUBLIC_HOST='exporthub360.de';
+const LEGACY_COM_PRODUCTION_PUBLIC_HOST='exporthub360.com';
 const LEGACY_COM_WWW_PRODUCTION_PUBLIC_HOST='www.exporthub360.com';
 function isBrandedProductionHost(host){return host===PRODUCTION_PUBLIC_HOST||host===LEGACY_BRANDED_PRODUCTION_PUBLIC_HOST||host===LEGACY_COM_PRODUCTION_PUBLIC_HOST||host===LEGACY_COM_WWW_PRODUCTION_PUBLIC_HOST}
 const LEGACY_PRODUCTION_PUBLIC_HOST=lower(process.env.EXPORTHUB_LEGACY_PRODUCTION_PUBLIC_HOST||'wonderful-forest-0f315e310.7.azurestaticapps.net');

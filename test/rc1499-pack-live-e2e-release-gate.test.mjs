@@ -30,11 +30,12 @@ test('RC1499: TESTSERVICE-Fixture erzeugt pro Release einen nur gehasht gespeich
   assert.doesNotMatch(fixture,/station\s*:\s*\{[\s\S]{0,500}\btoken\s*:\s*packStationToken/,'roher Packtisch-Token darf nicht im Team-State gespeichert werden');
 });
 
-test('RC1513: TESTSERVICE-Fixture erfüllt den Root-Token-Vertrag des Release-Gates',()=>{
+test('RC1513/RC1520: TESTSERVICE-Fixture behält Root-Token und nutzt das User-Feld im Browser-Gate',()=>{
   const fixture=read(fixturePath),workflow=read(mainWorkflowPath);
   const gate=stepBlock(workflow,'RC1124 TESTSERVICE Browser Gate','RC1124 TESTSERVICE Browser-Artefakte');
-  assert.match(gate,/v\._e2ePackStationToken/,'Release-Gate erwartet den Packtisch-Token nicht am dokumentierten Root-Feld');
-  assert.match(fixture,/runId,_e2ePackStationToken\s*:\s*pack\.packStationToken,token:adminSession\.token/,'Fixture liefert den vom Release-Gate erwarteten Root-Token nicht');
+  assert.match(gate,/v\.user\s*&&\s*v\.user\._e2ePackStationToken/,'Browser-Gate muss den Token aus prepared.user lesen');
+  assert.match(fixture,/runId,_e2ePackStationToken\s*:\s*pack\.packStationToken,token:adminSession\.token/,'Fixture muss den Root-Token als Kompatibilitätsfeld weiterliefern');
+  assert.match(fixture,/const e2eAdminUser=Object\.assign\(\{\},publicUser\(user,false\),\{_e2ePackStationToken:pack\.packStationToken\}\)/,'Fixture muss den User-Token bereitstellen');
 });
 
 test('RC1499: Fixture-Cleanup entfernt Packstation, Sessions, Entwürfe, Packmeldungen und projizierte Aufgaben',()=>{
@@ -71,6 +72,12 @@ test('RC1505/RC1499: echter Packmeldungsfluss läuft im mutierenden TESTSERVICE-
   assert.match(helper,/packSaveDraft/,'Entwurfsspeicherung fehlt im Livefluss');
   assert.match(helper,/packSubmit/,'finales Übermitteln fehlt im Livefluss');
   assert.match(helper,/data-pack-action="shipment"/,'Sendungs-Handoff fehlt im Livefluss');
+});
+
+test('RC1520: TESTSERVICE-Gate liest den Packtisch-Token aus dem Fixture-Uservertrag',()=>{
+  const workflow=read(mainWorkflowPath);
+  const gate=stepBlock(workflow,'RC1124 TESTSERVICE Browser Gate','RC1124 TESTSERVICE Browser-Artefakte');
+  assert.match(gate,/v\.user\s*&&\s*v\.user\._e2ePackStationToken/,'Workflow liest den Packtisch-Token nicht aus prepared.user._e2ePackStationToken');
 });
 
 test('RC1507: Pack-Live-Gate prüft den Ablauf ohne lokalisierte Anzeige-Texte',()=>{

@@ -1,0 +1,68 @@
+{
+  "de": {
+    "api.packaging.methodNotAllowed": "Nur POST ist erlaubt.",
+    "api.packaging.adminRequired": "Nur Administratoren dürfen Verpackungen verwalten.",
+    "api.packaging.invalidAction": "Unbekannte Verpackungs-Aktion.",
+    "api.packaging.serverError": "Verpackungen konnten nicht verwaltet werden.",
+    "api.packaging.timeInvalid": "Ungültiger Zeitpunkt.",
+    "api.packaging.notFound": "Verpackung wurde nicht gefunden.",
+    "api.packaging.nameRequired": "Bezeichnung der Verpackung fehlt.",
+    "api.packaging.nameExists": "Eine Verpackung mit dieser Bezeichnung existiert bereits.",
+    "api.packaging.codeExists": "Eine Verpackung mit diesem Code existiert bereits."
+  },
+  "en": {
+    "api.packaging.methodNotAllowed": "Only POST is allowed.",
+    "api.packaging.adminRequired": "Only administrators may manage packaging.",
+    "api.packaging.invalidAction": "Unknown packaging action.",
+    "api.packaging.serverError": "Packaging could not be managed.",
+    "api.packaging.timeInvalid": "Invalid timestamp.",
+    "api.packaging.notFound": "Packaging was not found.",
+    "api.packaging.nameRequired": "Packaging name is required.",
+    "api.packaging.nameExists": "Packaging with this name already exists.",
+    "api.packaging.codeExists": "Packaging with this code already exists."
+  },
+  "pl": {
+    "api.packaging.methodNotAllowed": "Dozwolona jest tylko metoda POST.",
+    "api.packaging.adminRequired": "Tylko administratorzy mogą zarządzać opakowaniami.",
+    "api.packaging.invalidAction": "Nieznana akcja dotycząca opakowania.",
+    "api.packaging.serverError": "Nie udało się zarządzać opakowaniami.",
+    "api.packaging.timeInvalid": "Nieprawidłowy znacznik czasu.",
+    "api.packaging.notFound": "Nie znaleziono opakowania.",
+    "api.packaging.nameRequired": "Nazwa opakowania jest wymagana.",
+    "api.packaging.nameExists": "Opakowanie o tej nazwie już istnieje.",
+    "api.packaging.codeExists": "Opakowanie o tym kodzie już istnieje."
+  },
+  "es": {
+    "api.packaging.methodNotAllowed": "Solo se permite POST.",
+    "api.packaging.adminRequired": "Solo los administradores pueden gestionar los embalajes.",
+    "api.packaging.invalidAction": "Acción de embalaje desconocida.",
+    "api.packaging.serverError": "No se pudieron gestionar los embalajes.",
+    "api.packaging.timeInvalid": "Marca de tiempo no válida.",
+    "api.packaging.notFound": "No se encontró el embalaje.",
+    "api.packaging.nameRequired": "La denominación del embalaje es obligatoria.",
+    "api.packaging.nameExists": "Ya existe un embalaje con esta denominación.",
+    "api.packaging.codeExists": "Ya existe un embalaje con este código."
+  },
+  "fr": {
+    "api.packaging.methodNotAllowed": "Seule la méthode POST est autorisée.",
+    "api.packaging.adminRequired": "Seuls les administrateurs peuvent gérer les emballages.",
+    "api.packaging.invalidAction": "Action d’emballage inconnue.",
+    "api.packaging.serverError": "Les emballages n’ont pas pu être gérés.",
+    "api.packaging.timeInvalid": "Horodatage non valide.",
+    "api.packaging.notFound": "L’emballage est introuvable.",
+    "api.packaging.nameRequired": "Le nom de l’emballage est obligatoire.",
+    "api.packaging.nameExists": "Un emballage portant ce nom existe déjà.",
+    "api.packaging.codeExists": "Un emballage portant ce code existe déjà."
+  },
+  "it": {
+    "api.packaging.methodNotAllowed": "È consentito solo POST.",
+    "api.packaging.adminRequired": "Solo gli amministratori possono gestire gli imballaggi.",
+    "api.packaging.invalidAction": "Azione di imballaggio sconosciuta.",
+    "api.packaging.serverError": "Non è stato possibile gestire gli imballaggi.",
+    "api.packaging.timeInvalid": "Data e ora non valide.",
+    "api.packaging.notFound": "Imballaggio non trovato.",
+    "api.packaging.nameRequired": "Il nome dell’imballaggio è obbligatorio.",
+    "api.packaging.nameExists": "Esiste già un imballaggio con questo nome.",
+    "api.packaging.codeExists": "Esiste già un imballaggio con questo codice."
+  }
+}
