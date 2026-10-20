@@ -47,3 +47,14 @@ test('unrelated translation keys on minified lines do not become visible-key hit
   assert.equal(scan("nav.textContent=nav.textContent.replace(/\\s*settings.reset/g,'');").length,0);
   assert.equal(scan("const key='common.save'; panel.textContent='Finished';").length,0);
 });
+
+test('German candidates remain reviewable and have explicit evidence groups',()=>{
+  const classify=sandbox.candidateCategory;
+  assert.equal(typeof classify,'function');
+  const diagnostic="throw new Error('Keine Anmeldung');";
+  assert.equal(classify(diagnostic,{value:'Keine Anmeldung',position:diagnostic.indexOf('Keine Anmeldung')}),'technical_or_diagnostic_review');
+  const html="root.innerHTML='<button>Sendung speichern</button>';";
+  assert.equal(classify(html,{value:'<button>Sendung speichern</button>',position:html.indexOf('<button>')}),'html_template_review');
+  const uncertain="const lookup='Empfänger';";
+  assert.equal(classify(uncertain,{value:'Empfänger',position:uncertain.indexOf('Empfänger')}),'context_required');
+});
