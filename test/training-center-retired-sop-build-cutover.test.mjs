@@ -20,7 +20,7 @@ test('RC1013, RC1016, RC1018 and RC1112 keep their verified historical contracts
 test('the new Training Center package removes all retired SOP scripts, styles and asset files after historical builder',()=>{
   const src=read('.github/training-center/build-three-env.mjs');
   assert.match(src,/removeRetiredSopTagsFromBuild/);
-  assert.match(src,/injectTrainingCenter\(removeRetiredSopTagsFromBuild\(current,file\),file\)/);
+  assert.match(src,/injectTrainingCenter\(replaceLegacySopRendererInBuild\(removeRetiredSopTagsFromBuild\(current,file\),file\),file\)/);
   assert.match(src,/fs\.rmSync\(path\.join\(out,'assets','sop'\)/);
   assert.match(src,/assertPackage\(out\)/);
 });

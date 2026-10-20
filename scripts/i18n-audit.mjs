@@ -3,6 +3,9 @@ import path from 'node:path';
 import vm from 'node:vm';
 
 const ROOT=process.cwd();
+const TRACE=process.env.EXPORTHUB_I18N_TRACE==='1';
+function diag(stage){if(TRACE)console.error('[I18N-AUDIT] '+stage+' heap='+Math.round(process.memoryUsage().heapUsed/1048576)+'MB')}
+diag('startup');
 const LANGS=['de','en','pl','es','fr','it'];
 const STRICT=process.argv.includes('--strict');
 const JSON_MODE=process.argv.includes('--json');
@@ -111,12 +114,18 @@ function keyAudit(packs){
   }
   return{baseKeyCount:base.length,issues}
 }
+diag('before packs and walk');
 const packs=loadPacks(),keys=keyAudit(packs),files=walk(SCOPE_ROOT),hardcoded=[],visibleKeys=[],apiDePath=path.join(ROOT,'api','shared','i18n','de.json'),apiDe=fs.existsSync(apiDePath)?JSON.parse(fs.readFileSync(apiDePath,'utf8')):{},featureGerman=loadFeatureGerman('assets/i18n/pack-notification.js','ExportHUBPackI18n'),trainingGerman=loadFeatureGerman('assets/training-center/i18n.js','ExportHubTrainingCenterI18n'),registeredGerman=new Set([...Object.values(packs.de),...Object.values(apiDe),...featureGerman,...trainingGerman].filter(v=>typeof v==='string'&&v.trim()));
+diag('scan begin '+files.length+' files');
+let scanN=0;
 for(const file of files){
+  if(TRACE)diag('START '+(++scanN)+' '+file.rel);
   const source=fs.readFileSync(file.abs,'utf8');
   hardcoded.push(...scanVisibleGerman(file,source,registeredGerman));
   visibleKeys.push(...scanVisibleKeys(file,source));
+  if(TRACE)diag('END '+file.rel+' hardcoded='+hardcoded.length);
 }
+diag('scanning done');
 const report={
   version:'RC1267',
   scope:SCOPE_REL||'.',
