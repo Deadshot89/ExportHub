@@ -57,7 +57,9 @@ test('RC1555 production smoke: verschachtelte POD-Abholkarten zeigen nur die neu
   const runtime=attachRuntimeGuards(page,testInfo);
   await installStaticApiFallback(page);
   await page.goto('/',{waitUntil:'domcontentloaded'});
-  await page.waitForFunction(()=>window.ExportHUBRC1305LoadingListPrint&&typeof window.ExportHUBRC1305LoadingListPrint.enhance==='function',null,{timeout:15_000});
+  // The base print runtime can load before the final RC1556/RC1561 print wrapper.
+  // Geometry must be measured against the fully installed production print runtime.
+  await page.waitForFunction(()=>window.ExportHUBRC1305LoadingListPrint?.__pickupNestedCleanupRC1556===true,null,{timeout:20_000});
   await page.emulateMedia({media:'print'});
 
   const layout=await page.evaluate(()=>{
@@ -81,8 +83,13 @@ test('RC1555 production smoke: verschachtelte POD-Abholkarten zeigen nur die neu
       signatureData:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Zl9sAAAAASUVORK5CYII=',
       pickupHistory:[{complete:true,driverName:'Max Fahrer',licensePlate:'KLE-RC1555',loaderName:'Live Verlader',confirmedAt:'2026-10-16T12:00:00.000Z'}]
     };
-    document.body.innerHTML=api.enhance(raw,shipment,true);
-    const root=document.querySelector('.rc390-load');
+    // Reproduce the actual print DOM hierarchy. A naked .rc390-load directly in
+    // document.body can be hidden by the production @media print view selectors,
+    // yielding a false 0px signature (blank screenshot) only in TESTSERVICE.
+    document.body.classList.add('print-rc390');
+    document.body.innerHTML='<main class="rc390-docview"><div class="rc390-bundle">'+api.enhance(raw,shipment,true)+'</div></main>';
+    const root=document.querySelector('.rc390-docview .rc390-bundle > .rc390-load');
+    if(!root)throw new Error('RC1555: Druckcontainer oder Ladeliste fehlt');
     const fields=Array.from(root.querySelectorAll('[data-rc1503-pickup-field]'));
     const visibleLegacy=Array.from(root.querySelectorAll('[data-rc1555-live-card="1"] .rc390-txt,[data-rc1555-live-card="1"] .rc352-txt')).filter(node=>getComputedStyle(node).display!=='none');
     const signature=root.querySelector('.rc1503-signature-value');
@@ -90,6 +97,7 @@ test('RC1555 production smoke: verschachtelte POD-Abholkarten zeigen nur die neu
     const cards=Array.from(root.querySelectorAll('[data-rc1555-live-card="1"]'));
     return {
       fieldCount:fields.length,
+      printRootHeight:root.getBoundingClientRect().height,
       outerCards:fields.every(field=>field.matches('.rc390-card,.rc352-card')),
       visibleLegacy:visibleLegacy.length,
       signatureHeight:signature?signature.getBoundingClientRect().height:0,
@@ -100,6 +108,7 @@ test('RC1555 production smoke: verschachtelte POD-Abholkarten zeigen nur die neu
   });
 
   expect(layout.fieldCount).toBe(6);
+  expect(layout.printRootHeight,'Der echte Ladelisten-Druckcontainer muss sichtbar sein').toBeGreaterThan(0);
   expect(layout.outerCards).toBe(true);
   expect(layout.visibleLegacy).toBe(0);
   expect(layout.signatureHeight).toBeGreaterThan(0);
