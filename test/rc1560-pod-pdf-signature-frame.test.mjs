@@ -27,11 +27,13 @@ test('RC1560: Palettenkonto steht im Europaletten-Feld unten rechts statt über 
   assert.match(card,/querySelectorAll\('\.rc929-proof-pallet'\)/,'Das vorhandene Feld unten rechts muss bevorzugt werden');
   assert.match(card,/closest\('\.rc1095-pallet-account'\)/,'Der alte Kopf-Hinweis darf nicht als Palettenfeld gelten');
   assert.match(card,/querySelectorAll\('\.rc1095-pallet-account'\)\)\.forEach\(function\(node\)\{node\.remove\(\)\}\)/,'Der alte Kopf-Hinweis muss entfernt werden');
-  assert.match(restore,/var palletCard=palletCardFor\(root\);putPalletBalance\(palletCard,palletAccount\)/);
+  assert.ok(restore.includes('var palletCard=palletCardFor(root);putPalletBalance(palletCard,palletAccount,sh)'));
   const put=wrapper.slice(wrapper.indexOf('function putPalletBalance('),wrapper.indexOf('function palletCardFor('));
-  assert.match(put,/label\.textContent='Palettenkonto \/ EUR pallet balance'/);
-  assert.match(put,/small\.textContent=movement/,'Ausgang/Eingang der Sendung bleibt als Zusatzzeile sichtbar');
-  assert.match(wrapper,/\.rc1560-pallet-movement\{display:block!important/);
+  assert.ok(put.includes("label.textContent='Palettenkonto / EUR pallets'"));
+  assert.ok(put.includes("row('Aktueller Stand / Balance'"));
+  assert.ok(put.includes("row('Eingang / Return'"));
+  assert.ok(!put.includes('small.textContent=movement'),'Keine alte Ausgang/Eingang-Bewegungszeile mehr');
+  assert.match(wrapper,/rc1580-pallet-write/);
 });
 
 test('RC1560: Browser-Regression läuft im POD-Workflow mit',()=>{
