@@ -1713,5 +1713,21 @@
   "emergency.pod.noZip": "No POD PDFs are available for ZIP export.",
   "emergency.pod.creatingZip": "Creating ZIP …",
   "emergency.pod.noticePrefix": "In the event of a system outage: select the folder",
-  "emergency.pod.noticeSuffix": "The PDFs saved there are complete loading lists bearing the driver's signature."
+  "emergency.pod.noticeSuffix": "The PDFs saved there are complete loading lists bearing the driver's signature.",
+  "legacyUi.audit.viewShipment": "View shipment",
+  "legacyUi.audit.rightsUnavailable": "User management unavailable",
+  "legacyUi.audit.rightsLoading": "Loading user management",
+  "legacyUi.audit.rightsServerFailed": "Secure server-side user management could not be loaded.",
+  "legacyUi.audit.notReleased": "NOT YET RELEASED",
+  "legacyUi.audit.weightKg": "Weight kg",
+  "legacyUi.audit.completions": "Completions",
+  "legacyUi.audit.noShipments": "No shipments found",
+  "legacyUi.audit.openTestService": "Open test service",
+  "legacyUi.audit.saveReconciliation": "Save reconciliation",
+  "legacyUi.audit.saveBooking": "Save booking",
+  "legacyUi.audit.loadingExportHub": "Loading ExportHUB …",
+  "legacyUi.audit.saveCustomerFolder": "Save customer folder",
+  "legacyUi.audit.loadingTeamData": "Loading Azure team data …",
+  "legacyUi.audit.savingAzure": "Saving to Azure …",
+  "legacyUi.audit.reworkRequired": "Follow-up required"
 }

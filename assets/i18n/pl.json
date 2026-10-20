@@ -1713,5 +1713,21 @@
   "emergency.pod.noZip": "Brak plików PDF POD do eksportu ZIP.",
   "emergency.pod.creatingZip": "Tworzenie pliku ZIP …",
   "emergency.pod.noticePrefix": "W razie awarii systemu: wybierz folder",
-  "emergency.pod.noticeSuffix": "Zapisane tam pliki PDF to kompletne listy załadunkowe z podpisem kierowcy."
+  "emergency.pod.noticeSuffix": "Zapisane tam pliki PDF to kompletne listy załadunkowe z podpisem kierowcy.",
+  "legacyUi.audit.viewShipment": "Zobacz przesyłkę",
+  "legacyUi.audit.rightsUnavailable": "Zarządzanie użytkownikami niedostępne",
+  "legacyUi.audit.rightsLoading": "Ładowanie zarządzania użytkownikami",
+  "legacyUi.audit.rightsServerFailed": "Nie udało się wczytać bezpiecznego zarządzania użytkownikami po stronie serwera.",
+  "legacyUi.audit.notReleased": "JESZCZE NIE ZATWIERDZONO",
+  "legacyUi.audit.weightKg": "Waga kg",
+  "legacyUi.audit.completions": "Ukończenia",
+  "legacyUi.audit.noShipments": "Nie znaleziono przesyłek",
+  "legacyUi.audit.openTestService": "Otwórz usługę testową",
+  "legacyUi.audit.saveReconciliation": "Zapisz uzgodnienie",
+  "legacyUi.audit.saveBooking": "Zapisz księgowanie",
+  "legacyUi.audit.loadingExportHub": "Ładowanie ExportHUB …",
+  "legacyUi.audit.saveCustomerFolder": "Zapisz folder klienta",
+  "legacyUi.audit.loadingTeamData": "Ładowanie danych zespołu z Azure …",
+  "legacyUi.audit.savingAzure": "Trwa zapisywanie w Azure …",
+  "legacyUi.audit.reworkRequired": "Wymagana dalsza obróbka"
 }

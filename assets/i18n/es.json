@@ -1713,5 +1713,21 @@
   "emergency.pod.noZip": "No hay archivos PDF de POD para exportar como ZIP.",
   "emergency.pod.creatingZip": "Creando ZIP …",
   "emergency.pod.noticePrefix": "En caso de fallo del sistema: selecciona la carpeta",
-  "emergency.pod.noticeSuffix": "Los PDF guardados allí son listas de carga completas con la firma del conductor."
+  "emergency.pod.noticeSuffix": "Los PDF guardados allí son listas de carga completas con la firma del conductor.",
+  "legacyUi.audit.viewShipment": "Ver envío",
+  "legacyUi.audit.rightsUnavailable": "Administración de usuarios no disponible",
+  "legacyUi.audit.rightsLoading": "Cargando administración de usuarios",
+  "legacyUi.audit.rightsServerFailed": "No se pudo cargar la administración segura de usuarios del servidor.",
+  "legacyUi.audit.notReleased": "AÚN NO PUBLICADO",
+  "legacyUi.audit.weightKg": "Peso kg",
+  "legacyUi.audit.completions": "Finalizaciones",
+  "legacyUi.audit.noShipments": "No se encontraron envíos",
+  "legacyUi.audit.openTestService": "Abrir entorno de pruebas",
+  "legacyUi.audit.saveReconciliation": "Guardar conciliación",
+  "legacyUi.audit.saveBooking": "Guardar registro",
+  "legacyUi.audit.loadingExportHub": "Cargando ExportHUB …",
+  "legacyUi.audit.saveCustomerFolder": "Guardar carpeta de cliente",
+  "legacyUi.audit.loadingTeamData": "Cargando datos del equipo de Azure …",
+  "legacyUi.audit.savingAzure": "Guardando en Azure …",
+  "legacyUi.audit.reworkRequired": "Requiere revisión"
 }

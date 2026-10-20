@@ -1713,5 +1713,21 @@
   "emergency.pod.noZip": "Aucun PDF POD n'est disponible pour l'export ZIP.",
   "emergency.pod.creatingZip": "Création du ZIP …",
   "emergency.pod.noticePrefix": "En cas de panne du système : sélectionnez le dossier",
-  "emergency.pod.noticeSuffix": "Les PDF enregistrés sont des listes de chargement complètes portant la signature du chauffeur."
+  "emergency.pod.noticeSuffix": "Les PDF enregistrés sont des listes de chargement complètes portant la signature du chauffeur.",
+  "legacyUi.audit.viewShipment": "Voir l'expédition",
+  "legacyUi.audit.rightsUnavailable": "Gestion des utilisateurs indisponible",
+  "legacyUi.audit.rightsLoading": "Chargement de la gestion des utilisateurs",
+  "legacyUi.audit.rightsServerFailed": "Impossible de charger la gestion sécurisée des utilisateurs côté serveur.",
+  "legacyUi.audit.notReleased": "PAS ENCORE PUBLIÉ",
+  "legacyUi.audit.weightKg": "Poids kg",
+  "legacyUi.audit.completions": "Achèvements",
+  "legacyUi.audit.noShipments": "Aucune expédition trouvée",
+  "legacyUi.audit.openTestService": "Ouvrir le service de test",
+  "legacyUi.audit.saveReconciliation": "Enregistrer le rapprochement",
+  "legacyUi.audit.saveBooking": "Enregistrer l'écriture",
+  "legacyUi.audit.loadingExportHub": "Chargement d'ExportHUB …",
+  "legacyUi.audit.saveCustomerFolder": "Enregistrer le dossier client",
+  "legacyUi.audit.loadingTeamData": "Chargement des données de l'équipe Azure …",
+  "legacyUi.audit.savingAzure": "Enregistrement dans Azure …",
+  "legacyUi.audit.reworkRequired": "Reprise nécessaire"
 }

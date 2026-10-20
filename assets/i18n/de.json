@@ -1713,5 +1713,21 @@
   "emergency.pod.noZip": "Keine POD-PDFs für ZIP vorhanden.",
   "emergency.pod.creatingZip": "ZIP wird erstellt …",
   "emergency.pod.noticePrefix": "Bei Systemausfall: den Ordner",
-  "emergency.pod.noticeSuffix": "Die darin gespeicherten PDFs sind vollständige Ladelisten mit Fahrerunterschrift."
+  "emergency.pod.noticeSuffix": "Die darin gespeicherten PDFs sind vollständige Ladelisten mit Fahrerunterschrift.",
+  "legacyUi.audit.viewShipment": "Sendung ansehen",
+  "legacyUi.audit.rightsUnavailable": "Benutzerverwaltung nicht verfügbar",
+  "legacyUi.audit.rightsLoading": "Benutzerverwaltung wird geladen",
+  "legacyUi.audit.rightsServerFailed": "Die sichere serverseitige Benutzerverwaltung konnte nicht geladen werden.",
+  "legacyUi.audit.notReleased": "NOCH NICHT FREIGEGEBEN",
+  "legacyUi.audit.weightKg": "Gewicht kg",
+  "legacyUi.audit.completions": "Abschlüsse",
+  "legacyUi.audit.noShipments": "Keine Sendungen gefunden",
+  "legacyUi.audit.openTestService": "Testservice öffnen",
+  "legacyUi.audit.saveReconciliation": "Abgleich speichern",
+  "legacyUi.audit.saveBooking": "Buchung speichern",
+  "legacyUi.audit.loadingExportHub": "ExportHUB wird geladen …",
+  "legacyUi.audit.saveCustomerFolder": "Kundenordner speichern",
+  "legacyUi.audit.loadingTeamData": "Azure-Teamdaten werden geladen …",
+  "legacyUi.audit.savingAzure": "Speicherung in Azure läuft …",
+  "legacyUi.audit.reworkRequired": "Nachbearbeitung erforderlich"
 }
