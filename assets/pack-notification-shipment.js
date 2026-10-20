@@ -14,9 +14,24 @@
     const n=notification||{},count=Math.max(1,Number(n.packageCount)||arr(n.packages).length||1),weight=Number(n.totalWeight)||0,perWeight=count?weight/count:weight;
     return{
       packNotificationId:q(n.id),packNotificationRef:q(n.reference),customerName:q(n.customer),customerId:q(n.customerId),customerAccount:q(n.customerAccount),customerSource:q(n.customerSource)||'manual',deliveryNoteReference:q(n.deliveryNoteReference),packageType:q(n.packageType),packageCount:count,totalWeight:weight,note:q(n.note),
-      rows:arr(n.packages).map((p,index)=>({count:1,packaging:q(n.packageType),l:Number(p&&p.length)||0,w:Number(p&&p.width)||0,h:Number(p&&p.height)||0,weight:perWeight,packageNo:Number(p&&p.packageNo)||index+1})),
+      rows:arr(n.packages).map((p,index)=>({count:1,packaging:q(p&&p.packagingType)||q(n.packageType),l:Number(p&&p.length)||0,w:Number(p&&p.width)||0,h:Number(p&&p.height)||0,weight:perWeight,packageNo:Number(p&&p.packageNo)||index+1})),
       deliveryFiles:arr(n.documents).map(doc=>Object.assign({},doc,{customerVisible:false,customerAvisVisible:false,source:'pack_notification',packNotificationId:q(n.id),packNotificationRef:q(n.reference)}))
     };
+  }
+  function shipmentRows(prefill){
+    const groups=[];
+    for(const row of arr(prefill&&prefill.rows)){
+      const last=groups[groups.length-1];
+      if(last&&last.type===row.packaging&&last.l===row.l&&last.w===row.w&&last.h===row.h){last.count+=1;continue;}
+      groups.push({type:q(row.packaging),count:1,l:row.l,w:row.w,h:row.h,weight:0});
+    }
+    const total=Number(prefill&&prefill.totalWeight)||0,pieces=groups.reduce((sum,g)=>sum+g.count,0);
+    let assigned=0;
+    groups.forEach((g,index)=>{
+      if(index===groups.length-1){g.weight=Math.round((total-assigned)*10)/10;return;}
+      g.weight=pieces?Math.round(total*g.count/pieces*10)/10:0;assigned+=g.weight;
+    });
+    return groups;
   }
   function findShipmentForNotification(state,notification){
     const n=notification||{},wanted=q(n.shipmentId),nid=q(n.id),nref=q(n.reference);
@@ -118,16 +133,27 @@
       if(manualWithoutIdentity)nativeValue(customer,prefill.customerName);
       else{nativeSet(customer,prefill.customerName);try{customer.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',code:'Enter',bubbles:true}));}catch(_){}}
     }
-    const rows=Array.from(doc.querySelectorAll('#rc573ColliCard .rc363-owned-row'));
-    const first=rows[0];if(first){
-      const set=(field,value)=>nativeSet(first.querySelector(`[data-rc363-field="${field}"] input`),value);
-      set('count',prefill.packageCount);const p=prefill.rows[0]||{};set('l',p.l||'');set('w',p.w||'');set('h',p.h||'');set('weight',prefill.totalWeight||'');
-    }
+    applyRowsToMountedForm(doc,shipmentRows(prefill));
     const state=sharedState(),draft=state.shipment||state.currentShipment||state.selectedShipment;if(draft&&typeof draft==='object'){
       if(manualWithoutIdentity&&prefill.customerName)draft.customerSearch=prefill.customerName;
       draft.packNotificationId=prefill.packNotificationId;draft.packNotificationRef=prefill.packNotificationRef;draft.packNotificationCustomer={id:prefill.customerId,account:prefill.customerAccount,name:prefill.customerName,source:prefill.customerSource};draft.packNotificationPrefill={deliveryNoteReference:prefill.deliveryNoteReference,packageType:prefill.packageType,packageCount:prefill.packageCount,totalWeight:prefill.totalWeight,rows:prefill.rows,note:prefill.note};
       draft.deliveryFiles=mergeDocuments(draft.deliveryFiles,prefill.deliveryFiles);
     }
+    return true;
+  }
+  function applyRowsToMountedForm(doc,plan){
+    const api=root.ExportHUBShipment420,nodes=()=>Array.from(doc.querySelectorAll('#rc573ColliCard .rc363-owned-row'));
+    plan.forEach((row,index)=>{
+      if(!nodes()[index]&&api&&typeof api.addRow==='function')api.addRow();
+      const node=nodes()[index];if(!node)return;
+      const select=node.querySelector('[data-rc363-field="type"] select');
+      if(row.type&&api&&typeof api.updateRow==='function'&&q(select&&select.value)!==row.type)api.updateRow(index,'type',row.type,select||node);
+      const set=(field,value)=>nativeSet(node.querySelector(`[data-rc363-field="${field}"] input`),value);
+      set('count',row.count);set('l',row.l||'');set('w',row.w||'');set('h',row.h||'');
+      const weight=node.querySelector('[data-rc363-field="weight"] input');
+      if(api&&typeof api.updateRow==='function'){api.updateRow(index,'weight',row.weight||'',weight||node);nativeValue(weight,row.weight||'');}
+      else set('weight',row.weight||'');
+    });
     return true;
   }
   function waitForShipmentForm(prefill,attempt=0,settleAttempt=0,lastCustomer=null){
@@ -185,6 +211,6 @@
     scheduleSync();return true;
   }
 
-  root.ExportHUBPackShipment=Object.freeze({shipmentPrefill,findShipmentForNotification,linkShipment,statusFromShipment,syncStatuses,begin,applyPrefillToMountedForm,install});
+  root.ExportHUBPackShipment=Object.freeze({shipmentPrefill,shipmentRows,findShipmentForNotification,linkShipment,statusFromShipment,syncStatuses,begin,applyPrefillToMountedForm,install});
   install();
 })(typeof window!=='undefined'?window:globalThis);
