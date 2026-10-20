@@ -33,5 +33,14 @@
   "packaging.masterdata.empty": "Ningún embalaje coincide con la selección actual.",
   "packaging.masterdata.loading": "Cargando embalajes …",
   "packaging.masterdata.failed": "No se pudieron procesar los embalajes.",
-  "packaging.masterdata.adminOnly": "Esta gestión de datos maestros solo está disponible para administradores."
+  "packaging.masterdata.adminOnly": "Esta gestión de datos maestros solo está disponible para administradores.",
+  "packaging.masterdata.dimensions": "Medidas estándar L × A × H",
+  "packaging.masterdata.length": "Longitud (cm)",
+  "packaging.masterdata.width": "Anchura (cm)",
+  "packaging.masterdata.height": "Altura (cm)",
+  "packaging.masterdata.ldm": "Metros de carga (LDM)",
+  "packaging.masterdata.dimensionsFixed": "Las medidas normalizadas son fijas y no se pueden cambiar.",
+  "packaging.masterdata.dimensionsInvalid": "Las medidas y los metros de carga deben ser números positivos.",
+  "packaging.masterdata.demoNote": "Demo: los cambios solo se aplican a esta pestaña del navegador y no se guardan.",
+  "packaging.masterdata.duplicateName": "Ya existe un embalaje con este nombre o código."
 }

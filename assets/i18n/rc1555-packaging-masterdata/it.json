@@ -33,5 +33,14 @@
   "packaging.masterdata.empty": "Nessun imballaggio corrisponde alla selezione corrente.",
   "packaging.masterdata.loading": "Caricamento imballaggi …",
   "packaging.masterdata.failed": "Non è stato possibile elaborare gli imballaggi.",
-  "packaging.masterdata.adminOnly": "Questa gestione dei dati anagrafici è disponibile solo per gli amministratori."
+  "packaging.masterdata.adminOnly": "Questa gestione dei dati anagrafici è disponibile solo per gli amministratori.",
+  "packaging.masterdata.dimensions": "Dimensioni standard L × P × H",
+  "packaging.masterdata.length": "Lunghezza (cm)",
+  "packaging.masterdata.width": "Larghezza (cm)",
+  "packaging.masterdata.height": "Altezza (cm)",
+  "packaging.masterdata.ldm": "Metri di carico (LDM)",
+  "packaging.masterdata.dimensionsFixed": "Le dimensioni normalizzate sono fisse e non possono essere modificate.",
+  "packaging.masterdata.dimensionsInvalid": "Dimensioni e metri di carico devono essere numeri positivi.",
+  "packaging.masterdata.demoNote": "Demo: le modifiche valgono solo per questa scheda del browser e non vengono salvate.",
+  "packaging.masterdata.duplicateName": "Esiste già un imballaggio con questo nome o codice."
 }

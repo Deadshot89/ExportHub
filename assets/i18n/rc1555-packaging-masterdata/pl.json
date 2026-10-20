@@ -33,5 +33,14 @@
   "packaging.masterdata.empty": "Brak opakowań pasujących do bieżącego wyboru.",
   "packaging.masterdata.loading": "Ładowanie opakowań …",
   "packaging.masterdata.failed": "Nie udało się przetworzyć opakowań.",
-  "packaging.masterdata.adminOnly": "Ta sekcja zarządzania danymi podstawowymi jest dostępna tylko dla administratorów."
+  "packaging.masterdata.adminOnly": "Ta sekcja zarządzania danymi podstawowymi jest dostępna tylko dla administratorów.",
+  "packaging.masterdata.dimensions": "Wymiary standardowe D × S × W",
+  "packaging.masterdata.length": "Długość (cm)",
+  "packaging.masterdata.width": "Szerokość (cm)",
+  "packaging.masterdata.height": "Wysokość (cm)",
+  "packaging.masterdata.ldm": "Metry ładunkowe (LDM)",
+  "packaging.masterdata.dimensionsFixed": "Wymiary normowe są stałe i nie można ich zmienić.",
+  "packaging.masterdata.dimensionsInvalid": "Wymiary i metry ładunkowe muszą być liczbami dodatnimi.",
+  "packaging.masterdata.demoNote": "Demo: zmiany obowiązują tylko w tej karcie przeglądarki i nie są zapisywane.",
+  "packaging.masterdata.duplicateName": "Opakowanie o tej nazwie lub tym kodzie już istnieje."
 }
