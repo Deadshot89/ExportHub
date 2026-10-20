@@ -21,7 +21,7 @@ test('RC1521 loads the new Training Center after the base build and then retains
   assert.ok(release.indexOf('integrateAbdProforma(root,out)')>release.indexOf('buildTrainingCenter(root)'));
   assert.match(release,/ABD_PROFORMA_ASSETS/);
   assert.match(release,/ABD_PROFORMA_MARKERS/);
-  assert.match(training,/injectTrainingCenter\(removeRetiredSopTagsFromBuild\(current,file\),file\)/);
+  assert.match(training,/injectTrainingCenter\(replaceLegacySopRendererInBuild\(removeRetiredSopTagsFromBuild\(current,file\),file\),file\)/);
   assert.match(training,/assertPackage\(out\)/);
 });
 
