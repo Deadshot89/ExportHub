@@ -242,3 +242,64 @@ test('RC1584: ABD-Upload zeigt nur nach bestätigtem Upload-Ereignis einen Erfol
   timeout.fn();
   assert.doesNotMatch(host.children[0].textContent,/No confirmed/i);
 });
+
+
+
+test('RC1586: Sendungsübersicht ABD 9Z7L82 verwendet gespeicherte Sendung auch ohne shipments-Eintrag',()=>{
+  const shipment={id:'SHIP-9Z7L82',ref:'9Z7L82',abdRequired:true,abdStatus:'Wartet auf ABD'};
+  const state={view:'shipmentoverview',shipments:[],savedShipments:[shipment],abdRequests:[]};
+  const handlers=[],listeners=new Map(),timers=[],notices=[];
+  const elements={};
+  const host={children:[],querySelector(){return this.children[0]||null},appendChild(el){this.children.push(el)}};
+  const document={
+    readyState:'complete',
+    body:{children:[],appendChild(el){this.children.push(el);if(el.id)elements[el.id]=el}},
+    createElement(){return{style:{},setAttribute(){}}},
+    getElementById(id){return elements[id]||null},
+    addEventListener(name,fn,capture){if(name==='change'&&capture)handlers.push(fn)}
+  };
+  const window={
+    __EXPORTHUB_GET_STATE__:()=>state,
+    rc524UploadFile(input,key){notices.push({id:input.dataset.id,key});return false},
+    addEventListener(name,fn){listeners.set(name,[...(listeners.get(name)||[]),fn])},
+    setTimeout(fn,ms){timers.push({fn,ms})}
+  };
+  vm.runInNewContext(bridgeSource(),{window,document,setTimeout:window.setTimeout,console});
+  const input={
+    files:[{name:'ABD_9Z7L82.pdf',type:'application/pdf'}],dataset:{id:'SHIP-9Z7L82'},
+    matches:x=>x==='input[type="file"]',
+    getAttribute:k=>k==='onchange'?"return rc524UploadFile(this,'abdFiles')":'',
+    closest(){return host},
+    setAttribute(){}
+  };
+  let prevented=0;
+  for(const handler of handlers)handler({target:input,preventDefault(){prevented++},stopPropagation(){prevented++},stopImmediatePropagation(){prevented++}});
+  assert.equal(prevented,0,'unique existing saved shipment must remain uploadable');
+  assert.equal(state.shipments.length,1);
+  assert.equal(state.shipments[0],shipment,'do not create a new empty shipment or copy');
+  assert.equal(state.savedShipments[0],shipment,'preserve original existing record');
+  assert.equal(elements.rc1586AbdUploadStatus.textContent.includes('being processed'),true);
+  window.rc524UploadFile(input,'abdFiles');
+  assert.deepEqual(notices,[{id:'SHIP-9Z7L82',key:'abdFiles'}]);
+  for(const listener of listeners.get('exporthub:shipment-document-uploaded')||[])listener({detail:{kind:'abd',shipmentId:'SHIP-9Z7L82',reference:'9Z7L82',azureVerified:true}});
+  assert.match(elements.rc1586AbdUploadStatus.textContent,/saved for shipment 9Z7L82/);
+  assert.equal(state.shipments.length,1,'repeat upload must not duplicate the canonical shipment');
+});
+
+test('RC1586: gleiche Ref mit widersprüchlicher Sendungs-ID blockiert ABD ohne Datenmutation',()=>{
+  const original={id:'SHIP-ORIGINAL',ref:'9Z7L82'};
+  const saved={id:'SHIP-9Z7L82',ref:'9Z7L82'};
+  const state={shipments:[original],savedShipments:[saved]};
+  const handlers=[],alerts=[];
+  const document={readyState:'complete',createElement(){return{style:{},setAttribute(){}}},addEventListener(name,fn,capture){if(name==='change'&&capture)handlers.push(fn)}};
+  const window={__EXPORTHUB_GET_STATE__:()=>state,rc524UploadFile(){throw Error('Must not reach upload')},alert:m=>alerts.push(m),addEventListener(){},setTimeout(){}};
+  vm.runInNewContext(bridgeSource(),{window,document,setTimeout:window.setTimeout,console});
+  const host={children:[],querySelector(){return this.children[0]||null},appendChild(x){this.children.push(x)}};
+  const input={dataset:{id:saved.id},files:[{name:'ABD.pdf',type:'application/pdf'}],matches:x=>x==='input[type="file"]',getAttribute:k=>k==='onchange'?"return rc524UploadFile(this,'abdFiles')":'',closest(){return host},setAttribute(){}};
+  let stopped=0;
+  for(const h of handlers)h({target:input,preventDefault(){stopped++},stopPropagation(){stopped++},stopImmediatePropagation(){stopped++}});
+  assert.equal(stopped,3);
+  assert.equal(state.shipments.length,1);
+  assert.equal(state.shipments[0],original);
+  assert.match(alerts[0],/not started|not uniquely/i);
+});
