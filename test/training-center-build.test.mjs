@@ -74,3 +74,13 @@ test('echter Drei-Umgebungs-Build enthält ausschließlich neue Training-Center-
   for(const rel of requiredAssets)assert.ok(fs.existsSync(path.join(out,rel)),`Build-Asset fehlt: ${rel}`);
   assert.equal(fs.existsSync(path.join(out,retiredPath)),false,'retired SOP-Assetverzeichnis darf nicht im Release-Paket existieren');
 });
+
+
+test('Training-Center final production pack excludes retired RC1544 SOP Guided Workspace',()=>{
+  const fsSource=fs.readFileSync('.github/packmeldungen/build-three-env.mjs','utf8');
+  assert.doesNotMatch(fsSource,/integrateGuidedWorkspace/);
+  const integration=fs.readFileSync('.github/rc1521/build-three-env.mjs','utf8');
+  assert.match(integration,/integrateAbdProforma\(root,out\)/);
+  assert.match(integration,/ABD_PROFORMA_ASSETS/);
+  assert.match(integration,/ABD_PROFORMA_MARKERS/);
+});
