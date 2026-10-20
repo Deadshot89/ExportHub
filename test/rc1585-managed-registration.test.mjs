@@ -34,6 +34,10 @@ const history = (at='2026-10-19T10:00:00+02:00', extra={}) => ({
   id:'HISTORY1', at, type:'mail-sent', label:'Versandanmeldung versendet',
   details:{mailType:'registration'}, ...extra
 });
+const confirmedHistory = (at='2026-10-19T10:00:00+02:00', extra={}) => ({
+  id:'HISTORY1',at,type:'registration-confirmed',label:'Versandanmeldung bestätigt',
+  details:{emailHistoryId:'EMAIL-OPEN-1',reference:'ABC123'},...extra
+});
 const saved = (row=history(), extra={}) => ({
   detail:{azureSaved:true, updated:true, savedAt:'2026-10-19T10:00:20+02:00',
     shipment:{id:'SHIP1',ref:'ABC123',customerName:'Essentra Spanien',
@@ -104,14 +108,20 @@ test('RC1585: doppelte bestätigte Anmeldung ist idempotent', () => {
   assert.equal(second.changed,false);
 });
 
-test('RC1585: nur belegter Mailversand nach Azure-Speicherung erzeugt Registration-Event', () => {
+test('RC1590: Mailentwurf öffnen allein erzeugt kein Workflow-Event', () => {
   const {api,listeners,forwarded}=boot();
-  assert.equal(typeof listeners.get('exporthub:shipment-saved'),'function');
-  const ev=api.shipmentRegisteredFromSave(saved());
+  assert.equal(api.shipmentRegisteredFromSave(saved()),null);
+  listeners.get('exporthub:shipment-saved')(saved());
+  assert.equal(forwarded.length,0);
+});
+
+test('RC1590: erst eindeutig bestätigte und gespeicherte Anmeldung erzeugt Workflow-Event', () => {
+  const {api,listeners,forwarded}=boot();
+  const ev=api.shipmentRegisteredFromSave(saved(confirmedHistory()));
   assert.equal(ev.type,'shipment.registered');
   assert.equal(ev.eventId,'shipment.registered:SHIP1:HISTORY1');
   assert.equal(ev.customerName,'Essentra Spanien');
-  listeners.get('exporthub:shipment-saved')(saved());
+  listeners.get('exporthub:shipment-saved')(saved(confirmedHistory()));
   assert.equal(forwarded.length,1);
   assert.equal(forwarded[0].type,'shipment.registered');
 });
@@ -120,6 +130,11 @@ test('RC1585: angefangene, alte, unbestätigte oder unvollständige Anmeldung l�
   const {api}=boot();
   for(const candidate of [
     saved(history(undefined,{type:'registration',label:'Versandanmeldung per E-Mail gestartet'})),
+    saved(confirmedHistory(undefined,{details:{emailHistoryId:''}})),
+    saved(confirmedHistory(undefined,{id:''})),
+    saved(confirmedHistory('2026-10-18T10:00:00+02:00')),
+    saved(confirmedHistory(),{azureSaved:false}),
+
     saved(history(undefined,{details:{mailType:'avis'}})),
     saved(history('2026-10-18T10:00:00+02:00')),
     saved(history(undefined,{id:''})),
