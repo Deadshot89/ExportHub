@@ -196,3 +196,49 @@ test('RC1582: Dateiauswahl bei nicht ladbarer sicherer Upload-Runtime wird vor a
   assert.equal(blocked,3);
   assert.match(notice,/Secure ABD upload|nicht verfügbar/i);
 });
+
+
+test('RC1584: ABD-Dateiauswahl ohne eindeutig gespeicherte Sendung darf keinen Upload ins leere Shipment starten',()=>{
+  const handlers=[],alerts=[],runtimeCalls=[];
+  const state={shipments:[{id:'SHIP-OTHER',ref:'OTHER1'}],abdRequests:[]};
+  const node={style:{},attrs:{},setAttribute(k,v){this.attrs[k]=v}};
+  const host={children:[],querySelector(){return this.children[0]||null},appendChild(n){this.children.push(n)}};
+  const document={readyState:'complete',createElement(){return Object.assign({},node,{style:{},attrs:{},setAttribute:node.setAttribute})},addEventListener(name,fn,capture){if(name==='change'&&capture)handlers.push(fn)}};
+  const window={__EXPORTHUB_GET_STATE__:()=>state,rc524UploadFile(){runtimeCalls.push(1)},alert:m=>alerts.push(m),addEventListener(){},setTimeout(){}};
+  vm.runInNewContext(bridgeSource(),{window,document,setTimeout:window.setTimeout,console});
+  assert.equal(handlers.length,2);
+  const input={type:'file',files:[{name:'ABD_9Z7L82.pdf',type:'application/pdf'}],dataset:{id:'SHIP-9Z7L82'},setAttribute(k,v){this[k]=v},closest(){return host},matches:sel=>sel==='input[type="file"]',getAttribute:k=>k==='onchange'?"return rc524UploadFile(this,'abdFiles')":''};
+  let blocked=0;
+  const event={target:input,preventDefault(){blocked++},stopPropagation(){blocked++},stopImmediatePropagation(){blocked++}};
+  handlers.forEach(h=>h(event));
+  assert.equal(blocked,3,'capturing handler blocks the unsafe inline onchange before execution');
+  assert.equal(runtimeCalls.length,0);
+  assert.match(alerts[0],/shipment SHIP-9Z7L82/i);
+  assert.match(host.children[0].textContent,/not started/i);
+  assert.equal(input['aria-invalid'],'true');
+  assert.equal(state.shipments[0].abdFiles,undefined);
+});
+
+test('RC1584: ABD-Upload zeigt nur nach bestätigtem Upload-Ereignis einen Erfolg',()=>{
+  const handlers=[],listeners=new Map(),timers=[];
+  const state={shipments:[{id:'SHIP-9Z7L82',ref:'9Z7L82'}],abdRequests:[]};
+  const host={children:[],querySelector(){return this.children[0]||null},appendChild(n){this.children.push(n)}};
+  const document={readyState:'complete',createElement(){return {style:{},setAttribute(){}}},addEventListener(name,fn,capture){if(name==='change'&&capture)handlers.push(fn)}};
+  const window={__EXPORTHUB_GET_STATE__:()=>state,rc524UploadFile(){return false},addEventListener(name,fn){listeners.set(name,[...(listeners.get(name)||[]),fn])},setTimeout(fn,ms){timers.push({fn,ms})}};
+  vm.runInNewContext(bridgeSource(),{window,document,setTimeout:window.setTimeout,console});
+  const input={files:[{name:'ABD_9Z7L82.pdf',type:'application/pdf'}],dataset:{id:'SHIP-9Z7L82'},setAttribute(){},closest(){return host},matches:sel=>sel==='input[type="file"]',getAttribute:k=>k==='onchange'?"return rc524UploadFile(this,'abdFiles')":''};
+  let blocked=0;
+  const event={target:input,preventDefault(){blocked++},stopPropagation(){blocked++},stopImmediatePropagation(){blocked++}};
+  handlers.forEach(h=>h(event));
+  assert.equal(blocked,0);
+  assert.match(host.children[0].textContent,/being processed/i);
+  assert.doesNotMatch(host.children[0].textContent,/saved for shipment/i);
+  for(const listener of listeners.get('exporthub:shipment-document-uploaded')||[])listener({detail:{kind:'abd',shipmentId:'SHIP-9Z7L82',reference:'9Z7L82',azureVerified:false}});
+  assert.doesNotMatch(host.children[0].textContent,/saved for shipment/i);
+  for(const listener of listeners.get('exporthub:shipment-document-uploaded')||[])listener({detail:{kind:'abd',shipmentId:'SHIP-9Z7L82',reference:'9Z7L82',azureVerified:true}});
+  assert.match(host.children[0].textContent,/saved for shipment/i);
+  const timeout=timers.find(x=>x.ms===90000);
+  assert.ok(timeout,'missing confirmation must have a watchdog');
+  timeout.fn();
+  assert.doesNotMatch(host.children[0].textContent,/No confirmed/i);
+});

@@ -1661,5 +1661,9 @@
   "abd.completedUpload.shipmentMissing": "Impossibile identificare con certezza la spedizione collegata. Apri la panoramica spedizioni e riprova a caricare l'ABD.",
   "abd.completedUpload.runtimeMissing": "Il caricamento sicuro dell'ABD non è disponibile. Ricarica la pagina e riprova. Il documento non è stato contrassegnato come salvato.",
   "abd.completedUpload.forbidden": "Non hai l'autorizzazione a caricare documenti ABD.",
-  "abd.completedUpload.failed": "Caricamento ABD non riuscito: {{message}}"
+  "abd.completedUpload.failed": "Caricamento ABD non riuscito: {{message}}",
+  "abd.completedUpload.noMatchingShipment": "Caricamento ABD non avviato: impossibile identificare con certezza la spedizione {{reference}}. Riapri l’elenco delle spedizioni.",
+  "abd.completedUpload.processing": "Il documento ABD è in elaborazione. Verifica del salvataggio in corso.",
+  "abd.completedUpload.unconfirmed": "Nessuna conferma del salvataggio ABD. Controlla la cartella della spedizione prima di riprovare.",
+  "abd.completedUpload.success": "Documento ABD salvato per la spedizione {{reference}}."
 }

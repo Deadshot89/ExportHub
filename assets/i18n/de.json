@@ -1661,5 +1661,9 @@
   "abd.completedUpload.shipmentMissing": "Die verknüpfte Sendung wurde nicht eindeutig gefunden. Bitte die Sendung über die Sendungsübersicht öffnen und den ABD-Upload erneut versuchen.",
   "abd.completedUpload.runtimeMissing": "Der sichere ABD-Upload ist nicht verfügbar. Bitte die Seite neu laden und erneut versuchen. Das Dokument wurde nicht als gespeichert markiert.",
   "abd.completedUpload.forbidden": "Du hast keine Berechtigung, ABD-Dokumente hochzuladen.",
-  "abd.completedUpload.failed": "ABD-Upload fehlgeschlagen: {{message}}"
+  "abd.completedUpload.failed": "ABD-Upload fehlgeschlagen: {{message}}",
+  "abd.completedUpload.noMatchingShipment": "ABD-Upload nicht gestartet: Sendung {{reference}} konnte nicht eindeutig gefunden werden. Bitte die Sendungsübersicht neu öffnen.",
+  "abd.completedUpload.processing": "ABD-Dokument wird verarbeitet. Die Speicherung wird geprüft.",
+  "abd.completedUpload.unconfirmed": "Keine bestätigte ABD-Speicherung erhalten. Bitte den Sendungsordner kontrollieren, bevor du es erneut versuchst.",
+  "abd.completedUpload.success": "ABD-Dokument wurde für Sendung {{reference}} gespeichert."
 }
