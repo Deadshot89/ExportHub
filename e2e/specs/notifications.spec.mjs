@@ -30,14 +30,21 @@ test('RC1124 P0: Benachrichtigungen enthalten keine leeren Ghost-Aufgaben und ZÃ
 
   const cards=center.locator('.rc229-task-card.rc628-unified-task, .task-card, .index236-item');
   const cardCount=await cards.count();
-  const titles=[];
+  const entries=[];
   for(let i=0;i<cardCount;i++){
     const card=cards.nth(i);
-    const title=await card.locator('h1,h2,h3,h4,[data-title],.title').first().innerText().catch(()=>card.innerText());
-    titles.push(String(title||'').trim().split('\n')[0].trim());
+    const title=await card.locator('.index236-item-head h3, h1,h2,h3,h4,[data-title],.title').first().innerText().catch(()=>card.innerText());
+    const id=await card.locator('[data-index236-action="open-task"][data-id]').first().getAttribute('data-id').catch(()=>null);
+    const context=await card.locator('.index236-item-head p').first().innerText().catch(()=>'');
+    entries.push({
+      title:String(title||'').trim().split('\n')[0].trim(),
+      id:String(id||'').trim(),
+      context:String(context||'').trim()
+    });
   }
-  for(const title of titles){
-    expect(title,'Ghost-Aufgabe mit generischem Titel gefunden').not.toMatch(/^(?:Aufgabe|Task)$/i);
+  for(const item of entries){
+    expect(item.title,'Ghost-Aufgabe mit generischem Titel gefunden').not.toMatch(/^(?:Aufgabe|Task)$/i);
+    expect(item.id,'Aufgabe ohne stabile eindeutige ID gefunden').not.toBe('');
   }
 
   const centerText=await center.innerText();
@@ -52,8 +59,14 @@ test('RC1124 P0: Benachrichtigungen enthalten keine leeren Ghost-Aufgaben und ZÃ
   expect(metric,'Metrik "Offene Aufgaben" fehlt').not.toBeNull();
   expect(cardCount,'Gerenderte Aufgabenmenge weicht vom ZÃ¤hler ab').toBe(metric);
 
-  const normalized=titles.map(x=>x.toLocaleLowerCase('de-DE')).filter(Boolean);
-  expect(new Set(normalized).size,'Doppelte fachlich identische Benachrichtigungen gefunden').toBe(normalized.length);
+  // Wiederkehrende Aufgaben besitzen absichtlich denselben Titel an unterschiedlichen Tagen.
+  // Eine fachliche Dublette benÃ¶tigt die gleiche Aufgabe (ID) oder den gleichen Titel
+  // UND denselben Termin, Verantwortlichen und Sendungsbezug.
+  const normalize=x=>String(x||'').toLocaleLowerCase('de-DE').replace(/\s+/g,' ').trim();
+  const ids=entries.map(x=>x.id);
+  const identities=entries.map(x=>normalize(x.title)+'|'+normalize(x.context));
+  expect(new Set(ids).size,'Die gleiche Aufgaben-ID wird mehrfach im Benachrichtigungscenter angezeigt').toBe(ids.length);
+  expect(new Set(identities).size,'Doppelte fachlich identische Benachrichtigungen (Titel + FÃ¤lligkeit + Zuordnung) gefunden').toBe(identities.length);
 
   await assertNoSourceLeak(page);
   await assertNoHorizontalOverflow(page);
