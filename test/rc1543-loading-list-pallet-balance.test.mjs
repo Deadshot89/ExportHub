@@ -105,3 +105,29 @@ test('RC1543: Palettenkontostand wird auch vor der Abholung unabhängig vom Pick
   assert.match(source,/querySelectorAll\('\.rc390-load,\.rc352-load'\)/,'alle Ladelisten müssen den Kontostand erhalten');
   assert.match(source,/roots\.forEach\(function\(root\)/,'Kontostand muss je Ladeliste ersetzt werden');
 });
+
+test('RC1580: Ladeliste zeigt einen kurzen signierten aktuellen Stand statt langer Kontostandtexte',()=>{
+  const h=runtime({state:{}});
+  assert.equal(h.api.palletCurrentShortText({balance:5} ),'+5 EP');
+  assert.equal(h.api.palletCurrentShortText({balance:-4}),'-4 EP');
+  assert.equal(h.api.palletCurrentShortText({balance:0} ),'0 EP');
+  assert.equal(h.api.palletCurrentShortText(null),'–');
+});
+
+test('RC1580: Eingang bleibt zum handschriftlichen Eintrag frei, positive digital gebuchte Rückgaben erscheinen als Zahl',()=>{
+  const h=runtime({state:{}});
+  assert.equal(h.api.palletReturnShortText({palletOut:5}),'');
+  assert.equal(h.api.palletReturnShortText({pickupHistory:[{returnedEuroPallets:0}]}),'');
+  assert.equal(h.api.palletReturnShortText({pickupHistory:[{returnedEuroPallets:3}]}),'3 EP');
+  assert.equal(h.api.palletReturnShortText({returnedEuroPallets:2}),'2 EP');
+  assert.equal(h.api.palletReturnShortText({returnedEuroPallets:-2}),'');
+  assert.equal(h.api.palletReturnShortText({returnedEuroPallets:'unbekannt'}),'');
+});
+
+test('RC1580: Kompaktes Druckfeld zeigt nur Stand und Eingang ohne Ausgangsbewegungszeile',()=>{
+  assert.match(source,/data-rc1580-pallet-compact/);
+  assert.match(source,/rc1580-pallet-write/);
+  assert.match(source,/Aktueller Stand \\/ Balance/);
+  assert.match(source,/Eingang \\/ Return/);
+  assert.doesNotMatch(source,/small\.textContent=movement/);
+});
