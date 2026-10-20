@@ -1593,3 +1593,14 @@ html[data-eh-design="glass"] :is(.modal,.dialog,[role="dialog"],.overlay-card){
     grid-template-columns:1fr!important;
   }
 }
+
+/* Sidebar footer: the user card and the Stammdaten link keep their natural height in every design.
+   Without this the flex column squeezes the card (overflow hidden) to a clipped strip above the Verpackungen link. */
+.sidebar>.brand,
+.sidebar>.profile,
+.sidebar>.rc1555-packaging-nav-wrap{
+  flex-shrink:0!important;
+}
+.sidebar>.profile{
+  min-height:max-content!important;
+}
