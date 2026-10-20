@@ -330,7 +330,7 @@ jobs:
           user_b64="$(printf '%s' "$prepared" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s);if(!v.user)process.exit(4);process.stdout.write(Buffer.from(JSON.stringify(v.user),'utf8').toString('base64'))})")"
           nonadmin_session_token="$(printf '%s' "$prepared" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s);if(!v.nonAdminToken)process.exit(5);process.stdout.write(v.nonAdminToken)})")"
           nonadmin_user_b64="$(printf '%s' "$prepared" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s);if(!v.nonAdminUser)process.exit(6);process.stdout.write(Buffer.from(JSON.stringify(v.nonAdminUser),'utf8').toString('base64'))})")"
-          pack_station_token="$(printf '%s' "$prepared" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s);if(!v._e2ePackStationToken)process.exit(7);process.stdout.write(v._e2ePackStationToken)})")"
+          pack_station_token="$(printf '%s' "$prepared" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s),token=v.user&&v.user._e2ePackStationToken;if(!token)process.exit(7);process.stdout.write(token)})")"
           echo "::add-mask::$session_token"
           echo "::add-mask::$nonadmin_session_token"
           echo "::add-mask::$pack_station_token"
