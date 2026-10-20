@@ -1642,5 +1642,9 @@
   "taskV2.stats.automatic": "Automatiche",
   "taskV2.stats.manual": "Manuali",
   "taskV2.stats.averageMinutes": "Media minuti",
-  "taskV2.stats.title": "Statistiche attività"
+  "taskV2.stats.title": "Statistiche attività",
+  "abd.completedUpload.shipmentMissing": "Impossibile identificare con certezza la spedizione collegata. Apri la panoramica spedizioni e riprova a caricare l'ABD.",
+  "abd.completedUpload.runtimeMissing": "Il caricamento sicuro dell'ABD non è disponibile. Ricarica la pagina e riprova. Il documento non è stato contrassegnato come salvato.",
+  "abd.completedUpload.forbidden": "Non hai l'autorizzazione a caricare documenti ABD.",
+  "abd.completedUpload.failed": "Caricamento ABD non riuscito: {{message}}"
 }

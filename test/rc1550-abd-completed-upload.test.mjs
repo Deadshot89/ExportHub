@@ -68,3 +68,131 @@ test('RC1550: geaenderte ABD-Runtime wird in Produktion nicht aus altem Browserc
   assert.ok(route,'ABD-Runtime muss eine explizite Cache-Regel besitzen');
   assert.match(String(route.headers&&route.headers['Cache-Control']||''),/no-store/i);
 });
+
+
+test('RC1582: ABD 9Z7L82 darf aus savedShipments nicht an eine falsche aktive Sendung angehängt werden',()=>{
+  const shipment={id:'SHIP-9Z7L82',ref:'9Z7L82',abdRequired:true,abdStatus:'Wartet auf ABD'};
+  const other={id:'SHIP-OTHER1',ref:'OTHER1',abdStatus:'Wartet auf ABD'};
+  const request={id:'ABD-9Z7L82',ref:'9Z7L82',linkedShipmentId:'SHIP-9Z7L82',source:'shipment'};
+  const state={view:'abd',shipments:[other],shipment:other,savedShipments:[shipment],abdRequests:[request]};
+  let legacyCalls=0,centralCalls=0,notice='';
+  const window={
+    __EXPORTHUB_GET_STATE__:()=>state,
+    ExportHUBRC626:Object.freeze({uploadCompletedAbd(){legacyCalls++;return 'legacy'}}),
+    rc524UploadFile(){centralCalls++},
+    alert:m=>{notice=m},addEventListener(){},setTimeout:fn=>{fn();return 1}
+  };
+  const document={readyState:'complete',addEventListener(){}};
+  vm.runInNewContext(bridgeSource(),{window,document,setTimeout:window.setTimeout,console});
+  const input={files:[{name:'ABD_9Z7L82.pdf',type:'application/pdf'}],dataset:{}};
+  const result=window.ExportHUBRC626.uploadCompletedAbd('ABD-9Z7L82',input);
+  assert.equal(result,false);
+  assert.equal(legacyCalls,0);
+  assert.equal(centralCalls,0);
+  assert.equal(other.abdFiles,undefined);
+  assert.match(notice,/linked shipment|Sendung/i);
+});
+
+test('RC1582: verknüpfte ABD-Anfrage ohne Sendung wird nicht stillschweigend nur lokal gespeichert',()=>{
+  const a={id:'ABD-9Z7L82',ref:'9Z7L82',linkedShipmentId:'SHIP-9Z7L82',source:'shipment'};
+  const state={view:'abd',shipments:[],abdRequests:[a]};
+  let legacyCalls=0,alertText='';
+  const window={
+    __EXPORTHUB_GET_STATE__:()=>state,
+    ExportHUBRC626:Object.freeze({uploadCompletedAbd(){legacyCalls++;return 'legacy'}}),
+    alert:message=>{alertText=message},addEventListener(){},setTimeout:fn=>{fn();return 1}
+  };
+  const document={readyState:'complete',addEventListener(){}};
+  vm.runInNewContext(bridgeSource(),{window,document,setTimeout:window.setTimeout,console});
+  const input={files:[{name:'ABD_9Z7L82.pdf',type:'application/pdf'}],dataset:{},setAttribute(k,v){this[k]=v}};
+  const result=window.ExportHUBRC626.uploadCompletedAbd('ABD-9Z7L82',input);
+  assert.equal(result,false);
+  assert.equal(legacyCalls,0);
+  assert.equal(input['aria-invalid'],'true');
+  assert.match(alertText,/linked shipment|Sendung/i);
+});
+
+test('RC1582: fehlender sicherer Uploader setzt ABD nicht auf erledigt',()=>{
+  const sh={id:'SHIP-9Z7L82',ref:'9Z7L82',abdStatus:'Wartet auf ABD'};
+  const request={id:'ABD-9Z7L82',ref:'9Z7L82',source:'shipment',linkedShipmentId:'SHIP-9Z7L82',status:'Angefragt'};
+  const s={view:'abd',shipments:[sh],abdRequests:[request]};
+  let legacy=0,alertText='';
+  const window={
+    __EXPORTHUB_GET_STATE__:()=>s,
+    ExportHUBRC626:Object.freeze({uploadCompletedAbd(){legacy++;return 'legacy'}}),
+    alert:msg=>{alertText=msg},addEventListener(){},setTimeout:fn=>{fn();return 1}
+  };
+  const document={readyState:'complete',addEventListener(){}};
+  vm.runInNewContext(bridgeSource(),{window,document,setTimeout:window.setTimeout,console});
+  const result=window.ExportHUBRC626.uploadCompletedAbd(request.id,{files:[{name:'ABD.pdf',type:'application/pdf'}],dataset:{}});
+  assert.equal(result,false);assert.equal(legacy,0);
+  assert.equal(request.status,'Angefragt');
+  assert.equal(sh.abdStatus,'Wartet auf ABD');
+  assert.match(alertText,/Secure ABD upload|nicht verfügbar/i);
+});
+
+test('RC1582: fehlende ABD-Berechtigung blockiert den verknüpften Upload vor der Speicherung',()=>{
+  const sh={id:'SHIP-9Z7L82',ref:'9Z7L82'};
+  const a={id:'ABD-9Z7L82',ref:'9Z7L82',linkedShipmentId:sh.id};
+  const s={shipments:[sh],abdRequests:[a]};
+  let called=false,notice='';
+  const window={
+    __EXPORTHUB_GET_STATE__:()=>s,
+    ExportHUBRC626:Object.freeze({uploadCompletedAbd(){throw Error('Legacy must not run')}}),
+    rc524UploadFile(){called=true},canWrite:area=>area!=='abd',
+    alert:m=>{notice=m},addEventListener(){},setTimeout:fn=>{fn();return 1}
+  };
+  const document={readyState:'complete',addEventListener(){}};
+  vm.runInNewContext(bridgeSource(),{window,document,setTimeout:window.setTimeout,console});
+  assert.equal(window.ExportHUBRC626.uploadCompletedAbd(a.id,{files:[{name:'ABD.pdf',type:'application/pdf'}],dataset:{}}),false);
+  assert.equal(called,false);
+  assert.match(notice,/permission|Berechtigung/i);
+});
+
+
+test('RC1582: lazy geladener ABD-Controller wird beim ersten Dateiauswahl-Event sicher umgebogen',()=>{
+  const sh={id:'SHIP-9Z7L82',ref:'9Z7L82',abdRequired:true};
+  const a={id:'ABD-9Z7L82',ref:'9Z7L82',linkedShipmentId:sh.id,source:'shipment'};
+  const s={view:'abd',shipments:[sh],abdRequests:[a]};
+  let onChange=null,legacyCalls=0,centralCalls=0;
+  const window={
+    __EXPORTHUB_GET_STATE__:()=>s,
+    rc524UploadFile(input,key){centralCalls++;assert.equal(input.dataset.id,sh.id);assert.equal(key,'abdFiles');return false},
+    addEventListener(){},setTimeout(fn){fn();return 1}
+  };
+  const document={
+    readyState:'complete',
+    addEventListener(name,fn,capture){if(name==='change'&&capture===true)onChange=fn}
+  };
+  vm.runInNewContext(bridgeSource(),{window,document,setTimeout:window.setTimeout,console});
+  assert.equal(typeof onChange,'function');
+  assert.equal(window.ExportHUBRC626,undefined,'ABD-Controller is loaded only after page boot');
+  window.ExportHUBRC626=Object.freeze({uploadCompletedAbd(){legacyCalls++;return 'legacy'},renderAbd(){}});
+  const input={
+    files:[{name:'ABD_9Z7L82.pdf',type:'application/pdf'}],
+    dataset:{},
+    matches(selector){return selector==='input[type="file"]'},
+    getAttribute(name){return name==='onchange'?"return window.ExportHUBRC626.uploadCompletedAbd('ABD-9Z7L82',this)":null}
+  };
+  let prevented=0;
+  const evt={target:input,preventDefault(){prevented++},stopPropagation(){prevented++},stopImmediatePropagation(){prevented++}};
+  onChange(evt);
+  assert.equal(prevented,0);
+  assert.equal(window.ExportHUBRC626.__rc1550AbdUploadBridge,true);
+  window.ExportHUBRC626.uploadCompletedAbd(a.id,input);
+  assert.equal(centralCalls,1);
+  assert.equal(legacyCalls,0);
+  onChange(evt);
+  assert.equal(prevented,0,'an already installed bridge must not block the file change');
+});
+
+test('RC1582: Dateiauswahl bei nicht ladbarer sicherer Upload-Runtime wird vor altem onchange blockiert',()=>{
+  let onChange=null,notice='',blocked=0;
+  const window={addEventListener(){},setTimeout(fn){fn();return 1},alert(m){notice=m}};
+  const document={readyState:'complete',addEventListener(name,fn,capture){if(name==='change'&&capture===true)onChange=fn}};
+  vm.runInNewContext(bridgeSource(),{window,document,setTimeout:window.setTimeout,console});
+  const input={matches:()=>true,getAttribute:()=> "return window.ExportHUBRC626.uploadCompletedAbd('ABD-9Z7L82',this)",setAttribute(){}};
+  onChange({target:input,preventDefault(){blocked++},stopPropagation(){blocked++},stopImmediatePropagation(){blocked++}});
+  assert.equal(blocked,3);
+  assert.match(notice,/Secure ABD upload|nicht verfügbar/i);
+});

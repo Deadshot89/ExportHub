@@ -1642,5 +1642,9 @@
   "taskV2.stats.automatic": "Automatiques",
   "taskV2.stats.manual": "Manuelles",
   "taskV2.stats.averageMinutes": "Moy. minutes",
-  "taskV2.stats.title": "Statistiques des tâches"
+  "taskV2.stats.title": "Statistiques des tâches",
+  "abd.completedUpload.shipmentMissing": "L'expédition liée n'a pas pu être identifiée de manière certaine. Ouvrez la vue des expéditions et réessayez de déposer l'ABD.",
+  "abd.completedUpload.runtimeMissing": "Le dépôt sécurisé de l'ABD est indisponible. Rechargez la page et réessayez. Le document n'a pas été marqué comme enregistré.",
+  "abd.completedUpload.forbidden": "Vous n'avez pas l'autorisation de déposer des documents ABD.",
+  "abd.completedUpload.failed": "Échec du dépôt de l'ABD : {{message}}"
 }

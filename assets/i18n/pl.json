@@ -1642,5 +1642,9 @@
   "taskV2.stats.automatic": "Automatycznie",
   "taskV2.stats.manual": "Ręcznie",
   "taskV2.stats.averageMinutes": "Śr. minuty",
-  "taskV2.stats.title": "Statystyki zadań"
+  "taskV2.stats.title": "Statystyki zadań",
+  "abd.completedUpload.shipmentMissing": "Nie udało się jednoznacznie zidentyfikować powiązanej wysyłki. Otwórz przegląd wysyłek i ponów przesyłanie ABD.",
+  "abd.completedUpload.runtimeMissing": "Bezpieczne przesyłanie ABD jest niedostępne. Odśwież stronę i spróbuj ponownie. Dokument nie został oznaczony jako zapisany.",
+  "abd.completedUpload.forbidden": "Nie masz uprawnień do przesyłania dokumentów ABD.",
+  "abd.completedUpload.failed": "Przesyłanie ABD nie powiodło się: {{message}}"
 }

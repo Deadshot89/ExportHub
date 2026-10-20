@@ -1642,5 +1642,9 @@
   "taskV2.stats.automatic": "Automatisch",
   "taskV2.stats.manual": "Manuell",
   "taskV2.stats.averageMinutes": "Ø Minuten",
-  "taskV2.stats.title": "Aufgabenstatistik"
+  "taskV2.stats.title": "Aufgabenstatistik",
+  "abd.completedUpload.shipmentMissing": "Die verknüpfte Sendung wurde nicht eindeutig gefunden. Bitte die Sendung über die Sendungsübersicht öffnen und den ABD-Upload erneut versuchen.",
+  "abd.completedUpload.runtimeMissing": "Der sichere ABD-Upload ist nicht verfügbar. Bitte die Seite neu laden und erneut versuchen. Das Dokument wurde nicht als gespeichert markiert.",
+  "abd.completedUpload.forbidden": "Du hast keine Berechtigung, ABD-Dokumente hochzuladen.",
+  "abd.completedUpload.failed": "ABD-Upload fehlgeschlagen: {{message}}"
 }
