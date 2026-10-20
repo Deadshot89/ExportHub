@@ -126,7 +126,7 @@ function scanVisibleKeys(file,source){
     if(isNonUiPayloadLine(line)||!KEY_LITERAL.test(line)||!UI_CONTEXT.test(line))return;
     if(/^\s*(?:\/\/|\*|\/\*)/.test(line))return;
     for(const hit of literalTexts(line,true)){
-      const value=hit.value.trim(),left=line.slice(Math.max(0,hit.position-150),hit.position).trimEnd();
+      const value=hit.value.trim(),left=line.slice(Math.max(0,hit.position-150),hit.position).trimEnd().replace(/['"`]$/, '');
       const rawKey=new RegExp('^(?:'+KEY_LITERAL.source+')$').test(value);
       const nearbySink=directSink.test(left)||attrSink.test(left);
       const plainHtml=rawKey&&/>\s*$/.test(left);
