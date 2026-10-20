@@ -279,15 +279,20 @@ async function validateSessionAuthOnly(req,payload,c){
  const authDoc=await readAuthCached(c),resolved=resolveSessionFromAuth(token,authDoc),session=resolved.session,username=text(session.username)||'Benutzer';
  return {token,session,sessionSource:resolved.source,user:{id:text(session.userId),name:username,user:username,username}}
 }
+function cachedUserMayWrite(user,session){return !!user&&isActive(user)&&Number(session&&session.authVersion||0)===Number(user.authVersion||0)&&(session&&session.mustChange||user.mustChange)!==true&&hasAnyEditRight(user)}
 async function validateSession(req,payload,c){
  const validationStarted=Date.now(),token=bearer(req,payload);if(!token)throw error('AUTH_REQUIRED','api.common.authRequired',401);
  const requestedMode=lower((req.query&&req.query.mode)||(payload&&payload.action)||(payload&&payload.mode));
  let authMs=0,teamMs=0,authCache='unknown';
  const authStarted=Date.now(),authPromise=readAuthCached(c).then(v=>{authMs=Date.now()-authStarted;authCache=v&&v.cacheMode||'unknown';return v},e=>{authMs=Date.now()-authStarted;throw e});
  const teamStarted=Date.now(),teamPromise=readTeamCachedForSession(c,requestedMode).then(v=>{teamMs=Date.now()-teamStarted;return v},e=>{teamMs=Date.now()-teamStarted;throw e});
- const reads=await Promise.all([authPromise,teamPromise]),authDoc=reads[0],teamDoc=reads[1],resolved=resolveSessionFromAuth(token,authDoc),session=resolved.session,source=resolved.source;
- const team=teamDoc.value||emptyTeam(),users=Array.isArray(team.users)?team.users:[];
- const user=users.find(u=>text(u.id)===text(session.userId)||usernameOf(u)===lower(session.username));
+ const reads=await Promise.all([authPromise,teamPromise]),authDoc=reads[0];let teamDoc=reads[1];const resolved=resolveSessionFromAuth(token,authDoc),session=resolved.session,source=resolved.source;
+ const findUser=doc=>{const t=doc&&doc.value||emptyTeam(),list=Array.isArray(t.users)?t.users:[];return {team:t,user:list.find(u=>text(u.id)===text(session.userId)||usernameOf(u)===lower(session.username))}};
+ let {team,user}=findUser(teamDoc);
+ // The production save path trusts the process-wide warm cache without an ETag check.
+ // User rights changed via the auth API since then must not turn into a stale 403/401:
+ // before rejecting from cached users, reread the authoritative team state once.
+ if(teamDoc.cacheMode==='memory-save'&&!cachedUserMayWrite(user,session)){forgetWarmTeam(c);const freshStarted=Date.now();teamDoc=await readTeamForSession(c,requestedMode);teamMs+=Date.now()-freshStarted;teamDoc.cacheMode='full-read';rememberWarmTeam(c,teamDoc.value,teamDoc.etag);({team,user}=findUser(teamDoc))}
  if(!user||!isActive(user))throw error('ACCOUNT_DISABLED','api.common.accountDisabled',403);
  if(Number(session.authVersion||0)!==Number(user.authVersion||0))throw error('SESSION_REVOKED','api.common.sessionRevoked',401);
  if((session.mustChange||user.mustChange)===true)throw error('PASSWORD_CHANGE_REQUIRED','api.common.passwordChangeRequired',403);
