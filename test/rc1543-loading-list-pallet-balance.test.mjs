@@ -127,7 +127,7 @@ test('RC1580: Eingang bleibt zum handschriftlichen Eintrag frei, positive digita
 test('RC1580: Kompaktes Druckfeld zeigt nur Stand und Eingang ohne Ausgangsbewegungszeile',()=>{
   assert.match(source,/data-rc1580-pallet-compact/);
   assert.match(source,/rc1580-pallet-write/);
-  assert.match(source,/Aktueller Stand \\/ Balance/);
-  assert.match(source,/Eingang \\/ Return/);
+  assert.ok(source.includes('Aktueller Stand / Balance'));
+  assert.ok(source.includes('Eingang / Return'));
   assert.doesNotMatch(source,/small\.textContent=movement/);
 });
