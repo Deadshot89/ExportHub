@@ -42,6 +42,18 @@ test('RC1560: global state endpoint retains the secure merge runtime and checks 
   assert.match(source,/permissionDetails:denyInfo/);
 });
 
+test('RC1560 security: deny unauthorized read-only deltas before any document blob upload',()=>{
+  const gate=source.indexOf('if(!hasAnyEditRight(current.user))mergeState(current.team&&current.team.state||{},normalized.state);');
+  const upload=source.indexOf('await externalizeDocumentCollections(normalized.state');
+  assert.ok(gate>=0&&upload>gate,'read-only save must be checked before any Azure document upload');
+  const user=viewer({sop:right('view')});
+  const server={shipments:[{id:'S1',ref:'ABC123',status:'Erstellt'}],_teamSyncMeta:{fields:{},tombstones:[]}};
+  const incoming=structuredClone(server);
+  incoming.shipments[0].deliveryFiles=[{id:'D-UNAUTHORIZED',name:'attack.pdf'}];
+  assert.throws(()=>runAs(user,()=>secureMerge.mergeState(server,incoming)),
+    e=>e&&e.code==='STATE_MODULE_WRITE_FORBIDDEN'&&e.status===403);
+});
+
 test('RC1560: a user without any edit or scoped read permission stays blocked',()=>{
   assert.equal(apiEntryGate(viewer()),false);
 });
