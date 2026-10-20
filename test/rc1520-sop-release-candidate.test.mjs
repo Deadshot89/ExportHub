@@ -37,20 +37,20 @@ test('RC1520 prüft vollständige Regression und alle Releaseverträge auf der R
   assert.match(src,/test\/rc1507-sop-testservice-gate\.test\.mjs/);
 });
 
-test('RC1520 schützt Kernbrowser, SOPMaster und alle drei gebauten Umgebungen',()=>{
+test('RC1520 schützt Kernbrowser, neue Training-Center-Flows und drei Release-Umgebungen',()=>{
   const src=read();
   for(const spec of [
     'e2e/specs/navigation.spec.mjs',
     'e2e/specs/notifications.spec.mjs',
     'e2e/specs/print-documents.spec.mjs',
-    'e2e/specs/sopmaster-target-picker.spec.mjs',
-    'e2e/specs/sopmaster-tour.spec.mjs',
-    'e2e/specs/sopmaster-visual-editor.spec.mjs',
-    'e2e/specs/sopmaster-training-exam.spec.mjs',
-    'e2e/specs/sopmaster-coverage-dashboard.spec.mjs',
-    'e2e/specs/sopmaster-coverage-integration.spec.mjs',
+    'e2e/specs/training-center-shell.spec.mjs',
+    'e2e/specs/training-center-isolation.spec.mjs',
+    'e2e/specs/training-center-tour.spec.mjs',
+    'e2e/specs/training-center-first-shipment.spec.mjs',
+    'e2e/specs/training-center-coverage.spec.mjs',
+    'e2e/specs/training-center-app-integration.spec.mjs',
     'e2e/specs/sopmaster-release-candidate.spec.mjs'
-  ]) assert.ok(src.includes(spec),`RC1520 Browser-Schutz fehlt: ${spec}`);
+  ]) assert.ok(src.includes(spec),'RC1520 Browser-Schutz fehlt: '+spec);
   assert.match(src,/\/index\.html/);
   assert.match(src,/\/TESTVERSION\.html/);
   assert.match(src,/\/demo\.html/);

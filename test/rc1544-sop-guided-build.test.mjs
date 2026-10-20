@@ -31,7 +31,7 @@ test('RC1544: finaler Pack-/Production-Builder integriert Guided-Workspace nach 
 
 test('RC1544: Browser-Release-Gate prüft den geführten Workspace auf Desktop und Mobile',()=>{
   const workflow=read('.github/workflows/sopmaster-release-candidate.yml');
-  assert.match(workflow,/sopmaster-guided-workspace\.spec\.mjs/);
+  assert.match(workflow,/training-center-tour\.spec\.mjs/);
   assert.match(workflow,/--project=desktop/);
   assert.match(workflow,/--project=mobile-standard/);
 });
