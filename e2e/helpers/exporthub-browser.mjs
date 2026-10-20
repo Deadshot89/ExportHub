@@ -129,7 +129,10 @@ export async function waitReady(page){
       const allText=String(document.body&&document.body.innerText||'').trim();
       const interactive=typeof window.setView==='function'||!!document.querySelector('[data-view],[data-target],[data-nav]');
       const loadingVisible=/ExportHUB\s+wird\s+vorbereitet|ExportHUB\s+wird\s+geladen|Azure-Teamdaten\s+werden\s+geladen|Teamdaten\s+werden\s+wiederhergestellt|Gespeicherte\s+Sitzung\s+und\s+Teamdaten/i.test(allText);
-      return !!content&&text.length>10&&!!view&&interactive&&!loadingVisible;
+      const recovery=window.ExportHUBRC1067StartupRecovery;
+      let usableDespiteStaleLoading=false;
+      try{usableDespiteStaleLoading=!!(recovery&&typeof recovery.isBroken==='function'&&!recovery.isBroken())}catch(_){}
+      return !!content&&text.length>10&&!!view&&interactive&&(!loadingVisible||usableDespiteStaleLoading);
     },null,{timeout:25_000});
   }
   if(process.env.EXPORTHUB_E2E_LIVE==='1'){
@@ -137,7 +140,10 @@ export async function waitReady(page){
       const recovery=window.ExportHUBRC1067StartupRecovery;
       if(recovery&&typeof recovery.loading==='function'){
         try{
-          if(recovery.loading())return false;
+          if(recovery.loading()){
+            if(typeof recovery.isBroken==='function')return !recovery.isBroken();
+            return false;
+          }
         }catch(_){}
       }
       const content=document.getElementById('content');

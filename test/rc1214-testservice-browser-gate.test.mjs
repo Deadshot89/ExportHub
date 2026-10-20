@@ -95,9 +95,11 @@ test('RC1540: Live-Ready gibt während sichtbarer Startup-Ladezustände nicht fr
   assert.ok(start>=0&&end>start);
   const block=helper.slice(start,end);
   assert.match(block,/loadingVisible/);
-  assert.match(block,/return !!content&&text\.length>10&&!!view&&interactive&&!loadingVisible;/);
+  assert.match(block,/usableDespiteStaleLoading/);
+  assert.match(block,/!loadingVisible\|\|usableDespiteStaleLoading/);
   assert.match(block,/ExportHUBRC1067StartupRecovery/);
-  assert.match(block,/if\(recovery\.loading\(\)\)return false;/);
+  assert.match(block,/typeof recovery\.isBroken==='function'/);
+  assert.match(block,/return !recovery\.isBroken\(\)/);
   assert.match(block,/startupLoading/);
   assert.match(block,/return !startupLoading;/);
 });
