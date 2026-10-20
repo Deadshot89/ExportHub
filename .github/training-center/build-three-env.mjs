@@ -73,13 +73,13 @@ function injectMissing(html,tags,file){
   if(missing.length)out=out.replace(/<\/head>/i,`${missing.join('\n')}\n</head>`);
   return out;
 }
-function retiredAssetNeedle(){return `/${RETIRED_ASSET_SEGMENTS.join('/')}/`;}
+function retiredAssetNeedle(){return `${RETIRED_ASSET_SEGMENTS.join('/')}/`;}
 
 // Only the release-builder may retire already generated legacy SOP script/style tags.
 // Public injection helpers stay fail-closed when handed an unexpected retired runtime.
 function removeRetiredSopTagsFromBuild(html,file){
  const source=String(html||'');
- const oldTag=/<(?:script|link)\b[^>]*\b(?:src|href)\s*=\s*["'][^"']*\/assets\/sop\/[^"']*["'][^>]*>(?:\s*<\/script\s*>)?/gi;
+ const oldTag=/<(?:script|link)\b[^>]*\b(?:src|href)\s*=\s*["'][^"']*assets\/sop\/[^"']*["'][^>]*>(?:\s*<\/script\s*>)?/gi;
  const cleaned=source.replace(oldTag,'');
  assertNoRetiredSopReferences(cleaned,file);
  return cleaned;
