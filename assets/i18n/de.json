@@ -1688,5 +1688,9 @@
   "location.status.pinInvalid": "Bitte den vierstelligen persönlichen Verlader-PIN eingeben.",
   "location.status.booking": "Location wird gebucht …",
   "location.status.pinRejected": "Verlader-PIN wurde vom Server nicht akzeptiert.",
-  "location.status.bookingFailed": "Location konnte nicht gebucht werden."
+  "location.status.bookingFailed": "Location konnte nicht gebucht werden.",
+  "location.status.preparedBefore": "Die Sendung ist auf",
+  "location.status.preparedAfter": "bereitgestellt. Sie kann bei Bedarf umgebucht werden.",
+  "location.status.bookedBefore": "Sendung erfolgreich auf",
+  "location.status.bookedAfter": "gebucht."
 }

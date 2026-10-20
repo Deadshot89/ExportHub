@@ -1688,5 +1688,9 @@
   "location.status.pinInvalid": "Enter your four-digit personal loader PIN.",
   "location.status.booking": "Assigning location …",
   "location.status.pinRejected": "The server did not accept the loader PIN.",
-  "location.status.bookingFailed": "The location could not be assigned."
+  "location.status.bookingFailed": "The location could not be assigned.",
+  "location.status.preparedBefore": "The shipment is ready at",
+  "location.status.preparedAfter": "and can be moved if necessary.",
+  "location.status.bookedBefore": "Shipment successfully assigned to",
+  "location.status.bookedAfter": "and confirmed."
 }

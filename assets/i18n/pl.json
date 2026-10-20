@@ -1688,5 +1688,9 @@
   "location.status.pinInvalid": "Wprowadź swój czterocyfrowy osobisty PIN pracownika załadunku.",
   "location.status.booking": "Przypisywanie lokalizacji …",
   "location.status.pinRejected": "Serwer nie zaakceptował PIN-u pracownika załadunku.",
-  "location.status.bookingFailed": "Nie udało się przypisać lokalizacji."
+  "location.status.bookingFailed": "Nie udało się przypisać lokalizacji.",
+  "location.status.preparedBefore": "Przesyłka jest przygotowana w lokalizacji",
+  "location.status.preparedAfter": "i w razie potrzeby można ją przenieść.",
+  "location.status.bookedBefore": "Przesyłkę pomyślnie przypisano do lokalizacji",
+  "location.status.bookedAfter": "i zapisano."
 }

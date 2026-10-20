@@ -8,7 +8,7 @@ const packs=Object.fromEntries(langs.map(lang=>[lang,JSON.parse(fs.readFileSync(
 const locationKeys=Object.keys(packs.de).filter(key=>key.startsWith('location.')).sort();
 
 test('Location booking has complete six-language translations for its registered source texts',()=>{
-  assert.equal(locationKeys.length,23,'Expected the scoped Location UI translations');
+  assert.equal(locationKeys.length,27,'Expected the scoped Location UI translations');
   for(const key of locationKeys){
     const german=packs.de[key];
     assert.ok(page.includes(german),'German source text missing from location.html: '+key);
@@ -25,4 +25,14 @@ test('Location page retains six-language runtime without changing the booking en
   assert.match(page,/\/api\/location-booking\?action=/);
   assert.match(page,/\^\[A-Za-z0-9_-\]\{6,128\}\$/);
   assert.match(page,/method:'POST'/);
+});
+
+test('Location dynamic confirmation uses translated fragments and safe text rendering',()=>{
+  assert.match(page,/function setPlaceStatus\(/);
+  assert.match(page,/part\.setAttribute\('data-i18n',key\)/);
+  assert.match(page,/name\.setAttribute\('data-i18n-ignore',''\)/);
+  assert.match(page,/name\.textContent=q\(place\)\|\|'—'/);
+  assert.match(page,/setPlaceStatus\('location\.status\.preparedBefore'/);
+  assert.match(page,/setPlaceStatus\('location\.status\.bookedBefore'/);
+  assert.doesNotMatch(page,/setStatus\('Sendung erfolgreich auf '\+/);
 });

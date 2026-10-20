@@ -1688,5 +1688,9 @@
   "location.status.pinInvalid": "Introduce tu PIN personal de carga de cuatro dígitos.",
   "location.status.booking": "Asignando ubicación …",
   "location.status.pinRejected": "El servidor no ha aceptado el PIN del operario de carga.",
-  "location.status.bookingFailed": "No se pudo asignar la ubicación."
+  "location.status.bookingFailed": "No se pudo asignar la ubicación.",
+  "location.status.preparedBefore": "El envío está preparado en la ubicación",
+  "location.status.preparedAfter": "y se puede trasladar si es necesario.",
+  "location.status.bookedBefore": "Envío asignado correctamente a la ubicación",
+  "location.status.bookedAfter": "y confirmado."
 }

@@ -1688,5 +1688,9 @@
   "location.status.pinInvalid": "Saisissez votre code PIN personnel de chargeur à quatre chiffres.",
   "location.status.booking": "Attribution de l'emplacement …",
   "location.status.pinRejected": "Le serveur a refusé le code PIN du chargeur.",
-  "location.status.bookingFailed": "Impossible d'attribuer l'emplacement."
+  "location.status.bookingFailed": "Impossible d'attribuer l'emplacement.",
+  "location.status.preparedBefore": "L'expédition est prête à l'emplacement",
+  "location.status.preparedAfter": "et peut être déplacée si nécessaire.",
+  "location.status.bookedBefore": "Expédition attribuée à l'emplacement",
+  "location.status.bookedAfter": "avec succès."
 }

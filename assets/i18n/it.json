@@ -1688,5 +1688,9 @@
   "location.status.pinInvalid": "Inserisci il tuo PIN personale a quattro cifre per il carico.",
   "location.status.booking": "Assegnazione della posizione …",
   "location.status.pinRejected": "Il server non ha accettato il PIN dell'addetto al carico.",
-  "location.status.bookingFailed": "Impossibile assegnare la posizione."
+  "location.status.bookingFailed": "Impossibile assegnare la posizione.",
+  "location.status.preparedBefore": "La spedizione è pronta nella posizione",
+  "location.status.preparedAfter": "e può essere spostata se necessario.",
+  "location.status.bookedBefore": "Spedizione assegnata alla posizione",
+  "location.status.bookedAfter": "con successo."
 }
