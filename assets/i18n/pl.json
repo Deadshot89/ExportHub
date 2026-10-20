@@ -1740,5 +1740,8 @@
   "emergency.pod.vaultSource": "Sejf przeglądarki",
   "legacyPattern.emergencyPodVaultLoaded": "Wczytano {{count}} kompletnych list załadunkowych POD z sejfu przeglądarki.",
   "legacyPattern.emergencyPodFolderLoaded": "Wczytano {{count}} kompletnych plików PDF POD z folderu awaryjnego. Są one dostępne bez ExportHUB.",
-  "legacyPattern.emergencyPodZipCreated": "Utworzono ZIP z {{count}} listami załadunkowymi POD."
+  "legacyPattern.emergencyPodZipCreated": "Utworzono ZIP z {{count}} listami załadunkowymi POD.",
+  "emergency.pod.mode": "Tryb",
+  "emergency.pod.noticeContinuation": "Wybierz go. Zapisane pliki PDF to kompletne listy załadunkowe z podpisem kierowcy.",
+  "emergency.pod.documentTitle": "ExportHUB – awaryjny dostęp do POD RC554"
 }

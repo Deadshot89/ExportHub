@@ -1740,5 +1740,8 @@
   "emergency.pod.vaultSource": "Browser vault",
   "legacyPattern.emergencyPodVaultLoaded": "{{count}} complete POD loading list(s) loaded from the browser vault.",
   "legacyPattern.emergencyPodFolderLoaded": "{{count}} complete POD PDF(s) loaded from the emergency folder. These files remain accessible without ExportHUB.",
-  "legacyPattern.emergencyPodZipCreated": "ZIP created with {{count}} POD loading list(s)."
+  "legacyPattern.emergencyPodZipCreated": "ZIP created with {{count}} POD loading list(s).",
+  "emergency.pod.mode": "Mode",
+  "emergency.pod.noticeContinuation": "Select it. The stored PDFs are complete loading lists with the driver's signature.",
+  "emergency.pod.documentTitle": "ExportHUB emergency POD access RC554"
 }

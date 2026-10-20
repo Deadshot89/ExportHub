@@ -1740,5 +1740,8 @@
   "emergency.pod.vaultSource": "Browser-Vault",
   "legacyPattern.emergencyPodVaultLoaded": "{{count}} vollständige POD-Ladeliste(n) aus dem Browser-Vault geladen.",
   "legacyPattern.emergencyPodFolderLoaded": "{{count}} vollständige POD-PDF(s) aus dem Notfallordner geladen. Diese Daten stehen ohne ExportHUB zur Verfügung.",
-  "legacyPattern.emergencyPodZipCreated": "{{count}} POD-Ladeliste(n) als ZIP erstellt."
+  "legacyPattern.emergencyPodZipCreated": "{{count}} POD-Ladeliste(n) als ZIP erstellt.",
+  "emergency.pod.mode": "Modus",
+  "emergency.pod.noticeContinuation": "auswählen. Die darin gespeicherten PDFs sind vollständige Ladelisten mit Fahrerunterschrift.",
+  "emergency.pod.documentTitle": "ExportHUB POD-Notfallzugriff RC554"
 }

@@ -1740,5 +1740,8 @@
   "emergency.pod.vaultSource": "Archivio del browser",
   "legacyPattern.emergencyPodVaultLoaded": "Caricate {{count}} liste di carico POD complete dall'archivio del browser.",
   "legacyPattern.emergencyPodFolderLoaded": "Caricati {{count}} PDF POD completi dalla cartella di emergenza. Sono disponibili senza ExportHUB.",
-  "legacyPattern.emergencyPodZipCreated": "Creato ZIP con {{count}} liste di carico POD."
+  "legacyPattern.emergencyPodZipCreated": "Creato ZIP con {{count}} liste di carico POD.",
+  "emergency.pod.mode": "Modalità",
+  "emergency.pod.noticeContinuation": "Selezionala. I PDF salvati sono liste di carico complete con la firma dell'autista.",
+  "emergency.pod.documentTitle": "ExportHUB – accesso di emergenza ai POD RC554"
 }

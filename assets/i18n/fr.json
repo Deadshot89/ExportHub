@@ -1740,5 +1740,8 @@
   "emergency.pod.vaultSource": "Coffre du navigateur",
   "legacyPattern.emergencyPodVaultLoaded": "{{count}} liste(s) de chargement POD complète(s) chargée(s) du coffre du navigateur.",
   "legacyPattern.emergencyPodFolderLoaded": "{{count}} PDF POD complet(s) chargé(s) du dossier d'urgence. Ils restent accessibles sans ExportHUB.",
-  "legacyPattern.emergencyPodZipCreated": "ZIP créé avec {{count}} liste(s) de chargement POD."
+  "legacyPattern.emergencyPodZipCreated": "ZIP créé avec {{count}} liste(s) de chargement POD.",
+  "emergency.pod.mode": "Mode",
+  "emergency.pod.noticeContinuation": "Sélectionnez-le. Les PDF enregistrés sont des listes de chargement complètes avec la signature du chauffeur.",
+  "emergency.pod.documentTitle": "ExportHUB – accès d'urgence aux POD RC554"
 }
