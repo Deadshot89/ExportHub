@@ -100,16 +100,28 @@ function scanVisibleGerman(file,source,registeredGerman){
   });
   return rows;
 }
+// Only report a translation key when it actually flows to a visible text sink.
+// A key elsewhere on a large/minified line is not proof of raw key rendering.
 function scanVisibleKeys(file,source){
-  const rows=[],lines=source.split(/\r?\n/);
+  const rows=[],lines=source.split(/\r?\n/),seen=new Set();
+  const directSink=/(?:\.(?:textContent|innerText|placeholder|title)|\b(?:textContent|innerText|placeholder|aria-label|title)|\[\s*['"](?:textContent|innerText|placeholder|title|aria-label)['"]\s*\])\s*=\s*$/i;
+  const attrSink=/\bsetAttribute\s*\(\s*['"](?:title|aria-label|placeholder)['"]\s*,\s*$/i;
+  const htmlKey=/(?:>\s*|\b(?:title|aria-label|placeholder)\s*=\s*['"])(?:common|login|profile|nav|dashboard|shipment|customer|task|document|mail|avis|pickup|public|safety|status|errors|history|settings|calendar|pallet|reports|admin)\.[a-zA-Z0-9_.-]+(?=\s*<|['"]|\s*$)/g;
   lines.forEach((line,i)=>{
-    if(isNonUiPayloadLine(line))return;
-    if(TRACE&&line.length>10000)diag('keys line '+file.rel+':'+(i+1)+' chars='+line.length);
-    if(!KEY_LITERAL.test(line)||!UI_CONTEXT.test(line))return;
-    if(/data-i18n(?:-[a-z]+)?\s*=/.test(line))return;
-    const visibleLiteral=/(?:>|textContent\s*=|innerText\s*=|placeholder\s*=|aria-label\s*=|title\s*=)\s*['"`]?(?:common|login|profile|nav|dashboard|shipment|customer|task|document|mail|avis|pickup|public|safety|status|errors|history|settings|calendar|pallet|reports|admin)\.[a-zA-Z0-9_.-]+/i.test(line);
-    if(!visibleLiteral)return;
-    rows.push({file:file.rel,line:i+1,text:compact(line)});
+    if(isNonUiPayloadLine(line)||!KEY_LITERAL.test(line)||!UI_CONTEXT.test(line))return;
+    if(/^\s*(?:\/\/|\*|\/\*)/.test(line))return;
+    for(const hit of literalTexts(line,true)){
+      const value=hit.value.trim(),left=line.slice(Math.max(0,hit.position-150),hit.position).trimEnd();
+      const rawKey=new RegExp('^(?:'+KEY_LITERAL.source+')$').test(value);
+      const nearbySink=directSink.test(left)||attrSink.test(left);
+      const plainHtml=rawKey&&/>\s*$/.test(left);
+      const htmlString=htmlKey.test(value);
+      htmlKey.lastIndex=0;
+      if(!((rawKey&&(nearbySink||plainHtml))||htmlString))continue;
+      const unique=i+':'+hit.position+':'+value;
+      if(seen.has(unique))continue;seen.add(unique);
+      rows.push({file:file.rel,line:i+1,literal:compact(value),text:compact(line.length<=2400?line:line.slice(Math.max(0,hit.position-120),Math.min(line.length,hit.position+250)))});
+    }
   });
   return rows;
 }
