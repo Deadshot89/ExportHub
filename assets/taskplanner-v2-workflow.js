@@ -103,7 +103,7 @@
 
   function customerAlias(value){
     return q(value).normalize('NFKC').toLocaleLowerCase('de-DE')
-      .replace(/\\s+/g,' ');
+      .replace(/\s+/g,' ');
   }
 
   function berlinDay(value){
@@ -119,7 +119,7 @@
   function plannedDay(task){
     const candidate=q(task&&task.manualOverride&&task.plannedAt||
       task&&(task.dueAt||task.dueDate||task.occurrenceKey||task.plannedAt));
-    return (candidate.match(/^(\\d{4}-\\d{2}-\\d{2})/)||[])[1]||'';
+    return (candidate.match(/^(\d{4}-\d{2}-\d{2})/)||[])[1]||'';
   }
 
   function managedRegistrationMatch(event,task,ctx={}){
