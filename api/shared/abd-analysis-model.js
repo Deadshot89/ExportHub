@@ -78,12 +78,12 @@ function calculateAnalysisTotals(header,groups,unassigned){
  }
 }
 function physicalTotals(positions){
- const list=Array.isArray(positions)?positions:[];
- return{
-  netMassKg:metricSum(list.map(position=>numberOrNull(position&&position.netMassKg))),
-  grossMassKg:metricSum(list.map(position=>numberOrNull(position&&position.grossMassKg))),
-  volumeM3:metricSum(list.map(position=>numberOrNull(position&&position.volumeM3)))
+ const list=Array.isArray(positions)?positions:[],out={};
+ for(const key of ['netMassKg','grossMassKg','volumeM3']){
+  const values=list.map(position=>numberOrNull(position&&position[key])).filter(value=>value!=null);
+  if(values.length)out[key]=metricSum(values);
  }
+ return out
 }
 function missingCount(positions,field){
  return (Array.isArray(positions)?positions:[]).filter(position=>Array.isArray(position&&position.missing)&&position.missing.includes(field)).length

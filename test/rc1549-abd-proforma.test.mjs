@@ -95,3 +95,25 @@ test('RC1549: Integrator injiziert nur in den echten Dokument-Head und niemals i
   }
  }finally{fs.rmSync(tmp,{recursive:true,force:true})}
 });
+
+test('RC1549 compatibility: legacy extraction totals remain when individual weights are absent',()=>{
+ const legacy={positions:[
+  {position:'1',invoiceNumber:'INV-42',commodityCode:'39269097',originCountry:'DE',value:100,currency:'EUR',missing:[],warnings:[]},
+  {position:'2',invoiceNumber:'INV-42',commodityCode:'39269097',originCountry:'DE',value:50,currency:'EUR',missing:[],warnings:[]}
+ ],totals:{value:150,netMassKg:12.5,grossMassKg:13.1},currencies:['EUR']};
+ const enriched=model.enrichLegacyAnalysis(legacy,{invoiceTotal:150});
+ assert.equal(enriched.totals.netMassKg,12.5);
+ assert.equal(enriched.totals.grossMassKg,13.1);
+ assert.equal(enriched.totals.volumeM3,undefined);
+});
+
+test('RC1549 compatibility: absent group metrics do not change the legacy export schema',()=>{
+ const reviewed=model.rebuildReviewedAnalysis({
+  header:{invoiceNumber:'INV',invoiceTotal:100,currency:'EUR'},
+  positions:[{position:'1',description:'Part',commodityCode:'39269097',originCountry:'DE',value:100,currency:'EUR',confirmed:true}]
+ });
+ assert.equal(reviewed.review.complete,true);
+ assert.deepEqual(exporter.createExportModel(reviewed).groups,[{
+  commodityCode:'39269097',originCountry:'DE',value:100,currency:'EUR',positionCount:1
+ }]);
+});

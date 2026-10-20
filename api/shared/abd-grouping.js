@@ -25,14 +25,15 @@ function groupPositionsByHsOrigin(positions){
   const commodityCode=normalizeCommodityCode(position.commodityCode),originCountry=normalizeOriginCountry(position.originCountry),key=commodityCode+'|'+originCountry;
   let group=byKey.get(key);
   if(!group){
-   group={key,commodityCode,originCountry,value:0,currency:'',valuesByCurrency:{},netMassKg:0,grossMassKg:0,volumeM3:0,positionRefs:[],positionCount:0,warnings:[],status:'complete'};
+   group={key,commodityCode,originCountry,value:0,currency:'',valuesByCurrency:{},positionRefs:[],positionCount:0,warnings:[],status:'complete'};
    byKey.set(key,group);groups.push(group)
   }
   const currency=text(position.currency).toUpperCase().slice(0,3),amount=Number(position.value);
   group.positionRefs.push(positionRef(position,index));group.positionCount++;
-  group.netMassKg=metricAdd(group.netMassKg,position.netMassKg);
-  group.grossMassKg=metricAdd(group.grossMassKg,position.grossMassKg);
-  group.volumeM3=metricAdd(group.volumeM3,position.volumeM3);
+  for(const field of ['netMassKg','grossMassKg','volumeM3']){
+   if(position[field]!=null&&Number.isFinite(Number(position[field])))
+    group[field]=metricAdd(group[field],position[field]);
+  }
   group.valuesByCurrency[currency]=moneyAdd(group.valuesByCurrency[currency]||0,amount);
   const currencies=Object.keys(group.valuesByCurrency);
   if(currencies.length===1){group.currency=currencies[0];group.value=group.valuesByCurrency[group.currency]}
