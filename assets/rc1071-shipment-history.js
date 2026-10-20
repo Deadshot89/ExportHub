@@ -238,9 +238,9 @@ async function confirmRegistrationMail(sh){
     if(result.changed)live.tasks=result.state.tasks
    }
    registrationFeedback(tr('shipmentHistory.registration.saving'),false);
-   var queued=await Promise.resolve(clean.queueSave('Versandanmeldung bestätigt und Aufgabe abgeglichen'));
+   var queued=await Promise.resolve(clean.queueSave('Shipment registration confirmation'));
    if(queued===false)throw new Error('QUEUE_SAVE_REJECTED');
-   var ack=await Promise.resolve(clean.flushSave('Versandanmeldung bestätigt und Aufgabe abgeglichen',{force:true,userInitiated:true}));
+   var ack=await Promise.resolve(clean.flushSave('Shipment registration confirmation',{force:true,userInitiated:true}));
    if(ack!==true)throw new Error('SAVE_NOT_CONFIRMED');
    persisted=true;
    render();
