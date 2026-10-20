@@ -22,8 +22,8 @@ function canonicalViews(file){
   assert.ok(m,file+': RC325 ITEMS fehlen');
   return [...m[1].matchAll(/view:'([a-z]+)'/g)].map(x=>x[1]);
 }
-// Menüpunkte, die andere Module zur Laufzeit ergänzen (Aufgabenansicht, Abholkalender, Historie) und die Verpackungsverwaltung
-const RUNTIME_VIEWS=['taskdetail','pickupcalendar','history','packaging'];
+// Menüpunkte, die andere Module zur Laufzeit ergänzen (Aufgabenansicht, Abholkalender, Historie, Packmeldungen) und die Verpackungsverwaltung
+const RUNTIME_VIEWS=['taskdetail','pickupcalendar','history','packnotifications','packaging'];
 
 test('RC1579: jeder Menüpunkt hat genau einen Bereich und ein Icon',()=>{
   const menu=load().ExportHUBMenu1579;
@@ -67,4 +67,13 @@ test('RC1579: Build bindet Menü-CSS, Texte und Skript ein und kopiert sie',()=>
   assert.match(build,/function patchRc1579Menu\(html,file\)/);
   assert.match(build,/html=patchRc1577OverviewCompact\(html,file\);\n  html=patchRc1579Menu\(html,file\);/);
   for(const rel of ['assets/rc1579-menu-redesign.css','assets/rc1579-menu-redesign.js','assets/i18n/rc1579-menu-redesign.js'])assert.ok(build.includes(`'${rel}'`),rel+' wird nicht kopiert');
+});
+
+test('RC1579: Verpackungen-Knopf in #nav wird ins Admin-Menü einsortiert statt doppelt angezeigt',()=>{
+  // RC1555 legt den Knopf mit data-index321-view="packagingmasterdata" direkt in #nav ab
+  assert.match(js,/:is\(\[data-rc1579-proxy="packaging"\],\[data-rc1555-packaging-nav\]\)/);
+  assert.match(js,/if\(!real\|\|real\.parentNode===nav\)\{if\(proxy\)proxy\.remove\(\)/);
+  assert.match(js,/SECTION_OF\.packagingmasterdata='admin'/);
+  // Menüknöpfe ohne data-view (nur data-index321-view) bekommen ebenfalls Reihenfolge und Icon
+  assert.match(js,/:is\(\[data-view="'\+v\+'"\],\[data-index321-view="'\+v\+'"\]\)/);
 });
