@@ -45,7 +45,9 @@ test('RC1559: POD aus der echten Ladelisten-Vorlage zeigt jeden Abholwert genau 
   once('Fahrername','Balletanu');
   once('Kennzeichen','KÜN R 764');
   once('Verlader','Daniel Ollmann');
-  once('Palettenkonto','Ausgang: 2');
+  once('Palettenkonto','Aktueller Stand / Balance');
+  once('Palettenkonto','Eingang / Return');
+  expect(cards['Palettenkonto'].text).not.toContain('Ausgang: 2');
   // labels are uppercased by CSS, innerText returns the rendered case
   expect(cards['Datum / Uhrzeit'].text.toLowerCase().split('datum / uhrzeit').length-1,'Label doppelt: '+cards['Datum / Uhrzeit'].text).toBe(1);
   expect(cards['Unterschrift Fahrer'].lines).toBe(0);

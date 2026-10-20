@@ -63,7 +63,8 @@ test('RC1560: Fahrerunterschrift bleibt im POD-PDF-Rahmen kompakt, Palettenkonto
   }
   expect(result.measured.palletHint,'Palettenkonto darf nicht mehr über dem Ladelisten-Kopf stehen').toBe(false);
   expect(result.measured.palletIsBottomCard,'Palettenkonto gehört in das Europaletten-Feld unten rechts').toBe(true);
-  expect(result.measured.palletText).toMatch(/Palettenkonto \/ EUR pallet balance/i);
-  expect(result.measured.palletText).toMatch(/Europaletten \/ (?:Balanced|In favour of)/i);
-  expect(result.measured.palletText).toMatch(/Ausgang: 2 · Eingang\/Rückgabe: 0/);
+  expect(result.measured.palletText).toMatch(/Palettenkonto \/ EUR pallets/i);
+  expect(result.measured.palletText).toMatch(/Aktueller Stand \/ Balance/i);
+  expect(result.measured.palletText).toMatch(/Eingang \/ Return/i);
+  expect(result.measured.palletText).not.toMatch(/Ausgang: 2/i);
 });
