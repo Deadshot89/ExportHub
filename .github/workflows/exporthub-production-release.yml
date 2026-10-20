@@ -147,6 +147,7 @@ jobs:
           test -s .rc1112_production_app/assets/rc1012-abholkalender-runtime.js
           test -s .rc1112_production_app/assets/pack-notification-nav.js
           test -s .rc1112_production_app/assets/pack-notification-internal.js
+          test -s .rc1112_production_app/assets/packaging-admin.js
 
       - name: RC1124 Playwright für Production-Smoke installieren
         shell: bash
@@ -174,6 +175,8 @@ jobs:
           test "$(git rev-parse HEAD)" = "$RELEASE_SHA"
           test -s .rc1112_production_app/index.html
           test -s .rc1112_production_app/pack.html
+          test -s .rc1112_production_app/assets/packaging-admin.js
+          test -s api/exporthub-health/index.js
 
       - name: RC1553 deployment metadata - PRODUCTION
         shell: bash

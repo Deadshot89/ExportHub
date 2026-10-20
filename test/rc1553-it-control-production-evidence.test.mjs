@@ -91,6 +91,37 @@ test('RC1553: deployed release-metadata file stays authoritative when runtime me
   }
 });
 
+test('RC1553: deployed release-metadata file wins over complete but stale runtime metadata',async()=>{
+  const metadataPath=path.join(os.tmpdir(),`exporthub-release-metadata-conflict-${process.pid}-${Date.now()}.json`);
+  fs.writeFileSync(metadataPath,JSON.stringify({
+    buildId:'fedcba9876543210fedcba9876543210fedcba98',
+    visibleRelease:'RC1553',
+    technicalBuild:'RC1112',
+    builtAt:'2026-10-16T15:30:00.000Z',
+    environment:'production'
+  }));
+  try{
+    await withEnv({
+      EXPORTHUB_DEPLOY_BUILD_ID:'0123456789abcdef0123456789abcdef01234567',
+      EXPORTHUB_DEPLOY_VISIBLE_RELEASE:'RC1548',
+      EXPORTHUB_DEPLOY_TECHNICAL_BUILD:'RC1112',
+      EXPORTHUB_DEPLOY_BUILT_AT:'2026-10-15T15:30:00.000Z',
+      EXPORTHUB_DEPLOY_ENVIRONMENT:'production',
+      EXPORTHUB_RELEASE_METADATA_PATH:metadataPath
+    },async()=>{
+      const result=await invoke();
+      assert.equal(result.body.deployment.verified,true);
+      assert.equal(result.body.deployment.status,'verified');
+      assert.equal(result.body.deployment.buildId,'fedcba9876543210fedcba9876543210fedcba98');
+      assert.equal(result.body.deployment.visibleRelease,'RC1553');
+      assert.equal(result.body.deployment.environment,'production');
+      assert.equal(result.body.deployment.source,'release-metadata');
+    });
+  }finally{
+    fs.rmSync(metadataPath,{force:true});
+  }
+});
+
 test('RC1553: Missing deployment metadata fails closed instead of claiming a verified version',async()=>{
   await withEnv({
     EXPORTHUB_DEPLOY_BUILD_ID:null,
@@ -160,4 +191,15 @@ test('RC1553: legacy RC1060 health contract remains present for existing probes'
   const source=fs.readFileSync(new URL('../api/exporthub-health/index.js',import.meta.url),'utf8');
   assert.match(source,/version:\s*['"]RC1060['"]/);
   assert.match(source,/release:\s*['"]legacy-document-migration['"]/);
+});
+
+test('RC1557: production upload uses the SWA deployment token without OIDC and proves critical app/API files before deploy',()=>{
+  // Azure SWA maps a github_id_token to the app by the workflow filename (azure-static-web-apps-*.yml);
+  // this workflow has a different name, so OIDC makes the upload fail with BadRequest (run 39032809094).
+  assert.doesNotMatch(productionWorkflow,/github_id_token:/);
+  assert.doesNotMatch(productionWorkflow,/Acquire GitHub OIDC token for Azure Static Web Apps/);
+  assert.match(productionWorkflow,/azure_static_web_apps_api_token:\s*\$\{\{\s*secrets\.AZURE_STATIC_WEB_APPS_API_TOKEN_WONDERFUL_FOREST_0F315E310\s*\}\}/);
+  assert.match(productionWorkflow,/test -s \.rc1112_production_app\/assets\/packaging-admin\.js/);
+  assert.match(productionWorkflow,/test -s api\/exporthub-health\/index\.js/);
+  assert.match(productionWorkflow,/test -s api\/release-metadata\.json/);
 });

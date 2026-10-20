@@ -14,9 +14,24 @@
     const n=notification||{},count=Math.max(1,Number(n.packageCount)||arr(n.packages).length||1),weight=Number(n.totalWeight)||0,perWeight=count?weight/count:weight;
     return{
       packNotificationId:q(n.id),packNotificationRef:q(n.reference),customerName:q(n.customer),customerId:q(n.customerId),customerAccount:q(n.customerAccount),customerSource:q(n.customerSource)||'manual',deliveryNoteReference:q(n.deliveryNoteReference),packageType:q(n.packageType),packageCount:count,totalWeight:weight,note:q(n.note),
-      rows:arr(n.packages).map((p,index)=>({count:1,packaging:q(n.packageType),l:Number(p&&p.length)||0,w:Number(p&&p.width)||0,h:Number(p&&p.height)||0,weight:perWeight,packageNo:Number(p&&p.packageNo)||index+1})),
+      rows:arr(n.packages).map((p,index)=>({count:1,packaging:q(p&&p.packagingType)||q(n.packageType),l:Number(p&&p.length)||0,w:Number(p&&p.width)||0,h:Number(p&&p.height)||0,weight:perWeight,packageNo:Number(p&&p.packageNo)||index+1})),
       deliveryFiles:arr(n.documents).map(doc=>Object.assign({},doc,{customerVisible:false,customerAvisVisible:false,source:'pack_notification',packNotificationId:q(n.id),packNotificationRef:q(n.reference)}))
     };
+  }
+  function shipmentRows(prefill){
+    const groups=[];
+    for(const row of arr(prefill&&prefill.rows)){
+      const last=groups[groups.length-1];
+      if(last&&last.type===row.packaging&&last.l===row.l&&last.w===row.w&&last.h===row.h){last.count+=1;continue;}
+      groups.push({type:q(row.packaging),count:1,l:row.l,w:row.w,h:row.h,weight:0});
+    }
+    const total=Number(prefill&&prefill.totalWeight)||0,pieces=groups.reduce((sum,g)=>sum+g.count,0);
+    let assigned=0;
+    groups.forEach((g,index)=>{
+      if(index===groups.length-1){g.weight=Math.round((total-assigned)*10)/10;return;}
+      g.weight=pieces?Math.round(total*g.count/pieces*10)/10:0;assigned+=g.weight;
+    });
+    return groups;
   }
   function findShipmentForNotification(state,notification){
     const n=notification||{},wanted=q(n.shipmentId),nid=q(n.id),nref=q(n.reference);
@@ -36,6 +51,44 @@
     const task=arr(state&&state.tasks).find(t=>q(t&&t.sourceType)==='pack_notification'&&q(t&&t.sourceId)===q(notification.id));if(task){task.status='in_progress';task.updatedAt=when;}
     return true;
   }
+  const OPEN_AFTER_SHIPMENT=new Set(['shipment_created','registration_in_progress','registered','ready_for_dispatch']);
+  function shipmentStatusText(sh){return q(sh&&(sh.status||sh.shipmentStatus||sh.processStatus||sh.pickupStatus)).toLocaleLowerCase('de-DE');}
+  function shipmentCancelled(sh){return /^(?:storniert|cancelled|canceled)$/.test(shipmentStatusText(sh));}
+  function shipmentCompleted(sh){
+    try{const calendar=root.ExportHubPickupCalendar;if(calendar&&typeof calendar.shipmentIsCompleted==='function')return Boolean(calendar.shipmentIsCompleted(sh));}catch(_){}
+    if(q(sh&&(sh.pickedUpAt||sh.pickupConfirmedAt||sh.pickupCompletedAt||sh.podServerVerifiedAt)))return true;
+    return /^(?:abgeholt|pod vorhanden|abgeschlossen|archiviert|picked up|pod available|completed|archived)$/.test(shipmentStatusText(sh));
+  }
+  function statusFromShipment(sh){if(!sh)return'';if(shipmentCancelled(sh))return'cancelled';if(shipmentCompleted(sh))return'completed';return'';}
+  function syncStatuses(state,at){
+    const when=q(at)||new Date().toISOString(),changes=[];
+    for(const notification of arr(state&&state.packNotifications)){
+      if(!q(notification&&notification.shipmentId)||!OPEN_AFTER_SHIPMENT.has(q(notification.status).toLowerCase()))continue;
+      const next=statusFromShipment(findShipmentForNotification(state,notification));if(!next)continue;
+      const before={notification:{status:notification.status,updatedAt:notification.updatedAt,closedAt:notification.closedAt},tasks:[]};
+      notification.status=next;notification.updatedAt=when;notification.closedAt=when;
+      for(const task of arr(state&&state.tasks)){
+        if(q(task&&task.sourceType)!=='pack_notification'||q(task&&task.sourceId)!==q(notification.id))continue;
+        before.tasks.push({task,status:task.status,updatedAt:task.updatedAt,unread:task.unread});
+        task.status=next==='completed'?'done':'cancelled';task.unread=false;task.updatedAt=when;
+      }
+      changes.push({notification,before});
+    }
+    return changes;
+  }
+  function revertSync(changes){
+    for(const {notification,before} of changes){
+      for(const [key,value] of Object.entries(before.notification)){if(value===undefined)delete notification[key];else notification[key]=value;}
+      for(const t of before.tasks){for(const key of ['status','updatedAt','unread']){if(t[key]===undefined)delete t.task[key];else t.task[key]=t[key];}}
+    }
+  }
+  let syncing=false,syncTimer=0;
+  async function syncAndPersist(){
+    if(syncing)return false;syncing=true;
+    try{const changes=syncStatuses(sharedState(),new Date().toISOString());if(!changes.length)return false;if(!await persist('Packmeldung-Status aus Sendung übernommen')){revertSync(changes);return false;}return true;}
+    finally{syncing=false;}
+  }
+  function scheduleSync(){if(typeof setTimeout!=='function')return;if(typeof clearTimeout==='function')clearTimeout(syncTimer);syncTimer=setTimeout(()=>{syncAndPersist().catch(()=>{});},150);}
   async function persist(reason){
     try{
       const clean=root.ExportHUBClean;
@@ -80,16 +133,27 @@
       if(manualWithoutIdentity)nativeValue(customer,prefill.customerName);
       else{nativeSet(customer,prefill.customerName);try{customer.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',code:'Enter',bubbles:true}));}catch(_){}}
     }
-    const rows=Array.from(doc.querySelectorAll('#rc573ColliCard .rc363-owned-row'));
-    const first=rows[0];if(first){
-      const set=(field,value)=>nativeSet(first.querySelector(`[data-rc363-field="${field}"] input`),value);
-      set('count',prefill.packageCount);const p=prefill.rows[0]||{};set('l',p.l||'');set('w',p.w||'');set('h',p.h||'');set('weight',prefill.totalWeight||'');
-    }
+    applyRowsToMountedForm(doc,shipmentRows(prefill));
     const state=sharedState(),draft=state.shipment||state.currentShipment||state.selectedShipment;if(draft&&typeof draft==='object'){
       if(manualWithoutIdentity&&prefill.customerName)draft.customerSearch=prefill.customerName;
       draft.packNotificationId=prefill.packNotificationId;draft.packNotificationRef=prefill.packNotificationRef;draft.packNotificationCustomer={id:prefill.customerId,account:prefill.customerAccount,name:prefill.customerName,source:prefill.customerSource};draft.packNotificationPrefill={deliveryNoteReference:prefill.deliveryNoteReference,packageType:prefill.packageType,packageCount:prefill.packageCount,totalWeight:prefill.totalWeight,rows:prefill.rows,note:prefill.note};
       draft.deliveryFiles=mergeDocuments(draft.deliveryFiles,prefill.deliveryFiles);
     }
+    return true;
+  }
+  function applyRowsToMountedForm(doc,plan){
+    const api=root.ExportHUBShipment420,nodes=()=>Array.from(doc.querySelectorAll('#rc573ColliCard .rc363-owned-row'));
+    plan.forEach((row,index)=>{
+      if(!nodes()[index]&&api&&typeof api.addRow==='function')api.addRow();
+      const node=nodes()[index];if(!node)return;
+      const select=node.querySelector('[data-rc363-field="type"] select');
+      if(row.type&&api&&typeof api.updateRow==='function'&&q(select&&select.value)!==row.type)api.updateRow(index,'type',row.type,select||node);
+      const set=(field,value)=>nativeSet(node.querySelector(`[data-rc363-field="${field}"] input`),value);
+      set('count',row.count);set('l',row.l||'');set('w',row.w||'');set('h',row.h||'');
+      const weight=node.querySelector('[data-rc363-field="weight"] input');
+      if(api&&typeof api.updateRow==='function'){api.updateRow(index,'weight',row.weight||'',weight||node);nativeValue(weight,row.weight||'');}
+      else set('weight',row.weight||'');
+    });
     return true;
   }
   function waitForShipmentForm(prefill,attempt=0,settleAttempt=0,lastCustomer=null){
@@ -117,9 +181,11 @@
   function begin(notificationId){
     const state=sharedState(),notification=notificationById(state,notificationId);if(!notification)return false;
     const existing=findShipmentForNotification(state,notification);if(existing)return openShipment(existing);
+    if(q(notification.status).toLowerCase()==='cancelled')return false;
     return startNew(notification);
   }
   async function onShipmentSaved(event){
+    scheduleSync();
     if(!pending)return;const state=sharedState(),notification=notificationById(state,pending.notificationId);if(!notification){pending=null;return;}
     const detail=event&&event.detail||{},saved=detail.shipment||findShipmentForNotification(state,notification)||(state.shipment||state.currentShipment||state.selectedShipment);
     if(!saved||!shipmentId(saved))return false;
@@ -140,9 +206,11 @@
   function install(){
     if(typeof root.addEventListener!=='function'||root.__packShipmentBridgeInstalled)return false;root.__packShipmentBridgeInstalled=true;
     root.addEventListener('exporthub:pack-create-shipment',event=>begin(event&&event.detail&&event.detail.notificationId));
-    root.addEventListener('exporthub:shipment-saved',onShipmentSaved);return true;
+    root.addEventListener('exporthub:shipment-saved',onShipmentSaved);
+    ['exporthub:shipment-updated','exporthub:state-loaded','exporthub:sync'].forEach(name=>root.addEventListener(name,scheduleSync));
+    scheduleSync();return true;
   }
 
-  root.ExportHUBPackShipment=Object.freeze({shipmentPrefill,findShipmentForNotification,linkShipment,begin,applyPrefillToMountedForm,install});
+  root.ExportHUBPackShipment=Object.freeze({shipmentPrefill,shipmentRows,findShipmentForNotification,linkShipment,statusFromShipment,syncStatuses,begin,applyPrefillToMountedForm,install});
   install();
 })(typeof window!=='undefined'?window:globalThis);

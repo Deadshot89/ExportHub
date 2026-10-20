@@ -36,7 +36,7 @@ for(const file of pages){
   includes(file,'assets/rc1017-multi-truck.js?v=1017');
   includes(file,'assets/rc1013-gate41-ui.js?v=1385');
   includes(file,'assets/rc1074-login-clean.js?v=1349');
-  includes(file,'assets/rc1305-loading-list-print.js?v=1555');
+  includes(file,'assets/rc1305-loading-list-print.js?v=1379');
   includes(file,'assets/rc1315-loading-list-quick-print.js?v=1322');
   includes(file,'assets/rc1283-loading-list-search.js?v=1305');
   includes(file,'assets/rc1027-lieferavis-immediate.js?v=20261005');
@@ -45,7 +45,7 @@ for(const file of pages){
 
 for(const file of ['dist-rc1112/index.html','dist-rc1112/TESTVERSION.html']){
   includes(file,'assets/rc1061-document-migration-admin.js?v=1073');
-  includes(file,'assets/rc1067-startup-recovery.js?v=1067');
+  includes(file,'assets/rc1067-startup-recovery.js?v=1577');
   includes(file,'assets/rc1075-loader-pin-admin.js?v=1075');
   includes(file,'assets/rc1126-customer-delete.js?v=1387');
   includes(file,'assets/rc1013-diagnostics.js?v=1364');

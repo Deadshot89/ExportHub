@@ -9,7 +9,7 @@
     "test": "node --test --test-concurrency=1 test/*.test.mjs tests/*.test.cjs",
     "posttest": "node scripts/rc1520-posttest-release-isolation.mjs",
     "test:contracts": "node --test --test-concurrency=1 test/rc1065-chat-closeout.test.mjs test/rc1088-release-hardening.test.mjs",
-    "test:security": "node --test --test-concurrency=1 --test-name-pattern='Security|Rechte' test/rc1088-release-hardening.test.mjs",
+    "test:security": "node scripts/security-secret-scan.mjs && node --test --test-concurrency=1 --test-name-pattern='Security|Rechte' test/rc1088-release-hardening.test.mjs test/rc1556-secret-hardening.test.mjs",
     "test:accessibility": "node --test --test-concurrency=1 --test-name-pattern='Accessibility|Responsive' test/rc1088-release-hardening.test.mjs",
     "test:smoke": "node --test --test-concurrency=1 test/rc1088-release-hardening.test.mjs",
     "verify:release": "npm run test:security && npm run test:accessibility && npm test",

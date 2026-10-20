@@ -5,6 +5,7 @@ import {integrateTour} from '../rc1501/build-three-env.mjs';
 import {integrateEditor} from '../rc1502/build-three-env.mjs';
 import {integrateTraining} from '../rc1503/build-three-env.mjs';
 import {integrateCoverageAdmin} from '../rc1506/build-three-env.mjs';
+import {patchRc1576StateBodyDeadline} from '../../scripts/rc1576-state-read-body-timeout.mjs';
 
 const ROOT=process.cwd();
 const SRC=path.join(ROOT,'dist-rc1048');
@@ -56,6 +57,21 @@ const RC1306_LAYOUT_SCRIPT_TAG='<script id="exporthub-rc1306-layout-script" defe
 const RC1371_DASHBOARD_STYLE_TAG='<link id="exporthub-rc1371-dashboard-style" rel="stylesheet" href="/assets/rc1371-dashboard-personalization.css?v=1371">';
 const RC1371_DASHBOARD_I18N_TAG='<script id="exporthub-rc1371-dashboard-i18n" defer src="/assets/i18n/rc1371-dashboard-personalization.js?v=1371"><\/script>';
 const RC1371_DASHBOARD_SCRIPT_TAG='<script id="exporthub-rc1371-dashboard-script" defer src="/assets/rc1371-dashboard-personalization.js?v=1371"><\/script>';
+const RC1560_FULL_WIDTH_STYLE_TAG='<link id="exporthub-rc1560-full-width" rel="stylesheet" href="/assets/rc1560-full-width.css?v=1560">';
+const RC1579_MENU_STYLE_TAG='<link id="exporthub-rc1579-menu-style" rel="stylesheet" href="/assets/rc1579-menu-redesign.css?v=1579">';
+const RC1579_MENU_I18N_TAG='<script id="exporthub-rc1579-menu-i18n" defer src="/assets/i18n/rc1579-menu-redesign.js?v=1579"></script>';
+const RC1579_MENU_SCRIPT_TAG='<script id="exporthub-rc1579-menu-script" defer src="/assets/rc1579-menu-redesign.js?v=1579"></script>';
+const RC1577_OVERVIEW_COMPACT_STYLE_TAG='<link id="exporthub-rc1577-overview-compact" rel="stylesheet" href="/assets/rc1577-shipment-overview-compact.css?v=1577">';
+const RC1558_OVERVIEW_STYLE_TAG='<link id="exporthub-rc1558-overview-style" rel="stylesheet" href="/assets/rc1558-dashboard-overview.css?v=1558">';
+const RC1558_OVERVIEW_I18N_TAG='<script id="exporthub-rc1558-overview-i18n" defer src="/assets/i18n/rc1558-dashboard-overview.js?v=1558"><\/script>';
+const RC1558_OVERVIEW_SCRIPT_TAG='<script id="exporthub-rc1558-overview-script" defer src="/assets/rc1558-dashboard-overview.js?v=1558"><\/script>';
+const RC1570_TASKS_STYLE_TAG='<link id="exporthub-rc1570-tasks-style" rel="stylesheet" href="/assets/rc1570-tasks-focus.css?v=1570">';
+const RC1570_TASKS_I18N_TAG='<script id="exporthub-rc1570-tasks-i18n" defer src="/assets/i18n/rc1570-tasks-focus.js?v=1570"></script>';
+const RC1570_TASKS_SCRIPT_TAG='<script id="exporthub-rc1570-tasks-script" defer src="/assets/rc1570-tasks-focus.js?v=1570"></script>';
+const RC1577_POD_AUDIT_I18N_TAG='<script id="exporthub-rc1577-pod-audit-i18n" defer src="/assets/i18n/rc1577-pod-quality-audit.js?v=1577"></script>';
+const RC1577_POD_AUDIT_SCRIPT_TAG='<script id="exporthub-rc1577-pod-audit-script" defer src="/assets/rc1577-pod-quality-audit.js?v=1577"></script>';
+const RC1558_WORKSPACE_MARKER='window.__EXPORTHUB_RC885_CLEAN_WORKSPACE__ = true;';
+const RC1558_WORKSPACE_EXPORT="window.ExportHUBWorkspace885=Object.freeze({shipments:shipments,tasks:tasks,shipmentOpenList:shipmentOpenList,taskOpenList:taskOpenList,dueTask:dueTask,shipmentNeedsDocuments:shipmentNeedsDocuments,shipmentNeedsPickup:shipmentNeedsPickup,shipmentNeedsPod:shipmentNeedsPod,routeTo:routeTo});";
 const RC1328_MULTI_TRUCK_REFRESH_TAG='<script id="exporthub-rc1328-multi-truck-refresh" defer src="/assets/rc1328-multi-truck-ui-refresh.js?v=1333"><\/script>';
 
 function patchRc1296BrowserBranding(html,file){
@@ -110,6 +126,29 @@ function patchRc1400MobileNavigationCache(html,file){
   return html;
 }
 
+function patchRc1560FullWidth(html,file){
+  // last stylesheet in <head>: lifts the screen width caps of #content and the view wrappers
+  html=injectDeferredRuntimeInHead(html,RC1560_FULL_WIDTH_STYLE_TAG,'exporthub-rc1560-full-width');
+  if(!html.includes('rc1560-full-width.css?v=1560'))throw new Error(file+': RC1560 Vollbreite-CSS fehlt');
+  return html;
+}
+
+function patchRc1577OverviewCompact(html,file){
+  // after RC1560: compact shipment overview tiles, purely visual
+  html=injectDeferredRuntimeInHead(html,RC1577_OVERVIEW_COMPACT_STYLE_TAG,'exporthub-rc1577-overview-compact');
+  if(!html.includes('rc1577-shipment-overview-compact.css?v=1577'))throw new Error(file+': RC1577 kompakte Sendungsübersicht fehlt');
+  return html;
+}
+
+function patchRc1579Menu(html,file){
+  // after RC1577: menu sections with submenus and one icon set; buttons stay canonical in #nav
+  html=injectDeferredRuntimeInHead(html,RC1579_MENU_STYLE_TAG,'exporthub-rc1579-menu-style');
+  html=injectDeferredRuntimeInHead(html,RC1579_MENU_I18N_TAG,'exporthub-rc1579-menu-i18n');
+  html=injectDeferredRuntimeInHead(html,RC1579_MENU_SCRIPT_TAG,'exporthub-rc1579-menu-script');
+  if(!html.includes('rc1579-menu-redesign.css?v=1579')||!html.includes('i18n/rc1579-menu-redesign.js?v=1579')||!html.includes('/assets/rc1579-menu-redesign.js?v=1579'))throw new Error(file+': RC1579 Menü fehlt');
+  return html;
+}
+
 function patchRc1371Dashboard(html,file){
   html=injectDeferredRuntimeInHead(html,RC1371_DASHBOARD_STYLE_TAG,'exporthub-rc1371-dashboard-style');
   html=injectDeferredRuntimeInHead(html,RC1371_DASHBOARD_I18N_TAG,'exporthub-rc1371-dashboard-i18n');
@@ -117,6 +156,32 @@ function patchRc1371Dashboard(html,file){
   if(!html.includes('rc1371-dashboard-personalization.css?v=1371'))throw new Error(file+': RC1371 Dashboard-CSS fehlt');
   if(!html.includes('i18n/rc1371-dashboard-personalization.js?v=1371'))throw new Error(file+': RC1371 Dashboard-I18n fehlt');
   if(!html.includes('rc1371-dashboard-personalization.js?v=1371'))throw new Error(file+': RC1371 Dashboard-Runtime fehlt');
+  return html;
+}
+
+function patchRc1558DashboardOverview(html,file){
+  // The overview reuses the canonical RC885 predicates instead of computing its own KPIs.
+  if(!html.includes(RC1558_WORKSPACE_EXPORT)){
+    const count=html.split(RC1558_WORKSPACE_MARKER).length-1;
+    if(count!==1)throw new Error(file+': RC1558 RC885-Workspace-Anker '+count+'x statt genau 1x gefunden');
+    html=html.replace(RC1558_WORKSPACE_MARKER,RC1558_WORKSPACE_MARKER+'\n  '+RC1558_WORKSPACE_EXPORT);
+  }
+  html=injectDeferredRuntimeInHead(html,RC1558_OVERVIEW_STYLE_TAG,'exporthub-rc1558-overview-style');
+  html=injectDeferredRuntimeInHead(html,RC1558_OVERVIEW_I18N_TAG,'exporthub-rc1558-overview-i18n');
+  html=injectDeferredRuntimeInHead(html,RC1558_OVERVIEW_SCRIPT_TAG,'exporthub-rc1558-overview-script');
+  if(!html.includes(RC1558_WORKSPACE_EXPORT))throw new Error(file+': RC1558 RC885-Workspace-Export fehlt');
+  if(!html.includes('rc1558-dashboard-overview.css?v=1558'))throw new Error(file+': RC1558 Dashboard-Übersicht-CSS fehlt');
+  if(!html.includes('i18n/rc1558-dashboard-overview.js?v=1558'))throw new Error(file+': RC1558 Dashboard-Übersicht-I18n fehlt');
+  if(!html.includes('rc1558-dashboard-overview.js?v=1558'))throw new Error(file+': RC1558 Dashboard-Übersicht-Runtime fehlt');
+  // RC1570 task focus view (overdue/today first, new-task form, working task detail view)
+  html=injectDeferredRuntimeInHead(html,RC1570_TASKS_STYLE_TAG,'exporthub-rc1570-tasks-style');
+  html=injectDeferredRuntimeInHead(html,RC1570_TASKS_I18N_TAG,'exporthub-rc1570-tasks-i18n');
+  html=injectDeferredRuntimeInHead(html,RC1570_TASKS_SCRIPT_TAG,'exporthub-rc1570-tasks-script');
+  if(!html.includes('i18n/rc1570-tasks-focus.js?v=1570')||!html.includes('/assets/rc1570-tasks-focus.js?v=1570')||!html.includes('rc1570-tasks-focus.css?v=1570'))throw new Error(file+': RC1570 Aufgaben-Fokus fehlt');
+  // RC1577 admin POD audit (report first, regenerate / review flag only after confirmation)
+  html=injectDeferredRuntimeInHead(html,RC1577_POD_AUDIT_I18N_TAG,'exporthub-rc1577-pod-audit-i18n');
+  html=injectDeferredRuntimeInHead(html,RC1577_POD_AUDIT_SCRIPT_TAG,'exporthub-rc1577-pod-audit-script');
+  if(!html.includes('i18n/rc1577-pod-quality-audit.js?v=1577')||!html.includes('/assets/rc1577-pod-quality-audit.js?v=1577'))throw new Error(file+': RC1577 POD-Prüfung fehlt');
   return html;
 }
 
@@ -270,6 +335,97 @@ function patchNotificationTasks(html,file){
   }
   if(!block.includes('function notificationTaskKey(t)'))throw new Error(file+': RC1123 Aufgabenfilter fehlt');
   return html.slice(0,a)+block+html.slice(b);
+}
+
+// RC1566: notifications recognise tasks assigned by user id (assignedTo/effectiveAssignee) and dated by dueAt,
+// and browser notifications/hints name the concrete tasks (title, priority, due date) instead of only a count.
+function patchNotificationTaskDetails(html,file){
+  const moduleStart='<script id="index236-notification-controller">';
+  const moduleEnd='<!-- INDEX 236 NOTIFICATION CENTER END -->';
+  const a=html.indexOf(moduleStart),b=a>=0?html.indexOf(moduleEnd,a+moduleStart.length):-1;
+  if(a<0||b<0)throw new Error(file+': RC1566 Benachrichtigungsmodul fehlt');
+  let block=html.slice(a,b);
+  const oldOwner=String.raw`function taskOwner(t){return q(t&&(t.owner||t.assignee||t.responsible||t.zustaendig||t.eowner||''))}`;
+  const newOwner=String.raw`function taskOwner(t){return q(t&&(t.assignedToName||t.owner||t.assignee||t.responsible||t.zustaendig||t.eowner||''))}
+function taskOwnerKeys(t){if(!t)return[];var eff=low(t.effectiveAssignee);if(eff)return[eff];return[t.owner,t.assignee,t.assigneeId,t.assignedTo,t.userId,t.responsible,t.zustaendig,t.eowner,t.assignedToName].map(low).filter(Boolean)}
+function taskPriorityRank(t){var m=q(t&&t.priority).match(/^P(\d)$/i);return m?Number(m[1]):9}
+function taskLine(t){var d=taskDate(t),p=q(t&&t.priority);return taskTitle(t)+(/^P\d$/i.test(p)?' · '+p.toUpperCase():'')+(d?' · fällig '+fmtDate(d):'')}
+function urgentTasks(){return openTasks().slice().sort(function(x,y){var dx=taskDate(x)||'9999-99-99',dy=taskDate(y)||'9999-99-99';if(dx!==dy)return dx<dy?-1:1;return taskPriorityRank(x)-taskPriorityRank(y)})}
+function hintTaskList(){var list=urgentTasks().slice(0,3);if(!list.length)return'';return '<ul class="index236-hint-tasks" style="list-style:none;margin:10px 0 0;padding:0;display:grid;gap:6px">'+list.map(function(t){return '<li><button type="button" class="soft" style="width:100%;text-align:left;white-space:normal" data-index236-action="open-task" data-id="'+esc(taskId(t))+'">'+esc(taskLine(t))+'</button></li>'}).join('')+'</ul>'}`;
+  const oldForUser=String.raw`function taskForUser(t){var own=low(taskOwner(t)),u=low(userName()),login=low(user().user||user().login||user().username);return !own||own==='alle'||own==='all'||own.indexOf(u)>=0||u.indexOf(own)>=0||(login&&own.indexOf(login)>=0)}`;
+  const newForUser=String.raw`function taskForUser(t){var keys=taskOwnerKeys(t);if(!keys.length)return true;var u=user(),ids=[u.id,u.userId].map(low).filter(Boolean),names=[userName(),u.user,u.login,u.username].map(low).filter(Boolean);return keys.some(function(own){if(own==='alle'||own==='all'||ids.indexOf(own)>=0)return true;return names.some(function(n){return own===n||(own.length>2&&n.length>2&&(own.indexOf(n)>=0||n.indexOf(own)>=0))})})}`;
+  const oldDate=String.raw`function taskDate(t){return iso(t&&(t.dueDate||t.date||t.targetDate||t.plannedDate||t.deadline))}`;
+  const newDate=String.raw`function taskDate(t){var v=q(t&&(t.dueDate||t.dueAt||t.date||t.targetDate||t.plannedDate||t.plannedAt||t.deadline));if(/T\d{2}:\d{2}/.test(v)&&/(?:Z|[+-]\d{2}:?\d{2})$/.test(v)){var d=new Date(v);if(!isNaN(d.getTime()))return localISO(d)}return iso(v)}`;
+  const oldNotify=String.raw`function nativeNotify(c,label){if(!('Notification' in window)||Notification.permission!=='granted'||!c.tasks)return;try{var n=new Notification('ExportHUB · '+label,{body:c.tasks+' offene Aufgabe'+(c.tasks===1?'':'n')+' · '+c.overdueTasks+' überfällig',tag:'exporthub-'+localISO()+'-'+label.replace(/\D/g,''),renotify:true,silent:true,requireInteraction:false});n.onclick=function(){try{window.focus()}catch(_){ }openView();try{n.close()}catch(_){ }}}catch(e){console.warn('Browser-Benachrichtigung',e)}}`;
+  const newNotify=String.raw`function nativeNotify(c,label){if(!('Notification' in window)||Notification.permission!=='granted'||!c.tasks)return;try{var list=urgentTasks(),one=list.length===1?list[0]:null,lines=list.slice(0,3).map(taskLine);if(list.length>3)lines.push('+'+(list.length-3)+' weitere');if(c.overdueTasks)lines.push(c.overdueTasks+' überfällig');var n=new Notification(one?'ExportHUB · '+taskTitle(one):'ExportHUB · '+c.tasks+' offene Aufgaben',{body:lines.join('\n')||label,tag:'exporthub-'+localISO()+'-'+label.replace(/\D/g,''),renotify:true,silent:true,requireInteraction:false});n.onclick=function(){try{window.focus()}catch(_){ }if(one)openTask(taskId(one));else openView();try{n.close()}catch(_){ }}}catch(e){console.warn('Browser-Benachrichtigung',e)}}`;
+  const oldHint=String.raw`+'<div class="index236-hint-actions"><button class="btn" data-index236-action="open-center">`;
+  const newHint=String.raw`+(empty?'':hintTaskList())+'<div class="index236-hint-actions"><button class="btn" data-index236-action="open-center">`;
+  const oldOpen=String.raw`function openTask(id){var t=findTask(id);`;
+  const newOpen=String.raw`function openTask(id){removeHint();var t=findTask(id);`;
+  const oldCenterList=String.raw`tasks=openTasks()`;
+  const newCenterList=String.raw`tasks=urgentTasks()`;
+  const oldCardMeta=String.raw`<p>'+esc(taskOwner(t)||'Alle')+`;
+  const newCardMeta=String.raw`<p>'+esc(taskOwner(t)||'Alle')+(/^P\d$/i.test(q(t&&t.priority))?' · '+esc(q(t.priority).toUpperCase()):'')+`;
+  // the start-up check ran before the real state (__EXPORTHUB_GET_STATE__) and the user were loaded, counted 0 and marked the due slot (e.g. 09:00) as done
+  const oldBoot=String.raw`updateBadge();checkSchedule(false);scheduleNext();`;
+  const newBoot=String.raw`updateBadge();bootCheck(0);scheduleNext();`;
+  const oldReady=String.raw`if(low(main().view)==='notifications')renderView();checkSchedule(false);scheduleNext()}`;
+  const newReady=String.raw`if(low(main().view)==='notifications')renderView();bootCheck(0);scheduleNext()}`;
+  const oldVisible=String.raw`if(!document.hidden){checkSchedule(false);`;
+  const newVisible=String.raw`if(!document.hidden){bootCheck(0);`;
+  const oldBootFn=String.raw`function boot(){`;
+  const newBootFn=String.raw`function bootCheck(n){var u=user();if((typeof window.__EXPORTHUB_GET_STATE__!=='function'||!arr(main().tasks).length||!q(u.id||u.user||u.login||u.username))&&n<20){later(function(){bootCheck(n+1)},1500);return}checkSchedule(false);updateBadge()}
+function boot(){`;
+  for(const [before,after,label] of [[oldBoot,newBoot,'boot'],[oldReady,newReady,'exporthub:ready'],[oldVisible,newVisible,'visibilitychange'],[oldBootFn,newBootFn,'bootCheck'],[oldOwner,newOwner,'taskOwner'],[oldForUser,newForUser,'taskForUser'],[oldDate,newDate,'taskDate'],[oldNotify,newNotify,'nativeNotify'],[oldHint,newHint,'hintHtml'],[oldOpen,newOpen,'openTask'],[oldCenterList,newCenterList,'renderView'],[oldCardMeta,newCardMeta,'taskCard']]){
+    const n=block.split(before).length-1;
+    if(n!==1)throw new Error(file+': RC1566 '+label+' im Benachrichtigungsmodul '+n+'x gefunden');
+    block=block.replace(before,()=>after);
+  }
+  if(!block.includes('function taskOwnerKeys(t)')||!block.includes('hintTaskList()'))throw new Error(file+': RC1566 konkrete Aufgaben-Benachrichtigung fehlt');
+  return html.slice(0,a)+block+html.slice(b);
+}
+
+// TaskPlanner V2 reminders (spec §15): per-task slots 09:00/13:00/15:30 are delivered by
+// ExportHUBTaskRemindersV2 with a synced ledger; the legacy centre keeps its list and manual check but
+// no longer fires its own global 09/12/15 summary, and "Erledigt" goes through the V2 core (history, sync)
+function patchNotificationTaskPlannerV2(html,file){
+  const moduleStart='<script id="index236-notification-controller">';
+  const moduleEnd='<!-- INDEX 236 NOTIFICATION CENTER END -->';
+  const a=html.indexOf(moduleStart),b=a>=0?html.indexOf(moduleEnd,a+moduleStart.length):-1;
+  if(a<0||b<0)throw new Error(file+': TaskPlanner V2 Benachrichtigungsmodul fehlt');
+  let block=html.slice(a,b);
+  const replacements=[
+    [String.raw`{id:'1200',label:'12:00 Uhr',minutes:720},`,String.raw`{id:'1300',label:'13:00 Uhr',minutes:780},`,'slot 13:00'],
+    [String.raw`{id:'1500',label:'15:00 Uhr',minutes:900}`,String.raw`{id:'1530',label:'15:30 Uhr',minutes:930}`,'slot 15:30'],
+    [String.raw`function checkSchedule(manual){var c=counts();if(manual){showHint(c,'Manuelle Prüfung',true);renderView();return false}`,
+     String.raw`function checkSchedule(manual){var c=counts();if(manual){showHint(c,'Manuelle Prüfung',true);renderView();return false}if(window.ExportHUBTaskRemindersV2&&typeof window.ExportHUBTaskRemindersV2.active==='function'&&window.ExportHUBTaskRemindersV2.active()){updateBadge();return false}`,'checkSchedule'],
+    [String.raw`function completeTask(id){var t=findTask(id);if(!t)return false;`,
+     String.raw`function completeTask(id){var t=findTask(id);if(!t)return false;var v2=window.ExportHUBTaskUIV2;if(v2&&typeof v2.completeTask==='function'){try{var res=v2.completeTask(taskId(t),{},{state:main(),user:user(),persist:function(){try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')window.ExportHUBClean.queueSave('Aufgabe aus Benachrichtigung erledigt')}catch(_){ }}});if(res&&res.changed){renderView();updateBadge();return false}}catch(e){console.warn('TaskPlanner V2 Erledigen',e)}}`,'completeTask'],
+    [String.raw`ExportHUB erinnert an Arbeitstagen um 09:00, 12:00 und 15:00 Uhr.`,String.raw`ExportHUB erinnert an Arbeitstagen zu den Zeiten, die an der jeweiligen Aufgabe eingestellt sind (Standard 09:00, 13:00 und 15:30 Uhr).`,'center text'],
+    [String.raw`Erinnerungen erscheinen um 09:00, 12:00 und 15:00 Uhr, solange ExportHUB geöffnet ist.`,String.raw`Erinnerungen erscheinen zu den Zeiten der jeweiligen Aufgabe (Standard 09:00, 13:00 und 15:30 Uhr), solange ExportHUB geöffnet ist.`,'enable text']
+  ];
+  for(const [before,after,label] of replacements){
+    const n=block.split(before).length-1;
+    if(n!==1)throw new Error(file+': TaskPlanner V2 Benachrichtigung '+label+' '+n+'x gefunden');
+    block=block.replace(before,()=>after);
+  }
+  return html.slice(0,a)+block+html.slice(b);
+}
+
+// RC1569: dashboard "Aufgaben fällig" / "Meine Aufgaben" (RC885 workspace) also count tasks assigned by user id
+// (assignedTo/effectiveAssignee) and dated by dueAt/plannedAt – same rule as the notification center (RC1566)
+function patchWorkspaceTaskOwnership(html,file){
+  const oldForUser=String.raw`function workspaceTaskForUser(t){var own=low(workspaceTaskOwner(t)),`;
+  const newForUser=String.raw`function workspaceTaskForUserId(t){if(!t)return false;var u=workspaceCurrentUser(),ids=[u.id,u.userId].map(low).filter(Boolean);if(!ids.length)return false;var eff=low(t.effectiveAssignee),keys=eff?[eff]:[t.owner,t.assignee,t.assigneeId,t.assignedTo,t.userId,t.eowner].map(low).filter(Boolean);return keys.some(function(k){return ids.indexOf(k)>=0})}
+  function workspaceTaskForUser(t){if(workspaceTaskForUserId(t))return true;var own=low(workspaceTaskOwner(t)),`;
+  const oldDate=String.raw`function workspaceTaskDate(t){var keys=['dueDate','due','date','plannedDate','targetDate','deadline'];`;
+  const newDate=String.raw`function workspaceTaskDate(t){var keys=['dueDate','dueAt','due','date','plannedDate','plannedAt','targetDate','deadline'];`;
+  for(const [before,after,label] of [[oldForUser,newForUser,'workspaceTaskForUser'],[oldDate,newDate,'workspaceTaskDate']]){
+    const n=html.split(before).length-1;
+    if(n!==1)throw new Error(file+': RC1569 '+label+' '+n+'x gefunden');
+    html=html.replace(before,()=>after);
+  }
+  return html;
 }
 
 function patchTaskMasterSaveScope(html,file){
@@ -687,9 +843,9 @@ function patchRc1305LoadingListPresentation(html,file){
     ].join('\n')+'\n';
     html=html.slice(0,loadEnd)+wrapper+html.slice(loadEnd);
   }
-  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1305-loading-list-print" defer src="/assets/rc1305-loading-list-print.js?v=1555"></script>','exporthub-rc1305-loading-list-print');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1305-loading-list-print" defer src="/assets/rc1305-loading-list-print.js?v=1379"></script>','exporthub-rc1305-loading-list-print');
   if(!html.includes('__EXPORTHUB_RC1305_LOAD_HTML_WRAPPED__'))throw new Error(file+': RC1305 interner Ladelisten-Renderer ist nicht angebunden');
-  if(!html.includes('assets/rc1305-loading-list-print.js?v=1555'))throw new Error(file+': RC1305 Ladelisten-Druckruntime fehlt');
+  if(!html.includes('assets/rc1305-loading-list-print.js?v=1379'))throw new Error(file+': RC1305 Ladelisten-Druckruntime fehlt');
   return html;
 }
 
@@ -915,10 +1071,15 @@ function patchHtml(file){
   const target=path.join(OUT,file);
   let html=fs.readFileSync(target,'utf8');
   html=patchRc1289AuthTransportFallback(html,file);
+  html=patchRc1576StateBodyDeadline(html,file);
   html=patchRc1304ThemeRedesign(html,file);
   html=patchRc1400MobileNavigationCache(html,file);
   html=patchRc1371Dashboard(html,file);
+  html=patchRc1558DashboardOverview(html,file);
   html=patchRc1306LayoutEngine(html,file);
+  html=patchRc1560FullWidth(html,file);
+  html=patchRc1577OverviewCompact(html,file);
+  html=patchRc1579Menu(html,file);
   html=patchRc1329MultiTruckUiRuntime(html,file);
   html=patchRc1328MultiTruckRefresh(html,file);
   html=patchRc1329MultiTruckRenderer(html,file);
@@ -930,6 +1091,9 @@ function patchHtml(file){
   html=patchMainCountryDetection(html,file);
   html=patchRc1206ShippingRules(html,file);
   html=patchNotificationTasks(html,file);
+  html=patchNotificationTaskDetails(html,file);
+  html=patchWorkspaceTaskOwnership(html,file);
+  html=patchNotificationTaskPlannerV2(html,file);
   html=patchTaskMasterSaveScope(html,file);
   html=patchTaskDetailTab(html,file);
   html=patchRc1259ContainerSearch(html,file);
@@ -968,6 +1132,8 @@ function patchHtml(file){
   html=injectDeferredRuntimeInHead(html,'<!-- id="exporthub-rc1148-history-compat-marker" assets/rc1071-shipment-history.js?v=1095 -->','exporthub-rc1148-history-compat-marker');
   html=injectDeferredRuntimeInHead(html,RC1267_I18N_TAG,'exporthub-rc1267-i18n');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1460-shipment-view-fix" defer src="/assets/rc1460-shipment-view-files-avis-preview.js?v=1460"></script>','exporthub-rc1460-shipment-view-fix');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-av-upload-i18n" defer src="/assets/i18n/av-upload.js?v=1"></script>','exporthub-av-upload-i18n');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-av-upload" defer src="/assets/av-upload.js?v=1"></script>','exporthub-av-upload');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1126-customer-delete" defer src="/assets/rc1126-customer-delete.js?v=1387"></script>','exporthub-rc1126-customer-delete');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1113-stowplan-persist" defer src="/assets/rc1113-stowplan-persist.js?v=1113"></script>','exporthub-rc1113-stowplan-persist');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1114-shipping-neutral" defer src="/assets/rc1114-shipping-neutral.js?v=1386"></script>','exporthub-rc1114-shipping-neutral');
@@ -1011,7 +1177,7 @@ function patchHtml(file){
   if(!html.includes('assets/rc1203-deckblatt-print.js?v=1373'))throw new Error(file+': RC1205 Deckblatt-Runtime fehlt');
   if(!html.includes('assets/rc1283-loading-list-search.js?v=1305'))throw new Error(file+': RC1283 Ladelisten-Suchruntime fehlt');
   if(!html.includes('assets/rc1315-loading-list-quick-print.js?v=1322'))throw new Error(file+': RC1315 QR-/REF-Schnelldruck-Runtime fehlt');
-  if(!html.includes('assets/rc1305-loading-list-print.js?v=1555'))throw new Error(file+': RC1360 Ladelisten-Druckruntime fehlt im HTML');
+  if(!html.includes('assets/rc1305-loading-list-print.js?v=1379'))throw new Error(file+': RC1360 Ladelisten-Druckruntime fehlt im HTML');
   if(!html.includes('__EXPORTHUB_RC1283_OPEN_LOAD1__'))throw new Error(file+': RC1283 Ladelisten-Öffnen/Drucken-Bridge fehlt');
   if(!html.includes('assets/rc1207-pallet-account-fix.js?v=1418'))throw new Error(file+': RC1207 Palettenkonto-Runtime fehlt');
   if(!html.includes('assets/rc1294-abd-self-service.js?v=1407'))throw new Error(file+': RC1294 ABD-Self-Service-Runtime fehlt');
@@ -1071,7 +1237,21 @@ for(const rel of [
   'assets/rc1306-layout-engine.js',
   'assets/rc1371-dashboard-personalization.css',
   'assets/rc1371-dashboard-personalization.js',
-  'assets/rc1460-shipment-view-files-avis-preview.js'
+  'assets/rc1560-full-width.css',
+  'assets/rc1577-shipment-overview-compact.css',
+  'assets/rc1579-menu-redesign.css',
+  'assets/rc1579-menu-redesign.js',
+  'assets/i18n/rc1579-menu-redesign.js',
+  'assets/rc1558-dashboard-overview.css',
+  'assets/rc1558-dashboard-overview.js',
+  'assets/rc1570-tasks-focus.css',
+  'assets/rc1570-tasks-focus.js',
+  'assets/i18n/rc1570-tasks-focus.js',
+  'assets/rc1577-pod-quality-audit.js',
+  'assets/i18n/rc1577-pod-quality-audit.js',
+  'assets/rc1460-shipment-view-files-avis-preview.js',
+  'assets/i18n/av-upload.js',
+  'assets/av-upload.js'
 ]){
   const src=path.join(ROOT,rel),dst=path.join(OUT,rel);
   if(!fs.existsSync(src))throw new Error('RC1124 Pflicht-Runtime fehlt: '+rel);

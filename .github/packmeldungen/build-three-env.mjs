@@ -7,6 +7,7 @@ import {integrateGuidedWorkspace} from '../rc1544/integrate-guided-workspace.mjs
 
 export const PACK_ASSETS=Object.freeze([
   'i18n/pack-notification.js',
+  'rc1555-packaging-store.js',
   'packaging-catalog.js',
   'document-reference-normalizer.js',
   'document-upload-normalizer.js',

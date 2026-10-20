@@ -53,4 +53,14 @@ async function upload(reference,name,buffer,mimeType){
  if(!res.ok)throw error('GRAPH_REFERENCE_FILE_UPLOAD_FAILED',data.error&&data.error.message||'api.reference.fileUploadFailed',res.status>=500?502:res.status,{status:res.status});
  return{id:text(data.id),name:text(data.name)||file,size:Number(data.size||buffer.length),webUrl:text(data.webUrl),folderPath:folderPath(ref),reference:ref};
 }
-module.exports={GRAPH_BASE,REFERENCE_FOLDER,DRIVE_USER,refValue,safeFileName,folderPath,ensureFolder,upload};
+async function listFiles(reference){
+ const ref=refValue(reference);let url=GRAPH_BASE+'/users/'+encodeURIComponent(DRIVE_USER)+'/drive/root:/'+encPath(folderPath(ref))+':/children?$top=200&$select=id,name,file,createdDateTime,lastModifiedDateTime',files=[],pages=0;
+ while(url&&pages<6){
+  const res=await graph(url);if(res.status===404)return[];let data={};try{data=await res.json()}catch(_){}
+  if(!res.ok)throw error('GRAPH_REFERENCE_FOLDER_LIST_FAILED',data.error&&data.error.message||'api.reference.listFailed',res.status>=500?502:res.status,{status:res.status});
+  for(const item of Array.isArray(data.value)?data.value:[]){if(item&&item.file)files.push({id:text(item.id),name:text(item.name),createdDateTime:item.createdDateTime||null,lastModifiedDateTime:item.lastModifiedDateTime||null})}
+  url=data['@odata.nextLink']||'';pages++;
+ }
+ return files;
+}
+module.exports={GRAPH_BASE,REFERENCE_FOLDER,DRIVE_USER,refValue,safeFileName,folderPath,ensureFolder,upload,listFiles,config};

@@ -1189,8 +1189,12 @@ html[data-eh-design="neon"] :is(.modal,.dialog,[role="dialog"],.overlay-card){
   border:1px solid #234665!important;
   box-shadow:0 30px 80px rgba(0,0,0,.52),0 0 28px rgba(34,211,238,.05)!important;
 }
-html[data-eh-design="neon"] #login{
+/* RC1562: :not(.hidden) – this selector outranks "#login.hidden{display:none!important}", so after login
+   the Neon login screen used to stay on top of the app */
+html[data-eh-design="neon"] #login:not(.hidden){
   display:grid!important;
+}
+html[data-eh-design="neon"] #login{
   place-items:center!important;
   padding:20px!important;
 }
@@ -1592,4 +1596,15 @@ html[data-eh-design="glass"] :is(.modal,.dialog,[role="dialog"],.overlay-card){
   html[data-eh-design]:not([data-eh-design="classic"]) #login .rc1304-login-theme{
     grid-template-columns:1fr!important;
   }
+}
+
+/* Sidebar footer: the user card and the Stammdaten link keep their natural height in every design.
+   Without this the flex column squeezes the card (overflow hidden) to a clipped strip above the Verpackungen link. */
+.sidebar>.brand,
+.sidebar>.profile,
+.sidebar>.rc1555-packaging-nav-wrap{
+  flex-shrink:0!important;
+}
+.sidebar>.profile{
+  min-height:max-content!important;
 }

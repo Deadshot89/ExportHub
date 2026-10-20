@@ -14,7 +14,7 @@ const RC1061_MIGRATION_TAG='<script id="'+RC1061_MIGRATION_ID+'" defer src="/ass
 const RC1063_ABD_BLOB_ID='exporthub-rc1063-abd-blob-viewer-compat';
 const RC1063_ABD_BLOB_TAG='<script id="'+RC1063_ABD_BLOB_ID+'" defer src="/assets/rc1063-abd-blob-viewer-compat.js?v=1248"></script>';
 const RC1067_STARTUP_ID='exporthub-rc1067-startup-recovery';
-const RC1067_STARTUP_TAG='<script id="'+RC1067_STARTUP_ID+'" defer src="/assets/rc1067-startup-recovery.js?v=1067"></script>';
+const RC1067_STARTUP_TAG='<script id="'+RC1067_STARTUP_ID+'" defer src="/assets/rc1067-startup-recovery.js?v=1577"></script>';
 const RC1069_PERF_ID='exporthub-rc1069-performance';
 const RC1069_PERF_TAG='<script id="'+RC1069_PERF_ID+'" defer src="/assets/rc1069-performance.js?v=1069"></script>';
 const RC1071_HISTORY_ID='exporthub-rc1071-shipment-history';
@@ -36,7 +36,7 @@ const RC1092_CONTACTS_TAG='<script id="'+RC1092_CONTACTS_ID+'" defer src="/asset
 const RC1096_PACKAGING_ID='exporthub-rc1096-packaging-groups';
 const RC1096_PACKAGING_TAG='<script id="'+RC1096_PACKAGING_ID+'" defer src="/assets/rc1096-packaging-groups.js?v=1110"></script>';
 const RC1543_PRINT_HELPER_ID='exporthub-document-print-name';
-const RC1543_PRINT_HELPER_TAG='<script id="'+RC1543_PRINT_HELPER_ID+'" defer src="/assets/document-print-name.js?v=1555"></script>';
+const RC1543_PRINT_HELPER_TAG='<script id="'+RC1543_PRINT_HELPER_ID+'" defer src="/assets/document-print-name.js?v=1543"></script>';
 
 function replaceBetween(source,start,end,replacement,label){
   const a=source.indexOf(start),b=a>=0?source.indexOf(end,a+start.length):-1;
@@ -520,7 +520,7 @@ function patchHtml(file,canonicalPrintStow,canonicalController){
   html=patchLoginScreenStatus(html,file);
   if(!html.includes(`version:'${VERSION}'`))throw new Error(file+': BUILD '+VERSION+' fehlt');
   if(!html.includes(`ExportHUB ${VERSION} environment=`))throw new Error(file+': Environment '+VERSION+' fehlt');
-  if(!html.includes('assets/document-print-name.js?v=1555'))throw new Error(file+': RC1543 Dokument-Druckhelper fehlt');
+  if(!html.includes('assets/document-print-name.js?v=1543'))throw new Error(file+': RC1543 Dokument-Druckhelper fehlt');
   fs.writeFileSync(target,html);
 }
 

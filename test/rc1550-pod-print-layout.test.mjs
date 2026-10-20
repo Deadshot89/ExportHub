@@ -6,31 +6,43 @@ import {execFileSync} from 'node:child_process';
 const base=fs.readFileSync('assets/rc1305-loading-list-print.js','utf8');
 const wrapper=fs.readFileSync('assets/document-print-name.js','utf8');
 
-test('POD: both print layers constrain the driver signature to 16mm',()=>{
-  for(const source of [base,wrapper]){
-    assert.match(source,/height:16mm!important;min-height:0!important;max-height:16mm!important/);
-    assert.match(source,/max-height:15mm!important;object-fit:contain!important/);
-  }
+test('POD: final print layer constrains the driver signature to 16mm',()=>{
+  assert.match(wrapper,/height:16mm!important;min-height:16mm!important;max-height:16mm!important/);
+  assert.match(wrapper,/\[data-rc1503-pickup-field\] \[data-rc1503-pickup-value\]\.rc1503-signature-value/);
+  assert.match(wrapper,/max-height:15mm!important;object-fit:contain!important/);
 });
-test('RC1555 POD: both print layers suppress nested legacy pickup text',()=>{
-  for(const source of [base,wrapper]){
-    assert.match(source,/\[data-rc1503-pickup-field\] \.rc390-txt/);
-    assert.match(source,/\[data-rc1503-pickup-field\] \.rc352-txt/);
-    assert.doesNotMatch(source,/\[data-rc1503-pickup-field\]>\.rc390-txt/);
-  }
+test('RC1556 POD: final print layer recursively suppresses nested legacy pickup text',()=>{
+  assert.match(wrapper,/function suppressLegacyPickupContent\(card\)/);
+  assert.match(wrapper,/querySelectorAll\('\.rc390-txt,\.rc352-txt,\.rc390-line,\.rc390-hint'\)/);
+  assert.doesNotMatch(wrapper,/\[data-rc1503-pickup-field\]>\.rc390-txt/);
+  assert.doesNotMatch(wrapper,/\[data-rc1503-pickup-field\]>\.rc352-txt/);
+  assert.match(wrapper,/\[data-rc1556-legacy-pickup-hidden\]\{display:none!important/);
+  assert.doesNotMatch(wrapper,/\[data-rc1503-pickup-field\] \.rc390-txt/);
+  assert.doesNotMatch(wrapper,/\[data-rc1503-pickup-field\] \.rc352-txt/);
+  assert.match(wrapper,/data-rc1556-legacy-pickup-hidden/);
+  assert.match(wrapper,/align-self:start!important/);
 });
-test('RC1555 POD: card lookup prefers the real outer loading-list card before generic field wrappers',()=>{
-  for(const source of [base,wrapper]){
-    assert.match(source,/el\.closest\('\.rc390-card,\.rc352-card'\)/);
-    assert.match(source,/explicit&&explicit!==root/);
-  }
+test('RC1556 POD: value and signature replacement clean legacy descendants before appending canonical values',()=>{
+  const putValue=wrapper.slice(wrapper.indexOf('function putValue('),wrapper.indexOf('function putPalletBalance('));
+  const putSignature=wrapper.slice(wrapper.indexOf('function putSignature('),wrapper.indexOf('function normalizeDeliveryGrid('));
+  assert.match(putValue,/suppressLegacyPickupContent\(card\)/);
+  assert.match(putSignature,/suppressLegacyPickupContent\(card\)/);
 });
-test('POD: pallet balance is rendered as a single normalized value',()=>{
+test('POD: pallet balance and return are rendered as two compact fields',()=>{
   assert.match(wrapper,/data-rc1543-pallet-single-value/);
-  assert.match(wrapper,/return putValue\(card,palletBalanceText\(account\),'rc1305-meta-pallet'\)/);
+  assert.match(wrapper,/data-rc1580-pallet-compact/);
+  assert.ok(wrapper.includes("row('Aktueller Stand / Balance'"));
+  assert.ok(wrapper.includes("row('Eingang / Return'"));
 });
 test('POD: print scripts remain valid JavaScript',()=>{
   for(const file of ['assets/rc1305-loading-list-print.js','assets/document-print-name.js']){
     execFileSync(process.execPath,['--check',file],{stdio:'pipe'});
+  }
+});
+
+test('RC1555 compatibility: beide Druckruntimes bevorzugen die äußere POD-Karte',()=>{
+  for(const source of [base,wrapper]){
+    assert.match(source,/el\.closest\('\.rc390-card,\.rc352-card'\)/);
+    assert.match(source,/explicit&&explicit!==root/);
   }
 });

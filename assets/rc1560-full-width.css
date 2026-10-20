@@ -1,0 +1,24 @@
+/* ExportHUB360 RC1560 – every view uses the full width of the screen.
+   Lifts the fixed width caps of the content area and of view wrappers on screens only;
+   print output, A4 documents, the truck loading graphic and running-text line lengths keep their own limits. */
+@media screen{
+  html body #content,
+  html body[data-eh-theme] #content,
+  html body #content.rc776-shipment-view,
+  html body #content.rc871-diagnostics-view,
+  html body #content[data-rc360-customers="1"],
+  html body #content[data-rc360-customerfolder="1"]{max-width:none!important}
+
+  html body #content #rc363FixedShipmentLayout,
+  html body #content #rc573ShipmentShell,
+  html body #content #rc626Inspections.ihk-center,
+  html body #content .rc344-root,
+  html body #content .rc524-update-view,
+  html body #content .rc807-search-page,
+  html body #content .rc894-full-stack,
+  html body #content .rc1007-sop-overview.rc1009-sop-shell{max-width:none!important;width:100%!important}
+}
+
+/* RC1566: the canonical page head still renders the developer label "privatePill" (untranslated key)
+   as last pill in ten views (Aufgaben, Sendung erstellen, Zoll, Archiv …) – it carries no information */
+html body #content .page-head > span.pill.blue:last-child{display:none!important}

@@ -150,6 +150,21 @@ function highlightCurrent(session){
   highlightedKey=key;
   if(highlighted.classList&&typeof highlighted.classList.add==='function')highlighted.classList.add('rc1501-sop-tour-target');
   if(typeof highlighted.scrollIntoView==='function'){try{highlighted.scrollIntoView({block:'center',inline:'nearest',behavior:'smooth'});}catch(_){}}
+  placePanel();
+}
+// RC1560: The panel docks bottom-right. A highlighted target in the right column (e.g. the ABD decision in the
+// shipment form) sat completely underneath it, so trainees could not click the step they were asked to do.
+// Dock left whenever the target reaches into the right dock column; the check is horizontal only so it does
+// not flip while the target is smooth-scrolled into view.
+function placePanel(){
+  if(!panel||!panel.classList)return;
+  let left=false;
+  if(!panel.hidden&&highlighted&&typeof highlighted.getBoundingClientRect==='function'){
+    const vw=Number(root.innerWidth)||0,width=panel.offsetWidth||390,rect=highlighted.getBoundingClientRect();
+    const rightZone=vw-18-width,leftZone=18+width;
+    left=vw>=2*width+72&&rect.right>rightZone&&rect.left>=leftZone;
+  }
+  panel.classList.toggle('rc1501-sop-tour-host-left',left);
 }
 function visibleSession(){
   const exam=root.ExportHubSopExam;
@@ -161,8 +176,8 @@ function visibleSession(){
 function paint(){
   const session=visibleSession();
   if(!panel)return session;
-  if(!session){panel.innerHTML='';panel.hidden=true;clearHighlight();return null;}
-  panel.hidden=false;panel.innerHTML=render(session);highlightCurrent(session);return session;
+  if(!session){panel.innerHTML='';panel.hidden=true;clearHighlight();placePanel();return null;}
+  panel.hidden=false;panel.innerHTML=render(session);highlightCurrent(session);placePanel();return session;
 }
 function reportAction(action,element,context){
   const exam=root.ExportHubSopExam;
@@ -216,6 +231,7 @@ function mount(target,options={}){
   panel.addEventListener('click',onPanelClick);listeners.push([panel,'click',onPanelClick]);
   for(const type of ['click','change','input']){mountedRoot.addEventListener(type,onWorkEvent,true);listeners.push([mountedRoot,type,onWorkEvent,true]);}
   mountedRoot.addEventListener('exporthub:sop-tour-action',onCustomAction);listeners.push([mountedRoot,'exporthub:sop-tour-action',onCustomAction]);
+  if(typeof root.addEventListener==='function'){root.addEventListener('resize',placePanel);listeners.push([root,'resize',placePanel]);}
   annotate();
   if(typeof root.MutationObserver==='function'){observer=new root.MutationObserver(()=>{annotate();highlightCurrent(visibleSession());});observer.observe(mountedRoot,{childList:true,subtree:true});}
   paint();return {paint,reportAction,enhanceSopDocument};

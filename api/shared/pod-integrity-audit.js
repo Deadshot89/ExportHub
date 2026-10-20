@@ -109,7 +109,7 @@ async function verifyRecordPod(accessKey,environment){
     const archiveClients=await store.podArchiveClient(environment);
     const archiveRead=await store.readBuffer(archiveClients.podArchive.getBlobClient(text(record.podBackup.archiveBlobName)));
     if(looksLikePodBuffer(archiveRead.buffer,file)){
-     const restored=await podArchive.saveSuppliedPod(accessKey,environment,record,archiveRead.buffer,file.name);
+     const restored=await podArchive.saveSuppliedPod(accessKey,environment,record,archiveRead.buffer,file.name,{renderLayout:file.renderLayout});
      record=restored.record||record;file=restored.file||podArchive.automaticPod(record);
      const reread=file?await readStoredPod((await store.getRecord(accessKey,environment)).clients,file):{ok:false};
      if(reread.ok)return{ok:true,recovered:true,recovery:'archive',record,file:sanitizeDurableFile(file),bytes:reread.bytes}
@@ -215,4 +215,4 @@ async function auditPodStatuses(environment,options){
  return{ok:cleanupErrors.length===0,version:VERSION,environment,cursor:start,nextCursor,totalShipments:shipments.length,checked:selected.length,downloadable,recovered,downgradedEssentra,downgradedOther,removedPodEntries,broken,recordCleanupErrors:cleanupErrors,backup,changed}
 }
 
-module.exports={VERSION,statusIsPod,customerNameValue,isEssentraShipment,looksLikePodBuffer,applyBrokenPodPolicy,verifyShipmentPod,verifyRecordPod,createVerifiedStateBackup,auditPodStatuses};
+module.exports={VERSION,statusIsPod,readStoredPod,accessKeysOf,customerNameValue,isEssentraShipment,looksLikePodBuffer,applyBrokenPodPolicy,verifyShipmentPod,verifyRecordPod,createVerifiedStateBackup,auditPodStatuses};
