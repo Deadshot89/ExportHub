@@ -216,6 +216,8 @@ async function confirmRegistrationMail(sh){
   registrationFeedback(tr('shipmentHistory.registration.storageUnavailable'),true);
   return false
  }
+ // Fold a pending draft-open history save into the same confirmed transaction.
+ if(FLUSH_TIMER){clearTimeout(FLUSH_TIMER);FLUSH_TIMER=0}
  var promise=(async function(){
   var emailHistoryId=q(mail.id),event=append(sh,{
    type:'registration-confirmed',
