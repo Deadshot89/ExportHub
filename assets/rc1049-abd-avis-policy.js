@@ -126,13 +126,13 @@ async function persistSavedShipment(sh){
   throw new Error(promotionMessage('abd.completedUpload.savedInvalid','Saved shipment identity is incomplete or not available. Nothing was uploaded.'));
  if(hasShipmentCollision(source.shipments,sh)||hasShipmentCollision(source.savedShipments,sh))
   throw new Error(promotionMessage('abd.completedUpload.savedConflict','Conflicting shipment identities detected. Nothing was uploaded.'));
+ if(promotionPending[key])return promotionPending[key];
  var existing=(Array.isArray(source.shipments)?source.shipments:[]).find(function(item){
   return idOf(item)===id&&refOf(item)===ref
  });
  if(existing)return existing;
  if(!promotionAvailable())
   throw new Error(promotionMessage('abd.completedUpload.saveUnavailable','Sendung gefunden, aber eine bestätigte Azure-Speicherung ist nicht verfügbar. ABD wurde nicht hochgeladen.'));
- if(promotionPending[key])return promotionPending[key];
  var work=(async function(){
   var old=Array.isArray(source.shipments)?source.shipments:[],staged=Object.assign({},sh);
   source.shipments=old.concat([staged]);
@@ -167,7 +167,10 @@ function trackCentralAbd(input,sh){
   centralPending=centralPending.filter(function(p){return !p.done});
  },90000);
 }
+var savedUploadInFlight=[];
 function uploadSavedShipment(sh,input){
+ var pending=savedUploadInFlight.find(function(item){return item.input===input});
+ if(pending)return pending.promise;
  if(typeof window.canWrite==='function'&&!window.canWrite('abd'))
   return uploadError(input,uploadMsg('abd.completedUpload.forbidden',null,'No permission to upload ABD documents.'));
  if(typeof window.rc524UploadFile!=='function')
@@ -175,7 +178,7 @@ function uploadSavedShipment(sh,input){
  if(!promotionAvailable())
   return uploadError(input,promotionMessage('abd.completedUpload.saveUnavailable','Sendung gefunden, aber eine bestätigte Azure-Speicherung ist nicht verfügbar. ABD wurde nicht hochgeladen.'));
  uploadStatus(input,promotionMessage('abd.completedUpload.savingShipment','Sendung wird vor dem ABD-Upload dauerhaft gespeichert.'),false);
- return persistSavedShipment(sh).then(function(saved){
+ var promise=persistSavedShipment(sh).then(function(saved){
   if(!input.dataset)input.dataset={};
   input.dataset.id=idOf(saved);
   trackCentralAbd(input,saved);
@@ -184,7 +187,11 @@ function uploadSavedShipment(sh,input){
   }
  }).catch(function(error){
   return uploadError(input,q(error&&error.message)||promotionMessage('abd.completedUpload.saveUnconfirmed','Sendung wurde nicht bestätigt gespeichert. ABD wurde nicht hochgeladen.'))
- })
+ }).finally(function(){
+  savedUploadInFlight=savedUploadInFlight.filter(function(item){return item.input!==input})
+ });
+ savedUploadInFlight.push({input:input,promise:promise});
+ return promise
 }
 function install(){var api=window.ExportHUBRC626;if(api&&api.__rc1550AbdUploadBridge)return true;if(!api||typeof api.uploadCompletedAbd!=='function')return false;var base=api.uploadCompletedAbd;function uploadCompletedAbd(id,input){var a=requestById(id),file=input&&input.files&&input.files[0];if(!a||!file)return base.apply(api,arguments);if(!/\.pdf$/i.test(q(file.name))&&low(file.type).indexOf('pdf')<0)return base.apply(api,arguments);var sh=shipmentForRequest(a),upload=window.rc524UploadFile;if(sh){var live=Array.isArray(state().shipments)?state().shipments:[];sh=live.find(function(x){return sameShipment(x,a)&&((idOf(sh)&&idOf(x)===idOf(sh))||(refOf(sh)&&refOf(x)===refOf(sh)))})||null}if(!sh){var saved=shipmentForRequest(a);if(saved&&requestMustLink(a)&&Array.isArray(state().savedShipments)&&state().savedShipments.indexOf(saved)>=0)return uploadSavedShipment(saved,input);if(requestMustLink(a))return uploadError(input,uploadMsg('abd.completedUpload.shipmentMissing',null,'Linked shipment could not be identified. Open the shipment overview and retry.'));return base.apply(api,arguments)}if(typeof upload!=='function')return uploadError(input,uploadMsg('abd.completedUpload.runtimeMissing',null,'Secure ABD upload is not available. Reload and retry; the document was not saved.'));if(typeof window.canWrite==='function'&&!window.canWrite('abd'))return uploadError(input,uploadMsg('abd.completedUpload.forbidden',null,'No permission to upload ABD documents.'));if(!input.dataset)input.dataset={};input.dataset.id=idOf(sh)||refOf(sh);try{return upload(input,'abdFiles')}catch(error){return uploadError(input,uploadMsg('abd.completedUpload.failed',{message:q(error&&error.message||error)},'ABD upload failed: '+q(error&&error.message||error)))}}
 var wrapped=Object.freeze(Object.assign({},api,{uploadCompletedAbd:uploadCompletedAbd,__rc1550AbdUploadBridge:true,__base1550:api}));window.ExportHUBRC626=wrapped;return true}
