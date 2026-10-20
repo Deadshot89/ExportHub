@@ -1642,5 +1642,9 @@
   "taskV2.stats.automatic": "Automáticas",
   "taskV2.stats.manual": "Manuales",
   "taskV2.stats.averageMinutes": "Prom. minutos",
-  "taskV2.stats.title": "Estadísticas de tareas"
+  "taskV2.stats.title": "Estadísticas de tareas",
+  "abd.completedUpload.shipmentMissing": "No se pudo identificar de forma inequívoca el envío vinculado. Abre el resumen de envíos y vuelve a cargar el ABD.",
+  "abd.completedUpload.runtimeMissing": "La carga segura del ABD no está disponible. Recarga la página e inténtalo de nuevo. El documento no se ha marcado como guardado.",
+  "abd.completedUpload.forbidden": "No tienes permiso para cargar documentos ABD.",
+  "abd.completedUpload.failed": "Error al cargar el ABD: {{message}}"
 }
