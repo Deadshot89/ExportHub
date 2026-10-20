@@ -30,7 +30,7 @@ const KEY_LITERAL=/\b(?:common|login|profile|nav|dashboard|shipment|customer|tas
 function productionPath(rel){return /^(?:assets\/|api\/)/.test(rel)||/^[^/]+\.(?:html|js|mjs|cjs)$/.test(rel)}
 function walk(dir,out=[]){
   for(const ent of fs.readdirSync(dir,{withFileTypes:true})){
-    if(EXCLUDED_DIRS.has(ent.name))continue;
+    if(EXCLUDED_DIRS.has(ent.name)||/^dist(?:-|$)/i.test(ent.name)||/^(?:releases|playwright-report|test-results|\.cache)$/.test(ent.name))continue;
     const abs=path.join(dir,ent.name),rel=path.relative(ROOT,abs).replace(/\\/g,'/');
     if(ent.isDirectory())walk(abs,out);
     else if(productionPath(rel)&&SCAN_EXT.has(path.extname(ent.name))&&!EXCLUDED_FILES.some(rx=>rx.test(rel)))out.push({abs,rel});
@@ -38,10 +38,27 @@ function walk(dir,out=[]){
   return out;
 }
 function compact(value){return String(value||'').replace(/\s+/g,' ').trim().slice(0,220)}
+// Bounded linear scan: generated HTML contains multi-megabyte JS lines.
+// Avoid unbounded quoted strings and backtracking quote expressions.
 function literalTexts(line){
-  const values=[],rx=/'((?:\\.|[^'\\])*)'|"((?:\\.|[^"\\])*)"|\`((?:\\.|[^\`\\])*)\`/g;let m;
-  while((m=rx.exec(line))){const value=(m[1]??m[2]??m[3]??'').replace(/\\n/g,' ').trim();if(value)values.push(value)}
-  const tagRx=/>\s*([^<>]+?)\s*</g;while((m=tagRx.exec(line))){const value=String(m[1]||'').trim();if(value)values.push(value)}
+  const values=[],limit=384,overlap=64;
+  let quote='',escaped=false,part='';
+  function addPart(){const value=part.trim();if(value)values.push(value)}
+  for(let i=0;i<line.length;i++){
+    const ch=line[i];
+    if(!quote){
+      if(ch==="'"||ch==='"'||ch.charCodeAt(0)===96){quote=ch;escaped=false;part=''}
+      continue
+    }
+    if(escaped){escaped=false;part+=ch==='n'?' ':ch}
+    else if(ch==='\\'){escaped=true;continue}
+    else if(ch===quote){addPart();quote='';part='';continue}
+    else part+=ch;
+    if(part.length>=limit){addPart();part=part.slice(-overlap)}
+  }
+  if(quote&&part)addPart();
+  const tagRx=/>\s*([^<>\n]{1,384})\s*</g;let m;
+  while((m=tagRx.exec(line))){const value=m[1].trim();if(value)values.push(value)}
   return values
 }
 function scanVisibleGerman(file,source,registeredGerman){
