@@ -181,6 +181,12 @@
       const isSystem=SYSTEM_GROUPS.has(q(task&&task.group))&&type!=='manual';
       const currentSystem=isSystem&&systemTaskIsCurrent(task,state);
       const wasRemoved=tombstoned.has(q(task&&task.id).toLowerCase());
+      // RC1585: Rename only the untouched system-created Spain task. Preserve
+      // custom titles and all existing task IDs/history/occurrence dates.
+      if(managedCurrent&&q(task.managedKey)==='spanien'&&q(task.title)==='Spanien anmelden'){
+        task={...task,title:de('taskManaged.spanien.title'),updatedAt:new Date().toISOString()};
+        changed=true;
+      }
       if(managedCurrent||currentSystem||(!managed&&!isSystem&&!wasRemoved))kept.push(task);
       else removed.push(task);
     });
