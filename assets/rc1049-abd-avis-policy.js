@@ -112,8 +112,42 @@ function installOnFileChange(event){var input=event&&event.target;if(!input||typ
 /* RC1584: Catch missing shipment IDs and unavailable upload functions before the inline handler can silently fall back to an empty shipment draft. Never mutate shipment data here. */
 var centralPending=[];
 function blockAbdChange(event,input,message){try{event.preventDefault();event.stopPropagation();event.stopImmediatePropagation()}catch(_){}return uploadError(input,message)}
-function captureCentralAbdChange(event){var input=event&&event.target;if(!input||typeof input.matches!=='function'||!input.matches('input[type="file"]'))return;var handler=q(input.getAttribute&&input.getAttribute('onchange'));if(!/rc524UploadFile\s*\(\s*this\s*,\s*['"]abdFiles['"]/.test(handler))return;var file=input.files&&input.files[0];if(!file)return;var requested=q(input.dataset&&input.dataset.id),s=state(),list=Array.isArray(s.shipments)?s.shipments:[],hits=list.filter(function(sh){return !!requested&&(idOf(sh)===requested||refOf(sh)===requested.toUpperCase())}),first=hits[0];if(!first||!refOf(first)||hits.some(function(sh){return idOf(sh)!==idOf(first)}))return blockAbdChange(event,input,'ABD-Upload nicht gestartet: Die Sendung '+(requested||'(ohne Referenz)')+' wurde nicht eindeutig gefunden. Bitte die Sendungsübersicht neu öffnen.');if(typeof window.rc524UploadFile!=='function')return blockAbdChange(event,input,'ABD-Upload nicht verfügbar: Die Upload-Funktion wurde nicht geladen. Bitte Seite aktualisieren.');if(typeof window.canWrite==='function'&&!window.canWrite('abd'))return blockAbdChange(event,input,'ABD-Upload nicht erlaubt: Keine Berechtigung für ABD-Dokumente.');centralPending.forEach(function(p){if(p.input===input)p.done=true});var entry={input:input,id:idOf(first),ref:refOf(first),done:false};centralPending.push(entry);uploadStatus(input,'ABD wird verarbeitet. Die Speicherung wird überprüft …',false);setTimeout(function(){if(entry.done)return;entry.done=true;uploadStatus(input,'Keine bestätigte ABD-Speicherung erhalten. Bitte den Sendungsordner überprüfen und erst danach erneut hochladen.',true);centralPending=centralPending.filter(function(p){return !p.done})},90000)}
-function centralAbdUploaded(e){var d=e&&e.detail||{};if(low(d.kind)!=='abd'||d.azureVerified!==true)return;centralPending.forEach(function(p){if(p.done)return;if(q(d.shipmentId)!==p.id&&refOf({ref:d.reference})!==p.ref)return;p.done=true;uploadStatus(p.input,'ABD wurde gespeichert und der Sendung '+p.ref+' zugeordnet.',false)});centralPending=centralPending.filter(function(p){return !p.done})}
+function captureCentralAbdChange(event){
+ var input=event&&event.target;
+ if(!input||typeof input.matches!=='function'||!input.matches('input[type="file"]'))return;
+ var handler=q(input.getAttribute&&input.getAttribute('onchange'));
+ if(!/rc524UploadFile\s*\(\s*this\s*,\s*['"]abdFiles['"]/.test(handler))return;
+ var file=input.files&&input.files[0];
+ if(!file)return;
+ var requested=q(input.dataset&&input.dataset.id),s=state(),list=Array.isArray(s.shipments)?s.shipments:[],
+     hits=list.filter(function(sh){return !!requested&&(idOf(sh)===requested||refOf(sh)===requested.toUpperCase())}),first=hits[0];
+ if(!first||!refOf(first)||hits.some(function(sh){return idOf(sh)!==idOf(first)})){
+  return blockAbdChange(event,input,uploadMsg('abd.completedUpload.noMatchingShipment',{reference:requested||'?'},'ABD upload not started: shipment '+(requested||'?')+' could not be uniquely identified. Reload shipment overview.'));
+ }
+ if(typeof window.rc524UploadFile!=='function')return blockAbdChange(event,input,uploadMsg('abd.completedUpload.runtimeMissing',null,'Secure ABD upload is not available. Reload and retry; the document was not saved.'));
+ if(typeof window.canWrite==='function'&&!window.canWrite('abd'))return blockAbdChange(event,input,uploadMsg('abd.completedUpload.forbidden',null,'No permission to upload ABD documents.'));
+ centralPending.forEach(function(p){if(p.input===input)p.done=true});
+ var entry={input:input,id:idOf(first),ref:refOf(first),done:false};
+ centralPending.push(entry);
+ uploadStatus(input,uploadMsg('abd.completedUpload.processing',null,'ABD document is being processed. Waiting for storage confirmation.'),false);
+ setTimeout(function(){
+  if(entry.done)return;
+  entry.done=true;
+  uploadStatus(input,uploadMsg('abd.completedUpload.unconfirmed',null,'No confirmed ABD storage response. Check the shipment documents before retrying.'),true);
+  centralPending=centralPending.filter(function(p){return !p.done});
+ },90000);
+}
+function centralAbdUploaded(e){
+ var d=e&&e.detail||{};
+ if(low(d.kind)!=='abd'||d.azureVerified!==true)return;
+ centralPending.forEach(function(p){
+  if(p.done)return;
+  if(q(d.shipmentId)!==p.id&&refOf({ref:d.reference})!==p.ref)return;
+  p.done=true;
+  uploadStatus(p.input,uploadMsg('abd.completedUpload.success',{reference:p.ref},'ABD document saved for shipment '+p.ref+'.'),false);
+ });
+ centralPending=centralPending.filter(function(p){return !p.done});
+}
 if(document&&typeof document.addEventListener==='function')document.addEventListener('change',captureCentralAbdChange,true);
 if(typeof window.addEventListener==='function')window.addEventListener('exporthub:shipment-document-uploaded',centralAbdUploaded);
 if(document&&typeof document.addEventListener==='function')document.addEventListener('change',installOnFileChange,true);
