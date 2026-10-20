@@ -1697,5 +1697,21 @@
   "abd.completedUpload.savedConflict": "Identifiants d'expédition contradictoires. ABD non téléversé.",
   "abd.completedUpload.saveUnavailable": "Expédition trouvée, mais l'enregistrement Azure confirmé n'est pas disponible. ABD non téléversé.",
   "abd.completedUpload.saveUnconfirmed": "L'enregistrement de l'expédition n'a pas été confirmé. ABD non téléversé.",
-  "abd.completedUpload.savingShipment": "Enregistrement de l'expédition avant le téléversement de l'ABD."
+  "abd.completedUpload.savingShipment": "Enregistrement de l'expédition avant le téléversement de l'ABD.",
+  "emergency.pod.title": "Accès d'urgence aux POD ExportHUB",
+  "emergency.pod.offlineIntro": "Page hors ligne autonome pour RC554. Elle ne nécessite pas un site ExportHUB actif et n'effectue aucune requête réseau.",
+  "emergency.pod.folderCount": "PDF dans le dossier d'urgence",
+  "emergency.pod.vaultCount": "PDF dans le coffre du navigateur",
+  "emergency.pod.chooseFolder": "Sélectionner le dossier d'urgence",
+  "emergency.pod.folderZip": "Télécharger le dossier d'urgence en ZIP",
+  "emergency.pod.checkVault": "Vérifier le coffre du navigateur",
+  "emergency.pod.vaultZip": "Télécharger le coffre du navigateur en ZIP",
+  "emergency.pod.available": "Listes de chargement POD disponibles",
+  "emergency.pod.noneInitially": "Aucun PDF POD n'a encore été chargé.",
+  "emergency.pod.noneComplete": "Aucun PDF POD complet n'a été chargé.",
+  "emergency.pod.signedList": "Liste de chargement signée",
+  "emergency.pod.noZip": "Aucun PDF POD n'est disponible pour l'export ZIP.",
+  "emergency.pod.creatingZip": "Création du ZIP …",
+  "emergency.pod.noticePrefix": "En cas de panne du système : sélectionnez le dossier",
+  "emergency.pod.noticeSuffix": "Les PDF enregistrés sont des listes de chargement complètes portant la signature du chauffeur."
 }

@@ -1697,5 +1697,21 @@
   "abd.completedUpload.savedConflict": "Sprzeczne identyfikatory przesyłki. ABD nie przesłano.",
   "abd.completedUpload.saveUnavailable": "Znaleziono przesyłkę, ale potwierdzony zapis w Azure jest niedostępny. ABD nie przesłano.",
   "abd.completedUpload.saveUnconfirmed": "Nie potwierdzono zapisu przesyłki. ABD nie przesłano.",
-  "abd.completedUpload.savingShipment": "Trwa zapisywanie przesyłki przed przesłaniem ABD."
+  "abd.completedUpload.savingShipment": "Trwa zapisywanie przesyłki przed przesłaniem ABD.",
+  "emergency.pod.title": "Awaryjny dostęp do POD ExportHUB",
+  "emergency.pod.offlineIntro": "Samodzielna strona offline RC554. Nie wymaga działającej witryny ExportHUB i nie wysyła żądań sieciowych.",
+  "emergency.pod.folderCount": "Pliki PDF w folderze awaryjnym",
+  "emergency.pod.vaultCount": "Pliki PDF w sejfie przeglądarki",
+  "emergency.pod.chooseFolder": "Wybierz folder awaryjny",
+  "emergency.pod.folderZip": "Pobierz folder awaryjny jako ZIP",
+  "emergency.pod.checkVault": "Sprawdź sejf przeglądarki",
+  "emergency.pod.vaultZip": "Pobierz sejf przeglądarki jako ZIP",
+  "emergency.pod.available": "Dostępne listy załadunkowe POD",
+  "emergency.pod.noneInitially": "Nie wczytano jeszcze plików PDF POD.",
+  "emergency.pod.noneComplete": "Nie wczytano kompletnych plików PDF POD.",
+  "emergency.pod.signedList": "Podpisana lista załadunkowa",
+  "emergency.pod.noZip": "Brak plików PDF POD do eksportu ZIP.",
+  "emergency.pod.creatingZip": "Tworzenie pliku ZIP …",
+  "emergency.pod.noticePrefix": "W razie awarii systemu: wybierz folder",
+  "emergency.pod.noticeSuffix": "Zapisane tam pliki PDF to kompletne listy załadunkowe z podpisem kierowcy."
 }

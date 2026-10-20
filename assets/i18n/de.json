@@ -1697,5 +1697,21 @@
   "abd.completedUpload.savedConflict": "Widersprüchliche Sendungskennungen. Kein ABD hochgeladen.",
   "abd.completedUpload.saveUnavailable": "Sendung gefunden, aber die bestätigte Azure-Speicherung ist nicht verfügbar. Kein ABD hochgeladen.",
   "abd.completedUpload.saveUnconfirmed": "Die Sendung wurde nicht bestätigt gespeichert. Kein ABD hochgeladen.",
-  "abd.completedUpload.savingShipment": "Sendung wird vor dem ABD-Upload dauerhaft gespeichert."
+  "abd.completedUpload.savingShipment": "Sendung wird vor dem ABD-Upload dauerhaft gespeichert.",
+  "emergency.pod.title": "ExportHUB POD-Notfallzugriff",
+  "emergency.pod.offlineIntro": "Eigenständige Offline-Seite für RC554. Diese Datei benötigt keine laufende ExportHUB-Website und führt keine Netzwerkabfragen aus.",
+  "emergency.pod.folderCount": "PDFs im Notfallordner",
+  "emergency.pod.vaultCount": "PDFs im Browser-Vault",
+  "emergency.pod.chooseFolder": "Notfallordner auswählen",
+  "emergency.pod.folderZip": "Notfallordner als ZIP",
+  "emergency.pod.checkVault": "Browser-Vault prüfen",
+  "emergency.pod.vaultZip": "Browser-Vault als ZIP",
+  "emergency.pod.available": "Verfügbare POD-Ladelisten",
+  "emergency.pod.noneInitially": "Noch keine POD-PDFs geladen.",
+  "emergency.pod.noneComplete": "Keine vollständigen POD-PDFs geladen.",
+  "emergency.pod.signedList": "Ladeliste mit Unterschrift",
+  "emergency.pod.noZip": "Keine POD-PDFs für ZIP vorhanden.",
+  "emergency.pod.creatingZip": "ZIP wird erstellt …",
+  "emergency.pod.noticePrefix": "Bei Systemausfall: den Ordner",
+  "emergency.pod.noticeSuffix": "Die darin gespeicherten PDFs sind vollständige Ladelisten mit Fahrerunterschrift."
 }

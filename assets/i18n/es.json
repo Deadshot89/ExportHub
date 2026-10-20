@@ -1697,5 +1697,21 @@
   "abd.completedUpload.savedConflict": "Identificadores de envío contradictorios. No se cargó el ABD.",
   "abd.completedUpload.saveUnavailable": "Se encontró el envío, pero no está disponible la confirmación de guardado en Azure. No se cargó el ABD.",
   "abd.completedUpload.saveUnconfirmed": "No se confirmó el guardado del envío. No se cargó el ABD.",
-  "abd.completedUpload.savingShipment": "Guardando el envío antes de cargar el ABD."
+  "abd.completedUpload.savingShipment": "Guardando el envío antes de cargar el ABD.",
+  "emergency.pod.title": "Acceso de emergencia al POD de ExportHUB",
+  "emergency.pod.offlineIntro": "Página independiente sin conexión para RC554. No requiere que la web de ExportHUB esté activa ni realiza solicitudes de red.",
+  "emergency.pod.folderCount": "PDF en la carpeta de emergencia",
+  "emergency.pod.vaultCount": "PDF en el almacén del navegador",
+  "emergency.pod.chooseFolder": "Seleccionar carpeta de emergencia",
+  "emergency.pod.folderZip": "Descargar carpeta de emergencia como ZIP",
+  "emergency.pod.checkVault": "Comprobar almacén del navegador",
+  "emergency.pod.vaultZip": "Descargar almacén del navegador como ZIP",
+  "emergency.pod.available": "Listas de carga POD disponibles",
+  "emergency.pod.noneInitially": "Aún no se han cargado archivos PDF de POD.",
+  "emergency.pod.noneComplete": "No se han cargado archivos PDF completos de POD.",
+  "emergency.pod.signedList": "Lista de carga firmada",
+  "emergency.pod.noZip": "No hay archivos PDF de POD para exportar como ZIP.",
+  "emergency.pod.creatingZip": "Creando ZIP …",
+  "emergency.pod.noticePrefix": "En caso de fallo del sistema: selecciona la carpeta",
+  "emergency.pod.noticeSuffix": "Los PDF guardados allí son listas de carga completas con la firma del conductor."
 }

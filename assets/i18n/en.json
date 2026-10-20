@@ -1697,5 +1697,21 @@
   "abd.completedUpload.savedConflict": "Conflicting shipment identities. ABD was not uploaded.",
   "abd.completedUpload.saveUnavailable": "Shipment found, but confirmed Azure saving is unavailable. ABD was not uploaded.",
   "abd.completedUpload.saveUnconfirmed": "Shipment saving was not confirmed. ABD was not uploaded.",
-  "abd.completedUpload.savingShipment": "Saving the shipment securely before uploading the ABD."
+  "abd.completedUpload.savingShipment": "Saving the shipment securely before uploading the ABD.",
+  "emergency.pod.title": "ExportHUB POD emergency access",
+  "emergency.pod.offlineIntro": "Standalone offline page for RC554. It does not require a running ExportHUB website and makes no network requests.",
+  "emergency.pod.folderCount": "PDFs in the emergency folder",
+  "emergency.pod.vaultCount": "PDFs in the browser vault",
+  "emergency.pod.chooseFolder": "Select emergency folder",
+  "emergency.pod.folderZip": "Download emergency folder as ZIP",
+  "emergency.pod.checkVault": "Check browser vault",
+  "emergency.pod.vaultZip": "Download browser vault as ZIP",
+  "emergency.pod.available": "Available POD loading lists",
+  "emergency.pod.noneInitially": "No POD PDFs have been loaded yet.",
+  "emergency.pod.noneComplete": "No complete POD PDFs have been loaded.",
+  "emergency.pod.signedList": "Signed loading list",
+  "emergency.pod.noZip": "No POD PDFs are available for ZIP export.",
+  "emergency.pod.creatingZip": "Creating ZIP …",
+  "emergency.pod.noticePrefix": "In the event of a system outage: select the folder",
+  "emergency.pod.noticeSuffix": "The PDFs saved there are complete loading lists bearing the driver's signature."
 }
