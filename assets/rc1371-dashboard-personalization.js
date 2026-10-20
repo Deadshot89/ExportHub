@@ -297,7 +297,15 @@ function applyTheme(mode){var theme=q(mode||'classic').toLowerCase();if(!isDashb
 function remount(){if(!isDashboardView()){if(mountedDashboardRoot)unmount();return false}return mount(discoverDashboardRoot()||mountedDashboardRoot)}
 function scheduleRemount(){if(typeof w.setTimeout==='function')w.setTimeout(remount,0);else remount()}
 function installLifecycle(){
-  if(typeof w.addEventListener!=='function')return;w.addEventListener('exporthub:viewchange',scheduleRemount);w.addEventListener('exporthub:rendered',scheduleRemount);w.addEventListener('pageshow',scheduleRemount);w.addEventListener('exporthub:designchange',function(event){var mode=event&&event.detail&&event.detail.design;applyTheme(mode||'classic')})
+  if(typeof w.addEventListener!=='function')return;w.addEventListener('exporthub:viewchange',scheduleRemount);w.addEventListener('exporthub:rendered',scheduleRemount);w.addEventListener('pageshow',scheduleRemount);w.addEventListener('exporthub:designchange',function(event){var mode=event&&event.detail&&event.detail.design;applyTheme(mode||'classic')});
+  watchViewAttribute()
+}
+// RC1579: opening a shipment or task straight from the dashboard switches the view without exporthub:viewchange,
+// so the grid attribute stayed on #content and squeezed the next page. Follow the body view attribute as well.
+function watchViewAttribute(){
+  var d=w.document,body=d&&d.body;if(!body){if(d&&typeof d.addEventListener==='function')d.addEventListener('DOMContentLoaded',watchViewAttribute,{once:true});return}
+  if(typeof w.MutationObserver!=='function'||body.__rc1371ViewWatch)return;body.__rc1371ViewWatch=true;
+  new w.MutationObserver(function(){if(mountedDashboardRoot&&!isDashboardView())unmount()}).observe(body,{attributes:true,attributeFilter:['data-exporthub-view','data-current-view']})
 }
 
 w.ExportHUBDashboard1371=Object.freeze({
