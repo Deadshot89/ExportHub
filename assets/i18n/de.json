@@ -1729,5 +1729,16 @@
   "legacyUi.audit.saveCustomerFolder": "Kundenordner speichern",
   "legacyUi.audit.loadingTeamData": "Azure-Teamdaten werden geladen …",
   "legacyUi.audit.savingAzure": "Speicherung in Azure läuft …",
-  "legacyUi.audit.reworkRequired": "Nachbearbeitung erforderlich"
+  "legacyUi.audit.reworkRequired": "Nachbearbeitung erforderlich",
+  "emergency.pod.initialStatus": "Notfallordner auswählen. Die PDFs können auch direkt im Windows Explorer geöffnet werden.",
+  "emergency.pod.indexedDbMissing": "IndexedDB nicht verfügbar",
+  "emergency.pod.vaultOpenFailed": "POD-Vault konnte nicht geöffnet werden",
+  "emergency.pod.noOfficialPod": "Kein offizieller POD im Browser-Vault gefunden. Für einen echten Systemausfall den Notfallordner verwenden.",
+  "emergency.pod.vaultUnavailable": "Browser-Vault nicht verfügbar. Der Notfallordner funktioniert trotzdem unabhängig davon.",
+  "emergency.pod.noValidPdfs": "Im ausgewählten Ordner wurden keine gültigen POD-PDFs gefunden.",
+  "emergency.pod.folderSource": "Notfallordner",
+  "emergency.pod.vaultSource": "Browser-Vault",
+  "legacyPattern.emergencyPodVaultLoaded": "{{count}} vollständige POD-Ladeliste(n) aus dem Browser-Vault geladen.",
+  "legacyPattern.emergencyPodFolderLoaded": "{{count}} vollständige POD-PDF(s) aus dem Notfallordner geladen. Diese Daten stehen ohne ExportHUB zur Verfügung.",
+  "legacyPattern.emergencyPodZipCreated": "{{count}} POD-Ladeliste(n) als ZIP erstellt."
 }

@@ -1729,5 +1729,16 @@
   "legacyUi.audit.saveCustomerFolder": "Guardar carpeta de cliente",
   "legacyUi.audit.loadingTeamData": "Cargando datos del equipo de Azure …",
   "legacyUi.audit.savingAzure": "Guardando en Azure …",
-  "legacyUi.audit.reworkRequired": "Requiere revisión"
+  "legacyUi.audit.reworkRequired": "Requiere revisión",
+  "emergency.pod.initialStatus": "Selecciona la carpeta de emergencia. También puedes abrir los PDF directamente en el Explorador de Windows.",
+  "emergency.pod.indexedDbMissing": "IndexedDB no está disponible",
+  "emergency.pod.vaultOpenFailed": "No se pudo abrir el almacén POD",
+  "emergency.pod.noOfficialPod": "No se encontró ningún POD oficial en el almacén del navegador. Ante una caída real, utiliza la carpeta de emergencia.",
+  "emergency.pod.vaultUnavailable": "Almacén del navegador no disponible. La carpeta de emergencia sigue funcionando por separado.",
+  "emergency.pod.noValidPdfs": "No se encontraron PDF POD válidos en la carpeta seleccionada.",
+  "emergency.pod.folderSource": "Carpeta de emergencia",
+  "emergency.pod.vaultSource": "Almacén del navegador",
+  "legacyPattern.emergencyPodVaultLoaded": "Se cargaron {{count}} listas de carga POD completas del almacén del navegador.",
+  "legacyPattern.emergencyPodFolderLoaded": "Se cargaron {{count}} PDF POD completos de la carpeta de emergencia. Están disponibles sin ExportHUB.",
+  "legacyPattern.emergencyPodZipCreated": "Se creó un ZIP con {{count}} listas de carga POD."
 }

@@ -1729,5 +1729,16 @@
   "legacyUi.audit.saveCustomerFolder": "Salva cartella cliente",
   "legacyUi.audit.loadingTeamData": "Caricamento dei dati del team Azure …",
   "legacyUi.audit.savingAzure": "Salvataggio in Azure …",
-  "legacyUi.audit.reworkRequired": "Rielaborazione necessaria"
+  "legacyUi.audit.reworkRequired": "Rielaborazione necessaria",
+  "emergency.pod.initialStatus": "Seleziona la cartella di emergenza. I PDF possono essere aperti anche direttamente in Esplora file di Windows.",
+  "emergency.pod.indexedDbMissing": "IndexedDB non disponibile",
+  "emergency.pod.vaultOpenFailed": "Impossibile aprire l'archivio POD",
+  "emergency.pod.noOfficialPod": "Nessun POD ufficiale trovato nell'archivio del browser. In caso di guasto, usa la cartella di emergenza.",
+  "emergency.pod.vaultUnavailable": "Archivio del browser non disponibile. La cartella di emergenza rimane utilizzabile in autonomia.",
+  "emergency.pod.noValidPdfs": "Nessun PDF POD valido trovato nella cartella selezionata.",
+  "emergency.pod.folderSource": "Cartella di emergenza",
+  "emergency.pod.vaultSource": "Archivio del browser",
+  "legacyPattern.emergencyPodVaultLoaded": "Caricate {{count}} liste di carico POD complete dall'archivio del browser.",
+  "legacyPattern.emergencyPodFolderLoaded": "Caricati {{count}} PDF POD completi dalla cartella di emergenza. Sono disponibili senza ExportHUB.",
+  "legacyPattern.emergencyPodZipCreated": "Creato ZIP con {{count}} liste di carico POD."
 }

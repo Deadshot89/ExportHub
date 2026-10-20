@@ -1729,5 +1729,16 @@
   "legacyUi.audit.saveCustomerFolder": "Enregistrer le dossier client",
   "legacyUi.audit.loadingTeamData": "Chargement des données de l'équipe Azure …",
   "legacyUi.audit.savingAzure": "Enregistrement dans Azure …",
-  "legacyUi.audit.reworkRequired": "Reprise nécessaire"
+  "legacyUi.audit.reworkRequired": "Reprise nécessaire",
+  "emergency.pod.initialStatus": "Sélectionnez le dossier d'urgence. Les PDF peuvent également être ouverts directement dans l'Explorateur Windows.",
+  "emergency.pod.indexedDbMissing": "IndexedDB est indisponible",
+  "emergency.pod.vaultOpenFailed": "Impossible d'ouvrir le coffre POD",
+  "emergency.pod.noOfficialPod": "Aucun POD officiel trouvé dans le coffre du navigateur. En cas de panne réelle, utilisez le dossier d'urgence.",
+  "emergency.pod.vaultUnavailable": "Le coffre du navigateur est indisponible. Le dossier d'urgence reste utilisable indépendamment.",
+  "emergency.pod.noValidPdfs": "Aucun PDF POD valide n'a été trouvé dans le dossier sélectionné.",
+  "emergency.pod.folderSource": "Dossier d'urgence",
+  "emergency.pod.vaultSource": "Coffre du navigateur",
+  "legacyPattern.emergencyPodVaultLoaded": "{{count}} liste(s) de chargement POD complète(s) chargée(s) du coffre du navigateur.",
+  "legacyPattern.emergencyPodFolderLoaded": "{{count}} PDF POD complet(s) chargé(s) du dossier d'urgence. Ils restent accessibles sans ExportHUB.",
+  "legacyPattern.emergencyPodZipCreated": "ZIP créé avec {{count}} liste(s) de chargement POD."
 }

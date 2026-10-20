@@ -1729,5 +1729,16 @@
   "legacyUi.audit.saveCustomerFolder": "Zapisz folder klienta",
   "legacyUi.audit.loadingTeamData": "Ładowanie danych zespołu z Azure …",
   "legacyUi.audit.savingAzure": "Trwa zapisywanie w Azure …",
-  "legacyUi.audit.reworkRequired": "Wymagana dalsza obróbka"
+  "legacyUi.audit.reworkRequired": "Wymagana dalsza obróbka",
+  "emergency.pod.initialStatus": "Wybierz folder awaryjny. Pliki PDF można również otwierać bezpośrednio w Eksploratorze Windows.",
+  "emergency.pod.indexedDbMissing": "IndexedDB jest niedostępny",
+  "emergency.pod.vaultOpenFailed": "Nie można otworzyć sejfu POD",
+  "emergency.pod.noOfficialPod": "Nie znaleziono oficjalnego POD w sejfie przeglądarki. W razie awarii użyj folderu awaryjnego.",
+  "emergency.pod.vaultUnavailable": "Sejf przeglądarki jest niedostępny. Folder awaryjny nadal działa niezależnie.",
+  "emergency.pod.noValidPdfs": "W wybranym folderze nie znaleziono prawidłowych plików PDF POD.",
+  "emergency.pod.folderSource": "Folder awaryjny",
+  "emergency.pod.vaultSource": "Sejf przeglądarki",
+  "legacyPattern.emergencyPodVaultLoaded": "Wczytano {{count}} kompletnych list załadunkowych POD z sejfu przeglądarki.",
+  "legacyPattern.emergencyPodFolderLoaded": "Wczytano {{count}} kompletnych plików PDF POD z folderu awaryjnego. Są one dostępne bez ExportHUB.",
+  "legacyPattern.emergencyPodZipCreated": "Utworzono ZIP z {{count}} listami załadunkowymi POD."
 }

@@ -1729,5 +1729,16 @@
   "legacyUi.audit.saveCustomerFolder": "Save customer folder",
   "legacyUi.audit.loadingTeamData": "Loading Azure team data …",
   "legacyUi.audit.savingAzure": "Saving to Azure …",
-  "legacyUi.audit.reworkRequired": "Follow-up required"
+  "legacyUi.audit.reworkRequired": "Follow-up required",
+  "emergency.pod.initialStatus": "Select an emergency folder. PDFs can also be opened directly in Windows Explorer.",
+  "emergency.pod.indexedDbMissing": "IndexedDB is unavailable",
+  "emergency.pod.vaultOpenFailed": "Could not open the POD vault",
+  "emergency.pod.noOfficialPod": "No official POD found in the browser vault. Use the emergency folder during an actual outage.",
+  "emergency.pod.vaultUnavailable": "Browser vault unavailable. The emergency folder remains usable independently.",
+  "emergency.pod.noValidPdfs": "No valid POD PDFs were found in the selected folder.",
+  "emergency.pod.folderSource": "Emergency folder",
+  "emergency.pod.vaultSource": "Browser vault",
+  "legacyPattern.emergencyPodVaultLoaded": "{{count}} complete POD loading list(s) loaded from the browser vault.",
+  "legacyPattern.emergencyPodFolderLoaded": "{{count}} complete POD PDF(s) loaded from the emergency folder. These files remain accessible without ExportHUB.",
+  "legacyPattern.emergencyPodZipCreated": "ZIP created with {{count}} POD loading list(s)."
 }
