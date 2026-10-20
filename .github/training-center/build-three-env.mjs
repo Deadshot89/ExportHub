@@ -85,6 +85,23 @@ function removeRetiredSopTagsFromBuild(html,file){
  return cleaned;
 }
 
+// The original SOP renderer is an IIFE-local function inside the main HTML.
+// Overriding window.renderSop cannot intercept the real navigation path.
+// Replace exactly that obsolete function after the stable base has built.
+export function replaceLegacySopRendererInBuild(html,file='index.html'){
+  const src=String(html||'');
+  const begin='function renderSop(){var r=root();if(!r)return;try{';
+  const finish='\nwindow.rc524SelectSop=';
+  const pos=src.indexOf(begin),end=src.indexOf(finish,pos+begin.length);
+  if(pos<0||end<=pos||src.indexOf(begin,pos+begin.length)>=0)
+    throw new Error(file+': legacy SOP renderer anchor missing or ambiguous');
+  const retired=src.slice(pos,end);
+  if(retired.length>10000||!retired.includes('RC1007 SOP-Modul nicht geladen'))
+    throw new Error(file+': legacy SOP renderer context changed; refusing unsafe patch');
+  const adapted="function renderSop(){var r=root();if(!r)return;var tc=window.ExportHubTrainingCenterRuntime;if(tc&&typeof tc.start==='function'){tc.start();return;}r.innerHTML='<section role=\"alert\">SOP &amp; Training Center nicht verfügbar.</section>';console.error('TRAINING_CENTER_RUNTIME_MISSING')}";
+  return src.slice(0,pos)+adapted+src.slice(end)
+}
+
 export function assertNoRetiredSopReferences(html,file='index.html'){
   const source=String(html||'');
   if(source.includes(retiredAssetNeedle()))throw new Error(`${file}: retired SOP asset reference detected`);
@@ -131,7 +148,7 @@ export function build(root=ROOT){
   for(const file of ENTRIES){
     const target=path.join(out,file);
     const current=fs.readFileSync(target,'utf8');
-    const next=injectTrainingCenter(removeRetiredSopTagsFromBuild(current,file),file);
+    const next=injectTrainingCenter(replaceLegacySopRendererInBuild(removeRetiredSopTagsFromBuild(current,file),file),file);
     fs.writeFileSync(target,next);
   }
   // The previous builder can copy old SOP files even though the new runtime does not use them.
