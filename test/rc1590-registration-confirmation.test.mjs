@@ -94,7 +94,7 @@ test('RC1590: click handler only responds to explicit user confirmation control'
   const x=setup();openedMail(x.api,x.shipment);
   assert.equal(typeof x.docListeners.click,'function');
   let stopped=0;
-  const control={matches:selector=>selector==='[data-rc1590-confirm-registration]',closest(){return this}};
+  const control={matches:selector=>selector==='[data-rc1590-confirm-registration]',closest(selector){return selector==='button,a,[role="button"]'?this:null}};
   x.docListeners.click({target:control,preventDefault(){stopped++}});
   await Promise.resolve();await Promise.resolve();await Promise.resolve();await Promise.resolve();
   assert.equal(stopped,1);
