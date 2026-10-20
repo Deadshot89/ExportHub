@@ -67,7 +67,7 @@ test('RC1555 production smoke: verschachtelte POD-Abholkarten zeigen nur die neu
         '<div class="rc390-field-head"><div class="rc390-label">'+label+'</div></div>'+
         '<div class="rc390-txt"><span>Alter Hilfetext</span><div style="min-height:'+legacyHeight+'">'+oldValue+'</div></div>'+
       '</div>';
-    const raw='<section class="rc390-page rc390-load" style="width:194mm;min-height:120mm;padding:8mm">'+
+    const raw='<section class="rc390-page rc390-load rc576-load1" style="width:194mm;min-height:120mm;padding:8mm">'+
       '<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2mm">'+
         card('Unterschrift Fahrer','ALTE UNTERSCHRIFT','52mm')+
         card('Fahrername','ALTER FAHRER')+
@@ -87,7 +87,7 @@ test('RC1555 production smoke: verschachtelte POD-Abholkarten zeigen nur die neu
     const enhanced=api.enhance(raw,shipment,true);
     document.body.classList.remove('print-docs-only');
     document.body.classList.add('print-rc390');
-    document.body.innerHTML='<div id="rc576DocumentStage" class="rc390-docview">'+
+    document.body.innerHTML='<div id="rc576DocumentStage" class="rc390-docview" data-doc="load1">'+
       '<div class="rc390-bundle">'+enhanced+'</div></div>';
     const root=document.querySelector('#rc576DocumentStage .rc390-bundle > .rc390-load');
     if(!root)throw new Error('RC1555: Druck-Ladeliste fehlt nach Enhance');
@@ -98,6 +98,9 @@ test('RC1555 production smoke: verschachtelte POD-Abholkarten zeigen nur die neu
     const cards=Array.from(root.querySelectorAll('[data-rc1555-live-card="1"]'));
     return {
       fieldCount:fields.length,
+      printStage:root.closest('#rc576DocumentStage')?.getAttribute('data-doc')||'',
+      printPageDisplay:getComputedStyle(root).display,
+      printPageHeight:root.getBoundingClientRect().height,
       outerCards:fields.every(field=>field.matches('.rc390-card,.rc352-card')),
       visibleLegacy:visibleLegacy.length,
       signaturePresent:!!signature,
@@ -111,6 +114,9 @@ test('RC1555 production smoke: verschachtelte POD-Abholkarten zeigen nur die neu
   });
 
   expect(layout.fieldCount).toBe(6);
+  expect(layout.printStage,'Ladeliste muss im echten Dokumentstage als aktiv markiert sein').toBe('load1');
+  expect(layout.printPageDisplay,'Aktive Ladeliste darf im Druck nicht ausgeblendet sein').not.toBe('none');
+  expect(layout.printPageHeight,'Aktive Ladeliste muss eine sichtbare Höhe besitzen').toBeGreaterThan(0);
   expect(layout.outerCards).toBe(true);
   expect(layout.visibleLegacy).toBe(0);
   expect(layout.signaturePresent,'Fahrerunterschrift muss nach Enhance im kanonischen Abholfeld existieren').toBe(true);
