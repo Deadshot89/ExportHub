@@ -90,6 +90,18 @@ test('RC1590: confirmation without opened registration mail cannot alter tasks',
   assert.equal(x.calls.length,0);
 });
 
+test('RC1590: stale and future Outlook history cannot confirm or close a current Spain task',async()=>{
+  for(const at of ['2026-01-01T09:00:00Z','2099-01-01T09:00:00Z']){
+    const x=setup();
+    x.api.append(x.shipment,{type:'mail-sent',at,label:'Versandanmeldung versendet',
+      details:{reference:x.shipment.ref,mailType:'Versandanmeldung'}},{persist:false});
+    assert.equal(await x.api.confirmRegistrationMail(x.shipment),false);
+    assert.equal(x.state.tasks[0].status,'open');
+    assert.equal(x.calls.length,0);
+    assert.equal(x.api.events(x.shipment).some(e=>e.type==='registration-confirmed'),false);
+  }
+});
+
 test('RC1590: click handler only responds to explicit user confirmation control',async()=>{
   const x=setup();openedMail(x.api,x.shipment);
   assert.equal(typeof x.docListeners.click,'function');
