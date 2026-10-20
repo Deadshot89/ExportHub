@@ -45,9 +45,11 @@ function setPlaceStatus(beforeKey,beforeText,place,afterKey,afterText,kind){
  var el=document.getElementById('status');
  el.className='status '+(kind||'info');el.textContent='';
  function appendTranslated(key,text){var part=document.createElement('span');part.setAttribute('data-i18n',key);part.textContent=text;el.appendChild(part)}
- appendTranslated(beforeKey,beforeText);
+ appendTranslated(beforeKey,beforeText.trim());
+ el.appendChild(document.createTextNode(' '));
  var name=document.createElement('span');name.setAttribute('data-i18n-ignore','');name.textContent=q(place)||'—';el.appendChild(name);
- appendTranslated(afterKey,afterText);
+ el.appendChild(document.createTextNode(' '));
+ appendTranslated(afterKey,afterText.trim());
 }
 async function api(action,opt){opt=opt||{};var t=token(),res=await fetch('/api/location-booking?action='+encodeURIComponent(action)+'&token='+encodeURIComponent(t)+'&_='+Date.now(),{method:opt.method||'GET',credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json','Content-Type':'application/json'},body:opt.body?JSON.stringify(opt.body):undefined}),txt=await res.text(),data={};try{data=txt?JSON.parse(txt):{}}catch(_){data={}}if(!res.ok||data.ok===false){var e=new Error(data.message||('HTTP '+res.status));e.status=res.status;e.code=data.code||'';throw e}return data}
 function renderButtons(){var root=document.getElementById('locations');root.innerHTML='';Object.keys(names).forEach(function(k){var b=document.createElement('button');b.type='button';b.className='loc'+(Number(k)===selected?' active':'');b.textContent=k+' · '+names[k];b.disabled=!record||record.ready!==true||record.collected===true;b.onclick=function(){selected=Number(k);renderButtons();document.getElementById('submit').disabled=false};root.appendChild(b)})}
