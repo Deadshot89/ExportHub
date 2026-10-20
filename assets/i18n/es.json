@@ -1646,5 +1646,9 @@
   "abd.completedUpload.shipmentMissing": "No se pudo identificar de forma inequívoca el envío vinculado. Abre el resumen de envíos y vuelve a cargar el ABD.",
   "abd.completedUpload.runtimeMissing": "La carga segura del ABD no está disponible. Recarga la página e inténtalo de nuevo. El documento no se ha marcado como guardado.",
   "abd.completedUpload.forbidden": "No tienes permiso para cargar documentos ABD.",
-  "abd.completedUpload.failed": "Error al cargar el ABD: {{message}}"
+  "abd.completedUpload.failed": "Error al cargar el ABD: {{message}}",
+  "abd.completedUpload.noMatchingShipment": "No se inició la carga del ABD: no se pudo identificar de forma inequívoca el envío {{reference}}. Vuelve a abrir el resumen de envíos.",
+  "abd.completedUpload.processing": "Se está procesando el documento ABD. Se está verificando el guardado.",
+  "abd.completedUpload.unconfirmed": "No se ha confirmado el guardado del ABD. Comprueba la carpeta del envío antes de volver a intentarlo.",
+  "abd.completedUpload.success": "Documento ABD guardado para el envío {{reference}}."
 }
