@@ -183,7 +183,7 @@ function uploadSavedShipment(sh,input){
   input.dataset.id=idOf(saved);
   trackCentralAbd(input,saved);
   try{return window.rc524UploadFile(input,'abdFiles')}catch(error){
-   return uploadError(input,uploadMsg('abd.completedUpload.failed',{message:q(error&&error.message)},'ABD upload failed: '+q(error&&error.message))
+   return uploadError(input,uploadMsg('abd.completedUpload.failed',{message:q(error&&error.message)},'ABD upload failed: '+q(error&&error.message)))
   }
  }).catch(function(error){
   return uploadError(input,q(error&&error.message)||promotionMessage('abd.completedUpload.saveUnconfirmed','Sendung wurde nicht bestätigt gespeichert. ABD wurde nicht hochgeladen.'))
