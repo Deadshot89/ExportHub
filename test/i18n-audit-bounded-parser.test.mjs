@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const source=fs.readFileSync('scripts/i18n-audit.mjs','utf8');
-const start=source.indexOf('function literalTexts(line){');
+const start=source.indexOf('function literalTexts(line,');
 const end=source.indexOf('function scanVisibleGerman(',start);
 assert.ok(start>=0&&end>start,'i18n literal parser missing');
 const sandbox={};
