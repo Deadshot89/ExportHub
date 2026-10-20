@@ -31,7 +31,7 @@ test('historischer SOPMaster-Quellbestand bleibt für unveränderte Regressionen
   assert.equal(fs.existsSync(LEGACY_DIR),true,'historische SOP-Verträge dürfen vor dem abgesicherten Cutover nicht verschwinden');
   const builder=read('.github/training-center/build-three-env.mjs');
   assert.match(builder,/removeRetiredSopTagsFromBuild/);
-  assert.match(builder,/fs\\.rmSync\\(path\\.join\\(out,'assets','sop'\\)/);
+  assert.match(builder,/fs\.rmSync\(path\.join\(out,'assets','sop'\)/);
 });
 
 test('aktive Training-Center- und Release-Dateien referenzieren keine Legacy-SOP-Runtime',()=>{
