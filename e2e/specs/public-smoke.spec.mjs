@@ -154,6 +154,55 @@ test('RC1555 production smoke: verschachtelte POD-Abholkarten zeigen nur die neu
   expect(layout.imageHeight).toBeLessThanOrEqual(58);
   expect(layout.maxCardHeight).toBeLessThanOrEqual(120);
   expect(layout.bodyText).not.toMatch(/ALTE UNTERSCHRIFT|ALTER FAHRER|ALTES DATUM|ALTES KENNZEICHEN|ALTER VERLADER|ALTER ERSATZBLOCK|Alter Hilfetext|Ausgang:\s*99/i);
+  // RC1592: Die separate Abholkontrolle darf nur bei tatsächlich vorhandenem
+  // Overlay den Rest der Druckseite ausblenden; Ladelisten bleiben sonst sichtbar.
+  // Die Abholkontrolle ist im echten Produkt bedarfsweise geladen.
+  // Ihr separater Druckmodus wird erst geprüft, wenn die echte Runtime
+  // ihre Print-CSS-Regeln installiert hat.
+  if(!await page.evaluate(()=>!!window.ExportHUBRC1546PickupControl)){
+    await page.addScriptTag({url:'/assets/rc1546-pickup-control.js'});
+  }
+  await page.evaluate(()=>window.ExportHUBRC1546PickupControl.render());
+  await expect.poll(()=>page.evaluate(()=>!!document.getElementById('exporthub-rc1546-style'))).toBe(true);
+  // RC1592: Nach Laden der echten Abholkontroll-CSS normale Druckansicht prüfen.
+  const normalPrint=await page.evaluate(()=>{
+    const stage=document.getElementById('rc576DocumentStage');
+    const signature=stage?.querySelector('.rc1503-signature-value');
+    return{
+      overlayCount:document.querySelectorAll('body > .rc1546-overlay').length,
+      stageDisplay:stage?getComputedStyle(stage).display:'missing',
+      stageHeight:stage?stage.getBoundingClientRect().height:0,
+      signatureHeight:signature?signature.getBoundingClientRect().height:0
+    };
+  });
+  expect(normalPrint.overlayCount,'Ohne geöffnete Abholkontrolle darf kein Druck-Overlay existieren').toBe(0);
+  expect(normalPrint.stageDisplay,'Geladene Kontroll-CSS darf Ladelisten nicht verstecken').not.toBe('none');
+  expect(normalPrint.stageHeight,'Ladeliste muss mit geladener Kontroll-CSS sichtbar bleiben').toBeGreaterThan(0);
+  expect(normalPrint.signatureHeight,'POD-Unterschrift muss mit geladener Kontroll-CSS sichtbar bleiben').toBeGreaterThan(0);
+  const overlayPrint=await page.evaluate(()=>{
+    const overlay=document.createElement('div');
+    overlay.className='rc1546-overlay';
+    overlay.innerHTML='<section class="rc1546-dialog">RC1592 Druckkontrolle</section>';
+    document.body.appendChild(overlay);
+    const stage=document.getElementById('rc576DocumentStage');
+    return{
+      stageDisplay:getComputedStyle(stage).display,
+      overlayDisplay:getComputedStyle(overlay).display
+    };
+  });
+  expect(overlayPrint.stageDisplay,'Nur beim aktiven Abhol-Overlay darf die Ladeliste im Druck verborgen werden').toBe('none');
+  expect(overlayPrint.overlayDisplay,'Abhol-Overlay selbst muss druckbar bleiben').not.toBe('none');
+  const restoredPrint=await page.evaluate(()=>{
+    document.querySelector('body > .rc1546-overlay')?.remove();
+    const stage=document.getElementById('rc576DocumentStage');
+    return{
+      stageDisplay:stage?getComputedStyle(stage).display:'missing',
+      stageHeight:stage?stage.getBoundingClientRect().height:0
+    };
+  });
+  expect(restoredPrint.stageDisplay,'Nach Schließen der Abholkontrolle muss die Ladeliste wieder erscheinen').not.toBe('none');
+  expect(restoredPrint.stageHeight,'Nach Schließen der Abholkontrolle muss die Druckhöhe zurückkehren').toBeGreaterThan(0);
+
   await assertRuntimeClean(runtime,testInfo);
 });
 
