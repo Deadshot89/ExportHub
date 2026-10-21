@@ -66,3 +66,34 @@ werden, ob große eingebettete Dokumente, History-/Snapshot-Felder oder die
 kein blindes Entfernen von Dokumentfeldern und kein Ändern des produktiven
 Speicherformats ohne echte Backups und vollständige regressions-/livegeprüfte
 Abnahme. Issue #836 bleibt bis zur realen produktiven Start-/Save-/Reload-Abnahme offen.
+
+
+## RC1615 · Potenzielle Großdaten-Duplikate zwischen `shipments` und `savedShipments`
+
+Der unveränderte Offline-Aufruf von RC1614 weist nun zusätzlich
+`duplicateLargeShipmentPayloads` als **rein numerische Aggregate** aus:
+
+- `sharedDistinctLargePayloads`: Anzahl unterschiedlicher großer Stringinhalte
+  (ab 100.000 Zeichen), deren SHA-256-Fingerabdruck in beiden Sendungslisten vorkommt.
+- `repeatedSavedInstances`: Anzahl der Instanzen solcher identischen Inhalte
+  in `savedShipments`.
+- `repeatedSavedBytes`: Summe der unveränderten UTF-8-Stringbytes dieser
+  Instanzen in `savedShipments` (eine theoretische Größenordnung, keine
+  tatsächliche Einspar- oder Löschfreigabe).
+- `minimumStringLength`: feste Schwelle der Analyse.
+
+Dateiinhalte und deren SHA-256-Fingerabdrücke werden **niemals ausgegeben**;
+die Fingerabdrücke existieren nur während des lokalen Analyseprozesses im
+Arbeitsspeicher. Identische Referenzen allein reichen **nicht** für einen
+Duplikatbefund; nur tatsächlich identische große Stringinhalte zählen.
+
+Für das bisher lediglich auf ca. 58,9 MB geschätzte Produktionsproblem
+liegt weiterhin **kein** autorisierter Snapshot-Befund zu diesem Indikator vor.
+Ein späterer Treffer wäre nur ein Hinweis auf potenziell redundante
+Speicherinhalte: `shipments` und `savedShipments` erfüllen ggf. unterschiedliche
+historische Funktionen. Originalfelder, Signaturdaten, Dokumente und
+Snapshots dürfen auf Grundlage dieser Analyse **nicht** entfernt,
+überschrieben oder automatisch zusammengeführt werden.
+
+Zusätzliche Regressionstests: vier RC1615-Fälle in
+`test/rc1614-state-startup-size-audit.test.mjs`.
