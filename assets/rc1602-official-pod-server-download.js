@@ -83,11 +83,11 @@ async function storedSignedBlob(sh){
   arr.forEach(function(other){if(other&&((ref&&refOf(other)===ref)||(id&&idOf(other)===id))&&copies.indexOf(other)<0)copies.push(other)})
  });
  var files=[];
- copies.forEach(function(copy){(Array.isArray(copy&&copy.podFiles)?copy.podFiles:[]).forEach(function(f){if(f&&/_ladeliste_mit_unterschrift\\.pdf$/i.test(q(f.name||f.fileName)))files.push(f)})});
+ copies.forEach(function(copy){(Array.isArray(copy&&copy.podFiles)?copy.podFiles:[]).forEach(function(f){if(f&&/_ladeliste_mit_unterschrift\.pdf$/i.test(q(f.name||f.fileName)))files.push(f)})});
  for(var i=0;i<files.length;i++){
   var file=files[i],inline=q(file.dataUrl||file.data||file.content),blob=null;
   try{
-   if(/^data:application\\/pdf;base64,[A-Za-z0-9+/=\\s]+$/i.test(inline)){
+   if(/^data:application\/pdf;base64,[A-Za-z0-9+/=\s]+$/i.test(inline)){
     var response=await w.fetch(inline);
     if(response&&response.ok)blob=await response.blob()
    }else{
