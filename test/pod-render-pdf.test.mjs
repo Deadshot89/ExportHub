@@ -91,7 +91,11 @@ test('RC1609 P0: authentic JPEG bytes from driver signature render as an embedde
   // RC1609 forensic isolation: distinguish invalid synthetic fixture bytes from
   // a failure elsewhere in the POD renderer; contains no real customer data.
   const isolated=await PDFDocument.create();
-  const embedded=await isolated.embedJpg(jpeg);
+  // pdf-lib 1.17.1 ignores Node Buffer.byteOffset when creating DataView.
+  // The fix hands it a genuinely zero-offset Uint8Array.
+  const decodedImageBytes=Uint8Array.from(jpeg);
+  assert.equal(decodedImageBytes.byteOffset,0);
+  const embedded=await isolated.embedJpg(decodedImageBytes);
   assert.ok(embedded.width>0&&embedded.height>0);
   const pooled=Buffer.alloc(jpeg.length+17);
   jpeg.copy(pooled,17);
