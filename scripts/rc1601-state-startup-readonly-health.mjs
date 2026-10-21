@@ -22,6 +22,10 @@ const BOOL_FIELDS = Object.freeze([
 ]);
 const NUMBER_FIELDS = Object.freeze(['authReadMs', 'teamReadMs', 'totalMs', 'teamStateBytes']);
 const MAX_RESPONSE_BYTES = 64 * 1024;
+const SAFE_SECTIONS = new Set(['shipments','savedShipments','salesSharedShipments','sharedShipments','shipmentArchive','archivedShipments','archive','customers','abdRequests','tasks','users','customSops','isoSops','taskStatusLedger','deliveryFileDeletionLedger','palletAccount','ideas','settings','sopLearningProgress']);
+const SAFE_FIELDS = new Set(['rows','colli','collis','packages','packagingRows','deliveryFiles','deliveryNotesFiles','podFiles','abdFiles','documents','generatedDocuments','files','attachments','mailHistory','pickupHistory','shipmentHistory','containerPhotos','subShipments','notes','customerAvis','items','status','processStatus','id','ref','reference','name','address','email']);
+const validSizeRow = row => row && typeof row === 'object' && Number.isFinite(row.bytes) && row.bytes >= 0 && Number.isSafeInteger(row.items) && row.items >= 0;
+
 
 export function safeSummary(body, mode) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) return {};
@@ -43,6 +47,20 @@ export function safeSummary(body, mode) {
   if (docs && typeof docs === 'object') {
     const count = docs.inlinePayloadCount;
     if (Number.isSafeInteger(count) && count >= 0) summary.inlinePayloadCount = count;
+    if (Array.isArray(docs.sectionBytes)) {
+      summary.sections = docs.sectionBytes.filter(row => validSizeRow(row) && SAFE_SECTIONS.has(row.key))
+        .map(({key,bytes,items}) => ({key,bytes,items})).slice(0,16);
+    }
+  }
+  const sizeFields = body.collectionFieldBytes;
+  if (sizeFields && typeof sizeFields === 'object') {
+    const visible = {};
+    for (const collection of ['shipments','savedShipments','abdRequests']) {
+      if (!Array.isArray(sizeFields[collection])) continue;
+      visible[collection] = sizeFields[collection].filter(row => validSizeRow(row) && SAFE_FIELDS.has(row.key))
+        .map(({key,bytes,items}) => ({key,bytes,items})).slice(0,14);
+    }
+    summary.collectionFields = visible;
   }
   return summary;
 }
