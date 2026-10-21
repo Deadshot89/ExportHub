@@ -84,6 +84,23 @@ test('RC1600 8LSUHW: stored PNG signature survives an incorrect historical JPEG 
   assert.match(bytes.toString('latin1'),/\/Subtype\s*\/Image/,'Original driver image must be embedded');
 });
 
+test('RC1609 P0: short browser-style JPEG signature in a nonzero-offset Node Buffer embeds unchanged',async()=>{
+  const original=Buffer.from(["/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYH","BwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwg","IyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYa","KCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgo","KCgoKCgoKCgoKCgoKCj/wAARCAACAAIDASIAAhEBAxEB/8QA","HwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAA","AgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKB","kaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6","Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWG","h4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXG","x8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QA","HwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREA","AgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEI","FEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5","OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOE","hYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPE","xcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oA","DAMBAAIRAxEAPwD6pooooA//2Q=="].join(''),'base64');
+  const slab=Buffer.allocUnsafe(original.length+79);
+  original.copy(slab,37);
+  const window=slab.subarray(37,37+original.length);
+  assert.ok(window.byteOffset>0,'source byte offset is nonzero');
+  const before=Buffer.from(window);
+  const probe=await PDFDocument.create();
+  await probe.embedJpg(Uint8Array.from(window));
+  const bytes=await createPodPdf(record,window,'image/jpeg');
+  const parsed=await PDFDocument.load(bytes);
+  assert.ok(parsed.getPageCount()>=1);
+  assert.match(bytes.toString('latin1'),/\/Subtype\s*\/Image/);
+  assert.deepEqual(window,before,'signed original bytes must remain unmodified');
+  assert.match(source,/Uint8Array\.from\(signatureBytes\)/);
+});
+
 test('RC1609 P0: authentic JPEG bytes from driver signature render as an embedded signed PDF image',async()=>{
   const jpeg=Buffer.from(signatureJpegBase64,'base64');
   assert.ok(jpeg.length>100);

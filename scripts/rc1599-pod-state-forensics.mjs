@@ -14,7 +14,15 @@ const PICKED_UP = new Set(['abgeholt', 'picked up', 'collected']);
 
 function stateOf(document) {
   if (!document || typeof document !== 'object' || Array.isArray(document)) throw new TypeError('Expected a JSON object with a Team-State snapshot');
-  return document.state && typeof document.state === 'object' && !Array.isArray(document.state) ? document.state : document;
+  const state = Object.prototype.hasOwnProperty.call(document, 'state') ? document.state : document;
+  if (!state || typeof state !== 'object' || Array.isArray(state)) throw new TypeError('Malformed Team-State snapshot: state must be an object');
+  if (!['shipments', 'savedShipments'].some(key => Array.isArray(state[key])))
+    throw new TypeError('Malformed Team-State snapshot: shipments or savedShipments array required');
+  for (const key of COLLECTIONS) {
+    if (Object.prototype.hasOwnProperty.call(state, key) && !Array.isArray(state[key]))
+      throw new TypeError('Malformed Team-State snapshot: ' + key + ' must be an array');
+  }
+  return state;
 }
 function referenceOf(sh) {
   const candidates = ['ref', 'reference', 'shipmentRef', 'referenceNumber', 'referenceNo', 'refNo', 'refNr', 'sendungsnummer', 'exporthubRef', 'exportHubReference'];
@@ -53,11 +61,20 @@ function statusConflict(entries) {
   const seen = new Set(entries.flatMap(row => [row.status, row.processStatus]).filter(Boolean));
   return entries.length > 1 && seen.size > 1;
 }
+function hasSameCollectionDuplicate(rows) {
+  const seen = new Set();
+  for (const row of rows) {
+    if (seen.has(row.collection)) return true;
+    seen.add(row.collection);
+  }
+  return false;
+}
 function aggregate(s) {
   return {
     entries: s.entries.length, uniqueReferences: s.map.size,
     unreferenced: s.unreferenced.length,
     duplicatedAcrossCollections: [...s.map.values()].filter(rows => new Set(rows.map(row => row.collection)).size > 1).length,
+    ambiguousDuplicateReferences: [...s.map.values()].filter(hasSameCollectionDuplicate).length,
     conflictingStatuses: [...s.map.values()].filter(statusConflict).length,
     sameEntryStatusDisagreement: s.entries.filter(row => row.status && row.processStatus && row.status !== row.processStatus).length,
     podStatusEntries: s.entries.filter(row => POD_STATUS.has(row.status) || POD_STATUS.has(row.processStatus)).length,
@@ -71,18 +88,26 @@ export function compareTeamStateSnapshots(beforeDoc, afterDoc, options = {}) {
     statusesChanged: 0, podToPickedUp: 0, pickedUpToPod: 0,
     pickedUpToPodWithoutTimestampChange: 0, podMetadataRemoved: 0,
     podMetadataAdded: 0, becameCrossCollectionConflict: 0,
-    referencesMissingAfter: 0, referencesNewAfter: 0
+    referencesMissingAfter: 0, referencesNewAfter: 0,
+    ambiguousDuplicateReferences: 0, missingCollectionCopiesAfter: 0
   };
   const changes = [];
   for (const [reference, prevRows] of before.map) {
     const nextRows = after.map.get(reference);
     if (!nextRows) { flags.referencesMissingAfter++; changes.push({ reference, kind: 'reference-missing-after' }); continue; }
+    // Never collapse two rows of one reference in the same collection into a Map.
+    // Without a stable per-row identity, pairing them would fabricate forensic evidence.
+    if (hasSameCollectionDuplicate(prevRows) || hasSameCollectionDuplicate(nextRows)) {
+      flags.ambiguousDuplicateReferences++;
+      changes.push({ reference, kind: 'ambiguous-duplicate-reference' });
+      continue;
+    }
     const beforeByCollection = new Map(prevRows.map(x => [x.collection, x]));
     const afterByCollection = new Map(nextRows.map(x => [x.collection, x]));
     if (!statusConflict(prevRows) && statusConflict(nextRows)) flags.becameCrossCollectionConflict++;
     for (const [collection, prev] of beforeByCollection) {
       const next = afterByCollection.get(collection);
-      if (!next) { changes.push({ reference, collection, kind: 'missing-collection-copy' }); continue; }
+      if (!next) { flags.missingCollectionCopiesAfter++; changes.push({ reference, collection, kind: 'missing-collection-copy' }); continue; }
       const a = prev.status || prev.processStatus, b = next.status || next.processStatus;
       if (prev.status !== next.status || prev.processStatus !== next.processStatus) {
         flags.statusesChanged++;
@@ -106,7 +131,11 @@ export function compareTeamStateSnapshots(beforeDoc, afterDoc, options = {}) {
   const report = {
     version: 'RC1599', readOnly: true,
     note: 'POD file metadata is NOT proof of valid PDFs or signatures; verify originals separately.',
-    before: aggregate(before), after: aggregate(after), changes: flags
+    before: aggregate(before), after: aggregate(after), changes: flags,
+    structuralReviewRequired: Boolean(flags.ambiguousDuplicateReferences ||
+      [...before.map.values(), ...after.map.values()].some(hasSameCollectionDuplicate) ||
+      before.unreferenced.length || after.unreferenced.length ||
+      flags.referencesMissingAfter || flags.missingCollectionCopiesAfter)
   };
   if (options.includeReferences === true) {
     report.sensitiveReferences = changes;

@@ -247,15 +247,15 @@ async function createPodPdf(record, signatureBuffer, signatureType) {
   let image=null;
   // RC1600: image bytes, not potentially stale MIME metadata, identify the driver's original ink.
   const signatureBytes=Buffer.from(signatureBuffer||[]);
-  // RC1609 P0: pdf-lib 1.17.1's JPEG reader creates a DataView from bytes.buffer
-  // without respecting a pooled Node Buffer's nonzero byteOffset. Copy only for
-  // decoding, preserving the actual driver ink and all archived original bytes.
-  const pdfImageBytes=Uint8Array.from(signatureBytes);
   const png=signatureBytes.length>=8&&signatureBytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]));
   const jpeg=signatureBytes.length>=3&&signatureBytes[0]===255&&signatureBytes[1]===216&&signatureBytes[2]===255;
+  // RC1609: pdf-lib's JPEG parser uses the underlying ArrayBuffer. Short
+  // Node.js Buffers can share a pooled slab at a nonzero byteOffset. Supply
+  // exact original bytes in a standalone zero-offset Uint8Array instead.
+  const exactImageBytes=Uint8Array.from(signatureBytes);
   try {
-    image=png?await pdf.embedPng(pdfImageBytes):jpeg?await pdf.embedJpg(pdfImageBytes):
-      (/png/i.test(signatureType||'')?await pdf.embedPng(pdfImageBytes):await pdf.embedJpg(pdfImageBytes));
+    image=png?await pdf.embedPng(exactImageBytes):jpeg?await pdf.embedJpg(exactImageBytes):
+      (/png/i.test(signatureType||'')?await pdf.embedPng(exactImageBytes):await pdf.embedJpg(exactImageBytes));
   }catch(_){}
   if(!image)throw store.err('POD_SIGNATURE_IMAGE_INVALID','Die gespeicherte Fahrerunterschrift kann nicht als Bild gelesen werden. Kein Ersatz-POD erzeugt.',409);
   const dims=image.scale(1),maxW=cellW-20,scale=Math.min(maxW/dims.width,SIGNATURE_MAX_HEIGHT/dims.height);
@@ -625,11 +625,43 @@ async function getPodDownload(accessKey, environment, fileId) {
     const regenerated = await ensureAutomaticPod(accessKey, environment, { force: true });
     return { buffer: regenerated.pdf || regenerated.buffer, file: regenerated.file, record: regenerated.record };
   }
-  const blobName = text(file.blobName || file.storageBlobName);
+  const buffer = await readExactPodBuffer(got, environment, file);
+  return { buffer, file, record };
+}
+
+// RC1608: never swap an immutable signed POD for another version. If the primary
+// copy is missing, the archive may be used only when its recorded SHA-256 is
+// identical to this exact file. This is a read-only recovery, not regeneration.
+function assertExactPodBuffer(buffer, file) {
+  const expectedHash = text(file && file.hash).toLowerCase();
+  const expectedSize = Number(file && file.size || 0);
+  if (/^[a-f0-9]{64}$/.test(expectedHash) &&
+      crypto.createHash('sha256').update(buffer).digest('hex') !== expectedHash) {
+    throw store.err('POD_BLOB_INTEGRITY_FAILED', 'Die gespeicherte POD-Datei stimmt nicht mit dem signierten Original überein.', 409);
+  }
+  if (Number.isSafeInteger(expectedSize) && expectedSize > 0 && buffer.length !== expectedSize) {
+    throw store.err('POD_BLOB_INTEGRITY_FAILED', 'Die gespeicherte POD-Dateigröße stimmt nicht mit dem Original überein.', 409);
+  }
+  return buffer;
+}
+async function readExactPodBuffer(got, environment, file) {
+  const blobName = text(file && (file.blobName || file.storageBlobName));
   if (!blobName) throw store.err('POD_FILE_NOT_STORED', 'Die angeforderte POD-Dateiversion ist nicht gespeichert.', 404);
-  const blob = got.clients.pods.getBlobClient(blobName);
-  const read = await store.readBuffer(blob);
-  return { buffer: read.buffer, file, record };
+  try {
+    const primary = await store.readBuffer(got.clients.pods.getBlobClient(blobName));
+    return assertExactPodBuffer(primary.buffer, file);
+  } catch (error) {
+    if (!error || error.statusCode !== 404) throw error;
+    const backup = got.record && got.record.podBackup || {};
+    const hash = text(file.hash).toLowerCase();
+    if (!/^[a-f0-9]{64}$/.test(hash) ||
+        backup.archiveSaved !== true ||
+        text(backup.hash).toLowerCase() !== hash ||
+        !text(backup.archiveBlobName)) throw error;
+    const clients = await store.podArchiveClient(environment);
+    const archived = await store.readBuffer(clients.podArchive.getBlobClient(text(backup.archiveBlobName)));
+    return assertExactPodBuffer(archived.buffer, file);
+  }
 }
 async function saveSuppliedPod(accessKey, environment, record, pdf, requestedName, options) {
   const primary = await saveAzurePod(accessKey, environment, record, pdf, requestedName, Object.assign({}, options, { clientSupplied: true }));
