@@ -23,10 +23,10 @@ function podFiles(sh){
 }
 function relevant(sh){
  if(!sh)return false;
- // A completed or archived shipment still has a POD even after leaving "POD vorhanden".
- const status=lower(sh.status||sh.processStatus);
+ // Completed and archived shipments remain in scope when POD files or archive metadata exist.
+ // Do not demote an unrelated completed shipment with no POD evidence to "Abgeholt".
  return integrity.statusIsPod(sh)||sh.podReviewRequired===true||podFiles(sh).length>0||
-  /^(abgeschlossen|archiviert|completed|archived)$/.test(status);
+  !!text(sh.automaticPodBlobName)||!!(sh.podBackup&&sh.podBackup.archiveSaved===true);
 }
 function allShipmentCopies(state){
  // RC1595: the shipment overview merges these lists; the audit must not ignore saved-only PODs.
@@ -42,6 +42,7 @@ function allShipmentCopies(state){
   const primary=preferred?sh:previous,secondary=preferred?previous:sh;
   // Preserve the pickup access data from either copy for safe, authenticated regeneration.
   const joined=Object.assign({},secondary,primary);
+  if(previous.podReviewRequired===true||sh.podReviewRequired===true){joined.podReviewRequired=true;joined.podReviewReason=text((previous.podReviewRequired===true?previous:sh).podReviewReason)}
   for(const key of ['pickupToken','pickupQrToken','qrToken','pickupCode','pickupAccessKeyHash','pickupAccessHash','pickupKeyHash','pickupAccessKey','accessKey','pickupConfirmedAt']){
    if(!text(joined[key])&&text(secondary[key]))joined[key]=secondary[key];
   }
