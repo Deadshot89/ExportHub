@@ -378,9 +378,12 @@ function mergeCustomerProtected(serverItem, incomingItem) {
   // resurrect an older address on the next reload.
   const explicitlyClearableCustomerFields = new Set([
     'email', 'customerEmail', 'customerMail', 'mail', 'mailAddress',
-    'mailToCustomer', 'rc385CustomerTo', 'recipientEmail',
-    'carrierEmail', 'carrierMail', 'speditionEmail', 'speditionMail',
-    'anmeldungMail', 'rc385CarrierTo', 'mailRecipients',
+    'mailToCustomer', 'rc385CustomerTo', 'emailCustomer', 'recipientMail',
+    'recipientEmail', 'customerMailCc', 'carrierEmail', 'carrierMail',
+    'speditionEmail', 'speditionMail', 'anmeldungMail', 'rc385CarrierTo',
+    'carrierRegistrationMail', 'speditionRegistrationMail', 'forwarderEmail',
+    'forwarderMail', 'mailToSpedition', 'speditionMailTo', 'transportMail',
+    'transportEmail', 'mailRecipients',
     'salesMail', 'salesEmail', 'salesPersonMail', 'salesPersonEmail',
     'salesContactMail', 'salesContactEmail', 'rc385SalesMail', 'salesCc',
     'salesPersonName', 'salesContactName', 'salesName',
