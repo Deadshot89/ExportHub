@@ -243,3 +243,14 @@ test('RC1616: POD document history is grouped without changing original file ind
 });
 
 test('RC1616: production build busts the browser cache for both corrected POD runtimes',()=>{assert.match(buildSource,/rc1602-official-pod-server-download\.js\?v=1616/);assert.match(buildSource,/rc1460-shipment-view-files-avis-preview\.js\?v=1616/);});
+
+test('RC1616: generated browser document helpers parse without invalid regular expression flags',()=>{
+ const match=buildSource.match(/const docHelpers=`([\s\S]*?)`;/);
+ assert.ok(match,'shipment document helpers must remain available to the release build');
+ const emitted=new Function('return `'+match[1]+'`;')();
+ assert.doesNotThrow(()=>new Function('window',emitted),'compiled document helpers must not contain broken regex delimiters');
+ const open=buildSource.match(/`(async function fetchDocBlob\(d\)\{[\s\S]*?)`,\s*'Blob-Dokumentöffnung'/);
+ assert.ok(open,'document download replacement must remain present');
+ const emittedOpen=new Function('return `'+open[1]+'`;')();
+ assert.doesNotThrow(()=>new Function('window',emittedOpen),'compiled document fetcher must remain syntactically valid');
+});
