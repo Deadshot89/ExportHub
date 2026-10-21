@@ -119,7 +119,7 @@ test('RC1577: POD-Prüfung ist im Build und in allen sechs Sprachen enthalten',a
   const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
   assert.match(build,/rc1577-pod-quality-audit\.js\?v=1596/);
   assert.match(build,/rc1596-pod-folder-reconnect\.js\?v=1596/);
-  assert.match(build,/'assets\/rc1577-pod-quality-audit\.js',\n  'assets\/i18n\/rc1577-pod-quality-audit\.js',/);
+  assert.match(build,/'assets\/rc1577-pod-quality-audit\.js',[\s\S]*'assets\/i18n\/rc1577-pod-quality-audit\.js',/,'The RC1596 folder asset may be copied between POD audit and i18n assets');
   const sandbox={};
   new Function('window',fs.readFileSync('assets/i18n/rc1577-pod-quality-audit.js','utf8'))(sandbox);
   const packs=sandbox.ExportHUBPodAudit1577I18n.packs,keys=Object.keys(packs.de).sort();
