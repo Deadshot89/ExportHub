@@ -8,7 +8,7 @@ const POD_PDF_LAYOUT_VERSION = 'RC1594-SIGNED-LOADING-LIST-V3';
 // RC1577: layout of the signed loading list rendered in the browser (assets/document-print-name.js,
 // window.EXPORTHUB_POD_RENDER_LAYOUT). Supplied PODs carry it as renderLayout so the POD quality audit
 // can tell PODs rendered after the RC1560/RC1561 signature and bottom-tile fixes from older ones.
-const POD_RENDER_LAYOUT = 'RC1561';
+const POD_RENDER_LAYOUT = 'RC1595';
 
 function text(value) {
   return String(value == null ? '' : value).replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim();
