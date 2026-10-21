@@ -193,7 +193,10 @@ async function verifyDriverSignaturePdfCompatible(parsed){
  if(!declaredMatches)throw err('INVALID_SIGNATURE_IMAGE','Die Unterschrift hat ein nicht unterstütztes oder fehlerhaftes Bildformat. Bitte erneut unterschreiben.',400);
  try{
   const {PDFDocument}=require('pdf-lib'),doc=await PDFDocument.create();
-  const image=png?await doc.embedPng(bytes):await doc.embedJpg(bytes);
+  // Use the same zero-offset binary view as the official POD PDF renderer.
+  // The source Buffer is not changed, converted or replaced.
+  const imageBytes=Uint8Array.from(bytes);
+  const image=png?await doc.embedPng(imageBytes):await doc.embedJpg(imageBytes);
   if(!(Number(image.width)>0&&Number(image.height)>0))throw new Error('INVALID_DIMENSIONS');
  }catch(_){
   // Do not expose original image bytes, paths, customer data or decoder internals.
