@@ -984,6 +984,11 @@ function mergeReferenceDocs(live,fallback){
     'Blob-Dokumentöffnung'
   );
 
+  const legacyBlobOpenGuard="if(!((d.source==='referenceFolder'&&d.itemId)||d.url)){alert('Diese Zeile enthält keine vorhandene Datei.');return false}";
+  const fixedBlobOpenGuard="if(!fallbackDocUsable(d)){alert('Diese Zeile enthält keine vorhandene Datei.');return false}";
+  if(html.includes(legacyBlobOpenGuard))html=html.replace(legacyBlobOpenGuard,fixedBlobOpenGuard);
+  else if(!html.includes(fixedBlobOpenGuard))throw new Error(file+': Dokumentöffnen-Guard fehlt');
+
   const oldNote='<p class="rc808-history-note">Nur tatsächliche Statuswechsel der Sendung. Technische RC543-Synchronisierungstexte werden nicht angezeigt.</p>';
   const newNote='<p class="rc808-history-note">Fachliche Bewegung der Sendung: Status, Abholung, POD und Abschluss. Technische Synchronisierung wird ausgeblendet.</p>';
   if(!html.includes(oldNote)&&!html.includes(newNote))throw new Error(file+': RC1305 Statushinweis-Anker fehlt');
