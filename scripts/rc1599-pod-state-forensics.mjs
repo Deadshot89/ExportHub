@@ -132,8 +132,10 @@ export function compareTeamStateSnapshots(beforeDoc, afterDoc, options = {}) {
     version: 'RC1599', readOnly: true,
     note: 'POD file metadata is NOT proof of valid PDFs or signatures; verify originals separately.',
     before: aggregate(before), after: aggregate(after), changes: flags,
-    structuralReviewRequired: Boolean(flags.ambiguousDuplicateReferences || before.unreferenced.length ||
-      after.unreferenced.length || flags.referencesMissingAfter || flags.missingCollectionCopiesAfter)
+    structuralReviewRequired: Boolean(flags.ambiguousDuplicateReferences ||
+      [...before.map.values(), ...after.map.values()].some(hasSameCollectionDuplicate) ||
+      before.unreferenced.length || after.unreferenced.length ||
+      flags.referencesMissingAfter || flags.missingCollectionCopiesAfter)
   };
   if (options.includeReferences === true) {
     report.sensitiveReferences = changes;
