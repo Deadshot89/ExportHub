@@ -81,3 +81,70 @@ test('RC1599/RC1603: equal-timestamp stale POD status cannot resurrect after ser
 test('RC1599: invalid snapshot rejects rather than inventing data', () => {
   assert.throws(()=>compareTeamStateSnapshots(null,make()),/Team-State snapshot/);
 });
+
+test('RC1608: duplicates inside a single collection are flagged instead of silently overwriting POD status', () => {
+  const before = make([
+    shipment('DUPPOD', 'POD vorhanden'),
+    shipment('DUPPOD', 'Abgeholt')
+  ]);
+  const after = make([
+    shipment('DUPPOD', 'Abgeholt'),
+    shipment('DUPPOD', 'Abgeholt')
+  ]);
+  const beforeRaw = JSON.stringify(before);
+  const afterRaw = JSON.stringify(after);
+  const report = compareTeamStateSnapshots(before, after);
+  assert.equal(report.before.ambiguousDuplicateReferences, 1);
+  assert.equal(report.after.ambiguousDuplicateReferences, 1);
+  assert.equal(report.changes.ambiguousDuplicateReferences, 1);
+  assert.equal(report.structuralReviewRequired, true);
+  assert.equal(report.changes.podToPickedUp, 0, 'Do not invent a pairing for ambiguous duplicates');
+  assert.ok(!JSON.stringify(report).includes('DUPPOD'), 'References remain redacted');
+  assert.equal(JSON.stringify(before), beforeRaw);
+  assert.equal(JSON.stringify(after), afterRaw);
+});
+
+test('RC1608: duplicate in only the after snapshot is also flagged', () => {
+  const before = make([shipment('DUPAFTER', 'POD vorhanden')]);
+  const after = make([shipment('DUPAFTER', 'Abgeholt'), shipment('DUPAFTER', 'POD vorhanden')]);
+  const report = compareTeamStateSnapshots(before, after, { includeReferences: true });
+  assert.equal(report.before.ambiguousDuplicateReferences, 0);
+  assert.equal(report.after.ambiguousDuplicateReferences, 1);
+  assert.equal(report.changes.ambiguousDuplicateReferences, 1);
+  assert.ok(report.sensitiveReferences.some(x => x.kind === 'ambiguous-duplicate-reference'));
+});
+
+test('RC1608: malformed or partial snapshots fail closed instead of reporting zero differences', () => {
+  const valid = make();
+  assert.throws(() => compareTeamStateSnapshots({ state: {} }, valid), /shipments or savedShipments array required/);
+  assert.throws(() => compareTeamStateSnapshots({ state: { shipments: {} } }, valid), /shipments or savedShipments array required/);
+  assert.throws(() => compareTeamStateSnapshots({ state: { shipments: [], savedShipments: {} } }, valid), /savedShipments must be an array/);
+  assert.throws(() => compareTeamStateSnapshots({ state: null }, valid), /state must be an object/);
+});
+
+test('RC1608: distinct collections remain comparable without duplicate warnings', () => {
+  const before = make([shipment('BOTH', 'POD vorhanden')],[shipment('BOTH', 'POD vorhanden')]);
+  const after = make([shipment('BOTH', 'Abgeholt')],[shipment('BOTH', 'POD vorhanden')]);
+  const report = compareTeamStateSnapshots(before, after);
+  assert.equal(report.changes.podToPickedUp, 1);
+  assert.equal(report.changes.ambiguousDuplicateReferences, 0);
+  assert.equal(report.structuralReviewRequired, false);
+});
+
+test('RC1608: disappearing collection copy is included in manual-review count', () => {
+  const before = make([shipment('ONE', 'Abgeholt')],[shipment('ONE', 'POD vorhanden')]);
+  const after = make([shipment('ONE', 'Abgeholt')],[]);
+  const report = compareTeamStateSnapshots(before, after);
+  assert.equal(report.changes.missingCollectionCopiesAfter, 1);
+  assert.equal(report.structuralReviewRequired, true);
+});
+
+test('RC1608: after-only duplicated references still require structural review', () => {
+  const before = make();
+  const after = make([shipment('NEWDUPE', 'POD vorhanden'), shipment('NEWDUPE', 'Abgeholt')]);
+  const report = compareTeamStateSnapshots(before, after);
+  assert.equal(report.changes.referencesNewAfter, 1);
+  assert.equal(report.after.ambiguousDuplicateReferences, 1);
+  assert.equal(report.structuralReviewRequired, true);
+  assert.ok(!JSON.stringify(report).includes('NEWDUPE'));
+});

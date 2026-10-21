@@ -31,3 +31,24 @@ Das Skript stellt **keine** Verbindung zu Azure her. Liegen die echten Backups n
 ~~~bash
 node --test test/rc1599-pod-state-forensics.test.mjs
 ~~~
+
+## RC1608: Mehrfache Referenzen und unvollständige Snapshots
+
+Die automatische Zuordnung zwischen Vorher- und Nachher-Snapshot ist nur eindeutig,
+wenn jede Sendungsreferenz in jeder Sammlung höchstens einmal vorkommt.
+Bei doppelten Einträgen **innerhalb derselben Sammlung** führt der Bericht jetzt
+`ambiguousDuplicateReferences` getrennt für Vorher, Nachher und die Differenz.
+Diese Fälle werden **nicht** mittels eines überschreibenden Maps als vermeintlich
+sichere POD-Rückstufung eingestuft. `structuralReviewRequired: true` verlangt eine
+manuelle Untersuchung in der geschützten Umgebung.
+
+Der Bericht zählt nun ebenfalls `missingCollectionCopiesAfter`.
+Fehlerhafte Snapshot-Strukturen (keine Sendungsliste, falsche Datentypen oder
+`state: null`) brechen mit Fehler ab, statt einen irreführenden Null-Bericht
+zu erzeugen. Eine vorhandene leere Sendungsliste ist weiterhin zulässig.
+
+Das ist **kein** Nachweis, dass eine konkrete der 89 betroffenen Sendungen
+doppelt vorhanden war. Dafür fehlen weiterhin die echten gesicherten Snapshots.
+Weder der Vergleich noch seine Tests nehmen Statusänderungen oder Azure-Schreibzugriffe vor.
+
+Regression: `node --test test/rc1599-pod-state-forensics.test.mjs`.
