@@ -185,14 +185,19 @@ test('Sendungsansicht: nur gespeicherte Dateimetadaten zählen nicht als öffnun
   assert.equal(context.shipmentAssociatedDocs({id:'S',ref:'ABC123'},[]).length,0);
 });
 
-test('Blob-Dokumente in der Sendungsansicht lassen sich ohne gesonderte URL öffnen',()=>{
-  const built=fs.readFileSync('dist-rc1048/index.html','utf8');
-  const start=built.indexOf('function openDoc(index){');
-  const end=built.indexOf('function downloadDoc(index)',start);
-  assert.ok(start>=0&&end>start,'Dokumentenöffnung ist im Release-Build nicht vorhanden');
-  const block=built.slice(start,end);
-  assert.ok(block.includes('fallbackDocUsable(d)'),'Blob-taugliche Datei-Prüfung fehlt');
-  assert.equal(block.includes("if(!((d.source"),false,'Veraltete Prüfung nur auf URL ist noch aktiv');
+test('Blob-Dokumente werden vom Release-Build auch ohne direkte URL öffnungsfähig gemacht',()=>{
+  const baseline=fs.readFileSync('dist-rc1048/index.html','utf8');
+  const start=baseline.indexOf('function openDoc(index){');
+  const end=baseline.indexOf('function downloadDoc(index)',start);
+  assert.ok(start>=0&&end>start,'Dokumentenöffnung fehlt in der Release-Basis');
+  const legacy=buildSource.match(/const legacyBlobOpenGuard="([^"]+)";/);
+  const corrected=buildSource.match(/const fixedBlobOpenGuard="([^"]+)";/);
+  assert.ok(legacy&&corrected,'Build-Transformation zum Öffnen von Blob-Dateien fehlt');
+  const block=baseline.slice(start,end);
+  assert.ok(block.includes(legacy[1]),'Der ursprünglich zu ersetzende Guard wurde nicht gefunden');
+  const transformed=block.replace(legacy[1],corrected[1]);
+  assert.ok(transformed.includes('fallbackDocUsable(d)'),'Der korrigierte Guard wurde nicht eingesetzt');
+  assert.equal(transformed.includes(legacy[1]),false,'Der alte URL-only-Guard ist noch aktiv');
   let opened=null,alerts=0;
   const doc={name:'Rechnung.pdf',file:{storage:'blob',blobName:'rc1059/production/ab/'+'a'.repeat(64)}};
   const sandbox={
@@ -201,7 +206,7 @@ test('Blob-Dokumente in der Sendungsansicht lassen sich ohne gesonderte URL öff
     routeViewer:(d,print)=>{opened={name:d.name,print};return true},
     alert:()=>{alerts++}
   };
-  vm.runInNewContext(block,sandbox,{filename:'shipment-document-open.js'});
+  vm.runInNewContext(transformed,sandbox,{filename:'shipment-document-open.js'});
   assert.equal(sandbox.openDoc(0),true);
   assert.deepEqual(opened,{name:'Rechnung.pdf',print:false});
   assert.equal(alerts,0);
