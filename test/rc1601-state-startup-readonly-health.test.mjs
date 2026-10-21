@@ -5,10 +5,10 @@ import { ALLOWED_MODES, PRODUCTION_BASE, safeSummary, probeMode, runProbe } from
 const success = (data, status=200) => ({ status, text: async()=>JSON.stringify(data) });
 const production = { ok:true, environment:'production', version:'RC1458', routeReachable:true };
 
-test('RC1601: fixed production host, strictly read-only ping and health modes',()=>{
+test('RC1601: fixed production host, strictly read-only ping and health modes',async()=>{
   assert.equal(PRODUCTION_BASE,'https://wonderful-forest-0f315e310.7.azurestaticapps.net');
   assert.deepEqual(ALLOWED_MODES,['ping','health']);
-  assert.throws(()=>probeMode('save'),/Only read-only/);
+  await assert.rejects(()=>probeMode('save'),/Only read-only/);
 });
 
 test('RC1601: no customer data, blob names, auth secrets or error messages leak into output',()=>{
