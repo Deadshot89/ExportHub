@@ -247,11 +247,15 @@ async function createPodPdf(record, signatureBuffer, signatureType) {
   let image=null;
   // RC1600: image bytes, not potentially stale MIME metadata, identify the driver's original ink.
   const signatureBytes=Buffer.from(signatureBuffer||[]);
+  // RC1609 P0: pdf-lib 1.17.1's JPEG reader creates a DataView from bytes.buffer
+  // without respecting a pooled Node Buffer's nonzero byteOffset. Copy only for
+  // decoding, preserving the actual driver ink and all archived original bytes.
+  const pdfImageBytes=Uint8Array.from(signatureBytes);
   const png=signatureBytes.length>=8&&signatureBytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]));
   const jpeg=signatureBytes.length>=3&&signatureBytes[0]===255&&signatureBytes[1]===216&&signatureBytes[2]===255;
   try {
-    image=png?await pdf.embedPng(signatureBytes):jpeg?await pdf.embedJpg(signatureBytes):
-      (/png/i.test(signatureType||'')?await pdf.embedPng(signatureBytes):await pdf.embedJpg(signatureBytes));
+    image=png?await pdf.embedPng(pdfImageBytes):jpeg?await pdf.embedJpg(pdfImageBytes):
+      (/png/i.test(signatureType||'')?await pdf.embedPng(pdfImageBytes):await pdf.embedJpg(pdfImageBytes));
   }catch(_){}
   if(!image)throw store.err('POD_SIGNATURE_IMAGE_INVALID','Die gespeicherte Fahrerunterschrift kann nicht als Bild gelesen werden. Kein Ersatz-POD erzeugt.',409);
   const dims=image.scale(1),maxW=cellW-20,scale=Math.min(maxW/dims.width,SIGNATURE_MAX_HEIGHT/dims.height);
