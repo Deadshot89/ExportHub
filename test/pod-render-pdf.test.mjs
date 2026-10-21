@@ -17,6 +17,7 @@ const storeStub={
   err:(code,message,status)=>Object.assign(new Error(message),{code,status})
 };
 const createPodPdf=new Function('require','Buffer','store',helpers+source.slice(start,end)+'\nreturn createPodPdf;')(apiRequire,Buffer,storeStub);
+const {signatureJpegBase64}=await import('./fixtures/rc1609-synthetic-driver-jpeg.mjs');
 const signaturePng=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Z8R8AAAAASUVORK5CYII=','base64');
 const record={
   reference:'ABC123',customer:'Testkunde',recipient:'Muster GmbH',
@@ -81,4 +82,14 @@ test('RC1600 8LSUHW: stored PNG signature survives an incorrect historical JPEG 
   const pdf=await PDFDocument.load(bytes);
   assert.equal(pdf.getPageCount(),1);
   assert.match(bytes.toString('latin1'),/\/Subtype\s*\/Image/,'Original driver image must be embedded');
+});
+
+test('RC1609 P0: authentic JPEG bytes from driver signature render as an embedded signed PDF image',async()=>{
+  const jpeg=Buffer.from(signatureJpegBase64,'base64');
+  assert.ok(jpeg.length>100);
+  assert.equal(jpeg[0],0xff);
+  const bytes=await createPodPdf(record,jpeg,'image/jpeg');
+  const pdf=await PDFDocument.load(bytes);
+  assert.equal(pdf.getPageCount(),1);
+  assert.match(bytes.toString('latin1'),/\\/Subtype\\s*\\/Image/);
 });
