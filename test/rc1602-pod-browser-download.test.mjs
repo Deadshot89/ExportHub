@@ -90,7 +90,7 @@ test('RC1616: overview POD opens the existing signed PDF bytes without the docum
  x.click({target:{closest:()=>x.button},preventDefault(){},stopImmediatePropagation(){},stopPropagation(){}});
  await new Promise(resolve=>setImmediate(resolve));
  assert.equal(x.called.length,1);
- assert.match(x.called[0].url,/^data:application\\/pdf;base64,/);
+ assert.match(x.called[0].url,/^data:application\/pdf;base64,/);
  assert.equal(x.called.some(c=>String(c.url).includes('file=automatic')),false);
  assert.ok(x.downloaded.includes('POD_8LSUHW_Ladeliste_unterschrieben.pdf'));
  assert.equal(x.alerts.length,0);
