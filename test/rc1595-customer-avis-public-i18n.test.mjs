@@ -35,7 +35,7 @@ test('RC1595: all 17 customer-Avis access, safety and slot texts have genuine si
 });
 
 test('RC1595: public customer-Avis still uses the translation observer and protected business endpoints',()=>{
-  assert.match(html,/src="\/assets\/rc1267-i18n\.js\?v=1267"/);
+  assert.match(html,/<script\b[^>]*\bid="exporthub-rc1267-i18n"[^>]*\bsrc="\/assets\/rc1267-i18n\.js\?v=\d+"[^>]*><\/script>/);
   assert.match(runtime,/function buildSourceIndex\(/);
   assert.match(runtime,/sourceByText\[value\]=key/);
   assert.match(runtime,/function translateLegacyValue\(/);
