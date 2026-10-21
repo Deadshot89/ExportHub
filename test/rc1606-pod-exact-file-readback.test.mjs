@@ -32,7 +32,7 @@ test('RC1606: exact historical POD ID and remote alias return original signed by
   const record={reference:'8LSUHW',confirmedAt:'2026-10-21T15:00:00Z',signatureBlobName:'original-signature',podFiles:[oldFile,currentFile]};
   const snapshot=JSON.stringify(record),reads=[];
   try{
-    store.getRecord=async()=>({record,clients:{pods:{getBlobClient(name){reads.push(name);return{name}}}});
+    store.getRecord=async()=>({record,clients:{pods:{getBlobClient:(name)=>{reads.push(name);return {name};}}}});
     store.readBuffer=async blob=>({buffer:blob.name===oldFile.blobName?oldPdf:currentPdf});
     const historical=await archive.getPodDownload(key,'testservice',oldFile.id);
     assert.deepEqual(historical.buffer,oldPdf);
@@ -52,7 +52,7 @@ test('RC1606: unknown, retired, and empty-blob named IDs fail closed; no automat
   let blobReads=0;
   const record={reference:'8LSUHW',podFiles:[oldFile,currentFile]};
   try{
-    store.getRecord=async()=>({record,clients:{pods:{getBlobClient(){blobReads++;throw Error('Unexpected blob access')}}}});
+    store.getRecord=async()=>({record,clients:{pods:{getBlobClient:()=>{blobReads++;throw Error('Unexpected blob access');}}}});
     store.readBuffer=async()=>{throw Error('Unexpected blob read')};
     await assert.rejects(archive.getPodDownload(key,'testservice','retired-original-id'),e=>e.code==='POD_FILE_NOT_FOUND'&&e.status===404);
     assert.equal(blobReads,0);
@@ -70,7 +70,7 @@ test('RC1606: authenticated pickup endpoint respects historical remoteId, not cu
   const record={reference:'8LSUHW',confirmedAt:'2026-10-21T15:00:00Z',signatureBlobName:'original-signature',podFiles:[oldFile,currentFile]};
   try{
     access.resolve=async()=>({resourceKey:key,environment:'testservice'});
-    store.getRecord=async()=>({record,clients:{pods:{getBlobClient(name){return{name}}}}});
+    store.getRecord=async()=>({record,clients:{pods:{getBlobClient:(name)=>({name})}}});
     store.pickupComplete=()=>true;
     store.readBuffer=async blob=>({buffer:blob.name===oldFile.blobName?oldPdf:currentPdf});
     const ctx={log:{error(){}}};
