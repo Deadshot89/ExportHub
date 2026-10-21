@@ -25,3 +25,13 @@ test('RC1592: der sichere Abholkontroll-Druckmodus bleibt möglich',()=>{
   assert.match(pickup,/d\.body\.appendChild\(overlay\)/);
   assert.match(pickup,/\.rc1546-overlay\{position:static!important;display:block!important/);
 });
+
+
+test('RC1592: die Abholkontroll-Runtime liegt schon vor dem lokalen Browser-Gate im Drei-Umgebungen-Build',()=>{
+  const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
+  const finalizer=fs.readFileSync('.github/rc1488/finalize-auto-update.mjs','utf8');
+  assert.match(build,/'assets\/rc1546-pickup-control\.js'/,
+    'Lokale Print-Browser-Tests benötigen dieselbe Runtime bereits im ersten Build');
+  assert.match(finalizer,/PICKUP_SCRIPT_SRC='\/assets\/rc1546-pickup-control\.js\?v=1546'/,
+    'Release-Finalizer muss die identische Abholkontroll-Datei ausliefern');
+});
