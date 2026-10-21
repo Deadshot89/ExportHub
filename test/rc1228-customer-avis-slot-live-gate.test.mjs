@@ -16,7 +16,7 @@ test('RC1505/RC1228: Lieferavis-Slotlogik ist im manuellen Production-Release al
 
   for (const marker of [
     'Buchbar sind ausschließlich 2-Stunden-Zeitfenster innerhalb von 08:30–16:00 Uhr.',
-    "Noch '+esc(x.remaining)+' von 3 gleichzeitig frei",
+    "avTr('slotRemaining','Noch {{remaining}} von 3 gleichzeitig frei'",
     "action:'availability'",
     "err.code==='PICKUP_SLOT_FULL'"
   ]) {
