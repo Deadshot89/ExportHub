@@ -88,6 +88,11 @@ test('RC1609 P0: authentic JPEG bytes from driver signature render as an embedde
   const jpeg=Buffer.from(signatureJpegBase64,'base64');
   assert.ok(jpeg.length>100);
   assert.equal(jpeg[0],0xff);
+  // RC1609 forensic isolation: distinguish invalid synthetic fixture bytes from
+  // a failure elsewhere in the POD renderer; contains no real customer data.
+  const isolated=await PDFDocument.create();
+  const embedded=await isolated.embedJpg(jpeg);
+  assert.ok(embedded.width>0&&embedded.height>0);
   const bytes=await createPodPdf(record,jpeg,'image/jpeg');
   const pdf=await PDFDocument.load(bytes);
   assert.equal(pdf.getPageCount(),1);
