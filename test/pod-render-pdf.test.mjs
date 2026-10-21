@@ -17,6 +17,7 @@ const storeStub={
   err:(code,message,status)=>Object.assign(new Error(message),{code,status})
 };
 const createPodPdf=new Function('require','Buffer','store',helpers+source.slice(start,end)+'\nreturn createPodPdf;')(apiRequire,Buffer,storeStub);
+const {signatureJpegBase64}=await import('./fixtures/rc1609-synthetic-driver-jpeg.mjs');
 const signaturePng=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Z8R8AAAAASUVORK5CYII=','base64');
 const record={
   reference:'ABC123',customer:'Testkunde',recipient:'Muster GmbH',
@@ -98,4 +99,28 @@ test('RC1609 P0: short browser-style JPEG signature in a nonzero-offset Node Buf
   assert.match(bytes.toString('latin1'),/\/Subtype\s*\/Image/);
   assert.deepEqual(window,before,'signed original bytes must remain unmodified');
   assert.match(source,/Uint8Array\.from\(signatureBytes\)/);
+});
+
+test('RC1609 P0: authentic JPEG bytes from driver signature render as an embedded signed PDF image',async()=>{
+  const jpeg=Buffer.from(signatureJpegBase64,'base64');
+  assert.ok(jpeg.length>100);
+  assert.equal(jpeg[0],0xff);
+  // RC1609 forensic isolation: distinguish invalid synthetic fixture bytes from
+  // a failure elsewhere in the POD renderer; contains no real customer data.
+  const isolated=await PDFDocument.create();
+  // pdf-lib 1.17.1 ignores Node Buffer.byteOffset when creating DataView.
+  // The fix hands it a genuinely zero-offset Uint8Array.
+  const decodedImageBytes=Uint8Array.from(jpeg);
+  assert.equal(decodedImageBytes.byteOffset,0);
+  const embedded=await isolated.embedJpg(decodedImageBytes);
+  assert.ok(embedded.width>0&&embedded.height>0);
+  const pooled=Buffer.alloc(jpeg.length+17);
+  jpeg.copy(pooled,17);
+  const offsetJpeg=pooled.subarray(17);
+  assert.ok(offsetJpeg.byteOffset>0,'Reproduces Node Buffer byteOffset bug in pdf-lib 1.17.1');
+  assert.deepEqual(offsetJpeg,jpeg,'Preserve every original JPEG byte');
+  const bytes=await createPodPdf(record,offsetJpeg,'image/jpeg');
+  const pdf=await PDFDocument.load(bytes);
+  assert.equal(pdf.getPageCount(),1);
+  assert.match(bytes.toString('latin1'),/\/Subtype\s*\/Image/);
 });
