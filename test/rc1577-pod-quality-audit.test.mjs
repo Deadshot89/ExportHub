@@ -21,8 +21,8 @@ function withStubs(stubs,fn){
 }
 
 test('RC1577: Klassifizierung trennt in Ordnung, neu erzeugen, Abgeholt, selbst prüfen und markiert',()=>{
-  const current={readable:true,renderLayout:'RC1561'},old={readable:true,renderLayout:''},broken={readable:false,renderLayout:'RC1561'};
-  assert.equal(audit.POD_RENDER_LAYOUT,'RC1561');
+  const current={readable:true,renderLayout:'RC1595'},old={readable:true,renderLayout:''},broken={readable:false,renderLayout:'RC1595'};
+  assert.equal(audit.POD_RENDER_LAYOUT,'RC1595');
   assert.deepEqual(audit.classify({},{files:[current],signatureStored:true,hasToken:true}),{verdict:'ok',reason:'CURRENT_LAYOUT'});
   assert.deepEqual(audit.classify({},{files:[{readable:true,manualUpload:true}]}),{verdict:'ok',reason:'MANUAL_UPLOAD'});
   assert.deepEqual(audit.classify({},{files:[old],signatureStored:true,hasToken:true}),{verdict:'regenerate',reason:'OLD_LAYOUT'});
@@ -35,7 +35,7 @@ test('RC1577: Klassifizierung trennt in Ordnung, neu erzeugen, Abgeholt, selbst 
 
 test('RC1577: Bericht liest nur und prüft jede Sendung mit POD',async()=>{
   const state={customers:[],shipments:[
-    {ref:'OK1',status:'POD vorhanden',pickupToken:'t1',pickupAccessKeyHash:KEY,podFiles:[{name:'ok.pdf',blobName:'ok',type:'application/pdf',renderLayout:'RC1561'}]},
+    {ref:'OK1',status:'POD vorhanden',pickupToken:'t1',pickupAccessKeyHash:KEY,podFiles:[{name:'ok.pdf',blobName:'ok',type:'application/pdf',renderLayout:'RC1595'}]},
     {ref:'OLD1',status:'POD vorhanden',pickupToken:'t2',pickupAccessKeyHash:KEY,podFiles:[{name:'old.pdf',blobName:'old',type:'application/pdf'}]},
     {ref:'BAD1',status:'POD vorhanden',pickupToken:'t3',pickupAccessKeyHash:KEY2,podFiles:[{name:'bad.pdf',blobName:'missing',type:'application/pdf'}]},
     {ref:'PICK1',status:'Abgeholt',podFiles:[]},
@@ -82,15 +82,15 @@ test('RC1577: Endpunkt ist nur für globale Admins',async()=>{
 });
 
 test('RC1577: hochgeladene PODs tragen das Layout, mit dem sie im Browser erzeugt wurden',()=>{
-  assert.equal(podArchive.POD_RENDER_LAYOUT,'RC1561');
-  assert.equal(podArchive.renderLayoutOf('rc1561'),'RC1561');
+  assert.equal(podArchive.POD_RENDER_LAYOUT,'RC1595');
+  assert.equal(podArchive.renderLayoutOf('rc1561'),'RC1595');
   assert.equal(podArchive.renderLayoutOf('<script>'),'');
   const archive=fs.readFileSync('api/shared/pod-archive.js','utf8');
   assert.match(archive,/if \(renderLayout\) file\.renderLayout = renderLayout;/);
   assert.match(archive,/async function saveSuppliedPod\(accessKey, environment, record, pdf, requestedName, options\) \{\n  const primary = await saveAzurePod\(accessKey, environment, record, pdf, requestedName, options\);/);
   assert.match(fs.readFileSync('api/pod-backup/index.js','utf8'),/saveSuppliedPod\(accessKey, resolved\.environment, record, suppliedPdf, fileName, \{ renderLayout: body\.renderLayout \}\)/);
   assert.match(fs.readFileSync('api/shared/pod-integrity-audit.js','utf8'),/saveSuppliedPod\(accessKey,environment,record,archiveRead\.buffer,file\.name,\{renderLayout:file\.renderLayout\}\)/,'Wiederherstellung aus dem Archiv behält die Layout-Kennung');
-  assert.match(fs.readFileSync('assets/document-print-name.js','utf8'),/w\.EXPORTHUB_POD_RENDER_LAYOUT='RC1561';/);
+  assert.match(fs.readFileSync('assets/document-print-name.js','utf8'),/w\.EXPORTHUB_POD_RENDER_LAYOUT='RC1595';/);
   for(const file of ['index.html','TESTVERSION.html']){
     const html=fs.readFileSync(file,'utf8');
     assert.ok(html.includes("source:q(options.source)||'automatic',renderLayout:q(window.EXPORTHUB_POD_RENDER_LAYOUT)})"),file+': Upload sendet die Layout-Kennung');
