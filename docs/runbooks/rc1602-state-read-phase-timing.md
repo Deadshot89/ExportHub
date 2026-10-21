@@ -25,7 +25,7 @@ Die Phasenmessung belegt nur den **TESTSERVICE**-State-Read auf dem GitHub-Runne
 Eine Optimierung von Datenlieferung oder kompakterem Start darf danach nur bei unverändert erhaltenen Originaldaten und vollständigen Regressions- und Live-Abnahmen erfolgen.
 
 
-## RC1613 · Offline-Zuordnung der produktiven State-Datenmenge
+## RC1614 · Offline-Zuordnung der produktiven State-Datenmenge
 
 Produktionslauf [RC1137 #39660410670](https://github.com/Deadshot89/ExportHub/actions/runs/39660410670)
 protokolliert `beforeBytes=58944805`, `afterBytes=58944805`, `savedBytes=0`
@@ -38,7 +38,7 @@ Zur Analyse **einer autorisiert und unverändert lokal gesicherten** Team-State-
 gibt es ein strikt offline/read-only Werkzeug:
 
 ```bash
-node scripts/rc1613-state-startup-size-audit.mjs --input /secure/team-state-backup.json
+node scripts/rc1614-state-startup-size-audit.mjs --input /secure/team-state-backup.json
 ```
 
 Es ordnet ausschließlich numerische Serialisierungsgrößen den fest definierten
@@ -58,7 +58,7 @@ ausschließlich in die berechtigte geschützte Umgebung, niemals in öffentliche
 GitHub-Issues, PRs, Chatprotokolle oder CI-Artefakte. Es erfolgen weder Netz-
 noch Azure-Schreibzugriffe.
 
-Regression: `node --test test/rc1613-state-startup-size-audit.test.mjs`.
+Regression: `node --test test/rc1614-state-startup-size-audit.test.mjs`.
 
 Erst nach Vorliegen einer echten lokalen Größenverteilung darf entschieden
 werden, ob große eingebettete Dokumente, History-/Snapshot-Felder oder die
