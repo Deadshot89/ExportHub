@@ -56,11 +56,11 @@ test('RC1555 production smoke: verschachtelte POD-Abholkarten zeigen nur die neu
   test.skip(testInfo.project.name!=='laptop','RC1555 POD-Liveprüfung läuft einmal im Laptop-Profil.');
   const runtime=attachRuntimeGuards(page,testInfo);
   await installStaticApiFallback(page);
-  await page.goto('/',{waitUntil:'domcontentloaded'});
+  await page.goto('/',{waitUntil:'load'});
   await page.waitForFunction(()=>window.ExportHUBRC1305LoadingListPrint&&typeof window.ExportHUBRC1305LoadingListPrint.enhance==='function',null,{timeout:15_000});
   await page.emulateMedia({media:'print'});
 
-  const layout=await page.evaluate(()=>{
+  const layout=await page.evaluate(async()=>{
     const api=window.ExportHUBRC1305LoadingListPrint;
     const card=(label,oldValue,legacyHeight='0')=>
       '<div class="rc390-card" data-rc1555-live-card="1" style="box-sizing:border-box;min-height:26mm;padding:2mm;border:1px solid #cbd5e1">'+
@@ -89,6 +89,10 @@ test('RC1555 production smoke: verschachtelte POD-Abholkarten zeigen nur die neu
     document.body.classList.add('print-rc390');
     document.body.innerHTML='<div id="rc576DocumentStage" class="rc390-docview" data-doc="load1">'+
       '<div class="rc390-bundle">'+enhanced+'</div></div>';
+    // Layout erst nach dem Paint-Zyklus prüfen: CSS, Fonts und die Druck-Ansicht
+    // müssen vollständig berechnet sein. Fehlende Sichtbarkeit bleibt ein Fehler.
+    await document.fonts.ready;
+    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
     const root=document.querySelector('#rc576DocumentStage .rc390-bundle > .rc390-load');
     if(!root)throw new Error('RC1555: Druck-Ladeliste fehlt nach Enhance');
     const fields=Array.from(root.querySelectorAll('[data-rc1503-pickup-field]'));
