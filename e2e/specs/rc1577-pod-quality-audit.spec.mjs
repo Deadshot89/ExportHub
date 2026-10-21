@@ -77,4 +77,12 @@ test('RC1577: POD-Prüfung berichtet zuerst, erzeugt nach Bestätigung neu und s
 
   await page.locator('[data-rc1577-release="'+reviewRef+'"]').click();
   expect(await statusOf(reviewRef)).toEqual({status:'POD vorhanden',flag:false,canonical:'POD vorhanden'});
+
+  // RC1595: target a specific 6-character shipment (e.g. production issue 8LSUHW) without scanning the full archive.
+  await page.locator('#rc1577PodAuditReference').fill(regenerateRef);
+  await page.locator('#rc1577PodAuditScanRef').click();
+  await expect(page.locator('#rc1577PodAuditForce')).toBeVisible();
+  await page.locator('#rc1577PodAuditForce').click();
+  await expect(page.locator('#rc1577PodAuditModal [data-verdict="regenerate"] tr[data-reference="'+regenerateRef+'"]')).toBeVisible();
+  expect((await calls()).backupCalls).toHaveLength(1); // queueing alone must never overwrite the existing POD
 });
