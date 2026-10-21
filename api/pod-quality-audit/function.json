@@ -6,7 +6,7 @@
       "direction": "in",
       "name": "req",
       "methods": ["post", "options"],
-      "route": "packaging-admin"
+      "route": "pod-quality-audit"
     },
     {
       "type": "http",
