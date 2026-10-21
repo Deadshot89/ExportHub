@@ -1,5 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+const { mergeShipmentProtected } = require('../api/shared/merge.js');
 import { compareTeamStateSnapshots } from '../scripts/rc1599-pod-state-forensics.mjs';
 
 const make = (shipments = [], savedShipments = []) => ({ state: { shipments, savedShipments }});
@@ -61,6 +64,18 @@ test('RC1599: audit considers status and processStatus independently (even when 
   assert.equal(report.after.sameEntryStatusDisagreement,0);
   assert.equal(report.changes.statusesChanged,1);
   assert.equal(report.changes.podToPickedUp,1);
+});
+
+test('RC1599: reproduce equal-timestamp status resurrection in the current shipment merge without altering state', () => {
+  // This is a source-level reproduction, NOT evidence that this exact writer caused the 89 production cases.
+  // RC1440 updates team-doc updatedAt/revision but not shipment _syncUpdatedAt/updatedAt on status downgrade.
+  const protectedRecord = shipment('FORENSIC1', 'Abgeholt');
+  const staleBrowser = shipment('FORENSIC1', 'POD vorhanden');
+  const original = JSON.stringify(protectedRecord);
+  const result = mergeShipmentProtected(protectedRecord, staleBrowser);
+  assert.equal(result.status, 'POD vorhanden');
+  assert.equal(result.processStatus, 'POD vorhanden');
+  assert.equal(JSON.stringify(protectedRecord), original, 'The reproduction must remain immutable');
 });
 
 test('RC1599: invalid snapshot rejects rather than inventing data', () => {
