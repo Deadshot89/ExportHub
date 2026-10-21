@@ -23,7 +23,7 @@ const BOOL_FIELDS = Object.freeze([
 const NUMBER_FIELDS = Object.freeze(['authReadMs', 'teamReadMs', 'totalMs', 'teamStateBytes']);
 const MAX_RESPONSE_BYTES = 64 * 1024;
 const SAFE_SECTIONS = new Set(['shipments','savedShipments','salesSharedShipments','sharedShipments','shipmentArchive','archivedShipments','archive','customers','abdRequests','tasks','users','customSops','isoSops','taskStatusLedger','deliveryFileDeletionLedger','palletAccount','ideas','settings','sopLearningProgress']);
-const SAFE_FIELDS = new Set(['rows','colli','collis','packages','packagingRows','deliveryFiles','deliveryNotesFiles','podFiles','abdFiles','documents','generatedDocuments','files','attachments','mailHistory','pickupHistory','shipmentHistory','containerPhotos','subShipments','notes','customerAvis','items','status','processStatus','id','ref','reference','name','address','email']);
+const SAFE_FIELDS = new Set(['rc313Docs','rc312Docs','rc311Docs','rc256Docs','rc254Docs','rc247Docs','customer','customerData','selectedCustomer','invoiceFiles','mailAttachments','lieferscheine','rows','colli','collis','packages','packagingRows','deliveryFiles','deliveryNotesFiles','podFiles','abdFiles','documents','generatedDocuments','files','attachments','mailHistory','pickupHistory','shipmentHistory','containerPhotos','subShipments','notes','customerAvis','items','status','processStatus','id','ref','reference','name','address','email']);
 const validSizeRow = row => row && typeof row === 'object' && Number.isFinite(row.bytes) && row.bytes >= 0 && Number.isSafeInteger(row.items) && row.items >= 0;
 
 
