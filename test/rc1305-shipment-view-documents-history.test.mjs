@@ -211,3 +211,25 @@ test('Blob-Dokumente werden vom Release-Build auch ohne direkte URL öffnungsfä
   assert.deepEqual(opened,{name:'Rechnung.pdf',print:false});
   assert.equal(alerts,0);
 });
+
+test('RC1616: uploaded inline Lieferscheine with real PDF data remain visible and fetchable',()=>{
+ const match=buildSource.match(/const docHelpers=`([\\s\\S]*?)`;/);
+ assert.ok(match);
+ const inline='data:application/pdf;base64,'+Buffer.from('%PDF-1.7\\n'+'Lieferschein'.repeat(10)).toString('base64');
+ const state={shipments:[{id:'S1',ref:'8LSUHW',deliveryFiles:[{id:'DNC1',name:'DNC3019222063.pdf',dataUrl:inline}]}],savedShipments:[]};
+ const context={
+   window:{ExportHUBDocumentBlob1059:{isBlobDocument:()=>false}},
+   arr:v=>Array.isArray(v)?v:[],q:v=>String(v==null?'':v).trim(),
+   low:v=>String(v==null?'':v).trim().toLowerCase(),
+   refOf:sh=>String(sh&&sh.ref||'').toUpperCase(),
+   idOf:sh=>String(sh&&sh.id||''),
+   roots:()=>[state],state:()=>state,
+   fileName:(f,backup)=>f&&f.name||backup,fileUrl:f=>f&&f.url||'',
+   normalizeFallback:d=>d,collectDocs:sh=>(sh.deliveryFiles||[]).map(file=>({file,name:file.name,group:'Lieferscheine',url:''}))
+ };
+ vm.runInNewContext(match[1],context);
+ const files=context.shipmentAssociatedDocs(state.shipments[0],[]);
+ assert.ok(files.some(f=>f.name==='DNC3019222063.pdf'), 'A genuinely uploaded inline PDF must not disappear from the shipment view');
+ assert.match(buildSource,/Hochgeladene PDF hat keinen gültigen PDF-Header/);
+ assert.match(buildSource,/decoded\.slice\(0,5\)\.text\(\)/);
+});
