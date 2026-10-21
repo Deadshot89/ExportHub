@@ -11,11 +11,13 @@ on:
       - 'api/shared/pod-integrity-audit.js'
       - 'api/shared/pickup-store.js'
       - 'assets/rc1577-pod-quality-audit.js'
+      - 'assets/rc1596-pod-folder-reconnect.js'
       - 'assets/i18n/rc1577-pod-quality-audit.js'
       - 'assets/document-print-name.js'
       - 'index.html'
       - 'TESTVERSION.html'
       - 'test/rc1577-pod-quality-audit.test.mjs'
+      - 'test/rc1596-pod-folder-reconnect.test.mjs'
       - 'e2e/specs/rc1577-pod-quality-audit.spec.mjs'
       - 'e2e/helpers/**'
       - '.github/rc1112/**'
@@ -30,11 +32,13 @@ on:
       - 'api/shared/pod-integrity-audit.js'
       - 'api/shared/pickup-store.js'
       - 'assets/rc1577-pod-quality-audit.js'
+      - 'assets/rc1596-pod-folder-reconnect.js'
       - 'assets/i18n/rc1577-pod-quality-audit.js'
       - 'assets/document-print-name.js'
       - 'index.html'
       - 'TESTVERSION.html'
       - 'test/rc1577-pod-quality-audit.test.mjs'
+      - 'test/rc1596-pod-folder-reconnect.test.mjs'
       - 'e2e/specs/rc1577-pod-quality-audit.spec.mjs'
       - 'e2e/helpers/**'
       - '.github/rc1112/**'
@@ -61,7 +65,7 @@ jobs:
         run: npm install --prefix api --ignore-scripts --no-audit --no-fund --package-lock=false
 
       - name: POD-Prüfung Verträge und Serverbericht
-        run: node --test test/rc1577-pod-quality-audit.test.mjs
+        run: node --test test/rc1577-pod-quality-audit.test.mjs test/rc1596-pod-folder-reconnect.test.mjs
 
       - name: Aktuelles Drei-Umgebungen-Paket bauen
         run: node .github/rc1112/build-three-env.mjs
