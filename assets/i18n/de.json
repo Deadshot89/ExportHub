@@ -1825,5 +1825,10 @@
   "customerAvis.dynamic.currentStatus": "Aktueller Status: {{status}} · automatisch aktualisiert",
   "customerAvis.dynamic.shipmentReference": "Sendungsreferenz {{reference}}",
   "customerAvis.dynamic.licensePlate": "Kennzeichen {{plate}}",
-  "customerAvis.dynamic.reportedOn": "gemeldet {{date}}"
+  "customerAvis.dynamic.reportedOn": "gemeldet {{date}}",
+  "pickup.dynamic.loadedCollis": "Sendungsdaten geladen. Bitte jetzt zuerst die {{remaining}} offenen Collis bestätigen.",
+  "pickup.dynamic.partialConfirmed": "✓ Teilabholung: {{confirmed}} Colli bestätigt. Danach bleiben {{remaining}} Colli offen.",
+  "pickup.dynamic.partialRange": "Für eine Teilabholung bitte 1 bis {{maximum}} Colli eingeben.",
+  "pickup.dynamic.fullConfirmed": "✓ Vollständige Abholung: alle {{count}} offenen Collis bestätigt.",
+  "pickup.dynamic.fullRequired": "Für die vollständige Abholung müssen alle {{count}} noch offenen Colli bestätigt werden."
 }

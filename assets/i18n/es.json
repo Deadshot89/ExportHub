@@ -1825,5 +1825,10 @@
   "customerAvis.dynamic.currentStatus": "Estado actual: {{status}} · actualizado automáticamente",
   "customerAvis.dynamic.shipmentReference": "Referencia del envío {{reference}}",
   "customerAvis.dynamic.licensePlate": "Matrícula {{plate}}",
-  "customerAvis.dynamic.reportedOn": "comunicado el {{date}}"
+  "customerAvis.dynamic.reportedOn": "comunicado el {{date}}",
+  "pickup.dynamic.loadedCollis": "Datos del envío cargados. Confirma primero los {{remaining}} bultos pendientes.",
+  "pickup.dynamic.partialConfirmed": "✓ Recogida parcial: {{confirmed}} bultos confirmados. Quedan {{remaining}} bultos.",
+  "pickup.dynamic.partialRange": "Para una recogida parcial, introduce entre 1 y {{maximum}} bultos.",
+  "pickup.dynamic.fullConfirmed": "✓ Recogida completa: confirmados los {{count}} bultos pendientes.",
+  "pickup.dynamic.fullRequired": "Para la recogida completa, deben confirmarse los {{count}} bultos pendientes."
 }

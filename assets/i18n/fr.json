@@ -1825,5 +1825,10 @@
   "customerAvis.dynamic.currentStatus": "Statut actuel : {{status}} · mis à jour automatiquement",
   "customerAvis.dynamic.shipmentReference": "Référence de l’expédition {{reference}}",
   "customerAvis.dynamic.licensePlate": "Immatriculation {{plate}}",
-  "customerAvis.dynamic.reportedOn": "signalé le {{date}}"
+  "customerAvis.dynamic.reportedOn": "signalé le {{date}}",
+  "pickup.dynamic.loadedCollis": "Données d’expédition chargées. Confirmez d’abord les {{remaining}} colis restants.",
+  "pickup.dynamic.partialConfirmed": "✓ Enlèvement partiel : {{confirmed}} colis confirmés. {{remaining}} colis restants.",
+  "pickup.dynamic.partialRange": "Pour un enlèvement partiel, indiquez entre 1 et {{maximum}} colis.",
+  "pickup.dynamic.fullConfirmed": "✓ Enlèvement complet : les {{count}} colis restants sont confirmés.",
+  "pickup.dynamic.fullRequired": "Pour un enlèvement complet, les {{count}} colis restants doivent être confirmés."
 }

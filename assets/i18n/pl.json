@@ -1825,5 +1825,10 @@
   "customerAvis.dynamic.currentStatus": "Aktualny status: {{status}} · aktualizowany automatycznie",
   "customerAvis.dynamic.shipmentReference": "Numer referencyjny przesyłki {{reference}}",
   "customerAvis.dynamic.licensePlate": "Numer rejestracyjny {{plate}}",
-  "customerAvis.dynamic.reportedOn": "zgłoszono {{date}}"
+  "customerAvis.dynamic.reportedOn": "zgłoszono {{date}}",
+  "pickup.dynamic.loadedCollis": "Dane przesyłki załadowane. Najpierw potwierdź {{remaining}} pozostałych paczek.",
+  "pickup.dynamic.partialConfirmed": "✓ Odbiór częściowy: potwierdzono {{confirmed}} paczek. Pozostało {{remaining}} paczek.",
+  "pickup.dynamic.partialRange": "Dla odbioru częściowego podaj od 1 do {{maximum}} paczek.",
+  "pickup.dynamic.fullConfirmed": "✓ Pełny odbiór: potwierdzono wszystkie {{count}} pozostałych paczek.",
+  "pickup.dynamic.fullRequired": "Aby potwierdzić pełny odbiór, należy potwierdzić wszystkie {{count}} pozostałych paczek."
 }

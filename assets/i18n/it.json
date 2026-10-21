@@ -1825,5 +1825,10 @@
   "customerAvis.dynamic.currentStatus": "Stato attuale: {{status}} · aggiornato automaticamente",
   "customerAvis.dynamic.shipmentReference": "Riferimento della spedizione {{reference}}",
   "customerAvis.dynamic.licensePlate": "Targa {{plate}}",
-  "customerAvis.dynamic.reportedOn": "comunicato il {{date}}"
+  "customerAvis.dynamic.reportedOn": "comunicato il {{date}}",
+  "pickup.dynamic.loadedCollis": "Dati della spedizione caricati. Conferma prima i {{remaining}} colli rimanenti.",
+  "pickup.dynamic.partialConfirmed": "✓ Ritiro parziale: {{confirmed}} colli confermati. Rimangono {{remaining}} colli.",
+  "pickup.dynamic.partialRange": "Per un ritiro parziale, inserisci da 1 a {{maximum}} colli.",
+  "pickup.dynamic.fullConfirmed": "✓ Ritiro completo: confermati tutti i {{count}} colli rimanenti.",
+  "pickup.dynamic.fullRequired": "Per il ritiro completo, devono essere confermati tutti i {{count}} colli rimanenti."
 }

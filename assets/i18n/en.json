@@ -1825,5 +1825,10 @@
   "customerAvis.dynamic.currentStatus": "Current status: {{status}} · updated automatically",
   "customerAvis.dynamic.shipmentReference": "Shipment reference {{reference}}",
   "customerAvis.dynamic.licensePlate": "License plate {{plate}}",
-  "customerAvis.dynamic.reportedOn": "reported {{date}}"
+  "customerAvis.dynamic.reportedOn": "reported {{date}}",
+  "pickup.dynamic.loadedCollis": "Shipment loaded. First confirm the {{remaining}} outstanding packages.",
+  "pickup.dynamic.partialConfirmed": "✓ Partial collection: {{confirmed}} packages confirmed. {{remaining}} packages remain.",
+  "pickup.dynamic.partialRange": "For partial collection, enter between 1 and {{maximum}} packages.",
+  "pickup.dynamic.fullConfirmed": "✓ Full collection: all {{count}} outstanding packages confirmed.",
+  "pickup.dynamic.fullRequired": "For full collection, all {{count}} outstanding packages must be confirmed."
 }
