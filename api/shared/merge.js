@@ -377,7 +377,10 @@ function mergeCustomerProtected(serverItem, incomingItem) {
   // fields, an explicitly present empty value is a deliberate deletion and must not
   // resurrect an older address on the next reload.
   const explicitlyClearableCustomerFields = new Set([
-    'email', 'customerEmail', 'customerMail', 'mail', 'carrierEmail',
+    'email', 'customerEmail', 'customerMail', 'mail', 'mailAddress',
+    'mailToCustomer', 'rc385CustomerTo', 'recipientEmail',
+    'carrierEmail', 'carrierMail', 'speditionEmail', 'speditionMail',
+    'anmeldungMail', 'rc385CarrierTo', 'mailRecipients',
     'salesMail', 'salesEmail', 'salesPersonMail', 'salesPersonEmail',
     'salesContactMail', 'salesContactEmail', 'rc385SalesMail', 'salesCc',
     'salesPersonName', 'salesContactName', 'salesName',
