@@ -1,5 +1,5 @@
 /* RC1602 P0: The official signed POD is ALWAYS retrieved from the server PDF renderer.
-   Intercepts explicit POD actions before legacy html2canvas capture handlers execute.
+   Intercepts explicit POD actions before legacy screen-capture handlers execute.
    Never fabricates a signature, mutates the shipment or falls back to an unverified screenshot. */
 (function(w,d){
 'use strict';
