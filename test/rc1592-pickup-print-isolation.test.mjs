@@ -12,6 +12,15 @@ test('RC1592: Abholkontrolle blendet andere Druckseiten nur bei vorhandenem Over
     'Unbedingte Druck-Sperre würde auch echte Ladelisten verstecken');
 });
 
+test('RC1592: A4-Querformat gehört ausschließlich zur Abholkontrolle, nicht zu allen Ladelisten',()=>{
+  assert.match(pickup,/@page rc1546ControlPage\{size:A4 landscape;margin:10mm\}/,
+    'Die Abholkontrolle braucht eine eigene benannte Querformat-Seite');
+  assert.match(pickup,/\.rc1546-overlay\{page:rc1546ControlPage!important;/,
+    'Nur das aktive Overlay soll das Querformat nutzen');
+  assert.doesNotMatch(pickup,/@page\{size:A4 landscape;margin:10mm\}/,
+    'Globale A4-Querformat-Regel überschreibt sonst normale Ladelisten');
+});
+
 test('RC1592: der Browser-Smoke prüft beide Druckmodi und die Signaturgeometrie',()=>{
   assert.match(smoke,/expect\(layout\.printPageHeight,[^\n]*\)\.toBeGreaterThan\(0\)/);
   assert.match(smoke,/expect\(layout\.signatureHeight\)\.toBeGreaterThan\(0\)/);
