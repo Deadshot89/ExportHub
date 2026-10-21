@@ -608,7 +608,7 @@ async function getPodDownload(accessKey, environment, fileId) {
   // Only the explicit canonical endpoint (file=automatic -> null) may regenerate.
   const files = Array.isArray(record.podFiles) ? record.podFiles : [];
   let file = requestedId
-    ? files.find(item => text(item && item.id) === requestedId)
+    ? files.find(item => text(item && item.id) === requestedId || text(item && item.remoteId) === requestedId)
     : automaticPod(record);
   if (requestedId && !file) {
     throw store.err('POD_FILE_NOT_FOUND', 'Die angeforderte POD-Dateiversion wurde nicht gefunden.', 404);
