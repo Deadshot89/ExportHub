@@ -147,5 +147,7 @@ test('RC1595: combined POD list preserves pickup credentials from duplicate ship
  assert.equal(combined[0].pickupToken,'old-token');
  assert.equal(combined[0].pickupAccessKeyHash,KEY);
  assert.equal(state.shipments[0].podFiles.length,0,'the underlying shipment state must not be changed by a read-only audit');
- assert.equal(audit.relevant({status:'Archiviert',podFiles:[]}),true,'archived POD gaps must also be visible');
+ assert.equal(audit.allShipmentCopies({shipments:[{ref:'HOLD01',status:'POD vorhanden',podReviewRequired:true,podReviewReason:'layout',podFiles:[]}],savedShipments:[{ref:'HOLD01',status:'POD vorhanden',podFiles:[{kind:'automatic-pod'}]}]})[0].podReviewRequired,true,'existing review holds must survive merging saved copies');
+ assert.equal(audit.relevant({status:'Archiviert',podFiles:[]}),false,'unrelated archived shipments must not be demoted without POD evidence');
+ assert.equal(audit.relevant({status:'Archiviert',podBackup:{archiveSaved:true}}),true,'archived shipments with stored POD evidence must be audited');
 });
