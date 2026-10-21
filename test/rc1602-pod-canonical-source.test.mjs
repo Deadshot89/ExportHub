@@ -50,3 +50,39 @@ test('RC1602: automatic-PDF query is not a public bypass: access must still reso
     assert.equal(ctx.res.body.code,'INVALID_TOKEN');
   }finally{access.resolve=original}
 });
+
+test('RC1602 / 8LSUHW: historical pickup POD receives delivery notes from matching shipment without changing originals',async()=>{
+  const before={shipmentId:'shipment-8',reference:'8LSUHW',rows:[{type:'Karton',count:2}],signatureBlobName:'signed-blob'};
+  const clone=JSON.stringify(before);
+  const team={state:{
+    shipments:[{id:'shipment-other',ref:'OTHER1',deliveryFiles:[{name:'WRONG.pdf'}]},
+      {id:'shipment-8',ref:'8LSUHW',deliveryFiles:[{name:'SIDE250071282.pdf'}]}],
+    savedShipments:[{id:'shipment-8',ref:'8LSUHW',deliveryFiles:[
+      {name:'SIDE250071282.pdf'},{name:'DNC3019222063.pdf'},
+      {name:'DELETED.pdf',status:'deleted'}]}]
+  }};
+  const read=store.readJson;
+  let reads=0;
+  try{
+    store.readJson=async()=>{reads++;return{value:team}};
+    const result=await podArchive.resolvePodDeliveryNotes(before,
+      {team:{getBlockBlobClient:()=>({})}},'production');
+    assert.equal(reads,1);
+    assert.deepEqual(result.deliveryNotes,['SIDE250071282.pdf','DNC3019222063.pdf']);
+    assert.equal(JSON.stringify(before),clone,'existing signed record must remain unchanged');
+    assert.deepEqual(result.rows,before.rows,'confirmed packing rows cannot be replaced by newer team data');
+  }finally{store.readJson=read}
+});
+
+test('RC1602: if historical delivery note evidence cannot be read, do not generate an incomplete POD',async()=>{
+  const original=store.readJson;
+  try{
+    store.readJson=async()=>{throw new Error('Azure unavailable')};
+    await assert.rejects(
+      podArchive.resolvePodDeliveryNotes({reference:'8LSUHW'},{
+        team:{getBlockBlobClient:()=>({})}
+      },'production'),
+      e=>e.code==='POD_DELIVERY_NOTES_READ_FAILED'
+    );
+  }finally{store.readJson=original}
+});
