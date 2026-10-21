@@ -45,5 +45,5 @@ test('RC1594: automated signed POD has both compact rows inside the existing pal
   assert.match(pdfBlock,/palletReturnText\(record\)/);
   assert.match(pdfBlock,/page\.drawLine\(\{start:\{x:palletX\+cellW-48/,'blank return line must be printable');
   assert.doesNotMatch(pdfBlock,/card\('Europaletten-Kontostand'/);
-  assert.match(source,/const POD_PDF_LAYOUT_VERSION = 'RC1594-SIGNED-LOADING-LIST-V3'/);
+  assert.match(source,/const POD_PDF_LAYOUT_VERSION = 'RC1600-SIGNED-LOADING-LIST-V4'/);
 });
