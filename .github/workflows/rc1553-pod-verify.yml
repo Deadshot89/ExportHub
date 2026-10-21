@@ -49,8 +49,6 @@ jobs:
         run: node --test test/rc1553-pod-signed-loading-list.test.mjs test/pod-customer-layout-regression.test.mjs test/pod-render-pdf.test.mjs
       - name: RC1602 real browser PDF pagination contract
         run: node --test test/rc1602-browser-pod-pagination.test.mjs
-      - name: RC1602 build all three environments
-        run: node .github/rc1112/build-three-env.mjs
       - name: Generate visual POD fixture
         shell: bash
         run: |
