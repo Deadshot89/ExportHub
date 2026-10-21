@@ -142,6 +142,14 @@ test('RC1555 production smoke: verschachtelte POD-Abholkarten zeigen nur die neu
   expect(layout.bodyText).not.toMatch(/ALTE UNTERSCHRIFT|ALTER FAHRER|ALTES DATUM|ALTES KENNZEICHEN|ALTER VERLADER|ALTER ERSATZBLOCK|Alter Hilfetext|Ausgang:\s*99/i);
   // RC1592: Die separate Abholkontrolle darf nur bei tatsächlich vorhandenem
   // Overlay den Rest der Druckseite ausblenden; Ladelisten bleiben sonst sichtbar.
+  // Die Abholkontrolle ist im echten Produkt bedarfsweise geladen.
+  // Ihr separater Druckmodus wird erst geprüft, wenn die echte Runtime
+  // ihre Print-CSS-Regeln installiert hat.
+  if(!await page.evaluate(()=>!!window.ExportHUBRC1546PickupControl)){
+    await page.addScriptTag({url:'/assets/rc1546-pickup-control.js'});
+  }
+  await page.evaluate(()=>window.ExportHUBRC1546PickupControl.render());
+  await expect.poll(()=>page.evaluate(()=>!!document.getElementById('exporthub-rc1546-style'))).toBe(true);
   const overlayPrint=await page.evaluate(()=>{
     const overlay=document.createElement('div');
     overlay.className='rc1546-overlay';
