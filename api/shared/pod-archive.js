@@ -318,6 +318,11 @@ async function persistBackupState(accessKey, environment, patch, podFile) {
 }
 async function saveAzurePod(accessKey, environment, record, pdf, requestedName, options) {
   const renderLayout = renderLayoutOf(options && options.renderLayout);
+  // RC1602: a browser-supplied PDF is not proof of the canonical server A4 layout.
+  // Never mark screenshots/uploaded captures as the current automatic PDF renderer.
+  const layoutVersion = options && options.clientSupplied === true
+    ? 'RC1602-CLIENT-SUPPLIED-UNVERIFIED'
+    : POD_PDF_LAYOUT_VERSION;
   const got = await store.getRecord(accessKey, environment);
   const name = safeFilePart(requestedName || fileNameFor(record));
   const hash = crypto.createHash('sha256').update(pdf).digest('hex');
@@ -332,7 +337,7 @@ async function saveAzurePod(accessKey, environment, record, pdf, requestedName, 
         reference: String(record.reference || ''),
         kind: 'automatic-pod',
         sha256: hash,
-        layoutversion: POD_PDF_LAYOUT_VERSION,
+        layoutversion: layoutVersion,
         ...(renderLayout ? { renderlayout: renderLayout } : {})
       },
       conditions: { ifNoneMatch: '*' }
@@ -356,8 +361,8 @@ async function saveAzurePod(accessKey, environment, record, pdf, requestedName, 
     storageBlobName: blobName,
     storage: 'azure',
     hash,
-    layoutVersion: POD_PDF_LAYOUT_VERSION,
-    source: 'pickup-confirm-v3'
+    layoutVersion,
+    source: options && options.clientSupplied === true ? 'pickup-client-supplied' : 'pickup-confirm-v3'
   };
   if (renderLayout) file.renderLayout = renderLayout;
   const next = await persistBackupState(accessKey, environment, {
@@ -572,7 +577,7 @@ async function getPodDownload(accessKey, environment, fileId) {
   return { buffer: read.buffer, file, record };
 }
 async function saveSuppliedPod(accessKey, environment, record, pdf, requestedName, options) {
-  const primary = await saveAzurePod(accessKey, environment, record, pdf, requestedName, options);
+  const primary = await saveAzurePod(accessKey, environment, record, pdf, requestedName, Object.assign({}, options, { clientSupplied: true }));
   const archive = await saveAzureArchive(accessKey, environment, primary.record, pdf, primary.file);
   return { ok: true, record: archive.record || primary.record, file: primary.file, pdf, backup: (archive.record || primary.record).podBackup || {}, archiveSaved: true };
 }
