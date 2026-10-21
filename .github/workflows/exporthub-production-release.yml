@@ -230,6 +230,12 @@ jobs:
           echo "RC1553: PRODUCTION deployment identity stimmt nicht mit RELEASE_SHA=$RELEASE_SHA ueberein." >&2
           exit 1
 
+      - name: RC1591 Registrierungs-Automatik PRODUCTION live nachweisen
+        shell: bash
+        run: |
+          set -euo pipefail
+          node .github/rc1591/verify-registration-live.mjs production
+
       - name: RC1170 PRODUCTION Kundenportal-Verschlüsselung prüfen
         shell: bash
         run: |
