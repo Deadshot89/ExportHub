@@ -80,3 +80,47 @@ test('RC1440: production reconcile is no longer hardcoded to XG4YNN and runs ful
   assert.match(workflow,/auditPodStatus:true/);
   assert.match(workflow,/17 2 \* \* \*/);
 });
+
+
+test('RC1594: POD-State-Konflikt liest vor jedem neuen Versuch frisch und bleibt begrenzt',async()=>{
+  const mod=loadAudit(),conflict=Object.assign(new Error('Concurrent Team-State update'),{code:'POD_AUDIT_STATE_CONFLICT',statusCode:409});
+  const attempts=[],delays=[],options={cursor:12,limit:10};
+  const operation=async(environment,received)=>{
+    attempts.push({environment,received});
+    if(attempts.length<3)throw conflict;
+    return{ok:true,checked:2};
+  };
+  const result=await mod.auditPodStatusesWithRetry('production',options,operation,async ms=>{delays.push(ms)});
+  assert.deepEqual(result,{ok:true,checked:2});
+  assert.deepEqual(attempts,[{environment:'production',received:options},{environment:'production',received:options},{environment:'production',received:options}]);
+  assert.deepEqual(delays,[150,300]);
+});
+
+test('RC1594: anhaltender POD-State-Konflikt bricht nach maximal drei Versuchen weiterhin fail-closed ab',async()=>{
+  const mod=loadAudit(),conflict=Object.assign(new Error('ETag changed again'),{code:'POD_AUDIT_STATE_CONFLICT',statusCode:409});
+  let attempts=0;
+  const delays=[];
+  await assert.rejects(
+    mod.auditPodStatusesWithRetry('production',{cursor:0},async()=>{attempts++;throw conflict},async ms=>{delays.push(ms)}),
+    e=>e===conflict
+  );
+  assert.equal(attempts,3);
+  assert.deepEqual(delays,[150,300]);
+});
+
+test('RC1594: andere Fehler werden niemals als POD-State-Konflikt verschluckt',async()=>{
+  const mod=loadAudit(),permanent=Object.assign(new Error('Backup verification failed'),{code:'POD_AUDIT_BACKUP_VERIFY_FAILED',statusCode:500});
+  let attempts=0,delays=0;
+  await assert.rejects(
+    mod.auditPodStatusesWithRetry('production',{cursor:0},async()=>{attempts++;throw permanent},async()=>{delays++}),
+    e=>e===permanent
+  );
+  assert.equal(attempts,1);
+  assert.equal(delays,0);
+});
+
+test('RC1594: OIDC-Auditweg nutzt frisches Recompute statt erzwungenem State-Write',()=>{
+  assert.match(api,/podIntegrityAudit\.auditPodStatusesWithRetry\(environment,/);
+  assert.match(source,/await store\.writeJson\(teamBlob,doc,read\.etag\)/);
+  assert.doesNotMatch(source,/force\s*:\s*true/);
+});
