@@ -18,6 +18,7 @@ on:
       - 'TESTVERSION.html'
       - 'test/rc1577-pod-quality-audit.test.mjs'
       - 'test/rc1596-pod-folder-reconnect.test.mjs'
+      - 'test/rc1597-pod-audit-route.test.mjs'
       - 'e2e/specs/rc1577-pod-quality-audit.spec.mjs'
       - 'e2e/helpers/**'
       - '.github/rc1112/**'
@@ -39,6 +40,7 @@ on:
       - 'TESTVERSION.html'
       - 'test/rc1577-pod-quality-audit.test.mjs'
       - 'test/rc1596-pod-folder-reconnect.test.mjs'
+      - 'test/rc1597-pod-audit-route.test.mjs'
       - 'e2e/specs/rc1577-pod-quality-audit.spec.mjs'
       - 'e2e/helpers/**'
       - '.github/rc1112/**'
@@ -65,7 +67,7 @@ jobs:
         run: npm install --prefix api --ignore-scripts --no-audit --no-fund --package-lock=false
 
       - name: POD-Prüfung Verträge und Serverbericht
-        run: node --test test/rc1577-pod-quality-audit.test.mjs test/rc1596-pod-folder-reconnect.test.mjs
+        run: node --test test/rc1577-pod-quality-audit.test.mjs test/rc1596-pod-folder-reconnect.test.mjs test/rc1597-pod-audit-route.test.mjs
 
       - name: Aktuelles Drei-Umgebungen-Paket bauen
         run: node .github/rc1112/build-three-env.mjs
