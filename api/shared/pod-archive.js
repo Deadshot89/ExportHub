@@ -203,7 +203,14 @@ async function createPodPdf(record, signatureBuffer, signatureType) {
   if(palletReturn)draw(palletReturn,palletX+cellW-48,y-45,8,bold,navy);
   else page.drawLine({start:{x:palletX+cellW-48,y:y-47},end:{x:palletX+cellW-10,y:y-47},thickness:.8,color:navy});
   let image=null;
-  try { image=/png/i.test(signatureType||'')?await pdf.embedPng(signatureBuffer):await pdf.embedJpg(signatureBuffer); }catch(_){}
+  // RC1600: image bytes, not potentially stale MIME metadata, identify the driver's original ink.
+  const signatureBytes=Buffer.from(signatureBuffer||[]);
+  const png=signatureBytes.length>=8&&signatureBytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]));
+  const jpeg=signatureBytes.length>=3&&signatureBytes[0]===255&&signatureBytes[1]===216&&signatureBytes[2]===255;
+  try {
+    image=png?await pdf.embedPng(signatureBytes):jpeg?await pdf.embedJpg(signatureBytes):
+      (/png/i.test(signatureType||'')?await pdf.embedPng(signatureBytes):await pdf.embedJpg(signatureBytes));
+  }catch(_){}
   if(!image)throw store.err('POD_SIGNATURE_IMAGE_INVALID','Die gespeicherte Fahrerunterschrift kann nicht als Bild gelesen werden. Kein Ersatz-POD erzeugt.',409);
   const dims=image.scale(1),maxW=cellW-20,scale=Math.min(maxW/dims.width,SIGNATURE_MAX_HEIGHT/dims.height);
   page.drawImage(image,{x:signatureX+10,y:y-SIGNATURE_CARD_HEIGHT+5,width:dims.width*scale,height:dims.height*scale});
