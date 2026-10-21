@@ -73,6 +73,12 @@ module.exports = async function(context, req) {
     const environment = environmentOf(req, payload);
     const graph = graphDrive.readiness();
 
+    if (payload.auditPodStatus === true && environment === 'production') {
+      // RC1598 P0: auditOnly did NOT mean read-only. Block every production status audit,
+      // including manually triggered requests, until the 89 POD references are verified.
+      // Never change stored signatures, POD links or status on a failed verification alone.
+      throw error('POD_STATUS_AUDIT_SUSPENDED_RC1598', 'Produktive POD-Statusbereinigung ist zum Schutz der Originalnachweise gesperrt. Referenzen nur einzeln und lesend prüfen.', 423);
+    }
     if (payload.auditPodStatus === true) {
       // RC1594: rebuild each conflicting audit from a fresh ETag; never force-write.
       const audit = await podIntegrityAudit.auditPodStatusesWithRetry(environment, {
