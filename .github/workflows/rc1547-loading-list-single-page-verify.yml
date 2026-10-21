@@ -15,7 +15,9 @@ on:
       - 'test/rc1560-pod-pdf-signature-frame.test.mjs'
       - 'e2e/specs/rc1560-pod-pdf-signature.spec.mjs'
       - 'test/rc1561-pod-bottom-tiles.test.mjs'
+      - 'test/rc1607-pod-screenshot-layout.test.mjs'
       - 'e2e/specs/rc1561-pod-bottom-tiles.spec.mjs'
+      - 'e2e/specs/rc1607-pod-screenshot-layout.spec.mjs'
       - 'e2e/helpers/**'
       - '.github/rc1112/**'
       - '.github/workflows/rc1547-loading-list-single-page-verify.yml'
@@ -33,7 +35,9 @@ on:
       - 'test/rc1560-pod-pdf-signature-frame.test.mjs'
       - 'e2e/specs/rc1560-pod-pdf-signature.spec.mjs'
       - 'test/rc1561-pod-bottom-tiles.test.mjs'
+      - 'test/rc1607-pod-screenshot-layout.test.mjs'
       - 'e2e/specs/rc1561-pod-bottom-tiles.spec.mjs'
+      - 'e2e/specs/rc1607-pod-screenshot-layout.spec.mjs'
       - 'e2e/helpers/**'
       - '.github/rc1112/**'
       - '.github/workflows/rc1547-loading-list-single-page-verify.yml'
@@ -71,7 +75,7 @@ jobs:
           EXPORTHUB_E2E_STATIC: '1'
           EXPORTHUB_E2E_ENTRY: /demo.html
           EXPORTHUB_E2E_PUBLIC_ENV: testservice
-        run: npx playwright test e2e/specs/rc1547-loading-list-single-page.spec.mjs e2e/specs/rc1550-pod-print-layout.spec.mjs e2e/specs/rc1559-pod-real-template.spec.mjs e2e/specs/rc1560-pod-pdf-signature.spec.mjs e2e/specs/rc1561-pod-bottom-tiles.spec.mjs --project=laptop
+        run: npx playwright test e2e/specs/rc1547-loading-list-single-page.spec.mjs e2e/specs/rc1550-pod-print-layout.spec.mjs e2e/specs/rc1559-pod-real-template.spec.mjs e2e/specs/rc1560-pod-pdf-signature.spec.mjs e2e/specs/rc1561-pod-bottom-tiles.spec.mjs e2e/specs/rc1607-pod-screenshot-layout.spec.mjs --project=laptop
 
       - name: Browser-Fehlerartefakte hochladen
         if: failure()
