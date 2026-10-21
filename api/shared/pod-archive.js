@@ -249,9 +249,13 @@ async function createPodPdf(record, signatureBuffer, signatureType) {
   const signatureBytes=Buffer.from(signatureBuffer||[]);
   const png=signatureBytes.length>=8&&signatureBytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]));
   const jpeg=signatureBytes.length>=3&&signatureBytes[0]===255&&signatureBytes[1]===216&&signatureBytes[2]===255;
+  // RC1609: pdf-lib's JPEG parser uses the underlying ArrayBuffer. Short
+  // Node.js Buffers can share a pooled slab at a nonzero byteOffset. Supply
+  // exact original bytes in a standalone zero-offset Uint8Array instead.
+  const exactImageBytes=Uint8Array.from(signatureBytes);
   try {
-    image=png?await pdf.embedPng(signatureBytes):jpeg?await pdf.embedJpg(signatureBytes):
-      (/png/i.test(signatureType||'')?await pdf.embedPng(signatureBytes):await pdf.embedJpg(signatureBytes));
+    image=png?await pdf.embedPng(exactImageBytes):jpeg?await pdf.embedJpg(exactImageBytes):
+      (/png/i.test(signatureType||'')?await pdf.embedPng(exactImageBytes):await pdf.embedJpg(exactImageBytes));
   }catch(_){}
   if(!image)throw store.err('POD_SIGNATURE_IMAGE_INVALID','Die gespeicherte Fahrerunterschrift kann nicht als Bild gelesen werden. Kein Ersatz-POD erzeugt.',409);
   const dims=image.scale(1),maxW=cellW-20,scale=Math.min(maxW/dims.width,SIGNATURE_MAX_HEIGHT/dims.height);
