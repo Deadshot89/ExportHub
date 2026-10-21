@@ -40,10 +40,42 @@ function token(sh){return [sh&&sh.pickupToken,sh&&sh.pickupQrToken,sh&&sh.qrPick
 function action(button){
  return button.matches('[data-rc628-official-pod-open="1"]')?'open':'download'
 }
+// RC1616: The already-uploaded, signed loading-list document is the source
+// of truth in Shipment View. Reuse its existing authenticated open/download
+// handler instead of creating a different server-rendered layout.
+function storedDocumentButton(sh,mode){
+ var rows=d.querySelectorAll?d.querySelectorAll('.rc786-doc-row'):[],wanted='pod_'+refOf(sh)+'_ladeliste_mit_unterschrift.pdf';
+ for(var i=0;i<rows.length;i++){
+  var row=rows[i],title=q(row&&row.textContent).toLowerCase();
+  if(title.indexOf(wanted)<0)continue;
+  var action=mode==='open'?'[data-rc786-open-file]':'[data-rc786-download-file]';
+  var button=row.querySelector&&row.querySelector(action);
+  if(button&&!button.disabled)return button
+ }
+ return null
+}
+function dispatchStoredDocument(sh,mode){
+ var button=storedDocumentButton(sh,mode);
+ if(!button)return false;
+ button.click();return true
+}
+function originalFile(sh){
+ var files=(Array.isArray(sh&&sh.podFiles)?sh.podFiles:[]).filter(function(f){
+  return f&&q(f.kind).toLowerCase()==='automatic-pod'&&
+    q(f.renderLayout).toUpperCase()==='RC1595'&&
+    /^[A-Za-z0-9_-]{3,180}$/.test(q(f.id||f.remoteId))
+ });
+ // Never select an older server-created/synthetic version just because it is
+ // named "automatic". That may have a visibly different or empty layout.
+ files.sort(function(a,b){return q(b.uploadedAt).localeCompare(q(a.uploadedAt))});
+ return files[0]||null
+}
 async function canonicalPdf(sh){
  var tok=token(sh);
  if(!tok)throw Error(t('missingToken'));
- var res=await w.fetch('/api/pickup-pod?file=automatic&token='+encodeURIComponent(tok),{
+ var exact=originalFile(sh);
+ if(!exact)throw Error('Keine geprüfte, gespeicherte POD-Version mit dem Ladelistenlayout vorhanden. Bitte die Original-Ladeliste unter Dateien & Dokumente öffnen.');
+ var res=await w.fetch('/api/pickup-pod?file='+encodeURIComponent(q(exact.id||exact.remoteId))+'&token='+encodeURIComponent(tok),{
   method:'GET',credentials:'same-origin',cache:'no-store',headers:{Accept:'application/pdf'}
  });
  if(!res.ok){
@@ -76,6 +108,7 @@ async function handle(button){
  if(mode==='open')try{popup=w.open('','_blank');if(popup){popup.document.title=t('loadingTitle');popup.document.body.textContent=t('loadingText')}}catch(_){}
  try{
   sh=shipment(button);
+  if(dispatchStoredDocument(sh,mode)){if(popup&&!popup.closed)popup.close();return}
   var qr=w.ExportHUBPickupPOD;
   if(qr&&typeof qr.syncOne==='function')try{await qr.syncOne(sh,true)}catch(_){}
   var pdf=await canonicalPdf(sh);
@@ -93,5 +126,5 @@ d.addEventListener('click',function(e){
  e.preventDefault();e.stopImmediatePropagation();e.stopPropagation();
  handle(button);
 },true);
-w.ExportHUBRC1602OfficialPOD=Object.freeze({version:'RC1602',selector:SELECTOR,canonicalPdf:canonicalPdf});
+w.ExportHUBRC1602OfficialPOD=Object.freeze({version:'RC1616',selector:SELECTOR,canonicalPdf:canonicalPdf,dispatchStoredDocument:dispatchStoredDocument,originalFile:originalFile});
 })(window,document);
