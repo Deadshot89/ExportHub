@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import {createRequire} from 'node:module';
 
 const require=createRequire(import.meta.url);
@@ -154,4 +155,62 @@ test('RC1595: combined POD list preserves pickup credentials from duplicate ship
  assert.equal(audit.allShipmentCopies({shipments:[{ref:'HOLD01',status:'POD vorhanden',podReviewRequired:true,podReviewReason:'layout',podFiles:[]}],savedShipments:[{ref:'HOLD01',status:'POD vorhanden',podFiles:[{kind:'automatic-pod'}]}]})[0].podReviewRequired,true,'existing review holds must survive merging saved copies');
  assert.equal(audit.relevant({status:'Archiviert',podFiles:[]}),false,'unrelated archived shipments must not be demoted without POD evidence');
  assert.equal(audit.relevant({status:'Archiviert',podBackup:{archiveSaved:true}}),true,'archived shipments with stored POD evidence must be audited');
+});
+
+test('RC1613 P0: an exact archived original counts as readable without writing or regenerating a POD',async()=>{
+  const bytes=Buffer.from('%PDF-1.7\\n'+'x'.repeat(80));
+  const hash=crypto.createHash('sha256').update(bytes).digest('hex');
+  const file={id:'original-pod-1',name:'POD_TEST01.pdf',kind:'automatic-pod',blobName:'missing-primary',hash,size:bytes.length,type:'application/pdf',renderLayout:'RC1595'};
+  const state={shipments:[{ref:'TEST01',status:'POD vorhanden',pickupAccessKeyHash:KEY,pickupToken:'private-token',podFiles:[file]}],savedShipments:[]};
+  const calls=[],writes=[];
+  await withStubs([
+    [store,'clients',async()=>({team:{getBlockBlobClient:()=>({})},pods:{}})],
+    [store,'readJson',async()=>({value:{state}})],
+    [store,'writeJson',async()=>{writes.push('team')}],
+    [store,'mutateRecord',async()=>{writes.push('pickup')}],
+    [store,'getRecord',async()=>({record:{signatureBlobName:'original-signature',confirmedAt:'2026-10-21T17:00:00Z'}})],
+    [integrity,'readStoredPod',async()=>({ok:false,status:404,code:'POD_BLOB_NOT_FOUND'})],
+    [podArchive,'getPodDownload',async(key,env,fileId)=>{
+      calls.push({key,env,fileId});
+      return {buffer:bytes,file:{id:fileId,hash}};
+    }]
+  ],async()=>{
+    const report=await audit.report('production',{references:['TEST01']});
+    const row=report.rows[0];
+    assert.equal(row.verdict,'ok','A verified original must not be offered for regeneration');
+    assert.equal(row.files[0].verifiedOriginalReadback,true);
+    assert.equal(row.files[0].readable,true);
+  });
+  assert.deepEqual(calls,[{key:KEY,env:'production',fileId:'original-pod-1'}]);
+  assert.deepEqual(writes,[],'No state or historic POD may be changed by admin readback');
+});
+
+test('RC1613 P0: wrong archived bytes, wrong id or missing metadata fail closed',async()=>{
+  const bytes=Buffer.from('%PDF-1.7\\n'+'y'.repeat(80));
+  const hash=crypto.createHash('sha256').update(bytes).digest('hex');
+  const original={id:'immutable-2',name:'POD_TEST02.pdf',kind:'automatic-pod',blobName:'missing-primary',hash,type:'application/pdf',renderLayout:'RC1595'};
+  const state={shipments:[{ref:'TEST02',status:'POD vorhanden',pickupAccessKeyHash:KEY,pickupToken:'private-token',podFiles:[original]}]};
+  const readbacks=[];
+  await withStubs([
+    [store,'clients',async()=>({team:{getBlockBlobClient:()=>({})},pods:{}})],
+    [store,'readJson',async()=>({value:{state}})],
+    [store,'getRecord',async()=>({record:{signatureBlobName:'original-signature',confirmedAt:'2026-10-21T17:00:00Z'}})],
+    [integrity,'readStoredPod',async()=>({ok:false,status:404,code:'POD_BLOB_NOT_FOUND'})],
+    [podArchive,'getPodDownload',async(_key,_env,id)=>{
+      readbacks.push(id);
+      return {buffer:Buffer.from('%PDF-1.7\\n'+'CORRUPT'.repeat(15)),file:{id}};
+    }]
+  ],async()=>{
+    let row=(await audit.report('production',{references:['TEST02']})).rows[0];
+    assert.equal(row.verdict,'regenerate');
+    assert.equal(row.reason,'POD_NOT_READABLE');
+    assert.equal(row.files[0].readable,false,'Corrupt signed original must be rejected');
+    state.shipments[0].podFiles=[{...original,id:'',remoteId:''}];
+    row=(await audit.report('production',{references:['TEST02']})).rows[0];
+    assert.equal(row.files[0].readable,false,'No unnamed automatic generation is allowed');
+    state.shipments[0].podFiles=[{...original,id:'immutable-2',hash:''}];
+    row=(await audit.report('production',{references:['TEST02']})).rows[0];
+    assert.equal(row.files[0].readable,false,'Missing hash must never enable archive fallback');
+  });
+  assert.deepEqual(readbacks,['immutable-2'],'Unsafe records must not call the POD server download endpoint');
 });

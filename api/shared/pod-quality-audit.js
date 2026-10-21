@@ -4,6 +4,7 @@
 // It never writes: regeneration happens in the admin's browser (current loading-list layout) and the
 // "Abgeholt" review flag is set there too, both only after the admin confirmed the report.
 
+const crypto=require('crypto');
 const store=require('./pickup-store');
 const podArchive=require('./pod-archive');
 const integrity=require('./pod-integrity-audit');
@@ -76,13 +77,37 @@ function classify(sh,facts){
  return{verdict:'review',reason,missing:facts.signatureStored===true?'PICKUP_TOKEN_MISSING':'SIGNATURE_NOT_STORED'};
 }
 
-async function fileFacts(clients,file){
+async function fileFacts(clients,file,shipment,environment){
  const out={name:text(file.name||file.fileName||file.filename),uploadedAt:text(file.uploadedAt),renderLayout:podArchive.renderLayoutOf(file.renderLayout),manualUpload:isManualUpload(file),readable:false};
  const inline=inlineBuffer(file);
  if(inline){out.readable=integrity.looksLikePodBuffer(inline,file);return out}
  const read=await integrity.readStoredPod(clients,file);
  out.readable=read.ok===true;
  if(!read.ok)out.error=text(read.code).slice(0,60);
+ // RC1613 P0: the admin's read-only quality report must not suggest replacing
+ // signed ink when the exact immutable original is still available through
+ // RC1608's verified pickup-POD readback (primary record or SHA-matched archive).
+ // A named fileId is mandatory: the unnamed endpoint may regenerate PDFs.
+ const exactId=text(file.id||file.remoteId),expectedHash=lower(file.hash);
+ const missing=read.status===404||read.code==='POD_BLOB_NOT_FOUND';
+ if(!out.readable&&missing&&lower(file.kind)==='automatic-pod'&&
+    /^[a-f0-9]{64}$/.test(expectedHash)&&exactId){
+  for(const key of integrity.accessKeysOf(shipment,environment)){
+   try{
+    const original=await podArchive.getPodDownload(key,environment,exactId);
+    const fileId=text(original&&original.file&&(original.file.id||original.file.remoteId));
+    const bytes=original&&original.buffer;
+    if(fileId===exactId&&Buffer.isBuffer(bytes)&&
+       crypto.createHash('sha256').update(bytes).digest('hex')===expectedHash&&
+       integrity.looksLikePodBuffer(bytes,file)){
+      out.readable=true;
+      out.verifiedOriginalReadback=true;
+      delete out.error;
+      break;
+    }
+   }catch(_){/* Fail closed: damaged or absent originals still require admin review. */}
+  }
+ }
  return out
 }
 async function signatureStored(sh,environment){
@@ -96,7 +121,7 @@ async function signatureStored(sh,environment){
 }
 async function inspect(sh,state,clients,environment){
  const files=[];
- for(const file of podFiles(sh))files.push(await fileFacts(clients,file));
+ for(const file of podFiles(sh))files.push(await fileFacts(clients,file,sh,environment));
  const facts={files,hasToken:!!tokenOf(sh),signatureStored:await signatureStored(sh,environment)};
  const verdict=classify(sh,facts);
  return Object.assign({
