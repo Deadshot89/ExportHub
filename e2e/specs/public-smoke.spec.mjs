@@ -101,6 +101,19 @@ test('RC1555 production smoke: verschachtelte POD-Abholkarten zeigen nur die neu
       printStage:root.closest('#rc576DocumentStage')?.getAttribute('data-doc')||'',
       printPageDisplay:getComputedStyle(root).display,
       printPageHeight:root.getBoundingClientRect().height,
+      ancestorGeometry:(()=>{
+        const result=[];
+        for(let el=root;el&&result.length<8;el=el.parentElement){
+          const css=getComputedStyle(el),rect=el.getBoundingClientRect();
+          result.push({
+            tag:el.tagName,id:el.id||'',className:String(el.className||'').slice(0,90),
+            display:css.display,visibility:css.visibility,
+            contentVisibility:css.contentVisibility,zoom:css.zoom,
+            transform:css.transform,height:rect.height,offsetHeight:el.offsetHeight
+          });
+        }
+        return result;
+      })(),
       outerCards:fields.every(field=>field.matches('.rc390-card,.rc352-card')),
       visibleLegacy:visibleLegacy.length,
       signaturePresent:!!signature,
@@ -116,7 +129,7 @@ test('RC1555 production smoke: verschachtelte POD-Abholkarten zeigen nur die neu
   expect(layout.fieldCount).toBe(6);
   expect(layout.printStage,'Ladeliste muss im echten Dokumentstage als aktiv markiert sein').toBe('load1');
   expect(layout.printPageDisplay,'Aktive Ladeliste darf im Druck nicht ausgeblendet sein').not.toBe('none');
-  expect(layout.printPageHeight,'Aktive Ladeliste muss eine sichtbare Höhe besitzen').toBeGreaterThan(0);
+  expect(layout.printPageHeight,'Aktive Ladeliste muss eine sichtbare Höhe besitzen: '+JSON.stringify(layout.ancestorGeometry)).toBeGreaterThan(0);
   expect(layout.outerCards).toBe(true);
   expect(layout.visibleLegacy).toBe(0);
   expect(layout.signaturePresent,'Fahrerunterschrift muss nach Enhance im kanonischen Abholfeld existieren').toBe(true);
