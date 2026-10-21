@@ -9,6 +9,7 @@ on:
       - 'test/rc1553-pod-signed-loading-list.test.mjs'
       - 'test/pod-customer-layout-regression.test.mjs'
       - 'test/pod-render-pdf.test.mjs'
+      - 'test/rc1602-pod-canonical-source.test.mjs'
       - '.github/workflows/rc1553-pod-verify.yml'
   pull_request:
     branches: [main]
@@ -18,6 +19,7 @@ on:
       - 'test/rc1553-pod-signed-loading-list.test.mjs'
       - 'test/pod-customer-layout-regression.test.mjs'
       - 'test/pod-render-pdf.test.mjs'
+      - 'test/rc1602-pod-canonical-source.test.mjs'
       - '.github/workflows/rc1553-pod-verify.yml'
 
 permissions:
@@ -40,7 +42,7 @@ jobs:
         working-directory: api
         run: npm install --ignore-scripts
       - name: RC1553 focused POD regression
-        run: node --test test/rc1553-pod-signed-loading-list.test.mjs test/pod-customer-layout-regression.test.mjs test/pod-render-pdf.test.mjs
+        run: node --test test/rc1553-pod-signed-loading-list.test.mjs test/pod-customer-layout-regression.test.mjs test/pod-render-pdf.test.mjs test/rc1602-pod-canonical-source.test.mjs
       - name: Generate visual POD fixture
         shell: bash
         run: |
