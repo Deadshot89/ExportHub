@@ -127,7 +127,7 @@ test('RC1460: Build lädt die neue Runtime',()=>{
 
 
 test('Sendungsansicht: gespeicherte Kopien, verknüpfte ABD-Rechnungen und Packtischdokumente werden gefunden',()=>{
-  const match=buildSource.match(/const docHelpers=`([\\s\\S]*?)`;/);
+  const match=buildSource.match(/const docHelpers=`([\s\S]*?)`;/);
   assert.ok(match,'Dokument-Helfer fehlen im Build');
   const shipment={id:'SHIP-9Z7L82',ref:'9Z7L82'};
   const state={
@@ -162,7 +162,7 @@ test('Sendungsansicht: gespeicherte Kopien, verknüpfte ABD-Rechnungen und Packt
 });
 
 test('Sendungsansicht: nur gespeicherte Dateimetadaten zählen nicht als öffnungsfähige Datei',()=>{
-  const match=buildSource.match(/const docHelpers=`([\\s\\S]*?)`;/);
+  const match=buildSource.match(/const docHelpers=`([\s\S]*?)`;/);
   assert.ok(match);
   const state={shipments:[],savedShipments:[],abdRequests:[]};
   const context={
