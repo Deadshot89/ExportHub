@@ -254,3 +254,26 @@ test('RC1616: generated browser document helpers parse without invalid regular e
  const emittedOpen=new Function('return `'+open[1]+'`;')();
  assert.doesNotThrow(()=>new Function('window',emittedOpen),'compiled document fetcher must remain syntactically valid');
 });
+
+test('RC1616: pack-station DNC files linked only by exact shipment reference appear in documents, foreign refs stay excluded',()=>{
+ const match=buildSource.match(/const docHelpers=`([\s\S]*?)`;/);
+ assert.ok(match);
+ const state={shipments:[{id:'SHIP-8LSUHW',ref:'8LSUHW'}],savedShipments:[],
+  packNotifications:[
+   {id:'PACK-REF',shipmentRef:'8LSUHW',documents:[{name:'DNC3019223442.pdf',storage:'blob',blobName:'rc1059/production/xx/real'}]},
+   {id:'PACK-FOREIGN',shipmentRef:'OTHER1',documents:[{name:'FOREIGN_DNC.pdf',storage:'blob',blobName:'rc1059/production/xx/foreign'}]}
+  ]};
+ const context={
+  window:{ExportHUBDocumentBlob1059:{isBlobDocument:file=>file&&file.storage==='blob'&&!!file.blobName}},
+  arr:v=>Array.isArray(v)?v:[],q:v=>String(v==null?'':v).trim(),
+  low:v=>String(v==null?'':v).trim().toLowerCase(),
+  refOf:sh=>String(sh&&(sh.ref||sh.reference||sh.shipmentRef)||'').toUpperCase(),
+  idOf:sh=>String(sh&&(sh.id||sh.shipmentId)||''),
+  roots:()=>[state],state:()=>state,
+  fileName:(file,fallback)=>file&&file.name||fallback,fileUrl:file=>file&&file.url||'',
+  normalizeFallback:d=>d,collectDocs:()=>[]
+ };
+ vm.runInNewContext(new Function('return `'+match[1]+'`;')(),context);
+ const found=context.shipmentAssociatedDocs(state.shipments[0],[]);
+ assert.deepEqual(found.map(x=>x.name),['DNC3019223442.pdf']);
+});
