@@ -12,6 +12,9 @@ on:
       - 'test/rc1602-pod-canonical-source.test.mjs'
       - 'test/rc1602-pod-browser-download.test.mjs'
       - 'assets/rc1602-official-pod-server-download.js'
+      - 'test/rc1602-browser-pod-pagination.test.mjs'
+      - 'scripts/rc1602-pod-browser-pagination.mjs'
+      - '.github/rc1112/build-three-env.mjs'
       - '.github/workflows/rc1553-pod-verify.yml'
   pull_request:
     branches: [main]
@@ -24,6 +27,9 @@ on:
       - 'test/rc1602-pod-canonical-source.test.mjs'
       - 'test/rc1602-pod-browser-download.test.mjs'
       - 'assets/rc1602-official-pod-server-download.js'
+      - 'test/rc1602-browser-pod-pagination.test.mjs'
+      - 'scripts/rc1602-pod-browser-pagination.mjs'
+      - '.github/rc1112/build-three-env.mjs'
       - '.github/workflows/rc1553-pod-verify.yml'
 
 permissions:
@@ -47,6 +53,8 @@ jobs:
         run: npm install --ignore-scripts
       - name: RC1553 focused POD regression
         run: node --test test/rc1553-pod-signed-loading-list.test.mjs test/pod-customer-layout-regression.test.mjs test/pod-render-pdf.test.mjs test/rc1602-pod-canonical-source.test.mjs test/rc1602-pod-browser-download.test.mjs
+      - name: RC1604 browser fallback A4 pagination contract
+        run: node --test test/rc1602-browser-pod-pagination.test.mjs
       - name: Generate visual POD fixture
         shell: bash
         run: |
