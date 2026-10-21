@@ -21,7 +21,7 @@ export function summarizePodAuditLog(content, options = {}) {
     rows.push(batch);
   }
   if (!rows.length) throw new Error('No RC1144 PRODUCTION audit batches found');
-  const seenBatches = new Set(), seenReferences = new Set();
+  const seenBatches = new Set(), seenReferences = new Set(), seenBackupNames = new Set();
   const reviews = [], totals = { checked: 0, downloadable: 0, recovered: 0, downgradedEssentra: 0, downgradedOther: 0, removedPodEntries: 0 };
   const codes = {};
   let expectedCursor = 0, totalShipments = null, verifiedBackups = 0, finalReached = false;
@@ -37,8 +37,14 @@ export function summarizePodAuditLog(content, options = {}) {
       if (!nonnegative(row[key])) throw new Error('Missing or invalid audit counter: ' + key);
       totals[key] += row[key];
     }
+    // Every batch must reconcile independently; otherwise compensating errors in
+    // different batches can disguise a partial or double-counted status mutation.
+    if (row.checked !== row.downloadable + row.recovered + row.downgradedEssentra + row.downgradedOther)
+      throw new Error('Audit counters differ within a batch');
     if (!row.backup || row.backup.verified !== true || !String(row.backup.name || '').includes('team-state-before-RC1440-pod-integrity-'))
       throw new Error('Missing verified pre-mutation audit backup');
+    if (seenBackupNames.has(row.backup.name)) throw new Error('Repeated pre-mutation backup across audit batches');
+    seenBackupNames.add(row.backup.name);
     verifiedBackups++;
     if (!Array.isArray(row.broken) || row.broken.length !== row.downgradedEssentra + row.downgradedOther)
       throw new Error('Downgrade counters differ from affected-case evidence');
