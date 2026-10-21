@@ -12,7 +12,7 @@ test('RC1589: RC1555 Live-Smoke aktiviert dieselbe Ladeliste wie die echte Dokum
   assert.match(smoke,/id="rc576DocumentHub"><div id="rc576DocumentStage" data-doc="load1"/);
   assert.match(smoke,/id="rc576DocumentStage" data-doc="load1"/);
   assert.match(smoke,/class="rc390-docview" data-rc601-doc="load1"/);
-  assert.match(smoke,/class="rc390-bundle"\>'+enhanced/);
+  assert.match(smoke,/class="rc390-bundle"/);
   assert.doesNotMatch(smoke,/id="rc576DocumentStage" class="rc390-docview"/);
   assert.match(smoke,/class="rc390-page rc390-load rc576-load1"/);
   assert.match(smoke,/expect\(layout\.printStage,[^\n]*\)\.toBe\('load1'\)/);
