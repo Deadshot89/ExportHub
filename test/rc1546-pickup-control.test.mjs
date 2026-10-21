@@ -54,7 +54,9 @@ test('RC1547: Print-Control enthält Kontrollfelder, Alter und manuelle Nachtrag
 
 test('RC1547: Druckkontrolle erzwingt A4 Querformat und wiederholbare Tabellenköpfe',()=>{
   const ui=fs.readFileSync(UI,'utf8');
-  assert.match(ui,/@page\s*\{[^}]*size\s*:\s*A4\s+landscape/i,'A4-Querformat fehlt im Druckvertrag');
+  assert.match(ui,/@page\s+rc1546ControlPage\s*\{[^}]*size\s*:\s*A4\s+landscape/i,'A4-Querformat für die Abholkontrolle fehlt');
+  assert.match(ui,/\.rc1546-overlay\{page:rc1546ControlPage!important;/,'Abholkontrolle muss die benannte Querformat-Seite verwenden');
+  assert.doesNotMatch(ui,/@page\s*\{[^}]*size\s*:\s*A4\s+landscape/i,'Globale Querformat-Regel darf nicht normale Ladelisten verändern');
   assert.match(ui,/thead\s*\{[^}]*display\s*:\s*table-header-group/i,'Tabellenkopf ist für Mehrseiten-Druck nicht abgesichert');
 });
 
