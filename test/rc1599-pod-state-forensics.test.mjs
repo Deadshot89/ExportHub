@@ -52,6 +52,17 @@ test('RC1599: scan confirmations are not proof of a POD', () => {
   assert.equal(report.changes.referencesMissingAfter,1);
 });
 
+test('RC1599: audit considers status and processStatus independently (even when the fields disagree)', () => {
+  const a = make([shipment('DISCORD', 'Abgeholt', { processStatus: 'POD vorhanden' })]);
+  const b = make([shipment('DISCORD', 'Abgeholt', { processStatus: 'Abgeholt' })]);
+  const report = compareTeamStateSnapshots(a,b);
+  assert.equal(report.before.sameEntryStatusDisagreement,1);
+  assert.equal(report.before.podStatusEntries,1);
+  assert.equal(report.after.sameEntryStatusDisagreement,0);
+  assert.equal(report.changes.statusesChanged,1);
+  assert.equal(report.changes.podToPickedUp,1);
+});
+
 test('RC1599: invalid snapshot rejects rather than inventing data', () => {
   assert.throws(()=>compareTeamStateSnapshots(null,make()),/Team-State snapshot/);
 });
