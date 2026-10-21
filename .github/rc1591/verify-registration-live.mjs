@@ -20,7 +20,7 @@ async function probe(path,check,label){
     const url=base+path+separator+'rc1591='+expected+'-'+attempt;
     try{
       const response=await fetch(url,{redirect:'follow',cache:'no-store',signal:AbortSignal.timeout(20000)});
-      if(response.status!==200){reason='HTTP '+response.status;continue}
+      if(response.status!==200)throw new Error('HTTP '+response.status)
       const text=await response.text();
       check(text);
       console.log('RC1591 '+environment+' '+label+' verified');
