@@ -158,7 +158,7 @@ test('Sendungsansicht: gespeicherte Kopien, verknüpfte ABD-Rechnungen und Packt
     normalizeFallback:d=>Object.assign({source:'shipmentState'},d),
     collectDocs:sh=>keys.flatMap(key=>(Array.isArray(sh&&sh[key])?sh[key]:[]).map(file=>({file,name:file.name,group:key,url:file.url||''})))
   };
-  vm.runInNewContext(match[1],context,{filename:'generated-shipment-doc-helpers.js'});
+  vm.runInNewContext(new Function('return `'+match[1]+'`;')(),context,{filename:'generated-shipment-doc-helpers.js'});
   const docs=context.shipmentAssociatedDocs(shipment,[]);
   const names=docs.map(d=>d.name).sort();
   assert.deepEqual(names,['Packtisch_Lieferschein.pdf','Rechnung_9Z7L82.pdf','SIDE250071804.pdf']);
@@ -181,7 +181,7 @@ test('Sendungsansicht: nur gespeicherte Dateimetadaten zählen nicht als öffnun
     fileUrl:()=>'',normalizeFallback:d=>d,
     collectDocs:()=>[{name:'Nur-Name.pdf',file:{name:'Nur-Name.pdf'},url:''}]
   };
-  vm.runInNewContext(match[1],context);
+  vm.runInNewContext(new Function('return `'+match[1]+'`;')(),context);
   assert.equal(context.shipmentAssociatedDocs({id:'S',ref:'ABC123'},[]).length,0);
 });
 
@@ -213,7 +213,7 @@ test('Blob-Dokumente werden vom Release-Build auch ohne direkte URL öffnungsfä
 });
 
 test('RC1616: uploaded inline Lieferscheine with real PDF data remain visible and fetchable',()=>{
- const match=buildSource.match(/const docHelpers=`([\\s\\S]*?)`;/);
+ const match=buildSource.match(/const docHelpers=`([\s\S]*?)`;/);
  assert.ok(match);
  const inline='data:application/pdf;base64,'+Buffer.from('%PDF-1.7\\n'+'Lieferschein'.repeat(10)).toString('base64');
  const state={shipments:[{id:'S1',ref:'8LSUHW',deliveryFiles:[{id:'DNC1',name:'DNC3019222063.pdf',dataUrl:inline}]}],savedShipments:[]};
@@ -227,7 +227,7 @@ test('RC1616: uploaded inline Lieferscheine with real PDF data remain visible an
    fileName:(f,backup)=>f&&f.name||backup,fileUrl:f=>f&&f.url||'',
    normalizeFallback:d=>d,collectDocs:sh=>(sh.deliveryFiles||[]).map(file=>({file,name:file.name,group:'Lieferscheine',url:''}))
  };
- vm.runInNewContext(match[1],context);
+ vm.runInNewContext(new Function('return `'+match[1]+'`;')(),context);
  const files=context.shipmentAssociatedDocs(state.shipments[0],[]);
  assert.ok(files.some(f=>f.name==='DNC3019222063.pdf'), 'A genuinely uploaded inline PDF must not disappear from the shipment view');
  assert.match(buildSource,/Hochgeladene PDF hat keinen gültigen PDF-Header/);
