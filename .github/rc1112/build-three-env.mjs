@@ -1345,10 +1345,11 @@ fs.copyFileSync(rc1114ShippingSrc,rc1114ShippingOut);
 for(const file of ['index.html','TESTVERSION.html','demo.html'])patchHtml(file);
 for(const file of ['index.html','TESTVERSION.html','demo.html']){
   const target=path.join(OUT,file);
-  const hardened=patchRc1602PodBrowserHtml(hardenCustomerSaveHtml(fs.readFileSync(target,'utf8')));
+  const hardened=hardenCustomerSaveHtml(fs.readFileSync(target,'utf8'));
+  const paginated=patchRc1602PodBrowserHtml(hardened);
   const oldContacts='assets/rc1092-customer-mail-contacts.js?v=1399';
-  if(!hardened.includes(oldContacts))throw new Error(file+': RC1600 Kontaktcache-Anker fehlt');
-  fs.writeFileSync(target,hardened.replace(oldContacts,'assets/rc1092-customer-mail-contacts.js?v=1600'));
+  if(!paginated.includes(oldContacts))throw new Error(file+': RC1600 Kontaktcache-Anker fehlt');
+  fs.writeFileSync(target,paginated.replace(oldContacts,'assets/rc1092-customer-mail-contacts.js?v=1600'));
 }
 // RC1267 public pages: central language runtime must load before the legacy compatibility runtime.
 for(const file of ['customer-avis.html','pickup.html','location.html','pod-notfall.html']){
