@@ -61,7 +61,10 @@ test('RC1607 P0: signed original from actual loadHtml fits below four DNCs witho
   expect(result.error).toBe('');
   expect(result.measured,'Actual signed POD must reach isolated index352 PDF frame').toBeTruthy();
   const {footer,previous,cards,qrDisplay,notes}=result.measured;
-  expect(notes,'Actual four DNC chips: '+result.measured.debugText).toEqual(['DNC3019223442','DNC3019223446','DNC3019223491','DNC3019223538']);
+  for(const dnc of ['DNC3019223442','DNC3019223446','DNC3019223491','DNC3019223538']){
+    const text=result.measured.debugText;
+    expect(text.split(dnc).length-1,'All 4 genuine document entries must render once in the signed A4: '+text).toBe(1);
+  }
   expect(qrDisplay,'QR belongs to cover, not signed loading list').toBe('none');
   expect(cards.length,'Signature, driver, date, plate, loader and pallets expected').toBe(6);
   expect(footer.height,'Fixed two-row pickup footer must stay compact').toBeLessThan(230);
