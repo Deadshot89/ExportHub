@@ -12,6 +12,15 @@ test('RC1592: Abholkontrolle blendet andere Druckseiten nur bei vorhandenem Over
     'Unbedingte Druck-Sperre würde auch echte Ladelisten verstecken');
 });
 
+
+test('RC1593: Kontroll-Overlay verdeckt #app trotz alter Important-Layoutregeln',()=>{
+  const printRule='@media print{body:has(> .rc1546-overlay)>*:not(.rc1546-overlay){display:none!important}body:has(> .rc1546-overlay)>#app#app{display:none!important}';
+  assert.ok(pickup.includes(printRule),
+    'Die Printregel muss den App-Container mit höherer Spezifität als #app:not(.hidden) ausblenden');
+  assert.ok(pickup.includes('.rc1546-overlay{page:rc1546ControlPage!important;'),
+    'Das Abholkontroll-Overlay selbst muss weiterhin sichtbar und druckbar bleiben');
+});
+
 test('RC1592: A4-Querformat gehört ausschließlich zur Abholkontrolle, nicht zu allen Ladelisten',()=>{
   assert.match(pickup,/@page rc1546ControlPage\{size:A4 landscape;margin:10mm\}/,
     'Die Abholkontrolle braucht eine eigene benannte Querformat-Seite');
@@ -35,8 +44,16 @@ test('RC1592: der Browser-Smoke prüft beide Druckmodi und die Signaturgeometrie
     'Normaldruck muss VOR dem Overlay geprüft werden');
   assert.ok(smoke.indexOf('const restoredPrint=')>smoke.indexOf('const overlayPrint='),
     'Wiederherstellung muss NACH dem Overlay geprüft werden');
-  assert.match(smoke,/expect\(overlayPrint\.stageDisplay,[^\n]*\)\.toBe\('none'\)/);
+  // CSS blendet den direkten body-Kindcontainer aus, nicht jedes verschachtelte
+  // DOM-Element einzeln. ComputedStyle(stage) bleibt sonst irreführend "block".
+  assert.match(smoke,/pageRoot\.parentElement!==document\.body/);
+  assert.match(smoke,/expect\(overlayPrint\.pageRootIsBodyChild,[^\n]*\)\.toBe\(true\)/);
+  assert.match(smoke,/expect\(overlayPrint\.pageRootDisplay,[^\n]*\)\.toBe\('none'\)/);
+  assert.match(smoke,/expect\(overlayPrint\.stageHeight,[^\n]*\)\.toBe\(0\)/);
   assert.match(smoke,/expect\(overlayPrint\.overlayDisplay,[^\n]*\)\.not\.toBe\('none'\)/);
+  assert.match(smoke,/expect\(overlayPrint\.overlayHeight,[^\n]*\)\.toBeGreaterThan\(0\)/);
+  assert.doesNotMatch(smoke,/expect\(overlayPrint\.stageDisplay,[^\n]*\)\.toBe\('none'\)/,
+    'Die alte Child-computedStyle-Prüfung ergibt trotz verborgenem Elterncontainer block');
 });
 
 test('RC1592: der sichere Abholkontroll-Druckmodus bleibt möglich',()=>{
