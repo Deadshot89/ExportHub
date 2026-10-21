@@ -4,7 +4,7 @@ const crypto = require('crypto');
 const store = require('./pickup-store');
 const graphDrive = require('./graph-drive');
 const TEAM_POD_LINK_VERSION = 'RC1340';
-const POD_PDF_LAYOUT_VERSION = 'RC1553-SIGNED-LOADING-LIST-V2';
+const POD_PDF_LAYOUT_VERSION = 'RC1594-SIGNED-LOADING-LIST-V3';
 // RC1577: layout of the signed loading list rendered in the browser (assets/document-print-name.js,
 // window.EXPORTHUB_POD_RENDER_LAYOUT). Supplied PODs carry it as renderLayout so the POD quality audit
 // can tell PODs rendered after the RC1560/RC1561 signature and bottom-tile fixes from older ones.
@@ -100,32 +100,32 @@ function deliveryNoteNames(record) {
   return out;
 }
 function palletBalanceText(record) {
+  // Same sign convention as the interactive loading list: outgoing minus returned EUR pallets.
   const history = typeof store.pickupHistory === 'function' ? store.pickupHistory(record || {}) : (Array.isArray(record && record.pickupHistory) ? record.pickupHistory : []);
   const last = history.length ? history[history.length - 1] || {} : {};
   const snapshot = record && (record.palletAccountSnapshot || record.palletBalanceSnapshot || record.europalletAccount || record.euroPalletAccount) || last.palletAccountSnapshot || last.palletBalanceSnapshot || {};
   const candidates = [
-    snapshot.balance,
-    snapshot.currentBalance,
-    snapshot.value,
-    record && record.palletAccountBalance,
-    record && record.palletBalance,
-    record && record.euroPalletBalance,
-    last.palletAccountBalance,
-    last.palletBalance,
-    last.euroPalletBalance
+    snapshot.balance, snapshot.currentBalance, snapshot.value,
+    record && record.palletAccountBalance, record && record.palletBalance, record && record.euroPalletBalance,
+    last.palletAccountBalance, last.palletBalance, last.euroPalletBalance
   ];
-  let balance = null;
   for (const candidate of candidates) {
     if (candidate === undefined || candidate === null || text(candidate) === '') continue;
     const parsed = Number(candidate);
-    if (Number.isFinite(parsed)) { balance = Math.round(parsed); break; }
+    if (Number.isFinite(parsed)) {
+      const balance = Math.round(parsed);
+      return (balance > 0 ? '+' : '') + balance + ' EP';
+    }
   }
-  if (!Number.isFinite(balance)) return 'Kontostand nicht erfasst';
-  const amount = Math.abs(balance);
-  const customer = text(snapshot.name || snapshot.customerName || record && (record.customerName || record.customer || record.recipient)) || 'Kunde';
-  if (balance > 0) return 'Zu Gunsten Essentra: ' + amount + ' Europaletten';
-  if (balance < 0) return 'Zu Gunsten ' + customer + ': ' + amount + ' Europaletten';
-  return 'Ausgeglichen: 0 Europaletten';
+  return '-';
+}
+function palletReturnText(record) {
+  const history = typeof store.pickupHistory === 'function' ? store.pickupHistory(record || {}) : (Array.isArray(record && record.pickupHistory) ? record.pickupHistory : []);
+  const last = history.length ? history[history.length - 1] || {} : {};
+  const raw = last.returnedEuroPallets == null || text(last.returnedEuroPallets) === '' ? record && record.returnedEuroPallets : last.returnedEuroPallets;
+  if (raw == null || text(raw) === '') return '';
+  const count = Number(raw);
+  return Number.isSafeInteger(count) && count > 0 ? count + ' EP' : '';
 }
 
 async function createPodPdf(record, signatureBuffer, signatureType) {
@@ -184,7 +184,17 @@ async function createPodPdf(record, signatureBuffer, signatureType) {
   const signatureX=x+cellW+6;
   card('Spedition',value(record.carrierName,record.speditionName,record.carrier,record.spedition),x,y,cellW,SIGNATURE_CARD_HEIGHT);
   card('Fahrerunterschrift','',signatureX,y,cellW,SIGNATURE_CARD_HEIGHT);
-  card('Europaletten-Kontostand',palletBalanceText(record),x+2*(cellW+6),y,cellW,SIGNATURE_CARD_HEIGHT);
+  // RC1594: match the compact two-row pallet tile in the browser/print loading list.
+  // Never treat this shipment's palletOut as the customer's account balance.
+  const palletX=x+2*(cellW+6);
+  page.drawRectangle({x:palletX,y:y-SIGNATURE_CARD_HEIGHT,width:cellW,height:SIGNATURE_CARD_HEIGHT,borderColor:border,borderWidth:.7,color:rgb(1,1,1)});
+  draw('PALETTENKONTO / EUR PALLETS',palletX+8,y-13,6.3,bold,muted);
+  draw('Aktueller Stand / Balance',palletX+8,y-29,6.2,normal,muted);
+  draw(palletBalanceText(record),palletX+cellW-48,y-29,8,bold,navy);
+  draw('Eingang / Return',palletX+8,y-45,6.2,normal,muted);
+  const palletReturn=palletReturnText(record);
+  if(palletReturn)draw(palletReturn,palletX+cellW-48,y-45,8,bold,navy);
+  else page.drawLine({start:{x:palletX+cellW-48,y:y-47},end:{x:palletX+cellW-10,y:y-47},thickness:.8,color:navy});
   let image=null;
   try { image=/png/i.test(signatureType||'')?await pdf.embedPng(signatureBuffer):await pdf.embedJpg(signatureBuffer); }catch(_){}
   if(image){
