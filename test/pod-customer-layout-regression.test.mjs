@@ -36,7 +36,8 @@ test('P0 POD: signature and customer fields are drawn as separate bordered cells
 test('P0 POD: stale automatic PODs are versioned and regenerated before reuse or download',()=>{
   assert.match(source,/const POD_PDF_LAYOUT_VERSION\s*=\s*['"][^'"]+['"]/,'Automatic PODs need an immutable layout version');
   assert.match(source,/function isCurrentAutomaticPod\(file\)/,'A current-layout predicate is required');
-  assert.match(source,/layoutVersion:\s*POD_PDF_LAYOUT_VERSION/,'Saved POD descriptor must persist layoutVersion');
+  assert.match(source,/const layoutVersion = options && options\\.clientSupplied === true[\\s\\S]*?: POD_PDF_LAYOUT_VERSION/,'Only server-rendered signed PODs can claim current layout');
+  assert.match(source,/layoutVersion,\\s*source:/,'Saved descriptor must persist the classified layout version');
   assert.match(source,/layoutversion:\s*POD_PDF_LAYOUT_VERSION/,'Azure blob metadata must persist the layout version');
   assert.match(source,/existing\s*&&\s*isCurrentAutomaticPod\(existing\)\s*&&\s*!opt\.force/,'ensureAutomaticPod may only reuse current-layout files');
   assert.match(source,/if\s*\(file\s*&&\s*!isCurrentAutomaticPod\(file\)\s*&&\s*String\(file\.kind\s*\|\|\s*['"]['"]\)\.toLowerCase\(\)\s*===\s*['"]automatic-pod['"]\)/,'Download path must detect a stale automatic POD before serving it');
