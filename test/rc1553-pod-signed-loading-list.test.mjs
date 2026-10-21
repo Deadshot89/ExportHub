@@ -10,7 +10,7 @@ const block = source.slice(start, end);
 
 test('RC1553 P0: downloaded POD is the signed loading-list layout, not an independent Abliefernachweis template', () => {
   assert.ok(start >= 0 && end > start, 'POD PDF renderer missing');
-  assert.match(source, /const POD_PDF_LAYOUT_VERSION\s*=\s*['"]RC1594-SIGNED-LOADING-LIST-V3['"]/);
+  assert.match(source, /const POD_PDF_LAYOUT_VERSION\s*=\s*['"]RC1600-SIGNED-LOADING-LIST-V4['"]/);
   assert.match(block, /draw\('LADELISTE'/, 'official POD must keep the loading-list title');
   assert.doesNotMatch(block, /LADELISTE\s*\/\s*ABLIEFERNACHWEIS/, 'POD must not present a separate document type');
 });
