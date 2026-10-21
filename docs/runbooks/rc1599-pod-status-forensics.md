@@ -82,8 +82,9 @@ Die vertrauliche Liste nennt Referenz, Batch-Nummer, Original-Backup-Blob und
 keine Schreibberechtigung. Jede Zeile muss zuerst mit Original-Backups,
 Pickup-Records und hashgeprüften Archivkopien **lesend** abgeglichen werden.
 
-Fehlende Batches, doppelte Referenzen, unbestätigte Backups und widersprüchliche
-Zähler lösen einen Fehler aus statt einen falschen Vollständigkeitsnachweis.
+Fehlende Batches, doppelte Referenzen, wiederverwendete Backup-Blobnamen,
+unbestätigte Backups und widersprüchliche Zähler **innerhalb eines einzelnen Batches**
+lösen einen Fehler aus statt einen falschen Vollständigkeitsnachweis.
 
 Regression: `node --test test/rc1611-pod-audit-ledger.test.mjs`.
 
