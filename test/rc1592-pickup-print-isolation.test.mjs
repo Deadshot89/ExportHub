@@ -35,8 +35,16 @@ test('RC1592: der Browser-Smoke prüft beide Druckmodi und die Signaturgeometrie
     'Normaldruck muss VOR dem Overlay geprüft werden');
   assert.ok(smoke.indexOf('const restoredPrint=')>smoke.indexOf('const overlayPrint='),
     'Wiederherstellung muss NACH dem Overlay geprüft werden');
-  assert.match(smoke,/expect\(overlayPrint\.stageDisplay,[^\n]*\)\.toBe\('none'\)/);
+  // CSS blendet den direkten body-Kindcontainer aus, nicht jedes verschachtelte
+  // DOM-Element einzeln. ComputedStyle(stage) bleibt sonst irreführend "block".
+  assert.match(smoke,/pageRoot\.parentElement!==document\.body/);
+  assert.match(smoke,/expect\(overlayPrint\.pageRootIsBodyChild,[^\n]*\)\.toBe\(true\)/);
+  assert.match(smoke,/expect\(overlayPrint\.pageRootDisplay,[^\n]*\)\.toBe\('none'\)/);
+  assert.match(smoke,/expect\(overlayPrint\.stageHeight,[^\n]*\)\.toBe\(0\)/);
   assert.match(smoke,/expect\(overlayPrint\.overlayDisplay,[^\n]*\)\.not\.toBe\('none'\)/);
+  assert.match(smoke,/expect\(overlayPrint\.overlayHeight,[^\n]*\)\.toBeGreaterThan\(0\)/);
+  assert.doesNotMatch(smoke,/expect\(overlayPrint\.stageDisplay,[^\n]*\)\.toBe\('none'\)/,
+    'Die alte Child-computedStyle-Prüfung ergibt trotz verborgenem Elterncontainer block');
 });
 
 test('RC1592: der sichere Abholkontroll-Druckmodus bleibt möglich',()=>{

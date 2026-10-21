@@ -185,13 +185,25 @@ test('RC1555 production smoke: verschachtelte POD-Abholkarten zeigen nur die neu
     overlay.innerHTML='<section class="rc1546-dialog">RC1592 Druckkontrolle</section>';
     document.body.appendChild(overlay);
     const stage=document.getElementById('rc576DocumentStage');
+    // Der echte Dokumentstage liegt verschachtelt unter #app. Die Print-CSS
+    // versteckt den direkten body-Kindcontainer, nicht den Stage-Knoten selbst.
+    let pageRoot=stage;
+    while(pageRoot?.parentElement && pageRoot.parentElement!==document.body){
+      pageRoot=pageRoot.parentElement;
+    }
     return{
-      stageDisplay:getComputedStyle(stage).display,
-      overlayDisplay:getComputedStyle(overlay).display
+      pageRootIsBodyChild:pageRoot?.parentElement===document.body,
+      pageRootDisplay:pageRoot?getComputedStyle(pageRoot).display:'missing',
+      stageHeight:stage?stage.getBoundingClientRect().height:-1,
+      overlayDisplay:getComputedStyle(overlay).display,
+      overlayHeight:overlay.getBoundingClientRect().height
     };
   });
-  expect(overlayPrint.stageDisplay,'Nur beim aktiven Abhol-Overlay darf die Ladeliste im Druck verborgen werden').toBe('none');
+  expect(overlayPrint.pageRootIsBodyChild,'Die Print-Sperre muss am direkten body-Kindcontainer geprüft werden').toBe(true);
+  expect(overlayPrint.pageRootDisplay,'Mit aktivem Kontroll-Overlay muss der echte Dokumentcontainer verborgen sein').toBe('none');
+  expect(overlayPrint.stageHeight,'Die verschachtelte Ladeliste darf während der separaten Kontrollansicht keine Druckfläche belegen').toBe(0);
   expect(overlayPrint.overlayDisplay,'Abhol-Overlay selbst muss druckbar bleiben').not.toBe('none');
+  expect(overlayPrint.overlayHeight,'Das allein druckbare Kontroll-Overlay muss eine positive Druckhöhe haben').toBeGreaterThan(0);
   const restoredPrint=await page.evaluate(()=>{
     document.querySelector('body > .rc1546-overlay')?.remove();
     const stage=document.getElementById('rc576DocumentStage');
