@@ -36,3 +36,30 @@ test('RC1597 P0: testservice and production release block an unbound POD audit r
   assert.match(workflow,/POD_AUDIT_ROUTE_MISSING|POD_AUDIT_ROUTE_FAILURE/,'Missing route-specific failure '+env);
  }
 });
+
+test('RC1598: reject an unauthenticated 401 without POD handler evidence',async()=>{
+ const {verifyEvidence}=await import('../.github/rc1598/verify-pod-audit-route.mjs');
+ assert.equal(verifyEvidence({postStatus:401,postBody:null,optionsStatus:404,unknownOptionsStatus:404}).ok,false);
+ assert.equal(verifyEvidence({postStatus:404,postBody:null,optionsStatus:204,optionsAllow:'POST, OPTIONS',unknownOptionsStatus:404}).ok,false);
+ assert.equal(verifyEvidence({postStatus:200,postBody:{ok:true},optionsStatus:204,optionsAllow:'POST, OPTIONS',unknownOptionsStatus:404}).ok,false);
+});
+
+test('RC1598: authenticated handler response is accepted and negative control is enforced for Azure gateway 401',async()=>{
+ const {verifyEvidence}=await import('../.github/rc1598/verify-pod-audit-route.mjs');
+ assert.equal(verifyEvidence({postStatus:401,postBody:{ok:false,code:'AUTH_REQUIRED'},optionsStatus:404,unknownOptionsStatus:404}).ok,true);
+ assert.equal(verifyEvidence({postStatus:401,postBody:null,optionsStatus:204,optionsAllow:'POST, OPTIONS',unknownOptionsStatus:404}).ok,true);
+ assert.equal(verifyEvidence({postStatus:401,postBody:null,optionsStatus:204,optionsAllow:'POST, OPTIONS',unknownOptionsStatus:401}).ok,false);
+ assert.equal(verifyEvidence({postStatus:401,postBody:null,optionsStatus:204,optionsAllow:'GET',unknownOptionsStatus:404}).ok,false);
+});
+
+test('RC1598: shared live probe is identical for TESTSERVICE and PRODUCTION and includes negative control',()=>{
+ const main=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
+ const prod=fs.readFileSync('.github/workflows/exporthub-production-release.yml','utf8');
+ for(const [env,workflow] of [['testservice',main],['production',prod]]){
+  assert.match(workflow,new RegExp('node \\.github/rc1598/verify-pod-audit-route\\.mjs '+env));
+ }
+ const helper=fs.readFileSync('.github/rc1598/verify-pod-audit-route.mjs','utf8');
+ assert.match(helper,/rc1598-pod-quality-audit-unbound-control/);
+ assert.match(helper,/POD_AUDIT_ROUTE_MISSING/);
+ assert.match(helper,/unauthenticated/i);
+});
