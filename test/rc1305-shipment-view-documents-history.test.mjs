@@ -97,9 +97,13 @@ test('RC1305: Build-Skript bleibt syntaktisch gültig und lädt die History mit 
 });
 
 
-test('RC1460: Sendungsansicht sammelt Anhänge aus allen fachlichen Datei-Feldern',()=>{
-  assert.match(buildSource,/deliveryFiles','deliveryNotesFiles','lieferscheine','files','attachments','abdFiles','podFiles','cmrFiles','photos','pickupPhotos','containerPhotos/);
-  assert.match(buildSource,/extra\.push\(normalizeFallback\(file\)\)/);
+test('RC1460: Sendungsansicht berücksichtigt alle fachlichen Datei-Felder',()=>{
+  assert.match(buildSource,/function shipmentAssociatedDocs\(sh,prior\)/);
+  assert.match(buildSource,/fallback=shipmentAssociatedDocs\(sh,fallback\)/);
+  for(const field of ['deliveryFiles','deliveryNotesFiles','lieferscheine','files','attachments','abdFiles','podFiles','invoiceFiles','cmrFiles','photos','pickupPhotos','containerPhotos']){
+    assert.ok(buildSource.includes(field),field+' wird von der Dokumentauflösung nicht berücksichtigt');
+  }
+  assert.match(buildSource,/out\.push\(normalizeFallback\(entry\)\)/);
 });
 
 test('RC1460: Statusverlauf zeigt den ausführenden Benutzer',()=>{
