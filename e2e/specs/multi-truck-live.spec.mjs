@@ -129,8 +129,45 @@ async function completePickup(context,token,colli,pin,index){
       const input=document.getElementById('signatureData');
       input.value=data;
     });
+    // RC1605 P0: A successful driver signature may be saved while Team-State or
+    // immutable POD/archive readback is still pending. Exercise the existing
+    // PIN-authenticated, idempotent recovery instead of submitting another pickup.
+    const confirmResponse=pickup.waitForResponse(response=>
+      response.url().includes('/api/pickup-confirm-v2')&&response.request().method()==='POST',
+      {timeout:90_000}
+    );
     await pickup.locator('#confirm').click();
-    await expect(pickup.locator('body')).toContainText(/Abholung erfolgreich übertragen/i,{timeout:90_000});
+    const firstResponse=await confirmResponse;
+    expect(firstResponse.status(),'Erste Fahrerbestätigung muss persistent angenommen werden').toBe(200);
+    const first=await firstResponse.json();
+    expect(first?.ok).toBe(true);
+    expect(first?.complete).toBe(true);
+    expect(first?.signatureStored).toBe(true);
+    const fullySynced=data=>data?.teamStateSynced===true&&data?.teamStateSyncPending!==true&&
+      data?.oneTimeConsumed===true&&data?.podAzureSaved===true&&data?.podArchiveSaved===true;
+    if(!fullySynced(first)){
+      await expect(pickup.locator('#recoverySection'),'Vorhandenen gesicherten Pickup wiederaufnehmen, nicht neu bestätigen').toBeVisible({timeout:15_000});
+      const recoveryResponse=pickup.waitForResponse(response=>
+        response.url().includes('/api/pickup-confirm-v2')&&response.request().method()==='POST',
+        {timeout:90_000}
+      );
+      await pickup.locator('#recoveryPin').fill(pin);
+      await pickup.locator('#recoverPickup').click();
+      const response=await recoveryResponse;
+      const recovered=await response.json().catch(()=>({}));
+      const evidence={
+        http:response.status(),recovered:recovered?.recovered===true,
+        complete:recovered?.complete===true,signatureStored:recovered?.signatureStored===true,
+        teamStateSynced:recovered?.teamStateSynced===true,oneTimeConsumed:recovered?.oneTimeConsumed===true,
+        podAzureSaved:recovered?.podAzureSaved===true,podArchiveSaved:recovered?.podArchiveSaved===true,
+        podBackupStatus:String(recovered?.podBackupStatus||'').slice(0,60),
+        podBackupErrorCode:String(recovered?.podBackupError||'').split(':')[0].replace(/[^A-Za-z0-9_.-]/g,'').slice(0,80),
+        teamStateErrorCode:String(recovered?.teamStateSyncError||'').split(':')[0].replace(/[^A-Za-z0-9_.-]/g,'').slice(0,80)
+      };
+      expect(fullySynced(recovered),'RC1605 POD-Recovery muss Originalunterschrift, Team-State und Archiv ohne zweite Abholung sichern: '+JSON.stringify(evidence)).toBe(true);
+      expect(recovered.recovered,'Recovery darf keinen zweiten Pickup-Vorgang auslösen').toBe(true);
+    }
+    await expect(pickup.locator('body')).toContainText(/Abholung erfolgreich übertragen|Abholung vollständig abgeschlossen/i,{timeout:25_000});
   }finally{
     await pickup.close().catch(()=>{});
   }
