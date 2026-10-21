@@ -46,14 +46,14 @@ jobs:
           EXPORTHUB_E2E_PUBLIC_ENV: testservice
         run: npx playwright test e2e/specs/navigation.spec.mjs e2e/specs/notifications.spec.mjs e2e/specs/public-smoke.spec.mjs
 
-      - name: RC1591 Main-Vertrag vor zweiter Druckprüfung simulieren
+      - name: RC1592 Main-Vertrag vor zweiter Druckprüfung simulieren
         run: |
           node .github/rc1018/apply-public-language.mjs
           node .github/rc1018/fix-mail-wording.mjs
           npm test
           node .github/rc1112/build-three-env.mjs
 
-      - name: RC1591 Print-Signatur nach Main-Vertrag im echten Browser prüfen
+      - name: RC1592 Print-Signatur nach Main-Vertrag im echten Browser prüfen
         env:
           EXPORTHUB_E2E_STATIC: '1'
           EXPORTHUB_E2E_ENTRY: /demo.html
