@@ -109,7 +109,8 @@ test('RC1577: markierte PODs bleiben auf Abgeholt, bis der Admin sie freigibt',(
 
 test('RC1577: POD-Prüfung ist im Build und in allen sechs Sprachen enthalten',async()=>{
   const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
-  assert.match(build,/rc1577-pod-quality-audit\.js\?v=1577/);
+  assert.match(build,/rc1577-pod-quality-audit\.js\?v=1596/);
+  assert.match(build,/rc1596-pod-folder-reconnect\.js\?v=1596/);
   assert.match(build,/'assets\/rc1577-pod-quality-audit\.js',\n  'assets\/i18n\/rc1577-pod-quality-audit\.js',/);
   const sandbox={};
   new Function('window',fs.readFileSync('assets/i18n/rc1577-pod-quality-audit.js','utf8'))(sandbox);
@@ -117,6 +118,9 @@ test('RC1577: POD-Prüfung ist im Build und in allen sechs Sprachen enthalten',a
   assert.deepEqual(Object.keys(packs).sort(),['de','en','es','fr','it','pl']);
   for(const lang of Object.keys(packs))assert.deepEqual(Object.keys(packs[lang]).sort(),keys,lang+' unvollständig');
   const ui=fs.readFileSync('assets/rc1577-pod-quality-audit.js','utf8');
+  assert.match(ui,/response\.status===404/,'HTTP 404 muss als fehlender API-Rollout diagnostiziert werden');
+  assert.match(ui,/POD_AUDIT_API_NOT_DEPLOYED/,'404 darf nicht als POD-Datenfehler gemeldet werden');
+  for(const lang of Object.keys(packs))assert.match(packs[lang].apiMissing,/404/);
   for(const reason of ['OLD_LAYOUT','POD_NOT_READABLE','NO_POD_FILE','MULTI_TRUCK','REVIEW_FLAGGED','CURRENT_LAYOUT','MANUAL_UPLOAD','REGENERATE_FAILED'])assert.ok(packs.de['r_'+reason],reason);
   assert.match(ui,/if\(!w\.confirm\(t\('confirm'/,'Änderungen nur nach Bestätigung');
 });
