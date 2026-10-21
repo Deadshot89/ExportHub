@@ -9,7 +9,7 @@ const block=source.slice(start,end);
 
 test('P0 POD: signed loading-list layout is used in downloaded archive PDF',()=>{
   assert.ok(start>=0&&end>start,'POD PDF renderer missing');
-  for(const label of ['LADELISTE','Sendungsreferenz','Absender','Empfaenger / Kunde','Transport / Anmeldung','VERPACKUNG','SENDUNG ABGEHOLT','Fahrer','Kennzeichen','Verlader','Spedition','Fahrerunterschrift','Europaletten-Kontostand']){
+  for(const label of ['LADELISTE','Sendungsreferenz','Absender','Empfaenger / Kunde','Transport / Anmeldung','VERPACKUNG','SENDUNG ABGEHOLT','Fahrer','Kennzeichen','Verlader','Spedition','Fahrerunterschrift','PALETTENKONTO / EUR PALLETS']){
     assert.ok(block.includes(label),'Missing POD field: '+label);
   }
   assert.doesNotMatch(block,/LADELISTE \/ ABLIEFERNACHWEIS/,'POD is the signed loading list, not a separate document type');
@@ -26,7 +26,9 @@ test('P0 POD: table header has complete rectangle geometry',()=>{
 test('P0 POD: signature and customer fields are drawn as separate bordered cells',()=>{
   assert.match(block,/function card\(label, content, cx, top, w, h=57\)/);
   assert.match(block,/card\('Fahrerunterschrift','',signatureX,y,cellW,SIGNATURE_CARD_HEIGHT\)/);
-  assert.match(block,/card\('Europaletten-Kontostand'/);
+  assert.match(block,/PALETTENKONTO \/ EUR PALLETS/);
+  assert.match(block,/Aktueller Stand \/ Balance/);
+  assert.match(block,/Eingang \/ Return/);
   assert.match(block,/card\('Kennzeichen'/);
   assert.match(block,/card\('Verlader'/);
 });

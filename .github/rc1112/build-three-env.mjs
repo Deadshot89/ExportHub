@@ -69,7 +69,8 @@ const RC1570_TASKS_STYLE_TAG='<link id="exporthub-rc1570-tasks-style" rel="style
 const RC1570_TASKS_I18N_TAG='<script id="exporthub-rc1570-tasks-i18n" defer src="/assets/i18n/rc1570-tasks-focus.js?v=1570"></script>';
 const RC1570_TASKS_SCRIPT_TAG='<script id="exporthub-rc1570-tasks-script" defer src="/assets/rc1570-tasks-focus.js?v=1570"></script>';
 const RC1577_POD_AUDIT_I18N_TAG='<script id="exporthub-rc1577-pod-audit-i18n" defer src="/assets/i18n/rc1577-pod-quality-audit.js?v=1577"></script>';
-const RC1577_POD_AUDIT_SCRIPT_TAG='<script id="exporthub-rc1577-pod-audit-script" defer src="/assets/rc1577-pod-quality-audit.js?v=1577"></script>';
+const RC1577_POD_AUDIT_SCRIPT_TAG='<script id="exporthub-rc1577-pod-audit-script" defer src="/assets/rc1577-pod-quality-audit.js?v=1596"></script>';
+const RC1596_POD_FOLDER_SCRIPT_TAG='<script id="exporthub-rc1596-pod-folder-reconnect" defer src="/assets/rc1596-pod-folder-reconnect.js?v=1596"></script>';
 const RC1558_WORKSPACE_MARKER='window.__EXPORTHUB_RC885_CLEAN_WORKSPACE__ = true;';
 const RC1558_WORKSPACE_EXPORT="window.ExportHUBWorkspace885=Object.freeze({shipments:shipments,tasks:tasks,shipmentOpenList:shipmentOpenList,taskOpenList:taskOpenList,dueTask:dueTask,shipmentNeedsDocuments:shipmentNeedsDocuments,shipmentNeedsPickup:shipmentNeedsPickup,shipmentNeedsPod:shipmentNeedsPod,routeTo:routeTo});";
 const RC1328_MULTI_TRUCK_REFRESH_TAG='<script id="exporthub-rc1328-multi-truck-refresh" defer src="/assets/rc1328-multi-truck-ui-refresh.js?v=1333"><\/script>';
@@ -181,7 +182,8 @@ function patchRc1558DashboardOverview(html,file){
   // RC1577 admin POD audit (report first, regenerate / review flag only after confirmation)
   html=injectDeferredRuntimeInHead(html,RC1577_POD_AUDIT_I18N_TAG,'exporthub-rc1577-pod-audit-i18n');
   html=injectDeferredRuntimeInHead(html,RC1577_POD_AUDIT_SCRIPT_TAG,'exporthub-rc1577-pod-audit-script');
-  if(!html.includes('i18n/rc1577-pod-quality-audit.js?v=1577')||!html.includes('/assets/rc1577-pod-quality-audit.js?v=1577'))throw new Error(file+': RC1577 POD-Prüfung fehlt');
+  html=injectDeferredRuntimeInHead(html,RC1596_POD_FOLDER_SCRIPT_TAG,'exporthub-rc1596-pod-folder-reconnect');
+  if(!html.includes('i18n/rc1577-pod-quality-audit.js?v=1577')||!html.includes('/assets/rc1577-pod-quality-audit.js?v=1596')||!html.includes('/assets/rc1596-pod-folder-reconnect.js?v=1596'))throw new Error(file+': RC1577 POD-Prüfung fehlt');
   return html;
 }
 
@@ -1298,6 +1300,7 @@ for(const rel of [
   'assets/rc1570-tasks-focus.js',
   'assets/i18n/rc1570-tasks-focus.js',
   'assets/rc1577-pod-quality-audit.js',
+  'assets/rc1596-pod-folder-reconnect.js',
   'assets/i18n/rc1577-pod-quality-audit.js',
   'assets/rc1460-shipment-view-files-avis-preview.js',
   'assets/i18n/av-upload.js',

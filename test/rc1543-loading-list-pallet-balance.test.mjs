@@ -94,7 +94,7 @@ test('RC1543: konkrete Ladelistenauswahl sichert den Kontostand im Hauptkontext 
 
 test('RC1543: Basisbuild lädt und kopiert den Print-Helper vor der späteren Ladelistensuche',()=>{
   assert.match(baseBuildSource,/exporthub-document-print-name/,'RC1048-Basisbuild muss den gemeinsamen Print-Helper als Runtime einbinden');
-  assert.match(baseBuildSource,/document-print-name\.js\?v=1543/,'RC1543 braucht einen eigenen Cache-Key für den Print-Helper');
+  assert.match(baseBuildSource,/document-print-name\.js\?v=1594/,'RC1543 braucht einen eigenen Cache-Key für den Print-Helper');
   assert.match(baseBuildSource,/assets\/document-print-name\.js/,'RC1048-Basisbuild muss den Print-Helper in das Build-Artefakt kopieren');
   assert.match(buildSource,/const SRC=path\.join\(ROOT,'dist-rc1048'\)/,'RC1112 muss weiterhin auf dem RC1048-Basisbuild aufsetzen');
   assert.match(buildSource,/assets\/rc1283-loading-list-search\.js\?v=1305/,'RC1112 muss die Ladelistensuche weiterhin einbinden');
@@ -130,4 +130,17 @@ test('RC1580: Kompaktes Druckfeld zeigt nur Stand und Eingang ohne Ausgangsbeweg
   assert.ok(source.includes('Aktueller Stand / Balance'));
   assert.ok(source.includes('Eingang / Return'));
   assert.doesNotMatch(source,/small\.textContent=movement/);
+});
+
+
+test('RC1594: aktualisierte Palettenkonto-Druckruntime wird nicht aus altem Browsercache geladen',()=>{
+  const config=JSON.parse(fs.readFileSync('staticwebapp.config.json','utf8'));
+  const route=(config.routes||[]).find(x=>x.route==='/assets/document-print-name.js');
+  assert.ok(route,'dedizierte Cache-Regel für Ladelisten-Print-Helper fehlt');
+  assert.match(String(route.headers&&route.headers['Cache-Control']||''),/no-store/);
+  const testservice=JSON.parse(fs.readFileSync('staticwebapp.testservice.config.json','utf8'));
+  const testRoute=(testservice.routes||[]).find(x=>x.route==='/assets/document-print-name.js');
+  assert.ok(testRoute,'TESTSERVICE-Druckhelper benötigt ebenfalls eine Cache-Regel');
+  assert.match(String(testRoute.headers&&testRoute.headers['Cache-Control']||''),/no-store/);
+  assert.match(baseBuildSource,/document-print-name\.js\?v=1594/);
 });

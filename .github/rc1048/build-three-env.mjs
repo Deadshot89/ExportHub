@@ -36,7 +36,7 @@ const RC1092_CONTACTS_TAG='<script id="'+RC1092_CONTACTS_ID+'" defer src="/asset
 const RC1096_PACKAGING_ID='exporthub-rc1096-packaging-groups';
 const RC1096_PACKAGING_TAG='<script id="'+RC1096_PACKAGING_ID+'" defer src="/assets/rc1096-packaging-groups.js?v=1110"></script>';
 const RC1543_PRINT_HELPER_ID='exporthub-document-print-name';
-const RC1543_PRINT_HELPER_TAG='<script id="'+RC1543_PRINT_HELPER_ID+'" defer src="/assets/document-print-name.js?v=1543"></script>';
+const RC1543_PRINT_HELPER_TAG='<script id="'+RC1543_PRINT_HELPER_ID+'" defer src="/assets/document-print-name.js?v=1594"></script>';
 
 function replaceBetween(source,start,end,replacement,label){
   const a=source.indexOf(start),b=a>=0?source.indexOf(end,a+start.length):-1;
@@ -520,7 +520,7 @@ function patchHtml(file,canonicalPrintStow,canonicalController){
   html=patchLoginScreenStatus(html,file);
   if(!html.includes(`version:'${VERSION}'`))throw new Error(file+': BUILD '+VERSION+' fehlt');
   if(!html.includes(`ExportHUB ${VERSION} environment=`))throw new Error(file+': Environment '+VERSION+' fehlt');
-  if(!html.includes('assets/document-print-name.js?v=1543'))throw new Error(file+': RC1543 Dokument-Druckhelper fehlt');
+  if(!html.includes('assets/document-print-name.js?v=1594'))throw new Error(file+': RC1543 Dokument-Druckhelper fehlt');
   fs.writeFileSync(target,html);
 }
 

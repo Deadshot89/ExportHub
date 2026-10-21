@@ -24,6 +24,16 @@
       "rewrite": "/TESTVERSION.html"
     },
     {
+      "route": "/assets/document-print-name.js",
+      "allowedRoles": [
+        "anonymous"
+      ],
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+        "X-ExportHUB-Environment": "test"
+      }
+    },
+    {
       "route": "/test",
       "rewrite": "/TESTVERSION.html",
       "allowedRoles": [

@@ -32,13 +32,16 @@ for(const rowsCount of [1,12]){
           const box=el=>{const r=el.getBoundingClientRect();return{left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height}};
           const label=el=>String((el.querySelector('.rc390-label,th')||el).textContent||'').replace(/\s+/g,' ').trim().slice(0,40);
           const page=node.matches('.rc390-load')?node:node.querySelector('.rc390-load');
+          // RC1595: simulate an archived POD without the single-page marker. The bottom tiles
+          // must still be in normal flow after pickup print enhancement, never absolute.
+          if(page&&n>=12)page.removeAttribute('data-rc1547-single-page');
           const out=node.ownerDocument.createElement('canvas');out.width=1588;out.height=2246;
           if(!page)return out;
           const tiles=[...node.querySelectorAll('.rc390-bottom .rc390-sign')].map(el=>({label:label(el),box:box(el)}));
           const content=[...page.querySelectorAll('.rc390-card,.rc390-box,table,[data-rc1305-documents],[data-rc1305-remark]')]
             .filter(el=>!el.closest('.rc390-bottom')).map(el=>({label:label(el),box:box(el)})).filter(x=>x.box.width>2&&x.box.height>2);
           const grid=page.querySelector('[data-rc1504-document-columns]');
-          measured={page:box(page),tiles,content,gridColumns:grid?getComputedStyle(grid).gridTemplateColumns.split(' ').filter(Boolean).length:0,
+          measured={page:box(page),tiles,content,legacyMarkerRemoved:n>=12?(!page.hasAttribute('data-rc1547-single-page')):null,footerInFlow:!!page.querySelector('.rc390-bottom[data-rc1595-footer-in-flow="1"]'),gridColumns:grid?getComputedStyle(grid).gridTemplateColumns.split(' ').filter(Boolean).length:0,
             gridDisplay:grid?getComputedStyle(grid).display:''};
           return out;
         };
@@ -56,6 +59,8 @@ for(const rowsCount of [1,12]){
     expect(result.measured,'POD-PDF-Rahmen wurde nicht gerendert').toBeTruthy();
     const {page:pageBox,tiles,content}=result.measured;
     expect(tiles.length,'Untere Kacheln fehlen').toBeGreaterThanOrEqual(6);
+    expect(result.measured.footerInFlow,'Unterschriftenkacheln sind nicht als flex footer im Dokumentfluss fixiert').toBe(true);
+    if(rowsCount>=12)expect(result.measured.legacyMarkerRemoved,'POD wird bewusst ohne alte Fit-Markierung vermessen').toBe(true);
     expect(content.length,'Inhaltsblöcke fehlen').toBeGreaterThanOrEqual(4);
     const lowestContent=Math.max(...content.map(c=>c.box.bottom));
     for(const tile of tiles){

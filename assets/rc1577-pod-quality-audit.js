@@ -37,7 +37,7 @@ async function call(payload){
  if(token){headers['X-ExportHUB-Token']=token;headers.Authorization='Bearer '+token}
  var response=await w.fetch(ENDPOINT,{method:'POST',credentials:'same-origin',cache:'no-store',headers:headers,body:JSON.stringify(Object.assign({action:'report'},payload||{}))});
  var text=await response.text(),data={};try{data=text?JSON.parse(text):{}}catch(_){data={message:text}}
- if(!response.ok||data.ok===false){var e=new Error(q(data.message)||('HTTP '+response.status));e.code=q(data.code);throw e}
+ if(!response.ok||data.ok===false){var unavailable=response.status===404;var e=new Error(unavailable?t('apiMissing'):(q(data.message)||('HTTP '+response.status)));e.code=unavailable?'POD_AUDIT_API_NOT_DEPLOYED':q(data.code);e.status=response.status;throw e}
  return data
 }
 
@@ -98,6 +98,7 @@ function render(){
  var html='',ok=byVerdict('ok').length,todoRegenerate=byVerdict('regenerate').length,todoReview=byVerdict('review').length;
  html+='<p data-rc1577-ok-count="'+ok+'">'+esc(t('okCount',{count:ok}))+'</p>';
  ['regenerate','review','manual','flagged'].forEach(function(verdict){var list=byVerdict(verdict);if(!list.length)return;html+='<div class="rc1577-group" data-verdict="'+verdict+'"><h3>'+esc(t('v_'+verdict))+' ('+list.length+')</h3>'+table(list,verdict==='flagged')+'</div>'});
+ if(rows.length===1&&rows[0].verdict==='ok'&&rows[0].reason==='CURRENT_LAYOUT')html+='<div class="rc1577-actions"><button type="button" class="ghost" id="rc1577PodAuditForce">'+esc(t('forceRegenerate'))+'</button></div>';
  if(todoRegenerate||todoReview)html+='<div class="rc1577-actions"><button type="button" class="primary" id="rc1577PodAuditApply">'+esc(t('apply',{regenerate:todoRegenerate,review:todoReview}))+'</button></div>';
  else if(!byVerdict('manual').length&&!byVerdict('flagged').length)html+='<p>'+esc(t('nothing'))+'</p>';
  box.innerHTML=html
@@ -110,6 +111,21 @@ async function scan(){
   setStatus(stopRequested?t('stopped'):'');
  }catch(e){setStatus(t('error',{message:q(e&&e.message)}))}
  finally{busy=false;render()}
+}
+async function scanReference(){
+ if(busy)return;
+ var input=d.getElementById('rc1577PodAuditReference'),reference=q(input&&input.value).toUpperCase();
+ if(!/^[A-Z0-9]{6}$/.test(reference)){setStatus(t('invalidReference'));return;}
+ busy=true;stopRequested=false;rows=[];render();
+ try{var data=await call({references:[reference]});rows=arr(data.rows);setStatus(rows.length?'':t('notFound'))}
+ catch(e){setStatus(t('error',{message:q(e&&e.message)}))}
+ finally{busy=false;render()}
+}
+function forceRegenerate(){
+ // Merely queue a re-render in the report; no POD file is overwritten without apply()'s confirmation.
+ if(busy||rows.length!==1||rows[0].verdict!=='ok'||rows[0].reason!=='CURRENT_LAYOUT')return;
+ rows[0].verdict='regenerate';rows[0].reason='FORCE_REGENERATE';
+ setStatus(t('forceQueued'));render();
 }
 async function apply(){
  if(busy)return;
@@ -134,7 +150,7 @@ function open(){
  style();close();stopRequested=false;
  var m=d.createElement('div');m.id=MODAL_ID;m.setAttribute('role','dialog');m.setAttribute('aria-modal','true');
  m.innerHTML='<div class="rc1577-card"><div class="rc1577-head"><h2>'+esc(t('title'))+'</h2><button type="button" class="ghost" data-rc1577-close="1">'+esc(t('close'))+'</button></div>'+
-  '<p>'+esc(t('intro'))+'</p><div class="rc1577-actions"><button type="button" class="primary" id="rc1577PodAuditStart">'+esc(rows.length?t('rescan'):t('start'))+'</button><button type="button" class="ghost" id="rc1577PodAuditStop">'+esc(t('stop'))+'</button></div>'+
+  '<p>'+esc(t('intro'))+'</p><div class="rc1577-actions"><input id="rc1577PodAuditReference" type="text" inputmode="text" maxlength="6" autocomplete="off" aria-label="'+esc(t('referenceInput'))+'" placeholder="'+esc(t('referenceInput'))+'"/><button type="button" class="ghost" id="rc1577PodAuditScanRef">'+esc(t('scanReference'))+'</button></div><div class="rc1577-actions"><button type="button" class="primary" id="rc1577PodAuditStart">'+esc(rows.length?t('rescan'):t('start'))+'</button><button type="button" class="ghost" id="rc1577PodAuditStop">'+esc(t('stop'))+'</button></div>'+
   '<div class="rc1577-status" aria-live="polite"></div><div class="rc1577-result"></div></div>';
  d.body.appendChild(m);render();return true
 }
@@ -150,11 +166,13 @@ d.addEventListener('click',function(e){
  if(!target.closest('#'+MODAL_ID))return;
  if(target.closest('[data-rc1577-close]')){close();return}
  if(target.closest('#rc1577PodAuditStart')){scan();return}
+ if(target.closest('#rc1577PodAuditScanRef')){scanReference();return}
+ if(target.closest('#rc1577PodAuditForce')){forceRegenerate();return}
  if(target.closest('#rc1577PodAuditStop')){stopRequested=true;return}
  if(target.closest('#rc1577PodAuditApply')){apply();return}
  var rel=target.closest('[data-rc1577-release]');
  if(rel){var reference=q(rel.getAttribute('data-rc1577-release'));if(release(reference)){rows=rows.filter(function(r){return r.reference!==reference});render();setStatus(t('released',{reference:reference}))}else setStatus(t('notFound'))}
 },true);
 try{new MutationObserver(injectButton).observe(d.documentElement,{childList:true,subtree:true})}catch(_){}
-w.ExportHUBPodQualityAudit=Object.freeze({version:VERSION,open:open,scan:scan,apply:apply,release:release,flagForReview:flagForReview,rows:function(){return rows.slice()}});
+w.ExportHUBPodQualityAudit=Object.freeze({version:VERSION,open:open,scan:scan,scanReference:scanReference,forceRegenerate:forceRegenerate,apply:apply,release:release,flagForReview:flagForReview,rows:function(){return rows.slice()}});
 })(typeof window!=='undefined'?window:null,typeof document!=='undefined'?document:null);
