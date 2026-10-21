@@ -17,6 +17,7 @@ test('RC1597 P0: POD audit is exposed under /api/pod-quality-audit, not packagin
  const packaging=routeFor('packaging-admin');
  assert.equal(pod.route,'pod-quality-audit');
  assert.notEqual(pod.route,packaging.route,'POD-Audit und Verpackungsadmin duerfen nie dieselbe Azure Route verwenden');
+ assert.ok(pod.methods.includes('get'),'GET must reach the function for the unauthenticated 405 probe');
  assert.ok(pod.methods.includes('post'),'POD Audit accepts POST');
  assert.ok(pod.methods.includes('options'),'CORS OPTIONS is supported');
  const ui=fs.readFileSync('assets/rc1577-pod-quality-audit.js','utf8');
@@ -30,9 +31,12 @@ test('RC1597 P0: testservice and production release block an unbound POD audit r
  const main=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
  const prod=fs.readFileSync('.github/workflows/exporthub-production-release.yml','utf8');
  for(const [env,workflow] of [['testservice',main],['production',prod]]){
-  assert.match(workflow,/RC1597 POD-Audit-API Live-Routing/,'Missing '+env+' POD route smoke');
+  assert.match(workflow,/RC1598 POD-Audit-API Live-Routing/,'Missing '+env+' POD route smoke');
   assert.match(workflow,/\/api\/pod-quality-audit/,'Missing '+env+' POD route smoke URL');
-  assert.match(workflow,/response\.status|\$status|http_code/,'Missing HTTP code test '+env);
+  assert.match(workflow,/http_code/,'Missing HTTP code test '+env);
+  assert.match(workflow,/METHOD_NOT_ALLOWED/,'GET probe must prove the POD function answered '+env);
+  assert.match(workflow,/data\.version!=='RC1577'/,'Live response must be from the expected function '+env);
+  assert.match(workflow,/\[ \"\$status\" != \"401\" \]/,'POST without admin session must be rejected '+env);
   assert.match(workflow,/POD_AUDIT_ROUTE_MISSING|POD_AUDIT_ROUTE_FAILURE/,'Missing route-specific failure '+env);
  }
 });
