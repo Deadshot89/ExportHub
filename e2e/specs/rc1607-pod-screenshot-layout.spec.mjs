@@ -32,13 +32,13 @@ test('RC1607 P0: signed original from actual loadHtml fits below four DNCs witho
         const cards=[...node.querySelectorAll('.rc390-bottom .rc390-sign')];
         measured={
           footer:footer&&rect(footer),previous:list&&rect(list),
-          qrDisplay:footer&&getComputedStyle.call(w,footer.querySelector('.rc390-qrslot')).display,
+          qrDisplay:footer&&w.getComputedStyle(footer.querySelector('.rc390-qrslot')).display,
           columns:footer&&w.getComputedStyle(footer).gridTemplateColumns,
           cards:cards.map(card=>({
             label:(card.querySelector('.rc390-label')?.textContent||'').trim(),
             rect:rect(card),text:(card.innerText||'').trim().replace(/\s+/g,' '),
             legacyLines:[...card.querySelectorAll('.rc390-line,.rc390-hint')].filter(x=>w.getComputedStyle(x).display!=='none').length,
-            images:[...card.querySelectorAll('img.index352-proof-signature,img.rc1305-signature-image')].filter(img=>w.getComputedStyle(img).display!=='none').map(rect)
+            images:[...card.querySelectorAll('img.index352-proof-signature,img.rc1305-signature-image')].filter(img=>img.getClientRects().length>0).map(rect)
           })),
           notes:[...node.querySelectorAll('.rc390-chip')].map(el=>el.textContent.trim()),
           pages:[...node.ownerDocument.querySelectorAll('.rc390-load')].length
