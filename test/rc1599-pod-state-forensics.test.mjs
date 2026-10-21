@@ -138,3 +138,13 @@ test('RC1608: disappearing collection copy is included in manual-review count', 
   assert.equal(report.changes.missingCollectionCopiesAfter, 1);
   assert.equal(report.structuralReviewRequired, true);
 });
+
+test('RC1608: after-only duplicated references still require structural review', () => {
+  const before = make();
+  const after = make([shipment('NEWDUPE', 'POD vorhanden'), shipment('NEWDUPE', 'Abgeholt')]);
+  const report = compareTeamStateSnapshots(before, after);
+  assert.equal(report.changes.referencesNewAfter, 1);
+  assert.equal(report.after.ambiguousDuplicateReferences, 1);
+  assert.equal(report.structuralReviewRequired, true);
+  assert.ok(!JSON.stringify(report).includes('NEWDUPE'));
+});
