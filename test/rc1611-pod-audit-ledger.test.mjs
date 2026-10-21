@@ -50,7 +50,7 @@ test('RC1611: incomplete coverage and absent final batch fail closed',()=>{
 test('RC1611: missing verified backup, malformed JSON and inconsistent counters are rejected',()=>{
   const b=batch(1,0,null,[affected('A')]);
   assert.throws(()=>summarizePodAuditLog(synthetic([{...b,backup:{name:b.backup.name,verified:false}}])),/verified pre-mutation/);
-  assert.throws(()=>summarizePodAuditLog(synthetic([{...b,downloadable:9}])),/totals do not reconcile/);
+  assert.throws(()=>summarizePodAuditLog(synthetic([{...b,downloadable:9}])),/Audit counters differ within a batch/);
   assert.throws(()=>summarizePodAuditLog('PRODUCTION POD integrity audit {bad-json'),/Malformed/);
 });
 
@@ -58,4 +58,21 @@ test('RC1611: source inputs are never mutated and no Azure calls occur',()=>{
   const x=[batch(1,0,null,[affected('A')])],before=JSON.stringify(x);
   summarizePodAuditLog(synthetic(x));
   assert.equal(JSON.stringify(x),before);
+});
+
+test('RC1611: different batches cannot offset incorrect counts to fake complete review',()=>{
+  const first=batch(1,0,7,[affected('FIRST')]),second=batch(2,7,null,[affected('SECOND')]);
+  // Global sums are still balanced (2 extra readable and 2 missing in next),
+  // yet neither individual batch is consistent with its own checked value.
+  const inconsistent=[
+    {...first,downloadable:first.downloadable+1,checked:first.checked},
+    {...second,downloadable:second.downloadable-1,checked:second.checked}
+  ];
+  assert.throws(()=>summarizePodAuditLog(synthetic(inconsistent)),/Audit counters differ within a batch/);
+});
+
+test('RC1611: repeated backup blob name across batches is never accepted as 2 snapshots',()=>{
+  const first=batch(1,0,7,[affected('FIRST')]),second=batch(2,7,null,[affected('SECOND')]);
+  const duplicatedBackup={...second,backup:{...second.backup,name:first.backup.name}};
+  assert.throws(()=>summarizePodAuditLog(synthetic([first,duplicatedBackup])),/Repeated pre-mutation backup/);
 });
