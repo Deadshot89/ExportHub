@@ -37,7 +37,7 @@ async function call(payload){
  if(token){headers['X-ExportHUB-Token']=token;headers.Authorization='Bearer '+token}
  var response=await w.fetch(ENDPOINT,{method:'POST',credentials:'same-origin',cache:'no-store',headers:headers,body:JSON.stringify(Object.assign({action:'report'},payload||{}))});
  var text=await response.text(),data={};try{data=text?JSON.parse(text):{}}catch(_){data={message:text}}
- if(!response.ok||data.ok===false){var e=new Error(q(data.message)||('HTTP '+response.status));e.code=q(data.code);throw e}
+ if(!response.ok||data.ok===false){var unavailable=response.status===404;var e=new Error(unavailable?t('apiMissing'):(q(data.message)||('HTTP '+response.status)));e.code=unavailable?'POD_AUDIT_API_NOT_DEPLOYED':q(data.code);e.status=response.status;throw e}
  return data
 }
 
