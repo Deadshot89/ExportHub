@@ -74,7 +74,7 @@ test('RC1305: eine ausdrückliche Dokumentöffnung wird weiterhin protokolliert'
 
 test('RC1305: Sendungsansicht verbindet Ref-Ordner, gespeicherte Anhänge und Blob-Dokumente',()=>{
   assert.match(buildSource,/function mergeReferenceDocs\(live,fallback\)/);
-  assert.match(buildSource,/fallback=arr\(fallback\)\.concat\(extra\)\.filter\(Boolean\)\.filter\(fallbackDocUsable\)/);
+  assert.match(buildSource,/fallback=shipmentAssociatedDocs\(sh,fallback\)/);
   assert.match(buildSource,/ExportHUBDocumentBlob1059/);
   assert.match(buildSource,/source==='combined'/);
   assert.match(buildSource,/Ref-Ordner \+ gespeicherte Anhänge/);
@@ -97,9 +97,13 @@ test('RC1305: Build-Skript bleibt syntaktisch gültig und lädt die History mit 
 });
 
 
-test('RC1460: Sendungsansicht sammelt Anhänge aus allen fachlichen Datei-Feldern',()=>{
-  assert.match(buildSource,/deliveryFiles','deliveryNotesFiles','lieferscheine','files','attachments','abdFiles','podFiles','cmrFiles','photos','pickupPhotos','containerPhotos/);
-  assert.match(buildSource,/extra\.push\(normalizeFallback\(file\)\)/);
+test('RC1460: Sendungsansicht berücksichtigt alle fachlichen Datei-Felder',()=>{
+  assert.match(buildSource,/function shipmentAssociatedDocs\(sh,prior\)/);
+  assert.match(buildSource,/fallback=shipmentAssociatedDocs\(sh,fallback\)/);
+  for(const field of ['deliveryFiles','deliveryNotesFiles','lieferscheine','files','attachments','abdFiles','podFiles','invoiceFiles','cmrFiles','photos','pickupPhotos','containerPhotos']){
+    assert.ok(buildSource.includes(field),field+' wird von der Dokumentauflösung nicht berücksichtigt');
+  }
+  assert.match(buildSource,/out\.push\(normalizeFallback\(entry\)\)/);
 });
 
 test('RC1460: Statusverlauf zeigt den ausführenden Benutzer',()=>{
@@ -123,4 +127,87 @@ test('RC1460: zentrale Dateivorschau unterstützt PDF und Bilder',()=>{
 
 test('RC1460: Build lädt die neue Runtime',()=>{
   assert.match(buildSource,/rc1460-shipment-view-files-avis-preview\.js\?v=1460/);
+});
+
+
+test('Sendungsansicht: gespeicherte Kopien, verknüpfte ABD-Rechnungen und Packtischdokumente werden gefunden',()=>{
+  const match=buildSource.match(/const docHelpers=`([\s\S]*?)`;/);
+  assert.ok(match,'Dokument-Helfer fehlen im Build');
+  const shipment={id:'SHIP-9Z7L82',ref:'9Z7L82'};
+  const state={
+    shipments:[shipment],
+    savedShipments:[{id:'SHIP-9Z7L82',ref:'9Z7L82',deliveryFiles:[{name:'SIDE250071804.pdf',storage:'blob',blobName:'persisted-delivery'}]}],
+    abdRequests:[
+      {id:'ABD-9Z7L82',ref:'9Z7L82',invoiceFiles:[{name:'Rechnung_9Z7L82.pdf',storage:'blob',blobName:'persisted-invoice'}]},
+      {id:'ABD-OTHER',ref:'OTHER1',invoiceFiles:[{name:'FREMDE_Rechnung.pdf',storage:'blob',blobName:'other'}]}
+    ],
+    packNotifications:[{id:'PACK-1',shipmentId:'SHIP-9Z7L82',documents:[{name:'Packtisch_Lieferschein.pdf',storage:'blob',blobName:'packing-note'}]}]
+  };
+  const keys=['deliveryFiles','invoiceFiles','documents','attachments'];
+  const context={
+    window:{ExportHUBDocumentBlob1059:{isBlobDocument:file=>file&&file.storage==='blob'&&!!file.blobName}},
+    arr:v=>Array.isArray(v)?v:[],
+    q:v=>String(v==null?'':v).trim(),
+    low:v=>String(v==null?'':v).trim().toLowerCase(),
+    refOf:sh=>String(sh&&(sh.ref||sh.reference||sh.shipmentRef)||'').toUpperCase(),
+    idOf:sh=>String(sh&&(sh.id||sh.shipmentId)||''),
+    roots:()=>[state],
+    state:()=>state,
+    fileName:(file,fallback)=>file&&file.name||fallback,
+    fileUrl:file=>file&&file.url||'',
+    normalizeFallback:d=>Object.assign({source:'shipmentState'},d),
+    collectDocs:sh=>keys.flatMap(key=>(Array.isArray(sh&&sh[key])?sh[key]:[]).map(file=>({file,name:file.name,group:key,url:file.url||''})))
+  };
+  vm.runInNewContext(match[1],context,{filename:'generated-shipment-doc-helpers.js'});
+  const docs=context.shipmentAssociatedDocs(shipment,[]);
+  const names=docs.map(d=>d.name).sort();
+  assert.deepEqual(names,['Packtisch_Lieferschein.pdf','Rechnung_9Z7L82.pdf','SIDE250071804.pdf']);
+  assert.equal(names.includes('FREMDE_Rechnung.pdf'),false);
+});
+
+test('Sendungsansicht: nur gespeicherte Dateimetadaten zählen nicht als öffnungsfähige Datei',()=>{
+  const match=buildSource.match(/const docHelpers=`([\s\S]*?)`;/);
+  assert.ok(match);
+  const state={shipments:[],savedShipments:[],abdRequests:[]};
+  const context={
+    window:{ExportHUBDocumentBlob1059:{isBlobDocument:()=>false}},
+    arr:v=>Array.isArray(v)?v:[],
+    q:v=>String(v==null?'':v).trim(),
+    low:v=>String(v==null?'':v).trim().toLowerCase(),
+    refOf:sh=>String(sh&&sh.ref||'').toUpperCase(),
+    idOf:sh=>String(sh&&sh.id||''),
+    roots:()=>[state],state:()=>state,
+    fileName:(file,fallback)=>file&&file.name||fallback,
+    fileUrl:()=>'',normalizeFallback:d=>d,
+    collectDocs:()=>[{name:'Nur-Name.pdf',file:{name:'Nur-Name.pdf'},url:''}]
+  };
+  vm.runInNewContext(match[1],context);
+  assert.equal(context.shipmentAssociatedDocs({id:'S',ref:'ABC123'},[]).length,0);
+});
+
+test('Blob-Dokumente werden vom Release-Build auch ohne direkte URL öffnungsfähig gemacht',()=>{
+  const baseline=fs.readFileSync('dist-rc1048/index.html','utf8');
+  const start=baseline.indexOf('function openDoc(index){');
+  const end=baseline.indexOf('function downloadDoc(index)',start);
+  assert.ok(start>=0&&end>start,'Dokumentenöffnung fehlt in der Release-Basis');
+  const legacy=buildSource.match(/const legacyBlobOpenGuard="([^"]+)";/);
+  const corrected=buildSource.match(/const fixedBlobOpenGuard="([^"]+)";/);
+  assert.ok(legacy&&corrected,'Build-Transformation zum Öffnen von Blob-Dateien fehlt');
+  const block=baseline.slice(start,end);
+  assert.ok(block.includes(legacy[1]),'Der ursprünglich zu ersetzende Guard wurde nicht gefunden');
+  const transformed=block.replace(legacy[1],corrected[1]);
+  assert.ok(transformed.includes('fallbackDocUsable(d)'),'Der korrigierte Guard wurde nicht eingesetzt');
+  assert.equal(transformed.includes(legacy[1]),false,'Der alte URL-only-Guard ist noch aktiv');
+  let opened=null,alerts=0;
+  const doc={name:'Rechnung.pdf',file:{storage:'blob',blobName:'rc1059/production/ab/'+'a'.repeat(64)}};
+  const sandbox={
+    currentDocs:()=>[doc],
+    fallbackDocUsable:d=>Boolean(d&&d.file&&d.file.storage==='blob'),
+    routeViewer:(d,print)=>{opened={name:d.name,print};return true},
+    alert:()=>{alerts++}
+  };
+  vm.runInNewContext(transformed,sandbox,{filename:'shipment-document-open.js'});
+  assert.equal(sandbox.openDoc(0),true);
+  assert.deepEqual(opened,{name:'Rechnung.pdf',print:false});
+  assert.equal(alerts,0);
 });

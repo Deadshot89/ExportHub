@@ -87,8 +87,13 @@ test('RC1555 production smoke: verschachtelte POD-Abholkarten zeigen nur die neu
     const enhanced=api.enhance(raw,shipment,true);
     document.body.classList.remove('print-docs-only');
     document.body.classList.add('print-rc390');
-    document.body.innerHTML='<div id="rc576DocumentStage" class="rc390-docview" data-doc="load1">'+
-      '<div class="rc390-bundle">'+enhanced+'</div></div>';
+    // Match documentHtml()/hubHtml(): the stage contains the document view.
+    // Assigning .rc390-docview to the stage itself bypasses production selectors
+    // and can hide the entire print tree in the full main-release build.
+    document.body.innerHTML='<div id="app" class="app"><main class="main"><div id="content">'+
+      '<div id="rc576DocumentHub"><div id="rc576DocumentStage" data-doc="load1">'+
+      '<div class="rc390-docview" data-rc601-doc="load1" data-rc616-doc="load1">'+
+      '<div class="rc390-bundle">'+enhanced+'</div></div></div></div></div></main></div>';
     // Layout erst nach dem Paint-Zyklus prüfen: CSS, Fonts und die Druck-Ansicht
     // müssen vollständig berechnet sein. Fehlende Sichtbarkeit bleibt ein Fehler.
     await document.fonts.ready;
@@ -103,6 +108,8 @@ test('RC1555 production smoke: verschachtelte POD-Abholkarten zeigen nur die neu
     return {
       fieldCount:fields.length,
       printStage:root.closest('#rc576DocumentStage')?.getAttribute('data-doc')||'',
+      printStageDisplay:getComputedStyle(document.querySelector('#rc576DocumentStage')).display,
+      printViewDisplay:getComputedStyle(document.querySelector('#rc576DocumentStage > .rc390-docview')).display,
       printPageDisplay:getComputedStyle(root).display,
       printPageHeight:root.getBoundingClientRect().height,
       printAncestorDiagnostics:(()=>{
@@ -133,6 +140,8 @@ test('RC1555 production smoke: verschachtelte POD-Abholkarten zeigen nur die neu
 
   expect(layout.fieldCount).toBe(6);
   expect(layout.printStage,'Ladeliste muss im echten Dokumentstage als aktiv markiert sein').toBe('load1');
+  expect(layout.printStageDisplay,'Äußerer Dokumentstage darf nicht unsichtbar sein').not.toBe('none');
+  expect(layout.printViewDisplay,'Innere Dokumentansicht darf nicht unsichtbar sein').not.toBe('none');
   expect(layout.printPageDisplay,'Aktive Ladeliste darf im Druck nicht ausgeblendet sein').not.toBe('none');
   expect(layout.printPageHeight,'Aktive Ladeliste muss eine sichtbare Höhe besitzen; Layout-Diagnose: '+JSON.stringify(layout.printAncestorDiagnostics)).toBeGreaterThan(0);
   expect(layout.outerCards).toBe(true);
@@ -145,6 +154,55 @@ test('RC1555 production smoke: verschachtelte POD-Abholkarten zeigen nur die neu
   expect(layout.imageHeight).toBeLessThanOrEqual(58);
   expect(layout.maxCardHeight).toBeLessThanOrEqual(120);
   expect(layout.bodyText).not.toMatch(/ALTE UNTERSCHRIFT|ALTER FAHRER|ALTES DATUM|ALTES KENNZEICHEN|ALTER VERLADER|ALTER ERSATZBLOCK|Alter Hilfetext|Ausgang:\s*99/i);
+  // RC1592: Die separate Abholkontrolle darf nur bei tatsächlich vorhandenem
+  // Overlay den Rest der Druckseite ausblenden; Ladelisten bleiben sonst sichtbar.
+  // Die Abholkontrolle ist im echten Produkt bedarfsweise geladen.
+  // Ihr separater Druckmodus wird erst geprüft, wenn die echte Runtime
+  // ihre Print-CSS-Regeln installiert hat.
+  if(!await page.evaluate(()=>!!window.ExportHUBRC1546PickupControl)){
+    await page.addScriptTag({url:'/assets/rc1546-pickup-control.js'});
+  }
+  await page.evaluate(()=>window.ExportHUBRC1546PickupControl.render());
+  await expect.poll(()=>page.evaluate(()=>!!document.getElementById('exporthub-rc1546-style'))).toBe(true);
+  // RC1592: Nach Laden der echten Abholkontroll-CSS normale Druckansicht prüfen.
+  const normalPrint=await page.evaluate(()=>{
+    const stage=document.getElementById('rc576DocumentStage');
+    const signature=stage?.querySelector('.rc1503-signature-value');
+    return{
+      overlayCount:document.querySelectorAll('body > .rc1546-overlay').length,
+      stageDisplay:stage?getComputedStyle(stage).display:'missing',
+      stageHeight:stage?stage.getBoundingClientRect().height:0,
+      signatureHeight:signature?signature.getBoundingClientRect().height:0
+    };
+  });
+  expect(normalPrint.overlayCount,'Ohne geöffnete Abholkontrolle darf kein Druck-Overlay existieren').toBe(0);
+  expect(normalPrint.stageDisplay,'Geladene Kontroll-CSS darf Ladelisten nicht verstecken').not.toBe('none');
+  expect(normalPrint.stageHeight,'Ladeliste muss mit geladener Kontroll-CSS sichtbar bleiben').toBeGreaterThan(0);
+  expect(normalPrint.signatureHeight,'POD-Unterschrift muss mit geladener Kontroll-CSS sichtbar bleiben').toBeGreaterThan(0);
+  const overlayPrint=await page.evaluate(()=>{
+    const overlay=document.createElement('div');
+    overlay.className='rc1546-overlay';
+    overlay.innerHTML='<section class="rc1546-dialog">RC1592 Druckkontrolle</section>';
+    document.body.appendChild(overlay);
+    const stage=document.getElementById('rc576DocumentStage');
+    return{
+      stageDisplay:getComputedStyle(stage).display,
+      overlayDisplay:getComputedStyle(overlay).display
+    };
+  });
+  expect(overlayPrint.stageDisplay,'Nur beim aktiven Abhol-Overlay darf die Ladeliste im Druck verborgen werden').toBe('none');
+  expect(overlayPrint.overlayDisplay,'Abhol-Overlay selbst muss druckbar bleiben').not.toBe('none');
+  const restoredPrint=await page.evaluate(()=>{
+    document.querySelector('body > .rc1546-overlay')?.remove();
+    const stage=document.getElementById('rc576DocumentStage');
+    return{
+      stageDisplay:stage?getComputedStyle(stage).display:'missing',
+      stageHeight:stage?stage.getBoundingClientRect().height:0
+    };
+  });
+  expect(restoredPrint.stageDisplay,'Nach Schließen der Abholkontrolle muss die Ladeliste wieder erscheinen').not.toBe('none');
+  expect(restoredPrint.stageHeight,'Nach Schließen der Abholkontrolle muss die Druckhöhe zurückkehren').toBeGreaterThan(0);
+
   await assertRuntimeClean(runtime,testInfo);
 });
 

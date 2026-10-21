@@ -26,10 +26,15 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
-          node-version: '24'
+          node-version: '20'
 
       - name: RC1189 Vertrag prüfen
-        run: node --test test/rc1189-mobile-full-navigation-gate.test.mjs test/rc1189-pr-browser-gate.test.mjs
+        run: node --test test/rc1189-mobile-full-navigation-gate.test.mjs test/rc1189-pr-browser-gate.test.mjs test/rc1589-pod-active-document-print-state.test.mjs
+
+      - name: RC1592 Main-Parität für Build-Eingaben herstellen
+        run: |
+          node .github/rc1018/apply-public-language.mjs
+          node .github/rc1018/fix-mail-wording.mjs
 
       - name: Aktuelles Drei-Umgebungen-Paket bauen
         run: node .github/rc1112/build-three-env.mjs
@@ -45,6 +50,20 @@ jobs:
           EXPORTHUB_E2E_ENTRY: /demo.html
           EXPORTHUB_E2E_PUBLIC_ENV: testservice
         run: npx playwright test e2e/specs/navigation.spec.mjs e2e/specs/notifications.spec.mjs e2e/specs/public-smoke.spec.mjs
+
+      - name: RC1592 Main-Vertrag vor zweiter Druckprüfung simulieren
+        run: |
+          node .github/rc1018/apply-public-language.mjs
+          node .github/rc1018/fix-mail-wording.mjs
+          npm test
+          node .github/rc1112/build-three-env.mjs
+
+      - name: RC1592 Print-Signatur nach Main-Vertrag im echten Browser prüfen
+        env:
+          EXPORTHUB_E2E_STATIC: '1'
+          EXPORTHUB_E2E_ENTRY: /demo.html
+          EXPORTHUB_E2E_PUBLIC_ENV: testservice
+        run: npx playwright test e2e/specs/navigation.spec.mjs e2e/specs/notifications.spec.mjs e2e/specs/public-smoke.spec.mjs e2e/specs/avis-reminder-outlook.spec.mjs
 
       - name: Browser-Fehlerartefakte hochladen
         if: failure()

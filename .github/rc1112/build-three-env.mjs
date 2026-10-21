@@ -898,6 +898,49 @@ function historyHtml(sh){
  var helper=window.ExportHUBDocumentBlob1059,f=d.file;
  try{return !!(helper&&f&&typeof helper.isBlobDocument==='function'&&helper.isBlobDocument(f))}catch(_){return false}
 }
+
+function shipmentAssociatedDocs(sh,prior){
+ var out=arr(prior).slice(),ref=refOf(sh),sid=idOf(sh),visited=[],sources=typeof roots==='function'?roots():[state()];
+ function addFile(file,group,field,index){
+  if(!file)return;
+  var entry={file:file,group:group,field:field,index:index,name:fileName(file,group+' '+(index+1)),url:fileUrl(file)};
+  try{out.push(normalizeFallback(entry))}catch(_){}
+ }
+ function addFields(owner,fields){
+  fields.forEach(function(x){arr(owner&&owner[x[0]]).forEach(function(file,i){addFile(file,x[1],x[0],i)})})
+ }
+ function matches(other){
+  if(!other||typeof other!=='object')return false;
+  if(other===sh)return true;
+  var otherRef=refOf(other),otherId=idOf(other);
+  if(ref&&otherRef===ref)return true;
+  return !!(sid&&otherId===sid&&(!ref||!otherRef||otherRef===ref))
+ }
+ function collect(copy){
+  if(!matches(copy)||visited.indexOf(copy)>=0)return;
+  visited.push(copy);
+  try{arr(collectDocs(copy)).forEach(function(d){out.push(normalizeFallback(d))})}catch(_){}
+  addFields(copy,[['deliveryNoteFiles','Lieferscheine'],['deliveryNotes','Lieferscheine'],['invoiceDocuments','Rechnungen'],['cmrFiles','CMR'],['avFiles','AV'],['photos','Fotos'],['pickupPhotos','Abholfotos'],['containerPhotos','Containerfotos']])
+ }
+ collect(sh);
+ sources.forEach(function(root){
+  arr(root&&root.shipments).concat(arr(root&&root.savedShipments),arr(root&&root.salesSharedShipments),arr(root&&root.sharedShipments),arr(root&&root.shipmentArchive),arr(root&&root.archivedShipments),[root&&root.shipment,root&&root.currentShipment,root&&root.selectedShipment]).forEach(collect);
+  arr(root&&root.abdRequests).forEach(function(request){
+   if(!request||typeof request!=='object')return;
+   var linkedRef=refOf(request),linkedId=q(request.linkedShipmentId||request.shipmentId);
+   if(!((ref&&linkedRef===ref)||(sid&&linkedId===sid&&(!ref||!linkedRef||linkedRef===ref))))return;
+   addFields(request,[['invoiceFiles','Rechnungen'],['abdFiles','ABD'],['documents','ABD-Dokumente'],['attachments','ABD-Anhänge'],['avFiles','Ausgangsvermerk']])
+  });
+  arr(root&&root.packNotifications).forEach(function(note){
+   if(!note||typeof note!=='object')return;
+   var linkedRef=q(note.shipmentRef||note.shipmentReference).toUpperCase(),linkedId=q(note.shipmentId),notificationId=q(note.id),wantedId=q(sh&&sh.packNotificationId);
+   if(ref&&linkedRef&&linkedRef!==ref)return;
+   if(!((sid&&linkedId===sid)||(wantedId&&notificationId===wantedId)))return;
+   addFields(note,[['documents','Lieferscheine'],['files','Anhänge']])
+  })
+ });
+ return out.filter(Boolean).filter(fallbackDocUsable)
+}
 function mergeReferenceDocs(live,fallback){
  var out=arr(live).slice(),seen={};out.forEach(function(d){seen[low(q(d&&d.name))]=1});
  arr(fallback).filter(fallbackDocUsable).forEach(function(d){var key=low(q(d&&d.name));if(key&&seen[key])return;if(key)seen[key]=1;out.push(d)});
@@ -920,7 +963,7 @@ function mergeReferenceDocs(live,fallback){
   replaceBlock(
     'function docsPanelHtml(docs,source,error){',
     '\nfunction setDocsPanel',
-    `function docsPanelHtml(docs,source,error){docs=arr(docs);var sourceText=source==='referenceFolder'?'Vorhandene Dateien direkt aus dem Ref-Ordner der Sendung':source==='combined'?'Ref-Ordner und gespeicherte Anhänge der Sendung':source==='fallback'?'Gespeicherte Anhänge der Sendung':'';var note=sourceText?'<div class="rc786-doc-source">'+esc(sourceText)+(error?' · Ref-Ordner derzeit nicht erreichbar':'')+'</div>':'';var body=docs.length?'<div class="rc776-docs">'+docs.map(docHtml).join('')+'</div>':'<div class="rc776-empty">'+(source==='referenceFolder'?'Im Ref-Ordner und im Sendungsdatensatz sind aktuell keine öffnungsfähigen Dateien vorhanden.':'Keine echte Datei verfügbar. Interne Erzeugungsmetadaten werden nicht als Datei angezeigt.')+'</div>';return note+body}
+    `function docsPanelHtml(docs,source,error){docs=arr(docs);var sourceText=source==='referenceFolder'?'Vorhandene Dateien direkt aus dem Ref-Ordner der Sendung':source==='combined'?'Ref-Ordner und gespeicherte Anhänge der Sendung':source==='fallback'?'Gespeicherte Anhänge der Sendung':'';var note=sourceText?'<div class="rc786-doc-source">'+esc(sourceText)+(error?' · Ref-Ordner derzeit nicht erreichbar':'')+'</div>':'';var body=docs.length?'<div class="rc776-docs">'+docs.map(docHtml).join('')+'</div>':'<div class="rc776-empty">'+(error?'Der Ref-Ordner ist nicht erreichbar. In den gespeicherten Sendungsdaten wurde keine abrufbare Datei gefunden.':source==='referenceFolder'?'Im Ref-Ordner und in den zugehörigen Sendungsdaten wurden keine abrufbaren Dateien gefunden.':'Keine abrufbare Datei vorhanden. Bitte Dateispeicherung und Sendungszuordnung prüfen.')+'</div>';return note+body}
 `,
     'Dokumentpanel'
   );
@@ -928,7 +971,7 @@ function mergeReferenceDocs(live,fallback){
   replaceBlock(
     'async function loadReferenceDocs(sh,fallback){',
     '\n\nfunction shipmentSearchStamp',
-    `async function loadReferenceDocs(sh,fallback){var ref=refOf(sh),expected=idOf(sh)||ref,extra=[];['deliveryFiles','deliveryNotesFiles','lieferscheine','files','attachments','abdFiles','podFiles','cmrFiles','photos','pickupPhotos','containerPhotos'].forEach(function(key){arr(sh&&sh[key]).forEach(function(file){try{extra.push(normalizeFallback(file))}catch(_){}})});fallback=arr(fallback).concat(extra).filter(Boolean).filter(fallbackDocUsable);if(!ref)return setDocsPanel(fallback,'fallback',true);try{var data=await referenceList(ref,false);if(data&&data.available===false){setDocsPanel(fallback,'fallback',true);return false}var live=arr(data.files).map(function(x){return liveDoc(x,ref)}),merged=mergeReferenceDocs(live,fallback),source=live.length?(merged.length>live.length?'combined':'referenceFolder'):(fallback.length?'fallback':'referenceFolder');var current=find(state().shipmentViewId||state().selectedShipmentId||state().activeShipmentId);if(low(state().view)!=='shipmentview'||!current||(idOf(current)||refOf(current))!==expected)return false;setDocsPanel(merged,source,false)}catch(e){if(!(e&&e.code==='GRAPH_NOT_CONFIGURED'))console.warn('RC1305 Ref-Ordner',e);var current2=find(state().shipmentViewId||state().selectedShipmentId||state().activeShipmentId);if(low(state().view)==='shipmentview'&&current2&&(idOf(current2)||refOf(current2))===expected)setDocsPanel(fallback,'fallback',true)}return false}
+    `async function loadReferenceDocs(sh,fallback){var ref=refOf(sh),expected=idOf(sh)||ref;fallback=shipmentAssociatedDocs(sh,fallback);if(!ref)return setDocsPanel(fallback,'fallback',true);try{var data=await referenceList(ref,false);if(data&&data.available===false){setDocsPanel(fallback,'fallback',true);return false}var live=arr(data.files).map(function(x){return liveDoc(x,ref)}),merged=mergeReferenceDocs(live,fallback),source=live.length?(merged.length>live.length?'combined':'referenceFolder'):(fallback.length?'fallback':'referenceFolder');var current=find(state().shipmentViewId||state().selectedShipmentId||state().activeShipmentId);if(low(state().view)!=='shipmentview'||!current||(idOf(current)||refOf(current))!==expected)return false;setDocsPanel(merged,source,false)}catch(e){if(!(e&&e.code==='GRAPH_NOT_CONFIGURED'))console.warn('RC1305 Ref-Ordner',e);var current2=find(state().shipmentViewId||state().selectedShipmentId||state().activeShipmentId);if(low(state().view)==='shipmentview'&&current2&&(idOf(current2)||refOf(current2))===expected)setDocsPanel(fallback,'fallback',true)}return false}
 `,
     'Ref-Ordner-Fallback'
   );
@@ -940,6 +983,11 @@ function mergeReferenceDocs(live,fallback){
 `,
     'Blob-Dokumentöffnung'
   );
+
+  const legacyBlobOpenGuard="if(!((d.source==='referenceFolder'&&d.itemId)||d.url)){alert('Diese Zeile enthält keine vorhandene Datei.');return false}";
+  const fixedBlobOpenGuard="if(!fallbackDocUsable(d)){alert('Diese Zeile enthält keine vorhandene Datei.');return false}";
+  if(html.includes(legacyBlobOpenGuard))html=html.replace(legacyBlobOpenGuard,fixedBlobOpenGuard);
+  else if(!html.includes(fixedBlobOpenGuard))throw new Error(file+': Dokumentöffnen-Guard fehlt');
 
   const oldNote='<p class="rc808-history-note">Nur tatsächliche Statuswechsel der Sendung. Technische RC543-Synchronisierungstexte werden nicht angezeigt.</p>';
   const newNote='<p class="rc808-history-note">Fachliche Bewegung der Sendung: Status, Abholung, POD und Abschluss. Technische Synchronisierung wird ausgeblendet.</p>';
@@ -1244,6 +1292,8 @@ for(const rel of [
   'assets/i18n/rc1579-menu-redesign.js',
   'assets/rc1558-dashboard-overview.css',
   'assets/rc1558-dashboard-overview.js',
+  // RC1592: print/browser QA must load the same pickup runtime as final release.
+  'assets/rc1546-pickup-control.js',
   'assets/rc1570-tasks-focus.css',
   'assets/rc1570-tasks-focus.js',
   'assets/i18n/rc1570-tasks-focus.js',

@@ -9,7 +9,11 @@ test('RC1589: die Druckvorlage blendet Dokumentseiten ohne aktiven data-doc-Zust
   assert.match(ui,/#rc576DocumentStage\[data-doc="load1"\] \.rc390-bundle>\.rc576-load1/);
 });
 test('RC1589: RC1555 Live-Smoke aktiviert dieselbe Ladeliste wie die echte Dokumentansicht',()=>{
-  assert.match(smoke,/id="rc576DocumentStage" class="rc390-docview" data-doc="load1"/);
+  assert.match(smoke,/id="rc576DocumentHub"><div id="rc576DocumentStage" data-doc="load1"/);
+  assert.match(smoke,/id="rc576DocumentStage" data-doc="load1"/);
+  assert.match(smoke,/class="rc390-docview" data-rc601-doc="load1"/);
+  assert.match(smoke,/class="rc390-bundle"/);
+  assert.doesNotMatch(smoke,/id="rc576DocumentStage" class="rc390-docview"/);
   assert.match(smoke,/class="rc390-page rc390-load rc576-load1"/);
   assert.match(smoke,/expect\(layout\.printStage,[^\n]*\)\.toBe\('load1'\)/);
   assert.match(smoke,/expect\(layout\.printPageHeight,[^\n]*\)\.toBeGreaterThan\(0\)/);
@@ -26,4 +30,11 @@ test('RC1591: POD Browser-Smoke misst Geometrie erst nach vollständigem Layout 
   assert.match(smoke,/requestAnimationFrame\(\(\)=>requestAnimationFrame\(resolve\)\)/);
   assert.match(smoke,/printAncestorDiagnostics/);
   assert.match(smoke,/expect\(layout\.printPageHeight,[^\n]*\)\.toBeGreaterThan\(0\)/);
+});
+
+test('RC1592: Release-Smoke validates both stage and nested document view without bypassing print CSS',()=>{
+  assert.match(smoke,/expect\(layout\.printStageDisplay,[^\n]*\)\.not\.toBe\('none'\)/);
+  assert.match(smoke,/expect\(layout\.printViewDisplay,[^\n]*\)\.not\.toBe\('none'\)/);
+  assert.match(smoke,/expect\(layout\.printPageHeight,[^\n]*\)\.toBeGreaterThan\(0\)/);
+  assert.doesNotMatch(smoke,/#rc576DocumentStage[^\n]*\.style\.display\s*=/);
 });
