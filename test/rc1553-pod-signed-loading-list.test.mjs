@@ -10,7 +10,7 @@ const block = source.slice(start, end);
 
 test('RC1553 P0: downloaded POD is the signed loading-list layout, not an independent Abliefernachweis template', () => {
   assert.ok(start >= 0 && end > start, 'POD PDF renderer missing');
-  assert.match(source, /const POD_PDF_LAYOUT_VERSION\s*=\s*['"]RC1553-SIGNED-LOADING-LIST-V2['"]/);
+  assert.match(source, /const POD_PDF_LAYOUT_VERSION\s*=\s*['"]RC1594-SIGNED-LOADING-LIST-V3['"]/);
   assert.match(block, /draw\('LADELISTE'/, 'official POD must keep the loading-list title');
   assert.doesNotMatch(block, /LADELISTE\s*\/\s*ABLIEFERNACHWEIS/, 'POD must not present a separate document type');
 });
@@ -33,7 +33,11 @@ test('RC1553 P0: POD contains a clean delivery-note area and does not silently d
 
 test('RC1553 P0: pallet area has exactly one pallet-account value, not outgoing/incoming duplicates', () => {
   assert.match(source, /function palletBalanceText\(record\)/, 'POD pallet-balance helper missing');
-  assert.match(block, /Europaletten-Kontostand/);
+  assert.match(block, /PALETTENKONTO \/ EUR PALLETS/);
+  assert.match(block, /Aktueller Stand \/ Balance/);
+  assert.match(block, /Eingang \/ Return/);
+  assert.match(block, /palletReturnText\(record\)/);
+  assert.doesNotMatch(block, /card\('Europaletten-Kontostand'/);
   assert.doesNotMatch(block, /Ausgang:\s*'\+palletOut\+'\s*\/\s*Eingang:/);
 });
 
