@@ -42,16 +42,17 @@ test('RC1600: removing one CC address preserves the unrelated address after merg
   assert.deepEqual(out.customerCcContacts,[second]);
 });
 
-test('RC1600: all seven customer-save patches apply exactly once and enable mandatory readback',()=>{
+test('RC1600: all eight customer-save patches apply exactly once and enable mandatory readback',()=>{
   const html=fs.readFileSync('index.html','utf8');
   const hardened=hardenCustomerSaveHtml(html);
-  assert.equal(RC1600_PATCH_COUNT,7);
+  assert.equal(RC1600_PATCH_COUNT,8);
   assert.ok(hardened.length>html.length);
   assert.match(hardened,/if\(ackOk&&!customerChanged\)return/);
   assert.match(hardened,/fastAck=serverAck[^;]*!newer&&/);
   assert.match(hardened,/const confirmed=\(Array\.isArray\(stateDelta\.customers\)/);
   assert.match(hardened,/function clearRemovedMailAliases\(/);
   assert.match(hardened,/if\(ccEdited\)\{var permittedCc/);
+  assert.match(hardened,/c\.customerMailCc=c\.cc;/);
   assert.throws(()=>hardenCustomerSaveHtml(hardened),/expected one source anchor/);
 });
 
