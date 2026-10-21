@@ -43,7 +43,7 @@ test('RC1595: public customer-Avis still uses the translation observer and prote
   assert.match(html,/\/api\/customer-avis/);
   assert.match(html,/action:'authorize'/);
   assert.match(html,/action:'appointment'/);
-  assert.match(html,/customer-upload/);
+  assert.match(html,/action:'document-upload-status'/);
   assert.match(html,/referrer" content="no-referrer"/);
   assert.match(html,/noindex,nofollow,noarchive/);
 });
