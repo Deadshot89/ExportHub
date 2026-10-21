@@ -200,6 +200,17 @@ jobs:
           test -s api/release-metadata.json
           node -e "const v=require('./api/release-metadata.json'); console.log('RC1553 PRODUCTION deployment metadata',JSON.stringify({buildId:v.buildId,visibleRelease:v.visibleRelease,technicalBuild:v.technicalBuild,builtAt:v.builtAt,environment:v.environment}))"
 
+      # RC1612: The earlier API search can be stale while Main is still running.
+      # Check the exact run directly AND its TESTSERVICE live-gate job again at
+      # the last safe point before Azure receives any production upload.
+      - name: RC1612 Live-Main-Gates unmittelbar vor Production-Upload prüfen
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          node .github/rc1612/verify-main-gate.mjs
+
       - name: Deploy ExportHUB production
         uses: Azure/static-web-apps-deploy@4d27395796ac319302594769cfe812bd207490b1
         with:
