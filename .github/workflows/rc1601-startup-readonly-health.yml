@@ -1,0 +1,39 @@
+name: RC1601 Read-only Startup Health
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/rc1601-state-startup-readonly-health.mjs'
+      - 'test/rc1601-state-startup-readonly-health.test.mjs'
+      - '.github/workflows/rc1601-startup-readonly-health.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  readonly_diagnostic:
+    name: P0 startup read-only diagnosis
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout diagnostics only
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify strict redaction and no mutation contract
+        run: node --test test/rc1601-state-startup-readonly-health.test.mjs
+      - name: Check production route and Team-State readback once
+        shell: bash
+        # An unhealthy production app must be visible as a warning without
+        # blocking the merge of the diagnostic itself. NO retry or POST.
+        run: |
+          set -euo pipefail
+          if node scripts/rc1601-state-startup-readonly-health.mjs; then
+            echo 'RC1601: public ping and production read-only Team-State health returned expected values.'
+          else
+            echo '::warning title=RC1601 P0 Startup Health::Read-only production ping or Team-State health failed. P0 #836 remains open. See redacted status and timings above.'
+            echo 'RC1601: diagnosis was inconclusive/unhealthy; NO production data changed.'
+          fi
