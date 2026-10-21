@@ -82,3 +82,18 @@ test('RC1600 8LSUHW: stored PNG signature survives an incorrect historical JPEG 
   assert.equal(pdf.getPageCount(),1);
   assert.match(bytes.toString('latin1'),/\/Subtype\s*\/Image/,'Original driver image must be embedded');
 });
+
+test('RC1609 P0: short browser-style JPEG signature in a nonzero-offset Node Buffer embeds unchanged',async()=>{
+  const original=Buffer.from('/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAACAAIDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD6pooooA//2Q==','base64');
+  const slab=Buffer.allocUnsafe(original.length+79);
+  original.copy(slab,37);
+  const window=slab.subarray(37,37+original.length);
+  assert.ok(window.byteOffset>0,'source byte offset is nonzero');
+  const before=Buffer.from(window);
+  const bytes=await createPodPdf(record,window,'image/jpeg');
+  const parsed=await PDFDocument.load(bytes);
+  assert.ok(parsed.getPageCount()>=1);
+  assert.match(bytes.toString('latin1'),/\\/Subtype\\s*\\/Image/);
+  assert.deepEqual(window,before,'signed original bytes must remain unmodified');
+  assert.match(source,/Uint8Array\\.from\\(signatureBytes\\)/);
+});
