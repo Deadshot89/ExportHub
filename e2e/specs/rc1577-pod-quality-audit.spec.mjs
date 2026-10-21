@@ -47,7 +47,7 @@ test('RC1577: POD-Prüfung berichtet zuerst, erzeugt nach Bestätigung neu und s
   const [regenerateRef,reviewRef]=refs;
   const calls=()=>page.evaluate(()=>window.__rc1577);
 
-  expect(await page.evaluate(()=>!!window.ExportHUBPodQualityAudit&&window.EXPORTHUB_POD_RENDER_LAYOUT)).toBe('RC1561');
+  expect(await page.evaluate(()=>!!window.ExportHUBPodQualityAudit&&window.EXPORTHUB_POD_RENDER_LAYOUT)).toBe('RC1595');
   await page.locator('#podBackupBtn').click();
   await page.locator('#rc1577PodAuditOpen').click();
   await expect(page.locator('#rc1577PodAuditModal')).toBeVisible();
@@ -64,7 +64,7 @@ test('RC1577: POD-Prüfung berichtet zuerst, erzeugt nach Bestätigung neu und s
   await expect(page.locator('#rc1577PodAuditModal [data-verdict="flagged"] tr[data-reference="'+reviewRef+'"]')).toBeVisible({timeout:90_000});
 
   const {auditCalls,backupCalls}=await calls();
-  expect(backupCalls).toEqual([{reference:regenerateRef,renderLayout:'RC1561',hasPdf:true}]);
+  expect(backupCalls).toEqual([{reference:regenerateRef,renderLayout:'RC1595',hasPdf:true}]);
   expect(auditCalls.some(c=>Array.isArray(c.references)&&c.references[0]===regenerateRef)).toBe(true);
 
   const statusOf=r=>page.evaluate(ref=>{
