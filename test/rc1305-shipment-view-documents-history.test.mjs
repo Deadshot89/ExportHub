@@ -126,7 +126,7 @@ test('RC1460: zentrale Dateivorschau unterstützt PDF und Bilder',()=>{
 });
 
 test('RC1460: Build lädt die neue Runtime',()=>{
-  assert.match(buildSource,/rc1460-shipment-view-files-avis-preview\.js\?v=1460/);
+  assert.match(buildSource,/rc1460-shipment-view-files-avis-preview\.js\?v=1616/);
 });
 
 
@@ -241,3 +241,5 @@ test('RC1616: POD document history is grouped without changing original file ind
  assert.match(buildSource,/docHtml\(d,i\)/,'Open/download actions must keep original index into the document array');
  assert.match(buildSource,/arr\(sh&&sh\.subShipments\)\.length<2/,'Multi-truck POD files must remain separately visible');
 });
+
+test('RC1616: production build busts the browser cache for both corrected POD runtimes',()=>{assert.match(buildSource,/rc1602-official-pod-server-download\.js\?v=1616/);assert.match(buildSource,/rc1460-shipment-view-files-avis-preview\.js\?v=1616/);});
