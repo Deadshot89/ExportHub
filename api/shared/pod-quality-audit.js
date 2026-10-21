@@ -21,7 +21,38 @@ function isManualUpload(file){return !!file&&(file.manualUpload===true||/manual-
 function podFiles(sh){
  return(Array.isArray(sh&&sh.podFiles)?sh.podFiles:[]).filter(file=>file&&lower(file.kind)!=='scan-confirmation'&&!file.placeholder&&!file.syntheticFallback&&!/deleted|gelöscht|replaced|ersetzt/.test(lower(file.status)))
 }
-function relevant(sh){return integrity.statusIsPod(sh)||(sh&&sh.podReviewRequired===true)}
+function relevant(sh){
+ if(!sh)return false;
+ // A completed or archived shipment still has a POD even after leaving "POD vorhanden".
+ const status=lower(sh.status||sh.processStatus);
+ return integrity.statusIsPod(sh)||sh.podReviewRequired===true||podFiles(sh).length>0||
+  /^(abgeschlossen|archiviert|completed|archived)$/.test(status);
+}
+function allShipmentCopies(state){
+ // RC1595: the shipment overview merges these lists; the audit must not ignore saved-only PODs.
+ const out=[],byReference=new Map();
+ for(const sh of [].concat(Array.isArray(state&&state.shipments)?state.shipments:[],
+                          Array.isArray(state&&state.savedShipments)?state.savedShipments:[])){
+  if(!sh||typeof sh!=='object')continue;
+  const reference=refOf(sh),index=reference?byReference.get(reference):undefined;
+  if(index===undefined){if(reference)byReference.set(reference,out.length);out.push(sh);continue;}
+  const previous=out[index];
+  const prevFiles=podFiles(previous),nextFiles=podFiles(sh);
+  const preferred=(relevant(sh)&&!relevant(previous))||(nextFiles.length>prevFiles.length);
+  const primary=preferred?sh:previous,secondary=preferred?previous:sh;
+  // Preserve the pickup access data from either copy for safe, authenticated regeneration.
+  const joined=Object.assign({},secondary,primary);
+  for(const key of ['pickupToken','pickupQrToken','qrToken','pickupCode','pickupAccessKeyHash','pickupAccessHash','pickupKeyHash','pickupAccessKey','accessKey','pickupConfirmedAt']){
+   if(!text(joined[key])&&text(secondary[key]))joined[key]=secondary[key];
+  }
+  if(!Array.isArray(joined.podFiles)||!joined.podFiles.length)joined.podFiles=prevFiles.length?prevFiles:nextFiles;
+  if(!relevant(joined)&&relevant(secondary)){
+   joined.status=secondary.status;joined.processStatus=secondary.processStatus;
+  }
+  out[index]=joined;
+ }
+ return out;
+}
 
 function inlineBuffer(file){
  const raw=text(file&&(file.dataUrl||file.data)),m=raw.match(/^data:[^;,]*;base64,(.+)$/i);
@@ -38,7 +69,7 @@ function classify(sh,facts){
  const readable=files.length>0&&files.every(file=>file.readable===true);
  const generated=files.filter(file=>!file.manualUpload);
  const current=generated.every(file=>file.renderLayout===podArchive.POD_RENDER_LAYOUT);
- if(readable&&current)return{verdict:'ok',reason:generated.length?'CURRENT_LAYOUT':'MANUAL_UPLOAD'};
+ if(readable&&current)return generated.length?{verdict:'ok',reason:'CURRENT_LAYOUT'}:{verdict:'manual',reason:'MANUAL_UPLOAD'};
  const reason=!files.length?'NO_POD_FILE':(!readable?'POD_NOT_READABLE':'OLD_LAYOUT');
  if(facts.signatureStored===true&&facts.hasToken===true)return{verdict:'regenerate',reason};
  return{verdict:'review',reason,missing:facts.signatureStored===true?'PICKUP_TOKEN_MISSING':'SIGNATURE_NOT_STORED'};
@@ -83,7 +114,7 @@ async function report(environment,options){
  environment=store.normalizeEnvironment(environment);
  const clients=await store.clients(environment);
  const read=await store.readJson(clients.team.getBlockBlobClient(store.teamBlobName(environment)),{state:{}});
- const state=(read.value&&read.value.state)||{},shipments=Array.isArray(state.shipments)?state.shipments:[];
+ const state=(read.value&&read.value.state)||{},shipments=allShipmentCopies(state);
  const references=(Array.isArray(options.references)?options.references:[]).map(v=>text(v).toUpperCase()).filter(Boolean).slice(0,MAX_REFERENCES);
  const start=Math.max(0,Math.round(Number(options.cursor)||0)),limit=Math.min(MAX_LIMIT,Math.max(1,Math.round(Number(options.limit)||10)));
  const selected=[];let scan=start;
@@ -99,4 +130,4 @@ async function report(environment,options){
  return{ok:true,version:VERSION,environment,layout:podArchive.POD_RENDER_LAYOUT,cursor:start,nextCursor:scan<shipments.length?scan:null,totalShipments:shipments.length,rows}
 }
 
-module.exports={VERSION,POD_RENDER_LAYOUT:podArchive.POD_RENDER_LAYOUT,classify,podFiles,relevant,report};
+module.exports={VERSION,POD_RENDER_LAYOUT:podArchive.POD_RENDER_LAYOUT,classify,podFiles,relevant,allShipmentCopies,report};
