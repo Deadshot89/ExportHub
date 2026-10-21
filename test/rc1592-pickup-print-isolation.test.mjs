@@ -24,6 +24,17 @@ test('RC1592: A4-Querformat gehört ausschließlich zur Abholkontrolle, nicht zu
 test('RC1592: der Browser-Smoke prüft beide Druckmodi und die Signaturgeometrie',()=>{
   assert.match(smoke,/expect\(layout\.printPageHeight,[^\n]*\)\.toBeGreaterThan\(0\)/);
   assert.match(smoke,/expect\(layout\.signatureHeight\)\.toBeGreaterThan\(0\)/);
+  // Druckbild mit geladener Kontroll-CSS vor, während und nach dem Overlay prüfen.
+  for(const marker of ['normalPrint.overlayCount','normalPrint.stageDisplay','normalPrint.stageHeight',
+    'normalPrint.signatureHeight','restoredPrint.stageDisplay','restoredPrint.stageHeight']){
+    assert.ok(smoke.includes('expect('+marker+','),'Fehlende 3-Zustands-Druckprüfung: '+marker);
+  }
+  assert.ok(smoke.indexOf('const normalPrint=')>smoke.indexOf('exporthub-rc1546-style'),
+    'Normaldruck erst NACH Installation der echten CSS prüfen');
+  assert.ok(smoke.indexOf('const normalPrint=')<smoke.indexOf('const overlayPrint='),
+    'Normaldruck muss VOR dem Overlay geprüft werden');
+  assert.ok(smoke.indexOf('const restoredPrint=')>smoke.indexOf('const overlayPrint='),
+    'Wiederherstellung muss NACH dem Overlay geprüft werden');
   assert.match(smoke,/expect\(overlayPrint\.stageDisplay,[^\n]*\)\.toBe\('none'\)/);
   assert.match(smoke,/expect\(overlayPrint\.overlayDisplay,[^\n]*\)\.not\.toBe\('none'\)/);
 });
