@@ -61,5 +61,5 @@ test('RC1598: shared live probe is identical for TESTSERVICE and PRODUCTION and 
  const helper=fs.readFileSync('.github/rc1598/verify-pod-audit-route.mjs','utf8');
  assert.match(helper,/rc1598-pod-quality-audit-unbound-control/);
  assert.match(helper,/POD_AUDIT_ROUTE_MISSING/);
- assert.match(helper,/unauthenticated/i);
+ assert.match(helper,/postStatus===401/);
 });
