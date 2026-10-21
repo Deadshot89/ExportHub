@@ -93,7 +93,7 @@ test('RC1609 P0: short browser-style JPEG signature in a nonzero-offset Node Buf
   const bytes=await createPodPdf(record,window,'image/jpeg');
   const parsed=await PDFDocument.load(bytes);
   assert.ok(parsed.getPageCount()>=1);
-  assert.match(bytes.toString('latin1'),/\\/Subtype\\s*\\/Image/);
+  assert.match(bytes.toString('latin1'),/\/Subtype\s*\/Image/);
   assert.deepEqual(window,before,'signed original bytes must remain unmodified');
-  assert.match(source,/Uint8Array\\.from\\(signatureBytes\\)/);
+  assert.match(source,/Uint8Array\.from\(signatureBytes\)/);
 });
