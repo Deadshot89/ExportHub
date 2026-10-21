@@ -951,7 +951,7 @@ function shipmentAssociatedDocs(sh,prior){
    if(!note||typeof note!=='object')return;
    var linkedRef=q(note.shipmentRef||note.shipmentReference).toUpperCase(),linkedId=q(note.shipmentId),notificationId=q(note.id),wantedId=q(sh&&sh.packNotificationId);
    if(ref&&linkedRef&&linkedRef!==ref)return;
-   if(!((sid&&linkedId===sid)||(wantedId&&notificationId===wantedId)))return;
+   if(!((ref&&linkedRef===ref)||(sid&&linkedId===sid)||(wantedId&&notificationId===wantedId)))return;
    addFields(note,[['documents','Lieferscheine'],['files','Anhänge']])
   })
  });
