@@ -128,6 +128,48 @@ function palletReturnText(record) {
   return Number.isSafeInteger(count) && count > 0 ? count + ' EP' : '';
 }
 
+// RC1602 P0: older signed pickup snapshots did not freeze delivery-note names.
+// Resolve only the matching existing shipment, read-only, before printing a POD.
+// This never changes the stored original signature, pickup record or team state.
+async function resolvePodDeliveryNotes(record,clients,environment){
+  if(deliveryNoteNames(record).length)return record;
+  if(!clients||!clients.team||typeof clients.team.getBlockBlobClient!=='function')return record;
+  let loaded;
+  try{
+    const blob=clients.team.getBlockBlobClient(store.teamBlobName(environment));
+    loaded=await store.readJson(blob,null);
+  }catch(error){
+    throw store.err('POD_DELIVERY_NOTES_READ_FAILED','Lieferscheine können nicht sicher geprüft werden. POD wurde nicht neu erzeugt.',503);
+  }
+  const doc=loaded&&loaded.value||{};
+  const state=doc.state&&typeof doc.state==='object'?doc.state:doc;
+  const sid=text(record&&record.shipmentId),ref=text(record&&record.reference).toUpperCase(),sub=text(record&&record.subShipmentId);
+  if(!sid&&!ref)return record;
+  const candidates=[...(Array.isArray(state.shipments)?state.shipments:[]),...(Array.isArray(state.savedShipments)?state.savedShipments:[])];
+  let best=[];
+  for(const source of candidates){
+    if(!source||typeof source!=='object')continue;
+    const sourceId=text(source.id||source.shipmentId),sourceRef=text(source.ref||source.reference||source.shipmentRef).toUpperCase();
+    const sourceSub=text(source.subShipmentId);
+    if(!(sid&&sourceId===sid)&&!(ref&&sourceRef===ref))continue;
+    if(sub&&sourceSub&&sourceSub!==sub)continue;
+    const activeFiles=files=>Array.isArray(files)?files.filter(file=>!/deleted|gelöscht|geloscht|replaced|ersetzt|storniert/i.test(text(file&&file.status))):files;
+    const snapshot={
+      deliveryFiles:activeFiles(source.deliveryFiles),
+      deliveryNotesFiles:activeFiles(source.deliveryNotesFiles),
+      deliveryNoteFiles:activeFiles(source.deliveryNoteFiles),
+      deliveryNotes:activeFiles(source.deliveryNotes),
+      lieferscheine:activeFiles(source.lieferscheine),
+      packingSlips:activeFiles(source.packingSlips),
+      packingSlipFiles:activeFiles(source.packingSlipFiles),
+      deliveryNoteNames:source.deliveryNoteNames,
+      packingSlipNames:source.packingSlipNames
+    };
+    const names=deliveryNoteNames(snapshot);
+    if(names.length>best.length)best=names;
+  }
+  return best.length?Object.assign({},record,{deliveryNotes:best}):record;
+}
 async function createPodPdf(record, signatureBuffer, signatureType) {
   const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
   const pdf = await PDFDocument.create();
@@ -520,7 +562,8 @@ async function ensureAutomaticPod(accessKey, environment, options) {
   if (!pdf) {
     const signatureBlob = got.clients.pods.getBlobClient(record.signatureBlobName);
     const signature = await store.readBuffer(signatureBlob);
-    pdf = await createPodPdf(record, signature.buffer, record.signatureType || signature.contentType);
+    const renderRecord=await resolvePodDeliveryNotes(record,got.clients,environment);
+    pdf = await createPodPdf(renderRecord, signature.buffer, record.signatureType || signature.contentType);
     const saved = await saveAzurePod(accessKey, environment, record, pdf);
     record = saved.record;
     file = saved.file;
@@ -906,6 +949,7 @@ module.exports = {
   isCurrentAutomaticPod,
   fileNameFor,
   createPodPdf,
+  resolvePodDeliveryNotes,
   ensureAutomaticPod,
   createShareLink,
   getPodDownload,
