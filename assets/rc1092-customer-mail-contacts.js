@@ -114,7 +114,7 @@ function writeMailContacts(c,r,list){
   c.salesMail=emails;c.salesEmail=emails;c.salesPersonMail=emails;c.salesPersonEmail=emails;c.salesContactMail=emails;c.salesContactEmail=emails;c.rc385SalesMail=emails;c.salesCc=emails;
   c.salesPersonName=q(list[0]&&list[0].name);c.salesContactName=c.salesPersonName;c.salesName=c.salesPersonName
  }else{
-  c.ccContacts=clone(list);c.customerCcContacts=clone(list);c.cc=emails;c.mailCc=emails;c.rc385Cc=emails
+  c.ccContacts=clone(list);c.customerCcContacts=clone(list);c.cc=emails;c.mailCc=emails;c.rc385Cc=emails;c.customerMailCc=emails
  }
  c.updatedAt=new Date().toISOString();
  return list
@@ -140,7 +140,7 @@ async function savePerson(r,name,email){
  try{saved=upsertLibrary(name,email,r);await persist((r==='sales'?'Sales Person':'CC-Kontakt')+' dauerhaft gespeichert');try{w.dispatchEvent(new CustomEvent('exporthub:customer-contact-library-updated',{detail:{role:r,email:saved.email}}))}catch(_){}return saved}
  catch(e){restoreLibrary(before);throw e}
 }
-function customerFieldsSnapshot(c){var keys=['salesContacts','customerSalesContacts','salesMail','salesEmail','salesPersonMail','salesPersonEmail','salesContactMail','salesContactEmail','rc385SalesMail','salesCc','salesPersonName','salesContactName','salesName','ccContacts','customerCcContacts','cc','mailCc','rc385Cc','updatedAt'],out={};keys.forEach(function(k){out[k]=clone(c&&c[k])});return out}
+function customerFieldsSnapshot(c){var keys=['salesContacts','customerSalesContacts','salesMail','salesEmail','salesPersonMail','salesPersonEmail','salesContactMail','salesContactEmail','rc385SalesMail','salesCc','salesPersonName','salesContactName','salesName','ccContacts','customerCcContacts','cc','mailCc','rc385Cc','customerMailCc','updatedAt'],out={};keys.forEach(function(k){out[k]=clone(c&&c[k])});return out}
 function restoreCustomerFields(c,snap){Object.keys(snap||{}).forEach(function(k){if(snap[k]===undefined)delete c[k];else c[k]=clone(snap[k])})}
 async function addToMail(r,name,email){
  r=role(r);var c=currentCustomer();if(!c)throw new Error(tr('customerContacts.customerRequired'));
