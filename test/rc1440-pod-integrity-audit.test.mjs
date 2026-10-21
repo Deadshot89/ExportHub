@@ -74,11 +74,21 @@ test('RC1440: reconcile API exposes OIDC-protected audit-only mode',()=>{
   assert.match(api,/podIntegrityAudit\.auditPodStatuses/);
 });
 
-test('RC1440: production reconcile is no longer hardcoded to XG4YNN and runs full integrity audit after deploy plus daily',()=>{
+test('RC1440/RC1598: POD audit remains documented but its automatic destructive production job is disabled',()=>{
   assert.doesNotMatch(workflow,/TARGET_REFERENCE:[^\n]*XG4YNN/);
   assert.match(workflow,/POD-Status-Integritaet PRODUCTION/);
   assert.match(workflow,/auditPodStatus:true/);
   assert.match(workflow,/17 2 \* \* \*/);
+  assert.match(workflow,/pod_integrity_audit:\s*\n\s*name: POD-Status-Integritaet PRODUCTION[\s\S]*?\n\s*if: \$\{\{ false \}\}/,'RC1598 must disable the dangerous job for every trigger');
+});
+
+test('RC1598 P0: production OIDC endpoint refuses every POD status bulk audit before invocation',()=>{
+  const guard=api.indexOf("if (payload.auditPodStatus === true && environment === 'production')");
+  const call=api.indexOf('podIntegrityAudit.auditPodStatusesWithRetry(environment');
+  assert.ok(guard>=0&&call>guard,'production guard must be before any mutating audit call');
+  assert.match(api,/POD_STATUS_AUDIT_SUSPENDED_RC1598/);
+  assert.match(api,/\b423\)/,'bulk modification is explicitly locked');
+  assert.doesNotMatch(api.slice(0,guard),/podIntegrityAudit\.auditPodStatusesWithRetry\(/);
 });
 
 
