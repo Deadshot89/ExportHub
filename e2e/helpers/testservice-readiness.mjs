@@ -1,3 +1,4 @@
+import {readTimedStateResponse,publicStateReadTimings} from './rc1602-state-read-timing.mjs';
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 
 function timing(response,name){
@@ -45,6 +46,7 @@ export default async function testserviceReadiness(){
       const readEndpoint=new URL('/api/exporthub-state?mode=read&full=1',target);
       readEndpoint.searchParams.set('_rc1541',`${Date.now()}-${attempt}`);
       try{
+        const started=performance.now();
         const response=await fetch(readEndpoint,{
           headers:{
             'Accept':'application/json',
@@ -58,8 +60,17 @@ export default async function testserviceReadiness(){
           signal:AbortSignal.timeout(20_000)
         });
         lastStatus=response.status;
-        let payload={};
-        try{payload=await response.json()}catch(_){payload={};}
+        const headerMs=performance.now()-started;
+        let payload={},measurements={};
+        try{({payload,measurements}=await readTimedStateResponse(response))}catch(_){payload={};}
+        // RC1602: send only numeric response times and byte count to runner logs.
+        const timings=publicStateReadTimings({
+          status:response.status,headerMs,measurements,
+          serverMs:Number(timing(response,'x-exporthub-server-ms')),
+          authMs:Number(timing(response,'x-exporthub-auth-ms')),
+          teamMs:Number(timing(response,'x-exporthub-team-ms'))
+        });
+        console.log('RC1602 TESTSERVICE State-Read phase timings',JSON.stringify(timings));
         if(response.ok&&payload&&payload.ok===true){
           console.log('RC1541 TESTSERVICE State-Readiness',JSON.stringify({
             status:response.status,

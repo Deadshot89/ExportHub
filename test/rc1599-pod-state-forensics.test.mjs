@@ -66,15 +66,15 @@ test('RC1599: audit considers status and processStatus independently (even when 
   assert.equal(report.changes.podToPickedUp,1);
 });
 
-test('RC1599: reproduce equal-timestamp status resurrection in the current shipment merge without altering state', () => {
-  // This is a source-level reproduction, NOT evidence that this exact writer caused the 89 production cases.
-  // RC1440 updates team-doc updatedAt/revision but not shipment _syncUpdatedAt/updatedAt on status downgrade.
+test('RC1599/RC1603: equal-timestamp stale POD status cannot resurrect after server correction', () => {
+  // The original regression demonstrably resurrected POD; RC1603 guards this ambiguous tie.
+  // This test does not assert which writer caused the 89 production cases.
   const protectedRecord = shipment('FORENSIC1', 'Abgeholt');
   const staleBrowser = shipment('FORENSIC1', 'POD vorhanden');
   const original = JSON.stringify(protectedRecord);
   const result = mergeShipmentProtected(protectedRecord, staleBrowser);
-  assert.equal(result.status, 'POD vorhanden');
-  assert.equal(result.processStatus, 'POD vorhanden');
+  assert.equal(result.status, 'Abgeholt');
+  assert.equal(result.processStatus, 'Abgeholt');
   assert.equal(JSON.stringify(protectedRecord), original, 'The reproduction must remain immutable');
 });
 
