@@ -602,19 +602,27 @@ async function createShareLink(accessKey, environment) {
 async function getPodDownload(accessKey, environment, fileId) {
   const got = await store.getRecord(accessKey, environment);
   const record = got.record;
-  let file = null;
-  if (fileId) file = (Array.isArray(record.podFiles) ? record.podFiles : []).find(item => text(item.id) === text(fileId));
-  if (!file) file = automaticPod(record);
+  const requestedId = text(fileId);
+  // RC1606: a named immutable POD is an exact identifier, never a request to
+  // silently substitute the current automatic document or regenerate its bytes.
+  // Only the explicit canonical endpoint (file=automatic -> null) may regenerate.
+  const files = Array.isArray(record.podFiles) ? record.podFiles : [];
+  let file = requestedId
+    ? files.find(item => text(item && item.id) === requestedId)
+    : automaticPod(record);
+  if (requestedId && !file) {
+    throw store.err('POD_FILE_NOT_FOUND', 'Die angeforderte POD-Dateiversion wurde nicht gefunden.', 404);
+  }
   if (!file) {
     const created = await ensureAutomaticPod(accessKey, environment, {});
     return { buffer: created.pdf || created.buffer, file: created.file, record: created.record };
   }
-  if (file && !isCurrentAutomaticPod(file) && String(file.kind || '').toLowerCase() === 'automatic-pod') {
+  if (!requestedId && !isCurrentAutomaticPod(file) && String(file.kind || '').toLowerCase() === 'automatic-pod') {
     const regenerated = await ensureAutomaticPod(accessKey, environment, { force: true });
     return { buffer: regenerated.pdf || regenerated.buffer, file: regenerated.file, record: regenerated.record };
   }
   const blobName = text(file.blobName || file.storageBlobName);
-  if (!blobName) throw new Error('POD-Datei ohne Speicherreferenz');
+  if (!blobName) throw store.err('POD_FILE_NOT_STORED', 'Die angeforderte POD-Dateiversion ist nicht gespeichert.', 404);
   const blob = got.clients.pods.getBlobClient(blobName);
   const read = await store.readBuffer(blob);
   return { buffer: read.buffer, file, record };
