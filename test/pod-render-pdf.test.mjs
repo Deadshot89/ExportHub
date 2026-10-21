@@ -75,3 +75,10 @@ test('RC1600 P0: signed original blobs are preserved by immutable hash-backed re
   assert.match(source,/POD_BLOB_INTEGRITY_FAILED/);
   assert.match(source,/RC1600-SIGNED-LOADING-LIST-V4/);
 });
+
+test('RC1600 8LSUHW: stored PNG signature survives an incorrect historical JPEG MIME tag',async()=>{
+  const bytes=await createPodPdf(record,signaturePng,'image/jpeg');
+  const pdf=await PDFDocument.load(bytes);
+  assert.equal(pdf.getPageCount(),1);
+  assert.match(bytes.toString('latin1'),/\/Subtype\s*\/Image/,'Original driver image must be embedded');
+});
