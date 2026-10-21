@@ -7,6 +7,7 @@ import {integrateTraining} from '../rc1503/build-three-env.mjs';
 import {integrateCoverageAdmin} from '../rc1506/build-three-env.mjs';
 import {patchRc1576StateBodyDeadline} from '../../scripts/rc1576-state-read-body-timeout.mjs';
 import {hardenCustomerSaveHtml} from '../../scripts/rc1600-customer-save-readback.mjs';
+import {patchRc1602PodBrowserHtml} from '../../scripts/rc1602-pod-browser-pagination.mjs';
 
 const ROOT=process.cwd();
 const SRC=path.join(ROOT,'dist-rc1048');
@@ -1344,7 +1345,7 @@ fs.copyFileSync(rc1114ShippingSrc,rc1114ShippingOut);
 for(const file of ['index.html','TESTVERSION.html','demo.html'])patchHtml(file);
 for(const file of ['index.html','TESTVERSION.html','demo.html']){
   const target=path.join(OUT,file);
-  const hardened=hardenCustomerSaveHtml(fs.readFileSync(target,'utf8'));
+  const hardened=patchRc1602PodBrowserHtml(hardenCustomerSaveHtml(fs.readFileSync(target,'utf8')));
   const oldContacts='assets/rc1092-customer-mail-contacts.js?v=1399';
   if(!hardened.includes(oldContacts))throw new Error(file+': RC1600 Kontaktcache-Anker fehlt');
   fs.writeFileSync(target,hardened.replace(oldContacts,'assets/rc1092-customer-mail-contacts.js?v=1600'));
