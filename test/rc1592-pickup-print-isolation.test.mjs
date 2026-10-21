@@ -12,6 +12,15 @@ test('RC1592: Abholkontrolle blendet andere Druckseiten nur bei vorhandenem Over
     'Unbedingte Druck-Sperre würde auch echte Ladelisten verstecken');
 });
 
+
+test('RC1593: Kontroll-Overlay verdeckt #app trotz alter Important-Layoutregeln',()=>{
+  const printRule='@media print{body:has(> .rc1546-overlay)>*:not(.rc1546-overlay){display:none!important}body:has(> .rc1546-overlay)>#app#app{display:none!important}';
+  assert.ok(pickup.includes(printRule),
+    'Die Printregel muss den App-Container mit höherer Spezifität als #app:not(.hidden) ausblenden');
+  assert.ok(pickup.includes('.rc1546-overlay{page:rc1546ControlPage!important;'),
+    'Das Abholkontroll-Overlay selbst muss weiterhin sichtbar und druckbar bleiben');
+});
+
 test('RC1592: A4-Querformat gehört ausschließlich zur Abholkontrolle, nicht zu allen Ladelisten',()=>{
   assert.match(pickup,/@page rc1546ControlPage\{size:A4 landscape;margin:10mm\}/,
     'Die Abholkontrolle braucht eine eigene benannte Querformat-Seite');
