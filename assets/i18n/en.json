@@ -1866,5 +1866,6 @@
   "pickup.static.partialConfirm": "Confirm partial collection",
   "pickup.static.fullConfirm": "Confirm full collection",
   "pickup.static.signatureInstruction": "Please sign in the large field with your finger, stylus or mouse.",
-  "pickup.static.saveSignature": "Save signature"
+  "pickup.static.saveSignature": "Save signature",
+  "pickup.static.stepContainer": "3 · Container"
 }

@@ -1866,5 +1866,6 @@
   "pickup.static.partialConfirm": "Conferma ritiro parziale",
   "pickup.static.fullConfirm": "Conferma ritiro completo",
   "pickup.static.signatureInstruction": "Firma nel riquadro grande con il dito, la penna o il mouse.",
-  "pickup.static.saveSignature": "Salva firma"
+  "pickup.static.saveSignature": "Salva firma",
+  "pickup.static.stepContainer": "3 · Container"
 }
