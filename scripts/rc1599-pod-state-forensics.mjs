@@ -50,7 +50,7 @@ function snapshotOf(doc) {
   return { entries, map, unreferenced };
 }
 function statusConflict(entries) {
-  const seen = new Set(entries.map(row => row.status || row.processStatus).filter(Boolean));
+  const seen = new Set(entries.flatMap(row => [row.status, row.processStatus]).filter(Boolean));
   return entries.length > 1 && seen.size > 1;
 }
 function aggregate(s) {
@@ -59,7 +59,8 @@ function aggregate(s) {
     unreferenced: s.unreferenced.length,
     duplicatedAcrossCollections: [...s.map.values()].filter(rows => new Set(rows.map(row => row.collection)).size > 1).length,
     conflictingStatuses: [...s.map.values()].filter(statusConflict).length,
-    podStatusEntries: s.entries.filter(row => POD_STATUS.has(row.status || row.processStatus)).length,
+    sameEntryStatusDisagreement: s.entries.filter(row => row.status && row.processStatus && row.status !== row.processStatus).length,
+    podStatusEntries: s.entries.filter(row => POD_STATUS.has(row.status) || POD_STATUS.has(row.processStatus)).length,
     entriesWithPodMetadata: s.entries.filter(row => row.podFileCount > 0).length,
     entriesWithDurablePointers: s.entries.filter(row => row.durableFileCount > 0).length
   };
@@ -83,10 +84,14 @@ export function compareTeamStateSnapshots(beforeDoc, afterDoc, options = {}) {
       const next = afterByCollection.get(collection);
       if (!next) { changes.push({ reference, collection, kind: 'missing-collection-copy' }); continue; }
       const a = prev.status || prev.processStatus, b = next.status || next.processStatus;
-      if (a !== b) {
+      if (prev.status !== next.status || prev.processStatus !== next.processStatus) {
         flags.statusesChanged++;
-        const downgrade = POD_STATUS.has(a) && PICKED_UP.has(b);
-        const resurrected = PICKED_UP.has(a) && POD_STATUS.has(b);
+        const beforePod = POD_STATUS.has(prev.status) || POD_STATUS.has(prev.processStatus);
+        const afterPod = POD_STATUS.has(next.status) || POD_STATUS.has(next.processStatus);
+        const beforePicked = PICKED_UP.has(prev.status) || PICKED_UP.has(prev.processStatus);
+        const afterPicked = PICKED_UP.has(next.status) || PICKED_UP.has(next.processStatus);
+        const downgrade = beforePod && afterPicked && !afterPod;
+        const resurrected = beforePicked && afterPod && !beforePod;
         if (downgrade) flags.podToPickedUp++;
         if (resurrected) flags.pickedUpToPod++;
         if (resurrected && prev.updatedAt === next.updatedAt && prev.syncUpdatedAt === next.syncUpdatedAt)
