@@ -13,7 +13,8 @@ const helpers=source.slice(source.indexOf('function text('),start);
 const storeStub={
   pickupHistory:r=>r.pickupHistory||[],
   expectedCollis:r=>r.expectedColliCount,
-  pickupCollectedColliCount:r=>r.pickupCollectedColliCount
+  pickupCollectedColliCount:r=>r.pickupCollectedColliCount,
+  err:(code,message,status)=>Object.assign(new Error(message),{code,status})
 };
 const createPodPdf=new Function('require','Buffer','store',helpers+source.slice(start,end)+'\nreturn createPodPdf;')(apiRequire,Buffer,storeStub);
 const signaturePng=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Z8R8AAAAASUVORK5CYII=','base64');
