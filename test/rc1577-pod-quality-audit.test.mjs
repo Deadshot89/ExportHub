@@ -26,6 +26,7 @@ test('RC1577: Klassifizierung trennt in Ordnung, neu erzeugen, Abgeholt, selbst 
   assert.deepEqual(audit.classify({},{files:[current],signatureStored:true,hasToken:true}),{verdict:'ok',reason:'CURRENT_LAYOUT'});
   assert.deepEqual(audit.classify({},{files:[{readable:true,manualUpload:true}]}),{verdict:'ok',reason:'MANUAL_UPLOAD'});
   assert.deepEqual(audit.classify({},{files:[old],signatureStored:true,hasToken:true}),{verdict:'regenerate',reason:'OLD_LAYOUT'});
+  assert.deepEqual(audit.classify({},{files:[{readable:true,renderLayout:'RC1561'}],signatureStored:true,hasToken:true}),{verdict:'regenerate',reason:'OLD_LAYOUT'},'previously accepted overlapping PODs must be rechecked');
   assert.deepEqual(audit.classify({},{files:[broken],signatureStored:true,hasToken:true}),{verdict:'regenerate',reason:'POD_NOT_READABLE'});
   assert.deepEqual(audit.classify({},{files:[],signatureStored:false,hasToken:true}),{verdict:'review',reason:'NO_POD_FILE',missing:'SIGNATURE_NOT_STORED'});
   assert.deepEqual(audit.classify({},{files:[old],signatureStored:true,hasToken:false}),{verdict:'review',reason:'OLD_LAYOUT',missing:'PICKUP_TOKEN_MISSING'});
@@ -83,7 +84,7 @@ test('RC1577: Endpunkt ist nur für globale Admins',async()=>{
 
 test('RC1577: hochgeladene PODs tragen das Layout, mit dem sie im Browser erzeugt wurden',()=>{
   assert.equal(podArchive.POD_RENDER_LAYOUT,'RC1595');
-  assert.equal(podArchive.renderLayoutOf('rc1561'),'RC1595');
+  assert.equal(podArchive.renderLayoutOf('rc1561'),'RC1561');
   assert.equal(podArchive.renderLayoutOf('<script>'),'');
   const archive=fs.readFileSync('api/shared/pod-archive.js','utf8');
   assert.match(archive,/if \(renderLayout\) file\.renderLayout = renderLayout;/);
