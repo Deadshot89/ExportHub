@@ -4,7 +4,7 @@ const crypto = require('crypto');
 const store = require('./pickup-store');
 const graphDrive = require('./graph-drive');
 const TEAM_POD_LINK_VERSION = 'RC1340';
-const POD_PDF_LAYOUT_VERSION = 'RC1594-SIGNED-LOADING-LIST-V3';
+const POD_PDF_LAYOUT_VERSION = 'RC1600-SIGNED-LOADING-LIST-V4';
 // RC1577: layout of the signed loading list rendered in the browser (assets/document-print-name.js,
 // window.EXPORTHUB_POD_RENDER_LAYOUT). Supplied PODs carry it as renderLayout so the POD quality audit
 // can tell PODs rendered after the RC1560/RC1561 signature and bottom-tile fixes from older ones.
@@ -133,7 +133,7 @@ async function createPodPdf(record, signatureBuffer, signatureType) {
   const pdf = await PDFDocument.create();
   const normal = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
-  const page = pdf.addPage([595.28, 841.89]);
+  let page = pdf.addPage([595.28, 841.89]);
   const navy = rgb(.13,.22,.36), muted = rgb(.38,.44,.53), border = rgb(.76,.81,.87), pale = rgb(.96,.98,1), green = rgb(.91,.97,.93);
   const x = 42, width = 511;
   const SIGNATURE_CARD_HEIGHT = 58;
@@ -161,12 +161,19 @@ async function createPodPdf(record, signatureBuffer, signatureType) {
   page.drawRectangle({x,y:y-25,width,height:25,color:pale,borderColor:border,borderWidth:.7});
   draw('POS.',x+8,y-16,8,bold);draw('VERPACKUNG',x+48,y-16,8,bold);draw('ANZAHL',x+230,y-16,8,bold);draw('GEWICHT KG',x+335,y-16,8,bold);
   y-=25;
+  const overflowRows=[];
   for(const [i,row] of rows.slice(0,6).entries()){
     const r=row||{};page.drawRectangle({x,y:y-21,width,height:21,borderColor:border,borderWidth:.45});
-    draw(String(i+1),x+8,y-14,8);draw(value(r.type,r.packaging,r.verpackung,r.packageType,r.packagingType),x+48,y-14,8);
-    draw(String(value(r.count,r.quantity,r.qty)),x+230,y-14,8);draw(String(value(r.weight,r.kg)),x+335,y-14,8);y-=21;
+    const packaging=value(r.type,r.packaging,r.verpackung,r.packageType,r.packagingType);
+    const needsDetail=normal.widthOfTextAtSize(pdfText(packaging),8)>171;
+    if(needsDetail)overflowRows.push({index:i,row:r});
+    draw(String(i+1),x+8,y-14,8);
+    draw(needsDetail?'Details siehe Anlage':packaging,x+48,y-14,8);
+    draw(String(value(r.count,r.quantity,r.qty)),x+230,y-14,8);
+    draw(String(value(r.weight,r.kg)),x+335,y-14,8);y-=21;
   }
-  if(rows.length>6){draw('Weitere '+(rows.length-6)+' Packstueckpositionen im ExportHUB-Datensatz',x+8,y-12,8);y-=19;}
+  rows.forEach((row,index)=>{if(index>=6)overflowRows.push({index,row});});
+  if(overflowRows.length){draw('Weitere / ausfuehrliche Positionen auf Anlage: '+overflowRows.length,x+8,y-12,8);y-=19;}
   y-=13;
   card('Colli gesamt',String(typeof store.expectedCollis==='function'?store.expectedCollis(record):value(record.expectedColliCount,record.colliCount)),x,y,247,49);
   card('Colli abgeholt',String(typeof store.pickupCollectedColliCount==='function'?store.pickupCollectedColliCount(record):value(record.pickupCollectedColliCount,record.collectedPickupCollis)),x+259,y,252,49);
@@ -197,32 +204,85 @@ async function createPodPdf(record, signatureBuffer, signatureType) {
   else page.drawLine({start:{x:palletX+cellW-48,y:y-47},end:{x:palletX+cellW-10,y:y-47},thickness:.8,color:navy});
   let image=null;
   try { image=/png/i.test(signatureType||'')?await pdf.embedPng(signatureBuffer):await pdf.embedJpg(signatureBuffer); }catch(_){}
-  if(image){
-    const dims=image.scale(1),maxW=cellW-20,scale=Math.min(maxW/dims.width,SIGNATURE_MAX_HEIGHT/dims.height);
-    page.drawImage(image,{x:signatureX+10,y:y-SIGNATURE_CARD_HEIGHT+5,width:dims.width*scale,height:dims.height*scale});
-  }else draw('Unterschrift gespeichert',signatureX+10,y-45,8);
+  if(!image)throw store.err('POD_SIGNATURE_IMAGE_INVALID','Die gespeicherte Fahrerunterschrift kann nicht als Bild gelesen werden. Kein Ersatz-POD erzeugt.',409);
+  const dims=image.scale(1),maxW=cellW-20,scale=Math.min(maxW/dims.width,SIGNATURE_MAX_HEIGHT/dims.height);
+  page.drawImage(image,{x:signatureX+10,y:y-SIGNATURE_CARD_HEIGHT+5,width:dims.width*scale,height:dims.height*scale});
 
-  const deliveryNotes = deliveryNoteNames(record);
-  const deliveryTop = y - SIGNATURE_CARD_HEIGHT - 10;
-  if (deliveryNotes.length) {
+  // RC1600: never compress dozens of delivery-note lines below A4 safety margins.
+  // The driver signature and pallet card always stay together on page one.
+  const deliveryNotes=deliveryNoteNames(record);
+  const deliveryTop=y-SIGNATURE_CARD_HEIGHT-10;
+  const overflowNotes=[];
+  if(deliveryNotes.length){
     draw('LIEFERSCHEINE / DELIVERY NOTES',x,deliveryTop,7,bold,muted);
-    const bottom = 66;
-    const available = Math.max(26, deliveryTop - bottom - 13);
-    const targetRows = Math.max(1, Math.floor(available / 6));
-    const columnCount = Math.min(6, Math.max(1, Math.ceil(deliveryNotes.length / targetRows)));
-    const rowsPerColumn = Math.max(1, Math.ceil(deliveryNotes.length / columnCount));
-    const lineHeight = Math.max(4.6, Math.min(7.5, available / rowsPerColumn));
-    const fontSize = Math.max(4.1, Math.min(6.7, lineHeight - .5));
-    const colW = width / columnCount;
+    const colW=width/2,firstY=deliveryTop-15,lineHeight=11.5,minY=75;
+    const rowsPerCol=Math.max(0,Math.floor((firstY-minY)/lineHeight)+1);
+    let appendixStarted=false;
     deliveryNotes.forEach((name,index)=>{
-      const col = Math.floor(index / rowsPerColumn);
-      const row = index % rowsPerColumn;
-      const maxChars = Math.max(12, Math.floor((colW - 7) / Math.max(2.5, fontSize * .53)));
-      draw(pdfText(name).slice(0,maxChars),x+col*colW,deliveryTop-13-row*lineHeight,fontSize,normal,navy);
+      // Never render a name that exceeds its column: keep it intact in the annex.
+      if(appendixStarted || index>=rowsPerCol*2 || normal.widthOfTextAtSize(pdfText(name),7.2)>colW-14){
+        appendixStarted=true;overflowNotes.push(name);return;
+      }
+      const col=Math.floor(index/rowsPerCol),row=index%rowsPerCol;
+      draw(name,x+col*colW+4,firstY-row*lineHeight,7.2);
     });
+    if(overflowNotes.length)draw('Weitere '+overflowNotes.length+' Lieferscheine auf Anlage',x+2,61,7,normal,muted);
   }
   draw('Nachweis-ID: '+text(record.accessKey||'').slice(0,20),x,49,7,normal,muted);
   draw('Quelle: ExportHUB QR-Abholung',x+245,49,7,normal,muted);
+
+  // In the annex, all remaining entries are printed at readable A4 sizes.
+  // No signed original is altered and the signature is never split across pages.
+  function fitLines(content,maxWidth,fontSize){
+    let rest=pdfText(content)||'-';const lines=[];
+    while(rest.length){
+      let n=rest.length;
+      while(n>1 && normal.widthOfTextAtSize(rest.slice(0,n),fontSize)>maxWidth)n--;
+      if(n<rest.length){
+        const blank=rest.slice(0,n).lastIndexOf(' ');
+        if(blank>n*.55)n=blank+1;
+      }
+      lines.push(rest.slice(0,n).trimEnd());
+      rest=rest.slice(n).trimStart();
+    }
+    return lines;
+  }
+  function addAnnexPage(title){
+    page=pdf.addPage([595.28,841.89]);
+    draw('ExportHUB360',x,795,15,bold);
+    draw('LADELISTE - ANLAGE',x+132,795,14,bold);
+    draw('Sendungsreferenz: '+value(record.reference),x,768,9,bold);
+    page.drawLine({start:{x,y:753},end:{x:x+width,y:753},thickness:1,color:navy});
+    draw(title,x,730,10,bold);
+    draw('Anlage zum unterschriebenen POD',x,49,7,normal,muted);
+    return 708;
+  }
+  if(overflowRows.length){
+    let rowY=addAnnexPage('VERPACKUNG / PACKAGING (FORTSETZUNG)');
+    for(const item of overflowRows){
+      const r=item.row||{};
+      const typeLines=fitLines(value(r.type,r.packaging,r.verpackung,r.packageType,r.packagingType),238,8);
+      const countLines=fitLines(String(value(r.count,r.quantity,r.qty)),65,8);
+      const weightLines=fitLines(String(value(r.weight,r.kg)),66,8);
+      const height=Math.max(27,11*Math.max(typeLines.length,countLines.length,weightLines.length)+8);
+      if(rowY-height<77)rowY=addAnnexPage('VERPACKUNG / PACKAGING (FORTSETZUNG)');
+      page.drawRectangle({x,y:rowY-height,width,height,borderColor:border,borderWidth:.5});
+      draw(String(item.index+1),x+8,rowY-14,8);
+      typeLines.forEach((line,i)=>draw(line,x+50,rowY-14-i*11,8));
+      countLines.forEach((line,i)=>draw(line,x+304,rowY-14-i*11,8));
+      weightLines.forEach((line,i)=>draw(line,x+419,rowY-14-i*11,8));
+      rowY-=height;
+    }
+  }
+  if(overflowNotes.length){
+    let noteY=addAnnexPage('LIEFERSCHEINE / DELIVERY NOTES (FORTSETZUNG)');
+    overflowNotes.forEach((name)=>{
+      const lines=fitLines(name,width-16,8.5),height=10.5*lines.length+7;
+      if(noteY-height<78)noteY=addAnnexPage('LIEFERSCHEINE / DELIVERY NOTES (FORTSETZUNG)');
+      lines.forEach((line,i)=>draw(line,x+6,noteY-11-i*10.5,8.5));
+      noteY-=height;
+    });
+  }
   return Buffer.from(await pdf.save());
 }
 async function readAutomaticPodBuffer(accessKey, environment, record) {
@@ -254,19 +314,29 @@ async function saveAzurePod(accessKey, environment, record, pdf, requestedName, 
   const got = await store.getRecord(accessKey, environment);
   const name = safeFilePart(requestedName || fileNameFor(record));
   const hash = crypto.createHash('sha256').update(pdf).digest('hex');
-  const blobName = store.podPrefix(environment, accessKey) + '/automatic/' + safeFilePart(name);
+  // RC1600: do not overwrite the original signed POD when generating a corrected layout.
+  const blobName = store.podPrefix(environment, accessKey) + '/automatic/' + hash + '-' + safeFilePart(name);
   const blob = got.clients.pods.getBlockBlobClient(blobName);
-  await blob.uploadData(pdf, {
-    blobHTTPHeaders: { blobContentType: 'application/pdf', blobCacheControl: 'no-store' },
-    metadata: {
-      accesshash: String(accessKey),
-      reference: String(record.reference || ''),
-      kind: 'automatic-pod',
-      sha256: hash,
-      layoutversion: POD_PDF_LAYOUT_VERSION,
-      ...(renderLayout ? { renderlayout: renderLayout } : {})
-    }
-  });
+  try {
+    await blob.uploadData(pdf, {
+      blobHTTPHeaders: { blobContentType: 'application/pdf', blobCacheControl: 'no-store' },
+      metadata: {
+        accesshash: String(accessKey),
+        reference: String(record.reference || ''),
+        kind: 'automatic-pod',
+        sha256: hash,
+        layoutversion: POD_PDF_LAYOUT_VERSION,
+        ...(renderLayout ? { renderlayout: renderLayout } : {})
+      },
+      conditions: { ifNoneMatch: '*' }
+    });
+  } catch(error) {
+    if(!error || (error.statusCode!==409 && error.statusCode!==412))throw error;
+  }
+  const stored=await store.readBuffer(blob);
+  if(crypto.createHash('sha256').update(stored.buffer).digest('hex')!==hash){
+    throw store.err('POD_BLOB_INTEGRITY_FAILED','Automatischer POD stimmt nicht mit der gesicherten PDF-Version ueberein.',409);
+  }
   const uploadedAt = store.now();
   const file = {
     id: 'automatic-pod-' + hash.slice(0, 16),
