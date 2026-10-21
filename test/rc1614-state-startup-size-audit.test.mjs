@@ -70,3 +70,50 @@ test('RC1614: profile is read-only and does not access storage, network or user-
  const source=fs.readFileSync('scripts/rc1614-state-startup-size-audit.mjs','utf8');
  assert.doesNotMatch(source,/\bfetch\s*\(|https?:\/\/|azure-storage|\.upload\s*\(/i);
 });
+
+test('RC1615: counts only large identical payloads shared by shipments and savedShipments',()=>{
+ const repeated='data:application/pdf;base64,'+'D'.repeat(120_000);
+ const other='data:application/pdf;base64,'+'Z'.repeat(120_000);
+ const report=profileTeamState({state:{
+   shipments:[{id:'CONFIDENTIAL-S1',attachment:repeated}],
+   savedShipments:[{id:'CONFIDENTIAL-S1',attachment:repeated},
+     {id:'CONFIDENTIAL-S2',attachment:repeated},
+     {id:'CONFIDENTIAL-S3',attachment:other}]
+ }});
+ const dup=report.duplicateLargeShipmentPayloads;
+ assert.equal(dup.sharedDistinctLargePayloads,1);
+ assert.equal(dup.repeatedSavedInstances,2);
+ assert.equal(dup.repeatedSavedBytes,Buffer.byteLength(repeated,'utf8')*2);
+ assert.equal(dup.minimumStringLength,100_000);
+ const encoded=JSON.stringify(report);
+ for(const forbidden of ['CONFIDENTIAL-S1','data:application/pdf','DDDDDDDD']){
+   assert.ok(!encoded.includes(forbidden),'no raw payload or record IDs');
+ }
+});
+
+test('RC1615: same references and tiny equal strings do not imply duplicated large payloads',()=>{
+ const report=profileTeamState({shipments:[{reference:'REF123',signature:'SMALL'}],
+   savedShipments:[{reference:'REF123',signature:'SMALL'}]});
+ assert.equal(report.duplicateLargeShipmentPayloads.sharedDistinctLargePayloads,0);
+ assert.equal(report.duplicateLargeShipmentPayloads.repeatedSavedInstances,0);
+ assert.equal(report.duplicateLargeShipmentPayloads.repeatedSavedBytes,0);
+});
+
+test('RC1615: different large string contents do not qualify by similar size',()=>{
+ const report=profileTeamState({shipments:[{document:'A'.repeat(150_000)}],
+   savedShipments:[{document:'B'.repeat(150_000)}]});
+ assert.equal(report.duplicateLargeShipmentPayloads.sharedDistinctLargePayloads,0);
+ assert.equal(report.duplicateLargeShipmentPayloads.repeatedSavedBytes,0);
+});
+
+test('RC1615: SHA fingerprints are not exposed and source is unchanged',()=>{
+ const payload='PRIVATE_PAYLOAD_'+ 'P'.repeat(200_000);
+ const state={shipments:[{attachment:payload}],savedShipments:[{attachment:payload}]};
+ const before=JSON.stringify(state);
+ const output=JSON.stringify(profileTeamState({state}));
+ assert.equal(before,JSON.stringify(state));
+ assert.equal(output.includes('PRIVATE_PAYLOAD'),false);
+ assert.equal(output.includes('attachment'),false);
+ assert.deepEqual(Object.keys(JSON.parse(output).duplicateLargeShipmentPayloads).sort(),
+   ['sharedDistinctLargePayloads','repeatedSavedInstances','repeatedSavedBytes','minimumStringLength'].sort());
+});
