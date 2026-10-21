@@ -1810,5 +1810,20 @@
   "shipmentHistory.registration.success": "Registrazione confermata. L'attività corrispondente è stata completata automaticamente.",
   "shipmentHistory.registration.noTask": "Registrazione confermata. Nessuna attività scaduta corrispondente trovata con certezza.",
   "shipmentHistory.registration.failed": "Salvataggio non confermato. Le modifiche non sono state applicate.",
-  "shipmentHistory.registration.storageUnavailable": "Salvataggio sicuro o automazione non disponibile. Nessuna conferma registrata."
+  "shipmentHistory.registration.storageUnavailable": "Salvataggio sicuro o automazione non disponibile. Nessuna conferma registrata.",
+  "customerAvis.dynamic.uploadSaved": "Controlli antivirus e documento superati · PDF salvato: {{name}}",
+  "customerAvis.dynamic.uploadConfirmed": "Controlli antivirus e documento superati: {{name}}",
+  "customerAvis.dynamic.uploadScanning": "Controlli antivirus e documento in corso: {{name}}",
+  "customerAvis.dynamic.uploadPdfOnly": "Sono consentiti solo file PDF: {{name}}",
+  "customerAvis.dynamic.uploadTooLarge": "Il PDF supera 10 MB: {{name}}",
+  "customerAvis.dynamic.uploadInvalidMime": "Tipo di file non valido: {{name}}",
+  "customerAvis.dynamic.uploadSending": "Caricamento e verifica sicuri del PDF: {{name}}",
+  "customerAvis.dynamic.uploadAlreadySaved": "PDF già verificato e salvato: {{name}}",
+  "customerAvis.dynamic.uploadPending": "PDF caricato · Controlli antivirus e documento in corso: {{name}}",
+  "customerAvis.dynamic.slotRemaining": "Ancora {{remaining}} posti disponibili su 3",
+  "customerAvis.dynamic.slotSelected": "Fascia oraria {{from}}–{{to}} selezionata.",
+  "customerAvis.dynamic.currentStatus": "Stato attuale: {{status}} · aggiornato automaticamente",
+  "customerAvis.dynamic.shipmentReference": "Riferimento della spedizione {{reference}}",
+  "customerAvis.dynamic.licensePlate": "Targa {{plate}}",
+  "customerAvis.dynamic.reportedOn": "comunicato il {{date}}"
 }

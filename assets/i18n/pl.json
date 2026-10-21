@@ -1810,5 +1810,20 @@
   "shipmentHistory.registration.success": "Potwierdzono zgłoszenie. Odpowiednie zadanie zostało automatycznie ukończone.",
   "shipmentHistory.registration.noTask": "Potwierdzono zgłoszenie. Nie znaleziono jednoznacznie pasującego zaległego zadania.",
   "shipmentHistory.registration.failed": "Zapis nie został potwierdzony. Nie zapisano zmian zgłoszenia ani zadania.",
-  "shipmentHistory.registration.storageUnavailable": "Bezpieczny zapis lub automatyzacja nie jest dostępna. Niczego nie potwierdzono."
+  "shipmentHistory.registration.storageUnavailable": "Bezpieczny zapis lub automatyzacja nie jest dostępna. Niczego nie potwierdzono.",
+  "customerAvis.dynamic.uploadSaved": "Kontrola antywirusowa i dokumentu zakończona · PDF zapisany: {{name}}",
+  "customerAvis.dynamic.uploadConfirmed": "Kontrola antywirusowa i dokumentu zakończona: {{name}}",
+  "customerAvis.dynamic.uploadScanning": "Trwa kontrola antywirusowa i dokumentu: {{name}}",
+  "customerAvis.dynamic.uploadPdfOnly": "Dozwolone są tylko pliki PDF: {{name}}",
+  "customerAvis.dynamic.uploadTooLarge": "Plik PDF przekracza 10 MB: {{name}}",
+  "customerAvis.dynamic.uploadInvalidMime": "Nieprawidłowy typ pliku: {{name}}",
+  "customerAvis.dynamic.uploadSending": "Trwa bezpieczne przesyłanie i sprawdzanie PDF: {{name}}",
+  "customerAvis.dynamic.uploadAlreadySaved": "PDF został już sprawdzony i zapisany: {{name}}",
+  "customerAvis.dynamic.uploadPending": "PDF przesłany · Trwa kontrola antywirusowa i dokumentu: {{name}}",
+  "customerAvis.dynamic.slotRemaining": "Dostępnych jeszcze {{remaining}} z 3 miejsc",
+  "customerAvis.dynamic.slotSelected": "Wybrano przedział {{from}}–{{to}}.",
+  "customerAvis.dynamic.currentStatus": "Aktualny status: {{status}} · aktualizowany automatycznie",
+  "customerAvis.dynamic.shipmentReference": "Numer referencyjny przesyłki {{reference}}",
+  "customerAvis.dynamic.licensePlate": "Numer rejestracyjny {{plate}}",
+  "customerAvis.dynamic.reportedOn": "zgłoszono {{date}}"
 }

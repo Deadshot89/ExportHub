@@ -1810,5 +1810,20 @@
   "shipmentHistory.registration.success": "Registration confirmed. The matching task was completed automatically.",
   "shipmentHistory.registration.noTask": "Registration confirmed. No unambiguous due task was found.",
   "shipmentHistory.registration.failed": "Saving was not confirmed. Registration and task changes were not applied.",
-  "shipmentHistory.registration.storageUnavailable": "Secure saving or task automation is unavailable. No confirmation was recorded."
+  "shipmentHistory.registration.storageUnavailable": "Secure saving or task automation is unavailable. No confirmation was recorded.",
+  "customerAvis.dynamic.uploadSaved": "Virus and document check passed · PDF saved: {{name}}",
+  "customerAvis.dynamic.uploadConfirmed": "Virus and document check passed: {{name}}",
+  "customerAvis.dynamic.uploadScanning": "Virus and document check in progress: {{name}}",
+  "customerAvis.dynamic.uploadPdfOnly": "Only PDF files are allowed: {{name}}",
+  "customerAvis.dynamic.uploadTooLarge": "PDF exceeds 10 MB: {{name}}",
+  "customerAvis.dynamic.uploadInvalidMime": "Invalid file type: {{name}}",
+  "customerAvis.dynamic.uploadSending": "PDF is being uploaded and checked securely: {{name}}",
+  "customerAvis.dynamic.uploadAlreadySaved": "PDF already fully checked and saved: {{name}}",
+  "customerAvis.dynamic.uploadPending": "PDF uploaded · Virus and document check in progress: {{name}}",
+  "customerAvis.dynamic.slotRemaining": "{{remaining}} of 3 slots still available",
+  "customerAvis.dynamic.slotSelected": "Time slot {{from}}–{{to}} selected.",
+  "customerAvis.dynamic.currentStatus": "Current status: {{status}} · updated automatically",
+  "customerAvis.dynamic.shipmentReference": "Shipment reference {{reference}}",
+  "customerAvis.dynamic.licensePlate": "License plate {{plate}}",
+  "customerAvis.dynamic.reportedOn": "reported {{date}}"
 }

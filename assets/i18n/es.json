@@ -1810,5 +1810,20 @@
   "shipmentHistory.registration.success": "Registro confirmado. La tarea correspondiente se completó automáticamente.",
   "shipmentHistory.registration.noTask": "Registro confirmado. No se encontró una tarea vencida inequívoca.",
   "shipmentHistory.registration.failed": "No se confirmó el guardado. No se aplicaron cambios al registro ni a la tarea.",
-  "shipmentHistory.registration.storageUnavailable": "El guardado seguro o la automatización no están disponibles. No se registró confirmación."
+  "shipmentHistory.registration.storageUnavailable": "El guardado seguro o la automatización no están disponibles. No se registró confirmación.",
+  "customerAvis.dynamic.uploadSaved": "Controles de virus y documentos superados · PDF guardado: {{name}}",
+  "customerAvis.dynamic.uploadConfirmed": "Controles de virus y documentos superados: {{name}}",
+  "customerAvis.dynamic.uploadScanning": "Controles de virus y documentos en curso: {{name}}",
+  "customerAvis.dynamic.uploadPdfOnly": "Solo se permiten archivos PDF: {{name}}",
+  "customerAvis.dynamic.uploadTooLarge": "El PDF supera los 10 MB: {{name}}",
+  "customerAvis.dynamic.uploadInvalidMime": "Tipo de archivo no válido: {{name}}",
+  "customerAvis.dynamic.uploadSending": "Subiendo y verificando el PDF de forma segura: {{name}}",
+  "customerAvis.dynamic.uploadAlreadySaved": "PDF ya verificado y guardado: {{name}}",
+  "customerAvis.dynamic.uploadPending": "PDF subido · Controles de virus y documentos en curso: {{name}}",
+  "customerAvis.dynamic.slotRemaining": "Quedan {{remaining}} de 3 plazas disponibles",
+  "customerAvis.dynamic.slotSelected": "Franja horaria {{from}}–{{to}} seleccionada.",
+  "customerAvis.dynamic.currentStatus": "Estado actual: {{status}} · actualizado automáticamente",
+  "customerAvis.dynamic.shipmentReference": "Referencia del envío {{reference}}",
+  "customerAvis.dynamic.licensePlate": "Matrícula {{plate}}",
+  "customerAvis.dynamic.reportedOn": "comunicado el {{date}}"
 }

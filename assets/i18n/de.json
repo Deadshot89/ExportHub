@@ -1810,5 +1810,20 @@
   "shipmentHistory.registration.success": "Versandanmeldung bestätigt. Die passende Aufgabe wurde automatisch erledigt.",
   "shipmentHistory.registration.noTask": "Versandanmeldung bestätigt. Keine eindeutig passende fällige Aufgabe gefunden.",
   "shipmentHistory.registration.failed": "Speicherung nicht bestätigt. Anmeldung und Aufgabenstatus wurden nicht übernommen.",
-  "shipmentHistory.registration.storageUnavailable": "Sichere Speicherung oder Aufgabenautomatik nicht verfügbar. Keine Bestätigung vorgenommen."
+  "shipmentHistory.registration.storageUnavailable": "Sichere Speicherung oder Aufgabenautomatik nicht verfügbar. Keine Bestätigung vorgenommen.",
+  "customerAvis.dynamic.uploadSaved": "Viren- und Fachprüfung bestanden · PDF gespeichert: {{name}}",
+  "customerAvis.dynamic.uploadConfirmed": "Viren- und Fachprüfung bestanden: {{name}}",
+  "customerAvis.dynamic.uploadScanning": "Virenprüfung / Fachprüfung läuft: {{name}}",
+  "customerAvis.dynamic.uploadPdfOnly": "Es sind ausschließlich PDF-Dateien zulässig: {{name}}",
+  "customerAvis.dynamic.uploadTooLarge": "PDF ist größer als 10 MB: {{name}}",
+  "customerAvis.dynamic.uploadInvalidMime": "Ungültiger Dateityp: {{name}}",
+  "customerAvis.dynamic.uploadSending": "PDF wird sicher hochgeladen und geprüft: {{name}}",
+  "customerAvis.dynamic.uploadAlreadySaved": "PDF bereits vollständig geprüft und gespeichert: {{name}}",
+  "customerAvis.dynamic.uploadPending": "PDF hochgeladen · Viren- und Fachprüfung läuft: {{name}}",
+  "customerAvis.dynamic.slotRemaining": "Noch {{remaining}} von 3 gleichzeitig frei",
+  "customerAvis.dynamic.slotSelected": "Zeitfenster {{from}}–{{to}} ausgewählt.",
+  "customerAvis.dynamic.currentStatus": "Aktueller Status: {{status}} · automatisch aktualisiert",
+  "customerAvis.dynamic.shipmentReference": "Sendungsreferenz {{reference}}",
+  "customerAvis.dynamic.licensePlate": "Kennzeichen {{plate}}",
+  "customerAvis.dynamic.reportedOn": "gemeldet {{date}}"
 }

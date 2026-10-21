@@ -1810,5 +1810,20 @@
   "shipmentHistory.registration.success": "Enregistrement confirmé. La tâche correspondante a été terminée automatiquement.",
   "shipmentHistory.registration.noTask": "Enregistrement confirmé. Aucune tâche échue correspondante trouvée sans ambiguïté.",
   "shipmentHistory.registration.failed": "L'enregistrement n'a pas été confirmé. Aucune modification de tâche n'a été appliquée.",
-  "shipmentHistory.registration.storageUnavailable": "Enregistrement sécurisé ou automatisation indisponible. Aucune confirmation enregistrée."
+  "shipmentHistory.registration.storageUnavailable": "Enregistrement sécurisé ou automatisation indisponible. Aucune confirmation enregistrée.",
+  "customerAvis.dynamic.uploadSaved": "Contrôles antivirus et documentaires réussis · PDF enregistré : {{name}}",
+  "customerAvis.dynamic.uploadConfirmed": "Contrôles antivirus et documentaires réussis : {{name}}",
+  "customerAvis.dynamic.uploadScanning": "Contrôles antivirus et documentaires en cours : {{name}}",
+  "customerAvis.dynamic.uploadPdfOnly": "Seuls les fichiers PDF sont autorisés : {{name}}",
+  "customerAvis.dynamic.uploadTooLarge": "Le PDF dépasse 10 Mo : {{name}}",
+  "customerAvis.dynamic.uploadInvalidMime": "Type de fichier non valide : {{name}}",
+  "customerAvis.dynamic.uploadSending": "Téléversement et vérification sécurisés du PDF : {{name}}",
+  "customerAvis.dynamic.uploadAlreadySaved": "PDF déjà vérifié et enregistré : {{name}}",
+  "customerAvis.dynamic.uploadPending": "PDF téléversé · Contrôles antivirus et documentaires en cours : {{name}}",
+  "customerAvis.dynamic.slotRemaining": "Encore {{remaining}} places disponibles sur 3",
+  "customerAvis.dynamic.slotSelected": "Créneau {{from}}–{{to}} sélectionné.",
+  "customerAvis.dynamic.currentStatus": "Statut actuel : {{status}} · mis à jour automatiquement",
+  "customerAvis.dynamic.shipmentReference": "Référence de l’expédition {{reference}}",
+  "customerAvis.dynamic.licensePlate": "Immatriculation {{plate}}",
+  "customerAvis.dynamic.reportedOn": "signalé le {{date}}"
 }
