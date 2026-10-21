@@ -19,3 +19,11 @@ test('RC1589: Signaturhöhe, Größenlimit und Ausblendung von alten Werten blei
   assert.match(smoke,/expect\(layout\.signatureHeight\)\.toBeLessThanOrEqual\(62\)/);
   assert.match(smoke,/expect\(layout\.visibleLegacy\)\.toBe\(0\)/);
 });
+
+test('RC1591: POD Browser-Smoke misst Geometrie erst nach vollständigem Layout und meldet die unsichtbare Ahnenkette',()=>{
+  assert.match(smoke,/await page\.goto\('\/',\{waitUntil:'load'\}\)/);
+  assert.match(smoke,/await document\.fonts\.ready/);
+  assert.match(smoke,/requestAnimationFrame\(\(\)=>requestAnimationFrame\(resolve\)\)/);
+  assert.match(smoke,/printAncestorDiagnostics/);
+  assert.match(smoke,/expect\(layout\.printPageHeight,[^\n]*\)\.toBeGreaterThan\(0\)/);
+});
