@@ -44,6 +44,38 @@ function analyzeStrings(value){
   }
   return report;
 }
+// RC1615 P0: detect large identical payloads copied between shipment collections.
+// Fingerprints never leave RAM; output is strictly aggregate. This is evidence
+// of potential duplication, NEVER permission to delete either collection.
+function crossShipmentLargePayloads(state){
+  const source=new Set(),matched=new Set();
+  const report={sharedDistinctLargePayloads:0,repeatedSavedInstances:0,repeatedSavedBytes:0,minimumStringLength:100_000};
+  function scan(value,callback){
+    const stack=[value];let visited=0;
+    while(stack.length){
+      const item=stack.pop();
+      if(++visited>2_000_000)throw new Error('RC1615 LIMIT_EXCEEDED: too many JSON nodes');
+      if(typeof item==='string'){
+        if(item.length>=LARGE_STRING_THRESHOLD){
+          const digest=crypto.createHash('sha256').update(item,'utf8').digest('hex');
+          callback(digest,item);
+        }
+      }else if(Array.isArray(item)){for(const x of item)stack.push(x)}
+      else if(object(item)){for(const x of Object.values(item))stack.push(x)}
+    }
+  }
+  scan(Array.isArray(state.shipments)?state.shipments:[],fingerprint=>source.add(fingerprint));
+  scan(Array.isArray(state.savedShipments)?state.savedShipments:[],(fingerprint,item)=>{
+    if(!source.has(fingerprint))return;
+    report.repeatedSavedInstances++;
+    report.repeatedSavedBytes+=Buffer.byteLength(item,'utf8');
+    if(!matched.has(fingerprint)){
+      report.sharedDistinctLargePayloads++;
+      matched.add(fingerprint);
+    }
+  });
+  return report;
+}
 export function profileTeamState(document){
   const state=validState(document);
   const rows=Object.fromEntries([...GROUPS,'other'].map(k=>[k,{entries:0,serializedBytes:0,
@@ -59,7 +91,8 @@ export function profileTeamState(document){
   return {
     version:'RC1614',readOnly:true,
     note:'Serialized collection sizes are attribution estimates. No raw records, keys, URLs, or documents are shown.',
-    stateSerializedBytes:bytes(state),sections:rows
+    stateSerializedBytes:bytes(state),sections:rows,
+    duplicateLargeShipmentPayloads:crossShipmentLargePayloads(state)
   };
 }
 export function runCli(args){
