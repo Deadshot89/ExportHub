@@ -1244,6 +1244,8 @@ for(const rel of [
   'assets/i18n/rc1579-menu-redesign.js',
   'assets/rc1558-dashboard-overview.css',
   'assets/rc1558-dashboard-overview.js',
+  // RC1592: print/browser QA must load the same pickup runtime as final release.
+  'assets/rc1546-pickup-control.js',
   'assets/rc1570-tasks-focus.css',
   'assets/rc1570-tasks-focus.js',
   'assets/i18n/rc1570-tasks-focus.js',
