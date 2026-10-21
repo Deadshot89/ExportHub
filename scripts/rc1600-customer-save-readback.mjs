@@ -32,7 +32,12 @@ const PATCHES=[
   {
     "id": "RC1600_CC_EDIT",
     "a": "var rc819NamedCc=rc819CollectCcContacts(),rc819ManualCc=value(['rc405FCc','rc409FolderCc','customerFolderMailCc','rc542CustomerCc'],c.cc||c.mailCc);c.ccContacts=rc819NamedCc;",
-    "b": "var rc819NamedCc=rc819CollectCcContacts(),rc819CcInput=node(['rc405FCc','rc409FolderCc','customerFolderMailCc','rc542CustomerCc']),rc819ManualCc=value(['rc405FCc','rc409FolderCc','customerFolderMailCc','rc542CustomerCc'],c.cc||c.mailCc),ccEdited=!!(rc819CcInput&&rc819CcInput.hasAttribute('data-rc565-loaded-value')&&q(rc819CcInput.value)!==q(rc819CcInput.getAttribute('data-rc565-loaded-value')));if(ccEdited){var permittedCc=new Set(rc819EmailItems(rc819ManualCc).map(n));rc819NamedCc=rc819NamedCc.filter(function(x){return permittedCc.has(n(x.email))})}c.ccContacts=rc819NamedCc;"
+    "b": "var rc819NamedCc=rc819CollectCcContacts(),rc819CcInput=node(['rc405FCc','rc409FolderCc','customerFolderMailCc','rc542CustomerCc']),rc819ManualCc=value(['rc405FCc','rc409FolderCc','customerFolderMailCc','rc542CustomerCc'],c.cc||c.mailCc),ccEdited=!!(rc819CcInput&&(q(rc819CcInput.value)!==q(c.cc||c.mailCc)||(rc819CcInput.hasAttribute('data-rc565-loaded-value')&&q(rc819CcInput.value)!==q(rc819CcInput.getAttribute('data-rc565-loaded-value')))));if(ccEdited){var permittedCc=new Set(rc819EmailItems(rc819ManualCc).map(n));rc819NamedCc=rc819NamedCc.filter(function(x){return permittedCc.has(n(x.email))})}c.ccContacts=rc819NamedCc;"
+  },
+  {
+    "id": "RC1600_CC_LEGACY_ALIAS",
+    "a": "c.mailCc=c.cc;c.rc385Cc=c.cc;",
+    "b": "c.mailCc=c.cc;c.rc385Cc=c.cc;c.customerMailCc=c.cc;"
   }
 ];
 /**
