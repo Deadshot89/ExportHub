@@ -32,7 +32,7 @@ test('RC1592: der sichere Abholkontroll-Druckmodus bleibt möglich',()=>{
   assert.match(pickup,/function printCurrentList\(\)\{[^}]*window\.print\(\)/);
   assert.match(pickup,/overlay\.className='rc1546-overlay'/);
   assert.match(pickup,/d\.body\.appendChild\(overlay\)/);
-  assert.match(pickup,/\.rc1546-overlay\{position:static!important;display:block!important/);
+  assert.match(pickup,/\.rc1546-overlay\{page:rc1546ControlPage!important;position:static!important;display:block!important/);
 });
 
 
