@@ -77,7 +77,7 @@ function installRc1607SignedPodCss(){
    if(!st){st=doc.createElement('style');st.id='exporthub-rc1607-pod-flow';st.textContent=css;doc.head.appendChild(st)}}
  }
  installInto(d);
- Array.from(d.querySelectorAll('iframe.index352-pdf-frame,iframe.index352-print-frame')).forEach(function(frame){try{installInto(frame.contentDocument)}catch(_){}});
+ if(typeof d.querySelectorAll==='function')Array.from(d.querySelectorAll('iframe.index352-pdf-frame,iframe.index352-print-frame')).forEach(function(frame){try{installInto(frame.contentDocument)}catch(_){}});
  if(!d.__rc1607PodFrameObserver&&d.body&&typeof w.MutationObserver==='function'){
   d.__rc1607PodFrameObserver=new w.MutationObserver(function(records){
    records.forEach(function(record){Array.from(record.addedNodes||[]).forEach(function(node){
