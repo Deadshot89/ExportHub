@@ -24,7 +24,7 @@ test('RC1577: Klassifizierung trennt in Ordnung, neu erzeugen, Abgeholt, selbst 
   const current={readable:true,renderLayout:'RC1595'},old={readable:true,renderLayout:''},broken={readable:false,renderLayout:'RC1595'};
   assert.equal(audit.POD_RENDER_LAYOUT,'RC1595');
   assert.deepEqual(audit.classify({},{files:[current],signatureStored:true,hasToken:true}),{verdict:'ok',reason:'CURRENT_LAYOUT'});
-  assert.deepEqual(audit.classify({},{files:[{readable:true,manualUpload:true}]}),{verdict:'ok',reason:'MANUAL_UPLOAD'});
+  assert.deepEqual(audit.classify({},{files:[{readable:true,manualUpload:true}]}),{verdict:'manual',reason:'MANUAL_UPLOAD'},'manual PDFs cannot be declared visually correct');
   assert.deepEqual(audit.classify({},{files:[old],signatureStored:true,hasToken:true}),{verdict:'regenerate',reason:'OLD_LAYOUT'});
   assert.deepEqual(audit.classify({},{files:[{readable:true,renderLayout:'RC1561'}],signatureStored:true,hasToken:true}),{verdict:'regenerate',reason:'OLD_LAYOUT'},'previously accepted overlapping PODs must be rechecked');
   assert.deepEqual(audit.classify({},{files:[broken],signatureStored:true,hasToken:true}),{verdict:'regenerate',reason:'POD_NOT_READABLE'});
@@ -42,7 +42,11 @@ test('RC1577: Bericht liest nur und prüft jede Sendung mit POD',async()=>{
     {ref:'PICK1',status:'Abgeholt',podFiles:[]},
     {ref:'FLAG1',status:'Abgeholt',podReviewRequired:true,podFiles:[]},
     {ref:'MULTI1',status:'POD vorhanden',subShipments:[{},{}],podFiles:[]},
-    {ref:'MAN1',status:'POD vorhanden',pickupAccessKeyHash:KEY3,podFiles:[{name:'scan.pdf',type:'application/pdf',manualUpload:true,data:pdfData}]}
+    {ref:'MAN1',status:'POD vorhanden',pickupAccessKeyHash:KEY3,podFiles:[{name:'scan.pdf',type:'application/pdf',manualUpload:true,data:pdfData}]},
+    {ref:'ARCH1',status:'Abgeschlossen',pickupToken:'t4',pickupAccessKeyHash:KEY,podFiles:[{name:'archive.pdf',blobName:'archive',type:'application/pdf',renderLayout:'RC1561'}]}
+  ],savedShipments:[
+    {ref:'OK1',status:'Erstellt',podFiles:[]}, // must not hide the canonical POD
+    {ref:'SAVED1',status:'Archiviert',pickupToken:'t5',pickupAccessKeyHash:KEY,podFiles:[{name:'saved.pdf',blobName:'saved',type:'application/pdf',renderLayout:'RC1595'}]}
   ]};
   const writes=[];
   const fakeClients={team:{getBlockBlobClient:()=>({})},pods:{}};
@@ -56,7 +60,7 @@ test('RC1577: Bericht liest nur und prüft jede Sendung mit POD',async()=>{
   ],async()=>{
     const result=await audit.report('production',{cursor:0,limit:25});
     const byRef=Object.fromEntries(result.rows.map(r=>[r.reference,r]));
-    assert.deepEqual(Object.keys(byRef).sort(),['BAD1','FLAG1','MAN1','MULTI1','OK1','OLD1']);
+    assert.deepEqual(Object.keys(byRef).sort(),['ARCH1','BAD1','FLAG1','MAN1','MULTI1','OK1','OLD1','SAVED1']);
     assert.equal(byRef.OK1.verdict,'ok');
     assert.equal(byRef.OLD1.verdict,'regenerate');
     assert.equal(byRef.OLD1.reason,'OLD_LAYOUT');
@@ -64,7 +68,10 @@ test('RC1577: Bericht liest nur und prüft jede Sendung mit POD',async()=>{
     assert.equal(byRef.BAD1.missing,'SIGNATURE_NOT_STORED');
     assert.equal(byRef.FLAG1.verdict,'flagged');
     assert.equal(byRef.MULTI1.verdict,'manual');
-    assert.equal(byRef.MAN1.verdict,'ok');
+    assert.equal(byRef.MAN1.verdict,'manual');
+    assert.equal(byRef.ARCH1.verdict,'regenerate','a POD on an already completed shipment must be audited');
+    assert.equal(byRef.SAVED1.verdict,'ok','saved-only archived shipments must be audited');
+    assert.equal(result.totalShipments,9,'live and saved copies are counted only once');
     assert.equal(result.nextCursor,null);
     const single=await audit.report('production',{references:['old1']});
     assert.deepEqual(single.rows.map(r=>r.reference),['OLD1']);
@@ -126,4 +133,16 @@ test('RC1577: Regressionen laufen in einem Workflow mit',()=>{
   const wf=fs.readFileSync('.github/workflows/rc1577-pod-quality-audit-verify.yml','utf8');
   assert.match(wf,/test\/rc1577-pod-quality-audit\.test\.mjs/);
   assert.match(wf,/e2e\/specs\/rc1577-pod-quality-audit\.spec\.mjs/);
+});
+
+test('RC1595: combined POD list preserves pickup credentials from duplicate shipment copies',()=>{
+ const state={shipments:[{ref:'DUP001',status:'POD vorhanden',pickupToken:'old-token',pickupAccessKeyHash:KEY,podFiles:[]}],
+  savedShipments:[{ref:'DUP001',status:'Archiviert',podFiles:[{kind:'automatic-pod',renderLayout:'RC1561'}]},{ref:'SAVED2',status:'POD vorhanden',podFiles:[]}]};
+ const combined=audit.allShipmentCopies(state);
+ assert.deepEqual(combined.map(s=>s.ref),['DUP001','SAVED2']);
+ assert.equal(combined[0].podFiles.length,1);
+ assert.equal(combined[0].pickupToken,'old-token');
+ assert.equal(combined[0].pickupAccessKeyHash,KEY);
+ assert.equal(state.shipments[0].podFiles.length,0,'the underlying shipment state must not be changed by a read-only audit');
+ assert.equal(audit.relevant({status:'Archiviert',podFiles:[]}),true,'archived POD gaps must also be visible');
 });
