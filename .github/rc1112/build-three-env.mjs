@@ -6,6 +6,7 @@ import {integrateEditor} from '../rc1502/build-three-env.mjs';
 import {integrateTraining} from '../rc1503/build-three-env.mjs';
 import {integrateCoverageAdmin} from '../rc1506/build-three-env.mjs';
 import {patchRc1576StateBodyDeadline} from '../../scripts/rc1576-state-read-body-timeout.mjs';
+import {hardenCustomerSaveHtml} from '../../scripts/rc1600-customer-save-readback.mjs';
 
 const ROOT=process.cwd();
 const SRC=path.join(ROOT,'dist-rc1048');
@@ -1340,7 +1341,11 @@ const rc1114ShippingSrc=path.join(ROOT,'assets','rc1114-shipping-neutral.js');
 const rc1114ShippingOut=path.join(OUT,'assets','rc1114-shipping-neutral.js');
 if(!fs.existsSync(rc1114ShippingSrc))throw new Error('RC1114 Versandkosten-Runtime fehlt');
 fs.copyFileSync(rc1114ShippingSrc,rc1114ShippingOut);
-for(const file of ['index.html','TESTVERSION.html','demo.html'])patchHtml(file);
+for(const file of ['index.html','TESTVERSION.html','demo.html']){
+  patchHtml(file);
+  const target=path.join(OUT,file);
+  fs.writeFileSync(target,hardenCustomerSaveHtml(fs.readFileSync(target,'utf8')));
+}
 // RC1267 public pages: central language runtime must load before the legacy compatibility runtime.
 for(const file of ['customer-avis.html','pickup.html','location.html','pod-notfall.html']){
   const target=path.join(OUT,file);if(!fs.existsSync(target))continue;
