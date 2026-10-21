@@ -215,4 +215,18 @@ async function auditPodStatuses(environment,options){
  return{ok:cleanupErrors.length===0,version:VERSION,environment,cursor:start,nextCursor,totalShipments:shipments.length,checked:selected.length,downloadable,recovered,downgradedEssentra,downgradedOther,removedPodEntries,broken,recordCleanupErrors:cleanupErrors,backup,changed}
 }
 
-module.exports={VERSION,statusIsPod,readStoredPod,accessKeysOf,customerNameValue,isEssentraShipment,looksLikePodBuffer,applyBrokenPodPolicy,verifyShipmentPod,verifyRecordPod,createVerifiedStateBackup,auditPodStatuses};
+// RC1594: conflicts are caused by legitimate concurrent Team-State writers.
+// Re-read and recompute the ENTIRE audit from fresh state on each attempt;
+// do not retry the stale write, bypass ETag checks, or suppress persistent errors.
+async function auditPodStatusesWithRetry(environment,options,operation=auditPodStatuses,pause=ms=>new Promise(resolve=>setTimeout(resolve,ms))){
+  const MAX_ATTEMPTS=3;
+  for(let attempt=1;attempt<=MAX_ATTEMPTS;attempt++){
+    try{return await operation(environment,options)}
+    catch(error){
+      if(!error||error.code!=='POD_AUDIT_STATE_CONFLICT'||attempt===MAX_ATTEMPTS)throw error;
+      await pause(150*attempt);
+    }
+  }
+}
+
+module.exports={VERSION,statusIsPod,readStoredPod,accessKeysOf,customerNameValue,isEssentraShipment,looksLikePodBuffer,applyBrokenPodPolicy,verifyShipmentPod,verifyRecordPod,createVerifiedStateBackup,auditPodStatuses,auditPodStatusesWithRetry};

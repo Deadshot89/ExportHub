@@ -74,7 +74,8 @@ module.exports = async function(context, req) {
     const graph = graphDrive.readiness();
 
     if (payload.auditPodStatus === true) {
-      const audit = await podIntegrityAudit.auditPodStatuses(environment, {
+      // RC1594: rebuild each conflicting audit from a fresh ETag; never force-write.
+      const audit = await podIntegrityAudit.auditPodStatusesWithRetry(environment, {
         cursor: Math.max(0, Math.round(Number(payload.cursor) || 0)),
         limit: Math.min(25, Math.max(1, Math.round(Number(payload.auditLimit || payload.limit) || 10)))
       });
