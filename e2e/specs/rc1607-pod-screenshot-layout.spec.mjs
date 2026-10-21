@@ -18,6 +18,8 @@ test('RC1607 P0: signed original from actual loadHtml fits below four DNCs witho
     const pickup={complete:true,confirmedAt:'2026-10-07T13:43:00.000Z',driverName:'Oplocki',licensePlate:'MGPL803',loaderName:'Carsten Nellesen',signatureData:ink,returnedEuroPallets:0};
     Object.assign(sh,{
       status:'Abgeholt',freigabe:'Abgeholt',pickedUp:true,goodsDescription:'Plastic Parts',
+      updatedAt:'2026-10-21T16:50:27.000Z',
+      deliveryFiles:[{name:'DNC3019223442'},{name:'DNC3019223446'},{name:'DNC3019223491'},{name:'DNC3019223538'}],
       deliveryNotes:'DNC3019223442\nDNC3019223446\nDNC3019223491\nDNC3019223538',
       driverName:pickup.driverName,licensePlate:pickup.licensePlate,loaderName:pickup.loaderName,
       signatureData:ink,driverSignature:ink,pickupDriverSignature:ink,signatureAvailable:true,
@@ -41,6 +43,7 @@ test('RC1607 P0: signed original from actual loadHtml fits below four DNCs witho
             images:[...card.querySelectorAll('img.index352-proof-signature,img.rc1305-signature-image')].filter(img=>img.getClientRects().length>0).map(rect)
           })),
           notes:[...node.querySelectorAll('.rc390-chip')].map(el=>el.textContent.trim()),
+          debugText:(node.innerText||'').slice(-550),
           pages:[...node.ownerDocument.querySelectorAll('.rc390-load')].length
         };
         const out=node.ownerDocument.createElement('canvas');out.width=1588;out.height=2246;return out;
@@ -58,7 +61,7 @@ test('RC1607 P0: signed original from actual loadHtml fits below four DNCs witho
   expect(result.error).toBe('');
   expect(result.measured,'Actual signed POD must reach isolated index352 PDF frame').toBeTruthy();
   const {footer,previous,cards,qrDisplay,notes}=result.measured;
-  expect(notes).toEqual(['DNC3019223442','DNC3019223446','DNC3019223491','DNC3019223538']);
+  expect(notes,'Actual four DNC chips: '+result.measured.debugText).toEqual(['DNC3019223442','DNC3019223446','DNC3019223491','DNC3019223538']);
   expect(qrDisplay,'QR belongs to cover, not signed loading list').toBe('none');
   expect(cards.length,'Signature, driver, date, plate, loader and pallets expected').toBe(6);
   expect(footer.height,'Fixed two-row pickup footer must stay compact').toBeLessThan(230);
