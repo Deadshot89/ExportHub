@@ -18,7 +18,7 @@ test('RC1560: Unterschrift-Begrenzung wandert als Inline-Stil mit jeder Ladelist
   assert.match(embed,/textContent=\(base&&base\.textContent\|\|''\)\+image4Css\(\)/);
   assert.match(embed,/root\.insertBefore\(st,root\.firstChild\)/,'Stil muss innerhalb der Seite liegen, damit clonePages ihn mitkopiert');
   assert.match(embed,/querySelectorAll\('\[data-rc1560-pickup-print-style\]'\)\)\.forEach\(function\(node\)\{node\.remove\(\)\}\)/,'Mehrfaches Enhance darf keine Stile stapeln');
-  assert.match(restore,/root\.setAttribute\('data-rc1503-image4-pickup-layout','1'\);embedPickupPrintStyle\(root\)/);
+  assert.match(restore,/root\.setAttribute\('data-rc1503-image4-pickup-layout','1'\);[\s\S]*embedPickupPrintStyle\(root\)/,'Auch nach der RC1595 Layout-Stabilisierung muss der PDF-Rahmen den Stil übernehmen');
 });
 
 test('RC1560: Palettenkonto steht im Europaletten-Feld unten rechts statt über dem Ladelisten-Kopf',()=>{
