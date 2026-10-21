@@ -140,12 +140,12 @@ test('RC1555 production smoke: verschachtelte POD-Abholkarten zeigen nur die neu
   expect(layout.imageHeight).toBeLessThanOrEqual(58);
   expect(layout.maxCardHeight).toBeLessThanOrEqual(120);
   expect(layout.bodyText).not.toMatch(/ALTE UNTERSCHRIFT|ALTER FAHRER|ALTES DATUM|ALTES KENNZEICHEN|ALTER VERLADER|ALTER ERSATZBLOCK|Alter Hilfetext|Ausgang:\s*99/i);
-  // RC1591: Die separate Abholkontrolle darf nur bei tatsächlich vorhandenem
+  // RC1592: Die separate Abholkontrolle darf nur bei tatsächlich vorhandenem
   // Overlay den Rest der Druckseite ausblenden; Ladelisten bleiben sonst sichtbar.
   const overlayPrint=await page.evaluate(()=>{
     const overlay=document.createElement('div');
     overlay.className='rc1546-overlay';
-    overlay.innerHTML='<section class="rc1546-dialog">RC1591 Druckkontrolle</section>';
+    overlay.innerHTML='<section class="rc1546-dialog">RC1592 Druckkontrolle</section>';
     document.body.appendChild(overlay);
     const stage=document.getElementById('rc576DocumentStage');
     return{
