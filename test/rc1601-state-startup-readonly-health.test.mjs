@@ -27,6 +27,14 @@ test('RC1601: no customer data, blob names, auth secrets or error messages leak 
   }
 });
 
+test('RC1601: show only approved section and field size metadata, never dynamic customer keys',()=>{
+  const data={stateDiagnostics:{sectionBytes:[{key:'shipments',bytes:53000000,items:470},{key:'PRIVATE-CUSTOMER-REFERENCE',bytes:88000,items:1}],inlinePayloadCount:0},collectionFieldBytes:{shipments:[{key:'shipmentHistory',bytes:42000000,items:470},{key:'PRIVATE-EMPLOYEE-NAME',bytes:88,items:1}]}};
+  const summary=safeSummary(data,'health');
+  assert.deepEqual(summary.sections,[{key:'shipments',bytes:53000000,items:470}]);
+  assert.deepEqual(summary.collectionFields.shipments,[{key:'shipmentHistory',bytes:42000000,items:470}]);
+  assert.ok(!JSON.stringify(summary).includes('PRIVATE'));
+});
+
 test('RC1601: GET only, no credentials and a single request per health mode',async()=>{
   const requests=[];
   const result=await probeMode('health',{
