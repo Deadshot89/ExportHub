@@ -1784,5 +1784,22 @@
   "migrationRecovery.completedNew": "Migration complete. {{done}} legacy documents processed; {{migrated}} newly transferred in this run. ExportHUB is reloading.",
   "migrationRecovery.alreadyComplete": "Migration complete. The previously reported legacy documents had already been moved. ExportHUB is reloading.",
   "migrationRecovery.errorState": "Migration stopped: {{reason}}",
-  "migrationRecovery.stopRequested": "Stop requested. The current batch of five will still finish safely …"
+  "migrationRecovery.stopRequested": "Stop requested. The current batch of five will still finish safely …",
+  "customerAvis.public.referencePrompt": "Please confirm the shipment reference.",
+  "customerAvis.public.accessDescription": "Through this secure portal, you can view the current shipment details, released documents and proof of delivery (POD), and report your planned collection date. First, please confirm the shipment reference.",
+  "customerAvis.public.secureLinkBadge": "✓ Secure personal collection-notice link",
+  "customerAvis.public.retentionBadge": "✓ Available for 14 days after collection",
+  "customerAvis.public.noLoginBadge": "✓ No ExportHUB sign-in required",
+  "customerAvis.public.referenceLabel": "Reference number",
+  "customerAvis.public.checking": "Checking …",
+  "customerAvis.public.sessionFailed": "Could not establish a secure session.",
+  "customerAvis.public.accessFailed": "Access could not be verified.",
+  "customerAvis.public.noPackages": "No package lines recorded.",
+  "customerAvis.public.malwareCheck": "✓ Virus and malware scanning in quarantine",
+  "customerAvis.public.shipmentDataCheck": "✓ Validation against shipment reference and details",
+  "customerAvis.public.documentTypeCheck": "✓ Verification of the selected document type",
+  "customerAvis.public.saveAfterChecks": "✓ Saved only after successful malware and document checks",
+  "customerAvis.public.chooseDateFirst": "First select a collection date. Available time slots will then appear.",
+  "customerAvis.public.noFreeSlots": "No two-hour time slots are currently available on this date.",
+  "customerAvis.public.slotsLoadFailed": "Available time slots could not be loaded."
 }

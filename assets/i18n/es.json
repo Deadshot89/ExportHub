@@ -1784,5 +1784,22 @@
   "migrationRecovery.completedNew": "Migración completada. Se procesaron {{done}} documentos antiguos; {{migrated}} se transfirieron en esta ejecución. ExportHUB se está recargando.",
   "migrationRecovery.alreadyComplete": "Migración completada. Los documentos antiguos notificados ya se habían trasladado. ExportHUB se está recargando.",
   "migrationRecovery.errorState": "Migración detenida: {{reason}}",
-  "migrationRecovery.stopRequested": "Se solicitó detener el proceso. El lote actual de cinco terminará de forma segura …"
+  "migrationRecovery.stopRequested": "Se solicitó detener el proceso. El lote actual de cinco terminará de forma segura …",
+  "customerAvis.public.referencePrompt": "Confirma la referencia del envío.",
+  "customerAvis.public.accessDescription": "En este portal seguro puedes consultar los datos actuales del envío, los documentos autorizados y el comprobante de entrega (POD), así como indicar la fecha prevista de recogida. Primero, confirma la referencia del envío.",
+  "customerAvis.public.secureLinkBadge": "✓ Enlace personal seguro de aviso de recogida",
+  "customerAvis.public.retentionBadge": "✓ Disponible durante 14 días después de la recogida",
+  "customerAvis.public.noLoginBadge": "✓ No es necesario iniciar sesión en ExportHUB",
+  "customerAvis.public.referenceLabel": "Número de referencia",
+  "customerAvis.public.checking": "Comprobando …",
+  "customerAvis.public.sessionFailed": "No se pudo establecer una sesión segura.",
+  "customerAvis.public.accessFailed": "No se pudo verificar el acceso.",
+  "customerAvis.public.noPackages": "No hay líneas de bultos registradas.",
+  "customerAvis.public.malwareCheck": "✓ Análisis de virus y malware en cuarentena",
+  "customerAvis.public.shipmentDataCheck": "✓ Comprobación con la referencia y los datos del envío",
+  "customerAvis.public.documentTypeCheck": "✓ Verificación del tipo de documento seleccionado",
+  "customerAvis.public.saveAfterChecks": "✓ Guardado solo tras superar las comprobaciones de virus y documentos",
+  "customerAvis.public.chooseDateFirst": "Selecciona primero una fecha de recogida. Después se mostrarán las franjas horarias disponibles.",
+  "customerAvis.public.noFreeSlots": "No quedan franjas horarias de dos horas disponibles en esta fecha.",
+  "customerAvis.public.slotsLoadFailed": "No se pudieron cargar las franjas horarias disponibles."
 }

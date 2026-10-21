@@ -1784,5 +1784,22 @@
   "migrationRecovery.completedNew": "Migration abgeschlossen. {{done}} Alt-Dokumente sind erledigt; {{migrated}} wurden in diesem Lauf neu übertragen. ExportHUB wird neu geladen.",
   "migrationRecovery.alreadyComplete": "Migration abgeschlossen. Die zuvor gemeldeten Alt-Dokumente waren bereits ausgelagert. ExportHUB wird neu geladen.",
   "migrationRecovery.errorState": "Migration angehalten: {{reason}}",
-  "migrationRecovery.stopRequested": "Stop angefordert. Das aktuelle 5er-Paket wird noch sicher abgeschlossen …"
+  "migrationRecovery.stopRequested": "Stop angefordert. Das aktuelle 5er-Paket wird noch sicher abgeschlossen …",
+  "customerAvis.public.referencePrompt": "Bitte die Sendungsreferenz bestätigen.",
+  "customerAvis.public.accessDescription": "Über dieses sichere Portal können Sie jederzeit die aktuellen Sendungsdaten, freigegebenen Dokumente und den POD einsehen sowie Ihren geplanten Abholtermin mitteilen. Bitte bestätigen Sie zuerst die Sendungsreferenz.",
+  "customerAvis.public.secureLinkBadge": "✓ Sicherer persönlicher Avis-Link",
+  "customerAvis.public.retentionBadge": "✓ Bleibt 14 Tage nach Abholung verfügbar",
+  "customerAvis.public.noLoginBadge": "✓ Keine ExportHUB-Anmeldung erforderlich",
+  "customerAvis.public.referenceLabel": "Referenznummer",
+  "customerAvis.public.checking": "Wird geprüft …",
+  "customerAvis.public.sessionFailed": "Sichere Sitzung konnte nicht erstellt werden.",
+  "customerAvis.public.accessFailed": "Zugriff konnte nicht bestätigt werden.",
+  "customerAvis.public.noPackages": "Keine Colli-Positionen hinterlegt.",
+  "customerAvis.public.malwareCheck": "✓ Viren-/Malwareprüfung in Quarantäne",
+  "customerAvis.public.shipmentDataCheck": "✓ Abgleich mit Sendungsreferenz und Sendungsdaten",
+  "customerAvis.public.documentTypeCheck": "✓ Prüfung der ausgewählten Dokumentart",
+  "customerAvis.public.saveAfterChecks": "✓ Speicherung nur nach bestandener Viren- und Fachprüfung",
+  "customerAvis.public.chooseDateFirst": "Bitte zuerst den Abholtag auswählen. Danach werden die noch freien Zeitfenster angezeigt.",
+  "customerAvis.public.noFreeSlots": "An diesem Tag ist aktuell kein freies 2-Stunden-Zeitfenster mehr verfügbar.",
+  "customerAvis.public.slotsLoadFailed": "Freie Zeitfenster konnten nicht geladen werden."
 }

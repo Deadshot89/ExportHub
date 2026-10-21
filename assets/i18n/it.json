@@ -1784,5 +1784,22 @@
   "migrationRecovery.completedNew": "Migrazione completata. {{done}} vecchi documenti elaborati; {{migrated}} trasferiti in questa esecuzione. ExportHUB si sta ricaricando.",
   "migrationRecovery.alreadyComplete": "Migrazione completata. I vecchi documenti segnalati erano già stati trasferiti. ExportHUB si sta ricaricando.",
   "migrationRecovery.errorState": "Migrazione arrestata: {{reason}}",
-  "migrationRecovery.stopRequested": "Arresto richiesto. Il lotto corrente di cinque verrà completato in sicurezza …"
+  "migrationRecovery.stopRequested": "Arresto richiesto. Il lotto corrente di cinque verrà completato in sicurezza …",
+  "customerAvis.public.referencePrompt": "Conferma il riferimento della spedizione.",
+  "customerAvis.public.accessDescription": "In questo portale sicuro puoi consultare i dati aggiornati della spedizione, i documenti autorizzati e la prova di consegna (POD), e comunicare la data di ritiro prevista. Conferma prima il riferimento della spedizione.",
+  "customerAvis.public.secureLinkBadge": "✓ Link personale sicuro all’avviso di ritiro",
+  "customerAvis.public.retentionBadge": "✓ Disponibile per 14 giorni dopo il ritiro",
+  "customerAvis.public.noLoginBadge": "✓ Non è necessario accedere a ExportHUB",
+  "customerAvis.public.referenceLabel": "Numero di riferimento",
+  "customerAvis.public.checking": "Verifica in corso …",
+  "customerAvis.public.sessionFailed": "Impossibile creare una sessione sicura.",
+  "customerAvis.public.accessFailed": "Impossibile verificare l’accesso.",
+  "customerAvis.public.noPackages": "Nessuna riga di colli registrata.",
+  "customerAvis.public.malwareCheck": "✓ Scansione antivirus e antimalware in quarantena",
+  "customerAvis.public.shipmentDataCheck": "✓ Verifica con il riferimento e i dati della spedizione",
+  "customerAvis.public.documentTypeCheck": "✓ Verifica del tipo di documento selezionato",
+  "customerAvis.public.saveAfterChecks": "✓ Salvataggio solo dopo aver superato i controlli antivirus e documentali",
+  "customerAvis.public.chooseDateFirst": "Seleziona prima la data di ritiro. Verranno quindi mostrati gli orari ancora disponibili.",
+  "customerAvis.public.noFreeSlots": "Per questa data non sono disponibili fasce orarie libere di due ore.",
+  "customerAvis.public.slotsLoadFailed": "Impossibile caricare le fasce orarie disponibili."
 }

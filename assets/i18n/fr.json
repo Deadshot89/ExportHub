@@ -1784,5 +1784,22 @@
   "migrationRecovery.completedNew": "Migration terminée. {{done}} anciens documents traités ; {{migrated}} nouvellement transférés lors de cette exécution. ExportHUB se recharge.",
   "migrationRecovery.alreadyComplete": "Migration terminée. Les anciens documents signalés avaient déjà été déplacés. ExportHUB se recharge.",
   "migrationRecovery.errorState": "Migration arrêtée : {{reason}}",
-  "migrationRecovery.stopRequested": "Arrêt demandé. Le lot actuel de cinq sera terminé en toute sécurité …"
+  "migrationRecovery.stopRequested": "Arrêt demandé. Le lot actuel de cinq sera terminé en toute sécurité …",
+  "customerAvis.public.referencePrompt": "Veuillez confirmer la référence de l’expédition.",
+  "customerAvis.public.accessDescription": "Sur ce portail sécurisé, vous pouvez consulter les informations actuelles de l’expédition, les documents autorisés et la preuve de livraison (POD), puis indiquer votre date d’enlèvement prévue. Veuillez d’abord confirmer la référence de l’expédition.",
+  "customerAvis.public.secureLinkBadge": "✓ Lien personnel sécurisé vers l’avis d’enlèvement",
+  "customerAvis.public.retentionBadge": "✓ Disponible pendant 14 jours après l’enlèvement",
+  "customerAvis.public.noLoginBadge": "✓ Aucune connexion à ExportHUB nécessaire",
+  "customerAvis.public.referenceLabel": "Numéro de référence",
+  "customerAvis.public.checking": "Vérification en cours …",
+  "customerAvis.public.sessionFailed": "Impossible d’établir une session sécurisée.",
+  "customerAvis.public.accessFailed": "L’accès n’a pas pu être confirmé.",
+  "customerAvis.public.noPackages": "Aucune ligne de colis enregistrée.",
+  "customerAvis.public.malwareCheck": "✓ Analyse antivirus et antimalware en quarantaine",
+  "customerAvis.public.shipmentDataCheck": "✓ Vérification avec la référence et les données d’expédition",
+  "customerAvis.public.documentTypeCheck": "✓ Vérification du type de document sélectionné",
+  "customerAvis.public.saveAfterChecks": "✓ Enregistrement uniquement après validation des contrôles antivirus et documentaires",
+  "customerAvis.public.chooseDateFirst": "Sélectionnez d’abord une date d’enlèvement. Les créneaux encore disponibles s’afficheront ensuite.",
+  "customerAvis.public.noFreeSlots": "Aucun créneau de deux heures n’est actuellement disponible à cette date.",
+  "customerAvis.public.slotsLoadFailed": "Impossible de charger les créneaux disponibles."
 }

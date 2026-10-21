@@ -1784,5 +1784,22 @@
   "migrationRecovery.completedNew": "Migracja zakończona. Przetworzono {{done}} starszych dokumentów; {{migrated}} nowo przeniesiono w tym przebiegu. ExportHUB ładuje się ponownie.",
   "migrationRecovery.alreadyComplete": "Migracja zakończona. Zgłoszone wcześniej starsze dokumenty były już przeniesione. ExportHUB ładuje się ponownie.",
   "migrationRecovery.errorState": "Migracja zatrzymana: {{reason}}",
-  "migrationRecovery.stopRequested": "Zażądano zatrzymania. Bieżąca partia pięciu dokumentów zostanie bezpiecznie dokończona …"
+  "migrationRecovery.stopRequested": "Zażądano zatrzymania. Bieżąca partia pięciu dokumentów zostanie bezpiecznie dokończona …",
+  "customerAvis.public.referencePrompt": "Potwierdź numer referencyjny przesyłki.",
+  "customerAvis.public.accessDescription": "W tym bezpiecznym portalu możesz sprawdzić bieżące dane przesyłki, udostępnione dokumenty i potwierdzenie dostawy (POD) oraz podać planowany termin odbioru. Najpierw potwierdź numer referencyjny przesyłki.",
+  "customerAvis.public.secureLinkBadge": "✓ Bezpieczny osobisty link do awiza",
+  "customerAvis.public.retentionBadge": "✓ Dostępny przez 14 dni po odbiorze",
+  "customerAvis.public.noLoginBadge": "✓ Logowanie do ExportHUB nie jest wymagane",
+  "customerAvis.public.referenceLabel": "Numer referencyjny",
+  "customerAvis.public.checking": "Trwa sprawdzanie …",
+  "customerAvis.public.sessionFailed": "Nie udało się utworzyć bezpiecznej sesji.",
+  "customerAvis.public.accessFailed": "Nie udało się potwierdzić dostępu.",
+  "customerAvis.public.noPackages": "Nie zapisano żadnych pozycji opakowań.",
+  "customerAvis.public.malwareCheck": "✓ Skanowanie antywirusowe i antymalware w kwarantannie",
+  "customerAvis.public.shipmentDataCheck": "✓ Weryfikacja z numerem referencyjnym i danymi przesyłki",
+  "customerAvis.public.documentTypeCheck": "✓ Weryfikacja wybranego rodzaju dokumentu",
+  "customerAvis.public.saveAfterChecks": "✓ Zapis tylko po pozytywnym wyniku kontroli antywirusowej i dokumentu",
+  "customerAvis.public.chooseDateFirst": "Najpierw wybierz datę odbioru. Następnie wyświetlą się dostępne przedziały czasowe.",
+  "customerAvis.public.noFreeSlots": "W tym dniu nie ma już dostępnych dwugodzinnych przedziałów czasowych.",
+  "customerAvis.public.slotsLoadFailed": "Nie udało się załadować dostępnych przedziałów czasowych."
 }
