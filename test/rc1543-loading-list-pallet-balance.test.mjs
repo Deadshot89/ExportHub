@@ -138,5 +138,9 @@ test('RC1594: aktualisierte Palettenkonto-Druckruntime wird nicht aus altem Brow
   const route=(config.routes||[]).find(x=>x.route==='/assets/document-print-name.js');
   assert.ok(route,'dedizierte Cache-Regel für Ladelisten-Print-Helper fehlt');
   assert.match(String(route.headers&&route.headers['Cache-Control']||''),/no-store/);
+  const testservice=JSON.parse(fs.readFileSync('staticwebapp.testservice.config.json','utf8'));
+  const testRoute=(testservice.routes||[]).find(x=>x.route==='/assets/document-print-name.js');
+  assert.ok(testRoute,'TESTSERVICE-Druckhelper benötigt ebenfalls eine Cache-Regel');
+  assert.match(String(testRoute.headers&&testRoute.headers['Cache-Control']||''),/no-store/);
   assert.match(baseBuildSource,/document-print-name\.js\?v=1594/);
 });
