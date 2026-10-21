@@ -44,7 +44,7 @@ function action(button){
 // of truth in Shipment View. Reuse its existing authenticated open/download
 // handler instead of creating a different server-rendered layout.
 function storedDocumentButton(sh,mode){
- var rows=d.querySelectorAll?d.querySelectorAll('.rc786-doc-row'):[],wanted='pod_'+refOf(sh)+'_ladeliste_mit_unterschrift.pdf';
+ var rows=d.querySelectorAll?d.querySelectorAll('.rc786-doc-row'):[],wanted=('pod_'+refOf(sh)+'_ladeliste_mit_unterschrift.pdf').toLowerCase();
  for(var i=0;i<rows.length;i++){
   var row=rows[i],title=q(row&&row.textContent).toLowerCase();
   if(title.indexOf(wanted)<0)continue;
