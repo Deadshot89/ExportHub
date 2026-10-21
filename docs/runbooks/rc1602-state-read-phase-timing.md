@@ -23,3 +23,46 @@ Ausgeführt wird die Messung automatisch im bestehenden TESTSERVICE-Live-Playwri
 Die Phasenmessung belegt nur den **TESTSERVICE**-State-Read auf dem GitHub-Runner, nicht das Laden im produktiven Mitarbeiterbrowser. Die Ursachenklärung für #836 benötigt danach weiterhin den zugehörigen echten Produktiv-Browser-Trace, die Session-/Netzwerkbedingungen und die sichtbare Dashboard-Abnahme.
 
 Eine Optimierung von Datenlieferung oder kompakterem Start darf danach nur bei unverändert erhaltenen Originaldaten und vollständigen Regressions- und Live-Abnahmen erfolgen.
+
+
+## RC1613 · Offline-Zuordnung der produktiven State-Datenmenge
+
+Produktionslauf [RC1137 #39660410670](https://github.com/Deadshot89/ExportHub/actions/runs/39660410670)
+protokolliert `beforeBytes=58944805`, `afterBytes=58944805`, `savedBytes=0`
+und danach `teamStateBytes=58945066`. Die bestehende Kompaktierung war also
+nicht mehr anwendbar. Ein echter authentifizierter TESTSERVICE-Read lieferte
+zuvor rund 29,5 Millionen Textbytes. Diese Zahlen sind **nicht** austauschbar
+und belegen noch keine Ursache des 15-%-Startstillstands im Produktionsbrowser.
+
+Zur Analyse **einer autorisiert und unverändert lokal gesicherten** Team-State-JSON
+gibt es ein strikt offline/read-only Werkzeug:
+
+```bash
+node scripts/rc1613-state-startup-size-audit.mjs --input /secure/team-state-backup.json
+```
+
+Es ordnet ausschließlich numerische Serialisierungsgrößen den fest definierten
+Bereichen `shipments`, `savedShipments`, `customers`, `tasks`, `abdRequests`
+und `other` zu. Überlange Strings und eingebettete `data:*;base64`-Inhalte
+werden nur **gezählt**, nie ausgegeben. Andere Feldnamen, Dateipfade,
+Sendungsreferenzen, Dokumentbytes und Kundenangaben erscheinen nicht im Report.
+SHA-256 des ursprünglichen Snapshot-Inputs belegt, welche unveränderte Datei
+ausgewertet wurde. Ein Fehler liefert nur einen technischen Fehlercode.
+
+Die Einzelsummen sind **ungefähre JSON-Serialisierungszuordnungen**, keine
+Byte-exakte Zerlegung des HTTP-Payloads; Serverantworten können Metadaten,
+Encoding und zusätzliche Felder enthalten.
+
+**Datenschutz:** Team-State-Backups und detaillierte Auswertungen gehören
+ausschließlich in die berechtigte geschützte Umgebung, niemals in öffentliche
+GitHub-Issues, PRs, Chatprotokolle oder CI-Artefakte. Es erfolgen weder Netz-
+noch Azure-Schreibzugriffe.
+
+Regression: `node --test test/rc1613-state-startup-size-audit.test.mjs`.
+
+Erst nach Vorliegen einer echten lokalen Größenverteilung darf entschieden
+werden, ob große eingebettete Dokumente, History-/Snapshot-Felder oder die
+Übertragung/Client-Hydration optimiert werden. **Keine** automatische Löschung,
+kein blindes Entfernen von Dokumentfeldern und kein Ändern des produktiven
+Speicherformats ohne echte Backups und vollständige regressions-/livegeprüfte
+Abnahme. Issue #836 bleibt bis zur realen produktiven Start-/Save-/Reload-Abnahme offen.
