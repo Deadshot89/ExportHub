@@ -56,11 +56,11 @@ test('RC1555 production smoke: verschachtelte POD-Abholkarten zeigen nur die neu
   test.skip(testInfo.project.name!=='laptop','RC1555 POD-Liveprüfung läuft einmal im Laptop-Profil.');
   const runtime=attachRuntimeGuards(page,testInfo);
   await installStaticApiFallback(page);
-  await page.goto('/',{waitUntil:'domcontentloaded'});
+  await page.goto('/',{waitUntil:'load'});
   await page.waitForFunction(()=>window.ExportHUBRC1305LoadingListPrint&&typeof window.ExportHUBRC1305LoadingListPrint.enhance==='function',null,{timeout:15_000});
   await page.emulateMedia({media:'print'});
 
-  const layout=await page.evaluate(()=>{
+  const layout=await page.evaluate(async()=>{
     const api=window.ExportHUBRC1305LoadingListPrint;
     const card=(label,oldValue,legacyHeight='0')=>
       '<div class="rc390-card" data-rc1555-live-card="1" style="box-sizing:border-box;min-height:26mm;padding:2mm;border:1px solid #cbd5e1">'+
@@ -89,6 +89,10 @@ test('RC1555 production smoke: verschachtelte POD-Abholkarten zeigen nur die neu
     document.body.classList.add('print-rc390');
     document.body.innerHTML='<div id="rc576DocumentStage" class="rc390-docview" data-doc="load1">'+
       '<div class="rc390-bundle">'+enhanced+'</div></div>';
+    // Layout erst nach dem Paint-Zyklus prüfen: CSS, Fonts und die Druck-Ansicht
+    // müssen vollständig berechnet sein. Fehlende Sichtbarkeit bleibt ein Fehler.
+    await document.fonts.ready;
+    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
     const root=document.querySelector('#rc576DocumentStage .rc390-bundle > .rc390-load');
     if(!root)throw new Error('RC1555: Druck-Ladeliste fehlt nach Enhance');
     const fields=Array.from(root.querySelectorAll('[data-rc1503-pickup-field]'));
@@ -101,18 +105,19 @@ test('RC1555 production smoke: verschachtelte POD-Abholkarten zeigen nur die neu
       printStage:root.closest('#rc576DocumentStage')?.getAttribute('data-doc')||'',
       printPageDisplay:getComputedStyle(root).display,
       printPageHeight:root.getBoundingClientRect().height,
-      ancestorGeometry:(()=>{
-        const result=[];
-        for(let el=root;el&&result.length<8;el=el.parentElement){
-          const css=getComputedStyle(el),rect=el.getBoundingClientRect();
-          result.push({
-            tag:el.tagName,id:el.id||'',className:String(el.className||'').slice(0,90),
-            display:css.display,visibility:css.visibility,
-            contentVisibility:css.contentVisibility,zoom:css.zoom,
-            transform:css.transform,height:rect.height,offsetHeight:el.offsetHeight
+      printAncestorDiagnostics:(()=>{
+        const ancestors=[];
+        for(let node=root;node&&ancestors.length<8;node=node.parentElement){
+          const style=getComputedStyle(node),rect=node.getBoundingClientRect();
+          ancestors.push({
+            node:node.tagName.toLowerCase()+(node.id?'#'+node.id:'')+(node.className&&typeof node.className==='string'?'.'+node.className.trim().split(/\s+/).join('.'):''), 
+            display:style.display,visibility:style.visibility,position:style.position,
+            minHeight:style.minHeight,height:style.height,zoom:style.zoom,
+            transform:style.transform,contentVisibility:style.contentVisibility,
+            rectHeight:rect.height,clientHeight:node.clientHeight
           });
         }
-        return result;
+        return {ancestors,bodyClasses:document.body.className,htmlClasses:document.documentElement.className,htmlFlags:Array.from(document.documentElement.attributes).filter(attr=>attr.name.startsWith('data-')).map(attr=>[attr.name,attr.value])};
       })(),
       outerCards:fields.every(field=>field.matches('.rc390-card,.rc352-card')),
       visibleLegacy:visibleLegacy.length,
@@ -129,7 +134,7 @@ test('RC1555 production smoke: verschachtelte POD-Abholkarten zeigen nur die neu
   expect(layout.fieldCount).toBe(6);
   expect(layout.printStage,'Ladeliste muss im echten Dokumentstage als aktiv markiert sein').toBe('load1');
   expect(layout.printPageDisplay,'Aktive Ladeliste darf im Druck nicht ausgeblendet sein').not.toBe('none');
-  expect(layout.printPageHeight,'Aktive Ladeliste muss eine sichtbare Höhe besitzen: '+JSON.stringify(layout.ancestorGeometry)).toBeGreaterThan(0);
+  expect(layout.printPageHeight,'Aktive Ladeliste muss eine sichtbare Höhe besitzen; Layout-Diagnose: '+JSON.stringify(layout.printAncestorDiagnostics)).toBeGreaterThan(0);
   expect(layout.outerCards).toBe(true);
   expect(layout.visibleLegacy).toBe(0);
   expect(layout.signaturePresent,'Fahrerunterschrift muss nach Enhance im kanonischen Abholfeld existieren').toBe(true);
@@ -163,6 +168,7 @@ test('RC1555 production smoke: verschachtelte POD-Abholkarten zeigen nur die neu
   });
   expect(overlayPrint.stageDisplay,'Nur beim aktiven Abhol-Overlay darf die Ladeliste im Druck verborgen werden').toBe('none');
   expect(overlayPrint.overlayDisplay,'Abhol-Overlay selbst muss druckbar bleiben').not.toBe('none');
+
   await assertRuntimeClean(runtime,testInfo);
 });
 
