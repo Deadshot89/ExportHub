@@ -91,5 +91,5 @@ test('RC1609 P0: authentic JPEG bytes from driver signature render as an embedde
   const bytes=await createPodPdf(record,jpeg,'image/jpeg');
   const pdf=await PDFDocument.load(bytes);
   assert.equal(pdf.getPageCount(),1);
-  assert.match(bytes.toString('latin1'),/\\/Subtype\\s*\\/Image/);
+  assert.match(bytes.toString('latin1'),/\/Subtype\s*\/Image/);
 });
