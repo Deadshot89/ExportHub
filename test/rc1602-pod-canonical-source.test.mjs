@@ -47,7 +47,8 @@ test('RC1602: automatic-PDF query is not a public bypass: access must still reso
     const ctx={log:{error(){}}};
     await pickupPod(ctx,{method:'GET',query:{file:'automatic'},headers:{}});
     assert.equal(ctx.res.status,403);
-    assert.equal(ctx.res.body.code,'INVALID_TOKEN');
+    const payload=typeof ctx.res.body==='string'?JSON.parse(ctx.res.body):ctx.res.body;
+    assert.equal(payload.code,'INVALID_TOKEN');
   }finally{access.resolve=original}
 });
 
