@@ -26,7 +26,7 @@ for(const file of pages){
   includes(file,'assets/rc1079-profile-settings.js?v=1079');
   includes(file,'assets/rc1080-customer-history.js?v=1080');
   includes(file,'assets/rc1081-audit-history.js?v=1177');
-  includes(file,'assets/rc1092-customer-mail-contacts.js?v=1399');
+  includes(file,'assets/rc1092-customer-mail-contacts.js?v=1600');
   includes(file,'assets/rc1015-lieferavis-mail-flow.js?v=1383');
   includes(file,'assets/abholkalender.js?v=1012');
   includes(file,'assets/rc1012-abholkalender-runtime.js?v=1012');

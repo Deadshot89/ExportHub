@@ -14,7 +14,7 @@ test('RC1383: geänderte AVIS-Runtimes werden mit neuem Cache-Key ausgeliefert',
   assert.match(customerBuilder,/rc1092-customer-mail-contacts\.js\?v=1399/);
   assert.match(avisBuilder,/rc1015-lieferavis-mail-flow\.js\?v=1383/);
   assert.match(deployPatch,/rc1015-lieferavis-mail-flow\.js\?v=1383/);
-  assert.match(releaseBuild,/rc1092-customer-mail-contacts\.js\?v=1399/);
+  assert.match(releaseBuild,/rc1092-customer-mail-contacts\.js\?v=1600/);
   assert.match(releaseBuild,/rc1015-lieferavis-mail-flow\.js\?v=1383/);
 
   for(const source of [customerBuilder,avisBuilder,deployPatch,releaseBuild]){

@@ -65,7 +65,7 @@ test('RC1092 wird in alle drei RC1048 Umgebungen ausgeliefert',()=>{
 
 test('RC1092 getrennter Releasevertrag prüft Build und Production-Live-Auslieferung',()=>{
  const build=readBuildContract(),live=readLiveContract();
- assert.match(build,/assets\/rc1092-customer-mail-contacts\.js\?v=1399/);
+ assert.match(build,/assets\/rc1092-customer-mail-contacts\.js\?v=1600/);
  assert.match(live,/RC1092 Kundenkontakte/);
  assert.match(live,/data-rc1092-avis-toggle/);
  assert.match(live,/function rc1330AvisPolicyBlock/);
