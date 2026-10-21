@@ -29,7 +29,12 @@ jobs:
           node-version: '24'
 
       - name: RC1189 Vertrag prüfen
-        run: node --test test/rc1189-mobile-full-navigation-gate.test.mjs test/rc1189-pr-browser-gate.test.mjs
+        run: node --test test/rc1189-mobile-full-navigation-gate.test.mjs test/rc1189-pr-browser-gate.test.mjs test/rc1589-pod-active-document-print-state.test.mjs
+
+      - name: RC1592 Main-Parität für Build-Eingaben herstellen
+        run: |
+          node .github/rc1018/apply-public-language.mjs
+          node .github/rc1018/fix-mail-wording.mjs
 
       - name: Aktuelles Drei-Umgebungen-Paket bauen
         run: node .github/rc1112/build-three-env.mjs

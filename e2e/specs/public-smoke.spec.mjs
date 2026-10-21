@@ -87,8 +87,13 @@ test('RC1555 production smoke: verschachtelte POD-Abholkarten zeigen nur die neu
     const enhanced=api.enhance(raw,shipment,true);
     document.body.classList.remove('print-docs-only');
     document.body.classList.add('print-rc390');
-    document.body.innerHTML='<div id="rc576DocumentStage" class="rc390-docview" data-doc="load1">'+
-      '<div class="rc390-bundle">'+enhanced+'</div></div>';
+    // Match documentHtml()/hubHtml(): the stage contains the document view.
+    // Assigning .rc390-docview to the stage itself bypasses production selectors
+    // and can hide the entire print tree in the full main-release build.
+    document.body.innerHTML='<div id="app" class="app"><main class="main"><div id="content">'+
+      '<div id="rc576DocumentHub"><div id="rc576DocumentStage" data-doc="load1">'+
+      '<div class="rc390-docview" data-rc601-doc="load1" data-rc616-doc="load1">'+
+      '<div class="rc390-bundle">'+enhanced+'</div></div></div></div></div></main></div>';
     // Layout erst nach dem Paint-Zyklus prüfen: CSS, Fonts und die Druck-Ansicht
     // müssen vollständig berechnet sein. Fehlende Sichtbarkeit bleibt ein Fehler.
     await document.fonts.ready;
@@ -103,6 +108,8 @@ test('RC1555 production smoke: verschachtelte POD-Abholkarten zeigen nur die neu
     return {
       fieldCount:fields.length,
       printStage:root.closest('#rc576DocumentStage')?.getAttribute('data-doc')||'',
+      printStageDisplay:getComputedStyle(document.querySelector('#rc576DocumentStage')).display,
+      printViewDisplay:getComputedStyle(document.querySelector('#rc576DocumentStage > .rc390-docview')).display,
       printPageDisplay:getComputedStyle(root).display,
       printPageHeight:root.getBoundingClientRect().height,
       printAncestorDiagnostics:(()=>{
@@ -133,6 +140,8 @@ test('RC1555 production smoke: verschachtelte POD-Abholkarten zeigen nur die neu
 
   expect(layout.fieldCount).toBe(6);
   expect(layout.printStage,'Ladeliste muss im echten Dokumentstage als aktiv markiert sein').toBe('load1');
+  expect(layout.printStageDisplay,'Äußerer Dokumentstage darf nicht unsichtbar sein').not.toBe('none');
+  expect(layout.printViewDisplay,'Innere Dokumentansicht darf nicht unsichtbar sein').not.toBe('none');
   expect(layout.printPageDisplay,'Aktive Ladeliste darf im Druck nicht ausgeblendet sein').not.toBe('none');
   expect(layout.printPageHeight,'Aktive Ladeliste muss eine sichtbare Höhe besitzen; Layout-Diagnose: '+JSON.stringify(layout.printAncestorDiagnostics)).toBeGreaterThan(0);
   expect(layout.outerCards).toBe(true);
