@@ -184,3 +184,25 @@ test('Sendungsansicht: nur gespeicherte Dateimetadaten zählen nicht als öffnun
   vm.runInNewContext(match[1],context);
   assert.equal(context.shipmentAssociatedDocs({id:'S',ref:'ABC123'},[]).length,0);
 });
+
+test('Blob-Dokumente in der Sendungsansicht lassen sich ohne gesonderte URL öffnen',()=>{
+  const built=fs.readFileSync('dist-rc1048/index.html','utf8');
+  const start=built.indexOf('function openDoc(index){');
+  const end=built.indexOf('function downloadDoc(index)',start);
+  assert.ok(start>=0&&end>start,'Dokumentenöffnung ist im Release-Build nicht vorhanden');
+  const block=built.slice(start,end);
+  assert.match(block,/fallbackDocUsable\\(d\\)/);
+  assert.doesNotMatch(block,/if\\(!\\(\\(d\\.source===/);
+  let opened=null,alerts=0;
+  const doc={name:'Rechnung.pdf',file:{storage:'blob',blobName:'rc1059/production/ab/'+'a'.repeat(64)}};
+  const sandbox={
+    currentDocs:()=>[doc],
+    fallbackDocUsable:d=>Boolean(d&&d.file&&d.file.storage==='blob'),
+    routeViewer:(d,print)=>{opened={name:d.name,print};return true},
+    alert:()=>{alerts++}
+  };
+  vm.runInNewContext(block,sandbox,{filename:'shipment-document-open.js'});
+  assert.equal(sandbox.openDoc(0),true);
+  assert.deepEqual(opened,{name:'Rechnung.pdf',print:false});
+  assert.equal(alerts,0);
+});
