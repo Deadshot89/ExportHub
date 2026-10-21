@@ -1801,5 +1801,14 @@
   "customerAvis.public.saveAfterChecks": "✓ Speicherung nur nach bestandener Viren- und Fachprüfung",
   "customerAvis.public.chooseDateFirst": "Bitte zuerst den Abholtag auswählen. Danach werden die noch freien Zeitfenster angezeigt.",
   "customerAvis.public.noFreeSlots": "An diesem Tag ist aktuell kein freies 2-Stunden-Zeitfenster mehr verfügbar.",
-  "customerAvis.public.slotsLoadFailed": "Freie Zeitfenster konnten nicht geladen werden."
+  "customerAvis.public.slotsLoadFailed": "Freie Zeitfenster konnten nicht geladen werden.",
+  "shipmentHistory.action.registrationConfirmed": "Versandanmeldung bestätigt",
+  "shipmentHistory.registration.help": "Die E-Mail wurde geöffnet. Bestätige hier erst, nachdem du die Versandanmeldung tatsächlich versendet hast.",
+  "shipmentHistory.registration.confirmed": "Versandanmeldung als versendet bestätigt",
+  "shipmentHistory.registration.confirmButton": "Anmeldung versendet bestätigen",
+  "shipmentHistory.registration.saving": "Bestätigung und Aufgabenstatus werden gespeichert …",
+  "shipmentHistory.registration.success": "Versandanmeldung bestätigt. Die passende Aufgabe wurde automatisch erledigt.",
+  "shipmentHistory.registration.noTask": "Versandanmeldung bestätigt. Keine eindeutig passende fällige Aufgabe gefunden.",
+  "shipmentHistory.registration.failed": "Speicherung nicht bestätigt. Anmeldung und Aufgabenstatus wurden nicht übernommen.",
+  "shipmentHistory.registration.storageUnavailable": "Sichere Speicherung oder Aufgabenautomatik nicht verfügbar. Keine Bestätigung vorgenommen."
 }

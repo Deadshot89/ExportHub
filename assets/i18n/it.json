@@ -1801,5 +1801,14 @@
   "customerAvis.public.saveAfterChecks": "✓ Salvataggio solo dopo aver superato i controlli antivirus e documentali",
   "customerAvis.public.chooseDateFirst": "Seleziona prima la data di ritiro. Verranno quindi mostrati gli orari ancora disponibili.",
   "customerAvis.public.noFreeSlots": "Per questa data non sono disponibili fasce orarie libere di due ore.",
-  "customerAvis.public.slotsLoadFailed": "Impossibile caricare le fasce orarie disponibili."
+  "customerAvis.public.slotsLoadFailed": "Impossibile caricare le fasce orarie disponibili.",
+  "shipmentHistory.action.registrationConfirmed": "Registrazione spedizione confermata",
+  "shipmentHistory.registration.help": "La bozza e-mail è stata aperta. Conferma solo dopo aver realmente inviato la registrazione.",
+  "shipmentHistory.registration.confirmed": "Registrazione confermata come inviata",
+  "shipmentHistory.registration.confirmButton": "Conferma registrazione inviata",
+  "shipmentHistory.registration.saving": "Salvataggio della conferma e dello stato attività…",
+  "shipmentHistory.registration.success": "Registrazione confermata. L'attività corrispondente è stata completata automaticamente.",
+  "shipmentHistory.registration.noTask": "Registrazione confermata. Nessuna attività scaduta corrispondente trovata con certezza.",
+  "shipmentHistory.registration.failed": "Salvataggio non confermato. Le modifiche non sono state applicate.",
+  "shipmentHistory.registration.storageUnavailable": "Salvataggio sicuro o automazione non disponibile. Nessuna conferma registrata."
 }

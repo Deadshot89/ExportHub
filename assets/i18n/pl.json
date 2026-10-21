@@ -1801,5 +1801,14 @@
   "customerAvis.public.saveAfterChecks": "✓ Zapis tylko po pozytywnym wyniku kontroli antywirusowej i dokumentu",
   "customerAvis.public.chooseDateFirst": "Najpierw wybierz datę odbioru. Następnie wyświetlą się dostępne przedziały czasowe.",
   "customerAvis.public.noFreeSlots": "W tym dniu nie ma już dostępnych dwugodzinnych przedziałów czasowych.",
-  "customerAvis.public.slotsLoadFailed": "Nie udało się załadować dostępnych przedziałów czasowych."
+  "customerAvis.public.slotsLoadFailed": "Nie udało się załadować dostępnych przedziałów czasowych.",
+  "shipmentHistory.action.registrationConfirmed": "Potwierdzono zgłoszenie wysyłki",
+  "shipmentHistory.registration.help": "Otworzono wersję roboczą e-maila. Potwierdź dopiero po faktycznym wysłaniu zgłoszenia.",
+  "shipmentHistory.registration.confirmed": "Zgłoszenie oznaczono jako wysłane",
+  "shipmentHistory.registration.confirmButton": "Potwierdź wysłanie zgłoszenia",
+  "shipmentHistory.registration.saving": "Zapisywanie potwierdzenia i statusu zadania…",
+  "shipmentHistory.registration.success": "Potwierdzono zgłoszenie. Odpowiednie zadanie zostało automatycznie ukończone.",
+  "shipmentHistory.registration.noTask": "Potwierdzono zgłoszenie. Nie znaleziono jednoznacznie pasującego zaległego zadania.",
+  "shipmentHistory.registration.failed": "Zapis nie został potwierdzony. Nie zapisano zmian zgłoszenia ani zadania.",
+  "shipmentHistory.registration.storageUnavailable": "Bezpieczny zapis lub automatyzacja nie jest dostępna. Niczego nie potwierdzono."
 }

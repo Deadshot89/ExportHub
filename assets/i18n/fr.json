@@ -1801,5 +1801,14 @@
   "customerAvis.public.saveAfterChecks": "✓ Enregistrement uniquement après validation des contrôles antivirus et documentaires",
   "customerAvis.public.chooseDateFirst": "Sélectionnez d’abord une date d’enlèvement. Les créneaux encore disponibles s’afficheront ensuite.",
   "customerAvis.public.noFreeSlots": "Aucun créneau de deux heures n’est actuellement disponible à cette date.",
-  "customerAvis.public.slotsLoadFailed": "Impossible de charger les créneaux disponibles."
+  "customerAvis.public.slotsLoadFailed": "Impossible de charger les créneaux disponibles.",
+  "shipmentHistory.action.registrationConfirmed": "Enregistrement d'expédition confirmé",
+  "shipmentHistory.registration.help": "Le brouillon d'e-mail a été ouvert. Confirme uniquement après avoir réellement envoyé l'enregistrement.",
+  "shipmentHistory.registration.confirmed": "Enregistrement confirmé comme envoyé",
+  "shipmentHistory.registration.confirmButton": "Confirmer l'envoi de l'enregistrement",
+  "shipmentHistory.registration.saving": "Enregistrement de la confirmation et du statut de la tâche…",
+  "shipmentHistory.registration.success": "Enregistrement confirmé. La tâche correspondante a été terminée automatiquement.",
+  "shipmentHistory.registration.noTask": "Enregistrement confirmé. Aucune tâche échue correspondante trouvée sans ambiguïté.",
+  "shipmentHistory.registration.failed": "L'enregistrement n'a pas été confirmé. Aucune modification de tâche n'a été appliquée.",
+  "shipmentHistory.registration.storageUnavailable": "Enregistrement sécurisé ou automatisation indisponible. Aucune confirmation enregistrée."
 }

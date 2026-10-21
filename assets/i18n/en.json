@@ -1801,5 +1801,14 @@
   "customerAvis.public.saveAfterChecks": "✓ Saved only after successful malware and document checks",
   "customerAvis.public.chooseDateFirst": "First select a collection date. Available time slots will then appear.",
   "customerAvis.public.noFreeSlots": "No two-hour time slots are currently available on this date.",
-  "customerAvis.public.slotsLoadFailed": "Available time slots could not be loaded."
+  "customerAvis.public.slotsLoadFailed": "Available time slots could not be loaded.",
+  "shipmentHistory.action.registrationConfirmed": "Dispatch registration confirmed",
+  "shipmentHistory.registration.help": "The email draft was opened. Confirm only after you actually sent the registration.",
+  "shipmentHistory.registration.confirmed": "Registration marked as sent",
+  "shipmentHistory.registration.confirmButton": "Confirm registration sent",
+  "shipmentHistory.registration.saving": "Saving the confirmation and task status…",
+  "shipmentHistory.registration.success": "Registration confirmed. The matching task was completed automatically.",
+  "shipmentHistory.registration.noTask": "Registration confirmed. No unambiguous due task was found.",
+  "shipmentHistory.registration.failed": "Saving was not confirmed. Registration and task changes were not applied.",
+  "shipmentHistory.registration.storageUnavailable": "Secure saving or task automation is unavailable. No confirmation was recorded."
 }
