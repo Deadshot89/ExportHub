@@ -191,8 +191,8 @@ test('Blob-Dokumente in der Sendungsansicht lassen sich ohne gesonderte URL öff
   const end=built.indexOf('function downloadDoc(index)',start);
   assert.ok(start>=0&&end>start,'Dokumentenöffnung ist im Release-Build nicht vorhanden');
   const block=built.slice(start,end);
-  assert.match(block,/fallbackDocUsable\\(d\\)/);
-  assert.doesNotMatch(block,/if\\(!\\(\\(d\\.source===/);
+  assert.ok(block.includes('fallbackDocUsable(d)'),'Blob-taugliche Datei-Prüfung fehlt');
+  assert.equal(block.includes("if(!((d.source"),false,'Veraltete Prüfung nur auf URL ist noch aktiv');
   let opened=null,alerts=0;
   const doc={name:'Rechnung.pdf',file:{storage:'blob',blobName:'rc1059/production/ab/'+'a'.repeat(64)}};
   const sandbox={
