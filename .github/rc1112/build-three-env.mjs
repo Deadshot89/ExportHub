@@ -1341,8 +1341,8 @@ const rc1114ShippingSrc=path.join(ROOT,'assets','rc1114-shipping-neutral.js');
 const rc1114ShippingOut=path.join(OUT,'assets','rc1114-shipping-neutral.js');
 if(!fs.existsSync(rc1114ShippingSrc))throw new Error('RC1114 Versandkosten-Runtime fehlt');
 fs.copyFileSync(rc1114ShippingSrc,rc1114ShippingOut);
+for(const file of ['index.html','TESTVERSION.html','demo.html'])patchHtml(file);
 for(const file of ['index.html','TESTVERSION.html','demo.html']){
-  patchHtml(file);
   const target=path.join(OUT,file);
   fs.writeFileSync(target,hardenCustomerSaveHtml(fs.readFileSync(target,'utf8')));
 }
