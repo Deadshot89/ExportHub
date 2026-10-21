@@ -242,9 +242,10 @@
     const confirmedAt=Date.parse(q(detail.savedAt||now)||new Date().toISOString());
     if(!Number.isFinite(confirmedAt))return null;
     const confirmations=arr(shipment.shipmentHistory).filter(row=>{
-      if(!obj(row)||q(row.type).toLowerCase()!=='mail-sent')return false;
-      if(q(row.label).toLocaleLowerCase('de-DE')!=='versandanmeldung versendet')return false;
-      if(!['registration','versandanmeldung'].includes(q(row.details&&row.details.mailType).toLowerCase()))return false;
+      // RC1590: Opening an Outlook draft is not proof of delivery. Only the
+      // explicit persisted registration confirmation is eligible for auto-close.
+      if(!obj(row)||q(row.type).toLowerCase()!=='registration-confirmed')return false;
+      if(!q(row.details&&row.details.emailHistoryId))return false;
       const eventTime=Date.parse(q(row.at));
       // An old history entry is not proof that the current save sent another mail.
       return !!(q(row.id)&&Number.isFinite(eventTime)&&

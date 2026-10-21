@@ -12,6 +12,9 @@ on:
       - 'playwright.config.mjs'
       - 'e2e/specs/multi-truck-live.spec.mjs'
       - 'test/rc1152-task-detail-roster.test.mjs'
+      - 'test/rc1590-registration-confirmation.test.mjs'
+      - 'test/rc1585-managed-registration.test.mjs'
+      - 'assets/taskplanner-v2-workflow.js'
       - 'test/rc1585-managed-registration.test.mjs'
       - 'test/rc1585-abd-saved-promotion.test.mjs'
       - 'assets/taskplanner-v2-workflow.js'
@@ -37,6 +40,8 @@ jobs:
       - run: node --test test/rc1151-document-download-history.test.mjs
       - name: RC1266 UPS und Aufgaben Regression
         run: node --test test/rc1207-ups-toolbox.test.mjs test/rc1152-task-detail-roster.test.mjs
+      - name: RC1590 Anmeldung erst nach Versandbestätigung erledigen
+        run: node --test test/rc1590-registration-confirmation.test.mjs test/rc1585-managed-registration.test.mjs test/rc1071-shipment-history.test.mjs test/rc1100-history-action-coverage.test.mjs
       - name: RC1585 Aufgaben/ABD Safety Regression
         run: node --test test/rc1585-managed-registration.test.mjs test/rc1585-abd-saved-promotion.test.mjs test/taskplanner-v2-workflow.test.mjs test/taskplanner-v2-workflow-bindings.test.mjs test/rc1550-abd-completed-upload.test.mjs
       - name: RC1548 Versandkosten Autoübernahme Regression
