@@ -125,8 +125,11 @@ test('RC1577: POD-Prüfung ist im Build und in allen sechs Sprachen enthalten',a
   assert.deepEqual(Object.keys(packs).sort(),['de','en','es','fr','it','pl']);
   for(const lang of Object.keys(packs))assert.deepEqual(Object.keys(packs[lang]).sort(),keys,lang+' unvollständig');
   const ui=fs.readFileSync('assets/rc1577-pod-quality-audit.js','utf8');
-  for(const reason of ['OLD_LAYOUT','POD_NOT_READABLE','NO_POD_FILE','MULTI_TRUCK','REVIEW_FLAGGED','CURRENT_LAYOUT','MANUAL_UPLOAD','REGENERATE_FAILED'])assert.ok(packs.de['r_'+reason],reason);
+  for(const reason of ['OLD_LAYOUT','POD_NOT_READABLE','NO_POD_FILE','MULTI_TRUCK','REVIEW_FLAGGED','CURRENT_LAYOUT','MANUAL_UPLOAD','REGENERATE_FAILED','FORCE_REGENERATE'])assert.ok(packs.de['r_'+reason],reason);
   assert.match(ui,/if\(!w\.confirm\(t\('confirm'/,'Änderungen nur nach Bestätigung');
+  assert.match(ui,/async function scanReference\(\)/,'Admin benötigt gezielte POD-Suche');
+  assert.match(ui,/function forceRegenerate\(\)/,'Admin benötigt ausdrückliche Nach-Erstellung auch für fälschlich OK deklarierte PODs');
+  assert.match(ui,/\/\^\[A-Z0-9\]\{6\}\$\//,'Nur sechsstellige Referenzen dürfen abgefragt werden');
 });
 
 test('RC1577: Regressionen laufen in einem Workflow mit',()=>{
