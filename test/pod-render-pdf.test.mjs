@@ -90,6 +90,8 @@ test('RC1609 P0: short browser-style JPEG signature in a nonzero-offset Node Buf
   const window=slab.subarray(37,37+original.length);
   assert.ok(window.byteOffset>0,'source byte offset is nonzero');
   const before=Buffer.from(window);
+  const probe=await PDFDocument.create();
+  await probe.embedJpg(Uint8Array.from(window));
   const bytes=await createPodPdf(record,window,'image/jpeg');
   const parsed=await PDFDocument.load(bytes);
   assert.ok(parsed.getPageCount()>=1);
