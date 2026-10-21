@@ -233,3 +233,11 @@ test('RC1616: uploaded inline Lieferscheine with real PDF data remain visible an
  assert.match(buildSource,/Hochgeladene PDF hat keinen gültigen PDF-Header/);
  assert.match(buildSource,/decoded\.slice\(0,5\)\.text\(\)/);
 });
+
+test('RC1616: POD document history is grouped without changing original file indices or deleting stored files',()=>{
+ assert.match(buildSource,/Weitere gespeicherte POD-Versionen/);
+ assert.match(buildSource,/versions\.push\(html\)/);
+ assert.match(buildSource,/shown\.push\(html\)/);
+ assert.match(buildSource,/docHtml\(d,i\)/,'Open/download actions must keep original index into the document array');
+ assert.match(buildSource,/arr\(sh&&sh\.subShipments\)\.length<2/,'Multi-truck POD files must remain separately visible');
+});
