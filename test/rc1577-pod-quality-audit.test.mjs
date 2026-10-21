@@ -21,11 +21,12 @@ function withStubs(stubs,fn){
 }
 
 test('RC1577: Klassifizierung trennt in Ordnung, neu erzeugen, Abgeholt, selbst prüfen und markiert',()=>{
-  const current={readable:true,renderLayout:'RC1561'},old={readable:true,renderLayout:''},broken={readable:false,renderLayout:'RC1561'};
-  assert.equal(audit.POD_RENDER_LAYOUT,'RC1561');
+  const current={readable:true,renderLayout:'RC1595'},old={readable:true,renderLayout:''},broken={readable:false,renderLayout:'RC1595'};
+  assert.equal(audit.POD_RENDER_LAYOUT,'RC1595');
   assert.deepEqual(audit.classify({},{files:[current],signatureStored:true,hasToken:true}),{verdict:'ok',reason:'CURRENT_LAYOUT'});
-  assert.deepEqual(audit.classify({},{files:[{readable:true,manualUpload:true}]}),{verdict:'ok',reason:'MANUAL_UPLOAD'});
+  assert.deepEqual(audit.classify({},{files:[{readable:true,manualUpload:true}]}),{verdict:'manual',reason:'MANUAL_UPLOAD'},'manual PDFs cannot be declared visually correct');
   assert.deepEqual(audit.classify({},{files:[old],signatureStored:true,hasToken:true}),{verdict:'regenerate',reason:'OLD_LAYOUT'});
+  assert.deepEqual(audit.classify({},{files:[{readable:true,renderLayout:'RC1561'}],signatureStored:true,hasToken:true}),{verdict:'regenerate',reason:'OLD_LAYOUT'},'previously accepted overlapping PODs must be rechecked');
   assert.deepEqual(audit.classify({},{files:[broken],signatureStored:true,hasToken:true}),{verdict:'regenerate',reason:'POD_NOT_READABLE'});
   assert.deepEqual(audit.classify({},{files:[],signatureStored:false,hasToken:true}),{verdict:'review',reason:'NO_POD_FILE',missing:'SIGNATURE_NOT_STORED'});
   assert.deepEqual(audit.classify({},{files:[old],signatureStored:true,hasToken:false}),{verdict:'review',reason:'OLD_LAYOUT',missing:'PICKUP_TOKEN_MISSING'});
@@ -35,13 +36,17 @@ test('RC1577: Klassifizierung trennt in Ordnung, neu erzeugen, Abgeholt, selbst 
 
 test('RC1577: Bericht liest nur und prüft jede Sendung mit POD',async()=>{
   const state={customers:[],shipments:[
-    {ref:'OK1',status:'POD vorhanden',pickupToken:'t1',pickupAccessKeyHash:KEY,podFiles:[{name:'ok.pdf',blobName:'ok',type:'application/pdf',renderLayout:'RC1561'}]},
+    {ref:'OK1',status:'POD vorhanden',pickupToken:'t1',pickupAccessKeyHash:KEY,podFiles:[{name:'ok.pdf',blobName:'ok',type:'application/pdf',renderLayout:'RC1595'}]},
     {ref:'OLD1',status:'POD vorhanden',pickupToken:'t2',pickupAccessKeyHash:KEY,podFiles:[{name:'old.pdf',blobName:'old',type:'application/pdf'}]},
     {ref:'BAD1',status:'POD vorhanden',pickupToken:'t3',pickupAccessKeyHash:KEY2,podFiles:[{name:'bad.pdf',blobName:'missing',type:'application/pdf'}]},
     {ref:'PICK1',status:'Abgeholt',podFiles:[]},
     {ref:'FLAG1',status:'Abgeholt',podReviewRequired:true,podFiles:[]},
     {ref:'MULTI1',status:'POD vorhanden',subShipments:[{},{}],podFiles:[]},
-    {ref:'MAN1',status:'POD vorhanden',pickupAccessKeyHash:KEY3,podFiles:[{name:'scan.pdf',type:'application/pdf',manualUpload:true,data:pdfData}]}
+    {ref:'MAN1',status:'POD vorhanden',pickupAccessKeyHash:KEY3,podFiles:[{name:'scan.pdf',type:'application/pdf',manualUpload:true,data:pdfData}]},
+    {ref:'ARCH1',status:'Abgeschlossen',pickupToken:'t4',pickupAccessKeyHash:KEY,podFiles:[{name:'archive.pdf',blobName:'archive',type:'application/pdf',renderLayout:'RC1561'}]}
+  ],savedShipments:[
+    {ref:'OK1',status:'Erstellt',podFiles:[]}, // must not hide the canonical POD
+    {ref:'SAVED1',status:'Archiviert',pickupToken:'t5',pickupAccessKeyHash:KEY,podFiles:[{name:'saved.pdf',blobName:'saved',type:'application/pdf',renderLayout:'RC1595'}]}
   ]};
   const writes=[];
   const fakeClients={team:{getBlockBlobClient:()=>({})},pods:{}};
@@ -55,7 +60,7 @@ test('RC1577: Bericht liest nur und prüft jede Sendung mit POD',async()=>{
   ],async()=>{
     const result=await audit.report('production',{cursor:0,limit:25});
     const byRef=Object.fromEntries(result.rows.map(r=>[r.reference,r]));
-    assert.deepEqual(Object.keys(byRef).sort(),['BAD1','FLAG1','MAN1','MULTI1','OK1','OLD1']);
+    assert.deepEqual(Object.keys(byRef).sort(),['ARCH1','BAD1','FLAG1','MAN1','MULTI1','OK1','OLD1','SAVED1']);
     assert.equal(byRef.OK1.verdict,'ok');
     assert.equal(byRef.OLD1.verdict,'regenerate');
     assert.equal(byRef.OLD1.reason,'OLD_LAYOUT');
@@ -63,7 +68,10 @@ test('RC1577: Bericht liest nur und prüft jede Sendung mit POD',async()=>{
     assert.equal(byRef.BAD1.missing,'SIGNATURE_NOT_STORED');
     assert.equal(byRef.FLAG1.verdict,'flagged');
     assert.equal(byRef.MULTI1.verdict,'manual');
-    assert.equal(byRef.MAN1.verdict,'ok');
+    assert.equal(byRef.MAN1.verdict,'manual');
+    assert.equal(byRef.ARCH1.verdict,'regenerate','a POD on an already completed shipment must be audited');
+    assert.equal(byRef.SAVED1.verdict,'ok','saved-only archived shipments must be audited');
+    assert.equal(result.totalShipments,9,'live and saved copies are counted only once');
     assert.equal(result.nextCursor,null);
     const single=await audit.report('production',{references:['old1']});
     assert.deepEqual(single.rows.map(r=>r.reference),['OLD1']);
@@ -82,7 +90,7 @@ test('RC1577: Endpunkt ist nur für globale Admins',async()=>{
 });
 
 test('RC1577: hochgeladene PODs tragen das Layout, mit dem sie im Browser erzeugt wurden',()=>{
-  assert.equal(podArchive.POD_RENDER_LAYOUT,'RC1561');
+  assert.equal(podArchive.POD_RENDER_LAYOUT,'RC1595');
   assert.equal(podArchive.renderLayoutOf('rc1561'),'RC1561');
   assert.equal(podArchive.renderLayoutOf('<script>'),'');
   const archive=fs.readFileSync('api/shared/pod-archive.js','utf8');
@@ -90,7 +98,7 @@ test('RC1577: hochgeladene PODs tragen das Layout, mit dem sie im Browser erzeug
   assert.match(archive,/async function saveSuppliedPod\(accessKey, environment, record, pdf, requestedName, options\) \{\n  const primary = await saveAzurePod\(accessKey, environment, record, pdf, requestedName, options\);/);
   assert.match(fs.readFileSync('api/pod-backup/index.js','utf8'),/saveSuppliedPod\(accessKey, resolved\.environment, record, suppliedPdf, fileName, \{ renderLayout: body\.renderLayout \}\)/);
   assert.match(fs.readFileSync('api/shared/pod-integrity-audit.js','utf8'),/saveSuppliedPod\(accessKey,environment,record,archiveRead\.buffer,file\.name,\{renderLayout:file\.renderLayout\}\)/,'Wiederherstellung aus dem Archiv behält die Layout-Kennung');
-  assert.match(fs.readFileSync('assets/document-print-name.js','utf8'),/w\.EXPORTHUB_POD_RENDER_LAYOUT='RC1561';/);
+  assert.match(fs.readFileSync('assets/document-print-name.js','utf8'),/w\.EXPORTHUB_POD_RENDER_LAYOUT='RC1595';/);
   for(const file of ['index.html','TESTVERSION.html']){
     const html=fs.readFileSync(file,'utf8');
     assert.ok(html.includes("source:q(options.source)||'automatic',renderLayout:q(window.EXPORTHUB_POD_RENDER_LAYOUT)})"),file+': Upload sendet die Layout-Kennung');
@@ -119,14 +127,31 @@ test('RC1577: POD-Prüfung ist im Build und in allen sechs Sprachen enthalten',a
   for(const lang of Object.keys(packs))assert.deepEqual(Object.keys(packs[lang]).sort(),keys,lang+' unvollständig');
   const ui=fs.readFileSync('assets/rc1577-pod-quality-audit.js','utf8');
   assert.match(ui,/response\.status===404/,'HTTP 404 muss als fehlender API-Rollout diagnostiziert werden');
-  assert.match(ui,/POD_AUDIT_API_NOT_DEPLOYED/,'404 darf nicht als POD-Datenfehler gemeldet werden');
+  assert.match(ui,/POD_AUDIT_API_NOT_DEPLOYED/);
   for(const lang of Object.keys(packs))assert.match(packs[lang].apiMissing,/404/);
-  for(const reason of ['OLD_LAYOUT','POD_NOT_READABLE','NO_POD_FILE','MULTI_TRUCK','REVIEW_FLAGGED','CURRENT_LAYOUT','MANUAL_UPLOAD','REGENERATE_FAILED'])assert.ok(packs.de['r_'+reason],reason);
+  for(const reason of ['OLD_LAYOUT','POD_NOT_READABLE','NO_POD_FILE','MULTI_TRUCK','REVIEW_FLAGGED','CURRENT_LAYOUT','MANUAL_UPLOAD','REGENERATE_FAILED','FORCE_REGENERATE'])assert.ok(packs.de['r_'+reason],reason);
   assert.match(ui,/if\(!w\.confirm\(t\('confirm'/,'Änderungen nur nach Bestätigung');
+  assert.match(ui,/async function scanReference\(\)/,'Admin benötigt gezielte POD-Suche');
+  assert.match(ui,/function forceRegenerate\(\)/,'Admin benötigt ausdrückliche Nach-Erstellung auch für fälschlich OK deklarierte PODs');
+  assert.match(ui,/\/\^\[A-Z0-9\]\{6\}\$\//,'Nur sechsstellige Referenzen dürfen abgefragt werden');
 });
 
 test('RC1577: Regressionen laufen in einem Workflow mit',()=>{
   const wf=fs.readFileSync('.github/workflows/rc1577-pod-quality-audit-verify.yml','utf8');
   assert.match(wf,/test\/rc1577-pod-quality-audit\.test\.mjs/);
   assert.match(wf,/e2e\/specs\/rc1577-pod-quality-audit\.spec\.mjs/);
+});
+
+test('RC1595: combined POD list preserves pickup credentials from duplicate shipment copies',()=>{
+ const state={shipments:[{ref:'DUP001',status:'POD vorhanden',pickupToken:'old-token',pickupAccessKeyHash:KEY,podFiles:[]}],
+  savedShipments:[{ref:'DUP001',status:'Archiviert',podFiles:[{kind:'automatic-pod',renderLayout:'RC1561'}]},{ref:'SAVED2',status:'POD vorhanden',podFiles:[]}]};
+ const combined=audit.allShipmentCopies(state);
+ assert.deepEqual(combined.map(s=>s.ref),['DUP001','SAVED2']);
+ assert.equal(combined[0].podFiles.length,1);
+ assert.equal(combined[0].pickupToken,'old-token');
+ assert.equal(combined[0].pickupAccessKeyHash,KEY);
+ assert.equal(state.shipments[0].podFiles.length,0,'the underlying shipment state must not be changed by a read-only audit');
+ assert.equal(audit.allShipmentCopies({shipments:[{ref:'HOLD01',status:'POD vorhanden',podReviewRequired:true,podReviewReason:'layout',podFiles:[]}],savedShipments:[{ref:'HOLD01',status:'POD vorhanden',podFiles:[{kind:'automatic-pod'}]}]})[0].podReviewRequired,true,'existing review holds must survive merging saved copies');
+ assert.equal(audit.relevant({status:'Archiviert',podFiles:[]}),false,'unrelated archived shipments must not be demoted without POD evidence');
+ assert.equal(audit.relevant({status:'Archiviert',podBackup:{archiveSaved:true}}),true,'archived shipments with stored POD evidence must be audited');
 });
