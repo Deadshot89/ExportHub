@@ -52,3 +52,42 @@ doppelt vorhanden war. Dafür fehlen weiterhin die echten gesicherten Snapshots.
 Weder der Vergleich noch seine Tests nehmen Statusänderungen oder Azure-Schreibzugriffe vor.
 
 Regression: `node --test test/rc1599-pod-state-forensics.test.mjs`.
+
+## RC1611: Original-Audit-Logs zuerst auf Vollständigkeit prüfen
+
+Bevor geschützte Vorher-/Nachher-Backups je Sendung untersucht werden, den **unveränderten**
+GitHub-Actions-Rohlog des RC1144-Produktionsaudits lokal sichern. GitHub-Logs können
+personen- und kundenbezogene Sendungsreferenzen enthalten. Sie gehören **nicht** in
+öffentliche Issues, Pull Requests oder Chat-Protokolle.
+
+Das Offline-Werkzeug prüft alle protokollierten `PRODUCTION POD integrity audit`-Batches
+auf lückenlose Cursor, `verified:true` für jedes Backup, konsistente Zähler und
+eindeutige Sendungsreferenzen:
+
+~~~bash
+node scripts/rc1611-pod-audit-ledger.mjs --input /secure/rc1144-production.log
+~~~
+
+Die Standardausgabe enthält **keine** Referenzen oder Blobnamen, sondern nur
+aggregierte Zahlen und den SHA-256-Fingerabdruck des Input-Logs.
+
+**Nur in geschützter Administrationsumgebung**, wenn die konkrete Prüfliste benötigt wird:
+
+~~~bash
+node scripts/rc1611-pod-audit-ledger.mjs --input /secure/rc1144-production.log --show-refs > /secure/rc1144-confidential-manifest.json
+~~~
+
+Die vertrauliche Liste nennt Referenz, Batch-Nummer, Original-Backup-Blob und
+`ORIGINAL_REQUIRED`. Sie ist **kein Wiederherstellungsplan** und verleiht
+keine Schreibberechtigung. Jede Zeile muss zuerst mit Original-Backups,
+Pickup-Records und hashgeprüften Archivkopien **lesend** abgeglichen werden.
+
+Fehlende Batches, doppelte Referenzen, wiederverwendete Backup-Blobnamen,
+unbestätigte Backups und widersprüchliche Zähler **innerhalb eines einzelnen Batches**
+lösen einen Fehler aus statt einen falschen Vollständigkeitsnachweis.
+
+Regression: `node --test test/rc1611-pod-audit-ledger.test.mjs`.
+
+Der vorhandene Auditlog enthält 89 **verschiedene** Referenzen (10 Essentra,
+79 andere) – ohne Doppelzählung. Dies beweist **keinen Verlust von Original-PODs**
+und ist keine schon erfolgte Rekonstruktion.
