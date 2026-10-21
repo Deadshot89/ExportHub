@@ -101,6 +101,20 @@ test('RC1555 production smoke: verschachtelte POD-Abholkarten zeigen nur die neu
       printStage:root.closest('#rc576DocumentStage')?.getAttribute('data-doc')||'',
       printPageDisplay:getComputedStyle(root).display,
       printPageHeight:root.getBoundingClientRect().height,
+      printAncestorDiagnostics:(()=>{
+        const ancestors=[];
+        for(let node=root;node&&ancestors.length<8;node=node.parentElement){
+          const style=getComputedStyle(node),rect=node.getBoundingClientRect();
+          ancestors.push({
+            node:node.tagName.toLowerCase()+(node.id?'#'+node.id:'')+(node.className&&typeof node.className==='string'?'.'+node.className.trim().split(/\s+/).join('.'):''), 
+            display:style.display,visibility:style.visibility,position:style.position,
+            minHeight:style.minHeight,height:style.height,zoom:style.zoom,
+            transform:style.transform,contentVisibility:style.contentVisibility,
+            rectHeight:rect.height,clientHeight:node.clientHeight
+          });
+        }
+        return {ancestors,bodyClasses:document.body.className,htmlClasses:document.documentElement.className,htmlFlags:Array.from(document.documentElement.attributes).filter(attr=>attr.name.startsWith('data-')).map(attr=>[attr.name,attr.value])};
+      })(),
       outerCards:fields.every(field=>field.matches('.rc390-card,.rc352-card')),
       visibleLegacy:visibleLegacy.length,
       signaturePresent:!!signature,
@@ -116,7 +130,7 @@ test('RC1555 production smoke: verschachtelte POD-Abholkarten zeigen nur die neu
   expect(layout.fieldCount).toBe(6);
   expect(layout.printStage,'Ladeliste muss im echten Dokumentstage als aktiv markiert sein').toBe('load1');
   expect(layout.printPageDisplay,'Aktive Ladeliste darf im Druck nicht ausgeblendet sein').not.toBe('none');
-  expect(layout.printPageHeight,'Aktive Ladeliste muss eine sichtbare Höhe besitzen').toBeGreaterThan(0);
+  expect(layout.printPageHeight,'Aktive Ladeliste muss eine sichtbare Höhe besitzen; Layout-Diagnose: '+JSON.stringify(layout.printAncestorDiagnostics)).toBeGreaterThan(0);
   expect(layout.outerCards).toBe(true);
   expect(layout.visibleLegacy).toBe(0);
   expect(layout.signaturePresent,'Fahrerunterschrift muss nach Enhance im kanonischen Abholfeld existieren').toBe(true);
