@@ -228,6 +228,12 @@ jobs:
           echo "RC1553: TESTSERVICE deployment identity stimmt nicht mit $expected ueberein." >&2
           exit 1
 
+      - name: RC1591 Registrierungs-Automatik TESTSERVICE live nachweisen
+        shell: bash
+        run: |
+          set -euo pipefail
+          node .github/rc1591/verify-registration-live.mjs testservice
+
       - name: Release-Center aktive Testversion auf deployten Stand setzen
         shell: bash
         run: |
