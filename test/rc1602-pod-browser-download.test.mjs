@@ -17,9 +17,10 @@ test('RC1602: canonical POD click handler registers as a capture listener before
   assert.match(builder,/assets\/rc1602-official-pod-server-download\.js/);
 });
 
-function setup({withToken=true,status=200,withDocumentRow=false,withoutStoredFile=false}={}){
+function setup({withToken=true,status=200,withDocumentRow=false,withoutStoredFile=false,withSignedInline=false}={}){
   let click=null,called=[],alerts=[],urls=[],downloaded=[],popup=null,delegated=[];
   const sh={id:'id8',ref:'8LSUHW',pickupToken:withToken?'authorized-test-token':'',podFiles:withoutStoredFile?[]:[{id:'automatic-pod-test001',kind:'automatic-pod',renderLayout:'RC1595',name:'POD_8LSUHW_Ladeliste_unterschrieben.pdf'}]};
+  if(withSignedInline)sh.podFiles.unshift({id:'signed-pod-original',kind:'signed-loadlist',name:'POD_8LSUHW_Ladeliste_mit_Unterschrift.pdf',dataUrl:'data:application/pdf;base64,'+Buffer.from('%PDF-1.7\\n'+'s'.repeat(1250)).toString('base64')});
   const button={disabled:false,dataset:{id:'id8'},textContent:'POD als PDF',
     matches:s=>s.includes('data-rc628-official-pod-download')};
   const document={
@@ -31,6 +32,7 @@ function setup({withToken=true,status=200,withDocumentRow=false,withoutStoredFil
   };
   const pdf=Buffer.from('%PDF-1.7\n'+'x'.repeat(1100));
   const window={
+    __EXPORTHUB_GET_STATE__:()=>({shipments:[sh]}),
     ExportHUBIndex240:{shipments:()=>[sh]},ExportHUBPickupPOD:{shipments:()=>[],syncOne:async()=>true},
     fetch:async(url,opts)=>{called.push({url,opts});return{ok:status===200,status,
       blob:async()=>new Blob([pdf],{type:'application/pdf'}),
@@ -81,4 +83,15 @@ test('RC1616: token-only stale POD without an immutable stored PDF must not trig
  assert.equal(x.called.length,0);
  assert.equal(x.alerts.length,1);
  assert.match(x.alerts[0],/gespeicherte POD-Version/);
+});
+
+test('RC1616: overview POD opens the existing signed PDF bytes without the document panel or server regeneration',async()=>{
+ const x=setup({withSignedInline:true});
+ x.click({target:{closest:()=>x.button},preventDefault(){},stopImmediatePropagation(){},stopPropagation(){}});
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(x.called.length,1);
+ assert.match(x.called[0].url,/^data:application\\/pdf;base64,/);
+ assert.equal(x.called.some(c=>String(c.url).includes('file=automatic')),false);
+ assert.ok(x.downloaded.includes('POD_8LSUHW_Ladeliste_unterschrieben.pdf'));
+ assert.equal(x.alerts.length,0);
 });
