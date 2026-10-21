@@ -705,7 +705,21 @@ function mergeShipmentProtected(serverItem, incomingItem) {
   // Status may only follow the newer persisted record; no rank-based auto-promotion here.
   const newerStatus = newer.status || newer.processStatus;
   const olderStatus = older.status || older.processStatus;
-  const chosenStatus = meaningfulValue(newerStatus) ? newerStatus : olderStatus;
+  // RC1603 P0: an equal-timestamp stale browser copy may reintroduce a POD
+  // status after a server-side integrity correction (or erase a real POD).
+  // Resolve ONLY this ambiguous Abgeholt/POD pair in favour of persisted
+  // server state. A genuinely newer incoming timestamp still wins as before;
+  // no other status, document, or sub-shipment merge rule changes.
+  const serverStatus = lower(serverItem.status || serverItem.processStatus);
+  const incomingStatus = lower(incomingItem.status || incomingItem.processStatus);
+  const podPickupTie = incomingTs === serverTs &&
+    ((serverStatus === 'abgeholt' && incomingStatus === 'pod vorhanden') ||
+     (serverStatus === 'pod vorhanden' && incomingStatus === 'abgeholt')) &&
+    (!serverItem.status || !serverItem.processStatus || lower(serverItem.status) === lower(serverItem.processStatus)) &&
+    (!incomingItem.status || !incomingItem.processStatus || lower(incomingItem.status) === lower(incomingItem.processStatus));
+  const chosenStatus = podPickupTie
+    ? (serverItem.status || serverItem.processStatus)
+    : (meaningfulValue(newerStatus) ? newerStatus : olderStatus);
   if (meaningfulValue(chosenStatus)) {
     out.status = clone(chosenStatus);
     out.processStatus = clone(chosenStatus);
