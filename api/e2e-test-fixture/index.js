@@ -6,6 +6,7 @@ const {createBlobServiceClient}=require('../shared/blob-rest');
 const auth=require('../shared/auth-store');
 const packStore=require('../shared/pack-notification-store');
 const {MODULES,normalizeUser,publicUser}=require('../shared/user-policy');
+const {collectTestserviceTeamInventory}=require('../shared/testservice-team-inventory');
 
 const TEAM_CONTAINER=process.env.EXPORTHUB_STORAGE_CONTAINER||process.env.EXPORTHUB_CONTAINER||'exporthub-data';
 const TEAM_BLOB=process.env.EXPORTHUB_STORAGE_BLOB||process.env.EXPORTHUB_STATE_BLOB||'team-state.json';
@@ -337,9 +338,17 @@ module.exports=async function(context,req){
   const payload=body(req);requireTestservice(req,payload);
   if(!await githubOidcAuthorized(req))throw error('E2E_FIXTURE_FORBIDDEN','RC1139 Fixture darf nur vom signierten GitHub-Releaseworkflow aufgerufen werden.',403);
   const action=lower(payload.action),runId=safeRunId(payload.runId);
+  if(action==='inventory-team'){
+   // RC1630: strictly READ-ONLY, and only after the existing verified GitHub
+   // OIDC workflow and TESTSERVICE host/environment checks above.
+   // No blob names, contents or secrets leave the function.
+   const container=service().getContainerClient(TEAM_CONTAINER);
+   context.res=json(200,{ok:true,action:'inventory-team',...await collectTestserviceTeamInventory(container)});
+   return;
+  }
   if(action==='prepare'){context.res=json(200,await prepare(runId));return}
   if(action==='cleanup'){context.res=json(200,await cleanup(runId));return}
-  throw error('ACTION_INVALID','Erlaubt sind prepare und cleanup.',400);
+  throw error('ACTION_INVALID','Erlaubt sind prepare, cleanup und inventory-team.',400);
  }catch(e){
   try{context.log&&context.log.error&&context.log.error('RC1139 E2E fixture error',e&&e.code,e&&e.message)}catch(_){}
   context.res=json(Number(e&&e.status||e&&e.statusCode||500),{ok:false,code:e&&e.code||'SERVER_ERROR',message:e&&e.message||'RC1139 Fixture fehlgeschlagen.'});

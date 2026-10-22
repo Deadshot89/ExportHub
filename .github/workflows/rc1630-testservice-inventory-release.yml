@@ -1,0 +1,36 @@
+name: RC1630 Signed TESTSERVICE Inventory Release
+
+on:
+  pull_request:
+    paths:
+      - 'api/e2e-test-fixture/index.js'
+      - '.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml'
+      - 'test/rc1630-testservice-inventory-release-oidc.test.mjs'
+      - '.github/workflows/rc1630-testservice-inventory-release.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'api/e2e-test-fixture/index.js'
+      - '.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml'
+      - 'test/rc1630-testservice-inventory-release-oidc.test.mjs'
+      - '.github/workflows/rc1630-testservice-inventory-release.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - run: |
+          node --check api/e2e-test-fixture/index.js
+          node --check api/shared/testservice-team-inventory.js
+      - run: node --test test/rc1630-testservice-inventory-release-oidc.test.mjs test/rc1627-testservice-team-metadata-inventory.test.mjs
