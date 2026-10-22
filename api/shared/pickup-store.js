@@ -124,15 +124,43 @@ function abdPresent(source){
  const status=sanitizeText(first(source,['abdStatus','customsStatus']),120).toLowerCase();
  return /vorhanden|fertig|erledigt|completed|done|available|erstellt|created|abgeschlossen/.test(status)&&!/wartet|offen|pending|angefordert|requested/.test(status)
 }
+// RC1622: A status label or an ABD reference is not proof of an uploaded document.
+// Only currently attached and durably referenced PDFs satisfy the pickup release gate.
+function rc1622StoredAbd(source){
+ if(!source||typeof source!=='object')return false;
+ const files=[].concat(
+  Array.isArray(source.abdFiles)?source.abdFiles:[],
+  Array.isArray(source.abdDocuments)?source.abdDocuments:[]
+ );
+ return files.some(function(file){
+  if(!file||typeof file!=='object')return false;
+  const status=String(file.status||'').toLowerCase();
+  if(/deleted|gelöscht|geloscht|replaced|ersetzt|storniert/.test(status))return false;
+  return !!String(file.blobName||file.storageBlobName||file.storagePath||'').trim()||
+   /^data:application\/pdf;base64,[A-Za-z0-9+/=\s]+$/i.test(String(file.dataUrl||file.data||'').trim());
+ });
+}
 async function resolveShipmentAbdConfig(record,environment='production'){
- const c=await clients(environment),blob=c.team.getBlockBlobClient(teamBlobName(c.environment)),loaded=await readJson(blob,null),doc=loaded.value||{},state=doc.state&&typeof doc.state==='object'?doc.state:doc;
- const shipments=Array.isArray(state.shipments)?state.shipments:[],requests=Array.isArray(state.abdRequests)?state.abdRequests:[],sid=String(record&&record.shipmentId||'').trim(),ref=String(record&&record.reference||record&&record.ref||'').trim().toUpperCase();
- const sh=shipments.find(x=>(sid&&String(x&& (x.id||x.shipmentId)||'').trim()===sid)||(ref&&String(x&& (x.reference||x.ref)||'').trim().toUpperCase()===ref))||null;
- const req=requests.slice().reverse().find(function(x){const rid=String(x&& (x.linkedShipmentId||x.shipmentId)||'').trim(),rr=String(x&& (x.reference||x.ref||x.shipmentRef)||'').trim().toUpperCase();return(sid&&rid===sid)||(ref&&rr===ref)})||null;
- const reqStatus=sanitizeText(first(req,['abdStatus','status','state']),120).toLowerCase();
- const reqPresent=abdPresent(req)||(!!req&&/vorhanden|fertig|erledigt|completed|done|available|erstellt|created|abgeschlossen/.test(reqStatus)&&!/wartet|offen|pending|angefordert|requested/.test(reqStatus));
- const present=abdPresent(sh)||reqPresent||abdPresent(record);
- return{abdPresent:present,abdStatus:sanitizeText(first(req||sh||record,['abdStatus','status']),120)}
+ const c=await clients(environment),blob=c.team.getBlockBlobClient(teamBlobName(c.environment)),
+  loaded=await readJson(blob,null),doc=loaded.value||{},state=doc.state&&typeof doc.state==='object'?doc.state:doc;
+ const sid=String(record&&record.shipmentId||'').trim(),
+  ref=String(record&&(record.reference||record.ref)||'').trim().toUpperCase(),
+  same=function(sh){return sh&&((sid&&String(sh.id||sh.shipmentId||'').trim()===sid)||
+   (ref&&String(sh.reference||sh.ref||sh.shipmentRef||'').trim().toUpperCase()===ref))};
+ const shipments=[].concat(Array.isArray(state.shipments)?state.shipments:[],
+  Array.isArray(state.savedShipments)?state.savedShipments:[]);
+ const matchingShipments=shipments.filter(same),
+  requests=(Array.isArray(state.abdRequests)?state.abdRequests:[]).filter(same),
+  req=requests.length?requests[requests.length-1]:null,
+  sh=matchingShipments[0]||null;
+ const required=record&&record.abdRequired===true||
+  matchingShipments.some(x=>x.abdRequired===true||
+   /wartet auf abd/i.test(String(x.status||x.shipmentStatus||x.abdStatus||'')))||
+  requests.length>0;
+ const present=matchingShipments.some(rc1622StoredAbd)||
+  requests.some(rc1622StoredAbd)||rc1622StoredAbd(record);
+ return {abdRequired:!!required,abdPresent:!!present,
+  abdStatus:sanitizeText(first(req||sh||record,['abdStatus','status']),120)};
 }
 function mergeContainerPhotos(a,b){
  const out=[],seen=new Map();
