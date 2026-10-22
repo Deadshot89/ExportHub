@@ -39,7 +39,9 @@ test('RC1139 P0: TESTSERVICE Kunde und Sendung speichern, Reload und Azure-Readb
   await waitReady(page);
 
   const read=await page.evaluate(async({token})=>{
-    const response=await fetch('/api/exporthub-state?mode=read&full=1',{
+    // Only the revision is needed before the additive save; avoid a
+    // full multi-megabyte team-state download.
+    const response=await fetch('/api/exporthub-state?mode=meta',{
       method:'GET',credentials:'same-origin',cache:'no-store',
       headers:{'Accept':'application/json','X-ExportHUB-Token':token,'X-ExportHUB-Session':token,'Authorization':'Bearer '+token,'X-ExportHUB-Environment':'testservice'}
     });
@@ -75,7 +77,6 @@ test('RC1139 P0: TESTSERVICE Kunde und Sendung speichern, Reload und Azure-Readb
     _e2eRunId:session.runId
   };
 
-  const state=read.data?.state&&typeof read.data.state==='object'?read.data.state:{};
   // P0: Persist and reload a customer independently from the shipment.
   // The fixture cleanup removes only rows tagged with this E2E run ID.
   const customer={
@@ -89,12 +90,12 @@ test('RC1139 P0: TESTSERVICE Kunde und Sendung speichern, Reload und Azure-Readb
     updatedAt:stamp,
     _e2eRunId:session.runId
   };
-  const customers=Array.isArray(state.customers)?state.customers.filter(x=>x&&x.id!==customer.id):[];
-  customers.push(customer);
-  const shipments=Array.isArray(state.shipments)?state.shipments.filter(x=>x&&x._e2eRunId!==session.runId):[];
-  const savedShipments=Array.isArray(state.savedShipments)?state.savedShipments.filter(x=>x&&x._e2eRunId!==session.runId):[];
-  shipments.push(shipment);
-  savedShipments.push({...shipment});
+  // RC1629: small additive payloads. The authoritative server merges by
+  // stable shipment/customer identity, preserving all unrelated records.
+  // Sending full arrays previously exceeded the 30-MB Azure SWA request cap.
+  const customers=[customer];
+  const shipments=[shipment];
+  const savedShipments=[{...shipment}];
 
   const saved=await page.evaluate(async({token,runId,ref,revision,shipments,savedShipments,customers})=>{
     const response=await fetch('/api/exporthub-state?mode=save&ack=1',{
@@ -249,7 +250,8 @@ test('RC1255 P2: AVIS-Erinnerung läuft über TESTSERVICE UI, Outlook-Entwurf, A
   expect(prepared?.email).toMatch(/^[^\s@]+@[^\s@]+\.[^\s@]+$/);
 
   const initial=await page.evaluate(async token=>{
-    const response=await fetch('/api/exporthub-state?mode=read&full=1',{
+    // Only the revision is required here. Avoid a ~43 MB full-state response.
+    const response=await fetch('/api/exporthub-state?mode=meta',{
       method:'GET',credentials:'same-origin',cache:'no-store',
       headers:{'Accept':'application/json','X-ExportHUB-Token':token,'X-ExportHUB-Session':token,'Authorization':'Bearer '+token,'X-ExportHUB-Environment':'testservice'}
     });
@@ -285,11 +287,11 @@ test('RC1255 P2: AVIS-Erinnerung läuft über TESTSERVICE UI, Outlook-Entwurf, A
     rows:[{type:'Europalette',packaging:'Europalette',count:1,weight:100,ldm:0.2,l:120,w:80,h:100}],
     _e2eRunId:session.runId
   };
-  const state=initial.data?.state&&typeof initial.data.state==='object'?initial.data.state:{};
-  const shipments=Array.isArray(state.shipments)?state.shipments.filter(x=>x&&x.id!==shipment.id):[];
-  const savedShipments=Array.isArray(state.savedShipments)?state.savedShipments.filter(x=>x&&x.id!==shipment.id):[];
-  shipments.push(shipment);
-  savedShipments.push({...shipment});
+  // This API merges shipment rows by stable id/reference. Never POST all
+  // existing shipments: Azure Static Web Apps limits requests to 30 MB.
+  // An additive one-record delta also preserves unrelated shipments.
+  const shipments=[shipment];
+  const savedShipments=[{...shipment}];
 
   const firstSave=await page.evaluate(async({token,runId,ref,revision,shipments,savedShipments})=>{
     // Fixture preparation writes outside this API's worker cache. A default POST checks the current team ETag before authenticating.
@@ -323,31 +325,26 @@ test('RC1255 P2: AVIS-Erinnerung läuft über TESTSERVICE UI, Outlook-Entwurf, A
   expect(issued.data?.token).toBeTruthy();
   expect(issued.url).toMatch(/^https:\/\/ashy-grass-065b7b803-testservice\.westeurope\.6\.azurestaticapps\.net\/customer-avis\.html\?token=[A-Za-z0-9_-]+&environment=testservice(?:&|$)/);
 
-  const linked=await page.evaluate(async({token,runId,shipmentId,ref,avisUrl,avisToken})=>{
-    const read=await fetch('/api/exporthub-state?mode=read&full=1',{
-      method:'GET',credentials:'same-origin',cache:'no-store',
-      headers:{'Accept':'application/json','X-ExportHUB-Token':token,'X-ExportHUB-Session':token,'Authorization':'Bearer '+token,'X-ExportHUB-Environment':'testservice'}
+  const linked=await page.evaluate(async({token,runId,shipment,ref,avisUrl,avisToken,revision})=>{
+    // Merge a single shipment delta; a full-state POST exceeds the 30 MB
+    // Static Web Apps request limit when team-state grows large.
+    const linkedShipment=Object.assign({},shipment,{
+      customerAvisUrl:avisUrl,avisUrl,customerAvisToken:avisToken,avisToken,
+      customerAvisEnabled:true,avisEnabled:true,updatedAt:new Date().toISOString(),
+      _e2eRunId:runId
     });
-    const current=await read.json().catch(()=>({}));
-    if(!read.ok)return{status:read.status,data:current};
-    const state=current.state&&typeof current.state==='object'?current.state:{};
-    const patch=list=>(Array.isArray(list)?list:[]).map(sh=>{
-      if(!sh||String(sh.id||sh.shipmentId||'')!==shipmentId)return sh;
-      return Object.assign({},sh,{customerAvisUrl:avisUrl,avisUrl,customerAvisToken:avisToken,avisToken,customerAvisEnabled:true,avisEnabled:true,updatedAt:new Date().toISOString(),_e2eRunId:runId});
-    });
-    const shipments=patch(state.shipments),savedShipments=patch(state.savedShipments);
     const response=await fetch('/api/exporthub-state?ack=1',{
       method:'POST',credentials:'same-origin',cache:'no-store',
       headers:{'Content-Type':'application/json','Accept':'application/json','X-ExportHUB-Token':token,'X-ExportHUB-Session':token,'Authorization':'Bearer '+token,'X-ExportHUB-Environment':'testservice'},
       body:JSON.stringify({
-        environment:'testservice',clientVersion:'RC1255-E2E',baseRevision:Number(current.revision||0),
+        environment:'testservice',clientVersion:'RC1255-E2E',baseRevision:Number(revision||0),
         deviceId:'e2e-playwright',operationId:'RC1255-link-'+runId+'-'+ref,
         reason:'RC1255 Avis reminder E2E link',
-        state:{shipments,savedShipments}
+        state:{shipments:[linkedShipment],savedShipments:[linkedShipment]}
       })
     });
     return{status:response.status,data:await response.json().catch(()=>({}))};
-  },{token:session.token,runId:session.runId,shipmentId:shipment.id,ref,avisUrl:issued.url,avisToken:issued.data.token});
+  },{token:session.token,runId:session.runId,shipment,ref,avisUrl:issued.url,avisToken:issued.data.token,revision:firstSave.data?.revision||initial.data?.revision||0});
   expect(linked.status,'RC1255 fixture link save: '+String(linked.data?.code||'')+' '+String(linked.data?.message||'')).toBe(200);
   expect(linked.data?.ok).toBe(true);
 

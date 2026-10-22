@@ -1,0 +1,34 @@
+name: RC1629 TESTSERVICE Customer Shipment Small Save
+
+on:
+  pull_request:
+    paths:
+      - 'e2e/specs/testservice-mutation.spec.mjs'
+      - 'test/rc1629-testservice-small-customer-shipment-save.test.mjs'
+      - '.github/workflows/rc1629-testservice-small-state-save.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'e2e/specs/testservice-mutation.spec.mjs'
+      - 'test/rc1629-testservice-small-customer-shipment-save.test.mjs'
+      - '.github/workflows/rc1629-testservice-small-state-save.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: Check E2E test JavaScript
+        run: node --check e2e/specs/testservice-mutation.spec.mjs
+      - name: Verify non-destructive small record saves
+        run: node --test test/rc1629-testservice-small-customer-shipment-save.test.mjs test/rc1628-testservice-avis-small-delta.test.mjs
