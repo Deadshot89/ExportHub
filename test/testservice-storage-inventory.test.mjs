@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { collectInventory } from '../scripts/testservice-storage-inventory.mjs';
+import { collectInventory, inventoryContainerName, assertInventoryAccount } from '../scripts/testservice-storage-inventory.mjs';
 
 function container(items, fail=false) {
   return { listBlobsFlat(options) {
@@ -42,4 +42,18 @@ test('rejects unsafe and negative byte counts',async()=>{
 });
 test('detects total overflow',async()=>{
   await assert.rejects(collectInventory(container([blob('testservice/a',Number.MAX_SAFE_INTEGER),blob('testservice/b',1)])),/SIZE_OVERFLOW/);
+});
+
+// Prevent silently measuring the wrong Azure resource or reporting zero test data.
+test('uses the confirmed TESTSERVICE container unless explicitly configured',()=>{
+  assert.equal(inventoryContainerName({}), 'exporthub-teamdata');
+  assert.equal(inventoryContainerName({EXPORTHUB_TEST_INVENTORY_CONTAINER:''}), 'exporthub-teamdata');
+  assert.equal(inventoryContainerName({EXPORTHUB_TEST_INVENTORY_CONTAINER:'other-container'}), 'other-container');
+});
+test('fails closed before listing Azure blobs when the account is wrong or insecure',()=>{
+  assert.doesNotThrow(()=>assertInventoryAccount({url:'https://exporthubtestde89.blob.core.windows.net'}));
+  for(const url of ['https://other-account.blob.core.windows.net','http://exporthubtestde89.blob.core.windows.net','https://exporthubtestde89.blob.core.windows.net.evil.invalid']) {
+    assert.throws(()=>assertInventoryAccount({url}),/INVENTORY_ACCOUNT_MISMATCH/);
+  }
+  assert.throws(()=>assertInventoryAccount({url:'not a URL'}),/INVENTORY_ACCOUNT_MISMATCH/);
 });

@@ -32,8 +32,11 @@ Konfiguration über sichere Umgebungsvariablen, niemals im Repository:
 - `EXPORTHUB_TEST_INVENTORY_CONNECTION_STRING`: dedizierter Zugang,
   vorzugsweise SAS mit ausschließlich Read/List und begrenzter Gültigkeit.
   Keine automatische Verwendung der Produktions-Verbindungszeichenfolge.
-- `EXPORTHUB_TEST_INVENTORY_CONTAINER`: vorher bestätigter Containername;
-  Standard `exporthub-data`.
+- `EXPORTHUB_TEST_INVENTORY_CONTAINER`: optionaler expliziter Containername;
+  Standard ist der am 22.10.2026 bestätigte Container `exporthub-teamdata`.
+- Konto-Sicherheitsprüfung: Der Workflow akzeptiert ausschließlich den Blob-Endpunkt
+  des bestätigten Kontos `exporthubtestde89` über HTTPS. Falsche Konten werden
+  vor jeder Azure-Abfrage abgewiesen.
 
 Die Abfrage ist fest auf `testservice/` beschränkt und erfasst aktuelle Blobs,
 Snapshots, Versionen und gelöschte Einträge. Sie lädt keine Inhalte herunter.
@@ -57,7 +60,9 @@ Einmalig unter Repository Settings → Secrets and variables → Actions das Sec
 zum bestätigten Speicher hinterlegen. Eine Container-SAS ist einer Account-Key-
 Verbindungszeichenfolge vorzuziehen. Den Wert nicht in Chat, Issues oder Dateien
 kopieren. Bei abweichendem Container die Repository-Variable
-`EXPORTHUB_TEST_INVENTORY_CONTAINER` setzen. Ohne Secret bricht der Workflow vor
+`EXPORTHUB_TEST_INVENTORY_CONTAINER` setzen. Der Standard ist jetzt
+`exporthub-teamdata`; für ein anderes Azure-Konto ist eine separate, geprüfte
+Codeänderung erforderlich. Ohne Secret bricht der Workflow vor
 der Installation und Azure-Abfrage ab.
 
 Anschließend Actions → TESTSERVICE Storage Inventory → Run workflow → main.
