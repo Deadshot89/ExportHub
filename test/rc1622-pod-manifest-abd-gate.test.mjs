@@ -108,6 +108,8 @@ test('RC1622: failed authoritative ABD check cannot silently release QR pickup',
 test('RC1622: authenticated POD manifest is read-only and only exposes immutable current layouts',async()=>{
  const mod={exports:{}},files=[
   {id:'auto-current-001',kind:'automatic-pod',renderLayout:'RC1595',blobName:'archived.pdf',uploadedAt:'2026-10-22'},
+  {id:'automatic-pod-'+('b'.repeat(16)),kind:'automatic-pod',layoutVersion:'RC1600-SIGNED-LOADING-LIST-V4',source:'pickup-confirm-v3',hash:'b'.repeat(64),blobName:'rc995/production/original.pdf'},
+  {id:'automatic-pod-'+('c'.repeat(16)),kind:'automatic-pod',layoutVersion:'RC1600-SIGNED-LOADING-LIST-V4',source:'pickup-confirm-v3',hash:'incorrect',blobName:'unverified.pdf'},
   {id:'auto-old-002',kind:'automatic-pod',renderLayout:'RC1530',blobName:'old.pdf'},
   {id:'unverified-001',kind:'signed-loadlist',blobName:'other.pdf'}
  ];
@@ -123,9 +125,14 @@ test('RC1622: authenticated POD manifest is read-only and only exposes immutable
  const context={res:null,log:{error(){}}};
  await mod.exports(context,{method:'GET',query:{token:'authorized-token',manifest:'1'}});
  assert.equal(context.res.status,200);
- assert.equal(context.res.body.files.length,1);
+ assert.equal(context.res.body.files.length,2);
  assert.equal(context.res.body.files[0].id,'auto-current-001');
  assert.equal(context.res.body.files[0].blobName,undefined);
+ assert.equal(context.res.body.files[1].id,'automatic-pod-'+('b'.repeat(16)));
+ assert.equal(context.res.body.files[1].layoutVersion,'RC1600-SIGNED-LOADING-LIST-V4');
+ assert.equal(context.res.body.files[1].hash,'b'.repeat(64));
+ assert.equal(context.res.body.files[1].blobName,undefined);
+ assert.equal(context.res.body.files.some(f=>f.id==='auto-old-002'),false);
 });
 
 
