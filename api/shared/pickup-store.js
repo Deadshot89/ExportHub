@@ -190,13 +190,31 @@ async function resolveShipmentAbdConfig(record,environment='production'){
  const c=await clients(environment),blob=c.team.getBlockBlobClient(teamBlobName(c.environment)),
   loaded=await readJson(blob,null),doc=loaded.value||{},state=doc.state&&typeof doc.state==='object'?doc.state:doc;
  const sid=String(record&&record.shipmentId||'').trim(),
-  ref=String(record&&(record.reference||record.ref)||'').trim().toUpperCase(),
-  same=function(sh){return sh&&((sid&&String(sh.linkedShipmentId||sh.shipmentId||sh.id||'').trim()===sid)||
-   (ref&&String(sh.reference||sh.ref||sh.shipmentRef||'').trim().toUpperCase()===ref))};
+  ref=String(record&&(record.reference||record.ref)||'').trim().toUpperCase();
+ // RC1626: Matching either the ID or reference is unsafe when the *other*
+ // identifier explicitly contradicts it. ABD request.id is the request's own
+ // identifier, never a shipment ID. Legacy requests without linkedShipmentId
+ // remain matchable by their shipment reference.
+ function sameShipment(sh){
+  if(!sh||typeof sh!=='object')return false;
+  const otherId=String(sh.shipmentId||sh.id||'').trim(),
+   otherRef=String(sh.reference||sh.ref||sh.shipmentRef||'').trim().toUpperCase();
+  if(sid&&otherId&&sid!==otherId)return false;
+  if(ref&&otherRef&&ref!==otherRef)return false;
+  return !!((sid&&otherId===sid)||(ref&&otherRef===ref))
+ }
+ function sameRequest(req){
+  if(!req||typeof req!=='object')return false;
+  const linkedId=String(req.linkedShipmentId||req.shipmentId||'').trim(),
+   otherRef=String(req.reference||req.ref||req.shipmentRef||'').trim().toUpperCase();
+  if(sid&&linkedId&&sid!==linkedId)return false;
+  if(ref&&otherRef&&ref!==otherRef)return false;
+  return !!((sid&&linkedId===sid)||(ref&&otherRef===ref))
+ }
  const shipments=[].concat(Array.isArray(state.shipments)?state.shipments:[],
   Array.isArray(state.savedShipments)?state.savedShipments:[]);
- const matchingShipments=shipments.filter(same),
-  requests=(Array.isArray(state.abdRequests)?state.abdRequests:[]).filter(same),
+ const matchingShipments=shipments.filter(sameShipment),
+  requests=(Array.isArray(state.abdRequests)?state.abdRequests:[]).filter(sameRequest),
   req=requests.length?requests[requests.length-1]:null,
   sh=matchingShipments[0]||null;
  const required=record&&record.abdRequired===true||
