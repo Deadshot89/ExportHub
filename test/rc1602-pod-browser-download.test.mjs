@@ -101,6 +101,31 @@ test('RC1622: signed exact RC1595 POD on server is recovered despite missing loc
  assert.ok(x.downloaded.includes('POD_8LSUHW_Ladeliste_unterschrieben.pdf'));
 });
 
+test('RC1622 P0: immutable signed RC1600 server PDF remains downloadable when RC1595 does not exist',async()=>{
+ const hash='a'.repeat(64),id='automatic-pod-'+hash.slice(0,16);
+ const x=setup({withoutStoredFile:true,serverManifestFiles:[
+  {id,kind:'automatic-pod',layoutVersion:'RC1600-SIGNED-LOADING-LIST-V4',source:'pickup-confirm-v3',hash,uploadedAt:'2026-10-22T12:00:00Z'}
+ ]});
+ x.click({target:{closest:()=>x.button},preventDefault(){},stopImmediatePropagation(){},stopPropagation(){}});
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(x.called.length,2);
+ assert.match(x.called[0].url,/manifest=1/);
+ assert.equal(x.called[1].url,'/api/pickup-pod?file='+id+'&token=authorized-test-token');
+ assert.equal(x.called.some(c=>String(c.url).includes('file=automatic&')),false);
+ assert.equal(x.alerts.length,0);
+ assert.ok(x.downloaded.includes('POD_8LSUHW_Ladeliste_unterschrieben.pdf'));
+});
+
+test('RC1622 P0: unverified server PDF metadata cannot substitute the signed original',async()=>{
+ const x=setup({withoutStoredFile:true,serverManifestFiles:[
+  {id:'automatic-pod-aaaaaaaaaaaaaaaa',kind:'automatic-pod',layoutVersion:'RC1600-SIGNED-LOADING-LIST-V4',source:'pickup-confirm-v3',hash:'wrong'}
+ ]});
+ x.click({target:{closest:()=>x.button},preventDefault(){},stopImmediatePropagation(){},stopPropagation(){}});
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(x.called.length,1);
+ assert.equal(x.alerts.length,1);
+});
+
 test('RC1622: server manifest must not select a different or unverified render layout',async()=>{
  const x=setup({withoutStoredFile:true,serverManifestFiles:[
   {id:'untrusted-pod-01',kind:'automatic-pod',renderLayout:'RC1594'}
