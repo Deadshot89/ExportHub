@@ -31,7 +31,9 @@ jobs:
         run: npm install --prefix api --ignore-scripts --no-audit --no-fund
       - name: RC1549 browser runtime syntax
         run: node --check assets/rc1549-abd-proforma.js
-      - name: RC1549 ABD Proforma contract
+      - name: RC1549 ABD Proforma and A4 print-layout contracts
+        env:
+          EXPORTHUB_PDF_SAMPLE_DIR: test-results/rc1603-pdf-proof
         run: node --test test/rc1549-abd-proforma.test.mjs test/rc1601-abd-invoice-editor.test.mjs
 
       - name: Build static ExportHUB package
@@ -56,5 +58,14 @@ jobs:
           path: |
             playwright-report
             test-results
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Preserve real PDF samples for layout review
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: rc1603-invoice-pdf-layout
+          path: test-results/rc1603-pdf-proof/*.pdf
           if-no-files-found: ignore
           retention-days: 14
