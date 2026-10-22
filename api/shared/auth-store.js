@@ -69,10 +69,25 @@ async function testserviceClients() {
 }
 function environmentFromRequest(req) {
   const headers = req && req.headers || {};
-  const host = lower(headers['x-forwarded-host'] || headers['x-original-host'] || headers.host || headers.Host || '');
-  if (/-testservice\./.test(host)) return 'testservice';
-  if (/\.azurestaticapps\.net(?:[:/]|$)/.test(host)) return 'production';
+  const rawHost = lower(headers['x-forwarded-host'] || headers['x-original-host'] || headers.host || headers.Host || '');
   const requested = lower(headers['x-exporthub-environment'] || headers['X-ExportHUB-Environment'] || '');
+  // On official hosts the server-selected environment overrides untrusted headers.
+  // A conflicting header fails closed before any storage client is opened.
+  let host = '';
+  try {
+    const first = rawHost.split(',')[0].trim();
+    host = new URL(first.includes('://') ? first : 'https://' + first).hostname.toLowerCase();
+  } catch (_) { /* Preserve local harness fallback for unknown hostnames. */ }
+  const azureHost = host.endsWith('.azurestaticapps.net');
+  const testHost = azureHost && /-testservice\./.test(host);
+  const productionHost = (azureHost && !testHost) || /^(?:www\.)?exporthub360\.(?:de|com)$/.test(host);
+  if (testHost || productionHost) {
+    const actual = testHost ? 'testservice' : 'production';
+    if (requested && requested !== actual)
+      throw error('ENVIRONMENT_MISMATCH', 'Die angeforderte ExportHUB-Umgebung stimmt nicht mit der Website überein.', 409);
+    return actual;
+  }
+  // Existing local/test requests without an official host remain backwards-compatible.
   return requested === 'testservice' ? 'testservice' : 'production';
 }
 async function clientsForEnvironment(environment) {
