@@ -65,6 +65,6 @@ test('RC1306: von einem Neu-Rendern abgehängte Knoten werden nicht zurückgehol
   const restore=layout.slice(layout.indexOf('function restoreNode(node){'),layout.indexOf('function restoreAll(){'));
   assert.match(restore,/if\(!node\.isConnected\)return false;/);
   assert.ok(restore.indexOf('isConnected')<restore.indexOf('appendChild'),'Prüfung muss vor dem Zurückhängen stehen');
-  assert.match(build,/rc1306-layout-engine\.js\?v=1306\.1/,'Cache-Schlüssel muss erhöht sein, damit Browser die korrigierte Datei laden');
+  assert.match(build,/rc1306-layout-engine\.js\?v=1307/,'Cache-Schlüssel muss erhöht sein, damit Browser die korrigierte Datei laden');
   assert.doesNotMatch(build,/rc1306-layout-engine\.js\?v=1306['"]/);
 });
