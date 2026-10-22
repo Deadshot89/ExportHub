@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {SCOPES,validateConfiguration,assertAccount,collectScope,collectAll} from '../scripts/testservice-expanded-storage-inventory.mjs';
+import {SCOPES,validateConfiguration,assertAccount,collectScope,collectAll,ageBucket} from '../scripts/testservice-expanded-storage-inventory.mjs';
 
 function env() {
   const out={};
@@ -66,4 +66,33 @@ test('rejects incorrect prefixes and missing sizes rather than reporting partial
 });
 test('missing a known scope cannot be presented as a complete inventory',async()=>{
   await assert.rejects(collectAll(async()=>({}),SCOPES.slice(0,-1)),/INVENTORY_SCOPE_INCOMPLETE/);
+});
+
+test('classifies age from Azure lastModified without revealing names or recommending deletion',async()=>{
+  const asOf='2026-10-22T12:00:00Z';
+  const scope=SCOPES[0];
+  const rows=[
+    blob('testservice/current.json',10,{properties:{contentLength:10,lastModified:new Date('2026-10-21T12:00:00Z')}}),
+    blob('testservice/month-old.json',20,{properties:{contentLength:20,lastModified:new Date('2026-09-01T12:00:00Z')}}),
+    blob('testservice/old-version.json',30,{versionId:'v1',properties:{contentLength:30,lastModified:new Date('2026-01-01T00:00:00Z')}}),
+    blob('testservice/unknown.json',40,{properties:{contentLength:40}})
+  ];
+  const report=await collectAll(async()=>containerFor(scope,rows),SCOPES,{asOf});
+  const bucket=report.scopes[0].ageBuckets;
+  assert.equal(bucket.last30Days.logicalBytes,10);
+  assert.equal(bucket.days31To90.logicalBytes,20);
+  assert.equal(bucket.olderThan90Days.logicalBytes,30);
+  assert.equal(bucket.unknown.logicalBytes,40);
+  assert.equal(report.liveLogicalBytes,70);
+  assert.equal(report.historicalLogicalBytes,30);
+  assert.equal(report.ageBuckets.olderThan90Days.records,1);
+  assert.ok(report.caveats.some(x=>x.includes('must NOT be deleted')));
+  assert.ok(!JSON.stringify(report).includes('current.json'));
+  assert.ok(!JSON.stringify(report).includes('old-version.json'));
+});
+test('rejects invalid reference date and classifies missing or future lastModified as unknown',async()=>{
+  assert.equal(ageBucket(undefined,'2026-10-22T12:00:00Z'),'unknown');
+  assert.equal(ageBucket('2027-01-01','2026-10-22T12:00:00Z'),'unknown');
+  assert.throws(()=>ageBucket(new Date(),'not-a-date'),/INVALID_AS_OF/);
+  await assert.rejects(collectAll(async()=>{throw Error('must not fetch')},SCOPES,{asOf:'nonsense'}),/INVALID_AS_OF/);
 });
