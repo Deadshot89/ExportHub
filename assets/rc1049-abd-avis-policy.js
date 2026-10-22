@@ -241,7 +241,7 @@ function centralAbdUploaded(e){
 function centralAbdFailed(e){
  var d=e&&e.detail||{};
  if(low(d.kind)!=='abd')return;
- var id=q(d.shipmentId),ref=refOf({ref:d.reference}),message=q(d.message||d.error)||'Azure-Speicherung konnte nicht bestätigt werden.';
+ var id=q(d.shipmentId),ref=refOf({ref:d.reference}),message=q(d.message||d.error)||uploadMsg('abd.completedUpload.unconfirmed',null,'Azure storage could not be confirmed.');
  centralPending.forEach(function(p){
   if(p.done||(id!==p.id&&ref!==p.ref))return;
   p.done=true;
