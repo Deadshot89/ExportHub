@@ -87,3 +87,27 @@ Die früher genannten 114 GiB sind in diesem PR nicht live bestätigt.
 6. Erst danach testexklusive kostenpflichtige Ressourcen stilllegen. Gemeinsame
    Produktionsressourcen bleiben bestehen. 0 EUR erst anhand der tatsächlichen
    Abrechnung bestätigen.
+
+
+## RC1626 – wiederholte TESTSERVICE-Auth-Reads ohne großen Blob-Download
+
+Im Fast-Auth-Pfad wird für normale TESTSERVICE-Aufrufe weiterhin das bestehende
+gemeinsame Auth- und Benutzer-System verwendet. Vorher lud jede abgeschlossene
+Sitzungsprüfung den **vollen Team-State** erneut aus Azure, selbst wenn dieser
+unverändert war. Das kann bei großen Dokumenten unnötigen Cloud-Read-Traffic
+verursachen.
+
+Die TESTSERVICE-only-Optimierung liest den Auth-/Session-Blob **bei jedem
+Aufruf neu**. Beim großen Team-Blob ist eine Wiederverwendung nur zulässig,
+wenn Azure selbst mittels HEAD einen **identischen ETag** bestätigt. Nach
+Änderungen, ohne ETag, ohne HEAD-Unterstützung oder bei HEAD-Fehler wird der
+gesamte Team-State frisch geladen; schlägt dieser GET fehl, schlägt auch die
+Autorisierung fehl. Wiederverwendung nur innerhalb desselben laufenden
+API-Prozesses und exakt desselben Blob-Clients.
+
+Die normalen Produktionsaufrufe behalten den bisherigen vollen Leseweg.
+Der tatsächliche finanzielle Effekt muss separat anhand der Azure-Zähler
+für Bandwidth, Read Operations und Geo-Replication geprüft werden.
+**Keine Umstellung auf LRS**, keine Aufbewahrungsänderung, keine Blob-Löschung,
+keine vollständige Trennung von TESTSERVICE und Produktion, keine Garantie auf
+0 EUR.

@@ -51,7 +51,8 @@ test('RC1378 P0: abgeschlossene ABD-Anfrage mit generischem status wird serverse
   // A completed request is found by shipment identity but cannot authorize
   // pickup without a real attached ABD (see functional RC1622 test cases).
   assert.match(block,/requests=\(Array\.isArray\(state\.abdRequests\)/);
-  assert.match(block,/\.filter\(same\)/);
+  assert.match(block,/\.filter\(sameRequest\)/,'ABD-Anfragen müssen über linkedShipmentId oder Referenz widerspruchsfrei zugeordnet werden');
+  assert.match(block,/shipments\.filter\(sameShipment\)/,'Sendungen benötigen eine widerspruchsfreie ID-/Referenzzuordnung');
   assert.match(block,/req=requests\.length\?requests\[requests\.length-1\]:null/);
 assert.match(block,/matchingShipments\.concat\(requests,\[record\]\)/);
   assert.match(block,/await rc1622StoredAbd\(candidate,documents,c\.environment,verifiedCache\)/);

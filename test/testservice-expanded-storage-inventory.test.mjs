@@ -90,6 +90,31 @@ test('classifies age from Azure lastModified without revealing names or recommen
   assert.ok(!JSON.stringify(report).includes('current.json'));
   assert.ok(!JSON.stringify(report).includes('old-version.json'));
 });
+test('current version with versionId remains live; only prior versions, snapshots and deleted blobs are history',async()=>{
+  const scope=SCOPES[0];
+  const modified=new Date('2026-10-22T10:00:00Z');
+  const blobs=[
+    blob('testservice/team-state.json',50,{versionId:'current-v3',isCurrentVersion:true,properties:{contentLength:50,lastModified:modified}}),
+    blob('testservice/team-state.json',30,{versionId:'old-v2',isCurrentVersion:false,properties:{contentLength:30,lastModified:modified}}),
+    blob('testservice/team-state.json',20,{versionId:'old-v1',properties:{contentLength:20,lastModified:modified}}),
+    blob('testservice/backup.json',15,{snapshot:'2026-10-21T10:00:00Z',properties:{contentLength:15,lastModified:modified}}),
+    blob('testservice/deleted.json',5,{deleted:true,properties:{contentLength:5,lastModified:modified}})
+  ];
+  const result=await collectAll(async s=>containerFor(s,s===scope?blobs:[]),SCOPES,{asOf:'2026-10-22T12:00:00Z'});
+  const team=result.scopes[0];
+  assert.equal(team.records,5);
+  assert.equal(team.logicalBytes,120);
+  assert.equal(team.kinds.live.logicalBytes,50);
+  assert.equal(team.kinds.version.logicalBytes,50);
+  assert.equal(team.kinds.snapshot.logicalBytes,15);
+  assert.equal(team.kinds.deleted.logicalBytes,5);
+  assert.equal(result.liveLogicalBytes,50);
+  assert.equal(result.historicalLogicalBytes,70);
+  assert.equal(result.ageBuckets.last30Days.records,5);
+  assert.equal(result.complete,true);
+  assert.ok(!JSON.stringify(result).includes('team-state.json'));
+});
+
 test('rejects invalid reference date and classifies missing or future lastModified as unknown',async()=>{
   assert.equal(ageBucket(undefined,'2026-10-22T12:00:00Z'),'unknown');
   assert.equal(ageBucket('2027-01-01','2026-10-22T12:00:00Z'),'unknown');

@@ -71,7 +71,9 @@ export async function collectScope(container,scope,options={}) {
       if(typeof item.name!=='string' || !item.name.startsWith(prefix)) throw new Error('OUT_OF_SCOPE');
       const bytes=item.properties && item.properties.contentLength;
       if(!safeInt(bytes)) throw new Error('INVALID_SIZE');
-      const kind=item.deleted?'deleted':item.snapshot?'snapshot':item.versionId?'version':'live';
+      // Azure assigns a versionId to the CURRENT version as well as old versions.
+      // Only non-current versions belong to historicalLogicalBytes.
+      const kind=item.deleted?'deleted':item.snapshot?'snapshot':(item.versionId && item.isCurrentVersion!==true)?'version':'live';
       result.kinds[kind] ||= {records:0,logicalBytes:0};
       // Aged metadata is only a candidate for storage review, NEVER a deletion authorization.
       const age=ageBucket(item.properties?.lastModified,asOf);

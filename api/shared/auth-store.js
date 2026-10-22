@@ -69,10 +69,32 @@ async function testserviceClients() {
 }
 function environmentFromRequest(req) {
   const headers = req && req.headers || {};
-  const host = lower(headers['x-forwarded-host'] || headers['x-original-host'] || headers.host || headers.Host || '');
-  if (/-testservice\./.test(host)) return 'testservice';
-  if (/\.azurestaticapps\.net(?:[:/]|$)/.test(host)) return 'production';
   const requested = lower(headers['x-exporthub-environment'] || headers['X-ExportHUB-Environment'] || '');
+  // On official hosts the deployment-selected environment overrides untrusted headers.
+  function parseHostname(value) {
+    try {
+      const first = lower(value).split(',')[0].trim();
+      return new URL(first.includes('://') ? first : 'https://' + first).hostname.toLowerCase();
+    } catch (_) { return ''; }
+  }
+  function trustedHostEnvironment(host) {
+    const azureHost = host.endsWith('.azurestaticapps.net');
+    if (azureHost && /-testservice\./.test(host)) return 'testservice';
+    if (azureHost || /^(?:www\.)?exporthub360\.(?:de|com)$/.test(host)) return 'production';
+    return '';
+  }
+  // A recognized direct Host cannot be overridden by a forged forwarded host.
+  const direct = trustedHostEnvironment(parseHostname(headers.host || headers.Host || ''));
+  const forwarded = trustedHostEnvironment(parseHostname(headers['x-forwarded-host'] || headers['x-original-host'] || ''));
+  if (direct && forwarded && direct !== forwarded)
+    throw error('ENVIRONMENT_MISMATCH', 'Die Hostangaben widersprechen sich bei der ExportHUB-Umgebung.', 409);
+  const actual = direct || forwarded;
+  if (actual) {
+    if (requested && requested !== actual)
+      throw error('ENVIRONMENT_MISMATCH', 'Die angeforderte ExportHUB-Umgebung stimmt nicht mit der Website überein.', 409);
+    return actual;
+  }
+  // Existing local/test requests without an official host remain backwards-compatible.
   return requested === 'testservice' ? 'testservice' : 'production';
 }
 async function clientsForEnvironment(environment) {
