@@ -90,3 +90,50 @@ test('RC1619: patcher rejects changed anchors instead of silently releasing an u
  const fixture='window.rc524UploadFile=function(input,key){return false;} window.rc524DeleteFile=';
  assert.throws(()=>patchers.second(fixture,'index.html'),/RC1619 Upload-Anker/);
 });
+
+test('RC1620: rollback restores ABD request completion even if it never received the new PDF ID',()=>{
+ const {s,save}=compileSnapshot();
+ const shipment={id:'SHIP-9Z7L82',ref:'9Z7L82',status:'Wartet auf ABD',abdDone:false,abdStatus:'Wartet auf ABD',abdFiles:[]};
+ const request={id:'REQ-9Z7L82',ref:'9Z7L82',status:'Angefragt',abdStatus:'Offen',done:false,abdDone:false,abdFiles:[{id:'OLD-ABD'}],updatedAt:'before'};
+ s.shipments.push(shipment);
+ s.abdRequests.push(request);
+ const undo=save(shipment,'NEW-ABD');
+ shipment.abdFiles.push({id:'NEW-ABD'});
+ shipment.abdDone=true;shipment.abdStatus='Abgeschlossen';shipment.status='Bereit zur Abholung';
+ // Actual ABD request completion can be status-only, with no matching new file.
+ request.done=true;request.abdDone=true;request.status='Abgeschlossen';request.abdStatus='Abgeschlossen';request.completedAt='2026-10-22T10:00:00Z';request.updatedAt='after';
+ undo();
+ assert.equal(shipment.status,'Wartet auf ABD');
+ assert.equal(shipment.abdDone,false);
+ assert.equal(shipment.abdFiles.length,0);
+ assert.equal(request.done,false);
+ assert.equal(request.abdDone,false);
+ assert.equal(request.status,'Angefragt');
+ assert.equal(request.abdStatus,'Offen');
+ assert.equal(request.completedAt,undefined);
+ assert.equal(request.updatedAt,'before');
+ assert.deepEqual(Array.from(request.abdFiles,x=>x.id),['OLD-ABD']);
+});
+
+test('RC1620: unrelated ABD request metadata and other shipments survive failed upload',()=>{
+ const {s,save}=compileSnapshot();
+ const shipments=['9Z7L82','AB1234','CD5678','EF9012'].map(ref=>({
+  id:'SHIP-'+ref,ref,abdDone:false,abdStatus:'Wartet auf ABD',status:'Wartet auf ABD',abdFiles:[]
+ }));
+ const requests=shipments.map(sh=>({id:'REQ-'+sh.ref,ref:sh.ref,done:false,status:'Angefragt',abdFiles:[],updatedAt:'before'}));
+ s.shipments.push(...shipments);s.abdRequests.push(...requests);
+ const undo=save(shipments[0],'NEW-ABD');
+ shipments[0].abdFiles.push({id:'NEW-ABD'});shipments[0].abdDone=true;shipments[0].status='Bereit';
+ requests[0].done=true;requests[0].status='Abgeschlossen';
+ requests[1].updatedAt='independent-save';
+ undo();
+ assert.equal(requests[0].done,false);
+ assert.equal(requests[0].status,'Angefragt');
+ assert.equal(requests[1].updatedAt,'independent-save');
+ assert.equal(shipments[0].status,'Wartet auf ABD');
+ for(let i=1;i<4;i++){
+  assert.equal(shipments[i].status,'Wartet auf ABD');
+  assert.equal(shipments[i].abdFiles.length,0);
+  assert.equal(requests[i].done,false);
+ }
+});
