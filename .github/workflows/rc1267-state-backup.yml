@@ -112,11 +112,11 @@ jobs:
           if [ "${GITHUB_EVENT_NAME:-}" = "schedule" ]; then
             inventory_payload='{"action":"inventory-testservice-team","environment":"testservice"}'
             inventory_file="$(mktemp)"
-            inventory_status="$(curl -sS -o "$inventory_file" -w '%{http_code}' --max-time 28 \\
-              -H 'Content-Type: application/json' \\
-              -H "x-exporthub-github-oidc: $oidc_token" \\
-              -H 'x-exporthub-environment: testservice' \\
-              --data "$inventory_payload" \\
+            inventory_status="$(curl -sS -o "$inventory_file" -w '%{http_code}' --max-time 28 \
+              -H 'Content-Type: application/json' \
+              -H "x-exporthub-github-oidc: $oidc_token" \
+              -H 'x-exporthub-environment: testservice' \
+              --data "$inventory_payload" \
               'https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net/api/state-maintenance' || true)"
             if [ "$inventory_status" = "200" ] && INVENTORY_FILE="$inventory_file" node -e '
               const fs=require("fs");
@@ -135,7 +135,7 @@ jobs:
               rows.push("","**Gesamt: "+v.records+" Einträge, "+v.logicalBytes+" logische Bytes**","",
                 "Es handelt sich nicht um abrechenbare Speicher-Bytes und nicht um eine vollständige sechs-Scope-Inventur.",
                 "Produktions- und geteilte Auth-Abhängigkeiten bleiben ungeklärt; nichts löschen.");
-              if(process.env.GITHUB_STEP_SUMMARY)fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,rows.join("\\n")+"\\n");
+              if(process.env.GITHUB_STEP_SUMMARY)fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,rows.join("\n")+"\n");
               console.log("RC1627: vollständige anonymisierte TESTSERVICE-Team-Inventur: "+v.records+" Einträge");
             '; then
               echo "RC1627: TESTSERVICE Team-Inventur erfolgreich (aggregierte Angaben nur in Actions Summary)."
