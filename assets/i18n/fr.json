@@ -1664,5 +1664,8 @@
   "abd.completedUpload.noMatchingShipment": "Téléversement de l’ABD non démarré : l’expédition {{reference}} n’a pas pu être identifiée avec certitude. Rouvrez la liste des expéditions.",
   "abd.completedUpload.processing": "Le document ABD est en cours de traitement. Enregistrement en cours de vérification.",
   "abd.completedUpload.unconfirmed": "Aucune confirmation d’enregistrement de l’ABD. Vérifiez le dossier de l’expédition avant de réessayer.",
-  "abd.completedUpload.success": "Document ABD enregistré pour l’expédition {{reference}}."
+  "abd.completedUpload.success": "Document ABD enregistré pour l’expédition {{reference}}.",
+  "abd.invoice.logo": "Logo Essentra (PNG/JPG, facultatif)",
+  "abd.invoice.logoLoaded": "Logo chargé.",
+  "abd.invoice.logoInvalid": "Sélectionnez un PNG ou JPG de 300 Ko maximum."
 }
