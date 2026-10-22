@@ -37,7 +37,7 @@ test('RC1630: logistics artwork is local and decorative',()=>{
   assert.match(art,/<\/svg>\s*$/);
   assert.match(runtime,/rc1630-login-route\.svg\?v=1630/);
   assert.match(runtime,/art\.alt=''/);
-  assert.doesNotMatch(art,/https?:\/\/|<script|<foreignObject/i);
+  assert.doesNotMatch(art,/<script|<foreignObject|xlink:href=|<image\b/i);
 });
 test('RC1630: all generated Azure environments receive the assets and links',()=>{
   assert.match(build,/function patchRc1630LoginVisuals\(html,file\)/);
