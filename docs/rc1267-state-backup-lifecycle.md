@@ -30,7 +30,19 @@ TESTSERVICE:
 - `testservice/state-backups/monthly/YYYY/MM/`
 - `testservice/state-backups/yearly/YYYY/`
 
-Jeder Lauf schreibt einen neuen Snapshot und überschreibt keine vorhandene Sicherung.
+Produktions-Backups sowie monatliche und jährliche Sicherungen erzeugen bei jedem Lauf einen neuen Snapshot. Bestehende Sicherungen werden nicht überschrieben.
+
+### RC1624 – Redundante TESTSERVICE-Tagessicherungen vermeiden
+
+Nur für **TESTSERVICE + daily** wird vor dem Upload geprüft, ob am **gleichen UTC-Kalendertag** bereits eine in Azure vorhandene Sicherung mit exakt demselben SHA-256-Wert existiert.
+
+- Ein vorhandener Blob wird nur dann wiederverwendet, wenn Azure die Backup-Metadaten (`purpose`, `environment`, `tier`, `sha256`) passend bestätigt und sein kompletter Inhalt erneut gelesen sowie bytegenau per SHA-256 verifiziert wurde.
+- Bei identischem, intaktem Backup erfolgt **kein zweiter Upload** und es wird kein zusätzlicher Blobstand angelegt. Der Workflow erhält weiterhin `backupVerified=true` und `backupReadBackVerified=true`; `reusedVerifiedExisting=true` kennzeichnet die Wiederverwendung.
+- Geänderter Team-State, ein neuer UTC-Tag oder fehlende Wiederverwendungskandidaten lösen weiterhin einen neuen vollständigen Upload mit Readback aus. Bei fehlender LIST-Berechtigung bleibt der alte Backup-Pfad erhalten.
+- Ein beschädigter Wiederverwendungskandidat löst `BACKUP_VERIFY_FAILED` aus, statt ihn fälschlich als sicher auszugeben.
+- **PRODUCTION**, TESTSERVICE-`monthly` und TESTSERVICE-`yearly` bleiben unverändert. Es wird nichts gelöscht und keine Aufbewahrungsfrist verkürzt.
+
+Damit können identische TESTSERVICE-Zustände nach mehreren Releases am selben Tag weniger zusätzliche Sicherungsversionen erzeugen. Der tatsächliche Kosteneffekt ist erst durch die Azure-Messung belegbar; LIST/Readback können Transaktionsgebühren verursachen. Dies ist kein Nachweis für 0 € laufende Kosten.
 
 ## Retention
 
