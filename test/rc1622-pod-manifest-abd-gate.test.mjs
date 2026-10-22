@@ -14,17 +14,19 @@ function resolver(state,record,verifiedBlobs={}){
  const pdf=Buffer.from('%PDF-1.7\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF');
  const blobs=Object.assign({'rc1059/production/a.pdf':pdf},verifiedBlobs);
  const sandbox={
-  Buffer,process:{env:{}},
+  Buffer,crypto:require('node:crypto'),process:{env:{}},
   clients:async()=>({environment:'production',team:{getBlockBlobClient:()=>({})},
    service:{getContainerClient:container=>{
     assert.equal(container,'exporthub-documents');
     return {getBlockBlobClient:name=>({
       getProperties:async()=>{
        if(!Object.hasOwn(blobs,name))throw Object.assign(Error('Blob missing'),{statusCode:404});
+       if(blobs[name] instanceof Error)throw blobs[name];
        return {contentLength:blobs[name].length};
       },
       downloadToBuffer:async()=>{
        if(!Object.hasOwn(blobs,name))throw Object.assign(Error('Blob missing'),{statusCode:404});
+       if(blobs[name] instanceof Error)throw blobs[name];
        return blobs[name];
       }
     })};
@@ -167,12 +169,15 @@ test('RC1622 P0: production ABD evidence cannot come from a testservice blob',as
  assert.equal(cfg.abdPresent,false);
 });
 
-test('RC1622 P0: Azure ABD read failure fails closed before any pickup mutation',async()=>{
+test('RC1622 P0: Azure ABD read failure is surfaced, never converted into a release',async()=>{
  const path='rc1059/production/aa/unavailable.pdf';
  const state={shipments:[{id:'s1',ref:'X64RY9',abdRequired:true,abdFiles:[{storage:'blob',blobName:path}]}]};
- const cfgPromise=resolver(state,{shipmentId:'s1',reference:'X64RY9'},{
-  [path]:Buffer.from('%PDF-1.7\nhello\n%%EOF')
- });
- const cfg=await cfgPromise;
- assert.equal(cfg.abdPresent,true);
+ await assert.rejects(
+  resolver(state,{shipmentId:'s1',reference:'X64RY9'},{[path]:Object.assign(Error('Azure unavailable'),{statusCode:503})}),
+  /Azure unavailable/
+ );
+ const {response,mutated}=await runConfirm({},true);
+ assert.equal(response.status,503);
+ assert.equal(response.body.code,'ABD_CHECK_UNAVAILABLE');
+ assert.equal(mutated,0);
 });
