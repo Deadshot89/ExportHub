@@ -105,4 +105,44 @@ jobs:
             printf '%s\n' "$testservice" | verify_backup testservice "$tier"
           done
 
+          # RC1627: On the existing scheduled backup only, collect TESTSERVICE
+          # metadata using the already verified GitHub OIDC token. This requires
+          # no new Azure secrets, storage account keys or additional scheduler.
+          # Failure must never turn a successful verified backup into a failure.
+          if [ "${GITHUB_EVENT_NAME:-}" = "schedule" ]; then
+            inventory_payload='{"action":"inventory-testservice-team","environment":"testservice"}'
+            inventory_file="$(mktemp)"
+            inventory_status="$(curl -sS -o "$inventory_file" -w '%{http_code}' --max-time 28 \\
+              -H 'Content-Type: application/json' \\
+              -H "x-exporthub-github-oidc: $oidc_token" \\
+              -H 'x-exporthub-environment: testservice' \\
+              --data "$inventory_payload" \\
+              'https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net/api/state-maintenance' || true)"
+            if [ "$inventory_status" = "200" ] && INVENTORY_FILE="$inventory_file" node -e '
+              const fs=require("fs");
+              const v=JSON.parse(fs.readFileSync(process.env.INVENTORY_FILE,"utf8"));
+              const n=x=>Number.isSafeInteger(x)&&x>=0;
+              const keys=["live","version","snapshot","deleted"];
+              if(v.ok===false||v.complete!==true||v.environment!=="testservice"||v.scope!=="team-prefix"||
+                  v.billingVerified!==false||!n(v.records)||!n(v.logicalBytes)||
+                  !n(v.liveLogicalBytes)||!n(v.historicalLogicalBytes)||
+                  !keys.every(k=>v.kinds&&n(v.kinds[k]?.records)&&n(v.kinds[k]?.logicalBytes))||
+                  v.liveLogicalBytes+v.historicalLogicalBytes!==v.logicalBytes||
+                  keys.reduce((a,k)=>a+v.kinds[k].records,0)!==v.records)process.exit(3);
+              const rows=["## TESTSERVICE Team-Blob-Metadaten (RC1627)","","Nur Testservice-Prefix; keine Dateinamen, Inhalte oder Rechnungsbeträge.","",
+                "| Typ | Datensätze | Logische Bytes |","|---|---:|---:|"];
+              for(const k of keys)rows.push("| "+k+" | "+v.kinds[k].records+" | "+v.kinds[k].logicalBytes+" |");
+              rows.push("","**Gesamt: "+v.records+" Einträge, "+v.logicalBytes+" logische Bytes**","",
+                "Es handelt sich nicht um abrechenbare Speicher-Bytes und nicht um eine vollständige sechs-Scope-Inventur.",
+                "Produktions- und geteilte Auth-Abhängigkeiten bleiben ungeklärt; nichts löschen.");
+              if(process.env.GITHUB_STEP_SUMMARY)fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,rows.join("\\n")+"\\n");
+              console.log("RC1627: vollständige anonymisierte TESTSERVICE-Team-Inventur: "+v.records+" Einträge");
+            '; then
+              echo "RC1627: TESTSERVICE Team-Inventur erfolgreich (aggregierte Angaben nur in Actions Summary)."
+            else
+              echo "RC1627: Team-Inventur nicht verifiziert; bestehende Backups bleiben erfolgreich. Keine vollständige Bestandsfreigabe." >&2
+            fi
+            rm -f "$inventory_file"
+          fi
+
           echo "RC1267: verifizierte State-Backups abgeschlossen: ${tiers[*]}"
