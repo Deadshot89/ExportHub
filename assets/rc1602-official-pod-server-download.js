@@ -59,17 +59,32 @@ function dispatchStoredDocument(sh,mode){
  if(!button)return false;
  button.click();return true
 }
-function originalFile(sh){
- var files=(Array.isArray(sh&&sh.podFiles)?sh.podFiles:[]).filter(function(f){
-  return f&&q(f.kind).toLowerCase()==='automatic-pod'&&
-    q(f.renderLayout).toUpperCase()==='RC1595'&&
-    /^[A-Za-z0-9_-]{3,180}$/.test(q(f.id||f.remoteId))
- });
- // Never select an older server-created/synthetic version just because it is
- // named "automatic". That may have a visibly different or empty layout.
- files.sort(function(a,b){return q(b.uploadedAt).localeCompare(q(a.uploadedAt))});
- return files[0]||null
+// A server-generated, immutable signed POD is valid even if no browser
+// RC1595 PDF was attached. Its bytes are retrieved by exact file ID and
+// checked by the server against the stored hash; never use file=automatic.
+function verifiedPodVariant(f){
+ if(!f||q(f.kind).toLowerCase()!=='automatic-pod')return '';
+ var id=q(f.id||f.remoteId);
+ if(!/^[A-Za-z0-9_-]{3,180}$/.test(id))return '';
+ if(q(f.renderLayout).toUpperCase()==='RC1595')return 'original-layout';
+ var hash=q(f.hash).toLowerCase();
+ if(q(f.layoutVersion)==='RC1600-SIGNED-LOADING-LIST-V4'&&
+    q(f.source)==='pickup-confirm-v3'&&
+    /^[a-f0-9]{64}$/.test(hash)&&id==='automatic-pod-'+hash.slice(0,16))
+  return 'server-signed';
+ return '';
 }
+function pickVerifiedPod(files){
+ var matches=(Array.isArray(files)?files:[]).filter(function(f){return !!verifiedPodVariant(f)});
+ matches.sort(function(a,b){
+  var ap=verifiedPodVariant(a)==='original-layout'?1:0,
+      bp=verifiedPodVariant(b)==='original-layout'?1:0;
+  return bp-ap||q(b.uploadedAt).localeCompare(q(a.uploadedAt))
+ });
+ return matches[0]||null
+}
+function originalFile(sh){return pickVerifiedPod(sh&&sh.podFiles)}
+
 // RC1616: overview buttons have no rendered document rows. In that case,
 // read the original signed loading-list bytes directly from the existing
 // document store (inline PDF or authenticated Azure document blob).
@@ -126,10 +141,7 @@ async function canonicalPdf(sh){
   if(manifestResponse.ok){
    var manifest=await manifestResponse.json();
    var options=Array.isArray(manifest&&manifest.files)?manifest.files:[];
-   options=options.filter(function(f){return f&&q(f.kind).toLowerCase()==='automatic-pod'&&
-     q(f.renderLayout).toUpperCase()==='RC1595'&&/^[A-Za-z0-9_-]{3,180}$/.test(q(f.id||f.remoteId))});
-   options.sort(function(a,b){return q(b.uploadedAt).localeCompare(q(a.uploadedAt))});
-   exact=options[0]||null
+   exact=pickVerifiedPod(options)
   }
  }
  if(!exact)throw Error('Keine geprüfte, gespeicherte POD-Version mit dem Ladelistenlayout vorhanden. Bitte die Original-Ladeliste unter Dateien & Dokumente öffnen.');
