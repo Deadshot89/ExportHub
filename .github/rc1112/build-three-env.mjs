@@ -73,7 +73,7 @@ const RC1570_TASKS_SCRIPT_TAG='<script id="exporthub-rc1570-tasks-script" defer 
 const RC1577_POD_AUDIT_I18N_TAG='<script id="exporthub-rc1577-pod-audit-i18n" defer src="/assets/i18n/rc1577-pod-quality-audit.js?v=1577"></script>';
 const RC1577_POD_AUDIT_SCRIPT_TAG='<script id="exporthub-rc1577-pod-audit-script" defer src="/assets/rc1577-pod-quality-audit.js?v=1596"></script>';
 const RC1596_POD_FOLDER_SCRIPT_TAG='<script id="exporthub-rc1596-pod-folder-reconnect" defer src="/assets/rc1596-pod-folder-reconnect.js?v=1596"></script>';
-const RC1602_OFFICIAL_POD_SCRIPT_TAG='<script id="exporthub-rc1602-official-pod" src="/assets/rc1602-official-pod-server-download.js?v=1602"></script>';
+const RC1602_OFFICIAL_POD_SCRIPT_TAG='<script id="exporthub-rc1602-official-pod" src="/assets/rc1602-official-pod-server-download.js?v=1616"></script>';
 const RC1558_WORKSPACE_MARKER='window.__EXPORTHUB_RC885_CLEAN_WORKSPACE__ = true;';
 const RC1558_WORKSPACE_EXPORT="window.ExportHUBWorkspace885=Object.freeze({shipments:shipments,tasks:tasks,shipmentOpenList:shipmentOpenList,taskOpenList:taskOpenList,dueTask:dueTask,shipmentNeedsDocuments:shipmentNeedsDocuments,shipmentNeedsPickup:shipmentNeedsPickup,shipmentNeedsPod:shipmentNeedsPod,routeTo:routeTo});";
 const RC1328_MULTI_TRUCK_REFRESH_TAG='<script id="exporthub-rc1328-multi-truck-refresh" defer src="/assets/rc1328-multi-truck-ui-refresh.js?v=1333"><\/script>';
@@ -192,7 +192,8 @@ function patchRc1558DashboardOverview(html,file){
 
 function patchRc1602OfficialPod(html,file){
   html=injectImmediateRuntimeAfterHead(html,RC1602_OFFICIAL_POD_SCRIPT_TAG,'exporthub-rc1602-official-pod');
-  if(!html.includes('rc1602-official-pod-server-download.js?v=1602'))
+  html=html.replace(/rc1602-official-pod-server-download\.js\?v=1602/g,'rc1602-official-pod-server-download.js?v=1616');
+  if(!html.includes('rc1602-official-pod-server-download.js?v=1616'))
     throw new Error(file+': RC1602 offizieller signierter POD-Download fehlt');
   return html;
 }
@@ -906,6 +907,10 @@ function historyHtml(sh){
  if(!d)return false;
  if(d.source==='referenceFolder'&&d.itemId)return true;
  if(d.url)return true;
+ // RC1616: previously uploaded inline PDFs are real files, not metadata-only rows.
+ // Never synthesize documents from DNC numbers without stored file bytes.
+ var inline=q(d.file&&(d.file.dataUrl||d.file.data||d.file.content));
+ if(/^data:(?:application\\/pdf|image\\/(?:png|jpeg|webp));base64,[A-Za-z0-9+\\/=\\s]+$/i.test(inline))return true;
  var helper=window.ExportHUBDocumentBlob1059,f=d.file;
  try{return !!(helper&&f&&typeof helper.isBlobDocument==='function'&&helper.isBlobDocument(f))}catch(_){return false}
 }
@@ -946,7 +951,7 @@ function shipmentAssociatedDocs(sh,prior){
    if(!note||typeof note!=='object')return;
    var linkedRef=q(note.shipmentRef||note.shipmentReference).toUpperCase(),linkedId=q(note.shipmentId),notificationId=q(note.id),wantedId=q(sh&&sh.packNotificationId);
    if(ref&&linkedRef&&linkedRef!==ref)return;
-   if(!((sid&&linkedId===sid)||(wantedId&&notificationId===wantedId)))return;
+   if(!((ref&&linkedRef===ref)||(sid&&linkedId===sid)||(wantedId&&notificationId===wantedId)))return;
    addFields(note,[['documents','Lieferscheine'],['files','Anhänge']])
   })
  });
@@ -974,7 +979,7 @@ function mergeReferenceDocs(live,fallback){
   replaceBlock(
     'function docsPanelHtml(docs,source,error){',
     '\nfunction setDocsPanel',
-    `function docsPanelHtml(docs,source,error){docs=arr(docs);var sourceText=source==='referenceFolder'?'Vorhandene Dateien direkt aus dem Ref-Ordner der Sendung':source==='combined'?'Ref-Ordner und gespeicherte Anhänge der Sendung':source==='fallback'?'Gespeicherte Anhänge der Sendung':'';var note=sourceText?'<div class="rc786-doc-source">'+esc(sourceText)+(error?' · Ref-Ordner derzeit nicht erreichbar':'')+'</div>':'';var body=docs.length?'<div class="rc776-docs">'+docs.map(docHtml).join('')+'</div>':'<div class="rc776-empty">'+(error?'Der Ref-Ordner ist nicht erreichbar. In den gespeicherten Sendungsdaten wurde keine abrufbare Datei gefunden.':source==='referenceFolder'?'Im Ref-Ordner und in den zugehörigen Sendungsdaten wurden keine abrufbaren Dateien gefunden.':'Keine abrufbare Datei vorhanden. Bitte Dateispeicherung und Sendungszuordnung prüfen.')+'</div>';return note+body}
+    `function docsPanelHtml(docs,source,error){docs=arr(docs);var sourceText=source==='referenceFolder'?'Vorhandene Dateien direkt aus dem Ref-Ordner der Sendung':source==='combined'?'Ref-Ordner und gespeicherte Anhänge der Sendung':source==='fallback'?'Gespeicherte Anhänge der Sendung':'';var note=sourceText?'<div class="rc786-doc-source">'+esc(sourceText)+(error?' · Ref-Ordner derzeit nicht erreichbar':'')+'</div>':'';var sh=currentShipmentForDocs(),ref=refOf(sh),signed='pod_'+low(ref)+'_ladeliste_mit_unterschrift.pdf',other='pod_'+low(ref)+'_ladeliste_unterschrieben.pdf',useGroup=arr(sh&&sh.subShipments).length<2&&docs.some(function(d){return low(q(d.name))===signed&&fallbackDocUsable(d)}),shown=[],versions=[];docs.forEach(function(d,i){var html=docHtml(d,i);if(useGroup&&low(q(d.name))===other)versions.push(html);else shown.push(html)});var body=docs.length?'<div class="rc776-docs">'+shown.join('')+(versions.length?'<details class="rc1616-pod-versions"><summary>Weitere gespeicherte POD-Versionen ('+versions.length+')</summary>'+versions.join('')+'</details>':'')+'</div>':'<div class="rc776-empty">'+(error?'Der Ref-Ordner ist nicht erreichbar. In den gespeicherten Sendungsdaten wurde keine abrufbare Datei gefunden.':source==='referenceFolder'?'Im Ref-Ordner und in den zugehörigen Sendungsdaten wurden keine abrufbaren Dateien gefunden.':'Keine abrufbare Datei vorhanden. Bitte Dateispeicherung und Sendungszuordnung prüfen.')+'</div>';return note+body}
 `,
     'Dokumentpanel'
   );
@@ -990,7 +995,7 @@ function mergeReferenceDocs(live,fallback){
   replaceBlock(
     'async function fetchDocBlob(d){',
     '\nasync function downloadDocObject',
-    `async function fetchDocBlob(d){if(!d)throw new Error('Datei fehlt.');if(d._blob instanceof Blob)return d._blob;var helper=window.ExportHUBDocumentBlob1059;if(d.file&&helper&&typeof helper.isBlobDocument==='function'&&helper.isBlobDocument(d.file)&&typeof helper.fetchBlob==='function')return await helper.fetchBlob(d.file);if(d.source==='referenceFolder'&&d.itemId){var ref=q(d.reference)||refOf(currentShipmentForDocs()),res=await fetch('/api/reference-files?reference='+encodeURIComponent(ref)+'&itemId='+encodeURIComponent(d.itemId)+'&mode=inline&_='+Date.now(),{method:'GET',headers:referenceHeaders(),credentials:'same-origin',cache:'no-store'});if(!res.ok){var message='Datei konnte nicht geöffnet werden.';try{var data=await res.json();message=q(data.message)||message}catch(_){}throw new Error(message)}return await res.blob()}var url=q(d.url),urlLower=low(url),localApi=url.indexOf('/api/')===0;if(url&&(urlLower.indexOf('data:')===0||urlLower.indexOf('blob:')===0||localApi)){var r=await fetch(url,{headers:localApi?referenceHeaders():{},credentials:'same-origin',cache:'no-store'});if(!r.ok)throw new Error('Datei konnte nicht geladen werden.');return await r.blob()}return null}
+    `async function fetchDocBlob(d){if(!d)throw new Error('Datei fehlt.');if(d._blob instanceof Blob)return d._blob;var helper=window.ExportHUBDocumentBlob1059;if(d.file&&helper&&typeof helper.isBlobDocument==='function'&&helper.isBlobDocument(d.file)&&typeof helper.fetchBlob==='function')return await helper.fetchBlob(d.file);if(d.source==='referenceFolder'&&d.itemId){var ref=q(d.reference)||refOf(currentShipmentForDocs()),res=await fetch('/api/reference-files?reference='+encodeURIComponent(ref)+'&itemId='+encodeURIComponent(d.itemId)+'&mode=inline&_='+Date.now(),{method:'GET',headers:referenceHeaders(),credentials:'same-origin',cache:'no-store'});if(!res.ok){var message='Datei konnte nicht geöffnet werden.';try{var data=await res.json();message=q(data.message)||message}catch(_){}throw new Error(message)}return await res.blob()}var inline=q(d.file&&(d.file.dataUrl||d.file.data||d.file.content));if(/^data:(?:application\\/pdf|image\\/(?:png|jpeg|webp));base64,[A-Za-z0-9+\\/=\\s]+$/i.test(inline)){var decoded=await fetch(inline).then(function(r){if(!r.ok)throw new Error('Hochgeladene Datei nicht lesbar.');return r.blob()});if(decoded.size<5||decoded.size>35000000)throw new Error('Hochgeladene Datei hat eine unzulässige Größe.');if(/^data:application\\/pdf/i.test(inline)&&await decoded.slice(0,5).text()!=='%PDF-')throw new Error('Hochgeladene PDF hat keinen gültigen PDF-Header.');return decoded}var url=q(d.url),urlLower=low(url),localApi=url.indexOf('/api/')===0;if(url&&(urlLower.indexOf('data:')===0||urlLower.indexOf('blob:')===0||localApi)){var r=await fetch(url,{headers:localApi?referenceHeaders():{},credentials:'same-origin',cache:'no-store'});if(!r.ok)throw new Error('Datei konnte nicht geladen werden.');return await r.blob()}return null}
 `,
     'Blob-Dokumentöffnung'
   );
@@ -1191,7 +1196,8 @@ function patchHtml(file){
   html=html.replace(/assets\/rc1063-abd-blob-viewer-compat\.js\?v=(?:1063|1151|1248)/g,'assets/rc1063-abd-blob-viewer-compat.js?v=1248');
   html=injectDeferredRuntimeInHead(html,'<!-- id="exporthub-rc1148-history-compat-marker" assets/rc1071-shipment-history.js?v=1095 -->','exporthub-rc1148-history-compat-marker');
   html=injectDeferredRuntimeInHead(html,RC1267_I18N_TAG,'exporthub-rc1267-i18n');
-  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1460-shipment-view-fix" defer src="/assets/rc1460-shipment-view-files-avis-preview.js?v=1460"></script>','exporthub-rc1460-shipment-view-fix');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1460-shipment-view-fix" defer src="/assets/rc1460-shipment-view-files-avis-preview.js?v=1616"></script>','exporthub-rc1460-shipment-view-fix');
+  html=html.replace(/rc1460-shipment-view-files-avis-preview\.js\?v=1460/g,'rc1460-shipment-view-files-avis-preview.js?v=1616');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-av-upload-i18n" defer src="/assets/i18n/av-upload.js?v=1"></script>','exporthub-av-upload-i18n');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-av-upload" defer src="/assets/av-upload.js?v=1"></script>','exporthub-av-upload');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1126-customer-delete" defer src="/assets/rc1126-customer-delete.js?v=1387"></script>','exporthub-rc1126-customer-delete');

@@ -126,7 +126,7 @@ test('RC1460: zentrale Dateivorschau unterstützt PDF und Bilder',()=>{
 });
 
 test('RC1460: Build lädt die neue Runtime',()=>{
-  assert.match(buildSource,/rc1460-shipment-view-files-avis-preview\.js\?v=1460/);
+  assert.match(buildSource,/rc1460-shipment-view-files-avis-preview\.js\?v=1616/);
 });
 
 
@@ -158,7 +158,7 @@ test('Sendungsansicht: gespeicherte Kopien, verknüpfte ABD-Rechnungen und Packt
     normalizeFallback:d=>Object.assign({source:'shipmentState'},d),
     collectDocs:sh=>keys.flatMap(key=>(Array.isArray(sh&&sh[key])?sh[key]:[]).map(file=>({file,name:file.name,group:key,url:file.url||''})))
   };
-  vm.runInNewContext(match[1],context,{filename:'generated-shipment-doc-helpers.js'});
+  vm.runInNewContext(new Function('return `'+match[1]+'`;')(),context,{filename:'generated-shipment-doc-helpers.js'});
   const docs=context.shipmentAssociatedDocs(shipment,[]);
   const names=docs.map(d=>d.name).sort();
   assert.deepEqual(names,['Packtisch_Lieferschein.pdf','Rechnung_9Z7L82.pdf','SIDE250071804.pdf']);
@@ -181,7 +181,7 @@ test('Sendungsansicht: nur gespeicherte Dateimetadaten zählen nicht als öffnun
     fileUrl:()=>'',normalizeFallback:d=>d,
     collectDocs:()=>[{name:'Nur-Name.pdf',file:{name:'Nur-Name.pdf'},url:''}]
   };
-  vm.runInNewContext(match[1],context);
+  vm.runInNewContext(new Function('return `'+match[1]+'`;')(),context);
   assert.equal(context.shipmentAssociatedDocs({id:'S',ref:'ABC123'},[]).length,0);
 });
 
@@ -210,4 +210,70 @@ test('Blob-Dokumente werden vom Release-Build auch ohne direkte URL öffnungsfä
   assert.equal(sandbox.openDoc(0),true);
   assert.deepEqual(opened,{name:'Rechnung.pdf',print:false});
   assert.equal(alerts,0);
+});
+
+test('RC1616: uploaded inline Lieferscheine with real PDF data remain visible and fetchable',()=>{
+ const match=buildSource.match(/const docHelpers=`([\s\S]*?)`;/);
+ assert.ok(match);
+ const inline='data:application/pdf;base64,'+Buffer.from('%PDF-1.7\\n'+'Lieferschein'.repeat(10)).toString('base64');
+ const state={shipments:[{id:'S1',ref:'8LSUHW',deliveryFiles:[{id:'DNC1',name:'DNC3019222063.pdf',dataUrl:inline}]}],savedShipments:[]};
+ const context={
+   window:{ExportHUBDocumentBlob1059:{isBlobDocument:()=>false}},
+   arr:v=>Array.isArray(v)?v:[],q:v=>String(v==null?'':v).trim(),
+   low:v=>String(v==null?'':v).trim().toLowerCase(),
+   refOf:sh=>String(sh&&sh.ref||'').toUpperCase(),
+   idOf:sh=>String(sh&&sh.id||''),
+   roots:()=>[state],state:()=>state,
+   fileName:(f,backup)=>f&&f.name||backup,fileUrl:f=>f&&f.url||'',
+   normalizeFallback:d=>d,collectDocs:sh=>(sh.deliveryFiles||[]).map(file=>({file,name:file.name,group:'Lieferscheine',url:''}))
+ };
+ vm.runInNewContext(new Function('return `'+match[1]+'`;')(),context);
+ const files=context.shipmentAssociatedDocs(state.shipments[0],[]);
+ assert.ok(files.some(f=>f.name==='DNC3019222063.pdf'), 'A genuinely uploaded inline PDF must not disappear from the shipment view');
+ assert.match(buildSource,/Hochgeladene PDF hat keinen gültigen PDF-Header/);
+ assert.match(buildSource,/decoded\.slice\(0,5\)\.text\(\)/);
+});
+
+test('RC1616: POD document history is grouped without changing original file indices or deleting stored files',()=>{
+ assert.match(buildSource,/Weitere gespeicherte POD-Versionen/);
+ assert.match(buildSource,/versions\.push\(html\)/);
+ assert.match(buildSource,/shown\.push\(html\)/);
+ assert.match(buildSource,/docHtml\(d,i\)/,'Open/download actions must keep original index into the document array');
+ assert.match(buildSource,/arr\(sh&&sh\.subShipments\)\.length<2/,'Multi-truck POD files must remain separately visible');
+});
+
+test('RC1616: production build busts the browser cache for both corrected POD runtimes',()=>{assert.match(buildSource,/rc1602-official-pod-server-download\.js\?v=1616/);assert.match(buildSource,/rc1460-shipment-view-files-avis-preview\.js\?v=1616/);});
+
+test('RC1616: generated browser document helpers parse without invalid regular expression flags',()=>{
+ const match=buildSource.match(/const docHelpers=`([\s\S]*?)`;/);
+ assert.ok(match,'shipment document helpers must remain available to the release build');
+ const emitted=new Function('return `'+match[1]+'`;')();
+ assert.doesNotThrow(()=>new Function('window',emitted),'compiled document helpers must not contain broken regex delimiters');
+ const open=buildSource.match(/`(async function fetchDocBlob\(d\)\{[\s\S]*?)`,\s*'Blob-Dokumentöffnung'/);
+ assert.ok(open,'document download replacement must remain present');
+ const emittedOpen=new Function('return `'+open[1]+'`;')();
+ assert.doesNotThrow(()=>new Function('window',emittedOpen),'compiled document fetcher must remain syntactically valid');
+});
+
+test('RC1616: pack-station DNC files linked only by exact shipment reference appear in documents, foreign refs stay excluded',()=>{
+ const match=buildSource.match(/const docHelpers=`([\s\S]*?)`;/);
+ assert.ok(match);
+ const state={shipments:[{id:'SHIP-8LSUHW',ref:'8LSUHW'}],savedShipments:[],
+  packNotifications:[
+   {id:'PACK-REF',shipmentRef:'8LSUHW',documents:[{name:'DNC3019223442.pdf',storage:'blob',blobName:'rc1059/production/xx/real'}]},
+   {id:'PACK-FOREIGN',shipmentRef:'OTHER1',documents:[{name:'FOREIGN_DNC.pdf',storage:'blob',blobName:'rc1059/production/xx/foreign'}]}
+  ]};
+ const context={
+  window:{ExportHUBDocumentBlob1059:{isBlobDocument:file=>file&&file.storage==='blob'&&!!file.blobName}},
+  arr:v=>Array.isArray(v)?v:[],q:v=>String(v==null?'':v).trim(),
+  low:v=>String(v==null?'':v).trim().toLowerCase(),
+  refOf:sh=>String(sh&&(sh.ref||sh.reference||sh.shipmentRef)||'').toUpperCase(),
+  idOf:sh=>String(sh&&(sh.id||sh.shipmentId)||''),
+  roots:()=>[state],state:()=>state,
+  fileName:(file,fallback)=>file&&file.name||fallback,fileUrl:file=>file&&file.url||'',
+  normalizeFallback:d=>d,collectDocs:()=>[]
+ };
+ vm.runInNewContext(new Function('return `'+match[1]+'`;')(),context);
+ const found=context.shipmentAssociatedDocs(state.shipments[0],[]);
+ assert.deepEqual(found.map(x=>x.name),['DNC3019223442.pdf']);
 });

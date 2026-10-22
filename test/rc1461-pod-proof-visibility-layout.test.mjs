@@ -36,3 +36,12 @@ test('RC1461: Runtime bleibt syntaktisch gültig',()=>{
   const check=spawnSync(process.execPath,['--check','assets/rc1460-shipment-view-files-avis-preview.js'],{encoding:'utf8'});
   assert.equal(check.status,0,check.stderr||check.stdout);
 });
+
+test('RC1616: single-truck POD tile no longer offers both legacy link and server-generated duplicate as equal originals',()=>{
+ assert.match(runtime,/var signed=out\.find/);
+ assert.match(runtime,/if\(signed\)return\[signed\]/);
+ assert.match(runtime,/arr\(sh&&sh\.subShipments\)\.length>=2\)return out/,'Real multi-truck POD files must remain visible');
+ assert.match(runtime,/token-only|Token-only pickup URLs serve signatures/);
+ assert.match(runtime,/Azure blob keys are internal storage paths/,'Raw storage identifiers must never be clickable as file URLs');
+ assert.match(runtime,/data-rc628-official-pod-open/,'POD tile uses the authenticated shared opener');
+});

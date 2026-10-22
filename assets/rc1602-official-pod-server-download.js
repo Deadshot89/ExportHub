@@ -40,10 +40,84 @@ function token(sh){return [sh&&sh.pickupToken,sh&&sh.pickupQrToken,sh&&sh.qrPick
 function action(button){
  return button.matches('[data-rc628-official-pod-open="1"]')?'open':'download'
 }
+// RC1616: The already-uploaded, signed loading-list document is the source
+// of truth in Shipment View. Reuse its existing authenticated open/download
+// handler instead of creating a different server-rendered layout.
+function storedDocumentButton(sh,mode){
+ var rows=d.querySelectorAll?d.querySelectorAll('.rc786-doc-row'):[],wanted=('pod_'+refOf(sh)+'_ladeliste_mit_unterschrift.pdf').toLowerCase();
+ for(var i=0;i<rows.length;i++){
+  var row=rows[i],title=q(row&&row.textContent).toLowerCase();
+  if(title.indexOf(wanted)<0)continue;
+  var action=mode==='open'?'[data-rc786-open-file]':'[data-rc786-download-file]';
+  var button=row.querySelector&&row.querySelector(action);
+  if(button&&!button.disabled)return button
+ }
+ return null
+}
+function dispatchStoredDocument(sh,mode){
+ var button=storedDocumentButton(sh,mode);
+ if(!button)return false;
+ button.click();return true
+}
+function originalFile(sh){
+ var files=(Array.isArray(sh&&sh.podFiles)?sh.podFiles:[]).filter(function(f){
+  return f&&q(f.kind).toLowerCase()==='automatic-pod'&&
+    q(f.renderLayout).toUpperCase()==='RC1595'&&
+    /^[A-Za-z0-9_-]{3,180}$/.test(q(f.id||f.remoteId))
+ });
+ // Never select an older server-created/synthetic version just because it is
+ // named "automatic". That may have a visibly different or empty layout.
+ files.sort(function(a,b){return q(b.uploadedAt).localeCompare(q(a.uploadedAt))});
+ return files[0]||null
+}
+// RC1616: overview buttons have no rendered document rows. In that case,
+// read the original signed loading-list bytes directly from the existing
+// document store (inline PDF or authenticated Azure document blob).
+// Token-only pickup URLs and unrelated external file links are not POD PDFs.
+async function storedSignedBlob(sh){
+ var ref=refOf(sh),id=idOf(sh),copies=[sh],state={};
+ try{state=typeof w.__EXPORTHUB_GET_STATE__==='function'?w.__EXPORTHUB_GET_STATE__()||{}:{}}catch(_){}
+ ['shipments','savedShipments','salesSharedShipments','sharedShipments'].forEach(function(key){
+  var arr=state&&state[key];
+  if(!Array.isArray(arr))return;
+  arr.forEach(function(other){if(other&&((ref&&refOf(other)===ref)||(id&&idOf(other)===id))&&copies.indexOf(other)<0)copies.push(other)})
+ });
+ var files=[];
+ copies.forEach(function(copy){(Array.isArray(copy&&copy.podFiles)?copy.podFiles:[]).forEach(function(f){if(f&&/_ladeliste_mit_unterschrift\.pdf$/i.test(q(f.name||f.fileName)))files.push(f)})});
+ for(var i=0;i<files.length;i++){
+  var file=files[i],inline=q(file.dataUrl||file.data||file.content),blob=null;
+  try{
+   if(/^data:application\/pdf;base64,[A-Za-z0-9+/=\s]+$/i.test(inline)){
+    var response=await w.fetch(inline);
+    if(response&&response.ok)blob=await response.blob()
+   }else{
+    var helper=w.ExportHUBDocumentBlob1059;
+    if(helper&&typeof helper.isBlobDocument==='function'&&helper.isBlobDocument(file)&&typeof helper.fetchBlob==='function')
+     blob=await helper.fetchBlob(file)
+   }
+   if(!blob||blob.size<1000||blob.size>35000000)continue;
+   var sig=new Uint8Array(await blob.slice(0,5).arrayBuffer());
+   if(sig.length!==5||sig[0]!==37||sig[1]!==80||sig[2]!==68||sig[3]!==70||sig[4]!==45)continue;
+   // Verify bytes against recorded SHA-256 when available; do not accept a
+   // mismatched original or silently substitute a newly rendered PDF.
+   var expected=q(file.sha256||file.hash).toLowerCase();
+   if(/^[a-f0-9]{64}$/.test(expected)){
+    if(!(w.crypto&&w.crypto.subtle&&typeof w.crypto.subtle.digest==='function'))continue;
+    var actual=await w.crypto.subtle.digest('SHA-256',await blob.arrayBuffer());
+    var bytes=Array.from(new Uint8Array(actual)),digest=bytes.map(function(x){return x.toString(16).padStart(2,'0')}).join('');
+    if(digest!==expected)continue
+   }
+   return blob
+  }catch(_){/* A missing or damaged version is never auto-regenerated. */}
+ }
+ return null
+}
 async function canonicalPdf(sh){
  var tok=token(sh);
  if(!tok)throw Error(t('missingToken'));
- var res=await w.fetch('/api/pickup-pod?file=automatic&token='+encodeURIComponent(tok),{
+ var exact=originalFile(sh);
+ if(!exact)throw Error('Keine geprüfte, gespeicherte POD-Version mit dem Ladelistenlayout vorhanden. Bitte die Original-Ladeliste unter Dateien & Dokumente öffnen.');
+ var res=await w.fetch('/api/pickup-pod?file='+encodeURIComponent(q(exact.id||exact.remoteId))+'&token='+encodeURIComponent(tok),{
   method:'GET',credentials:'same-origin',cache:'no-store',headers:{Accept:'application/pdf'}
  });
  if(!res.ok){
@@ -76,6 +150,9 @@ async function handle(button){
  if(mode==='open')try{popup=w.open('','_blank');if(popup){popup.document.title=t('loadingTitle');popup.document.body.textContent=t('loadingText')}}catch(_){}
  try{
   sh=shipment(button);
+  if(dispatchStoredDocument(sh,mode)){if(popup&&!popup.closed)popup.close();return}
+  var saved=await storedSignedBlob(sh);
+  if(saved){openPdf(saved,sh,mode,popup);return}
   var qr=w.ExportHUBPickupPOD;
   if(qr&&typeof qr.syncOne==='function')try{await qr.syncOne(sh,true)}catch(_){}
   var pdf=await canonicalPdf(sh);
@@ -93,5 +170,5 @@ d.addEventListener('click',function(e){
  e.preventDefault();e.stopImmediatePropagation();e.stopPropagation();
  handle(button);
 },true);
-w.ExportHUBRC1602OfficialPOD=Object.freeze({version:'RC1602',selector:SELECTOR,canonicalPdf:canonicalPdf});
+w.ExportHUBRC1602OfficialPOD=Object.freeze({version:'RC1616',selector:SELECTOR,canonicalPdf:canonicalPdf,dispatchStoredDocument:dispatchStoredDocument,storedSignedBlob:storedSignedBlob,originalFile:originalFile});
 })(window,document);
