@@ -3,6 +3,23 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 // Metadata only. No blob download, upload, delete or resource change.
+// Confirmed on 2026-10-22: TESTSERVICE uses this Azure account and container.
+export const DEFAULT_INVENTORY_ACCOUNT = 'exporthubtestde89';
+export const DEFAULT_INVENTORY_CONTAINER = 'exporthub-teamdata';
+
+export function inventoryContainerName(env = process.env) {
+  return String(env.EXPORTHUB_TEST_INVENTORY_CONTAINER || '').trim() || DEFAULT_INVENTORY_CONTAINER;
+}
+
+export function assertInventoryAccount(service) {
+  let target;
+  try { target = new URL(service.url); }
+  catch (_) { throw new Error('INVENTORY_ACCOUNT_MISMATCH'); }
+  if (target.protocol !== 'https:' || target.hostname.toLowerCase() !== DEFAULT_INVENTORY_ACCOUNT + '.blob.core.windows.net') {
+    throw new Error('INVENTORY_ACCOUNT_MISMATCH');
+  }
+}
+
 export async function collectInventory(container) {
   const startedAt=new Date().toISOString();
   const report={environment:'testservice',prefix:'testservice/',complete:false,
@@ -43,7 +60,8 @@ async function main() {
   const require=createRequire(new URL('../api/package.json',import.meta.url));
   const {BlobServiceClient}=require('@azure/storage-blob');
   const service=BlobServiceClient.fromConnectionString(connection);
-  const container=service.getContainerClient(process.env.EXPORTHUB_TEST_INVENTORY_CONTAINER||'exporthub-data');
+  assertInventoryAccount(service); // Fail closed before any Azure listing on a wrong account.
+  const container=service.getContainerClient(inventoryContainerName());
   const report=await collectInventory(container);
   process.stdout.write(JSON.stringify(report,null,2)+'\n');
 }
