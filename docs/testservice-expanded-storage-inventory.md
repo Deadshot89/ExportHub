@@ -106,3 +106,36 @@ nicht automatisch entfernt werden. Erst Datenzuordnung, gesicherte
 Archivierung, Nachweis der gesetzlichen/fachlichen Aufbewahrung,
 vollständiger Readback und isolierter Restore erlauben eine gesondert
 freizugebende Maßnahme. Unbekannte Metadaten bleiben sichtbar.
+
+
+## RC1627 – automatische, nur lesende Team-Teilinventur ohne zusätzliche Secrets
+
+Der bereits vorhandene signierte RC1267-Backup-Workflow nutzt bei seinem
+**regulären täglichen Zeitplan** denselben GitHub-OIDC-Nachweis wie bisher.
+Zusätzlich kann er am TESTSERVICE-API-Endpunkt
+`POST /api/state-maintenance` die Aktion
+`inventory-testservice-team` aufrufen. Dieser Aufruf ist ausschließlich
+für einen gültig signierten und auf `main` beschränkten Wartungsworkflow
+zugelassen; für `production` liefert die Aktion einen Fehler.
+
+Aus dem bestehenden Teamcontainer werden dabei nur Metadaten unter
+`testservice/` per Azure LIST gelesen. Es gibt **keinen Download** des
+Team-State-Dokuments und keine Datenänderung. Enthalten sind die
+Anzahl und die logischen Bytes von aktuellen Dateien, historischen
+Versionen, Snapshots und gelöschten Objekten.
+
+Die Ausgabe enthält **keine Dateinamen, Containerpfade, Referenzen,
+Kundendaten, Signaturen, Zugangsschlüssel oder Auth-Tokens**. Ergebnisse
+erscheinen nur aggregiert in der GitHub-Actions-Zusammenfassung.
+Unbekannte Größen, Überschreitungen der Abfragegrenze oder fehlerhafte
+Antworten führen zu **keinem vollständigen Inventurbericht**. Ein
+fehlgeschlagener Inventuraufruf lässt erfolgreich verifizierte
+Sicherungen unberührt.
+
+Diese automatisch erfasste **Team-Teilinventur** ersetzt **nicht** die
+sechs getrennten Speicherbereiche aus RC1618/RC1620 und liefert
+**keine Azure-Abrechnung**. Das Konto `exporthubtestde89` kann
+weiterhin gemeinsam mit Produktion verwendet werden.
+Alte Versionen sind keine Löschfreigabe. Erst gesichertes Archiv,
+Restore-Nachweis, vollständige Ressourcenzuordnung und gesonderte
+Freigabe erlauben einen Speicherwechsel oder Löschschritt.
