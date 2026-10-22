@@ -193,6 +193,8 @@
   "api.pickup.accessLocked": "Trop de saisies de PIN incorrectes. Le QR code est temporairement verrouillé.",
   "api.pickup.referenceMismatch": "La référence ne correspond pas à l’expédition.",
   "api.pickup.signatureRequired": "La signature numérique est obligatoire.",
+  "api.pickup.abdCheckUnavailable": "La vérification du document ABD est indisponible. L’enlèvement n’a pas été confirmé.",
+  "api.pickup.abdDocumentRequired": "Le document ABD obligatoire est manquant ou encore en attente. Enregistrez l’ABD avant de confirmer l’enlèvement.",
   "api.pickup.customsSignatureRequired": "Veuillez confirmer que les documents douaniers ont été remis au chauffeur.",
   "api.pickup.expired": "Le QR code a expiré.",
   "api.pickup.alreadyConfirmed": "Cette expédition a déjà été entièrement enlevée.",
