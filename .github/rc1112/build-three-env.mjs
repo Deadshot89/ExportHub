@@ -6,6 +6,7 @@ import {integrateEditor} from '../rc1502/build-three-env.mjs';
 import {integrateTraining} from '../rc1503/build-three-env.mjs';
 import {integrateCoverageAdmin} from '../rc1506/build-three-env.mjs';
 import {patchRc1576StateBodyDeadline} from '../../scripts/rc1576-state-read-body-timeout.mjs';
+import {patchRc1619LargeStateWorkerParse} from '../../scripts/rc1619-large-state-worker-parse.mjs';
 import {hardenCustomerSaveHtml} from '../../scripts/rc1600-customer-save-readback.mjs';
 import {patchRc1602PodBrowserHtml} from '../../scripts/rc1602-pod-browser-pagination.mjs';
 
@@ -1201,6 +1202,7 @@ function patchHtml(file){
   let html=fs.readFileSync(target,'utf8');
   html=patchRc1289AuthTransportFallback(html,file);
   html=patchRc1576StateBodyDeadline(html,file);
+  html=patchRc1619LargeStateWorkerParse(html,file);
   html=patchRc1304ThemeRedesign(html,file);
   html=patchRc1400MobileNavigationCache(html,file);
   html=patchRc1371Dashboard(html,file);
