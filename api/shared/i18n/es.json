@@ -193,6 +193,8 @@
   "api.pickup.accessLocked": "Demasiados intentos de PIN incorrectos. El código QR está bloqueado temporalmente.",
   "api.pickup.referenceMismatch": "La referencia no coincide con el envío.",
   "api.pickup.signatureRequired": "La firma digital es obligatoria.",
+  "api.pickup.abdCheckUnavailable": "La comprobación del documento ABD no está disponible. No se ha confirmado la recogida.",
+  "api.pickup.abdDocumentRequired": "Falta el documento ABD obligatorio o sigue pendiente. Guarde el ABD antes de confirmar la recogida.",
   "api.pickup.customsSignatureRequired": "Confirme que los documentos aduaneros fueron entregados al conductor.",
   "api.pickup.expired": "El código QR ha caducado.",
   "api.pickup.alreadyConfirmed": "Este envío ya se ha recogido por completo.",

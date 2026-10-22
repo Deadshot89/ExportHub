@@ -59,17 +59,32 @@ function dispatchStoredDocument(sh,mode){
  if(!button)return false;
  button.click();return true
 }
-function originalFile(sh){
- var files=(Array.isArray(sh&&sh.podFiles)?sh.podFiles:[]).filter(function(f){
-  return f&&q(f.kind).toLowerCase()==='automatic-pod'&&
-    q(f.renderLayout).toUpperCase()==='RC1595'&&
-    /^[A-Za-z0-9_-]{3,180}$/.test(q(f.id||f.remoteId))
- });
- // Never select an older server-created/synthetic version just because it is
- // named "automatic". That may have a visibly different or empty layout.
- files.sort(function(a,b){return q(b.uploadedAt).localeCompare(q(a.uploadedAt))});
- return files[0]||null
+// A server-generated, immutable signed POD is valid even if no browser
+// RC1595 PDF was attached. Its bytes are retrieved by exact file ID and
+// checked by the server against the stored hash; never use file=automatic.
+function verifiedPodVariant(f){
+ if(!f||q(f.kind).toLowerCase()!=='automatic-pod')return '';
+ var id=q(f.id||f.remoteId);
+ if(!/^[A-Za-z0-9_-]{3,180}$/.test(id))return '';
+ if(q(f.renderLayout).toUpperCase()==='RC1595')return 'original-layout';
+ var hash=q(f.hash).toLowerCase();
+ if(q(f.layoutVersion)==='RC1600-SIGNED-LOADING-LIST-V4'&&
+    q(f.source)==='pickup-confirm-v3'&&
+    /^[a-f0-9]{64}$/.test(hash)&&id==='automatic-pod-'+hash.slice(0,16))
+  return 'server-signed';
+ return '';
 }
+function pickVerifiedPod(files){
+ var matches=(Array.isArray(files)?files:[]).filter(function(f){return !!verifiedPodVariant(f)});
+ matches.sort(function(a,b){
+  var ap=verifiedPodVariant(a)==='original-layout'?1:0,
+      bp=verifiedPodVariant(b)==='original-layout'?1:0;
+  return bp-ap||q(b.uploadedAt).localeCompare(q(a.uploadedAt))
+ });
+ return matches[0]||null
+}
+function originalFile(sh){return pickVerifiedPod(sh&&sh.podFiles)}
+
 // RC1616: overview buttons have no rendered document rows. In that case,
 // read the original signed loading-list bytes directly from the existing
 // document store (inline PDF or authenticated Azure document blob).
@@ -112,18 +127,28 @@ async function storedSignedBlob(sh){
  }
  return null
 }
-async function canonicalPdf(sh){
- var tok=token(sh);
- if(!tok)throw Error(t('missingToken'));
- var exact=originalFile(sh);
- if(!exact)throw Error('Keine geprüfte, gespeicherte POD-Version mit dem Ladelistenlayout vorhanden. Bitte die Original-Ladeliste unter Dateien & Dokumente öffnen.');
- var res=await w.fetch('/api/pickup-pod?file='+encodeURIComponent(q(exact.id||exact.remoteId))+'&token='+encodeURIComponent(tok),{
+async function storedPodManifest(tok,excludedId){
+ var res=await w.fetch('/api/pickup-pod?manifest=1&token='+encodeURIComponent(tok),{
+  method:'GET',credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}
+ });
+ if(!res.ok)return null;
+ var manifest=await res.json();
+ var files=Array.isArray(manifest&&manifest.files)?manifest.files:[];
+ // A missing local file ID must never be retried under a different label.
+ if(excludedId)files=files.filter(function(f){return q(f&& (f.id||f.remoteId))!==excludedId});
+ return pickVerifiedPod(files)
+}
+async function exactStoredPdf(tok,exact){
+ var id=q(exact&& (exact.id||exact.remoteId));
+ var res=await w.fetch('/api/pickup-pod?file='+encodeURIComponent(id)+'&token='+encodeURIComponent(tok),{
   method:'GET',credentials:'same-origin',cache:'no-store',headers:{Accept:'application/pdf'}
  });
  if(!res.ok){
   var why='HTTP '+res.status;
   try{var body=await res.json();why=q(body.message||body.code)||why}catch(_){}
-  throw Error(t('unavailable')+why);
+  var failure=Error(t('unavailable')+why);
+  failure.status=res.status;
+  throw failure
  }
  var pdf=await res.blob();
  if(!pdf||pdf.size<1000)throw Error(t('empty'));
@@ -131,6 +156,22 @@ async function canonicalPdf(sh){
  if(sig.length!==5||sig[0]!==37||sig[1]!==80||sig[2]!==68||sig[3]!==70||sig[4]!==45)
   throw Error(t('invalid'));
  return pdf
+}
+async function canonicalPdf(sh){
+ var tok=token(sh);
+ if(!tok)throw Error(t('missingToken'));
+ var exact=originalFile(sh),localId=q(exact&&(exact.id||exact.remoteId));
+ if(!exact)exact=await storedPodManifest(tok,'');
+ if(!exact)throw Error('Keine geprüfte, gespeicherte POD-Version mit dem Ladelistenlayout vorhanden. Bitte die Original-Ladeliste unter Dateien & Dokumente öffnen.');
+ try{return await exactStoredPdf(tok,exact)}
+ catch(error){
+  // Browser state may reference an old/missing immutable file. A fresh server
+  // manifest can identify a DIFFERENT existing original, without regenerating.
+  if(!localId||![404,410].includes(Number(error&&error.status)))throw error;
+  var alternate=await storedPodManifest(tok,localId);
+  if(!alternate)throw error;
+  return exactStoredPdf(tok,alternate)
+ }
 }
 function fileName(sh){return 'POD_'+(refOf(sh)||t('fallback'))+'_Ladeliste_unterschrieben.pdf'}
 function openPdf(blob,sh,mode,popup){

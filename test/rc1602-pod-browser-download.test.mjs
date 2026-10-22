@@ -17,7 +17,7 @@ test('RC1602: canonical POD click handler registers as a capture listener before
   assert.match(builder,/assets\/rc1602-official-pod-server-download\.js/);
 });
 
-function setup({withToken=true,status=200,withDocumentRow=false,withoutStoredFile=false,withSignedInline=false}={}){
+function setup({withToken=true,status=200,withDocumentRow=false,withoutStoredFile=false,withSignedInline=false,serverManifestFiles=[],staleLocalId=false}={}){
   let click=null,called=[],alerts=[],urls=[],downloaded=[],popup=null,delegated=[];
   const sh={id:'id8',ref:'8LSUHW',pickupToken:withToken?'authorized-test-token':'',podFiles:withoutStoredFile?[]:[{id:'automatic-pod-test001',kind:'automatic-pod',renderLayout:'RC1595',name:'POD_8LSUHW_Ladeliste_unterschrieben.pdf'}]};
   if(withSignedInline)sh.podFiles.unshift({id:'signed-pod-original',kind:'signed-loadlist',name:'POD_8LSUHW_Ladeliste_mit_Unterschrift.pdf',dataUrl:'data:application/pdf;base64,'+Buffer.from('%PDF-1.7\\n'+'s'.repeat(1250)).toString('base64')});
@@ -34,9 +34,14 @@ function setup({withToken=true,status=200,withDocumentRow=false,withoutStoredFil
   const window={
     __EXPORTHUB_GET_STATE__:()=>({shipments:[sh]}),
     ExportHUBIndex240:{shipments:()=>[sh]},ExportHUBPickupPOD:{shipments:()=>[],syncOne:async()=>true},
-    fetch:async(url,opts)=>{called.push({url,opts});return{ok:status===200,status,
-      blob:async()=>new Blob([pdf],{type:'application/pdf'}),
-      json:async()=>({code:'TEST_FAILED',message:'Test failure'})}},
+    fetch:async(url,opts)=>{
+      called.push({url,opts});
+      const isStale=staleLocalId&&String(url).includes('file=automatic-pod-test001&');
+      const code=isStale?404:status;
+      return{ok:code===200,status:code,
+       blob:async()=>new Blob([pdf],{type:'application/pdf'}),
+       json:async()=>String(url).includes('manifest=1')?{ok:true,files:serverManifestFiles}:{code:'TEST_FAILED',message:'Test failure'}}
+    },
     setTimeout:()=>{},alert:x=>alerts.push(x)
   };
   const URL={createObjectURL:()=>'/blob/server-pod',revokeObjectURL:()=>{}};
@@ -76,13 +81,90 @@ test('RC1616: POD öffnen reuses the already working signed loading-list documen
  assert.equal(x.alerts.length,0);
 });
 
-test('RC1616: token-only stale POD without an immutable stored PDF must not trigger regeneration',async()=>{
+test('RC1623 P0: stale local POD pointer recovers different exact stored original on 404',async()=>{
+ const x=setup({staleLocalId:true,serverManifestFiles:[
+  {id:'automatic-pod-fresh002',kind:'automatic-pod',renderLayout:'RC1595',uploadedAt:'2026-10-22T13:00:00Z'}
+ ]});
+ x.click({target:{closest:()=>x.button},preventDefault(){},stopImmediatePropagation(){},stopPropagation(){}});
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(x.called.length,3);
+ assert.match(x.called[0].url,/file=automatic-pod-test001/);
+ assert.match(x.called[1].url,/manifest=1/);
+ assert.match(x.called[2].url,/file=automatic-pod-fresh002/);
+ assert.equal(x.called.some(c=>String(c.url).includes('file=automatic&')),false);
+ assert.equal(x.alerts.length,0);
+ assert.ok(x.downloaded.includes('POD_8LSUHW_Ladeliste_unterschrieben.pdf'));
+});
+
+test('RC1623 P0: stale local POD cannot retry identical missing file or regenerate',async()=>{
+ const x=setup({staleLocalId:true,serverManifestFiles:[
+  {id:'automatic-pod-test001',kind:'automatic-pod',renderLayout:'RC1595'}
+ ]});
+ x.click({target:{closest:()=>x.button},preventDefault(){},stopImmediatePropagation(){},stopPropagation(){}});
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(x.called.length,2);
+ assert.equal(x.alerts.length,1);
+ assert.equal(x.called.some(c=>String(c.url).includes('file=automatic&')),false);
+});
+
+test('RC1622: stale browser POD checks server manifest but never regenerates an absent original',async()=>{
  const x=setup({withoutStoredFile:true});
  x.click({target:{closest:()=>x.button},preventDefault(){},stopImmediatePropagation(){},stopPropagation(){}});
  await new Promise(resolve=>setImmediate(resolve));
- assert.equal(x.called.length,0);
+ assert.equal(x.called.length,1);
+ assert.match(x.called[0].url,/\/api\/pickup-pod\?manifest=1&token=/);
+ assert.equal(x.called.some(c=>String(c.url).includes('file=automatic')),false);
  assert.equal(x.alerts.length,1);
  assert.match(x.alerts[0],/gespeicherte POD-Version/);
+});
+
+test('RC1622: signed exact RC1595 POD on server is recovered despite missing local metadata',async()=>{
+ const x=setup({withoutStoredFile:true,serverManifestFiles:[
+  {id:'automatic-pod-test001',kind:'automatic-pod',renderLayout:'RC1595',uploadedAt:'2026-10-22T12:00:00Z'}
+ ]});
+ x.click({target:{closest:()=>x.button},preventDefault(){},stopImmediatePropagation(){},stopPropagation(){}});
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(x.called.length,2);
+ assert.match(x.called[0].url,/manifest=1/);
+ assert.equal(x.called[1].url,'/api/pickup-pod?file=automatic-pod-test001&token=authorized-test-token');
+ assert.equal(x.called.some(c=>String(c.url).includes('file=automatic&')),false);
+ assert.equal(x.alerts.length,0);
+ assert.ok(x.downloaded.includes('POD_8LSUHW_Ladeliste_unterschrieben.pdf'));
+});
+
+test('RC1622 P0: immutable signed RC1600 server PDF remains downloadable when RC1595 does not exist',async()=>{
+ const hash='a'.repeat(64),id='automatic-pod-'+hash.slice(0,16);
+ const x=setup({withoutStoredFile:true,serverManifestFiles:[
+  {id,kind:'automatic-pod',layoutVersion:'RC1600-SIGNED-LOADING-LIST-V4',source:'pickup-confirm-v3',hash,uploadedAt:'2026-10-22T12:00:00Z'}
+ ]});
+ x.click({target:{closest:()=>x.button},preventDefault(){},stopImmediatePropagation(){},stopPropagation(){}});
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(x.called.length,2);
+ assert.match(x.called[0].url,/manifest=1/);
+ assert.equal(x.called[1].url,'/api/pickup-pod?file='+id+'&token=authorized-test-token');
+ assert.equal(x.called.some(c=>String(c.url).includes('file=automatic&')),false);
+ assert.equal(x.alerts.length,0);
+ assert.ok(x.downloaded.includes('POD_8LSUHW_Ladeliste_unterschrieben.pdf'));
+});
+
+test('RC1622 P0: unverified server PDF metadata cannot substitute the signed original',async()=>{
+ const x=setup({withoutStoredFile:true,serverManifestFiles:[
+  {id:'automatic-pod-aaaaaaaaaaaaaaaa',kind:'automatic-pod',layoutVersion:'RC1600-SIGNED-LOADING-LIST-V4',source:'pickup-confirm-v3',hash:'wrong'}
+ ]});
+ x.click({target:{closest:()=>x.button},preventDefault(){},stopImmediatePropagation(){},stopPropagation(){}});
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(x.called.length,1);
+ assert.equal(x.alerts.length,1);
+});
+
+test('RC1622: server manifest must not select a different or unverified render layout',async()=>{
+ const x=setup({withoutStoredFile:true,serverManifestFiles:[
+  {id:'untrusted-pod-01',kind:'automatic-pod',renderLayout:'RC1594'}
+ ]});
+ x.click({target:{closest:()=>x.button},preventDefault(){},stopImmediatePropagation(){},stopPropagation(){}});
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(x.called.length,1);
+ assert.equal(x.alerts.length,1);
 });
 
 test('RC1616: overview POD opens the existing signed PDF bytes without the document panel or server regeneration',async()=>{

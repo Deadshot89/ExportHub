@@ -193,6 +193,8 @@
   "api.pickup.accessLocked": "Too many incorrect PIN entries. The QR code is temporarily locked.",
   "api.pickup.referenceMismatch": "The reference does not match the shipment.",
   "api.pickup.signatureRequired": "The digital signature is required.",
+  "api.pickup.abdCheckUnavailable": "The ABD check is currently unavailable. Pickup has not been confirmed.",
+  "api.pickup.abdDocumentRequired": "The required export accompanying document (ABD) is missing or pending. Save the ABD before confirming pickup.",
   "api.pickup.customsSignatureRequired": "Please confirm that the customs documents were handed over to the driver.",
   "api.pickup.expired": "The QR code has expired.",
   "api.pickup.alreadyConfirmed": "This shipment has already been fully collected.",

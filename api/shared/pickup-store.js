@@ -124,15 +124,95 @@ function abdPresent(source){
  const status=sanitizeText(first(source,['abdStatus','customsStatus']),120).toLowerCase();
  return /vorhanden|fertig|erledigt|completed|done|available|erstellt|created|abgeschlossen/.test(status)&&!/wartet|offen|pending|angefordert|requested/.test(status)
 }
+// RC1622: A status label or an ABD reference is not proof of an uploaded document.
+// Only currently attached and durably referenced PDFs satisfy the pickup release gate.
+// RC1622: A file name, status string or unattested Blob path is not an ABD.
+// Check actual PDF bytes in this environment before permitting a customs-required pickup.
+function rc1622PdfBytes(bytes){
+ if(!Buffer.isBuffer(bytes)||bytes.length<24)return false;
+ if(bytes.subarray(0,5).toString('latin1')!=='%PDF-')return false;
+ return bytes.subarray(Math.max(0,bytes.length-8192)).toString('latin1').includes('%%EOF');
+}
+async function rc1622StoredAbd(source,documents,environment,verifiedCache){
+ if(!source||typeof source!=='object')return false;
+ const files=[].concat(
+  Array.isArray(source.abdFiles)?source.abdFiles:[],
+  Array.isArray(source.abdDocuments)?source.abdDocuments:[]
+ );
+ for(const file of files){
+  if(!file||typeof file!=='object')continue;
+  const status=String(file.status||'').toLowerCase();
+  if(/deleted|gelöscht|geloscht|replaced|ersetzt|storniert/.test(status))continue;
+  const name=String(file.blobName||file.storageBlobName||file.storagePath||'').trim();
+  if(name){
+   const prefix='rc1059/'+environment+'/';
+   // Never let an untrusted row point to another environment, container or path.
+   if(!name.startsWith(prefix)||!/^[A-Za-z0-9/._-]+$/.test(name)||
+      name.includes('..')||name.includes('//'))continue;
+   if(!verifiedCache.has(name)){
+    const blob=documents.getBlockBlobClient(name);
+    try{
+     const props=await blob.getProperties(),size=Number(props&&props.contentLength);
+     // ABD documents are PDF exports, not arbitrary unlimited-size blobs.
+     if(!Number.isSafeInteger(size)||size<24||size>32*1024*1024){
+      verifiedCache.set(name,false);continue
+     }
+     const bytes=Buffer.from(await blob.downloadToBuffer());
+     const expectedHash=String(file.sha256||'').toLowerCase();
+     // If a checksum is declared, malformed metadata must fail closed too.
+     const hashOk=!expectedHash||(/^[0-9a-f]{64}$/.test(expectedHash)&&
+      crypto.createHash('sha256').update(bytes).digest('hex')===expectedHash);
+     verifiedCache.set(name,bytes.length===size&&hashOk&&rc1622PdfBytes(bytes));
+    }catch(error){
+     if(Number(error&&error.statusCode)===404){
+      verifiedCache.set(name,false);continue
+     }
+     // Storage timeouts and missing access rights must fail closed (503 at API).
+     throw error
+    }
+   }
+   if(verifiedCache.get(name)===true)return true;
+   continue;
+  }
+  // Historical inline PDFs can be stored in team-state. Verify the actual bytes.
+  const raw=String(file.dataUrl||file.data||'').trim();
+  const match=raw.match(/^data:application\/pdf;base64,([A-Za-z0-9+/=\s]+)$/i);
+  if(!match)continue;
+  const encoded=match[1].replace(/\s+/g,'');
+  if(encoded.length>44*1024*1024||encoded.length<24||
+     !/^[A-Za-z0-9+/]*={0,2}$/.test(encoded))continue;
+  const bytes=Buffer.from(encoded,'base64');
+  if(rc1622PdfBytes(bytes)&&bytes.toString('base64').replace(/=+$/,'')===encoded.replace(/=+$/,''))return true;
+ }
+ return false;
+}
 async function resolveShipmentAbdConfig(record,environment='production'){
- const c=await clients(environment),blob=c.team.getBlockBlobClient(teamBlobName(c.environment)),loaded=await readJson(blob,null),doc=loaded.value||{},state=doc.state&&typeof doc.state==='object'?doc.state:doc;
- const shipments=Array.isArray(state.shipments)?state.shipments:[],requests=Array.isArray(state.abdRequests)?state.abdRequests:[],sid=String(record&&record.shipmentId||'').trim(),ref=String(record&&record.reference||record&&record.ref||'').trim().toUpperCase();
- const sh=shipments.find(x=>(sid&&String(x&& (x.id||x.shipmentId)||'').trim()===sid)||(ref&&String(x&& (x.reference||x.ref)||'').trim().toUpperCase()===ref))||null;
- const req=requests.slice().reverse().find(function(x){const rid=String(x&& (x.linkedShipmentId||x.shipmentId)||'').trim(),rr=String(x&& (x.reference||x.ref||x.shipmentRef)||'').trim().toUpperCase();return(sid&&rid===sid)||(ref&&rr===ref)})||null;
- const reqStatus=sanitizeText(first(req,['abdStatus','status','state']),120).toLowerCase();
- const reqPresent=abdPresent(req)||(!!req&&/vorhanden|fertig|erledigt|completed|done|available|erstellt|created|abgeschlossen/.test(reqStatus)&&!/wartet|offen|pending|angefordert|requested/.test(reqStatus));
- const present=abdPresent(sh)||reqPresent||abdPresent(record);
- return{abdPresent:present,abdStatus:sanitizeText(first(req||sh||record,['abdStatus','status']),120)}
+ const c=await clients(environment),blob=c.team.getBlockBlobClient(teamBlobName(c.environment)),
+  loaded=await readJson(blob,null),doc=loaded.value||{},state=doc.state&&typeof doc.state==='object'?doc.state:doc;
+ const sid=String(record&&record.shipmentId||'').trim(),
+  ref=String(record&&(record.reference||record.ref)||'').trim().toUpperCase(),
+  same=function(sh){return sh&&((sid&&String(sh.linkedShipmentId||sh.shipmentId||sh.id||'').trim()===sid)||
+   (ref&&String(sh.reference||sh.ref||sh.shipmentRef||'').trim().toUpperCase()===ref))};
+ const shipments=[].concat(Array.isArray(state.shipments)?state.shipments:[],
+  Array.isArray(state.savedShipments)?state.savedShipments:[]);
+ const matchingShipments=shipments.filter(same),
+  requests=(Array.isArray(state.abdRequests)?state.abdRequests:[]).filter(same),
+  req=requests.length?requests[requests.length-1]:null,
+  sh=matchingShipments[0]||null;
+ const required=record&&record.abdRequired===true||
+  matchingShipments.some(x=>x.abdRequired===true||
+   /wartet auf abd/i.test(String(x.status||x.shipmentStatus||x.abdStatus||'')))||
+  requests.length>0;
+ const documents=c.service.getContainerClient(process.env.EXPORTHUB_DOCUMENT_CONTAINER||'exporthub-documents');
+ const verifiedCache=new Map();
+ let present=false;
+ for(const candidate of matchingShipments.concat(requests,[record])){
+  if(await rc1622StoredAbd(candidate,documents,c.environment,verifiedCache)){
+   present=true;break
+  }
+ }
+ return {abdRequired:!!required,abdPresent:present,
+  abdStatus:sanitizeText(first(req||sh||record,['abdStatus','status']),120)};
 }
 function mergeContainerPhotos(a,b){
  const out=[],seen=new Map();

@@ -43,8 +43,16 @@ module.exports=async function(context,req){
    return
   }
   const signature=store.first(b,['driverSignature','signatureDataUrl','pickupSignature','signature','qrPickupSignature']);if(!signature)throw store.err('SIGNATURE_REQUIRED',apiI18n.t(req,'api.pickup.signatureRequired'),400);
-  let abdCfg={abdPresent:typeof store.abdPresent==='function'?store.abdPresent(current):current.abdPresent===true};if(typeof store.resolveShipmentAbdConfig==='function'){try{abdCfg=await store.resolveShipmentAbdConfig(current,resolved.environment)}catch(error){context.log&&context.log.warn&&context.log.warn('pickup-confirm-v2 RC1455 ABD state fallback',error&&error.code,error&&error.message)}}
+  // An open mandatory ABD request must stop the pickup before signature/state mutation.
+  // Never downgrade a failed authoritative team-state lookup to a permissive fallback.
+  let abdCfg={abdPresent:typeof store.abdPresent==='function'?store.abdPresent(current):current.abdPresent===true,abdRequired:current.abdRequired===true};
+  if(typeof store.resolveShipmentAbdConfig==='function'){
+   try{abdCfg=await store.resolveShipmentAbdConfig(current,resolved.environment)}
+   catch(error){context.log&&context.log.error&&context.log.error('pickup-confirm-v2 ABD verification unavailable',error&&error.code,error&&error.message);throw store.err('ABD_CHECK_UNAVAILABLE',apiI18n.t(req,'api.pickup.abdCheckUnavailable'),503)}
+  }
   const abdPresent=abdCfg&&abdCfg.abdPresent===true;
+  if(abdCfg&&abdCfg.abdRequired===true&&!abdPresent)
+   throw store.err('ABD_DOCUMENT_REQUIRED',apiI18n.t(req,'api.pickup.abdDocumentRequired'),409);
   const customsDocumentsReceived=abdPresent&&(b.customsDocumentsReceived===true||b.customsDocumentsConfirmed===true||b.abdDocumentsHandedOver===true);
   if(abdPresent&&!customsDocumentsReceived)throw store.err('CUSTOMS_DOCUMENTS_CONFIRMATION_REQUIRED',apiI18n.t(req,'api.pickup.customsSignatureRequired'),400);
   let uploadKey='';
