@@ -44,6 +44,15 @@ class MemoryBlob{
 class MemoryContainer{
   constructor({tamperRead=false}={}){this.rows=new Map();this.tamperRead=tamperRead}
   getBlockBlobClient(name){return new MemoryBlob(this,name)}
+  async *listBlobsFlat(options={}){
+    this.listCalls=(this.listCalls||0)+1;
+    if(this.listFails)throw Object.assign(new Error('not authorized'),{statusCode:403});
+    for(const [name,row] of this.rows){
+      if(options.prefix&&name.startsWith(options.prefix)){
+        yield{name,metadata:options.includeMetadata?{...row.metadata}:{},deleted:false};
+      }
+    }
+  }
 }
 
 test('RC1267: Backupplan erzeugt täglich sowie Monats- und Jahressnapshot zum Periodenbeginn',()=>{
@@ -90,6 +99,79 @@ test('RC1267: beschädigter Backup-Readback schlägt fail-closed fehl',async()=>
     e=>e&&e.code==='BACKUP_VERIFY_FAILED'
   );
 });
+
+
+test('RC1624: identisches TESTSERVICE Daily am selben UTC-Tag verwendet verifizierte vorhandene Kopie',async()=>{
+  const container=new MemoryContainer(),current={revision:7,state:{shipments:[{ref:'TEST01'}]}};
+  const initial=await createVerifiedSnapshot(container,{environment:'testservice',tier:'daily',current,at:'2026-10-22T01:17:00.000Z'});
+  const repeat=await createVerifiedSnapshot(container,{environment:'testservice',tier:'daily',current,at:'2026-10-22T14:45:00.000Z'});
+  assert.equal(initial.reusedVerifiedExisting,undefined);
+  assert.equal(repeat.reusedVerifiedExisting,true);
+  assert.equal(repeat.skippedUpload,true);
+  assert.equal(repeat.backupBlob,initial.backupBlob);
+  assert.equal(repeat.backupVerified,true);
+  assert.equal(repeat.backupReadBackVerified,true);
+  assert.equal(repeat.sha256,initial.sha256);
+  assert.equal(container.rows.size,1,'kein zweiter Upload/keine neue Blob-Version');
+  assert.ok(container.listCalls>=2,'Metadaten werden immer direkt in Azure geprüft');
+});
+
+test('RC1624: geänderter TESTSERVICE Daily-State erzeugt zusätzliche vollständige Sicherung',async()=>{
+  const container=new MemoryContainer();
+  const before=await createVerifiedSnapshot(container,{environment:'testservice',tier:'daily',current:{revision:7},at:'2026-10-22T01:17:00.000Z'});
+  const after=await createVerifiedSnapshot(container,{environment:'testservice',tier:'daily',current:{revision:8},at:'2026-10-22T12:00:00.000Z'});
+  assert.equal(container.rows.size,2);
+  assert.notEqual(after.sha256,before.sha256);
+  assert.equal(after.reusedVerifiedExisting,undefined);
+});
+
+test('RC1624: Wiederverwendung niemals über UTC-Tagesgrenze, Monats- oder Produktivbackups',async()=>{
+  const rows=[
+    {environment:'testservice',tier:'daily',dates:['2026-10-21T23:59:00.000Z','2026-10-22T00:01:00.000Z']},
+    {environment:'testservice',tier:'monthly',dates:['2026-10-01T01:00:00.000Z','2026-10-01T15:00:00.000Z']},
+    {environment:'production',tier:'daily',dates:['2026-10-22T01:00:00.000Z','2026-10-22T15:00:00.000Z']}
+  ];
+  for(const run of rows){
+    const container=new MemoryContainer();
+    for(const at of run.dates){
+      const result=await createVerifiedSnapshot(container,{environment:run.environment,tier:run.tier,current:{revision:7},at});
+      assert.equal(result.reusedVerifiedExisting,undefined);
+    }
+    assert.equal(container.rows.size,2,run.environment+' '+run.tier+' darf nicht wiederverwenden');
+  }
+});
+
+test('RC1624: vorhandene Sicherung ohne Mindestaufbewahrung wird nicht als wiederverwendbar akzeptiert',async()=>{
+  const container=new MemoryContainer();
+  const first=await createVerifiedSnapshot(container,{environment:'testservice',tier:'daily',current:{revision:7},at:'2026-10-22T01:00:00.000Z'});
+  const stored=container.rows.get(first.backupBlob);
+  stored.metadata.automaticdeletion='true';
+  const second=await createVerifiedSnapshot(container,{environment:'testservice',tier:'daily',current:{revision:7},at:'2026-10-22T04:00:00.000Z'});
+  assert.equal(second.reusedVerifiedExisting,undefined);
+  assert.equal(container.rows.size,2);
+});
+
+test('RC1624: vorhandener beschädigter Blob führt fail-closed zu BACKUP_VERIFY_FAILED statt stiller Wiederverwendung',async()=>{
+  const container=new MemoryContainer();
+  await createVerifiedSnapshot(container,{environment:'testservice',tier:'daily',current:{revision:7},at:'2026-10-22T01:00:00.000Z'});
+  container.tamperRead=true;
+  await assert.rejects(
+    ()=>createVerifiedSnapshot(container,{environment:'testservice',tier:'daily',current:{revision:7},at:'2026-10-22T04:00:00.000Z'}),
+    e=>e&&e.code==='BACKUP_VERIFY_FAILED'
+  );
+  assert.equal(container.rows.size,1);
+});
+
+test('RC1624: fehlende List-Berechtigung erhält alten sicheren Schreib- und Readback-Weg',async()=>{
+  const container=new MemoryContainer();
+  await createVerifiedSnapshot(container,{environment:'testservice',tier:'daily',current:{revision:7},at:'2026-10-22T01:00:00.000Z'});
+  container.listFails=true;
+  const result=await createVerifiedSnapshot(container,{environment:'testservice',tier:'daily',current:{revision:7},at:'2026-10-22T04:00:00.000Z'});
+  assert.equal(result.backupReadBackVerified,true);
+  assert.equal(result.reusedVerifiedExisting,undefined);
+  assert.equal(container.rows.size,2);
+});
+
 
 test('RC1267: Wartungs-API erlaubt Backups nur für den eng gebundenen Backup-Workflow',()=>{
   const source=fs.readFileSync(API,'utf8');
