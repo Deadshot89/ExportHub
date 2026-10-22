@@ -95,6 +95,11 @@ Getrennt werden `liveLogicalBytes` und `historicalLogicalBytes`
 Die Summen bleiben **logische** Größen; sie sind ausdrücklich keine
 abrechnungsfähige Azure-Speicher- oder Kostenberechnung.
 
+Bei aktivierter Blob-Versionierung kann auch die **aktuelle** Azure-Version eine
+`versionId` besitzen. Sie wird nur bei `isCurrentVersion=true` zu den Live-Daten
+gerechnet. Alte Versionen, Snapshots und gelöschte Einträge gehören zur
+Historie. Die Metadaten werden weder verändert noch für Löschungen genutzt.
+
 **Kein Löschrecht aus Alter ableiten:** Auch mehr als 90 Tage alte
 Unterschriften, Lieferpapiere, POD-Dateien, Sendungs- und Backupdaten dürfen
 nicht automatisch entfernt werden. Erst Datenzuordnung, gesicherte
