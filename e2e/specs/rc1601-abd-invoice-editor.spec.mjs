@@ -22,25 +22,39 @@ function reanalyzed(payload){
 test('RC1601: Rechnung per Upload korrigieren, validieren und als PDF exportieren',async({page},testInfo)=>{
  test.skip(testInfo.project.name!=='laptop','Test läuft einmal im Chromium-Laptop-Profil.');
  test.setTimeout(90_000);
- const pageErrors=[],exports=[];
- // Isolated static demo browser uses a synthetic token only for intercepted E2E endpoints.
- await page.addInitScript(()=>sessionStorage.setItem('__rc1601_test_session',JSON.stringify({token:'RC1601-E2E-FAKE-SESSION'})));
+ const pageErrors=[];
  page.on('pageerror',e=>pageErrors.push(e.message));
- await page.route('**/api/abd-analysis',async route=>{
-  if(route.request().method()!=='POST')return route.continue();
-  const payload=route.request().postDataJSON()||{};
-  if(payload.action==='upload')return route.fulfill(json({ok:true,status:'scanning',upload:{id:'rc1601-mock',name:payload.file?.name,fileType:'csv'}},202));
-  if(payload.action==='status')return route.fulfill(json({ok:true,status:'ready',analysis:uploaded()}));
-  if(payload.action==='reanalyze')return route.fulfill(json({ok:true,status:'ready',analysis:reanalyzed(payload)}));
-  return route.fulfill(json({ok:false,code:'MOCK_ACTION_NOT_SUPPORTED'},400))
- });
- await page.route('**/api/abd-analysis/export',async route=>{
-  const payload=route.request().postDataJSON();
-  exports.push(payload);
-  return route.fulfill(json({ok:true,file:{name:'Proforma-Browser.pdf',mimeType:'application/pdf',base64:Buffer.from('%PDF-1.4\n%Browser-test-only').toString('base64')}}))
- });
  await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
  await waitReady(page);
+ // Demo replaces window.fetch before Playwright's network routing. Install a test-only wrapper
+ // after bootstrap so only these isolated fake invoice endpoints are intercepted.
+ await page.evaluate(uploadedInvoice=>{
+   const original=window.fetch.bind(window);
+   window.__rc1601Exports=[];
+   window.fetch=async function(input,options){
+     const url=typeof input==='string'?input:String(input&&input.url||'');
+     const make=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json'}});
+     if(url==='/api/abd-analysis'||url.endsWith('/api/abd-analysis')){
+       const payload=JSON.parse(options&&options.body||'{}');
+       if(payload.action==='upload')return make({ok:true,status:'scanning',upload:{id:'rc1601-mock',name:'invoice.csv',fileType:'csv'}},202);
+       if(payload.action==='status')return make({ok:true,status:'ready',analysis:uploadedInvoice});
+       if(payload.action==='reanalyze'){
+         const positions=payload.positions||[],invoiceTotal=positions.reduce((sum,p)=>sum+Number(p.value||0),0);
+         return make({ok:true,analysis:{
+           header:{...payload.header,invoiceTotal},positions,
+           groups:positions.map(p=>({commodityCode:p.commodityCode,originCountry:p.originCountry,value:Number(p.value),currency:p.currency,positionCount:1,status:'complete'})),
+           unassigned:[],totals:{invoiceTotal,accountedTotal:invoiceTotal,difference:0,currency:payload.header.currency},review:{complete:true,groupCount:positions.length,unassignedCount:0}
+         }});
+       }
+       return make({ok:false,code:'RC1601_UNEXPECTED_ACTION'},400)
+     }
+     if(url==='/api/abd-analysis/export'||url.endsWith('/api/abd-analysis/export')){
+       window.__rc1601Exports.push(JSON.parse(options&&options.body||'{}'));
+       return make({ok:true,file:{name:'Proforma-Browser.pdf',mimeType:'application/pdf',base64:btoa('%PDF-1.4\\n%Browser-test-only')}})
+     }
+     return original(input,options)
+   }
+ },uploaded());
  await openExportHubView(page,'abd',['ABD erstellen','ABD'],/ABD-Anfrage|Grunddaten|ABD/i,{allowProgrammaticFallback:true});
  const panel=page.locator('[data-rc1294-abd-analysis="1"]');
  await expect(panel).toBeVisible({timeout:10_000});
@@ -66,6 +80,7 @@ test('RC1601: Rechnung per Upload korrigieren, validieren und als PDF exportiere
  await expect(editor.locator('[data-rc1549-result] [data-rc1549-proforma]')).toBeEnabled({timeout:15_000});
  const [download]=await Promise.all([page.waitForEvent('download'),editor.locator('[data-rc1549-result] [data-rc1549-proforma]').click()]);
  expect(download.suggestedFilename()).toBe('Proforma-Browser.pdf');
+ const exports=await page.evaluate(()=>window.__rc1601Exports);
  expect(exports).toHaveLength(1);
  expect(exports[0].format).toBe('proforma');
  expect(exports[0].snapshot.header.senderAddress).toContain('Nettetal');
