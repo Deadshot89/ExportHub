@@ -70,30 +70,26 @@ async function testserviceClients() {
 function environmentFromRequest(req) {
   const headers = req && req.headers || {};
   const requested = lower(headers['x-exporthub-environment'] || headers['X-ExportHUB-Environment'] || '');
-  // Read all official host assertions independently. A user-supplied forwarded
-  // header must not override a conflicting official Host/X-Original-Host.
-  function officialEnvironment(value) {
-    const raw = lower(value).split(',')[0].trim();
-    if (!raw) return '';
-    let host = '';
+  // On official hosts the deployment-selected environment overrides untrusted headers.
+  function parseHostname(value) {
     try {
-      host = new URL(raw.includes('://') ? raw : 'https://' + raw).hostname.toLowerCase();
+      const first = lower(value).split(',')[0].trim();
+      return new URL(first.includes('://') ? first : 'https://' + first).hostname.toLowerCase();
     } catch (_) { return ''; }
-    if (host.endsWith('.azurestaticapps.net'))
-      return /-testservice\./.test(host) ? 'testservice' : 'production';
-    if (/^(?:www\.)?exporthub360\.(?:de|com)$/.test(host))
-      return 'production';
+  }
+  function trustedHostEnvironment(host) {
+    const azureHost = host.endsWith('.azurestaticapps.net');
+    if (azureHost && /-testservice\./.test(host)) return 'testservice';
+    if (azureHost || /^(?:www\.)?exporthub360\.(?:de|com)$/.test(host)) return 'production';
     return '';
   }
-  const actualHosts = [
-    headers.host || headers.Host,
-    headers['x-original-host'],
-    headers['x-forwarded-host']
-  ].map(officialEnvironment).filter(Boolean);
-  if (new Set(actualHosts).size > 1)
-    throw error('ENVIRONMENT_MISMATCH', 'Widersprüchliche offizielle ExportHUB-Domains in den Anfragedaten.', 409);
-  if (actualHosts.length) {
-    const actual = actualHosts[0];
+  // A recognized direct Host cannot be overridden by a forged forwarded host.
+  const direct = trustedHostEnvironment(parseHostname(headers.host || headers.Host || ''));
+  const forwarded = trustedHostEnvironment(parseHostname(headers['x-forwarded-host'] || headers['x-original-host'] || ''));
+  if (direct && forwarded && direct !== forwarded)
+    throw error('ENVIRONMENT_MISMATCH', 'Die Hostangaben widersprechen sich bei der ExportHUB-Umgebung.', 409);
+  const actual = direct || forwarded;
+  if (actual) {
     if (requested && requested !== actual)
       throw error('ENVIRONMENT_MISMATCH', 'Die angeforderte ExportHUB-Umgebung stimmt nicht mit der Website überein.', 409);
     return actual;
