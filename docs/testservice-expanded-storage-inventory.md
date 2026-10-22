@@ -139,3 +139,32 @@ weiterhin gemeinsam mit Produktion verwendet werden.
 Alte Versionen sind keine Löschfreigabe. Erst gesichertes Archiv,
 Restore-Nachweis, vollständige Ressourcenzuordnung und gesonderte
 Freigabe erlauben einen Speicherwechsel oder Löschschritt.
+
+
+## RC1631 – read-only Teilinventur aller bekannten TESTSERVICE-Präfixe
+
+Der bereits signierte TESTSERVICE-Release kann nach bestandener GitHub-OIDC-
+Prüfung neben dem Team-Prefix bis zu **sieben bekannte Präfixe in sechs
+Containern** per Azure LIST erfassen (Team, Dokumente, Containerfotos, QR-
+Abholung, POD, ABD-Rechnungsquarantäne, POD-Archivkopien). Der Code verwendet
+die im betreffenden TESTSERVICE-API-Server bereits konfigurierten Azure-
+Verbindungsdaten; POD-Backups verwenden – falls vorhanden – ihre separate
+Konfiguration. Es werden **keine neuen Schlüssel angefordert oder offengelegt**.
+
+Jedes Ergebnis ist entweder **gelistet** (vollständiger Metadaten-LIST für
+dieses Präfix) oder **ungeprüft**. Unbekannte Größen, fehlende Container,
+Berechtigungs-/Netzwerkprobleme und Zeitlimits werden ausdrücklich **nicht**
+als null gespeicherte Dateien interpretiert. Der API-Bericht und die Actions-
+Zusammenfassung enthalten keine Blobnamen, Kundendaten, Tokens,
+Dateiinhalte oder originalen Azure-Fehlertexte. Es erfolgt **keine** Änderung
+oder Löschung eines Blobs.
+
+**Wichtige Einschränkung:** Die möglicherweise gemeinsame Nutzung eines
+Speicherkontos mit Produktion sowie die realen Azure-Konten/Kosten je
+Container werden durch LIST **nicht** nachgewiesen. Auch eine erfolgreiche
+Auflistung aller bekannten Präfixe ist keine vollständige Inventur unbekannter
+oder außerhalb dieser Konten liegender Daten. Historische Blob-Versionen
+sind keine Freigabe zum Löschen. Der Betrieb kann geringe LIST-
+Transaktionskosten verursachen. Die vorhandene, strikt konto- und
+credentialverifizierende Offline-Inventur bleibt für eine
+**belastbare Migration und 0-€-Abnahme** erforderlich.
