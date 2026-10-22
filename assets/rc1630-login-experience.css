@@ -59,7 +59,7 @@ html[data-eh-design] #login[data-eh360-ui="v2"] .eh360-login-kicker::before{
   content:"";width:8px;height:8px;border-radius:50%;background:#4fe0b0;
   box-shadow:0 0 0 4px rgba(79,224,176,.13);
 }
-html[data-eh-design] #login[data-eh360-ui="v2"] .eh360-login-hero h2{
+html[data-eh-design] #login[data-eh360-ui="v2"] .eh360-login-hero .eh360-login-headline{
   margin:0 0 20px!important;
   max-width:660px;
   color:#fff!important;
@@ -346,3 +346,7 @@ html[data-eh-design="neon"] #login[data-eh360-ui="v2"] :is(#loginMicrosoftAccoun
 @media print{
   html[data-eh-design] #login[data-eh360-ui="v2"] .eh360-login-hero{display:none!important}
 }
+/* RC1630 accessibility: inherited legacy centered text must not affect form reading order. */
+html[data-eh-design] #login[data-eh360-ui="v2"] .login-card{text-align:left!important}
+html[data-eh-design] #login[data-eh360-ui="v2"] .eh360-login-headline{margin:0 0 20px!important;line-height:1.085!important}
+html[data-eh-design] #login[data-eh360-ui="v2"] :is(#loginMicrosoftAccountSwitchBtn,#adminRecoveryBtn,#testserviceContinueBtn){min-height:44px!important}
