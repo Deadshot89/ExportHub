@@ -1,0 +1,35 @@
+name: TESTSERVICE Inventory Contract
+
+# Pure Node tests only; do not contact Azure or use production secrets.
+on:
+  pull_request:
+    paths:
+      - 'scripts/testservice-expanded-storage-inventory.mjs'
+      - 'test/testservice-expanded-storage-inventory.test.mjs'
+      - '.github/workflows/testservice-expanded-storage-inventory.yml'
+      - '.github/workflows/testservice-inventory-contract.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/testservice-expanded-storage-inventory.mjs'
+      - 'test/testservice-expanded-storage-inventory.test.mjs'
+      - '.github/workflows/testservice-expanded-storage-inventory.yml'
+      - '.github/workflows/testservice-inventory-contract.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: Verify isolated inventory and wrong-account protections
+        run: node --test test/testservice-expanded-storage-inventory.test.mjs
