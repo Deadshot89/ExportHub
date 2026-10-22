@@ -82,3 +82,22 @@ verursachen.**
 Die 188,15 GiB des gesamten Kontos sind weiterhin **kein Nachweis** für
 die Größe des TESTSERVICE-Bestandes. Auch die summierten logischen Bytes
 der Inventur sind nicht identisch mit abrechenbaren Bytes.
+
+## Bewertung der Speicher-Aktivität (nicht der Löschbarkeit)
+
+Die aggregierte Inventur zeigt zusätzlich, wie sich der logisch erfasste Bestand
+nach `lastModified` auf die letzten 30 Tage, Tage 31–90, älter als 90 Tage und
+Einträge mit unbekanntem Datum verteilt. Diese Berechnung erfolgt nur aus
+Azure-Metadaten, ohne Datei-Download und ohne Veröffentlichung von Blobnamen.
+
+Getrennt werden `liveLogicalBytes` und `historicalLogicalBytes`
+(Snapshots, Versionen und als gelöscht gelistete Datensätze) gemeldet.
+Die Summen bleiben **logische** Größen; sie sind ausdrücklich keine
+abrechnungsfähige Azure-Speicher- oder Kostenberechnung.
+
+**Kein Löschrecht aus Alter ableiten:** Auch mehr als 90 Tage alte
+Unterschriften, Lieferpapiere, POD-Dateien, Sendungs- und Backupdaten dürfen
+nicht automatisch entfernt werden. Erst Datenzuordnung, gesicherte
+Archivierung, Nachweis der gesetzlichen/fachlichen Aufbewahrung,
+vollständiger Readback und isolierter Restore erlauben eine gesondert
+freizugebende Maßnahme. Unbekannte Metadaten bleiben sichtbar.
