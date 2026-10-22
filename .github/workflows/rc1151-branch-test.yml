@@ -43,7 +43,7 @@ jobs:
       - name: RC1590 Anmeldung erst nach Versandbestätigung erledigen
         run: node --test test/rc1590-registration-confirmation.test.mjs test/rc1585-managed-registration.test.mjs test/rc1071-shipment-history.test.mjs test/rc1100-history-action-coverage.test.mjs
       - name: RC1585 Aufgaben/ABD Safety Regression
-        run: node --test test/rc1585-managed-registration.test.mjs test/rc1585-abd-saved-promotion.test.mjs test/taskplanner-v2-workflow.test.mjs test/taskplanner-v2-workflow-bindings.test.mjs test/rc1550-abd-completed-upload.test.mjs test/rc1617-abd-upload-failure-feedback.test.mjs
+        run: node --test test/rc1585-managed-registration.test.mjs test/rc1585-abd-saved-promotion.test.mjs test/taskplanner-v2-workflow.test.mjs test/taskplanner-v2-workflow-bindings.test.mjs test/rc1550-abd-completed-upload.test.mjs test/rc1617-abd-upload-failure-feedback.test.mjs test/rc1619-abd-fail-closed-rollback.test.mjs
       - name: RC1548 Versandkosten Autoübernahme Regression
         run: node --test test/rc1548-shipping-cost-autofill.test.mjs
       - name: RC1549 Live-Browser Zeitbudget Regression
