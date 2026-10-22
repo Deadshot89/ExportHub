@@ -15,7 +15,7 @@ const GERMAN_LOCKED_PREFIXES = Object.freeze(['legacyUi.', 'legacyPattern.']);
 
 function text(v) { return String(v == null ? '' : v); }
 function fail(code, message) { const e = new Error(message); e.code = code; e.status = 400; return e; }
-function placeholders(value) {
+function templateVars(value) {
   const out = new Set();
   text(value).replace(/\{\{\s*([\w.-]+)\s*\}\}|\{([\w.-]+)\}/g, (_, a, b) => { out.add(a || b); return ''; });
   return [...out].sort();
@@ -59,7 +59,7 @@ function applyTextChanges(packs, changes, sourceTexts) {
     if (!Object.prototype.hasOwnProperty.call(pack, c.key)) throw fail('SELF_CORRECT_KEY_UNKNOWN', 'Textschlüssel ' + c.key + ' gibt es in ' + c.lang + ' nicht. Es können nur vorhandene Texte geändert werden.');
     const before = text(pack[c.key]);
     if (before === c.value) return;
-    if (placeholders(before).join(',') !== placeholders(c.value).join(',')) throw fail('SELF_CORRECT_PLACEHOLDERS', 'Platzhalter wie {name} müssen erhalten bleiben: ' + c.key + ' (' + c.lang + ')');
+    if (templateVars(before).join(',') !== templateVars(c.value).join(',')) throw fail('SELF_CORRECT_TEMPLATE_VARS', 'Platzhalter wie {name} müssen erhalten bleiben: ' + c.key + ' (' + c.lang + ')');
     // Texts also end up in HTML attributes; new < > " ' ` could break out of them. Typographic „“ ‚‘ ’ are fine.
     const markup = [...new Set(c.value.match(/[<>"'`]/g) || [])].filter((ch) => !before.includes(ch));
     if (markup.length) throw fail('SELF_CORRECT_MARKUP', 'Die Zeichen ' + markup.join(' ') + ' sind in Texten nicht erlaubt (bitte „ “ oder ’ verwenden): ' + c.key + ' (' + c.lang + ')');
@@ -81,7 +81,7 @@ module.exports = {
   LANGUAGES,
   MAX_CHANGES,
   GERMAN_LOCKED_PREFIXES,
-  placeholders,
+  templateVars,
   normalizeTextChanges,
   applyTextChanges,
   serializePack
