@@ -57,8 +57,10 @@ async function reusableTestDailySnapshot(container,options){
  const prefix='testservice/state-backups/daily/'+created.yyyy+'/'+created.mm+'/'+created.dd+'/';
  let foundName='';
  try{
-  for await(const item of container.listBlobsFlat({prefix,includeMetadata:true})){
-   if(!item||item.deleted||item.snapshot||item.versionId)continue;
+  for await(const item of container.listBlobsFlat({prefix,includeMetadata:true,includeVersions:true})){
+   // Azure may expose a VersionId even for the CURRENT blob. Never reject
+   // a live current version, but never reuse a historical version either.
+   if(!item||item.deleted||item.snapshot||(item.versionId&&item.isCurrentVersion!==true))continue;
    const name=text(item.name),metadata=item.metadata||{};
    if(!name.startsWith(prefix)||!/^team-state-[0-9]{8}T[0-9]{9}Z\.json$/.test(name.slice(prefix.length)))continue;
    if(text(metadata.environment)!==environment||text(metadata.tier)!==tier||text(metadata.purpose)!=='exporthub-state-backup')continue;
