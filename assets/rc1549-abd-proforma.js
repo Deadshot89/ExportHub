@@ -3,6 +3,7 @@
 if(!root||root.ExportHUBRC1549Proforma)return;
 
 var rows=[emptyRow()],manualSnapshot=null,busy=false,timer=0,observer=null,observerRoot=null;
+var headerDraft={invoiceNumber:'',invoiceDate:'',senderName:'Essentra Components GmbH',senderAddress:'',recipient:'',recipientAddress:'',destinationCountry:'',currency:'EUR'};
 var packs={
  de:{title:'Positionen manuell erfassen',help:'Alternativ zum Dokument- oder Excel-Upload kannst du die Warenpositionen hier direkt erfassen. Alle Wege verwenden dieselbe ABD-Prüflogik.',number:'Proforma-Nr.',date:'Datum',recipient:'Empfänger',country:'Empfängerland',currency:'Währung',add:'Position hinzufügen',create:'Positionen auswerten',proforma:'Proforma-Rechnung erstellen',item:'Artikel',description:'Warenbeschreibung',qty:'Menge',unit:'Einheit',unitPrice:'Einzelpreis',value:'Warenwert',net:'Netto kg',gross:'Brutto kg',volume:'Volumen m³',hs:'HS-Code',origin:'Herkunftsland',actions:'Aktionen',remove:'Entfernen',duplicate:'Duplizieren',summary:'Manuelle Auswertung',total:'Warenwert gesamt',groups:'Zollzusammenfassung',required:'Bitte mindestens eine vollständige Warenposition erfassen.',recipientRequired:'Bitte Empfänger eintragen.',ready:'Auswertung vollständig. Proforma kann erstellt werden.',review:'Bitte markierte Pflichtangaben ergänzen.',error:'Aktion fehlgeschlagen.'},
  en:{title:'Enter items manually',help:'As an alternative to document or Excel upload, enter goods items here. All routes use the same export-declaration validation.',number:'Proforma no.',date:'Date',recipient:'Recipient',country:'Destination country',currency:'Currency',add:'Add item',create:'Validate items',proforma:'Create proforma invoice',item:'Item',description:'Goods description',qty:'Quantity',unit:'Unit',unitPrice:'Unit price',value:'Goods value',net:'Net kg',gross:'Gross kg',volume:'Volume m³',hs:'HS code',origin:'Country of origin',actions:'Actions',remove:'Remove',duplicate:'Duplicate',summary:'Manual analysis',total:'Total goods value',groups:'Customs summary',required:'Enter at least one complete goods item.',recipientRequired:'Enter a recipient.',ready:'Analysis complete. Proforma can be created.',review:'Complete the marked required data.',error:'Action failed.'},
@@ -11,12 +12,20 @@ var packs={
  fr:{title:'Saisir les positions manuellement',help:'Au lieu de téléverser un document ou Excel, vous pouvez saisir les marchandises ici. Toutes les voies utilisent la même validation ABD.',number:'N° proforma',date:'Date',recipient:'Destinataire',country:'Pays de destination',currency:'Devise',add:'Ajouter une position',create:'Contrôler les positions',proforma:'Créer la facture proforma',item:'Article',description:'Description',qty:'Quantité',unit:'Unité',unitPrice:'Prix unitaire',value:'Valeur',net:'Net kg',gross:'Brut kg',volume:'Volume m³',hs:'Code SH',origin:'Pays d’origine',actions:'Actions',remove:'Supprimer',duplicate:'Dupliquer',summary:'Analyse manuelle',total:'Valeur totale',groups:'Résumé douanier',required:'Saisissez au moins une position complète.',recipientRequired:'Saisissez un destinataire.',ready:'Analyse complète. La proforma peut être créée.',review:'Complétez les données obligatoires.',error:'Échec de l’action.'},
  it:{title:'Inserisci posizioni manualmente',help:'In alternativa al caricamento di documenti o Excel puoi inserire qui le posizioni. Tutti i percorsi usano la stessa verifica ABD.',number:'N. proforma',date:'Data',recipient:'Destinatario',country:'Paese di destinazione',currency:'Valuta',add:'Aggiungi posizione',create:'Verifica posizioni',proforma:'Crea fattura proforma',item:'Articolo',description:'Descrizione',qty:'Quantità',unit:'Unità',unitPrice:'Prezzo unitario',value:'Valore merce',net:'Netto kg',gross:'Lordo kg',volume:'Volume m³',hs:'Codice HS',origin:'Paese di origine',actions:'Azioni',remove:'Rimuovi',duplicate:'Duplica',summary:'Analisi manuale',total:'Valore totale',groups:'Riepilogo doganale',required:'Inserisci almeno una posizione completa.',recipientRequired:'Inserisci un destinatario.',ready:'Analisi completa. È possibile creare la proforma.',review:'Completa i dati obbligatori.',error:'Operazione non riuscita.'}
 };
+var extras={
+ de:{invoiceTitle:'Rechnung für ABD erstellen',editorHelp:'Rechnung hochladen und erkannte Positionen zur Korrektur übernehmen – oder alle Angaben hier manuell erfassen.',sender:'Absender / Firma',senderAddress:'Absenderadresse (Straße, PLZ, Ort, Land)',recipientAddress:'Empfängeradresse (Straße, PLZ, Ort, Land)',editUpload:'Im Rechnungseditor bearbeiten',importSuccess:'Upload-Daten übernommen. Bitte Absender, Empfänger und Positionen prüfen.',addressesRequired:'Bitte vollständige Absender- und Empfängeradressen eintragen.',invalidPosition:'Bitte Menge, Wert, Gewichte, HS-Code und Herkunftsland je Position prüfen.',uploadEmpty:'Keine Artikelpositionen in dieser Datei gefunden.'},
+ en:{invoiceTitle:'Create an invoice for export declaration',editorHelp:'Import and correct positions from an uploaded invoice or enter all information manually.',sender:'Sender / company',senderAddress:'Sender address (street, postcode, city, country)',recipientAddress:'Recipient address (street, postcode, city, country)',editUpload:'Edit in invoice editor',importSuccess:'Imported items. Review sender, recipient and every position.',addressesRequired:'Enter complete sender and recipient addresses.',invalidPosition:'Check quantity, value, weights, HS code and origin for every position.',uploadEmpty:'No goods items found in this file.'},
+ pl:{invoiceTitle:'Utwórz fakturę do zgłoszenia eksportowego',editorHelp:'Przenieś i popraw dane przesłanej faktury lub wpisz wszystko ręcznie.',sender:'Nadawca / firma',senderAddress:'Adres nadawcy (ulica, kod, miasto, kraj)',recipientAddress:'Adres odbiorcy (ulica, kod, miasto, kraj)',editUpload:'Edytuj w formularzu faktury',importSuccess:'Zaimportowano pozycje. Sprawdź adresy i towary.',addressesRequired:'Podaj pełne adresy nadawcy i odbiorcy.',invalidPosition:'Sprawdź ilości, wartości, wagi, kod HS i pochodzenie.',uploadEmpty:'Nie znaleziono pozycji.'},
+ es:{invoiceTitle:'Crear factura para declaración de exportación',editorHelp:'Importa y corrige los datos de una factura cargada o introdúcelos manualmente.',sender:'Remitente / empresa',senderAddress:'Dirección del remitente',recipientAddress:'Dirección del destinatario',editUpload:'Editar en factura',importSuccess:'Partidas importadas. Revisa direcciones y mercancías.',addressesRequired:'Introduce ambas direcciones completas.',invalidPosition:'Revisa cantidades, valores, pesos, código HS y origen.',uploadEmpty:'No se encontraron partidas.'},
+ fr:{invoiceTitle:'Créer une facture pour la déclaration d’exportation',editorHelp:'Importer et corriger les données d’une facture ou tout saisir manuellement.',sender:'Expéditeur / société',senderAddress:'Adresse de l’expéditeur',recipientAddress:'Adresse du destinataire',editUpload:'Modifier dans la facture',importSuccess:'Positions importées. Vérifiez les adresses et marchandises.',addressesRequired:'Saisissez les deux adresses complètes.',invalidPosition:'Vérifiez quantités, valeurs, poids, code SH et origine.',uploadEmpty:'Aucune position trouvée.'},
+ it:{invoiceTitle:'Crea fattura per dichiarazione di esportazione',editorHelp:'Importa e correggi le voci caricate oppure inserisci tutto manualmente.',sender:'Mittente / azienda',senderAddress:'Indirizzo mittente',recipientAddress:'Indirizzo destinatario',editUpload:'Modifica nella fattura',importSuccess:'Voci importate. Controlla indirizzi e merci.',addressesRequired:'Inserisci entrambi gli indirizzi completi.',invalidPosition:'Controlla quantità, valori, pesi, codice HS e origine.',uploadEmpty:'Nessuna voce trovata.'}
+};
 function q(value){return String(value==null?'':value).trim()}
 function esc(value){return q(value).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function language(){
  try{var value=root.ExportHUBI18n&&typeof root.ExportHUBI18n.language==='function'?root.ExportHUBI18n.language():root.navigator&&root.navigator.language;value=q(value).toLowerCase().slice(0,2);return packs[value]?value:'de'}catch(_){return'de'}
 }
-function t(key){return packs[language()][key]||packs.de[key]||key}
+function t(key){var lang=language();return extras[lang]&&extras[lang][key]||packs[lang][key]||extras.de[key]||packs.de[key]||key}
 function emptyRow(){return{itemNumber:'',description:'',quantity:'',unit:'pcs',unitPrice:'',value:'',netMassKg:'',grossMassKg:'',volumeM3:'',commodityCode:'',originCountry:''}}
 function number(value){
  if(typeof value==='number')return Number.isFinite(value)?value:null;
@@ -76,22 +85,34 @@ function renderRows(){
   Object.keys(rows[i]).forEach(function(key){var field=tr.querySelector('[data-field="'+key+'"]');if(field)field.value=rows[i][key]})
  }
 }
+function invalidate(){manualSnapshot=null;renderManualResult(null)}
 function updateRow(control){
  var tr=control&&control.closest&&control.closest('tr[data-index]'),index=Number(tr&&tr.getAttribute('data-index')),field=control&&control.getAttribute('data-field');
  if(!Number.isInteger(index)||index<0||index>=rows.length||!field)return;
  rows[index][field]=control.value;
- if((field==='quantity'||field==='unitPrice')&&!q(rows[index].value)){
-  var qty=number(rows[index].quantity),price=number(rows[index].unitPrice);if(qty!=null&&price!=null){rows[index].value=money(qty*price);var valueInput=tr.querySelector('[data-field="value"]');if(valueInput)valueInput.value=rows[index].value}
+ if(field==='value')rows[index].manualValue=q(control.value)!=='';
+ if((field==='quantity'||field==='unitPrice')&&!rows[index].manualValue){
+  var qty=number(rows[index].quantity),price=number(rows[index].unitPrice);
+  rows[index].value=qty!=null&&price!=null?money(qty*price):'';
+  var valueInput=tr.querySelector('[data-field="value"]');if(valueInput)valueInput.value=rows[index].value
  }
+ invalidate()
+}
+function fillHeader(){
+ var p=manualPanel();if(!p)return;
+ Object.keys(headerDraft).forEach(function(key){
+  var field=p.querySelector('[data-rc1549-header="'+key+'"]');if(field)field.value=headerDraft[key]
+ })
 }
 function headerValues(){
- var p=manualPanel(),get=function(name){var el=p&&p.querySelector('[data-rc1549-header="'+name+'"]');return q(el&&el.value)};
- return{invoiceNumber:get('invoiceNumber'),invoiceDate:get('invoiceDate'),customer:'Essentra Components GmbH',recipient:get('recipient'),destinationCountry:get('destinationCountry'),currency:(get('currency')||'EUR').toUpperCase().slice(0,3)}
+ var p=manualPanel(),get=function(name){var el=p&&p.querySelector('[data-rc1549-header="'+name+'"]');return q(el?el.value:headerDraft[name])};
+ return{invoiceNumber:get('invoiceNumber'),invoiceDate:get('invoiceDate'),customer:get('senderName'),senderName:get('senderName'),senderAddress:get('senderAddress'),recipient:get('recipient'),recipientAddress:get('recipientAddress'),destinationCountry:get('destinationCountry'),currency:(get('currency')||'EUR').toUpperCase().slice(0,3)}
 }
 function normalizeRows(){
+ var currency=headerValues().currency;
  return rows.map(function(row,index){
   var quantity=number(row.quantity),unitPrice=number(row.unitPrice),value=number(row.value);if(value==null&&quantity!=null&&unitPrice!=null)value=Math.round(quantity*unitPrice*100)/100;
-  return{position:String(index+1),itemNumber:q(row.itemNumber),description:q(row.description),quantity:quantity,unit:q(row.unit),unitPrice:unitPrice,value:value,netMassKg:number(row.netMassKg),grossMassKg:number(row.grossMassKg),volumeM3:number(row.volumeM3),commodityCode:q(row.commodityCode),originCountry:q(row.originCountry).toUpperCase(),currency:headerValues().currency,source:'manual',confirmed:true}
+  return{position:String(index+1),itemNumber:q(row.itemNumber),description:q(row.description),quantity:quantity,unit:q(row.unit),unitPrice:unitPrice,value:value,netMassKg:number(row.netMassKg),grossMassKg:number(row.grossMassKg),volumeM3:number(row.volumeM3),commodityCode:q(row.commodityCode),originCountry:q(row.originCountry).toUpperCase(),currency:currency,source:'manual',confirmed:true}
  }).filter(function(row){return row.description||row.itemNumber||row.commodityCode||row.value!=null})
 }
 function renderManualResult(snapshot){
@@ -104,13 +125,39 @@ function renderManualResult(snapshot){
 }
 async function analyzeManual(button){
  if(busy)return false;var header=headerValues(),positions=normalizeRows();
- if(!header.recipient){setStatus(t('recipientRequired'),'bad');return false}
+ if(!header.senderName||!header.recipient){setStatus(t('recipientRequired'),'bad');return false}
+ if(!header.senderAddress||!header.recipientAddress){setStatus(t('addressesRequired'),'bad');return false}
  if(!positions.length){setStatus(t('required'),'bad');return false}
+ if(positions.some(function(p){return !(p.quantity>0)||p.value==null||p.value<0||p.netMassKg==null||p.netMassKg<0||p.grossMassKg==null||p.grossMassKg<p.netMassKg||!/^[0-9]{6,10}$/.test(p.commodityCode)||!/^[A-Z]{2}$/.test(p.originCountry)||!(p.itemNumber||p.description)})){setStatus(t('invalidPosition'),'bad');return false}
  var total=positions.reduce(function(sum,row){return sum+Number(row.value||0)},0);header.invoiceTotal=Math.round(total*100)/100;
  busy=true;if(button)button.disabled=true;setStatus('…','info');
  try{var result=await post('/api/abd-analysis',{action:'reanalyze',header:header,positions:positions});manualSnapshot=result.analysis||null;renderManualResult(manualSnapshot);return !!manualSnapshot}
  catch(error){manualSnapshot=null;renderManualResult(null);setStatus(q(error&&error.message)||t('error'),'bad');return false}
  finally{busy=false;if(button)button.disabled=false}
+}
+function uploadDate(value){
+ var raw=q(value);
+ if(/^\d{4}-\d{2}-\d{2}$/.test(raw))return raw;
+ var match=raw.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+ return match?match[3]+'-'+match[2]+'-'+match[1]:''
+}
+function importUploaded(index){
+ var api=root.ExportHUBRC1294ABDAnalysis,source=api&&typeof api.snapshot==='function'?api.snapshot(index):null,positions=source&&source.positions;
+ if(!Array.isArray(positions)||!positions.length){setStatus(t('uploadEmpty'),'bad');return false}
+ rows=positions.map(function(p){
+  var item=emptyRow();
+  ['itemNumber','description','quantity','unit','unitPrice','value','netMassKg','grossMassKg','volumeM3','commodityCode','originCountry'].forEach(function(key){if(p[key]!=null)item[key]=String(p[key])});
+  item.manualValue=p.value!=null;
+  return item
+ });
+ var header=source.header||{};
+ ['invoiceNumber','recipient','recipientAddress','destinationCountry','currency'].forEach(function(key){if(q(header[key]))headerDraft[key]=q(header[key])});
+ if(q(header.senderName))headerDraft.senderName=q(header.senderName);
+ if(q(header.senderAddress))headerDraft.senderAddress=q(header.senderAddress);
+ if(uploadDate(header.invoiceDate))headerDraft.invoiceDate=uploadDate(header.invoiceDate);
+ mountManual();fillHeader();renderRows();invalidate();setStatus(t('importSuccess'),'ok');
+ var panel=manualPanel();if(panel&&typeof panel.scrollIntoView==='function')panel.scrollIntoView({behavior:'smooth',block:'start'});
+ return true
 }
 function enhanceUploaded(){
  var box=root.document&&root.document.querySelector('[data-rc1294-results]');if(!box)return false;
@@ -118,29 +165,56 @@ function enhanceUploaded(){
  for(var i=0;i<docs.length;i++){
   var head=docs[i].querySelector('.rc1294-document-head');if(!head)continue;
   var button=head.querySelector('[data-rc1549-proforma]');
-  if(!button){button=root.document.createElement('button');button.type='button';button.className='ghost';button.setAttribute('data-rc1549-proforma','');button.textContent=t('proforma');head.appendChild(button)}
-  var snapshot=api&&typeof api.snapshot==='function'?api.snapshot(i):null;button.disabled=!ready(snapshot);button.setAttribute('data-result-index',String(i));
-  button.onclick=(function(index,target){return function(){var current=api&&typeof api.snapshot==='function'?api.snapshot(index):null;exportProforma(current,target)}})(i,button)
+  if(!button){button=root.document.createElement('button');button.type='button';button.className='ghost';button.setAttribute('data-rc1549-proforma','');head.appendChild(button)}
+  button.textContent=t('proforma');
+  var snapshot=api&&typeof api.snapshot==='function'?api.snapshot(i):null;
+  button.disabled=!ready(snapshot);button.setAttribute('data-result-index',String(i));
+  button.onclick=(function(index,target){return function(){var current=api&&typeof api.snapshot==='function'?api.snapshot(index):null;exportProforma(current,target)}})(i,button);
+  var importButton=head.querySelector('[data-rc1549-import]');
+  if(!importButton){importButton=root.document.createElement('button');importButton.type='button';importButton.className='ghost';importButton.setAttribute('data-rc1549-import','');head.appendChild(importButton)}
+  importButton.textContent=t('editUpload');importButton.disabled=!snapshot||!Array.isArray(snapshot.positions)||!snapshot.positions.length;
+  importButton.onclick=(function(index){return function(){importUploaded(index)}})(i)
  }
  return true
 }
 function ensureStyle(){
  var d=root.document;if(!d||!d.createElement||d.getElementById('rc1549AbdProformaStyle'))return;
  var style=d.createElement('style');style.id='rc1549AbdProformaStyle';style.textContent='.rc1549-manual{margin-top:16px;padding:14px;border:1px solid #a7f3d0;border-left:4px solid #0f766e;border-radius:12px;background:rgba(240,253,250,.82);color:var(--text,#0f172a)}.rc1549-manual h4{margin:0 0 4px}.rc1549-manual>p{margin:0;color:var(--muted,#475569);font-size:13px}.rc1549-head{display:grid;grid-template-columns:repeat(5,minmax(120px,1fr));gap:8px;margin:12px 0}.rc1549-head label{display:grid;gap:4px;font-size:11px;font-weight:700;color:var(--muted,#475569)}.rc1549-head input{box-sizing:border-box;width:100%;min-height:38px;padding:7px 8px;border:1px solid #94a3b8;border-radius:8px;background:var(--card,#fff);color:var(--text,#0f172a)}.rc1549-scroll{overflow:auto;border:1px solid #cbd5e1;border-radius:10px;background:var(--card,#fff)}.rc1549-scroll table{border-collapse:collapse;width:100%;min-width:1510px;font-size:11px}.rc1549-scroll th,.rc1549-scroll td{padding:6px;border-bottom:1px solid #e2e8f0;text-align:left;vertical-align:top}.rc1549-scroll th{background:rgba(248,250,252,.96);color:#334155;position:sticky;top:0;z-index:1}.rc1549-scroll input{box-sizing:border-box;width:100%;min-width:76px;padding:6px;border:1px solid #cbd5e1;border-radius:6px;background:var(--card,#fff);color:var(--text,#0f172a)}.rc1549-scroll td.rc1549-wide input{min-width:230px}.rc1549-row-actions{display:flex;gap:4px}.rc1549-row-actions button{min-width:34px;padding:5px 7px}.rc1549-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.rc1549-status{margin-top:10px;padding:8px 10px;border-radius:8px;background:#eff6ff;font-size:12px;font-weight:700}.rc1549-status[data-kind="ok"]{background:#ecfdf5;color:#065f46}.rc1549-status[data-kind="warn"]{background:#fff7ed;color:#9a3412}.rc1549-status[data-kind="bad"]{background:#fef2f2;color:#991b1b}.rc1549-result{margin-top:12px;padding:12px;border:1px solid #99f6e4;border-radius:10px;background:var(--card,#fff)}.rc1549-result-head{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.rc1549-result-head small{display:block;color:#64748b}.rc1549-result-head strong{display:block}.rc1549-metrics{display:grid;grid-template-columns:repeat(4,minmax(120px,1fr));gap:8px;margin:10px 0}.rc1549-metrics>div{display:grid;gap:3px;padding:8px;border:1px solid #dbeafe;border-radius:8px}.rc1549-metrics span{font-size:11px;color:#64748b}@media(max-width:1000px){.rc1549-head{grid-template-columns:1fr 1fr}.rc1549-metrics{grid-template-columns:1fr 1fr}}@media(max-width:560px){.rc1549-head,.rc1549-metrics{grid-template-columns:1fr}.rc1549-actions>*{width:100%}}';
+ style.textContent+='.rc1549-head textarea{box-sizing:border-box;width:100%;min-height:64px;resize:vertical;padding:8px;border:1px solid #94a3b8;border-radius:8px;background:var(--card,#fff);color:var(--text,#0f172a);font:inherit}.rc1549-head label.rc1549-address{grid-column:span 2}.rc1549-manual input:focus-visible,.rc1549-manual textarea:focus-visible{outline:2px solid #2563eb;outline-offset:2px}@media(max-width:1000px){.rc1549-head label.rc1549-address{grid-column:auto}}';
  (d.head||d.documentElement).appendChild(style)
 }
 function mountManual(){
  var parent=invoicePanel();if(!parent)return false;ensureStyle();
  var panel=manualPanel();if(panel)return true;
  panel=root.document.createElement('section');panel.id='rc1549AbdManual';panel.className='rc1549-manual';panel.setAttribute('data-rc1549-manual','');
- var today='';try{today=new Date().toISOString().slice(0,10)}catch(_){}
- panel.innerHTML='<h4>'+esc(t('title'))+'</h4><p>'+esc(t('help'))+'</p><div class="rc1549-head"><label>'+esc(t('number'))+'<input data-rc1549-header="invoiceNumber" placeholder="PF-…"></label><label>'+esc(t('date'))+'<input type="date" data-rc1549-header="invoiceDate" value="'+esc(today)+'"></label><label>'+esc(t('recipient'))+'<input data-rc1549-header="recipient"></label><label>'+esc(t('country'))+'<input data-rc1549-header="destinationCountry" maxlength="80"></label><label>'+esc(t('currency'))+'<input data-rc1549-header="currency" value="EUR" maxlength="3"></label></div><div class="rc1549-scroll"><table><thead><tr><th>'+esc(t('item'))+'</th><th>'+esc(t('description'))+'</th><th>'+esc(t('qty'))+'</th><th>'+esc(t('unit'))+'</th><th>'+esc(t('unitPrice'))+'</th><th>'+esc(t('value'))+'</th><th>'+esc(t('net'))+'</th><th>'+esc(t('gross'))+'</th><th>'+esc(t('volume'))+'</th><th>'+esc(t('hs'))+'</th><th>'+esc(t('origin'))+'</th><th>'+esc(t('actions'))+'</th></tr></thead><tbody data-rc1549-manual-list></tbody></table></div><div class="rc1549-actions"><button type="button" class="ghost" data-rc1549-manual-add>+ '+esc(t('add'))+'</button><button type="button" class="btn" data-rc1549-manual-create>'+esc(t('create'))+'</button></div><div class="rc1549-status" data-rc1549-status hidden></div><div class="rc1549-result" data-rc1549-result hidden></div>';
- parent.appendChild(panel);renderRows();
- panel.addEventListener('input',function(event){var control=event.target&&event.target.closest&&event.target.closest('tbody [data-field]');if(control)updateRow(control)});
+ if(!headerDraft.invoiceDate){var now=new Date();headerDraft.invoiceDate=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0')}
+ panel.innerHTML='<h4>'+esc(t('invoiceTitle'))+'</h4><p>'+esc(t('editorHelp'))+'</p>'+
+  '<div class="rc1549-head">'+
+  '<label>'+esc(t('number'))+'<input data-rc1549-header="invoiceNumber" placeholder="PF-…"></label>'+
+  '<label>'+esc(t('date'))+'<input type="date" data-rc1549-header="invoiceDate"></label>'+
+  '<label>'+esc(t('currency'))+'<input data-rc1549-header="currency" maxlength="3"></label>'+
+  '<label>'+esc(t('country'))+'<input data-rc1549-header="destinationCountry" maxlength="80"></label>'+
+  '<label>'+esc(t('sender'))+'<input data-rc1549-header="senderName" maxlength="160"></label>'+
+  '<label class="rc1549-address">'+esc(t('senderAddress'))+'<textarea data-rc1549-header="senderAddress" maxlength="500" rows="3"></textarea></label>'+
+  '<label>'+esc(t('recipient'))+'<input data-rc1549-header="recipient" maxlength="160"></label>'+
+  '<label class="rc1549-address">'+esc(t('recipientAddress'))+'<textarea data-rc1549-header="recipientAddress" maxlength="500" rows="3"></textarea></label></div>'+
+  '<div class="rc1549-scroll"><table><thead><tr><th>'+esc(t('item'))+'</th><th>'+esc(t('description'))+'</th><th>'+esc(t('qty'))+'</th><th>'+esc(t('unit'))+'</th><th>'+esc(t('unitPrice'))+'</th><th>'+esc(t('value'))+'</th><th>'+esc(t('net'))+'</th><th>'+esc(t('gross'))+'</th><th>'+esc(t('volume'))+'</th><th>'+esc(t('hs'))+'</th><th>'+esc(t('origin'))+'</th><th>'+esc(t('actions'))+'</th></tr></thead><tbody data-rc1549-manual-list></tbody></table></div>'+
+  '<div class="rc1549-actions"><button type="button" class="ghost" data-rc1549-manual-add>+ '+esc(t('add'))+'</button><button type="button" class="btn" data-rc1549-manual-create>'+esc(t('create'))+'</button></div>'+
+  '<div class="rc1549-status" data-rc1549-status hidden></div><div class="rc1549-result" data-rc1549-result hidden></div>';
+ parent.appendChild(panel);fillHeader();renderRows();
+ panel.addEventListener('input',function(event){
+  event.stopPropagation();
+  var control=event.target&&event.target.closest&&event.target.closest('tbody [data-field]');
+  if(control){updateRow(control);return}
+  var field=event.target&&event.target.closest&&event.target.closest('[data-rc1549-header]');
+  if(field){headerDraft[field.getAttribute('data-rc1549-header')]=field.value;invalidate()}
+ });
+ panel.addEventListener('change',function(event){event.stopPropagation()});
  panel.addEventListener('click',function(event){
-  var add=event.target&&event.target.closest&&event.target.closest('[data-rc1549-manual-add]');if(add){rows.push(emptyRow());renderRows();return}
-  var remove=event.target&&event.target.closest&&event.target.closest('[data-rc1549-remove]');if(remove){var ri=Number(remove.getAttribute('data-rc1549-remove'));if(rows.length>1&&Number.isInteger(ri)){rows.splice(ri,1);renderRows()}return}
-  var duplicate=event.target&&event.target.closest&&event.target.closest('[data-rc1549-duplicate]');if(duplicate){var di=Number(duplicate.getAttribute('data-rc1549-duplicate'));if(Number.isInteger(di)&&rows[di]){rows.splice(di+1,0,Object.assign({},rows[di]));renderRows()}return}
+  event.stopPropagation();
+  var add=event.target&&event.target.closest&&event.target.closest('[data-rc1549-manual-add]');if(add){rows.push(emptyRow());renderRows();invalidate();return}
+  var remove=event.target&&event.target.closest&&event.target.closest('[data-rc1549-remove]');if(remove){var ri=Number(remove.getAttribute('data-rc1549-remove'));if(rows.length>1&&Number.isInteger(ri)){rows.splice(ri,1);renderRows();invalidate()}return}
+  var duplicate=event.target&&event.target.closest&&event.target.closest('[data-rc1549-duplicate]');if(duplicate){var di=Number(duplicate.getAttribute('data-rc1549-duplicate'));if(Number.isInteger(di)&&rows[di]){rows.splice(di+1,0,Object.assign({},rows[di]));renderRows();invalidate()}return}
   var create=event.target&&event.target.closest&&event.target.closest('[data-rc1549-manual-create]');if(create){analyzeManual(create);return}
   var proforma=event.target&&event.target.closest&&event.target.closest('[data-rc1549-proforma]');if(proforma&&proforma.closest('#rc1549AbdManual'))exportProforma(manualSnapshot,proforma)
  });
