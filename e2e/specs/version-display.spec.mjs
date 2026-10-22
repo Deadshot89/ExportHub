@@ -101,6 +101,7 @@ test('RC1630: Login redesign is responsive and preserves language and credential
   const login=page.locator('#login[data-eh360-ui="v2"]');
   await expect(login).toBeVisible({timeout:15_000});
   await expect(login.locator('.login-card')).toBeVisible();
+  await page.locator('#loginLanguageSelect').selectOption('de');
   await expect(login.locator('.eh360-login-headline')).toContainText('Versandzentrale');
   await expect(login.locator('#loginUser')).toBeVisible();
   await expect(login.locator('#loginPass')).toBeVisible();
