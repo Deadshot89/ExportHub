@@ -256,6 +256,27 @@ function patchRc1619AbdFailClosedRollback(html,file){
   return html.replace(anchor,helper+anchor);
 }
 
+function patchRc1624AbdUploadCrossCollection(html,file){
+  // P0: the overview reads BOTH shipments and savedShipments. The manual
+  // ABD uploader used to mark only shipments as completed; the stale saved
+  // record kept showing "Wartet auf ABD" even after a successful Azure save.
+  // Never apply another shipment's ABD to a conflicting ID/reference.
+  const original='function shipmentDocumentCopies(sh){var out=[];function add(x){if(!x||out.indexOf(x)>=0||!sameShipmentRecord(x,sh))return;out.push(x)}A(S().shipments).forEach(add);add(S().shipment);add(sh);return out}';
+  const corrected='function shipmentDocumentCopies(sh){var out=[],id=shipmentId(sh),ref=L(shipmentRef(sh));function add(x){if(!x||out.indexOf(x)>=0)return;var xi=shipmentId(x),xr=L(shipmentRef(x));if(id&&xi&&xi!==id)return;if(ref&&xr&&xr!==ref)return;if(!((id&&xi&&xi===id)||(ref&&xr&&xr===ref)))return;out.push(x)}A(S().shipments).forEach(add);A(S().savedShipments).forEach(add);A(S().sharedShipments).forEach(add);add(S().shipment);add(sh);return out}';
+  if(html.split(original).length!==2){if(file==='demo.html')return html;throw new Error(file+': RC1624 shipmentDocumentCopies anchor not unique');}
+  html=html.replace(original,corrected);
+
+  // A real ABD file selection is an explicit user action. Previously the
+  // central uploader called flushSave({force:true}) as a background write:
+  // write/network/navigation guards could defer or reject the save while
+  // the 35-second ABD upload loop exhausted its deadline. Server-side access
+  // rights are still enforced; POD/background saves retain existing policy.
+  const flushBefore="if(typeof clean.flushSave==='function')ok=await Promise.resolve(clean.flushSave(reason,{force:true}));";
+  const flushAfter="if(typeof clean.flushSave==='function')ok=await Promise.resolve(clean.flushSave(reason,{force:true,userInitiated:/^ABD(?:\\s|$)/.test(String(reason||''))}));";
+  if(html.split(flushBefore).length!==2)throw new Error(file+': RC1624 document flush anchor not unique');
+  return html.replace(flushBefore,flushAfter);
+}
+
 function patchRc1602OfficialPod(html,file){
   html=injectImmediateRuntimeAfterHead(html,RC1602_OFFICIAL_POD_SCRIPT_TAG,'exporthub-rc1602-official-pod');
   html=html.replace(/rc1602-official-pod-server-download\.js\?v=(?:1602|1616)/g,'rc1602-official-pod-server-download.js?v=1623');
@@ -1243,6 +1264,7 @@ function patchHtml(file){
   html=patchRc1319ShipmentSaveFinalization(html,file);
   html=patchRc1617AbdUploadFailureFeedback(html,file);
   html=patchRc1619AbdFailClosedRollback(html,file);
+  html=patchRc1624AbdUploadCrossCollection(html,file);
   html=patchRc1296BrowserBranding(html,file);
   html=patchRc1602OfficialPod(html,file);
   html=html.replace(/ExportHUB RC1048 environment=/g,`ExportHUB ${VERSION} environment=`);
