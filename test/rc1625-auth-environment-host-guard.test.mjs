@@ -52,6 +52,17 @@ test('RC1625: forwarded origin is examined and comma-separated hosts cannot bypa
   rejectsMismatch(request(host, 'testservice', 'www.exporthub360.de, proxy.internal'));
 });
 
+test('RC1625: direct production Host cannot be overridden by spoofed forwarded host', () => {
+  rejectsMismatch(request('www.exporthub360.de', 'testservice', 'evil.invalid'));
+  rejectsMismatch(request('www.exporthub360.com', 'testservice', 'ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'));
+  assert.equal(guard(request('www.exporthub360.de', 'production', 'localhost')), 'production');
+});
+
+test('RC1625: disagreement between two official Host sources fails closed', () => {
+  rejectsMismatch(request('wonderful-forest-0f315e310.7.azurestaticapps.net', '', 'ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'));
+  rejectsMismatch(request('ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net', '', 'www.exporthub360.de'));
+});
+
 test('RC1625: unknown local host keeps test harness routing backward compatible', () => {
   assert.equal(guard(request('localhost:7071', 'testservice')), 'testservice');
   assert.equal(guard(request('localhost:7071', 'production')), 'production');
