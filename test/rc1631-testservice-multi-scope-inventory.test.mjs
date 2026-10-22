@@ -107,3 +107,16 @@ test('RC1631 release output does not dump Azure secrets or raw inventory respons
  assert.match(wf,/Keine Freigabe für Archivierung, Löschung oder Redundanzumstellung/);
  assert.doesNotMatch(wf,/echo "\$scopes_payload"/);
 });
+
+test('RC1631: bounded diagnostic HTTP timeouts cannot turn into indefinite release blocking',()=>{
+ const wf=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
+ const fixture=wf.slice(wf.indexOf('          fixture() {'),wf.indexOf('          # RC1630:'));
+ assert.match(fixture,/inventory-team\|inventory-scopes\)/);
+ assert.match(fixture,/inventory_timeout=\(--connect-timeout 8 --max-time 35\)/);
+ assert.match(fixture,/curl -sS "\$\{inventory_timeout\[@\]\}"/);
+ assert.match(fixture,/if ! fixture_status=/);
+ assert.match(fixture,/fixture transport failure action=\$action/);
+ assert.doesNotMatch(fixture,/echo "\$oidc_token"/);
+ assert.match(wf,/if inventory_payload="\$\(fixture inventory-team\)"; then/);
+ assert.match(wf,/if scopes_payload="\$\(fixture inventory-scopes\)"; then/);
+});
