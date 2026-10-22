@@ -223,6 +223,38 @@ function patchRc1617AbdUploadFailureFeedback(html,file){
   return html.slice(0,begin+helper.length)+part+html.slice(end+helper.length);
 }
 
+function patchRc1619AbdFailClosedRollback(html,file){
+  // Preserve the prior ABD state when the async Azure save cannot be confirmed.
+  // Without this rollback a failed upload locally marks ABD as completed and
+  // can temporarily clear the shipping gate before reloading from the server.
+  const begin=html.indexOf('window.rc524UploadFile=function(input,key){');
+  if(begin<0){if(file==='demo.html')return html;throw new Error(file+': RC1619 zentraler Uploader fehlt');}
+  const end=html.indexOf('window.rc524DeleteFile=',begin);
+  if(end<begin)throw new Error(file+': RC1619 Upload-Endanker fehlt');
+  let part=html.slice(begin,end);
+  function replaceExactly(before,after){
+    const n=part.split(before).length-1;
+    if(n!==1)throw new Error(file+': RC1619 Upload-Anker '+n+'x statt 1x');
+    part=part.replace(before,after);
+  }
+  replaceExactly('fileToPdf(file).then(async function(pdf){','var abdRollback=null;fileToPdf(file).then(async function(pdf){');
+  replaceExactly("if(kind==='abd'){applyAbdDocumentDurably(sh,item)}","if(kind==='abd'){abdRollback=rc1619CaptureAbdState(sh);applyAbdDocumentDurably(sh,item)}");
+  replaceExactly(
+    "if(!ok){if(kind==='abd')rc1617AbdUploadFailed(sh,input,'Azure-Speicherung konnte nicht bestätigt werden.');alert(",
+    "if(!ok){if(kind==='abd'){if(abdRollback){abdRollback();abdRollback=null}rc1617AbdUploadFailed(sh,input,'Azure-Speicherung konnte nicht bestätigt werden.')}alert("
+  );
+  replaceExactly("if(kind==='pod'){try{var cloud=", "if(kind==='abd')abdRollback=null;if(kind==='pod'){try{var cloud=");
+  replaceExactly(
+    "}).catch(function(e){if(key==='abdFiles')rc1617AbdUploadFailed(sh,input,e&&e.message||String(e));alert(e.message||e)});return false};",
+    "}).catch(function(e){if(key==='abdFiles'){if(abdRollback){abdRollback();abdRollback=null}rc1617AbdUploadFailed(sh,input,e&&e.message||String(e))}alert(e.message||e)});return false};"
+  );
+  html=html.slice(0,begin)+part+html.slice(end);
+  const helper="function rc1619CaptureAbdState(sh){\n var state=S(),id=shipmentId(sh),ref=L(shipmentRef(sh)),saved=[],seen=[];\n var shipmentKeys=['abdFiles','documentHistory','abdStatus','abdDone','abdCompleted','abdUploadedAt','abdCompletedAt','updatedAt','_syncUpdatedAt','status','shipmentStatus','statusReason','statusReasons'];\n var requestKeys=['abdFiles','linkedShipmentId','ref','reference','status','abdStatus','done','abdDone','completed','completedAt','updatedAt','_syncUpdatedAt'];\n function same(x){if(!x||typeof x!=='object')return false;var xi=shipmentId(x),xr=L(shipmentRef(x));return !!((id&&xi===id&&(!ref||!xr||xr===ref))||(ref&&xr===ref&&(!id||!xi||xi===id)))}\n function copy(k,v){if((k==='abdFiles'||k==='documentHistory')&&Array.isArray(v))return v.map(function(f){return f&&typeof f==='object'?Object.assign({},f):f});return v}\n function take(obj,keys){if(!obj||seen.indexOf(obj)>=0)return;seen.push(obj);var fields={};keys.forEach(function(k){fields[k]={had:Object.prototype.hasOwnProperty.call(obj,k),value:copy(k,obj[k])}});saved.push({obj:obj,fields:fields})}\n [state.shipments,state.savedShipments,state.sharedShipments].forEach(function(list){if(Array.isArray(list))list.forEach(function(x){if(same(x))take(x,shipmentKeys)})});\n [state.shipment,state.currentShipment,state.selectedShipment,state.activeShipment,state.documentShipment,sh].forEach(function(x){if(same(x))take(x,shipmentKeys)});\n abdRequestsForShipment(sh).forEach(function(x){take(x,requestKeys)});\n return function(){\n  saved.forEach(function(entry){Object.keys(entry.fields).forEach(function(k){var f=entry.fields[k];if(f.had)entry.obj[k]=copy(k,f.value);else delete entry.obj[k]})});\n  saved.forEach(function(entry){if(same(entry.obj))try{recalculateShipmentStatus(entry.obj)}catch(_){}});\n };\n}\n";
+  const anchor='function overrideUploads(){';
+  if(html.split(anchor).length!==2)throw new Error(file+': RC1619 Helper-Anker nicht eindeutig');
+  return html.replace(anchor,helper+anchor);
+}
+
 function patchRc1602OfficialPod(html,file){
   html=injectImmediateRuntimeAfterHead(html,RC1602_OFFICIAL_POD_SCRIPT_TAG,'exporthub-rc1602-official-pod');
   html=html.replace(/rc1602-official-pod-server-download\.js\?v=1602/g,'rc1602-official-pod-server-download.js?v=1616');
@@ -1208,6 +1240,7 @@ function patchHtml(file){
   html=patchRc1505SaveConfirmationRenderGate(html,file);
   html=patchRc1319ShipmentSaveFinalization(html,file);
   html=patchRc1617AbdUploadFailureFeedback(html,file);
+  html=patchRc1619AbdFailClosedRollback(html,file);
   html=patchRc1296BrowserBranding(html,file);
   html=patchRc1602OfficialPod(html,file);
   html=html.replace(/ExportHUB RC1048 environment=/g,`ExportHUB ${VERSION} environment=`);
