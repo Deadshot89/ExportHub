@@ -24,6 +24,7 @@ function compileSnapshot(){
    shipmentId:x=>String(x&&x.id||''),
    shipmentRef:x=>String(x&&x.ref||''),
    L:x=>String(x||'').toLowerCase(),
+   Q:x=>String(x==null?'':x).trim(),
    abdRequestsForShipment:()=>s.abdRequests,
    recalculateShipmentStatus:x=>{x.status=x.abdDone===true?'Bereit':'Wartet auf ABD'}
  };
