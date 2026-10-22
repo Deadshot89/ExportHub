@@ -149,3 +149,15 @@ test('RC1604: selected company artwork is previewed, stored locally, reloadable 
   assert.ok(frontend.includes("logoMissingHint:"),"Logo missing guidance missing");
  }
 });
+
+test('RC1604: supplied genuine PNG artwork is embedded in the generated proforma PDF',async()=>{
+ const png='iVBORw0KGgoAAAANSUhEUgAAAGAAAAAgCAIAAABiouoDAAAAbElEQVR4nO3XsQ2AMBAEQUwPxFRC/2WZCmAzcDBTwWmlD37MOTee7X8PWJ1AQaAgUBAoCBQECgIFgUIEus7jmx3LGl6Nd04sCBQECgIFgYJAQaAgUBAoCBQECgIFgYJAQaAgUBAoCBQECgKFG0PUBqoyTuEIAAAAAElFTkSuQmCC';
+ // This tiny test fixture is not Essentra artwork. It verifies embedding without branding substitution.
+ const bytes=await exporter.createProformaPdf({...invoice(),logoDataUri:'data:image/png;base64,'+png});
+ assert.ok(Buffer.isBuffer(bytes));
+ assert.ok(bytes.length>1200);
+ const text=(await extractPdfText(bytes));
+ assert.match(text,/PROFORMA INVOICE/);
+ const layout=fs.readFileSync('api/shared/abd-proforma-layout.js','utf8');
+ assert.ok(layout.includes('page.drawImage(logo,'));
+});
