@@ -16,6 +16,7 @@ on:
       - '.github/rc1521/build-three-env.mjs'
       - 'test/rc1549-abd-proforma.test.mjs'
       - 'test/rc1601-abd-invoice-editor.test.mjs'
+      - 'e2e/specs/rc1601-abd-invoice-editor.spec.mjs'
       - '.github/workflows/rc1549-abd-proforma.yml'
 
 jobs:
@@ -32,3 +33,28 @@ jobs:
         run: node --check assets/rc1549-abd-proforma.js
       - name: RC1549 ABD Proforma contract
         run: node --test test/rc1549-abd-proforma.test.mjs test/rc1601-abd-invoice-editor.test.mjs
+
+      - name: Build static ExportHUB package
+        run: node .github/rc1112/build-three-env.mjs
+
+      - name: Install Chromium for ABD browser regression
+        run: |
+          npm install --no-save @playwright/test@1.63.0
+          npx playwright install --with-deps chromium
+
+      - name: RC1601 upload and manual PDF end-to-end
+        env:
+          EXPORTHUB_E2E_STATIC: '1'
+          EXPORTHUB_E2E_PUBLIC_ENV: testservice
+        run: npx playwright test e2e/specs/rc1601-abd-invoice-editor.spec.mjs --project=laptop
+
+      - name: Preserve ABD browser diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: rc1601-abd-editor-browser
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: ignore
+          retention-days: 14
