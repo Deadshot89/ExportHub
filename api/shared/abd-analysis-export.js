@@ -127,18 +127,37 @@ function wrapText(font,value,size,maxWidth,maxLines=3){
  if(current&&lines.length<maxLines)lines.push(current);
  return lines.length?lines:['']
 }
+function invoiceLogo(data){
+ const raw=typeof data==='string'?data:'';
+ if(!raw)return null;
+ if(raw.length>420000)fail('ABD_LOGO_TOO_LARGE');
+ const matched=/^data:image\/(png|jpeg);base64,([A-Za-z0-9+/]+={0,2})$/.exec(raw);
+ if(!matched)fail('ABD_LOGO_INVALID');
+ const buffer=Buffer.from(matched[2],'base64');
+ if(buffer.length<40||buffer.length>300000)fail('ABD_LOGO_INVALID');
+ if(matched[1]==='png'&&!(buffer[0]===0x89&&buffer[1]===0x50&&buffer[2]===0x4e&&buffer[3]===0x47))fail('ABD_LOGO_INVALID');
+ if(matched[1]==='jpeg'&&!(buffer[0]===0xff&&buffer[1]===0xd8&&buffer[2]===0xff))fail('ABD_LOGO_INVALID');
+ return{type:matched[1],buffer}
+}
 async function createProformaPdf(snapshot){
  const model=createExportModel(snapshot),{PDFDocument,StandardFonts,rgb}=require('pdf-lib'),pdf=await PDFDocument.create(),normal=await pdf.embedFont(StandardFonts.Helvetica),bold=await pdf.embedFont(StandardFonts.HelveticaBold);
+ const logoData=invoiceLogo(snapshot&&snapshot.logoDataUri);
+ const logoImage=logoData?(logoData.type==='png'?await pdf.embedPng(logoData.buffer):await pdf.embedJpg(logoData.buffer)):null;
  pdf.setTitle('Proforma Invoice '+fileLabel(model));pdf.setSubject('Essentra Components GmbH Proforma Invoice');pdf.setCreator('ExportHUB360');
  const width=595.28,height=841.89,margin=36,ink=rgb(0.08,0.12,0.18),muted=rgb(0.35,0.4,0.47),line=rgb(0.82,0.85,0.89),accent=rgb(0.09,0.48,0.43),soft=rgb(0.94,0.98,0.97);
  let page,y,pageNo=0;
  function draw(value,x,yy,size=8,font=normal,maxWidth=520,color=ink){page.drawText(safeText(value,300),{x,y:yy,size,font,color,maxWidth})}
  function rule(yy){page.drawLine({start:{x:margin,y:yy},end:{x:width-margin,y:yy},thickness:0.8,color:line})}
  function brand(){
-  page.drawRectangle({x:margin,y:height-67,width:8,height:30,color:accent});
-  page.drawCircle({x:margin+18,y:height-52,size:5,color:accent});
-  draw('essentra',margin+30,height-57,21,bold,190,ink);
-  draw('Components',margin+31,height-70,7,normal,120,muted);
+  if(logoImage){
+   const scale=Math.min(245/logoImage.width,55/logoImage.height,1);
+   page.drawImage(logoImage,{x:margin,y:height-87,width:logoImage.width*scale,height:logoImage.height*scale})
+  }else{
+   page.drawRectangle({x:margin,y:height-67,width:8,height:30,color:accent});
+   page.drawCircle({x:margin+18,y:height-52,size:5,color:accent});
+   draw('essentra',margin+30,height-57,21,bold,190,ink);
+   draw('Components',margin+31,height-70,7,normal,120,muted)
+  }
   draw('PROFORMA INVOICE',356,height-54,15,bold,200,ink);
   draw('NO COMMERCIAL INVOICE',369,height-69,7,bold,180,muted)
  }
