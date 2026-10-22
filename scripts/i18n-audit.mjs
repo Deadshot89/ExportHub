@@ -3,13 +3,23 @@ import path from 'node:path';
 import vm from 'node:vm';
 
 const ROOT=process.cwd();
+const TRACE=process.env.EXPORTHUB_I18N_TRACE==='1';
+function diag(stage){if(TRACE)console.error('[I18N-AUDIT] '+stage+' heap='+Math.round(process.memoryUsage().heapUsed/1048576)+'MB')}
+diag('startup');
 const LANGS=['de','en','pl','es','fr','it'];
 const STRICT=process.argv.includes('--strict');
 const JSON_MODE=process.argv.includes('--json');
+const SCOPE_ARG=process.argv.find(arg=>arg.startsWith('--scope='));
+const SCOPE_REL=SCOPE_ARG?String(SCOPE_ARG.slice('--scope='.length)).replace(/\\/g,'/').replace(/^\.\//,'').replace(/\/$/,''):'';
+const SCOPE_ROOT=SCOPE_REL?path.resolve(ROOT,SCOPE_REL):ROOT;
+if(SCOPE_REL&&SCOPE_ROOT!==ROOT&&!SCOPE_ROOT.startsWith(ROOT+path.sep))throw new Error('Ungültiger i18n-Audit-Scope: '+SCOPE_REL);
+if(SCOPE_REL&&!fs.existsSync(SCOPE_ROOT))throw new Error('i18n-Audit-Scope fehlt: '+SCOPE_REL);
 
 const EXCLUDED_DIRS=new Set(['.git','.github','node_modules','test','tests','docs','dist','dist-rc1018','android','migration','scripts']);
 const EXCLUDED_FILES=[
   /^assets\/i18n\//,
+  /^assets\/training-center\/catalog\//,
+  /^assets\/training-center\/scenarios\//,
   /^assets\/rc1177-release-notes\.js$/,
   /^assets\/rc1267-i18n\.js$/,
   /^scripts\/i18n-audit\.mjs$/
@@ -20,50 +30,129 @@ const GERMAN_HINT=/\b(?:Abmelden|Abholung|Abholdatum|Abholtermin|Abbrechen|Aktiv
 const UI_CONTEXT=/(?:innerHTML|outerHTML|textContent|innerText|insertAdjacentHTML|placeholder|aria-label|title\s*=|setAttribute\s*\(\s*['"](?:title|aria-label|placeholder)|alert\s*\(|confirm\s*\(|prompt\s*\(|toast|status\s*\(|showMessage|message|label|button|option|<button|<label|<h[1-6]|<th|<td|<span|<p|<div|<option)/i;
 const KEY_LITERAL=/\b(?:common|login|profile|nav|dashboard|shipment|customer|task|document|mail|avis|pickup|public|safety|status|errors|history|settings|calendar|pallet|reports|admin)\.[a-zA-Z0-9_.-]+\b/;
 
-function productionPath(rel){return /^(?:assets\/|api\/)/.test(rel)||/^[^/]+\\.(?:html|js|mjs|cjs)$/.test(rel)}
+function productionPath(rel){return /^(?:assets\/|api\/)/.test(rel)||/^[^/]+\.(?:html|js|mjs|cjs)$/.test(rel)}
 function walk(dir,out=[]){
   for(const ent of fs.readdirSync(dir,{withFileTypes:true})){
-    if(EXCLUDED_DIRS.has(ent.name))continue;
+    if(EXCLUDED_DIRS.has(ent.name)||/^dist(?:-|$)/i.test(ent.name)||/^(?:releases|playwright-report|test-results|\.cache)$/.test(ent.name))continue;
     const abs=path.join(dir,ent.name),rel=path.relative(ROOT,abs).replace(/\\/g,'/');
     if(ent.isDirectory())walk(abs,out);
     else if(productionPath(rel)&&SCAN_EXT.has(path.extname(ent.name))&&!EXCLUDED_FILES.some(rx=>rx.test(rel)))out.push({abs,rel});
   }
   return out;
 }
-function lineNo(source,index){let n=1;for(let i=0;i<index;i++)if(source.charCodeAt(i)===10)n++;return n}
 function compact(value){return String(value||'').replace(/\s+/g,' ').trim().slice(0,220)}
-function likelyVisible(line){
-  if(!GERMAN_HINT.test(line))return false;
-  if(/^\s*(?:\/\/|\*|\/\*)/.test(line))return false;
-  if(/(?:console\.|throw\s+new\s+Error|\.code\s*=|test\(|assert\.|RegExp\(|\/[^/]+\/)/.test(line)&&!UI_CONTEXT.test(line))return false;
-  return UI_CONTEXT.test(line);
-}
-function literalTexts(line){
-  const values=[],rx=/'((?:\\.|[^'\\])*)'|"((?:\\.|[^"\\])*)"|\`((?:\\.|[^\`\\])*)\`/g;let m;
-  while((m=rx.exec(line))){const value=(m[1]??m[2]??m[3]??'').replace(/\\n/g,' ').trim();if(value)values.push(value)}
-  const tagRx=/>\s*([^<>]+?)\s*</g;while((m=tagRx.exec(line))){const value=String(m[1]||'').trim();if(value)values.push(value)}
+// Bounded linear scan: generated HTML contains multi-megabyte JS lines.
+// Avoid unbounded quoted strings and backtracking quote expressions.
+// Process giant quoted tokens directly from their source spans.
+// Never append individual characters to retained rope strings.
+function literalTexts(line,withOffsets=false){
+  const values=[],limit=384,overlap=64,step=limit-overlap;
+  function record(value,position){values.push(withOffsets?{value,position}:value)}
+  function addRange(start,end){
+    for(let pos=start;pos<end;pos+=step){
+      const value=line.slice(pos,Math.min(end,pos+limit)).replace(/\\n/g,' ').trim();
+      if(value)record(value,pos);
+      if(pos+limit>=end)break;
+    }
+  }
+  let quote='',start=0;
+  for(let i=0;i<line.length;i++){
+    const ch=line[i];
+    if(!quote){
+      if(ch==="'"||ch==='"'||ch.charCodeAt(0)===96){quote=ch;start=i+1}
+      continue
+    }
+    if(ch==='\\'){i++;continue}
+    if(ch===quote){addRange(start,i);quote=''}
+  }
+  if(quote&&start<line.length)addRange(start,line.length);
+  let afterTag=-1;
+  for(let i=0;i<line.length;i++){
+    if(line[i]==='>'){afterTag=i+1;continue}
+    if(line[i]==='<'){
+      if(afterTag>=0&&i-afterTag<=384){const value=line.slice(afterTag,i).trim();if(value)record(value,afterTag)}
+      afterTag=-1;
+    }
+    if(afterTag>=0&&i-afterTag>384)afterTag=-1
+  }
   return values
 }
+function isNonUiPayloadLine(line){
+  const head=line.slice(0,256);
+  return /^\s*<script\b/i.test(head)&&/(?:type=["']application\/json|id=["']exporthub-canonical-modules)/i.test(head);
+}
+// Static classification is for human review, never a release bypass.
+// Even a diagnostic message can become user-visible through error handling.
+function candidateCategory(line,hit){
+  const before=line.slice(Math.max(0,hit.position-140),hit.position);
+  const value=hit.value;
+  if(/(?:\bnew\s+Error\s*\(|\bthrow\s+|\bconsole\.(?:log|warn|error|debug)\s*\(|\b(?:logger|diagnostic|telemetry|trace)\s*\()/i.test(before.slice(-100)))
+    return 'technical_or_diagnostic_review';
+  if(/<\s*(?:button|label|h[1-6]|p|li|th|td|option|span|strong|small)\b[^>]*>[^<]*[äöüßA-Za-z]/i.test(value))
+    return 'html_template_review';
+  if(/(?:\.(?:innerHTML|outerHTML|textContent|innerText|placeholder)|\b(?:alert|confirm|prompt|showMessage|toast|setStatus)\s*\()\s*(?:=|\s*,|\s*\()?\s*['"`]?$/i.test(before.trimEnd()))
+    return 'direct_ui_assignment_review';
+  if(/(?:<\s*(?:button|label|h[1-6]|p|li|th|td|option|span|strong|small)\b[^>]*>\s*)$/i.test(before))
+    return 'markup_text_review';
+  return 'context_required';
+}
+// The standalone POD page embeds a verified six-language dictionary and translates
+// approved counter templates offline. Do not misclassify these proven localized literals.
+// Other visible German UI strings remain strict-gate failures.
+function coveredOfflinePodLiteral(file,value,registeredGerman){
+  if(file.rel!=='pod-notfall.html')return false;
+  const clean=String(value||'').trim();
+  const wrapper=clean.match(/^<div class="empty">([^<>]+)<\/div>$/);
+  const plain=wrapper?wrapper[1].trim():clean;
+  if(wrapper&&registeredGerman.has(plain))return true;
+  for(const translatedSource of registeredGerman){
+    if(typeof translatedSource==='string'&&/^\{\{count\}\}\s/.test(translatedSource)
+      &&translatedSource.replace(/^\{\{count\}\}\s*/, '')===plain)return true;
+  }
+  return false;
+}
+
 function scanVisibleGerman(file,source,registeredGerman){
   const rows=[],lines=source.split(/\r?\n/);
   lines.forEach((line,i)=>{
+    if(isNonUiPayloadLine(line))return;
+    if(TRACE&&line.length>10000)diag('german line '+file.rel+':'+(i+1)+' chars='+line.length);
     if(!UI_CONTEXT.test(line))return;
     if(/^\s*(?:\/\/|\*|\/\*)/.test(line))return;
     if(file.rel==='api/shared/rc1014-fixed-pickup-seed.js'&&/siteLabel\s*:/.test(line))return;
-    const hits=literalTexts(line).filter(value=>GERMAN_HINT.test(value)&&!/^[-_a-z0-9./:]+$/i.test(value)&&!registeredGerman.has(value));
+    const hits=literalTexts(line,true).filter(({value,position})=>{
+      // A minified JS line may contain thousands of unrelated strings.
+      // UI relevance must be established next to the literal, not anywhere on the line.
+      const nearby=line.length<=2400?line:line.slice(Math.max(0,position-320),Math.min(line.length,position+512));
+      return UI_CONTEXT.test(nearby)&&GERMAN_HINT.test(value)&&!/^[-_a-z0-9./:]+$/i.test(value)&&!registeredGerman.has(value)&&!coveredOfflinePodLiteral(file,value,registeredGerman)&&!/\b(?:tr|th)\s*\(/.test(value);
+    });
     if(!hits.length)return;
-    for(const literal of hits)rows.push({file:file.rel,line:i+1,literal:compact(literal),text:compact(line)});
+    for(const hit of hits)rows.push({file:file.rel,line:i+1,category:candidateCategory(line,hit),literal:compact(hit.value),text:compact(line.length<=2400?line:line.slice(Math.max(0,hit.position-120),Math.min(line.length,hit.position+250)))})
   });
   return rows;
 }
+// Only report a translation key when it actually flows to a visible text sink.
+// A key elsewhere on a large/minified line is not proof of raw key rendering.
 function scanVisibleKeys(file,source){
-  const rows=[],lines=source.split(/\r?\n/);
+  const rows=[],lines=source.split(/\r?\n/),seen=new Set();
+  const directSink=/(?:\.(?:textContent|innerText|placeholder|title)|\b(?:textContent|innerText|placeholder|aria-label|title)|\[\s*['"](?:textContent|innerText|placeholder|title|aria-label)['"]\s*\])\s*=\s*$/i;
+  const attrSink=/\bsetAttribute\s*\(\s*['"](?:title|aria-label|placeholder)['"]\s*,\s*$/i;
+  const htmlKey=/(?:>\s*|\b(?:title|aria-label|placeholder)\s*=\s*['"])((?:common|login|profile|nav|dashboard|shipment|customer|task|document|mail|avis|pickup|public|safety|status|errors|history|settings|calendar|pallet|reports|admin)\.[a-zA-Z0-9_.-]+)(?=\s*<|['"]|\s*$)/;
   lines.forEach((line,i)=>{
-    if(!KEY_LITERAL.test(line)||!UI_CONTEXT.test(line))return;
-    if(/data-i18n(?:-[a-z]+)?\s*=/.test(line))return;
-    const visibleLiteral=/(?:>|textContent\s*=|innerText\s*=|placeholder\s*=|aria-label\s*=|title\s*=)\s*['"`]?(?:common|login|profile|nav|dashboard|shipment|customer|task|document|mail|avis|pickup|public|safety|status|errors|history|settings|calendar|pallet|reports|admin)\.[a-zA-Z0-9_.-]+/i.test(line);
-    if(!visibleLiteral)return;
-    rows.push({file:file.rel,line:i+1,text:compact(line)});
+    if(isNonUiPayloadLine(line)||!KEY_LITERAL.test(line)||!UI_CONTEXT.test(line))return;
+    if(/^\s*(?:\/\/|\*|\/\*)/.test(line))return;
+    for(const hit of literalTexts(line,true)){
+      const value=hit.value.trim(),left=line.slice(Math.max(0,hit.position-150),hit.position).trimEnd().replace(/['"`]$/, '');
+      const rawKey=new RegExp('^(?:'+KEY_LITERAL.source+')$').test(value);
+      const nearbySink=directSink.test(left)||attrSink.test(left);
+      const plainHtml=rawKey&&/>\s*$/.test(left);
+      const htmlMatch=htmlKey.exec(value);
+      if(!((rawKey&&(nearbySink||plainHtml))||htmlMatch))continue;
+      const key=rawKey?value:htmlMatch[1];
+      const unique=i+':'+key;
+      if(seen.has(unique))continue;seen.add(unique);
+      rows.push({file:file.rel,line:i+1,literal:compact(key),text:compact(line.length<=2400?line:line.slice(Math.max(0,hit.position-120),Math.min(line.length,hit.position+250)))});
+    }
   });
   return rows;
 }
@@ -78,7 +167,7 @@ function loadPacks(){
 }
 function loadFeatureGerman(rel,globalName){
   const file=path.join(ROOT,rel);if(!fs.existsSync(file))return[];
-  const sandbox={console,Intl,URL,setTimeout,clearTimeout};
+  const sandbox={console,Intl,URL,setTimeout,clearTimeout};sandbox.globalThis=sandbox;
   vm.runInNewContext(fs.readFileSync(file,'utf8'),sandbox,{filename:rel});
   const runtime=sandbox[globalName],pack=runtime&&runtime.packs&&runtime.packs.de;
   return pack&&typeof pack==='object'?Object.values(pack):[];
@@ -94,14 +183,21 @@ function keyAudit(packs){
   }
   return{baseKeyCount:base.length,issues}
 }
-const packs=loadPacks(),keys=keyAudit(packs),files=walk(ROOT),hardcoded=[],visibleKeys=[],apiDePath=path.join(ROOT,'api','shared','i18n','de.json'),apiDe=fs.existsSync(apiDePath)?JSON.parse(fs.readFileSync(apiDePath,'utf8')):{},featureGerman=loadFeatureGerman('assets/i18n/pack-notification.js','ExportHUBPackI18n'),registeredGerman=new Set([...Object.values(packs.de),...Object.values(apiDe),...featureGerman].filter(v=>typeof v==='string'&&v.trim()));
+diag('before packs and walk');
+const packs=loadPacks(),keys=keyAudit(packs),files=walk(SCOPE_ROOT),hardcoded=[],visibleKeys=[],apiDePath=path.join(ROOT,'api','shared','i18n','de.json'),apiDe=fs.existsSync(apiDePath)?JSON.parse(fs.readFileSync(apiDePath,'utf8')):{},featureGerman=loadFeatureGerman('assets/i18n/pack-notification.js','ExportHUBPackI18n'),trainingGerman=loadFeatureGerman('assets/training-center/i18n.js','ExportHubTrainingCenterI18n'),registeredGerman=new Set([...Object.values(packs.de),...Object.values(apiDe),...featureGerman,...trainingGerman].filter(v=>typeof v==='string'&&v.trim()));
+diag('scan begin '+files.length+' files');
+let scanN=0;
 for(const file of files){
+  if(TRACE)diag('START '+(++scanN)+' '+file.rel);
   const source=fs.readFileSync(file.abs,'utf8');
   hardcoded.push(...scanVisibleGerman(file,source,registeredGerman));
   visibleKeys.push(...scanVisibleKeys(file,source));
+  if(TRACE)diag('END '+file.rel+' hardcoded='+hardcoded.length);
 }
+diag('scanning done');
 const report={
   version:'RC1267',
+  scope:SCOPE_REL||'.',
   languages:LANGS,
   scannedFiles:files.length,
   translationKeys:keys.baseKeyCount,
@@ -111,12 +207,15 @@ const report={
   emptyTranslationCount:keys.issues.reduce((n,x)=>n+x.empty.length,0),
   visibleTranslationKeyCount:visibleKeys.length,
   hardcodedGermanUiCount:hardcoded.length,
+  hardcodedGermanUiByCategory:Object.fromEntries(Object.entries(hardcoded.reduce((acc,row)=>{acc[row.category]=(acc[row.category]||0)+1;return acc},{})).sort((a,b)=>b[1]-a[1])),
+  hardcodedGermanUiByFile:Object.fromEntries(Object.entries(hardcoded.reduce((acc,row)=>{acc[row.file]=(acc[row.file]||0)+1;return acc},{})).sort((a,b)=>b[1]-a[1])),
   visibleTranslationKeys:visibleKeys.slice(0,500),
   hardcodedGermanUi:hardcoded.slice(0,2000)
 };
 if(JSON_MODE)process.stdout.write(JSON.stringify(report,null,2)+'\n');
 else{
   console.log('ExportHUB RC1267 i18n audit');
+  console.log('Scope:',report.scope);
   console.log('Sprachen:',LANGS.join(', '));
   console.log('Gescannte produktive Dateien:',report.scannedFiles);
   console.log('Translation Keys:',report.translationKeys);
@@ -125,6 +224,8 @@ else{
   console.log('Leere Übersetzungen:',report.emptyTranslationCount);
   console.log('Sichtbare Translation-Key-Literale:',report.visibleTranslationKeyCount);
   console.log('Hardcodierte deutsche UI-Kandidaten:',report.hardcodedGermanUiCount);
+  console.log('Vorläufige Triage (alle Kategorien weiter prüfpflichtig):');
+  for(const [category,count] of Object.entries(report.hardcodedGermanUiByCategory))console.log('  '+String(count).padStart(4,' ')+'  '+category);
   const byFile=Object.entries(hardcoded.reduce((acc,row)=>{acc[row.file]=(acc[row.file]||0)+1;return acc},{})).sort((a,b)=>b[1]-a[1]);
   console.log('Hardcoded nach Datei:');
   for(const [file,count] of byFile.slice(0,40))console.log('  '+String(count).padStart(4,' ')+'  '+file);

@@ -386,7 +386,7 @@ jobs:
               code=$(curl -sS -L -o "$body" -w '%{http_code}' --max-time 20 "$base/customer-avis.html?rc1228=$RELEASE_SHA-$attempt" || true)
               if [ "$code" = "200" ] \
                 && grep -Fq 'Buchbar sind ausschließlich 2-Stunden-Zeitfenster innerhalb von 08:30–16:00 Uhr.' "$body" \
-                && grep -Fq "Noch '+esc(x.remaining)+' von 3 gleichzeitig frei" "$body" \
+                && grep -Fq "avTr('slotRemaining','Noch {{remaining}} von 3 gleichzeitig frei'" "$body" \
                 && grep -Fq "action:'availability'" "$body" \
                 && grep -Fq "err.code==='PICKUP_SLOT_FULL'" "$body"; then
                 break

@@ -5,10 +5,11 @@ import fs from 'node:fs';
 const read=path=>fs.readFileSync(path,'utf8');
 
 test('RC1544: integrierter Release-Builder liefert Guided-Workspace in allen drei Umgebungen aus',()=>{
-  const builder=read('.github/rc1521/build-three-env.mjs');
+  const builder=read('.github/packmeldungen/build-three-env.mjs');
   assert.match(builder,/integrateGuidedWorkspace/);
-  assert.match(builder,/GUIDED_ASSETS/);
-  assert.match(builder,/GUIDED_MARKERS/);
+  const training=read('.github/training-center/build-three-env.mjs');
+  assert.match(training,/removeRetiredSopTagsFromBuild/);
+  assert.match(training,/fs\.rmSync\(path\.join\(out,'assets','sop'\)/);
   const integration=read('.github/rc1544/integrate-guided-workspace.mjs');
   assert.match(integration,/rc1544-sop-guided-i18n\.json/);
   assert.match(integration,/rc1544-sop-guided-i18n\.js/);
@@ -30,7 +31,7 @@ test('RC1544: finaler Pack-/Production-Builder integriert Guided-Workspace nach 
 
 test('RC1544: Browser-Release-Gate prüft den geführten Workspace auf Desktop und Mobile',()=>{
   const workflow=read('.github/workflows/sopmaster-release-candidate.yml');
-  assert.match(workflow,/sopmaster-guided-workspace\.spec\.mjs/);
+  assert.match(workflow,/training-center-tour\.spec\.mjs/);
   assert.match(workflow,/--project=desktop/);
   assert.match(workflow,/--project=mobile-standard/);
 });

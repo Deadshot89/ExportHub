@@ -98,11 +98,27 @@ for(const file of [
   'dist-rc1112/assets/rc1315-loading-list-quick-print.js',
   'dist-rc1112/assets/rc1283-loading-list-search.js',
   'dist-rc1112/assets/rc1177-release-notes.js',
-  'dist-rc1112/migration-recovery.html',
-  'dist-rc1112/assets/sop/screenshots/rc1016-tasks.png',
-  'dist-rc1112/assets/sop/screenshots/rc1016-shipmentoverview.png',
-  'dist-rc1112/assets/sop/screenshots/rc1016-pickupcalendar.png'
+  'dist-rc1112/migration-recovery.html'
 ])exists(file);
+
+const trainingCenterCandidate=fs.existsSync('dist-rc1112/training-center-release-manifest.json');
+if(trainingCenterCandidate){
+  const manifest=JSON.parse(read('dist-rc1112/training-center-release-manifest.json'));
+  assert.equal(manifest.version,'TRAINING-CENTER-1');
+  for(const file of pages){
+    includes(file,'exporthub-training-center-runtime');
+    includes(file,'exporthub-training-center-style');
+    includes(file,'exporthub-training-coverage-dashboard');
+    assert.ok(!read(file).includes('assets/sop/'),file+': alte SOP-Runtime wurde erneut eingebunden');
+  }
+  for(const rel of ['assets/training-center/runtime.js','assets/training-center/store.js','assets/training-center/training-write-guard.js']){
+    exists('dist-rc1112/'+rel);
+  }
+  assert.equal(fs.existsSync('dist-rc1112/assets/sop'),false,'Retired SOP darf im Training-Center-Release nicht liegen');
+}else{
+  for(const rel of ['rc1016-tasks.png','rc1016-shipmentoverview.png','rc1016-pickupcalendar.png'])
+    exists('dist-rc1112/assets/sop/screenshots/'+rel);
+}
 
 // RC1295 i18n-Release-Gate: Schlüssel statt lokalisierter deutscher Runtime-Literale prüfen.
 includes('dist-rc1112/assets/rc1126-customer-delete.js','customerDelete.finalDelete');

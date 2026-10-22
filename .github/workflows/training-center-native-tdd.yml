@@ -1,0 +1,145 @@
+# Temporary native execution gate; remove before merge.
+name: Training Center Native TDD
+
+on:
+  push:
+    branches:
+      - design/sop-training-center-rebuild-2026-10-15
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'assets/training-center/**'
+      - 'assets/sop/**'
+      - 'api/shared/training-center.js'
+      - 'api/shared/merge.js'
+      - 'test/training-center-*.test.mjs'
+      - 'e2e/specs/training-center-*.spec.mjs'
+      - 'browser/training-center-screenshots.mjs'
+      - '.github/training-center/**'
+      - '.github/rc1013/build-three-env.mjs'
+      - '.github/rc1016/build-three-env.mjs'
+      - '.github/rc1018/build-three-env.mjs'
+      - '.github/rc1112/build-three-env.mjs'
+      - '.github/rc1521/build-three-env.mjs'
+      - '.github/workflows/training-center-native-tdd.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  node-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+      - name: Training-Center Node contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          tests=(test/training-center-*.test.mjs)
+          if [ ${#tests[@]} -eq 0 ]; then
+            echo 'Keine Training-Center-Tests gefunden.' >&2
+            exit 1
+          fi
+          node --test --test-concurrency=1 "${tests[@]}"
+
+  browser-shell:
+    needs: node-contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+      - name: Install browser test dependencies
+        run: |
+          npm install --no-save @playwright/test@1.63.0
+          npx playwright install --with-deps chromium
+      - name: Run isolated responsive and persistence Training-Center browser contracts
+        shell: bash
+        run: |
+          cat > training-center.playwright.temp.mjs <<'EOF'
+          import {defineConfig,devices} from '@playwright/test';
+          export default defineConfig({
+            testDir:'./e2e/specs',
+            timeout:30000,
+            expect:{timeout:5000},
+            fullyParallel:false,
+            workers:1,
+            reporter:'line',
+            projects:[
+              {name:'desktop',use:{...devices['Desktop Chrome'],viewport:{width:1440,height:900}}},
+              {name:'tablet',use:{...devices['Desktop Chrome'],viewport:{width:1024,height:768}}},
+              {name:'mobile',use:{...devices['Desktop Chrome'],viewport:{width:390,height:844}}}
+            ]
+          });
+          EOF
+          npx playwright test \
+            e2e/specs/training-center-shell.spec.mjs \
+            e2e/specs/training-center-isolation.spec.mjs \
+            e2e/specs/training-center-tour.spec.mjs \
+            e2e/specs/training-center-first-shipment.spec.mjs \
+            e2e/specs/training-center-coverage.spec.mjs \
+            e2e/specs/training-center-app-integration.spec.mjs \
+            --config=training-center.playwright.temp.mjs
+      - name: Generate safe Training-Center screenshots
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf assets/training-center/screenshots
+          node browser/training-center-screenshots.mjs
+          count=$(find assets/training-center/screenshots -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')
+          test "$count" = "17"
+          test -s assets/training-center/screenshots/shipment-open.png
+          test -s assets/training-center/screenshots/shipment-completion.png
+          if git status --short -- assets/training-center/screenshots | grep -v '^?? ' >/dev/null; then
+            echo 'Screenshot-Generator darf keine bestehenden Quelldateien verändern.' >&2
+            exit 1
+          fi
+
+  main-ancestry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+          fetch-depth: 0
+      - name: Require latest main as a release ancestor
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor origin/main HEAD; then
+            echo 'BLOCKED: Training Center branch is not based on current main.' >&2
+            exit 1
+          fi
+
+  full-release-regression:
+    needs: node-contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+      - name: Full ExportHUB Node regression (no legacy test exclusions)
+        run: npm test
+      - name: Strict six-language i18n audit
+        run: npm run i18n:audit:strict

@@ -146,19 +146,18 @@ jobs:
           EXPORTHUB_E2E_STATIC: '1'
           EXPORTHUB_E2E_ENTRY: '/demo.html'
         run: npx playwright test e2e/specs/print-documents.spec.mjs --project=laptop
-      - name: Protect complete SOPMaster browser path
+      - name: Protect complete Training Center browser path
         env:
           EXPORTHUB_E2E_STATIC: '1'
           EXPORTHUB_E2E_ENTRY: '/demo.html'
         run: >-
           npx playwright test
-          e2e/specs/sopmaster-target-picker.spec.mjs
-          e2e/specs/sopmaster-tour.spec.mjs
-          e2e/specs/sopmaster-visual-editor.spec.mjs
-          e2e/specs/sopmaster-training-exam.spec.mjs
-          e2e/specs/sopmaster-coverage-dashboard.spec.mjs
-          e2e/specs/sopmaster-coverage-integration.spec.mjs
-          e2e/specs/sopmaster-guided-workspace.spec.mjs
+          e2e/specs/training-center-shell.spec.mjs
+          e2e/specs/training-center-isolation.spec.mjs
+          e2e/specs/training-center-tour.spec.mjs
+          e2e/specs/training-center-first-shipment.spec.mjs
+          e2e/specs/training-center-coverage.spec.mjs
+          e2e/specs/training-center-app-integration.spec.mjs
           --project=desktop
           --project=mobile-standard
       - name: Upload browser artifacts on failure
