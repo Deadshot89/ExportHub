@@ -1,0 +1,66 @@
+name: TESTSERVICE Storage Inventory
+
+# Deliberately manual: no recurring reads, deploys or storage mutations.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: testservice-storage-inventory
+  cancel-in-progress: false
+
+jobs:
+  inventory:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: Dedicated inventory configuration required
+        env:
+          EXPORTHUB_TEST_INVENTORY_CONNECTION_STRING: ${{ secrets.EXPORTHUB_TEST_INVENTORY_CONNECTION_STRING }}
+        run: |
+          node --input-type=module -e '
+            if (!process.env.EXPORTHUB_TEST_INVENTORY_CONNECTION_STRING) {
+              console.error("Set repository secret EXPORTHUB_TEST_INVENTORY_CONNECTION_STRING to a dedicated read/list connection string first. No production-secret fallback is used.");
+              process.exit(1);
+            }
+          '
+      - name: Verify inventory tests
+        run: node --test test/testservice-storage-inventory.test.mjs
+      - name: Install existing API dependencies without lifecycle scripts
+        run: npm install --prefix api --ignore-scripts --no-audit --no-fund --package-lock=false
+      - name: Verify real SDK pagination and credential isolation
+        run: node --test test/testservice-storage-sdk.test.mjs
+      - name: Read TESTSERVICE metadata
+        env:
+          EXPORTHUB_TEST_INVENTORY_CONNECTION_STRING: ${{ secrets.EXPORTHUB_TEST_INVENTORY_CONNECTION_STRING }}
+          EXPORTHUB_TEST_INVENTORY_CONTAINER: ${{ vars.EXPORTHUB_TEST_INVENTORY_CONTAINER }}
+        run: node scripts/testservice-storage-inventory.mjs > testservice-storage-inventory.json
+      - name: Show aggregate report
+        run: |
+          node --input-type=module -e '
+            import fs from "node:fs";
+            const raw=fs.readFileSync("testservice-storage-inventory.json","utf8");
+            const report=JSON.parse(raw);
+            if(report.complete!==true || report.environment!=="testservice") process.exit(1);
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+              "## TESTSERVICE Speicherinventur\n\n"+
+              "Metadaten des gewählten Containers; keine Sicherung und kein Kostennachweis.\n\n"+
+              "```json\n"+JSON.stringify(report,null,2)+"\n```\n");
+          '
+      - name: Keep aggregate metadata report for seven days
+        uses: actions/upload-artifact@v4
+        with:
+          name: testservice-storage-inventory
+          path: testservice-storage-inventory.json
+          if-no-files-found: error
+          retention-days: 7
