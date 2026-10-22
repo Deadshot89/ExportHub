@@ -1,10 +1,12 @@
 /* ExportHUB360 RC1579 – Menü mit aufklappbaren Bereichen und einheitlichem Icon-Satz.
    Die Menüknöpfe bleiben unverändert und in kanonischer Reihenfolge direkt in #nav (RC325 prüft das);
-   Bereiche, Reihenfolge und Icons entstehen ausschließlich über CSS (order, mask-image) und eigene Kopfzeilen. */
+   Bereiche, Reihenfolge und Icons entstehen ausschließlich über CSS (order, mask-image) und eigene Kopfzeilen.
+   IT: Fehlerdiagnose, Release-Center und Update stehen als ein Menüpunkt „IT“ (Stellvertreter-Knopf) im Menü;
+   ihre echten Knöpfe bleiben in #nav, werden ausgeblendet und von den Reitern oben im Inhalt angesteuert. */
 (function(w,d){
 'use strict';
 if(!w||!d||w.ExportHUBMenu1579)return;
-var VERSION='RC1579',STORE='exporthub-rc1579-menu-open',STYLE_ID='exporthub-rc1579-menu-map';
+var VERSION='RC1579',STORE='exporthub-rc1579-menu-open',STYLE_ID='exporthub-rc1579-menu-map',IT_STORE='exporthub-rc1579-it-tab';
 
 // Lucide-Icons (ISC-Lizenz), 24×24, Strichstärke 2
 var ICONS={
@@ -48,6 +50,7 @@ var ICONS={
  'section-admin':'<path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"/>'
 };
 ICONS.customers=ICONS.customerfolder;
+ICONS.it='<rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8M12 17v4"/><path d="m7 10 2 2-2 2M11 14h4"/>';
 ICONS.packnotifications='<path d="m16 16 2 2 4-4"/><path d="M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14"/><path d="m7.5 4.27 9 5.15M3.29 7 12 12l8.71-5M12 22V12"/>';
 
 var SECTIONS=[
@@ -57,13 +60,14 @@ var SECTIONS=[
  {key:'logistics',accent:'#ea580c',views:['warehouse','pallet','shippingcosts']},
  {key:'knowledge',accent:'#0d9488',views:['customerfolder','customers','customs','sop','academy','inspections','ideas']},
  {key:'reports',accent:'#4f46e5',views:['reports','history','archive']},
- {key:'admin',accent:'#64748b',views:['rights','teamfile','packaging','settings','privacy','update','release','diagnostics']}
+ {key:'admin',accent:'#64748b',views:['rights','teamfile','packaging','settings','privacy','it','diagnostics','release','update']}
 ];
 var SECTION_OF={},FLAT={};SECTIONS.forEach(function(s){if(s.flat)FLAT[s.key]=true;s.views.forEach(function(v){SECTION_OF[v]=s.key})});
 SECTION_OF.packagingmasterdata='admin';
 var DEFAULT_OPEN=['tasks','shipments'];
+var IT_VIEWS=['diagnostics','release','update'];
 
-var nav=null,observer=null,scheduled=false,syncing=false,open=null,lastActiveSection='',proxyLook='';
+var nav=null,observer=null,scheduled=false,syncing=false,open=null,lastActiveSection='',contentObserver=null;
 
 function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
 function packs(){return w.ExportHUBMenu1579I18n&&w.ExportHUBMenu1579I18n.packs||{}}
@@ -86,6 +90,7 @@ function css(){
    var item=itemSel(v),sel=N+'>'+item;
    out.push(sel+'{order:'+(base+vi+1)+'!important;--menu-accent:'+s.accent+'!important}');
    out.push(sel+' .index308-nav-icon{--menu-accent:'+s.accent+'!important;--rc1579-icon:'+uri(ICONS[v])+'}');
+   if(IT_VIEWS.indexOf(v)>=0)out.push(R+'>'+item+'{display:none!important}');
    if(!s.flat){
     out.push(sel+'{--rc1579-sub:1}');
     out.push(R+':not([data-rc1579-open~="'+s.key+'"])>'+item+'{display:none!important}');
@@ -95,7 +100,7 @@ function css(){
  return out.join('\n');
 }
 // Verpackungen: eigener Menüknopf in #nav (RC1555) oder Stellvertreter, wenn der Knopf außerhalb liegt
-function itemSel(v){return v==='packaging'?':is([data-rc1579-proxy="packaging"],[data-rc1555-packaging-nav])':':is([data-view="'+v+'"],[data-index321-view="'+v+'"])'}
+function itemSel(v){if(v==='it')return '[data-rc1579-proxy="it"]';return v==='packaging'?':is([data-rc1579-proxy="packaging"],[data-rc1555-packaging-nav])':':is([data-view="'+v+'"],[data-index321-view="'+v+'"])'}
 function ensureStyle(){if(d.getElementById(STYLE_ID))return;var st=d.createElement('style');st.id=STYLE_ID;st.textContent=css();(d.head||d.documentElement).appendChild(st)}
 
 function header(s){
@@ -128,17 +133,62 @@ function ensureProxy(){
  return proxy;
 }
 // Der Stellvertreter-Knopf übernimmt das Aussehen eines normalen Menüknopfs des aktiven Designs
-function copyLook(proxy){
- var ref=null;nav.querySelectorAll(':scope>button[data-index321-view]').forEach(function(b){if(!ref&&!b.classList.contains('active')&&b.getAttribute('aria-current')!=='page'&&SECTION_OF[viewOf(b)]&&SECTION_OF[viewOf(b)]!=='start')ref=b});
+function copyLook(proxy,activeRef){
+ var ref=activeRef||null;if(!ref)nav.querySelectorAll(':scope>button[data-index321-view]').forEach(function(b){if(!ref&&!b.classList.contains('active')&&b.getAttribute('aria-current')!=='page'&&SECTION_OF[viewOf(b)]&&SECTION_OF[viewOf(b)]!=='start'&&IT_VIEWS.indexOf(viewOf(b))<0)ref=b});
  if(!ref)return;
- var key=(d.documentElement.getAttribute('data-eh-design')||'')+'|'+(d.body&&d.body.getAttribute('data-eh-theme')||'')+'|'+Math.round(w.innerWidth/100);
- if(proxyLook===key&&proxy.style.length)return;
+ var key=(d.documentElement.getAttribute('data-eh-design')||'')+'|'+(d.body&&d.body.getAttribute('data-eh-theme')||'')+'|'+Math.round(w.innerWidth/100)+'|'+(activeRef?viewOf(activeRef):'');
+ if(proxy.__rc1579Look===key&&proxy.style.length)return;
  var cs=w.getComputedStyle(ref),label=ref.querySelector('.index308-nav-label'),ls=label&&w.getComputedStyle(label);
  ['padding-top','padding-right','padding-bottom','padding-left','min-height','border-radius','border-top-width','border-top-style','border-color','border-left-width','border-left-style','border-right-width','border-right-style','border-bottom-width','border-bottom-style','font-family','font-size','font-weight','letter-spacing','line-height','color','column-gap','align-items','justify-content','text-align','background-color','background-image','box-shadow'].forEach(function(p){proxy.style.setProperty(p,cs.getPropertyValue(p))});
  proxy.style.setProperty('display','flex');proxy.style.setProperty('width','100%');
  if(ls){var pl=proxy.querySelector('.index308-nav-label');['font-size','font-weight','color','letter-spacing'].forEach(function(p){pl.style.setProperty(p,ls.getPropertyValue(p))})}
- proxyLook=key;
+ proxy.__rc1579Look=key;
 }
+
+// IT: ein Menüpunkt für Fehlerdiagnose, Release-Center und Update
+function itButton(v){return nav&&nav.querySelector(':scope>'+itemSel(v))}
+function itAllowed(){return IT_VIEWS.filter(function(v){var b=itButton(v);return b&&!b.hidden&&b.style.display!=='none'})}
+function currentView(){return q(d.body&&d.body.getAttribute('data-exporthub-view'))}
+function lastItTab(){var v='';try{v=q(w.localStorage&&w.localStorage.getItem(IT_STORE))}catch(_){}return v}
+function openIt(v){var allowed=itAllowed();if(allowed.indexOf(v)<0)v=allowed.indexOf(lastItTab())>=0?lastItTab():allowed[0];var b=v&&itButton(v);if(b)b.click()}
+function ensureItProxy(active){
+ var proxy=nav.querySelector(':scope>[data-rc1579-proxy="it"]');
+ if(!proxy){
+  proxy=d.createElement('button');proxy.type='button';proxy.className='rc1579-proxy';proxy.setAttribute('data-rc1579-proxy','it');
+  proxy.innerHTML='<span class="index308-nav-icon" aria-hidden="true"></span><span class="index308-nav-label"></span>';
+  proxy.addEventListener('click',function(e){e.preventDefault();openIt('');try{if(w.ExportHUBMobileMenu&&w.ExportHUBMobileMenu.isOpen())w.ExportHUBMobileMenu.close()}catch(_){}});
+  nav.appendChild(proxy);
+ }
+ var label=t('it'),isActive=IT_VIEWS.indexOf(active)>=0;
+ setText(proxy.querySelector('.index308-nav-label'),label);setAttr(proxy,'title',t('itTitle'));setAttr(proxy,'aria-label',t('itTitle'));
+ proxy.hidden=itAllowed().length===0;
+ setAttr(proxy,'data-rc1579-active',isActive?'1':null);
+ copyLook(proxy,isActive?itButton(active):null);
+ return proxy;
+}
+function itTabs(){
+ var content=d.getElementById('content'),view=currentView();
+ if(!content||!nav)return;
+ watchContent(content);
+ var bar=content.querySelector(':scope>[data-rc1579-it-tabs]');
+ if(IT_VIEWS.indexOf(view)<0){if(bar)bar.remove();return}
+ try{w.localStorage&&w.localStorage.setItem(IT_STORE,view)}catch(_){}
+ var allowed=itAllowed();
+ if(!bar){bar=d.createElement('nav');bar.className='rc1579-it-tabs';bar.setAttribute('data-rc1579-it-tabs','1');content.prepend(bar)}
+ else if(content.firstElementChild!==bar)content.prepend(bar);
+ setAttr(bar,'aria-label',t('itTitle'));
+ var html='<span class="rc1579-it-tabs-title">'+t('it')+'</span>'+allowed.map(function(v){var b=itButton(v),label=q(b&&b.querySelector('.index308-nav-label')&&b.querySelector('.index308-nav-label').textContent)||q(b&&b.textContent)||v;return '<button type="button" data-rc1579-it-tab="'+v+'"'+(v===view?' aria-current="page"':'')+' style="--rc1579-icon:'+uri(ICONS[v]).replace(/"/g,'&quot;')+'"><span aria-hidden="true"></span>'+label.replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})+'</button>'}).join('');
+ if(bar.__rc1579Html!==html){bar.innerHTML=html;bar.__rc1579Html=html}
+}
+function watchContent(content){
+ if(contentObserver&&contentObserver.__content===content)return;
+ if(contentObserver)contentObserver.disconnect();
+ if(!w.MutationObserver)return;
+ contentObserver=new MutationObserver(function(){var bar=content.querySelector(':scope>[data-rc1579-it-tabs]');if(IT_VIEWS.indexOf(currentView())>=0?!bar||content.firstElementChild!==bar:!!bar)schedule()});
+ contentObserver.__content=content;
+ contentObserver.observe(content,{childList:true});
+}
+d.addEventListener('click',function(e){var b=e.target&&e.target.closest&&e.target.closest('[data-rc1579-it-tab]');if(!b)return;e.preventDefault();var v=b.getAttribute('data-rc1579-it-tab');if(v!==currentView())openIt(v)});
 
 function activeView(){var a=nav.querySelector(':scope>button.active[data-index321-view],:scope>button[aria-current="page"]');return a?viewOf(a):''}
 
@@ -150,7 +200,7 @@ function sync(){
  try{
   ensureStyle();watch();
   if(!open)open=readOpen();
-  ensureProxy();var active=activeView(),activeSection=SECTION_OF[active]||'';
+  ensureProxy();var active=activeView(),activeSection=SECTION_OF[active]||'';ensureItProxy(active);itTabs();
   if(activeSection&&!FLAT[activeSection]&&activeSection!==lastActiveSection&&open.indexOf(activeSection)<0){open.push(activeSection);writeOpen()}
   lastActiveSection=activeSection;
   SECTIONS.forEach(function(s){
@@ -207,6 +257,7 @@ w.ExportHUBMenu1579=Object.freeze({
  close:function(key){toggle(key,false)},
  toggle:function(key){toggle(key)},
  refresh:sync,
+ openIt:function(v){if(!nav)nav=d.getElementById('nav');if(nav)openIt(q(v))},
  selfTest:function(){
   var n=d.getElementById('nav');if(!n)return{ready:false};
   var buttons=Array.prototype.slice.call(n.querySelectorAll(':scope>button:is([data-view],[data-index321-view]):not([data-rc1555-packaging-nav])')),missing=buttons.map(viewOf).filter(function(v){return !ICONS[v]});
