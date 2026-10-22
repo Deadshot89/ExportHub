@@ -134,3 +134,16 @@ test('RC1594: OIDC-Auditweg nutzt frisches Recompute statt erzwungenem State-Wri
   assert.match(source,/await store\.writeJson\(teamBlob,doc,read\.etag\)/);
   assert.doesNotMatch(source,/force\s*:\s*true/);
 });
+
+
+test('RC1618 P0: mutation-capable POD audit core rejects production before touching Azure',async()=>{
+  const mod=loadAudit();
+  const suspended=e=>e&&e.code==='POD_STATUS_AUDIT_SUSPENDED_RC1598'&&e.status===423;
+  await assert.rejects(mod.auditPodStatuses('production',{cursor:0,limit:1}),suspended);
+  // Invalid/missing environment normalizes to production in pickup-store and must be locked too.
+  await assert.rejects(mod.auditPodStatuses('wrong-environment',{cursor:0,limit:1}),suspended);
+  await assert.rejects(mod.auditPodStatusesWithRetry('production',{cursor:0,limit:1}),suspended);
+  const coreGuard=source.indexOf("if(environment==='production')throw store.err('POD_STATUS_AUDIT_SUSPENDED_RC1598'");
+  const storageRead=source.indexOf('const clients=await store.clients(environment)',coreGuard);
+  assert.ok(coreGuard>=0&&storageRead>coreGuard,'core lock must precede any Azure client, backup or team-state read');
+});

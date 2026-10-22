@@ -180,6 +180,9 @@ async function quarantinePickupRecord(accessKey,environment,reference){
 async function auditPodStatuses(environment,options){
  options=Object.assign({cursor:0,limit:10},options||{});environment=store.normalizeEnvironment(environment);
  if(environment!=='production'&&environment!=='testservice')throw store.err('ENVIRONMENT_INVALID','Unbekannte ExportHUB-Umgebung.',400);
+ // RC1618 P0 (#899): keep the lock at the mutation-capable core, not only in HTTP routing or scheduled workflows.
+ // auditOnly historically still wrote status changes; never permit a production bulk audit via another caller.
+ if(environment==='production')throw store.err('POD_STATUS_AUDIT_SUSPENDED_RC1598','Produktive POD-Statusbereinigung bleibt gesperrt, bis jeder Original-POD einzeln autorisiert geprüft wurde.',423);
  const clients=await store.clients(environment),teamBlob=clients.team.getBlockBlobClient(store.teamBlobName(environment)),read=await store.readJson(teamBlob,{schemaVersion:3,revision:0,state:{},users:[]}),doc=read.value||{schemaVersion:3,revision:0,state:{},users:[]};
  doc.state=doc.state||{};doc.state.shipments=Array.isArray(doc.state.shipments)?doc.state.shipments:[];
  const shipments=doc.state.shipments,start=Math.max(0,Math.round(Number(options.cursor)||0)),limit=Math.min(25,Math.max(1,Math.round(Number(options.limit)||10))),selected=[];let scan=start;
