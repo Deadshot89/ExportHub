@@ -48,11 +48,11 @@ module.exports=async function(context,req){
   let abdCfg={abdPresent:typeof store.abdPresent==='function'?store.abdPresent(current):current.abdPresent===true,abdRequired:current.abdRequired===true};
   if(typeof store.resolveShipmentAbdConfig==='function'){
    try{abdCfg=await store.resolveShipmentAbdConfig(current,resolved.environment)}
-   catch(error){context.log&&context.log.error&&context.log.error('pickup-confirm-v2 ABD verification unavailable',error&&error.code,error&&error.message);throw store.err('ABD_CHECK_UNAVAILABLE','ABD-Prüfung nicht verfügbar. Abholung wurde nicht bestätigt.',503)}
+   catch(error){context.log&&context.log.error&&context.log.error('pickup-confirm-v2 ABD verification unavailable',error&&error.code,error&&error.message);throw store.err('ABD_CHECK_UNAVAILABLE',apiI18n.t(req,'api.pickup.abdCheckUnavailable'),503)}
   }
   const abdPresent=abdCfg&&abdCfg.abdPresent===true;
   if(abdCfg&&abdCfg.abdRequired===true&&!abdPresent)
-   throw store.err('ABD_DOCUMENT_REQUIRED','ABD ist noch offen oder nicht gespeichert. Abholung ist gesperrt, bis das ABD hinterlegt ist.',409);
+   throw store.err('ABD_DOCUMENT_REQUIRED',apiI18n.t(req,'api.pickup.abdDocumentRequired'),409);
   const customsDocumentsReceived=abdPresent&&(b.customsDocumentsReceived===true||b.customsDocumentsConfirmed===true||b.abdDocumentsHandedOver===true);
   if(abdPresent&&!customsDocumentsReceived)throw store.err('CUSTOMS_DOCUMENTS_CONFIRMATION_REQUIRED',apiI18n.t(req,'api.pickup.customsSignatureRequired'),400);
   let uploadKey='';
