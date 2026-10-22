@@ -3,6 +3,7 @@
 if(!root||root.ExportHUBRC1549Proforma)return;
 
 var rows=[emptyRow()],manualSnapshot=null,busy=false,timer=0,observer=null,observerRoot=null;
+var logoDataUri='';
 var headerDraft={invoiceNumber:'',invoiceDate:'',senderName:'Essentra Components GmbH',senderAddress:'',recipient:'',recipientAddress:'',destinationCountry:'',currency:'EUR'};
 var packs={
  de:{title:'Positionen manuell erfassen',help:'Alternativ zum Dokument- oder Excel-Upload kannst du die Warenpositionen hier direkt erfassen. Alle Wege verwenden dieselbe ABD-Prüflogik.',number:'Proforma-Nr.',date:'Datum',recipient:'Empfänger',country:'Empfängerland',currency:'Währung',add:'Position hinzufügen',create:'Positionen auswerten',proforma:'Proforma-Rechnung erstellen',item:'Artikel',description:'Warenbeschreibung',qty:'Menge',unit:'Einheit',unitPrice:'Einzelpreis',value:'Warenwert',net:'Netto kg',gross:'Brutto kg',volume:'Volumen m³',hs:'HS-Code',origin:'Herkunftsland',actions:'Aktionen',remove:'Entfernen',duplicate:'Duplizieren',summary:'Manuelle Auswertung',total:'Warenwert gesamt',groups:'Zollzusammenfassung',required:'Bitte mindestens eine vollständige Warenposition erfassen.',recipientRequired:'Bitte Empfänger eintragen.',ready:'Auswertung vollständig. Proforma kann erstellt werden.',review:'Bitte markierte Pflichtangaben ergänzen.',error:'Aktion fehlgeschlagen.'},
@@ -20,12 +21,20 @@ var extras={
  fr:{invoiceTitle:'Créer une facture pour la déclaration d’exportation',editorHelp:'Importer et corriger les données d’une facture ou tout saisir manuellement.',sender:'Expéditeur / société',senderAddress:'Adresse de l’expéditeur',recipientAddress:'Adresse du destinataire',editUpload:'Modifier dans la facture',importSuccess:'Positions importées. Vérifiez les adresses et marchandises.',addressesRequired:'Saisissez les deux adresses complètes.',invalidPosition:'Vérifiez quantités, valeurs, poids, code SH et origine.',uploadEmpty:'Aucune position trouvée.'},
  it:{invoiceTitle:'Crea fattura per dichiarazione di esportazione',editorHelp:'Importa e correggi le voci caricate oppure inserisci tutto manualmente.',sender:'Mittente / azienda',senderAddress:'Indirizzo mittente',recipientAddress:'Indirizzo destinatario',editUpload:'Modifica nella fattura',importSuccess:'Voci importate. Controlla indirizzi e merci.',addressesRequired:'Inserisci entrambi gli indirizzi completi.',invalidPosition:'Controlla quantità, valori, pesi, codice HS e origine.',uploadEmpty:'Nessuna voce trovata.'}
 };
+var logoTexts={
+ de:{logo:'Essentra-Logo (PNG/JPG, optional)',logoOk:'Firmenlogo übernommen.',logoInvalid:'Bitte eine gültige PNG- oder JPG-Datei bis 300 KB auswählen.'},
+ en:{logo:'Essentra logo (PNG/JPG, optional)',logoOk:'Company logo loaded.',logoInvalid:'Choose a valid PNG or JPG up to 300 KB.'},
+ pl:{logo:'Logo Essentra (PNG/JPG, opcjonalnie)',logoOk:'Logo wczytane.',logoInvalid:'Wybierz PNG lub JPG do 300 KB.'},
+ es:{logo:'Logo Essentra (PNG/JPG, opcional)',logoOk:'Logo cargado.',logoInvalid:'Selecciona PNG o JPG de hasta 300 KB.'},
+ fr:{logo:'Logo Essentra (PNG/JPG, facultatif)',logoOk:'Logo chargé.',logoInvalid:'Sélectionnez un PNG ou JPG de 300 Ko maximum.'},
+ it:{logo:'Logo Essentra (PNG/JPG, facoltativo)',logoOk:'Logo caricato.',logoInvalid:'Seleziona PNG o JPG fino a 300 KB.'}
+};
 function q(value){return String(value==null?'':value).trim()}
 function esc(value){return q(value).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function language(){
  try{var value=root.ExportHUBI18n&&typeof root.ExportHUBI18n.language==='function'?root.ExportHUBI18n.language():root.navigator&&root.navigator.language;value=q(value).toLowerCase().slice(0,2);return packs[value]?value:'de'}catch(_){return'de'}
 }
-function t(key){var lang=language();return extras[lang]&&extras[lang][key]||packs[lang][key]||extras.de[key]||packs.de[key]||key}
+function t(key){var lang=language();return extras[lang]&&extras[lang][key]||logoTexts[lang]&&logoTexts[lang][key]||packs[lang][key]||extras.de[key]||logoTexts.de[key]||packs.de[key]||key}
 function emptyRow(){return{itemNumber:'',description:'',quantity:'',unit:'pcs',unitPrice:'',value:'',netMassKg:'',grossMassKg:'',volumeM3:'',commodityCode:'',originCountry:''}}
 function number(value){
  if(typeof value==='number')return Number.isFinite(value)?value:null;
@@ -65,7 +74,7 @@ function ready(snapshot){
 }
 async function exportProforma(snapshot,button){
  if(!ready(snapshot)||busy)return false;busy=true;if(button)button.disabled=true;
- try{var result=await post('/api/abd-analysis/export',{action:'export',format:'proforma',snapshot:snapshot});download(result.file);return true}
+ try{var exportSnapshot=Object.assign({},snapshot);if(logoDataUri)exportSnapshot.logoDataUri=logoDataUri;var result=await post('/api/abd-analysis/export',{action:'export',format:'proforma',snapshot:exportSnapshot});download(result.file);return true}
  catch(error){setStatus(q(error&&error.message)||t('error'),'bad');return false}
  finally{busy=false;if(button)button.disabled=false;schedule()}
 }
@@ -147,7 +156,7 @@ function importUploaded(index){
  rows=positions.map(function(p){
   var item=emptyRow();
   ['itemNumber','description','quantity','unit','unitPrice','value','netMassKg','grossMassKg','volumeM3','commodityCode','originCountry'].forEach(function(key){if(p[key]!=null)item[key]=String(p[key])});
-  item.manualValue=p.value!=null;
+  item.manualValue=p.value!=null&&!(number(p.quantity)!=null&&number(p.unitPrice)!=null&&number(p.value)!=null&&Math.abs(number(p.quantity)*number(p.unitPrice)-number(p.value))<0.011);
   return item
  });
  var header=source.header||{};
@@ -180,7 +189,7 @@ function enhanceUploaded(){
 function ensureStyle(){
  var d=root.document;if(!d||!d.createElement||d.getElementById('rc1549AbdProformaStyle'))return;
  var style=d.createElement('style');style.id='rc1549AbdProformaStyle';style.textContent='.rc1549-manual{margin-top:16px;padding:14px;border:1px solid #a7f3d0;border-left:4px solid #0f766e;border-radius:12px;background:rgba(240,253,250,.82);color:var(--text,#0f172a)}.rc1549-manual h4{margin:0 0 4px}.rc1549-manual>p{margin:0;color:var(--muted,#475569);font-size:13px}.rc1549-head{display:grid;grid-template-columns:repeat(5,minmax(120px,1fr));gap:8px;margin:12px 0}.rc1549-head label{display:grid;gap:4px;font-size:11px;font-weight:700;color:var(--muted,#475569)}.rc1549-head input{box-sizing:border-box;width:100%;min-height:38px;padding:7px 8px;border:1px solid #94a3b8;border-radius:8px;background:var(--card,#fff);color:var(--text,#0f172a)}.rc1549-scroll{overflow:auto;border:1px solid #cbd5e1;border-radius:10px;background:var(--card,#fff)}.rc1549-scroll table{border-collapse:collapse;width:100%;min-width:1510px;font-size:11px}.rc1549-scroll th,.rc1549-scroll td{padding:6px;border-bottom:1px solid #e2e8f0;text-align:left;vertical-align:top}.rc1549-scroll th{background:rgba(248,250,252,.96);color:#334155;position:sticky;top:0;z-index:1}.rc1549-scroll input{box-sizing:border-box;width:100%;min-width:76px;padding:6px;border:1px solid #cbd5e1;border-radius:6px;background:var(--card,#fff);color:var(--text,#0f172a)}.rc1549-scroll td.rc1549-wide input{min-width:230px}.rc1549-row-actions{display:flex;gap:4px}.rc1549-row-actions button{min-width:34px;padding:5px 7px}.rc1549-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.rc1549-status{margin-top:10px;padding:8px 10px;border-radius:8px;background:#eff6ff;font-size:12px;font-weight:700}.rc1549-status[data-kind="ok"]{background:#ecfdf5;color:#065f46}.rc1549-status[data-kind="warn"]{background:#fff7ed;color:#9a3412}.rc1549-status[data-kind="bad"]{background:#fef2f2;color:#991b1b}.rc1549-result{margin-top:12px;padding:12px;border:1px solid #99f6e4;border-radius:10px;background:var(--card,#fff)}.rc1549-result-head{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.rc1549-result-head small{display:block;color:#64748b}.rc1549-result-head strong{display:block}.rc1549-metrics{display:grid;grid-template-columns:repeat(4,minmax(120px,1fr));gap:8px;margin:10px 0}.rc1549-metrics>div{display:grid;gap:3px;padding:8px;border:1px solid #dbeafe;border-radius:8px}.rc1549-metrics span{font-size:11px;color:#64748b}@media(max-width:1000px){.rc1549-head{grid-template-columns:1fr 1fr}.rc1549-metrics{grid-template-columns:1fr 1fr}}@media(max-width:560px){.rc1549-head,.rc1549-metrics{grid-template-columns:1fr}.rc1549-actions>*{width:100%}}';
- style.textContent+='.rc1549-head textarea{box-sizing:border-box;width:100%;min-height:64px;resize:vertical;padding:8px;border:1px solid #94a3b8;border-radius:8px;background:var(--card,#fff);color:var(--text,#0f172a);font:inherit}.rc1549-head label.rc1549-address{grid-column:span 2}.rc1549-manual input:focus-visible,.rc1549-manual textarea:focus-visible{outline:2px solid #2563eb;outline-offset:2px}@media(max-width:1000px){.rc1549-head label.rc1549-address{grid-column:auto}}';
+ style.textContent+='.rc1549-logo{padding:9px 0 12px}.rc1549-logo input{display:block;margin-top:5px;max-width:100%}.rc1549-head textarea{box-sizing:border-box;width:100%;min-height:64px;resize:vertical;padding:8px;border:1px solid #94a3b8;border-radius:8px;background:var(--card,#fff);color:var(--text,#0f172a);font:inherit}.rc1549-head label.rc1549-address{grid-column:span 2}.rc1549-manual input:focus-visible,.rc1549-manual textarea:focus-visible{outline:2px solid #2563eb;outline-offset:2px}@media(max-width:1000px){.rc1549-head label.rc1549-address{grid-column:auto}}';
  (d.head||d.documentElement).appendChild(style)
 }
 function mountManual(){
@@ -198,6 +207,7 @@ function mountManual(){
   '<label class="rc1549-address">'+esc(t('senderAddress'))+'<textarea data-rc1549-header="senderAddress" maxlength="500" rows="3"></textarea></label>'+
   '<label>'+esc(t('recipient'))+'<input data-rc1549-header="recipient" maxlength="160"></label>'+
   '<label class="rc1549-address">'+esc(t('recipientAddress'))+'<textarea data-rc1549-header="recipientAddress" maxlength="500" rows="3"></textarea></label></div>'+
+  '<div class="rc1549-logo"><label>'+esc(t('logo'))+' <input type="file" data-rc1549-logo accept="image/png,image/jpeg,.png,.jpg,.jpeg"></label></div>'+
   '<div class="rc1549-scroll"><table><thead><tr><th>'+esc(t('item'))+'</th><th>'+esc(t('description'))+'</th><th>'+esc(t('qty'))+'</th><th>'+esc(t('unit'))+'</th><th>'+esc(t('unitPrice'))+'</th><th>'+esc(t('value'))+'</th><th>'+esc(t('net'))+'</th><th>'+esc(t('gross'))+'</th><th>'+esc(t('volume'))+'</th><th>'+esc(t('hs'))+'</th><th>'+esc(t('origin'))+'</th><th>'+esc(t('actions'))+'</th></tr></thead><tbody data-rc1549-manual-list></tbody></table></div>'+
   '<div class="rc1549-actions"><button type="button" class="ghost" data-rc1549-manual-add>+ '+esc(t('add'))+'</button><button type="button" class="btn" data-rc1549-manual-create>'+esc(t('create'))+'</button></div>'+
   '<div class="rc1549-status" data-rc1549-status hidden></div><div class="rc1549-result" data-rc1549-result hidden></div>';
@@ -209,7 +219,21 @@ function mountManual(){
   var field=event.target&&event.target.closest&&event.target.closest('[data-rc1549-header]');
   if(field){headerDraft[field.getAttribute('data-rc1549-header')]=field.value;invalidate()}
  });
- panel.addEventListener('change',function(event){event.stopPropagation()});
+ panel.addEventListener('change',async function(event){
+  event.stopPropagation();
+  var input=event.target&&event.target.closest&&event.target.closest('[data-rc1549-logo]');
+  if(!input)return;
+  var file=input.files&&input.files[0];
+  if(!file){logoDataUri='';return}
+  try{
+   if(!/^(image\/png|image\/jpeg)$/.test(file.type)||file.size>300000)throw new Error('FILE');
+   var bytes=new Uint8Array(await file.arrayBuffer()),png=file.type==='image/png';
+   if(bytes.length<40||(png&&!(bytes[0]===0x89&&bytes[1]===0x50&&bytes[2]===0x4e&&bytes[3]===0x47))||(!png&&!(bytes[0]===0xff&&bytes[1]===0xd8&&bytes[2]===0xff)))throw new Error('SIGNATURE');
+   var parts=[];for(var i=0;i<bytes.length;i+=0x8000)parts.push(String.fromCharCode.apply(null,bytes.subarray(i,i+0x8000)));
+   logoDataUri='data:'+file.type+';base64,'+root.btoa(parts.join(''));
+   setStatus(t('logoOk'),'ok')
+  }catch(_){logoDataUri='';input.value='';setStatus(t('logoInvalid'),'bad')}
+ });
  panel.addEventListener('click',function(event){
   event.stopPropagation();
   var add=event.target&&event.target.closest&&event.target.closest('[data-rc1549-manual-add]');if(add){rows.push(emptyRow());renderRows();invalidate();return}
