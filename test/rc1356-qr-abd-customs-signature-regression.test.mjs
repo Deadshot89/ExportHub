@@ -38,9 +38,8 @@ test('RC1377 P0: bestehende QR-Sendung behält ABD-Pflicht auch wenn Live-Sendun
   assert.match(block,/record&&record\.abdRequired===true/);
   assert.match(block,/matchingShipments\.some\(x=>x\.abdRequired===true/);
   assert.match(block,/requests\.length>0/);
-  assert.match(block,/matchingShipments\.some\(rc1622StoredAbd\)/);
-  assert.match(block,/requests\.some\(rc1622StoredAbd\)/);
-  assert.match(block,/rc1622StoredAbd\(record\)/);
+  assert.match(block,/matchingShipments\.concat\(requests,\[record\]\)/);
+  assert.match(block,/await rc1622StoredAbd\(candidate,documents,c\.environment,verifiedCache\)/);
   assert.doesNotMatch(block,/const present=abdPresent\(sh\)/);
 });
 
@@ -54,7 +53,8 @@ test('RC1378 P0: abgeschlossene ABD-Anfrage mit generischem status wird serverse
   assert.match(block,/requests=\(Array\.isArray\(state\.abdRequests\)/);
   assert.match(block,/\.filter\(same\)/);
   assert.match(block,/req=requests\.length\?requests\[requests\.length-1\]:null/);
-  assert.match(block,/requests\.some\(rc1622StoredAbd\)/);
+assert.match(block,/matchingShipments\.concat\(requests,\[record\]\)/);
+  assert.match(block,/await rc1622StoredAbd\(candidate,documents,c\.environment,verifiedCache\)/);
   assert.match(block,/abdStatus:sanitizeText\(first\(req\|\|sh\|\|record/);
   assert.doesNotMatch(block,/const reqPresent=abdPresent\(req\)/);
 });
