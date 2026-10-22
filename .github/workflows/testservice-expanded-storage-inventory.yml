@@ -50,7 +50,17 @@ jobs:
             if(r.complete!==true||r.scopes.length!==6||r.billingVerified!==false)process.exit(1);
             const lines=["## TESTSERVICE Erweiterte Speicherinventur","","Metadaten aus sechs bekannten TESTSERVICE-Speicherbereichen, keine Sicherung und kein Rechnungsnachweis.","","| Bereich | Datensätze | Logische Bytes |","|---|---:|---:|"];
             for(const s of r.scopes) lines.push("| "+s.scope+" | "+s.records+" | "+s.logicalBytes+" |");
-            lines.push("","**Gesamt: "+r.records+" Datensätze / "+r.logicalBytes+" logische Bytes**","","Gemeinsame Anmeldedaten, unbekannte Ressourcen und Azure-Abrechnungsgrößen sind damit nicht abschließend geprüft.");
+            lines.push("","**Gesamt: "+r.records+" Datensätze / "+r.logicalBytes+" logische Bytes**",
+              "Live: "+r.liveLogicalBytes+" logische Bytes; Historie/Versionen/Snapshots/Gelöscht: "+r.historicalLogicalBytes+" logische Bytes.",
+              "","| Letzte Änderung (Metadaten) | Datensätze | Logische Bytes |","|---|---:|---:|");
+            const labels={last30Days:"Letzte 30 Tage",days31To90:"31–90 Tage",olderThan90Days:"Älter als 90 Tage",unknown:"Unbekannt / ungültiges Datum"};
+            for(const [key,label] of Object.entries(labels)){
+              const a=r.ageBuckets[key];
+              if(!a)process.exit(1);
+              lines.push("| "+label+" | "+a.records+" | "+a.logicalBytes+" |");
+            }
+            lines.push("","Achtung: Ältere Dateien dürfen ohne gesichertes Archiv, Aufbewahrungsprüfung und Restoretest NICHT gelöscht werden.",
+              "Gemeinsame Anmeldedaten, unbekannte Ressourcen und Azure-Abrechnungsgrößen sind damit nicht abschließend geprüft.");
             fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,lines.join("\n")+"\n");
           '
       - name: Keep aggregate-only result for seven days
