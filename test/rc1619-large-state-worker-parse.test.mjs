@@ -25,7 +25,7 @@ function isolatedJsonFetch(response,{worker=true,brokenWorker=false,hangWorker=f
   terminate(){calls.terminated++}
  }
  const native={setTimeout(callback){if(hangWorker)queueMicrotask(callback);return 1},clearTimeout(){}};
- const ctx={window:{Worker:worker?MockWorker:null},Worker:MockWorker,URL:dataURL,
+ const ctx={window:{Worker:worker?MockWorker:null},Worker:MockWorker,URL:dataURL,rc1576ResponseAbort:null,
    Blob:class{constructor(){}},native,runtime:{authToken:''},
    resilientFetch:async()=>response,apiEndpointLabel:()=>'/api/exporthub-state',
    text:v=>String(v??'').trim(),console};
