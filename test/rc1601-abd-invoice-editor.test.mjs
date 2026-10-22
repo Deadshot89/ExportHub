@@ -56,3 +56,16 @@ test('RC1601: only valid size-limited PNG or JPEG logo data may enter the PDF',a
  assert.match(frontend,/data-rc1549-logo/);
  assert.match(frontend,/exportSnapshot\.logoDataUri=logoDataUri/)
 });
+
+test('RC1601: long invoice descriptions are not silently truncated',async()=>{
+ const snapshot=invoice(),last='LASTWORD-CHECK-XYZ';
+ snapshot.positions[0].description=('International replacement component '.repeat(9))+last;
+ const bytes=await exporter.createProformaPdf(snapshot);
+ const content=(await extractPdfText(bytes)).replace(/\\s+/g,' ');
+ assert.match(content,/LASTWORD-CHECK-XYZ/);
+});
+test('RC1601: invoice editor avoids MutationObserver feedback loops',()=>{
+ assert.match(frontend,/if\\(button\\.textContent!==exportLabel\\)/);
+ assert.match(frontend,/if\\(importButton\\.textContent!==importLabel\\)/);
+ assert.match(frontend,/if\\(entry\\)\\{var title=t\\('invoiceTitle'\\);if\\(entry\\.textContent!==title\\)/);
+});
