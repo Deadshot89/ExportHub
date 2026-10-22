@@ -23,6 +23,8 @@ test('RC1601: Rechnung per Upload korrigieren, validieren und als PDF exportiere
  test.skip(testInfo.project.name!=='laptop','Test läuft einmal im Chromium-Laptop-Profil.');
  test.setTimeout(90_000);
  const pageErrors=[],exports=[];
+ // Isolated static demo browser uses a synthetic token only for intercepted E2E endpoints.
+ await page.addInitScript(()=>sessionStorage.setItem('__rc1601_test_session',JSON.stringify({token:'RC1601-E2E-FAKE-SESSION'})));
  page.on('pageerror',e=>pageErrors.push(e.message));
  await page.route('**/api/abd-analysis',async route=>{
   if(route.request().method()!=='POST')return route.continue();
