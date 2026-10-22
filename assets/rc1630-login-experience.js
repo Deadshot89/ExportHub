@@ -7,12 +7,12 @@
   if(window.__EXPORTHUB_RC1630_LOGIN_EXPERIENCE__)return;
   window.__EXPORTHUB_RC1630_LOGIN_EXPERIENCE__=true;
   var copy={
-    de:{tag:'LOGISTIK. VERNETZT.',title:'Deine Versandzentrale. Alles im Blick.',description:'Sendungen, Dokumente und Abholungen an einem Ort. Starte mit einem klaren Überblick in deinen Arbeitstag.',features:['Sendungen','Zolldokumente','Abholungen'],subtitle:'Melde dich an, um deine Arbeit fortzusetzen.'},
-    en:{tag:'LOGISTICS. CONNECTED.',title:'Your shipping hub. Everything in view.',description:'Shipments, documents and pickups in one place. Start your day with a clear overview.',features:['Shipments','Customs documents','Pickups'],subtitle:'Sign in to continue your work.'},
-    pl:{tag:'LOGISTYKA. POŁĄCZONA.',title:'Twoje centrum wysyłek. Wszystko pod kontrolą.',description:'Przesyłki, dokumenty i odbiory w jednym miejscu. Rozpocznij dzień z pełnym przeglądem.',features:['Wysyłki','Dokumenty celne','Odbiory'],subtitle:'Zaloguj się, aby kontynuować pracę.'},
-    es:{tag:'LOGÍSTICA. CONECTADA.',title:'Tu centro de envíos. Todo bajo control.',description:'Envíos, documentos y recogidas en un solo lugar. Empieza el día con una visión clara.',features:['Envíos','Documentos aduaneros','Recogidas'],subtitle:'Inicia sesión para continuar tu trabajo.'},
-    fr:{tag:'LOGISTIQUE. CONNECTÉE.',title:'Votre centre d’expédition. Tout en vue.',description:'Expéditions, documents et enlèvements au même endroit. Commencez la journée avec une vue claire.',features:['Expéditions','Documents douaniers','Enlèvements'],subtitle:'Connectez-vous pour continuer votre travail.'},
-    it:{tag:'LOGISTICA. CONNESSA.',title:'Il tuo centro spedizioni. Tutto sotto controllo.',description:'Spedizioni, documenti e ritiri in un unico posto. Inizia la giornata con una panoramica chiara.',features:['Spedizioni','Documenti doganali','Ritiri'],subtitle:'Accedi per continuare il lavoro.'}
+    de:{tag:'LOGISTIK. VERNETZT.',headline:'Deine Versandzentrale. Alles im Blick.',summary:'Sendungen, Dokumente und Abholungen an einem Ort. Starte mit einem klaren Überblick in deinen Arbeitstag.',features:['Sendungen','Zolldokumente','Abholungen'],subheadline:'Melde dich an, um deine Arbeit fortzusetzen.'},
+    en:{tag:'LOGISTICS. CONNECTED.',headline:'Your shipping hub. Everything in view.',summary:'Shipments, documents and pickups in one place. Start your day with a clear overview.',features:['Shipments','Customs documents','Pickups'],subheadline:'Sign in to continue your work.'},
+    pl:{tag:'LOGISTYKA. POŁĄCZONA.',headline:'Twoje centrum wysyłek. Wszystko pod kontrolą.',summary:'Przesyłki, dokumenty i odbiory w jednym miejscu. Rozpocznij dzień z pełnym przeglądem.',features:['Wysyłki','Dokumenty celne','Odbiory'],subheadline:'Zaloguj się, aby kontynuować pracę.'},
+    es:{tag:'LOGÍSTICA. CONECTADA.',headline:'Tu centro de envíos. Todo bajo control.',summary:'Envíos, documentos y recogidas en un solo lugar. Empieza el día con una visión clara.',features:['Envíos','Documentos aduaneros','Recogidas'],subheadline:'Inicia sesión para continuar tu trabajo.'},
+    fr:{tag:'LOGISTIQUE. CONNECTÉE.',headline:'Votre centre d’expédition. Tout en vue.',summary:'Expéditions, documents et enlèvements au même endroit. Commencez la journée avec une vue claire.',features:['Expéditions','Documents douaniers','Enlèvements'],subheadline:'Connectez-vous pour continuer votre travail.'},
+    it:{tag:'LOGISTICA. CONNESSA.',headline:'Il tuo centro spedizioni. Tutto sotto controllo.',summary:'Spedizioni, documenti e ritiri in un unico posto. Inizia la giornata con una panoramica chiara.',features:['Spedizioni','Documenti doganali','Ritiri'],subheadline:'Accedi per continuare il lavoro.'}
   };
   function node(tag,className,text){
     var n=document.createElement(tag);
@@ -32,9 +32,9 @@
     var tr=copy[language()];
     var lookup={
       '.eh360-login-kicker':tr.tag,
-      '.eh360-login-hero h2':tr.title,
-      '.eh360-login-hero p':tr.description,
-      '.eh360-login-subline':tr.subtitle
+      '.eh360-login-hero h2':tr.headline,
+      '.eh360-login-hero p':tr.summary,
+      '.eh360-login-subline':tr.subline
     };
     Object.keys(lookup).forEach(function(key){
       var el=login.querySelector(key);
