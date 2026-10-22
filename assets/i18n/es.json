@@ -1664,5 +1664,8 @@
   "abd.completedUpload.noMatchingShipment": "No se inició la carga del ABD: no se pudo identificar de forma inequívoca el envío {{reference}}. Vuelve a abrir el resumen de envíos.",
   "abd.completedUpload.processing": "Se está procesando el documento ABD. Se está verificando el guardado.",
   "abd.completedUpload.unconfirmed": "No se ha confirmado el guardado del ABD. Comprueba la carpeta del envío antes de volver a intentarlo.",
-  "abd.completedUpload.success": "Documento ABD guardado para el envío {{reference}}."
+  "abd.completedUpload.success": "Documento ABD guardado para el envío {{reference}}.",
+  "abd.invoice.logo": "Logo Essentra (PNG/JPG, opcional)",
+  "abd.invoice.logoLoaded": "Logo cargado.",
+  "abd.invoice.logoInvalid": "Selecciona PNG o JPG de hasta 300 KB."
 }
