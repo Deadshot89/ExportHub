@@ -166,6 +166,8 @@ test('RC1605: approved SOP artwork is shipped as the default PDF and browser log
  const apiLogo=fs.readFileSync('api/shared/essentra-company-logo.png');
  const browserLogo=fs.readFileSync('assets/essentra-company-logo.png');
  assert.ok(apiLogo.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])));
+ const gitHash=require('node:crypto').createHash('sha1').update(Buffer.from('blob '+apiLogo.length+'\\0')).update(apiLogo).digest('hex');
+ assert.equal(gitHash,'e3a0a2f3cd81833dc960f9bff1dee276752a8787','Essentra logo must match the verified PNG from the SOP template');
  assert.ok(apiLogo.equals(browserLogo),'same approved company graphic must be served and embedded in PDF');
  const exporterCode=fs.readFileSync('api/shared/abd-analysis-export.js','utf8');
  const integrator=fs.readFileSync('.github/rc1549/integrate-abd-proforma.mjs','utf8');
