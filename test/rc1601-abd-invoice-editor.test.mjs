@@ -123,3 +123,29 @@ test('RC1603: Polish / accented addresses do not crash standard PDF fonts',async
  assert.ok(bytes.length>1000);
  assert.match(await extractPdfText(bytes),/Lodz/i)
 });
+
+test('RC1604: PDF never fabricates a corporate mark when official logo is missing',async()=>{
+ const layout=fs.readFileSync('api/shared/abd-proforma-layout.js','utf8');
+ assert.match(layout,/senderLabel=header\.senderName\|\|header\.customer/);
+ assert.doesNotMatch(layout,/put\('essentra'\s*,/);
+ assert.doesNotMatch(layout,/put\('Components'\s*,/);
+ const bytes=await exporter.createProformaPdf(invoice());
+ const actual=await extractPdfText(bytes);
+ assert.match(actual,/Essentra Components GmbH/);
+ assert.match(actual,/PROFORMA INVOICE/);
+});
+test('RC1604: selected company artwork is previewed, stored locally, reloadable and removable',()=>{
+ for(const required of [
+  "function verifiedLogoDataUri(uri)",
+  "function rememberLogo()",
+  "function restoreLogo()",
+  "function showLogoPreview()",
+  "data-rc1549-logo-image",
+  "data-rc1549-logo-clear",
+  "if(logoDataUri)root.localStorage.setItem(LOGO_STORAGE_KEY,logoDataUri)",
+  "if(!verifiedLogoDataUri(dataUri))throw new Error('SIGNATURE')"
+ ])assert.ok(frontend.includes(required),required+' missing');
+ for(const locale of ['de','en','pl','es','fr','it']){
+  assert.ok(frontend.includes("logoMissingHint:"),"Logo missing guidance missing");
+ }
+});
