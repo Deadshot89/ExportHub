@@ -1664,5 +1664,8 @@
   "abd.completedUpload.noMatchingShipment": "Nie rozpoczęto przesyłania ABD: nie udało się jednoznacznie zidentyfikować przesyłki {{reference}}. Otwórz ponownie listę przesyłek.",
   "abd.completedUpload.processing": "Dokument ABD jest przetwarzany. Trwa weryfikacja zapisu.",
   "abd.completedUpload.unconfirmed": "Nie otrzymano potwierdzenia zapisu ABD. Sprawdź folder przesyłki przed ponowną próbą.",
-  "abd.completedUpload.success": "Dokument ABD zapisano dla przesyłki {{reference}}."
+  "abd.completedUpload.success": "Dokument ABD zapisano dla przesyłki {{reference}}.",
+  "abd.invoice.logo": "Logo Essentra (PNG/JPG, opcjonalnie)",
+  "abd.invoice.logoLoaded": "Logo wczytane.",
+  "abd.invoice.logoInvalid": "Wybierz PNG lub JPG do 300 KB."
 }
