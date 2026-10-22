@@ -36,7 +36,8 @@
   }
   function setActive(active){
     const node=doc.querySelector('[data-pack-notifications-nav]');if(!node)return;
-    node.classList&&node.classList.toggle('is-active',!!active);if(active)node.setAttribute('aria-current','page');else node.removeAttribute('aria-current');
+    // the shared nav marker can leave 'active' on this entry while another view is open
+    if(node.classList){node.classList.toggle('is-active',!!active);node.classList.toggle('active',!!active);}if(active)node.setAttribute('aria-current','page');else node.removeAttribute('aria-current');
   }
   function ensureStationAdmin(){
     if(root.ExportHUBPackStationAdmin)return Promise.resolve(root.ExportHUBPackStationAdmin);

@@ -342,6 +342,8 @@ function refresh(){
   var d=w.document;if(!d||!d.body)return;
   var v=view(),root=hostRoot();
   if(v==='taskdetail'&&root){
+    // leaving the list: drop the focus flag, otherwise its CSS hides the detail view
+    var list=d.getElementById(SECTION_ID);if(list)list.remove();d.body.removeAttribute(BODY_FLAG);lastHtml='';
     // the menu entry and openTask() route here; the RC1152 detail renderer was never called by the router
     var rt=w.ExportHUBRC1014TaskRuntime;
     if(!d.getElementById('rc1152TaskDetail')&&rt&&typeof rt.renderTaskDetailView==='function'){

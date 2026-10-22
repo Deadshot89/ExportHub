@@ -53,6 +53,8 @@ function move(node,parent){
 function restoreNode(node){
   var o=originals.get(node);
   if(!node||!o||!o.parent)return false;
+  // the app replaced the view while the node sat in our wrapper: it is gone for good, do not resurrect it
+  if(!node.isConnected)return false;
   if(o.next&&o.next.parentNode===o.parent)o.parent.insertBefore(node,o.next);
   else o.parent.appendChild(node);
   return true
