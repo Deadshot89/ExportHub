@@ -258,8 +258,8 @@ function patchRc1619AbdFailClosedRollback(html,file){
 
 function patchRc1602OfficialPod(html,file){
   html=injectImmediateRuntimeAfterHead(html,RC1602_OFFICIAL_POD_SCRIPT_TAG,'exporthub-rc1602-official-pod');
-  html=html.replace(/rc1602-official-pod-server-download\.js\?v=1602/g,'rc1602-official-pod-server-download.js?v=1616');
-  if(!html.includes('rc1602-official-pod-server-download.js?v=1616'))
+  html=html.replace(/rc1602-official-pod-server-download\.js\?v=(?:1602|1616)/g,'rc1602-official-pod-server-download.js?v=1623');
+  if(!html.includes('rc1602-official-pod-server-download.js?v=1623'))
     throw new Error(file+': RC1602 offizieller signierter POD-Download fehlt');
   return html;
 }
