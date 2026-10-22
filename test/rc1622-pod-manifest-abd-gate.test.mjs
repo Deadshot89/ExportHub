@@ -201,7 +201,8 @@ test('RC1622 P0: manually confirmed new pickups respect the same authoritative A
  const end=source.indexOf('async function confirmManualPickup(',start);
  assert.ok(start>0&&end>start,'Manual pickup ABD gate function missing');
  assert.match(source,/if\(!previouslyPicked\)await verifyManualPickupAbdGate\(environment,id,reference\)/);
- assert.match(source,/statusRank\(sh\.status\)>=3/,'Historic confirmed pickups remain editable');
+ assert.match(source,/const previouslyPicked=copies\.some\(hasRecordedPickupEvidence\)/,
+  'A plain shipment status must not bypass the ABD gate');
  const make=(config,unavailable=false)=>{
   const sandbox={
    pickupStore:{resolveShipmentAbdConfig:async()=>{if(unavailable)throw Error('Azure unavailable');return config}},
@@ -215,4 +216,25 @@ test('RC1622 P0: manually confirmed new pickups respect the same authoritative A
   error=>error.code==='ABD_CHECK_UNAVAILABLE'&&error.status===503);
  await make({abdRequired:true,abdPresent:true})('production','id1','X64RY9');
  await make({abdRequired:false,abdPresent:false})('production','id2','DE0001');
+});
+
+
+test('RC1625 P0: falsely marked POD status never bypasses manual ABD validation',()=>{
+ const source=fs.readFileSync(new URL('../api/manual-pickup-confirm/index.js',import.meta.url),'utf8');
+ const start=source.indexOf('function hasRecordedPickupEvidence(');
+ const end=source.indexOf('// RC1622:',start);
+ assert.ok(start>=0&&end>start);
+ const sandbox={
+   obj:x=>!!x&&typeof x==='object'&&!Array.isArray(x),
+   arr:x=>Array.isArray(x)?x:[],
+   text:x=>String(x==null?'':x).trim()
+ };
+ const evidence=vm.runInNewContext(source.slice(start,end)+'\nhasRecordedPickupEvidence',sandbox);
+ assert.equal(evidence({reference:'X64RY9',status:'POD vorhanden',abdStatus:'Offen'}),false);
+ assert.equal(evidence({status:'Abgeholt',pickupConfirmed:true}),false);
+ assert.equal(evidence({status:'POD vorhanden',pickedUpAt:'2026-10-22T11:00:00Z'}),false);
+ assert.equal(evidence({status:'POD vorhanden',pickupHistory:[{confirmedAt:'2026-10-22T11:00:00Z',signatureBlobName:'signed-original.png'}]}),true);
+ assert.equal(evidence({status:'Abgeholt',manualPickupConfirmationHistory:[{id:'MANUAL-PICKUP-1',at:'2026-10-22T11:00:00Z',source:'manual'}]}),true);
+ assert.equal(evidence({status:'Abgeholt',pickupConfirmationSource:'manual',pickupConfirmed:true,manualPickupConfirmedAt:'2026-10-22T11:00:00Z',manualPickupConfirmedBy:'Admin'}),true);
+ assert.equal(evidence({status:'POD vorhanden',signatureBlobName:'signed-original.png',confirmedAt:'2026-10-22T11:00:00Z'}),true);
 });
