@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
-const {mergeShipmentProtected}=require('../api/shared/merge.js');
+const {mergeShipmentProtected,mergeCollection}=require('../api/shared/merge.js');
 
 const builder=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
 const first=builder.indexOf('function patchRc1617AbdUploadFailureFeedback(');
@@ -171,4 +171,39 @@ test('RC1620: duplicate ABD ID does not lose its verified Azure document referen
  assert.equal(merged.abdFiles[0].blobName,'rc1059/production/aa/valid');
  assert.equal(Object.hasOwn(merged.abdFiles[0],'data'),false);
  assert.equal(merged.abdFiles[0].status,'active');
+});
+
+test('RC1621: concurrent ABD request saves retain confirmed old and new PDFs',()=>{
+ const old={id:'ABD-OLD',name:'older.pdf',storage:'blob',blobName:'rc1059/production/aa/'+('a'.repeat(64))};
+ const newer={id:'ABD-NEW',name:'newer.pdf',storage:'blob',blobName:'rc1059/production/bb/'+('b'.repeat(64))};
+ const server=[{id:'REQ-9Z7L82',ref:'9Z7L82',updatedAt:'2026-10-22T11:20:00Z',
+  status:'Angefragt',done:false,abdFiles:[old]}];
+ const client=[{id:'REQ-9Z7L82',ref:'9Z7L82',updatedAt:'2026-10-22T11:19:00Z',
+  status:'Abgeschlossen',done:true,abdFiles:[old,newer]}];
+ const result=mergeCollection('abdRequests',server,client,new Map());
+ assert.equal(result.length,1);
+ assert.deepEqual(result[0].abdFiles.map(f=>f.id),['ABD-OLD','ABD-NEW']);
+ assert.equal(result[0].done,false,'new PDF metadata must not falsely complete ABD status');
+ assert.equal(result[0].status,'Angefragt');
+});
+
+test('RC1621: newer request cannot discard existing ABD PDF',()=>{
+ const server=[{id:'REQ-9Z7L82',ref:'9Z7L82',updatedAt:'2026-10-22T10:00:00Z',
+  status:'Angefragt',abdFiles:[{id:'A',storage:'blob',blobName:'rc1059/production/aa/valid'}]}];
+ const client=[{id:'REQ-9Z7L82',ref:'9Z7L82',updatedAt:'2026-10-22T11:00:00Z',
+  status:'Angefragt',abdFiles:[]}];
+ const result=mergeCollection('abdRequests',server,client,new Map());
+ assert.deepEqual(result[0].abdFiles.map(f=>f.id),['A']);
+});
+
+test('RC1621: four separate ABD requests stay independent on overlapping saves',()=>{
+ const refs=['9Z7L82','AB1234','CD5678','EF9012'];
+ const server=refs.map(ref=>({id:'REQ-'+ref,ref,status:'Angefragt',updatedAt:'2026-10-22T10:00:00Z',
+  abdFiles:[{id:'old-'+ref}]}));
+ const incoming=refs.map(ref=>({id:'REQ-'+ref,ref,status:'Angefragt',updatedAt:'2026-10-22T10:01:00Z',
+  abdFiles:ref==='9Z7L82'?[{id:'new-'+ref}]:[]}));
+ const result=mergeCollection('abdRequests',server,incoming,new Map());
+ assert.equal(result.length,4);
+ assert.deepEqual(result.find(x=>x.ref==='9Z7L82').abdFiles.map(x=>x.id),['old-9Z7L82','new-9Z7L82']);
+ refs.slice(1).forEach(ref=>assert.deepEqual(result.find(x=>x.ref===ref).abdFiles.map(x=>x.id),['old-'+ref]));
 });
