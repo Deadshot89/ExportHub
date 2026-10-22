@@ -72,5 +72,8 @@ async function schedule(force){ensureCss();observeView();await loadFeaturePack(f
 (root.addEventListener?root:doc).addEventListener('click',navClick,true);
 if(root.addEventListener){for(const name of ['exporthub:ready','exporthub:login','exporthub:authenticated','exporthub:user-changed','exporthub:state-loaded','exporthub:view-changed'])root.addEventListener(name,()=>schedule(false));root.addEventListener('exporthub:language-changed',()=>schedule(true));}
 if(doc.readyState==='loading')doc.addEventListener('DOMContentLoaded',()=>schedule(false),{once:true});else schedule(false);
+// The core router renders a view through window[view]; without one it fell back to the legacy dashboard,
+// which showed behind the surface. Render an empty page instead; the surface itself opens via onViewChange.
+if(typeof root.packagingmasterdata!=='function')root.packagingmasterdata=function(){return '<div class="rc1555-packaging-placeholder" data-rc1555-packaging-placeholder></div>';};
 root.ExportHUBPackagingManagement1555=Object.freeze({open,close,load,ensureNav,syncLocal,renderRows,loadFeaturePack});
 })(typeof window!=='undefined'?window:globalThis,typeof document!=='undefined'?document:null);
