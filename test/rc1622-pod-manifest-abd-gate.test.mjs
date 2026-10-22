@@ -62,6 +62,45 @@ test('RC1622: expired/replaced ABD or unrelated request cannot release another s
  assert.equal(cfg.abdRequired,true);
  assert.equal(cfg.abdPresent,false);
 });
+test('RC1626 P0: conflicting shipment ID cannot borrow an ABD by shared reference',async()=>{
+ const ref='X64RY9',pdfName='rc1059/production/a.pdf';
+ const state={shipments:[
+  {id:'OTHER',ref,abdRequired:true,abdFiles:[{name:'foreign-ABD.pdf',blobName:pdfName,status:'active'}]},
+  {id:'TARGET',ref,abdRequired:true,abdFiles:[]}
+ ]};
+ const cfg=await resolver(state,{shipmentId:'TARGET',reference:ref});
+ assert.equal(cfg.abdRequired,true);
+ assert.equal(cfg.abdPresent,false,'ABD from a different known shipment ID must not authorize TARGET');
+});
+
+test('RC1626 P0: conflicting reference cannot borrow an ABD by shared shipment ID',async()=>{
+ const state={shipments:[
+  {id:'TARGET',ref:'OTHER-REF',abdFiles:[{name:'foreign-ABD.pdf',blobName:'rc1059/production/a.pdf'}]},
+  {id:'TARGET',ref:'X64RY9',abdRequired:true,abdFiles:[]}
+ ]};
+ const cfg=await resolver(state,{shipmentId:'TARGET',reference:'X64RY9'});
+ assert.equal(cfg.abdRequired,true);
+ assert.equal(cfg.abdPresent,false,'Conflicting explicit reference must fail closed');
+});
+
+test('RC1626 P0: ABD request linked to a different shipment cannot authorize pickup',async()=>{
+ const state={shipments:[{id:'TARGET',ref:'X64RY9',abdRequired:true,abdFiles:[]}],
+  abdRequests:[{id:'ABD-REQUEST-1',linkedShipmentId:'OTHER',ref:'X64RY9',
+   abdFiles:[{name:'foreign-ABD.pdf',blobName:'rc1059/production/a.pdf'}]}]};
+ const cfg=await resolver(state,{shipmentId:'TARGET',reference:'X64RY9'});
+ assert.equal(cfg.abdRequired,true);
+ assert.equal(cfg.abdPresent,false,'A conflicting linkedShipmentId cannot be overridden by the reference');
+});
+
+test('RC1626: legacy ABD request ID is not a shipment ID; matching reference still works',async()=>{
+ const state={shipments:[{id:'TARGET',ref:'X64RY9',abdRequired:true,abdFiles:[]}],
+  abdRequests:[{id:'ABD-REQUEST-1',ref:'X64RY9',
+   abdFiles:[{name:'genuine-ABD.pdf',blobName:'rc1059/production/a.pdf',status:'active'}]}]};
+ const cfg=await resolver(state,{shipmentId:'TARGET',reference:'X64RY9'});
+ assert.equal(cfg.abdRequired,true);
+ assert.equal(cfg.abdPresent,true,'Legacy request without linked shipment ID remains usable');
+});
+
 test('RC1622: non-ABD shipment remains eligible for normal pickup',async()=>{
  const cfg=await resolver({shipments:[{id:'s1',ref:'DE0001',abdRequired:false}]},{shipmentId:'s1',reference:'DE0001'});
  assert.equal(cfg.abdRequired,false);
