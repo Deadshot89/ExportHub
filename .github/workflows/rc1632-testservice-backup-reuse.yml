@@ -1,0 +1,32 @@
+name: RC1632 TESTSERVICE Daily Backup Reuse
+
+on:
+  pull_request:
+    paths:
+      - 'api/shared/state-backup-lifecycle.js'
+      - 'test/rc1632-testservice-current-version-daily-backup.test.mjs'
+      - '.github/workflows/rc1632-testservice-backup-reuse.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'api/shared/state-backup-lifecycle.js'
+      - 'test/rc1632-testservice-current-version-daily-backup.test.mjs'
+      - '.github/workflows/rc1632-testservice-backup-reuse.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - run: node --check api/shared/state-backup-lifecycle.js
+      - run: node --test test/rc1632-testservice-current-version-daily-backup.test.mjs test/rc1267-state-backup-lifecycle.test.mjs
