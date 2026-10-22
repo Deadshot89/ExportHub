@@ -256,6 +256,39 @@ function patchRc1619AbdFailClosedRollback(html,file){
   return html.replace(anchor,helper+anchor);
 }
 
+function patchRc1626AbdUploadBoundedSave(html,file){
+  // RC1626: A failing or slow Azure save kept the ABD status on "wird verarbeitet"
+  // for 80-140 s while flushSave was retried every 250 ms with the full PDF.
+  // Bound every await, back off between attempts, never count an unqueued save
+  // as stored, and name the Azure error in the failure message.
+  const begin=html.indexOf('async function flushDocumentUpload(reason){');
+  if(begin<0){if(file==='demo.html')return html;throw new Error(file+': RC1626 flushDocumentUpload fehlt');}
+  const verifyAnchor='async function verifyAbdUploadAfterAzure(sh,item){';
+  const verifyBegin=html.indexOf(verifyAnchor,begin);
+  if(verifyBegin<begin)throw new Error(file+': RC1626 verifyAbdUploadAfterAzure fehlt');
+  const flush="function rc1626Wait(clean,ms){return new Promise(function(resolve){(clean&&clean.native&&clean.native.setTimeout||window.setTimeout)(resolve,ms)})}\n"+
+    "function rc1626Bounded(clean,value,ms,fallback){return Promise.race([Promise.resolve(value),rc1626Wait(clean,ms).then(function(){return fallback})])}\n"+
+    "function rc1626SaveError(clean){var rt=clean&&clean.runtime;return Q(rt&&rt.lastSaveErrorCode)||'AZURE_SAVE_UNCONFIRMED'}\n"+
+    "async function flushDocumentUpload(reason){var clean=window.ExportHUBClean;if(!clean||typeof clean.queueSave!=='function')return false;var rt=clean.runtime,before=rt?Number(rt.changeGeneration||0):0;await rc1626Bounded(clean,clean.queueSave(reason),5000,false);var target=rt?Number(rt.changeGeneration||0):0,queued=target>before,deadline=Date.now()+45000,attempt=0,ok=false;function saved(){return !!(rt&&queued&&Number(rt.lastSavedGeneration||0)>=target)}while(!ok&&attempt<3&&Date.now()<deadline){while(rt&&rt.saving&&Date.now()<deadline)await rc1626Wait(clean,100);if(saved()){ok=true;break}if(typeof clean.flushSave!=='function')break;attempt++;ok=(await rc1626Bounded(clean,clean.flushSave(reason,{force:true,userInitiated:true}),Math.max(1,deadline-Date.now()),false))===true;if(!ok&&attempt<3&&Date.now()<deadline)await rc1626Wait(clean,Math.min(8000,1500*Math.pow(2,attempt-1)))}if(!ok&&saved())ok=true;return ok}\n";
+  html=html.slice(0,begin)+flush+html.slice(verifyBegin);
+  const vBegin=html.indexOf(verifyAnchor);
+  const vEnd=html.indexOf('function overrideUploads(){',vBegin);
+  if(vEnd<vBegin)throw new Error(file+': RC1626 Verify-Endanker fehlt');
+  let verify=html.slice(vBegin,vEnd);
+  const sync='await Promise.resolve(window.ExportHUBSync.syncNow())';
+  const syncCount=verify.split(sync).length-1;
+  if(syncCount!==2)throw new Error(file+': RC1626 syncNow-Anker '+syncCount+'x statt 2x');
+  verify=verify.split(sync).join('await rc1626Bounded(window.ExportHUBClean,window.ExportHUBSync.syncNow(),15000,false)');
+  html=html.slice(0,vBegin)+verify+html.slice(vEnd);
+  const failed="rc1617AbdUploadFailed(sh,input,'Azure-Speicherung konnte nicht bestätigt werden.')";
+  if(html.split(failed).length!==2)throw new Error(file+': RC1626 Fehlermeldungs-Anker fehlt');
+  html=html.replace(failed,"rc1617AbdUploadFailed(sh,input,'Azure-Speicherung konnte nicht bestätigt werden ('+rc1626SaveError(window.ExportHUBClean)+').')");
+  const alertText="' wurde lokal übernommen, konnte aber noch nicht dauerhaft in Azure bestätigt werden. Bitte die Seite nicht aktualisieren und die Verbindung prüfen.')";
+  if(html.split(alertText).length!==2)throw new Error(file+': RC1626 Alert-Anker fehlt');
+  html=html.replace(alertText,"(kind==='abd'?' konnte nicht dauerhaft in Azure gespeichert werden ('+rc1626SaveError(window.ExportHUBClean)+'). Bitte erneut hochladen.':"+alertText.slice(0,-1)+"))");
+  return html;
+}
+
 function patchRc1602OfficialPod(html,file){
   html=injectImmediateRuntimeAfterHead(html,RC1602_OFFICIAL_POD_SCRIPT_TAG,'exporthub-rc1602-official-pod');
   html=html.replace(/rc1602-official-pod-server-download\.js\?v=(?:1602|1616)/g,'rc1602-official-pod-server-download.js?v=1623');
@@ -1243,6 +1276,7 @@ function patchHtml(file){
   html=patchRc1319ShipmentSaveFinalization(html,file);
   html=patchRc1617AbdUploadFailureFeedback(html,file);
   html=patchRc1619AbdFailClosedRollback(html,file);
+  html=patchRc1626AbdUploadBoundedSave(html,file);
   html=patchRc1296BrowserBranding(html,file);
   html=patchRc1602OfficialPod(html,file);
   html=html.replace(/ExportHUB RC1048 environment=/g,`ExportHUB ${VERSION} environment=`);
