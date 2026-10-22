@@ -32,7 +32,7 @@
     var tr=copy[language()];
     var lookup={
       '.eh360-login-kicker':tr.tag,
-      '.eh360-login-hero h2':tr.headline,
+      '.eh360-login-headline':tr.headline,
       '.eh360-login-hero p':tr.summary,
       '.eh360-login-subline':tr.subline
     };
@@ -54,7 +54,7 @@
     var hero=node('section','eh360-login-hero');
     hero.setAttribute('aria-label','ExportHUB360');
     var kicker=node('div','eh360-login-kicker');
-    var headline=node('h2');
+    var headline=node('p','eh360-login-headline');
     var desc=node('p');
     var art=node('img','eh360-login-art');
     art.src='/assets/rc1630-login-route.svg?v=1630';
