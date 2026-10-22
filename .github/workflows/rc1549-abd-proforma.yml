@@ -15,6 +15,7 @@ on:
       - '.github/rc1549/**'
       - '.github/rc1521/build-three-env.mjs'
       - 'test/rc1549-abd-proforma.test.mjs'
+      - 'test/rc1601-abd-invoice-editor.test.mjs'
       - '.github/workflows/rc1549-abd-proforma.yml'
 
 jobs:
@@ -30,4 +31,4 @@ jobs:
       - name: RC1549 browser runtime syntax
         run: node --check assets/rc1549-abd-proforma.js
       - name: RC1549 ABD Proforma contract
-        run: node --test test/rc1549-abd-proforma.test.mjs
+        run: node --test test/rc1549-abd-proforma.test.mjs test/rc1601-abd-invoice-editor.test.mjs
