@@ -36,6 +36,15 @@ jobs:
           EXPORTHUB_PDF_SAMPLE_DIR: pdf-proof/rc1603
         run: node --test test/rc1549-abd-proforma.test.mjs test/rc1601-abd-invoice-editor.test.mjs
 
+      - name: Preserve real PDF samples for layout review
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: rc1603-invoice-pdf-layout
+          path: pdf-proof/rc1603/*.pdf
+          if-no-files-found: ignore
+          retention-days: 14
+
       - name: Build static ExportHUB package
         run: node .github/rc1112/build-three-env.mjs
 
@@ -58,14 +67,5 @@ jobs:
           path: |
             playwright-report
             test-results
-          if-no-files-found: ignore
-          retention-days: 14
-
-      - name: Preserve real PDF samples for layout review
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: rc1603-invoice-pdf-layout
-          path: pdf-proof/rc1603/*.pdf
           if-no-files-found: ignore
           retention-days: 14
