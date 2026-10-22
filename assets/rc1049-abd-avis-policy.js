@@ -232,7 +232,8 @@ function centralAbdUploaded(e){
  if(low(d.kind)!=='abd'||d.azureVerified!==true)return;
  centralPending.forEach(function(p){
   if(p.done)return;
-  if(q(d.shipmentId)!==p.id&&refOf({ref:d.reference})!==p.ref)return;
+  var id=q(d.shipmentId),ref=refOf({ref:d.reference});
+  if((!id&&!ref)||(id&&id!==p.id)||(ref&&ref!==p.ref))return;
   p.done=true;
   uploadStatus(p.input,uploadMsg('abd.completedUpload.success',{reference:p.ref},'ABD document saved for shipment '+p.ref+'.'),false);
  });
@@ -242,8 +243,10 @@ function centralAbdFailed(e){
  var d=e&&e.detail||{};
  if(low(d.kind)!=='abd')return;
  var id=q(d.shipmentId),ref=refOf({ref:d.reference}),message=q(d.message||d.error)||uploadMsg('abd.completedUpload.unconfirmed',null,'Azure storage could not be confirmed.');
+ // RC1617: never apply unscoped or contradictory events to other simultaneous ABD uploads.
+ if(!id&&!ref)return;
  centralPending.forEach(function(p){
-  if(p.done||(id!==p.id&&ref!==p.ref))return;
+  if(p.done||(id&&id!==p.id)||(ref&&ref!==p.ref))return;
   p.done=true;
   uploadStatus(p.input,uploadMsg('abd.completedUpload.failed',{message:message},'ABD-Upload fehlgeschlagen: '+message),true);
  });
