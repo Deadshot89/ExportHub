@@ -159,8 +159,9 @@ async function rc1622StoredAbd(source,documents,environment,verifiedCache){
      }
      const bytes=Buffer.from(await blob.downloadToBuffer());
      const expectedHash=String(file.sha256||'').toLowerCase();
-     const hashOk=!/^[0-9a-f]{64}$/.test(expectedHash)||
-      crypto.createHash('sha256').update(bytes).digest('hex')===expectedHash;
+     // If a checksum is declared, malformed metadata must fail closed too.
+     const hashOk=!expectedHash||(/^[0-9a-f]{64}$/.test(expectedHash)&&
+      crypto.createHash('sha256').update(bytes).digest('hex')===expectedHash);
      verifiedCache.set(name,bytes.length===size&&hashOk&&rc1622PdfBytes(bytes));
     }catch(error){
      if(Number(error&&error.statusCode)===404){
