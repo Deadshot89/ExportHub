@@ -5,6 +5,7 @@ const {BlobServiceClient}=require('@azure/storage-blob');
 const auth=require('../shared/auth-store');
 const fastAuth=require('../shared/fast-auth-store');
 const apiI18n=require('../shared/i18n');
+const pickupStore=require('../shared/pickup-store');
 
 const TEAM_CONTAINER=process.env.EXPORTHUB_STORAGE_CONTAINER||process.env.EXPORTHUB_CONTAINER||'exporthub-data';
 const TEAM_BLOB_BASE=process.env.EXPORTHUB_STORAGE_BLOB||process.env.EXPORTHUB_STATE_BLOB||'team-state.json';
@@ -202,6 +203,21 @@ function applyManualPickup(shipment,input,actor,stamp,eventId){
   return values;
 }
 
+// RC1622: Manual pickups must not bypass the QR pickup's mandatory customs gate.
+// This is read-only verification; existing pickup history can still be corrected.
+async function verifyManualPickupAbdGate(environment,id,reference){
+  let cfg;
+  try{
+    cfg=await pickupStore.resolveShipmentAbdConfig({shipmentId:id,reference},environment);
+  }catch(_){
+    throw auth.error('ABD_CHECK_UNAVAILABLE','ABD-Prüfung ist nicht erreichbar. Neue Abholung wurde nicht bestätigt.',503);
+  }
+  if(!cfg||typeof cfg!=='object')
+    throw auth.error('ABD_CHECK_UNAVAILABLE','ABD-Prüfung liefert kein gültiges Ergebnis. Neue Abholung wurde nicht bestätigt.',503);
+  if(cfg.abdRequired===true&&cfg.abdPresent!==true)
+    throw auth.error('ABD_DOCUMENT_REQUIRED','Das Pflicht-ABD fehlt oder ist nicht lesbar. Die Abholung darf noch nicht bestätigt werden.',409);
+}
+
 async function confirmManualPickup(environment,id,reference,payload,user){
   const input=sanitizePayload(payload),blob=await teamBlob(environment),actor=actorName(user);
   for(let attempt=0;attempt<MAX_RETRIES;attempt++){
@@ -209,6 +225,12 @@ async function confirmManualPickup(environment,id,reference,payload,user){
     if(!obj(team.state))team.state=state;
     const copies=shipmentCopies(state,id,reference);
     if(!copies.length)throw auth.error('SHIPMENT_NOT_FOUND','Sendung wurde nicht gefunden.',404);
+    // Only a genuinely new pickup needs the gate. Correcting existing pickup
+    // evidence never erases or rewrites a previously recorded physical event.
+    const previouslyPicked=copies.some(sh=>
+      statusRank(sh.status)>=3||statusRank(sh.processStatus)>=3||statusRank(sh.shipmentStatus)>=3||
+      sh.pickupConfirmed===true||!!text(sh.pickupConfirmedAt||sh.pickedUpAt));
+    if(!previouslyPicked)await verifyManualPickupAbdGate(environment,id,reference);
     const stamp=now(),eventId='MANUAL-PICKUP-'+crypto.randomBytes(10).toString('hex');
     let values={};
     copies.forEach((shipment,index)=>{const next=applyManualPickup(shipment,input,actor,stamp,eventId);if(index===0)values=next});
