@@ -19,12 +19,25 @@ async function clients(){
   return clientsPromise;
 }
 
+// Only the comparatively small user records are copied. Never share mutable
+// authorization records between API requests; the large shipment payload remains
+// untouched to avoid a second 60-MB clone on every valid session.
+function isolateTeamUsers(doc){
+  if(!doc || !doc.value || typeof doc.value!=='object')return doc;
+  const value=doc.value,state=value.state && typeof value.state==='object'?value.state:null;
+  return {...doc,value:{
+    ...value,
+    users:Array.isArray(value.users)?structuredClone(value.users):value.users,
+    ...(state?{state:{...state,users:Array.isArray(state.users)?structuredClone(state.users):state.users}}:{})
+  }};
+}
+
 async function readVerifiedTestserviceTeam(c){
   const cache=verifiedTestserviceTeam;
   if(cache && cache.blob===c.team && cache.etag && typeof c.team.getProperties==='function'){
     try{
       const props=await c.team.getProperties();
-      if(props && props.etag && String(props.etag)===cache.etag)return cache.document;
+      if(props && props.etag && String(props.etag)===cache.etag)return isolateTeamUsers(cache.document);
     }catch(_){
       // HEAD may be unavailable during a transient incident: read the real
       // full document, never assume a cached user's rights are still current.
@@ -33,7 +46,7 @@ async function readVerifiedTestserviceTeam(c){
   const doc=await auth.readJson(c.team,auth.emptyTeam());
   // No ETag = no safe reuse. Every future attempt falls back to full read.
   verifiedTestserviceTeam=(doc && doc.etag && typeof c.team.getProperties==='function')
-    ? {blob:c.team,etag:String(doc.etag),document:doc}
+    ? {blob:c.team,etag:String(doc.etag),document:isolateTeamUsers(doc)}
     : null;
   return doc;
 }
