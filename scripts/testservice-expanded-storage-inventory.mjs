@@ -13,6 +13,8 @@ export const SCOPES = Object.freeze([
     credential:'EXPORTHUB_TEST_PICKUP_INVENTORY_CONNECTION_STRING', accountEnv:'EXPORTHUB_TEST_PICKUP_ACCOUNT' },
   { id:'pod', container:'exporthub-pod', prefixes:['rc995/testservice/'],
     credential:'EXPORTHUB_TEST_POD_INVENTORY_CONNECTION_STRING', accountEnv:'EXPORTHUB_TEST_POD_ACCOUNT' },
+  { id:'abd-quarantine', container:'exporthub-abd-quarantine', prefixes:['rc1294/testservice/'],
+    credential:'EXPORTHUB_TEST_ABD_INVENTORY_CONNECTION_STRING', accountEnv:'EXPORTHUB_TEST_ABD_ACCOUNT' },
   { id:'pod-backup', container:'exporthub-pod-backup', prefixes:['rc1220/testservice/'],
     credential:'EXPORTHUB_TEST_POD_BACKUP_INVENTORY_CONNECTION_STRING', accountEnv:'EXPORTHUB_TEST_POD_BACKUP_ACCOUNT' }
 ]);
@@ -82,7 +84,7 @@ export async function collectAll(openScope,scopes=SCOPES) {
   return report;
 }
 async function main() {
-  // Preflight all five independently scoped credentials before making a single Azure request.
+  // Preflight all six independently scoped credentials before making a single Azure request.
   const configuration=validateConfiguration();
   const require=createRequire(new URL('../api/package.json',import.meta.url));
   const {BlobServiceClient}=require('@azure/storage-blob');
