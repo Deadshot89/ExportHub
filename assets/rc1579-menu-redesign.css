@@ -43,3 +43,13 @@ html[data-rc1579-packaging] .sidebar>.rc1555-packaging-nav-wrap{display:none!imp
 @media (prefers-reduced-motion:reduce){
  #nav#nav#nav>.rc1579-section,#nav#nav#nav>.rc1579-section .rc1579-section-chevron{transition:none}
 }
+
+/* IT: Reiter für Fehlerdiagnose, Release-Center und Update oben im Inhalt */
+#content#content>.rc1579-it-tabs{grid-column:1/-1!important;display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 14px!important;padding:6px;border:1px solid var(--pc-line,#dbe3ec);border-radius:14px;background:var(--pc-card-bg,#fff);box-shadow:none}
+#content>.rc1579-it-tabs .rc1579-it-tabs-title{padding:0 10px 0 6px;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--pc-muted,#64748b)}
+#content>.rc1579-it-tabs>button{display:inline-flex;align-items:center;gap:8px;min-height:38px;padding:7px 14px;border:1px solid transparent;border-radius:10px;background:transparent;color:var(--pc-text,#334155);font:inherit;font-size:14px;font-weight:650;cursor:pointer;box-shadow:none}
+#content>.rc1579-it-tabs>button>span{width:16px;height:16px;flex:0 0 16px;background:currentColor;-webkit-mask:var(--rc1579-icon) center/contain no-repeat;mask:var(--rc1579-icon) center/contain no-repeat}
+#content>.rc1579-it-tabs>button:hover{background:color-mix(in srgb,currentColor 7%,transparent)}
+#content>.rc1579-it-tabs>button[aria-current="page"]{background:#64748b;color:#fff;border-color:#64748b}
+#content>.rc1579-it-tabs>button:focus-visible{outline:2px solid #64748b;outline-offset:1px}
+@media (max-width:560px){#content>.rc1579-it-tabs .rc1579-it-tabs-title{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}#content>.rc1579-it-tabs>button{flex:1 1 auto;justify-content:center;padding:7px 8px;font-size:13px}}
