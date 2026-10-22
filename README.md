@@ -161,6 +161,16 @@ Aktueller technischer Releasevertrag:
 
 Der Build-Workflow erzeugt ein geprüftes Debug-APK-Artefakt für die RC1112-Basis.
 
+## Selbst korrigieren (IT-Bereich)
+
+Global-Admins finden im IT-Bereich den Reiter **Selbst korrigieren** (`assets/rc1630-self-correct.js`). Nichts davon ändert Production direkt:
+
+- **Text korrigieren:** Texte und Übersetzungen aus `assets/i18n/{de,en,pl,es,fr,it}.json` suchen und ändern (höchstens 20 pro Vorgang, mit Begründung). `/api/self-correct` legt einen Auftrag an und startet `.github/workflows/self-correct.yml`. Der Workflow holt den Auftrag per GitHub-OIDC ab, prüft jede Änderung erneut (`api/shared/self-correct.js`: nur vorhandene Schlüssel, gleiche Platzhalter, kein HTML, deutsche Texte, die fest im Seitenquelltext stehen, bleiben gesperrt), ändert ausschließlich `assets/i18n/*.json`, führt `npm run verify:i18n` und `npm test` aus und öffnet einen Pull Request.
+- **Fehler beschreiben (KI):** freie Fehlerbeschreibung → `/api/diagnostic-autofix` (`request-manual`) → bestehender Diagnose-Autofix mit getestetem Pull Request.
+- **Verlauf / Rückgängig:** Status jedes Auftrags mit PR-Link. Für gemergte Textkorrekturen erstellt „Rückgängig machen“ einen Revert-Pull-Request auf demselben Weg.
+
+Nach dem Merge aktualisiert die Main Verification nur TESTSERVICE; Production bleibt der manuelle `ExportHUB Production Release`. Voraussetzungen: `EXPORTHUB_GITHUB_AUTOFIX_TOKEN` (Actions: write, Pull requests: read); `EXPORTHUB_SELF_CORRECT_ENABLED=false` schaltet die Textkorrektur ab; die KI-Variante braucht zusätzlich `EXPORTHUB_AUTOFIX_ENABLED`.
+
 ## Aktive Release- und Deploy-Pfade
 
 Die zentralen dauerhaft aktiven Pfade sind:

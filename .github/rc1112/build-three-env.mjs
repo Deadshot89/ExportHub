@@ -63,7 +63,7 @@ const RC1371_DASHBOARD_SCRIPT_TAG='<script id="exporthub-rc1371-dashboard-script
 const RC1560_FULL_WIDTH_STYLE_TAG='<link id="exporthub-rc1560-full-width" rel="stylesheet" href="/assets/rc1560-full-width.css?v=1560">';
 const RC1579_MENU_STYLE_TAG='<link id="exporthub-rc1579-menu-style" rel="stylesheet" href="/assets/rc1579-menu-redesign.css?v=1579">';
 const RC1579_MENU_I18N_TAG='<script id="exporthub-rc1579-menu-i18n" defer src="/assets/i18n/rc1579-menu-redesign.js?v=1579"></script>';
-const RC1579_MENU_SCRIPT_TAG='<script id="exporthub-rc1579-menu-script" defer src="/assets/rc1579-menu-redesign.js?v=1579"></script>';
+const RC1579_MENU_SCRIPT_TAG='<script id="exporthub-rc1579-menu-script" defer src="/assets/rc1579-menu-redesign.js?v=1630"></script>';
 const RC1577_OVERVIEW_COMPACT_STYLE_TAG='<link id="exporthub-rc1577-overview-compact" rel="stylesheet" href="/assets/rc1577-shipment-overview-compact.css?v=1577">';
 const RC1558_OVERVIEW_STYLE_TAG='<link id="exporthub-rc1558-overview-style" rel="stylesheet" href="/assets/rc1558-dashboard-overview.css?v=1558">';
 const RC1558_OVERVIEW_I18N_TAG='<script id="exporthub-rc1558-overview-i18n" defer src="/assets/i18n/rc1558-dashboard-overview.js?v=1558"><\/script>';
@@ -71,6 +71,8 @@ const RC1558_OVERVIEW_SCRIPT_TAG='<script id="exporthub-rc1558-overview-script" 
 const RC1570_TASKS_STYLE_TAG='<link id="exporthub-rc1570-tasks-style" rel="stylesheet" href="/assets/rc1570-tasks-focus.css?v=1570">';
 const RC1570_TASKS_I18N_TAG='<script id="exporthub-rc1570-tasks-i18n" defer src="/assets/i18n/rc1570-tasks-focus.js?v=1570"></script>';
 const RC1570_TASKS_SCRIPT_TAG='<script id="exporthub-rc1570-tasks-script" defer src="/assets/rc1570-tasks-focus.js?v=1570"></script>';
+const RC1630_SELF_CORRECT_I18N_TAG='<script id="exporthub-rc1630-self-correct-i18n" defer src="/assets/i18n/rc1630-self-correct.js?v=1630"></script>';
+const RC1630_SELF_CORRECT_SCRIPT_TAG='<script id="exporthub-rc1630-self-correct-script" defer src="/assets/rc1630-self-correct.js?v=1630"></script>';
 const RC1577_POD_AUDIT_I18N_TAG='<script id="exporthub-rc1577-pod-audit-i18n" defer src="/assets/i18n/rc1577-pod-quality-audit.js?v=1577"></script>';
 const RC1577_POD_AUDIT_SCRIPT_TAG='<script id="exporthub-rc1577-pod-audit-script" defer src="/assets/rc1577-pod-quality-audit.js?v=1596"></script>';
 const RC1596_POD_FOLDER_SCRIPT_TAG='<script id="exporthub-rc1596-pod-folder-reconnect" defer src="/assets/rc1596-pod-folder-reconnect.js?v=1596"></script>';
@@ -150,7 +152,7 @@ function patchRc1579Menu(html,file){
   html=injectDeferredRuntimeInHead(html,RC1579_MENU_STYLE_TAG,'exporthub-rc1579-menu-style');
   html=injectDeferredRuntimeInHead(html,RC1579_MENU_I18N_TAG,'exporthub-rc1579-menu-i18n');
   html=injectDeferredRuntimeInHead(html,RC1579_MENU_SCRIPT_TAG,'exporthub-rc1579-menu-script');
-  if(!html.includes('rc1579-menu-redesign.css?v=1579')||!html.includes('i18n/rc1579-menu-redesign.js?v=1579')||!html.includes('/assets/rc1579-menu-redesign.js?v=1579'))throw new Error(file+': RC1579 Menü fehlt');
+  if(!html.includes('rc1579-menu-redesign.css?v=1579')||!html.includes('i18n/rc1579-menu-redesign.js?v=1579')||!html.includes('/assets/rc1579-menu-redesign.js?v=1630'))throw new Error(file+': RC1579 Menü fehlt');
   return html;
 }
 
@@ -188,6 +190,10 @@ function patchRc1558DashboardOverview(html,file){
   html=injectDeferredRuntimeInHead(html,RC1577_POD_AUDIT_SCRIPT_TAG,'exporthub-rc1577-pod-audit-script');
   html=injectDeferredRuntimeInHead(html,RC1596_POD_FOLDER_SCRIPT_TAG,'exporthub-rc1596-pod-folder-reconnect');
   if(!html.includes('i18n/rc1577-pod-quality-audit.js?v=1577')||!html.includes('/assets/rc1577-pod-quality-audit.js?v=1596')||!html.includes('/assets/rc1596-pod-folder-reconnect.js?v=1596'))throw new Error(file+': RC1577 POD-Prüfung fehlt');
+  // RC1630 "Selbst korrigieren" in the IT area (global admins; uploads become pull requests, never live edits)
+  html=injectDeferredRuntimeInHead(html,RC1630_SELF_CORRECT_I18N_TAG,'exporthub-rc1630-self-correct-i18n');
+  html=injectDeferredRuntimeInHead(html,RC1630_SELF_CORRECT_SCRIPT_TAG,'exporthub-rc1630-self-correct-script');
+  if(!html.includes('i18n/rc1630-self-correct.js?v=1630')||!html.includes('/assets/rc1630-self-correct.js?v=1630'))throw new Error(file+': RC1630 Selbst korrigieren fehlt');
   return html;
 }
 
@@ -1422,6 +1428,8 @@ for(const rel of [
   'assets/rc1596-pod-folder-reconnect.js',
   'assets/rc1602-official-pod-server-download.js',
   'assets/i18n/rc1577-pod-quality-audit.js',
+  'assets/rc1630-self-correct.js',
+  'assets/i18n/rc1630-self-correct.js',
   'assets/rc1460-shipment-view-files-avis-preview.js',
   'assets/i18n/av-upload.js',
   'assets/av-upload.js'
