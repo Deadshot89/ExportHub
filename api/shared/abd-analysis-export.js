@@ -145,7 +145,13 @@ function invoiceLogo(data){
  return{type:matched[1],buffer}
 }
 async function createProformaPdf(snapshot){
- const model=createExportModel(snapshot),logoData=invoiceLogo(snapshot&&snapshot.logoDataUri);
+ const model=createExportModel(snapshot),supplied=invoiceLogo(snapshot&&snapshot.logoDataUri);
+ // The default logo comes from the user's Essentra SOP document, never from a drawn imitation.
+ // Keep it inside the Azure Functions API bundle so every PDF uses the same verified artwork.
+ const logoData=supplied||{
+  type:'png',
+  buffer:require('node:fs').readFileSync(require('node:path').join(__dirname,'essentra-company-logo.png'))
+ };
  return require('./abd-proforma-layout').renderInvoice(model,logoData)
 }
 function styleHeader(row){
