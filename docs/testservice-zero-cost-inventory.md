@@ -46,6 +46,27 @@ separat zugeordnet werden. Read/List-Abfragen können Transaktionskosten auslös
 
 ## Grenzen und nächste Schritte
 
+### Ausführung über GitHub Actions
+
+Nach Integration dieses PRs steht unter Actions der Workflow
+`TESTSERVICE Storage Inventory` zur Verfügung. Er läuft ausschließlich manuell
+und nur auf `main`; er veröffentlicht keine Website und ändert keine Daten.
+
+Einmalig unter Repository Settings → Secrets and variables → Actions das Secret
+`EXPORTHUB_TEST_INVENTORY_CONNECTION_STRING` mit einem dedizierten Read/List-Zugang
+zum bestätigten Speicher hinterlegen. Eine Container-SAS ist einer Account-Key-
+Verbindungszeichenfolge vorzuziehen. Den Wert nicht in Chat, Issues oder Dateien
+kopieren. Bei abweichendem Container die Repository-Variable
+`EXPORTHUB_TEST_INVENTORY_CONTAINER` setzen. Ohne Secret bricht der Workflow vor
+der Installation und Azure-Abfrage ab.
+
+Anschließend Actions → TESTSERVICE Storage Inventory → Run workflow → main.
+Die Zusammenfassung zeigt ausschließlich aggregierte Metadaten. Der JSON-Bericht
+bleibt sieben Tage als Actions-Artefakt verfügbar. Es gibt keinen Zeitplan.
+Die tatsächliche Azure-Inventur und der Workflow sind vor der ersten Ausführung
+noch nicht live verifiziert. GitHub-Nutzung unterliegt den bestehenden Kontingenten;
+dieser PR ändert kein Ausgabenlimit und bestellt keine Ressource.
+
 `logicalBytes` ist kein Rechnungsbetrag: Snapshot-/Versionsblöcke können geteilt
 sein. Der Lauf ist keine atomare Bestandsaufnahme, kein Archiv und kein Restoretest.
 Die früher genannten 114 GiB sind in diesem PR nicht live bestätigt.
