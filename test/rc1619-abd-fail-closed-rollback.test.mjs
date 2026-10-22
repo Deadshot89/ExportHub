@@ -14,7 +14,7 @@ function built(){
 }
 function compileSnapshot(){
  const html=built();
- const start=html.indexOf('function rc1619CaptureAbdState(sh){');
+ const start=html.indexOf('function rc1619CaptureAbdState(sh,fileId){');
  const end=html.indexOf('function overrideUploads(){',start);
  assert.ok(start>0 && end>start,'RC1619 fail-closed helper is built before central uploader');
  const code=html.slice(start,end);
