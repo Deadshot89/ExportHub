@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-export const ABD_PROFORMA_ASSETS=['assets/rc1549-abd-proforma.js'];
+export const ABD_PROFORMA_ASSETS=['assets/rc1549-abd-proforma.js','assets/essentra-company-logo.png'];
 export const ABD_PROFORMA_MARKERS=['exporthub-rc1549-abd-proforma','assets/rc1549-abd-proforma.js?v=1549'];
 const ENTRIES=['index.html','TESTVERSION.html','demo.html'];
 const TAG='<script id="exporthub-rc1549-abd-proforma" defer src="/assets/rc1549-abd-proforma.js?v=1549"></script>';
