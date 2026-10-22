@@ -4,6 +4,40 @@ if(!root||root.ExportHUBRC1549Proforma)return;
 
 var rows=[emptyRow()],manualSnapshot=null,busy=false,timer=0,observer=null,observerRoot=null,bootstrapObserver=null,bootstrapObserverRoot=null;
 var logoDataUri='';
+var LOGO_STORAGE_KEY='exporthub360-rc1604-essentra-invoice-logo';
+function verifiedLogoDataUri(uri){
+ if(typeof uri!=='string'||uri.length>420000)return false;
+ var match=/^data:image\/(png|jpeg);base64,([A-Za-z0-9+/]+={0,2})$/.exec(uri);
+ if(!match)return false;
+ try{
+  var binary=root.atob(match[2]);if(binary.length<40||binary.length>300000)return false;
+  if(match[1]==='png')return binary.charCodeAt(0)===0x89&&binary.charCodeAt(1)===0x50&&binary.charCodeAt(2)===0x4e&&binary.charCodeAt(3)===0x47;
+  return binary.charCodeAt(0)===0xff&&binary.charCodeAt(1)===0xd8&&binary.charCodeAt(2)===0xff
+ }catch(_){return false}
+}
+function rememberLogo(){
+ try{
+  if(!root.localStorage)return false;
+  if(logoDataUri)root.localStorage.setItem(LOGO_STORAGE_KEY,logoDataUri);
+  else root.localStorage.removeItem(LOGO_STORAGE_KEY);
+  return true
+ }catch(_){return false}
+}
+function restoreLogo(){
+ try{
+  var stored=root.localStorage&&root.localStorage.getItem(LOGO_STORAGE_KEY);
+  if(verifiedLogoDataUri(stored)){logoDataUri=stored;return true}
+  if(stored&&root.localStorage)root.localStorage.removeItem(LOGO_STORAGE_KEY)
+ }catch(_){}
+ return false
+}
+function showLogoPreview(){
+ var parent=manualPanel(),img=parent&&parent.querySelector('[data-rc1549-logo-image]'),hint=parent&&parent.querySelector('[data-rc1549-logo-hint]'),remove=parent&&parent.querySelector('[data-rc1549-logo-clear]');
+ if(img){img.hidden=!logoDataUri;img.src=logoDataUri||''}
+ if(hint){hint.textContent=logoDataUri?t('logoLoadedHint'):t('logoMissingHint')}
+ if(remove)remove.hidden=!logoDataUri
+}
+restoreLogo();
 var headerDraft={invoiceNumber:'',invoiceDate:'',senderName:'Essentra Components GmbH',senderAddress:'',recipient:'',recipientAddress:'',destinationCountry:'',currency:'EUR'};
 var packs={
  de:{title:'Positionen manuell erfassen',help:'Alternativ zum Dokument- oder Excel-Upload kannst du die Warenpositionen hier direkt erfassen. Alle Wege verwenden dieselbe ABD-Prüflogik.',number:'Proforma-Nr.',date:'Datum',recipient:'Empfänger',country:'Empfängerland',currency:'Währung',add:'Position hinzufügen',create:'Positionen auswerten',proforma:'Proforma-PDF herunterladen',item:'Artikel',description:'Warenbeschreibung',qty:'Menge',unit:'Einheit',unitPrice:'Einzelpreis',value:'Warenwert',net:'Netto kg',gross:'Brutto kg',volume:'Volumen m³',hs:'HS-Code',origin:'Herkunftsland',actions:'Aktionen',remove:'Entfernen',duplicate:'Duplizieren',summary:'Manuelle Auswertung',total:'Warenwert gesamt',groups:'Zollzusammenfassung',required:'Bitte mindestens eine vollständige Warenposition erfassen.',recipientRequired:'Bitte Empfänger eintragen.',ready:'Auswertung vollständig. Proforma kann erstellt werden.',review:'Bitte markierte Pflichtangaben ergänzen.',error:'Aktion fehlgeschlagen.'},
@@ -14,12 +48,12 @@ var packs={
  it:{title:'Inserisci posizioni manualmente',help:'In alternativa al caricamento di documenti o Excel puoi inserire qui le posizioni. Tutti i percorsi usano la stessa verifica ABD.',number:'N. proforma',date:'Data',recipient:'Destinatario',country:'Paese di destinazione',currency:'Valuta',add:'Aggiungi posizione',create:'Verifica posizioni',proforma:'Scarica proforma PDF',item:'Articolo',description:'Descrizione',qty:'Quantità',unit:'Unità',unitPrice:'Prezzo unitario',value:'Valore merce',net:'Netto kg',gross:'Lordo kg',volume:'Volume m³',hs:'Codice HS',origin:'Paese di origine',actions:'Azioni',remove:'Rimuovi',duplicate:'Duplica',summary:'Analisi manuale',total:'Valore totale',groups:'Riepilogo doganale',required:'Inserisci almeno una posizione completa.',recipientRequired:'Inserisci un destinatario.',ready:'Analisi completa. È possibile creare la proforma.',review:'Completa i dati obbligatori.',error:'Operazione non riuscita.'}
 };
 var extras={
- de:{invoiceTitle:'Rechnung für ABD erstellen',editorHelp:'Rechnung hochladen und erkannte Positionen zur Korrektur übernehmen – oder alle Angaben hier manuell erfassen.',sender:'Absender / Firma',senderAddress:'Absenderadresse (Straße, PLZ, Ort, Land)',recipientAddress:'Empfängeradresse (Straße, PLZ, Ort, Land)',editUpload:'Im Rechnungseditor bearbeiten',importSuccess:'Upload-Daten übernommen. Bitte Absender, Empfänger und Positionen prüfen.',addressesRequired:'Bitte vollständige Absender- und Empfängeradressen eintragen.',invalidPosition:'Bitte Menge, Wert, Gewichte, HS-Code und Herkunftsland je Position prüfen.',uploadEmpty:'Keine Artikelpositionen in dieser Datei gefunden.'},
- en:{invoiceTitle:'Create an invoice for export declaration',editorHelp:'Import and correct positions from an uploaded invoice or enter all information manually.',sender:'Sender / company',senderAddress:'Sender address (street, postcode, city, country)',recipientAddress:'Recipient address (street, postcode, city, country)',editUpload:'Edit in invoice editor',importSuccess:'Imported items. Review sender, recipient and every position.',addressesRequired:'Enter complete sender and recipient addresses.',invalidPosition:'Check quantity, value, weights, HS code and origin for every position.',uploadEmpty:'No goods items found in this file.'},
- pl:{invoiceTitle:'Utwórz fakturę do zgłoszenia eksportowego',editorHelp:'Przenieś i popraw dane przesłanej faktury lub wpisz wszystko ręcznie.',sender:'Nadawca / firma',senderAddress:'Adres nadawcy (ulica, kod, miasto, kraj)',recipientAddress:'Adres odbiorcy (ulica, kod, miasto, kraj)',editUpload:'Edytuj w formularzu faktury',importSuccess:'Zaimportowano pozycje. Sprawdź adresy i towary.',addressesRequired:'Podaj pełne adresy nadawcy i odbiorcy.',invalidPosition:'Sprawdź ilości, wartości, wagi, kod HS i pochodzenie.',uploadEmpty:'Nie znaleziono pozycji.'},
- es:{invoiceTitle:'Crear factura para declaración de exportación',editorHelp:'Importa y corrige los datos de una factura cargada o introdúcelos manualmente.',sender:'Remitente / empresa',senderAddress:'Dirección del remitente',recipientAddress:'Dirección del destinatario',editUpload:'Editar en factura',importSuccess:'Partidas importadas. Revisa direcciones y mercancías.',addressesRequired:'Introduce ambas direcciones completas.',invalidPosition:'Revisa cantidades, valores, pesos, código HS y origen.',uploadEmpty:'No se encontraron partidas.'},
- fr:{invoiceTitle:'Créer une facture pour la déclaration d’exportation',editorHelp:'Importer et corriger les données d’une facture ou tout saisir manuellement.',sender:'Expéditeur / société',senderAddress:'Adresse de l’expéditeur',recipientAddress:'Adresse du destinataire',editUpload:'Modifier dans la facture',importSuccess:'Positions importées. Vérifiez les adresses et marchandises.',addressesRequired:'Saisissez les deux adresses complètes.',invalidPosition:'Vérifiez quantités, valeurs, poids, code SH et origine.',uploadEmpty:'Aucune position trouvée.'},
- it:{invoiceTitle:'Crea fattura per dichiarazione di esportazione',editorHelp:'Importa e correggi le voci caricate oppure inserisci tutto manualmente.',sender:'Mittente / azienda',senderAddress:'Indirizzo mittente',recipientAddress:'Indirizzo destinatario',editUpload:'Modifica nella fattura',importSuccess:'Voci importate. Controlla indirizzi e merci.',addressesRequired:'Inserisci entrambi gli indirizzi completi.',invalidPosition:'Controlla quantità, valori, pesi, codice HS e origine.',uploadEmpty:'Nessuna voce trovata.'}
+ de:{invoiceTitle:'Rechnung für ABD erstellen',editorHelp:'Rechnung hochladen und erkannte Positionen zur Korrektur übernehmen – oder alle Angaben hier manuell erfassen.',sender:'Absender / Firma',senderAddress:'Absenderadresse (Straße, PLZ, Ort, Land)',recipientAddress:'Empfängeradresse (Straße, PLZ, Ort, Land)',editUpload:'Im Rechnungseditor bearbeiten',importSuccess:'Upload-Daten übernommen. Bitte Absender, Empfänger und Positionen prüfen.',addressesRequired:'Bitte vollständige Absender- und Empfängeradressen eintragen.',invalidPosition:'Bitte Menge, Wert, Gewichte, HS-Code und Herkunftsland je Position prüfen.',uploadEmpty:'Keine Artikelpositionen in dieser Datei gefunden.',logoMissingHint:'Noch kein Original-Logo ausgewählt. Die PDF zeigt vorerst nur den Firmennamen.',logoLoadedHint:'Das ausgewählte Firmenlogo wird im PDF verwendet und auf diesem Gerät gespeichert.',logoRemove:'Logo entfernen',logoRemoved:'Firmenlogo entfernt.'},
+ en:{invoiceTitle:'Create an invoice for export declaration',editorHelp:'Import and correct positions from an uploaded invoice or enter all information manually.',sender:'Sender / company',senderAddress:'Sender address (street, postcode, city, country)',recipientAddress:'Recipient address (street, postcode, city, country)',editUpload:'Edit in invoice editor',importSuccess:'Imported items. Review sender, recipient and every position.',addressesRequired:'Enter complete sender and recipient addresses.',invalidPosition:'Check quantity, value, weights, HS code and origin for every position.',uploadEmpty:'No goods items found in this file.',logoMissingHint:'No genuine logo selected. The PDF will show the sender name as plain text.',logoLoadedHint:'This logo will be used in the PDF and saved on this device.',logoRemove:'Remove logo',logoRemoved:'Logo removed.'},
+ pl:{invoiceTitle:'Utwórz fakturę do zgłoszenia eksportowego',editorHelp:'Przenieś i popraw dane przesłanej faktury lub wpisz wszystko ręcznie.',sender:'Nadawca / firma',senderAddress:'Adres nadawcy (ulica, kod, miasto, kraj)',recipientAddress:'Adres odbiorcy (ulica, kod, miasto, kraj)',editUpload:'Edytuj w formularzu faktury',importSuccess:'Zaimportowano pozycje. Sprawdź adresy i towary.',addressesRequired:'Podaj pełne adresy nadawcy i odbiorcy.',invalidPosition:'Sprawdź ilości, wartości, wagi, kod HS i pochodzenie.',uploadEmpty:'Nie znaleziono pozycji.',logoMissingHint:'Nie wybrano oryginalnego logo. PDF pokaże tylko nazwę firmy.',logoLoadedHint:'Wybrane logo pojawi się w PDF i zostanie zapisane na tym urządzeniu.',logoRemove:'Usuń logo',logoRemoved:'Usunięto logo.'},
+ es:{invoiceTitle:'Crear factura para declaración de exportación',editorHelp:'Importa y corrige los datos de una factura cargada o introdúcelos manualmente.',sender:'Remitente / empresa',senderAddress:'Dirección del remitente',recipientAddress:'Dirección del destinatario',editUpload:'Editar en factura',importSuccess:'Partidas importadas. Revisa direcciones y mercancías.',addressesRequired:'Introduce ambas direcciones completas.',invalidPosition:'Revisa cantidades, valores, pesos, código HS y origen.',uploadEmpty:'No se encontraron partidas.',logoMissingHint:'No hay logotipo original. El PDF mostrará solo el nombre de la empresa.',logoLoadedHint:'El logotipo se usará en el PDF y se guardará en este dispositivo.',logoRemove:'Quitar logo',logoRemoved:'Logo eliminado.'},
+ fr:{invoiceTitle:'Créer une facture pour la déclaration d’exportation',editorHelp:'Importer et corriger les données d’une facture ou tout saisir manuellement.',sender:'Expéditeur / société',senderAddress:'Adresse de l’expéditeur',recipientAddress:'Adresse du destinataire',editUpload:'Modifier dans la facture',importSuccess:'Positions importées. Vérifiez les adresses et marchandises.',addressesRequired:'Saisissez les deux adresses complètes.',invalidPosition:'Vérifiez quantités, valeurs, poids, code SH et origine.',uploadEmpty:'Aucune position trouvée.',logoMissingHint:'Aucun logo original choisi. Le PDF affichera seulement le nom de la société.',logoLoadedHint:'Ce logo sera utilisé dans le PDF et enregistré sur cet appareil.',logoRemove:'Retirer le logo',logoRemoved:'Logo supprimé.'},
+ it:{invoiceTitle:'Crea fattura per dichiarazione di esportazione',editorHelp:'Importa e correggi le voci caricate oppure inserisci tutto manualmente.',sender:'Mittente / azienda',senderAddress:'Indirizzo mittente',recipientAddress:'Indirizzo destinatario',editUpload:'Modifica nella fattura',importSuccess:'Voci importate. Controlla indirizzi e merci.',addressesRequired:'Inserisci entrambi gli indirizzi completi.',invalidPosition:'Controlla quantità, valori, pesi, codice HS e origine.',uploadEmpty:'Nessuna voce trovata.',logoMissingHint:'Nessun logo originale selezionato. Il PDF mostrerà solo il nome aziendale.',logoLoadedHint:'Questo logo sarà usato nel PDF e salvato sul dispositivo.',logoRemove:'Rimuovi logo',logoRemoved:'Logo rimosso.'}
 };
 var logoKeys={logo:'abd.invoice.logo',logoOk:'abd.invoice.logoLoaded',logoInvalid:'abd.invoice.logoInvalid'};
 function q(value){return String(value==null?'':value).trim()}
@@ -201,6 +235,7 @@ function enhanceUploaded(){
 function ensureStyle(){
  var d=root.document;if(!d||!d.createElement||d.getElementById('rc1549AbdProformaStyle'))return;
  var style=d.createElement('style');style.id='rc1549AbdProformaStyle';style.textContent='.rc1549-manual{margin-top:16px;padding:14px;border:1px solid #a7f3d0;border-left:4px solid #0f766e;border-radius:12px;background:rgba(240,253,250,.82);color:var(--text,#0f172a)}.rc1549-manual h4{margin:0 0 4px}.rc1549-manual>p{margin:0;color:var(--muted,#475569);font-size:13px}.rc1549-head{display:grid;grid-template-columns:repeat(5,minmax(120px,1fr));gap:8px;margin:12px 0}.rc1549-head label{display:grid;gap:4px;font-size:11px;font-weight:700;color:var(--muted,#475569)}.rc1549-head input{box-sizing:border-box;width:100%;min-height:38px;padding:7px 8px;border:1px solid #94a3b8;border-radius:8px;background:var(--card,#fff);color:var(--text,#0f172a)}.rc1549-scroll{overflow:auto;border:1px solid #cbd5e1;border-radius:10px;background:var(--card,#fff)}.rc1549-scroll table{border-collapse:collapse;width:100%;min-width:1510px;font-size:11px}.rc1549-scroll th,.rc1549-scroll td{padding:6px;border-bottom:1px solid #e2e8f0;text-align:left;vertical-align:top}.rc1549-scroll th{background:rgba(248,250,252,.96);color:#334155;position:sticky;top:0;z-index:1}.rc1549-scroll input{box-sizing:border-box;width:100%;min-width:76px;padding:6px;border:1px solid #cbd5e1;border-radius:6px;background:var(--card,#fff);color:var(--text,#0f172a)}.rc1549-scroll td.rc1549-wide input{min-width:230px}.rc1549-row-actions{display:flex;gap:4px}.rc1549-row-actions button{min-width:34px;padding:5px 7px}.rc1549-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.rc1549-status{margin-top:10px;padding:8px 10px;border-radius:8px;background:#eff6ff;font-size:12px;font-weight:700}.rc1549-status[data-kind="ok"]{background:#ecfdf5;color:#065f46}.rc1549-status[data-kind="warn"]{background:#fff7ed;color:#9a3412}.rc1549-status[data-kind="bad"]{background:#fef2f2;color:#991b1b}.rc1549-result{margin-top:12px;padding:12px;border:1px solid #99f6e4;border-radius:10px;background:var(--card,#fff)}.rc1549-result-head{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.rc1549-result-head small{display:block;color:#64748b}.rc1549-result-head strong{display:block}.rc1549-metrics{display:grid;grid-template-columns:repeat(4,minmax(120px,1fr));gap:8px;margin:10px 0}.rc1549-metrics>div{display:grid;gap:3px;padding:8px;border:1px solid #dbeafe;border-radius:8px}.rc1549-metrics span{font-size:11px;color:#64748b}@media(max-width:1000px){.rc1549-head{grid-template-columns:1fr 1fr}.rc1549-metrics{grid-template-columns:1fr 1fr}}@media(max-width:560px){.rc1549-head,.rc1549-metrics{grid-template-columns:1fr}.rc1549-actions>*{width:100%}}';
+ style.textContent+='.rc1549-logo-preview{display:flex;align-items:center;gap:12px;margin-top:8px;padding:9px;border:1px solid #cbd5e1;border-radius:8px;background:var(--card,#fff)}.rc1549-logo-preview img{display:block;max-width:194px;max-height:56px;width:auto;height:auto;object-fit:contain}.rc1549-logo-preview img[hidden]{display:none}.rc1549-logo-preview span{flex:1;min-width:160px;font-size:12px;color:var(--muted,#475569)}.rc1549-logo-preview button[hidden]{display:none}';
  style.textContent+='.rc1549-logo{padding:9px 0 12px}.rc1549-logo input{display:block;margin-top:5px;max-width:100%}.rc1549-head textarea{box-sizing:border-box;width:100%;min-height:64px;resize:vertical;padding:8px;border:1px solid #94a3b8;border-radius:8px;background:var(--card,#fff);color:var(--text,#0f172a);font:inherit}.rc1549-head label.rc1549-address{grid-column:span 2}.rc1549-manual input:focus-visible,.rc1549-manual textarea:focus-visible{outline:2px solid #2563eb;outline-offset:2px}@media(max-width:1000px){.rc1549-head label.rc1549-address{grid-column:auto}}';
  (d.head||d.documentElement).appendChild(style)
 }
@@ -219,11 +254,11 @@ function mountManual(){
   '<label class="rc1549-address">'+esc(t('senderAddress'))+'<textarea data-rc1549-header="senderAddress" maxlength="500" rows="3"></textarea></label>'+
   '<label>'+esc(t('recipient'))+'<input data-rc1549-header="recipient" maxlength="160"></label>'+
   '<label class="rc1549-address">'+esc(t('recipientAddress'))+'<textarea data-rc1549-header="recipientAddress" maxlength="500" rows="3"></textarea></label></div>'+
-  '<div class="rc1549-logo"><label>'+esc(t('logo'))+' <input type="file" data-rc1549-logo accept="image/png,image/jpeg,.png,.jpg,.jpeg"></label></div>'+
+  '<div class="rc1549-logo"><label>'+esc(t('logo'))+' <input type="file" data-rc1549-logo accept="image/png,image/jpeg,.png,.jpg,.jpeg"></label><div class="rc1549-logo-preview"><img data-rc1549-logo-image hidden alt="Essentra Components Logo"><span data-rc1549-logo-hint></span><button type="button" class="ghost" data-rc1549-logo-clear hidden>'+esc(t('logoRemove'))+'</button></div></div>'+
   '<div class="rc1549-scroll"><table><thead><tr><th>'+esc(t('item'))+'</th><th>'+esc(t('description'))+'</th><th>'+esc(t('qty'))+'</th><th>'+esc(t('unit'))+'</th><th>'+esc(t('unitPrice'))+'</th><th>'+esc(t('value'))+'</th><th>'+esc(t('net'))+'</th><th>'+esc(t('gross'))+'</th><th>'+esc(t('volume'))+'</th><th>'+esc(t('hs'))+'</th><th>'+esc(t('origin'))+'</th><th>'+esc(t('actions'))+'</th></tr></thead><tbody data-rc1549-manual-list></tbody></table></div>'+
   '<div class="rc1549-actions"><button type="button" class="ghost" data-rc1549-manual-add>+ '+esc(t('add'))+'</button><button type="button" class="btn" data-rc1549-manual-create>'+esc(t('create'))+'</button></div>'+
   '<div class="rc1549-status" data-rc1549-status hidden></div><div class="rc1549-result" data-rc1549-result hidden></div>';
- parent.appendChild(panel);fillHeader();renderRows();
+ parent.appendChild(panel);fillHeader();renderRows();showLogoPreview();
  panel.addEventListener('input',function(event){
   event.stopPropagation();
   var control=event.target&&event.target.closest&&event.target.closest('tbody [data-field]');
@@ -236,18 +271,22 @@ function mountManual(){
   var input=event.target&&event.target.closest&&event.target.closest('[data-rc1549-logo]');
   if(!input)return;
   var file=input.files&&input.files[0];
-  if(!file){logoDataUri='';return}
+  if(!file)return;
   try{
    if(!/^(image\/png|image\/jpeg)$/.test(file.type)||file.size>300000)throw new Error('FILE');
    var bytes=new Uint8Array(await file.arrayBuffer()),png=file.type==='image/png';
    if(bytes.length<40||(png&&!(bytes[0]===0x89&&bytes[1]===0x50&&bytes[2]===0x4e&&bytes[3]===0x47))||(!png&&!(bytes[0]===0xff&&bytes[1]===0xd8&&bytes[2]===0xff)))throw new Error('SIGNATURE');
    var parts=[];for(var i=0;i<bytes.length;i+=0x8000)parts.push(String.fromCharCode.apply(null,bytes.subarray(i,i+0x8000)));
-   logoDataUri='data:'+file.type+';base64,'+root.btoa(parts.join(''));
+   var dataUri='data:'+file.type+';base64,'+root.btoa(parts.join(''));
+   if(!verifiedLogoDataUri(dataUri))throw new Error('SIGNATURE');
+   logoDataUri=dataUri;rememberLogo();showLogoPreview();
    setStatus(t('logoOk'),'ok')
-  }catch(_){logoDataUri='';input.value='';setStatus(t('logoInvalid'),'bad')}
+  }catch(_){input.value='';setStatus(t('logoInvalid'),'bad');showLogoPreview()}
  });
  panel.addEventListener('click',function(event){
   event.stopPropagation();
+  var clearLogo=event.target&&event.target.closest&&event.target.closest('[data-rc1549-logo-clear]');
+  if(clearLogo){logoDataUri='';rememberLogo();showLogoPreview();setStatus(t('logoRemoved'),'info');return}
   var add=event.target&&event.target.closest&&event.target.closest('[data-rc1549-manual-add]');if(add){rows.push(emptyRow());renderRows();invalidate();return}
   var remove=event.target&&event.target.closest&&event.target.closest('[data-rc1549-remove]');if(remove){var ri=Number(remove.getAttribute('data-rc1549-remove'));if(rows.length>1&&Number.isInteger(ri)){rows.splice(ri,1);renderRows();invalidate()}return}
   var duplicate=event.target&&event.target.closest&&event.target.closest('[data-rc1549-duplicate]');if(duplicate){var di=Number(duplicate.getAttribute('data-rc1549-duplicate'));if(Number.isInteger(di)&&rows[di]){rows.splice(di+1,0,Object.assign({},rows[di]));renderRows();invalidate()}return}
