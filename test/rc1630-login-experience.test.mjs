@@ -11,7 +11,11 @@ const build=read('.github/rc1112/build-three-env.mjs');
 test('RC1630: login UI is scoped and never overrides the hidden state',()=>{
   assert.match(css,/#login\[data-eh360-ui="v2"\]\.hidden\{display:none!important\}/);
   assert.match(css,/#login\[data-eh360-ui="v2"\]:not\(\.hidden\)\{display:grid!important\}/);
-  assert.match(css,/grid-template-columns:minmax\(0,1fr\) minmax\(350px,510px\)/);
+  assert.match(css,/grid-template-columns:minmax\(0,600px\) minmax\(360px,460px\)/);
+  assert.match(css,/position:fixed!important/,'login must stay a full-screen overlay above the app shell');
+  assert.match(css,/#login#login\[data-eh360-ui="v2"\]/,'doubled id must outrank legacy body[data-eh-theme] #login rules');
+  assert.match(css,/@layer rc971\{/,'form controls must join the RC971 layer to beat its layered !important rules');
+  assert.match(css,/#rc1016MobileMenuBtn\{display:none!important\}/);
   assert.match(css,/@media\(max-width:980px\)/);
   assert.match(css,/@media\(max-width:520px\)/);
   assert.match(css,/@media\(max-width:350px\)/);
@@ -35,6 +39,12 @@ test('RC1630: login remains connected to existing authentication, language and e
   assert.doesNotMatch(runtime,/\b(?:localStorage|sessionStorage|cookie)\b/);
   assert.doesNotMatch(runtime,/\b(?:loginBtn|loginPass|loginUser)\b/);
   for(const language of ['de','en','pl','es','fr','it'])assert.match(runtime,new RegExp('\\b'+language+':\\{tag:'));
+});
+test('RC1630: legacy login cleanup leaves environment button styling to the redesign',()=>{
+  const clean=read('assets/rc1074-login-clean.js');
+  assert.match(clean,/getAttribute\('data-eh360-ui'\)==='v2'/);
+  assert.match(clean,/rs\.removeProperty\(name\)/);
+  assert.match(build,/assets\/rc1074-login-clean\.js\?v=1630/);
 });
 test('RC1630: logistics artwork is local and decorative',()=>{
   assert.match(art,/^<svg\b/);

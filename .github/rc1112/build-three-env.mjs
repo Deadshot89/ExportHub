@@ -1300,7 +1300,7 @@ function patchHtml(file){
   );
   html=html.replace(/(window\.__EXPORTHUB_BUILD__\s*=\s*['"])RC1048(['"])/g,`$1${VERSION}$2`);
   html=html.replaceAll(LEGACY_TESTSERVICE_HOST,CURRENT_TESTSERVICE_HOST);
-  html=html.replace(/assets\/rc1074-login-clean\.js\?v=(?:1074|1112|1298|1301|1303|1311)/g,'assets/rc1074-login-clean.js?v=1349');
+  html=html.replace(/assets\/rc1074-login-clean\.js\?v=(?:1074|1112|1298|1301|1303|1311|1349)/g,'assets/rc1074-login-clean.js?v=1630');
   html=html.replace(/assets\/rc1014-task-runtime\.js\?v=(?:1016|1266|1312|1353|1359)/g,'assets/rc1014-task-runtime.js?v=1359');
   html=html.replace(/assets\/rc1014-task-ui\.css\?v=(?:1016|1179|1312)/g,'assets/rc1014-task-ui.css?v=1312');
   html=html.replace(/assets\/rc1013-diagnostics\.js\?v=(?:1085|1125|1364)/g,'assets/rc1013-diagnostics.js?v=1364');
@@ -1337,7 +1337,7 @@ function patchHtml(file){
   if(!html.includes(`version:'${VERSION}'`))throw new Error(file+': BUILD '+VERSION+' fehlt');
   if(!html.includes(`ExportHUB ${VERSION} environment=`))throw new Error(file+': Environment '+VERSION+' fehlt');
   if(file!=='demo.html'&&!html.includes('assets/rc1289-auth-transport-fallback.js?v=1289'))throw new Error(file+': RC1289 Desktop-Auth-Fallback fehlt');
-  if(!html.includes('assets/rc1074-login-clean.js?v=1349'))throw new Error(file+': RC1349 Login-/Browser-Branding-Cache-Key fehlt');
+  if(!html.includes('assets/rc1074-login-clean.js?v=1630'))throw new Error(file+': RC1349 Login-/Browser-Branding-Cache-Key fehlt');
   if(!html.includes('assets/rc1014-task-runtime.js?v=1359'))throw new Error(file+': RC1359 Aufgaben-Runtime Cache-Key fehlt');
   if(!html.includes('assets/rc1014-task-ui.css?v=1312'))throw new Error(file+': RC1312 Aufgaben-CSS Cache-Key fehlt');
   if(!html.includes('assets/rc1013-diagnostics.js?v=1364'))throw new Error(file+': RC1364 Diagnose Cache-Key fehlt');
