@@ -714,6 +714,16 @@ function mergeAbdFilesProtected(serverFiles,incomingFiles){
  return out;
 }
 
+// RC1621: ABD-request documents must be additive across concurrent saves.
+// Keep the existing timestamp-based request status and scalar-field policy.
+function mergeAbdRequestProtected(serverItem,incomingItem){
+ const out=chooseNewer(serverItem,incomingItem,'abdRequests');
+ const a=Array.isArray(serverItem&&serverItem.abdFiles)?serverItem.abdFiles:[];
+ const b=Array.isArray(incomingItem&&incomingItem.abdFiles)?incomingItem.abdFiles:[];
+ if(a.length||b.length)out.abdFiles=mergeAbdFilesProtected(a,b);
+ return out;
+}
+
 function mergeShipmentProtected(serverItem, incomingItem) {
   if (!isObject(serverItem)) return clone(incomingItem);
   if (!isObject(incomingItem)) return clone(serverItem);
@@ -826,6 +836,7 @@ function mergeCollection(name, serverList, incomingList, tombstones) {
       const existing = map.get(key);
       if (!existing) map.set(key, source === 'server' ? item : clone(item));
       else if (RC1016_SHIPMENT_COLLECTIONS.has(name)) map.set(key, source === 'incoming' ? mergeShipmentProtected(existing, item) : mergeShipmentProtected(item, existing));
+      else if (name === 'abdRequests') map.set(key, source === 'incoming' ? mergeAbdRequestProtected(existing, item) : mergeAbdRequestProtected(item, existing));
       else if (name === 'customers') map.set(key, source === 'incoming' ? mergeCustomerProtected(existing, item) : mergeCustomerProtected(item, existing));
       else if (name === 'sopLearningProgress') map.set(key, source === 'incoming' ? mergeSopLearningProgress(existing, item) : mergeSopLearningProgress(item, existing));
       else map.set(key, source === 'incoming' ? chooseNewer(existing, item, name) : chooseNewer(item, existing, name));
