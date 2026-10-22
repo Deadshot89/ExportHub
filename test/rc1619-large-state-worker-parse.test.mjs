@@ -24,7 +24,7 @@ function isolatedJsonFetch(response,{worker=true,brokenWorker=false,hangWorker=f
   postMessage(raw){if(!hangWorker)queueMicrotask(()=>this.onmessage({data:{ok:true,value:JSON.parse(raw)}}))}
   terminate(){calls.terminated++}
  }
- const native={setTimeout(callback){if(hangWorker)queueMicrotask(callback);return 1},clearTimeout(){}};
+ const native={setTimeout(callback,ms){if(hangWorker&&ms===20000)queueMicrotask(callback);return 1},clearTimeout(){}};
  const ctx={window:{Worker:worker?MockWorker:null},Worker:MockWorker,URL:dataURL,rc1576ResponseAbort:null,
    Blob:class{constructor(){}},native,runtime:{authToken:''},
    resilientFetch:async()=>response,apiEndpointLabel:()=>'/api/exporthub-state',
