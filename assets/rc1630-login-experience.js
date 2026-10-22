@@ -33,7 +33,7 @@
     var lookup={
       '.eh360-login-kicker':tr.tag,
       '.eh360-login-headline':tr.headline,
-      '.eh360-login-hero p':tr.summary,
+      '.eh360-login-description':tr.summary,
       '.eh360-login-subline':tr.subline
     };
     Object.keys(lookup).forEach(function(key){
@@ -55,7 +55,7 @@
     hero.setAttribute('aria-label','ExportHUB360');
     var kicker=node('div','eh360-login-kicker');
     var headline=node('p','eh360-login-headline');
-    var desc=node('p');
+    var desc=node('p','eh360-login-description');
     var art=node('img','eh360-login-art');
     art.src='/assets/rc1630-login-route.svg?v=1630';
     art.alt='';
