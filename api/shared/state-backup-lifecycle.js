@@ -60,7 +60,7 @@ async function reusableTestDailySnapshot(container,options){
   for await(const item of container.listBlobsFlat({prefix,includeMetadata:true})){
    if(!item||item.deleted||item.snapshot||item.versionId)continue;
    const name=text(item.name),metadata=item.metadata||{};
-   if(!name.startsWith(prefix)||!/^team-state-[0-9]{8}T[0-9]{9}Z\\.json$/.test(name.slice(prefix.length)))continue;
+   if(!name.startsWith(prefix)||!/^team-state-[0-9]{8}T[0-9]{9}Z\.json$/.test(name.slice(prefix.length)))continue;
    if(text(metadata.environment)!==environment||text(metadata.tier)!==tier||text(metadata.purpose)!=='exporthub-state-backup')continue;
    if(text(metadata.sha256)!==sha256||text(metadata.minimumretentiondays)!==String(retention.minimumRetentionDays)||text(metadata.automaticdeletion)!=='false')continue;
    foundName=name;break;
