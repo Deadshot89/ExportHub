@@ -8,6 +8,7 @@ const {previewCompaction,buildAppliedDocument}=require('../shared/state-maintena
 const {CLEANUP_DATE,countPalletDay,cleanupPalletDay}=require('../shared/pallet-account-cleanup');
 const {verifyStateRestore}=require('../shared/state-restore-drill');
 const {createVerifiedSnapshot}=require('../shared/state-backup-lifecycle');
+const {collectTestserviceTeamInventory}=require('../shared/testservice-team-inventory');
 
 const TEAM_CONTAINER=process.env.EXPORTHUB_STORAGE_CONTAINER||process.env.EXPORTHUB_CONTAINER||'exporthub-data';
 const TEAM_BLOB=process.env.EXPORTHUB_STORAGE_BLOB||process.env.EXPORTHUB_STATE_BLOB||'team-state.json';
@@ -174,11 +175,18 @@ module.exports=async function(context,req){
   if(req.method!=='POST'){context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED'});return}
   if(!await githubOidcAuthorized(req))throw error('GLOBAL_ADMIN_OR_WORKFLOW_REQUIRED','RC1137 darf nur durch den signierten GitHub-Wartungsworkflow ausgeführt werden.',403);
   const payload=body(req),action=lower(payload.action),environment=environmentOf(req,payload);
-  if(action!=='preview'&&action!=='apply'&&action!=='migrate-testservice-documents'&&action!=='cleanup-pallet-20260921'&&action!=='restore-drill'&&action!=='scheduled-backup')throw error('ACTION_INVALID','Erlaubt sind preview, apply, migrate-testservice-documents, cleanup-pallet-20260921, restore-drill und scheduled-backup.',400);
+  if(action!=='inventory-testservice-team'&&action!=='preview'&&action!=='apply'&&action!=='migrate-testservice-documents'&&action!=='cleanup-pallet-20260921'&&action!=='restore-drill'&&action!=='scheduled-backup')throw error('ACTION_INVALID','Erlaubt sind preview, apply, migrate-testservice-documents, cleanup-pallet-20260921, restore-drill und scheduled-backup.',400);
+  if(action==='inventory-testservice-team'&&environment!=='testservice')throw error('TESTSERVICE_ONLY','Die Speicherinventur ist nur im TESTSERVICE erlaubt.',403);
   if(action==='migrate-testservice-documents'&&environment!=='testservice')throw error('TESTSERVICE_ONLY','Die RC1138-Dokumentmigration ist ausschließlich im TESTSERVICE freigegeben.',403);
   if(action==='restore-drill'&&environment!=='testservice')throw error('TESTSERVICE_ONLY','Der RC1234-Restore-Drill ist ausschließlich im TESTSERVICE freigegeben.',403);
   if(action==='cleanup-pallet-20260921'&&environment!=='production')throw error('PRODUCTION_ONLY','Die RC1208-Palettenkonto-Bereinigung ist ausschließlich in Produktion freigegeben.',403);
-  const container=service().getContainerClient(TEAM_CONTAINER),blob=container.getBlockBlobClient(teamBlobName(environment));
+  const container=service().getContainerClient(TEAM_CONTAINER);
+  if(action==='inventory-testservice-team'){
+   // Read only: no complete team GET, no file names or user data returned.
+   context.res=json(200,await collectTestserviceTeamInventory(container));
+   return;
+  }
+  const blob=container.getBlockBlobClient(teamBlobName(environment));
   const currentRead=await readJson(blob),current=currentRead.value;
   if(action==='scheduled-backup'){
    const result=await createVerifiedSnapshot(container,{environment,tier:lower(payload.tier),current,at:now()});
