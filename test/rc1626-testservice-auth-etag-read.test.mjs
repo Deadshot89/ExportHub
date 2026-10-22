@@ -76,6 +76,20 @@ test('RC1626: changing Azure ETag forces full team reload; disabled account deni
   assert.equal(f.count.head,1);
 });
 
+test('RC1626: mutating returned team users cannot poison later cached authorization',async()=>{
+  const f=fixture();
+  const first=await f.fast.validateSession(f.testReq);
+  first.user.active=false;
+  first.user.rights.shipment.level='admin';
+  const second=await f.fast.validateSession(f.testReq);
+  assert.equal(second.user.active,true);
+  assert.equal(second.user.rights.shipment.level,'view');
+  second.user.active=false;
+  const third=await f.fast.validateSession(f.testReq);
+  assert.equal(third.user.active,true);
+  assert.equal(f.count.team,1);
+});
+
 test('RC1626: team rights are not stale after ETag change',async()=>{
   const f=fixture();
   await f.fast.validateSession(f.testReq);
