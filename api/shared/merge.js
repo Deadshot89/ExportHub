@@ -704,6 +704,10 @@ function mergeAbdFilesProtected(serverFiles,incomingFiles){
     for(const name of ['storage','blobName','storageBlobName','sha256','size','mimeType']){
      if(previous[name]!==undefined)combined[name]=previous[name];
     }
+   }
+   // RC1623: a verified durable reference supersedes legacy embedded bytes
+   // regardless of which side of the concurrent Azure merge held the PDF.
+   if(durable(previous)||durable(item)){
     for(const name of ['data','payload','content','base64','dataUrl'])delete combined[name];
    }
    out[position]=combined;

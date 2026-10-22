@@ -207,3 +207,34 @@ test('RC1621: four separate ABD requests stay independent on overlapping saves',
  assert.deepEqual(result.find(x=>x.ref==='9Z7L82').abdFiles.map(x=>x.id),['old-9Z7L82','new-9Z7L82']);
  refs.slice(1).forEach(ref=>assert.deepEqual(result.find(x=>x.ref===ref).abdFiles.map(x=>x.id),['old-'+ref]));
 });
+
+
+test('RC1623: persisted ABD blob replaces a stale embedded PDF without keeping payload copies',()=>{
+ const embedded={id:'ABD-ONE',name:'Customs.pdf',storage:'inline',
+  dataUrl:'data:application/pdf;base64,JVBERi0xLjQ=',payload:'JVBERi0xLjQ='};
+ const persisted={id:'ABD-ONE',name:'Customs.pdf',storage:'blob',
+  blobName:'rc1059/production/ab/document-one',sha256:'a'.repeat(64)};
+ const sh=mergeShipmentProtected(
+  {id:'S1',ref:'X64RY9',updatedAt:'2026-10-22T11:01:00Z',abdFiles:[embedded]},
+  {id:'S1',ref:'X64RY9',updatedAt:'2026-10-22T11:02:00Z',abdFiles:[persisted]}
+ );
+ assert.equal(sh.abdFiles.length,1);
+ assert.equal(sh.abdFiles[0].storage,'blob');
+ assert.equal(sh.abdFiles[0].blobName,persisted.blobName);
+ for(const field of ['data','payload','content','base64','dataUrl'])
+  assert.equal(Object.hasOwn(sh.abdFiles[0],field),false,'stale embedded '+field+' must not survive');
+});
+
+test('RC1623: concurrent ABD request merge keeps blob identity but drops outdated inline bytes',()=>{
+ const embedded={id:'ABD-ONE',storage:'inline',data:'data:application/pdf;base64,JVBERi0xLjQ='};
+ const persisted={id:'ABD-ONE',storage:'azure',blobName:'rc1059/production/ab/document-one',sha256:'b'.repeat(64)};
+ const out=mergeCollection('abdRequests',
+  [{id:'REQ1',ref:'X64RY9',updatedAt:'2026-10-22T11:01:00Z',status:'Angefragt',abdFiles:[embedded]}],
+  [{id:'REQ1',ref:'X64RY9',updatedAt:'2026-10-22T11:02:00Z',status:'Angefragt',abdFiles:[persisted]}],
+  new Map());
+ assert.equal(out.length,1);
+ assert.equal(out[0].abdFiles.length,1);
+ assert.equal(out[0].abdFiles[0].blobName,persisted.blobName);
+ assert.equal(Object.hasOwn(out[0].abdFiles[0],'data'),false);
+ assert.equal(out[0].status,'Angefragt');
+});
