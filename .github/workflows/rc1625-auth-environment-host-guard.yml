@@ -1,0 +1,34 @@
+name: RC1625 Auth Environment Host Guard
+
+on:
+  pull_request:
+    paths:
+      - 'api/shared/auth-store.js'
+      - 'test/rc1625-auth-environment-host-guard.test.mjs'
+      - '.github/workflows/rc1625-auth-environment-host-guard.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'api/shared/auth-store.js'
+      - 'test/rc1625-auth-environment-host-guard.test.mjs'
+      - '.github/workflows/rc1625-auth-environment-host-guard.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  environment-host-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: Verify canonical auth-store syntax
+        run: node --check api/shared/auth-store.js
+      - name: Protect PROD/TESTSERVICE selection on real deployment hostnames
+        run: node --test test/rc1625-auth-environment-host-guard.test.mjs
