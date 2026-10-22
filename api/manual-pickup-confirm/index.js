@@ -203,6 +203,21 @@ function applyManualPickup(shipment,input,actor,stamp,eventId){
   return values;
 }
 
+// RC1625: A status label (including "POD vorhanden") does not prove an actual
+// pickup. Only recorded events or the persisted signed pickup proof allow editing
+// an earlier pickup without blocking that historical correction on a later ABD.
+function hasRecordedPickupEvidence(sh){
+  if(!obj(sh))return false;
+  if(arr(sh.manualPickupConfirmationHistory).some(e=>obj(e)&&
+    !!text(e.id)&&!!text(e.at)&&e.source==='manual'))return true;
+  if(arr(sh.pickupHistory).some(e=>obj(e)&&!!text(e.confirmedAt)&&
+    (!!text(e.signatureBlobName)||e.signatureStored===true)))return true;
+  if(!!text(sh.signatureBlobName)&&!!text(sh.confirmedAt||sh.pickupConfirmedAt||sh.pickedUpAt))return true;
+  if(sh.pickupConfirmationSource==='manual'&&sh.pickupConfirmed===true&&
+    !!text(sh.manualPickupConfirmedAt)&&!!text(sh.manualPickupConfirmedBy))return true;
+  return false;
+}
+
 // RC1622: Manual pickups must not bypass the QR pickup's mandatory customs gate.
 // This is read-only verification; existing pickup history can still be corrected.
 async function verifyManualPickupAbdGate(environment,id,reference){
@@ -227,9 +242,7 @@ async function confirmManualPickup(environment,id,reference,payload,user){
     if(!copies.length)throw auth.error('SHIPMENT_NOT_FOUND','Sendung wurde nicht gefunden.',404);
     // Only a genuinely new pickup needs the gate. Correcting existing pickup
     // evidence never erases or rewrites a previously recorded physical event.
-    const previouslyPicked=copies.some(sh=>
-      statusRank(sh.status)>=3||statusRank(sh.processStatus)>=3||statusRank(sh.shipmentStatus)>=3||
-      sh.pickupConfirmed===true||!!text(sh.pickupConfirmedAt||sh.pickedUpAt));
+    const previouslyPicked=copies.some(hasRecordedPickupEvidence);
     if(!previouslyPicked)await verifyManualPickupAbdGate(environment,id,reference);
     const stamp=now(),eventId='MANUAL-PICKUP-'+crypto.randomBytes(10).toString('hex');
     let values={};
