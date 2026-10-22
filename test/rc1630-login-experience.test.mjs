@@ -25,6 +25,10 @@ test('RC1630: login remains connected to existing authentication, language and e
   assert.match(runtime,/h1\.insertAdjacentElement\('afterend',subline\)/);
   assert.match(runtime,/document\.getElementById\('loginLanguageSelect'\)/);
   assert.match(runtime,/lang\.addEventListener\('change',translate\)/);
+  assert.match(runtime,/'.eh360-login-headline':tr\.headline/);
+  assert.match(runtime,/'.eh360-login-description':tr\.summary/);
+  assert.match(runtime,/node\('p','eh360-login-description'\)/);
+  assert.doesNotMatch(runtime,/'.eh360-login-hero p':tr\.summary/);
   assert.match(runtime,/aria-hidden','true'/);
   assert.doesNotMatch(runtime,/\.(?:preventDefault|stopPropagation)\(/);
   assert.doesNotMatch(runtime,/\bfetch\s*\(/);
