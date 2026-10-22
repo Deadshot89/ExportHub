@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import crypto from 'node:crypto';
 
 const resolverSource=fs.readFileSync(new URL('../api/shared/pickup-store.js',import.meta.url),'utf8');
 const confirmSource=fs.readFileSync(new URL('../api/pickup-confirm-v2/index.js',import.meta.url),'utf8');
@@ -14,7 +15,7 @@ function resolver(state,record,verifiedBlobs={}){
  const pdf=Buffer.from('%PDF-1.7\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF');
  const blobs=Object.assign({'rc1059/production/a.pdf':pdf},verifiedBlobs);
  const sandbox={
-  Buffer,crypto:require('node:crypto'),process:{env:{}},
+  Buffer,crypto,process:{env:{}},
   clients:async()=>({environment:'production',team:{getBlockBlobClient:()=>({})},
    service:{getContainerClient:container=>{
     assert.equal(container,'exporthub-documents');
