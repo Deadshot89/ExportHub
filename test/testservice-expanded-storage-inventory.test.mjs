@@ -77,7 +77,7 @@ test('classifies age from Azure lastModified without revealing names or recommen
     blob('testservice/old-version.json',30,{versionId:'v1',properties:{contentLength:30,lastModified:new Date('2026-01-01T00:00:00Z')}}),
     blob('testservice/unknown.json',40,{properties:{contentLength:40}})
   ];
-  const report=await collectAll(async()=>containerFor(scope,rows),SCOPES,{asOf});
+  const report=await collectAll(async listedScope=>containerFor(listedScope,listedScope===scope?rows:[]),SCOPES,{asOf});
   const bucket=report.scopes[0].ageBuckets;
   assert.equal(bucket.last30Days.logicalBytes,10);
   assert.equal(bucket.days31To90.logicalBytes,20);
