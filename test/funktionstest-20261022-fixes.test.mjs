@@ -32,7 +32,7 @@ test('Funktionstest 22.10.: Neon-Dashboard: Widgets, Schnellzugriffe und Erinner
 
 test('Funktionstest 22.10.: Geänderte Assets bekommen neue Cache-Versionen',()=>{
   assert.match(builder,/rc1304-theme-switcher\.css\?v=1306/);
-  assert.match(builder,/rc1306-layout-engine\.js\?v=1306\.1/);
+  assert.match(builder,/rc1306-layout-engine\.js\?v=1307/);
   assert.match(builder,/rc1570-tasks-focus\.js\?v=1571/);
   assert.match(fs.readFileSync('.github/rc1532/build-three-env.mjs','utf8'),/rc1532-customs-ai\.js\?v=1533/);
 });

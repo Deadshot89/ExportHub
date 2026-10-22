@@ -53,8 +53,7 @@ function move(node,parent){
 function restoreNode(node){
   var o=originals.get(node);
   if(!node||!o||!o.parent)return false;
-  // A view re-render (innerHTML) detaches the old layout wrapper together with the managed nodes.
-  // Those nodes are stale and must not be put back, otherwise an old view or customer stays visible below the new one.
+  // the app replaced the view while the node sat in our wrapper: it is gone for good, do not resurrect it
   if(!node.isConnected)return false;
   if(o.next&&o.next.parentNode===o.parent)o.parent.insertBefore(node,o.next);
   else o.parent.appendChild(node);

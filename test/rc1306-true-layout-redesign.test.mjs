@@ -110,7 +110,7 @@ test('RC1306: release build injects and ships layout assets',()=>{
   assert.match(build,/RC1306_LAYOUT_SCRIPT_TAG/);
   assert.match(build,/patchRc1306LayoutEngine/);
   assert.match(build,/rc1306-layout-engine\.css\?v=1306/);
-  assert.match(build,/rc1306-layout-engine\.js\?v=1306/);
+  assert.match(build,/rc1306-layout-engine\.js\?v=1307/);
   assert.match(build,/'assets\/rc1306-layout-engine\.css'/);
   assert.match(build,/'assets\/rc1306-layout-engine\.js'/);
 });
