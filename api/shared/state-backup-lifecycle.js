@@ -62,7 +62,7 @@ async function reusableTestDailySnapshot(container,options){
    const name=text(item.name),metadata=item.metadata||{};
    if(!name.startsWith(prefix)||!/^team-state-[0-9]{8}T[0-9]{9}Z\\.json$/.test(name.slice(prefix.length)))continue;
    if(text(metadata.environment)!==environment||text(metadata.tier)!==tier||text(metadata.purpose)!=='exporthub-state-backup')continue;
-   if(text(metadata.sha256)!==sha256)continue;
+   if(text(metadata.sha256)!==sha256||text(metadata.minimumretentiondays)!==String(retention.minimumRetentionDays)||text(metadata.automaticdeletion)!=='false')continue;
    foundName=name;break;
   }
  }catch(_){
@@ -75,7 +75,9 @@ async function reusableTestDailySnapshot(container,options){
  const meta=properties&&properties.metadata||{};
  if(!properties||!properties.etag||text(meta.sha256)!==sha256||
     text(meta.environment)!==environment||text(meta.tier)!==tier||
-    text(meta.purpose)!=='exporthub-state-backup')return null;
+    text(meta.purpose)!=='exporthub-state-backup'||
+    text(meta.minimumretentiondays)!==String(retention.minimumRetentionDays)||
+    text(meta.automaticdeletion)!=='false')return null;
  const read=await readBuffer(blob),readHash=crypto.createHash('sha256').update(read.buffer).digest('hex');
  if(!read.etag||read.etag!==properties.etag||read.buffer.length!==bytes||readHash!==sha256){
   throw error('BACKUP_VERIFY_FAILED','Die vorhandene TESTSERVICE-Tagessicherung konnte nicht vollständig verifiziert werden.',500);
