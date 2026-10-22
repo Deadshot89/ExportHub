@@ -17,7 +17,7 @@ test('RC1602: canonical POD click handler registers as a capture listener before
   assert.match(builder,/assets\/rc1602-official-pod-server-download\.js/);
 });
 
-function setup({withToken=true,status=200,withDocumentRow=false,withoutStoredFile=false,withSignedInline=false}={}){
+function setup({withToken=true,status=200,withDocumentRow=false,withoutStoredFile=false,withSignedInline=false,serverManifestFiles=[]}={}){
   let click=null,called=[],alerts=[],urls=[],downloaded=[],popup=null,delegated=[];
   const sh={id:'id8',ref:'8LSUHW',pickupToken:withToken?'authorized-test-token':'',podFiles:withoutStoredFile?[]:[{id:'automatic-pod-test001',kind:'automatic-pod',renderLayout:'RC1595',name:'POD_8LSUHW_Ladeliste_unterschrieben.pdf'}]};
   if(withSignedInline)sh.podFiles.unshift({id:'signed-pod-original',kind:'signed-loadlist',name:'POD_8LSUHW_Ladeliste_mit_Unterschrift.pdf',dataUrl:'data:application/pdf;base64,'+Buffer.from('%PDF-1.7\\n'+'s'.repeat(1250)).toString('base64')});
@@ -36,7 +36,7 @@ function setup({withToken=true,status=200,withDocumentRow=false,withoutStoredFil
     ExportHUBIndex240:{shipments:()=>[sh]},ExportHUBPickupPOD:{shipments:()=>[],syncOne:async()=>true},
     fetch:async(url,opts)=>{called.push({url,opts});return{ok:status===200,status,
       blob:async()=>new Blob([pdf],{type:'application/pdf'}),
-      json:async()=>({code:'TEST_FAILED',message:'Test failure'})}},
+      json:async()=>String(url).includes('manifest=1')?{ok:true,files:serverManifestFiles}:{code:'TEST_FAILED',message:'Test failure'}}},
     setTimeout:()=>{},alert:x=>alerts.push(x)
   };
   const URL={createObjectURL:()=>'/blob/server-pod',revokeObjectURL:()=>{}};
@@ -76,13 +76,39 @@ test('RC1616: POD öffnen reuses the already working signed loading-list documen
  assert.equal(x.alerts.length,0);
 });
 
-test('RC1616: token-only stale POD without an immutable stored PDF must not trigger regeneration',async()=>{
+test('RC1622: stale browser POD checks server manifest but never regenerates an absent original',async()=>{
  const x=setup({withoutStoredFile:true});
  x.click({target:{closest:()=>x.button},preventDefault(){},stopImmediatePropagation(){},stopPropagation(){}});
  await new Promise(resolve=>setImmediate(resolve));
- assert.equal(x.called.length,0);
+ assert.equal(x.called.length,1);
+ assert.match(x.called[0].url,/\/api\/pickup-pod\?manifest=1&token=/);
+ assert.equal(x.called.some(c=>String(c.url).includes('file=automatic')),false);
  assert.equal(x.alerts.length,1);
  assert.match(x.alerts[0],/gespeicherte POD-Version/);
+});
+
+test('RC1622: signed exact RC1595 POD on server is recovered despite missing local metadata',async()=>{
+ const x=setup({withoutStoredFile:true,serverManifestFiles:[
+  {id:'automatic-pod-test001',kind:'automatic-pod',renderLayout:'RC1595',uploadedAt:'2026-10-22T12:00:00Z'}
+ ]});
+ x.click({target:{closest:()=>x.button},preventDefault(){},stopImmediatePropagation(){},stopPropagation(){}});
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(x.called.length,2);
+ assert.match(x.called[0].url,/manifest=1/);
+ assert.equal(x.called[1].url,'/api/pickup-pod?file=automatic-pod-test001&token=authorized-test-token');
+ assert.equal(x.called.some(c=>String(c.url).includes('file=automatic&')),false);
+ assert.equal(x.alerts.length,0);
+ assert.ok(x.downloaded.includes('POD_8LSUHW_Ladeliste_unterschrieben.pdf'));
+});
+
+test('RC1622: server manifest must not select a different or unverified render layout',async()=>{
+ const x=setup({withoutStoredFile:true,serverManifestFiles:[
+  {id:'untrusted-pod-01',kind:'automatic-pod',renderLayout:'RC1594'}
+ ]});
+ x.click({target:{closest:()=>x.button},preventDefault(){},stopImmediatePropagation(){},stopPropagation(){}});
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(x.called.length,1);
+ assert.equal(x.alerts.length,1);
 });
 
 test('RC1616: overview POD opens the existing signed PDF bytes without the document panel or server regeneration',async()=>{
