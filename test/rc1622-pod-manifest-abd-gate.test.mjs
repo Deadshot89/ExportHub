@@ -182,3 +182,14 @@ test('RC1622 P0: Azure ABD read failure is surfaced, never converted into a rele
  assert.equal(response.body.code,'ABD_CHECK_UNAVAILABLE');
  assert.equal(mutated,0);
 });
+
+
+test('RC1622 P0: malformed declared ABD SHA-256 cannot authorize pickup',async()=>{
+ const path='rc1059/production/aa/hash-metadata.pdf';
+ const pdf=Buffer.from('%PDF-1.7\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF');
+ const state={shipments:[{id:'s1',ref:'X64RY9',abdRequired:true,
+  abdFiles:[{storage:'blob',status:'active',blobName:path,sha256:'not-a-valid-sha256'}]}]};
+ const cfg=await resolver(state,{shipmentId:'s1',reference:'X64RY9'},{[path]:pdf});
+ assert.equal(cfg.abdRequired,true);
+ assert.equal(cfg.abdPresent,false,'A corrupt declared document checksum is not valid proof');
+});
