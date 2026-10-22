@@ -402,6 +402,56 @@ jobs:
             echo "RC1630: signierte TEAM-Teilinventur nicht verfügbar; keine Speicherfreigabe." >&2
           fi
 
+          # RC1631: additional read-only inspection of six storage containers,
+          # via the SAME signed OIDC TESTSERVICE-only fixture. No writes.
+          # A listed empty prefix must NOT be confused with an inaccessible
+          # container/account. PROD ownership and actual billing stay unverified.
+          if scopes_payload="$(fixture inventory-scopes)"; then
+            if ! printf '%s' "$scopes_payload" | node -e '
+              let raw="";
+              process.stdin.on("data",c=>raw+=c).on("end",()=>{
+                const v=JSON.parse(raw);
+                const validNumber=n=>Number.isSafeInteger(n)&&n>=0;
+                const ids=["team","document-files","container-photos","pickup","pod","abd-quarantine","pod-backup"];
+                const kinds=["live","version","snapshot","deleted"];
+                if(v.ok!==true||v.action!=="inventory-scopes"||v.version!=="RC1631"||
+                   v.environment!=="testservice"||v.resourceOwnershipVerified!==false||
+                   v.billingVerified!==false||v.deletionApproved!==false||
+                   v.scopeCount!==7||!Array.isArray(v.scopes)||v.scopes.length!==7||
+                   !validNumber(v.verifiedScopes)||
+                   !ids.every((id,i)=>v.scopes[i].id===id&&
+                    (v.scopes[i].status==="listed"||v.scopes[i].status==="unverified")))
+                     process.exitCode=4;
+                if(process.exitCode)return;
+                const rows=["## TESTSERVICE - erweiterte Blob-Teilinventur (RC1631)","","Nur Azure LIST, keine Inhalte, Dateinamen oder Löschungen.",
+                 "","| TESTSERVICE-Bereich | Status | Datensätze | Logische Bytes |","|---|---|---:|---:|"];
+                for(const x of v.scopes){
+                  if(x.status==="listed"){
+                    if(!validNumber(x.records)||!validNumber(x.logicalBytes)||
+                       !kinds.every(k=>validNumber(x.kinds?.[k]?.records)&&validNumber(x.kinds?.[k]?.logicalBytes))){
+                       process.exitCode=4;return;
+                    }
+                    rows.push("| "+x.id+" | gelistet | "+x.records+" | "+x.logicalBytes+" |");
+                  }else{
+                    if(x.records!==null||x.logicalBytes!==null||x.kinds!==null){process.exitCode=4;return;}
+                    rows.push("| "+x.id+" | ungeprüft | – | – |");
+                  }
+                }
+                if(v.complete!==true||v.resourceOwnershipVerified!==true){
+                  rows.push("","**Keine Freigabe für Archivierung, Löschung oder Redundanzumstellung.**");
+                }
+                rows.push("","Auch erfolgreiche LIST-Werte belegen nicht die Ressourcenzuordnung, abrechenbare Bytes oder 0 EUR Kosten.");
+                if(process.env.GITHUB_STEP_SUMMARY)
+                  require("fs").appendFileSync(process.env.GITHUB_STEP_SUMMARY,rows.join("\n")+"\n");
+                console.log("RC1631: geprüfte TESTSERVICE-Präfixe "+v.verifiedScopes+"/7, vollständige Kontenzuordnung weiterhin offen");
+              });
+            '; then
+              echo "RC1631: Aggregat fehlerhaft; kein belastbarer Bericht." >&2
+            fi
+          else
+            echo "RC1631: Multi-Container-LIST nicht verfügbar; keine Speicherfreigabe." >&2
+          fi
+
           cleanup() { fixture cleanup >/dev/null 2>&1 || true; }
           trap cleanup EXIT
           prepared="$(fixture prepare)"
