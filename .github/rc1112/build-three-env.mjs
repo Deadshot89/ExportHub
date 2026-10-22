@@ -190,6 +190,39 @@ function patchRc1558DashboardOverview(html,file){
   return html;
 }
 
+function patchRc1617AbdUploadFailureFeedback(html,file){
+  // RC1617: The asynchronous central uploader used to alert on failed Azure
+  // saves without notifying the ABD status component. Keep the original
+  // document persistence flow but propagate a terminal failure immediately.
+  const begin=html.indexOf('window.rc524UploadFile=function(input,key){');
+  if(begin<0){if(file==='demo.html')return html;throw new Error(file+': RC1617 zentraler Uploader fehlt');}
+  const end=html.indexOf('window.rc524DeleteFile=',begin);
+  if(end<begin)throw new Error(file+': RC1617 Upload-Endanker fehlt');
+  let part=html.slice(begin,end);
+  function replaceExactly(before,after){
+    const occurrences=part.split(before).length-1;
+    if(occurrences!==1)throw new Error(file+': RC1617 Upload-Anker '+occurrences+'x statt 1x');
+    part=part.replace(before,after);
+  }
+  replaceExactly(
+    'var sh=findShipment(input.dataset.id)||currentShipment(),file=input.files&&input.files[0];if(!sh||!file)return false;',
+    "var sh=key==='abdFiles'?findShipment(input.dataset.id):findShipment(input.dataset.id)||currentShipment(),file=input.files&&input.files[0];if(!sh||!file){if(key==='abdFiles'){var msg=sh?'Kein ABD-Dokument ausgewählt.':'Die gewählte Sendung konnte nicht eindeutig gefunden werden. ABD nicht hochgeladen.';rc1617AbdUploadFailed(sh,input,msg);alert(msg)}return false;}"
+  );
+  replaceExactly(
+    "if(!ok){alert((kind==='pod'?'POD':'ABD')",
+    "if(!ok){if(kind==='abd')rc1617AbdUploadFailed(sh,input,'Azure-Speicherung konnte nicht bestätigt werden.');alert((kind==='pod'?'POD':'ABD')"
+  );
+  replaceExactly(
+    '}).catch(function(e){alert(e.message||e)});return false};',
+    "}).catch(function(e){if(key==='abdFiles')rc1617AbdUploadFailed(sh,input,e&&e.message||String(e));alert(e.message||e)});return false};"
+  );
+  const helper="function rc1617AbdUploadFailed(sh,input,message){try{window.dispatchEvent(new CustomEvent('exporthub:shipment-document-upload-failed',{detail:{kind:'abd',shipmentId:sh?shipmentId(sh):Q(input&&input.dataset&&input.dataset.id),reference:sh?shipmentRef(sh):'',message:Q(message)}}))}catch(_){}}\n";
+  const helperAnchor='function overrideUploads(){';
+  if(!html.includes(helperAnchor))throw new Error(file+': RC1617 Helper-Anker fehlt');
+  html=html.replace(helperAnchor,helper+helperAnchor);
+  return html.slice(0,begin+helper.length)+part+html.slice(end+helper.length);
+}
+
 function patchRc1602OfficialPod(html,file){
   html=injectImmediateRuntimeAfterHead(html,RC1602_OFFICIAL_POD_SCRIPT_TAG,'exporthub-rc1602-official-pod');
   html=html.replace(/rc1602-official-pod-server-download\.js\?v=1602/g,'rc1602-official-pod-server-download.js?v=1616');
@@ -1174,6 +1207,7 @@ function patchHtml(file){
   html=patchRc1418ShipmentSaveNoRerender(html,file);
   html=patchRc1505SaveConfirmationRenderGate(html,file);
   html=patchRc1319ShipmentSaveFinalization(html,file);
+  html=patchRc1617AbdUploadFailureFeedback(html,file);
   html=patchRc1296BrowserBranding(html,file);
   html=patchRc1602OfficialPod(html,file);
   html=html.replace(/ExportHUB RC1048 environment=/g,`ExportHUB ${VERSION} environment=`);
