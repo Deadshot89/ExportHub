@@ -193,3 +193,26 @@ test('RC1622 P0: malformed declared ABD SHA-256 cannot authorize pickup',async()
  assert.equal(cfg.abdRequired,true);
  assert.equal(cfg.abdPresent,false,'A corrupt declared document checksum is not valid proof');
 });
+
+
+test('RC1622 P0: manually confirmed new pickups respect the same authoritative ABD gate',async()=>{
+ const source=fs.readFileSync(new URL('../api/manual-pickup-confirm/index.js',import.meta.url),'utf8');
+ const start=source.indexOf('async function verifyManualPickupAbdGate(');
+ const end=source.indexOf('async function confirmManualPickup(',start);
+ assert.ok(start>0&&end>start,'Manual pickup ABD gate function missing');
+ assert.match(source,/if\(!previouslyPicked\)await verifyManualPickupAbdGate\(environment,id,reference\)/);
+ assert.match(source,/statusRank\(sh\.status\)>=3/,'Historic confirmed pickups remain editable');
+ const make=(config,unavailable=false)=>{
+  const sandbox={
+   pickupStore:{resolveShipmentAbdConfig:async()=>{if(unavailable)throw Error('Azure unavailable');return config}},
+   auth:{error:(code,message,status)=>Object.assign(new Error(message),{code,status})}
+  };
+  return vm.runInNewContext(source.slice(start,end)+'\nverifyManualPickupAbdGate',sandbox);
+ };
+ await assert.rejects(make({abdRequired:true,abdPresent:false})('production','id1','X64RY9'),
+  error=>error.code==='ABD_DOCUMENT_REQUIRED'&&error.status===409);
+ await assert.rejects(make({},true)('production','id1','X64RY9'),
+  error=>error.code==='ABD_CHECK_UNAVAILABLE'&&error.status===503);
+ await make({abdRequired:true,abdPresent:true})('production','id1','X64RY9');
+ await make({abdRequired:false,abdPresent:false})('production','id2','DE0001');
+});
