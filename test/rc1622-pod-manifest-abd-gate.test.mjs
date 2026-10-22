@@ -7,11 +7,28 @@ const resolverSource=fs.readFileSync(new URL('../api/shared/pickup-store.js',imp
 const confirmSource=fs.readFileSync(new URL('../api/pickup-confirm-v2/index.js',import.meta.url),'utf8');
 const podSource=fs.readFileSync(new URL('../api/pickup-pod/index.js',import.meta.url),'utf8');
 
-function resolver(state,record){
+function resolver(state,record,verifiedBlobs={}){
  const start=resolverSource.indexOf('function rc1622StoredAbd('),end=resolverSource.indexOf('function mergeContainerPhotos(',start);
  assert.ok(start>=0&&end>start);
+ // Only named, readable PDF bytes in the correct TEST/PRODUCTION container may release a pickup.
+ const pdf=Buffer.from('%PDF-1.7\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF');
+ const blobs=Object.assign({'rc1059/production/a.pdf':pdf},verifiedBlobs);
  const sandbox={
-  clients:async()=>({environment:'production',team:{getBlockBlobClient:()=>({})}}),
+  Buffer,process:{env:{}},
+  clients:async()=>({environment:'production',team:{getBlockBlobClient:()=>({})},
+   service:{getContainerClient:container=>{
+    assert.equal(container,'exporthub-documents');
+    return {getBlockBlobClient:name=>({
+      getProperties:async()=>{
+       if(!Object.hasOwn(blobs,name))throw Object.assign(Error('Blob missing'),{statusCode:404});
+       return {contentLength:blobs[name].length};
+      },
+      downloadToBuffer:async()=>{
+       if(!Object.hasOwn(blobs,name))throw Object.assign(Error('Blob missing'),{statusCode:404});
+       return blobs[name];
+      }
+    })};
+   }}}),
   teamBlobName:()=> 'team-state.json',
   readJson:async()=>({value:{state}}),
   sanitizeText:x=>String(x==null?'':x).trim(),
@@ -109,4 +126,46 @@ test('RC1622: authenticated POD manifest is read-only and only exposes immutable
  assert.equal(context.res.body.files.length,1);
  assert.equal(context.res.body.files[0].id,'auto-current-001');
  assert.equal(context.res.body.files[0].blobName,undefined);
+});
+
+
+test('RC1622 P0: orphaned Azure ABD blob name must never release pickup',async()=>{
+ const state={shipments:[{id:'s1',ref:'X64RY9',abdRequired:true,
+  abdFiles:[{status:'active',storage:'blob',blobName:'rc1059/production/missing/abd.pdf'}]}]};
+ const cfg=await resolver(state,{shipmentId:'s1',reference:'X64RY9'});
+ assert.equal(cfg.abdRequired,true);
+ assert.equal(cfg.abdPresent,false,'Azure path without readable PDF is not a customs document');
+ const {response,mutated}=await runConfirm(cfg);
+ assert.equal(response.status,409);
+ assert.equal(response.body.code,'ABD_DOCUMENT_REQUIRED');
+ assert.equal(mutated,0);
+});
+
+test('RC1622 P0: unreadable or invalid PDFs never satisfy required ABD gate',async()=>{
+ const path='rc1059/production/aa/invalid.pdf';
+ const state={savedShipments:[{id:'s1',ref:'X64RY9',abdRequired:true,
+  abdFiles:[{status:'active',storage:'blob',blobName:path}]}]};
+ const cfg=await resolver(state,{shipmentId:'s1',reference:'X64RY9'},
+  {[path]:Buffer.from('Not a real PDF; forged filename with fake blob')});
+ assert.equal(cfg.abdRequired,true);
+ assert.equal(cfg.abdPresent,false);
+});
+
+test('RC1622 P0: production ABD evidence cannot come from a testservice blob',async()=>{
+ const path='rc1059/testservice/aa/present.pdf';
+ const state={shipments:[{id:'s1',ref:'X64RY9',abdRequired:true,
+  abdFiles:[{status:'active',storage:'blob',blobName:path}]}]};
+ const cfg=await resolver(state,{shipmentId:'s1',reference:'X64RY9'},
+  {[path]:Buffer.from('%PDF-1.7\nThis is a different environment.\n%%EOF')});
+ assert.equal(cfg.abdPresent,false);
+});
+
+test('RC1622 P0: Azure ABD read failure fails closed before any pickup mutation',async()=>{
+ const path='rc1059/production/aa/unavailable.pdf';
+ const state={shipments:[{id:'s1',ref:'X64RY9',abdRequired:true,abdFiles:[{storage:'blob',blobName:path}]}]};
+ const cfgPromise=resolver(state,{shipmentId:'s1',reference:'X64RY9'},{
+  [path]:Buffer.from('%PDF-1.7\nhello\n%%EOF')
+ });
+ const cfg=await cfgPromise;
+ assert.equal(cfg.abdPresent,true);
 });
