@@ -16,7 +16,10 @@ function cleanHeader(header){
   invoiceNumber:safeText(source.invoiceNumber,80),
   invoiceDate:safeText(source.invoiceDate,40),
   customer:safeText(source.customer,160),
+  senderName:safeText(source.senderName||source.customer,160),
+  senderAddress:safeText(source.senderAddress,500),
   recipient:safeText(source.recipient,240),
+  recipientAddress:safeText(source.recipientAddress,500),
   destinationCountry:safeText(source.destinationCountry,80),
   invoiceTotal:money(source.invoiceTotal),
   currency:safeText(source.currency,3).toUpperCase()
@@ -147,9 +150,16 @@ async function createProformaPdf(snapshot){
   if(first){
    draw('Proforma-Nr.',margin,y,7,normal,80,muted);draw(model.header.invoiceNumber||'—',margin,y-12,10,bold,180);draw('Datum',215,y,7,normal,60,muted);draw(model.header.invoiceDate||'—',215,y-12,9,bold,100);
    draw('Empfaengerland',390,y,7,normal,95,muted);draw(model.header.destinationCountry||'—',390,y-12,9,bold,150);y-=38;
-   page.drawRectangle({x:margin,y:y-47,width:width-margin*2,height:52,color:soft,borderColor:line,borderWidth:0.5});
-   draw('VERSENDER',margin+12,y-10,7,bold,90,muted);draw('Essentra Components GmbH',margin+12,y-25,10,bold,220);draw('Nettetal, Germany',margin+12,y-39,8,normal,160,muted);
-   draw('EMPFAENGER',306,y-10,7,bold,90,muted);const recipient=wrapText(normal,model.header.recipient||'—',8,238,2);recipient.forEach((row,i)=>draw(row,306,y-25-(i*12),8,i===0?bold:normal,238));y-=74
+   page.drawRectangle({x:margin,y:y-106,width:width-margin*2,height:112,color:soft,borderColor:line,borderWidth:0.5});
+   draw('VERSENDER',margin+12,y-11,7,bold,90,muted);
+   draw(model.header.senderName||model.header.customer||'Essentra Components GmbH',margin+12,y-26,9,bold,235);
+   const senderLines=wrapText(normal,model.header.senderAddress,7.4,232,5);
+   senderLines.forEach((row,i)=>draw(row,margin+12,y-40-(i*11),7.4,normal,232));
+   draw('EMPFAENGER',306,y-11,7,bold,90,muted);
+   draw(model.header.recipient||'—',306,y-26,9,bold,236);
+   const recipientLines=wrapText(normal,model.header.recipientAddress,7.4,232,5);
+   recipientLines.forEach((row,i)=>draw(row,306,y-40-(i*11),7.4,normal,232));
+   y-=135
   }else y-=6
  }
  function positionHeader(){
