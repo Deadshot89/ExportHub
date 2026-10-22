@@ -2,7 +2,7 @@
 
 Stand: 22.10.2026. Die reine Teamstate-Inventur in
 `TESTSERVICE Storage Inventory` ist **kein vollständiger TESTSERVICE-Bestand**.
-Diese zweite, strikt manuelle Inventur erfasst zusätzlich vier Speicherbereiche.
+Diese zweite, strikt manuelle Inventur erfasst zusätzlich fünf Speicherbereiche.
 Der Workflow löscht, verschiebt, verändert oder lädt **keine Blob-Inhalte** herunter.
 
 ## Im Anwendungscode nachgewiesene Speicherziele
@@ -13,12 +13,13 @@ Der Workflow löscht, verschiebt, verändert oder lädt **keine Blob-Inhalte** h
 | Digitale Lieferscheine und Dokumente | `exporthub-documents` | `rc1059/testservice/` | `api/shared/document-blob-store.js` |
 | Containerfotos | `exporthub-documents` | `testservice/` | `api/shared/container-document-store.js` |
 | QR-Abholdatensätze | `exporthub-pickup` | `rc995/testservice/` | `api/shared/pickup-store.js` |
+| ABD-Analyse: hochgeladene Rechnungen (Quarantäne) | `exporthub-abd-quarantine` | `rc1294/testservice/` | `api/abd-analysis/index.js` |
 | POD, Fahrer-/Zollunterschriften | `exporthub-pod` | `rc995/testservice/` | `api/shared/pickup-store.js`, `api/shared/pod-archive.js` |
 | Separate POD-Archivkopien | `exporthub-pod-backup` | `rc1220/testservice/` | `api/shared/pod-archive.js` |
 
 **Wichtig:** Nur das Konto `exporthubtestde89` und der Teamcontainer
 `exporthub-teamdata` sind bislang ausdrücklich bestätigt. Bei den
-vier anderen Containern handelt es sich um Quellcode-Standards, **nicht** um
+fünf anderen Containern handelt es sich um Quellcode-Standards, **nicht** um
 live geprüfte Azure-Ressourcen. Der POD-Archivspeicher kann in einem
 **anderen Speicherkonto** liegen. Für jedes Ziel ist der tatsächliche
 Azure-Endpunkt erst zu bestätigen.
@@ -37,17 +38,19 @@ hinterlegt sein:
 - `EXPORTHUB_TEST_DOCUMENTS_INVENTORY_CONNECTION_STRING`
 - `EXPORTHUB_TEST_PICKUP_INVENTORY_CONNECTION_STRING`
 - `EXPORTHUB_TEST_POD_INVENTORY_CONNECTION_STRING`
+- `EXPORTHUB_TEST_ABD_INVENTORY_CONNECTION_STRING`
 - `EXPORTHUB_TEST_POD_BACKUP_INVENTORY_CONNECTION_STRING`
 
-Zusätzlich vier GitHub-Actions-Variablen für die jeweils **zuvor bestätigten**
+Zusätzlich fünf GitHub-Actions-Variablen für die jeweils **zuvor bestätigten**
 Azure-Speicherkonten (nur Accountnamen, keine Zugangsdaten):
 
 - `EXPORTHUB_TEST_DOCUMENTS_ACCOUNT`
 - `EXPORTHUB_TEST_PICKUP_ACCOUNT`
 - `EXPORTHUB_TEST_POD_ACCOUNT`
+- `EXPORTHUB_TEST_ABD_ACCOUNT`
 - `EXPORTHUB_TEST_POD_BACKUP_ACCOUNT`
 
-Alle fünf Zugänge und vier Accountnamen werden vor dem ersten Azure-Aufruf
+Alle sechs Zugänge und fünf Accountnamen werden vor dem ersten Azure-Aufruf
 überprüft. Es gibt keinen Fallback zu produktiven App-Secrets. Der HTTPS-
 Host des jeweiligen Zugangs muss exakt dem bestätigten Azure-Konto entsprechen.
 Fehlende Zugänge, falsche Konten, fehlende Byte-Metadaten oder Listenfehler
