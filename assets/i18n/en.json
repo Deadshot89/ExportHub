@@ -1664,5 +1664,8 @@
   "abd.completedUpload.noMatchingShipment": "ABD upload not started: Shipment {{reference}} could not be identified unambiguously. Reopen the shipment overview.",
   "abd.completedUpload.processing": "ABD document is being processed. Checking the saved result.",
   "abd.completedUpload.unconfirmed": "No confirmed ABD storage result. Check the shipment folder before trying again.",
-  "abd.completedUpload.success": "ABD document saved for shipment {{reference}}."
+  "abd.completedUpload.success": "ABD document saved for shipment {{reference}}.",
+  "abd.invoice.logo": "Essentra logo (PNG/JPG, optional)",
+  "abd.invoice.logoLoaded": "Company logo loaded.",
+  "abd.invoice.logoInvalid": "Choose a valid PNG or JPG up to 300 KB."
 }
