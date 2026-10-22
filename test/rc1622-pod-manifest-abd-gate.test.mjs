@@ -9,7 +9,7 @@ const confirmSource=fs.readFileSync(new URL('../api/pickup-confirm-v2/index.js',
 const podSource=fs.readFileSync(new URL('../api/pickup-pod/index.js',import.meta.url),'utf8');
 
 function resolver(state,record,verifiedBlobs={}){
- const start=resolverSource.indexOf('function rc1622StoredAbd('),end=resolverSource.indexOf('function mergeContainerPhotos(',start);
+ const start=resolverSource.indexOf('function rc1622PdfBytes('),end=resolverSource.indexOf('function mergeContainerPhotos(',start);
  assert.ok(start>=0&&end>start);
  // Only named, readable PDF bytes in the correct TEST/PRODUCTION container may release a pickup.
  const pdf=Buffer.from('%PDF-1.7\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF');
