@@ -145,7 +145,7 @@ async function resolveShipmentAbdConfig(record,environment='production'){
   loaded=await readJson(blob,null),doc=loaded.value||{},state=doc.state&&typeof doc.state==='object'?doc.state:doc;
  const sid=String(record&&record.shipmentId||'').trim(),
   ref=String(record&&(record.reference||record.ref)||'').trim().toUpperCase(),
-  same=function(sh){return sh&&((sid&&String(sh.id||sh.shipmentId||'').trim()===sid)||
+  same=function(sh){return sh&&((sid&&String(sh.linkedShipmentId||sh.shipmentId||sh.id||'').trim()===sid)||
    (ref&&String(sh.reference||sh.ref||sh.shipmentRef||'').trim().toUpperCase()===ref))};
  const shipments=[].concat(Array.isArray(state.shipments)?state.shipments:[],
   Array.isArray(state.savedShipments)?state.savedShipments:[]);
