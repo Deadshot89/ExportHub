@@ -44,7 +44,7 @@ test('RC1631 scans only seven fixed TESTSERVICE prefixes in six containers',asyn
  assert.equal(f.calls.at(-1).connection,'backup');
 });
 test('RC1631 classifies current version, previous version, snapshots and deleted separately',async()=>{
- const f=fixture({'exporthub-teamdata|testservice/':[
+ const f=fixture({'exporthub-data|testservice/':[
   own('testservice/s',18,{versionId:'v2',isCurrentVersion:true}),
   own('testservice/s',14,{versionId:'v1',isCurrentVersion:false}),
   own('testservice/s',4,{snapshot:'2026-10-20T12:00:00Z'}),
@@ -65,12 +65,12 @@ test('RC1631 never mistakes missing container, account or unreadable blob sizes 
  const abd=r.scopes.find(s=>s.id==='abd-quarantine');
  assert.deepEqual(abd,{id:'abd-quarantine',status:'unverified',records:null,logicalBytes:null,kinds:null});
  assert.doesNotMatch(JSON.stringify(r),/secret-blob-name-token-sas-this-is-sensitive/);
- const bad=fixture({'exporthub-teamdata|testservice/':[own('testservice/unreadable',undefined)]});
+ const bad=fixture({'exporthub-data|testservice/':[own('testservice/unreadable',undefined)]});
  const b=await collectTestserviceMultiScopeInventory({services:bad.services,environment:{}});
  assert.equal(b.scopes[0].status,'unverified');assert.equal(b.scopes[0].records,null);
 });
 test('RC1631 hostile out-of-scope provider result cannot leak a customer name',async()=>{
- const f=fixture({'exporthub-teamdata|testservice/':[own('production/secret-customer-number.pdf',100)]});
+ const f=fixture({'exporthub-data|testservice/':[own('production/secret-customer-number.pdf',100)]});
  const r=await collectTestserviceMultiScopeInventory({services:f.services,environment:{}});
  assert.equal(r.complete,false);
  assert.equal(r.scopes[0].status,'unverified');
@@ -78,7 +78,7 @@ test('RC1631 hostile out-of-scope provider result cannot leak a customer name',a
 });
 test('RC1631 respects clock budget, never silently reports partial total as complete',async()=>{
  let counter=0;
- const f=fixture({'exporthub-teamdata|testservice/':[own('testservice/large',10),own('testservice/other',20)]});
+ const f=fixture({'exporthub-data|testservice/':[own('testservice/large',10),own('testservice/other',20)]});
  const r=await collectTestserviceMultiScopeInventory({services:f.services,environment:{},maxElapsedMs:2,clock:()=>++counter});
  assert.equal(r.complete,false);
  assert.equal(r.scopes[0].status,'unverified');
