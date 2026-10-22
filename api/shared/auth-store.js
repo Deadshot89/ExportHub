@@ -69,20 +69,31 @@ async function testserviceClients() {
 }
 function environmentFromRequest(req) {
   const headers = req && req.headers || {};
-  const rawHost = lower(headers['x-forwarded-host'] || headers['x-original-host'] || headers.host || headers.Host || '');
   const requested = lower(headers['x-exporthub-environment'] || headers['X-ExportHUB-Environment'] || '');
-  // On official hosts the server-selected environment overrides untrusted headers.
-  // A conflicting header fails closed before any storage client is opened.
-  let host = '';
-  try {
-    const first = rawHost.split(',')[0].trim();
-    host = new URL(first.includes('://') ? first : 'https://' + first).hostname.toLowerCase();
-  } catch (_) { /* Preserve local harness fallback for unknown hostnames. */ }
-  const azureHost = host.endsWith('.azurestaticapps.net');
-  const testHost = azureHost && /-testservice\./.test(host);
-  const productionHost = (azureHost && !testHost) || /^(?:www\.)?exporthub360\.(?:de|com)$/.test(host);
-  if (testHost || productionHost) {
-    const actual = testHost ? 'testservice' : 'production';
+  // Read all official host assertions independently. A user-supplied forwarded
+  // header must not override a conflicting official Host/X-Original-Host.
+  function officialEnvironment(value) {
+    const raw = lower(value).split(',')[0].trim();
+    if (!raw) return '';
+    let host = '';
+    try {
+      host = new URL(raw.includes('://') ? raw : 'https://' + raw).hostname.toLowerCase();
+    } catch (_) { return ''; }
+    if (host.endsWith('.azurestaticapps.net'))
+      return /-testservice\./.test(host) ? 'testservice' : 'production';
+    if (/^(?:www\.)?exporthub360\.(?:de|com)$/.test(host))
+      return 'production';
+    return '';
+  }
+  const actualHosts = [
+    headers.host || headers.Host,
+    headers['x-original-host'],
+    headers['x-forwarded-host']
+  ].map(officialEnvironment).filter(Boolean);
+  if (new Set(actualHosts).size > 1)
+    throw error('ENVIRONMENT_MISMATCH', 'Widersprüchliche offizielle ExportHUB-Domains in den Anfragedaten.', 409);
+  if (actualHosts.length) {
+    const actual = actualHosts[0];
     if (requested && requested !== actual)
       throw error('ENVIRONMENT_MISMATCH', 'Die angeforderte ExportHUB-Umgebung stimmt nicht mit der Website überein.', 409);
     return actual;
