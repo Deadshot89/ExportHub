@@ -2,6 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url);
+const {mergeShipmentProtected}=require('../api/shared/merge.js');
 
 const builder=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
 const first=builder.indexOf('function patchRc1617AbdUploadFailureFeedback(');
@@ -89,4 +92,83 @@ test('RC1619: saved-only copy untouched by upload is not overwritten on rollback
 test('RC1619: patcher rejects changed anchors instead of silently releasing an unsafe uploader',()=>{
  const fixture='window.rc524UploadFile=function(input,key){return false;} window.rc524DeleteFile=';
  assert.throws(()=>patchers.second(fixture,'index.html'),/RC1619 Upload-Anker/);
+});
+
+test('RC1620: rollback restores ABD request completion even if it never received the new PDF ID',()=>{
+ const {s,save}=compileSnapshot();
+ const shipment={id:'SHIP-9Z7L82',ref:'9Z7L82',status:'Wartet auf ABD',abdDone:false,abdStatus:'Wartet auf ABD',abdFiles:[]};
+ const request={id:'REQ-9Z7L82',ref:'9Z7L82',status:'Angefragt',abdStatus:'Offen',done:false,abdDone:false,abdFiles:[{id:'OLD-ABD'}],updatedAt:'before'};
+ s.shipments.push(shipment);
+ s.abdRequests.push(request);
+ const undo=save(shipment,'NEW-ABD');
+ shipment.abdFiles.push({id:'NEW-ABD'});
+ shipment.abdDone=true;shipment.abdStatus='Abgeschlossen';shipment.status='Bereit zur Abholung';
+ // Actual ABD request completion can be status-only, with no matching new file.
+ request.done=true;request.abdDone=true;request.status='Abgeschlossen';request.abdStatus='Abgeschlossen';request.completedAt='2026-10-22T10:00:00Z';request.updatedAt='after';
+ undo();
+ assert.equal(shipment.status,'Wartet auf ABD');
+ assert.equal(shipment.abdDone,false);
+ assert.equal(shipment.abdFiles.length,0);
+ assert.equal(request.done,false);
+ assert.equal(request.abdDone,false);
+ assert.equal(request.status,'Angefragt');
+ assert.equal(request.abdStatus,'Offen');
+ assert.equal(request.completedAt,undefined);
+ assert.equal(request.updatedAt,'before');
+ assert.deepEqual(Array.from(request.abdFiles,x=>x.id),['OLD-ABD']);
+});
+
+test('RC1620: unrelated ABD request metadata and other shipments survive failed upload',()=>{
+ const {s,save}=compileSnapshot();
+ const shipments=['9Z7L82','AB1234','CD5678','EF9012'].map(ref=>({
+  id:'SHIP-'+ref,ref,abdDone:false,abdStatus:'Wartet auf ABD',status:'Wartet auf ABD',abdFiles:[]
+ }));
+ const requests=shipments.map(sh=>({id:'REQ-'+sh.ref,ref:sh.ref,done:false,status:'Angefragt',abdFiles:[],updatedAt:'before'}));
+ s.shipments.push(...shipments);s.abdRequests.push(...requests);
+ const undo=save(shipments[0],'NEW-ABD');
+ shipments[0].abdFiles.push({id:'NEW-ABD'});shipments[0].abdDone=true;shipments[0].status='Bereit';
+ requests[0].done=true;requests[0].status='Abgeschlossen';
+ requests[1].updatedAt='independent-save';
+ undo();
+ assert.equal(requests[0].done,false);
+ assert.equal(requests[0].status,'Angefragt');
+ assert.equal(requests[1].updatedAt,'independent-save');
+ assert.equal(shipments[0].status,'Wartet auf ABD');
+ for(let i=1;i<4;i++){
+  assert.equal(shipments[i].status,'Wartet auf ABD');
+  assert.equal(shipments[i].abdFiles.length,0);
+  assert.equal(requests[i].done,false);
+ }
+});
+
+test('RC1620: concurrent Azure save keeps both old and new ABD documents',()=>{
+ const old={id:'ABD-OLD',name:'Old ABD.pdf',storage:'blob',blobName:'rc1059/production/aa/'+('a'.repeat(64)),sha256:'a'.repeat(64)};
+ const added={id:'ABD-NEW',name:'New ABD.pdf',storage:'blob',blobName:'rc1059/production/bb/'+('b'.repeat(64)),sha256:'b'.repeat(64)};
+ const server={id:'SHIP-9Z7L82',ref:'9Z7L82',updatedAt:'2026-10-22T11:05:00Z',status:'Wartet auf ABD',abdFiles:[old]};
+ const client={id:'SHIP-9Z7L82',ref:'9Z7L82',updatedAt:'2026-10-22T11:04:00Z',status:'Wartet auf ABD',abdFiles:[old,added]};
+ const merged=mergeShipmentProtected(server,client);
+ assert.deepEqual(merged.abdFiles.map(x=>x.id),['ABD-OLD','ABD-NEW']);
+ assert.deepEqual(merged.abdFiles.map(x=>x.blobName),[old.blobName,added.blobName]);
+ assert.equal(merged.status,'Wartet auf ABD','no false customs release based on only document metadata');
+});
+
+test('RC1620: a newer stale client must not erase older valid ABD documents',()=>{
+ const server={id:'SHIP-9Z7L82',ref:'9Z7L82',updatedAt:'2026-10-22T10:00:00Z',
+  abdFiles:[{id:'ABD-OLD',storage:'blob',blobName:'rc1059/production/aa/old'},{id:'ABD-SECOND',storage:'blob',blobName:'rc1059/production/bb/second'}]};
+ const client={...server,updatedAt:'2026-10-22T10:30:00Z',abdFiles:[{id:'ABD-SECOND',storage:'blob',blobName:'rc1059/production/bb/second'}]};
+ const merged=mergeShipmentProtected(server,client);
+ assert.deepEqual(merged.abdFiles.map(x=>x.id),['ABD-OLD','ABD-SECOND']);
+});
+
+test('RC1620: duplicate ABD ID does not lose its verified Azure document reference',()=>{
+ const server={id:'SHIP-9Z7L82',ref:'9Z7L82',updatedAt:'2026-10-22T10:00:00Z',
+  abdFiles:[{id:'ABD-OLD',name:'old.pdf',storage:'blob',blobName:'rc1059/production/aa/valid',sha256:'a'.repeat(64)}]};
+ const client={id:'SHIP-9Z7L82',ref:'9Z7L82',updatedAt:'2026-10-22T10:30:00Z',
+  abdFiles:[{id:'ABD-OLD',name:'old.pdf',data:'data:application/pdf;base64,JVBERi0xLjQ=',status:'active'}]};
+ const merged=mergeShipmentProtected(server,client);
+ assert.equal(merged.abdFiles.length,1);
+ assert.equal(merged.abdFiles[0].storage,'blob');
+ assert.equal(merged.abdFiles[0].blobName,'rc1059/production/aa/valid');
+ assert.equal(Object.hasOwn(merged.abdFiles[0],'data'),false);
+ assert.equal(merged.abdFiles[0].status,'active');
 });
