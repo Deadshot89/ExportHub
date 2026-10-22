@@ -2,7 +2,7 @@
 'use strict';
 if(!root||root.ExportHUBRC1549Proforma)return;
 
-var rows=[emptyRow()],manualSnapshot=null,busy=false,timer=0,observer=null,observerRoot=null;
+var rows=[emptyRow()],manualSnapshot=null,busy=false,timer=0,observer=null,observerRoot=null,bootstrapObserver=null,bootstrapObserverRoot=null;
 var logoDataUri='';
 var headerDraft={invoiceNumber:'',invoiceDate:'',senderName:'Essentra Components GmbH',senderAddress:'',recipient:'',recipientAddress:'',destinationCountry:'',currency:'EUR'};
 var packs={
@@ -257,10 +257,39 @@ function mountManual(){
  return true
 }
 function observerHost(){return root.document&&root.document.getElementById('rc1294AbdAnalysis')}
+function disconnectObserver(){if(observer){try{observer.disconnect()}catch(_){}}observer=null;observerRoot=null}
+function disconnectBootstrapObserver(){if(bootstrapObserver){try{bootstrapObserver.disconnect()}catch(_){}}bootstrapObserver=null;bootstrapObserverRoot=null}
+function ensureBootstrapObserver(){
+ var d=root.document,target=d&&(d.getElementById('content')||d.body);
+ if(!target||typeof root.MutationObserver!=='function')return false;
+ if(bootstrapObserver&&bootstrapObserverRoot===target)return true;
+ disconnectBootstrapObserver();
+ try{
+  bootstrapObserver=new root.MutationObserver(function(){
+   if(observerHost()){disconnectBootstrapObserver();schedule()}
+  });
+  bootstrapObserver.observe(target,{childList:true,subtree:true});
+  bootstrapObserverRoot=target;
+  return true
+ }catch(_){disconnectBootstrapObserver();return false}
+}
 function bindObserver(){
- var target=observerHost();if(!target||typeof root.MutationObserver!=='function')return false;if(observer&&observerRoot===target)return true;
- if(observer)try{observer.disconnect()}catch(_){};observer=null;observerRoot=null;
- try{observer=new root.MutationObserver(schedule);observer.observe(target,{childList:true,subtree:true});observerRoot=target;return true}catch(_){return false}
+ var target=observerHost();
+ if(!target){
+  disconnectObserver();
+  ensureBootstrapObserver();
+  return false
+ }
+ disconnectBootstrapObserver();
+ if(typeof root.MutationObserver!=='function')return false;
+ if(observer&&observerRoot===target)return true;
+ disconnectObserver();
+ try{
+  observer=new root.MutationObserver(schedule);
+  observer.observe(target,{childList:true,subtree:true});
+  observerRoot=target;
+  return true
+ }catch(_){disconnectObserver();return false}
 }
 function enhance(){
  var h=host(),entry=h&&h.querySelector('[data-rc1294-mode="invoice"]');
