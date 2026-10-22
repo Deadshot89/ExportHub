@@ -1,0 +1,39 @@
+name: RC1631 Multi-Scope TESTSERVICE Read-Only Inventory
+
+on:
+  pull_request:
+    paths:
+      - 'api/e2e-test-fixture/index.js'
+      - 'api/shared/testservice-multi-scope-inventory.js'
+      - 'test/rc1631-testservice-multi-scope-inventory.test.mjs'
+      - '.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml'
+      - '.github/workflows/rc1631-testservice-multi-scope-inventory.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'api/e2e-test-fixture/index.js'
+      - 'api/shared/testservice-multi-scope-inventory.js'
+      - 'test/rc1631-testservice-multi-scope-inventory.test.mjs'
+      - '.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml'
+      - '.github/workflows/rc1631-testservice-multi-scope-inventory.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - run: |
+          node --check api/e2e-test-fixture/index.js
+          node --check api/shared/testservice-multi-scope-inventory.js
+      - run: |
+          node --test test/rc1631-testservice-multi-scope-inventory.test.mjs test/rc1630-testservice-inventory-release-oidc.test.mjs test/rc1627-testservice-team-metadata-inventory.test.mjs
