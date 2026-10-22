@@ -1664,5 +1664,8 @@
   "abd.completedUpload.noMatchingShipment": "Caricamento ABD non avviato: impossibile identificare con certezza la spedizione {{reference}}. Riapri l’elenco delle spedizioni.",
   "abd.completedUpload.processing": "Il documento ABD è in elaborazione. Verifica del salvataggio in corso.",
   "abd.completedUpload.unconfirmed": "Nessuna conferma del salvataggio ABD. Controlla la cartella della spedizione prima di riprovare.",
-  "abd.completedUpload.success": "Documento ABD salvato per la spedizione {{reference}}."
+  "abd.completedUpload.success": "Documento ABD salvato per la spedizione {{reference}}.",
+  "abd.invoice.logo": "Logo Essentra (PNG/JPG, facoltativo)",
+  "abd.invoice.logoLoaded": "Logo caricato.",
+  "abd.invoice.logoInvalid": "Seleziona PNG o JPG fino a 300 KB."
 }
