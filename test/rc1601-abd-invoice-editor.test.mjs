@@ -47,3 +47,12 @@ test('RC1601: upload result can be edited and every entry is validated',()=>{
  assert.match(frontend,/event\.stopPropagation\(\)/);
  for(const locale of ['de','en','pl','es','fr','it'])assert.match(frontend,new RegExp('\\b'+locale+':\\{invoiceTitle:'))
 });
+
+test('RC1601: only valid size-limited PNG or JPEG logo data may enter the PDF',async()=>{
+ const bad=Object.assign({},invoice(),{logoDataUri:'data:text/html;base64,PGgxPmJvZ3VzPC9oMT4='});
+ await assert.rejects(()=>exporter.createProformaPdf(bad),error=>error.code==='ABD_LOGO_INVALID');
+ const oversized=Object.assign({},invoice(),{logoDataUri:'data:image/png;base64,'+'A'.repeat(450000)});
+ await assert.rejects(()=>exporter.createProformaPdf(oversized),error=>error.code==='ABD_LOGO_TOO_LARGE');
+ assert.match(frontend,/data-rc1549-logo/);
+ assert.match(frontend,/exportSnapshot\.logoDataUri=logoDataUri/)
+});
