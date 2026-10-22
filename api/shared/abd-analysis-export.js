@@ -114,17 +114,22 @@ async function createPdf(snapshot){
  return Buffer.from(await pdf.save())
 }
 function wrapText(font,value,size,maxWidth,maxLines=3){
- const words=safeText(value,500).split(/\s+/).filter(Boolean),lines=[];let current='';
+ const words=safeText(value,600).split(/\s+/).filter(Boolean),lines=[];let current='';
+ function pushLine(){if(current){lines.push(current);current=''}}
  for(const word of words){
-  const candidate=current?current+' '+word:word;
-  if(font.widthOfTextAtSize(candidate,size)<=maxWidth)current=candidate;
-  else{
-   if(current)lines.push(current);
-   current=word;
-   if(lines.length>=maxLines-1)break
+  const combined=current?current+' '+word:word;
+  if(font.widthOfTextAtSize(combined,size)<=maxWidth){current=combined;continue}
+  pushLine();
+  if(font.widthOfTextAtSize(word,size)<=maxWidth){current=word;continue}
+  let piece='';
+  for(const char of word){
+   if(piece&&font.widthOfTextAtSize(piece+char,size)>maxWidth){lines.push(piece);piece=char}
+   else piece+=char
   }
+  current=piece
  }
- if(current&&lines.length<maxLines)lines.push(current);
+ pushLine();
+ if(lines.length>maxLines)fail('ABD_PDF_TEXT_OVERFLOW');
  return lines.length?lines:['']
 }
 function invoiceLogo(data){
@@ -186,7 +191,7 @@ async function createProformaPdf(snapshot){
  }
  newPage(true);draw('WARENPOSITIONEN',margin,y,9,bold,180);y-=18;positionHeader();
  for(const position of model.positions){
-  const desc=wrapText(normal,[position.itemNumber,position.description].filter(Boolean).join(' · '),7.5,174,2),rowHeight=Math.max(31,desc.length*11+11);
+  const desc=wrapText(normal,[position.itemNumber,position.description].filter(Boolean).join(' · '),7.5,174,20),rowHeight=Math.max(31,desc.length*11+11);
   if(y-rowHeight<150){newPage(false);draw('WARENPOSITIONEN · FORTSETZUNG',margin,y,9,bold,220);y-=18;positionHeader()}
   draw(position.position||'',margin,y,7.5,bold,25);desc.forEach((row,i)=>draw(row,65,y-(i*10),7.5,i===0?bold:normal,174));
   draw(formatQuantity(position.quantity)+(position.unit?' '+position.unit:''),248,y,7.2,normal,42);
