@@ -178,13 +178,13 @@ function enhanceUploaded(){
   var head=docs[i].querySelector('.rc1294-document-head');if(!head)continue;
   var button=head.querySelector('[data-rc1549-proforma]');
   if(!button){button=root.document.createElement('button');button.type='button';button.className='ghost';button.setAttribute('data-rc1549-proforma','');head.appendChild(button)}
-  button.textContent=t('proforma');
+  var exportLabel=t('proforma');if(button.textContent!==exportLabel)button.textContent=exportLabel;
   var snapshot=api&&typeof api.snapshot==='function'?api.snapshot(i):null;
   button.disabled=!ready(snapshot);button.setAttribute('data-result-index',String(i));
   button.onclick=(function(index,target){return function(){var current=api&&typeof api.snapshot==='function'?api.snapshot(index):null;exportProforma(current,target)}})(i,button);
   var importButton=head.querySelector('[data-rc1549-import]');
   if(!importButton){importButton=root.document.createElement('button');importButton.type='button';importButton.className='ghost';importButton.setAttribute('data-rc1549-import','');head.appendChild(importButton)}
-  importButton.textContent=t('editUpload');importButton.disabled=!snapshot||!Array.isArray(snapshot.positions)||!snapshot.positions.length;
+  var importLabel=t('editUpload');if(importButton.textContent!==importLabel)importButton.textContent=importLabel;importButton.disabled=!snapshot||!Array.isArray(snapshot.positions)||!snapshot.positions.length;
   importButton.onclick=(function(index){return function(){importUploaded(index)}})(i)
  }
  return true
@@ -255,7 +255,7 @@ function bindObserver(){
 }
 function enhance(){
  var h=host(),entry=h&&h.querySelector('[data-rc1294-mode="invoice"]');
- if(entry)entry.textContent=t('invoiceTitle');
+ if(entry){var title=t('invoiceTitle');if(entry.textContent!==title)entry.textContent=title}
  mountManual();enhanceUploaded();bindObserver();return true
 }
 function schedule(){if(timer)return;timer=root.setTimeout?root.setTimeout(function(){timer=0;enhance()},0):0;if(!root.setTimeout)enhance()}
