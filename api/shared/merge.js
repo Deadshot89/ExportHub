@@ -671,6 +671,49 @@ function mergePodFilesProtected(serverList, incomingList) {
   });
 }
 
+// RC1620 P0: multiple ABD PDFs are additive, even when a concurrent server
+// update has a newer shipment timestamp than the uploading browser.
+function mergeAbdFilesProtected(serverFiles,incomingFiles){
+ const out=[],positions=new Map();
+ function key(file,index,source){
+  if(!file||typeof file!=='object')return source+':'+index;
+  const id=text(file.id||file.fileId||file.remoteId||file.documentId);
+  if(id)return 'id:'+lower(id);
+  const blob=text(file.blobName||file.storageBlobName);
+  if(blob)return 'blob:'+lower(blob);
+  const hash=text(file.sha256);
+  if(hash)return 'sha:'+lower(hash);
+  const name=text(file.name||file.fileName||file.filename);
+  const uploaded=text(file.uploadedAt||file.addedAt||file.createdAt);
+  if(name&&uploaded)return 'named:'+lower(name)+'|'+uploaded;
+  // Never conflate unidentified old and new documents by array position.
+  return source+':'+index;
+ }
+ function durable(file){return !!(file&&typeof file==='object'&&text(file.blobName||file.storageBlobName)&&
+  /^(?:blob|azure)$/i.test(text(file.storage)))}
+ function ingest(rows,source){
+  (Array.isArray(rows)?rows:[]).forEach((raw,index)=>{
+   if(raw==null)return;
+   const k=key(raw,index,source),position=positions.get(k),item=clone(raw);
+   if(position===undefined){positions.set(k,out.length);out.push(item);return}
+   const previous=out[position];
+   if(!isObject(previous)||!isObject(item))return;
+   const combined=Object.assign({},previous,item);
+   // An older inline/local copy must not replace a verified Azure pointer.
+   if(durable(previous)&&!durable(item)){
+    for(const name of ['storage','blobName','storageBlobName','sha256','size','mimeType']){
+     if(previous[name]!==undefined)combined[name]=previous[name];
+    }
+    for(const name of ['data','payload','content','base64','dataUrl'])delete combined[name];
+   }
+   out[position]=combined;
+  });
+ }
+ ingest(serverFiles,'server');
+ ingest(incomingFiles,'incoming');
+ return out;
+}
+
 function mergeShipmentProtected(serverItem, incomingItem) {
   if (!isObject(serverItem)) return clone(incomingItem);
   if (!isObject(incomingItem)) return clone(serverItem);
@@ -691,6 +734,7 @@ function mergeShipmentProtected(serverItem, incomingItem) {
     const b = Array.isArray(incomingItem[key]) ? incomingItem[key] : [];
     if (key === 'shipmentHistory') out[key] = mergeShipmentHistory(a,b);
     else if (key === 'podFiles') out[key] = mergePodFilesProtected(a,b);
+    else if (key === 'abdFiles' && a.length && b.length) out[key] = mergeAbdFilesProtected(a,b);
     else if (!a.length && b.length) out[key] = clone(b);
     else if (a.length && !b.length) out[key] = clone(a);
     else if (a.length && b.length && key === 'rows') out[key] = clone((incomingTs >= serverTs ? b : a));
