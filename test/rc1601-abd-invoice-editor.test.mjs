@@ -76,3 +76,10 @@ test('RC1601: upload export cannot bypass complete invoice address and weight va
  assert.ok(frontend.includes('button.disabled=!readyInvoice(snapshot)'));
  assert.ok(frontend.includes('if(!readyInvoice(snapshot)||busy)'));
 });
+
+test('RC1601: standard production/Testservice build includes the invoice editor',()=>{
+ const pipeline=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
+ const release=fs.readFileSync('.github/workflows/exporthub-production-release.yml','utf8');
+ assert.match(pipeline,/integrateAbdProforma\(ROOT,OUT\)/);
+ assert.match(release,/node \.github\/rc1112\/build-three-env\.mjs/);
+});
