@@ -65,8 +65,11 @@ async function renderInvoice(model,logoData){
    const dims=logo.scale(Math.min(194/logo.width,42/logo.height,1));
    page.drawImage(logo,{x:M,y:H-75,width:dims.width,height:dims.height});
   }else{
-   put('essentra',M,H-61,{size:23,bold:true,width:190});
-   put('Components',M+2,H-75,{size:8,color:muted,width:190})
+   // Never fabricate an Essentra corporate mark. Until a verified artwork is supplied,
+   // identify the sender with plain text, not a logo-like wordmark.
+   const senderLabel=header.senderName||header.customer||'';
+   const senderLines=linesFor(bold,senderLabel,11,194,3);
+   senderLines.forEach((label,i)=>put(label,M,H-52-i*12,{size:11,bold:true,width:194}))
   }
   putRight('PROFORMA INVOICE',R,H-58,{size:16,bold:true,width:290});
   putRight('Customs document | not a tax invoice',R,H-75,{size:8,color:muted,width:290});
