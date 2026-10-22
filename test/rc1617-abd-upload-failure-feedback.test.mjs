@@ -66,3 +66,30 @@ test('RC1617: release build reports asynchronous ABD failures, never falls back 
  assert.match(builder,/key==='abdFiles'\?findShipment\(input.dataset.id\)/);
  assert.match(builder,/Azure-Speicherung konnte nicht bestätigt werden/);
 });
+
+
+test('RC1617: concurrent ABD uploads ignore unscoped or conflicting shipment events',()=>{
+ const t=setup(),s=t.window.__EXPORTHUB_GET_STATE__(),ref2='8LSUHW',id2='SHIP-'+ref2;
+ const second={id:id2,ref:ref2,abdRequired:true};
+ const request2={id:'ABD-'+ref2,ref:ref2,linkedShipmentId:id2,source:'shipment'};
+ s.shipments.push(second);s.abdRequests.push(request2);
+ const host1={children:[],querySelector(){return this.children[0]||null},appendChild(n){this.children.push(n)}};
+ const host2={children:[],querySelector(){return this.children[0]||null},appendChild(n){this.children.push(n)}};
+ const input=host=>({files:[{name:'ABD.pdf',type:'application/pdf'}],dataset:{},closest(){return host},setAttribute(){}});
+ const input1=input(host1),input2=input(host2);
+ t.window.ExportHUBRC626.uploadCompletedAbd(t.request.id,input1);
+ t.window.ExportHUBRC626.uploadCompletedAbd(request2.id,input2);
+ const send=(name,detail)=>t.listeners.get(name).forEach(fn=>fn({detail:{kind:'abd',...detail}}));
+ const fail=(d)=>send('exporthub:shipment-document-upload-failed',d);
+ const succeed=(d)=>send('exporthub:shipment-document-uploaded',{azureVerified:true,...d});
+ fail({message:'Unscoped error'});
+ fail({shipmentId:t.shipment.id,reference:ref2,message:'Conflicting identifiers'});
+ succeed({shipmentId:t.shipment.id,reference:ref2});
+ for(const host of [host1,host2])assert.match(host.children[0].textContent,/being processed/i);
+ fail({shipmentId:id2,reference:ref2,message:'Azure 409 for second shipment'});
+ assert.match(host2.children[0].textContent,/409 for second shipment/);
+ assert.match(host1.children[0].textContent,/being processed/i);
+ succeed({shipmentId:t.shipment.id,reference:t.shipment.ref});
+ assert.match(host1.children[0].textContent,/saved for shipment/i);
+ assert.doesNotMatch(host2.children[0].textContent,/saved for shipment/i);
+});
