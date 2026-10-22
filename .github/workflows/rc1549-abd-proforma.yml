@@ -33,7 +33,7 @@ jobs:
         run: node --check assets/rc1549-abd-proforma.js
       - name: RC1549 ABD Proforma and A4 print-layout contracts
         env:
-          EXPORTHUB_PDF_SAMPLE_DIR: test-results/rc1603-pdf-proof
+          EXPORTHUB_PDF_SAMPLE_DIR: pdf-proof/rc1603
         run: node --test test/rc1549-abd-proforma.test.mjs test/rc1601-abd-invoice-editor.test.mjs
 
       - name: Build static ExportHUB package
@@ -66,6 +66,6 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: rc1603-invoice-pdf-layout
-          path: test-results/rc1603-pdf-proof/*.pdf
+          path: pdf-proof/rc1603/*.pdf
           if-no-files-found: ignore
           retention-days: 14
