@@ -4,6 +4,10 @@ const auth = require('../shared/auth-store');
 const apiI18n = require('./i18n');
 let clientsPromise = null;
 let sessionDocumentsPromise = null;
+// Only the TESTSERVICE request path uses the ETag-verified team read cache.
+// The shared production login/session blob is always fetched afresh.
+let testserviceDocumentsPromise = null;
+let verifiedTestserviceTeam = null;
 
 async function clients(){
   if (!clientsPromise) {
@@ -15,13 +19,43 @@ async function clients(){
   return clientsPromise;
 }
 
-function readSessionDocuments(c){
-  if (!sessionDocumentsPromise) {
-    sessionDocumentsPromise = Promise.all([
-      auth.readJson(c.auth, auth.emptyAuth()),
-      auth.readJson(c.team, auth.emptyTeam())
-    ]).then(([authDoc, teamDoc]) => ({ authDoc, teamDoc })).finally(() => {
-      sessionDocumentsPromise = null;
+async function readVerifiedTestserviceTeam(c){
+  const cache=verifiedTestserviceTeam;
+  if(cache && cache.blob===c.team && cache.etag && typeof c.team.getProperties==='function'){
+    try{
+      const props=await c.team.getProperties();
+      if(props && props.etag && String(props.etag)===cache.etag)return cache.document;
+    }catch(_){
+      // HEAD may be unavailable during a transient incident: read the real
+      // full document, never assume a cached user's rights are still current.
+    }
+  }
+  const doc=await auth.readJson(c.team,auth.emptyTeam());
+  // No ETag = no safe reuse. Every future attempt falls back to full read.
+  verifiedTestserviceTeam=(doc && doc.etag && typeof c.team.getProperties==='function')
+    ? {blob:c.team,etag:String(doc.etag),document:doc}
+    : null;
+  return doc;
+}
+
+function readSessionDocuments(c,verifiedTestservice=false){
+  if(verifiedTestservice){
+    if(!testserviceDocumentsPromise){
+      testserviceDocumentsPromise=Promise.all([
+        auth.readJson(c.auth,auth.emptyAuth()),
+        readVerifiedTestserviceTeam(c)
+      ]).then(([authDoc,teamDoc])=>({authDoc,teamDoc})).finally(()=>{
+        testserviceDocumentsPromise=null;
+      });
+    }
+    return testserviceDocumentsPromise;
+  }
+  if(!sessionDocumentsPromise){
+    sessionDocumentsPromise=Promise.all([
+      auth.readJson(c.auth,auth.emptyAuth()),
+      auth.readJson(c.team,auth.emptyTeam())
+    ]).then(([authDoc,teamDoc])=>({authDoc,teamDoc})).finally(()=>{
+      sessionDocumentsPromise=null;
     });
   }
   return sessionDocumentsPromise;
@@ -55,8 +89,10 @@ async function validateSession(req, options = {}){
   const token = auth.bearer(req);
   if (!token) throw auth.error('AUTH_REQUIRED', apiI18n.t(req,'api.common.authRequired'), 401);
   if (isSignedTestserviceE2E(token)) return auth.validateSession(req, options);
+  const testserviceRequest=typeof auth.environmentFromRequest==='function' &&
+    auth.environmentFromRequest(req)==='testservice';
   const c = await clients();
-  const { authDoc, teamDoc } = await readSessionDocuments(c);
+  const { authDoc, teamDoc } = await readSessionDocuments(c,testserviceRequest);
   const resolved = auth.resolveSession(token, authDoc.value || auth.emptyAuth());
   const session = resolved.session;
   if (!session) throw auth.error('SESSION_INVALID', apiI18n.t(req,'api.common.sessionInvalid'), 401);
