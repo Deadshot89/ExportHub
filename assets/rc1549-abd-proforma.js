@@ -250,7 +250,11 @@ function bindObserver(){
  if(observer)try{observer.disconnect()}catch(_){};observer=null;observerRoot=null;
  try{observer=new root.MutationObserver(schedule);observer.observe(target,{childList:true,subtree:true});observerRoot=target;return true}catch(_){return false}
 }
-function enhance(){mountManual();enhanceUploaded();bindObserver();return true}
+function enhance(){
+ var h=host(),entry=h&&h.querySelector('[data-rc1294-mode="invoice"]');
+ if(entry)entry.textContent=t('invoiceTitle');
+ mountManual();enhanceUploaded();bindObserver();return true
+}
 function schedule(){if(timer)return;timer=root.setTimeout?root.setTimeout(function(){timer=0;enhance()},0):0;if(!root.setTimeout)enhance()}
 function activate(){schedule()}
 root.ExportHUBRC1549Proforma=Object.freeze({version:'RC1549',mount:enhance,ready:ready,manualSnapshot:function(){return manualSnapshot?JSON.parse(JSON.stringify(manualSnapshot)):null}});
