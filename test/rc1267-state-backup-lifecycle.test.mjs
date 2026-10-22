@@ -141,6 +141,16 @@ test('RC1624: Wiederverwendung niemals über UTC-Tagesgrenze, Monats- oder Produ
   }
 });
 
+test('RC1624: vorhandene Sicherung ohne Mindestaufbewahrung wird nicht als wiederverwendbar akzeptiert',async()=>{
+  const container=new MemoryContainer();
+  const first=await createVerifiedSnapshot(container,{environment:'testservice',tier:'daily',current:{revision:7},at:'2026-10-22T01:00:00.000Z'});
+  const stored=container.rows.get(first.backupBlob);
+  stored.metadata.automaticdeletion='true';
+  const second=await createVerifiedSnapshot(container,{environment:'testservice',tier:'daily',current:{revision:7},at:'2026-10-22T04:00:00.000Z'});
+  assert.equal(second.reusedVerifiedExisting,undefined);
+  assert.equal(container.rows.size,2);
+});
+
 test('RC1624: vorhandener beschädigter Blob führt fail-closed zu BACKUP_VERIFY_FAILED statt stiller Wiederverwendung',async()=>{
   const container=new MemoryContainer();
   await createVerifiedSnapshot(container,{environment:'testservice',tier:'daily',current:{revision:7},at:'2026-10-22T01:00:00.000Z'});
