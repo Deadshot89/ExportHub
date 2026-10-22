@@ -21,20 +21,23 @@ var extras={
  fr:{invoiceTitle:'Créer une facture pour la déclaration d’exportation',editorHelp:'Importer et corriger les données d’une facture ou tout saisir manuellement.',sender:'Expéditeur / société',senderAddress:'Adresse de l’expéditeur',recipientAddress:'Adresse du destinataire',editUpload:'Modifier dans la facture',importSuccess:'Positions importées. Vérifiez les adresses et marchandises.',addressesRequired:'Saisissez les deux adresses complètes.',invalidPosition:'Vérifiez quantités, valeurs, poids, code SH et origine.',uploadEmpty:'Aucune position trouvée.'},
  it:{invoiceTitle:'Crea fattura per dichiarazione di esportazione',editorHelp:'Importa e correggi le voci caricate oppure inserisci tutto manualmente.',sender:'Mittente / azienda',senderAddress:'Indirizzo mittente',recipientAddress:'Indirizzo destinatario',editUpload:'Modifica nella fattura',importSuccess:'Voci importate. Controlla indirizzi e merci.',addressesRequired:'Inserisci entrambi gli indirizzi completi.',invalidPosition:'Controlla quantità, valori, pesi, codice HS e origine.',uploadEmpty:'Nessuna voce trovata.'}
 };
-var logoTexts={
- de:{logo:'Essentra-Logo (PNG/JPG, optional)',logoOk:'Firmenlogo übernommen.',logoInvalid:'Bitte eine gültige PNG- oder JPG-Datei bis 300 KB auswählen.'},
- en:{logo:'Essentra logo (PNG/JPG, optional)',logoOk:'Company logo loaded.',logoInvalid:'Choose a valid PNG or JPG up to 300 KB.'},
- pl:{logo:'Logo Essentra (PNG/JPG, opcjonalnie)',logoOk:'Logo wczytane.',logoInvalid:'Wybierz PNG lub JPG do 300 KB.'},
- es:{logo:'Logo Essentra (PNG/JPG, opcional)',logoOk:'Logo cargado.',logoInvalid:'Selecciona PNG o JPG de hasta 300 KB.'},
- fr:{logo:'Logo Essentra (PNG/JPG, facultatif)',logoOk:'Logo chargé.',logoInvalid:'Sélectionnez un PNG ou JPG de 300 Ko maximum.'},
- it:{logo:'Logo Essentra (PNG/JPG, facoltativo)',logoOk:'Logo caricato.',logoInvalid:'Seleziona PNG o JPG fino a 300 KB.'}
-};
+var logoKeys={logo:'abd.invoice.logo',logoOk:'abd.invoice.logoLoaded',logoInvalid:'abd.invoice.logoInvalid'};
 function q(value){return String(value==null?'':value).trim()}
 function esc(value){return q(value).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function language(){
  try{var value=root.ExportHUBI18n&&typeof root.ExportHUBI18n.language==='function'?root.ExportHUBI18n.language():root.navigator&&root.navigator.language;value=q(value).toLowerCase().slice(0,2);return packs[value]?value:'de'}catch(_){return'de'}
 }
-function t(key){var lang=language();return extras[lang]&&extras[lang][key]||logoTexts[lang]&&logoTexts[lang][key]||packs[lang][key]||extras.de[key]||logoTexts.de[key]||packs.de[key]||key}
+function t(key){
+ var lang=language(),local=extras[lang]&&extras[lang][key]||packs[lang][key];
+ if(local)return local;
+ if(logoKeys[key]){
+  try{var i=root.ExportHUBI18n,translated=i&&typeof i.t==='function'?i.t(logoKeys[key],null,lang):'';
+   if(translated&&translated!==logoKeys[key])return translated
+  }catch(_){}
+  return {logo:'Essentra logo (PNG/JPG, optional)',logoOk:'Logo loaded.',logoInvalid:'Choose a valid PNG or JPG up to 300 KB.'}[key]
+ }
+ return extras.de[key]||packs.de[key]||key
+}
 function emptyRow(){return{itemNumber:'',description:'',quantity:'',unit:'pcs',unitPrice:'',value:'',netMassKg:'',grossMassKg:'',volumeM3:'',commodityCode:'',originCountry:''}}
 function number(value){
  if(typeof value==='number')return Number.isFinite(value)?value:null;
