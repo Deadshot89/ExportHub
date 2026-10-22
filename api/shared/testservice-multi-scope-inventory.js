@@ -3,7 +3,7 @@
 // RC1631 - diagnostic, read-only and aggregate-only. The list is derived
 // from the explicit TESTSERVICE writers, NEVER enumerate the container root.
 const SCOPES=Object.freeze([
- {id:'team',containerEnv:'EXPORTHUB_STORAGE_CONTAINER',containerFallback:'exporthub-data',prefix:'testservice/',connection:'primary'},
+ {id:'team',containerEnv:'EXPORTHUB_STORAGE_CONTAINER',containerAlias:'EXPORTHUB_CONTAINER',containerFallback:'exporthub-data',prefix:'testservice/',connection:'primary'},
  {id:'document-files',containerEnv:'EXPORTHUB_DOCUMENT_CONTAINER',containerFallback:'exporthub-documents',prefix:'rc1059/testservice/',connection:'primary'},
  {id:'container-photos',containerEnv:'EXPORTHUB_DOCUMENT_CONTAINER',containerFallback:'exporthub-documents',prefix:'testservice/',connection:'primary'},
  {id:'pickup',containerEnv:'EXPORTHUB_PICKUP_CONTAINER',containerFallback:'exporthub-pickup',prefix:'rc995/testservice/',connection:'primary'},
@@ -43,7 +43,7 @@ async function collectTestserviceMultiScopeInventory(options={}){
   if(clock()-started>maxElapsed)continue;
   try{
    if(!connection||typeof connection.getContainerClient!=='function')continue;
-   const configured=String(config[scope.containerEnv]||scope.containerFallback);
+   const configured=String(config[scope.containerEnv]||(scope.containerAlias&&config[scope.containerAlias])||scope.containerFallback);
    // Never allow configuration to redirect enumeration to an arbitrary path.
    if(!/^[a-z0-9](?:[a-z0-9-]{1,61}[a-z0-9])$/.test(configured))continue;
    const container=connection.getContainerClient(configured);
