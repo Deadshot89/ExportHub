@@ -54,7 +54,28 @@ async function doFetch(config,method,url,headers={},body=null,attempts=STORAGE_A
   }
   throw last||makeError(503,'StorageRequestFailed','Azure Blob konnte nicht erreicht werden.');
 }
-function parseListXml(xml){const out=[];const s=String(xml||'');const re=/<Blob>([\s\S]*?)<\/Blob>/gi;let m;while((m=re.exec(s))){const b=m[1],name=xmlValue(b,'Name');if(!name)continue;const p=xmlValue(b,'Properties')||b;const metaBlock=xmlValue(b,'Metadata');const metadata={};if(metaBlock){const mr=/<([A-Za-z0-9_.-]+)>([\s\S]*?)<\/\1>/g;let mm;while((mm=mr.exec(metaBlock)))metadata[mm[1].toLowerCase()]=xmlDecode(mm[2].trim());}const lm=xmlValue(p,'Last-Modified');out.push({name,versionId:xmlValue(b,'VersionId')||undefined,snapshot:xmlValue(b,'Snapshot')||undefined,isCurrentVersion:/^true$/i.test(xmlValue(b,'IsCurrentVersion')),deleted:/^true$/i.test(xmlValue(b,'Deleted')),metadata,properties:{lastModified:lm?new Date(lm):undefined,etag:xmlValue(p,'Etag')||undefined}});}return {items:out,nextMarker:xmlValue(s,'NextMarker')};}
+function parseListXml(xml){
+ const out=[],s=String(xml||''),re=/<Blob>([\\s\\S]*?)<\\/Blob>/gi;let m;
+ while((m=re.exec(s))){
+  const b=m[1],name=xmlValue(b,'Name');if(!name)continue;
+  const p=xmlValue(b,'Properties')||b,metaBlock=xmlValue(b,'Metadata'),metadata={};
+  if(metaBlock){
+   const mr=/<([A-Za-z0-9_.-]+)>([\\s\\S]*?)<\\/\\1>/g;let mm;
+   while((mm=mr.exec(metaBlock)))metadata[mm[1].toLowerCase()]=xmlDecode(mm[2].trim());
+  }
+  const lm=xmlValue(p,'Last-Modified'),rawSize=xmlValue(p,'Content-Length');
+  const contentLength=/^\\d+$/.test(rawSize)?Number(rawSize):undefined;
+  out.push({
+   name,versionId:xmlValue(b,'VersionId')||undefined,
+   snapshot:xmlValue(b,'Snapshot')||undefined,
+   isCurrentVersion:/^true$/i.test(xmlValue(b,'IsCurrentVersion')),
+   deleted:/^true$/i.test(xmlValue(b,'Deleted')),metadata,
+   properties:{lastModified:lm?new Date(lm):undefined,etag:xmlValue(p,'Etag')||undefined,
+    contentLength:Number.isSafeInteger(contentLength)?contentLength:undefined}
+  });
+ }
+ return{items:out,nextMarker:xmlValue(s,'NextMarker')};
+}
 class RestBlobClient{
   constructor(config,container,name,versionId='',snapshot=''){this.config=config;this.containerName=container;this.name=name;this.versionId=versionId;this.snapshot=snapshot;}
   url(){const u=new URL(this.config.endpoint+'/'+encodeURIComponent(this.containerName)+'/'+encodePath(this.name));if(this.versionId)u.searchParams.set('versionid',this.versionId);else if(this.snapshot)u.searchParams.set('snapshot',this.snapshot);return u;}
@@ -73,4 +94,4 @@ class RestContainerClient{
 }
 class RestBlobServiceClient{constructor(config){this.config=config;}getContainerClient(name){return new RestContainerClient(this.config,name);}}
 function createBlobServiceClient(connectionString){return new RestBlobServiceClient(parseConnectionString(connectionString));}
-module.exports={createBlobServiceClient,parseConnectionString,RestBlobServiceClient,RestContainerClient,RestBlobClient};
+module.exports={createBlobServiceClient,parseConnectionString,parseListXml,RestBlobServiceClient,RestContainerClient,RestBlobClient};
