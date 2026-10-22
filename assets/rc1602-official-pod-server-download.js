@@ -116,6 +116,22 @@ async function canonicalPdf(sh){
  var tok=token(sh);
  if(!tok)throw Error(t('missingToken'));
  var exact=originalFile(sh);
+ // The overview can be stale even when an immutable signed POD still exists
+ // on the server. Read only its authenticated manifest, never request file=automatic
+ // (which could regenerate a different PDF).
+ if(!exact){
+  var manifestResponse=await w.fetch('/api/pickup-pod?manifest=1&token='+encodeURIComponent(tok),{
+   method:'GET',credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}
+  });
+  if(manifestResponse.ok){
+   var manifest=await manifestResponse.json();
+   var options=Array.isArray(manifest&&manifest.files)?manifest.files:[];
+   options=options.filter(function(f){return f&&q(f.kind).toLowerCase()==='automatic-pod'&&
+     q(f.renderLayout).toUpperCase()==='RC1595'&&/^[A-Za-z0-9_-]{3,180}$/.test(q(f.id||f.remoteId))});
+   options.sort(function(a,b){return q(b.uploadedAt).localeCompare(q(a.uploadedAt))});
+   exact=options[0]||null
+  }
+ }
  if(!exact)throw Error('Keine geprüfte, gespeicherte POD-Version mit dem Ladelistenlayout vorhanden. Bitte die Original-Ladeliste unter Dateien & Dokumente öffnen.');
  var res=await w.fetch('/api/pickup-pod?file='+encodeURIComponent(q(exact.id||exact.remoteId))+'&token='+encodeURIComponent(tok),{
   method:'GET',credentials:'same-origin',cache:'no-store',headers:{Accept:'application/pdf'}
