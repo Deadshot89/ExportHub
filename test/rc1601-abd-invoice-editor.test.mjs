@@ -65,7 +65,7 @@ test('RC1601: long invoice descriptions are not silently truncated',async()=>{
  assert.match(content,/LASTWORD-CHECK-XYZ/);
 });
 test('RC1601: invoice editor avoids MutationObserver feedback loops',()=>{
- assert.match(frontend,/if\\(button\\.textContent!==exportLabel\\)/);
- assert.match(frontend,/if\\(importButton\\.textContent!==importLabel\\)/);
- assert.match(frontend,/if\\(entry\\)\\{var title=t\\('invoiceTitle'\\);if\\(entry\\.textContent!==title\\)/);
+ assert.ok(frontend.includes('if(button.textContent!==exportLabel)'));
+ assert.ok(frontend.includes('if(importButton.textContent!==importLabel)'));
+ assert.ok(frontend.includes("if(entry){var title=t('invoiceTitle');if(entry.textContent!==title)"));
 });
