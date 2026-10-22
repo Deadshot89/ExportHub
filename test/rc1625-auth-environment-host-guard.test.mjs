@@ -67,3 +67,26 @@ test('RC1625: protected runtime invokes canonical guard before choosing team Blo
   assert.match(source, /return lower\(environment\) === 'testservice' \? testserviceClients\(\) : clients\(\)/);
   assert.match(source, /const c = await clientsForEnvironment\(environment\);/);
 });
+
+
+test('RC1625 P0: conflicting authoritative Host and Forwarded-Host cannot select another storage environment', () => {
+  const prod='www.exporthub360.com';
+  const staging='ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net';
+  rejectsMismatch(request(prod,'testservice',staging));
+  rejectsMismatch(request(staging,'production',prod));
+  // Even without explicit environment: a conflicting origin must fail closed.
+  rejectsMismatch(request(prod,undefined,staging));
+  rejectsMismatch(request(staging,undefined,prod));
+});
+
+test('RC1625 P0: conflicting official X-Original-Host is not an environment switch', () => {
+  const testHost='ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net';
+  const req=request('www.exporthub360.de','production');
+  req.headers['x-original-host']=testHost;
+  rejectsMismatch(req);
+});
+
+test('RC1625 P0: untrusted unknown Forwarded-Host cannot downgrade a known official Host', () => {
+  assert.equal(guard(request('www.exporthub360.com','production','proxy.invalid')), 'production');
+  rejectsMismatch(request('www.exporthub360.com','testservice','proxy.invalid'));
+});
