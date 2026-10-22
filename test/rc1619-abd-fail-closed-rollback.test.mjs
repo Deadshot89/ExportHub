@@ -2,6 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url);
+const {mergeShipmentProtected}=require('../api/shared/merge.js');
 
 const builder=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
 const first=builder.indexOf('function patchRc1617AbdUploadFailureFeedback(');
@@ -136,4 +139,36 @@ test('RC1620: unrelated ABD request metadata and other shipments survive failed 
   assert.equal(shipments[i].abdFiles.length,0);
   assert.equal(requests[i].done,false);
  }
+});
+
+test('RC1620: concurrent Azure save keeps both old and new ABD documents',()=>{
+ const old={id:'ABD-OLD',name:'Old ABD.pdf',storage:'blob',blobName:'rc1059/production/aa/'+('a'.repeat(64)),sha256:'a'.repeat(64)};
+ const added={id:'ABD-NEW',name:'New ABD.pdf',storage:'blob',blobName:'rc1059/production/bb/'+('b'.repeat(64)),sha256:'b'.repeat(64)};
+ const server={id:'SHIP-9Z7L82',ref:'9Z7L82',updatedAt:'2026-10-22T11:05:00Z',status:'Wartet auf ABD',abdFiles:[old]};
+ const client={id:'SHIP-9Z7L82',ref:'9Z7L82',updatedAt:'2026-10-22T11:04:00Z',status:'Wartet auf ABD',abdFiles:[old,added]};
+ const merged=mergeShipmentProtected(server,client);
+ assert.deepEqual(merged.abdFiles.map(x=>x.id),['ABD-OLD','ABD-NEW']);
+ assert.deepEqual(merged.abdFiles.map(x=>x.blobName),[old.blobName,added.blobName]);
+ assert.equal(merged.status,'Wartet auf ABD','no false customs release based on only document metadata');
+});
+
+test('RC1620: a newer stale client must not erase older valid ABD documents',()=>{
+ const server={id:'SHIP-9Z7L82',ref:'9Z7L82',updatedAt:'2026-10-22T10:00:00Z',
+  abdFiles:[{id:'ABD-OLD',storage:'blob',blobName:'rc1059/production/aa/old'},{id:'ABD-SECOND',storage:'blob',blobName:'rc1059/production/bb/second'}]};
+ const client={...server,updatedAt:'2026-10-22T10:30:00Z',abdFiles:[{id:'ABD-SECOND',storage:'blob',blobName:'rc1059/production/bb/second'}]};
+ const merged=mergeShipmentProtected(server,client);
+ assert.deepEqual(merged.abdFiles.map(x=>x.id),['ABD-OLD','ABD-SECOND']);
+});
+
+test('RC1620: duplicate ABD ID does not lose its verified Azure document reference',()=>{
+ const server={id:'SHIP-9Z7L82',ref:'9Z7L82',updatedAt:'2026-10-22T10:00:00Z',
+  abdFiles:[{id:'ABD-OLD',name:'old.pdf',storage:'blob',blobName:'rc1059/production/aa/valid',sha256:'a'.repeat(64)}]};
+ const client={id:'SHIP-9Z7L82',ref:'9Z7L82',updatedAt:'2026-10-22T10:30:00Z',
+  abdFiles:[{id:'ABD-OLD',name:'old.pdf',data:'data:application/pdf;base64,JVBERi0xLjQ=',status:'active'}]};
+ const merged=mergeShipmentProtected(server,client);
+ assert.equal(merged.abdFiles.length,1);
+ assert.equal(merged.abdFiles[0].storage,'blob');
+ assert.equal(merged.abdFiles[0].blobName,'rc1059/production/aa/valid');
+ assert.equal(Object.hasOwn(merged.abdFiles[0],'data'),false);
+ assert.equal(merged.abdFiles[0].status,'active');
 });
