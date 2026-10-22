@@ -161,3 +161,15 @@ test('RC1604: supplied genuine PNG artwork is embedded in the generated proforma
  const layout=fs.readFileSync('api/shared/abd-proforma-layout.js','utf8');
  assert.ok(layout.includes('page.drawImage(logo,'));
 });
+
+test('RC1605: approved SOP artwork is shipped as the default PDF and browser logo',()=>{
+ const apiLogo=fs.readFileSync('api/shared/essentra-company-logo.png');
+ const browserLogo=fs.readFileSync('assets/essentra-company-logo.png');
+ assert.ok(apiLogo.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])));
+ assert.ok(apiLogo.equals(browserLogo),'same approved company graphic must be served and embedded in PDF');
+ const exporterCode=fs.readFileSync('api/shared/abd-analysis-export.js','utf8');
+ const integrator=fs.readFileSync('.github/rc1549/integrate-abd-proforma.mjs','utf8');
+ assert.match(exporterCode,/readFileSync\(require\('node:path'\)\.join\(__dirname,'essentra-company-logo.png'\)\)/);
+ assert.match(integrator,/assets\/essentra-company-logo\.png/);
+ assert.match(frontend,/img\.src=logoDataUri\|\|'\/assets\/essentra-company-logo\.png'/);
+});
