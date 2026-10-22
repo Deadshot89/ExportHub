@@ -39,7 +39,9 @@ test('RC1139 P0: TESTSERVICE Kunde und Sendung speichern, Reload und Azure-Readb
   await waitReady(page);
 
   const read=await page.evaluate(async({token})=>{
-    const response=await fetch('/api/exporthub-state?mode=read&full=1',{
+    // Only the revision is needed before the additive save; avoid a
+    // full multi-megabyte team-state download.
+    const response=await fetch('/api/exporthub-state?mode=meta',{
       method:'GET',credentials:'same-origin',cache:'no-store',
       headers:{'Accept':'application/json','X-ExportHUB-Token':token,'X-ExportHUB-Session':token,'Authorization':'Bearer '+token,'X-ExportHUB-Environment':'testservice'}
     });
@@ -75,7 +77,6 @@ test('RC1139 P0: TESTSERVICE Kunde und Sendung speichern, Reload und Azure-Readb
     _e2eRunId:session.runId
   };
 
-  const state=read.data?.state&&typeof read.data.state==='object'?read.data.state:{};
   // P0: Persist and reload a customer independently from the shipment.
   // The fixture cleanup removes only rows tagged with this E2E run ID.
   const customer={
@@ -89,12 +90,12 @@ test('RC1139 P0: TESTSERVICE Kunde und Sendung speichern, Reload und Azure-Readb
     updatedAt:stamp,
     _e2eRunId:session.runId
   };
-  const customers=Array.isArray(state.customers)?state.customers.filter(x=>x&&x.id!==customer.id):[];
-  customers.push(customer);
-  const shipments=Array.isArray(state.shipments)?state.shipments.filter(x=>x&&x._e2eRunId!==session.runId):[];
-  const savedShipments=Array.isArray(state.savedShipments)?state.savedShipments.filter(x=>x&&x._e2eRunId!==session.runId):[];
-  shipments.push(shipment);
-  savedShipments.push({...shipment});
+  // RC1629: small additive payloads. The authoritative server merges by
+  // stable shipment/customer identity, preserving all unrelated records.
+  // Sending full arrays previously exceeded the 30-MB Azure SWA request cap.
+  const customers=[customer];
+  const shipments=[shipment];
+  const savedShipments=[{...shipment}];
 
   const saved=await page.evaluate(async({token,runId,ref,revision,shipments,savedShipments,customers})=>{
     const response=await fetch('/api/exporthub-state?mode=save&ack=1',{
