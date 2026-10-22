@@ -162,9 +162,8 @@ function trackCentralAbd(input,sh){
  uploadStatus(input,uploadMsg('abd.completedUpload.processing',null,'ABD document is being processed. Waiting for storage confirmation.'),false);
  setTimeout(function(){
   if(entry.done)return;
-  entry.done=true;
+  // RC1626: keep the entry so the final success or failure still replaces this hint.
   uploadStatus(input,uploadMsg('abd.completedUpload.unconfirmed',null,'No confirmed ABD storage response. Check the shipment documents before retrying.'),true);
-  centralPending=centralPending.filter(function(p){return !p.done});
  },90000);
 }
 var savedUploadInFlight=[];

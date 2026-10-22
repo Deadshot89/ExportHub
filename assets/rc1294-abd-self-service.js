@@ -34,7 +34,9 @@ function headers(){
 }
 async function post(payload){
  var res=await w.fetch('/api/abd-analysis',{method:'POST',credentials:'same-origin',cache:'no-store',headers:headers(),body:JSON.stringify(payload)}),raw=await res.text(),data={};
- try{data=raw?JSON.parse(raw):{}}catch(_){data={message:raw}}
+ var parsed=true;try{data=raw?JSON.parse(raw):{}}catch(_){parsed=false;data={message:raw}}
+ // RC1626: a 2xx without a JSON body is a platform error, not a missing upload id.
+ if(res.ok&&(!parsed||!raw)){var bad=new Error('HTTP '+res.status+' ohne gültige API-Antwort ('+q(res.headers&&res.headers.get&&res.headers.get('content-type'))+'): '+q(raw).slice(0,120));bad.code='ABD_ANALYSIS_INVALID_RESPONSE';throw bad}
  if(!res.ok&&res.status!==202){var e=new Error(q(data.message)||('HTTP '+res.status));e.code=q(data.code);throw e}
  return{status:res.status,data:data}
 }
