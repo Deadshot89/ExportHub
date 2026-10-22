@@ -20,9 +20,9 @@ function containerFor(scope,entries) {
     return (async function*(){for(const item of entries.filter(x=>x.name.startsWith(options.prefix)))yield item;})();
   }};
 }
-test('requires all five independently supplied read/list credentials before Azure reads',()=>{
+test('requires all six independently supplied read/list credentials before Azure reads',()=>{
   const config=validateConfiguration(env());
-  assert.equal(config.length,5);
+  assert.equal(config.length,6);
   assert.equal(config[0].account,'exporthubtestde89');
   for(const scope of SCOPES) {
     const missing=env();delete missing[scope.credential];
@@ -39,19 +39,20 @@ test('all credentials must point to their explicitly confirmed HTTPS Azure accou
     assert.throws(()=>assertAccount({url},'verifiedaccount'),/WRONG_ACCOUNT/);
   }
 });
-test('all five inventory scopes include delivery docs, pickup, POD and backups, excluding production',async()=>{
+test('all six inventory scopes include delivery docs, pickup, POD, ABD and backups, excluding production',async()=>{
   const data={
     team:[blob('testservice/team-state.json',15)],
     documents:[blob('rc1059/testservice/ab/aabb',40),blob('testservice/TEST01/Containerdokumentation/01.jpg',5)],
     pickup:[blob('rc995/testservice/records/token.json',20)],
     pod:[blob('rc995/testservice/token/automatic/example.pdf',30)],
+    'abd-quarantine':[blob('rc1294/testservice/scope/file.pdf',15)],
     'pod-backup':[blob('rc1220/testservice/token/archive.pdf',50)]
   };
   const report=await collectAll(async scope=>containerFor(scope,data[scope.id]||[]));
   assert.equal(report.complete,true);
-  assert.equal(report.scopes.length,5);
-  assert.equal(report.logicalBytes,160);
-  assert.equal(report.records,6);
+  assert.equal(report.scopes.length,6);
+  assert.equal(report.logicalBytes,175);
+  assert.equal(report.records,7);
   assert.equal(report.billingVerified,false);
   assert.equal(report.sharedProductionDependenciesResolved,false);
   assert.equal(report.scopes[1].prefixes['testservice/'].logicalBytes,5);
