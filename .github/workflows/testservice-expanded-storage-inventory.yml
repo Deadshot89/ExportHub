@@ -1,0 +1,62 @@
+name: TESTSERVICE Extended Storage Inventory
+
+# Explicitly manual, read-only. No recurring storage charges or production deployment.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: testservice-extended-storage-inventory
+  cancel-in-progress: false
+
+jobs:
+  inventory:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: Verify safe multi-container report logic
+        run: node --test test/testservice-expanded-storage-inventory.test.mjs
+      - name: Install existing API storage SDK (no lifecycle scripts)
+        run: npm install --prefix api --ignore-scripts --no-audit --no-fund --package-lock=false
+      - name: Collect all six TESTSERVICE scopes (metadata only)
+        env:
+          EXPORTHUB_TEST_INVENTORY_CONNECTION_STRING: ${{ secrets.EXPORTHUB_TEST_INVENTORY_CONNECTION_STRING }}
+          EXPORTHUB_TEST_DOCUMENTS_INVENTORY_CONNECTION_STRING: ${{ secrets.EXPORTHUB_TEST_DOCUMENTS_INVENTORY_CONNECTION_STRING }}
+          EXPORTHUB_TEST_DOCUMENTS_ACCOUNT: ${{ vars.EXPORTHUB_TEST_DOCUMENTS_ACCOUNT }}
+          EXPORTHUB_TEST_PICKUP_INVENTORY_CONNECTION_STRING: ${{ secrets.EXPORTHUB_TEST_PICKUP_INVENTORY_CONNECTION_STRING }}
+          EXPORTHUB_TEST_PICKUP_ACCOUNT: ${{ vars.EXPORTHUB_TEST_PICKUP_ACCOUNT }}
+          EXPORTHUB_TEST_POD_INVENTORY_CONNECTION_STRING: ${{ secrets.EXPORTHUB_TEST_POD_INVENTORY_CONNECTION_STRING }}
+          EXPORTHUB_TEST_POD_ACCOUNT: ${{ vars.EXPORTHUB_TEST_POD_ACCOUNT }}
+          EXPORTHUB_TEST_ABD_INVENTORY_CONNECTION_STRING: ${{ secrets.EXPORTHUB_TEST_ABD_INVENTORY_CONNECTION_STRING }}
+          EXPORTHUB_TEST_ABD_ACCOUNT: ${{ vars.EXPORTHUB_TEST_ABD_ACCOUNT }}
+          EXPORTHUB_TEST_POD_BACKUP_INVENTORY_CONNECTION_STRING: ${{ secrets.EXPORTHUB_TEST_POD_BACKUP_INVENTORY_CONNECTION_STRING }}
+          EXPORTHUB_TEST_POD_BACKUP_ACCOUNT: ${{ vars.EXPORTHUB_TEST_POD_BACKUP_ACCOUNT }}
+        run: node scripts/testservice-expanded-storage-inventory.mjs > testservice-expanded-storage-inventory.json
+      - name: Publish aggregate-only summary
+        run: |
+          node --input-type=module -e '
+            import fs from "node:fs";
+            const r=JSON.parse(fs.readFileSync("testservice-expanded-storage-inventory.json","utf8"));
+            if(r.complete!==true||r.scopes.length!==6||r.billingVerified!==false)process.exit(1);
+            const lines=["## TESTSERVICE Erweiterte Speicherinventur","","Metadaten aus sechs bekannten TESTSERVICE-Speicherbereichen, keine Sicherung und kein Rechnungsnachweis.","","| Bereich | Datensätze | Logische Bytes |","|---|---:|---:|"];
+            for(const s of r.scopes) lines.push("| "+s.scope+" | "+s.records+" | "+s.logicalBytes+" |");
+            lines.push("","**Gesamt: "+r.records+" Datensätze / "+r.logicalBytes+" logische Bytes**","","Gemeinsame Anmeldedaten, unbekannte Ressourcen und Azure-Abrechnungsgrößen sind damit nicht abschließend geprüft.");
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,lines.join("\n")+"\n");
+          '
+      - name: Keep aggregate-only result for seven days
+        uses: actions/upload-artifact@v4
+        with:
+          name: testservice-expanded-storage-inventory
+          path: testservice-expanded-storage-inventory.json
+          if-no-files-found: error
+          retention-days: 7
