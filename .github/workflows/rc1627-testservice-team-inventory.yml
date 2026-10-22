@@ -1,0 +1,43 @@
+name: RC1627 TESTSERVICE Team Inventory Contract
+
+on:
+  pull_request:
+    paths:
+      - 'api/shared/blob-rest.js'
+      - 'api/shared/testservice-team-inventory.js'
+      - 'api/state-maintenance/index.js'
+      - '.github/workflows/rc1267-state-backup.yml'
+      - '.github/workflows/rc1627-testservice-team-inventory.yml'
+      - 'test/rc1627-testservice-team-metadata-inventory.test.mjs'
+  push:
+    branches: [main]
+    paths:
+      - 'api/shared/blob-rest.js'
+      - 'api/shared/testservice-team-inventory.js'
+      - 'api/state-maintenance/index.js'
+      - '.github/workflows/rc1267-state-backup.yml'
+      - '.github/workflows/rc1627-testservice-team-inventory.yml'
+      - 'test/rc1627-testservice-team-metadata-inventory.test.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: Check API and inventory syntax
+        run: |
+          node --check api/shared/blob-rest.js
+          node --check api/shared/testservice-team-inventory.js
+          node --check api/state-maintenance/index.js
+      - name: Verify read-only OIDC inventory and backup contracts
+        run: node --test test/rc1627-testservice-team-metadata-inventory.test.mjs test/rc1267-state-backup-lifecycle.test.mjs
