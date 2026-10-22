@@ -36,7 +36,7 @@ test('RC1619: Azure failure rolls back both shipment and ABD request to previous
  const shipment={id:'SHIP-9Z7L82',ref:'9Z7L82',abdRequired:true,abdDone:false,abdStatus:'Wartet auf ABD',status:'Wartet auf ABD',abdFiles:[oldFile],updatedAt:'before'};
  const request={id:'REQ-9Z7L82',ref:'9Z7L82',status:'Angefragt',done:false,abdFiles:[],updatedAt:'before'};
  s.shipments.push(shipment);s.abdRequests.push(request);
- const undo=save(shipment);
+ const undo=save(shipment,'ABD-NEW');
  shipment.abdStatus='Abgeschlossen';shipment.abdDone=true;shipment.abdCompleted=true;
  shipment.abdFiles[0].status='replaced';shipment.abdFiles.push({id:'ABD-NEW',status:'active'});
  shipment.documentHistory=[{id:'ABD-OLD',status:'replaced'}];
@@ -56,7 +56,7 @@ test('RC1619: Azure failure rolls back both shipment and ABD request to previous
  assert.equal(request.abdFiles.length,0);
  assert.equal(request.updatedAt,'before');
  const code=html.slice(html.indexOf('window.rc524UploadFile=function'),html.indexOf('window.rc524DeleteFile='));
- assert.match(code,/abdRollback=rc1619CaptureAbdState\(sh\);applyAbdDocumentDurably\(sh,item\)/);
+ assert.match(code,/abdRollback=rc1619CaptureAbdState\(sh,item.id\);applyAbdDocumentDurably\(sh,item\)/);
  assert.match(code,/if\(!ok\)\{if\(kind==='abd'\)\{if\(abdRollback\)\{abdRollback\(\);abdRollback=null\}/);
  assert.match(code,/\.catch\(function\(e\)\{if\(key==='abdFiles'\)\{if\(abdRollback\)\{abdRollback\(\);abdRollback=null\}/);
 });
@@ -64,13 +64,26 @@ test('RC1619: rollback preserves already confirmed old ABD when replacement uplo
  const {s,save}=compileSnapshot();
  const sh={id:'SHIP-9Z7L82',ref:'9Z7L82',abdRequired:true,abdDone:true,abdStatus:'Abgeschlossen',abdFiles:[{id:'ABD-OLD',status:'active'}]};
  s.shipments.push(sh);
- const undo=save(sh);
+ const undo=save(sh,'ABD-NEW');
  sh.abdFiles[0].status='replaced';sh.abdFiles.push({id:'ABD-NEW',status:'active'});
  undo();
  assert.equal(sh.abdDone,true);
  assert.equal(sh.abdStatus,'Abgeschlossen');
  assert.deepEqual(Array.from(sh.abdFiles, f=>f.id),['ABD-OLD']);
  assert.equal(sh.abdFiles[0].status,'active');
+});
+test('RC1619: saved-only copy untouched by upload is not overwritten on rollback',()=>{
+ const {s,save}=compileSnapshot();
+ const live={id:'SHIP-9Z7L82',ref:'9Z7L82',abdDone:false,abdStatus:'Wartet auf ABD',abdFiles:[]};
+ const saved={id:'SHIP-9Z7L82',ref:'9Z7L82',abdDone:false,abdStatus:'Wartet auf ABD',abdFiles:[]};
+ s.shipments.push(live);s.savedShipments.push(saved);
+ const undo=save(live,'ABD-NEW');
+ live.abdDone=true;live.abdStatus='Abgeschlossen';live.abdFiles.push({id:'ABD-NEW'});
+ saved.updatedAt='concurrent-change';
+ undo();
+ assert.equal(live.abdDone,false);
+ assert.equal(live.abdStatus,'Wartet auf ABD');
+ assert.equal(saved.updatedAt,'concurrent-change');
 });
 test('RC1619: patcher rejects changed anchors instead of silently releasing an unsafe uploader',()=>{
  const fixture='window.rc524UploadFile=function(input,key){return false;} window.rc524DeleteFile=';
