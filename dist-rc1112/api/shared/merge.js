@@ -1,0 +1,1151 @@
+'use strict';
+
+const COLLECTION_KEYS = {
+  shipments: ['id', 'ref'],
+  tasks: ['id'],
+  customers: ['id', 'account', 'customerNumber', 'name'],
+  abdRequests: ['id', 'ref'],
+  palletAccount: ['id', '_syncId'],
+  vacations: ['id', '_syncId'],
+  ideas: ['id', '_syncId'],
+  customSops: ['id', 'name', '_syncId'],
+  isoSops: ['id', 'number', '_syncId'],
+  sopLearningProgress: ['id', 'key'],
+  users: ['id', 'user', 'login', 'username', 'name']
+};
+
+
+const RC1016_SHIPMENT_COLLECTIONS = new Set([
+  'shipments', 'savedShipments', 'salesSharedShipments', 'sharedShipments',
+  'shipmentArchive', 'archivedShipments', 'archive'
+]);
+
+const RC1016_AVIS_FIELDS = [
+  'customerAvisPickupDate','avisPickupDate',
+  'customerAvisPickupTimeFrom','avisPickupTimeFrom',
+  'customerAvisPickupTimeTo','avisPickupTimeTo',
+  'customerAvisPickupPlate','avisPickupPlate',
+  'customerAvisShipmentNumber','avisShipmentNumber',
+  'customerAvisPickupNote','avisPickupNote',
+  'customerAvisResponseAt','avisResponseAt',
+  'customerAvisResponseReference','avisResponseReference',
+  'customerAvisResponseStatus','avisResponseStatus',
+  'customerConfirmed','customerConfirmedAt','customerConfirmedVia',
+  'plannedPickupDate','pickupDate',
+  'manualPickupCarrierName','pickupCarrierName','pickupSpeditionName','carrierName','speditionName',
+  'manualPickupShipmentNumber','pickupShipmentNumber','carrierShipmentNumber',
+  'manualPickupBookedAt','manualPickupBookedBy','pickupAppointmentSource'
+];
+const LOCAL_ONLY_KEYS = new Set([
+  'view', 'q', 'taskSearch', 'taskFilter', 'taskDay', 'shipmentOverviewSearch',
+  'shipmentOverviewStatus', 'selectedCustomerId', 'shipment', 'activeShipmentId',
+  'currentShipment', 'selectedShipment', 'currentShipmentId', 'selectedShipmentId',
+  'editingShipmentId', 'documentShipmentId', 'openShipmentId', 'customerFolderId',
+  'customerFolderOpenId', 'currentCustomerId', 'selectedCustomer', 'currentCustomer',
+  'shipmentDraft', 'customerDraft', 'abdDraft',
+  'sopId', 'sopStep', 'academyId', 'academyStep', 'quizAnswers', 'quizStep',
+  'language', 'rc438NotifySnoozeUntil', 'rc439SyncStatus'
+]);
+
+function clone(value) {
+  return value === undefined ? undefined : JSON.parse(JSON.stringify(value));
+}
+
+function text(value) {
+  return String(value == null ? '' : value).trim();
+}
+
+function lower(value) {
+  return text(value).toLowerCase();
+}
+
+function isObject(value) {
+  return value && typeof value === 'object' && !Array.isArray(value);
+}
+
+
+const PUBLIC_ACCESS_SECRET_KEYS = ['customerAvisToken','avisToken','customerAvisPublicUrl','avisPublicUrl','pickupToken','pickupQrToken','qrToken','publicPickupToken','publicAccessToken','pickupAccessToken','pickupQrRawToken'];
+function stripShipmentPublicAccessSecrets(shipment) {
+  if (!isObject(shipment)) return shipment;
+  let next = shipment;
+  for (const key of PUBLIC_ACCESS_SECRET_KEYS) {
+    if (!Object.prototype.hasOwnProperty.call(shipment, key)) continue;
+    if (next === shipment) next = Object.assign({}, shipment);
+    delete next[key];
+  }
+  const subShipments = shipment.subShipments;
+  if (Array.isArray(subShipments)) {
+    let nextSubShipments = subShipments;
+    for (let index = 0; index < subShipments.length; index++) {
+      const stripped = stripShipmentPublicAccessSecrets(subShipments[index]);
+      if (stripped === subShipments[index]) continue;
+      if (nextSubShipments === subShipments) nextSubShipments = subShipments.slice();
+      nextSubShipments[index] = stripped;
+    }
+    if (nextSubShipments !== subShipments) {
+      if (next === shipment) next = Object.assign({}, shipment);
+      next.subShipments = nextSubShipments;
+    }
+  }
+  return next;
+}
+
+function stripPublicAccessSecrets(state) {
+  if (!isObject(state)) return state;
+  let out = state;
+  const assign = (key, value) => {
+    if (out === state) out = Object.assign({}, state);
+    out[key] = value;
+  };
+
+  ['shipments','savedShipments','shipmentArchive','archivedShipments'].forEach((key) => {
+    const list = state[key];
+    if (!Array.isArray(list)) return;
+    let nextList = list;
+    for (let index = 0; index < list.length; index++) {
+      const stripped = stripShipmentPublicAccessSecrets(list[index]);
+      if (stripped === list[index]) continue;
+      if (nextList === list) nextList = list.slice();
+      nextList[index] = stripped;
+    }
+    if (nextList !== list) assign(key, nextList);
+  });
+
+  ['shipment','currentShipment','selectedShipment'].forEach((key) => {
+    const shipment = state[key];
+    if (!isObject(shipment)) return;
+    const stripped = stripShipmentPublicAccessSecrets(shipment);
+    if (stripped !== shipment) assign(key, stripped);
+  });
+  return out;
+}
+
+function itemKey(item, fields, fallbackIndex) {
+  if (!item || typeof item !== 'object') return `index:${fallbackIndex}`;
+  for (const field of fields || []) {
+    const value = text(item[field]);
+    if (value) return `${field}:${lower(value)}`;
+  }
+  return `index:${fallbackIndex}`;
+}
+
+function shipmentIdentityKey(item, fallbackIndex) {
+  if (!item || typeof item !== 'object') return `index:${fallbackIndex}`;
+  const refFields = ['ref', 'reference', 'shipmentRef', 'referenceNumber', 'referenceNo', 'refNo', 'refNr', 'sendungsnummer', 'exporthubRef', 'exportHubReference'];
+  for (const field of refFields) {
+    const value = text(item[field]);
+    if (value) return `ref:${lower(value)}`;
+  }
+  const id = text(item.id || item.shipmentId || item._syncId);
+  return id ? `id:${lower(id)}` : `index:${fallbackIndex}`;
+}
+
+function timestamp(value) {
+  const candidates = [
+    value && value._syncUpdatedAt,
+    value && value.updatedAt,
+    value && value.editedAt,
+    value && value.modifiedAt,
+    value && value.completedAt,
+    value && value.savedAt,
+    value && value.createdAt
+  ];
+  for (const candidate of candidates) {
+    const time = Date.parse(candidate || '');
+    if (Number.isFinite(time)) return time;
+  }
+  return 0;
+}
+
+function taskDone(item) {
+  return Boolean(item && (item.done === true || /erledigt|done|completed|abgeschlossen/i.test(text(item.status))));
+}
+
+
+function norm(value) {
+  return lower(value).replace(/\s+/g, ' ').replace(/[^a-z0-9äöüß|:_-]+/gi, '');
+}
+
+function taskLedgerKeys(task, index) {
+  const out = [];
+  const add = (prefix, value) => {
+    const v = norm(value);
+    if (v && !out.includes(prefix + v)) out.push(prefix + v);
+  };
+  if (task) {
+    add('id:', task.id);
+    add('sync:', task._syncId);
+    add('biz:', [
+      task.title || task.name,
+      task.area,
+      task.day,
+      task.dueDate || task.date || task.targetDate,
+      task.time,
+      task.owner,
+      task.linkedShipmentId || task.linkedShipmentRef,
+      task.recurringSeriesId || task.weeklySeriesId || task.seriesId
+    ].join('|'));
+  }
+  if (!out.length) add('index:', index);
+  return out;
+}
+
+function mergeLedger(serverLedger, incomingLedger) {
+  const out = {};
+  const ingest = (source) => {
+    if (!isObject(source)) return;
+    for (const [key, value] of Object.entries(source)) {
+      if (!isObject(value)) continue;
+      const current = out[key];
+      const currentTs = Date.parse(current && current.updatedAt || '') || 0;
+      const incomingTs = Date.parse(value.updatedAt || '') || 0;
+      if (!current || incomingTs >= currentTs) out[key] = clone(value);
+    }
+  };
+  ingest(serverLedger);
+  ingest(incomingLedger);
+  return out;
+}
+
+function applyTaskLedger(tasks, ledger) {
+  if (!Array.isArray(tasks) || !isObject(ledger)) return tasks;
+  return tasks.map((task, index) => {
+    let record = null;
+    for (const key of taskLedgerKeys(task, index)) {
+      const candidate = ledger[key];
+      if (!candidate) continue;
+      if (!record || (Date.parse(candidate.updatedAt || '') || 0) >= (Date.parse(record.updatedAt || '') || 0)) record = candidate;
+    }
+    if (!record) return task;
+    const done = record.status === 'erledigt' || record.done === true;
+    const next = Object.assign({}, task, {
+      status: done ? 'erledigt' : 'offen',
+      done,
+      statusUpdatedAt: record.updatedAt || task.statusUpdatedAt,
+      _syncUpdatedAt: record.updatedAt || task._syncUpdatedAt
+    });
+    if (done) {
+      next.doneAt = record.doneAt || record.updatedAt || next.doneAt;
+      next.completedAt = next.doneAt;
+      next.doneBy = record.doneBy || next.doneBy || '';
+      next.completedBy = next.doneBy;
+    } else {
+      next.doneAt = '';
+      next.completedAt = '';
+      next.doneBy = '';
+      next.completedBy = '';
+    }
+    return next;
+  });
+}
+
+function shipmentAliases(shipment) {
+  return [shipment && shipment.id, shipment && shipment.ref].map(norm).filter(Boolean);
+}
+
+function fileAliases(file, index) {
+  const out = [file && file.id, file && file.remoteId, file && file.name, file && file.fileName].map(norm).filter(Boolean);
+  return out.length ? Array.from(new Set(out)) : [norm(index)];
+}
+
+function applyDeliveryFileLedger(shipments, ledger) {
+  if (!Array.isArray(shipments) || !isObject(ledger)) return shipments;
+  return shipments.map((shipment) => {
+    const aliases = shipmentAliases(shipment);
+    if (!aliases.length || !Array.isArray(shipment.deliveryFiles)) return shipment;
+    const files = shipment.deliveryFiles.filter((file, index) => {
+      const fAliases = fileAliases(file, index);
+      return !aliases.some((s) => fAliases.some((f) => ledger[`${s}|${f}`]));
+    });
+    return files.length === shipment.deliveryFiles.length ? shipment : Object.assign({}, shipment, { deliveryFiles: files });
+  });
+}
+
+function fieldStamp(item, key, fallback) {
+  const meta = isObject(item && item._syncFields) ? item._syncFields : null;
+  const time = Date.parse(meta && meta[key] || '');
+  return Number.isFinite(time) ? time : fallback;
+}
+
+// The browser saves only the changed fields of a record plus its id (field delta, stamped in _syncFields).
+// Taking such a delta as the whole record dropped every unchanged field, e.g. task titles and areas.
+function mergeFieldDelta(serverItem, incomingItem, collectionName) {
+  const out = clone(serverItem) || {};
+  const serverTs = timestamp(serverItem), incomingTs = timestamp(incomingItem);
+  const meta = Object.assign({}, isObject(serverItem._syncFields) ? serverItem._syncFields : {});
+  const keepDone = collectionName === 'tasks' && taskDone(serverItem) && !taskDone(incomingItem);
+  for (const key of Object.keys(incomingItem)) {
+    if (key === '_syncFields' || key === '_syncUpdatedAt') continue;
+    const incomingAt = fieldStamp(incomingItem, key, incomingTs);
+    const serverAt = Object.prototype.hasOwnProperty.call(serverItem, key) ? fieldStamp(serverItem, key, serverTs) : 0;
+    if (incomingAt < serverAt) continue;
+    if (incomingAt === serverAt && keepDone && /^(status|done|completed|completedAt|completedBy|doneAt|doneBy)$/.test(key)) continue;
+    out[key] = clone(incomingItem[key]);
+    const stamp = isObject(incomingItem._syncFields) ? incomingItem._syncFields[key] : undefined;
+    if (stamp !== undefined) meta[key] = clone(stamp);
+  }
+  if (Object.keys(meta).length) out._syncFields = meta;
+  const newest = Math.max(serverTs, incomingTs);
+  if (newest > 0) out._syncUpdatedAt = new Date(newest).toISOString();
+  return out;
+}
+
+function chooseNewer(serverItem, incomingItem, collectionName) {
+  if (isObject(serverItem) && isObject(incomingItem) && isObject(incomingItem._syncFields)) return mergeFieldDelta(serverItem, incomingItem, collectionName);
+  const serverTs = timestamp(serverItem);
+  const incomingTs = timestamp(incomingItem);
+  if (incomingTs > serverTs) return clone(incomingItem);
+  if (serverTs > incomingTs) return clone(serverItem);
+  if (collectionName === 'tasks' && taskDone(serverItem) !== taskDone(incomingItem)) {
+    return taskDone(incomingItem) ? clone(incomingItem) : clone(serverItem);
+  }
+  return Object.assign({}, clone(serverItem) || {}, clone(incomingItem) || {});
+}
+
+function progressEventTime(value) {
+  const candidates = [
+    value && value.at,
+    value && value.updatedAt,
+    value && value.completedAt,
+    value && value.startedAt,
+    value && value.createdAt
+  ];
+  for (const candidate of candidates) {
+    const time = Date.parse(candidate || '');
+    if (Number.isFinite(time)) return time;
+  }
+  return 0;
+}
+
+function mergeProgressHistory(serverList, incomingList, idFields) {
+  const map = new Map();
+  let fallback = 0;
+  const ingest = (list, source) => {
+    (Array.isArray(list) ? list : []).forEach((item) => {
+      if (!isObject(item)) return;
+      let id = '';
+      for (const field of idFields) {
+        id = text(item[field]);
+        if (id) break;
+      }
+      if (!id) id = 'fallback:' + source + ':' + (++fallback) + ':' + text(item.at || item.completedAt || item.startedAt || item.createdAt);
+      const existing = map.get(id);
+      if (!existing) {
+        map.set(id, clone(item));
+        return;
+      }
+      const existingTime = progressEventTime(existing);
+      const itemTime = progressEventTime(item);
+      map.set(id, itemTime >= existingTime
+        ? Object.assign({}, clone(existing), clone(item))
+        : Object.assign({}, clone(item), clone(existing)));
+    });
+  };
+  ingest(serverList, 'server');
+  ingest(incomingList, 'incoming');
+  return Array.from(map.entries())
+    .sort((a, b) => progressEventTime(a[1]) - progressEventTime(b[1]) || a[0].localeCompare(b[0]))
+    .map((entry) => entry[1]);
+}
+
+function progressIso(a, b, mode) {
+  const av = text(a), bv = text(b);
+  if (!av) return bv;
+  if (!bv) return av;
+  const at = Date.parse(av), bt = Date.parse(bv);
+  if (!Number.isFinite(at)) return bv;
+  if (!Number.isFinite(bt)) return av;
+  return mode === 'latest' ? (bt >= at ? bv : av) : (bt <= at ? bv : av);
+}
+
+function mergeSopLearningProgress(serverItem, incomingItem) {
+  if (!isObject(serverItem)) return clone(incomingItem);
+  if (!isObject(incomingItem)) return clone(serverItem);
+  const serverTs = timestamp(serverItem);
+  const incomingTs = timestamp(incomingItem);
+  const newer = incomingTs >= serverTs ? incomingItem : serverItem;
+  const older = incomingTs >= serverTs ? serverItem : incomingItem;
+  const out = Object.assign({}, clone(older) || {}, clone(newer) || {});
+
+  for (const key of ['id', 'key', 'userId', 'sopNumber', 'version']) {
+    out[key] = text(newer[key]) ? clone(newer[key]) : clone(older[key]);
+  }
+  for (const key of ['viewedAt', 'startedAt', 'completedAt', 'tourCompletedAt']) {
+    out[key] = progressIso(serverItem[key], incomingItem[key], 'earliest');
+  }
+
+  out.examAttempts = mergeProgressHistory(serverItem.examAttempts, incomingItem.examAttempts, ['attemptId', 'id']);
+  out.helpEvents = mergeProgressHistory(serverItem.helpEvents, incomingItem.helpEvents, ['helpId', 'id']);
+  out.helpCount = Math.max(
+    Number(serverItem.helpCount) || 0,
+    Number(incomingItem.helpCount) || 0,
+    out.helpEvents.length
+  );
+  out.updatedAt = progressIso(serverItem.updatedAt, incomingItem.updatedAt, 'latest');
+  out._syncUpdatedAt = progressIso(serverItem._syncUpdatedAt, incomingItem._syncUpdatedAt, 'latest');
+  return out;
+}
+
+function meaningfulValue(value) {
+  if (value === null || value === undefined) return false;
+  if (typeof value === 'string') return value.trim() !== '';
+  if (Array.isArray(value)) return value.length > 0;
+  if (isObject(value)) return Object.keys(value).length > 0;
+  return true;
+}
+
+function mergeCustomerProtected(serverItem, incomingItem) {
+  if (!isObject(serverItem)) return clone(incomingItem);
+  if (!isObject(incomingItem)) return clone(serverItem);
+  const serverTs = timestamp(serverItem);
+  const incomingTs = timestamp(incomingItem);
+  const newer = incomingTs >= serverTs ? incomingItem : serverItem;
+  const older = incomingTs >= serverTs ? serverItem : incomingItem;
+  const out = clone(newer) || {};
+
+  // Customer master data stays loss-protected when a field is absent. For mail/contact
+  // fields, an explicitly present empty value is a deliberate deletion and must not
+  // resurrect an older address on the next reload.
+  const explicitlyClearableCustomerFields = new Set([
+    'email', 'customerEmail', 'customerMail', 'mail', 'mailAddress',
+    'mailToCustomer', 'rc385CustomerTo', 'emailCustomer', 'recipientMail',
+    'recipientEmail', 'customerMailCc', 'carrierEmail', 'carrierMail',
+    'speditionEmail', 'speditionMail', 'anmeldungMail', 'rc385CarrierTo',
+    'carrierRegistrationMail', 'speditionRegistrationMail', 'forwarderEmail',
+    'forwarderMail', 'mailToSpedition', 'speditionMailTo', 'transportMail',
+    'transportEmail', 'mailRecipients',
+    'salesMail', 'salesEmail', 'salesPersonMail', 'salesPersonEmail',
+    'salesContactMail', 'salesContactEmail', 'rc385SalesMail', 'salesCc',
+    'salesPersonName', 'salesContactName', 'salesName',
+    'salesContacts', 'customerSalesContacts',
+    'cc', 'mailCc', 'rc385Cc', 'ccContacts', 'customerCcContacts'
+  ]);
+  for (const [key, value] of Object.entries(older)) {
+    const explicitlyCleared = explicitlyClearableCustomerFields.has(key)
+      && Object.prototype.hasOwnProperty.call(newer, key)
+      && !meaningfulValue(newer[key]);
+    if (!explicitlyCleared && !meaningfulValue(out[key]) && meaningfulValue(value)) out[key] = clone(value);
+  }
+
+  // Template/profile objects need the same protection recursively.
+  if (isObject(serverItem.mailTemplates) || isObject(incomingItem.mailTemplates)) {
+    out.mailTemplates = mergePlainObject(serverItem.mailTemplates, incomingItem.mailTemplates);
+    const preserveNested = (olderNode, targetNode) => {
+      if (!isObject(olderNode) || !isObject(targetNode)) return;
+      for (const [key, value] of Object.entries(olderNode)) {
+        if (isObject(value)) {
+          if (!isObject(targetNode[key])) targetNode[key] = {};
+          preserveNested(value, targetNode[key]);
+        } else if (!meaningfulValue(targetNode[key]) && meaningfulValue(value)) targetNode[key] = clone(value);
+      }
+    };
+    preserveNested(older.mailTemplates, out.mailTemplates);
+  }
+
+  ['locations', 'sites', 'standorte', 'deliveryLocations', 'shipToLocations'].forEach((key) => {
+    const a = Array.isArray(serverItem[key]) ? serverItem[key] : [];
+    const b = Array.isArray(incomingItem[key]) ? incomingItem[key] : [];
+    if (a.length && !b.length) out[key] = clone(a);
+    else if (!a.length && b.length) out[key] = clone(b);
+    else if (a.length && b.length) out[key] = clone(incomingTs >= serverTs ? b : a);
+  });
+  out.customerHistory = mergeShipmentHistory(serverItem.customerHistory, incomingItem.customerHistory);
+  return out;
+}
+
+function shipmentStatusRank(value) {
+  const text = lower(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (/storn|cancel/.test(text)) return 100;
+  if (/nachbearbeit|rework/.test(text)) return 90;
+  if (/archiv/.test(text)) return 80;
+  if (/abgeschlossen|completed|erledigt|done/.test(text)) return 70;
+  if (/pod/.test(text)) return 60;
+  if (/abgeholt|picked/.test(text)) return 50;
+  if (/vorbereit|prepared/.test(text)) return 45;
+  if (/bereit.*abhol|ready.*pickup/.test(text)) return 40;
+  if (/wartet.*abd|abd.*wart/.test(text)) return 30;
+  if (/in bearbeitung|processing|bearbeit/.test(text)) return 25;
+  if (/erstellt|created/.test(text)) return 20;
+  if (/entwurf|draft/.test(text)) return 10;
+  return 0;
+}
+
+
+function rc1016AvisTimestamp(value) {
+  const candidates = [
+    value && value.customerAvisResponseAt,
+    value && value.avisResponseAt,
+    value && value.customerConfirmedAt,
+    value && value.manualPickupBookedAt
+  ];
+  let latest = 0;
+  for (const candidate of candidates) {
+    const time = Date.parse(candidate || '');
+    if (Number.isFinite(time) && time > latest) latest = time;
+  }
+  return latest;
+}
+
+function rc1016ProtectAvis(out, serverItem, incomingItem) {
+  const serverAvisTs = rc1016AvisTimestamp(serverItem);
+  const incomingAvisTs = rc1016AvisTimestamp(incomingItem);
+  if (serverAvisTs === incomingAvisTs) return out;
+  const source = serverAvisTs > incomingAvisTs ? serverItem : incomingItem;
+  if (!source || Math.max(serverAvisTs, incomingAvisTs) <= 0) return out;
+  for (const key of RC1016_AVIS_FIELDS) {
+    if (Object.prototype.hasOwnProperty.call(source, key)) out[key] = clone(source[key]);
+  }
+  return out;
+}
+function rc1017SubShipmentOperationalTimestamp(sub) {
+  const candidates = [
+    sub && sub.confirmedAt,
+    sub && sub.lastPartialPickupAt,
+    sub && sub.podUpdatedAt,
+    sub && sub.signatureStoredAt,
+    sub && sub.containerDocumentationUpdatedAt
+  ];
+  if (Array.isArray(sub && sub.pickupHistory)) {
+    for (const item of sub.pickupHistory) candidates.push(item && item.confirmedAt);
+  }
+  let latest = 0;
+  for (const value of candidates) {
+    const time = Date.parse(value || '');
+    if (Number.isFinite(time) && time > latest) latest = time;
+  }
+  return latest;
+}
+
+function rc1017SubShipmentOperational(sub) {
+  if (!isObject(sub)) return false;
+  if (sub.locked === true) return true;
+  if (Array.isArray(sub.pickupHistory) && sub.pickupHistory.length) return true;
+  if (Array.isArray(sub.podFiles) && sub.podFiles.length) return true;
+  if (Number(sub.collectedPickupCollis || sub.pickupCollectedColliCount || 0) > 0) return true;
+  const status = lower(sub.status || sub.pickupStatus || sub.processStatus);
+  return /partial|teilweise|confirmed|abgeholt|picked|pod|abgeschlossen|completed/.test(status) || rc1017SubShipmentOperationalTimestamp(sub) > 0;
+}
+
+const RC1017_SUBSHIPMENT_OPERATIONAL_FIELDS = [
+  'status','pickupStatus','processStatus','locked','pickupHistory',
+  'collectedPickupCollis','pickupCollectedColliCount','remainingPickupCollis','pickupRemainingColliCount',
+  'confirmedAt','lastPartialPickupAt','podFiles','podUpdatedAt','signatureBlobName','signatureStoredAt',
+  'pickupRegistered','pickupAccessKeyHash',
+  'transportMode','containerDocumentationRequired','sealNumber','containerPhotos','containerDocumentationUpdatedAt'
+];
+
+function rc1017ProtectSubShipments(out, serverItem, incomingItem) {
+  const serverSubs = Array.isArray(serverItem && serverItem.subShipments) ? serverItem.subShipments : [];
+  const incomingSubs = Array.isArray(incomingItem && incomingItem.subShipments) ? incomingItem.subShipments : [];
+  if (!serverSubs.length && !incomingSubs.length) return out;
+
+  const latestOf = (list) => list.reduce((latest, sub) => Math.max(latest, rc1017SubShipmentOperationalTimestamp(sub)), 0);
+  const serverOpTs = latestOf(serverSubs);
+  const incomingOpTs = latestOf(incomingSubs);
+  const serverOperational = serverItem && serverItem.multiTruckLocked === true || serverSubs.some(rc1017SubShipmentOperational);
+  const incomingOperational = incomingItem && incomingItem.multiTruckLocked === true || incomingSubs.some(rc1017SubShipmentOperational);
+
+  // Before operational pickup starts, the normal shipment timestamp merge remains authoritative.
+  if (!serverOperational && !incomingOperational && serverOpTs === 0 && incomingOpTs === 0) return out;
+
+  let partitionSource = serverItem;
+  let otherSource = incomingItem;
+  if (incomingOpTs > serverOpTs || (incomingOpTs === serverOpTs && !serverOperational && incomingOperational)) {
+    partitionSource = incomingItem;
+    otherSource = serverItem;
+  }
+  const sourceSubs = Array.isArray(partitionSource && partitionSource.subShipments) ? partitionSource.subShipments : [];
+  const otherSubs = Array.isArray(otherSource && otherSource.subShipments) ? otherSource.subShipments : [];
+  const otherById = new Map(otherSubs.map(sub => [text(sub && sub.subShipmentId), sub]));
+
+  out.subShipments = sourceSubs.map((sourceSub) => {
+    const id = text(sourceSub && sourceSub.subShipmentId);
+    const otherSub = otherById.get(id);
+    if (!otherSub) return clone(sourceSub);
+    const sourceOpTs = rc1017SubShipmentOperationalTimestamp(sourceSub);
+    const otherOpTs = rc1017SubShipmentOperationalTimestamp(otherSub);
+    const operationalSource = otherOpTs > sourceOpTs ? otherSub : sourceSub;
+    const merged = clone(sourceSub) || {};
+    for (const key of RC1017_SUBSHIPMENT_OPERATIONAL_FIELDS) {
+      if (Object.prototype.hasOwnProperty.call(operationalSource, key)) merged[key] = clone(operationalSource[key]);
+    }
+    return merged;
+  });
+
+  out.multiTruckLocked = true;
+  for (const key of ['requiredTruckCount','multiTruckVehicleType','multiTruckSourceSignature']) {
+    if (Object.prototype.hasOwnProperty.call(partitionSource || {}, key)) out[key] = clone(partitionSource[key]);
+  }
+  return out;
+}
+
+function mergeContainerPhotosProtected(serverList,incomingList){
+  const map=new Map();
+  const ingest=(list)=>{
+    for(const raw of (Array.isArray(list)?list:[])){
+      if(!raw||typeof raw!=='object')continue;
+      const item=clone(raw);
+      const key=text(item.subShipmentId||'main')+'|'+text(item.kind||item.id||item.blobName).toLowerCase();
+      if(!key.endsWith('|'))map.set(key,item);
+    }
+  };
+  ingest(incomingList);
+  ingest(serverList);
+  return Array.from(map.values());
+}
+
+function protectContainerDocumentation(out,serverItem,incomingItem){
+  const serverPhotos=Array.isArray(serverItem&&serverItem.containerPhotos)?serverItem.containerPhotos:[],
+        incomingPhotos=Array.isArray(incomingItem&&incomingItem.containerPhotos)?incomingItem.containerPhotos:[];
+  if(serverPhotos.length||incomingPhotos.length)out.containerPhotos=mergeContainerPhotosProtected(serverPhotos,incomingPhotos);
+  if(meaningfulValue(serverItem&&serverItem.sealNumber))out.sealNumber=clone(serverItem.sealNumber);
+  if(meaningfulValue(serverItem&&serverItem.containerDocumentationUpdatedAt))out.containerDocumentationUpdatedAt=clone(serverItem.containerDocumentationUpdatedAt);
+  return out;
+}
+
+function mergeShipmentHistory(a,b){
+  const map=new Map();
+  const ingest=(list)=>{
+    for(const raw of (Array.isArray(list)?list:[])){
+      if(!raw||typeof raw!=='object')continue;
+      const item=clone(raw);
+      const actor=item.actor&&typeof item.actor==='object'?item.actor:{};
+      const key=text(item.id)||[
+        text(item.at||item.createdAt||item.timestamp),
+        text(item.type||item.action),
+        text(item.label||item.action),
+        text(actor.name||item.actorName||item.user||item.by)
+      ].join('|').toLowerCase();
+      if(!key)continue;
+      const current=map.get(key);
+      if(!current||Date.parse(item.at||item.createdAt||0)>=Date.parse(current.at||current.createdAt||0))map.set(key,item);
+    }
+  };
+  ingest(a);ingest(b);
+  return Array.from(map.values())
+    .sort((x,y)=>Date.parse(x&&x.at||x&&x.createdAt||0)-Date.parse(y&&y.at||y&&y.createdAt||0))
+    .slice(-1000);
+}
+
+function podFileBlobName(file) {
+  return text(file && (file.blobName || file.storageBlobName));
+}
+
+function durablePodFile(file) {
+  const blobName = podFileBlobName(file);
+  if (!blobName) return false;
+  if (/^rc995\/(?:production|testservice)\/[a-f0-9]{64}\/automatic\/[^/]+\.pdf$/i.test(blobName)) return true;
+  return lower(file && file.storage) === 'blob';
+}
+
+function pickupTokenPodFile(file) {
+  const url = text(file && (file.url || file.downloadUrl || file.href || file.contentUrl));
+  return /\/api\/pickup-pod(?:$|[?&#])/i.test(url);
+}
+
+function podFileIdentity(file, index) {
+  return lower(text(file && (
+    file.id || file.remoteId || file.hash || file.blobName || file.storageBlobName ||
+    file.name || file.filename || file.fileName
+  ))) || ('pod-index-' + index);
+}
+
+function mergePodFilesProtected(serverList, incomingList) {
+  const map = new Map();
+  const ingest = (list, source) => {
+    (Array.isArray(list) ? list : []).forEach((raw, index) => {
+      if (!raw || typeof raw !== 'object') return;
+      const item = clone(raw);
+      const key = podFileIdentity(item, index);
+      const current = map.get(key);
+      if (!current) {
+        map.set(key, item);
+        return;
+      }
+      const currentDurable = durablePodFile(current);
+      const itemDurable = durablePodFile(item);
+      if (currentDurable && !itemDurable) {
+        const merged = Object.assign({}, item, current);
+        delete merged.url; delete merged.downloadUrl; delete merged.href; delete merged.contentUrl;
+        map.set(key, merged);
+        return;
+      }
+      if (!currentDurable && itemDurable) {
+        const merged = Object.assign({}, current, item);
+        delete merged.url; delete merged.downloadUrl; delete merged.href; delete merged.contentUrl;
+        map.set(key, merged);
+        return;
+      }
+      map.set(key, source === 'incoming' ? item : current);
+    });
+  };
+
+  ingest(serverList, 'server');
+  ingest(incomingList, 'incoming');
+
+  const files = Array.from(map.values()).map((file) => {
+    if (!durablePodFile(file)) return file;
+    const durable = Object.assign({}, file);
+    delete durable.url; delete durable.downloadUrl; delete durable.href; delete durable.contentUrl;
+    return durable;
+  });
+  const hasDurableAutomaticPod = files.some((file) => durablePodFile(file) && /automatic-pod|signed-loadlist|pod/i.test(lower([
+    file.kind, file.source, file.name, file.filename
+  ].join(' '))));
+
+  if (!hasDurableAutomaticPod) return files;
+  return files.filter((file) => {
+    if (!pickupTokenPodFile(file)) return true;
+    const marker = lower([file.kind, file.source, file.name, file.filename].join(' '));
+    return !/signed-loadlist|automatic-pod|qr-abholung|ladeliste.*unterschrift|pod/.test(marker);
+  });
+}
+
+// RC1620 P0: multiple ABD PDFs are additive, even when a concurrent server
+// update has a newer shipment timestamp than the uploading browser.
+function mergeAbdFilesProtected(serverFiles,incomingFiles){
+ const out=[],positions=new Map();
+ function key(file,index,source){
+  if(!file||typeof file!=='object')return source+':'+index;
+  const id=text(file.id||file.fileId||file.remoteId||file.documentId);
+  if(id)return 'id:'+lower(id);
+  const blob=text(file.blobName||file.storageBlobName);
+  if(blob)return 'blob:'+lower(blob);
+  const hash=text(file.sha256);
+  if(hash)return 'sha:'+lower(hash);
+  const name=text(file.name||file.fileName||file.filename);
+  const uploaded=text(file.uploadedAt||file.addedAt||file.createdAt);
+  if(name&&uploaded)return 'named:'+lower(name)+'|'+uploaded;
+  // Never conflate unidentified old and new documents by array position.
+  return source+':'+index;
+ }
+ function durable(file){return !!(file&&typeof file==='object'&&text(file.blobName||file.storageBlobName)&&
+  /^(?:blob|azure)$/i.test(text(file.storage)))}
+ function ingest(rows,source){
+  (Array.isArray(rows)?rows:[]).forEach((raw,index)=>{
+   if(raw==null)return;
+   const k=key(raw,index,source),position=positions.get(k),item=clone(raw);
+   if(position===undefined){positions.set(k,out.length);out.push(item);return}
+   const previous=out[position];
+   if(!isObject(previous)||!isObject(item))return;
+   const combined=Object.assign({},previous,item);
+   // An older inline/local copy must not replace a verified Azure pointer.
+   if(durable(previous)&&!durable(item)){
+    for(const name of ['storage','blobName','storageBlobName','sha256','size','mimeType']){
+     if(previous[name]!==undefined)combined[name]=previous[name];
+    }
+   }
+   // RC1623: a verified durable reference supersedes legacy embedded bytes
+   // regardless of which side of the concurrent Azure merge held the PDF.
+   if(durable(previous)||durable(item)){
+    for(const name of ['data','payload','content','base64','dataUrl'])delete combined[name];
+   }
+   out[position]=combined;
+  });
+ }
+ ingest(serverFiles,'server');
+ ingest(incomingFiles,'incoming');
+ return out;
+}
+
+// RC1621: ABD-request documents must be additive across concurrent saves.
+// Keep the existing timestamp-based request status and scalar-field policy.
+function mergeAbdRequestProtected(serverItem,incomingItem){
+ const out=chooseNewer(serverItem,incomingItem,'abdRequests');
+ const a=Array.isArray(serverItem&&serverItem.abdFiles)?serverItem.abdFiles:[];
+ const b=Array.isArray(incomingItem&&incomingItem.abdFiles)?incomingItem.abdFiles:[];
+ if(a.length||b.length)out.abdFiles=mergeAbdFilesProtected(a,b);
+ return out;
+}
+
+function mergeShipmentProtected(serverItem, incomingItem) {
+  if (!isObject(serverItem)) return clone(incomingItem);
+  if (!isObject(incomingItem)) return clone(serverItem);
+  const serverTs = timestamp(serverItem);
+  const incomingTs = timestamp(incomingItem);
+  const newer = incomingTs >= serverTs ? incomingItem : serverItem;
+  const older = incomingTs >= serverTs ? serverItem : incomingItem;
+  const out = clone(newer) || {};
+
+  // RC641 Bestandsschutz: a newer incomplete copy must never erase existing shipment data.
+  for (const [key, value] of Object.entries(older)) {
+    if (!meaningfulValue(out[key]) && meaningfulValue(value)) out[key] = clone(value);
+  }
+
+  // Rows/documents are additive-protective. Empty arrays can never wipe existing content.
+  ['rows','colli','collis','packages','packagingRows','deliveryFiles','deliveryNotesFiles','podFiles','abdFiles','documents','generatedDocuments','files','attachments','mailHistory','pickupHistory','shipmentHistory','containerPhotos'].forEach((key) => {
+    const a = Array.isArray(serverItem[key]) ? serverItem[key] : [];
+    const b = Array.isArray(incomingItem[key]) ? incomingItem[key] : [];
+    if (key === 'shipmentHistory') out[key] = mergeShipmentHistory(a,b);
+    else if (key === 'podFiles') out[key] = mergePodFilesProtected(a,b);
+    else if (key === 'abdFiles' && a.length && b.length) out[key] = mergeAbdFilesProtected(a,b);
+    else if (!a.length && b.length) out[key] = clone(b);
+    else if (a.length && !b.length) out[key] = clone(a);
+    else if (a.length && b.length && key === 'rows') out[key] = clone((incomingTs >= serverTs ? b : a));
+  });
+
+  // RC1016: customer Avis responses are server-persisted business data.
+  // A later save from a stale browser may not roll them back.
+  rc1016ProtectAvis(out, serverItem, incomingItem);
+  rc1017ProtectSubShipments(out, serverItem, incomingItem);
+  protectContainerDocumentation(out, serverItem, incomingItem);
+
+  // Status may only follow the newer persisted record; no rank-based auto-promotion here.
+  const newerStatus = newer.status || newer.processStatus;
+  const olderStatus = older.status || older.processStatus;
+  // RC1603 P0: an equal-timestamp stale browser copy may reintroduce a POD
+  // status after a server-side integrity correction (or erase a real POD).
+  // Resolve ONLY this ambiguous Abgeholt/POD pair in favour of persisted
+  // server state. A genuinely newer incoming timestamp still wins as before;
+  // no other status, document, or sub-shipment merge rule changes.
+  const serverStatus = lower(serverItem.status || serverItem.processStatus);
+  const incomingStatus = lower(incomingItem.status || incomingItem.processStatus);
+  const podPickupTie = incomingTs === serverTs &&
+    ((serverStatus === 'abgeholt' && incomingStatus === 'pod vorhanden') ||
+     (serverStatus === 'pod vorhanden' && incomingStatus === 'abgeholt')) &&
+    (!serverItem.status || !serverItem.processStatus || lower(serverItem.status) === lower(serverItem.processStatus)) &&
+    (!incomingItem.status || !incomingItem.processStatus || lower(incomingItem.status) === lower(incomingItem.processStatus));
+  const chosenStatus = podPickupTie
+    ? (serverItem.status || serverItem.processStatus)
+    : (meaningfulValue(newerStatus) ? newerStatus : olderStatus);
+  if (meaningfulValue(chosenStatus)) {
+    out.status = clone(chosenStatus);
+    out.processStatus = clone(chosenStatus);
+  }
+
+  // P0: a stale browser must not re-promote a previously quarantined
+  // brand-new POD to completed while no authentic pickup was recorded.
+  // Normal readiness updates remain allowed; legacy records are not touched.
+  const previousStage = lower(serverItem.status || serverItem.processStatus);
+  const incomingWantsPod = [incomingItem.status, incomingItem.processStatus, incomingItem.shipmentStatus]
+    .some(v => ['pod vorhanden','pod available'].includes(lower(v)));
+  const prePickupStage = ['entwurf','erstellt','bereit zur abholung','wartet auf abd',
+    'draft','created','ready for pickup','waiting for abd'].includes(previousStage);
+  const unprovenPromotion = prePickupStage && incomingWantsPod &&
+    !hasPickupConfirmationEvidence(serverItem) && !hasPickupConfirmationEvidence(incomingItem);
+  if ((serverItem.podStatusCorrection === 'FRESH_POD_WITHOUT_PICKUP_EVIDENCE' ||
+       unprovenPromotion) &&
+      !hasPickupConfirmationEvidence(serverItem) && !hasPickupConfirmationEvidence(incomingItem)) {
+    out.podStatusCorrection = 'FRESH_POD_WITHOUT_PICKUP_EVIDENCE';
+    if (serverItem.podReviewRequired === true || (unprovenPromotion &&
+        Array.isArray(out.podFiles) && out.podFiles.length > 0)) {
+      out.podReviewRequired = true;
+      out.podReviewReason = 'POD_WITHOUT_PICKUP_EVIDENCE';
+    }
+    if (unprovenPromotion) {
+      out.podAvailable = false;
+      out.podConfirmed = false;
+      out.hasPod = false;
+      out.podServerVerified = false;
+    }
+    const resultStatus = lower(out.status || out.processStatus);
+    if (resultStatus === 'pod vorhanden' || resultStatus === 'pod available') {
+      const previousStatus = lower(serverItem.status || serverItem.processStatus);
+      const safe = (previousStatus && previousStatus !== 'pod vorhanden' && previousStatus !== 'pod available')
+        ? (serverItem.status || serverItem.processStatus) : 'Erstellt';
+      out.status = safe;
+      out.processStatus = safe;
+      out.shipmentStatus = safe;
+      out.podAvailable = false;
+      out.podConfirmed = false;
+      out.hasPod = false;
+      out.podServerVerified = false;
+    }
+  }
+
+  // RC1338: Once multi-truck pickup is operational, the aggregate shipment
+  // status must be derived from the protected sub-shipment state. A newer
+  // stale browser snapshot may not roll "Teilweise abgeholt" back to "Erstellt".
+  if (out.multiTruckLocked === true && Array.isArray(out.subShipments) && out.subShipments.length > 1) {
+    const picked = (sub) => /^(?:confirmed|pod|completed|abgeholt|pod vorhanden|abgeschlossen|picked(?: up)?)$/.test(
+      lower(sub && (sub.status || sub.pickupStatus || sub.processStatus))
+    );
+    const allPicked = out.subShipments.every(picked);
+    const anyStarted = out.subShipments.some(rc1017SubShipmentOperational);
+    if (allPicked) {
+      out.status = 'Abgeholt';
+      out.processStatus = 'Abgeholt';
+      out.pickupComplete = true;
+      out.pickupPartial = false;
+    } else if (anyStarted) {
+      out.status = 'Teilweise abgeholt';
+      out.processStatus = 'Teilweise abgeholt';
+      out.pickupComplete = false;
+      out.pickupPartial = true;
+    }
+  }
+  return out;
+}
+
+function normalizeTombstones(meta) {
+  const list = meta && Array.isArray(meta.tombstones) ? meta.tombstones : [];
+  const map = new Map();
+  for (const tombstone of list) {
+    if (!tombstone || !tombstone.collection || !tombstone.id) continue;
+    const key = `${tombstone.collection}:${lower(tombstone.id)}`;
+    const current = map.get(key);
+    if (!current || Date.parse(tombstone.deletedAt || '') >= Date.parse(current.deletedAt || '')) {
+      map.set(key, clone(tombstone));
+    }
+  }
+  return Array.from(map.values());
+}
+
+function tombstoneMap(meta) {
+  const map = new Map();
+  for (const tombstone of normalizeTombstones(meta)) {
+    map.set(`${tombstone.collection}:${lower(tombstone.id)}`, tombstone);
+  }
+  return map;
+}
+
+function mergeCollection(name, serverList, incomingList, tombstones) {
+  const keys = COLLECTION_KEYS[name] || ['id', '_syncId'];
+  const map = new Map();
+  const ingest = (list, source) => {
+    (Array.isArray(list) ? list : []).forEach((item, index) => {
+      if (!item || typeof item !== 'object') return;
+      const shipmentCollection = RC1016_SHIPMENT_COLLECTIONS.has(name);
+      const key = shipmentCollection ? shipmentIdentityKey(item, index) : itemKey(item, keys, index);
+      const existing = map.get(key);
+      if (!existing) map.set(key, source === 'server' ? item : clone(item));
+      else if (RC1016_SHIPMENT_COLLECTIONS.has(name)) map.set(key, source === 'incoming' ? mergeShipmentProtected(existing, item) : mergeShipmentProtected(item, existing));
+      else if (name === 'abdRequests') map.set(key, source === 'incoming' ? mergeAbdRequestProtected(existing, item) : mergeAbdRequestProtected(item, existing));
+      else if (name === 'customers') map.set(key, source === 'incoming' ? mergeCustomerProtected(existing, item) : mergeCustomerProtected(item, existing));
+      else if (name === 'sopLearningProgress') map.set(key, source === 'incoming' ? mergeSopLearningProgress(existing, item) : mergeSopLearningProgress(item, existing));
+      else map.set(key, source === 'incoming' ? chooseNewer(existing, item, name) : chooseNewer(item, existing, name));
+    });
+  };
+  ingest(serverList, 'server');
+  const serverKeys = name === 'tasks' ? new Set(map.keys()) : null;
+  ingest(incomingList, 'incoming');
+
+  const out = [];
+  for (const [key, item] of map.entries()) {
+    // a field delta of a task the server no longer has would come back as a task without a title
+    if (serverKeys && !serverKeys.has(key) && isObject(item._syncFields) && !text(item.title || item.name || item.subject)) continue;
+    const rawId = key.includes(':') ? key.slice(key.indexOf(':') + 1) : key;
+    const tombstone = tombstones.get(`${name}:${lower(rawId)}`);
+    const shipmentCollection = name === 'shipments' || name === 'savedShipments';
+    const explicitShipmentDelete = shipmentCollection && tombstone && tombstone.explicitUserAction === true;
+    if (tombstone && (!shipmentCollection || explicitShipmentDelete) && Date.parse(tombstone.deletedAt || '') >= timestamp(item)) continue;
+    out.push(item);
+  }
+  return out;
+}
+
+function isLocalOnlyKey(key) {
+  if (LOCAL_ONLY_KEYS.has(key)) return true;
+  return /(?:Search|Filter|Selected|Step|Snooze|Modal|View|Tab|Page|Sort)$/i.test(key) ||
+    /^rc\d+(?:Overview|Search|Filter|Edit|Selected|Notify|Ui|Open|Tab|Page|Sort)/i.test(key);
+}
+
+function fieldTime(meta, key) {
+  const value = meta && meta.fields && meta.fields[key];
+  const time = Date.parse(value && value.updatedAt ? value.updatedAt : value || '');
+  return Number.isFinite(time) ? time : 0;
+}
+
+function mergePlainObject(serverValue, incomingValue) {
+  if (!isObject(serverValue)) return clone(incomingValue);
+  if (!isObject(incomingValue)) return clone(serverValue);
+  const out = clone(serverValue);
+  for (const [key, value] of Object.entries(incomingValue)) {
+    if (isObject(value) && isObject(out[key])) out[key] = mergePlainObject(out[key], value);
+    else out[key] = clone(value);
+  }
+  return out;
+}
+
+// P0: A brand-new shipment must not inherit a stale POD status from an
+// editor/template. This guard applies ONLY to previously unknown references.
+// Stored/historical shipments, attachments and original evidence are untouched.
+function hasPickupConfirmationEvidence(sh) {
+  if (!isObject(sh)) return false;
+  const histories = [
+    ...(Array.isArray(sh.pickupHistory) ? sh.pickupHistory : []),
+    ...(Array.isArray(sh.subShipments) ? sh.subShipments.flatMap(sub =>
+      Array.isArray(sub && sub.pickupHistory) ? sub.pickupHistory : []) : [])
+  ];
+  if (histories.some(h => isObject(h) && text(h.confirmedAt) &&
+    (text(h.signatureBlobName) || h.signatureStored === true))) return true;
+  const confirmedAt = text(sh.pickupConfirmedAt || sh.qrPickupConfirmedAt || sh.confirmedAt);
+  const signed = text(sh.signatureBlobName || sh.driverSignature || sh.pickupDriverSignature ||
+    sh.driverSignatureUrl || sh.pickupDriverSignatureUrl);
+  if (confirmedAt && signed) return true;
+  if (text(sh.manualPickupConfirmedAt) && text(sh.manualPickupConfirmedBy)) return true;
+  return false;
+}
+
+function protectFreshShipmentPodStatuses(server, incoming) {
+  if (!isObject(incoming)) return incoming;
+  const known = new Map();
+  for (const listName of ['shipments', 'savedShipments']) {
+    for (const sh of Array.isArray(server && server[listName]) ? server[listName] : []) {
+      const ref = text(sh && (sh.ref || sh.reference || sh.shipmentRef || sh.referenceNumber)).toUpperCase();
+      const id = text(sh && (sh.id || sh.shipmentId));
+      for (const key of [ref && 'ref:' + ref, id && 'id:' + id].filter(Boolean)) {
+        const existing = known.get(key) || [];
+        existing.push(sh);
+        known.set(key, existing);
+      }
+    }
+  }
+  let changed = false;
+  const out = Object.assign({}, incoming);
+  for (const listName of ['shipments', 'savedShipments']) {
+    const items = incoming[listName];
+    if (!Array.isArray(items)) continue;
+    out[listName] = items.map(sh => {
+      if (!isObject(sh)) return sh;
+      const ref = text(sh.ref || sh.reference || sh.shipmentRef || sh.referenceNumber).toUpperCase();
+      const id = text(sh.id || sh.shipmentId);
+      if (!ref && !id) return sh;
+      const priorCopies = [
+        ...(ref && known.get('ref:' + ref) || []),
+        ...(id && known.get('id:' + id) || [])
+      ];
+      const earlierStages = ['entwurf','erstellt','bereit zur abholung','wartet auf abd',
+        'draft','created','ready for pickup','waiting for abd'];
+      // A cross-collection copy (savedShipments -> shipments) is not a new
+      // shipment, but it still must not become a phantom POD after a second save.
+      // Inconsistent historical/picked-up copies require forensic review instead.
+      const prior = priorCopies.find(x => earlierStages.includes(lower(
+        x && (x.status || x.processStatus))));
+      const protectedHistory = priorCopies.some(x =>
+        hasPickupConfirmationEvidence(x) || ['abgeholt','pod vorhanden','abgeschlossen',
+          'archiviert','picked up','pod available','completed','archived'].includes(
+          lower(x && (x.status || x.processStatus))));
+      if (priorCopies.length && (!prior || protectedHistory)) return sh;
+      const statuses = [sh.status, sh.processStatus, sh.shipmentStatus].map(lower);
+      if (!statuses.some(status => status === 'pod vorhanden' || status === 'pod available')) return sh;
+      if (hasPickupConfirmationEvidence(sh)) return sh;
+      changed = true;
+      const corrected = clone(sh);
+      const safeStatus = prior ? (prior.status || prior.processStatus || 'Erstellt') : 'Erstellt';
+      corrected.status = safeStatus;
+      corrected.processStatus = safeStatus;
+      corrected.shipmentStatus = safeStatus;
+      corrected.podAvailable = false;
+      corrected.podConfirmed = false;
+      corrected.hasPod = false;
+      corrected.podServerVerified = false;
+      corrected.podStatus = '';
+      corrected.podStatusCorrection = 'FRESH_POD_WITHOUT_PICKUP_EVIDENCE';
+      // Do not destroy unverified file metadata: preserve it for an authorized
+      // investigator, but never treat such metadata as a valid POD.
+      if (Array.isArray(corrected.podFiles) && corrected.podFiles.length) {
+        corrected.podReviewRequired = true;
+        corrected.podReviewReason = 'POD_WITHOUT_PICKUP_EVIDENCE';
+      }
+      return corrected;
+    });
+  }
+  return changed ? out : incoming;
+}
+
+function mergeState(serverState, incomingState) {
+  const server = isObject(serverState) ? serverState : {};
+  const incoming = protectFreshShipmentPodStatuses(server, isObject(incomingState) ? incomingState : {});
+  const serverMeta = isObject(server._teamSyncMeta) ? server._teamSyncMeta : {};
+  const incomingMeta = isObject(incoming._teamSyncMeta) ? incoming._teamSyncMeta : {};
+  const mergedMeta = {
+    fields: Object.assign({}, serverMeta.fields || {}, incomingMeta.fields || {}),
+    tombstones: normalizeTombstones({ tombstones: [
+      ...(serverMeta.tombstones || []),
+      ...(incomingMeta.tombstones || [])
+    ] })
+  };
+  const tombstones = tombstoneMap(mergedMeta);
+  const serverTombstones = new Map(normalizeTombstones(serverMeta).map(item => [`${lower(item.collection)}:${lower(item.id)}`, item]));
+  const changedTombstoneCollections = new Set();
+  for (const item of normalizeTombstones(incomingMeta)) {
+    const key = `${lower(item.collection)}:${lower(item.id)}`;
+    const previous = serverTombstones.get(key);
+    if (!previous || JSON.stringify(previous) !== JSON.stringify(item)) changedTombstoneCollections.add(lower(item.collection));
+  }
+  const incomingFields = isObject(incomingMeta.fields) ? incomingMeta.fields : {};
+  const serverFields = isObject(serverMeta.fields) ? serverMeta.fields : {};
+  const out = {};
+  const keys = new Set([...Object.keys(server), ...Object.keys(incoming)]);
+
+  for (const key of keys) {
+    if (key === '_teamSyncMeta' || isLocalOnlyKey(key)) continue;
+    const serverValue = server[key];
+    const incomingValue = incoming[key];
+    const incomingHasValue = Object.prototype.hasOwnProperty.call(incoming, key);
+    const incomingFieldMeta = incomingFields[key];
+    const fieldMetaChanged = incomingFieldMeta !== undefined && JSON.stringify(incomingFieldMeta) !== JSON.stringify(serverFields[key]);
+    const tombstoneChanged = changedTombstoneCollections.has(lower(key));
+
+    if (!incomingHasValue && !fieldMetaChanged && !tombstoneChanged) {
+      out[key] = serverValue;
+      continue;
+    }
+
+    if (Array.isArray(serverValue) || Array.isArray(incomingValue)) {
+      out[key] = mergeCollection(key, serverValue, incomingValue, tombstones);
+      continue;
+    }
+
+    const serverTs = fieldTime(serverMeta, key);
+    const incomingTs = fieldTime(incomingMeta, key);
+    if (incomingTs > serverTs) out[key] = clone(incomingValue);
+    else if (serverTs > incomingTs) out[key] = clone(serverValue);
+    else if (isObject(serverValue) || isObject(incomingValue)) out[key] = mergePlainObject(serverValue, incomingValue);
+    else out[key] = incomingValue !== undefined ? clone(incomingValue) : clone(serverValue);
+  }
+
+
+  out.taskStatusLedger = mergeLedger(server.taskStatusLedger, incoming.taskStatusLedger);
+  out.deliveryFileDeletionLedger = mergeLedger(server.deliveryFileDeletionLedger, incoming.deliveryFileDeletionLedger);
+  if (Object.keys(out.taskStatusLedger).length) out.tasks = applyTaskLedger(out.tasks, out.taskStatusLedger);
+  if (Object.keys(out.deliveryFileDeletionLedger).length) out.shipments = applyDeliveryFileLedger(out.shipments, out.deliveryFileDeletionLedger);
+
+  out._teamSyncMeta = mergedMeta;
+  return stripPublicAccessSecrets(out);
+}
+
+function mergeUsers(serverUsers, incomingUsers, meta) {
+  return mergeCollection('users', serverUsers, incomingUsers, tombstoneMap(meta || {}));
+}
+
+function sanitizeState(state) {
+  const source = isObject(state) ? state : {};
+  const out = {};
+  for (const [key, value] of Object.entries(source)) {
+    if (isLocalOnlyKey(key)) continue;
+    out[key] = clone(value);
+  }
+  if (!isObject(out._teamSyncMeta)) out._teamSyncMeta = { fields: {}, tombstones: [] };
+  out._teamSyncMeta.tombstones = normalizeTombstones(out._teamSyncMeta);
+  return stripPublicAccessSecrets(out);
+}
+
+function pruneTombstones(state, maxAgeDays = 365) {
+  if (!state || !state._teamSyncMeta) return state;
+  const cutoff = Date.now() - maxAgeDays * 86400000;
+  state._teamSyncMeta.tombstones = normalizeTombstones(state._teamSyncMeta).filter((item) => {
+    const time = Date.parse(item.deletedAt || '');
+    return !Number.isFinite(time) || time >= cutoff;
+  });
+  return state;
+}
+
+module.exports = {
+  COLLECTION_KEYS,
+  clone,
+  itemKey,
+  timestamp,
+  mergeShipmentProtected,
+  mergePodFilesProtected,
+  mergeCustomerProtected,
+  mergeShipmentHistory,
+  rc1017ProtectSubShipments,
+  mergeCollection,
+  mergeState,
+  mergeUsers,
+  sanitizeState,
+  pruneTombstones,
+  isLocalOnlyKey
+};

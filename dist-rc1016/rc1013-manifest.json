@@ -1,0 +1,40 @@
+{
+  "schema": "exporthub-rc1013-three-env-v1",
+  "version": "RC1013",
+  "generatedAt": "2026-10-23T15:49:16.440Z",
+  "releaseEnvironments": [
+    "environment=production-candidate",
+    "environment=testservice",
+    "environment=demo"
+  ],
+  "sopRelease": "assets/sop/rc1010-sop-release.js",
+  "sopStability": "assets/sop/rc1013-sop-stability.js",
+  "calendar": {
+    "core": "assets/abholkalender.js",
+    "style": "assets/abholkalender.css",
+    "runtime": "assets/rc1012-abholkalender-runtime.js"
+  },
+  "fixes": {
+    "gate41": "Deutschland-Fallback und sichtbarer Preisstatus",
+    "pickup": "Server-Token wird nach QR-Registrierung synchronisiert; abgeschlossener Status bleibt lesbar",
+    "diagnostics": "strukturierte Fehlercodes und Erklärungen",
+    "sop": "Filter-Render wird aus laufenden DOM-Events entkoppelt",
+    "storage": "transiente Azure-Fehler werden wiederholt",
+    "android": "native Direktansicht",
+    "lieferavis": "Aktivierung speichert die Sendung automatisch; Kundenmail wechselt eindeutig zwischen Sendungsdetails und Lieferavis"
+  },
+  "environments": {
+    "production": {
+      "file": "index.html",
+      "sha256": "ae9f2beb68465bfb2fe22ef5963942a41bd62a973bbfcdd6914298bd20c71853"
+    },
+    "testservice": {
+      "file": "TESTVERSION.html",
+      "sha256": "03208b93f67e0a8361d791a6829e1200e2b48dd4bc87832baa92c0edf9bde9bd"
+    },
+    "demo": {
+      "file": "demo.html",
+      "sha256": "2f9550e0024d41755272e3262cc033b64178c580bc6ec81157abcc9fd0474fa6"
+    }
+  }
+}

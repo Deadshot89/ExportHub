@@ -1,0 +1,700 @@
+(function(root){
+  'use strict';
+
+  const q=v=>String(v==null?'':v).trim();
+  const arr=v=>Array.isArray(v)?v:[];
+  const tr=(key,vars,language)=>{try{if(root.ExportHUBI18n&&typeof root.ExportHUBI18n.t==='function')return root.ExportHUBI18n.t(key,vars,language)}catch(_){}return key};
+  const de=(key,vars)=>tr(key,vars,'de');
+  const locale=()=>{try{const l=root.ExportHUBI18n&&root.ExportHUBI18n.language&&root.ExportHUBI18n.language();return({de:'de-DE',en:'en-GB',pl:'pl-PL',es:'es-ES',fr:'fr-FR',it:'it-IT'})[l]||'de-DE'}catch(_){return'de-DE'}};
+  const localized=(record,key)=>{try{if(root.ExportHUBI18n&&typeof root.ExportHUBI18n.localized==='function')return root.ExportHUBI18n.localized(record,key)}catch(_){}return record&&record[key]};
+  const CARD_SELECTOR='.rc229-task-card.rc628-unified-task, .task-card';
+  let lastTasks=[];
+  let lastContext={};
+  let enhanceTimer=0;
+  let lazyCardObserver=null;
+  let taskResetTimer=0;
+  let taskResetInFlight=false;
+  let lastOpenTaskId='';
+
+  // RC1359: Vollständigen freigegebenen persönlichen Wochenplan wiederherstellen.
+  // Bereinigt werden nur veraltete Instanzen; der hinterlegte Wochenstamm bleibt aktiv.
+  const ARCHIVED_MANAGED_TASKS=Object.freeze([]);
+  const MANAGED_TASKS=Object.freeze([
+    {key:'spanien',titleKey:'taskManaged.spanien.title',groupKey:'taskManaged.group.registration',weekdays:[1,4],priority:'P3',descriptionKey:'taskManaged.spanien.description'},
+    {key:'gaggenau',titleKey:'taskManaged.gaggenau.title',groupKey:'taskManaged.group.registration',weekdays:[1],dueTime:'13:00',priority:'P2',descriptionKey:'taskManaged.gaggenau.description'},
+    {key:'faurecia',titleKey:'taskManaged.faurecia.title',groupKey:'taskManaged.group.registration',weekdays:[1],priority:'P3',descriptionKey:'taskManaged.faurecia.description'},
+    {key:'wuerth-industrie',titleKey:'taskManaged.wuerth.title',groupKey:'taskManaged.group.registration',weekdays:[2,4],priority:'P3',descriptionKey:'taskManaged.wuerth.description'},
+    {key:'bmp',titleKey:'taskManaged.bmp.title',groupKey:'taskManaged.group.registration',weekdays:[2],priority:'P3',descriptionKey:'taskManaged.bmp.description'},
+    {key:'italien',titleKey:'taskManaged.italien.title',groupKey:'taskManaged.group.registration',weekdays:[3,5],priority:'P3',descriptionKey:'taskManaged.italien.description'},
+    {key:'bsh',titleKey:'taskManaged.bsh.title',groupKey:'taskManaged.group.registration',weekdays:[3],dueTime:'13:00',priority:'P2',descriptionKey:'taskManaged.bsh.description'},
+    {key:'ohare',titleKey:'taskManaged.ohare.title',groupKey:'taskManaged.group.registration',weekdays:[3],dueTime:'12:00',priority:'P2',descriptionKey:'taskManaged.ohare.description'},
+    {key:'essentra-schweden',titleKey:'taskManaged.essentraSweden.title',groupKey:'taskManaged.group.registration',weekdays:[3],priority:'P3',descriptionKey:'taskManaged.essentraSweden.description'},
+    {key:'contitech-abd',titleKey:'taskManaged.contitech.title',groupKey:'taskManaged.group.exportAbd',weekdays:[3],priority:'P2',descriptionKey:'taskManaged.contitech.description'},
+    {key:'polen',titleKey:'taskManaged.polen.title',groupKey:'taskManaged.group.registration',weekdays:[4],priority:'P3',descriptionKey:'taskManaged.polen.description'},
+    {key:'frankreich',titleKey:'taskManaged.frankreich.title',groupKey:'taskManaged.group.registration',weekdays:[5],priority:'P3',descriptionKey:'taskManaged.frankreich.description'},
+    {key:'neff',titleKey:'taskManaged.neff.title',groupKey:'taskManaged.group.registration',weekdays:[5],dueTime:'13:00',priority:'P2',descriptionKey:'taskManaged.neff.description'},
+    {key:'swiss-area',titleKey:'taskManaged.swiss.title',groupKey:'taskManaged.group.swiss',referenceArea:true,priority:'P3',descriptionKey:'taskManaged.swiss.description',checklist:['Omni Ray','Bossard','Heizmann']}
+  ]);
+  const SYSTEM_GROUPS=new Set(['Offene Sendungen','Fehlende POD','Kunde angemeldet','Picks','Offene ABDs']);
+
+  function api(){
+    const value=root.ExportHUBRC1014Tasks;
+    if(!value||typeof value.normalizeTask!=='function')throw new Error('RC1014 Aufgaben-Lifecycle ist nicht geladen.');
+    return value;
+  }
+
+  function currentUserId(ctx){
+    const u=(ctx&&ctx.currentUser)||{};
+    return q((ctx&&ctx.currentUserId)||u.id||u.userId||u.user||u.username||u.login||u.name);
+  }
+
+  function managedOwnerMatches(ctx={}){
+    const state=ctx.state||{},u=ctx.currentUser||state.currentUser||{};
+    const aliases=[
+      ctx.currentUserId,state.currentUserId,state.userId,
+      u.id,u.userId,u.user,u.username,u.login,u.name
+    ].map(value=>q(value).toLowerCase()).filter(Boolean);
+    return aliases.some(value=>value==='tobias'||value==='user-tobias');
+  }
+
+  function taskContext(ctx={}){
+    const state=ctx.state||{};return {companyId:q(ctx.companyId||state.companyId||state.currentCompanyId||root.__EXPORTHUB_COMPANY_ID__),environment:q(ctx.environment||state.environment||root.__EXPORTHUB_FORCED_ENVIRONMENT__||environmentName()),currentUserId:currentUserId(ctx)||q(state.currentUserId||state.userId||state.currentUser&&((state.currentUser.id||state.currentUser.userId||state.currentUser.user||state.currentUser.username||state.currentUser.login||state.currentUser.name))),now:ctx.now,absences:arr(ctx.absences||state.absences)};
+  }
+
+  function localDay(value){
+    const d=value instanceof Date?value:new Date(value||Date.now());
+    if(Number.isNaN(d.getTime()))return null;
+    return {date:`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`,weekday:d.getDay()};
+  }
+
+  function managedTaskForSpec(spec,date,ctx={}){
+    const user=currentUserId(ctx);
+    const dueAt=spec.referenceArea?'':(date+(spec.dueTime?`T${spec.dueTime}:00`:''));
+    return {
+      id:spec.referenceArea?`managed:${spec.key}`:`managed:${spec.key}:${date}`,
+      managedBy:'RC1152',
+      managedKey:spec.key,
+      managedKind:spec.referenceArea?'reference-area':'recurring',
+      title:de(spec.titleKey),
+      group:de(spec.groupKey),
+      area:de(spec.groupKey),
+      sourceType:'manual',
+      sourceId:`managed:${spec.key}`,
+      sourceRef:'',
+      manual:true,
+      priority:spec.priority||'P3',
+      dueAt,
+      dueDate:dueAt,
+      occurrenceKey:spec.referenceArea?'reference':date,
+      status:'open',
+      assignedTo:user,
+      owner:user,
+      originalAssignee:user,
+      effectiveAssignee:user,
+      companyId:q(ctx.companyId),
+      environment:q(ctx.environment),
+      description:spec.descriptionKey?de(spec.descriptionKey):'',
+      checklist:arr(spec.checklist),
+      recurrenceLabel:spec.referenceArea?de('taskDetail.referenceArea'):weekdayLabel(spec.weekdays,spec.dueTime),
+      createdAt:new Date().toISOString(),
+      updatedAt:new Date().toISOString()
+    };
+  }
+
+  function weekdayLabel(days,time){
+    const label=arr(days).map(d=>de('taskDetail.weekday.'+d)).filter(v=>v&&!/^taskDetail\./.test(v)).join(' + ');
+    return label+(time?' · '+de('taskDetail.untilTime',{time}):'');
+  }
+
+  function hasShipmentLink(task){
+    if(!task)return false;
+    const ref=q(task.linkedShipmentRef||task.shipmentRef||task.reference||task.ref||task.sourceRef);
+    const id=q(task.linkedShipmentId||task.shipmentId);
+    if(id||/^[A-Z0-9]{6}$/.test(ref.toUpperCase()))return true;
+    const type=q(task.sourceType).toLowerCase();
+    return SYSTEM_GROUPS.has(q(task.group))&&type!=='manual';
+  }
+
+  function sourceRefs(task){
+    return [q(task&&task.linkedShipmentId),q(task&&task.shipmentId),q(task&&task.sourceId),q(task&&task.linkedShipmentRef),q(task&&task.shipmentRef),q(task&&task.sourceRef),q(task&&task.reference),q(task&&task.ref)].filter(Boolean);
+  }
+
+  function sourceMatches(item,refs){
+    if(!item||!refs.length)return false;
+    const values=[q(item.id),q(item.shipmentId),q(item.pickId),q(item.sourceId),q(item.ref),q(item.reference),q(item.shipmentRef),q(item.sourceRef)].filter(Boolean);
+    return values.some(value=>refs.includes(value));
+  }
+
+  // weekly-plan tasks (task master RC848 series) share group names with shipment-derived tasks but have no
+  // shipment reference; they must never be treated as stale shipment tasks and removed
+  function recurringPlanTask(task){
+    if(!task)return false;
+    if(task.masterTaskRC848||task.masterTaskRC846||q(task.masterSourceId))return true;
+    if(q(task.recurringSeriesId)||q(task.weeklySeriesId)||q(task.seriesId))return true;
+    const recurrence=q(task.recurrence).toLowerCase();
+    return !!recurrence&&!/^(none|keine|einmalig|once|no)$/.test(recurrence);
+  }
+
+  function systemTaskIsCurrent(task,state={}){
+    const group=q(task&&task.group),type=q(task&&task.sourceType).toLowerCase();
+    if(!SYSTEM_GROUPS.has(group)||type==='manual'||recurringPlanTask(task))return true;
+    const refs=sourceRefs(task);
+    if(!refs.length)return false;
+    if(group==='Picks'){
+      const picks=arr(state.picks).concat(arr(state.openPicks),arr(state.pickTasks));
+      return picks.some(item=>sourceMatches(item,refs));
+    }
+    const shipments=arr(state.shipments).concat(arr(state.savedShipments));
+    return shipments.some(item=>sourceMatches(item,refs));
+  }
+
+  function addTaskTombstones(state,removed){
+    if(!state||!removed.length)return;
+    if(!state._teamSyncMeta||typeof state._teamSyncMeta!=='object'||Array.isArray(state._teamSyncMeta))state._teamSyncMeta={fields:{},tombstones:[]};
+    if(!Array.isArray(state._teamSyncMeta.tombstones))state._teamSyncMeta.tombstones=[];
+    const existing=new Set(state._teamSyncMeta.tombstones.map(t=>`${q(t&&t.collection).toLowerCase()}:${q(t&&t.id).toLowerCase()}`));
+    const at=new Date().toISOString();
+    removed.forEach((task,index)=>{
+      const id=q(task&&task.id);
+      if(!id)return;
+      const key=`tasks:${id.toLowerCase()}`;
+      if(existing.has(key))return;
+      state._teamSyncMeta.tombstones.push({collection:'tasks',id,deletedAt:at,deletedBy:'system:RC1152',explicitUserAction:true});
+      existing.add(key);
+    });
+  }
+
+  function prepareManagedRoster(raw,ctx={}){
+    const state=ctx.state||{};
+    let tasks=arr(raw).slice(),changed=false;
+    const kept=[],removed=[];
+    const initialCleanup=!state.rc1152TaskRosterAt;
+    const activeManagedKeys=new Set(MANAGED_TASKS.map(spec=>q(spec&&spec.key)).filter(Boolean));
+    const tombstoned=new Set(arr(state._teamSyncMeta&&state._teamSyncMeta.tombstones)
+      .filter(item=>q(item&&item.collection).toLowerCase()==='tasks')
+      .map(item=>q(item&&item.id).toLowerCase())
+      .filter(Boolean));
+    tasks.forEach(task=>{
+      const managed=q(task&&task.managedBy)==='RC1152';
+      const managedCurrent=managed&&activeManagedKeys.has(q(task&&task.managedKey));
+      const type=q(task&&task.sourceType).toLowerCase();
+      const isSystem=SYSTEM_GROUPS.has(q(task&&task.group))&&type!=='manual';
+      const currentSystem=isSystem&&systemTaskIsCurrent(task,state);
+      const wasRemoved=tombstoned.has(q(task&&task.id).toLowerCase());
+      // RC1585: Rename only the untouched system-created Spain task. Preserve
+      // custom titles and all existing task IDs/history/occurrence dates.
+      if(managedCurrent&&q(task.managedKey)==='spanien'&&q(task.title)==='Spanien anmelden'){
+        task={...task,title:de('taskManaged.spanien.title'),updatedAt:new Date().toISOString()};
+        changed=true;
+      }
+      if(managedCurrent||currentSystem||(!managed&&!isSystem&&!wasRemoved))kept.push(task);
+      else removed.push(task);
+    });
+    if(removed.length){
+      tasks=kept;
+      changed=true;
+      addTaskTombstones(state,removed);
+      state.rc1152TaskRosterAt=new Date().toISOString();
+    }else if(initialCleanup){
+      state.rc1152TaskRosterAt=new Date().toISOString();
+      changed=true;
+    }
+    const day=localDay(ctx.now||new Date());
+    if(day){
+      const specs=managedOwnerMatches(ctx)?MANAGED_TASKS.filter(spec=>spec.referenceArea||arr(spec.weekdays).includes(day.weekday)):[];
+      specs.forEach(spec=>{
+        const candidate=managedTaskForSpec(spec,day.date,ctx);
+        if(tasks.some(t=>q(t&&t.id)===candidate.id))return;
+        tasks.push(candidate);changed=true;
+      });
+    }
+    return {tasks,changed};
+  }
+
+  function currentTasks(raw,ctx={}){
+    const lifecycle=api();
+    const normalizedContext=taskContext(ctx);
+    const normalized=arr(raw).map(task=>lifecycle.normalizeTask(task,normalizedContext));
+    return lifecycle.reconcile(normalized,ctx.state||{},normalizedContext).tasks;
+  }
+
+  function prepareTasks(raw,ctx={}){
+    const lifecycle=api();
+    const normalizedContext=taskContext(ctx);
+    const roster=prepareManagedRoster(raw,{...ctx,...normalizedContext});
+    const normalized=arr(roster.tasks).map(task=>lifecycle.normalizeTask(task,normalizedContext));
+    const result=lifecycle.reconcile(normalized,ctx.state||{},normalizedContext);
+    if((roster.changed||result.changed)&&typeof ctx.persist==='function')ctx.persist(result.tasks);
+    lastTasks=result.tasks;
+    lastContext={...normalizedContext,state:ctx.state||{},persist:ctx.persist};
+    scheduleEnhance();
+    syncAndroidSnapshot(result.tasks,lastContext);
+    return result.tasks;
+  }
+
+  function sameScope(task,ctx={}){
+    const t=api().normalizeTask(task||{},ctx);
+    const company=q(ctx.companyId),environment=q(ctx.environment);
+    if(company&&t.companyId&&t.companyId!==company)return false;
+    if(environment&&t.environment&&t.environment!==environment)return false;
+    return true;
+  }
+
+  function reportOpenBlocked(task){
+    try{if(root.ExportHUBClean&&typeof root.ExportHUBClean.operationStatus==='function')root.ExportHUBClean.operationStatus(tr('taskDetail.openContextError'),'bad');}catch(_){ }
+    try{if(root.console&&typeof root.console.warn==='function')root.console.warn('RC1014 Aufgabenöffnung blockiert',task&&task.id);}catch(_){ }
+  }
+
+  function esc(value){return q(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+  function linkedShipmentTarget(task,ctx={}){
+    const state=ctx.state||sharedState()||{};
+    const refs=[q(task&&task.linkedShipmentId),q(task&&task.sourceId),q(task&&task.linkedShipmentRef),q(task&&task.sourceRef)].filter(Boolean);
+    const hit=arr(state.shipments).concat(arr(state.savedShipments)).find(sh=>refs.includes(q(sh&&sh.id))||refs.includes(q(sh&&sh.shipmentId))||refs.includes(q(sh&&sh.ref))||refs.includes(q(sh&&sh.reference)));
+    return hit?q(hit.ref||hit.reference||hit.id||hit.shipmentId):'';
+  }
+
+  function detailSpec(task){
+    const key=q(task&&task.managedKey);
+    return MANAGED_TASKS.find(spec=>spec.key===key)||null;
+  }
+
+  function detailDue(task){
+    const raw=q(task&&task.dueAt);
+    if(!raw)return tr('taskDetail.noFixedDeadline');
+    const d=new Date(raw);
+    if(Number.isNaN(d.getTime()))return raw;
+    try{return new Intl.DateTimeFormat(locale(),{dateStyle:'full',timeStyle:raw.includes('T')?'short':undefined}).format(d);}catch(_){return raw;}
+  }
+
+  function taskStatusLabel(task,isReference){
+    if(isReference)return tr('taskDetail.referenceArea');
+    const status=q(task&&task.status).toLowerCase();
+    if(status==='done')return tr('taskDetail.status.done');
+    if(status==='in_progress')return tr('taskDetail.status.inProgress');
+    if(status==='cancelled')return tr('taskDetail.status.cancelled');
+    return tr('taskDetail.status.open');
+  }
+
+  function storedTaskId(){
+    if(lastOpenTaskId)return lastOpenTaskId;
+    try{lastOpenTaskId=q(root.history&&root.history.state&&root.history.state.exporthubTaskId);}catch(_){}
+    return lastOpenTaskId;
+  }
+
+  function rememberTaskDetail(task){
+    lastOpenTaskId=q(task&&task.id);
+    try{
+      if(root.history&&typeof root.history.replaceState==='function'&&lastOpenTaskId){
+        const current=root.history.state&&typeof root.history.state==='object'?root.history.state:{};
+        root.history.replaceState({...current,exporthubTaskDetail:true,exporthubTaskId:lastOpenTaskId},'',root.location&&root.location.href?root.location.href:undefined);
+      }
+    }catch(_){}
+    return lastOpenTaskId;
+  }
+
+  function rememberedTask(ctx={}){
+    const id=storedTaskId();
+    if(!id)return null;
+    const state=ctx.state||sharedState()||{};
+    return arr(lastTasks).concat(arr(state.tasks)).find(item=>q(item&&item.id)===id)||null;
+  }
+
+  function closeTaskDetail(fromPopState){
+    const doc=root.document,view=doc&&doc.getElementById&&doc.getElementById('rc1152TaskDetail');
+    if(view&&view.parentNode)view.parentNode.removeChild(view);
+    try{if(doc&&doc.body)doc.body.removeAttribute('data-exporthub-task-detail');}catch(_){}
+    if(!fromPopState&&typeof root.setView==='function')root.setView('tasks');
+    return true;
+  }
+
+  async function setTaskStatus(task,status,ctx={}){
+    const state=ctx.state||sharedState();
+    if(!state)return false;
+    const id=q(task&&task.id),items=arr(state.tasks);
+    const target=items.find(item=>q(item&&item.id)===id);
+    if(!target)return false;
+    const next=q(status).toLowerCase(),now=new Date().toISOString(),user=currentUserId(ctx)||'Benutzer';
+    if(next==='done'){
+      target.status='done';target.done=true;target.completedAt=now;target.doneAt=now;target.completedBy=user;target.doneBy=user;
+    }else if(next==='in_progress'){
+      target.status='in_progress';target.done=false;target.startedAt=q(target.startedAt)||now;target.startedBy=q(target.startedBy)||user;
+      target.completedAt='';target.doneAt='';target.completedBy='';target.doneBy='';
+    }else{
+      target.status='open';target.done=false;target.startedAt='';target.startedBy='';
+      target.completedAt='';target.doneAt='';target.completedBy='';target.doneBy='';
+    }
+    target.updatedAt=now;
+    if(typeof ctx.persist==='function')await Promise.resolve(ctx.persist(items));
+    else{
+      const clean=root.ExportHUBClean;
+      if(clean&&typeof clean.queueSave==='function'){
+        await Promise.resolve(clean.queueSave('RC1153 Aufgabenstatus geändert'));
+        if(typeof clean.flushSave==='function')await Promise.resolve(clean.flushSave('RC1153 Aufgabenstatus geändert'));
+      }
+    }
+    lastTasks=items;
+    lastContext={...lastContext,...ctx,state};
+    syncAndroidSnapshot(items,lastContext);
+    try{if(typeof root.dispatchEvent==='function'&&typeof root.CustomEvent==='function')root.dispatchEvent(new root.CustomEvent('exporthub:tasks-updated',{detail:{reason:'RC1153 status',taskId:id,status:target.status}}));}catch(_){}
+    closeTaskDetail(false);
+    return true;
+  }
+
+  async function completeTask(task,ctx={}){
+    return setTaskStatus(task,'done',ctx);
+  }
+
+  function openLinkedShipment(task,ctx={}){
+    const target=linkedShipmentTarget(task,ctx);
+    if(!target)return false;
+    if(root.ExportHUBShipmentView&&typeof root.ExportHUBShipmentView.open==='function'){root.ExportHUBShipmentView.open(target,'tasks');return true;}
+    if(typeof root.openShipment==='function'){root.openShipment(target);return true;}
+    if(typeof root.__EXPORTHUB_OPEN_SHIPMENT__==='function'){root.__EXPORTHUB_OPEN_SHIPMENT__(target);return true;}
+    return false;
+  }
+
+  function taskDetailHtml(task,ctx={}){
+    const t=api().normalizeTask(task||{},ctx),spec=detailSpec(t)||detailSpec(task);
+    const shipmentTarget=linkedShipmentTarget({...task,...t},ctx);
+    const checklist=arr((task&&task.checklist)||(spec&&spec.checklist));
+    const title=spec?tr(spec.titleKey):q(localized(task,'title')||t.title)||tr('taskDetail.task');
+    const group=spec?tr(spec.groupKey):q(localized(task,'group')||t.group)||tr('taskDetail.task');
+    const description=spec?tr(spec.descriptionKey):q(localized(task,'description')||(task&&task.description))||tr('taskDetail.descriptionMissing');
+    const recurrence=q(localized(task,'recurrenceLabel')||(task&&task.recurrenceLabel)||(spec&&weekdayLabel(spec.weekdays,spec.dueTime)))||tr('taskDetail.recurrenceOnce');
+    const isReference=!!((task&&task.managedKind==='reference-area')||(spec&&spec.referenceArea));
+    return `<div class="rc1152-task-shell" data-rc1179-task-tab="1">
+      <header class="rc1152-task-header">
+        <button type="button" class="btn rc1152-task-back" data-task-action="back">${esc(tr('taskDetail.backToTasks'))}</button>
+        <div><span class="rc1152-task-eyebrow">${esc(group)}</span><h1>${esc(title)}</h1></div>
+        <span class="rc1152-task-status" data-status="${esc(isReference?'reference':t.status||'open')}">${esc(taskStatusLabel(t,isReference))}</span>
+      </header>
+      <div class="rc1152-task-grid">
+        <article class="rc1152-task-card"><h2>${esc(tr('taskDetail.task'))}</h2><p>${esc(description)}</p></article>
+        <article class="rc1152-task-card"><h2>${esc(tr('taskDetail.due'))}</h2><strong>${esc(detailDue(t))}</strong><p>${esc(recurrence)}</p></article>
+        <article class="rc1152-task-card"><h2>${esc(tr('taskDetail.owner'))}</h2><strong>${esc(t.effectiveAssignee||t.originalAssignee||tr('taskDetail.unassigned'))}</strong><p>${esc(tr('taskDetail.priority',{priority:t.priority||'P4'}))}</p></article>
+        ${checklist.length?`<article class="rc1152-task-card rc1152-task-checklist"><h2>${esc(tr('taskDetail.checkpoints'))}</h2><ul>${checklist.map(item=>`<li>${esc(item)}</li>`).join('')}</ul></article>`:''}
+        ${shipmentTarget?`<article class="rc1152-task-card"><h2>${esc(tr('taskDetail.relatedShipment'))}</h2><strong>${esc(shipmentTarget)}</strong><button type="button" class="btn primary" data-task-action="shipment">${esc(tr('taskDetail.openShipment'))}</button></article>`:''}
+      </div>
+      <footer class="rc1152-task-actions">
+        <button type="button" class="btn" data-task-action="back">${esc(tr('taskDetail.back'))}</button>
+        ${!isReference?`<button type="button" class="btn" data-task-action="open" ${t.status==='open'?'disabled':''}>${esc(tr('taskDetail.status.open'))}</button>
+        <button type="button" class="btn" data-task-action="in_progress" ${t.status==='in_progress'?'disabled':''}>${esc(tr('taskDetail.status.inProgress'))}</button>
+        <button type="button" class="btn primary" data-task-action="done" aria-label="${esc(tr('taskDetail.markDone'))}" ${t.status==='done'?'disabled':''}>${esc(tr('taskDetail.status.done'))}</button>`:''}
+      </footer>
+    </div>`;
+  }
+
+  function renderTaskDetailView(task,ctx={}){
+    const doc=root.document;
+    if(!doc||typeof doc.createElement!=='function')return false;
+    const mergedCtx={...lastContext,...ctx,state:(ctx&&ctx.state)||lastContext.state||sharedState()||{}};
+    const raw=task||rememberedTask(mergedCtx);
+    const host=doc.getElementById&&doc.getElementById('content');
+    if(!host)return false;
+    host.innerHTML='';
+    const panel=doc.createElement('section');
+    panel.id='rc1152TaskDetail';panel.className='rc1152-task-detail';panel.setAttribute('data-rc1179-task-view','1');
+    if(!raw){
+      panel.innerHTML='<div class="rc1152-task-shell"><header class="rc1152-task-header"><div><span class="rc1152-task-eyebrow">'+esc(tr('taskDetail.area'))+'</span><h1>'+esc(tr('taskDetail.title'))+'</h1></div></header><article class="rc1152-task-card"><h2>'+esc(tr('taskDetail.noneTitle'))+'</h2><p>'+esc(tr('taskDetail.noneText'))+'</p><button type="button" class="btn primary" data-task-action="back">'+esc(tr('taskDetail.toTasks'))+'</button></article></div>';
+      panel.addEventListener('click',event=>{const btn=event.target&&event.target.closest&&event.target.closest('[data-task-action="back"]');if(btn)closeTaskDetail(false);});
+      host.appendChild(panel);return true;
+    }
+    const t=api().normalizeTask(raw||{},mergedCtx);
+    if(!sameScope(t,mergedCtx)){reportOpenBlocked(t);return false;}
+    rememberTaskDetail(t);
+    panel.innerHTML=taskDetailHtml({...raw,...t},mergedCtx);
+    panel.addEventListener('click',event=>{
+      const btn=event.target&&event.target.closest&&event.target.closest('[data-task-action]');
+      if(!btn)return;
+      const action=btn.getAttribute('data-task-action');
+      if(action==='back')closeTaskDetail(false);
+      else if(action==='shipment')openLinkedShipment({...raw,...t},mergedCtx);
+      else if(action==='open'||action==='in_progress'||action==='done')setTaskStatus({...raw,...t},action,mergedCtx).catch(()=>{});
+    });
+    host.appendChild(panel);
+    try{if(doc.body)doc.body.setAttribute('data-exporthub-task-detail','open');}catch(_){}
+    const first=panel.querySelector&&panel.querySelector('[data-task-action="back"]');if(first&&typeof first.focus==='function')first.focus();
+    return true;
+  }
+
+  function openTaskDetail(task,ctx={}){
+    const t=api().normalizeTask(task||{},ctx);
+    if(!sameScope(t,ctx)){reportOpenBlocked(t);return false;}
+    rememberTaskDetail(t);
+    lastContext={...lastContext,...ctx,state:ctx.state||lastContext.state||sharedState()||{}};
+    if(typeof root.setView==='function'){root.setView('taskdetail');return true;}
+    return renderTaskDetailView({...task,...t},ctx);
+  }
+
+  function openTask(task,ctx={}){
+    const t=api().normalizeTask(task||{},ctx);
+    if(!sameScope(t,ctx)){reportOpenBlocked(t);return false;}
+    return openTaskDetail({...task,...t},ctx);
+  }
+
+  function dueLabel(bucket,dueAt){
+    if(bucket==='overdue')return tr('taskDetail.due.overdue');
+    if(bucket==='today')return tr('taskDetail.due.today');
+    if(bucket==='future')return q(dueAt)||tr('taskDetail.due.future');
+    return tr('taskDetail.due.none');
+  }
+
+  function taskCardMeta(task,ctx={}){
+    const lifecycle=api();
+    const t=lifecycle.normalizeTask(task||{},ctx);
+    const bucket=lifecycle.dueBucket(t,ctx.now);
+    return {priority:t.priority,dueBucket:bucket,dueAt:t.dueAt,dueLabel:dueLabel(bucket,t.dueAt),assignee:t.effectiveAssignee||t.originalAssignee||tr('taskDetail.unassigned'),sourceRef:t.sourceRef,group:t.group};
+  }
+
+  function cardTask(card,tasks){
+    if(!card)return null;
+    const dataset=card.dataset||{};
+    const ids=[dataset.taskId,dataset.id,dataset.task,dataset.sourceId].map(q).filter(Boolean);
+    let hit=arr(tasks).find(t=>ids.includes(q(t.id))||ids.includes(q(t.sourceId)));
+    if(hit)return hit;
+    const text=q(card.textContent);
+    hit=arr(tasks).find(t=>q(t.sourceRef)&&text.includes(q(t.sourceRef)));
+    if(hit)return hit;
+    return arr(tasks).find(t=>q(t.title)&&text.includes(q(t.title)))||null;
+  }
+
+  function createSpan(doc,className,attribute,value,text){
+    const el=doc.createElement('span');el.className=className;el.setAttribute(attribute,value);el.textContent=text;return el;
+  }
+
+  function managedTaskPlanItems(ctx={}){
+    if(!managedOwnerMatches(ctx))return [];
+    const today=localDay(ctx.now||new Date());
+    return MANAGED_TASKS.map(spec=>({
+      key:spec.key,
+      title:tr(spec.titleKey),
+      group:tr(spec.groupKey),
+      description:spec.descriptionKey?tr(spec.descriptionKey):'',
+      priority:spec.priority||'P3',
+      dueTime:q(spec.dueTime),
+      weekdays:arr(spec.weekdays).slice(),
+      referenceArea:!!spec.referenceArea,
+      checklist:arr(spec.checklist).slice(),
+      schedule:spec.referenceArea?tr('taskPlan.always'):arr(spec.weekdays).map(day=>tr('taskDetail.weekday.'+day)).filter(Boolean).join(' + ')+(spec.dueTime?' · '+tr('taskDetail.untilTime',{time:spec.dueTime}):''),
+      today:!!(today&&arr(spec.weekdays).includes(today.weekday))
+    }));
+  }
+
+  function currentView(){
+    try{
+      const bodyValue=q(root.document&&root.document.body&&root.document.body.getAttribute&&root.document.body.getAttribute('data-exporthub-view'));
+      if(bodyValue)return bodyValue.toLowerCase();
+    }catch(_){}
+    try{
+      const state=sharedState()||{},value=q(state.view||state.currentView||state.activeView||state.page);
+      return value.toLowerCase();
+    }catch(_){return''}
+  }
+
+  function renderManagedTaskPlan(ctx=lastContext){
+    const doc=root.document;
+    if(!doc||typeof doc.getElementById!=='function')return false;
+    const existing=doc.getElementById('rc1307ManagedTaskPlan');
+    if(currentView()!=='tasks'){
+      if(existing&&existing.parentNode)existing.parentNode.removeChild(existing);
+      return false;
+    }
+    const host=doc.getElementById('content')||(doc.querySelector&&doc.querySelector('[data-view="tasks"],main'))||doc.body;
+    if(!host)return false;
+    const items=managedTaskPlanItems(ctx);
+    let section=existing;
+    if(!section){
+      section=doc.createElement('section');
+      section.id='rc1307ManagedTaskPlan';
+      section.className='rc1307-managed-task-plan';
+      const anchor=host.querySelector&&host.querySelector('.rc229-task-grid,details.task-area-details,.task-grid,.tasks-grid');
+      if(anchor&&anchor.parentNode)anchor.parentNode.insertBefore(section,anchor);
+      else if(typeof host.prepend==='function')host.prepend(section);
+      else host.insertBefore(section,host.firstChild||null);
+    }
+    const planHtml=`<div class="rc1307-task-plan-head">
+      <div><span class="rc1307-task-plan-eyebrow">${esc(tr('taskPlan.eyebrow'))}</span><h2>${esc(tr('taskPlan.title'))}</h2><p>${esc(tr('taskPlan.help'))}</p></div>
+      <span class="rc1307-task-plan-count">${esc(tr('taskPlan.count',{count:items.length}))}</span>
+    </div>
+    <div class="rc1307-task-plan-grid">${items.map(item=>`<article class="rc1307-task-plan-card${item.today?' is-today':''}" data-managed-task="${esc(item.key)}">
+      <div class="rc1307-task-plan-card-top"><span class="rc1307-task-plan-group">${esc(item.group)}</span><span class="rc1307-task-plan-priority">${esc(item.priority)}</span></div>
+      <h3>${esc(item.title)}</h3>
+      <p>${esc(item.description)}</p>
+      <div class="rc1307-task-plan-meta"><span>${esc(item.schedule)}</span>${item.today?`<strong>${esc(tr('taskPlan.today'))}</strong>`:''}</div>
+      ${item.checklist.length?`<div class="rc1307-task-plan-checklist">${item.checklist.map(entry=>`<span>${esc(entry)}</span>`).join('')}</div>`:''}
+    </article>`).join('')}</div>`;
+    if(section.innerHTML!==planHtml)section.innerHTML=planHtml;
+    return true;
+  }
+
+  function enhanceTaskCards(tasks=lastTasks,ctx=lastContext){
+    const doc=root.document;
+    if(!doc||typeof doc.querySelectorAll!=='function')return 0;
+    const cards=Array.from(doc.querySelectorAll(CARD_SELECTOR));
+    let enhanced=0;
+    cards.forEach(card=>{
+      const task=cardTask(card,tasks);
+      if(!task||!sameScope(task,ctx))return;
+      const meta=taskCardMeta(task,ctx);
+      const priorityText=tr('taskDetail.priority',{priority:meta.priority});
+      const dueText=tr('taskDetail.dueLabel',{due:meta.dueLabel});
+      const assigneeText=tr('taskDetail.ownerLabel',{owner:meta.assignee});
+      const metaFingerprint=JSON.stringify([meta.priority,meta.dueBucket,meta.dueAt,meta.assignee,priorityText,dueText,assigneeText]);
+      let row=card.querySelector&&card.querySelector('.rc1014-task-meta');
+      if(!row){row=doc.createElement('div');row.className='rc1014-task-meta';if(typeof card.appendChild==='function')card.appendChild(row);}
+      if(!row.getAttribute||row.getAttribute('data-rc1477-task-meta-fingerprint')!==metaFingerprint){
+        row.textContent='';
+        row.appendChild(createSpan(doc,'rc1014-priority','data-rc1014-priority',meta.priority,priorityText));
+        row.appendChild(createSpan(doc,'rc1014-due','data-rc1014-due',meta.dueBucket,dueText));
+        row.appendChild(createSpan(doc,'rc1014-assignee','data-rc1014-assignee',meta.assignee,assigneeText));
+        if(row.setAttribute)row.setAttribute('data-rc1477-task-meta-fingerprint',metaFingerprint);
+      }
+      let button=card.querySelector&&card.querySelector('[data-rc1014-open-task]');
+      if(!button){
+        button=doc.createElement('button');button.type='button';button.className='btn primary rc1014-open-task';button.setAttribute('data-rc1014-open-task','1');button.textContent=tr('taskDetail.openTask');
+        button.addEventListener('click',event=>{if(event&&typeof event.preventDefault==='function')event.preventDefault();if(event&&typeof event.stopPropagation==='function')event.stopPropagation();openTask(task,ctx);});
+        if(typeof card.appendChild==='function')card.appendChild(button);
+      }
+      const data=card.dataset||null;
+      if(data&&!data.rc1152TaskOpen){
+        data.rc1152TaskOpen='1';card.setAttribute&&card.setAttribute('tabindex','0');card.setAttribute&&card.setAttribute('role','button');
+        card.addEventListener('click',event=>{if(event&&event.target&&event.target.closest&&event.target.closest('button,a,input,select,textarea,label'))return;openTask(task,ctx);});
+        card.addEventListener('keydown',event=>{if(!event||!(event.key==='Enter'||event.key===' '))return;if(event.target&&event.target.closest&&event.target.closest('button,a,input,select,textarea'))return;event.preventDefault();openTask(task,ctx);});
+      }
+      card.setAttribute&&card.setAttribute('data-rc1014-enhanced','1');
+      enhanced++;
+    });
+    return enhanced;
+  }
+
+  function scheduleEnhance(){
+    if(!root.document)return;
+    if(enhanceTimer&&typeof root.clearTimeout==='function')root.clearTimeout(enhanceTimer);
+    const schedule=typeof root.setTimeout==='function'?root.setTimeout:(fn=>fn());
+    enhanceTimer=schedule(()=>{enhanceTimer=0;renderManagedTaskPlan();enhanceTaskCards();},0);
+  }
+
+  function containsTaskCard(node){
+    if(!node||node.nodeType!==1)return false;
+    if(typeof node.matches==='function'&&node.matches(CARD_SELECTOR))return true;
+    return typeof node.querySelector==='function'&&!!node.querySelector(CARD_SELECTOR);
+  }
+
+  function installLazyCardObserver(){
+    const doc=root.document;
+    if(!doc||lazyCardObserver||typeof root.MutationObserver!=='function')return false;
+    const target=doc.body||doc.documentElement;
+    if(!target)return false;
+    lazyCardObserver=new root.MutationObserver(mutations=>{
+      const viewChanged=mutations.some(mutation=>mutation.type==='attributes'&&mutation.attributeName==='data-exporthub-view');
+      const cardsAdded=mutations.some(mutation=>mutation.type==='childList'&&Array.from(mutation.addedNodes||[]).some(containsTaskCard));
+      if(viewChanged||cardsAdded)scheduleEnhance();
+    });
+    lazyCardObserver.observe(target,{childList:true,subtree:true,attributes:target===doc.body,attributeFilter:target===doc.body?['data-exporthub-view']:undefined});
+    doc.addEventListener('toggle',event=>{const target=event&&event.target;if(target&&target.matches&&target.matches('details.task-area-details'))scheduleEnhance();},true);
+    return true;
+  }
+
+  function syncAndroidSnapshot(tasks,ctx={}){
+    const bridge=root.ExportHUBAndroid;
+    if(!bridge||typeof bridge.notify!=='function')return false;
+    const lifecycle=api();
+    const userId=q(ctx.currentUserId||currentUserId(ctx));
+    const environment=q(ctx.environment);
+    if(!userId||!environment)return false;
+    const candidates=lifecycle.reminderCandidates(tasks,{...ctx,currentUserId:userId,environment})
+      .filter(task=>q(task&&task.managedKind)!=='reference-area');
+    const safeTasks=candidates.map(task=>{
+      const t=lifecycle.normalizeTask(task,ctx);const bucket=lifecycle.dueBucket(t,ctx.now);
+      return {id:q(t.id),title:q(t.title),sourceRef:q(t.sourceRef),priority:q(t.priority),dueAt:q(t.dueAt),dueBucket:bucket,group:q(t.group),effectiveAssignee:q(t.effectiveAssignee),environment:q(t.environment||environment),route:'tasks'};
+    });
+    const payload=JSON.stringify({schema:'rc1014-task-snapshot-v1',environment,userId,generatedAt:new Date().toISOString(),tasks:safeTasks});
+    bridge.notify('task_snapshot',`task_snapshot:${environment}:${userId}`,'RC1014 Aufgaben-Snapshot',payload,'tasks');
+    return true;
+  }
+
+  function environmentName(){
+    const forced=q(root.__EXPORTHUB_FORCED_ENVIRONMENT__).toLowerCase();
+    if(forced==='production'||forced==='testservice'||forced==='demo')return forced;
+    const location=root.location||{},host=q(location.hostname).toLowerCase(),path=q(location.pathname).toLowerCase();
+    if(path.includes('demo.html'))return 'demo';
+    return /-testservice\./.test(host)?'testservice':'production';
+  }
+
+  function sharedState(){
+    try{if(typeof root.__EXPORTHUB_GET_STATE__==='function')return root.__EXPORTHUB_GET_STATE__()||null;}catch(_){ }
+    return root.ExportHUBClean&&root.ExportHUBClean.state||root.appState||null;
+  }
+
+  function cloneJson(value){return value===undefined?undefined:JSON.parse(JSON.stringify(value));}
+
+  async function resetProductionTasksOnce(){
+    if(environmentName()!=='production'||taskResetInFlight)return false;
+    const state=sharedState(),clean=root.ExportHUBClean;
+    if(!state||state.rc1107TaskResetAt)return false;
+    if(!clean||typeof clean.queueSave!=='function'||typeof clean.flushSave!=='function')return false;
+    taskResetInFlight=true;
+    const previous={tasks:cloneJson(state.tasks),taskStatusLedger:cloneJson(state.taskStatusLedger),marker:state.rc1107TaskResetAt,tombstones:cloneJson(state._teamSyncMeta&&state._teamSyncMeta.tombstones)};
+    const at=new Date().toISOString(),tasks=arr(state.tasks);
+    try{
+      if(!state._teamSyncMeta||typeof state._teamSyncMeta!=='object'||Array.isArray(state._teamSyncMeta))state._teamSyncMeta={fields:{},tombstones:[]};
+      if(!Array.isArray(state._teamSyncMeta.tombstones))state._teamSyncMeta.tombstones=[];
+      const existing=new Set(state._teamSyncMeta.tombstones.map(t=>`${q(t&&t.collection).toLowerCase()}:${q(t&&t.id).toLowerCase()}`));
+      tasks.forEach((task,index)=>{
+        const id=q(task&&task.id)||`index:${index}`;
+        const key=`tasks:${id.toLowerCase()}`;
+        if(existing.has(key))return;
+        state._teamSyncMeta.tombstones.push({collection:'tasks',id,deletedAt:at,deletedBy:'system:RC1107',explicitUserAction:true});
+        existing.add(key);
+      });
+      state.tasks=[];
+      state.taskStatusLedger={};
+      state.rc1107TaskResetAt=at;
+      await Promise.resolve(clean.queueSave('RC1107 Aufgabenbestand zurückgesetzt'));
+      const ok=await Promise.resolve(clean.flushSave('RC1107 Aufgabenbestand zurückgesetzt'));
+      if(ok===false)throw new Error('Azure hat den Aufgaben-Reset nicht bestätigt.');
+      lastTasks=[];
+      try{if(typeof root.dispatchEvent==='function'&&typeof root.CustomEvent==='function')root.dispatchEvent(new root.CustomEvent('exporthub:tasks-updated',{detail:{reason:'RC1107 reset'}}));}catch(_){ }
+      return true;
+    }catch(error){
+      state.tasks=previous.tasks;
+      state.taskStatusLedger=previous.taskStatusLedger;
+      if(previous.marker===undefined)delete state.rc1107TaskResetAt;else state.rc1107TaskResetAt=previous.marker;
+      if(!state._teamSyncMeta||typeof state._teamSyncMeta!=='object')state._teamSyncMeta={fields:{},tombstones:[]};
+      state._teamSyncMeta.tombstones=previous.tombstones||[];
+      throw error;
+    }finally{taskResetInFlight=false;}
+  }
+
+  function scheduleProductionTaskReset(){
+    if(environmentName()!=='production')return false;
+    if(taskResetTimer&&typeof root.clearTimeout==='function')root.clearTimeout(taskResetTimer);
+    const schedule=typeof root.setTimeout==='function'?root.setTimeout:(fn=>fn());
+    taskResetTimer=schedule(async()=>{
+      taskResetTimer=0;
+      try{
+        const done=await resetProductionTasksOnce();
+        const state=sharedState();
+        if(!done&&state&&!state.rc1107TaskResetAt)scheduleProductionTaskReset();
+      }catch(error){
+        try{if(root.console&&typeof root.console.error==='function')root.console.error('RC1107 Aufgabenreset fehlgeschlagen',error);}catch(_){ }
+        // RC1152: kein pauschaler Produktions-Reset mehr; Altaufgaben werden gezielt im Roster bereinigt.
+      }
+    },1000);
+    return true;
+  }
+
+  if(root.addEventListener){
+    root.addEventListener('exporthub:language-changed',()=>{scheduleEnhance();try{if(root.document&&root.document.body&&root.document.body.getAttribute('data-exporthub-task-detail')==='open')renderTaskDetailView(null,lastContext);}catch(_){}});
+    ['exporthub:rendered','exporthub:viewchange','exporthub:tasks-updated'].forEach(name=>root.addEventListener(name,scheduleEnhance));
+    root.addEventListener('DOMContentLoaded',installLazyCardObserver,{once:true});
+  }
+  installLazyCardObserver();
+  // RC1152: Der frühere pauschale Produktions-Reset wird nicht mehr automatisch gestartet.
+  // Altaufgaben werden ausschließlich gezielt in prepareManagedRoster() bereinigt.
+
+  if(root.addEventListener)root.addEventListener('popstate',()=>{const doc=root.document;if(doc&&doc.getElementById&&doc.getElementById('rc1152TaskDetail'))closeTaskDetail(true);});
+
+  root.ExportHUBRC1014TaskRuntime=Object.freeze({currentTasks,prepareTasks,openTask,openTaskDetail,renderTaskDetailView,rememberTaskDetail,rememberedTask,closeTaskDetail,setTaskStatus,completeTask,prepareManagedRoster,systemTaskIsCurrent,taskCardMeta,managedOwnerMatches,managedTaskPlanItems,renderManagedTaskPlan,enhanceTaskCards,syncAndroidSnapshot,resetProductionTasksOnce,MANAGED_TASKS,ARCHIVED_MANAGED_TASKS});
+})(globalThis);

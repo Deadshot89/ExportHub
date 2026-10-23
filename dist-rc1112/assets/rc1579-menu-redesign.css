@@ -1,0 +1,55 @@
+/* ExportHUB360 RC1579 – Menü: aufklappbare Bereiche und ein einheitlicher Icon-Satz für alle vier Designs.
+   Reihenfolge, Bereichsfarben und Einklappen kommen aus dem von rc1579-menu-redesign.js erzeugten Stylesheet. */
+
+/* alte Gruppenüberschriften werden durch die Bereichs-Kopfzeilen ersetzt */
+#nav#nav#nav[data-rc1579-ready]>div[data-index308-group],
+#nav#nav#nav[data-rc1579-ready]>.eh-nav-section{display:none!important}
+#nav#nav#nav[data-rc1579-ready]{gap:2px!important}
+html[data-rc1579-packaging] .sidebar>.rc1555-packaging-nav-wrap{display:none!important}
+
+/* einheitliche Icons: der bisherige Inhalt (SVG, Emoji oder Zeichen) wird durch eine Maske ersetzt */
+#nav#nav#nav[data-rc1579-ready]>button .index308-nav-icon{font-size:0!important;line-height:0!important}
+#nav#nav#nav[data-rc1579-ready]>button .index308-nav-icon>*{display:none!important}
+#nav#nav#nav[data-rc1579-ready]>button .index308-nav-icon::before{content:"";display:block;width:18px;height:18px;background:currentColor;-webkit-mask:var(--rc1579-icon) center/contain no-repeat;mask:var(--rc1579-icon) center/contain no-repeat}
+
+/* Untermenüpunkte: eingerückt, etwas kompakter */
+#nav#nav#nav[data-rc1579-ready]>button:not([data-view="dashboard"]):not([data-view="notifications"]):not([data-view="packnotifications"]){margin-left:14px!important;width:calc(100% - 14px)!important;min-height:38px!important;padding-top:5px!important;padding-bottom:5px!important}
+#nav#nav#nav[data-rc1579-ready]>button:not([data-view="dashboard"]):not([data-view="notifications"]):not([data-view="packnotifications"]) .index308-nav-icon{width:26px!important;height:26px!important;min-width:26px!important;min-height:26px!important;flex-basis:26px!important;border-radius:8px!important}
+#nav#nav#nav[data-rc1579-ready]>button:not([data-view="dashboard"]):not([data-view="notifications"]):not([data-view="packnotifications"]) .index308-nav-icon::before{width:16px;height:16px}
+#nav#nav#nav[data-rc1579-ready]>button:not([data-view="dashboard"]):not([data-view="notifications"]):not([data-view="packnotifications"]) .index308-nav-label{font-size:13.5px!important;font-weight:600!important}
+#nav#nav#nav[data-rc1579-ready]>[data-rc1579-proxy]{cursor:pointer;margin-top:0!important;margin-bottom:0!important}
+#nav#nav#nav[data-rc1579-ready]>[data-rc1579-proxy]:hover{filter:brightness(.97)}
+
+/* Bereichs-Kopfzeilen */
+#nav#nav#nav>.rc1579-section{display:flex;align-items:center;gap:10px;min-height:42px;margin:6px 0 0;padding:6px 10px;border-radius:12px;cursor:pointer;user-select:none;color:inherit;font-size:14px;font-weight:700;letter-spacing:.01em;line-height:1.2;transition:background-color .15s ease}
+#nav#nav#nav>.rc1579-section[hidden]{display:none!important}
+#nav#nav#nav>.rc1579-section:hover{background:color-mix(in srgb,currentColor 7%,transparent)}
+#nav#nav#nav>.rc1579-section:focus-visible{outline:2px solid var(--rc1579-accent);outline-offset:1px}
+#nav#nav#nav>.rc1579-section .rc1579-section-icon{display:grid;place-items:center;flex:0 0 30px;width:30px;height:30px;border-radius:10px;color:var(--rc1579-accent);background:color-mix(in srgb,var(--rc1579-accent) 13%,transparent);border:1px solid color-mix(in srgb,var(--rc1579-accent) 26%,transparent)}
+#nav#nav#nav>.rc1579-section .rc1579-section-icon::before{content:"";width:17px;height:17px;background:currentColor;-webkit-mask:var(--rc1579-icon) center/contain no-repeat;mask:var(--rc1579-icon) center/contain no-repeat}
+#nav#nav#nav>.rc1579-section .rc1579-section-label{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#nav#nav#nav>.rc1579-section .rc1579-section-count{flex:0 0 auto;min-width:22px;padding:1px 7px;border-radius:999px;font-size:11px;font-weight:700;text-align:center;opacity:.62;background:color-mix(in srgb,currentColor 9%,transparent)}
+#nav#nav#nav>.rc1579-section[aria-expanded="true"] .rc1579-section-count{opacity:0}
+#nav#nav#nav>.rc1579-section .rc1579-section-chevron{flex:0 0 auto;width:8px;height:8px;margin:0 4px 0 2px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;opacity:.55;transform:rotate(-45deg);transition:transform .15s ease}
+#nav#nav#nav>.rc1579-section[aria-expanded="true"] .rc1579-section-chevron{transform:rotate(45deg) translate(-2px,-2px)}
+/* zugeklappter Bereich mit der aktuell geöffneten Seite */
+#nav#nav#nav>.rc1579-section[data-rc1579-current][aria-expanded="false"]{background:color-mix(in srgb,var(--rc1579-accent) 12%,transparent)}
+#nav#nav#nav>.rc1579-section[data-rc1579-current][aria-expanded="false"] .rc1579-section-icon{color:#fff;background:var(--rc1579-accent);border-color:var(--rc1579-accent)}
+
+/* Smartphone/Tablet: Dashboard und Benachrichtigungen nicht kleiner als die Untermenüpunkte */
+@media (max-width:900px){
+ #nav#nav#nav[data-rc1579-ready]>button:is([data-view="dashboard"],[data-view="packnotifications"],[data-view="notifications"]) .index308-nav-label{font-size:14px!important}
+}
+@media (prefers-reduced-motion:reduce){
+ #nav#nav#nav>.rc1579-section,#nav#nav#nav>.rc1579-section .rc1579-section-chevron{transition:none}
+}
+
+/* IT: Reiter für Fehlerdiagnose, Release-Center und Update oben im Inhalt */
+#content#content>.rc1579-it-tabs{grid-column:1/-1!important;display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 14px!important;padding:6px;border:1px solid var(--pc-line,#dbe3ec);border-radius:14px;background:var(--pc-card-bg,#fff);box-shadow:none}
+#content>.rc1579-it-tabs .rc1579-it-tabs-title{padding:0 10px 0 6px;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--pc-muted,#64748b)}
+#content>.rc1579-it-tabs>button{display:inline-flex;align-items:center;gap:8px;min-height:38px;padding:7px 14px;border:1px solid transparent;border-radius:10px;background:transparent;color:var(--pc-text,#334155);font:inherit;font-size:14px;font-weight:650;cursor:pointer;box-shadow:none}
+#content>.rc1579-it-tabs>button>span{width:16px;height:16px;flex:0 0 16px;background:currentColor;-webkit-mask:var(--rc1579-icon) center/contain no-repeat;mask:var(--rc1579-icon) center/contain no-repeat}
+#content>.rc1579-it-tabs>button:hover{background:color-mix(in srgb,currentColor 7%,transparent)}
+#content>.rc1579-it-tabs>button[aria-current="page"]{background:#64748b;color:#fff;border-color:#64748b}
+#content>.rc1579-it-tabs>button:focus-visible{outline:2px solid #64748b;outline-offset:1px}
+@media (max-width:560px){#content>.rc1579-it-tabs .rc1579-it-tabs-title{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}#content>.rc1579-it-tabs>button{flex:1 1 auto;justify-content:center;padding:7px 8px;font-size:13px}}

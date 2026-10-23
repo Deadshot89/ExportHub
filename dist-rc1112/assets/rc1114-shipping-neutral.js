@@ -1,0 +1,177 @@
+(function(w,d){
+'use strict';
+if(!w||!d||w.__EXPORTHUB_RC1114_SHIPPING_NEUTRAL__)return;
+w.__EXPORTHUB_RC1114_SHIPPING_NEUTRAL__=true;
+
+var VERSION='RC1114.1',scheduled=0,observer=null,observerRoot=null,bootstrapObserver=null;
+
+function q(v){return String(v==null?'':v)}
+function normalized(v){return q(v).replace(/\s+/g,' ').trim()}
+function replaceText(value){
+ var s=q(value);
+ var pairs=[
+  [/Pakete über UPS und Paletten über Gate41\./g,'Pakete über UPS und Paletten über die Paletten-/Mautberechnung.'],
+  [/Paletten\s*[–-]\s*Gate41/g,'Paletten / Maut'],
+  [/Gate41-Ergebnis/g,'Paletten-/Maut-Ergebnis'],
+  [/Gate41-Grundtarife Deutschland/g,'Paletten-Grundtarife Deutschland'],
+  [/Gate41-Stammdaten Deutschland/g,'Paletten- und Maut-Stammdaten Deutschland'],
+  [/Gate41-Stammdaten speichern/g,'Paletten-/Maut-Stammdaten speichern'],
+  [/Nur echte Gate41-Werte pflegen\./g,'Nur freigegebene Paletten- und Mautwerte pflegen.'],
+  [/zentraler Gate41-Dieselpreis/g,'zentraler Dieselpreis'],
+  [/Laufzeit laut Gate41/g,'Standard-Laufzeit'],
+  [/gemäß aktueller Gate41-Vorgabe/g,'gemäß aktueller Versandvorgabe'],
+  [/Gate41-Grundtarif/g,'Paletten-Grundtarif'],
+  [/Gate41-Tabelle/g,'Palettentarif'],
+  [/Gate41-Tarif/g,'Palettentarif'],
+  [/Gate41-Preis/g,'Palettenpreis'],
+  [/Gate41-Berechnung/g,'Paletten-/Mautberechnung'],
+  [/Gate41-Sendungsdaten/g,'Paletten-/Mautdaten'],
+  [/Gate41:/g,'Paletten / Maut:'],
+  [/Gate41/g,'Paletten / Maut']
+ ];
+ for(var i=0;i<pairs.length;i++)s=s.replace(pairs[i][0],pairs[i][1]);
+ return s
+}
+function shouldSuppressNotice(value){
+ var s=normalized(value);
+ if(!s)return false;
+ if(/^Aus geöffneter Sendung:\s+.+/i.test(s)&&s.length<=320)return true;
+ if(/^(?:Gate41|Paletten\s*\/\s*Maut):\s*Start- und Zielort müssen vollständig angegeben sein, bevor ein belastbarer Preis angezeigt werden kann\.?$/i.test(s))return true;
+ return false
+}
+function suppressNotices(root){
+ if(!root||!root.querySelectorAll)return 0;
+ var count=0,nodes=Array.prototype.slice.call(root.querySelectorAll('div,p,section,aside,small,span,li'));
+ nodes.forEach(function(el){
+  var hidden=el.getAttribute&&el.getAttribute('data-rc1114-hidden-notice')==='1';
+  var suppress=shouldSuppressNotice(el.textContent);
+  if(suppress){
+   if(el.style)el.style.display='none';
+   if(el.setAttribute)el.setAttribute('data-rc1114-hidden-notice','1');
+   count++;
+  }else if(hidden){
+   if(el.style)el.style.display='';
+   if(el.removeAttribute)el.removeAttribute('data-rc1114-hidden-notice');
+  }
+ });
+ return count
+}
+function neutralizeText(root){
+ if(!root)return 0;
+ var count=0,walker=d.createTreeWalker(root,NodeFilter.SHOW_TEXT);
+ while(walker.nextNode()){
+  var node=walker.currentNode,old=q(node.nodeValue),next=replaceText(old);
+  if(next!==old){node.nodeValue=next;count++}
+ }
+ return count
+}
+function neutralizeAttrs(root){
+ if(!root||!root.querySelectorAll)return 0;
+ var count=0,nodes=[root].concat(Array.prototype.slice.call(root.querySelectorAll('[title],[aria-label],[placeholder],[data-label]')));
+ nodes.forEach(function(el){
+  ['title','aria-label','placeholder','data-label'].forEach(function(name){
+   if(!el.getAttribute)return;var old=el.getAttribute(name);if(old==null)return;var next=replaceText(old);
+   if(next!==old){el.setAttribute(name,next);count++}
+  })
+ });
+ return count
+}
+function normalizeHistory(root){
+ if(!root||!root.querySelectorAll)return;
+ Array.prototype.forEach.call(root.querySelectorAll('.rc501-history .rc626-item'),function(item){
+  neutralizeText(item);neutralizeAttrs(item)
+ })
+}
+function disconnectObserver(){
+ if(observer){try{observer.disconnect()}catch(_){}observer=null}
+ observerRoot=null
+}
+function disconnectBootstrap(){
+ if(bootstrapObserver){try{bootstrapObserver.disconnect()}catch(_){}bootstrapObserver=null}
+}
+function noticeStateNeedsRun(node){
+ var current=node&&(node.parentElement||node.parentNode);
+ while(current&&current.nodeType===1){
+  if(current!==observerRoot){
+   var suppress=shouldSuppressNotice(current.textContent);
+   var hidden=current.getAttribute&&current.getAttribute('data-rc1114-hidden-notice')==='1';
+   if(suppress!==hidden)return true
+  }
+  if(current===observerRoot)break;
+  current=current.parentElement||current.parentNode
+ }
+ return false
+}
+function mutationNeedsRun(record){
+ if(!record)return false;
+ if(record.type==='childList')return true;
+ if(record.type==='characterData'){
+  var text=q(record.target&&record.target.nodeValue);
+  if(replaceText(text)!==text)return true;
+  return noticeStateNeedsRun(record.target)
+ }
+ if(record.type==='attributes'){
+  var target=record.target,name=record.attributeName;
+  if(!target||!target.getAttribute||!name)return false;
+  var value=target.getAttribute(name);
+  return value!=null&&replaceText(value)!==value
+ }
+ return true
+}
+function syncObserver(){
+ var root=d.getElementById('rc626Shipping');
+ if(root){
+  disconnectBootstrap();
+  if(observer&&observerRoot===root)return root;
+  disconnectObserver();
+  observerRoot=root;
+  if(w.MutationObserver){
+   try{
+    observer=new w.MutationObserver(function(records){
+     for(var i=0;i<records.length;i++){
+      if(mutationNeedsRun(records[i])){schedule();break}
+     }
+    });
+    observer.observe(root,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['title','aria-label','placeholder','data-label']})
+   }catch(_){observer=null;observerRoot=null}
+  }
+  return root
+ }
+ disconnectObserver();
+ if(!bootstrapObserver&&w.MutationObserver&&d.documentElement){
+  try{
+   bootstrapObserver=new w.MutationObserver(function(records){
+    for(var i=0;i<records.length;i++){
+     var added=records[i]&&records[i].addedNodes;
+     if(!added||!added.length)continue;
+     for(var j=0;j<added.length;j++){
+      var n=added[j];
+      if(n&&n.nodeType===1&&(n.id==='rc626Shipping'||n.querySelector&&n.querySelector('#rc626Shipping'))){
+       syncObserver();schedule();return
+      }
+     }
+    }
+   });
+   bootstrapObserver.observe(d.documentElement,{subtree:true,childList:true})
+  }catch(_){bootstrapObserver=null}
+ }
+ return null
+}
+function run(){
+ scheduled=0;
+ var root=syncObserver();if(!root)return false;
+ neutralizeText(root);neutralizeAttrs(root);normalizeHistory(root);suppressNotices(root);
+ root.setAttribute('data-rc1114-shipping-neutral','1');
+ return true
+}
+function schedule(){
+ if(scheduled)return;
+ scheduled=w.requestAnimationFrame?w.requestAnimationFrame(run):w.setTimeout(run,0)
+}
+function installObserver(){return !!syncObserver()}
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:shipment-saved'].forEach(function(name){w.addEventListener&&w.addEventListener(name,function(){syncObserver();schedule()})});
+d.addEventListener('click',function(e){if(e.target&&e.target.closest&&e.target.closest('[data-view="shippingcosts"],[data-action*="shipping"],#rc626Shipping'))w.setTimeout(schedule,20)},true);
+if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',function(){installObserver();schedule()},{once:true});else{installObserver();schedule()}
+
+w.ExportHUBRC1114ShippingNeutral=Object.freeze({version:VERSION,replaceText:replaceText,shouldSuppressNotice:shouldSuppressNotice,run:run});
+})(window,document);

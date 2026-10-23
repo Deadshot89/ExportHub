@@ -243,8 +243,9 @@ async function rc1021AutoEnable(reason){
  if(autoEnablePending[ref])return false;
  autoEnablePending[ref]=true;
  try{
-  var saveAlreadyConfirmed=reason==='exporthub:sync'||reason==='exporthub:shipment-saved';
-  if(!saveAlreadyConfirmed)await rc1015PersistBeforeAvis();
+  // RC1467: background/startup auto-enable operates only on an already persisted shipment.
+  // Never enter the strict user-save bridge here; Colli validation belongs to explicit user actions.
+  var saveAlreadyConfirmed=true;
   sh=currentShipmentForAvis()||sh;
   if(!rc1021ShouldAutoEnable(sh))return rc1018Enabled(sh);
   if(saveAlreadyConfirmed)autoEnableSaveConfirmed[ref]=true;

@@ -1,0 +1,36 @@
+.rc1503-sop-training-banner{
+  width:100%;
+  box-sizing:border-box;
+  display:grid;
+  gap:4px;
+  padding:12px 14px;
+  margin:0 0 12px;
+  border:2px solid #7c3aed;
+  border-radius:12px;
+  background:rgba(124,58,237,.1);
+  font-weight:700;
+}
+.rc1503-sop-training-banner strong{font-size:14px;letter-spacing:.06em;}
+.rc1503-sop-training-banner span{font-size:13px;font-weight:600;line-height:1.4;}
+.rc1503-sop-training-simulation{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  width:100%;
+  box-sizing:border-box;
+  padding:8px 10px;
+  margin:0 0 12px;
+  border-radius:10px;
+  background:rgba(15,118,110,.1);
+  font-size:12px;
+  font-weight:700;
+}
+[data-sop-training-start]:focus-visible,
+.rc1503-sop-training-banner:focus-visible{outline:3px solid currentColor;outline-offset:3px;}
+@media (max-width:760px){
+  .rc1503-sop-training-banner{width:100%;padding:11px 12px;border-radius:10px;}
+  .rc1503-sop-training-simulation{width:100%;align-items:flex-start;}
+}
+@media print{
+  .rc1503-sop-training-banner,.rc1503-sop-training-simulation{display:none!important;}
+}

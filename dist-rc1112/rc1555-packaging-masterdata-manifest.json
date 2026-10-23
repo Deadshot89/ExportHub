@@ -1,0 +1,22 @@
+{
+  "version": "RC1555",
+  "assets": [
+    "assets/rc1555-packaging-store.js",
+    "assets/rc1555-packaging-shipment.js",
+    "assets/rc1555-packaging-management.js",
+    "assets/rc1555-packaging-management.css"
+  ],
+  "locales": [
+    "de",
+    "en",
+    "pl",
+    "es",
+    "fr",
+    "it"
+  ],
+  "entries": [
+    "index.html",
+    "TESTVERSION.html",
+    "demo.html"
+  ]
+}

@@ -1,0 +1,398 @@
+(function(){
+'use strict';
+if(window.__EXPORTHUB_RC1015_LIEFERAVIS_MAIL_FLOW__)return;
+window.__EXPORTHUB_RC1015_LIEFERAVIS_MAIL_FLOW__=true;
+
+var base=null,wrapper=null,autoEnablePending=Object.create(null),autoEnableSaveConfirmed=Object.create(null),mailSourceCache=new Map(),visibleMailSyncing=false,refreshUiPending=false;
+var RC1018_AVIS_EXCEPTIONS=Object.freeze({bmp:'Kunden-IT blockiert den Zugriff','böllhof':'Kein Lieferavis für diesen Kunden','böllhoff':'Kein Lieferavis für diesen Kunden',boellhof:'Kein Lieferavis für diesen Kunden',boellhoff:'Kein Lieferavis für diesen Kunden'});
+var RC1291_AVIS_MAIL_EXCLUSIONS=Object.freeze(['würth industrie','wuerth industrie']);
+var RC1292_AVIS_RECIPIENT_EXCLUSIONS=Object.freeze({'dispo@holenstein.de':'Holenstein GmbH'});
+function q(v){return String(v==null?'':v).trim()}
+function tr(key,vars,language){try{if(window.ExportHUBI18n&&typeof window.ExportHUBI18n.t==='function')return window.ExportHUBI18n.t(key,vars,language)}catch(_){}return key}
+function rc1018AvisBlockMessage(blocked){return tr('avisFlow.unavailable')+(blocked&&blocked.key==='bmp'?' '+tr('avisFlow.customerItBlocked'):blocked&&blocked.reason?' '+blocked.reason:'')}
+function rc1267NormalizeLanguage(v){var m=q(v).toLowerCase().replace('_','-').match(/^(de|en|pl|es|fr|it)(?:-|$)/);return m?m[1]:'de'}
+function scalarName(v){
+ if(v==null||typeof v==='object'||typeof v==='boolean')return'';
+ var text=q(v);return !text||/^(?:true|false|null|undefined|\[object Object\])$/i.test(text)?'':text
+}
+function objectName(v){
+ if(!v||typeof v!=='object')return'';
+ var fields=[v.name,v.customerName,v.companyName,v.displayName,v.label];
+ for(var i=0;i<fields.length;i++){var text=scalarName(fields[i]);if(text)return text}
+ return''
+}
+function shipmentCustomerName(sh){
+ sh=sh&&typeof sh==='object'?sh:{};
+ var fields=[sh.customerName,sh.customerDisplay,sh.recipientCustomerName,sh.consigneeName,sh.recipientName,sh.companyName,sh.locationName];
+ for(var i=0;i<fields.length;i++){var text=scalarName(fields[i]);if(text)return text}
+ return scalarName(sh.customer)||objectName(sh.customer)||scalarName(sh.recipient)||objectName(sh.recipient)||''
+}
+function rc1330AvisPolicyBlock(sh){
+ var customer=rc1292CustomerForShipment(sh);
+ if(!customer)return null;
+ var explicit=customer.avisLinkEnabled;
+ if(explicit===undefined)explicit=customer.customerAvisLinkEnabled;
+ if(explicit===true)return null;
+ if(explicit===false)return{customer:shipmentCustomerName(sh),key:'customer-policy',reason:'Im Kundenordner ist AVIS-Link nicht erwünscht'};
+ var id=q(customer.id||customer.customerId||customer.customerNumber||customer.kundennummer||customer.account).toLocaleUpperCase('de-DE');
+ var name=q(customer.name||customer.customerName||customer.companyName).toLocaleLowerCase('de-DE');
+ var emails=rc1292EmailItems([customer.customerEmail,customer.customerMail,customer.email,customer.mail,customer.cc,customer.mailCc,customer.ccContacts,customer.customerCcContacts]).map(function(x){return x.toLowerCase()});
+ if(id==='3019100629'||name.indexOf('würth industrie')===0||name.indexOf('wuerth industrie')===0||name.indexOf('v-zug')>=0||name.indexOf('v zug')>=0||emails.indexOf('v-zug@lebert.com')>=0)return{customer:shipmentCustomerName(sh),key:'customer-policy-default',reason:'AVIS-Link ist für diesen Kunden standardmäßig deaktiviert'};
+ return null
+}
+function rc1018AvisException(sh){
+ var name=shipmentCustomerName(sh),key=name.toLocaleLowerCase('de-DE').replace(/\s+/g,' ').trim(),matchKey='';
+ for(var candidate in RC1018_AVIS_EXCEPTIONS)if(Object.prototype.hasOwnProperty.call(RC1018_AVIS_EXCEPTIONS,candidate)&&(key===candidate||key.indexOf(candidate+' ')===0)){matchKey=candidate;break}
+ if(matchKey)return{customer:name,key:matchKey,reason:RC1018_AVIS_EXCEPTIONS[matchKey]};
+ return rc1330AvisPolicyBlock(sh)
+}
+function rc1291AvisMailExcluded(sh){
+ var customer=rc1292CustomerForShipment(sh);
+ if(customer&&(customer.avisLinkEnabled===true||customer.customerAvisLinkEnabled===true))return null;
+ var name=shipmentCustomerName(sh),key=name.toLocaleLowerCase('de-DE').replace(/\s+/g,' ').trim();
+ for(var i=0;i<RC1291_AVIS_MAIL_EXCLUSIONS.length;i++){var candidate=RC1291_AVIS_MAIL_EXCLUSIONS[i];if(key===candidate||key.indexOf(candidate+' ')===0)return{customer:name,key:candidate,reason:'Kein Lieferavis-Link in E-Mails'} }
+ return null
+}
+function rc1292EmailItems(value){
+ var out=[],seen={};
+ function add(v){
+  if(Array.isArray(v)){v.forEach(add);return}
+  if(v&&typeof v==='object'){
+   if(v.email||v.mail||v.address)add(v.email||v.mail||v.address);
+   if(Array.isArray(v.roles)||v.role)add(v.contacts||[]);
+   return
+  }
+  String(v==null?'':v).replace(/mailto:/gi,' ').split(/[;,\n\r\t ]+/).forEach(function(part){
+   var m=String(part||'').match(/[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}/i);if(!m)return;
+   var email=q(m[0]).replace(/[.,;:]+$/,''),key=email.toLowerCase();if(email&&!seen[key]){seen[key]=1;out.push(email)}
+  })
+ }
+ add(value);return out
+}
+function rc1292CustomerForShipment(sh){
+ var s=currentState(),list=Array.isArray(s.customers)?s.customers:[],name=shipmentCustomerName(sh).toLocaleLowerCase('de-DE'),ids=[
+  sh&&sh.customerId,sh&&sh.customerNumber,sh&&sh.customerAccount,sh&&sh.customerNo,sh&&sh.account
+ ].map(function(v){return q(v).toLocaleUpperCase('de-DE')}).filter(Boolean);
+ for(var i=0;i<list.length;i++){
+  var customer=list[i]||{},cid=q(customer.id||customer.customerId||customer.customerNumber||customer.kundennummer||customer.account).toLocaleUpperCase('de-DE');
+  if(cid&&ids.indexOf(cid)>=0)return customer;
+  var cname=q(customer.name||customer.customerName||customer.companyName).toLocaleLowerCase('de-DE');
+  if(name&&cname&&name===cname)return customer
+ }
+ return null
+}
+function rc1292AvisRecipientExcluded(sh,target){
+ target=q(target).toLowerCase();var customer=rc1292CustomerForShipment(sh),values=[];
+ function take(obj,fields){if(!obj)return;fields.forEach(function(k){values.push(obj[k])})}
+ var carrierFields=['carrierEmail','carrierMail','speditionEmail','speditionMail','forwarderEmail','forwarderMail','carrierContacts','speditionContacts','forwarderContacts'];
+ var customerFields=['customerEmail','customerMail','recipientEmail','email','ccContacts','customerCcContacts','contactDirectory','customerContactDirectory'];
+ if(target==='carrier'){take(sh,carrierFields);take(customer,carrierFields)}
+ else if(target==='customer'){take(sh,customerFields);take(customer,customerFields)}
+ else{take(sh,carrierFields.concat(customerFields));take(customer,carrierFields.concat(customerFields))}
+ var emails=rc1292EmailItems(values);
+ for(var i=0;i<emails.length;i++){var key=emails[i].toLowerCase();if(RC1292_AVIS_RECIPIENT_EXCLUSIONS[key])return{email:emails[i],reason:'Kein Lieferavis-Link an '+RC1292_AVIS_RECIPIENT_EXCLUSIONS[key]}}
+ return null
+}
+function shipmentReference(sh){return q(sh&&(sh.ref||sh.reference||sh.shipmentRef||sh.referenceNumber||sh.referenceNo||sh.id||sh.shipmentId)).toUpperCase()}
+function currentState(){
+ try{if(typeof window.__EXPORTHUB_GET_STATE__==='function')return window.__EXPORTHUB_GET_STATE__()||{}}catch(_){}
+ return window.ExportHUBClean&&window.ExportHUBClean.state||window.appState||{}
+}
+function rc1021ShipmentViewActive(){
+ var state=currentState(),view=q(state.view||state.currentView||state.activeView||state.page).toLowerCase();
+ if(view)return view==='shipment'||view==='shipmentview';
+ try{var bodyView=q(document&&document.body&&document.body.getAttribute&&document.body.getAttribute('data-exporthub-view')).toLowerCase();if(bodyView)return bodyView==='shipment'||bodyView==='shipmentview'}catch(_){}
+ try{return !!(document&&document.querySelector&&document.querySelector('#rc573ShipmentShell,#rc363FixedShipmentLayout,[data-exporthub-rendered-view="shipment"]'))}catch(_){return false}
+}
+function currentShipmentForAvis(){
+ var state=currentState(),ref=rc1015DraftReference(),lists=[state.shipments,state.savedShipments,state.salesSharedShipments,state.sharedShipments],candidates=[];
+ function add(item){if(item&&typeof item==='object'&&candidates.indexOf(item)<0)candidates.push(item)}
+ [state.currentShipment,state.shipment,state.selectedShipment].forEach(add);
+ lists.forEach(function(list){if(Array.isArray(list))list.forEach(add)});
+ if(ref){for(var i=0;i<candidates.length;i++){if(shipmentReference(candidates[i])===ref)return candidates[i]}}
+ return candidates.length===1?candidates[0]:null
+}
+function rc1021Persisted(sh){
+ if(!sh||typeof sh!=='object')return false;
+ var state=currentState(),ref=shipmentReference(sh),lists=[state.shipments,state.savedShipments,state.salesSharedShipments,state.sharedShipments];
+ for(var i=0;i<lists.length;i++){
+  var list=lists[i];if(!Array.isArray(list))continue;
+  for(var j=0;j<list.length;j++){
+   var item=list[j];if(item===sh)return true;
+   if(ref&&item&&typeof item==='object'&&shipmentReference(item)===ref)return true
+  }
+ }
+ return false
+}
+function rc1021WasManuallyDisabled(sh){return !!q(sh&&(sh.customerAvisDisabledAt||sh.avisDisabledAt))}
+function rc1021Closed(sh){
+ if(!sh||typeof sh!=='object')return false;
+ if(q(sh.pickedUpAt||sh.pickupConfirmedAt||sh.actualPickupAt||sh.collectedAt))return true;
+ var status=q(sh.status||sh.shipmentStatus).toLocaleLowerCase('de-DE');
+ return /^(?:abgeholt|pod vorhanden|abgeschlossen|archiviert|storniert|picked up|pod available|completed|archived|cancelled)$/.test(status)
+}
+function rc1024ServerEnabled(sh){try{return !!(base&&typeof base.enabled==='function'&&base.enabled(sh))}catch(_){return false}}
+function rc1018Enabled(sh){
+ if(!sh||typeof sh!=='object'||rc1018AvisException(sh)||rc1021WasManuallyDisabled(sh))return false;
+ if(rc1024ServerEnabled(sh))return true;
+ return !rc1021Closed(sh)
+}
+function rc1021ShouldAutoEnable(sh){
+ if(!sh||typeof sh!=='object'||!rc1021Persisted(sh))return false;
+ if(!shipmentCustomerName(sh)||rc1018AvisException(sh)||rc1021WasManuallyDisabled(sh)||rc1021Closed(sh))return false;
+ if(!/^[A-Z0-9]{6}$/.test(rc1015DraftReference()))return false;
+ if(rc1024ServerEnabled(sh))return false;
+ return !!(base&&typeof base.toggle==='function')
+}
+function referenceInput(){
+ return Array.from(document.querySelectorAll('#content input')).find(function(input){
+  var label=input.closest&&input.closest('label,.field');
+  return /sendungsreferenz|referenznummer/i.test((input.id||'')+' '+(input.name||'')+' '+(label&&label.textContent||''));
+ })||null
+}
+function canonicalDraftReference(){
+ var state=currentState(),candidates=[state.shipment,state.currentShipment,state.selectedShipment];
+ for(var i=0;i<candidates.length;i++){
+  var value=shipmentReference(candidates[i]).replace(/[^A-Z0-9]/g,'').slice(0,6);
+  if(/^[A-Z0-9]{6}$/.test(value))return value
+ }
+ return''
+}
+function rc1015DraftReference(){
+ var input=referenceInput(),value=q(input&&input.value).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);
+ if(/^[A-Z0-9]{6}$/.test(value))return value;
+ return canonicalDraftReference()
+}
+async function persist(reason){
+ var core=window.ExportHUBRC565;
+ if(core&&typeof core.persistShipment==='function'){
+  var result=await core.persistShipment();
+  if(result!==true)throw new Error('Die Sendung konnte nicht dauerhaft gespeichert werden.');
+  return true
+ }
+ var clean=window.ExportHUBClean;
+ if(!clean||typeof clean.queueSave!=='function'||typeof clean.flushSave!=='function')throw new Error('Die Azure-Speicherung ist noch nicht verfügbar.');
+ await clean.queueSave(reason);
+ var ok=await clean.flushSave(reason,{force:true,userInitiated:true});
+ if(ok!==true)throw new Error('Die Azure-Speicherung wurde nicht bestätigt.');
+ return true
+}
+async function rc1015PersistBeforeAvis(){
+ if(!rc1015DraftReference())throw new Error('Bitte zuerst eine gültige sechsstellige Sendungsreferenz eingeben.');
+ await persist('Sendung vor Lieferavis automatisch gespeichert');
+ return true
+}
+function rc1021NotifyAvisUpdated(on,sh){
+ if(!window||typeof window.dispatchEvent!=='function')return false;
+ var detail={enabled:!!on,reference:shipmentReference(sh||currentShipmentForAvis())};
+ try{window.dispatchEvent(new CustomEvent('exporthub:customer-avis-updated',{detail:detail}));return true}catch(_){}
+ try{window.dispatchEvent(new Event('exporthub:customer-avis-updated'));return true}catch(_){}
+ return false
+}
+function rc1024MarkDraftDisabled(sh){
+ if(!sh||typeof sh!=='object')return false;
+ var at=new Date().toISOString();
+ sh.customerAvisEnabled=false;sh.avisEnabled=false;sh.customerAvisDisabledAt=at;sh.avisDisabledAt=at;
+ return true
+}
+function rc1024ClearDraftDisabled(sh){
+ if(!sh||typeof sh!=='object')return false;
+ sh.customerAvisDisabledAt='';sh.avisDisabledAt='';
+ return true
+}
+async function rc1015Toggle(on){
+ if(!base||typeof base.toggle!=='function')return false;
+ var sh=currentShipmentForAvis();
+ if(on&&rc1018AvisException(sh)){
+  alert(rc1018AvisBlockMessage(rc1018AvisException(sh)));
+  return false
+ }
+ if(!on&&!rc1024ServerEnabled(sh)){
+  var locallyDisabled=rc1024MarkDraftDisabled(sh);
+  rc1021NotifyAvisUpdated(false,sh);refreshUi();return locallyDisabled
+ }
+ if(on&&!rc1015DraftReference()){
+  if(sh&&rc1021WasManuallyDisabled(sh)){
+   rc1024ClearDraftDisabled(sh);rc1021NotifyAvisUpdated(true,sh);refreshUi();return true
+  }
+  alert(tr('avisFlow.referenceRequired'));
+  return false
+ }
+ try{
+  if(on){rc1024ClearDraftDisabled(sh);var refBeforeToggle=rc1015DraftReference();if(!autoEnableSaveConfirmed[refBeforeToggle])await rc1015PersistBeforeAvis()}
+  if(on&&rc1018AvisException(currentShipmentForAvis())){
+   alert(rc1018AvisBlockMessage(rc1018AvisException(currentShipmentForAvis())));
+   refreshUi();
+   return false
+  }
+  var result=await base.toggle(on);
+  rc1021NotifyAvisUpdated(on,currentShipmentForAvis());
+  refreshUi();
+  return result
+ }catch(e){
+  console.error('RC1015 Lieferavis automatisch speichern',e);
+  alert(tr('avisFlow.activationSaveFailed')+'\n\n'+q(e&&e.message||e));
+  return false
+ }
+}
+async function rc1021AutoEnable(reason){
+ if((reason==='exporthub:viewchange'||reason==='exporthub:rendered'||reason==='exporthub:sync')&&!rc1021ShipmentViewActive())return false;
+ var sh=currentShipmentForAvis();
+ if(!rc1021ShouldAutoEnable(sh))return false;
+ var ref=rc1015DraftReference();
+ if(autoEnablePending[ref])return false;
+ autoEnablePending[ref]=true;
+ try{
+  // RC1467: background/startup auto-enable operates only on an already persisted shipment.
+  // Never enter the strict user-save bridge here; Colli validation belongs to explicit user actions.
+  var saveAlreadyConfirmed=true;
+  sh=currentShipmentForAvis()||sh;
+  if(!rc1021ShouldAutoEnable(sh))return rc1018Enabled(sh);
+  if(saveAlreadyConfirmed)autoEnableSaveConfirmed[ref]=true;
+  await base.toggle(true);
+  sh=currentShipmentForAvis()||sh;
+  rc1021NotifyAvisUpdated(true,sh);
+  var active=rc1018Enabled(sh);
+  refreshUi();
+  return active
+ }catch(e){
+  console.error('RC1021 Lieferavis Standardaktivierung fehlgeschlagen',reason||'',e);
+  return false
+ }finally{
+  delete autoEnableSaveConfirmed[ref];
+  delete autoEnablePending[ref]
+ }
+}
+function stripAvisBlocks(text){
+ text=String(text==null?'':text).replace(/\r\n/g,'\n');
+ text=text.replace(/\n*--- ExportHUB Kunden-Avis ---[\s\S]*?\n---(?=\n|$)/g,'');
+ text=text.replace(/\n*─{8,}\n(?:LIEFERAVIS \/ KUNDENPORTAL|COLLECTION NOTICE \/ CUSTOMER PORTAL|KUNDEN-AVIS – LIVE-ZUGANG|CUSTOMER COLLECTION NOTICE – LIVE AVIS|LIEFERAVIS – LIVE-ZUGANG|COLLECTION NOTICE – LIVE ACCESS)[\s\S]*?\n─{8,}(?=\n|$)/g,'');
+ text=text.replace(/\n*-{20,}\n(?:KUNDEN-AVIS – DAUERHAFTER ZUGANG|CUSTOMER COLLECTION NOTICE – PERSISTENT ACCESS|KUNDEN-AVIS – LIVE-ZUGANG|CUSTOMER COLLECTION NOTICE – LIVE AVIS|LIEFERAVIS – LIVE-ZUGANG|COLLECTION NOTICE – LIVE ACCESS)[\s\S]*?\n-{20,}(?=\n|$)/g,'');
+ return text.replace(/\n{3,}/g,'\n\n').trim()
+}
+function rc1024LocalizedAvisUrl(url,lang){
+ url=q(url);if(!url)return'';lang=rc1267NormalizeLanguage(lang);
+ try{var u=new URL(url,typeof location!=='undefined'?location.href:'https://exporthub.invalid/');u.searchParams.set('lang',lang);return u.toString()}catch(_){return url+(url.indexOf('?')>=0?'&':'?')+'lang='+lang}
+}
+function rc1024AvisBlock(u,reference,lang,target){
+ lang=rc1267NormalizeLanguage(lang);var carrier=target==='carrier',url=rc1024LocalizedAvisUrl(u,lang),ref=q(reference);
+ var templates={
+  de:{
+   carrier:'LIEFERAVIS – ABHOLUNG\n\nFür die geplante Abholung dieser Sendung steht ein digitales Lieferavis bereit.\n\nBitte erfassen Sie die Abholdaten über den folgenden Link. Die freigegebenen Sendungsunterlagen können dort ebenfalls eingesehen werden.\n\nLieferavis:\n{{url}}\nReferenz: {{ref}}\n\nErforderliche Angaben:\n• Abholdatum\n• Zeitfenster\n• Kennzeichen des Abholfahrzeugs, sofern bekannt\n\nEine zusätzliche Bestätigung der Abholdaten per E-Mail ist nicht erforderlich.',
+   customer:'LIEFERAVIS\n\nFür diese Sendung steht Ihnen unser digitales Lieferavis zur Verfügung.\n\nÜber den folgenden Link können Sie die freigegebenen Sendungsunterlagen einsehen und die Angaben zur geplanten Abholung übermitteln.\n\nLieferavis:\n{{url}}\nReferenz: {{ref}}\n\nBitte erfassen Sie Abholdatum und Zeitfenster. Sofern bekannt, ergänzen Sie bitte das Kennzeichen des Abholfahrzeugs.\n\nDie Angaben werden direkt der Sendung zugeordnet. Eine zusätzliche Rückmeldung per E-Mail ist nicht erforderlich.\n\nVielen Dank.'
+  },
+  en:{
+   carrier:'COLLECTION NOTICE – PICKUP\n\nA digital collection notice has been provided for the planned pickup of this shipment.\n\nPlease submit the pickup details using the link below. The released shipment documents are also available there.\n\nCollection notice:\n{{url}}\nReference: {{ref}}\n\nRequired information:\n• Pickup date\n• Time window\n• Vehicle licence plate, if known\n\nNo additional email confirmation of the pickup details is required.',
+   customer:'COLLECTION NOTICE\n\nA digital collection notice is available for this shipment.\n\nUse the link below to view the released shipment documents and submit the planned pickup.\n\nCollection notice:\n{{url}}\nReference: {{ref}}\n\nPlease enter the pickup date and time window. If known, please also add the vehicle licence plate.\n\nThank you.'
+  },
+  pl:{
+   carrier:'AWIZO ODBIORU – ODBIÓR\n\nDla planowanego odbioru tej przesyłki dostępne jest cyfrowe awizo.\n\nProsimy wprowadzić dane odbioru za pomocą poniższego linku. Udostępnione dokumenty wysyłkowe są tam również dostępne.\n\nAwizo odbioru:\n{{url}}\nReferencja: {{ref}}\n\nWymagane informacje:\n• Data odbioru\n• Przedział czasowy\n• Numer rejestracyjny pojazdu, jeśli jest znany\n\nDodatkowe potwierdzenie e-mailem nie jest wymagane.',
+   customer:'AWIZO WYSYŁKI\n\nDla tej przesyłki dostępne jest cyfrowe awizo.\n\nZa pomocą poniższego linku można przejrzeć udostępnione dokumenty wysyłkowe i przekazać planowane dane odbioru.\n\nAwizo:\n{{url}}\nReferencja: {{ref}}\n\nProsimy podać datę i przedział czasowy odbioru oraz, jeśli jest znany, numer rejestracyjny pojazdu.\n\nDziękujemy.'
+  },
+  es:{
+   carrier:'AVISO DE RECOGIDA – RECOGIDA\n\nHay disponible un aviso digital para la recogida prevista de este envío.\n\nIntroduzca los datos de recogida mediante el siguiente enlace. Allí también están disponibles los documentos de envío autorizados.\n\nAviso de recogida:\n{{url}}\nReferencia: {{ref}}\n\nDatos necesarios:\n• Fecha de recogida\n• Franja horaria\n• Matrícula del vehículo, si se conoce\n\nNo es necesaria una confirmación adicional por correo electrónico.',
+   customer:'AVISO DE ENVÍO\n\nHay disponible un aviso digital para este envío.\n\nUse el siguiente enlace para consultar los documentos de envío autorizados y comunicar los datos de la recogida prevista.\n\nAviso:\n{{url}}\nReferencia: {{ref}}\n\nIndique la fecha y la franja horaria de recogida y, si se conoce, la matrícula del vehículo.\n\nGracias.'
+  },
+  fr:{
+   carrier:'AVIS D’ENLÈVEMENT – ENLÈVEMENT\n\nUn avis numérique est disponible pour l’enlèvement prévu de cette expédition.\n\nVeuillez saisir les informations d’enlèvement via le lien ci-dessous. Les documents d’expédition validés y sont également disponibles.\n\nAvis d’enlèvement :\n{{url}}\nRéférence : {{ref}}\n\nInformations requises :\n• Date d’enlèvement\n• Créneau horaire\n• Immatriculation du véhicule, si connue\n\nAucune confirmation supplémentaire par e-mail n’est nécessaire.',
+   customer:'AVIS D’EXPÉDITION\n\nUn avis numérique est disponible pour cette expédition.\n\nUtilisez le lien ci-dessous pour consulter les documents d’expédition validés et transmettre les informations d’enlèvement prévues.\n\nAvis :\n{{url}}\nRéférence : {{ref}}\n\nVeuillez indiquer la date et le créneau horaire d’enlèvement ainsi que, si elle est connue, l’immatriculation du véhicule.\n\nMerci.'
+  },
+  it:{
+   carrier:'AVVISO DI RITIRO – RITIRO\n\nÈ disponibile un avviso digitale per il ritiro pianificato di questa spedizione.\n\nInserite i dati di ritiro tramite il seguente link. Sono disponibili anche i documenti di spedizione approvati.\n\nAvviso di ritiro:\n{{url}}\nRiferimento: {{ref}}\n\nDati richiesti:\n• Data di ritiro\n• Fascia oraria\n• Targa del veicolo, se nota\n\nNon è necessaria un’ulteriore conferma via e-mail.',
+   customer:'AVVISO DI SPEDIZIONE\n\nÈ disponibile un avviso digitale per questa spedizione.\n\nUtilizzate il seguente link per consultare i documenti di spedizione approvati e comunicare i dati del ritiro pianificato.\n\nAvviso:\n{{url}}\nRiferimento: {{ref}}\n\nInserite la data e la fascia oraria del ritiro e, se nota, la targa del veicolo.\n\nGrazie.'
+  }
+ };
+ return templates[lang][carrier?'carrier':'customer'].replace(/\{\{url\}\}/g,url).replace(/\{\{ref\}\}/g,ref)
+}
+function rc1024ReplaceSystemSlot(body,block){
+ var source=String(body==null?'':body),patterns=[/(?:Details zur Sendung|Sendungsdetails)\s*:\s*\{\{SENDUNGSDETAILS\}\}/i,/(?:Shipment details)\s*:\s*\{\{SENDUNGSDETAILS\}\}/i,/\{\{SENDUNGSDETAILS\}\}/i];
+ for(var i=0;i<patterns.length;i++)if(patterns[i].test(source))return source.replace(patterns[i],block);
+ return source+(source?'\n\n':'')+block
+}
+function rc1015AvisMailVariant(clean,u,reference,lang,target){
+ return rc1024ReplaceSystemSlot(clean,rc1024AvisBlock(u,reference,lang,target||'customer'))
+}
+function rc1024MailKey(sh,target,lang){return (shipmentReference(sh)||'draft')+'|'+q(target).toLowerCase()+'|'+rc1267NormalizeLanguage(lang)}
+function rc1024IsOurAvis(text){return /(?:^|\n)(?:LIEFERAVIS|COLLECTION NOTICE)(?:\s*[–-]\s*(?:ABHOLUNG|PICKUP))?\n/i.test(String(text||''))}
+function rc1015InjectMailBody(sh,target,body,langOverride){
+ var source=String(body==null?'':body),type=q(target).toLowerCase()||'customer',lang=rc1267NormalizeLanguage(langOverride);
+ if(type!=='customer'&&type!=='carrier')return base&&typeof base.injectMailBody==='function'?base.injectMailBody(sh,target,source,langOverride):source;
+ if(type==='customer'&&rc1018AvisException(sh))return source;
+ if(rc1291AvisMailExcluded(sh)||rc1292AvisRecipientExcluded(sh,type))return stripAvisBlocks(source);
+ var key=rc1024MailKey(sh,type,lang);if(!rc1024IsOurAvis(source))mailSourceCache.set(key,source);
+ if(!rc1018Enabled(sh))return source;
+ var u=q(base&&base.link&&base.link(sh));if(!u)return source;
+ return rc1015AvisMailVariant(source,u,shipmentReference(sh),lang,type)
+}
+function rc1024SyncVisibleMail(){
+ if(visibleMailSyncing||typeof document==='undefined')return false;
+ var area=document.getElementById('rc543MailArea');if(!area)return false;
+ var bodyEl=area.querySelector&&area.querySelector('textarea');if(!bodyEl)return false;
+ var active=area.querySelector('[data-rc543-target].active'),type=q(active&&active.getAttribute('data-rc543-target'))||'customer';if(type!=='customer'&&type!=='carrier')return false;
+ var sh=currentShipmentForAvis();if(!sh)return false;
+ var lang=rc1267NormalizeLanguage((document.getElementById('rc543MailLang')||{}).value),key=rc1024MailKey(sh,type,lang),current=String(bodyEl.value==null?'':bodyEl.value),source=mailSourceCache.get(key)||'';
+ if(!source&&!rc1024IsOurAvis(current)){source=current;mailSourceCache.set(key,current)}
+ if(!source)return false;
+ var next=source,u=q(base&&base.link&&base.link(sh));if(rc1018Enabled(sh)&&u&&!rc1291AvisMailExcluded(sh)&&!rc1292AvisRecipientExcluded(sh,type))next=rc1015AvisMailVariant(source,u,shipmentReference(sh),lang,type);
+ if(next===current)return false;
+ visibleMailSyncing=true;try{bodyEl.value=next;try{bodyEl.dispatchEvent(new Event('input',{bubbles:true}))}catch(_){}try{bodyEl.dispatchEvent(new Event('change',{bubbles:true}))}catch(_){}}finally{visibleMailSyncing=false}
+ return true
+}
+function rc1024ScheduleVisibleMail(){
+ if(typeof requestAnimationFrame==='function')requestAnimationFrame(function(){requestAnimationFrame(rc1024SyncVisibleMail)});else setTimeout(rc1024SyncVisibleMail,0)
+}
+function rc1015UpdateLieferavisButton(){
+ var panel=document.getElementById('rc897LieferavisPanel'),btn=panel&&panel.querySelector('[data-rc897-avis-action="toggle"]');
+ if(!btn)return false;
+ var sh=currentShipmentForAvis(),blocked=rc1018AvisException(sh),active=!blocked&&rc1018Enabled(sh);
+ panel.setAttribute('data-active',active?'1':'0');
+ btn.textContent=tr(active?'avisFlow.deactivate':'avisFlow.activate');
+ btn.disabled=active?false:(!!blocked||!wrapper||!rc1015DraftReference());
+ var help=panel.querySelectorAll('.rc897-avis-help'),last=help&&help.length?help[help.length-1]:null;
+ if(last)last.textContent=blocked?rc1018AvisBlockMessage(blocked):tr(active?'avisFlow.activeHelp':'avisFlow.inactiveHelp');
+ return true
+}
+function mailModeLabel(type,sh,lang){
+ var active=false,blocked=type==='customer'&&rc1018AvisException(sh||currentShipmentForAvis());
+ try{active=!blocked&&(type==='customer'||type==='carrier')&&!!(wrapper&&wrapper.enabled(sh||currentShipmentForAvis()))}catch(_){}
+ if(!blocked&&!active&&(type==='customer'||type==='carrier')){var panel=document.getElementById('rc897LieferavisPanel');active=!!(panel&&panel.getAttribute('data-active')==='1')}
+ if(active)return tr('avisFlow.collectionNotice',null,lang);
+ return type==='customer'?tr('avisFlow.customerMail',null,lang):type==='carrier'?tr('avisFlow.carrierMail',null,lang):type==='own'?tr('avisFlow.ownInfoMail',null,lang):tr('avisFlow.mail',null,lang)
+}
+function patchMailMode(){
+ var area=document.getElementById('rc543MailArea');if(!area)return false;
+ var active=area.querySelector('[data-rc543-target].active'),type=q(active&&active.getAttribute('data-rc543-target'))||'customer',lang=q((document.getElementById('rc543MailLang')||{}).value).toLowerCase()==='en'?'en':'de',standard=document.getElementById('rc543MailStandard');
+ if(standard){var label=mailModeLabel(type,null,lang)+' · '+(lang==='en'?'Englisch':'Deutsch');if(standard.value!==label)standard.value=label;standard.setAttribute('data-rc1015-mail-mode',(type==='customer'||type==='carrier')&&/lieferavis|collection notice/i.test(label)?'lieferavis':'sendungsdetails')}
+ return true
+}
+function rc1015UiRelevant(){
+ if(rc1021ShipmentViewActive())return true;
+ try{return !!(document.getElementById('rc897LieferavisPanel')||document.getElementById('rc543MailArea'))}catch(_){return false}
+}
+function refreshUi(){
+ if(!rc1015UiRelevant()||refreshUiPending)return false;
+ refreshUiPending=true;
+ var raf=typeof requestAnimationFrame==='function'?requestAnimationFrame:function(fn){return setTimeout(fn,0)};
+ raf(function(){refreshUiPending=false;rc1015UpdateLieferavisButton();patchMailMode()});
+ return true
+}
+function install(){
+ var current=window.ExportHUBCustomerAvis706||window.ExportHUBCustomerAvis705;
+ if(!current)return false;
+ if(current.__rc1015===true){wrapper=current;base=current.__base||base;refreshUi();return true}
+ if(current.__rc1018===true&&current.__base1018)current=current.__base1018;
+ base=current;
+ wrapper=Object.freeze(Object.assign({},base,{version:'RC1292',enabled:rc1018Enabled,toggle:rc1015Toggle,autoEnable:rc1021AutoEnable,injectMailBody:rc1015InjectMailBody,avisException:rc1018AvisException,avisMailExcluded:rc1291AvisMailExcluded,avisRecipientExcluded:rc1292AvisRecipientExcluded,__rc1015:true,__rc1018:true,__rc1291:true,__rc1292:true,__base:base,__base1018:base}));
+ window.ExportHUBCustomerAvis706=wrapper;
+ window.ExportHUBCustomerAvis705=wrapper;
+ refreshUi();
+ return true
+}
+function boot(){if(!install())setTimeout(install,80);refreshUi()}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+var RC1021_AUTO_EVENTS=Object.freeze({'exporthub:ready':1,'exporthub:rendered':1,'exporthub:viewchange':1,'exporthub:sync':1,'exporthub:shipment-saved':1});
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync','exporthub:shipment-saved','exporthub:customer-avis-updated','exporthub:mail-language-changed'].forEach(function(name){window.addEventListener(name,function(){install();refreshUi();if(name==='exporthub:customer-avis-updated'||name==='exporthub:mail-language-changed')rc1024ScheduleVisibleMail();if(RC1021_AUTO_EVENTS[name])return Promise.resolve(rc1021AutoEnable(name)).catch(function(e){console.error('RC1021 Lieferavis Auto-Event',name,e);return false});return false})});
+document.addEventListener('input',function(e){var input=e.target;if(input&&input.matches&&input.matches('#content input'))refreshUi()},true);
+document.addEventListener('change',function(){refreshUi()},true);
+window.ExportHUBRC1024Lieferavis=Object.freeze({version:'RC1330',composeAvis:function(opt){opt=opt||{};return rc1015AvisMailVariant(String(opt.body==null?'':opt.body),q(opt.url),q(opt.reference),rc1267NormalizeLanguage(opt.lang),q(opt.target).toLowerCase()||'customer')},syncVisibleMail:rc1024SyncVisibleMail});
+})();

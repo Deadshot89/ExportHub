@@ -1,0 +1,189 @@
+/* ExportHUB360 – Kundenordner übersichtlich: feste Abschnittsreihenfolge in allen Designs, Abschnittsnavigation,
+   mitlaufende Speicherleiste und einheitliche Karten. Farben kommen aus dem aktiven Design (--pc-*), mit Classic-Fallbacks.
+   Die RC1306-Layout-Hüllen werden im Kundenordner mit display:contents aufgelöst, damit Modern/Glass/Neon keine
+   Abschnitte mehr nach Textinhalt in eine schmale Seitenspalte verschieben. */
+#content[data-view="customerfolder"]{
+  --cf-surface:var(--pc-surface,#fff);
+  --cf-surface-2:var(--pc-surface-2,#f8fafc);
+  --cf-card:var(--pc-card-bg,var(--cf-surface));
+  --cf-line:var(--pc-line,#dde3ec);
+  --cf-text:var(--pc-text,#152235);
+  --cf-title:var(--pc-title,var(--cf-text));
+  --cf-muted:var(--pc-muted,#5d6b80);
+  --cf-primary:var(--pc-primary,#1f6fd1);
+  --cf-primary-soft:var(--pc-primary-soft,#e3eefc);
+  --cf-warn:var(--pc-warning-text,#a86200);
+  --cf-warn-soft:var(--pc-warning-soft,#fdf0d9);
+  --cf-crit:var(--pc-danger-text,#b91c1c);
+  --cf-crit-soft:var(--pc-danger-soft,#fdecec);
+  --cf-radius:var(--pc-card-radius,14px);
+}
+#content[data-view="customerfolder"],
+#content[data-view="customerfolder"] .rc1306-generic{
+  display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:12px!important;align-content:start!important;min-width:0!important
+}
+#content[data-view="customerfolder"] :is(.rc1306-generic-lead,.rc1306-generic-body,.rc1306-generic-primary,.rc1306-generic-secondary){display:contents!important}
+
+/* feste Reihenfolge, unabhängig davon, in welche RC1306-Hülle ein Abschnitt verschoben wurde */
+#content[data-view="customerfolder"]>*,
+#content[data-view="customerfolder"] .rc1306-generic>*,
+#content[data-view="customerfolder"] :is(.rc1306-generic-lead,.rc1306-generic-primary,.rc1306-generic-secondary)>*{order:75;min-width:0;margin:0!important;grid-row:auto!important;grid-column:1/-1!important}
+#content[data-view="customerfolder"] .private-demo-banner{order:0}
+#content[data-view="customerfolder"] .page-head{order:1}
+#content[data-view="customerfolder"] .rc405-folder-head{order:2}
+#content[data-view="customerfolder"] .rc405-new-customer{order:3}
+#content[data-view="customerfolder"] #cfNav{order:4}
+#content[data-view="customerfolder"] .rc405-kpis:not(.rc405-section .rc405-kpis){order:5}
+#content[data-view="customerfolder"] #rc736PrivacyNotice{order:6}
+#content[data-view="customerfolder"] [data-rc565-area="master"]{order:10}
+#content[data-view="customerfolder"] [data-rc565-area="mail"]{order:20}
+#content[data-view="customerfolder"] [data-rc565-area="locations"]{order:30}
+#content[data-view="customerfolder"] [data-rc565-area="contacts"]{order:40}
+#content[data-view="customerfolder"] [data-rc565-area="portals"]{order:50}
+#content[data-view="customerfolder"] #rc1160CustomerFolderPortal{order:55}
+#content[data-view="customerfolder"] [data-rc565-area="shipments"]{order:60}
+#content[data-view="customerfolder"] [data-rc565-area="notes"]{order:70}
+#content[data-view="customerfolder"] [data-rc565-area="pallet"]{order:80}
+#content[data-view="customerfolder"] #rc565CustomerFolderSaveBar{order:85}
+#content[data-view="customerfolder"] #rc1080CustomerHistory{order:90}
+#content[data-view="customerfolder"] #rc1126CustomerDelete{order:100}
+
+/* Kopf: Titel, Kundensuche mit Öffnen in einer Zeile */
+#content[data-view="customerfolder"] .page-head{padding:4px 0 0!important;height:auto!important;background:none!important;border:0!important;box-shadow:none!important;min-height:0!important}
+#content[data-view="customerfolder"] .page-head h2{margin:0!important;font-size:26px!important;line-height:1.2!important;color:var(--cf-title)!important;-webkit-text-fill-color:currentColor!important;background:none!important;text-shadow:none!important}
+#content[data-view="customerfolder"] .rc405-folder-head{display:flex!important;align-items:flex-end!important;gap:10px!important;padding:14px 16px!important;
+  background:var(--cf-card)!important;border:1px solid var(--cf-line)!important;border-radius:var(--cf-radius)!important;box-shadow:var(--pc-shadow-soft,0 1px 2px rgba(15,35,65,.06))!important}
+#content[data-view="customerfolder"] .rc405-folder-head>.field{flex:1 1 auto!important;margin:0!important;padding:0!important;min-width:0;background:none!important;border:0!important;box-shadow:none!important}
+#content[data-view="customerfolder"] .rc405-folder-head>button{flex:none!important;margin:0!important}
+#content[data-view="customerfolder"] .rc405-new-customer{padding:0!important;background:var(--cf-card)!important;border:1px dashed var(--cf-line)!important;border-radius:var(--cf-radius)!important;box-shadow:none!important}
+#content[data-view="customerfolder"] .rc405-new-customer>summary{padding:11px 16px!important;cursor:pointer;color:var(--cf-primary)!important;list-style:none}
+#content[data-view="customerfolder"] .rc405-new-customer>summary::-webkit-details-marker{display:none}
+#content[data-view="customerfolder"] .rc405-new-customer[open]{border-style:solid!important}
+#content[data-view="customerfolder"] .rc405-new-customer[open]>:not(summary){margin-left:16px!important;margin-right:16px!important}
+#content[data-view="customerfolder"] .rc405-new-customer[open]>.toolbar{margin-bottom:16px!important}
+
+/* Datenschutz-Hinweis kompakt statt auffälliger Warnbox */
+#content[data-view="customerfolder"] #rc736PrivacyNotice{border:1px solid var(--cf-line)!important;border-left:3px solid var(--cf-primary)!important;
+  background:var(--cf-surface-2)!important;color:var(--cf-muted)!important;box-shadow:none!important}
+#content[data-view="customerfolder"] #rc736PrivacyNotice b{color:var(--cf-text)!important}
+#content[data-view="customerfolder"] #rc736PrivacyNotice br{display:none}
+#content[data-view="customerfolder"] #rc736PrivacyNotice b::after{content:" · "}
+
+/* Kennzahlen in einer Reihe */
+#content[data-view="customerfolder"] .rc405-kpis{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))!important;gap:10px!important}
+#content[data-view="customerfolder"] .rc405-kpi{display:flex!important;flex-direction:column!important;gap:2px!important;padding:10px 14px!important;min-height:0!important;
+  background:var(--cf-card)!important;border:1px solid var(--cf-line)!important;border-radius:12px!important;box-shadow:none!important;color:var(--cf-text)!important}
+#content[data-view="customerfolder"] .rc405-kpi>span{font-size:12px!important;font-weight:600!important;color:var(--cf-muted)!important}
+#content[data-view="customerfolder"] .rc405-kpi>b{font-size:22px!important;line-height:1.15!important;font-variant-numeric:tabular-nums;color:var(--cf-title)!important}
+
+/* Abschnittsnavigation: bleibt beim Scrollen sichtbar und zeigt, welcher Kunde offen ist */
+#content[data-view="customerfolder"] #cfNav{position:sticky!important;top:var(--cf-sticky-top,12px)!important;z-index:15!important;display:flex;align-items:center;gap:12px;padding:8px 10px 8px 14px;
+  background:color-mix(in srgb,var(--cf-surface) 92%,transparent);backdrop-filter:blur(10px);border:1px solid var(--cf-line);border-radius:12px;
+  box-shadow:0 6px 18px rgba(15,35,65,.10);color:var(--cf-text)}
+#cfNav .cf-identity{flex:none;display:flex;flex-direction:column;min-width:0;max-width:260px;padding-right:12px;border-right:1px solid var(--cf-line)}
+#cfNav .cf-identity strong{font-size:14px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--cf-title)}
+#cfNav .cf-identity small{font-size:11.5px;color:var(--cf-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#cfNav .cf-links{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;min-width:0}
+#cfNav .cf-links::-webkit-scrollbar{display:none}
+#content[data-view="customerfolder"] #cfNav .cf-link{flex:none;display:inline-flex;align-items:center;gap:6px;margin:0!important;border:0!important;
+  background:transparent!important;box-shadow:none!important;color:var(--cf-muted)!important;font-family:inherit;white-space:nowrap;cursor:pointer;text-transform:none!important;letter-spacing:0!important}
+#content[data-view="customerfolder"] #cfNav .cf-link:hover{background:var(--cf-surface-2)!important;color:var(--cf-text)!important}
+#content[data-view="customerfolder"] #cfNav .cf-link[aria-current="true"]{background:var(--cf-primary-soft)!important;color:var(--cf-primary)!important}
+#cfNav .cf-link i{font-style:normal;display:inline-grid;place-items:center;width:20px;height:20px;border-radius:999px;font-size:11px;font-weight:700;background:var(--cf-surface-2);color:inherit}
+#cfNav .cf-link:focus-visible{outline:2px solid var(--pc-focus,var(--cf-primary));outline-offset:1px}
+
+/* Abschnitte als einheitliche Karten mit durchgehender Nummerierung */
+#content[data-view="customerfolder"] :is(.rc405-section:not(.rc405-new-customer),#rc1080CustomerHistory,#rc1160CustomerFolderPortal){
+  padding:18px 20px!important;background:var(--cf-card)!important;border:1px solid var(--cf-line)!important;border-radius:var(--cf-radius)!important;
+  box-shadow:var(--pc-shadow-soft,0 1px 2px rgba(15,35,65,.06))!important;color:var(--cf-text)!important;scroll-margin-top:calc(var(--cf-sticky-top,12px) + 64px)}
+#content[data-view="customerfolder"] .rc405-section>h3,
+#content[data-view="customerfolder"] .rc565-section-head h3,
+#content[data-view="customerfolder"] #rc1080CustomerHistory h3{display:flex!important;align-items:center!important;gap:10px!important;margin:0!important;font-size:17px!important;line-height:1.3!important;font-weight:700!important;color:var(--cf-title)!important;border:0!important;padding:0!important}
+#content[data-view="customerfolder"] .rc405-section>h3{margin-bottom:14px!important}
+/* ältere Module hängen Mailfelder und Kontakte teils vor die Überschrift; die Überschrift bleibt trotzdem oben */
+#content[data-view="customerfolder"] #rc565FixedMail{display:flex!important;flex-direction:column!important}
+#content[data-view="customerfolder"] #rc565FixedMail>h3{order:-1}
+/* Überschriftentext bleibt unverändert im DOM (ältere Module suchen Abschnitte darüber);
+   sichtbar sind fortlaufende Nummer und Titel ohne alte Nummer aus data-cf-num / data-cf-title */
+#content[data-view="customerfolder"] :is(.rc405-section,#rc1080CustomerHistory,#rc1160CustomerFolderPortal) h3[data-cf-title]{font-size:0!important;letter-spacing:0!important}
+#content[data-view="customerfolder"] h3[data-cf-title]::after{content:attr(data-cf-title);font-size:17px;line-height:1.3}
+#content[data-view="customerfolder"] h3[data-cf-num]::before{content:attr(data-cf-num);flex:none;display:inline-grid;place-items:center;width:26px;height:26px;border-radius:999px;
+  font-size:13px;font-weight:700;background:var(--cf-primary-soft);color:var(--cf-primary)}
+#content[data-view="customerfolder"] .rc565-section-head{display:flex!important;align-items:flex-start!important;justify-content:space-between!important;gap:12px!important;margin:0 0 14px!important}
+#content[data-view="customerfolder"] .rc565-section-head p,
+#content[data-view="customerfolder"] .rc405-section>p.small{margin:4px 0 0!important;color:var(--cf-muted)!important;font-size:12.5px!important}
+#content[data-view="customerfolder"] #rc1080CustomerHistory .pill.blue{display:none!important}
+
+/* Felder: mehr Spalten auf breiten Bildschirmen, ruhigere Beschriftung */
+#content[data-view="customerfolder"] .rc405-folder-grid:not(.rc565-mail-contacts){display:grid!important;grid-template-columns:repeat(auto-fit,minmax(230px,1fr))!important;gap:12px 16px!important}
+#content[data-view="customerfolder"] .rc565-mail-contacts{gap:12px 16px!important}
+#content[data-view="customerfolder"] .rc405-folder-grid{margin-bottom:12px!important}
+#content[data-view="customerfolder"] :is(input,select,textarea){color:var(--pc-text,inherit)}
+
+/* innere Kästen (Kontakte, AVIS, Info-Mail, Standorte) im Designton statt fest hellblau/weiß */
+#content[data-view="customerfolder"] :is(.rc1092-avis-policy,.rc1092-contact-card,.rc565-own-info,.rc565-location-row,.rc819-contact-manager>.rc1092-contact-intro){
+  background:var(--cf-surface-2)!important;border:1px solid var(--cf-line)!important;color:var(--cf-text)!important;box-shadow:none!important}
+#content[data-view="customerfolder"] .rc1092-contact-intro{color:var(--cf-muted)!important}
+#content[data-view="customerfolder"] .rc1092-contact-intro b{color:var(--cf-text)!important}
+#content[data-view="customerfolder"] :is(.rc1092-contact-card,.rc1092-avis-policy,.rc565-own-info,.rc819-contact-head) :is(h3,h4,strong,b):not(.rc1092-avis-state){color:var(--cf-title)!important}
+#content[data-view="customerfolder"] :is(.rc1092-avis-policy,.rc565-own-info,.rc819-contact-head) p{color:var(--cf-muted)!important}
+#content[data-view="customerfolder"] .rc1092-current-label{color:var(--cf-muted)!important}
+#content[data-view="customerfolder"] .rc565-own-info{padding:14px!important;border-radius:12px!important;margin-top:14px!important}
+#content[data-view="customerfolder"] .rc565-location-row{border-radius:12px!important;padding:12px!important}
+
+/* Die globale Feld- und Knopfnorm RC971 liegt in @layer rc971 mit !important. Wichtige Layer-Regeln schlagen jede Regel
+   außerhalb eines Layers, daher stehen alle Maße für Beschriftungen, Knöpfe, Hinweis und Vorlagen im selben Layer, mit höherer
+   Spezifität (dreifache ID). Ohne das sind Beschriftungen in jedem Design #334155 und in Neon Night auf dunklem Grund unlesbar. */
+@layer rc971{
+  #content#content#content[data-view="customerfolder"] :is(.rc405-section,.rc565-own-info,.rc1092-contact-card) label.field{margin:0 0 12px!important;font-size:12.5px!important;font-weight:600!important;color:var(--cf-muted)!important}
+  #content#content#content[data-view="customerfolder"] .rc405-folder-grid label.field{margin:0!important}
+  #content#content#content[data-view="customerfolder"] .rc405-folder-head>label.field{margin:0!important;padding:0!important;font-size:12.5px!important;font-weight:600!important;color:var(--cf-muted)!important}
+  #content#content#content[data-view="customerfolder"] .rc405-folder-head>button{min-height:42px!important;padding:0 18px!important;font-size:13px!important}
+  /* Mailvorlagen: nicht mehr je 400 px hoch, der Rest scrollt im Feld */
+  #content#content#content[data-view="customerfolder"] .rc565-template-grid textarea{max-height:260px!important;overflow-y:auto!important;resize:vertical!important;font-size:13px!important;line-height:1.5!important}
+  #content#content#content[data-view="customerfolder"] #rc736PrivacyNotice{padding:8px 12px!important;border-radius:10px!important;font-size:12px!important;line-height:1.45!important}
+  #content#content#content[data-view="customerfolder"] #cfNav .cf-link{min-height:32px!important;padding:0 10px!important;border-radius:8px!important;font-size:13px!important;line-height:1.2!important;font-weight:600!important}
+  #content#content#content[data-view="customerfolder"] #rc565CustomerFolderSaveAll{min-height:40px!important;padding:0 20px!important;font-size:14px!important}
+}
+
+/* Sendungstabelle */
+#content[data-view="customerfolder"] .rc405-table-wrap{overflow-x:auto!important;border:1px solid var(--cf-line)!important;border-radius:12px!important}
+#content[data-view="customerfolder"] .rc405-doc-date{white-space:nowrap;font-variant-numeric:tabular-nums}
+
+/* Speicherleiste läuft am unteren Rand mit, solange man in den Abschnitten arbeitet */
+#content[data-view="customerfolder"] #rc565CustomerFolderSaveBar{position:sticky!important;bottom:12px!important;z-index:14!important;display:flex!important;align-items:center!important;gap:12px!important;
+  padding:10px 14px!important;background:var(--cf-surface)!important;border:1px solid var(--cf-line)!important;border-radius:12px!important;box-shadow:0 -2px 18px rgba(15,35,65,.14)!important}
+#content[data-view="customerfolder"] #rc565CustomerFolderSaveStatus{order:2;margin-left:auto!important;color:var(--cf-muted)!important;text-align:right}
+#content[data-view="customerfolder"] #rc565CustomerFolderSaveBar[data-cf-dirty="1"]{border-color:var(--cf-warn)!important}
+#content[data-view="customerfolder"] #rc565CustomerFolderSaveBar[data-cf-dirty="1"]::after{content:attr(data-cf-dirty-label);order:1;display:inline-flex;align-items:center;gap:6px;
+  padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;background:var(--cf-warn-soft);color:var(--cf-warn)}
+
+/* Löschen: klar als Gefahrenbereich erkennbar */
+#content[data-view="customerfolder"] #rc1126CustomerDelete{padding:16px 20px!important;border:1px solid color-mix(in srgb,var(--cf-crit) 35%,transparent)!important;border-radius:var(--cf-radius)!important;
+  background:var(--cf-crit-soft)!important;color:var(--cf-text)!important;box-shadow:none!important}
+#content[data-view="customerfolder"] #rc1126CustomerDelete h4{margin:0 0 4px!important;color:var(--cf-crit)!important;font-size:15px!important}
+#content[data-view="customerfolder"] #rc1126CustomerDelete p{color:var(--cf-muted)!important;margin:4px 0!important}
+#content[data-view="customerfolder"] #rc1126CustomerDelete .rc1126-danger{background:var(--cf-crit)!important;border-color:var(--cf-crit)!important;color:#fff!important;background-image:none!important;box-shadow:none!important}
+
+html[data-eh-design="neon"] #content[data-view="customerfolder"]{--cf-crit-soft:rgba(248,113,113,.08);--cf-warn-soft:rgba(251,191,36,.12);--cf-warn:#fbbf24;--cf-crit:#f87171}
+
+/* Mobil setzen ältere Regeln overflow-x:hidden auf .app/.main/#content; das macht sie zu Scroll-Containern und
+   Navigation und Speicherleiste bleiben dann nicht mehr stehen. clip schneidet genauso ab, ohne Scroll-Container. */
+html body[data-exporthub-view="customerfolder"],
+html body[data-exporthub-view="customerfolder"] :is(#app,#content,.app,.main){overflow-x:clip!important;overflow-y:visible!important}
+
+@media(max-width:760px){
+  #content[data-view="customerfolder"] .rc405-folder-head{flex-wrap:wrap!important;padding:12px!important}
+  #content[data-view="customerfolder"] .rc405-folder-head>button{width:100%!important}
+  #cfNav{padding:6px 8px;gap:8px}
+  #cfNav .cf-identity{display:none}
+  #content[data-view="customerfolder"] :is(.rc405-section:not(.rc405-new-customer),#rc1080CustomerHistory){padding:14px!important}
+  #content[data-view="customerfolder"] .rc405-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  #content[data-view="customerfolder"] #rc565CustomerFolderSaveBar{flex-wrap:wrap!important;bottom:8px!important}
+  #content[data-view="customerfolder"] #rc565CustomerFolderSaveStatus{flex-basis:100%;text-align:left}
+  #content[data-view="customerfolder"] .rc565-section-head{flex-wrap:wrap!important}
+}
+@media print{
+  #cfNav{display:none!important}
+  #content[data-view="customerfolder"] #rc565CustomerFolderSaveBar{position:static!important;box-shadow:none!important}
+}

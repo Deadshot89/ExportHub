@@ -1,0 +1,12 @@
+{
+  "version": "RC1534",
+  "asset": "assets/rc1534-shipment-repair-access.js",
+  "entries": [
+    "index.html",
+    "TESTVERSION.html",
+    "demo.html"
+  ],
+  "extends": "RC1533-picked-shipment-repair",
+  "policy": "function-admin-or-global-admin",
+  "reasonRequired": false
+}

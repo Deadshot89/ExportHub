@@ -51,7 +51,7 @@ const RC1303_LOGIN_FIRST_PAINT_STYLE=`<style id="exporthub-rc1303-login-first-pa
 #login #loginMicrosoftAccountSwitchBtn,#login #adminRecoveryBtn{min-height:34px!important;margin-top:6px!important;padding:5px 8px!important}
 @media(max-width:600px){#login .login-card{width:min(100%,440px)!important;padding:18px 16px 16px!important}#login .logo{width:54px!important;height:54px!important;border-radius:17px!important;font-size:20px!important}#login h1{font-size:27px!important;margin-bottom:12px!important}#login .eh-login-environment{margin-bottom:12px!important}#login .eh-login-environment button{min-height:58px!important;padding:9px 10px!important}}
 </style>`;
-const RC1267_I18N_TAG='<script id="exporthub-rc1267-i18n" defer src="/assets/rc1267-i18n.js?v=1267"></script>';
+const RC1267_I18N_TAG='<script id="exporthub-rc1267-i18n" defer src="/assets/rc1267-i18n.js?v=1466"></script>';
 const RC1206_SHIPPING_ID='exporthub-rc1206-shipping-rules';
 const RC1206_SHIPPING_TAG='<script id="'+RC1206_SHIPPING_ID+'" defer src="/assets/rc1206-shipping-rules.js?v=1419"></script>';
 const RC1296_BROWSER_TITLE='ExportHUB360';
@@ -91,6 +91,17 @@ const RC1602_OFFICIAL_POD_SCRIPT_TAG='<script id="exporthub-rc1602-official-pod"
 const RC1558_WORKSPACE_MARKER='window.__EXPORTHUB_RC885_CLEAN_WORKSPACE__ = true;';
 const RC1558_WORKSPACE_EXPORT="window.ExportHUBWorkspace885=Object.freeze({shipments:shipments,tasks:tasks,shipmentOpenList:shipmentOpenList,taskOpenList:taskOpenList,dueTask:dueTask,shipmentNeedsDocuments:shipmentNeedsDocuments,shipmentNeedsPickup:shipmentNeedsPickup,shipmentNeedsPod:shipmentNeedsPod,routeTo:routeTo});";
 const RC1328_MULTI_TRUCK_REFRESH_TAG='<script id="exporthub-rc1328-multi-truck-refresh" defer src="/assets/rc1328-multi-truck-ui-refresh.js?v=1333"><\/script>';
+
+function patchTaskPlannerV2UiCutover(html,file){
+  const marker='__EXPORTHUB_TASKPLANNER_V2_UI_CUTOVER__';
+  if(html.includes(marker))return html;
+  const needle="function render(){if(rendering||view()!=='planning')return false;";
+  const at=html.indexOf(needle);
+  if(at<0)return html;
+  html=html.slice(0,at)+needle+"if(window.__EXPORTHUB_TASKPLANNER_V2_UI_CUTOVER__!==false&&window.ExportHUBTaskUIV2&&typeof window.ExportHUBTaskUIV2.renderPlannerPage==='function'){var __tpv2root=root();if(!__tpv2root)return false;window.__EXPORTHUB_TASKPLANNER_V2_UI_CUTOVER__=true;return window.ExportHUBTaskUIV2.renderPlannerPage(__tpv2root,{state:st(),weekStart:selectedWeek(),runtime:window.ExportHUBRC1014TaskRuntime});}"+html.slice(at+needle.length);
+  if(!html.includes(marker)||!html.includes('return window.ExportHUBTaskUIV2.renderPlannerPage'))throw new Error(file+': TaskPlanner V2 Planner-Cutover unvollständig');
+  return html;
+}
 
 function patchRc1296BrowserBranding(html,file){
   if(file!=='index.html'&&file!=='demo.html')return html;
@@ -735,7 +746,7 @@ function patchRc1414ShipmentCreateNoRerender(html,file){
   block=block.replace(eagerPatch,noEagerPatch);
 
   const finalizeAnchor=" function finalize(){var sh=shipment();";
-  const resetHelper=" function resetMountedFreshDom(){if(!preserveMountedShipment)return false;var box=rowBox();if(box){rowNodes().forEach(function(node){node.remove()});box.appendChild(ownedRow(0,blankFreshRow()));reindex()}try{if(window.ExportHUBIndex289&&typeof window.ExportHUBIndex289.patch==='function')window.ExportHUBIndex289.patch()}catch(e){console.error('RC1414 Standort lokal zurücksetzen',e)}safePatchDuringEdit();return true}\n";
+  const resetHelper=" function resetMountedFreshVolatile(){if(!preserveMountedShipment||!mountedLayout)return;var changed=[];try{Array.from(mountedLayout.querySelectorAll('textarea')).forEach(function(el){if(el.closest&&el.closest('#rc543MailArea,#rc363BlockMail'))return;var owner=el.closest&&el.closest('[data-rc896-field]'),key=((el.getAttribute&&el.getAttribute('data-rc408-shipment-field'))||el.name||el.id||(owner&&owner.getAttribute('data-rc896-field'))||'').toLowerCase(),label=el.closest&&el.closest('label'),text=((label&&label.textContent)||'').toLowerCase();if(!/(comment|remark|bemerk)/.test(key+' '+text))return;el.value='';changed.push(el)});Array.from(mountedLayout.querySelectorAll('input[type=file]')).forEach(function(el){try{el.value=''}catch(_){}changed.push(el)});changed.forEach(function(el){try{el.dispatchEvent(new Event(el.tagName==='INPUT'?'change':'input',{bubbles:true}))}catch(_){}if(el.tagName!=='INPUT')try{el.dispatchEvent(new Event('change',{bubbles:true}))}catch(_){}})}catch(e){console.error('RC1453 Neue Sendung volatile Felder',e)}}\n function resetMountedFreshDom(){if(!preserveMountedShipment)return false;var box=rowBox();if(box){rowNodes().forEach(function(node){node.remove()});box.appendChild(ownedRow(0,blankFreshRow()));reindex()}try{if(window.ExportHUBIndex289&&typeof window.ExportHUBIndex289.patch==='function')window.ExportHUBIndex289.patch()}catch(e){console.error('RC1414 Standort lokal zurücksetzen',e)}resetMountedFreshVolatile();safePatchDuringEdit();return true}\n";
   if(block.split(finalizeAnchor).length-1!==1)throw new Error(file+': RC1414 Finalize-Anker fehlt');
   block=block.replace(finalizeAnchor,resetHelper+finalizeAnchor);
 
@@ -795,6 +806,72 @@ function patchRc1505SaveConfirmationRenderGate(html,file){
     if(hits!==1)throw new Error(file+': RC1505 Postprocessing-Anker '+hits+'x gefunden');
     html=html.replace(postBefore,postAfter);
   }
+  return html;
+}
+
+function patchRc1470NewShipmentCleanSlate(html,file){
+  const startMarker='function startFreshShipment(){';
+  const endMarker='function enforceFreshDraft(){';
+  const start=html.indexOf(startMarker),end=html.indexOf(endMarker,start);
+  if(start<0||end<=start)throw new Error(file+': RC1470 Fresh-Draft-Block fehlt');
+  let block=html.slice(start,end);
+  if(block.includes('var rc1470FreshDefaults={'))return html;
+  const finalizeAnchor=" function finalize(){var sh=shipment();";
+  if(block.split(finalizeAnchor).length-1!==1)throw new Error(file+': RC1470 Finalize-Anker fehlt');
+  const helper=" function rc1470ResetFreshShipment(sh){if(!sh||typeof sh!=='object')return;var rc1470FreshDefaults={customerId:'',customerNo:'',customerName:'',customerSearch:'',carrier:'',carrierName:'',comments:'',notes:'',goodsDescription:'',incoterm:'',licensePlate:'',loader:'',documents:[],files:[],docs:[],deliveryFiles:[],deliveryNotesFiles:[],lieferscheine:[],podFiles:[],abdFiles:[],cmrFiles:[],invoiceFiles:[],mailAttachments:[],attachments:[],totalWeight:0,totalColli:0,totalLdm:0,goodsValue:0,status:'Entwurf',processStatus:'Entwurf',shipmentStatus:'Entwurf',draft:true,pod:[],pods:[],podFile:null,podUrl:'',podBackup:{},podStatus:'',podAvailable:false,podConfirmed:false,hasPod:false,podServerVerified:false,podServerVerifiedAt:'',podUpdatedAt:'',automaticPodBlobName:'',pickupHistory:[],pickupResetHistory:[],subShipments:[],pickupConfirmed:false,pickupConfirmedAt:'',qrPickupConfirmed:false,qrPickupConfirmedAt:'',pickupCompleted:false,pickupCompletedAt:'',pickupQrUsed:false,pickupQrUsedAt:'',pickupQrRegistered:false,pickupRegistered:false,pickupStatus:'',pickupToken:'',pickupAccessKeyHash:'',pickupSequence:0,pickupCollectedColliCount:0,collectedPickupCollis:0,pickedUp:false,pickedUpAt:'',pickedUpAtDate:'',actualPickupDate:'',actualPickupAt:'',actualPickupTime:'',manualPickupConfirmedAt:'',manualPickupConfirmedBy:'',signatureAvailable:false,signatureBlobName:'',driverSignature:'',pickupDriverSignature:'',driverSignatureUrl:'',pickupDriverSignatureUrl:'',customsDocumentsSignatureBlobName:'',customsDocumentsReceived:false,customsDocumentsSignatureStored:false,podReviewRequired:false,podReviewReason:''};Object.assign(sh,rc1470FreshDefaults)}\n";
+  block=block.replace(finalizeAnchor,helper+" function finalize(){var sh=shipment();rc1470ResetFreshShipment(sh);");
+  if(!block.includes('cmrFiles:[]')||!block.includes("status:'Entwurf'")||!block.includes('rc1470ResetFreshShipment(sh)'))throw new Error(file+': RC1470 Clean-Slate-Patch unvollständig');
+  return html.slice(0,start)+block+html.slice(end);
+}
+
+function patchRc1471ReminderEligibility(html,file){
+  const before="function reminderEligible(sh){if(!sh||isDone(sh)||sh.actualPickupDate||sh.pickedUpAt)return false;var d=shipmentPickup(sh);return !!d&&dayDiff(d,localISO())>0}";
+  const after="function reminderEligible(sh){return !!sh&&!isDone(sh)&&!sh.actualPickupDate&&!sh.pickedUpAt}";
+  const count=html.split(before).length-1;
+  if(count===0)return html;
+  if(count!==1)throw new Error(file+': RC1471 reminderEligible-Anker '+count+'x gefunden');
+  html=html.replace(before,after);
+  if(!html.includes(after)||html.includes(before))throw new Error(file+': RC1471 Reminder-Eligibility-Patch unvollständig');
+  return html;
+}
+
+function patchRc1495LegacyQrPersistence(html,file){
+  const before="function persisted(sh){var id=sid(sh),ref=sref(sh);if(!sh||!id||/^DRAFT-/i.test(id)||!/^[A-Z0-9]{6}$/.test(ref))return false;return states().some(function(st){return arr(st.shipments).concat(arr(st.savedShipments)).some(function(x){return x===sh||sid(x)===id||sref(x)===ref})})}";
+  const rc1495="function persisted(sh){var id=sid(sh),ref=sref(sh);if(!sh||/^DRAFT-/i.test(id)||!/^[A-Z0-9]{6}$/.test(ref))return false;return states().some(function(st){return arr(st.shipments).concat(arr(st.savedShipments)).some(function(x){var xid=sid(x),xref=sref(x);if(x===sh)return true;if(id&&xid&&xid===id)return true;return xref===ref})})}";
+  const rc1496="function persisted(sh){var id=sid(sh),ref=sref(sh);if(!sh||!/^[A-Z0-9]{6}$/.test(ref))return false;return states().some(function(st){return arr(st.shipments).concat(arr(st.savedShipments)).some(function(x){var xid=sid(x),xref=sref(x);if(x===sh)return true;if(ref&&xref===ref)return true;if(id&&!/^DRAFT-/i.test(id)&&xid&&xid===id)return true;return false})})}";
+  const after="function persisted(sh){var id=sid(sh),ref=sref(sh);if(!sh||!/^[A-Z0-9]{6}$/.test(ref))return false;var roots=states(),names=['shipments','savedShipments','salesSharedShipments','sharedShipments'];roots=Array.isArray(roots)?roots.slice():[];function add(st){if(st&&typeof st==='object'&&roots.indexOf(st)<0)roots.push(st)}try{add(window.ExportHUBClean&&window.ExportHUBClean.runtime&&window.ExportHUBClean.runtime.state);add(window.ExportHUBClean&&window.ExportHUBClean.state);add(window.appState);add(window.state)}catch(_){}return roots.some(function(st){return names.some(function(name){return arr(st&&st[name]).some(function(x){var xid=sid(x),xref=sref(x);if(x===sh)return true;if(ref&&xref===ref)return true;if(id&&!/^DRAFT-/i.test(id)&&xid&&xid===id)return true;return false})})})}";
+  if(html.includes(after))return html;
+  if(html.includes(rc1496))html=html.replace(rc1496,after);
+  else if(html.includes(rc1495))html=html.replace(rc1495,after);
+  else{
+    const count=html.split(before).length-1;
+    if(count!==1)throw new Error(file+': RC1495/RC1496/RC1498 persisted()-Anker '+count+'x gefunden');
+    html=html.replace(before,after);
+  }
+  if(!html.includes(after)||html.includes(before)||html.includes(rc1495)||html.includes(rc1496))throw new Error(file+': RC1498 Legacy-QR-Persistenz-Patch unvollständig');
+  return html;
+}
+
+function patchRc1498QrStatusSync(html,file){
+  const before="function done(data,compat){var serverToken=q(data&&data.token);";
+  const after="function done(data,compat){function rc1498QrCopies(one){var out=[],id=sid(one),ref=sref(one),roots=states(),names=['shipments','savedShipments','salesSharedShipments','sharedShipments'];var add=function(x){if(!x||typeof x!=='object'||out.indexOf(x)>=0)return;var xid=sid(x),xref=sref(x);if(x===one||(ref&&xref===ref)||(id&&!/^DRAFT-/i.test(id)&&xid&&xid===id))out.push(x)};add(one);roots=Array.isArray(roots)?roots.slice():[];var addRoot=function(st){if(st&&typeof st==='object'&&roots.indexOf(st)<0)roots.push(st)};try{addRoot(window.ExportHUBClean&&window.ExportHUBClean.runtime&&window.ExportHUBClean.runtime.state);addRoot(window.ExportHUBClean&&window.ExportHUBClean.state);addRoot(window.appState);addRoot(window.state)}catch(_){}roots.forEach(function(st){names.forEach(function(name){arr(st&&st[name]).forEach(add)})});return out}var serverToken=q(data&&data.token);";
+  if(!html.includes(after)){
+    const count=html.split(before).length-1;
+    if(count!==1)throw new Error(file+': RC1498 QR-done()-Anker '+count+'x gefunden');
+    html=html.replace(before,after);
+  }
+  const start=html.indexOf(after);
+  const status="one.status='Bereit zur Abholung';one.processStatus='Bereit zur Abholung'";
+  const statusAt=html.indexOf(status,start);
+  if(start<0||statusAt<start)throw new Error(file+': RC1498 QR-Erfolgsblock fehlt');
+  const returnAt=html.indexOf('return true}',statusAt);
+  if(returnAt<statusAt)throw new Error(file+': RC1498 QR-done()-Ende fehlt');
+  const end=returnAt+'return true}'.length;
+  let block=html.slice(start,end);
+  block=block.replace('copies(sh).map(function(x)','rc1498QrCopies(sh).map(function(x)');
+  block=block.replace('copies(sh).forEach(function(x)','rc1498QrCopies(sh).forEach(function(x)');
+  if(!block.includes('rc1498QrCopies(sh).map(function(x)')||!block.includes('rc1498QrCopies(sh).forEach(function(x)'))throw new Error(file+': RC1498 QR-Kopien-Synchronisierung unvollständig');
+  html=html.slice(0,start)+block+html.slice(end);
   return html;
 }
 
@@ -861,6 +938,15 @@ function patchCompletePrintBundle(html,file){
   const loadEnd=loadStart<0?-1:html.indexOf('function documentCacheKey',loadStart);
   if(loadStart<0||loadEnd<0)throw new Error(file+': RC1345 Ladelisten-/CMR-Druckmodul fehlt');
   let loadBlock=html.slice(loadStart,loadEnd);
+
+  const rc1452GoodsHelper="function rc1452PrintGoodsDescription(sh){var v=q(sh&&(sh.goodsDescription||sh.warenbeschreibung||sh.description));if(!v)return'';var l=v.toLowerCase(),score=0;if(l.indexOf('lieferavis')>=0||l.indexOf('collection notice')>=0)score+=2;if(l.indexOf('sehr geehrte damen und herren')>=0||l.indexOf('dear sir or madam')>=0||l.indexOf('mit freundlichen grüßen')>=0||l.indexOf('mit freundlichen grüssen')>=0||l.indexOf('mit freundlichen grussen')>=0||l.indexOf('kind regards')>=0)score++;if(l.indexOf('http://')>=0||l.indexOf('https://')>=0||l.indexOf('/avis/')>=0||l.indexOf('customer-avis')>=0)score++;if(l.indexOf('abholdatum')>=0||l.indexOf('zeitfenster')>=0||l.indexOf('kennzeichen des abholfahrzeugs')>=0||l.indexOf('pickup date')>=0||l.indexOf('time window')>=0||l.indexOf('license plate')>=0)score++;return score>=2?'':v}";
+  loadBlock=rc1452GoodsHelper+String.fromCharCode(10)+loadBlock;
+  loadBlock=loadBlock.replace(/esc\\(q\\(sh&&sh\\.goodsDescription\\)\\)/g,'esc(rc1452PrintGoodsDescription(sh))');
+  loadBlock=loadBlock.replace(/q\\(sh&&sh\\.goodsDescription\\)/g,'rc1452PrintGoodsDescription(sh)');
+  loadBlock=loadBlock.replace(/esc\\(q\\(sh&&sh\\.warenbeschreibung\\)\\)/g,'esc(rc1452PrintGoodsDescription(sh))');
+  loadBlock=loadBlock.replace(/q\\(sh&&sh\\.warenbeschreibung\\)/g,'rc1452PrintGoodsDescription(sh)');
+  loadBlock=loadBlock.replace(/esc\\(q\\(sh&&sh\\.description\\)\\)/g,'esc(rc1452PrintGoodsDescription(sh))');
+  if(!loadBlock.includes('function rc1452PrintGoodsDescription(sh)'))throw new Error(file+': RC1452 Druck-Sanitizer fehlt');
 
   loadBlock=loadBlock.replace("withQr?'1 / 1 · mit QR-Code':'ohne QR-Code'","withQr?'Ladeliste · mit QR-Code':'Ladeliste · ohne QR-Code'");
   loadBlock=loadBlock.replace("withQr?'1 / 2 · mit QR-Code':'2 / 2 · ohne QR-Code'","withQr?'Ladeliste · mit QR-Code':'Ladeliste · ohne QR-Code'");
@@ -1328,6 +1414,10 @@ function patchHtml(file){
   html=patchShipmentSuspendSave(html,file);
   html=patchRc1412ShipmentCreateDomPreserve(html,file);
   html=patchRc1414ShipmentCreateNoRerender(html,file);
+  html=patchRc1470NewShipmentCleanSlate(html,file);
+  html=patchRc1471ReminderEligibility(html,file);
+  html=patchRc1495LegacyQrPersistence(html,file);
+  html=patchRc1498QrStatusSync(html,file);
   html=patchRc1418ShipmentSaveNoRerender(html,file);
   html=patchRc1505SaveConfirmationRenderGate(html,file);
   html=patchRc1319ShipmentSaveFinalization(html,file);
@@ -1349,6 +1439,18 @@ function patchHtml(file){
   html=html.replaceAll(LEGACY_TESTSERVICE_HOST,CURRENT_TESTSERVICE_HOST);
   html=html.replace(/assets\/rc1074-login-clean\.js\?v=(?:1074|1112|1298|1301|1303|1311|1349)/g,'assets/rc1074-login-clean.js?v=1630');
   html=html.replace(/assets\/rc1014-task-runtime\.js\?v=(?:1016|1266|1312|1353|1359)/g,'assets/rc1014-task-runtime.js?v=1359');
+  const taskRuntimeTag=/<script\b[^>]*src=["']\/assets\/rc1014-task-runtime\.js\?v=[^"']+["'][^>]*><\/script>/i;
+  if(!html.includes('id="exporthub-taskplanner-v2-runtime-bridge"')){
+    const taskRuntimeMatch=html.match(taskRuntimeTag);
+    if(!taskRuntimeMatch)throw new Error(file+': TaskPlanner V2 Runtime-Anker fehlt');
+    html=html.replace(taskRuntimeMatch[0],taskRuntimeMatch[0]+'\n<script id="exporthub-taskplanner-v2-runtime-bridge" defer src="/assets/taskplanner-v2-runtime-bridge.js?v=2000"></script>\n<script id="exporthub-taskplanner-v2-workflow" defer src="/assets/taskplanner-v2-workflow.js?v=2000"></script>\n<script id="exporthub-taskplanner-v2-ui" defer src="/assets/taskplanner-v2-ui.js?v=2000"></script>\n<script id="exporthub-taskplanner-v2-projection-ui" defer src="/assets/taskplanner-v2-projection-ui.js?v=2000"></script>\n<script id="exporthub-taskplanner-v2-planner-ui" defer src="/assets/taskplanner-v2-planner-ui.js?v=2000"></script>\n<script id="exporthub-taskplanner-rc1537-canonical-source" defer src="/assets/rc1537-taskplanner-canonical-source.js?v=1537"></script>');
+  }
+  const taskLifecycleTag=/<script\b[^>]*src=["']\/assets\/rc1014-task-lifecycle\.js\?v=[^"']+["'][^>]*><\/script>/i;
+  if(!html.includes('id="exporthub-taskplanner-v2-core"')){
+    const taskLifecycleMatch=html.match(taskLifecycleTag);
+    if(!taskLifecycleMatch)throw new Error(file+': TaskPlanner V2 Lifecycle-Anker fehlt');
+    html=html.replace(taskLifecycleMatch[0],'<link id="exporthub-taskplanner-v2-style" rel="stylesheet" href="/assets/taskplanner-v2.css?v=2000">\n<link id="exporthub-taskplanner-v2-projection-style" rel="stylesheet" href="/assets/taskplanner-v2-projections.css?v=2000">\n<script id="exporthub-taskplanner-v2-core" defer src="/assets/taskplanner-v2-core.js?v=2000"></script>\n<script id="exporthub-taskplanner-v2-recurrence" defer src="/assets/taskplanner-v2-recurrence.js?v=2000"></script>\n<script id="exporthub-taskplanner-v2-planner" defer src="/assets/taskplanner-v2-planner.js?v=2000"></script>\n<script id="exporthub-taskplanner-v2-projections" defer src="/assets/taskplanner-v2-projections.js?v=2000"></script>\n'+taskLifecycleMatch[0]);
+  }
   html=html.replace(/assets\/rc1014-task-ui\.css\?v=(?:1016|1179|1312)/g,'assets/rc1014-task-ui.css?v=1312');
   html=html.replace(/assets\/rc1013-diagnostics\.js\?v=(?:1085|1125|1364)/g,'assets/rc1013-diagnostics.js?v=1364');
   html=html.replace(/assets\/exporthub-environment-hub\.js\?v=\d+/g,'assets/exporthub-environment-hub.js?v=1174');
@@ -1386,6 +1488,18 @@ function patchHtml(file){
   if(file!=='demo.html'&&!html.includes('assets/rc1289-auth-transport-fallback.js?v=1289'))throw new Error(file+': RC1289 Desktop-Auth-Fallback fehlt');
   if(!html.includes('assets/rc1074-login-clean.js?v=1630'))throw new Error(file+': RC1349 Login-/Browser-Branding-Cache-Key fehlt');
   if(!html.includes('assets/rc1014-task-runtime.js?v=1359'))throw new Error(file+': RC1359 Aufgaben-Runtime Cache-Key fehlt');
+  if(!html.includes('assets/taskplanner-v2.css?v=2000'))throw new Error(file+': TaskPlanner V2 Styles fehlen');
+  if(!html.includes('assets/taskplanner-v2-projections.css?v=2000'))throw new Error(file+': TaskPlanner V2 Projection Styles fehlen');
+  if(!html.includes('assets/taskplanner-v2-core.js?v=2000'))throw new Error(file+': TaskPlanner V2 Core fehlt');
+  if(!html.includes('assets/taskplanner-v2-recurrence.js?v=2000'))throw new Error(file+': TaskPlanner V2 Recurrence fehlt');
+  if(!html.includes('assets/taskplanner-v2-planner.js?v=2000'))throw new Error(file+': TaskPlanner V2 Planner fehlt');
+  if(!html.includes('assets/taskplanner-v2-projections.js?v=2000'))throw new Error(file+': TaskPlanner V2 Projections fehlen');
+  if(!html.includes('assets/taskplanner-v2-runtime-bridge.js?v=2000'))throw new Error(file+': TaskPlanner V2 Runtime Bridge fehlt');
+  if(!html.includes('assets/taskplanner-v2-workflow.js?v=2000'))throw new Error(file+': TaskPlanner V2 Workflow fehlt');
+  if(!html.includes('assets/taskplanner-v2-ui.js?v=2000'))throw new Error(file+': TaskPlanner V2 UI fehlt');
+  if(!html.includes('assets/taskplanner-v2-projection-ui.js?v=2000'))throw new Error(file+': TaskPlanner V2 Projection UI fehlt');
+  if(!html.includes('assets/taskplanner-v2-planner-ui.js?v=2000'))throw new Error(file+': TaskPlanner V2 Planner UI fehlt');
+  if(!html.includes('assets/rc1537-taskplanner-canonical-source.js?v=1537'))throw new Error(file+': RC1537 Canonical Source fehlt');
   if(!html.includes('assets/rc1014-task-ui.css?v=1312'))throw new Error(file+': RC1312 Aufgaben-CSS Cache-Key fehlt');
   if(!html.includes('assets/rc1013-diagnostics.js?v=1364'))throw new Error(file+': RC1364 Diagnose Cache-Key fehlt');
   if(!html.includes('assets/exporthub-environment-hub.js?v=1174'))throw new Error(file+': RC1174 Android-Diagnose-Hub Cache-Key fehlt');
@@ -1418,6 +1532,7 @@ function patchHtml(file){
     if(!html.includes('if(window.__EXPORTHUB_DEMO_MODE__===true)return;'))throw new Error(file+': RC1131 Testportal-Runtime ist in Demo noch aktiv');
     if(!html.includes('window.__EXPORTHUB_DEMO_MODE__===true||window.__EXPORTHUB_PICKUP_MODE__'))throw new Error(file+': RC1131 Demo-Routenanker fehlt');
   }
+  html=patchTaskPlannerV2UiCutover(html,file);
   fs.writeFileSync(target,html);
 }
 
@@ -1440,6 +1555,19 @@ for(const rel of [
   'assets/exporthub-demo-bootstrap.js',
   'assets/rc1049-abd-avis-policy.js',
   'assets/rc1014-task-runtime.js',
+  'assets/taskplanner-v2-core.js',
+  'assets/taskplanner-v2-recurrence.js',
+  'assets/taskplanner-v2-planner.js',
+  'assets/taskplanner-v2-projections.js',
+  'assets/taskplanner-v2-runtime-bridge.js',
+  'assets/taskplanner-v2-workflow.js',
+  'assets/taskplanner-v2-ui.js',
+  'assets/taskplanner-v2-projection-ui.js',
+  'assets/taskplanner-v2-planner-ui.js',
+  'assets/rc1537-taskplanner-canonical-source.js',
+  'assets/task-public-read.js',
+  'assets/taskplanner-v2-projections.css',
+  'assets/taskplanner-v2.css',
   'assets/rc1014-task-ui.css',
   'assets/rc1126-customer-delete.js',
   'assets/rc1133-avis-upload-notifications.js',
@@ -1526,6 +1654,10 @@ for(const requiredApi of ['shared/pod-archive.js','shared/graph-drive.js','share
 const rc1114PickupSource=path.join(ROOT,'pickup.html');
 if(!fs.existsSync(rc1114PickupSource))throw new Error('RC1114 pickup.html fehlt');
 fs.copyFileSync(rc1114PickupSource,path.join(OUT,'pickup.html'));
+const taskPublicPageSource=path.join(ROOT,'task.html');
+if(!fs.existsSync(taskPublicPageSource))throw new Error('TaskPlanner V2 task.html fehlt');
+fs.copyFileSync(taskPublicPageSource,path.join(OUT,'task.html'));
+if(!fs.existsSync(path.join(OUT,'task.html')))throw new Error('TaskPlanner V2 task.html wurde nicht gebaut');
 const rc1113StowSrc=path.join(ROOT,'assets','rc1113-stowplan-persist.js');
 const rc1113StowOut=path.join(OUT,'assets','rc1113-stowplan-persist.js');
 if(!fs.existsSync(rc1113StowSrc))throw new Error('RC1113 Stauplan-Runtime fehlt');

@@ -1,0 +1,15 @@
+{
+  "version": "RC1532",
+  "assets": [
+    "assets/rc1532-customs-ai.js",
+    "assets/rc1532-customs-ai.css",
+    "assets/i18n/rc1532-customs-ai.js"
+  ],
+  "entries": [
+    "index.html",
+    "TESTVERSION.html",
+    "demo.html"
+  ],
+  "mode": "read-only-customs-ai",
+  "productionDeploy": false
+}
