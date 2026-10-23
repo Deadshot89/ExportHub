@@ -188,3 +188,38 @@ test('P0: mismatched historical duplicate copies are preserved pending authorize
  assert.equal(find(merged,'savedShipments','CROSS3').status,'POD vorhanden');
  assert.equal(find(merged,'savedShipments','CROSS3').podFiles[0].blobName,'old/immutable.pdf');
 });
+
+
+test('P0: recycled editor ID with a new REF must not bypass unsigned POD protection',()=>{
+ const historic={id:'REUSED-EDITOR-ID',ref:'ORIGINAL',
+   status:'POD vorhanden',processStatus:'POD vorhanden',
+   pickupHistory:[{confirmedAt:'2026-10-22T08:00:00Z',signatureBlobName:'original-sig.png'}],
+   podFiles:[{id:'original-proof',blobName:'proofs/original.pdf'}]};
+ const fresh={id:'REUSED-EDITOR-ID',ref:'NEWREF',
+   status:'POD vorhanden',processStatus:'POD vorhanden',podAvailable:true,
+   podConfirmed:true,createdAt:'2026-10-23T13:00:00Z'};
+ const input={savedShipments:[fresh]};
+ const originalInput=JSON.stringify(input);
+ const merged=mergeState({shipments:[historic]},input);
+ const created=find(merged,'savedShipments','NEWREF');
+ const old=find(merged,'shipments','ORIGINAL');
+ assert.equal(created.status,'Erstellt');
+ assert.equal(created.processStatus,'Erstellt');
+ assert.equal(created.podAvailable,false);
+ assert.equal(created.podConfirmed,false);
+ assert.equal(created.podStatusCorrection,'FRESH_POD_WITHOUT_PICKUP_EVIDENCE');
+ assert.equal(old.status,'POD vorhanden','real historical pickup remains unchanged');
+ assert.equal(old.podFiles[0].blobName,'proofs/original.pdf');
+ assert.equal(JSON.stringify(input),originalInput,'do not mutate incoming browser state');
+});
+
+test('P0: matching REF across collections stays recognized even when editor ID differs',()=>{
+ const prior={id:'ORIGINAL-ID',ref:'SAME01',status:'POD vorhanden',
+  pickupHistory:[{confirmedAt:'2026-10-22T08:00:00Z',signatureBlobName:'real.png'}],
+  podFiles:[{id:'historical',blobName:'real.pdf'}]};
+ const mirror={id:'NEW-EDITOR-ID',ref:'SAME01',status:'POD vorhanden',
+  processStatus:'POD vorhanden',podFiles:[{id:'historical',blobName:'real.pdf'}]};
+ const merged=mergeState({shipments:[prior]}, {savedShipments:[mirror]});
+ assert.equal(find(merged,'savedShipments','SAME01').status,'POD vorhanden');
+ assert.equal(find(merged,'shipments','SAME01').podFiles[0].blobName,'real.pdf');
+});
