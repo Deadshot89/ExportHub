@@ -156,3 +156,35 @@ test('P0: existing historic POD without confirmation is not mass-downgraded on u
  assert.equal(sh.status,'POD vorhanden');
  assert.equal(sh.podFiles[0].blobName,'immutable-historic.pdf');
 });
+
+test('P0: savedShipments Erstellt blocks phantom POD in a new shipments mirror copy',()=>{
+ const server={savedShipments:[{id:'NEW-CROSS1',ref:'CROSS1',
+  status:'Erstellt',processStatus:'Erstellt',updatedAt:'2026-10-23T11:00:00Z'}]};
+ const incoming={shipments:[{id:'NEW-CROSS1',ref:'CROSS1',
+  status:'POD vorhanden',processStatus:'POD vorhanden',
+  podConfirmed:true,podAvailable:true,updatedAt:'2026-10-23T11:01:00Z'}]};
+ const sh=find(mergeState(server,incoming),'shipments','CROSS1');
+ assert.equal(sh.status,'Erstellt');
+ assert.equal(sh.processStatus,'Erstellt');
+ assert.equal(sh.podConfirmed,false);
+});
+
+test('P0: shipments Bereit blocks unsigned savedShipments mirror POD without changing canonical',()=>{
+ const server={shipments:[{id:'NEW-CROSS2',ref:'CROSS2',
+  status:'Bereit zur Abholung',processStatus:'Bereit zur Abholung'}]};
+ const incoming={savedShipments:[{id:'NEW-CROSS2',ref:'CROSS2',
+  status:'POD vorhanden',processStatus:'POD vorhanden'}]};
+ const merged=mergeState(server,incoming);
+ assert.equal(find(merged,'savedShipments','CROSS2').status,'Bereit zur Abholung');
+ assert.equal(find(merged,'shipments','CROSS2').status,'Bereit zur Abholung');
+});
+
+test('P0: mismatched historical duplicate copies are preserved pending authorized forensics',()=>{
+ const server={shipments:[{id:'NEW-CROSS3',ref:'CROSS3',status:'Erstellt'}],
+ savedShipments:[{id:'NEW-CROSS3',ref:'CROSS3',status:'POD vorhanden',
+ podFiles:[{id:'original',blobName:'old/immutable.pdf'}]}]};
+ const incoming={shipments:[{id:'NEW-CROSS3',ref:'CROSS3',status:'POD vorhanden'}]};
+ const merged=mergeState(server,incoming);
+ assert.equal(find(merged,'savedShipments','CROSS3').status,'POD vorhanden');
+ assert.equal(find(merged,'savedShipments','CROSS3').podFiles[0].blobName,'old/immutable.pdf');
+});
