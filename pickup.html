@@ -35,7 +35,7 @@ button:disabled{opacity:.55;cursor:wait}
 .signature.has{border-style:solid;background:#f0fdf4;border-color:#4ade80;color:#166534}
 .signature img{max-width:100%;height:84px;object-fit:contain;background:#fff;border-radius:8px}
 .help{font-size:11px;color:#64748b;font-weight:800}
-.modal[hidden]{display:none!important}.modal{position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.72);padding:16px;display:grid;place-items:center}
+[hidden]{display:none!important}.modal[hidden]{display:none!important}.modal{position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.72);padding:16px;display:grid;place-items:center}
 .dialog{width:min(1000px,100%);background:#fff;border-radius:24px;padding:18px}
 .canvas-wrap{border:3px solid #2563eb;border-radius:18px;background:#fff;overflow:hidden}
 canvas{display:block;width:100%;height:min(42vh,360px);touch-action:none;background:#fff}
@@ -189,7 +189,7 @@ if(env!=='production'&&env!=='testservice'){
 var statusEl=document.getElementById('status');
 var details=document.getElementById('details');
 var form=document.getElementById('form');
-var expected=0,collectedBefore=0,remainingBefore=0,colliOk=false,signatureSaved='',customsDocumentsRequired=false,submitting=false,containerRequired=false,containerPhotos={},containerUploadBusy=false;
+var expected=0,collectedBefore=0,remainingBefore=0,colliOk=false,signatureSaved='',customsDocumentsRequired=false,submitting=false,containerRequired=false,containerPhotos={},containerUploadBusy=false,colliMode='complete';
 var canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d',{alpha:false}),drawing=false,drawn=false;
 
 function status(text,kind){statusEl.className='status '+(kind||'info');statusEl.textContent=text}
@@ -261,15 +261,21 @@ function containerDocsComplete(){
 function unlockDriverAfterContainerDocs(){
   var driver=document.getElementById('driverStep');
   if(!colliOk){if(driver)driver.hidden=true;setPickupFlowStage('colli');return false}
-  if(containerRequired&&!containerDocsComplete()){
+  if(containerRequired&&!containerDocsComplete()&&colliMode!=='partial'){
     if(driver)driver.hidden=true;
     setPickupFlowStage('container');
     return false;
   }
   if(driver)driver.hidden=false;
   setPickupFlowStage('driver');
-  status(containerRequired?'Container-Dokumentation vollständig. Bitte jetzt Fahrer- und Fahrzeugdaten erfassen.':'Collis bestätigt. Bitte jetzt Fahrer- und Fahrzeugdaten erfassen.','ok');
+  status(containerRequired&&containerDocsComplete()?'Container-Dokumentation vollständig. Bitte jetzt Fahrer- und Fahrzeugdaten erfassen.':containerRequired?'Teilabholung: Siegelnummer und Containerfotos sind erst bei der vollständigen Abholung Pflicht. Bitte jetzt Fahrer- und Fahrzeugdaten erfassen.':'Collis bestätigt. Bitte jetzt Fahrer- und Fahrzeugdaten erfassen.','ok');
   return true;
+}
+function setConfirmMode(mode){
+  colliMode=mode==='partial'?'partial':'complete';
+  var partial=document.getElementById('confirmPartial'),complete=document.getElementById('confirm');
+  if(partial)partial.hidden=colliMode!=='partial';
+  if(complete)complete.hidden=colliMode==='partial';
 }
 function setDriverStepUnlocked(on){
   var container=document.getElementById('containerSection'),driver=document.getElementById('driverStep');
@@ -277,7 +283,7 @@ function setDriverStepUnlocked(on){
   if(driver)driver.hidden=true;
   if(!on){setPickupFlowStage('colli');return}
   setPickupFlowStage('container');
-  if(!containerRequired||containerDocsComplete())unlockDriverAfterContainerDocs();
+  if(!containerRequired||containerDocsComplete()||colliMode==='partial')unlockDriverAfterContainerDocs();
 }
 function bindPickupFlowStage(ids,stage){
   ids.forEach(function(id){
@@ -344,7 +350,7 @@ function uploadContainerPhoto(kind,input,previewId,stateId){
     if(stateEl){stateEl.textContent='Upload fehlgeschlagen – bitte erneut aufnehmen';stateEl.className='photo-state'}
     if(result)result.textContent='Foto konnte nicht gespeichert werden: '+q(err&&err.message||err);
     status('Containerfoto konnte nicht gespeichert werden: '+q(err&&err.message||err),'bad')
-  }).finally(function(){containerUploadBusy=false})
+  }).finally(function(){containerUploadBusy=false;if(input)input.value=''})
 }
 function pickupCompletionState(data){
   if(!data||data.complete!==true)return 'pending';
@@ -377,10 +383,11 @@ function show(data){
   }
   var recovery=document.getElementById('recoverySection');if(recovery)recovery.hidden=true;
   var ref=q(data.reference||data.ref||data.shipmentRef)||'—';
-  var customer=q(deep(data,['customerName','recipientCustomerName','consigneeName','companyName','kundenname']))||'—';
+  var customer=q(deep(data,['customerName','recipientCustomerName','consigneeName','companyName','kundenname']))||(typeof data.customer==='string'?q(data.customer):'')||(typeof data.recipient==='string'?q(data.recipient):'')||'—';
   var address=q(deep(data,['recipientAddress','deliveryAddress','shipToAddress','destinationAddress','consigneeAddress','formattedAddress','fullAddress','addressText','address']));
   if(/^[-–—]+$/.test(address)||/^(?:n\/?a|none|null|undefined)$/i.test(address))address='';
   var carrier=q(deep(data,['carrierName','speditionName','carrier','spedition']));
+  var returnLabel=document.getElementById('returnLabel');if(returnLabel)returnLabel.hidden=!(Number(data&&data.palletOut)>0);
   containerRequired=data&&data.containerDocumentationRequired===true;
   customsDocumentsRequired=customsDocumentsConfirmationNeeded(data);
   var customsField=document.getElementById('customsDocumentsField');if(customsField)customsField.hidden=!customsDocumentsRequired;
@@ -445,10 +452,10 @@ function checkColli(mode){
   if(!(expected>0)){colliOk=false;setDriverStepUnlocked(false);return false}
   var input=document.getElementById('colli'),n=colliNumber(input.value),out=document.getElementById('colliResult'),open=remainingBefore||expected;
   if(mode==='partial'){
-    if(n>0&&n<open){colliOk=true;out.textContent='✓ Teilabholung: '+n+' Colli bestätigt. Danach bleiben '+(open-n)+' Colli offen.';out.style.color='#166534';input.readOnly=true;setDriverStepUnlocked(true);status(containerRequired?'Collis bestätigt. Bitte jetzt Siegelnummer und alle 3 Containerfotos vollständig erfassen.':'Collis bestätigt. Bitte jetzt Fahrer- und Fahrzeugdaten erfassen.','ok');return true}
+    if(n>0&&n<open){colliOk=true;setConfirmMode('partial');out.textContent='✓ Teilabholung: '+n+' Colli bestätigt. Danach bleiben '+(open-n)+' Colli offen.';out.style.color='#166534';input.readOnly=true;setDriverStepUnlocked(true);if(!containerRequired)status('Collis bestätigt. Bitte jetzt Fahrer- und Fahrzeugdaten erfassen.','ok');return true}
     colliOk=false;setDriverStepUnlocked(false);out.textContent=n===open?'Die komplette Restmenge bitte mit „Vollständige Abholung bestätigen“ abschließen.':'Für eine Teilabholung bitte 1 bis '+Math.max(1,open-1)+' Colli eingeben.';out.style.color='#991b1b';input.readOnly=false;input.focus();return false;
   }
-  if(n===open){colliOk=true;out.textContent='✓ Vollständige Abholung: alle '+open+' offenen Collis bestätigt.';out.style.color='#166534';input.readOnly=true;setDriverStepUnlocked(true);status(containerRequired?'Collis bestätigt. Bitte jetzt Siegelnummer und alle 3 Containerfotos vollständig erfassen.':'Collis bestätigt. Bitte jetzt Fahrer- und Fahrzeugdaten erfassen.','ok');return true}
+  if(n===open){colliOk=true;setConfirmMode('complete');out.textContent='✓ Vollständige Abholung: alle '+open+' offenen Collis bestätigt.';out.style.color='#166534';input.readOnly=true;setDriverStepUnlocked(true);status(containerRequired?'Collis bestätigt. Bitte jetzt Siegelnummer und alle 3 Containerfotos vollständig erfassen.':'Collis bestätigt. Bitte jetzt Fahrer- und Fahrzeugdaten erfassen.','ok');return true}
   colliOk=false;setDriverStepUnlocked(false);out.textContent='Für die vollständige Abholung müssen alle '+open+' noch offenen Colli bestätigt werden.';out.style.color='#991b1b';input.readOnly=false;input.focus();return false;
 }
 document.getElementById('checkColli').addEventListener('click',function(){var n=colliNumber(document.getElementById('colli').value),open=remainingBefore||expected;checkColli(n>0&&n<open?'partial':'complete')});
