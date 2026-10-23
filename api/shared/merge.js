@@ -917,9 +917,76 @@ function mergePlainObject(serverValue, incomingValue) {
   return out;
 }
 
+// P0: A brand-new shipment must not inherit a stale POD status from an
+// editor/template. This guard applies ONLY to previously unknown references.
+// Stored/historical shipments, attachments and original evidence are untouched.
+function hasPickupConfirmationEvidence(sh) {
+  if (!isObject(sh)) return false;
+  const histories = [
+    ...(Array.isArray(sh.pickupHistory) ? sh.pickupHistory : []),
+    ...(Array.isArray(sh.subShipments) ? sh.subShipments.flatMap(sub =>
+      Array.isArray(sub && sub.pickupHistory) ? sub.pickupHistory : []) : [])
+  ];
+  if (histories.some(h => isObject(h) && text(h.confirmedAt) &&
+    (text(h.signatureBlobName) || h.signatureStored === true))) return true;
+  const confirmedAt = text(sh.pickupConfirmedAt || sh.qrPickupConfirmedAt || sh.confirmedAt);
+  const signed = text(sh.signatureBlobName || sh.driverSignature || sh.pickupDriverSignature ||
+    sh.driverSignatureUrl || sh.pickupDriverSignatureUrl);
+  if (confirmedAt && signed) return true;
+  if (text(sh.manualPickupConfirmedAt) && text(sh.manualPickupConfirmedBy)) return true;
+  return false;
+}
+
+function protectFreshShipmentPodStatuses(server, incoming) {
+  if (!isObject(incoming)) return incoming;
+  const known = new Set();
+  for (const listName of ['shipments', 'savedShipments']) {
+    for (const sh of Array.isArray(server && server[listName]) ? server[listName] : []) {
+      const ref = text(sh && (sh.ref || sh.reference || sh.shipmentRef || sh.referenceNumber)).toUpperCase();
+      if (ref) known.add('ref:' + ref);
+      const id = text(sh && (sh.id || sh.shipmentId));
+      if (id) known.add('id:' + id);
+    }
+  }
+  let changed = false;
+  const out = Object.assign({}, incoming);
+  for (const listName of ['shipments', 'savedShipments']) {
+    const items = incoming[listName];
+    if (!Array.isArray(items)) continue;
+    out[listName] = items.map(sh => {
+      if (!isObject(sh)) return sh;
+      const ref = text(sh.ref || sh.reference || sh.shipmentRef || sh.referenceNumber).toUpperCase();
+      const id = text(sh.id || sh.shipmentId);
+      if ((!ref && !id) || (ref && known.has('ref:' + ref)) || (id && known.has('id:' + id))) return sh;
+      const statuses = [sh.status, sh.processStatus, sh.shipmentStatus].map(lower);
+      if (!statuses.some(status => status === 'pod vorhanden' || status === 'pod available')) return sh;
+      if (hasPickupConfirmationEvidence(sh)) return sh;
+      changed = true;
+      const corrected = clone(sh);
+      corrected.status = 'Erstellt';
+      corrected.processStatus = 'Erstellt';
+      corrected.shipmentStatus = 'Erstellt';
+      corrected.podAvailable = false;
+      corrected.podConfirmed = false;
+      corrected.hasPod = false;
+      corrected.podServerVerified = false;
+      corrected.podStatus = '';
+      corrected.podStatusCorrection = 'FRESH_POD_WITHOUT_PICKUP_EVIDENCE';
+      // Do not destroy unverified file metadata: preserve it for an authorized
+      // investigator, but never treat such metadata as a valid POD.
+      if (Array.isArray(corrected.podFiles) && corrected.podFiles.length) {
+        corrected.podReviewRequired = true;
+        corrected.podReviewReason = 'POD_WITHOUT_PICKUP_EVIDENCE';
+      }
+      return corrected;
+    });
+  }
+  return changed ? out : incoming;
+}
+
 function mergeState(serverState, incomingState) {
   const server = isObject(serverState) ? serverState : {};
-  const incoming = isObject(incomingState) ? incomingState : {};
+  const incoming = protectFreshShipmentPodStatuses(server, isObject(incomingState) ? incomingState : {});
   const serverMeta = isObject(server._teamSyncMeta) ? server._teamSyncMeta : {};
   const incomingMeta = isObject(incoming._teamSyncMeta) ? incoming._teamSyncMeta : {};
   const mergedMeta = {
