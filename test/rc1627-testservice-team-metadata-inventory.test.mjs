@@ -201,7 +201,7 @@ test('RC1642: snapshot timestamps only, fixed 1-day/7-day age bands, deleted age
  assert.deepEqual(r.teamState.snapshotAge,{
   under1day:{records:1,logicalBytes:10},
   day1to7:{records:2,logicalBytes:50},
-  older7days:{records:1,logicalBytes:40},
+  beyond7days:{records:1,logicalBytes:40},
   unknown:{records:2,logicalBytes:110}
  });
  assert.equal(r.teamState.deletedAgeVerifiable,false);
