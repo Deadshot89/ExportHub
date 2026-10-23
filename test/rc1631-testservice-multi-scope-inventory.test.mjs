@@ -111,7 +111,7 @@ test('RC1631 release output does not dump Azure secrets or raw inventory respons
 test('RC1631: bounded diagnostic HTTP timeouts cannot turn into indefinite release blocking',()=>{
  const wf=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
  const fixture=wf.slice(wf.indexOf('          fixture() {'),wf.indexOf('          # RC1630:'));
- assert.match(fixture,/inventory-team\|inventory-scopes\)/);
+ assert.match(fixture,/inventory-team\\|inventory-scopes(?:\\|inventory-blob-policy)?\\)/);
  assert.match(fixture,/inventory_timeout=\(--connect-timeout 8 --max-time 35\)/);
  assert.match(fixture,/curl -sS "\$\{inventory_timeout\[@\]\}"/);
  assert.match(fixture,/if ! fixture_status=/);
