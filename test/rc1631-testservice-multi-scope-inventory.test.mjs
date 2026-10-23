@@ -120,3 +120,18 @@ test('RC1631: bounded diagnostic HTTP timeouts cannot turn into indefinite relea
  assert.match(wf,/if inventory_payload="\$\(fixture inventory-team\)"; then/);
  assert.match(wf,/if scopes_payload="\$\(fixture inventory-scopes\)"; then/);
 });
+
+test('RC1635: cost-diagnostic logs emit fixed category and scope aggregates, never raw Blob response',()=>{
+ const wf=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
+ const team=wf.indexOf('RC1635 TESTSERVICE-Team-Kategorien');
+ const scopes=wf.indexOf('RC1635 TESTSERVICE-Sechs-Container');
+ assert.ok(team>0&&scopes>team,'Both signed inventory sections must produce evidence');
+ const t=wf.slice(team,team+520),m=wf.slice(scopes,scopes+430);
+ assert.match(t,/names\.map\(id=>\(\{id,records:v\.areas\[id\]\.records/);
+ assert.match(t,/historicalBytes:keys\.filter\(k=>k!=="live"\)/);
+ assert.match(m,/v\.scopes\.map\(x=>\(\{id:x\.id,status:x\.status/);
+ assert.match(m,/x\.status==="listed"\?x\.logicalBytes:null/);
+ assert.doesNotMatch(t+m,/JSON\.stringify\(v\)|echo.*\$scopes_payload|JSON\.stringify\(scopes_payload\)/);
+ assert.match(wf,/const ids=\["team","document-files","container-photos","pickup","pod","abd-quarantine","pod-backup"\]/);
+ assert.match(wf,/names\.reduce\(\(a,id\)=>a\+v\.areas\[id\]\.logicalBytes,0\)!==v\.logicalBytes/);
+});
