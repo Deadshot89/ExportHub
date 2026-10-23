@@ -816,7 +816,15 @@ function mergeShipmentProtected(serverItem, incomingItem) {
   // P0: a stale browser must not re-promote a previously quarantined
   // brand-new POD to completed while no authentic pickup was recorded.
   // Normal readiness updates remain allowed; legacy records are not touched.
-  if (serverItem.podStatusCorrection === 'FRESH_POD_WITHOUT_PICKUP_EVIDENCE' &&
+  const previousStage = lower(serverItem.status || serverItem.processStatus);
+  const incomingWantsPod = [incomingItem.status, incomingItem.processStatus, incomingItem.shipmentStatus]
+    .some(v => ['pod vorhanden','pod available'].includes(lower(v)));
+  const prePickupStage = ['entwurf','erstellt','bereit zur abholung','wartet auf abd',
+    'draft','created','ready for pickup','waiting for abd'].includes(previousStage);
+  const unprovenPromotion = prePickupStage && incomingWantsPod &&
+    !hasPickupConfirmationEvidence(serverItem) && !hasPickupConfirmationEvidence(incomingItem);
+  if ((serverItem.podStatusCorrection === 'FRESH_POD_WITHOUT_PICKUP_EVIDENCE' ||
+       unprovenPromotion) &&
       !hasPickupConfirmationEvidence(serverItem) && !hasPickupConfirmationEvidence(incomingItem)) {
     out.podStatusCorrection = 'FRESH_POD_WITHOUT_PICKUP_EVIDENCE';
     if (serverItem.podReviewRequired === true) {
