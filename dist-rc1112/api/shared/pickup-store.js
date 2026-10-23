@@ -1,0 +1,351 @@
+'use strict';
+const crypto=require('crypto');
+const containerDocs=require('./container-document-store');
+const {BlobServiceClient}=require('@azure/storage-blob');
+
+const RECORD_CONTAINER=process.env.EXPORTHUB_PICKUP_CONTAINER||'exporthub-pickup';
+const POD_CONTAINER=process.env.EXPORTHUB_POD_CONTAINER||'exporthub-pod';
+const POD_BACKUP_CONTAINER=process.env.EXPORTHUB_POD_BACKUP_CONTAINER||'exporthub-pod-backup';
+const TEAM_CONTAINER=process.env.EXPORTHUB_STORAGE_CONTAINER||process.env.EXPORTHUB_CONTAINER||'exporthub-data';
+const TEAM_BLOB_BASE=process.env.EXPORTHUB_STORAGE_BLOB||process.env.EXPORTHUB_STATE_BLOB||'team-state.json';
+const TEST_TEAM_BLOB=process.env.EXPORTHUB_TEST_STORAGE_BLOB||('testservice/'+String(TEAM_BLOB_BASE).replace(/^\/+/,''));
+const MAX_RETRIES=6;
+const TEAM_MAX_RETRIES=18;
+function retryDelay(ms){return new Promise(resolve=>setTimeout(resolve,Math.max(0,Number(ms)||0)))}
+
+function connectionString(){return process.env.EXPORTHUB_STORAGE_CONNECTION_STRING||process.env.EXPORTHUB_STORAGE_CONNECTION||process.env.EXPORTHUB_AZURE_STORAGE_CONNECTION_STRING||process.env.AzureWebJobsStorage||''}
+function backupConnectionString(){return process.env.EXPORTHUB_POD_BACKUP_CONNECTION_STRING||connectionString()}
+function secret(){return process.env.EXPORTHUB_PICKUP_SECRET||process.env.EXPORTHUB_PUBLIC_ACCESS_SECRET||connectionString()||'exporthub-local-secret'}
+function hash(value){return crypto.createHmac('sha256',secret()).update(String(value||'')).digest('hex')}
+function safeEqualHex(a,b){try{const aa=Buffer.from(String(a||''),'hex'),bb=Buffer.from(String(b||''),'hex');return aa.length===bb.length&&aa.length>0&&crypto.timingSafeEqual(aa,bb)}catch(_){return false}}
+function validToken(token){return /^[A-Za-z0-9_-]{40,160}$/.test(String(token||'').trim())}
+function validAccessKey(value){return /^[a-f0-9]{64}$/i.test(String(value||''))}
+function normalizeEnvironment(value){return String(value||'').toLowerCase()==='testservice'?'testservice':'production'}
+function json(status,body,headers={}){return{status,headers:Object.assign({'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store, no-cache, must-revalidate','Pragma':'no-cache','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff'},headers),body:JSON.stringify(body)}}
+function body(req){if(req&&req.body&&typeof req.body==='object')return req.body;try{return JSON.parse(req.body||'{}')}catch(_){return {}}}
+function err(code,message,status=400){const e=new Error(message);e.code=code;e.status=status;return e}
+function now(){return new Date().toISOString()}
+function clone(v){return v==null?v:JSON.parse(JSON.stringify(v))}
+function safeName(v){return String(v||'POD').replace(/[^a-zA-Z0-9._ -]/g,'_').replace(/\s+/g,'_').slice(0,100)}
+function first(source,names){for(const name of names){const v=source&&source[name];if(v!==undefined&&v!==null&&String(v).trim()!=='')return v}return''}
+function sanitizeText(v,max=180){return String(v==null?'':v).replace(/[\u0000-\u001f\u007f]/g,' ').replace(/\s+/g,' ').trim().slice(0,max)}
+function addressToken(v,max=1000){
+ const out=sanitizeText(v,max);
+ if(!out||/^[-–—]+$/.test(out)||/^(?:n\/?a|none|null|undefined)$/i.test(out))return'';
+ return out;
+}
+function addressObject(source){
+ if(source==null)return'';
+ if(typeof source==='string'||typeof source==='number')return addressToken(source);
+ if(typeof source!=='object')return'';
+ for(const key of ['recipientAddress','deliveryAddress','shipToAddress','destinationAddress','consigneeAddress','formattedAddress','fullAddress','addressText','address']){
+  const value=source[key];
+  if(typeof value==='string'||typeof value==='number'){const out=addressToken(value);if(out)return out}
+ }
+ const street=addressToken(source.street||source.strasse||source.streetName||source.addressLine1||source.address1,300),
+       zip=addressToken(source.zip||source.postalCode||source.postcode||source.plz,80),
+       city=addressToken(source.city||source.ort||source.town||source.place,180),
+       country=addressToken(source.country||source.land||source.countryName,120),
+       locality=[zip,city].filter(Boolean).join(' ');
+ return[street,locality,country].filter(Boolean).join(', ');
+}
+function addressFromSource(source){
+ const direct=addressObject(source);if(direct)return direct;
+ if(!source||typeof source!=='object')return'';
+ for(const key of ['locationData','siteData','location','selectedLocation','deliveryLocation','shippingLocation','destination','shipToLocation','recipientLocation','addressData']){
+  const out=addressObject(source[key]);if(out)return out
+ }
+ return'';
+}
+function normKey(v){return String(v==null?'':v).trim().toLowerCase()}
+function sameKey(source,values,fields){
+ if(!source||typeof source!=='object')return false;
+ const wanted=values.map(normKey).filter(Boolean);if(!wanted.length)return false;
+ return fields.some(function(field){const value=normKey(source[field]);return value&&wanted.includes(value)})
+}
+async function resolveShipmentAddress(record,environment='production'){
+ const direct=addressFromSource(record);if(direct)return direct;
+ const c=await clients(environment),blob=c.team.getBlockBlobClient(teamBlobName(c.environment)),loaded=await readJson(blob,null),doc=loaded.value||{},state=doc.state&&typeof doc.state==='object'?doc.state:doc;
+ const shipments=Array.isArray(state.shipments)?state.shipments:[],sid=String(record&&record.shipmentId||'').trim(),ref=String(record&&record.reference||record&&record.ref||'').trim().toUpperCase();
+ const shipment=shipments.find(function(x){return(sid&&String(x&& (x.id||x.shipmentId)||'').trim()===sid)||(ref&&String(x&& (x.reference||x.ref)||'').trim().toUpperCase()===ref)})||null;
+ const shipmentAddress=addressFromSource(shipment);if(shipmentAddress)return shipmentAddress;
+ const customers=Array.isArray(state.customers)?state.customers:[],ids=[
+  shipment&&shipment.customerId,shipment&&shipment.customerAccount,shipment&&shipment.customerNumber,shipment&&shipment.kundennummer,
+  record&&record.customerId,record&&record.customerAccount,record&&record.customerNumber
+ ],names=[shipment&&shipment.customerName,record&&record.customer].map(normKey).filter(Boolean);
+ let customer=customers.find(function(x){return sameKey(x,ids,['id','customerId','account','customerNumber','kundennummer'])})||null;
+ if(!customer&&names.length)customer=customers.find(function(x){return names.includes(normKey(x&& (x.name||x.customerName)))})||null;
+ if(!customer)return'';
+ const locIds=[
+  shipment&&shipment.locationId,shipment&&shipment.selectedLocationId,shipment&&shipment.siteId,shipment&&shipment.destinationId,
+  shipment&&shipment.deliveryLocationId,shipment&&shipment.shipToLocationId,shipment&&shipment.recipientLocationId
+ ];
+ const locations=[];
+ for(const key of ['locations','sites','standorte','deliveryLocations','shippingLocations','addresses','deliveryAddresses','shipToLocations','shipToAddresses','recipientAddresses','customerLocations']){
+  if(Array.isArray(customer[key]))locations.push(...customer[key])
+ }
+ const location=locations.find(function(x){return sameKey(x,locIds,['id','locationId','selectedLocationId','siteId','destinationId','deliveryLocationId','shipToLocationId','recipientLocationId','code','number'])})||null;
+ return addressFromSource(location)||addressFromSource(customer);
+}
+function normalizeTransportMode(value){
+ const v=sanitizeText(value,80).toLowerCase();
+ if(/^(sea|seafreight|seefracht|ocean|oceanfreight|ship)$/.test(v))return'sea';
+ if(/^(air|airfreight|luft|luftfracht)$/.test(v))return'air';
+ if(/^(road|truck|strasse|straße|land|lkw)$/.test(v))return'road';
+ return v&&v!=='-'&&v!=='—'?v:'';
+}
+function containerDocumentationRequired(source){
+ if(!source||typeof source!=='object')return false;
+ const values=[source.containerDocumentationRequired,source.seaContainerDocumentationRequired,source.containerDocsRequired,source.containerRequired];
+ return values.some(v=>v===true||v===1||/^(1|true|yes|ja|pflicht|required)$/i.test(String(v==null?'':v).trim()));
+}
+function transportModeOf(source){
+ if(!source||typeof source!=='object')return'';
+ return normalizeTransportMode(first(source,['transportMode','transportType','shippingMode','shipmentMode','versandart']));
+}
+function containerPhotosOf(source){return Array.isArray(source&&source.containerPhotos)?source.containerPhotos:[]}
+async function resolveShipmentContainerConfig(record,environment='production'){
+ const c=await clients(environment),blob=c.team.getBlockBlobClient(teamBlobName(c.environment)),loaded=await readJson(blob,null),doc=loaded.value||{},state=doc.state&&typeof doc.state==='object'?doc.state:doc;
+ const shipments=Array.isArray(state.shipments)?state.shipments:[],sid=String(record&&record.shipmentId||'').trim(),ref=String(record&&record.reference||record&&record.ref||'').trim().toUpperCase();
+ const sh=shipments.find(x=>(sid&&String(x&& (x.id||x.shipmentId)||'').trim()===sid)||(ref&&String(x&& (x.reference||x.ref)||'').trim().toUpperCase()===ref))||null;
+ return{transportMode:transportModeOf(sh)||transportModeOf(record),containerDocumentationRequired:containerDocumentationRequired(sh)||containerDocumentationRequired(record)};
+}
+function abdPresent(source){
+ if(!source||typeof source!=='object')return false;
+ if(source.abdPresent===true)return true;
+ for(const key of ['abdFiles','abds','abdDocuments']){
+  const list=source[key];if(Array.isArray(list)&&list.some(Boolean))return true
+ }
+ const legacyAbd=source.abd;
+ if((Array.isArray(legacyAbd)&&legacyAbd.some(Boolean))||(legacyAbd&&typeof legacyAbd==='object')||sanitizeText(legacyAbd,180))return true;
+ const single=first(source,['abdFile','abdRef','abdReference','abdMrn','mrn']);if(single)return true;
+ const documents=[].concat(Array.isArray(source.documents)?source.documents:[],Array.isArray(source.generatedDocuments)?source.generatedDocuments:[]);
+ if(documents.some(function(item){const kind=sanitizeText(item&& (item.type||item.category||item.group||item.documentType||item.kind)||'',120),name=sanitizeText(item&& (item.name||item.fileName||item.filename)||'',180);return /(^|\b)abd(\b|$)|ausfuhrbegleitdokument/i.test(kind+' '+name)}))return true;
+ const status=sanitizeText(first(source,['abdStatus','customsStatus']),120).toLowerCase();
+ return /vorhanden|fertig|erledigt|completed|done|available|erstellt|created|abgeschlossen/.test(status)&&!/wartet|offen|pending|angefordert|requested/.test(status)
+}
+// RC1622: A status label or an ABD reference is not proof of an uploaded document.
+// Only currently attached and durably referenced PDFs satisfy the pickup release gate.
+// RC1622: A file name, status string or unattested Blob path is not an ABD.
+// Check actual PDF bytes in this environment before permitting a customs-required pickup.
+function rc1622PdfBytes(bytes){
+ if(!Buffer.isBuffer(bytes)||bytes.length<24)return false;
+ if(bytes.subarray(0,5).toString('latin1')!=='%PDF-')return false;
+ return bytes.subarray(Math.max(0,bytes.length-8192)).toString('latin1').includes('%%EOF');
+}
+async function rc1622StoredAbd(source,documents,environment,verifiedCache){
+ if(!source||typeof source!=='object')return false;
+ const files=[].concat(
+  Array.isArray(source.abdFiles)?source.abdFiles:[],
+  Array.isArray(source.abdDocuments)?source.abdDocuments:[]
+ );
+ for(const file of files){
+  if(!file||typeof file!=='object')continue;
+  const status=String(file.status||'').toLowerCase();
+  if(/deleted|gelöscht|geloscht|replaced|ersetzt|storniert/.test(status))continue;
+  const name=String(file.blobName||file.storageBlobName||file.storagePath||'').trim();
+  if(name){
+   const prefix='rc1059/'+environment+'/';
+   // Never let an untrusted row point to another environment, container or path.
+   if(!name.startsWith(prefix)||!/^[A-Za-z0-9/._-]+$/.test(name)||
+      name.includes('..')||name.includes('//'))continue;
+   if(!verifiedCache.has(name)){
+    const blob=documents.getBlockBlobClient(name);
+    try{
+     const props=await blob.getProperties(),size=Number(props&&props.contentLength);
+     // ABD documents are PDF exports, not arbitrary unlimited-size blobs.
+     if(!Number.isSafeInteger(size)||size<24||size>32*1024*1024){
+      verifiedCache.set(name,false);continue
+     }
+     const bytes=Buffer.from(await blob.downloadToBuffer());
+     const expectedHash=String(file.sha256||'').toLowerCase();
+     // If a checksum is declared, malformed metadata must fail closed too.
+     const hashOk=!expectedHash||(/^[0-9a-f]{64}$/.test(expectedHash)&&
+      crypto.createHash('sha256').update(bytes).digest('hex')===expectedHash);
+     verifiedCache.set(name,bytes.length===size&&hashOk&&rc1622PdfBytes(bytes));
+    }catch(error){
+     if(Number(error&&error.statusCode)===404){
+      verifiedCache.set(name,false);continue
+     }
+     // Storage timeouts and missing access rights must fail closed (503 at API).
+     throw error
+    }
+   }
+   if(verifiedCache.get(name)===true)return true;
+   continue;
+  }
+  // Historical inline PDFs can be stored in team-state. Verify the actual bytes.
+  const raw=String(file.dataUrl||file.data||'').trim();
+  const match=raw.match(/^data:application\/pdf;base64,([A-Za-z0-9+/=\s]+)$/i);
+  if(!match)continue;
+  const encoded=match[1].replace(/\s+/g,'');
+  if(encoded.length>44*1024*1024||encoded.length<24||
+     !/^[A-Za-z0-9+/]*={0,2}$/.test(encoded))continue;
+  const bytes=Buffer.from(encoded,'base64');
+  if(rc1622PdfBytes(bytes)&&bytes.toString('base64').replace(/=+$/,'')===encoded.replace(/=+$/,''))return true;
+ }
+ return false;
+}
+async function resolveShipmentAbdConfig(record,environment='production'){
+ const c=await clients(environment),blob=c.team.getBlockBlobClient(teamBlobName(c.environment)),
+  loaded=await readJson(blob,null),doc=loaded.value||{},state=doc.state&&typeof doc.state==='object'?doc.state:doc;
+ const sid=String(record&&record.shipmentId||'').trim(),
+  ref=String(record&&(record.reference||record.ref)||'').trim().toUpperCase();
+ // RC1626: Matching either the ID or reference is unsafe when the *other*
+ // identifier explicitly contradicts it. ABD request.id is the request's own
+ // identifier, never a shipment ID. Legacy requests without linkedShipmentId
+ // remain matchable by their shipment reference.
+ function sameShipment(sh){
+  if(!sh||typeof sh!=='object')return false;
+  const otherId=String(sh.shipmentId||sh.id||'').trim(),
+   otherRef=String(sh.reference||sh.ref||sh.shipmentRef||'').trim().toUpperCase();
+  if(sid&&otherId&&sid!==otherId)return false;
+  if(ref&&otherRef&&ref!==otherRef)return false;
+  return !!((sid&&otherId===sid)||(ref&&otherRef===ref))
+ }
+ function sameRequest(req){
+  if(!req||typeof req!=='object')return false;
+  const linkedId=String(req.linkedShipmentId||req.shipmentId||'').trim(),
+   otherRef=String(req.reference||req.ref||req.shipmentRef||'').trim().toUpperCase();
+  if(sid&&linkedId&&sid!==linkedId)return false;
+  if(ref&&otherRef&&ref!==otherRef)return false;
+  return !!((sid&&linkedId===sid)||(ref&&otherRef===ref))
+ }
+ const shipments=[].concat(Array.isArray(state.shipments)?state.shipments:[],
+  Array.isArray(state.savedShipments)?state.savedShipments:[]);
+ const matchingShipments=shipments.filter(sameShipment),
+  requests=(Array.isArray(state.abdRequests)?state.abdRequests:[]).filter(sameRequest),
+  req=requests.length?requests[requests.length-1]:null,
+  sh=matchingShipments[0]||null;
+ const required=record&&record.abdRequired===true||
+  matchingShipments.some(x=>x.abdRequired===true||
+   /wartet auf abd/i.test(String(x.status||x.shipmentStatus||x.abdStatus||'')))||
+  requests.length>0;
+ const documents=c.service.getContainerClient(process.env.EXPORTHUB_DOCUMENT_CONTAINER||'exporthub-documents');
+ const verifiedCache=new Map();
+ let present=false;
+ for(const candidate of matchingShipments.concat(requests,[record])){
+  if(await rc1622StoredAbd(candidate,documents,c.environment,verifiedCache)){
+   present=true;break
+  }
+ }
+ return {abdRequired:!!required,abdPresent:present,
+  abdStatus:sanitizeText(first(req||sh||record,['abdStatus','status']),120)};
+}
+function mergeContainerPhotos(a,b){
+ const out=[],seen=new Map();
+ for(const item of [].concat(Array.isArray(a)?a:[],Array.isArray(b)?b:[])){
+  if(!item||typeof item!=='object')continue;
+  const key=String(item.kind||item.id||item.blobName||'').trim().toLowerCase();if(!key)continue;
+  seen.set(key,clone(item));
+ }
+ ['loaded','number','sealed'].forEach(k=>{if(seen.has(k)){out.push(seen.get(k));seen.delete(k)}});
+ seen.forEach(v=>out.push(v));
+ return out;
+}
+function positiveColliCount(value){const n=Number(value);return Number.isFinite(n)&&n>0?Math.max(0,Math.round(n)):0}
+function physicalColliCount(value){const n=Number(value);return Number.isFinite(n)&&n>0?Math.max(0,Math.ceil(n)):0}
+function expectedCollis(source){
+ const src=source&&typeof source==='object'?source:{},lists=['rows','colli','collis','packages','packageRows','items'],rowFields=['count','qty','quantity','anzahl','menge','colliCount'],trusted=['expectedColliCount','totalCollis','totalColli','totalPackages','packagesCount','packageCount'];let best=0;
+ for(const key of lists){if(!Array.isArray(src[key]))continue;let sum=0;for(const row of src[key]){let n=0;for(const f of rowFields){n=physicalColliCount(row&&row[f]);if(n>0)break}sum+=n}if(sum>best)best=sum}
+ if(best>0)return best;
+ for(const f of trusted){const n=positiveColliCount(src[f]);if(n>0)return n}
+ for(const f of ['pickupColliCount','enteredColliCount','colliCount']){const n=positiveColliCount(src[f]);if(n>0)return n}
+ return 0;
+}
+function pickupHistory(record){return Array.isArray(record&&record.pickupHistory)?record.pickupHistory:[]}
+function pickupCollectedColliCount(record){const fromHistory=pickupHistory(record).reduce((sum,item)=>sum+Math.max(0,Math.round(Number(item&&item.colliCount)||0)),0),stored=Math.max(0,Math.round(Number(record&&(record.pickupCollectedColliCount||record.collectedPickupCollis))||0));return Math.max(fromHistory,stored)}
+function pickupRemainingColliCount(record){const expected=expectedCollis(record);return Math.max(0,expected-pickupCollectedColliCount(record))}
+function pickupComplete(record){const expected=expectedCollis(record);return expected>0&&pickupRemainingColliCount(record)===0}
+function teamBlobName(environment){return normalizeEnvironment(environment)==='testservice'?TEST_TEAM_BLOB:TEAM_BLOB_BASE}
+function recordPath(environment,accessKey){if(!validAccessKey(accessKey))throw err('INVALID_ACCESS_KEY','Interner Pickup-Schlüssel ist ungültig.',500);return`rc995/${normalizeEnvironment(environment)}/records/${String(accessKey).toLowerCase()}.json`}
+function podPrefix(environment,accessKey){return`rc995/${normalizeEnvironment(environment)}/${String(accessKey).toLowerCase()}`}
+async function clients(environment='production'){
+ const cs=connectionString();if(!cs)throw err('STORAGE_NOT_CONFIGURED','App-Einstellung EXPORTHUB_STORAGE_CONNECTION_STRING fehlt.',503);const service=BlobServiceClient.fromConnectionString(cs),records=service.getContainerClient(RECORD_CONTAINER),pods=service.getContainerClient(POD_CONTAINER),team=service.getContainerClient(TEAM_CONTAINER);await Promise.all([records.createIfNotExists(),pods.createIfNotExists(),team.createIfNotExists()]);return{service,records,pods,team,environment:normalizeEnvironment(environment)}
+}
+async function podArchiveClient(environment='production'){
+ const cs=backupConnectionString();if(!cs)throw err('POD_ARCHIVE_NOT_CONFIGURED','App-Einstellung für den POD-Archivspeicher fehlt.',503);const backupService=BlobServiceClient.fromConnectionString(cs),podArchive=backupService.getContainerClient(POD_BACKUP_CONTAINER);await podArchive.createIfNotExists();return{backupService,podArchive,environment:normalizeEnvironment(environment)}
+}
+async function readBuffer(blob){const r=await blob.download(0),chunks=[];for await(const c of r.readableStreamBody)chunks.push(Buffer.from(c));return{buffer:Buffer.concat(chunks),etag:r.etag||null,contentType:r.contentType||r._response&&r._response.headers&&r._response.headers.get&&r._response.headers.get('content-type')||''}}
+async function readJson(blob,fallback=null){try{const r=await readBuffer(blob);return{value:r.buffer.length?JSON.parse(r.buffer.toString('utf8')):clone(fallback),etag:r.etag}}catch(e){if(e&&e.statusCode===404)return{value:clone(fallback),etag:null};throw e}}
+async function writeJson(blob,value,etag){const raw=JSON.stringify(value),conditions=etag?{ifMatch:etag}:{ifNoneMatch:'*'};return blob.upload(raw,Buffer.byteLength(raw),{blobHTTPHeaders:{blobContentType:'application/json; charset=utf-8',blobCacheControl:'no-store'},conditions})}
+function recordBlob(records,accessKey,environment='production'){return records.getBlockBlobClient(recordPath(environment,accessKey))}
+async function getRecord(accessKey,environment='production'){const c=await clients(environment),blob=recordBlob(c.records,accessKey,c.environment),r=await readJson(blob,null);if(!r.value)throw err('PICKUP_NOT_FOUND','Pickup-Vorgang wurde nicht gefunden.',410);return{clients:c,blob,record:r.value,etag:r.etag}}
+async function mutateRecord(accessKey,environment,fn){for(let i=0;i<MAX_RETRIES;i++){const got=await getRecord(accessKey,environment),next=await fn(clone(got.record),got.clients);try{await writeJson(got.blob,next,got.etag);return next}catch(e){if(e&&e.statusCode===412&&i<MAX_RETRIES-1)continue;throw e}}throw err('CONFLICT','Datensatz konnte wegen eines Konflikts nicht gespeichert werden.',409)}
+function expired(r){return!!(r&&r.expiresAt&&Date.now()>Date.parse(r.expiresAt))}
+function realPodFiles(record){return(Array.isArray(record&&record.podFiles)?record.podFiles:[]).filter(f=>String(f&&f.kind||'').toLowerCase()!=='scan-confirmation')}
+function podBackupSummary(record){const b=record&&record.podBackup&&typeof record.podBackup==='object'?record.podBackup:{};return{status:String(b.status||''),azureSaved:b.azureSaved===true,azureSavedAt:b.azureSavedAt||null,archiveSaved:b.archiveSaved===true,archiveSavedAt:b.archiveSavedAt||null,archiveType:String(b.archiveType||''),driveSaved:b.driveSaved===true,driveSavedAt:b.driveSavedAt||null,lastAttemptAt:b.lastAttemptAt||null,attempts:Math.max(0,Number(b.attempts)||0),fileName:String(b.fileName||''),hash:String(b.hash||''),lastError:String(b.lastError||'').slice(0,500)}}
+function signatureUrl(record,rawToken){return record&&record.signatureBlobName&&rawToken?'/api/pickup-pod?token='+encodeURIComponent(rawToken)+'&signature=1':''}
+function publicRecord(r,rawToken){
+ const files=realPodFiles(r),history=pickupHistory(r),expected=expectedCollis(r),collected=pickupCollectedColliCount(r),remaining=pickupRemainingColliCount(r),complete=pickupComplete(r),last=history.length?history[history.length-1]:null,signatureBlob=last&&last.signatureBlobName||r.signatureBlobName||'',url=signatureBlob&&rawToken?'/api/pickup-pod?token='+encodeURIComponent(rawToken)+'&signature=1':'',available=!!signatureBlob,customsSignatureBlob=last&&last.customsDocumentsSignatureBlobName||r.customsDocumentsSignatureBlobName||'',customsSignatureStored=!!customsSignatureBlob,abd=abdPresent(r),carrier=sanitizeText(first(r,['carrierName','speditionName','carrier','spedition']),180),entered=Math.max(0,Math.round(Number(first(r,['enteredColliCount','confirmedColliCount','pickupColliCount']))||0)),colliOk=r.colliCountConfirmed===true||r.colliConfirmed===true||r.pickupColliCountConfirmed===true,containerPhotos=containerPhotosOf(r).map(containerDocs.publicPhoto).filter(Boolean),transportMode=transportModeOf(r),containerRequired=containerDocumentationRequired(r);
+ return{ok:true,status:complete?'confirmed':(collected>0?'partial':(r.status||'open')),reference:r.reference||'',customer:r.customer||'',recipient:r.recipient||'',address:r.address||'',locationName:r.locationName||'',shipmentId:r.shipmentId||'',subShipmentId:r.subShipmentId||'',subShipmentSequence:Number(r.subShipmentSequence||0)||0,subShipmentTotal:Number(r.subShipmentTotal||0)||0,subShipmentLabel:r.subShipmentLabel||'',transportMode,containerDocumentationRequired:containerRequired,abdPresent:abd,abdStatus:sanitizeText(r.abdStatus||'',120),customsDocumentsConfirmationRequired:abd,customsDocumentsSignatureRequired:false,customsDocumentsReceived:customsSignatureStored||r.customsDocumentsReceived===true,customsDocumentsSignatureStored:customsSignatureStored,sealNumber:sanitizeText(r.sealNumber||'',120),containerPhotos,containerPhotoCount:containerPhotos.length,containerPhotosComplete:containerDocs.completePhotos(containerPhotos),palletOut:Math.max(0,Number(r.palletOut||0)||0),carrierName:carrier,speditionName:carrier,carrier,spedition:carrier,expectedColliCount:expected,colliCount:expected,totalColli:expected,packageCount:expected,enteredColliCount:entered,collectedPickupCollis:collected,pickupCollectedColliCount:collected,remainingPickupCollis:remaining,pickupRemainingColliCount:remaining,partialPickup:!complete&&collected>0,complete,pickupHistory:history.map(x=>({id:x.id||('pickup-'+(x.sequence||'')),sequence:Number(x.sequence||0)||0,type:x.type||(x.complete?'complete':'partial'),confirmedAt:x.confirmedAt||'',colliCount:Math.max(0,Math.round(Number(x.colliCount)||0)),collectedAfter:Math.max(0,Math.round(Number(x.collectedAfter)||0)),remainingAfter:Math.max(0,Math.round(Number(x.remainingAfter)||0)),complete:x.complete===true,driverName:x.driverName||'',licensePlate:x.licensePlate||'',loaderName:x.loaderName||'',carrierName:x.carrierName||'',returnedEuroPallets:Math.max(0,Math.round(Number(x.returnedEuroPallets)||0)),signatureStored:!!x.signatureBlobName,customsDocumentsReceived:x.customsDocumentsReceived===true||!!x.customsDocumentsSignatureBlobName,customsDocumentsSignatureStored:!!x.customsDocumentsSignatureBlobName})),colliCountConfirmed:colliOk,colliConfirmed:colliOk,pickupColliCountConfirmed:colliOk,createdAt:r.createdAt||null,expiresAt:r.expiresAt||null,confirmedAt:complete?(r.confirmedAt||null):null,lastPartialPickupAt:r.lastPartialPickupAt||null,driverName:last&&last.driverName||r.driverName||'',pickupDriverName:last&&last.driverName||r.driverName||'',licensePlate:last&&last.licensePlate||r.licensePlate||'',vehicleLicensePlate:last&&last.licensePlate||r.licensePlate||'',kennzeichen:last&&last.licensePlate||r.licensePlate||'',loaderName:last&&last.loaderName||r.loaderName||'',loadedBy:last&&last.loaderName||r.loaderName||'',loader:last&&last.loaderName||r.loaderName||'',verlader:last&&last.loaderName||r.loaderName||'',signatureAvailable:available,driverSignatureAvailable:available,signatureStored:available,driverSignatureUrl:url,pickupSignatureUrl:url,podType:available?'signed-loadlist':'',podStatus:complete?(available?'POD vorhanden':'Unterschrift fehlt'):(collected>0?'Teilweise abgeholt':'Unterschrift fehlt'),podCount:history.filter(x=>x&&x.signatureBlobName).length+files.length,podBackupStatus:String(r&&r.podBackup&&r.podBackup.status||''),podAzureSaved:!!(r&&r.podBackup&&r.podBackup.azureSaved),podArchiveSaved:!!(r&&r.podBackup&&r.podBackup.archiveSaved),podDriveSaved:!!(r&&r.podBackup&&r.podBackup.driveSaved),podFiles:files.map(f=>({id:f.id,name:f.name,type:f.type,size:f.size,uploadedAt:f.uploadedAt,kind:f.kind||'',url:rawToken?'/api/pickup-pod?token='+encodeURIComponent(rawToken)+'&file='+encodeURIComponent(f.id):''}))}
+}
+function parseSignature(dataUrl){const value=String(dataUrl||''),m=value.match(/^data:image\/(jpeg|jpg|png|webp);base64,([A-Za-z0-9+/=\s]+)$/i);if(!m)throw err('SIGNATURE_REQUIRED','Die digitale Unterschrift ist Pflicht.',400);const type=m[1].toLowerCase()==='jpg'?'jpeg':m[1].toLowerCase(),buffer=Buffer.from(m[2].replace(/\s+/g,''),'base64');if(buffer.length<100)throw err('INVALID_SIGNATURE','Die digitale Unterschrift ist leer oder ungültig.',400);if(buffer.length>2*1024*1024)throw err('SIGNATURE_TOO_LARGE','Die digitale Unterschrift ist zu groß.',413);return{buffer,type:'image/'+type,extension:type==='jpeg'?'jpg':type}}
+// RC1609 P0: A signature must be printable by the real POD PDF renderer before
+// the pickup record can become confirmed. Never replace original ink with a mock.
+async function verifyDriverSignaturePdfCompatible(parsed){
+ const bytes=parsed&&parsed.buffer,type=String(parsed&&parsed.type||'').toLowerCase();
+ const png=Buffer.isBuffer(bytes)&&bytes.length>=8&&bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]));
+ const jpeg=Buffer.isBuffer(bytes)&&bytes.length>=3&&bytes[0]===255&&bytes[1]===216&&bytes[2]===255;
+ const declaredMatches=(type==='image/png'&&png)||(type==='image/jpeg'&&jpeg);
+ if(!declaredMatches)throw err('INVALID_SIGNATURE_IMAGE','Die Unterschrift hat ein nicht unterstütztes oder fehlerhaftes Bildformat. Bitte erneut unterschreiben.',400);
+ try{
+  const {PDFDocument}=require('pdf-lib'),doc=await PDFDocument.create();
+  // Use the same zero-offset binary view as the official POD PDF renderer.
+  // The source Buffer is not changed, converted or replaced.
+  const imageBytes=Uint8Array.from(bytes);
+  const image=png?await doc.embedPng(imageBytes):await doc.embedJpg(imageBytes);
+  if(!(Number(image.width)>0&&Number(image.height)>0))throw new Error('INVALID_DIMENSIONS');
+ }catch(_){
+  // Do not expose original image bytes, paths, customer data or decoder internals.
+  throw err('INVALID_SIGNATURE_IMAGE','Die Unterschrift kann nicht als POD-Bild verarbeitet werden. Bitte erneut unterschreiben.',400);
+ }
+}
+async function saveDriverSignature(c,record,dataUrl,suffix='pickup'){if(!record||!validAccessKey(record.accessKey))throw err('INVALID_ACCESS_KEY','Interner Pickup-Schlüssel fehlt.',500);const parsed=parseSignature(dataUrl);await verifyDriverSignaturePdfCompatible(parsed);const safeSuffix=String(suffix||'').replace(/[^a-zA-Z0-9_-]/g,'').slice(0,40),blobName=podPrefix(c.environment,record.accessKey)+'/driver-signature-'+(safeSuffix||Date.now())+'.'+parsed.extension,blob=c.pods.getBlockBlobClient(blobName);await blob.uploadData(parsed.buffer,{overwrite:false,blobHTTPHeaders:{blobContentType:parsed.type,blobCacheControl:'no-store'},metadata:{accesshash:String(record.accessKey),reference:String(record.reference||''),kind:'driver-signature'}});return{signatureBlobName:blobName,signatureType:parsed.type,signatureSize:parsed.buffer.length,signatureStoredAt:now()}}
+async function saveCustomsDocumentsSignature(c,record,dataUrl,suffix='pickup'){if(!record||!validAccessKey(record.accessKey))throw err('INVALID_ACCESS_KEY','Interner Pickup-Schlüssel fehlt.',500);const parsed=parseSignature(dataUrl),safeSuffix=String(suffix||'').replace(/[^a-zA-Z0-9_-]/g,'').slice(0,40),blobName=podPrefix(c.environment,record.accessKey)+'/customs-documents-signature-'+(safeSuffix||Date.now())+'.'+parsed.extension,blob=c.pods.getBlockBlobClient(blobName);await blob.uploadData(parsed.buffer,{overwrite:false,blobHTTPHeaders:{blobContentType:parsed.type,blobCacheControl:'no-store'},metadata:{accesshash:String(record.accessKey),reference:String(record.reference||''),kind:'customs-documents-receipt-signature'}});return{customsDocumentsSignatureBlobName:blobName,customsDocumentsSignatureType:parsed.type,customsDocumentsSignatureSize:parsed.buffer.length,customsDocumentsSignatureStoredAt:now()}}
+
+function rc1017SafePickupHistory(history){return(Array.isArray(history)?history:[]).map(x=>({id:x.id||('pickup-'+(x.sequence||'')),sequence:Number(x.sequence||0)||0,type:x.type||(x.complete?'complete':'partial'),confirmedAt:x.confirmedAt||'',colliCount:Math.max(0,Math.round(Number(x.colliCount)||0)),collectedAfter:Math.max(0,Math.round(Number(x.collectedAfter)||0)),remainingAfter:Math.max(0,Math.round(Number(x.remainingAfter)||0)),complete:x.complete===true,driverName:x.driverName||'',licensePlate:x.licensePlate||'',loaderName:x.loaderName||'',loaderId:x.loaderId||'',carrierName:x.carrierName||'',returnedEuroPallets:Math.max(0,Math.round(Number(x.returnedEuroPallets)||0)),signatureStored:!!x.signatureBlobName,signatureBlobName:x.signatureBlobName||'',signatureStoredAt:x.signatureStoredAt||'',customsDocumentsReceived:x.customsDocumentsReceived===true||!!x.customsDocumentsSignatureBlobName,customsDocumentsSignatureStored:!!x.customsDocumentsSignatureBlobName,customsDocumentsSignatureStoredAt:x.customsDocumentsSignatureStoredAt||''}))}
+function rc1017SubPicked(sub){return['confirmed','pod','completed','abgeholt','pod vorhanden','abgeschlossen'].includes(String(sub&&sub.status||'').trim().toLowerCase())}
+function rc1017SubStarted(sub){return!!(sub&&(sub.locked===true||['partial','confirmed','pod','completed','teilweise abgeholt','abgeholt','pod vorhanden','abgeschlossen'].includes(String(sub.status||'').trim().toLowerCase())))}
+function rc1017SubHasPod(sub){return!!(sub&&Array.isArray(sub.podFiles)&&sub.podFiles.length>0)}
+function rc1017AggregateShipmentFromSubs(sh,iso){const subs=Array.isArray(sh&&sh.subShipments)?sh.subShipments:[];if(subs.length<2)return sh;const allPicked=subs.every(rc1017SubPicked),anyStarted=subs.some(rc1017SubStarted),allPod=subs.every(rc1017SubHasPod);sh.multiTruckLocked=subs.some(x=>x&&x.locked===true);sh.collectedPickupCollis=subs.reduce((n,x)=>n+Math.max(0,Math.round(Number(x&&x.pickupCollectedColliCount||x&&x.collectedPickupCollis)||0)),0);sh.pickupCollectedColliCount=sh.collectedPickupCollis;sh.remainingPickupCollis=subs.reduce((n,x)=>n+Math.max(0,Math.round(Number(x&&x.pickupRemainingColliCount||x&&x.remainingPickupCollis)||0)),0);sh.pickupRemainingColliCount=sh.remainingPickupCollis;sh.expectedColliCount=subs.reduce((n,x)=>n+Math.max(0,Math.round(Number(x&&x.expectedColliCount)||0)),0);sh.pickupPartial=!allPicked&&anyStarted;sh.pickupComplete=allPicked;sh._syncUpdatedAt=iso;sh._syncDeviceId='qr-pickup';if(allPicked){sh.status='Abgeholt';sh.processStatus='Abgeholt';sh.pickedUp=true;sh.pickupStatus='abgeholt';sh.pickupConfirmed=true;sh.pickupRegistered=true;sh.pickupConfirmedAt=iso;sh.pickedUpAt=iso;if(!sh.actualPickupDate)sh.actualPickupDate=String(iso||'').slice(0,10);if(allPod){sh.podStatus='POD vorhanden';sh.hasPod=true}}else if(anyStarted){sh.status='Teilweise abgeholt';sh.processStatus='Teilweise abgeholt';sh.pickedUp=false;sh.pickupStatus='teilweise abgeholt';sh.pickupConfirmed=false}return sh}
+function rc1017UpdateSubShipmentTeam(sh,record,history,complete,collected,remaining,iso){const subs=Array.isArray(sh&&sh.subShipments)?sh.subShipments:[],id=String(record&&record.subShipmentId||''),sequence=Math.max(0,Math.round(Number(record&&record.subShipmentSequence)||0)),total=Math.max(0,Math.round(Number(record&&record.subShipmentTotal)||0));let index=subs.findIndex(x=>String(x&&x.subShipmentId||'')===id);if(index<0&&sequence>0)index=subs.findIndex(x=>Math.max(0,Math.round(Number(x&&(x.subShipmentSequence||x.sequence))||0))===sequence&&(!total||!Number(x&&(x.subShipmentTotal||x.total))||Math.round(Number(x&&(x.subShipmentTotal||x.total)))===total));if(index<0)throw err('SUBSHIPMENT_NOT_FOUND','Teilsendung wurde in der Hauptsendung nicht gefunden.',409);const current=subs[index]||{},canonicalId=String(current.subShipmentId||id),safeHistory=rc1017SafePickupHistory(history),last=safeHistory.length?safeHistory[safeHistory.length-1]:null,files=realPodFiles(record),next=Object.assign({},current,{subShipmentId:canonicalId,subShipmentSequence:sequence||Number(current.subShipmentSequence||current.sequence||0)||0,subShipmentTotal:total||Number(current.subShipmentTotal||current.total||subs.length)||subs.length,subShipmentLabel:record.subShipmentLabel||current.subShipmentLabel||current.label||'',status:complete?'confirmed':(collected>0?'partial':'open'),locked:collected>0||complete,pickupHistory:safeHistory,collectedPickupCollis:collected,pickupCollectedColliCount:collected,remainingPickupCollis:remaining,pickupRemainingColliCount:remaining,expectedColliCount:expectedCollis(record),confirmedAt:complete?(record.confirmedAt||last&&last.confirmedAt||iso):null,lastPartialPickupAt:record.lastPartialPickupAt||(!complete&&last&&last.confirmedAt)||null,podFiles:files,podBackup:podBackupSummary(record),signatureBlobName:record.signatureBlobName||last&&last.signatureBlobName||'',signatureStoredAt:record.signatureStoredAt||last&&last.signatureStoredAt||'',abdPresent:abdPresent(record),customsDocumentsReceived:record.customsDocumentsReceived===true||!!(record.customsDocumentsSignatureBlobName||last&&last.customsDocumentsSignatureStored),customsDocumentsSignatureStored:record.customsDocumentsReceived===true||!!(record.customsDocumentsSignatureBlobName||last&&last.customsDocumentsSignatureStored),customsDocumentsSignatureStoredAt:record.customsDocumentsSignatureStoredAt||last&&last.customsDocumentsSignatureStoredAt||'',pickupRegistered:true,pickupAccessKeyHash:record.accessKey||current.pickupAccessKeyHash||'',updatedAt:iso});sh.subShipments=subs.map((x,i)=>i===index?next:x);return rc1017AggregateShipmentFromSubs(sh,iso)}
+
+async function updateTeamContainerDocumentation(record){
+ const c=await clients(record.environment),blob=c.team.getBlockBlobClient(teamBlobName(c.environment));
+ for(let i=0;i<MAX_RETRIES;i++){
+  const d=await readJson(blob,null),doc=d.value||{schemaVersion:3,revision:0,state:{},users:[]};doc.state=doc.state||{};doc.state.shipments=Array.isArray(doc.state.shipments)?doc.state.shipments:[];
+  const ref=String(record.reference||'').trim().toUpperCase(),sid=String(record.shipmentId||'').trim(),sh=doc.state.shipments.find(x=>(sid&&String(x&& (x.id||x.shipmentId)||'')===sid)||(ref&&String(x&& (x.ref||x.reference||'')).trim().toUpperCase()===ref));
+  if(!sh)return doc;
+  const iso=String(record.containerDocumentationUpdatedAt||record.updatedAt||now()),photos=containerPhotosOf(record);
+  sh.transportMode=transportModeOf(record)||transportModeOf(sh);
+  if(containerDocumentationRequired(record))sh.containerDocumentationRequired=true;
+  else if(record.containerDocumentationRequired===false)sh.containerDocumentationRequired=false;
+  if(sanitizeText(record.sealNumber||'',120))sh.sealNumber=sanitizeText(record.sealNumber,120);
+  if(photos.length)sh.containerPhotos=mergeContainerPhotos(sh.containerPhotos,photos);
+  sh.containerDocumentationUpdatedAt=iso;
+  if(record.subShipmentId&&Array.isArray(sh.subShipments)){
+   const idx=sh.subShipments.findIndex(x=>String(x&&x.subShipmentId||'')===String(record.subShipmentId));
+   if(idx>=0){const sub=Object.assign({},sh.subShipments[idx]);sub.transportMode=sh.transportMode;sub.containerDocumentationRequired=containerDocumentationRequired(record);if(sanitizeText(record.sealNumber||'',120))sub.sealNumber=sanitizeText(record.sealNumber,120);if(photos.length)sub.containerPhotos=mergeContainerPhotos(sub.containerPhotos,photos);sub.containerDocumentationUpdatedAt=iso;sh.subShipments=sh.subShipments.map((x,j)=>j===idx?sub:x)}
+  }
+  sh._syncUpdatedAt=iso;sh._syncDeviceId='qr-container';
+  doc.revision=Number(doc.revision||0)+1;doc.updatedAt=now();doc.updatedBy='QR-Containerdokumentation';doc.updatedByDevice='qr-container';
+  try{await writeJson(blob,doc,d.etag);return doc}catch(e){if(e&&e.statusCode===412&&i<MAX_RETRIES-1)continue;throw e}
+ }
+}
+
+async function updateTeam(record,podsToAdd=[],rawToken=''){
+ const c=await clients(record.environment),blob=c.team.getBlockBlobClient(teamBlobName(c.environment));
+ for(let i=0;i<TEAM_MAX_RETRIES;i++){
+  const d=await readJson(blob,null),doc=d.value||{schemaVersion:3,revision:0,state:{},users:[]};doc.state=doc.state||{};doc.state.shipments=Array.isArray(doc.state.shipments)?doc.state.shipments:[];doc.state.tasks=Array.isArray(doc.state.tasks)?doc.state.tasks:[];
+  const ref=String(record.reference||'').trim().toUpperCase(),sid=String(record.shipmentId||'').trim(),subId=String(record.subShipmentId||'').trim(),history=pickupHistory(record),complete=pickupComplete(record),collected=pickupCollectedColliCount(record),remaining=pickupRemainingColliCount(record),last=history.length?history[history.length-1]:null;let sh=doc.state.shipments.find(x=>(sid&&String(x.id||x.shipmentId||'')===sid)||(ref&&String(x.ref||x.reference||'').trim().toUpperCase()===ref));if(subId&&(!sh||!Array.isArray(sh.subShipments)||!sh.subShipments.some(x=>String(x&&x.subShipmentId||'')===subId))){const bySub=doc.state.shipments.find(x=>Array.isArray(x&&x.subShipments)&&x.subShipments.some(part=>String(part&&part.subShipmentId||'')===subId));if(bySub)sh=bySub}if(!sh)throw err('TEAM_SHIPMENT_NOT_FOUND','Sendung wurde im Team-State nicht gefunden.',503);
+  if(sh&&record.subShipmentId){const iso=String(last&&last.confirmedAt||record.confirmedAt||record.lastPartialPickupAt||now());rc1017UpdateSubShipmentTeam(sh,record,history,complete,collected,remaining,iso)}
+  if(sh&&!record.subShipmentId){const iso=String(last&&last.confirmedAt||record.confirmedAt||record.lastPartialPickupAt||now()),carrier=sanitizeText(first(record,['carrierName','speditionName','carrier','spedition']),180);sh.pickupHistory=history.map(x=>({id:x.id||('pickup-'+(x.sequence||'')),sequence:Number(x.sequence||0)||0,type:x.type||(x.complete?'complete':'partial'),confirmedAt:x.confirmedAt||'',colliCount:Math.max(0,Math.round(Number(x.colliCount)||0)),collectedAfter:Math.max(0,Math.round(Number(x.collectedAfter)||0)),remainingAfter:Math.max(0,Math.round(Number(x.remainingAfter)||0)),complete:x.complete===true,driverName:x.driverName||'',licensePlate:x.licensePlate||'',loaderName:x.loaderName||'',loaderId:x.loaderId||'',carrierName:x.carrierName||'',returnedEuroPallets:Math.max(0,Math.round(Number(x.returnedEuroPallets)||0)),signatureStored:!!x.signatureBlobName,customsDocumentsReceived:x.customsDocumentsReceived===true||!!x.customsDocumentsSignatureBlobName,customsDocumentsSignatureStored:!!x.customsDocumentsSignatureBlobName,customsDocumentsSignatureStoredAt:x.customsDocumentsSignatureStoredAt||''}));sh.podFiles=realPodFiles(record);sh.podBackup=podBackupSummary(record);sh.collectedPickupCollis=collected;sh.pickupCollectedColliCount=collected;sh.remainingPickupCollis=remaining;sh.pickupRemainingColliCount=remaining;sh.pickupPartial=!complete&&collected>0;sh.expectedColliCount=expectedCollis(record);sh.pickupColliCount=collected;sh.enteredColliCount=last&&last.colliCount||0;sh._syncUpdatedAt=iso;sh._syncDeviceId='qr-pickup';if(last){sh.pickupDriverName=last.driverName||'';sh.driverName=last.driverName||'';sh.pickupLicensePlate=last.licensePlate||'';sh.licensePlate=last.licensePlate||'';sh.vehicleLicensePlate=last.licensePlate||'';sh.kennzeichen=last.licensePlate||'';sh.loaderName=last.loaderName||'';sh.loadedBy=last.loaderName||'';sh.loader=last.loaderName||'';sh.verlader=last.loaderName||'';sh.driverSignatureUrl=last.signatureBlobName&&rawToken?'/api/pickup-pod?token='+encodeURIComponent(rawToken)+'&signature=1':'';sh.pickupDriverSignatureUrl=sh.driverSignatureUrl;sh.signatureAvailable=!!last.signatureBlobName;sh.abdPresent=abdPresent(record);sh.customsDocumentsReceived=last.customsDocumentsReceived===true||!!last.customsDocumentsSignatureBlobName;sh.customsDocumentsSignatureStored=last.customsDocumentsSignatureStored===true||last.customsDocumentsReceived===true;sh.customsDocumentsSignatureStoredAt=last.customsDocumentsSignatureStoredAt||''}if(carrier){sh.carrier=carrier;sh.carrierName=carrier;sh.spedition=carrier;sh.speditionName=carrier}if(complete){const day=iso.slice(0,10),dt=new Date(iso),hasPodFile=realPodFiles(record).length>0;sh.actualPickupDate=day;sh.pickedUpAtDate=day;sh.actualPickupTime=isNaN(dt)?'':dt.toLocaleTimeString('de-DE',{timeZone:'Europe/Berlin',hour:'2-digit',minute:'2-digit',second:'2-digit'});sh.pickedUpAt=iso;sh.pickupConfirmedAt=iso;sh.qrPickupConfirmedAt=iso;sh.pickupStatus='abgeholt';sh.pickupQrUsed=true;sh.pickupQrUsedAt=iso;sh.qrPickupConfirmed=true;sh.status=hasPodFile&&sh.podReviewRequired!==true?'POD vorhanden':'Abgeholt';sh.processStatus=sh.status;sh.podAvailable=hasPodFile;sh.podConfirmed=hasPodFile;sh.podStatus=hasPodFile?'POD vorhanden':'POD-Datei wird erstellt'}else{sh.pickupStatus='teilweise abgeholt';sh.pickupQrUsed=false;sh.qrPickupConfirmed=false;sh.status='Teilweise abgeholt';sh.processStatus=sh.status;sh.podAvailable=false;sh.podConfirmed=false;sh.podStatus='Teilabholung dokumentiert';sh.readyForPickup=true;sh.readinessStatus='Teilweise abgeholt';sh.lastPartialPickupAt=iso}}
+  const rc1017AllRequiredPickupsComplete=!record.subShipmentId||!!(sh&&Array.isArray(sh.subShipments)&&sh.subShipments.length>1&&sh.subShipments.every(rc1017SubPicked));
+  if(complete&&rc1017AllRequiredPickupsComplete){for(const t of doc.state.tasks){if(String(t.area||'').toLowerCase()==='abholtag'&&((sid&&String(t.linkedShipmentId||'')===sid)||(ref&&String(t.linkedShipmentRef||'').toUpperCase()===ref))){t.status='erledigt';t.done=true;t.doneAt=record.confirmedAt||now();t.completedAt=t.doneAt;t._syncUpdatedAt=t.doneAt;t._syncDeviceId='qr-pickup'}}}
+  doc.revision=Number(doc.revision||0)+1;doc.updatedAt=now();doc.updatedBy='QR-Abholscan';doc.updatedByDevice='qr-pickup';doc.clientVersion='RC1143';try{await writeJson(blob,doc,d.etag);return doc}catch(e){if(e&&e.statusCode===412&&i<TEAM_MAX_RETRIES-1){await retryDelay(Math.min(450,30*(i+1)));continue}throw e}
+ }
+ throw err('TEAM_STATE_CONFLICT','Team-State konnte nach mehreren konkurrierenden Änderungen nicht gespeichert werden.',503);
+}
+
+module.exports={RECORD_CONTAINER,POD_CONTAINER,POD_BACKUP_CONTAINER,TEAM_CONTAINER,TEAM_BLOB_BASE,TEST_TEAM_BLOB,clients,podArchiveClient,connectionString,backupConnectionString,hash,safeEqualHex,validToken,validAccessKey,normalizeEnvironment,json,body,err,now,clone,readBuffer,readJson,writeJson,recordBlob,getRecord,mutateRecord,expired,publicRecord,updateTeam,updateTeamContainerDocumentation,safeName,parseSignature,saveDriverSignature,saveCustomsDocumentsSignature,signatureUrl,realPodFiles,podBackupSummary,first,sanitizeText,addressFromSource,resolveShipmentAddress,normalizeTransportMode,transportModeOf,containerDocumentationRequired,containerPhotosOf,mergeContainerPhotos,resolveShipmentContainerConfig,abdPresent,resolveShipmentAbdConfig,expectedCollis,pickupHistory,pickupCollectedColliCount,pickupRemainingColliCount,pickupComplete,teamBlobName,podPrefix};

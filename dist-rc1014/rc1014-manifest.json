@@ -1,0 +1,30 @@
+{
+  "schema": "exporthub-rc1014-three-env-v1",
+  "version": "RC1014",
+  "sourceRelease": "RC1013",
+  "tasks": {
+    "lifecycle": "assets/rc1014-task-lifecycle.js",
+    "runtime": "assets/rc1014-task-runtime.js",
+    "style": "assets/rc1014-task-ui.css"
+  },
+  "shipmentOverview": {
+    "runtime": "assets/rc1014-shipment-overview.js",
+    "style": "assets/rc1014-shipment-overview.css",
+    "fields": [
+      "createdAt",
+      "totalColli",
+      "colliCount"
+    ]
+  },
+  "demo": {
+    "bridge": "assets/rc1014-demo-bridge.js",
+    "sessionRestore": true,
+    "dataEnvironment": "demo",
+    "fixedPickups": "fake-local"
+  },
+  "environments": {
+    "production": "index.html",
+    "testservice": "TESTVERSION.html",
+    "demo": "demo.html"
+  }
+}

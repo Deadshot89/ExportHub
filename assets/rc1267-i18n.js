@@ -4,7 +4,7 @@
 if(!w||!d||w.__EXPORTHUB_RC1267_I18N__)return;
 w.__EXPORTHUB_RC1267_I18N__=true;
 
-var VERSION='RC1267';
+var VERSION='RC1452';
 var STORAGE_KEY='exporthub.language';
 var COOKIE_KEY='exporthub_language';
 var SUPPORTED=Object.freeze(['de','en','pl','es','fr','it']);
@@ -193,7 +193,14 @@ function shipmentDraftTargets(root){
 }
 function repairContaminatedGoodsDescription(){
  var targets=[],repaired=false,stamp=new Date().toISOString();
- applicationStateRoots().forEach(function(root){shipmentDraftTargets(root).forEach(function(shipment){if(targets.indexOf(shipment)<0)targets.push(shipment)})});
+ applicationStateRoots().forEach(function(root){
+  shipmentDraftTargets(root).forEach(function(shipment){if(targets.indexOf(shipment)<0)targets.push(shipment)});
+  ['shipments','savedShipments','salesSharedShipments','sharedShipments','shipmentArchive','archivedShipments','archive'].forEach(function(name){
+   var list=root&&root[name];if(!Array.isArray(list))return;
+   list.forEach(function(shipment){if(shipment&&typeof shipment==='object'&&targets.indexOf(shipment)<0)targets.push(shipment)})
+  });
+  ['shipment','currentShipment','selectedShipment','activeShipment','editingShipment','documentShipment'].forEach(function(name){var shipment=root&&root[name];if(shipment&&typeof shipment==='object'&&targets.indexOf(shipment)<0)targets.push(shipment)});
+ });
  targets.forEach(function(shipment){
   var changed=false;
   ['goodsDescription','description','warenbeschreibung'].forEach(function(key){if(mailLikeGoodsDescription(shipment&&shipment[key])){shipment[key]='';changed=true}});
@@ -455,6 +462,11 @@ function captureLanguageChange(event){
  setLanguage(target.value).catch(reportError);
 }
 d.addEventListener('change',captureLanguageChange,true);
+function rc1452DocumentActionRepair(event){
+ var target=event&&event.target&&event.target.closest?event.target.closest('[data-rc1283-action],[data-index352-action],[data-index352-doc],[data-rc1315-print-qr]'):null;
+ if(target)repairContaminatedGoodsDescription();
+}
+d.addEventListener('click',rc1452DocumentActionRepair,true);
 function extendNativeSelector(nativeSelect){
  if(!nativeSelect)return null;
  SUPPORTED.forEach(function(code){

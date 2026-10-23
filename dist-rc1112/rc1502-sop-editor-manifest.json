@@ -1,0 +1,20 @@
+{
+  "version": "RC1502",
+  "baseBuilder": ".github/rc1501/build-three-env.mjs",
+  "assets": [
+    "assets/sop/rc1502-sop-visuals.js",
+    "assets/sop/rc1502-sop-screenshot-manifest.js",
+    "assets/sop/rc1502-sop-editor.js",
+    "assets/sop/rc1502-sop-target-picker-ui.js",
+    "assets/sop/rc1502-sop-persistence.js",
+    "assets/sop/rc1502-sop-editor.css"
+  ],
+  "entries": [
+    "index.html",
+    "TESTVERSION.html",
+    "demo.html"
+  ],
+  "editorPersistence": "confirmed-shared-state-flush",
+  "releasedVersions": "immutable",
+  "targetPicker": "stable-data-tour-key-only"
+}

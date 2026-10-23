@@ -1,0 +1,150 @@
+(()=>{
+'use strict';
+if(window.__EXPORTHUB_ENVIRONMENT_HUB__)return;
+window.__EXPORTHUB_ENVIRONMENT_HUB__=true;
+
+function currentEnvironment(){
+  if(window.__EXPORTHUB_DEMO_MODE__===true||/\/demo\.html(?:$|[?#])/i.test(location.href))return'demo';
+  if(String(location.hostname||'').toLowerCase().includes('-testservice.'))return'testservice';
+  return'production';
+}
+
+function tr(key,vars,fallback){try{if(window.ExportHUBI18n&&typeof window.ExportHUBI18n.t==='function'){const v=window.ExportHUBI18n.t(key,vars);if(v&&v!==key)return v}}catch(_){}return fallback||key;}
+function textOf(selectors){for(const s of selectors){const el=document.querySelector(s);if(el&&String(el.textContent||'').trim())return String(el.textContent||'').trim();}return'';}
+function countOf(selectors){const txt=textOf(selectors);const m=txt.match(/\d+/);return m?Number(m[0]):0;}
+function sendAndroid(payload){
+  if(!payload||!window.ExportHUBAndroid||typeof window.ExportHUBAndroid.notify!=='function')return false;
+  const env=currentEnvironment();
+  const storageKey=`exporthub-native-notify:${env}:${payload.channel}`;
+  const sig=String(payload.key||'')+'|'+String(payload.body||'');let prev='';try{prev=sessionStorage.getItem(storageKey)||''}catch(_){ }
+  if(prev===sig)return false;
+  try{window.ExportHUBAndroid.notify(payload.channel,payload.key,payload.title,payload.body,payload.route);sessionStorage.setItem(storageKey,sig);return true}catch(_){return false}
+}
+function notifyAndroid(){
+  if(!androidBridgeReady())return false;
+  // Task reminders are task-specific and are delivered only by the RC1014
+  // snapshot -> native ReminderReceiver path. A notification-center count is
+  // not actionable and must never create a generic Android task push.
+  const warningCount=countOf(['[data-rc885-warning-count]','#rc885WarningCount','#rc885WarningDrawer [data-count]','.rc885-warning-count']);
+  if(warningCount>0)sendAndroid({channel:'warning',key:`warnings:${warningCount}`,title:tr('android.warningsTitle',null,'ExportHUB Warning Center'),body:tr(warningCount===1?'android.warningOpenOne':'android.warningOpenMany',{count:warningCount},warningCount+' operational shipment warning(s) open.'),route:'warnings'});
+}
+function diagnosticMarkerKey(){return `exporthub-native-diagnostic-last:${currentEnvironment()}`;}
+function readDiagnosticMarker(){
+  try{const raw=localStorage.getItem(diagnosticMarkerKey());if(!raw)return null;const parsed=JSON.parse(raw);return parsed&&typeof parsed==='object'?parsed:null}catch(_){return null}
+}
+function writeDiagnosticMarker(record,cloud){
+  if(!record)return false;
+  let id=String(record.id||'').trim();
+  if(!id){
+    let deviceId='';try{const status=cloud&&typeof cloud.status==='function'?cloud.status():null;deviceId=String(status&&status.deviceId||'').trim()}catch(_){ }
+    const seq=Number(record.seq||0),at=String(record.at||record.lastAt||'').trim();
+    if(deviceId&&seq&&at)id=`${deviceId}|${seq}|${at}`;
+  }
+  const atText=String(record.lastAt||record.at||'').trim();
+  const at=Date.parse(atText)||Date.now();
+  try{localStorage.setItem(diagnosticMarkerKey(),JSON.stringify({id,at,atText}));return true}catch(_){return false}
+}
+function diagnosticPayload(record,count=1){
+  const rec=record||{};
+  const area=String(rec.area||'System').replace(/\s+/g,' ').trim().slice(0,80);
+  const message=String(rec.message||tr('android.diagnosticTechnicalNotice',null,'Technical ExportHUB notice')).replace(/\s+/g,' ').trim().slice(0,260);
+  const id=String(rec.id||`diag:${Number(rec.seq||0)}:${String(rec.category||'diagnostics')}:${area}`);
+  const at=String(rec.lastAt||rec.at||'').trim();
+  const base=count>1?tr('android.diagnosticEvents',{count,area,message},count+' new diagnostic events. Latest '+area+': '+message):tr('android.diagnosticLast',{area,message},area+': '+message);
+  const body=at?base+'\n'+tr('android.time',{time:at},'Time: '+at):base;
+  return {channel:'diagnostic',key:id,title:tr('android.diagnosticTitle',null,'ExportHUB Diagnostics'),body,route:'diagnostics'};
+}
+function notifyDiagnostic(event){
+  const cloud=window.ExportHUBDiagnosticsCloud864;
+  if(!cloud||typeof cloud.isGlobalAdmin!=='function'||!cloud.isGlobalAdmin())return false;
+  const detail=event&&event.detail||{};
+  const level=String(detail.level||'').toLowerCase();
+  if(level!=='error'&&level!=='warning')return false;
+  const store=window.__EXPORTHUB_DIAG863_STORE__;
+  const records=store&&Array.isArray(store.records)?store.records:[];
+  const rec=records.length?records[records.length-1]:null;
+  if(!rec)return false;
+  const sent=sendAndroid(diagnosticPayload(rec,1));
+  if(sent)writeDiagnosticMarker(rec,cloud);
+  return sent;
+}
+async function pollCentralDiagnostics(force){
+  if(!window.ExportHUBAndroid||typeof window.ExportHUBAndroid.notify!=='function')return false;
+  if(!force&&document.hidden)return false;
+  const cloud=window.ExportHUBDiagnosticsCloud864;
+  if(!cloud||typeof cloud.isGlobalAdmin!=='function'||!cloud.isGlobalAdmin()||typeof cloud.refresh!=='function'||typeof cloud.recentRecords!=='function')return false;
+  try{await cloud.refresh(true)}catch(_){return false}
+  let rows=[];try{rows=cloud.recentRecords(120)||[]}catch(_){return false}
+  const critical=rows.filter(r=>{const level=String(r&&r.level||'').toLowerCase();return level==='error'||level==='warning'});
+  if(!critical.length)return false;
+  const marker=readDiagnosticMarker();
+  let fresh=[];
+  if(!marker){fresh=critical.slice(-1)}else{
+    const markerId=String(marker.id||'');
+    const idx=markerId?critical.findIndex(r=>String(r&&r.id||'')===markerId):-1;
+    if(idx>=0){
+      const matched=critical[idx],matchedAt=Date.parse(String(matched&&matched.lastAt||matched&&matched.at||''))||0;
+      fresh=matchedAt>Number(marker.at||0)?critical.slice(idx):critical.slice(idx+1);
+    }else fresh=critical.filter(r=>(Date.parse(String(r&&r.lastAt||r&&r.at||''))||0)>Number(marker.at||0));
+  }
+  if(!fresh.length)return false;
+  const latest=fresh[fresh.length-1];
+  const sent=sendAndroid(diagnosticPayload(latest,fresh.length));
+  if(sent)writeDiagnosticMarker(latest,cloud);
+  return sent;
+}
+function requestedRouteSpec(){
+  let raw='';try{raw=String(new URLSearchParams(location.search).get('ehRoute')||'').trim()}catch(_){return null}
+  if(!raw||raw.length>260)return null;
+  const split=raw.indexOf(':');
+  const route=(split>=0?raw.slice(0,split):raw).trim().toLowerCase();
+  const taskId=split>=0?raw.slice(split+1).trim():'';
+  if(!/^[a-z0-9_-]{1,40}$/.test(route))return null;
+  if(taskId&&(route!=='tasks'||!/^[A-Za-z0-9_.:@-]{1,200}$/.test(taskId)))return null;
+  return {route,taskId};
+}
+function openTaskCard(taskId){
+  if(!taskId)return true;
+  const nodes=document.querySelectorAll('[data-task-id]');
+  for(const node of nodes){
+    if(String(node.getAttribute('data-task-id')||'')!==taskId)continue;
+    if(typeof node.click!=='function')return false;
+    node.click();
+    return true;
+  }
+  return false;
+}
+function openRequestedRoute(){
+  const spec=requestedRouteSpec();if(!spec)return false;
+  let tries=0,routeOpened=false;
+  const open=()=>{
+    if(!routeOpened){
+      if(!(window.ExportHUBRC325&&typeof window.ExportHUBRC325.route==='function'))return false;
+      try{routeOpened=window.ExportHUBRC325.route(spec.route,'android-notification')!==false}catch(_){return false}
+    }
+    if(!routeOpened)return false;
+    return spec.taskId?openTaskCard(spec.taskId):true;
+  };
+  if(open())return true;
+  const retry=()=>{if(open())return;if(++tries<24)setTimeout(retry,250)};
+  setTimeout(retry,50);
+  return true;
+}
+function androidBridgeReady(){return !!(window.ExportHUBAndroid&&typeof window.ExportHUBAndroid.notify==='function')}
+function installNotificationBridge(){
+  let timer=0,diagnosticTimer=0;
+  const schedule=()=>{if(!androidBridgeReady())return false;clearTimeout(timer);timer=setTimeout(notifyAndroid,180);return true};
+  const scheduleDiagnostics=(delay=4000,force=false)=>{if(!androidBridgeReady())return false;clearTimeout(diagnosticTimer);diagnosticTimer=setTimeout(async()=>{await pollCentralDiagnostics(force);scheduleDiagnostics(60000,false)},delay);return true};
+  ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:notifications-updated','exporthub:warnings-updated'].forEach(n=>window.addEventListener(n,schedule));
+  window.addEventListener('exporthub:diagnostic',notifyDiagnostic);
+  window.addEventListener('focus',()=>scheduleDiagnostics(1200,true));
+  window.addEventListener('online',()=>scheduleDiagnostics(1200,true));
+  if(androidBridgeReady()&&document.documentElement&&window.MutationObserver){const mo=new MutationObserver(schedule);mo.observe(document.documentElement,{subtree:true,childList:true,characterData:true});}
+  schedule();
+  scheduleDiagnostics(4000,true);
+}
+
+document.documentElement.setAttribute('data-exporthub-environment',currentEnvironment());
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{installNotificationBridge();openRequestedRoute();},{once:true});else{installNotificationBridge();openRequestedRoute();}
+window.ExportHUBEnvironmentHub=Object.freeze({current:currentEnvironment});
+})();

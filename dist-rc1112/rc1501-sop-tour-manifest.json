@@ -1,0 +1,22 @@
+{
+  "version": "RC1501",
+  "baseBuilder": ".github/rc1112/build-three-env.mjs",
+  "assets": [
+    "assets/sop/rc1500-sop-step-contract.js",
+    "assets/sop/rc1500-sop-overlay.js",
+    "assets/sop/rc1500-sop-context.js",
+    "assets/sop/rc1501-sop-tour-catalog.js",
+    "assets/sop/rc1501-sop-tour-validator.js",
+    "assets/sop/rc1501-sop-tour-targets.js",
+    "assets/sop/rc1501-sop-tour-engine.js",
+    "assets/sop/rc1501-sop-tour-ui.js",
+    "assets/sop/rc1501-sop-tour-runtime.js",
+    "assets/sop/rc1501-sop-tour.css"
+  ],
+  "entries": [
+    "index.html",
+    "TESTVERSION.html",
+    "demo.html"
+  ],
+  "productiveActions": "observed-not-invoked"
+}

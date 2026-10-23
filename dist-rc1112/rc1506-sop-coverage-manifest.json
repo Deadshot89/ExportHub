@@ -1,0 +1,22 @@
+{
+  "version": "RC1506",
+  "baseBuilder": ".github/rc1503/build-three-env.mjs",
+  "assets": [
+    "assets/sop/rc1505-sop-function-registry.js",
+    "assets/sop/rc1505-sop-coverage.js",
+    "assets/sop/rc1506-sop-coverage-dashboard.js",
+    "assets/sop/rc1506-sop-coverage-runtime.js",
+    "assets/sop/rc1506-sop-coverage-dashboard.css"
+  ],
+  "entries": [
+    "index.html",
+    "TESTVERSION.html",
+    "demo.html"
+  ],
+  "coverageMode": "static-metadata-by-default",
+  "dashboard": "admin-read-only",
+  "statusSource": "RC1505-only",
+  "customerFilter": "coverage-context-not-denominator",
+  "shipmentRepairAccess": "RC1534",
+  "productionDeploy": false
+}

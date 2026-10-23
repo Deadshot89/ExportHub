@@ -1,0 +1,6 @@
+{
+  "purpose": "trigger-testservice-deploy",
+  "requestedFrontendVersion": "RC963",
+  "requiredStateApiVersion": "RC931",
+  "requestedAt": "2026-09-02"
+}

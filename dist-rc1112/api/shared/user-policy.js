@@ -1,0 +1,239 @@
+'use strict';
+const MODULES = [
+  'start','dashboard','tasks','vacation','planning','shipment','abd','shipmentoverview',
+  'cmr','documents','pallet','customers','customerfolder','calculator','shippingcosts','customs','sop',
+  'academy','ideas','notifications','reports','update','rights','teamfile','archive','history','settings','pickupcalendar'
+];
+
+const LEGACY_EXPORT_RIGHTS_REPAIR_VERSION = 'RC1525';
+const LEGACY_SEVASTIAN_OPERATIONAL_EDIT_MODULES = new Set([
+  'tasks','vacation','planning','shipment','abd','shipmentoverview','cmr','documents','pallet',
+  'customers','customerfolder','calculator','shippingcosts','customs','sop','academy','ideas',
+  'notifications','reports','teamfile','archive','pickupcalendar'
+]);
+
+function clone(value) { return value === undefined ? undefined : JSON.parse(JSON.stringify(value)); }
+function text(value) { return String(value == null ? '' : value).trim(); }
+function lower(value) { return text(value).toLowerCase(); }
+function userName(user) { return lower(user && (user.user || user.login || user.username || user.name)); }
+function normalizeLanguage(value) {
+  const match = lower(value).replace('_', '-').match(/^(de|en|pl|es|fr|it)(?:-|$)/);
+  return match ? match[1] : 'de';
+}
+
+const GLOBAL_ADMIN_ROLES = new Set(['global admin','global administrator','globaler administrator','globaler admin','administrator','admin','vollzugriff']);
+
+function isAdmin(user) {
+  const role = lower(user && (user.role || user.rolle));
+  return Boolean(user && (
+    user.globalAdmin === true ||
+    user.isGlobalAdmin === true ||
+    GLOBAL_ADMIN_ROLES.has(role) ||
+    (Array.isArray(user.permissions) && user.permissions.includes('*'))
+  ));
+}
+
+function isPrivilegedUser(user) {
+  if (isAdmin(user)) return true;
+  const rights = user && user.rights && typeof user.rights === 'object' ? user.rights : {};
+  return Object.values(rights).some((right) => right && typeof right === 'object' && (
+    right.admin === true || right.functionAdmin === true || right.level === 'admin' || right.manage === true
+  ));
+}
+
+function hasAnyEditRight(rights) {
+  return Object.values(rights && typeof rights === 'object' ? rights : {}).some((right) => right && typeof right === 'object' && (
+    right.edit === true || right.admin === true || right.functionAdmin === true ||
+    lower(right.level || right.access) === 'edit' || lower(right.level || right.access) === 'admin'
+  ));
+}
+
+function repairLegacySevastianExportRights(user) {
+  const source = user && typeof user === 'object' ? user : {};
+  if (userName(source) !== 'sevastian' || lower(source.role || source.rolle) !== 'export') return source;
+  if (text(source.rightsRepairVersion) === LEGACY_EXPORT_RIGHTS_REPAIR_VERSION) return source;
+  if (hasAnyEditRight(source.rights)) return source;
+
+  const rights = source.rights && typeof source.rights === 'object' ? Object.assign({}, source.rights) : {};
+  for (const id of LEGACY_SEVASTIAN_OPERATIONAL_EDIT_MODULES) {
+    rights[id] = {
+      level: 'edit',
+      visible: true,
+      read: true,
+      edit: true,
+      admin: false,
+      functionAdmin: false
+    };
+  }
+  source.rights = rights;
+  source.rightsRepairVersion = LEGACY_EXPORT_RIGHTS_REPAIR_VERSION;
+  return source;
+}
+
+function normalizeCustomerPortalRights(value, admin) {
+  const source = value && typeof value === 'object' ? value : {};
+  const manage = admin || source.manage === true;
+  return { use: admin || source.use === true || manage, manage };
+}
+
+function defaultRights(admin) {
+  const result = {};
+  for (const id of MODULES) {
+    const allow = admin || id === 'start' || id === 'dashboard' || id === 'pickupcalendar';
+    result[id] = {
+      level: admin ? 'admin' : (allow ? 'view' : 'none'),
+      visible: allow,
+      read: allow,
+      edit: admin,
+      admin: admin,
+      functionAdmin: admin
+    };
+  }
+  result.rights = {
+    level: admin ? 'admin' : 'none', visible: !!admin, read: !!admin,
+    edit: !!admin, admin: !!admin, functionAdmin: !!admin
+  };
+  result.customerPortal = normalizeCustomerPortalRights({}, admin);
+  return result;
+}
+
+function normalizeLevel(old, fallback) {
+  const raw = lower(old && (old.level || old.access));
+  if (['none','view','edit','admin'].includes(raw)) return raw;
+  if (old && (old.admin === true || old.functionAdmin === true)) return 'admin';
+  if (old && old.edit === true) return 'edit';
+  if (old && (old.read === true || old.visible === true)) return 'view';
+  return fallback;
+}
+
+function normalizeRights(value, admin) {
+  const source = value && typeof value === 'object' ? value : {};
+  const result = {};
+  for (const id of MODULES) {
+    const old = source[id] && typeof source[id] === 'object' ? source[id] : {};
+    const fallback = admin ? 'admin' : ((id === 'start' || id === 'dashboard' || id === 'pickupcalendar') ? 'view' : 'none');
+    const level = admin ? 'admin' : normalizeLevel(old, fallback);
+    result[id] = {
+      level,
+      visible: level !== 'none',
+      read: level !== 'none',
+      edit: level === 'edit' || level === 'admin',
+      admin: level === 'admin',
+      functionAdmin: level === 'admin'
+    };
+  }
+  result.customerPortal = normalizeCustomerPortalRights(source.customerPortal, admin);
+  return result;
+}
+
+function normalizeUser(user, index) {
+  const source = user && typeof user === 'object' ? clone(user) : {};
+  const login = text(source.user || source.login || source.username || source.name) || `Benutzer${index + 1}`;
+  const admin = isAdmin(source);
+  source.id = text(source.id || source._syncId) || `USER-${login.replace(/[^A-Za-z0-9_-]/g, '-')}`;
+  source.user = login;
+  source.login = login;
+  source.username = login;
+  source.name = text(source.name) || login;
+  source.language = normalizeLanguage(source.language || source.uiLanguage || source.locale);
+  source.globalAdmin = admin;
+  source.role = admin ? 'Globaler Administrator' : (text(source.role) || 'Benutzer');
+  source.permissions = admin ? ['*'] : (Array.isArray(source.permissions) ? source.permissions.filter((x) => x !== '*') : []);
+  repairLegacySevastianExportRights(source);
+  source.rights = normalizeRights(source.rights, admin);
+  source.active = source.active !== false && source.disabled !== true && source.status !== 'Deaktiviert';
+  source.disabled = !source.active;
+  source.authVersion = Number(source.authVersion || 0);
+  source.loginSecurity = source.loginSecurity && typeof source.loginSecurity === 'object' ? source.loginSecurity : { failedAttempts: 0, stage: 'first', lockedUntil: null, permanentLocked: false };
+  // RC1256: MFA ist deaktiviert; Altbestände werden bei der nächsten Normalisierung entfernt.
+  delete source.mfa;
+  return source;
+}
+
+function dedupeUsers(users) {
+  const map = new Map();
+  (Array.isArray(users) ? users : []).forEach((user, index) => {
+    const normalized = normalizeUser(user, index);
+    const key = userName(normalized);
+    if (!key) return;
+    const current = map.get(key);
+    const currentTs = Date.parse(current && (current.updatedAt || current._syncUpdatedAt) || '') || 0;
+    const nextTs = Date.parse(normalized.updatedAt || normalized._syncUpdatedAt || '') || 0;
+    if (!current || nextTs >= currentTs) map.set(key, normalized);
+  });
+  return Array.from(map.values());
+}
+
+function ensureInitialAdmin(users) {
+  if (users.length) return users;
+  return [normalizeUser({
+    id: 'USER-Tobias', user: 'Tobias', name: 'Tobias',
+    role: 'Globaler Administrator', globalAdmin: true, permissions: ['*'],
+    rights: defaultRights(true), mustChange: true, authSetupRequired: true,
+    active: true, createdAt: new Date().toISOString()
+  }, 0)];
+}
+
+function publicUser(user, adminView = false) {
+  const u = normalizeUser(user || {}, 0);
+  const out = {
+    id: u.id,
+    user: u.user,
+    login: u.login,
+    username: u.username,
+    name: u.name,
+    language: u.language || 'de',
+    role: u.role,
+    globalAdmin: u.globalAdmin === true,
+    permissions: clone(u.permissions || []),
+    rights: clone(u.rights || {}),
+    active: u.active !== false,
+    disabled: u.disabled === true,
+    mustChange: u.mustChange === true,
+    createdAt: u.createdAt || null,
+    updatedAt: u.updatedAt || u._syncUpdatedAt || null
+  };
+  if (adminView) {
+    out.loginSecurity = clone(u.loginSecurity || {});
+    out.passwordChangedAt = u.passwordChangedAt || null;
+    out.authVersion = Number(u.authVersion || 0);
+  }
+  return out;
+}
+
+// RC879: Nur der kleine Benutzerbereich wird normalisiert. Der große state-Block
+// wird nicht mehr per JSON.stringify/parse vollständig dupliziert. Bei großen
+// Teamständen (inkl. POD-/Dokumentdaten) reduziert das die Speicher-Spitzen des
+// Auth- und State-Backends deutlich, ohne Daten zu entfernen oder umzuschreiben.
+function applyUserPolicy(document) {
+  const input = document && typeof document === 'object' ? document : {};
+  const source = Object.assign({}, input);
+  const inputState = input.state && typeof input.state === 'object' ? input.state : {};
+  source.state = Object.assign({}, inputState);
+  const topUsers = Array.isArray(input.users) ? input.users : [];
+  const fallbackUsers = Array.isArray(inputState.users) ? inputState.users : [];
+  const users = ensureInitialAdmin(dedupeUsers(topUsers.length ? topUsers : fallbackUsers));
+  source.users = clone(users);
+  source.state.users = users.map((u) => publicUser(u, false));
+  return source;
+}
+
+function countAdmins(users) {
+  return (Array.isArray(users) ? users : []).filter((u) => isAdmin(u) && u.active !== false && u.disabled !== true).length;
+}
+
+module.exports = {
+  MODULES,
+  applyUserPolicy,
+  normalizeUser,
+  normalizeRights,
+  normalizeCustomerPortalRights,
+  repairLegacySevastianExportRights,
+  dedupeUsers,
+  isAdmin,
+  isPrivilegedUser,
+  countAdmins,
+  defaultRights,
+  publicUser,
+  normalizeLanguage
+};

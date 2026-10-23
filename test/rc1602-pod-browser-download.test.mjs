@@ -12,12 +12,15 @@ test('RC1602: canonical POD click handler registers as a capture listener before
   assert.doesNotMatch(source,/file=automatic&token=/,'Opening must never regenerate an automatic server PDF');
   assert.match(source,/dispatchStoredDocument/);
   assert.match(source,/RC1595/);
-  assert.doesNotMatch(source,/html2canvas|createPodBlob|pdfBase64/);
+  assert.doesNotMatch(source,/html2canvas|pdfBase64/);
+  // RC1630: the only renderer allowed is the Ladeliste & CMR POD renderer, and
+  // only after every stored original failed.
+  assert.match(source,/catch\(error\)\{pdf=await renderedPdf\(sh,error\)\}/);
   assert.match(builder,/injectImmediateRuntimeAfterHead\(html,RC1602_OFFICIAL_POD_SCRIPT_TAG/);
   assert.match(builder,/assets\/rc1602-official-pod-server-download\.js/);
 });
 
-function setup({withToken=true,status=200,withDocumentRow=false,withoutStoredFile=false,withSignedInline=false,serverManifestFiles=[],staleLocalId=false}={}){
+function setup({withToken=true,status=200,withDocumentRow=false,withoutStoredFile=false,withSignedInline=false,serverManifestFiles=[],staleLocalId=false,createPodBlob=null}={}){
   let click=null,called=[],alerts=[],urls=[],downloaded=[],popup=null,delegated=[];
   const sh={id:'id8',ref:'8LSUHW',pickupToken:withToken?'authorized-test-token':'',podFiles:withoutStoredFile?[]:[{id:'automatic-pod-test001',kind:'automatic-pod',renderLayout:'RC1595',name:'POD_8LSUHW_Ladeliste_unterschrieben.pdf'}]};
   if(withSignedInline)sh.podFiles.unshift({id:'signed-pod-original',kind:'signed-loadlist',name:'POD_8LSUHW_Ladeliste_mit_Unterschrift.pdf',dataUrl:'data:application/pdf;base64,'+Buffer.from('%PDF-1.7\\n'+'s'.repeat(1250)).toString('base64')});
@@ -33,7 +36,7 @@ function setup({withToken=true,status=200,withDocumentRow=false,withoutStoredFil
   const pdf=Buffer.from('%PDF-1.7\n'+'x'.repeat(1100));
   const window={
     __EXPORTHUB_GET_STATE__:()=>({shipments:[sh]}),
-    ExportHUBIndex240:{shipments:()=>[sh]},ExportHUBPickupPOD:{shipments:()=>[],syncOne:async()=>true},
+    ExportHUBIndex240:createPodBlob?{shipments:()=>[sh],createPodBlob}:{shipments:()=>[sh]},ExportHUBPickupPOD:{shipments:()=>[],syncOne:async()=>true},
     fetch:async(url,opts)=>{
       called.push({url,opts});
       const isStale=staleLocalId&&String(url).includes('file=automatic-pod-test001&');
@@ -176,4 +179,44 @@ test('RC1616: overview POD opens the existing signed PDF bytes without the docum
  assert.equal(x.called.some(c=>String(c.url).includes('file=automatic')),false);
  assert.ok(x.downloaded.includes('POD_8LSUHW_Ladeliste_unterschrieben.pdf'));
  assert.equal(x.alerts.length,0);
+});
+
+test('RC1630: overview POD without QR token uses the working Ladeliste & CMR POD renderer',async()=>{
+ const rendered=[];
+ const x=setup({withToken:false,createPodBlob:async(sh)=>{rendered.push(sh.ref);return{blob:new Blob([Buffer.from('%PDF-1.7\n'+'r'.repeat(1200))],{type:'application/pdf'}),name:'POD_8LSUHW_Ladeliste_mit_Unterschrift.pdf'}}});
+ x.click({target:{closest:()=>x.button},preventDefault(){},stopImmediatePropagation(){},stopPropagation(){}});
+ await new Promise(resolve=>setTimeout(resolve,20));
+ assert.deepEqual(rendered,['8LSUHW']);
+ assert.equal(x.called.length,0);
+ assert.equal(x.alerts.length,0);
+ assert.ok(x.downloaded.includes('POD_8LSUHW_Ladeliste_unterschrieben.pdf'));
+});
+
+test('RC1630: missing stored original falls back to the Ladeliste & CMR renderer instead of failing',async()=>{
+ const rendered=[];
+ const x=setup({withoutStoredFile:true,createPodBlob:async(sh)=>{rendered.push(sh.ref);return{blob:new Blob([Buffer.from('%PDF-1.7\n'+'r'.repeat(1200))],{type:'application/pdf'})}}});
+ x.click({target:{closest:()=>x.button},preventDefault(){},stopImmediatePropagation(){},stopPropagation(){}});
+ await new Promise(resolve=>setTimeout(resolve,20));
+ assert.match(x.called[0].url,/manifest=1/);
+ assert.deepEqual(rendered,['8LSUHW']);
+ assert.equal(x.alerts.length,0);
+ assert.ok(x.downloaded.includes('POD_8LSUHW_Ladeliste_unterschrieben.pdf'));
+});
+
+test('RC1630: stored original still wins over the renderer',async()=>{
+ const rendered=[];
+ const x=setup({createPodBlob:async()=>{rendered.push(true);return null}});
+ x.click({target:{closest:()=>x.button},preventDefault(){},stopImmediatePropagation(){},stopPropagation(){}});
+ await new Promise(resolve=>setTimeout(resolve,20));
+ assert.equal(rendered.length,0);
+ assert.equal(x.called[0].url,'/api/pickup-pod?file=automatic-pod-test001&token=authorized-test-token');
+ assert.equal(x.alerts.length,0);
+});
+
+test('RC1630: renderer refusal (no real signature) is reported, never swallowed',async()=>{
+ const x=setup({withToken:false,createPodBlob:async()=>{throw new Error('Es liegt noch kein echter POD mit digitaler Unterschrift vor.')}});
+ x.click({target:{closest:()=>x.button},preventDefault(){},stopImmediatePropagation(){},stopPropagation(){}});
+ await new Promise(resolve=>setTimeout(resolve,20));
+ assert.equal(x.alerts.length,1);
+ assert.match(x.alerts[0],/kein echter POD/);
 });

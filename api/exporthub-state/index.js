@@ -8,6 +8,7 @@ const { mergeState, sanitizeState, pruneTombstones, clone, isLocalOnlyKey } = re
 const { isTransientStorageWriteError } = require('../shared/state-save-retry');
 const { externalizeDocumentCollections, DOCUMENT_CONTAINER, DOCUMENT_FIELDS, legacyDocumentInventory } = require('../shared/document-blob-store');
 const { isAdmin, isPrivilegedUser } = require('../shared/user-policy');
+const { createVerifiedSnapshot } = require('../shared/state-backup-lifecycle');
 const { compactStateForStorage } = require('../shared/state-compaction');
 const { enrichDynamicTranslations, translationStatus, normalizeLanguage: normalizeDynamicLanguage } = require('../shared/dynamic-i18n');
 const apiI18n = require('../shared/i18n');
@@ -1074,6 +1075,12 @@ module.exports=async function(context,req){
    await validateSessionAuthOnly(req,payload,c);context.res=json(200,Object.assign({ok:true,metaOnly:true,serverVersion:API_VERSION,environment:c.environment,blob:c.teamBlobName},await metadataOnly(c.team)));return
   }
   const current=await validateSession(req,payload,c),blob=c.team;
+  if(mode==='task-migration-backup'){
+   if(req.method!=='POST')throw error('METHOD_NOT_ALLOWED','Task-Migrationsbackup ist nur per POST erlaubt.',405);
+   if(!isAdmin(current.user))throw error('ADMIN_REQUIRED','Nur Administratoren dürfen ein Task-Migrationsbackup erstellen.',403);
+   const snapshot=await createVerifiedSnapshot(c.container,{environment:c.environment,tier:'daily',at:new Date(),current:current.team});
+   context.res=json(200,{ok:true,taskMigrationBackup:true,environment:c.environment,revision:Number(current.team&&current.team.revision||0),backupBlob:snapshot.backupBlob,backupVerified:snapshot.backupVerified===true,backupReadBackVerified:snapshot.backupReadBackVerified===true,sha256:snapshot.sha256,bytes:snapshot.bytes,serverVersion:API_VERSION});return
+  }
   if(mode==='i18n-status'){
    if(!isAdmin(current.user))throw error('ADMIN_REQUIRED','api.state.i18nStatusAdmin',403);
    context.res=json(200,{ok:true,version:'RC1267',environment:c.environment,translation:translationStatus(current.team&&current.team.state||{})});return

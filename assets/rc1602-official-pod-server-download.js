@@ -173,6 +173,17 @@ async function canonicalPdf(sh){
   return exactStoredPdf(tok,alternate)
  }
 }
+// RC1630: If no stored original is reachable (missing QR token, no verified
+// server file), use the same renderer as the working "POD als PDF
+// herunterladen" action under Ladeliste & CMR. It still requires a real
+// digital signature and never fabricates one.
+async function renderedPdf(sh,cause){
+ var docs=w.ExportHUBIndex240;
+ if(!docs||typeof docs.createPodBlob!=='function')throw cause;
+ var out=await docs.createPodBlob(sh);
+ if(!out||!out.blob||out.blob.size<1000)throw Error(t('empty'));
+ return out.blob
+}
 function fileName(sh){return 'POD_'+(refOf(sh)||t('fallback'))+'_Ladeliste_unterschrieben.pdf'}
 function openPdf(blob,sh,mode,popup){
  var href=URL.createObjectURL(blob);
@@ -196,7 +207,9 @@ async function handle(button){
   if(saved){openPdf(saved,sh,mode,popup);return}
   var qr=w.ExportHUBPickupPOD;
   if(qr&&typeof qr.syncOne==='function')try{await qr.syncOne(sh,true)}catch(_){}
-  var pdf=await canonicalPdf(sh);
+  var pdf;
+  try{pdf=await canonicalPdf(sh)}
+  catch(error){pdf=await renderedPdf(sh,error)}
   openPdf(pdf,sh,mode,popup)
  }catch(e){
   if(popup&&!popup.closed)popup.close();
@@ -211,5 +224,5 @@ d.addEventListener('click',function(e){
  e.preventDefault();e.stopImmediatePropagation();e.stopPropagation();
  handle(button);
 },true);
-w.ExportHUBRC1602OfficialPOD=Object.freeze({version:'RC1616',selector:SELECTOR,canonicalPdf:canonicalPdf,dispatchStoredDocument:dispatchStoredDocument,storedSignedBlob:storedSignedBlob,originalFile:originalFile});
+w.ExportHUBRC1602OfficialPOD=Object.freeze({version:'RC1630',selector:SELECTOR,canonicalPdf:canonicalPdf,renderedPdf:renderedPdf,dispatchStoredDocument:dispatchStoredDocument,storedSignedBlob:storedSignedBlob,originalFile:originalFile});
 })(window,document);

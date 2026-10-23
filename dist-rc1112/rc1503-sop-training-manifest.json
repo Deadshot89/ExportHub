@@ -1,0 +1,22 @@
+{
+  "version": "RC1503",
+  "baseBuilder": ".github/rc1502/build-three-env.mjs",
+  "assets": [
+    "assets/sop/rc1503-sop-training.js",
+    "assets/sop/rc1503-sop-training.css",
+    "assets/sop/rc1503-sop-exam.js",
+    "assets/sop/rc1503-sop-exam.css",
+    "assets/sop/rc1503-sop-progress.js"
+  ],
+  "entries": [
+    "index.html",
+    "TESTVERSION.html",
+    "demo.html"
+  ],
+  "trainingEnvironment": "demo-only",
+  "examEnvironment": "demo-only",
+  "productiveEffects": "simulation-only",
+  "trainingBeforeTourRuntime": true,
+  "examBeforeTourRuntime": true,
+  "progressBeforeTourRuntime": true
+}
