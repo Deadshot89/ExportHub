@@ -13,7 +13,7 @@ const now=new Date();
 const iso=(days=0,h=10)=>{const d=new Date(now);d.setDate(d.getDate()+days);d.setHours(h,0,0,0);return d.toISOString();};
 const demoUser={id:'DEMO-USER-1',user:'demo.admin',login:'demo.admin',username:'demo.admin',name:'Demo Administrator',role:'Globaler Administrator',globalAdmin:true,permissions:['*'],rights:{},active:true,status:'Aktiv',mustChange:false};
 const customers=[
-  {id:'DEMO-CUST-1001',customerNumber:'D1001',account:'D1001',name:'Fake Kunde Nord GmbH',country:'DE',address:'Musterstraße 12, 40210 Düsseldorf, Deutschland',email:'demo-nord@example.invalid',locations:[{id:'DEMO-LOC-1',name:'Zentrallager Düsseldorf',address:'Musterstraße 12, 40210 Düsseldorf, Deutschland',country:'DE'}]},
+  {id:'DEMO-CUST-1001',customerNumber:'D1001',account:'D1001',name:'Fake Kunde Nord GmbH',country:'DE',address:'Musterstraße 12, 40210 Düsseldorf, Deutschland',email:'demo-nord@example.invalid',portalName:'Fake Speditionsportal Nord',portalUrl:'https://example.invalid/fake-portal-nord',locations:[{id:'DEMO-LOC-1',name:'Zentrallager Düsseldorf',address:'Musterstraße 12, 40210 Düsseldorf, Deutschland',country:'DE'}]},
   {id:'DEMO-CUST-1002',customerNumber:'D1002',account:'D1002',name:'Fake Kunde Benelux B.V.',country:'NL',address:'Voorbeeldweg 8, 5911 AA Venlo, Niederlande',email:'demo-benelux@example.invalid',locations:[{id:'DEMO-LOC-2',name:'Warehouse Venlo',address:'Voorbeeldweg 8, 5911 AA Venlo, Niederlande',country:'NL'}]},
   {id:'DEMO-CUST-1003',customerNumber:'D1003',account:'D1003',name:'Essentra Components Sweden AB · Fake Export Ltd.',country:'GB',address:'1 Demo Park, Birmingham B1 1AA, United Kingdom',email:'demo-export@example.invalid',locations:[{id:'DEMO-LOC-3',name:'Birmingham DC',address:'1 Demo Park, Birmingham B1 1AA, United Kingdom',country:'GB'}]}
 ];
@@ -27,6 +27,17 @@ const tasks=[
   {id:'DEMO-TASK-2',title:'ABD für DEMO03 prüfen',name:'ABD für DEMO03 prüfen',status:'Offen',priority:'Hoch',dueAt:iso(0,12),linkedShipmentRef:'DEMO03',linkedCustomer:'Essentra Components Sweden AB · Fake Export Ltd.',assignedTo:'Demo Administrator'},
   {id:'DEMO-TASK-3',title:'Ladeliste DEMO02 vorbereiten',name:'Ladeliste DEMO02 vorbereiten',status:'Offen',priority:'Normal',dueAt:iso(1,9),linkedShipmentRef:'DEMO02',linkedCustomer:'Fake Kunde Benelux B.V.',assignedTo:'Demo Administrator'}
 ];
+// RC1660: fake customer SOP so "SOP öffnen" and the click simulation can be tried in the demo.
+const customSops=[
+  {id:'DEMO-SOP-NORD',title:'Fake Kunde Nord · Kunden-SOP',type:'Kunde',account:'D1001',customerName:'Fake Kunde Nord GmbH',portal:'Fake Speditionsportal Nord',portalUrl:'https://example.invalid/fake-portal-nord',steps:[
+    {title:'Im Speditionsportal anmelden',text:'Fake Speditionsportal Nord öffnen und mit dem Demo-Zugang anmelden.'},
+    {title:'Kundennummer eintragen',text:'Kundennummer D1001 in das Feld Kundennummer eintragen.'},
+    {title:'Abholort auswählen',text:'Als Abholort das Zentrallager Düsseldorf auswählen.'},
+    {title:'Colli und Gewicht eintragen',text:'Anzahl der Colli und das Gesamtgewicht aus der Sendung übernehmen.'},
+    {title:'Lieferschein prüfen',text:'Lieferscheinnummer mit der Sendungsreferenz vergleichen.'},
+    {title:'Transportauftrag speichern',text:'Transportauftrag speichern und die Bestätigung im Sendungsordner ablegen.'}
+  ]}
+];
 const notifications=[
   {id:'DEMO-NOTICE-1',type:'Aufgabe',title:'Fake Aufgabe fällig',message:'ABD für DEMO03 prüfen',createdAt:iso(0,9),read:false},
   {id:'DEMO-NOTICE-2',type:'Aufgabe',title:'Fake Abholerinnerung',message:'DEMO01 ist heute zur Abholung geplant.',createdAt:iso(0,9),read:false}
@@ -36,7 +47,7 @@ const warnings=[
   {id:'DEMO-WARN-2',type:'Abholung',title:'Fake Warnung: Abholung heute',message:'DEMO01 ist bereit zur Abholung.',shipmentRef:'DEMO01',severity:'mittel'}
 ];
 let state={
-  customers,shipments,savedShipments:shipments,tasks,notifications,warnings,
+  customers,shipments,savedShipments:shipments,tasks,notifications,warnings,customSops,
   currentUser:demoUser,activeUser:demoUser,
   _exporthubEnvironment:{name:'demo',isolated:true,seededAt:new Date().toISOString(),fakeData:true},
   notificationCenter:{items:notifications,unread:notifications.length},
