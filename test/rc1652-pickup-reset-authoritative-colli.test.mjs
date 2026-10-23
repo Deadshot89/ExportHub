@@ -38,7 +38,7 @@ function fixture(input){
  get record(){return record},get writes(){return writes},get mutations(){return mutations}};
 }
 const confirmed=()=>({
- accessKey:'a'.repeat(64),environment:'production',shipmentId:'ID-1',reference:'ETJUHL',
+ accessKey:'a'.repeat(64),environment:'production',shipmentId:'ID-1',reference:'ABC123',
  rows:[{count:2}],expectedColliCount:2,status:'confirmed',complete:true,
  confirmedAt:'2026-10-22T10:20:00Z',pickupHistory:[{sequence:2,confirmedAt:'2026-10-22T10:20:00Z',signatureBlobName:'original-sig.png',colliCount:2}],
  pickupSequence:2,signatureBlobName:'original-sig.png',podFiles:[{id:'pod1',blobName:'original-pod.pdf',hash:'proofhash'}],collectedPickupCollis:2
@@ -46,7 +46,7 @@ const confirmed=()=>({
 
 test('P0: locked shipment with no editor colli rows resets using stored authoritative quantity',async()=>{
  const f=fixture(confirmed());
- const result=await f.run({shipment:{id:'ID-1',reference:'ETJUHL'},resetPickup:true,resetReason:'Unbestätigter Fehlscan'});
+ const result=await f.run({shipment:{id:'ID-1',reference:'ABC123'},resetPickup:true,resetReason:'Unbestätigter Fehlscan'});
  assert.equal(result.status,200);
  assert.equal(f.record.status,'open');
  assert.equal(f.record.remainingPickupCollis,2);
@@ -58,7 +58,7 @@ test('P0: locked shipment with no editor colli rows resets using stored authorit
 
 test('P0: missing original QR record fails closed rather than creating false successful reset',async()=>{
  const f=fixture(null);
- const result=await f.run({shipment:{id:'ID-1',reference:'ETJUHL'},resetPickup:true});
+ const result=await f.run({shipment:{id:'ID-1',reference:'ABC123'},resetPickup:true});
  assert.equal(result.status,409);
  assert.equal(result.body.code,'PICKUP_RESET_RECORD_NOT_FOUND');
  assert.equal(f.writes,0);assert.equal(f.mutations,0);
@@ -67,7 +67,7 @@ test('P0: missing original QR record fails closed rather than creating false suc
 test('P0: a different QR record cannot be accidentally reset for this shipment',async()=>{
  const record=confirmed();record.reference='ANOTHER';
  const f=fixture(record);
- const result=await f.run({shipment:{id:'ID-1',reference:'ETJUHL'},resetPickup:true});
+ const result=await f.run({shipment:{id:'ID-1',reference:'ABC123'},resetPickup:true});
  assert.equal(result.status,409);
  assert.equal(result.body.code,'PICKUP_RESET_REFERENCE_MISMATCH');
  assert.equal(f.record.status,'confirmed');
@@ -76,7 +76,7 @@ test('P0: a different QR record cannot be accidentally reset for this shipment',
 
 test('P0: regular new QR initialization still requires colli rows',async()=>{
  const f=fixture(null);
- const result=await f.run({shipment:{id:'ID-1',reference:'ETJUHL'}});
+ const result=await f.run({shipment:{id:'ID-1',reference:'ABC123'}});
  assert.equal(result.status,400);
  assert.equal(result.body.code,'COLLI_REQUIRED');
  assert.equal(f.writes,0);
