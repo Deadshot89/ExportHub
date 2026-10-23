@@ -1,4 +1,5 @@
 import {expect} from '@playwright/test';
+import {stateReadErrorCodeFromResponse} from './rc1657-state-read-error-diagnostics.mjs';
 
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const SOURCE_LEAK_PATTERNS=[
@@ -350,7 +351,7 @@ export async function assertNoHorizontalOverflow(page,tolerance=4){
 }
 
 export function attachRuntimeGuards(page,testInfo){
-  const state={pageErrors:[],consoleErrors:[],requestFailures:[],httpErrors:[]};
+  const state={pageErrors:[],consoleErrors:[],requestFailures:[],httpErrors:[],pendingHttpDetails:[]};
   const allowConsole=[
     /favicon\.ico/i,
     /Failed to load resource.*(?:400|401|403|404|410)/i
@@ -382,7 +383,14 @@ export function attachRuntimeGuards(page,testInfo){
     const coreAsset=['document','script','stylesheet'].includes(type);
     const serverFailure=status>=500&&['xhr','fetch'].includes(type);
     if(!coreAsset&&!serverFailure)return;
-    state.httpErrors.push(`${status} ${request.method()} ${clean(response.url())}`);
+    const errorIndex=state.httpErrors.push(`${status} ${request.method()} ${clean(response.url())}`)-1;
+    if(serverFailure){
+      // Keep the same strict 5xx release failure; enrich it solely with the
+      // allowlisted API error code, never response messages or customer data.
+      state.pendingHttpDetails.push(stateReadErrorCodeFromResponse(response).then(code=>{
+        if(code)state.httpErrors[errorIndex]+=` · apiCode=${code}`;
+      }).catch(()=>{}));
+    }
   });
   state.test=testInfo?.title||'';
   state.project=testInfo?.project?.name||'';
@@ -428,6 +436,7 @@ export function acknowledgeReadStateNavigationAbort(state){
 }
 
 export async function assertRuntimeClean(state,testInfo){
+  await Promise.allSettled(state.pendingHttpDetails||[]);
   const payload={
     test:state.test,
     project:state.project,
