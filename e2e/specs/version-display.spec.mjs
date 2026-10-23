@@ -93,3 +93,31 @@ test('RC1298: Login ist kompakt, eindeutig und produktiv als ExportHUB360 gebran
   await assertNoHorizontalOverflow(page);
   if(process.env.EXPORTHUB_E2E_STATIC!=='1')await assertRuntimeClean(runtime,testInfo);
 });
+
+
+test('RC1630: Login redesign is responsive and preserves language and credential controls',async({page},testInfo)=>{
+  test.skip(!['laptop','mobile-small'].includes(testInfo.project.name),'Desktop and narrow mobile are sufficient for login layout checks.');
+  await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
+  const login=page.locator('#login[data-eh360-ui="v2"]');
+  await expect(login).toBeVisible({timeout:15_000});
+  await expect(login.locator('.login-card')).toBeVisible();
+  await page.locator('#loginLanguageSelect').selectOption('de');
+  await expect(login.locator('.eh360-login-headline')).toContainText('Versandzentrale');
+  await expect(login.locator('#loginUser')).toBeVisible();
+  await expect(login.locator('#loginPass')).toBeVisible();
+  await expect(login.locator('#loginLanguageSelect')).toBeVisible();
+  await expect(login.locator('.eh-login-environment button')).toHaveCount(2);
+  const hero=login.locator('.eh360-login-hero');
+  if(testInfo.project.name==='laptop'){
+    await expect(hero).toBeVisible();
+    await expect(hero.locator('img')).toHaveAttribute('src',/rc1630-login-route\.svg/);
+    await expect(hero.locator('img')).toHaveAttribute('alt','');
+  }else{
+    await expect(hero).toBeHidden();
+  }
+  await page.locator('#loginLanguageSelect').selectOption('en');
+  await expect(login.locator('.eh360-login-headline')).toContainText('Your shipping hub');
+  await expect(login.locator('#loginUser')).toBeVisible();
+  await expect(login.locator('#loginPass')).toBeVisible();
+  await assertNoHorizontalOverflow(page);
+});

@@ -35,7 +35,7 @@ for(const file of pages){
   includes(file,'assets/rc1114-shipping-neutral.js?v=1386');
   includes(file,'assets/rc1017-multi-truck.js?v=1017');
   includes(file,'assets/rc1013-gate41-ui.js?v=1385');
-  includes(file,'assets/rc1074-login-clean.js?v=1349');
+  includes(file,'assets/rc1074-login-clean.js?v=1630');
   includes(file,'assets/rc1305-loading-list-print.js?v=1379');
   includes(file,'assets/rc1315-loading-list-quick-print.js?v=1322');
   includes(file,'assets/rc1283-loading-list-search.js?v=1305');

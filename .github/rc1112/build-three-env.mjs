@@ -55,6 +55,8 @@ const RC1296_BROWSER_TITLE='ExportHUB360';
 const RC1296_FAVICON_TAG='<link id="exporthub360-favicon" rel="icon" type="image/svg+xml" href="/assets/exporthub360-favicon.svg?v=1296">';
 const RC1304_THEME_STYLE_TAG='<link id="exporthub-rc1304-theme-style" rel="stylesheet" href="/assets/rc1304-theme-switcher.css?v=1306">';
 const RC1304_THEME_SCRIPT_TAG='<script id="exporthub-rc1304-theme-script" src="/assets/rc1304-theme-switcher.js?v=1305"><\/script>';
+const RC1630_LOGIN_STYLE_TAG='<link id="exporthub-rc1630-login-style" rel="stylesheet" href="/assets/rc1630-login-experience.css?v=1630">';
+const RC1630_LOGIN_SCRIPT_TAG='<script id="exporthub-rc1630-login-script" defer src="/assets/rc1630-login-experience.js?v=1630"><\/script>';
 const RC1306_LAYOUT_STYLE_TAG='<link id="exporthub-rc1306-layout-style" rel="stylesheet" href="/assets/rc1306-layout-engine.css?v=1306">';
 const RC1306_LAYOUT_SCRIPT_TAG='<script id="exporthub-rc1306-layout-script" defer src="/assets/rc1306-layout-engine.js?v=1306.1"><\/script>';
 const RC1371_DASHBOARD_STYLE_TAG='<link id="exporthub-rc1371-dashboard-style" rel="stylesheet" href="/assets/rc1371-dashboard-personalization.css?v=1371">';
@@ -120,6 +122,14 @@ function patchRc1304ThemeRedesign(html,file){
   html=injectDeferredRuntimeInHead(html,RC1304_THEME_SCRIPT_TAG,'exporthub-rc1304-theme-script');
   if(!html.includes('rc1304-theme-switcher.css?v=1306'))throw new Error(file+': RC1304 Theme-CSS fehlt');
   if(!html.includes('rc1304-theme-switcher.js?v=1305'))throw new Error(file+': RC1304 Theme-Switcher fehlt');
+  return html;
+}
+
+function patchRc1630LoginVisuals(html,file){
+  html=injectDeferredRuntimeInHead(html,RC1630_LOGIN_STYLE_TAG,'exporthub-rc1630-login-style');
+  html=injectDeferredRuntimeInHead(html,RC1630_LOGIN_SCRIPT_TAG,'exporthub-rc1630-login-script');
+  if(!html.includes('rc1630-login-experience.css?v=1630'))throw new Error(file+': RC1630 Login-CSS fehlt');
+  if(!html.includes('rc1630-login-experience.js?v=1630'))throw new Error(file+': RC1630 Login-UI fehlt');
   return html;
 }
 
@@ -1247,6 +1257,7 @@ function patchHtml(file){
   html=patchRc1576StateBodyDeadline(html,file);
   html=patchRc1619LargeStateWorkerParse(html,file);
   html=patchRc1304ThemeRedesign(html,file);
+  html=patchRc1630LoginVisuals(html,file);
   html=patchRc1400MobileNavigationCache(html,file);
   html=patchRc1371Dashboard(html,file);
   html=patchRc1558DashboardOverview(html,file);
@@ -1300,7 +1311,7 @@ function patchHtml(file){
   );
   html=html.replace(/(window\.__EXPORTHUB_BUILD__\s*=\s*['"])RC1048(['"])/g,`$1${VERSION}$2`);
   html=html.replaceAll(LEGACY_TESTSERVICE_HOST,CURRENT_TESTSERVICE_HOST);
-  html=html.replace(/assets\/rc1074-login-clean\.js\?v=(?:1074|1112|1298|1301|1303|1311)/g,'assets/rc1074-login-clean.js?v=1349');
+  html=html.replace(/assets\/rc1074-login-clean\.js\?v=(?:1074|1112|1298|1301|1303|1311|1349)/g,'assets/rc1074-login-clean.js?v=1630');
   html=html.replace(/assets\/rc1014-task-runtime\.js\?v=(?:1016|1266|1312|1353|1359)/g,'assets/rc1014-task-runtime.js?v=1359');
   html=html.replace(/assets\/rc1014-task-ui\.css\?v=(?:1016|1179|1312)/g,'assets/rc1014-task-ui.css?v=1312');
   html=html.replace(/assets\/rc1013-diagnostics\.js\?v=(?:1085|1125|1364)/g,'assets/rc1013-diagnostics.js?v=1364');
@@ -1337,7 +1348,7 @@ function patchHtml(file){
   if(!html.includes(`version:'${VERSION}'`))throw new Error(file+': BUILD '+VERSION+' fehlt');
   if(!html.includes(`ExportHUB ${VERSION} environment=`))throw new Error(file+': Environment '+VERSION+' fehlt');
   if(file!=='demo.html'&&!html.includes('assets/rc1289-auth-transport-fallback.js?v=1289'))throw new Error(file+': RC1289 Desktop-Auth-Fallback fehlt');
-  if(!html.includes('assets/rc1074-login-clean.js?v=1349'))throw new Error(file+': RC1349 Login-/Browser-Branding-Cache-Key fehlt');
+  if(!html.includes('assets/rc1074-login-clean.js?v=1630'))throw new Error(file+': RC1349 Login-/Browser-Branding-Cache-Key fehlt');
   if(!html.includes('assets/rc1014-task-runtime.js?v=1359'))throw new Error(file+': RC1359 Aufgaben-Runtime Cache-Key fehlt');
   if(!html.includes('assets/rc1014-task-ui.css?v=1312'))throw new Error(file+': RC1312 Aufgaben-CSS Cache-Key fehlt');
   if(!html.includes('assets/rc1013-diagnostics.js?v=1364'))throw new Error(file+': RC1364 Diagnose Cache-Key fehlt');
@@ -1413,6 +1424,9 @@ for(const rel of [
   'assets/exporthub360-favicon.svg',
   'assets/rc1304-theme-switcher.css',
   'assets/rc1304-theme-switcher.js',
+  'assets/rc1630-login-experience.css',
+  'assets/rc1630-login-experience.js',
+  'assets/rc1630-login-route.svg',
   'assets/rc1306-layout-engine.css',
   'assets/rc1306-layout-engine.js',
   'assets/rc1371-dashboard-personalization.css',

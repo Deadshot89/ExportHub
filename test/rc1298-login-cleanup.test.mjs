@@ -46,9 +46,9 @@ test('RC1298 P1: Produktion hält den Browser-Tab dauerhaft auf ExportHUB360',()
 
 test('RC1298 P1: Login-Runtime wird cache-frisch gebaut und im manuellen Production-Live-Vertrag geprüft',()=>{
   const releaseBuild=readBuildContract(),live=readLiveContract();
-  assert.ok(build.includes("assets\\/rc1074-login-clean\\.js\\?v=(?:1074|1112|1298|1301|1303|1311)"),'Builder muss alte Login-Cache-Keys auf RC1349 anheben');
-  assert.match(build,/assets\/rc1074-login-clean\.js\?v=1349/);
-  assert.match(releaseBuild,/assets\/rc1074-login-clean\.js\?v=1349/);
+  assert.ok(build.includes("assets\\/rc1074-login-clean\\.js\\?v=(?:1074|1112|1298|1301|1303|1311|1349)"),'Builder muss alte Login-Cache-Keys auf RC1630 anheben');
+  assert.match(build,/assets\/rc1074-login-clean\.js\?v=1630/);
+  assert.match(releaseBuild,/assets\/rc1074-login-clean\.js\?v=1630/);
   assert.match(live,/\/assets\/rc1074-login-clean\.js/);
 });
 

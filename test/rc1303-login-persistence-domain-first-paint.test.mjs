@@ -31,7 +31,7 @@ test('RC1303: gespeicherte Browser-Credentials werden bei aktiviertem Merken akt
 
 test('RC1303: Login-Runtime wird cache-frisch ausgeliefert',()=>{
   const releaseBuild=readBuildContract(),live=readLiveContract();
-  assert.match(build,/rc1074-login-clean\.js\?v=1349/);
-  assert.match(releaseBuild,/rc1074-login-clean\.js\?v=1349/);
+  assert.match(build,/rc1074-login-clean\.js\?v=1630/);
+  assert.match(releaseBuild,/rc1074-login-clean\.js\?v=1630/);
   assert.match(live,/\/assets\/rc1074-login-clean\.js/);
 });
