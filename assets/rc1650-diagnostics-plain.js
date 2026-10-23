@@ -3,8 +3,8 @@
    - "Auf einen Blick": one sentence on the overall state plus the message types to look at first,
    - per message type a plain title, an urgency (Wichtig / Beobachten / Harmlos), "Was bedeutet das?" and
      "Was solltest du tun?", with the technical message and JSON folded away under "Technische Details",
-   - "Fehler melden" (own description) and "An KI senden" per message: both go straight to the KI autofix
-     (/api/diagnostic-autofix request-manual via ExportHUBSelfCorrect.reportBug), plus "Meine KI-Aufträge".
+   - a bug report form and a send-to-AI button per message: both go straight to the AI autofix
+     (/api/diagnostic-autofix request-manual via ExportHUBSelfCorrect.reportBug), plus the list of AI jobs.
    Texts live in assets/i18n/rc1650-diagnostics-plain.js. */
 (function(root,factory){
 'use strict';
