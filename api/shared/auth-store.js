@@ -102,8 +102,11 @@ function environmentFromRequest(req) {
 // Legacy TESTSERVICE logins retain their existing production routes until an
 // independent account is provisioned, verified and the opt-in is enabled.
 function loginStorageEnvironment(req){
+ // Identical legacy routing, including host tolerance, when not enabled.
+ if(!text(process.env.EXPORTHUB_TEST_AUTH_ISOLATION))return'production';
  const env=environmentFromRequest(req);
- return env==='testservice'&&isolationConfig().enabled?'testservice':'production';
+ if(env!=='testservice')return'production';
+ return isolationConfig().enabled?'testservice':'production';
 }
 async function clientsForEnvironment(environment) {
   return lower(environment) === 'testservice' ? testserviceClients() : clients();
