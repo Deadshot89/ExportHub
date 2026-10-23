@@ -67,7 +67,7 @@ function renderSources(host,result){
 function renderResult(result){
  var answer=d.querySelector('[data-rc1532-answer]'),sourceBox=d.querySelector('[data-rc1532-sources]'),badge=d.querySelector('[data-rc1532-badge]'),checked=d.querySelector('[data-rc1532-checked]');if(!answer||!sourceBox)return;
  answer.textContent=q(result&&result.answer)||tr('error');
- var uncertain=!!(result&&result.uncertainty);badge.textContent=uncertain?tr('uncertain'):tr('grounded');badge.className='rc1532-badge '+(uncertain?'is-warning':'is-ok');
+ var uncertain=!!(result&&(result.uncertainty||result.ok===false));badge.textContent=uncertain?tr('uncertain'):tr('grounded');badge.className='rc1532-badge '+(uncertain?'is-warning':'is-ok');
  checked.textContent=q(result&&result.checkedAt)?tr('checked')+': '+q(result.checkedAt):'';
  renderSources(sourceBox,result||{});
  answer.parentNode.hidden=false
@@ -79,7 +79,7 @@ async function ask(question){
   var snapshot=latestSnapshot(),header=snapshot&&snapshot.header||{},payload={question:question,reference:q(header.reference||header.ref),destinationCountry:q(header.destinationCountry),invoiceAnalysis:snapshot||{}};
   var response=await root.fetch('/api/customs-ai',{method:'POST',credentials:'same-origin',cache:'no-store',headers:headers(),body:JSON.stringify(payload)}),raw=await response.text(),body={};
   try{body=raw?JSON.parse(raw):{}}catch(_){body={ok:false,answer:raw}}
-  if(!response.ok&&!body.answer)body.answer='HTTP '+response.status;
+  if(!response.ok){body.ok=false;if(!body.answer)body.answer='HTTP '+response.status}
   renderResult(body);if(status){status.hidden=true;status.textContent=''}
  }catch(error){renderResult({ok:false,uncertainty:true,answer:q(error&&error.message)||tr('error'),sources:[]});if(status){status.hidden=true;status.textContent=''}}
  finally{busy=false;if(button)button.disabled=false;refreshContext()}
