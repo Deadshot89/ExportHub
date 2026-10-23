@@ -5,6 +5,7 @@ import {integrateTour} from '../rc1501/build-three-env.mjs';
 import {integrateEditor} from '../rc1502/build-three-env.mjs';
 import {integrateTraining} from '../rc1503/build-three-env.mjs';
 import {integrateCoverageAdmin} from '../rc1506/build-three-env.mjs';
+import {integrateAbdProforma} from '../rc1549/integrate-abd-proforma.mjs';
 import {fingerprintAssets} from '../asset-fingerprint/fingerprint-assets.mjs';
 import {patchRc1576StateBodyDeadline} from '../../scripts/rc1576-state-read-body-timeout.mjs';
 import {patchRc1619LargeStateWorkerParse} from '../../scripts/rc1619-large-state-worker-parse.mjs';
@@ -1627,6 +1628,8 @@ integrateTour(ROOT,OUT);
 integrateEditor(ROOT,OUT);
 integrateTraining(ROOT,OUT);
 integrateCoverageAdmin(ROOT,OUT);
+// ABD invoice editor is present in Production, TESTSERVICE and Demo builds.
+integrateAbdProforma(ROOT,OUT);
 // Must stay last: hashes the files exactly as they are shipped.
 fingerprintAssets({root:ROOT,out:OUT});
 

@@ -333,7 +333,7 @@ test('RC1294 P2: ABD-Bereich routet sicher in PDF/XLSX/CSV-Rechnungsanalyse',asy
   await expect(panel).toContainText(/ABD-Datenimport|Positionsprüfung|Export declaration/i);
   const invoicePanel=panel.locator('[data-rc1294-invoice-panel]');
   const invoiceMode=panel.locator('[data-rc1294-mode="invoice"]');
-  const input=panel.locator('input[type="file"]');
+  const input=panel.locator('[data-rc1294-files]');
   await expect(invoiceMode).toBeVisible();
   await expect(invoiceMode).toHaveAttribute('aria-pressed','false');
   await expect(invoicePanel).toBeHidden();
