@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {createRequire} from 'node:module';
+import Module,{createRequire} from 'node:module';
+import path from 'node:path';
 
 const require=createRequire(import.meta.url);
 const {isolationConfig,accountName}=require('../api/shared/testservice-auth-isolation.js');
@@ -73,4 +74,82 @@ test('RC1634: exporthub-state never seeds missing isolated TESTSERVICE by readin
  assert.match(src,/productionTeam:isTest\?null:container\.getBlockBlobClient\(TEAM_BLOB_BASE\)/);
  assert.match(src,/if\(!c\.productionTeam\)throw error\('TEST_STATE_IMPORT_REQUIRED'/);
  assert.match(src,/auth:container\.getBlockBlobClient\(isTest\?isolated\.authBlob:AUTH_BLOB\)/);
+});
+
+test('RC1634: real auth-store routing never writes TESTSERVICE session into production when opt-in enabled',async()=>{
+ const keys=['EXPORTHUB_TEST_AUTH_ISOLATION','EXPORTHUB_TEST_STORAGE_CONNECTION_STRING',
+  'EXPORTHUB_STORAGE_CONNECTION_STRING','EXPORTHUB_STORAGE_CONTAINER',
+  'EXPORTHUB_TEST_STORAGE_CONTAINER','EXPORTHUB_TEST_AUTH_BLOB'];
+ const before=Object.fromEntries(keys.map(k=>[k,process.env[k]]));
+ const writes=[],contents=new Map();
+ const blob=(connection,container,name)=>{
+  const key=connection+'|'+container+'|'+name;
+  return{
+   name,
+   async download(){
+    if(!contents.has(key))throw Object.assign(new Error('missing'),{statusCode:404});
+    return{etag:'"v1"',readableStreamBody:[Buffer.from(contents.get(key))]};
+   },
+   async upload(raw,bytes,opts){
+    assert.equal(bytes,Buffer.byteLength(raw));
+    assert.ok(opts.conditions.ifNoneMatch==='*'||opts.conditions.ifMatch);
+    writes.push({connection,container,name,bytes});
+    contents.set(key,raw);
+    return{etag:'"v1"'};
+   }
+  };
+ };
+ const fakeSDK={BlobServiceClient:{
+  fromConnectionString(connection){
+   return{getContainerClient(container){
+    return{getBlockBlobClient(name){return blob(connection,container,name)}};
+   }};
+  }
+ }};
+ const authPath=path.resolve('api/shared/auth-store.js'),original=Module._load;
+ try{
+  process.env.EXPORTHUB_STORAGE_CONNECTION_STRING=prod;
+  process.env.EXPORTHUB_TEST_STORAGE_CONNECTION_STRING=testCs;
+  process.env.EXPORTHUB_TEST_AUTH_ISOLATION='enabled';
+  process.env.EXPORTHUB_STORAGE_CONTAINER='exporthub-data';
+  delete process.env.EXPORTHUB_TEST_AUTH_BLOB;
+  Module._load=function(name,parent,isMain){
+   if(name==='@azure/storage-blob')return fakeSDK;
+   return original.call(this,name,parent,isMain);
+  };
+  delete require.cache[require.resolve(authPath)];
+  const auth=require(authPath);
+  Module._load=original;
+  assert.equal(auth.loginStorageEnvironment({headers:{host:'www.exporthub360.com'}}),'production');
+  assert.equal(auth.loginStorageEnvironment({headers:{host:'ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'}}),'testservice');
+  assert.equal(auth.loginStorageEnvironment({headers:{host:'localhost:7071','x-exporthub-environment':'testservice'}}),'testservice');
+  await assert.rejects(
+   async()=>auth.loginStorageEnvironment({headers:{host:'www.exporthub360.com','x-exporthub-environment':'testservice'}}),
+   e=>e?.code==='ENVIRONMENT_MISMATCH'
+  );
+  const testClient=await auth.testserviceClients();
+  assert.equal(testClient.auth.name,'testservice/auth-sessions.json');
+  assert.equal(testClient.team.name,'testservice/team-state.json');
+  const result=await auth.mutateAuth(a=>{
+   a.sessions.push({id:'isolated-s1',expiresAt:'2099-01-01T00:00:00Z'});
+   return 'updated';
+  },'testservice');
+  assert.equal(result.result,'updated');
+  assert.equal(writes.length,1);
+  assert.equal(writes[0].connection,testCs);
+  assert.equal(writes[0].name,'testservice/auth-sessions.json');
+  await auth.mutateAuth(a=>{
+   a.sessions.push({id:'prod-s1',expiresAt:'2099-01-01T00:00:00Z'});
+   return true;
+  });
+  assert.equal(writes.length,2);
+  assert.equal(writes[1].connection,prod);
+  assert.equal(writes[1].name,'auth-sessions.json');
+  assert.doesNotMatch(contents.get(prod+'|exporthub-data|auth-sessions.json'),/isolated-s1/);
+  assert.doesNotMatch(contents.get(testCs+'|exporthub-data|testservice\/auth-sessions.json'),/prod-s1/);
+ }finally{
+  Module._load=original;
+  delete require.cache[require.resolve(authPath)];
+  for(const k of keys){if(before[k]===undefined)delete process.env[k];else process.env[k]=before[k];}
+ }
 });
