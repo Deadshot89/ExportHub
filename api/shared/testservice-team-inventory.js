@@ -33,7 +33,7 @@ function configuredTeamStateName(options){
  const target=options.teamBlobName||process.env.EXPORTHUB_TEST_STORAGE_BLOB||
   ('testservice/'+String(base).replace(/^[/]+/,''));
  if(typeof target!=='string'||!target.startsWith(PREFIX)||target.length<=PREFIX.length||
-  target.includes('..')||[...target].some(c=>c.charCodeAt(0)<32))return null;
+  target.includes('..')||target.slice(PREFIX.length).includes('/')||[...target].some(c=>c.charCodeAt(0)<32))return null;
  return target;
 }
 async function collectTestserviceTeamInventory(container,options={}){
