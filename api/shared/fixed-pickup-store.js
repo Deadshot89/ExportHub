@@ -133,6 +133,10 @@ function sanitizeLabel(value){
 function sanitizeNote(value){
   return text(value).replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').slice(0, 500);
 }
+// RC1650: optional customer number(s) that link the FIX pickup to picked-up shipments in the calendar
+function sanitizeCustomerNumber(value){
+  return text(value).replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').slice(0, 120);
+}
 function validateWeekday(value){
   const n = Number(value);
   if (!Number.isInteger(n) || n < 1 || n > 5) throw error('WEEKDAY_INVALID', 'Wochentag muss Montag bis Freitag sein.', 400);
@@ -154,6 +158,7 @@ function validateInput(payload, options = {}){
   if (!partial || Object.prototype.hasOwnProperty.call(source, 'siteLabel')) out.siteLabel = sanitizeLabel(source.siteLabel);
   if (!partial || Object.prototype.hasOwnProperty.call(source, 'weekday')) out.weekday = validateWeekday(source.weekday);
   if (!partial || Object.prototype.hasOwnProperty.call(source, 'note')) out.note = sanitizeNote(source.note);
+  if (!partial || Object.prototype.hasOwnProperty.call(source, 'customerNumber')) out.customerNumber = sanitizeCustomerNumber(source.customerNumber);
   if (!partial) out.active = source.active === undefined ? true : validateActive(source.active);
   else if (Object.prototype.hasOwnProperty.call(source, 'active')) out.active = validateActive(source.active);
   if (partial && Object.keys(out).length === 0) throw error('EMPTY_PATCH', 'Keine änderbaren FIX-Felder übergeben.', 400);
@@ -165,6 +170,7 @@ function publicItem(item){
     siteLabel: text(item && item.siteLabel),
     weekday: Number(item && item.weekday || 0),
     note: text(item && item.note),
+    customerNumber: text(item && item.customerNumber),
     active: item && item.active !== false,
     createdAt: item && item.createdAt || null,
     updatedAt: item && item.updatedAt || null

@@ -128,3 +128,8 @@ body[data-rc1570-taskview="1"] #content > :not(#rc1570TaskView){display:none!imp
   .rc1570-tv-list{position:static;max-height:280px}
   .rc1570-tv-form{grid-template-columns:1fr}
 }
+/* RC1650: "complete with a new shipment" checkbox below the customer number */
+.rc1570-autodone{font-weight:600}
+.rc1570-autodone>span{display:flex;align-items:center;gap:8px}
+.rc1570-field.rc1570-autodone input[type="checkbox"]{width:18px;height:18px;min-height:0;padding:0;margin:0;flex:0 0 auto;accent-color:#16a34a}
+.rc1570-autodone small{font-weight:400;opacity:.75;line-height:1.4}

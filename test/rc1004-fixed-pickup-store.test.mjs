@@ -111,5 +111,5 @@ test('öffentliche FIX-Daten enthalten keine internen Firmen- oder Actor-Felder'
   const store = loadStore(makeMemoryBlobRest());
   const created = await store.create('production','firma-a',{siteLabel:'Standort',weekday:5,note:'Hinweis'},'Admin');
   const item = store.publicItem(created);
-  assert.deepEqual(Object.keys(item).sort(), ['active','createdAt','id','note','siteLabel','updatedAt','weekday'].sort());
+  assert.deepEqual(Object.keys(item).sort(), ['active','createdAt','customerNumber','id','note','siteLabel','updatedAt','weekday'].sort());
 });

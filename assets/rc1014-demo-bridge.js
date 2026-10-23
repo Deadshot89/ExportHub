@@ -9,9 +9,9 @@ function tr(key,vars,fallback){try{if(window.ExportHUBI18n&&typeof window.Export
 const demoUser=window.__EXPORTHUB_DEMO_USER__||{id:'DEMO-USER-1',user:'demo.admin',username:'demo.admin',name:'Demo Administrator',role:'Globaler Administrator',globalAdmin:true,permissions:['*']};
 const demoToken=String(window.__EXPORTHUB_DEMO_TOKEN__||'demo-session-token');
 const demoFixedPickups=[
-  {id:'DEMO-FIX-MO',siteLabel:'Fake Fix Nord',weekday:1,note:'demo.weeklyPickup',active:true},
-  {id:'DEMO-FIX-MI',siteLabel:'Fake Fix Export',weekday:3,note:'demo.weeklyPickup',active:true},
-  {id:'DEMO-FIX-FR',siteLabel:'Fake Fix Benelux',weekday:5,note:'demo.weeklyPickup',active:true}
+  {id:'DEMO-FIX-MO',siteLabel:'Fake Fix Nord',weekday:1,note:'demo.weeklyPickup',active:true,customerNumber:'D1001'},
+  {id:'DEMO-FIX-MI',siteLabel:'Fake Fix Export',weekday:3,note:'demo.weeklyPickup',active:true,customerNumber:'D1003'},
+  {id:'DEMO-FIX-FR',siteLabel:'Fake Fix Benelux',weekday:5,note:'demo.weeklyPickup',active:true,customerNumber:'D1002'}
 ];
 
 try{
@@ -32,7 +32,7 @@ function body(init){
   try{return init&&typeof init.body==='string'?JSON.parse(init.body||'{}'):{};}catch(_){return{};}
 }
 function publicItem(item){
-  return {id:String(item.id||''),siteLabel:String(item.siteLabel||''),weekday:Number(item.weekday||0),note:item.note==='demo.weeklyPickup'?tr('demo.weeklyPickup',null,'Weekly demo pickup'):String(item.note||''),active:item.active!==false,createdAt:item.createdAt||null,updatedAt:item.updatedAt||null};
+  return {id:String(item.id||''),siteLabel:String(item.siteLabel||''),weekday:Number(item.weekday||0),note:item.note==='demo.weeklyPickup'?tr('demo.weeklyPickup',null,'Weekly demo pickup'):String(item.note||''),customerNumber:String(item.customerNumber||''),active:item.active!==false,createdAt:item.createdAt||null,updatedAt:item.updatedAt||null};
 }
 
 const previousFetch=window.fetch.bind(window);
@@ -64,7 +64,7 @@ window.fetch=async function(input,init){
   }
   if(method==='POST'){
     const stamp=new Date().toISOString();
-    const item={id:`DEMO-FIX-${Date.now()}`,siteLabel:String(payload.siteLabel||'Fake Fix neu'),weekday:Number(payload.weekday||1),note:String(payload.note||''),active:payload.active!==false,createdAt:stamp,updatedAt:stamp};
+    const item={id:`DEMO-FIX-${Date.now()}`,siteLabel:String(payload.siteLabel||'Fake Fix neu'),weekday:Number(payload.weekday||1),note:String(payload.note||''),customerNumber:String(payload.customerNumber||''),active:payload.active!==false,createdAt:stamp,updatedAt:stamp};
     demoFixedPickups.push(item);
     return json({ok:true,demo:true,item:publicItem(item)},201);
   }
@@ -72,7 +72,7 @@ window.fetch=async function(input,init){
     const id=String(payload.id||'');
     const item=demoFixedPickups.find(entry=>String(entry.id)===id);
     if(!item)return json({ok:false,demo:true,code:'FIX_NOT_FOUND',message:tr('demo.fixNotFound',null,'Demo FIX entry was not found.')},404);
-    for(const key of ['siteLabel','weekday','note','active'])if(Object.prototype.hasOwnProperty.call(payload,key))item[key]=payload[key];
+    for(const key of ['siteLabel','customerNumber','weekday','note','active'])if(Object.prototype.hasOwnProperty.call(payload,key))item[key]=payload[key];
     item.updatedAt=new Date().toISOString();
     return json({ok:true,demo:true,item:publicItem(item)});
   }
