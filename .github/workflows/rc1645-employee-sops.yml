@@ -1,0 +1,19 @@
+name: RC1645 Six-Language Employee SOP Catalog
+on:
+  pull_request:
+    paths:
+      - 'assets/training-center/catalog/employee-sops.json'
+      - 'test/rc1645-employee-sops.test.mjs'
+      - '.github/workflows/rc1645-employee-sops.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+      - name: Complete and safe employee SOP source
+        run: node --test test/rc1645-employee-sops.test.mjs
+      - name: Strict production language gate
+        run: node scripts/i18n-audit.mjs --strict
