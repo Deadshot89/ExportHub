@@ -132,6 +132,16 @@ jobs:
               const rows=["## TESTSERVICE Team-Blob-Metadaten (RC1627)","","Nur Testservice-Prefix; keine Dateinamen, Inhalte oder Rechnungsbeträge.","",
                 "| Typ | Datensätze | Logische Bytes |","|---|---:|---:|"];
               for(const k of keys)rows.push("| "+k+" | "+v.kinds[k].records+" | "+v.kinds[k].logicalBytes+" |");
+              const names=["root-files","daily-backups","monthly-backups","yearly-backups","recovery-backups","recovery-drills","other"];
+              if(v.areas){
+               if(!names.every(id=>v.areas[id]&&n(v.areas[id].records)&&n(v.areas[id].logicalBytes)&&
+                   keys.every(k=>n(v.areas[id].kinds?.[k]?.records)&&n(v.areas[id].kinds?.[k]?.logicalBytes)))||
+                   names.reduce((a,id)=>a+v.areas[id].records,0)!==v.records||
+                   names.reduce((a,id)=>a+v.areas[id].logicalBytes,0)!==v.logicalBytes)process.exit(7);
+               rows.push("","### TESTSERVICE-Speicherbereiche (nur aggregierte Metadaten)","","| Bereich | Einträge | Logische Bytes |","|---|---:|---:|");
+               for(const id of names)rows.push("| "+id+" | "+v.areas[id].records+" | "+v.areas[id].logicalBytes+" |");
+               rows.push("","Speicherbereiche enthalten aktuelle und historische Daten. Keine Lösch- oder Kostenfreigabe.");
+              }
               rows.push("","**Gesamt: "+v.records+" Einträge, "+v.logicalBytes+" logische Bytes**","",
                 "Es handelt sich nicht um abrechenbare Speicher-Bytes und nicht um eine vollständige sechs-Scope-Inventur.",
                 "Produktions- und geteilte Auth-Abhängigkeiten bleiben ungeklärt; nichts löschen.");

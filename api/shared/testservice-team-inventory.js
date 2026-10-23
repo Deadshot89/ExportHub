@@ -6,6 +6,18 @@ const PREFIX='testservice/';
 const MAX_RECORDS=50000;
 const MAX_ELAPSED_MS=22000;
 const KINDS=['live','version','snapshot','deleted'];
+// Fixed, non-identifying path categories: only aggregated counts leave the API.
+const AREAS=Object.freeze(['root-files','daily-backups','monthly-backups','yearly-backups','recovery-backups','recovery-drills','other']);
+function areaOf(name){
+ if(/^testservice\/[^/]+$/.test(name))return 'root-files';
+ if(name.startsWith('testservice/state-backups/daily/'))return 'daily-backups';
+ if(name.startsWith('testservice/state-backups/monthly/'))return 'monthly-backups';
+ if(name.startsWith('testservice/state-backups/yearly/'))return 'yearly-backups';
+ if(name.startsWith('testservice/recovery-backups/'))return 'recovery-backups';
+ if(name.startsWith('testservice/recovery-drills/'))return 'recovery-drills';
+ return 'other';
+}
+function emptyAreas(){return Object.fromEntries(AREAS.map(k=>[k,{records:0,logicalBytes:0,kinds:empty()}]));}
 
 function empty(){
  return Object.fromEntries(KINDS.map(kind=>[kind,{records:0,logicalBytes:0}]));
@@ -23,7 +35,7 @@ async function collectTestserviceTeamInventory(container,options={}){
  const report={
   version:'RC1627',environment:'testservice',scope:'team-prefix',complete:false,
   records:0,logicalBytes:0,liveLogicalBytes:0,historicalLogicalBytes:0,
-  kinds:empty(),billingVerified:false,archiveVerified:false,
+  kinds:empty(),areas:emptyAreas(),billingVerified:false,archiveVerified:false,
   sharedProductionDependenciesResolved:false
  };
  for await(const item of container.listBlobsFlat({
@@ -41,6 +53,8 @@ async function collectTestserviceTeamInventory(container,options={}){
   const kind=item.deleted?'deleted':item.snapshot?'snapshot':
     item.versionId&&item.isCurrentVersion!==true?'version':'live';
   sum(report.kinds[kind],bytes);
+  const area=report.areas[areaOf(item.name)];
+  sum(area,bytes);sum(area.kinds[kind],bytes);
   report.records++;
   if(!integer(report.logicalBytes+bytes))throw new Error('INVENTORY_OVERFLOW');
   report.logicalBytes+=bytes;
@@ -50,4 +64,4 @@ async function collectTestserviceTeamInventory(container,options={}){
  report.complete=true;
  return report;
 }
-module.exports={collectTestserviceTeamInventory,PREFIX,MAX_RECORDS};
+module.exports={collectTestserviceTeamInventory,PREFIX,MAX_RECORDS,AREAS};

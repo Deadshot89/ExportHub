@@ -397,6 +397,16 @@ jobs:
                   "","| Speicherklasse | Einträge | Logische Bytes |","|---|---:|---:|"
                 ];
                 for(const k of keys)rows.push("| "+k+" | "+v.kinds[k].records+" | "+v.kinds[k].logicalBytes+" |");
+                const names=["root-files","daily-backups","monthly-backups","yearly-backups","recovery-backups","recovery-drills","other"];
+                if(v.areas){
+                 if(!names.every(id=>v.areas[id]&&safe(v.areas[id].records)&&safe(v.areas[id].logicalBytes)&&
+                     keys.every(k=>safe(v.areas[id].kinds?.[k]?.records)&&safe(v.areas[id].kinds?.[k]?.logicalBytes)))||
+                     names.reduce((a,id)=>a+v.areas[id].records,0)!==v.records||
+                     names.reduce((a,id)=>a+v.areas[id].logicalBytes,0)!==v.logicalBytes)process.exit(7);
+                 rows.push("","### TESTSERVICE-Speicherbereiche (nur aggregierte Metadaten)","","| Bereich | Einträge | Logische Bytes |","|---|---:|---:|");
+                 for(const id of names)rows.push("| "+id+" | "+v.areas[id].records+" | "+v.areas[id].logicalBytes+" |");
+                 rows.push("","Speicherbereiche enthalten aktuelle und historische Daten. Keine Lösch- oder Kostenfreigabe.");
+                }
                 rows.push("","**Gesamt: "+v.records+" Einträge / "+v.logicalBytes+" logische Bytes**",
                   "","Keine abrechenbaren Bytes; weder sechs Speicherbereiche noch Production-Abhängigkeiten abschließend geprüft.");
                 console.log("RC1630 TESTSERVICE-Team-Teilinventur "+JSON.stringify({
