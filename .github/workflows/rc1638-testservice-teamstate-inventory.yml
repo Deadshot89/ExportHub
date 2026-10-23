@@ -1,0 +1,36 @@
+name: RC1638 TESTSERVICE TEAM-state Metadata Attribution
+
+on:
+  pull_request:
+    paths:
+      - api/shared/testservice-team-inventory.js
+      - test/rc1627-testservice-team-metadata-inventory.test.mjs
+      - .github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml
+      - .github/workflows/rc1638-testservice-teamstate-inventory.yml
+  push:
+    branches: [main]
+    paths:
+      - api/shared/testservice-team-inventory.js
+      - test/rc1627-testservice-team-metadata-inventory.test.mjs
+      - .github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml
+      - .github/workflows/rc1638-testservice-teamstate-inventory.yml
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: Read-only metadata attribution and original inventory contracts
+        run: |
+          node --check api/shared/testservice-team-inventory.js
+          node --test --test-concurrency=1 test/rc1627-testservice-team-metadata-inventory.test.mjs test/rc1631-testservice-multi-scope-inventory.test.mjs test/rc1630-testservice-inventory-release-oidc.test.mjs
