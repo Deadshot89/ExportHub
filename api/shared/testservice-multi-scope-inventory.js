@@ -19,6 +19,17 @@ function count(a,n){
  if(!safe(a.logicalBytes+n)||!safe(a.records+1))throw new Error('INVENTORY_LIMIT');
  a.logicalBytes+=n;a.records++;
 }
+// RC1640: expose only fixed reason codes; provider exceptions can contain
+// account URLs, SAS query parameters, blob paths or customer identifiers.
+function safeFailureReason(e){
+ const status=Number(e&&e.statusCode||e&&e.status||0);
+ const code=String(e&&e.code||'');
+ if(status===404||/^(?:ContainerNotFound|BlobNotFound|ResourceNotFound)$/.test(code))return 'not-found';
+ if(status===401||status===403||/^(?:AuthenticationFailed|AuthorizationFailure|AuthorizationPermissionMismatch|AuthorizationServiceMismatch)$/.test(code))return 'access-denied';
+ if(/^(?:INVENTORY_LIMIT|INVENTORY_OUT_OF_SCOPE|INVENTORY_UNKNOWN_SIZE)$/.test(code))return 'incomplete';
+ if(status===408||status===429||status>=500||/^(?:STORAGE_TIMEOUT|ETIMEDOUT|AbortError|ECONNRESET|ENOTFOUND)$/.test(code))return 'transport-error';
+ return 'other';
+}
 async function collectTestserviceMultiScopeInventory(options={}){
  const services=options.services||{};
  if(!services.primary||typeof services.primary.getContainerClient!=='function')throw new Error('INVENTORY_NO_PRIMARY');
@@ -36,18 +47,18 @@ async function collectTestserviceMultiScopeInventory(options={}){
  };
  let totalRecords=0,totalBytes=0;
  for(const scope of SCOPES){
-  const result={id:scope.id,status:'unverified',records:null,logicalBytes:null,kinds:null};
+  const result={id:scope.id,status:'unverified',records:null,logicalBytes:null,kinds:null,reason:'unknown'};
   report.scopes.push(result);
   const connection=scope.connection==='backup'?(services.backup||services.primary):services.primary;
   // A timeout or listing issue is NOT evidence of an empty container.
-  if(clock()-started>maxElapsed)continue;
+  if(clock()-started>maxElapsed){result.reason='time-budget';continue;}
   try{
-   if(!connection||typeof connection.getContainerClient!=='function')continue;
+   if(!connection||typeof connection.getContainerClient!=='function'){result.reason='client-unavailable';continue;}
    const configured=String(config[scope.containerEnv]||(scope.containerAlias&&config[scope.containerAlias])||scope.containerFallback);
    // Never allow configuration to redirect enumeration to an arbitrary path.
-   if(!/^[a-z0-9](?:[a-z0-9-]{1,61}[a-z0-9])$/.test(configured))continue;
+   if(!/^[a-z0-9](?:[a-z0-9-]{1,61}[a-z0-9])$/.test(configured)){result.reason='configuration';continue;}
    const container=connection.getContainerClient(configured);
-   if(!container||typeof container.listBlobsFlat!=='function')continue;
+   if(!container||typeof container.listBlobsFlat!=='function'){result.reason='client-unavailable';continue;}
    const part={records:0,logicalBytes:0},kinds=blank();
    for await(const item of container.listBlobsFlat({
     prefix:scope.prefix,includeVersions:true,includeSnapshots:true,includeDeleted:true
@@ -62,13 +73,13 @@ async function collectTestserviceMultiScopeInventory(options={}){
    }
    if(!safe(totalBytes+part.logicalBytes)||!safe(totalRecords+part.records))throw new Error('INVENTORY_LIMIT');
    totalBytes+=part.logicalBytes;totalRecords+=part.records;
-   result.status='listed';
+   result.status='listed';result.reason=null;
    result.records=part.records;result.logicalBytes=part.logicalBytes;result.kinds=kinds;
    report.verifiedScopes++;
-  }catch(_){
+  }catch(e){
    // Azure SDK errors may embed signed storage URLs, names or credentials.
    // Never expose error text, a partial count, or a false empty result.
-   result.status='unverified';result.records=null;result.logicalBytes=null;result.kinds=null;
+   result.status='unverified';result.records=null;result.logicalBytes=null;result.kinds=null;result.reason=safeFailureReason(e);
   }
  }
  report.complete=report.verifiedScopes===SCOPES.length;
