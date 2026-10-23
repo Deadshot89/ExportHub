@@ -3,6 +3,9 @@
    also kept on the device (IndexedDB) so the detail page inbox.html can show it without login. */
 'use strict';
 
+try { importScripts('/assets/i18n/web-push.js?v=1701'); } catch (_) {}
+var i18n = self.ExportHUBWebPushI18n;
+function tt(key,lang){return i18n&&i18n.t?i18n.t(key,null,lang):key}
 var DB_NAME = 'exporthub-web-push';
 var STORE = 'messages';
 var KEEP = 60;
@@ -46,6 +49,7 @@ self.addEventListener('push', function (event) {
   var msg = {
     id: id,
     kind: String(data.kind || 'info'),
+    language: String(data.language || 'de'),
     title: String(data.title || 'ExportHUB'),
     body: String(data.body || ''),
     items: Array.isArray(data.items) ? data.items.slice(0, 20) : [],
@@ -65,7 +69,7 @@ self.addEventListener('push', function (event) {
       renotify: true,
       timestamp: Date.parse(msg.createdAt) || Date.now(),
       data: { id: id, url: msg.url, open: msg.open },
-      actions: [{ action: 'details', title: 'Details' }, { action: 'open', title: 'ExportHUB öffnen' }]
+      actions: [{ action: 'details', title: tt('swDetails',msg.language) }, { action: 'open', title: tt('swOpen',msg.language) }]
     });
   }));
 });
