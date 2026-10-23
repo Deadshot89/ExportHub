@@ -419,6 +419,24 @@ jobs:
                     liveBytes:v.areas[id].kinds.live.logicalBytes,
                     historicalBytes:keys.filter(k=>k!=="live").reduce((n,k)=>n+v.areas[id].kinds[k].logicalBytes,0)}))
                 ));
+                // RC1638: the configured team-state file is a fixed category,
+                // never expose its configured name or raw Azure properties.
+                if(v.teamState){
+                  const t=v.teamState,valid=t.status==="listed"&&safe(t.records)&&safe(t.logicalBytes)&&
+                    keys.every(k=>safe(t.kinds?.[k]?.records)&&safe(t.kinds?.[k]?.logicalBytes))&&
+                    keys.reduce((n,k)=>n+t.kinds[k].records,0)===t.records&&
+                    keys.reduce((n,k)=>n+t.kinds[k].logicalBytes,0)===t.logicalBytes&&
+                    t.records<=v.areas["root-files"].records&&t.logicalBytes<=v.areas["root-files"].logicalBytes;
+                  if(!valid){
+                    if(t.status!=="unverified"||t.records!==null||t.logicalBytes!==null||t.kinds!==null)process.exit(8);
+                    console.log("RC1638 TESTSERVICE-Teamdatei "+JSON.stringify({status:"unverified",records:null,logicalBytes:null}));
+                  }else{
+                    const historicalBytes=t.logicalBytes-t.kinds.live.logicalBytes;
+                    console.log("RC1638 TESTSERVICE-Teamdatei "+JSON.stringify({status:"listed",records:t.records,
+                      logicalBytes:t.logicalBytes,liveBytes:t.kinds.live.logicalBytes,historicalBytes,
+                      kinds:t.kinds}));
+                  }
+                }
                 if(process.env.GITHUB_STEP_SUMMARY){
                   require("fs").appendFileSync(process.env.GITHUB_STEP_SUMMARY,rows.join("\n")+"\n");
                 }
