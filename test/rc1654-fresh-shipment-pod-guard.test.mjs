@@ -86,3 +86,24 @@ test('P0: fresh shipment helper clears processStatus, pickup and POD evidence fr
  ];
  for(const v of mustClear)assert.ok(defaults.includes(v),'fresh default missing '+v);
 });
+
+test('P0: a second stale POD browser write cannot re-promote a freshly corrected shipment',()=>{
+ const first=mergeState({}, {shipments:[newShipment('ZZ0008',{podFiles:[{id:'stale',blobName:'original.pdf'}]})]});
+ const second=mergeState(first, {shipments:[newShipment('ZZ0008',{updatedAt:'2026-10-23T14:05:00Z',
+  podAvailable:true,podReviewRequired:false})]});
+ const sh=find(second,'shipments','ZZ0008');
+ assert.equal(sh.status,'Erstellt');
+ assert.equal(sh.processStatus,'Erstellt');
+ assert.equal(sh.podAvailable,false);
+ assert.equal(sh.podReviewRequired,true);
+ assert.equal(sh.podStatusCorrection,'FRESH_POD_WITHOUT_PICKUP_EVIDENCE');
+});
+
+test('P0: quarantined fresh shipment may normally progress to Bereit zur Abholung',()=>{
+ const first=mergeState({}, {shipments:[newShipment('ZZ0009')]});
+ const next=mergeState(first, {shipments:[newShipment('ZZ0009',{status:'Bereit zur Abholung',
+  processStatus:'Bereit zur Abholung',updatedAt:'2026-10-23T14:10:00Z',readyForPickup:true})]});
+ const sh=find(next,'shipments','ZZ0009');
+ assert.equal(sh.status,'Bereit zur Abholung');
+ assert.equal(sh.processStatus,'Bereit zur Abholung');
+});
