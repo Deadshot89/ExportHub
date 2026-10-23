@@ -12,6 +12,7 @@ const { compactStateForStorage } = require('../shared/state-compaction');
 const { enrichDynamicTranslations, translationStatus, normalizeLanguage: normalizeDynamicLanguage } = require('../shared/dynamic-i18n');
 const apiI18n = require('../shared/i18n');
 const stateWriteGuard = require('../shared/state-write-guard');
+const {isolationConfig}=require('../shared/testservice-auth-isolation');
 
 const TEAM_CONTAINER = process.env.EXPORTHUB_STORAGE_CONTAINER || process.env.EXPORTHUB_CONTAINER || 'exporthub-data';
 const TEAM_BLOB_BASE = process.env.EXPORTHUB_STORAGE_BLOB || process.env.EXPORTHUB_STATE_BLOB || 'team-state.json';
@@ -107,12 +108,18 @@ function bearer(req,payload){
  const auth=h.authorization||h.Authorization||''; const m=String(auth).match(/^Bearer\s+(.+)$/i); return m?m[1].trim():'';
 }
 async function clients(req,payload){
- const cs=connectionString();
+ const environment=requestedEnvironment(req,payload);
+ const isolated=isolationConfig();
+ const isTest=environment==='testservice'&&isolated.enabled;
+ const cs=isTest?isolated.connectionString:connectionString();
  if(!cs)throw error('STORAGE_NOT_CONFIGURED','api.state.storageMissing',503);
- let service; try{service=createBlobServiceClient(cs)}catch(e){throw error('STORAGE_NOT_CONFIGURED','api.state.storageInvalid',503,{error:e&&e.message||'CONFIGURATION_ERROR'})}
- const container=service.getContainerClient(TEAM_CONTAINER),environment=requestedEnvironment(req,payload),teamBlobName=teamBlobForEnvironment(environment);
+ let service;try{service=createBlobServiceClient(cs)}catch(e){throw error('STORAGE_NOT_CONFIGURED','api.state.storageInvalid',503,{error:e&&e.message||'CONFIGURATION_ERROR'})}
+ const container=service.getContainerClient(isTest?isolated.container:TEAM_CONTAINER),teamBlobName=teamBlobForEnvironment(environment);
  const diagnosticsBlobName=diagnosticsBlobForEnvironment(environment);
- return {container,documentContainer:service.getContainerClient(DOCUMENT_CONTAINER),environment,teamBlobName,diagnosticsBlobName,recoveryPrefix:recoveryPrefixForEnvironment(environment),allowGenericRecoveryDiscovery:environment!=='testservice',team:container.getBlockBlobClient(teamBlobName),diagnostics:container.getBlockBlobClient(diagnosticsBlobName),productionTeam:container.getBlockBlobClient(TEAM_BLOB_BASE),auth:container.getBlockBlobClient(AUTH_BLOB)};
+ return{container,documentContainer:service.getContainerClient(DOCUMENT_CONTAINER),environment,teamBlobName,diagnosticsBlobName,recoveryPrefix:recoveryPrefixForEnvironment(environment),allowGenericRecoveryDiscovery:environment!=='testservice',team:container.getBlockBlobClient(teamBlobName),diagnostics:container.getBlockBlobClient(diagnosticsBlobName),
+  // Never hand a production team-state handle to isolated TESTSERVICE.
+  productionTeam:isTest?null:container.getBlockBlobClient(TEAM_BLOB_BASE),
+  auth:container.getBlockBlobClient(isTest?isolated.authBlob:AUTH_BLOB)};
 }
 function parseStoredJson(raw,name){
  const cleaned=String(raw==null?'':raw).replace(/^\uFEFF/,'').replace(/\u0000+$/g,'').trim();
