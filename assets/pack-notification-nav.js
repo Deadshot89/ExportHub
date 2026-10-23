@@ -36,7 +36,8 @@
   }
   function setActive(active){
     const node=doc.querySelector('[data-pack-notifications-nav]');if(!node)return;
-    node.classList&&node.classList.toggle('is-active',!!active);if(active)node.setAttribute('aria-current','page');else node.removeAttribute('aria-current');
+    // the shared nav marker can leave 'active' on this entry while another view is open
+    if(node.classList){node.classList.toggle('is-active',!!active);node.classList.toggle('active',!!active);}if(active)node.setAttribute('aria-current','page');else node.removeAttribute('aria-current');
   }
   function ensureStationAdmin(){
     if(root.ExportHUBPackStationAdmin)return Promise.resolve(root.ExportHUBPackStationAdmin);
@@ -68,6 +69,9 @@
       const active=currentView()==='packnotifications';setActive(active);if(active){const api=runtime();if(api&&typeof api.renderPackInbox==='function'&&!doc.getElementById('packNotificationInbox'))api.renderPackInbox();decorateAdmins();}},30);}
   function install(){
     if(doc.__exporthubPackNavInstalled)return true;doc.__exporthubPackNavInstalled=true;ensureEntry();doc.addEventListener('click',click,true);
+    // The core router renders a view through window[view]; without one it drew the legacy dashboard first and the
+    // inbox replaced it only afterwards (visible flash). Rendering the inbox here makes the router draw it directly.
+    if(typeof root.packnotifications!=='function')root.packnotifications=function(){openInbox();};
     if(doc.readyState==='loading')doc.addEventListener('DOMContentLoaded',repairAfterViewChange,{once:true});
     if(typeof root.addEventListener==='function'){
       root.addEventListener('exporthub:view-changed',()=>{if(currentView()!=='packnotifications')packViewActive=false;repairAfterViewChange();});

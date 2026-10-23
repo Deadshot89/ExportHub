@@ -1608,3 +1608,98 @@ html[data-eh-design="glass"] :is(.modal,.dialog,[role="dialog"],.overlay-card){
 .sidebar>.profile{
   min-height:max-content!important;
 }
+
+/* Funktionstest 22.10.2026: Warncenter (fixed, oben rechts) darf die Kopfleisten-Aktionen nicht verdecken */
+@media (min-width:1025px){
+  body:has(#rc885WarningButton) .topbar .eh-topbar-actions{padding-right:150px!important}
+}
+/* Funktionstest 22.10.2026: Neon Night – helle Basisflächen (Dashboard-Widgets, Schnellzugriffe, Erinnerung, Kopfleiste) dunkel halten */
+html[data-eh-design="neon"][data-eh-design] body{--rc990-surface:#0c192a;--rc990-surface-soft:#10233a;--rc990-card-border:#203a58}
+html[data-eh-design="neon"][data-eh-design] body[data-exporthub-view] #content :is(.rc205-widget,.rc205-quick-card){background:var(--rc990-surface)!important;border-color:#203a58!important;color:#dcecff!important}
+html[data-eh-design="neon"] #content .rc205-quick{background:#0e1d31!important;border-color:#294866!important;color:#dcecff!important}
+html[data-eh-design="neon"] #content .rc205-quick:hover{background:#112943!important;border-color:#22d3ee!important}
+html[data-eh-design="neon"] #content :is(.rc205-widget,.rc205-quick-card) :is(h3,b,strong){color:#f6fbff!important}
+html[data-eh-design="neon"] .index236-hint{background:#0c192a!important;border-color:#203a58!important;color:#dcecff!important}
+html[data-eh-design="neon"] .index236-hint :is(h3,strong,b){color:#f6fbff!important}
+html[data-eh-design="neon"] .index236-hint :is(p,small,.muted){color:#8fa8c0!important}
+html[data-eh-design="neon"][data-eh-design] .topbar{background:rgba(8,19,33,.90)!important;border-color:#203a58!important}
+html[data-eh-design="neon"][data-eh-design] .topbar .search{background:#0d1b2e!important;border-color:#294866!important;color:#dcecff!important}
+html[data-eh-design="neon"][data-eh-design] .topbar :is(select,input){background:#0b1728!important;border-color:#294866!important;color:#e7f4ff!important}
+html[data-eh-design="neon"][data-eh-design] .topbar :is(label,span,small){color:#aac1d7!important}
+html[data-eh-design="neon"][data-eh-design] .topbar .eh-topbar-actions :is(button,.ghost):not(.btn){background:#0e1d31!important;border-color:#294866!important;color:#cfe7f8!important}
+html[data-eh-design="neon"] .index236-hint .index236-kicker{color:#67e8f9!important}
+html[data-eh-design="neon"][data-eh-design] body[data-exporthub-view] #content .rc205-widget .metric :is(strong,b){color:#f6fbff!important}
+html[data-eh-design="neon"][data-eh-design] .topbar #ehThemeSwitch{background:#0d1b2e!important;border-color:#294866!important;color:#dcecff!important}
+/* Funktionstest 22.10.2026: Neon Night – ältere Module mit fest eingestellten hellen Flächen auf dunkle Neon-Flächen umstellen */
+html[data-eh-design="neon"][data-eh-design] body #content :is(
+  .rc1283-workspace-host,.rc1283-workspace-panel,.rc1283-selected,.rc504-zone-empty,.rc504-shipment,.rc504-meta-chip,
+  .rc1092-avis-policy,.rc1092-contact-intro,.rc1092-contact-card,.rc542-account-banner,.rc501-field-group,.rc626-result,
+  .rc1506-kpi,.rc1506-filters,.rc1007-sop-count,.rc1009-sop-sidebar,.rc1007-sop-document,.rc1544-sop-grid,.rc1502-sop-editor,
+  .rc1502-sop-editor-head,.rc1502-sop-editor-card,.rc299-question,.rc1126-customer-delete,.rc524-release-card,.rc562-release-status,
+  .rc1071-history-list,.rc871-diag-details,.task-day-block,.rc544-group-box,.rc1152-task-card,.index236-empty,.index236-item,
+  .rc1013-diag-card,.rc1013-block,.rc1083-autofix-note,.i218-holiday-card,.rc897-avis-box,.rc1259-container-config,.rc543-attachment,
+  .rc543-overview-group,.rc1294-abd,.rc626-colli-row,.pickup-day,.pickup-card,.rc524-upload
+){background:#0c192a!important;border-color:#203a58!important;color:#dcecff!important}
+html[data-eh-design="neon"][data-eh-design] body #content :is(.notice,.infobox){background:#0d2238!important;border-color:#1f4f7a!important;color:#cfe7f8!important}
+html[data-eh-design="neon"][data-eh-design] body #content .okbox{background:#0b2a22!important;border-color:#1c5b45!important;color:#a7f3d0!important}
+html[data-eh-design="neon"][data-eh-design] body #content .badbox{background:#2a1218!important;border-color:#6b2330!important;color:#fecdd3!important}
+html[data-eh-design="neon"][data-eh-design] body #content :is(.notice,.infobox,.okbox,.badbox) :is(b,strong,h3,h4){color:inherit!important}
+html[data-eh-design="neon"][data-eh-design] body #content :is(.rc1283-workspace-panel,.rc504-shipment,.rc1092-contact-card,.rc1506-kpi,.rc1007-sop-document,.rc524-release-card,.rc1013-diag-card,.rc544-group-box,.rc1152-task-card,.index236-item,.i218-holiday-card,.rc299-question,.task-day-block) :is(h1,h2,h3,h4,h5,b,strong){color:#f6fbff!important}
+html[data-eh-design="neon"][data-eh-design] body #content :is(.rc1283-workspace-panel,.rc504-shipment,.rc1092-contact-card,.rc1506-kpi,.rc1007-sop-document,.rc524-release-card,.rc1013-diag-card,.rc1152-task-card,.index236-item,.i218-holiday-card,.rc299-question,.task-day-block) :is(p,small,.muted,li,span:not([class*="pill"]):not([class*="badge"])){color:#aac1d7!important}
+html[data-eh-design="neon"][data-eh-design] body #content :is(.rc501-field-group,.rc626-result,.rc626-colli-row,.rc504-shipment,.rc1092-contact-card,.rc542-account-banner,.rc1084-details-cell) :is(label,.field,div,span:not([class*="pill"]):not([class*="badge"])){color:#dcecff!important}
+html[data-eh-design="neon"][data-eh-design] body #content :is(.rc501-field-group,.rc626-result,.rc542-account-banner) :is(small,.muted,p){color:#aac1d7!important}
+html[data-eh-design="neon"][data-eh-design] body #content table td{color:#dcecff}
+html[data-eh-design="neon"][data-eh-design] body #content :is(.rc1084-action-title,.rc1084-object,.rc1084-dv){color:#dcecff!important}
+html[data-eh-design="neon"][data-eh-design] body #content .rc524-release-list>li{background:#0e1d31!important;border-color:#203a58!important;color:#cfe7f8!important}
+html[data-eh-design="neon"][data-eh-design] body #content :is(.ihk-card-meta>span,.i218-overview-chip,.rc1283-count,.rc1506-readonly,.rc524-release-date){background:#11243b!important;border-color:#294866!important;color:#cfe7f8!important}
+html[data-eh-design="neon"][data-eh-design] body #content :is(.ihk-card-meta>span,.i218-overview-chip) :is(b,strong){color:#f6fbff!important}
+html[data-eh-design="neon"][data-eh-design] body #content .rc299-area-list>button{background:#0e1d31!important;border-color:#294866!important;color:#cfe7f8!important}
+html[data-eh-design="neon"][data-eh-design] body #content .rc299-area-list>button.active{background:#11304d!important;border-color:#22d3ee!important}
+html[data-eh-design="neon"][data-eh-design] body #content .rc299-area-list>button :is(b,strong){color:#f6fbff!important}
+html[data-eh-design="neon"][data-eh-design] body #content .rc542-metrics>div{background:#0e1d31!important;border-color:#203a58!important;color:#dcecff!important}
+html[data-eh-design="neon"][data-eh-design] body #content .rc542-metrics>div :is(strong,b){color:#f6fbff!important}
+html[data-eh-design="neon"][data-eh-design] body #content .rc542-metrics>div small{color:#aac1d7!important}
+html[data-eh-design="neon"][data-eh-design] body #content .index236-statusbar>div{background:#0e1d31!important;border-color:#203a58!important;color:#dcecff!important}
+html[data-eh-design="neon"][data-eh-design] body #content :is(.sop-editor-box,#rc46SopEditorHolder){background:#0c192a!important;border-color:#203a58!important;color:#dcecff!important}
+html[data-eh-design="neon"][data-eh-design] body #content .sop-editor-box :is(h3,h4){color:#f6fbff!important}
+html[data-eh-design="neon"][data-eh-design] body #content .sop-editor-box :is(p,.muted){color:#aac1d7!important}
+html[data-eh-design="neon"][data-eh-design] body #content .rc871-diag-message{color:#dcecff!important}
+html[data-eh-design="neon"][data-eh-design] body #content .rc1013-diag-card.error{background:#2a1218!important;border-color:#6b2330!important;color:#fecdd3!important}
+html[data-eh-design="neon"][data-eh-design] body #content .rc1013-diag-card.warning{background:#2a2110!important;border-color:#6b5320!important;color:#fde68a!important}
+html[data-eh-design="neon"][data-eh-design] body #content :is(.rc544-summary-none,.rc544-summary-view,.rc544-summary-edit,.rc544-summary-admin) :is(b,strong){color:#0f172a!important}
+html[data-eh-design="neon"][data-eh-design] body #content .rc626-colli-row label.field{color:#aac1d7!important}
+html[data-eh-design="neon"][data-eh-design] body #content :is(section.rc501-field-group,section.rc626-result,div.rc626-colli-row) label.field{color:#aac1d7!important}
+html[data-eh-design="neon"][data-eh-design] body #content :is(section.rc501-field-group,section.rc626-result,div.rc626-colli-row) label.field *{color:inherit}
+html[data-eh-design="neon"][data-eh-design] body #content .index236-statusbar>div :is(strong,b){color:#f6fbff!important}
+html[data-eh-design="neon"][data-eh-design] body #content .rc524-release-tests>span{background:#11243b!important;border-color:#294866!important;color:#cfe7f8!important}
+html[data-eh-design="neon"][data-eh-design] body #content #rc1013-diagnostics-enhanced,html[data-eh-design="neon"][data-eh-design] body #content #rc1013-diagnostics-enhanced :is(.rc1013-head,.rc1013-meta,.rc1013-meta>div){background:#0c192a!important;border-color:#203a58!important;color:#dcecff!important}
+html[data-eh-design="neon"][data-eh-design] body #content #rc1013-diagnostics-enhanced :is(h2,h3,strong,b){color:#f6fbff!important}
+html[data-eh-design="neon"][data-eh-design] body #content :is(.pickup-btn.pickup-primary,.rc1205-cover-only-btn),html[data-eh-design="neon"][data-eh-design] body #content :is(.pickup-btn.pickup-primary,.rc1205-cover-only-btn) *{color:#07111f!important}
+html[data-eh-design="neon"][data-eh-design] body #content .rc299-area-list>button .rc299-small{color:#aac1d7!important}
+/* Funktionstest 22.10.2026: Die globale Formular-Norm RC971 liegt in @layer rc971; ihre !important-Farben schlagen ungelayerte Regeln. Neon deshalb in derselben Ebene überschreiben. */
+@layer rc971{
+html[data-eh-design="neon"] :is(#content,#login,[role="dialog"]) :is(.field,label.field,[class$="-field"],[class*="-field "]):not(#loadListDoc *):not(.rc390-paper *):not(.index209-signature-dialog *){color:#aac1d7!important}
+html[data-eh-design="neon"] :is(#content,#login,[role="dialog"]) :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="hidden"]),select,textarea):not(#loadListDoc *):not(.rc390-paper *):not(.index209-signature-dialog *){background:#0b1728!important;border-color:#294866!important;color:#e7f4ff!important}
+html[data-eh-design="neon"] :is(#content,#login,[role="dialog"]) :is(input,select,textarea):not(#loadListDoc *):not(.rc390-paper *):not(.index209-signature-dialog *):focus{background:#0e2236!important;border-color:#22d3ee!important}
+html[data-eh-design="neon"] :is(#content,#login,[role="dialog"]) :is(input,textarea):not(#loadListDoc *):not(.rc390-paper *):not(.index209-signature-dialog *)::placeholder{color:#66829e!important}
+html[data-eh-design="neon"] :is(#content,#login,[role="dialog"]) input[type="file"]::file-selector-button{background:#11243b!important;border-color:#294866!important;color:#cfe7f8!important}
+}
+html[data-eh-design="neon"][data-eh-design] body #content .pickup-day.is-today>header,html[data-eh-design="neon"][data-eh-design] body #content .pickup-day.is-today>header *,html[data-eh-design="neon"][data-eh-design] body #content .pickup-day>header[style*="22d3ee"] *{color:#07111f!important}
+html[data-eh-design="neon"][data-eh-design] body #content .pickup-badge-fix{background:#11304d!important;color:#67e8f9!important}
+html[data-eh-design="neon"][data-eh-design] body #content .rc524-release-tests-box>summary span{background:#11243b!important;color:#cfe7f8!important}
+html[data-eh-design="neon"][data-eh-design] body #content .rc626-result :is(strong,b,.total){color:#f6fbff!important}
+html[data-eh-design="neon"][data-eh-design] body #content .rc1013-diag-card :is(.rc1013-details,.rc1013-block){background:rgba(0,0,0,.18)!important;color:inherit!important}
+html[data-eh-design="neon"][data-eh-design] body #content .rc1013-code{background:#3a1720!important;color:#fecdd3!important}
+html[data-eh-design="neon"][data-eh-design] body #content .pickup-badge-shipment{background:#2a1f4d!important;color:#c4b5fd!important}
+html[data-eh-design="neon"][data-eh-design] body #content .page-head :is(h1,h2,h3){color:#f6fbff!important}
+html[data-eh-design="neon"][data-eh-design] body #content :is(.metric,.rc504-warehouse-kpi,.rc1558-kpi,.rc562-release-card) :is(strong,b){color:#f6fbff!important}
+html[data-eh-design="neon"][data-eh-design] body #content :is(.rc405-section,.rc562-release-card,.pack-internal-empty-state,.rc897-avis-box) :is(h2,h3,h4,strong,b,.rc897-avis-value){color:#f6fbff!important}
+html[data-eh-design="neon"][data-eh-design] body #content :is(.zoll-hero,.rc299-hero,.rc1315-quick-print,.rc524-update-card,.rc565-location-row){background:#0d2238!important;border-color:#1f4f7a!important;color:#cfe7f8!important}
+html[data-eh-design="neon"][data-eh-design] body #content :is(.zoll-hero,.rc299-hero,.rc1315-quick-print,.rc524-update-card,.rc565-location-row) :is(h1,h2,h3,h4,b,strong){color:#f6fbff!important}
+html[data-eh-design="neon"][data-eh-design] body #content :is(.zoll-hero,.rc299-hero,.rc1315-quick-print,.rc524-update-card,.rc565-location-row) :is(p,small,span,.muted,div){color:#cfe7f8}
+html[data-eh-design="neon"][data-eh-design] body #content .rc524-update-grid>article{background:#0e1d31!important;border-color:#203a58!important;color:#cfe7f8!important}
+html[data-eh-design="neon"][data-eh-design] body #content .rc524-update-grid>article :is(strong,b,span){color:#f6fbff!important}
+html[data-eh-design="neon"][data-eh-design] body #content :is(.rc1152-task-eyebrow,.rc542-kicker,.rc871-diag-kicker){color:#67e8f9!important}
+html[data-eh-design="neon"][data-eh-design] body #content .rc1315-direct-print-setup{color:#67e8f9!important}
+/* Funktionstest 22.10.2026: Classic hat eine helle Seitenleiste; die alte helle Benutzerzeile war darauf kaum lesbar */
+html[data-eh-design="classic"] .sidebar .brand span#brandUserLine{color:#3d5a78!important}

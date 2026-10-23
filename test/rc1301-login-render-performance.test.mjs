@@ -34,7 +34,7 @@ test('RC1301: Umgebungswechsel verwendet stabile URL ohne Zeitstempel-Cache-Bust
 
 test('RC1301: Login-Runtime wird mit neuem Cache-Key in Build und manuellem Live-Gate ausgeliefert',()=>{
   const releaseBuild=readBuildContract(),live=readLiveContract();
-  assert.match(build,/rc1074-login-clean\.js\?v=1349/);
-  assert.match(releaseBuild,/rc1074-login-clean\.js\?v=1349/);
+  assert.match(build,/rc1074-login-clean\.js\?v=1630/);
+  assert.match(releaseBuild,/rc1074-login-clean\.js\?v=1630/);
   assert.match(live,/\/assets\/rc1074-login-clean\.js/);
 });

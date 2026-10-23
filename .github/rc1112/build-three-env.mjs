@@ -5,6 +5,7 @@ import {integrateTour} from '../rc1501/build-three-env.mjs';
 import {integrateEditor} from '../rc1502/build-three-env.mjs';
 import {integrateTraining} from '../rc1503/build-three-env.mjs';
 import {integrateCoverageAdmin} from '../rc1506/build-three-env.mjs';
+import {fingerprintAssets} from '../asset-fingerprint/fingerprint-assets.mjs';
 import {patchRc1576StateBodyDeadline} from '../../scripts/rc1576-state-read-body-timeout.mjs';
 import {patchRc1619LargeStateWorkerParse} from '../../scripts/rc1619-large-state-worker-parse.mjs';
 import {hardenCustomerSaveHtml} from '../../scripts/rc1600-customer-save-readback.mjs';
@@ -53,10 +54,12 @@ const RC1206_SHIPPING_ID='exporthub-rc1206-shipping-rules';
 const RC1206_SHIPPING_TAG='<script id="'+RC1206_SHIPPING_ID+'" defer src="/assets/rc1206-shipping-rules.js?v=1419"></script>';
 const RC1296_BROWSER_TITLE='ExportHUB360';
 const RC1296_FAVICON_TAG='<link id="exporthub360-favicon" rel="icon" type="image/svg+xml" href="/assets/exporthub360-favicon.svg?v=1296">';
-const RC1304_THEME_STYLE_TAG='<link id="exporthub-rc1304-theme-style" rel="stylesheet" href="/assets/rc1304-theme-switcher.css?v=1305">';
+const RC1304_THEME_STYLE_TAG='<link id="exporthub-rc1304-theme-style" rel="stylesheet" href="/assets/rc1304-theme-switcher.css?v=1306">';
 const RC1304_THEME_SCRIPT_TAG='<script id="exporthub-rc1304-theme-script" src="/assets/rc1304-theme-switcher.js?v=1305"><\/script>';
+const RC1630_LOGIN_STYLE_TAG='<link id="exporthub-rc1630-login-style" rel="stylesheet" href="/assets/rc1630-login-experience.css?v=1630">';
+const RC1630_LOGIN_SCRIPT_TAG='<script id="exporthub-rc1630-login-script" defer src="/assets/rc1630-login-experience.js?v=1630"><\/script>';
 const RC1306_LAYOUT_STYLE_TAG='<link id="exporthub-rc1306-layout-style" rel="stylesheet" href="/assets/rc1306-layout-engine.css?v=1306">';
-const RC1306_LAYOUT_SCRIPT_TAG='<script id="exporthub-rc1306-layout-script" defer src="/assets/rc1306-layout-engine.js?v=1306"><\/script>';
+const RC1306_LAYOUT_SCRIPT_TAG='<script id="exporthub-rc1306-layout-script" defer src="/assets/rc1306-layout-engine.js?v=1306.1"><\/script>';
 const RC1371_DASHBOARD_STYLE_TAG='<link id="exporthub-rc1371-dashboard-style" rel="stylesheet" href="/assets/rc1371-dashboard-personalization.css?v=1371">';
 const RC1371_DASHBOARD_I18N_TAG='<script id="exporthub-rc1371-dashboard-i18n" defer src="/assets/i18n/rc1371-dashboard-personalization.js?v=1371"><\/script>';
 const RC1371_DASHBOARD_SCRIPT_TAG='<script id="exporthub-rc1371-dashboard-script" defer src="/assets/rc1371-dashboard-personalization.js?v=1371"><\/script>';
@@ -64,13 +67,15 @@ const RC1560_FULL_WIDTH_STYLE_TAG='<link id="exporthub-rc1560-full-width" rel="s
 const RC1579_MENU_STYLE_TAG='<link id="exporthub-rc1579-menu-style" rel="stylesheet" href="/assets/rc1579-menu-redesign.css?v=1579">';
 const RC1579_MENU_I18N_TAG='<script id="exporthub-rc1579-menu-i18n" defer src="/assets/i18n/rc1579-menu-redesign.js?v=1579"></script>';
 const RC1579_MENU_SCRIPT_TAG='<script id="exporthub-rc1579-menu-script" defer src="/assets/rc1579-menu-redesign.js?v=1630"></script>';
+const CUSTOMER_FOLDER_STYLE_TAG='<link id="exporthub-customer-folder-style" rel="stylesheet" href="/assets/customer-folder-redesign.css?v=1">';
+const CUSTOMER_FOLDER_SCRIPT_TAG='<script id="exporthub-customer-folder-script" defer src="/assets/customer-folder-redesign.js?v=1"></script>';
 const RC1577_OVERVIEW_COMPACT_STYLE_TAG='<link id="exporthub-rc1577-overview-compact" rel="stylesheet" href="/assets/rc1577-shipment-overview-compact.css?v=1577">';
 const RC1558_OVERVIEW_STYLE_TAG='<link id="exporthub-rc1558-overview-style" rel="stylesheet" href="/assets/rc1558-dashboard-overview.css?v=1558">';
 const RC1558_OVERVIEW_I18N_TAG='<script id="exporthub-rc1558-overview-i18n" defer src="/assets/i18n/rc1558-dashboard-overview.js?v=1558"><\/script>';
 const RC1558_OVERVIEW_SCRIPT_TAG='<script id="exporthub-rc1558-overview-script" defer src="/assets/rc1558-dashboard-overview.js?v=1558"><\/script>';
 const RC1570_TASKS_STYLE_TAG='<link id="exporthub-rc1570-tasks-style" rel="stylesheet" href="/assets/rc1570-tasks-focus.css?v=1570">';
 const RC1570_TASKS_I18N_TAG='<script id="exporthub-rc1570-tasks-i18n" defer src="/assets/i18n/rc1570-tasks-focus.js?v=1570"></script>';
-const RC1570_TASKS_SCRIPT_TAG='<script id="exporthub-rc1570-tasks-script" defer src="/assets/rc1570-tasks-focus.js?v=1570"></script>';
+const RC1570_TASKS_SCRIPT_TAG='<script id="exporthub-rc1570-tasks-script" defer src="/assets/rc1570-tasks-focus.js?v=1571"></script>';
 const RC1630_SELF_CORRECT_I18N_TAG='<script id="exporthub-rc1630-self-correct-i18n" defer src="/assets/i18n/rc1630-self-correct.js?v=1630"></script>';
 const RC1630_SELF_CORRECT_SCRIPT_TAG='<script id="exporthub-rc1630-self-correct-script" defer src="/assets/rc1630-self-correct.js?v=1630"></script>';
 const RC1577_POD_AUDIT_I18N_TAG='<script id="exporthub-rc1577-pod-audit-i18n" defer src="/assets/i18n/rc1577-pod-quality-audit.js?v=1577"></script>';
@@ -118,8 +123,16 @@ function injectImmediateRuntimeAfterHead(html,tag,id){
 function patchRc1304ThemeRedesign(html,file){
   html=injectDeferredRuntimeInHead(html,RC1304_THEME_STYLE_TAG,'exporthub-rc1304-theme-style');
   html=injectDeferredRuntimeInHead(html,RC1304_THEME_SCRIPT_TAG,'exporthub-rc1304-theme-script');
-  if(!html.includes('rc1304-theme-switcher.css?v=1305'))throw new Error(file+': RC1304 Theme-CSS fehlt');
+  if(!html.includes('rc1304-theme-switcher.css?v=1306'))throw new Error(file+': RC1304 Theme-CSS fehlt');
   if(!html.includes('rc1304-theme-switcher.js?v=1305'))throw new Error(file+': RC1304 Theme-Switcher fehlt');
+  return html;
+}
+
+function patchRc1630LoginVisuals(html,file){
+  html=injectDeferredRuntimeInHead(html,RC1630_LOGIN_STYLE_TAG,'exporthub-rc1630-login-style');
+  html=injectDeferredRuntimeInHead(html,RC1630_LOGIN_SCRIPT_TAG,'exporthub-rc1630-login-script');
+  if(!html.includes('rc1630-login-experience.css?v=1630'))throw new Error(file+': RC1630 Login-CSS fehlt');
+  if(!html.includes('rc1630-login-experience.js?v=1630'))throw new Error(file+': RC1630 Login-UI fehlt');
   return html;
 }
 
@@ -156,6 +169,14 @@ function patchRc1579Menu(html,file){
   return html;
 }
 
+function patchCustomerFolderRedesign(html,file){
+  // after RC1579: fixed section order in every design, section navigation and sticky save bar; never saves on its own
+  html=injectDeferredRuntimeInHead(html,CUSTOMER_FOLDER_STYLE_TAG,'exporthub-customer-folder-style');
+  html=injectDeferredRuntimeInHead(html,CUSTOMER_FOLDER_SCRIPT_TAG,'exporthub-customer-folder-script');
+  if(!html.includes('customer-folder-redesign.css?v=1')||!html.includes('/assets/customer-folder-redesign.js?v=1'))throw new Error(file+': Kundenordner-Redesign fehlt');
+  return html;
+}
+
 function patchRc1371Dashboard(html,file){
   html=injectDeferredRuntimeInHead(html,RC1371_DASHBOARD_STYLE_TAG,'exporthub-rc1371-dashboard-style');
   html=injectDeferredRuntimeInHead(html,RC1371_DASHBOARD_I18N_TAG,'exporthub-rc1371-dashboard-i18n');
@@ -184,7 +205,7 @@ function patchRc1558DashboardOverview(html,file){
   html=injectDeferredRuntimeInHead(html,RC1570_TASKS_STYLE_TAG,'exporthub-rc1570-tasks-style');
   html=injectDeferredRuntimeInHead(html,RC1570_TASKS_I18N_TAG,'exporthub-rc1570-tasks-i18n');
   html=injectDeferredRuntimeInHead(html,RC1570_TASKS_SCRIPT_TAG,'exporthub-rc1570-tasks-script');
-  if(!html.includes('i18n/rc1570-tasks-focus.js?v=1570')||!html.includes('/assets/rc1570-tasks-focus.js?v=1570')||!html.includes('rc1570-tasks-focus.css?v=1570'))throw new Error(file+': RC1570 Aufgaben-Fokus fehlt');
+  if(!html.includes('i18n/rc1570-tasks-focus.js?v=1570')||!html.includes('/assets/rc1570-tasks-focus.js?v=1571')||!html.includes('rc1570-tasks-focus.css?v=1570'))throw new Error(file+': RC1570 Aufgaben-Fokus fehlt');
   // RC1577 admin POD audit (report first, regenerate / review flag only after confirmation)
   html=injectDeferredRuntimeInHead(html,RC1577_POD_AUDIT_I18N_TAG,'exporthub-rc1577-pod-audit-i18n');
   html=injectDeferredRuntimeInHead(html,RC1577_POD_AUDIT_SCRIPT_TAG,'exporthub-rc1577-pod-audit-script');
@@ -306,7 +327,7 @@ function patchRc1306LayoutEngine(html,file){
   html=injectDeferredRuntimeInHead(html,RC1306_LAYOUT_STYLE_TAG,'exporthub-rc1306-layout-style');
   html=injectDeferredRuntimeInHead(html,RC1306_LAYOUT_SCRIPT_TAG,'exporthub-rc1306-layout-script');
   if(!html.includes('rc1306-layout-engine.css?v=1306'))throw new Error(file+': RC1306 Layout-CSS fehlt');
-  if(!html.includes('rc1306-layout-engine.js?v=1306'))throw new Error(file+': RC1306 Layout-Engine fehlt');
+  if(!html.includes('rc1306-layout-engine.js?v=1306.1'))throw new Error(file+': RC1306 Layout-Engine fehlt');
   return html;
 }
 
@@ -1243,6 +1264,7 @@ function patchHtml(file){
   html=patchRc1576StateBodyDeadline(html,file);
   html=patchRc1619LargeStateWorkerParse(html,file);
   html=patchRc1304ThemeRedesign(html,file);
+  html=patchRc1630LoginVisuals(html,file);
   html=patchRc1400MobileNavigationCache(html,file);
   html=patchRc1371Dashboard(html,file);
   html=patchRc1558DashboardOverview(html,file);
@@ -1250,6 +1272,7 @@ function patchHtml(file){
   html=patchRc1560FullWidth(html,file);
   html=patchRc1577OverviewCompact(html,file);
   html=patchRc1579Menu(html,file);
+  html=patchCustomerFolderRedesign(html,file);
   html=patchRc1329MultiTruckUiRuntime(html,file);
   html=patchRc1328MultiTruckRefresh(html,file);
   html=patchRc1329MultiTruckRenderer(html,file);
@@ -1295,7 +1318,7 @@ function patchHtml(file){
   );
   html=html.replace(/(window\.__EXPORTHUB_BUILD__\s*=\s*['"])RC1048(['"])/g,`$1${VERSION}$2`);
   html=html.replaceAll(LEGACY_TESTSERVICE_HOST,CURRENT_TESTSERVICE_HOST);
-  html=html.replace(/assets\/rc1074-login-clean\.js\?v=(?:1074|1112|1298|1301|1303|1311)/g,'assets/rc1074-login-clean.js?v=1349');
+  html=html.replace(/assets\/rc1074-login-clean\.js\?v=(?:1074|1112|1298|1301|1303|1311|1349)/g,'assets/rc1074-login-clean.js?v=1630');
   html=html.replace(/assets\/rc1014-task-runtime\.js\?v=(?:1016|1266|1312|1353|1359)/g,'assets/rc1014-task-runtime.js?v=1359');
   html=html.replace(/assets\/rc1014-task-ui\.css\?v=(?:1016|1179|1312)/g,'assets/rc1014-task-ui.css?v=1312');
   html=html.replace(/assets\/rc1013-diagnostics\.js\?v=(?:1085|1125|1364)/g,'assets/rc1013-diagnostics.js?v=1364');
@@ -1332,7 +1355,7 @@ function patchHtml(file){
   if(!html.includes(`version:'${VERSION}'`))throw new Error(file+': BUILD '+VERSION+' fehlt');
   if(!html.includes(`ExportHUB ${VERSION} environment=`))throw new Error(file+': Environment '+VERSION+' fehlt');
   if(file!=='demo.html'&&!html.includes('assets/rc1289-auth-transport-fallback.js?v=1289'))throw new Error(file+': RC1289 Desktop-Auth-Fallback fehlt');
-  if(!html.includes('assets/rc1074-login-clean.js?v=1349'))throw new Error(file+': RC1349 Login-/Browser-Branding-Cache-Key fehlt');
+  if(!html.includes('assets/rc1074-login-clean.js?v=1630'))throw new Error(file+': RC1349 Login-/Browser-Branding-Cache-Key fehlt');
   if(!html.includes('assets/rc1014-task-runtime.js?v=1359'))throw new Error(file+': RC1359 Aufgaben-Runtime Cache-Key fehlt');
   if(!html.includes('assets/rc1014-task-ui.css?v=1312'))throw new Error(file+': RC1312 Aufgaben-CSS Cache-Key fehlt');
   if(!html.includes('assets/rc1013-diagnostics.js?v=1364'))throw new Error(file+': RC1364 Diagnose Cache-Key fehlt');
@@ -1408,6 +1431,9 @@ for(const rel of [
   'assets/exporthub360-favicon.svg',
   'assets/rc1304-theme-switcher.css',
   'assets/rc1304-theme-switcher.js',
+  'assets/rc1630-login-experience.css',
+  'assets/rc1630-login-experience.js',
+  'assets/rc1630-login-route.svg',
   'assets/rc1306-layout-engine.css',
   'assets/rc1306-layout-engine.js',
   'assets/rc1371-dashboard-personalization.css',
@@ -1417,6 +1443,8 @@ for(const rel of [
   'assets/rc1579-menu-redesign.css',
   'assets/rc1579-menu-redesign.js',
   'assets/i18n/rc1579-menu-redesign.js',
+  'assets/customer-folder-redesign.css',
+  'assets/customer-folder-redesign.js',
   'assets/rc1558-dashboard-overview.css',
   'assets/rc1558-dashboard-overview.js',
   // RC1592: print/browser QA must load the same pickup runtime as final release.
@@ -1561,5 +1589,7 @@ integrateTour(ROOT,OUT);
 integrateEditor(ROOT,OUT);
 integrateTraining(ROOT,OUT);
 integrateCoverageAdmin(ROOT,OUT);
+// Must stay last: hashes the files exactly as they are shipped.
+fingerprintAssets({root:ROOT,out:OUT});
 
 console.log('RC1112 build pipeline ready: sichtbare Produktversion '+VISIBLE_VERSION+' auf geprüfter RC1048-Basis, RC1194 sichere Kundenportal-Key-Diagnose aktiv.');

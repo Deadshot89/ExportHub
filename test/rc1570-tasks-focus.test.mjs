@@ -172,3 +172,10 @@ test('RC1570 Filtertexte existieren in allen sechs Sprachen',()=>{
   const packs=ctx.window.ExportHUBTasksFocus1570I18n.packs;
   for(const l of ['de','en','pl','es','fr','it'])for(const k of ['filters','filterAll','filterReset','filter_customer','filter_area','filter_process','filter_priority','filter_status','filter_owner','filter_period','stOpen','stInProgress','stBlocked'])assert.ok(packs[l][k],l+':'+k);
 });
+
+test('RC1570 Aufgabenansicht entfernt den Listen-Fokus, sonst blendet das CSS die Detailansicht aus',()=>{
+  const start=source.indexOf("if(v==='taskdetail'&&root){");
+  const branch=source.slice(start,source.indexOf('var rt=w.ExportHUBRC1014TaskRuntime;',start));
+  assert.match(branch,/removeAttribute\(BODY_FLAG\)/);
+  assert.match(branch,/getElementById\(SECTION_ID\)/);
+});
