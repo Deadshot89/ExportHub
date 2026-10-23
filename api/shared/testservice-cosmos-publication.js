@@ -50,6 +50,13 @@ async function stageChunk(store,chunk){
   fail('TEST_COSMOS_CHUNK_CREATE_FAILED');
  }
 }
+function safeSummary(bundle){
+ const s=summarizeTestservicePack(bundle);
+ // The codec itself does no I/O, but a provider adapter MAY write cloud
+ // items. Do not carry the codec's "noCloudWrites" flag into a publisher.
+ return {environment:s.environment,chunkCount:s.chunkCount,rawBytes:s.rawBytes,
+  compressedBytes:s.compressedBytes,compressionPercent:s.compressionPercent};
+}
 function manifestEqual(a,b){
  if(!a||!b||typeof a!=='object'||typeof b!=='object')return false;
  // Trust only the known codec manifest fields.
@@ -81,7 +88,7 @@ async function readPublishedTestserviceState(store,{environment}={}){
  const manifest=await readItem(store,MANIFEST_ID);
  if(!manifest)fail('TEST_COSMOS_MANIFEST_MISSING');
  const state=await readAndRestore(store,manifest);
- return {state,manifestEtag:manifest.etag||null,summary:summarizeTestservicePack({manifest})};
+ return {state,manifestEtag:manifest.etag||null,summary:safeSummary({manifest})};
 }
 
 // Compare-and-swap publication: the manifest is the ONLY mutable record.
@@ -105,7 +112,7 @@ async function publishTestserviceState(store,state,options={}){
  if(previous&&manifestEqual(previous,bundle.manifest)){
   const reread=await readAndRestore(store,bundle.manifest);
   if(!isDeepStrictEqual(reread,state))fail('TEST_COSMOS_READBACK_INVALID');
-  return {...summarizeTestservicePack(bundle),committed:false,
+  return {...safeSummary(bundle),committed:false,
    verifiedReadback:true,cloudCostVerified:false};
  }
  let createdChunks=0;
@@ -121,7 +128,7 @@ async function publishTestserviceState(store,state,options={}){
  if(!manifestEqual(published,bundle.manifest))fail('TEST_COSMOS_POSTCOMMIT_INVALID');
  if(!isDeepStrictEqual(await readAndRestore(store,published),state))
   fail('TEST_COSMOS_POSTCOMMIT_INVALID');
- return {...summarizeTestservicePack(bundle),committed:true,createdChunks,
+ return {...safeSummary(bundle),committed:true,createdChunks,
   verifiedReadback:true,cloudCostVerified:false};
 }
 module.exports={publishTestserviceState,readPublishedTestserviceState,
