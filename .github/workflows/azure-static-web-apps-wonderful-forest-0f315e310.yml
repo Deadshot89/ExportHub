@@ -488,6 +488,20 @@ jobs:
                         billingVerified:false,retentionChangeApproved:false
                       }));
                     }
+                    // RC1643: same LIST results, explicit deleted+snapshot flag
+                    // only. Never infer a delete timestamp or a billable size.
+                    const deletedKeys=["snapshotMarked","withoutSnapshotMarker"];
+                    const d=t.deletedMarkers;
+                    const validDeleted=d&&deletedKeys.every(k=>safe(d[k]?.records)&&safe(d[k]?.logicalBytes))&&
+                      deletedKeys.reduce((n,k)=>n+d[k].records,0)===t.kinds.deleted.records&&
+                      deletedKeys.reduce((n,k)=>n+d[k].logicalBytes,0)===t.kinds.deleted.logicalBytes&&
+                      t.deletedAgeVerifiable===false;
+                    console.log("RC1643 TESTSERVICE-Teamdatei-SoftDelete-Typ "+JSON.stringify({
+                      status:validDeleted?"listed":"unverified",
+                      deletedMarkers:validDeleted?d:null,
+                      deletedAgeVerifiable:false,
+                      billingVerified:false,retentionChangeApproved:false
+                    }));
                   }
                 }
                 if(process.env.GITHUB_STEP_SUMMARY){
