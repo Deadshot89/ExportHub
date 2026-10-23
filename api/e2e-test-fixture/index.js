@@ -339,6 +339,19 @@ module.exports=async function(context,req){
   const payload=body(req);requireTestservice(req,payload);
   if(!await githubOidcAuthorized(req))throw error('E2E_FIXTURE_FORBIDDEN','RC1139 Fixture darf nur vom signierten GitHub-Releaseworkflow aufgerufen werden.',403);
   const action=lower(payload.action),runId=safeRunId(payload.runId);
+  if(action==='inventory-blob-policy'){
+   // RC1639: signed TESTSERVICE OIDC gate already passed. This setting
+   // belongs to the Azure storage ACCOUNT, which may also serve production.
+   // Never expose account IDs, endpoints, SAS/key data or full XML.
+   let policy={status:'unverified',enabled:null,days:null};
+   try{policy=await service().getDeleteRetentionPolicy()}catch(_){
+    // Missing Azure data-plane permission or timeout is NOT evidence of off.
+   }
+   context.res=json(200,{ok:true,action:'inventory-blob-policy',
+    environment:'testservice',scope:'storage-account',sharedOwnershipVerified:false,
+    billingVerified:false,changeApproved:false,deleteRetention:policy});
+   return;
+  }
   if(action==='inventory-scopes'){
    // RC1631: OIDC and TESTSERVICE host/environment checks run above.
    // Azure LIST only: no blob reads/writes and no names in the response.
@@ -359,7 +372,7 @@ module.exports=async function(context,req){
   }
   if(action==='prepare'){context.res=json(200,await prepare(runId));return}
   if(action==='cleanup'){context.res=json(200,await cleanup(runId));return}
-  throw error('ACTION_INVALID','Erlaubt sind prepare, cleanup, inventory-team und inventory-scopes.',400);
+  throw error('ACTION_INVALID','Erlaubt sind prepare, cleanup, inventory-team, inventory-scopes und inventory-blob-policy.',400);
  }catch(e){
   try{context.log&&context.log.error&&context.log.error('RC1139 E2E fixture error',e&&e.code,e&&e.message)}catch(_){}
   context.res=json(Number(e&&e.status||e&&e.statusCode||500),{ok:false,code:e&&e.code||'SERVER_ERROR',message:e&&e.message||'RC1139 Fixture fehlgeschlagen.'});
