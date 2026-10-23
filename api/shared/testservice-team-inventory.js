@@ -23,6 +23,17 @@ function empty(){
  return Object.fromEntries(KINDS.map(kind=>[kind,{records:0,logicalBytes:0}]));
 }
 function integer(v){return Number.isSafeInteger(v)&&v>=0;}
+// RC1642: only a snapshot's ISO timestamp is an age observation.
+// A soft-deleted entry's Last-Modified is NOT its deletion timestamp.
+const SNAPSHOT_AGES=['under1day','day1to7','beyond7days','unknown'];
+function emptySnapshotAge(){return Object.fromEntries(SNAPSHOT_AGES.map(k=>[k,{records:0,logicalBytes:0}]));}
+function ageBucket(timestamp,at){
+ if(typeof timestamp!=='string'||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/.test(timestamp))return 'unknown';
+ const value=Date.parse(timestamp);
+ if(!Number.isFinite(value)||value>at)return 'unknown';
+ const days=(at-value)/86400000;
+ return days<1?'under1day':days<=7?'day1to7':'beyond7days';
+}
 function sum(target,n){
  if(!integer(target.logicalBytes+n))throw Object.assign(new Error('INVENTORY_OVERFLOW'),{code:'INVENTORY_OVERFLOW'});
  target.records++;
@@ -41,14 +52,18 @@ async function collectTestserviceTeamInventory(container,options={}){
  const teamStateName=configuredTeamStateName(options);
  const now=typeof options.clock==='function'?options.clock:Date.now;
  const started=now();
+ const referenceTime=options.referenceTime===undefined?Date.now():Number(options.referenceTime);
+ if(!Number.isFinite(referenceTime)||referenceTime<0)throw new Error('INVENTORY_REFERENCE_TIME_INVALID');
  const report={
   version:'RC1627',environment:'testservice',scope:'team-prefix',complete:false,
   records:0,logicalBytes:0,liveLogicalBytes:0,historicalLogicalBytes:0,
   kinds:empty(),areas:emptyAreas(),
   // RC1638: fixed-name configured state file, aggregate-only; never return
   // the Blob's name, URL, ETag or any customer data.
-  teamState:teamStateName?{status:'listed',records:0,logicalBytes:0,kinds:empty()}:
-   {status:'unverified',records:null,logicalBytes:null,kinds:null},
+  teamState:teamStateName?{status:'listed',records:0,logicalBytes:0,kinds:empty(),
+    snapshotAge:emptySnapshotAge(),deletedAgeVerifiable:false}:
+   {status:'unverified',records:null,logicalBytes:null,kinds:null,
+    snapshotAge:null,deletedAgeVerifiable:false},
   billingVerified:false,archiveVerified:false,
   sharedProductionDependenciesResolved:false
  };
@@ -71,6 +86,7 @@ async function collectTestserviceTeamInventory(container,options={}){
   sum(area,bytes);sum(area.kinds[kind],bytes);
   if(teamStateName&&item.name===teamStateName){
    sum(report.teamState,bytes);sum(report.teamState.kinds[kind],bytes);
+   if(kind==='snapshot')sum(report.teamState.snapshotAge[ageBucket(item.snapshot,referenceTime)],bytes);
   }
   report.records++;
   if(!integer(report.logicalBytes+bytes))throw new Error('INVENTORY_OVERFLOW');
