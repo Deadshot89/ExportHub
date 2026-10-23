@@ -102,9 +102,13 @@ async function validateSession(req, options = {}){
   const token = auth.bearer(req);
   if (!token) throw auth.error('AUTH_REQUIRED', apiI18n.t(req,'api.common.authRequired'), 401);
   if (isSignedTestserviceE2E(token)) return auth.validateSession(req, options);
+  // Opt-in only. Prior to verified TESTSERVICE cutover, preserve production
+  // login/session lookup exactly as before (while retaining ETag verification).
   const testserviceRequest=typeof auth.environmentFromRequest==='function' &&
     auth.environmentFromRequest(req)==='testservice';
-  const c = await clients();
+  const isolated=typeof auth.loginStorageEnvironment==='function' &&
+    auth.loginStorageEnvironment(req)==='testservice';
+  const c=isolated?await auth.testserviceClients():await clients();
   const { authDoc, teamDoc } = await readSessionDocuments(c,testserviceRequest);
   const resolved = auth.resolveSession(token, authDoc.value || auth.emptyAuth());
   const session = resolved.session;
