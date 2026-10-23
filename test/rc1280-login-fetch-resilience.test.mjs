@@ -103,8 +103,10 @@ test('RC1280 P1: Loginseite und API werden nicht aus Browsercache bedient',()=>{
   const cfg=JSON.parse(fs.readFileSync('staticwebapp.config.json','utf8'));
   const route=path=>cfg.routes.find(item=>item.route===path);
   for(const path of ['/','/index.html']){
-    assert.match(String(route(path)?.headers?.['Cache-Control']||''),/no-store/i,path+': no-store fehlt');
+    // Ladezeit: no-cache + must-revalidate fragt bei jedem Aufruf beim Server nach; nur ein unveränderter Stand kommt als 304 aus dem Cache
     assert.match(String(route(path)?.headers?.['Cache-Control']||''),/no-cache/i,path+': no-cache fehlt');
+    assert.match(String(route(path)?.headers?.['Cache-Control']||''),/must-revalidate/i,path+': must-revalidate fehlt');
+    assert.doesNotMatch(String(route(path)?.headers?.['Cache-Control']||''),/max-age=[1-9]|immutable/i,path+': darf nicht ungeprüft aus dem Cache kommen');
   }
   assert.match(String(route('/api/*')?.headers?.['Cache-Control']||''),/no-store/i,'/api/*: no-store fehlt');
   for(const file of ['index.html','TESTVERSION.html']){
