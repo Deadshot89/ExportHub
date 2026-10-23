@@ -1,6 +1,6 @@
 /* ExportHUB Web Push client: subscribes this device once (while logged in) so the server can send
    task reminders and new pack notifications to it later, with the browser closed and no login.
-   UI: a card in "Benachrichtigungen"; the existing button "Browser-Benachrichtigungen aktivieren"
+   UI: a card in "Benachrichtigungen"; the existing browser notifications action
    now also subscribes the device. Server: api/web-push. */
 (function (w) {
   'use strict';
