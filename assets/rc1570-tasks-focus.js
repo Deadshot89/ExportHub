@@ -1,6 +1,6 @@
 /* ExportHUB360 RC1570 – task focus view: overdue and today first, rest of the week compact by work group,
-   a real "new task" form and a working task detail view ("Aufgabenansicht").
-   Data stays in state.tasks; completing uses the app's toggleTaskCard, saving uses the RC524 editor path. */
+   plus the "Aufgabenansicht" where tasks are viewed, edited and created (customer, customer number, reference …).
+   Data stays in state.tasks; completing in the list uses the app's toggleTaskCard. */
 (function(w){
 'use strict';
 if(!w||w.__EXPORTHUB_RC1570_TASKS__)return;
@@ -43,7 +43,7 @@ function isoWeekMonday(key){
 function parseDate(v){
   var s=q(v);if(!s)return null;
   var m=s.match(/^(\d{4})-(\d{2})-(\d{2})$/);if(m)return new Date(Number(m[1]),Number(m[2])-1,Number(m[3]),12);
-  m=s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);if(m)return new Date(Number(m[3]),Number(m[2])-1,Number(m[1]),12);
+  m=s.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})$/);if(m)return new Date(Number(m[3]),Number(m[2])-1,Number(m[1]),12);
   if(/^\d{4}-\d{2}-\d{2}T/.test(s)){var d=new Date(s);if(!isNaN(d.getTime()))return atNoon(d)}
   return null
 }
@@ -263,16 +263,14 @@ function toggle(id){
   try{if(typeof w.toggleTaskCard==='function')w.toggleTaskCard({preventDefault:function(){},stopPropagation:function(){}},id)}catch(err){try{console.warn('RC1570 toggle',err)}catch(_){}}
   lastHtml='';schedule()
 }
-function openDetail(id){
-  var task=findTask(id),rt=w.ExportHUBRC1014TaskRuntime;if(!task)return;
-  try{if(rt&&typeof rt.openTask==='function'){rt.openTask(task,{state:state()});return}}catch(err){try{console.warn('RC1570 open',err)}catch(_){}}
-  edit(id)
-}
-function edit(id){try{if(typeof w.rc524OpenTaskEditor==='function')w.rc524OpenTaskEditor(id)}catch(_){}}
 function openShipment(r){try{if(w.ExportHUBShipmentView&&typeof w.ExportHUBShipmentView.open==='function'){w.ExportHUBShipmentView.open(r,'tasks');return}}catch(_){}try{if(typeof w.setView==='function')w.setView('shipmentoverview')}catch(_){}}
 function route(v){try{if(typeof w.setView==='function')w.setView(v)}catch(_){}}
 
-/* new task form – saves through the RC524 editor (rights check, save, audit, render) */
+/* Aufgabenansicht: list, detail, edit and create in one place (view "taskdetail").
+   Saves straight into state.tasks; the server merges the changed fields into the stored task. */
+var TV_ID='rc1570TaskView';
+var TV_FLAG='data-rc1570-taskview';
+var tv={mode:'',id:'',search:'',error:''};
 function knownAreas(){var seen={};arr(state().tasks).forEach(function(x){var a=q(x&&(x.area||x.category));if(a)seen[a]=1});return Object.keys(seen).sort()}
 function knownOwners(){
   var seen={},us=users();us.forEach(function(u){var n=q(u&&(u.name||u.displayName||u.user));if(n)seen[n]=1});
@@ -280,59 +278,185 @@ function knownOwners(){
   var me=q(currentUser().name||currentUser().displayName||currentUser().user);if(me)seen[me]=1;
   return Object.keys(seen).sort()
 }
-function openForm(){
-  var d=w.document;if(!d)return;
-  if(!canWrite()){alert(t('noRights'));return}
-  var old=d.getElementById('rc1570Form');if(old)old.remove();
-  var me=q(currentUser().name||currentUser().displayName||currentUser().user),today=dayKey(new Date()),wd=new Date().getDay();
-  var dlg=d.createElement('div');dlg.id='rc1570Form';dlg.className='rc1570-modal';
-  dlg.innerHTML='<form class="rc1570-dialog" novalidate role="dialog" aria-modal="true" aria-labelledby="rc1570FormTitle"><h2 id="rc1570FormTitle">'+esc(t('formTitle'))+'</h2>'+
-    '<label class="rc1570-field rc1570-wide"><span>'+esc(t('fTitle'))+'</span><input name="title" required maxlength="160" autocomplete="off"></label>'+
-    '<label class="rc1570-field"><span>'+esc(t('fArea'))+'</span><input name="area" list="rc1570Areas" maxlength="60"><datalist id="rc1570Areas">'+knownAreas().map(function(a){return'<option value="'+esc(a)+'">'}).join('')+'</datalist></label>'+
-    '<label class="rc1570-field"><span>'+esc(t('fOwner'))+'</span><input name="owner" list="rc1570Owners" maxlength="80" value="'+esc(me)+'"><datalist id="rc1570Owners">'+knownOwners().map(function(o){return'<option value="'+esc(o)+'">'}).join('')+'</datalist></label>'+
-    '<fieldset class="rc1570-field rc1570-wide"><legend>'+esc(t('fWhen'))+'</legend><div class="rc1570-when">'+
-      '<label><input type="radio" name="repeat" value="once" checked> '+esc(t('fOnce'))+'</label><input type="date" name="date" value="'+today+'">'+
-      '<label><input type="radio" name="repeat" value="weekly"> '+esc(t('fWeekly'))+'</label><select name="weekday">'+[1,2,3,4,5,6,0].map(function(i){return'<option value="'+i+'"'+(i===wd?' selected':'')+'>'+esc(dayNames(lang())[i])+'</option>'}).join('')+'</select></div></fieldset>'+
-    '<label class="rc1570-field"><span>'+esc(t('fTime'))+'</span><input type="time" name="time"></label>'+
-    '<label class="rc1570-field"><span>'+esc(t('fPriority'))+'</span><select name="priority"><option value="P1">P1</option><option value="P2">P2</option><option value="Normal" selected>'+esc(t('pNormal'))+'</option><option value="P4">P4</option></select></label>'+
-    '<label class="rc1570-field rc1570-wide"><span>'+esc(t('fRef'))+'</span><input name="ref" maxlength="40" autocomplete="off"></label>'+
-    '<label class="rc1570-field rc1570-wide"><span>'+esc(t('fNote'))+'</span><textarea name="note" rows="3" maxlength="1000"></textarea></label>'+
-    '<p class="rc1570-error" role="alert" hidden></p>'+
-    '<div class="rc1570-form-actions"><button type="submit" class="btn">'+esc(t('save'))+'</button><button type="button" class="ghost" data-rc1570-cancel="1">'+esc(t('cancel'))+'</button></div></form>';
-  d.body.appendChild(dlg);
-  var form=dlg.querySelector('form'),first=form.querySelector('[name="title"]');if(first)first.focus();
-  var close=function(){dlg.remove()};
-  dlg.addEventListener('click',function(e){if(e.target===dlg||(e.target.closest&&e.target.closest('[data-rc1570-cancel]')))close()});
-  dlg.addEventListener('keydown',function(e){if(e.key==='Escape')close()});
-  form.addEventListener('submit',function(e){
-    e.preventDefault();
-    var f=form.elements,err=form.querySelector('.rc1570-error'),name=q(f.title.value);
-    if(!name){err.textContent=t('required');err.hidden=false;f.title.focus();return}
-    var weekly=form.querySelector('[name="repeat"]:checked').value==='weekly';
-    var day=weekly?dayNames('de')[Number(f.weekday.value)]:q(f.date.value);
-    var created=saveTask({title:name,area:q(f.area.value)||'Manuell',owner:q(f.owner.value)||me,day:day,time:q(f.time.value),priority:q(f.priority.value),ref:q(f.ref.value),note:q(f.note.value)});
-    if(created){close();lastHtml='';schedule()}
-  })
+function customers(){
+  var seen={},out=[];
+  arr(state().customers).forEach(function(c){var name=q(c&&(c.name||c.company||c.companyName)),no=q(c&&(c.customerNumber||c.account||c.accountNumber));if(!name||seen[low(name)])return;seen[low(name)]=1;out.push({name:name,no:no})});
+  return out.sort(function(a,b){return a.name.localeCompare(b.name)})
 }
-function saveTask(v){
-  var d=w.document;if(!d||typeof w.rc524OpenTaskEditor!=='function'||typeof w.rc524SaveTask!=='function')return false;
-  var before={};arr(state().tasks).forEach(function(x){before[taskId(x)]=1});
-  w.rc524OpenTaskEditor('');
-  var set=function(id,val){var el=d.getElementById(id);if(el)el.value=val};
-  set('rc524TaskTitle',v.title);set('rc524TaskOwner',v.owner);set('rc524TaskArea',v.area);set('rc524TaskDay',v.day);set('rc524TaskTime',v.time);set('rc524TaskPriority',v.priority);set('rc524TaskNote',v.note);
-  var done=d.getElementById('rc524TaskDone');if(done)done.checked=false;
-  w.rc524SaveTask();
-  var modal=d.getElementById('rc524TaskModal');if(modal){modal.remove();return false}
-  var created=arr(state().tasks).find(function(x){return !before[taskId(x)]});
-  if(created){
-    // mark as manual so roster cleanup never treats it as a shipment task; keep reference and author
-    var patch={sourceType:'manual',createdAt:new Date().toISOString(),createdBy:q(currentUser().name||currentUser().user)};
-    if(v.ref)patch.linkedShipmentRef=v.ref;
-    if(!/^\d{4}-\d{2}-\d{2}$/.test(v.day))patch.recurrence='weekly';else patch.dueDate=v.day;
-    var rt=w.ExportHUBRC1014TaskRuntime;
-    try{if(rt&&typeof rt.applyTaskPatch==='function')rt.applyTaskPatch(taskId(created),patch,{state:state()});else Object.assign(created,patch)}catch(_){Object.assign(created,patch)}
+function customerNo(task){return q(task&&(task.customerNumber||task.linkedAccount||task.customerAccount||task.account))}
+function noteOf(task){return q(task&&(task.note||task.notes||task.comment||task.description))}
+function isoDate(task){var d=parseDate(task&&(task.plannedDate||task.dueDate||task.dueAt||task.date||task.targetDate));return d&&!(isWeekly(task)&&!q(task.plannedDate||task.dueDate||task.dueAt))?dayKey(d):''}
+function weekdayIndex(task){var i=WEEKDAYS.indexOf(low(task&&(task.day||task.originalDay||task.weekday)));return i}
+function findUser(name){var n=low(name);if(!n)return null;return users().find(function(u){return [u.id,u.name,u.displayName,u.user,u.username,u.login].map(low).indexOf(n)>=0})||null}
+function openTaskView(mode,id){tv.mode=mode;tv.id=q(id);tv.error='';try{var rt=w.ExportHUBRC1014TaskRuntime,task=id&&findTask(id);if(task&&rt&&typeof rt.rememberTaskDetail==='function')rt.rememberTaskDetail(task)}catch(_){}if(view()==='taskdetail'){lastView='';renderTaskView(true)}else route('taskdetail')}
+function openDetail(id){if(!findTask(id))return;openTaskView('show',id)}
+function edit(id){if(!findTask(id))return;if(!canWrite()){alert(t('noRights'));return}openTaskView('edit',id)}
+function openForm(){if(!canWrite()){alert(t('noRights'));return}openTaskView('new','')}
+function statusOf(task){var s=statusKey(task);return isDone(task)?'done':(s==='in_progress'?'in_progress':'open')}
+function persist(reason,id){
+  try{if(w.ExportHUBClean&&typeof w.ExportHUBClean.queueSave==='function')w.ExportHUBClean.queueSave(reason);else if(typeof w.save==='function')w.save(reason)}catch(err){try{console.warn('RC1570 save',err)}catch(_){}}
+  try{w.dispatchEvent(new CustomEvent('exporthub:tasks-updated',{detail:{reason:reason,taskId:id}}))}catch(_){}
+}
+function setStatus(task,status){
+  var now=new Date().toISOString(),me=q(currentUser().name||currentUser().user);
+  if(status==='done'){task.status='done';task.done=true;task.completed=true;task.completedAt=now;task.doneAt=now;task.completedBy=me;task.doneBy=me}
+  else{task.status=status==='in_progress'?'in_progress':'open';task.done=false;task.completed=false;task.completedAt='';task.doneAt='';task.completedBy='';task.doneBy='';if(status==='in_progress'&&!q(task.startedAt)){task.startedAt=now;task.startedBy=me}}
+}
+// form values -> task fields (all the aliases the planner, the list and the old views read)
+function applyForm(task,v,isNew){
+  var now=new Date().toISOString(),me=q(currentUser().name||currentUser().displayName||currentUser().user);
+  task.title=v.title;task.name=v.title;
+  task.area=v.area;task.category=v.area;
+  if(v.owner&&(isNew||v.owner!==ownerName(task,users()))){var u=findUser(v.owner),key=u?q(u.id||u.user||u.name):v.owner;task.owner=u?q(u.name||u.displayName||u.user)||v.owner:v.owner;task.assignedToName=task.owner;task.assignedTo=key;task.assignee=key;task.originalAssignee=key;task.effectiveAssignee=key}
+  if(v.weekly){
+    task.day=dayNames('de')[v.weekday];task.recurrence='weekly';
+    ['dueAt','dueDate','plannedDate','date','targetDate'].forEach(function(k){if(k in task)task[k]=''});
+  }else{
+    var before=isoDate(task);
+    task.dueDate=v.date;task.plannedDate=v.date;task.date=v.date;task.targetDate=v.date;task.dueAt=v.date?(v.date+(v.time?'T'+v.time+':00':'')):'';
+    var d=parseDate(v.date);if(d)task.day=dayNames('de')[d.getDay()];
+    if(!isNew&&before&&v.date!==before&&(task.weekKey||task.masterTaskRC848)){task.manualMoved=true;task.plannerMoveReason=t('movedInView')}
+    if(isNew)task.recurrence='';
   }
+  task.time=v.time;task.priority=v.priority;
+  task.customerName=v.customer;task.linkedCustomer=v.customer;
+  task.customerNumber=v.customerNo;task.linkedAccount=v.customerNo;
+  task.linkedShipmentRef=v.ref;task.note=v.note;
+  if(isNew||statusOf(task)!==v.status)setStatus(task,v.status);
+  task.updatedAt=now;task.updatedBy=me;
+  return task
+}
+function saveForm(form){
+  if(!canWrite()){alert(t('noRights'));return false}
+  var f=form.elements,v={
+    title:q(f.title.value),area:q(f.area.value),owner:q(f.owner.value),weekly:form.querySelector('[name="repeat"]:checked').value==='weekly',
+    date:q(f.date.value),weekday:Number(f.weekday.value),time:q(f.time.value),priority:q(f.priority.value),status:q(f.status.value)||'open',
+    customer:q(f.customer.value),customerNo:q(f.customerNo.value),ref:q(f.ref.value),note:String(f.note.value||'').trim()
+  };
+  if(!v.title){tv.error=t('required');renderTaskView(true);return false}
+  // some designs turn the date picker into a text field (TT.MM.JJJJ); store ISO either way
+  if(!v.weekly&&v.date){var pd=parseDate(v.date);if(!pd||pd.getFullYear()<2000||pd.getFullYear()>2100){tv.error=t('badDate');renderTaskView(true);return false}v.date=dayKey(pd)}
+  var s=state(),isNew=tv.mode==='new',task=isNew?null:findTask(tv.id);
+  if(!isNew&&!task){tv.mode='list';renderTaskView(true);return false}
+  if(isNew){
+    task={id:'task-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7),sourceType:'manual',createdAt:new Date().toISOString(),createdBy:q(currentUser().name||currentUser().user)};
+    if(!v.area)v.area=t('manualArea');if(!v.owner)v.owner=q(currentUser().name||currentUser().displayName||currentUser().user);
+    if(!Array.isArray(s.tasks))s.tasks=[];s.tasks.push(task)
+  }
+  applyForm(task,v,isNew);
+  tv.mode='show';tv.id=taskId(task);tv.error='';tv.saved=isNew?t('saved'):t('updated');
+  persist(isNew?'RC1570 Aufgabe angelegt':'RC1570 Aufgabe gespeichert',tv.id);
+  lastHtml='';renderTaskView(true);
+  var shown=w.document.getElementById(TV_ID);if(shown&&shown.scrollIntoView)try{shown.scrollIntoView({block:'start'})}catch(_){}
   return true
+}
+function field(label,html,wide){return'<label class="rc1570-field'+(wide?' rc1570-wide':'')+'"><span>'+esc(label)+'</span>'+html+'</label>'}
+function formHtml(task){
+  var x=task||{},me=q(currentUser().name||currentUser().displayName||currentUser().user),weekly=task?isWeekly(x)&&!q(x.plannedDate||x.dueDate||x.dueAt):false;
+  var date=task?isoDate(x):dayKey(new Date()),wd=task&&weekdayIndex(x)>=0?weekdayIndex(x):new Date().getDay(),p=q(x.priority).toUpperCase(),st=task?statusOf(x):'open';
+  var prios=['P0','P1','P2','P3','P4'];if(p&&!/^P\d$/.test(p))p='';
+  return'<form class="rc1570-tv-form" novalidate data-rc1570-tv-form="1"><h2>'+esc(task?t('editTitle'):t('formTitle'))+'</h2>'+
+    field(t('fTitle'),'<input name="title" required maxlength="160" autocomplete="off" value="'+esc(task?title(x):'')+'">',true)+
+    field(t('fArea'),'<input name="area" list="rc1570Areas" maxlength="60" value="'+esc(task?q(x.area||x.category):'')+'"><datalist id="rc1570Areas">'+knownAreas().map(function(a){return'<option value="'+esc(a)+'">'}).join('')+'</datalist>')+
+    field(t('fOwner'),'<input name="owner" list="rc1570Owners" maxlength="80" value="'+esc(task?ownerName(x,users()):me)+'"><datalist id="rc1570Owners">'+knownOwners().map(function(o){return'<option value="'+esc(o)+'">'}).join('')+'</datalist>')+
+    '<fieldset class="rc1570-field rc1570-wide"><legend>'+esc(t('fWhen'))+'</legend><div class="rc1570-when">'+
+      '<label><input type="radio" name="repeat" value="once"'+(weekly?'':' checked')+'> '+esc(t('fOnce'))+'</label><input type="date" name="date" value="'+esc(date)+'">'+
+      '<label><input type="radio" name="repeat" value="weekly"'+(weekly?' checked':'')+'> '+esc(t('fWeekly'))+'</label><select name="weekday">'+[1,2,3,4,5,6,0].map(function(i){return'<option value="'+i+'"'+(i===wd?' selected':'')+'>'+esc(dayNames(lang())[i])+'</option>'}).join('')+'</select></div></fieldset>'+
+    field(t('fTime'),'<input type="time" name="time" value="'+esc(q(x.time))+'">')+
+    field(t('fPriority'),'<select name="priority"><option value="Normal"'+(p?'':' selected')+'>'+esc(t('pNormal'))+'</option>'+prios.map(function(v){return'<option value="'+v+'"'+(v===p?' selected':'')+'>'+v+'</option>'}).join('')+'</select>')+
+    field(t('fStatus'),'<select name="status">'+['open','in_progress','done'].map(function(v){return'<option value="'+v+'"'+(v===st?' selected':'')+'>'+esc(t({open:'stOpen',in_progress:'stInProgress',done:'done'}[v]))+'</option>'}).join('')+'</select>')+
+    field(t('fCustomer'),'<input name="customer" list="rc1570Customers" maxlength="120" autocomplete="off" value="'+esc(task?customer(x):'')+'"><datalist id="rc1570Customers">'+customers().map(function(c){return'<option value="'+esc(c.name)+'">'+esc(c.no)+'</option>'}).join('')+'</datalist>')+
+    field(t('fCustomerNo'),'<input name="customerNo" maxlength="40" autocomplete="off" value="'+esc(task?customerNo(x):'')+'">')+
+    field(t('fRef'),'<input name="ref" maxlength="40" autocomplete="off" value="'+esc(task?ref(x):'')+'">',true)+
+    field(t('fNote'),'<textarea name="note" rows="4" maxlength="2000">'+esc(task?noteOf(x):'')+'</textarea>',true)+
+    '<p class="rc1570-error" role="alert"'+(tv.error?'':' hidden')+'>'+esc(tv.error)+'</p>'+
+    '<div class="rc1570-form-actions"><button type="submit" class="btn">'+esc(task?t('saveChanges'):t('save'))+'</button><button type="button" class="ghost" data-rc1570-tv="cancel">'+esc(t('cancel'))+'</button></div></form>'
+}
+function detailHtml(task){
+  var x=task,us=users(),d=taskDate(x),st=statusOf(x),rf=ref(x),rows=[
+    [t('fArea'),q(x.area||x.category)||area(x)],[t('fOwner'),ownerName(x,us)],
+    [t('fDue'),d?fmtDate(d)+(isWeekly(x)?' · ↻ '+t('weekly'):''):t('noDate')],[t('fTimeShort'),q(x.time)],
+    [t('fPriority'),priority(x)||t('pNormal')],[t('filter_customer'),customer(x)],[t('fCustomerNoShort'),customerNo(x)],[t('fRefShort'),rf]
+  ];
+  return'<article class="rc1570-tv-detail" data-rc1570-tv-task="'+esc(taskId(x))+'"><header><div><span class="rc1570-tv-eyebrow">'+esc(area(x))+'</span><h2>'+esc(title(x))+'</h2></div><span class="rc1570-tv-status" data-status="'+st+'">'+esc(t({open:'stOpen',in_progress:'stInProgress',done:'done'}[st]))+'</span></header>'+
+    (tv.saved?'<p class="rc1570-tv-saved" role="status">'+esc(tv.saved)+'</p>':'')+
+    '<dl>'+rows.map(function(r){return'<div><dt>'+esc(r[0])+'</dt><dd>'+(q(r[1])?esc(r[1]):'<span class="rc1570-tv-empty">–</span>')+'</dd></div>'}).join('')+'</dl>'+
+    (noteOf(x)?'<section class="rc1570-tv-note"><h3>'+esc(t('fNote'))+'</h3><p>'+esc(noteOf(x))+'</p></section>':'')+
+    '<footer class="rc1570-form-actions">'+(canWrite()?'<button type="button" class="btn" data-rc1570-tv="edit">'+esc(t('edit'))+'</button>'+
+      ['open','in_progress','done'].filter(function(s){return s!==st}).map(function(s){return'<button type="button" class="ghost" data-rc1570-tv-status="'+s+'">'+esc(t({open:'markOpen',in_progress:'markInProgress',done:'markDone'}[s]))+'</button>'}).join(''):'')+
+      (rf?'<button type="button" class="ghost" data-rc1570-ref="'+esc(rf)+'">'+esc(t('openShipment'))+'</button>':'')+'</footer></article>'
+}
+function listHtml(){
+  var needle=low(tv.search),us=users(),rows=arr(state().tasks).filter(function(x){return x&&!isTemplate(x)&&title(x)&&!isDone(x)});
+  if(needle)rows=rows.filter(function(x){return low([title(x),area(x),ownerName(x,us),ref(x),customer(x),customerNo(x)].join(' ')).indexOf(needle)>=0});
+  rows.sort(function(a,b){var da=taskDate(a),db=taskDate(b),ka=da?dayKey(da):'9',kb=db?dayKey(db):'9';return ka<kb?-1:ka>kb?1:title(a).localeCompare(title(b))});
+  var shown=rows.slice(0,200);
+  return'<aside class="rc1570-tv-list"><input type="search" class="rc1570-search" data-rc1570-tv-search="1" placeholder="'+esc(t('search'))+'" value="'+esc(tv.search)+'"><p class="rc1570-tv-hint">'+esc(t('openCount',{count:rows.length}))+'</p><ul>'+
+    shown.map(function(x){var id=taskId(x),d=taskDate(x);return'<li><button type="button" data-rc1570-tv-open="'+esc(id)+'"'+(id===tv.id?' aria-current="true"':'')+'><strong>'+esc(title(x))+'</strong><span>'+esc([d?fmtDate(d):'',ownerName(x,us),customer(x)].filter(Boolean).join(' · '))+'</span></button></li>'}).join('')+'</ul></aside>'
+}
+function taskViewHtml(){
+  var task=tv.id?findTask(tv.id):null;
+  if((tv.mode==='show'||tv.mode==='edit')&&!task)tv.mode='list';
+  var main=tv.mode==='new'?formHtml(null):tv.mode==='edit'?formHtml(task):tv.mode==='show'?detailHtml(task):'<div class="rc1570-tv-pick"><p>'+esc(t('pickTask'))+'</p></div>';
+  return'<div class="rc1570-head"><div><span class="rc1570-tv-eyebrow">'+esc(t('title'))+'</span><h2>'+esc(t('viewTitle'))+'</h2></div><div class="rc1570-actions">'+
+    (canWrite()?'<button type="button" class="btn" data-rc1570-tv="new">'+esc(t('newTask'))+'</button>':'')+
+    '<button type="button" class="ghost" data-rc1570-route="tasks">'+esc(t('toList'))+'</button></div></div>'+
+    '<div class="rc1570-tv-grid">'+listHtml()+'<div class="rc1570-tv-main">'+main+'</div></div>'
+}
+var lastView='';
+function renderTaskView(force){
+  var d=w.document,root=hostRoot();if(!d||!root)return;
+  var panel=d.getElementById(TV_ID);
+  if(!panel||panel.parentNode!==root){
+    if(panel)panel.remove();
+    // the router has no own renderer for this view; whatever it left behind is hidden by the flag
+    panel=d.createElement('section');panel.id=TV_ID;panel.className='rc1570-tasks rc1570-taskview';panel.setAttribute('data-rc1306-own-layout','1');root.insertBefore(panel,root.firstChild);lastView='';bindTaskView(panel)
+  }
+  if(!tv.mode){
+    var rt=w.ExportHUBRC1014TaskRuntime,remembered=null;try{remembered=rt&&rt.rememberedTask&&rt.rememberedTask({state:state()})}catch(_){}
+    tv.mode=remembered?'show':'list';tv.id=remembered?taskId(remembered):''
+  }
+  var active=d.activeElement;
+  if(!force&&lastView&&(tv.mode==='edit'||tv.mode==='new'))return; // background refreshes never replace an open form
+  var html=taskViewHtml();
+  if(html!==lastView){
+    var searching=active&&active.getAttribute&&active.getAttribute('data-rc1570-tv-search'),pos=searching?active.selectionStart:0;
+    panel.innerHTML=html;lastView=html;
+    if(searching){var s=panel.querySelector('[data-rc1570-tv-search]');if(s){s.focus();try{s.setSelectionRange(pos,pos)}catch(_){}}}
+    else if(tv.mode==='new'||tv.error){var first=panel.querySelector('[name="title"]');if(first)first.focus()}
+  }
+  if(d.body.getAttribute(TV_FLAG)!=='1')d.body.setAttribute(TV_FLAG,'1')
+}
+// searching only swaps the list, so an open form keeps what was typed
+function refreshList(panel){
+  var aside=panel.querySelector('.rc1570-tv-list'),tmp=w.document.createElement('div');if(!aside)return;
+  tmp.innerHTML=listHtml();var next=tmp.firstChild;
+  ['.rc1570-tv-hint','ul'].forEach(function(sel){var o=aside.querySelector(sel),n=next.querySelector(sel);if(o&&n)o.replaceWith(n)});
+  lastView=taskViewHtml()
+}
+function bindTaskView(panel){
+  panel.addEventListener('click',function(e){
+    var el=e.target&&e.target.closest?e.target:null;if(!el)return;var b;
+    if((b=el.closest('[data-rc1570-tv-open]'))){e.preventDefault();tv.saved='';openTaskView('show',b.getAttribute('data-rc1570-tv-open'));return}
+    if((b=el.closest('[data-rc1570-tv-status]'))){e.preventDefault();var task=findTask(tv.id);if(!task||!canWrite())return;setStatus(task,b.getAttribute('data-rc1570-tv-status'));task.updatedAt=new Date().toISOString();tv.saved=t('updated');persist('RC1570 Aufgabenstatus geändert',tv.id);lastView='';renderTaskView(true);return}
+    if((b=el.closest('[data-rc1570-tv]'))){
+      e.preventDefault();var a=b.getAttribute('data-rc1570-tv');tv.saved='';tv.error='';
+      if(a==='new')openForm();
+      else if(a==='edit')edit(tv.id);
+      else if(a==='cancel'){tv.mode=tv.id&&findTask(tv.id)?'show':'list';lastView='';renderTaskView(true)}
+      return
+    }
+    if((b=el.closest('[data-rc1570-ref]'))){e.preventDefault();openShipment(b.getAttribute('data-rc1570-ref'));return}
+    if((b=el.closest('[data-rc1570-route]'))){e.preventDefault();route(b.getAttribute('data-rc1570-route'))}
+  });
+  panel.addEventListener('submit',function(e){var form=e.target;if(!form||!form.getAttribute||!form.getAttribute('data-rc1570-tv-form'))return;e.preventDefault();saveForm(form)});
+  panel.addEventListener('input',function(e){
+    var el=e.target;if(!el||!el.getAttribute)return;
+    if(el.getAttribute('data-rc1570-tv-search')){tv.search=el.value;refreshList(panel);return}
+    // picking a known customer fills in its customer number
+    if(el.name==='customer'){var hit=customers().find(function(c){return low(c.name)===low(el.value)}),no=el.form&&el.form.elements.customerNo;if(hit&&hit.no&&no&&!q(no.value))no.value=hit.no}
+  });
+  panel.addEventListener('keydown',function(e){if(e.key==='Escape'&&(tv.mode==='edit'||tv.mode==='new')){tv.mode=tv.id&&findTask(tv.id)?'show':'list';lastView='';renderTaskView(true)}})
 }
 
 /* mounting */
@@ -342,24 +466,22 @@ function refresh(){
   var d=w.document;if(!d||!d.body)return;
   var v=view(),root=hostRoot();
   if(v==='taskdetail'&&root){
-    // leaving the list: drop the focus flag, otherwise its CSS hides the detail view
+    // leaving the list: drop the focus flag, otherwise its CSS hides the task view
     var list=d.getElementById(SECTION_ID);if(list)list.remove();d.body.removeAttribute(BODY_FLAG);lastHtml='';
-    // the menu entry and openTask() route here; the RC1152 detail renderer was never called by the router
-    var rt=w.ExportHUBRC1014TaskRuntime;
-    if(!d.getElementById('rc1152TaskDetail')&&rt&&typeof rt.renderTaskDetailView==='function'){
-      var remembered=null;try{remembered=rt.rememberedTask&&rt.rememberedTask({state:state()})}catch(_){}
-      if(remembered){try{rt.renderTaskDetailView(remembered,{state:state()})}catch(err){try{console.warn('RC1570 detail',err)}catch(_){}}}
-      else route('tasks');
-    }
+    // the menu entry and openTask() route here: list, detail, edit and create in one place
+    var old=d.getElementById('rc1152TaskDetail');if(old)old.remove();
+    renderTaskView();
     return
   }
+  var tvPanel=d.getElementById(TV_ID);if(tvPanel){tvPanel.remove();lastView='';tv.mode='';tv.saved=''}
+  if(d.body.hasAttribute(TV_FLAG))d.body.removeAttribute(TV_FLAG);
   var existing=d.getElementById(SECTION_ID);
   if(v!=='tasks'||!root){if(existing)existing.remove();d.body.removeAttribute(BODY_FLAG);lastHtml='';return}
   var html=renderHtml(buildModel(new Date()),new Date());
   var section=existing;
   if(!section||section.parentNode!==root){
     if(section)section.remove();
-    section=d.createElement('section');section.id=SECTION_ID;section.className='rc1570-tasks';root.insertBefore(section,root.firstChild);lastHtml='';bind(section)
+    section=d.createElement('section');section.id=SECTION_ID;section.className='rc1570-tasks';section.setAttribute('data-rc1306-own-layout','1');root.insertBefore(section,root.firstChild);lastHtml='';bind(section)
   }
   if(html!==lastHtml){
     var active=d.activeElement,searching=active&&active.getAttribute&&active.getAttribute('data-rc1570-search'),pos=searching?active.selectionStart:0;
@@ -393,7 +515,7 @@ function bind(section){
 function install(){
   var d=w.document;if(!d)return;
   ['exporthub:ready','exporthub:viewchange','exporthub:rendered','exporthub:sync','exporthub:tasks-updated','exporthub:language-changed','exporthub:state-loaded'].forEach(function(n){try{w.addEventListener(n,schedule)}catch(_){}});
-  var mount=function(){var v=view();if(v==='tasks'&&!d.getElementById(SECTION_ID))refreshNow();else if(v==='taskdetail'&&!d.getElementById('rc1152TaskDetail'))refreshNow();else if(v!=='tasks'&&d.body&&d.body.hasAttribute(BODY_FLAG))refreshNow()};
+  var mount=function(){var v=view();if(v==='tasks'&&!d.getElementById(SECTION_ID))refreshNow();else if(v==='taskdetail'&&!d.getElementById(TV_ID))refreshNow();else if(v!=='tasks'&&d.body&&d.body.hasAttribute(BODY_FLAG))refreshNow();else if(v!=='taskdetail'&&d.body&&d.body.hasAttribute(TV_FLAG))refreshNow()};
   var watch=function(){var c=d.getElementById('content');if(!c||c.__rc1570Observed||typeof w.MutationObserver!=='function')return;c.__rc1570Observed=true;new w.MutationObserver(mount).observe(c,{childList:true})};
   if(typeof w.MutationObserver==='function'&&d.body)new w.MutationObserver(function(){watch();mount()}).observe(d.body,{attributes:true,attributeFilter:['data-exporthub-view','data-current-view']});
   var check=function(){if(d.hidden)return;watch();mount()};
@@ -403,6 +525,6 @@ function install(){
   setInterval(function(){if(!d.hidden&&view()==='tasks')schedule()},60000)
 }
 
-w.ExportHUBTasksFocus1570=Object.freeze({version:VERSION,buildModel:buildModel,renderHtml:renderHtml,setFilter:setFilter,resetFilters:resetFilters,taskDate:taskDate,isMine:isMine,workGroup:workGroup,refresh:refreshNow,openForm:openForm});
+w.ExportHUBTasksFocus1570=Object.freeze({version:VERSION,buildModel:buildModel,renderHtml:renderHtml,setFilter:setFilter,resetFilters:resetFilters,taskDate:taskDate,isMine:isMine,workGroup:workGroup,refresh:refreshNow,openForm:openForm,openTask:openDetail,editTask:edit,taskViewHtml:taskViewHtml,applyForm:applyForm,_tv:tv});
 install();
 })(window);

@@ -22,8 +22,13 @@
   }
   function addDays(value,days){const s=dayKey(value);if(!s)return'';const [y,m,d]=s.split('-').map(Number);const date=new Date(Date.UTC(y,m-1,d));date.setUTCDate(date.getUTCDate()+Number(days||0));return date.toISOString().slice(0,10);}
   function inferSourceType(t){
-    const explicit=q(t&&t.sourceType);if(explicit)return explicit;const text=q((t&&t.group)||'')+' '+q((t&&t.title)||'');
+    const explicit=q(t&&t.sourceType);if(explicit)return explicit;const text=q((t&&t.group)||'')+' '+q((planTask(t)&&t.area)||'')+' '+q((t&&t.title)||'');
     if(/pod/i.test(text))return'pod';if(/abd/i.test(text))return'abd';if(/pick/i.test(text))return'pick';if(/abhol|pickup/i.test(text))return'pickup';if(q(t&&t.manual)||/manuell/i.test(text))return'manual';return'shipment';
+  }
+  function planTask(t){
+    if(!t)return false;
+    if(t.masterTaskRC848||t.masterTaskRC846||q(t.masterSourceId)||q(t.recurringSeriesId)||q(t.weeklySeriesId)||q(t.seriesId))return true;
+    return low(t.sourceType)==='manual'&&!!q(t.area||t.category)&&!q(t.managedBy);
   }
   function canonicalTaskStatus(value){
     const c=core();if(c){return c.normalizeTask({id:'status-probe',title:'status-probe',status:value}).status;}
@@ -34,7 +39,9 @@
     const t={...(input||{})};
     const sourceRef=q(t.sourceRef||t.linkedShipmentRef||t.shipmentRef||t.reference||t.ref);
     const sourceId=q(t.sourceId||t.linkedShipmentId||t.pickId||t.abdId||sourceRef||t.id);
-    const group=GROUPS.includes(q(t.group))?q(t.group):(q(t.group)||'Offene Sendungen');
+    // weekly-plan and manual tasks are grouped by their area (Picken, ABD erstellen …), never as shipment tasks
+    const planArea=planTask(t)?q(t.area||t.category):'';
+    const group=planArea||(GROUPS.includes(q(t.group))?q(t.group):(q(t.group)||'Offene Sendungen'));
     const legacyPriority=/^P[0-4]$/.test(q(t.priority).toUpperCase())?q(t.priority).toUpperCase():'P4';
     const originalAssignee=q(t.originalAssignee||t.owner||t.assignee||t.userId);
     const effectiveAssignee=q(t.effectiveAssignee||originalAssignee);
@@ -44,7 +51,7 @@
     return {
       ...v2,
       id,
-      sourceType:inferSourceType(t),sourceId,sourceRef,group,title:q(t.title),
+      sourceType:inferSourceType(t),sourceId,sourceRef,group,title:q(t.title||t.name||t.subject),
       status:v2.status||canonicalTaskStatus(t.status),
       priority:legacyPriority,
       v2Priority:q(v2.priority)||legacyPriority,
