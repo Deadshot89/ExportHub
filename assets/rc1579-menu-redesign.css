@@ -19,6 +19,9 @@ html[data-rc1579-packaging] .sidebar>.rc1555-packaging-nav-wrap{display:none!imp
 #nav#nav#nav[data-rc1579-ready]>button:not([data-view="dashboard"]):not([data-view="notifications"]):not([data-view="packnotifications"]) .index308-nav-label{font-size:13.5px!important;font-weight:600!important}
 #nav#nav#nav[data-rc1579-ready]>[data-rc1579-proxy]{cursor:pointer;margin-top:0!important;margin-bottom:0!important}
 #nav#nav#nav[data-rc1579-ready]>[data-rc1579-proxy]:hover{filter:brightness(.97)}
+/* Icon colours of the proxy buttons are copied from a real menu button of the active design (rc1579 copyLook) */
+#nav#nav#nav[data-rc1579-ready]>[data-rc1579-proxy] .index308-nav-icon{background-color:var(--rc1579-proxy-icon-bg,transparent)!important;border-color:var(--rc1579-proxy-icon-border,transparent)!important;opacity:1!important}
+#nav#nav#nav[data-rc1579-ready]>[data-rc1579-proxy] .index308-nav-icon::before{background-color:var(--rc1579-proxy-icon-fg,currentColor)!important;opacity:1!important}
 
 /* Bereichs-Kopfzeilen */
 #nav#nav#nav>.rc1579-section{display:flex;align-items:center;gap:10px;min-height:42px;margin:6px 0 0;padding:6px 10px;border-radius:12px;cursor:pointer;user-select:none;color:inherit;font-size:14px;font-weight:700;letter-spacing:.01em;line-height:1.2;transition:background-color .15s ease}

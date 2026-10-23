@@ -160,10 +160,14 @@ async function startAutofix(){
  if(description.length<20){setStatus(t('describeTooShort'));return}
  var area=q(d.getElementById('rc1630Area')&&d.getElementById('rc1630Area').value),expected=String(d.getElementById('rc1630Expected')&&d.getElementById('rc1630Expected').value||'').trim();
  busy=true;setStatus('');
- try{var r=await call(AUTOFIX,{action:'request-manual',description:description,area:area,expected:expected,clientVersion:VERSION});draft={area:'',description:'',expected:''};status=t('autofixStarted',{id:q(r.jobId)});render()}
+ try{var r=await reportBug({description:description,area:area,expected:expected});draft={area:'',description:'',expected:''};status=t('autofixStarted',{id:q(r.jobId)});render()}
  catch(e){setStatus(t('error',{message:e.message}))}
  finally{busy=false}
 }
+// Shared with the Fehlerdiagnose (RC1650 "Fehler melden" / "An KI senden"): one place for the manual autofix call.
+function reportBug(o){o=o||{};return call(AUTOFIX,{action:'request-manual',description:String(o.description||'').trim().slice(0,4000),area:q(o.area).slice(0,160),expected:String(o.expected||'').trim().slice(0,2000),clientVersion:VERSION})}
+var autofixConfig=null;
+function autofixConfiguration(){if(autofixConfig&&Date.now()-autofixConfig.at<60000)return autofixConfig.promise;var promise=call(AUTOFIX,{action:'configuration'}).catch(function(e){return{ok:false,enabled:false,configured:false,error:e.message,code:e.code}});autofixConfig={at:Date.now(),promise:promise};return promise}
 async function refresh(){
  try{var r=await call(ENDPOINT,{action:'list'});jobs=arr(r.jobs);if(r.enabled===false||r.configured===false)status=t('disabled')}
  catch(e){status=t('error',{message:e.message})}
@@ -212,7 +216,7 @@ var DRAFT_FIELDS={rc1630Area:'area',rc1630Description:'description',rc1630Expect
 d.addEventListener('input',function(e){var id=e.target&&e.target.id;if(id==='rc1630Search'){query=e.target.value;render()}else if(DRAFT_FIELDS[id])draft[DRAFT_FIELDS[id]]=e.target.value});
 d.addEventListener('keydown',function(e){if(e.key==='Escape'&&d.getElementById(MODAL_ID))close()});
 
-w.ExportHUBSelfCorrect=Object.freeze({version:VERSION,allowed:allowed,label:function(){return t('tab')},open:open,openDescribe:function(o){return open(Object.assign({},o||{},{tab:'describe'}))},close:close,search:function(text){return search(text).hits}});
+w.ExportHUBSelfCorrect=Object.freeze({version:VERSION,allowed:allowed,label:function(){return t('tab')},open:open,openDescribe:function(o){return open(Object.assign({},o||{},{tab:'describe'}))},reportBug:reportBug,autofixConfiguration:autofixConfiguration,close:close,search:function(text){return search(text).hits}});
 // The IT tab bar (rc1579) re-syncs on its own events; this picks up the new tab if it rendered before this script.
 try{w.ExportHUBMenu1579&&w.ExportHUBMenu1579.refresh()}catch(_){}
 })(typeof window!=='undefined'?window:null,typeof document!=='undefined'?document:null);

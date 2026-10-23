@@ -74,12 +74,11 @@ test('RC1650: Erklärungen gibt es für jede Art in allen 6 Sprachen mit gleiche
   assert.equal(e.urgency, 'watch');
 });
 
-test('RC1650: Selbst korrigieren lässt sich mit vorausgefüllter Fehlerbeschreibung öffnen und behält Eingaben', () => {
+test('RC1650: Selbst korrigieren behält Eingaben und lässt sich vorausgefüllt öffnen', () => {
   const js = fs.readFileSync(new URL('../assets/rc1630-self-correct.js', import.meta.url), 'utf8');
   assert.match(js, /openDescribe:function\(o\)\{return open\(Object\.assign\(\{\},o\|\|\{\},\{tab:'describe'\}\)\)\}/);
   assert.match(js, /DRAFT_FIELDS=\{rc1630Area:'area',rc1630Description:'description',rc1630Expected:'expected'\}/, 'Neu-Rendern löscht Eingaben nicht mehr');
   const ui = fs.readFileSync(new URL('../assets/rc1650-diagnostics-plain.js', import.meta.url), 'utf8');
-  assert.match(ui, /sc\.openDescribe\(/);
 });
 
 test('RC1650: Build bindet Klartext-Diagnose und Übersetzungen ein', () => {
@@ -87,4 +86,26 @@ test('RC1650: Build bindet Klartext-Diagnose und Übersetzungen ein', () => {
   assert.match(builder, /\/assets\/i18n\/rc1650-diagnostics-plain\.js\?v=1650/);
   assert.match(builder, /\/assets\/rc1650-diagnostics-plain\.js\?v=1650/);
   assert.match(builder, /'assets\/rc1650-diagnostics-plain\.js',\n  'assets\/i18n\/rc1650-diagnostics-plain\.js',/);
+});
+
+test('RC1650: Fehler melden und „An KI senden“ gehen direkt an den KI-Autofix, Abschaltung wird erklärt', () => {
+  const ui = fs.readFileSync(new URL('../assets/rc1650-diagnostics-plain.js', import.meta.url), 'utf8');
+  const sc = fs.readFileSync(new URL('../assets/rc1630-self-correct.js', import.meta.url), 'utf8');
+  assert.match(sc, /function reportBug\(o\)\{o=o\|\|\{\};return call\(AUTOFIX,\{action:'request-manual'/, 'ein gemeinsamer Aufruf für Dialog und Fehlerdiagnose');
+  assert.match(sc, /reportBug:reportBug,autofixConfiguration:autofixConfiguration,/);
+  assert.match(ui, /sc\.reportBug\(\{area:report\.area,description:report\.description,expected:report\.expected\}\)/, '„Fehler melden“ sendet direkt');
+  assert.match(ui, /function startAi\(el,btn\)\{[\s\S]*?sc\.reportBug\(/, '„An KI senden“ sendet direkt');
+  assert.doesNotMatch(ui, /openDescribe\(/, 'kein Umweg über den Dialog mehr');
+  assert.match(ui, /if\(c\.enabled===false&&!c\.error\)return\{kind:'off',text:t\('aiOff'\)\}/);
+  assert.match(packs.de.aiOff, /EXPORTHUB_AUTOFIX_ENABLED/);
+  assert.equal(plain.classify({ category: 'manual', level: 'error', message: 'Abholkalender springt zurück' }).kind, 'manual');
+});
+
+test('RC1579: der IT-Stellvertreter übernimmt Farben mit !important, damit er in hellen Designs lesbar ist', () => {
+  const js = fs.readFileSync(new URL('../assets/rc1579-menu-redesign.js', import.meta.url), 'utf8');
+  const css = fs.readFileSync(new URL('../assets/rc1579-menu-redesign.css', import.meta.url), 'utf8');
+  assert.match(js, /proxy\.style\.setProperty\(p,cs\.getPropertyValue\(p\),'important'\)/);
+  assert.match(js, /pl\.style\.setProperty\(p,ls\.getPropertyValue\(p\),'important'\)/);
+  assert.match(js, /--rc1579-proxy-icon-fg/);
+  assert.match(css, /\[data-rc1579-proxy\] \.index308-nav-icon::before\{background-color:var\(--rc1579-proxy-icon-fg,currentColor\)!important/);
 });

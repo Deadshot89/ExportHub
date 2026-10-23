@@ -139,14 +139,20 @@ function ensureProxy(){
 }
 // Der Stellvertreter-Knopf übernimmt das Aussehen eines normalen Menüknopfs des aktiven Designs
 function copyLook(proxy,activeRef){
- var ref=activeRef||null;if(!ref)nav.querySelectorAll(':scope>button[data-index321-view]').forEach(function(b){if(!ref&&!b.classList.contains('active')&&b.getAttribute('aria-current')!=='page'&&SECTION_OF[viewOf(b)]&&SECTION_OF[viewOf(b)]!=='start'&&IT_VIEWS.indexOf(viewOf(b))<0)ref=b});
+ var ref=activeRef||null,fallback=null;
+ // a resting button of the same section (Administration), so icon and text colours match the neighbours
+ if(!ref)nav.querySelectorAll(':scope>button[data-index321-view]').forEach(function(b){if(ref||b.classList.contains('active')||b.getAttribute('aria-current')==='page'||!SECTION_OF[viewOf(b)]||SECTION_OF[viewOf(b)]==='start'||IT_VIEWS.indexOf(viewOf(b))>=0)return;if(SECTION_OF[viewOf(b)]==='admin')ref=b;else if(!fallback)fallback=b});
+ ref=ref||fallback;
  if(!ref)return;
  var key=(d.documentElement.getAttribute('data-eh-design')||'')+'|'+(d.body&&d.body.getAttribute('data-eh-theme')||'')+'|'+Math.round(w.innerWidth/100)+'|'+(activeRef?viewOf(activeRef):'');
  if(proxy.__rc1579Look===key&&proxy.style.length)return;
- var cs=w.getComputedStyle(ref),label=ref.querySelector('.index308-nav-label'),ls=label&&w.getComputedStyle(label);
- ['padding-top','padding-right','padding-bottom','padding-left','min-height','border-radius','border-top-width','border-top-style','border-color','border-left-width','border-left-style','border-right-width','border-right-style','border-bottom-width','border-bottom-style','font-family','font-size','font-weight','letter-spacing','line-height','color','column-gap','align-items','justify-content','text-align','background-color','background-image','box-shadow'].forEach(function(p){proxy.style.setProperty(p,cs.getPropertyValue(p))});
- proxy.style.setProperty('display','flex');proxy.style.setProperty('width','100%');
- if(ls){var pl=proxy.querySelector('.index308-nav-label');['font-size','font-weight','color','letter-spacing'].forEach(function(p){pl.style.setProperty(p,ls.getPropertyValue(p))})}
+ var cs=w.getComputedStyle(ref),label=ref.querySelector('.index308-nav-label'),ls=label&&w.getComputedStyle(label),icon=ref.querySelector('.index308-nav-icon');
+ // !important: the design sheets colour menu buttons via [data-index321-view] with !important, which the proxy does not carry;
+ // without it the label fell back to the old light sidebar colour and "IT" was unreadable on light designs (2026-10-23).
+ ['padding-top','padding-right','padding-bottom','padding-left','min-height','border-radius','border-top-width','border-top-style','border-color','border-left-width','border-left-style','border-right-width','border-right-style','border-bottom-width','border-bottom-style','font-family','font-size','font-weight','letter-spacing','line-height','color','column-gap','align-items','justify-content','text-align','background-color','background-image','box-shadow'].forEach(function(p){proxy.style.setProperty(p,cs.getPropertyValue(p),'important')});
+ proxy.style.setProperty('display','flex','important');proxy.style.setProperty('width','100%','important');
+ if(ls){var pl=proxy.querySelector('.index308-nav-label');['font-size','font-weight','color','letter-spacing','opacity'].forEach(function(p){pl.style.setProperty(p,ls.getPropertyValue(p),'important')})}
+ if(icon){var ics=w.getComputedStyle(icon),glyph=w.getComputedStyle(icon,'::before');proxy.style.setProperty('--rc1579-proxy-icon-bg',ics.getPropertyValue('background-color'));proxy.style.setProperty('--rc1579-proxy-icon-border',ics.getPropertyValue('border-color'));proxy.style.setProperty('--rc1579-proxy-icon-fg',glyph.getPropertyValue('background-color'))}
  proxy.__rc1579Look=key;
 }
 

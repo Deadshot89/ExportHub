@@ -3,7 +3,8 @@
    - "Auf einen Blick": one sentence on the overall state plus the message types to look at first,
    - per message type a plain title, an urgency (Wichtig / Beobachten / Harmlos), "Was bedeutet das?" and
      "Was solltest du tun?", with the technical message and JSON folded away under "Technische Details",
-   - "KI-Korrektur anstoßen", which opens "Selbst korrigieren → Fehler beschreiben (KI)" prefilled.
+   - "Fehler melden" (own description) and "An KI senden" per message: both go straight to the KI autofix
+     (/api/diagnostic-autofix request-manual via ExportHUBSelfCorrect.reportBug), plus "Meine KI-Aufträge".
    Texts live in assets/i18n/rc1650-diagnostics-plain.js. */
 (function(root,factory){
 'use strict';
@@ -12,7 +13,8 @@ if(typeof module==='object'&&module&&module.exports)module.exports=api;
 if(root&&!root.ExportHUBDiagnosticsPlain){root.ExportHUBDiagnosticsPlain=api;if(root.document)api.install()}
 })(typeof window!=='undefined'?window:(typeof globalThis!=='undefined'?globalThis:null),function(w){
 'use strict';
-var VERSION='RC1650',STYLE_ID='rc1650-diagnostics-plain-style',SUMMARY_ID='rc1650DiagSummary';
+var VERSION='RC1650',STYLE_ID='rc1650-diagnostics-plain-style',SUMMARY_ID='rc1650DiagSummary',REPORT_ID='rc1650DiagReport';
+var report={open:false,busy:false,status:'',statusKind:'',area:'',description:'',expected:'',config:null};
 var RANK={high:0,watch:1,low:2};
 
 function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
@@ -59,6 +61,7 @@ function httpKind(status){
 }
 function classify(x){
  var message=q(x&&x.message),category=low(x&&x.category),level=low(x&&x.level),m;
+ if(category==='manual')return{kind:'manual',thing:''};
  if(/demo_state|\bdemo-(?:speicherung|daten|state)\b|für die demo/i.test(message))return{kind:'demo',thing:''};
  if((m=/Netzwerkfehler bei [A-Z]+ (\S+)/.exec(message)))return{kind:'network',thing:thingOf(m[1])};
  if((m=/HTTP (\d{3}) bei [A-Z]+ (\S+)/.exec(message)))return{kind:httpKind(Number(m[1])),thing:thingOf(m[2]),status:Number(m[1])};
@@ -81,6 +84,7 @@ function urgencyOf(kind,total,users,level){
   case'unavailable':return total>=20?'high':'watch';
   case'network':return total>=20||users>=2?'watch':'low';
   case'conflict':return total>=10?'watch':'low';
+  case'manual':return'watch';
   case'auth':case'notfound':case'rejected':case'ratelimit':case'resource':return'watch';
   case'unknown':return level==='error'?'watch':'low';
   default:return'low';
@@ -158,6 +162,21 @@ function style(){
   '#content .rc871-diag-event .rc1650-tech[open]>summary{list-style:disclosure-open inside}',
   '#content .rc1650-explain h4{font-size:11px!important;line-height:1.3!important}',
   '#content #'+SUMMARY_ID+' h3{font-size:12px!important;line-height:1.3!important}',
+  '#'+REPORT_ID+' .rc1650-report-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}',
+  '#'+REPORT_ID+' h3{margin:0;font-size:16px!important;line-height:1.3!important;color:var(--pc-title,#0f172a)}',
+  '#'+REPORT_ID+' .rc1650-ai-note{margin:4px 0 0;font-size:12px;font-weight:700;color:#15803d}',
+  '#'+REPORT_ID+' .rc1650-ai-note[data-kind="off"]{color:#b91c1c}#'+REPORT_ID+' .rc1650-ai-note[data-kind="warn"],#'+REPORT_ID+' .rc1650-ai-note[data-kind="wait"]{color:#b45309}',
+  '#'+REPORT_ID+' .rc1650-legend{margin:10px 0 8px;font-size:13px;color:var(--pc-muted,#64748b)}',
+  '#'+REPORT_ID+' .rc1650-form{display:grid;gap:8px}',
+  '#'+REPORT_ID+' .rc1650-form input,#'+REPORT_ID+' .rc1650-form textarea{width:100%;box-sizing:border-box;font:inherit;padding:8px 10px;border:1px solid var(--pc-line,#cbd5e1);border-radius:9px;background:var(--pc-input-bg,#fff);color:inherit}',
+  '#'+REPORT_ID+' .rc1650-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}',
+  '#'+REPORT_ID+' .rc1650-report-status{font-weight:700}#'+REPORT_ID+' .rc1650-report-status[data-kind="ok"]{color:#15803d!important}#'+REPORT_ID+' .rc1650-report-status[data-kind="bad"]{color:#b91c1c!important}',
+  '#'+REPORT_ID+' .rc1650-jobs{margin-top:12px}#'+REPORT_ID+' .rc1650-jobs b{display:block;font-size:12px;color:var(--pc-muted,#64748b);margin-bottom:4px}',
+  '#'+REPORT_ID+' .rc1650-jobs ul{list-style:none;margin:0;padding:0;display:grid;gap:5px}',
+  '#'+REPORT_ID+' .rc1650-jobs li{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:12px;border:1px solid var(--pc-line,#e2e8f0);border-radius:9px;padding:6px 9px}',
+  '#'+REPORT_ID+' .rc1650-jobs li span:nth-child(2){flex:1 1 260px;color:var(--pc-text,#0f172a)}#'+REPORT_ID+' .rc1650-jobs small{color:var(--pc-muted,#64748b)}',
+  '.rc1650-job{border-radius:999px;padding:2px 8px;font-size:10px;font-weight:900;text-transform:uppercase;background:#e2e8f0;color:#334155}',
+  '.rc1650-job-running,.rc1650-job-queued{background:#dbeafe;color:#1d4ed8}.rc1650-job-fixed{background:#dcfce7;color:#166534}.rc1650-job-failed{background:#fee2e2;color:#991b1b}',
   '@media(max-width:640px){#'+SUMMARY_ID+'{grid-template-columns:1fr}#'+SUMMARY_ID+' .rc1650-light{display:none}#'+SUMMARY_ID+' .rc1650-first{grid-column:1}}'
  ].join('\n');
  (d().head||d().documentElement).appendChild(s);
@@ -181,6 +200,46 @@ function renderSummary(){
  box.setAttribute('data-rc1650-state',state);
  if(box.__rc1650Html!==html){box.innerHTML=html;box.__rc1650Html=html}
 }
+// "Fehler melden": own description → KI autofix; below it the jobs of manually reported bugs
+function jobState(x){var s=low(x&&x.autofix&&x.autofix.status);if(x&&x.resolvedAt||s==='fixed')return'fixed';if(s==='failed'||s==='reverted')return'failed';if(['claimed','running','testing','deploying'].indexOf(s)>=0)return'running';if(s==='queued')return'queued';return'open'}
+function aiNote(){
+ var sc=w.ExportHUBSelfCorrect,c=report.config;
+ if(!sc||typeof sc.allowed!=='function')return{kind:'off',text:t('reportNoRight')};
+ if(!sc.allowed())return{kind:'off',text:/demo/i.test(String(w.location&&w.location.pathname||''))?t('reportDemo'):t('reportNoRight')};
+ if(!c)return{kind:'wait',text:t('aiChecking')};
+ if(c.enabled===false&&!c.error)return{kind:'off',text:t('aiOff')};
+ if(c.error)return{kind:'off',text:t('aiIncomplete',{message:c.error})};
+ if(c.configured===false)return{kind:'warn',text:t('aiIncomplete',{message:q(c.preflight&&c.preflight.message)||'GitHub'})};
+ return{kind:'ok',text:t('aiReady')};
+}
+function loadConfig(){var sc=selfCorrect();if(!sc||typeof sc.autofixConfiguration!=='function'||report.config||report.loadingConfig)return;report.loadingConfig=true;sc.autofixConfiguration().then(function(c){report.config=c||{};report.loadingConfig=false;renderReport(true)})}
+function renderReport(force){
+ var anchor=d().getElementById(SUMMARY_ID);if(!anchor)return;
+ var box=d().getElementById(REPORT_ID);
+ if(!box){box=d().createElement('section');box.id=REPORT_ID;box.className='card';box.setAttribute('data-i18n-ignore','1');anchor.insertAdjacentElement('afterend',box);force=true}
+ else if(box.previousElementSibling!==anchor){anchor.insertAdjacentElement('afterend',box)}
+ var jobs=records().filter(function(x){return x&&(low(x.category)==='manual'||x.autofix&&x.autofix.jobId)}).slice(-5).reverse();
+ var note=aiNote(),canSend=note.kind==='ok'||note.kind==='warn';
+ var html='<div class="rc1650-report-head"><div><h3>'+esc(t('reportTitle'))+'</h3><p class="rc1650-ai-note" data-kind="'+note.kind+'">'+esc(note.text)+'</p></div>'+(report.open?'':'<button type="button" class="btn" data-rc1650-report-open="1">'+esc(t('reportOpen'))+'</button>')+'</div>'+
+  (report.open?'<p class="rc1650-legend">'+esc(t('reportIntro'))+'</p><div class="rc1650-form"><input type="text" id="rc1650ReportArea" maxlength="160" placeholder="'+esc(t('reportArea'))+'" aria-label="'+esc(t('reportArea'))+'" value="'+esc(report.area)+'">'+
+   '<textarea id="rc1650ReportDesc" maxlength="4000" rows="4" placeholder="'+esc(t('reportDesc'))+'" aria-label="'+esc(t('reportDesc'))+'">'+esc(report.description)+'</textarea>'+
+   '<textarea id="rc1650ReportExpected" maxlength="2000" rows="2" placeholder="'+esc(t('reportExpected'))+'" aria-label="'+esc(t('reportExpected'))+'">'+esc(report.expected)+'</textarea>'+
+   '<div class="rc1650-actions"><button type="button" class="btn" data-rc1650-report-send="1"'+(report.busy||!canSend?' disabled':'')+'>'+esc(report.busy?t('reportSending'):t('reportSend'))+'</button><small class="rc1650-report-status" data-kind="'+esc(report.statusKind)+'" aria-live="polite">'+esc(report.status)+'</small></div></div>':'')+
+  (jobs.length?'<div class="rc1650-jobs"><b>'+esc(t('jobsTitle'))+'</b><ul>'+jobs.map(function(x){var st=jobState(x),af=x.autofix||{},link=/^https:\/\/github\.com\//.test(q(af.runUrl))?' <a href="'+esc(af.runUrl)+'" target="_blank" rel="noopener">GitHub</a>':'';return '<li><span class="rc1650-job rc1650-job-'+st+'">'+esc(t('job_'+st))+'</span><span>'+esc(q(x.message).slice(0,140))+'</span><small>'+esc(fmt(x.lastAt||x.at))+link+'</small></li>'}).join('')+'</ul></div>':'');
+ if(force||box.__rc1650Html!==html){
+  var focus=d().activeElement&&d().activeElement.id;
+  if(focus&&/^rc1650Report/.test(focus)&&!force)return;
+  box.innerHTML=html;box.__rc1650Html=html;
+ }
+}
+async function sendReport(){
+ var sc=selfCorrect();if(!sc||report.busy)return;
+ if(q(report.description).length<20){report.status=t('reportShort');report.statusKind='bad';renderReport(true);return}
+ report.busy=true;report.status='';renderReport(true);
+ try{var r=await sc.reportBug({area:report.area,description:report.description,expected:report.expected});report.status=q(t('reportSent',{id:q(r&&(r.jobId||r.diagnosticId))}));report.statusKind='ok';report.description='';report.expected='';report.area='';refreshCloud()}
+ catch(e){report.status=t('reportError',{message:q(e&&e.message)});report.statusKind='bad'}
+ finally{report.busy=false;renderReport(true)}
+}
 function groupByKey(){var m=Object.create(null);group(records()).forEach(function(g){m[g.key]=g});return m}
 function levelOf(el){return el.classList.contains('rc871-lvl-error')?'error':el.classList.contains('rc871-lvl-warning')?'warning':'info'}
 function decorateRows(){
@@ -201,14 +260,14 @@ function decorateRows(){
   el.__rc1650={group:g,info:info};
  });
 }
-function selfCorrect(){var sc=w.ExportHUBSelfCorrect;return sc&&typeof sc.allowed==='function'&&sc.allowed()&&typeof sc.openDescribe==='function'?sc:null}
+function selfCorrect(){var sc=w.ExportHUBSelfCorrect;return sc&&typeof sc.allowed==='function'&&sc.allowed()&&typeof sc.reportBug==='function'?sc:null}
 function explainDetails(el){
  var host=el&&el.querySelector('[data-rc871-diag-details]');if(!host||host.getAttribute('data-loaded')!=='1'||host.querySelector('.rc1650-explain'))return;
  var data=el.__rc1650;if(!data){decorateRows();data=el.__rc1650;if(!data)return}
  var g=data.group,info=data.info,areas=g.areas.map(areaName),often=[t('often',{count:g.total,last:fmt(g.last)})];
  if(g.users.length)often.push(t('oftenUsers',{users:list(g.users,4)}));
  if(areas.length)often.push(t('oftenAreas',{areas:list(areas,4)}));
- var sc=selfCorrect(),ai=sc&&info.urgency!=='low'?'<div class="rc1650-actions"><button type="button" class="btn" data-rc1650-ai="1">'+esc(t('aiFix'))+'</button><small>'+esc(t('aiFixHint'))+'</small></div>':'';
+ var note=aiNote(),off=note.kind==='off',ai=info.kind!=='manual'&&info.urgency!=='low'&&selfCorrect()?'<div class="rc1650-actions"><button type="button" class="btn" data-rc1650-ai="1"'+(off?' disabled':'')+'>'+esc(t('aiFix'))+'</button><small data-rc1650-ai-status>'+esc(off?note.text:t('aiFixHint'))+'</small></div>':'';
  var box=d().createElement('div');box.className='rc1650-explain';box.setAttribute('data-i18n-ignore','1');
  box.innerHTML='<section><h4>'+esc(t('what'))+'</h4><p>'+esc(info.what)+'</p></section><section><h4>'+esc(t('todo'))+'</h4><p>'+esc(info.todo)+'</p></section><section><h4>'+esc(t('howOften'))+'</h4><p>'+often.map(esc).join('<br>')+'</p></section>'+ai;
  // technical facts and JSON of RC871 stay available, folded under "Technische Details"
@@ -216,11 +275,19 @@ function explainDetails(el){
  while(host.firstChild)tech.appendChild(host.firstChild);
  host.appendChild(box);host.appendChild(tech);
 }
-function startAi(el){
- var sc=selfCorrect(),data=el&&el.__rc1650;if(!sc||!data)return;
- var g=data.group,areas=g.areas.map(areaName);
- sc.openDescribe({area:list(areas,3),description:t('aiDescription',{title:data.info.title,message:g.message,count:g.total,areas:list(areas,6)||'–'})});
+function sampleDetails(g){try{var rows=records().filter(function(x){return signature(x)===g.key});var x=rows[rows.length-1];return x&&x.details?JSON.stringify(x.details).slice(0,1500):''}catch(_){return''}}
+// "An KI senden" on a message: straight to the autofix, no extra dialog
+function startAi(el,btn){
+ var sc=selfCorrect(),data=el&&el.__rc1650;if(!sc||!data||btn.disabled)return;
+ if(!w.confirm(t('sendConfirm')))return;
+ var g=data.group,areas=g.areas.map(areaName),note=el.querySelector('[data-rc1650-ai-status]'),details=sampleDetails(g);
+ var description=t('aiDescription',{title:data.info.title,message:g.message,count:g.total,areas:list(areas,6)||'–'})+(details?'\n\n'+details:'');
+ btn.disabled=true;if(note)note.textContent=t('reportSending');
+ sc.reportBug({area:list(areas,3)||data.info.title,description:description.slice(0,4000),expected:''}).then(function(r){
+  if(note)note.textContent=q(t('reportSent',{id:q(r&&(r.jobId||r.diagnosticId))}));refreshCloud();
+ },function(e){btn.disabled=false;if(note)note.textContent=t('reportError',{message:q(e&&e.message)})});
 }
+function refreshCloud(){try{var c=w.ExportHUBDiagnosticsCloud864;if(c&&typeof c.refresh==='function')Promise.resolve(c.refresh(true)).then(function(){var a=w.ExportHUBDiagnostics871;if(a&&typeof a.refresh==='function')a.refresh()})}catch(_){}}
 function show(btn){
  var key=btn.getAttribute('data-rc1650-show'),search=d().getElementById('rc871DiagSearch'),filter=d().getElementById('rc871DiagFilter'),mode=d().getElementById('rc871DiagMode');
  function openRow(){var el=Array.prototype.find.call(d().querySelectorAll('#rc871DiagList details[data-rc871-diag-group]'),function(x){return x.getAttribute('data-rc871-diag-group')===key});if(!el)return false;el.open=true;try{el.scrollIntoView({behavior:'smooth',block:'center'})}catch(_){el.scrollIntoView()}return true}
@@ -232,23 +299,28 @@ function show(btn){
 }
 
 var scheduled=false,observer=null;
-function sync(){scheduled=false;if(!onDiagnostics())return;style();renderSummary();decorateRows()}
+function sync(){scheduled=false;if(!onDiagnostics())return;style();renderSummary();renderReport(false);loadConfig();decorateRows()}
 function schedule(){if(scheduled)return;scheduled=true;(w.requestAnimationFrame||setTimeout)(sync)}
 function install(){
  var doc=d();if(!doc||w.__EXPORTHUB_RC1650_DIAG_PLAIN__)return;w.__EXPORTHUB_RC1650_DIAG_PLAIN__=true;
  if(w.MutationObserver){
-  var start=function(){var c=doc.getElementById('content');if(!c||observer)return;observer=new w.MutationObserver(function(list){for(var i=0;i<list.length;i++){var tg=list[i].target;if(tg&&tg.closest&&tg.closest('#'+SUMMARY_ID+',.rc1650-explain'))continue;schedule();return}});observer.observe(c,{childList:true,subtree:true})};
+  var start=function(){var c=doc.getElementById('content');if(!c||observer)return;observer=new w.MutationObserver(function(list){for(var i=0;i<list.length;i++){var tg=list[i].target;if(tg&&tg.closest&&tg.closest('#'+SUMMARY_ID+',#'+REPORT_ID+',.rc1650-explain'))continue;schedule();return}});observer.observe(c,{childList:true,subtree:true})};
   if(doc.readyState==='loading')doc.addEventListener('DOMContentLoaded',start,{once:true});else start();
   ['exporthub:ready','exporthub:rendered'].forEach(function(n){w.addEventListener(n,start)});
  }
- ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:language-changed','exporthub:diagnostics-cloud-updated'].forEach(function(n){w.addEventListener(n,function(){if(n==='exporthub:language-changed'){var b=doc.getElementById(SUMMARY_ID);if(b)b.__rc1650Html=''}schedule()})});
+ ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:language-changed','exporthub:diagnostics-cloud-updated'].forEach(function(n){w.addEventListener(n,function(){if(n==='exporthub:language-changed'){[SUMMARY_ID,REPORT_ID].forEach(function(id){var b=doc.getElementById(id);if(b)b.__rc1650Html=''})}schedule()})});
  // after RC871 has filled the details on open (its listener is registered earlier)
  doc.addEventListener('toggle',function(e){var el=e.target;if(el&&el.matches&&el.matches('details.rc871-diag-event')&&el.open)setTimeout(function(){explainDetails(el)},0)},true);
  doc.addEventListener('click',function(e){
-  var b=e.target&&e.target.closest&&e.target.closest('[data-rc1650-show],[data-rc1650-ai]');if(!b)return;
+  var b=e.target&&e.target.closest&&e.target.closest('[data-rc1650-show],[data-rc1650-ai],[data-rc1650-report-open],[data-rc1650-report-send]');if(!b)return;
   e.preventDefault();
-  if(b.hasAttribute('data-rc1650-show'))show(b);else startAi(b.closest('details.rc871-diag-event'));
+  if(b.hasAttribute('data-rc1650-show'))show(b);
+  else if(b.hasAttribute('data-rc1650-ai'))startAi(b.closest('details.rc871-diag-event'),b);
+  else if(b.hasAttribute('data-rc1650-report-open')){report.open=true;renderReport(true);var f=d().getElementById('rc1650ReportDesc');if(f)f.focus()}
+  else sendReport();
  },true);
+ var FIELDS={rc1650ReportArea:'area',rc1650ReportDesc:'description',rc1650ReportExpected:'expected'};
+ doc.addEventListener('input',function(e){var id=e.target&&e.target.id;if(FIELDS[id])report[FIELDS[id]]=e.target.value},true);
  schedule();
 }
 
