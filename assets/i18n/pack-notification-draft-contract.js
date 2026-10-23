@@ -11,4 +11,6 @@
     it:{'pack.draft.deliveryNotesHelp':'Carica almeno una bolla di consegna in formato PDF, JPG o PNG. Sono supportati più file.','pack.draft.deliveryRequirement':'Carica almeno una bolla di consegna.','pack.api.PACK_DOCUMENT_REQUIRED':'È richiesta almeno una bolla di consegna.'}
   };
   for(const lang of Object.keys(values))Object.assign(core.packs[lang],values[lang]);
+  // the drafts script already wrote the old help text into the page before these values were applied
+  try{const help=root.document&&root.document.getElementById('packDeliveryNotesHelp');if(help)help.textContent=core.t('pack.draft.deliveryNotesHelp');}catch(_){}
 })(typeof window!=='undefined'?window:globalThis);

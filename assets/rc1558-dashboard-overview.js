@@ -95,6 +95,7 @@ function buildModel(api,shipments,now){
     {id:'pod',value:needsPod.length,sub:t('dashboard.overview.kpi.podSub'),tone:needsPod.length?'warn':'neutral',route:'shipmentoverview'},
     {id:'tasks',value:dueTasks.length,sub:t('dashboard.overview.kpi.tasksSub',{late:lateTasks.length}),tone:lateTasks.length?'warn':'neutral',route:'tasks'}
   ];
+  var pack=packKpi();if(pack)kpis.unshift(pack);
 
   var today_rows=todayList.slice(0,MAX_TODAY).map(function(s){
     return{key:keyOf(s),time:hhmm(dateOf(s)),ref:refOf(s),customer:customerOf(s),country:countryOf(s),colli:colliOf(s),deliveryNote:hasDeliveryNote(s),pod:hasPod(s),abd:/wartet auf abd/.test(low(statusOf(s))),status:statusOf(s),tone:statusTone(statusOf(s))}
@@ -119,6 +120,14 @@ function buildModel(api,shipments,now){
   return{kpis:kpis,today:today_rows,todayTotal:todayList.length,attention:attention.slice(0,MAX_ATTENTION),attentionTotal:attention.length,tasks:tasks,tasksTotal:openTasks.length,sets:sets}
 }
 
+/* Packtisch-Eingang: first tile when the pack runtime is shipped; it opens the inbox instead of a drill-down. */
+function packKpi(){
+  if(!w.ExportHUBPackNotificationNav)return null;
+  var fresh=0,review=0;
+  arr(getState().packNotifications).forEach(function(n){var s=low(n&&n.status)||'new';if(s==='new')fresh++;else if(s==='in_review')review++});
+  return{id:'pack',value:fresh+review,sub:t('dashboard.overview.kpi.packSub',{'new':fresh,review:review}),tone:fresh?'warn':'neutral',route:'packnotifications',direct:true}
+}
+
 function dueLabel(task){
   if(!task.due)return'';
   if(task.late)return t('dashboard.overview.tasks.late');
@@ -138,6 +147,7 @@ var ICONS={
   open:'<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/>',
   abd:'<path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M12 8v5M12 16v.5"/>',
   documents:'<path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M10 12h5M10 16h5"/>',
+  pack:'<path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/>',
   pod:'<path d="M4 17c3-1 4-5 6-5s1.5 4 3.5 4 2-3 3.5-3 2 1.5 3 2"/><path d="M4 21h16"/>',
   tasks:'<path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/>',
   check:'<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/>',
@@ -168,7 +178,7 @@ function emptyHtml(key){return'<p class="rc1558-empty">'+icon('check','rc1558-em
 
 function renderHtml(model,meta){
   var kpis=model.kpis.map(function(k){
-    return'<button type="button" class="rc1558-kpi" data-tone="'+k.tone+'"'+(k.value?'':' data-zero="1"')+' data-rc1558-route="'+esc(k.route)+'" data-rc1558-kpi="'+esc(k.id)+'">'+
+    return'<button type="button" class="rc1558-kpi" data-tone="'+k.tone+'"'+(k.value?'':' data-zero="1"')+' data-rc1558-route="'+esc(k.route)+'"'+(k.direct?'':' data-rc1558-kpi="'+esc(k.id)+'"')+'>'+
       '<span class="rc1558-kpi-top"><span class="rc1558-kpi-label">'+esc(t('dashboard.overview.kpi.'+k.id))+'</span>'+icon(k.id)+'</span>'+
       '<strong class="rc1558-kpi-value">'+k.value+'</strong>'+
       '<span class="rc1558-kpi-sub">'+esc(k.sub)+'</span>'+

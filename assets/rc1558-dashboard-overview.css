@@ -36,6 +36,8 @@
 .rc1558-updated{font-size:12px;font-variant-numeric:tabular-nums;padding:1px 9px;border-radius:999px;color:#fff;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28)}
 
 .rc1558-kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+/* seventh tile (Vom Packtisch) when the pack runtime is shipped */
+.rc1558-kpis:has(>.rc1558-kpi:nth-child(7)){grid-template-columns:repeat(7,minmax(0,1fr))}
 .rc1558-kpi{display:grid;gap:3px;align-content:start;text-align:left;cursor:pointer;min-width:0;
   background:var(--rc1558-surface);border:1px solid var(--rc1558-line);border-radius:var(--rc1558-radius);padding:11px 13px 12px;
   box-shadow:var(--pc-shadow-soft,0 1px 2px rgba(15,35,65,.06));transition:border-color .15s ease,box-shadow .15s ease,transform .15s ease}
@@ -168,9 +170,9 @@ body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-mini-metric
 body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-mini-metrics .metric::after{display:none!important}
 body[data-rc1558-overview="1"] #content .rc205-dashboard-grid .rc205-mini-metrics .metric strong{font-size:22px!important;line-height:1.15!important}
 
-@media (max-width:1250px){.rc1558-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.rc1558-grid{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:1250px){.rc1558-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.rc1558-kpis:has(>.rc1558-kpi:nth-child(7)){grid-template-columns:repeat(4,minmax(0,1fr))}.rc1558-grid{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:640px){
-  .rc1558-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.rc1558-kpi-value{font-size:22px}
+  .rc1558-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.rc1558-kpis:has(>.rc1558-kpi:nth-child(7)){grid-template-columns:repeat(2,minmax(0,1fr))}.rc1558-kpi-value{font-size:22px}
   /* phone: each pickup becomes a two-line row instead of a sideways-scrolling table */
   .rc1558-table{min-width:0}
   .rc1558-thead{display:none}
@@ -357,7 +359,7 @@ html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#conten
 html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) .rc1573-tile .rc1573-bar-track{max-width:48px}
 html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) > .rc205-quick-card[data-rc1573-tile] .rc205-quick b{overflow-wrap:break-word!important;word-break:normal!important;hyphens:auto}
 /* narrow laptop or zoomed browser (1000–1249px): figures stay in one row so the lists keep their height */
-html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) .rc1558-kpis{grid-template-columns:repeat(6,minmax(0,1fr))!important}
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) .rc1558-kpis{grid-template-columns:repeat(6,minmax(0,1fr))!important}html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) .rc1558-kpis:has(>.rc1558-kpi:nth-child(7)){grid-template-columns:repeat(7,minmax(0,1fr))!important}
 /* low screens: the overview lists keep room for a few rows, the tiles give way (down to 120px) and the figures drop their sub line */
 @media (max-height:820px){
   html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]){grid-template-rows:minmax(0,2fr) minmax(120px,1fr)!important}
