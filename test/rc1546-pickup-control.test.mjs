@@ -162,7 +162,7 @@ test('RC1547: Pickup-Control beobachtet nicht den kompletten DOM-Baum auf Child-
 
 test('RC1547: aktueller RC1112-Build nimmt Runtime und API in das Deploy-Paket auf',()=>{
   const finalizer=fs.readFileSync(FINALIZER,'utf8');
-  assert.match(finalizer,/rc1546-pickup-control\.js\?v=1546/);
+  assert.match(finalizer,/rc1546-pickup-control\.js\?v=1604/);
   assert.match(finalizer,/assets[^\n]+rc1546-pickup-control\.js/);
   for(const workflow of [PROD,TESTSERVICE]){
     const yaml=fs.readFileSync(workflow,'utf8');
