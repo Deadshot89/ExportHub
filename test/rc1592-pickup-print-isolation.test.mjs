@@ -69,6 +69,6 @@ test('RC1592: die Abholkontroll-Runtime liegt schon vor dem lokalen Browser-Gate
   const finalizer=fs.readFileSync('.github/rc1488/finalize-auto-update.mjs','utf8');
   assert.match(build,/'assets\/rc1546-pickup-control\.js'/,
     'Lokale Print-Browser-Tests benötigen dieselbe Runtime bereits im ersten Build');
-  assert.match(finalizer,/PICKUP_SCRIPT_SRC='\/assets\/rc1546-pickup-control\.js\?v=1546'/,
+  assert.match(finalizer,/PICKUP_SCRIPT_SRC='\/assets\/rc1546-pickup-control\.js\?v=1604'/,
     'Release-Finalizer muss die identische Abholkontroll-Datei ausliefern');
 });
