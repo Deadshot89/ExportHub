@@ -26,6 +26,7 @@ test('RC1634: flag requires a different explicit test Azure storage account',()=
  rejects({...flags,EXPORTHUB_TEST_STORAGE_CONNECTION_STRING:'AccountName=realproduction;EndpointSuffix=example.invalid'},'TEST_AUTH_ISOLATION_ACCOUNT_NOT_SEPARATE');
  rejects({...flags,EXPORTHUB_TEST_STORAGE_CONNECTION_STRING:''},'TEST_AUTH_ISOLATION_ACCOUNT_NOT_SEPARATE');
  rejects({...flags,EXPORTHUB_TEST_STORAGE_CONNECTION_STRING:'UseDevelopmentStorage=true'},'TEST_AUTH_ISOLATION_ACCOUNT_NOT_SEPARATE');
+ rejects({...flags,EXPORTHUB_TEST_STORAGE_CONNECTION_STRING:testCs+';BlobEndpoint=https://realproduction.blob.core.windows.net'},'TEST_AUTH_ISOLATION_ACCOUNT_NOT_SEPARATE');
  rejects({...flags,EXPORTHUB_STORAGE_CONNECTION_STRING:'',AzureWebJobsStorage:''},'TEST_AUTH_ISOLATION_ACCOUNT_NOT_SEPARATE');
  rejects({...flags,EXPORTHUB_TEST_AUTH_ISOLATION:'true'},'TEST_AUTH_ISOLATION_MODE_INVALID');
 });
