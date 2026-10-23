@@ -126,3 +126,28 @@
   #content :is(#packNotificationDetail,#packNotificationInbox) .pack-internal-shell .pack-internal-detail-actions .btn.pack-internal-primary{order:-1;flex:1 1 100%}
   #content :is(#packNotificationDetail,#packNotificationInbox) .pack-internal-shell .pack-internal-detail-actions .btn:is(.pack-internal-secondary,.pack-internal-danger){flex:1 1 calc(50% - 4px)}
 }
+/* Eingang: Filter statt Status-Pillen, Karte mit direkter Aktion, Hauptaktion oben im Detail */
+.pack-internal-filters{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--pin-line,#dbe4ee);border-radius:10px;background:var(--pin-surface,#fff)}
+#content :is(#packNotificationDetail,#packNotificationInbox) .pack-internal-shell .pack-internal-filter{display:inline-flex;align-items:center;gap:8px;min-height:34px;padding:5px 12px!important;border:0;border-radius:8px;background:transparent;color:var(--pin-muted,#64748b);font-size:13px;font-weight:700;box-shadow:none;cursor:pointer}
+.pack-internal-filter b{min-width:20px;padding:1px 6px;border-radius:999px;background:var(--pin-soft,#f1f5f9);color:var(--pin-text,#172033);font-size:11.5px;text-align:center;font-variant-numeric:tabular-nums}
+#content :is(#packNotificationDetail,#packNotificationInbox) .pack-internal-shell .pack-internal-filter.is-active{background:var(--pin-primary,#2563eb);color:#fff}
+#content :is(#packNotificationDetail,#packNotificationInbox) .pack-internal-shell .pack-internal-filter.is-active b{background:rgba(255,255,255,.22);color:#fff}
+#content :is(#packNotificationDetail,#packNotificationInbox) .pack-internal-shell .pack-internal-filter:focus-visible{outline:2px solid var(--pin-primary,#2563eb);outline-offset:1px}
+#content :is(#packNotificationDetail,#packNotificationInbox) .pack-internal-shell .pack-internal-task{grid-template-columns:minmax(0,1fr) auto 118px 150px;cursor:pointer}
+#content :is(#packNotificationDetail,#packNotificationInbox) .pack-internal-shell .pack-internal-task-main{display:grid;gap:4px;min-width:0;padding:0!important;border:0;background:transparent;color:inherit;text-align:left;font:inherit;box-shadow:none;cursor:pointer}
+#content :is(#packNotificationDetail,#packNotificationInbox) .pack-internal-shell .pack-internal-task-main:focus-visible{outline:2px solid var(--pin-primary,#2563eb);outline-offset:4px;border-radius:6px}
+#content :is(#packNotificationDetail,#packNotificationInbox) .pack-internal-shell .pack-internal-task-metrics b.no-docs{color:#b45309}
+#content :is(#packNotificationDetail,#packNotificationInbox) .pack-internal-shell .pack-internal-task-metrics b.no-docs .pack-internal-icon{color:#d97706}
+#content :is(#packNotificationDetail,#packNotificationInbox) .pack-internal-shell .btn.pack-internal-task-action{width:100%;min-height:36px;justify-content:center;white-space:nowrap}
+#content :is(#packNotificationDetail,#packNotificationInbox) .pack-internal-shell .pack-internal-detail-head>.pack-internal-detail-head-side{grid-area:status;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+#content :is(#packNotificationDetail,#packNotificationInbox) .pack-internal-shell .pack-internal-detail-head-side>.pack-internal-status{min-height:30px;padding:4px 12px;font-size:13px}
+@media(max-width:1180px){#content :is(#packNotificationDetail,#packNotificationInbox) .pack-internal-shell .pack-internal-task-metrics{gap:10px}#content :is(#packNotificationDetail,#packNotificationInbox) .pack-internal-shell .pack-internal-task-metrics b.has-docs{display:none}}
+@media(max-width:760px){
+  .pack-internal-filters{display:flex;width:100%}#content :is(#packNotificationDetail,#packNotificationInbox) .pack-internal-shell .pack-internal-filter{flex:1;justify-content:center;padding:5px 6px!important;white-space:nowrap}
+  #content :is(#packNotificationDetail,#packNotificationInbox) .pack-internal-shell .pack-internal-task{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"main status" "metrics metrics" "action action"}
+  #content :is(#packNotificationDetail,#packNotificationInbox) .pack-internal-shell .pack-internal-task-metrics{flex-wrap:wrap}
+  #content :is(#packNotificationDetail,#packNotificationInbox) .pack-internal-shell .pack-internal-task-metrics b.has-docs{display:inline-flex}
+  #content :is(#packNotificationDetail,#packNotificationInbox) .pack-internal-shell .btn.pack-internal-task-action{grid-area:action}
+  #content :is(#packNotificationDetail,#packNotificationInbox) .pack-internal-shell .pack-internal-detail-head>.pack-internal-detail-head-side{justify-content:flex-end}
+  #content :is(#packNotificationDetail,#packNotificationInbox) .pack-internal-shell .pack-internal-detail-head-side>.btn{display:none}
+}

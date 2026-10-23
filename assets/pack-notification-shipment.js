@@ -134,6 +134,7 @@
       else{nativeSet(customer,prefill.customerName);try{customer.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',code:'Enter',bubbles:true}));}catch(_){}}
     }
     applyRowsToMountedForm(doc,shipmentRows(prefill));
+    applyTextsToMountedForm(doc,prefill);
     const state=sharedState(),draft=state.shipment||state.currentShipment||state.selectedShipment;if(draft&&typeof draft==='object'){
       if(manualWithoutIdentity&&prefill.customerName)draft.customerSearch=prefill.customerName;
       draft.packNotificationId=prefill.packNotificationId;draft.packNotificationRef=prefill.packNotificationRef;draft.packNotificationCustomer={id:prefill.customerId,account:prefill.customerAccount,name:prefill.customerName,source:prefill.customerSource};draft.packNotificationPrefill={deliveryNoteReference:prefill.deliveryNoteReference,packageType:prefill.packageType,packageCount:prefill.packageCount,totalWeight:prefill.totalWeight,rows:prefill.rows,note:prefill.note};
@@ -141,13 +142,35 @@
     }
     return true;
   }
+  // Packtisch names ("Europalette") and shipment options ("Euro Palette") differ in spacing and case
+  const packagingKey=value=>q(value).toLocaleLowerCase('de-DE').replace(/[^a-z0-9äöüß]/g,'');
+  function matchPackaging(select,type){
+    const wanted=packagingKey(type);if(!select||!wanted)return q(type);
+    const option=Array.from(select.options||[]).find(o=>packagingKey(o.value)===wanted);
+    return option?option.value:q(type);
+  }
+  function rowNodes(doc){return Array.from(doc.querySelectorAll('#rc573ColliCard .rc363-owned-row'));}
+  function rowsMatch(doc,plan){
+    const nodes=rowNodes(doc);
+    return plan.every((row,index)=>{
+      const node=nodes[index];if(!node)return false;
+      const select=node.querySelector('[data-rc363-field="type"] select'),count=node.querySelector('[data-rc363-field="count"] input');
+      return (!row.type||!select||packagingKey(select.value)===packagingKey(matchPackaging(select,row.type)))&&q(count&&count.value)===q(row.count);
+    });
+  }
+  function applyTextsToMountedForm(doc,prefill){
+    if(typeof doc.querySelector!=='function')return;
+    const fill=(selector,value)=>{const field=doc.querySelector(selector);if(field&&q(value)&&!q(field.value))nativeSet(field,value);};
+    fill('[id^="rc408Shipment_deliveryNotes"]',prefill.deliveryNoteReference);
+    fill('[id^="rc408Shipment_comments"]',prefill.note);
+  }
   function applyRowsToMountedForm(doc,plan){
-    const api=root.ExportHUBShipment420,nodes=()=>Array.from(doc.querySelectorAll('#rc573ColliCard .rc363-owned-row'));
+    const api=root.ExportHUBShipment420,nodes=()=>rowNodes(doc);
     plan.forEach((row,index)=>{
       if(!nodes()[index]&&api&&typeof api.addRow==='function')api.addRow();
-      const node=nodes()[index];if(!node)return;
-      const select=node.querySelector('[data-rc363-field="type"] select');
-      if(row.type&&api&&typeof api.updateRow==='function'&&q(select&&select.value)!==row.type)api.updateRow(index,'type',row.type,select||node);
+      let node=nodes()[index];if(!node)return;
+      const select=node.querySelector('[data-rc363-field="type"] select'),type=matchPackaging(select,row.type);
+      if(type&&api&&typeof api.updateRow==='function'&&q(select&&select.value)!==type){api.updateRow(index,'type',type,select||node);node=nodes()[index]||node;}
       const set=(field,value)=>nativeSet(node.querySelector(`[data-rc363-field="${field}"] input`),value);
       set('count',row.count);set('l',row.l||'');set('w',row.w||'');set('h',row.h||'');
       const weight=node.querySelector('[data-rc363-field="weight"] input');
@@ -166,10 +189,17 @@
       const customerLostValue=Boolean(manualWithoutIdentity&&customer&&q(customer.value)!==q(prefill.customerName));
       if(settleAttempt===0||customerWasReplaced||customerLostValue)applyPrefillToMountedForm(prefill);
       if(manualWithoutIdentity&&settleAttempt<10)setTimeout(()=>waitForShipmentForm(prefill,attempt,settleAttempt+1,customer),80);
+      if(settleAttempt===0)setTimeout(()=>keepRows(prefill,0),200);
       return;
     }
     const button=doc.getElementById('rc380NewShipment');if(button&&!button.__packClicked){button.__packClicked=true;button.click();}
     setTimeout(()=>waitForShipmentForm(prefill,attempt+1,0,null),80);
+  }
+  // the customer lookup and the fresh-shipment reset re-render the colli rows after the first fill and dropped packaging, count and weight
+  function keepRows(prefill,check){
+    const doc=root.document;if(!doc||check>15||!pending||pending.prefill!==prefill)return;
+    const plan=shipmentRows(prefill);if(!rowsMatch(doc,plan)){applyRowsToMountedForm(doc,plan);applyTextsToMountedForm(doc,prefill);}
+    setTimeout(()=>keepRows(prefill,check+1),200);
   }
   function startNew(notification){
     const prefill=shipmentPrefill(notification);pending={notificationId:q(notification.id),prefill};root.__EXPORTHUB_PACK_SHIPMENT_PREFILL__=prefill;
@@ -211,6 +241,6 @@
     scheduleSync();return true;
   }
 
-  root.ExportHUBPackShipment=Object.freeze({shipmentPrefill,shipmentRows,findShipmentForNotification,linkShipment,statusFromShipment,syncStatuses,begin,applyPrefillToMountedForm,install});
+  root.ExportHUBPackShipment=Object.freeze({shipmentPrefill,shipmentRows,matchPackaging,findShipmentForNotification,linkShipment,statusFromShipment,syncStatuses,begin,applyPrefillToMountedForm,install});
   install();
 })(typeof window!=='undefined'?window:globalThis);

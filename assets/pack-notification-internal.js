@@ -197,7 +197,7 @@
   function detailHtml(model){
     const packages=`${model.packageCount}${model.packageType?` · ${model.packageType}`:''}`;
     return `<div class="pack-internal-shell">
-      <header class="pack-internal-detail-head"><button type="button" class="btn pack-internal-ghost" data-pack-action="back">${esc(tr('pack.internal.backToInbox'))}</button><div><span class="pack-internal-eyebrow">${esc(tr('pack.internal.eyebrow',{reference:model.reference}))}</span><h1>${esc(model.customer||tr('pack.title'))}</h1></div><span class="pack-internal-status" data-status="${esc(model.status)}">${esc(statusLabel(model.status))}</span></header>
+      <header class="pack-internal-detail-head"><button type="button" class="btn pack-internal-ghost" data-pack-action="back">${esc(tr('pack.internal.backToInbox'))}</button><div><span class="pack-internal-eyebrow">${esc(tr('pack.internal.eyebrow',{reference:model.reference}))}</span><h1>${esc(model.customer||tr('pack.title'))}</h1></div><span class="pack-internal-detail-head-side"><span class="pack-internal-status" data-status="${esc(model.status)}">${esc(statusLabel(model.status))}</span>${q(model.status).toLowerCase()==='cancelled'?'':`<button type="button" class="btn primary pack-internal-primary" data-pack-action="shipment">${esc(model.shipmentId?tr('pack.internal.openShipment'):tr('pack.internal.createShipment'))}</button>`}</span></header>
       <div class="pack-internal-facts">${factHtml('box',tr('pack.internal.packages'),packages)}${factHtml('weight',tr('pack.internal.totalWeight'),`${model.totalWeight} kg`)}${factHtml('station',tr('pack.internal.station'),model.stationName||'–')}${factHtml('clock',tr('pack.internal.reported'),formatDate(model.createdAt))}</div>
       <div class="pack-internal-detail-grid">
         <article class="pack-internal-panel pack-internal-summary"><h2>${esc(tr('pack.internal.summary'))}</h2><dl>${customerIdentityHtml(model)}<div><dt>${esc(tr('pack.internal.deliveryNoteReference'))}</dt><dd>${esc(model.deliveryNoteReference||'–')}</dd></div></dl></article>
@@ -227,7 +227,7 @@
   function editHtml(model,draft,errorText){
     const d=draft||model,count=Math.max(1,Math.floor(Number(d.packageCount))||1);
     return `<div class="pack-internal-shell">
-      <header class="pack-internal-detail-head"><button type="button" class="btn pack-internal-ghost" data-pack-action="edit-cancel">${esc(tr('pack.internal.backToDetail'))}</button><div><span class="pack-internal-eyebrow">${esc(tr('pack.internal.eyebrow',{reference:model.reference}))}</span><h1>${esc(tr('pack.internal.editTitle'))}</h1></div><span class="pack-internal-status" data-status="${esc(model.status)}">${esc(statusLabel(model.status))}</span></header>
+      <header class="pack-internal-detail-head"><button type="button" class="btn pack-internal-ghost" data-pack-action="edit-cancel">${esc(tr('pack.internal.backToDetail'))}</button><div><span class="pack-internal-eyebrow">${esc(tr('pack.internal.eyebrow',{reference:model.reference}))}</span><h1>${esc(tr('pack.internal.editTitle'))}</h1></div><span class="pack-internal-detail-head-side"><span class="pack-internal-status" data-status="${esc(model.status)}">${esc(statusLabel(model.status))}</span>${q(model.status).toLowerCase()==='cancelled'?'':`<button type="button" class="btn primary pack-internal-primary" data-pack-action="shipment">${esc(model.shipmentId?tr('pack.internal.openShipment'):tr('pack.internal.createShipment'))}</button>`}</span></header>
       <form class="pack-internal-edit" data-pack-edit-form novalidate>
         ${errorText?`<p class="pack-internal-edit-error" role="alert">${esc(errorText)}</p>`:''}
         <article class="pack-internal-panel"><h2>${esc(tr('pack.internal.summary'))}</h2>
@@ -268,12 +268,18 @@
     if(!await persist('Packmeldung storniert')){restore(saved);return{ok:false,code:'persist'};}
     renderNavBadge();return result;
   }
+  // open = still needs someone in the office; everything else is done or cancelled
+  function inboxOpen(item){return inboxRank(item)<2;}
+  function inboxFilterItems(items,filter){return filter==='all'?items:items.filter(item=>inboxOpen(item)===(filter!=='done'));}
   function inboxCardHtml(model){
-    return `<button type="button" class="pack-internal-task${model.unread?' is-unread':''}" data-pack-notification-id="${esc(model.notificationId)}" data-status="${esc(model.status)}"><span class="pack-internal-task-main"><strong>${esc(model.customer||tr('pack.title'))}</strong><small>${esc(model.reference)} · ${esc(model.stationName||tr('pack.internal.station'))} · ${esc(formatDate(model.createdAt))}</small></span><span class="pack-internal-task-metrics"><b>${icon('box')}${esc(tr('pack.internal.metricPackages',{count:model.packageCount}))}</b><b>${icon('weight')}${esc(model.totalWeight)} kg</b></span><span class="pack-internal-status" data-status="${esc(model.status)}">${esc(statusLabel(model.status))}</span><span class="pack-internal-task-chevron" aria-hidden="true">›</span></button>`;
+    const open=inboxOpen(model),cancelled=q(model.status).toLowerCase()==='cancelled',docs=model.documents.length;
+    const action=cancelled?'':`<button type="button" class="btn ${open?'primary pack-internal-primary':'pack-internal-secondary'} pack-internal-task-action" data-pack-quick-shipment="${esc(model.notificationId)}">${esc(model.shipmentId?tr('pack.internal.openShipment'):tr('pack.internal.createShipment'))}</button>`;
+    return `<article class="pack-internal-task${model.unread?' is-unread':''}" data-pack-notification-id="${esc(model.notificationId)}" data-status="${esc(model.status)}"><button type="button" class="pack-internal-task-main" aria-label="${esc(tr('pack.internal.view'))}: ${esc(model.customer||tr('pack.title'))}"><strong>${esc(model.customer||tr('pack.title'))}</strong><small>${esc(model.reference)} · ${esc(model.stationName||tr('pack.internal.station'))} · ${esc(formatDate(model.createdAt))}</small></button><span class="pack-internal-task-metrics"><b>${icon('box')}${esc(tr('pack.internal.metricPackages',{count:model.packageCount}))}</b><b>${icon('weight')}${esc(model.totalWeight)} kg</b><b class="${docs?'has-docs':'no-docs'}">${icon('file')}${esc(docs?tr('pack.internal.withDeliveryNote'):tr('pack.internal.withoutDeliveryNote'))}</b></span><span class="pack-internal-status" data-status="${esc(model.status)}">${esc(statusLabel(model.status))}</span>${action}</article>`;
   }
-  function inboxOverviewHtml(items){
-    const counts=new Map();for(const item of items){const key=q(item.status).toLowerCase()||'new';counts.set(key,(counts.get(key)||0)+1);}
-    return `<div class="pack-internal-overview">${Array.from(counts).map(([status,count])=>`<span class="pack-internal-status" data-status="${esc(status)}">${esc(statusLabel(status))}<b>${count}</b></span>`).join('')}</div>`;
+  function inboxFilterHtml(items,filter){
+    const tab=(key,label,count)=>`<button type="button" class="pack-internal-filter${filter===key?' is-active':''}" data-pack-filter="${key}" aria-pressed="${filter===key}">${esc(tr(label))}<b>${count}</b></button>`;
+    const open=items.filter(inboxOpen).length;
+    return `<div class="pack-internal-filters" role="group">${tab('open','pack.internal.filterOpen',open)}${tab('done','pack.internal.filterDone',items.length-open)}${tab('all','pack.internal.filterAll',items.length)}</div>`;
   }
   function openDocument(model,index,download){
     const doc=model.documents[Number(index)],url=documentUrl(doc);if(!url)return false;
@@ -284,13 +290,20 @@
     try{if(typeof root.CustomEvent==='function'&&typeof root.dispatchEvent==='function'){root.dispatchEvent(new root.CustomEvent('exporthub:pack-create-shipment',{detail:{notificationId:model.notificationId,reference:model.reference,shipmentId:model.shipmentId}}));return true;}}catch(_){}
     return false;
   }
+  let inboxFilter='open';
   function renderPackInbox(){
     const doc=root.document;if(!doc)return false;const host=doc.getElementById('content')||doc.querySelector('main');if(!host)return false;
-    const items=inboxItems(sharedState());host.innerHTML='';
+    const items=inboxItems(sharedState()),shown=inboxFilterItems(items,inboxFilter);host.innerHTML='';
     const section=doc.createElement('section');section.id='packNotificationInbox';section.className='pack-internal-inbox';
     const summaryKey=items.length===1?'pack.internal.inboxSummaryOne':'pack.internal.inboxSummaryMany';
-    section.innerHTML=`<div class="pack-internal-shell"><header class="pack-internal-inbox-head"><div><span class="pack-internal-eyebrow">${esc(tr('pack.internal.inboxEyebrow'))}</span><h1>${esc(tr('pack.internal.inboxTitle'))}</h1><p>${esc(tr(summaryKey,{count:items.length}))}</p></div>${items.length?inboxOverviewHtml(items):''}</header>${items.length?`<div class="pack-internal-task-list">${items.map(inboxCardHtml).join('')}</div>`:`<div class="pack-internal-empty-state"><strong>${esc(tr('pack.internal.emptyTitle'))}</strong><span>${esc(tr('pack.internal.emptyText'))}</span></div>`}</div>`;
-    section.addEventListener('click',event=>{const card=event.target&&event.target.closest&&event.target.closest('[data-pack-notification-id]');if(card){const notification=notificationById(sharedState(),card.getAttribute('data-pack-notification-id'));if(notification)openNotificationDetail(notification);}});
+    const list=shown.length?`<div class="pack-internal-task-list">${shown.map(inboxCardHtml).join('')}</div>`:`<div class="pack-internal-empty-state"><strong>${esc(items.length?tr('pack.internal.filterEmpty'):tr('pack.internal.emptyTitle'))}</strong>${items.length?'':`<span>${esc(tr('pack.internal.emptyText'))}</span>`}</div>`;
+    section.innerHTML=`<div class="pack-internal-shell"><header class="pack-internal-inbox-head"><div><span class="pack-internal-eyebrow">${esc(tr('pack.internal.inboxEyebrow'))}</span><h1>${esc(tr('pack.internal.inboxTitle'))}</h1><p>${esc(tr(summaryKey,{count:items.length}))}</p></div>${items.length?inboxFilterHtml(items,inboxFilter):''}</header>${list}</div>`;
+    section.addEventListener('click',event=>{
+      const target=event.target&&event.target.closest?event.target:null;if(!target)return;
+      const filter=target.closest('[data-pack-filter]');if(filter){inboxFilter=filter.getAttribute('data-pack-filter');renderPackInbox();return;}
+      const quick=target.closest('[data-pack-quick-shipment]');if(quick){const notification=notificationById(sharedState(),quick.getAttribute('data-pack-quick-shipment'));if(notification){markNotificationOpened(notification).catch(()=>{});dispatchShipment(detailFromNotification(notification,null));}return;}
+      const card=target.closest('[data-pack-notification-id]');if(card){const notification=notificationById(sharedState(),card.getAttribute('data-pack-notification-id'));if(notification)openNotificationDetail(notification);}
+    });
     host.appendChild(section);try{doc.body.setAttribute('data-exporthub-view','packnotifications');}catch(_){}renderNavBadge();return true;
   }
   function openNotificationDetail(notification){
@@ -326,6 +339,7 @@
     const textContent=q(node&&node.textContent);return packTasks(state).find(task=>(q(task.sourceRef)&&textContent.includes(q(task.sourceRef)))||(q(task.title)&&textContent.includes(q(task.title))))||null;
   }
   function onClickCapture(event){
+    if(event.target&&event.target.closest&&event.target.closest('[data-pack-quick-shipment]'))return;
     const notificationNode=event.target&&event.target.closest&&event.target.closest('[data-pack-notification-id]');if(notificationNode){const notification=notificationById(sharedState(),notificationNode.getAttribute('data-pack-notification-id'));if(notification){event.preventDefault();event.stopPropagation();openNotificationDetail(notification);}return;}
     const target=event.target&&event.target.closest&&event.target.closest('[data-pack-task-id],.rc229-task-card.rc628-unified-task,.task-card,.index236-item');if(!target)return;
     const task=findTaskFromNode(target);if(!task)return;

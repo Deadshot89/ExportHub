@@ -89,3 +89,28 @@ test('Pack-QR-Code: Drucken über verstecktes Frame statt leerem noopener-Popup,
   assert.match(print,/contentWindow\.print\(\)/);
   assert.match(admin,/class="pack-qr-open" href="'\+esc\(data\.url\)\+'" target="_blank" rel="noopener"/);
 });
+
+test('Eingang: Filter „Zu bearbeiten / Erledigt / Alle“ und „Sendung erstellen“ direkt auf der Karte',()=>{
+  const js=read('assets/pack-notification-internal.js');
+  assert.match(js,/let inboxFilter='open';/);
+  assert.match(js,/function inboxFilterItems\(items,filter\)\{return filter==='all'\?items:items\.filter\(item=>inboxOpen\(item\)===\(filter!=='done'\)\);\}/);
+  assert.match(js,/data-pack-quick-shipment="\$\{esc\(model\.notificationId\)\}"/);
+  assert.match(js,/if\(event\.target&&event\.target\.closest&&event\.target\.closest\('\[data-pack-quick-shipment\]'\)\)return;/,'der Capture-Handler würde sonst das Detail statt der Sendung öffnen');
+  assert.doesNotMatch(js,/<button type="button" class="pack-internal-task\$\{/,'keine verschachtelten Buttons in der Karte');
+  const win={};const ctx=vm.createContext({window:win,globalThis:win});
+  vm.runInContext(read('assets/i18n/pack-notification.js'),ctx);
+  for(const lang of ['de','en','pl','es','fr','it'])for(const key of ['filterOpen','filterDone','filterAll','filterEmpty','withDeliveryNote','withoutDeliveryNote','view'])assert.ok(win.ExportHUBPackI18n.packs[lang]['pack.internal.'+key],lang+': '+key);
+});
+
+test('Sendung aus Packmeldung: Verpackung wird auf die Sendungs-Auswahl abgebildet, Zeilen werden nach dem Kunden-Lookup erneut gesetzt',()=>{
+  const root={addEventListener(){}};
+  vm.runInContext(read('assets/pack-notification-shipment.js'),vm.createContext({window:root,globalThis:root,console,Date}));
+  const select={options:[{value:''},{value:'Euro Palette'},{value:'Einweg Palette'}]};
+  assert.equal(root.ExportHUBPackShipment.matchPackaging(select,'Europalette'),'Euro Palette');
+  assert.equal(root.ExportHUBPackShipment.matchPackaging(select,'Einwegpalette'),'Einweg Palette');
+  assert.equal(root.ExportHUBPackShipment.matchPackaging(select,'Karton'),'Karton');
+  const js=read('assets/pack-notification-shipment.js');
+  assert.match(js,/if\(settleAttempt===0\)setTimeout\(\(\)=>keepRows\(prefill,0\),200\);/);
+  assert.match(js,/fill\('\[id\^="rc408Shipment_deliveryNotes"\]',prefill\.deliveryNoteReference\)/);
+  assert.match(js,/fill\('\[id\^="rc408Shipment_comments"\]',prefill\.note\)/);
+});
