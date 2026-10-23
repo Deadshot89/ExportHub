@@ -1,0 +1,34 @@
+name: RC1636 TESTSERVICE Cosmos Chunk Codec
+
+on:
+  pull_request:
+    paths:
+      - 'api/shared/testservice-state-chunks.js'
+      - 'test/rc1636-testservice-cosmos-state-chunks.test.mjs'
+      - '.github/workflows/rc1636-testservice-cosmos-chunks.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'api/shared/testservice-state-chunks.js'
+      - 'test/rc1636-testservice-cosmos-state-chunks.test.mjs'
+      - '.github/workflows/rc1636-testservice-cosmos-chunks.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: Offline lossless codec test; no Azure or user data
+        run: |
+          node --check api/shared/testservice-state-chunks.js
+          node --test test/rc1636-testservice-cosmos-state-chunks.test.mjs
