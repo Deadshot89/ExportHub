@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import fs from 'node:fs';
+import {randomBytes} from 'node:crypto';
 const require=createRequire(import.meta.url);
 const {publishTestserviceState,readPublishedTestserviceState,MANIFEST_ID}
  =require('../api/shared/testservice-cosmos-publication.js');
@@ -80,10 +81,13 @@ test('RC1641: failure during staged chunk creation preserves old manifest and pr
  const db=fakeCosmos();
  await publishTestserviceState(db.store,state(),{environment:'testservice',expectedManifestEtag:null});
  const previous=db.read(MANIFEST_ID,'testservice');
- db.failAfter(1); // this provider begins to reject new chunks; no manifest switching
- const larger={...state(2),state:{...state(2).state,randomish:'abcdef'.repeat(100000)}};
+ const priorCreates=db.events.filter(x=>x.startsWith('create:')).length;
+ db.failAfter(priorCreates+1); // one new chunk succeeds, next chunk is rejected
+ const larger={...state(2),state:{...state(2).state,
+  randomish:randomBytes(1_050_000).toString('base64')}};
  await assert.rejects(()=>publishTestserviceState(db.store,larger,
   {environment:'testservice',expectedManifestEtag:previous.etag}),e=>e.code==='TEST_COSMOS_CHUNK_CREATE_FAILED');
+ assert.equal(db.events.filter(x=>x.startsWith('create:')).length,priorCreates+1);
  assert.equal(db.read(MANIFEST_ID,'testservice').etag,previous.etag);
  assert.deepEqual((await readPublishedTestserviceState(db.store,{environment:'testservice'})).state,state());
 });
