@@ -345,7 +345,7 @@ function saveForm(form){
   }
   applyForm(task,v,isNew);
   tv.mode='show';tv.id=taskId(task);tv.error='';tv.saved=isNew?t('saved'):t('updated');
-  persist(isNew?'RC1570 Aufgabe angelegt':'RC1570 Aufgabe gespeichert',tv.id);
+  persist(isNew?'RC1570 task created':'RC1570 task saved',tv.id);
   lastHtml='';renderTaskView(true);
   var shown=w.document.getElementById(TV_ID);if(shown&&shown.scrollIntoView)try{shown.scrollIntoView({block:'start'})}catch(_){}
   return true
@@ -438,7 +438,7 @@ function bindTaskView(panel){
   panel.addEventListener('click',function(e){
     var el=e.target&&e.target.closest?e.target:null;if(!el)return;var b;
     if((b=el.closest('[data-rc1570-tv-open]'))){e.preventDefault();tv.saved='';openTaskView('show',b.getAttribute('data-rc1570-tv-open'));return}
-    if((b=el.closest('[data-rc1570-tv-status]'))){e.preventDefault();var task=findTask(tv.id);if(!task||!canWrite())return;setStatus(task,b.getAttribute('data-rc1570-tv-status'));task.updatedAt=new Date().toISOString();tv.saved=t('updated');persist('RC1570 Aufgabenstatus geändert',tv.id);lastView='';renderTaskView(true);return}
+    if((b=el.closest('[data-rc1570-tv-status]'))){e.preventDefault();var task=findTask(tv.id);if(!task||!canWrite())return;setStatus(task,b.getAttribute('data-rc1570-tv-status'));task.updatedAt=new Date().toISOString();tv.saved=t('updated');persist('RC1570 task status changed',tv.id);lastView='';renderTaskView(true);return}
     if((b=el.closest('[data-rc1570-tv]'))){
       e.preventDefault();var a=b.getAttribute('data-rc1570-tv');tv.saved='';tv.error='';
       if(a==='new')openForm();
