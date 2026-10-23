@@ -317,6 +317,16 @@ function patchRc1626AbdUploadBoundedSave(html,file){
   return html;
 }
 
+function patchRc1624AbdUploadCrossCollection(html,file){
+  // RC1624: document status must stay consistent across all persisted copies.
+  // RC1626 already owns the bounded, user-initiated Azure flush. Do not
+  // replace that runtime or widen the POD/background save policy here.
+  const original='function shipmentDocumentCopies(sh){var out=[];function add(x){if(!x||out.indexOf(x)>=0||!sameShipmentRecord(x,sh))return;out.push(x)}A(S().shipments).forEach(add);add(S().shipment);add(sh);return out}';
+  const corrected='function shipmentDocumentCopies(sh){var out=[],id=shipmentId(sh),ref=L(shipmentRef(sh));function add(x){if(!x||out.indexOf(x)>=0)return;var xi=shipmentId(x),xr=L(shipmentRef(x));if(id&&xi&&xi!==id)return;if(ref&&xr&&xr!==ref)return;if(!((id&&xi&&xi===id)||(ref&&xr&&xr===ref)))return;out.push(x)}A(S().shipments).forEach(add);A(S().savedShipments).forEach(add);A(S().sharedShipments).forEach(add);add(S().shipment);add(sh);return out}';
+  if(html.split(original).length!==2){if(file==='demo.html'&&!html.includes('function shipmentDocumentCopies(sh){'))return html;throw new Error(file+': RC1624 shipmentDocumentCopies anchor not unique');}
+  return html.replace(original,corrected);
+}
+
 function patchRc1602OfficialPod(html,file){
   html=injectImmediateRuntimeAfterHead(html,RC1602_OFFICIAL_POD_SCRIPT_TAG,'exporthub-rc1602-official-pod');
   html=html.replace(/rc1602-official-pod-server-download\.js\?v=(?:1602|1616)/g,'rc1602-official-pod-server-download.js?v=1623');
@@ -1307,6 +1317,7 @@ function patchHtml(file){
   html=patchRc1617AbdUploadFailureFeedback(html,file);
   html=patchRc1619AbdFailClosedRollback(html,file);
   html=patchRc1626AbdUploadBoundedSave(html,file);
+  html=patchRc1624AbdUploadCrossCollection(html,file);
   html=patchRc1296BrowserBranding(html,file);
   html=patchRc1602OfficialPod(html,file);
   html=html.replace(/ExportHUB RC1048 environment=/g,`ExportHUB ${VERSION} environment=`);
