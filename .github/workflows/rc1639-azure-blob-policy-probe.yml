@@ -1,0 +1,39 @@
+name: RC1639 Azure Blob Soft Delete Policy Probe
+
+on:
+  pull_request:
+    paths:
+      - api/shared/blob-rest.js
+      - api/e2e-test-fixture/index.js
+      - test/rc1639-azure-blob-softdelete-probe.test.mjs
+      - .github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml
+      - .github/workflows/rc1639-azure-blob-policy-probe.yml
+  push:
+    branches: [main]
+    paths:
+      - api/shared/blob-rest.js
+      - api/e2e-test-fixture/index.js
+      - test/rc1639-azure-blob-softdelete-probe.test.mjs
+      - .github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml
+      - .github/workflows/rc1639-azure-blob-policy-probe.yml
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: Read-only account retention probe contract
+        run: |
+          node --check api/shared/blob-rest.js
+          node --check api/e2e-test-fixture/index.js
+          node --test --test-concurrency=1 test/rc1639-azure-blob-softdelete-probe.test.mjs test/rc1627-testservice-team-metadata-inventory.test.mjs
