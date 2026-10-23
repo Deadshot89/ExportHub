@@ -109,7 +109,7 @@ function bearer(req,payload){
 }
 async function clients(req,payload){
  const environment=requestedEnvironment(req,payload);
- const isolated=isolationConfig();
+ const isolated=environment==='testservice'?isolationConfig():{enabled:false};
  const isTest=environment==='testservice'&&isolated.enabled;
  const cs=isTest?isolated.connectionString:connectionString();
  if(!cs)throw error('STORAGE_NOT_CONFIGURED','api.state.storageMissing',503);
@@ -232,6 +232,7 @@ async function readTeamFast(blob){
 async function ensureEnvironmentTeam(c){
  if(!c||c.environment!=='testservice')return false;
  try{await c.team.getProperties();return false}catch(e){const status=Number(e&&e.statusCode||e&&e.status||0),code=lower(e&&e.code);if(status!==404&&code!=='blobnotfound')throw e}
+ if(!c.productionTeam)throw error('TEST_STATE_IMPORT_REQUIRED','Isolierter TESTSERVICE benötigt einen verifizierten Datenimport vor der Aktivierung.',503);
  const prod=await readJson(c.productionTeam,emptyTeam(),false),base=prod.value||emptyTeam();
  if(!usableTeamDocument(base))throw error('TEST_STATE_SEED_FAILED','api.state.testSeedFailed',503);
  const next=clone(base);next.schemaVersion=Math.max(3,Number(next.schemaVersion||3));next.revision=1;next.updatedAt=now();next.updatedBy='Testservice Initialisierung';next.updatedByUserId=null;next.updatedByDevice=null;next.clientVersion='RC923-testservice-seed';next.dataEnvironment='testservice';next.state=isObj(next.state)?clone(next.state):{};next.state._exporthubEnvironment={name:'testservice',isolated:true,seededAt:next.updatedAt,sourceBlob:TEAM_BLOB_BASE};
