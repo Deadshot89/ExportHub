@@ -81,6 +81,7 @@ const RC1630_SELF_CORRECT_I18N_TAG='<script id="exporthub-rc1630-self-correct-i1
 const RC1630_SELF_CORRECT_SCRIPT_TAG='<script id="exporthub-rc1630-self-correct-script" defer src="/assets/rc1630-self-correct.js?v=1630"></script>';
 // Web Push: phone notifications without website login (assets/web-push, api/web-push)
 const WEB_PUSH_MANIFEST_TAG='<link id="exporthub-web-push-manifest" rel="manifest" href="/assets/web-push/manifest.json">';
+const WEB_PUSH_I18N_TAG='<script id="exporthub-web-push-i18n" defer src="/assets/i18n/web-push.js?v=1701"></script>';
 const WEB_PUSH_SCRIPT_TAG='<script id="exporthub-web-push-client" defer src="/assets/web-push/client.js?v=1700"></script>';
 const RC1577_POD_AUDIT_I18N_TAG='<script id="exporthub-rc1577-pod-audit-i18n" defer src="/assets/i18n/rc1577-pod-quality-audit.js?v=1577"></script>';
 const RC1577_POD_AUDIT_SCRIPT_TAG='<script id="exporthub-rc1577-pod-audit-script" defer src="/assets/rc1577-pod-quality-audit.js?v=1596"></script>';
@@ -463,6 +464,7 @@ function patchDemoTestPortalIsolation(html,file){
 function patchWebPush(html,file){
   if(file==='demo.html')return html;
   html=injectDeferredRuntimeInHead(html,WEB_PUSH_MANIFEST_TAG,'exporthub-web-push-manifest');
+  html=injectDeferredRuntimeInHead(html,WEB_PUSH_I18N_TAG,'exporthub-web-push-i18n');
   html=injectDeferredRuntimeInHead(html,WEB_PUSH_SCRIPT_TAG,'exporthub-web-push-client');
   if(!html.includes('/assets/web-push/manifest.json')||!html.includes('/assets/web-push/client.js?v=1700'))throw new Error(file+': Web Push fehlt');
   return html;
@@ -1476,6 +1478,7 @@ for(const rel of [
   'assets/rc1460-shipment-view-files-avis-preview.js',
   'assets/i18n/av-upload.js',
   'assets/av-upload.js',
+  'assets/i18n/web-push.js',
   'assets/web-push/client.js',
   'assets/web-push/sw.js',
   'assets/web-push/inbox.html',
