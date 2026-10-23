@@ -111,7 +111,10 @@ async function completePickup(context,token,colli,pin,index){
   try{
     await pickup.goto('/pickup.html?token='+encodeURIComponent(token)+'&environment=testservice',{waitUntil:'domcontentloaded'});
     await expect(pickup.locator('#form')).toBeVisible({timeout:25_000});
-    await expect(pickup.locator('#expectedColli')).toHaveText(String(colli),{timeout:20_000});
+    // Blind count: the page never shows the expected quantity, so wait until the colli input is ready.
+    await expect(pickup.locator('#status')).toContainText('Sendungsdaten geladen',{timeout:20_000});
+    await expect(pickup.locator('#colli')).toBeEnabled({timeout:20_000});
+    await pickup.locator('#modeComplete').check();
     await pickup.locator('#colli').fill(String(colli));
     await pickup.locator('#checkColli').click();
     await expect(pickup.locator('#driverStep')).toBeVisible({timeout:15_000});
