@@ -470,6 +470,24 @@ jobs:
                     console.log("RC1638 TESTSERVICE-Teamdatei "+JSON.stringify({status:"listed",records:t.records,
                       logicalBytes:t.logicalBytes,liveBytes:t.kinds.live.logicalBytes,historicalBytes,
                       kinds:t.kinds}));
+                    // RC1642: only Azure snapshot timestamps, not soft-delete
+                    // Last-Modified; no date strings or Blob paths in output.
+                    const ageKeys=["under1day","day1to7","older7days","unknown"];
+                    const age=t.snapshotAge;
+                    if(age&&ageKeys.every(k=>safe(age[k]?.records)&&safe(age[k]?.logicalBytes))&&
+                      ageKeys.reduce((n,k)=>n+age[k].records,0)===t.kinds.snapshot.records&&
+                      ageKeys.reduce((n,k)=>n+age[k].logicalBytes,0)===t.kinds.snapshot.logicalBytes&&
+                      t.deletedAgeVerifiable===false){
+                      console.log("RC1642 TESTSERVICE-Teamdatei-Snapshotalter "+JSON.stringify({
+                        status:"listed",snapshotAge:age,deletedAgeVerifiable:false,
+                        billingVerified:false,retentionChangeApproved:false
+                      }));
+                    }else{
+                      console.log("RC1642 TESTSERVICE-Teamdatei-Snapshotalter "+JSON.stringify({
+                        status:"unverified",snapshotAge:null,deletedAgeVerifiable:false,
+                        billingVerified:false,retentionChangeApproved:false
+                      }));
+                    }
                   }
                 }
                 if(process.env.GITHUB_STEP_SUMMARY){
