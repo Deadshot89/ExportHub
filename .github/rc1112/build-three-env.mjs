@@ -69,8 +69,11 @@ const RC1560_FULL_WIDTH_STYLE_TAG='<link id="exporthub-rc1560-full-width" rel="s
 const RC1579_MENU_STYLE_TAG='<link id="exporthub-rc1579-menu-style" rel="stylesheet" href="/assets/rc1579-menu-redesign.css?v=1579">';
 const RC1579_MENU_I18N_TAG='<script id="exporthub-rc1579-menu-i18n" defer src="/assets/i18n/rc1579-menu-redesign.js?v=1579"></script>';
 const RC1579_MENU_SCRIPT_TAG='<script id="exporthub-rc1579-menu-script" defer src="/assets/rc1579-menu-redesign.js?v=1630"></script>';
-const CUSTOMER_FOLDER_STYLE_TAG='<link id="exporthub-customer-folder-style" rel="stylesheet" href="/assets/customer-folder-redesign.css?v=1">';
-const CUSTOMER_FOLDER_SCRIPT_TAG='<script id="exporthub-customer-folder-script" defer src="/assets/customer-folder-redesign.js?v=1"></script>';
+const CUSTOMER_FOLDER_STYLE_TAG='<link id="exporthub-customer-folder-style" rel="stylesheet" href="/assets/customer-folder-redesign.css?v=2">';
+// Früher Haken direkt nach <head>: muss vor den Menü-Handlern (RC325, Window-Capture) liegen, damit die Rückfrage bei
+// ungespeicherten Änderungen im Kundenordner vor dem Seitenwechsel greift. Die Logik selbst liegt in customer-folder-redesign.js.
+const CUSTOMER_FOLDER_GUARD_TAG='<script id="exporthub-customer-folder-guard">window.__EXPORTHUB_CF_EARLY_GUARD__=true;window.addEventListener(\'click\',function(e){var g=window.ExportHUBCustomerFolder;if(g&&g.onLeaveClick)g.onLeaveClick(e)},true);window.addEventListener(\'keydown\',function(e){var g=window.ExportHUBCustomerFolder;if(g&&g.onKey)g.onKey(e)},true);</script>';
+const CUSTOMER_FOLDER_SCRIPT_TAG='<script id="exporthub-customer-folder-script" defer src="/assets/customer-folder-redesign.js?v=2"></script>';
 const RC1577_OVERVIEW_COMPACT_STYLE_TAG='<link id="exporthub-rc1577-overview-compact" rel="stylesheet" href="/assets/rc1577-shipment-overview-compact.css?v=1577">';
 const RC1558_OVERVIEW_STYLE_TAG='<link id="exporthub-rc1558-overview-style" rel="stylesheet" href="/assets/rc1558-dashboard-overview.css?v=1558">';
 const RC1558_OVERVIEW_I18N_TAG='<script id="exporthub-rc1558-overview-i18n" defer src="/assets/i18n/rc1558-dashboard-overview.js?v=1558"><\/script>';
@@ -191,7 +194,13 @@ function patchCustomerFolderRedesign(html,file){
   // after RC1579: fixed section order in every design, section navigation and sticky save bar; never saves on its own
   html=injectDeferredRuntimeInHead(html,CUSTOMER_FOLDER_STYLE_TAG,'exporthub-customer-folder-style');
   html=injectDeferredRuntimeInHead(html,CUSTOMER_FOLDER_SCRIPT_TAG,'exporthub-customer-folder-script');
-  if(!html.includes('customer-folder-redesign.css?v=1')||!html.includes('/assets/customer-folder-redesign.js?v=1'))throw new Error(file+': Kundenordner-Redesign fehlt');
+  if(!html.includes('id="exporthub-customer-folder-guard"')){
+    const headOpen=/<head\b[^>]*>/i.exec(html);
+    if(!headOpen)throw new Error(file+': <head> für Kundenordner-Rückfrage fehlt');
+    const at=headOpen.index+headOpen[0].length;
+    html=html.slice(0,at)+'\n'+CUSTOMER_FOLDER_GUARD_TAG+html.slice(at);
+  }
+  if(!html.includes('customer-folder-redesign.css?v=2')||!html.includes('/assets/customer-folder-redesign.js?v=2'))throw new Error(file+': Kundenordner-Redesign fehlt');
   return html;
 }
 
