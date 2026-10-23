@@ -813,6 +813,31 @@ function mergeShipmentProtected(serverItem, incomingItem) {
     out.processStatus = clone(chosenStatus);
   }
 
+  // P0: a stale browser must not re-promote a previously quarantined
+  // brand-new POD to completed while no authentic pickup was recorded.
+  // Normal readiness updates remain allowed; legacy records are not touched.
+  if (serverItem.podStatusCorrection === 'FRESH_POD_WITHOUT_PICKUP_EVIDENCE' &&
+      !hasPickupConfirmationEvidence(serverItem) && !hasPickupConfirmationEvidence(incomingItem)) {
+    out.podStatusCorrection = 'FRESH_POD_WITHOUT_PICKUP_EVIDENCE';
+    if (serverItem.podReviewRequired === true) {
+      out.podReviewRequired = true;
+      out.podReviewReason = 'POD_WITHOUT_PICKUP_EVIDENCE';
+    }
+    const resultStatus = lower(out.status || out.processStatus);
+    if (resultStatus === 'pod vorhanden' || resultStatus === 'pod available') {
+      const previousStatus = lower(serverItem.status || serverItem.processStatus);
+      const safe = (previousStatus && previousStatus !== 'pod vorhanden' && previousStatus !== 'pod available')
+        ? (serverItem.status || serverItem.processStatus) : 'Erstellt';
+      out.status = safe;
+      out.processStatus = safe;
+      out.shipmentStatus = safe;
+      out.podAvailable = false;
+      out.podConfirmed = false;
+      out.hasPod = false;
+      out.podServerVerified = false;
+    }
+  }
+
   // RC1338: Once multi-truck pickup is operational, the aggregate shipment
   // status must be derived from the protected sub-shipment state. A newer
   // stale browser snapshot may not roll "Teilweise abgeholt" back to "Erstellt".
