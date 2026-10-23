@@ -63,7 +63,7 @@ test('RC1631 never mistakes missing container, account or unreadable blob sizes 
  assert.equal(r.totalLogicalBytes,null);
  assert.equal(r.totalRecords,null);
  const abd=r.scopes.find(s=>s.id==='abd-quarantine');
- assert.deepEqual(abd,{id:'abd-quarantine',status:'unverified',records:null,logicalBytes:null,kinds:null});
+ assert.deepEqual(abd,{id:'abd-quarantine',status:'unverified',records:null,logicalBytes:null,kinds:null,reason:'other'});
  assert.doesNotMatch(JSON.stringify(r),/secret-blob-name-token-sas-this-is-sensitive/);
  const bad=fixture({'exporthub-data|testservice/':[own('testservice/unreadable',undefined)]});
  const b=await collectTestserviceMultiScopeInventory({services:bad.services,environment:{}});
@@ -134,4 +134,44 @@ test('RC1635: cost-diagnostic logs emit fixed category and scope aggregates, nev
  assert.doesNotMatch(t+m,/JSON\.stringify\(v\)|echo.*\$scopes_payload|JSON\.stringify\(scopes_payload\)/);
  assert.match(wf,/const ids=\["team","document-files","container-photos","pickup","pod","abd-quarantine","pod-backup"\]/);
  assert.match(wf,/names\.reduce\(\(a,id\)=>a\+v\.areas\[id\]\.logicalBytes,0\)!==v\.logicalBytes/);
+});
+
+test('RC1640: only enumerated non-sensitive failure reasons, no Azure error details',async()=>{
+ const expected=[
+  [Object.assign(new Error('signed-sas customer name'),{statusCode:404,code:'ContainerNotFound'}),'not-found'],
+  [Object.assign(new Error('https://account.blob.core.windows.net/?sig=SECRET'),{statusCode:403,code:'AuthorizationFailure'}),'access-denied'],
+  [Object.assign(new Error('private URL'),{statusCode:429}),'transport-error'],
+  [Object.assign(new Error('unrecognized sensitive path'),{statusCode:400,code:'SUPER_PRIVATE_CUSTOMER_NAME'}),'other']
+ ];
+ for(const [e,reason] of expected){
+  let clientCount=0;
+  const services={primary:{getContainerClient(){
+   const thisClient=++clientCount;
+   return {async *listBlobsFlat(){if(thisClient===1)throw e;}};
+  }}};
+  const out=await collectTestserviceMultiScopeInventory({services,environment:{}});
+  assert.equal(out.complete,false);
+  assert.equal(out.scopes[0].reason,reason);
+  assert.equal(out.scopes[0].records,null);
+  assert.equal(out.scopes[0].logicalBytes,null);
+  assert.equal(out.scopes[0].kinds,null);
+  assert.equal(out.scopes[1].reason,null);
+  assert.doesNotMatch(JSON.stringify(out),/signed-sas|private URL|sig=|SECRET|SUPER_PRIVATE_CUSTOMER_NAME/);
+ }
+});
+test('RC1640: lack of client, unsafe config and expired budget remain explicitly unverified',async()=>{
+ const inactive=await collectTestserviceMultiScopeInventory({
+  services:{primary:{getContainerClient(){return {listBlobsFlat:null}}}},environment:{}
+ });
+ assert.equal(inactive.scopes[0].reason,'client-unavailable');
+ const invalid=await collectTestserviceMultiScopeInventory({
+  services:{primary:fixture().services.primary},environment:{EXPORTHUB_STORAGE_CONTAINER:'example/production'}
+ });
+ assert.equal(invalid.scopes[0].reason,'configuration');
+ const budget=await collectTestserviceMultiScopeInventory({
+  services:fixture().services,environment:{},clock:()=>99999,maxElapsedMs:-1
+ });
+ assert.equal(budget.scopes[0].reason,'time-budget');
+ const good=await collectTestserviceMultiScopeInventory({services:fixture().services,environment:{}});
+ assert.ok(good.scopes.every(x=>x.status==='listed'&&x.reason===null));
 });
