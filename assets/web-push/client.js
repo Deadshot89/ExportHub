@@ -14,6 +14,9 @@
   var info = { busy: false, message: '', error: '', subscription: null, checked: false };
 
   function q(v) { return String(v == null ? '' : v).trim(); }
+  function ui() { return w.ExportHUBWebPushI18n || null; }
+  function tt(k,vars) { var lang=ui(); return lang&&lang.t?lang.t(k,vars):k; }
+  function uiLang() { var lang=ui(); return lang&&lang.language?lang.language():'de'; }
   function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function isDemo() { try { return /demo/i.test(String(w.location.pathname || '')); } catch (_) { return false; } }
   function environment() { try { return /-testservice\./i.test(String(w.location.hostname || '')) ? 'testservice' : 'production'; } catch (_) { return 'production'; } }
@@ -68,15 +71,15 @@
   }
 
   function enable() {
-    if (!supported()) return Promise.reject(new Error(isIos() && !standalone() ? 'Auf dem iPhone zuerst über Teilen → „Zum Home-Bildschirm“ hinzufügen und ExportHUB von dort öffnen.' : 'Dieser Browser unterstützt keine Push-Benachrichtigungen.'));
-    if (!sessionToken()) return Promise.reject(new Error('Bitte zuerst bei ExportHUB anmelden.'));
+    if (!supported()) return Promise.reject(new Error(isIos() && !standalone() ? tt('unsupportedIos') : tt('unsupported')));
+    if (!sessionToken()) return Promise.reject(new Error(tt('needLogin')));
     return Notification.requestPermission().then(function (p) {
-      if (p !== 'granted') throw new Error(p === 'denied' ? 'Benachrichtigungen sind im Browser blockiert. Bitte in den Website-Einstellungen erlauben.' : 'Benachrichtigungen wurden nicht erlaubt.');
+      if (p !== 'granted') throw new Error(p === 'denied' ? tt('permissionDenied') : tt('permissionNotGranted'));
       return Promise.all([readyRegistration(), w.fetch(API, { method: 'GET', cache: 'no-store', credentials: 'same-origin', headers: { 'x-exporthub-environment': environment() } }).then(function (r) { return r.json(); })]);
     }).then(function (res) {
       var reg = res[0], cfg = res[1] || {};
-      if (!cfg.publicKey) throw new Error(q(cfg.message) || 'Push-Dienst ist nicht verfügbar.');
-      if (cfg.enabled === false) throw new Error('Handy-Benachrichtigungen sind serverseitig abgeschaltet.');
+      if (!cfg.publicKey) throw new Error(q(cfg.message) || tt('pushUnavailable'));
+      if (cfg.enabled === false) throw new Error(tt('pushDisabled'));
       var key = keyBytes(cfg.publicKey);
       return reg.pushManager.getSubscription().then(function (sub) {
         if (!sub) return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
@@ -85,7 +88,7 @@
         return sub.unsubscribe().then(function () { return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key }); });
       });
     }).then(function (sub) {
-      return call({ action: 'subscribe', subscription: sub.toJSON(), deviceLabel: deviceLabel() }, true).then(function (r) { info.subscription = Object.assign({ endpoint: sub.endpoint }, r.subscription); try { w.localStorage.setItem('exporthub.webpush.user', currentUserId()); } catch (_) {} return info.subscription; });
+      return call({ action: 'subscribe', subscription: sub.toJSON(), deviceLabel: deviceLabel(), language: uiLang() }, true).then(function (r) { info.subscription = Object.assign({ endpoint: sub.endpoint }, r.subscription); try { w.localStorage.setItem('exporthub.webpush.user', currentUserId()); } catch (_) {} return info.subscription; });
     });
   }
   function disable() {
@@ -95,11 +98,11 @@
     });
   }
   function test() {
-    return existingSubscription().then(function (sub) { if (!sub) throw new Error('Dieses Gerät ist noch nicht aktiviert.'); return call({ action: 'test', endpoint: sub.endpoint }, true); });
+    return existingSubscription().then(function (sub) { if (!sub) throw new Error(tt('notSubscribed')); return call({ action: 'test', endpoint: sub.endpoint }, true); });
   }
   function setCategory(key, value) {
     return existingSubscription().then(function (sub) {
-      if (!sub) throw new Error('Dieses Gerät ist noch nicht aktiviert.');
+      if (!sub) throw new Error(tt('notSubscribed'));
       var categories = {}; categories[key] = !!value;
       return call({ action: 'update', endpoint: sub.endpoint, categories: categories }, false).then(function (r) { info.subscription = Object.assign({ endpoint: sub.endpoint }, r.subscription); });
     });
@@ -110,28 +113,28 @@
     if (!uid || !sessionToken() || uid === last || permission() !== 'granted') return;
     existingSubscription().then(function (sub) {
       if (!sub) return;
-      return call({ action: 'subscribe', subscription: sub.toJSON(), deviceLabel: deviceLabel() }, true).then(function (r) { info.subscription = Object.assign({ endpoint: sub.endpoint }, r.subscription); try { w.localStorage.setItem('exporthub.webpush.user', uid); } catch (_) {} render(); });
+      return call({ action: 'subscribe', subscription: sub.toJSON(), deviceLabel: deviceLabel(), language: uiLang() }, true).then(function (r) { info.subscription = Object.assign({ endpoint: sub.endpoint }, r.subscription); try { w.localStorage.setItem('exporthub.webpush.user', uid); } catch (_) {} render(); });
     }).catch(function () {});
   }
 
   function statusText() {
-    if (isDemo()) return 'In der Demo nicht verfügbar';
-    if (!supported()) return isIos() && !standalone() ? 'Erst zum Home-Bildschirm hinzufügen' : 'Browser unterstützt kein Push';
-    if (permission() === 'denied') return 'Im Browser blockiert';
-    if (!info.checked) return 'Wird geprüft …';
-    return info.subscription ? 'Aktiv auf diesem Gerät' : 'Auf diesem Gerät noch nicht aktiv';
+    if(isDemo())return tt('demo');
+    if(!supported())return isIos()&&!standalone()?tt('installFirst'):tt('browserNoPush');
+    if(permission()==='denied')return tt('browserBlocked');
+    if(!info.checked)return tt('checking');
+    return info.subscription?tt('activeDevice'):tt('inactiveDevice');
   }
   function cardHtml() {
-    var s = info.subscription, cats = s && s.categories || {}, ok = supported() && permission() !== 'denied';
-    var hint = '';
-    if (isIos() && !standalone()) hint = '<p class="eh-webpush-hint">iPhone/iPad: In Safari auf <b>Teilen</b> → <b>„Zum Home-Bildschirm“</b> tippen, ExportHUB dann über das neue Symbol öffnen und hier aktivieren (ab iOS 16.4).</p>';
-    else if (permission() === 'denied') hint = '<p class="eh-webpush-hint">Benachrichtigungen sind für diese Seite blockiert. Bitte in den Website-Einstellungen des Browsers erlauben und die Seite neu laden.</p>';
-    var buttons = s
-      ? '<button type="button" class="btn" data-eh-webpush="test"' + (info.busy ? ' disabled' : '') + '>Testnachricht senden</button><button type="button" class="ghost" data-eh-webpush="disable"' + (info.busy ? ' disabled' : '') + '>Auf diesem Gerät deaktivieren</button>'
-      : '<button type="button" class="btn" data-eh-webpush="enable"' + (ok && !info.busy ? '' : ' disabled') + '>Auf diesem Gerät aktivieren</button>';
-    var toggles = s ? '<div class="eh-webpush-toggles"><label><input type="checkbox" data-eh-webpush-category="tasks"' + (cats.tasks !== false ? ' checked' : '') + '> Aufgaben-Erinnerungen</label>' + (s.packAllowed ? '<label><input type="checkbox" data-eh-webpush-category="pack"' + (cats.pack !== false ? ' checked' : '') + '> Neue Packmeldungen sofort</label>' : '') + '</div>' : '';
-    var note = info.error ? '<p class="eh-webpush-error" role="alert">' + esc(info.error) + '</p>' : info.message ? '<p class="eh-webpush-ok" role="status">' + esc(info.message) + '</p>' : '';
-    return '<section class="card" id="' + CARD_ID + '"><div class="index236-section-head"><div><h3>Handy-Benachrichtigungen</h3><p>Erinnerungen an deine Aufgaben und neue Packmeldungen kommen direkt aufs Handy, auch wenn ExportHUB geschlossen ist und du nicht eingeloggt bist. Einmal pro Gerät aktivieren.</p></div><strong class="eh-webpush-status' + (s ? ' is-on' : '') + '">' + esc(statusText()) + '</strong></div>' + hint + toggles + '<div class="actions">' + buttons + '<a class="soft" href="' + INBOX + '" target="_blank" rel="noopener">Empfangene Benachrichtigungen</a></div>' + note + '</section>';
+    var sub=info.subscription,cats=sub&&sub.categories||{},ok=supported()&&permission()!=='denied';
+    var hint='';
+    if(isIos()&&!standalone())hint='<p class="eh-webpush-hint">'+esc(tt('iosHint'))+'</p>';
+    else if(permission()==='denied')hint='<p class="eh-webpush-hint">'+esc(tt('permissionHint'))+'</p>';
+    var buttons=sub
+      ? '<button type="button" class="btn" data-eh-webpush="test"'+(info.busy?' disabled':'')+'>'+esc(tt('testButton'))+'</button><button type="button" class="ghost" data-eh-webpush="disable"'+(info.busy?' disabled':'')+'>'+esc(tt('disableButton'))+'</button>'
+      : '<button type="button" class="btn" data-eh-webpush="enable"'+(ok&&!info.busy?'':' disabled')+'>'+esc(tt('enableButton'))+'</button>';
+    var toggles=sub?'<div class="eh-webpush-toggles"><label><input type="checkbox" data-eh-webpush-category="tasks"'+(cats.tasks!==false?' checked':'')+'> '+esc(tt('tasksToggle'))+'</label>'+(sub.packAllowed?'<label><input type="checkbox" data-eh-webpush-category="pack"'+(cats.pack!==false?' checked':'')+'> '+esc(tt('packToggle'))+'</label>':'')+'</div>':'';
+    var note=info.error?'<p class="eh-webpush-error" role="alert">'+esc(info.error)+'</p>':info.message?'<p class="eh-webpush-ok" role="status">'+esc(info.message)+'</p>':'';
+    return '<section class="card" id="'+CARD_ID+'"><div class="index236-section-head"><div><h3>'+esc(tt('cardTitle'))+'</h3><p>'+esc(tt('cardIntro'))+'</p></div><strong class="eh-webpush-status'+(sub?' is-on':'')+'">'+esc(statusText())+'</strong></div>'+hint+toggles+'<div class="actions">'+buttons+'<a class="soft" href="'+INBOX+'" target="_blank" rel="noopener">'+esc(tt('openInbox'))+'</a></div>'+note+'</section>';
   }
   function ensureStyle() {
     if (d.getElementById('ehWebPushStyle')) return;
@@ -152,7 +155,7 @@
   }
   function run(task, success) {
     info.busy = true; info.error = ''; info.message = ''; render();
-    return task().then(function () { info.message = success || ''; }).catch(function (e) { info.error = q(e && e.message) || 'Aktion fehlgeschlagen.'; }).then(function () { info.busy = false; render(); });
+    return task().then(function () { info.message = success || ''; }).catch(function (e) { info.error = q(e && e.message) || tt('genericFailure'); }).then(function () { info.busy = false; render(); });
   }
 
   // Window capture runs before the notification center's document capture handler.
@@ -162,14 +165,14 @@
     var action = el.getAttribute('data-eh-webpush') || (supported() ? 'enable' : '');
     if (!action) return;
     e.preventDefault(); e.stopPropagation();
-    if (action === 'enable') run(enable, 'Aktiviert. Erinnerungen kommen jetzt auch ohne Login aufs Gerät.');
-    else if (action === 'disable') run(disable, 'Auf diesem Gerät deaktiviert.');
-    else if (action === 'test') run(test, 'Testnachricht gesendet. Sie sollte in wenigen Sekunden erscheinen.');
+    if (action === 'enable') run(enable, tt('enabledSuccess'));
+    else if (action === 'disable') run(disable, tt('disabledSuccess'));
+    else if (action === 'test') run(test, tt('testSuccess'));
   }, true);
   w.addEventListener('change', function (e) {
     var el = e.target && e.target.closest && e.target.closest('[data-eh-webpush-category]');
     if (!el) return;
-    run(function () { return setCategory(el.getAttribute('data-eh-webpush-category'), el.checked); }, 'Gespeichert.');
+    run(function () { return setCategory(el.getAttribute('data-eh-webpush-category'), el.checked); }, tt('savedSuccess'));
   }, true);
 
   function watchContent() {
@@ -179,6 +182,14 @@
     new MutationObserver(function () { if (d.getElementById('index236NotificationCenter') && !d.getElementById(CARD_ID)) render(); }).observe(host, { childList: true });
   }
   function boot() { watchContent(); render(); rebindIfUserChanged(); }
+  function syncPushLanguage(){
+    if(!sessionToken()||permission()!=='granted')return;
+    existingSubscription().then(function(sub){if(!sub)return null;return call({action:'subscribe',subscription:sub.toJSON(),deviceLabel:deviceLabel(),language:uiLang()},true)})
+      .then(function(r){if(r&&r.subscription)info.subscription=Object.assign({},info.subscription||{},r.subscription)})
+      .catch(function(){});
+  }
+  w.addEventListener('exporthub:language-changed',function(){render();syncPushLanguage()});
+  w.addEventListener('exporthub:webpush-language-changed',function(){render();syncPushLanguage()});
   ['exporthub:ready', 'exporthub:viewchange', 'exporthub:sync'].forEach(function (name) { w.addEventListener(name, function () { setTimeout(boot, 0); }); });
   if (d.readyState === 'loading') d.addEventListener('DOMContentLoaded', boot, { once: true }); else boot();
 
