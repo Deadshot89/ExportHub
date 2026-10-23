@@ -43,7 +43,7 @@ test('RC1634: login, password reset, session revocation and admin actions use th
  const src=fs.readFileSync('api/exporthub-auth/index.js','utf8');
  assert.match(src,/function scopedAuth\(req\)/);
  assert.match(src,/auth\.loginStorageEnvironment\(req\)/);
- assert.match(src,/mutateTeam:mutator=>auth\.mutateTeamForEnvironment\(environment,mutator\)/);
+ assert.match(src,/auth\.mutateTeamForEnvironment\(environment,mutator\):auth\.mutateTeam\(mutator\)/);
  assert.match(src,/mutateAuth:mutator=>auth\.mutateAuth\(mutator,environment\)/);
  assert.match(src,/createSession:\(user,deviceId,mustChange\)=>auth\.createSession\(user,deviceId,mustChange,environment\)/);
  assert.match(src,/revokeUserSessions:\(userId,reason,except\)=>auth\.revokeUserSessions\(userId,reason,except,environment\)/);
