@@ -77,3 +77,16 @@ test('RC1579: Verpackungen-Knopf in #nav wird ins Admin-Menü einsortiert statt 
   // Menüknöpfe ohne data-view (nur data-index321-view) bekommen ebenfalls Reihenfolge und Icon
   assert.match(js,/:is\(\[data-view="'\+v\+'"\],\[data-index321-view="'\+v\+'"\]\)/);
 });
+
+test('RC1579: gesperrte Menüpunkte bleiben unsichtbar, auch Stellvertreter mit inline display',()=>{
+  // RC325 setzt hidden und aria-hidden; copyLook setzt display:flex inline und darf das nicht aushebeln
+  assert.match(js,/out\.push\(N\+'>\[hidden\],'\+N\+'>button\[aria-hidden="true"\]\{display:none!important\}'\)/);
+});
+
+test('RC1579: Benutzerwechsel wendet die Menürechte sofort neu an',()=>{
+  // ohne das bleibt nach der Anmeldung der Menüstand des vorherigen Benutzers (z. B. Administrator) stehen
+  assert.match(js,/function applyRights\(\)\{/);
+  assert.match(js,/ExportHUBRC325\.buildMenu\(\)/);
+  assert.match(js,/applyRights\(\);\n syncing=true;/);
+  assert.match(js,/setInterval\(function\(\)\{if\(userSig\(\)!==lastUserSig\)schedule\(\)\},1000\)/);
+});

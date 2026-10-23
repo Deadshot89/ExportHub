@@ -69,7 +69,7 @@ SECTION_OF.packagingmasterdata='admin';
 var DEFAULT_OPEN=['tasks','shipments'];
 var IT_VIEWS=['diagnostics','release','update'];
 
-var nav=null,observer=null,scheduled=false,syncing=false,open=null,lastActiveSection='',contentObserver=null;
+var nav=null,observer=null,scheduled=false,syncing=false,open=null,lastActiveSection='',contentObserver=null,lastUserSig=null;
 
 function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
 function packs(){return w.ExportHUBMenu1579I18n&&w.ExportHUBMenu1579I18n.packs||{}}
@@ -99,6 +99,9 @@ function css(){
    }
   });
  });
+ // Rechte: ein gesperrter Menüpunkt (RC325 setzt hidden und aria-hidden) bleibt unsichtbar, auch wenn ein Design,
+ // ein Stellvertreter (copyLook setzt display inline) oder ein anderes Modul display überschreibt
+ out.push(N+'>[hidden],'+N+'>button[aria-hidden="true"]{display:none!important}');
  return out.join('\n');
 }
 // Verpackungen: eigener Menüknopf in #nav (RC1555) oder Stellvertreter, wenn der Knopf außerhalb liegt
@@ -194,12 +197,23 @@ function watchContent(content){
 }
 d.addEventListener('click',function(e){var b=e.target&&e.target.closest&&e.target.closest('[data-rc1579-it-tab]');if(!b)return;e.preventDefault();var v=b.getAttribute('data-rc1579-it-tab');if(v!==currentView())openIt(v)});
 
+// Benutzerwechsel (Anmeldung, Abmeldung, geänderte Rechte): Rechte im Menü sofort neu anwenden,
+// damit kein Menüstand eines vorherigen Benutzers (z. B. Administrator) stehen bleibt
+function currentUser(){try{var u=typeof w.__EXPORTHUB_GET_CURRENT_USER__==='function'&&w.__EXPORTHUB_GET_CURRENT_USER__();if(u)return u}catch(_){}var rt=w.ExportHUBClean&&w.ExportHUBClean.runtime;return rt&&rt.user||w.currentUser||null}
+function userSig(){var u=currentUser();if(!u)return '';try{return q(u.user||u.login||u.username||u.name)+'|'+q(u.role)+'|'+(u.globalAdmin===true)+'|'+JSON.stringify(u.permissions||[])+'|'+JSON.stringify(u.rights||{})}catch(_){return q(u.user||u.login||u.name)}}
+function applyRights(){
+ var sig=userSig();if(sig===lastUserSig)return;
+ var first=lastUserSig===null;lastUserSig=sig;if(first)return;
+ try{if(w.ExportHUBRC325&&typeof w.ExportHUBRC325.buildMenu==='function')w.ExportHUBRC325.buildMenu()}catch(_){}
+}
+
 function activeView(){var a=nav.querySelector(':scope>button.active[data-index321-view],:scope>button[aria-current="page"]');return a?viewOf(a):''}
 
 function sync(){
  scheduled=false;
  nav=d.getElementById('nav');if(!nav)return;
  if(nav.querySelectorAll(':scope>button').length<4)return;
+ applyRights();
  syncing=true;
  try{
   ensureStyle();watch();
@@ -251,6 +265,8 @@ d.addEventListener('keydown',function(e){var h=e.target&&e.target.closest&&e.tar
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:language-changed','exporthub:design-changed','resize'].forEach(function(n){w.addEventListener(n,schedule)});
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
 // Fallback, falls die Navigation erst spät aufgebaut wird
+// Benutzerwechsel ohne Menü-Ereignis erkennen
+setInterval(function(){if(userSig()!==lastUserSig)schedule()},1000);
 var tries=0,boot=setInterval(function(){tries++;if(nav&&nav.hasAttribute('data-rc1579-ready')||tries>40){clearInterval(boot);return}schedule()},250);
 
 w.ExportHUBMenu1579=Object.freeze({
