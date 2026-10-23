@@ -28,7 +28,7 @@ function integer(v){return Number.isSafeInteger(v)&&v>=0;}
 const SNAPSHOT_AGES=['under1day','day1to7','older7days','unknown'];
 function emptySnapshotAge(){return Object.fromEntries(SNAPSHOT_AGES.map(k=>[k,{records:0,logicalBytes:0}]));}
 function ageBucket(timestamp,at){
- if(typeof timestamp!=='string'||!/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?Z$/.test(timestamp))return 'unknown';
+ if(typeof timestamp!=='string'||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/.test(timestamp))return 'unknown';
  const value=Date.parse(timestamp);
  if(!Number.isFinite(value)||value>at)return 'unknown';
  const days=(at-value)/86400000;
