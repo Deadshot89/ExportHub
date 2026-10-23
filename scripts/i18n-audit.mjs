@@ -94,7 +94,7 @@ function keyAudit(packs){
   }
   return{baseKeyCount:base.length,issues}
 }
-const packs=loadPacks(),keys=keyAudit(packs),files=walk(ROOT),hardcoded=[],visibleKeys=[],apiDePath=path.join(ROOT,'api','shared','i18n','de.json'),apiDe=fs.existsSync(apiDePath)?JSON.parse(fs.readFileSync(apiDePath,'utf8')):{},featureGerman=loadFeatureGerman('assets/i18n/pack-notification.js','ExportHUBPackI18n'),registeredGerman=new Set([...Object.values(packs.de),...Object.values(apiDe),...featureGerman].filter(v=>typeof v==='string'&&v.trim()));
+const packs=loadPacks(),keys=keyAudit(packs),files=walk(ROOT),hardcoded=[],visibleKeys=[],apiDePath=path.join(ROOT,'api','shared','i18n','de.json'),apiDe=fs.existsSync(apiDePath)?JSON.parse(fs.readFileSync(apiDePath,'utf8')):{},featureGerman=loadFeatureGerman('assets/i18n/pack-notification.js','ExportHUBPackI18n'),webPushGerman=loadFeatureGerman('assets/i18n/web-push.js','ExportHUBWebPushI18n'),registeredGerman=new Set([...Object.values(packs.de),...Object.values(apiDe),...featureGerman,...webPushGerman].filter(v=>typeof v==='string'&&v.trim()));
 for(const file of files){
   const source=fs.readFileSync(file.abs,'utf8');
   hardcoded.push(...scanVisibleGerman(file,source,registeredGerman));

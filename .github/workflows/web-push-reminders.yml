@@ -1,0 +1,56 @@
+name: Web Push Aufgaben-Erinnerungen
+
+# Sends the TaskPlanner reminders (default 09:00, 13:00, 15:30 Europe/Berlin) as Web Push to
+# subscribed phones, without a website login. The API decides what is due (catch-up of the latest
+# passed slot, delivery ledger), so the hourly schedule covers summer and winter time and a delayed
+# GitHub run only sends later, never twice. Authentication: GitHub OIDC, no stored secret.
+
+on:
+  schedule:
+    - cron: '2 6-15 * * 1-5'
+    - cron: '32 13,14 * * 1-5'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: web-push-reminders
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    name: Fällige Erinnerungen senden
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Produktion und TESTSERVICE
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +x
+          oidc_token="$(
+            curl -fsSL \
+              -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+              "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=exporthub-web-push" \
+            | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s).value;if(!v)process.exit(2);process.stdout.write(v)})"
+          )"
+          failed=0
+          dispatch() {
+            local base="$1" env="$2" out status
+            out="$(mktemp)"
+            status="$(curl -sS -o "$out" -w '%{http_code}' --max-time 120 \
+              -H 'Content-Type: application/json' \
+              -H "x-exporthub-github-oidc: $oidc_token" \
+              -H "x-exporthub-environment: $env" \
+              --data "{\"action\":\"dispatch-reminders\",\"environment\":\"$env\"}" \
+              "$base/api/web-push" || true)"
+            echo "$env HTTP $status $(head -c 600 "$out")"
+            # main deploys to TESTSERVICE first; Production gets the API with the next manual release
+            if [ "$status" = "404" ]; then echo "::notice::$env hat die Web-Push-API noch nicht (noch nicht freigegeben)"; return 0; fi
+            if [ "$status" != "200" ]; then failed=1; fi
+          }
+          dispatch 'https://wonderful-forest-0f315e310.7.azurestaticapps.net' production
+          dispatch 'https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net' testservice
+          exit "$failed"

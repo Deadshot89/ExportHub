@@ -79,6 +79,10 @@ const RC1570_TASKS_I18N_TAG='<script id="exporthub-rc1570-tasks-i18n" defer src=
 const RC1570_TASKS_SCRIPT_TAG='<script id="exporthub-rc1570-tasks-script" defer src="/assets/rc1570-tasks-focus.js?v=1571"></script>';
 const RC1630_SELF_CORRECT_I18N_TAG='<script id="exporthub-rc1630-self-correct-i18n" defer src="/assets/i18n/rc1630-self-correct.js?v=1630"></script>';
 const RC1630_SELF_CORRECT_SCRIPT_TAG='<script id="exporthub-rc1630-self-correct-script" defer src="/assets/rc1630-self-correct.js?v=1630"></script>';
+// Web Push: phone notifications without website login (assets/web-push, api/web-push)
+const WEB_PUSH_MANIFEST_TAG='<link id="exporthub-web-push-manifest" rel="manifest" href="/assets/web-push/manifest.json">';
+const WEB_PUSH_I18N_TAG='<script id="exporthub-web-push-i18n" defer src="/assets/i18n/web-push.js?v=1701"></script>';
+const WEB_PUSH_SCRIPT_TAG='<script id="exporthub-web-push-client" defer src="/assets/web-push/client.js?v=1700"></script>';
 const RC1577_POD_AUDIT_I18N_TAG='<script id="exporthub-rc1577-pod-audit-i18n" defer src="/assets/i18n/rc1577-pod-quality-audit.js?v=1577"></script>';
 const RC1577_POD_AUDIT_SCRIPT_TAG='<script id="exporthub-rc1577-pod-audit-script" defer src="/assets/rc1577-pod-quality-audit.js?v=1596"></script>';
 const RC1596_POD_FOLDER_SCRIPT_TAG='<script id="exporthub-rc1596-pod-folder-reconnect" defer src="/assets/rc1596-pod-folder-reconnect.js?v=1596"></script>';
@@ -462,6 +466,17 @@ function patchDemoTestPortalIsolation(html,file){
   html=html.replace(originAnchor,"namedTest=/-testservice\\./i.test(h)&&window.__EXPORTHUB_DEMO_MODE__!==true;");
   html=html.replace(runtimeAnchor," if(window.__EXPORTHUB_DEMO_MODE__===true)return;\n if(!window.__EXPORTHUB_TEST_PORTAL__)return;");
   html=html.replace(routeAnchor,"function anchorTestRoute(){try{if(window.__EXPORTHUB_DEMO_MODE__===true||window.__EXPORTHUB_PICKUP_MODE__||!isTestPath())return;");
+  return html;
+}
+
+// Web Push (phone notifications without login): manifest for "Add to Home Screen" (required on iOS)
+// and the client that subscribes the device in "Benachrichtigungen". Not in the demo.
+function patchWebPush(html,file){
+  if(file==='demo.html')return html;
+  html=injectDeferredRuntimeInHead(html,WEB_PUSH_MANIFEST_TAG,'exporthub-web-push-manifest');
+  html=injectDeferredRuntimeInHead(html,WEB_PUSH_I18N_TAG,'exporthub-web-push-i18n');
+  html=injectDeferredRuntimeInHead(html,WEB_PUSH_SCRIPT_TAG,'exporthub-web-push-client');
+  if(!html.includes('/assets/web-push/manifest.json')||!html.includes('/assets/web-push/client.js?v=1700'))throw new Error(file+': Web Push fehlt');
   return html;
 }
 
@@ -1298,6 +1313,7 @@ function patchHtml(file){
   html=patchNotificationTaskDetails(html,file);
   html=patchWorkspaceTaskOwnership(html,file);
   html=patchNotificationTaskPlannerV2(html,file);
+  html=patchWebPush(html,file);
   html=patchTaskMasterSaveScope(html,file);
   html=patchTaskDetailTab(html,file);
   html=patchRc1259ContainerSearch(html,file);
@@ -1472,7 +1488,17 @@ for(const rel of [
   'assets/i18n/rc1630-self-correct.js',
   'assets/rc1460-shipment-view-files-avis-preview.js',
   'assets/i18n/av-upload.js',
-  'assets/av-upload.js'
+  'assets/av-upload.js',
+  'assets/i18n/web-push.js',
+  'assets/web-push/client.js',
+  'assets/web-push/sw.js',
+  'assets/web-push/inbox.html',
+  'assets/web-push/inbox.js',
+  'assets/web-push/manifest.json',
+  'assets/web-push/icon-192.png',
+  'assets/web-push/icon-512.png',
+  'assets/web-push/icon-maskable-512.png',
+  'assets/web-push/badge-96.png'
 ]){
   const src=path.join(ROOT,rel),dst=path.join(OUT,rel);
   if(!fs.existsSync(src))throw new Error('RC1124 Pflicht-Runtime fehlt: '+rel);
