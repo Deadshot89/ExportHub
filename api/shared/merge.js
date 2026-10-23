@@ -827,9 +827,16 @@ function mergeShipmentProtected(serverItem, incomingItem) {
        unprovenPromotion) &&
       !hasPickupConfirmationEvidence(serverItem) && !hasPickupConfirmationEvidence(incomingItem)) {
     out.podStatusCorrection = 'FRESH_POD_WITHOUT_PICKUP_EVIDENCE';
-    if (serverItem.podReviewRequired === true) {
+    if (serverItem.podReviewRequired === true || (unprovenPromotion &&
+        Array.isArray(out.podFiles) && out.podFiles.length > 0)) {
       out.podReviewRequired = true;
       out.podReviewReason = 'POD_WITHOUT_PICKUP_EVIDENCE';
+    }
+    if (unprovenPromotion) {
+      out.podAvailable = false;
+      out.podConfirmed = false;
+      out.hasPod = false;
+      out.podServerVerified = false;
     }
     const resultStatus = lower(out.status || out.processStatus);
     if (resultStatus === 'pod vorhanden' || resultStatus === 'pod available') {
