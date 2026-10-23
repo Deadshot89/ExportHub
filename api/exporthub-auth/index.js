@@ -88,9 +88,21 @@ function decodePasswordChangeTicket(ticket) {
   if (!payload || payload.purpose !== 'password-change' || Number(payload.exp || 0) <= Date.now()) throw auth.error('PASSWORD_TICKET_EXPIRED', 'Der Passwortwechsel ist abgelaufen. Bitte die Admin-Wiederherstellung erneut starten.', 401);
   return payload;
 }
-async function validatePasswordChangeTicket(ticket, payload) {
+// All account/session mutations go to the same verified environment.
+// With the opt-in absent, this is the unchanged legacy production account.
+function scopedAuth(req){
+ const environment=auth.loginStorageEnvironment(req);
+ return{
+  clients:()=>auth.clientsForEnvironment(environment),
+  mutateTeam:mutator=>auth.mutateTeamForEnvironment(environment,mutator),
+  mutateAuth:mutator=>auth.mutateAuth(mutator,environment),
+  createSession:(user,deviceId,mustChange)=>auth.createSession(user,deviceId,mustChange,environment),
+  revokeUserSessions:(userId,reason,except)=>auth.revokeUserSessions(userId,reason,except,environment)
+ };
+}
+async function validatePasswordChangeTicket(ticket, payload, req) {
   const decoded = decodePasswordChangeTicket(ticket);
-  const c = await auth.clients();
+  const c = await scopedAuth(req).clients();
   const teamDoc = await auth.readJson(c.team, auth.emptyTeam());
   const team = auth.applyUserPolicy(teamDoc.value || auth.emptyTeam());
   const user = (team.users || []).find((candidate) =>
@@ -121,7 +133,7 @@ async function login(payload, req) {
   const bootstrapUsername = configuredBootstrapUsername();
   const configuredBootstrapPassword = configuredBootstrapSecret();
 
-  const saved = await auth.mutateTeam((team) => {
+  const saved = await scopedAuth(req).mutateTeam((team) => {
     team.authBootstrap = team.authBootstrap && typeof team.authBootstrap === 'object' ? team.authBootstrap : {};
     const bootstrapCompleted = Boolean(team.authBootstrap.completedAt);
     const enteredRecoverySecret = recoverySecretMatches(password, configuredBootstrapPassword);
@@ -317,8 +329,8 @@ async function login(payload, req) {
     });
   }
   const user = saved.team.users.find((u) => auth.text(u.id) === auth.text(outcome.userId));
-  if (outcome.recoveryUsed) await auth.revokeUserSessions(user.id, 'Admin-Zugang wiederhergestellt');
-  const created = await auth.createSession(user, payload.deviceId, outcome.mustChange);
+  if (outcome.recoveryUsed) await scopedAuth(req).revokeUserSessions(user.id, 'Admin-Zugang wiederhergestellt');
+  const created = await scopedAuth(req).createSession(user, payload.deviceId, outcome.mustChange);
   return {
     ok: true,
     token: created.token,
@@ -331,7 +343,7 @@ async function login(payload, req) {
   };
 }
 
-async function bootstrapStatus(payload) {
+async function bootstrapStatus(payload, req) {
   const bootstrapUsername = configuredBootstrapUsername();
   const storageConfigured = Boolean(process.env.EXPORTHUB_STORAGE_CONNECTION_STRING || process.env.AzureWebJobsStorage);
   const initialPasswordConfigured = Boolean(configuredBootstrapSecret());
@@ -351,7 +363,7 @@ async function bootstrapStatus(payload) {
   }
   let stored;
   try {
-    const c = await auth.clients();
+    const c = await scopedAuth(req).clients();
     stored = await auth.readJson(c.team, auth.emptyTeam());
   } catch (storageError) {
     return {
@@ -404,14 +416,14 @@ async function changePassword(req, payload) {
   } catch (sessionError) {
     const fallbackCodes = ['SESSION_INVALID', 'SESSION_REVOKED', 'AUTH_REQUIRED'];
     if (!payload.passwordChangeTicket || fallbackCodes.indexOf(sessionError && sessionError.code) < 0) throw sessionError;
-    current = await validatePasswordChangeTicket(payload.passwordChangeTicket, payload);
+    current = await validatePasswordChangeTicket(payload.passwordChangeTicket, payload, req);
   }
   if (!current.user.mustChange && !current.session.mustChange) throw auth.error('PASSWORD_CHANGE_NOT_ALLOWED', 'Das eigene Passwort kann nur bei der Erstanmeldung oder nach einem administrativen Reset geändert werden.', 403);
   const password = String(payload.newPassword || '');
   const repeat = String(payload.repeatPassword || payload.confirmPassword || '');
   if (password !== repeat) throw auth.error('PASSWORD_MISMATCH', 'Die beiden Passwörter stimmen nicht überein.', 400);
 
-  const changed = await auth.mutateTeam((team) => {
+  const changed = await scopedAuth(req).mutateTeam((team) => {
     const user = findByIdOrName(team.users, current.user.id);
     if (!user) throw auth.error('USER_NOT_FOUND', 'Benutzer wurde nicht gefunden.', 404);
     auth.setPassword(user, password, { mustChange: false, allowReuse: false });
@@ -420,8 +432,8 @@ async function changePassword(req, payload) {
     return { userId: user.id };
   });
   const user = changed.team.users.find((u) => auth.text(u.id) === auth.text(changed.result.userId));
-  await auth.revokeUserSessions(user.id, 'Passwort geändert');
-  const created = await auth.createSession(user, payload.deviceId || current.session.deviceId, false);
+  await scopedAuth(req).revokeUserSessions(user.id, 'Passwort geändert');
+  const created = await scopedAuth(req).createSession(user, payload.deviceId || current.session.deviceId, false);
   return { ok: true, token: created.token, mustChange: false, user: auth.publicUser(user, false) };
 }
 
@@ -430,7 +442,7 @@ async function logout(req) {
   if (!token) return { ok: true };
   const hash = require('crypto').createHash('sha256').update(token).digest('hex');
   let loggedOutSession = null;
-  await auth.mutateAuth((document) => {
+  await scopedAuth(req).mutateAuth((document) => {
     const session = document.sessions.find((s) => auth.safeEqualText(s.tokenHash, hash));
     if (session) {
       loggedOutSession = { userId: auth.text(session.userId), username: auth.text(session.username), displayName: auth.text(session.displayName), deviceId: auth.text(session.deviceId) };
@@ -441,7 +453,7 @@ async function logout(req) {
   });
   if (loggedOutSession) {
     try {
-      await auth.mutateTeam((team) => {
+      await scopedAuth(req).mutateTeam((team) => {
         const user = (team.users || []).find((candidate) => auth.text(candidate.id) === loggedOutSession.userId || auth.usernameOf(candidate) === auth.lower(loggedOutSession.username));
         auth.addAudit(team, 'LOGOUT', auth.text(user && user.name) || loggedOutSession.displayName || loggedOutSession.username || 'Benutzer', {
           userId: loggedOutSession.userId,
@@ -463,7 +475,7 @@ async function updateProfile(req, payload) {
   const previousLanguage = normalizeProfileLanguage(current.user.language || 'de');
   const requestedLanguage = payload.language || payload.uiLanguage || previousLanguage;
   const nextLanguage = normalizeProfileLanguage(requestedLanguage, previousLanguage);
-  const changed = await auth.mutateTeam((team) => {
+  const changed = await scopedAuth(req).mutateTeam((team) => {
     const user = findByIdOrName(team.users, current.user.id || current.user.user);
     if (!user) throw auth.error('USER_NOT_FOUND', 'Benutzer wurde nicht gefunden.', 404);
     user.name = nextName;
@@ -482,7 +494,7 @@ async function updateProfile(req, payload) {
     return { userId: user.id };
   });
   const user = changed.team.users.find((u) => auth.text(u.id) === auth.text(changed.result.userId));
-  await auth.mutateAuth((document) => {
+  await scopedAuth(req).mutateAuth((document) => {
     for (const session of document.sessions || []) {
       if (auth.text(session.userId) === auth.text(user.id)) {
         session.displayName = nextName;
@@ -497,7 +509,7 @@ async function updateProfile(req, payload) {
 async function adminList(req) {
   const current = await auth.validateSession(req);
   requireGlobalAdmin(current, req);
-  const c = await auth.clients();
+  const c = await scopedAuth(req).clients();
   const teamDoc = await auth.readJson(c.team, auth.emptyTeam());
   const team = auth.applyUserPolicy(teamDoc.value || auth.emptyTeam());
   const authDoc = await auth.readJson(c.auth, auth.emptyAuth());
@@ -513,7 +525,7 @@ async function adminCreate(req, payload) {
   const name = auth.text(payload.name) || username;
   if (!/^[A-Za-z0-9._-]{3,40}$/.test(username)) throw auth.error('INVALID_USERNAME', 'Der Benutzername muss 3 bis 40 Zeichen lang sein und darf nur Buchstaben, Zahlen, Punkt, Unterstrich oder Bindestrich enthalten.', 400);
   const startPassword = auth.generatedPassword();
-  const result = await auth.mutateTeam((team) => {
+  const result = await scopedAuth(req).mutateTeam((team) => {
     if (auth.findUser(team.users, username)) throw auth.error('USER_EXISTS', 'Dieser Benutzername ist bereits vorhanden.', 409);
     const globalAdmin = payload.globalAdmin === true;
     const user = {
@@ -539,7 +551,7 @@ async function adminCreate(req, payload) {
 async function adminUpdate(req, payload) {
   const current = await auth.validateSession(req);
   requireGlobalAdmin(current, req);
-  const result = await auth.mutateTeam((team) => {
+  const result = await scopedAuth(req).mutateTeam((team) => {
     const user = findByIdOrName(team.users, payload.userId || payload.username);
     if (!user) throw auth.error('USER_NOT_FOUND', 'Benutzer wurde nicht gefunden.', 404);
     const beforeAdmin = auth.isAdmin(user);
@@ -574,7 +586,7 @@ async function adminSetActive(req, payload) {
   const current = await auth.validateSession(req);
   requireGlobalAdmin(current, req);
   const active = payload.active === true;
-  const result = await auth.mutateTeam((team) => {
+  const result = await scopedAuth(req).mutateTeam((team) => {
     const user = findByIdOrName(team.users, payload.userId || payload.username);
     if (!user) throw auth.error('USER_NOT_FOUND', 'Benutzer wurde nicht gefunden.', 404);
     if (!active && auth.isAdmin(user) && activeAdminCount(team.users) <= 1) throw auth.error('LAST_ADMIN_PROTECTED', 'Der letzte globale Administrator kann nicht deaktiviert werden.', 409);
@@ -584,7 +596,7 @@ async function adminSetActive(req, payload) {
     auth.addAudit(team, active ? 'USER_ACTIVATED' : 'USER_DEACTIVATED', current.user.name || current.user.user, { userId: user.id, username: user.user });
     return { userId: user.id };
   });
-  await auth.revokeUserSessions(result.result.userId, active ? 'Benutzerstatus geändert' : 'Benutzer deaktiviert');
+  await scopedAuth(req).revokeUserSessions(result.result.userId, active ? 'Benutzerstatus geändert' : 'Benutzer deaktiviert');
   const user = result.team.users.find((u) => auth.text(u.id) === auth.text(result.result.userId));
   return { ok: true, user: auth.publicUser(user, true) };
 }
@@ -593,7 +605,7 @@ async function adminResetPassword(req, payload) {
   const current = await auth.validateSession(req);
   requireGlobalAdmin(current, req);
   const startPassword = auth.generatedPassword();
-  const result = await auth.mutateTeam((team) => {
+  const result = await scopedAuth(req).mutateTeam((team) => {
     const user = findByIdOrName(team.users, payload.userId || payload.username);
     if (!user) throw auth.error('USER_NOT_FOUND', 'Benutzer wurde nicht gefunden.', 404);
     auth.setPassword(user, startPassword, { mustChange: true, allowReuse: false });
@@ -601,14 +613,14 @@ async function adminResetPassword(req, payload) {
     auth.addAudit(team, 'PASSWORD_RESET', current.user.name || current.user.user, { userId: user.id, username: user.user });
     return { userId: user.id };
   });
-  await auth.revokeUserSessions(result.result.userId, 'Passwort zurückgesetzt');
+  await scopedAuth(req).revokeUserSessions(result.result.userId, 'Passwort zurückgesetzt');
   return { ok: true, userId: result.result.userId, startPassword };
 }
 
 async function adminUnlock(req, payload) {
   const current = await auth.validateSession(req);
   requireGlobalAdmin(current, req);
-  const result = await auth.mutateTeam((team) => {
+  const result = await scopedAuth(req).mutateTeam((team) => {
     const user = findByIdOrName(team.users, payload.userId || payload.username);
     if (!user) throw auth.error('USER_NOT_FOUND', 'Benutzer wurde nicht gefunden.', 404);
     user.loginSecurity = { failedAttempts: 0, stage: 'first', lockedUntil: null, permanentLocked: false, unlockedAt: auth.now(), unlockedBy: current.user.name || current.user.user };
@@ -624,7 +636,7 @@ async function adminTerminateSessions(req, payload) {
   requireGlobalAdmin(current, req);
   const userId = auth.text(payload.userId);
   const sessionId = auth.text(payload.sessionId);
-  const result = await auth.mutateAuth((document) => {
+  const result = await scopedAuth(req).mutateAuth((document) => {
     let count = 0;
     for (const s of document.sessions) {
       if (s.revokedAt) continue;
@@ -635,7 +647,7 @@ async function adminTerminateSessions(req, payload) {
     return count;
   });
   if (result.result > 0) {
-    await auth.mutateTeam((team) => {
+    await scopedAuth(req).mutateTeam((team) => {
       auth.addAudit(team, 'SESSIONS_TERMINATED', current.user.name || current.user.user, { userId, sessionId, terminated: result.result });
       return true;
     });
@@ -661,7 +673,7 @@ module.exports = async function (context, req) {
     }
     const action = auth.lower(payload.action);
     let result;
-    if (action === 'bootstrap-status') result = await bootstrapStatus(payload);
+    if (action === 'bootstrap-status') result = await bootstrapStatus(payload,req);
     else if (action === 'login') result = await login(payload, req);
     else if (action === 'change-password') result = await changePassword(req, payload);
     else if (action === 'logout') result = await logout(req);
