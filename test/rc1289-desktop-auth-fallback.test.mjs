@@ -97,8 +97,10 @@ test('RC1289: Produktion und TESTSERVICE laden den Fallback synchron vor dem App
   execFileSync(process.execPath,['.github/rc1112/build-three-env.mjs'],{stdio:'pipe'});
   for(const file of ['index.html','TESTVERSION.html']){
     const html=fs.readFileSync('dist-rc1112/'+file,'utf8');
-    const tag='<script id="exporthub-rc1289-auth-transport-fallback" src="/assets/rc1289-auth-transport-fallback.js?v=1289"></script>';
-    const at=html.indexOf(tag),headOpen=html.search(/<head\b[^>]*>/i),headEnd=html.toLowerCase().indexOf('</head>');
+    // The build appends a content hash (h=…) to every asset reference, see .github/asset-fingerprint.
+    const match=html.match(/<script id="exporthub-rc1289-auth-transport-fallback" src="\/assets\/rc1289-auth-transport-fallback\.js\?v=1289&h=[0-9a-f]{10}"><\/script>/);
+    const tag=match?match[0]:'';
+    const at=match?match.index:-1,headOpen=html.search(/<head\b[^>]*>/i),headEnd=html.toLowerCase().indexOf('</head>');
     assert.ok(at>headOpen&&at<headEnd,file+': RC1289 Fallback fehlt im Head');
     assert.doesNotMatch(tag,/\bdefer\b/,'Fallback muss vor dem nachfolgenden App-JavaScript laufen');
   }

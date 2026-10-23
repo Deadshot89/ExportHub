@@ -4,6 +4,7 @@ import {fileURLToPath,pathToFileURL} from 'node:url';
 import {execFileSync} from 'node:child_process';
 import {finalizeAutoUpdate} from '../rc1488/finalize-auto-update.mjs';
 import {integrateGuidedWorkspace} from '../rc1544/integrate-guided-workspace.mjs';
+import {fingerprintAssets} from '../asset-fingerprint/fingerprint-assets.mjs';
 
 export const PACK_ASSETS=Object.freeze([
   'i18n/pack-notification.js',
@@ -111,6 +112,8 @@ export function build(root=process.cwd()){
   }
   finalizeAutoUpdate({root,out});
   integrateGuidedWorkspace(root,out);
+  // Must stay last: hashes the files exactly as they are shipped.
+  fingerprintAssets({root,out});
   return out;
 }
 

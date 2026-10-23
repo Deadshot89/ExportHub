@@ -5,6 +5,7 @@ import {integrateTour} from '../rc1501/build-three-env.mjs';
 import {integrateEditor} from '../rc1502/build-three-env.mjs';
 import {integrateTraining} from '../rc1503/build-three-env.mjs';
 import {integrateCoverageAdmin} from '../rc1506/build-three-env.mjs';
+import {fingerprintAssets} from '../asset-fingerprint/fingerprint-assets.mjs';
 import {patchRc1576StateBodyDeadline} from '../../scripts/rc1576-state-read-body-timeout.mjs';
 import {patchRc1619LargeStateWorkerParse} from '../../scripts/rc1619-large-state-worker-parse.mjs';
 import {hardenCustomerSaveHtml} from '../../scripts/rc1600-customer-save-readback.mjs';
@@ -1580,5 +1581,7 @@ integrateTour(ROOT,OUT);
 integrateEditor(ROOT,OUT);
 integrateTraining(ROOT,OUT);
 integrateCoverageAdmin(ROOT,OUT);
+// Must stay last: hashes the files exactly as they are shipped.
+fingerprintAssets({root:ROOT,out:OUT});
 
 console.log('RC1112 build pipeline ready: sichtbare Produktversion '+VISIBLE_VERSION+' auf geprüfter RC1048-Basis, RC1194 sichere Kundenportal-Key-Diagnose aktiv.');
