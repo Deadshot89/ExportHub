@@ -1956,5 +1956,8 @@
   "legacyPattern.shipmentN": "{{count}} przesyłka",
   "legacyPattern.warehouseSummary": "{{count}} przesyłek · {{pallets}} palet · {{parcels}} paczek",
   "legacyPattern.loadingListPdf": "Pobierz listę załadunkową {{count}} jako PDF",
-  "legacyUi.shell.savingToAzure": "Zapisywanie w Azure …"
+  "legacyUi.shell.savingToAzure": "Zapisywanie w Azure …",
+  "abd.invoice.logo": "Logo Essentra (PNG/JPG, opcjonalnie)",
+  "abd.invoice.logoLoaded": "Logo wczytane.",
+  "abd.invoice.logoInvalid": "Wybierz PNG lub JPG do 300 KB."
 }
