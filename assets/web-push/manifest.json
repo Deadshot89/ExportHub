@@ -1,0 +1,16 @@
+{
+  "name": "ExportHUB360",
+  "short_name": "ExportHUB",
+  "description": "ExportHUB mit Handy-Benachrichtigungen für Aufgaben und Packmeldungen",
+  "lang": "de",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#08275c",
+  "theme_color": "#08275c",
+  "icons": [
+    { "src": "/assets/web-push/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/web-push/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/web-push/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
