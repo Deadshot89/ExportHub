@@ -59,7 +59,8 @@ test('RC1634: new credentials are opt-in; production clients and normal token ha
  assert.match(src,/const isolated=isolationConfig\(\)/);
  assert.match(src,/isolated\.enabled\?isolated\.connectionString:connectionString\(\)/);
  assert.match(src,/isolated\.enabled\?isolated\.authBlob:AUTH_BLOB/);
- assert.match(src,/env==='testservice'&&isolationConfig\(\)\.enabled\?'testservice':'production'/);
+ assert.match(src,/if\(!text\(process\.env\.EXPORTHUB_TEST_AUTH_ISOLATION\)\)return'production'/);
+ assert.match(src,/return isolationConfig\(\)\.enabled\?'testservice':'production'/);
  assert.match(src,/async function mutateAuth\(mutator, environment='production'\)/);
  assert.match(src,/async function createSession\(user, deviceId, mustChange, environment='production'\)/);
  assert.match(src,/const target=loginStorageEnvironment\(req\)/);
