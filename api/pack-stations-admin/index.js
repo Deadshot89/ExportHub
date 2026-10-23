@@ -18,7 +18,24 @@ function stationToken(station){
  return 'pks1_'+sig;
 }
 function publicStation(station){return{id:text(station&&station.id),name:text(station&&station.name),active:station&&station.active!==false,tokenVersion:Number(station&&station.tokenVersion||0),createdAt:text(station&&station.createdAt),updatedAt:text(station&&station.updatedAt),recoverable:Number(station&&station.tokenVersion||0)>0};}
-function packOrigin(req,environment){const h=req&&req.headers||{},host=text(h['x-forwarded-host']||h['x-original-host']||h.host||h.Host);if(host)return'https://'+host;if(environment==='production')return'https://exporthub360.com';return'';}
+// behind Static Web Apps the Host header is the internal backend (*.azurewebsites.net), which has no /pack route;
+// so take the public site from the original URL or the browser's Origin/Referer and only trust known site hosts
+const PUBLIC_ORIGINS={production:'https://exporthub360.com',testservice:'https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'};
+function publicOrigin(value){
+ let raw=text(value);if(!raw)return'';if(!/^[a-z]+:\/\//i.test(raw))raw='https://'+raw;
+ let u;try{u=new URL(raw);}catch(_){return'';}
+ const host=u.hostname.toLowerCase();
+ if(host==='localhost'||host==='127.0.0.1')return u.origin;
+ if(u.protocol!=='https:')return'';
+ if(host==='exporthub360.com'||host.endsWith('.exporthub360.com')||host.endsWith('.azurestaticapps.net'))return u.origin;
+ return'';
+}
+function packOrigin(req,environment){
+ const h=req&&req.headers||{};
+ const candidates=[h['x-ms-original-url'],h['X-MS-Original-URL'],h.origin,h.Origin,h.referer,h.Referer,h['x-forwarded-host'],h['X-Forwarded-Host'],h['x-original-host'],h['X-Original-Host'],h.host,h.Host];
+ for(const value of candidates){const origin=publicOrigin(value);if(origin)return origin;}
+ return PUBLIC_ORIGINS[environment]||PUBLIC_ORIGINS.production;
+}
 async function qrPayload(req,environment,station){
  const version=Number(station&&station.tokenVersion||0);if(!(version>0))throw auth.error('PACK_STATION_TOKEN_NOT_RECOVERABLE','Der Pack-QR-Code kann nicht wiederhergestellt werden. Bitte QR-Code erneuern.',409);
  const token=stationToken(station),hash=packStore.hashStationToken(token);if(text(station.tokenHash)!==hash)throw auth.error('PACK_STATION_TOKEN_SECRET_CHANGED','Der QR-Code kann mit dem aktuellen Serverschlüssel nicht wiederhergestellt werden. Bitte QR-Code erneuern.',409);
@@ -98,3 +115,4 @@ module.exports=async function(context,req){
 module.exports.stationToken=stationToken;
 module.exports.publicStation=publicStation;
 module.exports.ensureSharedStation=ensureSharedStation;
+module.exports.packOrigin=packOrigin;
