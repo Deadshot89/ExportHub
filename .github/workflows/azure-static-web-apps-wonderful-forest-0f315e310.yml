@@ -460,6 +460,8 @@ jobs:
                 const validNumber=n=>Number.isSafeInteger(n)&&n>=0;
                 const ids=["team","document-files","container-photos","pickup","pod","abd-quarantine","pod-backup"];
                 const kinds=["live","version","snapshot","deleted"];
+                const safeReasons=["unknown","time-budget","client-unavailable","configuration",
+                  "not-found","access-denied","incomplete","transport-error","other"];
                 if(v.ok!==true||v.action!=="inventory-scopes"||v.version!=="RC1631"||
                    v.environment!=="testservice"||v.resourceOwnershipVerified!==false||
                    v.billingVerified!==false||v.deletionApproved!==false||
@@ -472,6 +474,10 @@ jobs:
                 const rows=["## TESTSERVICE - erweiterte Blob-Teilinventur (RC1631)","","Nur Azure LIST, keine Inhalte, Dateinamen oder Löschungen.",
                  "","| TESTSERVICE-Bereich | Status | Datensätze | Logische Bytes |","|---|---|---:|---:|"];
                 for(const x of v.scopes){
+                  // RC1640: fixed reason codes only. Never print SDK/Azure exception text.
+                  if(x.status==="listed"&&x.reason!==null&&x.reason!==undefined)process.exitCode=4;
+                  if(x.status==="unverified"&&!safeReasons.includes(x.reason))process.exitCode=4;
+                  if(process.exitCode)return;
                   if(x.status==="listed"){
                     if(!validNumber(x.records)||!validNumber(x.logicalBytes)||
                        !kinds.every(k=>validNumber(x.kinds?.[k]?.records)&&validNumber(x.kinds?.[k]?.logicalBytes))){
@@ -494,7 +500,8 @@ jobs:
                 console.log("RC1635 TESTSERVICE-Sechs-Container "+JSON.stringify(
                   v.scopes.map(x=>({id:x.id,status:x.status,
                     records:x.status==="listed"?x.records:null,
-                    logicalBytes:x.status==="listed"?x.logicalBytes:null}))
+                    logicalBytes:x.status==="listed"?x.logicalBytes:null,
+                    reason:x.status==="unverified"?x.reason:null}))
                 ));
               });
             '; then
