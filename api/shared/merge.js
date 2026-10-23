@@ -979,13 +979,16 @@ function hasPickupConfirmationEvidence(sh) {
 
 function protectFreshShipmentPodStatuses(server, incoming) {
   if (!isObject(incoming)) return incoming;
-  const known = new Set();
+  const known = new Map();
   for (const listName of ['shipments', 'savedShipments']) {
     for (const sh of Array.isArray(server && server[listName]) ? server[listName] : []) {
       const ref = text(sh && (sh.ref || sh.reference || sh.shipmentRef || sh.referenceNumber)).toUpperCase();
-      if (ref) known.add('ref:' + ref);
       const id = text(sh && (sh.id || sh.shipmentId));
-      if (id) known.add('id:' + id);
+      for (const key of [ref && 'ref:' + ref, id && 'id:' + id].filter(Boolean)) {
+        const existing = known.get(key) || [];
+        existing.push(sh);
+        known.set(key, existing);
+      }
     }
   }
   let changed = false;
@@ -997,15 +1000,32 @@ function protectFreshShipmentPodStatuses(server, incoming) {
       if (!isObject(sh)) return sh;
       const ref = text(sh.ref || sh.reference || sh.shipmentRef || sh.referenceNumber).toUpperCase();
       const id = text(sh.id || sh.shipmentId);
-      if ((!ref && !id) || (ref && known.has('ref:' + ref)) || (id && known.has('id:' + id))) return sh;
+      if (!ref && !id) return sh;
+      const priorCopies = [
+        ...(ref && known.get('ref:' + ref) || []),
+        ...(id && known.get('id:' + id) || [])
+      ];
+      const earlierStages = ['entwurf','erstellt','bereit zur abholung','wartet auf abd',
+        'draft','created','ready for pickup','waiting for abd'];
+      // A cross-collection copy (savedShipments -> shipments) is not a new
+      // shipment, but it still must not become a phantom POD after a second save.
+      // Inconsistent historical/picked-up copies require forensic review instead.
+      const prior = priorCopies.find(x => earlierStages.includes(lower(
+        x && (x.status || x.processStatus))));
+      const protectedHistory = priorCopies.some(x =>
+        hasPickupConfirmationEvidence(x) || ['abgeholt','pod vorhanden','abgeschlossen',
+          'archiviert','picked up','pod available','completed','archived'].includes(
+          lower(x && (x.status || x.processStatus))));
+      if (priorCopies.length && (!prior || protectedHistory)) return sh;
       const statuses = [sh.status, sh.processStatus, sh.shipmentStatus].map(lower);
       if (!statuses.some(status => status === 'pod vorhanden' || status === 'pod available')) return sh;
       if (hasPickupConfirmationEvidence(sh)) return sh;
       changed = true;
       const corrected = clone(sh);
-      corrected.status = 'Erstellt';
-      corrected.processStatus = 'Erstellt';
-      corrected.shipmentStatus = 'Erstellt';
+      const safeStatus = prior ? (prior.status || prior.processStatus || 'Erstellt') : 'Erstellt';
+      corrected.status = safeStatus;
+      corrected.processStatus = safeStatus;
+      corrected.shipmentStatus = safeStatus;
       corrected.podAvailable = false;
       corrected.podConfirmed = false;
       corrected.hasPod = false;
