@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const { BlobServiceClient } = require('@azure/storage-blob');
 const { applyUserPolicy, isAdmin, isPrivilegedUser, normalizeRights, publicUser } = require('./user-policy');
 const apiI18n = require('./i18n');
+const {isolationConfig}=require('./testservice-auth-isolation');
 
 const TEAM_CONTAINER = process.env.EXPORTHUB_STORAGE_CONTAINER || process.env.EXPORTHUB_CONTAINER || 'exporthub-data';
 const TEAM_BLOB = process.env.EXPORTHUB_STORAGE_BLOB || process.env.EXPORTHUB_STATE_BLOB || 'team-state.json';
@@ -58,13 +59,14 @@ async function clients() {
   };
 }
 async function testserviceClients() {
-  const cs = connectionString();
+  const isolated=isolationConfig();
+  const cs=isolated.enabled?isolated.connectionString:connectionString();
   if (!cs) throw error('STORAGE_NOT_CONFIGURED', 'Azure-Speicher ist nicht konfiguriert.', 503);
-  const service = BlobServiceClient.fromConnectionString(cs);
-  const container = service.getContainerClient(TEAM_CONTAINER);
+  const service=BlobServiceClient.fromConnectionString(cs);
+  const container=service.getContainerClient(isolated.enabled?isolated.container:TEAM_CONTAINER);
   return {
-    team: container.getBlockBlobClient(TEST_TEAM_BLOB),
-    auth: container.getBlockBlobClient(AUTH_BLOB)
+    team:container.getBlockBlobClient(TEST_TEAM_BLOB),
+    auth:container.getBlockBlobClient(isolated.enabled?isolated.authBlob:AUTH_BLOB)
   };
 }
 function environmentFromRequest(req) {
@@ -96,6 +98,12 @@ function environmentFromRequest(req) {
   }
   // Existing local/test requests without an official host remain backwards-compatible.
   return requested === 'testservice' ? 'testservice' : 'production';
+}
+// Legacy TESTSERVICE logins retain their existing production routes until an
+// independent account is provisioned, verified and the opt-in is enabled.
+function loginStorageEnvironment(req){
+ const env=environmentFromRequest(req);
+ return env==='testservice'&&isolationConfig().enabled?'testservice':'production';
 }
 async function clientsForEnvironment(environment) {
   return lower(environment) === 'testservice' ? testserviceClients() : clients();
@@ -262,8 +270,8 @@ async function mutateTeamForRequest(req, mutator) {
 async function mutateTeam(mutator) {
   return mutateTeamForEnvironment('production', mutator);
 }
-async function mutateAuth(mutator) {
-  const c = await clients();
+async function mutateAuth(mutator, environment='production') {
+  const c = await clientsForEnvironment(environment);
   for (let attempt = 0; attempt < MAX_RETRIES; attempt += 1) {
     const d = await readJson(c.auth, emptyAuth());
     const auth = d.value || emptyAuth();
@@ -388,7 +396,7 @@ function bearer(req) {
   const match = String(value).match(/^Bearer\s+(.+)$/i);
   return match ? match[1].trim() : '';
 }
-async function createSession(user, deviceId, mustChange) {
+async function createSession(user, deviceId, mustChange, environment='production') {
   const session = {
     id: randomId('SES'),
     tokenHash: '',
@@ -399,11 +407,12 @@ async function createSession(user, deviceId, mustChange) {
     createdAt: now(),
     expiresAt: new Date(Date.now() + SESSION_DAYS * 86400000).toISOString(),
     authVersion: Number(user.authVersion || 0),
-    mustChange: mustChange === true
+    mustChange: mustChange === true,
+    ...(environment==='testservice'?{environment:'testservice'}:{})
   };
   const token = createSignedSessionToken(session);
   session.tokenHash = tokenHash(token);
-  await mutateAuth((auth) => { auth.sessions.push(session); return session; });
+  await mutateAuth((auth) => { auth.sessions.push(session); return session; },environment);
   return { token, session };
 }
 async function validateSession(req, options = {}) {
@@ -416,7 +425,8 @@ async function validateSession(req, options = {}) {
     /^E2E-USER-/.test(text(routingPayload.uid)) &&
     /^e2e\./.test(lower(routingPayload.username))
   );
-  const c = testserviceE2E ? await testserviceClients() : await clients();
+  const target=loginStorageEnvironment(req);
+  const c = target==='testservice'||testserviceE2E ? await testserviceClients() : await clients();
   const authDoc = await readJson(c.auth, emptyAuth());
   const resolved = resolveSession(token, authDoc.value || emptyAuth());
   const session = resolved.session;
@@ -446,7 +456,7 @@ function sanitizeDocumentForClient(team, adminView = false) {
   out.state.users = clone(out.users);
   return out;
 }
-async function revokeUserSessions(userId, reason, exceptSessionId) {
+async function revokeUserSessions(userId, reason, exceptSessionId, environment='production') {
   return mutateAuth((auth) => {
     let count = 0;
     for (const s of auth.sessions) {
@@ -455,12 +465,12 @@ async function revokeUserSessions(userId, reason, exceptSessionId) {
       }
     }
     return count;
-  });
+  },environment);
 }
 
 module.exports = {
   TEAM_CONTAINER, TEAM_BLOB, TEST_TEAM_BLOB, AUTH_BLOB, PBKDF2_ITERATIONS,
-  clone, text, lower, now, json, error, body, clients, testserviceClients, clientsForEnvironment, environmentFromRequest, parseStoredJson, readJson, writeJson,
+  clone, text, lower, now, json, error, body, clients, testserviceClients, clientsForEnvironment, environmentFromRequest, loginStorageEnvironment, parseStoredJson, readJson, writeJson,
   emptyTeam, emptyAuth, usernameOf, isAdmin, isPrivilegedUser, isActive, lockInfo, publicUser, publicUsers,
   sessionSigningSecret, createSignedSessionToken, verifySignedSessionToken, resolveSession,
   applyUserPolicy, normalizeRights, credentialOf, credentialFromPassword, verifyCredential,
