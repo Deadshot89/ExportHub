@@ -6,8 +6,8 @@ import path from 'node:path';
 
 const require=createRequire(import.meta.url);
 const {isolationConfig,accountName}=require('../api/shared/testservice-auth-isolation.js');
-const prod='DefaultEndpointsProtocol=https;AccountName=realproduction;AccountKey=FAKE';
-const testCs='DefaultEndpointsProtocol=https;AccountName=syntheticpilot;AccountKey=FAKE';
+const prod='DefaultEndpointsProtocol=https;AccountName=realproduction;EndpointSuffix=core.windows.net';
+const testCs='DefaultEndpointsProtocol=https;AccountName=syntheticpilot;EndpointSuffix=core.windows.net';
 const flags={EXPORTHUB_STORAGE_CONNECTION_STRING:prod,EXPORTHUB_TEST_STORAGE_CONNECTION_STRING:testCs,EXPORTHUB_TEST_AUTH_ISOLATION:'enabled'};
 
 test('RC1634: feature disabled by default; legacy auth never selects independent account',()=>{
@@ -23,7 +23,7 @@ test('RC1634: flag requires a different explicit test Azure storage account',()=
  assert.deepEqual(r,{enabled:true,connectionString:testCs,container:'exporthub-data',authBlob:'testservice/auth-sessions.json'});
  const rejects=(env,code)=>assert.throws(()=>isolationConfig(env),e=>e?.code===code&&e.status===503);
  rejects({...flags,EXPORTHUB_TEST_STORAGE_CONNECTION_STRING:prod},'TEST_AUTH_ISOLATION_ACCOUNT_NOT_SEPARATE');
- rejects({...flags,EXPORTHUB_TEST_STORAGE_CONNECTION_STRING:'AccountName=realproduction;AccountKey=ROTATED_FAKE_KEY'},'TEST_AUTH_ISOLATION_ACCOUNT_NOT_SEPARATE');
+ rejects({...flags,EXPORTHUB_TEST_STORAGE_CONNECTION_STRING:'AccountName=realproduction;EndpointSuffix=example.invalid'},'TEST_AUTH_ISOLATION_ACCOUNT_NOT_SEPARATE');
  rejects({...flags,EXPORTHUB_TEST_STORAGE_CONNECTION_STRING:''},'TEST_AUTH_ISOLATION_ACCOUNT_NOT_SEPARATE');
  rejects({...flags,EXPORTHUB_TEST_STORAGE_CONNECTION_STRING:'UseDevelopmentStorage=true'},'TEST_AUTH_ISOLATION_ACCOUNT_NOT_SEPARATE');
  rejects({...flags,EXPORTHUB_STORAGE_CONNECTION_STRING:'',AzureWebJobsStorage:''},'TEST_AUTH_ISOLATION_ACCOUNT_NOT_SEPARATE');
