@@ -9,6 +9,7 @@ import {fingerprintAssets} from '../asset-fingerprint/fingerprint-assets.mjs';
 import {patchRc1576StateBodyDeadline} from '../../scripts/rc1576-state-read-body-timeout.mjs';
 import {patchRc1619LargeStateWorkerParse} from '../../scripts/rc1619-large-state-worker-parse.mjs';
 import {hardenCustomerSaveHtml} from '../../scripts/rc1600-customer-save-readback.mjs';
+import {hardenAckMergeSaveHtml} from '../../scripts/rc1627-ack-merge-save.mjs';
 import {patchRc1602PodBrowserHtml} from '../../scripts/rc1602-pod-browser-pagination.mjs';
 
 const ROOT=process.cwd();
@@ -1500,7 +1501,7 @@ for(const file of ['index.html','TESTVERSION.html','demo.html'])patchHtml(file);
 for(const file of ['index.html','TESTVERSION.html','demo.html']){
   const target=path.join(OUT,file);
   const hardened=hardenCustomerSaveHtml(fs.readFileSync(target,'utf8'));
-  const paginated=patchRc1602PodBrowserHtml(hardened);
+  const paginated=patchRc1602PodBrowserHtml(hardenAckMergeSaveHtml(hardened));
   const oldContacts='assets/rc1092-customer-mail-contacts.js?v=1399';
   if(!paginated.includes(oldContacts))throw new Error(file+': RC1600 Kontaktcache-Anker fehlt');
   fs.writeFileSync(target,paginated.replace(oldContacts,'assets/rc1092-customer-mail-contacts.js?v=1600'));
