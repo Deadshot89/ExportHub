@@ -176,8 +176,11 @@ async function login(payload, req) {
       }
     }
 
-    if (!user) return { ok: false, code: 'INVALID_CREDENTIALS', message: apiI18n.t(req,'api.auth.invalidCredentials'), status: 401 };
-    if (!auth.isActive(user)) return { ok: false, code: 'ACCOUNT_DISABLED', message: apiI18n.t(req,'api.common.accountDisabled'), status: 403 };
+    // Unknown usernames have no account security counter or audit entry to persist.
+    // Avoid a version-generating full-team PUT (and possible Azure soft-deleted copy).
+    if (!user) return { ok: false, code: 'INVALID_CREDENTIALS', message: apiI18n.t(req,'api.auth.invalidCredentials'), status: 401, skipTeamWrite: true };
+    // A disabled account has no changing login counter here. No state write is needed.
+    if (!auth.isActive(user)) return { ok: false, code: 'ACCOUNT_DISABLED', message: apiI18n.t(req,'api.common.accountDisabled'), status: 403, skipTeamWrite: true };
 
     const secureCredential = auth.credentialOf(user);
     const personalPasswordMatches = Boolean(secureCredential && auth.verifyCredential(password, secureCredential));

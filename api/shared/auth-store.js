@@ -255,6 +255,13 @@ async function mutateTeamForEnvironment(environment, mutator) {
     const d = await readJson(c.team, emptyTeam());
     const team = applyUserPolicy(d.value || emptyTeam());
     const result = await mutator(team);
+    // RC1637: Only the two explicitly non-mutating login denials may avoid
+    // the 40+MB team PUT. Invalid passwords on REAL accounts must continue
+    // updating their stored failure counters and lockouts, even under load.
+    if (result && result.skipTeamWrite === true && result.ok === false &&
+        (result.code === 'INVALID_CREDENTIALS' || result.code === 'ACCOUNT_DISABLED')) {
+      return { team, result, skippedWrite: true };
+    }
     team.revision = Number(team.revision || 0) + 1;
     team.updatedAt = now();
     try {

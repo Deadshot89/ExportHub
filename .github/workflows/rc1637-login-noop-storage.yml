@@ -1,0 +1,37 @@
+name: RC1637 Login No-Op Storage Contract
+
+on:
+  pull_request:
+    paths:
+      - 'api/exporthub-auth/index.js'
+      - 'api/shared/auth-store.js'
+      - 'test/rc1637-login-team-noop-storage.test.mjs'
+      - '.github/workflows/rc1637-login-noop-storage.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'api/exporthub-auth/index.js'
+      - 'api/shared/auth-store.js'
+      - 'test/rc1637-login-team-noop-storage.test.mjs'
+      - '.github/workflows/rc1637-login-noop-storage.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: Syntax and security/legacy regression
+        run: |
+          node --check api/shared/auth-store.js
+          node --check api/exporthub-auth/index.js
+          node --test --test-concurrency=1 test/rc1637-login-team-noop-storage.test.mjs test/rc1252-auth-mfa-flow.test.mjs test/rc1252-privileged-mfa.test.mjs test/rc1634-testservice-auth-account-isolation.test.mjs
