@@ -9,7 +9,7 @@
 if(!w||!d||w.ExportHUBSelfCorrect)return;
 var VERSION='RC1630',ENDPOINT='/api/self-correct',AUTOFIX='/api/diagnostic-autofix',MODAL_ID='rc1630SelfCorrect',MAX=20;
 var LANGS=['de','en','pl','es','fr','it'],LOCKED=['legacyUi.','legacyPattern.'];
-var packsI18n=null,loading=null,tab='texts',query='',editing='',pending=[],jobs=[],status='',busy=false,poll=0;
+var packsI18n=null,loading=null,tab='texts',query='',editing='',pending=[],jobs=[],status='',busy=false,poll=0,draft={area:'',description:'',expected:''};
 
 function q(v){return String(v==null?'':v).replace(/\s+/g,' ').trim()}
 function low(v){return q(v).toLowerCase()}
@@ -103,9 +103,10 @@ function textsHtml(){
  return html
 }
 function describeHtml(){
- return '<p class="rc1630-intro">'+esc(t('describeIntro'))+'</p><div class="rc1630-row"><input type="text" id="rc1630Area" maxlength="160" placeholder="'+esc(t('area'))+'" aria-label="'+esc(t('area'))+'"></div>'+
-  '<div class="rc1630-row"><textarea id="rc1630Description" maxlength="4000" rows="5" placeholder="'+esc(t('description'))+'" aria-label="'+esc(t('description'))+'"></textarea></div>'+
-  '<div class="rc1630-row"><textarea id="rc1630Expected" maxlength="2000" rows="3" placeholder="'+esc(t('expected'))+'" aria-label="'+esc(t('expected'))+'"></textarea></div>'+
+ var pre=draft;
+ return '<p class="rc1630-intro">'+esc(t('describeIntro'))+'</p><div class="rc1630-row"><input type="text" id="rc1630Area" maxlength="160" placeholder="'+esc(t('area'))+'" aria-label="'+esc(t('area'))+'" value="'+esc(q(pre.area).slice(0,160))+'"></div>'+
+  '<div class="rc1630-row"><textarea id="rc1630Description" maxlength="4000" rows="5" placeholder="'+esc(t('description'))+'" aria-label="'+esc(t('description'))+'">'+esc(String(pre.description||'').slice(0,4000))+'</textarea></div>'+
+  '<div class="rc1630-row"><textarea id="rc1630Expected" maxlength="2000" rows="3" placeholder="'+esc(t('expected'))+'" aria-label="'+esc(t('expected'))+'">'+esc(String(pre.expected||'').slice(0,2000))+'</textarea></div>'+
   '<div class="rc1630-row"><button type="button" class="primary" data-rc1630-autofix="1"'+(busy?' disabled':'')+'>'+esc(t('startAutofix'))+'</button></div>'
 }
 function fmt(ts){var dt=new Date(ts);return isNaN(dt)?'':dt.toLocaleString(lang()==='en'?'en-GB':lang())}
@@ -159,7 +160,7 @@ async function startAutofix(){
  if(description.length<20){setStatus(t('describeTooShort'));return}
  var area=q(d.getElementById('rc1630Area')&&d.getElementById('rc1630Area').value),expected=String(d.getElementById('rc1630Expected')&&d.getElementById('rc1630Expected').value||'').trim();
  busy=true;setStatus('');
- try{var r=await call(AUTOFIX,{action:'request-manual',description:description,area:area,expected:expected,clientVersion:VERSION});status=t('autofixStarted',{id:q(r.jobId)});render()}
+ try{var r=await call(AUTOFIX,{action:'request-manual',description:description,area:area,expected:expected,clientVersion:VERSION});draft={area:'',description:'',expected:''};status=t('autofixStarted',{id:q(r.jobId)});render()}
  catch(e){setStatus(t('error',{message:e.message}))}
  finally{busy=false}
 }
@@ -174,9 +175,13 @@ async function revert(id){
  catch(e){setStatus(t('error',{message:e.message}))}
 }
 function close(){var m=d.getElementById(MODAL_ID);if(m)m.remove();if(poll){w.clearInterval(poll);poll=0}}
-function open(){
+// options.tab: 'texts' | 'describe' | 'history'; options.area/description prefill "Fehler beschreiben" (used by the Fehlerdiagnose)
+function open(options){
  if(!allowed())return false;
+ var o=options&&typeof options==='object'?options:{};
  style();close();status='';
+ if(['texts','describe','history'].indexOf(o.tab)>=0)tab=o.tab;
+ if(o.tab==='describe'&&(o.area||o.description))draft={area:q(o.area),description:String(o.description||''),expected:''};
  var m=d.createElement('div');m.id=MODAL_ID;m.setAttribute('role','dialog');m.setAttribute('aria-modal','true');m.setAttribute('aria-label',t('title'));m.setAttribute('data-i18n-ignore','1');
  m.innerHTML='<div class="rc1630-card"><div class="rc1630-head"><h2>'+esc(t('title'))+'</h2><button type="button" class="ghost" data-rc1630-close="1">'+esc(t('close'))+'</button></div><p class="rc1630-intro">'+esc(t('intro'))+'</p><div class="rc1630-body"></div></div>';
  d.body.appendChild(m);render();
@@ -188,7 +193,7 @@ function open(){
 
 d.addEventListener('click',function(e){
  var target=e.target;if(!target||!target.closest)return;
- if(target.closest('[data-rc1630-self-correct]')){e.preventDefault();open();return}
+ if(target.closest('[data-rc1630-self-correct]')){e.preventDefault();open({tab:'texts'});return}
  var m=target.closest('#'+MODAL_ID);if(!m)return;
  if(target===m||target.closest('[data-rc1630-close]')){close();return}
  var b;
@@ -202,10 +207,12 @@ d.addEventListener('click',function(e){
  if(target.closest('[data-rc1630-refresh]')){refresh();return}
  if((b=target.closest('[data-rc1630-revert]'))){revert(b.getAttribute('data-rc1630-revert'));return}
 },true);
-d.addEventListener('input',function(e){if(e.target&&e.target.id==='rc1630Search'){query=e.target.value;render()}});
+// The dialog re-renders (texts loaded, history polled); keep what was typed in "Fehler beschreiben".
+var DRAFT_FIELDS={rc1630Area:'area',rc1630Description:'description',rc1630Expected:'expected'};
+d.addEventListener('input',function(e){var id=e.target&&e.target.id;if(id==='rc1630Search'){query=e.target.value;render()}else if(DRAFT_FIELDS[id])draft[DRAFT_FIELDS[id]]=e.target.value});
 d.addEventListener('keydown',function(e){if(e.key==='Escape'&&d.getElementById(MODAL_ID))close()});
 
-w.ExportHUBSelfCorrect=Object.freeze({version:VERSION,allowed:allowed,label:function(){return t('tab')},open:open,close:close,search:function(text){return search(text).hits}});
+w.ExportHUBSelfCorrect=Object.freeze({version:VERSION,allowed:allowed,label:function(){return t('tab')},open:open,openDescribe:function(o){return open(Object.assign({},o||{},{tab:'describe'}))},close:close,search:function(text){return search(text).hits}});
 // The IT tab bar (rc1579) re-syncs on its own events; this picks up the new tab if it rendered before this script.
 try{w.ExportHUBMenu1579&&w.ExportHUBMenu1579.refresh()}catch(_){}
 })(typeof window!=='undefined'?window:null,typeof document!=='undefined'?document:null);
