@@ -191,7 +191,7 @@ test('RC1642: snapshot timestamps only, fixed 1-day/7-day age bands, deleted age
   row('testservice/team-state.json',40,{snapshot:'2026-10-15T11:00:00Z'}),
   row('testservice/team-state.json',50,{snapshot:'unparseable-SECRET'}),
   row('testservice/team-state.json',60,{snapshot:'2026-10-24T12:00:00Z'}),
-  row('testservice/team-state.json',70,{deleted:true,properties:{lastModified:new Date('2026-01-01')}}),
+  row('testservice/team-state.json',70,{deleted:true,properties:{contentLength:70,lastModified:new Date('2026-01-01')}}),
   row('testservice/team-state.json',80),
   row('testservice/other-root.json',999,{snapshot:'2026-10-01T12:00:00Z'})
  ];
