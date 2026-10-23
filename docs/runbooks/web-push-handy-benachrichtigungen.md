@@ -9,7 +9,7 @@ Bisher kamen Benachrichtigungen nur, solange ExportHUB im Browser offen und ange
 3. Danach kommen ohne Login:
    - **Aufgaben-Erinnerungen** zu den TaskPlanner-Zeiten der Aufgabe (Standard 09:00, 13:00 und 15:30 Uhr, nur an Arbeitstagen in NRW). Es gelten dieselben Regeln wie auf der Website: Zuständigkeit, Fälligkeit, Zurückstellen und Feiertage.
    - **Neue Packmeldungen**, sofort beim Eingang. Diese bekommen nur Benutzer mit Bearbeitungsrecht.
-4. Beim Antippen öffnet sich eine Detailseite (`/assets/web-push/inbox.html`), die ohne Anmeldung lesbar ist. Erst „In ExportHUB öffnen“ führt in den geschützten Bereich.
+4. Der komplette Inhalt steht in der Benachrichtigung selbst (aufgeklappt: jede Aufgabe in einer Zeile). Sie ist nur zum Lesen da: Antippen schließt sie und öffnet weder die Website noch eine Bearbeitung. Die bisher empfangenen Nachrichten lassen sich in ExportHUB über „Empfangene Benachrichtigungen“ (`/assets/web-push/inbox.html`, ohne Login) nachlesen.
 5. Ausschalten geht in ExportHUB oder auf der Detailseite, auch ohne Login.
 
 Unterstützt werden Chrome, Edge und Firefox auf Android, Windows und Mac. Auf dem iPhone/iPad geht es ab iOS 16.4: ExportHUB in Safari über Teilen → „Zum Home-Bildschirm“ hinzufügen, über das neue Symbol öffnen und dort aktivieren. Die Android-Test-App (WebView) kann kein Web Push. Auf Android ExportHUB deshalb in Chrome öffnen und dort aktivieren.

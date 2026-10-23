@@ -1,0 +1,1259 @@
+{
+  "schema": "exporthub360.employee-sop.draft.v1",
+  "version": "0.1-draft",
+  "status": "requires-live-ui-review",
+  "languages": [
+    "de",
+    "en",
+    "pl",
+    "es",
+    "fr",
+    "it"
+  ],
+  "screenshots": "pending-original-website-screenshots",
+  "translationSource": "reviewed-editorial-draft",
+  "sops": {
+    "de": [
+      {
+        "id": "customers-create",
+        "title": "Kunden neu anlegen",
+        "steps": [
+          {
+            "stepId": "customers-open",
+            "order": 1,
+            "instruction": "Öffne die Kundenverwaltung in ExportHUB360.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customers-add",
+            "order": 2,
+            "instruction": "Wähle die Funktion für einen neuen Kunden. Prüfe vorher, ob der Kunde schon vorhanden ist.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customers-details",
+            "order": 3,
+            "instruction": "Trage die Kundennummer, den Kundennamen und die benötigten Kontaktdaten ein.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customers-location",
+            "order": 4,
+            "instruction": "Erfasse den Empfänger beziehungsweise Standort mit vollständiger Adresse.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customers-verify",
+            "order": 5,
+            "instruction": "Prüfe alle Angaben, speichere den Kunden und öffne ihn erneut zur Kontrolle.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          }
+        ]
+      },
+      {
+        "id": "customers-edit",
+        "title": "Bestehenden Kunden ändern",
+        "steps": [
+          {
+            "stepId": "customer-find",
+            "order": 1,
+            "instruction": "Öffne die Kundenverwaltung und suche nach Name oder Kundennummer.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customer-select",
+            "order": 2,
+            "instruction": "Wähle den richtigen Kunden und kontrolliere die angezeigte Kundennummer.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customer-change",
+            "order": 3,
+            "instruction": "Öffne die Bearbeitung und ändere nur die benötigten Stamm- oder Kontaktdaten.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customer-check",
+            "order": 4,
+            "instruction": "Kontrolliere Standort, Empfänger und Sondervorgaben. Vorhandene richtige Daten dürfen nicht überschrieben werden.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customer-save",
+            "order": 5,
+            "instruction": "Speichere und öffne den Kunden erneut. Prüfe, ob die Änderung übernommen wurde.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          }
+        ]
+      },
+      {
+        "id": "abd-manual",
+        "title": "ABD manuell erstellen",
+        "steps": [
+          {
+            "stepId": "abd-open",
+            "order": 1,
+            "instruction": "Öffne den Exportexperten beziehungsweise den ABD-Bereich.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "abd-select-manual",
+            "order": 2,
+            "instruction": "Wähle „Manuell erstellen“ statt der Übernahme aus einer vorhandenen Sendung.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "abd-enter-invoice",
+            "order": 3,
+            "instruction": "Übernimm die Angaben aus Rechnung und Versandunterlagen. Prüfe Absender, Empfänger, Währung und Warenwert.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "abd-group-goods",
+            "order": 4,
+            "instruction": "Fasse die Waren für die Zollaufstellung nach HS-Code, Ursprungsland und Warenwert zusammen. Kontrolliere die Einzelwerte.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "abd-check-save",
+            "order": 5,
+            "instruction": "Prüfe die ABD-Pflicht und speichere die Anfrage. Ergänze die ABD-Referenz und später den Ausgangsvermerk, sobald sie vorliegen.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          }
+        ]
+      },
+      {
+        "id": "pickup-qr-reopen",
+        "title": "QR-Code einer Abholung erneut öffnen",
+        "steps": [
+          {
+            "stepId": "qr-find",
+            "order": 1,
+            "instruction": "Öffne die Sendungsübersicht. Lege dabei keine neue Sendung an.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "qr-open-shipment",
+            "order": 2,
+            "instruction": "Suche die Sendung mit der Referenz und prüfe, dass es die richtige Sendung ist.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "qr-open-existing",
+            "order": 3,
+            "instruction": "Öffne die vorhandene QR-Abholung beziehungsweise den bereits erstellten Abhol-Link.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "qr-check-availability",
+            "order": 4,
+            "instruction": "Prüfe, ob der QR-Code angezeigt wird und ob der vorhandene Link noch gültig ist.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "qr-leave-state",
+            "order": 5,
+            "instruction": "Verändere den Sendungsstatus nicht. Erzeuge keinen neuen QR-Code, wenn der bestehende nur erneut angezeigt werden soll.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          }
+        ]
+      },
+      {
+        "id": "documents-reprint",
+        "title": "Ladepapiere nachdrucken",
+        "steps": [
+          {
+            "stepId": "print-open",
+            "order": 1,
+            "instruction": "Öffne die Ladeliste beziehungsweise die Funktion zum Drucken der Sendungsdokumente.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "print-find",
+            "order": 2,
+            "instruction": "Scanne den vorgesehenen Druck-QR-Code oder gib die Sendungsreferenz ein.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "print-check-documents",
+            "order": 3,
+            "instruction": "Prüfe den Dokumentensatz: Deckblatt, Ladeliste und Lieferscheine; CMR und ABD nur, wenn für die Sendung erforderlich.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "print-preview",
+            "order": 4,
+            "instruction": "Kontrolliere in der Druckvorschau die Seitenaufteilung: QR-Code auf dem Deckblatt, lesbare Lieferscheinnummern und keine Überlappungen.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "print-once",
+            "order": 5,
+            "instruction": "Drucke den benötigten Satz über den hinterlegten Standarddrucker. Vermeide doppelte Druckaufträge.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          }
+        ]
+      }
+    ],
+    "en": [
+      {
+        "id": "customers-create",
+        "title": "Create a customer",
+        "steps": [
+          {
+            "stepId": "customers-open",
+            "order": 1,
+            "instruction": "Open customer management in ExportHUB360.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customers-add",
+            "order": 2,
+            "instruction": "Choose the option to add a customer. First check whether this customer already exists.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customers-details",
+            "order": 3,
+            "instruction": "Enter the customer number, customer name and required contact details.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customers-location",
+            "order": 4,
+            "instruction": "Add the recipient or site with the complete address.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customers-verify",
+            "order": 5,
+            "instruction": "Review the information, save the customer and reopen the record to confirm it.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          }
+        ]
+      },
+      {
+        "id": "customers-edit",
+        "title": "Edit an existing customer",
+        "steps": [
+          {
+            "stepId": "customer-find",
+            "order": 1,
+            "instruction": "Open customer management and search by name or customer number.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customer-select",
+            "order": 2,
+            "instruction": "Select the correct customer and verify the displayed customer number.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customer-change",
+            "order": 3,
+            "instruction": "Open editing and change only the necessary master data or contact information.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customer-check",
+            "order": 4,
+            "instruction": "Check the site, recipient and special instructions. Do not overwrite information that is already correct.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customer-save",
+            "order": 5,
+            "instruction": "Save and reopen the customer. Confirm that the changes were retained.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          }
+        ]
+      },
+      {
+        "id": "abd-manual",
+        "title": "Create an export declaration manually",
+        "steps": [
+          {
+            "stepId": "abd-open",
+            "order": 1,
+            "instruction": "Open Export Expert or the export-declaration area.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "abd-select-manual",
+            "order": 2,
+            "instruction": "Select Create manually instead of importing an existing shipment.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "abd-enter-invoice",
+            "order": 3,
+            "instruction": "Enter information from the invoice and shipping documents. Verify sender, recipient, currency and goods value.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "abd-group-goods",
+            "order": 4,
+            "instruction": "Group the customs goods by HS code, country of origin and goods value. Check the amounts.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "abd-check-save",
+            "order": 5,
+            "instruction": "Confirm whether a declaration is required and save the request. Add its reference and the export confirmation when available.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          }
+        ]
+      },
+      {
+        "id": "pickup-qr-reopen",
+        "title": "Reopen an existing pickup QR code",
+        "steps": [
+          {
+            "stepId": "qr-find",
+            "order": 1,
+            "instruction": "Open the shipment overview. Do not create a new shipment.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "qr-open-shipment",
+            "order": 2,
+            "instruction": "Find the shipment by reference and verify that you have the correct record.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "qr-open-existing",
+            "order": 3,
+            "instruction": "Open the existing pickup QR code or previously generated pickup link.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "qr-check-availability",
+            "order": 4,
+            "instruction": "Check that the QR code is visible and the existing link remains valid.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "qr-leave-state",
+            "order": 5,
+            "instruction": "Do not change the shipment status. Do not generate a replacement QR code when the existing one only needs to be displayed again.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          }
+        ]
+      },
+      {
+        "id": "documents-reprint",
+        "title": "Reprint shipping documents",
+        "steps": [
+          {
+            "stepId": "print-open",
+            "order": 1,
+            "instruction": "Open the loading list or shipment-document printing function.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "print-find",
+            "order": 2,
+            "instruction": "Scan the designated printing QR code or enter the shipment reference.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "print-check-documents",
+            "order": 3,
+            "instruction": "Check the document set: cover sheet, loading list and delivery notes; CMR and export declaration only when required.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "print-preview",
+            "order": 4,
+            "instruction": "Inspect the print preview: QR code on the cover sheet, readable delivery-note numbers and no overlapping elements.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "print-once",
+            "order": 5,
+            "instruction": "Print the required set using the configured default printer. Avoid duplicate print jobs.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          }
+        ]
+      }
+    ],
+    "pl": [
+      {
+        "id": "customers-create",
+        "title": "Dodawanie klienta",
+        "steps": [
+          {
+            "stepId": "customers-open",
+            "order": 1,
+            "instruction": "Otwórz zarządzanie klientami w ExportHUB360.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customers-add",
+            "order": 2,
+            "instruction": "Wybierz dodanie nowego klienta. Najpierw sprawdź, czy klient już istnieje.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customers-details",
+            "order": 3,
+            "instruction": "Wprowadź numer klienta, nazwę oraz wymagane dane kontaktowe.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customers-location",
+            "order": 4,
+            "instruction": "Dodaj odbiorcę lub lokalizację z pełnym adresem.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customers-verify",
+            "order": 5,
+            "instruction": "Sprawdź dane, zapisz klienta i otwórz rekord ponownie, aby go zweryfikować.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          }
+        ]
+      },
+      {
+        "id": "customers-edit",
+        "title": "Edycja istniejącego klienta",
+        "steps": [
+          {
+            "stepId": "customer-find",
+            "order": 1,
+            "instruction": "Otwórz zarządzanie klientami i wyszukaj po nazwie lub numerze klienta.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customer-select",
+            "order": 2,
+            "instruction": "Wybierz właściwego klienta i sprawdź wyświetlony numer.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customer-change",
+            "order": 3,
+            "instruction": "Otwórz edycję i zmień tylko wymagane dane podstawowe lub kontaktowe.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customer-check",
+            "order": 4,
+            "instruction": "Sprawdź lokalizację, odbiorcę i szczególne wymagania. Nie nadpisuj poprawnych danych.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customer-save",
+            "order": 5,
+            "instruction": "Zapisz i otwórz klienta ponownie. Sprawdź, czy zmiany zostały zachowane.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          }
+        ]
+      },
+      {
+        "id": "abd-manual",
+        "title": "Ręczne tworzenie zgłoszenia wywozowego",
+        "steps": [
+          {
+            "stepId": "abd-open",
+            "order": 1,
+            "instruction": "Otwórz Export Expert lub obszar zgłoszeń wywozowych ABD.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "abd-select-manual",
+            "order": 2,
+            "instruction": "Wybierz ręczne tworzenie zamiast przejęcia istniejącej wysyłki.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "abd-enter-invoice",
+            "order": 3,
+            "instruction": "Wpisz dane z faktury i dokumentów wysyłkowych. Sprawdź nadawcę, odbiorcę, walutę i wartość towaru.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "abd-group-goods",
+            "order": 4,
+            "instruction": "Zgrupuj towary według kodu HS, kraju pochodzenia i wartości. Sprawdź kwoty.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "abd-check-save",
+            "order": 5,
+            "instruction": "Sprawdź obowiązek zgłoszenia i zapisz wniosek. Dodaj numer referencyjny i potwierdzenie wywozu, gdy będą dostępne.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          }
+        ]
+      },
+      {
+        "id": "pickup-qr-reopen",
+        "title": "Ponowne otwieranie kodu QR odbioru",
+        "steps": [
+          {
+            "stepId": "qr-find",
+            "order": 1,
+            "instruction": "Otwórz przegląd przesyłek. Nie twórz nowej przesyłki.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "qr-open-shipment",
+            "order": 2,
+            "instruction": "Wyszukaj przesyłkę według referencji i upewnij się, że jest właściwa.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "qr-open-existing",
+            "order": 3,
+            "instruction": "Otwórz istniejący kod QR odbioru albo wcześniej utworzony link.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "qr-check-availability",
+            "order": 4,
+            "instruction": "Sprawdź wyświetlanie kodu QR i ważność istniejącego linku.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "qr-leave-state",
+            "order": 5,
+            "instruction": "Nie zmieniaj statusu przesyłki. Nie twórz nowego kodu QR, jeśli trzeba tylko ponownie pokazać obecny.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          }
+        ]
+      },
+      {
+        "id": "documents-reprint",
+        "title": "Ponowny wydruk dokumentów wysyłkowych",
+        "steps": [
+          {
+            "stepId": "print-open",
+            "order": 1,
+            "instruction": "Otwórz listę załadunkową lub funkcję drukowania dokumentów przesyłki.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "print-find",
+            "order": 2,
+            "instruction": "Zeskanuj kod QR do drukowania albo wpisz referencję przesyłki.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "print-check-documents",
+            "order": 3,
+            "instruction": "Sprawdź komplet dokumentów: stronę tytułową, listę załadunkową i dokumenty dostawy; CMR i ABD tylko gdy są wymagane.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "print-preview",
+            "order": 4,
+            "instruction": "Sprawdź podgląd: kod QR na stronie tytułowej, czytelne numery dokumentów oraz brak nakładania się elementów.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "print-once",
+            "order": 5,
+            "instruction": "Wydrukuj wymagany komplet na domyślnej drukarce. Unikaj podwójnego drukowania.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          }
+        ]
+      }
+    ],
+    "es": [
+      {
+        "id": "customers-create",
+        "title": "Crear un cliente",
+        "steps": [
+          {
+            "stepId": "customers-open",
+            "order": 1,
+            "instruction": "Abre la gestión de clientes en ExportHUB360.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customers-add",
+            "order": 2,
+            "instruction": "Selecciona la opción de crear un cliente. Antes, comprueba que no exista.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customers-details",
+            "order": 3,
+            "instruction": "Introduce el número, el nombre del cliente y los datos de contacto necesarios.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customers-location",
+            "order": 4,
+            "instruction": "Añade el destinatario o la ubicación con la dirección completa.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customers-verify",
+            "order": 5,
+            "instruction": "Revisa los datos, guarda el cliente y vuelve a abrirlo para comprobarlos.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          }
+        ]
+      },
+      {
+        "id": "customers-edit",
+        "title": "Modificar un cliente",
+        "steps": [
+          {
+            "stepId": "customer-find",
+            "order": 1,
+            "instruction": "Abre la gestión de clientes y busca por nombre o número.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customer-select",
+            "order": 2,
+            "instruction": "Selecciona el cliente correcto y verifica su número.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customer-change",
+            "order": 3,
+            "instruction": "Abre la edición y modifica solo los datos maestros o de contacto necesarios.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customer-check",
+            "order": 4,
+            "instruction": "Comprueba la ubicación, el destinatario y las instrucciones especiales. No sobrescribas datos correctos.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customer-save",
+            "order": 5,
+            "instruction": "Guarda y vuelve a abrir el cliente. Verifica que los cambios se hayan conservado.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          }
+        ]
+      },
+      {
+        "id": "abd-manual",
+        "title": "Crear manualmente una declaración de exportación",
+        "steps": [
+          {
+            "stepId": "abd-open",
+            "order": 1,
+            "instruction": "Abre Export Expert o el área de declaraciones de exportación ABD.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "abd-select-manual",
+            "order": 2,
+            "instruction": "Selecciona la creación manual en lugar de importar un envío existente.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "abd-enter-invoice",
+            "order": 3,
+            "instruction": "Introduce los datos de la factura y los documentos de envío. Comprueba remitente, destinatario, moneda y valor.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "abd-group-goods",
+            "order": 4,
+            "instruction": "Agrupa las mercancías por código HS, país de origen y valor. Comprueba los importes.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "abd-check-save",
+            "order": 5,
+            "instruction": "Verifica si se requiere la declaración y guarda la solicitud. Añade la referencia y el justificante de salida cuando estén disponibles.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          }
+        ]
+      },
+      {
+        "id": "pickup-qr-reopen",
+        "title": "Volver a abrir un código QR de recogida",
+        "steps": [
+          {
+            "stepId": "qr-find",
+            "order": 1,
+            "instruction": "Abre el resumen de envíos. No crees un envío nuevo.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "qr-open-shipment",
+            "order": 2,
+            "instruction": "Busca el envío por referencia y comprueba que sea el correcto.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "qr-open-existing",
+            "order": 3,
+            "instruction": "Abre el código QR de recogida existente o el enlace generado anteriormente.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "qr-check-availability",
+            "order": 4,
+            "instruction": "Comprueba que se muestra el QR y que el enlace sigue siendo válido.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "qr-leave-state",
+            "order": 5,
+            "instruction": "No cambies el estado del envío. No generes otro QR cuando solo sea necesario volver a mostrar el existente.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          }
+        ]
+      },
+      {
+        "id": "documents-reprint",
+        "title": "Reimprimir documentos de envío",
+        "steps": [
+          {
+            "stepId": "print-open",
+            "order": 1,
+            "instruction": "Abre la lista de carga o la función de impresión de documentos de envío.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "print-find",
+            "order": 2,
+            "instruction": "Escanea el QR de impresión previsto o introduce la referencia del envío.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "print-check-documents",
+            "order": 3,
+            "instruction": "Comprueba los documentos: portada, lista de carga y albaranes; CMR y ABD solo cuando correspondan.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "print-preview",
+            "order": 4,
+            "instruction": "Revisa la vista previa: QR en la portada, números legibles de albaranes y sin elementos superpuestos.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "print-once",
+            "order": 5,
+            "instruction": "Imprime el juego necesario con la impresora predeterminada. Evita impresiones duplicadas.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          }
+        ]
+      }
+    ],
+    "fr": [
+      {
+        "id": "customers-create",
+        "title": "Créer un client",
+        "steps": [
+          {
+            "stepId": "customers-open",
+            "order": 1,
+            "instruction": "Ouvrez la gestion des clients dans ExportHUB360.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customers-add",
+            "order": 2,
+            "instruction": "Choisissez la création d’un client. Vérifiez d’abord qu’il n’existe pas déjà.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customers-details",
+            "order": 3,
+            "instruction": "Saisissez le numéro, le nom du client et les coordonnées nécessaires.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customers-location",
+            "order": 4,
+            "instruction": "Ajoutez le destinataire ou le site avec l’adresse complète.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customers-verify",
+            "order": 5,
+            "instruction": "Vérifiez les données, enregistrez le client puis rouvrez sa fiche pour contrôle.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          }
+        ]
+      },
+      {
+        "id": "customers-edit",
+        "title": "Modifier un client existant",
+        "steps": [
+          {
+            "stepId": "customer-find",
+            "order": 1,
+            "instruction": "Ouvrez la gestion des clients et recherchez par nom ou numéro.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customer-select",
+            "order": 2,
+            "instruction": "Sélectionnez le bon client et vérifiez son numéro.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customer-change",
+            "order": 3,
+            "instruction": "Ouvrez la modification et ne changez que les données ou coordonnées nécessaires.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customer-check",
+            "order": 4,
+            "instruction": "Vérifiez le site, le destinataire et les consignes particulières. Ne remplacez pas les données déjà correctes.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customer-save",
+            "order": 5,
+            "instruction": "Enregistrez et rouvrez la fiche du client. Vérifiez que les modifications sont conservées.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          }
+        ]
+      },
+      {
+        "id": "abd-manual",
+        "title": "Créer manuellement une déclaration d’exportation",
+        "steps": [
+          {
+            "stepId": "abd-open",
+            "order": 1,
+            "instruction": "Ouvrez Export Expert ou la rubrique des déclarations ABD.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "abd-select-manual",
+            "order": 2,
+            "instruction": "Choisissez la création manuelle plutôt que la reprise d’un envoi existant.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "abd-enter-invoice",
+            "order": 3,
+            "instruction": "Saisissez les données de la facture et des documents de transport. Vérifiez expéditeur, destinataire, devise et valeur.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "abd-group-goods",
+            "order": 4,
+            "instruction": "Regroupez les marchandises par code SH, pays d’origine et valeur. Vérifiez les montants.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "abd-check-save",
+            "order": 5,
+            "instruction": "Vérifiez si une déclaration est obligatoire et enregistrez la demande. Ajoutez la référence et la preuve de sortie dès leur disponibilité.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          }
+        ]
+      },
+      {
+        "id": "pickup-qr-reopen",
+        "title": "Rouvrir le code QR d’un enlèvement",
+        "steps": [
+          {
+            "stepId": "qr-find",
+            "order": 1,
+            "instruction": "Ouvrez la liste des envois. Ne créez pas un nouvel envoi.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "qr-open-shipment",
+            "order": 2,
+            "instruction": "Recherchez l’envoi par référence et vérifiez que la fiche est correcte.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "qr-open-existing",
+            "order": 3,
+            "instruction": "Ouvrez le code QR d’enlèvement existant ou le lien déjà créé.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "qr-check-availability",
+            "order": 4,
+            "instruction": "Vérifiez que le QR s’affiche et que le lien existant est toujours valide.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "qr-leave-state",
+            "order": 5,
+            "instruction": "Ne modifiez pas le statut de l’envoi. Ne générez pas un nouveau QR s’il suffit d’afficher l’ancien.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          }
+        ]
+      },
+      {
+        "id": "documents-reprint",
+        "title": "Réimprimer les documents d’expédition",
+        "steps": [
+          {
+            "stepId": "print-open",
+            "order": 1,
+            "instruction": "Ouvrez la liste de chargement ou la fonction d’impression des documents d’envoi.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "print-find",
+            "order": 2,
+            "instruction": "Scannez le QR d’impression prévu ou saisissez la référence de l’envoi.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "print-check-documents",
+            "order": 3,
+            "instruction": "Contrôlez le dossier : page de garde, liste de chargement et bons de livraison ; CMR et ABD uniquement si nécessaires.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "print-preview",
+            "order": 4,
+            "instruction": "Vérifiez l’aperçu : QR sur la page de garde, numéros de bons lisibles, aucun chevauchement.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "print-once",
+            "order": 5,
+            "instruction": "Imprimez l’exemplaire nécessaire sur l’imprimante par défaut. Évitez les impressions en double.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          }
+        ]
+      }
+    ],
+    "it": [
+      {
+        "id": "customers-create",
+        "title": "Creare un cliente",
+        "steps": [
+          {
+            "stepId": "customers-open",
+            "order": 1,
+            "instruction": "Apri la gestione clienti in ExportHUB360.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customers-add",
+            "order": 2,
+            "instruction": "Seleziona la creazione di un nuovo cliente. Verifica prima che non esista già.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customers-details",
+            "order": 3,
+            "instruction": "Inserisci il numero, il nome del cliente e i dati di contatto necessari.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customers-location",
+            "order": 4,
+            "instruction": "Aggiungi il destinatario o la sede con l’indirizzo completo.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customers-verify",
+            "order": 5,
+            "instruction": "Controlla i dati, salva il cliente e riapri la scheda per verificarli.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          }
+        ]
+      },
+      {
+        "id": "customers-edit",
+        "title": "Modificare un cliente esistente",
+        "steps": [
+          {
+            "stepId": "customer-find",
+            "order": 1,
+            "instruction": "Apri la gestione clienti e cerca per nome o numero.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customer-select",
+            "order": 2,
+            "instruction": "Seleziona il cliente corretto e verifica il numero visualizzato.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customer-change",
+            "order": 3,
+            "instruction": "Apri la modifica e cambia solo i dati anagrafici o di contatto necessari.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customer-check",
+            "order": 4,
+            "instruction": "Controlla sede, destinatario e istruzioni speciali. Non sovrascrivere i dati già corretti.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "customer-save",
+            "order": 5,
+            "instruction": "Salva e riapri il cliente. Verifica che le modifiche siano state mantenute.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          }
+        ]
+      },
+      {
+        "id": "abd-manual",
+        "title": "Creare manualmente una dichiarazione di esportazione",
+        "steps": [
+          {
+            "stepId": "abd-open",
+            "order": 1,
+            "instruction": "Apri Export Expert o l’area delle dichiarazioni ABD.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "abd-select-manual",
+            "order": 2,
+            "instruction": "Seleziona la creazione manuale anziché importare una spedizione esistente.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "abd-enter-invoice",
+            "order": 3,
+            "instruction": "Inserisci i dati da fattura e documenti di spedizione. Controlla mittente, destinatario, valuta e valore.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "abd-group-goods",
+            "order": 4,
+            "instruction": "Raggruppa le merci per codice HS, paese d’origine e valore. Verifica gli importi.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "abd-check-save",
+            "order": 5,
+            "instruction": "Verifica se la dichiarazione è obbligatoria e salva la richiesta. Aggiungi riferimento e prova di uscita quando disponibili.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          }
+        ]
+      },
+      {
+        "id": "pickup-qr-reopen",
+        "title": "Riaprire il codice QR di un ritiro",
+        "steps": [
+          {
+            "stepId": "qr-find",
+            "order": 1,
+            "instruction": "Apri l’elenco delle spedizioni.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "qr-open-shipment",
+            "order": 2,
+            "instruction": "Cerca la spedizione tramite riferimento e verifica che sia quella corretta.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "qr-open-existing",
+            "order": 3,
+            "instruction": "Apri il codice QR di ritiro esistente o il collegamento già creato.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "qr-check-availability",
+            "order": 4,
+            "instruction": "Controlla che il QR sia visibile e il collegamento sia ancora valido.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "qr-leave-state",
+            "order": 5,
+            "instruction": "Non modificare lo stato della spedizione. Non generare un nuovo QR se devi soltanto visualizzare quello esistente.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          }
+        ]
+      },
+      {
+        "id": "documents-reprint",
+        "title": "Ristampare i documenti di spedizione",
+        "steps": [
+          {
+            "stepId": "print-open",
+            "order": 1,
+            "instruction": "Apri la lista di carico o la funzione di stampa dei documenti.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "print-find",
+            "order": 2,
+            "instruction": "Scansiona il codice QR previsto per la stampa oppure inserisci il riferimento della spedizione.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "print-check-documents",
+            "order": 3,
+            "instruction": "Verifica i documenti: copertina, lista di carico e documenti di consegna; CMR e ABD solo quando richiesti.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "print-preview",
+            "order": 4,
+            "instruction": "Controlla l’anteprima: QR sulla copertina, numeri di consegna leggibili e nessuna sovrapposizione.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          },
+          {
+            "stepId": "print-once",
+            "order": 5,
+            "instruction": "Stampa la serie necessaria usando la stampante predefinita. Evita stampe duplicate.",
+            "uiTargetVerified": false,
+            "screenshotVerified": false
+          }
+        ]
+      }
+    ]
+  }
+}

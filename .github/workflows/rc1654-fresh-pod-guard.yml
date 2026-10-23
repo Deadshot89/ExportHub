@@ -1,0 +1,33 @@
+name: RC1654 Fresh Shipment Status P0
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'api/shared/merge.js'
+      - 'scripts/rc1470-new-shipment-clean-slate-hotfix.mjs'
+      - 'test/rc1654-fresh-shipment-pod-guard.test.mjs'
+      - '.github/workflows/rc1654-fresh-pod-guard.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: Validate runtime and transformation syntax
+        run: |
+          node --check api/shared/merge.js
+          node --check scripts/rc1470-new-shipment-clean-slate-hotfix.mjs
+      - name: New shipment and historical status regression
+        run: node --test test/rc1654-fresh-shipment-pod-guard.test.mjs test/rc1603-pod-status-merge-tie.test.mjs
+      - name: Whitespace validation
+        run: git diff --check

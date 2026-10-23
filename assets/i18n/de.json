@@ -1956,5 +1956,8 @@
   "legacyPattern.shipmentN": "{{count}} Sendung",
   "legacyPattern.warehouseSummary": "{{count}} Sendungen · {{pallets}} Paletten · {{parcels}} Pakete",
   "legacyPattern.loadingListPdf": "Ladeliste {{count}} als PDF herunterladen",
-  "legacyUi.shell.savingToAzure": "Speicherung in Azure läuft …"
+  "legacyUi.shell.savingToAzure": "Speicherung in Azure läuft …",
+  "abd.invoice.logo": "Essentra-Logo (PNG/JPG, optional)",
+  "abd.invoice.logoLoaded": "Firmenlogo übernommen.",
+  "abd.invoice.logoInvalid": "Bitte eine gültige PNG- oder JPG-Datei bis 300 KB auswählen."
 }

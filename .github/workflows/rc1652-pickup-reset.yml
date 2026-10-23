@@ -1,0 +1,32 @@
+name: RC1652 Pickup Reset Regression
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'api/pickup-init/index.js'
+      - 'test/rc1516-pickup-reset.test.mjs'
+      - 'test/rc1516-pickup-reset-behavior.test.mjs'
+      - 'test/rc1652-pickup-reset-authoritative-colli.test.mjs'
+      - '.github/workflows/rc1652-pickup-reset.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          package-manager-cache: false
+      - name: Verify authenticated pickup-reset runtime
+        run: node --check api/pickup-init/index.js
+      - name: Confirmed QR reset regressions
+        run: node --test test/rc1516-pickup-reset.test.mjs test/rc1516-pickup-reset-behavior.test.mjs test/rc1652-pickup-reset-authoritative-colli.test.mjs
+      - name: Diff whitespace check
+        run: git diff --check

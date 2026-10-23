@@ -57,8 +57,16 @@ test('RC1630: all generated Azure environments receive the assets and links',()=
   assert.match(build,/function patchRc1630LoginVisuals\(html,file\)/);
   assert.match(build,/html=patchRc1630LoginVisuals\(html,file\)/);
   assert.match(build,/rc1630-login-experience\.css\?v=1630/);
-  assert.match(build,/rc1630-login-experience\.js\?v=1630/);
+  assert.match(build,/rc1630-login-experience\.js\?v=1631/);
   for(const file of ['rc1630-login-experience.css','rc1630-login-experience.js','rc1630-login-route.svg']){
     assert.ok(build.includes("'assets/"+file+"'"),file+' must be copied into each build');
   }
+});
+test('RC1630: login enhancement applies while parsing, not after DOMContentLoaded',()=>{
+  // A deferred script only runs after the whole multi-MB page is parsed, so the old login stayed visible.
+  const tag=/<script id="exporthub-rc1630-login-script"[^>]*>/.exec(build);
+  assert.ok(tag,'RC1630 login script tag missing');
+  assert.doesNotMatch(tag[0],/\b(defer|async)\b/);
+  assert.match(runtime,/function loginParsed\(\)/);
+  assert.match(runtime,/new MutationObserver\(function\(\)\{\s*if\(!loginParsed\(\)\)return;/);
 });

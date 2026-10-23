@@ -1,0 +1,225 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url);
+const {mergeState}=require('../api/shared/merge.js');
+
+const newShipment=(ref, extra={})=>({
+ id:'NEW-'+ref,ref,reference:ref,status:'POD vorhanden',processStatus:'POD vorhanden',
+ customerName:'Internal test customer',rows:[{count:2}],createdAt:'2026-10-23T13:00:00Z',
+ ...extra
+});
+function find(state,collection,ref){return state[collection].find(sh=>sh.ref===ref)}
+
+test('P0: unknown new shipment without pickup stays Erstellt, never POD vorhanden',()=>{
+ const incoming={shipments:[newShipment('ZZ0001',{podAvailable:true,podConfirmed:true})]};
+ const original=JSON.stringify(incoming);
+ const merged=mergeState({shipments:[],savedShipments:[]},incoming);
+ const sh=find(merged,'shipments','ZZ0001');
+ assert.equal(sh.status,'Erstellt');
+ assert.equal(sh.processStatus,'Erstellt');
+ assert.equal(sh.shipmentStatus,'Erstellt');
+ assert.equal(sh.podAvailable,false);
+ assert.equal(sh.podConfirmed,false);
+ assert.equal(sh.podStatusCorrection,'FRESH_POD_WITHOUT_PICKUP_EVIDENCE');
+ assert.equal(JSON.stringify(incoming),original,'do not mutate incoming browser copy');
+});
+
+test('P0: incoming savedShipments and shipments both enforce fresh status',()=>{
+ const merged=mergeState({},{
+  shipments:[newShipment('ZZ0002')],
+  savedShipments:[newShipment('ZZ0002',{status:'Erstellt',processStatus:'POD vorhanden'})]
+ });
+ assert.equal(find(merged,'shipments','ZZ0002').status,'Erstellt');
+ assert.equal(find(merged,'savedShipments','ZZ0002').processStatus,'Erstellt');
+});
+
+test('P0: unverified POD metadata stays quarantined for forensic review, not active',()=>{
+ const pdf={id:'original-ref',blobName:'archive/immutable-original.pdf'};
+ const sh=find(mergeState({}, {shipments:[newShipment('ZZ0003',{podFiles:[pdf]})]}),'shipments','ZZ0003');
+ assert.equal(sh.status,'Erstellt');
+ assert.equal(sh.podReviewRequired,true);
+ assert.equal(sh.podReviewReason,'POD_WITHOUT_PICKUP_EVIDENCE');
+ assert.deepEqual(sh.podFiles,[pdf],'never delete original file references');
+});
+
+test('P0: existing historical POD is not rewritten or downgraded',()=>{
+ const stored=newShipment('ZZ0004',{podFiles:[{id:'old',blobName:'old.pdf'}]});
+ const incoming=newShipment('ZZ0004',{updatedAt:'2026-10-23T13:01:00Z'});
+ const merged=mergeState({shipments:[stored]}, {shipments:[incoming]});
+ assert.equal(find(merged,'shipments','ZZ0004').status,'POD vorhanden');
+});
+
+test('P0: a persisted reference in a different collection is not wrongly treated as new',()=>{
+ const old=newShipment('ZZ0005');
+ const merged=mergeState({shipments:[old]}, {savedShipments:[newShipment('ZZ0005')]});
+ assert.equal(find(merged,'savedShipments','ZZ0005').status,'POD vorhanden');
+});
+
+test('P0: true pickup record with stored signature retains valid POD status',()=>{
+ const record=newShipment('ZZ0006',{pickupHistory:[{confirmedAt:'2026-10-23T11:02:00Z',signatureBlobName:'proof.png'}],
+  podFiles:[{id:'pod',blobName:'immutable.pdf'}]});
+ const merged=mergeState({}, {shipments:[record]});
+ assert.equal(find(merged,'shipments','ZZ0006').status,'POD vorhanden');
+});
+
+test('P0: a regular new order without POD status is unaffected',()=>{
+ const record=newShipment('ZZ0007',{status:'Entwurf',processStatus:'Entwurf',podFiles:[]});
+ assert.equal(find(mergeState({}, {shipments:[record]}),'shipments','ZZ0007').status,'Entwurf');
+});
+
+test('P0: fresh shipment helper clears processStatus, pickup and POD evidence from previous editor',()=>{
+ const src=fs.readFileSync('scripts/rc1470-new-shipment-clean-slate-hotfix.mjs','utf8');
+ const anchor=src.indexOf('var rc1470FreshDefaults={');
+ assert.ok(anchor>=0,'fresh initialization must define explicit clean defaults');
+ const end=src.indexOf('};Object.assign(sh,rc1470FreshDefaults)',anchor);
+ assert.ok(end>anchor,'fresh defaults must be applied to the new record');
+ const defaults=src.slice(anchor,end);
+ const mustClear=[
+  "status:'Entwurf'","processStatus:'Entwurf'","shipmentStatus:'Entwurf'",
+  'podFiles:[]','podBackup:{}','podAvailable:false','podConfirmed:false','hasPod:false',
+  'pickupHistory:[]','pickupToken:\'\'','pickupAccessKeyHash:\'\'',
+  'pickupConfirmed:false','qrPickupConfirmed:false','pickupQrUsed:false',
+  'actualPickupDate:\'\'','signatureAvailable:false','subShipments:[]','driverSignature:\'\'',
+  'podReviewRequired:false'
+ ];
+ for(const v of mustClear)assert.ok(defaults.includes(v),'fresh default missing '+v);
+});
+
+test('P0: a second stale POD browser write cannot re-promote a freshly corrected shipment',()=>{
+ const first=mergeState({}, {shipments:[newShipment('ZZ0008',{podFiles:[{id:'stale',blobName:'original.pdf'}]})]});
+ const second=mergeState(first, {shipments:[newShipment('ZZ0008',{updatedAt:'2026-10-23T14:05:00Z',
+  podAvailable:true,podReviewRequired:false})]});
+ const sh=find(second,'shipments','ZZ0008');
+ assert.equal(sh.status,'Erstellt');
+ assert.equal(sh.processStatus,'Erstellt');
+ assert.equal(sh.podAvailable,false);
+ assert.equal(sh.podReviewRequired,true);
+ assert.equal(sh.podStatusCorrection,'FRESH_POD_WITHOUT_PICKUP_EVIDENCE');
+});
+
+test('P0: quarantined fresh shipment may normally progress to Bereit zur Abholung',()=>{
+ const first=mergeState({}, {shipments:[newShipment('ZZ0009')]});
+ const next=mergeState(first, {shipments:[newShipment('ZZ0009',{status:'Bereit zur Abholung',
+  processStatus:'Bereit zur Abholung',updatedAt:'2026-10-23T14:10:00Z',readyForPickup:true})]});
+ const sh=find(next,'shipments','ZZ0009');
+ assert.equal(sh.status,'Bereit zur Abholung');
+ assert.equal(sh.processStatus,'Bereit zur Abholung');
+});
+
+test('P0: an Erstellt shipment cannot be promoted to POD by a later browser save',()=>{
+ const first={shipments:[{id:'NEW-LATE1',ref:'LATE01',status:'Erstellt',processStatus:'Erstellt',
+   updatedAt:'2026-10-23T13:00:00Z',podFiles:[]}]};
+ const incoming={shipments:[{id:'NEW-LATE1',ref:'LATE01',status:'POD vorhanden',
+   processStatus:'POD vorhanden',updatedAt:'2026-10-23T13:01:00Z',
+   podAvailable:true,podConfirmed:true,podFiles:[{id:'unverified',blobName:'retain.pdf'}]}]};
+ const merged=mergeState(first,incoming),sh=find(merged,'shipments','LATE01');
+ assert.equal(sh.status,'Erstellt');
+ assert.equal(sh.processStatus,'Erstellt');
+ assert.equal(sh.podAvailable,false);
+ assert.equal(sh.podConfirmed,false);
+ assert.equal(sh.podReviewRequired,true);
+ assert.equal(sh.podStatusCorrection,'FRESH_POD_WITHOUT_PICKUP_EVIDENCE');
+ assert.equal(sh.podFiles[0].blobName,'retain.pdf','unverified file references remain for evidence');
+});
+
+test('P0: Bereit zur Abholung is protected against an unsigned follow-up POD status',()=>{
+ const first={savedShipments:[{id:'NEW-LATE2',ref:'LATE02',
+   status:'Bereit zur Abholung',processStatus:'Bereit zur Abholung',
+   updatedAt:'2026-10-23T13:00:00Z'}]};
+ const incoming={savedShipments:[{id:'NEW-LATE2',ref:'LATE02',status:'POD vorhanden',
+  processStatus:'POD vorhanden',updatedAt:'2026-10-23T13:01:00Z'}]};
+ const sh=find(mergeState(first,incoming),'savedShipments','LATE02');
+ assert.equal(sh.status,'Bereit zur Abholung');
+ assert.equal(sh.processStatus,'Bereit zur Abholung');
+});
+
+test('P0: confirmed signed pickup may legitimately promote a new saved shipment to POD',()=>{
+ const first={shipments:[{id:'NEW-LATE3',ref:'LATE03',status:'Erstellt',
+  processStatus:'Erstellt',updatedAt:'2026-10-23T13:00:00Z'}]};
+ const incoming={shipments:[{id:'NEW-LATE3',ref:'LATE03',status:'POD vorhanden',
+  processStatus:'POD vorhanden',updatedAt:'2026-10-23T13:01:00Z',
+  pickupHistory:[{confirmedAt:'2026-10-23T13:00:30Z',signatureBlobName:'original-signature.png'}],
+  podFiles:[{id:'original-pod',blobName:'original-pod.pdf'}]}]};
+ const sh=find(mergeState(first,incoming),'shipments','LATE03');
+ assert.equal(sh.status,'POD vorhanden');
+ assert.equal(sh.podFiles[0].blobName,'original-pod.pdf');
+});
+
+test('P0: existing historic POD without confirmation is not mass-downgraded on unrelated save',()=>{
+ const first={shipments:[{id:'HIST-1',ref:'HIST01',status:'POD vorhanden',
+  processStatus:'POD vorhanden',podFiles:[{id:'old-file',blobName:'immutable-historic.pdf'}]}]};
+ const incoming={shipments:[{id:'HIST-1',ref:'HIST01',status:'POD vorhanden',
+  processStatus:'POD vorhanden',updatedAt:'2026-10-23T13:02:00Z'}]};
+ const sh=find(mergeState(first,incoming),'shipments','HIST01');
+ assert.equal(sh.status,'POD vorhanden');
+ assert.equal(sh.podFiles[0].blobName,'immutable-historic.pdf');
+});
+
+test('P0: savedShipments Erstellt blocks phantom POD in a new shipments mirror copy',()=>{
+ const server={savedShipments:[{id:'NEW-CROSS1',ref:'CROSS1',
+  status:'Erstellt',processStatus:'Erstellt',updatedAt:'2026-10-23T11:00:00Z'}]};
+ const incoming={shipments:[{id:'NEW-CROSS1',ref:'CROSS1',
+  status:'POD vorhanden',processStatus:'POD vorhanden',
+  podConfirmed:true,podAvailable:true,updatedAt:'2026-10-23T11:01:00Z'}]};
+ const sh=find(mergeState(server,incoming),'shipments','CROSS1');
+ assert.equal(sh.status,'Erstellt');
+ assert.equal(sh.processStatus,'Erstellt');
+ assert.equal(sh.podConfirmed,false);
+});
+
+test('P0: shipments Bereit blocks unsigned savedShipments mirror POD without changing canonical',()=>{
+ const server={shipments:[{id:'NEW-CROSS2',ref:'CROSS2',
+  status:'Bereit zur Abholung',processStatus:'Bereit zur Abholung'}]};
+ const incoming={savedShipments:[{id:'NEW-CROSS2',ref:'CROSS2',
+  status:'POD vorhanden',processStatus:'POD vorhanden'}]};
+ const merged=mergeState(server,incoming);
+ assert.equal(find(merged,'savedShipments','CROSS2').status,'Bereit zur Abholung');
+ assert.equal(find(merged,'shipments','CROSS2').status,'Bereit zur Abholung');
+});
+
+test('P0: mismatched historical duplicate copies are preserved pending authorized forensics',()=>{
+ const server={shipments:[{id:'NEW-CROSS3',ref:'CROSS3',status:'Erstellt'}],
+ savedShipments:[{id:'NEW-CROSS3',ref:'CROSS3',status:'POD vorhanden',
+ podFiles:[{id:'original',blobName:'old/immutable.pdf'}]}]};
+ const incoming={shipments:[{id:'NEW-CROSS3',ref:'CROSS3',status:'POD vorhanden'}]};
+ const merged=mergeState(server,incoming);
+ assert.equal(find(merged,'savedShipments','CROSS3').status,'POD vorhanden');
+ assert.equal(find(merged,'savedShipments','CROSS3').podFiles[0].blobName,'old/immutable.pdf');
+});
+
+
+test('P0: recycled editor ID with a new REF must not bypass unsigned POD protection',()=>{
+ const historic={id:'REUSED-EDITOR-ID',ref:'ORIGINAL',
+   status:'POD vorhanden',processStatus:'POD vorhanden',
+   pickupHistory:[{confirmedAt:'2026-10-22T08:00:00Z',signatureBlobName:'original-sig.png'}],
+   podFiles:[{id:'original-proof',blobName:'proofs/original.pdf'}]};
+ const fresh={id:'REUSED-EDITOR-ID',ref:'NEWREF',
+   status:'POD vorhanden',processStatus:'POD vorhanden',podAvailable:true,
+   podConfirmed:true,createdAt:'2026-10-23T13:00:00Z'};
+ const input={savedShipments:[fresh]};
+ const originalInput=JSON.stringify(input);
+ const merged=mergeState({shipments:[historic]},input);
+ const created=find(merged,'savedShipments','NEWREF');
+ const old=find(merged,'shipments','ORIGINAL');
+ assert.equal(created.status,'Erstellt');
+ assert.equal(created.processStatus,'Erstellt');
+ assert.equal(created.podAvailable,false);
+ assert.equal(created.podConfirmed,false);
+ assert.equal(created.podStatusCorrection,'FRESH_POD_WITHOUT_PICKUP_EVIDENCE');
+ assert.equal(old.status,'POD vorhanden','real historical pickup remains unchanged');
+ assert.equal(old.podFiles[0].blobName,'proofs/original.pdf');
+ assert.equal(JSON.stringify(input),originalInput,'do not mutate incoming browser state');
+});
+
+test('P0: matching REF across collections stays recognized even when editor ID differs',()=>{
+ const prior={id:'ORIGINAL-ID',ref:'SAME01',status:'POD vorhanden',
+  pickupHistory:[{confirmedAt:'2026-10-22T08:00:00Z',signatureBlobName:'real.png'}],
+  podFiles:[{id:'historical',blobName:'real.pdf'}]};
+ const mirror={id:'NEW-EDITOR-ID',ref:'SAME01',status:'POD vorhanden',
+  processStatus:'POD vorhanden',podFiles:[{id:'historical',blobName:'real.pdf'}]};
+ const merged=mergeState({shipments:[prior]}, {savedShipments:[mirror]});
+ assert.equal(find(merged,'savedShipments','SAME01').status,'POD vorhanden');
+ assert.equal(find(merged,'shipments','SAME01').podFiles[0].blobName,'real.pdf');
+});

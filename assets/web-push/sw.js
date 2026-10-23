@@ -5,7 +5,7 @@
 
 try { importScripts('/assets/i18n/web-push.js?v=1701'); } catch (_) {}
 var i18n = self.ExportHUBWebPushI18n;
-function tt(key,lang){return i18n&&i18n.t?i18n.t(key,null,lang):key}
+function tt(key,lang,vars){return i18n&&i18n.t?i18n.t(key,vars||null,lang):key}
 var DB_NAME = 'exporthub-web-push';
 var STORE = 'messages';
 var KEEP = 60;
@@ -42,6 +42,14 @@ function sameOrigin(url, fallback) {
   try { var u = new URL(url || fallback, self.location.origin); return u.origin === self.location.origin ? u.href : new URL(fallback, self.location.origin).href; } catch (_) { return new URL(fallback, self.location.origin).href; }
 }
 
+// Every item in its own line, so the expanded notification shows the complete content.
+function fullBody(msg) {
+  if (!msg.items.length || msg.kind !== 'tasks') return msg.body;
+  var lines = msg.items.map(function (i) { return (msg.items.length > 1 ? '• ' : '') + String(i.title || '') + (i.meta ? ' · ' + i.meta : ''); });
+  if (msg.total > msg.items.length) lines.push(tt('serverMore', msg.language, { count: msg.total - msg.items.length }));
+  return lines.join('\n');
+}
+
 self.addEventListener('push', function (event) {
   var data = {};
   try { data = event.data ? event.data.json() : {}; } catch (_) { data = { body: event.data ? event.data.text() : '' }; }
@@ -62,32 +70,22 @@ self.addEventListener('push', function (event) {
   };
   event.waitUntil(saveMessage(msg).then(function () {
     return self.registration.showNotification(msg.title, {
-      body: msg.body,
+      body: fullBody(msg),
       icon: ICON,
       badge: BADGE,
       tag: String(data.tag || id),
       renotify: true,
       timestamp: Date.parse(msg.createdAt) || Date.now(),
-      data: { id: id, url: msg.url, open: msg.open },
-      actions: [{ action: 'details', title: tt('swDetails',msg.language) }, { action: 'open', title: tt('swOpen',msg.language) }]
+      // read-only: the notification shows everything and stays until it is swiped away; no buttons
+      requireInteraction: true,
+      data: { id: id }
     });
   }));
 });
 
+// Tapping only closes the notification: it is for reading, not for editing, and it never opens the website.
 self.addEventListener('notificationclick', function (event) {
-  var data = event.notification && event.notification.data || {};
-  event.notification.close();
-  var target = event.action === 'open' ? (data.open || '/') : (data.url || '/assets/web-push/inbox.html');
-  event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (list) {
-    for (var i = 0; i < list.length; i++) {
-      var c = list[i];
-      try {
-        var path = new URL(c.url).pathname;
-        if (path === new URL(target).pathname && 'focus' in c) return c.navigate ? c.navigate(target).then(function (w) { return w && w.focus(); }) : c.focus();
-      } catch (_) {}
-    }
-    return self.clients.openWindow(target);
-  }));
+  if (event.notification) event.notification.close();
 });
 
 // The push service rotated the subscription: register the new one with the old endpoint as proof.

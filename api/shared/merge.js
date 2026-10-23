@@ -813,6 +813,46 @@ function mergeShipmentProtected(serverItem, incomingItem) {
     out.processStatus = clone(chosenStatus);
   }
 
+  // P0: a stale browser must not re-promote a previously quarantined
+  // brand-new POD to completed while no authentic pickup was recorded.
+  // Normal readiness updates remain allowed; legacy records are not touched.
+  const previousStage = lower(serverItem.status || serverItem.processStatus);
+  const incomingWantsPod = [incomingItem.status, incomingItem.processStatus, incomingItem.shipmentStatus]
+    .some(v => ['pod vorhanden','pod available'].includes(lower(v)));
+  const prePickupStage = ['entwurf','erstellt','bereit zur abholung','wartet auf abd',
+    'draft','created','ready for pickup','waiting for abd'].includes(previousStage);
+  const unprovenPromotion = prePickupStage && incomingWantsPod &&
+    !hasPickupConfirmationEvidence(serverItem) && !hasPickupConfirmationEvidence(incomingItem);
+  if ((serverItem.podStatusCorrection === 'FRESH_POD_WITHOUT_PICKUP_EVIDENCE' ||
+       unprovenPromotion) &&
+      !hasPickupConfirmationEvidence(serverItem) && !hasPickupConfirmationEvidence(incomingItem)) {
+    out.podStatusCorrection = 'FRESH_POD_WITHOUT_PICKUP_EVIDENCE';
+    if (serverItem.podReviewRequired === true || (unprovenPromotion &&
+        Array.isArray(out.podFiles) && out.podFiles.length > 0)) {
+      out.podReviewRequired = true;
+      out.podReviewReason = 'POD_WITHOUT_PICKUP_EVIDENCE';
+    }
+    if (unprovenPromotion) {
+      out.podAvailable = false;
+      out.podConfirmed = false;
+      out.hasPod = false;
+      out.podServerVerified = false;
+    }
+    const resultStatus = lower(out.status || out.processStatus);
+    if (resultStatus === 'pod vorhanden' || resultStatus === 'pod available') {
+      const previousStatus = lower(serverItem.status || serverItem.processStatus);
+      const safe = (previousStatus && previousStatus !== 'pod vorhanden' && previousStatus !== 'pod available')
+        ? (serverItem.status || serverItem.processStatus) : 'Erstellt';
+      out.status = safe;
+      out.processStatus = safe;
+      out.shipmentStatus = safe;
+      out.podAvailable = false;
+      out.podConfirmed = false;
+      out.hasPod = false;
+      out.podServerVerified = false;
+    }
+  }
+
   // RC1338: Once multi-truck pickup is operational, the aggregate shipment
   // status must be derived from the protected sub-shipment state. A newer
   // stale browser snapshot may not roll "Teilweise abgeholt" back to "Erstellt".
@@ -917,9 +957,103 @@ function mergePlainObject(serverValue, incomingValue) {
   return out;
 }
 
+// P0: A brand-new shipment must not inherit a stale POD status from an
+// editor/template. This guard applies ONLY to previously unknown references.
+// Stored/historical shipments, attachments and original evidence are untouched.
+function hasPickupConfirmationEvidence(sh) {
+  if (!isObject(sh)) return false;
+  const histories = [
+    ...(Array.isArray(sh.pickupHistory) ? sh.pickupHistory : []),
+    ...(Array.isArray(sh.subShipments) ? sh.subShipments.flatMap(sub =>
+      Array.isArray(sub && sub.pickupHistory) ? sub.pickupHistory : []) : [])
+  ];
+  if (histories.some(h => isObject(h) && text(h.confirmedAt) &&
+    (text(h.signatureBlobName) || h.signatureStored === true))) return true;
+  const confirmedAt = text(sh.pickupConfirmedAt || sh.qrPickupConfirmedAt || sh.confirmedAt);
+  const signed = text(sh.signatureBlobName || sh.driverSignature || sh.pickupDriverSignature ||
+    sh.driverSignatureUrl || sh.pickupDriverSignatureUrl);
+  if (confirmedAt && signed) return true;
+  if (text(sh.manualPickupConfirmedAt) && text(sh.manualPickupConfirmedBy)) return true;
+  return false;
+}
+
+function protectFreshShipmentPodStatuses(server, incoming) {
+  if (!isObject(incoming)) return incoming;
+  const known = new Map();
+  for (const listName of ['shipments', 'savedShipments']) {
+    for (const sh of Array.isArray(server && server[listName]) ? server[listName] : []) {
+      const ref = text(sh && (sh.ref || sh.reference || sh.shipmentRef || sh.referenceNumber)).toUpperCase();
+      const id = text(sh && (sh.id || sh.shipmentId));
+      for (const key of [ref && 'ref:' + ref, id && 'id:' + id].filter(Boolean)) {
+        const existing = known.get(key) || [];
+        existing.push(sh);
+        known.set(key, existing);
+      }
+    }
+  }
+  let changed = false;
+  const out = Object.assign({}, incoming);
+  for (const listName of ['shipments', 'savedShipments']) {
+    const items = incoming[listName];
+    if (!Array.isArray(items)) continue;
+    out[listName] = items.map(sh => {
+      if (!isObject(sh)) return sh;
+      const ref = text(sh.ref || sh.reference || sh.shipmentRef || sh.referenceNumber).toUpperCase();
+      const id = text(sh.id || sh.shipmentId);
+      if (!ref && !id) return sh;
+      // A recycled editor ID is not evidence that a DIFFERENT shipment REF
+      // already exists. Only fall back to ID when either side lacks a REF,
+      // or when the references agree. Existing signed shipments stay intact.
+      const priorCopies = [
+        ...(ref && known.get('ref:' + ref) || []),
+        ...((id && known.get('id:' + id) || []).filter(existing => {
+          const existingRef = text(existing && (existing.ref || existing.reference ||
+            existing.shipmentRef || existing.referenceNumber)).toUpperCase();
+          return !ref || !existingRef || existingRef === ref;
+        }))
+      ];
+      const earlierStages = ['entwurf','erstellt','bereit zur abholung','wartet auf abd',
+        'draft','created','ready for pickup','waiting for abd'];
+      // A cross-collection copy (savedShipments -> shipments) is not a new
+      // shipment, but it still must not become a phantom POD after a second save.
+      // Inconsistent historical/picked-up copies require forensic review instead.
+      const prior = priorCopies.find(x => earlierStages.includes(lower(
+        x && (x.status || x.processStatus))));
+      const protectedHistory = priorCopies.some(x =>
+        hasPickupConfirmationEvidence(x) || ['abgeholt','pod vorhanden','abgeschlossen',
+          'archiviert','picked up','pod available','completed','archived'].includes(
+          lower(x && (x.status || x.processStatus))));
+      if (priorCopies.length && (!prior || protectedHistory)) return sh;
+      const statuses = [sh.status, sh.processStatus, sh.shipmentStatus].map(lower);
+      if (!statuses.some(status => status === 'pod vorhanden' || status === 'pod available')) return sh;
+      if (hasPickupConfirmationEvidence(sh)) return sh;
+      changed = true;
+      const corrected = clone(sh);
+      const safeStatus = prior ? (prior.status || prior.processStatus || 'Erstellt') : 'Erstellt';
+      corrected.status = safeStatus;
+      corrected.processStatus = safeStatus;
+      corrected.shipmentStatus = safeStatus;
+      corrected.podAvailable = false;
+      corrected.podConfirmed = false;
+      corrected.hasPod = false;
+      corrected.podServerVerified = false;
+      corrected.podStatus = '';
+      corrected.podStatusCorrection = 'FRESH_POD_WITHOUT_PICKUP_EVIDENCE';
+      // Do not destroy unverified file metadata: preserve it for an authorized
+      // investigator, but never treat such metadata as a valid POD.
+      if (Array.isArray(corrected.podFiles) && corrected.podFiles.length) {
+        corrected.podReviewRequired = true;
+        corrected.podReviewReason = 'POD_WITHOUT_PICKUP_EVIDENCE';
+      }
+      return corrected;
+    });
+  }
+  return changed ? out : incoming;
+}
+
 function mergeState(serverState, incomingState) {
   const server = isObject(serverState) ? serverState : {};
-  const incoming = isObject(incomingState) ? incomingState : {};
+  const incoming = protectFreshShipmentPodStatuses(server, isObject(incomingState) ? incomingState : {});
   const serverMeta = isObject(server._teamSyncMeta) ? server._teamSyncMeta : {};
   const incomingMeta = isObject(incoming._teamSyncMeta) ? incoming._teamSyncMeta : {};
   const mergedMeta = {

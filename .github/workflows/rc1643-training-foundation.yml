@@ -1,0 +1,23 @@
+name: RC1643 Native Training Foundation
+on:
+  pull_request:
+    paths:
+      - 'assets/training-center/**'
+      - 'api/shared/training-center.js'
+      - 'test/training-center-*.test.mjs'
+      - '.github/workflows/rc1643-training-foundation.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+      - name: Core syntax verification
+        run: |
+          for f in assets/training-center/*.js api/shared/training-center.js; do node --check "$f"; done
+      - name: No demo business data persists and legacy SOP stays unchanged
+        run: node --test test/training-center-model.test.mjs test/training-center-memory-state.test.mjs test/training-center-write-guard.test.mjs test/training-center-no-legacy-fallback.test.mjs test/rc1643-training-foundation-isolation.test.mjs
+      - name: Strict six-language audit
+        run: node scripts/i18n-audit.mjs --strict

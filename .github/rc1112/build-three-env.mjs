@@ -5,6 +5,7 @@ import {integrateTour} from '../rc1501/build-three-env.mjs';
 import {integrateEditor} from '../rc1502/build-three-env.mjs';
 import {integrateTraining} from '../rc1503/build-three-env.mjs';
 import {integrateCoverageAdmin} from '../rc1506/build-three-env.mjs';
+import {integrateAbdProforma} from '../rc1549/integrate-abd-proforma.mjs';
 import {fingerprintAssets} from '../asset-fingerprint/fingerprint-assets.mjs';
 import {patchRc1576StateBodyDeadline} from '../../scripts/rc1576-state-read-body-timeout.mjs';
 import {patchRc1619LargeStateWorkerParse} from '../../scripts/rc1619-large-state-worker-parse.mjs';
@@ -58,7 +59,7 @@ const RC1296_FAVICON_TAG='<link id="exporthub360-favicon" rel="icon" type="image
 const RC1304_THEME_STYLE_TAG='<link id="exporthub-rc1304-theme-style" rel="stylesheet" href="/assets/rc1304-theme-switcher.css?v=1306">';
 const RC1304_THEME_SCRIPT_TAG='<script id="exporthub-rc1304-theme-script" src="/assets/rc1304-theme-switcher.js?v=1305"><\/script>';
 const RC1630_LOGIN_STYLE_TAG='<link id="exporthub-rc1630-login-style" rel="stylesheet" href="/assets/rc1630-login-experience.css?v=1630">';
-const RC1630_LOGIN_SCRIPT_TAG='<script id="exporthub-rc1630-login-script" defer src="/assets/rc1630-login-experience.js?v=1630"><\/script>';
+const RC1630_LOGIN_SCRIPT_TAG='<script id="exporthub-rc1630-login-script" src="/assets/rc1630-login-experience.js?v=1631"><\/script>';
 const RC1306_LAYOUT_STYLE_TAG='<link id="exporthub-rc1306-layout-style" rel="stylesheet" href="/assets/rc1306-layout-engine.css?v=1306">';
 const RC1306_LAYOUT_SCRIPT_TAG='<script id="exporthub-rc1306-layout-script" defer src="/assets/rc1306-layout-engine.js?v=1306.1"><\/script>';
 const RC1371_DASHBOARD_STYLE_TAG='<link id="exporthub-rc1371-dashboard-style" rel="stylesheet" href="/assets/rc1371-dashboard-personalization.css?v=1371">';
@@ -137,7 +138,7 @@ function patchRc1630LoginVisuals(html,file){
   html=injectDeferredRuntimeInHead(html,RC1630_LOGIN_STYLE_TAG,'exporthub-rc1630-login-style');
   html=injectDeferredRuntimeInHead(html,RC1630_LOGIN_SCRIPT_TAG,'exporthub-rc1630-login-script');
   if(!html.includes('rc1630-login-experience.css?v=1630'))throw new Error(file+': RC1630 Login-CSS fehlt');
-  if(!html.includes('rc1630-login-experience.js?v=1630'))throw new Error(file+': RC1630 Login-UI fehlt');
+  if(!html.includes('rc1630-login-experience.js?v=1631'))throw new Error(file+': RC1630 Login-UI fehlt');
   return html;
 }
 
@@ -1627,6 +1628,8 @@ integrateTour(ROOT,OUT);
 integrateEditor(ROOT,OUT);
 integrateTraining(ROOT,OUT);
 integrateCoverageAdmin(ROOT,OUT);
+// ABD invoice editor is present in Production, TESTSERVICE and Demo builds.
+integrateAbdProforma(ROOT,OUT);
 // Must stay last: hashes the files exactly as they are shipped.
 fingerprintAssets({root:ROOT,out:OUT});
 

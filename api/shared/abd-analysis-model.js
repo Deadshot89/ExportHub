@@ -19,7 +19,10 @@ function normalizeHeader(header){
   invoiceNumber:text(source.invoiceNumber).slice(0,80),
   invoiceDate:text(source.invoiceDate).slice(0,40),
   customer:text(source.customer).slice(0,160),
+  senderName:text(source.senderName||source.customer).slice(0,160),
+  senderAddress:text(source.senderAddress).slice(0,500),
   recipient:text(source.recipient).slice(0,160),
+  recipientAddress:text(source.recipientAddress).slice(0,500),
   destinationCountry:text(source.destinationCountry).slice(0,80),
   invoiceTotal:money(numberOrNull(source.invoiceTotal)),
   currency:text(source.currency).toUpperCase().slice(0,3)

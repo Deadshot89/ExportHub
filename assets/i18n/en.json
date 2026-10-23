@@ -1956,5 +1956,8 @@
   "legacyPattern.shipmentN": "{{count}} shipment",
   "legacyPattern.warehouseSummary": "{{count}} shipments · {{pallets}} pallets · {{parcels}} parcels",
   "legacyPattern.loadingListPdf": "Download loading list {{count}} as PDF",
-  "legacyUi.shell.savingToAzure": "Saving to Azure …"
+  "legacyUi.shell.savingToAzure": "Saving to Azure …",
+  "abd.invoice.logo": "Essentra logo (PNG/JPG, optional)",
+  "abd.invoice.logoLoaded": "Company logo loaded.",
+  "abd.invoice.logoInvalid": "Choose a valid PNG or JPG up to 300 KB."
 }

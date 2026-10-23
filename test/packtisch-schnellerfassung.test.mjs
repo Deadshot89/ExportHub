@@ -77,5 +77,15 @@ test('Eingang: Neue und geprüfte Packmeldungen stehen oben, Admins können den 
   assert.match(internal,/sort\(\(a,b\)=>inboxRank\(a\)-inboxRank\(b\)\|\|/);
   assert.match(admin,/data-pack-station-action="open-station"/);
   assert.match(admin,/if\(action==='open-station'\)openStation\(section\)/);
-  assert.match(admin,/\.pack-stations-panel\[hidden\]/);
+  assert.match(admin,/#packNotificationInbox \[hidden\]\{display:none!important\}/,'Inbox-Kopf und Liste müssen im QR-Tab wirklich verschwinden');
+  assert.match(admin,/if\(globalAdmin\(\)\)shell\.insertAdjacentHTML\('beforeend',panelHtml\(\)\)/,'QR-Bereich liegt in der Inbox-Spalte');
+});
+
+test('Pack-QR-Code: Drucken über verstecktes Frame statt leerem noopener-Popup, Link direkt öffnen',()=>{
+  const admin=read('assets/pack-station-admin.js');
+  const start=admin.indexOf('function printQr('),print=admin.slice(start,admin.indexOf('\n',start));
+  assert.doesNotMatch(print,/root\.open\(/,'window.open mit noopener liefert null, der Druck blieb leer');
+  assert.match(print,/createElement\('iframe'\)/);
+  assert.match(print,/contentWindow\.print\(\)/);
+  assert.match(admin,/class="pack-qr-open" href="'\+esc\(data\.url\)\+'" target="_blank" rel="noopener"/);
 });
