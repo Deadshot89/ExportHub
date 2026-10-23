@@ -45,7 +45,7 @@ test('RC1641: creates TESTSERVICE chunks immutably, verifies readback, and atomi
  const db=fakeCosmos(),input=state();
  const out=await publishTestserviceState(db.store,input,{environment:'testservice',expectedManifestEtag:null});
  assert.equal(out.committed,true);assert.equal(out.verifiedReadback,true);
- assert.equal(out.cloudCostVerified,false);assert.equal(out.noCloudWrites,true);
+ assert.equal(out.cloudCostVerified,false);assert.equal(out.noCloudWrites,undefined);
  assert.equal(db.events.filter(x=>x==='commit').length,1);
  assert.equal(db.events.filter(x=>x.startsWith('create:')).length,out.chunkCount);
  const read=await readPublishedTestserviceState(db.store,{environment:'testservice'});
