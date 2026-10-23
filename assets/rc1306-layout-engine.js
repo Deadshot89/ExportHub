@@ -39,6 +39,11 @@ function currentView(){
 function dashboardOwnsLayout(){
   return currentView()==='dashboard'&&!!(w.ExportHUBDashboard1371&&typeof w.ExportHUBDashboard1371.ownsLayout==='function'&&w.ExportHUBDashboard1371.ownsLayout())
 }
+// views that bring their own complete layout (task list, task view) mark their root; wrapping them would hide them
+function featureOwnsLayout(){
+  var content=d.getElementById('content');
+  return !!(content&&typeof content.querySelector==='function'&&content.querySelector('[data-rc1306-own-layout="1"]'))
+}
 function remember(node){
   if(!node)return;
   if(!originals.has(node))originals.set(node,{parent:node.parentNode,next:node.nextSibling});
@@ -262,6 +267,7 @@ function layoutHealthy(mode){
   var expected=mode==='modern'?'business':mode;
   if(dashboardOwnsLayout())return true;
   if(d.documentElement.getAttribute('data-eh-layout-mode')!==expected)return false;
+  if(featureOwnsLayout())return !d.getElementById('rc1306Generic');
   if(isShipmentCreate()){
     var workspace=d.getElementById('rc1306Workspace');
     if(!workspace)return false;
@@ -297,6 +303,7 @@ function apply(){
       return
     }
 
+    if(featureOwnsLayout()){setMode(mode==='modern'?'business':mode);return}
     var shell=shipmentShell(),b=blocks();
     if(shell&&isShipmentCreate()){
       if(mode==='modern')businessShipment(shell,b);

@@ -13948,7 +13948,13 @@ function instanceId(m,w){return'M848:'+m.id+':'+w}
 function tombs(s){var m=s&&s._teamSyncMeta||{},a=Array.isArray(m.tombstones)?m.tombstones:[];return a}
 function isTaskTomb(t){return t&&low(t.collection)==='tasks'}
 function matchesMasterTomb(t,m){if(!isTaskTomb(t))return false;var id=low(t.id),ser=low(t.seriesId||t.recurringSeriesId||'');return id===low(m.id)||id===low(seriesId(m))||id.indexOf(low('M846:'+m.id+':'))===0||id.indexOf(low('M848:'+m.id+':'))===0||ser===low(m.id)||ser===low(seriesId(m))}
-function deletedNow(s,m){return tombs(s).some(function(t){return matchesMasterTomb(t,m)})}
+/* Aufgabenplaner: Tombstones aus automatischen Bereinigungen (RC1107-Reset, RC1152-Roster vor RC1568) sind keine Löschung durch einen Benutzer und dürfen den Wochenplan (z. B. alle Pick-Aufgaben) nicht dauerhaft abschalten */
+function systemTomb(t){return /^system:/i.test(q(t&&t.deletedBy))}
+function deletedNow(s,m){return tombs(s).some(function(t){return !systemTomb(t)&&matchesMasterTomb(t,m)})}
+function idTombstoned(s,id){var x=low(id);return tombs(s).some(function(t){return isTaskTomb(t)&&low(t.id)===x})}
+/* Teil-Datensätze ohne Titel (Server übernahm früher nur geänderte Felder) aus dem Wochenstamm wieder auffüllen */
+function repairMasterStubs(s){var n=0;(s.tasks||[]).forEach(function(t){if(!t||q(t.title||t.name))return;var m=/^m84[68]:(.+):(\d{4}-w\d{2})$/i.exec(q(t.id));if(!m)return;var master=MASTER.find(function(x){return low(x.id)===low(m[1])});if(!master)return;var w=m[2].toUpperCase(),ws=isoWeekMonday(w);if(!ws)return;var area=q(t.area);if(area&&low(area)!==low(master.area))t.area='';attach(t,master,w,ws);if(!q(t.originalPlannedDate))t.originalPlannedDate=dayDate(ws,master.day);if(q(t.group)==='Offene Sendungen')t.group=master.area;if(/^(shipment)$/i.test(q(t.sourceType)))t.sourceType='plan';n++});return n}
+function isoWeekMonday(w){var m=/^(\d{4})-W(\d{2})$/.exec(w);if(!m)return null;var jan4=new Date(Number(m[1]),0,4,12);var mon=mondayOf(jan4);mon.setDate(mon.getDate()+(Number(m[2])-1)*7);return mon}
 function sameSemantic(t,m){return low(t&&t.day)===low(m.day)&&low(t&&t.area||t&&t.category||t&&t.section)===low(m.area)&&low(t&&t.title||t&&t.name)===low(m.title)&&low(t&&t.owner||t&&t.assignee)===low(m.owner)}
 /* exporthub-rc903-master-week-integrity */
 function taskWeekFromStoredDateRC903(t){
@@ -13977,12 +13983,13 @@ function attach(t,m,w,weekStart){
  if(!q(t.originalDay))t.originalDay=m.day;if(!q(t.day))t.day=m.day;if(!q(t.area))t.area=m.area;if(!q(t.owner))t.owner=m.owner;if(!q(t.title))t.title=m.title;if(!q(t.time)&&m.time)t.time=m.time;
  t.recurrence=m.recurrence;t.repeatEveryWeeks=m.repeatEveryWeeks;if(m.biweekly)t.biweekly=true;if(!q(t.priority))t.priority=m.priority||'medium';if(t.masterOrder==null)t.masterOrder=m.masterOrder;return t
 }
-function make(m,w,weekStart){var t=clone(m);t.id=instanceId(m,w);t.status='offen';t.done=false;t.completed=false;t.createdAt=new Date().toISOString();t.note='';t.originalDay=m.day;t.originalPlannedDate=dayDate(weekStart,m.day);return attach(t,m,w,weekStart)}
+function make(m,w,weekStart){var t=clone(m);t.id=instanceId(m,w);if(idTombstoned(st(),t.id))t.id+=':neu';t.status='offen';t.done=false;t.completed=false;t.createdAt=new Date().toISOString();t.note='';t.originalDay=m.day;t.originalPlannedDate=dayDate(weekStart,m.day);return attach(t,m,w,weekStart)}
 var saving=false;
 function save(reason){if(saving)return;saving=true;try{if(window.ExportHUBClean&&typeof window.ExportHUBClean.queueSave==='function')window.ExportHUBClean.queueSave(reason||'Aufgaben-Master RC848 aktualisiert');else if(typeof window.save==='function')window.save()}catch(e){console.error('RC848 Aufgaben speichern',e)}finally{setTimeout(function(){saving=false},400)}}
 function ensureWeek(weekStart,allowSave){
  var s=st();s.tasks=Array.isArray(s.tasks)?s.tasks:[];s._teamSyncMeta=s._teamSyncMeta||{fields:{},tombstones:[]};s._teamSyncMeta.tombstones=Array.isArray(s._teamSyncMeta.tombstones)?s._teamSyncMeta.tombstones:[];
  var monday=mondayOf(weekStart),ws=localISO(monday),w=weekKeyFromDate(monday),changed=false,restored=0,claimed=0,deduped=0,remove=new Set();
+ var repaired=repairMasterStubs(s);if(repaired)changed=true;
  rc874FactsMemo=new Map();
  try{MASTER.forEach(function(m){
    if(deletedNow(s,m))return;

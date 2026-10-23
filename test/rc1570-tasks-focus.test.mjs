@@ -69,19 +69,40 @@ test('RC1570 Ansicht: Abhaken, Öffnen, Bearbeiten, neue Aufgabe; nur dringende 
   assert.match(html,/data-rc1570-section="overdue"/);
 });
 
-test('RC1570 Speichern läuft über den RC524-Editor und markiert neue Aufgaben als manuell',()=>{
-  assert.match(source,/w\.rc524OpenTaskEditor\(''\);/);
-  assert.match(source,/w\.rc524SaveTask\(\);/);
-  assert.match(source,/var patch=\{sourceType:'manual',createdAt:/);
-  assert.match(source,/if\(!canWrite\(\)\)\{alert\(t\('noRights'\)\);return\}/);
-  assert.match(source,/rt\.renderTaskDetailView\(remembered,\{state:state\(\)\}\)/,'Aufgabenansicht nutzt den RC1152-Detailbildschirm');
+test('RC1570 Aufgabenansicht speichert direkt in state.tasks, neue Aufgaben sind manuell, Rechte werden geprüft',()=>{
+  assert.doesNotMatch(source,/rc524OpenTaskEditor|rc524SaveTask/,'kein Umweg mehr über den alten RC524-Editor');
+  assert.match(source,/task=\{id:'task-'\+Date\.now\(\)\.toString\(36\)/);
+  assert.match(source,/sourceType:'manual',createdAt:/);
+  assert.match(source,/function openForm\(\)\{if\(!canWrite\(\)\)\{alert\(t\('noRights'\)\);return\}/);
+  assert.match(source,/<form class="rc1570-tv-form" novalidate data-rc1570-tv-form="1">/);
+  assert.match(source,/if\(v==='taskdetail'&&root\)\{/);
 });
 
-test('RC1570 Altansicht ausgeblendet, Formular-Rolle am inneren Dialog, Build bindet das Modul ein',()=>{
-  assert.match(css,/body\[data-rc1570-tasks="1"\] #content > :not\(#rc1570Tasks\):not\(#rc1569Drill\):not\(\.rc1371-dashboard-toolbar\)\{display:none!important\}/);
-  assert.match(source,/<form class="rc1570-dialog" novalidate role="dialog" aria-modal="true"/);
-  assert.match(build,/html=injectDeferredRuntimeInHead\(html,RC1570_TASKS_SCRIPT_TAG,'exporthub-rc1570-tasks-script'\);/);
-  assert.match(build,/'assets\/rc1570-tasks-focus\.css',\n  'assets\/rc1570-tasks-focus\.js',/);
+test('RC1570 Aufgabenansicht: Kunde und Kundennummer werden gespeichert, Termin und Zuständig in alle Alias-Felder',()=>{
+  const api=load([],me,'2026-10-14T10:00:00');
+  const task=api.applyForm({},{title:'Würth picken',area:'Picken',owner:'Tobias',weekly:false,date:'2026-10-16',weekday:5,time:'09:30',priority:'P2',status:'open',customer:'Würth',customerNo:'3019105826',ref:'AB12CD',note:'Rampe 3'},true);
+  assert.equal(task.title,'Würth picken');assert.equal(task.name,'Würth picken');
+  assert.equal(task.customerName,'Würth');assert.equal(task.linkedCustomer,'Würth');
+  assert.equal(task.customerNumber,'3019105826');assert.equal(task.linkedAccount,'3019105826');
+  assert.equal(task.dueDate,'2026-10-16');assert.equal(task.plannedDate,'2026-10-16');assert.equal(task.dueAt,'2026-10-16T09:30:00');
+  assert.equal(task.day,'Freitag');assert.equal(task.owner,'Tobias');assert.equal(task.effectiveAssignee,'Tobias');
+  assert.equal(task.linkedShipmentRef,'AB12CD');assert.equal(task.status,'open');
+  const weekly=api.applyForm({id:'w',title:'Alt',dueDate:'2026-10-14',weekKey:'2026-W42'},{title:'UK',area:'Picken',owner:'',weekly:true,date:'',weekday:1,time:'',priority:'Normal',status:'done',customer:'',customerNo:'',ref:'',note:''},false);
+  assert.equal(weekly.day,'Montag');assert.equal(weekly.recurrence,'weekly');assert.equal(weekly.dueDate,'');
+  assert.equal(weekly.done,true);assert.equal(weekly.status,'done');
+});
+
+test('RC1570 Aufgabenansicht zeigt Liste, Detail und Formular mit Kundenfeldern',()=>{
+  const api=load([{id:'a',title:'ABD <prüfen>',dueDate:'2026-10-14',owner:'Tobias',customerName:'Kunde A',customerNumber:'K-1'},{id:'x',owner:'Tobias',status:'open'}],me,'2026-10-14T10:00:00');
+  let html=api.taskViewHtml();
+  assert.match(html,/data-rc1570-tv-open="a"/);
+  assert.doesNotMatch(html,/data-rc1570-tv-open="x"/,'Aufgaben ohne Titel erscheinen nicht');
+  api.openTask('a');html=api.taskViewHtml();
+  assert.match(html,/data-rc1570-tv-task="a"/);assert.match(html,/K-1/);assert.match(html,/ABD &lt;prüfen&gt;/);
+  api.editTask('a');html=api.taskViewHtml();
+  assert.match(html,/name="customer"/);assert.match(html,/name="customerNo"[^>]*value="K-1"/);assert.match(html,/name="status"/);
+  api.openForm();html=api.taskViewHtml();
+  assert.match(html,/name="title" required[^>]*value=""/);
 });
 
 test('RC1570 Texte liegen in der Sprachdatei, alle sechs Sprachen haben dieselben Schlüssel',()=>{

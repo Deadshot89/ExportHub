@@ -261,7 +261,37 @@ function applyDeliveryFileLedger(shipments, ledger) {
   });
 }
 
+function fieldStamp(item, key, fallback) {
+  const meta = isObject(item && item._syncFields) ? item._syncFields : null;
+  const time = Date.parse(meta && meta[key] || '');
+  return Number.isFinite(time) ? time : fallback;
+}
+
+// The browser saves only the changed fields of a record plus its id (field delta, stamped in _syncFields).
+// Taking such a delta as the whole record dropped every unchanged field, e.g. task titles and areas.
+function mergeFieldDelta(serverItem, incomingItem, collectionName) {
+  const out = clone(serverItem) || {};
+  const serverTs = timestamp(serverItem), incomingTs = timestamp(incomingItem);
+  const meta = Object.assign({}, isObject(serverItem._syncFields) ? serverItem._syncFields : {});
+  const keepDone = collectionName === 'tasks' && taskDone(serverItem) && !taskDone(incomingItem);
+  for (const key of Object.keys(incomingItem)) {
+    if (key === '_syncFields' || key === '_syncUpdatedAt') continue;
+    const incomingAt = fieldStamp(incomingItem, key, incomingTs);
+    const serverAt = Object.prototype.hasOwnProperty.call(serverItem, key) ? fieldStamp(serverItem, key, serverTs) : 0;
+    if (incomingAt < serverAt) continue;
+    if (incomingAt === serverAt && keepDone && /^(status|done|completed|completedAt|completedBy|doneAt|doneBy)$/.test(key)) continue;
+    out[key] = clone(incomingItem[key]);
+    const stamp = isObject(incomingItem._syncFields) ? incomingItem._syncFields[key] : undefined;
+    if (stamp !== undefined) meta[key] = clone(stamp);
+  }
+  if (Object.keys(meta).length) out._syncFields = meta;
+  const newest = Math.max(serverTs, incomingTs);
+  if (newest > 0) out._syncUpdatedAt = new Date(newest).toISOString();
+  return out;
+}
+
 function chooseNewer(serverItem, incomingItem, collectionName) {
+  if (isObject(serverItem) && isObject(incomingItem) && isObject(incomingItem._syncFields)) return mergeFieldDelta(serverItem, incomingItem, collectionName);
   const serverTs = timestamp(serverItem);
   const incomingTs = timestamp(incomingItem);
   if (incomingTs > serverTs) return clone(incomingItem);
@@ -847,10 +877,13 @@ function mergeCollection(name, serverList, incomingList, tombstones) {
     });
   };
   ingest(serverList, 'server');
+  const serverKeys = name === 'tasks' ? new Set(map.keys()) : null;
   ingest(incomingList, 'incoming');
 
   const out = [];
   for (const [key, item] of map.entries()) {
+    // a field delta of a task the server no longer has would come back as a task without a title
+    if (serverKeys && !serverKeys.has(key) && isObject(item._syncFields) && !text(item.title || item.name || item.subject)) continue;
     const rawId = key.includes(':') ? key.slice(key.indexOf(':') + 1) : key;
     const tombstone = tombstones.get(`${name}:${lower(rawId)}`);
     const shipmentCollection = name === 'shipments' || name === 'savedShipments';
