@@ -14,11 +14,11 @@ function language(){
  try{if(root&&root.ExportHUBI18n&&typeof root.ExportHUBI18n.language==='function')return normalize(root.ExportHUBI18n.language())||'de'}catch(_){}
  try{var q=new URL(root.location.href).searchParams.get('lang');if(normalize(q))return normalize(q)}catch(_){}
  try{var saved=root.localStorage&&root.localStorage.getItem('exporthub.language');if(normalize(saved))return normalize(saved)}catch(_){}
- try{var cookie=root.document&&root.document.cookie.match(/(?:^|;\\s*)exporthub_language=([^;]+)/);if(cookie&&normalize(decodeURIComponent(cookie[1])))return normalize(decodeURIComponent(cookie[1]))}catch(_){}
+ try{var cookie=root.document&&root.document.cookie.match(/(?:^|;\s*)exporthub_language=([^;]+)/);if(cookie&&normalize(decodeURIComponent(cookie[1])))return normalize(decodeURIComponent(cookie[1]))}catch(_){}
  try{var nav=root.navigator&&root.navigator.language;if(normalize(nav))return normalize(nav)}catch(_){}
  return'de';
 }
-function t(key,vars,lang){var code=normalize(lang)||language(),pack=packs[code]||packs.de,v=pack[key]||packs.de[key]||key;return String(v).replace(/\\{\\{([\\w.-]+)\\}\\}/g,function(_,k){return vars&&Object.prototype.hasOwnProperty.call(vars,k)?String(vars[k]):''})}
+function t(key,vars,lang){var code=normalize(lang)||language(),pack=packs[code]||packs.de,v=pack[key]||packs.de[key]||key;return String(v).replace(/\{\{([\w.-]+)\}\}/g,function(_,k){return vars&&Object.prototype.hasOwnProperty.call(vars,k)?String(vars[k]):''})}
 function setLanguage(value){
  var code=normalize(value);if(!code)return language();
  try{root.localStorage&&root.localStorage.setItem('exporthub.language',code)}catch(_){}
