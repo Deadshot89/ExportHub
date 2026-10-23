@@ -10,8 +10,8 @@ const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
 const cssBody=css.replace(/\/\*[\s\S]*?\*\//g,'');
 
 test('Kundenordner: Build bindet Stylesheet und Skript nach RC1579 ein und kopiert beide mit',()=>{
-  assert.match(build,/const CUSTOMER_FOLDER_STYLE_TAG='<link id="exporthub-customer-folder-style" rel="stylesheet" href="\/assets\/customer-folder-redesign\.css\?v=1">'/);
-  assert.match(build,/const CUSTOMER_FOLDER_SCRIPT_TAG='<script id="exporthub-customer-folder-script" defer src="\/assets\/customer-folder-redesign\.js\?v=1"><\/script>'/);
+  assert.match(build,/const CUSTOMER_FOLDER_STYLE_TAG='<link id="exporthub-customer-folder-style" rel="stylesheet" href="\/assets\/customer-folder-redesign\.css\?v=2">'/);
+  assert.match(build,/const CUSTOMER_FOLDER_SCRIPT_TAG='<script id="exporthub-customer-folder-script" defer src="\/assets\/customer-folder-redesign\.js\?v=2"><\/script>'/);
   const a=build.indexOf('html=patchRc1579Menu(html,file);'),b=build.indexOf('html=patchCustomerFolderRedesign(html,file);');
   assert.ok(a>=0&&b>a,'Kundenordner-Redesign muss nach RC1579 gepatcht werden');
   assert.match(build,/'assets\/customer-folder-redesign\.css'/);
@@ -45,8 +45,9 @@ test('Kundenordner: Feldbeschriftungen werden im RC971-Layer überschrieben (son
   assert.match(layer,/\.rc565-template-grid textarea\{max-height:260px!important/);
 });
 
-test('Kundenordner: Laufzeit ist rein darstellend und speichert nie selbst',()=>{
+test('Kundenordner: Laufzeit speichert nie selbst, sondern nur über den Knopf „Kundenordner speichern“',()=>{
   assert.doesNotMatch(js,/queueSave|flushSave|saveCustomerFolder\s*\(|fetch\s*\(|XMLHttpRequest|localStorage\.setItem/);
+  assert.match(js,/function saveButton\(\)\{return d\.getElementById\('rc565CustomerFolderSaveAll'\)\}/);
   assert.doesNotMatch(js,/\.value\s*=[^=]/,'Feldwerte dürfen nicht geschrieben werden');
   assert.doesNotMatch(js,/\.textContent\s*=(?!=)[^;]*h\b|h\.textContent=/,'Überschriftentexte bleiben unverändert (ältere Module suchen Abschnitte darüber)');
   assert.match(js,/setAttr\(h,'data-cf-num'/);
@@ -67,4 +68,35 @@ test('RC1306: von einem Neu-Rendern abgehängte Knoten werden nicht zurückgehol
   assert.ok(restore.indexOf('isConnected')<restore.indexOf('appendChild'),'Prüfung muss vor dem Zurückhängen stehen');
   assert.match(build,/rc1306-layout-engine\.js\?v=1306\.1/,'Cache-Schlüssel muss erhöht sein, damit Browser die korrigierte Datei laden');
   assert.doesNotMatch(build,/rc1306-layout-engine\.js\?v=1306['"]/);
+});
+
+test('Kundenordner: Rückfrage bei ungespeicherten Änderungen vor Kundenwechsel, Menü, Sendung, Neuanlage und Abmelden',()=>{
+  assert.match(js,/var LEAVE_CODE=\/rc405SelectFolder\|rc405OpenShipment\|rc405OpenCustomer\|rc405CreateCustomer\|/);
+  assert.match(js,/closest\('#logoutBtn'\)/);
+  assert.match(js,/v\.getAttribute\('data-view'\)!=='customerfolder'/,'Menüpunkte außerhalb von #content lösen die Rückfrage aus');
+  assert.match(js,/function sameCustomer\(\)/,'gleicher Kunde erneut öffnen fragt nicht nach');
+  assert.match(js,/w\.addEventListener\('beforeunload',onUnload\)/);
+  for(const c of ['stay','discard','save'])assert.match(js,new RegExp('data-cf-choice="'+c+'"'));
+  // Prüffehler starten keine Speicherung: dann bleibt man beim Kunden
+  assert.match(js,/save\.click\(\);[\s\S]{0,200}if\(!save\.disabled\)return done\(false\)/);
+  // nicht bestätigte Azure-Speicherung wird offen angezeigt statt still weiterzuwechseln
+  assert.match(js,/phase='unconfirmed'/);
+});
+
+test('Kundenordner: früher Klick-Haken liegt vor dem Menü-Handler RC325',()=>{
+  assert.match(build,/const CUSTOMER_FOLDER_GUARD_TAG='<script id="exporthub-customer-folder-guard">window\.__EXPORTHUB_CF_EARLY_GUARD__=true;/);
+  const patch=build.slice(build.indexOf('function patchCustomerFolderRedesign('),build.indexOf('function patchRc1371Dashboard('));
+  assert.match(patch,/headOpen\.index\+headOpen\[0\]\.length/,'Haken direkt nach <head>');
+  assert.match(js,/onLeaveClick:onLeaveClick,onKey:onKey/);
+  assert.match(js,/if\(!w\.__EXPORTHUB_CF_EARLY_GUARD__\)\{w\.addEventListener\('click',onLeaveClick,true\)/);
+});
+
+test('Kundenordner: geänderte Felder werden gezählt und markiert, Strg+S speichert',()=>{
+  assert.match(js,/d\.addEventListener\('focusin',onFocusIn,true\)/,'Ausgangswert beim ersten Fokus');
+  assert.match(js,/var on=fieldValue\(el\)!==v/,'zurückgesetzte Felder zählen nicht');
+  assert.match(js,/data-rc565-location-dirty/,'hinzugefügte/entfernte Standorte zählen mit');
+  assert.match(js,/\(e\.ctrlKey\|\|e\.metaKey\)[^\n]*'s'/);
+  const layer=cssBody.slice(cssBody.indexOf('@layer rc971{'));
+  assert.match(layer,/label\.field\[data-cf-changed="1"\] :is\(input,select,textarea\)/,'Rahmen geänderter Felder muss im RC971-Layer stehen');
+  assert.match(layer,/#cfLeaveDialog#cfLeaveDialog#cfLeaveDialog \.cf-leave-actions button\[data-cf-choice="save"\]/);
 });

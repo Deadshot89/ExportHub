@@ -143,6 +143,16 @@
   #content#content#content[data-view="customerfolder"] .rc565-template-grid textarea{max-height:260px!important;overflow-y:auto!important;resize:vertical!important;font-size:13px!important;line-height:1.5!important}
   #content#content#content[data-view="customerfolder"] #rc736PrivacyNotice{padding:8px 12px!important;border-radius:10px!important;font-size:12px!important;line-height:1.45!important}
   #content#content#content[data-view="customerfolder"] #cfNav .cf-link{min-height:32px!important;padding:0 10px!important;border-radius:8px!important;font-size:13px!important;line-height:1.2!important;font-weight:600!important}
+  /* Rückfrage-Dialog: RC971 gestaltet auch Knöpfe in Dialogen im Layer, daher Farben hier mit dreifacher ID */
+  body[data-exporthub-view="customerfolder"] #cfLeaveDialog#cfLeaveDialog#cfLeaveDialog .cf-leave-actions button{min-height:38px!important;padding:0 16px!important;border-radius:10px!important;border:1px solid var(--pc-line,#dde3ec)!important;
+    background:var(--pc-surface-2,#f8fafc)!important;background-image:none!important;color:var(--pc-text,#152235)!important;font-size:14px!important;font-weight:600!important;text-transform:none!important;letter-spacing:0!important;box-shadow:none!important}
+  body[data-exporthub-view="customerfolder"] #cfLeaveDialog#cfLeaveDialog#cfLeaveDialog .cf-leave-actions button[data-cf-choice="discard"]{color:var(--pc-danger-text,#b91c1c)!important}
+  body[data-exporthub-view="customerfolder"] #cfLeaveDialog#cfLeaveDialog#cfLeaveDialog .cf-leave-actions button[data-cf-choice="save"]{background:var(--pc-primary,#1f6fd1)!important;border-color:var(--pc-primary,#1f6fd1)!important;color:#fff!important}
+  html[data-eh-design="neon"] body[data-exporthub-view="customerfolder"] #cfLeaveDialog#cfLeaveDialog#cfLeaveDialog .cf-leave-actions button[data-cf-choice="save"]{color:#03121f!important}
+  html[data-eh-design="neon"] body[data-exporthub-view="customerfolder"] #cfLeaveDialog#cfLeaveDialog#cfLeaveDialog .cf-leave-actions button[data-cf-choice="discard"]{color:#f87171!important}
+  /* geänderte Felder: Rahmen in Warnfarbe (RC971 setzt den Rahmen im Layer, daher hier) */
+  #content#content#content[data-view="customerfolder"] label.field[data-cf-changed="1"] :is(input,select,textarea),
+  #content#content#content[data-view="customerfolder"] :is(input,select,textarea)[data-cf-changed="1"]{border-color:var(--cf-warn)!important;box-shadow:0 0 0 1px var(--cf-warn)!important}
   #content#content#content[data-view="customerfolder"] #rc565CustomerFolderSaveAll{min-height:40px!important;padding:0 20px!important;font-size:14px!important}
 }
 
@@ -157,6 +167,32 @@
 #content[data-view="customerfolder"] #rc565CustomerFolderSaveBar[data-cf-dirty="1"]{border-color:var(--cf-warn)!important}
 #content[data-view="customerfolder"] #rc565CustomerFolderSaveBar[data-cf-dirty="1"]::after{content:attr(data-cf-dirty-label);order:1;display:inline-flex;align-items:center;gap:6px;
   padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;background:var(--cf-warn-soft);color:var(--cf-warn)}
+
+/* Geänderte, noch nicht gespeicherte Felder: Markierung am Feld und Punkt am Abschnitt in der Navigation */
+#content[data-view="customerfolder"] label.field[data-cf-changed="1"]{position:relative}
+#content[data-view="customerfolder"] label.field[data-cf-changed="1"]::before{content:"";position:absolute;left:-7px;top:2px;bottom:2px;width:3px;border-radius:3px;background:var(--cf-warn)}
+#content[data-view="customerfolder"] #cfNav .cf-link[data-cf-changed="1"]::after{content:"";width:7px;height:7px;border-radius:999px;background:var(--cf-warn)}
+
+/* Kennzahlen springen zum passenden Abschnitt */
+#content[data-view="customerfolder"] .rc405-kpi[data-cf-target]{cursor:pointer;transition:border-color .15s}
+#content[data-view="customerfolder"] .rc405-kpi[data-cf-target]:hover{border-color:var(--cf-primary)!important}
+#content[data-view="customerfolder"] .rc405-kpi[data-cf-target]:focus-visible{outline:2px solid var(--pc-focus,var(--cf-primary));outline-offset:2px}
+
+/* Rückfrage bei ungespeicherten Änderungen (liegt außerhalb von #content, damit ein Neu-Rendern sie nicht entfernt) */
+body[data-exporthub-view="customerfolder"] #cfLeaveDialog{max-width:min(460px,calc(100vw - 32px));padding:22px 22px 18px;border:1px solid var(--pc-line,#dde3ec);border-radius:16px;
+  background:var(--pc-surface,#fff);color:var(--pc-text,#152235);box-shadow:0 24px 60px rgba(15,35,65,.28);font:inherit}
+body[data-exporthub-view="customerfolder"] #cfLeaveDialog::backdrop{background:rgba(15,23,42,.45);backdrop-filter:blur(2px)}
+body[data-exporthub-view="customerfolder"] #cfLeaveDialog h2{margin:0 0 8px;font-size:18px;line-height:1.3;color:var(--pc-title,var(--pc-text,#152235))}
+body[data-exporthub-view="customerfolder"] #cfLeaveDialog p{margin:0 0 10px;font-size:14px;line-height:1.5;color:var(--pc-muted,#5d6b80)}
+body[data-exporthub-view="customerfolder"] #cfLeaveDialog .cf-leave-status{padding:8px 10px;border-radius:10px;background:var(--pc-warning-soft,#fdf0d9);color:var(--pc-warning-text,#a86200)}
+body[data-exporthub-view="customerfolder"] #cfLeaveDialog .cf-leave-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;margin-top:16px}
+body[data-exporthub-view="customerfolder"] #cfLeaveDialog .cf-leave-actions button{min-height:38px;padding:0 16px;border-radius:10px;border:1px solid var(--pc-line,#dde3ec);
+  background:var(--pc-surface-2,#f8fafc);color:var(--pc-text,#152235);font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+body[data-exporthub-view="customerfolder"] #cfLeaveDialog .cf-leave-actions button[data-cf-choice="discard"]{color:var(--pc-danger-text,#b91c1c)}
+body[data-exporthub-view="customerfolder"] #cfLeaveDialog .cf-leave-actions button[data-cf-choice="save"]{background:var(--pc-primary,#1f6fd1);border-color:var(--pc-primary,#1f6fd1);color:#fff}
+body[data-exporthub-view="customerfolder"] #cfLeaveDialog button:disabled{opacity:.6;cursor:progress}
+body[data-exporthub-view="customerfolder"] #cfLeaveDialog button:focus-visible{outline:2px solid var(--pc-focus,var(--pc-primary,#1f6fd1));outline-offset:2px}
+@media(max-width:520px){body[data-exporthub-view="customerfolder"] #cfLeaveDialog .cf-leave-actions button{flex:1 1 100%}}
 
 /* Löschen: klar als Gefahrenbereich erkennbar */
 #content[data-view="customerfolder"] #rc1126CustomerDelete{padding:16px 20px!important;border:1px solid color-mix(in srgb,var(--cf-crit) 35%,transparent)!important;border-radius:var(--cf-radius)!important;
