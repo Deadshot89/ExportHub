@@ -413,6 +413,12 @@ jobs:
                   records:v.records,logicalBytes:v.logicalBytes,liveBytes:v.liveLogicalBytes,
                   historicalBytes:v.historicalLogicalBytes,kinds:v.kinds
                 }));
+                // RC1635: trusted category IDs only (no raw Azure payload or Blob names).
+                if(v.areas)console.log("RC1635 TESTSERVICE-Team-Kategorien "+JSON.stringify(
+                  names.map(id=>({id,records:v.areas[id].records,logicalBytes:v.areas[id].logicalBytes,
+                    liveBytes:v.areas[id].kinds.live.logicalBytes,
+                    historicalBytes:keys.filter(k=>k!=="live").reduce((n,k)=>n+v.areas[id].kinds[k].logicalBytes,0)}))
+                ));
                 if(process.env.GITHUB_STEP_SUMMARY){
                   require("fs").appendFileSync(process.env.GITHUB_STEP_SUMMARY,rows.join("\n")+"\n");
                 }
@@ -466,6 +472,12 @@ jobs:
                 if(process.env.GITHUB_STEP_SUMMARY)
                   require("fs").appendFileSync(process.env.GITHUB_STEP_SUMMARY,rows.join("\n")+"\n");
                 console.log("RC1631: geprüfte TESTSERVICE-Präfixe "+v.verifiedScopes+"/7, vollständige Kontenzuordnung weiterhin offen");
+                // RC1635: unverified does not mean empty; only fixed scope IDs.
+                console.log("RC1635 TESTSERVICE-Sechs-Container "+JSON.stringify(
+                  v.scopes.map(x=>({id:x.id,status:x.status,
+                    records:x.status==="listed"?x.records:null,
+                    logicalBytes:x.status==="listed"?x.logicalBytes:null}))
+                ));
               });
             '; then
               echo "RC1631: Aggregat fehlerhaft; kein belastbarer Bericht." >&2
