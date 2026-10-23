@@ -27,6 +27,10 @@ function integer(v){return Number.isSafeInteger(v)&&v>=0;}
 // A soft-deleted entry's Last-Modified is NOT its deletion timestamp.
 const SNAPSHOT_AGES=['under1day','day1to7','beyond7days','unknown'];
 function emptySnapshotAge(){return Object.fromEntries(SNAPSHOT_AGES.map(k=>[k,{records:0,logicalBytes:0}]));}
+// RC1643: Azure Blob soft delete can create deleted snapshots on overwrite.
+// Only the explicit provider snapshot marker may establish that subtype.
+const DELETED_MARKERS=['snapshotMarked','withoutSnapshotMarker'];
+function emptyDeletedMarkers(){return Object.fromEntries(DELETED_MARKERS.map(k=>[k,{records:0,logicalBytes:0}]));}
 function ageBucket(timestamp,at){
  if(typeof timestamp!=='string'||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/.test(timestamp))return 'unknown';
  const value=Date.parse(timestamp);
@@ -61,9 +65,9 @@ async function collectTestserviceTeamInventory(container,options={}){
   // RC1638: fixed-name configured state file, aggregate-only; never return
   // the Blob's name, URL, ETag or any customer data.
   teamState:teamStateName?{status:'listed',records:0,logicalBytes:0,kinds:empty(),
-    snapshotAge:emptySnapshotAge(),deletedAgeVerifiable:false}:
+    snapshotAge:emptySnapshotAge(),deletedMarkers:emptyDeletedMarkers(),deletedAgeVerifiable:false}:
    {status:'unverified',records:null,logicalBytes:null,kinds:null,
-    snapshotAge:null,deletedAgeVerifiable:false},
+    snapshotAge:null,deletedMarkers:null,deletedAgeVerifiable:false},
   billingVerified:false,archiveVerified:false,
   sharedProductionDependenciesResolved:false
  };
@@ -87,6 +91,10 @@ async function collectTestserviceTeamInventory(container,options={}){
   if(teamStateName&&item.name===teamStateName){
    sum(report.teamState,bytes);sum(report.teamState.kinds[kind],bytes);
    if(kind==='snapshot')sum(report.teamState.snapshotAge[ageBucket(item.snapshot,referenceTime)],bytes);
+   if(kind==='deleted'){
+    const marker=typeof item.snapshot==='string'&&item.snapshot.length>0?'snapshotMarked':'withoutSnapshotMarker';
+    sum(report.teamState.deletedMarkers[marker],bytes);
+   }
   }
   report.records++;
   if(!integer(report.logicalBytes+bytes))throw new Error('INVENTORY_OVERFLOW');

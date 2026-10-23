@@ -222,3 +222,38 @@ test('RC1642: invalid config keeps age unavailable and does not infer erased bac
   await assert.rejects(()=>collectTestserviceTeamInventory(container([]),{referenceTime}),/INVENTORY_REFERENCE_TIME_INVALID/);
  }
 });
+
+test('RC1643: soft-deleted snapshot marker is classified without guessing the deletion date',async()=>{
+ const rows=[
+  row('testservice/team-state.json',10,{deleted:true,snapshot:'2026-10-22T12:00:00Z'}),
+  row('testservice/team-state.json',20,{deleted:true,snapshot:'2026-10-21T12:00:00Z'}),
+  row('testservice/team-state.json',30,{deleted:true}),
+  row('testservice/team-state.json',40,{snapshot:'2026-10-20T12:00:00Z'}),
+  row('testservice/team-state.json',50),
+  row('testservice/other.json',999,{deleted:true,snapshot:'2026-10-21T12:00:00Z'})
+ ];
+ const result=await collectTestserviceTeamInventory(container(rows),{
+  teamBlobName:'testservice/team-state.json',
+  referenceTime:Date.parse('2026-10-23T12:00:00Z')
+ });
+ assert.deepEqual(result.teamState.deletedMarkers,{
+  snapshotMarked:{records:2,logicalBytes:30},
+  withoutSnapshotMarker:{records:1,logicalBytes:30}
+ });
+ assert.equal(result.teamState.kinds.deleted.records,3);
+ assert.equal(result.teamState.kinds.deleted.logicalBytes,60);
+ assert.equal(result.teamState.kinds.snapshot.records,1);
+ assert.equal(result.teamState.kinds.snapshot.logicalBytes,40);
+ assert.equal(result.teamState.deletedAgeVerifiable,false);
+ assert.equal(result.teamState.snapshotAge.beyond7days.records,0);
+ assert.equal(result.billingVerified,false);
+ assert.doesNotMatch(JSON.stringify(result),/team-state\.json|other\.json|2026-10-21T12:00:00Z/);
+});
+test('RC1643: rejected root path cannot report deleted subtype counts',async()=>{
+ const result=await collectTestserviceTeamInventory(container([
+  row('testservice/team-state.json',10,{deleted:true,snapshot:'2026-10-22T12:00:00Z'})
+ ]),{teamBlobName:'production/team-state.json'});
+ assert.equal(result.teamState.status,'unverified');
+ assert.equal(result.teamState.deletedMarkers,null);
+ assert.equal(result.teamState.snapshotAge,null);
+});
