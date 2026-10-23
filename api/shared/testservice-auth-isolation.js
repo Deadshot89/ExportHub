@@ -21,7 +21,8 @@ function isolationConfig(env=process.env){
  const pa=accountName(primary),ta=accountName(test);
  // Prevent accident-prone URI comparison: different keys to the SAME account
  // must not be misinterpreted as separate storage.
- if(!pa||!ta||pa===ta||primary===test)fail('TEST_AUTH_ISOLATION_ACCOUNT_NOT_SEPARATE');
+ if(!pa||!ta||pa===ta||primary===test||/(?:^|;)\s*(?:BlobEndpoint|QueueEndpoint|FileEndpoint|TableEndpoint)\s*=/i.test(test))
+  fail('TEST_AUTH_ISOLATION_ACCOUNT_NOT_SEPARATE');
  const container=text(env.EXPORTHUB_TEST_STORAGE_CONTAINER||env.EXPORTHUB_STORAGE_CONTAINER||
   env.EXPORTHUB_CONTAINER||'exporthub-data');
  const authBlob=text(env.EXPORTHUB_TEST_AUTH_BLOB||'testservice/auth-sessions.json');
