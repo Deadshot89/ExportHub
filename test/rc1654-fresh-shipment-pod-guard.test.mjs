@@ -107,3 +107,52 @@ test('P0: quarantined fresh shipment may normally progress to Bereit zur Abholun
  assert.equal(sh.status,'Bereit zur Abholung');
  assert.equal(sh.processStatus,'Bereit zur Abholung');
 });
+
+test('P0: an Erstellt shipment cannot be promoted to POD by a later browser save',()=>{
+ const first={shipments:[{id:'NEW-LATE1',ref:'LATE01',status:'Erstellt',processStatus:'Erstellt',
+   updatedAt:'2026-10-23T13:00:00Z',podFiles:[]}]};
+ const incoming={shipments:[{id:'NEW-LATE1',ref:'LATE01',status:'POD vorhanden',
+   processStatus:'POD vorhanden',updatedAt:'2026-10-23T13:01:00Z',
+   podAvailable:true,podConfirmed:true,podFiles:[{id:'unverified',blobName:'retain.pdf'}]}]};
+ const merged=mergeState(first,incoming),sh=find(merged,'shipments','LATE01');
+ assert.equal(sh.status,'Erstellt');
+ assert.equal(sh.processStatus,'Erstellt');
+ assert.equal(sh.podAvailable,false);
+ assert.equal(sh.podConfirmed,false);
+ assert.equal(sh.podReviewRequired,true);
+ assert.equal(sh.podStatusCorrection,'FRESH_POD_WITHOUT_PICKUP_EVIDENCE');
+ assert.equal(sh.podFiles[0].blobName,'retain.pdf','unverified file references remain for evidence');
+});
+
+test('P0: Bereit zur Abholung is protected against an unsigned follow-up POD status',()=>{
+ const first={savedShipments:[{id:'NEW-LATE2',ref:'LATE02',
+   status:'Bereit zur Abholung',processStatus:'Bereit zur Abholung',
+   updatedAt:'2026-10-23T13:00:00Z'}]};
+ const incoming={savedShipments:[{id:'NEW-LATE2',ref:'LATE02',status:'POD vorhanden',
+  processStatus:'POD vorhanden',updatedAt:'2026-10-23T13:01:00Z'}]};
+ const sh=find(mergeState(first,incoming),'savedShipments','LATE02');
+ assert.equal(sh.status,'Bereit zur Abholung');
+ assert.equal(sh.processStatus,'Bereit zur Abholung');
+});
+
+test('P0: confirmed signed pickup may legitimately promote a new saved shipment to POD',()=>{
+ const first={shipments:[{id:'NEW-LATE3',ref:'LATE03',status:'Erstellt',
+  processStatus:'Erstellt',updatedAt:'2026-10-23T13:00:00Z'}]};
+ const incoming={shipments:[{id:'NEW-LATE3',ref:'LATE03',status:'POD vorhanden',
+  processStatus:'POD vorhanden',updatedAt:'2026-10-23T13:01:00Z',
+  pickupHistory:[{confirmedAt:'2026-10-23T13:00:30Z',signatureBlobName:'original-signature.png'}],
+  podFiles:[{id:'original-pod',blobName:'original-pod.pdf'}]}]};
+ const sh=find(mergeState(first,incoming),'shipments','LATE03');
+ assert.equal(sh.status,'POD vorhanden');
+ assert.equal(sh.podFiles[0].blobName,'original-pod.pdf');
+});
+
+test('P0: existing historic POD without confirmation is not mass-downgraded on unrelated save',()=>{
+ const first={shipments:[{id:'HIST-1',ref:'HIST01',status:'POD vorhanden',
+  processStatus:'POD vorhanden',podFiles:[{id:'old-file',blobName:'immutable-historic.pdf'}]}]};
+ const incoming={shipments:[{id:'HIST-1',ref:'HIST01',status:'POD vorhanden',
+  processStatus:'POD vorhanden',updatedAt:'2026-10-23T13:02:00Z'}]};
+ const sh=find(mergeState(first,incoming),'shipments','HIST01');
+ assert.equal(sh.status,'POD vorhanden');
+ assert.equal(sh.podFiles[0].blobName,'immutable-historic.pdf');
+});
