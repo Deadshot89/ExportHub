@@ -25,11 +25,11 @@ function dedupeExactFields(item,fields){
  }
  return item;
 }
+// list belongs to the state copy made in compactStateForStorage, so items are edited in place instead of being cloned a second time
 function compactCollection(list,options){
  if(!Array.isArray(list))return list;
- return list.map(raw=>{
-  if(!raw||typeof raw!=='object'||Array.isArray(raw))return raw;
-  const item=clone(raw);
+ return list.map(item=>{
+  if(!item||typeof item!=='object'||Array.isArray(item))return item;
   if(options&&options.customerSnapshots)dedupeExactFields(item,CUSTOMER_SNAPSHOT_FIELDS);
   if(options&&options.legacyDocuments)dedupeExactFields(item,LEGACY_DOCUMENT_FIELDS);
   return item;
@@ -41,7 +41,7 @@ function compactStateForStorage(state,options={}){
   if(Array.isArray(out[key]))out[key]=compactCollection(out[key],{customerSnapshots:true,legacyDocuments:true});
  }
  if(Array.isArray(out.abdRequests))out.abdRequests=compactCollection(out.abdRequests,{legacyDocuments:true});
- if(options.packagingSnapshots!==false)out=packagingMaster.applyPackagingSnapshots(out);
+ if(options.packagingSnapshots!==false)out=packagingMaster.applyPackagingSnapshots(out,{owned:true});
  return out;
 }
 
