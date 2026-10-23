@@ -81,3 +81,13 @@ test('P0: regular new QR initialization still requires colli rows',async()=>{
  assert.equal(result.body.code,'COLLI_REQUIRED');
  assert.equal(f.writes,0);
 });
+
+test('P0: stale browser colli rows cannot overwrite authoritative persisted pickup quantity',async()=>{
+ const f=fixture(confirmed());
+ const result=await f.run({shipment:{id:'ID-1',reference:'ABC123',rows:[{count:99}]},resetPickup:true});
+ assert.equal(result.status,200);
+ assert.equal(f.record.status,'open');
+ assert.equal(f.record.expectedColliCount,2);
+ assert.equal(f.record.remainingPickupCollis,2);
+ assert.deepEqual(f.record.rows,[{count:2}]);
+});
