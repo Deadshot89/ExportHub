@@ -19,6 +19,9 @@ header{background:var(--brand-dark);color:#fff;padding:calc(14px + env(safe-area
 header img{width:36px;height:36px;border-radius:9px}
 header h1{font-size:18px;margin:0}
 header p{margin:0;font-size:13px;opacity:.8}
+.language-bar{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin:0 0 12px}
+.language-bar label{font-size:13px;color:var(--muted)}
+.language-bar select{font:inherit;background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:9px;padding:7px 10px}
 main{max-width:720px;margin:0 auto;padding:16px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:12px}
 .card.is-current{border-color:var(--brand);box-shadow:0 0 0 2px color-mix(in srgb,var(--brand) 25%,transparent)}
@@ -42,17 +45,19 @@ a.btn,button{appearance:none;border:0;border-radius:10px;padding:10px 14px;font:
 </style>
 </head>
 <body>
-<header><img src="/assets/web-push/icon-192.png" alt=""><div><h1>Benachrichtigungen</h1><p>Auf diesem Gerät empfangen · ohne Anmeldung lesbar</p></div></header>
+<header><img src="/assets/web-push/icon-192.png" alt=""><div><h1 data-wp-text="inboxTitle">Benachrichtigungen</h1><p data-wp-text="inboxSubtitle">Auf diesem Gerät empfangen · ohne Anmeldung lesbar</p></div></header>
 <main>
-  <div id="list" aria-live="polite"><p class="empty">Wird geladen …</p></div>
+  <div class="language-bar"><label for="language" data-wp-text="languageLabel">Sprache</label><select id="language" name="language" aria-label="Sprache"><option value="de">Deutsch</option><option value="en">English</option><option value="pl">Polski</option><option value="es">Español</option><option value="fr">Français</option><option value="it">Italiano</option></select></div>
+  <div id="list" aria-live="polite"><p class="empty" data-wp-text="inboxLoading">Wird geladen …</p></div>
   <section class="card device" id="device">
-    <p>Status auf diesem Gerät: <strong id="deviceStatus">wird geprüft …</strong></p>
+    <p><span data-wp-text="deviceStatusLabel">Status auf diesem Gerät:</span> <strong id="deviceStatus">wird geprüft …</strong></p>
     <div class="actions">
-      <a class="btn" href="/" id="openApp">In ExportHUB öffnen</a>
-      <button type="button" class="ghost" id="disable" hidden>Benachrichtigungen auf diesem Gerät ausschalten</button>
+      <a class="btn" href="/" id="openApp" data-wp-text="openApp">In ExportHUB öffnen</a>
+      <button type="button" class="ghost" id="disable" data-wp-text="inboxDisable" hidden>Benachrichtigungen auf diesem Gerät ausschalten</button>
     </div>
   </section>
 </main>
+<script src="/assets/i18n/web-push.js?v=1701"></script>
 <script src="/assets/web-push/inbox.js"></script>
 </body>
 </html>
