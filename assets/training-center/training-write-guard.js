@@ -6,6 +6,9 @@ function execute(options={}){
   const mode=String(options.mode||'');
   const operation=String(options.operation||'');
   const payload=options.payload;
+  // A caller must never switch to productive writes while an in-memory demo is active.
+  const active=!!(g.ExportHubTrainingState&&typeof g.ExportHubTrainingState.isActive==='function'&&g.ExportHubTrainingState.isActive());
+  if(active&&mode!=='training')throw new Error('TRAINING_PRODUCTIVE_WRITE_BLOCKED');
   if(mode==='training'){
     if(typeof options.productive==='function')throw new Error('TRAINING_PRODUCTIVE_WRITE_BLOCKED');
     return {mode:'training',persisted:false,result:demo().execute(operation,payload)};
