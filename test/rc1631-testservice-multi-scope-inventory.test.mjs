@@ -144,8 +144,10 @@ test('RC1640: only enumerated non-sensitive failure reasons, no Azure error deta
   [Object.assign(new Error('unrecognized sensitive path'),{statusCode:400,code:'SUPER_PRIVATE_CUSTOMER_NAME'}),'other']
  ];
  for(const [e,reason] of expected){
+  let clientCount=0;
   const services={primary:{getContainerClient(){
-   return {async *listBlobsFlat(){throw e}};
+   const thisClient=++clientCount;
+   return {async *listBlobsFlat(){if(thisClient===1)throw e;}};
   }}};
   const out=await collectTestserviceMultiScopeInventory({services,environment:{}});
   assert.equal(out.complete,false);
