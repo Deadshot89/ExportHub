@@ -144,7 +144,7 @@
           {
             "stepId": "qr-find",
             "order": 1,
-            "instruction": "Öffne die Sendungsübersicht.",
+            "instruction": "Öffne die Sendungsübersicht. Lege dabei keine neue Sendung an.",
             "uiTargetVerified": false,
             "screenshotVerified": false
           },
@@ -351,7 +351,7 @@
           {
             "stepId": "qr-find",
             "order": 1,
-            "instruction": "Open the shipment overview.",
+            "instruction": "Open the shipment overview. Do not create a new shipment.",
             "uiTargetVerified": false,
             "screenshotVerified": false
           },
@@ -558,7 +558,7 @@
           {
             "stepId": "qr-find",
             "order": 1,
-            "instruction": "Otwórz przegląd przesyłek.",
+            "instruction": "Otwórz przegląd przesyłek. Nie twórz nowej przesyłki.",
             "uiTargetVerified": false,
             "screenshotVerified": false
           },
@@ -765,7 +765,7 @@
           {
             "stepId": "qr-find",
             "order": 1,
-            "instruction": "Abre el resumen de envíos.",
+            "instruction": "Abre el resumen de envíos. No crees un envío nuevo.",
             "uiTargetVerified": false,
             "screenshotVerified": false
           },
@@ -972,7 +972,7 @@
           {
             "stepId": "qr-find",
             "order": 1,
-            "instruction": "Ouvrez la liste des envois.",
+            "instruction": "Ouvrez la liste des envois. Ne créez pas un nouvel envoi.",
             "uiTargetVerified": false,
             "screenshotVerified": false
           },
