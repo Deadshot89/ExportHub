@@ -89,6 +89,24 @@
       obs.observe(document.documentElement,{attributes:true,attributeFilter:['lang']});
     }
   }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup,{once:true});
-  else setup();
+  // Loaded without defer from <head>: the login markup sits near the top of a
+  // multi-MB page, so waiting for DOMContentLoaded painted the old login for
+  // seconds after every fresh load (e.g. switching TESTSERVICE <-> Production).
+  // Enhance as soon as the parser has closed #login.
+  function loginParsed(){
+    var login=document.getElementById('login');
+    return !!(login&&login.nextElementSibling);
+  }
+  if(document.readyState!=='loading'){setup();return}
+  document.addEventListener('DOMContentLoaded',setup,{once:true});
+  if(loginParsed()){setup();return}
+  if(window.MutationObserver){
+    var early=new MutationObserver(function(){
+      if(!loginParsed())return;
+      early.disconnect();
+      setup();
+    });
+    early.observe(document.documentElement,{childList:true,subtree:true});
+    document.addEventListener('DOMContentLoaded',function(){early.disconnect()},{once:true});
+  }
 })(window,document);
