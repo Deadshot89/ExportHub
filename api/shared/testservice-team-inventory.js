@@ -28,14 +28,28 @@ function sum(target,n){
  target.records++;
  target.logicalBytes+=n;
 }
+function configuredTeamStateName(options){
+ const base=process.env.EXPORTHUB_STORAGE_BLOB||process.env.EXPORTHUB_STATE_BLOB||'team-state.json';
+ const target=options.teamBlobName||process.env.EXPORTHUB_TEST_STORAGE_BLOB||
+  ('testservice/'+String(base).replace(/^\\/+/,'')); 
+ if(typeof target!=='string'||!target.startsWith(PREFIX)||target.length<=PREFIX.length||
+  target.includes('..')||/[\\r\\n]/.test(target))return null;
+ return target;
+}
 async function collectTestserviceTeamInventory(container,options={}){
  if(!container||typeof container.listBlobsFlat!=='function')throw new Error('INVENTORY_NOT_SUPPORTED');
+ const teamStateName=configuredTeamStateName(options);
  const now=typeof options.clock==='function'?options.clock:Date.now;
  const started=now();
  const report={
   version:'RC1627',environment:'testservice',scope:'team-prefix',complete:false,
   records:0,logicalBytes:0,liveLogicalBytes:0,historicalLogicalBytes:0,
-  kinds:empty(),areas:emptyAreas(),billingVerified:false,archiveVerified:false,
+  kinds:empty(),areas:emptyAreas(),
+  // RC1638: fixed-name configured state file, aggregate-only; never return
+  // the Blob's name, URL, ETag or any customer data.
+  teamState:teamStateName?{status:'listed',records:0,logicalBytes:0,kinds:empty()}:
+   {status:'unverified',records:null,logicalBytes:null,kinds:null},
+  billingVerified:false,archiveVerified:false,
   sharedProductionDependenciesResolved:false
  };
  for await(const item of container.listBlobsFlat({
@@ -55,6 +69,9 @@ async function collectTestserviceTeamInventory(container,options={}){
   sum(report.kinds[kind],bytes);
   const area=report.areas[areaOf(item.name)];
   sum(area,bytes);sum(area.kinds[kind],bytes);
+  if(teamStateName&&item.name===teamStateName){
+   sum(report.teamState,bytes);sum(report.teamState.kinds[kind],bytes);
+  }
   report.records++;
   if(!integer(report.logicalBytes+bytes))throw new Error('INVENTORY_OVERFLOW');
   report.logicalBytes+=bytes;
