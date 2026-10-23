@@ -146,3 +146,38 @@ test('RC1633: out-of-scope and unknown-size blobs still fail closed before produ
   /INVENTORY_SIZE_UNKNOWN/
  );
 });
+
+
+test('RC1638: primary TEAM-state live and historical entries aggregate separately from other root files',async()=>{
+ const items=[
+  row('testservice/team-state.json',43,{versionId:'v2',isCurrentVersion:true}),
+  row('testservice/team-state.json',41,{snapshot:'old'}),
+  row('testservice/team-state.json',42,{deleted:true}),
+  row('testservice/other-root.json',900,{deleted:true}),
+  row('testservice/state-backups/daily/2026/10/23/name.json',8)
+ ];
+ const r=await collectTestserviceTeamInventory(container(items),{teamBlobName:'testservice/team-state.json'});
+ assert.equal(r.teamState.status,'listed');
+ assert.equal(r.teamState.records,3);
+ assert.equal(r.teamState.logicalBytes,126);
+ assert.equal(r.teamState.kinds.live.logicalBytes,43);
+ assert.equal(r.teamState.kinds.snapshot.logicalBytes,41);
+ assert.equal(r.teamState.kinds.deleted.logicalBytes,42);
+ assert.equal(r.areas['root-files'].logicalBytes,1026);
+ assert.equal(r.areas['daily-backups'].logicalBytes,8);
+ assert.doesNotMatch(JSON.stringify(r),/team-state\.json|other-root\.json|name\.json/);
+});
+test('RC1638: configured nondefault TEAM blob is matched; invalid or production paths stay unverified',async()=>{
+ const items=[row('testservice/custom-state.json',10),row('testservice/team-state.json',999)];
+ const list=container(items);
+ const good=await collectTestserviceTeamInventory(list,{teamBlobName:'testservice/custom-state.json'});
+ assert.equal(good.teamState.status,'listed');
+ assert.equal(good.teamState.logicalBytes,10);
+ assert.equal(good.teamState.records,1);
+ for(const invalid of ['production/team-state.json','testservice/../prod.json','testservice/','testservice/x\ny.json']){
+  const bad=await collectTestserviceTeamInventory(container(items),{teamBlobName:invalid});
+  assert.equal(bad.teamState.status,'unverified');
+  assert.equal(bad.teamState.records,null);
+  assert.equal(bad.teamState.logicalBytes,null);
+ }
+});
