@@ -55,7 +55,8 @@ test('Web Push locale: message payload follows device language and retains stabl
 
 test('Web Push locale: subscription saves language without exposing user ID to unauthenticated status',()=>{
  const doc=store.emptyDoc(),now='2026-10-23T11:00:00.000Z';
- const s={endpoint:'https://fcm.googleapis.com/fcm/send/abc',keys:{p256dh:'abc',auth:'def'}};
+ const e=crypto.createECDH('prime256v1');e.generateKeys();
+ const s={endpoint:'https://fcm.googleapis.com/fcm/send/abc',keys:{p256dh:e.getPublicKey().toString('base64url'),auth:crypto.randomBytes(16).toString('base64url')}};
  const old=store.upsertSubscription(doc,{subscription:s,user:{id:'u1',name:'Anna'},language:'fr'},now);
  assert.equal(old.language,'fr');
  assert.equal(store.publicSubscription(old).language,'fr');
