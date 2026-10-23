@@ -223,6 +223,11 @@ test('Web Push: Build bindet Client und Manifest ein (nicht in der Demo), Servic
   for(const f of ['client.js','sw.js','inbox.html','inbox.js','manifest.json','icon-192.png','badge-96.png']){assert.ok(build.includes("'assets/web-push/"+f+"'"),f);assert.ok(fs.statSync('assets/web-push/'+f).size>0,f);}
   const sw=fs.readFileSync('assets/web-push/sw.js','utf8');
   for(const ev of ['push','notificationclick','pushsubscriptionchange'])assert.ok(sw.includes("addEventListener('"+ev+"'"),ev);
+  // read-only notification: tapping closes it and never opens the website, no action buttons
+  const click=sw.slice(sw.indexOf("addEventListener('notificationclick'"),sw.indexOf("addEventListener('pushsubscriptionchange'"));
+  assert.doesNotMatch(click,/openWindow|navigate\(/);
+  assert.doesNotMatch(sw,/actions:\s*\[/);
+  assert.match(sw,/requireInteraction:\s*true/);
   const manifest=JSON.parse(fs.readFileSync('assets/web-push/manifest.json','utf8'));
   assert.equal(manifest.display,'standalone');
   const wf=fs.readFileSync('.github/workflows/web-push-reminders.yml','utf8');

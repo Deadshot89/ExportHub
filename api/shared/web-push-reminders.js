@@ -47,8 +47,9 @@ function taskPayload(rows, environment, nowIso, language = 'de', existingId) {
   const sorted = rows.slice().sort((a, b) => text(a.priority).localeCompare(text(b.priority)) || text(a.dueAt).localeCompare(text(b.dueAt)));
   const items = sorted.slice(0, MAX_ITEMS).map((r) => ({ title: short(r.title, 90), meta: short([r.customerName, r.priority, r.dueAt ? t('serverDue',{date:formatDue(r.dueAt)}) : ''].filter(Boolean).join(' · '), 90), taskId: short(r.taskId, 80) }));
   const one = sorted.length === 1 ? sorted[0] : null;
-  const lines = items.slice(0, 3).map((i) => i.title + (i.meta ? ' · ' + i.meta : ''));
-  if (sorted.length > 3) lines.push(t('serverMore',{count:sorted.length-3}));
+  // The whole content is readable in the notification itself (expanded view); nothing has to be opened.
+  const lines = items.map((i) => (items.length > 1 ? '• ' : '') + i.title + (i.meta ? ' · ' + i.meta : ''));
+  if (sorted.length > items.length) lines.push(t('serverMore',{count:sorted.length-items.length}));
   const id = existingId || messageId('tasks', nowIso);
   return {
     v: 1, id, kind: 'tasks', language:lang, environment, createdAt: new Date(Date.parse(nowIso)).toISOString(),
