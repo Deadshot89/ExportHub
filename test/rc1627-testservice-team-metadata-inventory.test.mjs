@@ -109,3 +109,40 @@ test('RC1627: runs only inside existing scheduled OIDC backup without new storag
  assert.match(y,/RC1627: Team-Inventur nicht verifiziert/);
  assert.doesNotMatch(y,/EXPORTHUB_TEST_INVENTORY_CONNECTION_STRING/);
 });
+
+test('RC1633: group TESTSERVICE storage by fixed backup categories without leaking names',async()=>{
+ const inputs=[
+  row('testservice/exporthub-state.json',40,{versionId:'v2',isCurrentVersion:true}),
+  row('testservice/exporthub-state.json',30,{snapshot:'snapshot-id'}),
+  row('testservice/state-backups/daily/2026/10/23/team-state-20261023T010000000Z.json',20),
+  row('testservice/state-backups/monthly/2026/10/team-state.json',15),
+  row('testservice/state-backups/yearly/2026/team-state.json',10),
+  row('testservice/recovery-backups/SENSITIVE_CUSTOMER_REFERENCE.json',8),
+  row('testservice/recovery-drills/team-state-restore-drill-latest.json',5),
+  row('testservice/other/secret-customer-123.pdf',7,{deleted:true})
+ ];
+ const result=await collectTestserviceTeamInventory(container(inputs));
+ const sizes=Object.fromEntries(Object.entries(result.areas).map(([name,area])=>[name,area.logicalBytes]));
+ assert.deepEqual(sizes,{
+  'root-files':70,'daily-backups':20,'monthly-backups':15,'yearly-backups':10,
+  'recovery-backups':8,'recovery-drills':5,'other':7
+ });
+ assert.equal(result.logicalBytes,135);
+ assert.equal(Object.values(result.areas).reduce((sum,a)=>sum+a.records,0),result.records);
+ assert.equal(Object.values(result.areas).reduce((sum,a)=>sum+a.logicalBytes,0),result.logicalBytes);
+ assert.equal(result.areas['root-files'].kinds.snapshot.logicalBytes,30);
+ assert.equal(result.areas.other.kinds.deleted.logicalBytes,7);
+ assert.doesNotMatch(JSON.stringify(result),/SENSITIVE_CUSTOMER_REFERENCE|secret-customer|team-state-20261023/);
+ assert.equal(result.billingVerified,false);
+ assert.equal(result.archiveVerified,false);
+});
+test('RC1633: out-of-scope and unknown-size blobs still fail closed before producing area totals',async()=>{
+ await assert.rejects(
+  ()=>collectTestserviceTeamInventory(container([row('production/state-backups/daily/private',1)],{ignorePrefix:true})),
+  /INVENTORY_OUT_OF_SCOPE/
+ );
+ await assert.rejects(
+  ()=>collectTestserviceTeamInventory(container([row('testservice/secret-customer',undefined)])),
+  /INVENTORY_SIZE_UNKNOWN/
+ );
+});
