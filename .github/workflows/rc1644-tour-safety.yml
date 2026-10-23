@@ -1,0 +1,28 @@
+name: RC1644 Native Tour Safety
+on:
+  pull_request:
+    paths:
+      - 'assets/training-center/tour-engine.js'
+      - 'assets/training-center/target-registry.js'
+      - 'assets/training-center/integration/shipment-targets.js'
+      - 'test/training-center-tour-engine.test.mjs'
+      - 'test/training-center-targets.test.mjs'
+      - 'test/rc1644-tour-safety.test.mjs'
+      - '.github/workflows/rc1644-tour-safety.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+      - name: Source syntax
+        run: |
+          node --check assets/training-center/tour-engine.js
+          node --check assets/training-center/target-registry.js
+          node --check assets/training-center/integration/shipment-targets.js
+      - name: Native tour and target contracts
+        run: node --test test/training-center-tour-engine.test.mjs test/training-center-targets.test.mjs test/rc1644-tour-safety.test.mjs
+      - name: Strict six-language release gate
+        run: node scripts/i18n-audit.mjs --strict
