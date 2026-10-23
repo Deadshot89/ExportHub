@@ -348,7 +348,7 @@ jobs:
             local fixture_response fixture_status fixture_error
             local -a inventory_timeout=()
             case "$action" in
-              inventory-team|inventory-scopes)
+              inventory-team|inventory-scopes|inventory-blob-policy)
                 # Fail bounded on stalled Azure LIST calls; diagnostic failures
                 # must not suppress functional E2E checks or block release.
                 inventory_timeout=(--connect-timeout 8 --max-time 35)
@@ -375,6 +375,41 @@ jobs:
           # additional scheduled jobs or full team-state downloads.
           # This is diagnostic only: incomplete inventory does not bypass,
           # weaken or incorrectly fail the functional release gates.
+          # RC1639: inspect existing account-level Blob Soft Delete policy.
+          # Signed OIDC only, one read-only GET; no storage configuration changes.
+          if policy_payload="$(fixture inventory-blob-policy)"; then
+            if ! printf '%s' "$policy_payload" | node -e '
+              let raw="";process.stdin.on("data",c=>raw+=c).on("end",()=>{
+                const v=JSON.parse(raw);
+                const p=v.deleteRetention;
+                if(v.ok!==true||v.action!=="inventory-blob-policy"||v.environment!=="testservice"||
+                   v.scope!=="storage-account"||v.sharedOwnershipVerified!==false||
+                   v.billingVerified!==false||v.changeApproved!==false||!p||
+                   !["verified","unverified"].includes(p.status))process.exit(3);
+                if(p.status==="verified"){
+                  if(typeof p.enabled!=="boolean"||
+                     (p.enabled===true&&(!Number.isSafeInteger(p.days)||p.days<1||p.days>365))||
+                     (p.enabled===false&&p.days!==null))process.exit(4);
+                }else if(p.enabled!==null||p.days!==null)process.exit(5);
+                const report={scope:"storage-account",sharedOwnershipVerified:false,
+                  status:p.status,softDeleteEnabled:p.enabled,retentionDays:p.days,
+                  billingVerified:false,changeApproved:false};
+                console.log("RC1639 Azure-Blob-SoftDelete-Richtlinie "+JSON.stringify(report));
+                if(process.env.GITHUB_STEP_SUMMARY){
+                  require("fs").appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+                    "\n## RC1639 · Azure Blob Soft Delete (read-only)\n\n"+
+                    "Account-level property, shared PROD/TEST dependencies NOT ruled out.\n\n"+
+                    "- Status: "+p.status+"\n- Enabled: "+p.enabled+
+                    "\n- Days: "+p.days+"\n\nNo deletion approval or billing verification.\n");
+                }
+              });
+            '; then
+              echo "RC1639: Soft-Delete-Richtlinie nicht sicher verifiziert." >&2
+            fi
+          else
+            echo "RC1639: Policy GET nicht verfügbar; Status unverified." >&2
+          fi
+
           if inventory_payload="$(fixture inventory-team)"; then
             if ! printf '%s' "$inventory_payload" | node -e '
               let raw="";
