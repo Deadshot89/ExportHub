@@ -320,7 +320,10 @@ function applyForm(task,v,isNew){
   }
   task.time=v.time;task.priority=v.priority;
   task.customerName=v.customer;task.linkedCustomer=v.customer;
-  task.customerNumber=v.customerNo;task.linkedAccount=v.customerNo;
+  // RC1650: a customer number links the task to shipments; weekly instances hand the newest value on to their series
+  var autoDone=v.autoDone!==false;
+  if(isNew||v.customerNo!==customerNo(task)||autoDone!==(task.autoDoneOnShipment!==false))task.customerNumberSetAt=now;
+  task.customerNumber=v.customerNo;task.linkedAccount=v.customerNo;task.autoDoneOnShipment=autoDone;
   task.linkedShipmentRef=v.ref;task.note=v.note;
   if(isNew||statusOf(task)!==v.status)setStatus(task,v.status);
   task.updatedAt=now;task.updatedBy=me;
@@ -331,7 +334,7 @@ function saveForm(form){
   var f=form.elements,v={
     title:q(f.title.value),area:q(f.area.value),owner:q(f.owner.value),weekly:form.querySelector('[name="repeat"]:checked').value==='weekly',
     date:q(f.date.value),weekday:Number(f.weekday.value),time:q(f.time.value),priority:q(f.priority.value),status:q(f.status.value)||'open',
-    customer:q(f.customer.value),customerNo:q(f.customerNo.value),ref:q(f.ref.value),note:String(f.note.value||'').trim()
+    customer:q(f.customer.value),customerNo:q(f.customerNo.value),autoDone:f.autoDone?f.autoDone.checked:true,ref:q(f.ref.value),note:String(f.note.value||'').trim()
   };
   if(!v.title){tv.error=t('required');renderTaskView(true);return false}
   // some designs turn the date picker into a text field (TT.MM.JJJJ); store ISO either way
@@ -366,7 +369,8 @@ function formHtml(task){
     field(t('fPriority'),'<select name="priority"><option value="Normal"'+(p?'':' selected')+'>'+esc(t('pNormal'))+'</option>'+prios.map(function(v){return'<option value="'+v+'"'+(v===p?' selected':'')+'>'+v+'</option>'}).join('')+'</select>')+
     field(t('fStatus'),'<select name="status">'+['open','in_progress','done'].map(function(v){return'<option value="'+v+'"'+(v===st?' selected':'')+'>'+esc(t({open:'stOpen',in_progress:'stInProgress',done:'done'}[v]))+'</option>'}).join('')+'</select>')+
     field(t('fCustomer'),'<input name="customer" list="rc1570Customers" maxlength="120" autocomplete="off" value="'+esc(task?customer(x):'')+'"><datalist id="rc1570Customers">'+customers().map(function(c){return'<option value="'+esc(c.name)+'">'+esc(c.no)+'</option>'}).join('')+'</datalist>')+
-    field(t('fCustomerNo'),'<input name="customerNo" maxlength="40" autocomplete="off" value="'+esc(task?customerNo(x):'')+'">')+
+    field(t('fCustomerNo'),'<input name="customerNo" maxlength="120" autocomplete="off" value="'+esc(task?customerNo(x):'')+'">')+
+    '<label class="rc1570-field rc1570-wide rc1570-autodone"><span><input type="checkbox" name="autoDone"'+(x.autoDoneOnShipment===false?'':' checked')+'> '+esc(t('fAutoDone'))+'</span><small>'+esc(t('fAutoDoneHint'))+'</small></label>'+
     field(t('fRef'),'<input name="ref" maxlength="40" autocomplete="off" value="'+esc(task?ref(x):'')+'">',true)+
     field(t('fNote'),'<textarea name="note" rows="4" maxlength="2000">'+esc(task?noteOf(x):'')+'</textarea>',true)+
     '<p class="rc1570-error" role="alert"'+(tv.error?'':' hidden')+'>'+esc(tv.error)+'</p>'+
@@ -378,6 +382,8 @@ function detailHtml(task){
     [t('fDue'),d?fmtDate(d)+(isWeekly(x)?' · ↻ '+t('weekly'):''):t('noDate')],[t('fTimeShort'),q(x.time)],
     [t('fPriority'),priority(x)||t('pNormal')],[t('filter_customer'),customer(x)],[t('fCustomerNoShort'),customerNo(x)],[t('fRefShort'),rf]
   ];
+  if(q(x.doneByShipmentRef))rows.push([t('fDoneByShipment'),q(x.doneByShipmentRef)]);
+  else if(customerNo(x)&&!isDone(x)&&x.autoDoneOnShipment!==false)rows.push([t('fAutoDoneShort'),t('autoDoneOn')]);
   return'<article class="rc1570-tv-detail" data-rc1570-tv-task="'+esc(taskId(x))+'"><header><div><span class="rc1570-tv-eyebrow">'+esc(area(x))+'</span><h2>'+esc(title(x))+'</h2></div><span class="rc1570-tv-status" data-status="'+st+'">'+esc(t({open:'stOpen',in_progress:'stInProgress',done:'done'}[st]))+'</span></header>'+
     (tv.saved?'<p class="rc1570-tv-saved" role="status">'+esc(tv.saved)+'</p>':'')+
     '<dl>'+rows.map(function(r){return'<div><dt>'+esc(r[0])+'</dt><dd>'+(q(r[1])?esc(r[1]):'<span class="rc1570-tv-empty">–</span>')+'</dd></div>'}).join('')+'</dl>'+
