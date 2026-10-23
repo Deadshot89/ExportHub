@@ -82,6 +82,10 @@ test('RC1549: Integrator injiziert nur in den echten Dokument-Head und niemals i
  const root=path.join(tmp,'root'),out=path.join(tmp,'out');
  fs.mkdirSync(path.join(root,'assets'),{recursive:true});fs.mkdirSync(out,{recursive:true});
  fs.writeFileSync(path.join(root,'assets/rc1549-abd-proforma.js'),'window.__RC1549__=true;\n');
+ // Integration copies every mandatory asset; mirror the production logo in this isolated fixture.
+ const logo=path.join('assets','essentra-company-logo.png');
+ assert.ok(fs.existsSync(logo),'RC1549 logo fixture must exist in the branch');
+ fs.copyFileSync(logo,path.join(root,logo));
  const fixture='<!doctype html><html><head><meta charset="utf-8"></head><body><script>function print(){var html=\'<!doctype html><html><head><title>Print</title></head><body>OK</body></html>\';return html}</script></body></html>';
  for(const file of ['index.html','TESTVERSION.html','demo.html'])fs.writeFileSync(path.join(out,file),fixture);
  try{
