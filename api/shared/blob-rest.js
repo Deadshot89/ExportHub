@@ -76,6 +76,25 @@ function parseListXml(xml){
  }
  return{items:out,nextMarker:xmlValue(s,'NextMarker')};
 }
+// RC1639: Azure Get Blob Service Properties via existing read-only SharedKey/SAS
+// REST transport. Only a fixed retention flag and day count leave this module.
+// Absence or malformed properties must NEVER be interpreted as disabled.
+function parseBlobDeleteRetentionPolicy(xml){
+ const raw=String(xml||'');
+ if(!/<StorageServiceProperties(?:\s[^>]*)?>/.test(raw)||
+    !/<\/StorageServiceProperties>/.test(raw))
+  return{status:'unverified',enabled:null,days:null};
+ const block=raw.match(/<DeleteRetentionPolicy(?:\s[^>]*)?>([\s\S]*?)<\/DeleteRetentionPolicy>/i);
+ if(!block)return{status:'unverified',enabled:null,days:null};
+ const enabled=xmlValue(block[1],'Enabled').toLowerCase();
+ if(enabled!=='true'&&enabled!=='false')
+  return{status:'unverified',enabled:null,days:null};
+ const daysRaw=xmlValue(block[1],'Days');
+ const days=/^(?:[1-9]\d{0,2})$/.test(daysRaw)?Number(daysRaw):null;
+ if(enabled==='true'&&!(Number.isSafeInteger(days)&&days>=1&&days<=365))
+  return{status:'unverified',enabled:null,days:null};
+ return{status:'verified',enabled:enabled==='true',days:enabled==='true'?days:null};
+}
 class RestBlobClient{
   constructor(config,container,name,versionId='',snapshot=''){this.config=config;this.containerName=container;this.name=name;this.versionId=versionId;this.snapshot=snapshot;}
   url(){const u=new URL(this.config.endpoint+'/'+encodeURIComponent(this.containerName)+'/'+encodePath(this.name));if(this.versionId)u.searchParams.set('versionid',this.versionId);else if(this.snapshot)u.searchParams.set('snapshot',this.snapshot);return u;}
@@ -92,6 +111,16 @@ class RestContainerClient{
   getBlobClient(name){return new RestBlobClient(this.config,this.containerName,name);}
   async *listBlobsFlat(options={}){let marker='';do{const u=new URL(this.config.endpoint+'/'+encodeURIComponent(this.containerName));u.searchParams.set('restype','container');u.searchParams.set('comp','list');u.searchParams.set('maxresults','5000');if(options.prefix)u.searchParams.set('prefix',String(options.prefix));if(marker)u.searchParams.set('marker',marker);const include=[];if(options.includeSnapshots)include.push('snapshots');if(options.includeMetadata)include.push('metadata');if(options.includeVersions)include.push('versions');if(options.includeDeleted)include.push('deleted');if(options.includeDeletedWithVersions)include.push('deletedwithversions');if(include.length)u.searchParams.set('include',include.join(','));const res=await doFetch(this.config,'GET',u,{},null,STORAGE_ATTEMPTS);const parsed=parseListXml(await res.text());for(const item of parsed.items)yield item;marker=parsed.nextMarker||'';}while(marker);}
 }
-class RestBlobServiceClient{constructor(config){this.config=config;}getContainerClient(name){return new RestContainerClient(this.config,name);}}
+class RestBlobServiceClient{
+ constructor(config){this.config=config;}
+ getContainerClient(name){return new RestContainerClient(this.config,name);}
+ async getDeleteRetentionPolicy(){
+  const url=new URL(this.config.endpoint+'/');
+  url.searchParams.set('restype','service');
+  url.searchParams.set('comp','properties');
+  const res=await doFetch(this.config,'GET',url,{},null,1);
+  return parseBlobDeleteRetentionPolicy(await res.text());
+ }
+}
 function createBlobServiceClient(connectionString){return new RestBlobServiceClient(parseConnectionString(connectionString));}
-module.exports={createBlobServiceClient,parseConnectionString,parseListXml,RestBlobServiceClient,RestContainerClient,RestBlobClient};
+module.exports={createBlobServiceClient,parseConnectionString,parseListXml,parseBlobDeleteRetentionPolicy,RestBlobServiceClient,RestContainerClient,RestBlobClient};
