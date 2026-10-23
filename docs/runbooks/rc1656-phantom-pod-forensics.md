@@ -2,7 +2,7 @@
 
 **Ziel:** Bereits von berechtigten Administratoren gesicherte Produktions-Team-State-Snapshots
 in einer **geschützten lokalen Umgebung** auf verdächtige POD-Statuswerte, widersprüchliche
-Kopien in \`shipments\` / \`savedShipments\` und wiederverwendete interne Editor-IDs prüfen.
+Kopien in `shipments` / `savedShipments` und wiederverwendete interne Editor-IDs prüfen.
 
 Dies **ist kein Produktionsreparaturwerkzeug** und stellt keine Verbindung zu Azure, GitHub,
 anderen Diensten oder der produktiven API her. Das Skript verändert niemals die Eingabedatei.
@@ -33,22 +33,22 @@ anderen Diensten oder der produktiven API her. Das Skript verändert niemals die
 
 ## Was die Zähler aussagen – und was nicht
 
-- \`podStatusWithoutSignedPickupClaim\`: Die Team-State-Kopie meldet „POD vorhanden“,
+- `podStatusWithoutSignedPickupClaim`: Die Team-State-Kopie meldet „POD vorhanden“,
   aber enthält keinen im Team-State erkennbaren, datierten Signaturnachweis.
   **Das beweist nicht**, dass auf dem Pickup-Server oder im Archiv kein echtes Original vorliegt.
-- \`podStatusWithManualOnlyClaim\`: Manuell bestätigte Abholung dokumentiert,
+- `podStatusWithManualOnlyClaim`: Manuell bestätigte Abholung dokumentiert,
   aber im Team-State keine verknüpfte Signatur erkennbar; kein automatischer Status-Reset.
-- \`podStatusWithDurablePointersButNoSignedPickupClaim\`: Speicherverweis vorhanden,
+- `podStatusWithDurablePointersButNoSignedPickupClaim`: Speicherverweis vorhanden,
   jedoch ohne zugehörigen signierten Pickup-Hinweis im Team-State. Verweis ist
   **kein Nachweis einer gültigen, lesbaren POD-PDF**.
-- \`crossCollectionPodVsPrePickup\`: Eine Referenz liegt in den beiden
+- `crossCollectionPodVsPrePickup`: Eine Referenz liegt in den beiden
   Sammlungen mit widersprüchlichen Zustandsstufen vor. Die originale Historie
   zuerst prüfen; niemals per Mehrheitsentscheid überschreiben.
-- \`recycledIdAcrossDifferentReferences\`: Dieselbe interne ID wird für
+- `recycledIdAcrossDifferentReferences`: Dieselbe interne ID wird für
   verschiedene REFs verwendet. Dieser Konflikt kann den in RC1655 reparierten
   Identitätsfehler in früheren Daten erklären, beweist aber nicht dessen
   tatsächlichen Ablauf bei den vier gemeldeten Vorgängen.
-- \`podStatusWithSignedPickupClaim\`: Ein datierter Unterschriftenhinweis
+- `podStatusWithSignedPickupClaim`: Ein datierter Unterschriftenhinweis
   ist im Team-State vorhanden. Auch hier muss das **authentische Original**
   separat aus dem berechtigten Pickup-/POD-Speicher geprüft werden.
 
@@ -63,4 +63,4 @@ und Speicherung, QR-Reset, erneutes Öffnen und Reload produktiv nachweisen.
 **Nie** alle vier oder die 89 historischen Fälle (#899) pauschal zurücksetzen.
 Der Audit erstellt weder Ersatzsignaturen noch neue PODs.
 
-Tests: \`node --test test/rc1656-phantom-pod-forensics.test.mjs\`.
+Tests: `node --test test/rc1656-phantom-pod-forensics.test.mjs`.
