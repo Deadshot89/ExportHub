@@ -61,8 +61,10 @@
     return packNotifications(state).map(notification=>{
       const model=detailFromNotification(notification,null);
       return Object.assign({},model,{unread:q(notification.status).toLowerCase()==='new'});
-    }).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
+    }).sort((a,b)=>inboxRank(a)-inboxRank(b)||String(b.createdAt).localeCompare(String(a.createdAt)));
   }
+  // new and in-review notifications still need someone in the office, so they stay on top
+  function inboxRank(item){const s=q(item&&item.status).toLowerCase()||'new';return s==='new'?0:s==='in_review'?1:2;}
   function inboxUnreadCount(state){return inboxItems(state).filter(item=>item.unread).length;}
   async function persist(reason){
     try{

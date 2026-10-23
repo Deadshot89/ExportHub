@@ -55,9 +55,10 @@ ICONS.it='<rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8M12 1
 ICONS.packnotifications='<path d="m16 16 2 2 4-4"/><path d="M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14"/><path d="m7.5 4.27 9 5.15M3.29 7 12 12l8.71-5M12 22V12"/>';
 
 var SECTIONS=[
- {key:'start',flat:true,accent:'#2563eb',views:['dashboard','notifications']},
+ // Packmeldungen direkt unter dem Dashboard: der Packtisch-Eingang ist der Start jeder Sendung
+ {key:'start',flat:true,accent:'#2563eb',views:['dashboard','packnotifications','notifications']},
  {key:'tasks',accent:'#7c3aed',views:['tasks','planning','taskdetail']},
- {key:'shipments',accent:'#0284c7',views:['shipment','abd','shipmentoverview','shipmentsearch','cmr','pickupcalendar','packnotifications']},
+ {key:'shipments',accent:'#0284c7',views:['shipment','abd','shipmentoverview','shipmentsearch','cmr','pickupcalendar']},
  {key:'logistics',accent:'#ea580c',views:['warehouse','pallet','shippingcosts']},
  {key:'knowledge',accent:'#0d9488',views:['customerfolder','customers','customs','sop','academy','inspections','ideas']},
  {key:'reports',accent:'#4f46e5',views:['reports','history','archive']},
