@@ -5,12 +5,12 @@
       "route": "/",
       "rewrite": "/index.html",
       "allowedRoles": ["anonymous"],
-      "headers": {"Cache-Control": "no-store, no-cache, must-revalidate"}
+      "headers": {"Cache-Control": "no-cache, must-revalidate"}
     },
     {
       "route": "/index.html",
       "allowedRoles": ["anonymous"],
-      "headers": {"Cache-Control": "no-store, no-cache, must-revalidate"}
+      "headers": {"Cache-Control": "no-cache, must-revalidate"}
     },
     {
       "route": "/production-version.js",

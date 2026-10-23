@@ -14,7 +14,7 @@ test('RC1065: Main Contract reagiert auch auf beide Static-Web-App-Routenverträ
   for(const route of ['/','/index.html']){
     const row=cfg.routes.find(r=>r.route===route);
     assert.ok(row,route+' muss explizit vorhanden sein');
-    assert.match(String(row.headers&&row.headers['Cache-Control']||''),/no-store/);
+    assert.match(String(row.headers&&row.headers['Cache-Control']||''),/no-cache[\s\S]*must-revalidate/);
   }
 });
 

@@ -7,7 +7,7 @@
         "anonymous"
       ],
       "headers": {
-        "Cache-Control": "no-store, no-cache, must-revalidate",
+        "Cache-Control": "no-cache, must-revalidate",
         "X-ExportHUB-Environment": "test"
       },
       "rewrite": "/TESTVERSION.html"
@@ -18,7 +18,7 @@
         "anonymous"
       ],
       "headers": {
-        "Cache-Control": "no-store, no-cache, must-revalidate",
+        "Cache-Control": "no-cache, must-revalidate",
         "X-ExportHUB-Environment": "test"
       },
       "rewrite": "/TESTVERSION.html"
@@ -61,7 +61,7 @@
         "anonymous"
       ],
       "headers": {
-        "Cache-Control": "no-store, no-cache, must-revalidate",
+        "Cache-Control": "no-cache, must-revalidate",
         "X-ExportHUB-Environment": "test"
       }
     },
