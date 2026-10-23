@@ -485,6 +485,8 @@ html[data-eh-design="neon"] :is(footer,.footer,#footer){border-top-color:#1d3855
     setText(select.options[3],tr('theme.neonNight'));
     if(select.value!==value)select.value=value;
     select.setAttribute('aria-label',tr('theme.select'));
+    // also on every language change: the title set before the language pack loaded would otherwise stay the raw key
+    select.title=tr('theme.select');
   }
 
   function replaceLegacySelect(value){
