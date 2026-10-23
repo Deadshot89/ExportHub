@@ -1001,9 +1001,16 @@ function protectFreshShipmentPodStatuses(server, incoming) {
       const ref = text(sh.ref || sh.reference || sh.shipmentRef || sh.referenceNumber).toUpperCase();
       const id = text(sh.id || sh.shipmentId);
       if (!ref && !id) return sh;
+      // A recycled editor ID is not evidence that a DIFFERENT shipment REF
+      // already exists. Only fall back to ID when either side lacks a REF,
+      // or when the references agree. Existing signed shipments stay intact.
       const priorCopies = [
         ...(ref && known.get('ref:' + ref) || []),
-        ...(id && known.get('id:' + id) || [])
+        ...((id && known.get('id:' + id) || []).filter(existing => {
+          const existingRef = text(existing && (existing.ref || existing.reference ||
+            existing.shipmentRef || existing.referenceNumber)).toUpperCase();
+          return !ref || !existingRef || existingRef === ref;
+        }))
       ];
       const earlierStages = ['entwurf','erstellt','bereit zur abholung','wartet auf abd',
         'draft','created','ready for pickup','waiting for abd'];
