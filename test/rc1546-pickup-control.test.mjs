@@ -52,12 +52,41 @@ test('RC1547: Print-Control enthält Kontrollfelder, Alter und manuelle Nachtrag
   ]) assert.ok(ui.includes(marker),marker+' fehlt');
 });
 
-test('RC1547: Druckkontrolle erzwingt A4 Querformat und wiederholbare Tabellenköpfe',()=>{
+test('RC1604: Abholkontrolle nutzt A4 Hochformat mit wiederholbarer Tabellenüberschrift',()=>{
   const ui=fs.readFileSync(UI,'utf8');
-  assert.match(ui,/@page\s+rc1546ControlPage\s*\{[^}]*size\s*:\s*A4\s+landscape/i,'A4-Querformat für die Abholkontrolle fehlt');
-  assert.match(ui,/\.rc1546-overlay\{page:rc1546ControlPage!important;/,'Abholkontrolle muss die benannte Querformat-Seite verwenden');
-  assert.doesNotMatch(ui,/@page\s*\{[^}]*size\s*:\s*A4\s+landscape/i,'Globale Querformat-Regel darf nicht normale Ladelisten verändern');
-  assert.match(ui,/thead\s*\{[^}]*display\s*:\s*table-header-group/i,'Tabellenkopf ist für Mehrseiten-Druck nicht abgesichert');
+  assert.match(ui,/@page\s+rc1546ControlPage\s*\{[^}]*size\s*:\s*A4\s+portrait;\s*margin:\s*12mm/i);
+  assert.match(ui,/\.rc1546-overlay\{page:rc1546ControlPage!important;/);
+  assert.doesNotMatch(ui,/@page\s*\{[^}]*size\s*:\s*A4\s+portrait/i,'Globale Druckregel darf keine Ladelisten verändern');
+  assert.match(ui,/\.rc1546-print-table thead\{display:table-header-group!important\}/);
+});
+
+test('RC1604: die gedruckte Kontrollliste enthält nur vier Spalten und ein freies Schreibfeld',()=>{
+  const api=loadUi();
+  const html=api.printTableHtml([
+    {reference:'AB1234',customerName:'Test & Versand',warehousePrepared:true,warehouseLocationCode:3},
+    {reference:'CD5678',customerName:'Beispiel GmbH',warehousePrepared:false,warehouseLocationCode:4}
+  ]);
+  assert.equal((html.match(/<th>/g)||[]).length,4);
+  for(const label of ['REF','Kunde','Wo befindet sich die Ware?','Abgeholt?'])assert.ok(html.includes(label),label+' fehlt');
+  assert.match(html,/Test &amp; Versand/,'Kundendaten müssen escaped sein');
+  assert.match(html,/Lane 3/,'bekannter Lagerort muss eingetragen sein');
+  assert.match(html,/rc1546-print-location-line/,'nicht vorbereitete Ware braucht eine handschriftlich ausfüllbare Zeile');
+  assert.match(html,/☐ Ja/);
+  assert.match(html,/☐ Nein/);
+  assert.doesNotMatch(html,/<th>(?:Colli|Gewicht|Status|Alter|Bemerkung)<\/th>/i);
+  const ui=fs.readFileSync(UI,'utf8');
+  assert.match(ui,/\.rc1546-print-table\{[^}]*table-layout:fixed!important/);
+  assert.match(ui,/\.rc1546-print-table th,\.rc1546-print-table td\{[^}]*overflow-wrap:anywhere!important/);
+  assert.match(ui,/\.rc1546-screen-only\{display:none!important\}/);
+});
+
+test('RC1604: Lagerort berücksichtigt den Vorbereitungsstatus',()=>{
+  const api=loadUi();
+  assert.equal(api.printLocation({warehousePrepared:false,currentLocation:'Lane 4'}),'');
+  assert.equal(api.printLocation({warehousePrepared:true,currentLocation:'Lagerfeld B 8'}),'Lagerfeld B 8');
+  assert.equal(api.printLocation({warehouseLocationCode:7}),'Vor dem Regal');
+  assert.equal(api.printLocation({warehouseLocationCode:0}),'');
+  assert.equal(api.printLocation({}),'');
 });
 
 test('RC1547: Wartet auf ABD wird als Versandblockade und nicht als versäumte Abholung gewertet',()=>{
@@ -133,7 +162,7 @@ test('RC1547: Pickup-Control beobachtet nicht den kompletten DOM-Baum auf Child-
 
 test('RC1547: aktueller RC1112-Build nimmt Runtime und API in das Deploy-Paket auf',()=>{
   const finalizer=fs.readFileSync(FINALIZER,'utf8');
-  assert.match(finalizer,/rc1546-pickup-control\.js\?v=1546/);
+  assert.match(finalizer,/rc1546-pickup-control\.js\?v=1604/);
   assert.match(finalizer,/assets[^\n]+rc1546-pickup-control\.js/);
   for(const workflow of [PROD,TESTSERVICE]){
     const yaml=fs.readFileSync(workflow,'utf8');

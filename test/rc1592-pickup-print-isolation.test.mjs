@@ -21,11 +21,11 @@ test('RC1593: Kontroll-Overlay verdeckt #app trotz alter Important-Layoutregeln'
     'Das Abholkontroll-Overlay selbst muss weiterhin sichtbar und druckbar bleiben');
 });
 
-test('RC1592: A4-Querformat gehört ausschließlich zur Abholkontrolle, nicht zu allen Ladelisten',()=>{
-  assert.match(pickup,/@page rc1546ControlPage\{size:A4 landscape;margin:10mm\}/,
-    'Die Abholkontrolle braucht eine eigene benannte Querformat-Seite');
+test('RC1604: A4-Hochformat gehört ausschließlich zur Abholkontrolle, nicht zu den Ladelisten',()=>{
+  assert.match(pickup,/@page rc1546ControlPage\{size:A4 portrait;margin:12mm\}/,
+    'Die Abholkontrolle braucht eine eigene benannte Hochformat-Seite');
   assert.match(pickup,/\.rc1546-overlay\{page:rc1546ControlPage!important;/,
-    'Nur das aktive Overlay soll das Querformat nutzen');
+    'Nur das aktive Overlay soll das Druckformat nutzen');
   assert.doesNotMatch(pickup,/@page\{size:A4 landscape;margin:10mm\}/,
     'Globale A4-Querformat-Regel überschreibt sonst normale Ladelisten');
 });
@@ -69,6 +69,6 @@ test('RC1592: die Abholkontroll-Runtime liegt schon vor dem lokalen Browser-Gate
   const finalizer=fs.readFileSync('.github/rc1488/finalize-auto-update.mjs','utf8');
   assert.match(build,/'assets\/rc1546-pickup-control\.js'/,
     'Lokale Print-Browser-Tests benötigen dieselbe Runtime bereits im ersten Build');
-  assert.match(finalizer,/PICKUP_SCRIPT_SRC='\/assets\/rc1546-pickup-control\.js\?v=1546'/,
+  assert.match(finalizer,/PICKUP_SCRIPT_SRC='\/assets\/rc1546-pickup-control\.js\?v=1604'/,
     'Release-Finalizer muss die identische Abholkontroll-Datei ausliefern');
 });

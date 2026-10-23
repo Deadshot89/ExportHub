@@ -51,7 +51,7 @@ test('RC1488: Finalizer schreibt deploymentgenaue Marker und bindet Sprachpaket 
     assert.match(html,/id="exporthub-rc1488-auto-update"/);
     assert.match(html,/src="\/assets\/rc1488-auto-update\.js\?v=1488"/);
     assert.match(html,/id="exporthub-rc1546-pickup-control"/);
-    assert.match(html,/src="\/assets\/rc1546-pickup-control\.js\?v=1546"/);
+    assert.match(html,/src="\/assets\/rc1546-pickup-control\.js\?v=1604"/);
     assert.ok(html.indexOf('id="exporthub-rc1488-auto-update-i18n"')<html.indexOf('id="exporthub-rc1488-auto-update" defer'),'Sprachpaket steht nicht vor Runtime');
     assert.ok(html.indexOf('id="exporthub-rc1488-auto-update" defer')<html.indexOf('id="exporthub-rc1546-pickup-control"'),'Pickup-Control steht nicht nach Auto-Update-Runtime');
     assert.match(html,new RegExp(`data-build-id="${sha}"`));
