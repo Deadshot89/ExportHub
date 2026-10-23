@@ -43,7 +43,7 @@ module.exports=async function(context,req){
   if(resetPickup&&text(existing.record.reference).toUpperCase()!==reference)throw store.err('PICKUP_RESET_REFERENCE_MISMATCH','QR-Abholdatensatz gehört zu einer anderen Referenz. Kein Reset durchgeführt.',409);
   // The editor may be locked once a wrong POD status is shown. In that case
   // the authoritative colli count lives in the persisted pickup record.
-  const resetExpected=resetPickup?(expected||store.expectedCollis(existing.record)):expected;
+  const resetExpected=resetPickup?(store.expectedCollis(existing.record)||expected):expected;
   if(!resetExpected)throw store.err('COLLI_REQUIRED',apiI18n.t(req,'api.pickup.colliRequiredInit'),409);
   if(existing&&existing.record){
    record=await store.mutateRecord(accessKey,issued.environment,function(r){
@@ -51,7 +51,7 @@ module.exports=async function(context,req){
     const started=(typeof store.pickupHistory==='function'&&store.pickupHistory(r).length>0)||(typeof store.pickupComplete==='function'&&store.pickupComplete(r))||r.status==='partial'||r.status==='confirmed';
     r.accessKey=accessKey;r.environment=issued.environment;r.shipmentId=shipmentId;r.subShipmentId=subShipmentId;r.subShipmentSequence=subShipmentSequence;r.subShipmentTotal=subShipmentTotal;r.subShipmentLabel=subShipmentLabel;r.reference=reference;
     if(snapshot.customer)r.customer=snapshot.customer;if(snapshot.recipient)r.recipient=snapshot.recipient;if(snapshot.address)r.address=snapshot.address;if(snapshot.locationName)r.locationName=snapshot.locationName;if(snapshot.carrierName){r.carrierName=snapshot.carrierName;r.speditionName=snapshot.carrierName;r.carrier=snapshot.carrierName;r.spedition=snapshot.carrierName}if(snapshot.transportMode)r.transportMode=snapshot.transportMode;if(snapshot.containerDocumentationRequired===true)r.containerDocumentationRequired=true;else if(!started&&snapshot.containerDocumentationRequired===false)r.containerDocumentationRequired=false;r.abdPresent=snapshot.abdPresent===true;
-    if(!started){if(snapshot.rows.length)r.rows=store.clone(snapshot.rows);r.expectedColliCount=resetExpected;r.colliCount=resetExpected;r.totalColli=resetExpected;r.packageCount=resetExpected;if(snapshot.rows.length)r.palletOut=snapshot.palletOut}if(resetPickup){r.remainingPickupCollis=resetExpected;r.pickupRemainingColliCount=resetExpected}
+    if(!started){if(snapshot.rows.length&&!resetPickup)r.rows=store.clone(snapshot.rows);r.expectedColliCount=resetExpected;r.colliCount=resetExpected;r.totalColli=resetExpected;r.packageCount=resetExpected;if(snapshot.rows.length&&!resetPickup)r.palletOut=snapshot.palletOut}if(resetPickup){r.remainingPickupCollis=resetExpected;r.pickupRemainingColliCount=resetExpected}
     r.registrationVersion='RC1259';r.metadataVersion=19;r.updatedAt=store.now();return r
    });
   }else await store.writeJson(store.recordBlob(c.records,accessKey,issued.environment),record,null);
