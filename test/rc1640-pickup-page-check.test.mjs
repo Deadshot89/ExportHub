@@ -28,3 +28,13 @@ test('RC1640: Kundenname aus pickup-status (customer) und Europaletten nur bei a
   assert.match(page,/typeof data\.customer==='string'\?q\(data\.customer\):''/);
   assert.match(page,/returnLabel\.hidden=!\(Number\(data&&data\.palletOut\)>0\)/);
 });
+
+test('RC1640: Blindzählung – erwartete, abgeholte und offene Colli-Menge erscheinen nie auf der Seite',()=>{
+  for(const id of ['expectedColli','collectedColli','remainingColli'])assert.doesNotMatch(page,new RegExp('id="'+id+'"'));
+  assert.doesNotMatch(page,/getElementById\('colli'\)\.max=/);
+  assert.doesNotMatch(page,/'\+(open|expected|remainingBefore|rest)\+'/);
+  assert.doesNotMatch(page,/\(open-n\)/);
+  assert.match(page,/id="modeComplete" type="radio" name="pickupMode" value="complete" checked/);
+  assert.match(page,/id="modePartial" type="radio" name="pickupMode" value="partial"/);
+  assert.match(page,/addEventListener\('click',function\(\)\{checkColli\(selectedPickupMode\(\)\)\}\)/);
+});
