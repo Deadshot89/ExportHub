@@ -45,6 +45,20 @@ test('Produktivmodus benötigt expliziten produktiven Callback und ruft ihn gena
   assert.throws(()=>guard.execute({mode:'productive',operation:'shipment.save',payload:{id:'SHIP-1'}}),/PRODUCTIVE_WRITE_HANDLER_REQUIRED/);
 });
 
+test('Produktivmodus kann bei aktivem Training den Write Guard nicht umgehen',()=>{
+  assert.ok(state&&guard,'Write Guard/TrainingState missing');
+  state.start({shipment:{id:'DEMO-SHIPMENT'}});
+  let productionWrites=0;
+  try{
+    assert.throws(()=>guard.execute({
+      mode:'productive',operation:'shipment.save',payload:{id:'LIVE-123'},
+      productive:()=>{productionWrites++;return {saved:true};}
+    }),/TRAINING_PRODUCTIVE_WRITE_BLOCKED/);
+    assert.equal(productionWrites,0,'no productive callback may execute during demo');
+    assert.equal(state.snapshot().shipment.id,'DEMO-SHIPMENT');
+  }finally{state.dispose();}
+});
+
 test('unbekannter Modus wird fail-closed blockiert',()=>{
   assert.ok(guard,'Training Write Guard fehlt');
   assert.throws(()=>guard.execute({mode:'unknown',operation:'shipment.save',payload:{}}),/WRITE_GUARD_MODE_INVALID/);
