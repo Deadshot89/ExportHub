@@ -25,14 +25,14 @@ function empty(){
 function integer(v){return Number.isSafeInteger(v)&&v>=0;}
 // RC1642: only a snapshot's ISO timestamp is an age observation.
 // A soft-deleted entry's Last-Modified is NOT its deletion timestamp.
-const SNAPSHOT_AGES=['under1day','day1to7','older7days','unknown'];
+const SNAPSHOT_AGES=['under1day','day1to7','beyond7days','unknown'];
 function emptySnapshotAge(){return Object.fromEntries(SNAPSHOT_AGES.map(k=>[k,{records:0,logicalBytes:0}]));}
 function ageBucket(timestamp,at){
  if(typeof timestamp!=='string'||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/.test(timestamp))return 'unknown';
  const value=Date.parse(timestamp);
  if(!Number.isFinite(value)||value>at)return 'unknown';
  const days=(at-value)/86400000;
- return days<1?'under1day':days<=7?'day1to7':'older7days';
+ return days<1?'under1day':days<=7?'day1to7':'beyond7days';
 }
 function sum(target,n){
  if(!integer(target.logicalBytes+n))throw Object.assign(new Error('INVENTORY_OVERFLOW'),{code:'INVENTORY_OVERFLOW'});
