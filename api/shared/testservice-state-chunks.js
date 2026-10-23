@@ -31,7 +31,7 @@ function validateManifest(manifest){
 }
 function packTestserviceState(state,{environment}={}){
  assertTest(environment);
- if(!object(state))failure('TEST_STATE_DOCUMENT_INVALID');
+ if(!object(state)||state.dataEnvironment!=='testservice')failure('TEST_STATE_DOCUMENT_INVALID');
  let raw;
  try{raw=Buffer.from(JSON.stringify(state),'utf8')}
  catch(_){failure('TEST_STATE_SERIALIZATION_FAILED')}
@@ -83,7 +83,7 @@ function restoreTestserviceState(bundle,{environment}={}){
  if(raw.length!==manifest.rawBytes||digest(raw)!==manifest.sha256)failure('TEST_STATE_STATE_HASH_MISMATCH');
  let parsed;
  try{parsed=JSON.parse(raw.toString('utf8'))}catch(_){failure('TEST_STATE_JSON_INVALID')}
- if(!object(parsed))failure('TEST_STATE_DOCUMENT_INVALID');
+ if(!object(parsed)||parsed.dataEnvironment!=='testservice')failure('TEST_STATE_DOCUMENT_INVALID');
  return parsed;
 }
 function summarizeTestservicePack(bundle){
