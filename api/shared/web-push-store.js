@@ -6,6 +6,7 @@
 
 const crypto = require('crypto');
 const webPush = require('./web-push');
+const i18n = require('./web-push-i18n');
 
 const SUBSCRIPTIONS_BLOB = process.env.EXPORTHUB_WEB_PUSH_BLOB || 'web-push/subscriptions.json';
 const TEST_SUBSCRIPTIONS_BLOB = process.env.EXPORTHUB_TEST_WEB_PUSH_BLOB || 'testservice/web-push/subscriptions.json';
@@ -60,6 +61,7 @@ function upsertSubscription(doc, input, nowIso) {
     categories: categoriesOf(input.categories, previous && previous.categories),
     packAllowed: input.packAllowed === true,
     deviceLabel: deviceLabel(input.deviceLabel) || (previous && previous.deviceLabel) || '',
+    language: i18n.normalize(input.language || (previous && previous.userId === userId && previous.language) || (input.user && (input.user.language || input.user.uiLanguage))) || 'de',
     createdAt: previous && previous.userId === userId ? previous.createdAt : nowIso,
     updatedAt: nowIso,
     lastSuccessAt: previous && previous.userId === userId ? previous.lastSuccessAt || '' : '',
@@ -112,7 +114,7 @@ function pruneLedger(doc, nowIso, days = LEDGER_DAYS) {
   return removed;
 }
 function publicSubscription(s) {
-  return s ? { id: s.id, categories: clone(s.categories), deviceLabel: s.deviceLabel || '', createdAt: s.createdAt || '', lastSuccessAt: s.lastSuccessAt || '', packAllowed: s.packAllowed === true } : null;
+  return s ? { id: s.id, categories: clone(s.categories), deviceLabel: s.deviceLabel || '', language: s.language || 'de', createdAt: s.createdAt || '', lastSuccessAt: s.lastSuccessAt || '', packAllowed: s.packAllowed === true } : null;
 }
 
 // container: { getBlockBlobClient(name) } with download/upload like @azure/storage-blob.
