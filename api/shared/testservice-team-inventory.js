@@ -31,9 +31,9 @@ function sum(target,n){
 function configuredTeamStateName(options){
  const base=process.env.EXPORTHUB_STORAGE_BLOB||process.env.EXPORTHUB_STATE_BLOB||'team-state.json';
  const target=options.teamBlobName||process.env.EXPORTHUB_TEST_STORAGE_BLOB||
-  ('testservice/'+String(base).replace(/^\\/+/,'')); 
+  ('testservice/'+String(base).replace(/^[/]+/,''));
  if(typeof target!=='string'||!target.startsWith(PREFIX)||target.length<=PREFIX.length||
-  target.includes('..')||/[\\r\\n]/.test(target))return null;
+  target.includes('..')||[...target].some(c=>c.charCodeAt(0)<32))return null;
  return target;
 }
 async function collectTestserviceTeamInventory(container,options={}){
