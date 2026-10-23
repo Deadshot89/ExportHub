@@ -153,9 +153,18 @@
     if (!info.checked) refreshStatus().then(render);
     return true;
   }
+  function readableError(e){
+    var code=q(e&&e.code);
+    var known={WEB_PUSH_NOT_SUBSCRIBED:'notSubscribed',WEB_PUSH_DISABLED:'pushDisabled',
+      WEB_PUSH_VAPID_UNAVAILABLE:'pushUnavailable',SESSION_INVALID:'needLogin',
+      WEB_PUSH_GONE:'notSubscribed',WEB_PUSH_USER_REQUIRED:'needLogin'};
+    if(known[code])return tt(known[code]);
+    if(code)return tt('genericFailure')+' ('+code+')';
+    return q(e&&e.message)||tt('genericFailure');
+  }
   function run(task, success) {
     info.busy = true; info.error = ''; info.message = ''; render();
-    return task().then(function () { info.message = success || ''; }).catch(function (e) { info.error = q(e && e.message) || tt('genericFailure'); }).then(function () { info.busy = false; render(); });
+    return task().then(function () { info.message = success || ''; }).catch(function (e) { info.error = readableError(e); }).then(function () { info.busy = false; render(); });
   }
 
   // Window capture runs before the notification center's document capture handler.
