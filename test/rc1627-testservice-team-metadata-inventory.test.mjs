@@ -181,3 +181,44 @@ test('RC1638: configured nondefault TEAM blob is matched; invalid or production 
   assert.equal(bad.teamState.logicalBytes,null);
  }
 });
+
+test('RC1642: snapshot timestamps only, fixed 1-day/7-day age bands, deleted age is unknowable',async()=>{
+ const at=Date.parse('2026-10-23T12:00:00Z');
+ const data=[
+  row('testservice/team-state.json',10,{snapshot:'2026-10-23T11:59:59Z'}),
+  row('testservice/team-state.json',20,{snapshot:'2026-10-22T11:00:00Z'}),
+  row('testservice/team-state.json',30,{snapshot:'2026-10-16T12:00:00Z'}),
+  row('testservice/team-state.json',40,{snapshot:'2026-10-15T11:00:00Z'}),
+  row('testservice/team-state.json',50,{snapshot:'unparseable-SECRET'}),
+  row('testservice/team-state.json',60,{snapshot:'2026-10-24T12:00:00Z'}),
+  row('testservice/team-state.json',70,{deleted:true,properties:{lastModified:new Date('2026-01-01')}}),
+  row('testservice/team-state.json',80),
+  row('testservice/other-root.json',999,{snapshot:'2026-10-01T12:00:00Z'})
+ ];
+ const r=await collectTestserviceTeamInventory(container(data),{
+  teamBlobName:'testservice/team-state.json',referenceTime:at
+ });
+ assert.deepEqual(r.teamState.snapshotAge,{
+  under1day:{records:1,logicalBytes:10},
+  day1to7:{records:2,logicalBytes:50},
+  older7days:{records:1,logicalBytes:40},
+  unknown:{records:2,logicalBytes:110}
+ });
+ assert.equal(r.teamState.deletedAgeVerifiable,false);
+ assert.equal(r.teamState.kinds.deleted.logicalBytes,70);
+ assert.equal(r.teamState.kinds.snapshot.logicalBytes,210);
+ assert.equal(Object.values(r.teamState.snapshotAge).reduce((n,x)=>n+x.logicalBytes,0),210);
+ assert.equal(r.billingVerified,false);
+ assert.doesNotMatch(JSON.stringify(r),/unparseable-SECRET|other-root\.json|team-state\.json/);
+});
+test('RC1642: invalid config keeps age unavailable and does not infer erased backups or billable size',async()=>{
+ const at=Date.parse('2026-10-23T12:00:00Z');
+ const bad=await collectTestserviceTeamInventory(container([row('testservice/team-state.json',12,{
+  snapshot:'2026-10-22T10:00:00Z'})]),{teamBlobName:'production/team-state.json',referenceTime:at});
+ assert.equal(bad.teamState.status,'unverified');
+ assert.equal(bad.teamState.snapshotAge,null);
+ assert.equal(bad.teamState.deletedAgeVerifiable,false);
+ for(const referenceTime of [NaN,-1,Infinity]){
+  await assert.rejects(()=>collectTestserviceTeamInventory(container([]),{referenceTime}),/INVENTORY_REFERENCE_TIME_INVALID/);
+ }
+});
