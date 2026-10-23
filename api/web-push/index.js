@@ -71,7 +71,7 @@ function createHandler(overrides = {}) {
   async function subscribe(req, payload, env) {
     const { user } = await deps().validateSession(req);
     const nowIso = deps().now().toISOString();
-    const record = await deps().store.mutate(env, (doc) => storeLib.upsertSubscription(doc, { subscription: payload.subscription, user, categories: payload.categories, deviceLabel: payload.deviceLabel, packAllowed: packAllowed(user) }, nowIso));
+    const record = await deps().store.mutate(env, (doc) => storeLib.upsertSubscription(doc, { subscription: payload.subscription, user, categories: payload.categories, deviceLabel: payload.deviceLabel, language: payload.language, packAllowed: packAllowed(user) }, nowIso));
     return { ok: true, subscribed: true, subscription: storeLib.publicSubscription(record) };
   }
   async function status(payload, env) {
@@ -107,7 +107,7 @@ function createHandler(overrides = {}) {
       const old = storeLib.findByEndpoint(doc, oldEndpoint);
       if (!old) throw error('WEB_PUSH_NOT_SUBSCRIBED', 'Dieses Gerät ist nicht angemeldet.', 404);
       storeLib.removeByEndpoint(doc, oldEndpoint);
-      return storeLib.upsertSubscription(doc, { subscription: next, user: { id: old.userId, username: old.username, name: old.displayName }, categories: old.categories, deviceLabel: old.deviceLabel, packAllowed: old.packAllowed === true }, nowIso);
+      return storeLib.upsertSubscription(doc, { subscription: next, user: { id: old.userId, username: old.username, name: old.displayName }, categories: old.categories, deviceLabel: old.deviceLabel, language: old.language, packAllowed: old.packAllowed === true }, nowIso);
     });
     return { ok: true, subscribed: true, subscription: storeLib.publicSubscription(record) };
   }
@@ -116,7 +116,7 @@ function createHandler(overrides = {}) {
     const doc = await deps().store.read(env), hit = storeLib.findByEndpoint(doc, endpointOf(payload));
     if (!hit || hit.userId !== text(user.id)) throw error('WEB_PUSH_NOT_SUBSCRIBED', 'Dieses Gerät ist nicht angemeldet.', 404);
     const vapid = await deps().store.vapid();
-    const results = await sendAll(deps(), [{ subscription: hit, payload: reminders.testPayload(env, deps().now().toISOString()), ttl: 600, urgency: 'high' }], vapid);
+    const results = await sendAll(deps(), [{ subscription: hit, payload: reminders.testPayload(env, deps().now().toISOString(), hit.language), ttl: 600, urgency: 'high' }], vapid);
     await deps().store.mutate(env, (d) => { storeLib.recordResults(d, results, deps().now().toISOString()); });
     const r = results[0] || {};
     if (!r.ok) throw error(r.gone ? 'WEB_PUSH_GONE' : 'WEB_PUSH_SEND_FAILED', r.gone ? 'Das Gerät ist beim Push-Dienst nicht mehr angemeldet. Bitte erneut aktivieren.' : 'Der Push-Dienst hat die Testnachricht nicht angenommen (' + (r.status || r.detail || 'keine Antwort') + ').', r.gone ? 410 : 502);
@@ -133,7 +133,7 @@ function createHandler(overrides = {}) {
     const due = reminders.dueTaskMessages({ state: team.state, users, subscriptions: doc.subscriptions, ledger: doc.ledger, environment: env, nowIso: reminders.berlinNowIso(now) });
     const vapid = due.messages.length ? await deps().store.vapid() : null;
     const jobs = [];
-    due.messages.forEach((m, messageIndex) => m.subscriptions.forEach((subscription) => jobs.push({ subscription, payload: m.payload, messageIndex, ttl: 6 * 3600, urgency: 'normal', topic: 'tasks' })));
+    due.messages.forEach((m, messageIndex) => m.subscriptions.forEach((subscription) => jobs.push({ subscription, payload: reminders.taskPayload(m.rows, env, due.nowIso, subscription.language, m.payload.id), messageIndex, ttl: 6 * 3600, urgency: 'normal', topic: 'tasks' })));
     const results = jobs.length ? await sendAll(deps(), jobs, vapid) : [];
     const delivered = new Set(results.filter((r) => r.ok).map((r) => r.messageIndex));
     const outcome = await deps().store.mutate(env, (d) => {
@@ -188,7 +188,7 @@ function createPackNotifier(overrides = {}) {
     if (!targets.length) return { sent: 0 };
     const vapid = await deps().store.vapid(), nowIso = deps().now().toISOString();
     const payload = reminders.packPayload(notification, env, nowIso);
-    const results = await sendAll(deps(), targets.map((subscription) => ({ subscription, payload, ttl: 24 * 3600, urgency: 'high' })), vapid);
+    const results = await sendAll(deps(), targets.map((subscription) => ({ subscription, payload: reminders.packPayload(notification, env, nowIso, subscription.language, payload.id), ttl: 24 * 3600, urgency: 'high' })), vapid);
     await deps().store.mutate(env, (d) => { storeLib.recordResults(d, results, nowIso); });
     return { sent: results.filter((r) => r.ok).length };
   };
