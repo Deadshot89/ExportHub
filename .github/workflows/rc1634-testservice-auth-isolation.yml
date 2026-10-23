@@ -1,0 +1,43 @@
+name: RC1634 TESTSERVICE Auth Isolation Contract
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - api/shared/testservice-auth-isolation.js
+      - api/shared/auth-store.js
+      - api/shared/fast-auth-store.js
+      - api/exporthub-auth/index.js
+      - api/exporthub-state/index.js
+      - test/rc1634-testservice-auth-account-isolation.test.mjs
+      - .github/workflows/rc1634-testservice-auth-isolation.yml
+  pull_request:
+    paths:
+      - api/shared/testservice-auth-isolation.js
+      - api/shared/auth-store.js
+      - api/shared/fast-auth-store.js
+      - api/exporthub-auth/index.js
+      - api/exporthub-state/index.js
+      - test/rc1634-testservice-auth-account-isolation.test.mjs
+      - .github/workflows/rc1634-testservice-auth-isolation.yml
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Syntax and routing contract (offline)
+        run: |
+          node --check api/shared/testservice-auth-isolation.js
+          node --check api/shared/auth-store.js
+          node --check api/shared/fast-auth-store.js
+          node --check api/exporthub-auth/index.js
+          node --check api/exporthub-state/index.js
+          node --test test/rc1634-testservice-auth-account-isolation.test.mjs
