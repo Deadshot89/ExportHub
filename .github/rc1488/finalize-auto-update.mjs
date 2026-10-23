@@ -8,7 +8,7 @@ const I18N_SCRIPT_SRC='/assets/i18n/rc1488-auto-update.js?v=1488';
 const SCRIPT_ID='exporthub-rc1488-auto-update';
 const SCRIPT_SRC='/assets/rc1488-auto-update.js?v=1488';
 const PICKUP_SCRIPT_ID='exporthub-rc1546-pickup-control';
-const PICKUP_SCRIPT_SRC='/assets/rc1546-pickup-control.js?v=1546';
+const PICKUP_SCRIPT_SRC='/assets/rc1546-pickup-control.js?v=1604';
 const PROBE_NAME='production-version.js';
 const CACHE_CONTROL='no-store, no-cache, must-revalidate';
 
