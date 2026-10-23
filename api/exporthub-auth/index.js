@@ -91,10 +91,15 @@ function decodePasswordChangeTicket(ticket) {
 // All account/session mutations go to the same verified environment.
 // With the opt-in absent, this is the unchanged legacy production account.
 function scopedAuth(req){
- const environment=auth.loginStorageEnvironment(req);
+ // Legacy auth-store adapters (and unit mocks) are still supported. New
+ // isolation-aware runtimes always use clientsForEnvironment for the cutover.
+ const environment=typeof auth.loginStorageEnvironment==='function'?
+  auth.loginStorageEnvironment(req):'production';
  return{
-  clients:()=>auth.clientsForEnvironment(environment),
-  mutateTeam:mutator=>auth.mutateTeamForEnvironment(environment,mutator),
+  clients:()=>typeof auth.clientsForEnvironment==='function'?
+   auth.clientsForEnvironment(environment):auth.clients(),
+  mutateTeam:mutator=>typeof auth.mutateTeamForEnvironment==='function'?
+   auth.mutateTeamForEnvironment(environment,mutator):auth.mutateTeam(mutator),
   mutateAuth:mutator=>auth.mutateAuth(mutator,environment),
   createSession:(user,deviceId,mustChange)=>auth.createSession(user,deviceId,mustChange,environment),
   revokeUserSessions:(userId,reason,except)=>auth.revokeUserSessions(userId,reason,except,environment)
