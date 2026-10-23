@@ -1,0 +1,186 @@
+name: ExportHUB Selbstkorrektur
+
+# RC1630: started only by api/self-correct after a global admin submitted a text fix or a revert in the IT area.
+# The workflow claims the job via GitHub OIDC, changes nothing but assets/i18n/*.json, runs the tests and opens
+# a pull request against main. It never pushes to main and never deploys; after the merge main updates TESTSERVICE
+# and Production still needs the manual "ExportHUB Production Release".
+
+on:
+  workflow_dispatch:
+    inputs:
+      job_id:
+        description: Selbstkorrektur-Auftrag
+        required: true
+        type: string
+      environment:
+        description: ExportHUB-Umgebung, auf der der Auftrag gespeichert ist
+        required: true
+        type: choice
+        options:
+          - production
+          - testservice
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+concurrency:
+  group: exporthub-self-correct
+  cancel-in-progress: false
+
+jobs:
+  self_correct:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      GH_TOKEN: ${{ github.token }}
+      JOB_ID: ${{ inputs.job_id }}
+      TARGET_ENV: ${{ inputs.environment }}
+      PROD_URL: https://wonderful-forest-0f315e310.7.azurestaticapps.net
+      TEST_URL: https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          package-manager-cache: false
+
+      - name: Auftrag prüfen und OIDC-Identität abrufen
+        id: setup
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s' "$JOB_ID" | grep -Eq '^SCR?-[A-Z0-9]+-[A-F0-9]{6}$' || { echo 'Ungültige Auftrags-ID.' >&2; exit 1; }
+          base="$PROD_URL"; [[ "$TARGET_ENV" == "testservice" ]] && base="$TEST_URL"
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+          response=$(curl -fsS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=exporthub-self-correct")
+          token=$(printf '%s' "$response" | jq -r '.value // empty')
+          test -n "$token" || { echo 'GitHub-OIDC-Token konnte nicht erstellt werden.' >&2; exit 1; }
+          echo "::add-mask::$token"
+          umask 077
+          printf '%s' "$token" > "$RUNNER_TEMP/self-correct-oidc.jwt"
+
+      - name: Auftrag übernehmen
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/sc"
+          code=$(curl -sS -o "$RUNNER_TEMP/sc/claim.json" -w '%{http_code}' -X POST "${{ steps.setup.outputs.base }}/api/self-correct" \
+            -H 'Content-Type: application/json' \
+            -H "X-ExportHUB-GitHub-OIDC: $(cat "$RUNNER_TEMP/self-correct-oidc.jwt")" \
+            --data "$(jq -nc --arg j "$JOB_ID" --arg e "$TARGET_ENV" '{action:"claim",jobId:$j,environment:$e}')")
+          [[ "$code" == "200" ]] || { cat "$RUNNER_TEMP/sc/claim.json" >&2 || true; exit 1; }
+          jq -e '.ok == true and .job.id == env.JOB_ID' "$RUNNER_TEMP/sc/claim.json" >/dev/null
+          jq '.job' "$RUNNER_TEMP/sc/claim.json" > "$RUNNER_TEMP/sc/job.json"
+          curl -fsS -X POST "${{ steps.setup.outputs.base }}/api/self-correct" -H 'Content-Type: application/json' \
+            -H "X-ExportHUB-GitHub-OIDC: $(cat "$RUNNER_TEMP/self-correct-oidc.jwt")" \
+            --data "$(jq -nc --arg j "$JOB_ID" --arg e "$TARGET_ENV" --arg u "$RUN_URL" '{action:"workflow-status",jobId:$j,environment:$e,status:"running",message:"Änderung wird geprüft und getestet.",runUrl:$u}')" >/dev/null
+
+      - name: Textänderung anwenden
+        id: texts
+        if: ${{ startsWith(inputs.job_id, 'SC-') }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          node scripts/self-correct-apply.mjs "$RUNNER_TEMP/sc/job.json" "$RUNNER_TEMP/sc/summary.md" | tee "$RUNNER_TEMP/sc/result.txt"
+          rc=${PIPESTATUS[0]}
+          set -e
+          exit $rc
+
+      - name: Rückgängig-Commit erstellen
+        if: ${{ startsWith(inputs.job_id, 'SCR-') }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          pr=$(jq -r '.targetPr // empty' "$RUNNER_TEMP/sc/job.json")
+          printf '%s' "$pr" | grep -Eq '^[0-9]+$' || { echo 'BLOCKED: Ziel-PR fehlt.' | tee "$RUNNER_TEMP/sc/result.txt"; exit 3; }
+          gh api "repos/${GITHUB_REPOSITORY}/pulls/$pr" > "$RUNNER_TEMP/sc/target.json"
+          jq -e '.merged_at != null and (.head.ref | startswith("self-correct/")) and .base.ref == "main"' "$RUNNER_TEMP/sc/target.json" >/dev/null \
+            || { echo "BLOCKED: PR #$pr ist keine gemergte Selbstkorrektur." | tee "$RUNNER_TEMP/sc/result.txt"; exit 3; }
+          sha=$(jq -r '.merge_commit_sha' "$RUNNER_TEMP/sc/target.json")
+          git config user.name "ExportHUB Selbstkorrektur"
+          git config user.email "exporthub-self-correct@users.noreply.github.com"
+          parents=$(git rev-list --parents -n1 "$sha" | wc -w)
+          if (( parents > 2 )); then git revert --no-commit -m 1 "$sha"; else git revert --no-commit "$sha"; fi \
+            || { echo "BLOCKED: PR #$pr lässt sich nicht automatisch zurücknehmen (spätere Änderungen an denselben Texten)." | tee "$RUNNER_TEMP/sc/result.txt"; exit 3; }
+          printf '**Nimmt zurück:** #%s\n\n**Begründung:** %s\n' "$pr" "$(jq -r '.reason' "$RUNNER_TEMP/sc/job.json")" > "$RUNNER_TEMP/sc/summary.md"
+          echo "APPLIED: Rückgängig für #$pr" | tee "$RUNNER_TEMP/sc/result.txt"
+
+      - name: Nur Textdateien geändert
+        shell: bash
+        run: |
+          set -euo pipefail
+          changed=$( (git diff --name-only; git diff --cached --name-only) | sort -u)
+          test -n "$changed" || { echo 'BLOCKED: Keine Änderung entstanden.' | tee "$RUNNER_TEMP/sc/result.txt"; exit 3; }
+          if printf '%s\n' "$changed" | grep -Ev '^assets/i18n/(de|en|pl|es|fr|it)\.json$'; then
+            echo 'BLOCKED: Selbstkorrektur darf nur assets/i18n/*.json ändern.' | tee "$RUNNER_TEMP/sc/result.txt"; exit 3
+          fi
+          for f in $changed; do node -e "JSON.parse(require('fs').readFileSync('$f','utf8'))"; done
+
+      - name: Übersetzungen und Regression prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --prefix api --ignore-scripts --no-audit --no-fund --package-lock=false
+          npm run verify:i18n
+          npm test
+
+      - name: Branch und Pull Request erstellen
+        id: pr
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch="self-correct/$(printf '%s' "$JOB_ID" | tr 'A-Z' 'a-z')"
+          requested=$(jq -r '.requestedBy // "Admin"' "$RUNNER_TEMP/sc/job.json")
+          git config user.name "ExportHUB Selbstkorrektur"
+          git config user.email "exporthub-self-correct@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add assets/i18n
+          if [[ "$JOB_ID" == SCR-* ]]; then title="Selbstkorrektur rückgängig: $(jq -r '"#" + (.targetPr|tostring)' "$RUNNER_TEMP/sc/job.json")"; else title="Selbstkorrektur: Texte ($JOB_ID)"; fi
+          git commit -m "$title" -m "Auftrag $JOB_ID, angefordert von $requested über ExportHUB → IT → Selbst korrigieren."
+          git push origin "HEAD:refs/heads/$branch"
+          {
+            echo "## ExportHUB Selbstkorrektur"
+            echo
+            echo "- Auftrag: \`$JOB_ID\` · angefordert von **$requested** (Global-Admin)"
+            echo "- Geändert: ausschließlich \`assets/i18n/*.json\`"
+            echo "- Vor dem PR bestanden: \`npm run verify:i18n\`, \`npm test\`"
+            echo "- Nach dem Merge: Main Verification aktualisiert nur TESTSERVICE. Production bleibt der manuelle Production-Release."
+            echo
+            cat "$RUNNER_TEMP/sc/summary.md"
+            echo
+            echo "Lauf: $RUN_URL"
+          } > "$RUNNER_TEMP/sc/pr.md"
+          url=$(gh pr create --base main --head "$branch" --title "$title" --body-file "$RUNNER_TEMP/sc/pr.md")
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: PR an ExportHUB melden
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS -X POST "${{ steps.setup.outputs.base }}/api/self-correct" -H 'Content-Type: application/json' \
+            -H "X-ExportHUB-GitHub-OIDC: $(cat "$RUNNER_TEMP/self-correct-oidc.jwt")" \
+            --data "$(jq -nc --arg j "$JOB_ID" --arg e "$TARGET_ENV" --arg p "${{ steps.pr.outputs.url }}" --arg u "$RUN_URL" '{action:"workflow-status",jobId:$j,environment:$e,status:"pr-open",prUrl:$p,message:"Pull Request ist bereit. Nach dem Merge geht die Änderung auf TESTSERVICE.",runUrl:$u}')" >/dev/null
+
+      - name: Fehler an ExportHUB melden
+        if: failure()
+        shell: bash
+        run: |
+          set +e
+          msg=$(grep -h '^BLOCKED:' "$RUNNER_TEMP/sc/result.txt" 2>/dev/null | head -1 | sed 's/^BLOCKED: //')
+          [[ -n "$msg" ]] || msg="Prüfung oder Tests sind fehlgeschlagen. Details im GitHub-Lauf."
+          curl -sS -X POST "${{ steps.setup.outputs.base }}/api/self-correct" -H 'Content-Type: application/json' \
+            -H "X-ExportHUB-GitHub-OIDC: $(cat "$RUNNER_TEMP/self-correct-oidc.jwt")" \
+            --data "$(jq -nc --arg j "$JOB_ID" --arg e "$TARGET_ENV" --arg m "$msg" --arg u "$RUN_URL" '{action:"workflow-status",jobId:$j,environment:$e,status:"failed",message:$m,runUrl:$u}')" >/dev/null || true
+
+      - name: OIDC-Datei entfernen
+        if: always()
+        shell: bash
+        run: rm -f "$RUNNER_TEMP/self-correct-oidc.jwt"

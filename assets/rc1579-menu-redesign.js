@@ -50,6 +50,7 @@ var ICONS={
  'section-admin':'<path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"/>'
 };
 ICONS.customers=ICONS.customerfolder;
+ICONS.selfcorrect='<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>';
 ICONS.it='<rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8M12 17v4"/><path d="m7 10 2 2-2 2M11 14h4"/>';
 ICONS.packnotifications='<path d="m16 16 2 2 4-4"/><path d="M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14"/><path d="m7.5 4.27 9 5.15M3.29 7 12 12l8.71-5M12 22V12"/>';
 
@@ -177,9 +178,11 @@ function itTabs(){
  if(!bar){bar=d.createElement('nav');bar.className='rc1579-it-tabs';bar.setAttribute('data-rc1579-it-tabs','1');content.prepend(bar)}
  else if(content.firstElementChild!==bar)content.prepend(bar);
  setAttr(bar,'aria-label',t('itTitle'));
- var html='<span class="rc1579-it-tabs-title">'+t('it')+'</span>'+allowed.map(function(v){var b=itButton(v),label=q(b&&b.querySelector('.index308-nav-label')&&b.querySelector('.index308-nav-label').textContent)||q(b&&b.textContent)||v;return '<button type="button" data-rc1579-it-tab="'+v+'"'+(v===view?' aria-current="page"':'')+' style="--rc1579-icon:'+uri(ICONS[v]).replace(/"/g,'&quot;')+'"><span aria-hidden="true"></span>'+label.replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})+'</button>'}).join('');
+ var html='<span class="rc1579-it-tabs-title">'+t('it')+'</span>'+allowed.map(function(v){var b=itButton(v),label=q(b&&b.querySelector('.index308-nav-label')&&b.querySelector('.index308-nav-label').textContent)||q(b&&b.textContent)||v;return '<button type="button" data-rc1579-it-tab="'+v+'"'+(v===view?' aria-current="page"':'')+' style="--rc1579-icon:'+uri(ICONS[v]).replace(/"/g,'&quot;')+'"><span aria-hidden="true"></span>'+label.replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})+'</button>'}).join('')+selfCorrectTab();
  if(bar.__rc1579Html!==html){bar.innerHTML=html;bar.__rc1579Html=html}
 }
+// RC1630: extra IT tab "Selbst korrigieren" (opens a dialog, not a view); only shown to global admins
+function selfCorrectTab(){var sc=w.ExportHUBSelfCorrect;if(!sc||typeof sc.allowed!=='function'||!sc.allowed())return'';var label=q(sc.label&&sc.label())||'Selbst korrigieren';return '<button type="button" data-rc1630-self-correct="1" style="--rc1579-icon:'+uri(ICONS.selfcorrect).replace(/"/g,'&quot;')+'"><span aria-hidden="true"></span>'+label.replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})+'</button>'}
 function watchContent(content){
  if(contentObserver&&contentObserver.__content===content)return;
  if(contentObserver)contentObserver.disconnect();
