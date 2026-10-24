@@ -87,6 +87,8 @@ const RC1630_SELF_CORRECT_SCRIPT_TAG='<script id="exporthub-rc1630-self-correct-
 const RC1660_SHIPMENT_SOP_STYLE_TAG='<link id="exporthub-rc1660-shipment-sop-style" rel="stylesheet" href="/assets/rc1660-shipment-sop-popup.css?v=1660">';
 const RC1660_SHIPMENT_SOP_I18N_TAG='<script id="exporthub-rc1660-shipment-sop-i18n" defer src="/assets/i18n/rc1660-shipment-sop-popup.js?v=1660"></script>';
 const RC1660_SHIPMENT_SOP_SCRIPT_TAG='<script id="exporthub-rc1660-shipment-sop-script" defer src="/assets/rc1660-shipment-sop-popup.js?v=1660"></script>';
+const RC1650_DIAG_PLAIN_I18N_TAG='<script id="exporthub-rc1650-diagnostics-plain-i18n" defer src="/assets/i18n/rc1650-diagnostics-plain.js?v=1650"></script>';
+const RC1650_DIAG_PLAIN_SCRIPT_TAG='<script id="exporthub-rc1650-diagnostics-plain-script" defer src="/assets/rc1650-diagnostics-plain.js?v=1650"></script>';
 // Web Push: phone notifications without website login (assets/web-push, api/web-push)
 const WEB_PUSH_MANIFEST_TAG='<link id="exporthub-web-push-manifest" rel="manifest" href="/assets/web-push/manifest.json">';
 const WEB_PUSH_I18N_TAG='<script id="exporthub-web-push-i18n" defer src="/assets/i18n/web-push.js?v=1701"></script>';
@@ -253,6 +255,10 @@ function patchRc1558DashboardOverview(html,file){
   html=injectDeferredRuntimeInHead(html,RC1660_SHIPMENT_SOP_I18N_TAG,'exporthub-rc1660-shipment-sop-i18n');
   html=injectDeferredRuntimeInHead(html,RC1660_SHIPMENT_SOP_SCRIPT_TAG,'exporthub-rc1660-shipment-sop-script');
   if(!html.includes('rc1660-shipment-sop-popup.css?v=1660')||!html.includes('i18n/rc1660-shipment-sop-popup.js?v=1660')||!html.includes('/assets/rc1660-shipment-sop-popup.js?v=1660'))throw new Error(file+': RC1660 SOP-Popup fehlt');
+  // RC1650 Fehlerdiagnose in Klartext (explanations, urgency, AI fix from a message)
+  html=injectDeferredRuntimeInHead(html,RC1650_DIAG_PLAIN_I18N_TAG,'exporthub-rc1650-diagnostics-plain-i18n');
+  html=injectDeferredRuntimeInHead(html,RC1650_DIAG_PLAIN_SCRIPT_TAG,'exporthub-rc1650-diagnostics-plain-script');
+  if(!html.includes('i18n/rc1650-diagnostics-plain.js?v=1650')||!html.includes('/assets/rc1650-diagnostics-plain.js?v=1650'))throw new Error(file+': RC1650 Fehlerdiagnose-Klartext fehlt');
   return html;
 }
 
@@ -1640,6 +1646,8 @@ for(const rel of [
   'assets/rc1660-shipment-sop-popup.css',
   'assets/rc1660-shipment-sop-popup.js',
   'assets/i18n/rc1660-shipment-sop-popup.js',
+  'assets/rc1650-diagnostics-plain.js',
+  'assets/i18n/rc1650-diagnostics-plain.js',
   'assets/rc1460-shipment-view-files-avis-preview.js',
   'assets/i18n/av-upload.js',
   'assets/av-upload.js',
