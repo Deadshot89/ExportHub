@@ -122,7 +122,7 @@ export async function runPackNotificationLiveFlow(browser,testInfo,token){
       await expect(page.locator('#packNotificationDetail')).toContainText('120 × 80 × 145');
       await expect(page.locator('#packNotificationDetail')).toContainText(resultA.canonicalName);
 
-      await page.locator('[data-pack-action="shipment"]').click();
+      await page.locator('#packNotificationDetail [data-pack-action="shipment"]').first().click();
       await expect(page.locator('#rc363BlockCustomer')).toBeVisible({timeout:30_000});
       await expect(page.locator('#shipmentCustomerSearch')).toHaveValue(/E2E PACK CUSTOMER A/i);
       const draft=await page.evaluate(()=>{
