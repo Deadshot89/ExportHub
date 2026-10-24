@@ -150,7 +150,8 @@ function copyLook(proxy,activeRef){
  // !important: the design sheets colour menu buttons via [data-index321-view] with !important, which the proxy does not carry;
  // without it the label fell back to the old light sidebar colour and "IT" was unreadable on light designs (2026-10-23).
  ['padding-top','padding-right','padding-bottom','padding-left','min-height','border-radius','border-top-width','border-top-style','border-color','border-left-width','border-left-style','border-right-width','border-right-style','border-bottom-width','border-bottom-style','font-family','font-size','font-weight','letter-spacing','line-height','color','column-gap','align-items','justify-content','text-align','background-color','background-image','box-shadow'].forEach(function(p){proxy.style.setProperty(p,cs.getPropertyValue(p),'important')});
- proxy.style.setProperty('display','flex','important');proxy.style.setProperty('width','100%','important');
+ // no inline display/width: an inline !important display beat the collapse rule and left IT under a closed Administration (2026-10-24)
+ ['display','width'].forEach(function(p){proxy.style.removeProperty(p)});
  if(ls){var pl=proxy.querySelector('.index308-nav-label');['font-size','font-weight','color','letter-spacing','opacity'].forEach(function(p){pl.style.setProperty(p,ls.getPropertyValue(p),'important')})}
  if(icon){var ics=w.getComputedStyle(icon),glyph=w.getComputedStyle(icon,'::before');proxy.style.setProperty('--rc1579-proxy-icon-bg',ics.getPropertyValue('background-color'));proxy.style.setProperty('--rc1579-proxy-icon-border',ics.getPropertyValue('border-color'));proxy.style.setProperty('--rc1579-proxy-icon-fg',glyph.getPropertyValue('background-color'))}
  proxy.__rc1579Look=key;
@@ -232,7 +233,8 @@ function sync(){
   SECTIONS.forEach(function(s){
    if(s.flat)return;
    var h=header(s),count=0;
-   s.views.forEach(function(v){var b=nav.querySelector(':scope>'+itemSel(v));if(b&&shown(b))count++});
+   // the IT pages sit behind the one IT item, so they do not count on their own
+   s.views.forEach(function(v){if(IT_VIEWS.indexOf(v)>=0)return;var b=nav.querySelector(':scope>'+itemSel(v));if(b&&shown(b))count++});
    var name=t(s.key),isOpen=open.indexOf(s.key)>=0;
    if(h.hidden!==(count===0))h.hidden=count===0;
    setText(h.querySelector('.rc1579-section-label'),name);

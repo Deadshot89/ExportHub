@@ -28,3 +28,11 @@ test('IT labels exist in all six languages',()=>{
   assert.equal(it.length,6);
   assert.equal(title.length,6);
 });
+
+test('IT is a normal sub-item of Administration and collapses with it (2026-10-24)',()=>{
+  const look=js.slice(js.indexOf('function copyLook('),js.indexOf('// IT: ein Menüpunkt'));
+  assert.doesNotMatch(look,/setProperty\('display'/,'inline display !important would beat the collapse rule');
+  assert.doesNotMatch(look,/setProperty\('width'/,'sub-item indent sets the width');
+  assert.match(css,/#nav#nav#nav\[data-rc1579-ready\]>\[data-rc1579-proxy\]\{display:flex;cursor:pointer;/);
+  assert.match(js,/s\.views\.forEach\(function\(v\)\{if\(IT_VIEWS\.indexOf\(v\)>=0\)return;/,'Administration zählt nur sichtbare Punkte');
+});
