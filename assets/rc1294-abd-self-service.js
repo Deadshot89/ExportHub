@@ -54,9 +54,15 @@ function setStatus(message,kind){
 }
 function fileLine(name,message,kind){
  var box=statusBox();if(!box)return;
- var row=d.createElement('div');row.className='rc1294-file-status';row.setAttribute('data-kind',kind||'info');
- var strong=d.createElement('strong');strong.textContent=name;var span=d.createElement('span');span.textContent=message;
- row.appendChild(strong);row.appendChild(span);box.appendChild(row)
+ // one row per file: later steps (scanning, result) update the existing row instead of adding another
+ var row=Array.prototype.find.call(box.querySelectorAll('.rc1294-file-status'),function(r){return r.getAttribute('data-file')===String(name)});
+ var strong=row&&row.querySelector('strong'),span=row&&row.querySelector('span');
+ if(!row){
+  row=d.createElement('div');row.className='rc1294-file-status';row.setAttribute('data-file',String(name));
+  strong=d.createElement('strong');span=d.createElement('span');row.appendChild(strong);row.appendChild(span);box.appendChild(row)
+ }
+ row.setAttribute('data-kind',kind||'info');
+ if(strong)strong.textContent=name;if(span)span.textContent=message
 }
 function clearStatus(){var box=statusBox();if(box){box.innerHTML='';box.hidden=true}}
 function formatNumber(value,digits){
