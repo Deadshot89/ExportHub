@@ -44,7 +44,11 @@ const LOCAL_ONLY_KEYS = new Set([
   'customerFolderOpenId', 'currentCustomerId', 'selectedCustomer', 'currentCustomer',
   'shipmentDraft', 'customerDraft', 'abdDraft',
   'sopId', 'sopStep', 'academyId', 'academyStep', 'quizAnswers', 'quizStep',
-  'language', 'rc438NotifySnoozeUntil', 'rc439SyncStatus'
+  'language', 'rc438NotifySnoozeUntil', 'rc439SyncStatus',
+  // RC1659 P0: browser-only repair mode. Synced to the team state it applied one
+  // old shipment's pickup/POD evidence to every newly saved shipment of every user.
+  '__rc844RepairShipmentId', '__rc844RepairShipmentRef', '__rc844RepairEvidence',
+  '__rc844RepairReason', '__rc844RepairOpenedAt'
 ]);
 
 function clone(value) {
