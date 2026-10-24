@@ -1,6 +1,7 @@
 /* ExportHUB360 RC1650 – tasks follow shipments by customer number.
    A task that carries a customer number (Aufgabenansicht → "Kundennummer") is marked done as soon as a shipment
-   for that customer number is created in the task's week. Weekly plan tasks hand their customer number on to the
+   for that customer number is created in the task's week, on the task's day or later (never a task still ahead),
+   and for a task created by hand only by a shipment created on or after the day the task was created. Weekly plan tasks hand their customer number on to the
    next week's instance of the same series. Data stays in state.tasks; the server merges the changed fields. */
 (function(w){
 'use strict';
@@ -94,14 +95,13 @@ function inheritSeries(tasks){
   return changed
 }
 
-/* one shipment completes one task: the task of the same day first, then the latest overdue one of that week,
-   then the next one later in that week */
+/* one shipment completes one task: the task of the same day first, then the latest overdue one of that week;
+   a task later in the week stays open (Tuesday's shipment never closes Friday's task, Tobias 2026-10-24) */
 function pickTask(candidates,created){
-  var c=dayKey(created),same=[],before=[],after=[];
-  candidates.forEach(function(row){var k=row.key;if(k===c)same.push(row);else if(k<c)before.push(row);else after.push(row)});
+  var c=dayKey(created),same=[],before=[];
+  candidates.forEach(function(row){var k=row.key;if(k===c)same.push(row);else if(k<c)before.push(row)});
   if(same.length)return same[0];
   if(before.length)return before.sort(function(a,b){return a.key<b.key?1:-1})[0];
-  if(after.length)return after.sort(function(a,b){return a.key<b.key?-1:1})[0];
   return null
 }
 
@@ -118,10 +118,12 @@ function reconcile(state,options){
     var d=taskDate(t),key=d?dayKey(d):'';
     if(key&&key<floorKey)return;
     var created=parseDate(t.createdAt);
-    open.push({task:t,nos:nos,key:key,week:d?dayKey(mondayOf(d)):'',since:created?dayKey(created):''})
+    // weekly plan instances are generated for the whole week and count from its start
+    var generated=!!(seriesOf(t)||q(t.weekKey)||q(t.createdForWeek)||q(t.sourceWeekStart));
+    open.push({task:t,nos:nos,key:key,week:d?dayKey(mondayOf(d)):'',since:created?dayKey(created):'',sinceMs:Date.parse(q(t.createdAt))||0,generated:generated})
   });
   if(!open.length)return result;
-  var shipments=arr(s.shipments).filter(shipmentCounts).map(function(sh){var c=shipmentCreated(sh);return c?{sh:sh,created:c,key:shipmentKey(sh)}:null})
+  var shipments=arr(s.shipments).filter(shipmentCounts).map(function(sh){var c=shipmentCreated(sh);return c?{sh:sh,created:c,createdMs:Date.parse(q(sh.createdAt||sh.created||sh.createdOn))||0,key:shipmentKey(sh)}:null})
     .filter(function(x){return x&&!used[x.key]&&dayKey(x.created)>=floorKey})
     .sort(function(a,b){return a.created-b.created});
   var taken={};
@@ -131,8 +133,9 @@ function reconcile(state,options){
     var candidates=open.filter(function(row){
       if(taken[taskId(row.task)])return false;
       if(!row.nos.some(function(n){return nos.indexOf(n)>=0}))return false;
-      // tasks without a date take shipments created from the day the task was created on
-      return row.week?row.week===week:(!row.since||row.since<=c)
+      // a shipment older than the task never closes it; weekly plan instances count from the week's start (2026-10-24)
+      if((!row.generated||!row.week)&&(row.sinceMs&&x.createdMs?row.sinceMs>x.createdMs:row.since&&row.since>c))return false;
+      return row.week?row.week===week&&row.key<=c:true
     });
     if(!candidates.length)return;
     var hit=pickTask(candidates.map(function(row){return row.key?row:Object.assign({},row,{key:c})}),x.created);
