@@ -221,7 +221,7 @@
     const status=doc.createElement('span');status.className='rc1259-container-status';status.textContent=(meta.required?'Pflicht · ':'')+'Fotos '+meta.count+'/3'+(meta.seal?' · Siegel '+meta.seal:'');
     head.appendChild(title);head.appendChild(status);wrap.appendChild(head);
     if(meta.seal){
-      const seal=doc.createElement('div');seal.className='rc1259-seal-search';seal.textContent=tr('container.sealNumber',{seal:meta.seal});seal.setAttribute('data-container-seal',meta.seal);wrap.appendChild(seal);
+      const seal=doc.createElement('div');seal.className='rc1259-seal-search';seal.textContent='Siegelnummer: '+meta.seal;seal.setAttribute('data-container-seal',meta.seal);wrap.appendChild(seal);
     }
     if(meta.photos.length){
       const grid=doc.createElement('div');grid.className='rc1259-photo-grid';
