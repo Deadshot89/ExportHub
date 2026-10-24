@@ -176,6 +176,8 @@ function itTabs(){
  if(!content||!nav)return;
  watchContent(content);
  var bar=content.querySelector(':scope>[data-rc1579-it-tabs]');
+ // layouts that re-wrap #content (Modern Business) carry old bars along; only the direct child may stay (2026-10-24)
+ content.querySelectorAll('[data-rc1579-it-tabs]').forEach(function(old){if(old!==bar)old.remove()});
  if(IT_VIEWS.indexOf(view)<0){if(bar)bar.remove();return}
  try{w.localStorage&&w.localStorage.setItem(IT_STORE,view)}catch(_){}
  var allowed=itAllowed();
