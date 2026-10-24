@@ -67,3 +67,46 @@ test('RC1659 server: repair mode keys are browser-only and never stored in the t
   for(const out of [merged,sanitized])
     assert.deepEqual(Object.keys(out).filter(k=>k.startsWith('__rc844Repair')),[]);
 });
+
+test('RC1659 server: one-time repair removes only the leaked LWYRNN pickup data from the affected shipments',()=>{
+  const { repairLeakedRepairEvidence }=require('../api/shared/merge.js');
+  const source={id:'SHIP-1786541996890-PQK83V',ref:'LWYRNN',status:'POD vorhanden',processStatus:'POD vorhanden',podStatus:'POD vorhanden',pickedUpAt:'2026-08-14T08:16:31.616Z',actualPickupDate:'2026-08-14',pickupStatus:'abgeholt',podAvailable:true,pickupHistory:[{colliCount:2}],palletQty:3};
+  const leaked=ref=>Object.assign({id:'SHIP-'+ref,ref,customerId:'C-1',rows:[{type:'EUR',count:2,weight:100}],pickupToken:'b'.repeat(48),createdAt:'2026-10-24T10:01:38.461Z'},JSON.parse(JSON.stringify(source)),{id:'SHIP-'+ref,ref,palletQty:1});
+  const ownPickup=Object.assign(leaked('SUFFSL'),{pickupConfirmedAt:'2026-10-23T16:00:00Z',signatureBlobName:'rc995/production/x/driver-signature.png'});
+  const state={shipments:[source,leaked('DRLMGN'),ownPickup,leaked('ABCDEF')],savedShipments:[leaked('DRLMGN')]};
+  repairLeakedRepairEvidence(state);
+  const [src,fixed,own,other]=state.shipments;
+  assert.deepEqual(src,source,'source shipment unchanged');
+  for(const sh of [fixed,state.savedShipments[0]]){
+    assert.equal(sh.status,'Erstellt');
+    assert.equal(sh.processStatus,'Erstellt');
+    assert.equal(sh.podStatus,'');
+    assert.equal(sh.pickedUpAt,'');
+    assert.equal(sh.actualPickupDate,'');
+    assert.equal(sh.pickupStatus,'');
+    assert.equal(sh.podAvailable,false);
+    assert.deepEqual(sh.pickupHistory,[]);
+    assert.equal(sh.palletQty,1,'own differing value kept');
+    assert.equal(sh.pickupToken,'b'.repeat(48),'own QR token kept');
+    assert.deepEqual(sh.rows,[{type:'EUR',count:2,weight:100}]);
+    assert.equal(sh.phantomPodRepair.source,'LWYRNN');
+  }
+  assert.equal(own.status,'POD vorhanden','shipment with its own signed pickup untouched');
+  assert.equal(own.pickedUpAt,'2026-08-14T08:16:31.616Z');
+  assert.equal(other.status,'POD vorhanden','only the listed references are repaired');
+  const again=JSON.stringify(state);
+  repairLeakedRepairEvidence(state);
+  assert.equal(JSON.stringify(state),again,'repair is idempotent');
+});
+
+test('RC1659 server: a stale browser copy cannot bring the leaked data back',()=>{
+  const source={id:'SHIP-L',ref:'LWYRNN',status:'POD vorhanden',processStatus:'POD vorhanden',pickedUpAt:'2026-08-14T08:16:31.616Z',actualPickupDate:'2026-08-14',pickupStatus:'abgeholt',podAvailable:true,_syncUpdatedAt:'2026-10-20T10:00:00Z'};
+  const stale=Object.assign({},source,{id:'SHIP-D',ref:'DRLMGN',_syncUpdatedAt:'2026-10-24T10:07:28.120Z'});
+  const meta={fields:{},tombstones:[]};
+  const first=mergeState({shipments:[source,stale],_teamSyncMeta:meta},{shipments:[stale],_teamSyncMeta:meta});
+  const second=mergeState(first,{shipments:[stale],_teamSyncMeta:meta});
+  const d=second.shipments.find(x=>x.ref==='DRLMGN');
+  assert.equal(d.status,'Erstellt');
+  assert.equal(d.pickedUpAt,'');
+  assert.equal(d.podAvailable,false);
+});
