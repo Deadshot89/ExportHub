@@ -8,8 +8,7 @@ const i18n=fs.readFileSync('assets/i18n/rc1579-menu-redesign.js','utf8');
 
 test('IT views are grouped behind one IT menu entry',()=>{
   assert.match(js,/IT_VIEWS=\['diagnostics','release','update'\]/);
-  assert.match(js,/\{key:'admin',accent:'#64748b',views:\['rights','teamfile','packaging','settings','privacy'\]\}/);
-  assert.match(js,/\{key:'it',flat:true,accent:'#64748b',views:\['it','diagnostics','release','update'\]\}/,'IT ist ein eigener Eintrag unter Administration');
+  assert.match(js,/'privacy','it','diagnostics','release','update'/);
   assert.match(js,/ICONS\.it=/);
   assert.match(js,/data-rc1579-proxy="it"/);
   assert.match(js,/IT_VIEWS\.indexOf\(v\)>=0\)out\.push\(R\+'>'\+item\+'\{display:none!important\}'\)/);
@@ -30,13 +29,10 @@ test('IT labels exist in all six languages',()=>{
   assert.equal(title.length,6);
 });
 
-test('IT entry is drawn like the Administration header, not as an indented sub-item (2026-10-24)',()=>{
-  const fn=js.slice(js.indexOf('function ensureItProxy('),js.indexOf('function itTabs('));
-  assert.match(fn,/proxy=d\.createElement\('div'\);proxy\.className='rc1579-it-entry'/);
-  assert.match(fn,/<span class="rc1579-section-icon" aria-hidden="true"><\/span><span class="rc1579-section-label"><\/span><span class="rc1579-section-chevron" aria-hidden="true"><\/span>/);
-  assert.doesNotMatch(fn,/copyLook\(/,'no inline styles: they beat the collapse rule and left IT dangling under a closed Administration');
-  assert.match(fn,/e\.key==='Enter'\|\|e\.key===' '/);
-  assert.match(css,/#nav#nav#nav>:is\(\.rc1579-section,\.rc1579-it-entry\)\{display:flex;/);
-  assert.match(css,/#nav#nav#nav>:is\(\.rc1579-section,\.rc1579-it-entry\) \.rc1579-section-icon\{/);
-  assert.match(css,/#nav#nav#nav>\.rc1579-it-entry\[data-rc1579-active\]\{/);
+test('IT is a normal sub-item of Administration and collapses with it (2026-10-24)',()=>{
+  const look=js.slice(js.indexOf('function copyLook('),js.indexOf('// IT: ein Menüpunkt'));
+  assert.doesNotMatch(look,/setProperty\('display'/,'inline display !important would beat the collapse rule');
+  assert.doesNotMatch(look,/setProperty\('width'/,'sub-item indent sets the width');
+  assert.match(css,/#nav#nav#nav\[data-rc1579-ready\]>\[data-rc1579-proxy\]\{display:flex;cursor:pointer;/);
+  assert.match(js,/s\.views\.forEach\(function\(v\)\{if\(IT_VIEWS\.indexOf\(v\)>=0\)return;/,'Administration zählt nur sichtbare Punkte');
 });

@@ -52,7 +52,6 @@ var ICONS={
 ICONS.customers=ICONS.customerfolder;
 ICONS.selfcorrect='<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>';
 ICONS.it='<rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8M12 17v4"/><path d="m7 10 2 2-2 2M11 14h4"/>';
-ICONS['section-it']=ICONS.it;
 ICONS.packnotifications='<path d="m16 16 2 2 4-4"/><path d="M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14"/><path d="m7.5 4.27 9 5.15M3.29 7 12 12l8.71-5M12 22V12"/>';
 
 var SECTIONS=[
@@ -63,9 +62,7 @@ var SECTIONS=[
  {key:'logistics',accent:'#ea580c',views:['warehouse','pallet','shippingcosts']},
  {key:'knowledge',accent:'#0d9488',views:['customerfolder','customers','customs','sop','academy','inspections','ideas']},
  {key:'reports',accent:'#4f46e5',views:['reports','history','archive']},
- {key:'admin',accent:'#64748b',views:['rights','teamfile','packaging','settings','privacy']},
- // IT: own top-level entry below Administration, drawn like a section header (no sub-items, opens the IT tabs)
- {key:'it',flat:true,accent:'#64748b',views:['it','diagnostics','release','update']}
+ {key:'admin',accent:'#64748b',views:['rights','teamfile','packaging','settings','privacy','it','diagnostics','release','update']}
 ];
 var SECTION_OF={},FLAT={};SECTIONS.forEach(function(s){if(s.flat)FLAT[s.key]=true;s.views.forEach(function(v){SECTION_OF[v]=s.key})});
 SECTION_OF.packagingmasterdata='admin';
@@ -95,7 +92,6 @@ function css(){
    var item=itemSel(v),sel=N+'>'+item;
    out.push(sel+'{order:'+(base+vi+1)+'!important;--menu-accent:'+s.accent+'!important}');
    out.push(sel+' .index308-nav-icon{--menu-accent:'+s.accent+'!important;--rc1579-icon:'+uri(ICONS[v])+'}');
-   if(v==='it')out.push(sel+'{--rc1579-accent:'+s.accent+';--rc1579-icon:'+uri(ICONS['section-it'])+'}');
    if(IT_VIEWS.indexOf(v)>=0)out.push(R+'>'+item+'{display:none!important}');
    if(!s.flat){
     out.push(sel+'{--rc1579-sub:1}');
@@ -154,7 +150,8 @@ function copyLook(proxy,activeRef){
  // !important: the design sheets colour menu buttons via [data-index321-view] with !important, which the proxy does not carry;
  // without it the label fell back to the old light sidebar colour and "IT" was unreadable on light designs (2026-10-23).
  ['padding-top','padding-right','padding-bottom','padding-left','min-height','border-radius','border-top-width','border-top-style','border-color','border-left-width','border-left-style','border-right-width','border-right-style','border-bottom-width','border-bottom-style','font-family','font-size','font-weight','letter-spacing','line-height','color','column-gap','align-items','justify-content','text-align','background-color','background-image','box-shadow'].forEach(function(p){proxy.style.setProperty(p,cs.getPropertyValue(p),'important')});
- proxy.style.setProperty('display','flex','important');proxy.style.setProperty('width','100%','important');
+ // no inline display/width: an inline !important display beat the collapse rule and left IT under a closed Administration (2026-10-24)
+ ['display','width'].forEach(function(p){proxy.style.removeProperty(p)});
  if(ls){var pl=proxy.querySelector('.index308-nav-label');['font-size','font-weight','color','letter-spacing','opacity'].forEach(function(p){pl.style.setProperty(p,ls.getPropertyValue(p),'important')})}
  if(icon){var ics=w.getComputedStyle(icon),glyph=w.getComputedStyle(icon,'::before');proxy.style.setProperty('--rc1579-proxy-icon-bg',ics.getPropertyValue('background-color'));proxy.style.setProperty('--rc1579-proxy-icon-border',ics.getPropertyValue('border-color'));proxy.style.setProperty('--rc1579-proxy-icon-fg',glyph.getPropertyValue('background-color'))}
  proxy.__rc1579Look=key;
@@ -168,21 +165,17 @@ function lastItTab(){var v='';try{v=q(w.localStorage&&w.localStorage.getItem(IT_
 function openIt(v){var allowed=itAllowed();if(allowed.indexOf(v)<0)v=allowed.indexOf(lastItTab())>=0?lastItTab():allowed[0];var b=v&&itButton(v);if(b)b.click()}
 function ensureItProxy(active){
  var proxy=nav.querySelector(':scope>[data-rc1579-proxy="it"]');
- if(proxy&&proxy.tagName==='BUTTON'){proxy.remove();proxy=null}
  if(!proxy){
-  // same markup as the section headers (header()), so IT looks exactly like "Administration" in every design
-  proxy=d.createElement('div');proxy.className='rc1579-it-entry';proxy.setAttribute('data-rc1579-proxy','it');proxy.setAttribute('role','button');proxy.tabIndex=0;
-  proxy.innerHTML='<span class="rc1579-section-icon" aria-hidden="true"></span><span class="rc1579-section-label"></span><span class="rc1579-section-chevron" aria-hidden="true"></span>';
-  var go=function(){openIt('');try{if(w.ExportHUBMobileMenu&&w.ExportHUBMobileMenu.isOpen())w.ExportHUBMobileMenu.close()}catch(_){}};
-  proxy.addEventListener('click',function(e){e.preventDefault();go()});
-  proxy.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}});
+  proxy=d.createElement('button');proxy.type='button';proxy.className='rc1579-proxy';proxy.setAttribute('data-rc1579-proxy','it');
+  proxy.innerHTML='<span class="index308-nav-icon" aria-hidden="true"></span><span class="index308-nav-label"></span>';
+  proxy.addEventListener('click',function(e){e.preventDefault();openIt('');try{if(w.ExportHUBMobileMenu&&w.ExportHUBMobileMenu.isOpen())w.ExportHUBMobileMenu.close()}catch(_){}});
   nav.appendChild(proxy);
  }
  var label=t('it'),isActive=IT_VIEWS.indexOf(active)>=0;
- setText(proxy.querySelector('.rc1579-section-label'),label);setAttr(proxy,'title',t('itTitle'));setAttr(proxy,'aria-label',t('itTitle'));
- if(proxy.hidden!==(itAllowed().length===0))proxy.hidden=itAllowed().length===0;
+ setText(proxy.querySelector('.index308-nav-label'),label);setAttr(proxy,'title',t('itTitle'));setAttr(proxy,'aria-label',t('itTitle'));
+ proxy.hidden=itAllowed().length===0;
  setAttr(proxy,'data-rc1579-active',isActive?'1':null);
- setAttr(proxy,'aria-current',isActive?'page':null);
+ copyLook(proxy,isActive?itButton(active):null);
  return proxy;
 }
 function itTabs(){
@@ -240,7 +233,8 @@ function sync(){
   SECTIONS.forEach(function(s){
    if(s.flat)return;
    var h=header(s),count=0;
-   s.views.forEach(function(v){var b=nav.querySelector(':scope>'+itemSel(v));if(b&&shown(b))count++});
+   // the IT pages sit behind the one IT item, so they do not count on their own
+   s.views.forEach(function(v){if(IT_VIEWS.indexOf(v)>=0)return;var b=nav.querySelector(':scope>'+itemSel(v));if(b&&shown(b))count++});
    var name=t(s.key),isOpen=open.indexOf(s.key)>=0;
    if(h.hidden!==(count===0))h.hidden=count===0;
    setText(h.querySelector('.rc1579-section-label'),name);

@@ -17,37 +17,35 @@ html[data-rc1579-packaging] .sidebar>.rc1555-packaging-nav-wrap{display:none!imp
 #nav#nav#nav[data-rc1579-ready]>button:not([data-view="dashboard"]):not([data-view="notifications"]):not([data-view="packnotifications"]) .index308-nav-icon{width:26px!important;height:26px!important;min-width:26px!important;min-height:26px!important;flex-basis:26px!important;border-radius:8px!important}
 #nav#nav#nav[data-rc1579-ready]>button:not([data-view="dashboard"]):not([data-view="notifications"]):not([data-view="packnotifications"]) .index308-nav-icon::before{width:16px;height:16px}
 #nav#nav#nav[data-rc1579-ready]>button:not([data-view="dashboard"]):not([data-view="notifications"]):not([data-view="packnotifications"]) .index308-nav-label{font-size:13.5px!important;font-weight:600!important}
-#nav#nav#nav[data-rc1579-ready]>[data-rc1579-proxy]{cursor:pointer;margin-top:0!important;margin-bottom:0!important}
+/* display without !important, so the collapse rule (display:none!important) of a closed section wins */
+#nav#nav#nav[data-rc1579-ready]>[data-rc1579-proxy]{display:flex;cursor:pointer;margin-top:0!important;margin-bottom:0!important}
 #nav#nav#nav[data-rc1579-ready]>[data-rc1579-proxy]:hover{filter:brightness(.97)}
 /* Icon colours of the proxy buttons are copied from a real menu button of the active design (rc1579 copyLook) */
 #nav#nav#nav[data-rc1579-ready]>[data-rc1579-proxy] .index308-nav-icon{background-color:var(--rc1579-proxy-icon-bg,transparent)!important;border-color:var(--rc1579-proxy-icon-border,transparent)!important;opacity:1!important}
 #nav#nav#nav[data-rc1579-ready]>[data-rc1579-proxy] .index308-nav-icon::before{background-color:var(--rc1579-proxy-icon-fg,currentColor)!important;opacity:1!important}
 
 /* Bereichs-Kopfzeilen */
-#nav#nav#nav>:is(.rc1579-section,.rc1579-it-entry){display:flex;align-items:center;gap:10px;min-height:42px;margin:6px 0 0;padding:6px 10px;border-radius:12px;cursor:pointer;user-select:none;color:inherit;font-size:14px;font-weight:700;letter-spacing:.01em;line-height:1.2;transition:background-color .15s ease}
-#nav#nav#nav>:is(.rc1579-section,.rc1579-it-entry)[hidden]{display:none!important}
-#nav#nav#nav>:is(.rc1579-section,.rc1579-it-entry):hover{background:color-mix(in srgb,currentColor 7%,transparent)}
-#nav#nav#nav>:is(.rc1579-section,.rc1579-it-entry):focus-visible{outline:2px solid var(--rc1579-accent);outline-offset:1px}
-#nav#nav#nav>:is(.rc1579-section,.rc1579-it-entry) .rc1579-section-icon{display:grid;place-items:center;flex:0 0 30px;width:30px;height:30px;border-radius:10px;color:var(--rc1579-accent);background:color-mix(in srgb,var(--rc1579-accent) 13%,transparent);border:1px solid color-mix(in srgb,var(--rc1579-accent) 26%,transparent)}
-#nav#nav#nav>:is(.rc1579-section,.rc1579-it-entry) .rc1579-section-icon::before{content:"";width:17px;height:17px;background:currentColor;-webkit-mask:var(--rc1579-icon) center/contain no-repeat;mask:var(--rc1579-icon) center/contain no-repeat}
-#nav#nav#nav>:is(.rc1579-section,.rc1579-it-entry) .rc1579-section-label{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#nav#nav#nav>.rc1579-section{display:flex;align-items:center;gap:10px;min-height:42px;margin:6px 0 0;padding:6px 10px;border-radius:12px;cursor:pointer;user-select:none;color:inherit;font-size:14px;font-weight:700;letter-spacing:.01em;line-height:1.2;transition:background-color .15s ease}
+#nav#nav#nav>.rc1579-section[hidden]{display:none!important}
+#nav#nav#nav>.rc1579-section:hover{background:color-mix(in srgb,currentColor 7%,transparent)}
+#nav#nav#nav>.rc1579-section:focus-visible{outline:2px solid var(--rc1579-accent);outline-offset:1px}
+#nav#nav#nav>.rc1579-section .rc1579-section-icon{display:grid;place-items:center;flex:0 0 30px;width:30px;height:30px;border-radius:10px;color:var(--rc1579-accent);background:color-mix(in srgb,var(--rc1579-accent) 13%,transparent);border:1px solid color-mix(in srgb,var(--rc1579-accent) 26%,transparent)}
+#nav#nav#nav>.rc1579-section .rc1579-section-icon::before{content:"";width:17px;height:17px;background:currentColor;-webkit-mask:var(--rc1579-icon) center/contain no-repeat;mask:var(--rc1579-icon) center/contain no-repeat}
+#nav#nav#nav>.rc1579-section .rc1579-section-label{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #nav#nav#nav>.rc1579-section .rc1579-section-count{flex:0 0 auto;min-width:22px;padding:1px 7px;border-radius:999px;font-size:11px;font-weight:700;text-align:center;opacity:.62;background:color-mix(in srgb,currentColor 9%,transparent)}
 #nav#nav#nav>.rc1579-section[aria-expanded="true"] .rc1579-section-count{opacity:0}
-#nav#nav#nav>:is(.rc1579-section,.rc1579-it-entry) .rc1579-section-chevron{flex:0 0 auto;width:8px;height:8px;margin:0 4px 0 2px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;opacity:.55;transform:rotate(-45deg);transition:transform .15s ease}
+#nav#nav#nav>.rc1579-section .rc1579-section-chevron{flex:0 0 auto;width:8px;height:8px;margin:0 4px 0 2px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;opacity:.55;transform:rotate(-45deg);transition:transform .15s ease}
 #nav#nav#nav>.rc1579-section[aria-expanded="true"] .rc1579-section-chevron{transform:rotate(45deg) translate(-2px,-2px)}
 /* zugeklappter Bereich mit der aktuell geöffneten Seite */
 #nav#nav#nav>.rc1579-section[data-rc1579-current][aria-expanded="false"]{background:color-mix(in srgb,var(--rc1579-accent) 12%,transparent)}
 #nav#nav#nav>.rc1579-section[data-rc1579-current][aria-expanded="false"] .rc1579-section-icon{color:#fff;background:var(--rc1579-accent);border-color:var(--rc1579-accent)}
-/* IT entry: open page is marked like a collapsed section that holds the current page */
-#nav#nav#nav>.rc1579-it-entry[data-rc1579-active]{background:color-mix(in srgb,var(--rc1579-accent) 12%,transparent)}
-#nav#nav#nav>.rc1579-it-entry[data-rc1579-active] .rc1579-section-icon{color:#fff;background:var(--rc1579-accent);border-color:var(--rc1579-accent)}
 
 /* Smartphone/Tablet: Dashboard und Benachrichtigungen nicht kleiner als die Untermenüpunkte */
 @media (max-width:900px){
  #nav#nav#nav[data-rc1579-ready]>button:is([data-view="dashboard"],[data-view="packnotifications"],[data-view="notifications"]) .index308-nav-label{font-size:14px!important}
 }
 @media (prefers-reduced-motion:reduce){
- #nav#nav#nav>.rc1579-section,#nav#nav#nav>:is(.rc1579-section,.rc1579-it-entry) .rc1579-section-chevron{transition:none}
+ #nav#nav#nav>.rc1579-section,#nav#nav#nav>.rc1579-section .rc1579-section-chevron{transition:none}
 }
 
 /* IT: Reiter für Fehlerdiagnose, Release-Center und Update oben im Inhalt */
