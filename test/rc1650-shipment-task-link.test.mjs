@@ -71,6 +71,41 @@ test('RC1650: abgeschaltete, erledigte und wieder geöffnete Aufgaben werden nic
   assert.deepEqual(res.completed,[]);
 });
 
+test('RC1650: Sendung am Dienstag erledigt nie die gleiche Aufgabe vom Freitag, auch nicht mit einer zweiten Sendung',()=>{
+  const state = {
+    tasks:[
+      {id:'di',title:'UK',day:'Dienstag',weekKey:'2026-W43',customerNumber:'4711'},
+      {id:'fr',title:'UK',day:'Freitag',weekKey:'2026-W43',customerNumber:'4711'}
+    ],
+    shipments:[
+      {id:'S1',ref:'AAA111',customerNumber:'4711',createdAt:'2026-10-20T09:00:00.000Z'},
+      {id:'S2',ref:'BBB222',customerNumber:'4711',createdAt:'2026-10-21T09:00:00.000Z'}
+    ]
+  };
+  const res = load(state).reconcile(state,{now:NOW});
+  assert.deepEqual(res.completed,[{taskId:'di',shipmentRef:'AAA111'}]);
+  assert.equal(state.tasks[1].done,undefined,'Freitag bleibt offen bis eine Sendung am Freitag kommt');
+});
+
+test('RC1650: eine Sendung, die älter ist als die von Hand angelegte Aufgabe (auch am selben Tag), erledigt sie nicht',()=>{
+  const state = {
+    tasks:[
+      {id:'new',title:'Sendung anlegen',sourceType:'manual',dueDate:'2026-10-21',createdAt:'2026-10-21T10:00:00.000Z',customerNumber:'4711'},
+      {id:'wk',title:'UK',day:'Mittwoch',weekKey:'2026-W43',createdAt:'2026-10-22T06:00:00.000Z',customerNumber:'999'}
+    ],
+    shipments:[
+      {id:'S0',ref:'OLD000',customerNumber:'4711',createdAt:'2026-10-21T07:00:00.000Z'},
+      {id:'S9',ref:'WK9999',customerNumber:'999',createdAt:'2026-10-21T08:00:00.000Z'}
+    ]
+  };
+  const res = load(state).reconcile(state,{now:NOW});
+  assert.deepEqual(res.completed,[{taskId:'wk',shipmentRef:'WK9999'}],'Wochenaufgaben zählen ab Wochenbeginn');
+  assert.equal(state.tasks[0].done,undefined);
+  state.shipments.push({id:'S1',ref:'NEW111',customerNumber:'4711',createdAt:'2026-10-21T11:00:00.000Z'});
+  const next = load(state).reconcile(state,{now:NOW});
+  assert.deepEqual(next.completed,[{taskId:'new',shipmentRef:'NEW111'}]);
+});
+
 test('RC1650: Wochenaufgaben übernehmen die zuletzt gesetzte Kundennummer ihrer Serie',()=>{
   const state = {
     tasks:[
