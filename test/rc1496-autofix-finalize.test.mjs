@@ -36,7 +36,7 @@ test('RC1496: nur der vertrauenswürdige OIDC-Finalizer darf testing auf fixed a
   assert.match(api,/existingPrUrl!==pullRequestUrl/);
   assert.match(api,/AUTOFIX_PR_MISMATCH/);
   assert.match(api,/status:'fixed'/);
-  assert.match(api,/resolvedBy:'ChatGPT \/ Codex Autofix'/);
+  assert.match(api,/resolvedBy:'Claude Code Autofix'/);
   assert.match(api,/deploymentRunUrl/);
   assert.match(api,/mergeCommit/);
 });

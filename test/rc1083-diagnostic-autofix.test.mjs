@@ -44,7 +44,7 @@ test('RC1083: Diagnose-Autofix ist als Azure HTTP Function registriert',()=>{
 });
 
 test('RC1083: Browser erhält niemals OpenAI- oder GitHub-Secrets',()=>{
-  assert.doesNotMatch(diagnostics,/OPENAI_API_KEY|EXPORTHUB_GITHUB_AUTOFIX_TOKEN|EXPORTHUB_AUTOFIX_CALLBACK_SECRET/);
+  assert.doesNotMatch(diagnostics,/OPENAI_API_KEY|ANTHROPIC_API_KEY|CLAUDE_CODE_OAUTH_TOKEN|EXPORTHUB_GITHUB_AUTOFIX_TOKEN|EXPORTHUB_AUTOFIX_CALLBACK_SECRET/);
   assert.match(api,/EXPORTHUB_GITHUB_AUTOFIX_TOKEN/);
   assert.match(api,/EXPORTHUB_AUTOFIX_CALLBACK_SECRET/);
 });
@@ -62,8 +62,9 @@ test('RC1083: Autofix-Anforderung ist Global-Admin-geschützt und Diagnoseanhang
 });
 
 test('RC1083/RC1495: erfolgreicher Autofix wird getestet und als PR vorbereitet statt main direkt zu verändern',()=>{
-  assert.match(workflow,/ChatGPT Codex analysiert und behebt den Fehler/);
-  assert.match(workflow,/codex --ask-for-approval never exec/);
+  assert.match(workflow,/Claude Code analysiert und behebt den Fehler/);
+  assert.match(workflow,/claude -p "\$\(cat \.exporthub-autofix\/prompt\.txt\)"/);
+  assert.doesNotMatch(workflow,/codex|OPENAI_API_KEY/i,'Autofix läuft über Claude Code, nicht mehr über ChatGPT/Codex');
   assert.match(workflow,/diagnostic-attachment\.json/);
   assert.match(workflow,/npm test/);
   assert.match(workflow,/Autofix committen und PR-Branch veröffentlichen/);
@@ -73,7 +74,7 @@ test('RC1083/RC1495: erfolgreicher Autofix wird getestet und als PR vorbereitet 
   assert.match(workflow,/status:"testing"/);
   assert.match(workflow,/status:"fixed"/);
   assert.doesNotMatch(workflow,/git push origin HEAD:main/);
-  assert.match(api,/resolvedBy:'ChatGPT \/ Codex Autofix'/);
+  assert.match(api,/resolvedBy:'Claude Code Autofix'/);
   assert.match(api,/resolvedAt:now\(\)/);
 });
 
@@ -82,7 +83,7 @@ test('RC1083: Autofix schützt Workflow Secrets und große unkontrollierte Ände
   assert.match(workflow,/Secret-\/Credential-Dateien/);
   assert.match(workflow,/changed > 50/);
   assert.match(workflow,/deleted > 10/);
-  assert.match(workflow,/--sandbox workspace-write/);
+  assert.match(workflow,/--permission-mode acceptEdits/,'Claude Code bearbeitet nur Dateien im Arbeitsverzeichnis, ohne freie Shell');
 });
 
 test('RC1085: finaler Build überschreibt die historische Diagnose-Runtime mit kostenneutralem RC1085-Stand',()=>{
@@ -154,7 +155,20 @@ test('RC1085: GitHub-OIDC-Dispatch benötigt kein altes dauerhaftes Callback-Sec
 
 test('RC1085: deaktivierter Autofix führt im Vorflug keinen OpenAI-Aufruf aus',()=>{
   assert.match(preflight,/AUTOFIX_DISABLED=1/);
-  assert.match(preflight,/kein OpenAI-Aufruf ausgeführt/);
+  assert.match(preflight,/kein Claude-Aufruf ausgeführt/);
+  assert.match(preflight,/https:\/\/api\.anthropic\.com\/v1\/models/);
+  assert.doesNotMatch(preflight,/openai/i);
   assert.match(preflight,/autofixEnabled/);
   assert.match(preflight,/RC1085 sicher: Autofix ist bewusst deaktiviert/);
+});
+
+test('RC1083: Claude Code im Autofix darf nur Dateien bearbeiten, testen und git lesen (2026-10-24)',()=>{
+  assert.match(workflow,/ANTHROPIC_API_KEY: \$\{\{ secrets\.ANTHROPIC_API_KEY \}\}/);
+  assert.match(workflow,/CLAUDE_CODE_OAUTH_TOKEN: \$\{\{ secrets\.CLAUDE_CODE_OAUTH_TOKEN \}\}/);
+  assert.match(workflow,/npm install -g @anthropic-ai\/claude-code/);
+  assert.match(workflow,/--permission-mode acceptEdits/);
+  assert.match(workflow,/--allowedTools 'Read,Edit,MultiEdit,Write,Glob,Grep,TodoWrite,Bash\(npm test\),Bash\(npm test:\*\),Bash\(node --test:\*\),Bash\(git diff:\*\),Bash\(git status:\*\),Bash\(git log:\*\)'/);
+  assert.match(workflow,/--disallowedTools 'WebFetch,WebSearch'/);
+  assert.doesNotMatch(workflow,/bypassPermissions|dangerously-skip-permissions/);
+  assert.match(workflow,/grep -q '\^BLOCKED:' \.exporthub-autofix\/final\.txt/);
 });

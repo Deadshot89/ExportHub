@@ -18,7 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 
     steps:
       - name: Kurzlebige GitHub-OIDC-Identität abrufen
@@ -84,52 +85,55 @@ jobs:
           fi
           echo "SERVER_PREFLIGHT_FAILED=$failed" >> "$GITHUB_ENV"
 
-      - name: OpenAI nur bei aktivierter automatischer Behebung prüfen
+      - name: Claude nur bei aktivierter automatischer Behebung prüfen
         shell: bash
         run: |
           set -u
           failed=0
           if [[ "${AUTOFIX_DISABLED:-0}" == '1' ]]; then
-            echo 'OK: Automatische Fehlerbehebung ist bewusst deaktiviert. Es wird kein OpenAI-Aufruf ausgeführt und kein API-Key benötigt.'
-            echo 'OPENAI_PREFLIGHT_FAILED=0' >> "$GITHUB_ENV"
+            echo 'OK: Automatische Fehlerbehebung ist bewusst deaktiviert. Es wird kein Claude-Aufruf ausgeführt und kein API-Key benötigt.'
+            echo 'CLAUDE_PREFLIGHT_FAILED=0' >> "$GITHUB_ENV"
             exit 0
           fi
-          if [[ -z "${OPENAI_API_KEY:-}" ]]; then
-            echo 'FEHLT: Für die aktivierte automatische Behebung ist noch kein OpenAI-API-Key konfiguriert.' >&2
-            failed=1
-          else
+          if [[ -n "${ANTHROPIC_API_KEY:-}" ]]; then
             body=$(mktemp)
             code=$(curl -sS -o "$body" -w '%{http_code}' --max-time 20 \
-              -H "Authorization: Bearer $OPENAI_API_KEY" \
+              -H "x-api-key: $ANTHROPIC_API_KEY" \
+              -H 'anthropic-version: 2023-06-01' \
               -H 'Accept: application/json' \
-              https://api.openai.com/v1/models || true)
+              https://api.anthropic.com/v1/models || true)
             if [[ "$code" == '200' ]]; then
-              echo 'OK: OpenAI-API-Key ist für einen read-only API-Aufruf gültig.'
+              echo 'OK: Anthropic-API-Key ist für einen read-only API-Aufruf gültig.'
             else
-              echo "FEHLER: OpenAI-Key konnte nicht validiert werden (HTTP $code)." >&2
+              echo "FEHLER: Anthropic-Key konnte nicht validiert werden (HTTP $code)." >&2
               head -c 400 "$body" | tr '\n' ' ' >&2 || true
               echo >&2
               failed=1
             fi
             rm -f "$body"
+          elif [[ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]]; then
+            echo 'OK: Claude-Code-Token (Claude-Abo) ist hinterlegt; er wird beim ersten Autofix-Lauf geprüft.'
+          else
+            echo 'FEHLT: Für die aktivierte automatische Behebung ist weder ANTHROPIC_API_KEY noch CLAUDE_CODE_OAUTH_TOKEN konfiguriert.' >&2
+            failed=1
           fi
-          echo "OPENAI_PREFLIGHT_FAILED=$failed" >> "$GITHUB_ENV"
+          echo "CLAUDE_PREFLIGHT_FAILED=$failed" >> "$GITHUB_ENV"
 
       - name: Autofix-Bereitschaft zusammenfassen
         shell: bash
         run: |
           set -euo pipefail
           server="${SERVER_PREFLIGHT_FAILED:-1}"
-          openai="${OPENAI_PREFLIGHT_FAILED:-1}"
-          if [[ "$server" == '0' && "$openai" == '0' ]]; then
+          claude="${CLAUDE_PREFLIGHT_FAILED:-1}"
+          if [[ "$server" == '0' && "$claude" == '0' ]]; then
             if [[ "${AUTOFIX_DISABLED:-0}" == '1' ]]; then
-              echo 'RC1085 sicher: Autofix ist bewusst deaktiviert; OIDC und Dispatch sind vorbereitet, es findet keine OpenAI-API-Nutzung statt.'
+              echo 'RC1085 sicher: Autofix ist bewusst deaktiviert; OIDC und Dispatch sind vorbereitet, es findet keine Claude-API-Nutzung statt.'
             else
-              echo 'RC1085 Autofix ist vollständig bereit: GitHub OIDC, Dispatch und OpenAI sind bestätigt.'
+              echo 'RC1085 Autofix ist vollständig bereit: GitHub OIDC, Dispatch und Claude sind bestätigt.'
             fi
             exit 0
           fi
-          echo "RC1085 Autofix-Vorflug fehlgeschlagen: server=$server openai=$openai" >&2
+          echo "RC1085 Autofix-Vorflug fehlgeschlagen: server=$server claude=$claude" >&2
           exit 1
 
       - name: OIDC-Datei entfernen

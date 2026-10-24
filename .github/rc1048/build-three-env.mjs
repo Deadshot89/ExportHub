@@ -592,7 +592,7 @@ fs.writeFileSync(path.join(OUT,'rc1048-manifest.json'),JSON.stringify({
     profileSettings:{version:'RC1079',runtime:'assets/rc1079-profile-settings.js',selfServiceDisplayName:true,usernameImmutable:true},
     customerHistory:{version:'RC1080',runtime:'assets/rc1080-customer-history.js',field:'customerHistory',merge:'additive-by-event-id',events:['customer-created','customer-updated']},
     auditHistory:{version:'RC1087',runtime:'assets/rc1081-audit-history.js',view:'history',label:'Historie',sources:['auditLog','shipmentHistory','shipmentDerived','customerHistory','taskDerived','palletAccount'],filters:['query','type','subtype','actor','entity','days','from','to'],defaultPeriod:'all',language:'de',retentionDays:365},
-    diagnosticsAutofix:{version:'RC1085',runtime:'assets/rc1013-diagnostics.js',api:'/api/diagnostic-autofix',workflow:'.github/workflows/diagnostic-autofix.yml',provider:'OpenAI Codex',enabledByDefault:false,noExternalAiRequestsWhenDisabled:true,statusFlow:['queued','running','testing','deploying','fixed','failed']}
+    diagnosticsAutofix:{version:'RC1085',runtime:'assets/rc1013-diagnostics.js',api:'/api/diagnostic-autofix',workflow:'.github/workflows/diagnostic-autofix.yml',provider:'Claude Code',enabledByDefault:false,noExternalAiRequestsWhenDisabled:true,statusFlow:['queued','running','testing','deploying','fixed','failed']}
   },
   environments:{production:'index.html',testservice:'TESTVERSION.html',demo:'demo.html'}
 },null,2)+'\n');

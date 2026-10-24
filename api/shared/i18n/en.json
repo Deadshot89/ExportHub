@@ -52,7 +52,7 @@
   "api.avis.scanning": "PDF is being scanned for malware. Shipment assignment is validated afterwards.",
   "api.avis.unavailable": "Customer AVIS is temporarily unavailable.",
   "api.autofix.jobRequired": "Autofix job ID is missing.",
-  "api.autofix.claimed": "Diagnostics handed to Codex.",
+  "api.autofix.claimed": "Diagnostics handed to Claude Code.",
   "api.autofix.statusInvalid": "Unknown autofix status.",
   "api.autofix.methodPost": "Only POST is allowed.",
   "api.autofix.callbackUnauthorized": "Autofix callback is not authorized.",
