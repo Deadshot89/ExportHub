@@ -11,7 +11,6 @@ function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){retur
 function when(iso){var at=Date.parse(iso);return at?new Date(at).toLocaleString(ui&&ui.locales&&ui.locales[lang()]||'de-DE',{weekday:'short',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):''}
 function current(){try{return new URLSearchParams(location.search).get('m')||''}catch(_){return''}}
 function environment(){return /-testservice\./i.test(location.hostname)?'testservice':'production'}
-function safeOpen(raw){try{var u=new URL(raw||'/',location.origin);return u.origin===location.origin&&/^https?:$/.test(u.protocol)?u.pathname+u.search+u.hash:'/'}catch(_){return'/'}}
 function readAll(){
  return new Promise(function(resolve){
   if(!('indexedDB' in window))return resolve([]);
@@ -33,8 +32,7 @@ function card(m,selected){
  var items=(m.items||[]).map(function(i){return '<li><b>'+esc(i.title)+'</b>'+(i.meta?'<span>'+esc(i.meta)+'</span>':'')+'</li>'}).join('');
  var extra=m.total>(m.items||[]).length?'<p class="time">'+esc(t('moreItems',{count:m.total-m.items.length}))+'</p>':'';
  return '<article class="card'+(selected?' is-current':'')+'" id="m-'+esc(m.id)+'"><div class="kind">'+esc(kindText(m.kind))+'</div><h2>'+esc(m.title)+'</h2><div class="time">'+esc(when(m.createdAt||m.receivedAt))+'</div>'+
-   (items?'<ul>'+items+'</ul>'+extra:'<p class="body">'+esc(m.body)+'</p>')+
-   '<div class="actions"><a class="btn" href="'+esc(safeOpen(m.open))+'">'+esc(t('openApp'))+'</a></div></article>';
+   (items?'<ul>'+items+'</ul>'+extra:'<p class="body">'+esc(m.body)+'</p>')+'</article>';
 }
 function render(){
  var id=current(),host=document.getElementById('list');if(!host)return;
@@ -52,7 +50,7 @@ function device(){
  var status=document.getElementById('deviceStatus'),off=document.getElementById('disable');if(!status||!off)return;
  off.hidden=true;off.disabled=false;
  if(!('serviceWorker' in navigator)||!('PushManager' in window)){status.innerHTML='<span class="off">'+esc(t('inboxUnsupported'))+'</span>';return}
- navigator.serviceWorker.getRegistration(SCOPE).then(function(reg){return reg?reg.pushManager.getSubscription():null}).then(function(sub){
+ navigator.serviceWorker.getRegistration(SCOPE).then(function(reg){if(reg&&reg.update)reg.update().catch(function(){});return reg?reg.pushManager.getSubscription():null}).then(function(sub){
   if(!sub){status.innerHTML='<span class="off">'+esc(t('statusInactive'))+'</span> · '+esc(t('inboxEnableHelp'));return}
   status.innerHTML='<span class="on">'+esc(t('statusActive'))+'</span>';
   off.hidden=false;
