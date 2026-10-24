@@ -172,3 +172,10 @@ test('RC1083: Claude Code im Autofix darf nur Dateien bearbeiten, testen und git
   assert.doesNotMatch(workflow,/bypassPermissions|dangerously-skip-permissions/);
   assert.match(workflow,/grep -q '\^BLOCKED:' \.exporthub-autofix\/final\.txt/);
 });
+
+test('RC1083: früher Abbruch (fehlendes Claude-Secret) wird an ExportHUB zurückgemeldet (2026-10-24)',()=>{
+  const oidc=workflow.indexOf('name: Kurzlebige GitHub-OIDC-Identität abrufen'),pre=workflow.indexOf('name: Autofix-Voraussetzungen prüfen');
+  assert.ok(oidc>0&&pre>oidc,'OIDC muss vor der Voraussetzungsprüfung geholt werden, sonst bleibt der Auftrag auf „wartet“');
+  assert.match(workflow,/name: Fehlgeschlagenen Autofix in ExportHUB zurückmelden\n        if: failure\(\)/);
+  assert.match(workflow,/Claude-Zugang fehlt: Repository-Secret CLAUDE_CODE_OAUTH_TOKEN oder ANTHROPIC_API_KEY ist nicht gesetzt\." > \/tmp\/exporthub-autofix-final\.txt/,'Grund erscheint in „Meine KI-Aufträge“');
+});
