@@ -44,7 +44,11 @@ const LOCAL_ONLY_KEYS = new Set([
   'customerFolderOpenId', 'currentCustomerId', 'selectedCustomer', 'currentCustomer',
   'shipmentDraft', 'customerDraft', 'abdDraft',
   'sopId', 'sopStep', 'academyId', 'academyStep', 'quizAnswers', 'quizStep',
-  'language', 'rc438NotifySnoozeUntil', 'rc439SyncStatus'
+  'language', 'rc438NotifySnoozeUntil', 'rc439SyncStatus',
+  // RC1659 P0: browser-only repair mode. Synced to the team state it applied one
+  // old shipment's pickup/POD evidence to every newly saved shipment of every user.
+  '__rc844RepairShipmentId', '__rc844RepairShipmentRef', '__rc844RepairEvidence',
+  '__rc844RepairReason', '__rc844RepairOpenedAt'
 ]);
 
 function clone(value) {
@@ -1051,6 +1055,52 @@ function protectFreshShipmentPodStatuses(server, incoming) {
   return changed ? out : incoming;
 }
 
+// RC1659 P0 one-time data repair: from 23.10. a stale "Sendung wieder öffnen"
+// state wrote the pickup/POD evidence of LWYRNN (picked up 14.08.) into these
+// newly saved shipments. Only fields that still equal LWYRNN's value exactly are
+// cleared; a shipment with its own signed or manual pickup is left untouched.
+const RC1659_LEAK_SOURCE_REF = 'LWYRNN';
+const RC1659_LEAK_PICKED_UP_AT = '2026-08-14T08:16:31.616Z';
+const RC1659_LEAK_TARGET_REFS = new Set(['ETJUHL', 'SUFFSL', 'PEQG6U', '7V8B43', 'R3QJWV', 'DRLMGN', 'Q6JCR5']);
+const RC1659_EVIDENCE_KEY = /^(?:status|processStatus|pickup|qrPickup|pickedUp|actualPickup|pod|driverSignature|signature|remotePickup|pallet|returnPallet|returnedEuro)/i;
+
+function rc1659EmptyLike(value) {
+  if (Array.isArray(value)) return [];
+  if (isObject(value)) return {};
+  if (typeof value === 'boolean') return false;
+  if (typeof value === 'number') return 0;
+  return '';
+}
+
+function repairLeakedRepairEvidence(state) {
+  if (!isObject(state)) return state;
+  const refOf = sh => text(sh && (sh.ref || sh.reference || sh.shipmentRef || sh.referenceNumber)).toUpperCase();
+  const source = ['shipments', 'savedShipments'].flatMap(name => Array.isArray(state[name]) ? state[name] : [])
+    .find(sh => isObject(sh) && refOf(sh) === RC1659_LEAK_SOURCE_REF && text(sh.pickedUpAt) === RC1659_LEAK_PICKED_UP_AT);
+  if (!source) return state;
+  const repairedAt = new Date().toISOString();
+  for (const name of ['shipments', 'savedShipments']) {
+    if (!Array.isArray(state[name])) continue;
+    state[name] = state[name].map((sh) => {
+      if (!isObject(sh) || !RC1659_LEAK_TARGET_REFS.has(refOf(sh))) return sh;
+      if (text(sh.pickedUpAt) !== RC1659_LEAK_PICKED_UP_AT || hasPickupConfirmationEvidence(sh)) return sh;
+      const fixed = clone(sh);
+      const cleared = [];
+      for (const key of Object.keys(fixed)) {
+        if (!RC1659_EVIDENCE_KEY.test(key) || !Object.prototype.hasOwnProperty.call(source, key)) continue;
+        if (JSON.stringify(fixed[key]) !== JSON.stringify(source[key])) continue;
+        fixed[key] = rc1659EmptyLike(fixed[key]);
+        cleared.push(key);
+      }
+      if (!text(fixed.status)) { fixed.status = 'Erstellt'; fixed.processStatus = 'Erstellt'; }
+      fixed.phantomPodRepair = { at: repairedAt, version: 'RC1659', source: RC1659_LEAK_SOURCE_REF, clearedFields: cleared };
+      fixed._syncUpdatedAt = repairedAt;
+      return fixed;
+    });
+  }
+  return state;
+}
+
 function mergeState(serverState, incomingState) {
   const server = isObject(serverState) ? serverState : {};
   const incoming = protectFreshShipmentPodStatuses(server, isObject(incomingState) ? incomingState : {});
@@ -1110,6 +1160,7 @@ function mergeState(serverState, incomingState) {
   if (Object.keys(out.deliveryFileDeletionLedger).length) out.shipments = applyDeliveryFileLedger(out.shipments, out.deliveryFileDeletionLedger);
 
   out._teamSyncMeta = mergedMeta;
+  repairLeakedRepairEvidence(out);
   return stripPublicAccessSecrets(out);
 }
 
@@ -1154,5 +1205,6 @@ module.exports = {
   mergeUsers,
   sanitizeState,
   pruneTombstones,
-  isLocalOnlyKey
+  isLocalOnlyKey,
+  repairLeakedRepairEvidence
 };
