@@ -50,17 +50,7 @@ jobs:
           node-version: '24'
           package-manager-cache: false
 
-      - name: Autofix-Voraussetzungen prüfen
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -n "$JOB_ID"
-          test "$TARGET_ENV" = "production" -o "$TARGET_ENV" = "testservice"
-          if [[ -z "${ANTHROPIC_API_KEY:-}" && -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]]; then
-            echo "ANTHROPIC_API_KEY oder CLAUDE_CODE_OAUTH_TOKEN fehlt als Repository-Secret." >&2
-            exit 1
-          fi
-
+      # before the prerequisites, so even an early abort (e.g. missing Claude secret) is reported to ExportHUB
       - name: Kurzlebige GitHub-OIDC-Identität abrufen
         shell: bash
         run: |
@@ -71,6 +61,19 @@ jobs:
           echo "::add-mask::$token"
           umask 077
           printf '%s' "$token" > "$RUNNER_TEMP/exporthub-autofix-oidc.jwt"
+
+      - name: Autofix-Voraussetzungen prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$JOB_ID"
+          test "$TARGET_ENV" = "production" -o "$TARGET_ENV" = "testservice"
+          if [[ -z "${ANTHROPIC_API_KEY:-}" && -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]]; then
+            echo "ANTHROPIC_API_KEY oder CLAUDE_CODE_OAUTH_TOKEN fehlt als Repository-Secret." >&2
+            # shown in "Meine KI-Aufträge" via the failure report below
+            echo "Claude-Zugang fehlt: Repository-Secret CLAUDE_CODE_OAUTH_TOKEN oder ANTHROPIC_API_KEY ist nicht gesetzt." > /tmp/exporthub-autofix-final.txt
+            exit 1
+          fi
 
       - name: Diagnose-Prompt und Anhang abrufen
         id: claim
