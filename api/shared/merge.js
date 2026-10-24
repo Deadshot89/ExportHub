@@ -1061,7 +1061,9 @@ function protectFreshShipmentPodStatuses(server, incoming) {
 // cleared; a shipment with its own signed or manual pickup is left untouched.
 const RC1659_LEAK_SOURCE_REF = 'LWYRNN';
 const RC1659_LEAK_PICKED_UP_AT = '2026-08-14T08:16:31.616Z';
-const RC1659_LEAK_TARGET_REFS = new Set(['ETJUHL', 'SUFFSL', 'PEQG6U', '7V8B43', 'R3QJWV', 'DRLMGN', 'Q6JCR5']);
+// The leak began on 23.10.; every shipment created since then can be affected
+// (ETJUHL, SUFFSL, PEQG6U, 7V8B43, R3QJWV, DRLMGN, UXCN5V, ... until the fix is live).
+const RC1659_LEAK_STARTED_AT = Date.parse('2026-10-23T00:00:00Z');
 const RC1659_EVIDENCE_KEY = /^(?:status|processStatus|pickup|qrPickup|pickedUp|actualPickup|pod|driverSignature|signature|remotePickup|pallet|returnPallet|returnedEuro)/i;
 
 function rc1659EmptyLike(value) {
@@ -1082,7 +1084,8 @@ function repairLeakedRepairEvidence(state) {
   for (const name of ['shipments', 'savedShipments']) {
     if (!Array.isArray(state[name])) continue;
     state[name] = state[name].map((sh) => {
-      if (!isObject(sh) || !RC1659_LEAK_TARGET_REFS.has(refOf(sh))) return sh;
+      if (!isObject(sh) || sh === source || refOf(sh) === RC1659_LEAK_SOURCE_REF) return sh;
+      if (!(Date.parse(text(sh.createdAt)) >= RC1659_LEAK_STARTED_AT)) return sh;
       if (text(sh.pickedUpAt) !== RC1659_LEAK_PICKED_UP_AT || hasPickupConfirmationEvidence(sh)) return sh;
       const fixed = clone(sh);
       const cleared = [];
