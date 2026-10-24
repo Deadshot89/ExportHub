@@ -201,6 +201,8 @@
   w.addEventListener('exporthub:webpush-language-changed',function(){render();syncPushLanguage()});
   ['exporthub:ready', 'exporthub:viewchange', 'exporthub:sync'].forEach(function (name) { w.addEventListener(name, function () { setTimeout(boot, 0); }); });
   if (d.readyState === 'loading') d.addEventListener('DOMContentLoaded', boot, { once: true }); else boot();
+  // The worker lives outside the pages' scope, so the browser rarely re-checks it on its own: fetch updates on every load.
+  try { if (supported()) navigator.serviceWorker.getRegistration(SW_SCOPE).then(function (reg) { return reg && reg.update ? reg.update() : null; }).catch(function () {}); } catch (_) {}
 
   w.ExportHUBWebPush = Object.freeze({ supported: supported, enable: enable, disable: disable, test: test, setCategory: setCategory, refresh: refreshStatus, render: render, state: function () { return { supported: supported(), permission: permission(), subscribed: !!info.subscription, ios: isIos(), standalone: standalone() }; } });
 })(window);

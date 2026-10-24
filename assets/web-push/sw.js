@@ -38,6 +38,7 @@ function saveMessage(msg) {
     });
   }).catch(function () {});
 }
+var INBOX_PATH = '/assets/web-push/inbox.html';
 function sameOrigin(url, fallback) {
   try { var u = new URL(url || fallback, self.location.origin); return u.origin === self.location.origin ? u.href : new URL(fallback, self.location.origin).href; } catch (_) { return new URL(fallback, self.location.origin).href; }
 }
@@ -83,9 +84,20 @@ self.addEventListener('push', function (event) {
   }));
 });
 
-// Tapping only closes the notification: it is for reading, not for editing, and it never opens the website.
+// Tapping never opens the ExportHUB website (which would need a login). iOS always opens the home screen
+// app on a tap and would show its start page, so the tap opens the read-only message page instead.
 self.addEventListener('notificationclick', function (event) {
+  var data = event.notification && event.notification.data || {};
   if (event.notification) event.notification.close();
+  var target = new URL(INBOX_PATH + '?m=' + encodeURIComponent(data.id || ''), self.location.origin).href;
+  event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (list) {
+    for (var i = 0; i < list.length; i++) {
+      try {
+        if (new URL(list[i].url).pathname === INBOX_PATH && list[i].navigate) return list[i].navigate(target).then(function (w) { return w && w.focus(); });
+      } catch (_) {}
+    }
+    return self.clients.openWindow(target);
+  }));
 });
 
 // The push service rotated the subscription: register the new one with the old endpoint as proof.
