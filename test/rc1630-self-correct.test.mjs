@@ -75,7 +75,7 @@ test('RC1630: API ist Global-Admin-geschützt, Workflow-Rückrufe nur per GitHub
   assert.match(api,/githubOidcAuthorized\(req, WORKFLOW, \['workflow_dispatch'\], OIDC_AUDIENCE\)/);
   assert.match(autofix,/aud\.includes\(audience\|\|OIDC_AUDIENCE\)/);
   assert.match(autofix,/module\.exports\.helpers=Object\.freeze/);
-  assert.doesNotMatch(ui,/EXPORTHUB_GITHUB_AUTOFIX_TOKEN|OPENAI_API_KEY/);
+  assert.doesNotMatch(ui,/EXPORTHUB_GITHUB_AUTOFIX_TOKEN|OPENAI_API_KEY|ANTHROPIC_API_KEY|CLAUDE_CODE_OAUTH_TOKEN/);
   const handler=require('../api/self-correct/index.js');
   for(const action of ['claim','workflow-status']){
     const ctx={log:{error(){}}};

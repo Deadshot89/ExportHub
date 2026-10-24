@@ -52,7 +52,7 @@
   "api.avis.scanning": "Le PDF est analysé contre les logiciels malveillants. L’affectation à l’expédition est ensuite validée.",
   "api.avis.unavailable": "L’AVIS client est temporairement indisponible.",
   "api.autofix.jobRequired": "L’identifiant de tâche autofix manque.",
-  "api.autofix.claimed": "Le diagnostic a été transmis à Codex.",
+  "api.autofix.claimed": "Le diagnostic a été transmis à Claude Code.",
   "api.autofix.statusInvalid": "Statut autofix inconnu.",
   "api.autofix.methodPost": "Seule la méthode POST est autorisée.",
   "api.autofix.callbackUnauthorized": "Le canal de retour autofix n’est pas autorisé.",

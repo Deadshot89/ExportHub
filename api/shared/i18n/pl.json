@@ -52,7 +52,7 @@
   "api.avis.scanning": "Plik PDF jest sprawdzany pod kątem złośliwego oprogramowania. Następnie zostanie zweryfikowane przypisanie do przesyłki.",
   "api.avis.unavailable": "AVIS klienta jest tymczasowo niedostępny.",
   "api.autofix.jobRequired": "Brakuje identyfikatora zadania autofix.",
-  "api.autofix.claimed": "Diagnostyka została przekazana do Codex.",
+  "api.autofix.claimed": "Diagnostyka została przekazana do Claude Code.",
   "api.autofix.statusInvalid": "Nieznany status autofix.",
   "api.autofix.methodPost": "Dozwolone jest tylko POST.",
   "api.autofix.callbackUnauthorized": "Kanał zwrotny autofix nie jest autoryzowany.",

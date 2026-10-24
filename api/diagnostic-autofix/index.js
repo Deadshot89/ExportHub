@@ -236,12 +236,12 @@ async function workflowStatus(payload,env){
   if(status==='running')af.startedAt=af.startedAt||now();
   if(status==='testing')af.testingAt=now();
   if(status==='deploying')af.deployingAt=now();
-  if(status==='fixed'){af.completedAt=now();return Object.assign({},current,{autofix:af,resolvedAt:now(),resolvedBy:'ChatGPT / Codex Autofix',resolutionMessage:message})}
+  if(status==='fixed'){af.completedAt=now();return Object.assign({},current,{autofix:af,resolvedAt:now(),resolvedBy:'Claude Code Autofix',resolutionMessage:message})}
   if(status==='failed'||status==='reverted')af.failedAt=now();
   return Object.assign({},current,{autofix:af});
  });
  if(status==='fixed'||status==='failed'||status==='reverted'){
-  try{await appendAudit(env,status==='fixed'?'DIAGNOSTIC_AUTOFIX_FIXED':'DIAGNOSTIC_AUTOFIX_FAILED',status==='fixed'?'ChatGPT / Codex Autofix':'ExportHUB Autofix',{diagnosticId:id,jobId,status,commit,runUrl,message})}catch(_){}
+  try{await appendAudit(env,status==='fixed'?'DIAGNOSTIC_AUTOFIX_FIXED':'DIAGNOSTIC_AUTOFIX_FAILED',status==='fixed'?'Claude Code Autofix':'ExportHUB Autofix',{diagnosticId:id,jobId,status,commit,runUrl,message})}catch(_){}
  }
  return {ok:true,jobId,diagnosticId:id,status,record:sanitize(record)};
 }
@@ -268,9 +268,9 @@ async function finalizeAutofix(payload,env){
   if(currentPrUrl!==pullRequestUrl)throw error('AUTOFIX_PR_MISMATCH','Autofix-PR passt nicht zum gespeicherten Auftrag.',409);
   if(!currentCommit||autofixCommit!==currentCommit)throw error('AUTOFIX_COMMIT_MISMATCH','Autofix-Commit passt nicht zum gespeicherten Auftrag.',409);
   const af=Object.assign({},currentAf,{status:'fixed',lastMessage:message,mergeCommit,deploymentRunUrl,completedAt,updatedAt:completedAt});
-  return Object.assign({},current,{autofix:af,resolvedAt:completedAt,resolvedBy:'ChatGPT / Codex Autofix',resolutionMessage:message});
+  return Object.assign({},current,{autofix:af,resolvedAt:completedAt,resolvedBy:'Claude Code Autofix',resolutionMessage:message});
  });
- try{await appendAudit(env,'DIAGNOSTIC_AUTOFIX_FIXED','ChatGPT / Codex Autofix',{diagnosticId:id,jobId,status:'fixed',pullRequestUrl,autofixCommit:existingCommit,mergeCommit,deploymentRunUrl,message})}catch(_){}
+ try{await appendAudit(env,'DIAGNOSTIC_AUTOFIX_FIXED','Claude Code Autofix',{diagnosticId:id,jobId,status:'fixed',pullRequestUrl,autofixCommit:existingCommit,mergeCommit,deploymentRunUrl,message})}catch(_){}
  return {ok:true,jobId,diagnosticId:id,status:'fixed',record:sanitize(record)};
 }
 

@@ -30,7 +30,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 55
     env:
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      # Claude Code: API key (console.anthropic.com) or a Claude subscription token (claude setup-token)
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
       GH_TOKEN: ${{ github.token }}
       JOB_ID: ${{ inputs.job_id }}
       TARGET_ENV: ${{ inputs.environment }}
@@ -54,8 +56,8 @@ jobs:
           set -euo pipefail
           test -n "$JOB_ID"
           test "$TARGET_ENV" = "production" -o "$TARGET_ENV" = "testservice"
-          if [[ -z "${OPENAI_API_KEY:-}" ]]; then
-            echo "OPENAI_API_KEY fehlt als Repository-Secret." >&2
+          if [[ -z "${ANTHROPIC_API_KEY:-}" && -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]]; then
+            echo "ANTHROPIC_API_KEY oder CLAUDE_CODE_OAUTH_TOKEN fehlt als Repository-Secret." >&2
             exit 1
           fi
 
@@ -101,30 +103,32 @@ jobs:
           curl -fsS -X POST "$base/api/diagnostic-autofix" \
             -H 'Content-Type: application/json' \
             -H "X-ExportHUB-GitHub-OIDC: $(cat "$RUNNER_TEMP/exporthub-autofix-oidc.jwt")" \
-            --data "$(jq -nc --arg j "$JOB_ID" --arg e "$TARGET_ENV" --arg u "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" '{action:"workflow-status",jobId:$j,environment:$e,status:"running",message:"ChatGPT / Codex analysiert den Diagnose-Anhang und den aktuellen Repository-Stand.",runUrl:$u}')" >/dev/null
+            --data "$(jq -nc --arg j "$JOB_ID" --arg e "$TARGET_ENV" --arg u "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" '{action:"workflow-status",jobId:$j,environment:$e,status:"running",message:"Claude Code analysiert den Diagnose-Anhang und den aktuellen Repository-Stand.",runUrl:$u}')" >/dev/null
 
-      - name: OpenAI Codex installieren
+      - name: Claude Code installieren
         shell: bash
         run: |
           set -euo pipefail
-          npm install -g @openai/codex
-          codex --version
+          npm install -g @anthropic-ai/claude-code
+          claude --version
 
-      - name: ChatGPT Codex analysiert und behebt den Fehler
+      - name: Claude Code analysiert und behebt den Fehler
         shell: bash
         run: |
           set -euo pipefail
-          codex --ask-for-approval never exec \
-            --sandbox workspace-write \
-            --ephemeral \
-            --ignore-user-config \
-            --ignore-rules \
-            --output-last-message .exporthub-autofix/final.txt \
-            "$(cat .exporthub-autofix/prompt.txt)"
+          # Headless Claude Code: only file tools plus tests and read-only git; no web access and no
+          # free shell, so text from a diagnostic cannot make it run network commands with the key in env.
+          claude -p "$(cat .exporthub-autofix/prompt.txt)" \
+            --permission-mode acceptEdits \
+            --allowedTools 'Read,Edit,MultiEdit,Write,Glob,Grep,TodoWrite,Bash(npm test),Bash(npm test:*),Bash(node --test:*),Bash(git diff:*),Bash(git status:*),Bash(git log:*)' \
+            --disallowedTools 'WebFetch,WebSearch' \
+            --max-turns 120 \
+            --output-format text \
+            > .exporthub-autofix/final.txt
           test -s .exporthub-autofix/final.txt
           cat .exporthub-autofix/final.txt
           if grep -q '^BLOCKED:' .exporthub-autofix/final.txt; then
-            echo "Codex hat die automatische Behebung aus Sicherheitsgründen blockiert." >&2
+            echo "Claude Code hat die automatische Behebung aus Sicherheitsgründen blockiert." >&2
             exit 2
           fi
 
@@ -186,7 +190,7 @@ jobs:
           safe_job=$(printf '%s' "$JOB_ID" | tr -cd 'A-Za-z0-9._-' | cut -c1-48)
           test -n "$safe_job" || safe_job="job"
           branch="autofix/${TARGET_ENV}/${safe_job}-${GITHUB_RUN_ID}"
-          git config user.name "ExportHUB ChatGPT Autofix"
+          git config user.name "ExportHUB Claude Autofix"
           git config user.email "exporthub-autofix@users.noreply.github.com"
           git add -A
           git commit -m "fix(autofix): $diagnostic_id · $JOB_ID"
@@ -213,7 +217,7 @@ jobs:
           - Regression vor PR-Erstellung: **bestanden**
           - Direkter Push nach \`main\`: **nicht erlaubt**
 
-          ### Codex-Ergebnis
+          ### Ergebnis von Claude Code
           ${final}
 
           Dieser PR muss die normalen PR-/CI-Gates bestehen. Ein Live-Deployment erfolgt ausschließlich nach regulärem Merge nach \`main\`.

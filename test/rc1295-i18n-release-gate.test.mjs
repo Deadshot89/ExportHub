@@ -64,7 +64,7 @@ test('RC1295: Runtime und deutsche Locale liefern die vom Gate geprüften Schlü
   for(const [file,key] of runtimeChecks)assert.ok(read(file).includes(key),file+' enthält '+key+' nicht');
 
   assert.equal(de['customerDelete.finalDelete'],'Endgültig löschen');
-  assert.equal(de['diagnostics.fixWithChatgpt'],'Mit ChatGPT beheben');
+  assert.equal(de['diagnostics.fixWithChatgpt'],'Mit Claude beheben');
   assert.equal(de['stowplan.instructionTitle'],'Ladeanweisung');
   assert.equal(de['avisUploads.noticeTitle'],'Neues AVIS-Dokument');
   assert.equal(de['avisUploads.openPrint'],'PDF öffnen / drucken');

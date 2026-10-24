@@ -52,7 +52,7 @@
   "api.avis.scanning": "Il PDF viene sottoposto a scansione malware. Successivamente viene verificata l’associazione alla spedizione.",
   "api.avis.unavailable": "L’AVIS cliente è temporaneamente non disponibile.",
   "api.autofix.jobRequired": "Manca l’ID del job autofix.",
-  "api.autofix.claimed": "La diagnostica è stata affidata a Codex.",
+  "api.autofix.claimed": "La diagnostica è stata affidata a Claude Code.",
   "api.autofix.statusInvalid": "Stato autofix sconosciuto.",
   "api.autofix.methodPost": "È consentito solo POST.",
   "api.autofix.callbackUnauthorized": "Il canale di ritorno autofix non è autorizzato.",

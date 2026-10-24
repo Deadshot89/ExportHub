@@ -52,7 +52,7 @@
   "api.avis.scanning": "PDF wird auf Schadsoftware geprüft. Danach wird die Sendungszuordnung validiert.",
   "api.avis.unavailable": "Kunden-Avis ist vorübergehend nicht verfügbar.",
   "api.autofix.jobRequired": "Autofix-Auftrags-ID fehlt.",
-  "api.autofix.claimed": "Diagnose an Codex übergeben.",
+  "api.autofix.claimed": "Diagnose an Claude Code übergeben.",
   "api.autofix.statusInvalid": "Unbekannter Autofix-Status.",
   "api.autofix.methodPost": "Nur POST ist erlaubt.",
   "api.autofix.callbackUnauthorized": "Autofix-Rückkanal nicht autorisiert.",
