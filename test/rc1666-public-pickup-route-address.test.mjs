@@ -304,3 +304,51 @@ test('RC1666: legacy QR reference remains usable only with an unambiguous shipme
   else process.env.EXPORTHUB_STORAGE_CONNECTION_STRING=previous;
  }
 });
+
+
+test('RC1666: full pickup status and signed POD synchronize to both active and saved copies, never to another shipment',async()=>{
+ const initial={revision:2,state:{
+  shipments:[
+   {id:'SHIP-1',ref:'MATCH88',status:'Erstellt',processStatus:'Erstellt'},
+   {id:'OTHER-ID',ref:'MATCH88',status:'Erstellt',processStatus:'Erstellt'}
+  ],
+  savedShipments:[{id:'SHIP-1',ref:'MATCH88',status:'Erstellt',processStatus:'Erstellt'}],
+  tasks:[
+   {area:'Abholtag',linkedShipmentId:'SHIP-1',linkedShipmentRef:'MATCH88',status:'offen'},
+   {area:'Abholtag',linkedShipmentId:'OTHER-ID',linkedShipmentRef:'MATCH88',status:'offen'}
+  ]
+ }};
+ let serialized=Buffer.from(JSON.stringify(initial)),writes=0;
+ const blob={
+  async download(){return{etag:'"source"',readableStreamBody:Readable.from([serialized])}},
+  async upload(raw){serialized=Buffer.from(raw);writes++;return{etag:'"dest"'}}
+ };
+ const original=Module._load,previous=process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;
+ process.env.EXPORTHUB_STORAGE_CONNECTION_STRING='mock-only-for-test';
+ Module._load=function(name,parent,isMain){
+  if(name==='@azure/storage-blob')return{BlobServiceClient:{fromConnectionString(){return{
+   getContainerClient(){return{async createIfNotExists(){},getBlockBlobClient(){return blob}}}
+  }}}};
+  return original.call(this,name,parent,isMain)
+ };
+ const id=require.resolve('../api/shared/pickup-store.js');delete require.cache[id];
+ let store;try{store=require(id)}finally{Module._load=original}
+ try{
+  await store.updateTeam({
+   environment:'testservice',shipmentId:'SHIP-1',reference:'MATCH88',expectedColliCount:1,
+   pickupHistory:[{sequence:1,colliCount:1,complete:true,confirmedAt:'2026-10-26T14:00:00Z',signatureBlobName:'pod/signed.png'}]
+  });
+  assert.equal(writes,1);
+  const state=JSON.parse(serialized).state;
+  assert.equal(state.shipments[0].status,'Abgeholt');
+  assert.equal(state.savedShipments[0].status,'Abgeholt','saved copy no longer displays obsolete status');
+  assert.equal(state.shipments[0].signatureAvailable,true);
+  assert.equal(state.savedShipments[0].signatureAvailable,true);
+  assert.equal(state.shipments[1].status,'Erstellt','other shipment with same reference must remain unchanged');
+  assert.equal(state.tasks[0].status,'erledigt');
+  assert.equal(state.tasks[1].status,'offen','other shipment task must not be completed');
+ }finally{
+  if(previous===undefined)delete process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;
+  else process.env.EXPORTHUB_STORAGE_CONNECTION_STRING=previous;
+ }
+});
