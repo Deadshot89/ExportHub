@@ -101,6 +101,21 @@ test('submit accepts PDF JPEG and PNG but rejects extension/MIME mismatch',async
   assert.throws(()=>api.validateDocuments([{name:'fake.pdf',mimeType:'image/png',data:'data:image/png;base64,iVBORw0KGgo='}],1024),e=>e&&e.code==='PACK_DOCUMENT_TYPE_MISMATCH');
 });
 
+test('scanner PDFs with generic MIME are accepted only if their binary signature is valid',()=>{
+  const api=require('../api/pack-notification/index.js');
+  const valid=Buffer.from('%PDF-1.4\n%%EOF\n','latin1').toString('base64');
+  const generic={name:'Scan Lieferschein.PDF',mimeType:'application/octet-stream',data:'data:application/octet-stream;base64,'+valid};
+  const [document]=api.validateDocuments([generic],1024);
+  assert.equal(document.mimeType,'application/pdf');
+  assert.equal(document.name,'Scan Lieferschein.PDF');
+  assert.equal(document.size,Buffer.from('%PDF-1.4\n%%EOF\n','latin1').length);
+  const withoutExplicitMime=api.validateDocuments([{name:'Scan.pdf',data:'data:application/octet-stream;base64,'+valid}],1024);
+  assert.equal(withoutExplicitMime[0].mimeType,'application/pdf');
+  const falsePdf=Buffer.from('not a PDF').toString('base64');
+  assert.throws(()=>api.validateDocuments([{name:'bad.pdf',mimeType:'application/octet-stream',data:'data:application/octet-stream;base64,'+falsePdf}],1024),e=>e&&e.code==='PACK_DOCUMENT_TYPE_MISMATCH');
+  assert.throws(()=>api.validateDocuments([{name:'wrong.pdf',mimeType:'image/png',data:'data:application/pdf;base64,'+valid}],1024),e=>e&&e.code==='PACK_DOCUMENT_TYPE_MISMATCH');
+});
+
 test('submit rejects forged client size when decoded payload exceeds limit',()=>{
   const api=require('../api/pack-notification/index.js');
   const bytes=Buffer.concat([Buffer.from('%PDF-1.4\n'),Buffer.alloc(2048,65)]);
