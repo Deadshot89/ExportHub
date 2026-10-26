@@ -142,12 +142,28 @@ export async function runPackNotificationLiveFlow(browser,testInfo,token){
         const n=(s.packNotifications||[]).find(x=>x.reference===ref);
         const file=(n?.documents||[]).find(x=>x.name===canonicalName);
         const viewer=window.ExportHUBDocumentBlob1059;
-        if(!file||!viewer?.isBlobDocument?.(file))return{available:false};
+        // Include only test-file metadata in a failing assertion. Never log
+        // auth tokens, private file bytes or the Blob's full storage path.
+        if(!file||!viewer?.isBlobDocument?.(file))return{
+          available:false,diagnostic:{
+            notificationFound:!!n,
+            documentCount:(n?.documents||[]).length,
+            candidates:(n?.documents||[]).map(d=>({
+              name:String(d.name||'').slice(0,160),
+              storage:String(d.storage||'').slice(0,20),
+              blobReferencePresent:!!d.blobName,
+              inlineDataPresent:!!(d.data||d.dataUrl||d.base64)
+            })),
+            viewerLoaded:!!viewer,
+            viewerHasBlobCheck:typeof viewer?.isBlobDocument==='function',
+            targetDocumentFound:!!file
+          }
+        };
         const bytes=await viewer.fetchBytes(file);
         return{available:true,name:file.name,storage:file.storage,blobName:file.blobName,
           count:bytes.length,signature:String.fromCharCode(...bytes.slice(0,5))};
       },{ref:refA,canonicalName:resultA.canonicalName});
-      expect(originalPdf.available,'original Packmeldung must have a retrievable real PDF').toBe(true);
+      expect(originalPdf.available,'original Packmeldung must have a retrievable real PDF: '+JSON.stringify(originalPdf.diagnostic||{})).toBe(true);
       expect(originalPdf.signature).toBe('%PDF-');
       expect(originalPdf.count).toBeGreaterThan(40);
       expect(originalPdf.storage).toBe('blob');
