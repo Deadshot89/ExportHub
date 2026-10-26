@@ -15,12 +15,20 @@ function mergePhoto(list,photo){
 }
 function text(v){return String(v==null?'':v).trim()}
 function linkedInTeam(teamDoc,record,photo){
- const state=teamDoc&&teamDoc.state&&typeof teamDoc.state==='object'?teamDoc.state:teamDoc||{},shipments=Array.isArray(state.shipments)?state.shipments:[];
- const sid=text(record&&record.shipmentId),ref=text(record&&record.reference).toUpperCase(),sh=shipments.find(x=>(sid&&text(x&&(x.id||x.shipmentId))===sid)||(ref&&text(x&&(x.reference||x.ref)).toUpperCase()===ref));
- if(!sh)return false;
- const target=record&&record.subShipmentId&&Array.isArray(sh.subShipments)?sh.subShipments.find(x=>text(x&&x.subShipmentId)===text(record.subShipmentId)):sh;
- const photos=Array.isArray(target&&target.containerPhotos)?target.containerPhotos:[];
- return photos.some(x=>text(x&&x.kind).toLowerCase()===text(photo&&photo.kind).toLowerCase()&&(!text(photo&&photo.blobName)||text(x&&x.blobName)===text(photo&&photo.blobName)));
+ const state=teamDoc&&teamDoc.state&&typeof teamDoc.state==='object'?teamDoc.state:teamDoc||{},
+  shipments=[].concat(Array.isArray(state.shipments)?state.shipments:[],Array.isArray(state.savedShipments)?state.savedShipments:[]);
+ const sid=text(record&&record.shipmentId),ref=text(record&&record.reference).toUpperCase();
+ return shipments.some(sh=>{
+  if(!sh||typeof sh!=='object')return false;
+  const id=text(sh.shipmentId||sh.id),reference=text(sh.reference||sh.ref||sh.shipmentRef).toUpperCase();
+  if(sid&&id&&sid!==id)return false;
+  if(ref&&reference&&ref!==reference)return false;
+  if(!((sid&&sid===id)||(ref&&ref===reference)))return false;
+  const sub=record&&record.subShipmentId&&Array.isArray(sh.subShipments)?sh.subShipments.find(x=>text(x&&x.subShipmentId)===text(record.subShipmentId)):null;
+  // The pickup source stores photos on the main shipment as well as the sub-shipment.
+  const targets=sub?[sub,sh]:[sh];
+  return targets.some(target=>(Array.isArray(target&&target.containerPhotos)?target.containerPhotos:[]).some(x=>text(x&&x.kind).toLowerCase()===text(photo&&photo.kind).toLowerCase()&&(!text(photo&&photo.blobName)||text(x&&x.blobName)===text(photo&&photo.blobName))));
+ });
 }
 module.exports=async function(context,req){
  if(req.method==='OPTIONS'){context.res=json(204,{});return}
