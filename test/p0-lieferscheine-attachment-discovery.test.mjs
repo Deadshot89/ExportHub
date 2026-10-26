@@ -12,7 +12,7 @@ function collector(){
  assert.ok(at>=0,'active release document helper transform exists');
  const stop=build.indexOf('\n`;',at+marker.length);
  assert.ok(stop>at,'active release document helpers have a terminator');
- const source=build.slice(at+marker.length,stop);
+ const source=vm.runInNewContext(build.slice(at+'const docHelpers='.length,stop+3));
  const window={location:{hostname:'exporthub360.com'}};
  vm.runInNewContext(blobSource,{window});
  const first={id:'SAME-LEGACY-ID',ref:'9WX5K6',lieferscheine:[{
