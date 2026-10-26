@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import {test,expect} from '@playwright/test';
 import {
   assertNoSourceLeak,
@@ -220,13 +221,21 @@ test('RC1555 production smoke: verschachtelte POD-Abholkarten zeigen nur die neu
 
 test('Packmeldung: Lieferschein erscheint trotz haengender optionaler PDF-Erkennung',async({page},testInfo)=>{
   test.skip(testInfo.project.name!=='laptop','unabhaengiger Upload-Browsercheck auf Laptop');
-  // A static fixture is intentional: it never writes pack tasks or user data.
-  // The normalizer is deliberately stalled to verify that a real FileReader
-  // upload can reach the document list without waiting indefinitely.
-  await page.route('**/assets/document-reference-normalizer.js*',route=>route.fulfill({
-    status:200,contentType:'application/javascript',
-    body:'window.ExportHubDocumentReferenceNormalizer={normalizePdfFile:()=>new Promise(()=>{})};'
-  }));
+  test.skip(process.env.EXPORTHUB_E2E_LIVE==='1','lokaler Source-Test; echter TESTSERVICE-Upload ist bereits RC1499');
+  // The local three-environment build omits pack.html, whereas TESTSERVICE
+  // packages the full assets directory. Serve those exact source assets for
+  // this read-only test to avoid a false 404 from the test web server.
+  await page.route('**/assets/**',route=>{
+    const pathname=new URL(route.request().url()).pathname;
+    if(pathname==='/assets/document-reference-normalizer.js')return route.fulfill({
+      status:200,contentType:'application/javascript',
+      body:'window.ExportHubDocumentReferenceNormalizer={normalizePdfFile:()=>new Promise(()=>{})};'
+    });
+    const local='.'+pathname;
+    if(!pathname.startsWith('/assets/')||!fs.existsSync(local)||!fs.statSync(local).isFile())return route.continue();
+    const type=pathname.endsWith('.html')?'text/html':pathname.endsWith('.css')?'text/css':pathname.endsWith('.js')?'application/javascript':'application/octet-stream';
+    return route.fulfill({status:200,contentType:type,body:fs.readFileSync(local)});
+  });
   await page.route('**/api/pack-notification?action=*',route=>{
     const action=new URL(route.request().url()).searchParams.get('action');
     const payload=action==='session'
