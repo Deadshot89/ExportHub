@@ -80,12 +80,20 @@ function legacyDocumentInventory(state){
  return{entries,found,skipped,inlineBytes,candidateCount,candidateBytes};
 }
 function stripInlineFields(file){const out=clone(file)||{};for(const key of INLINE_FIELDS)delete out[key];return out}
-function rowIdentity(row,index){return text(row&&(row.id||row.shipmentId||row.ref||row.reference||row.referenceNumber||row.abdRequestId))||('idx-'+index)}
+function rowIdentity(row,index,root){
+ // RC1664: historical editor IDs may be shared across different shipment REFs.
+ // Never reuse a blob from a different real shipment just because its ID matches.
+ if(root==='shipments'||root==='savedShipments'||root==='sharedShipments'){
+  const ref=text(row&&(row.ref||row.reference||row.shipmentRef||row.referenceNumber||row.referenceNo||row.refNo||row.refNr||row.sendungsnummer||row.exporthubRef||row.exportHubReference)).toUpperCase();
+  if(ref)return'ref:'+ref;
+ }
+ return text(row&&(row.id||row.shipmentId||row.ref||row.reference||row.referenceNumber||row.abdRequestId))||('idx-'+index)
+}
 function fileIdentity(file,index){return text(file&&(file.id||file.fileId||file.remoteId||file.documentId))||[text(file&&(file.name||file.fileName||file.filename)),text(file&&file.size),text(file&&(file.uploadedAt||file.addedAt||file.createdAt)),index].join('|')}
 function inlineFingerprint(file){const p=extractInlinePayload(file);return p?crypto.createHash('sha256').update(p.buffer).digest('hex'):''}
 function existingDocumentMap(state){
  const map=new Map(),src=state&&typeof state==='object'?state:{};
- for(const root of ROOT_COLLECTIONS){const rows=Array.isArray(src[root])?src[root]:[];rows.forEach((row,ri)=>{const rid=rowIdentity(row,ri);for(const field of DOCUMENT_FIELDS){const files=Array.isArray(row&&row[field])?row[field]:[];files.forEach((file,fi)=>map.set([root,rid,field,fileIdentity(file,fi)].join('::'),clone(file)))}})}
+ for(const root of ROOT_COLLECTIONS){const rows=Array.isArray(src[root])?src[root]:[];rows.forEach((row,ri)=>{const rid=rowIdentity(row,ri,root);for(const field of DOCUMENT_FIELDS){const files=Array.isArray(row&&row[field])?row[field]:[];files.forEach((file,fi)=>map.set([root,rid,field,fileIdentity(file,fi)].join('::'),clone(file)))}})}
  return map;
 }
 function incomingDocumentScan(state){
@@ -180,7 +188,7 @@ async function externalizeDocumentCollections(state,options={}){
  for(const root of ROOT_COLLECTIONS){
   const rows=Array.isArray(out[root])?out[root]:[];
   for(let ri=0;ri<rows.length;ri++){
-   const row=rows[ri];if(!row||typeof row!=='object')continue;const rid=rowIdentity(row,ri);
+   const row=rows[ri];if(!row||typeof row!=='object')continue;const rid=rowIdentity(row,ri,root);
    for(const field of DOCUMENT_FIELDS){
     const files=Array.isArray(row[field])?row[field]:[];
     for(let i=0;i<files.length;i++){
