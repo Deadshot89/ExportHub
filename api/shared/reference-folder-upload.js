@@ -58,9 +58,12 @@ async function listFiles(reference){
  while(url&&pages<6){
   const res=await graph(url);if(res.status===404)return[];let data={};try{data=await res.json()}catch(_){}
   if(!res.ok)throw error('GRAPH_REFERENCE_FOLDER_LIST_FAILED',data.error&&data.error.message||'api.reference.listFailed',res.status>=500?502:res.status,{status:res.status});
-  for(const item of Array.isArray(data.value)?data.value:[]){if(item&&item.file)files.push({id:text(item.id),name:text(item.name),createdDateTime:item.createdDateTime||null,lastModifiedDateTime:item.lastModifiedDateTime||null})}
+  if(!Array.isArray(data.value))throw error('GRAPH_REFERENCE_FOLDER_LIST_INVALID','Microsoft Graph hat keine gültige REF-Dateiliste geliefert.',502);
+  for(const item of data.value){if(item&&item.file)files.push({id:text(item.id),name:text(item.name),createdDateTime:item.createdDateTime||null,lastModifiedDateTime:item.lastModifiedDateTime||null})}
   url=data['@odata.nextLink']||'';pages++;
  }
+ // Returning a partial list would incorrectly report existing AVs as missing.
+ if(url)throw error('GRAPH_REFERENCE_FOLDER_LIST_TRUNCATED','Die REF-Dateiliste hat mehr Ergebnisseiten als sicher geprüft werden konnten.',503);
  return files;
 }
 module.exports={GRAPH_BASE,REFERENCE_FOLDER,DRIVE_USER,refValue,safeFileName,folderPath,ensureFolder,upload,listFiles,config};
