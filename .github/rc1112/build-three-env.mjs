@@ -1218,7 +1218,13 @@ function shipmentAssociatedDocs(sh,prior){
  function addFile(file,group,field,index){
   if(!file)return;
   var entry={file:file,group:group,field:field,index:index,name:fileName(file,group+' '+(index+1)),url:fileUrl(file)};
-  try{out.push(normalizeFallback(entry))}catch(_){}
+  try{
+   var doc=normalizeFallback(entry),key=q(doc&&doc.file&&doc.file.blobName),name=low(q(doc&&doc.name));
+   // The canonical document collector may already expose this same file.
+   // Deduplicate only an identical stored Blob + name, never by a recycled shipment ID.
+   if(key&&out.some(function(existing){return low(q(existing&&existing.name))===name&&q(existing&&existing.file&&existing.file.blobName)===key}))return;
+   out.push(doc)
+  }catch(_){}
  }
  function addFields(owner,fields){
   fields.forEach(function(x){arr(owner&&owner[x[0]]).forEach(function(file,i){addFile(file,x[1],x[0],i)})})
@@ -1234,7 +1240,9 @@ function shipmentAssociatedDocs(sh,prior){
   if(!matches(copy)||visited.indexOf(copy)>=0)return;
   visited.push(copy);
   try{arr(collectDocs(copy)).forEach(function(d){out.push(normalizeFallback(d))})}catch(_){}
-  addFields(copy,[['lieferscheine','Lieferscheine'],['deliveryNoteFiles','Lieferscheine'],['deliveryNotes','Lieferscheine'],['invoiceDocuments','Rechnungen'],['cmrFiles','CMR'],['avFiles','AV'],['photos','Fotos'],['pickupPhotos','Abholfotos'],['containerPhotos','Containerfotos']])
+  // Keep shipment UI discovery aligned with persisted DOCUMENT_FIELDS in
+  // api/shared/document-blob-store.js. Each owner remains REF-scoped by matches().
+  addFields(copy,[['lieferscheine','Lieferscheine'],['deliveryFiles','Lieferscheine'],['deliveryNoteFiles','Lieferscheine'],['deliveryNotesFiles','Lieferscheine'],['deliveryNotes','Lieferscheine'],['podFiles','POD'],['abdFiles','ABD'],['documents','Dokumente'],['generatedDocuments','Dokumente'],['files','Anhänge'],['attachments','Anhänge'],['invoiceFiles','Rechnungen'],['invoiceDocuments','Rechnungen'],['mailAttachments','Mail-Anhänge'],['cmrFiles','CMR'],['avFiles','AV'],['photos','Fotos'],['pickupPhotos','Abholfotos'],['containerPhotos','Containerfotos']])
  }
  collect(sh);
  sources.forEach(function(root){
@@ -1256,8 +1264,23 @@ function shipmentAssociatedDocs(sh,prior){
  return out.filter(Boolean).filter(fallbackDocUsable)
 }
 function mergeReferenceDocs(live,fallback){
- var out=arr(live).slice(),seen={};out.forEach(function(d){seen[low(q(d&&d.name))]=1});
- arr(fallback).filter(fallbackDocUsable).forEach(function(d){var key=low(q(d&&d.name));if(key&&seen[key])return;if(key)seen[key]=1;out.push(d)});
+ // A filename is not a storage identity: two independent original files can
+ // legitimately have the same name. Deduplicate only proven identical items.
+ function identity(d){
+  if(!d)return '';
+  var item=q(d.itemId||d.file&&d.file.itemId);
+  if(d.source==='referenceFolder'&&item)return 'graph:'+item;
+  var blob=q(d.file&&d.file.blobName||d.blobName);
+  if(blob)return 'blob:'+blob;
+  return ''
+ }
+ var out=[],seen=Object.create(null);
+ arr(live).concat(arr(fallback).filter(fallbackDocUsable)).forEach(function(d){
+  var key=identity(d);
+  if(key&&seen[key])return;
+  if(key)seen[key]=true;
+  out.push(d)
+ });
  return out
 }
 `;
