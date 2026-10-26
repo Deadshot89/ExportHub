@@ -91,7 +91,16 @@ for(const viewport of ['desktop','mobile-standard']){
     await editorAfterMove.locator('[data-sop-editor-field="visual-step"]').selectOption(STEP_ID);
     await editorAfterMove.locator('[data-sop-editor-field="visual-src"]').fill(IMAGE);
     await editorAfterMove.locator('[data-sop-editor-field="visual-caption"]').fill('RC1502 E2E ABD-Schrittbild');
-    await editorAfterMove.locator('[data-sop-editor-action="assign-visual"]').click();
+    const assignVisual=editorAfterMove.locator('[data-sop-editor-action="assign-visual"]');
+    // The fixed toolbar and reminder toast can cover controls when Playwright
+    // uses the shortest scroll. Scroll to a clear central hit target, as a user can.
+    await assignVisual.evaluate(button=>button.scrollIntoView({behavior:'instant',block:'center',inline:'nearest'}));
+    await expect.poll(()=>assignVisual.evaluate(button=>{
+      const r=button.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2;
+      const hit=document.elementFromPoint(x,y);
+      return r.top>=0&&r.bottom<=innerHeight&&(hit===button||button.contains(hit));
+    }),{timeout:10000}).toBe(true);
+    await assignVisual.click();
 
     doc=page.locator(`.rc1007-sop-document[data-sop-number="${SOP}"]`);
     row=doc.locator(`[data-sop-editor-step="${STEP_ID}"]`);

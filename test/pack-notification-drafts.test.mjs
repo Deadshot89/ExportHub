@@ -69,7 +69,7 @@ test('public QR page keeps draft actions while preserving the current mandatory 
   const html=fs.readFileSync('pack.html','utf8'),client=fs.readFileSync('assets/pack-notification.js','utf8'),draftI18n=fs.readFileSync('assets/i18n/pack-notification-drafts.js','utf8');
   assert.match(html,/id="packHome"/);assert.match(html,/id="packNewShipment"/);assert.match(html,/id="packDraftGrid"/);assert.match(html,/id="packSaveDraft"/);
   assert.doesNotMatch(html,/id="packDeliveryNoteReference"/);
-  assert.match(html,/id="packDocuments"[^>]*\srequired(?:\s|>)/);
+  assert.doesNotMatch(html,/id="packDocuments"[^>]*\srequired(?:\s|>)/,'saved draft documents are validated from state, not from the cleared native chooser');
   assert.doesNotMatch(client,/packDeliveryNoteReference/);
   assert.match(client,/draft-list/);assert.match(client,/draft-save/);assert.match(client,/draft-get/);assert.match(draftI18n,/Anzahl Paletten/);
 });

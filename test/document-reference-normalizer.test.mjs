@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import zlib from 'node:zlib';
+import {randomBytes} from 'node:crypto';
 
 function load(){
   const source=fs.readFileSync('assets/document-reference-normalizer.js','utf8');
@@ -90,4 +91,26 @@ test('normalizePdfFile treats application/x-pdf as a PDF instead of bypassing no
   const result=await api.normalizePdfFile(fileFromBytes('legacy.pdf',bytes,'application/x-pdf'));
   assert.equal(result.name,'SIDE250071282.pdf');
   assert.equal(result.reference,'SIDE250071282');
+});
+
+test('large FlateDecode streams do not stall the PDF upload normalizer',async()=>{
+  const api=load();
+  const expanded=Buffer.concat([Buffer.from('BT (Packing Slip SIDE-250071282) Tj ET\n','latin1'),randomBytes(256*1024)]);
+  const compressed=zlib.deflateSync(expanded);
+  const bytes=Buffer.concat([
+    Buffer.from(`%PDF-1.4\n1 0 obj\n<< /Length ${compressed.length} /Filter /FlateDecode >>\nstream\n`,'latin1'),
+    compressed,
+    Buffer.from('\nendstream\nendobj\n%%EOF','latin1')
+  ]);
+  let timer;
+  try{
+    const result=await Promise.race([
+      api.normalizePdfFile(fileFromBytes('scanner.pdf',bytes)),
+      new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('FlateDecode stalled during delivery-note upload')),4000);})
+    ]);
+    assert.equal(result.name,'SIDE250071282.pdf');
+    assert.equal(result.reference,'SIDE250071282');
+  }finally{
+    clearTimeout(timer);
+  }
 });
