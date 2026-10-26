@@ -1568,8 +1568,8 @@ function patchHtml(file){
     const redirect=fs.readFileSync(path.join(ROOT,'assets/rc1666-public-pickup-query-redirect.js'),'utf8');
     if(redirect.includes('</script'))throw new Error('RC1666 pickup redirect contains unsafe script-close markup');
     html=injectImmediateRuntimeAfterHead(html,'<script id="exporthub-rc1666-public-pickup-redirect">'+redirect+'</script>','exporthub-rc1666-public-pickup-redirect');
-    const headEnd=html.match(/<head\\b[^>]*>/i);
-    if(!headEnd||!html.slice(headEnd.index+headEnd[0].length).startsWith('\\n<script id="exporthub-rc1666-public-pickup-redirect">'))throw new Error(file+': RC1666 redirect not first executable head script');
+    const headOpen=/<head[^>]*>/i.exec(html);
+    if(!headOpen||!html.slice(headOpen.index+headOpen[0].length).trimStart().startsWith('<script id="exporthub-rc1666-public-pickup-redirect">'))throw new Error(file+': RC1666 redirect not first executable head script');
   }
   fs.writeFileSync(target,html);
 }
