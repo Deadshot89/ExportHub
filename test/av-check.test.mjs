@@ -371,3 +371,38 @@ test('RC1666: ungültige Graph-Antwort aus einem Unterordner darf keinen AV-Fehl
     ok:false,code:'GRAPH_REFERENCE_FOLDER_LIST_INVALID'
   });
 });
+
+test('RC1666: mehrere abgeschlossene ABD-Dateien in derselben verknüpften Anfrage benötigen mehrere AVs',async()=>{
+  const sh=shipment({abdFiles:[],abdRequired:false});
+  const s=state(sh);
+  s.abdRequests=[{id:'REQ-MULTI',ref:'ABC123',linkedShipmentId:'S1',
+    abdFiles:[{name:'ABD-ALPHA.pdf'},{name:'ABD-BETA.pdf'}]}];
+  assert.equal(av.requiredAvCount(s,sh),2);
+  const files={ABC123:[{name:'AV_ALPHA.pdf'}]},h=handler(s,files);
+  const missing=await h.run();
+  assert.equal(missing.body.missing,1);
+  assert.equal(s.tasks[0].avRequiredCount,2);
+  assert.equal(s.tasks[0].avMissingCount,1);
+  files.ABC123.push({name:'AV_BETA.pdf'});
+  const completed=await h.run();
+  assert.equal(completed.body.closedTasks,1);
+  assert.equal(s.tasks[0].status,'erledigt');
+});
+
+test('RC1666: zwei historische ABD-Dokumente ohne abdFiles werden nicht als ein ABD gezählt',async()=>{
+  const sh=shipment({abdFiles:[],abdDocuments:[{name:'ABD-OLD-A.pdf'},{name:'ABD-OLD-B.pdf'}]});
+  const s={archive:[sh],tasks:[]};
+  assert.equal(av.requiredAvCount(s,sh),2);
+  const r=await handler(s,{ABC123:[{name:'AV_OLD_A.pdf'}]}).run();
+  assert.equal(r.body.missing,1);
+  assert.equal(s.tasks[0].avRequiredCount,2);
+  assert.equal(s.tasks[0].avMissingCount,1);
+});
+
+test('RC1666: identische ABD-Dateien in Sendung und Anfrage dürfen nicht mehrfach gezählt werden',()=>{
+  const files=[{id:'SHIP-FILE',name:'ABD-ONE.pdf'},{id:'SHIP-FILE-2',name:'ABD-TWO.pdf'}];
+  const sh=shipment({abdFiles:files});
+  const s=state(sh);
+  s.abdRequests=[{id:'REQ-MIRROR',ref:'ABC123',abdFiles:files.map(x=>({id:'REQ-'+x.id,name:x.name}))}];
+  assert.equal(av.requiredAvCount(s,sh),2);
+});

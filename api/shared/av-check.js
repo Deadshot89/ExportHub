@@ -69,18 +69,27 @@ function requiredAvCount(state,sh,indexedCopies){
   const requestKeys=new Set(),documentKeys=new Set();
   let maxUnnamed=0;
   for(const source of sources){
+    let unnamed=0;
+    function collectDocuments(record){
+      // Some historical ABDs live on a linked request instead of the shipment.
+      // A single request may also contain multiple completed ABD PDFs.
+      for(const field of ['abdFiles','abdDocuments','abds']){
+        const files=record&&record[field];
+        for(const file of (Array.isArray(files)?files:[])){
+          if(!file)continue;
+          const key=typeof file==='string'?text(file):text(file.name||file.fileName||file.blobName||file.storageBlobName||file.storagePath||file.id);
+          if(key)documentKeys.add(key.toLowerCase());
+          else unnamed++;
+        }
+      }
+    }
     for(const r of abdRequestsFor(state,source)){
       if(!pickupStore.abdPresent(r))continue;
       const key=text(r.id||r.requestId||r.abdReference||r.mrn);
       requestKeys.add(key?'request:'+key:r);
+      collectDocuments(r);
     }
-    let unnamed=0;
-    for(const file of (Array.isArray(source&&source.abdFiles)?source.abdFiles:[])){
-      if(!file)continue;
-      const key=typeof file==='string'?text(file):text(file.name||file.fileName||file.blobName||file.storageBlobName||file.storagePath||file.id);
-      if(key)documentKeys.add(key.toLowerCase());
-      else unnamed++;
-    }
+    collectDocuments(source);
     // Missing legacy identity fields cannot safely be deduplicated;
     // keep at least the largest such group, without double-counting copies.
     maxUnnamed=Math.max(maxUnnamed,unnamed);

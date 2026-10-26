@@ -277,3 +277,53 @@ test('RC1616: pack-station DNC files linked only by exact shipment reference app
  const found=context.shipmentAssociatedDocs(state.shipments[0],[]);
  assert.deepEqual(found.map(x=>x.name),['DNC3019223442.pdf']);
 });
+
+
+test('RC1671: REF document fallback never imports a foreign pack PDF, ABD or reference-less alias via reused shipment ID',()=>{
+ const match=buildSource.match(/const docHelpers=`([\s\S]*?)`;/);
+ assert.ok(match,'document helper must be emitted by release build');
+ const own={id:'REUSED-ID',ref:'RIGHT1',packNotificationId:'PACK-OWN',deliveryFiles:[{name:'OWN.pdf',storage:'blob',blobName:'own'}]};
+ const foreign={id:'REUSED-ID',ref:'WRONG1',deliveryFiles:[{name:'FOREIGN_REF.pdf',storage:'blob',blobName:'foreign'}]};
+ const refLess={id:'REUSED-ID',deliveryFiles:[{name:'FOREIGN_ID.pdf',storage:'blob',blobName:'foreign-id'}]};
+ const state={
+  shipments:[own,foreign,refLess],savedShipments:[],
+  abdRequests:[{id:'OTHER-ABD',shipmentId:'REUSED-ID',invoiceFiles:[{name:'FOREIGN_ABD.pdf',storage:'blob',blobName:'foreign-abd'}]}],
+  packNotifications:[
+   {id:'PACK-OWN',shipmentRef:'RIGHT1',shipmentId:'REUSED-ID',documents:[{name:'PACK_OWN.pdf',storage:'blob',blobName:'own-pack'}]},
+   {id:'PACK-OTHER',shipmentRef:'WRONG1',shipmentId:'REUSED-ID',documents:[{name:'FOREIGN_PACK_REF.pdf',storage:'blob',blobName:'foreign-pack'}]},
+   {id:'PACK-LEGACY',shipmentId:'REUSED-ID',documents:[{name:'FOREIGN_PACK_ID.pdf',storage:'blob',blobName:'foreign-pack-id'}]}
+  ]
+ };
+ const context={
+  window:{ExportHUBDocumentBlob1059:{isBlobDocument:file=>file?.storage==='blob'&&!!file.blobName}},
+  arr:v=>Array.isArray(v)?v:[],q:v=>String(v==null?'':v).trim(),low:v=>String(v==null?'':v).trim().toLowerCase(),
+  refOf:sh=>String(sh&&(sh.ref||sh.reference||sh.shipmentRef)||'').toUpperCase(),
+  idOf:sh=>String(sh&&(sh.id||sh.shipmentId)||''),
+  roots:()=>[state],state:()=>state,fileName:(f,backup)=>f?.name||backup,
+  fileUrl:f=>f?.url||'',normalizeFallback:x=>x,
+  collectDocs:sh=>(sh?.deliveryFiles||[]).map(file=>({file,name:file.name,group:'Lieferscheine',url:''}))
+ };
+ vm.runInNewContext(new Function('return `'+match[1]+'`;')(),context);
+ const names=context.shipmentAssociatedDocs(own,[]).map(d=>d.name);
+ assert.deepEqual(names.sort(),['OWN.pdf','PACK_OWN.pdf']);
+ for(const filename of ['FOREIGN_REF.pdf','FOREIGN_ID.pdf','FOREIGN_ABD.pdf','FOREIGN_PACK_REF.pdf','FOREIGN_PACK_ID.pdf'])assert.ok(!names.includes(filename),filename+' leaked into different REF');
+});
+
+test('RC1671: unique legacy pack notification ID-only link stays usable for an unambiguous shipment REF',()=>{
+ const match=buildSource.match(/const docHelpers=`([\s\S]*?)`;/);
+ assert.ok(match);
+ const own={id:'LEGACY-1',ref:'ABC123'};
+ const state={shipments:[own],savedShipments:[],packNotifications:[
+  {id:'PACK-LEGACY',shipmentId:'LEGACY-1',documents:[{name:'LEGACY_NOTE.pdf',storage:'blob',blobName:'legacy-pdf'}]}
+ ]};
+ const context={
+  window:{ExportHUBDocumentBlob1059:{isBlobDocument:f=>f?.storage==='blob'&&!!f.blobName}},
+  arr:v=>Array.isArray(v)?v:[],q:v=>String(v==null?'':v).trim(),low:v=>String(v==null?'':v).trim().toLowerCase(),
+  refOf:sh=>String(sh&&(sh.ref||sh.reference||sh.shipmentRef)||'').toUpperCase(),
+  idOf:sh=>String(sh&&(sh.id||sh.shipmentId)||''),
+  roots:()=>[state],state:()=>state,fileName:(f,backup)=>f?.name||backup,
+  fileUrl:()=>'',normalizeFallback:x=>x,collectDocs:()=>[]
+ };
+ vm.runInNewContext(new Function('return `'+match[1]+'`;')(),context);
+ assert.deepEqual(context.shipmentAssociatedDocs(own,[]).map(x=>x.name),['LEGACY_NOTE.pdf']);
+});
