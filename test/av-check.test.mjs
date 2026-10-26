@@ -328,12 +328,17 @@ function graphFolderListingFixture(kind){
     " if(String(url).includes('login.microsoftonline.com'))return {ok:true,json:async()=>({access_token:'fixture',expires_in:3600})};",
     " pages++;",
     " if(mode==='invalid')return {ok:true,json:async()=>({unexpected:true})};",
+    " if(mode==='nested'||mode==='nestedError'){",
+    "  const child=String(url).includes('/drive/items/');",
+    "  const data=child?(mode==='nestedError'?{broken:true}:{value:[{id:'nestedAV',name:'AV_ABC123.pdf',file:{mimeType:'application/pdf'}}]}):{value:[{id:'rootABD',name:'ABD_ABC123.pdf',file:{}},{id:'sub',name:'Dokumente',folder:{}}]};",
+    "  return {ok:true,json:async()=>data};",
+    " }",
     " const pageCount=mode==='truncated'?7:6;",
     " const data={value:[{id:'file'+pages,name:'AV_'+pages+'.pdf',file:{mimeType:'application/pdf'}}]};",
     " if(pages<pageCount)data['@odata.nextLink']='https://graph.microsoft.com/v1.0/next?page='+pages;",
     " return {ok:true,json:async()=>data};",
     "};",
-    "folder.listFiles('ABC123').then(files=>console.log(JSON.stringify({ok:true,count:files.length}))).catch(e=>console.log(JSON.stringify({ok:false,code:e.code})));"
+    "folder.listFiles('ABC123').then(files=>console.log(JSON.stringify({ok:true,count:files.length,...(mode==='nested'?{names:files.map(x=>x.name)}:{})}))).catch(e=>console.log(JSON.stringify({ok:false,code:e.code})));"
   ].join('\n');
   const res=spawnSync(process.execPath,['-e',script,kind],{
     cwd:process.cwd(),encoding:'utf8',
@@ -353,4 +358,16 @@ test('RC1666: mehr als sechs Graph-Dateiseiten dürfen nicht stillschweigend abg
 
 test('RC1666: vollständige Graph-Dateiliste über sechs Seiten wird korrekt gelesen',()=>{
   assert.deepEqual(graphFolderListingFixture('complete'),{ok:true,count:6});
+});
+
+test('RC1666: AV in einem REF-Unterordner wird trotz ABD im Hauptordner gefunden',()=>{
+  assert.deepEqual(graphFolderListingFixture('nested'),{
+    ok:true,count:2,names:['ABD_ABC123.pdf','AV_ABC123.pdf']
+  });
+});
+
+test('RC1666: ungültige Graph-Antwort aus einem Unterordner darf keinen AV-Fehlalarm erzeugen',()=>{
+  assert.deepEqual(graphFolderListingFixture('nestedError'),{
+    ok:false,code:'GRAPH_REFERENCE_FOLDER_LIST_INVALID'
+  });
 });
