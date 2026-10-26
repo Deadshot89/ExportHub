@@ -374,7 +374,8 @@ async function updateTeamContainerDocumentation(record){
   if(subId&&!matches.length&&!parentMatches.length){
    const recovered=shipmentCopies.filter(hasSub);
    const parentIds=new Set(recovered.map(x=>String(x&&(x.shipmentId||x.id)||'').trim()).filter(Boolean));
-   if(parentIds.size>1||(recovered.length>1&&parentIds.size===0))throw err('TEAM_SHIPMENT_AMBIGUOUS','Teilsendung gehört zu mehreren Hauptsendungen.',409);
+   const parentRefs=new Set(recovered.map(x=>String(x&&(x.reference||x.ref||x.shipmentRef)||'').trim().toUpperCase()).filter(Boolean));
+   if(parentIds.size!==1||parentRefs.size>1||recovered.some(x=>!String(x&&(x.shipmentId||x.id)||'').trim()))throw err('TEAM_SHIPMENT_AMBIGUOUS','Teilsendung gehört zu mehreren Hauptsendungen.',409);
    matches=recovered;
   }
   if(subId&&!matches.length)throw err('SUBSHIPMENT_NOT_FOUND','Teilsendung wurde in der Hauptsendung nicht gefunden.',409);
@@ -429,7 +430,8 @@ async function updateTeam(record,podsToAdd=[],rawToken=''){
   if(subId&&!syncTargets.length&&!matches.length){
    const recovered=candidates.filter(hasMatchingSub);
    const parentIds=new Set(recovered.map(x=>String(x&&(x.shipmentId||x.id)||'').trim()).filter(Boolean));
-   if(parentIds.size>1||recovered.length>1&&parentIds.size===0)throw err('TEAM_SHIPMENT_AMBIGUOUS','Teilsendung gehört zu mehreren Hauptsendungen.',409);
+   const parentRefs=new Set(recovered.map(x=>String(x&&(x.reference||x.ref||x.shipmentRef)||'').trim().toUpperCase()).filter(Boolean));
+   if(parentIds.size!==1||parentRefs.size>1||recovered.some(x=>!String(x&&(x.shipmentId||x.id)||'').trim()))throw err('TEAM_SHIPMENT_AMBIGUOUS','Teilsendung gehört zu mehreren Hauptsendungen.',409);
    syncTargets=recovered;
   }
   // Both active and saved shipment copies must receive the same pickup status and POD.
