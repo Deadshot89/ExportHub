@@ -95,12 +95,12 @@ test('normalizePdfFile treats application/x-pdf as a PDF instead of bypassing no
 
 test('large FlateDecode streams do not stall the PDF upload normalizer',async()=>{
   const api=load();
-  const expanded=Buffer.concat([Buffer.from('BT (Packing Slip SIDE-250071282) Tj ET\\n','latin1'),randomBytes(256*1024)]);
+  const expanded=Buffer.concat([Buffer.from('BT (Packing Slip SIDE-250071282) Tj ET\n','latin1'),randomBytes(256*1024)]);
   const compressed=zlib.deflateSync(expanded);
   const bytes=Buffer.concat([
-    Buffer.from(`%PDF-1.4\\n1 0 obj\\n<< /Length ${compressed.length} /Filter /FlateDecode >>\\nstream\\n`,'latin1'),
+    Buffer.from(`%PDF-1.4\n1 0 obj\n<< /Length ${compressed.length} /Filter /FlateDecode >>\nstream\n`,'latin1'),
     compressed,
-    Buffer.from('\\nendstream\\nendobj\\n%%EOF','latin1')
+    Buffer.from('\nendstream\nendobj\n%%EOF','latin1')
   ]);
   let timer;
   try{
