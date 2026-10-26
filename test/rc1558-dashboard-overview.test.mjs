@@ -90,6 +90,7 @@ test('RC1666 Dashboard zeigt AV fehlt mit historischen, offenen Aufgaben und Dri
   const done={id:'task:av-missing:OLD001',sourceType:'av_missing',status:'erledigt',done:true};
   const other={id:'task:normal',sourceType:'manual',title:'Normal',dueAt:at(12)};
   const openTasks=[historical,other];
+  w.__EXPORTHUB_GET_STATE__=()=>({tasks:[historical,done,other]});
   const model=api.buildModel(fakeApi(shipments,openTasks),shipments,NOW);
   const kpi=model.kpis.find(k=>k.id==='avMissing');
   assert.equal(kpi.value,1);
