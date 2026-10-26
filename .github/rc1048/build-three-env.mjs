@@ -429,7 +429,7 @@ function patchHistoryNavigation(html,file){
 
 
 function patchLoadingListPalletAccount(html,file){
-  if(html.includes('function rc1095LoadPalletHtml('))return html;
+  if(html.includes('function rc1095LoadPalletCount('))return html;
   const start=html.indexOf('function loadHtml(sh,withQr){');
   const end=start<0?-1:html.indexOf('function documentCacheKey',start);
   if(start<0||end<0)throw new Error(file+': Ladelisten-Renderer für RC1095 fehlt');
@@ -437,10 +437,9 @@ function patchLoadingListPalletAccount(html,file){
   const head='<div class="rc390-head">';
   const headCount=block.split(head).length-1;
   if(headCount!==1)throw new Error(file+': RC1095 Ladelisten-Kopf '+headCount+'x gefunden');
-  block=block.replace(head,"'+rc1095LoadPalletHtml(sh,rs)+'"+head);
+  // The pallet balance lives only in the compact field at the bottom right of the loading list.
   const helper=[
-    "function rc1095LoadPalletCount(sh,rs){var direct=Math.max(0,Math.round(Number(sh&&(sh.palletOut||sh.euroPallets||sh.euroPalletCount))||0));if(direct>0)return direct;return(Array.isArray(rs)?rs:[]).reduce(function(total,row){var kind=String(row&&(row.type||row.packaging||row.verpackung||row.packageType||row.packagingType)||'');if(!/euro.*pal|eur.*pal/i.test(kind))return total;var raw=row&&(row.count!=null?row.count:(row.quantity!=null?row.quantity:(row.qty!=null?row.qty:(row.amount!=null?row.amount:row.number))));return total+Math.max(0,Math.round(Number(raw)||0))},0)}",
-    "function rc1095LoadPalletHtml(sh,rs){var count=rc1095LoadPalletCount(sh,rs);if(!(count>0))return'';var api=window.ExportHUBDocumentPrintNames,account=null,text='Kontostand nicht erfasst / Balance not recorded';try{if(api&&typeof api.palletBalanceForShipment==='function'&&typeof api.palletBalanceText==='function'){account=api.palletBalanceForShipment(sh);text=api.palletBalanceText(account)}}catch(_){}return '<div class=rc1095-pallet-account data-rc1543-pallet-balance=1 style=display:grid;grid-template-columns:minmax(0,1fr);gap:3px;margin-bottom:10px;padding:8px 10px;border:1px solid #cbd5e1;border-radius:8px;background:#f8fafc><b>Palettenkonto</b><span>Europaletten-Kontostand / EUR pallet balance</span><strong>'+text+'</strong></div>'}"
+    "function rc1095LoadPalletCount(sh,rs){var direct=Math.max(0,Math.round(Number(sh&&(sh.palletOut||sh.euroPallets||sh.euroPalletCount))||0));if(direct>0)return direct;return(Array.isArray(rs)?rs:[]).reduce(function(total,row){var kind=String(row&&(row.type||row.packaging||row.verpackung||row.packageType||row.packagingType)||'');if(!/euro.*pal|eur.*pal/i.test(kind))return total;var raw=row&&(row.count!=null?row.count:(row.quantity!=null?row.quantity:(row.qty!=null?row.qty:(row.amount!=null?row.amount:row.number))));return total+Math.max(0,Math.round(Number(raw)||0))},0)}"
   ].join('\n');
   let out=html.slice(0,start)+helper+'\n'+block+html.slice(end);
   const cacheStart=out.indexOf('function documentCacheKey',start+helper.length);
@@ -451,7 +450,7 @@ function patchLoadingListPalletAccount(html,file){
   if(!cache.includes(cacheAnchor))throw new Error(file+': RC1095 Dokumentcache-Anker fehlt');
   cache=cache.replace(cacheAnchor,"String(totals(sh).ldm),String(rc1095LoadPalletCount(sh,rows(sh))),String(window.ExportHUBDocumentPrintNames&&typeof window.ExportHUBDocumentPrintNames.palletBalanceCacheKey==='function'?window.ExportHUBDocumentPrintNames.palletBalanceCacheKey(sh):'pallet-balance-not-recorded')]");
   out=out.slice(0,cacheStart)+cache+out.slice(cacheEnd);
-  if(!out.includes('rc1095-pallet-account')||!out.includes('String(rc1095LoadPalletCount(sh,rows(sh)))')||!out.includes('palletBalanceCacheKey(sh)')||!out.includes('data-rc1543-pallet-balance'))throw new Error(file+': RC1543 Palettenkonto-Kontostand-Druckpatch unvollständig');
+  if(!out.includes('String(rc1095LoadPalletCount(sh,rows(sh)))')||!out.includes('palletBalanceCacheKey(sh)')||out.includes('function rc1095LoadPalletHtml(')||out.includes('rc1095-pallet-account')||out.includes('Europaletten-Kontostand / EUR pallet balance'))throw new Error(file+': RC1603 Ladeliste erzeugt den alten Palettenkonto-Kopf oder verliert den Dokumentcache');
   return out;
 }
 
