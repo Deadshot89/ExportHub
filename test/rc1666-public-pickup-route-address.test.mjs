@@ -352,3 +352,83 @@ test('RC1666: full pickup status and signed POD synchronize to both active and s
   else process.env.EXPORTHUB_STORAGE_CONNECTION_STRING=previous;
  }
 });
+
+
+test('RC1666: exact multi-truck photo sync never writes to a missing or unrelated sub-shipment',async()=>{
+ const initial={revision:1,state:{
+  shipments:[{id:'SHIP-1',ref:'TRUCK55',containerPhotos:[],subShipments:[{subShipmentId:'SUB-A',containerPhotos:[]}]}],
+  savedShipments:[{id:'SHIP-1',ref:'TRUCK55',containerPhotos:[],subShipments:[{subShipmentId:'SUB-A',containerPhotos:[]}]}]
+ }};
+ let bytes=Buffer.from(JSON.stringify(initial)),writes=0;
+ const blob={
+  async download(){return{etag:'"v1"',readableStreamBody:Readable.from([bytes])}},
+  async upload(data){bytes=Buffer.from(data);writes++;return{etag:'"v2"'}}
+ };
+ const orig=Module._load,previous=process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;
+ process.env.EXPORTHUB_STORAGE_CONNECTION_STRING='mock-only-for-test';
+ Module._load=function(request,parent,isMain){
+  if(request==='@azure/storage-blob')return{BlobServiceClient:{fromConnectionString(){return{
+   getContainerClient(){return{async createIfNotExists(){},getBlockBlobClient(){return blob}}}
+  }}}};
+  return orig.call(this,request,parent,isMain)
+ };
+ const id=require.resolve('../api/shared/pickup-store.js');
+ delete require.cache[id];
+ let store;try{store=require(id)}finally{Module._load=orig}
+ try{
+  const photo={kind:'loaded',blobName:'photos/truck-A'};
+  const record={environment:'testservice',shipmentId:'SHIP-1',reference:'TRUCK55',subShipmentId:'OTHER-TRUCK',containerPhotos:[photo]};
+  await assert.rejects(()=>store.updateTeamContainerDocumentation(record),e=>e&&e.code==='SUBSHIPMENT_NOT_FOUND'&&e.status===409);
+  assert.equal(writes,0,'wrong truck must not alter parent or sibling documents');
+  record.subShipmentId='SUB-A';
+  const result=await store.updateTeamContainerDocumentation(record);
+  assert.equal(writes,1);
+  for(const sh of [result.state.shipments[0],result.state.savedShipments[0]]){
+   assert.equal(sh.containerPhotos[0].blobName,photo.blobName);
+   assert.equal(sh.subShipments[0].containerPhotos[0].blobName,photo.blobName);
+  }
+ }finally{
+  if(previous===undefined)delete process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;
+  else process.env.EXPORTHUB_STORAGE_CONNECTION_STRING=previous;
+ }
+});
+
+test('RC1666: container-upload API rejects parent-only proof when sub-shipment is missing',async()=>{
+ const photo={kind:'loaded',blobName:'photos/sub-A'};
+ const team={state:{shipments:[{
+  id:'SHIP-1',ref:'TRUCK55',containerPhotos:[photo],
+  subShipments:[{subShipmentId:'OTHER-TRUCK',containerPhotos:[]}]
+ }]}};
+ const real=Module._load,abs=require.resolve('../api/pickup-container-document/index.js');
+ const mocked={
+  '../shared/public-access-store':{resolve:async()=>({resourceKey:'test-access',environment:'testservice'})},
+  '../shared/pickup-store':{
+   body:()=>({token:'test-token',kind:'loaded',dataUrl:'placeholder'}),
+   getRecord:async()=>({record:{shipmentId:'SHIP-1',reference:'TRUCK55',subShipmentId:'SUB-A'}}),
+   expired:()=>false,now:()=>new Date().toISOString(),
+   err:(code,message,status)=>Object.assign(new Error(message),{code,status}),
+   mutateRecord:async(_key,_env,fn)=>fn({shipmentId:'SHIP-1',reference:'TRUCK55',subShipmentId:'SUB-A',environment:'testservice'}),
+   updateTeamContainerDocumentation:async()=>team,
+   json:(status,body)=>({status,body})
+  },
+  '../shared/container-document-store':{kindOf:v=>v,savePhoto:async()=>photo,publicPhoto:p=>p},
+  '../shared/i18n':{t:(_req,v)=>v}
+ };
+ Module._load=function(request,parent,isMain){
+  if(Object.prototype.hasOwnProperty.call(mocked,request))return mocked[request];
+  return real.call(this,request,parent,isMain)
+ };
+ delete require.cache[abs];
+ let handler;try{handler=require(abs)}finally{Module._load=real}
+ const req={method:'POST'};
+ const missing={res:null};await handler(missing,req);
+ assert.equal(missing.res.status,503,'a parent photo must not confirm the wrong truck');
+ assert.equal(missing.res.body.code,'CONTAINER_TEAM_SYNC_FAILED');
+ team.state.shipments[0].subShipments[0].subShipmentId='SUB-A';
+ const unlinked={res:null};await handler(unlinked,req);
+ assert.equal(unlinked.res.status,503,'the correct truck must contain the exact uploaded photo');
+ team.state.shipments[0].subShipments[0].containerPhotos=[photo];
+ const verified={res:null};await handler(verified,req);
+ assert.equal(verified.res.status,200);
+ assert.equal(verified.res.body.linkedToShipment,true);
+});
