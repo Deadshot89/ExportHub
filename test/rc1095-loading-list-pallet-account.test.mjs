@@ -10,17 +10,14 @@ before(()=>{
   execFileSync(process.execPath,['.github/rc1048/build-three-env.mjs'],{stdio:'pipe'});
 });
 
-test('RC1543: Ladeliste zeigt den aktuellen Europaletten-Kontostand statt Palettenkonto-Ausgang',()=>{
+test('RC1603: Ladeliste zeigt keinen Palettenkonto-Block mehr oberhalb des Kopfes',()=>{
   for(const file of ['index.html','TESTVERSION.html','demo.html']){
     const html=read('dist-rc1048/'+file);
-    assert.match(html,/function rc1095LoadPalletCount\(sh,rs\)/,file+': Palettenzähler fehlt');
-    assert.match(html,/function rc1095LoadPalletHtml\(sh,rs\)/,file+': Palettenkonto-Renderer fehlt');
-    assert.match(html,/rc1095-pallet-account/,file+': sichtbarer Palettenkonto-Hinweis fehlt');
-    assert.match(html,/>Palettenkonto</,file+': Palettenkonto-Bezeichnung fehlt');
-    assert.match(html,/Europaletten-Kontostand \/ EUR pallet balance/,file+': bilingualer Kontostand fehlt');
-    assert.match(html,/data-rc1543-pallet-balance/,file+': RC1543 Kontostandmarker fehlt');
-    assert.match(html,/palletBalanceForShipment/,file+': Palettenkonto-Datenquelle fehlt');
-    assert.doesNotMatch(html,/Ausgang: '\+count\+' Europalette/,file+': alter Sendungs-Ausgang wird noch als Kontostand ausgegeben');
+    assert.match(html,/function rc1095LoadPalletCount\(sh,rs\)/,file+': Palettenzähler für den Dokumentcache fehlt');
+    assert.match(html,/document-print-name\.js/,file+': Palettenkonto-Datenquelle fehlt');
+    assert.doesNotMatch(html,/function rc1095LoadPalletHtml\(/,file+': alter Kopf-Renderer darf nicht existieren');
+    assert.doesNotMatch(html,/rc1095-pallet-account/,file+': alte Palettenkonto-Box wird noch erzeugt');
+    assert.doesNotMatch(html,/Europaletten-Kontostand \/ EUR pallet balance/,file+': alte lange Kopfzeile vorhanden');
     assert.match(html,/euro\.\*pal\|eur\.\*pal/i,file+': nur Europaletten dürfen gezählt werden');
   }
 });
@@ -35,16 +32,15 @@ test('RC1543: aktueller Palettenkontostand invalidiert den Ladelisten-Dokumentca
   assert.match(block,/palletBalanceCacheKey\(sh\)/,'Kontostand muss den Dokumentcache invalidieren');
 });
 
-test('RC1543: Release-Builder und Production-Liveprüfung prüfen den Kontostand statt Ausgang',()=>{
+test('RC1603: Release-Builder und Production-Liveprüfung verbieten den alten Kopf-Hinweis',()=>{
   const build=read('.github/rc1048/build-three-env.mjs');
   const live=readLiveContract();
   assert.match(build,/patchLoadingListPalletAccount/);
-  assert.match(build,/loadingListPalletAccount:\{version:'RC1095'/);
-  assert.match(live,/RC1543 Palettenkonto-Kontostand/);
-  assert.match(live,/function rc1095LoadPalletHtml/);
+  assert.doesNotMatch(build,/block=block\.replace\(head,.*rc1095LoadPalletHtml/);
+  assert.match(live,/RC1603/);
+  assert.match(live,/rc1095LoadPalletCount/);
   assert.match(live,/rc1095-pallet-account/);
-  assert.match(live,/Palettenkonto/);
-  assert.match(live,/Europaletten-Kontostand \/ EUR pallet balance/);
-  assert.match(live,/data-rc1543-pallet-balance/);
+  assert.match(build,/loadingListPalletAccount:\{version:'RC1095'/);
+  assert.match(live,/RC1603 Ladeliste ohne alten Palettenkonto-Kopf/);
   assert.match(live,/palletBalanceCacheKey/);
 });

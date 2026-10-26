@@ -132,9 +132,12 @@ for(const base of [PROD,TEST]){
   markers('RC1092 AVIS-Kundensteuerung',avis,['function rc1330AvisPolicyBlock','customer-policy','customerAvisLinkEnabled']);
 }
 
-// RC1543 Palettenkonto-Kontostand bleibt Teil der Ladeliste.
+// RC1603: Den alten Palettenkonto-Hinweis oberhalb des Ladelistenkopfs nicht mehr ausliefern.
+// Die Werte bleiben im kompakten Palettenfeld unten rechts.
 for(const [label,body] of [['production',production],['testservice',testservice]]){
-  markers(`RC1543 Palettenkonto-Kontostand ${label}`,body,['function rc1095LoadPalletHtml','rc1095-pallet-account','Palettenkonto','Europaletten-Kontostand / EUR pallet balance','data-rc1543-pallet-balance','palletBalanceCacheKey','rc1095LoadPalletCount(sh,rows(sh))']);
+  markers(`RC1603 Ladeliste ohne alten Palettenkonto-Kopf ${label}`,body,
+    ['function rc1095LoadPalletCount','palletBalanceCacheKey','rc1095LoadPalletCount(sh,rows(sh))','assets/document-print-name.js?v=1594'],
+    ['function rc1095LoadPalletHtml','rc1095-pallet-account','Europaletten-Kontostand / EUR pallet balance']);
 }
 
 // RC1106/RC1177 Historie + Release Notes.
