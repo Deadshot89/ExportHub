@@ -182,7 +182,14 @@ function applyResult(state,reference,result,now){
 // Ausschließlich der signierte Check erhält echte Graph-Dateilisten; bei Fehler keine Aufgabe.
 async function checkReference(reference,listFiles){
   const files=await listFiles(reference);
-  const avFiles=(Array.isArray(files)?files:[]).filter(f=>isAvFileName(f&&f.name));
+  // An unexpected Graph response is not evidence that the folder is empty.
+  // Failing closed avoids creating false "AV fehlt" tasks on malformed reads.
+  if(!Array.isArray(files)){
+    const e=new Error('Der REF-Ordner lieferte keine gültige Dateiliste.');
+    e.code='GRAPH_REFERENCE_FOLDER_LIST_INVALID';
+    throw e;
+  }
+  const avFiles=files.filter(f=>isAvFileName(f&&f.name));
   return{avFile:avFiles[0]?{name:text(avFiles[0].name)}:null,
     avFiles:avFiles.map(f=>({name:text(f.name)}))};
 }
