@@ -370,14 +370,14 @@ async function updateTeamContainerDocumentation(record){
   const iso=String(record.containerDocumentationUpdatedAt||record.updatedAt||now()),photos=containerPhotosOf(record);
   for(const sh of matches){
   sh.transportMode=transportModeOf(record)||transportModeOf(sh);
+  // A stale pickup snapshot must never deactivate a previously required container gate.
   if(containerDocumentationRequired(record))sh.containerDocumentationRequired=true;
-  else if(record.containerDocumentationRequired===false)sh.containerDocumentationRequired=false;
   if(sanitizeText(record.sealNumber||'',120))sh.sealNumber=sanitizeText(record.sealNumber,120);
   if(photos.length)sh.containerPhotos=mergeContainerPhotos(sh.containerPhotos,photos);
   sh.containerDocumentationUpdatedAt=iso;
   if(record.subShipmentId&&Array.isArray(sh.subShipments)){
    const idx=sh.subShipments.findIndex(x=>String(x&&x.subShipmentId||'')===String(record.subShipmentId));
-   if(idx>=0){const sub=Object.assign({},sh.subShipments[idx]);sub.transportMode=sh.transportMode;sub.containerDocumentationRequired=containerDocumentationRequired(record);if(sanitizeText(record.sealNumber||'',120))sub.sealNumber=sanitizeText(record.sealNumber,120);if(photos.length)sub.containerPhotos=mergeContainerPhotos(sub.containerPhotos,photos);sub.containerDocumentationUpdatedAt=iso;sh.subShipments=sh.subShipments.map((x,j)=>j===idx?sub:x)}
+   if(idx>=0){const sub=Object.assign({},sh.subShipments[idx]);sub.transportMode=sh.transportMode;sub.containerDocumentationRequired=containerDocumentationRequired(record)||containerDocumentationRequired(sub)||containerDocumentationRequired(sh);if(sanitizeText(record.sealNumber||'',120))sub.sealNumber=sanitizeText(record.sealNumber,120);if(photos.length)sub.containerPhotos=mergeContainerPhotos(sub.containerPhotos,photos);sub.containerDocumentationUpdatedAt=iso;sh.subShipments=sh.subShipments.map((x,j)=>j===idx?sub:x)}
   }
   sh._syncUpdatedAt=iso;sh._syncDeviceId='qr-container';
   }
