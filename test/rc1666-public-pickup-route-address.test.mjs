@@ -446,4 +446,9 @@ test('RC1666: container-upload API rejects parent-only proof when sub-shipment i
  const ambiguous={res:null};await handler(ambiguous,req);
  assert.equal(ambiguous.res.status,503,'duplicate truck IDs across different parents must never be accepted');
  assert.equal(ambiguous.res.body.code,'CONTAINER_TEAM_SYNC_FAILED');
+ // Technical parent ID reuse with different reference also remains ambiguous.
+ team.state.shipments[1].id='SHIP-1';
+ const recycled={res:null};await handler(recycled,req);
+ assert.equal(recycled.res.status,503,'same technical ID with conflicting reference cannot prove truck ownership');
+ assert.equal(recycled.res.body.code,'CONTAINER_TEAM_SYNC_FAILED');
 });
