@@ -65,6 +65,10 @@ test('RC1485: Öffnen über Aufgabe persistiert Packmeldung nur einmal',async()=
 
 function shipmentHarness(){
   const state=makeState(),calls=[],listeners={};
+  // The handoff now rejects metadata-only paths; the rollback test must use
+  // the same verified-style Blob reference produced by a real pack upload.
+  state.packNotifications[0].documents[0].storage='blob';
+  state.packNotifications[0].documents[0].blobName='rc1059/production/aa/'+('a'.repeat(64));
   state.packNotifications[0].status='in_review';
   let flushResult=false;
   const root={
