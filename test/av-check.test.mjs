@@ -10,7 +10,7 @@ const api=require('../api/av-check/index.js');
 const NOW=new Date('2026-10-19T08:00:00.000Z');
 
 function shipment(over={}){
-  return Object.assign({id:'S1',ref:'ABC123',customer:{name:'BSH Hausgeräte',owner:'Tobias'},abdRequired:true,status:'Abgeholt',pickupStatus:'abgeholt',actualPickupDate:'2026-10-13',pickedUpAt:'2026-10-13T09:00:00.000Z'},over);
+  return Object.assign({id:'S1',ref:'ABC123',customer:{name:'BSH Hausgeräte',owner:'Tobias'},abdRequired:true,abdFiles:[{id:'abd1',name:'ABD_ABC123.pdf'}],status:'Abgeholt',pickupStatus:'abgeholt',actualPickupDate:'2026-10-13',pickedUpAt:'2026-10-13T09:00:00.000Z'},over);
 }
 function state(...shipments){return{shipments,tasks:[]}}
 function avTasks(s){return s.tasks.filter(av.isAvTask)}
@@ -35,18 +35,24 @@ test('Fälligkeit: 5 Kalendertage nach Abholung',()=>{
   assert.equal(av.dueDay('2026-10-30'),'2026-11-04');
 });
 
-test('Kandidaten: nur vollständig abgeholte ABD-Sendungen ab Tag 5',()=>{
+test('RC1666: Kandidaten enthalten alle historischen und offenen Sendungen mit realem ABD',()=>{
   const s=state(
     shipment(),
-    shipment({id:'S2',ref:'NOTDUE',actualPickupDate:'2026-10-15',pickedUpAt:'2026-10-15T09:00:00Z'}),
-    shipment({id:'S3',ref:'NOABD1',abdRequired:false}),
-    shipment({id:'S4',ref:'PARTIA',status:'Teilweise abgeholt',pickupStatus:'teilweise abgeholt',pickupPartial:true,actualPickupDate:'',pickedUpAt:''}),
-    shipment({id:'S5',ref:'OPEN01',status:'Bereit',pickupStatus:'',actualPickupDate:'',pickedUpAt:''}),
+    shipment({id:'S2',ref:'NOTDUE',actualPickupDate:'2026-10-15'}),
+    shipment({id:'S3',ref:'NOABD1',abdRequired:true,abdFiles:[]}),
+    shipment({id:'S4',ref:'PARTIA',status:'Teilweise abgeholt',pickupPartial:true,actualPickupDate:''}),
+    shipment({id:'S5',ref:'OPEN01',status:'Bereit',actualPickupDate:''}),
     shipment({id:'S6',ref:'HASAV1',avPresent:true}),
-    shipment({id:'S7',ref:'OLD001',actualPickupDate:'2025-01-02',pickedUpAt:'2025-01-02T09:00:00Z'}),
-    shipment({id:'S8',ref:'ABDFIL',abdRequired:undefined,abdFiles:[{id:'f1',name:'ABD.pdf'}]})
+    shipment({id:'S7',ref:'OLD001',actualPickupDate:'2025-01-02'}),
+    shipment({id:'S8',ref:'ABDFIL',abdRequired:undefined,abdFiles:[{name:'ABD.pdf'}]})
   );
-  assert.deepEqual(av.candidates(s,NOW).map(c=>c.reference).sort(),['ABC123','ABDFIL']);
+  s.savedShipments=[shipment({id:'S9',ref:'SAVED1',actualPickupDate:''})];
+  s.archivedShipments=[shipment({id:'S10',ref:'ARCH01',actualPickupDate:'2022-01-01'})];
+  s.sharedShipments=[shipment({id:'S11',ref:'SAVED1',actualPickupDate:''})]; // kein doppelter REF
+  assert.deepEqual(av.candidates(s,NOW).map(c=>c.reference).sort(),
+    ['ABC123','NOTDUE','PARTIA','OPEN01','HASAV1','OLD001','ABDFIL','SAVED1','ARCH01'].sort());
+  assert.equal(av.candidates(s,NOW).some(c=>c.reference==='NOABD1'),false,'ABD-Pflicht allein ist kein erstelltes ABD');
+  assert.equal(av.AV_LOOKBACK_DAYS,0,'historische Sendungen dürfen nicht abgeschnitten werden');
 });
 
 test('fehlendes AV erzeugt genau eine Aufgabe pro REF',async()=>{
@@ -79,7 +85,7 @@ test('vorhandenes AV schließt die Aufgabe automatisch und beendet die Prüfung'
   assert.equal(t.autoCompletedByAvCheck,true);
   assert.equal(s.shipments[0].avPresent,true);
   assert.equal(s.shipments[0].avDocumentName,'av_ABC123.pdf');
-  assert.deepEqual(av.candidates(s,NOW),[]);
+  assert.deepEqual(av.candidates(s,NOW).map(c=>c.reference),['ABC123'],'vorhandene AVs werden bei Folgeläufen erneut geprüft');
 });
 
 test('AV schon vor Fälligkeit vorhanden: keine Aufgabe',async()=>{
@@ -160,4 +166,45 @@ test('AV-Upload ist in den Build und die Sendungsansicht eingebunden',()=>{
 test('Workflow überspringt Umgebungen, in denen /api/av-check noch fehlt',()=>{
   const wf=fs.readFileSync('.github/workflows/av-check.yml','utf8');
   assert.match(wf,/if \[ "\$http_code" = "404" \]; then[\s\S]{0,300}exit 0/);
+});
+
+test('RC1666: mehrere ABD erfordern entsprechend mehrere AVs, aber eine Aufgabe je REF',async()=>{
+  const sh=shipment({abdFiles:[{name:'ABD-1.pdf'},{name:'ABD-2.pdf'}]});
+  const s=state(sh),files={ABC123:[{name:'AV_1.pdf'}]},h=handler(s,files);
+  const first=await h.run();
+  assert.equal(first.status,200);
+  assert.equal(first.body.createdTasks,1);
+  assert.equal(s.tasks[0].avRequiredCount,2);
+  assert.equal(s.tasks[0].avFoundCount,1);
+  assert.equal(s.tasks[0].avMissingCount,1);
+  await h.run();
+  assert.equal(avTasks(s).length,1,'erneuter Check darf keine doppelte Aufgabe erzeugen');
+  files.ABC123.push({name:'AV_2.pdf'});
+  const resolved=await h.run();
+  assert.equal(resolved.body.closedTasks,1);
+  assert.equal(s.tasks[0].status,'erledigt');
+  files.ABC123.pop();
+  const reopened=await h.run();
+  assert.equal(reopened.body.createdTasks,1);
+  assert.equal(avTasks(s).length,1);
+  assert.equal(s.tasks[0].status,'offen');
+});
+
+test('RC1666: Rückwirkende Sendung aus savedShipments erhält Aufgabe samt stabiler REF',async()=>{
+  const s={shipments:[],savedShipments:[shipment({id:'S-ARCH',ref:'HIST01',actualPickupDate:''})],tasks:[]};
+  const h=handler(s,{HIST01:[]});
+  const r=await h.run();
+  assert.equal(r.status,200);
+  assert.equal(r.body.createdTasks,1);
+  assert.equal(s.tasks[0].linkedShipmentRef,'HIST01');
+  assert.equal(s.tasks[0].linkedShipmentId,'S-ARCH');
+  assert.equal(s.savedShipments[0].avPresent,false);
+});
+
+test('RC1666: auch erstelltes ABD in verknüpfter Anfrage löst eine AV-Aufgabe aus',async()=>{
+  const sh=shipment({abdFiles:[],abdRequired:false,actualPickupDate:''});
+  const s=state(sh);s.abdRequests=[{id:'ABD-REQ-1',linkedShipmentId:'S1',reference:'ABC123',abdFiles:[{name:'ABD-REQ-1.pdf'}]}];
+  assert.equal(av.shipmentHasAbd(s,sh),true);
+  const r=await handler(s,{ABC123:[]}).run();
+  assert.equal(r.body.createdTasks,1);
 });
