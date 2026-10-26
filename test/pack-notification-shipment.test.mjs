@@ -287,3 +287,41 @@ test('P0: REF from save-event metadata resolves an ID-only snapshot without link
   assert.equal(correct.deliveryFiles.length,1);
   assert.equal(s.packNotifications[0].shipmentRef,'RIGHT1');
 });
+
+test('P0: foreign pack owner on a saved REF cannot steal pending notification or PDF',async()=>{
+  const s=state(),events=new Map();
+  const root={
+    __EXPORTHUB_GET_STATE__:()=>s,
+    addEventListener(name,listener){events.set(name,listener);},
+    setView(){},
+    ExportHUBClean:{queueSave(){return true;},flushSave(){throw Error('must not save foreign REF');}}
+  };
+  const api=loadWithRoot(root);
+  assert.equal(api.begin('pn-1'),true);
+  const foreign={id:'REUSED-1',ref:'WRONG1',packNotificationId:'other-pack',packNotificationRef:'PK-OTHER',deliveryFiles:[]};
+  s.shipments=[foreign];
+  assert.equal(await events.get('exporthub:shipment-saved')({detail:{ref:'WRONG1',shipment:{...foreign}}}),false);
+  assert.equal(foreign.deliveryFiles.length,0);
+  assert.equal(foreign.packNotificationId,'other-pack');
+  assert.equal(s.packNotifications[0].shipmentId,undefined);
+  assert.equal(s.packNotifications[0].status,'in_review');
+});
+
+test('P0: conflicting pack ownership in a persisted REF alias fails closed for all aliases',async()=>{
+  const s=state(),events=new Map();
+  const root={
+    __EXPORTHUB_GET_STATE__:()=>s,
+    addEventListener(name,listener){events.set(name,listener);},
+    setView(){},
+    ExportHUBClean:{queueSave(){return true;},flushSave(){throw Error('must not save conflicting aliases');}}
+  };
+  const api=loadWithRoot(root);
+  assert.equal(api.begin('pn-1'),true);
+  const own={id:'SHIP-1',ref:'RIGHT1',packNotificationId:'pn-1',deliveryFiles:[]};
+  const foreign={id:'SHIP-1',ref:'RIGHT1',packNotificationId:'other-pack',deliveryFiles:[]};
+  s.shipments=[own];s.savedShipments=[foreign];
+  assert.equal(await events.get('exporthub:shipment-saved')({detail:{ref:'RIGHT1',shipment:{id:'SHIP-1'}}}),false);
+  assert.deepEqual(own.deliveryFiles,[]);
+  assert.deepEqual(foreign.deliveryFiles,[]);
+  assert.equal(s.packNotifications[0].shipmentId,undefined);
+});
