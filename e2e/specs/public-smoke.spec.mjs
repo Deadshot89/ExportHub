@@ -236,12 +236,18 @@ test('Packmeldung: Lieferschein erscheint trotz haengender optionaler PDF-Erkenn
     const type=pathname.endsWith('.html')?'text/html':pathname.endsWith('.css')?'text/css':pathname.endsWith('.js')?'application/javascript':'application/octet-stream';
     return route.fulfill({status:200,contentType:type,body:fs.readFileSync(local)});
   });
+  let savedDraft=null;
   await page.route('**/api/pack-notification?action=*',route=>{
     const action=new URL(route.request().url()).searchParams.get('action');
+    if(action==='draft-save'){
+      const body=route.request().postDataJSON();
+      savedDraft={...body.draft,id:'8f134806-e758-4e11-babc-555555555555'};
+      return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true,draft:savedDraft})});
+    }
     const payload=action==='session'
       ?{ok:true,sessionId:'550e8400-e29b-41d4-a716-446655440000',stationName:'E2E Packstation'}
       :action==='packaging-list'?{ok:true,packaging:[]}
-      :action==='draft-list'?{ok:true,drafts:[]}
+      :action==='draft-list'?{ok:true,drafts:savedDraft?[savedDraft]:[]}
       :{ok:false,code:'PACK_E2E_UNEXPECTED_ACTION'};
     return route.fulfill({status:payload.ok?200:400,contentType:'application/json',body:JSON.stringify(payload)});
   });
@@ -258,6 +264,19 @@ test('Packmeldung: Lieferschein erscheint trotz haengender optionaler PDF-Erkenn
   await expect(page.locator('#packDocumentList')).toContainText(filename,{timeout:8000});
   await expect(page.locator('#packError')).toBeHidden();
   await expect(page.locator('#packDocuments')).toHaveValue('');
+  await page.locator('#packCustomer').fill('E2E Saved Customer');
+  await page.locator('#packSaveDraft').click();
+  await expect(page.locator('#packHome')).toBeVisible({timeout:10_000});
+  await expect(page.locator('#packForm')).toBeHidden();
+  await expect(page.locator('#packDraftSavedFeedback')).toContainText(/gespeichert|saved/i);
+  await expect(page.locator('[data-draft-id]')).toContainText('E2E Saved Customer');
+  // The new shipment is empty and must not overwrite the previously saved draft.
+  await page.locator('#packNewShipment').click();
+  await expect(page.locator('#packForm')).toBeVisible();
+  await expect(page.locator('#packCustomer')).toHaveValue('');
+  await expect(page.locator('#packDocumentList')).toBeEmpty();
+  await page.locator('#packBackHome').click();
+  await expect(page.locator('[data-draft-id]')).toContainText('E2E Saved Customer');
 });
 
 test('RC1499: echter QR-Packmeldungsfluss blockiert Production bei TESTSERVICE-Regression',async({browser},testInfo)=>{
