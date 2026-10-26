@@ -316,20 +316,29 @@ function sanitizeForClient(document,adminView){
  const source=document&&typeof document==='object'&&!Array.isArray(document)?document:emptyTeam(),out=Object.assign({},source);delete out.authBootstrap;delete out.recentOperations;out.users=publicUsers(source.users,adminView);out.state=clientStateForRead(source.state);out.state.users=clone(out.users);return out;
 }
 async function metadataOnly(blob){
- const fromDocument=async()=>{const d=await readJson(blob,emptyTeam()),v=d.value||emptyTeam();return{schemaVersion:Number(v.schemaVersion||3),revision:Number(v.revision||0),updatedAt:v.updatedAt||null,clientVersion:v.clientVersion||null}};
- try{
-  const p=await blob.getProperties(),m=p.metadata||{};
-  if(m.revision!==undefined)return {schemaVersion:Number(m.schema||3),revision:Number(m.revision||0),updatedAt:m.updatedepoch?new Date(Number(m.updatedepoch)).toISOString():(p.lastModified||null),clientVersion:m.clientversion||null};
-  return await fromDocument();
- }catch(e){
-  if(e&&Number(e.statusCode||e.status)===404)return {schemaVersion:3,revision:0,updatedAt:null,clientVersion:null};
-  // RC1674: a transient Azure HEAD failure must not take down an otherwise
-  // readable TESTSERVICE/production metadata request. Auth is already checked
-  // before this function; the fallback is one read-only GET, never a write.
-  const status=Number(e&&e.statusCode||e&&e.status||0);
-  if([408,425,429,500,502,503,504].includes(status))return await fromDocument();
+ const fromDocument=async()=>{
+  const d=await readJson(blob,emptyTeam());
+  // A GET 404 is represented by an empty fallback document in readJson.
+  // During HEAD recovery that must never masquerade as a healthy revision 0:
+  // otherwise a subsequent additive save could use an incorrect base revision.
+  if(d&&d.bytes===0&&!d.etag)throw error('STATE_METADATA_READ_UNAVAILABLE','api.state.unknownStorage',503);
+  const v=d.value||emptyTeam();
+  return {schemaVersion:Number(v.schemaVersion||3),revision:Number(v.revision||0),updatedAt:v.updatedAt||null,clientVersion:v.clientVersion||null};
+ };
+ let p;
+ try{p=await blob.getProperties()}
+ catch(e){
+  const status=Number(e&&(e.statusCode||e.status)||0);
+  if(status===404)return {schemaVersion:3,revision:0,updatedAt:null,clientVersion:null};
+  // Only transient HEAD failures get one authenticated, read-only GET.
+  // Authorization happens before metadataOnly; GET errors still fail closed.
+  if([408,425,429,500,502,503,504].includes(status))return fromDocument();
   throw e;
  }
+ const m=p.metadata||{};
+ if(m.revision!==undefined)return {schemaVersion:Number(m.schema||3),revision:Number(m.revision||0),updatedAt:m.updatedepoch?new Date(Number(m.updatedepoch)).toISOString():(p.lastModified||null),clientVersion:m.clientversion||null};
+ // A successful HEAD without revision metadata is also allowed one GET only.
+ return fromDocument();
 }
 function normalizeIncoming(payload){const state=sanitizeState(payload.state||{});delete state.users;return {clientVersion:text(payload.clientVersion),baseRevision:Number(payload.baseRevision||0),deviceId:text(payload.deviceId),operationId:text(payload.operationId||payload.clientMutationId),reason:text(payload.reason||'save'),state}}
 function validateWriteUserAgainstTeam(team,user,session){const users=Array.isArray(team&&team.users)?team.users:[],fresh=users.find(u=>text(u.id)===text(user&&user.id)||usernameOf(u)===usernameOf(user));if(!fresh||!isActive(fresh))throw error('ACCOUNT_DISABLED','api.common.accountDisabled',403);if(session&&Number(session.authVersion||0)!==Number(fresh.authVersion||0))throw error('SESSION_REVOKED','api.common.sessionRevoked',401);if((session&&session.mustChange||fresh.mustChange)===true)throw error('PASSWORD_CHANGE_REQUIRED','api.common.passwordChangeRequired',403);if(!canAttemptStateSave(fresh))throw error('WRITE_FORBIDDEN','api.state.writeForbidden',403);return fresh}
