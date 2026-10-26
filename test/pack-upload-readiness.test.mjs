@@ -46,6 +46,6 @@ test('Packmeldung meldet zu große Dateien vor dem Lesen',async()=>{
   const upload=loadClient(()=>new Promise(()=>{}));
   await assert.rejects(
     upload({name:'too-big.pdf',type:'application/pdf',size:10*1024*1024+1}),
-    /maximal 10 MB/
+    /pack\.upload\.tooLarge/
   );
 });
