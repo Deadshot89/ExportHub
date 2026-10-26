@@ -1170,7 +1170,8 @@ function historyHtml(sh){
 `;
   replaceBlock('function historyHtml(sh){','\n\nvar referenceCache=',historyReplacement,'Statusverlauf');
 
-  const docHelpers=`function fallbackDocUsable(d){
+  const docHelpers=`var rcShipmentDocumentRequestSeq=0;
+function fallbackDocUsable(d){
  if(!d)return false;
  if(d.source==='referenceFolder'&&d.itemId)return true;
  if(d.url)return true;
@@ -1254,7 +1255,7 @@ function mergeReferenceDocs(live,fallback){
   replaceBlock(
     'async function loadReferenceDocs(sh,fallback){',
     '\n\nfunction shipmentSearchStamp',
-    `async function loadReferenceDocs(sh,fallback){var ref=refOf(sh),expected=idOf(sh)||ref;fallback=shipmentAssociatedDocs(sh,fallback);if(!ref)return setDocsPanel(fallback,'fallback',true);function currentForRequest(){var s=state(),current=find(s.shipmentViewId||s.selectedShipmentId||s.activeShipmentId);return low(s.view)==='shipmentview'&&current&&(idOf(current)||refOf(current))===expected?current:null}try{var data=await referenceList(ref,true),current=currentForRequest();if(!current)return false;var latest=shipmentAssociatedDocs(current,fallback);if(data&&data.available===false){setDocsPanel(latest,'fallback',true);return false}var live=arr(data&&data.files).map(function(x){return liveDoc(x,ref)}),merged=mergeReferenceDocs(live,latest),source=data&&data.folderMissing?'missingFolder':live.length?(merged.length>live.length?'combined':'referenceFolder'):(latest.length?'fallback':'referenceFolder');setDocsPanel(merged,source,false)}catch(e){if(!(e&&e.code==='GRAPH_NOT_CONFIGURED'))console.warn('RC1305 Ref-Ordner',e);var current=currentForRequest();if(current)setDocsPanel(shipmentAssociatedDocs(current,fallback),'fallback',true)}return false}
+    `async function loadReferenceDocs(sh,fallback){var ref=refOf(sh),expectedId=idOf(sh),expectedRef=ref,requestSeq=++rcShipmentDocumentRequestSeq;fallback=shipmentAssociatedDocs(sh,fallback);if(!ref)return setDocsPanel(fallback,'fallback',true);function currentForRequest(){var s=state(),current=find(s.shipmentViewId||s.selectedShipmentId||s.activeShipmentId);if(requestSeq!==rcShipmentDocumentRequestSeq||low(s.view)!=='shipmentview'||!current)return null;var currentRef=refOf(current),currentId=idOf(current);return(expectedRef&&currentRef===expectedRef)||(expectedId&&currentId===expectedId&&(!expectedRef||!currentRef||currentRef===expectedRef))?current:null}try{var data=await referenceList(ref,true),current=currentForRequest();if(!current)return false;var latest=shipmentAssociatedDocs(current,fallback);if(data&&data.available===false){setDocsPanel(latest,'fallback',true);return false}var live=arr(data&&data.files).map(function(x){return liveDoc(x,ref)}),merged=mergeReferenceDocs(live,latest),source=data&&data.folderMissing?'missingFolder':live.length?(merged.length>live.length?'combined':'referenceFolder'):(latest.length?'fallback':'referenceFolder');setDocsPanel(merged,source,false)}catch(e){if(!(e&&e.code==='GRAPH_NOT_CONFIGURED'))console.warn('RC1305 Ref-Ordner',e);var current=currentForRequest();if(current)setDocsPanel(shipmentAssociatedDocs(current,fallback),'fallback',true)}return false}
 `,
     'Ref-Ordner-Fallback'
   );
