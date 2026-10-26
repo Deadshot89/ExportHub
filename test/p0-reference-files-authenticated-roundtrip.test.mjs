@@ -23,7 +23,7 @@ test('P0: authenticated REF list and nested PDF download work end-to-end, withou
  const res=(status,body)=>({status,ok:status>=200&&status<300,json:async()=>body,headers:{get:()=>null}});
  try{
   Object.assign(process.env,{
-   EXPORTHUB_STORAGE_CONNECTION_STRING:'UseDevelopmentStorage=true',
+   EXPORTHUB_STORAGE_CONNECTION_STRING:'UseFakeStorage=true',
    EXPORTHUB_GRAPH_TENANT_ID:'test-tenant',
    EXPORTHUB_GRAPH_CLIENT_ID:'test-client',
    EXPORTHUB_GRAPH_CLIENT_SECRET:'test-secret',
