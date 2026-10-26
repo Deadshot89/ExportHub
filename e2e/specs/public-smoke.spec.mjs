@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import {test,expect} from '@playwright/test';
 import {
   assertNoSourceLeak,
@@ -216,6 +217,66 @@ test('RC1555 production smoke: verschachtelte POD-Abholkarten zeigen nur die neu
   expect(restoredPrint.stageHeight,'Nach Schließen der Abholkontrolle muss die Druckhöhe zurückkehren').toBeGreaterThan(0);
 
   await assertRuntimeClean(runtime,testInfo);
+});
+
+test('Packmeldung: Lieferschein erscheint trotz haengender optionaler PDF-Erkennung',async({page},testInfo)=>{
+  test.skip(testInfo.project.name!=='laptop','unabhaengiger Upload-Browsercheck auf Laptop');
+  test.skip(process.env.EXPORTHUB_E2E_LIVE==='1','lokaler Source-Test; echter TESTSERVICE-Upload ist bereits RC1499');
+  // The local three-environment build omits pack.html, whereas TESTSERVICE
+  // packages the full assets directory. Serve those exact source assets for
+  // this read-only test to avoid a false 404 from the test web server.
+  await page.route('**/assets/**',route=>{
+    const pathname=new URL(route.request().url()).pathname;
+    if(pathname==='/assets/document-reference-normalizer.js')return route.fulfill({
+      status:200,contentType:'application/javascript',
+      body:'window.ExportHubDocumentReferenceNormalizer={normalizePdfFile:()=>new Promise(()=>{})};'
+    });
+    const local='.'+pathname;
+    if(!pathname.startsWith('/assets/')||!fs.existsSync(local)||!fs.statSync(local).isFile())return route.continue();
+    const type=pathname.endsWith('.html')?'text/html':pathname.endsWith('.css')?'text/css':pathname.endsWith('.js')?'application/javascript':'application/octet-stream';
+    return route.fulfill({status:200,contentType:type,body:fs.readFileSync(local)});
+  });
+  let savedDraft=null;
+  await page.route('**/api/pack-notification?action=*',route=>{
+    const action=new URL(route.request().url()).searchParams.get('action');
+    if(action==='draft-save'){
+      const body=route.request().postDataJSON();
+      savedDraft={...body.draft,id:'8f134806-e758-4e11-babc-555555555555'};
+      return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true,draft:savedDraft})});
+    }
+    const payload=action==='session'
+      ?{ok:true,sessionId:'550e8400-e29b-41d4-a716-446655440000',stationName:'E2E Packstation'}
+      :action==='packaging-list'?{ok:true,packaging:[]}
+      :action==='draft-list'?{ok:true,drafts:savedDraft?[savedDraft]:[]}
+      :{ok:false,code:'PACK_E2E_UNEXPECTED_ACTION'};
+    return route.fulfill({status:payload.ok?200:400,contentType:'application/json',body:JSON.stringify(payload)});
+  });
+  await page.goto('/assets/pack.html?token=E2E-PACK-UPLOAD',{waitUntil:'domcontentloaded'});
+  await expect(page.locator('#packNewShipment')).toBeVisible();
+  await page.locator('#packNewShipment').click();
+  const filename='SIDE250071282.pdf';
+  const chooserPromise=page.waitForEvent('filechooser');
+  await page.locator('label[for="packDocuments"]').click();
+  const chooser=await chooserPromise;
+  await chooser.setFiles({
+    name:filename,mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4\\n1 0 obj<<>>endobj\\n%%EOF','utf8')
+  });
+  await expect(page.locator('#packDocumentList')).toContainText(filename,{timeout:8000});
+  await expect(page.locator('#packError')).toBeHidden();
+  await expect(page.locator('#packDocuments')).toHaveValue('');
+  await page.locator('#packCustomer').fill('E2E Saved Customer');
+  await page.locator('#packSaveDraft').click();
+  await expect(page.locator('#packHome')).toBeVisible({timeout:10_000});
+  await expect(page.locator('#packForm')).toBeHidden();
+  await expect(page.locator('#packDraftSavedFeedback')).toContainText(/gespeichert|saved/i);
+  await expect(page.locator('[data-draft-id]')).toContainText('E2E Saved Customer');
+  // The new shipment is empty and must not overwrite the previously saved draft.
+  await page.locator('#packNewShipment').click();
+  await expect(page.locator('#packForm')).toBeVisible();
+  await expect(page.locator('#packCustomer')).toHaveValue('');
+  await expect(page.locator('#packDocumentList')).toBeEmpty();
+  await page.locator('#packBackHome').click();
+  await expect(page.locator('[data-draft-id]')).toContainText('E2E Saved Customer');
 });
 
 test('RC1499: echter QR-Packmeldungsfluss blockiert Production bei TESTSERVICE-Regression',async({browser},testInfo)=>{
