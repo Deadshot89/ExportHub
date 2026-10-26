@@ -288,3 +288,22 @@ test('RC1666: Ergebnisprüfung verwendet dieselben REF-Kopien ohne erneute Volli
   assert.equal(result.status,'present');
   assert.equal(reads,1,'die AV-Statusänderung indexiert den Bestand nur einmal');
 });
+
+test('RC1666: historische archive-Collection und shipmentRef werden auf fehlendes AV geprüft',async()=>{
+  const old=shipment({id:'LEGACY-1',ref:undefined,reference:undefined,shipmentRef:'OLD777',actualPickupDate:'2022-01-01'});
+  const s={shipments:[],archive:[old],tasks:[]};
+  assert.deepEqual(av.candidates(s,NOW).map(x=>x.reference),['OLD777']);
+  const result=await handler(s,{OLD777:[]}).run();
+  assert.equal(result.body.createdTasks,1);
+  assert.equal(s.tasks[0].linkedShipmentRef,'OLD777');
+  assert.equal(s.archive[0].avPresent,false);
+});
+
+test('RC1666: gültige historische REF gewinnt gegen nichtkanonische Referenzangaben',async()=>{
+  const old=shipment({id:'LEGACY-2',ref:'INVALID-REF',referenceNumber:'HIS123',abdFiles:[{name:'ABD_HIS123.pdf'}]});
+  const s={archive:[old],tasks:[]};
+  assert.deepEqual(av.candidates(s,NOW).map(x=>x.reference),['HIS123']);
+  const result=await handler(s,{HIS123:[{name:'AV_HIS123.pdf'}]}).run();
+  assert.equal(result.body.present,1);
+  assert.equal(s.archive[0].avPresent,true);
+});
