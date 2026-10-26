@@ -32,7 +32,8 @@ const SHIPMENT_COLLECTIONS=['shipments','savedShipments','sharedShipments','sale
 function shipmentIndex(state){
   const index=new Map();
   for(const key of SHIPMENT_COLLECTIONS){
-    for(const sh of (Array.isArray(state&&state[key])?state[key]:[])){
+    const rows=state&&state[key];
+    for(const sh of (Array.isArray(rows)?rows:[])){
       const ref=refOf(sh);if(!validRef(ref))continue;
       if(!index.has(ref))index.set(ref,[]);
       index.get(ref).push(sh);
