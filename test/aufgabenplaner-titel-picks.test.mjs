@@ -56,7 +56,8 @@ function loadMaster(state){
   const m=html.match(/<script id="index243-idempotent-task-seed-migration">([\s\S]*?)<\/script>/);
   assert.ok(m,'RC848-Wochenstamm im Quelltext');
   const window={__EXPORTHUB_GET_STATE__:()=>state,addEventListener(){},dispatchEvent(){},ExportHUBClean:{queueSave(){}}};
-  const document={readyState:'complete',addEventListener(){}};
+  // Avoid implicit boot for the real current week: every test explicitly calls ensureWeek for its fixture week.
+  const document={readyState:'loading',addEventListener(){}};
   vm.runInNewContext(m[1],{window,document,console,CustomEvent:class{constructor(n,o){this.type=n;this.detail=o&&o.detail}},setTimeout:()=>0});
   return window.ExportHUBTaskMasterRC848;
 }
