@@ -96,6 +96,13 @@ test('RC1662: same technical ID with different refs cannot cross-update saved sh
  const merged=mergeState(before,delta);
  assert.equal(merged.savedShipments.find(x=>x.ref==='ABC123').abdFiles[0].id,'ABD-REF-SAFE');
  assert.equal(merged.savedShipments.find(x=>x.ref==='DEF456').abdFiles.length,0);
+ const first=patched.indexOf('function syncRecordSameIdentity('),last=patched.indexOf('function syncFieldSame(',first);
+ assert.ok(first>0&&last>first);
+ const ctx={SYNC_COLLECTION_KEYS:{savedShipments:['ref','id'],shipments:['id','ref']},lower:v=>String(v??'').toLowerCase()};
+ vm.runInNewContext(patched.slice(first,last)+'\nthis.same=syncRecordSameIdentity',ctx);
+ assert.equal(ctx.same('savedShipments',{id:'X',ref:'ABC123'},{id:'X',ref:'DEF456'}),false,'never match mismatched refs by recycled ID');
+ assert.equal(ctx.same('savedShipments',{id:'X',ref:'ABC123'},{id:'X'}),false,'ref and ID-only must not match');
+ assert.equal(ctx.same('savedShipments',{id:'X'},{id:'X'}),true,'legacy ID-only records remain supported');
 });
 
 test('RC1662: builder applies the patch to each environment before the existing RC1600/1627 stack',()=>{
