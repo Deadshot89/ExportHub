@@ -27,7 +27,7 @@ function harness(response){
     low:v=>String(v||'').toLowerCase(),
     arr:x=>Array.isArray(x)?x:[],
     shipmentAssociatedDocs:(sh,prior)=>(prior||[]).concat(sh?.files||[]),
-    referenceList:()=>new Promise(resolve=>{resolveRequest=resolve}),
+    referenceList:(ref,force)=>{assert.equal(ref,'9WX5K6');assert.equal(force,true,'Shipment view must refresh the live REF folder instead of using cached empty results');return new Promise(resolve=>{resolveRequest=resolve})},
     liveDoc:(f,ref)=>({...f,reference:ref,source:'referenceFolder'}),
     mergeReferenceDocs:(live,fallback)=>live.concat(fallback),
     setDocsPanel:(docs,source,error)=>panels.push({docs,source,error}),
