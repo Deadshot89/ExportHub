@@ -215,7 +215,8 @@ for(const base of [PROD,TEST]){
 
 // RC1666: both deployed roots must present the anonymous QR redirect before auth.
 // Merely having /pickup.html online is insufficient for already printed /?pickup=TOKEN codes.
-for(const [label,html] of [['PRODUCTION',production],['TESTSERVICE',testservice]]){
+const rc1666BrandedRoot=await page(BRANDED,'/');
+for(const [label,html] of [['PRODUCTION',production],['TESTSERVICE',testservice],['EXPORTHUB360.DE',rc1666BrandedRoot]]){
   const head=/<head[^>]*>/i.exec(html);
   assert.ok(head,label+': HTML head is missing');
   const first=html.slice(head.index+head[0].length).trimStart();
