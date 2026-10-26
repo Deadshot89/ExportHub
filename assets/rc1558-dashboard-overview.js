@@ -81,7 +81,10 @@ function buildModel(api,shipments,now){
   var lateTasks=dueTasks.filter(function(t){var d=dueOf(t);return d&&dayKey(d)<today});
   // RC1666: server-verified AV tasks include historical and archived shipments.
   // The KPI only shows validated missing documents, never guesses from 'ABD required'.
-  var avMissingTasks=openTasks.filter(function(task){return low(task&&task.sourceType)==='av_missing'});
+  var avMissingTasks=arr(getState().tasks).filter(function(task){
+    if(low(task&&task.sourceType)!=='av_missing')return false;
+    return task.done!==true&&task.completed!==true&&!/^(erledigt|done|closed|geschlossen)$/i.test(q(task.status));
+  });
   var todayList=arr(shipments).filter(function(s){var d=dateOf(s);return s&&!isCancelled(s)&&d&&dayKey(d)===today})
     .sort(function(a,b){return dateOf(a)-dateOf(b)});
   var todayDone=todayList.filter(isPickedUp).length;
