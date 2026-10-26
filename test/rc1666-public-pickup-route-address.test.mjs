@@ -182,7 +182,15 @@ test('RC1666: container photo and seal sync into saved-only shipment without tou
   assert.equal(main.containerPhotos[0].blobName,'safe-photo-1');
   assert.equal(sub.containerPhotos[0].blobName,'safe-photo-1');
   assert.equal(main.containerDocumentationRequired,true);
+  assert.equal(sub.containerDocumentationRequired,true);
   assert.equal(JSON.parse(serialized).revision,2);
+  const stale=await store.updateTeamContainerDocumentation({
+   environment:'testservice',reference:'TEST123',shipmentId:'SHIP-1',subShipmentId:'SUB-A',
+   containerDocumentationRequired:false,containerPhotos:[]
+  });
+  assert.equal(writes,2);
+  assert.equal(stale.state.savedShipments[0].containerDocumentationRequired,true,'stale QR snapshot cannot clear mandatory photo proof');
+  assert.equal(stale.state.savedShipments[0].subShipments[0].containerDocumentationRequired,true);
  }finally{
   if(previous===undefined)delete process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;
   else process.env.EXPORTHUB_STORAGE_CONNECTION_STRING=previous;
