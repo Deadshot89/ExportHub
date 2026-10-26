@@ -209,7 +209,9 @@ export async function runPackNotificationLiveFlow(browser,testInfo,token){
       }
       const goods=page.getByLabel(/Warenbeschreibung/i).first();
       if(await goods.count())await goods.fill('E2E TEST delivery note handoff');
-      const refField=page.locator('#rc363BlockCustomer input[maxlength="6"][pattern*="A-Z0-9"]').first();
+      // RC1676: the shipment reference belongs to the Sendungsdaten block, not
+      // #rc363BlockCustomer. Keep the real visible six-character E2E gate.
+      const refField=page.getByLabel(/Sendungsreferenz\s*\/\s*Referenznummer/i).first();
       await expect(refField).toBeVisible();
       const shipmentRef=String(await refField.inputValue()).trim().toUpperCase();
       expect(shipmentRef).toMatch(/^[A-Z0-9]{6}$/);
