@@ -271,7 +271,10 @@
     scheduleSync();
     if(!pending)return;const state=sharedState(),notification=notificationById(state,pending.notificationId);if(!notification){pending=null;return;}
     const detail=event&&event.detail||{},source=detail.shipment||findShipmentForNotification(state,notification);
-    const savedRows=persistedShipments(state,source,notification);
+    // Some save events provide the authoritative REF beside the shipment
+    // snapshot. Do not discard it when the snapshot itself only has an ID.
+    const sourceRef=q(source&&(source.ref||source.reference||source.shipmentRef)||detail.ref||detail.reference||detail.shipmentRef);
+    const savedRows=persistedShipments(state,Object.assign({},source||{},{ref:sourceRef}),notification);
     // Do not attach PDFs only to a detached event payload. The committed
     // shipment row (and any persisted aliases) must receive the real blob link.
     if(!savedRows.length||!shipmentId(savedRows[0]))return false;
