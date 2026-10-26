@@ -21,7 +21,7 @@ function linkedInTeam(teamDoc,record,photo){
  return shipments.some(sh=>{
   if(!sh||typeof sh!=='object')return false;
   const id=text(sh.shipmentId||sh.id),reference=text(sh.reference||sh.ref||sh.shipmentRef).toUpperCase();
-  if(sid&&id&&sid!==id)return false;
+  if(sid&&id&&sid!==id&&!(ref&&sid.toUpperCase()===ref))return false;
   if(ref&&reference&&ref!==reference)return false;
   if(!((sid&&sid===id)||(ref&&ref===reference)))return false;
   const sub=record&&record.subShipmentId&&Array.isArray(sh.subShipments)?sh.subShipments.find(x=>text(x&&x.subShipmentId)===text(record.subShipmentId)):null;
