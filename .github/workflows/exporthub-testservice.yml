@@ -63,7 +63,7 @@ jobs:
           grep -q 'assets/rc1018-mail-language-standard.js?v=1018' dist-rc1112/demo.html
           grep -q 'assets/rc1018-public-language.js?v=1231' dist-rc1112/customer-avis.html
           grep -q 'id="customerPdfDocumentType"' dist-rc1112/customer-avis.html
-          grep -q 'Sendungszuordnung fachlich geprüft' api/customer-avis/index.js
+          grep -Fq 'Virenprüfung und fachliche Sendungszuordnung erfolgreich' api/customer-avis/index.js
           test -s api/shared/customer-avis-document-content.js
           grep -q "pdf-parse" api/package.json
           grep -q 'assets/rc1018-public-language.js?v=1018' dist-rc1112/pickup.html
