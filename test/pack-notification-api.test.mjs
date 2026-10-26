@@ -111,6 +111,8 @@ test('scanner PDFs with generic MIME are accepted only if their binary signature
   assert.equal(document.size,Buffer.from('%PDF-1.4\n%%EOF\n','latin1').length);
   const withoutExplicitMime=api.validateDocuments([{name:'Scan.pdf',data:'data:application/octet-stream;base64,'+valid}],1024);
   assert.equal(withoutExplicitMime[0].mimeType,'application/pdf');
+  const legacy=api.validateDocuments([{name:'legacy.pdf',mimeType:'application/x-pdf',data:'data:application/x-pdf;base64,'+valid}],1024);
+  assert.equal(legacy[0].mimeType,'application/pdf');
   const falsePdf=Buffer.from('not a PDF').toString('base64');
   assert.throws(()=>api.validateDocuments([{name:'bad.pdf',mimeType:'application/octet-stream',data:'data:application/octet-stream;base64,'+falsePdf}],1024),e=>e&&e.code==='PACK_DOCUMENT_TYPE_MISMATCH');
   assert.throws(()=>api.validateDocuments([{name:'wrong.pdf',mimeType:'image/png',data:'data:application/pdf;base64,'+valid}],1024),e=>e&&e.code==='PACK_DOCUMENT_TYPE_MISMATCH');
