@@ -86,6 +86,8 @@ async function resolveShipmentAddress(record,environment='production'){
   if(ref&&xref&&ref!==xref)return false;
   return !!((sid&&xid===sid)||(ref&&xref===ref))
  });
+ // A reference-only legacy QR cannot safely select between different shipment IDs.
+ if(ambiguousLegacyPickup(matches,sid,ref))return'';
  // Historical shipment entries may be stale. Prefer the actual delivery address of
  // any safely matched shipment over falling back to the customer's main address.
  for(const matched of matches){const shipmentAddress=addressFromSource(matched);if(shipmentAddress)return shipmentAddress}
@@ -136,6 +138,7 @@ async function resolveShipmentContainerConfig(record,environment='production'){
   if(ref&&xref&&ref!==xref)return false;
   return !!((sid&&xid===sid)||(ref&&xref===ref))
  });
+ if(ambiguousLegacyPickup(matches,sid,ref))return{transportMode:transportModeOf(record),containerDocumentationRequired:true};
  // A stale copy must never suppress mandatory sea-container documentation.
  const mode=matches.map(transportModeOf).find(Boolean)||transportModeOf(record);
  return{transportMode:mode,containerDocumentationRequired:matches.some(containerDocumentationRequired)||containerDocumentationRequired(record)};
@@ -343,6 +346,11 @@ function rc1017UpdateSubShipmentTeam(sh,record,history,complete,collected,remain
 
 // Only synchronize records belonging to the exact pickup shipment. Matching a reused
 // reference must not update another shipment with an explicitly different ID.
+function ambiguousLegacyPickup(matches,sid,ref){
+ if(!(sid&&ref&&sid.toUpperCase()===ref))return false;
+ const ids=new Set(matches.map(x=>String(x&&(x.shipmentId||x.id)||'').trim()).filter(Boolean));
+ return ids.size>1;
+}
 function matchesTeamPickupShipment(candidate,sid,ref){
  if(!candidate||typeof candidate!=='object')return false;
  const id=String(candidate.shipmentId||candidate.id||'').trim(),reference=String(candidate.reference||candidate.ref||candidate.shipmentRef||'').trim().toUpperCase();
@@ -357,6 +365,7 @@ async function updateTeamContainerDocumentation(record){
   const ref=String(record.reference||'').trim().toUpperCase(),sid=String(record.shipmentId||'').trim(),
    shipmentCopies=[].concat(doc.state.shipments,Array.isArray(doc.state.savedShipments)?doc.state.savedShipments:[]),
    matches=shipmentCopies.filter(x=>matchesTeamPickupShipment(x,sid,ref));
+  if(ambiguousLegacyPickup(matches,sid,ref))throw err('TEAM_SHIPMENT_AMBIGUOUS','Die Sendungsreferenz gehört zu mehreren unterschiedlichen Sendungen.',409);
   if(!matches.length)return doc;
   const iso=String(record.containerDocumentationUpdatedAt||record.updatedAt||now()),photos=containerPhotosOf(record);
   for(const sh of matches){
@@ -384,6 +393,7 @@ async function updateTeam(record,podsToAdd=[],rawToken=''){
   const ref=String(record.reference||'').trim().toUpperCase(),sid=String(record.shipmentId||'').trim(),subId=String(record.subShipmentId||'').trim(),history=pickupHistory(record),complete=pickupComplete(record),collected=pickupCollectedColliCount(record),remaining=pickupRemainingColliCount(record),last=history.length?history[history.length-1]:null;
   const candidates=[].concat(doc.state.shipments,Array.isArray(doc.state.savedShipments)?doc.state.savedShipments:[]);
   const matches=candidates.filter(x=>matchesTeamPickupShipment(x,sid,ref));
+  if(ambiguousLegacyPickup(matches,sid,ref))throw err('TEAM_SHIPMENT_AMBIGUOUS','Die Sendungsreferenz gehört zu mehreren unterschiedlichen Sendungen.',409);
   let sh=subId?matches.find(x=>Array.isArray(x.subShipments)&&x.subShipments.some(part=>String(part&&part.subShipmentId||'')===subId)):null;
   if(!sh)sh=matches[0]||null;
   if(!sh)throw err('TEAM_SHIPMENT_NOT_FOUND','Sendung wurde im Team-State nicht gefunden.',503);
