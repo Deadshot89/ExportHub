@@ -1264,8 +1264,23 @@ function shipmentAssociatedDocs(sh,prior){
  return out.filter(Boolean).filter(fallbackDocUsable)
 }
 function mergeReferenceDocs(live,fallback){
- var out=arr(live).slice(),seen={};out.forEach(function(d){seen[low(q(d&&d.name))]=1});
- arr(fallback).filter(fallbackDocUsable).forEach(function(d){var key=low(q(d&&d.name));if(key&&seen[key])return;if(key)seen[key]=1;out.push(d)});
+ // A filename is not a storage identity: two independent original files can
+ // legitimately have the same name. Deduplicate only proven identical items.
+ function identity(d){
+  if(!d)return '';
+  var item=q(d.itemId||d.file&&d.file.itemId);
+  if(d.source==='referenceFolder'&&item)return 'graph:'+item;
+  var blob=q(d.file&&d.file.blobName||d.blobName);
+  if(blob)return 'blob:'+blob;
+  return ''
+ }
+ var out=[],seen=Object.create(null);
+ arr(live).concat(arr(fallback).filter(fallbackDocUsable)).forEach(function(d){
+  var key=identity(d);
+  if(key&&seen[key])return;
+  if(key)seen[key]=true;
+  out.push(d)
+ });
  return out
 }
 `;
