@@ -84,6 +84,25 @@ test('RC1558 Kennzahlen zählen heutige Abholungen, ABD-Sperren, Dokumente, POD 
   assert.equal(k.tasks.route,'tasks');
 });
 
+test('RC1666 Dashboard zeigt AV fehlt mit historischen, offenen Aufgaben und Drill-Down',()=>{
+  const w=load('de'),api=w.ExportHUBDashboardOverview1558;
+  const historical={id:'task:av-missing:HIST01',sourceType:'av_missing',linkedShipmentRef:'HIST01',title:'Ausgangsvermerk nicht vorhanden · HIST01',status:'offen',dueDate:'2026-10-15'};
+  const done={id:'task:av-missing:OLD001',sourceType:'av_missing',status:'erledigt',done:true};
+  const other={id:'task:normal',sourceType:'manual',title:'Normal',dueAt:at(12)};
+  const openTasks=[historical,other];
+  const model=api.buildModel(fakeApi(shipments,openTasks),shipments,NOW);
+  const kpi=model.kpis.find(k=>k.id==='avMissing');
+  assert.equal(kpi.value,1);
+  assert.equal(kpi.route,'tasks');
+  assert.equal(kpi.tone,'warn');
+  assert.deepEqual(Array.from(model.sets.avMissing,t=>t.id),[historical.id]);
+  const html=api.renderHtml(model);
+  assert.match(html,/AV fehlt/);
+  assert.match(html,/data-rc1558-kpi="avMissing"/);
+  assert.match(html,/Ausgangsvermerke nachreichen/);
+  assert.ok(!model.sets.avMissing.includes(done),'abgeschlossene AV-Aufgaben dürfen nicht gezählt werden');
+});
+
 test('RC1558 Tagestabelle ist nach Uhrzeit sortiert und zeigt Colli, Land, Lieferschein und Status-Ton',()=>{
   const w=load();
   const model=w.ExportHUBDashboardOverview1558.buildModel(fakeApi(shipments,tasks),shipments,NOW);
@@ -140,7 +159,7 @@ test('RC1558 Sprachpakete decken alle sechs Sprachen mit identischen Schlüsseln
   }
   for(const key of runtime.match(/'dashboard\.overview\.[a-zA-Z.]+'/g).map(s=>s.slice(1,-1)).filter(k=>!k.endsWith('.')))
     assert.ok(keys.includes(key),'Runtime-Schlüssel fehlt in de: '+key);
-  for(const id of ['today','open','abd','documents','pod','tasks'])assert.ok(keys.includes('dashboard.overview.kpi.'+id));
+  for(const id of ['today','open','abd','avMissing','documents','pod','tasks'])assert.ok(keys.includes('dashboard.overview.kpi.'+id));
 });
 
 test('RC1558 Englisch übersetzt Kennzahlen und kanonische Status',()=>{
@@ -164,9 +183,9 @@ test('RC1558 Kopfzeile begrüßt nach Tageszeit, zeigt Kalenderwoche und Stand; 
   assert.match(api.renderHtml(model,{now:new Date(2026,9,17,19,0),userName:''}),/>Guten Abend</,'ohne Namen kein hängendes Komma');
   assert.equal(api.isoWeek(new Date(2026,0,1)),1);
   assert.equal(api.isoWeek(new Date(2027,0,1)),53);
-  assert.equal((morning.match(/<svg class="rc1558-icon"/g)||[]).length,6,'ein Symbol pro Kennzahl');
+  assert.equal((morning.match(/<svg class="rc1558-icon"/g)||[]).length,7,'ein Symbol pro Kennzahl');
   const empty=api.renderHtml(api.buildModel(fakeApi([],[]),[],NOW),{now:NOW,userName:'A'});
-  assert.equal((empty.match(/data-zero="1"/g)||[]).length,6);
+  assert.equal((empty.match(/data-zero="1"/g)||[]).length,7);
   assert.match(empty,/rc1558-empty-icon/);
   assert.doesNotMatch(api.renderHtml(model),/rc1558-hello/,'ohne Meta keine Kopfzeile');
 });
