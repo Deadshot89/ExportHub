@@ -273,7 +273,11 @@
     const detail=event&&event.detail||{},source=detail.shipment||findShipmentForNotification(state,notification);
     // Some save events provide the authoritative REF beside the shipment
     // snapshot. Do not discard it when the snapshot itself only has an ID.
-    const sourceRef=q(source&&(source.ref||source.reference||source.shipmentRef)||detail.ref||detail.reference||detail.shipmentRef);
+    const snapshotRef=q(source&&(source.ref||source.reference||source.shipmentRef)).toUpperCase();
+    const eventRef=q(detail.ref||detail.reference||detail.shipmentRef).toUpperCase();
+    // Contradictory REFs must not trigger cross-shipment PDF handoff.
+    if(snapshotRef&&eventRef&&snapshotRef!==eventRef)return false;
+    const sourceRef=snapshotRef||eventRef;
     const savedRows=persistedShipments(state,Object.assign({},source||{},{ref:sourceRef}),notification);
     // Do not attach PDFs only to a detached event payload. The committed
     // shipment row (and any persisted aliases) must receive the real blob link.

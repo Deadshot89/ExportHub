@@ -325,3 +325,24 @@ test('P0: conflicting pack ownership in a persisted REF alias fails closed for a
   assert.deepEqual(foreign.deliveryFiles,[]);
   assert.equal(s.packNotifications[0].shipmentId,undefined);
 });
+
+test('P0: contradictory event REF and shipment snapshot REF never attach a PDF',async()=>{
+  const s=state(),events=new Map();
+  const root={
+    __EXPORTHUB_GET_STATE__:()=>s,
+    addEventListener(name,listener){events.set(name,listener);},
+    setView(){},
+    ExportHUBClean:{queueSave(){return true;},flushSave(){throw Error('must not save contradictory REFs');}}
+  };
+  const api=loadWithRoot(root);
+  assert.equal(api.begin('pn-1'),true);
+  const wrong={id:'REUSED-1',ref:'WRONG1',deliveryFiles:[]};
+  const correct={id:'REUSED-1',ref:'RIGHT1',deliveryFiles:[]};
+  s.shipments=[wrong,correct];
+  const result=await events.get('exporthub:shipment-saved')({
+    detail:{ref:'RIGHT1',shipment:{id:'REUSED-1',ref:'WRONG1'}}
+  });
+  assert.equal(result,false);
+  assert.deepEqual(s.shipments.map(sh=>sh.deliveryFiles.length),[0,0]);
+  assert.equal(s.packNotifications[0].shipmentId,undefined);
+});
