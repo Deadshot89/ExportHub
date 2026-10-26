@@ -34,24 +34,61 @@
     return groups;
   }
   function findShipmentForNotification(state,notification){
-    const n=notification||{},wanted=q(n.shipmentId),nid=q(n.id),nref=q(n.reference);
-    const list=[...arr(state&&state.shipments),...arr(state&&state.savedShipments),state&&state.shipment,state&&state.currentShipment,state&&state.selectedShipment].filter(Boolean);
-    return list.find(sh=>(wanted&&shipmentId(sh)===wanted)||(nid&&q(sh.packNotificationId)===nid)||(nref&&q(sh.packNotificationRef)===nref))||null;
+    const n=notification||{},wanted=q(n.shipmentId),wantedRef=q(n.shipmentRef).toUpperCase(),nid=q(n.id),nref=q(n.reference);
+    const list=[...arr(state&&state.shipments),...arr(state&&state.savedShipments),...arr(state&&state.sharedShipments),state&&state.shipment,state&&state.currentShipment,state&&state.selectedShipment].filter(Boolean);
+    const rowRef=sh=>q(sh&&(sh.ref||sh.reference||sh.shipmentRef)).toUpperCase();
+    const foreignOwner=sh=>
+      (q(sh&&sh.packNotificationId)&&q(sh.packNotificationId)!==nid)||
+      (q(sh&&sh.packNotificationRef)&&q(sh.packNotificationRef)!==nref);
+    const linked=sh=>!foreignOwner(sh)&&((nid&&q(sh.packNotificationId)===nid)||(nref&&q(sh.packNotificationRef)===nref));
+    // Technical editor IDs can be recycled across shipment REFs. The REF is
+    // authoritative once saved; never open a different shipment by ID alone.
+    if(wantedRef){
+      const exact=list.filter(sh=>rowRef(sh)===wantedRef&&!foreignOwner(sh));
+      return exact.find(linked)||exact.find(sh=>wanted&&shipmentId(sh)===wanted)||exact[0]||null;
+    }
+    const associated=list.filter(linked);
+    if(associated.length){
+      if(new Set(associated.map(rowRef).filter(Boolean)).size>1)return null;
+      return associated[0];
+    }
+    if(!wanted)return null;
+    // Check all ID collisions before filtering foreign pack owners. Otherwise
+    // excluding a foreign REF can make a recycled ID appear falsely unique.
+    const idMatches=list.filter(sh=>shipmentId(sh)===wanted);
+    if(new Set(idMatches.map(rowRef).filter(Boolean)).size>1)return null;
+    const byId=idMatches.filter(sh=>!foreignOwner(sh));
+    return byId[0]||null;
   }
   // A shipment-saved event may contain a detached snapshot. Only a row that
   // actually belongs to the persisted state can carry the pack PDFs into its REF.
   function persistedShipments(state,detail,notification){
     const rows=[...arr(state&&state.shipments),...arr(state&&state.savedShipments),...arr(state&&state.sharedShipments)];
-    const ref=q(detail&&(detail.ref||detail.reference||detail.shipmentRef)).toUpperCase();
-    const id=shipmentId(detail),nid=q(notification&&notification.id);
+    const rowRef=row=>q(row&&(row.ref||row.reference||row.shipmentRef)).toUpperCase();
+    let ref=q(detail&&(detail.ref||detail.reference||detail.shipmentRef)||notification&&notification.shipmentRef).toUpperCase();
+    const id=shipmentId(detail),nid=q(notification&&notification.id),nref=q(notification&&notification.reference);
+    const byPack=row=>(nid&&q(row.packNotificationId)===nid)||(nref&&q(row.packNotificationRef)===nref);
+    // Resolve missing event REF by the pack link, then by an unambiguous ID.
+    // An ID shared by multiple REFs must never attach documents to both.
+    if(!ref){
+      const associated=rows.filter(byPack);
+      const refs=new Set(associated.map(rowRef).filter(Boolean));
+      if(refs.size>1)return[];
+      if(refs.size===1)ref=refs.values().next().value;
+      else if(id){
+        const idRefs=new Set(rows.filter(row=>shipmentId(row)===id).map(rowRef).filter(Boolean));
+        if(idRefs.size>1)return[];
+        if(idRefs.size===1)ref=idRefs.values().next().value;
+      }
+    }
     const seen=new Set(),found=[];
     for(const row of rows){
       if(!row||seen.has(row))continue;
-      const rowRef=q(row.ref||row.reference||row.shipmentRef).toUpperCase();
-      const byRef=!!ref&&rowRef===ref;
-      const byId=!!id&&shipmentId(row)===id&&(!ref||!rowRef||rowRef===ref);
-      const byPack=!!nid&&q(row.packNotificationId)===nid&&(!ref||!rowRef||rowRef===ref);
-      if(byRef||byId||byPack){seen.add(row);found.push(row);}
+      const currentRef=rowRef(row),associated=byPack(row);
+      const byRef=!!ref&&currentRef===ref;
+      const byId=!!id&&shipmentId(row)===id&&(!ref||currentRef===ref||(!currentRef&&associated));
+      const byAssociation=!!associated&&(!ref||currentRef===ref);
+      if(byRef||byId||byAssociation){seen.add(row);found.push(row);}
     }
     return found;
   }
@@ -240,10 +277,23 @@
     scheduleSync();
     if(!pending)return;const state=sharedState(),notification=notificationById(state,pending.notificationId);if(!notification){pending=null;return;}
     const detail=event&&event.detail||{},source=detail.shipment||findShipmentForNotification(state,notification);
-    const savedRows=persistedShipments(state,source,notification);
+    // Some save events provide the authoritative REF beside the shipment
+    // snapshot. Do not discard it when the snapshot itself only has an ID.
+    const snapshotRef=q(source&&(source.ref||source.reference||source.shipmentRef)).toUpperCase();
+    const eventRef=q(detail.ref||detail.reference||detail.shipmentRef).toUpperCase();
+    // Contradictory REFs must not trigger cross-shipment PDF handoff.
+    if(snapshotRef&&eventRef&&snapshotRef!==eventRef)return false;
+    const sourceRef=snapshotRef||eventRef;
+    const savedRows=persistedShipments(state,Object.assign({},source||{},{ref:sourceRef}),notification);
     // Do not attach PDFs only to a detached event payload. The committed
     // shipment row (and any persisted aliases) must receive the real blob link.
     if(!savedRows.length||!shipmentId(savedRows[0]))return false;
+    // An unrelated save event or previously linked REF must never take over
+    // an in-flight pack notification, even if technical shipment IDs overlap.
+    const belongsToAnotherPack=row=>
+      (q(row&&row.packNotificationId)&&q(row.packNotificationId)!==q(notification.id))||
+      (q(row&&row.packNotificationRef)&&q(row.packNotificationRef)!==q(notification.reference));
+    if(belongsToAnotherPack(source)||savedRows.some(belongsToAnotherPack))return false;
     const prefill=shipmentPrefill(notification);
     if(arr(notification.documents).length!==prefill.deliveryFiles.length)return false;
     const task=arr(state&&state.tasks).find(t=>q(t&&t.sourceType)==='pack_notification'&&q(t&&t.sourceId)===q(notification.id));

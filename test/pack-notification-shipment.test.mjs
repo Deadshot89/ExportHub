@@ -210,3 +210,152 @@ test('metadata-only delivery-note names cannot masquerade as actual uploaded PDF
     assert.equal(saved.deliveryFiles,undefined);
   });
 });
+
+test('P0: reused technical shipment IDs resolve to the linked REF, not the first unrelated shipment',()=>{
+  const api=load(),s=state(),n=s.packNotifications[0];
+  s.shipments=[
+    {id:'REUSED-1',ref:'WRONG1',status:'Abgeholt',packNotificationId:'another-pack'},
+    {id:'REUSED-1',ref:'RIGHT1',status:'Erstellt',packNotificationId:'pn-1'}
+  ];
+  n.shipmentId='REUSED-1';n.shipmentRef='RIGHT1';n.status='shipment_created';
+  assert.equal(api.findShipmentForNotification(s,n),s.shipments[1]);
+  assert.equal(api.syncStatuses(s,'2026-10-26T13:00:00.000Z').length,0,'another REF pickup must not close the pack task');
+  delete n.shipmentRef;
+  assert.equal(api.findShipmentForNotification(s,n),s.shipments[1],'pack ownership disambiguates the duplicate ID');
+  delete s.shipments[1].packNotificationId;
+  assert.equal(api.findShipmentForNotification(s,n),null,'without REF or pack link the ID is ambiguous');
+  assert.equal(api.syncStatuses(s,'2026-10-26T13:10:00.000Z').length,0,'ambiguous ID must never close the pack task');
+});
+
+test('P0: incomplete save-event ID cannot move a PDF to multiple different REFs',async()=>{
+  const s=state(),events=new Map();
+  const root={
+    __EXPORTHUB_GET_STATE__:()=>s,
+    addEventListener(name,listener){events.set(name,listener);},
+    setView(){},
+    ExportHUBClean:{queueSave(){return true;},flushSave(){return true;}}
+  };
+  const api=loadWithRoot(root);
+  assert.equal(api.begin('pn-1'),true);
+  s.shipments=[
+    {id:'REUSED-1',ref:'WRONG1',deliveryFiles:[]},
+    {id:'REUSED-1',ref:'RIGHT1',deliveryFiles:[]}
+  ];
+  const outcome=await events.get('exporthub:shipment-saved')({detail:{shipment:{id:'REUSED-1'}}});
+  assert.equal(outcome,false,'ambiguous ID without any REF or pack ownership must fail closed');
+  assert.deepEqual(s.shipments.map(sh=>sh.deliveryFiles.length),[0,0]);
+  assert.equal(s.packNotifications[0].shipmentId,undefined);
+});
+
+test('P0: pack-specific link identifies the correct REF when save-event ID is recycled',async()=>{
+  const s=state(),events=new Map();
+  const root={
+    __EXPORTHUB_GET_STATE__:()=>s,
+    addEventListener(name,listener){events.set(name,listener);},
+    setView(){},
+    ExportHUBClean:{queueSave(){return true;},flushSave(){return true;}}
+  };
+  const api=loadWithRoot(root);
+  assert.equal(api.begin('pn-1'),true);
+  const wrong={id:'REUSED-1',ref:'WRONG1',deliveryFiles:[]};
+  const correct={id:'REUSED-1',ref:'RIGHT1',packNotificationId:'pn-1',deliveryFiles:[]};
+  s.shipments=[wrong,correct];
+  assert.equal(await events.get('exporthub:shipment-saved')({detail:{shipment:{id:'REUSED-1'}}}),true);
+  assert.equal(wrong.deliveryFiles.length,0,'unrelated reference is not altered');
+  assert.equal(correct.deliveryFiles.length,1);
+  assert.equal(correct.deliveryFiles[0].blobName,s.packNotifications[0].documents[0].blobName);
+  assert.equal(s.packNotifications[0].shipmentRef,'RIGHT1');
+});
+
+test('P0: REF from save-event metadata resolves an ID-only snapshot without linking a foreign REF',async()=>{
+  const s=state(),events=new Map();
+  const root={
+    __EXPORTHUB_GET_STATE__:()=>s,
+    addEventListener(name,listener){events.set(name,listener);},
+    setView(){},
+    ExportHUBClean:{queueSave(){return true;},flushSave(){return true;}}
+  };
+  const api=loadWithRoot(root);
+  assert.equal(api.begin('pn-1'),true);
+  const wrong={id:'REUSED-1',ref:'WRONG1',deliveryFiles:[]};
+  const correct={id:'REUSED-1',ref:'RIGHT1',deliveryFiles:[]};
+  s.shipments=[wrong,correct];
+  assert.equal(await events.get('exporthub:shipment-saved')({
+    detail:{ref:'RIGHT1',shipment:{id:'REUSED-1'}}
+  }),true);
+  assert.equal(wrong.deliveryFiles.length,0);
+  assert.equal(correct.deliveryFiles.length,1);
+  assert.equal(s.packNotifications[0].shipmentRef,'RIGHT1');
+});
+
+test('P0: foreign pack owner on a saved REF cannot steal pending notification or PDF',async()=>{
+  const s=state(),events=new Map();
+  const root={
+    __EXPORTHUB_GET_STATE__:()=>s,
+    addEventListener(name,listener){events.set(name,listener);},
+    setView(){},
+    ExportHUBClean:{queueSave(){return true;},flushSave(){throw Error('must not save foreign REF');}}
+  };
+  const api=loadWithRoot(root);
+  assert.equal(api.begin('pn-1'),true);
+  const foreign={id:'REUSED-1',ref:'WRONG1',packNotificationId:'other-pack',packNotificationRef:'PK-OTHER',deliveryFiles:[]};
+  s.shipments=[foreign];
+  assert.equal(await events.get('exporthub:shipment-saved')({detail:{ref:'WRONG1',shipment:{...foreign}}}),false);
+  assert.equal(foreign.deliveryFiles.length,0);
+  assert.equal(foreign.packNotificationId,'other-pack');
+  assert.equal(s.packNotifications[0].shipmentId,undefined);
+  assert.equal(s.packNotifications[0].status,'in_review');
+});
+
+test('P0: conflicting pack ownership in a persisted REF alias fails closed for all aliases',async()=>{
+  const s=state(),events=new Map();
+  const root={
+    __EXPORTHUB_GET_STATE__:()=>s,
+    addEventListener(name,listener){events.set(name,listener);},
+    setView(){},
+    ExportHUBClean:{queueSave(){return true;},flushSave(){throw Error('must not save conflicting aliases');}}
+  };
+  const api=loadWithRoot(root);
+  assert.equal(api.begin('pn-1'),true);
+  const own={id:'SHIP-1',ref:'RIGHT1',packNotificationId:'pn-1',deliveryFiles:[]};
+  const foreign={id:'SHIP-1',ref:'RIGHT1',packNotificationId:'other-pack',deliveryFiles:[]};
+  s.shipments=[own];s.savedShipments=[foreign];
+  assert.equal(await events.get('exporthub:shipment-saved')({detail:{ref:'RIGHT1',shipment:{id:'SHIP-1'}}}),false);
+  assert.deepEqual(own.deliveryFiles,[]);
+  assert.deepEqual(foreign.deliveryFiles,[]);
+  assert.equal(s.packNotifications[0].shipmentId,undefined);
+});
+
+test('P0: contradictory event REF and shipment snapshot REF never attach a PDF',async()=>{
+  const s=state(),events=new Map();
+  const root={
+    __EXPORTHUB_GET_STATE__:()=>s,
+    addEventListener(name,listener){events.set(name,listener);},
+    setView(){},
+    ExportHUBClean:{queueSave(){return true;},flushSave(){throw Error('must not save contradictory REFs');}}
+  };
+  const api=loadWithRoot(root);
+  assert.equal(api.begin('pn-1'),true);
+  const wrong={id:'REUSED-1',ref:'WRONG1',deliveryFiles:[]};
+  const correct={id:'REUSED-1',ref:'RIGHT1',deliveryFiles:[]};
+  s.shipments=[wrong,correct];
+  const result=await events.get('exporthub:shipment-saved')({
+    detail:{ref:'RIGHT1',shipment:{id:'REUSED-1',ref:'WRONG1'}}
+  });
+  assert.equal(result,false);
+  assert.deepEqual(s.shipments.map(sh=>sh.deliveryFiles.length),[0,0]);
+  assert.equal(s.packNotifications[0].shipmentId,undefined);
+});
+
+test('P0: REF and recycled ID cannot resolve a shipment explicitly owned by another pack',()=>{
+  const api=load(),s=state(),n=s.packNotifications[0];
+  n.shipmentId='REUSED-1';n.shipmentRef='RIGHT1';n.status='shipment_created';
+  const other={id:'REUSED-1',ref:'RIGHT1',status:'Abgeholt',packNotificationId:'other-pack',packNotificationRef:'PK-OTHER'};
+  s.shipments=[other];
+  assert.equal(api.findShipmentForNotification(s,n),null,'a known REF cannot override an explicit foreign pack owner');
+  assert.equal(api.syncStatuses(s,'2026-10-26T14:30:00.000Z').length,0,'foreign pickup cannot complete this pack notification');
+  delete n.shipmentRef;
+  other.packNotificationRef='PK-1';
+  assert.equal(api.findShipmentForNotification(s,n),null,'matching pack REF does not override conflicting pack ID');
+  assert.equal(api.syncStatuses(s,'2026-10-26T14:31:00.000Z').length,0);
+});
