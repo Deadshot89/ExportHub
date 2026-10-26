@@ -52,10 +52,31 @@ function shipmentHasAbd(state,sh){
 }
 
 function requiredAvCount(state,sh){
-  const requests=abdRequestsFor(state,sh).filter(r=>pickupStore.abdPresent(r));
-  const keys=new Set(requests.map((r,i)=>text(r.id||r.requestId||r.abdReference||r.mrn)||'request-'+i));
-  const ownFiles=Array.isArray(sh&&sh.abdFiles)?sh.abdFiles.filter(Boolean):[];
-  return Math.max(1,keys.size,ownFiles.length);
+  // A REF can occur in active, saved, shared and archived collections.
+  // Count distinct ABD evidence across all copies: taking the maximum count
+  // per copy would miss ABD_1 in an active copy and ABD_2 in an archived copy.
+  const copies=shipmentCopies(state,refOf(sh));
+  const sources=copies.length?copies:[sh];
+  const requestKeys=new Set(),documentKeys=new Set();
+  let maxUnnamed=0;
+  for(const source of sources){
+    for(const r of abdRequestsFor(state,source)){
+      if(!pickupStore.abdPresent(r))continue;
+      const key=text(r.id||r.requestId||r.abdReference||r.mrn);
+      requestKeys.add(key?'request:'+key:r);
+    }
+    let unnamed=0;
+    for(const file of (Array.isArray(source&&source.abdFiles)?source.abdFiles:[])){
+      if(!file)continue;
+      const key=typeof file==='string'?text(file):text(file.name||file.fileName||file.blobName||file.storageBlobName||file.storagePath||file.id);
+      if(key)documentKeys.add(key.toLowerCase());
+      else unnamed++;
+    }
+    // Missing legacy identity fields cannot safely be deduplicated;
+    // keep at least the largest such group, without double-counting copies.
+    maxUnnamed=Math.max(maxUnnamed,unnamed);
+  }
+  return Math.max(1,requestKeys.size,documentKeys.size+maxUnnamed);
 }
 
 // Historisches Abholdatum bleibt als Zusatzinformation erhalten, ist keine Voraussetzung.
