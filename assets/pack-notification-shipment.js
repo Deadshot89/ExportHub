@@ -58,16 +58,31 @@
   // actually belongs to the persisted state can carry the pack PDFs into its REF.
   function persistedShipments(state,detail,notification){
     const rows=[...arr(state&&state.shipments),...arr(state&&state.savedShipments),...arr(state&&state.sharedShipments)];
-    const ref=q(detail&&(detail.ref||detail.reference||detail.shipmentRef)).toUpperCase();
-    const id=shipmentId(detail),nid=q(notification&&notification.id);
+    const rowRef=row=>q(row&&(row.ref||row.reference||row.shipmentRef)).toUpperCase();
+    let ref=q(detail&&(detail.ref||detail.reference||detail.shipmentRef)||notification&&notification.shipmentRef).toUpperCase();
+    const id=shipmentId(detail),nid=q(notification&&notification.id),nref=q(notification&&notification.reference);
+    const byPack=row=>(nid&&q(row.packNotificationId)===nid)||(nref&&q(row.packNotificationRef)===nref);
+    // Resolve missing event REF by the pack link, then by an unambiguous ID.
+    // An ID shared by multiple REFs must never attach documents to both.
+    if(!ref){
+      const associated=rows.filter(byPack);
+      const refs=new Set(associated.map(rowRef).filter(Boolean));
+      if(refs.size>1)return[];
+      if(refs.size===1)ref=refs.values().next().value;
+      else if(id){
+        const idRefs=new Set(rows.filter(row=>shipmentId(row)===id).map(rowRef).filter(Boolean));
+        if(idRefs.size>1)return[];
+        if(idRefs.size===1)ref=idRefs.values().next().value;
+      }
+    }
     const seen=new Set(),found=[];
     for(const row of rows){
       if(!row||seen.has(row))continue;
-      const rowRef=q(row.ref||row.reference||row.shipmentRef).toUpperCase();
-      const byRef=!!ref&&rowRef===ref;
-      const byId=!!id&&shipmentId(row)===id&&(!ref||!rowRef||rowRef===ref);
-      const byPack=!!nid&&q(row.packNotificationId)===nid&&(!ref||!rowRef||rowRef===ref);
-      if(byRef||byId||byPack){seen.add(row);found.push(row);}
+      const currentRef=rowRef(row),associated=byPack(row);
+      const byRef=!!ref&&currentRef===ref;
+      const byId=!!id&&shipmentId(row)===id&&(!ref||currentRef===ref||(!currentRef&&associated));
+      const byAssociation=!!associated&&(!ref||currentRef===ref);
+      if(byRef||byId||byAssociation){seen.add(row);found.push(row);}
     }
     return found;
   }
