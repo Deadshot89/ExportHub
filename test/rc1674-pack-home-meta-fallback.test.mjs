@@ -54,7 +54,8 @@ test('RC1674: a failed mandatory Pack station session never becomes a valid home
 function metadata(blob){
  const context={
   readJson:async(b)=>b.read(),
-  emptyTeam:()=>({schemaVersion:3,revision:0,updatedAt:null,clientVersion:null})
+  emptyTeam:()=>({schemaVersion:3,revision:0,updatedAt:null,clientVersion:null}),
+  error:(code,message,status)=>Object.assign(new Error(message),{code,status})
  };
  return extract(state,'async function metadataOnly(blob){','\nfunction normalizeIncoming(',context)(blob);
 }
@@ -92,4 +93,33 @@ test('RC1674: auth/storage 403 and persistent read failures remain errors',async
   getProperties:async()=>{throw Object.assign(new Error('HEAD broken'),{statusCode:503})},
   read:async()=>{throw Object.assign(new Error('GET broken'),{statusCode:503})}
  }),err=>err.statusCode===503,'Persistent backend failure must block release');
+});
+
+
+test('RC1674: HEAD 500 followed by GET 404 must not report successful revision zero',async()=>{
+ let gets=0;
+ await assert.rejects(metadata({
+  getProperties:async()=>{throw Object.assign(new Error('HEAD unavailable'),{statusCode:500})},
+  // readJson represents Azure Blob GET 404 with the empty fallback and no ETag.
+  read:async()=>{gets++;return{value:{schemaVersion:3,revision:0},bytes:0,etag:null}}
+ }),err=>err.code==='STATE_METADATA_READ_UNAVAILABLE'&&err.status===503);
+ assert.equal(gets,1,'a missing team blob is never retried or reported as valid');
+});
+
+test('RC1674: HEAD without revision metadata performs only one GET even on a transient GET failure',async()=>{
+ let gets=0;
+ await assert.rejects(metadata({
+  getProperties:async()=>({metadata:{},lastModified:new Date('2026-10-26T10:00:00Z')}),
+  read:async()=>{gets++;throw Object.assign(new Error('Azure GET unavailable'),{statusCode:503})}
+ }),err=>err.statusCode===503);
+ assert.equal(gets,1,'a failed GET must not cause a second whole-blob read');
+});
+
+test('RC1674: transient HEAD failure plus persistent GET failure performs exactly one fallback',async()=>{
+ let gets=0;
+ await assert.rejects(metadata({
+  getProperties:async()=>{throw Object.assign(new Error('Transient HEAD failure'),{statusCode:502})},
+  read:async()=>{gets++;throw Object.assign(new Error('Persistent GET failure'),{statusCode:503})}
+ }),err=>err.statusCode===503);
+ assert.equal(gets,1);
 });
