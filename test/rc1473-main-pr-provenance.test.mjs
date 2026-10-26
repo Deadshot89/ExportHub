@@ -158,3 +158,13 @@ test('RC1482: Release-Workflows geben dem Provenienz-Gate nur lesenden PR-Zugrif
     assert.match(source,/GITHUB_TOKEN:\s*\$\{\{\s*github\.event_name\s*==\s*'push'\s*&&\s*github\.token\s*\|\|\s*''\s*\}\}/,`${rel}: GitHub-Token muss nur bei Push-Läufen an den Job gegeben werden`);
   }
 });
+
+
+test('RC1673: Android main-push APK contract authenticates read-only PR provenance without weakening fail-closed gate',()=>{
+  const workflow=fs.readFileSync('.github/workflows/exporthub-android-test-app.yml','utf8');
+  assert.match(workflow,/permissions:\s*\n\s*contents:\s*read\s*\n\s*pull-requests:\s*read/,'Android job needs scoped pull-request read access');
+  assert.match(workflow,/GITHUB_TOKEN:\s*\$\{\{\s*github\.event_name\s*==\s*'push'\s*&&\s*github\.token\s*\|\|\s*''\s*\}\}/,'Provenance must be authenticated on push without giving PR jobs a token');
+  assert.match(workflow,/test\/rc1018-production-deploy\.test\.mjs/,'Android build must preserve production provenance test');
+  const contract=fs.readFileSync('test/rc1018-production-deploy.test.mjs','utf8');
+  assert.match(contract,/await\s+verifyMainPrProvenance\(\)/,'Fail-closed provenance verifier must remain active');
+});

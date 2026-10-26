@@ -5,6 +5,7 @@ import {
   installE2ESession,
   settleStateSave,
   attachRuntimeGuards,
+  acknowledgeConfirmedStateSaveNavigationAbort,
   assertRuntimeClean,
   assertNoHorizontalOverflow
 } from './exporthub-browser.mjs';
@@ -116,7 +117,7 @@ export async function runPackNotificationLiveFlow(browser,testInfo,token){
     try{
       const page=await internal.newPage();
       const runtime=attachRuntimeGuards(page,testInfo);
-      await installE2ESession(page);
+      const session=await installE2ESession(page);
       await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
       await waitReady(page);
       await settleStateSave(page,{timeout:30_000});
@@ -141,12 +142,28 @@ export async function runPackNotificationLiveFlow(browser,testInfo,token){
         const n=(s.packNotifications||[]).find(x=>x.reference===ref);
         const file=(n?.documents||[]).find(x=>x.name===canonicalName);
         const viewer=window.ExportHUBDocumentBlob1059;
-        if(!file||!viewer?.isBlobDocument?.(file))return{available:false};
+        // Include only test-file metadata in a failing assertion. Never log
+        // auth tokens, private file bytes or the Blob's full storage path.
+        if(!file||!viewer?.isBlobDocument?.(file))return{
+          available:false,diagnostic:{
+            notificationFound:!!n,
+            documentCount:(n?.documents||[]).length,
+            candidates:(n?.documents||[]).map(d=>({
+              name:String(d.name||'').slice(0,160),
+              storage:String(d.storage||'').slice(0,20),
+              blobReferencePresent:!!d.blobName,
+              inlineDataPresent:!!(d.data||d.dataUrl||d.base64)
+            })),
+            viewerLoaded:!!viewer,
+            viewerHasBlobCheck:typeof viewer?.isBlobDocument==='function',
+            targetDocumentFound:!!file
+          }
+        };
         const bytes=await viewer.fetchBytes(file);
         return{available:true,name:file.name,storage:file.storage,blobName:file.blobName,
           count:bytes.length,signature:String.fromCharCode(...bytes.slice(0,5))};
       },{ref:refA,canonicalName:resultA.canonicalName});
-      expect(originalPdf.available,'original Packmeldung must have a retrievable real PDF').toBe(true);
+      expect(originalPdf.available,'original Packmeldung must have a retrievable real PDF: '+JSON.stringify(originalPdf.diagnostic||{})).toBe(true);
       expect(originalPdf.signature).toBe('%PDF-');
       expect(originalPdf.count).toBeGreaterThan(40);
       expect(originalPdf.storage).toBe('blob');
@@ -162,7 +179,92 @@ export async function runPackNotificationLiveFlow(browser,testInfo,token){
       expect(draft.packNotificationId).toBeTruthy();
       expect(draft.deliveryFiles.some(file=>file.source==='pack_notification'&&file.customerAvisVisible===false&&file.name===resultA.canonicalName&&file.storage==='blob'&&file.blobName===originalPdf.blobName)).toBe(true);
 
+      // RC1670: The handoff is not proven by an unsaved draft. Exercise the
+      // canonical shipment save, reload the app, read server state and fetch the
+      // exact PDF blob from that persisted shipment record.
+      const customer=await page.evaluate(runId=>{
+        const s=window.__EXPORTHUB_GET_STATE__?.()||{};
+        const c=(s.customers||[]).find(x=>x&&x._e2eRunId===runId);
+        if(!c)return null;
+        const locations=[...(Array.isArray(c.locations)?c.locations:[]),...(Array.isArray(c.sites)?c.sites:[]),...(Array.isArray(c.standorte)?c.standorte:[])];
+        const location=locations.find(x=>x&&x._e2eRunId===runId)||locations[0];
+        return{id:String(c.id||''),account:String(c.account||c.customerNumber||''),name:String(c.name||c.customerName||''),locationId:String(location&&(location.id||location.locationId||location.siteId)||'')};
+      },session.runId);
+      expect(customer?.id,'TESTSERVICE fixture customer must exist for real shipment save').toBeTruthy();
+      expect(customer?.locationId,'TESTSERVICE fixture customer must have a destination').toBeTruthy();
+      const customerSearch=page.locator('#shipmentCustomerSearch');
+      await customerSearch.fill([customer.account,customer.name].filter(Boolean).join(' · '));
+      await customerSearch.press('Enter');
+      await expect.poll(()=>page.evaluate(()=>String(window.__EXPORTHUB_GET_STATE__?.().shipment?.customerId||'')),{timeout:15_000}).toBe(customer.id);
+      const location=page.locator('#index289LocationSelect');
+      await expect(location).toBeVisible({timeout:15_000});
+      await expect.poll(()=>location.locator('option').evaluateAll((opts,id)=>opts.some(o=>o.value===id),customer.locationId),{timeout:15_000}).toBe(true);
+      await location.selectOption({value:customer.locationId});
+      await expect(location).toHaveValue(customer.locationId);
+      const rows=page.locator('#rc573ColliCard .rc363-owned-row');
+      await expect(rows.first()).toBeVisible();
+      for(let i=0;i<await rows.count();i++){
+        const ldm=rows.nth(i).locator('[data-rc363-field="ldm"] input');
+        if(await ldm.count()){await ldm.fill('0.4');await ldm.blur();}
+      }
+      const goods=page.getByLabel(/Warenbeschreibung/i).first();
+      if(await goods.count())await goods.fill('E2E TEST delivery note handoff');
+      const refField=page.locator('#rc363BlockCustomer input[maxlength="6"][pattern*="A-Z0-9"]').first();
+      await expect(refField).toBeVisible();
+      const shipmentRef=String(await refField.inputValue()).trim().toUpperCase();
+      expect(shipmentRef).toMatch(/^[A-Z0-9]{6}$/);
+      const ready=await page.evaluate(({runId,notificationId,blobName})=>{
+        const s=window.__EXPORTHUB_GET_STATE__?.()||{},sh=s.shipment||{};
+        if(sh.packNotificationId!==notificationId)return false;
+        if(!(sh.deliveryFiles||[]).some(file=>file.blobName===blobName))return false;
+        sh._e2eRunId=runId;
+        return true;
+      },{runId:session.runId,notificationId:draft.packNotificationId,blobName:originalPdf.blobName});
+      expect(ready,'pack ownership and original PDF must survive customer selection').toBe(true);
+      await page.evaluate(()=>{window.__RC1670_SAVED_EVENTS__=[];window.addEventListener('exporthub:shipment-saved',e=>window.__RC1670_SAVED_EVENTS__.push(e?.detail||{}));});
+      await expect(page.locator('#rc363SaveShipment')).toBeEnabled();
+      await page.locator('#rc363SaveShipment').click();
+      await expect.poll(()=>page.evaluate(ref=>(window.__RC1670_SAVED_EVENTS__||[]).some(e=>String(e.reference||e.ref||'').toUpperCase()===ref)),{timeout:40_000}).toBe(true);
+      await expect.poll(()=>page.evaluate(({ref,notificationId,blobName})=>{
+        const s=window.__EXPORTHUB_GET_STATE__?.()||{};
+        const all=[...(s.shipments||[]),...(s.savedShipments||[]),...(s.sharedShipments||[])];
+        const sh=all.find(row=>String(row.ref||row.reference||'').toUpperCase()===ref&&row.packNotificationId===notificationId);
+        return !!sh&&(sh.deliveryFiles||[]).some(file=>file.blobName===blobName);
+      },{ref:shipmentRef,notificationId:draft.packNotificationId,blobName:originalPdf.blobName}),{timeout:40_000}).toBe(true);
+      await settleStateSave(page,{timeout:30_000});
+      await page.reload({waitUntil:'domcontentloaded'});
+      await waitReady(page);
+      await settleStateSave(page,{timeout:30_000});
+      const persisted=await page.evaluate(async({token,ref,notificationId,blobName})=>{
+        const res=await fetch('/api/exporthub-state?mode=read&full=1',{method:'GET',credentials:'same-origin',cache:'no-store',
+          headers:{Accept:'application/json','X-ExportHUB-Token':token,'X-ExportHUB-Session':token,Authorization:'Bearer '+token,'X-ExportHUB-Environment':'testservice'}});
+        const data=await res.json().catch(()=>({}));
+        const s=data.state||{},all=[...(s.shipments||[]),...(s.savedShipments||[]),...(s.sharedShipments||[])];
+        const sh=all.find(item=>String(item.ref||item.reference||'').toUpperCase()===ref&&item.packNotificationId===notificationId);
+        const doc=(sh?.deliveryFiles||[]).find(item=>item.blobName===blobName);
+        if(!doc)return{status:res.status,found:!!sh,document:false};
+        const viewer=window.ExportHUBDocumentBlob1059;
+        if(!viewer?.isBlobDocument?.(doc))return{status:res.status,found:true,document:false};
+        const bytes=await viewer.fetchBytes(doc);
+        return{status:res.status,found:true,document:true,storage:doc.storage,
+          blobName:doc.blobName,name:doc.name,count:bytes.length,signature:String.fromCharCode(...bytes.slice(0,5)),
+          customerVisible:doc.customerVisible,avisVisible:doc.customerAvisVisible};
+      },{token:session.token,ref:shipmentRef,notificationId:draft.packNotificationId,blobName:originalPdf.blobName});
+      expect(persisted.status).toBe(200);
+      expect(persisted.found,'shipment must survive server-side read after page reload').toBe(true);
+      expect(persisted.document,'real delivery note PDF must survive save and reload').toBe(true);
+      expect(persisted.storage).toBe('blob');
+      expect(persisted.blobName).toBe(originalPdf.blobName);
+      expect(persisted.name).toBe(resultA.canonicalName);
+      expect(persisted.signature).toBe('%PDF-');
+      expect(persisted.count).toBeGreaterThan(40);
+      expect(persisted.customerVisible).toBe(false);
+      expect(persisted.avisVisible).toBe(false);
+
       await assertNoHorizontalOverflow(page);
+      // A confirmed server save may have an aborted keepalive when reloading.
+      // Only allow the documented navigation abort after the server read above.
+      expect(acknowledgeConfirmedStateSaveNavigationAbort(runtime)).toBeLessThanOrEqual(1);
       await assertRuntimeClean(runtime,testInfo);
     }finally{
       await internal.close();

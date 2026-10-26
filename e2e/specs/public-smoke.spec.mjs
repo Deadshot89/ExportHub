@@ -280,7 +280,7 @@ test('Packmeldung: Lieferschein erscheint trotz haengender optionaler PDF-Erkenn
 });
 
 test('RC1499: echter QR-Packmeldungsfluss blockiert Production bei TESTSERVICE-Regression',async({browser},testInfo)=>{
-  test.setTimeout(180_000);
+  test.setTimeout(300_000);
   test.skip(process.env.EXPORTHUB_E2E_LIVE!=='1'||process.env.EXPORTHUB_E2E_MUTATION!=='1','RC1499 läuft nur im mutierenden TESTSERVICE-Gate.');
   test.skip(testInfo.project.name!=='laptop','RC1499 läuft genau einmal auf dem Laptop-Profil.');
   const token=packStationTokenFromFixture();
