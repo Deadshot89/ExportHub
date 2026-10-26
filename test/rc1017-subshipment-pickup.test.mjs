@@ -230,3 +230,22 @@ test('RC1406 P0: bestätigte aber noch nicht synchronisierte QR-Abholung bleibt 
   assert.doesNotMatch(recoveryBlock,/signatureDataUrl|customsDocumentsConfirmed|colliCount|enteredColliCount/);
   assert.match(recoveryBlock,/Abholung vollständig abgeschlossen/);
 });
+
+
+test('RC1666: verified parent never adopts a sub-shipment belonging to another shipment',async()=>{
+ const f=teamFixture({extraShipments:[{
+  id:'OTHER-SHIPMENT',ref:'OTHER-REF',status:'Erstellt',
+  subShipments:[{subShipmentId:'OTHER-TRUCK',sequence:3,total:3,status:'open'}]
+ }]});
+ try{
+  const record=completedSubPickup('OTHER-TRUCK',3,1,'2026-09-09T17:42:00.000Z');
+  // A current valid parent identity plus an alien truck identifier must fail closed.
+  record.shipmentId='S1';record.reference='ABC123';
+  await assert.rejects(()=>f.store.updateTeam(record,[],''),e=>e&&e.code==='TEAM_SHIPMENT_NOT_FOUND');
+  const state=f.getDocument().state;
+  assert.equal(state.shipments[0].subShipments[0].status,'open');
+  assert.equal(state.shipments[0].subShipments[1].status,'open');
+  assert.equal(state.shipments[1].subShipments[0].status,'open');
+  assert.equal(state.tasks[0].status,'offen');
+ }finally{f.restore()}
+});
