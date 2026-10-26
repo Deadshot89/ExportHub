@@ -105,17 +105,21 @@
   async function inflateDeflate(bytes){
     if(typeof DecompressionStream!=='function')return'';
     const stream=new DecompressionStream('deflate');
-    const writer=stream.writable.getWriter();
-    await writer.write(bytes);
-    await writer.close();
-    const reader=stream.readable.getReader(),chunks=[];
+    const writer=stream.writable.getWriter(),reader=stream.readable.getReader(),chunks=[];
     let size=0;
-    while(true){
-      const part=await reader.read();
-      if(part.done)break;
-      const chunk=part.value instanceof Uint8Array?part.value:new Uint8Array(part.value||0);
-      chunks.push(chunk);size+=chunk.length;
-    }
+    // Drain the readable side while writing: awaiting writer.close() before reading
+    // can deadlock on ordinary PDFs when the decompressed output fills the stream.
+    await Promise.all([
+      (async()=>{await writer.write(bytes);await writer.close();})(),
+      (async()=>{
+        while(true){
+          const part=await reader.read();
+          if(part.done)break;
+          const chunk=part.value instanceof Uint8Array?part.value:new Uint8Array(part.value||0);
+          chunks.push(chunk);size+=chunk.length;
+        }
+      })()
+    ]);
     const merged=new Uint8Array(size);
     let offset=0;
     for(const chunk of chunks){merged.set(chunk,offset);offset+=chunk.length;}
