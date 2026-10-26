@@ -81,13 +81,19 @@ function extractDocumentReferences(value){
 function normalizedPdfName(originalName,extractedText){
   const original=String(originalName==null?'':originalName);
   if(!/\.pdf$/i.test(original))return{name:original,renamed:false,reference:null,reason:'none'};
-  // Delivery-note DNC takes precedence over incidental SIDE paperwork numbers.
-  // Never guess when more than one distinct DNC is present in a PDF.
-  const contentRefs=extractDocumentReferences(extractedText),refs=contentRefs.length?contentRefs:extractDocumentReferences(original);
+  // DNC is a delivery-note identifier; incidental SIDE numbers in the PDF
+  // must not override a unique DNC already present in the filename.
+  const contentRefs=extractDocumentReferences(extractedText),filenameRefs=extractDocumentReferences(original);
+  const contentDncs=contentRefs.filter(ref=>ref.type==='DNC');
+  const filenameDncs=filenameRefs.filter(ref=>ref.type==='DNC');
+  const conflict=contentDncs.length>1||filenameDncs.length>1||
+    (contentDncs.length===1&&filenameDncs.length===1&&contentDncs[0].canonical!==filenameDncs[0].canonical);
+  if(conflict)return{name:original,renamed:false,reference:null,reason:'ambiguous'};
+  const dncs=contentDncs.length?contentDncs:filenameDncs;
+  const refs=dncs.length?dncs:(contentRefs.length?contentRefs:filenameRefs);
   if(!refs.length)return{name:original,renamed:false,reference:null,reason:'none'};
-  const dncs=refs.filter(ref=>ref.type==='DNC'),candidates=dncs.length?dncs:refs;
-  if(candidates.length!==1)return{name:original,renamed:false,reference:null,reason:'ambiguous'};
-  const reference=candidates[0];
+  if(refs.length!==1)return{name:original,renamed:false,reference:null,reason:'ambiguous'};
+  const reference=refs[0];
   return{name:reference.canonical+'.pdf',renamed:(reference.canonical+'.pdf')!==original,reference:reference.canonical,reason:reference.type==='SIDE'?'side':'dncs'};
 }
 function normalizePdfDocument(file,buffer,mimeType){
