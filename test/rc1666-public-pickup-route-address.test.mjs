@@ -202,6 +202,7 @@ test('RC1666: container upload API accepts properly linked saved-only shipment',
    getRecord:async()=>({record:{shipmentId:'SHIP-1',reference:'TEST123'}}),
    expired:()=>false,
    now:()=>new Date().toISOString(),
+   err:(code,message,status)=>Object.assign(new Error(message),{code,status}),
    mutateRecord:async(_key,_env,fn)=>fn({shipmentId:'SHIP-1',reference:'TEST123',environment:'testservice'}),
    updateTeamContainerDocumentation:async()=>team,
    json:(status,body)=>({status,body})
