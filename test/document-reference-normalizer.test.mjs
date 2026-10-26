@@ -45,7 +45,8 @@ test('normalizedPdfName renames only when exactly one unique DNC or SIDE exists'
 test('normalizedPdfName preserves original filename for no reference, ambiguous references, or non PDF',()=>{
   const api=load();
   assert.deepEqual(plain(api.normalizedPdfName('Lieferschein.pdf','keine passende Nummer')),{name:'Lieferschein.pdf',renamed:false,reference:null,reason:'none'});
-  assert.deepEqual(plain(api.normalizedPdfName('Mehrfach.pdf','DNC3019222063 SIDE250071282')),{name:'Mehrfach.pdf',renamed:false,reference:null,reason:'ambiguous'});
+  assert.deepEqual(plain(api.normalizedPdfName('Mehrfach.pdf','DNC3019222063 SIDE250071282')),{name:'DNC3019222063.pdf',renamed:true,reference:'DNC3019222063',reason:'dncs'});
+  assert.deepEqual(plain(api.normalizedPdfName('DNC 3019222063 Scan.pdf','Keine Nummer im PDF')),{name:'DNC3019222063.pdf',renamed:true,reference:'DNC3019222063',reason:'dncs'});
   assert.deepEqual(plain(api.normalizedPdfName('Mehrfach.pdf','DNC3019222063 DNC3019229999')),{name:'Mehrfach.pdf',renamed:false,reference:null,reason:'ambiguous'});
   assert.deepEqual(plain(api.normalizedPdfName('scan.jpg','DNC3019222063')),{name:'scan.jpg',renamed:false,reference:null,reason:'none'});
 });
