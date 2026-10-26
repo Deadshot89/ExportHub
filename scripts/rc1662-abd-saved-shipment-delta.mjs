@@ -2,10 +2,11 @@
 // previously posted the entire savedShipments array for each change. Unlike
 // shipments, the saved collection was missing from SYNC_COLLECTION_KEYS.
 // Use the existing per-record delta writer and the existing protective server
-// mergeCollection('savedShipments') implementation. No changes to status rules,
+// mergeCollection('savedShipments') implementation. The server uses REF-first
+// identity, so REF must take priority over potentially recycled editor IDs. No changes to status rules,
 // file validation, pickup permissions or Azure write acknowledgement.
 const FROM="const SYNC_COLLECTION_KEYS={shipments:['id','ref'],tasks:";
-const TO="const SYNC_COLLECTION_KEYS={shipments:['id','ref'],savedShipments:['id','ref'],tasks:";
+const TO="const SYNC_COLLECTION_KEYS={shipments:['id','ref'],savedShipments:['ref','id'],tasks:";
 export function patchRc1662SavedShipmentDeltaHtml(source,file='index.html'){
   const html=String(source);
   if(html.includes(TO))return html;
