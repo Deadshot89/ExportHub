@@ -240,3 +240,29 @@ test('RC1666: defekter oder zukünftiger AV-Prüfzeitstempel verhindert nicht de
     assert.equal(r.body.createdTasks,1,stamp);
   }
 });
+
+test('RC1666: mehrere ABD-Dateien über aktive und archivierte REF-Kopien erfordern mehrere AVs',async()=>{
+  const s=state(shipment({abdFiles:[{name:'ABD_1.pdf'}]}));
+  s.archivedShipments=[shipment({id:'S-OLD',ref:'ABC123',abdFiles:[{name:'ABD_2.pdf'}]})];
+  assert.equal(av.candidates(s,NOW).length,1,'nur ein Kandidat pro REF');
+  assert.equal(av.requiredAvCount(s,s.shipments[0]),2,'ABD-Evidenz muss über alle Kopien vereinigt werden');
+  const files={ABC123:[{name:'AV_1.pdf'}]},h=handler(s,files);
+  const first=await h.run();
+  assert.equal(first.body.createdTasks,1);
+  assert.equal(s.tasks[0].avRequiredCount,2);
+  assert.equal(s.tasks[0].avMissingCount,1);
+  files.ABC123.push({name:'AV_2.pdf'});
+  const complete=await h.run();
+  assert.equal(complete.body.closedTasks,1);
+  assert.equal(s.shipments[0].avPresent,true);
+  assert.equal(s.archivedShipments[0].avPresent,true);
+});
+
+test('RC1666: dieselbe ABD-Datei in mehreren REF-Kopien darf nicht doppelt gezählt werden',async()=>{
+  const s=state(shipment({abdFiles:[{id:'FILE1',name:'ABD_1.pdf'}]}));
+  s.savedShipments=[shipment({id:'S-COPY',ref:'ABC123',abdFiles:[{id:'FILE2',name:'ABD_1.pdf'}]})];
+  assert.equal(av.requiredAvCount(s,s.shipments[0]),1);
+  const r=await handler(s,{ABC123:[{name:'AV_1.pdf'}]}).run();
+  assert.equal(r.body.present,1);
+  assert.equal(avTasks(s).length,0);
+});
