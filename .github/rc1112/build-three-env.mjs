@@ -1204,7 +1204,7 @@ function shipmentAssociatedDocs(sh,prior){
   if(!matches(copy)||visited.indexOf(copy)>=0)return;
   visited.push(copy);
   try{arr(collectDocs(copy)).forEach(function(d){out.push(normalizeFallback(d))})}catch(_){}
-  addFields(copy,[['deliveryNoteFiles','Lieferscheine'],['deliveryNotes','Lieferscheine'],['invoiceDocuments','Rechnungen'],['cmrFiles','CMR'],['avFiles','AV'],['photos','Fotos'],['pickupPhotos','Abholfotos'],['containerPhotos','Containerfotos']])
+  addFields(copy,[['lieferscheine','Lieferscheine'],['deliveryNoteFiles','Lieferscheine'],['deliveryNotes','Lieferscheine'],['invoiceDocuments','Rechnungen'],['cmrFiles','CMR'],['avFiles','AV'],['photos','Fotos'],['pickupPhotos','Abholfotos'],['containerPhotos','Containerfotos']])
  }
  collect(sh);
  sources.forEach(function(root){
