@@ -104,6 +104,21 @@ test('RC1499: manueller Pack-E2E und Pflicht-Smoke verwenden denselben Live-Help
   assert.match(publicSmoke,/pack-notification-live\.mjs/);
 });
 
+test('RC1670: TESTSERVICE gate verifies persisted shipment PDF bytes after a real save and reload',()=>{
+  const helper=read(helperPath);
+  assert.match(helper,/locator\('#rc363SaveShipment'\)\.click\(\)/,'real shipment save click missing');
+  assert.match(helper,/page\.reload\(/,'real browser reload missing');
+  assert.match(helper,/mode=read&full=1/,'authenticated team-state reread missing');
+  assert.match(helper,/viewer\.fetchBytes\(doc\)/,'real Blob PDF content read missing');
+  assert.match(helper,/persisted\.signature\)\.toBe\('%PDF-'\)/,'PDF binary signature must be asserted');
+  assert.match(helper,/packNotificationId===notificationId/,'saved shipment must belong to originating pack');
+  assert.match(helper,/persisted\.blobName\)\.toBe\(originalPdf\.blobName\)/,'persisted Blob identity must equal original pack PDF');
+  assert.match(helper,/persisted\.avisVisible\)\.toBe\(false\)/,'private pack PDF must not be exposed to customer Avis');
+  const smoke=read(publicSmokePath),spec=read(packSpecPath);
+  assert.match(smoke,/test\.setTimeout\(300_000\)/);
+  assert.match(spec,/test\.setTimeout\(300_000\)/);
+});
+
 test('RC1499: geänderte E2E-Dateien bleiben syntaktisch gültig',()=>{
   for(const path of [fixturePath,packSpecPath,publicSmokePath,helperPath])execFileSync(process.execPath,['--check',path],{stdio:'pipe'});
 });
