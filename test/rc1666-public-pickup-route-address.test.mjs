@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {Readable} from 'node:stream';
+import vm from 'node:vm';
 import {createRequire} from 'node:module';
 
 const require=createRequire(import.meta.url);
@@ -107,5 +108,35 @@ test('RC1666: stale shipment copy does not mask valid saved address or required 
  }finally{
   if(previous===undefined)delete process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;
   else process.env.EXPORTHUB_STORAGE_CONNECTION_STRING=previous;
+ }
+});
+
+
+test('RC1666: already printed /?pickup=TOKEN QR bypasses the login SPA on both sites',()=>{
+ const redirect=fs.readFileSync('assets/rc1666-public-pickup-query-redirect.js','utf8');
+ const builder=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
+ assert.match(builder,/if\(file==='index.html'\|\|file==='TESTVERSION.html'\)/);
+ assert.match(builder,/injectImmediateRuntimeAfterHead\(html,'<script id="exporthub-rc1666-public-pickup-redirect">'\+redirect/);
+ const cases=[
+  {base:'https://www.exporthub360.de',query:'/?pickup='+'a'.repeat(48),token:'a'.repeat(48)},
+  {base:'https://example-testservice.azurestaticapps.net',query:'/?pickup='+'b'.repeat(48)+'&environment=testservice',token:'b'.repeat(48),env:'testservice'},
+  {base:'https://www.exporthub360.de',query:'/?ehcmd=pickup&ref=ABCDEF12',token:'ABCDEF12'},
+  {base:'https://www.exporthub360.de',query:'/?pickup=bad',token:'invalid'}
+ ];
+ for(const c of cases){
+  const navigations=[];
+  const location={href:c.base+c.query,replace(url){navigations.push(url)}};
+  vm.runInNewContext(redirect,{window:{location},URL},{timeout:1000});
+  assert.equal(navigations.length,1,c.query+': QR must be redirected');
+  const target=new URL(navigations[0]);
+  assert.equal(target.origin,c.base);
+  assert.equal(target.pathname,'/pickup.html');
+  assert.equal(target.searchParams.get('token'),c.token);
+  assert.equal(target.searchParams.get('environment'),c.env||null);
+ }
+ for(const query of ['/', '/?view=dashboard', '/?token=unrelated-password-reset']){
+  const navigations=[],location={href:'https://www.exporthub360.de'+query,replace(x){navigations.push(x)}};
+  vm.runInNewContext(redirect,{window:{location},URL},{timeout:1000});
+  assert.equal(navigations.length,0,'ordinary website login must be unchanged: '+query);
  }
 });
