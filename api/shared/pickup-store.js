@@ -53,12 +53,19 @@ function addressObject(source){
  return street||locality?[street,locality,country].filter(Boolean).join(', '):'';
 }
 function addressFromSource(source){
- const direct=addressObject(source);if(direct)return direct;
- if(!source||typeof source!=='object')return'';
- for(const key of ['locationData','siteData','location','selectedLocation','deliveryLocation','shippingLocation','destination','shipToLocation','recipientLocation','addressData']){
+ if(!source||typeof source!=='object')return addressObject(source);
+ // Explicit delivery details have priority over generic customer/head-office addresses.
+ for(const key of ['recipientAddress','deliveryAddress','shipToAddress','destinationAddress','consigneeAddress','formattedAddress','fullAddress','addressText']){
   const out=addressObject(source[key]);if(out)return out
  }
- return'';
+ // A selected delivery location must not be shadowed by a generic address.
+ for(const key of ['locationData','siteData','selectedLocation','deliveryLocation','shippingLocation','destination','shipToLocation','recipientLocation','addressData','location']){
+  const selected=source[key];
+  if(selected&&typeof selected==='object'&&!Array.isArray(selected)){
+   const out=addressObject(selected);if(out)return out
+  }
+ }
+ return addressObject(source);
 }
 function normKey(v){return String(v==null?'':v).trim().toLowerCase()}
 function sameKey(source,values,fields){
