@@ -10,7 +10,9 @@ test('RC1673: Android main-push release contract can read merged PR provenance w
   assert.ok(permissions,'Workflow permission contract missing');
   assert.match(permissions[1],/^  contents: read\s*$/m);
   assert.match(permissions[1],/^  pull-requests: read\b/m);
-  assert.doesNotMatch(permissions[1],/\bwrite\b/);
+  // YAML comments can describe write access without granting it. Inspect permission values only.
+  const actualPermissions=permissions[1].split('\n').map(line=>line.replace(/#.*/,'')).join('\n');
+  assert.doesNotMatch(actualPermissions,/^\s*[a-z-]+:\s*write\s*$/m);
   assert.match(workflow,/\n  build:\n    runs-on: ubuntu-latest\n    timeout-minutes: 30\n    env:\n      GITHUB_TOKEN: \$\{\{ github\.event_name == 'push' && github\.token \|\| '' \}\}/);
   assert.match(provenance,/const token=text\(env\.GITHUB_TOKEN\)/);
   assert.match(provenance,/if\(token\)headers\.Authorization=`Bearer \$\{token\}`/);
