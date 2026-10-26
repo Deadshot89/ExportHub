@@ -119,6 +119,11 @@ test('RC1666: already printed /?pickup=TOKEN QR bypasses the login SPA on both s
  const builder=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
  assert.match(builder,/if\(file==='index.html'\|\|file==='TESTVERSION.html'\)/);
  assert.match(builder,/injectImmediateRuntimeAfterHead\(html,'<script id="exporthub-rc1666-public-pickup-redirect">'\+redirect/);
+ const lastFeaturePatch=builder.indexOf('html=patchTaskPlannerV2UiCutover(html,file);');
+ const redirectInsertion=builder.indexOf("const redirect=fs.readFileSync(path.join(ROOT,'assets/rc1666-public-pickup-query-redirect.js')");
+ const finalWrite=builder.indexOf('fs.writeFileSync(target,html);',lastFeaturePatch);
+ assert.ok(lastFeaturePatch>=0&&lastFeaturePatch<redirectInsertion&&redirectInsertion<finalWrite,'QR redirect must be inserted after auth and other head modifications');
+ assert.match(builder,/redirect not first executable head script/);
  const cases=[
   {base:'https://www.exporthub360.de',query:'/?pickup='+'a'.repeat(48),token:'a'.repeat(48)},
   {base:'https://example-testservice.azurestaticapps.net',query:'/?pickup='+'b'.repeat(48)+'&environment=testservice',token:'b'.repeat(48),env:'testservice'},
