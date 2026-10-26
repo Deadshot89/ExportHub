@@ -147,3 +147,82 @@ test('RC1666: already printed /?pickup=TOKEN QR bypasses the login SPA on both s
   assert.equal(navigations.length,0,'ordinary website login must be unchanged: '+query);
  }
 });
+
+
+test('RC1666: container photo and seal sync into saved-only shipment without touching duplicate reference',async()=>{
+ const initial={revision:1,state:{
+  shipments:[{id:'ANOTHER-SHIPMENT',ref:'TEST123',containerPhotos:[]}],
+  savedShipments:[{id:'SHIP-1',ref:'TEST123',containerPhotos:[],subShipments:[{subShipmentId:'SUB-A',containerPhotos:[]}]}]
+ }};
+ let serialized=Buffer.from(JSON.stringify(initial)),writes=0;
+ const blob={
+  async download(){return{etag:'"etag-1"',readableStreamBody:Readable.from([serialized])}},
+  async upload(raw){serialized=Buffer.from(raw);writes++;return{etag:'"etag-2"'}}
+ };
+ const previous=process.env.EXPORTHUB_STORAGE_CONNECTION_STRING,original=Module._load;
+ process.env.EXPORTHUB_STORAGE_CONNECTION_STRING='mock-only-for-test';
+ Module._load=function(name,parent,isMain){
+  if(name==='@azure/storage-blob')return{BlobServiceClient:{fromConnectionString(){return{
+   getContainerClient(){return{async createIfNotExists(){},getBlockBlobClient(){return blob}}}
+  }}}};
+  return original.call(this,name,parent,isMain)
+ };
+ const id=require.resolve('../api/shared/pickup-store.js');delete require.cache[id];
+ let store;try{store=require(id)}finally{Module._load=original}
+ try{
+  const result=await store.updateTeamContainerDocumentation({
+   environment:'testservice',reference:'TEST123',shipmentId:'SHIP-1',subShipmentId:'SUB-A',
+   sealNumber:'SEAL-123',containerDocumentationRequired:true,
+   containerPhotos:[{kind:'loaded',blobName:'safe-photo-1'}]
+  });
+  assert.equal(writes,1);
+  assert.equal(result.state.shipments[0].containerPhotos.length,0,'conflicting shipment ID must stay intact');
+  const main=result.state.savedShipments[0],sub=main.subShipments[0];
+  assert.equal(main.sealNumber,'SEAL-123');
+  assert.equal(main.containerPhotos[0].blobName,'safe-photo-1');
+  assert.equal(sub.containerPhotos[0].blobName,'safe-photo-1');
+  assert.equal(main.containerDocumentationRequired,true);
+  assert.equal(JSON.parse(serialized).revision,2);
+ }finally{
+  if(previous===undefined)delete process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;
+  else process.env.EXPORTHUB_STORAGE_CONNECTION_STRING=previous;
+ }
+});
+
+test('RC1666: container upload API accepts properly linked saved-only shipment',async()=>{
+ const photo={kind:'loaded',blobName:'photos/safe-1'};
+ const team={state:{shipments:[{id:'WRONG',ref:'TEST123',containerPhotos:[]}],savedShipments:[
+  {id:'SHIP-1',ref:'TEST123',containerPhotos:[photo]}
+ ]}};
+ const real=Module._load,abs=require.resolve('../api/pickup-container-document/index.js');
+ const mocked={
+  '../shared/public-access-store':{resolve:async()=>({resourceKey:'test-access',environment:'testservice'})},
+  '../shared/pickup-store':{
+   body:()=>({token:'test-token',kind:'loaded',dataUrl:'image-placeholder'}),
+   getRecord:async()=>({record:{shipmentId:'SHIP-1',reference:'TEST123'}}),
+   expired:()=>false,
+   now:()=>new Date().toISOString(),
+   mutateRecord:async(_key,_env,fn)=>fn({shipmentId:'SHIP-1',reference:'TEST123',environment:'testservice'}),
+   updateTeamContainerDocumentation:async()=>team,
+   json:(status,body)=>({status,body})
+  },
+  '../shared/container-document-store':{kindOf:v=>v,savePhoto:async()=>photo,publicPhoto:p=>p},
+  '../shared/i18n':{t:(_req,v)=>v}
+ };
+ Module._load=function(request,parent,isMain){
+  if(Object.prototype.hasOwnProperty.call(mocked,request))return mocked[request];
+  return real.call(this,request,parent,isMain)
+ };
+ delete require.cache[abs];let handle;
+ try{handle=require(abs)}finally{Module._load=real}
+ const ctx={res:null},req={method:'POST'};
+ await handle(ctx,req);
+ assert.equal(ctx.res.status,200);
+ assert.equal(ctx.res.body.linkedToShipment,true);
+ assert.equal(ctx.res.body.storedUnderReference,true);
+ // The same reference without a matching shipment ID must not pass verification.
+ team.state.savedShipments[0].id='WRONG-SAVED-ID';
+ const bad={res:null};await handle(bad,req);
+ assert.equal(bad.res.status,503);
+ assert.equal(bad.res.body.code,'CONTAINER_TEAM_SYNC_FAILED');
+});
