@@ -362,10 +362,22 @@ async function updateTeamContainerDocumentation(record){
  const c=await clients(record.environment),blob=c.team.getBlockBlobClient(teamBlobName(c.environment));
  for(let i=0;i<MAX_RETRIES;i++){
   const d=await readJson(blob,null),doc=d.value||{schemaVersion:3,revision:0,state:{},users:[]};doc.state=doc.state||{};doc.state.shipments=Array.isArray(doc.state.shipments)?doc.state.shipments:[];
-  const ref=String(record.reference||'').trim().toUpperCase(),sid=String(record.shipmentId||'').trim(),
+  const ref=String(record.reference||'').trim().toUpperCase(),sid=String(record.shipmentId||'').trim(),subId=String(record.subShipmentId||'').trim(),
    shipmentCopies=[].concat(doc.state.shipments,Array.isArray(doc.state.savedShipments)?doc.state.savedShipments:[]),
-   matches=shipmentCopies.filter(x=>matchesTeamPickupShipment(x,sid,ref));
-  if(ambiguousLegacyPickup(matches,sid,ref))throw err('TEAM_SHIPMENT_AMBIGUOUS','Die Sendungsreferenz gehört zu mehreren unterschiedlichen Sendungen.',409);
+   parentMatches=shipmentCopies.filter(x=>matchesTeamPickupShipment(x,sid,ref));
+  if(ambiguousLegacyPickup(parentMatches,sid,ref))throw err('TEAM_SHIPMENT_AMBIGUOUS','Die Sendungsreferenz gehört zu mehreren unterschiedlichen Sendungen.',409);
+  // Photos from a multi-truck pickup must never be attached to the main shipment
+  // unless the exact intended sub-shipment exists. A stale parent ID may be
+  // recovered only through a unique exact subShipmentId.
+  const hasSub=sh=>Array.isArray(sh&&sh.subShipments)&&sh.subShipments.some(x=>String(x&&x.subShipmentId||'').trim()===subId);
+  let matches=subId?parentMatches.filter(hasSub):parentMatches;
+  if(subId&&!matches.length){
+   const recovered=shipmentCopies.filter(hasSub);
+   const parentIds=new Set(recovered.map(x=>String(x&&(x.shipmentId||x.id)||'').trim()).filter(Boolean));
+   if(parentIds.size>1||(recovered.length>1&&parentIds.size===0))throw err('TEAM_SHIPMENT_AMBIGUOUS','Teilsendung gehört zu mehreren Hauptsendungen.',409);
+   matches=recovered;
+  }
+  if(subId&&!matches.length)throw err('SUBSHIPMENT_NOT_FOUND','Teilsendung wurde in der Hauptsendung nicht gefunden.',409);
   if(!matches.length)return doc;
   const iso=String(record.containerDocumentationUpdatedAt||record.updatedAt||now()),photos=containerPhotosOf(record);
   for(const sh of matches){
