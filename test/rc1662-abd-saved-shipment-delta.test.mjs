@@ -82,6 +82,22 @@ test('RC1662: second ABD never removes existing document or touches another ship
  assert.equal(merged.savedShipments.find(x=>x.ref==='DEF456').abdFiles.length,0);
 });
 
+test('RC1662: same technical ID with different refs cannot cross-update saved shipments',()=>{
+ const before=fixture();
+ before.savedShipments[1].id=before.savedShipments[0].id; // historic duplicate editor ID
+ const after=structuredClone(before);
+ after.savedShipments[0].abdFiles=[{id:'ABD-REF-SAFE',name:'original.pdf'}];
+ after.savedShipments[0].abdDone=true;
+ const api=runtime(patched),at=api.stampChanges(before,after,[],[],'ABD als PDF dauerhaft gespeichert');
+ const delta=api.buildAzureStateDelta(before,after,at,'ABD als PDF dauerhaft gespeichert');
+ assert.equal(delta.savedShipments.length,1);
+ assert.equal(delta.savedShipments[0].ref,'ABC123');
+ assert.equal(delta.savedShipments[0].abdFiles[0].id,'ABD-REF-SAFE');
+ const merged=mergeState(before,delta);
+ assert.equal(merged.savedShipments.find(x=>x.ref==='ABC123').abdFiles[0].id,'ABD-REF-SAFE');
+ assert.equal(merged.savedShipments.find(x=>x.ref==='DEF456').abdFiles.length,0);
+});
+
 test('RC1662: builder applies the patch to each environment before the existing RC1600/1627 stack',()=>{
  const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
  assert.match(build,/import \{patchRc1662SavedShipmentDeltaHtml\} from '\.\.\/\.\.\/scripts\/rc1662-abd-saved-shipment-delta\.mjs'/);
