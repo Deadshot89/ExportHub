@@ -403,15 +403,16 @@ test('RC1666: container-upload API rejects parent-only proof when sub-shipment i
   id:'SHIP-1',ref:'TRUCK55',containerPhotos:[photo],
   subShipments:[{subShipmentId:'OTHER-TRUCK',containerPhotos:[]}]
  }]}};
+ let qrParentId='SHIP-1',qrParentRef='TRUCK55';
  const real=Module._load,abs=require.resolve('../api/pickup-container-document/index.js');
  const mocked={
   '../shared/public-access-store':{resolve:async()=>({resourceKey:'test-access',environment:'testservice'})},
   '../shared/pickup-store':{
    body:()=>({token:'test-token',kind:'loaded',dataUrl:'placeholder'}),
-   getRecord:async()=>({record:{shipmentId:'SHIP-1',reference:'TRUCK55',subShipmentId:'SUB-A'}}),
+   getRecord:async()=>({record:{shipmentId:qrParentId,reference:qrParentRef,subShipmentId:'SUB-A'}}),
    expired:()=>false,now:()=>new Date().toISOString(),
    err:(code,message,status)=>Object.assign(new Error(message),{code,status}),
-   mutateRecord:async(_key,_env,fn)=>fn({shipmentId:'SHIP-1',reference:'TRUCK55',subShipmentId:'SUB-A',environment:'testservice'}),
+   mutateRecord:async(_key,_env,fn)=>fn({shipmentId:qrParentId,reference:qrParentRef,subShipmentId:'SUB-A',environment:'testservice'}),
    updateTeamContainerDocumentation:async()=>team,
    json:(status,body)=>({status,body})
   },
@@ -435,4 +436,14 @@ test('RC1666: container-upload API rejects parent-only proof when sub-shipment i
  const verified={res:null};await handler(verified,req);
  assert.equal(verified.res.status,200);
  assert.equal(verified.res.body.linkedToShipment,true);
+ // Historic, still valid QR tokens may refer to an old parent ID and reference.
+ // The exact, unique subShipmentId must still confirm the already-synced photo.
+ qrParentId='STALE-PARENT';qrParentRef='STALE-REF';
+ const legacy={res:null};await handler(legacy,req);
+ assert.equal(legacy.res.status,200,'a uniquely recoverable old truck QR is valid');
+ team.state.shipments.push({id:'ANOTHER-PARENT',ref:'OTHER-REF',
+  subShipments:[{subShipmentId:'SUB-A',containerPhotos:[photo]}]});
+ const ambiguous={res:null};await handler(ambiguous,req);
+ assert.equal(ambiguous.res.status,503,'duplicate truck IDs across different parents must never be accepted');
+ assert.equal(ambiguous.res.body.code,'CONTAINER_TEAM_SYNC_FAILED');
 });
