@@ -371,7 +371,7 @@ async function updateTeamContainerDocumentation(record){
   // recovered only through a unique exact subShipmentId.
   const hasSub=sh=>Array.isArray(sh&&sh.subShipments)&&sh.subShipments.some(x=>String(x&&x.subShipmentId||'').trim()===subId);
   let matches=subId?parentMatches.filter(hasSub):parentMatches;
-  if(subId&&!matches.length){
+  if(subId&&!matches.length&&!parentMatches.length){
    const recovered=shipmentCopies.filter(hasSub);
    const parentIds=new Set(recovered.map(x=>String(x&&(x.shipmentId||x.id)||'').trim()).filter(Boolean));
    if(parentIds.size>1||(recovered.length>1&&parentIds.size===0))throw err('TEAM_SHIPMENT_AMBIGUOUS','Teilsendung gehört zu mehreren Hauptsendungen.',409);
@@ -426,7 +426,7 @@ async function updateTeam(record,podsToAdd=[],rawToken=''){
     return n===subSequence&&(!subTotal||!total||total===subTotal);
    }));
   }
-  if(subId&&!syncTargets.length){
+  if(subId&&!syncTargets.length&&!matches.length){
    const recovered=candidates.filter(hasMatchingSub);
    const parentIds=new Set(recovered.map(x=>String(x&&(x.shipmentId||x.id)||'').trim()).filter(Boolean));
    if(parentIds.size>1||recovered.length>1&&parentIds.size===0)throw err('TEAM_SHIPMENT_AMBIGUOUS','Teilsendung gehört zu mehreren Hauptsendungen.',409);
