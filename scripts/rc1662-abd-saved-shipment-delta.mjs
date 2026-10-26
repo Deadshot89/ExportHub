@@ -11,7 +11,10 @@ const SAME_FROM="function syncRecordSameIdentity(name,a,b){\n const fields=SYNC_
 const SAME_TO="function syncRecordSameIdentity(name,a,b){\n if(name==='savedShipments'){const refs=['ref','reference','shipmentRef','referenceNumber','referenceNo','refNo','refNr','sendungsnummer','exporthubRef','exportHubReference'];function reference(x){for(const key of refs){const v=lower(x&&x[key]);if(v)return v}return ''}const ar=reference(a),br=reference(b);if(ar||br)return !!ar&&ar===br;}\n const fields=SYNC_COLLECTION_KEYS[name]||";
 export function patchRc1662SavedShipmentDeltaHtml(source,file='index.html'){
   const html=String(source);
-  if(html.includes(TO))return html;
+  if(html.includes(TO)){
+    if(!html.includes(SAME_TO))throw new Error(file+': RC1662 partially applied: savedShipments identity guard missing');
+    return html;
+  }
   const count=html.split(FROM).length-1;
   if(count!==1){
     if(file==='demo.html'&&!html.includes('const SYNC_COLLECTION_KEYS='))return html;

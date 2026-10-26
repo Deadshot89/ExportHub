@@ -111,5 +111,6 @@ test('RC1662: builder applies the patch to each environment before the existing 
  assert.match(build,/hardenCustomerSaveHtml\(patchRc1662SavedShipmentDeltaHtml\(fs\.readFileSync\(target,'utf8'\),file\)\)/);
  assert.match(build,/const paginated=patchRc1602PodBrowserHtml\(hardenAckMergeSaveHtml\(hardened\)\)/);
  assert.equal(patchRc1662SavedShipmentDeltaHtml(patched),patched,'idempotent');
+ assert.throws(()=>patchRc1662SavedShipmentDeltaHtml(source.replace("const SYNC_COLLECTION_KEYS={shipments:['id','ref'],tasks:","const SYNC_COLLECTION_KEYS={shipments:['id','ref'],savedShipments:['ref','id'],tasks:")),/partially applied/,'never ship partial identity hardening');
  assert.throws(()=>patchRc1662SavedShipmentDeltaHtml(source.replace('const SYNC_COLLECTION_KEYS=', 'const OTHER_KEYS=')),/anchor 0x/);
 });
