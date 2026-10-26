@@ -25,5 +25,5 @@ jobs:
         with:
           node-version: '20'
           package-manager-cache: false
-      - name: RC1543 aktueller Europaletten-Kontostand auf der Ladeliste
-        run: node --test test/rc1543-loading-list-pallet-balance.test.mjs
+      - name: RC1603 ohne alten Palettenkonto-Kopf und mit aktuellem Kontostand
+        run: node --test --test-concurrency=1 test/rc1095-loading-list-pallet-account.test.mjs test/rc1543-loading-list-pallet-balance.test.mjs
