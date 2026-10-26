@@ -15,14 +15,20 @@ const DAY_MS=24*60*60*1000;
 
 function text(v){return String(v==null?'':v).trim()}
 function lower(v){return text(v).toLowerCase()}
-function refOf(sh){return text(sh&&(sh.ref||sh.reference)).toUpperCase()}
+function refOf(sh){
+  // Historic/archived entries use several REF field names. Prefer a valid
+  // six-character ExportHUB REF over an unrelated legacy reference field.
+  const keys=['ref','reference','shipmentRef','referenceNumber','referenceNo','refNo','refNr','exporthubRef','exportHubReference'];
+  for(const key of keys){const ref=text(sh&&sh[key]).toUpperCase();if(validRef(ref))return ref}
+  return text(sh&&(sh.ref||sh.reference)).toUpperCase();
+}
 function validRef(ref){return /^[A-Z0-9]{6}$/.test(ref)}
 function taskId(ref){return 'task:av-missing:'+ref}
 function isAvFileName(name){const n=text(name);return /^av/i.test(n)&&!/^avis/i.test(n)}
 function isAvTask(t){return !!t&&text(t.sourceType)===SOURCE_TYPE}
 function isOpenTask(t){return !!t&&t.done!==true&&t.completed!==true&&!/^(erledigt|done|closed|geschlossen)$/i.test(text(t.status))}
 
-const SHIPMENT_COLLECTIONS=['shipments','savedShipments','sharedShipments','salesSharedShipments','shipmentArchive','archivedShipments'];
+const SHIPMENT_COLLECTIONS=['shipments','savedShipments','sharedShipments','salesSharedShipments','shipmentArchive','archivedShipments','archive'];
 function shipmentIndex(state){
   const index=new Map();
   for(const key of SHIPMENT_COLLECTIONS){
