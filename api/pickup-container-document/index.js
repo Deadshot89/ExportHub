@@ -24,10 +24,13 @@ function linkedInTeam(teamDoc,record,photo){
   if(sid&&id&&sid!==id&&!(ref&&sid.toUpperCase()===ref))return false;
   if(ref&&reference&&ref!==reference)return false;
   if(!((sid&&sid===id)||(ref&&ref===reference)))return false;
-  const sub=record&&record.subShipmentId&&Array.isArray(sh.subShipments)?sh.subShipments.find(x=>text(x&&x.subShipmentId)===text(record.subShipmentId)):null;
-  // The pickup source stores photos on the main shipment as well as the sub-shipment.
-  const targets=sub?[sub,sh]:[sh];
-  return targets.some(target=>(Array.isArray(target&&target.containerPhotos)?target.containerPhotos:[]).some(x=>text(x&&x.kind).toLowerCase()===text(photo&&photo.kind).toLowerCase()&&(!text(photo&&photo.blobName)||text(x&&x.blobName)===text(photo&&photo.blobName))));
+  const subId=text(record&&record.subShipmentId);
+  const sub=subId&&Array.isArray(sh.subShipments)?sh.subShipments.find(x=>text(x&&x.subShipmentId)===subId):null;
+  // For multi-truck QR scans, a photo on the parent alone is not proof that
+  // the correct truck's sub-shipment received it. Never return false success.
+  if(subId&&!sub)return false;
+  const target=subId?sub:sh;
+  return (Array.isArray(target&&target.containerPhotos)?target.containerPhotos:[]).some(x=>text(x&&x.kind).toLowerCase()===text(photo&&photo.kind).toLowerCase()&&(!text(photo&&photo.blobName)||text(x&&x.blobName)===text(photo&&photo.blobName)));
  });
 }
 module.exports=async function(context,req){
