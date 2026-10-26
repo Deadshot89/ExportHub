@@ -11,6 +11,7 @@ import {patchRc1576StateBodyDeadline} from '../../scripts/rc1576-state-read-body
 import {patchRc1619LargeStateWorkerParse} from '../../scripts/rc1619-large-state-worker-parse.mjs';
 import {hardenCustomerSaveHtml} from '../../scripts/rc1600-customer-save-readback.mjs';
 import {hardenAckMergeSaveHtml} from '../../scripts/rc1627-ack-merge-save.mjs';
+import {patchRc1662SavedShipmentDeltaHtml} from '../../scripts/rc1662-abd-saved-shipment-delta.mjs';
 import {patchRc1602PodBrowserHtml} from '../../scripts/rc1602-pod-browser-pagination.mjs';
 
 const ROOT=process.cwd();
@@ -1703,7 +1704,7 @@ fs.copyFileSync(rc1114ShippingSrc,rc1114ShippingOut);
 for(const file of ['index.html','TESTVERSION.html','demo.html'])patchHtml(file);
 for(const file of ['index.html','TESTVERSION.html','demo.html']){
   const target=path.join(OUT,file);
-  const hardened=hardenCustomerSaveHtml(fs.readFileSync(target,'utf8'));
+  const hardened=hardenCustomerSaveHtml(patchRc1662SavedShipmentDeltaHtml(fs.readFileSync(target,'utf8'),file));
   const paginated=patchRc1602PodBrowserHtml(hardenAckMergeSaveHtml(hardened));
   const oldContacts='assets/rc1092-customer-mail-contacts.js?v=1399';
   if(!paginated.includes(oldContacts))throw new Error(file+': RC1600 Kontaktcache-Anker fehlt');

@@ -56,8 +56,7 @@ function loadMaster(state){
   const m=html.match(/<script id="index243-idempotent-task-seed-migration">([\s\S]*?)<\/script>/);
   assert.ok(m,'RC848-Wochenstamm im Quelltext');
   const window={__EXPORTHUB_GET_STATE__:()=>state,addEventListener(){},dispatchEvent(){},ExportHUBClean:{queueSave(){}}};
-  // Avoid implicit boot for the real current week: every test explicitly calls ensureWeek for its fixture week.
-  const document={readyState:'loading',addEventListener(){}};
+  const document={readyState:'complete',addEventListener(){}};
   vm.runInNewContext(m[1],{window,document,console,CustomEvent:class{constructor(n,o){this.type=n;this.detail=o&&o.detail}},setTimeout:()=>0});
   return window.ExportHUBTaskMasterRC848;
 }
@@ -81,7 +80,9 @@ test('Wochenstamm: Aufgaben ohne Titel aus dem Wochenplan werden wieder aufgefü
   const state={tasks:[{id:'M848:mo-p-uk:2026-W43',status:'open',priority:'P4',group:'Offene Sendungen',sourceType:'shipment'}],_teamSyncMeta:{fields:{},tombstones:[]}};
   const api=loadMaster(state);
   api.ensureWeek('2026-10-21',false);
-  const uk=state.tasks.filter(t=>/^M848:mo-p-uk:/.test(t.id));
+  // boot() seeds the CURRENT week too: 2026-W44 and the requested 2026-W43
+  // are two valid occurrences, not duplicates of the same weekly assignment.
+  const uk=state.tasks.filter(t=>/^M848:mo-p-uk:2026-W43(?::neu)?$/.test(t.id));
   assert.equal(uk.length,1,'keine Dublette');
   assert.equal(uk[0].title,'UK');
   assert.equal(uk[0].area,'Picken');
