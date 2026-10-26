@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {spawnSync} from 'node:child_process';
 import {createRequire} from 'node:module';
 
 const require=createRequire(import.meta.url);
@@ -315,4 +316,41 @@ test('RC1666: fehlerhafte REF-Dateiliste erzeugt keine falsche AV-Aufgabe',async
   assert.equal(r.body.errorCount,1);
   assert.equal(r.body.errors[0].code,'GRAPH_REFERENCE_FOLDER_LIST_INVALID');
   assert.equal(avTasks(s).length,0);
+});
+
+function graphFolderListingFixture(kind){
+  // Run with an isolated process: mock Graph token/file responses without
+  // leaking the fake global fetch or credentials into concurrent test suites.
+  const script = [
+    "const folder=require('./api/shared/reference-folder-upload.js');",
+    "const mode=process.argv[1];let pages=0;",
+    "global.fetch=async url=>{",
+    " if(String(url).includes('login.microsoftonline.com'))return {ok:true,json:async()=>({access_token:'fixture',expires_in:3600})};",
+    " pages++;",
+    " if(mode==='invalid')return {ok:true,json:async()=>({unexpected:true})};",
+    " const pageCount=mode==='truncated'?7:6;",
+    " const data={value:[{id:'file'+pages,name:'AV_'+pages+'.pdf',file:{mimeType:'application/pdf'}}]};",
+    " if(pages<pageCount)data['@odata.nextLink']='https://graph.microsoft.com/v1.0/next?page='+pages;",
+    " return {ok:true,json:async()=>data};",
+    "};",
+    "folder.listFiles('ABC123').then(files=>console.log(JSON.stringify({ok:true,count:files.length}))).catch(e=>console.log(JSON.stringify({ok:false,code:e.code})));"
+  ].join('\n');
+  const res=spawnSync(process.execPath,['-e',script,kind],{
+    cwd:process.cwd(),encoding:'utf8',
+    env:{...process.env,EXPORTHUB_GRAPH_TENANT_ID:'fixture',EXPORTHUB_GRAPH_CLIENT_ID:'fixture',EXPORTHUB_GRAPH_CLIENT_SECRET:'fixture'}
+  });
+  assert.equal(res.status,0,res.stderr);
+  return JSON.parse(res.stdout.trim());
+}
+
+test('RC1666: Graph REF-Dateiliste mit ungültiger Antwort darf keine AV-Entscheidung erzeugen',()=>{
+  assert.deepEqual(graphFolderListingFixture('invalid'),{ok:false,code:'GRAPH_REFERENCE_FOLDER_LIST_INVALID'});
+});
+
+test('RC1666: mehr als sechs Graph-Dateiseiten dürfen nicht stillschweigend abgeschnitten werden',()=>{
+  assert.deepEqual(graphFolderListingFixture('truncated'),{ok:false,code:'GRAPH_REFERENCE_FOLDER_LIST_TRUNCATED'});
+});
+
+test('RC1666: vollständige Graph-Dateiliste über sechs Seiten wird korrekt gelesen',()=>{
+  assert.deepEqual(graphFolderListingFixture('complete'),{ok:true,count:6});
 });
