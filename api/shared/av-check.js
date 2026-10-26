@@ -7,7 +7,7 @@
 
 const pickupStore=require('./pickup-store');
 
-const AV_DUE_DAYS=Math.max(1,Math.round(Number(process.env.EXPORTHUB_AV_DUE_DAYS)||5));
+const AV_DUE_DAYS=0; // RC1666: Kontrolle ab tatsächlichem ABD, ohne 5-Tage-Wartefrist
 const AV_LOOKBACK_DAYS=0; // RC1666: historischer Backfill ist unbegrenzt; keine 60-Tage-Ausschlüsse
 const SOURCE_TYPE='av_missing';
 const AREA='Ausgangsvermerk';
