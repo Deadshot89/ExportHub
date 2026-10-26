@@ -51,11 +51,13 @@ function shipmentHasAbd(state,sh){
   return pickupStore.abdPresent(sh)||abdRequestsFor(state,sh).some(r=>pickupStore.abdPresent(r));
 }
 
-function requiredAvCount(state,sh){
+function requiredAvCount(state,sh,indexedCopies){
+  // Accept already indexed copies during historical scans to avoid rebuilding
+  // the full shipment index once per shipment (quadratic growth).
   // A REF can occur in active, saved, shared and archived collections.
   // Count distinct ABD evidence across all copies: taking the maximum count
   // per copy would miss ABD_1 in an active copy and ABD_2 in an archived copy.
-  const copies=shipmentCopies(state,refOf(sh));
+  const copies=Array.isArray(indexedCopies)?indexedCopies:shipmentCopies(state,refOf(sh));
   const sources=copies.length?copies:[sh];
   const requestKeys=new Set(),documentKeys=new Set();
   let maxUnnamed=0;
@@ -105,7 +107,7 @@ function candidates(state,now){
     const day=pickupDay(sh);
     const latestCheck=copies.map(x=>text(x.avCheckedAt)).filter(Boolean).sort().pop()||'';
     out.push({reference:ref,shipmentId:text(sh.id||sh.shipmentId),pickupDay:day,
-      dueDay:day?dueDay(day):'',eligible:hasAbd,requiredAvCount:hasAbd?Math.max(...copies.map(s=>requiredAvCount(state,s))):0,
+      dueDay:day?dueDay(day):'',eligible:hasAbd,requiredAvCount:hasAbd?requiredAvCount(state,sh,copies):0,
       lastCheckedAt:latestCheck});
   }
   return out.sort((a,b)=>a.lastCheckedAt.localeCompare(b.lastCheckedAt)||a.reference.localeCompare(b.reference));
@@ -136,7 +138,7 @@ function applyResult(state,reference,result,now){
   const avFiles=Array.isArray(result&&result.avFiles)?result.avFiles:(result&&result.avFile?[result.avFile]:[]);
   const count=avFiles.filter(f=>isAvFileName(f&&f.name)).length;
   const hasAbd=copies.some(x=>shipmentHasAbd(state,x));
-  const required=hasAbd?Math.max(...copies.map(x=>requiredAvCount(state,x))):0;
+  const required=hasAbd?requiredAvCount(state,sh,copies):0;
   const present=required>0&&count>=required;
   for(const copy of copies){
     copy.avPresent=present;
