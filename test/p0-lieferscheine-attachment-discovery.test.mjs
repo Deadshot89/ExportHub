@@ -95,3 +95,42 @@ test('P0 RC1677: persisted document fields and the UI discovery helper stay alig
  assert.ok(buildFields,'active RC1112 document collector exists');
  for(const key of keys)assert.ok(buildFields[1].includes("['"+key+"',"),'Missing stored field from REF document collector: '+key);
 });
+
+
+test('P0 RC1677: merged REF folder and saved uploads keep distinct same-name original files',()=>{
+ const {context}=collector();
+ const sameName='SIDE_9WX5K6.pdf';
+ const graph={name:sameName,source:'referenceFolder',itemId:'graph-original-1'};
+ const stored={name:sameName,source:'shipmentState',file:{
+   name:sameName,storage:'blob',blobName:'rc1059/production/ab/'+'1'.repeat(64)
+ }};
+ const another={name:sameName,source:'shipmentState',file:{
+   name:sameName,storage:'blob',blobName:'rc1059/production/ab/'+'2'.repeat(64)
+ }};
+ const merged=context.mergeReferenceDocs([graph],[stored,another]);
+ assert.equal(merged.length,3,'different Graph and Blob originals with the same name must remain accessible');
+ assert.equal(merged[0].itemId,'graph-original-1');
+ assert.equal(merged[1].file.blobName,stored.file.blobName);
+ assert.equal(merged[2].file.blobName,another.file.blobName);
+});
+
+test('P0 RC1677: merged documents collapse only proven same storage IDs',()=>{
+ const {context}=collector();
+ const name='SIDE_9WX5K6.pdf',blobName='rc1059/production/ab/'+'3'.repeat(64);
+ const blob={name,source:'shipmentState',file:{name,storage:'blob',blobName}};
+ const result=context.mergeReferenceDocs(
+  [{name,source:'referenceFolder',itemId:'graph-1'},{name,source:'referenceFolder',itemId:'graph-1'}],
+  [blob,{...blob,file:{...blob.file}}]
+ );
+ assert.equal(result.length,2,'same Graph ID and same Blob identity must appear once each');
+ assert.equal(result[0].source,'referenceFolder');
+ assert.equal(result[1].file.blobName,blobName);
+});
+
+test('P0 RC1677: same-name inline attachments are not silently discarded',()=>{
+ const {context}=collector(),name='DELIVERY_NOTE.pdf';
+ const first={name,source:'shipmentState',file:{name,dataUrl:'data:application/pdf;base64,JVBERi0xLjQ='}};
+ const second={name,source:'shipmentState',file:{name,dataUrl:'data:application/pdf;base64,JVBERi0xLjU='}};
+ const documents=context.mergeReferenceDocs([],[first,second]);
+ assert.equal(documents.length,2,'without storage identity, retain both independent inline documents');
+});
