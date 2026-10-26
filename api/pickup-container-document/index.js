@@ -41,8 +41,9 @@ function linkedInTeam(teamDoc,record,photo){
  // Only older QR records with stale parent IDs can be recovered by their
  // *exact*, unique truck ID; sequence or shared reference is never enough.
  const recovered=shipments.filter(sh=>!!matchingSub(sh));
- const ids=new Set(recovered.map(sh=>text(sh&& (sh.shipmentId||sh.id))));
- if(!recovered.length||ids.size!==1||ids.has(''))return false;
+ const ids=new Set(recovered.map(sh=>text(sh&&(sh.shipmentId||sh.id))));
+ const refs=new Set(recovered.map(sh=>text(sh&&(sh.reference||sh.ref||sh.shipmentRef)).toUpperCase()).filter(Boolean));
+ if(!recovered.length||ids.size!==1||ids.has('')||refs.size>1)return false;
  return recovered.some(sh=>hasPhoto(matchingSub(sh)));
 }
 module.exports=async function(context,req){
