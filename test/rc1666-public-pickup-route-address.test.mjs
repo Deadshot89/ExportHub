@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {Readable} from 'node:stream';
 import {createRequire} from 'node:module';
 
 const require=createRequire(import.meta.url);
@@ -60,4 +61,48 @@ test('RC1666: delivery address never degrades to a dash or standalone country',(
  assert.equal(store.addressFromSource({address:'—',locationData:{street:'Hafenstraße 9',zip:'41460',city:'Neuss'}}),'Hafenstraße 9, 41460 Neuss');
  assert.equal(store.addressFromSource({recipientAddress:{street:'Logistikweg 8',postalCode:'47906',city:'Kempen'}}),'Logistikweg 8, 47906 Kempen');
  assert.equal(store.addressFromSource({address:'-',country:'DE'}),'');
+});
+
+
+test('RC1666: stale shipment copy does not mask valid saved address or required container evidence',async()=>{
+ const team={
+  state:{
+   shipments:[
+    {id:'SHIP-1',ref:'TEST123',recipientAddress:'-',containerDocumentationRequired:false},
+    {id:'WRONG-SHIP',ref:'TEST123',recipientAddress:'Falsche Straße 99',containerDocumentationRequired:true}
+   ],
+   savedShipments:[
+    {id:'SHIP-1',ref:'TEST123',deliveryAddress:{street:'Richtiger Weg 4',zip:'41334',city:'Nettetal'},transportMode:'sea',containerDocumentationRequired:true}
+   ],
+   customers:[{id:'C-1',name:'Kunde',address:'Hauptstraße 1'}]
+  }
+ };
+ const original=Module._load;
+ const previous=process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;
+ process.env.EXPORTHUB_STORAGE_CONNECTION_STRING='mock-only-for-test';
+ const fakeBlob={
+  async download(){return{readableStreamBody:Readable.from([Buffer.from(JSON.stringify(team))]),etag:'mock-1'}}
+ };
+ Module._load=function(name,parent,isMain){
+  if(name==='@azure/storage-blob')return {
+   BlobServiceClient:{fromConnectionString(){return{
+    getContainerClient(){return{async createIfNotExists(){},getBlockBlobClient(){return fakeBlob}}}
+   }}}
+  };
+  return original.call(this,name,parent,isMain)
+ };
+ const id=require.resolve('../api/shared/pickup-store.js');
+ delete require.cache[id];
+ let store;
+ try{store=require(id)}finally{Module._load=original}
+ try{
+  const record={shipmentId:'SHIP-1',reference:'TEST123',address:'-'};
+  assert.equal(await store.resolveShipmentAddress(record,'testservice'),'Richtiger Weg 4, 41334 Nettetal');
+  const cfg=await store.resolveShipmentContainerConfig(record,'testservice');
+  assert.equal(cfg.containerDocumentationRequired,true);
+  assert.equal(cfg.transportMode,'sea');
+ }finally{
+  if(previous===undefined)delete process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;
+  else process.env.EXPORTHUB_STORAGE_CONNECTION_STRING=previous;
+ }
 });
