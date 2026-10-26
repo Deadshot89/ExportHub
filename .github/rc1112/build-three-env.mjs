@@ -1402,6 +1402,14 @@ function patchRc1331MultiTruckSaveIsolation(html,file){
 function patchHtml(file){
   const target=path.join(OUT,file);
   let html=fs.readFileSync(target,'utf8');
+  // Existing pickup QR codes point to /?pickup=TOKEN. Redirect in the outer head
+  // before any application/auth scripts can mount the private SPA or login UI.
+  if(file==='index.html'||file==='TESTVERSION.html'){
+    const redirect=fs.readFileSync(path.join(ROOT,'assets/rc1666-public-pickup-query-redirect.js'),'utf8');
+    if(redirect.includes('</script'))throw new Error('RC1666 pickup redirect contains unsafe script-close markup');
+    html=injectImmediateRuntimeAfterHead(html,'<script id="exporthub-rc1666-public-pickup-redirect">'+redirect+'</script>','exporthub-rc1666-public-pickup-redirect');
+    if(!html.includes('id="exporthub-rc1666-public-pickup-redirect"'))throw new Error(file+': RC1666 root pickup redirect missing');
+  }
   html=patchRc1289AuthTransportFallback(html,file);
   html=patchRc1576StateBodyDeadline(html,file);
   html=patchRc1619LargeStateWorkerParse(html,file);
