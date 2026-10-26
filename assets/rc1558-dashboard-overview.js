@@ -79,6 +79,9 @@ function buildModel(api,shipments,now){
   var openTasks=arr(api.taskOpenList());
   var dueTasks=openTasks.filter(api.dueTask);
   var lateTasks=dueTasks.filter(function(t){var d=dueOf(t);return d&&dayKey(d)<today});
+  // RC1666: server-verified AV tasks include historical and archived shipments.
+  // The KPI only shows validated missing documents, never guesses from 'ABD required'.
+  var avMissingTasks=openTasks.filter(function(task){return low(task&&task.sourceType)==='av_missing'});
   var todayList=arr(shipments).filter(function(s){var d=dateOf(s);return s&&!isCancelled(s)&&d&&dayKey(d)===today})
     .sort(function(a,b){return dateOf(a)-dateOf(b)});
   var todayDone=todayList.filter(isPickedUp).length;
@@ -91,6 +94,7 @@ function buildModel(api,shipments,now){
     {id:'today',value:todayList.length,sub:t('dashboard.overview.kpi.todaySub',{done:todayDone,open:todayList.length-todayDone}),tone:'neutral',route:'shipmentoverview'},
     {id:'open',value:open.length,sub:t('dashboard.overview.kpi.openSub',{ready:readyForPickup.length}),tone:'neutral',route:'shipmentoverview'},
     {id:'abd',value:waitingAbd.length,sub:t('dashboard.overview.kpi.abdSub'),tone:waitingAbd.length?'crit':'neutral',route:'shipmentoverview'},
+    {id:'avMissing',value:avMissingTasks.length,sub:t('dashboard.overview.kpi.avMissingSub'),tone:avMissingTasks.length?'warn':'neutral',route:'tasks'},
     {id:'documents',value:needsDocs.length,sub:t('dashboard.overview.kpi.documentsSub'),tone:needsDocs.length?'warn':'neutral',route:'shipmentoverview'},
     {id:'pod',value:needsPod.length,sub:t('dashboard.overview.kpi.podSub'),tone:needsPod.length?'warn':'neutral',route:'shipmentoverview'},
     {id:'tasks',value:dueTasks.length,sub:t('dashboard.overview.kpi.tasksSub',{late:lateTasks.length}),tone:lateTasks.length?'warn':'neutral',route:'tasks'}
@@ -115,7 +119,7 @@ function buildModel(api,shipments,now){
   });
 
   // what each tile stands for – the drill-down filters the target view to exactly these records
-  var sets={today:todayList,open:open,abd:waitingAbd,documents:needsDocs,pod:needsPod,tasks:dueTasks};
+  var sets={today:todayList,open:open,abd:waitingAbd,avMissing:avMissingTasks,documents:needsDocs,pod:needsPod,tasks:dueTasks};
 
   return{kpis:kpis,today:today_rows,todayTotal:todayList.length,attention:attention.slice(0,MAX_ATTENTION),attentionTotal:attention.length,tasks:tasks,tasksTotal:openTasks.length,sets:sets}
 }
@@ -146,6 +150,7 @@ var ICONS={
   today:'<path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/>',
   open:'<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/>',
   abd:'<path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M12 8v5M12 16v.5"/>',
+  avMissing:'<path d="M7 3h8l4 4v14H7zM15 3v4h4"/><path d="M13 11v5M13 19v.5"/>',
   documents:'<path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M10 12h5M10 16h5"/>',
   pack:'<path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/>',
   pod:'<path d="M4 17c3-1 4-5 6-5s1.5 4 3.5 4 2-3 3.5-3 2 1.5 3 2"/><path d="M4 21h16"/>',
@@ -295,7 +300,7 @@ function taskListHtml(tasks){
     var meta=(late?t('dashboard.overview.drill.overdue')+' · ':'')+(d?t('dashboard.overview.drill.due',{date:fmtDay(d)}):t('dashboard.overview.drill.noDue'))+(q(task&&(task.assignedToName||task.owner))?' · '+q(task.assignedToName||task.owner):'');
     return'<li class="rc1569-drill-task'+(late?' is-late':'')+'"><div class="rc1569-drill-task-main"><strong>'+esc(q(task&&(task.title||task.name||task.subject))||t('dashboard.overview.tasks.untitled'))+'</strong>'+
       '<span>'+(/^P\d$/i.test(prio)?'<b class="rc1569-prio">'+esc(prio.toUpperCase())+'</b> ':'')+esc(meta)+'</span></div>'+
-      '<div class="rc1569-drill-actions"><button type="button" class="btn" data-rc1569-done="'+esc(id)+'">'+esc(t('dashboard.overview.drill.done'))+'</button>'+
+      '<div class="rc1569-drill-actions">'+(low(task&&task.sourceType)==='av_missing'?'':'<button type="button" class="btn" data-rc1569-done="'+esc(id)+'">'+esc(t('dashboard.overview.drill.done'))+'</button>')+
       '<button type="button" class="ghost" data-rc1569-open-task="'+esc(id)+'">'+esc(t('dashboard.overview.drill.open'))+'</button></div></li>'
   }).join('')+'</ul>'
 }
@@ -313,7 +318,7 @@ function applyDrill(){
   if(view!==drill.view){if(drill.seen)clearDrill();return}
   var root=d.getElementById('content');if(!root)return;
   drill.seen=true;
-  var records=drillRecords(drill.kpi),isTasks=drill.kpi==='tasks';
+  var records=drillRecords(drill.kpi),isTasks=drill.kpi==='tasks'||drill.kpi==='avMissing';
   var box=d.getElementById(DRILL_ID);
   if(!box||box.parentNode!==root){
     if(box)box.remove();
