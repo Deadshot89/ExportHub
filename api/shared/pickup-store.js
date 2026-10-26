@@ -71,15 +71,18 @@ async function resolveShipmentAddress(record,environment='production'){
  const c=await clients(environment),blob=c.team.getBlockBlobClient(teamBlobName(c.environment)),loaded=await readJson(blob,null),doc=loaded.value||{},state=doc.state&&typeof doc.state==='object'?doc.state:doc;
  const shipments=[].concat(Array.isArray(state.shipments)?state.shipments:[],Array.isArray(state.savedShipments)?state.savedShipments:[]),
   sid=String(record&&record.shipmentId||'').trim(),ref=String(record&&record.reference||record&&record.ref||'').trim().toUpperCase();
- const shipment=shipments.find(function(x){
+ const matches=shipments.filter(function(x){
   if(!x||typeof x!=='object')return false;
   const xid=String(x.shipmentId||x.id||'').trim(),xref=String(x.reference||x.ref||x.shipmentRef||'').trim().toUpperCase();
   // Never use an unrelated record if one of its explicit identifiers contradicts the QR.
   if(sid&&xid&&sid!==xid)return false;
   if(ref&&xref&&ref!==xref)return false;
   return !!((sid&&xid===sid)||(ref&&xref===ref))
- })||null;
- const shipmentAddress=addressFromSource(shipment);if(shipmentAddress)return shipmentAddress;
+ });
+ // Historical shipment entries may be stale. Prefer the actual delivery address of
+ // any safely matched shipment over falling back to the customer's main address.
+ for(const matched of matches){const shipmentAddress=addressFromSource(matched);if(shipmentAddress)return shipmentAddress}
+ const shipment=matches[0]||null;
  const customers=Array.isArray(state.customers)?state.customers:[],ids=[
   shipment&&shipment.customerId,shipment&&shipment.customerAccount,shipment&&shipment.customerNumber,shipment&&shipment.kundennummer,
   record&&record.customerId,record&&record.customerAccount,record&&record.customerNumber
@@ -119,14 +122,16 @@ async function resolveShipmentContainerConfig(record,environment='production'){
  const c=await clients(environment),blob=c.team.getBlockBlobClient(teamBlobName(c.environment)),loaded=await readJson(blob,null),doc=loaded.value||{},state=doc.state&&typeof doc.state==='object'?doc.state:doc;
  const shipments=[].concat(Array.isArray(state.shipments)?state.shipments:[],Array.isArray(state.savedShipments)?state.savedShipments:[]),
   sid=String(record&&record.shipmentId||'').trim(),ref=String(record&&(record.reference||record.ref)||'').trim().toUpperCase();
- const sh=shipments.find(x=>{
+ const matches=shipments.filter(x=>{
   if(!x||typeof x!=='object')return false;
   const xid=String(x.shipmentId||x.id||'').trim(),xref=String(x.reference||x.ref||x.shipmentRef||'').trim().toUpperCase();
   if(sid&&xid&&sid!==xid)return false;
   if(ref&&xref&&ref!==xref)return false;
   return !!((sid&&xid===sid)||(ref&&xref===ref))
- })||null;
- return{transportMode:transportModeOf(sh)||transportModeOf(record),containerDocumentationRequired:containerDocumentationRequired(sh)||containerDocumentationRequired(record)};
+ });
+ // A stale copy must never suppress mandatory sea-container documentation.
+ const mode=matches.map(transportModeOf).find(Boolean)||transportModeOf(record);
+ return{transportMode:mode,containerDocumentationRequired:matches.some(containerDocumentationRequired)||containerDocumentationRequired(record)};
 }
 function abdPresent(source){
  if(!source||typeof source!=='object')return false;
