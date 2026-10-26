@@ -30,9 +30,10 @@ test('AV-Dateiname: Anfang "AV" ohne Rücksicht auf Groß-/Kleinschreibung',()=>
   for(const n of ['ABD_ABC123.pdf','Rechnung AV.pdf','AVIS_ABC123.pdf','Avis123.pdf','CMR.pdf',''])assert.equal(av.isAvFileName(n),false,n);
 });
 
-test('Fälligkeit: 5 Kalendertage nach Abholung',()=>{
-  assert.equal(av.dueDay('2026-10-14'),'2026-10-19');
-  assert.equal(av.dueDay('2026-10-30'),'2026-11-04');
+test('RC1666: AV ab erstellt vorhandenem ABD sofort fällig, ohne Abhol-Wartefrist',()=>{
+  assert.equal(av.AV_DUE_DAYS,0);
+  assert.equal(av.dueDay('2026-10-14'),'2026-10-14');
+  assert.equal(av.dueDay('2026-10-30'),'2026-10-30');
 });
 
 test('RC1666: Kandidaten enthalten alle historischen und offenen Sendungen mit realem ABD',()=>{
