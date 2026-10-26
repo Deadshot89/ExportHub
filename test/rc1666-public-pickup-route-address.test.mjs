@@ -357,7 +357,10 @@ test('RC1666: full pickup status and signed POD synchronize to both active and s
 test('RC1666: exact multi-truck photo sync never writes to a missing or unrelated sub-shipment',async()=>{
  const initial={revision:1,state:{
   shipments:[{id:'SHIP-1',ref:'TRUCK55',containerPhotos:[],subShipments:[{subShipmentId:'SUB-A',containerPhotos:[]}]}],
-  savedShipments:[{id:'SHIP-1',ref:'TRUCK55',containerPhotos:[],subShipments:[{subShipmentId:'SUB-A',containerPhotos:[]}]}]
+  savedShipments:[
+   {id:'SHIP-1',ref:'TRUCK55',containerPhotos:[],subShipments:[{subShipmentId:'SUB-A',containerPhotos:[]}]},
+   {id:'OTHER-PARENT',ref:'OTHERREF',containerPhotos:[],subShipments:[{subShipmentId:'OTHER-TRUCK',containerPhotos:[]}]}
+  ]
  }};
  let bytes=Buffer.from(JSON.stringify(initial)),writes=0;
  const blob={
@@ -380,6 +383,7 @@ test('RC1666: exact multi-truck photo sync never writes to a missing or unrelate
   const record={environment:'testservice',shipmentId:'SHIP-1',reference:'TRUCK55',subShipmentId:'OTHER-TRUCK',containerPhotos:[photo]};
   await assert.rejects(()=>store.updateTeamContainerDocumentation(record),e=>e&&e.code==='SUBSHIPMENT_NOT_FOUND'&&e.status===409);
   assert.equal(writes,0,'wrong truck must not alter parent or sibling documents');
+  assert.equal(JSON.parse(bytes).state.savedShipments[1].containerPhotos.length,0,'other parent must remain unchanged');
   record.subShipmentId='SUB-A';
   const result=await store.updateTeamContainerDocumentation(record);
   assert.equal(writes,1);
