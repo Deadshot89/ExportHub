@@ -121,7 +121,8 @@ test('RC1670: TESTSERVICE gate verifies persisted shipment PDF bytes after a rea
 
 test('RC1676: Pack-to-shipment live test finds the accessible reference and still validates a saved six-digit readonly REF',()=>{
   const helper=read(helperPath);
-  assert.match(helper,/getByLabel\(\/Sendungsreferenz\\s\*\\\/\\s\*Referenznummer\/i\)/,
+  assert.ok(helper.includes(String.raw`getByLabel(/Sendungsreferenz\s*\/\s*Referenznummer/i)`),
+
     'Live Pack handoff must use the semantic reference label used by the main shipment E2E');
   assert.match(helper,/refField=await labeledRef\.count\(\)\?labeledRef:/,
     'Only fall back to the legacy selector when no accessible reference label exists');
