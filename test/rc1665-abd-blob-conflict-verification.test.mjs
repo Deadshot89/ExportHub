@@ -85,3 +85,43 @@ test('RC1665: sharedShipments ABD externalization does not complete on an unveri
  assert.equal(input.sharedShipments[0].abdFiles[0].storage,undefined,'failed save must not change the original record');
  assert.equal(input.savedShipments[0].abdFiles.length,0,'other shipment remains unchanged');
 });
+
+
+test('RC1665: actual ExportHUB REST HEAD reports blob size with Azure SHA metadata',async()=>{
+ const {createBlobServiceClient}=require('../api/shared/blob-rest.js');
+ const originalFetch=globalThis.fetch;
+ const capture=[];
+ globalThis.fetch=async(url,init)=>{
+  capture.push({url:String(url),method:init&&init.method});
+  return{ok:true,status:200,headers:new Headers({
+   'etag':'"stored-blob"','content-length':String(bytes.length),
+   'x-ms-meta-sha256':hash,'x-ms-meta-environment':'production'
+  })};
+ };
+ try{
+  const cs='AccountName=rc1665mock;SharedAccessSignature=sv=2023-11-03&sig=test-signature;BlobEndpoint=https://rc1665mock.blob.core.windows.net';
+  const blob=createBlobServiceClient(cs).getContainerClient('exporthub-documents').getBlockBlobClient('rc1059/production/test/'+hash);
+  const props=await blob.getProperties();
+  assert.equal(capture.length,1);
+  assert.equal(capture[0].method,'HEAD');
+  assert.equal(props.contentLength,bytes.length,'Blob HEAD length is mandatory for document confirmation');
+  assert.equal(props.metadata.sha256,hash);
+  assert.equal(props.metadata.environment,'production');
+ }finally{globalThis.fetch=originalFetch}
+});
+
+test('RC1665: missing/invalid REST content-length cannot approve a duplicate',async()=>{
+ const {createBlobServiceClient}=require('../api/shared/blob-rest.js');
+ const cs='AccountName=rc1665mock;SharedAccessSignature=sv=2023-11-03&sig=test-signature;BlobEndpoint=https://rc1665mock.blob.core.windows.net';
+ const originalFetch=globalThis.fetch;
+ for(const invalid of ['', 'not-a-length', '-1', '9999999999999999999999999']){
+  globalThis.fetch=async()=>({ok:true,status:200,headers:new Headers({
+   'etag':'"stored-blob"','x-ms-meta-sha256':hash,
+   'x-ms-meta-environment':'production',...(invalid?{'content-length':invalid}:{})
+  })});
+  try{
+   const props=await createBlobServiceClient(cs).getContainerClient('exporthub-documents').getBlockBlobClient('existing').getProperties();
+   assert.equal(props.contentLength,undefined,'invalid HEAD content-length must not be trusted');
+  }finally{globalThis.fetch=originalFetch}
+ }
+});
