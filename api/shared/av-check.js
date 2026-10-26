@@ -23,29 +23,26 @@ function isAvTask(t){return !!t&&text(t.sourceType)===SOURCE_TYPE}
 function isOpenTask(t){return !!t&&t.done!==true&&t.completed!==true&&!/^(erledigt|done|closed|geschlossen)$/i.test(text(t.status))}
 
 const SHIPMENT_COLLECTIONS=['shipments','savedShipments','sharedShipments','salesSharedShipments','shipmentArchive','archivedShipments'];
-function allShipments(state){
-  const seen=new Map();
+function shipmentIndex(state){
+  const index=new Map();
   for(const key of SHIPMENT_COLLECTIONS){
     for(const sh of (Array.isArray(state&&state[key])?state[key]:[])){
       const ref=refOf(sh);if(!validRef(ref))continue;
-      if(!seen.has(ref))seen.set(ref,sh);
-      else if(!text(seen.get(ref).id||seen.get(ref).shipmentId)&&text(sh.id||sh.shipmentId))seen.set(ref,sh);
+      if(!index.has(ref))index.set(ref,[]);
+      index.get(ref).push(sh);
     }
   }
-  return Array.from(seen.values());
+  return index;
 }
-function shipmentCopies(state,ref){
-  const copies=[];
-  for(const key of SHIPMENT_COLLECTIONS){
-    for(const sh of (Array.isArray(state&&state[key])?state[key]:[]))if(refOf(sh)===ref)copies.push(sh);
-  }
-  return copies;
-}
+function allShipments(state){return Array.from(shipmentIndex(state).values()).map(copies=>copies[0]);}
+function shipmentCopies(state,ref){return shipmentIndex(state).get(ref)||[];}
 function abdRequestsFor(state,sh){
   const sid=text(sh&&(sh.id||sh.shipmentId)),ref=refOf(sh);
   return(Array.isArray(state&&state.abdRequests)?state.abdRequests:[]).filter(r=>{
     const rid=text(r&&(r.linkedShipmentId||r.shipmentId)),rr=text(r&&(r.reference||r.ref||r.shipmentRef)).toUpperCase();
-    return(sid&&rid===sid)||(ref&&rr===ref);
+    // RC1664: authoritative REF wins over a recycled technical shipment ID.
+    if(ref&&rr&&rr!==ref)return false;
+    return(ref&&rr===ref)||(sid&&rid===sid&&!rr);
   });
 }
 function shipmentHasAbd(state,sh){
@@ -80,8 +77,8 @@ function candidates(state,now){
   const tasks=Array.isArray(state&&state.tasks)?state.tasks:[];
   const openRefs=new Set(tasks.filter(t=>isAvTask(t)&&isOpenTask(t)).map(t=>text(t.linkedShipmentRef||t.sourceRef).toUpperCase()));
   const out=[];
-  for(const sh of allShipments(state)){
-    const ref=refOf(sh),copies=shipmentCopies(state,ref);
+  for(const [ref,copies] of shipmentIndex(state)){
+    const sh=copies[0];
     const hasAbd=copies.some(s=>shipmentHasAbd(state,s));
     if(!hasAbd&&!openRefs.has(ref))continue;
     const day=pickupDay(sh);
