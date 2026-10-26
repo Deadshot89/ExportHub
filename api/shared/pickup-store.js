@@ -82,7 +82,7 @@ async function resolveShipmentAddress(record,environment='production'){
   if(!x||typeof x!=='object')return false;
   const xid=String(x.shipmentId||x.id||'').trim(),xref=String(x.reference||x.ref||x.shipmentRef||'').trim().toUpperCase();
   // Never use an unrelated record if one of its explicit identifiers contradicts the QR.
-  if(sid&&xid&&sid!==xid)return false;
+  if(sid&&xid&&sid!==xid&&!(ref&&sid.toUpperCase()===ref))return false;
   if(ref&&xref&&ref!==xref)return false;
   return !!((sid&&xid===sid)||(ref&&xref===ref))
  });
@@ -132,7 +132,7 @@ async function resolveShipmentContainerConfig(record,environment='production'){
  const matches=shipments.filter(x=>{
   if(!x||typeof x!=='object')return false;
   const xid=String(x.shipmentId||x.id||'').trim(),xref=String(x.reference||x.ref||x.shipmentRef||'').trim().toUpperCase();
-  if(sid&&xid&&sid!==xid)return false;
+  if(sid&&xid&&sid!==xid&&!(ref&&sid.toUpperCase()===ref))return false;
   if(ref&&xref&&ref!==xref)return false;
   return !!((sid&&xid===sid)||(ref&&xref===ref))
  });
@@ -346,7 +346,7 @@ function rc1017UpdateSubShipmentTeam(sh,record,history,complete,collected,remain
 function matchesTeamPickupShipment(candidate,sid,ref){
  if(!candidate||typeof candidate!=='object')return false;
  const id=String(candidate.shipmentId||candidate.id||'').trim(),reference=String(candidate.reference||candidate.ref||candidate.shipmentRef||'').trim().toUpperCase();
- if(sid&&id&&id!==sid)return false;
+ if(sid&&id&&id!==sid&&!(ref&&sid.toUpperCase()===ref))return false;
  if(ref&&reference&&reference!==ref)return false;
  return !!((sid&&id===sid)||(ref&&reference===ref));
 }
