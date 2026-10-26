@@ -38,7 +38,48 @@ async function graphFetch(url,options){const token=await graphToken(),opts=Objec
 function encPath(path){return String(path||'').split('/').filter(Boolean).map(encodeURIComponent).join('/')}
 function refValue(v){const ref=text(v).toUpperCase();if(!/^[A-Z0-9]{6}$/.test(ref))throw error('INVALID_REFERENCE','api.reference.invalidReference',400);return ref}
 function folderPath(ref){return REFERENCE_FOLDER+'/'+ref}
-async function listFiles(ref,req){const path=folderPath(ref),select='id,name,size,file,folder,createdDateTime,lastModifiedDateTime,webUrl,parentReference',first=GRAPH_BASE+'/users/'+encodeURIComponent(DRIVE_USER)+'/drive/root:/'+encPath(path)+':/children?$top=200&$select='+encodeURIComponent(select);let url=first,files=[],pages=0,folderWebUrl='';while(url&&pages<6){const res=await graphFetch(url);if(res.status===404)return{files:[],folderPath:path,folderMissing:true,folderWebUrl:''};let data={};try{data=await res.json()}catch(_){}if(!res.ok)throw error('GRAPH_LIST_FAILED',data.error&&data.error.message||'api.reference.listFailed',res.status>=500?502:res.status,{status:res.status});for(const item of Array.isArray(data.value)?data.value:[]){if(!item||!item.file)continue;files.push({id:text(item.id),name:text(item.name)||apiI18n.t(req,'api.reference.document'),size:Number(item.size||0),mimeType:text(item.file&&item.file.mimeType)||'application/octet-stream',createdDateTime:item.createdDateTime||null,lastModifiedDateTime:item.lastModifiedDateTime||null,webUrl:text(item.webUrl)});if(!folderWebUrl&&item.parentReference&&item.parentReference.path)folderWebUrl=text(item.parentReference.path)}url=data['@odata.nextLink']||'';pages++}files.sort((a,b)=>String(b.createdDateTime||b.lastModifiedDateTime||'').localeCompare(String(a.createdDateTime||a.lastModifiedDateTime||''))||a.name.localeCompare(b.name,'de'));return{files,folderPath:path,folderMissing:false,folderWebUrl}}
+async function listFiles(ref,req){
+ const path=folderPath(ref),select='id,name,size,file,folder,createdDateTime,lastModifiedDateTime,webUrl,parentReference';
+ const first=GRAPH_BASE+'/users/'+encodeURIComponent(DRIVE_USER)+'/drive/root:/'+encPath(path)+':/children?$top=200&$select='+encodeURIComponent(select);
+ // Include documents in bounded subfolders. The old direct-child-only reader silently returned
+ // zero files whenever a REF folder contained only category subfolders.
+ const pending=[{url:first,depth:0}],seenFolders=new Set(),seenFiles=new Set(),files=[];
+ const MAX_DEPTH=4,MAX_FOLDERS=36,MAX_FILES=1500;
+ let visited=0,folderWebUrl='';
+ while(pending.length){
+  if(++visited>MAX_FOLDERS)throw error('GRAPH_REFERENCE_FOLDER_SCAN_LIMIT','Der Referenzordner enthält zu viele Unterordner für eine vollständige Dateiprüfung.',503);
+  const task=pending.shift();let url=task.url,pages=0;
+  while(url&&pages<6){
+   const res=await graphFetch(url);
+   if(res.status===404){
+    if(task.depth===0)return{files:[],folderPath:path,folderMissing:true,folderWebUrl:''};
+    url='';break; // The child folder may have been removed while listing the parent.
+   }
+   let data={};try{data=await res.json()}catch(_){}
+   if(!res.ok)throw error('GRAPH_LIST_FAILED',data.error&&data.error.message||'api.reference.listFailed',res.status>=500?502:res.status,{status:res.status});
+   for(const item of Array.isArray(data.value)?data.value:[]){
+    if(!item)continue;
+    const id=text(item.id);
+    if(item.file){
+     if(!id||seenFiles.has(id))continue;
+     if(files.length>=MAX_FILES)throw error('GRAPH_REFERENCE_FILE_LIMIT','Der Referenzordner enthält zu viele Dateien für eine vollständige Dateiprüfung.',503);
+     seenFiles.add(id);
+     files.push({id,name:text(item.name)||apiI18n.t(req,'api.reference.document'),size:Number(item.size||0),mimeType:text(item.file&&item.file.mimeType)||'application/octet-stream',createdDateTime:item.createdDateTime||null,lastModifiedDateTime:item.lastModifiedDateTime||null,webUrl:text(item.webUrl)});
+     if(!folderWebUrl&&item.parentReference&&item.parentReference.path)folderWebUrl=text(item.parentReference.path);
+    }else if(item.folder&&id&&!seenFolders.has(id)){
+     if(task.depth>=MAX_DEPTH)throw error('GRAPH_REFERENCE_DEPTH_LIMIT','Der Referenzordner enthält weitere Unterordner, die nicht vollständig geprüft werden konnten.',503);
+     seenFolders.add(id);
+     pending.push({url:GRAPH_BASE+'/users/'+encodeURIComponent(DRIVE_USER)+'/drive/items/'+encodeURIComponent(id)+'/children?$top=200&$select='+encodeURIComponent(select),depth:task.depth+1});
+    }
+   }
+   url=data['@odata.nextLink']||'';
+   pages++;
+  }
+  if(url)throw error('GRAPH_REFERENCE_PAGINATION_LIMIT','Der Referenzordner konnte nicht vollständig eingelesen werden.',503);
+ }
+ files.sort((a,b)=>String(b.createdDateTime||b.lastModifiedDateTime||'').localeCompare(String(a.createdDateTime||a.lastModifiedDateTime||''))||a.name.localeCompare(b.name,'de'));
+ return{files,folderPath:path,folderMissing:false,folderWebUrl};
+}
 function disposition(name,mode,req){const safe=text(name).replace(/[\r\n"]/g,'_').slice(0,180)||apiI18n.t(req,'api.reference.document');return(mode==='download'?'attachment':'inline')+"; filename*=UTF-8''"+encodeURIComponent(safe)}
 function requestBody(req){if(req&&req.body&&typeof req.body==='object'&&!Buffer.isBuffer(req.body))return req.body;try{return JSON.parse(String(req&&req.body||'{}'))}catch(_){return{}}}
 function signatureOk(ext,buf){if(ext==='.pdf')return buf.length>=5&&buf.subarray(0,5).toString('ascii')==='%PDF-';if(ext==='.jpg'||ext==='.jpeg')return buf.length>=3&&buf[0]===0xff&&buf[1]===0xd8&&buf[2]===0xff;if(ext==='.png')return buf.length>=8&&buf.subarray(0,8).equals(Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a]));return false}

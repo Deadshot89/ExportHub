@@ -26,7 +26,7 @@ test('DNC und SIDE werden kanonisch erkannt und nur bei eindeutigem Treffer umbe
     assert.equal(result.renamed,true);
   }
   assert.equal(api.normalizedPdfName('Original.pdf','DNC 3019222063 und DNC3019222063').name,'DNC3019222063.pdf');
-  assert.equal(api.normalizedPdfName('Original.pdf','DNC3019222063 SIDE250071282').name,'Original.pdf');
+  assert.equal(api.normalizedPdfName('Original.pdf','DNC3019222063 SIDE250071282').name,'DNC3019222063.pdf');
   assert.equal(api.normalizedPdfName('Original.pdf','DNC3019222063 DNC3019222475').name,'Original.pdf');
   assert.equal(api.normalizedPdfName('Original.pdf','kein Lieferscheinbezug').name,'Original.pdf');
   assert.equal(api.normalizedPdfName('Bild.png','DNC3019222063').name,'Bild.png');

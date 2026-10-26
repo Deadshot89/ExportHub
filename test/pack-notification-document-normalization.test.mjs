@@ -77,8 +77,31 @@ test('central document storage preserves original name when no DNC or SIDE is re
   assert.equal(out.documentReference,undefined);
 });
 
-test('central document storage preserves original name when PDF contains ambiguous references',async()=>{
+test('central document storage names the stored PDF after the unique DNC even with incidental SIDE text',async()=>{
   const out=await store('Mehrere Nummern.pdf',plainPdf('DNC3019222063 and SIDE250071282'));
+  assert.equal(out.name,'DNC3019222063.pdf');
+  assert.equal(out.originalName,'Mehrere Nummern.pdf');
+  assert.equal(out.documentReference,'DNC3019222063');
+  assert.equal(out.storage,'blob');
+  assert.match(out.blobName,/^rc1059\/testservice\//);
+});
+
+test('server retains an unambiguous filename DNC instead of an incidental PDF SIDE number',async()=>{
+  const out=await store('DNC 3019222063 Scan.pdf',plainPdf('Packing paperwork SIDE250071282'));
+  assert.equal(out.name,'DNC3019222063.pdf');
+  assert.equal(out.originalName,'DNC 3019222063 Scan.pdf');
+  assert.equal(out.documentReference,'DNC3019222063');
+  assert.equal(out.storage,'blob');
+});
+
+test('server never guesses when filename DNC conflicts with PDF DNC',async()=>{
+  const out=await store('DNC 3019222063 Scan.pdf',plainPdf('Delivery note DNC3019229999'));
+  assert.equal(out.name,'DNC 3019222063 Scan.pdf');
+  assert.equal(out.documentReference,undefined);
+});
+
+test('multiple different DNC references remain ambiguous to prevent a wrong file name',async()=>{
+  const out=await store('Mehrere Nummern.pdf',plainPdf('DNC3019222063 and DNC3019229999'));
   assert.equal(out.name,'Mehrere Nummern.pdf');
   assert.equal(out.documentReference,undefined);
 });

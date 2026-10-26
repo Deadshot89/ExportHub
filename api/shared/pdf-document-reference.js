@@ -81,7 +81,16 @@ function extractDocumentReferences(value){
 function normalizedPdfName(originalName,extractedText){
   const original=String(originalName==null?'':originalName);
   if(!/\.pdf$/i.test(original))return{name:original,renamed:false,reference:null,reason:'none'};
-  const refs=extractDocumentReferences(extractedText);
+  // DNC is a delivery-note identifier; incidental SIDE numbers in the PDF
+  // must not override a unique DNC already present in the filename.
+  const contentRefs=extractDocumentReferences(extractedText),filenameRefs=extractDocumentReferences(original);
+  const contentDncs=contentRefs.filter(ref=>ref.type==='DNC');
+  const filenameDncs=filenameRefs.filter(ref=>ref.type==='DNC');
+  const conflict=contentDncs.length>1||filenameDncs.length>1||
+    (contentDncs.length===1&&filenameDncs.length===1&&contentDncs[0].canonical!==filenameDncs[0].canonical);
+  if(conflict)return{name:original,renamed:false,reference:null,reason:'ambiguous'};
+  const dncs=contentDncs.length?contentDncs:filenameDncs;
+  const refs=dncs.length?dncs:(contentRefs.length?contentRefs:filenameRefs);
   if(!refs.length)return{name:original,renamed:false,reference:null,reason:'none'};
   if(refs.length!==1)return{name:original,renamed:false,reference:null,reason:'ambiguous'};
   const reference=refs[0];
