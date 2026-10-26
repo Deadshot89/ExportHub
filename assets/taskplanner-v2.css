@@ -197,6 +197,25 @@
 .tpv2-reminder-host{position:fixed;right:16px;bottom:16px;z-index:9000;width:min(380px,calc(100vw - 32px))}
 .tpv2-reminder-toast{display:grid;gap:10px;padding:14px;border:1px solid var(--tpv2-border);border-radius:var(--tpv2-radius);background:var(--tpv2-surface);color:var(--tpv2-text);box-shadow:0 18px 40px rgba(15,23,42,.18)}
 .tpv2-reminder-toast header{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tpv2-reminder-header-actions{display:flex;align-items:center;gap:6px}
+.tpv2-reminder-expand{display:none}
+@supports selector(body:has([data-sop-editor])){
+  /* Editing a SOP must not be blocked by floating task reminders.
+     The reminder stays visible and can be expanded deliberately. */
+  body:has([data-sop-editor]) .tpv2-reminder-host{
+    top:96px;bottom:auto;right:16px;width:min(270px,calc(100vw - 32px));
+  }
+  body:has([data-sop-editor]) .tpv2-reminder-expand{display:inline-flex}
+  body:has([data-sop-editor]) .tpv2-reminder-toast:not([data-expanded="true"]){
+    gap:0;padding:8px 12px;
+  }
+  body:has([data-sop-editor]) .tpv2-reminder-toast:not([data-expanded="true"]) ul,
+  body:has([data-sop-editor]) .tpv2-reminder-toast:not([data-expanded="true"]) > p{display:none}
+  body:has([data-sop-editor]) .tpv2-reminder-toast[data-expanded="true"]{
+    max-height:calc(100vh - 112px);overflow-y:auto;
+  }
+}
+
 .tpv2-reminder-toast ul{display:grid;gap:8px;margin:0;padding:0;list-style:none}
 .tpv2-reminder-toast li{display:grid;gap:8px;padding:10px;border-radius:10px;background:var(--tpv2-page)}
 .tpv2-reminder-toast li span{display:block;color:var(--tpv2-muted);font-size:12px}
