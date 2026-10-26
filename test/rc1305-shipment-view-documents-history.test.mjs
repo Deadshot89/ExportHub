@@ -105,9 +105,9 @@ test('RC1460: Sendungsansicht berücksichtigt alle fachlichen Datei-Felder',()=>
   }
   // RC1677: normalize once, then retain the document after exact Blob/filename dedupe.
   // Validate both operations; don't require the unsafe old push-inline spelling.
-  assert.match(buildSource,/var doc=normalizeFallback\\(entry\\)/);
-  assert.match(buildSource,/out\\.push\\(doc\\)/);
-  assert.match(buildSource,/existing\\.file&&existing\\.file\\.blobName/);
+  assert.ok(buildSource.includes('var doc=normalizeFallback(entry)'), 'Every stored document is normalized before display');
+  assert.ok(buildSource.includes('out.push(doc)'), 'Validated documents are passed to the list');
+  assert.ok(buildSource.includes('existing.file&&existing.file.blobName'), 'Exact Blob identity dedupe remains enforced');
 });
 
 test('RC1460: Statusverlauf zeigt den ausführenden Benutzer',()=>{
