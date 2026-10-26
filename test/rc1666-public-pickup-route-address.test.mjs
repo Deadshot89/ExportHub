@@ -53,7 +53,7 @@ test('RC1666: lookup of saved shipments rejects contradictory ID/reference',()=>
  const container=storeSource.slice(storeSource.indexOf('async function resolveShipmentContainerConfig'),storeSource.indexOf('function abdPresent'));
  for(const section of [address,container]){
   assert.match(section,/state\.savedShipments/);
-  assert.match(section,/if\(sid&&xid&&sid!==xid\)return false/);
+  assert.match(section,/sid!==xid&&\!\(ref&&sid\.toUpperCase\(\)===ref\)/);
   assert.match(section,/if\(ref&&xref&&ref!==xref\)return false/);
  }
  assert.match(storeSource,/address:addressFromSource\(r\)\|\|''/);
@@ -261,6 +261,36 @@ test('RC1666: confirmed pickup updates saved-only shipment, not a conflicting re
   assert.equal(state.savedShipments[0].status,'Abgeholt','saved-only shipment must receive pickup state');
   assert.equal(state.savedShipments[0].pickupQrUsed,true);
   assert.equal(state.savedShipments[0].signatureAvailable,true);
+ }finally{
+  if(previous===undefined)delete process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;
+  else process.env.EXPORTHUB_STORAGE_CONNECTION_STRING=previous;
+ }
+});
+
+
+test('RC1666: legacy QR reference remains usable only with an unambiguous shipment identity',async()=>{
+ let document={state:{shipments:[],savedShipments:[
+  {id:'INTERNAL-UUID',ref:'LEGACY1',deliveryAddress:'Lagerweg 12, 47906 Kempen',containerDocumentationRequired:true}
+ ]}};
+ const blob={async download(){return{etag:'"etag"',readableStreamBody:Readable.from([Buffer.from(JSON.stringify(document))])}}};
+ const orig=Module._load,previous=process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;
+ process.env.EXPORTHUB_STORAGE_CONNECTION_STRING='mock-only-for-test';
+ Module._load=function(name,parent,isMain){
+  if(name==='@azure/storage-blob')return{BlobServiceClient:{fromConnectionString(){return{
+   getContainerClient(){return{async createIfNotExists(){},getBlockBlobClient(){return blob}}}
+  }}}};
+  return orig.call(this,name,parent,isMain)
+ };
+ const id=require.resolve('../api/shared/pickup-store.js');delete require.cache[id];let store;
+ try{store=require(id)}finally{Module._load=orig}
+ try{
+  const legacy={environment:'testservice',shipmentId:'LEGACY1',reference:'LEGACY1',expectedColliCount:1,
+   pickupHistory:[{colliCount:1,confirmedAt:'2026-10-26T14:00:00Z',signatureBlobName:'signed',complete:true}]};
+  assert.equal(await store.resolveShipmentAddress(legacy,'testservice'),'Lagerweg 12, 47906 Kempen');
+  assert.equal((await store.resolveShipmentContainerConfig(legacy,'testservice')).containerDocumentationRequired,true);
+  document.state.shipments.push({id:'OTHER-UUID',ref:'LEGACY1',deliveryAddress:'Wrong Customer Street'});
+  assert.equal(await store.resolveShipmentAddress(legacy,'testservice'),'','ambiguous old QR must not expose another shipment address');
+  await assert.rejects(()=>store.updateTeam(legacy),x=>x&&x.code==='TEAM_SHIPMENT_AMBIGUOUS'&&x.status===409);
  }finally{
   if(previous===undefined)delete process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;
   else process.env.EXPORTHUB_STORAGE_CONNECTION_STRING=previous;
