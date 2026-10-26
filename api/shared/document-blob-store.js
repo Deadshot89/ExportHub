@@ -4,7 +4,9 @@ const pdfReferences=require('./pdf-document-reference');
 
 const DOCUMENT_CONTAINER=process.env.EXPORTHUB_DOCUMENT_CONTAINER||'exporthub-documents';
 const DOCUMENT_FIELDS=['deliveryFiles','deliveryNotesFiles','podFiles','abdFiles','documents','generatedDocuments','files','attachments','invoiceFiles','mailAttachments','lieferscheine'];
-const ROOT_COLLECTIONS=['shipments','savedShipments','abdRequests','packNotifications','packDrafts'];
+// RC1663: RC1624 writes ABD files to sharedShipments as well. Always externalize
+// those files before merging the incoming state, rather than leaving an inline PDF.
+const ROOT_COLLECTIONS=['shipments','savedShipments','sharedShipments','abdRequests','packNotifications','packDrafts'];
 const INLINE_FIELDS=['data','dataUrl','payload','content','base64'];
 const CONTAINER_READY=new WeakMap();
 
