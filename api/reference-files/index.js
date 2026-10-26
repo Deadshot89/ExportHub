@@ -44,7 +44,7 @@ async function listFiles(ref,req){
  // Include documents in bounded subfolders. The old direct-child-only reader silently returned
  // zero files whenever a REF folder contained only category subfolders.
  const pending=[{url:first,depth:0}],seenFolders=new Set(),seenFiles=new Set(),files=[];
- const MAX_DEPTH=2,MAX_FOLDERS=36,MAX_FILES=1500;
+ const MAX_DEPTH=4,MAX_FOLDERS=36,MAX_FILES=1500;
  let visited=0,folderWebUrl='';
  while(pending.length){
   if(++visited>MAX_FOLDERS)throw error('GRAPH_REFERENCE_FOLDER_SCAN_LIMIT','Der Referenzordner enthält zu viele Unterordner für eine vollständige Dateiprüfung.',503);
@@ -53,7 +53,7 @@ async function listFiles(ref,req){
    const res=await graphFetch(url);
    if(res.status===404){
     if(task.depth===0)return{files:[],folderPath:path,folderMissing:true,folderWebUrl:''};
-    break; // The child folder may have been removed while listing the parent.
+    url='';break; // The child folder may have been removed while listing the parent.
    }
    let data={};try{data=await res.json()}catch(_){}
    if(!res.ok)throw error('GRAPH_LIST_FAILED',data.error&&data.error.message||'api.reference.listFailed',res.status>=500?502:res.status,{status:res.status});
@@ -66,7 +66,8 @@ async function listFiles(ref,req){
      seenFiles.add(id);
      files.push({id,name:text(item.name)||apiI18n.t(req,'api.reference.document'),size:Number(item.size||0),mimeType:text(item.file&&item.file.mimeType)||'application/octet-stream',createdDateTime:item.createdDateTime||null,lastModifiedDateTime:item.lastModifiedDateTime||null,webUrl:text(item.webUrl)});
      if(!folderWebUrl&&item.parentReference&&item.parentReference.path)folderWebUrl=text(item.parentReference.path);
-    }else if(item.folder&&id&&task.depth<MAX_DEPTH&&!seenFolders.has(id)){
+    }else if(item.folder&&id&&!seenFolders.has(id)){
+     if(task.depth>=MAX_DEPTH)throw error('GRAPH_REFERENCE_DEPTH_LIMIT','Der Referenzordner enthält weitere Unterordner, die nicht vollständig geprüft werden konnten.',503);
      seenFolders.add(id);
      pending.push({url:GRAPH_BASE+'/users/'+encodeURIComponent(DRIVE_USER)+'/drive/items/'+encodeURIComponent(id)+'/children?$top=200&$select='+encodeURIComponent(select),depth:task.depth+1});
     }
