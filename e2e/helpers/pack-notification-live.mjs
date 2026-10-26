@@ -212,7 +212,7 @@ export async function runPackNotificationLiveFlow(browser,testInfo,token){
       // RC1676: The reference can be rendered outside the customer block after
       // layout changes. Use its accessible label, as the RC1171/RC1320 shipment
       // E2E tests already do. Never infer or manufacture a reference.
-      const labeledRef=page.getByLabel(/Sendungsreferenz\\s*\\/\\s*Referenznummer/i).first();
+      const labeledRef=page.getByLabel(/Sendungsreferenz\s*\/\s*Referenznummer/i).first();
       const refField=await labeledRef.count()?labeledRef:page.locator('#rc363BlockCustomer input[maxlength="6"][pattern*="A-Z0-9"]').first();
       await expect(refField).toBeVisible({timeout:10_000});
       await expect(refField).toHaveAttribute('readonly','');
