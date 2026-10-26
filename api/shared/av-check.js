@@ -18,7 +18,7 @@ function lower(v){return text(v).toLowerCase()}
 function refOf(sh){return text(sh&&(sh.ref||sh.reference)).toUpperCase()}
 function validRef(ref){return /^[A-Z0-9]{6}$/.test(ref)}
 function taskId(ref){return 'task:av-missing:'+ref}
-function isAvFileName(name){return /^av/i.test(text(name))}
+function isAvFileName(name){const n=text(name);return /^av/i.test(n)&&!/^avis/i.test(n)}
 function isAvTask(t){return !!t&&text(t.sourceType)===SOURCE_TYPE}
 function isOpenTask(t){return !!t&&t.done!==true&&t.completed!==true&&!/^(erledigt|done|closed|geschlossen)$/i.test(text(t.status))}
 
