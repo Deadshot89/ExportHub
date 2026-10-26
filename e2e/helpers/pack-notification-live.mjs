@@ -134,6 +134,22 @@ export async function runPackNotificationLiveFlow(browser,testInfo,token){
       await expect(page.locator('#packNotificationDetail')).toContainText('680 kg');
       await expect(page.locator('#packNotificationDetail')).toContainText('120 × 80 × 145');
       await expect(page.locator('#packNotificationDetail')).toContainText(resultA.canonicalName);
+      // A filename in the task is insufficient: fetch the real stored PDF from
+      // the protected Blob API using the same authenticated viewer as the UI.
+      const originalPdf=await page.evaluate(async({ref,canonicalName})=>{
+        const s=window.__EXPORTHUB_GET_STATE__?.()||{};
+        const n=(s.packNotifications||[]).find(x=>x.reference===ref);
+        const file=(n?.documents||[]).find(x=>x.name===canonicalName);
+        const viewer=window.ExportHUBDocumentBlob1059;
+        if(!file||!viewer?.isBlobDocument?.(file))return{available:false};
+        const bytes=await viewer.fetchBytes(file);
+        return{available:true,name:file.name,storage:file.storage,blobName:file.blobName,
+          count:bytes.length,signature:String.fromCharCode(...bytes.slice(0,5))};
+      },{ref:refA,canonicalName:resultA.canonicalName});
+      expect(originalPdf.available,'original Packmeldung must have a retrievable real PDF').toBe(true);
+      expect(originalPdf.signature).toBe('%PDF-');
+      expect(originalPdf.count).toBeGreaterThan(40);
+      expect(originalPdf.storage).toBe('blob');
 
       await page.locator('#packNotificationDetail [data-pack-action="shipment"]').first().click();
       await expect(page.locator('#rc363BlockCustomer')).toBeVisible({timeout:30_000});
@@ -144,7 +160,7 @@ export async function runPackNotificationLiveFlow(browser,testInfo,token){
         return{packNotificationId:sh.packNotificationId,deliveryFiles:sh.deliveryFiles||[]};
       });
       expect(draft.packNotificationId).toBeTruthy();
-      expect(draft.deliveryFiles.some(file=>file.source==='pack_notification'&&file.customerAvisVisible===false&&file.name===resultA.canonicalName)).toBe(true);
+      expect(draft.deliveryFiles.some(file=>file.source==='pack_notification'&&file.customerAvisVisible===false&&file.name===resultA.canonicalName&&file.storage==='blob'&&file.blobName===originalPdf.blobName)).toBe(true);
 
       await assertNoHorizontalOverflow(page);
       await assertRuntimeClean(runtime,testInfo);
