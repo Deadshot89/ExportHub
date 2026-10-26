@@ -59,3 +59,39 @@ test('P0: metadata-only Lieferschein is not advertised as a downloadable file',(
  const files=context.shipmentAssociatedDocs(first,[]);
  assert.equal(files.length,0);
 });
+
+
+test('P0 RC1677: every canonical persisted shipment document collection is discoverable in the correct REF',()=>{
+ const {first,other,context}=collector();
+ const fields=['deliveryFiles','deliveryNotesFiles','podFiles','abdFiles','documents','generatedDocuments','files','attachments','invoiceFiles','mailAttachments','lieferscheine'];
+ fields.forEach((field,i)=>{
+  const hash=(i+1).toString(16).repeat(64);
+  first[field]=[{name:'STORED_'+field+'.pdf',storage:'blob',blobName:'rc1059/production/ab/'+hash}];
+  other[field]=[{name:'FOREIGN_'+field+'.pdf',storage:'blob',blobName:'rc1059/production/cd/'+hash}];
+ });
+ const docs=context.shipmentAssociatedDocs(first,[]);
+ assert.deepEqual(new Set(Array.from(docs,d=>d.name)),new Set(fields.map(field=>'STORED_'+field+'.pdf')));
+ assert.ok(docs.every(d=>d.file.storage==='blob'),'only stored genuine Blob documents are surfaced');
+ assert.ok(!docs.some(d=>String(d.name).startsWith('FOREIGN_')),'same internal ID must not cross references');
+});
+
+test('P0 RC1677: metadata-only aliases remain hidden and the same named Blob is not shown twice',()=>{
+ const {first,context}=collector();
+ const shared={name:'SIDE_REAL.pdf',storage:'blob',blobName:'rc1059/production/ab/'+'e'.repeat(64)};
+ first.lieferscheine=[shared];
+ first.deliveryFiles=[{...shared}];
+ first.generatedDocuments=[{name:'ONLY_METADATA.pdf'}];
+ const docs=context.shipmentAssociatedDocs(first,[]);
+ assert.equal(docs.filter(d=>d.name==='SIDE_REAL.pdf').length,1,'same Blob and filename should not duplicate');
+ assert.equal(docs.some(d=>d.name==='ONLY_METADATA.pdf'),false,'empty file content is not retrievable');
+});
+
+test('P0 RC1677: persisted document fields and the UI discovery helper stay aligned',()=>{
+ const store=fs.readFileSync('api/shared/document-blob-store.js','utf8');
+ const fields=store.match(/const DOCUMENT_FIELDS=\[([^\]]+)\]/);
+ assert.ok(fields,'server document array contract exists');
+ const keys=Array.from(fields[1].matchAll(/'([^']+)'/g),m=>m[1]);
+ const buildFields=build.match(/function collect\(copy\)\{[\s\S]*?addFields\(copy,\[([\s\S]*?)\]\)/);
+ assert.ok(buildFields,'active RC1112 document collector exists');
+ for(const key of keys)assert.ok(buildFields[1].includes("['"+key+"',"),'Missing stored field from REF document collector: '+key);
+});
