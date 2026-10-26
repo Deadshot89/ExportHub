@@ -392,7 +392,7 @@
   function reminderToastHtml(rows){
     const shown=rows.slice(0,3),more=rows.length-shown.length;
     return `<section class="tpv2-reminder-toast" role="status" aria-live="polite" data-tpv2-reminder-toast>
-      <header><strong>${esc(translated('taskV2.reminderTitle',null,'Task reminder'))}</strong><button type="button" class="tpv2-icon-button" data-tpv2-reminder-close aria-label="${esc(translated('taskV2.close',null,'Close'))}">×</button></header>
+      <header><strong>${esc(translated('taskV2.reminderTitle',null,'Task reminder'))} · ${rows.length}</strong><div class="tpv2-reminder-header-actions"><button type="button" class="tpv2-icon-button tpv2-reminder-expand" data-tpv2-reminder-expand aria-expanded="false" aria-label="${esc(translated('taskV2.reminderShow',null,'Erinnerungen anzeigen'))}">▾</button><button type="button" class="tpv2-icon-button" data-tpv2-reminder-close aria-label="${esc(translated('taskV2.close',null,'Close'))}">×</button></div></header>
       <ul>${shown.map(r=>`<li data-task-id="${esc(r.taskId)}"><div><b>${esc(r.title)}</b><span>${esc([r.customerName,r.priority,r.slot].filter(Boolean).join(' · '))}</span></div><div class="tpv2-reminder-actions"><button type="button" class="tpv2-button tpv2-button-secondary" data-tpv2-reminder-open="${esc(r.taskId)}">${esc(translated('taskV2.open',null,'Open'))}</button><button type="button" class="tpv2-button tpv2-button-primary" data-tpv2-reminder-done="${esc(r.taskId)}">${esc(translated('taskV2.complete',null,'Complete'))}</button></div></li>`).join('')}</ul>
       ${more>0?`<p>${esc(translated('taskV2.reminderMore',{count:more},'+{count} more'))}</p>`:''}
     </section>`;
@@ -404,6 +404,8 @@
     host.addEventListener('click',event=>{
       const el=event&&event.target&&typeof event.target.closest==='function'?event.target:null;if(!el)return;
       if(el.closest('[data-tpv2-reminder-close]')){closeReminderToast();return;}
+      const expand=el.closest('[data-tpv2-reminder-expand]');
+      if(expand){const section=host.querySelector('[data-tpv2-reminder-toast]');if(!section)return;const next=section.getAttribute('data-expanded')!=='true';section.setAttribute('data-expanded',String(next));expand.setAttribute('aria-expanded',String(next));expand.setAttribute('aria-label',next?'Erinnerungen minimieren':'Erinnerungen anzeigen');expand.textContent=next?'▴':'▾';return;}
       const open=el.closest('[data-tpv2-reminder-open]'),done=el.closest('[data-tpv2-reminder-done]'),state=reminderState();
       if(open&&state){const id=q(open.getAttribute('data-tpv2-reminder-open')),task=arr(state.tasks).find(t=>q(t&&t.id)===id),rt=runtimeOf({});closeReminderToast();try{if(task&&rt&&typeof rt.openTask==='function')rt.openTask(task,{state});}catch(_){}return;}
       if(done&&state){const id=q(done.getAttribute('data-tpv2-reminder-done'));try{base.completeTask(id,{},actionContext({state,user:reminderUser()}));}catch(_){}const item=done.closest('li');if(item)item.remove();if(!host.querySelector('li'))closeReminderToast();}
