@@ -15,7 +15,7 @@
     return{
       packNotificationId:q(n.id),packNotificationRef:q(n.reference),customerName:q(n.customer),customerId:q(n.customerId),customerAccount:q(n.customerAccount),customerSource:q(n.customerSource)||'manual',deliveryNoteReference:q(n.deliveryNoteReference),packageType:q(n.packageType),packageCount:count,totalWeight:weight,note:q(n.note),
       rows:arr(n.packages).map((p,index)=>({count:1,packaging:q(p&&p.packagingType)||q(n.packageType),l:Number(p&&p.length)||0,w:Number(p&&p.width)||0,h:Number(p&&p.height)||0,weight:perWeight,packageNo:Number(p&&p.packageNo)||index+1})),
-      deliveryFiles:arr(n.documents).map(doc=>Object.assign({},doc,{customerVisible:false,customerAvisVisible:false,source:'pack_notification',packNotificationId:q(n.id),packNotificationRef:q(n.reference)}))
+      deliveryFiles:arr(n.documents).filter(hasDocumentContent).map(doc=>Object.assign({},doc,{customerVisible:false,customerAvisVisible:false,source:'pack_notification',packNotificationId:q(n.id),packNotificationRef:q(n.reference)}))
     };
   }
   function shipmentRows(prefill){
@@ -37,6 +37,28 @@
     const n=notification||{},wanted=q(n.shipmentId),nid=q(n.id),nref=q(n.reference);
     const list=[...arr(state&&state.shipments),...arr(state&&state.savedShipments),state&&state.shipment,state&&state.currentShipment,state&&state.selectedShipment].filter(Boolean);
     return list.find(sh=>(wanted&&shipmentId(sh)===wanted)||(nid&&q(sh.packNotificationId)===nid)||(nref&&q(sh.packNotificationRef)===nref))||null;
+  }
+  // A shipment-saved event may contain a detached snapshot. Only a row that
+  // actually belongs to the persisted state can carry the pack PDFs into its REF.
+  function persistedShipments(state,detail,notification){
+    const rows=[...arr(state&&state.shipments),...arr(state&&state.savedShipments),...arr(state&&state.sharedShipments)];
+    const ref=q(detail&&(detail.ref||detail.reference||detail.shipmentRef)).toUpperCase();
+    const id=shipmentId(detail),nid=q(notification&&notification.id);
+    const seen=new Set(),found=[];
+    for(const row of rows){
+      if(!row||seen.has(row))continue;
+      const rowRef=q(row.ref||row.reference||row.shipmentRef).toUpperCase();
+      const byRef=!!ref&&rowRef===ref;
+      const byId=!!id&&shipmentId(row)===id&&(!ref||!rowRef||rowRef===ref);
+      const byPack=!!nid&&q(row.packNotificationId)===nid&&(!ref||!rowRef||rowRef===ref);
+      if(byRef||byId||byPack){seen.add(row);found.push(row);}
+    }
+    return found;
+  }
+  function hasDocumentContent(file){
+    if(!file||typeof file!=='object')return false;
+    if(q(file.blobName)&&/^rc1059\/(?:production|testservice)\/[a-f0-9]{2}\/[a-f0-9]{64}$/.test(q(file.blobName)))return true;
+    return ['data','dataUrl','base64'].some(k=>typeof file[k]==='string'&&(/^data:[^;,]+;base64,[A-Za-z0-9+/=]+$/.test(file[k])||k==='base64'&&/^[A-Za-z0-9+/=]+$/.test(file[k])));
   }
   function mergeDocuments(existing,incoming){
     const out=arr(existing).slice(),seen=new Set(out.map(d=>q(d&& (d.blobName||d.id||d.name))));
@@ -217,17 +239,23 @@
   async function onShipmentSaved(event){
     scheduleSync();
     if(!pending)return;const state=sharedState(),notification=notificationById(state,pending.notificationId);if(!notification){pending=null;return;}
-    const detail=event&&event.detail||{},saved=detail.shipment||findShipmentForNotification(state,notification)||(state.shipment||state.currentShipment||state.selectedShipment);
-    if(!saved||!shipmentId(saved))return false;
+    const detail=event&&event.detail||{},source=detail.shipment||findShipmentForNotification(state,notification);
+    const savedRows=persistedShipments(state,source,notification);
+    // Do not attach PDFs only to a detached event payload. The committed
+    // shipment row (and any persisted aliases) must receive the real blob link.
+    if(!savedRows.length||!shipmentId(savedRows[0]))return false;
+    const prefill=shipmentPrefill(notification);
+    if(arr(notification.documents).length!==prefill.deliveryFiles.length)return false;
     const task=arr(state&&state.tasks).find(t=>q(t&&t.sourceType)==='pack_notification'&&q(t&&t.sourceId)===q(notification.id));
     const notificationBefore={shipmentId:notification.shipmentId,shipmentRef:notification.shipmentRef,status:notification.status,updatedAt:notification.updatedAt};
-    const shipmentBefore={packNotificationId:saved.packNotificationId,packNotificationRef:saved.packNotificationRef,packNotificationLinkedAt:saved.packNotificationLinkedAt,deliveryFiles:saved.deliveryFiles};
+    const snapshots=savedRows.map(saved=>({saved,before:{packNotificationId:saved.packNotificationId,packNotificationRef:saved.packNotificationRef,packNotificationLinkedAt:saved.packNotificationLinkedAt,deliveryFiles:saved.deliveryFiles}}));
     const taskBefore=task?{status:task.status,updatedAt:task.updatedAt}:null;
-    linkShipment(state,notification,saved,new Date().toISOString());
+    const when=new Date().toISOString();
+    for(const saved of savedRows)linkShipment(state,notification,saved,when);
     const persisted=await persist('Packmeldung mit Sendung verknüpft');
     if(!persisted){
       for(const [key,value] of Object.entries(notificationBefore)){if(value===undefined)delete notification[key];else notification[key]=value;}
-      for(const [key,value] of Object.entries(shipmentBefore)){if(value===undefined)delete saved[key];else saved[key]=value;}
+      for(const {saved,before} of snapshots){for(const [key,value] of Object.entries(before)){if(value===undefined)delete saved[key];else saved[key]=value;}}
       if(task&&taskBefore){for(const [key,value] of Object.entries(taskBefore)){if(value===undefined)delete task[key];else task[key]=value;}}
       return false;
     }

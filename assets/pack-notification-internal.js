@@ -281,10 +281,15 @@
     const open=items.filter(inboxOpen).length;
     return `<div class="pack-internal-filters" role="group">${tab('open','pack.internal.filterOpen',open)}${tab('done','pack.internal.filterDone',items.length-open)}${tab('all','pack.internal.filterAll',items.length)}</div>`;
   }
-  function openDocument(model,index,download){
-    const doc=model.documents[Number(index)],url=documentUrl(doc);if(!url)return false;
-    if(download&&root.document){const a=root.document.createElement('a');a.href=url;a.download=q(doc.name||doc.fileName||tr('pack.avis.deliveryNote'));a.rel='noopener';root.document.body.appendChild(a);a.click();a.remove();return true;}
-    if(typeof root.open==='function'){root.open(url,'_blank','noopener');return true;}return false;
+  async function openDocument(model,index,download){
+    const doc=model.documents[Number(index)],viewer=root.ExportHUBDocumentBlob1059;
+    if(!doc||!viewer||typeof viewer.open!=='function'||!documentUrl(doc))return false;
+    // The blob API requires an ExportHUB session. A naked window.open or
+    // anchor download sends no session token and only exposes a filename.
+    return viewer.open(doc,{name:q(doc.name||doc.fileName||tr('pack.avis.deliveryNote')),download:download===true});
+  }
+  function reportDocumentError(err){
+    try{if(typeof root.alert==='function')root.alert(q(err&&err.message)||tr('pack.internal.fileUnavailable'));}catch(_){}
   }
   function dispatchShipment(model){
     try{if(typeof root.CustomEvent==='function'&&typeof root.dispatchEvent==='function'){root.dispatchEvent(new root.CustomEvent('exporthub:pack-create-shipment',{detail:{notificationId:model.notificationId,reference:model.reference,shipmentId:model.shipmentId}}));return true;}}catch(_){}
@@ -317,8 +322,8 @@
     section.addEventListener('change',event=>{const target=event.target;if(!target||target.getAttribute('name')!=='packageCount')return;const draft=collectEditForm(section);if(draft)showEdit(draft,'');});
     section.addEventListener('click',async event=>{
       const target=event.target&&event.target.closest&&event.target.closest('[data-pack-action],[data-pack-doc-open],[data-pack-doc-download]');if(!target)return;
-      if(target.hasAttribute('data-pack-doc-open')){openDocument(model,target.getAttribute('data-pack-doc-open'),false);return;}
-      if(target.hasAttribute('data-pack-doc-download')){openDocument(model,target.getAttribute('data-pack-doc-download'),true);return;}
+      if(target.hasAttribute('data-pack-doc-open')){await openDocument(model,target.getAttribute('data-pack-doc-open'),false).then(ok=>{if(!ok)throw new Error(tr('pack.internal.fileUnavailable'));}).catch(reportDocumentError);return;}
+      if(target.hasAttribute('data-pack-doc-download')){await openDocument(model,target.getAttribute('data-pack-doc-download'),true).then(ok=>{if(!ok)throw new Error(tr('pack.internal.fileUnavailable'));}).catch(reportDocumentError);return;}
       const action=target.getAttribute('data-pack-action');
       if(action==='back')renderPackInbox();
       else if(action==='shipment')dispatchShipment(model);

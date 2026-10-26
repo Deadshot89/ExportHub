@@ -81,10 +81,13 @@ function extractDocumentReferences(value){
 function normalizedPdfName(originalName,extractedText){
   const original=String(originalName==null?'':originalName);
   if(!/\.pdf$/i.test(original))return{name:original,renamed:false,reference:null,reason:'none'};
-  const refs=extractDocumentReferences(extractedText);
+  // Delivery-note DNC takes precedence over incidental SIDE paperwork numbers.
+  // Never guess when more than one distinct DNC is present in a PDF.
+  const contentRefs=extractDocumentReferences(extractedText),refs=contentRefs.length?contentRefs:extractDocumentReferences(original);
   if(!refs.length)return{name:original,renamed:false,reference:null,reason:'none'};
-  if(refs.length!==1)return{name:original,renamed:false,reference:null,reason:'ambiguous'};
-  const reference=refs[0];
+  const dncs=refs.filter(ref=>ref.type==='DNC'),candidates=dncs.length?dncs:refs;
+  if(candidates.length!==1)return{name:original,renamed:false,reference:null,reason:'ambiguous'};
+  const reference=candidates[0];
   return{name:reference.canonical+'.pdf',renamed:(reference.canonical+'.pdf')!==original,reference:reference.canonical,reason:reference.type==='SIDE'?'side':'dncs'};
 }
 function normalizePdfDocument(file,buffer,mimeType){

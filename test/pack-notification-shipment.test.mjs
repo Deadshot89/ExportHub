@@ -156,3 +156,57 @@ test('linkShipment writes bidirectional relation and marks notification shipment
   assert.equal(shipment.deliveryFiles[0].blobName,s.packNotifications[0].documents[0].blobName);
   assert.equal(shipment.deliveryFiles[0].customerAvisVisible,false);
 });
+test('Packmeldung attaches the real stored PDF to the canonical shipment, not only to a detached save-event snapshot',async()=>{
+  const s=state(),events=new Map(),savedSnapshots=[];
+  const root={
+    __EXPORTHUB_GET_STATE__:()=>s,
+    addEventListener(name,listener){events.set(name,listener);},
+    setView(){},
+    ExportHUBClean:{
+      queueSave(){return true;},
+      flushSave(){savedSnapshots.push(JSON.parse(JSON.stringify(s)));return true;}
+    }
+  };
+  const api=loadWithRoot(root);
+  assert.equal(api.begin('pn-1'),true);
+  const persisted={id:'sh-1',ref:'ABC123',deliveryFiles:[]};
+  const savedAlias={id:'sh-1',ref:'ABC123',deliveryFiles:[]};
+  s.shipments.push(persisted);
+  s.savedShipments=[savedAlias];
+  const detached={id:'sh-1',ref:'ABC123',deliveryFiles:[]};
+  const listener=events.get('exporthub:shipment-saved');
+  assert.equal(typeof listener,'function');
+  assert.equal(await listener({detail:{shipment:detached}}),true);
+  const source=s.packNotifications[0].documents[0];
+  for(const item of [persisted,savedAlias]){
+    assert.equal(item.packNotificationId,'pn-1');
+    assert.equal(item.deliveryFiles.length,1);
+    assert.equal(item.deliveryFiles[0].name,source.name);
+    assert.equal(item.deliveryFiles[0].storage,'blob');
+    assert.equal(item.deliveryFiles[0].blobName,source.blobName);
+    assert.equal(item.deliveryFiles[0].customerAvisVisible,false);
+  }
+  assert.equal(detached.deliveryFiles.length,0,'transient event object should not be mistaken for a persisted shipment');
+  assert.equal(savedSnapshots.length,1);
+  assert.equal(savedSnapshots[0].shipments[0].deliveryFiles[0].blobName,source.blobName);
+  assert.equal(savedSnapshots[0].packNotifications[0].status,'shipment_created');
+});
+
+test('metadata-only delivery-note names cannot masquerade as actual uploaded PDFs',()=>{
+  const api=load(),s=state(),n=s.packNotifications[0];
+  n.documents=[{id:'empty',name:'DNC3019222063.pdf',mimeType:'application/pdf',size:12345}];
+  assert.equal(api.shipmentPrefill(n).deliveryFiles.length,0);
+  const saved={id:'s2',ref:'ABC123'};
+  // The public helper still links a notification's relationship, while the
+  // save-event bridge must refuse to mark a metadata-only upload complete.
+  const calls=new Map();
+  const root={__EXPORTHUB_GET_STATE__:()=>s,addEventListener:(name,fn)=>calls.set(name,fn),setView(){}};
+  const bridge=loadWithRoot(root);
+  assert.equal(bridge.begin('pn-1'),true);
+  s.shipments.push(saved);
+  return Promise.resolve(calls.get('exporthub:shipment-saved')({detail:{shipment:{...saved}}})).then(result=>{
+    assert.equal(result,false);
+    assert.equal(s.packNotifications[0].shipmentId,undefined);
+    assert.equal(saved.deliveryFiles,undefined);
+  });
+});
