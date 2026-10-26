@@ -107,6 +107,9 @@ test('Ordner nicht lesbar: keine Aufgabe, Fehler wird gemeldet',async()=>{
 test('ohne Graph-Konfiguration werden keine Aufgaben angelegt',async()=>{
   const s=state(shipment()),h=handler(s,{},{graphConfigured:()=>false});
   const r=await h.run();
+  assert.equal(r.status,503,'Graph-Ausfall darf nicht als erfolgreicher Check erscheinen');
+  assert.equal(r.body.ok,false);
+  assert.equal(r.body.code,'GRAPH_NOT_CONFIGURED');
   assert.equal(r.body.graphConfigured,false);
   assert.equal(avTasks(s).length,0);
 });
@@ -186,7 +189,8 @@ test('RC1666: mehrere ABD erfordern entsprechend mehrere AVs, aber eine Aufgabe 
   assert.equal(s.tasks[0].status,'erledigt');
   files.ABC123.pop();
   const reopened=await h.run();
-  assert.equal(reopened.body.createdTasks,1);
+  assert.equal(reopened.body.createdTasks,0,'erneutes Öffnen ist keine neue Aufgabe');
+  assert.equal(reopened.body.reopenedTasks,1,'eine entfernte AV-Datei muss die bestehende Aufgabe wieder öffnen');
   assert.equal(avTasks(s).length,1);
   assert.equal(s.tasks[0].status,'offen');
 });
@@ -226,4 +230,13 @@ test('RC1666: Lieferavis im REF-Ordner schließt die AV-Aufgabe nicht',async()=>
   assert.equal(r.body.missing,1);
   assert.equal(r.body.createdTasks,1);
   assert.equal(s.tasks[0].status,'offen');
+});
+
+test('RC1666: defekter oder zukünftiger AV-Prüfzeitstempel verhindert nicht den historischen Backfill',async()=>{
+  for(const stamp of ['kaputtes-datum','2099-01-01T00:00:00.000Z']){
+    const s=state(shipment({avCheckedAt:stamp}));
+    const r=await handler(s,{ABC123:[]}).run({minAgeMinutes:60});
+    assert.equal(r.body.checked,1,stamp);
+    assert.equal(r.body.createdTasks,1,stamp);
+  }
 });
