@@ -54,16 +54,46 @@ async function upload(reference,name,buffer,mimeType){
  return{id:text(data.id),name:text(data.name)||file,size:Number(data.size||buffer.length),webUrl:text(data.webUrl),folderPath:folderPath(ref),reference:ref};
 }
 async function listFiles(reference){
- const ref=refValue(reference);let url=GRAPH_BASE+'/users/'+encodeURIComponent(DRIVE_USER)+'/drive/root:/'+encPath(folderPath(ref))+':/children?$top=200&$select=id,name,file,createdDateTime,lastModifiedDateTime',files=[],pages=0;
- while(url&&pages<6){
-  const res=await graph(url);if(res.status===404)return[];let data={};try{data=await res.json()}catch(_){}
-  if(!res.ok)throw error('GRAPH_REFERENCE_FOLDER_LIST_FAILED',data.error&&data.error.message||'api.reference.listFailed',res.status>=500?502:res.status,{status:res.status});
-  if(!Array.isArray(data.value))throw error('GRAPH_REFERENCE_FOLDER_LIST_INVALID','Microsoft Graph hat keine gültige REF-Dateiliste geliefert.',502);
-  for(const item of data.value){if(item&&item.file)files.push({id:text(item.id),name:text(item.name),createdDateTime:item.createdDateTime||null,lastModifiedDateTime:item.lastModifiedDateTime||null})}
-  url=data['@odata.nextLink']||'';pages++;
+ const ref=refValue(reference),select='id,name,file,folder,createdDateTime,lastModifiedDateTime';
+ const first=GRAPH_BASE+'/users/'+encodeURIComponent(DRIVE_USER)+'/drive/root:/'+encPath(folderPath(ref))+':/children?$top=200&$select='+encodeURIComponent(select);
+ // Match the main reference-files reader: documents may be filed below
+ // category subfolders. A direct-child-only scan can falsely mark AV missing.
+ const pending=[{url:first,depth:0}],seenFolders=new Set(),seenFiles=new Set(),files=[];
+ const MAX_DEPTH=4,MAX_FOLDERS=36,MAX_FILES=1500;
+ let visited=0;
+ while(pending.length){
+  if(++visited>MAX_FOLDERS)throw error('GRAPH_REFERENCE_FOLDER_SCAN_LIMIT','Der REF-Ordner enthält zu viele Unterordner für eine vollständige AV-Prüfung.',503);
+  const task=pending.shift();let url=task.url,pages=0;
+  while(url&&pages<6){
+   const res=await graph(url);
+   if(res.status===404){
+    if(task.depth===0)return[];
+    url='';break; // A child folder could have been removed since its discovery.
+   }
+   let data={};try{data=await res.json()}catch(_){}
+   if(!res.ok)throw error('GRAPH_REFERENCE_FOLDER_LIST_FAILED',data.error&&data.error.message||'api.reference.listFailed',res.status>=500?502:res.status,{status:res.status});
+   if(!Array.isArray(data.value))throw error('GRAPH_REFERENCE_FOLDER_LIST_INVALID','Microsoft Graph hat keine gültige REF-Dateiliste geliefert.',502);
+   for(const item of data.value){
+    if(!item)continue;
+    const id=text(item.id);
+    if(item.file){
+     if(!id||!text(item.name))throw error('GRAPH_REFERENCE_FOLDER_LIST_INVALID','Microsoft Graph lieferte ungültige Datei-Metadaten.',502);
+     if(seenFiles.has(id))continue;
+     if(files.length>=MAX_FILES)throw error('GRAPH_REFERENCE_FILE_LIMIT','Der REF-Ordner enthält zu viele Dateien für eine vollständige AV-Prüfung.',503);
+     seenFiles.add(id);
+     files.push({id,name:text(item.name),createdDateTime:item.createdDateTime||null,lastModifiedDateTime:item.lastModifiedDateTime||null});
+    }else if(item.folder){
+     if(!id)throw error('GRAPH_REFERENCE_FOLDER_LIST_INVALID','Microsoft Graph lieferte einen Unterordner ohne ID.',502);
+     if(seenFolders.has(id))continue;
+     if(task.depth>=MAX_DEPTH)throw error('GRAPH_REFERENCE_DEPTH_LIMIT','Der REF-Ordner enthält tiefer liegende Unterordner, die nicht vollständig geprüft werden konnten.',503);
+     seenFolders.add(id);
+     pending.push({url:GRAPH_BASE+'/users/'+encodeURIComponent(DRIVE_USER)+'/drive/items/'+encodeURIComponent(id)+'/children?$top=200&$select='+encodeURIComponent(select),depth:task.depth+1});
+    }
+   }
+   url=data['@odata.nextLink']||'';pages++;
+  }
+  if(url)throw error('GRAPH_REFERENCE_FOLDER_LIST_TRUNCATED','Die REF-Dateiliste hat mehr Ergebnisseiten als sicher geprüft werden konnten.',503);
  }
- // Returning a partial list would incorrectly report existing AVs as missing.
- if(url)throw error('GRAPH_REFERENCE_FOLDER_LIST_TRUNCATED','Die REF-Dateiliste hat mehr Ergebnisseiten als sicher geprüft werden konnten.',503);
  return files;
 }
 module.exports={GRAPH_BASE,REFERENCE_FOLDER,DRIVE_USER,refValue,safeFileName,folderPath,ensureFolder,upload,listFiles,config};
