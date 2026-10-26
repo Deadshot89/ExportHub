@@ -47,7 +47,9 @@ test('RC1139 P0: TESTSERVICE Kunde und Sendung speichern, Reload und Azure-Readb
     });
     return{status:response.status,data:await response.json().catch(()=>({}))};
   },{token:session.token});
-  expect(read.status).toBe(200);
+  // RC1674: report only stable API error codes, never token, message or body.
+  const readErrorCode=String(read.data?.code||'UNKNOWN').replace(/[^A-Za-z0-9_.-]/g,'').slice(0,64);
+  expect(read.status,`TESTSERVICE metadata API HTTP ${read.status} / ${readErrorCode}`).toBe(200);
   expect(read.data?.ok).toBe(true);
 
   const stamp=new Date().toISOString();
