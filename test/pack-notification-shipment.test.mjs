@@ -346,3 +346,16 @@ test('P0: contradictory event REF and shipment snapshot REF never attach a PDF',
   assert.deepEqual(s.shipments.map(sh=>sh.deliveryFiles.length),[0,0]);
   assert.equal(s.packNotifications[0].shipmentId,undefined);
 });
+
+test('P0: REF and recycled ID cannot resolve a shipment explicitly owned by another pack',()=>{
+  const api=load(),s=state(),n=s.packNotifications[0];
+  n.shipmentId='REUSED-1';n.shipmentRef='RIGHT1';n.status='shipment_created';
+  const other={id:'REUSED-1',ref:'RIGHT1',status:'Abgeholt',packNotificationId:'other-pack',packNotificationRef:'PK-OTHER'};
+  s.shipments=[other];
+  assert.equal(api.findShipmentForNotification(s,n),null,'a known REF cannot override an explicit foreign pack owner');
+  assert.equal(api.syncStatuses(s,'2026-10-26T14:30:00.000Z').length,0,'foreign pickup cannot complete this pack notification');
+  delete n.shipmentRef;
+  other.packNotificationRef='PK-1';
+  assert.equal(api.findShipmentForNotification(s,n),null,'matching pack REF does not override conflicting pack ID');
+  assert.equal(api.syncStatuses(s,'2026-10-26T14:31:00.000Z').length,0);
+});

@@ -37,11 +37,14 @@
     const n=notification||{},wanted=q(n.shipmentId),wantedRef=q(n.shipmentRef).toUpperCase(),nid=q(n.id),nref=q(n.reference);
     const list=[...arr(state&&state.shipments),...arr(state&&state.savedShipments),...arr(state&&state.sharedShipments),state&&state.shipment,state&&state.currentShipment,state&&state.selectedShipment].filter(Boolean);
     const rowRef=sh=>q(sh&&(sh.ref||sh.reference||sh.shipmentRef)).toUpperCase();
-    const linked=sh=>(nid&&q(sh.packNotificationId)===nid)||(nref&&q(sh.packNotificationRef)===nref);
+    const foreignOwner=sh=>
+      (q(sh&&sh.packNotificationId)&&q(sh.packNotificationId)!==nid)||
+      (q(sh&&sh.packNotificationRef)&&q(sh.packNotificationRef)!==nref);
+    const linked=sh=>!foreignOwner(sh)&&((nid&&q(sh.packNotificationId)===nid)||(nref&&q(sh.packNotificationRef)===nref));
     // Technical editor IDs can be recycled across shipment REFs. The REF is
     // authoritative once saved; never open a different shipment by ID alone.
     if(wantedRef){
-      const exact=list.filter(sh=>rowRef(sh)===wantedRef);
+      const exact=list.filter(sh=>rowRef(sh)===wantedRef&&!foreignOwner(sh));
       return exact.find(linked)||exact.find(sh=>wanted&&shipmentId(sh)===wanted)||exact[0]||null;
     }
     const associated=list.filter(linked);
@@ -50,7 +53,7 @@
       return associated[0];
     }
     if(!wanted)return null;
-    const byId=list.filter(sh=>shipmentId(sh)===wanted);
+    const byId=list.filter(sh=>shipmentId(sh)===wanted&&!foreignOwner(sh));
     if(new Set(byId.map(rowRef).filter(Boolean)).size>1)return null;
     return byId[0]||null;
   }
