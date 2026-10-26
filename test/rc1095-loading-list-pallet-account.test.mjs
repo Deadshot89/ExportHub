@@ -41,6 +41,6 @@ test('RC1603: Release-Builder und Production-Liveprüfung verbieten den alten Ko
   assert.match(live,/rc1095LoadPalletCount/);
   assert.match(live,/rc1095-pallet-account/);
   assert.match(build,/loadingListPalletAccount:\{version:'RC1095'/);
-  assert.match(live,/RC1543 Palettenkonto-Kontostand/);
+  assert.match(live,/RC1603 Ladeliste ohne alten Palettenkonto-Kopf/);
   assert.match(live,/palletBalanceCacheKey/);
 });
