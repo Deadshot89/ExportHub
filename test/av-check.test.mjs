@@ -450,3 +450,30 @@ test('RC1666: mehrere gleichnamige ABD-PDFs in Anfrage bleiben zwei, gespiegelte
   s.shipments[0].abdFiles=[{id:'S-001',name:'Customs-document.pdf'},{id:'S-002',name:'Customs-document.pdf'}];
   assert.equal(av.requiredAvCount(s,sh),2,'Kopien derselben Dokumente dürfen die Anzahl nicht verdoppeln');
 });
+
+test('RC1666: drei gleichnamige ABD-Dateien verteilt auf zwei Anfragen verlangen drei AVs',async()=>{
+  const sh=shipment({abdFiles:[],abdRequired:false});
+  const s=state(sh);
+  s.abdRequests=[
+    {id:'REQ-A',ref:'ABC123',abdFiles:[
+      {id:'DOC-A1',name:'ABD.pdf'},
+      {id:'DOC-A2',name:'ABD.pdf'}
+    ]},
+    {id:'REQ-B',ref:'ABC123',abdFiles:[
+      {id:'DOC-B1',name:'ABD.pdf'}
+    ]}
+  ];
+  // A saved copy of the same shipment/request must not cause duplicate work.
+  s.savedShipments=[shipment({id:'S-COPY',ref:'ABC123',abdFiles:[],abdRequired:false})];
+  assert.equal(av.requiredAvCount(s,sh),3);
+  const files={ABC123:[{name:'AV-1.pdf'},{name:'AV-2.pdf'}]},h=handler(s,files);
+  const first=await h.run();
+  assert.equal(first.body.missing,1);
+  assert.equal(s.tasks.length,1);
+  assert.equal(s.tasks[0].avRequiredCount,3);
+  assert.equal(s.tasks[0].avMissingCount,1);
+  files.ABC123.push({name:'AV-3.pdf'});
+  const second=await h.run();
+  assert.equal(second.body.closedTasks,1);
+  assert.equal(s.tasks[0].status,'erledigt');
+});

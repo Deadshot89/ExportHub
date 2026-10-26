@@ -66,7 +66,7 @@ function requiredAvCount(state,sh,indexedCopies){
   // per copy would miss ABD_1 in an active copy and ABD_2 in an archived copy.
   const copies=Array.isArray(indexedCopies)?indexedCopies:shipmentCopies(state,refOf(sh));
   const sources=copies.length?copies:[sh];
-  const requestKeys=new Set(),documentKeys=new Set(),nameMultiplicities=new Map();
+  const requestKeys=new Set(),requestDocumentCounts=new Map(),documentKeys=new Set(),nameMultiplicities=new Map();
   let maxUnnamed=0;
   function collectDocuments(record){
     // Identical file names can represent two different uploaded ABD PDFs.
@@ -92,18 +92,25 @@ function requiredAvCount(state,sh,indexedCopies){
     }
     // Historical entries without file identities cannot safely be merged.
     maxUnnamed=Math.max(maxUnnamed,unnamed);
+    return Array.from(identitiesByName.values()).reduce((sum,ids)=>sum+ids.size,0)+unnamed;
   }
   for(const source of sources){
     for(const r of abdRequestsFor(state,source)){
       if(!pickupStore.abdPresent(r))continue;
       const key=text(r.id||r.requestId||r.abdReference||r.mrn);
-      requestKeys.add(key?'request:'+key:r);
-      collectDocuments(r);
+      const requestKey=key?'request:'+key:r;
+      requestKeys.add(requestKey);
+      const filesInRequest=collectDocuments(r);
+      // Requests are independent ABD operations. Sum their documents even
+      // if two requests uploaded separate PDFs with the same filename;
+      // mirrored copies of one request count only once.
+      requestDocumentCounts.set(requestKey,Math.max(requestDocumentCounts.get(requestKey)||0,filesInRequest));
     }
     collectDocuments(source);
   }
   const documentCount=Array.from(documentKeys).reduce((sum,name)=>sum+(nameMultiplicities.get(name)||1),0);
-  return Math.max(1,requestKeys.size,documentCount+maxUnnamed);
+  const requestedDocumentCount=Array.from(requestDocumentCounts.values()).reduce((sum,n)=>sum+n,0);
+  return Math.max(1,requestKeys.size,documentCount+maxUnnamed,requestedDocumentCount);
 }
 
 // Historisches Abholdatum bleibt als Zusatzinformation erhalten, ist keine Voraussetzung.
