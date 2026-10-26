@@ -27,7 +27,7 @@ function handler(s,files,extra={}){
 
 test('AV-Dateiname: Anfang "AV" ohne Rücksicht auf Groß-/Kleinschreibung',()=>{
   for(const n of ['AV_ABC123.pdf','av 123.pdf','Av-Ausgangsvermerk.PDF','AVABC123.pdf'])assert.equal(av.isAvFileName(n),true,n);
-  for(const n of ['ABD_ABC123.pdf','Rechnung AV.pdf','CMR.pdf',''])assert.equal(av.isAvFileName(n),false,n);
+  for(const n of ['ABD_ABC123.pdf','Rechnung AV.pdf','AVIS_ABC123.pdf','Avis123.pdf','CMR.pdf',''])assert.equal(av.isAvFileName(n),false,n);
 });
 
 test('Fälligkeit: 5 Kalendertage nach Abholung',()=>{
@@ -217,4 +217,12 @@ test('RC1666: recycelte technische ID darf ABD einer anderen REF nicht zuordnen'
   assert.deepEqual(av.candidates(s,NOW),[]);
   s.abdRequests.push({id:'REQ-2',linkedShipmentId:'OLD-ID',reference:'RIGHT1',abdFiles:[{name:'ABD.pdf'}]});
   assert.equal(av.shipmentHasAbd(s,sh),true,'REF-Zuordnung ist stärker als recycelte ID');
+});
+
+test('RC1666: Lieferavis im REF-Ordner schließt die AV-Aufgabe nicht',async()=>{
+  const s=state(shipment());
+  const r=await handler(s,{ABC123:[{name:'AVIS_ABC123.pdf'},{name:'ABD_ABC123.pdf'}]}).run();
+  assert.equal(r.body.missing,1);
+  assert.equal(r.body.createdTasks,1);
+  assert.equal(s.tasks[0].status,'offen');
 });
