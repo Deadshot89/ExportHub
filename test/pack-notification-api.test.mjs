@@ -107,6 +107,8 @@ test('scanner PDFs with generic MIME are accepted only if their binary signature
   const generic={name:'Scan Lieferschein.PDF',mimeType:'application/octet-stream',data:'data:application/octet-stream;base64,'+valid};
   const [document]=api.validateDocuments([generic],1024);
   assert.equal(document.mimeType,'application/pdf');
+  assert.match(document.data,/^data:application\/pdf;base64,/,'Blob storage must retain the canonical MIME after validation');
+  assert.equal(require('../api/shared/document-blob-store.js').extractInlinePayload(document).mimeType,'application/pdf');
   assert.equal(document.name,'Scan Lieferschein.PDF');
   assert.equal(document.size,Buffer.from('%PDF-1.4\n%%EOF\n','latin1').length);
   const withoutExplicitMime=api.validateDocuments([{name:'Scan.pdf',data:'data:application/octet-stream;base64,'+valid}],1024);
