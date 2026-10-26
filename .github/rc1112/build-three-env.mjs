@@ -1641,6 +1641,7 @@ for(const rel of [
   'assets/rc1165-pod-backup-status.js',
   'assets/rc1166-avis-reminder-overview.js',
   'assets/rc1176-shipment-location.js',
+  'assets/rc1059-document-blob.js', // RC1672: viewer is required by main UI and Playwright build
   'assets/rc1203-deckblatt-print.js',
   'assets/rc1283-loading-list-search.js',
   'assets/rc1305-loading-list-print.js',
