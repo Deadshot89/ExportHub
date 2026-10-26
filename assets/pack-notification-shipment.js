@@ -53,8 +53,11 @@
       return associated[0];
     }
     if(!wanted)return null;
-    const byId=list.filter(sh=>shipmentId(sh)===wanted&&!foreignOwner(sh));
-    if(new Set(byId.map(rowRef).filter(Boolean)).size>1)return null;
+    // Check all ID collisions before filtering foreign pack owners. Otherwise
+    // excluding a foreign REF can make a recycled ID appear falsely unique.
+    const idMatches=list.filter(sh=>shipmentId(sh)===wanted);
+    if(new Set(idMatches.map(rowRef).filter(Boolean)).size>1)return null;
+    const byId=idMatches.filter(sh=>!foreignOwner(sh));
     return byId[0]||null;
   }
   // A shipment-saved event may contain a detached snapshot. Only a row that
