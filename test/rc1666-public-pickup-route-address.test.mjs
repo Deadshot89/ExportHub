@@ -65,6 +65,8 @@ test('RC1666: delivery address never degrades to a dash or standalone country',(
  assert.equal(store.addressFromSource({address:'—',locationData:{street:'Hafenstraße 9',zip:'41460',city:'Neuss'}}),'Hafenstraße 9, 41460 Neuss');
  assert.equal(store.addressFromSource({recipientAddress:{street:'Logistikweg 8',postalCode:'47906',city:'Kempen'}}),'Logistikweg 8, 47906 Kempen');
  assert.equal(store.addressFromSource({address:'-',country:'DE'}),'');
+ assert.equal(store.addressFromSource({address:'Alte Hauptadresse 1',locationData:{street:'Zustellort 7',postalCode:'41334',city:'Nettetal'}}),'Zustellort 7, 41334 Nettetal');
+ assert.equal(store.addressFromSource({address:'Alte Hauptadresse 1',deliveryAddress:'Lieferweg 3'}),'Lieferweg 3');
 });
 
 
