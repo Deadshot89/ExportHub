@@ -208,3 +208,13 @@ test('RC1666: auch erstelltes ABD in verknüpfter Anfrage löst eine AV-Aufgabe 
   const r=await handler(s,{ABC123:[]}).run();
   assert.equal(r.body.createdTasks,1);
 });
+
+test('RC1666: recycelte technische ID darf ABD einer anderen REF nicht zuordnen',()=>{
+  const sh=shipment({ref:'RIGHT1',id:'REUSED',abdFiles:[],abdRequired:false});
+  const s=state(sh);
+  s.abdRequests=[{id:'REQ-1',linkedShipmentId:'REUSED',reference:'WRONG1',abdFiles:[{name:'ABD.pdf'}]}];
+  assert.equal(av.shipmentHasAbd(s,sh),false);
+  assert.deepEqual(av.candidates(s,NOW),[]);
+  s.abdRequests.push({id:'REQ-2',linkedShipmentId:'OLD-ID',reference:'RIGHT1',abdFiles:[{name:'ABD.pdf'}]});
+  assert.equal(av.shipmentHasAbd(s,sh),true,'REF-Zuordnung ist stärker als recycelte ID');
+});
