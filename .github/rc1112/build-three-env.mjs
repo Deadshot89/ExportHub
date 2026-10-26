@@ -1532,6 +1532,13 @@ function patchHtml(file){
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1176-shipment-location" defer src="/assets/rc1176-shipment-location.js?v=1202"></script>','exporthub-rc1176-shipment-location');
   html=injectDeferredRuntimeInHead(html,'<link id="exporthub-rc1259-container-ui" rel="stylesheet" href="/assets/rc1014-shipment-overview.css?v=1370">','exporthub-rc1259-container-ui');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1259-container-runtime" defer src="/assets/rc1014-shipment-overview.js?v=1370"></script>','exporthub-rc1259-container-runtime');
+  // RC1672: The historical RC1059 script occurrence is inside the Stauplan
+  // popup HTML string only. Shipments/Packmeldungen require the viewer in the
+  // actual application window. Load it synchronously at the start of HEAD so
+  // quick navigation cannot cancel its pending request before it initializes.
+  html=injectImmediateRuntimeAfterHead(html,'<script id="exporthub-rc1672-document-blob-viewer" src="/assets/rc1059-document-blob.js?v=1672"></script>','exporthub-rc1672-document-blob-viewer');
+  const outerHead=html.slice(0,html.toLowerCase().indexOf('</head>'));
+  if(!outerHead.includes('id="exporthub-rc1672-document-blob-viewer"'))throw new Error(file+': RC1672 echter Hauptfenster-Dokumentenviewer fehlt');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1203-deckblatt-print" defer src="/assets/rc1203-deckblatt-print.js?v=1373"></script>','exporthub-rc1203-deckblatt-print');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1207-pallet-account-fix" defer src="/assets/rc1207-pallet-account-fix.js?v=1418"></script>','exporthub-rc1207-pallet-account-fix');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1294-abd-self-service" defer src="/assets/rc1294-abd-self-service.js?v=1407"></script>','exporthub-rc1294-abd-self-service');
@@ -1644,6 +1651,7 @@ for(const rel of [
   'assets/rc1165-pod-backup-status.js',
   'assets/rc1166-avis-reminder-overview.js',
   'assets/rc1176-shipment-location.js',
+  'assets/rc1059-document-blob.js', // RC1672: viewer is required by main UI and Playwright build
   'assets/rc1203-deckblatt-print.js',
   'assets/rc1283-loading-list-search.js',
   'assets/rc1305-loading-list-print.js',
