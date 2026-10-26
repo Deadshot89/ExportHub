@@ -328,7 +328,9 @@ function graphFolderListingFixture(kind){
     " if(String(url).includes('login.microsoftonline.com'))return {ok:true,json:async()=>({access_token:'fixture',expires_in:3600})};",
     " pages++;",
     " if(mode==='invalid')return {ok:true,json:async()=>({unexpected:true})};",
-    " if(mode==='nested'||mode==='nestedError'){",
+    " if(mode==='rootPageGone'&&pages===2)return {ok:false,status:404,json:async()=>({error:{code:'itemNotFound'}})};",
+    " if(mode==='nested'||mode==='nestedError'||mode==='childGone'){",
+    "  if(mode==='childGone'&&String(url).includes('/drive/items/'))return {ok:false,status:404,json:async()=>({error:{code:'itemNotFound'}})};",
     "  const child=String(url).includes('/drive/items/');",
     "  const data=child?(mode==='nestedError'?{broken:true}:{value:[{id:'nestedAV',name:'AV_ABC123.pdf',file:{mimeType:'application/pdf'}}]}):{value:[{id:'rootABD',name:'ABD_ABC123.pdf',file:{}},{id:'sub',name:'Dokumente',folder:{}}]};",
     "  return {ok:true,json:async()=>data};",
@@ -405,4 +407,16 @@ test('RC1666: identische ABD-Dateien in Sendung und Anfrage dürfen nicht mehrfa
   const s=state(sh);
   s.abdRequests=[{id:'REQ-MIRROR',ref:'ABC123',abdFiles:files.map(x=>({id:'REQ-'+x.id,name:x.name}))}];
   assert.equal(av.requiredAvCount(s,sh),2);
+});
+
+test('RC1666: HTTP 404 beim Nachladen einer Graph-Dateiseite erzeugt keine unvollständige AV-Liste',()=>{
+  assert.deepEqual(graphFolderListingFixture('rootPageGone'),{
+    ok:false,code:'GRAPH_REFERENCE_FOLDER_LIST_INCOMPLETE'
+  });
+});
+
+test('RC1666: HTTP 404 eines zuvor gefundenen Unterordners erzeugt keinen AV-Fehlalarm',()=>{
+  assert.deepEqual(graphFolderListingFixture('childGone'),{
+    ok:false,code:'GRAPH_REFERENCE_FOLDER_LIST_INCOMPLETE'
+  });
 });

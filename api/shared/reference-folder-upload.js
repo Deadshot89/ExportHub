@@ -67,8 +67,11 @@ async function listFiles(reference){
   while(url&&pages<6){
    const res=await graph(url);
    if(res.status===404){
-    if(task.depth===0)return[];
-    url='';break; // A child folder could have been removed since its discovery.
+    // A missing root on the initial request is an absent REF folder.
+    // A vanished subfolder or pagination link means the scan is incomplete:
+    // do not create false AV-missing tasks from partial Graph reads.
+    if(task.depth===0&&pages===0)return[];
+    throw error('GRAPH_REFERENCE_FOLDER_LIST_INCOMPLETE','Der REF-Ordner änderte sich während der AV-Prüfung. Bitte später erneut vollständig prüfen.',503);
    }
    let data={};try{data=await res.json()}catch(_){}
    if(!res.ok)throw error('GRAPH_REFERENCE_FOLDER_LIST_FAILED',data.error&&data.error.message||'api.reference.listFailed',res.status>=500?502:res.status,{status:res.status});
