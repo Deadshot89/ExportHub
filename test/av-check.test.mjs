@@ -266,3 +266,25 @@ test('RC1666: dieselbe ABD-Datei in mehreren REF-Kopien darf nicht doppelt gezä
   assert.equal(r.body.present,1);
   assert.equal(avTasks(s).length,0);
 });
+
+test('RC1666: historischer Backfill baut den REF-Index nicht pro Sendung neu',()=>{
+  const list=Array.from({length:40},(_,i)=>shipment({
+    id:'IDX-'+i,ref:'B'+String(i).padStart(5,'0'),abdFiles:[{name:'ABD_'+i+'.pdf'}]
+  }));
+  let reads=0;
+  const s={tasks:[],get shipments(){reads++;return list}};
+  const selected=av.candidates(s,NOW);
+  assert.equal(selected.length,40);
+  assert.equal(reads,1,'der komplette Sendungsbestand darf nur einmal indexiert werden');
+  assert.equal(selected[0].requiredAvCount,1);
+  assert.equal(selected[39].requiredAvCount,1);
+});
+
+test('RC1666: Ergebnisprüfung verwendet dieselben REF-Kopien ohne erneute Vollindizierung',()=>{
+  const list=[shipment({abdFiles:[{name:'ABD_A.pdf'}]})];
+  let reads=0;
+  const s={tasks:[],get shipments(){reads++;return list}};
+  const result=av.applyResult(s,'ABC123',{avFiles:[{name:'AV_A.pdf'}]},NOW);
+  assert.equal(result.status,'present');
+  assert.equal(reads,1,'die AV-Statusänderung indexiert den Bestand nur einmal');
+});
