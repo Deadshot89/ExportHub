@@ -142,8 +142,22 @@ async function uploadIdempotent(blob,buffer,mimeType,metadata){
   return await blob.upload(buffer,buffer.length,options);
  }catch(e){
   const status=Number(e&&e.statusCode||e&&e.status||0);
-  if(status===409||status===412||/BlobAlreadyExists|ConditionNotMet/i.test(String(e&&e.code||'')))return{alreadyExists:true};
-  throw e;
+  const code=text(e&&(e.code||e.details&&e.details.errorCode));
+  // RC1665: a 409/412 is NOT proof that the expected PDF exists. A lease,
+  // container or other Azure conflict must never create a dead ABD reference.
+  if(![409,412].includes(status)||!/^(BlobAlreadyExists|ConditionNotMet)$/i.test(code))throw e;
+  if(typeof blob.getProperties!=='function')throw e;
+  let existing;
+  try{existing=await blob.getProperties()}catch(_){throw e}
+  const actualMeta=existing&&existing.metadata||{};
+  const expectedHash=text(metadata&&metadata.sha256).toLowerCase();
+  const actualHash=text(actualMeta.sha256).toLowerCase();
+  const expectedEnv=normalizeEnvironment(metadata&&metadata.environment);
+  const actualEnv=text(actualMeta.environment).toLowerCase();
+  if(expectedHash&&actualHash===expectedHash&&actualEnv===expectedEnv&&
+     Number(existing.contentLength)===buffer.length)return{alreadyExists:true,verifiedExisting:true};
+  const conflict=new Error('Vorhandenes Dokument konnte nicht eindeutig verifiziert werden.');
+  conflict.code='DOCUMENT_BLOB_CONFLICT_UNVERIFIED';conflict.status=409;throw conflict;
  }
 }
 async function readBlobBuffer(blob){
