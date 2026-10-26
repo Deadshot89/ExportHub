@@ -101,7 +101,7 @@ function missingTask(sh,nowIso){
     linkedShipmentId:text(sh.id||sh.shipmentId),linkedShipmentRef:ref,linkedCustomer:customer,
     linkedAccount:text(sh.customer&&(sh.customer.account||sh.customer.customerNumber)),
     actualPickupDate:day,
-    note:'Ausgangsvermerk (AV) zum erstellten ABD fehlt. Im REF-Ordner '+ref+' fehlt mindestens ein AV-Dokument (Dateiname beginnt mit "AV"). Dies gilt auch für ältere und noch nicht abgeholte Sendungen.\\nDie Aufgabe wird nach Prüfung der zugehörigen AV-Dokumente automatisch geschlossen.',
+    note:'Ausgangsvermerk (AV) zum erstellten ABD fehlt. Im REF-Ordner '+ref+' fehlt mindestens ein AV-Dokument (Dateiname beginnt mit "AV"). Dies gilt auch für ältere und noch nicht abgeholte Sendungen.\nDie Aufgabe wird nach Prüfung der zugehörigen AV-Dokumente automatisch geschlossen.',
     createdAt:nowIso,updatedAt:nowIso,_syncUpdatedAt:nowIso,_syncDeviceId:'av-check'
   };
 }
@@ -136,6 +136,7 @@ function applyResult(state,reference,result,now){
   }
   const missing=Math.max(1,required-count);
   const id=taskId(ref),existing=state.tasks.find(t=>text(t&&t.id)===id);
+  const reopenedTask=!!existing&&!isOpenTask(existing);
   if(existing){
     Object.assign(existing,{status:'offen',done:false,completed:false,doneAt:'',completedAt:'',
       doneBy:'',completedBy:'',autoCompletedByAvCheck:false,unread:!isOpenTask(existing)||existing.unread===true,
@@ -146,7 +147,7 @@ function applyResult(state,reference,result,now){
     task.avMissingCount=missing;task.avRequiredCount=required;task.avFoundCount=count;
     state.tasks.unshift(task);
   }
-  return{reference:ref,status:'missing',closedTasks:0,createdTask:!existing&&!!sh,missingCount:missing};
+  return{reference:ref,status:'missing',closedTasks:0,createdTask:!existing&&!!sh,reopenedTask,missingCount:missing};
 }
 
 // Ausschließlich der signierte Check erhält echte Graph-Dateilisten; bei Fehler keine Aufgabe.
