@@ -21,14 +21,17 @@ function pickupStore(){
  try{return require(id)}finally{Module._load=original}
 }
 
-test('RC1666: tokenized pickup QR routes never fall through to the login application',()=>{
- for(const route of ['/pickup','/pickup.html','/pickup/*','/pickup.html/*']){
-  const entry=config.routes.find(r=>r.route===route);
-  assert.ok(entry,'Missing explicit public route: '+route);
-  assert.deepEqual(entry.allowedRoles,['anonymous']);
-  if(route!=='/pickup.html')assert.equal(entry.rewrite,'/pickup.html');
-  assert.ok(config.navigationFallback.exclude.includes(route),'Index fallback for '+route);
-  assert.match(entry.headers['Cache-Control'],/no-store/);
+test('RC1666: public QR route never falls back to either authenticated SPA',()=>{
+ const testConfig=JSON.parse(fs.readFileSync('staticwebapp.testservice.config.json','utf8'));
+ for(const [name,site] of [['PRODUCTION',config],['TESTSERVICE',testConfig]]){
+  for(const route of ['/pickup','/pickup.html','/pickup/*','/pickup.html/*']){
+   const entry=site.routes.find(r=>r.route===route);
+   assert.ok(entry,name+': missing explicit public route '+route);
+   assert.deepEqual(entry.allowedRoles,['anonymous']);
+   if(route!=='/pickup.html')assert.equal(entry.rewrite,'/pickup.html');
+   assert.ok(site.navigationFallback.exclude.includes(route),name+': index fallback for '+route);
+   assert.match(entry.headers['Cache-Control'],/no-store/);
+  }
  }
 });
 
