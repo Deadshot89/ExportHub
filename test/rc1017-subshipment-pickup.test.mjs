@@ -249,3 +249,20 @@ test('RC1666: verified parent never adopts a sub-shipment belonging to another s
   assert.equal(state.tasks[0].status,'offen');
  }finally{f.restore()}
 });
+
+
+test('RC1666: stale multi-truck QR rejects reused parent ID with conflicting reference',async()=>{
+ const f=teamFixture({extraShipments:[{
+  id:'S1',ref:'ANOTHER-REF',status:'Erstellt',
+  subShipments:[{subShipmentId:'S1-TRUCK-1',sequence:1,total:2,status:'open'}]
+ }]});
+ try{
+  const record=completedSubPickup('S1-TRUCK-1',1,2,'2026-09-09T17:35:00.000Z');
+  record.shipmentId='STALE-PARENT';record.reference='STALE-REF';
+  await assert.rejects(()=>f.store.updateTeam(record,[],''),e=>e&&e.code==='TEAM_SHIPMENT_AMBIGUOUS'&&e.status===409);
+  const state=f.getDocument().state;
+  assert.equal(state.shipments[0].status,'Bereit zur Abholung');
+  assert.equal(state.shipments[1].status,'Erstellt');
+  assert.equal(state.tasks[0].status,'offen');
+ }finally{f.restore()}
+});
