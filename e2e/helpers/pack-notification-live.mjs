@@ -78,6 +78,9 @@ async function createPackNotification(page,token,suffix='A'){
   await expect(page.locator('#packDocumentList')).not.toContainText(expected.sourceName);
 
   await expect(page.locator('#packSubmit')).toBeEnabled();
+  // Selected files are stored in state while the native chooser is reset for the next upload.
+  await expect(page.locator('#packDocuments')).toHaveValue('');
+  expect(await page.locator('#packForm').evaluate(form=>form.checkValidity())).toBe(true);
   await page.locator('#packSubmit').click();
   await expect(page.locator('#packSuccess')).toBeVisible({timeout:30_000});
   const reference=String(await page.locator('#packSuccessReference').innerText()).trim();
