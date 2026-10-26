@@ -34,9 +34,25 @@
     return groups;
   }
   function findShipmentForNotification(state,notification){
-    const n=notification||{},wanted=q(n.shipmentId),nid=q(n.id),nref=q(n.reference);
-    const list=[...arr(state&&state.shipments),...arr(state&&state.savedShipments),state&&state.shipment,state&&state.currentShipment,state&&state.selectedShipment].filter(Boolean);
-    return list.find(sh=>(wanted&&shipmentId(sh)===wanted)||(nid&&q(sh.packNotificationId)===nid)||(nref&&q(sh.packNotificationRef)===nref))||null;
+    const n=notification||{},wanted=q(n.shipmentId),wantedRef=q(n.shipmentRef).toUpperCase(),nid=q(n.id),nref=q(n.reference);
+    const list=[...arr(state&&state.shipments),...arr(state&&state.savedShipments),...arr(state&&state.sharedShipments),state&&state.shipment,state&&state.currentShipment,state&&state.selectedShipment].filter(Boolean);
+    const rowRef=sh=>q(sh&&(sh.ref||sh.reference||sh.shipmentRef)).toUpperCase();
+    const linked=sh=>(nid&&q(sh.packNotificationId)===nid)||(nref&&q(sh.packNotificationRef)===nref);
+    // Technical editor IDs can be recycled across shipment REFs. The REF is
+    // authoritative once saved; never open a different shipment by ID alone.
+    if(wantedRef){
+      const exact=list.filter(sh=>rowRef(sh)===wantedRef);
+      return exact.find(linked)||exact.find(sh=>wanted&&shipmentId(sh)===wanted)||exact[0]||null;
+    }
+    const associated=list.filter(linked);
+    if(associated.length){
+      if(new Set(associated.map(rowRef).filter(Boolean)).size>1)return null;
+      return associated[0];
+    }
+    if(!wanted)return null;
+    const byId=list.filter(sh=>shipmentId(sh)===wanted);
+    if(new Set(byId.map(rowRef).filter(Boolean)).size>1)return null;
+    return byId[0]||null;
   }
   // A shipment-saved event may contain a detached snapshot. Only a row that
   // actually belongs to the persisted state can carry the pack PDFs into its REF.
