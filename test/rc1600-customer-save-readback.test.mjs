@@ -58,7 +58,8 @@ test('RC1600: all eight customer-save patches apply exactly once and enable mand
 
 test('RC1600: RC1112 build uses hardened customer save flow for all environments',()=>{
   const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
-  assert.match(build,/const hardened=hardenCustomerSaveHtml\(fs\.readFileSync\(target,'utf8'\)\)/);
+  // RC1662 adds the protected ABD savedShipments delta before existing RC1600 hardening.
+  assert.match(build,/const hardened=hardenCustomerSaveHtml\(patchRc1662SavedShipmentDeltaHtml\(fs\.readFileSync\(target,'utf8'\),file\)\)/);
   assert.match(build,/assets\/rc1092-customer-mail-contacts\.js\?v=1600/);
   assert.match(build,/for\(const file of \['index.html','TESTVERSION.html','demo.html'\]\)/);
 });
