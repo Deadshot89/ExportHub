@@ -278,6 +278,12 @@
     // Do not attach PDFs only to a detached event payload. The committed
     // shipment row (and any persisted aliases) must receive the real blob link.
     if(!savedRows.length||!shipmentId(savedRows[0]))return false;
+    // An unrelated save event or previously linked REF must never take over
+    // an in-flight pack notification, even if technical shipment IDs overlap.
+    const belongsToAnotherPack=row=>
+      (q(row&&row.packNotificationId)&&q(row.packNotificationId)!==q(notification.id))||
+      (q(row&&row.packNotificationRef)&&q(row.packNotificationRef)!==q(notification.reference));
+    if(belongsToAnotherPack(source)||savedRows.some(belongsToAnotherPack))return false;
     const prefill=shipmentPrefill(notification);
     if(arr(notification.documents).length!==prefill.deliveryFiles.length)return false;
     const task=arr(state&&state.tasks).find(t=>q(t&&t.sourceType)==='pack_notification'&&q(t&&t.sourceId)===q(notification.id));
