@@ -213,6 +213,15 @@ for(const base of [PROD,TEST]){
   markers('RC1322 Direktdruck-Setup',setup,['SilentPrintingEnabled','PrintPreviewUseSystemDefaultPrinter','Get-CimInstance Win32_Printer']);
 }
 
+// RC1666: both deployed roots must present the anonymous QR redirect before auth.
+// Merely having /pickup.html online is insufficient for already printed /?pickup=TOKEN codes.
+for(const [label,html] of [['PRODUCTION',production],['TESTSERVICE',testservice]]){
+  const head=/<head[^>]*>/i.exec(html);
+  assert.ok(head,label+': HTML head is missing');
+  const first=html.slice(head.index+head[0].length).trimStart();
+  assert.ok(first.startsWith('<script id="exporthub-rc1666-public-pickup-redirect">'),label+': public QR redirect must run before login');
+  assert.ok(first.includes("target.searchParams.set('token',token)"),label+': public QR token is not forwarded');
+}
 // RC1525 + RC1586 QR-Abholseite: Fachfelder und tatsächliche RC1585-Abschlusslogik müssen live ausgeliefert werden.
 const rc1586PickupLiveMarkers=[
   'id="sealNumber"',
