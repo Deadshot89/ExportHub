@@ -30,7 +30,7 @@ test('RC1672: loader API supports authenticated Blob reads and production/testse
   assert.match(viewer,/fetchBytes:fetchBytes/);
   assert.match(viewer,/headers:headers/);
   assert.match(viewer,/X-ExportHUB-Environment/);
-  assert.match(viewer,/rc1059\\\/(production\|testservice)/);
+  assert.match(viewer,/function isBlobDocument\(/);
   assert.match(build,/fs\.cpSync\(currentApi,builtApi/);
-  assert.match(build,/fs\.cpSync\(path\.join\(ROOT,'assets'\),path\.join\(OUT,'assets'\)/);
+  assert.match(build,/fs\.cpSync\(SRC,OUT,\{recursive:true\}\)/);
 });
