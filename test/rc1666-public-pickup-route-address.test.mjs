@@ -226,3 +226,42 @@ test('RC1666: container upload API accepts properly linked saved-only shipment',
  assert.equal(bad.res.status,503);
  assert.equal(bad.res.body.code,'CONTAINER_TEAM_SYNC_FAILED');
 });
+
+
+test('RC1666: confirmed pickup updates saved-only shipment, not a conflicting reference',async()=>{
+ const initial={revision:4,state:{
+  shipments:[{id:'UNRELATED',reference:'TEST123',status:'Erstellt'}],
+  savedShipments:[{id:'SHIP-1',reference:'TEST123',status:'Bereit zur Abholung'}],
+  tasks:[]
+ }};
+ let serialized=Buffer.from(JSON.stringify(initial)),writes=0;
+ const blob={
+  async download(){return{etag:'"old-etag"',readableStreamBody:Readable.from([serialized])}},
+  async upload(raw){serialized=Buffer.from(raw);writes++;return{etag:'"new-etag"'}}
+ };
+ const original=Module._load,previous=process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;
+ process.env.EXPORTHUB_STORAGE_CONNECTION_STRING='mock-only-for-test';
+ Module._load=function(name,parent,isMain){
+  if(name==='@azure/storage-blob')return{BlobServiceClient:{fromConnectionString(){return{
+   getContainerClient(){return{async createIfNotExists(){},getBlockBlobClient(){return blob}}}
+  }}}};
+  return original.call(this,name,parent,isMain)
+ };
+ const id=require.resolve('../api/shared/pickup-store.js');delete require.cache[id];
+ let store;try{store=require(id)}finally{Module._load=original}
+ try{
+  await store.updateTeam({
+   environment:'testservice',shipmentId:'SHIP-1',reference:'TEST123',expectedColliCount:1,
+   pickupHistory:[{sequence:1,colliCount:1,confirmedAt:'2026-10-26T14:00:00Z',signatureBlobName:'pod/signed.png',complete:true}]
+  });
+  assert.equal(writes,1);
+  const state=JSON.parse(serialized).state;
+  assert.equal(state.shipments[0].status,'Erstellt','unrelated reused reference must remain unchanged');
+  assert.equal(state.savedShipments[0].status,'Abgeholt','saved-only shipment must receive pickup state');
+  assert.equal(state.savedShipments[0].pickupQrUsed,true);
+  assert.equal(state.savedShipments[0].signatureAvailable,true);
+ }finally{
+  if(previous===undefined)delete process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;
+  else process.env.EXPORTHUB_STORAGE_CONNECTION_STRING=previous;
+ }
+});
