@@ -209,8 +209,14 @@ export async function runPackNotificationLiveFlow(browser,testInfo,token){
       }
       const goods=page.getByLabel(/Warenbeschreibung/i).first();
       if(await goods.count())await goods.fill('E2E TEST delivery note handoff');
-      const refField=page.locator('#rc363BlockCustomer input[maxlength="6"][pattern*="A-Z0-9"]').first();
-      await expect(refField).toBeVisible();
+      // RC1676: The reference can be rendered outside the customer block after
+      // layout changes. Use its accessible label, as the RC1171/RC1320 shipment
+      // E2E tests already do. Never infer or manufacture a reference.
+      const labeledRef=page.getByLabel(/Sendungsreferenz\s*\/\s*Referenznummer/i).first();
+      const refField=await labeledRef.count()?labeledRef:page.locator('#rc363BlockCustomer input[maxlength="6"][pattern*="A-Z0-9"]').first();
+      await expect(refField).toBeVisible({timeout:10_000});
+      await expect(refField).toHaveAttribute('readonly','');
+      await expect(refField).toHaveAttribute('aria-readonly','true');
       const shipmentRef=String(await refField.inputValue()).trim().toUpperCase();
       expect(shipmentRef).toMatch(/^[A-Z0-9]{6}$/);
       const ready=await page.evaluate(({runId,notificationId,blobName})=>{
