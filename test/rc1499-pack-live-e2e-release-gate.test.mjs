@@ -119,6 +119,24 @@ test('RC1670: TESTSERVICE gate verifies persisted shipment PDF bytes after a rea
   assert.match(spec,/test\.setTimeout\(300_000\)/);
 });
 
+test('RC1676: Pack-to-shipment live test finds the accessible reference and still validates a saved six-digit readonly REF',()=>{
+  const helper=read(helperPath);
+  assert.match(helper,/getByLabel\(\/Sendungsreferenz\\s\*\\\/\\s\*Referenznummer\/i\)/,
+    'Live Pack handoff must use the semantic reference label used by the main shipment E2E');
+  assert.match(helper,/refField=await labeledRef\.count\(\)\?labeledRef:/,
+    'Only fall back to the legacy selector when no accessible reference label exists');
+  assert.match(helper,/expect\(refField\)\.toBeVisible/,
+    'Reference must still be genuinely visible');
+  assert.match(helper,/expect\(refField\)\.toHaveAttribute\('readonly',''\)/,
+    'A generated reference must remain readonly');
+  assert.match(helper,/expect\(refField\)\.toHaveAttribute\('aria-readonly','true'\)/,
+    'A generated reference must remain semantically readonly');
+  assert.match(helper,/expect\(shipmentRef\)\.toMatch\(\/\^\[A-Z0-9\]\{6\}\$\/\)/,
+    'Reference must retain its actual six-character validation');
+  assert.match(helper,/persisted\.signature\)\.toBe\('%PDF-'\)/,
+    'The true PDF readback gate must not be weakened');
+});
+
 test('RC1499: geänderte E2E-Dateien bleiben syntaktisch gültig',()=>{
   for(const path of [fixturePath,packSpecPath,publicSmokePath,helperPath])execFileSync(process.execPath,['--check',path],{stdio:'pipe'});
 });
