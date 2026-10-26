@@ -103,7 +103,11 @@ test('RC1460: Sendungsansicht berücksichtigt alle fachlichen Datei-Felder',()=>
   for(const field of ['deliveryFiles','deliveryNotesFiles','lieferscheine','files','attachments','abdFiles','podFiles','invoiceFiles','cmrFiles','photos','pickupPhotos','containerPhotos']){
     assert.ok(buildSource.includes(field),field+' wird von der Dokumentauflösung nicht berücksichtigt');
   }
-  assert.match(buildSource,/out\.push\(normalizeFallback\(entry\)\)/);
+  // RC1677: normalize once, then retain the document after exact Blob/filename dedupe.
+  // Validate both operations; don't require the unsafe old push-inline spelling.
+  assert.match(buildSource,/var doc=normalizeFallback\\(entry\\)/);
+  assert.match(buildSource,/out\\.push\\(doc\\)/);
+  assert.match(buildSource,/existing\\.file&&existing\\.file\\.blobName/);
 });
 
 test('RC1460: Statusverlauf zeigt den ausführenden Benutzer',()=>{
