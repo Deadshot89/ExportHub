@@ -420,3 +420,33 @@ test('RC1666: HTTP 404 eines zuvor gefundenen Unterordners erzeugt keinen AV-Feh
     ok:false,code:'GRAPH_REFERENCE_FOLDER_LIST_INCOMPLETE'
   });
 });
+
+test('RC1666: gleichnamige ABD-PDFs mit verschiedenen IDs dürfen AV-Aufgabe nicht vorzeitig schließen',async()=>{
+  const sh=shipment({abdFiles:[
+    {id:'ABD-001',name:'ABD.pdf'},
+    {id:'ABD-002',name:'ABD.pdf'}
+  ]});
+  const s=state(sh),files={ABC123:[{name:'AV_001.pdf'}]},h=handler(s,files);
+  assert.equal(av.requiredAvCount(s,sh),2,'verschiedene Datei-IDs müssen zwei AV-Nachweise verlangen');
+  const first=await h.run();
+  assert.equal(first.body.missing,1);
+  assert.equal(s.tasks[0].avRequiredCount,2);
+  assert.equal(s.tasks[0].avMissingCount,1);
+  files.ABC123.push({name:'AV_002.pdf'});
+  const second=await h.run();
+  assert.equal(second.body.closedTasks,1);
+  assert.equal(s.tasks[0].status,'erledigt');
+});
+
+test('RC1666: mehrere gleichnamige ABD-PDFs in Anfrage bleiben zwei, gespiegelte Kopien werden nicht doppelt gezählt',()=>{
+  const sh=shipment({abdFiles:[],abdRequired:false});
+  const s=state(sh);
+  s.abdRequests=[{id:'REQ-2ABDS',ref:'ABC123',abdFiles:[
+    {id:'R-001',name:'Customs-document.pdf'},
+    {id:'R-002',name:'Customs-document.pdf'}
+  ]}];
+  s.savedShipments=[shipment({id:'S2',ref:'ABC123',abdFiles:[],abdRequired:false})];
+  assert.equal(av.requiredAvCount(s,sh),2);
+  s.shipments[0].abdFiles=[{id:'S-001',name:'Customs-document.pdf'},{id:'S-002',name:'Customs-document.pdf'}];
+  assert.equal(av.requiredAvCount(s,sh),2,'Kopien derselben Dokumente dürfen die Anzahl nicht verdoppeln');
+});

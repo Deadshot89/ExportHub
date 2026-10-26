@@ -66,23 +66,34 @@ function requiredAvCount(state,sh,indexedCopies){
   // per copy would miss ABD_1 in an active copy and ABD_2 in an archived copy.
   const copies=Array.isArray(indexedCopies)?indexedCopies:shipmentCopies(state,refOf(sh));
   const sources=copies.length?copies:[sh];
-  const requestKeys=new Set(),documentKeys=new Set();
+  const requestKeys=new Set(),documentKeys=new Set(),nameMultiplicities=new Map();
   let maxUnnamed=0;
-  for(const source of sources){
+  function collectDocuments(record){
+    // Identical file names can represent two different uploaded ABD PDFs.
+    // Count distinct file identities within a record, but avoid double
+    // counting mirrored records from active, saved and archived collections.
+    const identitiesByName=new Map();
     let unnamed=0;
-    function collectDocuments(record){
-      // Some historical ABDs live on a linked request instead of the shipment.
-      // A single request may also contain multiple completed ABD PDFs.
-      for(const field of ['abdFiles','abdDocuments','abds']){
-        const files=record&&record[field];
-        for(const file of (Array.isArray(files)?files:[])){
-          if(!file)continue;
-          const key=typeof file==='string'?text(file):text(file.name||file.fileName||file.blobName||file.storageBlobName||file.storagePath||file.id);
-          if(key)documentKeys.add(key.toLowerCase());
-          else unnamed++;
-        }
+    for(const field of ['abdFiles','abdDocuments','abds']){
+      const files=record&&record[field];
+      for(const file of (Array.isArray(files)?files:[])){
+        if(!file)continue;
+        const key=typeof file==='string'?text(file):text(file.name||file.fileName||file.blobName||file.storageBlobName||file.storagePath||file.id);
+        if(!key){unnamed++;continue;}
+        const name=key.toLowerCase();
+        const identity=typeof file==='string'?name:text(file.id||file.documentId||file.storagePath||file.storageBlobName||file.blobName||key).toLowerCase();
+        documentKeys.add(name);
+        if(!identitiesByName.has(name))identitiesByName.set(name,new Set());
+        identitiesByName.get(name).add(identity);
       }
     }
+    for(const [name,identities] of identitiesByName){
+      nameMultiplicities.set(name,Math.max(nameMultiplicities.get(name)||0,identities.size));
+    }
+    // Historical entries without file identities cannot safely be merged.
+    maxUnnamed=Math.max(maxUnnamed,unnamed);
+  }
+  for(const source of sources){
     for(const r of abdRequestsFor(state,source)){
       if(!pickupStore.abdPresent(r))continue;
       const key=text(r.id||r.requestId||r.abdReference||r.mrn);
@@ -90,11 +101,9 @@ function requiredAvCount(state,sh,indexedCopies){
       collectDocuments(r);
     }
     collectDocuments(source);
-    // Missing legacy identity fields cannot safely be deduplicated;
-    // keep at least the largest such group, without double-counting copies.
-    maxUnnamed=Math.max(maxUnnamed,unnamed);
   }
-  return Math.max(1,requestKeys.size,documentKeys.size+maxUnnamed);
+  const documentCount=Array.from(documentKeys).reduce((sum,name)=>sum+(nameMultiplicities.get(name)||1),0);
+  return Math.max(1,requestKeys.size,documentCount+maxUnnamed);
 }
 
 // Historisches Abholdatum bleibt als Zusatzinformation erhalten, ist keine Voraussetzung.
