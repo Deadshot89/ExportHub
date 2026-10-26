@@ -307,3 +307,12 @@ test('RC1666: gültige historische REF gewinnt gegen nichtkanonische Referenzang
   assert.equal(result.body.present,1);
   assert.equal(s.archive[0].avPresent,true);
 });
+
+test('RC1666: fehlerhafte REF-Dateiliste erzeugt keine falsche AV-Aufgabe',async()=>{
+  const s=state(shipment());
+  const r=await handler(s,{ABC123:{value:[{name:'AV_ABC123.pdf'}]}}).run();
+  assert.equal(r.body.ok,false);
+  assert.equal(r.body.errorCount,1);
+  assert.equal(r.body.errors[0].code,'GRAPH_REFERENCE_FOLDER_LIST_INVALID');
+  assert.equal(avTasks(s).length,0);
+});
