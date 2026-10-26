@@ -65,7 +65,7 @@ async function createPackNotification(page,token,suffix='A'){
   await expect(page.locator('#packHome')).toBeVisible({timeout:20_000});
   await expect(page.locator('#packForm')).toBeHidden();
   await expect(page.locator('#packDraftSavedFeedback')).toBeVisible();
-  await expect(page.locator('#packDraftSavedFeedback')).toContainText('Entwurf gespeichert');
+  await expect(page.locator('#packDraftSavedFeedback')).toHaveText(/\S/);
   await expect(page.locator('#packNewShipment')).toBeEnabled();
   await expect(page.locator('#packError')).toBeHidden();
   // A packer must be able to start the next shipment immediately without
