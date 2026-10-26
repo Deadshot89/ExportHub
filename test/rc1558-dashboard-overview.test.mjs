@@ -47,8 +47,8 @@ const tasks=[
 
 test('RC1558 Build bindet CSS, I18n und Runtime idempotent nach RC1371 und vor RC1306 ein',()=>{
   assert.match(build,/const RC1558_OVERVIEW_STYLE_TAG='<link id="exporthub-rc1558-overview-style"[^']*rc1558-dashboard-overview\.css\?v=1558/);
-  assert.match(build,/const RC1558_OVERVIEW_I18N_TAG='<script id="exporthub-rc1558-overview-i18n"[^']*i18n\/rc1558-dashboard-overview\.js\?v=1558/);
-  assert.match(build,/const RC1558_OVERVIEW_SCRIPT_TAG='<script id="exporthub-rc1558-overview-script"[^']*rc1558-dashboard-overview\.js\?v=1558/);
+  assert.match(build,/const RC1558_OVERVIEW_I18N_TAG='<script id="exporthub-rc1558-overview-i18n"[^']*i18n\/rc1558-dashboard-overview\.js\?v=1666/);
+  assert.match(build,/const RC1558_OVERVIEW_SCRIPT_TAG='<script id="exporthub-rc1558-overview-script"[^']*rc1558-dashboard-overview\.js\?v=1666/);
   assert.match(build,/function patchRc1558DashboardOverview\(html,file\)/);
   const a=build.indexOf('html=patchRc1371Dashboard(html,file);');
   const b=build.indexOf('html=patchRc1558DashboardOverview(html,file);');
