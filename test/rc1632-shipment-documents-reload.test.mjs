@@ -18,8 +18,10 @@ function harness(response){
   const first={id:'SHIP-9WX5K6',ref:'9WX5K6',files:[]};
   const current={view:'shipmentview',shipmentViewId:first.id,shipments:[first]};
   let resolveRequest;
+  const resolvers=[];
   const panels=[];
   const context={
+    rcShipmentDocumentRequestSeq:0,
     state:()=>current,
     find:id=>current.shipments.find(s=>s.id===id || s.ref===id),
     refOf:s=>String(s?.ref||'').toUpperCase(),
@@ -27,14 +29,14 @@ function harness(response){
     low:v=>String(v||'').toLowerCase(),
     arr:x=>Array.isArray(x)?x:[],
     shipmentAssociatedDocs:(sh,prior)=>(prior||[]).concat(sh?.files||[]),
-    referenceList:(ref,force)=>{assert.equal(ref,'9WX5K6');assert.equal(force,true,'Shipment view must refresh the live REF folder instead of using cached empty results');return new Promise(resolve=>{resolveRequest=resolve})},
+    referenceList:(ref,force)=>{assert.equal(ref,'9WX5K6');assert.equal(force,true,'Shipment view must refresh the live REF folder instead of using cached empty results');return new Promise(resolve=>{resolveRequest=resolve;resolvers.push(resolve)})},
     liveDoc:(f,ref)=>({...f,reference:ref,source:'referenceFolder'}),
     mergeReferenceDocs:(live,fallback)=>live.concat(fallback),
     setDocsPanel:(docs,source,error)=>panels.push({docs,source,error}),
     console:{warn(){}}
   };
   vm.runInNewContext(emittedLoader(),context,{filename:'generated-shipment-document-loader.js'});
-  return {first,current,panels,run:()=>context.loadReferenceDocs(first,[]),resolve:()=>resolveRequest(response)};
+  return {first,current,panels,run:()=>context.loadReferenceDocs(first,[]),resolve:()=>resolveRequest(response),resolveAt:(index,payload=response)=>resolvers[index](payload)};
 }
 
 test('RC1632: documentation loader includes a syntax-valid active release transform',()=>{
@@ -78,4 +80,26 @@ test('RC1632: completion of an old REF request cannot overwrite another shipment
   h.current.shipmentViewId='OTHER';h.current.shipments=[{id:'OTHER',ref:'OTHER1'}];
   h.resolve();await pending;
   assert.equal(h.panels.length,0);
+});
+
+test('P0: refreshed shipment with a new internal ID but the same REF still displays attachments',async()=>{
+  const h=harness({ok:true,available:true,files:[]});
+  const pending=h.run();
+  h.current.shipmentViewId='CURRENT-NEW-ID';
+  h.current.shipments=[{id:'CURRENT-NEW-ID',ref:'9WX5K6',files:[{name:'CMR_9WX5K6.pdf',url:'/api/exporthub-document?blob=cmr'}]}];
+  h.resolve();await pending;
+  assert.deepEqual(Array.from(h.panels[0].docs,d=>d.name),['CMR_9WX5K6.pdf']);
+  assert.equal(h.panels[0].error,false);
+});
+
+test('P0: older REF folder response cannot overwrite a newer response for the same shipment',async()=>{
+  const h=harness({ok:true,available:true,files:[]});
+  const old=h.run();
+  const latest=h.run();
+  h.resolveAt(1,{ok:true,available:true,files:[{id:'LATEST',name:'LATEST.pdf'}]});
+  await latest;
+  h.resolveAt(0,{ok:true,available:true,files:[{id:'STALE',name:'STALE.pdf'}]});
+  await old;
+  assert.equal(h.panels.length,1);
+  assert.deepEqual(Array.from(h.panels[0].docs,d=>d.name),['LATEST.pdf']);
 });
