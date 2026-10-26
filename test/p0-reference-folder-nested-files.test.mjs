@@ -67,3 +67,17 @@ test('P0: the reference file API and emitted frontend build parse',()=>{
   assert.equal(check.status,0,check.stderr||check.stdout);
  }
 });
+
+test('P0: deleted nested folders do not masquerade as a pagination failure',async()=>{
+ const h=mock({root:{value:[{id:'removed',name:'Old',folder:{}}]}});
+ const data=await h.list();
+ assert.equal(data.folderMissing,false);
+ assert.equal(data.files.length,0);
+});
+
+test('P0: deeper unscanned folders result in an explicit limit error instead of a false zero',async()=>{
+ const data={root:{value:[{id:'a',folder:{}}]}};
+ for(const [key,next] of [['a','b'],['b','c'],['c','d'],['d','e']])data[key]={value:[{id:next,folder:{}}]};
+ const h=mock(data);
+ await assert.rejects(h.list(),e=>e.code==='GRAPH_REFERENCE_DEPTH_LIMIT'&&e.status===503);
+});
