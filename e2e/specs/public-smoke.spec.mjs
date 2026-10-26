@@ -218,6 +218,36 @@ test('RC1555 production smoke: verschachtelte POD-Abholkarten zeigen nur die neu
   await assertRuntimeClean(runtime,testInfo);
 });
 
+test('Packmeldung: Lieferschein erscheint trotz haengender optionaler PDF-Erkennung',async({page},testInfo)=>{
+  test.skip(testInfo.project.name!=='laptop','unabhaengiger Upload-Browsercheck auf Laptop');
+  // A static fixture is intentional: it never writes pack tasks or user data.
+  // The normalizer is deliberately stalled to verify that a real FileReader
+  // upload can reach the document list without waiting indefinitely.
+  await page.route('**/assets/document-reference-normalizer.js*',route=>route.fulfill({
+    status:200,contentType:'application/javascript',
+    body:'window.ExportHubDocumentReferenceNormalizer={normalizePdfFile:()=>new Promise(()=>{})};'
+  }));
+  await page.route('**/api/pack-notification?action=*',route=>{
+    const action=new URL(route.request().url()).searchParams.get('action');
+    const payload=action==='session'
+      ?{ok:true,sessionId:'550e8400-e29b-41d4-a716-446655440000',stationName:'E2E Packstation'}
+      :action==='packaging-list'?{ok:true,packaging:[]}
+      :action==='draft-list'?{ok:true,drafts:[]}
+      :{ok:false,code:'PACK_E2E_UNEXPECTED_ACTION'};
+    return route.fulfill({status:payload.ok?200:400,contentType:'application/json',body:JSON.stringify(payload)});
+  });
+  await page.goto('/assets/pack.html?token=E2E-PACK-UPLOAD',{waitUntil:'domcontentloaded'});
+  await expect(page.locator('#packNewShipment')).toBeVisible();
+  await page.locator('#packNewShipment').click();
+  const filename='SIDE250071282.pdf';
+  await page.locator('#packDocuments').setInputFiles({
+    name:filename,mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4\\n1 0 obj<<>>endobj\\n%%EOF','utf8')
+  });
+  await expect(page.locator('#packDocumentList')).toContainText(filename,{timeout:8000});
+  await expect(page.locator('#packError')).toBeHidden();
+  await expect(page.locator('#packDocuments')).toHaveValue('');
+});
+
 test('RC1499: echter QR-Packmeldungsfluss blockiert Production bei TESTSERVICE-Regression',async({browser},testInfo)=>{
   test.setTimeout(180_000);
   test.skip(process.env.EXPORTHUB_E2E_LIVE!=='1'||process.env.EXPORTHUB_E2E_MUTATION!=='1','RC1499 läuft nur im mutierenden TESTSERVICE-Gate.');
