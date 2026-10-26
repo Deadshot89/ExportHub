@@ -240,7 +240,10 @@ test('Packmeldung: Lieferschein erscheint trotz haengender optionaler PDF-Erkenn
   await expect(page.locator('#packNewShipment')).toBeVisible();
   await page.locator('#packNewShipment').click();
   const filename='SIDE250071282.pdf';
-  await page.locator('#packDocuments').setInputFiles({
+  const chooserPromise=page.waitForEvent('filechooser');
+  await page.locator('label[for="packDocuments"]').click();
+  const chooser=await chooserPromise;
+  await chooser.setFiles({
     name:filename,mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4\\n1 0 obj<<>>endobj\\n%%EOF','utf8')
   });
   await expect(page.locator('#packDocumentList')).toContainText(filename,{timeout:8000});
