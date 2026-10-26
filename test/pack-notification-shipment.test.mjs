@@ -267,3 +267,23 @@ test('P0: pack-specific link identifies the correct REF when save-event ID is re
   assert.equal(s.packNotifications[0].shipmentRef,'RIGHT1');
 });
 
+test('P0: REF from save-event metadata resolves an ID-only snapshot without linking a foreign REF',async()=>{
+  const s=state(),events=new Map();
+  const root={
+    __EXPORTHUB_GET_STATE__:()=>s,
+    addEventListener(name,listener){events.set(name,listener);},
+    setView(){},
+    ExportHUBClean:{queueSave(){return true;},flushSave(){return true;}}
+  };
+  const api=loadWithRoot(root);
+  assert.equal(api.begin('pn-1'),true);
+  const wrong={id:'REUSED-1',ref:'WRONG1',deliveryFiles:[]};
+  const correct={id:'REUSED-1',ref:'RIGHT1',deliveryFiles:[]};
+  s.shipments=[wrong,correct];
+  assert.equal(await events.get('exporthub:shipment-saved')({
+    detail:{ref:'RIGHT1',shipment:{id:'REUSED-1'}}
+  }),true);
+  assert.equal(wrong.deliveryFiles.length,0);
+  assert.equal(correct.deliveryFiles.length,1);
+  assert.equal(s.packNotifications[0].shipmentRef,'RIGHT1');
+});
