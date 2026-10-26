@@ -73,4 +73,16 @@ test('pack PDF rename change preserves valid semicolon-terminated quote escaping
   assert.match(js,/&quot;/,'double quotes must remain escaped as &quot;');
 });
 
-test('static web app routes /pack/* to the deployable public pack asset and excludes it from SPA fallback',()=>{const config=JSON.parse(read('staticwebapp.config.json')),route=config.routes.find(r=>r.route==='/pack/*'),direct=config.routes.find(r=>r.route==='/pack.html'),asset=read('assets/pack.html');assert.ok(route);assert.equal(route.rewrite,'/assets/pack.html');assert.equal(direct&&direct.rewrite,'/assets/pack.html');assert.ok(Array.isArray(route.allowedRoles)&&route.allowedRoles.includes('anonymous'));assert.ok(config.navigationFallback.exclude.includes('/pack/*'));assert.ok(config.navigationFallback.exclude.includes('/pack.html'));assert.match(asset,/ExportHUB360 · Packmeldung/);assert.match(asset,/id="packForm"/);assert.match(asset,/\/assets\/document-reference-normalizer\.js\?v=2/);assert.match(asset,/\/assets\/pack-notification\.js\?v=3/);});
+test('static web app routes /pack/* to the deployable public pack asset and excludes it from SPA fallback',()=>{const config=JSON.parse(read('staticwebapp.config.json')),route=config.routes.find(r=>r.route==='/pack/*'),direct=config.routes.find(r=>r.route==='/pack.html'),asset=read('assets/pack.html');assert.ok(route);assert.equal(route.rewrite,'/assets/pack.html');assert.equal(direct&&direct.rewrite,'/assets/pack.html');assert.ok(Array.isArray(route.allowedRoles)&&route.allowedRoles.includes('anonymous'));assert.ok(config.navigationFallback.exclude.includes('/pack/*'));assert.ok(config.navigationFallback.exclude.includes('/pack.html'));assert.match(asset,/ExportHUB360 · Packmeldung/);assert.match(asset,/id="packForm"/);assert.match(asset,/\/assets\/document-reference-normalizer\.js\?v=2/);assert.match(asset,/\/assets\/pack-notification\.js\?v=4/);});
+
+test('pack document selection never waits forever for optional PDF text detection',()=>{
+  const js=read('assets/pack-notification.js');
+  const html=read('assets/pack.html');
+  assert.match(js,/async function optionalPdfNaming\(file\)/);
+  assert.match(js,/Promise\.race\(/);
+  assert.match(js,/setTimeout\(\(\)=>resolve\(fallback\),1500\)/);
+  assert.match(js,/const data=await readFileDataUrl\(file\)/);
+  assert.match(js,/const naming=await optionalPdfNaming\(file\)/);
+  assert.match(js,/MAX_PACK_DOCUMENT_BYTES=10\*1024\*1024/);
+  assert.match(html,/pack-notification\.js\?v=4/,'deployed pack asset must load the new client');
+});
