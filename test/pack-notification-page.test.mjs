@@ -11,7 +11,9 @@ test('public qr pack page is standalone and keeps the current mandatory delivery
   assert.doesNotMatch(html,/id="packDeliveryNoteReference"|Lieferschein \/ Referenz/);
   assert.match(html,/id="packPackageCount"/);
   assert.match(html,/id="packWeight"/);
-  assert.match(html,/id="packDocuments"[^>]*multiple[^>]*required|id="packDocuments"[^>]*required[^>]*multiple/);
+  assert.match(html,/id="packDocuments"[^>]*multiple/);
+  assert.doesNotMatch(html,/id="packDocuments"[^>]*\\srequired(?:\\s|>)/,'empty native file input must not block a valid state-based document submit');
+  assert.doesNotMatch(read('assets/pack.html'),/id="packDocuments"[^>]*\\srequired(?:\\s|>)/,'deployed pack page must obey the same contract');
   assert.match(html,/id="packSubmit"/);
   assert.doesNotMatch(html,/id="login"|ehLoginProduction|sidebar|main-navigation/i);
 });
