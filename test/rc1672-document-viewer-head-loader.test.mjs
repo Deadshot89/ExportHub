@@ -32,5 +32,6 @@ test('RC1672: loader API supports authenticated Blob reads and production/testse
   assert.match(viewer,/X-ExportHUB-Environment/);
   assert.match(viewer,/function isBlobDocument\(/);
   assert.match(build,/fs\.cpSync\(currentApi,builtApi/);
+  assert.match(build,/'assets\/rc1059-document-blob\.js', \/\/ RC1672/,'RC1059 must be included in locally tested release assets');
   assert.match(build,/fs\.cpSync\(SRC,OUT,\{recursive:true\}\)/);
 });
