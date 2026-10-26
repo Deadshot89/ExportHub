@@ -404,6 +404,16 @@ async function updateTeam(record,podsToAdd=[],rawToken=''){
    return !subSequence||!recordedSequence||subSequence===recordedSequence;
   });
   let syncTargets=subId?matches.filter(hasMatchingSub):matches;
+  if(subId&&!syncTargets.length&&matches.length&&subSequence){
+   // Preserve the historical RC1017/RC1339 sequence fallback only *within* a
+   // verified parent: a sequence number alone can never identify a shipment.
+   const subTotal=Math.max(0,Math.round(Number(record.subShipmentTotal)||0));
+   syncTargets=matches.filter(sh=>Array.isArray(sh.subShipments)&&sh.subShipments.some(part=>{
+    const n=Math.max(0,Math.round(Number(part&&(part.subShipmentSequence||part.sequence))||0));
+    const total=Math.max(0,Math.round(Number(part&&(part.subShipmentTotal||part.total))||0));
+    return n===subSequence&&(!subTotal||!total||total===subTotal);
+   }));
+  }
   if(subId&&!syncTargets.length){
    const recovered=candidates.filter(hasMatchingSub);
    const parentIds=new Set(recovered.map(x=>String(x&&(x.shipmentId||x.id)||'').trim()).filter(Boolean));
