@@ -125,6 +125,32 @@
       }
     },
     {
+      "route": "/pickup/*",
+      "rewrite": "/pickup.html",
+      "allowedRoles": [
+        "anonymous"
+      ],
+      "headers": {
+        "Cache-Control": "no-store",
+        "Referrer-Policy": "no-referrer",
+        "X-Content-Type-Options": "nosniff",
+        "X-ExportHUB-Environment": "test"
+      }
+    },
+    {
+      "route": "/pickup.html/*",
+      "rewrite": "/pickup.html",
+      "allowedRoles": [
+        "anonymous"
+      ],
+      "headers": {
+        "Cache-Control": "no-store",
+        "Referrer-Policy": "no-referrer",
+        "X-Content-Type-Options": "nosniff",
+        "X-ExportHUB-Environment": "test"
+      }
+    },
+    {
       "route": "/pickup.html",
       "allowedRoles": [
         "anonymous"
@@ -270,6 +296,8 @@
       "/task.html",
       "/pickup",
       "/pickup.html",
+      "/pickup/*",
+      "/pickup.html/*",
       "/customer-avis",
       "/customer-avis.html",
       "/pack/*",
