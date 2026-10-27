@@ -117,7 +117,7 @@ function patchRows(){
  if(!w.document)return false;
  var panel=w.document.getElementById('rc786ReferenceFilesPanel');if(!panel)return false;
  var list=docs(),rows=Array.prototype.slice.call(panel.querySelectorAll('.rc786-doc-row')),changed=false;
- var represented=Object.create(null),nativeNames=Object.create(null),valid=Object.create(null),ref=referenceOf(currentShipment());
+ var represented=Object.create(null),nativeBlobs=Object.create(null),valid=Object.create(null),ref=referenceOf(currentShipment());
  list.forEach(function(d){if(sourceAvailable(d))valid[docKey(d)]=true});
  rows.forEach(function(row){
   var key=q(row.getAttribute&&row.getAttribute('data-rc1151-document-row'));
@@ -130,15 +130,16 @@ function patchRows(){
    }
    represented[key]=true;return
   }
-  // Native rows already own the canonical open/download actions. Their order
-  // need not match docs(); never attach a different document by row index.
-  var title=row.querySelector&&row.querySelector('.rc786-doc-main b');
-  var name=q(title&&title.textContent);if(name)nativeNames[name]=true
+  // Native rows own canonical open/download actions. An original Blob may
+  // be suppressed only when the native row has the SAME trusted Blob identity.
+  // Identically named SharePoint and Azure PDFs must remain separate.
+  var blob=q(row.getAttribute&&row.getAttribute('data-rc786-blob-name'));
+  if(blob)nativeBlobs[blob]=true
  });
  list.forEach(function(d){
   if(!sourceAvailable(d))return;
   var key=docKey(d);
-  if(represented[key]||nativeNames[nameOf(d)])return;
+  if(represented[key]||nativeBlobs[q(fileOf(d)&&fileOf(d).blobName)])return;
   panel.appendChild(createRow(d));represented[key]=true;changed=true
  });
  return changed
