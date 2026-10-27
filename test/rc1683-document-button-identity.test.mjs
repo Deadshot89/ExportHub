@@ -117,3 +117,29 @@ test('RC1683: matching content hash on a new REF must rebuild owner-scoped downl
  assert.equal(h.calls.length,1);
  assert.equal(h.calls[0].name,'SAME_BYTES_DIFFERENT_REF.pdf');
 });
+
+
+test('RC1683: same filename in SharePoint and Azure keeps both independent original files',()=>{
+ const h=harness();
+ h.native.querySelector=selector=>selector==='.rc786-doc-main b'?{textContent:'SIDE_FIRST.pdf'}:null;
+ h.actions.patch();
+ const owned=h.panel.children.filter(x=>x.getAttribute('data-rc1151-document-row'));
+ assert.equal(owned.length,2,'filename alone must not hide distinct Azure originals');
+ assert.equal(h.panel.children[0],h.native);
+});
+
+test('RC1683: same original Blob already present in native row is not duplicated',()=>{
+ const h=harness();
+ h.native.setAttribute('data-rc786-blob-name',file('SIDE_FIRST.pdf','1').blobName);
+ h.actions.patch();
+ const owned=h.panel.children.filter(x=>x.getAttribute('data-rc1151-document-row'));
+ assert.equal(owned.length,1,'same exact Blob identity is represented by native row');
+ assert.ok(owned[0].getAttribute('data-rc1151-document-row').includes('2'.repeat(64)));
+ assert.equal(h.native.children.length,0,'native row keeps only native actions');
+});
+
+test('RC1683: release compiler exposes a stable native original-Blob identity attribute',()=>{
+ const compiler=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
+ assert.match(compiler,/data-rc786-blob-name/);
+ assert.match(compiler,/d\.file&&d\.file\.blobName/);
+});
