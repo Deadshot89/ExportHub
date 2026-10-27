@@ -19,7 +19,25 @@ function getSession(state,sessionId){const src=state&&Array.isArray(state.packSe
 function expireSession(state,sessionId,now){const out=ensureState(state),index=out.packSessions.findIndex(item=>text(item&&item.id)===text(sessionId));if(index<0)throw error('PACK_SESSION_NOT_FOUND','Pack-Session nicht gefunden.',404);const current=out.packSessions[index];if(current.status==='submitted')return{state:out,session:clone(current)};current.status='expired';current.updatedAt=iso(now);out.packSessions[index]=current;return{state:out,session:clone(current)};}
 function getDraft(state,draftId){const src=state&&Array.isArray(state.packDrafts)?state.packDrafts:[];const hit=src.find(item=>text(item&&item.id)===text(draftId));return hit?clone(hit):null;}
 function listOpenDrafts(state){return (state&&Array.isArray(state.packDrafts)?state.packDrafts:[]).filter(item=>item&&item.status==='draft').map(clone).sort((a,b)=>String(b.updatedAt||'').localeCompare(String(a.updatedAt||'')));}
-function saveDraft(state,stationId,payload={},now){const out=ensureState(state),at=iso(now),requestedId=text(payload.id);let index=requestedId?out.packDrafts.findIndex(item=>text(item&&item.id)===requestedId):-1;let current=index>=0?out.packDrafts[index]:null;if(current&&current.status!=='draft')throw error('PACK_DRAFT_CLOSED','Dieser Entwurf ist bereits abgeschlossen.',409);const station=out.packStations.find(item=>text(item&&item.id)===text(stationId));const draft=Object.assign({},current||{},clone(payload),{
+function hasInlineOriginal(file){
+ const data=text(file&&(file.data||file.dataUrl));
+ return /^data:[^;,]+;base64,[A-Za-z0-9+/=]+$/i.test(data)||/^[A-Za-z0-9+/=]+$/.test(text(file&&file.base64))&&!!text(file&&file.base64);
+}
+function requireOriginalDocuments(state,documents,draftId){
+ const draft=getDraft(state,draftId),prior=Array.isArray(draft&&draft.documents)?draft.documents:[];
+ for(const doc of Array.isArray(documents)?documents:[]){
+  const inline=hasInlineOriginal(doc),blobName=text(doc&&doc.blobName);
+  if(inline&&!blobName&&text(doc&&doc.storage)!=='blob')continue;
+  const match=/^rc1059\/(production|testservice)\/([a-f0-9]{2})\/([a-f0-9]{64})$/.exec(blobName);
+  const trusted=!!(draft&&draft.status==='draft'&&text(doc&&doc.storage)==='blob'&&match&&match[2]===match[3].slice(0,2)&&
+    prior.some(saved=>saved&&text(saved.storage)==='blob'&&text(saved.blobName)===blobName&&
+      text(saved.sha256)===text(doc.sha256)&&text(saved.id)===text(doc.id)&&
+      text(saved.name)===text(doc.name)&&text(saved.mimeType)===text(doc.mimeType)&&
+      Number(saved.size)===Number(doc.size)));
+  if(inline||!trusted)throw error('PACK_DOCUMENT_CONTENT_REQUIRED','Der Lieferschein enthält keine nachweisbar gespeicherte Originaldatei. Bitte erneut hochladen.',400);
+ }
+}
+function saveDraft(state,stationId,payload={},now){const out=ensureState(state),at=iso(now),requestedId=text(payload.id);let index=requestedId?out.packDrafts.findIndex(item=>text(item&&item.id)===requestedId):-1;let current=index>=0?out.packDrafts[index]:null;if(current&&current.status!=='draft')throw error('PACK_DRAFT_CLOSED','Dieser Entwurf ist bereits abgeschlossen.',409);requireOriginalDocuments(out,payload.documents,requestedId);const station=out.packStations.find(item=>text(item&&item.id)===text(stationId));const draft=Object.assign({},current||{},clone(payload),{
  id:current&&current.id||randomId(),
  status:'draft',
  createdAt:current&&current.createdAt||at,
@@ -36,6 +54,7 @@ function submitSession(state,sessionId,payload={},now){const out=ensureState(sta
   if(existing&&(!session.idempotencyKey||!key||session.idempotencyKey===key))return{state:out,notification:clone(existing),created:false};
   throw error('PACK_SESSION_SUBMITTED','Pack-Session wurde bereits übermittelt.',409);
 }
+requireOriginalDocuments(out,payload.documents,payload.draftId);
 const createdAt=iso(now),expiresAt=Date.parse(session.expiresAt||'');if(Number.isFinite(expiresAt)&&Date.parse(createdAt)>=expiresAt)throw error('PACK_SESSION_EXPIRED','Pack-Session ist abgelaufen.',409);const notificationId=randomId();const station=out.packStations.find(item=>text(item&&item.id)===text(session.packStationId));const notification={id:notificationId,reference:referenceFor(notificationId,createdAt),draftId:text(payload.draftId),packSessionId:session.id,packStationId:session.packStationId,packStationName:text(station&&station.name),customer:text(payload.customer),customerId:text(payload.customerId),customerAccount:text(payload.customerAccount),customerSource:text(payload.customerSource)==='master'?'master':'manual',deliveryNoteReference:text(payload.deliveryNoteReference),packageType:text(payload.packageType),packagingTypeId:text(payload.packagingTypeId),packagingSnapshot:payload.packagingSnapshot&&typeof payload.packagingSnapshot==='object'?clone(payload.packagingSnapshot):null,packageCount:Number(payload.packageCount)||0,totalWeight:Number(payload.totalWeight)||0,packages:Array.isArray(payload.packages)?clone(payload.packages):[],note:text(payload.note),documents:Array.isArray(payload.documents)?clone(payload.documents):[],status:'new',shipmentId:'',createdAt,updatedAt:createdAt};out.packNotifications.push(notification);session.status='submitted';session.idempotencyKey=key;session.submittedNotificationId=notificationId;session.submittedAt=createdAt;session.updatedAt=createdAt;out.packSessions[index]=session;return{state:out,notification:clone(notification),created:true};}
 
 module.exports={SESSION_STATUSES,NOTIFICATION_STATUSES,DRAFT_STATUSES,hashStationToken,validateStationToken,createSession,getSession,expireSession,getDraft,listOpenDrafts,saveDraft,closeDraft,submitSession,referenceFor};

@@ -82,7 +82,7 @@ test('submitted session is idempotent and repeat submit returns same notificatio
     totalWeight:480,
     packages:[{packageNo:1,length:120,width:80,height:140,unit:'cm'}],
     note:'',
-    documents:[{id:'doc-1',name:'LS123456.pdf',storage:'blob',blobName:'pack/doc-1',mimeType:'application/pdf',size:1234}]
+    documents:[{id:'doc-1',name:'LS123456.pdf',mimeType:'application/pdf',size:14,data:'data:application/pdf;base64,JVBERi0xLjQKJSVFT0Y='}]
   };
   const first=store.submitSession(created.state,created.session.id,payload,'2026-10-08T10:02:00.000Z');
   assert.equal(first.created,true);
