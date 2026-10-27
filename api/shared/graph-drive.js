@@ -656,6 +656,23 @@ async function resolveTarget(token, cfg, force) {
   return value;
 }
 
+// RC1683: A 2xx response is not proof of a stored POD when Graph omits
+// the actual item identifier/size or reports a different file. Do not invent
+// the expected size from the uploaded buffer: that masks incomplete writes.
+function validateUploadReceipt(item, expectedName, expectedBytes) {
+  const id = text(item && item.id);
+  const name = text(item && item.name);
+  const size = item && item.size;
+  if (!id || name !== expectedName || !Number.isSafeInteger(size) || size !== expectedBytes) {
+    throw targetError(
+      'GRAPH_UPLOAD_RECEIPT_INVALID',
+      'Microsoft Graph hat den POD-Upload nicht mit passender Datei-ID, Dateiname und Dateigröße bestätigt.',
+      { statusCode: 502 }
+    );
+  }
+  return { id, name, size };
+}
+
 async function uploadConfiguredUserPath(token, cfg, name, buffer) {
   const folder = rawFolder(cfg && cfg.folder);
   const user = text(cfg && cfg.user);
@@ -678,10 +695,11 @@ async function uploadConfiguredUserPath(token, cfg, name, buffer) {
         8000
       );
       const item = result.body || {};
+      const receipt = validateUploadReceipt(item, name, buffer.length);
       return {
-        id: text(item.id),
-        name: text(item.name) || name,
-        size: Number(item.size || buffer.length),
+        id: receipt.id,
+        name: receipt.name,
+        size: receipt.size,
         webUrl: text(item.webUrl),
         eTag: text(item.eTag),
         user,
@@ -726,7 +744,8 @@ async function uploadPdf(buffer, fileName) {
           return Object.assign({}, direct, { attempts: 1 });
         }
       } catch (directError) {
-        const wrapped = wrapDirectPathError(directError);
+        const wrapped = text(directError && directError.code) === 'GRAPH_UPLOAD_RECEIPT_INVALID'
+          ? directError : wrapDirectPathError(directError);
         rememberTargetFailure(cfg, wrapped);
         throw wrapped;
       }
@@ -748,11 +767,12 @@ async function uploadPdf(buffer, fileName) {
         'Accept': 'application/json'
       }, buffer, 8000);
       const item = result.body || {};
+      const receipt = validateUploadReceipt(item, name, buffer.length);
       if (targetFailureCache && targetFailureCache.key === targetKey(cfg)) targetFailureCache = null;
       return {
-        id: text(item.id),
-        name: text(item.name) || name,
-        size: Number(item.size || buffer.length),
+        id: receipt.id,
+        name: receipt.name,
+        size: receipt.size,
         webUrl: text(item.webUrl),
         eTag: text(item.eTag),
         user: cfg.user,
@@ -770,11 +790,14 @@ async function uploadPdf(buffer, fileName) {
             return Object.assign({}, direct, { attempts: attempt });
           }
         } catch (directError) {
-          effectiveError = wrapDirectPathError(directError);
+          effectiveError = text(directError && directError.code) === 'GRAPH_UPLOAD_RECEIPT_INVALID'
+            ? directError : wrapDirectPathError(directError);
         }
       }
       lastError = effectiveError;
       rememberTargetFailure(cfg, effectiveError);
+      // A contradictory 2xx receipt must fail closed, not issue more PUTs.
+      if (text(effectiveError && effectiveError.code) === 'GRAPH_UPLOAD_RECEIPT_INVALID') throw effectiveError;
       if (effectiveError && effectiveError.statusCode === 401 && !forceToken) {
         tokenCache = null;
         targetCache = null;
