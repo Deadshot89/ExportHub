@@ -523,6 +523,15 @@ async function copyToDrive(accessKey, environment, record, pdf, file) {
   const attemptAt = store.now();
   try {
     const result = await graphDrive.uploadPdf(pdf, file && file.name || fileNameFor(record));
+    // Final state mutation must independently reject unverified Graph receipts.
+    // Never persist driveSaved=true without a durable remote file identifier.
+    const itemId = text(result && result.id);
+    if (!itemId) {
+      throw Object.assign(
+        new Error('Microsoft Graph hat keinen eindeutigen POD-Dateieintrag bestätigt.'),
+        { code: 'GRAPH_UPLOAD_RECEIPT_INVALID' }
+      );
+    }
     const next = await persistBackupState(accessKey, environment, {
       status: 'saved',
       azureSaved: true,
@@ -531,7 +540,7 @@ async function copyToDrive(accessKey, environment, record, pdf, file) {
       driveSavedAt: store.now(),
       lastAttemptAt: attemptAt,
       attempts: Math.max(0, Number(record && record.podBackup && record.podBackup.attempts) || 0) + 1,
-      driveItemId: result.id || '',
+      driveItemId: itemId,
       webUrl: result.webUrl || '',
       fileName: result.name || (file && file.name) || fileNameFor(record),
       driveProviderCode: '',
