@@ -141,3 +141,21 @@ test('RC1676: Pack-to-shipment live test finds the accessible reference and stil
 test('RC1499: geänderte E2E-Dateien bleiben syntaktisch gültig',()=>{
   for(const path of [fixturePath,packSpecPath,publicSmokePath,helperPath])execFileSync(process.execPath,['--check',path],{stdio:'pipe'});
 });
+
+test('RC1679: shipment draft must fetch the genuine renamed Lieferschein Blob before any save',()=>{
+  const helper=read(helperPath);
+  assert.match(helper,/const shipmentAttachment=await page\.evaluate\(async\(/,
+    'sendungserstellung must request the original PDF, not rely only on metadata');
+  assert.match(helper,/reader\.fetchBytes\(doc\)/,
+    'the same authenticated Blob reader used in production must read the actual attachment');
+  assert.match(helper,/shipmentAttachment\.signature\)\.toBe\('%PDF-'\)/,
+    'PDF magic bytes must be present in the real shipment draft');
+  assert.match(helper,/shipmentAttachment\.name\)\.toBe\(resultA\.canonicalName\)/,
+    'the renamed DNC/SIDE filename must survive the handoff');
+  assert.match(helper,/shipmentAttachment\.blobName\)\.toBe\(originalPdf\.blobName\)/,
+    'source Pack and target shipment must point to exactly the same original Blob');
+  assert.ok(helper.indexOf('shipmentAttachment.signature')<helper.indexOf("locator('#rc363SaveShipment').click()"),
+    'the draft attachment must be read before saving the shipment');
+  assert.match(helper,/persisted\.signature\)\.toBe\('%PDF-'\)/,
+    'post-save reload and actual original PDF readback remain mandatory');
+});
