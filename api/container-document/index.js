@@ -24,9 +24,9 @@ module.exports=async function(context,req){
   const session=await auth.validateSession(req);if(!allowed(session.user))throw auth.error('CONTAINER_PHOTO_FORBIDDEN',apiI18n.t(req,'api.container.readForbidden'),403);
   const q=req.query||{},reference=text(q.reference).toUpperCase(),file=text(q.file),kind=text(q.kind).toLowerCase();
   if(!reference)throw auth.error('REFERENCE_REQUIRED',apiI18n.t(req,'api.container.referenceRequired'),400);
-  const state=session.team&&session.team.state||{},shipments=Array.isArray(state.shipments)?state.shipments:[],sh=shipments.find(x=>text(x&&(x.reference||x.ref||x.shipmentRef||x.referenceNumber||x.id||x.shipmentId)).toUpperCase()===reference);
-  if(!sh)throw auth.error('SHIPMENT_NOT_FOUND',apiI18n.t(req,'api.container.shipmentNotFound'),404);
-  const photos=photosOf(sh),photo=photos.find(x=>(file&&text(x&&x.id)===file)||(kind&&text(x&&x.kind).toLowerCase()===kind));
+  const state=session.team&&session.team.state||{},shipments=[].concat(Array.isArray(state.shipments)?state.shipments:[],Array.isArray(state.savedShipments)?state.savedShipments:[]),matches=shipments.filter(x=>text(x&&(x.reference||x.ref||x.shipmentRef||x.referenceNumber||x.id||x.shipmentId)).toUpperCase()===reference);
+  if(!matches.length)throw auth.error('SHIPMENT_NOT_FOUND',apiI18n.t(req,'api.container.shipmentNotFound'),404);
+  const photo=matches.map(sh=>photosOf(sh).find(x=>(file&&text(x&&x.id)===file)||(kind&&text(x&&x.kind).toLowerCase()===kind))).find(Boolean);
   if(!photo)throw auth.error('CONTAINER_PHOTO_NOT_FOUND',apiI18n.t(req,'api.container.photoNotFound'),404);
   const result=await docs.readPhoto(photo),download=String(q.download||'')==='1',name=text(photo.name)||'Containerfoto.jpg';
   context.res={status:200,isRaw:true,headers:{'Content-Type':result.contentType,'Content-Length':String(result.buffer.length),'Content-Disposition':(download?'attachment':'inline')+'; filename="'+name.replace(/["\r\n]/g,'_')+'"','Cache-Control':'private, no-store, no-cache, must-revalidate','X-Content-Type-Options':'nosniff'},body:result.buffer};
