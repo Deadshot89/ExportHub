@@ -308,14 +308,14 @@
     const panel=doc.createElement('div');panel.id='rc1680PackDeliveryFiles';
     panel.className='rc1680-pack-delivery-files';panel.__rc1680Signature=signature;
     panel.setAttribute('role','group');
-    panel.setAttribute('aria-label',t('shipmentHistory.document.deliveryNote','Übernommene Lieferscheine'));
+    panel.setAttribute('aria-label',t('shipmentHistory.document.deliveryNote','Imported delivery notes'));
     panel.style.cssText='margin-top:12px;padding:12px;border:1px solid var(--eh-border,#d7dfe8);border-radius:10px';
-    const title=doc.createElement('strong');title.textContent=t('shipmentHistory.document.deliveryNote','Lieferscheine')+' · '+files.length;
+    const title=doc.createElement('strong');title.textContent=t('shipmentHistory.document.deliveryNote','Delivery notes')+' · '+files.length;
     panel.appendChild(title);
     for(const file of files){
       const row=doc.createElement('div');row.className='rc1680-pack-file';
       row.style.cssText='display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:8px';
-      const label=doc.createElement('span');label.textContent=q(file.name||file.fileName)||'Lieferschein.pdf';
+      const label=doc.createElement('span');label.textContent=q(file.name||file.fileName)||'document.pdf';
       label.style.cssText='flex:1 1 180px;overflow-wrap:anywhere';row.appendChild(label);
       const feedback=doc.createElement('span');feedback.setAttribute('role','status');
       const openFile=async(download)=>{
@@ -330,13 +330,13 @@
             q(item.source)==='pack_notification'&&hasDocumentContent(item));
           const reader=root.ExportHUBDocumentBlob1059;
           if(!chosen||!reader||typeof reader.open!=='function')throw Error('Original document is unavailable');
-          feedback.textContent=t('documentViewer.loading','Lade Dokument …');
+          feedback.textContent=t('documentViewer.loading','Loading document …');
           await reader.open(chosen,{name:q(chosen.name),download});
           feedback.textContent='';
-        }catch(_){feedback.textContent=t('documentViewer.openFailed','Lieferschein konnte nicht geöffnet werden.');}
+        }catch(_){feedback.textContent=t('documentViewer.openFailed','The document could not be opened.');}
       };
       for(const [labelKey,fallback,download] of [
-        ['documentViewer.open','Öffnen',false],['documentViewer.download','Herunterladen',true]
+        ['documentViewer.open','Open',false],['documentViewer.download','Download',true]
       ]){
         const button=doc.createElement('button');button.type='button';button.className='ghost';
         button.textContent=t(labelKey,fallback);button.setAttribute('aria-label',button.textContent+' '+label.textContent);
