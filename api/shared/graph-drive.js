@@ -913,4 +913,88 @@ async function verifyPdf(buffer, item) {
   throw lastError;
 }
 
-module.exports = { readiness, config, uploadPdf, verifyPdf, safeFileName, normalizeFolder };
+// RC1687: OIDC-protected, READ-ONLY diagnosis of the configured Graph target.
+// Never emit tenant/user, drive/folder IDs, raw paths, tokens or Graph messages.
+// Every probe uses only GET; even a valid target is not modified.
+async function diagnoseTarget() {
+  const status = readiness();
+  const result = {
+    configured: status.configured,
+    missing: status.missing.slice(),
+    targetMode: status.driveId && status.folderId ? 'explicit-ids' : 'user-folder-discovery',
+    checks: []
+  };
+  if (!status.configured) return Object.assign(result, { ok: false, code: 'GRAPH_NOT_CONFIGURED' });
+
+  const failure = (stage, error) => {
+    const httpStatus = Math.max(0, Math.min(599, Number(error && error.statusCode) || 0));
+    const providerCode = text(error && (error.graphCode || error.code))
+      .replace(/[^A-Za-z0-9_.-]/g, '').slice(0, 70);
+    const kind = httpStatus === 403 ? 'access-denied'
+      : httpStatus === 404 ? 'not-found'
+      : httpStatus === 401 ? 'unauthorized' : 'error';
+    const item = { stage, status: kind, httpStatus, providerCode };
+    result.checks.push(item);
+    return item;
+  };
+  const success = stage => result.checks.push({ stage, status: 'ok', httpStatus: 200 });
+  let cfg, token;
+  try {
+    cfg = config();
+    token = await accessToken(false);
+    success('app-token');
+  } catch (error) {
+    failure('app-token', error);
+    return Object.assign(result, { ok: false, code: 'GRAPH_DIAGNOSTIC_TOKEN_FAILED' });
+  }
+
+  // First isolate whether /users/{configured-user}/drive is readable by
+  // this app. A failure is recorded, not inferred to mean the target is absent:
+  // SharePoint shared drives may still be reachable by explicit IDs.
+  if (result.targetMode === 'user-folder-discovery') {
+    try {
+      const drive = await graphGet(token, '/users/' + encodeURIComponent(cfg.user) + '/drive?$select=id');
+      if (text(drive.body && drive.body.id)) success('user-default-drive');
+      else failure('user-default-drive', { code: 'GRAPH_DRIVE_ID_MISSING', statusCode: 502 });
+    } catch (error) {
+      failure('user-default-drive', error);
+    }
+    const first = candidateFolders(cfg.folder)[0];
+    if (first) {
+      try {
+        const folder = await graphGet(token, '/users/' + encodeURIComponent(cfg.user) +
+          '/drive/root:/' + encodedPath(first) + '?$select=id,folder,parentReference');
+        if (text(folder.body && folder.body.id) && folder.body.folder) success('user-folder-path');
+        else failure('user-folder-path', { code: 'GRAPH_FOLDER_NOT_A_FOLDER', statusCode: 409 });
+      } catch (error) {
+        failure('user-folder-path', error);
+      }
+    }
+  }
+
+  // Use the same resolver as real uploads; explicit IDs are checked for an
+  // actual folder rather than assuming that configured IDs are valid.
+  let target;
+  try {
+    target = await resolveTarget(token, cfg, true);
+    success('target-resolver');
+  } catch (error) {
+    failure('target-resolver', error);
+    return Object.assign(result, { ok: false, code: 'GRAPH_DIAGNOSTIC_RESOLVER_FAILED' });
+  }
+  try {
+    const item = await graphGet(token, '/drives/' + encodeURIComponent(target.driveId) +
+      '/items/' + encodeURIComponent(target.folderId) + '?$select=id,folder,parentReference');
+    if (!text(item.body && item.body.id) || !item.body.folder) {
+      failure('resolved-folder-read', { code: 'GRAPH_FOLDER_NOT_A_FOLDER', statusCode: 409 });
+      return Object.assign(result, { ok: false, code: 'GRAPH_DIAGNOSTIC_NOT_A_FOLDER' });
+    }
+    success('resolved-folder-read');
+    return Object.assign(result, { ok: true, code: 'GRAPH_DIAGNOSTIC_TARGET_READABLE' });
+  } catch (error) {
+    failure('resolved-folder-read', error);
+    return Object.assign(result, { ok: false, code: 'GRAPH_DIAGNOSTIC_FOLDER_FAILED' });
+  }
+}
+
+module.exports = { readiness, config, uploadPdf, verifyPdf, diagnoseTarget, safeFileName, normalizeFolder };

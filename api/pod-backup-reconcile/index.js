@@ -73,6 +73,24 @@ module.exports = async function(context, req) {
     const environment = environmentOf(req, payload);
     const graph = graphDrive.readiness();
 
+    // RC1687: OIDC signer is already validated above. Diagnostics must return
+    // only redacted GET probe outcomes and never enter mutating reconcile/audit.
+    if (payload.graphTargetDiagnostic === true) {
+      const diagnostic = await graphDrive.diagnoseTarget();
+      context.res = json(200, {
+        version: 'RC1687',
+        environment,
+        diagnosticOnly: true,
+        ok: diagnostic.ok,
+        code: diagnostic.code,
+        configured: diagnostic.configured,
+        missing: diagnostic.missing,
+        targetMode: diagnostic.targetMode,
+        checks: diagnostic.checks
+      });
+      return;
+    }
+
     if (payload.auditPodStatus === true && environment === 'production') {
       // RC1598 P0: auditOnly did NOT mean read-only. Block every production status audit,
       // including manually triggered requests, until the 89 POD references are verified.
