@@ -136,3 +136,16 @@ test('RC1685: Graph denial cannot be interpreted as saved POD',async()=>{
     assert.equal(calls.length,2);
   });
 });
+
+test('RC1685: oversized Graph download is rejected before buffering the extra PDF data',async()=>{
+  const graph=fresh();
+  await fakeHttp((call,n)=>{
+    if(n===1)return token();
+    if(n===2)return{status:200,body:Buffer.concat([original,Buffer.from('EXTRA')])};
+    throw Error('unexpected request '+n);
+  },async calls=>{
+    await assert.rejects(graph.verifyPdf(original,{id:'pdf-remote',driveId:'drive-exact'}),
+      e=>e.code==='GRAPH_READBACK_TOO_LARGE');
+    assert.equal(calls.length,2);
+  });
+});
