@@ -104,6 +104,7 @@ function actionButton(kind,key,label){
 function createRow(d){
  var key=docKey(d),row=w.document.createElement('div');
  row.className='rc786-doc-row';row.setAttribute('data-rc1151-document-row',key);
+ row.setAttribute('data-rc1151-document-ref',referenceOf(currentShipment()));
  var main=w.document.createElement('div');main.className='rc786-doc-main';
  var title=w.document.createElement('strong');title.textContent=typeDisplay(typeOf(d));
  var name=w.document.createElement('span');name.className='muted';name.textContent=nameOf(d);
@@ -116,10 +117,19 @@ function patchRows(){
  if(!w.document)return false;
  var panel=w.document.getElementById('rc786ReferenceFilesPanel');if(!panel)return false;
  var list=docs(),rows=Array.prototype.slice.call(panel.querySelectorAll('.rc786-doc-row')),changed=false;
- var represented=Object.create(null),nativeNames=Object.create(null);
+ var represented=Object.create(null),nativeNames=Object.create(null),valid=Object.create(null),ref=referenceOf(currentShipment());
+ list.forEach(function(d){if(sourceAvailable(d))valid[docKey(d)]=true});
  rows.forEach(function(row){
   var key=q(row.getAttribute&&row.getAttribute('data-rc1151-document-row'));
-  if(key){represented[key]=true;return}
+  if(key){
+   // RC1683: old generated rows must disappear after switching shipments.
+   // Do not remove any native REF/SharePoint row.
+   if(!valid[key]||q(row.getAttribute('data-rc1151-document-ref'))!==ref){
+    if(typeof row.remove==='function'){row.remove();changed=true}
+    return
+   }
+   represented[key]=true;return
+  }
   // Native rows already own the canonical open/download actions. Their order
   // need not match docs(); never attach a different document by row index.
   var title=row.querySelector&&row.querySelector('.rc786-doc-main b');
