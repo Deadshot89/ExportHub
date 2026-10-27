@@ -731,6 +731,9 @@ async function retryArchiveBackup(accessKey, environment) {
   const currentFile = automaticPod(record);
   if (currentFile && !isCurrentAutomaticPod(currentFile) && text(currentFile.source) !== 'pickup-client-supplied') return ensureAutomaticPod(accessKey, environment, { force: true, copyToDrive: true });
   const existing = await readAutomaticPodBuffer(accessKey, environment, record);
+  // A recorded signed POD whose primary blob reference is missing must never be
+  // silently replaced by a freshly rendered document during archive recovery.
+  if (currentFile && !existing) throw store.err('POD_FILE_NOT_STORED', 'Der bestehende unterschriebene POD konnte nicht gelesen werden.', 404);
   if (!existing) return ensureAutomaticPod(accessKey, environment, { copyToDrive: true });
   const archive = await saveAzureArchive(accessKey, environment, record, existing.buffer, existing.file);
   record = archive.record || record;
