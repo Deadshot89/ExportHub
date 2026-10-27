@@ -201,6 +201,12 @@ export async function runPackNotificationLiveFlow(browser,testInfo,token){
       expect(shipmentAttachment.signature).toBe('%PDF-');
       expect(shipmentAttachment.size).toBe(originalPdf.count);
       expect(shipmentAttachment.privateToCustomer).toBe(true);
+      // Not only in memory: the creation form must actually show the renamed
+      // original as a recognizable document to the ExportHUB operator.
+      const creationDocuments=page.locator('#rc363BlockDocuments');
+      await expect(creationDocuments).toBeVisible({timeout:15_000});
+      await expect(creationDocuments.getByText(resultA.canonicalName,{exact:false}).first(),
+        'Renamed original Lieferschein must be visible as an attachment in Sendungserstellung').toBeVisible({timeout:15_000});
 
       // RC1670: The handoff is not proven by an unsaved draft. Exercise the
       // canonical shipment save, reload the app, read server state and fetch the
