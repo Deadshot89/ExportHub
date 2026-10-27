@@ -92,8 +92,8 @@ test('RC1259: QR-Abholung bietet Siegelnummer, drei Kameraaufnahmen und sofortig
   const detailsPos=page.indexOf('id="details"');
   const driverPos=page.indexOf('id="driverStep"');
   assert.ok(colliPos>=0&&containerPos>colliPos,'Colli-Prüfung muss zuerst stehen');
-  assert.ok(detailsPos>containerPos,'Siegelnummer und Fotos müssen vor den Sendungsdetails stehen');
-  assert.ok(driverPos>detailsPos,'Fahrerbereich muss nach den priorisierten Abholdaten stehen');
+  assert.ok(detailsPos>colliPos&&driverPos>detailsPos,'Fahrerbereich muss auf die Colli-Prüfung folgen');
+  assert.ok(containerPos>driverPos,'Containerfotos müssen nach Fahrer und Unterschrift stehen');
 });
 
 test('RC1259: vollständige Abholung ist bei Containerpflicht serverseitig ohne Siegel oder Fotos gesperrt',()=>{
