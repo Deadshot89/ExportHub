@@ -54,6 +54,53 @@ test('RC1259: drei definierte Containerfotos werden unter der Referenz gespeiche
   assert.equal(saved.referenceFolderPath,'003 Export/ExportHub/Sendungen/ABC123');
 });
 
+
+test('RC1259: Fotos von zwei LKW derselben Referenz überschreiben weder Blob noch REF-Datei',async()=>{
+  const previousStorage=process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;
+  process.env.EXPORTHUB_STORAGE_CONNECTION_STRING='UseDevelopmentStorage=true';
+  const uploaded=[],referenceUploads=[];
+  const container={
+    async createIfNotExists(){},
+    getBlockBlobClient(name){return{async uploadData(){uploaded.push(name)}}}
+  };
+  const mocks={
+    '@azure/storage-blob':{BlobServiceClient:{fromConnectionString(){return{getContainerClient(){return container}}}}},
+    './reference-folder-upload':{async upload(reference,name){referenceUploads.push({reference,name});return{id:'graph-'+referenceUploads.length,name,folderPath:'003 Export/ExportHub/Sendungen/'+reference}}}
+  };
+  const absolute=path.resolve(ROOT,'api/shared/container-document-store.js'),originalLoad=Module._load;
+  Module._load=function(request,parent,isMain){
+    if(Object.prototype.hasOwnProperty.call(mocks,request))return mocks[request];
+    return originalLoad.call(this,request,parent,isMain);
+  };
+  try{
+    delete require.cache[require.resolve(absolute)];
+    const docs=require(absolute),dataUrl='data:image/jpeg;base64,'+Buffer.alloc(2048,1).toString('base64');
+    const first=await docs.savePhoto({environment:'testservice',reference:'ABC123',kind:'loaded',dataUrl,shipmentId:'S1',subShipmentId:'TRUCK-1'});
+    const second=await docs.savePhoto({environment:'testservice',reference:'ABC123',kind:'loaded',dataUrl,shipmentId:'S1',subShipmentId:'TRUCK-2'});
+    assert.notEqual(first.id,second.id);
+    assert.notEqual(first.blobName,second.blobName);
+    assert.notEqual(first.name,second.name);
+    assert.equal(new Set(uploaded).size,2,'LKW dürfen nicht denselben Blob überschreiben');
+    assert.equal(new Set(referenceUploads.map(x=>x.name)).size,2,'LKW dürfen nicht dieselbe REF-Datei überschreiben');
+    assert.equal(first.referenceFolderSaved,true);
+    assert.equal(second.referenceFolderSaved,true);
+    assert.equal(docs.fileName('ABC123','loaded','jpg'),'01_Geladener_Container_ABC123.jpg','bestehende Einzel-Abholungen behalten Dateinamen');
+    const repeated=await docs.savePhoto({environment:'testservice',reference:'ABC123',kind:'loaded',dataUrl,shipmentId:'S1',subShipmentId:'TRUCK-1'});
+    assert.equal(repeated.blobName,first.blobName,'erneuter Upload desselben LKW ersetzt nur dessen Foto');
+  }finally{
+    Module._load=originalLoad;delete require.cache[require.resolve(absolute)];
+    if(previousStorage===undefined)delete process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;else process.env.EXPORTHUB_STORAGE_CONNECTION_STRING=previousStorage;
+  }
+});
+
+test('RC1259: Sendungsgalerie berücksichtigt Teil-LKW-Fotos und aktualisiert bei Fotoersatz',()=>{
+  const ui=read('assets/rc1014-shipment-overview.js');
+  assert.match(ui,/subPhotos=arr\(sh\.subShipments\)\.flatMap/);
+  assert.match(ui,/seenPhotos\.has\(key\)/);
+  assert.match(ui,/meta\.multiTruck\?' gesamt':'\/3'/);
+  assert.match(ui,/q\(photo&&photo\.uploadedAt\)/);
+});
+
 test('RC1263: Container-Dokumentmodul lädt ohne Azure Blob SDK bis zum echten Speicherzugriff',()=>{
   const absolute=path.resolve(ROOT,'api/shared/container-document-store.js'),original=Module._load;
   Module._load=function(request,parent,isMain){
