@@ -6,6 +6,7 @@ import {createRequire} from 'node:module';
 
 const require=createRequire(import.meta.url);
 const policy=require('../api/shared/user-policy.js');
+const stateWriteGuard=require('../api/shared/state-write-guard.js');
 const source=fs.readFileSync('api/exporthub-state/index.js','utf8');
 
 function slice(startMarker,endMarker){
@@ -41,6 +42,7 @@ function fixture({cacheMode,cachedLevel,freshLevel}){
     text:v=>String(v??'').trim(),
     lower:v=>String(v??'').trim().toLowerCase(),
     isAdmin:policy.isAdmin,
+    stateWriteGuard,
     error,
     emptyTeam:()=>({users:[],state:{}}),
     bearer:()=> 'token-1',
