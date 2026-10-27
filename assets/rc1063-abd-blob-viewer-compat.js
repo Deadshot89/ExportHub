@@ -10,12 +10,45 @@ function typeDisplay(type){var map={Rechnung:'shipmentHistory.document.invoice',
 function low(v){return q(v).toLocaleLowerCase('de-DE')}
 function arr(v){return Array.isArray(v)?v:[]}
 function state(){try{if(typeof w.__EXPORTHUB_GET_STATE__==='function')return w.__EXPORTHUB_GET_STATE__()||{}}catch(_){}return w.ExportHUBClean&&w.ExportHUBClean.state||w.appState||{}}
-function identity(sh){return q(sh&&(sh.id||sh.shipmentId||sh.reference||sh.referenceNumber||sh.ref||sh.sendungsreferenz)).toLocaleUpperCase('de-DE')}
+function referenceOf(sh){return q(sh&&(sh.ref||sh.reference||sh.shipmentRef||sh.referenceNumber||sh.sendungsreferenz)).toLocaleUpperCase('de-DE')}
+function shipmentIdOf(sh){return q(sh&&(sh.id||sh.shipmentId))}
 function currentShipment(){
- var s=state(),direct=s.currentShipment||s.shipment||s.activeShipment||null;if(direct&&typeof direct==='object')return direct;
- var id=q(s.currentShipmentId||s.selectedShipmentId||s.shipmentId),ref=q(s.currentShipmentRef||s.selectedShipmentRef||s.reference).toLocaleUpperCase('de-DE');
+ var s=state(),direct=s.currentShipment||s.shipment||s.activeShipment||null;
  var lists=[s.shipments,s.savedShipments,s.shipmentArchive,s.archivedShipments,s.salesSharedShipments,s.sharedShipments];
- for(var i=0;i<lists.length;i++){var list=arr(lists[i]);for(var j=0;j<list.length;j++){var sh=list[j];if(!sh)continue;if(id&&q(sh.id||sh.shipmentId)===id)return sh;if(ref&&identity(sh)===ref)return sh}}
+ var rows=[];for(var i=0;i<lists.length;i++)rows.push.apply(rows,arr(lists[i]));
+ if(direct&&typeof direct==='object')rows.push(direct);
+ // RC1682: The visible shipment view, not the last edited draft, owns its PDFs.
+ // An internal shipment ID may be recycled across REFs. Never resolve an
+ // ambiguous ID to the first row or expose a different REF's attachments.
+ var selected=q(s.shipmentViewId||s.selectedShipmentId||s.activeShipmentId||s.currentShipmentId);
+ var selectedRef=q(s.shipmentViewRef||s.selectedShipmentRef||s.currentShipmentRef).toLocaleUpperCase('de-DE');
+ var isView=low(s.view)==='shipmentview'||!!q(s.shipmentViewId);
+ if(isView){
+  if(selectedRef){
+   var matchingRef=rows.filter(function(sh){return sh&&referenceOf(sh)===selectedRef});
+   if(!matchingRef.length)return null;
+   var exact=matchingRef.find(function(sh){return selected&&(shipmentIdOf(sh)===selected||referenceOf(sh)===selected.toLocaleUpperCase('de-DE'))});
+   if(exact)return exact;
+   // An ID resolved to another explicit REF is a conflict, not permission
+   // to open files from a stale selectedShipmentRef field.
+   if(selected&&rows.some(function(sh){return sh&&shipmentIdOf(sh)===selected&&referenceOf(sh)!==selectedRef}))return null;
+   // A refreshed shipment can have a new technical ID but retain its REF.
+   return matchingRef[0]
+  }
+  if(!selected)return null;
+  var matching=rows.filter(function(sh){return sh&&(shipmentIdOf(sh)===selected||referenceOf(sh)===selected.toLocaleUpperCase('de-DE'))});
+  var refs=new Set(matching.map(referenceOf).filter(Boolean));
+  if(refs.size>1||!matching.length)return null;
+  return matching[0]
+ }
+ if(direct&&typeof direct==='object')return direct;
+ var id=q(s.currentShipmentId||s.selectedShipmentId||s.shipmentId),ref=q(s.currentShipmentRef||s.selectedShipmentRef||s.reference).toLocaleUpperCase('de-DE');
+ if(ref)return rows.find(function(sh){return sh&&referenceOf(sh)===ref})||null;
+ if(id){
+  var byId=rows.filter(function(sh){return sh&&shipmentIdOf(sh)===id});
+  if(new Set(byId.map(referenceOf).filter(Boolean)).size>1)return null;
+  return byId[0]||null
+ }
  return null
 }
 function baseDocs(){return Array.isArray(w.__EXPORTHUB_RC776_VIEW_DOCS__)?w.__EXPORTHUB_RC776_VIEW_DOCS__:[]}
@@ -159,6 +192,6 @@ if(w.document){
  try{w.addEventListener('exporthub:sync',function(){if(!w.document||!w.document.getElementById('rc786ReferenceFilesPanel'))return;scheduleViewerRefresh(false)})}catch(_){}
  if(w.document.readyState==='loading')w.document.addEventListener('DOMContentLoaded',function(){startViewerProbe()},{once:true});else startViewerProbe();
 }
-w.ExportHUBRC1063AbdBlobCompat={version:'RC1248',patch:patchRows,isBlob:isBlob,open:openBlob,documents:docs};
+w.ExportHUBRC1063AbdBlobCompat={version:'RC1682',patch:patchRows,isBlob:isBlob,open:openBlob,documents:docs};
 w.ExportHUBDocumentActions1151={version:'RC1248',patch:patchRows,documents:docs,open:openBlob};
 })(window);
