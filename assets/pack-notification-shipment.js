@@ -211,10 +211,20 @@
   function rowNodes(doc){return Array.from(doc.querySelectorAll('#rc573ColliCard .rc363-owned-row'));}
   function rowsMatch(doc,plan){
     const nodes=rowNodes(doc);
+    // RC1678: a customer/location rerender may retain type and count but
+    // clear the package dimensions or weight. A partial row is not valid.
+    function metricOk(node,field,expected){
+      if(!(Number(expected)>0))return true;
+      const input=node.querySelector('[data-rc363-field="'+field+'"] input');
+      const value=q(input&&input.value).replace(',','.');
+      return !!value&&Number.isFinite(Number(value))&&Math.abs(Number(value)-Number(expected))<0.051;
+    }
     return plan.every((row,index)=>{
       const node=nodes[index];if(!node)return false;
       const select=node.querySelector('[data-rc363-field="type"] select'),count=node.querySelector('[data-rc363-field="count"] input');
-      return (!row.type||!select||packagingKey(select.value)===packagingKey(matchPackaging(select,row.type)))&&q(count&&count.value)===q(row.count);
+      return (!row.type||!select||packagingKey(select.value)===packagingKey(matchPackaging(select,row.type)))
+        &&q(count&&count.value)===q(row.count)
+        &&['l','w','h','weight'].every(field=>metricOk(node,field,row[field]));
     });
   }
   function applyTextsToMountedForm(doc,prefill){
