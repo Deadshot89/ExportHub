@@ -15,11 +15,12 @@ Microsoft 365 / Microsoft Graph ist **nicht mehr Voraussetzung** für eine volls
 
 ## Verbindliche Betriebslogik
 
-- Ein POD gilt erst dann als vollständig gesichert, wenn Primärspeicher und Azure-Archiv erfolgreich bestätigt sind.
-- Der Zustand wird über `archiveSaved=true` gespiegelt.
+- Ein POD gilt mit erfolgreichem Primärspeicher und verifiziertem Azure-Archiv als **technisch in Azure archiviert** (`archiveSaved=true`).
+- Die zusätzlich vereinbarte **unabhängige SharePoint-Notfallsicherung** ist erst mit `driveSaved=true` bestätigt. `archiveSaved=true` darf in der Benutzeroberfläche nicht als erfolgreiche SharePoint-Kopie ausgegeben werden.
 - Der Reconcile-Workflow `.github/workflows/rc1144-pod-backup-reconcile.yml` holt fehlende Archivkopien nach.
 - In PRODUCTION muss der Reconcile mit `pendingCount=0` und `errorCount=0` enden.
 - Microsoft-365-Fehler dürfen eine bereits erfolgreiche Azure-Primär- und Archivkopie nicht wieder als ungesichert markieren.
+- Offene SharePoint-Kopien müssen im Sicherungsworkflow getrennt **fehlschlagen**, bis das echte Ziel erreichbar ist; der Produktivabholvorgang und die unveränderliche Originaldatei bleiben erhalten.
 
 ## Azure-Konfiguration
 
@@ -72,6 +73,8 @@ Nach dem erfolgreichen Produktionsdeploy wurden die zuvor offenen PODs mit dem n
 
 Damit ist Microsoft Graph kein P0-Blocker mehr.
 
-## Optionales Microsoft-365-Fehlerbild
+## Unvollständige SharePoint-Notfallsicherung (Issue #999)
 
-Falls Microsoft 365 zusätzlich aktiviert ist, können weiterhin Graph-spezifische Fehler auftreten. Diese betreffen nur die optionale Zusatzkopie. Die verpflichtende POD-Sicherung bleibt über Azure Primärspeicher + Azure Archiv definiert.
+Das seit 23.10.2026 nachgewiesene Fehlerbild `GRAPH_DIRECT_PATH_TARGET_FAILED` mit Graph-Provider-Code `ResourceNotFound` bedeutet: **Die unabhängige SharePoint-Kopie ist nicht nachgewiesen**, auch wenn der Azure-Reconcile technisch erfolgreich abgeschlossen wurde.
+
+Zur Entstörung unter berechtigtem Zugriff den konfigurierten Zielbenutzer, den tatsächlichen Zielordner und die Microsoft-Graph-Zugriffsrechte lesend prüfen. Keine Zugangsdaten, Kundendokumente oder Originalunterschriften in Tickets oder Logs ausgeben. Erst einen freigegebenen TESTSERVICE-POD zum tatsächlichen Ziel übertragen und wieder zurücklesen; danach den Bestand nachholen. Der gefährliche produktive POD-Status-Massenaudit bleibt deaktiviert (Issue #899).
