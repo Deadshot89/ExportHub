@@ -66,8 +66,10 @@ function connectionSource(){ if(process.env.EXPORTHUB_STORAGE_CONNECTION_STRING)
 function usernameOf(user){ return lower(user&&(user.user||user.login||user.username||user.name)); }
 function isActive(user){ return Boolean(user && user.active!==false && user.disabled!==true && lower(user.status)!=='deaktiviert'); }
 function hasAnyEditRight(user){
- if(isAdmin(user))return true;
- return Object.values(user&&user.rights||{}).some(r=>r&&(r.edit===true||r.admin===true||r.functionAdmin===true||r.level==='edit'||r.level==='admin'));
+ // RC1692: Honor the same normalized edit/access right syntax as the
+ // authoritative field-level state guard. This is only an entry gate;
+ // secureMerge still validates every changed key against module rights.
+ return stateWriteGuard.canEditAny(user,Object.keys(user&&user.rights||{}));
 }
 // RC1560: Some non-edit users may append their own SOP learning progress
 // or a narrowly-scoped shipment registration audit. These writes must reach
