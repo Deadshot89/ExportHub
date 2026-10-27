@@ -39,10 +39,15 @@ test('RC1237: Hauptseite erkennt 60044 Albacina-Fabriano AN als Italien',()=>{
 });
 
 test('RC1237: Lieferadresse hat vor Kunden-Stammland Vorrang',()=>{
-  const addressFirst="||firstValue(loc,['country','land','countryName','countryCode','iso','iso2'])||countryFromAddress(address)||firstValue(c,['country','land','countryName','countryCode','iso','iso2'])";
-  const customerFirst="||firstValue(loc,['country','land','countryName','countryCode','iso','iso2'])||firstValue(c,['country','land','countryName','countryCode','iso','iso2'])||countryFromAddress(address)";
+  // RC1684 reads the selected location address and recipient/shipment fields
+  // before the general address. These extra fallbacks must not allow the
+  // customer's master country to override an explicitly known destination.
+  const locationFirst="firstValue(loc,['country','land','countryName','countryCode','iso','iso2'])||countryFromAddress(locationAddress)";
+  const addressFirst="||countryFromAddress(address)||firstValue(c,['country','land','countryName','countryCode','iso','iso2'])";
+  const customerFirst="||firstValue(c,['country','land','countryName','countryCode','iso','iso2'])||countryFromAddress(address)";
   for(const file of ['index.html','TESTVERSION.html','demo.html']){
     const html=read(file);
+    assert.ok(html.includes(locationFirst),file+': der ausgewählte Lieferstandort muss zuerst geprüft werden');
     assert.ok(html.includes(addressFirst),file+': Lieferadresse hat nicht Vorrang');
     assert.ok(!html.includes(customerFirst),file+': alte Kundenland-Priorität ist noch aktiv');
   }
