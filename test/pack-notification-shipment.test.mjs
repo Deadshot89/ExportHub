@@ -359,3 +359,26 @@ test('P0: REF and recycled ID cannot resolve a shipment explicitly owned by anot
   assert.equal(api.findShipmentForNotification(s,n),null,'matching pack REF does not override conflicting pack ID');
   assert.equal(api.syncStatuses(s,'2026-10-26T14:31:00.000Z').length,0);
 });
+
+
+test('RC1679: two differently named real Lieferschein PDFs remain separate attachments in shipment creation and saved state',()=>{
+  const bridge=load(),s=state(),note=s.packNotifications[0],first=note.documents[0];
+  first.name='DNC3019222063.pdf';
+  first.originalName='scan-A.pdf';
+  first.documentReference='DNC3019222063';
+  const second={id:'d2',name:'SIDE250071282.pdf',originalName:'scan-B.pdf',documentReference:'SIDE250071282',
+    storage:'blob',blobName:'rc1059/production/bb/'+('b'.repeat(64)),mimeType:'application/pdf',size:256};
+  note.documents.push(second);
+  const draft=bridge.shipmentPrefill(note);
+  assert.deepEqual(draft.deliveryFiles.map(file=>file.name),['DNC3019222063.pdf','SIDE250071282.pdf']);
+  assert.deepEqual(draft.deliveryFiles.map(file=>file.originalName),['scan-A.pdf','scan-B.pdf']);
+  assert.deepEqual(draft.deliveryFiles.map(file=>file.blobName),[first.blobName,second.blobName]);
+  assert.ok(draft.deliveryFiles.every(file=>file.storage==='blob'&&file.customerAvisVisible===false));
+  const shipment={id:'sh-2',ref:'ABC123',deliveryFiles:[]};
+  s.shipments.push(shipment);
+  assert.equal(bridge.linkShipment(s,note,shipment,'2026-10-27T08:00:00.000Z'),true);
+  assert.deepEqual(shipment.deliveryFiles.map(file=>file.name),['DNC3019222063.pdf','SIDE250071282.pdf']);
+  assert.deepEqual(shipment.deliveryFiles.map(file=>file.blobName),[first.blobName,second.blobName]);
+  bridge.linkShipment(s,note,shipment,'2026-10-27T08:01:00.000Z');
+  assert.equal(shipment.deliveryFiles.length,2,'the same original PDFs are not duplicated on repeat link');
+});
