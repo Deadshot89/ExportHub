@@ -87,7 +87,7 @@ test('RC1685: mismatching Graph readback is rejected without repeating upload',a
   await fakeHttp((call,n)=>{
     if(n===1)return token();
     if(n===2)return receipt();
-    if(n===3)return{status:200,body:Buffer.from('%PDF-1.7\nTAMPERED')};
+    if(n===3){ const tampered=Buffer.from(original); tampered[120]^=0x01; return{status:200,body:tampered}; }
     throw Error('unexpected request '+n);
   },async calls=>{
     const item=await graph.uploadPdf(original,'POD_TEST.pdf');
