@@ -199,6 +199,7 @@
       draft.packNotificationId=prefill.packNotificationId;draft.packNotificationRef=prefill.packNotificationRef;draft.packNotificationCustomer={id:prefill.customerId,account:prefill.customerAccount,name:prefill.customerName,source:prefill.customerSource};draft.packNotificationPrefill={deliveryNoteReference:prefill.deliveryNoteReference,packageType:prefill.packageType,packageCount:prefill.packageCount,totalWeight:prefill.totalWeight,rows:prefill.rows,note:prefill.note};
       draft.deliveryFiles=mergeDocuments(draft.deliveryFiles,prefill.deliveryFiles);
     }
+    renderPendingLieferscheine(prefill);
     return true;
   }
   // Packtisch names ("Europalette") and shipment options ("Euro Palette") differ in spacing and case
@@ -279,10 +280,79 @@
     draft.deliveryFiles=merged;
     return true;
   }
+  // RC1680: Pack PDFs in deliveryFiles are not useful to the operator until
+  // the shipment creation form exposes an actual authenticated open/download
+  // action. Never render another Pack owner's private attachments.
+  function renderPendingLieferscheine(prefill){
+    const doc=root.document;
+    if(!doc||typeof doc.getElementById!=='function'||typeof doc.createElement!=='function')return false;
+    const section=doc.getElementById('rc363BlockDocuments');
+    if(!section||typeof section.querySelector!=='function')return false;
+    const previous=section.querySelector('#rc1680PackDeliveryFiles');
+    const state=sharedState(),draft=state.shipment||state.currentShipment||state.selectedShipment;
+    const owned=!!(draft&&q(prefill&&prefill.packNotificationId)&&q(prefill&&prefill.packNotificationRef)
+      &&q(draft.packNotificationId)===q(prefill.packNotificationId)
+      &&q(draft.packNotificationRef)===q(prefill.packNotificationRef));
+    const files=owned?arr(draft.deliveryFiles).filter(file=>file&&
+      q(file.source)==='pack_notification'&&
+      q(file.packNotificationId)===q(prefill.packNotificationId)&&
+      q(file.packNotificationRef)===q(prefill.packNotificationRef)&&hasDocumentContent(file)):[];
+    if(!files.length){if(previous&&typeof previous.remove==='function')previous.remove();return false;}
+    const signature=files.map(file=>q(file.blobName||file.id)+'|'+q(file.name)).join('\\n');
+    if(previous&&previous.__rc1680Signature===signature)return true;
+    if(previous&&typeof previous.remove==='function')previous.remove();
+    const t=(key,fallback)=>{
+      try{const value=root.ExportHUBI18n&&root.ExportHUBI18n.t&&root.ExportHUBI18n.t(key);if(value&&value!==key)return value;}catch(_){}
+      return fallback;
+    };
+    const panel=doc.createElement('div');panel.id='rc1680PackDeliveryFiles';
+    panel.className='rc1680-pack-delivery-files';panel.__rc1680Signature=signature;
+    panel.setAttribute('role','group');
+    panel.setAttribute('aria-label',t('shipmentHistory.document.deliveryNote','Übernommene Lieferscheine'));
+    panel.style.cssText='margin-top:12px;padding:12px;border:1px solid var(--eh-border,#d7dfe8);border-radius:10px';
+    const title=doc.createElement('strong');title.textContent=t('shipmentHistory.document.deliveryNote','Lieferscheine')+' · '+files.length;
+    panel.appendChild(title);
+    for(const file of files){
+      const row=doc.createElement('div');row.className='rc1680-pack-file';
+      row.style.cssText='display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:8px';
+      const label=doc.createElement('span');label.textContent=q(file.name||file.fileName)||'Lieferschein.pdf';
+      label.style.cssText='flex:1 1 180px;overflow-wrap:anywhere';row.appendChild(label);
+      const feedback=doc.createElement('span');feedback.setAttribute('role','status');
+      const openFile=async(download)=>{
+        try{
+          const currentState=sharedState(),current=currentState.shipment||currentState.currentShipment||currentState.selectedShipment;
+          if(!current||q(current.packNotificationId)!==q(prefill.packNotificationId)||
+            q(current.packNotificationRef)!==q(prefill.packNotificationRef))throw Error('Pack ownership changed');
+          const chosen=arr(current.deliveryFiles).find(item=>item&&
+            q(item.blobName||item.id)===q(file.blobName||file.id)&&
+            q(item.packNotificationId)===q(prefill.packNotificationId)&&
+            q(item.packNotificationRef)===q(prefill.packNotificationRef)&&
+            q(item.source)==='pack_notification'&&hasDocumentContent(item));
+          const reader=root.ExportHUBDocumentBlob1059;
+          if(!chosen||!reader||typeof reader.open!=='function')throw Error('Original document is unavailable');
+          feedback.textContent=t('documentViewer.loading','Lade Dokument …');
+          await reader.open(chosen,{name:q(chosen.name),download});
+          feedback.textContent='';
+        }catch(_){feedback.textContent=t('documentViewer.openFailed','Lieferschein konnte nicht geöffnet werden.');}
+      };
+      for(const [labelKey,fallback,download] of [
+        ['documentViewer.open','Öffnen',false],['documentViewer.download','Herunterladen',true]
+      ]){
+        const button=doc.createElement('button');button.type='button';button.className='ghost';
+        button.textContent=t(labelKey,fallback);button.setAttribute('aria-label',button.textContent+' '+label.textContent);
+        button.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();void openFile(download);});
+        row.appendChild(button);
+      }
+      row.appendChild(feedback);panel.appendChild(row);
+    }
+    section.appendChild(panel);
+    return true;
+  }
   // the customer lookup and the fresh-shipment reset re-render the colli rows after the first fill and dropped packaging, count and weight
   function keepRows(prefill,check){
     const doc=root.document;if(!doc||check>15||!pending||pending.prefill!==prefill)return;
     keepPendingDocuments(prefill);
+    renderPendingLieferscheine(prefill);
     const plan=shipmentRows(prefill);if(!rowsMatch(doc,plan)){applyRowsToMountedForm(doc,plan);applyTextsToMountedForm(doc,prefill);}
     setTimeout(()=>keepRows(prefill,check+1),200);
   }
