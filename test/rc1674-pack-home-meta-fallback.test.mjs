@@ -14,11 +14,11 @@ function extract(source,startToken,endToken,context){
 
 test('RC1674: QR home becomes visible even while optional draft-list and packaging reads are pending',async()=>{
  const els={home:{hidden:true},loading:{hidden:false}};
- let unblockDraft,packagingCalled=false;
+ let unblockDraft,packagingCalled=false,homeVisibleWhenPackaging=false;
  const pendingDraft=new Promise(resolve=>{unblockDraft=resolve});
  const context={
   clearError(){},state:{stationToken:''},tokenFromPath:()=> 'E2E-PACK-SAFE',
-  ensureSession:async()=>{},loadPackagingMaster:async()=>{packagingCalled=true},
+  ensureSession:async()=>{},loadPackagingMaster:async()=>{packagingCalled=true;homeVisibleWhenPackaging=!els.home.hidden},
   showHome:async()=>{els.home.hidden=false;await pendingDraft},
   els,showError:()=>{throw Error('unexpected UI error')},tr:()=> 'error'
  };
@@ -27,7 +27,8 @@ test('RC1674: QR home becomes visible even while optional draft-list and packagi
  await new Promise(resolve=>setImmediate(resolve));
  assert.equal(els.home.hidden,false,'Optional reads must not keep QR home hidden');
  assert.equal(els.loading.hidden,true,'Session creation finished, loading state is cleared');
- assert.equal(packagingCalled,false,'Packaging read must not block initial home render');
+ assert.equal(packagingCalled,true,'A stalled draft-list must not delay independent packaging data');
+ assert.equal(homeVisibleWhenPackaging,true,'Home must be visible before starting optional packaging');
  unblockDraft();
  await action;
  assert.equal(packagingCalled,true,'Packaging master still loads after home appears');
