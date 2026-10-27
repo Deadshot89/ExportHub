@@ -78,11 +78,16 @@
   }
 
   function containerMeta(shipment){
-    const sh=shipment||{},photos=arr(sh.containerPhotos);
+    const sh=shipment||{},subPhotos=arr(sh.subShipments).flatMap(sub=>arr(sub&&sub.containerPhotos)),photos=[],seenPhotos=new Set();
+    arr(sh.containerPhotos).concat(subPhotos).forEach(photo=>{
+      const key=q(photo&&photo.blobName)||q(photo&&photo.id);
+      if(!key||seenPhotos.has(key))return;
+      seenPhotos.add(key);photos.push(photo);
+    });
     const mode=q(sh.transportMode||sh.transportType||sh.shippingMode||sh.shipmentMode).toLowerCase();
     const required=sh.containerDocumentationRequired===true||sh.seaContainerDocumentationRequired===true;
     const seal=q(sh.sealNumber||sh.containerSealNumber||sh.siegelnummer);
-    return{mode,required,seal,photos,count:photos.length,complete:['loaded','number','sealed'].every(kind=>photos.some(p=>q(p&&p.kind).toLowerCase()===kind))};
+    return{mode,required,seal,photos,count:photos.length,multiTruck:subPhotos.length>0,complete:['loaded','number','sealed'].every(kind=>photos.some(p=>q(p&&p.kind).toLowerCase()===kind))};
   }
 
   function shipmentMeta(shipment){
@@ -218,7 +223,7 @@
     wrap.setAttribute('data-rc1259-container-docs','1');
     const head=doc.createElement('div');head.className='rc1259-container-head';
     const title=doc.createElement('strong');title.textContent='🚢 Container-Dokumentation';
-    const status=doc.createElement('span');status.className='rc1259-container-status';status.textContent=(meta.required?'Pflicht · ':'')+'Fotos '+meta.count+'/3'+(meta.seal?' · Siegel '+meta.seal:'');
+    const status=doc.createElement('span');status.className='rc1259-container-status';status.textContent=(meta.required?'Pflicht · ':'')+'Fotos '+meta.count+(meta.multiTruck?' gesamt':'/3')+(meta.seal?' · Siegel '+meta.seal:'');
     head.appendChild(title);head.appendChild(status);wrap.appendChild(head);
     if(meta.seal){
       const seal=doc.createElement('div');seal.className='rc1259-seal-search';seal.textContent='Siegelnummer: '+meta.seal;seal.setAttribute('data-container-seal',meta.seal);wrap.appendChild(seal);
@@ -245,7 +250,7 @@
     let panel=card.querySelector&&card.querySelector('[data-rc1259-container-docs]');
     const shouldShow=meta.required||meta.seal||meta.photos.length;
     if(!shouldShow){if(panel&&typeof panel.remove==='function'){panel.remove();lastMutationAt=Date.now()}return false}
-    const fingerprint=JSON.stringify([shipmentReference(shipment),meta.required,meta.seal,meta.photos.map(photo=>[q(photo&&photo.id),q(photo&&photo.kind),q(photo&&photo.label),q(photo&&photo.name)])]);
+    const fingerprint=JSON.stringify([shipmentReference(shipment),meta.required,meta.seal,meta.photos.map(photo=>[q(photo&&photo.id),q(photo&&photo.kind),q(photo&&photo.label),q(photo&&photo.name),q(photo&&photo.blobName),q(photo&&photo.uploadedAt)])]);
     if(panel&&panel.getAttribute&&panel.getAttribute('data-rc1477-container-fingerprint')===fingerprint)return true;
     if(panel&&typeof panel.remove==='function')panel.remove();
     if(typeof card.appendChild!=='function'||typeof doc.createElement!=='function')return false;
