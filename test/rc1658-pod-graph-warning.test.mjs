@@ -12,7 +12,12 @@ for (const [name,section] of [['TESTSERVICE',testservice],['PRODUCTION',producti
     assert.match(section,/drive_pending_count="\$\(printf '%s\\n' "\$result" \| node -e "/);
     assert.match(section,/Number\(v\.drivePendingCount\|\|0\)/);
     assert.match(section,/optional_drive_pending_batches=\$\(\(optional_drive_pending_batches \+ 1\)\)/);
-    assert.match(section,/if \[ "\$verdict" = "done" \]; then\s+if \[ "\$optional_drive_pending_batches" -gt 0 \]; then/);
+    // RC1689 may first report an ambiguous TESTSERVICE POD link before the optional Graph warning.
+    const doneStart=section.indexOf('if [ "$verdict" = "done" ]; then');
+    const graphWarning=section.indexOf('if [ "$optional_drive_pending_batches" -gt 0 ]; then',doneStart);
+    const successExit=section.indexOf('exit 0',doneStart);
+    assert.ok(doneStart>=0&&graphWarning>doneStart&&successExit>graphWarning,
+      'Graph warnings must remain inside successful required Azure archive completion');
     assert.match(section,/::warning title=POD Microsoft-365 optional archive/);
     assert.match(section,/>> "\$GITHUB_STEP_SUMMARY"/);
     assert.match(section,/Erforderlicher Azure-Archiv-Backlog: erfolgreich abgearbeitet/);

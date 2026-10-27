@@ -913,6 +913,7 @@ async function reconcilePendingBackups(environment, options) {
   const errors = integrityErrors.slice();
   let teamRelinkedCount = 0;
   let teamRelinkSkippedCount = 0;
+  let teamRelinkBlockedCount = 0;
 
   // RC1340: Older browser state could replace the durable automatic POD with a
   // short-lived /api/pickup-pod?token=... URL. Re-link archived PODs once from
@@ -953,6 +954,16 @@ async function reconcilePendingBackups(environment, options) {
           });
           continue;
         }
+      }
+      // RC1689: TESTSERVICE has archived, signed PODs linked to duplicate
+      // legacy shipment candidates. There is no safe unique team target.
+      // Never pick one, rewrite the link or mark this record repaired.
+      // Keep an explicit unresolved review count but let other independent
+      // Azure archive work proceed through the remaining scan pages.
+      // PRODUCTION stays fail-closed for any ambiguous shipment.
+      if (environment === 'testservice' && code === 'TEAM_SHIPMENT_AMBIGUOUS') {
+        teamRelinkBlockedCount += 1;
+        continue;
       }
       errors.push({ reference: candidate.reference, code, error: text(error && error.message).slice(0, 300) });
     }
@@ -1001,6 +1012,7 @@ async function reconcilePendingBackups(environment, options) {
     status: referenceMatched === 0 ? 'not-found' :
       referencePodReady === 0 ? 'pod-not-ready' :
       errors.length > 0 ? 'error' :
+      teamRelinkBlockedCount > 0 ? 'review-required' :
       pending.length > 0 ? 'pending' :
       (alreadySaved.length + saved.length >= referencePodReady ? (saved.length > 0 ? 'saved-now' : 'already-saved') : 'incomplete')
   } : null;
@@ -1012,8 +1024,10 @@ async function reconcilePendingBackups(environment, options) {
     continuationToken: continuationToken || null,
     nextContinuationToken: nextContinuationToken || null,
     scanComplete,
-    eligible: requiredEligible + teamRelinkCandidates.length,
-    selected: requiredSelected + selectedRelinks.length,
+    // Blocked duplicate TESTSERVICE relinks are unresolved review items, not
+    // actionable backlog work. Excluding them prevents endless drain loops.
+    eligible: requiredEligible + teamRelinkCandidates.length - teamRelinkBlockedCount,
+    selected: requiredSelected + selectedRelinks.length - teamRelinkBlockedCount,
     skippedRecent,
     driveBackfillEligible,
     driveBackfillSelected,
@@ -1021,6 +1035,9 @@ async function reconcilePendingBackups(environment, options) {
     teamRelinkEligible: teamRelinkCandidates.length,
     teamRelinkedCount,
     teamRelinkSkippedCount,
+    teamRelinkBlockedCount,
+    teamRelinkBlockedCodes: teamRelinkBlockedCount ? ['TEAM_SHIPMENT_AMBIGUOUS'] : [],
+    needsManualReview: teamRelinkBlockedCount > 0,
     teamRelinkPendingCount: Math.max(0, teamRelinkCandidates.length - teamRelinkedCount - teamRelinkSkippedCount),
     savedCount: saved.length,
     alreadySavedCount: alreadySaved.length,

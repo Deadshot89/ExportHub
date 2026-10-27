@@ -117,6 +117,7 @@ jobs:
 
           continuation_token=''
           optional_drive_pending_batches=0
+          blocked_ambiguous_relink_batches=0
           for batch in $(seq 1 200); do
             previous_continuation_token="$continuation_token"
             payload="$(CONTINUATION_TOKEN="$continuation_token" node -e "const reference=String(process.env.TARGET_REFERENCE||'').trim().toUpperCase();process.stdout.write(JSON.stringify({environment:process.env.TARGET_ENV,limit:25,scanPageSize:10,reference,drainAll:!reference,continuationToken:String(process.env.CONTINUATION_TOKEN||'')}))")"
@@ -139,7 +140,7 @@ jobs:
                 const drivePendingCodes=Array.from(new Set((Array.isArray(v.drivePending)?v.drivePending:[]).map(x=>String(x&&x.error||'').split(':',1)[0].trim()).filter(Boolean))).slice(0,10);
                 const driveProviderCodes=Array.from(new Set((Array.isArray(v.drivePending)?v.drivePending:[]).map(x=>String(x&&x.providerCode||'').replace(/[^A-Za-z0-9_.-]/g,'').slice(0,80)).filter(Boolean))).slice(0,10);
                 const errorCodes=Array.from(new Set((Array.isArray(v.errors)?v.errors:[]).map(x=>String(x&&x.code||'').trim()).filter(Boolean))).slice(0,10);
-                const safe={batch:Number(process.argv[2]||0),httpStatus:status,code:v.code,message:v.message,environment:v.environment,reference:v.reference,backupMode:v.backupMode,drainAll:v.drainAll,graphConfigured:v.graphConfigured,missing:Array.isArray(v.missing)?v.missing:[],targetFolder:v.targetFolder,scanned:v.scanned,scanPageSize:v.scanPageSize,scanComplete:v.scanComplete,eligible:v.eligible,selected:v.selected,skippedRecent:v.skippedRecent,driveBackfillEligible:v.driveBackfillEligible,driveBackfillSelected:v.driveBackfillSelected,driveBackfillSkippedRecent:v.driveBackfillSkippedRecent,savedCount:v.savedCount,alreadySavedCount:v.alreadySavedCount,pendingCount:v.pendingCount,driveSavedCount:v.driveSavedCount,drivePendingCount:v.drivePendingCount,errorCount:v.errorCount,verifiedCount:v.verifiedCount,repairedStateCount:v.repairedStateCount,integrityChecks:v.integrityChecks,remoteWorkBudget:v.remoteWorkBudget,pageWorkDeferred:v.pageWorkDeferred,requiredWorkDeferred:v.requiredWorkDeferred,optionalDriveWorkDeferred:v.optionalDriveWorkDeferred,pendingCodes,drivePendingCodes,driveProviderCodes,errorCodes,target:v.target&&{reference:v.target.reference,status:v.target.status,matchedCount:v.target.matchedCount,podReadyCount:v.target.podReadyCount,alreadySavedCount:v.target.alreadySavedCount,savedNowCount:v.target.savedNowCount,pendingCount:v.target.pendingCount,errorCount:v.target.errorCount}};
+                const safe={batch:Number(process.argv[2]||0),httpStatus:status,code:v.code,message:v.message,environment:v.environment,reference:v.reference,backupMode:v.backupMode,drainAll:v.drainAll,graphConfigured:v.graphConfigured,missing:Array.isArray(v.missing)?v.missing:[],targetFolder:v.targetFolder,scanned:v.scanned,scanPageSize:v.scanPageSize,scanComplete:v.scanComplete,eligible:v.eligible,selected:v.selected,skippedRecent:v.skippedRecent,driveBackfillEligible:v.driveBackfillEligible,driveBackfillSelected:v.driveBackfillSelected,driveBackfillSkippedRecent:v.driveBackfillSkippedRecent,teamRelinkBlockedCount:v.teamRelinkBlockedCount,teamRelinkBlockedCodes:v.teamRelinkBlockedCodes,needsManualReview:v.needsManualReview,savedCount:v.savedCount,alreadySavedCount:v.alreadySavedCount,pendingCount:v.pendingCount,driveSavedCount:v.driveSavedCount,drivePendingCount:v.drivePendingCount,errorCount:v.errorCount,verifiedCount:v.verifiedCount,repairedStateCount:v.repairedStateCount,integrityChecks:v.integrityChecks,remoteWorkBudget:v.remoteWorkBudget,pageWorkDeferred:v.pageWorkDeferred,requiredWorkDeferred:v.requiredWorkDeferred,optionalDriveWorkDeferred:v.optionalDriveWorkDeferred,pendingCodes,drivePendingCodes,driveProviderCodes,errorCodes,target:v.target&&{reference:v.target.reference,status:v.target.status,matchedCount:v.target.matchedCount,podReadyCount:v.target.podReadyCount,alreadySavedCount:v.target.alreadySavedCount,savedNowCount:v.target.savedNowCount,pendingCount:v.target.pendingCount,errorCount:v.target.errorCount}};
                 console.error('TESTSERVICE POD reconcile',JSON.stringify(safe));
                 if(status<200||status>=300||!v.ok||Number(v.errorCount||0)>0||Number(v.pendingCount||0)>0)process.exit(3);
                 if(v.reference){if(!v.target||!['already-saved','saved-now'].includes(v.target.status))process.exit(5);process.stdout.write('done');return}
@@ -155,6 +156,10 @@ jobs:
             if [ "$drive_pending_count" -gt 0 ]; then
               optional_drive_pending_batches=$((optional_drive_pending_batches + 1))
             fi
+            blocked_relink_count="$(printf '%s\n' "$result" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{let v={};try{v=JSON.parse(s||'{}')}catch(_){};const n=Number(v.teamRelinkBlockedCount||0);process.stdout.write(String(Number.isFinite(n)&&n>0?Math.floor(n):0))})")"
+            if [ "$blocked_relink_count" -gt 0 ]; then
+              blocked_ambiguous_relink_batches=$((blocked_ambiguous_relink_batches + 1))
+            fi
 
             if [ "$verdict" = "done" ]; then
               if [ "$optional_drive_pending_batches" -gt 0 ]; then
@@ -164,6 +169,15 @@ jobs:
                   echo '- Erforderlicher Azure-Archiv-Backlog: erfolgreich abgearbeitet.'
                   echo "- Optionale Microsoft-365-Kopie in $optional_drive_pending_batches Batch-Antworten noch offen."
                   echo '- Fehlercodes ohne Sendungsdaten: siehe drivePendingCodes / driveProviderCodes im Joblog, Issue #999.'
+                } >> "$GITHUB_STEP_SUMMARY"
+              fi
+              if [ "$blocked_ambiguous_relink_batches" -gt 0 ]; then
+                echo "::warning title=TESTSERVICE POD team link manual review::Ambiguous team-state shipment; $blocked_ambiguous_relink_batches batch(es) require manual review. No link was rewritten."
+                {
+                  echo '### RC1689 – TESTSERVICE POD team links: manual review required'
+                  echo "- $blocked_ambiguous_relink_batches batch(es) contained TEAM_SHIPMENT_AMBIGUOUS."
+                  echo '- No ambiguous shipment was selected, linked or marked as repaired.'
+                  echo '- Other verified Azure-POD backups may finish independently; blocked team links are NOT resolved.'
                 } >> "$GITHUB_STEP_SUMMARY"
               fi
               exit 0
