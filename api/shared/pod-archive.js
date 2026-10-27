@@ -965,7 +965,7 @@ async function reconcilePendingBackups(environment, options) {
       try { await store.updateTeam(record, [], ''); } catch (_) {}
       const backup = record.podBackup || result && result.backup || {};
       const driveRequired = m365Enabled() && graphDrive.readiness().configured;
-      const driveWasSaved = confirmedDriveBackup(backup) || (result && result.driveSaved === true && !!text(backup.driveItemId));
+      const driveWasSaved = confirmedDriveBackup(backup);
       const driveError = result && result.driveError;
       if (backup.archiveSaved === true) {
         if (!candidate.driveOnly) saved.push({ reference: candidate.reference, fileName: text(backup.fileName), attempts: Math.max(0, Number(backup.attempts) || 0) });
