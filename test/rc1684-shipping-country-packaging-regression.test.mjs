@@ -10,6 +10,33 @@ const pageSources=[
   ['TESTSERVICE',fs.readFileSync(new URL('../TESTVERSION.html',import.meta.url),'utf8')]
 ];
 
+test('RC1684: historischer RC1047-Build akzeptiert die aktuelle RC1046-Länderkette',()=>{
+  const source=fs.readFileSync(new URL('../.github/rc1047/build-three-env.mjs',import.meta.url),'utf8');
+  const functions=source.slice(source.indexOf('function replaceBetween('),source.indexOf('function patchHtml('));
+  const patch=vm.runInNewContext(`${functions}\npatchCountryDetection`,{});
+  const tail="||countryFromAddress(address)||firstValue(c,['country','land','countryName','countryCode','iso','iso2'])";
+  const countryFn="function countryFromAddress(v){return ''}\nfunction shippingPackagingList(){return []}";
+  const legacy=`${countryFn}\nvar rawCountry=firstValue(loc,['country','land','countryName','countryCode','iso','iso2'])${tail};`;
+  const current=`${countryFn}\nvar rawCountry=firstValue(loc,['country','land','countryName','countryCode','iso','iso2'])||countryFromAddress(locationAddress)||firstValue(recipient,['country'])||firstValue(sh,['recipientCountry'])${tail};`;
+  for(const input of [legacy,current]){
+    const output=patch(input,'index.html');
+    assert.match(output,/firstValue\(c,\['country','land','countryName','countryCode','iso','iso2'\]\)\|\|countryFromAddress\(address\)/);
+    assert.doesNotMatch(output,/countryFromAddress\(address\)\|\|firstValue\(c/);
+  }
+});
+
+test('RC1684: RC1237-Build akzeptiert Standortadresse plus Empfänger- und Sendungsland',()=>{
+  const builder=fs.readFileSync(new URL('../.github/rc1112/build-three-env.mjs',import.meta.url),'utf8');
+  const snippet=builder.slice(builder.indexOf('function patchMainCountryDetection('),builder.indexOf('function patchAuthSessionTimeout('));
+  const patch=vm.runInNewContext(`${snippet}\npatchMainCountryDetection`,{});
+  const input=" var lines=raw.split(/[\\n,;|]+/).map(q).filter(Boolean);\n"+
+    "var rawCountry=firstValue(loc,['country','land','countryName','countryCode','iso','iso2'])||countryFromAddress(locationAddress)||firstValue(recipient,['country'])||firstValue(sh,['recipientCountry'])||firstValue(c,['country','land','countryName','countryCode','iso','iso2'])||countryFromAddress(address);";
+  const output=patch(input,'index.html');
+  assert.match(output,/countryFromAddress\(locationAddress\)\|\|firstValue\(recipient/);
+  assert.match(output,/firstValue\(sh,\['recipientCountry'\]\)\|\|countryFromAddress\(address\)\|\|firstValue\(c/);
+  assert.match(output,/itProvinces='\|AG\|AL\|AN\|/);
+});
+
 test('RC1684: Release-Build übernimmt die korrigierten Versandfunktionen in Produktion, TESTSERVICE und Demo',()=>{
   const builder=fs.readFileSync(new URL('../.github/rc1112/build-three-env.mjs',import.meta.url),'utf8');
   assert.match(builder,/RC1684 Versandkosten-Synchronisierung/);

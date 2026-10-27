@@ -39,8 +39,11 @@ function countryFromAddress(v){
 
   out=replaceBetween(out,'function countryFromAddress(v){','\nfunction shippingPackagingList(){',parser+'\n',file+' sichere Ländererkennung');
 
-  const oldOrder="||firstValue(loc,['country','land','countryName','countryCode','iso','iso2'])||countryFromAddress(address)||firstValue(c,['country','land','countryName','countryCode','iso','iso2'])";
-  const newOrder="||firstValue(loc,['country','land','countryName','countryCode','iso','iso2'])||firstValue(c,['country','land','countryName','countryCode','iso','iso2'])||countryFromAddress(address)";
+  // RC1046 may already include recipient and shipment country fallbacks between
+  // the location and the address. Only swap the stable trailing pair so both
+  // the historical and current country-resolution chains remain supported.
+  const oldOrder="||countryFromAddress(address)||firstValue(c,['country','land','countryName','countryCode','iso','iso2'])";
+  const newOrder="||firstValue(c,['country','land','countryName','countryCode','iso','iso2'])||countryFromAddress(address)";
   out=replaceOne(out,oldOrder,newOrder,file+' Kundenland vor Adressheuristik');
 
   const required=[

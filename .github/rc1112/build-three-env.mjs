@@ -471,8 +471,11 @@ function patchMainCountryDetection(html,file){
   if(count!==1)throw new Error(file+': RC1237 countryFromAddress-Anker '+count+'x gefunden');
   html=html.replace(linesAnchor,italyRule+linesAnchor);
 
-  const customerFirst="||firstValue(loc,['country','land','countryName','countryCode','iso','iso2'])||firstValue(c,['country','land','countryName','countryCode','iso','iso2'])||countryFromAddress(address)";
-  const addressFirst="||firstValue(loc,['country','land','countryName','countryCode','iso','iso2'])||countryFromAddress(address)||firstValue(c,['country','land','countryName','countryCode','iso','iso2'])";
+  // Keep the selected delivery location and recipient fields intact. RC1048
+  // also includes a location-address fallback and shipment-country fields
+  // between them, so the historical loc-prefix is no longer a stable anchor.
+  const customerFirst="||firstValue(c,['country','land','countryName','countryCode','iso','iso2'])||countryFromAddress(address)";
+  const addressFirst="||countryFromAddress(address)||firstValue(c,['country','land','countryName','countryCode','iso','iso2'])";
   const orderCount=html.split(customerFirst).length-1;
   if(orderCount!==1)throw new Error(file+': RC1237 Zielland-Priorität '+orderCount+'x gefunden');
   html=html.replace(customerFirst,addressFirst);
