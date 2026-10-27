@@ -463,11 +463,13 @@
   }
 
   function enhanceShipmentDetailedView(){
-    const doc=root.document;if(!doc||!inShipmentView(doc))return false;
+    const doc=root.document;if(!doc||!inShipmentDetailView(doc))return false;
     const sh=viewShipment(state());if(!sh)return false;
     const meta=containerMeta(sh),shouldShow=meta.required||meta.seal||meta.photos.length;
     const old=doc.querySelector&&doc.querySelector('[data-rc1259-container-detail]');
     if(!shouldShow){if(old&&typeof old.remove==='function'){old.remove();lastMutationAt=Date.now()}return false}
+    const fingerprint=JSON.stringify([shipmentReference(sh),meta.required,meta.seal,meta.photos.map(photo=>[q(photo&&photo.id),q(photo&&photo.kind),q(photo&&photo.label),q(photo&&photo.name),q(photo&&photo.uploadedAt)])]);
+    if(old&&old.getAttribute&&old.getAttribute('data-rc1259-detail-fingerprint')===fingerprint)return true;
     const docsCard=doc.getElementById&&doc.getElementById('rc786ReferenceFilesCard');
     const host=docsCard&&docsCard.parentNode;
     if(!host||typeof host.insertBefore!=='function')return false;
@@ -475,6 +477,7 @@
     const panel=createContainerCard(doc,sh);
     panel.classList.add('rc1259-container-detail');
     panel.setAttribute('data-rc1259-container-detail','1');
+    panel.setAttribute('data-rc1259-detail-fingerprint',fingerprint);
     if(docsCard.nextSibling)host.insertBefore(panel,docsCard.nextSibling);else host.appendChild(panel);
     lastMutationAt=Date.now();
     return true;

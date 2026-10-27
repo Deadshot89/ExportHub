@@ -12,8 +12,9 @@ test('RC1640: hidden-Attribut gewinnt gegen label/form/.section display:grid',()
 });
 
 test('RC1640: Teilabholung braucht wie der Server keine Containerdokumentation',()=>{
-  assert.match(page,/containerRequired&&!containerDocsComplete\(\)&&colliMode!=='partial'/);
-  assert.match(page,/if\(!containerRequired\|\|containerDocsComplete\(\)\|\|colliMode==='partial'\)unlockDriverAfterContainerDocs\(\)/);
+  assert.match(page,/function unlockDriverAfterColli\(\)/);
+  assert.match(page,/if\(mode==='complete'&&containerRequired&&!seal\)/);
+  assert.match(page,/if\(mode==='complete'&&containerRequired&&\(!containerPhotos\.loaded\|\|!containerPhotos\.number\|\|!containerPhotos\.sealed\)\)/);
   assert.match(page,/if\(n>0&&n<open\)\{colliOk=true;setConfirmMode\('partial'\)/);
   assert.match(page,/if\(n===open\)\{colliOk=true;setConfirmMode\('complete'\)/);
   assert.match(page,/partial\.hidden=colliMode!=='partial'/);

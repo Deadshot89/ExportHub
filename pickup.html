@@ -66,14 +66,14 @@ button:focus-visible,input:focus-visible{outline:3px solid #1d4ed8;outline-offse
 <div class="pickup-stepbar" aria-label="Abholablauf">
   <span class="pickup-step done">1 · Sendung</span>
   <span id="stepColli" class="pickup-step active">2 · Collis</span>
-  <span id="stepContainer" class="pickup-step">3 · Container</span>
-  <span id="stepDriver" class="pickup-step">4 · Fahrer</span>
-  <span id="stepConfirm" class="pickup-step">5 · Bestätigung</span>
+  <span id="stepDriver" class="pickup-step">3 · Fahrer</span>
+  <span id="stepConfirm" class="pickup-step">4 · Bestätigung</span>
+  <span id="stepContainer" class="pickup-step">5 · Container</span>
 </div>
 
 <section id="colliSection" class="section">
 <h2>Colli-Prüfung <span class="help">(zuerst erforderlich)</span></h2>
-<div class="help">Blindzählung: Die erwartete Menge wird hier bewusst nicht angezeigt. Bitte die verladenen Colli selbst zählen. ExportHUB prüft die Eingabe. Danach erscheinen die Siegelnummer, drei Fotofelder und – bei vorhandenem ABD – die Bestätigung zur Übergabe der Zolldokumente.</div>
+<div class="help">Blindzählung: Die erwartete Menge wird hier bewusst nicht angezeigt. Bitte die verladenen Colli selbst zählen. ExportHUB prüft die Eingabe. Danach folgen Fahrer, Bestätigung und ganz zum Schluss die Containerfotos.</div>
 <div id="previousPickupNote" class="help" hidden>Für diese Sendung gab es bereits eine Teilabholung. Bitte nur die jetzt auf diesem LKW verladenen Colli zählen.</div>
 <div class="pickup-mode" role="radiogroup" aria-label="Art der Abholung">
 <label><span><input id="modeComplete" type="radio" name="pickupMode" value="complete" checked style="width:auto;min-height:0;margin-right:8px"> <strong>Vollständige Abholung</strong> · alle offenen Colli werden verladen</span></label>
@@ -81,19 +81,7 @@ button:focus-visible,input:focus-visible{outline:3px solid #1d4ed8;outline-offse
 </div>
 <label>Gezählte Colli auf diesem LKW<input id="colli" type="number" min="1" step="1" inputmode="numeric" autocomplete="off" autofocus></label>
 <button id="checkColli" type="button">Gezählte Collis prüfen und weiter</button>
-<div id="colliResult" class="help">Bitte zuerst die gezählten Collis prüfen lassen. Danach werden Siegelnummer und Containerfotos freigeschaltet.</div>
-</section>
-
-<section id="containerSection" class="section" hidden>
-<h2>🚢 Container-Dokumentation <span id="containerModeLabel" class="help container-optional">(optional)</span></h2>
-<div class="help">Bei Seefracht mit verpflichtender Container-Dokumentation müssen vor der vollständigen Abholung die Siegelnummer und genau diese drei Nachweise gespeichert sein. Bei anderen Sendungen können die Angaben freiwillig genutzt werden.</div>
-<label>Siegelnummer <span id="sealRequiredLabel" class="help">(optional)</span><input id="sealNumber" autocomplete="off" maxlength="120" placeholder="z. B. ABCD123456"></label>
-<div class="container-photo-grid">
-<label class="container-photo-card"><strong>1 · Geladener Container</strong><input id="containerPhotoLoaded" type="file" accept="image/*" capture="environment"><img id="containerPreviewLoaded" alt="Vorschau geladener Container" hidden><span id="containerStateLoaded" class="photo-state">Noch kein Foto gespeichert</span></label>
-<label class="container-photo-card"><strong>2 · Container-Nummer von innen</strong><input id="containerPhotoNumber" type="file" accept="image/*" capture="environment"><img id="containerPreviewNumber" alt="Vorschau Container-Nummer" hidden><span id="containerStateNumber" class="photo-state">Noch kein Foto gespeichert</span></label>
-<label class="container-photo-card"><strong>3 · Versiegelt + Kennzeichen + Papiere</strong><input id="containerPhotoSealed" type="file" accept="image/*" capture="environment"><img id="containerPreviewSealed" alt="Vorschau versiegelter Container" hidden><span id="containerStateSealed" class="photo-state">Noch kein Foto gespeichert</span></label>
-</div>
-<div id="containerResult" class="help">Fotos werden sofort sicher mit dieser Sendungsreferenz gespeichert.</div>
+<div id="colliResult" class="help">Bitte zuerst die gezählten Collis prüfen lassen. Danach wird der restliche Abholablauf freigeschaltet.</div>
 </section>
 
 <div id="details"></div>
@@ -126,8 +114,21 @@ button:focus-visible,input:focus-visible{outline:3px solid #1d4ed8;outline-offse
 <label>Persönlicher PIN des Verladers<input id="pin" inputmode="numeric" autocomplete="one-time-code" maxlength="4" pattern="[0-9]{4}" required></label>
 </section>
 
-<div class="pickup-actions"><button id="confirmPartial" class="partial" type="submit" data-mode="partial">Teilabholung bestätigen</button><button id="confirm" type="submit" data-mode="complete">Vollständige Abholung bestätigen</button></div>
 </div>
+
+<section id="containerSection" class="section" hidden>
+<h2>🚢 Container-Dokumentation <span id="containerModeLabel" class="help container-optional">(optional)</span></h2>
+<div class="help">Letzter Schritt vor dem Abschluss: Bei Seefracht mit verpflichtender Container-Dokumentation müssen die Siegelnummer und genau diese drei Nachweise gespeichert sein. Bei anderen Sendungen können die Angaben freiwillig genutzt werden.</div>
+<label>Siegelnummer <span id="sealRequiredLabel" class="help">(optional)</span><input id="sealNumber" autocomplete="off" maxlength="120" placeholder="z. B. ABCD123456"></label>
+<div class="container-photo-grid">
+<label class="container-photo-card"><strong>1 · Geladener Container</strong><input id="containerPhotoLoaded" type="file" accept="image/*" capture="environment"><img id="containerPreviewLoaded" alt="Vorschau geladener Container" hidden><span id="containerStateLoaded" class="photo-state">Noch kein Foto gespeichert</span></label>
+<label class="container-photo-card"><strong>2 · Container-Nummer von innen</strong><input id="containerPhotoNumber" type="file" accept="image/*" capture="environment"><img id="containerPreviewNumber" alt="Vorschau Container-Nummer" hidden><span id="containerStateNumber" class="photo-state">Noch kein Foto gespeichert</span></label>
+<label class="container-photo-card"><strong>3 · Versiegelt + Kennzeichen + Papiere</strong><input id="containerPhotoSealed" type="file" accept="image/*" capture="environment"><img id="containerPreviewSealed" alt="Vorschau versiegelter Container" hidden><span id="containerStateSealed" class="photo-state">Noch kein Foto gespeichert</span></label>
+</div>
+<div id="containerResult" class="help">Fotos werden sofort sicher mit dieser Sendungsreferenz gespeichert.</div>
+</section>
+
+<div id="pickupActions" class="pickup-actions" hidden><button id="confirmPartial" class="partial" type="submit" data-mode="partial">Teilabholung bestätigen</button><button id="confirm" type="submit" data-mode="complete">Vollständige Abholung bestätigen</button></div>
 </form>
 </section>
 </main>
@@ -247,7 +248,7 @@ function expectedCollis(data){
 }
 
 function setPickupFlowStage(stage){
-  var stages=['colli','container','driver','confirm'],ids={colli:'stepColli',container:'stepContainer',driver:'stepDriver',confirm:'stepConfirm'},activeIndex=stages.indexOf(stage);
+  var stages=['colli','driver','confirm','container'],ids={colli:'stepColli',container:'stepContainer',driver:'stepDriver',confirm:'stepConfirm'},activeIndex=stages.indexOf(stage);
   if(activeIndex<0)activeIndex=0;
   stages.forEach(function(name,index){
     var el=document.getElementById(ids[name]);if(!el)return;
@@ -259,17 +260,12 @@ function containerDocsComplete(){
   var seal=q(document.getElementById('sealNumber')&&document.getElementById('sealNumber').value);
   return !!seal&&!!containerPhotos.loaded&&!!containerPhotos.number&&!!containerPhotos.sealed;
 }
-function unlockDriverAfterContainerDocs(){
+function unlockDriverAfterColli(){
   var driver=document.getElementById('driverStep');
   if(!colliOk){if(driver)driver.hidden=true;setPickupFlowStage('colli');return false}
-  if(containerRequired&&!containerDocsComplete()&&colliMode!=='partial'){
-    if(driver)driver.hidden=true;
-    setPickupFlowStage('container');
-    return false;
-  }
   if(driver)driver.hidden=false;
   setPickupFlowStage('driver');
-  status(containerRequired&&containerDocsComplete()?'Container-Dokumentation vollständig. Bitte jetzt Fahrer- und Fahrzeugdaten erfassen.':containerRequired?'Teilabholung: Siegelnummer und Containerfotos sind erst bei der vollständigen Abholung Pflicht. Bitte jetzt Fahrer- und Fahrzeugdaten erfassen.':'Collis bestätigt. Bitte jetzt Fahrer- und Fahrzeugdaten erfassen.','ok');
+  status('Collis bestätigt. Bitte Fahrer- und Fahrzeugdaten erfassen. Die Container-Dokumentation folgt ganz am Ende.','ok');
   return true;
 }
 function setConfirmMode(mode){
@@ -279,12 +275,12 @@ function setConfirmMode(mode){
   if(complete)complete.hidden=colliMode==='partial';
 }
 function setDriverStepUnlocked(on){
-  var container=document.getElementById('containerSection'),driver=document.getElementById('driverStep');
+  var container=document.getElementById('containerSection'),driver=document.getElementById('driverStep'),actions=document.getElementById('pickupActions');
   if(container)container.hidden=!on;
-  if(driver)driver.hidden=true;
+  if(driver)driver.hidden=!on;
+  if(actions)actions.hidden=!on;
   if(!on){setPickupFlowStage('colli');return}
-  setPickupFlowStage('container');
-  if(!containerRequired||containerDocsComplete()||colliMode==='partial')unlockDriverAfterContainerDocs();
+  unlockDriverAfterColli();
 }
 function bindPickupFlowStage(ids,stage){
   ids.forEach(function(id){
@@ -342,11 +338,13 @@ function uploadContainerPhoto(kind,input,previewId,stateId){
     if(stateEl)stateEl.textContent='Foto wird gespeichert …';
     return request('pickup-container-document',{method:'POST',body:JSON.stringify({token:token,kind:kind,dataUrl:dataUrl,environment:env}),timeout:90000})
   }).then(function(data){
+    if(!data||data.storedUnderReference!==true||data.linkedToShipment!==true||!data.photo||data.photo.referenceFolderSaved!==true){
+      throw new Error('Die Speicherung im Ref-Ordner und die Verknüpfung zur Sendung wurden nicht vollständig bestätigt. Bitte Foto erneut hochladen.');
+    }
     containerPhotos=containerPhotoMap(data&&data.containerPhotos||[]);
     renderContainerState();
     if(result)result.textContent='✓ Foto wurde im Referenzordner der Sendung gespeichert.';
     status('Containerfoto gespeichert.','ok');
-    if(colliOk&&containerRequired&&containerDocsComplete())unlockDriverAfterContainerDocs();
   }).catch(function(err){
     if(stateEl){stateEl.textContent='Upload fehlgeschlagen – bitte erneut aufnehmen';stateEl.className='photo-state'}
     if(result)result.textContent='Foto konnte nicht gespeichert werden: '+q(err&&err.message||err);
@@ -451,23 +449,23 @@ function checkColli(mode){
   if(!(expected>0)){colliOk=false;setDriverStepUnlocked(false);return false}
   var input=document.getElementById('colli'),n=colliNumber(input.value),out=document.getElementById('colliResult'),open=remainingBefore||expected;
   if(mode==='partial'){
-    if(n>0&&n<open){colliOk=true;setConfirmMode('partial');out.textContent='✓ Teilabholung mit '+n+' gezählten Colli bestätigt.';out.style.color='#166534';input.readOnly=true;setDriverStepUnlocked(true);if(!containerRequired)status('Collis bestätigt. Bitte jetzt Fahrer- und Fahrzeugdaten erfassen.','ok');return true}
+    if(n>0&&n<open){colliOk=true;setConfirmMode('partial');out.textContent='✓ Teilabholung mit '+n+' gezählten Colli bestätigt.';out.style.color='#166534';input.readOnly=true;setDriverStepUnlocked(true);return true}
     colliOk=false;setDriverStepUnlocked(false);out.textContent=n===open?'Mit dieser Menge wird alles verladen. Bitte „Vollständige Abholung“ wählen.':'Diese Menge ist für eine Teilabholung nicht möglich. Bitte erneut zählen.';out.style.color='#991b1b';input.readOnly=false;input.focus();return false;
   }
-  if(n===open){colliOk=true;setConfirmMode('complete');out.textContent='✓ Gezählte Menge stimmt. Vollständige Abholung bestätigt.';out.style.color='#166534';input.readOnly=true;setDriverStepUnlocked(true);status(containerRequired?'Collis bestätigt. Bitte jetzt Siegelnummer und alle 3 Containerfotos vollständig erfassen.':'Collis bestätigt. Bitte jetzt Fahrer- und Fahrzeugdaten erfassen.','ok');return true}
+  if(n===open){colliOk=true;setConfirmMode('complete');out.textContent='✓ Gezählte Menge stimmt. Vollständige Abholung bestätigt.';out.style.color='#166534';input.readOnly=true;setDriverStepUnlocked(true);return true}
   colliOk=false;setDriverStepUnlocked(false);out.textContent='Die gezählte Menge stimmt nicht mit der Sendung überein. Bitte erneut zählen. Wird nicht alles verladen, bitte „Teilabholung“ wählen.';out.style.color='#991b1b';input.readOnly=false;input.focus();return false;
 }
 function selectedPickupMode(){var partial=document.getElementById('modePartial');return partial&&partial.checked?'partial':'complete'}
 document.getElementById('checkColli').addEventListener('click',function(){checkColli(selectedPickupMode())});
 ['modeComplete','modePartial'].forEach(function(id){var el=document.getElementById(id);if(el)el.addEventListener('change',function(){colliOk=false;setDriverStepUnlocked(false);document.getElementById('colli').readOnly=false;document.getElementById('colliResult').textContent='Art der Abholung geändert. Bitte die gezählten Collis erneut prüfen lassen.'})});
-document.getElementById('colli').addEventListener('input',function(){colliOk=false;setDriverStepUnlocked(false);this.readOnly=false;document.getElementById('colliResult').textContent='Colli-Anzahl geändert. Bitte erneut bestätigen, bevor Siegelnummer, Containerfotos und Fahrerdaten erfasst werden.'});
+document.getElementById('colli').addEventListener('input',function(){colliOk=false;setDriverStepUnlocked(false);this.readOnly=false;document.getElementById('colliResult').textContent='Colli-Anzahl geändert. Bitte erneut bestätigen, bevor die restlichen Abholdaten erfasst werden.'});
 
 [
  ['loaded','containerPhotoLoaded','containerPreviewLoaded','containerStateLoaded'],
  ['number','containerPhotoNumber','containerPreviewNumber','containerStateNumber'],
  ['sealed','containerPhotoSealed','containerPreviewSealed','containerStateSealed']
 ].forEach(function(row){var input=document.getElementById(row[1]);if(input)input.addEventListener('change',function(){uploadContainerPhoto(row[0],input,row[2],row[3])})});
-document.getElementById('sealNumber').addEventListener('input',function(){this.value=this.value.toUpperCase().replace(/[\r\n]/g,' ').slice(0,120);if(colliOk&&containerRequired&&containerDocsComplete())unlockDriverAfterContainerDocs()});
+document.getElementById('sealNumber').addEventListener('input',function(){this.value=this.value.toUpperCase().replace(/[\r\n]/g,' ').slice(0,120)});
 bindPickupFlowStage(['sealNumber','containerPhotoLoaded','containerPhotoNumber','containerPhotoSealed'],'container');
 bindPickupFlowStage(['driver','plate','carrier','returned'],'driver');
 bindPickupFlowStage(['customsDocumentsConfirmed','signatureOpen','pin'],'confirm');
@@ -498,18 +496,18 @@ document.getElementById('saveSig').addEventListener('click',function(){
   document.getElementById('signaturePrompt').textContent='Unterschrift erfasst – zum Ändern antippen';
   document.getElementById('signatureOpen').classList.add('has');
   setPickupFlowStage('confirm');
-  status('Unterschrift erfasst. Bitte Verlader-PIN eingeben.','info');
+  status('Unterschrift erfasst. Bitte Verlader-PIN eingeben und anschließend die Container-Dokumentation prüfen.','info');
   document.getElementById('signatureModal').hidden=true;document.body.style.overflow='';
 });
 
-document.getElementById('pin').addEventListener('input',function(){this.value=this.value.replace(/\D/g,'').slice(0,4)});
+document.getElementById('pin').addEventListener('input',function(){this.value=this.value.replace(/\D/g,'').slice(0,4);if(this.value.length===4&&colliOk)setPickupFlowStage('container')});
 document.getElementById('plate').addEventListener('input',function(){this.value=this.value.toUpperCase().replace(/[\r\n]/g,' ').slice(0,40)});
 
 form.addEventListener('submit',function(e){
   e.preventDefault();
   var mode=e.submitter&&e.submitter.dataset&&e.submitter.dataset.mode==='partial'?'partial':'complete';
   var pin=q(document.getElementById('pin').value),driver=q(document.getElementById('driver').value),plate=q(document.getElementById('plate').value),carrier=q(document.getElementById('carrier').value),sig=q(document.getElementById('signatureData').value),customsConfirmed=!!(document.getElementById('customsDocumentsConfirmed')&&document.getElementById('customsDocumentsConfirmed').checked),seal=q(document.getElementById('sealNumber').value),returned=Math.max(0,Math.round(Number(document.getElementById('returned').value||0))),entered=colliNumber(document.getElementById('colli').value),btn=mode==='partial'?document.getElementById('confirmPartial'):document.getElementById('confirm');
-  if(!(expected>0)||!colliOk){setDriverStepUnlocked(false);status('Bitte zuerst die Collis prüfen und bestätigen. Siegelnummer, Containerfotos und Fahrerdaten werden erst danach freigeschaltet.','bad');document.getElementById('colli').focus();return}
+  if(!(expected>0)||!colliOk){setDriverStepUnlocked(false);status('Bitte zuerst die Collis prüfen und bestätigen. Die restlichen Schritte werden erst danach freigeschaltet.','bad');document.getElementById('colli').focus();return}
   if(expected>0&&!checkColli(mode)){status(mode==='partial'?'Die Teilabholung konnte mit dieser Colli-Anzahl nicht bestätigt werden.':'Die eingegebene Rest-Colli-Anzahl stimmt nicht.','bad');return}
   if(containerUploadBusy){setPickupFlowStage('container');status('Bitte den laufenden Containerfoto-Upload zuerst abschließen.','bad');return}
   if(mode==='complete'&&containerRequired&&!seal){setPickupFlowStage('container');status('Für diese Sendung ist die Siegelnummer verpflichtend.','bad');document.getElementById('sealNumber').focus();return}
