@@ -10,7 +10,10 @@ test('RC1386: vollständig konfiguriertes Microsoft-Ziel ist automatisch aktiv',
 });
 
 test('RC1395: bereits archivierte PODs ohne Drive-Kopie bleiben in der optionalen Nachholqueue',()=>{
-  assert.match(archive,/const driveBackfillRequired = m365Enabled\(\) && graphDrive\.readiness\(\)\.configured && backup\.driveSaved !== true/);
+  assert.match(archive,/const driveBackfillRequired = m365Enabled\(\) && graphDrive\.readiness\(\)\.configured && !confirmedDriveBackup\(backup\)/);
+
+  assert.match(archive,/function confirmedDriveBackup\(backup\) \{[\s\S]*?backup\.driveSaved === true && text\(backup\.driveItemId\)/);
+  assert.doesNotMatch(archive,/const driveBackfillRequired = [^\n]*backup\.driveSaved !== true/);
   assert.match(archive,/if \(!driveBackfillRequired\) continue;/);
   assert.match(archive,/driveOnly = true;/);
   assert.match(archive,/driveBackfillEligible/);
