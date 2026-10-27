@@ -1,4 +1,5 @@
 'use strict';
+const crypto=require('node:crypto');
 const referenceFolder=require('./reference-folder-upload');
 
 const DOCUMENT_CONTAINER=process.env.EXPORTHUB_DOCUMENT_CONTAINER||'exporthub-documents';
@@ -35,24 +36,31 @@ function containerClient(){
  const {BlobServiceClient}=require('@azure/storage-blob');
  return BlobServiceClient.fromConnectionString(cs).getContainerClient(DOCUMENT_CONTAINER);
 }
-function fileName(reference,kind,extension){
- const ref=safeRef(reference),k=kindOf(kind),ext=text(extension).toLowerCase().replace(/[^a-z0-9]/g,'')||'jpg';
- return KINDS[k].prefix+'_'+ref+'.'+ext;
+function subShipmentKey(subShipmentId){
+ const raw=text(subShipmentId);
+ if(!raw)return'';
+ const label=raw.replace(/[^A-Za-z0-9_-]/g,'').slice(0,24)||'Teil';
+ const digest=crypto.createHash('sha256').update(raw).digest('hex').slice(0,12);
+ return label+'_'+digest;
 }
-function blobName(environment,reference,kind,extension){
- const env=normalizeEnvironment(environment),ref=safeRef(reference);
- return env+'/'+ref+'/Containerdokumentation/'+fileName(ref,kind,extension);
+function fileName(reference,kind,extension,subShipmentId){
+ const ref=safeRef(reference),k=kindOf(kind),ext=text(extension).toLowerCase().replace(/[^a-z0-9]/g,'')||'jpg',sub=subShipmentKey(subShipmentId);
+ return KINDS[k].prefix+'_'+ref+(sub?'_LKW_'+sub:'')+'.'+ext;
+}
+function blobName(environment,reference,kind,extension,subShipmentId){
+ const env=normalizeEnvironment(environment),ref=safeRef(reference),sub=subShipmentKey(subShipmentId);
+ return env+'/'+ref+'/Containerdokumentation/'+(sub?'LKW_'+sub+'/':'')+fileName(ref,kind,extension,subShipmentId);
 }
 async function savePhoto({environment,reference,kind,dataUrl,shipmentId,subShipmentId}){
  const env=normalizeEnvironment(environment),ref=safeRef(reference),k=kindOf(kind),parsed=parseImage(dataUrl),container=containerClient();
  await container.createIfNotExists();
- const name=fileName(ref,k,parsed.extension),path=blobName(env,ref,k,parsed.extension),blob=container.getBlockBlobClient(path),iso=new Date().toISOString();
+ const sub=subShipmentKey(subShipmentId),name=fileName(ref,k,parsed.extension,subShipmentId),path=blobName(env,ref,k,parsed.extension,subShipmentId),blob=container.getBlockBlobClient(path),iso=new Date().toISOString();
  await blob.uploadData(parsed.buffer,{
   blobHTTPHeaders:{blobContentType:parsed.mimeType,blobCacheControl:'private, no-store'},
   metadata:{reference:ref,kind:k,shipmentid:text(shipmentId).slice(0,120),subshipmentid:text(subShipmentId).slice(0,120),uploadedat:iso}
  });
  const referenceFile=await referenceFolder.upload(ref,name,parsed.buffer,parsed.mimeType);
- return{id:'container-'+k,kind:k,label:KINDS[k].label,name,type:parsed.mimeType,size:parsed.buffer.length,uploadedAt:iso,blobName:path,storage:'blob',reference:ref,referenceFolderSaved:true,referenceFolderItemId:text(referenceFile.id),referenceFolderPath:text(referenceFile.folderPath),referenceFolderWebUrl:text(referenceFile.webUrl)};
+ return{id:'container-'+k+(sub?'-'+sub:''),kind:k,label:KINDS[k].label,name,type:parsed.mimeType,size:parsed.buffer.length,uploadedAt:iso,blobName:path,storage:'blob',reference:ref,referenceFolderSaved:true,referenceFolderItemId:text(referenceFile.id),referenceFolderPath:text(referenceFile.folderPath),referenceFolderWebUrl:text(referenceFile.webUrl)};
 }
 async function readPhoto(photo){
  const path=text(photo&&photo.blobName);
