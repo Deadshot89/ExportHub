@@ -201,12 +201,40 @@ export async function runPackNotificationLiveFlow(browser,testInfo,token){
       await expect.poll(()=>location.locator('option').evaluateAll((opts,id)=>opts.some(o=>o.value===id),customer.locationId),{timeout:15_000}).toBe(true);
       await location.selectOption({value:customer.locationId});
       await expect(location).toHaveValue(customer.locationId);
+      // The normal shipment-creation E2E also requires a real destination in
+      // the state. A visually selected option alone can be lost on rerender.
+      await expect.poll(()=>page.evaluate(()=>{
+        const state=window.__EXPORTHUB_GET_STATE__?.()||{};
+        const active=window.__EXPORTHUB_GET_ACTIVE_SHIPMENT__?.()||state.shipment||{};
+        return String(active.locationId||active.selectedLocationId||active.siteId||active.destinationId||'');
+      }),{timeout:15_000,message:'Pack handoff must retain the chosen destination'}).toBe(customer.locationId);
       const rows=page.locator('#rc573ColliCard .rc363-owned-row');
       await expect(rows.first()).toBeVisible();
       for(let i=0;i<await rows.count();i++){
         const ldm=rows.nth(i).locator('[data-rc363-field="ldm"] input');
         if(await ldm.count()){await ldm.fill('0.4');await ldm.blur();}
       }
+      // RC1678: after the customer/location changes, all original Pack data
+      // must still be present before clicking the canonical save button.
+      // This checks rather than invents a valid shipment.
+      await expect.poll(()=>page.evaluate(notificationId=>{
+        const state=window.__EXPORTHUB_GET_STATE__?.()||{};
+        const note=(state.packNotifications||[]).find(n=>n.id===notificationId);
+        const api=window.ExportHUBPackShipment;
+        if(!note||!api?.shipmentPrefill||!api?.shipmentRows)return false;
+        const plan=api.shipmentRows(api.shipmentPrefill(note));
+        const nodes=Array.from(document.querySelectorAll('#rc573ColliCard .rc363-owned-row'));
+        const num=value=>Number(String(value??'').replace(',','.'));
+        const kind=value=>String(value||'').toLowerCase().replace(/[^a-z0-9äöüß]/g,'');
+        return !!plan.length&&nodes.length>=plan.length&&plan.every((row,index)=>{
+          const node=nodes[index];
+          const get=field=>node.querySelector('[data-rc363-field="'+field+'"] input');
+          const type=node.querySelector('[data-rc363-field="type"] select')?.value;
+          return (!row.type||kind(type)===kind(row.type))
+            &&num(get('count')?.value)===Number(row.count)
+            &&['l','w','h','weight'].every(field=>Number(row[field])>0&&Math.abs(num(get(field)?.value)-Number(row[field]))<0.051);
+        });
+      },draft.packNotificationId),{timeout:12_000,message:'Pack handoff must preserve original packaging, count, measures and weight'}).toBe(true);
       const goods=page.getByLabel(/Warenbeschreibung/i).first();
       if(await goods.count())await goods.fill('E2E TEST delivery note handoff');
       // RC1676: The reference can be rendered outside the customer block after
