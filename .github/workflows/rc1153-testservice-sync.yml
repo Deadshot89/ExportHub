@@ -32,14 +32,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node .github/rc1112/build-three-env.mjs
+          node .github/packmeldungen/build-three-env.mjs
           node .github/rc1121/verify-final-html.mjs
           grep -q 'ExportHUB RC1112 environment=testservice' dist-rc1112/TESTVERSION.html
           grep -q "version:'RC1112'" dist-rc1112/TESTVERSION.html
+          grep -q 'id="exporthub-pack-notification-internal"' dist-rc1112/TESTVERSION.html
+          grep -q 'id="exporthub-pack-notification-nav"' dist-rc1112/TESTVERSION.html
 
           rm -rf .rc1153_testservice_app
           mkdir -p .rc1153_testservice_app
-          cp dist-rc1112/pickup.html dist-rc1112/customer-avis.html dist-rc1112/location.html dist-rc1112/pod-notfall.html dist-rc1112/migration-recovery.html .rc1153_testservice_app/
+          cp dist-rc1112/pickup.html dist-rc1112/customer-avis.html dist-rc1112/location.html dist-rc1112/pod-notfall.html dist-rc1112/migration-recovery.html dist-rc1112/pack.html .rc1153_testservice_app/
           cp dist-rc1112/production-version.js .rc1153_testservice_app/production-version.js
           cp -R assets .rc1153_testservice_app/assets
           cp -R dist-rc1112/assets/. .rc1153_testservice_app/assets/
@@ -48,6 +50,9 @@ jobs:
           cp dist-rc1112/TESTVERSION.html .rc1153_testservice_app/TESTVERSION.html
           cp dist-rc1112/demo.html .rc1153_testservice_app/demo.html
           test -s .rc1153_testservice_app/TESTVERSION.html
+          test -s .rc1153_testservice_app/pack.html
+          test -s .rc1153_testservice_app/assets/pack-notification-internal.js
+          test -s .rc1153_testservice_app/assets/pack-notification-nav.js
           test -s .rc1153_testservice_app/assets/rc1027-lieferavis-immediate.js
           test -s .rc1153_testservice_app/assets/abholkalender.js
 
