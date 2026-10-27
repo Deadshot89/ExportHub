@@ -39,7 +39,7 @@ function config() {
   return { tenantId, clientId, clientSecret, user: status.user, folder: status.folder, driveId: status.driveId, folderId: status.folderId };
 }
 
-function request(method, url, headers, body, timeoutMs) {
+function request(method, url, headers, body, timeoutMs, maxBytes) {
   return new Promise((resolve, reject) => {
     const target = new URL(url);
     const req = https.request({
@@ -52,8 +52,22 @@ function request(method, url, headers, body, timeoutMs) {
       timeout: timeoutMs || 20000
     }, response => {
       const chunks = [];
-      response.on('data', chunk => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
+      let totalBytes = 0, tooLarge = false;
+      response.on('data', chunk => {
+        if (tooLarge) return;
+        const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+        totalBytes += bytes.length;
+        if (maxBytes && totalBytes > maxBytes) {
+          tooLarge = true;
+          reject(Object.assign(new Error('Die Graph-POD-Rücklesedatei ist größer als das Original.'),
+            { code: 'GRAPH_READBACK_TOO_LARGE', statusCode: 502 }));
+          if (typeof response.destroy === 'function') response.destroy();
+          return;
+        }
+        chunks.push(bytes);
+      });
       response.on('end', () => {
+        if (tooLarge) return;
         const buffer = Buffer.concat(chunks);
         const raw = buffer.toString('utf8');
         let parsed = null;
@@ -838,7 +852,7 @@ function approvedGraphDownload(location, base) {
   return url.href;
 }
 
-async function readBackBytes(token, item) {
+async function readBackBytes(token, item, expectedSize) {
   const id = text(item && item.id);
   const driveId = text(item && item.driveId);
   const user = text(item && item.user);
@@ -854,7 +868,7 @@ async function readBackBytes(token, item) {
   let response;
   try {
     response = await request('GET', graphUrl,
-      { 'Authorization': 'Bearer ' + token, 'Accept': 'application/pdf' }, null, 12000);
+      { 'Authorization': 'Bearer ' + token, 'Accept': 'application/pdf' }, null, 12000, expectedSize);
   } catch (error) {
     const status = Number(error && error.statusCode);
     if (![301, 302, 303, 307, 308].includes(status)) throw error;
@@ -863,7 +877,7 @@ async function readBackBytes(token, item) {
       'Die Microsoft-365-POD-Rückleseadresse ist nicht vertrauenswürdig.',
       { statusCode: 502 });
     // IMPORTANT: redirect is an anonymous preauthenticated URL.
-    response = await request('GET', url, { 'Accept': 'application/pdf' }, null, 12000);
+    response = await request('GET', url, { 'Accept': 'application/pdf' }, null, 12000, expectedSize);
   }
   return response.buffer;
 }
@@ -877,7 +891,7 @@ async function verifyPdf(buffer, item) {
   // Readback may lag a successful PUT briefly. Retry GET only; NEVER repeat PUT.
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
-      const bytes = await readBackBytes(await accessToken(false), item);
+      const bytes = await readBackBytes(await accessToken(false), item, buffer.length);
       const actualHash = crypto.createHash('sha256').update(bytes).digest('hex');
       if (bytes.length !== buffer.length || actualHash !== expectedHash)
         throw targetError('GRAPH_POD_READBACK_HASH_MISMATCH',
