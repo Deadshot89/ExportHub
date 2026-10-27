@@ -359,3 +359,57 @@ test('P0: REF and recycled ID cannot resolve a shipment explicitly owned by anot
   assert.equal(api.findShipmentForNotification(s,n),null,'matching pack REF does not override conflicting pack ID');
   assert.equal(api.syncStatuses(s,'2026-10-26T14:31:00.000Z').length,0);
 });
+
+
+test('RC1679: two differently named real Lieferschein PDFs remain separate attachments in shipment creation and saved state',()=>{
+  const bridge=load(),s=state(),note=s.packNotifications[0],first=note.documents[0];
+  first.name='DNC3019222063.pdf';
+  first.originalName='scan-A.pdf';
+  first.documentReference='DNC3019222063';
+  const second={id:'d2',name:'SIDE250071282.pdf',originalName:'scan-B.pdf',documentReference:'SIDE250071282',
+    storage:'blob',blobName:'rc1059/production/bb/'+('b'.repeat(64)),mimeType:'application/pdf',size:256};
+  note.documents.push(second);
+  const draft=bridge.shipmentPrefill(note);
+  assert.deepEqual(Array.from(draft.deliveryFiles,file=>file.name),['DNC3019222063.pdf','SIDE250071282.pdf']);
+  assert.deepEqual(Array.from(draft.deliveryFiles,file=>file.originalName),['scan-A.pdf','scan-B.pdf']);
+  assert.deepEqual(Array.from(draft.deliveryFiles,file=>file.blobName),[first.blobName,second.blobName]);
+  assert.ok(draft.deliveryFiles.every(file=>file.storage==='blob'&&file.customerAvisVisible===false));
+  const shipment={id:'sh-2',ref:'ABC123',deliveryFiles:[]};
+  s.shipments.push(shipment);
+  assert.equal(bridge.linkShipment(s,note,shipment,'2026-10-27T08:00:00.000Z'),true);
+  assert.deepEqual(Array.from(shipment.deliveryFiles,file=>file.name),['DNC3019222063.pdf','SIDE250071282.pdf']);
+  assert.deepEqual(Array.from(shipment.deliveryFiles,file=>file.blobName),[first.blobName,second.blobName]);
+  bridge.linkShipment(s,note,shipment,'2026-10-27T08:01:00.000Z');
+  assert.equal(shipment.deliveryFiles.length,2,'the same original PDFs are not duplicated on repeat link');
+});
+
+
+test('RC1679: lost real Pack Lieferschein Blob pointers restore only for the same pending Pack owner',()=>{
+  const source=fs.readFileSync('assets/pack-notification-shipment.js','utf8');
+  const injected=source.replace('  root.ExportHUBPackShipment=Object.freeze(',
+    '  root.__RC1679_KEEP_DOCS__=keepPendingDocuments;root.ExportHUBPackShipment=Object.freeze(');
+  assert.notEqual(injected,source,'actual production preservation helper must be invoked');
+  const shared=state(),notification=shared.packNotifications[0];
+  notification.documents[0].name='DNC3019222063.pdf';
+  const extra={id:'d2',name:'SIDE250071282.pdf',storage:'blob',
+    blobName:'rc1059/production/bb/'+('b'.repeat(64)),mimeType:'application/pdf'};
+  notification.documents.push(extra);
+  const current={packNotificationId:'pn-1',packNotificationRef:'PK-1',deliveryFiles:[]};
+  shared.shipment=current;
+  const root={__EXPORTHUB_GET_STATE__:()=>shared,addEventListener(){}};
+  vm.runInContext(injected,vm.createContext({window:root,globalThis:root,console,Date,Intl,setTimeout,clearTimeout}));
+  const prefill=root.ExportHUBPackShipment.shipmentPrefill(notification);
+  assert.equal(root.__RC1679_KEEP_DOCS__(prefill),true);
+  assert.deepEqual(Array.from(current.deliveryFiles,file=>file.name),['DNC3019222063.pdf','SIDE250071282.pdf']);
+  assert.deepEqual(Array.from(current.deliveryFiles,file=>file.blobName),
+    [notification.documents[0].blobName,extra.blobName]);
+  assert.equal(root.__RC1679_KEEP_DOCS__(prefill),false,'repeated refresh must not duplicate real PDFs');
+  assert.equal(current.deliveryFiles.length,2);
+  const foreign={packNotificationId:'another-pack',packNotificationRef:'PK-OTHER',deliveryFiles:[]};
+  shared.shipment=foreign;
+  assert.equal(root.__RC1679_KEEP_DOCS__(prefill),false,'unrelated shipment must not receive private Pack PDFs');
+  assert.deepEqual(foreign.deliveryFiles,[]);
+  shared.shipment={packNotificationId:'pn-1',packNotificationRef:'PK-OTHER',deliveryFiles:[]};
+  assert.equal(root.__RC1679_KEEP_DOCS__(prefill),false,'matching Pack ID but different pack reference must be rejected');
+  assert.deepEqual(shared.shipment.deliveryFiles,[]);
+});
