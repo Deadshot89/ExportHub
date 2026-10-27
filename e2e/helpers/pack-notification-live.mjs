@@ -207,6 +207,31 @@ export async function runPackNotificationLiveFlow(browser,testInfo,token){
       await expect(creationDocuments).toBeVisible({timeout:15_000});
       await expect(creationDocuments.getByText(resultA.canonicalName,{exact:false}).first(),
         'Renamed original Lieferschein must be visible as an attachment in Sendungserstellung').toBeVisible({timeout:15_000});
+      // RC1681: API bytes and a rendered filename are insufficient for a
+      // warehouse operator. Exercise the actual shipment creation Download
+      // button, verify the browser download, canonical filename and original
+      // PDF bytes. Do not substitute a direct fetch for a user interaction.
+      const originalAttachmentRow=creationDocuments.locator('#rc1680PackDeliveryFiles .rc1680-pack-file')
+        .filter({hasText:resultA.canonicalName}).first();
+      await expect(originalAttachmentRow).toBeVisible({timeout:15_000});
+      const downloadButton=originalAttachmentRow.locator('button').nth(1);
+      await expect(downloadButton).toBeVisible();
+      await expect(downloadButton).toBeEnabled();
+      const browserDownload=page.waitForEvent('download',{timeout:20_000});
+      await downloadButton.click();
+      const downloaded=await browserDownload;
+      expect(downloaded.suggestedFilename()).toBe(resultA.canonicalName);
+      const downloadStream=await downloaded.createReadStream();
+      expect(downloadStream,'real browser download stream must exist').toBeTruthy();
+      let downloadedSize=0,downloadedMagic=Buffer.alloc(0);
+      for await (const piece of downloadStream){
+        const chunk=Buffer.isBuffer(piece)?piece:Buffer.from(piece);
+        downloadedSize+=chunk.length;
+        if(downloadedMagic.length<5)downloadedMagic=Buffer.concat([downloadedMagic,chunk]).subarray(0,5);
+      }
+      expect(downloadedMagic.toString('latin1')).toBe('%PDF-');
+      expect(downloadedSize).toBe(originalPdf.count);
+
 
       // RC1670: The handoff is not proven by an unsaved draft. Exercise the
       // canonical shipment save, reload the app, read server state and fetch the
