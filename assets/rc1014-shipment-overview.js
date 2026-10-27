@@ -181,7 +181,7 @@
   function inShipmentView(doc){
     const body=doc&&doc.body;
     if(!body||typeof body.getAttribute!=='function')return false;
-    return q(body.getAttribute('data-exporthub-view')).toLowerCase()==='shipment';
+    return ['shipment','shipmentview'].includes(q(body.getAttribute('data-exporthub-view')).toLowerCase());
   }
 
   function createMeta(doc,meta){

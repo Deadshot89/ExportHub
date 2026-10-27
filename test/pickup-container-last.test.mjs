@@ -87,3 +87,31 @@ test('QR-Foto bestätigt Speichererfolg bei Ref-Ordner-Ablage und Sendungsverkn�
   assert.match(el('containerResult').textContent,/✓ Foto wurde im Referenzordner/);
   assert.match(el('containerStateLoaded').textContent,/✓ Gespeichert/);
 });
+
+test('Sendungsansicht shipmentview zeigt gespeicherte Containerfotos als Vorschaukarten',()=>{
+  const script=fs.readFileSync(path.join(ROOT,'assets/rc1014-shipment-overview.js'),'utf8');
+  class Element{
+    constructor(tag){this.tag=tag;this.children=[];this.attributes={};this.classList={add(){}}}
+    appendChild(child){this.children.push(child);return child}
+    setAttribute(name,value){this.attributes[name]=value}
+    addEventListener(){}
+  }
+  const host=new Element('section');host.insertBefore=child=>host.appendChild(child);
+  const docsCard=new Element('section');docsCard.parentNode=host;docsCard.nextSibling=null;
+  const shipment={id:'S1',reference:'ABC123',sealNumber:'SEAL123',containerPhotos:[
+    {id:'container-loaded',kind:'loaded',label:'Geladener Container',name:'01_Geladener_Container_ABC123.jpg',referenceFolderSaved:true},
+    {id:'container-number',kind:'number',label:'Container-Nummer',name:'02_Container_Nummer_ABC123.jpg',referenceFolderSaved:true},
+    {id:'container-sealed',kind:'sealed',label:'Versiegelt',name:'03_Versiegelt_ABC123.jpg',referenceFolderSaved:true}
+  ]};
+  const context={
+    document:{body:{getAttribute(name){return name==='data-exporthub-view'?'shipmentview':''}},getElementById(id){return id==='rc786ReferenceFilesCard'?docsCard:null},querySelector(){return null},createElement:tag=>new Element(tag)},
+    __EXPORTHUB_GET_STATE__:()=>({view:'shipmentview',shipmentViewId:'S1',shipments:[shipment]}),
+    setTimeout(){return 1},console,
+  };
+  vm.runInNewContext(script,context);
+  assert.equal(context.ExportHUBRC1014ShipmentOverview.enhanceShipmentDetailedView(),true,'Containerbereich muss in der echten Sendungsansicht eingehängt werden');
+  const panel=host.children[0];
+  assert.ok(panel);
+  const photos=[];function walk(node){if(node.tag==='img')photos.push(node);for(const child of node.children||[])walk(child)}walk(panel);
+  assert.deepEqual(photos.map(img=>img.attributes['data-rc1259-photo-id']),['container-loaded','container-number','container-sealed']);
+});
