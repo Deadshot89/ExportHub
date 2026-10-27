@@ -195,3 +195,17 @@ test('P0: automatic cloud retry submits existing signed original, not another lo
   assert.equal(renders,0);
   assert.deepEqual(submitted,originalPdf);
 });
+
+test('RC1683: incomplete Graph receipt must not persist a SharePoint success',async()=>{
+  await withArchiveStore(async(bytes,name)=>({name,size:bytes.length}),async({getRecord})=>{
+    const result=await archive.saveSuppliedPod(
+      'a'.repeat(64),'testservice',getRecord(),originalPdf,
+      'POD_ABC123_Ladeliste_unterschrieben.pdf',{renderLayout:'RC1595'}
+    );
+    assert.equal(result.archiveSaved,true,'immutable Azure original still secured');
+    assert.equal(result.driveSaved,false,'missing remote ID must fail closed');
+    assert.equal(result.record.podBackup.driveSaved,false);
+    assert.equal(result.record.podBackup.driveItemId,'');
+    assert.match(result.record.podBackup.driveLastError,/GRAPH_UPLOAD_RECEIPT_INVALID/);
+  });
+});
