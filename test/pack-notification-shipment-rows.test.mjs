@@ -46,3 +46,31 @@ test('form prefill fills one row per group and adds missing rows through the shi
   assert.match(source,/api\.updateRow\(index,'type'/);
   assert.match(source,/api\.updateRow\(index,'weight'/,'weight field is readonly, so the total must go through the shipment API');
 });
+
+
+test('RC1678: a rerender that clears only dimensions or weight cannot pass the Pack row guard',()=>{
+  const original=fs.readFileSync('assets/pack-notification-shipment.js','utf8');
+  const source=original.replace('  root.ExportHUBPackShipment=Object.freeze(','  root.__RC1678_ROWS_MATCH__=rowsMatch; root.ExportHUBPackShipment=Object.freeze(');
+  assert.notEqual(source,original,'expose the existing private production function only inside the test VM');
+  const root={addEventListener(){}};
+  vm.runInContext(source,vm.createContext({window:root,globalThis:root,console,Date}));
+  const values={type:'Euro Palette',count:'2',l:'120',w:'80',h:'145',weight:'680'};
+  const doc={querySelectorAll(selector){
+    assert.equal(selector,'#rc573ColliCard .rc363-owned-row');
+    return [{querySelector(selector){
+      const field=selector.match(/field="([^"]+)"/)?.[1];
+      return field==='type'?{value:values.type}:{value:values[field]};
+    }}];
+  }};
+  const plan=[{type:'Europalette',count:2,l:120,w:80,h:145,weight:680}];
+  assert.equal(root.__RC1678_ROWS_MATCH__(doc,plan),true,'complete pack rows match');
+  for(const field of ['l','w','h','weight']){
+    const prior=values[field];values[field]='';
+    assert.equal(root.__RC1678_ROWS_MATCH__(doc,plan),false,'missing '+field+' must be repaired');
+    values[field]=prior;
+  }
+  values.weight='670';
+  assert.equal(root.__RC1678_ROWS_MATCH__(doc,plan),false,'changed weight must not pass as completed Pack prefill');
+  values.weight='680,0';
+  assert.equal(root.__RC1678_ROWS_MATCH__(doc,plan),true,'German numeric formatting preserves identical values');
+});
