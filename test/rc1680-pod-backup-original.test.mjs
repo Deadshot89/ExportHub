@@ -72,7 +72,7 @@ test('P0: client-supplied signed original is archived before the identical PDF i
     assert.equal(backup.driveItemId,'new-drive-item');
     assert.equal(backup.archiveSaved,true);
     assert.equal(backup.hash,crypto.createHash('sha256').update(originalPdf).digest('hex'));
-    assert.equal(steps.at(-1),'drive','SharePoint copy must follow verified Azure archive');
+    assert.deepEqual(steps.slice(-2),['drive','drive-readback'],'verified Graph readback must follow immutable Azure archive and upload');
     assert.ok(steps.some(step=>step.includes('rc1220/')),'immutable archive has to be written first');
     const archived=blobs.get(backup.archiveBlobName);
     assert.deepEqual(archived,originalPdf,'saved PDF must be the supplied signed original');
