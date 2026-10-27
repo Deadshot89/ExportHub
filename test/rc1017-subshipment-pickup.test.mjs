@@ -73,11 +73,13 @@ test('RC1017: publicRecord veröffentlicht Teilsendungsmetadaten ohne Raw-Token-
   assert.match(src,/subShipmentLabel\s*:\s*r\.subShipmentLabel\s*\|\|\s*''/);
 });
 
-function teamFixture(){
+function teamFixture({extraShipments=[],extraSavedShipments=[]}={}){
   let document={schemaVersion:3,revision:7,state:{shipments:[{id:'S1',shipmentId:'S1',ref:'ABC123',reference:'ABC123',status:'Bereit zur Abholung',processStatus:'Bereit zur Abholung',subShipments:[
     {subShipmentId:'S1-TRUCK-1',sequence:1,total:2,label:'Sendung 1 von 2',status:'open',locked:false,rows:[{id:'r1',count:2}]},
     {subShipmentId:'S1-TRUCK-2',sequence:2,total:2,label:'Sendung 2 von 2',status:'open',locked:false,rows:[{id:'r1',count:1}]}
   ]}],tasks:[{id:'TASK-ABHOLTAG-1',area:'Abholtag',linkedShipmentId:'S1',linkedShipmentRef:'ABC123',status:'offen',done:false}]},users:[]};
+  if(extraShipments.length)document.state.shipments.push(...clone(extraShipments));
+  if(extraSavedShipments.length)document.state.savedShipments=clone(extraSavedShipments);
   let etag='"etag-1"',revision=1;
   const blob={
     async download(){const raw=Buffer.from(JSON.stringify(document));return{readableStreamBody:(async function*(){yield raw})(),etag,contentType:'application/json'}},
@@ -144,6 +146,48 @@ test('RC1339: Teilsendungs-Pickup findet die Hauptsendung notfalls über subShip
 });
 
 
+test('RC1666: fallback by subShipmentId rejects ambiguous matching parents',async()=>{
+  const f=teamFixture({extraShipments:[{
+    id:'OTHER',ref:'OTHER-REF',subShipments:[{subShipmentId:'S1-TRUCK-1',sequence:1,total:2,status:'open'}]
+  }]});
+  try{
+    const record=completedSubPickup('S1-TRUCK-1',1,2,'2026-09-09T17:35:00.000Z');
+    record.shipmentId='STALE-UUID';record.reference='STALE-REF';
+    await assert.rejects(()=>f.store.updateTeam(record,[],''),error=>error.code==='TEAM_SHIPMENT_AMBIGUOUS'&&error.status===409);
+    const state=f.getDocument().state;
+    assert.equal(state.shipments[0].subShipments[0].status,'open');
+    assert.equal(state.shipments[1].subShipments[0].status,'open');
+    assert.equal(state.tasks[0].status,'offen');
+  }finally{f.restore()}
+});
+
+test('RC1666: legacy sequence fallback is allowed only within verified parent shipment',async()=>{
+  const f=teamFixture();
+  try{
+    const record=completedSubPickup('LEGACY-SUB-ID',1,2,'2026-09-09T17:35:00.000Z');
+    await f.store.updateTeam(record,[],'');
+    const state=f.getDocument().state;
+    assert.equal(state.shipments[0].subShipments[0].status,'confirmed');
+    assert.equal(state.shipments[0].subShipments[1].status,'open');
+    assert.equal(state.shipments[0].status,'Teilweise abgeholt');
+    assert.equal(state.tasks[0].status,'offen');
+  }finally{f.restore()}
+});
+
+test('RC1666: recovered second truck pickup completes only its canonical parent task',async()=>{
+  const f=teamFixture({extraShipments:[{id:'OTHER',ref:'DIFFERENT',status:'Erstellt',subShipments:[]}]});
+  try{
+    await f.store.updateTeam(completedSubPickup('S1-TRUCK-1',1,2,'2026-09-09T17:35:00.000Z'),[],'');
+    const record=completedSubPickup('S1-TRUCK-2',2,1,'2026-09-09T17:40:00.000Z');
+    record.shipmentId='STALE-SHIP';record.reference='STALE-REF';
+    await f.store.updateTeam(record,[],'');
+    const state=f.getDocument().state;
+    assert.equal(state.shipments[0].status,'Abgeholt');
+    assert.equal(state.shipments[1].status,'Erstellt');
+    assert.equal(state.tasks[0].status,'erledigt');
+  }finally{f.restore()}
+});
+
 test('RC1413 P0: dauerhaft gespeicherte Pickup-Abholung bleibt bei nachgelagertem Team-State-Fehler erfolgreich',()=>{
   const src=fs.readFileSync('api/pickup-confirm-v2/index.js','utf8');
   const update=src.indexOf("await store.updateTeam(rec,[],'')");
@@ -185,4 +229,40 @@ test('RC1406 P0: bestätigte aber noch nicht synchronisierte QR-Abholung bleibt 
   const recoveryBlock=page.slice(recoveryStart,recoveryEnd);
   assert.doesNotMatch(recoveryBlock,/signatureDataUrl|customsDocumentsConfirmed|colliCount|enteredColliCount/);
   assert.match(recoveryBlock,/Abholung vollständig abgeschlossen/);
+});
+
+
+test('RC1666: verified parent never adopts a sub-shipment belonging to another shipment',async()=>{
+ const f=teamFixture({extraShipments:[{
+  id:'OTHER-SHIPMENT',ref:'OTHER-REF',status:'Erstellt',
+  subShipments:[{subShipmentId:'OTHER-TRUCK',sequence:3,total:3,status:'open'}]
+ }]});
+ try{
+  const record=completedSubPickup('OTHER-TRUCK',3,1,'2026-09-09T17:42:00.000Z');
+  // A current valid parent identity plus an alien truck identifier must fail closed.
+  record.shipmentId='S1';record.reference='ABC123';
+  await assert.rejects(()=>f.store.updateTeam(record,[],''),e=>e&&e.code==='TEAM_SHIPMENT_NOT_FOUND');
+  const state=f.getDocument().state;
+  assert.equal(state.shipments[0].subShipments[0].status,'open');
+  assert.equal(state.shipments[0].subShipments[1].status,'open');
+  assert.equal(state.shipments[1].subShipments[0].status,'open');
+  assert.equal(state.tasks[0].status,'offen');
+ }finally{f.restore()}
+});
+
+
+test('RC1666: stale multi-truck QR rejects reused parent ID with conflicting reference',async()=>{
+ const f=teamFixture({extraShipments:[{
+  id:'S1',ref:'ANOTHER-REF',status:'Erstellt',
+  subShipments:[{subShipmentId:'S1-TRUCK-1',sequence:1,total:2,status:'open'}]
+ }]});
+ try{
+  const record=completedSubPickup('S1-TRUCK-1',1,2,'2026-09-09T17:35:00.000Z');
+  record.shipmentId='STALE-PARENT';record.reference='STALE-REF';
+  await assert.rejects(()=>f.store.updateTeam(record,[],''),e=>e&&e.code==='TEAM_SHIPMENT_AMBIGUOUS'&&e.status===409);
+  const state=f.getDocument().state;
+  assert.equal(state.shipments[0].status,'Bereit zur Abholung');
+  assert.equal(state.shipments[1].status,'Erstellt');
+  assert.equal(state.tasks[0].status,'offen');
+ }finally{f.restore()}
 });

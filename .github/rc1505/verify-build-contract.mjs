@@ -9,6 +9,18 @@ const excludes=(file,marker)=>assert.ok(!read(file).includes(marker),`RC1505 Bui
 const pages=['dist-rc1112/index.html','dist-rc1112/TESTVERSION.html','dist-rc1112/demo.html'];
 for(const file of pages)exists(file);
 
+// RC1666: The real built document, not merely the source template, must redirect
+// an already-issued /?pickup=TOKEN before any login script executes.
+for(const file of ['dist-rc1112/index.html','dist-rc1112/TESTVERSION.html']){
+  const html=read(file),head=/<head[^>]*>/i.exec(html);
+  assert.ok(head,file+': HTML head missing');
+  const first=html.slice(head.index+head[0].length).trimStart();
+  assert.ok(first.startsWith('<script id="exporthub-rc1666-public-pickup-redirect">'),file+': QR redirect is not the first executable head script');
+  assert.ok(first.includes("target.searchParams.set('token',token)"),file+': QR token forwarding missing');
+  assert.ok(first.includes("w.location.replace(target.href)"),file+': QR navigation missing');
+}
+excludes('dist-rc1112/demo.html','exporthub-rc1666-public-pickup-redirect');
+
 includes('dist-rc1112/index.html','ExportHUB RC1112 environment=production-candidate');
 includes('dist-rc1112/TESTVERSION.html','ExportHUB RC1112 environment=testservice');
 includes('dist-rc1112/demo.html','ExportHUB RC1112 environment=demo');

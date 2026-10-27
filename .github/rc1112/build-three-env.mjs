@@ -1622,6 +1622,16 @@ function patchHtml(file){
     if(!html.includes('window.__EXPORTHUB_DEMO_MODE__===true||window.__EXPORTHUB_PICKUP_MODE__'))throw new Error(file+': RC1131 Demo-Routenanker fehlt');
   }
   html=patchTaskPlannerV2UiCutover(html,file);
+  // Insert only after *all* other head injections. In particular RC1289 prepends
+  // a synchronous auth script. The pickup redirect must run before that script.
+  if(file==='index.html'||file==='TESTVERSION.html'){
+    const redirect=fs.readFileSync(path.join(ROOT,'assets/rc1666-public-pickup-query-redirect.js'),'utf8');
+    if(redirect.includes('</script'))throw new Error('RC1666 pickup redirect contains unsafe script-close markup');
+    html=injectImmediateRuntimeAfterHead(html,'<script id="exporthub-rc1666-public-pickup-redirect">'+redirect+'</script>','exporthub-rc1666-public-pickup-redirect');
+    const headOpen=/<head[^>]*>/i.exec(html);
+    if(!headOpen||!html.slice(headOpen.index+headOpen[0].length).trimStart().startsWith('<script id="exporthub-rc1666-public-pickup-redirect">'))throw new Error(file+': RC1666 redirect not first executable head script');
+  }
+
   fs.writeFileSync(target,html);
 }
 

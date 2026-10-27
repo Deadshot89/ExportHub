@@ -15,12 +15,36 @@ function mergePhoto(list,photo){
 }
 function text(v){return String(v==null?'':v).trim()}
 function linkedInTeam(teamDoc,record,photo){
- const state=teamDoc&&teamDoc.state&&typeof teamDoc.state==='object'?teamDoc.state:teamDoc||{},shipments=Array.isArray(state.shipments)?state.shipments:[];
- const sid=text(record&&record.shipmentId),ref=text(record&&record.reference).toUpperCase(),sh=shipments.find(x=>(sid&&text(x&&(x.id||x.shipmentId))===sid)||(ref&&text(x&&(x.reference||x.ref)).toUpperCase()===ref));
- if(!sh)return false;
- const target=record&&record.subShipmentId&&Array.isArray(sh.subShipments)?sh.subShipments.find(x=>text(x&&x.subShipmentId)===text(record.subShipmentId)):sh;
- const photos=Array.isArray(target&&target.containerPhotos)?target.containerPhotos:[];
- return photos.some(x=>text(x&&x.kind).toLowerCase()===text(photo&&photo.kind).toLowerCase()&&(!text(photo&&photo.blobName)||text(x&&x.blobName)===text(photo&&photo.blobName)));
+ const state=teamDoc&&teamDoc.state&&typeof teamDoc.state==='object'?teamDoc.state:teamDoc||{},
+  shipments=[].concat(Array.isArray(state.shipments)?state.shipments:[],Array.isArray(state.savedShipments)?state.savedShipments:[]);
+ const sid=text(record&&record.shipmentId),ref=text(record&&record.reference).toUpperCase(),subId=text(record&&record.subShipmentId);
+ function matchesParent(sh){
+  if(!sh||typeof sh!=='object')return false;
+  const id=text(sh.shipmentId||sh.id),reference=text(sh.reference||sh.ref||sh.shipmentRef).toUpperCase();
+  if(sid&&id&&sid!==id&&!(ref&&sid.toUpperCase()===ref))return false;
+  if(ref&&reference&&ref!==reference)return false;
+  return!!((sid&&sid===id)||(ref&&ref===reference));
+ }
+ function matchingSub(sh){
+  return subId&&Array.isArray(sh&&sh.subShipments)?sh.subShipments.find(x=>text(x&&x.subShipmentId)===subId):null;
+ }
+ function hasPhoto(target){
+  return(Array.isArray(target&&target.containerPhotos)?target.containerPhotos:[]).some(x=>
+   text(x&&x.kind).toLowerCase()===text(photo&&photo.kind).toLowerCase()&&
+   (!text(photo&&photo.blobName)||text(x&&x.blobName)===text(photo&&photo.blobName)));
+ }
+ const parents=shipments.filter(matchesParent);
+ if(!subId)return parents.some(hasPhoto);
+ // A verified parent always wins. Never use a foreign parent as fallback when
+ // the current parent is known but its sub-shipment is missing.
+ if(parents.length)return parents.some(sh=>hasPhoto(matchingSub(sh)));
+ // Only older QR records with stale parent IDs can be recovered by their
+ // *exact*, unique truck ID; sequence or shared reference is never enough.
+ const recovered=shipments.filter(sh=>!!matchingSub(sh));
+ const ids=new Set(recovered.map(sh=>text(sh&&(sh.shipmentId||sh.id))));
+ const refs=new Set(recovered.map(sh=>text(sh&&(sh.reference||sh.ref||sh.shipmentRef)).toUpperCase()).filter(Boolean));
+ if(!recovered.length||ids.size!==1||ids.has('')||refs.size>1)return false;
+ return recovered.some(sh=>hasPhoto(matchingSub(sh)));
 }
 module.exports=async function(context,req){
  if(req.method==='OPTIONS'){context.res=json(204,{});return}

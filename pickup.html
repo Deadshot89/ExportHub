@@ -73,7 +73,7 @@ button:focus-visible,input:focus-visible{outline:3px solid #1d4ed8;outline-offse
 
 <section id="colliSection" class="section">
 <h2>Colli-Prüfung <span class="help">(zuerst erforderlich)</span></h2>
-<div class="help">Blindzählung: Die erwartete Menge wird hier bewusst nicht angezeigt. Bitte die verladenen Colli selbst zählen. ExportHUB prüft die Eingabe.</div>
+<div class="help">Blindzählung: Die erwartete Menge wird hier bewusst nicht angezeigt. Bitte die verladenen Colli selbst zählen. ExportHUB prüft die Eingabe. Danach erscheinen die Siegelnummer, drei Fotofelder und – bei vorhandenem ABD – die Bestätigung zur Übergabe der Zolldokumente.</div>
 <div id="previousPickupNote" class="help" hidden>Für diese Sendung gab es bereits eine Teilabholung. Bitte nur die jetzt auf diesem LKW verladenen Colli zählen.</div>
 <div class="pickup-mode" role="radiogroup" aria-label="Art der Abholung">
 <label><span><input id="modeComplete" type="radio" name="pickupMode" value="complete" checked style="width:auto;min-height:0;margin-right:8px"> <strong>Vollständige Abholung</strong> · alle offenen Colli werden verladen</span></label>
@@ -385,7 +385,7 @@ function show(data){
   var recovery=document.getElementById('recoverySection');if(recovery)recovery.hidden=true;
   var ref=q(data.reference||data.ref||data.shipmentRef)||'—';
   var customer=q(deep(data,['customerName','recipientCustomerName','consigneeName','companyName','kundenname']))||(typeof data.customer==='string'?q(data.customer):'')||(typeof data.recipient==='string'?q(data.recipient):'')||'—';
-  var address=q(deep(data,['recipientAddress','deliveryAddress','shipToAddress','destinationAddress','consigneeAddress','formattedAddress','fullAddress','addressText','address']));
+  var address=q(data.address)||q(deep(data,['recipientAddress','deliveryAddress','shipToAddress','destinationAddress','consigneeAddress','formattedAddress','fullAddress','addressText']));
   if(/^[-–—]+$/.test(address)||/^(?:n\/?a|none|null|undefined)$/i.test(address))address='';
   var carrier=q(deep(data,['carrierName','speditionName','carrier','spedition']));
   var returnLabel=document.getElementById('returnLabel');if(returnLabel)returnLabel.hidden=!(Number(data&&data.palletOut)>0);
