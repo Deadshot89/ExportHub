@@ -513,7 +513,14 @@ async function saveAzureArchive(accessKey, environment, record, pdf, file) {
 // Historic records may carry driveSaved=true without a persisted Graph item ID.
 // Such status was never backed by a durable Graph receipt and needs backfill.
 function confirmedDriveBackup(backup) {
-  return !!(backup && backup.driveSaved === true && text(backup.driveItemId));
+  // RC1686: old Graph 2xx receipts included a file ID but did NOT prove that
+  // the bytes stored in SharePoint were the immutable signed PDF. Require the
+  // RC1685 independent Graph readback hash for a confirmed cloud backup.
+  const expectedHash = text(backup && backup.hash).toLowerCase();
+  const verifiedHash = text(backup && backup.driveVerifiedHash).toLowerCase();
+  return !!(backup && backup.driveSaved === true && text(backup.driveItemId) &&
+    /^[a-f0-9]{64}$/.test(expectedHash) && verifiedHash === expectedHash &&
+    !!text(backup.driveVerifiedAt));
 }
 function m365Enabled() {
   // RC1386: Sobald das explizite Microsoft-POD-Ziel vollständig konfiguriert ist,
