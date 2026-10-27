@@ -37,7 +37,7 @@ test('RC1577: POD-Prüfung berichtet zuerst, erzeugt nach Bestätigung neu und s
         return reply({ok:true,version:'RC1577',rows,nextCursor:null});
       }
       if(/\/api\/pod-backup(?:$|[?#])/.test(url)){
-        const body=JSON.parse(init&&init.body||'{}');window.__rc1577.backupCalls.push({reference:body.reference,renderLayout:body.renderLayout,hasPdf:String(body.pdfBase64||'').length>1000});
+        const body=JSON.parse(init&&init.body||'{}');window.__rc1577.backupCalls.push({reference:body.reference,renderLayout:body.renderLayout,hasPdf:String(body.pdfBase64||'').length>1000,source:body.source});
         return reply({ok:true,saved:true,status:'saved',savedAt:new Date().toISOString(),fileName:'POD_'+body.reference+'.pdf',hash:'abc'});
       }
       return original.apply(this,arguments);
@@ -67,7 +67,7 @@ test('RC1577: POD-Prüfung berichtet zuerst, erzeugt nach Bestätigung neu und s
   await expect(page.locator('#rc1577PodAuditModal [data-verdict="flagged"] tr[data-reference="'+reviewRef+'"]')).toBeVisible({timeout:90_000});
 
   const {auditCalls,backupCalls}=await calls();
-  expect(backupCalls).toEqual([{reference:regenerateRef,renderLayout:'RC1595',hasPdf:true}]);
+  expect(backupCalls).toEqual([{reference:regenerateRef,renderLayout:'RC1595',hasPdf:true,source:'admin-confirmed-pod-regenerate'}]);
   expect(auditCalls.some(c=>Array.isArray(c.references)&&c.references[0]===regenerateRef)).toBe(true);
 
   const statusOf=r=>page.evaluate(ref=>{

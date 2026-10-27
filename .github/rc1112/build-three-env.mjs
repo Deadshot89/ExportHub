@@ -1774,6 +1774,28 @@ const rc1114ShippingOut=path.join(OUT,'assets','rc1114-shipping-neutral.js');
 if(!fs.existsSync(rc1114ShippingSrc))throw new Error('RC1114 Versandkosten-Runtime fehlt');
 fs.copyFileSync(rc1114ShippingSrc,rc1114ShippingOut);
 for(const file of ['index.html','TESTVERSION.html','demo.html'])patchHtml(file);
+// RC1680: original-PDF batch downloads AND verified SharePoint success are
+// canonical in index.html. Older TESTSERVICE/demo snapshots must not retain
+// either the local re-rendering flow or optimistic Graph success messages.
+const canonicalPodHtml=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
+const podControllers=[
+  {id:'rc455-pod-backup-controller',marker:'async function savedSignedPod(sh)'},
+  {id:'exporthub-rc479-sharepoint-pod-backup-controller',marker:'driveSaved=result&&result.driveSaved===true'}
+].map(({id,marker})=>{
+  const tag=new RegExp('<script id="'+id+'">[\\s\\S]*?<\\/script>');
+  const source=canonicalPodHtml.match(tag);
+  if(!source||!source[0].includes(marker))throw new Error('RC1680: kanonischer POD-Controller fehlt: '+id);
+  return{tag,source:source[0],id};
+});
+for(const file of ['index.html','TESTVERSION.html','demo.html']){
+  const target=path.join(OUT,file);
+  let html=fs.readFileSync(target,'utf8');
+  for(const controller of podControllers){
+    if(!controller.tag.test(html))throw new Error(file+': RC1680 POD-Sicherungscontroller fehlt: '+controller.id);
+    html=html.replace(controller.tag,controller.source);
+  }
+  fs.writeFileSync(target,html);
+}
 for(const file of ['index.html','TESTVERSION.html','demo.html']){
   const target=path.join(OUT,file);
   const hardened=hardenCustomerSaveHtml(patchRc1662SavedShipmentDeltaHtml(fs.readFileSync(target,'utf8'),file));

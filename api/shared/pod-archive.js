@@ -342,9 +342,10 @@ async function readAutomaticPodBuffer(accessKey, environment, record) {
   const file = automaticPod(record);
   if (!file || !text(file.blobName || file.storageBlobName)) return null;
   const got = await store.getRecord(accessKey, environment);
-  const blob = got.clients.pods.getBlobClient(text(file.blobName || file.storageBlobName));
-  const read = await store.readBuffer(blob);
-  return { buffer: read.buffer, file, record: got.record, clients: got.clients };
+  // Primary 404 may be recovered only from an archive containing the exact
+  // hash/size of this immutable POD. Never generate a replacement PDF here.
+  const buffer = await readExactPodBuffer(got, environment, file);
+  return { buffer, file, record: got.record, clients: got.clients };
 }
 async function persistBackupState(accessKey, environment, patch, podFile) {
   return store.mutateRecord(accessKey, environment, function(record) {
@@ -415,6 +416,14 @@ async function saveAzurePod(accessKey, environment, record, pdf, requestedName, 
     status: 'azure-saved',
     azureSaved: true,
     azureSavedAt: uploadedAt,
+    // A new original invalidates backup confirmations for the old hash.
+    archiveSaved: false,
+    driveSaved: false,
+    driveSavedAt: '',
+    driveItemId: '',
+    webUrl: '',
+    driveLastError: '',
+    driveProviderCode: '',
     lastAttemptAt: uploadedAt,
     fileName: name,
     hash,
@@ -530,6 +539,9 @@ async function copyToDrive(accessKey, environment, record, pdf, file) {
       azureSaved: true,
       archiveSaved: record && record.podBackup && record.podBackup.archiveSaved === true,
       driveSaved: false,
+      driveSavedAt: '',
+      driveItemId: '',
+      webUrl: '',
       lastAttemptAt: attemptAt,
       attempts: Math.max(0, Number(record && record.podBackup && record.podBackup.attempts) || 0) + 1,
       driveProviderCode: safeCode(error && error.graphCode),
@@ -666,13 +678,20 @@ async function readExactPodBuffer(got, environment, file) {
 async function saveSuppliedPod(accessKey, environment, record, pdf, requestedName, options) {
   const primary = await saveAzurePod(accessKey, environment, record, pdf, requestedName, Object.assign({}, options, { clientSupplied: true }));
   const archive = await saveAzureArchive(accessKey, environment, primary.record, pdf, primary.file);
-  return { ok: true, record: archive.record || primary.record, file: primary.file, pdf, backup: (archive.record || primary.record).podBackup || {}, archiveSaved: true };
+  const archivedRecord = archive.record || primary.record;
+  if (!m365Enabled()) {
+    return { ok: true, record: archivedRecord, file: primary.file, pdf, backup: archivedRecord.podBackup || {}, archiveSaved: true, driveSaved: false };
+  }
+  // Copy the exact browser-supplied, immutable PDF, not a later server render.
+  const drive = await copyToDrive(accessKey, environment, archivedRecord, pdf, primary.file);
+  const finalRecord = drive.record || archivedRecord;
+  return { ok: true, record: finalRecord, file: primary.file, pdf, backup: finalRecord.podBackup || {}, archiveSaved: true, driveSaved: drive.ok === true, driveError: drive.ok ? null : drive.error };
 }
 async function retryArchiveBackup(accessKey, environment) {
   const got = await store.getRecord(accessKey, environment);
   let record = got.record || {};
   const currentFile = automaticPod(record);
-  if (currentFile && !isCurrentAutomaticPod(currentFile)) return ensureAutomaticPod(accessKey, environment, { force: true, copyToDrive: true });
+  if (currentFile && !isCurrentAutomaticPod(currentFile) && text(currentFile.source) !== 'pickup-client-supplied') return ensureAutomaticPod(accessKey, environment, { force: true, copyToDrive: true });
   const existing = await readAutomaticPodBuffer(accessKey, environment, record);
   if (!existing) return ensureAutomaticPod(accessKey, environment, { copyToDrive: true });
   const archive = await saveAzureArchive(accessKey, environment, record, existing.buffer, existing.file);

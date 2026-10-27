@@ -61,9 +61,15 @@ function release(reference){
  recalc(list[0]);save(VERSION+' POD-Prüfung: '+reference+' freigegeben');return true
 }
 async function regenerate(reference){
- var sh=copies(reference)[0],api=w.ExportHUBPODCloudBackup;
- if(!sh||!api||typeof api.backup!=='function')return false;
- try{if(await api.backup(sh,true)!==true)return false}catch(e){console.warn('RC1577 POD neu erzeugen',reference,e);return false}
+ var sh=copies(reference)[0],api=w.ExportHUBPODCloudBackup,docs=w.ExportHUBIndex240;
+ if(!sh||!api||typeof api.backupBlob!=='function'||!docs||typeof docs.createPodBlob!=='function')return false;
+ try{
+  // Only the explicitly confirmed admin audit may create a new PDF.
+  // Automatic and manual backup retries must continue to copy the stored original.
+  var out=await docs.createPodBlob(sh);
+  if(!out||!out.blob)return false;
+  await api.backupBlob(sh,out,{force:true,source:'admin-confirmed-pod-regenerate'});
+ }catch(e){console.warn('RC1577 POD neu erzeugen',reference,e);return false}
  try{var check=await call({references:[reference]}),row=arr(check.rows)[0];return !!row&&row.verdict==='ok'}catch(e){console.warn('RC1577 POD Nachprüfung',reference,e);return false}
 }
 
