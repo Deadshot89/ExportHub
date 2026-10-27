@@ -508,6 +508,11 @@ async function saveAzureArchive(accessKey, environment, record, pdf, file) {
   });
   return { record: next, blobName, container: store.POD_BACKUP_CONTAINER, hash };
 }
+// Historic records may carry driveSaved=true without a persisted Graph item ID.
+// Such status was never backed by a durable Graph receipt and needs backfill.
+function confirmedDriveBackup(backup) {
+  return !!(backup && backup.driveSaved === true && text(backup.driveItemId));
+}
 function m365Enabled() {
   // RC1386: Sobald das explizite Microsoft-POD-Ziel vollständig konfiguriert ist,
   // muss die Drive-Kopie automatisch aktiv sein. Der historische Enable-Schalter
@@ -588,7 +593,7 @@ async function ensureAutomaticPod(accessKey, environment, options) {
   const archive = await saveAzureArchive(accessKey, environment, record, pdf, file);
   record = archive.record || record;
   if (!options.copyToDrive || !m365Enabled() || !graphDrive.readiness().configured) {
-    return { ok: true, record, file, pdf, backup: record.podBackup || {}, archiveSaved: true, driveSaved: record.podBackup && record.podBackup.driveSaved === true };
+    return { ok: true, record, file, pdf, backup: record.podBackup || {}, archiveSaved: true, driveSaved: confirmedDriveBackup(record.podBackup) };
   }
 
   const drive = await copyToDrive(accessKey, environment, record, pdf, file);
@@ -697,7 +702,7 @@ async function retryArchiveBackup(accessKey, environment) {
   const archive = await saveAzureArchive(accessKey, environment, record, existing.buffer, existing.file);
   record = archive.record || record;
   if (!m365Enabled() || !graphDrive.readiness().configured) {
-    return { ok: true, record, file: existing.file, backup: record.podBackup || {}, archiveSaved: true, driveSaved: record.podBackup && record.podBackup.driveSaved === true };
+    return { ok: true, record, file: existing.file, backup: record.podBackup || {}, archiveSaved: true, driveSaved: confirmedDriveBackup(record.podBackup) };
   }
   const drive = await copyToDrive(accessKey, environment, record, existing.buffer, existing.file);
   return { ok: true, record: drive.record || record, file: existing.file, backup: (drive.record || record).podBackup || {}, archiveSaved: true, driveSaved: drive.ok === true, driveError: drive.ok ? null : drive.error };
@@ -796,7 +801,7 @@ async function reconcilePendingBackups(environment, options) {
             record
           });
         }
-        const driveBackfillRequired = m365Enabled() && graphDrive.readiness().configured && backup.driveSaved !== true;
+        const driveBackfillRequired = m365Enabled() && graphDrive.readiness().configured && !confirmedDriveBackup(backup);
         if (reference) alreadySaved.push({ reference: recordReference || text(record.reference), fileName: text(backup.fileName), attempts: Math.max(0, Number(backup.attempts) || 0) });
         if (!driveBackfillRequired) continue;
         driveOnly = true;
@@ -927,7 +932,7 @@ async function reconcilePendingBackups(environment, options) {
       try { await store.updateTeam(record, [], ''); } catch (_) {}
       const backup = record.podBackup || result && result.backup || {};
       const driveRequired = m365Enabled() && graphDrive.readiness().configured;
-      const driveWasSaved = backup.driveSaved === true || result && result.driveSaved === true;
+      const driveWasSaved = confirmedDriveBackup(backup) || (result && result.driveSaved === true && !!text(backup.driveItemId));
       const driveError = result && result.driveError;
       if (backup.archiveSaved === true) {
         if (!candidate.driveOnly) saved.push({ reference: candidate.reference, fileName: text(backup.fileName), attempts: Math.max(0, Number(backup.attempts) || 0) });
@@ -1009,6 +1014,7 @@ async function reconcilePendingBackups(environment, options) {
 
 module.exports = {
   automaticPod,
+  confirmedDriveBackup,
   isCurrentAutomaticPod,
   fileNameFor,
   createPodPdf,
