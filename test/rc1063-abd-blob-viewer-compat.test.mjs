@@ -18,7 +18,7 @@ test('RC1063: blobbasierte ABD-Dateien erhalten Öffnen- und Download-Aktionen',
 
 test('RC1063: Kompatibilitätslayer wird nur in Produktion und TESTSERVICE am finalen Build eingebunden',()=>{
   assert.match(prep,/exporthub-rc1063-abd-blob-viewer-compat/);
-  assert.match(prep,/assets\/rc1063-abd-blob-viewer-compat\.js\?v=1682/);
+  assert.match(prep,/assets\/rc1063-abd-blob-viewer-compat\.js\?v=1683/);
   assert.match(prep,/for\(const file of \['index\.html','TESTVERSION\.html'\]\)/);
 });
 
@@ -38,10 +38,10 @@ test('RC1248: Start-Probe ist kurz und ersetzt das frühere 60-Sekunden-Polling'
 });
 
 test('RC1248: Viewer-Runtime wird mit frischem Cache-Key ausgeliefert und bleibt syntaktisch gültig',()=>{
-  assert.match(build,/assets\/rc1063-abd-blob-viewer-compat\.js\?v=1682/);
-  assert.match(prep,/assets\/rc1063-abd-blob-viewer-compat\.js\?v=1682/);
-  assert.match(wrapper,/assets\\\/rc1063-abd-blob-viewer-compat\\\.js\\\?v=\(\?:1063\|1151\|1248\|1682\)/);
-  assert.match(wrapper,/assets\/rc1063-abd-blob-viewer-compat\.js\?v=1682/);
+  assert.match(build,/assets\/rc1063-abd-blob-viewer-compat\.js\?v=1683/);
+  assert.match(prep,/assets\/rc1063-abd-blob-viewer-compat\.js\?v=1683/);
+  assert.match(wrapper,/assets\\\/rc1063-abd-blob-viewer-compat\\\.js\\\?v=\(\?:1063\|1151\|1248\|1682\|1683\)/);
+  assert.match(wrapper,/assets\/rc1063-abd-blob-viewer-compat\.js\?v=1683/);
   assert.doesNotMatch(wrapper,/Dokumentaktionen Cache-Key fehlt'\);[^\n]*v=1151/);
   execFileSync(process.execPath,['--check','assets/rc1063-abd-blob-viewer-compat.js'],{stdio:'pipe'});
 });
