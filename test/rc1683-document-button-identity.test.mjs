@@ -37,7 +37,7 @@ function harness(){
    legacyUrl:()=>'',async open(f,options){calls.push({blobName:f.blobName,name:options.name,download:options.download});return true}
   },addEventListener(){},dispatchEvent(){},alert(){}};
  vm.runInNewContext(runtime,{window:win,console,Set});
- return{state,panel,native,calls,actions:win.ExportHUBDocumentActions1151};
+ return{state,panel,native,calls,legacyCache:win.__EXPORTHUB_RC776_VIEW_DOCS__,actions:win.ExportHUBDocumentActions1151};
 }
 
 test('RC1683: SharePoint native row never receives wrong index-based Blob buttons',()=>{
@@ -147,6 +147,7 @@ test('RC1683: release compiler exposes a stable native original-Blob identity at
 
 test('RC1683: even same-REF global legacy cache must not become an extra shipment document',()=>{
  const h=harness();
+ h.legacyCache[0].reference='9WX5K6';
  h.state.shipments[0].deliveryFiles=[file('PERSISTED.pdf','a')];
  h.state.shipmentViewId='SHIP-A';
  h.actions.patch();
