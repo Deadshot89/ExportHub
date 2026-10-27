@@ -71,8 +71,13 @@ function docKey(d){var f=fileOf(d)||{},type=inferType(d,'Dokument');return q(f.b
 function wrapped(file,type,field){return{file:file,name:q(file&&file.name||file&&file.fileName||file&&file.filename)||type,documentType:type,sourceField:field}}
 function docs(){
  var out=[],seen=Object.create(null),add=function(d){if(!d)return;var key=docKey(d);if(!key||seen[key])return;seen[key]=1;out.push(d)};
- baseDocs().forEach(add);
- var sh=currentShipment();
+ var s=state(),sh=currentShipment(),inView=low(s.view)==='shipmentview'||!!q(s.shipmentViewId),ref=referenceOf(sh);
+ // RC1683: The legacy global document cache has no per-view lifecycle.
+ // In shipment view it must never import unknown/foreign-REF documents.
+ // This global cache is not tied to a shipment save/reload cycle.
+ // In shipment view only currentShipment's owner-bound attachments are safe.
+ // REF-folder originals remain visible through their native rows.
+ if(!inView)baseDocs().forEach(add);
  if(sh){
   [
    ['invoiceFiles','Rechnung'],
@@ -91,36 +96,54 @@ function docs(){
  return out
 }
 function typeOf(d){return inferType(d,q(d&&d.documentType)||'Dokument')}
-function actionButton(kind,index,label){
+function actionButton(kind,key,label){
  var b=w.document.createElement('button');
  b.type='button';b.className='ghost';b.textContent=label;
- b.setAttribute(kind==='open'?'data-rc1063-open-blob':'data-rc1063-download-blob',String(index));
+ b.setAttribute(kind==='open'?'data-rc1063-open-blob':'data-rc1063-download-blob',String(key));
+ b.setAttribute('data-rc1063-owner-ref',referenceOf(currentShipment()));
  return b
 }
-function createRow(d,index){
- var row=w.document.createElement('div');row.className='rc786-doc-row';row.setAttribute('data-rc1151-document-row',docKey(d));
+function createRow(d){
+ var key=docKey(d),row=w.document.createElement('div');
+ row.className='rc786-doc-row';row.setAttribute('data-rc1151-document-row',key);
+ row.setAttribute('data-rc1151-document-ref',referenceOf(currentShipment()));
  var main=w.document.createElement('div');main.className='rc786-doc-main';
  var title=w.document.createElement('strong');title.textContent=typeDisplay(typeOf(d));
  var name=w.document.createElement('span');name.className='muted';name.textContent=nameOf(d);
  main.appendChild(title);main.appendChild(name);
  var actions=w.document.createElement('div');actions.className='rc786-doc-actions';
- actions.appendChild(actionButton('open',index,tr('documentViewer.open')));actions.appendChild(actionButton('download',index,tr('documentViewer.download')));
+ actions.appendChild(actionButton('open',key,tr('documentViewer.open')));actions.appendChild(actionButton('download',key,tr('documentViewer.download')));
  row.appendChild(main);row.appendChild(actions);return row
 }
 function patchRows(){
  if(!w.document)return false;
  var panel=w.document.getElementById('rc786ReferenceFilesPanel');if(!panel)return false;
  var list=docs(),rows=Array.prototype.slice.call(panel.querySelectorAll('.rc786-doc-row')),changed=false;
- rows.forEach(function(row,index){
-  var d=list[index];if(!sourceAvailable(d))return;
-  var actions=row.querySelector('.rc786-doc-actions');if(!actions)return;
-  if(!actions.querySelector('[data-rc1063-open-blob]')){actions.appendChild(actionButton('open',index,tr('documentViewer.open')));changed=true}
-  if(!actions.querySelector('[data-rc1063-download-blob]')){actions.appendChild(actionButton('download',index,tr('documentViewer.download')));changed=true}
+ var represented=Object.create(null),nativeBlobs=Object.create(null),valid=Object.create(null),ref=referenceOf(currentShipment());
+ list.forEach(function(d){if(sourceAvailable(d))valid[docKey(d)]=true});
+ rows.forEach(function(row){
+  var key=q(row.getAttribute&&row.getAttribute('data-rc1151-document-row'));
+  if(key){
+   // RC1683: old generated rows must disappear after switching shipments.
+   // Do not remove any native REF/SharePoint row.
+   if(!valid[key]||q(row.getAttribute('data-rc1151-document-ref'))!==ref){
+    if(typeof row.remove==='function'){row.remove();changed=true}
+    return
+   }
+   represented[key]=true;return
+  }
+  // Native rows own canonical open/download actions. An original Blob may
+  // be suppressed only when the native row has the SAME trusted Blob identity.
+  // Identically named SharePoint and Azure PDFs must remain separate.
+  var blob=q(row.getAttribute&&row.getAttribute('data-rc786-blob-name'));
+  if(blob)nativeBlobs[blob]=true
  });
- for(var i=rows.length;i<list.length;i++){
-  var d=list[i];if(!sourceAvailable(d))continue;
-  panel.appendChild(createRow(d,i));changed=true
- }
+ list.forEach(function(d){
+  if(!sourceAvailable(d))return;
+  var key=docKey(d);
+  if(represented[key]||nativeBlobs[q(fileOf(d)&&fileOf(d).blobName)])return;
+  panel.appendChild(createRow(d));represented[key]=true;changed=true
+ });
  return changed
 }
 function emitAction(d,download){
@@ -128,8 +151,12 @@ function emitAction(d,download){
  try{if(typeof w.CustomEvent==='function'&&typeof w.dispatchEvent==='function'){w.dispatchEvent(new w.CustomEvent('exporthub:document-action',{detail:detail}));return}}catch(_){}
  try{if(w.document&&typeof w.document.createEvent==='function'&&typeof w.dispatchEvent==='function'){var ev=w.document.createEvent('CustomEvent');ev.initCustomEvent('exporthub:document-action',false,false,detail);w.dispatchEvent(ev)}}catch(_){}
 }
-async function openBlob(index,download){
- var d=docs()[Number(index)],h=helper(),f=fileOf(d);
+async function openBlob(index,download,ownerRef){
+ var activeRef=referenceOf(currentShipment());
+ if(ownerRef!==undefined&&q(ownerRef)!==activeRef)throw new Error(tr('documentViewer.unavailable'));
+ var list=docs(),d=(typeof index==='number'||/^[0-9]+$/.test(q(index)))
+  ?list[Number(index)]:list.find(function(doc){return docKey(doc)===q(index)});
+ var h=helper(),f=fileOf(d);
  if(!d||!h||typeof h.open!=='function'||!sourceAvailable(d))throw new Error(tr('documentViewer.unavailable'));
  var result=await h.open(f,{name:nameOf(d),download:download===true});
  emitAction(d,download===true);return result
@@ -184,7 +211,7 @@ if(w.document){
   var t=e.target&&e.target.closest&&e.target.closest('[data-rc1063-open-blob],[data-rc1063-download-blob]');if(!t)return;
   e.preventDefault();e.stopPropagation();if(typeof e.stopImmediatePropagation==='function')e.stopImmediatePropagation();
   var open=t.getAttribute('data-rc1063-open-blob'),down=t.getAttribute('data-rc1063-download-blob');
-  openBlob(open!=null?open:down,down!=null).catch(reportError);
+  openBlob(open!=null?open:down,down!=null,t.getAttribute('data-rc1063-owner-ref')).catch(reportError);
  },true);
  ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:language-changed'].forEach(function(name){
   try{w.addEventListener(name,function(){scheduleViewerRefresh(true)})}catch(_){}
@@ -192,6 +219,6 @@ if(w.document){
  try{w.addEventListener('exporthub:sync',function(){if(!w.document||!w.document.getElementById('rc786ReferenceFilesPanel'))return;scheduleViewerRefresh(false)})}catch(_){}
  if(w.document.readyState==='loading')w.document.addEventListener('DOMContentLoaded',function(){startViewerProbe()},{once:true});else startViewerProbe();
 }
-w.ExportHUBRC1063AbdBlobCompat={version:'RC1682',patch:patchRows,isBlob:isBlob,open:openBlob,documents:docs};
-w.ExportHUBDocumentActions1151={version:'RC1248',patch:patchRows,documents:docs,open:openBlob};
+w.ExportHUBRC1063AbdBlobCompat={version:'RC1683',patch:patchRows,isBlob:isBlob,open:openBlob,documents:docs};
+w.ExportHUBDocumentActions1151={version:'RC1683',patch:patchRows,documents:docs,open:openBlob};
 })(window);
