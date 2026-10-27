@@ -27,7 +27,13 @@ function currentShipment(){
   if(selectedRef){
    var matchingRef=rows.filter(function(sh){return sh&&referenceOf(sh)===selectedRef});
    if(!matchingRef.length)return null;
-   return matchingRef.find(function(sh){return selected&&shipmentIdOf(sh)===selected})||matchingRef[0]
+   var exact=matchingRef.find(function(sh){return selected&&(shipmentIdOf(sh)===selected||referenceOf(sh)===selected.toLocaleUpperCase('de-DE'))});
+   if(exact)return exact;
+   // An ID resolved to another explicit REF is a conflict, not permission
+   // to open files from a stale selectedShipmentRef field.
+   if(selected&&rows.some(function(sh){return sh&&shipmentIdOf(sh)===selected&&referenceOf(sh)!==selectedRef}))return null;
+   // A refreshed shipment can have a new technical ID but retain its REF.
+   return matchingRef[0]
   }
   if(!selected)return null;
   var matching=rows.filter(function(sh){return sh&&(shipmentIdOf(sh)===selected||referenceOf(sh)===selected.toLocaleUpperCase('de-DE'))});
