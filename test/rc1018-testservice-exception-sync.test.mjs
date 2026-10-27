@@ -31,3 +31,13 @@ test('RC1112 TESTSERVICE-Ausnahmeweg bleibt nur nach ausdrücklicher Abweichungs
   assert.match(flow,/Abweichender Einzel-Deploy ist gesperrt/);
   assert.match(flow,/deployment_environment: testservice/);
 });
+
+test('RC1666 TESTSERVICE release gate prüft den aktuellen fachlichen Customer-AVIS-Erfolgsnachweis',()=>{
+  const flow=read(workflow),customerAvis=read('api/customer-avis/index.js');
+  const currentProof='Virenprüfung und fachliche Sendungszuordnung erfolgreich';
+  assert.match(customerAvis,/Virenprüfung und fachliche Sendungszuordnung erfolgreich/);
+  assert.ok(flow.includes("grep -Fq '"+currentProof+"' api/customer-avis/index.js"),
+    'TESTSERVICE Deploy muss aktuellen Customer-AVIS-Nachweis prüfen, keinen veralteten Wortlaut');
+  assert.doesNotMatch(flow,/grep -q 'Sendungszuordnung fachlich geprüft'/,
+    'veralteter Erfolgstext blockiert ansonsten jeden TESTSERVICE-Deploy trotz grüner Node-Tests');
+});

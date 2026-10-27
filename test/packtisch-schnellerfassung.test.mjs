@@ -64,12 +64,13 @@ test('Dashboard: Kachel „Vom Packtisch“ zählt neue und geprüfte Packmeldun
   const model=win.ExportHUBDashboardOverview1558.buildModel(api,[],new Date(2026,9,23,9,0));
   const pack=model.kpis[0];
   assert.equal(pack.id,'pack');assert.equal(pack.value,3);assert.equal(pack.tone,'warn');assert.equal(pack.route,'packnotifications');
-  assert.equal(model.kpis.length,7);
+  assert.equal(model.kpis.length,8,'Packtisch plus sieben Dashboard-Kacheln inklusive AV fehlt');
   const html=win.ExportHUBDashboardOverview1558.renderHtml(model,null);
   assert.match(html,/data-rc1558-route="packnotifications">/,'kein Drill-down, die Kachel öffnet den Eingang');
   delete win.ExportHUBPackNotificationNav;
-  assert.equal(win.ExportHUBDashboardOverview1558.buildModel(api,[],new Date()).kpis.length,6,'ohne Pack-Runtime bleibt es bei sechs Kacheln');
+  assert.equal(win.ExportHUBDashboardOverview1558.buildModel(api,[],new Date()).kpis.length,7,'ohne Pack-Runtime bleiben sieben Kacheln inklusive AV fehlt');
   assert.match(read('assets/rc1558-dashboard-overview.css'),/\.rc1558-kpis:has\(>\.rc1558-kpi:nth-child\(7\)\)\{grid-template-columns:repeat\(7,minmax\(0,1fr\)\)\}/);
+  assert.match(read('assets/rc1558-dashboard-overview.css'),/\.rc1558-kpis:has\(>\.rc1558-kpi:nth-child\(8\)\)\{grid-template-columns:repeat\(4,minmax\(0,1fr\)\)\}/,'bei acht Kacheln keine verwaiste einzelne Zeile');
 });
 
 test('Eingang: Neue und geprüfte Packmeldungen stehen oben, Admins können den Packtisch direkt öffnen',()=>{

@@ -1,42 +1,119 @@
 'use strict';
 
-// Ausgangsvermerk-Prüfung: Jede abgeholte Sendung mit ABD braucht ein AV-Dokument
-// (Dateiname beginnt mit "AV") im REF-Ordner. Fehlt es AV_DUE_DAYS Kalendertage nach
-// der Abholung, entsteht genau eine offene Aufgabe pro REF; sie schließt sich,
-// sobald das Dokument im Ordner liegt.
+// RC1666: Jede Sendung mit tatsächlich erstelltem ABD braucht einen Ausgangsvermerk (AV).
+// Dies gilt sofort und rückwirkend, unabhängig von Abholung, Status und Alter.
+// Eine stabile Aufgabe pro REF fasst mehrere fehlende AVs derselben Sendung zusammen.
+// Nur die signierte Prüfung des echten REF-Ordners darf AV als vorhanden bestätigen.
 
 const pickupStore=require('./pickup-store');
 
-const AV_DUE_DAYS=Math.max(1,Math.round(Number(process.env.EXPORTHUB_AV_DUE_DAYS)||5));
-const AV_LOOKBACK_DAYS=Math.max(AV_DUE_DAYS,Math.round(Number(process.env.EXPORTHUB_AV_LOOKBACK_DAYS)||60));
+const AV_DUE_DAYS=0; // RC1666: Kontrolle ab tatsächlichem ABD, ohne 5-Tage-Wartefrist
+const AV_LOOKBACK_DAYS=0; // RC1666: historischer Backfill ist unbegrenzt; keine 60-Tage-Ausschlüsse
 const SOURCE_TYPE='av_missing';
 const AREA='Ausgangsvermerk';
 const DAY_MS=24*60*60*1000;
 
 function text(v){return String(v==null?'':v).trim()}
 function lower(v){return text(v).toLowerCase()}
-function refOf(sh){return text(sh&&(sh.ref||sh.reference)).toUpperCase()}
+function refOf(sh){
+  // Historic/archived entries use several REF field names. Prefer a valid
+  // six-character ExportHUB REF over an unrelated legacy reference field.
+  const keys=['ref','reference','shipmentRef','referenceNumber','referenceNo','refNo','refNr','exporthubRef','exportHubReference'];
+  for(const key of keys){const ref=text(sh&&sh[key]).toUpperCase();if(validRef(ref))return ref}
+  return text(sh&&(sh.ref||sh.reference)).toUpperCase();
+}
 function validRef(ref){return /^[A-Z0-9]{6}$/.test(ref)}
 function taskId(ref){return 'task:av-missing:'+ref}
-function isAvFileName(name){return /^av/i.test(text(name))}
+function isAvFileName(name){const n=text(name);return /^av/i.test(n)&&!/^avis/i.test(n)}
 function isAvTask(t){return !!t&&text(t.sourceType)===SOURCE_TYPE}
 function isOpenTask(t){return !!t&&t.done!==true&&t.completed!==true&&!/^(erledigt|done|closed|geschlossen)$/i.test(text(t.status))}
 
+const SHIPMENT_COLLECTIONS=['shipments','savedShipments','sharedShipments','salesSharedShipments','shipmentArchive','archivedShipments','archive'];
+function shipmentIndex(state){
+  const index=new Map();
+  for(const key of SHIPMENT_COLLECTIONS){
+    const rows=state&&state[key];
+    for(const sh of (Array.isArray(rows)?rows:[])){
+      const ref=refOf(sh);if(!validRef(ref))continue;
+      if(!index.has(ref))index.set(ref,[]);
+      index.get(ref).push(sh);
+    }
+  }
+  return index;
+}
+function allShipments(state){return Array.from(shipmentIndex(state).values()).map(copies=>copies[0]);}
+function shipmentCopies(state,ref){return shipmentIndex(state).get(ref)||[];}
 function abdRequestsFor(state,sh){
   const sid=text(sh&&(sh.id||sh.shipmentId)),ref=refOf(sh);
   return(Array.isArray(state&&state.abdRequests)?state.abdRequests:[]).filter(r=>{
     const rid=text(r&&(r.linkedShipmentId||r.shipmentId)),rr=text(r&&(r.reference||r.ref||r.shipmentRef)).toUpperCase();
-    return(sid&&rid===sid)||(ref&&rr===ref);
+    // RC1664: authoritative REF wins over a recycled technical shipment ID.
+    if(ref&&rr&&rr!==ref)return false;
+    return(ref&&rr===ref)||(sid&&rid===sid&&!rr);
   });
 }
 function shipmentHasAbd(state,sh){
   if(!sh||typeof sh!=='object')return false;
-  if(sh.abdRequired===false)return false;
-  if(sh.abdRequired===true)return true;
+  // Pflicht oder "Wartet auf ABD" allein beweist nicht, dass ein ABD erstellt wurde.
   return pickupStore.abdPresent(sh)||abdRequestsFor(state,sh).some(r=>pickupStore.abdPresent(r));
 }
 
-// Liefert das Abholdatum (YYYY-MM-DD) einer vollständig abgeholten Sendung, sonst ''.
+function requiredAvCount(state,sh,indexedCopies){
+  // Accept already indexed copies during historical scans to avoid rebuilding
+  // the full shipment index once per shipment (quadratic growth).
+  // A REF can occur in active, saved, shared and archived collections.
+  // Count distinct ABD evidence across all copies: taking the maximum count
+  // per copy would miss ABD_1 in an active copy and ABD_2 in an archived copy.
+  const copies=Array.isArray(indexedCopies)?indexedCopies:shipmentCopies(state,refOf(sh));
+  const sources=copies.length?copies:[sh];
+  const requestKeys=new Set(),requestDocumentCounts=new Map(),documentKeys=new Set(),nameMultiplicities=new Map();
+  let maxUnnamed=0;
+  function collectDocuments(record){
+    // Identical file names can represent two different uploaded ABD PDFs.
+    // Count distinct file identities within a record, but avoid double
+    // counting mirrored records from active, saved and archived collections.
+    const identitiesByName=new Map();
+    let unnamed=0;
+    for(const field of ['abdFiles','abdDocuments','abds']){
+      const files=record&&record[field];
+      for(const file of (Array.isArray(files)?files:[])){
+        if(!file)continue;
+        const key=typeof file==='string'?text(file):text(file.name||file.fileName||file.blobName||file.storageBlobName||file.storagePath||file.id);
+        if(!key){unnamed++;continue;}
+        const name=key.toLowerCase();
+        const identity=typeof file==='string'?name:text(file.id||file.documentId||file.storagePath||file.storageBlobName||file.blobName||key).toLowerCase();
+        documentKeys.add(name);
+        if(!identitiesByName.has(name))identitiesByName.set(name,new Set());
+        identitiesByName.get(name).add(identity);
+      }
+    }
+    for(const [name,identities] of identitiesByName){
+      nameMultiplicities.set(name,Math.max(nameMultiplicities.get(name)||0,identities.size));
+    }
+    // Historical entries without file identities cannot safely be merged.
+    maxUnnamed=Math.max(maxUnnamed,unnamed);
+    return Array.from(identitiesByName.values()).reduce((sum,ids)=>sum+ids.size,0)+unnamed;
+  }
+  for(const source of sources){
+    for(const r of abdRequestsFor(state,source)){
+      if(!pickupStore.abdPresent(r))continue;
+      const key=text(r.id||r.requestId||r.abdReference||r.mrn);
+      const requestKey=key?'request:'+key:r;
+      requestKeys.add(requestKey);
+      const filesInRequest=collectDocuments(r);
+      // Requests are independent ABD operations. Sum their documents even
+      // if two requests uploaded separate PDFs with the same filename;
+      // mirrored copies of one request count only once.
+      requestDocumentCounts.set(requestKey,Math.max(requestDocumentCounts.get(requestKey)||0,filesInRequest));
+    }
+    collectDocuments(source);
+  }
+  const documentCount=Array.from(documentKeys).reduce((sum,name)=>sum+(nameMultiplicities.get(name)||1),0);
+  const requestedDocumentCount=Array.from(requestDocumentCounts.values()).reduce((sum,n)=>sum+n,0);
+  return Math.max(1,requestKeys.size,documentCount+maxUnnamed,requestedDocumentCount);
+}
+
+// Historisches Abholdatum bleibt als Zusatzinformation erhalten, ist keine Voraussetzung.
 function pickupDay(sh){
   if(!sh||typeof sh!=='object')return'';
   const status=lower([sh.status,sh.processStatus,sh.pickupStatus].join(' '));
@@ -48,22 +125,23 @@ function pickupDay(sh){
 function dueDay(day){const t=Date.parse(day+'T00:00:00Z');return isNaN(t)?'':new Date(t+AV_DUE_DAYS*DAY_MS).toISOString().slice(0,10)}
 function todayOf(now){return new Date(now).toISOString().slice(0,10)}
 
-// Sendungen, deren REF-Ordner jetzt geprüft werden muss: fällige ABD-Sendungen ohne
-// bestätigtes AV sowie alle REFs mit offener AV-Aufgabe (für das automatische Schließen).
+// Die signierte AV-Prüfung nimmt ALLE historischen Sendungs-Collections mit.
+// Kein Alter-/Abholfilter und keine Sperre durch ein früher einmal gesetztes avPresent.
+// Batch-Reihenfolge über avCheckedAt, damit der stündliche Job den Backfill fortsetzt.
 function candidates(state,now){
-  const today=todayOf(now),oldest=new Date(Date.parse(today+'T00:00:00Z')-AV_LOOKBACK_DAYS*DAY_MS).toISOString().slice(0,10);
-  const shipments=Array.isArray(state&&state.shipments)?state.shipments:[],tasks=Array.isArray(state&&state.tasks)?state.tasks:[];
-  const openRefs=new Set(tasks.filter(t=>isAvTask(t)&&isOpenTask(t)).map(t=>text(t.linkedShipmentRef).toUpperCase()));
-  const out=[],seen=new Set();
-  for(const sh of shipments){
-    const ref=refOf(sh);if(!validRef(ref)||seen.has(ref))continue;
-    if(sh.avPresent===true&&!openRefs.has(ref))continue;
-    const day=pickupDay(sh),due=day&&dueDay(day);
-    const eligible=!!day&&shipmentHasAbd(state,sh)&&due<=today&&day>=oldest;
-    if(!eligible&&!openRefs.has(ref))continue;
-    seen.add(ref);out.push({reference:ref,shipmentId:text(sh.id||sh.shipmentId),pickupDay:day,dueDay:due,eligible,lastCheckedAt:text(sh.avCheckedAt)});
+  const tasks=Array.isArray(state&&state.tasks)?state.tasks:[];
+  const openRefs=new Set(tasks.filter(t=>isAvTask(t)&&isOpenTask(t)).map(t=>text(t.linkedShipmentRef||t.sourceRef).toUpperCase()));
+  const out=[];
+  for(const [ref,copies] of shipmentIndex(state)){
+    const sh=copies[0];
+    const hasAbd=copies.some(s=>shipmentHasAbd(state,s));
+    if(!hasAbd&&!openRefs.has(ref))continue;
+    const day=pickupDay(sh);
+    const latestCheck=copies.map(x=>text(x.avCheckedAt)).filter(Boolean).sort().pop()||'';
+    out.push({reference:ref,shipmentId:text(sh.id||sh.shipmentId),pickupDay:day,
+      dueDay:day?dueDay(day):'',eligible:hasAbd,requiredAvCount:hasAbd?requiredAvCount(state,sh,copies):0,
+      lastCheckedAt:latestCheck});
   }
-  // Am längsten nicht geprüfte REFs zuerst, damit begrenzte Läufe reihum alle erreichen.
   return out.sort((a,b)=>a.lastCheckedAt.localeCompare(b.lastCheckedAt)||a.reference.localeCompare(b.reference));
 }
 
@@ -78,42 +156,68 @@ function missingTask(sh,nowIso){
     linkedShipmentId:text(sh.id||sh.shipmentId),linkedShipmentRef:ref,linkedCustomer:customer,
     linkedAccount:text(sh.customer&&(sh.customer.account||sh.customer.customerNumber)),
     actualPickupDate:day,
-    note:'Ausgangsvermerk (AV) zum ABD fehlt. Automatisch erstellt: Im REF-Ordner '+ref+' liegt '+AV_DUE_DAYS+' Tage nach der Abholung ('+(day||'unbekannt')+') kein Dokument, dessen Name mit "AV" beginnt.\nDie Aufgabe schließt sich automatisch, sobald der Ausgangsvermerk im REF-Ordner liegt.',
+    note:'Ausgangsvermerk (AV) zum erstellten ABD fehlt. Im REF-Ordner '+ref+' fehlt mindestens ein AV-Dokument (Dateiname beginnt mit "AV"). Dies gilt auch für ältere und noch nicht abgeholte Sendungen.\nDie Aufgabe wird nach Prüfung der zugehörigen AV-Dokumente automatisch geschlossen.',
     createdAt:nowIso,updatedAt:nowIso,_syncUpdatedAt:nowIso,_syncDeviceId:'av-check'
   };
 }
 
-// Wendet das Prüfergebnis für eine REF auf den Team-State an. Mutiert state.
-// result: {avFile:{name}|null}. Rückgabe beschreibt die Änderung.
+// Der Status wird ausschließlich nach erfolgreichem, signiertem REF-Ordner-Readback geändert.
 function applyResult(state,reference,result,now){
   const ref=text(reference).toUpperCase(),nowIso=new Date(now).toISOString();
   state.tasks=Array.isArray(state.tasks)?state.tasks:[];
-  const shipments=Array.isArray(state.shipments)?state.shipments:[];
-  const sh=shipments.find(x=>refOf(x)===ref)||null;
-  const open=state.tasks.filter(t=>isAvTask(t)&&text(t.linkedShipmentRef).toUpperCase()===ref&&isOpenTask(t));
-  const avFile=result&&result.avFile;
-  if(avFile){
-    if(sh){sh.avPresent=true;sh.avDocumentName=text(avFile.name);sh.avCheckedAt=nowIso;sh._syncUpdatedAt=nowIso;sh._syncDeviceId='av-check'}
-    for(const t of open){t.status='erledigt';t.done=true;t.completed=true;t.doneAt=nowIso;t.completedAt=nowIso;t.doneBy='AV-Prüfung';t.completedBy='AV-Prüfung';t.autoCompletedByAvCheck=true;t.updatedAt=nowIso;t._syncUpdatedAt=nowIso;t._syncDeviceId='av-check'}
-    return{reference:ref,status:'present',closedTasks:open.length,createdTask:false};
+  const copies=shipmentCopies(state,ref),sh=copies[0]||null;
+  const open=state.tasks.filter(t=>isAvTask(t)&&text(t.linkedShipmentRef||t.sourceRef).toUpperCase()===ref&&isOpenTask(t));
+  const avFiles=Array.isArray(result&&result.avFiles)?result.avFiles:(result&&result.avFile?[result.avFile]:[]);
+  const count=avFiles.filter(f=>isAvFileName(f&&f.name)).length;
+  const hasAbd=copies.some(x=>shipmentHasAbd(state,x));
+  const required=hasAbd?requiredAvCount(state,sh,copies):0;
+  const present=required>0&&count>=required;
+  for(const copy of copies){
+    copy.avPresent=present;
+    copy.avDocumentName=present?text(avFiles[0]&&avFiles[0].name):'';
+    copy.avCheckedAt=nowIso;
+    copy.avRequiredCount=required;
+    copy.avFoundCount=count;
+    copy._syncUpdatedAt=nowIso;
+    copy._syncDeviceId='av-check';
   }
-  if(sh){sh.avPresent=false;sh.avCheckedAt=nowIso}
-  const day=sh&&pickupDay(sh);
-  if(open.length||!sh||!day||!shipmentHasAbd(state,sh)||dueDay(day)>todayOf(now))return{reference:ref,status:'missing',closedTasks:0,createdTask:false};
+  if(present||!hasAbd){
+    for(const t of open){
+      Object.assign(t,{status:'erledigt',done:true,completed:true,doneAt:nowIso,completedAt:nowIso,
+        doneBy:'AV-Prüfung',completedBy:'AV-Prüfung',autoCompletedByAvCheck:true,
+        updatedAt:nowIso,_syncUpdatedAt:nowIso,_syncDeviceId:'av-check'});
+    }
+    return{reference:ref,status:present?'present':'not-required',closedTasks:open.length,createdTask:false};
+  }
+  const missing=Math.max(1,required-count);
   const id=taskId(ref),existing=state.tasks.find(t=>text(t&&t.id)===id);
+  const reopenedTask=!!existing&&!isOpenTask(existing);
   if(existing){
-    // Früher erledigte Aufgabe, aber das AV fehlt (wieder): dieselbe Aufgabe neu öffnen.
-    Object.assign(existing,{status:'offen',done:false,completed:false,doneAt:'',completedAt:'',doneBy:'',completedBy:'',autoCompletedByAvCheck:false,unread:true,updatedAt:nowIso,_syncUpdatedAt:nowIso,_syncDeviceId:'av-check'});
-  }else state.tasks.unshift(missingTask(sh,nowIso));
-  return{reference:ref,status:'missing',closedTasks:0,createdTask:true};
+    Object.assign(existing,{status:'offen',done:false,completed:false,doneAt:'',completedAt:'',
+      doneBy:'',completedBy:'',autoCompletedByAvCheck:false,unread:!isOpenTask(existing)||existing.unread===true,
+      avMissingCount:missing,avRequiredCount:required,avFoundCount:count,
+      updatedAt:nowIso,_syncUpdatedAt:nowIso,_syncDeviceId:'av-check'});
+  }else if(sh){
+    const task=missingTask(sh,nowIso);
+    task.avMissingCount=missing;task.avRequiredCount=required;task.avFoundCount=count;
+    state.tasks.unshift(task);
+  }
+  return{reference:ref,status:'missing',closedTasks:0,createdTask:!existing&&!!sh,reopenedTask,missingCount:missing};
 }
 
-// Prüft einen REF-Ordner. listFiles(ref) liefert [{name}] oder wirft; ein fehlender
-// Ordner ist eine leere Liste.
+// Ausschließlich der signierte Check erhält echte Graph-Dateilisten; bei Fehler keine Aufgabe.
 async function checkReference(reference,listFiles){
   const files=await listFiles(reference);
-  const avFile=(Array.isArray(files)?files:[]).find(f=>isAvFileName(f&&f.name))||null;
-  return{avFile:avFile?{name:text(avFile.name)}:null};
+  // An unexpected Graph response is not evidence that the folder is empty.
+  // Failing closed avoids creating false "AV fehlt" tasks on malformed reads.
+  if(!Array.isArray(files)){
+    const e=new Error('Der REF-Ordner lieferte keine gültige Dateiliste.');
+    e.code='GRAPH_REFERENCE_FOLDER_LIST_INVALID';
+    throw e;
+  }
+  const avFiles=files.filter(f=>isAvFileName(f&&f.name));
+  return{avFile:avFiles[0]?{name:text(avFiles[0].name)}:null,
+    avFiles:avFiles.map(f=>({name:text(f.name)}))};
 }
 
-module.exports={AV_DUE_DAYS,AV_LOOKBACK_DAYS,SOURCE_TYPE,AREA,isAvFileName,isAvTask,shipmentHasAbd,pickupDay,dueDay,candidates,applyResult,checkReference,taskId};
+module.exports={AV_DUE_DAYS,AV_LOOKBACK_DAYS,SOURCE_TYPE,AREA,isAvFileName,isAvTask,shipmentHasAbd,requiredAvCount,allShipments,pickupDay,dueDay,candidates,applyResult,checkReference,taskId};

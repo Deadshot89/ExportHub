@@ -97,11 +97,15 @@ function createHandler(deps = {}) {
       const payload = body(req), environment = environmentOf(req, payload);
       const limit = Math.min(100, Math.max(1, Math.round(Number(payload.limit) || 40)));
       // Ohne Graph-Zugriff kann kein REF-Ordner gelesen werden; dann keine Aufgaben erzeugen.
-      if (!graphConfigured()) return { status: 200, body: { ok: true, environment, graphConfigured: false, checked: 0, results: [] } };
+      if (!graphConfigured()) return { status: 503, body: { ok: false, code: 'GRAPH_NOT_CONFIGURED', environment, graphConfigured: false, checked: 0, results: [] } };
       const minAgeMs = Math.max(0, Number(payload.minAgeMinutes == null ? 30 : payload.minAgeMinutes) || 0) * 60 * 1000;
       const at = now(), state = await readState(environment);
       // Gerade erst geprüfte REFs überspringen, damit Folge-Batches eines Laufs weiterkommen.
-      const all = avCheck.candidates(state, at).filter(c => !c.lastCheckedAt || at.getTime() - Date.parse(c.lastCheckedAt) >= minAgeMs);
+      const all = avCheck.candidates(state, at).filter(c => {
+        const checkedAt = Date.parse(c.lastCheckedAt || '');
+        // Invalid/future timestamps must never permanently exclude historical AV checks.
+        return !Number.isFinite(checkedAt) || checkedAt > at.getTime() || at.getTime() - checkedAt >= minAgeMs;
+      });
       const selected = all.slice(0, limit);
       const checks = [], errors = [];
       for (const item of selected) {
@@ -119,6 +123,7 @@ function createHandler(deps = {}) {
         present: results.filter(r => r.status === 'present').length,
         missing: results.filter(r => r.status === 'missing').length,
         createdTasks: results.filter(r => r.createdTask).length,
+        reopenedTasks: results.filter(r => r.reopenedTask).length,
         closedTasks: results.reduce((n, r) => n + r.closedTasks, 0),
         errorCount: errors.length, errors, results
       } };

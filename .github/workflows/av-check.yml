@@ -1,8 +1,8 @@
 name: ExportHUB AV-Prüfung
 
-# Prüft für abgeholte ABD-Sendungen, ob im REF-Ordner ein Ausgangsvermerk (Dateiname beginnt mit "AV")
-# liegt. Fehlt er 5 Tage nach der Abholung, legt /api/av-check die Aufgabe
-# "Ausgangsvermerk nicht vorhanden" an; liegt er später vor, wird die Aufgabe automatisch erledigt.
+# Prüft alle Sendungen mit erstelltem ABD, auch ältere/archivierte und noch nicht abgeholte.
+# Fehlt im REF-Ordner ein AV, erzeugt /api/av-check sofort eine eindeutige Aufgabe je REF.
+# Die Aufgabe wird nach verifizierter Ablage der benötigten AVs automatisch erledigt.
 
 on:
   schedule:
