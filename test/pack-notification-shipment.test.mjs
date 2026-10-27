@@ -413,3 +413,57 @@ test('RC1679: lost real Pack Lieferschein Blob pointers restore only for the sam
   assert.equal(root.__RC1679_KEEP_DOCS__(prefill),false,'matching Pack ID but different pack reference must be rejected');
   assert.deepEqual(shared.shipment.deliveryFiles,[]);
 });
+
+
+test('RC1680: imported original Pack PDF is visible and opens/downloads from shipment creation without foreign-REF leakage',async()=>{
+  const source=fs.readFileSync('assets/pack-notification-shipment.js','utf8');
+  const patched=source.replace('  root.ExportHUBPackShipment=Object.freeze(',
+    '  root.__RC1680_RENDER__=renderPendingLieferscheine;root.ExportHUBPackShipment=Object.freeze(');
+  assert.notEqual(patched,source,'test invokes the original production UI renderer');
+  const node=tag=>({
+    tagName:tag,children:[],style:{},attrs:{},listeners:{},dataset:{},parent:null,
+    setAttribute(key,value){this.attrs[key]=String(value);},
+    addEventListener(type,callback){this.listeners[type]=callback;},
+    appendChild(child){child.parent=this;this.children.push(child);return child;},
+    remove(){if(this.parent)this.parent.children=this.parent.children.filter(child=>child!==this);this.parent=null;},
+    querySelector(selector){
+      if(selector!=='#rc1680PackDeliveryFiles')return null;
+      return this.children.find(child=>child.id==='rc1680PackDeliveryFiles')||null;
+    }
+  });
+  const docSection=node('section'),opened=[],s=state(),note=s.packNotifications[0];
+  note.documents[0].name='DNC3019222063.pdf';
+  s.shipment={packNotificationId:note.id,packNotificationRef:note.reference,deliveryFiles:[]};
+  const root={
+    document:{getElementById:id=>id==='rc363BlockDocuments'?docSection:null,createElement:node},
+    __EXPORTHUB_GET_STATE__:()=>s,
+    addEventListener(){},
+    ExportHUBDocumentBlob1059:{async open(file,options){opened.push({name:file.name,blobName:file.blobName,download:options.download});return true;}}
+  };
+  vm.runInContext(patched,vm.createContext({window:root,globalThis:root,console,Date,Intl,setTimeout,clearTimeout}));
+  const prefill=root.ExportHUBPackShipment.shipmentPrefill(note);
+  s.shipment.deliveryFiles=prefill.deliveryFiles.slice();
+  assert.equal(root.__RC1680_RENDER__(prefill),true);
+  assert.equal(docSection.children.length,1);
+  const box=docSection.children[0];
+  assert.equal(box.id,'rc1680PackDeliveryFiles');
+  assert.equal(box.children[1].children[0].textContent,'DNC3019222063.pdf');
+  assert.equal(box.children[1].children.filter(child=>child.tagName==='button').length,2);
+  const buttons=box.children[1].children.filter(child=>child.tagName==='button');
+  const event={preventDefault(){},stopPropagation(){}};
+  buttons[0].listeners.click(event);
+  await new Promise(resolve=>setTimeout(resolve,0));
+  buttons[1].listeners.click(event);
+  await new Promise(resolve=>setTimeout(resolve,0));
+  assert.deepEqual(opened.map(x=>x.download),[false,true]);
+  assert.ok(opened.every(x=>x.name==='DNC3019222063.pdf'&&x.blobName===note.documents[0].blobName));
+  assert.equal(root.__RC1680_RENDER__(prefill),true);
+  assert.equal(docSection.children.length,1,'repeated render must not duplicate attachment lists');
+  // A stale click, like a cached browser control, must also fail closed.
+  s.shipment={packNotificationId:'OTHER',packNotificationRef:'WRONG',deliveryFiles:[...prefill.deliveryFiles]};
+  buttons[1].listeners.click(event);
+  await new Promise(resolve=>setTimeout(resolve,0));
+  assert.equal(opened.length,2,'stale controls may not open private PDFs from another Pack REF');
+  assert.equal(root.__RC1680_RENDER__(prefill),false);
+  assert.equal(docSection.children.length,0,'foreign Pack PDF UI must be removed from the new shipment');
+});
