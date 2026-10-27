@@ -1045,7 +1045,6 @@ async function rc1340PrepareDeliveryAttachmentPrints(sh){
   return prepared
 }
 async function rc1340PrintPreparedAttachment(item,index,total){
-async function rc1340PrintPreparedAttachment(item,index,total){
  if(typeof window.__EXPORTHUB_CAPTURE_ATTACHMENT_PRINT__==='function'){await Promise.resolve(window.__EXPORTHUB_CAPTURE_ATTACHMENT_PRINT__({name:item.name,index:index,total:total,identity:item.identity,url:item.url,transport:'capture'}));return true}
  return new Promise(function(resolve,reject){var frame=document.createElement('iframe'),done=false,timer;
   function finish(error){if(done)return;done=true;try{clearTimeout(timer)}catch(_){};try{frame.remove()}catch(_){};if(error)reject(error);else resolve(true)}
