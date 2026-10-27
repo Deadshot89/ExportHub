@@ -75,9 +75,9 @@ PODs werden serverseitig zweifach gesichert:
 
 Die Archivkopie wird content-addressed und SHA-256-geprüft gespeichert. Neue Archivkopien werden vollständig zurückgelesen und gegen Hash und Dateigröße verifiziert. Bestehende Kopien werden regelmäßig kontrolliert; fehlende oder fehlerhafte Kopien werden nicht stillschweigend als erfolgreich behandelt.
 
-Microsoft 365 / Microsoft Graph ist für die verpflichtende Zweitsicherung nicht erforderlich und kann nur optional verwendet werden.
+Die beiden Azure-Kopien schützen die POD-Originale auch bei einem Microsoft-365-Ausfall. Für die fachlich vereinbarte **POD-Sicherung in SharePoint** ist die zusätzliche Microsoft-365-Kopie jedoch erforderlich: Ein fehlendes Ziel oder eine noch offene Übertragung wird im Nachholworkflow als **unvollständig** gemeldet. Eine fehlgeschlagene SharePoint-Kopie darf die originale Unterschrift, den Azure-POD oder die Abholung niemals löschen oder überschreiben.
 
-Der Workflow `.github/workflows/rc1144-pod-backup-reconcile.yml` prüft und vervollständigt offene POD-Sicherungen nach Deploys sowie regelmäßig per Zeitplan. Im vollständigen Drain-Modus verarbeitet er bis zu zehn Batches à 25 Einträge und gilt erst dann als erfolgreich, wenn kein sicherungsfähiger Backlog mehr übrig ist; Pending- oder Fehlerzustände bleiben harte Fehler.
+Der Workflow `.github/workflows/rc1144-pod-backup-reconcile.yml` prüft und vervollständigt offene POD-Sicherungen nach Deploys sowie regelmäßig per Zeitplan. Der Azure-Archivbestand und die SharePoint-Nachsicherung werden getrennt bewertet. Offene SharePoint-Kopien oder eine fehlende Graph-Konfiguration führen zu einem Fehlerstatus des Sicherungsworkflows, auch wenn die signierten Originale bereits im Azure-Archiv geschützt sind.
 
 Zusätzlich enthält der aktuelle Stand einen **RC1234 TESTSERVICE-Restore-Drill**. Der Drill ist ausdrücklich auf TESTSERVICE begrenzt und stellt einen verifizierten Backup-Stand in einen isolierten Recovery-Zielblob wieder her. Dabei werden unter anderem SHA-256, Revision und Sendungsreferenz geprüft. Produktivdaten werden durch diesen Drill nicht überschrieben.
 

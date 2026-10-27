@@ -666,21 +666,47 @@ async function readExactPodBuffer(got, environment, file) {
 async function saveSuppliedPod(accessKey, environment, record, pdf, requestedName, options) {
   const primary = await saveAzurePod(accessKey, environment, record, pdf, requestedName, Object.assign({}, options, { clientSupplied: true }));
   const archive = await saveAzureArchive(accessKey, environment, primary.record, pdf, primary.file);
-  return { ok: true, record: archive.record || primary.record, file: primary.file, pdf, backup: (archive.record || primary.record).podBackup || {}, archiveSaved: true };
+  const archivedRecord = archive.record || primary.record;
+  if (!m365Enabled()) {
+    return { ok: true, record: archivedRecord, file: primary.file, pdf, backup: archivedRecord.podBackup || {}, archiveSaved: true, driveSaved: false };
+  }
+  // The PDF delivered by the pickup client is the actual signed loading list.
+  // Copy these exact bytes after the verified Azure archive, without re-rendering.
+  const drive = await copyToDrive(accessKey, environment, archivedRecord, pdf, primary.file);
+  const next = drive.record || archivedRecord;
+  return { ok: true, record: next, file: primary.file, pdf, backup: next.podBackup || {}, archiveSaved: true, driveSaved: drive.ok === true, driveError: drive.ok ? null : drive.error };
 }
 async function retryArchiveBackup(accessKey, environment) {
   const got = await store.getRecord(accessKey, environment);
   let record = got.record || {};
   const currentFile = automaticPod(record);
-  if (currentFile && !isCurrentAutomaticPod(currentFile)) return ensureAutomaticPod(accessKey, environment, { force: true, copyToDrive: true });
-  const existing = await readAutomaticPodBuffer(accessKey, environment, record);
+  // An outdated server-generated layout is repaired by the existing
+  // version-aware renderer; the immutable historical blob remains untouched.
+  // A client-supplied signed loading list, however, is an original document
+  // and must be copied byte-for-byte instead of silently re-rendered.
+  if (currentFile && !isCurrentAutomaticPod(currentFile) && text(currentFile.source) !== 'pickup-client-supplied') {
+    return ensureAutomaticPod(accessKey, environment, { force: true, copyToDrive: true });
+  }
+  let existing;
+  try {
+    existing = await readAutomaticPodBuffer(accessKey, environment, record);
+  } catch (error) {
+    if (!currentFile || !error || error.statusCode !== 404) throw error;
+    // The verified, hash-matching immutable archive is the only allowed
+    // fallback if the original primary blob has disappeared.
+    existing = { file: currentFile, buffer: await readExactPodBuffer(got, environment, currentFile) };
+  }
+  if (currentFile && !existing) throw store.err('POD_FILE_NOT_STORED', 'Der bestehende unterschriebene POD konnte nicht gelesen werden.', 404);
   if (!existing) return ensureAutomaticPod(accessKey, environment, { copyToDrive: true });
-  const archive = await saveAzureArchive(accessKey, environment, record, existing.buffer, existing.file);
+  // Historical and client-supplied PODs must not be silently replaced by a newly
+  // generated loading list during backup reconciliation.
+  const original = assertExactPodBuffer(existing.buffer, existing.file);
+  const archive = await saveAzureArchive(accessKey, environment, record, original, existing.file);
   record = archive.record || record;
   if (!m365Enabled() || !graphDrive.readiness().configured) {
     return { ok: true, record, file: existing.file, backup: record.podBackup || {}, archiveSaved: true, driveSaved: record.podBackup && record.podBackup.driveSaved === true };
   }
-  const drive = await copyToDrive(accessKey, environment, record, existing.buffer, existing.file);
+  const drive = await copyToDrive(accessKey, environment, record, original, existing.file);
   return { ok: true, record: drive.record || record, file: existing.file, backup: (drive.record || record).podBackup || {}, archiveSaved: true, driveSaved: drive.ok === true, driveError: drive.ok ? null : drive.error };
 }
 async function retryDriveBackup(accessKey, environment) {
