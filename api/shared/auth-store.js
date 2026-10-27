@@ -453,7 +453,7 @@ async function validateSession(req, options = {}) {
 }
 function hasAnyEditRight(user) {
   if (isAdmin(user)) return true;
-  return Object.values(user && user.rights || {}).some((r) => r && (r.edit === true || r.admin === true || r.functionAdmin === true || r.level === 'edit' || r.level === 'admin'));
+  return Object.values(user && user.rights || {}).some((r) => r && (r.edit === true || r.admin === true || r.functionAdmin === true || lower(r.level || r.access) === 'edit' || lower(r.level || r.access) === 'admin'));
 }
 function adminCount(users) { return (users || []).filter((u) => isAdmin(u) && isActive(u)).length; }
 function publicUsers(users, adminView = false) { return (users || []).map((u) => publicUser(u, adminView)); }
