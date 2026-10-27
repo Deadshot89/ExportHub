@@ -162,15 +162,6 @@ jobs:
             fi
 
             if [ "$verdict" = "done" ]; then
-              if [ "$blocked_ambiguous_relink_batches" -gt 0 ]; then
-                echo "::warning title=TESTSERVICE POD team link manual review::Ambiguous team-state shipment; $blocked_ambiguous_relink_batches batch(es) require manual review. No link was rewritten."
-                {
-                  echo '### RC1689 – TESTSERVICE POD team links: manual review required'
-                  echo "- $blocked_ambiguous_relink_batches batch(es) contained TEAM_SHIPMENT_AMBIGUOUS."
-                  echo '- No ambiguous shipment was selected, linked or marked as repaired.'
-                  echo '- Other verified Azure-POD backups may finish independently; blocked team links are NOT resolved.'
-                } >> "$GITHUB_STEP_SUMMARY"
-              fi
               if [ "$optional_drive_pending_batches" -gt 0 ]; then
                 echo "::warning title=POD Microsoft-365 optional archive::Optional Graph copies remain pending in $optional_drive_pending_batches scanned batches; required Azure archive drain succeeded. See issue #999."
                 {
@@ -178,6 +169,15 @@ jobs:
                   echo '- Erforderlicher Azure-Archiv-Backlog: erfolgreich abgearbeitet.'
                   echo "- Optionale Microsoft-365-Kopie in $optional_drive_pending_batches Batch-Antworten noch offen."
                   echo '- Fehlercodes ohne Sendungsdaten: siehe drivePendingCodes / driveProviderCodes im Joblog, Issue #999.'
+                } >> "$GITHUB_STEP_SUMMARY"
+              fi
+              if [ "$blocked_ambiguous_relink_batches" -gt 0 ]; then
+                echo "::warning title=TESTSERVICE POD team link manual review::Ambiguous team-state shipment; $blocked_ambiguous_relink_batches batch(es) require manual review. No link was rewritten."
+                {
+                  echo '### RC1689 – TESTSERVICE POD team links: manual review required'
+                  echo "- $blocked_ambiguous_relink_batches batch(es) contained TEAM_SHIPMENT_AMBIGUOUS."
+                  echo '- No ambiguous shipment was selected, linked or marked as repaired.'
+                  echo '- Other verified Azure-POD backups may finish independently; blocked team links are NOT resolved.'
                 } >> "$GITHUB_STEP_SUMMARY"
               fi
               exit 0
