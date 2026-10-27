@@ -97,6 +97,8 @@ jobs:
             checks.map(c=>'- '+c.stage+': '+c.status+' / HTTP '+c.httpStatus+' / '+c.providerCode).join('\n')+'\n');
           NODE
       - name: Offene TESTSERVICE POD-Backups nachholen
+        # RC1688: manual diagnostic-only dispatch must never enter mutating reconciliation.
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.graphTargetDiagnostic != true }}
         shell: bash
         env:
           BASE_URL: https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net
@@ -231,6 +233,8 @@ jobs:
             checks.map(c=>'- '+c.stage+': '+c.status+' / HTTP '+c.httpStatus+' / '+c.providerCode).join('\n')+'\n');
           NODE
       - name: Offene PRODUCTION POD-Backups nachholen
+        # RC1688: manual diagnostic-only dispatch must never enter mutating reconciliation.
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.graphTargetDiagnostic != true }}
         shell: bash
         env:
           BASE_URL: https://wonderful-forest-0f315e310.7.azurestaticapps.net
