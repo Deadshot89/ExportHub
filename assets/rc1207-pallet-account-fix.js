@@ -241,7 +241,7 @@ function scheduleEnhance(){
   return true;
 }
 async function cleanupProductionDayOnce(){
-  if(environment()!=='production'||cleanupInFlight)return false;
+  if(environment()!=='production'||cleanupInFlight||!canAdmin())return false;
   var s=state(),clean=root.ExportHUBClean;if(!s||s.rc1207PalletCleanup20260921At)return false;
   if(!clean||typeof clean.queueSave!=='function'||typeof clean.flushSave!=='function')return false;
   var rows=arr(s.palletAccount),matches=[];
@@ -268,7 +268,7 @@ async function cleanupProductionDayOnce(){
   }finally{cleanupInFlight=false}
 }
 function scheduleCleanup(){
-  if(environment()!=='production'||cleanupAttempted)return false;
+  if(environment()!=='production'||cleanupAttempted||!canAdmin())return false;
   cleanupAttempted=true;
   var schedule=root.setTimeout||setTimeout;
   schedule(function(){cleanupProductionDayOnce().catch(function(error){try{root.console&&root.console.error&&root.console.error('RC1207 Palettenkonto-Bereinigung fehlgeschlagen',error)}catch(_){}})},1200);

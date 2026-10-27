@@ -77,6 +77,17 @@ test('RC1207: Produktion löscht alle Palettenbuchungen vom 21.09.2026 genau ein
   assert.equal(await x.api.cleanupProductionDayOnce(),false);
 });
 
+test('RC1691: normale Mitarbeiter dürfen keinen automatischen Produktions-Cleanup und keinen Azure-Save auslösen',async()=>{
+  const x=makeRoot({admin:false,state:{
+    palletAccount:[{id:'PAL-RESTRICTED',date:'2026-09-21',direction:'Eingang',count:3}],
+    palletSettlements:[],auditLog:[],_teamSyncMeta:{fields:{},tombstones:[]}
+  }});
+  assert.equal(await x.api.cleanupProductionDayOnce(),false);
+  assert.deepEqual(Array.from(x.state.palletAccount,y=>y.id),['PAL-RESTRICTED']);
+  assert.equal(x.state.rc1207PalletCleanup20260921At,undefined);
+  assert.equal(x.calls.filter(y=>y[0]==='queue'||y[0]==='flush').length,0);
+});
+
 test('RC1207: Testservice/Demo führen den Produktions-Cleanup nicht aus',async()=>{
   const x=makeRoot({environment:'testservice',state:{palletAccount:[{id:'PAL-A',date:'2026-09-21'}],palletSettlements:[],auditLog:[],_teamSyncMeta:{fields:{},tombstones:[]}}});
   assert.equal(await x.api.cleanupProductionDayOnce(),false);
