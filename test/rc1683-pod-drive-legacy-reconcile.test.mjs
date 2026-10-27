@@ -38,3 +38,11 @@ test('RC1683: reconcile requeues uncertain historic copies and never reports the
   assert.match(source, /const driveWasSaved = confirmedDriveBackup\(backup\)/);
   assert.match(source, /driveSaved: confirmedDriveBackup\(record\.podBackup\)/);
 });
+
+test('RC1686: POD API never claims historical unverified Graph IDs or URLs are saved', () => {
+  const source = fs.readFileSync(new URL('../api/pod-backup/index.js', import.meta.url), 'utf8');
+  assert.match(source, /const driveVerified = podArchive\.confirmedDriveBackup\(backup\)/);
+  assert.match(source, /driveSaved: driveVerified/);
+  assert.match(source, /webUrl: driveVerified \? backup\.webUrl/);
+  assert.match(source, /driveItemId: driveVerified \? backup\.driveItemId/);
+});
