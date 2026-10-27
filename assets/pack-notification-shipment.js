@@ -330,7 +330,7 @@
             q(item.source)==='pack_notification'&&hasDocumentContent(item));
           const reader=root.ExportHUBDocumentBlob1059;
           if(!chosen||!reader||typeof reader.open!=='function')throw Error('Original document is unavailable');
-          feedback.textContent=t('documentViewer.loading','Loading document …');
+          feedback.textContent=t(download?'documentViewer.download':'documentViewer.open',download?'Download':'Open')+' …';
           await reader.open(chosen,{name:q(chosen.name),download});
           feedback.textContent='';
         }catch(_){feedback.textContent=t('documentViewer.openFailed','The document could not be opened.');}
