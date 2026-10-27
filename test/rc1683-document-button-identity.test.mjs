@@ -17,7 +17,8 @@ function harness(){
    tagName:tag,className:'',children:[],textContent:'',
    setAttribute(name,value){attrs[name]=String(value)},
    getAttribute(name){return Object.hasOwn(attrs,name)?attrs[name]:null},
-   appendChild(child){this.children.push(child);return child},
+   appendChild(child){child.parentNode=this;this.children.push(child);return child},
+   remove(){if(this.parentNode)this.parentNode.children=this.parentNode.children.filter(x=>x!==this);this.parentNode=null},
    querySelector(){return null},
    querySelectorAll(selector){return selector==='.rc786-doc-row'?this.children.filter(x=>x.className==='rc786-doc-row'):[]}
   };
@@ -85,4 +86,34 @@ test('RC1683: ambiguous selected shipment and stale cached docs cannot trigger d
  assert.equal(docs.length,0,'ambiguous technical ID must fail closed');
  await assert.rejects(()=>h.actions.open('rc1059/production/ab/'+ '1'.repeat(64)+'|Lieferschein',true,'9WX5K6'));
  assert.equal(h.calls.length,0);
+});
+
+
+test('RC1683: switching shipment removes stale generated PDF rows without touching native SharePoint rows',()=>{
+ const h=harness();h.actions.patch();
+ assert.equal(h.panel.children.length,3);
+ h.state.shipmentViewId='SHIP-B';
+ assert.equal(h.actions.patch(),true);
+ assert.equal(h.panel.children[0],h.native);
+ const own=h.panel.children.slice(1);
+ assert.equal(own.length,1,'old generated PDFs must be removed, only active REF remains');
+ assert.ok(own[0].getAttribute('data-rc1151-document-row').includes('3'.repeat(64)));
+ assert.equal(own[0].getAttribute('data-rc1151-document-ref'),'OTHER1');
+});
+
+test('RC1683: matching content hash on a new REF must rebuild owner-scoped download button',async()=>{
+ const h=harness();h.actions.patch();
+ h.state.shipments[1].deliveryFiles=[file('SAME_BYTES_DIFFERENT_REF.pdf','1')];
+ h.state.shipmentViewId='SHIP-B';
+ h.actions.patch();
+ const own=h.panel.children.slice(1);
+ assert.equal(own.length,1);
+ const newRef=own[0].getAttribute('data-rc1151-document-ref');
+ assert.equal(newRef,'OTHER1');
+ assert.ok(own[0].getAttribute('data-rc1151-document-row').includes('1'.repeat(64)));
+ const oldButtonKey='rc1059/production/ab/'+ '1'.repeat(64)+'|Lieferschein';
+ await assert.rejects(()=>h.actions.open(oldButtonKey,true,'9WX5K6'));
+ await h.actions.open(oldButtonKey,true,'OTHER1');
+ assert.equal(h.calls.length,1);
+ assert.equal(h.calls[0].name,'SAME_BYTES_DIFFERENT_REF.pdf');
 });
