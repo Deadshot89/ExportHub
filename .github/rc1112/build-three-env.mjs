@@ -1032,17 +1032,19 @@ function rc1340PrintableDeliveryAttachments(sh){
 }
 async function rc1340PrepareDeliveryAttachmentPrints(sh){
  var helper=window.ExportHUBDocumentBlob1059,list=rc1340PrintableDeliveryAttachments(sh),prepared=[];
- try{
+ prepared.failed=[];
   for(var i=0;i<list.length;i++){var item=list[i],url=item.legacyUrl,owned=false;
+   try{
    if(item.blobBacked){if(!helper||typeof helper.fetchBlob!=='function')throw new Error('Dokumentenspeicher ist nicht verfügbar: '+item.name);var blob=await helper.fetchBlob(item.file);url=URL.createObjectURL(blob);owned=true}
    else if(/^data:application\\/pdf/i.test(url)){var dataResponse=await fetch(url);if(!dataResponse.ok)throw new Error(item.name+' konnte nicht aus dem lokalen PDF-Inhalt geladen werden.');var dataBlob=await dataResponse.blob();url=URL.createObjectURL(dataBlob);owned=true}
    else if(url&&!/^blob:/i.test(url)){var response=await fetch(url,{credentials:'same-origin',cache:'no-store'});if(!response.ok)throw new Error(item.name+' konnte nicht geladen werden (HTTP '+response.status+').');var fetched=await response.blob();url=URL.createObjectURL(fetched);owned=true}
    if(!url)throw new Error('Kein druckbarer Dateiinhalt für '+item.name+'.');
    prepared.push({name:item.name,identity:item.identity,url:url,owned:owned})
+   }catch(e){if(owned)try{URL.revokeObjectURL(url)}catch(_){};prepared.failed.push({name:item.name,code:q(e&&e.code)||'DOCUMENT_FETCH_FAILED'});try{console.warn('RC1684 Lieferschein für Druck nicht erreichbar',item.name,e)}catch(_){}}
   }
   return prepared
- }catch(e){prepared.forEach(function(item){if(item.owned)try{URL.revokeObjectURL(item.url)}catch(_){}});throw e}
 }
+async function rc1340PrintPreparedAttachment(item,index,total){
 async function rc1340PrintPreparedAttachment(item,index,total){
  if(typeof window.__EXPORTHUB_CAPTURE_ATTACHMENT_PRINT__==='function'){await Promise.resolve(window.__EXPORTHUB_CAPTURE_ATTACHMENT_PRINT__({name:item.name,index:index,total:total,identity:item.identity,url:item.url,transport:'capture'}));return true}
  return new Promise(function(resolve,reject){var frame=document.createElement('iframe'),done=false,timer;
@@ -1085,7 +1087,7 @@ window.ExportHUBRC1340AttachmentPrint=Object.freeze({version:'RC1340',printable:
     html=html.replace(readyOld,readyNew);
   }
   const printOld="window.__INDEX352_LAST_PRINT__={ok:true,mode:mode||'all',pages:root.children.length,ref:sref(sh)||sid(sh),owner:VERSION,signed:false};docWorkDone(opToken,'Druckdialog wird geöffnet');frame.contentWindow.focus();frame.contentWindow.print()";
-  const printNew="frame.contentWindow.focus();frame.contentWindow.print();if(attachmentJobs.length){docWorkStep(opToken,'Lieferscheine werden gedruckt …');await rc1340PrintPreparedAttachments(attachmentJobs)}window.__INDEX352_LAST_PRINT__={ok:true,mode:mode||'all',pages:root.children.length,attachmentCount:attachmentJobs.length,attachmentNames:attachmentJobs.map(function(item){return item.name}),ref:sref(sh)||sid(sh),owner:VERSION,signed:false};docWorkDone(opToken,attachmentJobs.length?'Gesamtdruck vollständig gestartet':'Druckdialog wird geöffnet')";
+  const printNew="frame.contentWindow.focus();frame.contentWindow.print();if(attachmentJobs.length){docWorkStep(opToken,'Lieferscheine werden gedruckt …');await rc1340PrintPreparedAttachments(attachmentJobs)}var failedAttachments=attachmentJobs.failed||[];if(failedAttachments.length){window.__INDEX352_LAST_PRINT__={ok:false,partial:true,mode:mode||'all',pages:root.children.length,attachmentCount:attachmentJobs.length,attachmentNames:attachmentJobs.map(function(item){return item.name}),failedAttachments:failedAttachments,ref:sref(sh)||sid(sh),owner:VERSION,signed:false};docWorkFail(opToken,'Ladeliste gedruckt, aber nicht alle Lieferscheine verfügbar');alert('Ladeliste und CMR wurden zum Druck geöffnet. Folgende Lieferscheine konnten wegen eines Abruffehlers nicht mitgedruckt werden:\\n\\n'+failedAttachments.map(function(item){return item.name}).join('\\n'))}else{window.__INDEX352_LAST_PRINT__={ok:true,mode:mode||'all',pages:root.children.length,attachmentCount:attachmentJobs.length,attachmentNames:attachmentJobs.map(function(item){return item.name}),ref:sref(sh)||sid(sh),owner:VERSION,signed:false};docWorkDone(opToken,attachmentJobs.length?'Gesamtdruck vollständig gestartet':'Druckdialog wird geöffnet')}";
   if(!html.includes(printNew)){
     if(!html.includes(printOld))throw new Error(file+': RC1340 Druckabschluss-Anker fehlt');
     html=html.replace(printOld,printNew);
