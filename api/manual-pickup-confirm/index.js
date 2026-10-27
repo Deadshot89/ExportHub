@@ -6,6 +6,7 @@ const auth=require('../shared/auth-store');
 const fastAuth=require('../shared/fast-auth-store');
 const apiI18n=require('../shared/i18n');
 const pickupStore=require('../shared/pickup-store');
+const stateWriteGuard=require('../shared/state-write-guard');
 
 const TEAM_CONTAINER=process.env.EXPORTHUB_STORAGE_CONTAINER||process.env.EXPORTHUB_CONTAINER||'exporthub-data';
 const TEAM_BLOB_BASE=process.env.EXPORTHUB_STORAGE_BLOB||process.env.EXPORTHUB_STATE_BLOB||'team-state.json';
@@ -268,7 +269,7 @@ module.exports=async function(context,req){
   try{
     if(method!=='POST')throw auth.error('METHOD_NOT_ALLOWED','Methode nicht erlaubt.',405);
     const session=await validateSession(req);
-    if(!auth.hasAnyEditRight(session.user))throw auth.error('WRITE_FORBIDDEN',apiI18n.t(req,'api.state.writeForbidden'),403);
+    if(!auth.hasAnyEditRight(session.user)||!stateWriteGuard.canEditAny(session.user,['shipment','shipmentoverview','pickupcalendar']))throw auth.error('WRITE_FORBIDDEN',apiI18n.t(req,'api.state.writeForbidden'),403);
     const payload=body(req),environment=resolveEnvironment(req,payload);
     const id=text(payload.shipmentId||payload.id),reference=upper(payload.reference||payload.ref);
     if(!id&&!reference)throw auth.error('SHIPMENT_REQUIRED','Sendungsreferenz fehlt.',400);
