@@ -181,7 +181,7 @@
   function inShipmentView(doc){
     const body=doc&&doc.body;
     if(!body||typeof body.getAttribute!=='function')return false;
-    return ['shipment','shipmentview'].includes(q(body.getAttribute('data-exporthub-view')).toLowerCase());
+    return q(body.getAttribute('data-exporthub-view')).toLowerCase()==='shipment';
   }
 
   function createMeta(doc,meta){
@@ -463,7 +463,7 @@
   }
 
   function enhanceShipmentDetailedView(){
-    const doc=root.document;if(!doc||!inShipmentView(doc))return false;
+    const doc=root.document;if(!doc||!inShipmentDetailView(doc))return false;
     const sh=viewShipment(state());if(!sh)return false;
     const meta=containerMeta(sh),shouldShow=meta.required||meta.seal||meta.photos.length;
     const old=doc.querySelector&&doc.querySelector('[data-rc1259-container-detail]');

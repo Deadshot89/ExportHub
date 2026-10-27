@@ -94,17 +94,19 @@ test('Sendungsansicht shipmentview zeigt gespeicherte Containerfotos als Vorscha
     constructor(tag){this.tag=tag;this.children=[];this.attributes={};this.classList={add(){}}}
     appendChild(child){this.children.push(child);return child}
     setAttribute(name,value){this.attributes[name]=value}
+    querySelector(){return null}
     addEventListener(){}
   }
   const host=new Element('section');host.insertBefore=child=>host.appendChild(child);
   const docsCard=new Element('section');docsCard.parentNode=host;docsCard.nextSibling=null;
+  const hiddenEditHost=new Element('section');
   const shipment={id:'S1',reference:'ABC123',sealNumber:'SEAL123',containerPhotos:[
     {id:'container-loaded',kind:'loaded',label:'Geladener Container',name:'01_Geladener_Container_ABC123.jpg',referenceFolderSaved:true},
     {id:'container-number',kind:'number',label:'Container-Nummer',name:'02_Container_Nummer_ABC123.jpg',referenceFolderSaved:true},
     {id:'container-sealed',kind:'sealed',label:'Versiegelt',name:'03_Versiegelt_ABC123.jpg',referenceFolderSaved:true}
   ]};
   const context={
-    document:{body:{getAttribute(name){return name==='data-exporthub-view'?'shipmentview':''}},getElementById(id){return id==='rc786ReferenceFilesCard'?docsCard:null},querySelector(){return null},createElement:tag=>new Element(tag)},
+    document:{body:{getAttribute(name){return name==='data-exporthub-view'?'shipmentview':''}},getElementById(id){return id==='rc786ReferenceFilesCard'?docsCard:id==='rc363BlockShipment'?hiddenEditHost:null},querySelector(){return null},createElement:tag=>new Element(tag)},
     __EXPORTHUB_GET_STATE__:()=>({view:'shipmentview',shipmentViewId:'S1',shipments:[shipment]}),
     setTimeout(){return 1},console,
   };
@@ -114,4 +116,5 @@ test('Sendungsansicht shipmentview zeigt gespeicherte Containerfotos als Vorscha
   assert.ok(panel);
   const photos=[];function walk(node){if(node.tag==='img')photos.push(node);for(const child of node.children||[])walk(child)}walk(panel);
   assert.deepEqual(photos.map(img=>img.attributes['data-rc1259-photo-id']),['container-loaded','container-number','container-sealed']);
+  assert.equal(context.ExportHUBRC1014ShipmentOverview.enhanceShipmentConfig(),false,'Nur-Lesen-Sendungsansicht darf auch bei altem versteckten Formular keinen Container-Editor öffnen');
 });
