@@ -1292,7 +1292,7 @@ function mergeReferenceDocs(live,fallback){
   replaceBlock(
     'function docHtml(d,i){',
     '\nfunction docsPanelHtml',
-    `function docHtml(d,i){var usable=fallbackDocUsable(d),buttons=[];if(usable){buttons.push('<button type="button" class="ghost" data-rc786-open-file="'+i+'">Öffnen</button>');buttons.push('<button type="button" class="ghost" data-rc786-download-file="'+i+'">Download</button>');if(isPrintable(d))buttons.push('<button type="button" class="ghost" data-rc786-print-file="'+i+'">Drucken</button>')}return '<article class="rc786-doc-row"><div class="rc786-doc-icon" aria-hidden="true">'+docIcon(d)+'</div><div class="rc786-doc-main"><b>'+esc(d.name||'Dokument')+'</b><small>'+esc(docMeta(d))+'</small></div><div class="rc786-doc-actions">'+buttons.join('')+'</div></article>'}
+    `function docHtml(d,i){var usable=fallbackDocUsable(d),buttons=[];if(usable){buttons.push('<button type="button" class="ghost" data-rc786-open-file="'+i+'">Öffnen</button>');buttons.push('<button type="button" class="ghost" data-rc786-download-file="'+i+'">Download</button>');if(isPrintable(d))buttons.push('<button type="button" class="ghost" data-rc786-print-file="'+i+'">Drucken</button>')}return '<article class="rc786-doc-row"'+(d.file&&d.file.blobName?' data-rc786-blob-name="'+esc(d.file.blobName)+'"':'')+'><div class="rc786-doc-icon" aria-hidden="true">'+docIcon(d)+'</div><div class="rc786-doc-main"><b>'+esc(d.name||'Dokument')+'</b><small>'+esc(docMeta(d))+'</small></div><div class="rc786-doc-actions">'+buttons.join('')+'</div></article>'}
 `,
     'Dokumentaktionen'
   );
