@@ -37,6 +37,14 @@ test('draft-save updates the same draft and draft-get restores the saved form da
   assert.equal(loaded.status,200,JSON.stringify(loaded.body));assert.equal(loaded.body.draft.packageCount,4);assert.equal(loaded.body.draft.documents.length,1);
 });
 
+test('draft-save rejects Lieferschein metadata without original PDF bytes',async()=>{
+  const f=fixture(),sid=await session(f,f.tokenA);
+  const result=await f.handler(request('draft-save',{stationToken:f.tokenA,sessionId:sid,draft:{customer:'Kunde A',packageType:'Europalette',packageCount:1,totalWeight:100,packages:[],documents:[{id:'filename-only',name:'LS123.pdf',mimeType:'application/pdf',size:24000}]}}));
+  assert.equal(result.status,400,JSON.stringify(result.body));
+  assert.equal(result.body.code,'PACK_DOCUMENT_CONTENT_REQUIRED');
+  assert.equal(f.state().packDrafts.length,0);
+});
+
 test('draft delivery-note files use the central blob document storage path',()=>{const documents=require('../api/shared/document-blob-store.js');assert.ok(documents.ROOT_COLLECTIONS.includes('packDrafts'));});
 
 test('submit stays fail-closed when no delivery-note document is uploaded',async()=>{

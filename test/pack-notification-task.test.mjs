@@ -63,6 +63,25 @@ test('pack task section model includes customer, weight, station and documents',
   assert.equal(model.documents[0].name,'DNC3019222063.pdf');
 });
 
+test('original inline PDF from a legacy Packmeldung remains downloadable before shipment creation',()=>{
+  const internal=loadInternal(),s=state();
+  s.packNotifications[0].documents=[{id:'legacy-pdf',name:'LS-Original.pdf',mimeType:'application/pdf',size:14,data:'data:application/pdf;base64,JVBERi0xLjQKJSVFT0Y='}];
+  const model=internal.detailModel(s,s.tasks[0]);
+  const html=internal.detailHtml(model);
+  assert.match(html,/data-pack-doc-open="0"/);
+  assert.match(html,/data-pack-doc-download="0"/);
+  assert.equal(internal.documentForViewer(model.documents[0]).data,s.packNotifications[0].documents[0].data);
+});
+
+test('Packmeldung with only a filename must not show unusable open/download buttons',()=>{
+  const internal=loadInternal(),s=state();
+  s.packNotifications[0].documents=[{id:'metadata-only',name:'LS-ohne-Datei.pdf',mimeType:'application/pdf',size:50000}];
+  const model=internal.detailModel(s,s.tasks[0]);
+  const html=internal.detailHtml(model);
+  assert.doesNotMatch(html,/data-pack-doc-open/);
+  assert.doesNotMatch(html,/data-pack-doc-download/);
+});
+
 test('pack inbox is derived from packNotifications and works without tasks',()=>{
   const internal=loadInternal(),s=state();
   s.tasks=[];

@@ -98,6 +98,15 @@
     const blob=q(doc&&doc.blobName);if(!blob)return'';
     return `/api/exporthub-document?blob=${encodeURIComponent(blob)}&environment=${encodeURIComponent(environment())}`;
   }
+  function documentForViewer(doc){
+    if(!doc||typeof doc!=='object')return null;
+    if(documentUrl(doc))return doc;
+    const inline=q(doc.data||doc.dataUrl);
+    if(/^data:(?:application\/pdf|image\/(?:jpeg|png));base64,[A-Za-z0-9+/=]+$/i.test(inline))return Object.assign({},doc,{data:inline});
+    const mime=q(doc.mimeType||doc.type).toLowerCase(),base64=q(doc.base64);
+    if(/^(?:application\/pdf|image\/(?:jpeg|png))$/.test(mime)&&/^[A-Za-z0-9+/=]+$/.test(base64))return Object.assign({},doc,{data:`data:${mime};base64,${base64}`});
+    return null;
+  }
   function formatDate(value){
     const d=new Date(value);if(Number.isNaN(d.getTime()))return q(value)||'–';
     try{const lang=root.ExportHUBPackI18n&&root.ExportHUBPackI18n.language?root.ExportHUBPackI18n.language():'de';const locale=({de:'de-DE',en:'en-GB',pl:'pl-PL',es:'es-ES',fr:'fr-FR',it:'it-IT'})[lang]||'de-DE';return new Intl.DateTimeFormat(locale,{dateStyle:'medium',timeStyle:'short'}).format(d);}catch(_){return d.toLocaleString();}
@@ -185,8 +194,8 @@
   function documentsHtml(model){
     if(!model.documents.length)return`<p class="pack-internal-empty">${esc(tr('pack.internal.noDeliveryNotes'))}</p>`;
     return model.documents.map((doc,index)=>{
-      const url=documentUrl(doc),name=q(doc.name||doc.fileName||tr('pack.internal.deliveryNoteNumber',{number:index+1}));
-      return `<div class="pack-internal-document"><span class="pack-internal-document-icon">${icon('file')}</span><div><strong>${esc(name)}</strong><small>${esc(formatBytes(doc.size))}</small></div><div class="pack-internal-document-actions">${url?`<button type="button" class="btn pack-internal-secondary" data-pack-doc-open="${index}">${esc(tr('pack.internal.open'))}</button><button type="button" class="btn pack-internal-secondary" data-pack-doc-download="${index}">${esc(tr('pack.internal.download'))}</button>`:`<span>${esc(tr('pack.internal.fileUnavailable'))}</span>`}</div></div>`;
+      const available=!!documentForViewer(doc),name=q(doc.name||doc.fileName||tr('pack.internal.deliveryNoteNumber',{number:index+1}));
+      return `<div class="pack-internal-document"><span class="pack-internal-document-icon">${icon('file')}</span><div><strong>${esc(name)}</strong><small>${esc(formatBytes(doc.size))}</small></div><div class="pack-internal-document-actions">${available?`<button type="button" class="btn pack-internal-secondary" data-pack-doc-open="${index}">${esc(tr('pack.internal.open'))}</button><button type="button" class="btn pack-internal-secondary" data-pack-doc-download="${index}">${esc(tr('pack.internal.download'))}</button>`:`<span>${esc(tr('pack.internal.fileUnavailable'))}</span>`}</div></div>`;
     }).join('');
   }
   function customerIdentityHtml(model){
@@ -283,10 +292,11 @@
   }
   async function openDocument(model,index,download){
     const doc=model.documents[Number(index)],viewer=root.ExportHUBDocumentBlob1059;
-    if(!doc||!viewer||typeof viewer.open!=='function'||!documentUrl(doc))return false;
+    const original=documentForViewer(doc);
+    if(!original||!viewer||typeof viewer.open!=='function')return false;
     // The blob API requires an ExportHUB session. A naked window.open or
     // anchor download sends no session token and only exposes a filename.
-    return viewer.open(doc,{name:q(doc.name||doc.fileName||tr('pack.avis.deliveryNote')),download:download===true});
+    return viewer.open(original,{name:q(doc.name||doc.fileName||tr('pack.avis.deliveryNote')),download:download===true});
   }
   function reportDocumentError(err){
     try{if(typeof root.alert==='function')root.alert(q(err&&err.message)||tr('pack.internal.fileUnavailable'));}catch(_){}
@@ -360,6 +370,6 @@
     scheduleRender();return true;
   }
 
-  root.ExportHUBPackNotifications=Object.freeze({isPackTask,packTasks,packNotifications,findNotification,unreadCount,markRead,detailModel,isLocked,applyEdit,cancelNotification,detailHtml,editHtml,inboxItems,inboxUnreadCount,documentUrl,renderPackInbox,renderNavBadge,openNotificationDetail,openTaskDetail,install});
+  root.ExportHUBPackNotifications=Object.freeze({isPackTask,packTasks,packNotifications,findNotification,unreadCount,markRead,detailModel,isLocked,applyEdit,cancelNotification,detailHtml,editHtml,inboxItems,inboxUnreadCount,documentUrl,documentForViewer,renderPackInbox,renderNavBadge,openNotificationDetail,openTaskDetail,install});
   install();
 })(typeof window!=='undefined'?window:globalThis);

@@ -133,6 +133,44 @@ test('submit validates actual file signature and rejects MIME-correct fake conte
   assert.throws(()=>api.validateDocuments([{name:'fake.pdf',mimeType:'application/pdf',data:fake}],1024),e=>e&&e.code==='PACK_DOCUMENT_SIGNATURE_INVALID');
 });
 
+test('Packmeldung darf eine reine Lieferschein-Beschriftung ohne Originaldatei nicht annehmen',async()=>{
+  const f=fixture(),session=await f.handler(request('session',{stationToken:f.token}));
+  const metadata={id:'ghost-doc',name:'DNC3019222063.pdf',mimeType:'application/pdf',size:172349};
+  const result=await f.handler(request('submit',validSubmit(f.token,session.body.sessionId,{documents:[metadata]})));
+  assert.equal(result.status,400,JSON.stringify(result.body));
+  assert.equal(result.body.code,'PACK_DOCUMENT_CONTENT_REQUIRED');
+  assert.equal(f.state().packNotifications.length,0,'kein nicht herunterladbarer Lieferschein darf als übermittelt erscheinen');
+});
+
+test('Packmeldung darf keinen frei vorgegebenen Blob-Link ohne gespeicherten Entwurf übernehmen',async()=>{
+  const f=fixture(),session=await f.handler(request('session',{stationToken:f.token}));
+  const metadata={id:'forged-doc',name:'DNC3019222063.pdf',mimeType:'application/pdf',size:100,storage:'blob',blobName:'rc1059/production/aa/'+('a'.repeat(64))};
+  const result=await f.handler(request('submit',validSubmit(f.token,session.body.sessionId,{documents:[metadata]})));
+  assert.equal(result.status,400,JSON.stringify(result.body));
+  assert.equal(result.body.code,'PACK_DOCUMENT_CONTENT_REQUIRED');
+  assert.equal(f.state().packNotifications.length,0);
+});
+
+test('Packmeldung übernimmt einen bereits serverseitig gespeicherten Lieferschein nur aus dem eigenen Entwurf',async()=>{
+  const f=fixture(),session=await f.handler(request('session',{stationToken:f.token}));
+  const stored={id:'doc-owned',name:'LS-991.pdf',mimeType:'application/pdf',size:123,storage:'blob',blobName:'rc1059/production/bb/'+('b'.repeat(64)),sha256:'b'.repeat(64)};
+  f.state().packDrafts=[{id:'draft-owned',status:'draft',documents:[stored]}];
+  const payload=validSubmit(f.token,session.body.sessionId,{draftId:'draft-owned',documents:[{...stored}]});
+  const result=await f.handler(request('submit',payload));
+  assert.equal(result.status,201,JSON.stringify(result.body));
+  assert.equal(f.state().packNotifications[0].documents[0].blobName,stored.blobName);
+});
+
+test('Packmeldung verhindert die Übernahme von Blob-Dokumenten eines anderen Entwurfs',async()=>{
+  const f=fixture(),session=await f.handler(request('session',{stationToken:f.token}));
+  const stored={id:'doc-foreign',name:'LS-992.pdf',mimeType:'application/pdf',size:123,storage:'blob',blobName:'rc1059/production/bb/'+('b'.repeat(64)),sha256:'b'.repeat(64)};
+  f.state().packDrafts=[{id:'draft-one',status:'draft',documents:[stored]},{id:'draft-two',status:'draft',documents:[]}];
+  const result=await f.handler(request('submit',validSubmit(f.token,session.body.sessionId,{draftId:'draft-two',documents:[stored]})));
+  assert.equal(result.status,400,JSON.stringify(result.body));
+  assert.equal(result.body.code,'PACK_DOCUMENT_CONTENT_REQUIRED');
+  assert.equal(f.state().packNotifications.length,0);
+});
+
 test('submit rejects an expired session',async()=>{
   const f=fixture();
   const session=await f.handler(request('session',{stationToken:f.token}));
