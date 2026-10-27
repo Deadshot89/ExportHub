@@ -471,8 +471,11 @@ function patchMainCountryDetection(html,file){
   if(count!==1)throw new Error(file+': RC1237 countryFromAddress-Anker '+count+'x gefunden');
   html=html.replace(linesAnchor,italyRule+linesAnchor);
 
-  const customerFirst="||firstValue(loc,['country','land','countryName','countryCode','iso','iso2'])||firstValue(c,['country','land','countryName','countryCode','iso','iso2'])||countryFromAddress(address)";
-  const addressFirst="||firstValue(loc,['country','land','countryName','countryCode','iso','iso2'])||countryFromAddress(address)||firstValue(c,['country','land','countryName','countryCode','iso','iso2'])";
+  // Keep the selected delivery location and recipient fields intact. RC1048
+  // also includes a location-address fallback and shipment-country fields
+  // between them, so the historical loc-prefix is no longer a stable anchor.
+  const customerFirst="||firstValue(c,['country','land','countryName','countryCode','iso','iso2'])||countryFromAddress(address)";
+  const addressFirst="||countryFromAddress(address)||firstValue(c,['country','land','countryName','countryCode','iso','iso2'])";
   const orderCount=html.split(customerFirst).length-1;
   if(orderCount!==1)throw new Error(file+': RC1237 Zielland-Priorität '+orderCount+'x gefunden');
   html=html.replace(customerFirst,addressFirst);
@@ -1774,6 +1777,30 @@ const rc1114ShippingOut=path.join(OUT,'assets','rc1114-shipping-neutral.js');
 if(!fs.existsSync(rc1114ShippingSrc))throw new Error('RC1114 Versandkosten-Runtime fehlt');
 fs.copyFileSync(rc1114ShippingSrc,rc1114ShippingOut);
 for(const file of ['index.html','TESTVERSION.html','demo.html'])patchHtml(file);
+// RC1684 Versandkosten-Synchronisierung: alte Build-Snapshots dürfen die aktuelle
+// Standortpriorität und die idempotente Colli-Übernahme nicht zurückbringen.
+const rc1684Canonical=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
+const rc1684Boundaries=[
+  ['function activeLocation(sh,c){','\nfunction activeShipmentRoute()'],
+  ['function activeShipmentRoute(){','\nfunction shipmentRows()'],
+  ['function syncCostFromShipment(){','\nfunction calcUps()']
+];
+for(const file of ['index.html','TESTVERSION.html','demo.html']){
+  const target=path.join(OUT,file);
+  let html=fs.readFileSync(target,'utf8');
+  for(const [startMarker,endMarker] of rc1684Boundaries){
+    const sourceStart=rc1684Canonical.indexOf(startMarker);
+    const sourceEnd=rc1684Canonical.indexOf(endMarker,sourceStart);
+    const targetStart=html.indexOf(startMarker);
+    const targetEnd=html.indexOf(endMarker,targetStart);
+    if(sourceStart<0||sourceEnd<=sourceStart||targetStart<0||targetEnd<=targetStart||
+      html.indexOf(startMarker,targetStart+startMarker.length)>=0){
+      throw new Error(file+': RC1684 Versandkosten-Funktionsgrenzen unklar: '+startMarker);
+    }
+    html=html.slice(0,targetStart)+rc1684Canonical.slice(sourceStart,sourceEnd)+html.slice(targetEnd);
+  }
+  fs.writeFileSync(target,html);
+}
 // RC1680: original-PDF batch downloads AND verified SharePoint success are
 // canonical in index.html. Older TESTSERVICE/demo snapshots must not retain
 // either the local re-rendering flow or optimistic Graph success messages.
