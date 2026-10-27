@@ -264,9 +264,25 @@
     const button=doc.getElementById('rc380NewShipment');if(button&&!button.__packClicked){button.__packClicked=true;button.click();}
     setTimeout(()=>waitForShipmentForm(prefill,attempt+1,0,null),80);
   }
+  // A customer/location refresh can replace the shipment draft and silently
+  // drop deliveryFiles while leaving the visible package inputs unchanged.
+  // RC1679: restore only existing, verified Pack Blob references on the same
+  // explicit Pack owner; never infer ownership from a reused shipment ID.
+  function keepPendingDocuments(prefill){
+    const state=sharedState(),draft=state.shipment||state.currentShipment||state.selectedShipment;
+    if(!draft||!q(prefill&&prefill.packNotificationId)||!q(prefill&&prefill.packNotificationRef))return false;
+    if(q(draft.packNotificationId)!==q(prefill.packNotificationId)||q(draft.packNotificationRef)!==q(prefill.packNotificationRef))return false;
+    const expected=arr(prefill.deliveryFiles).filter(hasDocumentContent);
+    if(!expected.length)return false;
+    const merged=mergeDocuments(draft.deliveryFiles,expected);
+    if(merged.length===arr(draft.deliveryFiles).length)return false;
+    draft.deliveryFiles=merged;
+    return true;
+  }
   // the customer lookup and the fresh-shipment reset re-render the colli rows after the first fill and dropped packaging, count and weight
   function keepRows(prefill,check){
     const doc=root.document;if(!doc||check>15||!pending||pending.prefill!==prefill)return;
+    keepPendingDocuments(prefill);
     const plan=shipmentRows(prefill);if(!rowsMatch(doc,plan)){applyRowsToMountedForm(doc,plan);applyTextsToMountedForm(doc,prefill);}
     setTimeout(()=>keepRows(prefill,check+1),200);
   }
