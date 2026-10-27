@@ -1,6 +1,7 @@
 'use strict';
 
 const https = require('https');
+const crypto = require('crypto');
 
 function text(value) {
   return String(value == null ? '' : value).trim();
@@ -38,7 +39,7 @@ function config() {
   return { tenantId, clientId, clientSecret, user: status.user, folder: status.folder, driveId: status.driveId, folderId: status.folderId };
 }
 
-function request(method, url, headers, body, timeoutMs) {
+function request(method, url, headers, body, timeoutMs, maxBytes) {
   return new Promise((resolve, reject) => {
     const target = new URL(url);
     const req = https.request({
@@ -51,8 +52,22 @@ function request(method, url, headers, body, timeoutMs) {
       timeout: timeoutMs || 20000
     }, response => {
       const chunks = [];
-      response.on('data', chunk => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
+      let totalBytes = 0, tooLarge = false;
+      response.on('data', chunk => {
+        if (tooLarge) return;
+        const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+        totalBytes += bytes.length;
+        if (maxBytes && totalBytes > maxBytes) {
+          tooLarge = true;
+          reject(Object.assign(new Error('Die Graph-POD-Rücklesedatei ist größer als das Original.'),
+            { code: 'GRAPH_READBACK_TOO_LARGE', statusCode: 502 }));
+          if (typeof response.destroy === 'function') response.destroy();
+          return;
+        }
+        chunks.push(bytes);
+      });
       response.on('end', () => {
+        if (tooLarge) return;
         const buffer = Buffer.concat(chunks);
         const raw = buffer.toString('utf8');
         let parsed = null;
@@ -777,6 +792,7 @@ async function uploadPdf(buffer, fileName) {
         eTag: text(item.eTag),
         user: cfg.user,
         folder: target.folder,
+        driveId: target.driveId,
         attempts: attempt
       };
     } catch (error) {
@@ -823,4 +839,78 @@ async function uploadPdf(buffer, fileName) {
   throw lastError || Object.assign(new Error('Microsoft-365-POD-Sicherung ist fehlgeschlagen.'), { code: 'GRAPH_UPLOAD_FAILED', statusCode: 502 });
 }
 
-module.exports = { readiness, config, uploadPdf, safeFileName, normalizeFolder };
+// RC1685: Graph /content normally answers 302 with a short-lived
+// preauthenticated SharePoint URL. Never forward the Graph bearer token.
+function approvedGraphDownload(location, base) {
+  let url;
+  try { url = new URL(location, base); } catch (_) { return ''; }
+  const host = url.hostname.toLowerCase();
+  const allowed = ['.sharepoint.com', '.sharepoint-df.com', '.sharepointonline.com',
+    '.blob.core.windows.net', '.1drv.com', '.onedrive.com'];
+  if (url.protocol !== 'https:' || url.username || url.password ||
+      !allowed.some(suffix => host.endsWith(suffix))) return '';
+  return url.href;
+}
+
+async function readBackBytes(token, item, expectedSize) {
+  const id = text(item && item.id);
+  const driveId = text(item && item.driveId);
+  const user = text(item && item.user);
+  if (!id || (!driveId && !user)) {
+    throw targetError('GRAPH_READBACK_TARGET_MISSING',
+      'Die Microsoft-365-POD-Datei hat keinen rücklesbaren eindeutigen Speicherort.',
+      { statusCode: 502 });
+  }
+  const resource = driveId
+    ? '/drives/' + encodeURIComponent(driveId) + '/items/' + encodeURIComponent(id) + '/content'
+    : '/users/' + encodeURIComponent(user) + '/drive/items/' + encodeURIComponent(id) + '/content';
+  const graphUrl = 'https://graph.microsoft.com/v1.0' + resource;
+  let response;
+  try {
+    response = await request('GET', graphUrl,
+      { 'Authorization': 'Bearer ' + token, 'Accept': 'application/pdf' }, null, 12000, expectedSize);
+  } catch (error) {
+    const status = Number(error && error.statusCode);
+    if (![301, 302, 303, 307, 308].includes(status)) throw error;
+    const url = approvedGraphDownload(error.responseHeaders && error.responseHeaders.location, graphUrl);
+    if (!url) throw targetError('GRAPH_READBACK_REDIRECT_REJECTED',
+      'Die Microsoft-365-POD-Rückleseadresse ist nicht vertrauenswürdig.',
+      { statusCode: 502 });
+    // IMPORTANT: redirect is an anonymous preauthenticated URL.
+    response = await request('GET', url, { 'Accept': 'application/pdf' }, null, 12000, expectedSize);
+  }
+  return response.buffer;
+}
+
+async function verifyPdf(buffer, item) {
+  if (!Buffer.isBuffer(buffer) || !buffer.length)
+    throw targetError('GRAPH_READBACK_INVALID_ORIGINAL',
+      'Die POD-Originaldatei für den Vergleich ist ungültig.', { statusCode: 502 });
+  const expectedHash = crypto.createHash('sha256').update(buffer).digest('hex');
+  let lastError;
+  // Readback may lag a successful PUT briefly. Retry GET only; NEVER repeat PUT.
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const bytes = await readBackBytes(await accessToken(false), item, buffer.length);
+      const actualHash = crypto.createHash('sha256').update(bytes).digest('hex');
+      if (bytes.length !== buffer.length || actualHash !== expectedHash)
+        throw targetError('GRAPH_POD_READBACK_HASH_MISMATCH',
+          'Die aus Microsoft 365 zurückgelesene POD-PDF stimmt nicht mit dem Original überein.',
+          { statusCode: 502 });
+      return { verified: true, hash: actualHash, size: bytes.length, verifiedAt: new Date().toISOString() };
+    } catch (error) {
+      lastError = error;
+      // A mismatched/corrupt PDF, rejected redirect or oversized download is
+      // a definitive integrity/security failure, not a transient HTTP 502.
+      const definitiveReadbackFailure = /^(?:GRAPH_POD_READBACK_HASH_MISMATCH|GRAPH_READBACK_REDIRECT_REJECTED|GRAPH_READBACK_TOO_LARGE|GRAPH_READBACK_INVALID_ORIGINAL|GRAPH_READBACK_TARGET_MISSING)$/.test(text(error && error.code));
+      if (!definitiveReadbackFailure && attempt < 2 && (isNotFound(error) || transient(error))) {
+        await sleep(350);
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw lastError;
+}
+
+module.exports = { readiness, config, uploadPdf, verifyPdf, safeFileName, normalizeFolder };

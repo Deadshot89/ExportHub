@@ -16,11 +16,11 @@ const archive=require('../api/shared/pod-archive.js');
 const originalPdf=Buffer.from('%PDF-1.7\nORIGINAL SIGNED LOADING LIST\n'+'A'.repeat(1300));
 const previousHash='b'.repeat(64);
 
-async function withArchiveStore(graphUpload,run){
+async function withArchiveStore(graphUpload,run,graphVerify){
   const previous={};
   const methods=['getRecord','readBuffer','mutateRecord','podArchiveClient','podPrefix','normalizeEnvironment','now'];
   methods.forEach(name=>previous[name]=store[name]);
-  const oldGraph={readiness:graph.readiness,uploadPdf:graph.uploadPdf};
+  const oldGraph={readiness:graph.readiness,uploadPdf:graph.uploadPdf,verifyPdf:graph.verifyPdf};
   const blobs=new Map(),steps=[];
   let record={reference:'ABC123',confirmedAt:'2026-10-27T08:00:00Z',signatureBlobName:'signature',
     podFiles:[{id:'automatic-pod-'+previousHash.slice(0,16),kind:'automatic-pod',hash:previousHash}],
@@ -44,11 +44,18 @@ async function withArchiveStore(graphUpload,run){
     store.now=()=> '2026-10-27T08:01:00.000Z';
     graph.readiness=()=>({configured:true});
     graph.uploadPdf=async(data,name)=>{steps.push('drive');return graphUpload(Buffer.from(data),name)};
+    graph.verifyPdf=async(data,receipt)=>{
+      steps.push('drive-readback');
+      if(graphVerify)return graphVerify(Buffer.from(data),receipt);
+      if(!receipt||!receipt.id)throw Object.assign(new Error('Graph item ID missing'),{code:'GRAPH_UPLOAD_RECEIPT_INVALID'});
+      return{verified:true,hash:crypto.createHash('sha256').update(data).digest('hex'),size:data.length,verifiedAt:store.now()};
+    };
     return await run({blobs,steps,getRecord:()=>record});
   }finally{
     methods.forEach(name=>store[name]=previous[name]);
     graph.readiness=oldGraph.readiness;
     graph.uploadPdf=oldGraph.uploadPdf;
+    graph.verifyPdf=oldGraph.verifyPdf;
   }
 }
 
@@ -65,7 +72,7 @@ test('P0: client-supplied signed original is archived before the identical PDF i
     assert.equal(backup.driveItemId,'new-drive-item');
     assert.equal(backup.archiveSaved,true);
     assert.equal(backup.hash,crypto.createHash('sha256').update(originalPdf).digest('hex'));
-    assert.equal(steps.at(-1),'drive','SharePoint copy must follow verified Azure archive');
+    assert.deepEqual(steps.slice(-2),['drive','drive-readback'],'verified Graph readback must follow immutable Azure archive and upload');
     assert.ok(steps.some(step=>step.includes('rc1220/')),'immutable archive has to be written first');
     const archived=blobs.get(backup.archiveBlobName);
     assert.deepEqual(archived,originalPdf,'saved PDF must be the supplied signed original');
@@ -208,4 +215,33 @@ test('RC1683: incomplete Graph receipt must not persist a SharePoint success',as
     assert.equal(result.record.podBackup.driveItemId,'');
     assert.match(result.record.podBackup.driveLastError,/GRAPH_UPLOAD_RECEIPT_INVALID/);
   });
+});
+
+test('RC1685: different readback PDF never persists SharePoint success',async()=>{
+  await withArchiveStore(
+    async(bytes,name)=>({id:'graph-present',name,size:bytes.length}),
+    async({getRecord,steps})=>{
+      const result=await archive.saveSuppliedPod('a'.repeat(64),'testservice',getRecord(),originalPdf,
+        'POD_ABC123_Ladeliste_unterschrieben.pdf',{renderLayout:'RC1595'});
+      assert.equal(result.archiveSaved,true,'Azure keeps immutable original despite Graph mismatch');
+      assert.equal(result.driveSaved,false,'readback hash mismatch must fail closed');
+      assert.equal(result.record.podBackup.driveSaved,false);
+      assert.equal(result.record.podBackup.driveItemId,'');
+      assert.equal(result.record.podBackup.driveVerifiedHash,'');
+      assert.match(result.record.podBackup.driveLastError,/GRAPH_POD_READBACK_HASH_MISMATCH/);
+      assert.deepEqual(steps.slice(-2),['drive','drive-readback']);
+    },
+    async()=>{throw Object.assign(new Error('remote file SHA differs'),{code:'GRAPH_POD_READBACK_HASH_MISMATCH'})}
+  );
+});
+
+test('RC1685: verified SharePoint POD records the exact SHA-256 of the supplied original',async()=>{
+  await withArchiveStore(async(bytes,name)=>({id:'verified-remote',name,size:bytes.length}),
+    async({getRecord})=>{
+      const result=await archive.saveSuppliedPod('a'.repeat(64),'testservice',getRecord(),originalPdf,
+        'POD_ABC123_Ladeliste_unterschrieben.pdf',{renderLayout:'RC1595'});
+      assert.equal(result.driveSaved,true);
+      assert.equal(result.record.podBackup.driveVerifiedHash,crypto.createHash('sha256').update(originalPdf).digest('hex'));
+      assert.equal(result.record.podBackup.driveVerifiedAt,'2026-10-27T08:01:00.000Z');
+    });
 });
