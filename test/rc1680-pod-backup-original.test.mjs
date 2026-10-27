@@ -50,7 +50,7 @@ async function withArchiveStore(graphUpload,run,graphVerify){
       if(!receipt||!receipt.id)throw Object.assign(new Error('Graph item ID missing'),{code:'GRAPH_UPLOAD_RECEIPT_INVALID'});
       return{verified:true,hash:crypto.createHash('sha256').update(data).digest('hex'),size:data.length,verifiedAt:store.now()};
     };
-    return await run({blobs,steps,getRecord:()=>record});
+    return await run({blobs,steps,getRecord:()=>record,setRecord:next=>{record=next}});
   }finally{
     methods.forEach(name=>store[name]=previous[name]);
     graph.readiness=oldGraph.readiness;
@@ -112,6 +112,19 @@ test('P0: missing primary POD is copied to SharePoint from hash-verified immutab
     assert.equal(retried.driveSaved,true);
     assert.equal(retried.record.podBackup.driveItemId,'recovered-drive');
     assert.deepEqual(blobs.get(retried.record.podBackup.archiveBlobName),originalPdf);
+  });
+});
+
+test('RC1694 P0: a signed POD without a stored blob reference fails closed instead of generating another loading list',async()=>{
+  await withArchiveStore(async()=>{throw new Error('Graph upload must not run')},async({getRecord,setRecord,steps})=>{
+    const record=getRecord();
+    record.podFiles=[{id:'SIGNED-UNLINKED',kind:'automatic-pod',source:'pickup-client-supplied',
+      hash:crypto.createHash('sha256').update(originalPdf).digest('hex'),size:originalPdf.length}];
+    setRecord(record);
+    await assert.rejects(()=>archive.retryArchiveBackup('a'.repeat(64),'testservice'),
+      error=>error&&error.code==='POD_FILE_NOT_STORED'&&error.statusCode===404);
+    assert.deepEqual(steps,[], 'no Azure or Microsoft Graph write may happen for an unlinked signed POD');
+    assert.equal(getRecord().podFiles[0].id,'SIGNED-UNLINKED','original POD entry must be preserved');
   });
 });
 
