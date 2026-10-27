@@ -209,6 +209,29 @@ test('RC1272: erfolgreicher Foto-Upload bestätigt die Verknüpfung zur Sendung'
   assert.equal(context.res.body.version,'RC1272');
 });
 
+test('RC1259: Foto-Download findet die gespeicherte Foto-Kopie in savedShipments auch bei veraltetem shipments-Eintrag',async()=>{
+  const photo={id:'container-loaded',kind:'loaded',name:'01_Geladener_Container_ABC123.jpg',blobName:'testservice/ABC123/Containerdokumentation/01_Geladener_Container_ABC123.jpg'};
+  const handler=loadWithMocks('api/container-document/index.js',{
+    '../shared/fast-auth-store':{
+      async validateSession(){return{user:{rights:{shipmentoverview:{read:true}}},team:{state:{
+        shipments:[{id:'S1',reference:'ABC123',containerPhotos:[]}],
+        savedShipments:[{id:'S1',reference:'ABC123',containerPhotos:[photo]}]
+      }}}},
+      isAdmin(){return false},
+      error(code,message,status){const e=new Error(message);e.code=code;e.status=status;return e}
+    },
+    '../shared/pickup-store':{json(status,body){return{status,body}}},
+    '../shared/container-document-store':{
+      async readPhoto(selected){assert.equal(selected,photo);return{buffer:Buffer.from('image-data'),contentType:'image/jpeg'}}
+    }
+  });
+  const context={log:{error(){}},res:null};
+  await handler(context,{method:'GET',query:{reference:'ABC123',file:'container-loaded'}});
+  assert.equal(context.res.status,200);
+  assert.equal(context.res.headers['Content-Type'],'image/jpeg');
+  assert.equal(context.res.body.toString(),'image-data');
+});
+
 test('RC1259: neue Browser- und Serverdateien sind syntaktisch prüfbar',()=>{
   for(const file of [
     'assets/rc1014-shipment-overview.js',
