@@ -61,3 +61,19 @@ test('P0 RC1682: archive exact REF remains discoverable after shipment was archi
     archivedShipments:[{id:'ARCHIVED-ID',ref:'9WX5K6',deliveryFiles:[blob('SIDE_9WX5K6.pdf','9')]}]};
   assert.deepEqual(documents(state).map(d=>d.name),['SIDE_9WX5K6.pdf']);
 });
+
+
+test('P0 RC1682: stale selectedShipmentRef cannot override an opened different ID',()=>{
+  const state={view:'shipmentview',shipmentViewId:'CURRENT',selectedShipmentRef:'9WX5K6',
+    shipments:[
+      {id:'CURRENT',ref:'OTHER1',deliveryFiles:[blob('CURRENT.pdf','a')]},
+      {id:'OLD',ref:'9WX5K6',deliveryFiles:[blob('OLD_SECRET.pdf','b')]}
+    ]};
+  assert.deepEqual(documents(state),[],'conflicting ID and REF must never expose documents');
+});
+
+test('P0 RC1682: refreshed technical ID can still recover same stable selected REF',()=>{
+  const state={view:'shipmentview',shipmentViewId:'OLD-ID',selectedShipmentRef:'9WX5K6',
+    shipments:[{id:'NEW-ID',ref:'9WX5K6',deliveryFiles:[blob('SIDE_9WX5K6.pdf','c')]}]};
+  assert.deepEqual(documents(state).map(x=>x.name),['SIDE_9WX5K6.pdf']);
+});
