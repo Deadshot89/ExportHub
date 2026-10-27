@@ -178,6 +178,35 @@ export async function runPackNotificationLiveFlow(browser,testInfo,token){
       });
       expect(draft.packNotificationId).toBeTruthy();
       expect(draft.deliveryFiles.some(file=>file.source==='pack_notification'&&file.customerAvisVisible===false&&file.name===resultA.canonicalName&&file.storage==='blob'&&file.blobName===originalPdf.blobName)).toBe(true);
+      // RC1679: A matching filename/Blob pointer is not a working attachment.
+      // Read the exact PDF from the new shipment draft, using the production
+      // authenticated document reader, BEFORE any shipment save.
+      const shipmentAttachment=await page.evaluate(async({notificationId,blobName})=>{
+        const state=window.__EXPORTHUB_GET_STATE__?.()||{},sh=state.shipment||{};
+        if(sh.packNotificationId!==notificationId)return{available:false,reason:'pack-link-mismatch'};
+        const doc=(sh.deliveryFiles||[]).find(file=>file.blobName===blobName);
+        const reader=window.ExportHUBDocumentBlob1059;
+        if(!doc||!reader?.isBlobDocument?.(doc))return{available:false,reason:'attachment-not-fetchable'};
+        const bytes=await reader.fetchBytes(doc);
+        return{
+          available:true,name:doc.name,storage:doc.storage,blobName:doc.blobName,
+          size:bytes.length,signature:String.fromCharCode(...bytes.slice(0,5)),
+          privateToCustomer:doc.customerAvisVisible===false&&doc.customerVisible===false
+        };
+      },{notificationId:draft.packNotificationId,blobName:originalPdf.blobName});
+      expect(shipmentAttachment.available,'Sendungserstellung needs an actual retrievable original Lieferschein, not just a name').toBe(true);
+      expect(shipmentAttachment.name).toBe(resultA.canonicalName);
+      expect(shipmentAttachment.storage).toBe('blob');
+      expect(shipmentAttachment.blobName).toBe(originalPdf.blobName);
+      expect(shipmentAttachment.signature).toBe('%PDF-');
+      expect(shipmentAttachment.size).toBe(originalPdf.count);
+      expect(shipmentAttachment.privateToCustomer).toBe(true);
+      // Not only in memory: the creation form must actually show the renamed
+      // original as a recognizable document to the ExportHUB operator.
+      const creationDocuments=page.locator('#rc363BlockDocuments');
+      await expect(creationDocuments).toBeVisible({timeout:15_000});
+      await expect(creationDocuments.getByText(resultA.canonicalName,{exact:false}).first(),
+        'Renamed original Lieferschein must be visible as an attachment in Sendungserstellung').toBeVisible({timeout:15_000});
 
       // RC1670: The handoff is not proven by an unsaved draft. Exercise the
       // canonical shipment save, reload the app, read server state and fetch the
@@ -283,9 +312,9 @@ export async function runPackNotificationLiveFlow(browser,testInfo,token){
             stateSaveGenerationPending:Number(clean.changeGeneration||0)>Number(clean.lastSavedGeneration||0)
           };
         },{ref:shipmentRef,notificationId:draft.packNotificationId,blobName:originalPdf.blobName});
-        // A real save event can arrive between the last timed-out poll and this
-        // diagnostic snapshot. Continue only if that exact reference is now
-        // confirmed; the Azure reload and original-PDF readback below stay mandatory.
+        // Preserve main's RC1499 boundary fix: the exact REF save event may
+        // arrive between the timeout and the diagnostic snapshot. Never treat
+        // an unconfirmed event as saved; the Azure PDF readback remains required.
         if(!diagnosis.savedEventForRef)
           throw new Error('RC1678: save confirmation missing; safe diagnostics '+JSON.stringify(diagnosis),{cause:error});
       }
