@@ -258,7 +258,33 @@ export async function runPackNotificationLiveFlow(browser,testInfo,token){
       await page.evaluate(()=>{window.__RC1670_SAVED_EVENTS__=[];window.addEventListener('exporthub:shipment-saved',e=>window.__RC1670_SAVED_EVENTS__.push(e?.detail||{}));});
       await expect(page.locator('#rc363SaveShipment')).toBeEnabled();
       await page.locator('#rc363SaveShipment').click();
-      await expect.poll(()=>page.evaluate(ref=>(window.__RC1670_SAVED_EVENTS__||[]).some(e=>String(e.reference||e.ref||'').toUpperCase()===ref)),{timeout:40_000}).toBe(true);
+      // RC1678: retain the strict confirmation requirement. If it fails,
+      // report safe booleans/counters only, not access tokens or document bytes.
+      try{
+        await expect.poll(()=>page.evaluate(ref=>(window.__RC1670_SAVED_EVENTS__||[]).some(e=>String(e.reference||e.ref||'').toUpperCase()===ref)),{timeout:40_000}).toBe(true);
+      }catch(error){
+        const diagnosis=await page.evaluate(({ref,notificationId,blobName})=>{
+          const s=window.__EXPORTHUB_GET_STATE__?.()||{},events=window.__RC1670_SAVED_EVENTS__||[];
+          const rows=[...(s.shipments||[]),...(s.savedShipments||[]),...(s.sharedShipments||[])];
+          const saved=rows.find(sh=>String(sh?.ref||sh?.reference||'').toUpperCase()===ref&&sh?.packNotificationId===notificationId);
+          const current=s.shipment||{};
+          const clean=window.ExportHUBClean?.runtime||{};
+          return{
+            savedEventCount:events.length,
+            savedEventForRef:events.some(e=>String(e?.reference||e?.ref||'').toUpperCase()===ref),
+            currentReferenceMatches:String(current.ref||current.reference||'').toUpperCase()===ref,
+            matchingShipmentInLocalState:!!saved,
+            matchingOriginalBlobInLocalState:!!(saved?.deliveryFiles||[]).some(file=>file.blobName===blobName),
+            currentPackLinkMatches:current.packNotificationId===notificationId,
+            currentDestinationPresent:!!(current.locationId||current.selectedLocationId||current.siteId||current.destinationId),
+            invalidInputCount:document.querySelectorAll('input:invalid,select:invalid,textarea:invalid').length,
+            visibleAlertCount:Array.from(document.querySelectorAll('[role="alert"]')).filter(node=>!!(node.offsetWidth||node.offsetHeight||node.getClientRects().length)).length,
+            stateSaveInProgress:!!clean.saving,
+            stateSaveGenerationPending:Number(clean.changeGeneration||0)>Number(clean.lastSavedGeneration||0)
+          };
+        },{ref:shipmentRef,notificationId:draft.packNotificationId,blobName:originalPdf.blobName});
+        throw new Error('RC1678: save confirmation missing; safe diagnostics '+JSON.stringify(diagnosis),{cause:error});
+      }
       await expect.poll(()=>page.evaluate(({ref,notificationId,blobName})=>{
         const s=window.__EXPORTHUB_GET_STATE__?.()||{};
         const all=[...(s.shipments||[]),...(s.savedShipments||[]),...(s.sharedShipments||[])];
