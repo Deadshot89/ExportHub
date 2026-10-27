@@ -283,7 +283,11 @@ export async function runPackNotificationLiveFlow(browser,testInfo,token){
             stateSaveGenerationPending:Number(clean.changeGeneration||0)>Number(clean.lastSavedGeneration||0)
           };
         },{ref:shipmentRef,notificationId:draft.packNotificationId,blobName:originalPdf.blobName});
-        throw new Error('RC1678: save confirmation missing; safe diagnostics '+JSON.stringify(diagnosis),{cause:error});
+        // A real save event can arrive between the last timed-out poll and this
+        // diagnostic snapshot. Continue only if that exact reference is now
+        // confirmed; the Azure reload and original-PDF readback below stay mandatory.
+        if(!diagnosis.savedEventForRef)
+          throw new Error('RC1678: save confirmation missing; safe diagnostics '+JSON.stringify(diagnosis),{cause:error});
       }
       await expect.poll(()=>page.evaluate(({ref,notificationId,blobName})=>{
         const s=window.__EXPORTHUB_GET_STATE__?.()||{};
