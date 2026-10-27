@@ -411,6 +411,9 @@
     if(typeof root.addEventListener!=='function'||root.__packShipmentBridgeInstalled)return false;root.__packShipmentBridgeInstalled=true;
     root.addEventListener('exporthub:pack-create-shipment',event=>begin(event&&event.detail&&event.detail.notificationId));
     root.addEventListener('exporthub:shipment-saved',onShipmentSaved);
+    // Native customer/location re-render may replace the documents block after
+    // the initial fill. Recreate only the same owned Pack list when that occurs.
+    root.addEventListener('exporthub:rendered',()=>{if(pending&&pending.prefill)renderPendingLieferscheine(pending.prefill);});
     ['exporthub:shipment-updated','exporthub:state-loaded','exporthub:sync'].forEach(name=>root.addEventListener(name,scheduleSync));
     scheduleSync();return true;
   }
