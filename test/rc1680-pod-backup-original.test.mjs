@@ -7,7 +7,7 @@ import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
 // Replace the external Azure transport at the module boundary. The real POD
 // archive code and real SHA-256 checks still execute against in-memory blobs.
-const store={POD_BACKUP_CONTAINER:'exporthub-pod-backup'};
+const store={POD_BACKUP_CONTAINER:'exporthub-pod-backup',err:(code,message,status=400)=>Object.assign(new Error(message),{code,status})};
 const storeModule=require.resolve('../api/shared/pickup-store.js');
 require.cache[storeModule]={id:storeModule,filename:storeModule,loaded:true,exports:store};
 const graph=require('../api/shared/graph-drive.js');
@@ -122,7 +122,7 @@ test('RC1694 P0: a signed POD without a stored blob reference fails closed inste
       hash:crypto.createHash('sha256').update(originalPdf).digest('hex'),size:originalPdf.length}];
     setRecord(record);
     await assert.rejects(()=>archive.retryArchiveBackup('a'.repeat(64),'testservice'),
-      error=>error&&error.code==='POD_FILE_NOT_STORED'&&error.statusCode===404);
+      error=>error&&error.code==='POD_FILE_NOT_STORED'&&error.status===404);
     assert.deepEqual(steps,[], 'no Azure or Microsoft Graph write may happen for an unlinked signed POD');
     assert.equal(getRecord().podFiles[0].id,'SIGNED-UNLINKED','original POD entry must be preserved');
   });
