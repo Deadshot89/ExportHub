@@ -5,7 +5,7 @@ import fs from 'node:fs';
 const archive=fs.readFileSync('api/shared/pod-archive.js','utf8');
 
 test('RC1395: gültiges Azure-Archiv mit fehlender Drive-Kopie bleibt fachlich gesichert und wird nur als optionales Backfill markiert',()=>{
-  assert.match(archive,/const driveBackfillRequired = m365Enabled\(\) && graphDrive\.readiness\(\)\.configured && backup\.driveSaved !== true/);
+  assert.match(archive,/const driveBackfillRequired = m365Enabled\(\) && graphDrive\.readiness\(\)\.configured && !confirmedDriveBackup\(backup\)/);
   assert.match(archive,/if \(!driveBackfillRequired\) continue;/);
   assert.match(archive,/driveOnly = true;/);
   assert.match(archive,/if \(!integrity\.ok\) \{[\s\S]*?if \(!integrity\.repairable\)/);
@@ -21,7 +21,7 @@ test('RC1395: Drive-Backfill bleibt Kandidat, verdrängt aber keine erforderlich
 
 test('RC1395: fehlgeschlagene optionale Drive-Kopie bleibt sichtbar, blockiert aber den erforderlichen POD-Backupstatus nicht',()=>{
   assert.match(archive,/const driveRequired = m365Enabled\(\) && graphDrive\.readiness\(\)\.configured/);
-  assert.match(archive,/const driveWasSaved = backup\.driveSaved === true \|\| result && result\.driveSaved === true/);
+  assert.match(archive,/const driveWasSaved = confirmedDriveBackup\(backup\) \|\| \(result && result\.driveSaved === true && !!text\(backup\.driveItemId\)\)/);
   assert.match(archive,/if \(backup\.archiveSaved === true\)/);
   assert.match(archive,/if \(!candidate\.driveOnly\) saved\.push/);
   assert.match(archive,/drivePending\.push\(\{/);
