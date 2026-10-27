@@ -900,7 +900,10 @@ async function verifyPdf(buffer, item) {
       return { verified: true, hash: actualHash, size: bytes.length, verifiedAt: new Date().toISOString() };
     } catch (error) {
       lastError = error;
-      if (attempt < 2 && (isNotFound(error) || transient(error))) {
+      // A mismatched/corrupt PDF, rejected redirect or oversized download is
+      // a definitive integrity/security failure, not a transient HTTP 502.
+      const definitiveReadbackFailure = /^(?:GRAPH_POD_READBACK_HASH_MISMATCH|GRAPH_READBACK_REDIRECT_REJECTED|GRAPH_READBACK_TOO_LARGE|GRAPH_READBACK_INVALID_ORIGINAL|GRAPH_READBACK_TARGET_MISSING)$/.test(text(error && error.code));
+      if (!definitiveReadbackFailure && attempt < 2 && (isNotFound(error) || transient(error))) {
         await sleep(350);
         continue;
       }
