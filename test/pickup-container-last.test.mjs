@@ -92,9 +92,22 @@ test('Sendungsansicht shipmentview zeigt gespeicherte Containerfotos als Vorscha
   const script=fs.readFileSync(path.join(ROOT,'assets/rc1014-shipment-overview.js'),'utf8');
   class Element{
     constructor(tag){this.tag=tag;this.children=[];this.attributes={};this.classList={add(){}}}
-    appendChild(child){this.children.push(child);return child}
+    appendChild(child){child.parentNode=this;this.children.push(child);return child}
     setAttribute(name,value){this.attributes[name]=value}
-    querySelector(){return null}
+    getAttribute(name){return this.attributes[name]||null}
+    querySelector(selector){
+      const key=selector.match(/^\[([^\]]+)\]$/)?.[1];
+      if(!key)return null;
+      const visit=node=>{
+        for(const child of node.children){
+          if(Object.hasOwn(child.attributes,key))return child;
+          const found=visit(child);if(found)return found;
+        }
+        return null;
+      };
+      return visit(this);
+    }
+    remove(){if(!this.parentNode)return;this.parentNode.children=this.parentNode.children.filter(child=>child!==this);this.parentNode=null}
     addEventListener(){}
   }
   const host=new Element('section');host.insertBefore=child=>host.appendChild(child);
@@ -106,7 +119,7 @@ test('Sendungsansicht shipmentview zeigt gespeicherte Containerfotos als Vorscha
     {id:'container-sealed',kind:'sealed',label:'Versiegelt',name:'03_Versiegelt_ABC123.jpg',referenceFolderSaved:true}
   ]};
   const context={
-    document:{body:{getAttribute(name){return name==='data-exporthub-view'?'shipmentview':''}},getElementById(id){return id==='rc786ReferenceFilesCard'?docsCard:id==='rc363BlockShipment'?hiddenEditHost:null},querySelector(){return null},createElement:tag=>new Element(tag)},
+    document:{body:{getAttribute(name){return name==='data-exporthub-view'?'shipmentview':''}},getElementById(id){return id==='rc786ReferenceFilesCard'?docsCard:id==='rc363BlockShipment'?hiddenEditHost:null},querySelector:selector=>host.querySelector(selector),createElement:tag=>new Element(tag)},
     __EXPORTHUB_GET_STATE__:()=>({view:'shipmentview',shipmentViewId:'S1',shipments:[shipment]}),
     setTimeout(){return 1},console,
   };
@@ -117,4 +130,7 @@ test('Sendungsansicht shipmentview zeigt gespeicherte Containerfotos als Vorscha
   const photos=[];function walk(node){if(node.tag==='img')photos.push(node);for(const child of node.children||[])walk(child)}walk(panel);
   assert.deepEqual(photos.map(img=>img.attributes['data-rc1259-photo-id']),['container-loaded','container-number','container-sealed']);
   assert.equal(context.ExportHUBRC1014ShipmentOverview.enhanceShipmentConfig(),false,'Nur-Lesen-Sendungsansicht darf auch bei altem versteckten Formular keinen Container-Editor öffnen');
+  assert.equal(context.ExportHUBRC1014ShipmentOverview.enhanceShipmentDetailedView(),true);
+  assert.equal(host.children[0],panel,'Gleiche Containerdaten dürfen die Foto-Vorschau nicht entfernen und neu erzeugen');
+  assert.equal(host.children.length,1,'Die unveränderte Galerie darf nicht doppelt eingehängt werden');
 });
