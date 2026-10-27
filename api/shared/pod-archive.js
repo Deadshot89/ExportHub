@@ -421,6 +421,8 @@ async function saveAzurePod(accessKey, environment, record, pdf, requestedName, 
     driveSaved: false,
     driveSavedAt: '',
     driveItemId: '',
+    driveVerifiedAt: '',
+    driveVerifiedHash: '',
     webUrl: '',
     driveLastError: '',
     driveProviderCode: '',
@@ -523,6 +525,17 @@ async function copyToDrive(accessKey, environment, record, pdf, file) {
   const attemptAt = store.now();
   try {
     const result = await graphDrive.uploadPdf(pdf, file && file.name || fileNameFor(record));
+    // RC1685: metadata is not a proof of the stored PDF bytes. Before marking
+    // SharePoint saved, GET the exact Graph item and compare SHA-256 of original.
+    const verified = await graphDrive.verifyPdf(pdf, result);
+    const expectedHash = crypto.createHash('sha256').update(pdf).digest('hex');
+    if (!verified || verified.verified !== true ||
+        verified.hash !== expectedHash || verified.size !== pdf.length) {
+      throw Object.assign(
+        new Error('Die zurückgelesene Microsoft-365-POD-PDF wurde nicht vollständig bestätigt.'),
+        { code: 'GRAPH_POD_READBACK_UNVERIFIED' }
+      );
+    }
     // Final state mutation must independently reject unverified Graph receipts.
     // Never persist driveSaved=true without a durable remote file identifier.
     const itemId = text(result && result.id);
@@ -541,6 +554,8 @@ async function copyToDrive(accessKey, environment, record, pdf, file) {
       lastAttemptAt: attemptAt,
       attempts: Math.max(0, Number(record && record.podBackup && record.podBackup.attempts) || 0) + 1,
       driveItemId: itemId,
+      driveVerifiedAt: verified.verifiedAt,
+      driveVerifiedHash: verified.hash,
       webUrl: result.webUrl || '',
       fileName: result.name || (file && file.name) || fileNameFor(record),
       driveProviderCode: '',
@@ -555,6 +570,8 @@ async function copyToDrive(accessKey, environment, record, pdf, file) {
       driveSaved: false,
       driveSavedAt: '',
       driveItemId: '',
+      driveVerifiedAt: '',
+      driveVerifiedHash: '',
       webUrl: '',
       lastAttemptAt: attemptAt,
       attempts: Math.max(0, Number(record && record.podBackup && record.podBackup.attempts) || 0) + 1,
