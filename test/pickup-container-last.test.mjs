@@ -21,7 +21,7 @@ test('QR-Abholung zeigt Containerfotos nach Fahrerbestätigung und unmittelbar v
   assert.ok(position('stepConfirm')<position('stepContainer'));
 });
 
-test('Nach Colli-Prüfung öffnet sich der Fahrerbereich trotz noch fehlender Pflichtfotos',async()=>{
+async function pickupHarness(photoUploadResponse){
   const script=page.match(/<script>\s*([\s\S]*?)<\/script>/)?.[1];
   assert.ok(script,'QR-Abholung benötigt ausführbaren Seitencode');
   const elements=new Map(),events=new Map();
@@ -37,17 +37,27 @@ test('Nach Colli-Prüfung öffnet sich der Fahrerbereich trotz noch fehlender Pf
     }
     return elements.get(id);
   }
-  const document={getElementById:el};
+  const document={getElementById:el,createElement(name){
+    if(name==='canvas')return{width:0,height:0,getContext(){return{fillRect(){},drawImage(){}}},toDataURL(){return'data:image/jpeg;base64,'+'A'.repeat(2048)}};
+    return el(name);
+  }};
   const status={reference:'ABC123',shipmentId:'S1',customer:'Testkunde',address:'Teststraße 1',expectedColliCount:3,remainingPickupCollis:3,containerDocumentationRequired:true,containerPhotos:[]};
   const context={
     document,URL,location:{href:'https://exporthub360.com/pickup.html?pickup=abcdef123456',hostname:'exporthub360.com'},
-    window:{},Image:class{},FileReader:class{},
-    fetch:async()=>({ok:true,text:async()=>JSON.stringify(status)}),
+    window:{},
+    Image:class{constructor(){this.naturalWidth=800;this.naturalHeight=600}set src(_){this.onload?.()}},
+    FileReader:class{readAsDataURL(){this.result='data:image/jpeg;base64,'+'A'.repeat(2048);this.onload?.()}},
+    fetch:async url=>({ok:true,text:async()=>JSON.stringify(String(url).includes('pickup-container-document')?photoUploadResponse:status)}),
     setTimeout(callback){callback();return 1},clearTimeout(){},
     console,
   };
   vm.runInNewContext(script,context);
   await new Promise(resolve=>setImmediate(resolve));
+  return{el,events};
+}
+
+test('Nach Colli-Prüfung öffnet sich der Fahrerbereich trotz noch fehlender Pflichtfotos',async()=>{
+  const{el,events}=await pickupHarness();
   assert.equal(el('driverStep').hidden,true,'Fahrer ist vor dem Colli-Check gesperrt');
   el('colli').value='3';
   const check=events.get('checkColli:click');assert.equal(typeof check,'function');
@@ -55,4 +65,25 @@ test('Nach Colli-Prüfung öffnet sich der Fahrerbereich trotz noch fehlender Pf
   assert.equal(el('driverStep').hidden,false,'Fahrer muss direkt nach korrekter Colli-Prüfung zugänglich sein');
   assert.equal(el('containerSection').hidden,false,'Fotos sind am Ende des Formulars zugänglich');
   assert.equal(el('confirm').hidden,false,'Abschlussknopf existiert nach dem Containerabschnitt');
+});
+
+test('QR-Foto meldet keinen Speichererfolg, wenn die Ref-Ordner-Kopie nicht bestätigt ist',async()=>{
+  const{el,events}=await pickupHarness({ok:true,storedUnderReference:true,linkedToShipment:true,photo:{id:'container-loaded',kind:'loaded',referenceFolderSaved:false},containerPhotos:[{id:'container-loaded',kind:'loaded'}]});
+  el('colli').value='3';events.get('checkColli:click')();
+  el('containerPhotoLoaded').files=[{name:'container.jpg'}];
+  events.get('containerPhotoLoaded:change')();
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.match(el('containerResult').textContent,/nicht vollständig bestätigt|nicht bestätigt/i);
+  assert.doesNotMatch(el('containerResult').textContent,/✓ Foto wurde im Referenzordner/);
+});
+
+test('QR-Foto bestätigt Speichererfolg bei Ref-Ordner-Ablage und Sendungsverknüpfung',async()=>{
+  const photo={id:'container-loaded',kind:'loaded',referenceFolderSaved:true};
+  const{el,events}=await pickupHarness({ok:true,storedUnderReference:true,linkedToShipment:true,photo,containerPhotos:[photo]});
+  el('colli').value='3';events.get('checkColli:click')();
+  el('containerPhotoLoaded').files=[{name:'container.jpg'}];
+  events.get('containerPhotoLoaded:change')();
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.match(el('containerResult').textContent,/✓ Foto wurde im Referenzordner/);
+  assert.match(el('containerStateLoaded').textContent,/✓ Gespeichert/);
 });

@@ -338,6 +338,9 @@ function uploadContainerPhoto(kind,input,previewId,stateId){
     if(stateEl)stateEl.textContent='Foto wird gespeichert …';
     return request('pickup-container-document',{method:'POST',body:JSON.stringify({token:token,kind:kind,dataUrl:dataUrl,environment:env}),timeout:90000})
   }).then(function(data){
+    if(!data||data.storedUnderReference!==true||data.linkedToShipment!==true||!data.photo||data.photo.referenceFolderSaved!==true){
+      throw new Error('Die Speicherung im Ref-Ordner und die Verknüpfung zur Sendung wurden nicht vollständig bestätigt. Bitte Foto erneut hochladen.');
+    }
     containerPhotos=containerPhotoMap(data&&data.containerPhotos||[]);
     renderContainerState();
     if(result)result.textContent='✓ Foto wurde im Referenzordner der Sendung gespeichert.';
