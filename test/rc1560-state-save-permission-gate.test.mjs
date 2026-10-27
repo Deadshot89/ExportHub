@@ -58,6 +58,21 @@ test('RC1560: a user without any edit or scoped read permission stays blocked',(
   assert.equal(apiEntryGate(viewer()),false);
 });
 
+test('RC1692: state-save entry check recognizes the same edit-right formats as the authoritative module guard',()=>{
+  const accessEditor=viewer({customers:{access:'edit',visible:true}});
+  const upperEditor=viewer({customers:{level:'EDIT',visible:true}});
+  const readOnly=viewer({customers:{access:'view',visible:true}});
+  const explicitDeny=viewer({customers:{edit:false,admin:false,access:'read'}});
+  for(const user of [accessEditor,upperEditor]){
+    assert.equal(guard.canEditModule(user,'customers'),true);
+    assert.equal(apiEntryGate(user),true,'valid edit rights must not be rejected before secureMerge');
+  }
+  for(const user of [readOnly,explicitDeny]){
+    assert.equal(guard.canEditModule(user,'customers'),false);
+    assert.equal(apiEntryGate(user),false,'no edit or scoped self-service permission');
+  }
+});
+
 test('RC1560: read-only SOP learner can save own learning progress',()=>{
   const user=viewer({sop:right('view')});
   assert.equal(apiEntryGate(user),true);
