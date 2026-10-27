@@ -959,15 +959,19 @@ async function diagnoseTarget() {
     } catch (error) {
       failure('user-default-drive', error);
     }
-    const first = candidateFolders(cfg.folder)[0];
-    if (first) {
+    // RC1688: the actual fallback uploader tries *all* normalized path
+    // variants (with and without "Documents"). A single failed first path
+    // is NOT proof of a missing folder. Probe each variant without uploads.
+    const candidates = candidateFolders(cfg.folder).slice(0, 3);
+    for (let index = 0; index < candidates.length; index++) {
+      const stage = index === 0 ? 'user-folder-path' : 'user-folder-path-alternative-' + (index + 1);
       try {
         const folder = await graphGet(token, '/users/' + encodeURIComponent(cfg.user) +
-          '/drive/root:/' + encodedPath(first) + '?$select=id,folder,parentReference');
-        if (text(folder.body && folder.body.id) && folder.body.folder) success('user-folder-path');
-        else failure('user-folder-path', { code: 'GRAPH_FOLDER_NOT_A_FOLDER', statusCode: 409 });
+          '/drive/root:/' + encodedPath(candidates[index]) + '?$select=id,folder,parentReference');
+        if (text(folder.body && folder.body.id) && folder.body.folder) success(stage);
+        else failure(stage, { code: 'GRAPH_FOLDER_NOT_A_FOLDER', statusCode: 409 });
       } catch (error) {
-        failure('user-folder-path', error);
+        failure(stage, error);
       }
     }
   }

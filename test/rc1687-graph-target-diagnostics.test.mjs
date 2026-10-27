@@ -127,3 +127,45 @@ test('RC1687: OIDC gate precedes diagnostics; daily probes run only in authorize
   assert.match(workflow,/github\.event\.schedule == '17 2 \* \* \*'/);
   assert.match(workflow,/if: \$\{\{ false \}\}/);
 });
+
+test('RC1688: alternate Documents path is probed even when first normalized folder returns 404',async()=>{
+  const drive=fresh(false);
+  await fakeRequests((call,n)=>{
+    if(n===1)return token();
+    if(call.path.includes('/drives?$select='))return {body:{value:[]}};
+    if(call.path.includes('/drive?$select=id'))return {body:{id:'private-default-drive'}};
+    if(call.path.includes('/drive/root:/')) {
+      if(call.path.includes('/root:/Documents/'))return {
+        body:{id:'alternate-folder',folder:{childCount:0},parentReference:{driveId:'alternate-drive'}}
+      };
+      return {status:404,body:{error:{code:'itemNotFound',message:'private normalized path'}}};
+    }
+    if(call.path.includes('/drives/alternate-drive/items/alternate-folder'))return {
+      body:{id:'alternate-folder',folder:{childCount:0}}
+    };
+    throw Error('Unexpected Graph path in read-only probe: '+call.path);
+  },async calls=>{
+    const result=await drive.diagnoseTarget();
+    assert.equal(result.ok,true);
+    assert.equal(result.code,'GRAPH_DIAGNOSTIC_TARGET_READABLE');
+    assert.equal(result.checks.find(x=>x.stage==='user-folder-path').status,'not-found');
+    assert.equal(result.checks.find(x=>x.stage==='user-folder-path-alternative-2').status,'ok');
+    assert.equal(result.checks.find(x=>x.stage==='resolved-folder-read').status,'ok');
+    assert.equal(calls.filter(x=>['PUT','DELETE','PATCH'].includes(x.method)).length,0);
+    assert.equal(JSON.stringify(result).includes('private normalized path'),false);
+    assert.equal(JSON.stringify(result).includes('alternate-drive'),false);
+  });
+});
+
+test('RC1688: manual diagnostic dispatch cannot execute either mutating POD backfill step',()=>{
+  const workflow=fs.readFileSync(new URL('../.github/workflows/rc1144-pod-backup-reconcile.yml',import.meta.url),'utf8');
+  for(const name of ['Offene TESTSERVICE POD-Backups nachholen','Offene PRODUCTION POD-Backups nachholen']){
+    const start=workflow.indexOf('- name: '+name);
+    assert.ok(start>0, 'reconcile step exists: '+name);
+    const preceding=workflow.slice(start,start+440);
+    assert.match(preceding,/if: \$\{\{ github\.event_name != 'workflow_dispatch' \|\| inputs\.graphTargetDiagnostic != true \}\}/);
+  }
+  assert.ok((workflow.match(/inputs\.graphTargetDiagnostic != true/g)||[]).length===2);
+  assert.match(workflow,/graphTargetDiagnostic:[\s\S]*?type: boolean/);
+  assert.match(workflow,/if: \$\{\{ false \}\}/, 'production POD status bulk audit remains disabled');
+});
