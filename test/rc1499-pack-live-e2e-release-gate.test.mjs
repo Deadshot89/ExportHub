@@ -159,3 +159,25 @@ test('RC1679: shipment draft must fetch the genuine renamed Lieferschein Blob be
   assert.match(helper,/persisted\.signature\)\.toBe\('%PDF-'\)/,
     'post-save reload and actual original PDF readback remain mandatory');
 });
+
+
+test('RC1681: required TESTSERVICE gate downloads the real renamed PDF through the shipment UI button',()=>{
+  const helper=read(helperPath);
+  const visible=helper.indexOf("creationDocuments.getByText(resultA.canonicalName");
+  const userClick=helper.indexOf('await downloadButton.click()');
+  const save=helper.indexOf("await page.locator('#rc363SaveShipment').click()");
+  assert.ok(visible>=0&&userClick>visible&&save>userClick,
+    'warehouse operator download must happen in actual Sendungserstellung before saving');
+  assert.match(helper,/page\.waitForEvent\('download'/,
+    'browser must receive a real file download from the UI button');
+  assert.match(helper,/downloaded\.suggestedFilename\(\)\)\.toBe\(resultA\.canonicalName\)/,
+    'download filename must be canonical DNC/SIDE PDF name');
+  assert.match(helper,/downloaded\.createReadStream\(\)/,
+    'test must inspect original browser-downloaded bytes');
+  assert.match(helper,/downloadedMagic\.toString\('latin1'\)\)\.toBe\('%PDF-'\)/,
+    'original PDF magic bytes must match the real browser download');
+  assert.match(helper,/downloadedSize\)\.toBe\(originalPdf\.count\)/,
+    'browser download must contain exactly the original Pack PDF byte count');
+  assert.match(helper,/persisted\.signature\)\.toBe\('%PDF-'\)/,
+    'post-save Azure readback gate is still mandatory');
+});
