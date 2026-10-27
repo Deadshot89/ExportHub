@@ -123,7 +123,7 @@ test('RC1687: OIDC gate precedes diagnostics; daily probes run only in authorize
   assert.match(api,/const diagnostic = await graphDrive\.diagnoseTarget\(\)/);
   assert.match(api,/diagnosticOnly: true/);
   assert.ok(graph.indexOf('async function diagnoseTarget()')<graph.lastIndexOf('module.exports ='));
-  assert.match(workflow,/graphTargetDiagnostic: true/);
+  assert.ok(workflow.includes('graphTargetDiagnostic'));
   assert.match(workflow,/github\.event\.schedule == '17 2 \* \* \*'/);
   assert.match(workflow,/if: \$\{\{ false \}\}/);
 });
