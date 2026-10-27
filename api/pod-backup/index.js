@@ -69,17 +69,21 @@ module.exports = async function(context, req) {
     }
 
     const backup = record.podBackup || result.backup || {};
+    // RC1686: existing Graph item IDs without independently verified content
+    // must not be presented as a successful SharePoint backup to the browser.
+    const driveVerified = podArchive.confirmedDriveBackup(backup);
     context.res = json(200, {
       ok: true,
       saved: backup.status === 'saved',
       azureSaved: backup.azureSaved === true,
       archiveSaved: backup.archiveSaved === true,
-      driveSaved: backup.driveSaved === true,
+      driveSaved: driveVerified,
       status: backup.status || 'unknown',
       savedAt: backup.archiveSavedAt || backup.driveSavedAt || backup.azureSavedAt || store.now(),
       fileName: backup.fileName || result.file && result.file.name || podArchive.fileNameFor(record),
-      webUrl: backup.webUrl || '',
-      driveItemId: backup.driveItemId || '',
+      webUrl: driveVerified ? backup.webUrl || '' : '',
+      driveItemId: driveVerified ? backup.driveItemId || '' : '',
+      driveVerifiedAt: driveVerified ? backup.driveVerifiedAt || '' : '',
       hash: backup.hash || result.file && result.file.hash || '',
       attempts: Math.max(0, Number(backup.attempts) || 0),
       lastError: backup.lastError || '',

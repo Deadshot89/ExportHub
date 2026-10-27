@@ -21,7 +21,8 @@ test('RC1395: Drive-Backfill bleibt Kandidat, verdrängt aber keine erforderlich
 
 test('RC1395: fehlgeschlagene optionale Drive-Kopie bleibt sichtbar, blockiert aber den erforderlichen POD-Backupstatus nicht',()=>{
   assert.match(archive,/const driveRequired = m365Enabled\(\) && graphDrive\.readiness\(\)\.configured/);
-  assert.match(archive,/const driveWasSaved = confirmedDriveBackup\(backup\) \|\| \(result && result\.driveSaved === true && !!text\(backup\.driveItemId\)\)/);
+  assert.match(archive,/const driveWasSaved = confirmedDriveBackup\(backup\)/);
+  assert.doesNotMatch(archive,/const driveWasSaved = [^\n]*result && result\.driveSaved === true/);
   assert.match(archive,/if \(backup\.archiveSaved === true\)/);
   assert.match(archive,/if \(!candidate\.driveOnly\) saved\.push/);
   assert.match(archive,/drivePending\.push\(\{/);
