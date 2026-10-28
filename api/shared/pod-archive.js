@@ -721,7 +721,12 @@ async function saveSuppliedPod(accessKey, environment, record, pdf, requestedNam
     throw store.err('POD_MANUAL_UPLOAD_NOT_ORIGINAL', 'Ein manuell hochgeladener POD darf die digitale Original-Ladeliste nicht ersetzen.', 409);
   }
   const original = automaticPod(record);
-  if (original && text(original.blobName || original.storageBlobName)) {
+  if (original) {
+    // Also fail closed for historical signed POD entries without a readable
+    // blob path; such records must never be replaced by a new browser PDF.
+    if (!text(original.blobName || original.storageBlobName)) {
+      throw store.err('POD_FILE_NOT_STORED', 'Das gespeicherte unterschriebene Original hat keine gültige Blob-Referenz.', 404);
+    }
     const previousHash = text(original.hash).toLowerCase();
     const newHash = crypto.createHash('sha256').update(pdf).digest('hex');
     if (!/^[a-f0-9]{64}$/.test(previousHash) || newHash !== previousHash) {
