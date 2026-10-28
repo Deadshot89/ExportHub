@@ -269,10 +269,16 @@
   // drop deliveryFiles while leaving the visible package inputs unchanged.
   // RC1679: restore only existing, verified Pack Blob references on the same
   // explicit Pack owner; never infer ownership from a reused shipment ID.
+  function ownedPendingDraft(state,prefill){
+    const nid=q(prefill&&prefill.packNotificationId),nref=q(prefill&&prefill.packNotificationRef);
+    if(!nid||!nref)return null;
+    // Never let a stale editor snapshot hide the actual active Pack draft.
+    return [state&&state.shipment,state&&state.currentShipment,state&&state.selectedShipment]
+      .find(draft=>draft&&q(draft.packNotificationId)===nid&&q(draft.packNotificationRef)===nref)||null;
+  }
   function keepPendingDocuments(prefill){
-    const state=sharedState(),draft=state.shipment||state.currentShipment||state.selectedShipment;
-    if(!draft||!q(prefill&&prefill.packNotificationId)||!q(prefill&&prefill.packNotificationRef))return false;
-    if(q(draft.packNotificationId)!==q(prefill.packNotificationId)||q(draft.packNotificationRef)!==q(prefill.packNotificationRef))return false;
+    const state=sharedState(),draft=ownedPendingDraft(state,prefill);
+    if(!draft)return false;
     const expected=arr(prefill.deliveryFiles).filter(hasDocumentContent);
     if(!expected.length)return false;
     const merged=mergeDocuments(draft.deliveryFiles,expected);
@@ -289,11 +295,8 @@
     const section=doc.getElementById('rc363BlockDocuments');
     if(!section||typeof section.querySelector!=='function')return false;
     const previous=section.querySelector('#rc1680PackDeliveryFiles');
-    const state=sharedState(),draft=state.shipment||state.currentShipment||state.selectedShipment;
-    const owned=!!(draft&&q(prefill&&prefill.packNotificationId)&&q(prefill&&prefill.packNotificationRef)
-      &&q(draft.packNotificationId)===q(prefill.packNotificationId)
-      &&q(draft.packNotificationRef)===q(prefill.packNotificationRef));
-    const files=owned?arr(draft.deliveryFiles).filter(file=>file&&
+    const state=sharedState(),draft=ownedPendingDraft(state,prefill);
+    const files=draft?arr(draft.deliveryFiles).filter(file=>file&&
       q(file.source)==='pack_notification'&&
       q(file.packNotificationId)===q(prefill.packNotificationId)&&
       q(file.packNotificationRef)===q(prefill.packNotificationRef)&&hasDocumentContent(file)):[];
@@ -320,9 +323,8 @@
       const feedback=doc.createElement('span');feedback.setAttribute('role','status');
       const openFile=async(download)=>{
         try{
-          const currentState=sharedState(),current=currentState.shipment||currentState.currentShipment||currentState.selectedShipment;
-          if(!current||q(current.packNotificationId)!==q(prefill.packNotificationId)||
-            q(current.packNotificationRef)!==q(prefill.packNotificationRef))throw Error('Pack ownership changed');
+          const currentState=sharedState(),current=ownedPendingDraft(currentState,prefill);
+          if(!current)throw Error('Pack ownership changed');
           const chosen=arr(current.deliveryFiles).find(item=>item&&
             q(item.blobName||item.id)===q(file.blobName||file.id)&&
             q(item.packNotificationId)===q(prefill.packNotificationId)&&
