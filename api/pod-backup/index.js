@@ -52,7 +52,7 @@ module.exports = async function(context, req) {
     let result;
     if (suppliedPdf) {
       const fileName = text(body.fileName) || podArchive.fileNameFor(record);
-      result = await podArchive.saveSuppliedPod(accessKey, resolved.environment, record, suppliedPdf, fileName, { renderLayout: body.renderLayout });
+      result = await podArchive.saveSuppliedPod(accessKey, resolved.environment, record, suppliedPdf, fileName, { renderLayout: body.renderLayout, source: body.source });
       record = result.record || record;
     } else {
       const existing = podArchive.automaticPod(record);
