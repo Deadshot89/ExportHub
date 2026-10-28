@@ -467,3 +467,63 @@ test('RC1680: imported original Pack PDF is visible and opens/downloads from shi
   assert.equal(root.__RC1680_RENDER__(prefill),false);
   assert.equal(docSection.children.length,0,'foreign Pack PDF UI must be removed from the new shipment');
 });
+
+test('P1: delayed form rerender and remote state reload restore owned original PDFs after initial prefill',()=>{
+  const s=state(),events=new Map();
+  const root={
+    __EXPORTHUB_GET_STATE__:()=>s,
+    addEventListener(name,handler){events.set(name,handler);},
+    setView(){}
+  };
+  const bridge=loadWithRoot(root);
+  assert.equal(bridge.begin('pn-1'),true);
+  const original=s.packNotifications[0].documents[0].blobName;
+  s.shipment={packNotificationId:'pn-1',packNotificationRef:'PK-1',deliveryFiles:[]};
+  events.get('exporthub:rendered')();
+  assert.deepEqual(s.shipment.deliveryFiles.map(file=>file.blobName),[original]);
+  s.shipment.deliveryFiles=[];
+  events.get('exporthub:state-loaded')();
+  assert.deepEqual(s.shipment.deliveryFiles.map(file=>file.blobName),[original]);
+  events.get('exporthub:rendered')();
+  assert.equal(s.shipment.deliveryFiles.length,1,'rerender must never duplicate originals');
+  const other={packNotificationId:'pn-2',packNotificationRef:'PK-2',deliveryFiles:[]};
+  s.shipment=other;
+  events.get('exporthub:rendered')();
+  events.get('exporthub:sync')();
+  assert.deepEqual(other.deliveryFiles,[],'foreign shipment must never receive the private PDF');
+});
+
+test('P1: PDF viewer reporting false does not show a successful download',async()=>{
+  const source=fs.readFileSync('assets/pack-notification-shipment.js','utf8');
+  const injected=source.replace('  root.ExportHUBPackShipment=Object.freeze(',
+    '  root.__P1_RENDER__=renderPendingLieferscheine;root.ExportHUBPackShipment=Object.freeze(');
+  assert.notEqual(injected,source);
+  const node=tag=>({
+    tagName:tag,children:[],style:{},attrs:{},listeners:{},parent:null,
+    setAttribute(key,value){this.attrs[key]=String(value);},
+    addEventListener(type,listener){this.listeners[type]=listener;},
+    appendChild(child){child.parent=this;this.children.push(child);return child;},
+    remove(){if(this.parent)this.parent.children=this.parent.children.filter(item=>item!==this);},
+    querySelector(selector){return selector==='#rc1680PackDeliveryFiles'
+      ?this.children.find(item=>item.id==='rc1680PackDeliveryFiles')||null:null;}
+  });
+  const section=node('section'),s=state(),note=s.packNotifications[0];
+  s.shipment={packNotificationId:note.id,packNotificationRef:note.reference,deliveryFiles:[]};
+  const root={
+    document:{getElementById:id=>id==='rc363BlockDocuments'?section:null,createElement:node},
+    __EXPORTHUB_GET_STATE__:()=>s,
+    addEventListener(){},
+    ExportHUBDocumentBlob1059:{async open(){return false;}}
+  };
+  vm.runInContext(injected,vm.createContext({window:root,globalThis:root,console,Date,Intl,setTimeout,clearTimeout}));
+  const prefill=root.ExportHUBPackShipment.shipmentPrefill(note);
+  s.shipment.deliveryFiles=prefill.deliveryFiles.slice();
+  assert.equal(root.__P1_RENDER__(prefill),true);
+  const row=section.children[0].children[1];
+  const download=row.children.find(child=>child.tagName==='button'&&child.textContent==='Download');
+  assert.ok(download);
+  download.listeners.click({preventDefault(){},stopPropagation(){}});
+  await new Promise(resolve=>setTimeout(resolve,0));
+  const status=row.children.find(child=>child.attrs.role==='status');
+  assert.equal(status.textContent,'The document could not be opened.');
+});
