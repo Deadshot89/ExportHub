@@ -1,77 +1,53 @@
-# ExportHUB POD-Zweitsicherung – Azure-Archiv und optionales Microsoft 365
+# ExportHUB360 POD-Sicherung – Azure-Archiv und SharePoint-Notfallkopie
 
-Stand: RC1224
+Stand: RC1713 – Betriebsregeln und Nachweis
 
-## Ziel
+## Ziel und zwei getrennte Nachweise
 
-Die verpflichtende POD-Sicherung verwendet seit RC1220 zwei serverseitige Azure-Speicherziele:
+Jeder echte digitale POD ist die **vollständige, unterschriebene Ladeliste**. Das Original darf bei einem Ausfall der Nachsicherung weder überschrieben noch neu mit einer fehlenden/abweichenden Unterschrift gerendert werden.
 
-1. Primärspeicher: `exporthub-pod`
-2. Zweitsicherung: `exporthub-pod-backup`
+1. **Technisches Azure-Archiv:** Das Original liegt im Primärspeicher `exporthub-pod` und wird content-addressed in `exporthub-pod-backup` gesichert. Die Archivdatei wird über SHA-256 und Dateigröße geprüft. Ein vorhandenes Archivoriginal wird nicht blind überschrieben.
+2. **Vereinbarte unabhängige SharePoint-Notfallsicherung:** Das **gleiche** Original wird zusätzlich in Microsoft 365 abgelegt und nach dem Upload über Graph zurückgelesen. Erst bei bestätigter Datei-ID, übereinstimmendem SHA-256 und Rücklesezeitpunkt ist die SharePoint-Kopie nachgewiesen.
 
-Die Zweitsicherung wird content-addressed gespeichert und beim Wiederfinden über SHA-256-Metadaten und Dateigröße verifiziert. Ein bereits vorhandenes Archivobjekt wird nicht überschrieben.
+**Wichtig:** `archiveSaved=true` bedeutet **nur** „Azure-Archiv erfolgreich“. Es bedeutet **nicht** „SharePoint-Sicherung erfolgreich“. Ein entsprechender SharePoint-Status darf ausschließlich aus einer bestätigten Graph-Kopie entstehen (`driveSaved=true`, `driveItemId`, `driveVerifiedHash`, `driveVerifiedAt`). Eine offene oder fehlerhafte SharePoint-Kopie wird sichtbar als **ausstehend** geführt, nicht als vollständig gesichert.
 
-Microsoft 365 / Microsoft Graph ist **nicht mehr Voraussetzung** für eine vollständige POD-Sicherung. Graph kann optional als zusätzliche dritte Kopie aktiviert werden.
+## Abläufe und Fehlerverhalten
 
-## Verbindliche Betriebslogik
+- Die Abholung und das signierte Original werden nicht durch einen späteren SharePoint-Ausfall gelöscht, überschrieben oder zurückgesetzt. Azure-Archiv und SharePoint-Kopie werden **separat** bewertet.
+- `.github/workflows/rc1144-pod-backup-reconcile.yml` prüft die Azure-Archivkopie und holt fehlende SharePoint-Kopien nach, soweit technisch möglich.
+- `pendingCount`, `errorCount`, `archiveSaved` und die separaten SharePoint-Kennzahlen sind zu kontrollieren. Der Workflow meldet eine noch ausstehende konfigurierte SharePoint-Kopie als **unvollständig** – auch wenn die Azure-Archivkopie bereits bestätigt ist.
+- Ein HTTP-200-Reconcile, `ok=true` oder „0 offene Azure-Archive“ ist **kein Nachweis** einer vollständigen SharePoint-Sicherung.
+- Niemals fiktive PDFs, neue Ladelisten oder künstliche Unterschriften für historische PODs erzeugen. Historische beschädigte oder widersprüchliche POD-Statusfälle bleiben zur Einzelfallprüfung offen (Issue #899).
 
-- Ein POD gilt erst dann als vollständig gesichert, wenn Primärspeicher und Azure-Archiv erfolgreich bestätigt sind.
-- Der Zustand wird über `archiveSaved=true` gespiegelt.
-- Der Reconcile-Workflow `.github/workflows/rc1144-pod-backup-reconcile.yml` holt fehlende Archivkopien nach.
-- In PRODUCTION muss der Reconcile mit `pendingCount=0` und `errorCount=0` enden.
-- Microsoft-365-Fehler dürfen eine bereits erfolgreiche Azure-Primär- und Archivkopie nicht wieder als ungesichert markieren.
+## Azure-Archiv-Konfiguration
 
-## Azure-Konfiguration
+Das Azure-Archiv verwendet standardmäßig denselben Azure Storage Account wie der POD-Primärspeicher, jedoch einen anderen Container `exporthub-pod-backup`. Optional kann `EXPORTHUB_POD_BACKUP_CONNECTION_STRING` einen unabhängigen Azure Storage Account anbinden. Dies verbessert die Ausfallsicherheit, ersetzt aber **nicht** die gesondert vereinbarte SharePoint-Notfallkopie.
 
-Standardmäßig verwendet das Archiv denselben Azure Storage Account wie der Primärspeicher, aber einen separaten Container.
+## Microsoft Graph – Ziel und Berechtigungen
 
-Optional kann mit
-
-- `EXPORTHUB_POD_BACKUP_CONNECTION_STRING`
-
-ein separater Azure Storage Account für die Archivkopie hinterlegt werden. Das erhöht die Ausfallsicherheit gegenüber Problemen auf Storage-Account-Ebene.
-
-Der Containername ist standardmäßig:
-
-- `exporthub-pod-backup`
-
-## Microsoft 365 automatisch aktivieren
-
-Sobald das explizite Microsoft-365-POD-Ziel vollständig konfiguriert ist, wird die zusätzliche Drive-Kopie automatisch verwendet. Der historische Schalter `EXPORTHUB_POD_M365_ENABLED` ist seit RC1386 kein Sperrschalter mehr und darf eine konfigurierte POD-Ablage nicht deaktivieren.
-
-Die Microsoft-365-Kopie bleibt technisch nachgelagert und darf die verpflichtende Azure-Primär- und Archivkopie bei einem Graph-Fehler nicht blockieren.
-
-Mögliche Graph-Werte sind unter anderem:
+Erforderlich sind die Azure-seitig geschützten Werte:
 
 - `EXPORTHUB_GRAPH_TENANT_ID`
 - `EXPORTHUB_GRAPH_CLIENT_ID`
 - `EXPORTHUB_GRAPH_CLIENT_SECRET`
-- `EXPORTHUB_POD_DRIVE_ID`
-- `EXPORTHUB_POD_FOLDER_ID`
 
-Graph-Zugangsdaten und Secrets dürfen niemals in Frontend-Dateien, Browser-State, Logs, Issues oder Repository-Dateien geschrieben werden.
+Die Zielauflösung kann per eindeutigem `EXPORTHUB_POD_DRIVE_USER` + `EXPORTHUB_POD_FOLDER` oder über das vollständige Paar `EXPORTHUB_POD_DRIVE_ID` + `EXPORTHUB_POD_FOLDER_ID` erfolgen (ID-Paar-Readiness ab RC1712). Halbe ID-Paare bleiben unzulässig. Der historische Schalter `EXPORTHUB_POD_M365_ENABLED` darf eine vollständig konfigurierte Zielablage nicht blockieren.
 
-## Reconcile-Abnahme
+Geheimnisse, reale Kundendokumente und Unterschriften gehören **niemals** in GitHub Issues, Workflow-Logs oder öffentliche Dateien.
 
-Für PRODUCTION gilt als erfolgreicher Nachweis:
+## Bekannter Graph-Zielfehler – Issue #999
 
-- HTTP 2xx
-- `ok=true`
-- `pendingCount=0`
-- `errorCount=0`
+`GRAPH_DIRECT_PATH_TARGET_FAILED` mit Provider-Code `ResourceNotFound` weist nach, dass der bisherige Zielpfad nicht erfolgreich beschrieben werden konnte. Dies **beweist nicht**, ob der Ordner fehlt oder ob App-Berechtigungen, Benutzer-/Drive-Zuordnung oder der Pfad falsch sind.
 
-Gezielte Nachweise für eine Referenz müssen den Status `saved-now` oder `already-saved` liefern.
+Sicherer Prüfablauf:
 
-## Live-Nachweis RC1220–RC1222
+1. Unter berechtigtem Zugriff Graph-Ziel und Berechtigungen **nur lesend** prüfen. Der RC1144-Workflow unterstützt hierfür `graphTargetDiagnostic=true`; der reine Diagnoseaufruf führt keine POD-Nachsicherung aus.
+2. Drive-ID, Folder-ID und die tatsächlich vorhandenen Ordner serverseitig bestätigen, ohne vertrauliche Kennungen im Issue abzulegen.
+3. Erst im freigegebenen TESTSERVICE einen zulässigen Original-Test-POD hochladen, über Graph zurücklesen und seinen SHA-256-Hash mit der gespeicherten Originaldatei vergleichen.
+4. Die noch offenen Kopien kontrolliert nachholen. Status erst nach tatsächlicher Graph-Rücklesebestätigung als `driveSaved=true` behandeln.
 
-Nach dem erfolgreichen Produktionsdeploy wurden die zuvor offenen PODs mit dem neuen Azure-Archiv nachgesichert:
+**Nicht** den produktiven POD-Status-Massenaudit aktivieren. Keine pauschalen Änderungen an den 89 historischen Fällen, keine Ersetzung von signierten Originaldateien.
 
-- erster erfolgreicher Production-Reconcile: 25 ausgewählt, 25 gespeichert, 0 offen, 0 Fehler
-- spätere Reconcile-Läufe: weiterhin 0 Fehler
-- aktuellster geprüfter Lauf: 0 offene POD-Sicherungen
+## Abnahme
 
-Damit ist Microsoft Graph kein P0-Blocker mehr.
-
-## Optionales Microsoft-365-Fehlerbild
-
-Falls Microsoft 365 zusätzlich aktiviert ist, können weiterhin Graph-spezifische Fehler auftreten. Diese betreffen nur die optionale Zusatzkopie. Die verpflichtende POD-Sicherung bleibt über Azure Primärspeicher + Azure Archiv definiert.
+Azure-Archiv und SharePoint müssen jeweils einzeln vollständig belegt sein. Ein erfolgreicher Produktionsrelease oder eine bestandene PR-CI ersetzt weder einen authentifizierten Original-PDF-Abruf noch den unabhängigen SharePoint-Readback. Offene SharePoint-Kopien bleiben bis zum echten Nachweis als offen dokumentiert.
