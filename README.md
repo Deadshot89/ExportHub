@@ -68,16 +68,17 @@ Die responsive Logik stapelt Modern Business und Neon unterhalb 1120 px bewusst 
 
 ## POD-Sicherung und Wiederherstellung
 
-PODs werden serverseitig zweifach gesichert:
+Die POD-Sicherung besteht aus getrennten Nachweisen:
 
-1. Primärspeicher im bestehenden Azure-POD-Container `exporthub-pod`.
-2. Zusätzliche unveränderliche Archivkopie im separaten Container `exporthub-pod-backup`.
+1. **Azure-Primärspeicher** im bestehenden Container `exporthub-pod`.
+2. **Technische Azure-Archivkopie** im separaten Container `exporthub-pod-backup`.
+3. **Vereinbarte unabhängige SharePoint-Notfallsicherung** über Microsoft Graph.
 
-Die Archivkopie wird content-addressed und SHA-256-geprüft gespeichert. Neue Archivkopien werden vollständig zurückgelesen und gegen Hash und Dateigröße verifiziert. Bestehende Kopien werden regelmäßig kontrolliert; fehlende oder fehlerhafte Kopien werden nicht stillschweigend als erfolgreich behandelt.
+Die Azure-Archivkopie wird content-addressed und SHA-256-geprüft gespeichert. Neue Archivkopien werden vollständig zurückgelesen und gegen Hash und Dateigröße verifiziert. Bestehende Kopien werden regelmäßig kontrolliert; fehlende oder fehlerhafte Kopien werden nicht stillschweigend als erfolgreich behandelt.
 
-Microsoft 365 / Microsoft Graph ist für die verpflichtende Zweitsicherung nicht erforderlich und kann nur optional verwendet werden.
+**`archiveSaved=true` ist kein Nachweis einer SharePoint-Kopie.** Die unabhängige Microsoft-365-Sicherung gilt erst nach erfolgreichem Graph-Upload und SHA-256-geprüftem Readback mit bestätigter Datei-ID als erledigt (`driveSaved=true`, `driveVerifiedHash`, `driveVerifiedAt`). Bei einem SharePoint-Fehler bleibt das unterschriebene Original in Azure geschützt, die vereinbarte Zusatzsicherung wird jedoch ausdrücklich als unvollständig ausgewiesen.
 
-Der Workflow `.github/workflows/rc1144-pod-backup-reconcile.yml` prüft und vervollständigt offene POD-Sicherungen nach Deploys sowie regelmäßig per Zeitplan. Im vollständigen Drain-Modus verarbeitet er bis zu zehn Batches à 25 Einträge und gilt erst dann als erfolgreich, wenn kein sicherungsfähiger Backlog mehr übrig ist; Pending- oder Fehlerzustände bleiben harte Fehler.
+Der Workflow `.github/workflows/rc1144-pod-backup-reconcile.yml` prüft und vervollständigt offene POD-Sicherungen nach Deploys sowie per Zeitplan. Der aktuelle Scan kann bis zu 200 Batch-Anfragen abarbeiten; offene oder zurückgestellte Azure- und SharePoint-Arbeiten werden getrennt ausgewiesen. Ein fehlerfreies Azure-Archiv allein ist **keine** fachliche Freigabe der vollständigen SharePoint-Notfallsicherung.
 
 Zusätzlich enthält der aktuelle Stand einen **RC1234 TESTSERVICE-Restore-Drill**. Der Drill ist ausdrücklich auf TESTSERVICE begrenzt und stellt einen verifizierten Backup-Stand in einen isolierten Recovery-Zielblob wieder her. Dabei werden unter anderem SHA-256, Revision und Sendungsreferenz geprüft. Produktivdaten werden durch diesen Drill nicht überschrieben.
 
