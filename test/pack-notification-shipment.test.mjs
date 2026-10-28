@@ -574,4 +574,18 @@ test('P1: initial Pack prefill targets a fresh draft, never a saved or foreign P
   assert.equal(bridge.applyPrefillToMountedForm(bridge.shipmentPrefill(n)),true);
   assert.equal(s.shipment.deliveryFiles.length,0,'an existing ID-only shipment must not be silently repurposed');
   assert.equal(s.currentShipment.deliveryFiles.length,0,'a second ID-only shipment must remain unchanged');
+  const fresh={ref:'ABC123',__rc562Fresh:true,deliveryFiles:[]};
+  s.shipment=fresh;s.currentShipment=null;
+  assert.equal(bridge.applyPrefillToMountedForm(bridge.shipmentPrefill(n)),true);
+  assert.equal(fresh.packNotificationId,n.id,'canonical fresh draft has a generated REF before first save');
+  assert.deepEqual(fresh.deliveryFiles.map(file=>file.blobName),[n.documents[0].blobName]);
+  const collision={ref:'XYZ987',__rc562Fresh:true,deliveryFiles:[]};
+  s.shipment=collision;s.shipments=[{id:'saved1',ref:'XYZ987',deliveryFiles:[]}];
+  assert.equal(bridge.applyPrefillToMountedForm(bridge.shipmentPrefill(n)),true);
+  assert.equal(collision.deliveryFiles.length,0,'fresh marker cannot overwrite an already persisted REF');
+  assert.equal(collision.packNotificationId,undefined,'persisted REF collision must not inherit Pack owner');
+  const idCollision={id:'same-id',__rc562Fresh:true,deliveryFiles:[]};
+  s.shipment=idCollision;s.shipments=[{id:'same-id',ref:'QQQ123',deliveryFiles:[]}];
+  assert.equal(bridge.applyPrefillToMountedForm(bridge.shipmentPrefill(n)),true);
+  assert.equal(idCollision.deliveryFiles.length,0,'fresh marker cannot overwrite an already persisted ID');
 });
