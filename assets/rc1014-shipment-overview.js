@@ -312,10 +312,33 @@
     s=s||state();
     const wanted=q(s.shipmentViewId||s.selectedShipmentId||s.activeShipmentId).toUpperCase();
     if(wanted){
-      const hit=arr(s.shipments).find(sh=>[shipmentId(sh),shipmentReference(sh)].includes(wanted));
+      const hit=arr(s.shipments).concat(arr(s.savedShipments)).find(sh=>[shipmentId(sh),shipmentReference(sh)].includes(wanted));
       if(hit)return hit;
     }
     return activeShipment(s);
+  }
+
+  // Browser state may still contain the pre-pickup shipment while the server
+  // has already synchronized its three photos to savedShipments. Only combine
+  // evidence from copies with the same internal ID AND reference.
+  function containerShipmentForDetail(sh,s){
+    const id=shipmentId(sh),ref=shipmentReference(sh);
+    if(!id||!ref)return sh;
+    const candidates=arr(s&&s.shipments).concat(arr(s&&s.savedShipments)).filter(other=>
+      obj(other)&&shipmentId(other)===id&&shipmentReference(other)===ref);
+    let selected=sh;
+    const evidence=other=>containerMeta(other).count;
+    const stamp=other=>Date.parse(q(other&&other.containerDocumentationUpdatedAt))||0;
+    candidates.forEach(other=>{
+      if(evidence(other)>evidence(selected)||(evidence(other)===evidence(selected)&&evidence(other)>0&&stamp(other)>stamp(selected)))selected=other;
+    });
+    if(selected===sh)return sh;
+    return Object.assign({},sh,{
+      containerPhotos:arr(selected.containerPhotos),
+      subShipments:arr(selected.subShipments),
+      sealNumber:q(selected.sealNumber||selected.containerSealNumber||sh.sealNumber||sh.containerSealNumber),
+      containerDocumentationRequired:sh.containerDocumentationRequired===true||selected.containerDocumentationRequired===true
+    });
   }
 
   function shipmentTargets(s,active){
@@ -469,11 +492,12 @@
 
   function enhanceShipmentDetailedView(){
     const doc=root.document;if(!doc||!inShipmentDetailView(doc))return false;
-    const sh=viewShipment(state());if(!sh)return false;
+    const s=state(),source=viewShipment(s);if(!source)return false;
+    const sh=containerShipmentForDetail(source,s);
     const meta=containerMeta(sh),shouldShow=meta.required||meta.seal||meta.photos.length;
     const old=doc.querySelector&&doc.querySelector('[data-rc1259-container-detail]');
     if(!shouldShow){if(old&&typeof old.remove==='function'){old.remove();lastMutationAt=Date.now()}return false}
-    const fingerprint=JSON.stringify([shipmentReference(sh),meta.required,meta.seal,meta.photos.map(photo=>[q(photo&&photo.id),q(photo&&photo.kind),q(photo&&photo.label),q(photo&&photo.name),q(photo&&photo.uploadedAt)])]);
+    const fingerprint=JSON.stringify([shipmentReference(sh),meta.required,meta.seal,meta.photos.map(photo=>[q(photo&&photo.id),q(photo&&photo.kind),q(photo&&photo.label),q(photo&&photo.name),q(photo&&photo.blobName),q(photo&&photo.uploadedAt)])]);
     if(old&&old.getAttribute&&old.getAttribute('data-rc1259-detail-fingerprint')===fingerprint)return true;
     const docsCard=doc.getElementById&&doc.getElementById('rc786ReferenceFilesCard');
     const host=docsCard&&docsCard.parentNode;
