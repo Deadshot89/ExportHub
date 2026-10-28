@@ -3,6 +3,8 @@
   const q=v=>String(v==null?'':v).trim();
   const arr=v=>Array.isArray(v)?v:[];
   let pending=null;
+  // A saved event can precede the authoritative shared-state insert.
+  let deferredSavedEvent=null,deferredRetryBusy=false;
 
   function sharedState(){
     try{if(typeof root.__EXPORTHUB_GET_STATE__==='function')return root.__EXPORTHUB_GET_STATE__()||{};}catch(_){}
@@ -379,7 +381,7 @@
     setTimeout(()=>keepRows(prefill,check+1),200);
   }
   function startNew(notification){
-    const prefill=shipmentPrefill(notification);pending={notificationId:q(notification.id),prefill};root.__EXPORTHUB_PACK_SHIPMENT_PREFILL__=prefill;
+    const prefill=shipmentPrefill(notification);pending={notificationId:q(notification.id),prefill};deferredSavedEvent=null;root.__EXPORTHUB_PACK_SHIPMENT_PREFILL__=prefill;
     let freshStarted=false;
     try{const shipmentApi=root.ExportHUBShipment420;if(shipmentApi&&typeof shipmentApi.startNewShipment==='function'){shipmentApi.startNewShipment();freshStarted=true;}}catch(_){}
     if(!freshStarted)try{if(typeof root.setView==='function')root.setView('shipment');}catch(_){}
@@ -393,7 +395,7 @@
   }
   async function onShipmentSaved(event){
     scheduleSync();
-    if(!pending)return;const state=sharedState(),notification=notificationById(state,pending.notificationId);if(!notification){pending=null;return;}
+    if(!pending)return;const state=sharedState(),notification=notificationById(state,pending.notificationId);if(!notification){pending=null;deferredSavedEvent=null;return;}
     const detail=event&&event.detail||{},source=detail.shipment||findShipmentForNotification(state,notification);
     // Some save events provide the authoritative REF beside the shipment
     // snapshot. Do not discard it when the snapshot itself only has an ID.
@@ -402,18 +404,30 @@
     // Contradictory REFs must not trigger cross-shipment PDF handoff.
     if(snapshotRef&&eventRef&&snapshotRef!==eventRef)return false;
     const sourceRef=snapshotRef||eventRef;
-    const savedRows=persistedShipments(state,Object.assign({},source||{},{ref:sourceRef}),notification);
-    // Do not attach PDFs only to a detached event payload. The committed
-    // shipment row (and any persisted aliases) must receive the real blob link.
-    if(!savedRows.length||!shipmentId(savedRows[0]))return false;
-    // An unrelated save event or previously linked REF must never take over
-    // an in-flight pack notification, even if technical shipment IDs overlap.
+    // Never remember an event owned by another Pack notification.
     const belongsToAnotherPack=row=>
       (q(row&&row.packNotificationId)&&q(row.packNotificationId)!==q(notification.id))||
       (q(row&&row.packNotificationRef)&&q(row.packNotificationRef)!==q(notification.reference));
-    if(belongsToAnotherPack(source)||savedRows.some(belongsToAnotherPack))return false;
+    if(belongsToAnotherPack(source))return false;
     const prefill=shipmentPrefill(notification);
     if(arr(notification.documents).length!==prefill.deliveryFiles.length)return false;
+    const savedRows=persistedShipments(state,Object.assign({},source||{},{ref:sourceRef}),notification);
+    // A save event may fire BEFORE the persisted row is added to shared
+    // state. Hold only its verified ID/REF temporarily and retry once
+    // authoritative state data arrives. Never attach to a detached payload.
+    if(!savedRows.length||!shipmentId(savedRows[0])){
+      if((detail.shipment||eventRef)&&(sourceRef||shipmentId(source))){
+        deferredSavedEvent={notificationId:q(notification.id),at:Date.now(),detail:{
+          shipment:{id:shipmentId(source),ref:snapshotRef,
+            packNotificationId:q(source&&source.packNotificationId),
+            packNotificationRef:q(source&&source.packNotificationRef)},
+          ref:eventRef
+        }};
+      }
+      return false;
+    }
+    // A saved REF, ID alias or other Pack owner must never receive this PDF.
+    if(savedRows.some(belongsToAnotherPack))return false;
     const task=arr(state&&state.tasks).find(t=>q(t&&t.sourceType)==='pack_notification'&&q(t&&t.sourceId)===q(notification.id));
     const notificationBefore={shipmentId:notification.shipmentId,shipmentRef:notification.shipmentRef,status:notification.status,updatedAt:notification.updatedAt};
     const snapshots=savedRows.map(saved=>({saved,before:{packNotificationId:saved.packNotificationId,packNotificationRef:saved.packNotificationRef,packNotificationLinkedAt:saved.packNotificationLinkedAt,deliveryFiles:saved.deliveryFiles}}));
@@ -427,11 +441,21 @@
       if(task&&taskBefore){for(const [key,value] of Object.entries(taskBefore)){if(value===undefined)delete task[key];else task[key]=value;}}
       return false;
     }
-    pending=null;root.__EXPORTHUB_PACK_SHIPMENT_PREFILL__=null;return true;
+    pending=null;deferredSavedEvent=null;root.__EXPORTHUB_PACK_SHIPMENT_PREFILL__=null;return true;
   }
   // A customer/location refresh can replace the current draft after the initial
   // three-second prefill window. Keep restoring only the matching Pack owner
   // for the entire pending handoff, including after a remote state refresh.
+  function retryDeferredSavedEvent(){
+    const saved=deferredSavedEvent;
+    if(!saved||deferredRetryBusy)return false;
+    if(!pending||q(pending.notificationId)!==q(saved.notificationId)||Date.now()-saved.at>300000){
+      deferredSavedEvent=null;return false;
+    }
+    deferredRetryBusy=true;
+    void Promise.resolve(onShipmentSaved({detail:saved.detail})).catch(()=>{}).finally(()=>{deferredRetryBusy=false;});
+    return true;
+  }
   function refreshPendingDocuments(){
     if(!pending||!pending.prefill)return false;
     keepPendingDocuments(pending.prefill);
@@ -443,8 +467,8 @@
     root.addEventListener('exporthub:shipment-saved',onShipmentSaved);
     // Rehydrate real original PDFs before rendering the attachment controls;
     // do not stop after the short-lived row/dimension stabilization timer.
-    root.addEventListener('exporthub:rendered',refreshPendingDocuments);
-    ['exporthub:shipment-updated','exporthub:state-loaded','exporthub:sync'].forEach(name=>root.addEventListener(name,()=>{refreshPendingDocuments();scheduleSync();}));
+    root.addEventListener('exporthub:rendered',()=>{refreshPendingDocuments();retryDeferredSavedEvent();});
+    ['exporthub:shipment-updated','exporthub:state-loaded','exporthub:sync'].forEach(name=>root.addEventListener(name,()=>{refreshPendingDocuments();retryDeferredSavedEvent();scheduleSync();}));
     scheduleSync();return true;
   }
 
