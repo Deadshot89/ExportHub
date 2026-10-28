@@ -664,3 +664,31 @@ test('P1: a save event without original PDF bytes is not deferred into a complet
   assert.equal(s.shipments[0].deliveryFiles.length,0);
   assert.equal(s.packNotifications[0].shipmentId,undefined);
 });
+
+test('P1: repeated state refreshes never extend a stale deferred save-event handoff',async()=>{
+  const s=state(),events=new Map();let clock=1000;
+  class ControlledDate extends Date{static now(){return clock;}}
+  const root={
+    __EXPORTHUB_GET_STATE__:()=>s,
+    addEventListener(name,listener){events.set(name,listener);},
+    setView(){}
+  };
+  const source=fs.readFileSync('assets/pack-notification-shipment.js','utf8');
+  vm.runInContext(source,vm.createContext({
+    window:root,globalThis:root,console,Date:ControlledDate,Intl,setTimeout,clearTimeout,
+    Event:function(){},KeyboardEvent:function(){}
+  }));
+  assert.equal(root.ExportHUBPackShipment.begin('pn-1'),true);
+  assert.equal(await events.get('exporthub:shipment-saved')({
+    detail:{ref:'ABC123',shipment:{id:'sh-1',ref:'ABC123'}}
+  }),false);
+  clock+=200000;
+  events.get('exporthub:state-loaded')();
+  await new Promise(resolve=>setTimeout(resolve,0));
+  clock+=110001;
+  s.shipments.push({id:'sh-1',ref:'ABC123',deliveryFiles:[]});
+  events.get('exporthub:state-loaded')();
+  await new Promise(resolve=>setTimeout(resolve,0));
+  assert.equal(s.shipments[0].deliveryFiles.length,0,'expired retry must not attach PDFs');
+  assert.equal(s.packNotifications[0].shipmentId,undefined);
+});
