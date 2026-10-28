@@ -19,8 +19,17 @@ function readiness() {
   if (!tenantId) missing.push('EXPORTHUB_GRAPH_TENANT_ID');
   if (!clientId) missing.push('EXPORTHUB_GRAPH_CLIENT_ID');
   if (!clientSecret) missing.push('EXPORTHUB_GRAPH_CLIENT_SECRET');
-  if (!user) missing.push('EXPORTHUB_POD_DRIVE_USER');
-  if (!folder) missing.push('EXPORTHUB_POD_FOLDER');
+  // RC1712: an explicitly configured Graph drive+folder ID pair is an
+  // independent, valid target. A user/path lookup must not be required in
+  // this mode. Reject half-configured ID pairs instead of silently falling
+  // back to a different user's folder.
+  if (driveId || folderId) {
+    if (!driveId) missing.push('EXPORTHUB_POD_DRIVE_ID');
+    if (!folderId) missing.push('EXPORTHUB_POD_FOLDER_ID');
+  } else {
+    if (!user) missing.push('EXPORTHUB_POD_DRIVE_USER');
+    if (!folder) missing.push('EXPORTHUB_POD_FOLDER');
+  }
   return { configured: missing.length === 0, missing, user, folder, driveId, folderId };
 }
 
