@@ -24,6 +24,17 @@ export function patchRc1716PodBatchHtml(html, environment = 'unknown') {
     'retain digital original and additional manual POD'
   );
 
+  // RC1720: the old selector returned only the newest manually uploaded POD.
+  // Include every distinct manual PDF as an additional archive entry while
+  // never treating an automatic signed POD as a manual attachment.
+  script = replaceOnce(
+    script,
+    "function sourceList(sh){if(!sh||!hasSignature(sh))return[];var manual=manualPodSource(sh),digital=digitalOriginalAvailable(sh),official={url:'',name:'POD_'+safe(ref(sh))+'_Ladeliste_mit_Unterschrift.pdf',type:'application/pdf',kind:'official-signed-loadlist'};if(manual&&!digital)return[manual];return manual?[official,manual]:[official]}",
+    "function manualPodSources(sh){var first=manualPodSource(sh);if(!first)return[];var out=[first],seen={},files=arr(sh&&sh.podFiles);seen[q(first.url)+'|'+q(first.fileId)]=true;files.filter(function(f){if(!realFile(f)||/deleted|gelöscht|replaced|ersetzt|storniert/i.test(low(f&&f.status)))return false;var marker=low([f&&f.source,f&&f.docKind,f&&f.kind,f&&f.id].join(' '));return f&&f.manualUpload===true||/manual-upload|user-upload/.test(marker)}).sort(function(a,b){return String(b&&[b.uploadedAt,b.createdAt,b.modifiedAt].find(Boolean)||'').localeCompare(String(a&&[a.uploadedAt,a.createdAt,a.modifiedAt].find(Boolean)||'')}).forEach(function(f){var url=fileUrl(f),id=q(f.id),key=q(url)+'|'+id;if(!url||url===first.url||id&&id===first.fileId||seen[key])return;seen[key]=true;out.push({url:url,name:'POD_'+safe(ref(sh))+'_Anhang_'+(out.length+1)+'.pdf',type:'application/pdf',kind:'manual-uploaded-pod',fileId:id,originalName:q(f.originalName||f.name||f.filename||f.fileName)})});return out}\\nfunction sourceList(sh){if(!sh||!hasSignature(sh))return[];var manuals=manualPodSources(sh),digital=digitalOriginalAvailable(sh),official={url:'',name:'POD_'+safe(ref(sh))+'_Ladeliste_mit_Unterschrift.pdf',type:'application/pdf',kind:'official-signed-loadlist'};return digital?[official].concat(manuals):manuals.length?manuals:[official]}",
+    'all distinct manually uploaded PODs with unique archive filenames'
+  );
+
+
   // RC1717: The old auto-sync sent a manually uploaded POD through the
   // automatic signed-POD endpoint, replacing the canonical original.
   // Manual files remain independent ZIP evidence; never rewrite signed PODs.
