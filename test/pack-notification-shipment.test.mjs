@@ -547,3 +547,26 @@ test('P1: a stale first shipment snapshot cannot hide an owned active Pack draft
   s.currentShipment={packNotificationId:'different',packNotificationRef:'PK-X',deliveryFiles:[]};
   assert.equal(root.__P1_RESTORE__(prefill),false,'foreign active draft must not receive original PDFs');
 });
+
+test('P1: initial Pack prefill targets a fresh draft, never a saved or foreign Pack shipment',()=>{
+  const s=state(),n=s.packNotifications[0];
+  const foreign={id:'OLD',ref:'FOREIGN1',packNotificationId:'other',packNotificationRef:'PK-OTHER',deliveryFiles:[]};
+  const fresh={deliveryFiles:[]};
+  s.shipment=foreign;s.currentShipment=fresh;
+  const root={
+    __EXPORTHUB_GET_STATE__:()=>s,
+    document:{getElementById:()=>null,querySelectorAll:()=>[]},
+    addEventListener(){}
+  };
+  const bridge=loadWithRoot(root);
+  assert.equal(bridge.applyPrefillToMountedForm(bridge.shipmentPrefill(n)),true);
+  assert.equal(foreign.packNotificationId,'other');
+  assert.equal(foreign.deliveryFiles.length,0,'foreign original documents must not be touched');
+  assert.equal(fresh.packNotificationId,n.id);
+  assert.deepEqual(fresh.deliveryFiles.map(file=>file.blobName),[n.documents[0].blobName]);
+  s.shipment={ref:'EXISTING1',deliveryFiles:[]};
+  s.currentShipment={ref:'EXISTING2',deliveryFiles:[]};
+  assert.equal(bridge.applyPrefillToMountedForm(bridge.shipmentPrefill(n)),true);
+  assert.equal(s.shipment.deliveryFiles.length,0,'an existing REF must not be silently repurposed');
+  assert.equal(s.currentShipment.deliveryFiles.length,0,'a second existing REF must not be silently repurposed');
+});
