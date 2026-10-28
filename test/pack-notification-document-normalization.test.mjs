@@ -121,9 +121,9 @@ test('externalizeDocumentCollections applies the same PDF naming rule to shipmen
 test('RC1703: stored SalesPackingSlip PDF with DNC split across TJ glyphs is renamed on server',async()=>{
   const content='BT [(Delivery Note ) 0 (D) -20 (N) -20 (C) (3) (0) (1) (9) (2) (2) (6) (8) (9) (1)] TJ ET';
   const bytes=Buffer.from('%PDF-1.4\n1 0 obj\n<< /Length '+content.length+' >>\nstream\n'+content+'\nendstream\nendobj\n%%EOF','latin1');
-  const out=await store('SalesPackingSlip-JolantaBatkowska-55132_28102026_084418_828_55253_P.pdf',bytes);
-  assert.equal(out.name,'DNC3019226891.pdf');
-  assert.equal(out.documentReference,'DNC3019226891');
+  const out=await store('SalesPackingSlip-Example-00000_01012026_000000_000_00000_P.pdf',bytes);
+  assert.equal(out.name,'DNC3019222063.pdf');
+  assert.equal(out.documentReference,'DNC3019222063');
   assert.match(out.originalName,/^SalesPackingSlip-/);
   assert.equal(out.storage,'blob');
 });
