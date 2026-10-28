@@ -31,6 +31,19 @@ test('RC1715: ohne explizites Zielland wird weiterhin Italien aus der Lieferadre
   assert.equal(api.shipmentDestination().postal,'60044');
 });
 
+test('RC1715: alte Colli-Liste einer anderen Sendung darf aktive Verpackung nicht verdrängen',()=>{
+  const state={currentShipment:{id:'ACTIVE',packagingRows:[{packagingType:'E3',count:1,kg:9,lengthCm:43,widthCm:31,heightCm:31}]},
+    selectedShipment:{id:'OLD',packagingRows:[
+      {packagingType:'E5',count:3,kg:30,lengthCm:55,widthCm:40,heightCm:35},
+      {packagingType:'E5',count:2,kg:20,lengthCm:55,widthCm:40,heightCm:35},
+      {packagingType:'E5',count:2,kg:20,lengthCm:55,widthCm:40,heightCm:35}
+    ]}};
+  const data=load(state).canonicalLoad('ups');
+  assert.equal(data.packaging,'E3');
+  assert.equal(data.count,1);
+  assert.equal(data.totalWeight,9);
+});
+
 function field(name,value){
   return {value,tagName:'INPUT',options:null,parentElement:{textContent:name},closest(){return this.parentElement}};
 }
