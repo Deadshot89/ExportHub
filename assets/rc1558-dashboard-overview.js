@@ -55,7 +55,12 @@ function customerOf(s){return q(s&&(s.customerName||s.customer||s.customerNumber
 function countryOf(s){return q(s&&(s.destinationCountry||s.country||s.countryCode)).toUpperCase()}
 function colliOf(s){return arr(s&&s.rows).reduce(function(sum,row){var n=Number(row&&(row.count!=null?row.count:row.qty));return sum+(Number.isFinite(n)&&n>0?n:0)},0)}
 function isCancelled(s){return /storniert|cancel/.test(low(statusOf(s)))}
-function isPickedUp(s){return /abgeholt|pod vorhanden|abgeschlossen|archiviert/.test(low(statusOf(s)))}
+function isPickedUp(s){
+  var status=low([s&&s.status,s&&s.state,s&&s.processStatus,s&&s.freigabe,s&&s.pickupStatus,s&&s.podStatus].join(' '));
+  if(/teilabhol|partial/.test(status))return false;
+  return !!(s&&(s.pickedUp===true||s.pickupConfirmed===true||s.pickupCompleted===true||s.collected===true||s.actualPickupAt||s.actualPickupDate||s.pickedUpAt||s.pickedUpAtDate||s.pickupConfirmedAt||s.pickupCompletedAt||s.collectedAt||s.abgeholtAt))||/abgeholt|picked up|pickedup|collected|pod vorhanden|abgeschlossen|archiviert|completed|archived/.test(status);
+}
+function isOpenForPickup(s){return !!s&&!isCancelled(s)&&!isPickedUp(s)}
 function hasDeliveryNote(s){
   var names=arr(s&&(s.documents||s.docs||s.files)).concat(arr(s&&s.deliveryFiles)).map(function(d){return low(d&&(d.type||d.name||d.fileName||d))}).join(' ');
   return /lieferschein|delivery/.test(names)
@@ -75,7 +80,8 @@ function statusTone(status){
 function buildModel(api,shipments,now){
   now=now||new Date();
   var today=dayKey(now);
-  var open=arr(api.shipmentOpenList());
+  var operational=arr(api.shipmentOpenList());
+  var open=operational.filter(isOpenForPickup);
   var openTasks=arr(api.taskOpenList());
   var dueTasks=openTasks.filter(api.dueTask);
   var lateTasks=dueTasks.filter(function(t){var d=dueOf(t);return d&&dayKey(d)<today});
@@ -89,8 +95,9 @@ function buildModel(api,shipments,now){
     .sort(function(a,b){return dateOf(a)-dateOf(b)});
   var todayDone=todayList.filter(isPickedUp).length;
   var waitingAbd=open.filter(function(s){return /wartet auf abd/.test(low(statusOf(s)))});
-  var needsDocs=open.filter(api.shipmentNeedsDocuments);
-  var needsPod=open.filter(api.shipmentNeedsPod);
+  var needsDocs=operational.filter(api.shipmentNeedsDocuments);
+  // POD remains actionable after pickup; it must not make the shipment itself "open".
+  var needsPod=operational.filter(api.shipmentNeedsPod);
   var readyForPickup=open.filter(function(s){return /bereit/.test(low(statusOf(s)))});
 
   var kpis=[
