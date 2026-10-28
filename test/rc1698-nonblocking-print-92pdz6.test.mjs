@@ -18,7 +18,7 @@ const printing=template('printFinish');
 async function printDocuments(mode,verify){
  const events=[],win={},shipment={ref:'92PDZ6'},root={children:[{},{}]};
  const stage=new AsyncFunction('sh','ensureOutputReady','docWorkStep','opToken',readiness);
- await stage(shipment,verify||async()=>{events.push('QR-checked');return true},()=>events.push('ready'),'print');
+ await stage(shipment,verify || (async()=>{events.push('QR-checked');return true}),()=>events.push('ready'),'print');
  const frame={contentWindow:{focus(){events.push('focus')},print(){events.push('Ladeliste-CMR-printed')}}};
  const finish=new AsyncFunction('window','mode','root','sref','sid','VERSION','docWorkDone','opToken','frame','sh',printing+';return window.__INDEX352_LAST_PRINT__;');
  const result=await finish(win,mode,root,x=>x.ref,x=>x.id,'RC1710',()=>events.push('done'),'print',frame,shipment);
