@@ -91,7 +91,9 @@ test('RC1373: Nur Deckblatt setzt einen einmaligen Druckmodus und der Build wäh
   assert.match(build,/var rc1373Override=String\(window\.__EXPORTHUB_PRINT_MODE_OVERRIDE__/);
   assert.match(build,/mode=rc1373Override;window\.__EXPORTHUB_PRINT_MODE_OVERRIDE__=''/);
   assert.match(build,/if\(mode==='cover'\)return\[d\.cover\]\.filter\(Boolean\)/);
-  assert.match(build,/var attachmentJobs=\(mode==='all'\|\|!mode\)\?await rc1340PrepareDeliveryAttachmentPrints\(sh\):\[\]/);
+  assert.match(build,/RC1710 Keine automatische Lieferschein-Abfrage beim Ladelisten-\/CMR-Druck/);
+  assert.doesNotMatch(build,/const readyNew=/);
+  assert.doesNotMatch(build,/const printNew=/);
 });
 
 test('RC1203: Browser-Gate prüft echte Druckausgabe statt nur Quelltext',()=>{
