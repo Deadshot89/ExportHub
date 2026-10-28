@@ -467,3 +467,228 @@ test('RC1680: imported original Pack PDF is visible and opens/downloads from shi
   assert.equal(root.__RC1680_RENDER__(prefill),false);
   assert.equal(docSection.children.length,0,'foreign Pack PDF UI must be removed from the new shipment');
 });
+
+test('P1: delayed form rerender and remote state reload restore owned original PDFs after initial prefill',()=>{
+  const s=state(),events=new Map();
+  const root={
+    __EXPORTHUB_GET_STATE__:()=>s,
+    addEventListener(name,handler){events.set(name,handler);},
+    setView(){}
+  };
+  const bridge=loadWithRoot(root);
+  assert.equal(bridge.begin('pn-1'),true);
+  const original=s.packNotifications[0].documents[0].blobName;
+  s.shipment={packNotificationId:'pn-1',packNotificationRef:'PK-1',deliveryFiles:[]};
+  events.get('exporthub:rendered')();
+  assert.deepEqual(s.shipment.deliveryFiles.map(file=>file.blobName),[original]);
+  s.shipment.deliveryFiles=[];
+  events.get('exporthub:state-loaded')();
+  assert.deepEqual(s.shipment.deliveryFiles.map(file=>file.blobName),[original]);
+  events.get('exporthub:rendered')();
+  assert.equal(s.shipment.deliveryFiles.length,1,'rerender must never duplicate originals');
+  const other={packNotificationId:'pn-2',packNotificationRef:'PK-2',deliveryFiles:[]};
+  s.shipment=other;
+  events.get('exporthub:rendered')();
+  events.get('exporthub:sync')();
+  assert.deepEqual(other.deliveryFiles,[],'foreign shipment must never receive the private PDF');
+});
+
+test('P1: PDF viewer reporting false does not show a successful download',async()=>{
+  const source=fs.readFileSync('assets/pack-notification-shipment.js','utf8');
+  const injected=source.replace('  root.ExportHUBPackShipment=Object.freeze(',
+    '  root.__P1_RENDER__=renderPendingLieferscheine;root.ExportHUBPackShipment=Object.freeze(');
+  assert.notEqual(injected,source);
+  const node=tag=>({
+    tagName:tag,children:[],style:{},attrs:{},listeners:{},parent:null,
+    setAttribute(key,value){this.attrs[key]=String(value);},
+    addEventListener(type,listener){this.listeners[type]=listener;},
+    appendChild(child){child.parent=this;this.children.push(child);return child;},
+    remove(){if(this.parent)this.parent.children=this.parent.children.filter(item=>item!==this);},
+    querySelector(selector){return selector==='#rc1680PackDeliveryFiles'
+      ?this.children.find(item=>item.id==='rc1680PackDeliveryFiles')||null:null;}
+  });
+  const section=node('section'),s=state(),note=s.packNotifications[0];
+  s.shipment={packNotificationId:note.id,packNotificationRef:note.reference,deliveryFiles:[]};
+  const root={
+    document:{getElementById:id=>id==='rc363BlockDocuments'?section:null,createElement:node},
+    __EXPORTHUB_GET_STATE__:()=>s,
+    addEventListener(){},
+    ExportHUBDocumentBlob1059:{async open(){return false;}}
+  };
+  vm.runInContext(injected,vm.createContext({window:root,globalThis:root,console,Date,Intl,setTimeout,clearTimeout}));
+  const prefill=root.ExportHUBPackShipment.shipmentPrefill(note);
+  s.shipment.deliveryFiles=prefill.deliveryFiles.slice();
+  assert.equal(root.__P1_RENDER__(prefill),true);
+  const row=section.children[0].children[1];
+  const download=row.children.find(child=>child.tagName==='button'&&child.textContent==='Download');
+  assert.ok(download);
+  download.listeners.click({preventDefault(){},stopPropagation(){}});
+  await new Promise(resolve=>setTimeout(resolve,0));
+  const status=row.children.find(child=>child.attrs.role==='status');
+  assert.equal(status.textContent,'The document could not be opened.');
+});
+
+test('P1: a stale first shipment snapshot cannot hide an owned active Pack draft',()=>{
+  const source=fs.readFileSync('assets/pack-notification-shipment.js','utf8');
+  const patched=source.replace('  root.ExportHUBPackShipment=Object.freeze(',
+    '  root.__P1_RESTORE__=keepPendingDocuments;root.ExportHUBPackShipment=Object.freeze(');
+  assert.notEqual(patched,source);
+  const s=state(),note=s.packNotifications[0];
+  const stale={packNotificationId:'another-pack',packNotificationRef:'PK-OTHER',deliveryFiles:[]};
+  const owned={packNotificationId:note.id,packNotificationRef:note.reference,deliveryFiles:[]};
+  s.shipment=stale;s.currentShipment=owned;
+  const root={__EXPORTHUB_GET_STATE__:()=>s,addEventListener(){}};
+  vm.runInContext(patched,vm.createContext({window:root,globalThis:root,console,Date,Intl,setTimeout,clearTimeout}));
+  const prefill=root.ExportHUBPackShipment.shipmentPrefill(note);
+  assert.equal(root.__P1_RESTORE__(prefill),true);
+  assert.deepEqual(stale.deliveryFiles,[]);
+  assert.deepEqual(owned.deliveryFiles.map(file=>file.blobName),[note.documents[0].blobName]);
+  assert.equal(root.__P1_RESTORE__(prefill),false,'repeat must not duplicate original PDFs');
+  s.currentShipment={packNotificationId:'different',packNotificationRef:'PK-X',deliveryFiles:[]};
+  assert.equal(root.__P1_RESTORE__(prefill),false,'foreign active draft must not receive original PDFs');
+});
+
+test('P1: initial Pack prefill targets a fresh draft, never a saved or foreign Pack shipment',()=>{
+  const s=state(),n=s.packNotifications[0];
+  const foreign={id:'OLD',ref:'FOREIGN1',packNotificationId:'other',packNotificationRef:'PK-OTHER',deliveryFiles:[]};
+  const fresh={deliveryFiles:[]};
+  s.shipment=foreign;s.currentShipment=fresh;
+  const root={
+    __EXPORTHUB_GET_STATE__:()=>s,
+    document:{getElementById:()=>null,querySelectorAll:()=>[]},
+    addEventListener(){}
+  };
+  const bridge=loadWithRoot(root);
+  assert.equal(bridge.applyPrefillToMountedForm(bridge.shipmentPrefill(n)),true);
+  assert.equal(foreign.packNotificationId,'other');
+  assert.equal(foreign.deliveryFiles.length,0,'foreign original documents must not be touched');
+  assert.equal(fresh.packNotificationId,n.id);
+  assert.deepEqual(fresh.deliveryFiles.map(file=>file.blobName),[n.documents[0].blobName]);
+  s.shipment={ref:'EXISTING1',deliveryFiles:[]};
+  s.currentShipment={ref:'EXISTING2',deliveryFiles:[]};
+  assert.equal(bridge.applyPrefillToMountedForm(bridge.shipmentPrefill(n)),true);
+  assert.equal(s.shipment.deliveryFiles.length,0,'an existing REF must not be silently repurposed');
+  assert.equal(s.currentShipment.deliveryFiles.length,0,'a second existing REF must not be silently repurposed');
+  s.shipment={id:'EXISTING-ID-ONLY',deliveryFiles:[]};
+  s.currentShipment={shipmentId:'ANOTHER-ID-ONLY',deliveryFiles:[]};
+  assert.equal(bridge.applyPrefillToMountedForm(bridge.shipmentPrefill(n)),true);
+  assert.equal(s.shipment.deliveryFiles.length,0,'an existing ID-only shipment must not be silently repurposed');
+  assert.equal(s.currentShipment.deliveryFiles.length,0,'a second ID-only shipment must remain unchanged');
+  const fresh={ref:'ABC123',__rc562Fresh:true,deliveryFiles:[]};
+  s.shipment=fresh;s.currentShipment=null;
+  assert.equal(bridge.applyPrefillToMountedForm(bridge.shipmentPrefill(n)),true);
+  assert.equal(fresh.packNotificationId,n.id,'canonical fresh draft has a generated REF before first save');
+  assert.deepEqual(fresh.deliveryFiles.map(file=>file.blobName),[n.documents[0].blobName]);
+  const collision={ref:'XYZ987',__rc562Fresh:true,deliveryFiles:[]};
+  s.shipment=collision;s.shipments=[{id:'saved1',ref:'XYZ987',deliveryFiles:[]}];
+  assert.equal(bridge.applyPrefillToMountedForm(bridge.shipmentPrefill(n)),true);
+  assert.equal(collision.deliveryFiles.length,0,'fresh marker cannot overwrite an already persisted REF');
+  assert.equal(collision.packNotificationId,undefined,'persisted REF collision must not inherit Pack owner');
+  const idCollision={id:'same-id',__rc562Fresh:true,deliveryFiles:[]};
+  s.shipment=idCollision;s.shipments=[{id:'same-id',ref:'QQQ123',deliveryFiles:[]}];
+  assert.equal(bridge.applyPrefillToMountedForm(bridge.shipmentPrefill(n)),true);
+  assert.equal(idCollision.deliveryFiles.length,0,'fresh marker cannot overwrite an already persisted ID');
+});
+
+test('P1: a save event arriving before canonical shipment state is safely retried on state load',async()=>{
+  const s=state(),events=new Map(),snapshots=[];
+  const root={
+    __EXPORTHUB_GET_STATE__:()=>s,
+    addEventListener(name,listener){events.set(name,listener);},
+    setView(){},
+    ExportHUBClean:{
+      queueSave(){return true;},
+      flushSave(){snapshots.push(JSON.parse(JSON.stringify(s)));return true;}
+    }
+  };
+  const api=loadWithRoot(root);
+  assert.equal(api.begin('pn-1'),true);
+  const event={detail:{ref:'ABC123',shipment:{id:'sh-1',ref:'ABC123',deliveryFiles:[]}}};
+  assert.equal(await events.get('exporthub:shipment-saved')(event),false,'row does not exist yet');
+  assert.equal(s.packNotifications[0].shipmentId,undefined);
+  s.shipments.push({id:'sh-1',ref:'ABC123',deliveryFiles:[]});
+  events.get('exporthub:state-loaded')();
+  await new Promise(resolve=>setTimeout(resolve,0));
+  const saved=s.shipments[0];
+  assert.equal(saved.packNotificationId,'pn-1');
+  assert.equal(saved.deliveryFiles.length,1,'original PDF must be stored on the real shipment');
+  assert.equal(saved.deliveryFiles[0].blobName,s.packNotifications[0].documents[0].blobName);
+  assert.equal(s.packNotifications[0].shipmentRef,'ABC123');
+  assert.equal(s.packNotifications[0].status,'shipment_created');
+  assert.equal(snapshots.length,1,'retry must persist exactly one completed link');
+  events.get('exporthub:sync')();
+  await new Promise(resolve=>setTimeout(resolve,0));
+  assert.equal(snapshots.length,1,'subsequent refresh must not duplicate link writes');
+});
+
+test('P1: delayed save retry never attaches private PDF to a foreign Pack owner',async()=>{
+  const s=state(),events=new Map(),saveCalls=[];
+  const root={
+    __EXPORTHUB_GET_STATE__:()=>s,
+    addEventListener(name,listener){events.set(name,listener);},
+    setView(){},
+    ExportHUBClean:{
+      queueSave(){saveCalls.push('queue');return true;},
+      flushSave(){saveCalls.push('flush');return true;}
+    }
+  };
+  const api=loadWithRoot(root);
+  assert.equal(api.begin('pn-1'),true);
+  assert.equal(await events.get('exporthub:shipment-saved')({
+    detail:{ref:'ABC123',shipment:{id:'sh-1',ref:'ABC123'}}
+  }),false);
+  const foreign={id:'sh-1',ref:'ABC123',packNotificationId:'other-pack',
+    packNotificationRef:'PK-OTHER',deliveryFiles:[]};
+  s.shipments.push(foreign);
+  events.get('exporthub:state-loaded')();
+  await new Promise(resolve=>setTimeout(resolve,0));
+  assert.deepEqual(foreign.deliveryFiles,[]);
+  assert.equal(foreign.packNotificationId,'other-pack');
+  assert.equal(s.packNotifications[0].shipmentId,undefined);
+  assert.deepEqual(saveCalls,[],'no persistence for a foreign owner');
+});
+
+test('P1: a save event without original PDF bytes is not deferred into a completed link',async()=>{
+  const s=state(),events=new Map();s.packNotifications[0].documents=[{
+    name:'only-a-filename.pdf',mimeType:'application/pdf'
+  }];
+  const root={__EXPORTHUB_GET_STATE__:()=>s,addEventListener(name,listener){events.set(name,listener);},setView(){}};
+  const api=loadWithRoot(root);
+  assert.equal(api.begin('pn-1'),true);
+  assert.equal(await events.get('exporthub:shipment-saved')({
+    detail:{ref:'ABC123',shipment:{id:'sh-1',ref:'ABC123'}}
+  }),false);
+  s.shipments.push({id:'sh-1',ref:'ABC123',deliveryFiles:[]});
+  events.get('exporthub:state-loaded')();
+  await new Promise(resolve=>setTimeout(resolve,0));
+  assert.equal(s.shipments[0].deliveryFiles.length,0);
+  assert.equal(s.packNotifications[0].shipmentId,undefined);
+});
+
+test('P1: repeated state refreshes never extend a stale deferred save-event handoff',async()=>{
+  const s=state(),events=new Map();let clock=1000;
+  class ControlledDate extends Date{static now(){return clock;}}
+  const root={
+    __EXPORTHUB_GET_STATE__:()=>s,
+    addEventListener(name,listener){events.set(name,listener);},
+    setView(){}
+  };
+  const source=fs.readFileSync('assets/pack-notification-shipment.js','utf8');
+  vm.runInContext(source,vm.createContext({
+    window:root,globalThis:root,console,Date:ControlledDate,Intl,setTimeout,clearTimeout,
+    Event:function(){},KeyboardEvent:function(){}
+  }));
+  assert.equal(root.ExportHUBPackShipment.begin('pn-1'),true);
+  assert.equal(await events.get('exporthub:shipment-saved')({
+    detail:{ref:'ABC123',shipment:{id:'sh-1',ref:'ABC123'}}
+  }),false);
+  clock+=200000;
+  events.get('exporthub:state-loaded')();
+  await new Promise(resolve=>setTimeout(resolve,0));
+  clock+=110001;
+  s.shipments.push({id:'sh-1',ref:'ABC123',deliveryFiles:[]});
+  events.get('exporthub:state-loaded')();
+  await new Promise(resolve=>setTimeout(resolve,0));
+  assert.equal(s.shipments[0].deliveryFiles.length,0,'expired retry must not attach PDFs');
+  assert.equal(s.packNotifications[0].shipmentId,undefined);
+});
