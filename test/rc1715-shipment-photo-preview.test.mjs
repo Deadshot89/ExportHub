@@ -38,3 +38,11 @@ test('P2: foreign shipment with same reference must never provide photos',()=>{
  const r=render({view:'shipmentview',shipmentViewId:'S1',shipments:[{id:'S1',reference:'ABC123',containerPhotos:[]}],savedShipments:[{id:'S2',reference:'ABC123',containerPhotos:photos}]});
  assert.equal(r.result,false);assert.equal(r.imgs.length,0);
 });
+
+test('P2: a matching shipment ID takes precedence over an earlier same-reference collision',()=>{
+ const r=render({view:'shipmentview',shipmentViewId:'S1',
+  shipments:[{id:'S2',reference:'ABC123',containerPhotos:[]},{id:'S1',reference:'ABC123',containerPhotos:photos}],
+  savedShipments:[]});
+ assert.equal(r.result,true);
+ assert.equal(r.imgs.length,3);
+});
