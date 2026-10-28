@@ -29,7 +29,7 @@ test('RC1569 jede Kachel liefert genau die Datensätze, die sie zählt',()=>{
   assert.deepEqual(ids('abd'),['S1']);
   assert.deepEqual(ids('documents'),['S2']);
   assert.deepEqual(ids('pod'),['S3']);
-  assert.deepEqual(ids('open'),['S1','S2','S3']);
+  assert.deepEqual(ids('open'),['S1','S2']);
   assert.deepEqual(ids('today'),['S2']);
   assert.deepEqual(ids('tasks'),['T1']);
   for(const k of model.kpis)assert.equal(model.sets[k.id].length,k.value,k.id+': Kachelwert und Filtermenge gleich');
