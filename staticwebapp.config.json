@@ -194,6 +194,11 @@
       "headers": {"Cache-Control": "no-store, no-cache, must-revalidate","X-Content-Type-Options": "nosniff"}
     },
     {
+      "route": "/api/exporthub-document",
+      "allowedRoles": ["anonymous"],
+      "headers": {"Cache-Control": "no-store"}
+    },
+    {
       "route": "/api/*",
       "allowedRoles": ["anonymous"],
       "headers": {"Cache-Control": "no-store"}

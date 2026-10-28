@@ -262,6 +262,16 @@
       }
     },
     {
+      "route": "/api/exporthub-document",
+      "allowedRoles": [
+        "anonymous"
+      ],
+      "headers": {
+        "Cache-Control": "no-store",
+        "X-ExportHUB-Environment": "test"
+      }
+    },
+    {
       "route": "/api/*",
       "allowedRoles": [
         "anonymous"

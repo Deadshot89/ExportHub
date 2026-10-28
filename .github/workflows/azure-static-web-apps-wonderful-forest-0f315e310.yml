@@ -234,6 +234,29 @@ jobs:
           echo "RC1553: TESTSERVICE deployment identity stimmt nicht mit $expected ueberein." >&2
           exit 1
 
+      - name: RC1702 Dokumenten-API Routing TESTSERVICE
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'
+          body="$(mktemp)"
+          headers="$(mktemp)"
+          trap 'rm -f "$body" "$headers"' EXIT
+          blob='rc1059/testservice/aa/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+          url="$base/api/exporthub-document?blob=$blob&environment=testservice&rc1702=$GITHUB_SHA"
+          status="$(curl -sS --max-time 20 --max-redirs 0 -o "$body" -D "$headers" -w '%{http_code}' "$url" || true)"
+          # No session must be rejected by ExportHUB's function (401 JSON),
+          # not redirected to Microsoft's sign-in page (302/HTML).
+          if [ "$status" != '401' ] || ! BODY="$body" node -e "
+            const fs=require('fs');let v={};
+            try{v=JSON.parse(fs.readFileSync(process.env.BODY,'utf8')||'{}')}catch(_){}
+            if(v.ok!==false||!['AUTH_REQUIRED','SESSION_INVALID'].includes(v.code))process.exit(1)
+          "; then
+            echo "RC1702: TESTSERVICE Dokumenten-API liefert keinen geschuetzten ExportHUB-401-JSON-Fehler (HTTP $status). Microsoft-Redirect oder fehlende Function-Route moeglich." >&2
+            exit 1
+          fi
+          echo 'RC1702: TESTSERVICE Dokumenten-API antwortet direkt mit ExportHUB-401 (keine Microsoft-Weiterleitung).'
+
       - name: RC1598 POD-Audit-API Live-Routing TESTSERVICE
         shell: bash
         run: |
