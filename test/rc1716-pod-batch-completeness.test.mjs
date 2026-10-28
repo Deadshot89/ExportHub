@@ -1,0 +1,70 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {patchRc1716PodBatchHtml} from '../scripts/rc1716-pod-batch-completeness.mjs';
+
+const original=fs.readFileSync('index.html','utf8');
+const patched=patchRc1716PodBatchHtml(original,'production');
+const begin=patched.indexOf('function digitalOriginalAvailable(sh)');
+const end=patched.indexOf('\nfunction selection()',begin);
+assert.ok(begin>=0&&end>begin,'exact POD source selector must be present');
+
+function selector(manual){
+  const code=patched.slice(begin,end);
+  return new Function('arr','q','low','manualPodSource','hasSignature','ref','safe',
+    code+'\nreturn sourceList;')(
+    x=>Array.isArray(x)?x:[],
+    x=>String(x??'').trim(),
+    x=>String(x??'').toLowerCase(),
+    ()=>manual,
+    ()=>true,
+    ()=> 'ABC123',
+    x=>String(x??'').replace(/[^A-Za-z0-9_-]/g,'_')
+  );
+}
+const manual={kind:'manual-uploaded-pod',name:'POD_ABC123.pdf',url:'/api/pod/abc123'};
+
+test('RC1716: manual and server-signed digital originals are both included',()=>{
+  const jobs=selector(manual)({ref:'ABC123',podServerVerified:true,podFiles:[{kind:'automatic-pod'}]});
+  assert.deepEqual(jobs.map(j=>j.kind),['official-signed-loadlist','manual-uploaded-pod']);
+  assert.equal(jobs[0].name,'POD_ABC123_Ladeliste_mit_Unterschrift.pdf');
+  assert.equal(jobs[1].name,'POD_ABC123.pdf');
+});
+
+test('RC1716: an ordinary manual POD must not invent a digital original',()=>{
+  const jobs=selector(manual)({ref:'ABC123',podServerVerified:false,podFiles:[{kind:'manual-uploaded-pod'}]});
+  assert.deepEqual(jobs.map(j=>j.kind),['manual-uploaded-pod']);
+});
+
+test('RC1716: a digital signed POD without manual upload remains in backup',()=>{
+  const jobs=selector(null)({ref:'ABC123',podFiles:[{kind:'automatic-pod'}]});
+  assert.deepEqual(jobs.map(j=>j.kind),['official-signed-loadlist']);
+});
+
+test('RC1716: bulk ZIP counts only successfully added files and flags partial failure',()=>{
+  const controller=patched.slice(patched.indexOf('<script id="rc455-pod-backup-controller">'),
+    patched.indexOf('</script>',patched.indexOf('<script id="rc455-pod-backup-controller">')));
+  assert.match(controller,/var entries=\[\],fail=\[\],manualSaved=0,signedSaved=0/);
+  assert.match(controller,/entries\.push\(\{name:src\.name,data:loaded\.bytes\}\);manualSaved\+\+/);
+  assert.match(controller,/entries\.push\(\{name:safe\(podDate\(sh\)\+'_'/);
+  assert.match(controller,/signedSaved\+\+/);
+  assert.match(controller,/var manualCount=manualSaved,signedCount=signedSaved,manifest=/);
+  assert.match(controller,/btn\.disabled=false;return fail\.length===0/);
+  assert.match(controller,/await savedSignedPod\(sh\)/);
+  assert.doesNotMatch(controller,/await localSignedPod\(sh\)/);
+});
+
+test('RC1716: patch is strictly anchored, refuses duplicate/stale script and leaves external code unchanged',()=>{
+  const modified=patched.replace('function sourceList(sh){','function sourceListRenamed(sh){');
+  assert.throws(()=>patchRc1716PodBatchHtml(modified,'testservice'),/missing\/ambiguous source/);
+  assert.throws(()=>patchRc1716PodBatchHtml(patched,'production'),/missing\/ambiguous source/);
+  assert.equal(patched.slice(0,patched.indexOf('<script id="rc455-pod-backup-controller">')),
+    original.slice(0,original.indexOf('<script id="rc455-pod-backup-controller">')));
+});
+
+test('RC1716: all 3 release bundles invoke the same patch after RC1680 canonical copy',()=>{
+  const builder=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
+  assert.match(builder,/import \{patchRc1716PodBatchHtml\}/);
+  assert.match(builder,/patchRc1716PodBatchHtml\(patchRc1602PodBrowserHtml\(hardenAckMergeSaveHtml\(hardened\)\),file\)/);
+  assert.match(builder,/for\(const file of \['index\.html','TESTVERSION\.html','demo\.html'\]\)\{/);
+});
