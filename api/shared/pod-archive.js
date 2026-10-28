@@ -714,6 +714,20 @@ async function readExactPodBuffer(got, environment, file) {
   }
 }
 async function saveSuppliedPod(accessKey, environment, record, pdf, requestedName, options) {
+  // RC1717: manual PODs are additional evidence, not a new signed
+  // automatic-pod. Never let the legacy manual backup sync replace the
+  // canonical, already signed loading list in the record.
+  if (text(options && options.source) === 'manual-pod-backup-sync') {
+    throw store.err('POD_MANUAL_UPLOAD_NOT_ORIGINAL', 'Ein manuell hochgeladener POD darf die digitale Original-Ladeliste nicht ersetzen.', 409);
+  }
+  const original = automaticPod(record);
+  if (original && text(original.blobName || original.storageBlobName)) {
+    const previousHash = text(original.hash).toLowerCase();
+    const newHash = crypto.createHash('sha256').update(pdf).digest('hex');
+    if (!/^[a-f0-9]{64}$/.test(previousHash) || newHash !== previousHash) {
+      throw store.err('POD_SIGNED_ORIGINAL_IMMUTABLE', 'Die gespeicherte unterschriebene Original-Ladeliste darf nicht durch ein anderes PDF ersetzt werden.', 409);
+    }
+  }
   const primary = await saveAzurePod(accessKey, environment, record, pdf, requestedName, Object.assign({}, options, { clientSupplied: true }));
   const archive = await saveAzureArchive(accessKey, environment, primary.record, pdf, primary.file);
   const archivedRecord = archive.record || primary.record;
