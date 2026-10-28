@@ -31,6 +31,12 @@ function printRuntime(fetchBlob){
   return{api:window.ExportHUBRC1340AttachmentPrint,printed,revoked,source};
 }
 
+// RC1704: RC1703 rejects objects that merely claim to be PDFs.
+// Regression fixtures must supply actual PDF bytes with the PDF header.
+function realPdfBlob(){
+  return new Blob(['%PDF-1.4\\n1 0 obj\\n<< /Type /Catalog >>\\nendobj\\n%%EOF'],{type:'application/pdf'});
+}
+
 function shipment(){
   return{deliveryFiles:[
     {id:'broken',name:'Nicht_erreichbar.pdf',storage:'blob',blobName:'broken',contentType:'application/pdf'},
@@ -45,7 +51,7 @@ test('RC1684: ein umgeleiteter Lieferschein blockiert nicht den Druck der verfü
       error.code='AZURE_ROUTE_BLOCKED';
       throw error;
     }
-    return{size:1024,type:'application/pdf'};
+    return realPdfBlob();
   });
   const jobs=await api.prepare(shipment());
   assert.deepEqual(Array.from(jobs,item=>item.name),['Verfuegbar.pdf']);
@@ -58,10 +64,19 @@ test('RC1684: ein umgeleiteter Lieferschein blockiert nicht den Druck der verfü
 });
 
 test('RC1684: vollständig erreichbare Lieferscheine bleiben vollständig druckbar',async()=>{
-  const {api,printed}=printRuntime(async()=>({size:1024,type:'application/pdf'}));
+  const {api,printed}=printRuntime(async()=>realPdfBlob());
   const jobs=await api.prepare(shipment());
   assert.equal(jobs.length,2);
   assert.equal(jobs.failed.length,0);
   assert.equal(await api.printPrepared(jobs),2);
   assert.deepEqual(printed,['Nicht_erreichbar.pdf','Verfuegbar.pdf']);
+});
+
+
+test('RC1704: a Microsoft login HTML body cannot be printed even if the server labels it PDF',async()=>{
+  const {api,printed}=printRuntime(async()=>new Blob(['<html><body>Microsoft login</body></html>'],{type:'application/pdf'}));
+  const jobs=await api.prepare(shipment());
+  assert.equal(jobs.length,0);
+  assert.deepEqual(Array.from(jobs.failed,item=>item.code),['DOCUMENT_NOT_PDF','DOCUMENT_NOT_PDF']);
+  assert.deepEqual(printed,[]);
 });
