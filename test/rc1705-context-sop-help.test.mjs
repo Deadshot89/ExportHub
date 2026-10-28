@@ -92,3 +92,17 @@ test('RC1705: user-specific SOP progress resolves the logged-in ExportHUB state 
   id='employee-two';
   assert.equal(win.__RC1705_TEST_CURRENT_USER__(),'employee-two');
 });
+
+
+test('RC1705: current SOP context follows the alternate view attribute',()=>{
+  let view='shipment';
+  const doc={readyState:'loading',documentElement:{lang:'de'},
+    body:{getAttribute(name){return name==='data-current-view'?view:null}},
+    addEventListener(){},getElementById(){return null},querySelector(){return null}};
+  const win={addEventListener(){}};
+  vm.runInNewContext(runtime,{window:win,document:doc,Promise});
+  assert.equal(win.ExportHUBSopHelp1705.currentView(),'shipment');
+  view='customers';
+  assert.equal(win.ExportHUBSopHelp1705.currentView(),'customers');
+  assert.match(runtime,/attributeFilter:\['data-exporthub-view','data-current-view'\]/);
+});
