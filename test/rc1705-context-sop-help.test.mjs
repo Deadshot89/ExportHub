@@ -142,3 +142,35 @@ test('RC1705: open help refreshes completed steps on active-user switch',async()
   listeners['exporthub:sync']();
   assert.match(panel.innerHTML,/1 \/ 2/,'existing open panel must show second user progress');
 });
+
+
+test('RC1705: requested employee SOP replaces temporary fallback after catalog load',async()=>{
+  let panel=null,resolveFetch;
+  const listeners={};
+  const doc={
+    readyState:'loading',documentElement:{lang:'de'},activeElement:null,
+    body:{getAttribute(){return 'customers'},appendChild(el){if(el.id==='rc1705-sop-panel')panel=el}},
+    addEventListener(name,fn){listeners[name]=fn},
+    getElementById(id){if(id==='nav'||id==='content')return {};return id==='rc1705-sop-panel'?panel:null},
+    querySelector(){return null},
+    createElement(){return {id:'',textContent:'',innerHTML:'',setAttribute(){},querySelector(){return null},appendChild(){}}}
+  };
+  const win={
+    addEventListener(name,fn){listeners[name]=fn},
+    setTimeout(fn){fn();return 0},
+    localStorage:{getItem(){return '{}'},setItem(){}},
+    fetch(){return new Promise(resolve=>{resolveFetch=resolve})},
+    ExportHubIsoSopCatalog:{documents:[{number:'SOP-EH-020',title:'Kunden verwalten',
+      sections:{steps:[{id:'step-1',text:'Kundenverwaltung öffnen'}]}}]}
+  };
+  vm.runInNewContext(runtime,{window:win,document:doc,Promise});
+  listeners.DOMContentLoaded();
+  const help=win.ExportHUBSopHelp1705;
+  assert.equal(help.open('customers-create'),true);
+  assert.match(panel.innerHTML,/<h3>Kunden verwalten<\/h3>/);
+  resolveFetch({ok:true,json(){return Promise.resolve(employee)}});
+  await help.loadCatalogue();
+  await Promise.resolve();
+  await Promise.resolve();
+  assert.match(panel.innerHTML,/<h3>Kunden neu anlegen<\/h3>/);
+});
