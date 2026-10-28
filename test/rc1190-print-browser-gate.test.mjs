@@ -77,7 +77,7 @@ test('RC1710: Lieferschein-PDFs bleiben separat verfügbar, aber niemals Teil de
   const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
   assert.match(build,/function rc1340PrintableDeliveryAttachments/);
   assert.match(build,/window\.ExportHUBRC1340AttachmentPrint/);
-  assert.match(build,/RC1710 Keine automatische Lieferschein-Abfrage beim Ladelisten-/CMR-Druck/);
+  assert.ok(build.includes('RC1710 Keine automatische Lieferschein-Abfrage beim Ladelisten-/CMR-Druck'));
   assert.match(build,/printShipment:async function\(sh\)/);
   assert.doesNotMatch(build,/const readyNew=/);
   assert.doesNotMatch(build,/const printNew=/);
