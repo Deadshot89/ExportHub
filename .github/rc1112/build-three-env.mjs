@@ -1098,20 +1098,13 @@ window.ExportHUBRC1340AttachmentPrint=Object.freeze({version:'RC1340',printable:
     const rc1373PrintEntry="async function printDocuments(mode){var rc1373Override=String(window.__EXPORTHUB_PRINT_MODE_OVERRIDE__||'').trim().toLowerCase();if(rc1373Override){mode=rc1373Override;window.__EXPORTHUB_PRINT_MODE_OVERRIDE__=''}";
     html=html.replace(rc1340Anchor,rc1340Runtime+'\n'+rc1373PrintEntry);
   }
-  const readyOld="await ensureOutputReady(sh,'normal');docWorkStep(opToken,'Druckseiten werden geöffnet …');";
-  const readyNew="await ensureOutputReady(sh,'normal');var attachmentJobsPromise=(mode==='all'||!mode)?Promise.resolve().then(function(){return rc1340PrepareDeliveryAttachmentPrints(sh)}).catch(function(e){var jobs=[];jobs.failed=[{name:'Lieferscheine',code:q(e&&e.code)||'DOCUMENT_FETCH_FAILED'}];return jobs}):Promise.resolve([]);docWorkStep(opToken,'Druckseiten werden geöffnet …');";
-  if(!html.includes(readyNew)){
-    if(!html.includes(readyOld))throw new Error(file+': RC1340 Output-Ready-Anker fehlt');
-    html=html.replace(readyOld,readyNew);
-  }
-  const printOld="window.__INDEX352_LAST_PRINT__={ok:true,mode:mode||'all',pages:root.children.length,ref:sref(sh)||sid(sh),owner:VERSION,signed:false};docWorkDone(opToken,'Druckdialog wird geöffnet');frame.contentWindow.focus();frame.contentWindow.print()";
-  const printNew="frame.contentWindow.focus();frame.contentWindow.print();var attachmentJobs=await attachmentJobsPromise;if(attachmentJobs.length){docWorkStep(opToken,'Lieferscheine werden gedruckt …');await rc1340PrintPreparedAttachments(attachmentJobs)}var failedAttachments=attachmentJobs.failed||[];if(failedAttachments.length){window.__INDEX352_LAST_PRINT__={ok:false,partial:true,mode:mode||'all',pages:root.children.length,attachmentCount:attachmentJobs.length,attachmentNames:attachmentJobs.map(function(item){return item.name}),failedAttachments:failedAttachments,ref:sref(sh)||sid(sh),owner:VERSION,signed:false};docWorkFail(opToken,'Ladeliste gedruckt, aber nicht alle Lieferscheine verfügbar');alert('Ladeliste und CMR wurden zum Druck geöffnet. Folgende Lieferscheine konnten wegen eines Abruffehlers nicht mitgedruckt werden:\\n\\n'+failedAttachments.map(function(item){return item.name}).join('\\n'))}else{window.__INDEX352_LAST_PRINT__={ok:true,mode:mode||'all',pages:root.children.length,attachmentCount:attachmentJobs.length,attachmentNames:attachmentJobs.map(function(item){return item.name}),ref:sref(sh)||sid(sh),owner:VERSION,signed:false};docWorkDone(opToken,attachmentJobs.length?'Gesamtdruck vollständig gestartet':'Druckdialog wird geöffnet')}";
-  if(!html.includes(printNew)){
-    if(!html.includes(printOld))throw new Error(file+': RC1340 Druckabschluss-Anker fehlt');
-    html=html.replace(printOld,printNew);
-  }
-  if(!html.includes("version:'RC1340'")||!html.includes('attachmentCount:attachmentJobs.length')||!html.includes('await rc1340PrintPreparedAttachments(attachmentJobs)'))throw new Error(file+': RC1340 Lieferschein-Direktdruck fehlt');
-  if(!html.includes('var attachmentJobsPromise=')||!html.includes('frame.contentWindow.print();var attachmentJobs=await attachmentJobsPromise;')||html.includes("var attachmentJobs=(mode==='all'||!mode)?await rc1340PrepareDeliveryAttachmentPrints(sh):[]"))throw new Error(file+': RC1698 Druck muss vor den Lieferschein-API-Abrufen starten');
+  // RC1710: Ladeliste/CMR and cover printing must never fetch or print
+  // attached Lieferscheine. They remain accessible through the separate
+  // document actions and ExportHUBRC1340AttachmentPrint.printShipment().
+  const printReadiness="await ensureOutputReady(sh,'normal');docWorkStep(opToken,'Druckseiten werden geöffnet …');";
+  const printFinish="window.__INDEX352_LAST_PRINT__={ok:true,mode:mode||'all',pages:root.children.length,ref:sref(sh)||sid(sh),owner:VERSION,signed:false};docWorkDone(opToken,'Druckdialog wird geöffnet');frame.contentWindow.focus();frame.contentWindow.print()";
+  if(!html.includes(printReadiness)||!html.includes(printFinish))throw new Error(file+': RC1710 Ladeliste-Druck darf nicht an Lieferdokument-API gekoppelt sein');
+  if(html.includes('attachmentJobsPromise')||html.includes('var attachmentJobs=await attachmentJobsPromise;')||html.includes('Folgende Lieferscheine konnten wegen eines Abruffehlers nicht mitgedruckt werden'))throw new Error(file+': RC1710 Keine automatische Lieferschein-Abfrage beim Ladelisten-/CMR-Druck');
   if(!html.includes("__EXPORTHUB_PRINT_MODE_OVERRIDE__")||!html.includes("if(mode==='cover')return[d.cover].filter(Boolean)"))throw new Error(file+': RC1373 Nur-Deckblatt-Druck ist nicht im finalen Print-Pfad verankert');
   if(!html.includes("data-rc1354-pdf-print-bridge")||!html.includes("frame.contentWindow.postMessage({type:'print'},'*')"))throw new Error(file+': RC1354 PDF-Druckbrücke fehlt');
   var rc1355BridgeStart=html.indexOf('async function rc1340PrintPreparedAttachment(item,index,total){'),rc1355BridgeEnd=rc1355BridgeStart<0?-1:html.indexOf('async function rc1340PrintPreparedAttachments(items){',rc1355BridgeStart);
