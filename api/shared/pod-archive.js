@@ -727,6 +727,21 @@ async function saveSuppliedPod(accessKey, environment, record, pdf, requestedNam
     if (!/^[a-f0-9]{64}$/.test(previousHash) || newHash !== previousHash) {
       throw store.err('POD_SIGNED_ORIGINAL_IMMUTABLE', 'Die gespeicherte unterschriebene Original-Ladeliste darf nicht durch ein anderes PDF ersetzt werden.', 409);
     }
+    // Exact same signed PDF: back up the stored bytes, not the browser
+    // version, and keep the original file ID/layout metadata immutable.
+    const stored = await readAutomaticPodBuffer(accessKey, environment, record);
+    if (!stored || !stored.buffer) throw store.err('POD_FILE_NOT_STORED', 'Der signierte Original-POD konnte nicht gelesen werden.', 404);
+    const archived = await saveAzureArchive(accessKey, environment, record, stored.buffer, stored.file);
+    const archivedRecord = archived.record || record;
+    if (!m365Enabled()) {
+      return { ok: true, record: archivedRecord, file: stored.file, pdf: stored.buffer,
+        backup: archivedRecord.podBackup || {}, archiveSaved: true, driveSaved: false };
+    }
+    const drive = await copyToDrive(accessKey, environment, archivedRecord, stored.buffer, stored.file);
+    const finalRecord = drive.record || archivedRecord;
+    return { ok: true, record: finalRecord, file: stored.file, pdf: stored.buffer,
+      backup: finalRecord.podBackup || {}, archiveSaved: true, driveSaved: drive.ok === true,
+      driveError: drive.ok ? null : drive.error };
   }
   const primary = await saveAzurePod(accessKey, environment, record, pdf, requestedName, Object.assign({}, options, { clientSupplied: true }));
   const archive = await saveAzureArchive(accessKey, environment, primary.record, pdf, primary.file);
