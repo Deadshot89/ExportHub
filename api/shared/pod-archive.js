@@ -494,8 +494,11 @@ async function saveAzureArchive(accessKey, environment, record, pdf, file) {
   }
   const verified = await verifyAzureArchiveBlob(blob, hash, pdf.length, true);
   const archiveSavedAt = store.now();
+  const alreadyDriveVerified = confirmedDriveBackup(record && record.podBackup) &&
+    text(record.podBackup.hash).toLowerCase() === text(hash).toLowerCase();
   const next = await persistBackupState(accessKey, environment, {
-    status: 'saved',
+    // RC1719: an Azure archive alone is never a completed SharePoint backup.
+    status: alreadyDriveVerified ? 'saved' : 'sharepoint-pending',
     azureSaved: true,
     archiveSaved: true,
     archiveSavedAt,
@@ -571,7 +574,7 @@ async function copyToDrive(accessKey, environment, record, pdf, file) {
     return { ok: true, record: next, drive: result };
   } catch (error) {
     const next = await persistBackupState(accessKey, environment, {
-      status: record && record.podBackup && record.podBackup.archiveSaved === true ? 'saved' : 'pending',
+      status: record && record.podBackup && record.podBackup.archiveSaved === true ? 'sharepoint-pending' : 'pending',
       azureSaved: true,
       archiveSaved: record && record.podBackup && record.podBackup.archiveSaved === true,
       driveSaved: false,
