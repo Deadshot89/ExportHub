@@ -1132,7 +1132,7 @@ window.ExportHUBRC1340AttachmentPrint=Object.freeze({version:'RC1340',printable:
   // RC1715: never silently discard PDF pages, display original in a visible viewer.
   if(!html.includes('data-rc1715-delivery-print-preview')||!html.includes('data-rc1715-original-pdf')||!html.includes('DELIVERY_DOCUMENTS_INCOMPLETE'))throw new Error(file+': RC1715 Lieferschein-Druckvorschau oder Teilfehler fehlt');
   var rc1715BridgeStart=html.indexOf('async function rc1340PrintPreparedAttachment(item,index,total,failed){'),rc1715BridgeEnd=rc1715BridgeStart<0?-1:html.indexOf('async function rc1340PrintPreparedAttachments(items){',rc1715BridgeStart);
-  if(rc1715BridgeStart<0||rc1715BridgeEnd<0||/contentWindow\\.print\\(|contentWindow\\.postMessage\\(|600\\)/.test(html.slice(rc1715BridgeStart,rc1715BridgeEnd)))throw new Error(file+': RC1715 versteckter PDF-Druck oder verfrühte Freigabe wieder aktiv');
+  if(rc1715BridgeStart<0||rc1715BridgeEnd<0||html.slice(rc1715BridgeStart,rc1715BridgeEnd).includes('contentWindow.postMessage')||html.slice(rc1715BridgeStart,rc1715BridgeEnd).includes('contentWindow.print')||html.slice(rc1715BridgeStart,rc1715BridgeEnd).includes('later(function(){finish()},600)'))throw new Error(file+': RC1715 versteckter PDF-Druck oder verfrühte Freigabe wieder aktiv');
   return html;
 }
 
