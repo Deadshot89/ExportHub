@@ -1103,6 +1103,19 @@ window.ExportHUBRC1340AttachmentPrint=Object.freeze({version:'RC1340',printable:
   return html;
 }
 
+function patchRc1700PreviouslyRegisteredQrPrintGate(html,file){
+  // RC1700 P0: A warehouse Location-API outage must not prevent printing
+  // documents whose pickup QR is already registered server-side. New QR
+  // shipments keep the existing strict registration requirement.
+  const oldGate="if(warehouse&&typeof warehouse.register==='function'&&!/abgeholt|pod vorhanden|abgeschlossen|archiviert|storn/i.test(status(sh))){var locationReady=await timed(Promise.resolve(warehouse.register(sh,false)),8000,'QR-Location konnte nicht rechtzeitig registriert werden.');if(locationReady!==true)throw new Error('QR-Location konnte nicht serverseitig registriert werden. Bitte Verbindung prüfen und erneut drucken.')}";
+  const newGate="if(warehouse&&typeof warehouse.register==='function'&&!/abgeholt|pod vorhanden|abgeschlossen|archiviert|storn/i.test(status(sh))){var rc1700KnownQr=sh.pickupQrRegistered===true&&/^[a-f0-9]{48}$/i.test(q(sh.pickupToken||sh.pickupQrToken||sh.qrToken));if(rc1700KnownQr){Promise.resolve().then(function(){return warehouse.register(sh,false)}).then(function(ok){if(ok!==true){console.warn('RC1700 bereits registrierte QR-Sendung: Lager-Location-Synchronisierung fehlgeschlagen');message('Ladeliste bereit. Die Lager-Location konnte nicht synchronisiert werden.','info')}}).catch(function(e){console.warn('RC1700 Lager-Location-Synchronisierung',e);message('Ladeliste bereit. Die Lager-Location konnte nicht synchronisiert werden.','info')})}else{var locationReady=await timed(Promise.resolve(warehouse.register(sh,false)),8000,'QR-Location konnte nicht rechtzeitig registriert werden.');if(locationReady!==true)throw new Error('QR-Location konnte nicht serverseitig registriert werden. Bitte Verbindung prüfen und erneut drucken.')}}";
+  const count=html.split(oldGate).length-1;
+  if(count!==1)throw new Error(file+': RC1700 erwartete genau eine QR-Lager-Freigabestelle, gefunden '+count);
+  html=html.replace(oldGate,newGate);
+  if(!html.includes('rc1700KnownQr=sh.pickupQrRegistered===true')||!html.includes('if(locationReady!==true)throw new Error'))throw new Error(file+': RC1700 Drucksicherheitsvertrag fehlt');
+  return html;
+}
+
 function patchRc1324PrintScale(html,file){
   const loadStart=html.indexOf('function loadHtml(sh,withQr){');
   const loadEnd=loadStart<0?-1:html.indexOf('function documentCacheKey',loadStart);
@@ -1492,6 +1505,7 @@ function patchHtml(file){
   html=patchTaskDetailTab(html,file);
   html=patchRc1259ContainerSearch(html,file);
   html=patchCompletePrintBundle(html,file);
+  html=patchRc1700PreviouslyRegisteredQrPrintGate(html,file);
   html=patchRc1324PrintScale(html,file);
   html=patchRc1305ShipmentViewReliability(html,file);
   html=patchRc1305LoadingListPresentation(html,file);
