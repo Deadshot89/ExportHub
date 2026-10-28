@@ -199,7 +199,7 @@
     const state=sharedState(),candidates=[state.shipment,state.currentShipment,state.selectedShipment];
     const draft=ownedPendingDraft(state,prefill)||candidates.find(item=>item&&typeof item==='object'
       &&!q(item.packNotificationId)&&!q(item.packNotificationRef)
-      &&!q(item.ref||item.reference||item.shipmentRef));
+      &&!shipmentId(item)&&!q(item.shipmentRef));
     if(draft){
       if(manualWithoutIdentity&&prefill.customerName)draft.customerSearch=prefill.customerName;
       draft.packNotificationId=prefill.packNotificationId;draft.packNotificationRef=prefill.packNotificationRef;draft.packNotificationCustomer={id:prefill.customerId,account:prefill.customerAccount,name:prefill.customerName,source:prefill.customerSource};draft.packNotificationPrefill={deliveryNoteReference:prefill.deliveryNoteReference,packageType:prefill.packageType,packageCount:prefill.packageCount,totalWeight:prefill.totalWeight,rows:prefill.rows,note:prefill.note};
