@@ -43,7 +43,23 @@ function shippingLocation(c,sh){
 }
 function shippingAddress(v){if(!v||typeof v!=='object'||Array.isArray(v))return q(v);var direct=q(v.address||v.formattedAddress||v.fullAddress||v.addressText||v.deliveryAddress||v.recipientAddress||v.shipToAddress);if(direct)return direct;return q([v.street||v.strasse||v.streetName||v.addressLine1,v.addressLine2||v.address2,v.postalCode||v.postcode||v.zip||v.plz,v.city||v.ort||v.town||v.place,v.country||v.land||v.countryName].filter(Boolean).join(' '))}
 function shippingPostal(v){if(!v||typeof v!=='object'||Array.isArray(v))return'';return q(v.postalCode||v.postcode||v.zip||v.plz)}
-function shipmentCandidates(){var s=state(),out=[];function push(x){if(x&&typeof x==='object'&&!Array.isArray(x)&&out.indexOf(x)<0)out.push(x)}var key=q(s.currentShipmentId||s.selectedShipmentId||s.activeShipmentId||s.openShipmentId||s.currentShipmentRef||s.selectedShipmentRef||s.activeShipmentRef||s.openShipmentRef),pool=(Array.isArray(s.shipments)?s.shipments:[]).concat(Array.isArray(s.savedShipments)?s.savedShipments:[]);if(key)push(pool.find(function(sh){return[sh&&sh.id,sh&&sh.shipmentId,sh&&sh.ref,sh&&sh.reference].some(function(v){return q(v)===key})}));push(s.currentShipment);push(s.selectedShipment);push(s.activeShipment);push(s.openShipment);try{if(typeof window.__EXPORTHUB_GET_ACTIVE_SHIPMENT__==='function')push(window.__EXPORTHUB_GET_ACTIVE_SHIPMENT__())}catch(_){}push(s.shipment);return out}
+function shipmentCandidates(){
+ var s=state(),out=[];
+ function push(x){if(x&&typeof x==='object'&&!Array.isArray(x)&&out.indexOf(x)<0)out.push(x)}
+ var key=q(s.currentShipmentId||s.selectedShipmentId||s.activeShipmentId||s.openShipmentId||s.currentShipmentRef||s.selectedShipmentRef||s.activeShipmentRef||s.openShipmentRef),pool=(Array.isArray(s.shipments)?s.shipments:[]).concat(Array.isArray(s.savedShipments)?s.savedShipments:[]);
+ if(key)push(pool.find(function(sh){return[sh&&sh.id,sh&&sh.shipmentId,sh&&sh.ref,sh&&sh.reference].some(function(v){return q(v)===key})}));
+ push(s.currentShipment);push(s.selectedShipment);push(s.activeShipment);push(s.openShipment);
+ try{if(typeof window.__EXPORTHUB_GET_ACTIVE_SHIPMENT__==='function')push(window.__EXPORTHUB_GET_ACTIVE_SHIPMENT__())}catch(_){}
+ push(s.shipment);
+ var active=activeShipment(),ids=[active&&active.id,active&&active.shipmentId,active&&active.ref,active&&active.reference,active&&active.shipmentRef].map(function(v){return q(v).toUpperCase()}).filter(Boolean);
+ if(!ids.length)return out;
+ // Another shipment's longer Colli list must not override the opened shipment.
+ // Copies of the SAME shipment may contribute more complete details.
+ return out.filter(function(sh){
+  if(sh===active)return true;
+  return[sh.id,sh.shipmentId,sh.ref,sh.reference,sh.shipmentRef].some(function(v){return q(v)&&ids.indexOf(q(v).toUpperCase())>=0})
+ });
+}
 function packageType(r){return q(r&&(r.type||r.packaging||r.verpackung||r.packageType||r.packagingType||r.name||r.label))}
 function isPalletType(v){return /palette|palett|pallet|skid/i.test(q(v))}
 function isUpsPackageType(v){var x=q(v);return !!x&&!isPalletType(x)&&(/karton|carton|package|paket|umschlag|envelope|holzbox|wood(?:en)?\s*box|crate|kiste|\be[0-6]\b/i.test(x))}
