@@ -152,7 +152,7 @@ jobs:
               })" "$http_code" "$batch")"
             continuation_token="$(printf '%s\n' "$result" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{let v={};try{v=JSON.parse(s||'{}')}catch(_){};process.stdout.write(String(v.nextContinuationToken||''))})")"
             progress_count="$(printf '%s\n' "$result" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{let v={};try{v=JSON.parse(s||'{}')}catch(_){};const n=x=>Math.max(0,Number(x||0));process.stdout.write(String(n(v.integrityChecks)+n(v.repairedStateCount)+n(v.savedCount)+n(v.teamRelinkedCount)+n(v.teamRelinkSkippedCount)))})")"
-            drive_pending_count="$(printf '%s\n' "$result" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{let v={};try{v=JSON.parse(s||'{}')}catch(_){};const count=Number(v.drivePendingCount||0);process.stdout.write(String(Number.isFinite(count)&&count>0?Math.floor(count):0))})")"
+            drive_pending_count="$(printf '%s\n' "$result" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{let v={};try{v=JSON.parse(s||'{}')}catch(_){};const count=Math.max(0,Number(v.driveBackfillEligible||0)-Number(v.driveSavedCount||0))+Number(v.drivePendingCount||0)+Number(v.driveBackfillSkippedRecent||0)+(v.optionalDriveWorkDeferred===true?1:0)+((v.graphConfigured===false&&Number(v.verifiedCount||0)>0)?1:0);process.stdout.write(String(Number.isFinite(count)&&count>0?Math.floor(count):0))})")"
             if [ "$drive_pending_count" -gt 0 ]; then
               optional_drive_pending_batches=$((optional_drive_pending_batches + 1))
             fi
@@ -306,7 +306,7 @@ jobs:
               })" "$http_code" "$batch")"
             continuation_token="$(printf '%s\n' "$result" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{let v={};try{v=JSON.parse(s||'{}')}catch(_){};process.stdout.write(String(v.nextContinuationToken||''))})")"
             progress_count="$(printf '%s\n' "$result" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{let v={};try{v=JSON.parse(s||'{}')}catch(_){};const n=x=>Math.max(0,Number(x||0));process.stdout.write(String(n(v.integrityChecks)+n(v.repairedStateCount)+n(v.savedCount)+n(v.teamRelinkedCount)+n(v.teamRelinkSkippedCount)))})")"
-            drive_pending_count="$(printf '%s\n' "$result" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{let v={};try{v=JSON.parse(s||'{}')}catch(_){};const count=Number(v.drivePendingCount||0);process.stdout.write(String(Number.isFinite(count)&&count>0?Math.floor(count):0))})")"
+            drive_pending_count="$(printf '%s\n' "$result" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{let v={};try{v=JSON.parse(s||'{}')}catch(_){};const count=Math.max(0,Number(v.driveBackfillEligible||0)-Number(v.driveSavedCount||0))+Number(v.drivePendingCount||0)+Number(v.driveBackfillSkippedRecent||0)+(v.optionalDriveWorkDeferred===true?1:0)+((v.graphConfigured===false&&Number(v.verifiedCount||0)>0)?1:0);process.stdout.write(String(Number.isFinite(count)&&count>0?Math.floor(count):0))})")"
             if [ "$drive_pending_count" -gt 0 ]; then
               optional_drive_pending_batches=$((optional_drive_pending_batches + 1))
             fi
