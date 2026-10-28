@@ -11,7 +11,7 @@ assert.ok(begin>=0&&end>begin,'exact POD source selector must be present');
 
 function selector(manual){
   const code=patched.slice(begin,end);
-  return new Function('arr','q','low','manualPodSource','hasSignature','ref','safe',
+  return new Function('arr','q','low','manualPodSource','hasSignature','ref','safe','realFile','fileUrl',
     code+'\nreturn sourceList;')(
     x=>Array.isArray(x)?x:[],
     x=>String(x??'').trim(),
@@ -19,7 +19,9 @@ function selector(manual){
     ()=>manual,
     ()=>true,
     ()=> 'ABC123',
-    x=>String(x??'').replace(/[^A-Za-z0-9_-]/g,'_')
+    x=>String(x??'').replace(/[^A-Za-z0-9_-]/g,'_'),
+    f=>!!(f&&f.url),
+    f=>String(f&&f.url||'')
   );
 }
 const manual={kind:'manual-uploaded-pod',name:'POD_ABC123.pdf',url:'/api/pod/abc123'};
@@ -34,6 +36,28 @@ test('RC1716: manual and server-signed digital originals are both included',()=>
 test('RC1716: an ordinary manual POD must not invent a digital original',()=>{
   const jobs=selector(manual)({ref:'ABC123',podServerVerified:false,podFiles:[{kind:'manual-uploaded-pod'}]});
   assert.deepEqual(jobs.map(j=>j.kind),['manual-uploaded-pod']);
+});
+
+
+test('RC1720: all separate manual POD uploads stay in the ZIP alongside the digital original',()=>{
+  const jobs=selector(manual)({ref:'ABC123',podServerVerified:true,podFiles:[
+    {kind:'automatic-pod',url:'/api/pod/signed',id:'signed'},
+    {kind:'manual-uploaded-pod',manualUpload:true,url:'/api/pod/abc123',id:'first'},
+    {kind:'manual-uploaded-pod',manualUpload:true,url:'/api/pod/second',id:'second'},
+    {kind:'manual-uploaded-pod',manualUpload:true,url:'/api/pod/second',id:'second'}
+  ]});
+  assert.deepEqual(jobs.map(j=>j.kind),['official-signed-loadlist','manual-uploaded-pod','manual-uploaded-pod']);
+  assert.deepEqual(jobs.map(j=>j.name),[
+    'POD_ABC123_Ladeliste_mit_Unterschrift.pdf','POD_ABC123.pdf','POD_ABC123_Anhang_2.pdf'
+  ]);
+});
+
+test('RC1720: an automatic POD must never be misclassified as a second manual upload',()=>{
+  const jobs=selector(manual)({ref:'ABC123',podFiles:[
+    {kind:'manual-uploaded-pod',id:'first',url:'/api/pod/abc123',manualUpload:true},
+    {kind:'automatic-pod',id:'signed',url:'/api/pod/signed',source:'pickup-confirm-v3'}
+  ]});
+  assert.deepEqual(jobs.map(j=>j.kind),['official-signed-loadlist','manual-uploaded-pod']);
 });
 
 test('RC1716: a digital signed POD without manual upload remains in backup',()=>{
