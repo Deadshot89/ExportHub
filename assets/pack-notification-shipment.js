@@ -417,8 +417,13 @@
     // authoritative state data arrives. Never attach to a detached payload.
     if(!savedRows.length||!shipmentId(savedRows[0])){
       if((detail.shipment||eventRef)&&(sourceRef||shipmentId(source))){
-        deferredSavedEvent={notificationId:q(notification.id),at:Date.now(),detail:{
-          shipment:{id:shipmentId(source),ref:snapshotRef,
+        const previous=deferredSavedEvent,sourceId=shipmentId(source);
+        // A refresh retry must not restart the five-minute safety window.
+        const same=previous&&q(previous.notificationId)===q(notification.id)
+          &&q(previous.detail&&previous.detail.shipment&&previous.detail.shipment.id)===sourceId
+          &&q((previous.detail&&previous.detail.ref)||(previous.detail&&previous.detail.shipment&&previous.detail.shipment.ref)).toUpperCase()===sourceRef;
+        deferredSavedEvent={notificationId:q(notification.id),at:same?previous.at:Date.now(),detail:{
+          shipment:{id:sourceId,ref:snapshotRef,
             packNotificationId:q(source&&source.packNotificationId),
             packNotificationRef:q(source&&source.packNotificationRef)},
           ref:eventRef
