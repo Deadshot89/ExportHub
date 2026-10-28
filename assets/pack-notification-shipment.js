@@ -197,9 +197,7 @@
     // Only populate a new, unsaved draft or the already linked Pack draft.
     // A previous editor snapshot must never receive this Pack's PDFs.
     const state=sharedState(),candidates=[state.shipment,state.currentShipment,state.selectedShipment];
-    const draft=ownedPendingDraft(state,prefill)||candidates.find(item=>item&&typeof item==='object'
-      &&!q(item.packNotificationId)&&!q(item.packNotificationRef)
-      &&!shipmentId(item)&&!q(item.shipmentRef));
+    const draft=ownedPendingDraft(state,prefill)||candidates.find(item=>eligibleNewDraft(state,item));
     if(draft){
       if(manualWithoutIdentity&&prefill.customerName)draft.customerSearch=prefill.customerName;
       draft.packNotificationId=prefill.packNotificationId;draft.packNotificationRef=prefill.packNotificationRef;draft.packNotificationCustomer={id:prefill.customerId,account:prefill.customerAccount,name:prefill.customerName,source:prefill.customerSource};draft.packNotificationPrefill={deliveryNoteReference:prefill.deliveryNoteReference,packageType:prefill.packageType,packageCount:prefill.packageCount,totalWeight:prefill.totalWeight,rows:prefill.rows,note:prefill.note};
@@ -281,6 +279,21 @@
     // Never let a stale editor snapshot hide the actual active Pack draft.
     return [state&&state.shipment,state&&state.currentShipment,state&&state.selectedShipment]
       .find(draft=>draft&&q(draft.packNotificationId)===nid&&q(draft.packNotificationRef)===nref)||null;
+  }
+  // Fresh shipment creation deliberately allocates a six-character REF before
+  // saving. A REF by itself does not mean this draft belongs to a saved shipment.
+  // Only the canonical fresh-draft marker can permit a generated REF, and an
+  // existing persisted shipment with the same ID/REF must always win the guard.
+  function eligibleNewDraft(state,draft){
+    if(!draft||typeof draft!=='object'||q(draft.packNotificationId)||q(draft.packNotificationRef))return false;
+    const identifiers=record=>[record&&record.id,record&&record.shipmentId,record&&record.ref,
+      record&&record.reference,record&&record.shipmentRef].map(value=>q(value).toUpperCase()).filter(Boolean);
+    const ids=identifiers(draft);
+    if(!ids.length)return true;
+    if(draft.__rc562Fresh!==true)return false;
+    return ![...arr(state&&state.shipments),...arr(state&&state.savedShipments),
+      ...arr(state&&state.sharedShipments)].some(saved=>
+        saved===draft||identifiers(saved).some(id=>ids.includes(id)));
   }
   function keepPendingDocuments(prefill){
     const state=sharedState(),draft=ownedPendingDraft(state,prefill);
