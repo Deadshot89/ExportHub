@@ -60,6 +60,21 @@ test('RC1720: an automatic POD must never be misclassified as a second manual up
   assert.deepEqual(jobs.map(j=>j.kind),['official-signed-loadlist','manual-uploaded-pod']);
 });
 
+
+test('RC1721: stored pickup signature URL is enough to retain signed original even with manual POD',()=>{
+  const jobs=selector(manual)({ref:'ABC123',pickupDriverSignatureUrl:'/api/pickup-pod?signature=1',podFiles:[
+    {kind:'manual-uploaded-pod',manualUpload:true,url:'/api/pod/abc123',id:'manual'}
+  ]});
+  assert.deepEqual(jobs.map(j=>j.kind),['official-signed-loadlist','manual-uploaded-pod']);
+});
+
+test('RC1721: server-confirmed pickup with signatureAvailable keeps signed original',()=>{
+  const jobs=selector(manual)({ref:'ABC123',signatureAvailable:true,pickupConfirmedAt:'2026-10-28T10:00:00Z',podFiles:[
+    {kind:'manual-uploaded-pod',manualUpload:true,url:'/api/pod/abc123'}
+  ]});
+  assert.deepEqual(jobs.map(j=>j.kind),['official-signed-loadlist','manual-uploaded-pod']);
+});
+
 test('RC1716: a digital signed POD without manual upload remains in backup',()=>{
   const jobs=selector(null)({ref:'ABC123',podFiles:[{kind:'automatic-pod'}]});
   assert.deepEqual(jobs.map(j=>j.kind),['official-signed-loadlist']);
