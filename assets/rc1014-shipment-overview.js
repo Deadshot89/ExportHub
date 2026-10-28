@@ -137,8 +137,21 @@
   }
 
   function authToken(){
-    const rt=root.ExportHUBClean&&root.ExportHUBClean.runtime||{};
-    return q(rt.authToken||rt.sessionToken||'');
+    try{
+      const rt=root.ExportHUBClean&&root.ExportHUBClean.runtime||{},active=q(rt.authToken||rt.token||rt.sessionToken);
+      if(active)return active;
+    }catch(_){}
+    // Reloads can clear runtime credentials while the authenticated tab
+    // session is still valid. Read only the established ExportHUB session,
+    // never scan unrelated browser storage or start a second login.
+    try{
+      const raw=root.sessionStorage&&root.sessionStorage.getItem('exporthub_rc301_tab_session');
+      if(!raw)return'';
+      const session=JSON.parse(raw),token=q(session&&session.token);
+      if(!token||!session.user)return'';
+      const environment=q(session.environment||session.dataEnvironment).toLowerCase();
+      return !environment||environment===currentEnvironment()?token:'';
+    }catch(_){return''}
   }
 
   function apiHeaders(){
