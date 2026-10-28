@@ -100,7 +100,15 @@
   }
   function documentForViewer(doc){
     if(!doc||typeof doc!=='object')return null;
-    if(documentUrl(doc))return doc;
+    // Older pack records may retain a valid blob reference without its
+    // storage label. The authenticated viewer can still load those bytes.
+    const viewer=root.ExportHUBDocumentBlob1059;
+    if(viewer&&typeof viewer.isBlobDocument==='function'&&viewer.isBlobDocument(doc))return doc;
+    const blob=q(doc.blobName);
+    if(/^rc1059\/(?:production|testservice)\/[a-f0-9]{2}\/[a-f0-9]{64}$/.test(blob))return doc;
+    const url=q(doc.url||doc.downloadUrl||doc.href);
+    if(url&&((viewer&&typeof viewer.protectedApiUrl==='function'&&viewer.protectedApiUrl(url))||
+      /^\/api\/exporthub-document(?:\?|$)/i.test(url)))return doc;
     const inline=q(doc.data||doc.dataUrl);
     if(/^data:(?:application\/pdf|image\/(?:jpeg|png));base64,[A-Za-z0-9+/=]+$/i.test(inline))return Object.assign({},doc,{data:inline});
     const mime=q(doc.mimeType||doc.type).toLowerCase(),base64=q(doc.base64);
