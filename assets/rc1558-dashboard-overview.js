@@ -58,7 +58,7 @@ function isCancelled(s){return /storniert|cancel/.test(low(statusOf(s)))}
 function isPickedUp(s){
   var status=low([s&&s.status,s&&s.state,s&&s.processStatus,s&&s.freigabe,s&&s.pickupStatus,s&&s.podStatus].join(' '));
   if(/teilabhol|partial/.test(status))return false;
-  return !!(s&&(s.pickedUp===true||s.pickupConfirmed===true||s.pickupCompleted===true||s.collected===true||s.actualPickupAt||s.actualPickupDate||s.pickedUpAt||s.pickedUpAtDate||s.pickupConfirmedAt||s.pickupCompletedAt||s.collectedAt||s.abgeholtAt))||/abgeholt|picked up|pickedup|collected|pod vorhanden|abgeschlossen|archiviert|completed|archived/.test(status);
+  return !!(s&&(s.pickedUp===true||s.pickupConfirmed===true||s.pickupCompleted===true||s.collected===true||s.actualPickupAt||s.actualPickupDate||s.pickedUpAt||s.pickedUpAtDate||s.pickupAt||s.pickupConfirmedAt||s.pickupCompletedAt||s.collectedAt||s.abgeholtAt))||/abgeholt|picked up|pickedup|collected|pod vorhanden|abgeschlossen|archiviert|completed|archived/.test(status);
 }
 function isOpenForPickup(s){return !!s&&!isCancelled(s)&&!isPickedUp(s)}
 function hasDeliveryNote(s){
