@@ -72,13 +72,17 @@ module.exports = async function(context, req) {
     // RC1686: existing Graph item IDs without independently verified content
     // must not be presented as a successful SharePoint backup to the browser.
     const driveVerified = podArchive.confirmedDriveBackup(backup);
+    // RC1715 P1: Azure is only one of two mandatory backup destinations.
+    // Do not report a finished POD backup until the unchanged signed original
+    // is both archived and independently verified by Graph SHA-256 readback.
+    const fullySaved = backup.archiveSaved === true && driveVerified;
     context.res = json(200, {
       ok: true,
-      saved: backup.status === 'saved',
+      saved: fullySaved,
       azureSaved: backup.azureSaved === true,
       archiveSaved: backup.archiveSaved === true,
       driveSaved: driveVerified,
-      status: backup.status || 'unknown',
+      status: fullySaved ? 'saved' : backup.archiveSaved === true ? 'sharepoint-pending' : backup.status === 'saved' ? 'pending' : (backup.status || 'unknown'),
       savedAt: backup.archiveSavedAt || backup.driveSavedAt || backup.azureSavedAt || store.now(),
       fileName: backup.fileName || result.file && result.file.name || podArchive.fileNameFor(record),
       webUrl: driveVerified ? backup.webUrl || '' : '',
