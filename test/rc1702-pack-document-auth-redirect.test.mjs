@@ -78,3 +78,16 @@ test('RC1702: SWA does not send document API downloads to Microsoft platform log
  const api=fs.readFileSync('api/exporthub-document/index.js','utf8');
  assert.match(api,/await auth\.validateSession\(req\)/,'endpoint still authenticates via ExportHUB session');
 });
+
+test('RC1702: actual TESTSERVICE deployment config keeps document API outside Microsoft platform login',()=>{
+ const workflow=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
+ assert.match(workflow,/cp staticwebapp\.testservice\.config\.json \.rc1112_testservice_app\/staticwebapp\.config\.json/,'TESTSERVICE deploy must use the guarded source config');
+ const config=JSON.parse(fs.readFileSync('staticwebapp.testservice.config.json','utf8'));
+ const index=config.routes.findIndex(item=>item.route==='/api/exporthub-document');
+ const wildcard=config.routes.findIndex(item=>item.route==='/api/*');
+ assert.ok(index>=0&&wildcard>=0&&index<wildcard,'TESTSERVICE must route protected PDFs before generic API matcher');
+ const route=config.routes[index];
+ assert.deepEqual(Array.from(route.allowedRoles),['anonymous'],'API session authorization stays inside ExportHUB function');
+ assert.equal(route.headers['X-ExportHUB-Environment'],'test');
+ assert.match(config.navigationFallback.exclude.join(' '),/\/api\/\*/);
+});
