@@ -1097,6 +1097,8 @@ async function rc1340PrintPreparedAttachment(item,index,total,failed){
   viewer.src=item.url;
   actions.style.cssText='display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:10px;flex-shrink:0';
   open.href=item.url;open.target='_blank';open.rel='noopener noreferrer';open.textContent='PDF im neuen Tab öffnen';
+  // Keep the Blob URL valid when the browser PDF viewer is opened separately.
+  open.addEventListener('click',function(){item.persistUrl=true});
   open.style.cssText='color:#1d4ed8;text-decoration:underline;margin-right:auto';
   next.type='button';next.textContent=index+1<total?'Nächster Lieferschein':'PDF-Vorschau schließen';
   next.style.cssText='background:#1d4ed8;color:white;border:0;border-radius:6px;padding:11px 16px;cursor:pointer';
@@ -1111,7 +1113,7 @@ async function rc1340PrintPreparedAttachment(item,index,total,failed){
 }
 async function rc1340PrintPreparedAttachments(items){
  items=arr(items);try{for(var i=0;i<items.length;i++)await rc1340PrintPreparedAttachment(items[i],i,items.length,items.failed);return items.length}
- finally{items.forEach(function(item){if(item&&item.owned)try{URL.revokeObjectURL(item.url)}catch(_){}})}
+ finally{items.forEach(function(item){if(!item||!item.owned)return;if(item.persistUrl){if(typeof window.addEventListener==='function')window.addEventListener('pagehide',function(){try{URL.revokeObjectURL(item.url)}catch(_){}} ,{once:true});return}try{URL.revokeObjectURL(item.url)}catch(_){}})}
 }
 window.ExportHUBRC1340AttachmentPrint=Object.freeze({version:'RC1340',printable:rc1340PrintableDeliveryAttachments,prepare:rc1340PrepareDeliveryAttachmentPrints,printPrepared:rc1340PrintPreparedAttachments,printShipment:async function(sh){var jobs=await rc1340PrepareDeliveryAttachmentPrints(sh);var count=await rc1340PrintPreparedAttachments(jobs);if(jobs.failed&&jobs.failed.length){var error=new Error('Nicht alle Lieferschein-PDFs verfügbar: '+jobs.failed.map(function(x){return x.name}).join(', '));error.code='DELIVERY_DOCUMENTS_INCOMPLETE';error.failed=jobs.failed;error.opened=count;throw error}if(!count){var missing=new Error('Keine druckbaren Lieferschein-PDFs vorhanden.');missing.code='DELIVERY_DOCUMENTS_EMPTY';throw missing}return count}});
 `;
