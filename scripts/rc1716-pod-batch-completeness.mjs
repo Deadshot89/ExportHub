@@ -24,6 +24,27 @@ export function patchRc1716PodBatchHtml(html, environment = 'unknown') {
     'retain digital original and additional manual POD'
   );
 
+  // RC1717: The old auto-sync sent a manually uploaded POD through the
+  // automatic signed-POD endpoint, replacing the canonical original.
+  // Manual files remain independent ZIP evidence; never rewrite signed PODs.
+  const manualBegin = script.indexOf('async function syncManualCloudUploads(force){');
+  const manualEnd = script.indexOf('\\nasync function syncServer(force){', manualBegin);
+  if (manualBegin < 0 || manualEnd <= manualBegin) {
+    throw new Error(environment + ': RC1717 manual POD backup boundary missing');
+  }
+  script = script.slice(0, manualBegin) +
+    "async function syncManualCloudUploads(force){/* RC1717: keep uploaded POD separate from signed original */return 0}\\n" +
+    script.slice(manualEnd + 1);
+
+  // The emergency counter must be based on actual Azure + Graph proof,
+  // not on a legacy optimistic 'saved' label stored in the browser state.
+  script = replaceOnce(
+    script,
+    "var signed=filtered('',''),cloud=signed.filter(function(sh){return low(sh&&sh.podCloudBackupStatus)==='saved'&&!!q(sh&&sh.podCloudBackupFileName)}).length",
+    "var signed=filtered('',''),cloud=signed.filter(function(sh){var b=sh&&sh.podBackup||{},hash=low(b.hash),verified=low(b.driveVerifiedHash);return b.archiveSaved===true&&b.driveSaved===true&&!!q(b.driveItemId)&&/^[a-f0-9]{64}$/.test(hash)&&hash===verified&&!!q(b.driveVerifiedAt)}).length",
+    'never show optimistic SharePoint success in emergency modal'
+  );
+
   script = replaceOnce(
     script,
     "btn.disabled=true;bar.style.width='0%';var entries=[],fail=[];",
