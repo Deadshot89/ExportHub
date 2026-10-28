@@ -125,3 +125,23 @@ test('RC1715: nur Versandkosten-Eingaben und Standortwechsel starten Berechnung'
   send('click',{id:'anotherButton',shippingField:false});
   assert.equal(timers.length,2,'fremder Klick darf nicht erneut planen');
 });
+
+
+test('RC1715: Release-Build ersetzt auch vorhandene veraltete Cache-Keys für Versandkosten',()=>{
+  const builder=fs.readFileSync(new URL('../.github/rc1112/build-three-env.mjs',import.meta.url),'utf8');
+  const start=builder.indexOf('function patchRc1206ShippingRules(');
+  const end=builder.indexOf('function patchMainCountryDetection(',start);
+  assert.ok(start>=0&&end>start);
+  const id='exporthub-rc1206-shipping-rules',tag='<script id="'+id+'" defer src="/assets/rc1206-shipping-rules.js?v=1715"></script>';
+  const inject=(html,next,id)=>html.includes('id="'+id+'"')?html:html.replace('</head>',next+'</head>');
+  const patch=vm.runInNewContext(builder.slice(start,end)+'\npatchRc1206ShippingRules',{
+    RC1206_SHIPPING_TAG:tag,RC1206_SHIPPING_ID:id,injectDeferredRuntimeInHead:inject
+  });
+  for(const page of ['index.html','TESTVERSION.html','demo.html']){
+    const old='<head><script id="'+id+'" defer src="/assets/rc1206-shipping-rules.js?v=1419"></script></head>';
+    const html=patch(old,page);
+    assert.match(html,/rc1206-shipping-rules\.js\?v=1715/);
+    assert.doesNotMatch(html,/rc1206-shipping-rules\.js\?v=1419/);
+    assert.equal(html.split('id="'+id+'"').length-1,1,'Nur ein Shipping Script pro Umgebung');
+  }
+});
