@@ -149,3 +149,15 @@ test('RC1705: HTTP 200 PDF MIME with Microsoft login HTML payload cannot downloa
  await assert.rejects(api.open({name:'Pack-alt.pdf',url:'/api/exporthub-document?blob=x'},{download:true}),e=>e.code==='DOCUMENT_NOT_PDF');
  assert.equal(clicks.length,0);
 });
+
+test('RC1705: non-PDF image attachments remain readable through the shared authenticated blob viewer',async()=>{
+ const img={name:'PickupFoto.jpg',storage:'blob',blobName:file.blobName,mimeType:'image/jpeg'};
+ const {api}=viewer({runtime:{authToken:'VALID'},reply:{
+  ok:true,status:200,redirected:false,type:'basic',url:'https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net/api/exporthub-document',
+  headers:{get(){return'image/jpeg'}},
+  async blob(){return new Blob([new Uint8Array([0xff,0xd8,0xff,0xd9])],{type:'image/jpeg'})}
+ }});
+ const result=await api.fetchBlob(img);
+ assert.equal(result.type,'image/jpeg');
+ assert.equal(result.size,4);
+});
