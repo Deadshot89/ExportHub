@@ -100,5 +100,5 @@ test('RC1702: TESTSERVICE release blocks Microsoft redirects on the protected do
  assert.ok(deployed>=0&&gate>deployed&&browser>gate,'route must be verified after deploy and before mutating browser test');
  assert.match(workflow,/--max-redirs 0/,'live test must not follow Microsoft redirects');
  assert.match(workflow,/\[ \"\$status\" != '401' \]/,'only ExportHUB authentication rejection is allowed');
- assert.match(workflow,/AUTH_REQUIRED','session verification contract');
+ assert.match(workflow,/AUTH_REQUIRED/,'session verification contract');
 });
