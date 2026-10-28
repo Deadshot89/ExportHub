@@ -34,7 +34,7 @@ function printRuntime(fetchBlob){
 // RC1704: RC1703 rejects objects that merely claim to be PDFs.
 // Regression fixtures must supply actual PDF bytes with the PDF header.
 function realPdfBlob(){
-  return new Blob(['%PDF-1.4\\n1 0 obj\\n<< /Type /Catalog >>\\nendobj\\n%%EOF'],{type:'application/pdf'});
+  return new Blob(['%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF'],{type:'application/pdf'});
 }
 
 function shipment(){
