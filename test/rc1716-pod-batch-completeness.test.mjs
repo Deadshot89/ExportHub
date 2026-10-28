@@ -62,6 +62,16 @@ test('RC1716: patch is strictly anchored, refuses duplicate/stale script and lea
     original.slice(0,original.indexOf('<script id="rc455-pod-backup-controller">')));
 });
 
+
+test('RC1717: the legacy manual cloud sync never replaces the canonical digital POD',()=>{
+  const controller=patched.slice(patched.indexOf('<script id="rc455-pod-backup-controller">'),
+    patched.indexOf('</script>',patched.indexOf('<script id="rc455-pod-backup-controller">')));
+  assert.match(controller,/async function syncManualCloudUploads\(force\)\{\/\* RC1717: keep uploaded POD separate from signed original \*\/return 0\}/);
+  assert.doesNotMatch(controller,/cloud\.backupBlob\(sh/);
+  assert.match(controller,/b\.archiveSaved===true&&b\.driveSaved===true/);
+  assert.match(controller,/hash===verified&&!!q\(b\.driveVerifiedAt\)/);
+});
+
 test('RC1716: all 3 release bundles invoke the same patch after RC1680 canonical copy',()=>{
   const builder=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
   assert.match(builder,/import \{patchRc1716PodBatchHtml\}/);
