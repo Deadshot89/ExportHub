@@ -58,9 +58,9 @@ test('P2: Kern-Dashboard und neue Uebersicht erkennen Abholung mit derselben Reg
  const match=legacy.match(/const pickupPredicate=("(?:\\.|[^"\\])*");/);
  assert.ok(match,'RC1044 braucht genau ein gemeinsam verwendetes Abhol-Praedikat');
  const predicate=JSON.parse(match[1]);
- assert.match(legacy,/function workspaceShipmentPickedUp\\(s\\)\\{["]\\+pickupPredicate\\+["]\\}/);
- assert.match(legacy,/function dashboardShipmentPickedUp\\(s\\)\\{["]\\+pickupPredicate\\+["]\\}/);
- assert.match(overview,/s\\.pickupAt/,'RC1558 muss auch den bestehenden Pickup-Zeitstempel beachten');
+ assert.ok(legacy.includes('function workspaceShipmentPickedUp(s){"+pickupPredicate+"}'),'Workspace muss gemeinsamen Abholtest verwenden');
+ assert.ok(legacy.includes('function dashboardShipmentPickedUp(s){"+pickupPredicate+"}'),'Kern-Dashboard muss gemeinsamen Abholtest verwenden');
+ assert.ok(overview.includes('s.pickupAt'),'RC1558 muss auch den bestehenden Pickup-Zeitstempel beachten');
  const isPickedUp=new Function('s','low',predicate);
  const low=v=>String(v==null?'':v).toLowerCase();
  const samples=[
