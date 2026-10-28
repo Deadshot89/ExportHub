@@ -74,7 +74,7 @@
   // Prevent Microsoft login pages (also those mislabelled application/pdf).
   var name=q(file&&typeof file==='object'&&(file.name||file.fileName||file.filename));
   var declared=q(file&&typeof file==='object'&&(file.mimeType||file.contentType||file.type)).toLowerCase();
-  var pdfExpected=/\\.pdf$/i.test(name)||/\\bpdf\\b/.test(declared)||/\\bpdf\\b/.test(mime);
+  var pdfExpected=/\.pdf$/i.test(name)||/\bpdf\b/.test(declared)||/\bpdf\b/.test(mime);
   if(pdfExpected&&typeof blob.slice==='function'&&typeof blob.arrayBuffer==='function'){
    var first=new Uint8Array(await blob.slice(0,5).arrayBuffer());
    if(first.length!==5||String.fromCharCode.apply(null,first)!=='%PDF-'){
