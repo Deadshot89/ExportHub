@@ -28,12 +28,12 @@ export function patchRc1716PodBatchHtml(html, environment = 'unknown') {
   // automatic signed-POD endpoint, replacing the canonical original.
   // Manual files remain independent ZIP evidence; never rewrite signed PODs.
   const manualBegin = script.indexOf('async function syncManualCloudUploads(force){');
-  const manualEnd = script.indexOf('\\nasync function syncServer(force){', manualBegin);
+  const manualEnd = script.indexOf('\nasync function syncServer(force){', manualBegin);
   if (manualBegin < 0 || manualEnd <= manualBegin) {
     throw new Error(environment + ': RC1717 manual POD backup boundary missing');
   }
   script = script.slice(0, manualBegin) +
-    "async function syncManualCloudUploads(force){/* RC1717: keep uploaded POD separate from signed original */return 0}\\n" +
+    "async function syncManualCloudUploads(force){/* RC1717: keep uploaded POD separate from signed original */return 0}\n" +
     script.slice(manualEnd + 1);
 
   // The emergency counter must be based on actual Azure + Graph proof,
