@@ -756,6 +756,11 @@ async function reconcilePendingBackups(environment, options) {
   const prefix = 'rc995/' + environment + '/records/';
   const continuationToken = text(options.continuationToken);
   const scanPageSize = Math.min(100, Math.max(10, Math.round(Number(options.scanPageSize) || 40)));
+  // RC1697: temporary per-scan skip for a TESTSERVICE relink already found
+  // ambiguous. No POD/Team mutation, and the next maintenance run rechecks it.
+  const relinkSkipCount = environment === 'testservice' && !reference
+    ? Math.min(scanPageSize, Math.max(0, Math.floor(Number(options.relinkSkipCount) || 0)))
+    : 0;
   let nextContinuationToken = '';
   let scanComplete = true;
   const candidates = [];
@@ -886,7 +891,7 @@ async function reconcilePendingBackups(environment, options) {
   const selectedRequiredCandidates = requiredCandidates.slice(0, requiredBackupBudget);
   remainingRemoteBudget = Math.max(0, remainingRemoteBudget - selectedRequiredCandidates.length);
   const relinkBudget = reference ? limit : Math.min(1, remainingRemoteBudget);
-  const selectedRelinks = teamRelinkCandidates.slice(0, relinkBudget);
+  const selectedRelinks = teamRelinkCandidates.slice(relinkSkipCount, relinkSkipCount + relinkBudget);
   remainingRemoteBudget = Math.max(0, remainingRemoteBudget - selectedRelinks.length);
   const driveBackfillBudget = reference ? Math.min(limit, remainingRemoteBudget) : Math.min(1, remainingRemoteBudget);
   const selectedDriveCandidates = driveBackfillCandidates.slice(0, driveBackfillBudget);
@@ -898,7 +903,7 @@ async function reconcilePendingBackups(environment, options) {
   if (!reference) {
     if (
       requiredWorkDeferred ||
-      teamRelinkCandidates.length > selectedRelinks.length ||
+      teamRelinkCandidates.length > relinkSkipCount + selectedRelinks.length ||
       requiredCandidates.length > selectedRequiredCandidates.length
     ) {
       requiredWorkDeferred = true;
@@ -1003,6 +1008,9 @@ async function reconcilePendingBackups(environment, options) {
     nextContinuationToken = continuationToken;
     scanComplete = false;
   }
+  const nextRelinkSkipCount = environment === 'testservice' && !reference
+    ? Math.min(scanPageSize, relinkSkipCount + teamRelinkBlockedCount)
+    : 0;
 
   const target = reference ? {
     reference,
@@ -1029,7 +1037,7 @@ async function reconcilePendingBackups(environment, options) {
     scanComplete,
     // Blocked duplicate TESTSERVICE relinks are unresolved review items, not
     // actionable backlog work. Excluding them prevents endless drain loops.
-    eligible: requiredEligible + teamRelinkCandidates.length - teamRelinkBlockedCount,
+    eligible: requiredEligible + Math.max(0, teamRelinkCandidates.length - relinkSkipCount - teamRelinkBlockedCount),
     selected: requiredSelected + selectedRelinks.length - teamRelinkBlockedCount,
     skippedRecent,
     driveBackfillEligible,
@@ -1040,6 +1048,7 @@ async function reconcilePendingBackups(environment, options) {
     teamRelinkSkippedCount,
     teamRelinkBlockedCount,
     teamRelinkBlockedCodes: teamRelinkBlockedCount ? ['TEAM_SHIPMENT_AMBIGUOUS'] : [],
+    nextRelinkSkipCount,
     needsManualReview: teamRelinkBlockedCount > 0,
     teamRelinkPendingCount: Math.max(0, teamRelinkCandidates.length - teamRelinkedCount - teamRelinkSkippedCount),
     savedCount: saved.length,
