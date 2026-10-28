@@ -39,8 +39,13 @@ function config() {
   const clientId = text(process.env.EXPORTHUB_GRAPH_CLIENT_ID);
   const clientSecret = text(process.env.EXPORTHUB_GRAPH_CLIENT_SECRET);
   if (!status.configured) {
-    const error = new Error('Microsoft Graph ist für die POD-Sicherung noch nicht konfiguriert.');
-    error.code = 'GRAPH_NOT_CONFIGURED';
+    // Preserve the established fail-closed Graph error for incomplete exact
+    // targets while reporting the missing ID in readiness diagnostics.
+    const incompleteExact = !!status.driveId !== !!status.folderId;
+    const error = new Error(incompleteExact
+      ? 'Das explizite Microsoft-365-POD-Ziel ist unvollständig konfiguriert.'
+      : 'Microsoft Graph ist für die POD-Sicherung noch nicht konfiguriert.');
+    error.code = incompleteExact ? 'GRAPH_EXACT_TARGET_INCOMPLETE' : 'GRAPH_NOT_CONFIGURED';
     error.statusCode = 503;
     error.missing = status.missing.slice();
     throw error;
