@@ -1033,14 +1033,30 @@ function rc1340PrintableDeliveryAttachments(sh){
  }
  keys.forEach(function(key){arr(sh&&sh[key]).forEach(add)});return out
 }
+async function rc1703VerifiedPdfBlob(blob,name){
+ // Never print a Microsoft login page, JSON error, or missing original as PDF.
+ var bytes=blob&&typeof blob.slice==='function'&&typeof blob.arrayBuffer==='function'?new Uint8Array(await blob.slice(0,5).arrayBuffer()):[];
+ if(bytes.length!==5||String.fromCharCode.apply(null,bytes)!=='%PDF-'){var e=new Error('Original-PDF ist nicht verfügbar: '+name);e.code='DOCUMENT_NOT_PDF';throw e}
+ return blob
+}
 async function rc1340PrepareDeliveryAttachmentPrints(sh){
  var helper=window.ExportHUBDocumentBlob1059,list=rc1340PrintableDeliveryAttachments(sh),prepared=[];
  prepared.failed=[];
   for(var i=0;i<list.length;i++){var item=list[i],url=item.legacyUrl,owned=false;
    try{
-   if(item.blobBacked){if(!helper||typeof helper.fetchBlob!=='function')throw new Error('Dokumentenspeicher ist nicht verfügbar: '+item.name);var blob=await helper.fetchBlob(item.file);url=URL.createObjectURL(blob);owned=true}
+   if(item.blobBacked){if(!helper||typeof helper.fetchBlob!=='function')throw new Error('Dokumentenspeicher ist nicht verfügbar: '+item.name);var blob=await helper.fetchBlob(item.file);url=URL.createObjectURL(await rc1703VerifiedPdfBlob(blob,item.name));owned=true}
    else if(/^data:application\\/pdf/i.test(url)){var dataResponse=await fetch(url);if(!dataResponse.ok)throw new Error(item.name+' konnte nicht aus dem lokalen PDF-Inhalt geladen werden.');var dataBlob=await dataResponse.blob();url=URL.createObjectURL(dataBlob);owned=true}
-   else if(url&&!/^blob:/i.test(url)){var response=await fetch(url,{credentials:'same-origin',cache:'no-store'});if(!response.ok)throw new Error(item.name+' konnte nicht geladen werden (HTTP '+response.status+').');var fetched=await response.blob();url=URL.createObjectURL(fetched);owned=true}
+   else if(url&&!/^blob:/i.test(url)){
+    var options={credentials:'same-origin',cache:'no-store',redirect:'manual'},documentApi=false;
+    try{var resolved=new URL(url,window.location.href);documentApi=resolved.origin===window.location.origin&&resolved.pathname==='/api/exporthub-document'}catch(_){}
+    // RC1703: migrated delivery-note URLs must carry the existing ExportHUB
+    // session, otherwise Azure may return a Microsoft login document instead.
+    if(documentApi){if(!helper||typeof helper.headers!=='function')throw new Error('ExportHUB-Sitzung für Lieferschein fehlt.');options.headers=helper.headers()}
+    var response=await fetch(url,options);
+    if(response.type==='opaqueredirect'||response.redirected===true||/\\/\\.auth\\/|login\\.microsoftonline\\.com/i.test(q(response.url))){var redirectError=new Error('Die Dokumenten-API hat zur Anmeldung umgeleitet.');redirectError.code='DOCUMENT_API_LOGIN_REDIRECT';throw redirectError}
+    if(!response.ok)throw new Error(item.name+' konnte nicht geladen werden (HTTP '+response.status+').');
+    var fetched=await response.blob();url=URL.createObjectURL(await rc1703VerifiedPdfBlob(fetched,item.name));owned=true
+   }
    if(!url)throw new Error('Kein druckbarer Dateiinhalt für '+item.name+'.');
    prepared.push({name:item.name,identity:item.identity,url:url,owned:owned})
    }catch(e){if(owned)try{URL.revokeObjectURL(url)}catch(_){};prepared.failed.push({name:item.name,code:q(e&&e.code)||'DOCUMENT_FETCH_FAILED'});try{console.warn('RC1684 Lieferschein für Druck nicht erreichbar',item.name,e)}catch(_){}}
