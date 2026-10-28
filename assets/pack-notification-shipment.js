@@ -331,7 +331,8 @@
           const reader=root.ExportHUBDocumentBlob1059;
           if(!chosen||!reader||typeof reader.open!=='function')throw Error('Original document is unavailable');
           feedback.textContent=t(download?'documentViewer.download':'documentViewer.open',download?'Download':'Open')+' …';
-          await reader.open(chosen,{name:q(chosen.name),download});
+          const opened=await reader.open(chosen,{name:q(chosen.name),download});
+          if(opened===false)throw Error('Original document download failed');
           feedback.textContent='';
         }catch(_){feedback.textContent=t('documentViewer.openFailed','The document could not be opened.');}
       };
@@ -407,14 +408,22 @@
     }
     pending=null;root.__EXPORTHUB_PACK_SHIPMENT_PREFILL__=null;return true;
   }
+  // A customer/location refresh can replace the current draft after the initial
+  // three-second prefill window. Keep restoring only the matching Pack owner
+  // for the entire pending handoff, including after a remote state refresh.
+  function refreshPendingDocuments(){
+    if(!pending||!pending.prefill)return false;
+    keepPendingDocuments(pending.prefill);
+    return renderPendingLieferscheine(pending.prefill);
+  }
   function install(){
     if(typeof root.addEventListener!=='function'||root.__packShipmentBridgeInstalled)return false;root.__packShipmentBridgeInstalled=true;
     root.addEventListener('exporthub:pack-create-shipment',event=>begin(event&&event.detail&&event.detail.notificationId));
     root.addEventListener('exporthub:shipment-saved',onShipmentSaved);
-    // Native customer/location re-render may replace the documents block after
-    // the initial fill. Recreate only the same owned Pack list when that occurs.
-    root.addEventListener('exporthub:rendered',()=>{if(pending&&pending.prefill)renderPendingLieferscheine(pending.prefill);});
-    ['exporthub:shipment-updated','exporthub:state-loaded','exporthub:sync'].forEach(name=>root.addEventListener(name,scheduleSync));
+    // Rehydrate real original PDFs before rendering the attachment controls;
+    // do not stop after the short-lived row/dimension stabilization timer.
+    root.addEventListener('exporthub:rendered',refreshPendingDocuments);
+    ['exporthub:shipment-updated','exporthub:state-loaded','exporthub:sync'].forEach(name=>root.addEventListener(name,()=>{refreshPendingDocuments();scheduleSync();}));
     scheduleSync();return true;
   }
 
