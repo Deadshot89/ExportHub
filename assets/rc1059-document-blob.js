@@ -9,7 +9,20 @@
   return'production';
  }
  function token(){
-  try{var rt=w.ExportHUBClean&&w.ExportHUBClean.runtime||{};return q(rt.authToken||rt.token||rt.sessionToken)}catch(_){return''}
+  try{
+   var rt=w.ExportHUBClean&&w.ExportHUBClean.runtime||{},active=q(rt.authToken||rt.token||rt.sessionToken);
+   if(active)return active;
+  }catch(_){}
+  // After a TESTSERVICE state refresh the runtime token can be cleared while
+  // the authenticated tab session remains valid. Do not launch Microsoft login.
+  try{
+   var stored=w.sessionStorage&&w.sessionStorage.getItem('exporthub_rc301_tab_session');
+   if(!stored)return'';
+   var session=JSON.parse(stored),value=q(session&&session.token);
+   if(!value||!session.user)return'';
+   var scope=q(session.environment||session.dataEnvironment).toLowerCase();
+   return !scope||scope===environment()?value:'';
+  }catch(_){return''}
  }
  function blobName(file){return q(file&&typeof file==='object'&&(file.blobName||file.storageBlobName))}
  function isBlobDocument(file){
@@ -21,8 +34,29 @@
  function legacyUrl(file){if(!file)return'';if(typeof file==='string')return q(file);return q(file.data||file.dataUrl||file.url||file.downloadUrl||file.contentUrl||file.href||file.objectUrl||file.link)}
  function headers(){var t=token();if(!t)throw new Error(tr('document.loginRequired',null,'ExportHUB login required.'));return{Accept:'*/*','Cache-Control':'no-cache',Authorization:'Bearer '+t,'X-ExportHUB-Token':t,'X-ExportHUB-Session':t,'X-ExportHUB-Environment':environment()}}
  function endpoint(file){if(!isBlobDocument(file))throw new Error(tr('document.invalidReference',null,'Invalid ExportHUB document reference.'));return'/api/exporthub-document?blob='+encodeURIComponent(blobName(file))+'&environment='+encodeURIComponent(environment())}
- async function response(file){var r=await w.fetch(endpoint(file),{method:'GET',headers:headers(),credentials:'same-origin',cache:'no-store'});if(!r.ok){var message=tr('document.loadFailed',null,'Document could not be loaded.');try{var j=await r.json();if(j&&j.message)message=j.message}catch(_){}throw new Error(message+' (HTTP '+r.status+')')}return r}
- async function fetchBlob(file){return(await response(file)).blob()}
+ function redirectedToLogin(r){
+  if(!r)return true;
+  var url=q(r.url).toLowerCase(),type=q(r.headers&&r.headers.get&&r.headers.get('content-type')).toLowerCase();
+  return r.type==='opaqueredirect'||r.redirected===true||/\/(?:\.auth\/|login(?:\/|\?|$))|login\.microsoftonline\.com/.test(url)||
+   (r.ok&&/^(?:text\/html|application\/xhtml\+xml)/.test(type));
+ }
+ async function response(file){
+  var r=await w.fetch(endpoint(file),{method:'GET',headers:headers(),credentials:'same-origin',cache:'no-store',redirect:'manual'});
+  if(redirectedToLogin(r)){
+   var e=new Error(tr('document.apiRedirect',null,'Der Dokumentenserver hat zur Anmeldung umgeleitet. Die bestehende ExportHUB-Sitzung bleibt erhalten; der Lieferschein wurde nicht heruntergeladen.'));
+   e.code='DOCUMENT_API_LOGIN_REDIRECT';throw e;
+  }
+  if(!r.ok){var message=tr('document.loadFailed',null,'Document could not be loaded.');try{var j=await r.json();if(j&&j.message)message=j.message}catch(_){}throw new Error(message+' (HTTP '+r.status+')')}
+  return r
+ }
+ async function fetchBlob(file){
+  var result=await response(file),blob=await result.blob(),mime=q(blob&&blob.type).toLowerCase();
+  if(/^(?:text\/html|application\/xhtml\+xml)/.test(mime)){
+   var e=new Error(tr('document.apiRedirect',null,'Der Dokumentenserver hat zur Anmeldung umgeleitet. Die bestehende ExportHUB-Sitzung bleibt erhalten; der Lieferschein wurde nicht heruntergeladen.'));
+   e.code='DOCUMENT_API_LOGIN_REDIRECT';throw e;
+  }
+  return blob
+ }
  async function fetchBytes(file){var b=await fetchBlob(file),buf=await b.arrayBuffer();return new Uint8Array(buf)}
  function clickUrl(url,name,download){var a=w.document.createElement('a');a.href=url;a.rel='noopener noreferrer';if(download)a.download=q(name)||tr('document.defaultName',null,'Document');else a.target='_blank';w.document.body.appendChild(a);a.click();a.remove()}
  async function open(file,options){
