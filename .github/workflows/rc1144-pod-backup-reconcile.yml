@@ -120,6 +120,17 @@ jobs:
           optional_drive_pending_batches=0
           blocked_ambiguous_relink_batches=0
           for batch in $(seq 1 200); do
+            # RC1711: Long POD scans outlive short-lived GitHub OIDC credentials.
+            # Renew periodically using GitHub's signed token endpoint; never log the JWT
+            # or bypass the API's repository/workflow/environment verification.
+            if [ "$batch" -gt 1 ] && [ $(( (batch - 1) % 10 )) -eq 0 ]; then
+              oidc_token="$(
+                curl -fsSL \
+                  -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+                  "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=exporthub-pod-backup-reconcile" \
+                  | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s).value;if(!v)process.exit(2);process.stdout.write(v)})"
+              )"
+            fi
             previous_continuation_token="$continuation_token"
             previous_relink_skip_count="$relink_skip_count"
             payload="$(CONTINUATION_TOKEN="$continuation_token" RELINK_SKIP_COUNT="$relink_skip_count" node -e "const reference=String(process.env.TARGET_REFERENCE||'').trim().toUpperCase();process.stdout.write(JSON.stringify({environment:process.env.TARGET_ENV,limit:25,scanPageSize:10,reference,drainAll:!reference,continuationToken:String(process.env.CONTINUATION_TOKEN||''),relinkSkipCount:Math.max(0,Math.min(10,Math.floor(Number(process.env.RELINK_SKIP_COUNT)||0)))}))")"
@@ -279,6 +290,17 @@ jobs:
           continuation_token=''
           optional_drive_pending_batches=0
           for batch in $(seq 1 200); do
+            # RC1711: Long POD scans outlive short-lived GitHub OIDC credentials.
+            # Renew periodically using GitHub's signed token endpoint; never log the JWT
+            # or bypass the API's repository/workflow/environment verification.
+            if [ "$batch" -gt 1 ] && [ $(( (batch - 1) % 10 )) -eq 0 ]; then
+              oidc_token="$(
+                curl -fsSL \
+                  -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+                  "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=exporthub-pod-backup-reconcile" \
+                  | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{const v=JSON.parse(s).value;if(!v)process.exit(2);process.stdout.write(v)})"
+              )"
+            fi
             previous_continuation_token="$continuation_token"
             payload="$(CONTINUATION_TOKEN="$continuation_token" node -e "const reference=String(process.env.TARGET_REFERENCE||'').trim().toUpperCase();process.stdout.write(JSON.stringify({environment:process.env.TARGET_ENV,limit:25,scanPageSize:10,reference,drainAll:!reference,continuationToken:String(process.env.CONTINUATION_TOKEN||'')}))")"
             response_file="$(mktemp)"
