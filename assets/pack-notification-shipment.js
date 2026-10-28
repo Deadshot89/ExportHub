@@ -194,7 +194,13 @@
     }
     applyRowsToMountedForm(doc,shipmentRows(prefill));
     applyTextsToMountedForm(doc,prefill);
-    const state=sharedState(),draft=state.shipment||state.currentShipment||state.selectedShipment;if(draft&&typeof draft==='object'){
+    // Only populate a new, unsaved draft or the already linked Pack draft.
+    // A previous editor snapshot must never receive this Pack's PDFs.
+    const state=sharedState(),candidates=[state.shipment,state.currentShipment,state.selectedShipment];
+    const draft=ownedPendingDraft(state,prefill)||candidates.find(item=>item&&typeof item==='object'
+      &&!q(item.packNotificationId)&&!q(item.packNotificationRef)
+      &&!q(item.ref||item.reference||item.shipmentRef));
+    if(draft){
       if(manualWithoutIdentity&&prefill.customerName)draft.customerSearch=prefill.customerName;
       draft.packNotificationId=prefill.packNotificationId;draft.packNotificationRef=prefill.packNotificationRef;draft.packNotificationCustomer={id:prefill.customerId,account:prefill.customerAccount,name:prefill.customerName,source:prefill.customerSource};draft.packNotificationPrefill={deliveryNoteReference:prefill.deliveryNoteReference,packageType:prefill.packageType,packageCount:prefill.packageCount,totalWeight:prefill.totalWeight,rows:prefill.rows,note:prefill.note};
       draft.deliveryFiles=mergeDocuments(draft.deliveryFiles,prefill.deliveryFiles);
