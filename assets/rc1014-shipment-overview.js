@@ -137,8 +137,21 @@
   }
 
   function authToken(){
-    const rt=root.ExportHUBClean&&root.ExportHUBClean.runtime||{};
-    return q(rt.authToken||rt.sessionToken||'');
+    try{
+      const rt=root.ExportHUBClean&&root.ExportHUBClean.runtime||{},active=q(rt.authToken||rt.token||rt.sessionToken);
+      if(active)return active;
+    }catch(_){}
+    // Reloads can clear runtime credentials while the authenticated tab
+    // session is still valid. Read only the established ExportHUB session,
+    // never scan unrelated browser storage or start a second login.
+    try{
+      const raw=root.sessionStorage&&root.sessionStorage.getItem('exporthub_rc301_tab_session');
+      if(!raw)return'';
+      const session=JSON.parse(raw),token=q(session&&session.token);
+      if(!token||!session.user)return'';
+      const environment=q(session.environment||session.dataEnvironment).toLowerCase();
+      return !environment||environment===currentEnvironment()?token:'';
+    }catch(_){return''}
   }
 
   function apiHeaders(){
@@ -147,9 +160,19 @@
   }
 
   async function fetchContainerBlob(shipment,photo){
-    const url=photoUrl(shipment,photo,false),res=await root.fetch(url,{method:'GET',headers:apiHeaders(),credentials:'same-origin',cache:'no-store'});
+    const url=photoUrl(shipment,photo,false),res=await root.fetch(url,{method:'GET',headers:apiHeaders(),credentials:'same-origin',cache:'no-store',redirect:'manual'});
+    const responseUrl=q(res&&res.url).toLowerCase(),type=q(res&&res.headers&&res.headers.get&&res.headers.get('content-type')).toLowerCase();
+    // The existing ExportHUB session must stay in place. Never interpret a
+    // Microsoft login redirect or a fallback HTML page as a saved photo.
+    if(!res||res.redirected===true||res.type==='opaqueredirect'||/login\.microsoftonline\.com|\/\.auth\/|\/login(?:[/?]|$)/.test(responseUrl)||/^(?:text\/html|application\/xhtml\+xml)/.test(type)){
+      throw new Error('Der Fotoserver hat zur Anmeldung umgeleitet oder HTML statt eines Fotos geliefert.');
+    }
     if(!res.ok){let msg='Containerfoto konnte nicht geladen werden.';try{const d=await res.json();msg=q(d&&d.message)||msg}catch(_){}throw new Error(msg)}
-    return res.blob();
+    const blob=await res.blob(),mime=q(blob&&blob.type||type).toLowerCase();
+    if(!/^image\/(?:jpeg|png|webp)(?:\s*;|$)/.test(mime)||!blob||!blob.size){
+      throw new Error('Der Fotoserver hat keine gültige Bilddatei geliefert.');
+    }
+    return blob;
   }
 
   function hydrateContainerImages(panel,shipment){
@@ -212,9 +235,9 @@
   }
 
   function photoUrl(shipment,photo,download){
-    const ref=shipmentReference(shipment),id=q(photo&&photo.id);
+    const ref=shipmentReference(shipment),id=q(photo&&photo.id),sid=shipmentId(shipment);
     if(!ref||!id)return'';
-    return '/api/container-document?reference='+encodeURIComponent(ref)+'&file='+encodeURIComponent(id)+'&environment='+encodeURIComponent(currentEnvironment())+(download?'&download=1':'');
+    return '/api/container-document?reference='+encodeURIComponent(ref)+'&file='+encodeURIComponent(id)+'&shipmentId='+encodeURIComponent(sid)+'&environment='+encodeURIComponent(currentEnvironment())+(download?'&download=1':'');
   }
 
   function createContainerCard(doc,shipment){
@@ -312,10 +335,36 @@
     s=s||state();
     const wanted=q(s.shipmentViewId||s.selectedShipmentId||s.activeShipmentId).toUpperCase();
     if(wanted){
-      const hit=arr(s.shipments).find(sh=>[shipmentId(sh),shipmentReference(sh)].includes(wanted));
+      const all=arr(s.shipments).concat(arr(s.savedShipments));
+      // Select the unique internal shipment ID before falling back to a
+      // reference. Two shipments may share a reference in older team states.
+      const hit=all.find(sh=>shipmentId(sh)===wanted)||all.find(sh=>shipmentReference(sh)===wanted);
       if(hit)return hit;
     }
     return activeShipment(s);
+  }
+
+  // Browser state may still contain the pre-pickup shipment while the server
+  // has already synchronized its three photos to savedShipments. Only combine
+  // evidence from copies with the same internal ID AND reference.
+  function containerShipmentForDetail(sh,s){
+    const id=shipmentId(sh),ref=shipmentReference(sh);
+    if(!id||!ref)return sh;
+    const candidates=arr(s&&s.shipments).concat(arr(s&&s.savedShipments)).filter(other=>
+      obj(other)&&shipmentId(other)===id&&shipmentReference(other)===ref);
+    let selected=sh;
+    const evidence=other=>containerMeta(other).count;
+    const stamp=other=>Date.parse(q(other&&other.containerDocumentationUpdatedAt))||0;
+    candidates.forEach(other=>{
+      if(evidence(other)>evidence(selected)||(evidence(other)===evidence(selected)&&evidence(other)>0&&stamp(other)>stamp(selected)))selected=other;
+    });
+    if(selected===sh)return sh;
+    return Object.assign({},sh,{
+      containerPhotos:arr(selected.containerPhotos),
+      subShipments:arr(selected.subShipments),
+      sealNumber:q(selected.sealNumber||selected.containerSealNumber||sh.sealNumber||sh.containerSealNumber),
+      containerDocumentationRequired:sh.containerDocumentationRequired===true||selected.containerDocumentationRequired===true
+    });
   }
 
   function shipmentTargets(s,active){
@@ -469,11 +518,12 @@
 
   function enhanceShipmentDetailedView(){
     const doc=root.document;if(!doc||!inShipmentDetailView(doc))return false;
-    const sh=viewShipment(state());if(!sh)return false;
+    const s=state(),source=viewShipment(s);if(!source)return false;
+    const sh=containerShipmentForDetail(source,s);
     const meta=containerMeta(sh),shouldShow=meta.required||meta.seal||meta.photos.length;
     const old=doc.querySelector&&doc.querySelector('[data-rc1259-container-detail]');
     if(!shouldShow){if(old&&typeof old.remove==='function'){old.remove();lastMutationAt=Date.now()}return false}
-    const fingerprint=JSON.stringify([shipmentReference(sh),meta.required,meta.seal,meta.photos.map(photo=>[q(photo&&photo.id),q(photo&&photo.kind),q(photo&&photo.label),q(photo&&photo.name),q(photo&&photo.uploadedAt)])]);
+    const fingerprint=JSON.stringify([shipmentReference(sh),meta.required,meta.seal,meta.photos.map(photo=>[q(photo&&photo.id),q(photo&&photo.kind),q(photo&&photo.label),q(photo&&photo.name),q(photo&&photo.blobName),q(photo&&photo.uploadedAt)])]);
     if(old&&old.getAttribute&&old.getAttribute('data-rc1259-detail-fingerprint')===fingerprint)return true;
     const docsCard=doc.getElementById&&doc.getElementById('rc786ReferenceFilesCard');
     const host=docsCard&&docsCard.parentNode;

@@ -51,7 +51,14 @@ async function upload(reference,name,buffer,mimeType){
  const res=await graph(url,{method:'PUT',headers:{'Content-Type':text(mimeType)||'application/octet-stream','Content-Length':String(buffer.length),Accept:'application/json'},body:buffer});
  let data={};try{data=await res.json()}catch(_){}
  if(!res.ok)throw error('GRAPH_REFERENCE_FILE_UPLOAD_FAILED',data.error&&data.error.message||'api.reference.fileUploadFailed',res.status>=500?502:res.status,{status:res.status});
- return{id:text(data.id),name:text(data.name)||file,size:Number(data.size||buffer.length),webUrl:text(data.webUrl),folderPath:folderPath(ref),reference:ref};
+ // A successful HTTP response without a matching Drive item is not proof
+ // that the photo was stored under this reference. Never return a fake
+ // success (or fall back to the local buffer length) on incomplete Graph data.
+ const itemId=text(data.id),itemName=text(data.name),itemSize=Number(data.size);
+ if(!itemId||itemName!==file||!Number.isSafeInteger(itemSize)||itemSize!==buffer.length){
+  throw error('GRAPH_REFERENCE_FILE_UNVERIFIED','Microsoft Graph hat die Datei im REF-Ordner nicht vollständig bestätigt. Bitte den Upload erneut versuchen.',502);
+ }
+ return{id:itemId,name:itemName,size:itemSize,webUrl:text(data.webUrl),folderPath:folderPath(ref),reference:ref};
 }
 async function listFiles(reference){
  const ref=refValue(reference),select='id,name,file,folder,createdDateTime,lastModifiedDateTime';
