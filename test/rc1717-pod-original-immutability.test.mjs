@@ -44,6 +44,15 @@ test('RC1717: missing integrity hash on existing blob never authorizes replaceme
  assert.deepEqual(steps,[]);
 });
 
+test('RC1718: unlinked historical signed original is never overwritten or re-rendered',async()=>{
+ const steps=[],save=setup({},steps);
+ await assert.rejects(()=>save('key','testservice',{
+   reference:'ABC123',podFiles:[{kind:'automatic-pod',hash:hashPdf(signed)}]
+ },signed,'POD_ABC123_Ladeliste_unterschrieben.pdf',{source:'stored-original'}),
+   e=>e.code==='POD_FILE_NOT_STORED'&&e.status===404);
+ assert.deepEqual(steps,[],'unlinked original must block primary/archive/Graph writes');
+});
+
 test('RC1717: identical signed PDF remains eligible for backup retry',async()=>{
  const steps=[],save=setup({},steps);
  const result=await save('key','testservice',{reference:'ABC123',podFiles:[{kind:'automatic-pod',hash:hashPdf(signed),blobName:'automatic/a'}]},signed,'POD_ABC123_Ladeliste_unterschrieben.pdf',{source:'stored-original'});
