@@ -19,8 +19,17 @@ function readiness() {
   if (!tenantId) missing.push('EXPORTHUB_GRAPH_TENANT_ID');
   if (!clientId) missing.push('EXPORTHUB_GRAPH_CLIENT_ID');
   if (!clientSecret) missing.push('EXPORTHUB_GRAPH_CLIENT_SECRET');
-  if (!user) missing.push('EXPORTHUB_POD_DRIVE_USER');
-  if (!folder) missing.push('EXPORTHUB_POD_FOLDER');
+  // RC1712: an explicitly configured Graph drive+folder ID pair is an
+  // independent, valid target. A user/path lookup must not be required in
+  // this mode. Reject half-configured ID pairs instead of silently falling
+  // back to a different user's folder.
+  if (driveId || folderId) {
+    if (!driveId) missing.push('EXPORTHUB_POD_DRIVE_ID');
+    if (!folderId) missing.push('EXPORTHUB_POD_FOLDER_ID');
+  } else {
+    if (!user) missing.push('EXPORTHUB_POD_DRIVE_USER');
+    if (!folder) missing.push('EXPORTHUB_POD_FOLDER');
+  }
   return { configured: missing.length === 0, missing, user, folder, driveId, folderId };
 }
 
@@ -30,8 +39,13 @@ function config() {
   const clientId = text(process.env.EXPORTHUB_GRAPH_CLIENT_ID);
   const clientSecret = text(process.env.EXPORTHUB_GRAPH_CLIENT_SECRET);
   if (!status.configured) {
-    const error = new Error('Microsoft Graph ist für die POD-Sicherung noch nicht konfiguriert.');
-    error.code = 'GRAPH_NOT_CONFIGURED';
+    // Preserve the established fail-closed Graph error for incomplete exact
+    // targets while reporting the missing ID in readiness diagnostics.
+    const incompleteExact = !!status.driveId !== !!status.folderId;
+    const error = new Error(incompleteExact
+      ? 'Das explizite Microsoft-365-POD-Ziel ist unvollständig konfiguriert.'
+      : 'Microsoft Graph ist für die POD-Sicherung noch nicht konfiguriert.');
+    error.code = incompleteExact ? 'GRAPH_EXACT_TARGET_INCOMPLETE' : 'GRAPH_NOT_CONFIGURED';
     error.statusCode = 503;
     error.missing = status.missing.slice();
     throw error;
