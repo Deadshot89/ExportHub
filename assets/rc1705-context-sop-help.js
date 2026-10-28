@@ -31,7 +31,7 @@ function q(v){return String(v==null?'':v).trim();}
 function esc(v){return q(v).replace(/[&<>"']/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]})}
 function lang(){var raw='';try{var api=w.ExportHUBI18n;raw=q(api&&(typeof api.getLanguage==='function'?api.getLanguage():api.language||api.currentLanguage));}catch(_){}return LANGS.indexOf(raw.toLowerCase().slice(0,2))>=0?raw.toLowerCase().slice(0,2):(LANGS.indexOf(q(d.documentElement.lang).toLowerCase().slice(0,2))>=0?q(d.documentElement.lang).toLowerCase().slice(0,2):'de')}
 function t(id){return (TEXT[lang()]||TEXT.de)[id]||TEXT.de[id]||id}
-function getView(){return q(d.body&&d.body.getAttribute('data-exporthub-view'))||'dashboard'}
+function getView(){return q(d.body&&(d.body.getAttribute('data-exporthub-view')||d.body.getAttribute('data-current-view')))||'dashboard'}
 function appReady(){return !!(d.getElementById('nav')&&d.getElementById('content'))}
 function currentUser(){var u=null;try{if(typeof w.__EXPORTHUB_GET_CURRENT_USER__==='function')u=w.__EXPORTHUB_GET_CURRENT_USER__()}catch(_){}if(!q(u&&(u.id||u.userId||u.username||u.login))){var state={};try{if(typeof w.__EXPORTHUB_GET_STATE__==='function')state=w.__EXPORTHUB_GET_STATE__()||{}}catch(_){}u=state.currentUser||state.activeUser||w.currentUser||{}}return q(u&&(u.id||u.userId||u.username||u.login))||'local'}
 function progressId(id){return currentUser()+'|'+id}
@@ -69,7 +69,7 @@ d.addEventListener('click',function(e){var target=e.target&&e.target.closest?e.t
 d.addEventListener('input',function(e){if(!e.target||!e.target.matches||!e.target.matches('#rc1705-sop-panel [data-rc1705-search]'))return;search=q(e.target.value);var nav=d.querySelector('#rc1705-sop-panel nav');if(nav)nav.innerHTML=navHtml()});
 d.addEventListener('keydown',function(e){if(e.key==='Escape'&&opened&&d.getElementById('rc1705-sop-panel')){e.preventDefault();close()}});
 ['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:sync','exporthub:language-changed'].forEach(function(n){w.addEventListener(n,function(){schedule();if(opened&&n==='exporthub:language-changed')repaint()})});
-function start(){previousView=getView();sync();loadCatalogue().then(function(){if(opened)repaint()}).catch(function(){});if(typeof w.MutationObserver==='function'){observer=new w.MutationObserver(function(){schedule()});observer.observe(d.body,{subtree:true,childList:true})}}
+function start(){previousView=getView();sync();loadCatalogue().then(function(){if(opened)repaint()}).catch(function(){});if(typeof w.MutationObserver==='function'){observer=new w.MutationObserver(function(){schedule()});observer.observe(d.body,{subtree:true,childList:true,attributes:true,attributeFilter:['data-exporthub-view','data-current-view']})}}
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',start,{once:true});else start();
 w.ExportHUBSopHelp1705=Object.freeze({open:open,close:close,entries:entries,loadCatalogue:loadCatalogue,currentView:getView,guideById:byId,version:'RC1705'});
 })(typeof window!=='undefined'?window:null,typeof document!=='undefined'?document:null);
