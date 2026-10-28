@@ -9,7 +9,7 @@ class El {
  setAttribute(k,v){this.attrs[k]=v}
  getAttribute(k){return this.attrs[k]||null}
  querySelector(s){
-  const k=s.match(/^\\[([^\\]]+)\\]$/)?.[1];if(!k)return null;
+  const k=s.startsWith('[')&&s.endsWith(']')?s.slice(1,-1):'';if(!k)return null;
   const walk=n=>{for(const x of n.children){if(Object.hasOwn(x.attrs,k))return x;const y=walk(x);if(y)return y}return null};
   return walk(this)
  }
