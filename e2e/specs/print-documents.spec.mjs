@@ -732,3 +732,42 @@ test('RC1315 P1: Druck-QR oder REF in Ladeliste startet den vollständigen Sendu
 
   for(const guard of guards)await assertRuntimeClean(guard,testInfo);
 });
+
+test('RC1703: existing SalesPackingSlip URL prints only with ExportHUB session and real PDF content',async({page},testInfo)=>{
+  test.skip(testInfo.project.name!=='laptop','RC1703 legacy attachment route is checked once.');
+  const guard=attachRuntimeGuards(page,testInfo);
+  await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
+  await waitReady(page);
+  const result=await page.evaluate(async()=>{
+    const api=window.ExportHUBRC1340AttachmentPrint,originalFetch=window.fetch,originalHelper=window.ExportHUBDocumentBlob1059;
+    if(!api||!originalHelper)throw new Error('RC1703 PDF print runtime missing');
+    const document={name:'SalesPackingSlip-Example-00000_01012026_000000_000_00000_P.pdf',
+      url:'/api/exporthub-document?blob=rc1059%2Fproduction%2Faa%2F'+('a'.repeat(64))+'&environment=production'};
+    const captured=[],printed=[];
+    try{
+      window.ExportHUBDocumentBlob1059={...originalHelper,isBlobDocument:()=>false,headers:()=>({Authorization:'Bearer TEST-SESSION'})};
+      window.fetch=async(url,opts)=>{
+        captured.push({url:String(url),authorization:String(opts?.headers?.Authorization||''),redirect:opts?.redirect});
+        return new Response(new Blob(['%PDF-1.4\nREAL'],{type:'application/pdf'}),{status:200,headers:{'Content-Type':'application/pdf'}});
+      };
+      window.__EXPORTHUB_CAPTURE_ATTACHMENT_PRINT__=item=>{printed.push(item.name)};
+      const jobs=await api.prepare({deliveryFiles:[document]});
+      const failedBefore=jobs.failed.length;
+      await api.printPrepared(jobs);
+      window.fetch=async()=>new Response('<html><h1>Microsoft login</h1></html>',{status:200,headers:{'Content-Type':'text/html'}});
+      const htmlJobs=await api.prepare({deliveryFiles:[document]});
+      return {captured,printed,failedBefore,htmlFailed:htmlJobs.failed.map(x=>x.code),htmlPrinted:htmlJobs.length};
+    }finally{
+      window.fetch=originalFetch;
+      window.ExportHUBDocumentBlob1059=originalHelper;
+      delete window.__EXPORTHUB_CAPTURE_ATTACHMENT_PRINT__;
+    }
+  });
+  expect(result.captured[0].authorization).toBe('Bearer TEST-SESSION');
+  expect(result.captured[0].redirect).toBe('manual');
+  expect(result.failedBefore).toBe(0);
+  expect(result.printed).toHaveLength(1);
+  expect(result.htmlPrinted).toBe(0);
+  expect(result.htmlFailed).toEqual(['DOCUMENT_NOT_PDF']);
+  await assertRuntimeClean(guard,testInfo);
+});
