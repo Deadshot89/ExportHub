@@ -168,6 +168,23 @@ export async function runPackNotificationLiveFlow(browser,testInfo,token){
       expect(originalPdf.count).toBeGreaterThan(40);
       expect(originalPdf.storage).toBe('blob');
 
+      // RC1702: Validate the actual staff-facing Download button, not just a
+      // direct JavaScript fetch. An Azure/Microsoft login page cannot pass
+      // as a delivery-note PDF; the downloaded file must contain PDF bytes.
+      const packDownloadButton=page.locator('#packNotificationDetail [data-pack-doc-download]').first();
+      await expect(packDownloadButton).toBeVisible({timeout:10_000});
+      const [packDownload]=await Promise.all([
+        page.waitForEvent('download',{timeout:25_000}),
+        packDownloadButton.click()
+      ]);
+      expect(packDownload.suggestedFilename()).toBe(resultA.canonicalName);
+      const packDownloadStream=await packDownload.createReadStream();
+      const packDownloadChunks=[];
+      for await(const chunk of packDownloadStream)packDownloadChunks.push(Buffer.from(chunk));
+      const packDownloadBytes=Buffer.concat(packDownloadChunks);
+      expect(packDownloadBytes.length).toBeGreaterThan(40);
+      expect(packDownloadBytes.subarray(0,5).toString('latin1')).toBe('%PDF-');
+
       await page.locator('#packNotificationDetail [data-pack-action="shipment"]').first().click();
       await expect(page.locator('#rc363BlockCustomer')).toBeVisible({timeout:30_000});
       await expect(page.locator('#shipmentCustomerSearch')).toHaveValue(/E2E PACK CUSTOMER A/i);
