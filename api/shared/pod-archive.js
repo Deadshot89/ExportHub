@@ -1012,6 +1012,13 @@ async function reconcilePendingBackups(environment, options) {
     ? Math.min(scanPageSize, relinkSkipCount + teamRelinkBlockedCount)
     : 0;
 
+  // RC1715 P1: A targeted proof must not return "already-saved" for Azure
+  // alone. A missing Graph configuration, pending copy or deferred backfill
+  // keeps the digital POD explicitly incomplete without rewriting its bytes.
+  const targetSharePointPending = !!(reference && referencePodReady > 0 &&
+    (!graphDrive.readiness().configured ||
+      drivePending.length > 0 ||
+      driveBackfillEligible > driveBackfillSelected));
   const target = reference ? {
     reference,
     matchedCount: referenceMatched,
@@ -1025,6 +1032,7 @@ async function reconcilePendingBackups(environment, options) {
       errors.length > 0 ? 'error' :
       teamRelinkBlockedCount > 0 ? 'review-required' :
       pending.length > 0 ? 'pending' :
+      targetSharePointPending ? 'sharepoint-pending' :
       (alreadySaved.length + saved.length >= referencePodReady ? (saved.length > 0 ? 'saved-now' : 'already-saved') : 'incomplete')
   } : null;
   return {
