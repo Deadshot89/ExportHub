@@ -116,6 +116,10 @@ module.exports = async function(context, req) {
       reference,
       limit,
       continuationToken: text(payload.continuationToken),
+      // Per-scan temporary cursor only, never persisted to POD or team state.
+      relinkSkipCount: environment === 'testservice' && drainAll
+        ? Math.min(100, Math.max(0, Math.floor(Number(payload.relinkSkipCount) || 0)))
+        : 0,
       scanPageSize: Math.min(100, Math.max(10, Math.round(Number(payload.scanPageSize) || 40))),
       minAgeMs: reference || drainAll ? 0 : 5 * 60 * 1000
     });

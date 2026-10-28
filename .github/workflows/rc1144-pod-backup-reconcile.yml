@@ -116,11 +116,13 @@ jobs:
           )"
 
           continuation_token=''
+          relink_skip_count=0
           optional_drive_pending_batches=0
           blocked_ambiguous_relink_batches=0
           for batch in $(seq 1 200); do
             previous_continuation_token="$continuation_token"
-            payload="$(CONTINUATION_TOKEN="$continuation_token" node -e "const reference=String(process.env.TARGET_REFERENCE||'').trim().toUpperCase();process.stdout.write(JSON.stringify({environment:process.env.TARGET_ENV,limit:25,scanPageSize:10,reference,drainAll:!reference,continuationToken:String(process.env.CONTINUATION_TOKEN||'')}))")"
+            previous_relink_skip_count="$relink_skip_count"
+            payload="$(CONTINUATION_TOKEN="$continuation_token" RELINK_SKIP_COUNT="$relink_skip_count" node -e "const reference=String(process.env.TARGET_REFERENCE||'').trim().toUpperCase();process.stdout.write(JSON.stringify({environment:process.env.TARGET_ENV,limit:25,scanPageSize:10,reference,drainAll:!reference,continuationToken:String(process.env.CONTINUATION_TOKEN||''),relinkSkipCount:Math.max(0,Math.min(10,Math.floor(Number(process.env.RELINK_SKIP_COUNT)||0)))}))")"
             response_file="$(mktemp)"
             http_code="$(
               curl -sS -L -o "$response_file" -w '%{http_code}' \
@@ -151,6 +153,10 @@ jobs:
                 process.stdout.write('again');
               })" "$http_code" "$batch")"
             continuation_token="$(printf '%s\n' "$result" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{let v={};try{v=JSON.parse(s||'{}')}catch(_){};process.stdout.write(String(v.nextContinuationToken||''))})")"
+            relink_skip_count="$(printf '%s\n' "$result" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{let v={};try{v=JSON.parse(s||'{}')}catch(_){};process.stdout.write(String(Math.max(0,Math.min(10,Math.floor(Number(v.nextRelinkSkipCount)||0)))))})")"
+            if [ "$continuation_token" != "$previous_continuation_token" ]; then
+              relink_skip_count=0
+            fi
             progress_count="$(printf '%s\n' "$result" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{let v={};try{v=JSON.parse(s||'{}')}catch(_){};const n=x=>Math.max(0,Number(x||0));process.stdout.write(String(n(v.integrityChecks)+n(v.repairedStateCount)+n(v.savedCount)+n(v.teamRelinkedCount)+n(v.teamRelinkSkippedCount)))})")"
             drive_pending_count="$(printf '%s\n' "$result" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{let v={};try{v=JSON.parse(s||'{}')}catch(_){};const count=Number(v.drivePendingCount||0);process.stdout.write(String(Number.isFinite(count)&&count>0?Math.floor(count):0))})")"
             if [ "$drive_pending_count" -gt 0 ]; then
@@ -182,8 +188,8 @@ jobs:
               fi
               exit 0
             fi
-            if [ -n "$continuation_token" ] && [ "$continuation_token" = "$previous_continuation_token" ] && [ "$progress_count" -le 0 ]; then
-              echo 'TESTSERVICE POD reconcile: Continuation-Token bewegt sich ohne Fortschritt nicht weiter.' >&2
+            if [ -n "$continuation_token" ] && [ "$continuation_token" = "$previous_continuation_token" ] && [ "$progress_count" -le 0 ] && [ "$relink_skip_count" -le "$previous_relink_skip_count" ]; then
+              echo 'TESTSERVICE POD reconcile: Continuation-Token bewegt sich ohne Fortschritt nicht weiter; unbekannte Zuordnungen bleiben manuell zu prüfen.' >&2
               exit 9
             fi
           done
