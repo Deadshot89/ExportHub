@@ -91,3 +91,14 @@ test('RC1702: actual TESTSERVICE deployment config keeps document API outside Mi
  assert.equal(route.headers['X-ExportHUB-Environment'],'test');
  assert.match(config.navigationFallback.exclude.join(' '),/\/api\/\*/);
 });
+
+test('RC1702: TESTSERVICE release blocks Microsoft redirects on the protected document endpoint',()=>{
+ const workflow=fs.readFileSync('.github/workflows/azure-static-web-apps-wonderful-forest-0f315e310.yml','utf8');
+ const deployed=workflow.indexOf('- name: RC1553 TESTSERVICE deployment identity prüfen');
+ const gate=workflow.indexOf('- name: RC1702 Dokumenten-API Routing TESTSERVICE');
+ const browser=workflow.indexOf('- name: RC1124 TESTSERVICE Browser Gate');
+ assert.ok(deployed>=0&&gate>deployed&&browser>gate,'route must be verified after deploy and before mutating browser test');
+ assert.match(workflow,/--max-redirs 0/,'live test must not follow Microsoft redirects');
+ assert.match(workflow,/\[ \"\$status\" != '401' \]/,'only ExportHUB authentication rejection is allowed');
+ assert.match(workflow,/AUTH_REQUIRED','session verification contract');
+});
