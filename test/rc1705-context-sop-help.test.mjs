@@ -106,3 +106,39 @@ test('RC1705: current SOP context follows the alternate view attribute',()=>{
   assert.equal(win.ExportHUBSopHelp1705.currentView(),'customers');
   assert.match(runtime,/attributeFilter:\['data-exporthub-view','data-current-view'\]/);
 });
+
+
+test('RC1705: open help refreshes completed steps on active-user switch',async()=>{
+  let userId='employee-one',panel=null;
+  const stored={'employee-one|SOP-EH-031':[],'employee-two|SOP-EH-031':['step-1']};
+  const listeners={},doc={
+    readyState:'loading',documentElement:{lang:'de'},activeElement:null,
+    body:{getAttribute(){return 'dashboard'},appendChild(el){if(el.id==='rc1705-sop-panel')panel=el}},
+    addEventListener(name,fn){listeners[name]=fn},
+    getElementById(id){
+      if(id==='nav'||id==='content')return {};
+      if(id==='rc1705-sop-panel')return panel;
+      return null;
+    },
+    querySelector(){return null},
+    createElement(){return {id:'',hidden:false,textContent:'',innerHTML:'',setAttribute(){},querySelector(){return null}}}
+  };
+  const win={
+    addEventListener(name,fn){listeners[name]=fn},
+    setTimeout(fn){fn();return 0},
+    __EXPORTHUB_GET_CURRENT_USER__(){return {id:userId}},
+    localStorage:{getItem(){return JSON.stringify(stored)},setItem(){}},
+    fetch(){return Promise.resolve({ok:true,json(){return Promise.resolve(employee)}})},
+    ExportHubIsoSopCatalog:{documents:[{number:'SOP-EH-031',title:'Sendung erstellen',
+      sections:{steps:[{id:'step-1',text:'Kunde auswählen'},{id:'step-2',text:'Sendung prüfen'}]}}]}
+  };
+  vm.runInNewContext(runtime,{window:win,document:doc,Promise});
+  listeners.DOMContentLoaded();
+  const help=win.ExportHUBSopHelp1705;
+  await help.loadCatalogue();
+  assert.equal(help.open('SOP-EH-031'),true);
+  assert.match(panel.innerHTML,/0 \/ 2/);
+  userId='employee-two';
+  listeners['exporthub:sync']();
+  assert.match(panel.innerHTML,/1 \/ 2/,'existing open panel must show second user progress');
+});
