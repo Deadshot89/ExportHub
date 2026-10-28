@@ -109,6 +109,19 @@
     while((match=literal.exec(input)))out.push(decodePdfString(match[0].slice(1,-1)));
     const hex=/<([0-9A-Fa-f\s]{4,})>/g;
     while((match=hex.exec(input)))out.push(decodeHexPdfString(match[1]));
+    // D365/ERP-PDFs can render one visible reference as many separate TJ/Tj
+    // strings (including UTF-16 glyphs). Extract contiguous text-operation
+    // fragments from each BT/ET block as both joined and spaced text.
+    const block=/\bBT\b([\s\S]*?)\bET\b/g;
+    while((match=block.exec(input))){
+      const chunks=[],atoms=/\((?:\\.|[^\\)])*\)|<([0-9A-Fa-f\s]{2,})>/g;
+      let part;
+      while((part=atoms.exec(match[1]))){
+        const value=part[0][0]==='('?decodePdfString(part[0].slice(1,-1)):decodeHexPdfString(part[1]);
+        if(value)chunks.push(value);
+      }
+      if(chunks.length>1){out.push(chunks.join(' '));out.push(chunks.join(''));}
+    }
     return out;
   }
 
