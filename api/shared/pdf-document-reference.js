@@ -42,6 +42,18 @@ function textStrings(source){
   while((m=hex.exec(input))){
     try{out.push(decodeHexPdfString(m[1]))}catch(_){}
   }
+  // Text from ERP PDFs may be split character-by-character across TJ
+  // arrays. Rejoin only within a single text block, never across pages.
+  const blocks=/\bBT\b([\s\S]*?)\bET\b/g;
+  while((m=blocks.exec(input))){
+    const chunks=[],atoms=/\((?:\\.|[^\\)])*\)|<([0-9A-Fa-f\s]{2,})>/g;
+    let part;
+    while((part=atoms.exec(m[1]))){
+      const value=part[0][0]==='('?decodePdfString(part[0].slice(1,-1)):decodeHexPdfString(part[1]);
+      if(value)chunks.push(value);
+    }
+    if(chunks.length>1){out.push(chunks.join(' '));out.push(chunks.join(''));}
+  }
   return out;
 }
 function flateStreams(buffer){
