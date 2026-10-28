@@ -23,7 +23,10 @@ async function withArchiveStore(graphUpload,run,graphVerify){
   const oldGraph={readiness:graph.readiness,uploadPdf:graph.uploadPdf,verifyPdf:graph.verifyPdf};
   const blobs=new Map(),steps=[];
   let record={reference:'ABC123',confirmedAt:'2026-10-27T08:00:00Z',signatureBlobName:'signature',
-    podFiles:[{id:'automatic-pod-'+previousHash.slice(0,16),kind:'automatic-pod',hash:previousHash}],
+    // A fresh supplied POD must not silently replace a historical signed file.
+    // Keep only legacy status metadata here; individual immutability tests inject
+    // an existing automatic-pod explicitly when exercising fail-closed behavior.
+    podFiles:[],
     podBackup:{azureSaved:true,archiveSaved:true,driveSaved:true,hash:previousHash,driveItemId:'previous-drive-item',webUrl:'https://old.invalid'}};
   function blob(name){return{
     async uploadData(data){steps.push('azure:'+name);if(!blobs.has(name))blobs.set(name,Buffer.from(data))},
