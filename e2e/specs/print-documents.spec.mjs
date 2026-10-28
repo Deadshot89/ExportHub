@@ -741,7 +741,7 @@ test('RC1703: existing SalesPackingSlip URL prints only with ExportHUB session a
   const result=await page.evaluate(async()=>{
     const api=window.ExportHUBRC1340AttachmentPrint,originalFetch=window.fetch,originalHelper=window.ExportHUBDocumentBlob1059;
     if(!api||!originalHelper)throw new Error('RC1703 PDF print runtime missing');
-    const document={name:'SalesPackingSlip-JolantaBatkowska-55132_28102026_084418_828_55253_P.pdf',
+    const document={name:'SalesPackingSlip-Example-00000_01012026_000000_000_00000_P.pdf',
       url:'/api/exporthub-document?blob=rc1059%2Fproduction%2Faa%2F'+('a'.repeat(64))+'&environment=production'};
     const captured=[],printed=[];
     try{
