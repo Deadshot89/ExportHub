@@ -312,7 +312,10 @@
     s=s||state();
     const wanted=q(s.shipmentViewId||s.selectedShipmentId||s.activeShipmentId).toUpperCase();
     if(wanted){
-      const hit=arr(s.shipments).concat(arr(s.savedShipments)).find(sh=>[shipmentId(sh),shipmentReference(sh)].includes(wanted));
+      const all=arr(s.shipments).concat(arr(s.savedShipments));
+      // Select the unique internal shipment ID before falling back to a
+      // reference. Two shipments may share a reference in older team states.
+      const hit=all.find(sh=>shipmentId(sh)===wanted)||all.find(sh=>shipmentReference(sh)===wanted);
       if(hit)return hit;
     }
     return activeShipment(s);
