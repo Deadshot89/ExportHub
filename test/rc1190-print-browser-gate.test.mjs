@@ -73,7 +73,7 @@ test('RC1543: Browserabnahme prüft aktuellen Palettenkonto-Kontostand in echtem
   assert.match(spec,/data-rc1543-pallet-balance\/i/);
 });
 
-test('RC1710: Lieferschein-PDFs bleiben separat verfügbar, aber niemals Teil des Ladelisten-Gesamtdrucks',()=>{
+test('RC1715: separate Lieferschein-Vorschau bewahrt Original-PDFs und meldet Teilfehler',()=>{
   const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
   assert.match(build,/function rc1340PrintableDeliveryAttachments/);
   assert.match(build,/window\.ExportHUBRC1340AttachmentPrint/);
@@ -81,24 +81,23 @@ test('RC1710: Lieferschein-PDFs bleiben separat verfügbar, aber niemals Teil de
   assert.match(build,/printShipment:async function\(sh\)/);
   assert.doesNotMatch(build,/const readyNew=/);
   assert.doesNotMatch(build,/const printNew=/);
-  assert.doesNotMatch(build,/alert\('Ladeliste und CMR wurden zum Druck geöffnet/);
-  assert.match(build,/data-rc1354-pdf-print-bridge/);
-  assert.match(build,/frame\.contentWindow\.postMessage\(\{type:'print'\},'\*'\)/);
-  assert.match(build,/dataResponse=await fetch\(url\)/);
-  assert.match(build,/URL\.createObjectURL\(dataBlob\)/);
-  assert.match(build,/seenName=Object\.create\(null\)/);
-  assert.match(build,/nameKey=low\(name\)\.replace/);
+  assert.match(build,/data-rc1715-delivery-print-preview/);
+  assert.match(build,/data-rc1715-original-pdf/);
+  assert.match(build,/Original-PDF im Viewer drucken/);
+  assert.match(build,/DELIVERY_DOCUMENTS_INCOMPLETE/);
+  assert.match(build,/await rc1703VerifiedPdfBlob\(dataBlob,item\.name\)/);
+  assert.doesNotMatch(build,/seenName=Object\.create\(null\)/);
+  assert.match(build,/var nameKey=low\(name\)\.replace/);
   assert.match(spec,/directCoverChild/);
   assert.match(spec,/topRightMarker/);
   assert.match(spec,/Zusammengeklebte PDF-Dateinamen/);
-  const bridgeStart=build.indexOf('async function rc1340PrintPreparedAttachment(item,index,total){');
+  const bridgeStart=build.indexOf('async function rc1340PrintPreparedAttachment(item,index,total,failed){');
   const bridgeEnd=build.indexOf('async function rc1340PrintPreparedAttachments(items){',bridgeStart);
   const bridge=build.slice(bridgeStart,bridgeEnd);
-  assert.match(bridge,/if\(chromium\)/);
-  const chromiumBlock=bridge.match(/if\(chromium\)\{([\s\S]*?)\}else\{/);
-  assert.ok(chromiumBlock,'Chromium-Druckzweig fehlt');
-  assert.match(chromiumBlock[1],/postMessage\(\{type:'print'\},'\*'\)/);
-  assert.doesNotMatch(chromiumBlock[1],/\.print\(/);
+  assert.match(bridge,/viewer\.src=item\.url/);
+  assert.match(bridge,/PDF im neuen Tab öffnen/);
+  assert.match(bridge,/next\.addEventListener\('click'/);
+  assert.doesNotMatch(bridge,/frame\.contentWindow|setTimeout|later\(/);
   assert.match(spec,/RC1340 P1: echte Lieferschein-PDFs werden im Gesamtdruck exakt einmal gedruckt/);
   assert.match(spec,/expect\(result\.printed\)\.toHaveLength\(2\)/);
   assert.match(spec,/LS_NUR_METADATA\.pdf/);
@@ -115,13 +114,15 @@ test('RC1345: finaler Build erzwingt genau eine Ladeliste und drei CMR',()=>{
 });
 
 
-test('RC1355: PDF attachment bridge never reads cross-origin Window.print',()=>{
+test('RC1715: PDF preview does not fake printing with a hidden 600ms iframe',()=>{
   const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
-  const start=build.indexOf('async function rc1340PrintPreparedAttachment(item,index,total){');
+  const start=build.indexOf('async function rc1340PrintPreparedAttachment(item,index,total,failed){');
   const end=build.indexOf('async function rc1340PrintPreparedAttachments(items){',start);
-  assert.ok(start>=0&&end>start,'PDF attachment print bridge missing');
+  assert.ok(start>=0&&end>start,'Original-PDF-Vorschau fehlt');
   const bridge=build.slice(start,end);
-  assert.doesNotMatch(bridge,/frame\.contentWindow\.print\(\)/);
-  assert.match(bridge,/frame\.contentWindow\.postMessage\(\{type:'print'\},'\*'\)/);
-  assert.match(build,/RC1355 Cross-Origin PDF-Druckzugriff ist noch aktiv/);
+  assert.doesNotMatch(bridge,/frame\.contentWindow\.print\(\)|frame\.contentWindow\.postMessage\(/);
+  assert.doesNotMatch(bridge,/later\(function\(\)\{finish\(\)\},600\)/);
+  assert.match(bridge,/document\.body\.appendChild\(overlay\)/);
+  assert.match(bridge,/next\.addEventListener\('click'/);
+  assert.match(bridge,/cancel\.addEventListener\('click'/);
 });
