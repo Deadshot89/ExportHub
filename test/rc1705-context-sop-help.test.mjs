@@ -50,3 +50,31 @@ test('RC1705 cannot mutate shipments, send mail or print from the guide',()=>{
  assert.match(css,/@media\(max-width:600px\)/);
  assert.match(css,/:focus-visible/);
 });
+
+
+test('RC1705: standard SOP button appears even before a customer has been selected',()=>{
+ const listeners={};
+ const host={children:[],firstChild:null,firstElementChild:null,
+   insertBefore(el){el.parentNode=this;this.children.unshift(el);this.firstChild=el;this.firstElementChild=el}};
+ const nav={},body={getAttribute:()=> 'shipment',appendChild(el){el.parentNode=this}};
+ const buttons=[];
+ const doc={readyState:'loading',documentElement:{lang:'de'},body,activeElement:null,
+   addEventListener(name,cb){listeners[name]=cb},
+   getElementById(id){return id==='nav'?nav:id==='content'?host:null},
+   querySelector(){return null},
+   createElement(){const button={textContent:'',setAttribute(name,val){this[name]=val}};
+     const el={innerHTML:'',textContent:'',parentNode:null,querySelector(){return button},
+       setAttribute(){},get previousElementSibling(){return null}};
+     buttons.push(button);return el;
+   }};
+ const win={addEventListener(){},setTimeout(){return 1},
+   localStorage:{getItem(){return null},setItem(){}},
+   fetch(){return Promise.resolve({ok:true,json(){return Promise.resolve(employee)}})}};
+ vm.runInNewContext(runtime,{window:win,document:doc,Promise});
+ assert.equal(typeof listeners.DOMContentLoaded,'function');
+ listeners.DOMContentLoaded();
+ assert.equal(host.children.length,1,'SOP button must be inserted without customer context');
+ assert.equal(host.children[0].id,'rc1705-sop-shipment');
+ assert.match(buttons[0].textContent,/Standard-SOP/);
+ assert.match(host.children[0].innerHTML,/data-rc1705-open="SOP-EH-031"/);
+});
