@@ -108,3 +108,15 @@ test('RC1715 P0: multi-page original stays visible until user explicitly closes 
   assert.equal(overlay.removed,true);
   assert.deepEqual(revoked,[item.url]);
 });
+
+test('RC1715 P0: separate PDF tab does not lose later pages when in-app preview closes',async()=>{
+  const {api,revoked,overlays}=runtime({capture:false});
+  const item={name:'Mehrseitiges_Original.pdf',identity:'blob:multiple',url:'blob:still-loading',owned:true};
+  const operation=api.printPrepared([item]);
+  await new Promise(resolve=>setImmediate(resolve));
+  const overlay=overlays[0],actions=overlay.children[0].children[2];
+  actions.children[0].click();
+  actions.children[2].click();
+  assert.equal(await operation,1);
+  assert.deepEqual(revoked,[],'new-tab viewer must keep the original PDF Blob alive');
+});
