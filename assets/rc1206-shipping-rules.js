@@ -134,7 +134,16 @@ function watchShipping(){
  if(root&&shippingObserver)shippingObserver.observe(root,{subtree:true,childList:true});
 }
 function schedule(){watchShipping();clearTimeout(timer);timer=setTimeout(apply,60)}
-window.addEventListener('input',schedule,true);window.addEventListener('change',schedule,true);window.addEventListener('click',schedule,true);['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:shipment-opened','exporthub:shipment-updated','exporthub:state-synced','exporthub:state-updated','exporthub:language-changed'].forEach(function(n){window.addEventListener(n,schedule)});
+function onShippingInteraction(ev){
+ var target=ev&&ev.target;if(!target)return;
+ var root=document.querySelector('#rc626Shipping');
+ if(root&&((root.contains&&root.contains(target))||target===root)){schedule();return}
+ // Shipment recipient changes happen outside the shipping-cost panel.
+ // They must still update the destination at the next cost calculation.
+ var id=q(target.id);
+ if(/^(index289LocationSelect|shipmentCustomerSearch|index289CustomerSearch|shipmentCustomer)$/.test(id))schedule()
+}
+window.addEventListener('input',onShippingInteraction,true);window.addEventListener('change',onShippingInteraction,true);window.addEventListener('click',onShippingInteraction,true);['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:shipment-opened','exporthub:shipment-updated','exporthub:state-synced','exporthub:state-updated','exporthub:language-changed'].forEach(function(n){window.addEventListener(n,schedule)});
 if(window.MutationObserver){
  shippingObserver=new window.MutationObserver(schedule);
  // This global observer detects replacement of the shipping mount only.
