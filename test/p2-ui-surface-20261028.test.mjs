@@ -39,6 +39,7 @@ test('P2: offene Sendungen ohne Vollabholung, Teilabholung sichtbar, POD bleibt 
   {id:'PICKED',status:'Abgeholt'},
   {id:'PICKED_FLAG',status:'Erstellt',pickupConfirmed:true},
   {id:'PICKED_DATE',status:'Erstellt',actualPickupAt:'2026-10-28T14:00:00'},
+  {id:'PICKED_LEGACY_DATE',status:'Erstellt',pickupAt:'2026-10-28T14:30:00'},
   {id:'PARTIAL',status:'Teilabholung',pickedUp:true},
   {id:'POD',status:'POD vorhanden'},
   {id:'CANCELLED',status:'Storniert'}
@@ -49,4 +50,28 @@ test('P2: offene Sendungen ohne Vollabholung, Teilabholung sichtbar, POD bleibt 
  assert.equal(model.kpis.find(k=>k.id==='open').value,2);
  assert.deepEqual(Array.from(model.sets.pod,s=>s.id),['PICKED']);
  assert.equal(model.kpis.find(k=>k.id==='pod').value,1);
+});
+
+test('P2: Kern-Dashboard und neue Uebersicht erkennen Abholung mit derselben Regel',()=>{
+ const legacy=read('.github/rc1044/build-three-env.mjs');
+ const overview=read('assets/rc1558-dashboard-overview.js');
+ const match=legacy.match(/const pickupPredicate=("(?:\\.|[^"\\])*");/);
+ assert.ok(match,'RC1044 braucht genau ein gemeinsam verwendetes Abhol-Praedikat');
+ const predicate=JSON.parse(match[1]);
+ assert.match(legacy,/function workspaceShipmentPickedUp\\(s\\)\\{["]\\+pickupPredicate\\+["]\\}/);
+ assert.match(legacy,/function dashboardShipmentPickedUp\\(s\\)\\{["]\\+pickupPredicate\\+["]\\}/);
+ assert.match(overview,/s\\.pickupAt/,'RC1558 muss auch den bestehenden Pickup-Zeitstempel beachten');
+ const isPickedUp=new Function('s','low',predicate);
+ const low=v=>String(v==null?'':v).toLowerCase();
+ const samples=[
+  [{status:'Erstellt'},false],
+  [{status:'Abgeholt'},true],
+  [{status:'Erstellt',actualPickupAt:'2026-10-28T13:00:00'},true],
+  [{status:'Erstellt',pickupAt:'2026-10-28T13:00:00'},true],
+  [{status:'Erstellt',pickupConfirmedAt:'2026-10-28T13:00:00'},true],
+  [{status:'POD vorhanden'},true],
+  [{status:'Teilabholung',pickedUp:true},false],
+  [{status:'Erstellt',pickupStatus:'partial',pickedUp:true},false]
+ ];
+ for(const [shipment,expected] of samples)assert.equal(!!isPickedUp(shipment,low),expected,JSON.stringify(shipment));
 });
