@@ -527,3 +527,23 @@ test('P1: PDF viewer reporting false does not show a successful download',async(
   const status=row.children.find(child=>child.attrs.role==='status');
   assert.equal(status.textContent,'The document could not be opened.');
 });
+
+test('P1: a stale first shipment snapshot cannot hide an owned active Pack draft',()=>{
+  const source=fs.readFileSync('assets/pack-notification-shipment.js','utf8');
+  const patched=source.replace('  root.ExportHUBPackShipment=Object.freeze(',
+    '  root.__P1_RESTORE__=keepPendingDocuments;root.ExportHUBPackShipment=Object.freeze(');
+  assert.notEqual(patched,source);
+  const s=state(),note=s.packNotifications[0];
+  const stale={packNotificationId:'another-pack',packNotificationRef:'PK-OTHER',deliveryFiles:[]};
+  const owned={packNotificationId:note.id,packNotificationRef:note.reference,deliveryFiles:[]};
+  s.shipment=stale;s.currentShipment=owned;
+  const root={__EXPORTHUB_GET_STATE__:()=>s,addEventListener(){}};
+  vm.runInContext(patched,vm.createContext({window:root,globalThis:root,console,Date,Intl,setTimeout,clearTimeout}));
+  const prefill=root.ExportHUBPackShipment.shipmentPrefill(note);
+  assert.equal(root.__P1_RESTORE__(prefill),true);
+  assert.deepEqual(stale.deliveryFiles,[]);
+  assert.deepEqual(owned.deliveryFiles.map(file=>file.blobName),[note.documents[0].blobName]);
+  assert.equal(root.__P1_RESTORE__(prefill),false,'repeat must not duplicate original PDFs');
+  s.currentShipment={packNotificationId:'different',packNotificationRef:'PK-X',deliveryFiles:[]};
+  assert.equal(root.__P1_RESTORE__(prefill),false,'foreign active draft must not receive original PDFs');
+});
