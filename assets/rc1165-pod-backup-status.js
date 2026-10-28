@@ -54,7 +54,15 @@ function backupMeta(sh){
  if(!b)return{key:'unknown',label:tr('podBackup.unknown.label'),title:tr('podBackup.unknown.title')};
  const status=q(b.status).toLowerCase();
  if(b.archiveSaved===true){
-  return{key:'saved',label:b.azureSaved===true?tr('podBackup.saved.azureArchive'):tr('podBackup.saved.archive'),title:tr('podBackup.saved.title')};
+  // RC1714: Azure archive success is not evidence of the independent
+  // SharePoint copy. Trust only an ID + SHA-256-verified Graph readback,
+  // never a legacy driveSaved flag or the generic archive "saved" status.
+  const hash=q(b.hash).toLowerCase(),verified=q(b.driveVerifiedHash).toLowerCase();
+  const sharepointVerified=b.driveSaved===true&&!!q(b.driveItemId)&&
+    /^[a-f0-9]{64}$/.test(hash)&&hash===verified&&!!q(b.driveVerifiedAt);
+  return sharepointVerified
+    ?{key:'saved',label:tr('podBackup.saved.azureSharePoint'),title:tr('podBackup.saved.sharePointTitle')}
+    :{key:'pending',label:tr('podBackup.pending.sharePoint'),title:tr('podBackup.pending.sharePointTitle')};
  }
  if(b.azureSaved===true){
   return{key:'pending',label:tr('podBackup.pending.azure'),title:tr('podBackup.pending.azureTitle')};

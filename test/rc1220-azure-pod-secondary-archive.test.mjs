@@ -56,10 +56,16 @@ test('RC1220: automatische und bereitgestellte PODs nutzen die Azure-Zweitsicher
   assert.match(store,/podArchiveSaved:/);
 });
 
-test('RC1220: UI meldet Azure plus Archiv und nicht mehr M365 als Pflicht',()=>{
-  assert.match(ui,/podBackup\.saved\.azureArchive/);
+test('RC1714: UI trennt bestätigtes Azure-Archiv und verifizierte SharePoint-Kopie',()=>{
+  // Azure-only must never be green; the external signed PDF is a separate
+  // evidence-backed backup, even if Azure archival is complete.
+  assert.match(ui,/podBackup\.pending\.sharePoint/);
+  assert.match(ui,/podBackup\.saved\.azureSharePoint/);
+  assert.match(ui,/driveSaved===true/);
+  assert.match(ui,/driveVerifiedHash/);
+  assert.match(ui,/driveVerifiedAt/);
   assert.match(ui,/podBackup\.pending\.azure/);
-  assert.doesNotMatch(ui,/podBackup\.pending\.m365/);
+  assert.doesNotMatch(ui,/podBackup\.saved\.azureArchive/);
   assert.match(pickup,/data\.podArchiveSaved/);
 });
 

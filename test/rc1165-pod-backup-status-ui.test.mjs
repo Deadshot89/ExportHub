@@ -33,11 +33,42 @@ test('RC1165: Vor Abholung wird kein POD-Backupstatus eingeblendet',()=>{
   assert.equal(x.backupMeta({status:'Erstellt',podBackup:{azureSaved:true,driveSaved:false}}),null);
 });
 
-test('RC1220: bestätigte Azure-Archivkopie wird grün dargestellt',()=>{
+test('RC1714: Azure-Archiv ohne SharePoint-Readback ist sichtbar offen, niemals grün',()=>{
   const x=api();
   const meta=x.backupMeta({status:'POD vorhanden',podBackup:{status:'saved',azureSaved:true,archiveSaved:true,driveSaved:false}});
+  assert.equal(meta.key,'pending');
+  assert.match(meta.label,/Azure ✓ · SharePoint offen/);
+  assert.match(meta.title,/SHA-256/);
+});
+
+test('RC1714: unabhängig verifizierte Azure- und SharePoint-Kopie wird grün angezeigt',()=>{
+  const x=api();
+  const hash='a'.repeat(64);
+  const meta=x.backupMeta({status:'POD vorhanden',podBackup:{
+    status:'saved',azureSaved:true,archiveSaved:true,driveSaved:true,
+    hash,driveItemId:'graph-file-verified',driveVerifiedHash:hash,driveVerifiedAt:'2026-10-28T12:00:00Z'
+  }});
   assert.equal(meta.key,'saved');
-  assert.match(meta.label,/Azure \+ Archiv/);
+  assert.match(meta.label,/Azure \+ SharePoint ✓/);
+});
+
+test('RC1714: historische und widersprüchliche Graph-Erfolgsmeldungen bleiben offen',()=>{
+  const x=api();
+  const hash='b'.repeat(64);
+  const base={status:'saved',azureSaved:true,archiveSaved:true,driveSaved:true,
+    hash,driveItemId:'graph-id',driveVerifiedHash:hash,driveVerifiedAt:'2026-10-28T12:00:00Z'};
+  for(const override of [
+    {driveItemId:''},
+    {driveVerifiedHash:'c'.repeat(64)},
+    {driveVerifiedAt:''},
+    {hash:''},
+    {driveSaved:false}
+  ]){
+    const meta=x.backupMeta({status:'POD vorhanden',podBackup:{...base,...override,lastError:'SENSITIVE-BACKEND-DETAIL'}});
+    assert.equal(meta.key,'pending');
+    assert.doesNotMatch(meta.label+' '+meta.title,/SENSITIVE-BACKEND-DETAIL/);
+  }
+  assert.equal(x.backupMeta({status:'POD vorhanden',podBackup:{...base,archiveSaved:false}}).key,'pending');
 });
 
 test('RC1220: Azure-Primärspeicher ohne Archivkopie bleibt offen',()=>{
