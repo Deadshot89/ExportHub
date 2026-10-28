@@ -16,7 +16,7 @@ function withSettings(overrides, check) {
     Object.assign(process.env, {
       EXPORTHUB_GRAPH_TENANT_ID: 'test-tenant',
       EXPORTHUB_GRAPH_CLIENT_ID: 'test-client',
-      EXPORTHUB_GRAPH_CLIENT_SECRET: 'not-a-real-secret',
+      EXPORTHUB_GRAPH_CLIENT_SECRET: 'dummy-value-for-readiness-only',
       ...overrides
     });
     return check();
