@@ -8,7 +8,7 @@ function loadHelper(){
   const calls=[];
   const context={
     window:{ExportHUBClean:{runtime:{authToken:'TOKEN-1059'}},location:{hostname:'wonderful-forest-0f315e310.7.azurestaticapps.net'}},
-    fetch:async(url,options)=>{calls.push({url,options});return{ok:true,status:200,async blob(){return new Blob(['PDF'],{type:'application/pdf'})}}},
+    fetch:async(url,options)=>{calls.push({url,options});return{ok:true,status:200,async blob(){return new Blob(['%PDF-1.4'],{type:'application/pdf'})}}},
     Blob,
     URL:{createObjectURL(){return'blob:rc1059'},revokeObjectURL(){}},
     document:{body:{appendChild(){}},createElement(){return{click(){},remove(){},set href(v){this._href=v},get href(){return this._href}}}},
@@ -39,7 +39,7 @@ test('RC1059: Blob-Dokument wird mit ExportHUB-Session über geschützten Endpoi
   const {api,calls}=loadHelper();
   const file={storage:'blob',blobName:`rc1059/production/bb/${hash}`,name:'LS.pdf'};
   const blob=await api.fetchBlob(file);
-  assert.equal(blob.size,3);
+  assert.equal(blob.size,8);
   assert.equal(calls.length,1);
   assert.match(calls[0].url,/\/api\/exporthub-document\?blob=/);
   assert.match(calls[0].url,/environment=production/);

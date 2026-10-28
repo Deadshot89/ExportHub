@@ -145,3 +145,19 @@ test('live pack E2E follows the current public form and standalone inbox',()=>{
   assert.match(e2e,/#packNotificationInbox/,'E2E must verify the standalone Packmeldungen inbox');
   assert.doesNotMatch(e2e,/#packNotificationTaskSection/,'obsolete Aufgaben integration must not be used');
 });
+
+test('RC1705: legacy API-backed Packmeldung still shows the original PDF download control',()=>{
+ const internal=loadInternal(),s=state();
+ s.packNotifications[0].documents=[{id:'old-api',name:'Pack-alt.pdf',url:'/api/exporthub-document?blob=rc1059%2Fproduction%2Faa%2F'+('a'.repeat(64))+'&environment=production'}];
+ const html=internal.detailHtml(internal.detailModel(s,s.tasks[0]));
+ assert.match(html,/data-pack-doc-download="0"/);
+ assert.match(html,/data-pack-doc-open="0"/);
+});
+
+test('RC1705: immutable RC1059 blob paths display the download control even without storage label',()=>{
+ const internal=loadInternal(),s=state();
+ const {storage,...old}=s.packNotifications[0].documents[0];
+ s.packNotifications[0].documents=[old];
+ const html=internal.detailHtml(internal.detailModel(s,s.tasks[0]));
+ assert.match(html,/data-pack-doc-download="0"/);
+});
