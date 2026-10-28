@@ -2,6 +2,22 @@ name: ExportHUB Packmeldungen Branch Gate
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'pack.html'
+      - 'assets/pack-notification*'
+      - 'assets/packaging-catalog.js'
+      - 'assets/document-reference-normalizer.js'
+      - 'assets/document-print-name.js'
+      - 'api/pack-notification/**'
+      - 'api/shared/pack-notification-store.js'
+      - 'api/shared/pdf-document-reference.js'
+      - 'api/shared/document-blob-store.js'
+      - 'test/pack-notification-*.test.mjs'
+      - 'test/packaging-catalog.test.mjs'
+      - 'test/document-reference-normalizer.test.mjs'
+      - '.github/packmeldungen/**'
+      - '.github/workflows/packmeldungen-branch-gate.yml'
   push:
     branches:
       - feature/packmeldungen
