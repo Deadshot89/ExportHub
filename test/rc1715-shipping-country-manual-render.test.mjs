@@ -103,3 +103,25 @@ test('RC1715: fremde DOM-Mutationen lösen keinen Versandkosten-Neurender aus',(
   local.callback([{addedNodes:[unrelated],removedNodes:[],target:root}]);
   assert.equal(timers.length,1,'shipping mutations still schedule a calculation');
 });
+
+
+test('RC1715: nur Versandkosten-Eingaben und Standortwechsel starten Berechnung',()=>{
+  const listeners={},timers=[];
+  const panel={nodeType:1,id:'rc626Shipping',contains(el){return !!(el&&el.shippingField)}};
+  const api=load({shippingCosts:{ups:{manualRoute:true,manualLoad:true},gate:{manualRoute:true,manualLoad:true}}},
+    {querySelector(q){return q==='#rc626Shipping'?panel:null}},
+    {addEventListener(type,fn){(listeners[type]||(listeners[type]=[])).push(fn)}},
+    {setTimeout(fn){timers.push(fn);return timers.length},clearTimeout(){}});
+  assert.ok(api);
+  function send(type,target){for(const fn of listeners[type]||[])fn({type,target})}
+  send('click',{id:'dashboardButton',shippingField:false});
+  send('input',{id:'customerNote',shippingField:false});
+  send('change',{id:'sopLanguage',shippingField:false});
+  assert.equal(timers.length,0,'irrelevante Interaktionen müssen den Versandkosten-Timer ruhen lassen');
+  send('input',{id:'upsPackageCount',shippingField:true});
+  assert.equal(timers.length,1,'UPS-Eingaben berechnen weiter');
+  send('change',{id:'index289LocationSelect',shippingField:false});
+  assert.equal(timers.length,2,'Kundenstandortwechsel berechnen weiter');
+  send('click',{id:'anotherButton',shippingField:false});
+  assert.equal(timers.length,2,'fremder Klick darf nicht erneut planen');
+});
