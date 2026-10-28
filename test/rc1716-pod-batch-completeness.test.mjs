@@ -111,6 +111,15 @@ test('RC1717: the legacy manual cloud sync never replaces the canonical digital 
   assert.match(controller,/hash===verified&&!!q\(b\.driveVerifiedAt\)/);
 });
 
+
+test('RC1721: patched full browser POD controller is syntactically executable',()=>{
+  const marker='<script id="rc455-pod-backup-controller">';
+  const start=patched.indexOf(marker),end=patched.indexOf('</script>',start);
+  assert.ok(start>=0&&end>start);
+  const js=patched.slice(start+marker.length,end);
+  assert.doesNotThrow(()=>new Function(js),'complete published POD controller must compile');
+});
+
 test('RC1716: all 3 release bundles invoke the same patch after RC1680 canonical copy',()=>{
   const builder=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
   assert.match(builder,/import \{patchRc1716PodBatchHtml\}/);
