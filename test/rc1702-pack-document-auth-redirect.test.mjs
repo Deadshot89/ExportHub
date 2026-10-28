@@ -66,3 +66,15 @@ test('RC1702: HTTP 200 HTML body from API is rejected even with benign URL and m
  }});
  await assert.rejects(api.fetchBlob(file),err=>err.code==='DOCUMENT_API_LOGIN_REDIRECT');
 });
+
+test('RC1702: SWA does not send document API downloads to Microsoft platform login',()=>{
+ const config=JSON.parse(fs.readFileSync('staticwebapp.config.json','utf8'));
+ const route=config.routes.find(item=>item.route==='/api/exporthub-document');
+ assert.ok(route,'document route must be explicitly deployed');
+ assert.deepEqual(Array.from(route.allowedRoles),['anonymous'],'app bearer is validated by API, not platform Microsoft auth');
+ const wildcard=config.routes.findIndex(item=>item.route==='/api/*');
+ const exact=config.routes.indexOf(route);
+ assert.ok(exact>=0&&exact<wildcard,'exact document route must precede generic API matcher');
+ const api=fs.readFileSync('api/exporthub-document/index.js','utf8');
+ assert.match(api,/await auth\.validateSession\(req\)/,'endpoint still authenticates via ExportHUB session');
+});
