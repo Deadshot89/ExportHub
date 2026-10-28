@@ -569,4 +569,9 @@ test('P1: initial Pack prefill targets a fresh draft, never a saved or foreign P
   assert.equal(bridge.applyPrefillToMountedForm(bridge.shipmentPrefill(n)),true);
   assert.equal(s.shipment.deliveryFiles.length,0,'an existing REF must not be silently repurposed');
   assert.equal(s.currentShipment.deliveryFiles.length,0,'a second existing REF must not be silently repurposed');
+  s.shipment={id:'EXISTING-ID-ONLY',deliveryFiles:[]};
+  s.currentShipment={shipmentId:'ANOTHER-ID-ONLY',deliveryFiles:[]};
+  assert.equal(bridge.applyPrefillToMountedForm(bridge.shipmentPrefill(n)),true);
+  assert.equal(s.shipment.deliveryFiles.length,0,'an existing ID-only shipment must not be silently repurposed');
+  assert.equal(s.currentShipment.deliveryFiles.length,0,'a second ID-only shipment must remain unchanged');
 });
