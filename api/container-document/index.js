@@ -22,10 +22,10 @@ module.exports=async function(context,req){
  if(req.method!=='GET'){context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED',message:apiI18n.t(req,'api.common.getOnly')});return}
  try{
   const session=await auth.validateSession(req);if(!allowed(session.user))throw auth.error('CONTAINER_PHOTO_FORBIDDEN',apiI18n.t(req,'api.container.readForbidden'),403);
-  const q=req.query||{},reference=text(q.reference).toUpperCase(),file=text(q.file),kind=text(q.kind).toLowerCase(),requestedId=text(q.shipmentId);
+  const q=req.query||{},reference=text(q.reference).toUpperCase(),file=text(q.file),kind=text(q.kind).toLowerCase(),requestedId=text(q.shipmentId).toUpperCase();
   if(!reference)throw auth.error('REFERENCE_REQUIRED',apiI18n.t(req,'api.container.referenceRequired'),400);
   const state=session.team&&session.team.state||{},shipments=[].concat(Array.isArray(state.shipments)?state.shipments:[],Array.isArray(state.savedShipments)?state.savedShipments:[]),
-   matches=shipments.filter(x=>text(x&&(x.reference||x.ref||x.shipmentRef||x.referenceNumber||x.id||x.shipmentId)).toUpperCase()===reference&&(!requestedId||text(x&&(x.id||x.shipmentId||x.reference||x.ref))===requestedId));
+   matches=shipments.filter(x=>text(x&&(x.reference||x.ref||x.shipmentRef||x.referenceNumber||x.id||x.shipmentId)).toUpperCase()===reference&&(!requestedId||text(x&&(x.id||x.shipmentId||x.reference||x.ref)).toUpperCase()===requestedId));
   if(!matches.length)throw auth.error('SHIPMENT_NOT_FOUND',apiI18n.t(req,'api.container.shipmentNotFound'),404);
   // A stale browser/team copy can keep the same photo ID as a newer saved
   // shipment. Prefer the newest uploaded photo, never the first matching ID.
