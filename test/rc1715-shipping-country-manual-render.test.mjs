@@ -4,10 +4,10 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const source=fs.readFileSync(new URL('../assets/rc1206-shipping-rules.js',import.meta.url),'utf8');
-function load(state,doc={},extra={}){
+function load(state,doc={},extra={},clock={}){
   const document={readyState:'loading',documentElement:{},activeElement:null,querySelector(){return null},addEventListener(){},...doc};
   const window={addEventListener(){},__EXPORTHUB_GET_STATE__:()=>state,...extra};
-  vm.runInNewContext(source,{window,document,Intl,Event:function(){this.type='change'},setTimeout(){return 1},clearTimeout(){}});
+  vm.runInNewContext(source,{window,document,Intl,Event:function(){this.type='change'},setTimeout:clock.setTimeout||function(){return 1},clearTimeout:clock.clearTimeout||function(){}});
   return window.ExportHUBRC1206ShippingRules;
 }
 
@@ -77,7 +77,7 @@ test('RC1715: fremde DOM-Mutationen lösen keinen Versandkosten-Neurender aus',(
   const root={id:'rc626Shipping',nodeType:1},documentElement={nodeType:1};
   const doc={documentElement,querySelector(q){return q==='#rc626Shipping'?root:null}};
   load({shippingCosts:{ups:{manualRoute:true,manualLoad:true},gate:{manualRoute:true,manualLoad:true}}},doc,
-    {MutationObserver:Observer});
+    {MutationObserver:Observer},{setTimeout(fn){timers.push(fn);return timers.length},clearTimeout(){}});
   // Verify the local observer is attached to the shipping section, and no
   // observer on the document schedules on arbitrary unrelated mutations.
   const local=watched.find(o=>o.target===root);
@@ -87,4 +87,6 @@ test('RC1715: fremde DOM-Mutationen lösen keinen Versandkosten-Neurender aus',(
   const unrelated={nodeType:1,id:'unrelated'};
   global.callback([{addedNodes:[unrelated],removedNodes:[],target:unrelated}]);
   assert.equal(timers.length,0);
+  local.callback([{addedNodes:[unrelated],removedNodes:[],target:root}]);
+  assert.equal(timers.length,1,'shipping mutations still schedule a calculation');
 });
