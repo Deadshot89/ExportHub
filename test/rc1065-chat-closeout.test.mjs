@@ -52,7 +52,12 @@ test('RC1065: POD-Speicherung und Blob-Dokumente bleiben nach Reload lesbar',()=
   const api=read('api/exporthub-document/index.js');
   assert.match(pod,/POD-Sicherung nach manuellem Upload synchronisiert/);
   assert.match(pod,/flushSave\(reason,\{force:true,userInitiated:true\}\)/);
-  assert.match(blob,/storage==='blob'/);
+  // RC1705 supports both current blob metadata and historical Packmeldung
+  // references missing a storage label; asserting the old string would
+  // reject the deliberately backwards-compatible, authenticated reader.
+  assert.match(blob,/function isBlobDocument/);
+  assert.match(blob,/rc1059/);
+  assert.match(blob,/function headers/);
   assert.match(blob,/legacyUrl/);
   assert.match(api,/'Cache-Control':'private, no-store'/);
 });
