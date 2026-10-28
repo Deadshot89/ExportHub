@@ -72,6 +72,7 @@ test('P0: client-supplied signed original is archived before the identical PDF i
     const backup=result.record.podBackup;
     assert.equal(result.driveSaved,true);
     assert.equal(backup.driveSaved,true);
+    assert.equal(backup.status,'saved','verified Azure+Graph may be marked fully saved');
     assert.equal(backup.driveItemId,'new-drive-item');
     assert.equal(backup.archiveSaved,true);
     assert.equal(backup.hash,crypto.createHash('sha256').update(originalPdf).digest('hex'));
@@ -88,6 +89,7 @@ test('P0: Graph failure never reuses previous SharePoint success for a new signe
     assert.equal(result.driveSaved,false);
     assert.equal(result.record.podBackup.archiveSaved,true,'Azure archive remains available');
     assert.equal(result.record.podBackup.driveSaved,false,'previous Drive confirmation must be revoked');
+    assert.equal(result.record.podBackup.status,'sharepoint-pending','Azure-only may not report complete backup');
     assert.equal(result.record.podBackup.driveItemId,'','stale SharePoint file must not be shown as new POD');
     assert.match(result.record.podBackup.driveLastError,/ResourceNotFound/);
   });
@@ -129,6 +131,31 @@ test('RC1694 P0: a signed POD without a stored blob reference fails closed inste
     assert.deepEqual(steps,[], 'no Azure or Microsoft Graph write may happen for an unlinked signed POD');
     assert.equal(getRecord().podFiles[0].id,'SIGNED-UNLINKED','original POD entry must be preserved');
   });
+});
+
+
+test('RC1719 P1: Azure archive without a matching Graph hash is SharePoint-pending',async()=>{
+  await withArchiveStore(async()=>{throw new Error('Graph must not be called by Azure-only archive');},
+    async({getRecord})=>{
+      const pdfHash=crypto.createHash('sha256').update(originalPdf).digest('hex');
+      const file={name:'POD_ABC123_Ladeliste_unterschrieben.pdf',hash:pdfHash,size:originalPdf.length};
+      const result=await archive.saveAzureArchive('a'.repeat(64),'testservice',getRecord(),originalPdf,file);
+      assert.equal(result.record.podBackup.archiveSaved,true);
+      assert.equal(result.record.podBackup.status,'sharepoint-pending');
+      assert.equal(result.record.podBackup.driveItemId,'previous-drive-item','historical receipt is not silently rewritten');
+      assert.notEqual(result.record.podBackup.hash,previousHash);
+    });
+});
+
+test('RC1719 P1: archive re-verification preserves saved only for identical Graph-verified original',async()=>{
+  await withArchiveStore(async(bytes,name)=>({id:'verified-graph-file',name,size:bytes.length}),
+    async({getRecord})=>{
+      const first=await archive.saveSuppliedPod('a'.repeat(64),'testservice',getRecord(),originalPdf,
+        'POD_ABC123_Ladeliste_unterschrieben.pdf',{renderLayout:'RC1595'});
+      assert.equal(first.record.podBackup.status,'saved');
+      const second=await archive.saveAzureArchive('a'.repeat(64),'testservice',getRecord(),originalPdf,first.file);
+      assert.equal(second.record.podBackup.status,'saved','identical verified remote copy remains confirmed');
+    });
 });
 
 test('P0: browser batch backup selects stored original bytes without calling a local PDF renderer',async()=>{
