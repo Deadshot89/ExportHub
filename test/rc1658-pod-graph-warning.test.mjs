@@ -39,7 +39,11 @@ test('RC1696: required Azure failures remain blocking and pending SharePoint cop
 });
 
 test('RC1696: SharePoint failure messages are aggregate and do not print references, response payloads or tokens',()=>{
-  const blocks=[...workflow.matchAll(/if \[ "\$optional_drive_pending_batches" -gt 0 \]; then([\s\S]*?)\n\s+fi/g)].map(m=>m[1]);
+  const blocks=[testservice,production].map(section=>{
+    const found=section.match(/if \[ "\$optional_drive_pending_batches" -gt 0 \]; then([\s\S]*?)\n\s+fi/);
+    assert.ok(found,'environment must log independent Graph backup failures');
+    return found[1];
+  });
   assert.equal(blocks.length,2);
   for(const block of blocks) {
     assert.match(block,/optional_drive_pending_batches/);
