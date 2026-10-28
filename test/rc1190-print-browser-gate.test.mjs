@@ -73,13 +73,15 @@ test('RC1543: Browserabnahme prüft aktuellen Palettenkonto-Kontostand in echtem
   assert.match(spec,/data-rc1543-pallet-balance\/i/);
 });
 
-test('RC1340: Lieferschein-PDFs werden dedupliziert und über den Gesamtdruck ausgegeben',()=>{
+test('RC1710: Lieferschein-PDFs bleiben separat verfügbar, aber niemals Teil des Ladelisten-Gesamtdrucks',()=>{
   const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
   assert.match(build,/function rc1340PrintableDeliveryAttachments/);
-  assert.match(build,/await rc1340PrepareDeliveryAttachmentPrints\(sh\)/);
-  assert.match(build,/await rc1340PrintPreparedAttachments\(attachmentJobs\)/);
-  assert.match(build,/attachmentCount:attachmentJobs\.length/);
   assert.match(build,/window\.ExportHUBRC1340AttachmentPrint/);
+  assert.ok(build.includes('RC1710 Keine automatische Lieferschein-Abfrage beim Ladelisten-/CMR-Druck'));
+  assert.match(build,/printShipment:async function\(sh\)/);
+  assert.doesNotMatch(build,/const readyNew=/);
+  assert.doesNotMatch(build,/const printNew=/);
+  assert.doesNotMatch(build,/alert\('Ladeliste und CMR wurden zum Druck geöffnet/);
   assert.match(build,/data-rc1354-pdf-print-bridge/);
   assert.match(build,/frame\.contentWindow\.postMessage\(\{type:'print'\},'\*'\)/);
   assert.match(build,/dataResponse=await fetch\(url\)/);
