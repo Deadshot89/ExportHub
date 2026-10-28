@@ -78,3 +78,17 @@ test('RC1705: standard SOP button appears even before a customer has been select
  assert.match(buttons[0].textContent,/Standard-SOP/);
  assert.match(host.children[0].innerHTML,/data-rc1705-open="SOP-EH-031"/);
 });
+
+
+test('RC1705: user-specific SOP progress resolves the logged-in ExportHUB state user',()=>{
+  const doc={readyState:'loading',documentElement:{lang:'de'},body:{getAttribute(){return 'shipment'}},
+    addEventListener(){},getElementById(){return null},querySelector(){return null}};
+  let id='employee-one';
+  const win={addEventListener(){},__EXPORTHUB_GET_CURRENT_USER__(){return {globalAdmin:false}},
+    __EXPORTHUB_GET_STATE__(){return {currentUser:{id}}}};
+  const testRuntime=runtime.replace('function progressId(id){','w.__RC1705_TEST_CURRENT_USER__=currentUser;\nfunction progressId(id){');
+  vm.runInNewContext(testRuntime,{window:win,document:doc,Promise});
+  assert.equal(win.__RC1705_TEST_CURRENT_USER__(),'employee-one');
+  id='employee-two';
+  assert.equal(win.__RC1705_TEST_CURRENT_USER__(),'employee-two');
+});
