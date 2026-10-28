@@ -14,13 +14,13 @@ const other=Buffer.from('%PDF-1.7\nMANUAL DIFFERENT '+ 'B'.repeat(1200));
 const error=(code,message,status)=>Object.assign(new Error(message),{code,status});
 function setup(file,steps){
  const saved=(...args)=>{steps.push('primary');return Promise.resolve({record:args[2],file:{name:'original.pdf'}})};
- const code=new Function('automaticPod','text','crypto','store','saveAzurePod','saveAzureArchive','m365Enabled','copyToDrive',
+ const code=new Function('automaticPod','text','crypto','store','saveAzurePod','saveAzureArchive','m365Enabled','copyToDrive','readAutomaticPodBuffer',
     fn+'\nreturn saveSuppliedPod;');
  const store={err:error};
  return code(rec=>(rec.podFiles||[]).find(f=>f.kind==='automatic-pod')||null,
    v=>String(v??'').trim(),crypto,store,saved,
    async()=>{steps.push('archive');return{record:{podBackup:{archiveSaved:true}}}},
-   ()=>false,async()=>{steps.push('graph')});
+   ()=>false,async()=>{steps.push('graph')},async()=>{steps.push('read');return{buffer:signed,file:{name:'original.pdf',hash:hashPdf(signed)}}});
 }
 
 test('RC1717: separate manual upload can never overwrite automatic signed POD',async()=>{
@@ -48,7 +48,7 @@ test('RC1717: identical signed PDF remains eligible for backup retry',async()=>{
  const steps=[],save=setup({},steps);
  const result=await save('key','testservice',{reference:'ABC123',podFiles:[{kind:'automatic-pod',hash:hashPdf(signed),blobName:'automatic/a'}]},signed,'POD_ABC123_Ladeliste_unterschrieben.pdf',{source:'stored-original'});
  assert.equal(result.archiveSaved,true);
- assert.deepEqual(steps,['primary','archive']);
+ assert.deepEqual(steps,['read','archive'],'matching original must not rewrite its file metadata');
 });
 
 test('RC1717: the protected POD API passes the declared source to the server-side guard',()=>{
