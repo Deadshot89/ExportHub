@@ -11,6 +11,10 @@ for (const [name,section] of [['TESTSERVICE',testservice],['PRODUCTION',producti
     assert.match(section,/optional_drive_pending_batches=0/);
     assert.match(section,/drive_pending_count="\$\(printf '%s\\n' "\$result" \| node -e "/);
     assert.match(section,/Number\(v\.drivePendingCount\|\|0\)/);
+    assert.match(section,/Number\(v\.driveBackfillEligible\|\|0\)/);
+    assert.match(section,/Number\(v\.driveSavedCount\|\|0\)/);
+    assert.match(section,/v\.optionalDriveWorkDeferred===true/);
+    assert.match(section,/v\.graphConfigured===false/);
     assert.match(section,/optional_drive_pending_batches=\$\(\(optional_drive_pending_batches \+ 1\)\)/);
     // RC1689 may first report an ambiguous TESTSERVICE POD link before the optional Graph warning.
     const doneStart=section.indexOf('if [ "$verdict" = "done" ]; then');
