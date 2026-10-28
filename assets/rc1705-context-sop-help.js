@@ -33,7 +33,7 @@ function lang(){var raw='';try{var api=w.ExportHUBI18n;raw=q(api&&(typeof api.ge
 function t(id){return (TEXT[lang()]||TEXT.de)[id]||TEXT.de[id]||id}
 function getView(){return q(d.body&&d.body.getAttribute('data-exporthub-view'))||'dashboard'}
 function appReady(){return !!(d.getElementById('nav')&&d.getElementById('content'))}
-function currentUser(){var u=null;try{if(typeof w.__EXPORTHUB_GET_CURRENT_USER__==='function')u=w.__EXPORTHUB_GET_CURRENT_USER__()}catch(_){}if(!u||typeof u!=='object'||!Object.keys(u).length){var state={};try{if(typeof w.__EXPORTHUB_GET_STATE__==='function')state=w.__EXPORTHUB_GET_STATE__()||{}}catch(_){}u=state.currentUser||state.activeUser||w.currentUser||{}}return q(u&&(u.id||u.userId||u.username||u.login))||'local'}
+function currentUser(){var u=null;try{if(typeof w.__EXPORTHUB_GET_CURRENT_USER__==='function')u=w.__EXPORTHUB_GET_CURRENT_USER__()}catch(_){}if(!q(u&&(u.id||u.userId||u.username||u.login))){var state={};try{if(typeof w.__EXPORTHUB_GET_STATE__==='function')state=w.__EXPORTHUB_GET_STATE__()||{}}catch(_){}u=state.currentUser||state.activeUser||w.currentUser||{}}return q(u&&(u.id||u.userId||u.username||u.login))||'local'}
 function progressId(id){return currentUser()+'|'+id}
 function progress(){try{var value=JSON.parse(w.localStorage.getItem(STORAGE)||'{}');return value&&typeof value==='object'&&!Array.isArray(value)?value:{}}catch(_){return {}}}
 function saveProgress(id,ids){try{var all=progress();all[progressId(id)]=ids;var keys=Object.keys(all);if(keys.length>80)keys.slice(0,keys.length-80).forEach(function(key){delete all[key]});w.localStorage.setItem(STORAGE,JSON.stringify(all));}catch(_){}}
