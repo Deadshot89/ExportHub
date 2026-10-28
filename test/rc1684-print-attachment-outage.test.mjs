@@ -45,7 +45,7 @@ test('RC1684: ein umgeleiteter Lieferschein blockiert nicht den Druck der verfü
       error.code='AZURE_ROUTE_BLOCKED';
       throw error;
     }
-    return{size:1024,type:'application/pdf'};
+    returnnew Blob(['%PDF-1.4\nRC1684 TEST PDF\n'],{type:'application/pdf'});
   });
   const jobs=await api.prepare(shipment());
   assert.deepEqual(Array.from(jobs,item=>item.name),['Verfuegbar.pdf']);
@@ -58,7 +58,7 @@ test('RC1684: ein umgeleiteter Lieferschein blockiert nicht den Druck der verfü
 });
 
 test('RC1684: vollständig erreichbare Lieferscheine bleiben vollständig druckbar',async()=>{
-  const {api,printed}=printRuntime(async()=>({size:1024,type:'application/pdf'}));
+  const {api,printed}=printRuntime(async()=>(new Blob(['%PDF-1.4\nRC1684 TEST PDF\n'],{type:'application/pdf'})));
   const jobs=await api.prepare(shipment());
   assert.equal(jobs.length,2);
   assert.equal(jobs.failed.length,0);
