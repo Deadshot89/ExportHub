@@ -128,7 +128,7 @@ test('large FlateDecode streams do not stall the PDF upload normalizer',async()=
 
 test('RC1703: SalesPackingSlip PDF with character-by-character DNC text is automatically renamed',async()=>{
   const api=load();
-  const stream='BT [(Delivery Note ) 0 (D) -20 (N) -20 (C) -20 (3) (0) (1) (9) (2) (2) (6) (8) (9) (1)] TJ ET';
+  const stream='BT [(Delivery Note ) 0 (D) -20 (N) -20 (C) -20 (3) (0) (1) (9) (2) (2) (2) (0) (6) (3)] TJ ET';
   const bytes=Buffer.from('%PDF-1.4\n1 0 obj\n<< /Length '+stream.length+' >>\nstream\n'+stream+'\nendstream\nendobj\n%%EOF','latin1');
   const result=await api.normalizePdfFile(fileFromBytes('SalesPackingSlip-Example-00000_01012026_000000_000_00000_P.pdf',bytes));
   assert.equal(result.name,'DNC3019222063.pdf');
