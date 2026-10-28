@@ -54,7 +54,7 @@ const RC1303_LOGIN_FIRST_PAINT_STYLE=`<style id="exporthub-rc1303-login-first-pa
 </style>`;
 const RC1267_I18N_TAG='<script id="exporthub-rc1267-i18n" defer src="/assets/rc1267-i18n.js?v=1466"></script>';
 const RC1206_SHIPPING_ID='exporthub-rc1206-shipping-rules';
-const RC1206_SHIPPING_TAG='<script id="'+RC1206_SHIPPING_ID+'" defer src="/assets/rc1206-shipping-rules.js?v=1419"></script>';
+const RC1206_SHIPPING_TAG='<script id="'+RC1206_SHIPPING_ID+'" defer src="/assets/rc1206-shipping-rules.js?v=1715"></script>';
 const RC1296_BROWSER_TITLE='ExportHUB360';
 const RC1296_FAVICON_TAG='<link id="exporthub360-favicon" rel="icon" type="image/svg+xml" href="/assets/exporthub360-favicon.svg?v=1296">';
 const RC1304_THEME_STYLE_TAG='<link id="exporthub-rc1304-theme-style" rel="stylesheet" href="/assets/rc1304-theme-switcher.css?v=1306">';
@@ -459,8 +459,11 @@ function patchRc1303LoginExperience(html,file){
 }
 
 function patchRc1206ShippingRules(html,file){
+  // RC1715: vorhandene Script-IDs dürfen den alten Cache-Key nicht erhalten.
+  // Drei-Umgebungen-Build muss den Browser auf die neue Versandkosten-Runtime zwingen.
+  html=html.replace(/(src=["']\/assets\/rc1206-shipping-rules\.js\?v=)[^"']+(["'])/g,'$1'+'1715'+'$2');
   html=injectDeferredRuntimeInHead(html,RC1206_SHIPPING_TAG,RC1206_SHIPPING_ID);
-  if(!html.includes('rc1206-shipping-rules.js?v=1419'))throw new Error(file+': RC1419 Versandkosten-Runtime fehlt');
+  if(!html.includes('rc1206-shipping-rules.js?v=1715'))throw new Error(file+': RC1715 Versandkosten-Cache-Key fehlt');
   return html;
 }
 
