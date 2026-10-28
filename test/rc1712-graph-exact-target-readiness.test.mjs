@@ -64,6 +64,8 @@ test('RC1712: incomplete ID pair must fail closed even if an unrelated user path
   }, () => {
     assert.equal(graph.readiness().configured, false);
     assert.deepEqual(graph.readiness().missing, ['EXPORTHUB_POD_FOLDER_ID']);
+    assert.throws(() => graph.config(),
+      error => error.code === 'GRAPH_EXACT_TARGET_INCOMPLETE' && error.statusCode === 503);
   });
   withSettings({
     EXPORTHUB_POD_DRIVE_USER: 'test@example.invalid',
@@ -72,6 +74,8 @@ test('RC1712: incomplete ID pair must fail closed even if an unrelated user path
   }, () => {
     assert.equal(graph.readiness().configured, false);
     assert.deepEqual(graph.readiness().missing, ['EXPORTHUB_POD_DRIVE_ID']);
+    assert.throws(() => graph.config(),
+      error => error.code === 'GRAPH_EXACT_TARGET_INCOMPLETE' && error.statusCode === 503);
   });
 });
 
