@@ -212,9 +212,9 @@
   }
 
   function photoUrl(shipment,photo,download){
-    const ref=shipmentReference(shipment),id=q(photo&&photo.id);
+    const ref=shipmentReference(shipment),id=q(photo&&photo.id),sid=shipmentId(shipment);
     if(!ref||!id)return'';
-    return '/api/container-document?reference='+encodeURIComponent(ref)+'&file='+encodeURIComponent(id)+'&environment='+encodeURIComponent(currentEnvironment())+(download?'&download=1':'');
+    return '/api/container-document?reference='+encodeURIComponent(ref)+'&file='+encodeURIComponent(id)+'&shipmentId='+encodeURIComponent(sid)+'&environment='+encodeURIComponent(currentEnvironment())+(download?'&download=1':'');
   }
 
   function createContainerCard(doc,shipment){
