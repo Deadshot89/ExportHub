@@ -52,7 +52,10 @@ function blobName(environment,reference,kind,extension,subShipmentId){
  return env+'/'+ref+'/Containerdokumentation/'+(sub?'LKW_'+sub+'/':'')+fileName(ref,kind,extension,subShipmentId);
 }
 async function savePhoto({environment,reference,kind,dataUrl,shipmentId,subShipmentId}){
- const env=normalizeEnvironment(environment),ref=safeRef(reference),k=kindOf(kind),parsed=parseImage(dataUrl),container=containerClient();
+ const env=normalizeEnvironment(environment),ref=safeRef(reference),k=kindOf(kind),parsed=parseImage(dataUrl);
+ // Fail before even creating an Azure Blob if TESTSERVICE has no isolated REF target.
+ if(env==='testservice')referenceFolder.assertTargetForEnvironment(env);
+ const container=containerClient();
  await container.createIfNotExists();
  const sub=subShipmentKey(subShipmentId),name=fileName(ref,k,parsed.extension,subShipmentId),path=blobName(env,ref,k,parsed.extension,subShipmentId),blob=container.getBlockBlobClient(path),iso=new Date().toISOString();
  await blob.uploadData(parsed.buffer,{
