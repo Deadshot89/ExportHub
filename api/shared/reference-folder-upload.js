@@ -128,9 +128,10 @@ async function upload(reference,name,buffer,mimeType,environment='production'){
  await verifyUploadedFile(itemId,file,buffer.length,folderId,environment);
  return{id:itemId,name:itemName,size:itemSize,webUrl:text(data.webUrl),folderPath:folderPath(ref),reference:ref};
 }
-async function listFiles(reference){
+async function listFiles(reference,environment='production'){
  const ref=refValue(reference),select='id,name,file,folder,createdDateTime,lastModifiedDateTime';
- const target=exactTarget(),refFolder=target?await getFolder(ref):null;
+ // A TESTSERVICE AV scan must never read the production REF directory.
+ const target=exactTarget(environment),refFolder=target?await getFolder(ref,environment):null;
  if(target&&!refFolder)return [];
  const first=target?exactBase(target)+'/items/'+encodeURIComponent(refFolder.id)+'/children?$top=200&$select='+encodeURIComponent(select):GRAPH_BASE+'/users/'+encodeURIComponent(DRIVE_USER)+'/drive/root:/'+encPath(folderPath(ref))+':/children?$top=200&$select='+encodeURIComponent(select);
  // Match the main reference-files reader: documents may be filed below
