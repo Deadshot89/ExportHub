@@ -6,10 +6,10 @@ import vm from 'node:vm';
 const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
 const viewer=fs.readFileSync('assets/rc1059-document-blob.js','utf8');
 const token='exporthub-rc1672-document-blob-viewer';
-const runtime='rc1059-document-blob.js?v=1672';
+const runtime='rc1059-document-blob.js?v=1725';
 
 test('RC1672: release builder injects RC1059 into the outer application head, not the Stauplan popup',()=>{
-  assert.match(build,/html=injectImmediateRuntimeAfterHead\(html,'<script id="exporthub-rc1672-document-blob-viewer" src="\/assets\/rc1059-document-blob\.js\?v=1672"><\/script>','exporthub-rc1672-document-blob-viewer'\)/);
+  assert.match(build,/html=injectImmediateRuntimeAfterHead\(html,'<script id="exporthub-rc1672-document-blob-viewer" src="\/assets\/rc1059-document-blob\.js\?v=1725"><\/script>','exporthub-rc1672-document-blob-viewer'\)/);
   assert.match(build,/const outerHead=html\.slice\(0,html\.toLowerCase\(\)\.indexOf\('<\/head>'\)\)/);
   assert.match(build,/if\(!outerHead\.includes\('id="exporthub-rc1672-document-blob-viewer"'\)\)throw/);
   const start=build.indexOf('function injectImmediateRuntimeAfterHead(html,tag,id){');

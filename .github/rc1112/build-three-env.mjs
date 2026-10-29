@@ -101,7 +101,7 @@ const WEB_PUSH_SCRIPT_TAG='<script id="exporthub-web-push-client" defer src="/as
 const RC1577_POD_AUDIT_I18N_TAG='<script id="exporthub-rc1577-pod-audit-i18n" defer src="/assets/i18n/rc1577-pod-quality-audit.js?v=1577"></script>';
 const RC1577_POD_AUDIT_SCRIPT_TAG='<script id="exporthub-rc1577-pod-audit-script" defer src="/assets/rc1577-pod-quality-audit.js?v=1596"></script>';
 const RC1596_POD_FOLDER_SCRIPT_TAG='<script id="exporthub-rc1596-pod-folder-reconnect" defer src="/assets/rc1596-pod-folder-reconnect.js?v=1596"></script>';
-const RC1602_OFFICIAL_POD_SCRIPT_TAG='<script id="exporthub-rc1602-official-pod" src="/assets/rc1602-official-pod-server-download.js?v=1623"></script>';
+const RC1602_OFFICIAL_POD_SCRIPT_TAG='<script id="exporthub-rc1602-official-pod" src="/assets/rc1602-official-pod-server-download.js?v=1725"></script>';
 const RC1558_WORKSPACE_MARKER='window.__EXPORTHUB_RC885_CLEAN_WORKSPACE__ = true;';
 const RC1558_WORKSPACE_EXPORT="window.ExportHUBWorkspace885=Object.freeze({shipments:shipments,tasks:tasks,shipmentOpenList:shipmentOpenList,taskOpenList:taskOpenList,dueTask:dueTask,shipmentNeedsDocuments:shipmentNeedsDocuments,shipmentNeedsPickup:shipmentNeedsPickup,shipmentNeedsPod:shipmentNeedsPod,routeTo:routeTo});";
 const RC1328_MULTI_TRUCK_REFRESH_TAG='<script id="exporthub-rc1328-multi-truck-refresh" defer src="/assets/rc1328-multi-truck-ui-refresh.js?v=1333"><\/script>';
@@ -381,8 +381,8 @@ function patchRc1624AbdUploadCrossCollection(html,file){
 
 function patchRc1602OfficialPod(html,file){
   html=injectImmediateRuntimeAfterHead(html,RC1602_OFFICIAL_POD_SCRIPT_TAG,'exporthub-rc1602-official-pod');
-  html=html.replace(/rc1602-official-pod-server-download\.js\?v=(?:1602|1616)/g,'rc1602-official-pod-server-download.js?v=1623');
-  if(!html.includes('rc1602-official-pod-server-download.js?v=1623'))
+  html=html.replace(/rc1602-official-pod-server-download\.js\?v=(?:1602|1616|1623)/g,'rc1602-official-pod-server-download.js?v=1725');
+  if(!html.includes('rc1602-official-pod-server-download.js?v=1725'))
     throw new Error(file+': RC1602 offizieller signierter POD-Download fehlt');
   return html;
 }
@@ -1624,7 +1624,7 @@ function patchHtml(file){
   // popup HTML string only. Shipments/Packmeldungen require the viewer in the
   // actual application window. Load it synchronously at the start of HEAD so
   // quick navigation cannot cancel its pending request before it initializes.
-  html=injectImmediateRuntimeAfterHead(html,'<script id="exporthub-rc1672-document-blob-viewer" src="/assets/rc1059-document-blob.js?v=1672"></script>','exporthub-rc1672-document-blob-viewer');
+  html=injectImmediateRuntimeAfterHead(html,'<script id="exporthub-rc1672-document-blob-viewer" src="/assets/rc1059-document-blob.js?v=1725"></script>','exporthub-rc1672-document-blob-viewer');
   const outerHead=html.slice(0,html.toLowerCase().indexOf('</head>'));
   if(!outerHead.includes('id="exporthub-rc1672-document-blob-viewer"'))throw new Error(file+': RC1672 echter Hauptfenster-Dokumentenviewer fehlt');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1203-deckblatt-print" defer src="/assets/rc1203-deckblatt-print.js?v=1373"></script>','exporthub-rc1203-deckblatt-print');
