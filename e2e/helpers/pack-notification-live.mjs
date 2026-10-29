@@ -393,8 +393,8 @@ export async function runPackNotificationLiveFlow(browser,testInfo,token){
       expect(persisted.name).toBe(resultA.canonicalName);
       expect(persisted.signature).toBe('%PDF-');
       expect(persisted.count).toBeGreaterThan(40);
-      expect(persisted.customerVisible).toBe(false);
-      expect(persisted.avisVisible).toBe(false);
+      expect(persisted.customerVisible).toBe(true);
+      expect(persisted.avisVisible).toBe(true);
 
       await assertNoHorizontalOverflow(page);
       // A confirmed server save may have an aborted keepalive when reloading.
