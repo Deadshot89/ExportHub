@@ -284,3 +284,44 @@ test('RC1249 API: Mailfehler lässt geprüften Kundenupload gespeichert und sich
     assert.equal((fx.team().state.notifications||[]).some(x=>x&&x.type==='customer-avis-document'&&x.documentSha256===hash),true);
   }finally{fx.restore()}
 });
+
+test('P0: an existing pack notification PDF can be listed and downloaded on customer AVIS only when released',async()=>{
+  const fx=fixture();
+  try{
+    const bytes=validPdf('PACK-DNC-3019222063'),blobName='rc1059/testservice/aa/'+('a'.repeat(64));
+    const shipment=fx.team().state.shipments[0];
+    const document={id:'pack-dnc-1',name:'DNC3019222063.pdf',source:'pack_notification',
+      packNotificationId:'pn-1',storage:'blob',blobName,mimeType:'application/pdf',
+      customerVisible:true,customerAvisVisible:true,size:bytes.length};
+    shipment.packNotificationId='pn-1';
+    shipment.deliveryFiles=[document];
+    fx.blobs.set('exporthub-documents/'+blobName,{
+      buffer:bytes,headers:{blobContentType:'application/pdf'},metadata:{},
+      tags:{},createdOn:new Date(),deleted:false
+    });
+    async function avisGet(query={}){
+      const context={log:{error(){}},res:null};
+      await fx.handler(context,{method:'GET',headers:{'x-exporthub-avis-session':'avis-session'},query,body:{}});
+      return context.res;
+    }
+    const listing=await avisGet();
+    assert.equal(listing.status,200);
+    const publicDocs=responseBody(listing).documents;
+    assert.ok(publicDocs.some(d=>d.id===document.id&&d.name===document.name));
+    assert.ok(publicDocs.find(d=>d.id===document.id).downloadUrl.includes('action=document'));
+
+    const download=await avisGet({action:'document',id:document.id});
+    assert.equal(download.status,200);
+    assert.equal(download.isRaw,true);
+    assert.equal(download.headers['Content-Type'],'application/pdf');
+    assert.deepEqual(Buffer.from(download.body),bytes);
+
+    document.customerAvisVisible=false;
+    const hidden=await avisGet();
+    assert.equal(hidden.status,200);
+    assert.equal(responseBody(hidden).documents.some(d=>d.id===document.id),false);
+    const blocked=await avisGet({action:'document',id:document.id});
+    assert.equal(blocked.status,404);
+    assert.equal(responseBody(blocked).code,'DOCUMENT_NOT_FOUND');
+  }finally{fx.restore()}
+});
