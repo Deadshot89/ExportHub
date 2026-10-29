@@ -30,6 +30,7 @@ test('RC1724: test photos never write to a production or implicit OneDrive root'
    if(String(url).includes('/oauth2/'))return data(200,{access_token:'synthetic',expires_in:3600});
    const urlText=String(url);
    if(options.method==='PUT')return data(201,{id:'test-photo-item',name:fileName,size:image.length});
+   if(urlText.includes('/items/test-ref-child/children'))return data(200,{value:[{id:'test-photo-item',name:fileName,file:{}}]});
    if(urlText.includes('/items/test-photo-item?'))return data(200,{
      id:'test-photo-item',name:fileName,size:image.length,
      parentReference:{id:'test-ref-child'},file:{mimeType:'image/jpeg'}
@@ -53,6 +54,9 @@ test('RC1724: test photos never write to a production or implicit OneDrive root'
   assert.equal(receipt.reference,'ABC123');
   assert.ok(calls.some(x=>x.method==='PUT'&&x.url.includes('/drives/test-drive/items/test-ref-child:/')));
   assert.ok(calls.some(x=>x.method==='GET'&&x.url.includes('/drives/test-drive/items/test-photo-item?')));
+  const listed=await store.listFiles('ABC123','testservice');
+  assert.deepEqual(listed.map(item=>item.name),[fileName]);
+  assert.ok(calls.some(x=>x.method==='GET'&&x.url.includes('/drives/test-drive/items/test-ref-child/children')));
   assert.ok(calls.filter(x=>x.url.includes('graph.microsoft.com')).every(x=>x.url.includes('/drives/test-drive/')),
    'every Graph data operation must use the test drive, never production or a personal OneDrive');
  }finally{
