@@ -13,7 +13,21 @@ function encPath(path){return String(path||'').split('/').filter(Boolean).map(en
 // RC1723: A complete, administrator-verified pair can address a SharePoint
 // document-library folder without relying on a user's default OneDrive.
 // The folder ID denotes the existing Sendungen root, never an inferred folder.
-function exactTarget(){
+function exactTarget(environment='production'){
+ // RC1724: a TESTSERVICE photo is not allowed to default to the production
+ // reference library or a personal OneDrive. This must fail before a Graph
+ // write when no separate, explicitly verified test root is configured.
+ if(text(environment).toLowerCase()==='testservice'){
+  const driveId=text(process.env.EXPORTHUB_TEST_REFERENCE_DRIVE_ID),
+        folderId=text(process.env.EXPORTHUB_TEST_REFERENCE_FOLDER_ID);
+  if(!driveId||!folderId)throw error('GRAPH_TEST_REFERENCE_TARGET_NOT_CONFIGURED',
+   'TESTSERVICE-Containerfotos benötigen eine separate SharePoint-Drive-ID und Stammordner-ID.',503);
+  const prodDrive=text(process.env.EXPORTHUB_REFERENCE_DRIVE_ID),
+        prodFolder=text(process.env.EXPORTHUB_REFERENCE_FOLDER_ID);
+  if(driveId===prodDrive&&folderId===prodFolder)throw error('GRAPH_TEST_REFERENCE_TARGET_NOT_ISOLATED',
+   'TESTSERVICE und Produktion dürfen nicht denselben SharePoint-REF-Stammordner verwenden.',503);
+  return{driveId,folderId};
+ }
  const driveId=text(process.env.EXPORTHUB_REFERENCE_DRIVE_ID),folderId=text(process.env.EXPORTHUB_REFERENCE_FOLDER_ID);
  if(!!driveId!==!!folderId)throw error('GRAPH_REFERENCE_EXACT_TARGET_INCOMPLETE','Für die SharePoint-REF-Ablage müssen Drive-ID und Stammordner-ID gemeinsam hinterlegt werden.',503);
  return driveId?{driveId,folderId}:null;
@@ -39,8 +53,8 @@ async function graph(url,options={}){
  return fetch(url,opts);
 }
 function folderPath(reference){return REFERENCE_FOLDER+'/'+refValue(reference)}
-async function getFolder(reference){
- const ref=refValue(reference),path=folderPath(ref),target=exactTarget();
+async function getFolder(reference,environment='production'){
+ const ref=refValue(reference),path=folderPath(ref),target=exactTarget(environment);
  const url=target
   ? exactBase(target)+'/items/'+encodeURIComponent(target.folderId)+':/'+encodeURIComponent(ref)+'?$select=id,name,webUrl,folder,parentReference'
   : GRAPH_BASE+'/users/'+encodeURIComponent(DRIVE_USER)+'/drive/root:/'+encPath(path)+'?$select=id,name,webUrl';
@@ -61,22 +75,22 @@ async function getFolder(reference){
   throw error('GRAPH_REFERENCE_FOLDER_UNVERIFIED','Der REF-Unterordner wurde in der angegebenen SharePoint-Bibliothek nicht eindeutig bestätigt.',502);
  return data;
 }
-async function ensureFolder(reference){
- const ref=refValue(reference),existing=await getFolder(ref);if(existing)return existing;
- const target=exactTarget();
+async function ensureFolder(reference,environment='production'){
+ const ref=refValue(reference),existing=await getFolder(ref,environment);if(existing)return existing;
+ const target=exactTarget(environment);
  const url=target?exactBase(target)+'/items/'+encodeURIComponent(target.folderId)+'/children':GRAPH_BASE+'/users/'+encodeURIComponent(DRIVE_USER)+'/drive/root:/'+encPath(REFERENCE_FOLDER)+':/children';
  const res=await graph(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:ref,folder:{},'@microsoft.graph.conflictBehavior':'fail'})});
- if(res.status===409){const found=await getFolder(ref);if(found)return found}
+ if(res.status===409){const found=await getFolder(ref,environment);if(found)return found}
  let data={};try{data=await res.json()}catch(_){}
  if(!res.ok)throw error('GRAPH_REFERENCE_FOLDER_CREATE_FAILED',data.error&&data.error.message||'api.reference.folderCreateFailed',res.status>=500?502:res.status,{status:res.status});
  if(target&&(text(data.id)===''||text(data.name)!==ref||!data.folder||text(data.parentReference&&data.parentReference.id)!==target.folderId))
   throw error('GRAPH_REFERENCE_FOLDER_UNVERIFIED','Der neu angelegte REF-Ordner konnte in der richtigen Dokumentbibliothek nicht bestätigt werden.',502);
  return data;
 }
-async function verifyUploadedFile(itemId,file,size,folderId){
+async function verifyUploadedFile(itemId,file,size,folderId,environment='production'){
  // An upload response alone is not durable storage proof: independently
  // reopen the exact Drive item and confirm the parent REF folder.
- const target=exactTarget();
+ const target=exactTarget(environment);
  const url=target?exactBase(target)+'/items/'+encodeURIComponent(itemId)+'?$select=id,name,size,parentReference,file':GRAPH_BASE+'/users/'+encodeURIComponent(DRIVE_USER)+'/drive/items/'+encodeURIComponent(itemId)+'?$select=id,name,size,parentReference,file';
  for(let attempt=0;attempt<3;attempt++){
   try{
@@ -95,11 +109,11 @@ async function verifyUploadedFile(itemId,file,size,folderId){
   'Microsoft Graph konnte die gespeicherte Datei im richtigen REF-Ordner nicht unabhängig bestätigen. Bitte den Upload erneut versuchen.',502);
 }
 
-async function upload(reference,name,buffer,mimeType){
+async function upload(reference,name,buffer,mimeType,environment='production'){
  const ref=refValue(reference),file=safeFileName(name);if(!Buffer.isBuffer(buffer)||!buffer.length)throw error('REFERENCE_FILE_EMPTY','Datei ist leer.',400);
- const folder=await ensureFolder(ref),folderId=text(folder&&folder.id);
+ const folder=await ensureFolder(ref,environment),folderId=text(folder&&folder.id);
  if(!folderId)throw error('GRAPH_REFERENCE_FOLDER_UNVERIFIED','Der REF-Ordner wurde von Microsoft Graph nicht eindeutig bestätigt.',502);
- const target=exactTarget(),path=folderPath(ref)+'/'+file;
+ const target=exactTarget(environment),path=folderPath(ref)+'/'+file;
  const url=target?exactBase(target)+'/items/'+encodeURIComponent(folderId)+':/'+encodeURIComponent(file)+':/content':GRAPH_BASE+'/users/'+encodeURIComponent(DRIVE_USER)+'/drive/root:/'+encPath(path)+':/content';
  const res=await graph(url,{method:'PUT',headers:{'Content-Type':text(mimeType)||'application/octet-stream','Content-Length':String(buffer.length),Accept:'application/json'},body:buffer});
  let data={};try{data=await res.json()}catch(_){}
@@ -111,7 +125,7 @@ async function upload(reference,name,buffer,mimeType){
  if(!itemId||itemName!==file||!Number.isSafeInteger(itemSize)||itemSize!==buffer.length){
   throw error('GRAPH_REFERENCE_FILE_UNVERIFIED','Microsoft Graph hat die Datei im REF-Ordner nicht vollständig bestätigt. Bitte den Upload erneut versuchen.',502);
  }
- await verifyUploadedFile(itemId,file,buffer.length,folderId);
+ await verifyUploadedFile(itemId,file,buffer.length,folderId,environment);
  return{id:itemId,name:itemName,size:itemSize,webUrl:text(data.webUrl),folderPath:folderPath(ref),reference:ref};
 }
 async function listFiles(reference){
