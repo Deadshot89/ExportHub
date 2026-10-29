@@ -109,7 +109,7 @@ function createHandler(deps = {}) {
       const selected = all.slice(0, limit);
       const checks = [], errors = [];
       for (const item of selected) {
-        try { checks.push({ reference: item.reference, result: await avCheck.checkReference(item.reference, listFiles) }); }
+        try { checks.push({ reference: item.reference, result: await avCheck.checkReference(item.reference, ref => listFiles(ref, environment)) }); }
         catch (e) { errors.push({ reference: item.reference, code: text(e && e.code) || 'REFERENCE_FOLDER_LIST_FAILED' }); }
       }
       const applied = await mutateState(environment, current => {
