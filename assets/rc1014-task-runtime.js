@@ -249,9 +249,22 @@
 
   function linkedShipmentTarget(task,ctx={}){
     const state=ctx.state||sharedState()||{};
-    const refs=[q(task&&task.linkedShipmentId),q(task&&task.sourceId),q(task&&task.linkedShipmentRef),q(task&&task.sourceRef)].filter(Boolean);
-    const hit=arr(state.shipments).concat(arr(state.savedShipments)).find(sh=>refs.includes(q(sh&&sh.id))||refs.includes(q(sh&&sh.shipmentId))||refs.includes(q(sh&&sh.ref))||refs.includes(q(sh&&sh.reference)));
-    return hit?q(hit.ref||hit.reference||hit.id||hit.shipmentId):'';
+    const linkedRef=q(task&&(task.linkedShipmentRef||task.shipmentRef||task.reference||task.ref||task.sourceRef)).toUpperCase();
+    const linkedId=q(task&&(task.linkedShipmentId||task.shipmentId||task.sourceId));
+    const refs=['shipments','savedShipments','salesSharedShipments','sharedShipments','shipmentArchive','archivedShipments','archive'];
+    const shipments=refs.flatMap(key=>arr(state[key])).filter(sh=>sh&&typeof sh==='object');
+    const refOf=sh=>q(sh&&(sh.ref||sh.reference||sh.shipmentRef||sh.referenceNumber)).toUpperCase();
+    const idOf=sh=>q(sh&&(sh.id||sh.shipmentId||sh._syncId));
+    // A REF is stable; shipment IDs can be recycled. Never route to an unrelated
+    // shipment merely because its technical ID matches the task sourceId.
+    const byRef=linkedRef?shipments.find(sh=>refOf(sh)===linkedRef):null;
+    if(byRef)return refOf(byRef);
+    if(linkedRef&&/^[A-Z0-9]{6}$/.test(linkedRef))return linkedRef;
+    const byId=linkedId?shipments.filter(sh=>idOf(sh)===linkedId):[];
+    if(!byId.length)return '';
+    const distinctRefs=new Set(byId.map(refOf).filter(Boolean));
+    if(distinctRefs.size>1)return '';
+    return refOf(byId[0])||idOf(byId[0]);
   }
 
   function detailSpec(task){
