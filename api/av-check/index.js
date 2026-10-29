@@ -87,7 +87,7 @@ function createHandler(deps = {}) {
   const readState = deps.readState || readTeamState;
   const mutateState = deps.mutateState || mutateTeamState;
   const listFiles = deps.listFiles || referenceFolder.listFiles;
-  const graphConfigured = deps.graphConfigured || (() => { try { referenceFolder.config(); return true; } catch (_) { return false; } });
+  const graphConfigured = deps.graphConfigured || (environment => { try { referenceFolder.config(); referenceFolder.assertTargetForEnvironment(environment); return true; } catch (_) { return false; } });
   const now = deps.now || (() => new Date());
   return async function(req) {
     if (req.method === 'OPTIONS') return { status: 204, body: {} };
@@ -97,7 +97,7 @@ function createHandler(deps = {}) {
       const payload = body(req), environment = environmentOf(req, payload);
       const limit = Math.min(100, Math.max(1, Math.round(Number(payload.limit) || 40)));
       // Ohne Graph-Zugriff kann kein REF-Ordner gelesen werden; dann keine Aufgaben erzeugen.
-      if (!graphConfigured()) return { status: 503, body: { ok: false, code: 'GRAPH_NOT_CONFIGURED', environment, graphConfigured: false, checked: 0, results: [] } };
+      if (!graphConfigured(environment)) return { status: 503, body: { ok: false, code: 'GRAPH_NOT_CONFIGURED', environment, graphConfigured: false, checked: 0, results: [] } };
       const minAgeMs = Math.max(0, Number(payload.minAgeMinutes == null ? 30 : payload.minAgeMinutes) || 0) * 60 * 1000;
       const at = now(), state = await readState(environment);
       // Gerade erst geprüfte REFs überspringen, damit Folge-Batches eines Laufs weiterkommen.
