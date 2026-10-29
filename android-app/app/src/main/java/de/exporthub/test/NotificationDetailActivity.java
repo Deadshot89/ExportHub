@@ -97,14 +97,19 @@ public final class NotificationDetailActivity extends Activity {
         privacyParams.topMargin = dp(18);
         root.addView(privacy, privacyParams);
 
-        Button open = new Button(this);
-        open.setText("notification".equalsIgnoreCase(channel) ? "Aufgabe öffnen" : "In ExportHUB öffnen");
-        open.setAllCaps(false);
-        open.setTextSize(16f);
-        open.setOnClickListener(v -> openExportHub());
-        LinearLayout.LayoutParams openParams = matchWrap();
-        openParams.topMargin = dp(20);
-        root.addView(open, openParams);
+        // Task and warning notifications are read-only: the user only reads them here and nothing opens
+        // the protected workspace (which would need a login). Only admin diagnostics keep the jump into ExportHUB.
+        boolean diagnostic = "diagnostic".equalsIgnoreCase(channel);
+        if (diagnostic) {
+            Button open = new Button(this);
+            open.setText("In ExportHUB öffnen");
+            open.setAllCaps(false);
+            open.setTextSize(16f);
+            open.setOnClickListener(v -> openExportHub());
+            LinearLayout.LayoutParams openParams = matchWrap();
+            openParams.topMargin = dp(20);
+            root.addView(open, openParams);
+        }
 
         Button close = new Button(this);
         close.setText("Schließen");
@@ -112,7 +117,7 @@ public final class NotificationDetailActivity extends Activity {
         close.setTextSize(15f);
         close.setOnClickListener(v -> finish());
         LinearLayout.LayoutParams closeParams = matchWrap();
-        closeParams.topMargin = dp(8);
+        closeParams.topMargin = dp(diagnostic ? 8 : 20);
         root.addView(close, closeParams);
 
         return scroll;

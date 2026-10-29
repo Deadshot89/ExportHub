@@ -136,7 +136,8 @@ public final class NotificationHelper {
                                           String environment,
                                           String key,
                                           int count,
-                                          String highestPriority) {
+                                          String highestPriority,
+                                          String taskLines) {
         if (context == null || count < 2) return false;
         String env = EnvironmentActivity.normalizeEnvironment(environment);
         ensureChannels(context);
@@ -146,14 +147,18 @@ public final class NotificationHelper {
         String priority = safe(highestPriority, "P4");
         String title = "ExportHUB Aufgaben";
         String body = count + " offene Aufgaben · höchste Priorität " + priority;
-        String signature = safeKey + "|" + body;
+        // The summary lists every task, so the whole content is readable in the notification itself.
+        String lines = taskLines == null ? "" : taskLines.trim();
+        if (lines.length() > 4000) lines = lines.substring(0, 4000) + "\n…";
+        String fullBody = lines.isEmpty() ? body : body + "\n" + lines;
+        String signature = safeKey + "|" + fullBody;
 
         SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         String dedupeKey = "last:" + env + ":notification:summary:" + safeKey;
         if (signature.equals(prefs.getString(dedupeKey, ""))) return false;
         prefs.edit().putString(dedupeKey, signature).apply();
 
-        Intent intent = notificationIntent(context, env, "notification", safeKey, title, body, "tasks");
+        Intent intent = notificationIntent(context, env, "notification", safeKey, title, fullBody, "tasks");
         int requestCode = Math.abs(("native-summary-v1:" + env + ":" + safeKey).hashCode());
         PendingIntent pendingIntent = PendingIntent.getActivity(
                 context,
@@ -165,7 +170,7 @@ public final class NotificationHelper {
                 .setSmallIcon(context.getApplicationInfo().icon)
                 .setContentTitle(title)
                 .setContentText(body)
-                .setStyle(new android.app.Notification.BigTextStyle().bigText(body))
+                .setStyle(new android.app.Notification.BigTextStyle().bigText(fullBody))
                 .setAutoCancel(true)
                 .setContentIntent(pendingIntent)
                 .setGroup(taskGroup(env))

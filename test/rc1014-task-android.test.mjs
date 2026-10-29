@@ -65,7 +65,8 @@ test('RC1014 Aufgabenbenachrichtigung bleibt auf nativer Detailansicht und beste
 test('RC1307 native Aufgabenansicht ist kompakt und auf die konkrete Aufgabe fokussiert',()=>{
   assert.match(detail,/headingForChannel\(channel\)/);
   assert.match(detail,/return "Aufgabe";/);
-  assert.match(detail,/\? "Aufgabe öffnen" : "In ExportHUB öffnen"/);
+  assert.doesNotMatch(detail,/Aufgabe öffnen/);
+  assert.match(detail,/boolean diagnostic = "diagnostic"\.equalsIgnoreCase\(channel\);/);
   assert.match(detail,/return "ExportHUB Aufgabe";/);
 });
 
