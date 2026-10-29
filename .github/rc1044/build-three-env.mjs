@@ -33,7 +33,10 @@ function patchDashboardOpenShipments(html,file){
   let out=html;
 
   const oldWorkspaceList="function shipmentOpenList(){\n    return shipments().filter(function(s){return s && !isDone(s)})\n  }";
-  const newWorkspaceList="function shipmentOpenList(){\n    return shipments().filter(function(s){return s && !isDone(s)})\n  }\n\n  function workspaceShipmentPickedUp(s){var st=low([s&&s.status,s&&s.state,s&&s.processStatus,s&&s.freigabe,s&&s.pickupStatus,s&&s.podStatus].join(' '));if(/teilabhol|partial/.test(st))return false;return !!(s&&(s.pickedUp===true||s.pickupConfirmed===true||s.pickupCompleted===true||s.collected===true||s.actualPickupDate||s.pickedUpAtDate||s.pickedUpAt||s.pickupAt||s.abgeholtAt))||/abgeholt|picked up|pickedup|collected|pod vorhanden/.test(st)}\n\n  function shipmentDashboardOpenList(){return shipmentOpenList().filter(function(s){return !workspaceShipmentPickedUp(s)})}";
+  // P2: one pickup predicate for workspace and core dashboards, matching RC1558.
+  // A partial pickup stays open; a fully collected shipment is not open even if the status is stale.
+  const pickupPredicate="var st=low([s&&s.status,s&&s.state,s&&s.processStatus,s&&s.freigabe,s&&s.pickupStatus,s&&s.podStatus].join(' '));if(/teilabhol|partial/.test(st))return false;return !!(s&&(s.pickedUp===true||s.pickupConfirmed===true||s.pickupCompleted===true||s.collected===true||s.actualPickupAt||s.actualPickupDate||s.pickedUpAt||s.pickedUpAtDate||s.pickupAt||s.pickupConfirmedAt||s.pickupCompletedAt||s.collectedAt||s.abgeholtAt))||/abgeholt|picked up|pickedup|collected|pod vorhanden|abgeschlossen|archiviert|completed|archived/.test(st)";
+  const newWorkspaceList="function shipmentOpenList(){\n    return shipments().filter(function(s){return s && !isDone(s)})\n  }\n\n  function workspaceShipmentPickedUp(s){"+pickupPredicate+"}\n\n  function shipmentDashboardOpenList(){return shipmentOpenList().filter(function(s){return !workspaceShipmentPickedUp(s)})}";
   out=replaceOne(out,oldWorkspaceList,newWorkspaceList,file+' Dashboard-Arbeitsplatz Abholstatus');
 
   out=replaceOne(out,
@@ -53,7 +56,7 @@ function patchDashboardOpenShipments(html,file){
   );
 
   const oldDone="function shipmentDone(s){return isDone(s&&(s.status||s.freigabe||s.state))}";
-  const newDone="function dashboardShipmentPickedUp(s){var st=low([s&&s.status,s&&s.freigabe,s&&s.state,s&&s.processStatus,s&&s.pickupStatus,s&&s.podStatus].join(' '));if(/teilabhol|partial/.test(st))return false;return !!(s&&(s.pickedUp===true||s.pickupConfirmed===true||s.pickupCompleted===true||s.collected===true||s.actualPickupDate||s.pickedUpAtDate||s.pickedUpAt||s.pickupAt||s.abgeholtAt))||/abgeholt|picked up|pickedup|collected|pod vorhanden/.test(st)}\nfunction shipmentDone(s){return isDone(s&&(s.status||s.freigabe||s.state))||dashboardShipmentPickedUp(s)}";
+  const newDone="function dashboardShipmentPickedUp(s){"+pickupPredicate+"}\nfunction shipmentDone(s){return isDone(s&&(s.status||s.freigabe||s.state))||dashboardShipmentPickedUp(s)}";
   out=replaceOne(out,oldDone,newDone,file+' Kern-Dashboard Abholstatus');
 
   out=replaceOne(out,

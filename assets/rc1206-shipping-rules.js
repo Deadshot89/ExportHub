@@ -35,11 +35,31 @@ function shippingLocation(c,sh){
   if(hit)return hit;
   if(wanted==='MAIN-'+q(c.id||c.customerId||c.account||c.customerNumber||'CUSTOMER'))return c;
  }
- return embedded&&typeof embedded==='object'&&!Array.isArray(embedded)?embedded:null
+ if(embedded&&typeof embedded==='object'&&!Array.isArray(embedded)){
+  var embeddedId=q(embedded.id||embedded.locationId||embedded.selectedLocationId||embedded.siteId||embedded.destinationId||embedded.deliveryLocationId||embedded.shipToLocationId||embedded.recipientLocationId||embedded.code||embedded.number);
+  if(!wanted||!embeddedId||wanted===embeddedId)return embedded;
+ }
+ return null;
 }
 function shippingAddress(v){if(!v||typeof v!=='object'||Array.isArray(v))return q(v);var direct=q(v.address||v.formattedAddress||v.fullAddress||v.addressText||v.deliveryAddress||v.recipientAddress||v.shipToAddress);if(direct)return direct;return q([v.street||v.strasse||v.streetName||v.addressLine1,v.addressLine2||v.address2,v.postalCode||v.postcode||v.zip||v.plz,v.city||v.ort||v.town||v.place,v.country||v.land||v.countryName].filter(Boolean).join(' '))}
 function shippingPostal(v){if(!v||typeof v!=='object'||Array.isArray(v))return'';return q(v.postalCode||v.postcode||v.zip||v.plz)}
-function shipmentCandidates(){var s=state(),out=[];function push(x){if(x&&typeof x==='object'&&!Array.isArray(x)&&out.indexOf(x)<0)out.push(x)}var key=q(s.currentShipmentId||s.selectedShipmentId||s.activeShipmentId||s.openShipmentId||s.currentShipmentRef||s.selectedShipmentRef||s.activeShipmentRef||s.openShipmentRef),pool=(Array.isArray(s.shipments)?s.shipments:[]).concat(Array.isArray(s.savedShipments)?s.savedShipments:[]);if(key)push(pool.find(function(sh){return[sh&&sh.id,sh&&sh.shipmentId,sh&&sh.ref,sh&&sh.reference].some(function(v){return q(v)===key})}));push(s.currentShipment);push(s.selectedShipment);push(s.activeShipment);push(s.openShipment);try{if(typeof window.__EXPORTHUB_GET_ACTIVE_SHIPMENT__==='function')push(window.__EXPORTHUB_GET_ACTIVE_SHIPMENT__())}catch(_){}push(s.shipment);return out}
+function shipmentCandidates(){
+ var s=state(),out=[];
+ function push(x){if(x&&typeof x==='object'&&!Array.isArray(x)&&out.indexOf(x)<0)out.push(x)}
+ var key=q(s.currentShipmentId||s.selectedShipmentId||s.activeShipmentId||s.openShipmentId||s.currentShipmentRef||s.selectedShipmentRef||s.activeShipmentRef||s.openShipmentRef),pool=(Array.isArray(s.shipments)?s.shipments:[]).concat(Array.isArray(s.savedShipments)?s.savedShipments:[]);
+ if(key)push(pool.find(function(sh){return[sh&&sh.id,sh&&sh.shipmentId,sh&&sh.ref,sh&&sh.reference].some(function(v){return q(v)===key})}));
+ push(s.currentShipment);push(s.selectedShipment);push(s.activeShipment);push(s.openShipment);
+ try{if(typeof window.__EXPORTHUB_GET_ACTIVE_SHIPMENT__==='function')push(window.__EXPORTHUB_GET_ACTIVE_SHIPMENT__())}catch(_){}
+ push(s.shipment);
+ var active=activeShipment(),ids=[active&&active.id,active&&active.shipmentId,active&&active.ref,active&&active.reference,active&&active.shipmentRef].map(function(v){return q(v).toUpperCase()}).filter(Boolean);
+ if(!ids.length)return out;
+ // Another shipment's longer Colli list must not override the opened shipment.
+ // Copies of the SAME shipment may contribute more complete details.
+ return out.filter(function(sh){
+  if(sh===active)return true;
+  return[sh.id,sh.shipmentId,sh.ref,sh.reference,sh.shipmentRef].some(function(v){return q(v)&&ids.indexOf(q(v).toUpperCase())>=0})
+ });
+}
 function packageType(r){return q(r&&(r.type||r.packaging||r.verpackung||r.packageType||r.packagingType||r.name||r.label))}
 function isPalletType(v){return /palette|palett|pallet|skid/i.test(q(v))}
 function isUpsPackageType(v){var x=q(v);return !!x&&!isPalletType(x)&&(/karton|carton|package|paket|umschlag|envelope|holzbox|wood(?:en)?\s*box|crate|kiste|\be[0-6]\b/i.test(x))}
@@ -52,13 +72,51 @@ function canonicalPackageItems(rows){return(rows||[]).map(function(r){var n=rowC
 function canonicalLoad(kind){var rows=candidateRows(),selected=rows.filter(function(r){return kind==='gate'?isPalletType(packageType(r)):isUpsPackageType(packageType(r))});if(!selected.length&&kind==='ups')selected=rows.filter(function(r){return !isPalletType(packageType(r))&&!!packageType(r)});var count=0,totalWeight=0,ldm=0,types=[],dims=[];selected.forEach(function(r){var n=rowCount(r),t=packageType(r),l=rowDim(r,'l'),w=rowDim(r,'w'),h=rowDim(r,'h');count+=n;totalWeight+=rowWeight(r);ldm+=Math.max(0,num(r&&(r.actualLdm!==undefined?r.actualLdm:r.ldm)))*(r&&r.actualLdm!==undefined?1:n);if(t&&types.indexOf(t)<0)types.push(t);if(l>0&&w>0&&h>0)dims.push(l+'x'+w+'x'+h)});var sameDims=dims.length===selected.length&&dims.length>0&&dims.every(function(x){return x===dims[0]}),first=selected[0]||{};return{rows:selected,count:count,totalWeight:totalWeight,packaging:types.length===1?types[0]:'',l:sameDims?rowDim(first,'l'):0,w:sameDims?rowDim(first,'w'):0,h:sameDims?rowDim(first,'h'):0,ldm:ldm,packageItems:canonicalPackageItems(selected)}}
 function shippingField(kind,names,rx){for(var i=0;i<names.length;i++){var e=document.querySelector('#rc626Shipping [data-section="'+kind+'"][data-rc501-field="'+names[i]+'"]');if(e)return e}var root=section(kind);if(root&&root.querySelector){for(var j=0;j<names.length;j++){var x=root.querySelector('[data-rc501-field="'+names[j]+'"]');if(x)return x}if(rx)return inputByLabel(root,rx)}return null}
 function setAutoValue(el,value){if(!el||value===undefined||value===null||value==='')return false;if(document.activeElement===el)return false;var next=String(value);if(String(el.value==null?'':el.value)===next)return false;if(el.tagName==='SELECT'&&el.options){var opt=Array.from(el.options).find(function(o){return q(o.value).toLowerCase()===q(next).toLowerCase()||q(o.textContent).toLowerCase()===q(next).toLowerCase()});if(!opt)return false;el.value=opt.value}else el.value=next;return true}
-function shipmentDestination(){var s=state(),sh=activeShipment(),customer=shippingCustomer(s,sh),loc=shippingLocation(customer,sh),locAddress=shippingAddress(loc),rawAddress=locAddress||sh.recipientAddress||sh.destinationAddress||sh.deliveryAddress||sh.shipToAddress||sh.address,nested=rawAddress&&typeof rawAddress==='object'&&!Array.isArray(rawAddress)?rawAddress:{},address=shippingAddress(rawAddress),postal=shippingPostal(loc)||q(sh.recipientPostalCode||sh.destinationPostalCode||sh.deliveryPostalCode||sh.shipToPostalCode||sh.postalCode||sh.postcode||sh.zip||sh.plz||nested.postalCode||nested.postcode||nested.zip||nested.plz),locationCountry=countryCode(loc&&(loc.countryCode||loc.country||loc.land||loc.countryName||loc.iso||loc.iso2)),fromAddress=inferCountryFromAddress(address),direct=countryCode(sh.recipientCountry||sh.destinationCountry||sh.deliveryCountry||sh.shipToCountry||nested.countryCode||nested.country),customerCountry=countryCode(customer&&(customer.countryCode||customer.country||customer.land||customer.countryName||customer.iso||customer.iso2)),fallback=countryCode(sh.countryCode||sh.country||sh.land);if(!postal&&address){var m=address.match(/\b[0-9]{4,5}(?:\s?[A-Z]{2})?\b/i);if(m)postal=q(m[0])}return{country:locationCountry||fromAddress||direct||customerCountry||fallback,address:address,postal:postal}}
+function shipmentDestination(){var s=state(),sh=activeShipment(),customer=shippingCustomer(s,sh),loc=shippingLocation(customer,sh),locAddress=shippingAddress(loc),rawAddress=locAddress||sh.recipientAddress||sh.destinationAddress||sh.deliveryAddress||sh.shipToAddress||sh.address,nested=rawAddress&&typeof rawAddress==='object'&&!Array.isArray(rawAddress)?rawAddress:{},address=shippingAddress(rawAddress),postal=shippingPostal(loc)||q(sh.recipientPostalCode||sh.destinationPostalCode||sh.deliveryPostalCode||sh.shipToPostalCode||sh.postalCode||sh.postcode||sh.zip||sh.plz||nested.postalCode||nested.postcode||nested.zip||nested.plz),locationCountry=countryCode(loc&&(loc.countryCode||loc.country||loc.land||loc.countryName||loc.iso||loc.iso2)),fromAddress=inferCountryFromAddress(address),direct=countryCode(sh.recipientCountry||sh.destinationCountry||sh.deliveryCountry||sh.shipToCountry||nested.countryCode||nested.country),customerCountry=countryCode(customer&&(customer.countryCode||customer.country||customer.land||customer.countryName||customer.iso||customer.iso2)),fallback=countryCode(sh.countryCode||sh.country||sh.land);if(!postal&&address){var m=address.match(/\b[0-9]{4,5}(?:\s?[A-Z]{2})?\b/i);if(m)postal=q(m[0])}return{country:locationCountry||(locAddress?inferCountryFromAddress(locAddress):'')||direct||fromAddress||customerCountry||fallback,address:address,postal:postal}}
 function syncCanonicalShippingState(){var s=state(),dest=shipmentDestination(),ups=canonicalLoad('ups'),gate=canonicalLoad('gate'),costs=s.shippingCosts||(s.shippingCosts={}),u=costs.ups||(costs.ups={}),g=costs.gate||(costs.gate={}),changed=false;function set(obj,key,value){if(value===undefined||value===null||value==='')return;if(String(obj[key]==null?'':obj[key])!==String(value)){obj[key]=value;changed=true}}if(!u.manualRoute){if(dest.country)set(u,'destinationCountry',countryDisplay(dest.country));if(dest.postal)set(u,'destinationPostal',dest.postal)}if(!g.manualRoute){if(dest.country)set(g,'country',countryDisplay(dest.country));if(dest.postal)set(g,'destinationPostal',dest.postal)}if(ups.rows.length&&!u.manualLoad){set(u,'packages',ups.count);set(u,'totalKg',ups.totalWeight);if(ups.packaging)set(u,'packaging',ups.packaging);if(ups.l>0)set(u,'length',ups.l);if(ups.w>0)set(u,'width',ups.w);if(ups.h>0)set(u,'height',ups.h);if(JSON.stringify(u.packageItems||[])!==JSON.stringify(ups.packageItems)){u.packageItems=ups.packageItems.map(function(x){return Object.assign({},x)});changed=true}}if(gate.rows.length&&!g.manualLoad){set(g,'pallets',gate.count);set(g,'totalWeight',gate.totalWeight);if(gate.packaging)set(g,'packaging',gate.packaging);if(gate.ldm>0)set(g,'totalLdm',Math.round(gate.ldm*100)/100)}return changed}
 function installLegacyBridge(){var legacy=window.syncCostFromShipment;if(typeof legacy!=='function'||legacy.__rc1548CanonicalBridge)return false;function bridged(){var changed=!!legacy.apply(this,arguments);return syncCanonicalShippingState()||changed}bridged.__rc1548CanonicalBridge=true;bridged.__rc1548Legacy=legacy;window.syncCostFromShipment=bridged;return true}
-function syncShipmentCostFields(){syncCanonicalShippingState();var dest=shipmentDestination(),ups=canonicalLoad('ups'),gate=canonicalLoad('gate');syncUpsCountryField(dest.country);var postal=shippingField('ups',['destinationPostal','postal','postcode','zip','plz'],/ziel.*plz|plz|postleitzahl|postal|zip/i);if(dest.postal)setAutoValue(postal,dest.postal);var upack=shippingField('ups',['packaging'],/verpackung|packaging/i);if(ups.packaging)setAutoValue(upack,ups.packaging);setAutoValue(shippingField('ups',['packages','packageCount','count','colli'],/pakete|kartons|anzahl|colli/i),ups.count>0?ups.count:'');setAutoValue(shippingField('ups',['totalKg','totalWeight','weight'],/gesamt.*gewicht|gewicht.*gesamt|total.*weight/i),ups.totalWeight>0?ups.totalWeight:'');setAutoValue(shippingField('ups',['length','l'],/länge|laenge|length/i),ups.l>0?ups.l:'');setAutoValue(shippingField('ups',['width','w'],/breite|width/i),ups.w>0?ups.w:'');setAutoValue(shippingField('ups',['height','h'],/höhe|hoehe|height/i),ups.h>0?ups.h:'');var gCountry=shippingField('gate',['country'],/zielland|land|country/i);if(gCountry&&dest.country)setAutoValue(gCountry,countryDisplay(dest.country));var gpack=shippingField('gate',['packaging'],/verpackung|packaging/i);if(gate.packaging)setAutoValue(gpack,gate.packaging);setAutoValue(shippingField('gate',['pallets','packages','count','colli'],/paletten|pallets|anzahl|colli/i),gate.count>0?gate.count:'');setAutoValue(shippingField('gate',['totalWeight','weight'],/gesamt.*gewicht|gewicht.*gesamt|total.*weight/i),gate.totalWeight>0?gate.totalWeight:'');setAutoValue(shippingField('gate',['length','l'],/länge|laenge|length/i),gate.l>0?gate.l:'');setAutoValue(shippingField('gate',['width','w'],/breite|width/i),gate.w>0?gate.w:'');setAutoValue(shippingField('gate',['height','h'],/höhe|hoehe|height/i),gate.h>0?gate.h:'');setAutoValue(shippingField('gate',['ldm'],/lademeter|ldm/i),gate.ldm>0?Math.round(gate.ldm*100)/100:'');return{destination:dest,ups:ups,gate:gate}}
+function syncShipmentCostFields(){
+ syncCanonicalShippingState();
+ var costs=state().shippingCosts||{},uState=costs.ups||{},gState=costs.gate||{};
+ var dest=shipmentDestination(),ups=canonicalLoad('ups'),gate=canonicalLoad('gate');
+ if(!uState.manualRoute)syncUpsCountryField(dest.country);
+ var postal=shippingField('ups',['destinationPostal','postal','postcode','zip','plz'],/ziel.*plz|plz|postleitzahl|postal|zip/i);
+ if(!uState.manualRoute&&dest.postal)setAutoValue(postal,dest.postal);
+ var upack=shippingField('ups',['packaging'],/verpackung|packaging/i);
+ if(!uState.manualLoad){
+  if(ups.packaging)setAutoValue(upack,ups.packaging);
+  setAutoValue(shippingField('ups',['packages','packageCount','count','colli'],/pakete|kartons|anzahl|colli/i),ups.count>0?ups.count:'');
+  setAutoValue(shippingField('ups',['totalKg','totalWeight','weight'],/gesamt.*gewicht|gewicht.*gesamt|total.*weight/i),ups.totalWeight>0?ups.totalWeight:'');
+  setAutoValue(shippingField('ups',['length','l'],/länge|laenge|length/i),ups.l>0?ups.l:'');
+  setAutoValue(shippingField('ups',['width','w'],/breite|width/i),ups.w>0?ups.w:'');
+  setAutoValue(shippingField('ups',['height','h'],/höhe|hoehe|height/i),ups.h>0?ups.h:'');
+ }
+ var gCountry=shippingField('gate',['country'],/zielland|land|country/i);
+ if(!gState.manualRoute&&gCountry&&dest.country)setAutoValue(gCountry,countryDisplay(dest.country));
+ var gpack=shippingField('gate',['packaging'],/verpackung|packaging/i);
+ if(!gState.manualLoad){
+  if(gate.packaging)setAutoValue(gpack,gate.packaging);
+  setAutoValue(shippingField('gate',['pallets','packages','count','colli'],/paletten|pallets|anzahl|colli/i),gate.count>0?gate.count:'');
+  setAutoValue(shippingField('gate',['totalWeight','weight'],/gesamt.*gewicht|gewicht.*gesamt|total.*weight/i),gate.totalWeight>0?gate.totalWeight:'');
+  setAutoValue(shippingField('gate',['length','l'],/länge|laenge|length/i),gate.l>0?gate.l:'');
+  setAutoValue(shippingField('gate',['width','w'],/breite|width/i),gate.w>0?gate.w:'');
+  setAutoValue(shippingField('gate',['height','h'],/höhe|hoehe|height/i),gate.h>0?gate.h:'');
+  setAutoValue(shippingField('gate',['ldm'],/lademeter|ldm/i),gate.ldm>0?Math.round(gate.ldm*100)/100:'');
+ }
+ return{destination:dest,ups:ups,gate:gate}
+}
 function syncUpsCountryField(cc){var r=section('ups'),e=r&&inputByLabel(r,/zielland|land|country/i);if(!e||!cc||countryCode(e.value)===cc)return;var label=countryDisplay(cc);if(e.tagName==='SELECT'&&e.options){var o=Array.from(e.options).find(function(x){return countryCode(x.value)===cc||countryCode(x.textContent)===cc});if(o)e.value=o.value;else return}else e.value=label;try{e.dispatchEvent(new Event('change',{bubbles:true}))}catch(_){}}
-function upsCountry(){var d=shipmentDestination(),r=section('ups'),e=r&&inputByLabel(r,/zielland|land|country/i),cc=d.country||countryCode(e&&e.value);if(cc)syncUpsCountryField(cc);return cc}
-function upsPostal(){var d=shipmentDestination(),r=section('ups'),e=r&&inputByLabel(r,/ziel.*plz|plz|postleitzahl|postal|zip/i),v=d.postal||q(e&&e.value);return q(v).toUpperCase().replace(/[\s-]/g,'')}
+function upsCountry(){
+ var s=state(),u=(s.shippingCosts||{}).ups||{},d=shipmentDestination(),r=section('ups'),e=r&&inputByLabel(r,/zielland|land|country/i);
+ var cc=u.manualRoute?(countryCode(e&&e.value)||countryCode(u.destinationCountry)):(d.country||countryCode(e&&e.value));
+ if(cc&&!u.manualRoute)syncUpsCountryField(cc);
+ return cc
+}
+function upsPostal(){
+ var s=state(),u=(s.shippingCosts||{}).ups||{},d=shipmentDestination(),r=section('ups'),e=r&&inputByLabel(r,/ziel.*plz|plz|postleitzahl|postal|zip/i);
+ var v=u.manualRoute?(q(e&&e.value)||q(u.destinationPostal)):(d.postal||q(e&&e.value));
+ return q(v).toUpperCase().replace(/[\s-]/g,'')
+}
 function fuelPct(){return 36}
 function resultLine(card,rx){var lines=Array.from(card.querySelectorAll('.rc501-result-line,tr'));for(var i=0;i<lines.length;i++){var l=lines[i],label=l.querySelector('span,th,td');if(label&&rx.test(q(label.textContent)))return l}return null}
 function setResultLine(card,rx,label,value){var l=resultLine(card,rx);if(!l)return false;var a=l.querySelector('span,th,td'),b=l.querySelector('b,strong');if(a)setText(a,label);if(b)setText(b,value);return true}
@@ -67,9 +125,42 @@ function setText(node,text){text=String(text==null?'':text);if(node&&node.textCo
 function setHtml(node,html){if(node&&node.__rc1206Html!==html){node.innerHTML=html;node.__rc1206Html=html}}
 function updateUpsTotal(){syncShipmentCostFields();var root=section('ups');if(!root)return;var card=root.querySelector('.rc501-result-card,.rc626-result')||root,count=packageCount(),cc=upsCountry(),pc=upsPostal(),zone=validUpsPostal(cc,pc)?resolveUpsZone(cc,pc):'',weight=upsTotalWeight(),individual=upsIndividualWeights(),hasIndividual=individual.length===count,kgPer=count>0?weight/count:weight,packageRates=hasIndividual?individual.map(function(v){return upsRate(zone,v)}):[],per=hasIndividual?upsIndividualBase(zone,individual):upsRate(zone,kgPer);var warn=document.getElementById('rc1207UpsWarning');if(!cc||!pc||!zone||!per){if(!warn){warn=document.createElement('div');warn.id='rc1207UpsWarning';warn.style.cssText='margin-top:8px;padding:8px 10px;border-radius:8px;background:#fff3cd;color:#664d03;font-weight:600';card.appendChild(warn)}setText(warn,!cc||!pc?tr('ups.missingDestination'):!zone?tr('ups.zoneNotFound'):tr('ups.rateMissing',{zone:zone}));return}if(warn)warn.remove();var base=hasIndividual?per:per*count,pct=fuelPct(),fuel=base*pct/100,extra=moneyFromLine(card,/zusatzkosten|additional|costs?/i),total=base+fuel+extra;setResultLine(card,/preisgruppe|zone|price group/i,tr('ups.priceZone'),'EU / '+zone);setResultLine(card,/grundpreis|base price/i,tr('ups.baseComplete'),euro(base));setResultLine(card,/fuel|carburant|combustible|paliwo/i,tr('ups.fuelComplete',{pct:pct.toFixed(2)}),euro(fuel));setResultLine(card,/zusatzkosten|additional costs|frais supplémentaires|costes adicionales|costi aggiuntivi/i,tr('ups.extraComplete'),euro(extra));var row=document.getElementById('rc1206UpsShipmentTotal');if(!row){row=document.createElement('div');row.id='rc1206UpsShipmentTotal';row.className='rc501-result-line rc1206-ups-total';row.style.cssText='margin-top:12px;padding:12px 0 2px;border-top:3px solid currentColor;font-size:1.18em;font-weight:800';row.innerHTML='<span></span><b></b>';var lines=card.querySelector('.rc501-result-lines');(lines||card).appendChild(row)}var cartons=tr(count===1?'ups.cartonOne':'ups.cartonMany',{count:count});setText(row.querySelector('span'),tr('ups.totalComplete')+' · '+cartons);setText(row.querySelector('b'),euro(total));row.dataset.zone=zone;row.dataset.country=cc;row.dataset.postal=pc;var weightInfo=hasIndividual?tr('ups.individualWeights',{weights:individual.map(function(v){return v.toFixed(1)}).join(' / ')}):count>1?tr('ups.estimated',{weight:kgPer.toFixed(1)}):tr('ups.weight',{weight:kgPer.toFixed(1)});row.title=tr('ups.tooltip',{cartons:cartons,zone:zone,weightInfo:weightInfo,base:euro(base),pct:pct.toFixed(2)});var summary=document.getElementById('rc1334UpsPriceMeaning');if(!summary){summary=document.createElement('div');summary.id='rc1334UpsPriceMeaning';summary.style.cssText='margin-top:10px;padding:10px 12px;border-radius:10px;background:rgba(37,99,235,.08);font-weight:700;line-height:1.45';card.appendChild(summary)}var packageText=hasIndividual?packageRates.map(function(v,i){return (i+1)+': '+euro(v)}).join(' · '):(count+' × '+euro(per));setHtml(summary,'<div><strong>'+tr('ups.totalComplete')+':</strong> '+euro(total)+'</div><div style="font-size:.92em;font-weight:600;opacity:.86">UPS Grundtarif je Paket: '+packageText+' · '+tr('ups.baseComplete')+': '+euro(base)+' · '+tr('ups.fuelComplete',{pct:pct.toFixed(2)})+': '+euro(fuel)+'</div>')}
 function apply(){installLegacyBridge();syncCanonicalShippingState();restrictPackaging('ups',function(text){return isUpsPackageType(text)},'Karton');restrictPackaging('gate',function(text){return isPalletType(text)},'Palette');updateUpsTotal()}
-var timer=0;function schedule(){clearTimeout(timer);timer=setTimeout(apply,60)}
-window.addEventListener('input',schedule,true);window.addEventListener('change',schedule,true);window.addEventListener('click',schedule,true);['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:shipment-opened','exporthub:shipment-updated','exporthub:state-synced','exporthub:state-updated','exporthub:language-changed'].forEach(function(n){window.addEventListener(n,schedule)});
-if(window.MutationObserver)new MutationObserver(schedule).observe(document.documentElement,{subtree:true,childList:true});
+var timer=0,shippingObserver=null,observedShippingRoot=null;
+function watchShipping(){
+ var root=document.querySelector('#rc626Shipping');
+ if(root===observedShippingRoot)return;
+ if(shippingObserver)shippingObserver.disconnect();
+ observedShippingRoot=root||null;
+ if(root&&shippingObserver)shippingObserver.observe(root,{subtree:true,childList:true});
+}
+function schedule(){watchShipping();clearTimeout(timer);timer=setTimeout(apply,60)}
+function onShippingInteraction(ev){
+ var target=ev&&ev.target;if(!target)return;
+ var root=document.querySelector('#rc626Shipping');
+ if(root&&((root.contains&&root.contains(target))||target===root)){schedule();return}
+ // Shipment recipient changes happen outside the shipping-cost panel.
+ // They must still update the destination at the next cost calculation.
+ var id=q(target.id);
+ if(/^(index289LocationSelect|shipmentCustomerSearch|index289CustomerSearch|shipmentCustomer)$/.test(id))schedule()
+}
+window.addEventListener('input',onShippingInteraction,true);window.addEventListener('change',onShippingInteraction,true);window.addEventListener('click',onShippingInteraction,true);['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:shipment-opened','exporthub:shipment-updated','exporthub:state-synced','exporthub:state-updated','exporthub:language-changed'].forEach(function(n){window.addEventListener(n,schedule)});
+if(window.MutationObserver){
+ shippingObserver=new window.MutationObserver(schedule);
+ // This global observer detects replacement of the shipping mount only.
+ // Ordinary changes elsewhere in ExportHUB must never trigger shipping renders.
+ new window.MutationObserver(function(records){
+  for(var i=0;i<records.length;i++){
+   var record=records[i],nodes=Array.from(record.addedNodes||[]).concat(Array.from(record.removedNodes||[]));
+   for(var j=0;j<nodes.length;j++){
+    var node=nodes[j];
+    if(node&&node.nodeType===1&&(node.id==='rc626Shipping'||(node.querySelector&&node.querySelector('#rc626Shipping')))){
+     watchShipping();schedule();return
+    }
+   }
+  }
+ }).observe(document.documentElement,{subtree:true,childList:true});
+ watchShipping();
+}
 installLegacyBridge();
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
 window.ExportHUBRC1206ShippingRules=Object.freeze({fuelPct:fuelPct,apply:apply,packageCount:packageCount,resolveUpsZone:resolveUpsZone,validUpsPostal:validUpsPostal,upsRate:upsRate,upsIndividualBase:upsIndividualBase,upsRates:UPS_RATES,countryCode:countryCode,inferCountryFromAddress:inferCountryFromAddress,shipmentDestination:shipmentDestination,activeShipment:activeShipment,upsTotalWeight:upsTotalWeight,parseNumber:num,isUpsPackageType:isUpsPackageType,isPalletType:isPalletType,canonicalLoad:canonicalLoad,syncShipmentCostFields:syncShipmentCostFields,syncCanonicalShippingState:syncCanonicalShippingState,installLegacyBridge:installLegacyBridge});

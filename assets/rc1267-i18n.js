@@ -459,7 +459,10 @@ function captureLanguageChange(event){
  snapshotShipmentDraft();
  if(event.stopImmediatePropagation)event.stopImmediatePropagation();
  if(event.stopPropagation)event.stopPropagation();
- setLanguage(target.value).catch(reportError);
+ setLanguage(target.value).then(function(language){
+  // Legacy change listeners were stopped by capture; persist the explicit choice via a separate event.
+  try{w.dispatchEvent(new CustomEvent('exporthub:language-user-selected',{detail:{language:language}}))}catch(_){}
+ }).catch(reportError);
 }
 d.addEventListener('change',captureLanguageChange,true);
 function rc1452DocumentActionRepair(event){

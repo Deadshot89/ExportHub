@@ -108,12 +108,12 @@ function install(){
 }
 function schedule(){try{w.setTimeout(install,0)}catch(_){}}
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
-['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded','exporthub:user-profile-updated','exporthub:language-changed'].forEach(function(n){try{w.addEventListener(n,function(){applyProfileLanguage();schedule()})}catch(_){}});
+['exporthub:ready','exporthub:rendered','exporthub:viewchange','exporthub:state-loaded','exporthub:user-profile-updated','exporthub:language-changed'].forEach(function(n){try{w.addEventListener(n,function(){if(n!=='exporthub:language-changed')applyProfileLanguage();schedule()})}catch(_){}});
 try{d.addEventListener('click',function(){schedule()},true)}catch(_){}
 // RC1564: take the new language into the local profile first. Otherwise applyProfileLanguage (on
 // exporthub:language-changed) switched straight back to the old profile language until the server
 // answered: the page flipped back and was translated twice, and without a server user (demo) it stayed.
 // If saving fails (offline, demo) the chosen language stays for this session; the next login uses the stored one.
-try{w.addEventListener('change',function(e){var el=e&&e.target;if(!el||el.id!=='languageSelect')return;var u=user();if(!u||!q(u.id||u.user||u.username||u.login))return;var language=normalizeLanguage(el.value),name=q(u.name||u.displayName||u.user||u.username||u.login),previous=normalizeLanguage(u.language);if(language!==previous){u.language=language;syncUser(Object.assign({},u,{name:name,language:language}))}saveProfile(name,language).then(function(data){if(data&&data.user)syncUser(Object.assign({},data.user,{language:data.user.language||language}))}).catch(function(){})},true)}catch(_){}
+try{w.addEventListener('exporthub:language-user-selected',function(e){var u=user();if(!u||!q(u.id||u.user||u.username||u.login))return;var language=normalizeLanguage(e&&e.detail&&e.detail.language),name=q(u.name||u.displayName||u.user||u.username||u.login),previous=normalizeLanguage(u.language);if(language!==previous){u.language=language;syncUser(Object.assign({},u,{name:name,language:language}))}saveProfile(name,language).then(function(data){if(data&&data.user)syncUser(Object.assign({},data.user,{language:data.user.language||language}))}).catch(function(){})},true)}catch(_){}
 w.ExportHUBRC1079Profile=Object.freeze({version:'RC1100',install:install,saveProfile:saveProfile,saveName:function(name){return saveProfile(name,(user()||{}).language||'de')},syncUser:syncUser,applyProfileLanguage:applyProfileLanguage});
 })(window,document);

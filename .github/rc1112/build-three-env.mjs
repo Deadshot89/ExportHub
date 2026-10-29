@@ -52,9 +52,9 @@ const RC1303_LOGIN_FIRST_PAINT_STYLE=`<style id="exporthub-rc1303-login-first-pa
 #login #loginMicrosoftAccountSwitchBtn,#login #adminRecoveryBtn{min-height:34px!important;margin-top:6px!important;padding:5px 8px!important}
 @media(max-width:600px){#login .login-card{width:min(100%,440px)!important;padding:18px 16px 16px!important}#login .logo{width:54px!important;height:54px!important;border-radius:17px!important;font-size:20px!important}#login h1{font-size:27px!important;margin-bottom:12px!important}#login .eh-login-environment{margin-bottom:12px!important}#login .eh-login-environment button{min-height:58px!important;padding:9px 10px!important}}
 </style>`;
-const RC1267_I18N_TAG='<script id="exporthub-rc1267-i18n" defer src="/assets/rc1267-i18n.js?v=1466"></script>';
+const RC1267_I18N_TAG='<script id="exporthub-rc1267-i18n" defer src="/assets/rc1267-i18n.js?v=1667"></script>';
 const RC1206_SHIPPING_ID='exporthub-rc1206-shipping-rules';
-const RC1206_SHIPPING_TAG='<script id="'+RC1206_SHIPPING_ID+'" defer src="/assets/rc1206-shipping-rules.js?v=1419"></script>';
+const RC1206_SHIPPING_TAG='<script id="'+RC1206_SHIPPING_ID+'" defer src="/assets/rc1206-shipping-rules.js?v=1715"></script>';
 const RC1296_BROWSER_TITLE='ExportHUB360';
 const RC1296_FAVICON_TAG='<link id="exporthub360-favicon" rel="icon" type="image/svg+xml" href="/assets/exporthub360-favicon.svg?v=1296">';
 const RC1304_THEME_STYLE_TAG='<link id="exporthub-rc1304-theme-style" rel="stylesheet" href="/assets/rc1304-theme-switcher.css?v=1306">';
@@ -78,7 +78,7 @@ const CUSTOMER_FOLDER_SCRIPT_TAG='<script id="exporthub-customer-folder-script" 
 const RC1577_OVERVIEW_COMPACT_STYLE_TAG='<link id="exporthub-rc1577-overview-compact" rel="stylesheet" href="/assets/rc1577-shipment-overview-compact.css?v=1577">';
 const RC1558_OVERVIEW_STYLE_TAG='<link id="exporthub-rc1558-overview-style" rel="stylesheet" href="/assets/rc1558-dashboard-overview.css?v=1666">';
 const RC1558_OVERVIEW_I18N_TAG='<script id="exporthub-rc1558-overview-i18n" defer src="/assets/i18n/rc1558-dashboard-overview.js?v=1666"><\/script>';
-const RC1558_OVERVIEW_SCRIPT_TAG='<script id="exporthub-rc1558-overview-script" defer src="/assets/rc1558-dashboard-overview.js?v=1666"><\/script>';
+const RC1558_OVERVIEW_SCRIPT_TAG='<script id="exporthub-rc1558-overview-script" defer src="/assets/rc1558-dashboard-overview.js?v=1667"><\/script>';
 const RC1570_TASKS_STYLE_TAG='<link id="exporthub-rc1570-tasks-style" rel="stylesheet" href="/assets/rc1570-tasks-focus.css?v=1570">';
 const RC1570_TASKS_I18N_TAG='<script id="exporthub-rc1570-tasks-i18n" defer src="/assets/i18n/rc1570-tasks-focus.js?v=1570"></script>';
 const RC1570_TASKS_SCRIPT_TAG='<script id="exporthub-rc1570-tasks-script" defer src="/assets/rc1570-tasks-focus.js?v=1571"></script>';
@@ -235,7 +235,7 @@ function patchRc1558DashboardOverview(html,file){
   if(!html.includes(RC1558_WORKSPACE_EXPORT))throw new Error(file+': RC1558 RC885-Workspace-Export fehlt');
   if(!html.includes('rc1558-dashboard-overview.css?v=1666'))throw new Error(file+': RC1558 Dashboard-Übersicht-CSS fehlt');
   if(!html.includes('i18n/rc1558-dashboard-overview.js?v=1666'))throw new Error(file+': RC1558 Dashboard-Übersicht-I18n fehlt');
-  if(!html.includes('rc1558-dashboard-overview.js?v=1666'))throw new Error(file+': RC1558 Dashboard-Übersicht-Runtime fehlt');
+  if(!html.includes('rc1558-dashboard-overview.js?v=1667'))throw new Error(file+': RC1558 Dashboard-Übersicht-Runtime fehlt');
   // RC1570 task focus view (overdue/today first, new-task form, working task detail view)
   html=injectDeferredRuntimeInHead(html,RC1570_TASKS_STYLE_TAG,'exporthub-rc1570-tasks-style');
   html=injectDeferredRuntimeInHead(html,RC1570_TASKS_I18N_TAG,'exporthub-rc1570-tasks-i18n');
@@ -465,8 +465,11 @@ function patchRc1303LoginExperience(html,file){
 }
 
 function patchRc1206ShippingRules(html,file){
+  // RC1715: vorhandene Script-IDs dürfen den alten Cache-Key nicht erhalten.
+  // Drei-Umgebungen-Build muss den Browser auf die neue Versandkosten-Runtime zwingen.
+  html=html.replace(/(src=["']\/assets\/rc1206-shipping-rules\.js\?v=)[^"']+(["'])/g,'$1'+'1715'+'$2');
   html=injectDeferredRuntimeInHead(html,RC1206_SHIPPING_TAG,RC1206_SHIPPING_ID);
-  if(!html.includes('rc1206-shipping-rules.js?v=1419'))throw new Error(file+': RC1419 Versandkosten-Runtime fehlt');
+  if(!html.includes('rc1206-shipping-rules.js?v=1715'))throw new Error(file+': RC1715 Versandkosten-Cache-Key fehlt');
   return html;
 }
 
