@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {createHash,webcrypto} from 'node:crypto';
 
 const source=fs.readFileSync(new URL('../assets/rc1602-official-pod-server-download.js',import.meta.url),'utf8');
 const builder=fs.readFileSync(new URL('../.github/rc1112/build-three-env.mjs',import.meta.url),'utf8');
@@ -20,8 +21,8 @@ test('RC1602: canonical POD click handler registers as a capture listener before
   assert.match(builder,/assets\/rc1602-official-pod-server-download\.js/);
 });
 
-function setup({withToken=true,status=200,withDocumentRow=false,withoutStoredFile=false,withSignedInline=false,serverManifestFiles=[],staleLocalId=false,createPodBlob=null}={}){
-  let click=null,called=[],alerts=[],urls=[],downloaded=[],popup=null,delegated=[];
+function setup({withToken=true,status=200,withDocumentRow=false,withoutStoredFile=false,withSignedInline=false,serverManifestFiles=[],staleLocalId=false,createPodBlob=null,withStoredAutomaticBlob=false,corruptStoredAutomaticBlob=false,withManualPod=false}={}){
+  let click=null,called=[],alerts=[],urls=[],downloaded=[],popup=null,delegated=[],storedCalls=[];
   const sh={id:'id8',ref:'8LSUHW',pickupToken:withToken?'authorized-test-token':'',podFiles:withoutStoredFile?[]:[{id:'automatic-pod-test001',kind:'automatic-pod',renderLayout:'RC1595',name:'POD_8LSUHW_Ladeliste_unterschrieben.pdf'}]};
   if(withSignedInline)sh.podFiles.unshift({id:'signed-pod-original',kind:'signed-loadlist',name:'POD_8LSUHW_Ladeliste_mit_Unterschrift.pdf',dataUrl:'data:application/pdf;base64,'+Buffer.from('%PDF-1.7\\n'+'s'.repeat(1250)).toString('base64')});
   const button={disabled:false,dataset:{id:'id8'},textContent:'POD als PDF',
@@ -34,6 +35,8 @@ function setup({withToken=true,status=200,withDocumentRow=false,withoutStoredFil
     body:{appendChild(){}}
   };
   const pdf=Buffer.from('%PDF-1.7\n'+'x'.repeat(1100));
+  if(withStoredAutomaticBlob){const hash=createHash('sha256').update(pdf).digest('hex');sh.podFiles=[{id:'automatic-pod-'+hash.slice(0,16),kind:'automatic-pod',name:'POD_8LSUHW_Ladeliste_unterschrieben.pdf',blobName:'rc995/production/'+ 'a'.repeat(64)+'/automatic/'+hash+'-POD_8LSUHW_Ladeliste_unterschrieben.pdf',hash}];}
+  if(withManualPod)sh.podFiles=[{kind:'manual-pod',manualUpload:true,name:'Customer_POD.pdf',dataUrl:'data:application/pdf;base64,'+pdf.toString('base64')}];
   const window={
     __EXPORTHUB_GET_STATE__:()=>({shipments:[sh]}),
     ExportHUBIndex240:createPodBlob?{shipments:()=>[sh],createPodBlob}:{shipments:()=>[sh]},ExportHUBPickupPOD:{shipments:()=>[],syncOne:async()=>true},
@@ -47,9 +50,11 @@ function setup({withToken=true,status=200,withDocumentRow=false,withoutStoredFil
     },
     setTimeout:()=>{},alert:x=>alerts.push(x)
   };
+  window.crypto=webcrypto;
+  window.ExportHUBDocumentBlob1059={isBlobDocument:f=>!!f.blobName,fetchBlob:async f=>{storedCalls.push(f.blobName);return new Blob([corruptStoredAutomaticBlob?Buffer.from('%PDF-1.7\n'+'z'.repeat(1100)):pdf],{type:'application/pdf'})}};
   const URL={createObjectURL:()=>'/blob/server-pod',revokeObjectURL:()=>{}};
   vm.runInNewContext(source,{window,document,URL,Blob,Uint8Array,encodeURIComponent},{filename:'rc1602-pod.js'});
-  return{click,button,called,alerts,urls,downloaded,delegated}
+  return{click,button,called,alerts,urls,downloaded,delegated,storedCalls}
 }
 
 test('RC1616: reference 8LSUHW reads the named immutable stored PDF, not a newly rendered screenshot',async()=>{
@@ -219,4 +224,41 @@ test('RC1630: renderer refusal (no real signature) is reported, never swallowed'
  await new Promise(resolve=>setTimeout(resolve,20));
  assert.equal(x.alerts.length,1);
  assert.match(x.alerts[0],/kein echter POD/);
+});
+
+
+test('P0: signed automatic POD opens from its immutable authenticated Azure blob even without pickup token',async()=>{
+ const x=setup({withToken:false,withStoredAutomaticBlob:true});
+ x.click({target:{closest:()=>x.button},preventDefault(){},stopImmediatePropagation(){},stopPropagation(){}});
+ await new Promise(resolve=>setTimeout(resolve,20));
+ assert.equal(x.storedCalls.length,1,'The exact existing signed document must be read');
+ assert.equal(x.called.length,0,'No stale QR token or on-demand regeneration needed');
+ assert.equal(x.alerts.length,0);
+ assert.ok(x.downloaded.includes('POD_8LSUHW_Ladeliste_unterschrieben.pdf'));
+});
+
+test('P0: a damaged automatic POD cannot be silently opened when its SHA-256 differs',async()=>{
+ const x=setup({withToken:false,withStoredAutomaticBlob:true,corruptStoredAutomaticBlob:true});
+ x.click({target:{closest:()=>x.button},preventDefault(){},stopImmediatePropagation(){},stopPropagation(){}});
+ await new Promise(resolve=>setTimeout(resolve,20));
+ assert.equal(x.storedCalls.length,1);
+ assert.equal(x.downloaded.length,0);
+ assert.equal(x.alerts.length,1);
+});
+
+test('P0: manually uploaded POD in podFiles can open without the old signed loading-list filename',async()=>{
+ const x=setup({withToken:false,withManualPod:true});
+ x.click({target:{closest:()=>x.button},preventDefault(){},stopImmediatePropagation(){},stopPropagation(){}});
+ await new Promise(resolve=>setTimeout(resolve,20));
+ assert.equal(x.alerts.length,0);
+ assert.ok(x.downloaded.includes('POD_8LSUHW_Ladeliste_unterschrieben.pdf'));
+});
+
+test('P0: signed POD without storage label is recognized by the authenticated document viewer',()=>{
+ const source1059=fs.readFileSync(new URL('../assets/rc1059-document-blob.js',import.meta.url),'utf8'),window={location:{hostname:'exporthub360.com'}};
+ vm.runInNewContext(source1059,{window,URL},{filename:'rc1059-document-blob.js'});
+ const name='rc995/production/'+ 'a'.repeat(64)+'/automatic/POD_8LSUHW_Ladeliste_unterschrieben.pdf';
+ assert.equal(window.ExportHUBDocumentBlob1059.isBlobDocument({kind:'automatic-pod',blobName:name}),true);
+ assert.equal(window.ExportHUBDocumentBlob1059.isBlobDocument({kind:'not-a-pod',blobName:name}),false);
+ assert.equal(window.ExportHUBDocumentBlob1059.isBlobDocument({kind:'automatic-pod',blobName:'rc995/testservice/'+ 'a'.repeat(64)+'/automatic/x.pdf'}),true);
 });
