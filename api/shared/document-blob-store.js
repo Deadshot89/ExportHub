@@ -182,7 +182,7 @@ async function normalizeInlineDocumentNameRobust(file,parsed,options={}){
  const first=normalizeInlineDocumentName(file,parsed);
  const name=text(file&&(file.name||file.fileName||file.filename));
  if(first.documentReference||!/^SalesPackingSlip[-_]/i.test(name)||
-    !/\\.pdf$/i.test(name)||parsed.mimeType!=='application/pdf')return first;
+    !/\.pdf$/i.test(name)||parsed.mimeType!=='application/pdf')return first;
  const fastResult=pdfReferences.normalizedPdfName(name,pdfReferences.extractPdfText(parsed.buffer));
  if(fastResult.reason==='ambiguous')return first;
  try{
