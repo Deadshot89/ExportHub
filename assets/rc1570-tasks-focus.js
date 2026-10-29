@@ -265,7 +265,7 @@ async function toggle(id){
   if(pendingToggles.has(id))return;
   var task=findTask(id),runtime=w.ExportHUBRC1014TaskRuntime;
   if(!task||!runtime||typeof runtime.setTaskStatus!=='function'){
-    try{if(w.ExportHUBClean&&typeof w.ExportHUBClean.operationStatus==='function')w.ExportHUBClean.operationStatus('Aufgabenbestätigung derzeit nicht verfügbar.','bad')}catch(_){}
+    try{if(w.ExportHUBClean&&typeof w.ExportHUBClean.operationStatus==='function')w.ExportHUBClean.operationStatus(t('confirmUnavailable'),'bad')}catch(_){}
     return;
   }
   pendingToggles.add(id);
@@ -273,7 +273,7 @@ async function toggle(id){
     var status=isDone(task)?'open':'done';
     await runtime.setTaskStatus(task,status,{state:state(),currentUser:currentUser()});
   }catch(err){
-    try{if(w.ExportHUBClean&&typeof w.ExportHUBClean.operationStatus==='function')w.ExportHUBClean.operationStatus('Aufgabe konnte nicht gespeichert werden.','bad')}catch(_){}
+    try{if(w.ExportHUBClean&&typeof w.ExportHUBClean.operationStatus==='function')w.ExportHUBClean.operationStatus(t('saveFailed'),'bad')}catch(_){}
     try{console.error('RC1570 Aufgabenbestätigung nicht gespeichert',err)}catch(_){}
   }finally{
     pendingToggles.delete(id);
