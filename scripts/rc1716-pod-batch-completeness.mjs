@@ -63,7 +63,7 @@ export function patchRc1716PodBatchHtml(html, environment = 'unknown') {
   script = replaceOnce(
     script,
     "function zip(entries){",
-    "function uniqueArchiveEntries(entries){var used=Object.create(null);entries.forEach(function(e){var n=q(e&&e.name),p=n.lastIndexOf('.'),stem=p<0?n:n.slice(0,p),ext=p<0?'':n.slice(p),name=n,i=2;while(used[name.toLowerCase()]){name=stem+'_'+i+ext;i++}used[name.toLowerCase()]=true;e.name=name});return entries}\\nfunction zip(entries){uniqueArchiveEntries(entries);",
+    "function uniqueArchiveEntries(entries){var used=Object.create(null);entries.forEach(function(e){var n=q(e&&e.name),p=n.lastIndexOf('.'),stem=p<0?n:n.slice(0,p),ext=p<0?'':n.slice(p),name=n,i=2;while(used[name.toLowerCase()]){name=stem+'_'+i+ext;i++}used[name.toLowerCase()]=true;e.name=name});return entries}\nfunction zip(entries){uniqueArchiveEntries(entries);",
     'duplicate POD filenames must be unique before ZIP central directory is written'
   );
 
