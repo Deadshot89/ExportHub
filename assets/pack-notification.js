@@ -43,7 +43,7 @@
     try{
       const detected=await Promise.race([
         Promise.resolve().then(()=>documentNormalizer.normalizePdfFile(file)),
-        new Promise(resolve=>{timer=setTimeout(()=>resolve(fallback),4000);})
+        new Promise(resolve=>{timer=setTimeout(()=>resolve(fallback),2000);})
       ]);
       return detected&&detected.name?detected:fallback;
     }catch(_){return fallback;}
