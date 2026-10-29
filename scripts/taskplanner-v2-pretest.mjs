@@ -17,7 +17,7 @@ const RC1537_TAG='<script id="exporthub-taskplanner-rc1537-canonical-source" def
 
 export function patchBuilderSource(source){
   let out=String(source||'');
-  const runtimeAnchor="html=html.replace(/assets\\/rc1014-task-runtime\\.js\\?v=(?:1016|1266|1312|1353|1359)/g,'assets/rc1014-task-runtime.js?v=1359');";
+  const runtimeAnchor="html=html.replace(/assets\\/rc1014-task-runtime\\.js\\?v=(?:1016|1266|1312|1353|1359|1725)/g,'assets/rc1014-task-runtime.js?v=1725');";
   const sampleAnchor="html=html.replace(/assets\\/rc1014-task-runtime\\.js\\?v=(?:1016|1359)/g,'assets/rc1014-task-runtime.js?v=1359');";
   const anchor=out.includes(runtimeAnchor)?runtimeAnchor:(out.includes(sampleAnchor)?sampleAnchor:'');
   if(!anchor)throw new Error('TaskPlanner V2: Runtime-Cache-Anker im RC1112 Builder fehlt');
@@ -62,7 +62,7 @@ export function patchBuilderSource(source){
     out=out.replace(old,desiredRuntimeInjection);
   }
 
-  const validation="if(!html.includes('assets/rc1014-task-runtime.js?v=1359'))throw new Error(file+': RC1359 Aufgaben-Runtime Cache-Key fehlt');";
+  const validation="if(!html.includes('assets/rc1014-task-runtime.js?v=1725'))throw new Error(file+': RC1725 Aufgaben-Runtime Cache-Key fehlt');";
   if(out.includes(validation)&&!out.includes("TaskPlanner V2 Core fehlt")){
     out=out.replace(validation,validation+"\n  if(!html.includes('assets/taskplanner-v2.css?v=2000'))throw new Error(file+': TaskPlanner V2 Styles fehlen');\n  if(!html.includes('assets/taskplanner-v2-projections.css?v=2000'))throw new Error(file+': TaskPlanner V2 Projection Styles fehlen');\n  if(!html.includes('assets/taskplanner-v2-core.js?v=2000'))throw new Error(file+': TaskPlanner V2 Core fehlt');\n  if(!html.includes('assets/taskplanner-v2-recurrence.js?v=2000'))throw new Error(file+': TaskPlanner V2 Recurrence fehlt');\n  if(!html.includes('assets/taskplanner-v2-planner.js?v=2000'))throw new Error(file+': TaskPlanner V2 Planner fehlt');\n  if(!html.includes('assets/taskplanner-v2-projections.js?v=2000'))throw new Error(file+': TaskPlanner V2 Projections fehlen');\n  if(!html.includes('assets/taskplanner-v2-runtime-bridge.js?v=2000'))throw new Error(file+': TaskPlanner V2 Runtime Bridge fehlt');\n  if(!html.includes('assets/taskplanner-v2-workflow.js?v=2000'))throw new Error(file+': TaskPlanner V2 Workflow fehlt');\n  if(!html.includes('assets/taskplanner-v2-ui.js?v=2000'))throw new Error(file+': TaskPlanner V2 UI fehlt');\n  if(!html.includes('assets/taskplanner-v2-projection-ui.js?v=2000'))throw new Error(file+': TaskPlanner V2 Projection UI fehlt');\n  if(!html.includes('assets/taskplanner-v2-planner-ui.js?v=2000'))throw new Error(file+': TaskPlanner V2 Planner UI fehlt');\n  if(!html.includes('assets/rc1537-taskplanner-canonical-source.js?v=1537'))throw new Error(file+': RC1537 Canonical Source fehlt');");
   }else{
