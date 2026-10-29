@@ -179,3 +179,10 @@ test('RC1083: früher Abbruch (fehlendes Claude-Secret) wird an ExportHUB zurüc
   assert.match(workflow,/name: Fehlgeschlagenen Autofix in ExportHUB zurückmelden\n        if: failure\(\)/);
   assert.match(workflow,/Claude-Zugang fehlt: Repository-Secret CLAUDE_CODE_OAUTH_TOKEN oder ANTHROPIC_API_KEY ist nicht gesetzt\." > \/tmp\/exporthub-autofix-final\.txt/,'Grund erscheint in „Meine KI-Aufträge“');
 });
+
+test('RC1083: bricht Claude Code ab, landet seine Ausgabe mit Hinweis in der Rückmeldung (2026-10-29)', () => {
+  const wf = fs.readFileSync(new URL('../.github/workflows/diagnostic-autofix.yml', import.meta.url), 'utf8');
+  assert.match(wf, /> \.exporthub-autofix\/final\.txt \|\| \{/);
+  assert.match(wf, /Claude-Zugang ungültig: Secret CLAUDE_CODE_OAUTH_TOKEN prüfen/);
+  assert.match(wf, /Claude Code ist mit Code \$rc abgebrochen/);
+});
