@@ -1,11 +1,16 @@
 name: Emergency Production MFA Off
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/emergency-production-mfa-off.yml'
   workflow_dispatch:
+    inputs:
+      release_sha:
+        description: 'Exakter freigegebener main-Commit (40 Zeichen)'
+        required: true
+        type: string
+      confirm_production:
+        description: 'Exakt eingeben: PRODUCTION FREIGEBEN'
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -16,6 +21,10 @@ concurrency:
 
 jobs:
   deploy:
+    if: >-
+      github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' &&
+      github.actor == 'Deadshot89' && github.triggering_actor == 'Deadshot89' &&
+      inputs.release_sha == github.sha && inputs.confirm_production == 'PRODUCTION FREIGEBEN'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:

@@ -23,16 +23,21 @@ concurrency:
 
 jobs:
   production_release:
+    if: >-
+      github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' &&
+      github.actor == 'Deadshot89' && github.triggering_actor == 'Deadshot89' &&
+      inputs.release_sha == github.sha && inputs.confirm_production == 'PRODUCTION FREIGEBEN'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
       RELEASE_SHA: ${{ inputs.release_sha }}
+      CONFIRM_PRODUCTION: ${{ inputs.confirm_production }}
     steps:
       - name: RC1505 Production-Freigabe bestätigen
         shell: bash
         run: |
           set -euo pipefail
-          if [ "${{ inputs.confirm_production }}" != 'PRODUCTION FREIGEBEN' ]; then
+          if [ "$CONFIRM_PRODUCTION" != 'PRODUCTION FREIGEBEN' ]; then
             echo 'Production-Freigabe abgelehnt: Bestätigungstext stimmt nicht exakt.'
             exit 1
           fi
