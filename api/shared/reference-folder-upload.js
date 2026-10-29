@@ -176,4 +176,6 @@ async function listFiles(reference){
  }
  return files;
 }
-module.exports={GRAPH_BASE,REFERENCE_FOLDER,DRIVE_USER,refValue,safeFileName,folderPath,ensureFolder,upload,listFiles,config};
+// Used by the photo writer before the first Azure write. No network request.
+function assertTargetForEnvironment(environment){exactTarget(environment);return true}
+module.exports={GRAPH_BASE,REFERENCE_FOLDER,DRIVE_USER,refValue,safeFileName,folderPath,ensureFolder,upload,listFiles,config,assertTargetForEnvironment};
