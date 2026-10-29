@@ -66,3 +66,31 @@ test('RC1724: Container photo writer supplies its authoritative environment to R
  const source=fs.readFileSync(require.resolve('../api/shared/container-document-store.js'),'utf8');
  assert.match(source,/referenceFolder\.upload\(ref,name,parsed\.buffer,parsed\.mimeType,env\)/);
 });
+
+test('RC1724: missing isolated test target stops before writing an Azure blob',async()=>{
+ const Module=require('node:module'),realLoad=Module._load,sourceId=require.resolve('../api/shared/container-document-store.js');
+ const oldStorage=process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;
+ let azureCalled=false;
+ process.env.EXPORTHUB_STORAGE_CONNECTION_STRING='synthetic-connection';
+ Module._load=function(id,parent,isMain){
+  if(id==='@azure/storage-blob')return{BlobServiceClient:{fromConnectionString(){azureCalled=true;throw Error('no Azure access allowed')}}};
+  if(id==='./reference-folder-upload')return{
+   assertTargetForEnvironment(){const error=new Error('isolated test root required');error.code='GRAPH_TEST_REFERENCE_TARGET_NOT_CONFIGURED';error.status=503;throw error;},
+   async upload(){throw Error('Graph upload must not run')}
+  };
+  return realLoad.call(this,id,parent,isMain);
+ };
+ try{
+  delete require.cache[sourceId];
+  const store=require(sourceId);
+  await assert.rejects(store.savePhoto({
+   environment:'testservice',reference:'ABC123',kind:'loaded',
+   dataUrl:'data:image/jpeg;base64,'+image.toString('base64'),shipmentId:'E2E-SHIPMENT'
+  }),error=>error.code==='GRAPH_TEST_REFERENCE_TARGET_NOT_CONFIGURED');
+  assert.equal(azureCalled,false,'no orphan Azure photo must be created on misconfiguration');
+ }finally{
+  Module._load=realLoad;delete require.cache[sourceId];
+  if(oldStorage===undefined)delete process.env.EXPORTHUB_STORAGE_CONNECTION_STRING;
+  else process.env.EXPORTHUB_STORAGE_CONNECTION_STRING=oldStorage;
+ }
+});
