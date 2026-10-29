@@ -214,9 +214,11 @@ async function handle(button){
  if(mode==='open')try{popup=w.open('','_blank');if(popup){popup.document.title=t('loadingTitle');popup.document.body.textContent=t('loadingText')}}catch(_){}
  try{
   sh=shipment(button);
-  if(dispatchStoredDocument(sh,mode)){if(popup&&!popup.closed)popup.close();return}
+  // Prefer a verified immutable original over a delegated click which
+  // returns before the document panel's asynchronous download can fail.
   var saved=await storedSignedBlob(sh);
   if(saved){openPdf(saved,sh,mode,popup);return}
+  if(dispatchStoredDocument(sh,mode)){if(popup&&!popup.closed)popup.close();return}
   var qr=w.ExportHUBPickupPOD;
   if(qr&&typeof qr.syncOne==='function')try{await qr.syncOne(sh,true)}catch(_){}
   var pdf;
