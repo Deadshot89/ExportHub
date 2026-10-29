@@ -295,7 +295,9 @@ async function repairLegacyBlobDocumentNames(state,options={}){
       // Check metadata before downloading; large PDFs never enter the parser.
       if(typeof blob.getProperties!=='function'){stats.invalid++;continue}
       const properties=await blob.getProperties();
-      if(Number(properties.contentLength)>maxBytes){stats.oversized++;continue}
+      const length=Number(properties&&properties.contentLength);
+      if(!Number.isFinite(length)||length<5){stats.invalid++;continue}
+      if(length>maxBytes){stats.oversized++;continue}
       const bytes=await readBlobBuffer(blob);
       if(bytes.length>maxBytes){stats.oversized++;continue}
       if(bytes.subarray(0,5).toString('ascii')!=='%PDF-'||
