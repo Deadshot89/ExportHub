@@ -80,6 +80,25 @@ test('RC1716: a digital signed POD without manual upload remains in backup',()=>
   assert.deepEqual(jobs.map(j=>j.kind),['official-signed-loadlist']);
 });
 
+test('RC1722: the ZIP does not overwrite PODs sharing a reference and date',()=>{
+  const marker='<script id="rc455-pod-backup-controller">';
+  const start=patched.indexOf(marker),end=patched.indexOf('</script>',start);
+  const controller=patched.slice(start,end);
+  const fnStart=controller.indexOf('function uniqueArchiveEntries(entries){');
+  const fnEnd=controller.indexOf('\nfunction zip(entries){',fnStart);
+  assert.ok(fnStart>0&&fnEnd>fnStart,'collision-resistant filenames are installed before ZIP creation');
+  const unique=new Function('q',controller.slice(fnStart,fnEnd)+'\nreturn uniqueArchiveEntries;')(
+    x=>String(x??'').trim()
+  );
+  const docA={name:'2026-10-29_POD_ABC123_Ladeliste_mit_Unterschrift.pdf',data:new Uint8Array([1])};
+  const docB={name:'2026-10-29_pod_abc123_ladeliste_mit_unterschrift.PDF',data:new Uint8Array([2])};
+  const docC={name:'2026-10-29_POD_ABC123_Ladeliste_mit_Unterschrift.pdf',data:new Uint8Array([3])};
+  const entries=unique([docA,docB,docC]);
+  assert.equal(new Set(entries.map(x=>x.name.toLowerCase())).size,3,'every original PDF gets a distinct ZIP path');
+  assert.deepEqual(entries.map(x=>x.data[0]),[1,2,3],'no original bytes may be removed');
+  assert.match(controller,/function zip\(entries\)\{uniqueArchiveEntries\(entries\);/);
+});
+
 test('RC1716: bulk ZIP counts only successfully added files and flags partial failure',()=>{
   const controller=patched.slice(patched.indexOf('<script id="rc455-pod-backup-controller">'),
     patched.indexOf('</script>',patched.indexOf('<script id="rc455-pod-backup-controller">')));
