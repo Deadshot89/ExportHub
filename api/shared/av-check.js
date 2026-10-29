@@ -124,7 +124,7 @@ function requiredAvCount(state,sh,indexedCopies){
   }
   for(const source of sources){
     for(const r of abdRequestsFor(state,source)){
-      if(!pickupStore.abdPresent(r))continue;
+      if(!hasIssuedAbdEvidence(r))continue;
       const key=text(r.id||r.requestId||r.abdReference||r.mrn);
       const requestKey=key?'request:'+key:r;
       requestKeys.add(requestKey);
