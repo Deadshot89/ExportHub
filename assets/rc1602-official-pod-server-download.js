@@ -97,8 +97,20 @@ async function storedSignedBlob(sh){
   if(!Array.isArray(arr))return;
   arr.forEach(function(other){if(other&&((ref&&refOf(other)===ref)||(id&&idOf(other)===id))&&copies.indexOf(other)<0)copies.push(other)})
  });
+ // P0: include both original signed loading-list names. The previous
+ // selector ignored ordinary automatic PODs, forcing an obsolete QR token.
  var files=[];
- copies.forEach(function(copy){(Array.isArray(copy&&copy.podFiles)?copy.podFiles:[]).forEach(function(f){if(f&&/_ladeliste_mit_unterschrift\.pdf$/i.test(q(f.name||f.fileName)))files.push(f)})});
+ copies.forEach(function(copy){(Array.isArray(copy&&copy.podFiles)?copy.podFiles:[]).forEach(function(f){
+  if(!f||/deleted|gelöscht|replaced|ersetzt|storniert/i.test(q(f.status))||f.placeholder||f.syntheticFallback)return;
+  var name=q(f.name||f.fileName||f.filename),kind=q(f.kind).toLowerCase(),manual=f.manualUpload===true||/manual-upload|user-upload/.test(q(f.source).toLowerCase());
+  if(kind==='scan-confirmation')return;
+  var signed=/_ladeliste_mit_unterschrift\.pdf$/i.test(name);
+  var automatic=kind==='automatic-pod'&&(/_ladeliste_unterschrieben\.pdf$/i.test(name)||/\/automatic\/[^/]+\.pdf$/i.test(q(f.blobName||f.storageBlobName)));
+  var manualPod=manual&&/\.pdf$/i.test(name);
+  if(signed||automatic||manualPod)files.push({file:f,priority:signed?3:automatic?2:1})
+ })});
+ files.sort(function(a,b){return b.priority-a.priority});
+ files=files.map(function(x){return x.file});
  for(var i=0;i<files.length;i++){
   var file=files[i],inline=q(file.dataUrl||file.data||file.content),blob=null;
   try{
