@@ -482,3 +482,15 @@ test('RC1680: imported original Pack PDF is visible and opens/downloads from shi
   assert.equal(root.__RC1680_RENDER__(prefill),false);
   assert.equal(docSection.children.length,0,'foreign Pack PDF UI must be removed from the new shipment');
 });
+
+test('P0 shipment prefill uses authoritative stored DNC instead of stale SalesPackingSlip reference',()=>{
+  const api=load(),s=state(),n=s.packNotifications[0];
+  n.deliveryNoteReference='SalesPackingSlip-JolantaBatkowska-116394_28102026_100515_703_116963_P.pdf';
+  n.documents[0].name='DNC3019222063.pdf';
+  n.documents[0].documentReference='DNC3019222063';
+  const result=api.shipmentPrefill(n);
+  assert.equal(result.deliveryNoteReference,'DNC3019222063');
+  assert.equal(result.deliveryFiles[0].name,'DNC3019222063.pdf');
+  assert.equal(n.deliveryNoteReference,'SalesPackingSlip-JolantaBatkowska-116394_28102026_100515_703_116963_P.pdf',
+    'preserve original notification audit metadata');
+});
