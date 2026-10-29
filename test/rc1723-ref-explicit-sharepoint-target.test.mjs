@@ -10,7 +10,7 @@ const KEYS=[
 ];
 const config={EXPORTHUB_GRAPH_TENANT_ID:'synthetic-tenant',
  EXPORTHUB_GRAPH_CLIENT_ID:'synthetic-client',
- EXPORTHUB_GRAPH_CLIENT_SECRET:'synthetic-secret',
+ EXPORTHUB_GRAPH_CLIENT_SECRET:'test',
  EXPORTHUB_REFERENCE_DRIVE_ID:'sharepoint-drive-verified',
  EXPORTHUB_REFERENCE_FOLDER_ID:'shipment-root-verified'};
 const reference='ABC123',fileName='POD_photo.jpg',pdf=Buffer.alloc(2048,7);
