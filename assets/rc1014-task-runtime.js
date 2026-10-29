@@ -357,7 +357,7 @@
       Object.assign(target,before);
       if(previousLedger===undefined)delete state.taskStatusLedger[ledgerKey];
       else state.taskStatusLedger[ledgerKey]=previousLedger;
-      try{if(root.ExportHUBClean&&typeof root.ExportHUBClean.operationStatus==='function')root.ExportHUBClean.operationStatus('Aufgabe konnte nicht gespeichert werden. Bitte erneut versuchen.','bad');}catch(_){}
+      try{if(root.ExportHUBClean&&typeof root.ExportHUBClean.operationStatus==='function')root.ExportHUBClean.operationStatus(tr('portal.saveFailed'),'bad');}catch(_){}
       throw error;
     }
     lastTasks=items;
