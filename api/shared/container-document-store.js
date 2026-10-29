@@ -59,7 +59,7 @@ async function savePhoto({environment,reference,kind,dataUrl,shipmentId,subShipm
   blobHTTPHeaders:{blobContentType:parsed.mimeType,blobCacheControl:'private, no-store'},
   metadata:{reference:ref,kind:k,shipmentid:text(shipmentId).slice(0,120),subshipmentid:text(subShipmentId).slice(0,120),uploadedat:iso}
  });
- const referenceFile=await referenceFolder.upload(ref,name,parsed.buffer,parsed.mimeType);
+ const referenceFile=await referenceFolder.upload(ref,name,parsed.buffer,parsed.mimeType,env);
  return{id:'container-'+k+(sub?'-'+sub:''),kind:k,label:KINDS[k].label,name,type:parsed.mimeType,size:parsed.buffer.length,uploadedAt:iso,blobName:path,storage:'blob',reference:ref,referenceFolderSaved:true,referenceFolderItemId:text(referenceFile.id),referenceFolderPath:text(referenceFile.folderPath),referenceFolderWebUrl:text(referenceFile.webUrl)};
 }
 async function readPhoto(photo){
