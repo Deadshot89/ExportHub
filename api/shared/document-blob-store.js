@@ -175,14 +175,14 @@ async function readBlobBuffer(blob){
 function normalizeInlineDocumentName(file,parsed){
  try{return pdfReferences.normalizePdfDocument(file,parsed.buffer,parsed.mimeType)}catch(_){return clone(file)}
 }
-// D365 SalesPackingSlip PDFs can use encoded fonts or compressed object streams.
-// The fast extractor may miss DNC/SIDE text; retry using the existing PDF engine.
+// D365 SalesPackingSlip and most other generated PDFs use CID fonts (glyph ids
+// plus a ToUnicode map), which the fast extractor cannot decode. Retry every
+// PDF with the existing PDF engine, whatever the upload was called.
 // Never infer document references from the technical filename's numeric fields.
 async function normalizeInlineDocumentNameRobust(file,parsed,options={}){
  const first=normalizeInlineDocumentName(file,parsed);
  const name=text(file&&(file.name||file.fileName||file.filename));
- if(first.documentReference||!/^SalesPackingSlip[-_]/i.test(name)||
-    !/\.pdf$/i.test(name)||parsed.mimeType!=='application/pdf')return first;
+ if(first.documentReference||!/\.pdf$/i.test(name)||parsed.mimeType!=='application/pdf')return first;
  const fastResult=pdfReferences.normalizedPdfName(name,pdfReferences.extractPdfText(parsed.buffer));
  if(fastResult.reason==='ambiguous')return first;
  try{

@@ -89,7 +89,17 @@
  async function open(file,options){
   options=options||{};
   if(!isBlobDocument(file)&&!protectedApiUrl(legacyUrl(file))){var old=legacyUrl(file);if(!old)throw new Error(tr('document.noContent',null,'No file content is available for this document.'));clickUrl(old,options.name||file&&file.name,options.download===true);return true}
-  var blob=await fetchBlob(file),url=w.URL.createObjectURL(blob);clickUrl(url,options.name||file&&file.name,options.download===true);w.setTimeout(function(){try{w.URL.revokeObjectURL(url)}catch(_){}},120000);return true
+  // Reserve the tab while the click activation is still valid: after the
+  // authenticated fetch a target=_blank click is treated as a popup and blocked.
+  var tab=null;
+  if(options.download!==true&&typeof w.open==='function'){try{tab=w.open('about:blank','_blank')}catch(_){tab=null}}
+  var blob,url;
+  try{blob=await fetchBlob(file)}catch(e){closeTab(tab);throw e}
+  url=w.URL.createObjectURL(blob);
+  if(tab&&!tab.closed){try{tab.opener=null}catch(_){}try{tab.location.href=url}catch(_){closeTab(tab);clickUrl(url,options.name||file&&file.name,false)}}
+  else clickUrl(url,options.name||file&&file.name,options.download===true);
+  w.setTimeout(function(){try{w.URL.revokeObjectURL(url)}catch(_){}},120000);return true
  }
+ function closeTab(tab){try{if(tab&&!tab.closed)tab.close()}catch(_){}}
  w.ExportHUBDocumentBlob1059={version:'RC1231',environment:environment,isBlobDocument:isBlobDocument,blobName:blobName,legacyUrl:legacyUrl,protectedApiUrl:protectedApiUrl,headers:headers,endpoint:endpoint,fetchBlob:fetchBlob,fetchBytes:fetchBytes,open:open};
 })(window);
