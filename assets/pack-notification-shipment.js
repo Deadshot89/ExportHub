@@ -104,8 +104,20 @@
   }
   function linkShipment(state,notification,shipment,at){
     if(!notification||!shipment)return false;const when=q(at)||new Date().toISOString(),prefill=shipmentPrefill(notification),sid=shipmentId(shipment);
+    const firstLink=!q(shipment.packNotificationLinkedAt);
     shipment.packNotificationId=q(notification.id);shipment.packNotificationRef=q(notification.reference);shipment.packNotificationLinkedAt=when;
     shipment.deliveryFiles=mergeDocuments(shipment.deliveryFiles,prefill.deliveryFiles);
+    // The pack document stays private in the draft. On the FIRST saved shipment
+    // link it becomes an AVIS attachment for this shipment's customer. Respect
+    // any later explicit manual withdrawal recorded by the AVIS panel.
+    if(firstLink)for(const doc of arr(shipment.deliveryFiles)){
+      if(q(doc&&doc.source)!=='pack_notification'||q(doc.packNotificationId)!==q(notification.id)||
+         q(doc.packNotificationRef)!==q(notification.reference)||!hasDocumentContent(doc)||
+         q(doc.customerAvisVisibilityUpdatedAt))continue;
+      doc.customerAvisVisible=true;doc.customerVisible=true;
+      doc.customerAvisVisibilityUpdatedAt=when;
+      doc.customerAvisVisibilitySource='pack_shipment_created';
+    }
     notification.shipmentId=sid;notification.shipmentRef=q(shipment.ref||shipment.reference);notification.status='shipment_created';notification.updatedAt=when;
     const task=arr(state&&state.tasks).find(t=>q(t&&t.sourceType)==='pack_notification'&&q(t&&t.sourceId)===q(notification.id));if(task){task.status='in_progress';task.updatedAt=when;}
     return true;
