@@ -315,23 +315,50 @@
     const target=items.find(item=>q(item&&item.id)===id);
     if(!target)return false;
     const next=q(status).toLowerCase(),now=new Date().toISOString(),user=currentUserId(ctx)||'Benutzer';
-    if(next==='done'){
-      target.status='done';target.done=true;target.completedAt=now;target.doneAt=now;target.completedBy=user;target.doneBy=user;
-    }else if(next==='in_progress'){
-      target.status='in_progress';target.done=false;target.startedAt=q(target.startedAt)||now;target.startedBy=q(target.startedBy)||user;
-      target.completedAt='';target.doneAt='';target.completedBy='';target.doneBy='';
-    }else{
-      target.status='open';target.done=false;target.startedAt='';target.startedBy='';
-      target.completedAt='';target.doneAt='';target.completedBy='';target.doneBy='';
-    }
-    target.updatedAt=now;
-    if(typeof ctx.persist==='function')await Promise.resolve(ctx.persist(items));
-    else{
-      const clean=root.ExportHUBClean;
-      if(clean&&typeof clean.queueSave==='function'){
-        await Promise.resolve(clean.queueSave('RC1153 Aufgabenstatus geändert'));
-        if(typeof clean.flushSave==='function')await Promise.resolve(clean.flushSave('RC1153 Aufgabenstatus geändert'));
+    if(!['done','open','in_progress'].includes(next))return false;
+    const before=cloneJson(target);
+    const ledgerKey='id:'+id.toLowerCase().replace(/\s+/g,' ').replace(/[^a-z0-9äöüß|:_-]+/gi,'');
+    const existingLedger=state.taskStatusLedger&&typeof state.taskStatusLedger==='object'?state.taskStatusLedger:{};
+    const previousLedger=existingLedger[ledgerKey]===undefined?undefined:cloneJson(existingLedger[ledgerKey]);
+    try{
+      if(next==='done'){
+        target.status='done';target.done=true;target.completed=true;
+        target.completedAt=now;target.doneAt=now;target.completedBy=user;target.doneBy=user;
+      }else if(next==='in_progress'){
+        target.status='in_progress';target.done=false;target.completed=false;
+        target.startedAt=q(target.startedAt)||now;target.startedBy=q(target.startedBy)||user;
+        target.completedAt='';target.doneAt='';target.completedBy='';target.doneBy='';
+      }else{
+        target.status='open';target.done=false;target.completed=false;
+        target.startedAt='';target.startedBy='';
+        target.completedAt='';target.doneAt='';target.completedBy='';target.doneBy='';
       }
+      target.updatedAt=now;target.statusUpdatedAt=now;
+      target._syncUpdatedAt=now;target._syncDeviceId='manual-task-status';
+      state.taskStatusLedger=existingLedger;
+      state.taskStatusLedger[ledgerKey]={
+        status:next==='done'?'erledigt':'offen',done:next==='done',
+        doneAt:next==='done'?now:'',doneBy:next==='done'?user:'',updatedAt:now
+      };
+      const clean=root.ExportHUBClean;
+      if(typeof ctx.persist==='function')await Promise.resolve(ctx.persist(items));
+      if(clean&&typeof clean.queueSave==='function'){
+        const queued=await Promise.resolve(clean.queueSave('Aufgabenstatus geändert'));
+        if(queued===false)throw new Error('QUEUE_SAVE_REJECTED');
+      }
+      if(clean&&typeof clean.flushSave==='function'){
+        const saved=await Promise.resolve(clean.flushSave('Aufgabenstatus geändert',{force:true,userInitiated:true}));
+        if(saved!==true)throw new Error('TASK_STATUS_SAVE_NOT_CONFIRMED');
+      }else if(typeof ctx.persist!=='function'){
+        throw new Error('TASK_STATUS_STORAGE_UNAVAILABLE');
+      }
+    }catch(error){
+      for(const key of Object.keys(target))delete target[key];
+      Object.assign(target,before);
+      if(previousLedger===undefined)delete state.taskStatusLedger[ledgerKey];
+      else state.taskStatusLedger[ledgerKey]=previousLedger;
+      try{if(root.ExportHUBClean&&typeof root.ExportHUBClean.operationStatus==='function')root.ExportHUBClean.operationStatus('Aufgabe konnte nicht gespeichert werden. Bitte erneut versuchen.','bad');}catch(_){}
+      throw error;
     }
     lastTasks=items;
     lastContext={...lastContext,...ctx,state};
