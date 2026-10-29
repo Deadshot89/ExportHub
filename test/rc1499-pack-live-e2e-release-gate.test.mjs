@@ -113,7 +113,8 @@ test('RC1670: TESTSERVICE gate verifies persisted shipment PDF bytes after a rea
   assert.match(helper,/persisted\.signature\)\.toBe\('%PDF-'\)/,'PDF binary signature must be asserted');
   assert.match(helper,/packNotificationId===notificationId/,'saved shipment must belong to originating pack');
   assert.match(helper,/persisted\.blobName\)\.toBe\(originalPdf\.blobName\)/,'persisted Blob identity must equal original pack PDF');
-  assert.match(helper,/persisted\.avisVisible\)\.toBe\(false\)/,'private pack PDF must not be exposed to customer Avis');
+  assert.match(helper,/persisted\.customerVisible\)\.toBe\(true\)/,'saved Pack PDF must be visible to the customer after the first shipment save');
+  assert.match(helper,/persisted\.avisVisible\)\.toBe\(true\)/,'saved Pack PDF must be listed on customer Avis after the first shipment save');
   const smoke=read(publicSmokePath),spec=read(packSpecPath);
   assert.match(smoke,/test\.setTimeout\(300_000\)/);
   assert.match(spec,/test\.setTimeout\(300_000\)/);
