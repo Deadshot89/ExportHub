@@ -72,3 +72,15 @@ test('print presentation does not mutate stored document metadata',()=>{
   assert.equal(files[0],'DNC3019222063');
   assert.equal(JSON.stringify(document),before);
 });
+
+test('P0 pack loading list ignores stale SalesPackingSlip text when stored delivery PDFs exist',()=>{
+  const print=runtimeOnlyApi();
+  const sh={
+    id:'S1',ref:'ABC123',packNotificationId:'PN1',
+    deliveryFiles:[{name:'DNC3019222063.pdf',storage:'blob',blobName:'rc1059/production/aa/'+('a'.repeat(64))}]
+  };
+  const stale='SalesPackingSlip-JolantaBatkowska-116394_28102026_100515_703_116963_P.pdf';
+  assert.deepEqual(Array.from(print.deliveryFilesForPrint(sh,stale)),['DNC3019222063']);
+  assert.deepEqual(Array.from(print.deliveryFilesForPrint({deliveryFiles:[]},stale)),[stale],
+    'legacy shipments with no structured attachments must retain their printable fallback');
+});
