@@ -25,7 +25,7 @@ await import('./rc1454-avis-download-all-ui.mjs');
 function rc1452Prepared(){
   const runtime=fs.readFileSync(runtimePath,'utf8'),builder=fs.readFileSync(builderPath,'utf8');
   const repairBlock=runtime.slice(runtime.indexOf('function repairContaminatedGoodsDescription('),runtime.indexOf('function snapshotShipmentDraft('));
-  return runtime.includes('rc1452DocumentActionRepair')&&/ExportHUBClean[\s\S]*?queueSave/.test(repairBlock)&&!/ExportHUBRC565|persistShipment/.test(repairBlock)&&builder.includes('function rc1452PrintGoodsDescription(sh)')&&builder.includes('/assets/rc1267-i18n.js?v=1466')&&!builder.includes('/assets/rc1267-i18n.js?v=1458')&&builder.includes('function resetMountedFreshVolatile()')&&builder.includes('resetMountedFreshVolatile();safePatchDuringEdit();return true');
+  return runtime.includes('rc1452DocumentActionRepair')&&/ExportHUBClean[\s\S]*?queueSave/.test(repairBlock)&&!/ExportHUBRC565|persistShipment/.test(repairBlock)&&builder.includes('function rc1452PrintGoodsDescription(sh)')&&(builder.includes('/assets/rc1267-i18n.js?v=1466')||builder.includes('/assets/rc1267-i18n.js?v=1667'))&&!builder.includes('/assets/rc1267-i18n.js?v=1458')&&builder.includes('function resetMountedFreshVolatile()')&&builder.includes('resetMountedFreshVolatile();safePatchDuringEdit();return true');
 }
 
 if(!rc1452Prepared())await import('./rc1452-mail-goods-print-hotfix.mjs');

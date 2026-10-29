@@ -127,7 +127,12 @@ function patchCustomerAvisForm(html){
   const rc1224Refresh="function refresh(){if(!session||customerUploadInteraction||appointmentInteraction)return;api('?_='+Date.now()).then(render).catch(function(err){";
   const guardedLegacyRefresh="function refresh(){if(!session||customerUploadInteraction||refreshInFlight)return;refreshInFlight=true;return api('?_='+Date.now()).then(render).catch(function(err){";
   const guardedRc1224Refresh="function refresh(){if(!session||customerUploadInteraction||appointmentInteraction||refreshInFlight)return;refreshInFlight=true;return api('?_='+Date.now()).then(render).catch(function(err){";
-  if(out.includes(guardedRc1224Refresh)){
+  const guardedP2Refresh="function refresh(){if(!session||customerUploadInteraction||appointmentInteraction||refreshInFlight)return;refreshInFlight=true;return api('?_='+Date.now()).then(function(data){if(!customerUploadInteraction&&!appointmentInteraction)render(data)}).catch(function(err){";
+  if(out.includes(guardedP2Refresh)){
+    out=replaceOne(out,guardedP2Refresh,
+      "function refresh(){if(!session||avisFormDirty||avisFormFocused()||customerUploadInteraction||appointmentInteraction||refreshInFlight)return;refreshInFlight=true;return api('?_='+Date.now()).then(function(data){if(!avisFormDirty&&!avisFormFocused()&&!customerUploadInteraction&&!appointmentInteraction)render(data)}).catch(function(err){",
+      'Auto-Refresh P2 Race Guard');
+  }else if(out.includes(guardedRc1224Refresh)){
     out=replaceOne(out,guardedRc1224Refresh,
       "function refresh(){if(!session||avisFormDirty||avisFormFocused()||customerUploadInteraction||appointmentInteraction||refreshInFlight)return;refreshInFlight=true;return api('?_='+Date.now()).then(render).catch(function(err){",
       'Auto-Refresh RC1350');
