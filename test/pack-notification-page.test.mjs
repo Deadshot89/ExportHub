@@ -80,7 +80,7 @@ test('pack document selection never waits forever for optional PDF text detectio
   const html=read('assets/pack.html');
   assert.match(js,/async function optionalPdfNaming\(file\)/);
   assert.match(js,/Promise\.race\(/);
-  assert.match(js,/setTimeout\(\(\)=>resolve\(fallback\),4000\)/);
+  assert.match(js,/setTimeout\(\(\)=>resolve\(fallback\),2000\)/);
   assert.doesNotMatch(js,/file\.size>2\*1024\*1024/,'large allowed SalesPackingSlip PDFs must also be inspected');
   assert.match(js,/const data=await readFileDataUrl\(file\)/);
   assert.match(js,/const naming=await optionalPdfNaming\(file\)/);
