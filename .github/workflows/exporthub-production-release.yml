@@ -57,6 +57,12 @@ jobs:
             echo 'Production-Freigabe abgelehnt: release_sha ist kein Commit aus main.'
             exit 1
           fi
+          # RC1718: Ein älterer Release-SHA darf neuere, bereits veröffentlichte Änderungen nicht zurückrollen.
+          latest_main_sha="$(git rev-parse FETCH_HEAD)"
+          if [ "$RELEASE_SHA" != "$latest_main_sha" ]; then
+            echo "::error title=RC1718 Veralteter Produktionsrelease::SHA $RELEASE_SHA ist nicht aktueller main-HEAD $latest_main_sha. Main-Verifikation abwarten und den aktuellen main-Commit freigeben."
+            exit 1
+          fi
           checked_out="$(git rev-parse HEAD)"
           if [ "$checked_out" != "$RELEASE_SHA" ]; then
             echo "Production-Freigabe abgelehnt: Checkout-SHA $checked_out entspricht nicht $RELEASE_SHA."
@@ -164,6 +170,12 @@ jobs:
           git fetch --no-tags origin main
           if ! git merge-base --is-ancestor "$RELEASE_SHA" origin/main; then
             echo 'RC1381: freigegebener SHA ist nicht mehr aus main erreichbar; Production-Deploy wird blockiert.'
+            exit 1
+          fi
+          # RC1718: Main kann während des umfangreichen Release-Tests weiterlaufen.
+          latest_main_sha="$(git rev-parse FETCH_HEAD)"
+          if [ "$RELEASE_SHA" != "$latest_main_sha" ]; then
+            echo "::error title=RC1718 Stale Deploy verhindert::Neuester main-HEAD ist $latest_main_sha, aber Release-SHA lautet $RELEASE_SHA. Kein Downgrade auf Produktion."
             exit 1
           fi
           echo "RC1505: Production-Promotion bleibt SHA-fest auf $RELEASE_SHA."
