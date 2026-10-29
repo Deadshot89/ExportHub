@@ -31,6 +31,7 @@ on:
       - 'api/shared/merge.js'
       - 'api/shared/av-check.js'
       - 'test/p0-task-status-av-regression.test.mjs'
+      - 'test/rc1726-task-ref-shipment-navigation.test.mjs'
       - 'assets/rc1206-shipping-rules.js'
       - 'test/rc1151-document-download-history.test.mjs'
       - '.github/workflows/rc1151-branch-test.yml'
@@ -63,3 +64,5 @@ jobs:
         run: node --test test/rc1551-multi-truck-response-match.test.mjs
       - name: RC1266 Drei-Umgebungen-Build
         run: node .github/rc1112/build-three-env.mjs
+      - name: RC1726 Historische REF aus Aufgaben öffnen
+        run: node --test test/rc1726-task-ref-shipment-navigation.test.mjs
