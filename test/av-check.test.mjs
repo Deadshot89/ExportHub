@@ -60,7 +60,7 @@ test('RC1666: Kandidaten enthalten alle historischen und offenen Sendungen mit r
 test('RC1724: AV-Prüfung liest nur den REF-Ordner der ausgewählten Umgebung',async()=>{
   const called=[];
   const s=state(shipment());
-  const h=handler(s,{}, {listFiles:async(ref,environment)=>{
+  const h=handler(s,{}, {graphConfigured:environment=>{called.push({configChecked:environment});return environment==='testservice';},listFiles:async(ref,environment)=>{
     called.push({ref,environment});
     if(environment!=='testservice')throw new Error('Falsche Cloud-Umgebung für REF');
     return [{name:'AV_ABC123.pdf'}];
@@ -68,7 +68,7 @@ test('RC1724: AV-Prüfung liest nur den REF-Ordner der ausgewählten Umgebung',a
   const r=await h.run();
   assert.equal(r.status,200);
   assert.equal(r.body.present,1);
-  assert.deepEqual(called,[{ref:'ABC123',environment:'testservice'}]);
+  assert.deepEqual(called,[{configChecked:'testservice'},{ref:'ABC123',environment:'testservice'}]);
   assert.equal(avTasks(s).length,0);
 });
 
