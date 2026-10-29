@@ -219,3 +219,31 @@ test('RC1613 P0: wrong archived bytes, wrong id or missing metadata fail closed'
   });
   assert.deepEqual(readbacks,['immutable-2'],'Unsafe records must not call the POD server download endpoint');
 });
+
+
+test('P0 POD quality audit checks exact signed PDF SHA-256 and size without changing any shipment',async()=>{
+ const bytes=Buffer.from('%PDF-1.7\n'+'a'.repeat(1500)),hash=crypto.createHash('sha256').update(bytes).digest('hex');
+ const state={shipments:[
+  {ref:'GOOD01',status:'POD vorhanden',podFiles:[{kind:'automatic-pod',name:'POD_GOOD01_Ladeliste_unterschrieben.pdf',blobName:'good',renderLayout:'RC1595',hash,size:bytes.length}]},
+  {ref:'HASH01',status:'POD vorhanden',podFiles:[{kind:'automatic-pod',name:'POD_HASH01_Ladeliste_unterschrieben.pdf',blobName:'bad-hash',renderLayout:'RC1595',hash:'f'.repeat(64),size:bytes.length}]},
+  {ref:'SIZE01',status:'POD vorhanden',podFiles:[{kind:'automatic-pod',name:'POD_SIZE01_Ladeliste_unterschrieben.pdf',blobName:'bad-size',renderLayout:'RC1595',hash,size:bytes.length+1}]}
+ ]};
+ const writes=[];
+ await withStubs([
+  [store,'clients',async()=>({team:{getBlockBlobClient:()=>({})},pods:{}})],
+  [store,'readJson',async()=>({value:{state}})],
+  [store,'writeJson',async()=>{writes.push('team')}],
+  [store,'mutateRecord',async()=>{writes.push('pickup')}],
+  [store,'getRecord',async()=>({record:{}})],
+  [integrity,'readStoredPod',async()=>({ok:true,bytes:bytes.length,buffer:bytes})]
+ ],async()=>{
+  const rows=(await audit.report('production',{limit:25})).rows,byRef=Object.fromEntries(rows.map(row=>[row.reference,row]));
+  assert.equal(byRef.GOOD01.verdict,'ok');
+  assert.equal(byRef.HASH01.verdict,'review');
+  assert.equal(byRef.HASH01.files[0].readable,false);
+  assert.equal(byRef.HASH01.files[0].error,'POD_HASH_MISMATCH');
+  assert.equal(byRef.SIZE01.verdict,'review');
+  assert.equal(byRef.SIZE01.files[0].error,'POD_SIZE_MISMATCH');
+ });
+ assert.deepEqual(writes,[],'All checks remain strictly read-only');
+});
