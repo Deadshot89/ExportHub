@@ -30,7 +30,7 @@ test('RC1259: drei definierte Containerfotos werden unter der Referenz gespeiche
   };
   const mocks={
     '@azure/storage-blob':{BlobServiceClient:{fromConnectionString(){return{getContainerClient(){return container}}}}},
-    './reference-folder-upload':{async upload(reference,name,buffer,mimeType){referenceUploads.push({reference,name,size:buffer.length,mimeType});return{id:'graph-1',name,size:buffer.length,folderPath:'003 Export/ExportHub/Sendungen/'+reference,webUrl:'https://example.invalid/'+reference+'/'+name}}}
+    './reference-folder-upload':{assertTargetForEnvironment(){return true},async upload(reference,name,buffer,mimeType){referenceUploads.push({reference,name,size:buffer.length,mimeType});return{id:'graph-1',name,size:buffer.length,folderPath:'003 Export/ExportHub/Sendungen/'+reference,webUrl:'https://example.invalid/'+reference+'/'+name}}}
   };
   const absolute=path.resolve(ROOT,'api/shared/container-document-store.js'),originalLoad=Module._load;
   Module._load=function(request,parent,isMain){
@@ -65,7 +65,7 @@ test('RC1259: Fotos von zwei LKW derselben Referenz überschreiben weder Blob no
   };
   const mocks={
     '@azure/storage-blob':{BlobServiceClient:{fromConnectionString(){return{getContainerClient(){return container}}}}},
-    './reference-folder-upload':{async upload(reference,name){referenceUploads.push({reference,name});return{id:'graph-'+referenceUploads.length,name,folderPath:'003 Export/ExportHub/Sendungen/'+reference}}}
+    './reference-folder-upload':{assertTargetForEnvironment(){return true},async upload(reference,name){referenceUploads.push({reference,name});return{id:'graph-'+referenceUploads.length,name,folderPath:'003 Export/ExportHub/Sendungen/'+reference}}}
   };
   const absolute=path.resolve(ROOT,'api/shared/container-document-store.js'),originalLoad=Module._load;
   Module._load=function(request,parent,isMain){
