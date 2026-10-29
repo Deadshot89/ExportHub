@@ -154,7 +154,9 @@ test('linkShipment writes bidirectional relation and marks notification shipment
   assert.equal(shipment.packNotificationRef,'PK-1');
   assert.equal(shipment.deliveryFiles.length,1);
   assert.equal(shipment.deliveryFiles[0].blobName,s.packNotifications[0].documents[0].blobName);
-  assert.equal(shipment.deliveryFiles[0].customerAvisVisible,false);
+  assert.equal(shipment.deliveryFiles[0].customerAvisVisible,true);
+  assert.equal(shipment.deliveryFiles[0].customerVisible,true);
+  assert.equal(shipment.deliveryFiles[0].customerAvisVisibilitySource,'pack_shipment_created');
 });
 test('Packmeldung attaches the real stored PDF to the canonical shipment, not only to a detached save-event snapshot',async()=>{
   const s=state(),events=new Map(),savedSnapshots=[];
@@ -184,12 +186,25 @@ test('Packmeldung attaches the real stored PDF to the canonical shipment, not on
     assert.equal(item.deliveryFiles[0].name,source.name);
     assert.equal(item.deliveryFiles[0].storage,'blob');
     assert.equal(item.deliveryFiles[0].blobName,source.blobName);
-    assert.equal(item.deliveryFiles[0].customerAvisVisible,false);
+    assert.equal(item.deliveryFiles[0].customerAvisVisible,true);
   }
   assert.equal(detached.deliveryFiles.length,0,'transient event object should not be mistaken for a persisted shipment');
   assert.equal(savedSnapshots.length,1);
   assert.equal(savedSnapshots[0].shipments[0].deliveryFiles[0].blobName,source.blobName);
   assert.equal(savedSnapshots[0].packNotifications[0].status,'shipment_created');
+});
+
+test('manual customer AVIS withdrawal stays private on subsequent pack-shipment links',()=>{
+  const api=load(),s=state(),shipment={id:'sh-1',ref:'ABC123',deliveryFiles:[]};
+  const note=s.packNotifications[0];
+  api.linkShipment(s,note,shipment,'2026-10-29T08:00:00.000Z');
+  assert.equal(shipment.deliveryFiles[0].customerAvisVisible,true);
+  shipment.deliveryFiles[0].customerAvisVisible=false;
+  shipment.deliveryFiles[0].customerVisible=false;
+  shipment.deliveryFiles[0].customerAvisVisibilityUpdatedAt='2026-10-29T09:00:00.000Z';
+  api.linkShipment(s,note,shipment,'2026-10-29T10:00:00.000Z');
+  assert.equal(shipment.deliveryFiles[0].customerAvisVisible,false);
+  assert.equal(shipment.deliveryFiles.length,1,'do not duplicate uploaded PDF on repeated saves');
 });
 
 test('metadata-only delivery-note names cannot masquerade as actual uploaded PDFs',()=>{
