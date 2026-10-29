@@ -100,7 +100,7 @@ async function fileFacts(clients,file,shipment,environment){
  // signed ink when the exact immutable original is still available through
  // RC1608's verified pickup-POD readback (primary record or SHA-matched archive).
  // A named fileId is mandatory: the unnamed endpoint may regenerate PDFs.
- const exactId=text(file.id||file.remoteId),expectedHash=lower(file.hash);
+ const exactId=text(file.id||file.remoteId);
  const missing=read.status===404||read.code==='POD_BLOB_NOT_FOUND';
  if(!out.readable&&missing&&lower(file.kind)==='automatic-pod'&&
     /^[a-f0-9]{64}$/.test(expectedHash)&&exactId){
