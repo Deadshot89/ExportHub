@@ -97,3 +97,43 @@ test('Aufgabenliste und Aufgabenansicht werden in Modern, Glass und Neon nicht v
   assert.match(focus,/section\.className='rc1570-tasks';section\.setAttribute\('data-rc1306-own-layout','1'\);/);
   assert.match(focus,/panel\.className='rc1570-tasks rc1570-taskview';panel\.setAttribute\('data-rc1306-own-layout','1'\);/);
 });
+
+test('Wochenstamm: eine abgehakte Wochenaufgabe bleibt erledigt und kommt nicht als offene Dublette zurück',()=>{
+  const state={tasks:[],_teamSyncMeta:{fields:{},tombstones:[]}};
+  const api=loadMaster(state);
+  api.ensureWeek('2026-10-21',false);
+  const uk=state.tasks.find(t=>t.id==='M848:mo-p-uk:2026-W43');
+  Object.assign(uk,{status:'done',done:true,completed:true});
+  api.ensureWeek('2026-10-21',false);
+  const week=state.tasks.filter(t=>/^M848:mo-p-uk:2026-W43/.test(t.id));
+  assert.deepEqual(week.map(t=>t.status),['done'],'keine neue offene Aufgabe für dieselbe Woche');
+  // schon entstandene Dublette mit derselben ID wird aufgeräumt
+  state.tasks.push({...uk,status:'offen',done:false,completed:false});
+  api.ensureWeek('2026-10-21',false);
+  assert.deepEqual(state.tasks.filter(t=>t.id==='M848:mo-p-uk:2026-W43').map(t=>t.status),['done']);
+});
+
+test('Wochenstamm: Kopien "…:next:…" der alten Wiederholungslogik werden gelöscht',()=>{
+  const state={tasks:[],_teamSyncMeta:{fields:{},tombstones:[]}};
+  const api=loadMaster(state);
+  api.ensureWeek('2026-10-21',false);
+  const uk=state.tasks.find(t=>t.id==='M848:mo-p-uk:2026-W43');
+  Object.assign(uk,{status:'done',done:true});
+  state.tasks.push({...uk,id:'M848:mo-p-uk:2026-W43:next:2026-W44',status:'open'});
+  api.ensureWeek('2026-10-21',false);
+  assert.ok(!state.tasks.some(t=>/:next:/.test(t.id)));
+  assert.ok(state._teamSyncMeta.tombstones.some(t=>t.id==='M848:mo-p-uk:2026-W43:next:2026-W44'&&t.collection==='tasks'),'Löschung wird synchronisiert');
+});
+
+test('Wiederholung: Wochenplan-Aufgaben bekommen keine zusätzliche Kopie für die nächste Woche',()=>{
+  const ctx={window:{},globalThis:null};ctx.globalThis=ctx;
+  vm.runInNewContext(fs.readFileSync('assets/taskplanner-v2-recurrence.js','utf8'),ctx);
+  const api=ctx.ExportHUBTaskRecurrenceV2;
+  const done={id:'M848:do-p-uk:2026-W44',title:'UK',status:'done',done:true,completed:true,recurrence:'weekly',masterTaskRC848:true,seriesId:'MASTER:do-p-uk'};
+  assert.equal(api.materializeLegacy([done],'2026-10-29T10:00:00Z',[]).generated.length,0);
+  const manual={id:'eigene',title:'Eigene',status:'done',done:true,completed:true,recurrence:'weekly',dueAt:'2026-10-29'};
+  const [next]=api.materializeLegacy([manual],'2026-10-29T10:00:00Z',[]).generated;
+  assert.equal(next.status,'open');
+  assert.equal(next.done,false,'neue Wiederholung ist nicht schon erledigt');
+  assert.equal(next.completed,false);
+});
