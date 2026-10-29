@@ -109,7 +109,7 @@ test('RC1662: builder applies the patch to each environment before the existing 
  const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
  assert.match(build,/import \{patchRc1662SavedShipmentDeltaHtml\} from '\.\.\/\.\.\/scripts\/rc1662-abd-saved-shipment-delta\.mjs'/);
  assert.match(build,/hardenCustomerSaveHtml\(patchRc1662SavedShipmentDeltaHtml\(fs\.readFileSync\(target,'utf8'\),file\)\)/);
- assert.match(build,/const paginated=patchRc1718PrintIframeHtml\(patchRc1716PodBatchHtml\(patchRc1602PodBrowserHtml\(hardenAckMergeSaveHtml\(hardened\)\),file\),file\)/);
+ assert.match(build,/const paginated=patchRc1716PodBatchHtml\(patchRc1602PodBrowserHtml\(hardenAckMergeSaveHtml\(hardened\)\),file\)/);
  assert.match(build,/import \{patchRc1716PodBatchHtml\} from '\.\.\/\.\.\/scripts\/rc1716-pod-batch-completeness\.mjs'/);
  assert.equal(patchRc1662SavedShipmentDeltaHtml(patched),patched,'idempotent');
  assert.throws(()=>patchRc1662SavedShipmentDeltaHtml(source.replace("const SYNC_COLLECTION_KEYS={shipments:['id','ref'],tasks:","const SYNC_COLLECTION_KEYS={shipments:['id','ref'],savedShipments:['ref','id'],tasks:")),/partially applied/,'never ship partial identity hardening');
