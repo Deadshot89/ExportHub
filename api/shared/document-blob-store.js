@@ -274,7 +274,7 @@ async function repairLegacyBlobDocumentNames(state,options={}){
       for(const field of DOCUMENT_FIELDS){
         for(const file of Array.isArray(row[field])?row[field]:[]){
           if(file&&typeof file==='object'&&file.storage==='blob'&&
-             /^SalesPackingSlip[-_].*\\.pdf$/i.test(text(file.name||file.fileName||file.filename)))
+             /^SalesPackingSlip[-_].*\.pdf$/i.test(text(file.name||file.fileName||file.filename)))
             candidates.push(file);
         }
       }
@@ -285,7 +285,7 @@ async function repairLegacyBlobDocumentNames(state,options={}){
   const container=options.container||createDocumentContainer();
   for(const file of candidates.slice(0,limit)){
     stats.examined++;
-    const match=text(file.blobName).match(/^rc1059\\/(production|testservice)\\/([a-f0-9]{2})\\/([a-f0-9]{64})$/);
+    const match=text(file.blobName).match(/^rc1059\/(production|testservice)\/([a-f0-9]{2})\/([a-f0-9]{64})$/);
     if(!match||match[1]!==environment||match[2]!==match[3].slice(0,2)||
        (text(file.sha256)&&text(file.sha256).toLowerCase()!==match[3])){
       stats.invalid++;continue;
