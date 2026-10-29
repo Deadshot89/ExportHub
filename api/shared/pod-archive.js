@@ -494,8 +494,11 @@ async function saveAzureArchive(accessKey, environment, record, pdf, file) {
   }
   const verified = await verifyAzureArchiveBlob(blob, hash, pdf.length, true);
   const archiveSavedAt = store.now();
+  const alreadyDriveVerified = confirmedDriveBackup(record && record.podBackup) &&
+    text(record.podBackup.hash).toLowerCase() === text(hash).toLowerCase();
   const next = await persistBackupState(accessKey, environment, {
-    status: 'saved',
+    // RC1719: an Azure archive alone is never a completed SharePoint backup.
+    status: alreadyDriveVerified ? 'saved' : 'sharepoint-pending',
     azureSaved: true,
     archiveSaved: true,
     archiveSavedAt,
@@ -571,7 +574,7 @@ async function copyToDrive(accessKey, environment, record, pdf, file) {
     return { ok: true, record: next, drive: result };
   } catch (error) {
     const next = await persistBackupState(accessKey, environment, {
-      status: record && record.podBackup && record.podBackup.archiveSaved === true ? 'saved' : 'pending',
+      status: record && record.podBackup && record.podBackup.archiveSaved === true ? 'sharepoint-pending' : 'pending',
       azureSaved: true,
       archiveSaved: record && record.podBackup && record.podBackup.archiveSaved === true,
       driveSaved: false,
@@ -714,6 +717,40 @@ async function readExactPodBuffer(got, environment, file) {
   }
 }
 async function saveSuppliedPod(accessKey, environment, record, pdf, requestedName, options) {
+  // RC1717: manual PODs are additional evidence, not a new signed
+  // automatic-pod. Never let the legacy manual backup sync replace the
+  // canonical, already signed loading list in the record.
+  if (text(options && options.source) === 'manual-pod-backup-sync') {
+    throw store.err('POD_MANUAL_UPLOAD_NOT_ORIGINAL', 'Ein manuell hochgeladener POD darf die digitale Original-Ladeliste nicht ersetzen.', 409);
+  }
+  const original = automaticPod(record);
+  if (original) {
+    // Also fail closed for historical signed POD entries without a readable
+    // blob path; such records must never be replaced by a new browser PDF.
+    if (!text(original.blobName || original.storageBlobName)) {
+      throw store.err('POD_FILE_NOT_STORED', 'Das gespeicherte unterschriebene Original hat keine gültige Blob-Referenz.', 404);
+    }
+    const previousHash = text(original.hash).toLowerCase();
+    const newHash = crypto.createHash('sha256').update(pdf).digest('hex');
+    if (!/^[a-f0-9]{64}$/.test(previousHash) || newHash !== previousHash) {
+      throw store.err('POD_SIGNED_ORIGINAL_IMMUTABLE', 'Die gespeicherte unterschriebene Original-Ladeliste darf nicht durch ein anderes PDF ersetzt werden.', 409);
+    }
+    // Exact same signed PDF: back up the stored bytes, not the browser
+    // version, and keep the original file ID/layout metadata immutable.
+    const stored = await readAutomaticPodBuffer(accessKey, environment, record);
+    if (!stored || !stored.buffer) throw store.err('POD_FILE_NOT_STORED', 'Der signierte Original-POD konnte nicht gelesen werden.', 404);
+    const archived = await saveAzureArchive(accessKey, environment, record, stored.buffer, stored.file);
+    const archivedRecord = archived.record || record;
+    if (!m365Enabled()) {
+      return { ok: true, record: archivedRecord, file: stored.file, pdf: stored.buffer,
+        backup: archivedRecord.podBackup || {}, archiveSaved: true, driveSaved: false };
+    }
+    const drive = await copyToDrive(accessKey, environment, archivedRecord, stored.buffer, stored.file);
+    const finalRecord = drive.record || archivedRecord;
+    return { ok: true, record: finalRecord, file: stored.file, pdf: stored.buffer,
+      backup: finalRecord.podBackup || {}, archiveSaved: true, driveSaved: drive.ok === true,
+      driveError: drive.ok ? null : drive.error };
+  }
   const primary = await saveAzurePod(accessKey, environment, record, pdf, requestedName, Object.assign({}, options, { clientSupplied: true }));
   const archive = await saveAzureArchive(accessKey, environment, primary.record, pdf, primary.file);
   const archivedRecord = archive.record || primary.record;
@@ -1012,6 +1049,13 @@ async function reconcilePendingBackups(environment, options) {
     ? Math.min(scanPageSize, relinkSkipCount + teamRelinkBlockedCount)
     : 0;
 
+  // RC1715 P1: A targeted proof must not return "already-saved" for Azure
+  // alone. A missing Graph configuration, pending copy or deferred backfill
+  // keeps the digital POD explicitly incomplete without rewriting its bytes.
+  const targetSharePointPending = !!(reference && referencePodReady > 0 &&
+    (!graphDrive.readiness().configured ||
+      drivePending.length > 0 ||
+      driveBackfillEligible > driveBackfillSelected));
   const target = reference ? {
     reference,
     matchedCount: referenceMatched,
@@ -1025,6 +1069,7 @@ async function reconcilePendingBackups(environment, options) {
       errors.length > 0 ? 'error' :
       teamRelinkBlockedCount > 0 ? 'review-required' :
       pending.length > 0 ? 'pending' :
+      targetSharePointPending ? 'sharepoint-pending' :
       (alreadySaved.length + saved.length >= referencePodReady ? (saved.length > 0 ? 'saved-now' : 'already-saved') : 'incomplete')
   } : null;
   return {
