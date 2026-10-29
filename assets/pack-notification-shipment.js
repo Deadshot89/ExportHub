@@ -10,10 +10,17 @@
   }
   function shipmentId(sh){return q(sh&&(sh.id||sh.shipmentId||sh.ref||sh.reference));}
   function notificationById(state,id){return arr(state&&state.packNotifications).find(n=>q(n&&n.id)===q(id))||null;}
+  function shipmentDeliveryNoteReference(notification){
+    const n=notification||{};
+    const uploaded=arr(n.documents).filter(hasDocumentContent)
+      .map(doc=>q(doc&&doc.documentReference)||q(doc&&doc.name||doc&&doc.fileName))
+      .filter(Boolean);
+    return uploaded.length?uploaded.join(', ').slice(0,200):q(n.deliveryNoteReference);
+  }
   function shipmentPrefill(notification){
     const n=notification||{},count=Math.max(1,Number(n.packageCount)||arr(n.packages).length||1),weight=Number(n.totalWeight)||0,perWeight=count?weight/count:weight;
     return{
-      packNotificationId:q(n.id),packNotificationRef:q(n.reference),customerName:q(n.customer),customerId:q(n.customerId),customerAccount:q(n.customerAccount),customerSource:q(n.customerSource)||'manual',deliveryNoteReference:q(n.deliveryNoteReference),packageType:q(n.packageType),packageCount:count,totalWeight:weight,note:q(n.note),
+      packNotificationId:q(n.id),packNotificationRef:q(n.reference),customerName:q(n.customer),customerId:q(n.customerId),customerAccount:q(n.customerAccount),customerSource:q(n.customerSource)||'manual',deliveryNoteReference:shipmentDeliveryNoteReference(n),packageType:q(n.packageType),packageCount:count,totalWeight:weight,note:q(n.note),
       rows:arr(n.packages).map((p,index)=>({count:1,packaging:q(p&&p.packagingType)||q(n.packageType),l:Number(p&&p.length)||0,w:Number(p&&p.width)||0,h:Number(p&&p.height)||0,weight:perWeight,packageNo:Number(p&&p.packageNo)||index+1})),
       deliveryFiles:arr(n.documents).filter(hasDocumentContent).map(doc=>Object.assign({},doc,{customerVisible:false,customerAvisVisible:false,source:'pack_notification',packNotificationId:q(n.id),packNotificationRef:q(n.reference)}))
     };
