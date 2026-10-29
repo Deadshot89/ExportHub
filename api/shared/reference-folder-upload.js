@@ -44,9 +44,31 @@ async function ensureFolder(reference){
  if(!res.ok)throw error('GRAPH_REFERENCE_FOLDER_CREATE_FAILED',data.error&&data.error.message||'api.reference.folderCreateFailed',res.status>=500?502:res.status,{status:res.status});
  return data;
 }
+async function verifyUploadedFile(itemId,file,size,folderId){
+ // An upload response alone is not durable storage proof: independently
+ // reopen the exact Drive item and confirm the parent REF folder.
+ const url=GRAPH_BASE+'/users/'+encodeURIComponent(DRIVE_USER)+'/drive/items/'+encodeURIComponent(itemId)+'?$select=id,name,size,parentReference,file';
+ for(let attempt=0;attempt<3;attempt++){
+  try{
+   const res=await graph(url),data=await res.json().catch(()=>({}));
+   if(res.ok&&text(data.id)===itemId&&text(data.name)===file&&
+      Number.isSafeInteger(data.size)&&data.size===size&&
+      text(data.parentReference&&data.parentReference.id)===folderId&&data.file){
+    return;
+   }
+   // Bad metadata can be a stale Graph result, but must never be accepted.
+   if([400,401,403].includes(res.status))break;
+  }catch(_){/* transient Graph request; do not report upload success */}
+  if(attempt<2)await new Promise(resolve=>setTimeout(resolve,250*(attempt+1)));
+ }
+ throw error('GRAPH_REFERENCE_FILE_READBACK_FAILED',
+  'Microsoft Graph konnte die gespeicherte Datei im richtigen REF-Ordner nicht unabhängig bestätigen. Bitte den Upload erneut versuchen.',502);
+}
+
 async function upload(reference,name,buffer,mimeType){
  const ref=refValue(reference),file=safeFileName(name);if(!Buffer.isBuffer(buffer)||!buffer.length)throw error('REFERENCE_FILE_EMPTY','Datei ist leer.',400);
- await ensureFolder(ref);
+ const folder=await ensureFolder(ref),folderId=text(folder&&folder.id);
+ if(!folderId)throw error('GRAPH_REFERENCE_FOLDER_UNVERIFIED','Der REF-Ordner wurde von Microsoft Graph nicht eindeutig bestätigt.',502);
  const path=folderPath(ref)+'/'+file,url=GRAPH_BASE+'/users/'+encodeURIComponent(DRIVE_USER)+'/drive/root:/'+encPath(path)+':/content';
  const res=await graph(url,{method:'PUT',headers:{'Content-Type':text(mimeType)||'application/octet-stream','Content-Length':String(buffer.length),Accept:'application/json'},body:buffer});
  let data={};try{data=await res.json()}catch(_){}
@@ -58,6 +80,7 @@ async function upload(reference,name,buffer,mimeType){
  if(!itemId||itemName!==file||!Number.isSafeInteger(itemSize)||itemSize!==buffer.length){
   throw error('GRAPH_REFERENCE_FILE_UNVERIFIED','Microsoft Graph hat die Datei im REF-Ordner nicht vollständig bestätigt. Bitte den Upload erneut versuchen.',502);
  }
+ await verifyUploadedFile(itemId,file,buffer.length,folderId);
  return{id:itemId,name:itemName,size:itemSize,webUrl:text(data.webUrl),folderPath:folderPath(ref),reference:ref};
 }
 async function listFiles(reference){
