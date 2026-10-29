@@ -10,10 +10,17 @@
   }
   function shipmentId(sh){return q(sh&&(sh.id||sh.shipmentId||sh.ref||sh.reference));}
   function notificationById(state,id){return arr(state&&state.packNotifications).find(n=>q(n&&n.id)===q(id))||null;}
+  function shipmentDeliveryNoteReference(notification){
+    const n=notification||{};
+    const uploaded=arr(n.documents).filter(hasDocumentContent)
+      .map(doc=>q(doc&&doc.documentReference)||q(doc&&doc.name||doc&&doc.fileName))
+      .filter(Boolean);
+    return uploaded.length?uploaded.join(', ').slice(0,200):q(n.deliveryNoteReference);
+  }
   function shipmentPrefill(notification){
     const n=notification||{},count=Math.max(1,Number(n.packageCount)||arr(n.packages).length||1),weight=Number(n.totalWeight)||0,perWeight=count?weight/count:weight;
     return{
-      packNotificationId:q(n.id),packNotificationRef:q(n.reference),customerName:q(n.customer),customerId:q(n.customerId),customerAccount:q(n.customerAccount),customerSource:q(n.customerSource)||'manual',deliveryNoteReference:q(n.deliveryNoteReference),packageType:q(n.packageType),packageCount:count,totalWeight:weight,note:q(n.note),
+      packNotificationId:q(n.id),packNotificationRef:q(n.reference),customerName:q(n.customer),customerId:q(n.customerId),customerAccount:q(n.customerAccount),customerSource:q(n.customerSource)||'manual',deliveryNoteReference:shipmentDeliveryNoteReference(n),packageType:q(n.packageType),packageCount:count,totalWeight:weight,note:q(n.note),
       rows:arr(n.packages).map((p,index)=>({count:1,packaging:q(p&&p.packagingType)||q(n.packageType),l:Number(p&&p.length)||0,w:Number(p&&p.width)||0,h:Number(p&&p.height)||0,weight:perWeight,packageNo:Number(p&&p.packageNo)||index+1})),
       deliveryFiles:arr(n.documents).filter(hasDocumentContent).map(doc=>Object.assign({},doc,{customerVisible:false,customerAvisVisible:false,source:'pack_notification',packNotificationId:q(n.id),packNotificationRef:q(n.reference)}))
     };
@@ -104,8 +111,20 @@
   }
   function linkShipment(state,notification,shipment,at){
     if(!notification||!shipment)return false;const when=q(at)||new Date().toISOString(),prefill=shipmentPrefill(notification),sid=shipmentId(shipment);
+    const firstLink=!q(shipment.packNotificationLinkedAt);
     shipment.packNotificationId=q(notification.id);shipment.packNotificationRef=q(notification.reference);shipment.packNotificationLinkedAt=when;
     shipment.deliveryFiles=mergeDocuments(shipment.deliveryFiles,prefill.deliveryFiles);
+    // The pack document stays private in the draft. On the FIRST saved shipment
+    // link it becomes an AVIS attachment for this shipment's customer. Respect
+    // any later explicit manual withdrawal recorded by the AVIS panel.
+    if(firstLink)for(const doc of arr(shipment.deliveryFiles)){
+      if(q(doc&&doc.source)!=='pack_notification'||q(doc.packNotificationId)!==q(notification.id)||
+         q(doc.packNotificationRef)!==q(notification.reference)||!hasDocumentContent(doc)||
+         q(doc.customerAvisVisibilityUpdatedAt))continue;
+      doc.customerAvisVisible=true;doc.customerVisible=true;
+      doc.customerAvisVisibilityUpdatedAt=when;
+      doc.customerAvisVisibilitySource='pack_shipment_created';
+    }
     notification.shipmentId=sid;notification.shipmentRef=q(shipment.ref||shipment.reference);notification.status='shipment_created';notification.updatedAt=when;
     const task=arr(state&&state.tasks).find(t=>q(t&&t.sourceType)==='pack_notification'&&q(t&&t.sourceId)===q(notification.id));if(task){task.status='in_progress';task.updatedAt=when;}
     return true;

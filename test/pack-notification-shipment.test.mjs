@@ -154,7 +154,9 @@ test('linkShipment writes bidirectional relation and marks notification shipment
   assert.equal(shipment.packNotificationRef,'PK-1');
   assert.equal(shipment.deliveryFiles.length,1);
   assert.equal(shipment.deliveryFiles[0].blobName,s.packNotifications[0].documents[0].blobName);
-  assert.equal(shipment.deliveryFiles[0].customerAvisVisible,false);
+  assert.equal(shipment.deliveryFiles[0].customerAvisVisible,true);
+  assert.equal(shipment.deliveryFiles[0].customerVisible,true);
+  assert.equal(shipment.deliveryFiles[0].customerAvisVisibilitySource,'pack_shipment_created');
 });
 test('Packmeldung attaches the real stored PDF to the canonical shipment, not only to a detached save-event snapshot',async()=>{
   const s=state(),events=new Map(),savedSnapshots=[];
@@ -184,12 +186,25 @@ test('Packmeldung attaches the real stored PDF to the canonical shipment, not on
     assert.equal(item.deliveryFiles[0].name,source.name);
     assert.equal(item.deliveryFiles[0].storage,'blob');
     assert.equal(item.deliveryFiles[0].blobName,source.blobName);
-    assert.equal(item.deliveryFiles[0].customerAvisVisible,false);
+    assert.equal(item.deliveryFiles[0].customerAvisVisible,true);
   }
   assert.equal(detached.deliveryFiles.length,0,'transient event object should not be mistaken for a persisted shipment');
   assert.equal(savedSnapshots.length,1);
   assert.equal(savedSnapshots[0].shipments[0].deliveryFiles[0].blobName,source.blobName);
   assert.equal(savedSnapshots[0].packNotifications[0].status,'shipment_created');
+});
+
+test('manual customer AVIS withdrawal stays private on subsequent pack-shipment links',()=>{
+  const api=load(),s=state(),shipment={id:'sh-1',ref:'ABC123',deliveryFiles:[]};
+  const note=s.packNotifications[0];
+  api.linkShipment(s,note,shipment,'2026-10-29T08:00:00.000Z');
+  assert.equal(shipment.deliveryFiles[0].customerAvisVisible,true);
+  shipment.deliveryFiles[0].customerAvisVisible=false;
+  shipment.deliveryFiles[0].customerVisible=false;
+  shipment.deliveryFiles[0].customerAvisVisibilityUpdatedAt='2026-10-29T09:00:00.000Z';
+  api.linkShipment(s,note,shipment,'2026-10-29T10:00:00.000Z');
+  assert.equal(shipment.deliveryFiles[0].customerAvisVisible,false);
+  assert.equal(shipment.deliveryFiles.length,1,'do not duplicate uploaded PDF on repeated saves');
 });
 
 test('metadata-only delivery-note names cannot masquerade as actual uploaded PDFs',()=>{
@@ -466,4 +481,16 @@ test('RC1680: imported original Pack PDF is visible and opens/downloads from shi
   assert.equal(opened.length,2,'stale controls may not open private PDFs from another Pack REF');
   assert.equal(root.__RC1680_RENDER__(prefill),false);
   assert.equal(docSection.children.length,0,'foreign Pack PDF UI must be removed from the new shipment');
+});
+
+test('P0 shipment prefill uses authoritative stored DNC instead of stale SalesPackingSlip reference',()=>{
+  const api=load(),s=state(),n=s.packNotifications[0];
+  n.deliveryNoteReference='SalesPackingSlip-JolantaBatkowska-116394_28102026_100515_703_116963_P.pdf';
+  n.documents[0].name='DNC3019222063.pdf';
+  n.documents[0].documentReference='DNC3019222063';
+  const result=api.shipmentPrefill(n);
+  assert.equal(result.deliveryNoteReference,'DNC3019222063');
+  assert.equal(result.deliveryFiles[0].name,'DNC3019222063.pdf');
+  assert.equal(n.deliveryNoteReference,'SalesPackingSlip-JolantaBatkowska-116394_28102026_100515_703_116963_P.pdf',
+    'preserve original notification audit metadata');
 });

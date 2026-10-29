@@ -35,14 +35,15 @@
   const MAX_PACK_DOCUMENT_BYTES=10*1024*1024;
   async function optionalPdfNaming(file){
     const fallback={name:file.name,renamed:false,reference:null,reason:'none'};
-    // Reference extraction is only a convenience. The mandatory upload must not
-    // depend on arbitrary (possibly malformed) compressed PDF streams finishing.
-    if(!/\.pdf$/i.test(file.name)||file.size>2*1024*1024||!documentNormalizer||typeof documentNormalizer.normalizePdfFile!=='function')return fallback;
+    // Attempt DNC/SIDE recognition for every allowed PDF (up to 10 MB), including
+    // actual ERP SalesPackingSlip files. Never infer a number from the technical
+    // filename if the document cannot be read or contains conflicting references.
+    if(!/\.pdf$/i.test(file.name)||!documentNormalizer||typeof documentNormalizer.normalizePdfFile!=='function')return fallback;
     let timer;
     try{
       const detected=await Promise.race([
         Promise.resolve().then(()=>documentNormalizer.normalizePdfFile(file)),
-        new Promise(resolve=>{timer=setTimeout(()=>resolve(fallback),1500);})
+        new Promise(resolve=>{timer=setTimeout(()=>resolve(fallback),2000);})
       ]);
       return detected&&detected.name?detected:fallback;
     }catch(_){return fallback;}

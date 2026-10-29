@@ -127,3 +127,33 @@ test('RC1703: stored SalesPackingSlip PDF with DNC split across TJ glyphs is ren
   assert.match(out.originalName,/^SalesPackingSlip-/);
   assert.equal(out.storage,'blob');
 });
+
+test('SalesPackingSlip fallback extracts the real DNC without guessing from technical numbers',async()=>{
+  const mod=require('../api/shared/document-blob-store.js'),container=fakeContainer();
+  const original='SalesPackingSlip-JolantaBatkowska-116394_28102026_100515_703_116963_P.pdf';
+  const bytes=plainPdf('encoded ERP glyphs not readable by the lightweight parser');
+  let called=0;
+  const out=await mod.storeInlineDocument({id:'erp-1',name:original,mimeType:'application/pdf',data:dataUrl(bytes)},
+    {environment:'testservice',container,pdfTextExtractor:async raw=>{
+      called++;
+      assert.deepEqual(Buffer.from(raw),bytes);
+      return 'Delivery Note DNC 3019222063';
+    }});
+  assert.equal(called,1);
+  assert.equal(out.name,'DNC3019222063.pdf');
+  assert.equal(out.originalName,original);
+  assert.equal(out.documentReference,'DNC3019222063');
+  assert.equal(out.storage,'blob');
+  assert.equal(container.uploads.length,1);
+  assert.deepEqual(container.uploads[0].buffer,bytes,'original PDF proof must not be modified');
+});
+
+test('unrecognized SalesPackingSlip stays unchanged rather than using its ambiguous numeric segments',async()=>{
+  const mod=require('../api/shared/document-blob-store.js');
+  const original='SalesPackingSlip-JolantaBatkowska-116394_28102026_100515_703_116963_P.pdf';
+  const out=await mod.storeInlineDocument({id:'erp-2',name:original,mimeType:'application/pdf',
+    data:dataUrl(plainPdf('No shipping reference'))},
+    {environment:'testservice',container:fakeContainer(),pdfTextExtractor:async()=>''});
+  assert.equal(out.name,original);
+  assert.equal(out.documentReference,undefined);
+});

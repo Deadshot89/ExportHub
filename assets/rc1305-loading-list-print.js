@@ -24,6 +24,17 @@ function innermost(root,re){var all=Array.from(root.querySelectorAll('div,span')
 function existingFiles(body){var raw=q(body&&body.textContent),hits=raw.match(/[A-Za-z0-9][A-Za-z0-9_.() -]*?\.pdf/gi)||[],out=[],seen={};hits.forEach(function(name){name=q(name);var key=canonicalDeliveryKey(name);if(!key||seen[key])return;seen[key]=1;out.push(printName(name))});return out}
 function splitPdfNames(v){var raw=fileName(v),hits=raw.match(/[A-Za-z0-9][A-Za-z0-9_.() -]*?\.pdf/gi)||[];return hits.length?hits.map(q):(raw?[raw]:[])}
 function deliveryFiles(sh){var fields=['deliveryFiles','deliveryNotesFiles','deliveryNoteFiles','deliveryNotes','lieferscheine'],out=[],seen={};function add(v){splitPdfNames(v).forEach(function(name){var key=canonicalDeliveryKey(name);if(!key||seen[key])return;seen[key]=1;out.push(printName(name))})}fields.forEach(function(field){arr(sh&&sh[field]).forEach(function(item){add(item);if(item&&typeof item==='object')arr(item.files).forEach(add)})});if(!out.length)arr(sh&&sh.documents).forEach(function(item){var kind=q(item&&(item.type||item.category||item.group||item.documentType)).toLowerCase();if(kind&&!/delivery|lieferschein|dnc/.test(kind))return;add(item)});return out}
+// Pack notifications already carry the authoritative, stored PDF list.
+// Do not re-append a stale technical SalesPackingSlip name from the old
+// HTML field: it is not an independent, downloadable delivery note.
+function deliveryFilesForPrint(sh,legacyText){
+ var files=deliveryFiles(sh);
+ if(q(sh&&sh.packNotificationId)&&files.length)return files;
+ existingFiles({textContent:q(legacyText)}).forEach(function(name){
+  if(!files.some(function(x){return canonicalDeliveryKey(x)===canonicalDeliveryKey(name)}))files.push(printName(name));
+ });
+ return files;
+}
 function shrinkInlineFonts(root,deltaPt){
  if(!root||!deltaPt)return;
  Array.from(root.querySelectorAll('[style*="font-size"]')).forEach(function(el){
@@ -57,7 +68,7 @@ function rc1547ApplySinglePageFit(root){
 function enhanceDocuments(root,sh){
  var label=findLabel(root,/lieferscheine|delivery\s*notes|\bdncs?\b/i);if(!label)return false;
  var card=cardFor(label,root);if(!card)return false;var body=card.querySelector('.rc390-txt,.rc352-txt,[class*="txt"]')||label.nextElementSibling;
- var files=deliveryFiles(sh);var fallback=existingFiles(body);fallback.forEach(function(name){if(!files.some(function(x){return canonicalDeliveryKey(x)===canonicalDeliveryKey(name)}))files.push(printName(name))});
+ var files=deliveryFilesForPrint(sh,body&&body.textContent);
  card.setAttribute('data-rc1305-documents','1');
  var density=files.length>24?'ultra':(files.length>15?'dense':'normal');card.setAttribute('data-rc1363-document-density',density);
  var metrics=density==='ultra'?{gap:'.1mm',pad:'.1mm .2mm',font:'5.2pt',line:'.95',border:'.2mm'}:(density==='dense'?{gap:'.18mm',pad:'.15mm .25mm',font:'5.6pt',line:'1',border:'.25mm'}:{gap:'.35mm',pad:'.25mm .35mm',font:'6.2pt',line:'1.05',border:'.3mm'});
@@ -227,5 +238,5 @@ function style(){
  (d.head||d.documentElement).appendChild(st)
 }
 style();
-w.ExportHUBRC1305LoadingListPrint=Object.freeze({version:'RC1517',singlePageVersion:'RC1547',enhance:enhance,enhanceCover:enhanceCover,isPicked:isPicked,deliveryFiles:deliveryFiles,canonicalDeliveryKey:canonicalDeliveryKey,printName:printName,printRef:printRef,qrSvg:rc1315QrSvg,addQuickPrintQr:addQuickPrintQr,applySinglePageFit:rc1547ApplySinglePageFit,style:style});
+w.ExportHUBRC1305LoadingListPrint=Object.freeze({version:'RC1517',singlePageVersion:'RC1547',enhance:enhance,enhanceCover:enhanceCover,isPicked:isPicked,deliveryFiles:deliveryFiles,deliveryFilesForPrint:deliveryFilesForPrint,canonicalDeliveryKey:canonicalDeliveryKey,printName:printName,printRef:printRef,qrSvg:rc1315QrSvg,addQuickPrintQr:addQuickPrintQr,applySinglePageFit:rc1547ApplySinglePageFit,style:style});
 })(window,document);
