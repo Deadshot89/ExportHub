@@ -176,7 +176,10 @@ function style(){
   '#'+REPORT_ID+' .rc1650-jobs li{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:12px;border:1px solid var(--pc-line,#e2e8f0);border-radius:9px;padding:6px 9px}',
   '#'+REPORT_ID+' .rc1650-jobs li span:nth-child(2){flex:1 1 260px;color:var(--pc-text,#0f172a)}#'+REPORT_ID+' .rc1650-jobs small{color:var(--pc-muted,#64748b)}',
   '.rc1650-job{border-radius:999px;padding:2px 8px;font-size:10px;font-weight:900;text-transform:uppercase;background:#e2e8f0;color:#334155}',
-  '.rc1650-job-running,.rc1650-job-queued{background:#dbeafe;color:#1d4ed8}.rc1650-job-fixed{background:#dcfce7;color:#166534}.rc1650-job-failed{background:#fee2e2;color:#991b1b}',
+  '.rc1650-job-running,.rc1650-job-queued{background:#dbeafe;color:#1d4ed8}.rc1650-job-fixed,.rc1650-job-pr{background:#dcfce7;color:#166534}.rc1650-job-failed{background:#fee2e2;color:#991b1b}',
+  '#'+REPORT_ID+' .rc1650-jobs .rc1650-pr{padding:4px 10px;font-size:12px;text-decoration:none}#'+REPORT_ID+' .rc1650-job-why{display:block;font-style:normal;color:#991b1b;margin-top:2px}',
+  '.rc1650-toast{position:fixed;right:16px;bottom:16px;z-index:2147483000;max-width:min(380px,calc(100vw - 32px));display:grid;gap:6px;padding:12px 14px;border-radius:12px;background:#fff;color:#0f172a;border:1px solid #cbd5e1;border-left:5px solid #16a34a;box-shadow:0 12px 32px rgba(15,23,42,.25);font-size:13px}',
+  '.rc1650-toast[data-kind="failed"]{border-left-color:#dc2626}.rc1650-toast b{font-size:14px}.rc1650-toast div{display:flex;gap:8px;justify-content:flex-end}.rc1650-toast a.btn{text-decoration:none}',
   '@media(max-width:640px){#'+SUMMARY_ID+'{grid-template-columns:1fr}#'+SUMMARY_ID+' .rc1650-light{display:none}#'+SUMMARY_ID+' .rc1650-first{grid-column:1}}'
  ].join('\n');
  (d().head||d().documentElement).appendChild(s);
@@ -201,7 +204,8 @@ function renderSummary(){
  if(box.__rc1650Html!==html){box.innerHTML=html;box.__rc1650Html=html}
 }
 // "Fehler melden": own description → KI autofix; below it the jobs of manually reported bugs
-function jobState(x){var s=low(x&&x.autofix&&x.autofix.status);if(x&&x.resolvedAt||s==='fixed')return'fixed';if(s==='failed'||s==='reverted')return'failed';if(['claimed','running','testing','deploying'].indexOf(s)>=0)return'running';if(s==='queued')return'queued';return'open'}
+function prUrl(af){var u=q(af&&af.runUrl);return /^https:\/\/github\.com\/Deadshot89\/ExportHub\/pull\/\d+$/.test(u)?u:''}
+function jobState(x){var af=x&&x.autofix||{},s=low(af.status);if(x&&x.resolvedAt||s==='fixed')return'fixed';if(prUrl(af)&&['testing','deploying'].indexOf(s)>=0)return'pr';if(s==='failed'||s==='reverted')return'failed';if(['claimed','running','testing','deploying'].indexOf(s)>=0)return'running';if(s==='queued')return'queued';return'open'}
 function aiNote(){
  var sc=w.ExportHUBSelfCorrect,c=report.config;
  if(!sc||typeof sc.allowed!=='function')return{kind:'off',text:t('reportNoRight')};
@@ -225,18 +229,50 @@ function renderReport(force){
    '<textarea id="rc1650ReportDesc" maxlength="4000" rows="4" placeholder="'+esc(t('reportDesc'))+'" aria-label="'+esc(t('reportDesc'))+'">'+esc(report.description)+'</textarea>'+
    '<textarea id="rc1650ReportExpected" maxlength="2000" rows="2" placeholder="'+esc(t('reportExpected'))+'" aria-label="'+esc(t('reportExpected'))+'">'+esc(report.expected)+'</textarea>'+
    '<div class="rc1650-actions"><button type="button" class="btn" data-rc1650-report-send="1"'+(report.busy||!canSend?' disabled':'')+'>'+esc(report.busy?t('reportSending'):t('reportSend'))+'</button><small class="rc1650-report-status" data-kind="'+esc(report.statusKind)+'" aria-live="polite">'+esc(report.status)+'</small></div></div>':'')+
-  (jobs.length?'<div class="rc1650-jobs"><b>'+esc(t('jobsTitle'))+'</b><ul>'+jobs.map(function(x){var st=jobState(x),af=x.autofix||{},link=/^https:\/\/github\.com\//.test(q(af.runUrl))?' <a href="'+esc(af.runUrl)+'" target="_blank" rel="noopener">GitHub</a>':'';return '<li><span class="rc1650-job rc1650-job-'+st+'">'+esc(t('job_'+st))+'</span><span>'+esc(q(x.message).slice(0,140))+'</span><small>'+esc(fmt(x.lastAt||x.at))+link+'</small></li>'}).join('')+'</ul></div>':'');
+  (jobs.length?'<div class="rc1650-jobs"><b>'+esc(t('jobsTitle'))+'</b><ul>'+jobs.map(jobItem).join('')+'</ul></div>':'');
  if(force||box.__rc1650Html!==html){
   var focus=d().activeElement&&d().activeElement.id;
   if(focus&&/^rc1650Report/.test(focus)&&!force)return;
   box.innerHTML=html;box.__rc1650Html=html;
  }
 }
+// one job row: state, text, PR button when Claude's pull request is ready, reason when it failed
+function jobItem(x){
+ var st=jobState(x),af=x.autofix||{},pr=prUrl(af),run=!pr&&/^https:\/\/github\.com\//.test(q(af.runUrl))?q(af.runUrl):'',why=st==='failed'?q(af.lastMessage).replace(/^Automatische Behebung fehlgeschlagen\. GitHub-Lauf: \S+( · )?/,'').slice(0,240):'';
+ return '<li><span class="rc1650-job rc1650-job-'+st+'">'+esc(t('job_'+st))+'</span><span>'+esc(q(x.message).slice(0,140))+(why?'<em class="rc1650-job-why">'+esc(why)+'</em>':'')+'</span><small>'+esc(fmt(x.lastAt||x.at))+'</small>'+
+  (pr?'<a class="btn rc1650-pr" href="'+esc(pr)+'" target="_blank" rel="noopener">'+esc(t('openPr'))+'</a>':run?'<a href="'+esc(run)+'" target="_blank" rel="noopener">'+esc(t('openRun'))+'</a>':'')+'</li>';
+}
+// Feedback: jobs sent from this browser are watched until Claude is done, then one notice (toast + system
+// notification if allowed) with a direct link to the pull request
+var MINE_KEY='exporthub-rc1650-my-ai-jobs',FINAL=['pr','fixed','failed'],watchTimer=null;
+function mine(){try{var v=JSON.parse(w.localStorage.getItem(MINE_KEY)||'{}');return v&&typeof v==='object'?v:{}}catch(_){return{}}}
+function saveMine(v){try{w.localStorage.setItem(MINE_KEY,JSON.stringify(v))}catch(_){}}
+function track(jobId){jobId=q(jobId);if(!jobId)return;var m=mine();m[jobId]={at:Date.now(),notified:false};saveMine(m);askNotify();watch()}
+function askNotify(){try{if(w.Notification&&w.Notification.permission==='default')w.Notification.requestPermission()}catch(_){}}
+function cloudRecords(){try{var c=w.ExportHUBDiagnosticsCloud864;if(c&&typeof c.records==='function')return c.records()||[]}catch(_){}return records()}
+function checkMine(){
+ var m=mine(),open=Object.keys(m).filter(function(id){return !m[id].notified&&Date.now()-Number(m[id].at||0)<864e5});
+ if(!open.length){if(watchTimer){clearInterval(watchTimer);watchTimer=null}return}
+ var c=w.ExportHUBDiagnosticsCloud864;Promise.resolve(c&&typeof c.refresh==='function'?c.refresh(true):null).catch(function(){}).then(function(){
+  var rows=cloudRecords(),changed=false;
+  open.forEach(function(id){var x=rows.find(function(r){return r&&r.autofix&&q(r.autofix.jobId)===id});if(!x)return;var st=jobState(x);if(FINAL.indexOf(st)<0)return;m[id].notified=true;changed=true;notifyDone(x,st)});
+  if(changed){saveMine(m);schedule()}
+ });
+}
+function watch(){if(!watchTimer)watchTimer=setInterval(checkMine,45000);setTimeout(checkMine,5000)}
+function notifyDone(x,st){
+ var af=x.autofix||{},link=prUrl(af)||(/^https:\/\/github\.com\//.test(q(af.runUrl))?q(af.runUrl):''),title=t('done_'+st),body=q(x.message).slice(0,120);
+ style();
+ var box=d().createElement('div');box.className='rc1650-toast';box.setAttribute('role','status');box.setAttribute('data-i18n-ignore','1');box.setAttribute('data-kind',st);
+ box.innerHTML='<b>'+esc(title)+'</b><span>'+esc(body)+'</span><div>'+(link?'<a class="btn" href="'+esc(link)+'" target="_blank" rel="noopener">'+esc(st==='pr'?t('openPr'):t('openRun'))+'</a>':'')+'<button type="button" class="ghost" data-rc1650-toast-close="1">'+esc(t('close'))+'</button></div>';
+ d().body.appendChild(box);
+ try{if(w.Notification&&w.Notification.permission==='granted'){var n=new w.Notification(title,{body:body,tag:'rc1650-'+q(af.jobId)});n.onclick=function(){try{w.focus();if(link)w.open(link,'_blank','noopener')}catch(_){}n.close()}}}catch(_){}
+}
 async function sendReport(){
  var sc=selfCorrect();if(!sc||report.busy)return;
  if(q(report.description).length<20){report.status=t('reportShort');report.statusKind='bad';renderReport(true);return}
  report.busy=true;report.status='';renderReport(true);
- try{var r=await sc.reportBug({area:report.area,description:report.description,expected:report.expected});report.status=q(t('reportSent',{id:q(r&&(r.jobId||r.diagnosticId))}));report.statusKind='ok';report.description='';report.expected='';report.area='';refreshCloud()}
+ try{var r=await sc.reportBug({area:report.area,description:report.description,expected:report.expected});track(r&&r.jobId);report.status=q(t('reportSent',{id:q(r&&(r.jobId||r.diagnosticId))}));report.statusKind='ok';report.description='';report.expected='';report.area='';refreshCloud()}
  catch(e){report.status=t('reportError',{message:q(e&&e.message)});report.statusKind='bad'}
  finally{report.busy=false;renderReport(true)}
 }
@@ -284,7 +320,7 @@ function startAi(el,btn){
  var description=t('aiDescription',{title:data.info.title,message:g.message,count:g.total,areas:list(areas,6)||'–'})+(details?'\n\n'+details:'');
  btn.disabled=true;if(note)note.textContent=t('reportSending');
  sc.reportBug({area:list(areas,3)||data.info.title,description:description.slice(0,4000),expected:''}).then(function(r){
-  if(note)note.textContent=q(t('reportSent',{id:q(r&&(r.jobId||r.diagnosticId))}));refreshCloud();
+  track(r&&r.jobId);if(note)note.textContent=q(t('reportSent',{id:q(r&&(r.jobId||r.diagnosticId))}));refreshCloud();
  },function(e){btn.disabled=false;if(note)note.textContent=t('reportError',{message:q(e&&e.message)})});
 }
 function refreshCloud(){try{var c=w.ExportHUBDiagnosticsCloud864;if(c&&typeof c.refresh==='function')Promise.resolve(c.refresh(true)).then(function(){var a=w.ExportHUBDiagnostics871;if(a&&typeof a.refresh==='function')a.refresh()})}catch(_){}}
@@ -312,6 +348,7 @@ function install(){
  // after RC871 has filled the details on open (its listener is registered earlier)
  doc.addEventListener('toggle',function(e){var el=e.target;if(el&&el.matches&&el.matches('details.rc871-diag-event')&&el.open)setTimeout(function(){explainDetails(el)},0)},true);
  doc.addEventListener('click',function(e){
+  var x=e.target&&e.target.closest&&e.target.closest('[data-rc1650-toast-close]');if(x){var tb=x.closest('.rc1650-toast');if(tb)tb.remove();return}
   var b=e.target&&e.target.closest&&e.target.closest('[data-rc1650-show],[data-rc1650-ai],[data-rc1650-report-open],[data-rc1650-report-send]');if(!b)return;
   e.preventDefault();
   if(b.hasAttribute('data-rc1650-show'))show(b);
@@ -321,8 +358,10 @@ function install(){
  },true);
  var FIELDS={rc1650ReportArea:'area',rc1650ReportDesc:'description',rc1650ReportExpected:'expected'};
  doc.addEventListener('input',function(e){var id=e.target&&e.target.id;if(FIELDS[id])report[FIELDS[id]]=e.target.value},true);
+ // jobs sent earlier (also after a reload) keep being watched until their notice was shown
+ if(Object.keys(mine()).length)watch();
  schedule();
 }
 
-return Object.freeze({version:VERSION,classify:classify,explain:explain,urgencyOf:urgencyOf,thingOf:thingOf,group:group,summarize:summarize,signature:signature,install:install,refresh:function(){schedule()}});
+return Object.freeze({version:VERSION,classify:classify,explain:explain,urgencyOf:urgencyOf,thingOf:thingOf,group:group,summarize:summarize,signature:signature,jobState:jobState,prUrl:prUrl,install:install,refresh:function(){schedule()}});
 });
