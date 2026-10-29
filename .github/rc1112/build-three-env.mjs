@@ -14,6 +14,7 @@ import {hardenAckMergeSaveHtml} from '../../scripts/rc1627-ack-merge-save.mjs';
 import {patchRc1662SavedShipmentDeltaHtml} from '../../scripts/rc1662-abd-saved-shipment-delta.mjs';
 import {patchRc1602PodBrowserHtml} from '../../scripts/rc1602-pod-browser-pagination.mjs';
 import {patchRc1716PodBatchHtml} from '../../scripts/rc1716-pod-batch-completeness.mjs';
+import {patchRc1718PrintIframeHtml} from '../../scripts/rc1718-qr-print-iframe-pages.mjs';
 
 const ROOT=process.cwd();
 const SRC=path.join(ROOT,'dist-rc1048');
@@ -1891,9 +1892,10 @@ for(const file of ['index.html','TESTVERSION.html','demo.html']){
   const target=path.join(OUT,file);
   const hardened=hardenCustomerSaveHtml(patchRc1662SavedShipmentDeltaHtml(fs.readFileSync(target,'utf8'),file));
   const paginated=patchRc1716PodBatchHtml(patchRc1602PodBrowserHtml(hardenAckMergeSaveHtml(hardened)),file);
+  const rc1718Printed=patchRc1718PrintIframeHtml(paginated,file);
   const oldContacts='assets/rc1092-customer-mail-contacts.js?v=1399';
-  if(!paginated.includes(oldContacts))throw new Error(file+': RC1600 Kontaktcache-Anker fehlt');
-  fs.writeFileSync(target,paginated.replace(oldContacts,'assets/rc1092-customer-mail-contacts.js?v=1600'));
+  if(!rc1718Printed.includes(oldContacts))throw new Error(file+': RC1600 Kontaktcache-Anker fehlt');
+  fs.writeFileSync(target,rc1718Printed.replace(oldContacts,'assets/rc1092-customer-mail-contacts.js?v=1600'));
 }
 // RC1267 public pages: central language runtime must load before the legacy compatibility runtime.
 for(const file of ['customer-avis.html','pickup.html','location.html','pod-notfall.html']){
