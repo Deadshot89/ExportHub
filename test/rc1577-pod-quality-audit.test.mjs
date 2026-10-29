@@ -102,7 +102,7 @@ test('RC1577: hochgeladene PODs tragen das Layout, mit dem sie im Browser erzeug
   assert.match(supplied,/const primary = await saveAzurePod\(accessKey, environment, record, pdf, requestedName, Object\.assign\(\{\}, options, \{ clientSupplied: true \}\)\);/,'Unverified client uploads must retain their true render provenance');
   assert.match(supplied,/POD_SIGNED_ORIGINAL_IMMUTABLE/,'Bestehende unterschriebene Originale müssen vor abweichenden Uploads geschützt bleiben');
   assert.match(supplied,/readAutomaticPodBuffer\(accessKey, environment, record\)/,'Identischer signierter POD wird aus dem unveränderten Speicher nachgesichert');
-  assert.match(fs.readFileSync('api/pod-backup/index.js','utf8'),/saveSuppliedPod\(accessKey, resolved\.environment, record, suppliedPdf, fileName, \{ renderLayout: body\.renderLayout \}\)/);
+  assert.match(fs.readFileSync('api/pod-backup/index.js','utf8'),/saveSuppliedPod\(accessKey, resolved\.environment, record, suppliedPdf, fileName, \{ renderLayout: body\.renderLayout, source: body\.source \}\)/,'PDF-Herkunft und Layout müssen an den Schutz der signierten Originale übergeben werden');
   assert.match(fs.readFileSync('api/shared/pod-integrity-audit.js','utf8'),/saveSuppliedPod\(accessKey,environment,record,archiveRead\.buffer,file\.name,\{renderLayout:file\.renderLayout\}\)/,'Wiederherstellung aus dem Archiv behält die Layout-Kennung');
   assert.match(fs.readFileSync('assets/document-print-name.js','utf8'),/w\.EXPORTHUB_POD_RENDER_LAYOUT='RC1595';/);
   for(const file of ['index.html','TESTVERSION.html']){
