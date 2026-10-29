@@ -63,3 +63,55 @@ test('P0: historical false AV alarm is closed when no issued ABD exists',()=>{
   assert.equal(result.status,'not-required');
   assert.equal(state.tasks[0].status,'erledigt');
 });
+
+test('P0: direct Spain task confirmation persists into Azure before it reports success',async()=>{
+  const fs=(await import('node:fs')).default;
+  const vm=(await import('node:vm')).default;
+  let saves=0;
+  const win={
+    document:null,
+    ExportHUBClean:{
+      queueSave:async()=>true,
+      flushSave:async()=>{saves++;return true;}
+    },
+    addEventListener(){},dispatchEvent(){},
+    setTimeout(){return 1;},clearTimeout(){},
+    location:{hostname:'example.azurestaticapps.net',pathname:'/'}
+  };
+  vm.runInNewContext(fs.readFileSync('assets/rc1014-task-runtime.js','utf8'),
+    {globalThis:win,console,Date,Intl,CustomEvent:function(){}});
+  const state={tasks:[{
+    id:'managed:spanien:2026-10-26',managedBy:'RC1152',managedKey:'spanien',
+    title:'Essentra Spanien anmelden',status:'open'
+  }]};
+  const ok=await win.ExportHUBRC1014TaskRuntime.setTaskStatus(state.tasks[0],'done',{
+    state,currentUserId:'test-user'
+  });
+  assert.equal(ok,true);
+  assert.equal(saves,1);
+  assert.equal(state.tasks[0].status,'done');
+  assert.equal(state.tasks[0].done,true);
+  assert.equal(state.taskStatusLedger['id:managed:spanien:2026-10-26'].done,true);
+  assert.ok(Date.parse(state.tasks[0].statusUpdatedAt)>0);
+});
+
+test('P0: unconfirmed Azure save must roll back task and ledger',async()=>{
+  const fs=(await import('node:fs')).default;
+  const vm=(await import('node:vm')).default;
+  const win={
+    document:null,
+    ExportHUBClean:{queueSave:async()=>true,flushSave:async()=>false},
+    addEventListener(){},dispatchEvent(){},
+    setTimeout(){return 1;},clearTimeout(){},
+    location:{hostname:'example.azurestaticapps.net',pathname:'/'}
+  };
+  vm.runInNewContext(fs.readFileSync('assets/rc1014-task-runtime.js','utf8'),
+    {globalThis:win,console,Date,Intl,CustomEvent:function(){}});
+  const state={tasks:[{id:'managed:spanien:2026-10-26',
+    title:'Essentra Spanien anmelden',status:'open'}]};
+  await assert.rejects(win.ExportHUBRC1014TaskRuntime.setTaskStatus(state.tasks[0],'done',{
+    state,currentUserId:'test-user'
+  }),/TASK_STATUS_SAVE_NOT_CONFIRMED/);
+  assert.equal(state.tasks[0].status,'open');
+  assert.equal(state.taskStatusLedger['id:managed:spanien:2026-10-26'],undefined);
+});
