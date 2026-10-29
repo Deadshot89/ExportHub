@@ -39,6 +39,8 @@ function saveMessage(msg) {
   }).catch(function () {});
 }
 var INBOX_PATH = '/assets/web-push/inbox.html';
+var OPEN_CACHE = 'exporthub-web-push-open';
+var OPEN_KEY = '/assets/web-push/__open';
 function sameOrigin(url, fallback) {
   try { var u = new URL(url || fallback, self.location.origin); return u.origin === self.location.origin ? u.href : new URL(fallback, self.location.origin).href; } catch (_) { return new URL(fallback, self.location.origin).href; }
 }
@@ -90,14 +92,19 @@ self.addEventListener('notificationclick', function (event) {
   var data = event.notification && event.notification.data || {};
   if (event.notification) event.notification.close();
   var target = new URL(INBOX_PATH + '?m=' + encodeURIComponent(data.id || ''), self.location.origin).href;
-  event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (list) {
+  // iOS may ignore openWindow on a cold start and show the app's start page instead: leave a short-lived
+  // hand-off that client.js on that page picks up to switch to the message page right away.
+  var handoff = self.caches ? self.caches.open(OPEN_CACHE).then(function (c) {
+    return c.put(OPEN_KEY, new Response(JSON.stringify({ id: String(data.id || ''), at: Date.now() }), { headers: { 'Content-Type': 'application/json' } }));
+  }).catch(function () {}) : Promise.resolve();
+  event.waitUntil(handoff.then(function () { return self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (list) {
     for (var i = 0; i < list.length; i++) {
       try {
         if (new URL(list[i].url).pathname === INBOX_PATH && list[i].navigate) return list[i].navigate(target).then(function (w) { return w && w.focus(); });
       } catch (_) {}
     }
     return self.clients.openWindow(target);
-  }));
+  }); }));
 });
 
 // The push service rotated the subscription: register the new one with the old endpoint as proof.

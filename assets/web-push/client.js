@@ -11,6 +11,23 @@
   var API = '/api/web-push';
   var INBOX = '/assets/web-push/inbox.html';
   var CARD_ID = 'ehWebPushCard';
+  var OPEN_CACHE = 'exporthub-web-push-open', OPEN_KEY = '/assets/web-push/__open', OPEN_MAX_AGE = 120000;
+
+  // A notification tap must only show the message. iOS can launch the home screen app on its start page
+  // instead of the page the service worker asked for; the worker leaves a hand-off, so switch right away.
+  (function openTappedMessage() {
+    try {
+      if (!w.caches || /\/assets\/web-push\//.test(String(w.location.pathname || ''))) return;
+      w.caches.open(OPEN_CACHE).then(function (c) {
+        return c.match(OPEN_KEY).then(function (r) { return r ? r.json() : null; }).then(function (p) {
+          if (!p) return null;
+          return c.delete(OPEN_KEY).then(function () {
+            if (Date.now() - Number(p.at || 0) <= OPEN_MAX_AGE) w.location.replace(INBOX + '?m=' + encodeURIComponent(String(p.id || '')));
+          });
+        });
+      }).catch(function () {});
+    } catch (_) {}
+  })();
   var info = { busy: false, message: '', error: '', subscription: null, checked: false };
 
   function q(v) { return String(v == null ? '' : v).trim(); }
