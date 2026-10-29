@@ -1192,6 +1192,28 @@ function patchRc1305LoadingListPresentation(html,file){
   return html;
 }
 
+// RC1726: task-originated REF links must resolve exactly the same archived and
+// shared shipments as the signed AV check. Never use a recycled shipment ID to
+// override a matching six-character REF.
+function patchRc1726ShipmentLookup(html,file){
+  function replaceOnce(before,after,label){
+    const found=html.split(before).length-1;
+    if(found!==1)throw new Error(file+': RC1726 '+label+' expected once, found '+found);
+    html=html.replace(before,after);
+  }
+  const previousAll="function allShipments(){var list=[];roots().forEach(function(r){arr(r.shipments).concat(arr(r.savedShipments)).forEach(function(sh){if(obj(sh))list.push(sh)});['shipment','currentShipment','selectedShipment'].forEach(function(k){if(obj(r[k]))list.push(r[k])})});return list}";
+  const nextAll="function allShipments(){var list=[];roots().forEach(function(r){['shipments','savedShipments','salesSharedShipments','sharedShipments','shipmentArchive','archivedShipments','archive'].forEach(function(k){arr(r[k]).forEach(function(sh){if(obj(sh)&&(refOf(sh)||idOf(sh)))list.push(sh)})});['shipment','currentShipment','selectedShipment'].forEach(function(k){if(obj(r[k]))list.push(r[k])})});return list}";
+  const previousSaved="function savedShipments(){var map={};roots().forEach(function(r){arr(r.shipments).concat(arr(r.savedShipments)).forEach(function(sh){if(!obj(sh))return;var key=refOf(sh)||idOf(sh);if(!key)return;var prev=map[key],ss=score(sh);if(!prev||ss>prev.score)map[key]={shipment:sh,score:ss}})});return Object.keys(map).map(function(k){return map[k].shipment})}";
+  const nextSaved="function savedShipments(){var map={};allShipments().forEach(function(sh){if(!obj(sh))return;var key=refOf(sh)||idOf(sh);if(!key)return;var prev=map[key],ss=score(sh);if(!prev||ss>prev.score)map[key]={shipment:sh,score:ss}});return Object.keys(map).map(function(k){return map[k].shipment})}";
+  const previousFind="function find(value){var key=typeof value==='object'&&value?(idOf(value)||refOf(value)):q(value),upper=key.toUpperCase(),best=null,bestScore=-1;allShipments().forEach(function(sh){if(idOf(sh)===key||idOf(sh).toUpperCase()===upper||refOf(sh)===upper){var ss=score(sh);if(ss>bestScore){best=sh;bestScore=ss}}});return best}";
+  const nextFind="function find(value){var key=typeof value==='object'&&value?(refOf(value)||idOf(value)):q(value),upper=key.toUpperCase();if(!key)return null;var all=allShipments(),refs=all.filter(function(sh){return refOf(sh)===upper}),matches=refs.length?refs:all.filter(function(sh){return idOf(sh).toUpperCase()===upper});if(!refs.length){var uniqueRefs=Object.create(null);matches.forEach(function(sh){var ref=refOf(sh);if(ref)uniqueRefs[ref]=true});if(Object.keys(uniqueRefs).length>1)return null}var best=null,bestScore=-1;matches.forEach(function(sh){var ss=score(sh);if(ss>bestScore){best=sh;bestScore=ss}});return best}";
+  replaceOnce(previousAll,nextAll,'allShipments');
+  replaceOnce(previousSaved,nextSaved,'savedShipments');
+  replaceOnce(previousFind,nextFind,'find');
+  replaceOnce("s.shipmentViewId=idOf(sh)||refOf(sh);","s.shipmentViewId=refOf(sh)||idOf(sh);",'REF navigation identity');
+  return html;
+}
+
 function patchRc1305ShipmentViewReliability(html,file){
   function replaceBlock(start,end,replacement,label){
     const a=html.indexOf(start),b=a<0?-1:html.indexOf(end,a+start.length);
@@ -1554,6 +1576,7 @@ function patchHtml(file){
   html=patchRc1700PreviouslyRegisteredQrPrintGate(html,file);
   html=patchRc1324PrintScale(html,file);
   html=patchRc1305ShipmentViewReliability(html,file);
+  html=patchRc1726ShipmentLookup(html,file);
   html=patchRc1305LoadingListPresentation(html,file);
   html=patchRc1283LoadingListSearch(html,file);
   html=patchDeckblattHighVisibility(html,file);
