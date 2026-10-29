@@ -34,3 +34,23 @@ for(const viewport of ['desktop','mobile-standard']){
     await assertNoHorizontalOverflow(page);
   });
 }
+
+
+for(const viewport of ['desktop','mobile-standard']){
+  test('RC1705: Standard-SOP vor Kundenauswahl aufrufbar ('+viewport+')',async({page},testInfo)=>{
+    test.skip(testInfo.project.name!==viewport,'nur '+viewport);
+    await page.goto(appEntry(),{waitUntil:'domcontentloaded'});
+    await waitReady(page);
+    await openExportHubView(page,'shipment',['Sendung erstellen'],/Sendung erstellen|Versandauftrag/i,{allowProgrammaticFallback:true});
+    const button=page.locator('#rc1705-sop-shipment [data-rc1705-open="SOP-EH-031"]');
+    await expect(button).toBeVisible();
+    await button.click();
+    const panel=page.locator('#rc1705-sop-panel');
+    await expect(panel).toBeVisible();
+    await expect(panel.locator('.rc1705-guide h3')).toContainText(/Sendung/i);
+    await expect(panel.locator('.rc1705-step')).toBeVisible();
+    await panel.locator('[data-rc1705-close]').click();
+    await expect(panel).toHaveCount(0);
+    await assertNoHorizontalOverflow(page);
+  });
+}
