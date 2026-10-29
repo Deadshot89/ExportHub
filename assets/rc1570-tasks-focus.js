@@ -258,10 +258,27 @@ function renderHtml(model,now){
 
 /* actions */
 function findTask(id){return arr(state().tasks).find(function(x){return taskId(x)===q(id)})||null}
-function toggle(id){
+var pendingToggles=new Set();
+async function toggle(id){
   if(!canWrite()){alert(t('noRights'));return}
-  try{if(typeof w.toggleTaskCard==='function')w.toggleTaskCard({preventDefault:function(){},stopPropagation:function(){}},id)}catch(err){try{console.warn('RC1570 toggle',err)}catch(_){}}
-  lastHtml='';schedule()
+  id=q(id);
+  if(pendingToggles.has(id))return;
+  var task=findTask(id),runtime=w.ExportHUBRC1014TaskRuntime;
+  if(!task||!runtime||typeof runtime.setTaskStatus!=='function'){
+    try{if(w.ExportHUBClean&&typeof w.ExportHUBClean.operationStatus==='function')w.ExportHUBClean.operationStatus('Aufgabenbestätigung derzeit nicht verfügbar.','bad')}catch(_){}
+    return;
+  }
+  pendingToggles.add(id);
+  try{
+    var status=isDone(task)?'open':'done';
+    await runtime.setTaskStatus(task,status,{state:state(),currentUser:currentUser()});
+  }catch(err){
+    try{if(w.ExportHUBClean&&typeof w.ExportHUBClean.operationStatus==='function')w.ExportHUBClean.operationStatus('Aufgabe konnte nicht gespeichert werden.','bad')}catch(_){}
+    try{console.error('RC1570 Aufgabenbestätigung nicht gespeichert',err)}catch(_){}
+  }finally{
+    pendingToggles.delete(id);
+    lastHtml='';refreshNow();
+  }
 }
 function openShipment(r){try{if(w.ExportHUBShipmentView&&typeof w.ExportHUBShipmentView.open==='function'){w.ExportHUBShipmentView.open(r,'tasks');return}}catch(_){}try{if(typeof w.setView==='function')w.setView('shipmentoverview')}catch(_){}}
 function route(v){try{if(typeof w.setView==='function')w.setView(v)}catch(_){}}
