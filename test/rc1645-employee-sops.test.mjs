@@ -35,7 +35,12 @@ test('RC1645: reprinting and QR reopen must not inadvertently issue a new shippi
  assert.match(de.find(x=>x.id==='pickup-qr-reopen').steps.at(-1).instruction,/keinen neuen QR-Code/);
  assert.match(de.find(x=>x.id==='documents-reprint').steps.at(-1).instruction,/doppelte Druckaufträge/);
 });
-test('RC1645: existing shipping UI and build scripts remain untouched by the editorial SOP catalog',()=>{
+test('RC1705: employee draft SOPs are exposed only through the read-only helper',()=>{
  const builder=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
- assert.ok(!builder.includes('employee-sops.json'));
+ const helper=fs.readFileSync('assets/rc1705-context-sop-help.js','utf8');
+ assert.ok(builder.includes("'assets/training-center/catalog/employee-sops.json'"));
+ assert.ok(builder.includes('RC1705_SOP_HELP_SCRIPT_TAG'));
+ assert.match(helper,/data-rc739-no-loading/);
+ assert.doesNotMatch(helper,/queueSave\(|flushSave\(|createShipment\(/);
+ assert.equal(catalog.status,'requires-live-ui-review');
 });

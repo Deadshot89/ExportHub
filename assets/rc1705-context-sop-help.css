@@ -1,0 +1,37 @@
+/* RC1705: integrated and accessible non-modal SOP helper */
+#rc1705-sop-launcher{position:fixed;right:20px;bottom:20px;z-index:1590;border:1px solid #2864ad;background:#174986;color:white;padding:11px 17px;border-radius:999px;box-shadow:0 6px 24px #142b4b30;font-weight:700;cursor:pointer}
+#rc1705-sop-shipment{position:fixed;left:max(16px,env(safe-area-inset-left));bottom:max(16px,env(safe-area-inset-bottom));z-index:10010;display:flex;align-items:center;justify-content:flex-start;max-width:calc(100vw - 32px)}
+#rc1705-sop-shipment button{min-height:44px;border-radius:10px;cursor:pointer;box-shadow:0 5px 18px #142b4b30}
+#rc1705-sop-panel{position:fixed;z-index:2147483000;box-sizing:border-box;top:max(12px,env(safe-area-inset-top));right:12px;bottom:max(12px,env(safe-area-inset-bottom));width:min(500px,calc(100vw - 24px));background:var(--surface,#fff);color:var(--text,#1c2938);border:1px solid #98acc2;border-radius:16px;box-shadow:0 18px 50px #111f3445;display:flex;flex-direction:column;overflow:hidden;font:inherit}
+#rc1705-sop-shipment[hidden]{display:none!important}
+#rc1705-sop-panel>header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid #b0bcc955}
+#rc1705-sop-panel h2{font-size:1.1rem;margin:0;line-height:1.3}
+#rc1705-sop-panel>header button{border:0;background:transparent;color:inherit;font-size:1.5rem;min-width:42px;min-height:42px;cursor:pointer}
+#rc1705-sop-panel .rc1705-search{display:flex;flex-direction:column;gap:5px;padding:11px 14px;font-size:.82rem}
+#rc1705-sop-panel .rc1705-search input{width:100%;box-sizing:border-box;border:1px solid #96a9bc;border-radius:8px;background:transparent;color:inherit;padding:10px;font:inherit;min-height:40px}
+#rc1705-sop-panel .rc1705-body{display:grid;grid-template-columns:minmax(115px,36%) minmax(0,1fr);min-height:0;flex:1}
+#rc1705-sop-panel nav{border-right:1px solid #99aabd55;padding:6px;overflow:auto;min-height:0}
+#rc1705-sop-panel nav button{display:block;width:100%;text-align:left;background:transparent;color:inherit;padding:9px 8px;margin-bottom:4px;border:1px solid transparent;border-radius:8px;cursor:pointer;overflow-wrap:anywhere;font-size:.84rem}
+#rc1705-sop-panel nav button small{display:block;font-size:.7rem;opacity:.75;margin-top:3px}
+#rc1705-sop-panel nav button.is-selected{background:#dceafa;color:#123763;border-color:#7ca3d8}
+#rc1705-sop-panel .rc1705-guide{padding:13px;min-width:0;overflow:auto}
+#rc1705-sop-panel h3{font-size:1rem;line-height:1.35;margin:0 0 9px;overflow-wrap:anywhere}
+#rc1705-sop-panel .rc1705-progress{font-size:.78rem;margin:6px 0}
+#rc1705-sop-panel progress{width:100%;height:8px;accent-color:#1c6cab}
+#rc1705-sop-panel .rc1705-points{display:flex;flex-wrap:wrap;gap:5px;margin:15px 0}
+#rc1705-sop-panel .rc1705-points button{min-width:29px;min-height:29px;border:1px solid #91aac3;background:transparent;color:inherit;border-radius:7px;cursor:pointer}
+#rc1705-sop-panel .rc1705-points button.is-done{background:#d3f6e6;color:#14613d}
+#rc1705-sop-panel .rc1705-points button.is-active{outline:2px solid #1571c5;outline-offset:1px}
+#rc1705-sop-panel .rc1705-step{border:1px solid #9bb0c45c;border-radius:10px;padding:12px;line-height:1.55;overflow-wrap:anywhere}
+#rc1705-sop-panel .rc1705-step p{margin:0 0 8px}
+#rc1705-sop-panel .rc1705-step-label{font-size:.8rem;font-weight:700;opacity:.75}
+#rc1705-sop-panel .rc1705-actions{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+#rc1705-sop-panel .rc1705-actions button,#rc1705-sop-panel [data-rc1705-reset]{padding:8px 10px;border:1px solid #90aaca;border-radius:7px;background:transparent;color:inherit;cursor:pointer}
+#rc1705-sop-panel .rc1705-actions [data-rc1705-toggle]{background:#1c5d97;color:white}
+#rc1705-sop-panel button:disabled{opacity:.4;cursor:not-allowed}
+#rc1705-sop-panel .rc1705-note{font-size:.75rem;line-height:1.45;opacity:.79;margin-top:12px}
+#rc1705-sop-panel .rc1705-finished{font-weight:700;color:#166242}
+#rc1705-sop-panel .rc1705-error{margin:10px;color:#a32626}
+#rc1705-sop-panel button:focus-visible,#rc1705-sop-launcher:focus-visible,#rc1705-sop-shipment button:focus-visible{outline:3px solid #e0a52b;outline-offset:2px}
+@media(max-width:600px){#rc1705-sop-launcher{bottom:12px;right:12px}#rc1705-sop-panel{inset:0;width:100%;border-radius:0;max-height:100dvh}#rc1705-sop-panel .rc1705-body{grid-template-columns:minmax(100px,35%) minmax(0,1fr)}#rc1705-sop-panel .rc1705-guide{padding:8px}#rc1705-sop-panel nav button{font-size:.78rem}}
+@media print{#rc1705-sop-launcher,#rc1705-sop-shipment,#rc1705-sop-panel{display:none!important}}
