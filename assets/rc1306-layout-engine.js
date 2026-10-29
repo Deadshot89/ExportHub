@@ -176,7 +176,8 @@ function businessShipment(shell,b){
   root.appendChild(nav);
   root.appendChild(center);
   root.appendChild(rail);
-  shell.appendChild(root)
+  // Formular zuerst: sonst stand es unter "Gespeicherte Sendungen" (Prüfung 29.10.2026)
+  shell.insertBefore(root,shell.firstChild)
 }
 
 /* Glass: modular 12-column studio; blocks become a visual mosaic. */
@@ -206,7 +207,8 @@ function glassShipment(shell,b){
   });
   root.appendChild(hero);
   root.appendChild(mosaic);
-  shell.appendChild(root)
+  // Formular zuerst: sonst stand es unter "Gespeicherte Sendungen" (Prüfung 29.10.2026)
+  shell.insertBefore(root,shell.firstChild)
 }
 
 /* Neon: compact operations center with command rail + two live work columns. */
@@ -230,7 +232,8 @@ function neonShipment(shell,b){
   root.appendChild(command);
   root.appendChild(core);
   root.appendChild(telemetry);
-  shell.appendChild(root)
+  // Formular zuerst: sonst stand es unter "Gespeicherte Sendungen" (Prüfung 29.10.2026)
+  shell.insertBefore(root,shell.firstChild)
 }
 
 function genericLayout(mode){

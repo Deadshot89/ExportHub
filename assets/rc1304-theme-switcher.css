@@ -1703,3 +1703,43 @@ html[data-eh-design="neon"][data-eh-design] body #content :is(.rc1152-task-eyebr
 html[data-eh-design="neon"][data-eh-design] body #content .rc1315-direct-print-setup{color:#67e8f9!important}
 /* Funktionstest 22.10.2026: Classic hat eine helle Seitenleiste; die alte helle Benutzerzeile war darauf kaum lesbar */
 html[data-eh-design="classic"] .sidebar .brand span#brandUserLine{color:#3d5a78!important}
+
+/* Prüfung 29.10.2026: Laptopbreiten 901–1180 px (z. B. 1366 px bei 125 % Windows-Skalierung).
+   Die Spalte der Seitenleiste (--pc-side-width) passte nicht zur echten Breite der Seitenleiste:
+   Klassisch lag die 280-px-Leiste über dem Inhalt, die anderen Designs ließen neben der 82-px-Leiste 164 px leer. */
+@media (min-width:901px) and (max-width:1180px){
+  html[data-eh-design="classic"] body[data-eh-theme] .sidebar{width:var(--pc-side-width)!important}
+}
+@media (min-width:901px) and (max-width:1100px){
+  html[data-eh-design]:not([data-eh-design="classic"]) body[data-eh-theme]{--pc-side-width:82px}
+  html[data-eh-design="glass"] body[data-eh-theme]{--pc-side-width:106px}
+}
+@media (min-width:1101px) and (max-width:1180px){
+  html[data-eh-design]:not([data-eh-design="classic"]) body[data-eh-theme]{--pc-side-width:280px}
+  html[data-eh-design="glass"] body[data-eh-theme]{--pc-side-width:304px}
+}
+
+/* Prüfung 29.10.2026: Lesbarkeit (WCAG AA, mindestens 4,5:1 für normalen Text) */
+html[data-eh-design="classic"] body[data-eh-theme]{--pc-muted:#56687a;--pc-danger:#b54848}
+html[data-eh-design="modern"] body[data-eh-theme][data-eh-design]{--pc-muted:#556578}
+html[data-eh-design="glass"] body[data-eh-theme][data-eh-design]{--pc-muted:#56697d;--pc-primary:#4763e6;--pc-icon-text:#4763e6}
+html[data-eh-design]:not([data-eh-design="neon"]) body[data-eh-theme] :is(.danger,button.danger,.btn-danger):not(.ghost){background:#b54848!important;border-color:#b54848!important}
+html[data-eh-design] body[data-eh-theme] .pack-admin-open-station{background:#c2410c!important;border-color:#c2410c!important}
+
+/* Prüfung 29.10.2026: Neon Night – Bereiche, deren helle Flächen und dunkle Schrift noch durchschienen */
+html[data-eh-design="neon"][data-eh-design][data-eh-design] #ehThemeSelect,
+html[data-eh-design="neon"][data-eh-design][data-eh-design] #languageSelect{color:#e7f4ff!important;background:#0b1728!important}
+html[data-eh-design="neon"][data-eh-design][data-eh-design] #ehThemeSelect option,
+html[data-eh-design="neon"][data-eh-design][data-eh-design] #languageSelect option{color:#e7f4ff;background:#0b1728}
+html[data-eh-design="neon"] .tpv2-task-card.is-overdue{background:#2a1422!important;color:#fecaca!important;border-color:#f87171!important}
+html[data-eh-design="neon"] .tpv2-overdue-section{background:#1d1424!important}
+html[data-eh-design="neon"] :is(.rc1007-sop-overview,.rc1007-sop-document){--sop-border:#294866;--sop-soft:#10233a;--sop-text:#e5eef8;--sop-muted:#9fb3c8;--sop-accent:#7cc4ff}
+html[data-eh-design="neon"] #content .rc1009-sop-list-item{color:#e5eef8!important}
+html[data-eh-design="neon"] #content .rc1009-sop-list-item :is(strong,b){color:#f6fbff!important}
+html[data-eh-design="neon"] #content .rc1009-sop-list-item.active{background:#14325a!important}
+html[data-eh-design="neon"] #content .rc1009-sop-list-item.active small{color:#cfe3f5!important}
+html[data-eh-design="neon"] #content .rc1502-sop-editor-summary>div{background:#10233a!important;border-color:#294866!important}
+html[data-eh-design="neon"] #content .rc1502-sop-editor-summary span{color:#9fb3c8!important}
+html[data-eh-design="neon"] #content .rc1502-sop-editor-summary strong{color:#f6fbff!important}
+html[data-eh-design="neon"] #content .rc1570-scope button[aria-pressed="true"]{color:#07111f!important}
+html[data-eh-design="neon"] #content :is(.rc1502-sop-editor-badge,.rc1502-sop-zoom-button){background:#0e1d31!important;border-color:#294866!important;color:#e5eef8!important}
