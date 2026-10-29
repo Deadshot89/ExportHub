@@ -15,7 +15,7 @@ function openBuiltLookup(){
     'the stable REF, not a recycled technical ID, is the canonical view key');
   const state={
     shipments:[{id:'REUSED-TECH',ref:'OTHER1',customerName:'Wrong customer'}],
-    savedShipments:[],
+    savedShipments:[{id:'S-6',ref:'SAVE66'}],
     archivedShipments:[{id:'REUSED-TECH',ref:'ZVYH89',customerName:'Gebr. Kraan Rondkart. BV',abdFiles:[]}],
     archive:[{id:'H-2',shipmentRef:'HIS222'}],
     shipmentArchive:[{id:'H-3',referenceNumber:'HIS333'}],
@@ -42,7 +42,7 @@ test('RC1726: task REF opens historical shipment even when not in active or save
 
 test('RC1726: all shared and archived collections are searched by REF',()=>{
   const runtime=openBuiltLookup();
-  for(const ref of ['HIS222','HIS333','SHAR44','SALE55','ZVYH89'])
+  for(const ref of ['HIS222','HIS333','SHAR44','SALE55','SAVE66','ZVYH89'])
     assert.equal(runtime.find(ref).shipmentRef||runtime.find(ref).referenceNumber||runtime.find(ref).ref,ref);
   assert.equal(runtime.savedShipments().length,7);
 });
