@@ -5,8 +5,6 @@
 // Eine stabile Aufgabe pro REF fasst mehrere fehlende AVs derselben Sendung zusammen.
 // Nur die signierte Prüfung des echten REF-Ordners darf AV als vorhanden bestätigen.
 
-const pickupStore=require('./pickup-store');
-
 const AV_DUE_DAYS=0; // RC1666: Kontrolle ab tatsächlichem ABD, ohne 5-Tage-Wartefrist
 const AV_LOOKBACK_DAYS=0; // RC1666: historischer Backfill ist unbegrenzt; keine 60-Tage-Ausschlüsse
 const SOURCE_TYPE='av_missing';
@@ -52,10 +50,40 @@ function abdRequestsFor(state,sh){
     return(ref&&rr===ref)||(sid&&rid===sid&&!rr);
   });
 }
+// A status flag such as "ABD erledigt" or a cached abdPresent boolean is not
+// evidence of an actually issued customs document. Such stale flags occur on
+// historic EU shipments and must never create mandatory AV upload tasks.
+function hasIssuedAbdEvidence(record){
+  if(!record||typeof record!=='object')return false;
+  const fileEvidence=file=>{
+    if(typeof file==='string')return !!text(file);
+    return !!(file&&typeof file==='object'&&text(
+      file.name||file.fileName||file.filename||file.blobName||
+      file.storageBlobName||file.storagePath||file.documentId||file.id||
+      file.url||file.fileUrl
+    ));
+  };
+  for(const key of ['abdFiles','abdDocuments','abds']){
+    if(Array.isArray(record[key])&&record[key].some(fileEvidence))return true;
+  }
+  if(fileEvidence(record.abdFile))return true;
+  if(fileEvidence(record.abd))return true;
+  if(['abdRef','abdReference','abdMrn','mrn'].some(key=>{
+    const v=text(record[key]);
+    return !!v&&!/^(false|true|nein|ja|none|n\/a|kein|keine|-|pflicht|erforderlich)$/i.test(v);
+  }))return true;
+  const docs=[...(Array.isArray(record.documents)?record.documents:[]),
+    ...(Array.isArray(record.generatedDocuments)?record.generatedDocuments:[])];
+  return docs.some(file=>{
+    const kind=text(file&&(file.type||file.category||file.group||file.documentType||file.kind));
+    const name=text(file&&(file.name||file.fileName||file.filename));
+    return /(^|\b)abd(\b|$)|ausfuhrbegleitdokument/i.test(kind+' '+name)&&fileEvidence(file);
+  });
+}
 function shipmentHasAbd(state,sh){
   if(!sh||typeof sh!=='object')return false;
-  // Pflicht oder "Wartet auf ABD" allein beweist nicht, dass ein ABD erstellt wurde.
-  return pickupStore.abdPresent(sh)||abdRequestsFor(state,sh).some(r=>pickupStore.abdPresent(r));
+  // AV is required only when there is verifiable evidence for an issued ABD.
+  return hasIssuedAbdEvidence(sh)||abdRequestsFor(state,sh).some(hasIssuedAbdEvidence);
 }
 
 function requiredAvCount(state,sh,indexedCopies){
@@ -96,7 +124,7 @@ function requiredAvCount(state,sh,indexedCopies){
   }
   for(const source of sources){
     for(const r of abdRequestsFor(state,source)){
-      if(!pickupStore.abdPresent(r))continue;
+      if(!hasIssuedAbdEvidence(r))continue;
       const key=text(r.id||r.requestId||r.abdReference||r.mrn);
       const requestKey=key?'request:'+key:r;
       requestKeys.add(requestKey);

@@ -79,11 +79,11 @@ const CUSTOMER_FOLDER_GUARD_TAG='<script id="exporthub-customer-folder-guard">wi
 const CUSTOMER_FOLDER_SCRIPT_TAG='<script id="exporthub-customer-folder-script" defer src="/assets/customer-folder-redesign.js?v=2"></script>';
 const RC1577_OVERVIEW_COMPACT_STYLE_TAG='<link id="exporthub-rc1577-overview-compact" rel="stylesheet" href="/assets/rc1577-shipment-overview-compact.css?v=1577">';
 const RC1558_OVERVIEW_STYLE_TAG='<link id="exporthub-rc1558-overview-style" rel="stylesheet" href="/assets/rc1558-dashboard-overview.css?v=1666">';
-const RC1558_OVERVIEW_I18N_TAG='<script id="exporthub-rc1558-overview-i18n" defer src="/assets/i18n/rc1558-dashboard-overview.js?v=1666"><\/script>';
+const RC1558_OVERVIEW_I18N_TAG='<script id="exporthub-rc1558-overview-i18n" defer src="/assets/i18n/rc1558-dashboard-overview.js?v=1725"><\/script>';
 const RC1558_OVERVIEW_SCRIPT_TAG='<script id="exporthub-rc1558-overview-script" defer src="/assets/rc1558-dashboard-overview.js?v=1667"><\/script>';
 const RC1570_TASKS_STYLE_TAG='<link id="exporthub-rc1570-tasks-style" rel="stylesheet" href="/assets/rc1570-tasks-focus.css?v=1570">';
 const RC1570_TASKS_I18N_TAG='<script id="exporthub-rc1570-tasks-i18n" defer src="/assets/i18n/rc1570-tasks-focus.js?v=1570"></script>';
-const RC1570_TASKS_SCRIPT_TAG='<script id="exporthub-rc1570-tasks-script" defer src="/assets/rc1570-tasks-focus.js?v=1571"></script>';
+const RC1570_TASKS_SCRIPT_TAG='<script id="exporthub-rc1570-tasks-script" defer src="/assets/rc1570-tasks-focus.js?v=1725"></script>';
 const RC1650_SHIPMENT_TASKS_SCRIPT_TAG='<script id="exporthub-rc1650-shipment-tasks-script" defer src="/assets/rc1650-shipment-task-link.js?v=1650"></script>';
 const RC1630_SELF_CORRECT_I18N_TAG='<script id="exporthub-rc1630-self-correct-i18n" defer src="/assets/i18n/rc1630-self-correct.js?v=1630"></script>';
 const RC1630_SELF_CORRECT_SCRIPT_TAG='<script id="exporthub-rc1630-self-correct-script" defer src="/assets/rc1630-self-correct.js?v=1630"></script>';
@@ -236,13 +236,13 @@ function patchRc1558DashboardOverview(html,file){
   html=injectDeferredRuntimeInHead(html,RC1558_OVERVIEW_SCRIPT_TAG,'exporthub-rc1558-overview-script');
   if(!html.includes(RC1558_WORKSPACE_EXPORT))throw new Error(file+': RC1558 RC885-Workspace-Export fehlt');
   if(!html.includes('rc1558-dashboard-overview.css?v=1666'))throw new Error(file+': RC1558 Dashboard-Übersicht-CSS fehlt');
-  if(!html.includes('i18n/rc1558-dashboard-overview.js?v=1666'))throw new Error(file+': RC1558 Dashboard-Übersicht-I18n fehlt');
+  if(!html.includes('i18n/rc1558-dashboard-overview.js?v=1725'))throw new Error(file+': RC1558 Dashboard-Übersicht-I18n fehlt');
   if(!html.includes('rc1558-dashboard-overview.js?v=1667'))throw new Error(file+': RC1558 Dashboard-Übersicht-Runtime fehlt');
   // RC1570 task focus view (overdue/today first, new-task form, working task detail view)
   html=injectDeferredRuntimeInHead(html,RC1570_TASKS_STYLE_TAG,'exporthub-rc1570-tasks-style');
   html=injectDeferredRuntimeInHead(html,RC1570_TASKS_I18N_TAG,'exporthub-rc1570-tasks-i18n');
   html=injectDeferredRuntimeInHead(html,RC1570_TASKS_SCRIPT_TAG,'exporthub-rc1570-tasks-script');
-  if(!html.includes('i18n/rc1570-tasks-focus.js?v=1570')||!html.includes('/assets/rc1570-tasks-focus.js?v=1571')||!html.includes('rc1570-tasks-focus.css?v=1570'))throw new Error(file+': RC1570 Aufgaben-Fokus fehlt');
+  if(!html.includes('i18n/rc1570-tasks-focus.js?v=1570')||!html.includes('/assets/rc1570-tasks-focus.js?v=1725')||!html.includes('rc1570-tasks-focus.css?v=1570'))throw new Error(file+': RC1570 Aufgaben-Fokus fehlt');
   // RC1650 tasks with a customer number are completed by a new shipment for that customer
   html=injectDeferredRuntimeInHead(html,RC1650_SHIPMENT_TASKS_SCRIPT_TAG,'exporthub-rc1650-shipment-tasks-script');
   if(!html.includes('/assets/rc1650-shipment-task-link.js?v=1650'))throw new Error(file+': RC1650 Aufgaben-Sendungsabgleich fehlt');
@@ -1192,6 +1192,29 @@ function patchRc1305LoadingListPresentation(html,file){
   return html;
 }
 
+// RC1726: task-originated REF links must resolve exactly the same archived and
+// shared shipments as the signed AV check. Never use a recycled shipment ID to
+// override a matching six-character REF.
+function patchRc1726ShipmentLookup(html,file){
+  function replaceOnce(before,after,label){
+    const found=html.split(before).length-1;
+    if(found!==1)throw new Error(file+': RC1726 '+label+' expected once, found '+found);
+    html=html.replace(before,after);
+  }
+  const previousAll="function allShipments(){var list=[];roots().forEach(function(r){arr(r.shipments).concat(arr(r.savedShipments)).forEach(function(sh){if(obj(sh))list.push(sh)});['shipment','currentShipment','selectedShipment'].forEach(function(k){if(obj(r[k]))list.push(r[k])})});return list}";
+  const nextAll="function allShipments(){var list=[];roots().forEach(function(r){['shipments','savedShipments','salesSharedShipments','sharedShipments','shipmentArchive','archivedShipments','archive'].forEach(function(k){arr(r[k]).forEach(function(sh){if(obj(sh)&&(refOf(sh)||idOf(sh)))list.push(sh)})});['shipment','currentShipment','selectedShipment'].forEach(function(k){if(obj(r[k]))list.push(r[k])})});return list}";
+  const previousSaved="function savedShipments(){var map={};roots().forEach(function(r){arr(r.shipments).concat(arr(r.savedShipments)).forEach(function(sh){if(!obj(sh))return;var key=refOf(sh)||idOf(sh);if(!key)return;var prev=map[key],ss=score(sh);if(!prev||ss>prev.score)map[key]={shipment:sh,score:ss}})});return Object.keys(map).map(function(k){return map[k].shipment})}";
+  const nextSaved="function savedShipments(){var map={};allShipments().forEach(function(sh){if(!obj(sh))return;var key=refOf(sh)||idOf(sh);if(!key)return;var prev=map[key],ss=score(sh);if(!prev||ss>prev.score)map[key]={shipment:sh,score:ss}});return Object.keys(map).map(function(k){return map[k].shipment})}";
+  const previousFind="function find(value){var key=typeof value==='object'&&value?(idOf(value)||refOf(value)):q(value),upper=key.toUpperCase(),best=null,bestScore=-1;allShipments().forEach(function(sh){if(idOf(sh)===key||idOf(sh).toUpperCase()===upper||refOf(sh)===upper){var ss=score(sh);if(ss>bestScore){best=sh;bestScore=ss}}});return best}";
+  const nextFind="function find(value){var key=typeof value==='object'&&value?(refOf(value)||idOf(value)):q(value),upper=key.toUpperCase();if(!key)return null;var all=allShipments(),refs=all.filter(function(sh){return refOf(sh)===upper}),matches=refs.length?refs:all.filter(function(sh){return idOf(sh).toUpperCase()===upper});if(!refs.length){var uniqueRefs=Object.create(null);matches.forEach(function(sh){var ref=refOf(sh);if(ref)uniqueRefs[ref]=true});if(Object.keys(uniqueRefs).length>1)return null}var best=null,bestScore=-1;matches.forEach(function(sh){var ss=score(sh);if(ss>bestScore){best=sh;bestScore=ss}});return best}";
+  replaceOnce(previousAll,nextAll,'allShipments');
+  replaceOnce(previousSaved,nextSaved,'savedShipments');
+  replaceOnce(previousFind,nextFind,'find');
+  const previousOpen="function open(value,source){var sh=find(value);if(!sh){alert('Die gespeicherte Sendung wurde nicht gefunden.');return false}var s=state(),cur=low(s.view||(document.body?document.body.getAttribute('data-exporthub-view'):'')||'shipmentoverview');s.shipmentViewId=idOf(sh)||refOf(sh);";
+  replaceOnce(previousOpen,previousOpen.replace('s.shipmentViewId=idOf(sh)||refOf(sh);','s.shipmentViewId=refOf(sh)||idOf(sh);'),'REF navigation identity');
+  return html;
+}
+
 function patchRc1305ShipmentViewReliability(html,file){
   function replaceBlock(start,end,replacement,label){
     const a=html.indexOf(start),b=a<0?-1:html.indexOf(end,a+start.length);
@@ -1554,6 +1577,7 @@ function patchHtml(file){
   html=patchRc1700PreviouslyRegisteredQrPrintGate(html,file);
   html=patchRc1324PrintScale(html,file);
   html=patchRc1305ShipmentViewReliability(html,file);
+  html=patchRc1726ShipmentLookup(html,file);
   html=patchRc1305LoadingListPresentation(html,file);
   html=patchRc1283LoadingListSearch(html,file);
   html=patchDeckblattHighVisibility(html,file);
@@ -1585,7 +1609,7 @@ function patchHtml(file){
   html=html.replace(/(window\.__EXPORTHUB_BUILD__\s*=\s*['"])RC1048(['"])/g,`$1${VERSION}$2`);
   html=html.replaceAll(LEGACY_TESTSERVICE_HOST,CURRENT_TESTSERVICE_HOST);
   html=html.replace(/assets\/rc1074-login-clean\.js\?v=(?:1074|1112|1298|1301|1303|1311|1349)/g,'assets/rc1074-login-clean.js?v=1630');
-  html=html.replace(/assets\/rc1014-task-runtime\.js\?v=(?:1016|1266|1312|1353|1359)/g,'assets/rc1014-task-runtime.js?v=1359');
+  html=html.replace(/assets\/rc1014-task-runtime\.js\?v=(?:1016|1266|1312|1353|1359|1725)/g,'assets/rc1014-task-runtime.js?v=1725');
   const taskRuntimeTag=/<script\b[^>]*src=["']\/assets\/rc1014-task-runtime\.js\?v=[^"']+["'][^>]*><\/script>/i;
   if(!html.includes('id="exporthub-taskplanner-v2-runtime-bridge"')){
     const taskRuntimeMatch=html.match(taskRuntimeTag);
@@ -1641,7 +1665,7 @@ function patchHtml(file){
   if(!html.includes(`ExportHUB ${VERSION} environment=`))throw new Error(file+': Environment '+VERSION+' fehlt');
   if(file!=='demo.html'&&!html.includes('assets/rc1289-auth-transport-fallback.js?v=1289'))throw new Error(file+': RC1289 Desktop-Auth-Fallback fehlt');
   if(!html.includes('assets/rc1074-login-clean.js?v=1630'))throw new Error(file+': RC1349 Login-/Browser-Branding-Cache-Key fehlt');
-  if(!html.includes('assets/rc1014-task-runtime.js?v=1359'))throw new Error(file+': RC1359 Aufgaben-Runtime Cache-Key fehlt');
+  if(!html.includes('assets/rc1014-task-runtime.js?v=1725'))throw new Error(file+': RC1359 Aufgaben-Runtime Cache-Key fehlt');
   if(!html.includes('assets/taskplanner-v2.css?v=2000'))throw new Error(file+': TaskPlanner V2 Styles fehlen');
   if(!html.includes('assets/taskplanner-v2-projections.css?v=2000'))throw new Error(file+': TaskPlanner V2 Projection Styles fehlen');
   if(!html.includes('assets/taskplanner-v2-core.js?v=2000'))throw new Error(file+': TaskPlanner V2 Core fehlt');
