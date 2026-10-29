@@ -49,6 +49,8 @@ test('RC1705 cannot mutate shipments, send mail or print from the guide',()=>{
  assert.match(css,/@media print/);
  assert.match(css,/@media\(max-width:600px\)/);
  assert.match(css,/:focus-visible/);
+ assert.match(css,/#rc1705-sop-panel\{position:fixed;z-index:2147483000/);
+ assert.match(css,/#rc1705-sop-shipment\{position:fixed;/);
 });
 
 
@@ -56,7 +58,7 @@ test('RC1705: standard SOP button appears even before a customer has been select
  const listeners={};
  const host={children:[],firstChild:null,firstElementChild:null,
    insertBefore(el){el.parentNode=this;this.children.unshift(el);this.firstChild=el;this.firstElementChild=el}};
- const nav={},body={getAttribute:()=> 'shipment',appendChild(el){el.parentNode=this}};
+ const nav={},body={children:[],getAttribute:()=> 'shipment',appendChild(el){el.parentNode=this;this.children.push(el)}};
  const buttons=[];
  const doc={readyState:'loading',documentElement:{lang:'de'},body,activeElement:null,
    addEventListener(name,cb){listeners[name]=cb},
@@ -73,10 +75,10 @@ test('RC1705: standard SOP button appears even before a customer has been select
  vm.runInNewContext(runtime,{window:win,document:doc,Promise});
  assert.equal(typeof listeners.DOMContentLoaded,'function');
  listeners.DOMContentLoaded();
- assert.equal(host.children.length,1,'SOP button must be inserted without customer context');
- assert.equal(host.children[0].id,'rc1705-sop-shipment');
+ assert.equal(host.children.length,0,'SOP trigger must not be inserted into overlapping form content');
+ assert.ok(body.children.some(el=>el.id==='rc1705-sop-shipment'),'SOP trigger must be in the top-level document body');
  assert.match(buttons[0].textContent,/Standard-SOP/);
- assert.match(host.children[0].innerHTML,/data-rc1705-open="SOP-EH-031"/);
+ assert.match(body.children.find(el=>el.id==='rc1705-sop-shipment').innerHTML,/data-rc1705-open="SOP-EH-031"/);
 });
 
 
