@@ -42,6 +42,6 @@ test('RC1627: customer deltas and unacknowledged merges still require the readba
 
 test('RC1627: RC1112 build applies the ack-merge fix after RC1600 for all environments',()=>{
   const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
- assert.match(build,/const paginated=patchRc1718PrintIframeHtml\(patchRc1716PodBatchHtml\(patchRc1602PodBrowserHtml\(hardenAckMergeSaveHtml\(hardened\)\),file\),file\)/);
+ assert.match(build,/const paginated=patchRc1716PodBatchHtml\(patchRc1602PodBrowserHtml\(hardenAckMergeSaveHtml\(hardened\)\),file\)/);
   assert.match(build,/import \{patchRc1716PodBatchHtml\} from '\.\.\/\.\.\/scripts\/rc1716-pod-batch-completeness\.mjs'/);
 });
