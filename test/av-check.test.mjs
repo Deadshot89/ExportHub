@@ -57,6 +57,21 @@ test('RC1666: Kandidaten enthalten alle historischen und offenen Sendungen mit r
   assert.equal(av.AV_LOOKBACK_DAYS,0,'historische Sendungen dürfen nicht abgeschnitten werden');
 });
 
+test('RC1724: AV-Prüfung liest nur den REF-Ordner der ausgewählten Umgebung',async()=>{
+  const called=[];
+  const s=state(shipment());
+  const h=handler(s,{}, {listFiles:async(ref,environment)=>{
+    called.push({ref,environment});
+    if(environment!=='testservice')throw new Error('Falsche Cloud-Umgebung für REF');
+    return [{name:'AV_ABC123.pdf'}];
+  }});
+  const r=await h.run();
+  assert.equal(r.status,200);
+  assert.equal(r.body.present,1);
+  assert.deepEqual(called,[{ref:'ABC123',environment:'testservice'}]);
+  assert.equal(avTasks(s).length,0);
+});
+
 test('fehlendes AV erzeugt genau eine Aufgabe pro REF',async()=>{
   const s=state(shipment()),h=handler(s,{ABC123:[{name:'ABD_ABC123.pdf'},{name:'CMR.pdf'}]});
   const first=await h.run();
