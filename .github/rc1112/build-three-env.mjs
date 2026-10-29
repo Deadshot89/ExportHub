@@ -1210,7 +1210,8 @@ function patchRc1726ShipmentLookup(html,file){
   replaceOnce(previousAll,nextAll,'allShipments');
   replaceOnce(previousSaved,nextSaved,'savedShipments');
   replaceOnce(previousFind,nextFind,'find');
-  replaceOnce("s.shipmentViewId=idOf(sh)||refOf(sh);","s.shipmentViewId=refOf(sh)||idOf(sh);",'REF navigation identity');
+  const previousOpen="function open(value,source){var sh=find(value);if(!sh){alert('Die gespeicherte Sendung wurde nicht gefunden.');return false}var s=state(),cur=low(s.view||(document.body?document.body.getAttribute('data-exporthub-view'):'')||'shipmentoverview');s.shipmentViewId=idOf(sh)||refOf(sh);";
+  replaceOnce(previousOpen,previousOpen.replace('s.shipmentViewId=idOf(sh)||refOf(sh);','s.shipmentViewId=refOf(sh)||idOf(sh);'),'REF navigation identity');
   return html;
 }
 
