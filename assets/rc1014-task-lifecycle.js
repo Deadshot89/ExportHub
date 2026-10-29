@@ -75,7 +75,7 @@
     const recurrenceApi=root.ExportHUBTaskRecurrenceV2;if(recurrenceApi&&typeof recurrenceApi.nextOccurrence==='function')return recurrenceApi.nextOccurrence(task,now);
     const current=normalizeTask(task),recurrence=q(current.recurrence).toLowerCase(),base=dayKey(current.dueAt)||dayKey(now||new Date());let nextDay=base,nextKey='';
     if(/week/.test(recurrence)){nextDay=addDays(base,7);nextKey=isoWeekKey(nextDay);}else{nextDay=addDays(base,1);nextKey=nextDay;}
-    return{...current,id:`${current.id}:next:${nextKey}`,occurrenceKey:nextKey,dueAt:current.dueAt?nextDay:current.dueAt,status:'open',completedAt:'',completedBy:'',createdAt:q(now),updatedAt:q(now)};
+    return{...current,id:`${current.id}:next:${nextKey}`,occurrenceKey:nextKey,dueAt:current.dueAt?nextDay:current.dueAt,status:'open',done:false,completed:false,doneAt:'',doneBy:'',completedAt:'',completedBy:'',createdAt:q(now),updatedAt:q(now)};
   }
   function reminderKey(task,date,slot,environment,userId){const t=normalizeTask(task);return[t.id,q(date),q(slot),q(environment),q(userId)].join('|');}
   function reminderCandidates(tasks,ctx={}){return visibleTasks(tasks,ctx).filter(t=>t.status==='open'||t.status==='in_progress').sort((a,b)=>compareTasks(a,b,ctx.now));}
@@ -122,7 +122,7 @@
       out=materialized.tasks;if(materialized.changed)changed=true;
       if(typeof recurrenceApi.materializeLegacy==='function'){const legacy=recurrenceApi.materializeLegacy(out,ctx.now,arr(domain&&domain.taskSeries));out=legacy.tasks;if(legacy.changed)changed=true;}
     }else{
-      const keys=new Set(out.map(identityKey)),generated=[];for(const task of out){if(task.status!=='done'||!q(task.recurrence))continue;const next=nextOccurrence(task,ctx.now),key=identityKey(next);if(keys.has(key))continue;keys.add(key);generated.push(next);}if(generated.length){out.push(...generated);changed=true;}
+      const keys=new Set(out.map(identityKey)),generated=[];for(const task of out){if(task.status!=='done'||!q(task.recurrence)||task.masterTaskRC848===true||task.masterTaskRC846===true)continue;const next=nextOccurrence(task,ctx.now),key=identityKey(next);if(keys.has(key))continue;keys.add(key);generated.push(next);}if(generated.length){out.push(...generated);changed=true;}
     }
     return{tasks:out,changed};
   }
