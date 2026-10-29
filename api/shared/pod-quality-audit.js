@@ -79,11 +79,23 @@ function classify(sh,facts){
 
 async function fileFacts(clients,file,shipment,environment){
  const out={name:text(file.name||file.fileName||file.filename),uploadedAt:text(file.uploadedAt),renderLayout:podArchive.renderLayoutOf(file.renderLayout),manualUpload:isManualUpload(file),readable:false};
+ // A PDF header is not proof that the ORIGINAL is intact. Check the full
+ // content against the immutable hash/length whenever the record has them.
+ const expectedHash=lower(file.sha256||file.hash),expectedSize=Number(file.size);
+ function inspectBytes(bytes){
+  if(!Buffer.isBuffer(bytes)||!integrity.looksLikePodBuffer(bytes,file))return false;
+  if(Number.isFinite(expectedSize)&&expectedSize>0&&bytes.length!==expectedSize){out.error='POD_SIZE_MISMATCH';return false}
+  if(/^[a-f0-9]{64}$/.test(expectedHash)&&crypto.createHash('sha256').update(bytes).digest('hex')!==expectedHash){
+   out.error='POD_HASH_MISMATCH';return false
+  }
+  return true
+ }
  const inline=inlineBuffer(file);
- if(inline){out.readable=integrity.looksLikePodBuffer(inline,file);return out}
+ if(inline){out.readable=inspectBytes(inline);if(!out.readable&&!out.error)out.error='POD_CONTENT_INVALID';return out}
  const read=await integrity.readStoredPod(clients,file);
  out.readable=read.ok===true;
- if(!read.ok)out.error=text(read.code).slice(0,60);
+ if(out.readable&&Buffer.isBuffer(read.buffer))out.readable=inspectBytes(read.buffer);
+ if(!out.readable&&!out.error)out.error=text(read.code||'POD_CONTENT_INVALID').slice(0,60);
  // RC1613 P0: the admin's read-only quality report must not suggest replacing
  // signed ink when the exact immutable original is still available through
  // RC1608's verified pickup-POD readback (primary record or SHA-matched archive).
