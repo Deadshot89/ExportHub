@@ -27,6 +27,10 @@ on:
       - 'test/rc1549-live-browser-timeout-budget.test.mjs'
       - 'test/rc1551-multi-truck-response-match.test.mjs'
       - 'assets/rc1014-task-runtime.js'
+      - 'assets/rc1570-tasks-focus.js'
+      - 'api/shared/merge.js'
+      - 'api/shared/av-check.js'
+      - 'test/p0-task-status-av-regression.test.mjs'
       - 'assets/rc1206-shipping-rules.js'
       - 'test/rc1151-document-download-history.test.mjs'
       - '.github/workflows/rc1151-branch-test.yml'
@@ -41,6 +45,8 @@ jobs:
         with:
           node-version: '20'
       - run: node --test test/rc1151-document-download-history.test.mjs
+      - name: P0 Aufgabenstatus Spanien und AV-Korrektheit
+        run: node --test test/p0-task-status-av-regression.test.mjs test/av-check.test.mjs
       - name: RC1266 UPS und Aufgaben Regression
         run: node --test test/rc1207-ups-toolbox.test.mjs test/rc1152-task-detail-roster.test.mjs
       - name: RC1590 Anmeldung erst nach Versandbestätigung erledigen
