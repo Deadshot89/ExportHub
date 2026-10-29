@@ -56,6 +56,17 @@ export function patchRc1716PodBatchHtml(html, environment = 'unknown') {
     'never show optimistic SharePoint success in emergency modal'
   );
 
+
+  // RC1722: ZIP central directory accepts duplicate names, but Windows
+  // extraction may replace a previous PDF. Preserve every original byte
+  // buffer and give duplicate entries stable, collision-free filenames.
+  script = replaceOnce(
+    script,
+    "function zip(entries){",
+    "function uniqueArchiveEntries(entries){var used=Object.create(null);entries.forEach(function(e){var n=q(e&&e.name),p=n.lastIndexOf('.'),stem=p<0?n:n.slice(0,p),ext=p<0?'':n.slice(p),name=n,i=2;while(used[name.toLowerCase()]){name=stem+'_'+i+ext;i++}used[name.toLowerCase()]=true;e.name=name});return entries}\\nfunction zip(entries){uniqueArchiveEntries(entries);",
+    'duplicate POD filenames must be unique before ZIP central directory is written'
+  );
+
   script = replaceOnce(
     script,
     "btn.disabled=true;bar.style.width='0%';var entries=[],fail=[];",
