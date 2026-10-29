@@ -372,8 +372,19 @@ function startDrill(kpi,view){
       if(target.closest('[data-rc1569-clear]')){e.preventDefault();clearDrill();return}
       var done=target.closest('[data-rc1569-done]');
       if(done){e.preventDefault();var id=done.getAttribute('data-rc1569-done');done.disabled=true;
-        try{if(typeof w.toggleTaskCard==='function')w.toggleTaskCard({preventDefault:function(){},stopPropagation:function(){}},id)}catch(err){try{console.warn('RC1569 done',err)}catch(_){}}
-        var box=d.getElementById(DRILL_ID);if(box)box.__html='';if(drill)drill.cache=null;scheduleDrill();return}
+        var currentState=getState(),task=arr(currentState.tasks).find(function(item){return taskIdOf(item)===id});
+        var runtime=w.ExportHUBRC1014TaskRuntime;
+        if(!task||!runtime||typeof runtime.setTaskStatus!=='function'){done.disabled=false;return}
+        Promise.resolve(runtime.setTaskStatus(task,'done',{state:currentState})).then(function(saved){
+          if(saved!==true)throw new Error('TASK_STATUS_NOT_SAVED');
+          var box=d.getElementById(DRILL_ID);if(box)box.__html='';
+          if(drill)drill.cache=null;scheduleDrill();
+        }).catch(function(error){
+          done.disabled=false;
+          try{console.warn('RC1569 done storage failed',error)}catch(_){}
+          try{if(w.ExportHUBClean&&typeof w.ExportHUBClean.operationStatus==='function')w.ExportHUBClean.operationStatus(t('portal.saveFailed'),'bad')}catch(_){}
+        });
+        return}
       var open=target.closest('[data-rc1569-open-task]');
       if(open){e.preventDefault();try{if(typeof w.rc524OpenTaskEditor==='function')w.rc524OpenTaskEditor(open.getAttribute('data-rc1569-open-task'))}catch(_){}}
     },true)
