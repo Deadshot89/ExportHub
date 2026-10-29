@@ -175,9 +175,31 @@ async function readBlobBuffer(blob){
 function normalizeInlineDocumentName(file,parsed){
  try{return pdfReferences.normalizePdfDocument(file,parsed.buffer,parsed.mimeType)}catch(_){return clone(file)}
 }
+// D365 SalesPackingSlip PDFs can use encoded fonts or compressed object streams.
+// The fast extractor may miss DNC/SIDE text; retry using the existing PDF engine.
+// Never infer document references from the technical filename's numeric fields.
+async function normalizeInlineDocumentNameRobust(file,parsed,options={}){
+ const first=normalizeInlineDocumentName(file,parsed);
+ const name=text(file&&(file.name||file.fileName||file.filename));
+ if(first.documentReference||!/^SalesPackingSlip[-_]/i.test(name)||
+    !/\\.pdf$/i.test(name)||parsed.mimeType!=='application/pdf')return first;
+ const fastResult=pdfReferences.normalizedPdfName(name,pdfReferences.extractPdfText(parsed.buffer));
+ if(fastResult.reason==='ambiguous')return first;
+ try{
+  const extractor=typeof options.pdfTextExtractor==='function'?options.pdfTextExtractor:
+    require('./customer-avis-document-content').extractPdfText;
+  const recognized=pdfReferences.normalizedPdfName(name,await extractor(parsed.buffer));
+  if(!recognized.renamed||!recognized.reference)return first;
+  return Object.assign({},first,{
+   originalName:file.originalName||name,name:recognized.name,
+   documentReference:recognized.reference,
+   documentReferenceType:recognized.reason==='side'?'SIDE':'DNC'
+  });
+ }catch(_){return first}
+}
 async function verifiedStoreInlineDocument(file,options={}){
  const parsed=extractInlinePayload(file);if(!parsed)return clone(file);
- const normalizedFile=normalizeInlineDocumentName(file,parsed);
+ const normalizedFile=await normalizeInlineDocumentNameRobust(file,parsed,options);
  const environment=normalizeEnvironment(options.environment),container=options.container||createDocumentContainer();
  await ensureDocumentContainer(container);
  const hash=crypto.createHash('sha256').update(parsed.buffer).digest('hex'),blobName=`rc1059/${environment}/${hash.slice(0,2)}/${hash}`,blob=container.getBlockBlobClient(blobName);
@@ -188,7 +210,7 @@ async function verifiedStoreInlineDocument(file,options={}){
 }
 async function storeInlineDocument(file,options={}){
  const parsed=extractInlinePayload(file);if(!parsed)return clone(file);
- const normalizedFile=normalizeInlineDocumentName(file,parsed);
+ const normalizedFile=await normalizeInlineDocumentNameRobust(file,parsed,options);
  const environment=normalizeEnvironment(options.environment),container=options.container||createDocumentContainer();
  await ensureDocumentContainer(container);
  const hash=crypto.createHash('sha256').update(parsed.buffer).digest('hex'),blobName=`rc1059/${environment}/${hash.slice(0,2)}/${hash}`,blob=container.getBlockBlobClient(blobName);
@@ -233,4 +255,4 @@ async function migrateLegacyDocuments(state,options={}){
  return{state:out,found:inventory.found,migrated,skipped:inventory.skipped,failed,remaining,bytesMoved,done:remaining===0};
 }
 
-module.exports={DOCUMENT_CONTAINER,DOCUMENT_FIELDS,ROOT_COLLECTIONS,INLINE_FIELDS,normalizeEnvironment,extractInlinePayload,inlineCandidateStats,legacyDocumentInventory,storeInlineDocument,externalizeDocumentCollections,migrateLegacyDocuments,createDocumentContainer,ensureDocumentContainer,normalizeInlineDocumentName};
+module.exports={DOCUMENT_CONTAINER,DOCUMENT_FIELDS,ROOT_COLLECTIONS,INLINE_FIELDS,normalizeEnvironment,extractInlinePayload,inlineCandidateStats,legacyDocumentInventory,storeInlineDocument,externalizeDocumentCollections,migrateLegacyDocuments,createDocumentContainer,ensureDocumentContainer,normalizeInlineDocumentName,normalizeInlineDocumentNameRobust};
