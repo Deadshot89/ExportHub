@@ -73,8 +73,10 @@ test('RC1723: unreadable exact root must not be mistaken for missing shipment; n
   const moduleFile=require.resolve(MODULE);delete require.cache[moduleFile];
   const store=require(moduleFile);
   globalThis.fetch=async(url,options={})=>{
-   const method=options.method||'GET';methods.push(method);
+   const method=options.method||'GET';
+   // OAuth token acquisition uses POST; only Graph data writes are forbidden.
    if(String(url).includes('/oauth2/'))return response(200,{access_token:'synthetic',expires_in:3600});
+   methods.push(method);
    return response(404,{error:{code:'ResourceNotFound'}});
   };
   await assert.rejects(store.upload(reference,fileName,pdf,'image/jpeg'),e=>e.code==='GRAPH_REFERENCE_EXACT_TARGET_UNREADABLE');
