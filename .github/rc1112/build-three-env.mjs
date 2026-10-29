@@ -83,7 +83,7 @@ const RC1558_OVERVIEW_I18N_TAG='<script id="exporthub-rc1558-overview-i18n" defe
 const RC1558_OVERVIEW_SCRIPT_TAG='<script id="exporthub-rc1558-overview-script" defer src="/assets/rc1558-dashboard-overview.js?v=1667"><\/script>';
 const RC1570_TASKS_STYLE_TAG='<link id="exporthub-rc1570-tasks-style" rel="stylesheet" href="/assets/rc1570-tasks-focus.css?v=1570">';
 const RC1570_TASKS_I18N_TAG='<script id="exporthub-rc1570-tasks-i18n" defer src="/assets/i18n/rc1570-tasks-focus.js?v=1570"></script>';
-const RC1570_TASKS_SCRIPT_TAG='<script id="exporthub-rc1570-tasks-script" defer src="/assets/rc1570-tasks-focus.js?v=1571"></script>';
+const RC1570_TASKS_SCRIPT_TAG='<script id="exporthub-rc1570-tasks-script" defer src="/assets/rc1570-tasks-focus.js?v=1725"></script>';
 const RC1650_SHIPMENT_TASKS_SCRIPT_TAG='<script id="exporthub-rc1650-shipment-tasks-script" defer src="/assets/rc1650-shipment-task-link.js?v=1650"></script>';
 const RC1630_SELF_CORRECT_I18N_TAG='<script id="exporthub-rc1630-self-correct-i18n" defer src="/assets/i18n/rc1630-self-correct.js?v=1630"></script>';
 const RC1630_SELF_CORRECT_SCRIPT_TAG='<script id="exporthub-rc1630-self-correct-script" defer src="/assets/rc1630-self-correct.js?v=1630"></script>';
@@ -242,7 +242,7 @@ function patchRc1558DashboardOverview(html,file){
   html=injectDeferredRuntimeInHead(html,RC1570_TASKS_STYLE_TAG,'exporthub-rc1570-tasks-style');
   html=injectDeferredRuntimeInHead(html,RC1570_TASKS_I18N_TAG,'exporthub-rc1570-tasks-i18n');
   html=injectDeferredRuntimeInHead(html,RC1570_TASKS_SCRIPT_TAG,'exporthub-rc1570-tasks-script');
-  if(!html.includes('i18n/rc1570-tasks-focus.js?v=1570')||!html.includes('/assets/rc1570-tasks-focus.js?v=1571')||!html.includes('rc1570-tasks-focus.css?v=1570'))throw new Error(file+': RC1570 Aufgaben-Fokus fehlt');
+  if(!html.includes('i18n/rc1570-tasks-focus.js?v=1570')||!html.includes('/assets/rc1570-tasks-focus.js?v=1725')||!html.includes('rc1570-tasks-focus.css?v=1570'))throw new Error(file+': RC1570 Aufgaben-Fokus fehlt');
   // RC1650 tasks with a customer number are completed by a new shipment for that customer
   html=injectDeferredRuntimeInHead(html,RC1650_SHIPMENT_TASKS_SCRIPT_TAG,'exporthub-rc1650-shipment-tasks-script');
   if(!html.includes('/assets/rc1650-shipment-task-link.js?v=1650'))throw new Error(file+': RC1650 Aufgaben-Sendungsabgleich fehlt');
@@ -1585,7 +1585,7 @@ function patchHtml(file){
   html=html.replace(/(window\.__EXPORTHUB_BUILD__\s*=\s*['"])RC1048(['"])/g,`$1${VERSION}$2`);
   html=html.replaceAll(LEGACY_TESTSERVICE_HOST,CURRENT_TESTSERVICE_HOST);
   html=html.replace(/assets\/rc1074-login-clean\.js\?v=(?:1074|1112|1298|1301|1303|1311|1349)/g,'assets/rc1074-login-clean.js?v=1630');
-  html=html.replace(/assets\/rc1014-task-runtime\.js\?v=(?:1016|1266|1312|1353|1359)/g,'assets/rc1014-task-runtime.js?v=1359');
+  html=html.replace(/assets\/rc1014-task-runtime\.js\?v=(?:1016|1266|1312|1353|1359|1725)/g,'assets/rc1014-task-runtime.js?v=1725');
   const taskRuntimeTag=/<script\b[^>]*src=["']\/assets\/rc1014-task-runtime\.js\?v=[^"']+["'][^>]*><\/script>/i;
   if(!html.includes('id="exporthub-taskplanner-v2-runtime-bridge"')){
     const taskRuntimeMatch=html.match(taskRuntimeTag);
@@ -1641,7 +1641,7 @@ function patchHtml(file){
   if(!html.includes(`ExportHUB ${VERSION} environment=`))throw new Error(file+': Environment '+VERSION+' fehlt');
   if(file!=='demo.html'&&!html.includes('assets/rc1289-auth-transport-fallback.js?v=1289'))throw new Error(file+': RC1289 Desktop-Auth-Fallback fehlt');
   if(!html.includes('assets/rc1074-login-clean.js?v=1630'))throw new Error(file+': RC1349 Login-/Browser-Branding-Cache-Key fehlt');
-  if(!html.includes('assets/rc1014-task-runtime.js?v=1359'))throw new Error(file+': RC1359 Aufgaben-Runtime Cache-Key fehlt');
+  if(!html.includes('assets/rc1014-task-runtime.js?v=1725'))throw new Error(file+': RC1359 Aufgaben-Runtime Cache-Key fehlt');
   if(!html.includes('assets/taskplanner-v2.css?v=2000'))throw new Error(file+': TaskPlanner V2 Styles fehlen');
   if(!html.includes('assets/taskplanner-v2-projections.css?v=2000'))throw new Error(file+': TaskPlanner V2 Projection Styles fehlen');
   if(!html.includes('assets/taskplanner-v2-core.js?v=2000'))throw new Error(file+': TaskPlanner V2 Core fehlt');
