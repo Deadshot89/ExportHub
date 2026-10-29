@@ -31,7 +31,9 @@ test('RC1718: the real QR/REF output iframe receives print rules, not just the a
 test('RC1718: all three deployment environments receive the same fixed print path',()=>{
   const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
   assert.match(build,/import \{patchRc1718PrintIframeHtml\} from '\.\.\/\.\.\/scripts\/rc1718-qr-print-iframe-pages\.mjs'/);
-  assert.match(build,/patchRc1718PrintIframeHtml\(patchRc1716PodBatchHtml\(/);
+  assert.match(build,/const paginated=patchRc1716PodBatchHtml\(patchRc1602PodBrowserHtml\(hardenAckMergeSaveHtml\(hardened\)\),file\)/);
+  assert.match(build,/const rc1718Printed=patchRc1718PrintIframeHtml\(paginated,file\)/);
+  assert.match(build,/fs\.writeFileSync\(target,rc1718Printed\.replace\(oldContacts/);
   assert.match(build,/for\(const file of \['index\.html','TESTVERSION\.html','demo\.html'\]\)/);
   assert.throws(()=>patchRc1718PrintIframeHtml('<html></html>'),/anchor missing/,'do not silently ship an unpatched print runtime');
 });
