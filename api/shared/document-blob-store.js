@@ -255,4 +255,75 @@ async function migrateLegacyDocuments(state,options={}){
  return{state:out,found:inventory.found,migrated,skipped:inventory.skipped,failed,remaining,bytesMoved,done:remaining===0};
 }
 
-module.exports={DOCUMENT_CONTAINER,DOCUMENT_FIELDS,ROOT_COLLECTIONS,INLINE_FIELDS,normalizeEnvironment,extractInlinePayload,inlineCandidateStats,legacyDocumentInventory,storeInlineDocument,externalizeDocumentCollections,migrateLegacyDocuments,createDocumentContainer,ensureDocumentContainer,normalizeInlineDocumentName,normalizeInlineDocumentNameRobust};
+
+/**
+ * Opt-in legacy metadata repair. No original PDF bytes or Blob paths change.
+ * Never infer a DNC/SIDE from the opaque SalesPackingSlip filename.
+ * Preview is the default; only an authorized caller can persist an apply result.
+ */
+async function repairLegacyBlobDocumentNames(state,options={}){
+  const environment=normalizeEnvironment(options.environment);
+  const apply=options.apply===true,limit=Math.max(1,Math.min(10,Math.floor(Number(options.limit)||5)));
+  const maxBytes=10*1024*1024;
+  const out=clone(state)||{};
+  const body=out&&out.state&&typeof out.state==='object'&&!Array.isArray(out.state)?out.state:out;
+  const candidates=[];
+  for(const root of ROOT_COLLECTIONS){
+    for(const row of Array.isArray(body[root])?body[root]:[]){
+      if(!row||typeof row!=='object')continue;
+      for(const field of DOCUMENT_FIELDS){
+        for(const file of Array.isArray(row[field])?row[field]:[]){
+          if(file&&typeof file==='object'&&file.storage==='blob'&&
+             /^SalesPackingSlip[-_].*\.pdf$/i.test(text(file.name||file.fileName||file.filename)))
+            candidates.push(file);
+        }
+      }
+    }
+  }
+  const stats={state:out,found:candidates.length,examined:0,wouldRename:0,repaired:0,unresolved:0,invalid:0,oversized:0,failed:0,remaining:candidates.length,preview:!apply,done:false};
+  if(!candidates.length){stats.done=true;return stats}
+  const container=options.container||createDocumentContainer();
+  for(const file of candidates.slice(0,limit)){
+    stats.examined++;
+    const match=text(file.blobName).match(/^rc1059\/(production|testservice)\/([a-f0-9]{2})\/([a-f0-9]{64})$/);
+    if(!match||match[1]!==environment||match[2]!==match[3].slice(0,2)||
+       (text(file.sha256)&&text(file.sha256).toLowerCase()!==match[3])){
+      stats.invalid++;continue;
+    }
+    try{
+      const blob=container.getBlockBlobClient(file.blobName);
+      // Check metadata before downloading; large PDFs never enter the parser.
+      if(typeof blob.getProperties!=='function'){stats.invalid++;continue}
+      const properties=await blob.getProperties();
+      const length=Number(properties&&properties.contentLength);
+      if(!Number.isFinite(length)||length<5){stats.invalid++;continue}
+      if(length>maxBytes){stats.oversized++;continue}
+      const bytes=await readBlobBuffer(blob);
+      if(bytes.length>maxBytes){stats.oversized++;continue}
+      if(bytes.subarray(0,5).toString('ascii')!=='%PDF-'||
+         crypto.createHash('sha256').update(bytes).digest('hex')!==match[3]){
+        stats.invalid++;continue;
+      }
+      const renamed=await normalizeInlineDocumentNameRobust(file,{buffer:bytes,mimeType:'application/pdf'},options);
+      if(!renamed.documentReference||renamed.name===file.name||
+         (file.documentReference&&file.documentReference!==renamed.documentReference)){
+        stats.unresolved++;continue;
+      }
+      stats.wouldRename++;
+      if(apply){
+        // Only metadata changes. Keep the document ID, visibility, Blob identity,
+        // digest, customer access and original PDF bytes untouched.
+        file.originalName=file.originalName||text(file.name||file.fileName||file.filename);
+        file.name=renamed.name;
+        file.documentReference=renamed.documentReference;
+        file.documentReferenceType=renamed.documentReferenceType;
+        stats.repaired++;
+      }
+    }catch(_){stats.failed++;}
+  }
+  stats.remaining=stats.found-stats.repaired;
+  stats.done=apply&&stats.remaining===0&&stats.failed===0&&stats.invalid===0;
+  return stats;
+}
+
+module.exports={DOCUMENT_CONTAINER,DOCUMENT_FIELDS,ROOT_COLLECTIONS,INLINE_FIELDS,normalizeEnvironment,extractInlinePayload,inlineCandidateStats,legacyDocumentInventory,storeInlineDocument,externalizeDocumentCollections,migrateLegacyDocuments,createDocumentContainer,ensureDocumentContainer,normalizeInlineDocumentName,normalizeInlineDocumentNameRobust,repairLegacyBlobDocumentNames};

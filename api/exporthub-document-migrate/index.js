@@ -1,6 +1,6 @@
 'use strict';
 const auth=require('../shared/fast-auth-store');
-const {migrateLegacyDocuments}=require('../shared/document-blob-store');
+const {migrateLegacyDocuments,repairLegacyBlobDocumentNames}=require('../shared/document-blob-store');
 
 function text(v){return String(v==null?'':v).trim()}
 function lower(v){return text(v).toLowerCase()}
@@ -24,8 +24,29 @@ module.exports=async function(context,req){
   const validated=await auth.validateSession(req);
   if(typeof auth.isAdmin!=='function'||!auth.isAdmin(validated.user))throw error('ADMIN_REQUIRED','Für die Dokumentmigration sind Administratorrechte erforderlich.',403);
   const environment=requestEnvironment(req),limit=migrationLimit(req&&req.body&&req.body.limit);
+  const action=lower(req&&req.body&&req.body.action||'migrate-inline');
+  if(!['migrate-inline','repair-blob-names'].includes(action))throw error('ACTION_INVALID','Unbekannte Dokument-Wartungsaktion.',400);
   const teamDoc=validated.teamDoc;
   if(!teamDoc||!teamDoc.value)throw error('TEAM_STATE_UNAVAILABLE','Team-State konnte nicht geladen werden.',503);
+  if(action==='repair-blob-names'){
+   // A production/custom-domain request may never select the TESTSERVICE store.
+   const h=req&&req.headers||{};
+   const host=lower(h['x-forwarded-host']||h['X-Forwarded-Host']||h['x-original-host']||h['X-Original-Host']||h.host||h.Host||'');
+   if(environment==='testservice'&&!/-testservice\./i.test(host))
+    throw error('ENVIRONMENT_MISMATCH','TESTSERVICE-Dokumente dürfen nur vom TESTSERVICE aus geprüft werden.',409);
+   // Preview by default; only explicit apply:true from a validated admin can write.
+   const apply=req&&req.body&&req.body.apply===true;
+   const result=await repairLegacyBlobDocumentNames(teamDoc.value,{environment,limit,apply});
+   if(apply&&result.repaired>0){
+    const clients=await auth.clients();
+    await auth.writeJson(clients.team,result.state,teamDoc.etag);
+   }
+   context.res=json(200,{ok:true,action,preview:result.preview,found:result.found,
+    examined:result.examined,wouldRename:result.wouldRename,repaired:result.repaired,
+    unresolved:result.unresolved,invalid:result.invalid,oversized:result.oversized,
+    failed:result.failed,remaining:result.remaining,done:result.done});
+   return;
+  }
   const result=await migrateLegacyDocuments(teamDoc.value,{environment,limit});
   if(Number(result.migrated||0)>0){
    const clients=await auth.clients();
