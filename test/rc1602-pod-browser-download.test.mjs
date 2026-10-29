@@ -262,3 +262,14 @@ test('P0: signed POD without storage label is recognized by the authenticated do
  assert.equal(window.ExportHUBDocumentBlob1059.isBlobDocument({kind:'not-a-pod',blobName:name}),false);
  assert.equal(window.ExportHUBDocumentBlob1059.isBlobDocument({kind:'automatic-pod',blobName:'rc995/testservice/'+ 'a'.repeat(64)+'/automatic/x.pdf'}),true);
 });
+
+
+test('P0: verified signed original bypasses a document-row click that cannot report asynchronous failures',async()=>{
+ const x=setup({withToken:false,withStoredAutomaticBlob:true,withDocumentRow:true});
+ x.button.matches=()=>true;
+ x.click({target:{closest:()=>x.button},preventDefault(){},stopImmediatePropagation(){},stopPropagation(){}});
+ await new Promise(resolve=>setTimeout(resolve,20));
+ assert.equal(x.storedCalls.length,1);
+ assert.equal(x.delegated.length,0,'Do not hide download failure behind the delegated click');
+ assert.equal(x.alerts.length,0);
+});
