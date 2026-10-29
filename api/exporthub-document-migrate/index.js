@@ -29,6 +29,11 @@ module.exports=async function(context,req){
   const teamDoc=validated.teamDoc;
   if(!teamDoc||!teamDoc.value)throw error('TEAM_STATE_UNAVAILABLE','Team-State konnte nicht geladen werden.',503);
   if(action==='repair-blob-names'){
+   // A production/custom-domain request may never select the TESTSERVICE store.
+   const h=req&&req.headers||{};
+   const host=lower(h['x-forwarded-host']||h['X-Forwarded-Host']||h['x-original-host']||h['X-Original-Host']||h.host||h.Host||'');
+   if(environment==='testservice'&&!/-testservice\\./i.test(host))
+    throw error('ENVIRONMENT_MISMATCH','TESTSERVICE-Dokumente dürfen nur vom TESTSERVICE aus geprüft werden.',409);
    // Preview by default; only explicit apply:true from a validated admin can write.
    const apply=req&&req.body&&req.body.apply===true;
    const result=await repairLegacyBlobDocumentNames(teamDoc.value,{environment,limit,apply});
