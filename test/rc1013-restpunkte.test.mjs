@@ -63,10 +63,10 @@ test('Handy-Benachrichtigungen öffnen ohne Login zuerst die native Detailansich
   assert.match(helper,/setContentIntent\(pendingIntent\)/);
   assert.match(detail,/extends Activity/);
   assert.match(detail,/Diese Ansicht zeigt nur den Inhalt dieser Handy-Benachrichtigung/);
-  // read-only: tasks and warnings offer no way into the workspace, only admin diagnostics do
-  assert.doesNotMatch(detail,/Aufgabe öffnen/);
-  assert.match(detail,/if \(diagnostic\) \{[\s\S]*?In ExportHUB öffnen[\s\S]*?openExportHub\(\)/);
-  assert.match(detail,/new Intent\(this, EnvironmentActivity\.class\)/);
+  // read-only: no notification offers a way into the protected workspace
+  assert.doesNotMatch(detail,/Aufgabe öffnen|In ExportHUB öffnen/);
+  assert.doesNotMatch(detail,/new Intent\(this, EnvironmentActivity\.class\)/);
+  assert.match(detail,/close\.setOnClickListener\(v -> finish\(\)\)/);
   assert.match(env,/@JavascriptInterface[\s\S]*?NotificationHelper\.show/);
   assert.match(env,/requestPermissions\(new String\[\]\{Manifest\.permission\.POST_NOTIFICATIONS\}/);
   assert.match(reminder,/NotificationHelper\.show/);

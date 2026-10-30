@@ -44,6 +44,9 @@ function writeDiagnosticMarker(record,cloud){
   const at=Date.parse(atText)||Date.now();
   try{localStorage.setItem(diagnosticMarkerKey(),JSON.stringify({id,at,atText}));return true}catch(_){return false}
 }
+// Performance hints (slow API call, long task, large render) stay in the Fehlerdiagnose page but never
+// reach the phone: they are frequent, not actionable there, and flooded the notification shade.
+function phoneDiagnostic(r){const level=String(r&&r.level||'').toLowerCase();return (level==='error'||level==='warning')&&String(r&&r.category||'').toLowerCase()!=='performance'}
 function diagnosticPayload(record,count=1){
   const rec=record||{};
   const area=String(rec.area||'System').replace(/\s+/g,' ').trim().slice(0,80);
@@ -63,7 +66,7 @@ function notifyDiagnostic(event){
   const store=window.__EXPORTHUB_DIAG863_STORE__;
   const records=store&&Array.isArray(store.records)?store.records:[];
   const rec=records.length?records[records.length-1]:null;
-  if(!rec)return false;
+  if(!rec||!phoneDiagnostic(rec))return false;
   const sent=sendAndroid(diagnosticPayload(rec,1));
   if(sent)writeDiagnosticMarker(rec,cloud);
   return sent;
@@ -75,7 +78,7 @@ async function pollCentralDiagnostics(force){
   if(!cloud||typeof cloud.isGlobalAdmin!=='function'||!cloud.isGlobalAdmin()||typeof cloud.refresh!=='function'||typeof cloud.recentRecords!=='function')return false;
   try{await cloud.refresh(true)}catch(_){return false}
   let rows=[];try{rows=cloud.recentRecords(120)||[]}catch(_){return false}
-  const critical=rows.filter(r=>{const level=String(r&&r.level||'').toLowerCase();return level==='error'||level==='warning'});
+  const critical=rows.filter(phoneDiagnostic);
   if(!critical.length)return false;
   const marker=readDiagnosticMarker();
   let fresh=[];
