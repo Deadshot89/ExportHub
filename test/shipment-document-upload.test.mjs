@@ -35,14 +35,21 @@ test('Dokument-Upload: Excel, Word, CSV, Bilder und E-Mails mit passender Signat
 });
 
 test('Dokument-Upload lehnt falsche, leere, zu große und gefährliche Dateien ab',()=>{
-  assert.throws(()=>refFiles.documentUploadFile('ABC123',{kind:'sonstiges',fileName:'tool.exe',data:PDF},NOW),/Erlaubt sind/);
-  assert.throws(()=>refFiles.documentUploadFile('ABC123',{kind:'sonstiges',fileName:'seite.html',data:CSV},NOW),/Erlaubt sind/);
-  assert.throws(()=>refFiles.documentUploadFile('ABC123',{kind:'excel',fileName:'Liste.xlsx',data:PDF},NOW),/Dateityp/);
-  assert.throws(()=>refFiles.documentUploadFile('ABC123',{kind:'excel',fileName:'Liste.csv',data:b64([0x41,0,0x42])},NOW),/Dateityp/);
-  assert.throws(()=>refFiles.documentUploadFile('ABC123',{kind:'rechnung',fileName:'RE.pdf',data:''},NOW),/leer/);
-  assert.throws(()=>refFiles.documentUploadFile('ABC123',{kind:'zoll',fileName:'RE.pdf',data:PDF},NOW),/Dokumentart/);
+  assert.throws(()=>refFiles.documentUploadFile('ABC123',{kind:'sonstiges',fileName:'tool.exe',data:PDF},NOW),/docTypeInvalid/);
+  assert.throws(()=>refFiles.documentUploadFile('ABC123',{kind:'sonstiges',fileName:'seite.html',data:CSV},NOW),/docTypeInvalid/);
+  assert.throws(()=>refFiles.documentUploadFile('ABC123',{kind:'excel',fileName:'Liste.xlsx',data:PDF},NOW),/docSignatureInvalid/);
+  assert.throws(()=>refFiles.documentUploadFile('ABC123',{kind:'excel',fileName:'Liste.csv',data:b64([0x41,0,0x42])},NOW),/docSignatureInvalid/);
+  assert.throws(()=>refFiles.documentUploadFile('ABC123',{kind:'rechnung',fileName:'RE.pdf',data:''},NOW),/docEmpty/);
+  assert.throws(()=>refFiles.documentUploadFile('ABC123',{kind:'zoll',fileName:'RE.pdf',data:PDF},NOW),/docKindInvalid/);
   const big=Buffer.alloc(15*1024*1024+1,0x20);big.write('%PDF-',0,'ascii');
-  assert.throws(()=>refFiles.documentUploadFile('ABC123',{kind:'rechnung',fileName:'RE.pdf',data:big.toString('base64')},NOW),/15 MB/);
+  assert.throws(()=>refFiles.documentUploadFile('ABC123',{kind:'rechnung',fileName:'RE.pdf',data:big.toString('base64')},NOW),/docTooLarge/);
+});
+
+test('Dokument-Upload: Fehlermeldungen in allen sechs API-Sprachen',()=>{
+  for(const l of ['de','en','pl','es','fr','it']){
+    const pack=JSON.parse(fs.readFileSync(`api/shared/i18n/${l}.json`,'utf8'));
+    for(const k of ['docKindInvalid','docTypeInvalid','docEmpty','docTooLarge','docSignatureInvalid'])assert.ok(pack['api.reference.'+k],l+' '+k);
+  }
 });
 
 test('Dokument-Upload ist in Build, Routing und Sendungsansicht eingebunden',()=>{
