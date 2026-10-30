@@ -9,6 +9,9 @@ on:
       - 'assets/rc1018-public-language.js'
       - 'assets/i18n/**'
       - 'e2e/specs/rc1511-six-language-i18n.spec.mjs'
+      - 'e2e/specs/rc1730-ui-language-gaps.spec.mjs'
+      - 'index.html'
+      - 'assets/*.js'
       - 'e2e/helpers/**'
       - 'test/rc1511-i18n-browser-proof.test.mjs'
       - 'playwright.config.mjs'
@@ -22,6 +25,9 @@ on:
       - 'assets/rc1018-public-language.js'
       - 'assets/i18n/**'
       - 'e2e/specs/rc1511-six-language-i18n.spec.mjs'
+      - 'e2e/specs/rc1730-ui-language-gaps.spec.mjs'
+      - 'index.html'
+      - 'assets/*.js'
       - 'e2e/helpers/**'
       - 'test/rc1511-i18n-browser-proof.test.mjs'
       - 'playwright.config.mjs'
@@ -62,6 +68,12 @@ jobs:
           EXPORTHUB_E2E_STATIC: '1'
           EXPORTHUB_E2E_PUBLIC_ENV: testservice
         run: npx playwright test e2e/specs/rc1511-six-language-i18n.spec.mjs --project=mobile-standard --project=laptop
+
+      - name: RC1730 no German leftovers in the English interface
+        env:
+          EXPORTHUB_E2E_STATIC: '1'
+          EXPORTHUB_E2E_PUBLIC_ENV: testservice
+        run: npx playwright test e2e/specs/rc1730-ui-language-gaps.spec.mjs --project=laptop
 
       - name: Upload browser diagnostics
         if: failure()
