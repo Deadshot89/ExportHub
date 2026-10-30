@@ -130,3 +130,18 @@ test('RC1650: nach dem Melden gibt es eine Rückmeldung und bei fertigem Fix ein
     assert.match(pack.reportSent, /\{id\}/, `${lang}.reportSent nennt den Auftrag`);
   }
 });
+
+test('RC1650: Abbruchgrund wird lesbar angezeigt, ohne doppelt maskierte Zeichen (2026-10-30)', () => {
+  const ui = fs.readFileSync(new URL('../assets/rc1650-diagnostics-plain.js', import.meta.url), 'utf8');
+  assert.match(ui, /replace\(\/&\(#39\|#x27\|quot\|lt\|gt\|amp\);\/g/);
+  const wf = fs.readFileSync(new URL('../.github/workflows/diagnostic-autofix.yml', import.meta.url), 'utf8');
+  assert.match(wf, /sed -n '\/\^BLOCKED:\/,\$p' \.exporthub-autofix\/final\.txt > \/tmp\/exporthub-autofix-final\.txt/);
+  assert.doesNotMatch(wf, /aus Sicherheitsgründen blockiert/);
+});
+
+test('RC1650: „An KI senden“ gibt es direkt in „Zuerst ansehen“ (2026-10-30)', () => {
+  const ui = fs.readFileSync(new URL('../assets/rc1650-diagnostics-plain.js', import.meta.url), 'utf8');
+  assert.match(ui, /data-rc1650-ai-top="'\+esc\(i\.group\.key\)/, 'Button pro Zeile');
+  assert.match(ui, /if\(b\.hasAttribute\('data-rc1650-ai-top'\)\)aiFromTop\(b\)/);
+  assert.match(ui, /function aiFromTop\(btn\)\{[\s\S]*?startAi\(el,btn\)/, 'öffnet den Eintrag und sendet über denselben Weg');
+});

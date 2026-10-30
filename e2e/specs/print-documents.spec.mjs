@@ -463,7 +463,7 @@ test('RC1543 P1: Europaletten erscheinen im echten Ladelisten-Druck als aktuelle
 
 
 
-test('RC1504 P1: lange Lieferscheinlisten bleiben auf A4 ohne Überlappung; die Ladeliste nutzt zwei Spalten',async({page},testInfo)=>{
+test('RC1504 P1: lange Lieferscheinlisten bleiben auf A4 ohne Überlappung; zehn pro Spalte nebeneinander',async({page},testInfo)=>{
   test.skip(testInfo.project.name!=='laptop','Lange Lieferscheinlisten werden einmal im echten Chromium geprüft.');
   test.setTimeout(45_000);
   const guard=attachRuntimeGuards(page,testInfo);
@@ -509,6 +509,7 @@ test('RC1504 P1: lange Lieferscheinlisten bleiben auf A4 ohne Überlappung; die 
         density:grid&&grid.getAttribute('data-rc1363-document-density'),
         columnMarker:grid&&grid.getAttribute('data-rc1504-document-columns'),
         columnCount:new Set(rects.map(r=>Math.round(r.left))).size,
+        firstColumnCount:rects.filter(r=>Math.round(r.left)===Math.min(...rects.map(x=>Math.round(x.left)))).length,
         overlap,
         gridBottom:gr&&gr.bottom,
         rootBottom:rr.bottom,
@@ -523,8 +524,10 @@ test('RC1504 P1: lange Lieferscheinlisten bleiben auf A4 ohne Überlappung; die 
   for(const layout of layouts){
     expect(layout.count,layout.kind+' verliert Lieferscheine/DNCs').toBe(28);
     expect(layout.density,layout.kind+' aktiviert für 28 Anhänge nicht die Ultra-Verdichtung').toBe('ultra');
-    expect(layout.columnCount,layout.kind+' hat eine unerwartete Spaltenanzahl').toBe(layout.kind==='load'?2:1);
-    if(layout.kind==='load')expect(layout.columnMarker,'Ladeliste markiert die RC1504-Zweispaltenlogik nicht').toBe('2');
+    // 2026-10-30 (Tobias): zehn Lieferscheine pro Spalte, Spalten nebeneinander.
+    expect(layout.columnCount,layout.kind+' hat eine unerwartete Spaltenanzahl').toBe(3);
+    expect(layout.columnMarker,layout.kind+' markiert die Spaltenzahl nicht').toBe('3');
+    expect(layout.firstColumnCount,layout.kind+' füllt nicht zehn Lieferscheine pro Spalte').toBe(10);
     expect(layout.overlap,layout.kind+' enthält überlappende Anhangzeilen').toBe(false);
     expect(layout.allNamed,layout.kind+' enthält einen unvollständigen Dateinamen').toBe(true);
     expect(layout.gridBottom<=layout.rootBottom+2,layout.kind+' Dokumentliste ragt aus A4 heraus').toBe(true);
