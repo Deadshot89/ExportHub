@@ -112,7 +112,9 @@ public final class NotificationHelper {
         if (signature.equals(prefs.getString(dedupeKey, ""))) return false;
         prefs.edit().putString(dedupeKey, signature).apply();
 
-        Intent intent = notificationIntent(context, env, normalizedChannel, safeKey, safeTitle, safeBody, safeRoute, null);
+        // The detail screen gets the full text (e.g. the shipments behind a warning count); the shade keeps the short one.
+        String detailBody = safeDetail(body, safeBody);
+        Intent intent = notificationIntent(context, env, normalizedChannel, safeKey, safeTitle, detailBody, safeRoute, null);
         int notificationId = Math.abs((env + ":" + normalizedChannel + ":" + safeKey).hashCode());
         int pendingIntentRequestCode = Math.abs(("native-detail-v2:" + env + ":" + normalizedChannel + ":" + safeKey).hashCode());
         PendingIntent pendingIntent = PendingIntent.getActivity(
@@ -229,6 +231,12 @@ public final class NotificationHelper {
 
     private static String taskGroup(String environment) {
         return TASK_GROUP_PREFIX + environment;
+    }
+
+    private static String safeDetail(String value, String fallback) {
+        String v = value == null ? "" : value.trim();
+        if (v.isEmpty()) return fallback;
+        return v.length() > 4000 ? v.substring(0, 4000) : v;
     }
 
     private static String safe(String value, String fallback) {

@@ -93,7 +93,7 @@ public final class NotificationDetailActivity extends Activity {
         if (diagnostic) {
             renderDiagnostic(root, body);
         } else if ("warning".equalsIgnoreCase(channel)) {
-            renderMessage(root, title, body);
+            renderWarnings(root, title, body);
         } else {
             renderTasks(root, title, body, tasksJson);
         }
@@ -556,7 +556,69 @@ public final class NotificationDetailActivity extends Activity {
         return COLOR_GREY_BG;
     }
 
-    // ---- Warnungen und sonstige Hinweise ----
+    // ---- Warncenter ----
+
+    static final class WarningGroup {
+        String label = "";
+        int count;
+        final List<String> items = new ArrayList<>();
+    }
+
+    private static final Pattern WARNING_GROUP = Pattern.compile("^(.{1,80}): (\\d+)$");
+
+    /** Body: "183 operative Sendungswarnungen offen." then per group "Label: N" and "• Sendung" lines. */
+    static List<WarningGroup> parseWarnings(String body) {
+        List<WarningGroup> groups = new ArrayList<>();
+        if (body == null) return groups;
+        WarningGroup current = null;
+        for (String raw : body.split("\\r?\\n")) {
+            String line = raw.trim();
+            if (line.isEmpty()) continue;
+            Matcher m = WARNING_GROUP.matcher(line);
+            if (m.matches()) {
+                current = new WarningGroup();
+                current.label = m.group(1).trim();
+                try { current.count = Integer.parseInt(m.group(2)); } catch (NumberFormatException ignored) {}
+                groups.add(current);
+            } else if (line.startsWith("• ") && current != null) {
+                current.items.add(line.substring(2).trim());
+            }
+        }
+        return groups;
+    }
+
+    private void renderWarnings(LinearLayout root, String title, String body) {
+        List<WarningGroup> groups = parseWarnings(body);
+        if (groups.isEmpty()) {
+            renderMessage(root, title, body);
+            return;
+        }
+        String headline = body.split("\\r?\\n")[0].trim();
+        root.addView(text(nowLabel(), 13f, COLOR_MUTED, false), margins(0, 6, 0, 0));
+        root.addView(text(headline, 18f, COLOR_TEXT, true), margins(0, 12, 0, 0));
+        for (WarningGroup group : groups) {
+            LinearLayout card = card();
+            root.addView(card, margins(0, 12, 0, 0));
+
+            LinearLayout head = row();
+            TextView label = text(group.label, 17f, COLOR_TEXT, true);
+            head.addView(label, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+            head.addView(badge(String.valueOf(group.count), COLOR_RED, COLOR_RED_BG));
+            card.addView(head);
+
+            for (String item : group.items) {
+                TextView itemView = text("• " + item, 15f, COLOR_BODY, false);
+                itemView.setTextIsSelectable(true);
+                card.addView(itemView, margins(0, 8, 0, 0));
+            }
+            int more = group.count - group.items.size();
+            if (more > 0) {
+                card.addView(text("und " + more + " weitere", 13f, COLOR_MUTED, false), margins(0, 8, 0, 0));
+            }
+        }
+    }
+
+    // ---- sonstige Hinweise ----
 
     private void renderMessage(LinearLayout root, String title, String body) {
         root.addView(text(nowLabel(), 13f, COLOR_MUTED, false), margins(0, 6, 0, 0));

@@ -20,13 +20,27 @@ function sendAndroid(payload){
   if(prev===sig)return false;
   try{window.ExportHUBAndroid.notify(payload.channel,payload.key,payload.title,payload.body,payload.route);sessionStorage.setItem(storageKey,sig);return true}catch(_){return false}
 }
+// The phone shows which shipments are behind the warning count: per group "Label: N" and up to
+// three shipments as "• title". The native detail screen renders these lines as cards.
+function warningDetailLines(){
+  const sum=window.__EXPORTHUB_WARNING_SUMMARY__;
+  if(!sum||!Array.isArray(sum.groups))return'';
+  const clean=v=>String(v==null?'':v).replace(/\s+/g,' ').trim().slice(0,120);
+  let out='';
+  sum.groups.forEach(g=>{
+    const count=Number(g&&g.count)||0;if(!count)return;
+    out+='\n\n'+clean(g.label)+': '+count;
+    (Array.isArray(g.items)?g.items:[]).slice(0,3).forEach(t=>{const title=clean(t);if(title)out+='\n• '+title});
+  });
+  return out;
+}
 function notifyAndroid(){
   if(!androidBridgeReady())return false;
   // Task reminders are task-specific and are delivered only by the RC1014
   // snapshot -> native ReminderReceiver path. A notification-center count is
   // not actionable and must never create a generic Android task push.
   const warningCount=countOf(['[data-rc885-warning-count]','#rc885WarningCount','#rc885WarningDrawer [data-count]','.rc885-warning-count']);
-  if(warningCount>0)sendAndroid({channel:'warning',key:`warnings:${warningCount}`,title:tr('android.warningsTitle',null,'ExportHUB Warning Center'),body:tr(warningCount===1?'android.warningOpenOne':'android.warningOpenMany',{count:warningCount},warningCount+' operational shipment warning(s) open.'),route:'warnings'});
+  if(warningCount>0)sendAndroid({channel:'warning',key:`warnings:${warningCount}`,title:tr('android.warningsTitle',null,'ExportHUB Warning Center'),body:tr(warningCount===1?'android.warningOpenOne':'android.warningOpenMany',{count:warningCount},warningCount+' operational shipment warning(s) open.')+warningDetailLines(),route:'warnings'});
 }
 function diagnosticMarkerKey(){return `exporthub-native-diagnostic-last:${currentEnvironment()}`;}
 function readDiagnosticMarker(){
