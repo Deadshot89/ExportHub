@@ -1622,6 +1622,8 @@ function patchHtml(file){
   html=html.replace(/rc1460-shipment-view-files-avis-preview\.js\?v=1460/g,'rc1460-shipment-view-files-avis-preview.js?v=1616');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-av-upload-i18n" defer src="/assets/i18n/av-upload.js?v=1"></script>','exporthub-av-upload-i18n');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-av-upload" defer src="/assets/av-upload.js?v=1"></script>','exporthub-av-upload');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-shipment-doc-upload-i18n" defer src="/assets/i18n/shipment-document-upload.js?v=1"></script>','exporthub-shipment-doc-upload-i18n');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-shipment-doc-upload" defer src="/assets/shipment-document-upload.js?v=1"></script>','exporthub-shipment-doc-upload');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1126-customer-delete" defer src="/assets/rc1126-customer-delete.js?v=1387"></script>','exporthub-rc1126-customer-delete');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1113-stowplan-persist" defer src="/assets/rc1113-stowplan-persist.js?v=1113"></script>','exporthub-rc1113-stowplan-persist');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1114-shipping-neutral" defer src="/assets/rc1114-shipping-neutral.js?v=1386"></script>','exporthub-rc1114-shipping-neutral');
@@ -1808,6 +1810,8 @@ for(const rel of [
   'assets/rc1460-shipment-view-files-avis-preview.js',
   'assets/i18n/av-upload.js',
   'assets/av-upload.js',
+  'assets/i18n/shipment-document-upload.js',
+  'assets/shipment-document-upload.js',
   'assets/i18n/web-push.js',
   'assets/web-push/client.js',
   'assets/web-push/sw.js',
