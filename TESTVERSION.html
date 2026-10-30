@@ -14134,7 +14134,8 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
     diagnostics.lastRequest = rewritten.href;
 
     var nextInit = Object.assign({}, init || {});
-    nextInit.credentials = 'same-origin';
+    // RC1702: the document download omits cookies on purpose; keep that choice.
+    nextInit.credentials = init && init.credentials === 'omit' ? 'omit' : 'same-origin';
     nextInit.redirect = 'manual';
 
     if(typeof Request !== 'undefined' && input instanceof Request){

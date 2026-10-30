@@ -56,7 +56,10 @@
  async function response(file){
   var apiUrl=isBlobDocument(file)?endpoint(file):protectedApiUrl(legacyUrl(file));
   if(!apiUrl)throw new Error(tr('document.invalidReference',null,'Invalid ExportHUB document reference.'));
-  var r=await w.fetch(apiUrl,{method:'GET',headers:headers(),credentials:'same-origin',cache:'no-store',redirect:'manual'});
+  // The ExportHUB token travels in the headers. Without cookies Azure treats the
+  // call like the anonymous RC1702 gate probe instead of redirecting a stale
+  // Microsoft sign-in cookie to login.
+  var r=await w.fetch(apiUrl,{method:'GET',headers:headers(),credentials:'omit',cache:'no-store',redirect:'manual'});
   if(redirectedToLogin(r)){
    var e=new Error(tr('document.apiRedirect',null,'Der Dokumentenserver hat zur Anmeldung umgeleitet. Die bestehende ExportHUB-Sitzung bleibt erhalten; der Lieferschein wurde nicht heruntergeladen.'));
    e.code='DOCUMENT_API_LOGIN_REDIRECT';throw e;
