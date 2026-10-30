@@ -18,6 +18,7 @@ public final class NotificationHelper {
     private static final String TASK_SNAPSHOT_PREFIX = "task_snapshot_";
     private static final String TASK_GROUP_PREFIX = "exporthub_tasks_group_";
     private static final int MAX_TASK_SNAPSHOT = 128 * 1024;
+    private static final int MAX_TASKS_EXTRA = 48 * 1024;
 
     private NotificationHelper() {}
 
@@ -92,6 +93,10 @@ public final class NotificationHelper {
         String safeTitle = safe(title, "ExportHUB");
         String safeBody = safe(body, "ExportHUB hat einen neuen Hinweis.");
         String safeRoute = safe(route, normalizedChannel);
+        // Performance hints (slow API call, long task, large render) are not actionable on the phone.
+        // The website stops sending them too, but the app filters them as well so an older website
+        // release cannot flood the notification shade again.
+        if ("diagnostic".equals(normalizedChannel) && isPerformanceHint(safeBody)) return false;
         // A generic task-check reminder carries no actionable task details.
         // Do not interrupt users with it; real task notifications remain unchanged.
         if ("notification".equals(normalizedChannel)
@@ -107,7 +112,7 @@ public final class NotificationHelper {
         if (signature.equals(prefs.getString(dedupeKey, ""))) return false;
         prefs.edit().putString(dedupeKey, signature).apply();
 
-        Intent intent = notificationIntent(context, env, normalizedChannel, safeKey, safeTitle, safeBody, safeRoute);
+        Intent intent = notificationIntent(context, env, normalizedChannel, safeKey, safeTitle, safeBody, safeRoute, null);
         int notificationId = Math.abs((env + ":" + normalizedChannel + ":" + safeKey).hashCode());
         int pendingIntentRequestCode = Math.abs(("native-detail-v2:" + env + ":" + normalizedChannel + ":" + safeKey).hashCode());
         PendingIntent pendingIntent = PendingIntent.getActivity(
@@ -137,7 +142,8 @@ public final class NotificationHelper {
                                           String key,
                                           int count,
                                           String highestPriority,
-                                          String taskLines) {
+                                          String taskLines,
+                                          String tasksJson) {
         if (context == null || count < 2) return false;
         String env = EnvironmentActivity.normalizeEnvironment(environment);
         ensureChannels(context);
@@ -158,7 +164,7 @@ public final class NotificationHelper {
         if (signature.equals(prefs.getString(dedupeKey, ""))) return false;
         prefs.edit().putString(dedupeKey, signature).apply();
 
-        Intent intent = notificationIntent(context, env, "notification", safeKey, title, fullBody, "tasks");
+        Intent intent = notificationIntent(context, env, "notification", safeKey, title, fullBody, "tasks", tasksJson);
         int requestCode = Math.abs(("native-summary-v1:" + env + ":" + safeKey).hashCode());
         PendingIntent pendingIntent = PendingIntent.getActivity(
                 context,
@@ -190,7 +196,8 @@ public final class NotificationHelper {
                                              String key,
                                              String title,
                                              String body,
-                                             String route) {
+                                             String route,
+                                             String tasksJson) {
         Intent intent = new Intent(context, NotificationDetailActivity.class);
         intent.setAction("de.exporthub.OPEN_NOTIFICATION.NATIVE_DETAIL_V2." + environment + "." + channel + "." + key);
         intent.putExtra(EnvironmentActivity.EXTRA_ENVIRONMENT, environment);
@@ -198,6 +205,9 @@ public final class NotificationHelper {
         intent.putExtra(NotificationDetailActivity.EXTRA_NOTIFICATION_BODY, body);
         intent.putExtra(NotificationDetailActivity.EXTRA_NOTIFICATION_CHANNEL, channel);
         intent.putExtra(NotificationDetailActivity.EXTRA_NOTIFICATION_ROUTE, route);
+        if (tasksJson != null && !tasksJson.isEmpty() && tasksJson.length() <= MAX_TASKS_EXTRA) {
+            intent.putExtra(NotificationDetailActivity.EXTRA_NOTIFICATION_TASKS, tasksJson);
+        }
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         return intent;
     }
@@ -205,6 +215,16 @@ public final class NotificationHelper {
     private static boolean notificationsAllowed(Context context) {
         return Build.VERSION.SDK_INT < 33
                 || context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    static boolean isPerformanceHint(String body) {
+        String text = body == null ? "" : body;
+        return text.contains("Langsamer API-Aufruf")
+                || text.contains("Langsamer XHR-Aufruf")
+                || text.contains("Browser-Hänger")
+                || text.contains("Long Task")
+                || text.contains("Großer Render-Vorgang")
+                || text.contains("Häufiges Neu-Rendern");
     }
 
     private static String taskGroup(String environment) {

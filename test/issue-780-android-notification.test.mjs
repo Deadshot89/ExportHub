@@ -98,6 +98,6 @@ test('Issue 780: multiple tasks get an Android group summary without replacing i
   assert.match(helper, /offene Aufgaben/);
   // the summary carries every task line, readable without opening anything
   assert.match(receiver, /taskLines\.append\("\\n• "\)/);
-  assert.match(receiver, /highestPriority,\s*taskLines\.toString\(\)\)/);
+  assert.match(receiver, /highestPriority,\s*taskLines\.toString\(\),\s*detailTasks\.toString\(\)\)/);
   assert.match(helper, /BigTextStyle\(\)\.bigText\(fullBody\)/);
 });

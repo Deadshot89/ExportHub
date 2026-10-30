@@ -37,6 +37,8 @@ public class ReminderReceiver extends BroadcastReceiver {
             int validTaskCount = 0;
             String highestPriority = "P4";
             StringBuilder taskLines = new StringBuilder();
+            // Structured copy of the tasks so the detail screen can show them as readable cards.
+            JSONArray detailTasks = new JSONArray();
 
             for (int i = 0; i < tasks.length(); i++) {
                 JSONObject task = tasks.optJSONObject(i);
@@ -59,6 +61,13 @@ public class ReminderReceiver extends BroadcastReceiver {
                         + (sourceRef.isEmpty() ? "" : " · " + sourceRef)
                         + " · " + dueText;
                 taskLines.append("\n• ").append(priority).append(" · ").append(body);
+                JSONObject detailTask = new JSONObject();
+                detailTask.put("priority", priority);
+                detailTask.put("title", title);
+                detailTask.put("sourceRef", sourceRef);
+                detailTask.put("due", dueText);
+                detailTask.put("dueBucket", dueBucket);
+                if (detailTasks.length() < 50) detailTasks.put(detailTask);
                 String directRoute = route.isEmpty() || "tasks".equalsIgnoreCase(route)
                         ? "tasks:" + taskId
                         : route;
@@ -81,7 +90,8 @@ public class ReminderReceiver extends BroadcastReceiver {
                         summaryKey,
                         validTaskCount,
                         highestPriority,
-                        taskLines.toString());
+                        taskLines.toString(),
+                        detailTasks.toString());
             }
         } catch (Exception ignored) {
             // Corrupt/stale snapshots must fail closed. The next successful website
