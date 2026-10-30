@@ -1957,6 +1957,7 @@
   "legacyUi.warehouse.noShipmentAtThisLocation": "Brak przesyłki w tej lokalizacji.",
   "legacyUi.warehouse.locationCodes0Inbound15Lane": "Kody lokalizacji: 0 Przyjęcie · 1–5 Tor 1–5 · 6 Regał · 7 Przed regałem · 8 DAF",
   "legacyUi.warehouse.shipmentsInWarehouse": "Przesyłki w magazynie",
+  "legacyUi.warehouse.weightInWarehouse": "Waga w magazynie",
   "legacyUi.warehouse.inFrontOfRack": "Przed regałem",
   "legacyUi.warehouse.warehouseLocations": "🏭 Magazyn i lokalizacje",
   "legacyUi.warehouse.currentPositionOfAllShipmentsNot": "Aktualna pozycja wszystkich nieodebranych jeszcze przesyłek. Lokalizacje wyjściowe od razu pokazują, które przesyłki tam stoją. Administratorzy mogą dodatkowo przenosić przesyłki ręcznie.",

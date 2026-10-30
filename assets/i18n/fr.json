@@ -1957,6 +1957,7 @@
   "legacyUi.warehouse.noShipmentAtThisLocation": "Aucun envoi à cet emplacement.",
   "legacyUi.warehouse.locationCodes0Inbound15Lane": "Codes d’emplacement : 0 Réception · 1–5 Allée 1–5 · 6 Rayonnage · 7 Devant le rayonnage · 8 DAF",
   "legacyUi.warehouse.shipmentsInWarehouse": "Envois en entrepôt",
+  "legacyUi.warehouse.weightInWarehouse": "Poids en entrepôt",
   "legacyUi.warehouse.inFrontOfRack": "Devant le rayonnage",
   "legacyUi.warehouse.warehouseLocations": "🏭 Entrepôt et emplacements",
   "legacyUi.warehouse.currentPositionOfAllShipmentsNot": "Position actuelle de tous les envois non encore enlevés. Les emplacements de sortie indiquent directement quels envois s’y trouvent. Les administrateurs peuvent aussi déplacer les envois manuellement.",

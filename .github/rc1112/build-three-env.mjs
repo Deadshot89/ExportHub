@@ -96,6 +96,8 @@ const RC1650_DIAG_PLAIN_I18N_TAG='<script id="exporthub-rc1650-diagnostics-plain
 const RC1650_DIAG_PLAIN_SCRIPT_TAG='<script id="exporthub-rc1650-diagnostics-plain-script" defer src="/assets/rc1650-diagnostics-plain.js?v=1650"></script>';
 const RC1725_BUILD_STAMP_I18N_TAG='<script id="exporthub-rc1725-build-stamp-i18n" defer src="/assets/i18n/rc1725-build-stamp.js?v=1725"></script>';
 const RC1725_BUILD_STAMP_SCRIPT_TAG='<script id="exporthub-rc1725-build-stamp-script" defer src="/assets/rc1725-build-stamp.js?v=1725"></script>';
+const RC1740_POD_REMOVE_I18N_TAG='<script id="exporthub-rc1740-pod-remove-i18n" defer src="/assets/i18n/rc1740-pod-remove.js?v=1740"></script>';
+const RC1740_POD_REMOVE_SCRIPT_TAG='<script id="exporthub-rc1740-pod-remove-script" defer src="/assets/rc1740-pod-remove.js?v=1740"></script>';
 // Web Push: phone notifications without website login (assets/web-push, api/web-push)
 const WEB_PUSH_MANIFEST_TAG='<link id="exporthub-web-push-manifest" rel="manifest" href="/assets/web-push/manifest.json">';
 const WEB_PUSH_I18N_TAG='<script id="exporthub-web-push-i18n" defer src="/assets/i18n/web-push.js?v=1701"></script>';
@@ -274,6 +276,10 @@ function patchRc1558DashboardOverview(html,file){
   html=injectDeferredRuntimeInHead(html,RC1725_BUILD_STAMP_I18N_TAG,'exporthub-rc1725-build-stamp-i18n');
   html=injectDeferredRuntimeInHead(html,RC1725_BUILD_STAMP_SCRIPT_TAG,'exporthub-rc1725-build-stamp-script');
   if(!html.includes('i18n/rc1725-build-stamp.js?v=1725')||!html.includes('/assets/rc1725-build-stamp.js?v=1725'))throw new Error(file+': RC1725 Build-Stand fehlt');
+  // RC1740 remove an uploaded POD from a shipment (overview card) so a new POD can be uploaded
+  html=injectDeferredRuntimeInHead(html,RC1740_POD_REMOVE_I18N_TAG,'exporthub-rc1740-pod-remove-i18n');
+  html=injectDeferredRuntimeInHead(html,RC1740_POD_REMOVE_SCRIPT_TAG,'exporthub-rc1740-pod-remove-script');
+  if(!html.includes('i18n/rc1740-pod-remove.js?v=1740')||!html.includes('/assets/rc1740-pod-remove.js?v=1740'))throw new Error(file+': RC1740 POD entfernen fehlt');
   return html;
 }
 
@@ -1797,6 +1803,8 @@ for(const rel of [
   'assets/i18n/rc1650-diagnostics-plain.js',
   'assets/rc1725-build-stamp.js',
   'assets/i18n/rc1725-build-stamp.js',
+  'assets/rc1740-pod-remove.js',
+  'assets/i18n/rc1740-pod-remove.js',
   'assets/rc1460-shipment-view-files-avis-preview.js',
   'assets/i18n/av-upload.js',
   'assets/av-upload.js',
@@ -1894,6 +1902,31 @@ for(const file of ['index.html','TESTVERSION.html','demo.html']){
     if(!controller.tag.test(html))throw new Error(file+': RC1680 POD-Sicherungscontroller fehlt: '+controller.id);
     html=html.replace(controller.tag,controller.source);
   }
+  fs.writeFileSync(target,html);
+}
+// RC1731 Lager-Gewicht: Lager-Controller und Lager-Styles sind kanonisch in
+// index.html. TESTSERVICE/demo-Snapshots bekommen dieselbe Lageransicht mit
+// Gewicht je Sendung, je Location und gesamt.
+const rc1731Canonical=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
+const rc1731Blocks=[
+  {tag:/<script id="rc504-warehouse-controller">[\s\S]*?<\/script>/,marker:'function warehouseWeight(sh){'},
+  {tag:/<style id="rc504-warehouse-style">[\s\S]*?<\/style>/,marker:'.rc504-zone-weight{'}
+].map(({tag,marker})=>{
+  const source=rc1731Canonical.match(tag);
+  if(!source||!source[0].includes(marker))throw new Error('RC1731: kanonischer Lager-Block fehlt: '+marker);
+  return{tag,source:source[0],marker};
+});
+const rc1731MobileOld='  .rc504-shipment-meta{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:4px!important}';
+const rc1731MobileNew='  .rc504-shipment-meta{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:4px!important}';
+for(const file of ['index.html','TESTVERSION.html','demo.html']){
+  const target=path.join(OUT,file);
+  let html=fs.readFileSync(target,'utf8');
+  for(const block of rc1731Blocks){
+    if(html.split(block.tag).length!==2)throw new Error(file+': RC1731 Lager-Block nicht eindeutig: '+block.marker);
+    html=html.replace(block.tag,()=>block.source);
+  }
+  html=html.split(rc1731MobileOld).join(rc1731MobileNew);
+  if(!html.includes('function warehouseWeight(sh){')||!html.includes('Gewicht im Lager'))throw new Error(file+': RC1731 Lager-Gewicht fehlt');
   fs.writeFileSync(target,html);
 }
 for(const file of ['index.html','TESTVERSION.html','demo.html']){
