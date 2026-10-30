@@ -1,7 +1,7 @@
 {
   "schema": "exporthub-rc1013-three-env-v1",
   "version": "RC1013",
-  "generatedAt": "2026-10-23T15:49:16.604Z",
+  "generatedAt": "2026-10-29T19:26:58.398Z",
   "releaseEnvironments": [
     "environment=production-candidate",
     "environment=testservice",
@@ -26,15 +26,15 @@
   "environments": {
     "production": {
       "file": "index.html",
-      "sha256": "ae9f2beb68465bfb2fe22ef5963942a41bd62a973bbfcdd6914298bd20c71853"
+      "sha256": "f1422209b070fb01463f19b1e7fc66dce7e50263cf467fd165cc96e316e5fede"
     },
     "testservice": {
       "file": "TESTVERSION.html",
-      "sha256": "03208b93f67e0a8361d791a6829e1200e2b48dd4bc87832baa92c0edf9bde9bd"
+      "sha256": "48a854ea4b14e014f1aad168eac5f1dfe7c375ae7a16b9e7befc0dc6f6738a3b"
     },
     "demo": {
       "file": "demo.html",
-      "sha256": "2f9550e0024d41755272e3262cc033b64178c580bc6ec81157abcc9fd0474fa6"
+      "sha256": "c2728c06110acf419fae5725369391c89e5fa3d6e8f2615a2a8f6f738b15ce7b"
     }
   }
 }

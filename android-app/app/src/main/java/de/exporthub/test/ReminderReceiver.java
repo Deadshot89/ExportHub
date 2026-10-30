@@ -36,6 +36,7 @@ public class ReminderReceiver extends BroadcastReceiver {
 
             int validTaskCount = 0;
             String highestPriority = "P4";
+            StringBuilder taskLines = new StringBuilder();
 
             for (int i = 0; i < tasks.length(); i++) {
                 JSONObject task = tasks.optJSONObject(i);
@@ -57,6 +58,7 @@ public class ReminderReceiver extends BroadcastReceiver {
                 String body = title
                         + (sourceRef.isEmpty() ? "" : " · " + sourceRef)
                         + " · " + dueText;
+                taskLines.append("\n• ").append(priority).append(" · ").append(body);
                 String directRoute = route.isEmpty() || "tasks".equalsIgnoreCase(route)
                         ? "tasks:" + taskId
                         : route;
@@ -78,7 +80,8 @@ public class ReminderReceiver extends BroadcastReceiver {
                         env,
                         summaryKey,
                         validTaskCount,
-                        highestPriority);
+                        highestPriority,
+                        taskLines.toString());
             }
         } catch (Exception ignored) {
             // Corrupt/stale snapshots must fail closed. The next successful website
