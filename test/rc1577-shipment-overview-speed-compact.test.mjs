@@ -39,7 +39,9 @@ test('RC1577: kompakte Kacheln sind reines Bildschirm-CSS für die Sendungsüber
   assert.doesNotMatch(body,/@media print|display:none(?!!important\})/,'Funktionen dürfen nicht ausgeblendet werden');
   for(const rule of body.split('}').map(r=>r.trim()).filter(r=>r.includes('{')&&!r.startsWith('@')))
     assert.match(rule,/#content#content\.rc524-overview-view/,'jede Regel muss auf die Sendungsübersicht begrenzt sein: '+rule.slice(0,80));
-  assert.match(body,/repeat\(auto-fill,minmax\(330px,1fr\)\)/,'einzelne Kacheln dürfen nicht die volle Breite füllen');
+  assert.match(body,/repeat\(auto-fill,minmax\(min\(400px,100%\),1fr\)\)/,'einzelne Kacheln dürfen nicht die volle Breite füllen, brauchen aber genug Platz für ihre Buttons');
+  assert.match(body,/\.rc524-link-columns:has\(\.rc524-file-row>\.toolbar\)\{grid-template-columns:minmax\(0,1fr\)!important\}/,'Anbindungen mit Buttons bekommen die volle Kachelbreite');
+  assert.match(body,/\.rc524-file-row>\.toolbar>:is\(button,a\)\{[^}]*white-space:nowrap!important/,'Anbindungs-Buttons dürfen nicht mitten im Wort umbrechen');
   assert.match(body,/\.rc524-dangerbar>\[hidden\]\{display:none!important\}/);
 });
 

@@ -3,9 +3,10 @@
    Wird im Build als letztes Stylesheet eingebunden. #content#content hebt die Spezifität über die globale
    #content :is(.btn,…):not(#loadListDoc *)-Regel und die RC524/RC628-Kachelregeln. */
 @media screen{
-  /* Kacheln füllen nicht mehr die ganze Zeile, wenn eine Gruppe nur eine Sendung enthält */
+  /* Kacheln füllen nicht mehr die ganze Zeile, wenn eine Gruppe nur eine Sendung enthält.
+     Mindestbreite 400px statt 330px: lieber eine Kachel weniger pro Reihe, als dass Buttons und Texte umbrechen. */
   html body #content#content.rc524-overview-view .rc543-overview-group-body{
-    grid-template-columns:repeat(auto-fill,minmax(330px,1fr))!important;
+    grid-template-columns:repeat(auto-fill,minmax(min(400px,100%),1fr))!important;
     gap:10px!important;
     padding:10px!important;
   }
@@ -95,6 +96,40 @@
   }
   html body #content#content.rc524-overview-view .rc524-link-columns>section>h3{font-size:11.5px!important}
   html body #content#content.rc524-overview-view .rc524-link-columns .muted{margin:0!important;font-size:11.5px!important;line-height:1.35!important}
+  /* Hat eine Anbindung Buttons (POD öffnen, Sendung wieder öffnen, QR-Abholung zurücksetzen …),
+     bekommt jede Anbindung die volle Kachelbreite. Buttons umbrechen als Ganzes, nie mitten im Wort. */
+  html body #content#content.rc524-overview-view .rc524-link-columns:has(.rc524-file-row>.toolbar){grid-template-columns:minmax(0,1fr)!important}
+  html body #content#content.rc524-overview-view .rc524-link-columns .rc524-file-row{padding:6px 8px!important;gap:6px!important}
+  html body #content#content.rc524-overview-view .rc524-link-columns .rc524-file-row>span{
+    white-space:normal!important;
+    overflow:visible!important;
+    text-overflow:clip!important;
+    overflow-wrap:anywhere!important;
+    font-size:11.5px!important;
+    line-height:1.35!important;
+  }
+  /* Neon: heller Kasten mit heller Schrift war kaum lesbar */
+  html[data-eh-design="neon"] body #content#content.rc524-overview-view .rc524-link-columns .rc524-file-row{
+    background:rgba(15,23,42,.55)!important;
+    border-color:rgba(148,163,184,.3)!important;
+  }
+  html body #content#content.rc524-overview-view .rc524-link-columns .rc524-file-row>.toolbar{
+    display:flex!important;
+    flex-wrap:wrap!important;
+    gap:5px!important;
+  }
+  html body #content#content.rc524-overview-view .rc524-link-columns .rc524-file-row>.toolbar>:is(button,a){
+    flex:1 1 auto!important;
+    width:auto!important;
+    min-width:0!important;
+    min-height:30px!important;
+    height:auto!important;
+    padding:5px 9px!important;
+    border-radius:8px!important;
+    font-size:11.5px!important;
+    line-height:1.2!important;
+    white-space:nowrap!important;
+  }
 
   /* Notiz: einzeilig, wächst beim Schreiben weiter mit (RC973) */
   html body #content#content.rc524-overview-view .rc403-overview-note{
@@ -142,6 +177,7 @@
     border-radius:8px!important;
     font-size:11.5px!important;
     line-height:1.2!important;
+    white-space:nowrap!important;
   }
   html body #content#content.rc524-overview-view .rc524-dangerbar>[hidden]{display:none!important}
 }
