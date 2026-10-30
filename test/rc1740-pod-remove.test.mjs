@@ -11,6 +11,7 @@ const { mergeShipmentProtected, mergePodFilesProtected } = require('../api/share
 const i18nSource = fs.readFileSync(new URL('../assets/i18n/rc1740-pod-remove.js', import.meta.url), 'utf8');
 const source = fs.readFileSync(new URL('../assets/rc1740-pod-remove.js', import.meta.url), 'utf8');
 const builder = fs.readFileSync(new URL('../.github/rc1112/build-three-env.mjs', import.meta.url), 'utf8');
+const pages = ['index.html', 'TESTVERSION.html'].map((f) => [f, fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8')]);
 
 function manualPod(extra = {}) {
   return Object.assign({
@@ -99,7 +100,7 @@ test('RC1740: Unterschrift aus QR-Abholung bleibt POD, nur die Datei wird entfer
   assert.equal(sh.status, 'POD vorhanden', 'QR-POD mit Fahrerunterschrift wird hier nicht angetastet');
 });
 
-test('RC1740: QR-PODs sind nicht entfernbar, Rechte nur für Ersteller, Dokumenten-Admin oder globale Admins', async () => {
+test('RC1740: QR-Dateien sind keine einzeln entfernbaren Uploads, Rechte nur für Ersteller, Dokumenten-Admin oder globale Admins', async () => {
   const qr = shipment({ podFiles: [manualPod({ id: 'QR-ABC123-0', source: 'QR-Abholung', kind: 'signed-loadlist', manualUpload: false })] });
   const { api } = load({ state: { shipments: [qr] } });
   assert.equal(api.removableFiles(qr).length, 0);
@@ -176,5 +177,61 @@ test('RC1740: alle sechs Sprachen haben dieselben Texte', () => {
     assert.deepEqual(Object.keys(packs[lang]).sort(), keys, lang);
     assert.match(packs[lang].confirm, /\{\{name\}\}/);
     assert.match(packs[lang].confirm, /\{\{ref\}\}/);
+  }
+});
+
+function qrShipment(extra = {}) {
+  return shipment(Object.assign({
+    pickupConfirmedAt: '2026-10-29T10:00:00.000Z', pickupDriverName: 'Fahrer A',
+    pickupDriverSignature: 'data:image/png;base64,' + 'A'.repeat(300), signatureAvailable: true,
+    remotePickupStatusLocked: true, podServerVerified: true,
+    podFiles: [{ id: 'QR-POD-ABC123', name: 'POD_ABC123_Ladeliste_mit_Unterschrift.pdf', url: '/api/pickup-pod?token=x', source: 'QR-Abholung', kind: 'signed-loadlist', remote: true }]
+  }, extra));
+}
+
+test('RC1740: QR-POD mit Fahrerunterschrift wird entfernt, Abholung und Unterschrift bleiben', async () => {
+  const sh = qrShipment();
+  const { api } = load({ state: { shipments: [sh] } });
+  assert.equal(api.signatureEvidence(sh), true);
+  const res = await api.removePod('SH-1', api.QR_KEY, { skipConfirm: true, reason: 'Falsche Ladeliste', silent: true });
+  assert.equal(res.ok, true);
+  assert.equal(api.qrRemoved(sh), true);
+  assert.equal(api.signatureEvidence(sh), false);
+  assert.equal(sh.status, 'Abgeholt');
+  assert.equal(sh.podStatus, 'POD fehlt');
+  assert.equal(sh.podServerVerified, false);
+  assert.equal(sh.pickupConfirmedAt, '2026-10-29T10:00:00.000Z', 'Abholung bleibt bestätigt');
+  assert.match(sh.pickupDriverSignature, /^data:image/, 'Fahrerunterschrift bleibt als Abholnachweis');
+  assert.equal(sh.podFiles[0].status, 'deleted');
+  assert.equal(sh.podFiles[0].url, undefined);
+  assert.equal(sh.qrPodRemoval.reason, 'Falsche Ladeliste');
+  assert.equal(sh.qrPodRemoval.pickupConfirmedAt, '2026-10-29T10:00:00.000Z');
+});
+
+test('RC1740: nach QR-Entfernen und neuem Upload ist der Upload der POD', async () => {
+  const sh = qrShipment({ podFiles: [] });
+  const { api } = load({ state: { shipments: [sh] } });
+  await api.removePod('SH-1', api.QR_KEY, { skipConfirm: true, reason: 'x', silent: true });
+  sh.podFiles.push(manualPod({ id: 'POD-NEU' }));
+  assert.equal(api.hasManualPod(sh), true);
+  assert.equal(api.qrRemoved(sh), true, 'neuer Upload holt die QR-Unterschrift nicht als POD zurück');
+});
+
+test('RC1740: eine neue QR-Abholung nach dem Entfernen zählt wieder als POD', () => {
+  const sh = qrShipment({ qrPodRemoval: { at: '2026-10-30T09:00:00.000Z', reason: 'x' } });
+  const { api } = load({ state: { shipments: [sh] } });
+  assert.equal(api.qrRemoved(sh), true);
+  sh.pickupConfirmedAt = '2026-10-30T12:00:00.000Z';
+  assert.equal(api.qrRemoved(sh), false);
+  assert.equal(api.signatureEvidence(sh), true);
+});
+
+test('RC1740: POD-Prüfungen und QR-Abgleich in index.html und TESTVERSION.html beachten das Entfernen', () => {
+  const guard = 'window.ExportHUBPodRemove1740&&window.ExportHUBPodRemove1740.qrRemoved(sh)';
+  for (const [file, html] of pages) {
+    const count = html.split(guard).length - 1;
+    assert.equal(count, 5, file + ': Übersicht, RC542, RC543, RC628 (zweimal) prüfen qrRemoved');
+    assert.match(html, /var rc1740Api=window\.ExportHUBPodRemove1740;if\(rc1740Api&&rc1740Api\.qrRemoved\(sh\)\)\{/, file);
+    assert.match(html, /\}else\{patch\.podFiles=mergePodFiles\(/, file + ': QR-Abgleich holt entfernte QR-Dateien nicht zurück');
   }
 });
