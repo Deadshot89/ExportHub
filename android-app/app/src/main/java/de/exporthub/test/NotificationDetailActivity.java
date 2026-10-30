@@ -97,27 +97,15 @@ public final class NotificationDetailActivity extends Activity {
         privacyParams.topMargin = dp(18);
         root.addView(privacy, privacyParams);
 
-        // Task and warning notifications are read-only: the user only reads them here and nothing opens
-        // the protected workspace (which would need a login). Only admin diagnostics keep the jump into ExportHUB.
-        boolean diagnostic = "diagnostic".equalsIgnoreCase(channel);
-        if (diagnostic) {
-            Button open = new Button(this);
-            open.setText("In ExportHUB öffnen");
-            open.setAllCaps(false);
-            open.setTextSize(16f);
-            open.setOnClickListener(v -> openExportHub());
-            LinearLayout.LayoutParams openParams = matchWrap();
-            openParams.topMargin = dp(20);
-            root.addView(open, openParams);
-        }
-
+        // Every phone notification is read-only: the user only reads it here and nothing opens the
+        // protected workspace (which would need a login and showed "nicht freigegeben" without one).
         Button close = new Button(this);
         close.setText("Schließen");
         close.setAllCaps(false);
         close.setTextSize(15f);
         close.setOnClickListener(v -> finish());
         LinearLayout.LayoutParams closeParams = matchWrap();
-        closeParams.topMargin = dp(diagnostic ? 8 : 20);
+        closeParams.topMargin = dp(20);
         root.addView(close, closeParams);
 
         return scroll;
@@ -186,14 +174,6 @@ public final class NotificationDetailActivity extends Activity {
                 || "Wahrscheinliche Ursache".equals(label)
                 || "Nächster Schritt".equals(label)
                 || "Technische Meldung".equals(label);
-    }
-
-    private void openExportHub() {
-        Intent intent = new Intent(this, EnvironmentActivity.class);
-        intent.putExtra(EnvironmentActivity.EXTRA_ENVIRONMENT, environment);
-        intent.putExtra(EnvironmentActivity.EXTRA_ROUTE, route);
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        startActivity(intent);
     }
 
     private TextView text(String value, float size, int color, boolean bold) {

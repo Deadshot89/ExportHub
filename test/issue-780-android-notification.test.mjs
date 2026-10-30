@@ -45,8 +45,9 @@ test('Issue 780: reminder carries exact task id through the existing route extra
   assert.match(receiver, /String directRoute = route\.isEmpty\(\) \|\| "tasks"\.equalsIgnoreCase\(route\)/);
   assert.match(receiver, /\? "tasks:" \+ taskId/);
   assert.match(receiver, /NotificationHelper\.show\([\s\S]{0,500}directRoute\)/);
-  assert.match(detail, /intent\.putExtra\(EnvironmentActivity\.EXTRA_ROUTE, route\)/);
-  assert.match(detail, /intent\.putExtra\(EnvironmentActivity\.EXTRA_ENVIRONMENT, environment\)/);
+  // the detail view is read-only (Tobias 2026-10-30): it reads the route extra but never starts ExportHUB
+  assert.match(detail, /getStringExtra\(EXTRA_NOTIFICATION_ROUTE\)/);
+  assert.doesNotMatch(detail, /startActivity\(/);
 });
 
 test('Issue 780: website routes first and opens only the matching rendered task card', () => {
