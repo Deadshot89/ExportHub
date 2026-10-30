@@ -99,3 +99,25 @@ test('Öffnen reserves the tab during the click so the PDF is not blocked as a p
   await w.ExportHUBDocumentBlob1059.open(doc,{name:doc.name,download:true});
   assert.deepEqual(events,['fetch','click'],'download keeps the named anchor download');
 });
+
+test('Lieferschein-Abruf sendet kein Microsoft-Anmeldecookie mit, nur das ExportHUB-Token',async()=>{
+  const source=fs.readFileSync('assets/rc1059-document-blob.js','utf8');
+  const calls=[];
+  const w={
+    location:{hostname:'ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net',origin:'https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net'},
+    ExportHUBClean:{runtime:{authToken:'T'}},
+    fetch:async(url,options)=>{calls.push({url,options});return{ok:true,status:200,redirected:false,type:'basic',url:'',headers:{get(){return'application/pdf';}},async blob(){return new Blob(['%PDF-1.7'],{type:'application/pdf'});}};}
+  };
+  vm.runInNewContext(source,{window:w,URL,Blob,Uint8Array,String});
+  await w.ExportHUBDocumentBlob1059.fetchBlob({name:'DNC.pdf',storage:'blob',blobName:'rc1059/testservice/aa/'+'a'.repeat(64)});
+  assert.equal(calls[0].options.credentials,'omit');
+  assert.equal(calls[0].options.headers['X-ExportHUB-Token'],'T');
+  assert.equal(calls[0].options.redirect,'manual');
+});
+
+test('der TESTSERVICE-API-Wrapper übernimmt credentials omit statt das Cookie zu erzwingen',()=>{
+  for(const file of ['index.html','TESTVERSION.html']){
+    const html=fs.readFileSync(file,'utf8');
+    assert.match(html,/nextInit\.credentials = init && init\.credentials === 'omit' \? 'omit' : 'same-origin';/,file);
+  }
+});
