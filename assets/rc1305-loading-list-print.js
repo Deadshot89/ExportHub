@@ -63,7 +63,10 @@ function rc1547ApplySinglePageFit(root){
   positionCount=root.querySelectorAll('[data-position-row],[data-colli-row],[data-package-row],.rc390-load-row,.rc352-load-row').length
  }
  var documentCount=root.querySelectorAll('[data-rc1293-packing-slip]').length;
- var effective=positionCount+Math.ceil(documentCount/2),extra=Math.max(0,effective-5);
+ // Delivery notes stand ten per column side by side, so the list is never
+ // taller than ten rows; counting every note made long lists print tiny.
+ var documentRows=Math.ceil(Math.min(documentCount,10)/2);
+ var effective=positionCount+documentRows,extra=Math.max(0,effective-5);
  var scale=extra?Math.max(.34,1/(1+extra*.045)):1;
  root.setAttribute('data-rc1547-single-page','1');
  root.setAttribute('data-rc1547-position-count',String(positionCount));

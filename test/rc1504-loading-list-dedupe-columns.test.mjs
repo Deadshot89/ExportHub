@@ -101,3 +101,8 @@ test('RC1504: Grid-Normalisierung entfernt DNC-Dubletten, behaelt normale PDF-Na
   assert.equal(h.inserted.length,1);
   assert.match(h.inserted[0].textContent,/@media print\{/);
 });
+
+test('Ladeliste wird bei vielen Lieferscheinen nicht kleiner, weil höchstens zehn Zeilen entstehen',()=>{
+  const source=fs.readFileSync('assets/rc1305-loading-list-print.js','utf8');
+  assert.match(source,/var documentRows=Math\.ceil\(Math\.min\(documentCount,10\)\/2\);/);
+});
