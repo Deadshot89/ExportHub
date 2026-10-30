@@ -1743,3 +1743,24 @@ html[data-eh-design="neon"] #content .rc1502-sop-editor-summary span{color:#9fb3
 html[data-eh-design="neon"] #content .rc1502-sop-editor-summary strong{color:#f6fbff!important}
 html[data-eh-design="neon"] #content .rc1570-scope button[aria-pressed="true"]{color:#07111f!important}
 html[data-eh-design="neon"] #content :is(.rc1502-sop-editor-badge,.rc1502-sop-zoom-button){background:#0e1d31!important;border-color:#294866!important;color:#e5eef8!important}
+
+/* Phase 2 (30.10.2026): Kopfzeile in einer Zeile – seltene Aktionen (POD-Sicherung, Backup, Import, Drucken) im Menü „Mehr“ */
+.eh-topbar-more{position:relative;display:inline-block}
+.eh-topbar-more>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.eh-topbar-more>summary::-webkit-details-marker{display:none}
+.eh-topbar-more>summary::after{content:"";width:6px;height:6px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-2px) rotate(45deg);transition:transform .15s}
+.eh-topbar-more[open]>summary::after{transform:translateY(1px) rotate(-135deg)}
+html[data-eh-design] body[data-eh-theme] .topbar .eh-topbar-more>.eh-topbar-more-menu{position:absolute;right:0;top:calc(100% + 6px);z-index:2147482000;display:grid!important;grid-template-columns:1fr!important;gap:4px!important;min-width:190px;width:max-content!important;padding:6px!important;border:1px solid var(--pc-line,#dce5ef);border-radius:12px;background:var(--pc-surface,#fff);color:var(--pc-text,#172033);box-shadow:0 18px 40px rgba(15,23,42,.18)}
+html[data-eh-design] body[data-eh-theme] .topbar .eh-topbar-more-menu>button{width:100%!important;max-width:none!important;justify-content:flex-start!important;text-align:left!important;white-space:nowrap!important;padding:9px 12px!important;font-size:13px!important}
+html[data-eh-design="neon"] body[data-eh-theme] .topbar .eh-topbar-more>.eh-topbar-more-menu{background:#0c192a;border-color:#294866;color:#e5eef8;box-shadow:0 18px 40px rgba(0,0,0,.45)}
+@media (min-width:901px){
+  html[data-eh-design] body[data-eh-theme][data-eh-theme] .topbar{display:flex!important;flex-wrap:nowrap!important;align-items:center!important;gap:10px!important;min-height:0!important;padding:10px 12px!important}
+  html[data-eh-design] body[data-eh-theme] .topbar .eh-topbar-main{display:flex!important;flex:1 1 auto!important;min-width:150px!important;width:auto!important;gap:8px!important}
+  html[data-eh-design] body[data-eh-theme] .topbar .eh-topbar-main>.search{flex:1 1 auto!important;min-width:0!important;width:auto!important}
+  html[data-eh-design] body[data-eh-theme] .topbar :is(.eh-topbar-tools,.eh-topbar-options,.eh-topbar-actions){display:flex!important;flex:0 0 auto!important;flex-wrap:nowrap!important;align-items:center!important;gap:8px!important;width:auto!important;min-width:0!important;grid-template-columns:none!important}
+  html[data-eh-design] body[data-eh-theme] .topbar :is(.eh-topbar-actions>button,.eh-topbar-more>summary){width:auto!important;white-space:nowrap!important}
+}
+/* Laptop: ohne das Wort „Design“ passt alles in eine Zeile neben das Warncenter */
+@media (min-width:901px) and (max-width:1440px){
+  html[data-eh-design] body[data-eh-theme] .topbar #ehThemeSwitch>span{display:none!important}
+}

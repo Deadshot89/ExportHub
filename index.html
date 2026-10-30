@@ -11001,12 +11001,17 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 <div class="eh-theme-switch ghost" id="ehThemeSwitch" title="Design auswählen"><span>Design</span><select aria-label="Design auswählen" id="ehThemeSelect"></select></div>
 </div>
 <div class="eh-topbar-actions">
-<button class="ghost" id="podBackupBtn" type="button">POD-Sicherung</button>
 <button class="ghost" id="lieferAvisBtn" type="button">Lieferavis</button>
+<details class="eh-topbar-more" id="ehTopbarMore">
+<summary class="ghost" aria-label="Weitere Aktionen" title="Weitere Aktionen">Mehr</summary>
+<div class="eh-topbar-more-menu">
+<button class="ghost" id="podBackupBtn" type="button">POD-Sicherung</button>
 <button class="ghost" id="backupBtn">Backup</button>
 <button class="ghost" id="importBtn">Import</button>
 <input accept="application/json" class="hidden" id="importFile" type="file"/>
 <button class="ghost" id="printBtn">Drucken</button>
+</div>
+</details>
 <button class="ghost" id="logoutBtn">Abmelden</button>
 </div>
 </div>

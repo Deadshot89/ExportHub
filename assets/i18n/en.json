@@ -2289,5 +2289,7 @@
   "legacyUi.v2.costs.inputs": "Inputs",
   "legacyUi.v2.costs.result": "Result",
   "legacyUi.v2.stow.loadingGraphic": "Loading diagram",
-  "legacyUi.v2.stow.vehicle": "Vehicle"
+  "legacyUi.v2.stow.vehicle": "Vehicle",
+  "legacyUi.v2.topbar.more": "More",
+  "legacyUi.v2.topbar.moreActions": "More actions"
 }

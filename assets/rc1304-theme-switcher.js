@@ -628,6 +628,25 @@ html[data-eh-design="neon"] :is(footer,.footer,#footer){border-top-color:#1d3855
     if(event&&event.key===STORAGE_KEY)refresh();
   });
 
+  // Phase 2 (30.10.2026): Menü „Mehr“ in der Kopfzeile schließt nach einer Aktion, bei Klick daneben und mit Escape
+  function closeMoreMenu(except){
+    Array.prototype.forEach.call(document.querySelectorAll('details.eh-topbar-more[open]'),function(menu){if(menu!==except)menu.open=false});
+  }
+  document.addEventListener('click',function(event){
+    var target=event.target;
+    var menu=target&&target.closest?target.closest('details.eh-topbar-more'):null;
+    if(!menu){closeMoreMenu(null);return}
+    if(target.closest('.eh-topbar-more-menu button'))setTimeout(function(){menu.open=false},0);
+  },true);
+  document.addEventListener('keydown',function(event){
+    if(event.key!=='Escape')return;
+    var open=document.querySelector('details.eh-topbar-more[open]');
+    if(!open)return;
+    open.open=false;
+    var summary=open.querySelector('summary');
+    if(summary)summary.focus();
+  });
+
   window.ExportHUBDesignSwitcher=Object.freeze({
     version:'RC1304',
     storageKey:STORAGE_KEY,
