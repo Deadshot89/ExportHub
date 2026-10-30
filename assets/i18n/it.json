@@ -1957,6 +1957,7 @@
   "legacyUi.warehouse.noShipmentAtThisLocation": "Nessuna spedizione in questa posizione.",
   "legacyUi.warehouse.locationCodes0Inbound15Lane": "Codici posizione: 0 Ingresso · 1–5 Corsia 1–5 · 6 Scaffale · 7 Davanti allo scaffale · 8 DAF",
   "legacyUi.warehouse.shipmentsInWarehouse": "Spedizioni in magazzino",
+  "legacyUi.warehouse.weightInWarehouse": "Peso in magazzino",
   "legacyUi.warehouse.inFrontOfRack": "Davanti allo scaffale",
   "legacyUi.warehouse.warehouseLocations": "🏭 Magazzino e posizioni",
   "legacyUi.warehouse.currentPositionOfAllShipmentsNot": "Posizione attuale di tutte le spedizioni non ancora ritirate. Le posizioni di uscita mostrano subito quali spedizioni si trovano lì. Gli amministratori possono anche spostare le spedizioni manualmente.",

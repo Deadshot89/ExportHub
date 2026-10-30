@@ -1896,6 +1896,31 @@ for(const file of ['index.html','TESTVERSION.html','demo.html']){
   }
   fs.writeFileSync(target,html);
 }
+// RC1731 Lager-Gewicht: Lager-Controller und Lager-Styles sind kanonisch in
+// index.html. TESTSERVICE/demo-Snapshots bekommen dieselbe Lageransicht mit
+// Gewicht je Sendung, je Location und gesamt.
+const rc1731Canonical=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
+const rc1731Blocks=[
+  {tag:/<script id="rc504-warehouse-controller">[\s\S]*?<\/script>/,marker:'function warehouseWeight(sh){'},
+  {tag:/<style id="rc504-warehouse-style">[\s\S]*?<\/style>/,marker:'.rc504-zone-weight{'}
+].map(({tag,marker})=>{
+  const source=rc1731Canonical.match(tag);
+  if(!source||!source[0].includes(marker))throw new Error('RC1731: kanonischer Lager-Block fehlt: '+marker);
+  return{tag,source:source[0],marker};
+});
+const rc1731MobileOld='  .rc504-shipment-meta{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:4px!important}';
+const rc1731MobileNew='  .rc504-shipment-meta{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:4px!important}';
+for(const file of ['index.html','TESTVERSION.html','demo.html']){
+  const target=path.join(OUT,file);
+  let html=fs.readFileSync(target,'utf8');
+  for(const block of rc1731Blocks){
+    if(html.split(block.tag).length!==2)throw new Error(file+': RC1731 Lager-Block nicht eindeutig: '+block.marker);
+    html=html.replace(block.tag,()=>block.source);
+  }
+  html=html.split(rc1731MobileOld).join(rc1731MobileNew);
+  if(!html.includes('function warehouseWeight(sh){')||!html.includes('Gewicht im Lager'))throw new Error(file+': RC1731 Lager-Gewicht fehlt');
+  fs.writeFileSync(target,html);
+}
 for(const file of ['index.html','TESTVERSION.html','demo.html']){
   const target=path.join(OUT,file);
   const hardened=hardenCustomerSaveHtml(patchRc1662SavedShipmentDeltaHtml(fs.readFileSync(target,'utf8'),file));

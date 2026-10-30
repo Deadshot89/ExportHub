@@ -1957,6 +1957,7 @@
   "legacyUi.warehouse.noShipmentAtThisLocation": "No shipment at this location.",
   "legacyUi.warehouse.locationCodes0Inbound15Lane": "Location codes: 0 Inbound · 1–5 Lane 1–5 · 6 Rack · 7 In front of rack · 8 DAF",
   "legacyUi.warehouse.shipmentsInWarehouse": "Shipments in warehouse",
+  "legacyUi.warehouse.weightInWarehouse": "Weight in warehouse",
   "legacyUi.warehouse.inFrontOfRack": "In front of rack",
   "legacyUi.warehouse.warehouseLocations": "🏭 Warehouse & locations",
   "legacyUi.warehouse.currentPositionOfAllShipmentsNot": "Current position of all shipments not yet picked up. Outbound locations show directly which shipments are there. Admins can also move shipments manually.",

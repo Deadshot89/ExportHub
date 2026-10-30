@@ -1957,6 +1957,7 @@
   "legacyUi.warehouse.noShipmentAtThisLocation": "Keine Sendung an dieser Location.",
   "legacyUi.warehouse.locationCodes0Inbound15Lane": "Location-Codes: 0 Eingang · 1–5 Lane 1–5 · 6 Regal · 7 Vor dem Regal · 8 DAF",
   "legacyUi.warehouse.shipmentsInWarehouse": "Sendungen im Lager",
+  "legacyUi.warehouse.weightInWarehouse": "Gewicht im Lager",
   "legacyUi.warehouse.inFrontOfRack": "Vor dem Regal",
   "legacyUi.warehouse.warehouseLocations": "🏭 Lager & Locations",
   "legacyUi.warehouse.currentPositionOfAllShipmentsNot": "Aktuelle Position aller noch nicht abgeholten Sendungen. Ausgangslocations zeigen direkt, welche Sendungen dort stehen. Admins können Sendungen zusätzlich manuell verschieben.",
