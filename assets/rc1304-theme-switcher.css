@@ -1764,3 +1764,13 @@ html[data-eh-design="neon"] body[data-eh-theme] .topbar .eh-topbar-more>.eh-topb
 @media (min-width:901px) and (max-width:1440px){
   html[data-eh-design] body[data-eh-theme] .topbar #ehThemeSwitch>span{display:none!important}
 }
+@media (min-width:901px) and (max-width:1180px){
+  html[data-eh-design] body[data-eh-theme] .topbar #languageSelect{width:104px!important;min-width:0!important}
+  html[data-eh-design] body[data-eh-theme] .topbar #ehThemeSwitch{min-width:0!important;width:auto!important;padding-left:6px!important;padding-right:6px!important}
+  html[data-eh-design] body[data-eh-theme] .topbar #ehThemeSelect{width:132px!important;min-width:0!important}
+  html[data-eh-design] body[data-eh-theme] .topbar .eh-topbar-main{min-width:170px!important}
+}
+/* Handy: POD-Sicherung, Backup, Import und Drucken sind dort schon ausgeblendet – kein leeres Menü „Mehr“ */
+@media (max-width:900px){
+  html[data-eh-design] body[data-eh-theme] .topbar .eh-topbar-more{display:none!important}
+}
