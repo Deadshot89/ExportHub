@@ -35,3 +35,5 @@
 #rc1705-sop-panel button:focus-visible,#rc1705-sop-launcher:focus-visible,#rc1705-sop-shipment button:focus-visible{outline:3px solid #e0a52b;outline-offset:2px}
 @media(max-width:600px){#rc1705-sop-launcher{bottom:12px;right:12px}#rc1705-sop-panel{inset:0;width:100%;border-radius:0;max-height:100dvh}#rc1705-sop-panel .rc1705-body{grid-template-columns:minmax(100px,35%) minmax(0,1fr)}#rc1705-sop-panel .rc1705-guide{padding:8px}#rc1705-sop-panel nav button{font-size:.78rem}}
 @media print{#rc1705-sop-launcher,#rc1705-sop-shipment,#rc1705-sop-panel{display:none!important}}
+/* Prüfung 29.10.2026: Auf dem Desktop lag der Knopf über den Menüpunkten der Seitenleiste; er beginnt jetzt rechts davon. */
+@media(min-width:901px){#rc1705-sop-shipment{left:calc(var(--pc-side-width,280px) + 16px)}}
