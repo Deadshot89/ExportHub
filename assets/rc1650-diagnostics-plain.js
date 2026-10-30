@@ -238,7 +238,7 @@ function renderReport(force){
 }
 // one job row: state, text, PR button when Claude's pull request is ready, reason when it failed
 function jobItem(x){
- var st=jobState(x),af=x.autofix||{},pr=prUrl(af),run=!pr&&/^https:\/\/github\.com\//.test(q(af.runUrl))?q(af.runUrl):'',why=st==='failed'?q(af.lastMessage).replace(/^Automatische Behebung fehlgeschlagen\. GitHub-Lauf: \S+( · )?/,'').slice(0,240):'';
+ var st=jobState(x),af=x.autofix||{},pr=prUrl(af),run=!pr&&/^https:\/\/github\.com\//.test(q(af.runUrl))?q(af.runUrl):'',why=st==='failed'?q(af.lastMessage).replace(/^Automatische Behebung fehlgeschlagen\. GitHub-Lauf: \S+( · )?/,'').replace(/&(#39|#x27|quot|lt|gt|amp);/g,function(m,e){return{'#39':"'",'#x27':"'",quot:'"',lt:'<',gt:'>',amp:'&'}[e]}).slice(0,240):'';
  return '<li><span class="rc1650-job rc1650-job-'+st+'">'+esc(t('job_'+st))+'</span><span>'+esc(q(x.message).slice(0,140))+(why?'<em class="rc1650-job-why">'+esc(why)+'</em>':'')+'</span><small>'+esc(fmt(x.lastAt||x.at))+'</small>'+
   (pr?'<a class="btn rc1650-pr" href="'+esc(pr)+'" target="_blank" rel="noopener">'+esc(t('openPr'))+'</a>':run?'<a href="'+esc(run)+'" target="_blank" rel="noopener">'+esc(t('openRun'))+'</a>':'')+'</li>';
 }

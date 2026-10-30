@@ -143,7 +143,9 @@ jobs:
           test -s .exporthub-autofix/final.txt
           cat .exporthub-autofix/final.txt
           if grep -q '^BLOCKED:' .exporthub-autofix/final.txt; then
-            echo "Claude Code hat die automatische Behebung aus Sicherheitsgründen blockiert." >&2
+            # the reason goes first so ExportHUB shows it in "Meine KI-Aufträge"
+            sed -n '/^BLOCKED:/,$p' .exporthub-autofix/final.txt > /tmp/exporthub-autofix-final.txt
+            echo "Claude Code hat keine sicher belegbare Korrektur gefunden (BLOCKED, Begründung oben)." >&2
             exit 2
           fi
 
