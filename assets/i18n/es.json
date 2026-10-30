@@ -1957,6 +1957,7 @@
   "legacyUi.warehouse.noShipmentAtThisLocation": "No hay ningún envío en esta ubicación.",
   "legacyUi.warehouse.locationCodes0Inbound15Lane": "Códigos de ubicación: 0 Entrada · 1–5 Carril 1–5 · 6 Estantería · 7 Delante de la estantería · 8 DAF",
   "legacyUi.warehouse.shipmentsInWarehouse": "Envíos en el almacén",
+  "legacyUi.warehouse.weightInWarehouse": "Peso en almacén",
   "legacyUi.warehouse.inFrontOfRack": "Delante de la estantería",
   "legacyUi.warehouse.warehouseLocations": "🏭 Almacén y ubicaciones",
   "legacyUi.warehouse.currentPositionOfAllShipmentsNot": "Posición actual de todos los envíos aún no recogidos. Las ubicaciones de salida muestran directamente qué envíos hay en ellas. Los administradores también pueden mover envíos manualmente.",
