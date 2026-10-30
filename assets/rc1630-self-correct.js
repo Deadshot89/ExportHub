@@ -216,7 +216,7 @@ var DRAFT_FIELDS={rc1630Area:'area',rc1630Description:'description',rc1630Expect
 d.addEventListener('input',function(e){var id=e.target&&e.target.id;if(id==='rc1630Search'){query=e.target.value;render()}else if(DRAFT_FIELDS[id])draft[DRAFT_FIELDS[id]]=e.target.value});
 d.addEventListener('keydown',function(e){if(e.key==='Escape'&&d.getElementById(MODAL_ID))close()});
 
-w.ExportHUBSelfCorrect=Object.freeze({version:VERSION,allowed:allowed,label:function(){return t('tab')},open:open,openDescribe:function(o){return open(Object.assign({},o||{},{tab:'describe'}))},reportBug:reportBug,autofixConfiguration:autofixConfiguration,close:close,search:function(text){return search(text).hits}});
+w.ExportHUBSelfCorrect=Object.freeze({version:VERSION,allowed:allowed,label:function(){return t('tab')},open:open,openDescribe:function(o){return open(Object.assign({},o||{},{tab:'describe'}))},reportBug:reportBug,autofixConfiguration:autofixConfiguration,phoneTicket:function(r){return allowed()?call(AUTOFIX,Object.assign({},r||{},{action:'phone-ticket'})):Promise.resolve(null)},close:close,search:function(text){return search(text).hits}});
 // The IT tab bar (rc1579) re-syncs on its own events; this picks up the new tab if it rendered before this script.
 try{w.ExportHUBMenu1579&&w.ExportHUBMenu1579.refresh()}catch(_){}
 })(typeof window!=='undefined'?window:null,typeof document!=='undefined'?document:null);
