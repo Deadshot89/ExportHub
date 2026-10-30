@@ -266,5 +266,10 @@
   "api.abdAnalysis.forbidden": "Per l’analisi è necessario il diritto di modifica nell’area ABD.",
   "api.abdAnalysis.actionInvalid": "Azione di analisi ABD sconosciuta.",
   "api.avis.manualAppointmentCreated": "Ritiro prenotato manualmente",
-  "api.avis.manualAppointmentChanged": "Ritiro manuale modificato"
+  "api.avis.manualAppointmentChanged": "Ritiro manuale modificato",
+  "api.reference.docKindInvalid": "Tipo di documento sconosciuto.",
+  "api.reference.docTypeInvalid": "Sono consentiti PDF, immagini (JPG/PNG), Excel (XLSX/XLS/CSV), Word (DOCX/DOC), TXT ed e-mail (MSG/EML).",
+  "api.reference.docEmpty": "Il file è vuoto o non valido.",
+  "api.reference.docTooLarge": "Il file supera i 15 MB.",
+  "api.reference.docSignatureInvalid": "Il contenuto del file non corrisponde al tipo di file."
 }

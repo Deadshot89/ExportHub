@@ -266,5 +266,10 @@
   "api.abdAnalysis.forbidden": "Se requiere permiso de edición en el área ABD para realizar el análisis.",
   "api.abdAnalysis.actionInvalid": "Acción de análisis ABD desconocida.",
   "api.avis.manualAppointmentCreated": "Recogida reservada manualmente",
-  "api.avis.manualAppointmentChanged": "Recogida manual modificada"
+  "api.avis.manualAppointmentChanged": "Recogida manual modificada",
+  "api.reference.docKindInvalid": "Tipo de documento desconocido.",
+  "api.reference.docTypeInvalid": "Se permiten PDF, imágenes (JPG/PNG), Excel (XLSX/XLS/CSV), Word (DOCX/DOC), TXT y correos (MSG/EML).",
+  "api.reference.docEmpty": "El archivo está vacío o no es válido.",
+  "api.reference.docTooLarge": "El archivo supera los 15 MB.",
+  "api.reference.docSignatureInvalid": "El contenido del archivo no coincide con el tipo de archivo."
 }

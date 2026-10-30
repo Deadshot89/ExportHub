@@ -266,5 +266,10 @@
   "api.abdAnalysis.forbidden": "Do analizy wymagane jest prawo edycji w obszarze ABD.",
   "api.abdAnalysis.actionInvalid": "Nieznana akcja analizy ABD.",
   "api.avis.manualAppointmentCreated": "Odbiór zarezerwowano ręcznie",
-  "api.avis.manualAppointmentChanged": "Zmieniono ręczny odbiór"
+  "api.avis.manualAppointmentChanged": "Zmieniono ręczny odbiór",
+  "api.reference.docKindInvalid": "Nieznany rodzaj dokumentu.",
+  "api.reference.docTypeInvalid": "Dozwolone są PDF, obrazy (JPG/PNG), Excel (XLSX/XLS/CSV), Word (DOCX/DOC), TXT i e-maile (MSG/EML).",
+  "api.reference.docEmpty": "Plik jest pusty lub nieprawidłowy.",
+  "api.reference.docTooLarge": "Plik jest większy niż 15 MB.",
+  "api.reference.docSignatureInvalid": "Zawartość pliku nie pasuje do typu pliku."
 }
