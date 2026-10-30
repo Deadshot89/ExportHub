@@ -50,6 +50,10 @@ test('RC1577: POD-Prüfung berichtet zuerst, erzeugt nach Bestätigung neu und s
   expect(await page.evaluate(()=>!!window.ExportHUBPodQualityAudit&&window.EXPORTHUB_POD_RENDER_LAYOUT)).toBe('RC1595');
   // RC1595: the unrelated global notification-hint layer can cross this click coordinate.
   // Use accessible keyboard activation to verify the POD modal workflow without bypassing app handlers.
+  // Phase 2 (30.10.2026): POD-Sicherung sits in the topbar menu "Mehr"; open it the same keyboard way.
+  await page.locator('#ehTopbarMore>summary').focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#podBackupBtn')).toBeVisible();
   await page.locator('#podBackupBtn').focus();
   await page.keyboard.press('Enter');
   await page.locator('#rc1577PodAuditOpen').click();
