@@ -213,17 +213,20 @@ test('RC1190 P2: Gesamtdruck erzeugt im echten Browser einen nicht-leeren vollst
   expect(capture.text).toContain('Bemerkung');
   expect(capture.text).toContain('RC1203 Demo-Bemerkung');
   expect(capture.packingSlipGrid).toBeTruthy();
-  expect(capture.packingSlipGrid.display).toBe('flex');
+  // #1121: ab 3 Lieferscheinen/DNCs steht das Deckblatt im Raster mit 2–4 Spalten, Zeile für Zeile gefüllt
+  expect(capture.packingSlipGrid.display).toBe('grid');
   expect(capture.packingSlipGrid.count).toBe(7);
   expect(new Set(capture.packingSlipGrid.items.map(item=>item.text)).size,'Lieferscheine werden im Deckblatt doppelt dargestellt').toBe(7);
-  expect(capture.packingSlipGrid.rowCount,'Jeder Lieferschein/DNC muss eine eigene Zeile erhalten').toBe(capture.packingSlipGrid.count);
   const slipWidths=capture.packingSlipGrid.items.map(item=>item.right-item.left);
   const slipLefts=capture.packingSlipGrid.items.map(item=>item.left);
+  const slipColumns=new Set(slipLefts.map(left=>Math.round(left))).size;
+  expect(slipColumns,'Deckblatt-Raster nutzt 2 bis 4 Spalten').toBeGreaterThanOrEqual(2);
+  expect(slipColumns,'Deckblatt-Raster nutzt 2 bis 4 Spalten').toBeLessThanOrEqual(4);
+  expect(capture.packingSlipGrid.rowCount,'Raster füllt jede Zeile, bevor eine neue beginnt').toBe(Math.ceil(capture.packingSlipGrid.count/slipColumns));
   expect(slipWidths.every(width=>width>0),'Lieferschein-Kacheln müssen messbar bleiben').toBe(true);
   expect(slipWidths.every(width=>capture.packingSlipGrid.clientWidth<=0||width<=capture.packingSlipGrid.clientWidth+2),'Lieferschein-Kacheln dürfen nicht breiter als ihr Container werden').toBe(true);
-  expect(Math.max(...slipLefts)-Math.min(...slipLefts),'Lieferscheine/DNCs dürfen nicht nebeneinander in mehrere Spalten springen').toBeLessThanOrEqual(2);
-  const orderedSlips=[...capture.packingSlipGrid.items].sort((a,b)=>a.top-b.top);
-  expect(orderedSlips.every((item,index)=>index===0||item.top>=orderedSlips[index-1].bottom-1),'Lieferschein-Kacheln dürfen sich vertikal nicht überlappen').toBe(true);
+  const slips=capture.packingSlipGrid.items;
+  expect(slips.every((a,i)=>slips.every((b,j)=>j<=i||Math.min(a.right,b.right)-Math.max(a.left,b.left)<=1||Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)<=1)),'Lieferschein-Kacheln dürfen sich nicht überlappen').toBe(true);
   expect(capture.packingSlipGrid.items.every(item=>(item.text.match(/\.pdf/gi)||[]).length<=1),'Zusammengeklebte PDF-Dateinamen dürfen nicht als eine Kachel erscheinen').toBe(true);
   expect(capture.packingSlipGrid.clientWidth<=0||capture.packingSlipGrid.scrollWidth<=capture.packingSlipGrid.clientWidth+2,'Lieferschein-Raster läuft horizontal über').toBe(true);
   expect(capture.packingSlipGrid.items.some(item=>/LS_47110007\.pdf/.test(item.text))).toBe(true);
@@ -523,8 +526,9 @@ test('RC1504 P1: lange Lieferscheinlisten bleiben auf A4 ohne Überlappung; die 
   for(const layout of layouts){
     expect(layout.count,layout.kind+' verliert Lieferscheine/DNCs').toBe(28);
     expect(layout.density,layout.kind+' aktiviert für 28 Anhänge nicht die Ultra-Verdichtung').toBe('ultra');
-    expect(layout.columnCount,layout.kind+' hat eine unerwartete Spaltenanzahl').toBe(layout.kind==='load'?2:1);
-    if(layout.kind==='load')expect(layout.columnMarker,'Ladeliste markiert die RC1504-Zweispaltenlogik nicht').toBe('2');
+    // #1121: lange Dateinamen ab 6 Anhängen stehen auf Ladeliste und Deckblatt zweispaltig
+    expect(layout.columnCount,layout.kind+' hat eine unerwartete Spaltenanzahl').toBe(2);
+    expect(layout.columnMarker,layout.kind+' markiert die RC1504-Zweispaltenlogik nicht').toBe('2');
     expect(layout.overlap,layout.kind+' enthält überlappende Anhangzeilen').toBe(false);
     expect(layout.allNamed,layout.kind+' enthält einen unvollständigen Dateinamen').toBe(true);
     expect(layout.gridBottom<=layout.rootBottom+2,layout.kind+' Dokumentliste ragt aus A4 heraus').toBe(true);
