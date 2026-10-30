@@ -1743,3 +1743,28 @@ html[data-eh-design="neon"] #content .rc1502-sop-editor-summary span{color:#9fb3
 html[data-eh-design="neon"] #content .rc1502-sop-editor-summary strong{color:#f6fbff!important}
 html[data-eh-design="neon"] #content .rc1570-scope button[aria-pressed="true"]{color:#07111f!important}
 html[data-eh-design="neon"] #content :is(.rc1502-sop-editor-badge,.rc1502-sop-zoom-button){background:#0e1d31!important;border-color:#294866!important;color:#e5eef8!important}
+
+/* Prüfung 30.10.2026: verbleibende Lesbarkeitsstellen (axe color-contrast) in allen Designs */
+html[data-eh-design] body[data-eh-theme][data-eh-design]{--pc-danger:#b54848}
+html[data-eh-design] body[data-eh-theme] #content :is(.danger,.btn-danger):not(.ghost):not(.soft){background:#b54848!important;border-color:#b54848!important;color:#fff!important}
+html[data-eh-design] body[data-eh-theme] #content .rc897-avis-label{color:var(--pc-muted)!important}
+html[data-eh-design] body[data-eh-theme] #content .rc1205-cover-only-btn>span:nth-child(2){background:#0369a1!important;color:#fff!important}
+html[data-eh-design] body[data-eh-theme] #content :is(.rc299-professions>.active>span,.rc299-small){color:#475569!important}
+html[data-eh-design] body[data-eh-theme] #content .rc1544-sop-required{color:#92400e!important}
+html[data-eh-design] body[data-eh-theme] #content#content .is-today>header>small{color:#fff!important;opacity:1!important}
+html[data-eh-design="classic"] body[data-eh-theme] #content :is(.pickup-count,button[data-pickup-action="week-current"],.rc1558-pill,button[data-cf-target],button[data-rc543-target],summary>b){color:#2a6497!important}
+html[data-eh-design="classic"] body[data-eh-theme] #content .rc524-area-head .rc524-kicker{color:#44618f!important}
+html[data-eh-design="neon"]{--tpv2-primary:#2563eb}
+html[data-eh-design="neon"] body[data-eh-theme][data-eh-design] #content#content :is(.rc1259-config-title>span,.rc1259-config-help,.rc1259-field-note,#index240DocumentStatus,.rc1283-empty,[class*="rc871-diag-messag"],[class*="rc871-diag-messag"] *){color:#9fb3c8!important}
+html[data-eh-design="neon"] body[data-eh-theme][data-eh-design] #content#content .rc299-area-list .rc299-small{color:#cbd5e1!important}
+html[data-eh-design="neon"] body[data-eh-theme][data-eh-design] #content#content .pickup-item-shipment [class*="pickup-item-acti"],html[data-eh-design="neon"] body[data-eh-theme] #content#content .pickup-item-shipment [class*="pickup-item-acti"] *{color:#7cc4ff!important}
+html[data-eh-design="neon"] body[data-eh-theme][data-eh-design] #content#content .rc1544-sop-complete{color:#4ade80!important}
+html[data-eh-design="neon"] body[data-eh-theme][data-eh-design] #content#content .rc1126-danger{background:#b91c1c!important;border-color:#b91c1c!important;color:#fff!important}
+html[data-eh-design="classic"] body[data-eh-theme] #content[data-view="customerfolder"] #cfNav .cf-link[aria-current="true"]{color:#2a6497!important}
+html[data-eh-design="neon"] body[data-eh-theme][data-eh-design] #content#content .rc819-contact-head p{color:#172033!important}
+html[data-eh-design="neon"] body[data-eh-theme][data-eh-design] #content#content .pickup-day.is-today>header :is(small,span,strong,b){color:#07111f!important}
+/* Neon Night: Academy-Auswahlkarten waren weiße Flächen im dunklen Design */
+html[data-eh-design="neon"] body[data-eh-theme][data-eh-design] #content#content :is(.rc299-professions,.rc299-year,.rc299-tabs)>button:not(.active){background:#0e1d31!important;border-color:#294866!important;color:#dcecff!important}
+html[data-eh-design="neon"] body[data-eh-theme][data-eh-design] #content#content :is(.rc299-professions,.rc299-year)>button.active{background:#14325a!important;border-color:#22d3ee!important;color:#f6fbff!important}
+html[data-eh-design="neon"] body[data-eh-theme][data-eh-design] #content#content :is(.rc299-professions,.rc299-year)>button :is(b,strong){color:#f6fbff!important}
+html[data-eh-design="neon"] body[data-eh-theme][data-eh-design] #content#content :is(.rc299-professions,.rc299-year)>button :is(span,.rc299-small,small):not(.rc299-badge){color:#cbd5e1!important}
