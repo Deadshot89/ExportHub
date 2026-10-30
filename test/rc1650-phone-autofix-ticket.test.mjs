@@ -52,7 +52,7 @@ test('Handy-Ticket: nur angemeldete Admins bekommen eins, einlösen geht ohne Lo
  assert.equal(h.dispatched.length,1,'genau ein Autofix-Lauf');
  const rec=h.store['testservice/diagnostics/team-diagnostics.json'].records.at(-1);
  assert.equal(rec.category,'manual');
- assert.match(rec.message,/Handy-Benachrichtigung[\s\S]*TypeError/);
+ assert.match(rec.message,/phone notification[\s\S]*TypeError/);
  assert.equal(rec.user,'Tobias');
 
  const again=await h.call({action:'request-phone',ticket:minted.body.ticket});

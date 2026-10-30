@@ -307,7 +307,7 @@ async function requestFromPhone(req,payload,env){
  if(!admin||!isActive(admin)||!isAdmin(admin)||Number(admin.authVersion||0)!==Number(t.av||0))throw error('GLOBAL_ADMIN_REQUIRED','api.autofix.adminRequired',403);
  const d=diagBlob(env),diag=await readJson(d,{records:[]},false),rows=Array.isArray(diag.value&&diag.value.records)?diag.value.records:[];
  if(rows.some(r=>r&&r.phoneTicket===t.n))throw error('AUTOFIX_TICKET_USED','Diese Benachrichtigung wurde bereits an die KI gesendet.',409);
- const x=t.d,description=['Fehler aus einer Handy-Benachrichtigung:',x.message,'Bereich: '+(x.area||'–'),'Art: '+[x.level,x.category].filter(Boolean).join(' / '),'Anzahl: '+x.count,x.at?'Zeit: '+x.at:''].filter(Boolean).join('\n');
+ const x=t.d,description=['Reported from a phone notification:',x.message,'Area: '+(x.area||'-'),'Type: '+[x.level,x.category].filter(Boolean).join(' / '),'Count: '+x.count,x.at?'Time: '+x.at:''].filter(Boolean).join('\n');
  const at=now(),id='MAN-'+Date.now().toString(36).toUpperCase()+'-'+crypto.randomBytes(3).toString('hex').toUpperCase();
  const record={id,seq:0,at,lastAt:at,level:x.level==='warning'?'warning':'error',category:'manual',area:x.area||'Handy-Benachrichtigung',message:description.slice(0,4000),details:{source:'phone',originalCategory:x.category,originalAt:x.at},count:1,user:text(admin.name||admin.user).slice(0,120),userId:text(admin.id).slice(0,100),deviceId:'',clientVersion:'android',environment:env,manual:true,phoneTicket:t.n};
  for(let attempt=0;attempt<MAX_RETRIES;attempt++){
