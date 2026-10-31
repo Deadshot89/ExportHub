@@ -37,3 +37,38 @@ test('Android: Aufgaben werden als Karten mit Priorität, Referenz und Fälligke
   // still read-only
   assert.doesNotMatch(detail, /EnvironmentActivity\.class|Aufgabe öffnen|In ExportHUB öffnen/);
 });
+
+test('Android: Warncenter-Push nennt die Sendungen hinter der Zahl, gruppiert', () => {
+  const hub = fs.readFileSync('assets/exporthub-environment-hub.js', 'utf8');
+  const fnSrc = (hub.match(/function warningDetailLines\(\)\{[\s\S]*?\n\}\n/) || [])[0];
+  assert.ok(fnSrc, 'warningDetailLines fehlt');
+  const run = (summary) => new Function('window', fnSrc + 'return warningDetailLines();')({ __EXPORTHUB_WARNING_SUMMARY__: summary });
+  assert.equal(run(undefined), '');
+  const text = run({ total: 5, groups: [
+    { label: 'POD fehlt', count: 4, items: ['Sendung A', '  Kunde   B ', 'C', 'D'] },
+    { label: 'Dokumente', count: 0, items: [] },
+    { label: 'Abholung', count: 1, items: ['E'] }
+  ] });
+  assert.equal(text, '\n\nPOD fehlt: 4\n• Sendung A\n• Kunde B\n• C\n\nAbholung: 1\n• E');
+  assert.match(hub, /\+warningDetailLines\(\),route:'warnings'/);
+  for (const page of ['index.html', 'TESTVERSION.html']) {
+    assert.match(fs.readFileSync(page, 'utf8'), /window\.__EXPORTHUB_WARNING_SUMMARY__=\{total:d\.total/);
+  }
+  const detail = read('NotificationDetailActivity.java');
+  const helper = read('NotificationHelper.java');
+  assert.match(detail, /renderWarnings\(root, title, body\)/);
+  assert.match(detail, /"und " \+ more \+ " weitere"/);
+  assert.match(helper, /notificationIntent\(context, env, normalizedChannel, safeKey, safeTitle, detailBody,/);
+});
+
+test('Android: Benachrichtigung wirkt nicht kahl – Kopfband, farbige Karten, Klartext in der Leiste', () => {
+  const detail = read('NotificationDetailActivity.java');
+  const helper = read('NotificationHelper.java');
+  assert.match(detail, /private LinearLayout header\(String channel, String body\)/);
+  assert.match(detail, /GradientDrawable\.Orientation\.TL_BR/);
+  assert.match(detail, /private LinearLayout accentCard\(LinearLayout parent, int accent, int topMargin\)/);
+  assert.match(detail, /styleButton\(close, false\)/);
+  assert.match(helper, /setContentTitle\(shadeTitle\(normalizedChannel, safeTitle, safeBody\)\)/);
+  assert.match(helper, /setSubText\(environmentLabel\(env\)\)/);
+  assert.match(helper, /setColor\(shadeColor\(normalizedChannel, safeBody\)\)/);
+});
