@@ -81,7 +81,7 @@ function notifyDiagnostic(event){
   const records=store&&Array.isArray(store.records)?store.records:[];
   const rec=records.length?records[records.length-1]:null;
   if(!rec||!phoneDiagnostic(rec))return false;
-  const sent=sendAndroid(diagnosticPayload(rec,1));
+  const sent=sendDiagnosticAndroid(rec,1);
   if(sent)writeDiagnosticMarker(rec,cloud);
   return sent;
 }
@@ -106,9 +106,23 @@ async function pollCentralDiagnostics(force){
   }
   if(!fresh.length)return false;
   const latest=fresh[fresh.length-1];
-  const sent=sendAndroid(diagnosticPayload(latest,fresh.length));
+  const sent=sendDiagnosticAndroid(latest,fresh.length);
   if(sent)writeDiagnosticMarker(latest,cloud);
   return sent;
+}
+// 2026-10-30 (Tobias): a diagnostic push carries a signed single-use ticket so the phone can send the error to the
+// KI without logging in. Older apps without notifyDiagnostic keep the plain notification.
+function sendDiagnosticAndroid(rec,count){
+  const payload=diagnosticPayload(rec,count),bridge=window.ExportHUBAndroid,sc=window.ExportHUBSelfCorrect;
+  if(!bridge||typeof bridge.notifyDiagnostic!=='function'||!sc||typeof sc.phoneTicket!=='function')return sendAndroid(payload);
+  const storageKey=`exporthub-native-notify:${currentEnvironment()}:${payload.channel}`,sig=String(payload.key||'')+'|'+String(payload.body||'');
+  let prev='';try{prev=sessionStorage.getItem(storageKey)||''}catch(_){ }
+  if(prev===sig)return false;
+  try{sessionStorage.setItem(storageKey,sig)}catch(_){ }
+  const r=rec||{},send=ticket=>{try{bridge.notifyDiagnostic(payload.channel,payload.key,payload.title,payload.body,payload.route,ticket||'')}catch(_){ }};
+  const ticket=Promise.resolve().then(()=>sc.phoneTicket({area:r.area,message:r.message,category:r.category,level:r.level,count:Number(count>1?count:r.count||1),at:r.lastAt||r.at})).then(x=>x&&x.ticket||'',()=>'');
+  Promise.race([ticket,new Promise(done=>setTimeout(()=>done(''),5000))]).then(send);
+  return true;
 }
 function requestedRouteSpec(){
   let raw='';try{raw=String(new URLSearchParams(location.search).get('ehRoute')||'').trim()}catch(_){return null}

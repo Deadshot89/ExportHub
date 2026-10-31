@@ -1,6 +1,7 @@
 package de.exporthub.test;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -15,6 +16,12 @@ import android.widget.TextView;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -33,6 +40,7 @@ public final class NotificationDetailActivity extends Activity {
     public static final String EXTRA_NOTIFICATION_CHANNEL = "exporthub_notification_channel";
     public static final String EXTRA_NOTIFICATION_ROUTE = "exporthub_notification_route";
     public static final String EXTRA_NOTIFICATION_TASKS = "exporthub_notification_tasks";
+    public static final String EXTRA_AUTOFIX_TICKET = "exporthub_autofix_ticket";
 
     private static final int COLOR_PAGE = 0xFFF1F5F9;
     private static final int COLOR_CARD = 0xFFFFFFFF;
@@ -53,6 +61,7 @@ public final class NotificationDetailActivity extends Activity {
 
     private String environment = "production";
     private String route = "notifications";
+    private String autofixTicket = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,6 +75,7 @@ public final class NotificationDetailActivity extends Activity {
         String title = safe(source == null ? null : source.getStringExtra(EXTRA_NOTIFICATION_TITLE), defaultTitle(channel));
         String body = safeLong(source == null ? null : source.getStringExtra(EXTRA_NOTIFICATION_BODY), "ExportHUB hat einen neuen Hinweis.");
         String tasksJson = source == null ? null : source.getStringExtra(EXTRA_NOTIFICATION_TASKS);
+        autofixTicket = safe(source == null ? null : source.getStringExtra(EXTRA_AUTOFIX_TICKET), "");
 
         setTitle(defaultTitle(channel));
         setContentView(buildContent(channel, title, body, tasksJson));
@@ -172,6 +182,79 @@ public final class NotificationDetailActivity extends Activity {
         techText.setTypeface(Typeface.MONOSPACE);
         techText.setTextIsSelectable(true);
         tech.addView(techText, margins(0, 4, 0, 0));
+
+        if (autofixTicket.startsWith("ehaf1.") && !"demo".equals(environment)) addAutofixButton(root);
+    }
+
+    // 2026-10-30 (Tobias): send this error to the KI right from the phone, without a login. The website put a
+    // signed single-use ticket into the notification; the server checks it and starts the usual autofix (PR only).
+    private void addAutofixButton(LinearLayout root) {
+        Button send = new Button(this);
+        send.setText("An KI senden");
+        send.setAllCaps(false);
+        send.setTextSize(15f);
+        TextView status = text("Die KI sucht die Ursache, testet eine Korrektur und legt einen Pull Request an. Nichts geht direkt live.",
+                12f, COLOR_MUTED, false);
+        send.setOnClickListener(v -> new AlertDialog.Builder(this)
+                .setTitle("An KI senden?")
+                .setMessage("Diese Fehlermeldung wird an die KI-Fehlerbehebung gesendet.")
+                .setNegativeButton("Abbrechen", null)
+                .setPositiveButton("Senden", (d, w) -> sendToAutofix(send, status))
+                .show());
+        LinearLayout.LayoutParams p = matchWrap();
+        p.topMargin = dp(12);
+        root.addView(send, p);
+        root.addView(status, margins(4, 6, 4, 0));
+    }
+
+    private void sendToAutofix(Button send, TextView status) {
+        send.setEnabled(false);
+        status.setText("Wird gesendet …");
+        final String ticket = autofixTicket;
+        final String env = "production".equals(environment) ? "production" : "testservice";
+        new Thread(() -> {
+            String message;
+            boolean ok = false;
+            try {
+                JSONObject payload = new JSONObject();
+                payload.put("action", "request-phone");
+                payload.put("environment", env);
+                payload.put("ticket", ticket);
+                byte[] raw = payload.toString().getBytes(StandardCharsets.UTF_8);
+                HttpURLConnection c = (HttpURLConnection) new URL(EnvironmentActivity.apiBase(env) + "/api/diagnostic-autofix").openConnection();
+                c.setRequestMethod("POST");
+                c.setConnectTimeout(15000);
+                c.setReadTimeout(30000);
+                c.setDoOutput(true);
+                c.setRequestProperty("Content-Type", "application/json; charset=utf-8");
+                c.setRequestProperty("Accept", "application/json");
+                c.setRequestProperty("Accept-Language", "de");
+                try (OutputStream out = c.getOutputStream()) { out.write(raw); }
+                int code = c.getResponseCode();
+                InputStream in = code >= 200 && code < 300 ? c.getInputStream() : c.getErrorStream();
+                ByteArrayOutputStream buf = new ByteArrayOutputStream();
+                if (in != null) {
+                    byte[] chunk = new byte[4096];
+                    int n;
+                    while ((n = in.read(chunk)) > 0) buf.write(chunk, 0, n);
+                    in.close();
+                }
+                JSONObject res = new JSONObject(buf.size() > 0 ? buf.toString("UTF-8") : "{}");
+                ok = code >= 200 && code < 300 && res.optBoolean("ok", false);
+                message = ok
+                        ? "Gemeldet. Claude arbeitet jetzt an Auftrag " + res.optString("jobId", "") + ". Das Ergebnis siehst du in ExportHUB unter Fehlerdiagnose → Meine KI-Aufträge."
+                        : "Nicht gesendet: " + res.optString("message", "HTTP " + code);
+            } catch (Exception e) {
+                message = "Nicht gesendet: keine Verbindung zu ExportHUB.";
+            }
+            final String text = message;
+            final boolean done = ok;
+            runOnUiThread(() -> {
+                status.setText(text);
+                status.setTextColor(done ? COLOR_GREEN : COLOR_RED);
+                send.setEnabled(!done);
+            });
+        }).start();
     }
 
     private void addSection(LinearLayout parent, String label, String value, boolean code) {
