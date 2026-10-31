@@ -1774,3 +1774,46 @@ html[data-eh-design="neon"] body[data-eh-theme] .topbar .eh-topbar-more>.eh-topb
 @media (max-width:900px){
   html[data-eh-design] body[data-eh-theme] .topbar .eh-topbar-more{display:none!important}
 }
+/* Neon Night (31.10.2026): Flächen, die noch hell waren. Im SOP-Dokument und unter „Ladeliste & CMR“ stand dort
+   heller Text auf Weiß. Nur Bildschirm – der Ausdruck einer SOP bleibt weiß. */
+@media screen{
+  html[data-eh-design="neon"] #content :is(.rc1007-sop-section,.rc1007-sop-meta,.rc1009-sop-detail,.rc1009-sop-sidebar,.rc1007-sop-card,.rc1007-sop-doc-actions){background:#0d1a2c!important;border-color:#294866!important;color:#e5eef8!important}
+  html[data-eh-design="neon"] #content :is(.rc1007-sop-meta-cell){border-color:#294866!important}
+  html[data-eh-design="neon"] #content .rc1007-sop-meta-cell span{color:#9fb3c8!important}
+  html[data-eh-design="neon"] #content :is(.rc1007-sop-meta-cell strong,.rc1007-sop-section :is(h2,h3,h4,strong),.rc1009-sop-detail>summary){color:#f6fbff!important}
+  html[data-eh-design="neon"] #content .rc1009-sop-detail>summary{background:#10233a!important}
+  html[data-eh-design="neon"] #content .rc1007-sop-step-number{background:#14325a!important;color:#7cc4ff!important}
+  html[data-eh-design="neon"] #content rect.rc1007-sop-flow-node{fill:#10233a!important;stroke:#315777!important}
+  html[data-eh-design="neon"] #content text.rc1007-sop-flow-number{fill:#7cc4ff!important}
+  html[data-eh-design="neon"] #content text.rc1007-sop-flow-label{fill:#e5eef8!important}
+  html[data-eh-design="neon"] #content .rc1502-sop-expected-result{background:#0f2a1c!important;color:#c9f2d6!important}
+  html[data-eh-design="neon"] #content .rc1007-sop-status{background:#14325a!important;color:#e5eef8!important}
+  /* Sendungsübersicht: Gruppenleiste; Sendung erstellen: Verpackungsauswahl */
+  html[data-eh-design="neon"] #content .rc543-overview-group-head{background:#10233a!important;border-color:#294866!important;color:#e5eef8!important}
+  html[data-eh-design="neon"] #content .rc543-overview-group-head :is(b,strong){color:#f6fbff!important}
+  html[data-eh-design="neon"] #content .rc543-overview-group-head .rc543-overview-group-arrow{color:#7cc4ff!important}
+  html[data-eh-design="neon"] #content .rc543-overview-group-head .rc548-overview-drag{background:#0e1d31!important;border-color:#294866!important;color:#7cc4ff!important}
+  html[data-eh-design="neon"] #content .rc682-packaging-toggle{background:#0b1728!important;border-color:#315777!important;color:#e5eef8!important}
+  /* Ladeliste & CMR: Aktionen, Reiter und Fläche um die Dokumentvorschau; das Dokument selbst bleibt Papier */
+  html[data-eh-design="neon"] #content :is(#rc576DocumentActions,#rc576DocumentTabs){background:#0d1a2c!important;border-color:#294866!important}
+  html[data-eh-design="neon"] #content #rc576DocumentTabs button:not(.active):not([aria-selected="true"]){background:#0e1d31!important;border-color:#294866!important;color:#e5eef8!important}
+  html[data-eh-design="neon"] #content #rc576DocumentStage{background:#0b1728!important;border-color:#294866!important}
+  html[data-eh-design="neon"] #content #rc576NoShipment{background:#0d1a2c!important;border-color:#315777!important;color:#aac1d7!important}
+  /* Versandkosten-Hinweis, Kundenordner AVIS-Status, Academy/Prüfungen */
+  html[data-eh-design="neon"] #content #rc376UpsAuto.warn{background:#2a2210!important;border-color:#6b4f12!important;color:#fcd38a!important}
+  html[data-eh-design="neon"] #content .rc1092-avis-state{background:#0f2a1c!important;color:#86efac!important}
+  html[data-eh-design="neon"] #content :is(.rc299-professions,.rc299-year,.rc299-tabs)>button,html[data-eh-design="neon"] #content .rc299-option{background:#0e1d31!important;border-color:#294866!important;color:#e5eef8!important}
+  html[data-eh-design="neon"] #content :is(.rc299-professions,.rc299-year,.rc299-tabs)>button :is(b,strong,h3,h4){color:#f6fbff!important}
+  html[data-eh-design="neon"] #content :is(.rc299-professions,.rc299-year,.rc299-tabs)>button span:not(.rc299-badge){color:#aac1d7!important}
+  html[data-eh-design="neon"] #content :is(.rc299-professions,.rc299-year,.rc299-tabs)>button.active{background:#14325a!important;border-color:#22d3ee!important}
+}
+/* Dashboard-Kacheln: Wörter wie „Ausgangsvermerke“ nicht mitten im Wort umbrechen (Glass, schmale Laptops) */
+html[data-eh-design] body[data-eh-theme] #content .rc1558-kpi :is(.rc1558-kpi-sub,.rc1558-kpi-label,span){overflow-wrap:break-word!important;word-break:normal!important;hyphens:auto!important}
+/* Handy: Design-Namen ausgeschrieben, Sprache wieder wählbar (war unter 560 px ausgeblendet) */
+@media (max-width:560px){
+  html[data-eh-design] body[data-eh-theme] .topbar .eh-topbar-options{grid-template-columns:minmax(96px,auto) minmax(0,1fr)!important}
+  html[data-eh-design] body[data-eh-theme] .topbar #languageSelect{display:block!important;width:100%!important;min-width:0!important}
+  html[data-eh-design] body[data-eh-theme] .topbar #ehThemeSwitch{min-width:0!important;grid-template-columns:minmax(0,1fr)!important}
+  html[data-eh-design] body[data-eh-theme] .topbar #ehThemeSwitch>span{display:none!important}
+  html[data-eh-design] body[data-eh-theme] .topbar #ehThemeSelect{width:100%!important;min-width:0!important}
+}
