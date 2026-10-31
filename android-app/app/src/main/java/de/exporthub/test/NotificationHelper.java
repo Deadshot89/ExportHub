@@ -74,6 +74,17 @@ public final class NotificationHelper {
                                String title,
                                String body,
                                String route) {
+        return show(context, environment, channel, key, title, body, route, null);
+    }
+
+    public static boolean show(Context context,
+                               String environment,
+                               String channel,
+                               String key,
+                               String title,
+                               String body,
+                               String route,
+                               String autofixTicket) {
         String env = EnvironmentActivity.normalizeEnvironment(environment);
         if ("task_snapshot".equalsIgnoreCase(channel)) {
             return storeTaskSnapshot(context, env, body);
@@ -113,6 +124,9 @@ public final class NotificationHelper {
         prefs.edit().putString(dedupeKey, signature).apply();
 
         Intent intent = notificationIntent(context, env, normalizedChannel, safeKey, safeTitle, safeBody, safeRoute, null);
+        if ("diagnostic".equals(normalizedChannel) && autofixTicket != null && autofixTicket.startsWith("ehaf1.") && autofixTicket.length() < 4000) {
+            intent.putExtra(NotificationDetailActivity.EXTRA_AUTOFIX_TICKET, autofixTicket);
+        }
         int notificationId = Math.abs((env + ":" + normalizedChannel + ":" + safeKey).hashCode());
         int pendingIntentRequestCode = Math.abs(("native-detail-v2:" + env + ":" + normalizedChannel + ":" + safeKey).hashCode());
         PendingIntent pendingIntent = PendingIntent.getActivity(
