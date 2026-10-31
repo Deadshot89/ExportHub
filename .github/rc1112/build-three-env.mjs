@@ -1933,6 +1933,26 @@ for(const file of ['index.html','TESTVERSION.html','demo.html']){
   if(!html.includes('function warehouseWeight(sh){')||!html.includes('Gewicht im Lager'))throw new Error(file+': RC1731 Lager-Gewicht fehlt');
   fs.writeFileSync(target,html);
 }
+// RC1741 Menü ohne Flackern: die Menüprüfung (RC325 menuValid/normalizeMenu) ist kanonisch in
+// index.html. In alten Snapshots zählte sie die Zusatzknöpfe Packmeldungen/Verpackungen als Fehler,
+// baute das Menü bei jedem Rendern neu und warf diese Knöpfe kurz hinaus.
+const rc1741Canonical=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
+const rc1741Start='function menuValid(nav){',rc1741End='\nfunction buildMenu(){';
+const rc1741SourceStart=rc1741Canonical.lastIndexOf('\n',rc1741Canonical.indexOf('var ADDON_BUTTONS='))+1;
+const rc1741SourceEnd=rc1741Canonical.indexOf(rc1741End,rc1741SourceStart);
+if(rc1741SourceStart<=0||rc1741SourceEnd<=rc1741SourceStart||!rc1741Canonical.slice(rc1741SourceStart,rc1741SourceEnd).includes(rc1741Start))throw new Error('RC1741: kanonische Menüprüfung fehlt');
+const rc1741Source=rc1741Canonical.slice(rc1741SourceStart,rc1741SourceEnd);
+for(const file of ['index.html','TESTVERSION.html','demo.html']){
+  const target=path.join(OUT,file);
+  let html=fs.readFileSync(target,'utf8');
+  if(!html.includes('var ADDON_BUTTONS=')){
+    const targetStart=html.indexOf(rc1741Start),targetEnd=html.indexOf(rc1741End,targetStart);
+    if(targetStart<0||targetEnd<=targetStart||html.indexOf(rc1741Start,targetStart+rc1741Start.length)>=0)throw new Error(file+': RC1741 Menüprüfung nicht eindeutig');
+    html=html.slice(0,targetStart)+rc1741Source+html.slice(targetEnd);
+  }
+  if(!html.includes('function addonButton(b){'))throw new Error(file+': RC1741 Menü-Zusatzknöpfe fehlen');
+  fs.writeFileSync(target,html);
+}
 for(const file of ['index.html','TESTVERSION.html','demo.html']){
   const target=path.join(OUT,file);
   const hardened=hardenCustomerSaveHtml(patchRc1662SavedShipmentDeltaHtml(fs.readFileSync(target,'utf8'),file));
