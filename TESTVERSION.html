@@ -15162,7 +15162,17 @@ async function loadStateAfterLogin(){
    return loadState({timeoutMs:24000,maxAttempts:1})
   }
  }
- try{return await loadState({timeoutMs:25000,maxAttempts:1})}catch(firstError){if(isSessionError(firstError)&&await renewSessionOnce())return loadState({timeoutMs:25000,maxAttempts:1});throw firstError}
+ // 2026-10-31 (Tobias): on the phone the team data did not arrive within 25 s (STATE_API_UNREACHABLE) and the login
+ // stopped. The Android app gets a longer first wait, and a slow/unreachable answer gets one more, longer try.
+ const firstTimeout=window.ExportHUBAndroid?45000:25000;
+ try{return await loadState({timeoutMs:firstTimeout,maxAttempts:1})}catch(firstError){
+  if(isSessionError(firstError)&&await renewSessionOnce())return loadState({timeoutMs:firstTimeout,maxAttempts:1});
+  if(!isTransientLoginLoadError(firstError))throw firstError;
+  status('Anmeldung bestätigt · Azure-Teamdaten antworten verzögert. Ein weiterer Versuch läuft …','');
+  progress(12,'Azure-Teamdaten antworten verzögert · weiterer Versuch …');
+  await new Promise(function(resolve){native.setTimeout(resolve,1500)});
+  return loadState({timeoutMs:90000,maxAttempts:1})
+ }
 }
 async function finishAuthenticatedLogin(){
  stopLoginProgress();progress(runtime.sessionRestored?5:6,runtime.sessionRestored?'Gespeicherte Sitzung wird geprüft …':'Anmeldung bestätigt · Teamdaten werden vorbereitet …');status(runtime.sessionRestored?'Sitzung wird nach dem Neuladen wiederhergestellt …':'Anmeldung bestätigt. Teamdaten werden geladen …','ok');
