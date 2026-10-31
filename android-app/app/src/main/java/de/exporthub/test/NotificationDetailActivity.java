@@ -652,7 +652,12 @@ public final class NotificationDetailActivity extends Activity {
         String label = "";
         int count;
         final List<String> items = new ArrayList<>();
+        /** Optional second line per shipment ("Kunde · 28.10."), same index as items. */
+        final List<String> details = new ArrayList<>();
     }
+
+    /** Shipments shown per group before "Alle anzeigen". */
+    static final int WARNING_PREVIEW = 5;
 
     private static final Pattern WARNING_GROUP = Pattern.compile("^(.{1,80}): (\\d+)$");
 
@@ -671,7 +676,10 @@ public final class NotificationDetailActivity extends Activity {
                 try { current.count = Integer.parseInt(m.group(2)); } catch (NumberFormatException ignored) {}
                 groups.add(current);
             } else if (line.startsWith("• ") && current != null) {
-                current.items.add(line.substring(2).trim());
+                String item = line.substring(2).trim();
+                int split = item.indexOf(" — ");
+                current.items.add(split > 0 ? item.substring(0, split).trim() : item);
+                current.details.add(split > 0 ? item.substring(split + 3).trim() : "");
             }
         }
         return groups;
@@ -694,16 +702,54 @@ public final class NotificationDetailActivity extends Activity {
             head.addView(badge(String.valueOf(group.count), COLOR_RED, COLOR_RED_BG));
             card.addView(head);
 
-            for (String item : group.items) {
-                TextView itemView = text("›  " + item, 15f, COLOR_BODY, false);
-                itemView.setTextIsSelectable(true);
-                card.addView(itemView, margins(0, 8, 0, 0));
+            // The first shipments are always visible; the rest sits behind "Alle anzeigen" so a group
+            // with 170+ shipments does not push the other groups off the screen.
+            final LinearLayout hidden = new LinearLayout(this);
+            hidden.setOrientation(LinearLayout.VERTICAL);
+            hidden.setVisibility(View.GONE);
+            for (int i = 0; i < group.items.size(); i++) {
+                String detail = i < group.details.size() ? group.details.get(i) : "";
+                View item = shipmentRow(i + 1, group.items.get(i), detail);
+                if (i < WARNING_PREVIEW) card.addView(item, margins(0, 8, 0, 0));
+                else hidden.addView(item, margins(0, 8, 0, 0));
+            }
+            card.addView(hidden);
+            final int extra = group.items.size() - WARNING_PREVIEW;
+            if (extra > 0) {
+                final Button toggle = new Button(this);
+                final String showAll = "Alle " + group.items.size() + " anzeigen";
+                toggle.setText(showAll);
+                styleButton(toggle, false);
+                toggle.setOnClickListener(v -> {
+                    boolean open = hidden.getVisibility() == View.VISIBLE;
+                    hidden.setVisibility(open ? View.GONE : View.VISIBLE);
+                    toggle.setText(open ? showAll : "Weniger anzeigen");
+                });
+                card.addView(toggle, margins(0, 12, 0, 0));
             }
             int more = group.count - group.items.size();
             if (more > 0) {
                 card.addView(text("und " + more + " weitere", 13f, COLOR_MUTED, false), margins(0, 8, 0, 0));
             }
         }
+    }
+
+    private View shipmentRow(int number, String reference, String detail) {
+        LinearLayout row = row();
+        row.setGravity(Gravity.TOP);
+        TextView index = text(String.valueOf(number), 12f, COLOR_MUTED, true);
+        index.setMinWidth(dp(28));
+        row.addView(index, wrapContent());
+        LinearLayout texts = new LinearLayout(this);
+        texts.setOrientation(LinearLayout.VERTICAL);
+        TextView ref = text(reference, 15f, COLOR_TEXT, true);
+        ref.setTextIsSelectable(true);
+        texts.addView(ref);
+        if (detail != null && !detail.isEmpty()) {
+            texts.addView(text(detail, 13f, COLOR_MUTED, false));
+        }
+        row.addView(texts, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        return row;
     }
 
     // ---- sonstige Hinweise ----

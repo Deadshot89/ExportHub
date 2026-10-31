@@ -286,10 +286,13 @@ public final class NotificationHelper {
         return TASK_GROUP_PREFIX + environment;
     }
 
+    // Large enough for every shipment of a full Warncenter list (about 200 lines).
+    private static final int MAX_DETAIL_BODY = 20000;
+
     private static String safeDetail(String value, String fallback) {
         String v = value == null ? "" : value.trim();
         if (v.isEmpty()) return fallback;
-        return v.length() > 4000 ? v.substring(0, 4000) : v;
+        return v.length() > MAX_DETAIL_BODY ? v.substring(0, MAX_DETAIL_BODY) : v;
     }
 
     private static String safe(String value, String fallback) {

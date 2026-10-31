@@ -49,7 +49,13 @@ test('Android: Warncenter-Push nennt die Sendungen hinter der Zahl, gruppiert', 
     { label: 'Dokumente', count: 0, items: [] },
     { label: 'Abholung', count: 1, items: ['E'] }
   ] });
-  assert.equal(text, '\n\nPOD fehlt: 4\n• Sendung A\n• Kunde B\n• C\n\nAbholung: 1\n• E');
+  assert.equal(text, '\n\nPOD fehlt: 4\n• Sendung A\n• Kunde B\n• C\n• D\n\nAbholung: 1\n• E');
+  // Every shipment is sent, with customer/date as a second line; the body stays bounded.
+  const rich = run({ total: 2, groups: [{ label: 'POD fehlt', count: 2, items: [{ title: 'IBL3ZL', sub: 'Kunde X · 28.10.' }, { title: 'ZRZSS4', sub: '' }] }] });
+  assert.equal(rich, '\n\nPOD fehlt: 2\n• IBL3ZL — Kunde X · 28.10.\n• ZRZSS4');
+  const many = run({ total: 2000, groups: [{ label: 'POD fehlt', count: 2000, items: Array.from({ length: 2000 }, (_, i) => ({ title: 'REF' + i, sub: 'Kunde mit langem Namen ' + i + ' · 01.10.' })) }] });
+  assert.ok(many.length <= 18000, 'Warncenter-Body bleibt begrenzt');
+  assert.match(many, /• REF0 — /);
   assert.match(hub, /\+warningDetailLines\(\),route:'warnings'/);
   for (const page of ['index.html', 'TESTVERSION.html']) {
     assert.match(fs.readFileSync(page, 'utf8'), /window\.__EXPORTHUB_WARNING_SUMMARY__=\{total:d\.total/);
@@ -58,6 +64,15 @@ test('Android: Warncenter-Push nennt die Sendungen hinter der Zahl, gruppiert', 
   const helper = read('NotificationHelper.java');
   assert.match(detail, /renderWarnings\(root, title, body\)/);
   assert.match(detail, /"und " \+ more \+ " weitere"/);
+  assert.match(detail, /"Alle " \+ group\.items\.size\(\) \+ " anzeigen"/);
+  assert.match(detail, /"Weniger anzeigen"/);
+  assert.match(detail, /WARNING_PREVIEW = 5/);
+  assert.match(helper, /MAX_DETAIL_BODY = 20000/);
+  for (const page of ['index.html', 'TESTVERSION.html']) {
+    const html = fs.readFileSync(page, 'utf8');
+    assert.match(html, /items:warningPhoneItems\(g\.all\|\|\[\]\)/);
+    assert.match(html, /id:'pod',\s*all:pods,/);
+  }
   assert.match(helper, /notificationIntent\(context, env, normalizedChannel, safeKey, safeTitle, detailBody,/);
 });
 

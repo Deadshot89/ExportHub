@@ -20,17 +20,25 @@ function sendAndroid(payload){
   if(prev===sig)return false;
   try{window.ExportHUBAndroid.notify(payload.channel,payload.key,payload.title,payload.body,payload.route);sessionStorage.setItem(storageKey,sig);return true}catch(_){return false}
 }
-// The phone shows which shipments are behind the warning count: per group "Label: N" and up to
-// three shipments as "• title". The native detail screen renders these lines as cards.
+// The phone shows which shipments are behind the warning count: per group "Label: N" and every
+// shipment as "• title" or "• title — Kunde · Datum". The native detail screen renders these lines
+// as cards (first five visible, the rest behind "Alle anzeigen").
 function warningDetailLines(){
   const sum=window.__EXPORTHUB_WARNING_SUMMARY__;
   if(!sum||!Array.isArray(sum.groups))return'';
   const clean=v=>String(v==null?'':v).replace(/\s+/g,' ').trim().slice(0,120);
+  const limit=18000;
   let out='';
   sum.groups.forEach(g=>{
     const count=Number(g&&g.count)||0;if(!count)return;
     out+='\n\n'+clean(g.label)+': '+count;
-    (Array.isArray(g.items)?g.items:[]).slice(0,3).forEach(t=>{const title=clean(t);if(title)out+='\n• '+title});
+    (Array.isArray(g.items)?g.items:[]).some(t=>{
+      const title=clean(t&&typeof t==='object'?t.title:t);if(!title)return false;
+      const sub=t&&typeof t==='object'?clean(t.sub):'';
+      const line='\n• '+title+(sub?' — '+sub:'');
+      if(out.length+line.length>limit)return true;
+      out+=line;return false;
+    });
   });
   return out;
 }
