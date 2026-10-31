@@ -76,7 +76,7 @@ module.exports = async function(context, req) {
     // RC1687: OIDC signer is already validated above. Diagnostics must return
     // only redacted GET probe outcomes and never enter mutating reconcile/audit.
     if (payload.graphTargetDiagnostic === true) {
-      const diagnostic = await graphDrive.diagnoseTarget();
+      const diagnostic = await graphDrive.diagnoseTarget({ environment });
       context.res = json(200, {
         version: 'RC1687',
         environment,

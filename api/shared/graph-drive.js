@@ -126,8 +126,23 @@ function retryDelay(error, attempt) {
 let tokenCache = null;
 let targetCache = null;
 let targetFailureCache = null;
+// RC1750: The app token only needs the Graph credentials. The POD target
+// itself may be unreachable while the reference library still works.
+function credentials() {
+  const tenantId = text(process.env.EXPORTHUB_GRAPH_TENANT_ID);
+  const clientId = text(process.env.EXPORTHUB_GRAPH_CLIENT_ID);
+  const clientSecret = text(process.env.EXPORTHUB_GRAPH_CLIENT_SECRET);
+  if (!tenantId || !clientId || !clientSecret) {
+    const error = new Error('Microsoft Graph ist für die POD-Sicherung noch nicht konfiguriert.');
+    error.code = 'GRAPH_NOT_CONFIGURED';
+    error.statusCode = 503;
+    throw error;
+  }
+  return { tenantId, clientId, clientSecret };
+}
+
 async function accessToken(force) {
-  const cfg = config();
+  const cfg = credentials();
   if (!force && tokenCache && tokenCache.expiresAt > Date.now() + 60000) return tokenCache.token;
   const form = new URLSearchParams({
     client_id: cfg.clientId,
@@ -759,7 +774,7 @@ function wrapDirectPathError(error) {
   return wrapped;
 }
 
-async function uploadPdf(buffer, fileName) {
+async function uploadConfiguredTarget(buffer, fileName) {
   const cfg = config();
   const name = safeFileName(fileName);
   const cachedFailure = cachedTargetFailure(cfg);
@@ -853,6 +868,162 @@ async function uploadPdf(buffer, fileName) {
   throw lastError || Object.assign(new Error('Microsoft-365-POD-Sicherung ist fehlgeschlagen.'), { code: 'GRAPH_UPLOAD_FAILED', statusCode: 502 });
 }
 
+// RC1750: The configured POD drive (EXPORTHUB_POD_DRIVE_USER/FOLDER) has
+// answered 404 for days, while the production REF library
+// ("003 Export/ExportHub/Sendungen") is reachable for the same Graph app.
+// The existing "Abliefernachweise" folder lives next to "Sendungen". When the
+// configured POD target cannot be reached, store the PDF in that existing
+// folder of the REF library. The folder is NEVER created here: without an
+// existing folder the copy stays pending. Production only, so a TESTSERVICE
+// POD can never land in the production library. Explicit POD IDs win.
+const REFERENCE_FALLBACK_LEAVES = ['Abliefernachweise', 'Abliefernachweis'];
+let referenceTargetCache = null;
+
+function referenceLibrarySettings() {
+  const driveId = text(process.env.EXPORTHUB_REFERENCE_DRIVE_ID);
+  const folderId = text(process.env.EXPORTHUB_REFERENCE_FOLDER_ID);
+  const user = text(process.env.EXPORTHUB_REFERENCE_DRIVE_USER) ||
+    text(process.env.EXPORTHUB_POD_DRIVE_USER);
+  const refFolder = rawFolder(process.env.EXPORTHUB_REFERENCE_FOLDER || '003 Export/ExportHub/Sendungen');
+  return { driveId, folderId, user, refFolder };
+}
+
+function fallbackLeaves() {
+  const configured = rawFolder(process.env.EXPORTHUB_POD_FOLDER).split('/').filter(Boolean).pop() || '';
+  const seen = new Set();
+  return [configured].concat(REFERENCE_FALLBACK_LEAVES).filter(name => {
+    const key = text(name).toLowerCase();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function referenceFallbackAllowed(error, environment) {
+  if (text(environment).toLowerCase() !== 'production') return false;
+  if (text(process.env.EXPORTHUB_POD_DRIVE_ID) || text(process.env.EXPORTHUB_POD_FOLDER_ID)) return false;
+  const code = text(error && error.code);
+  // A contradictory upload receipt or an integrity failure is never a target problem.
+  if (/^GRAPH_(UPLOAD_RECEIPT_INVALID|READBACK_|POD_READBACK_|TOKEN_MISSING)/.test(code)) return false;
+  if (code === 'GRAPH_TARGET_AMBIGUOUS' || code === 'GRAPH_EXACT_TARGET_INCOMPLETE') return false;
+  const status = Number(error && error.statusCode || 0);
+  return status === 403 || status === 404 || code === 'GRAPH_NOT_CONFIGURED' ||
+    /TARGET_FAILED|NOT_FOUND|FOLDER_INVALID/.test(code) || isNotFound(error);
+}
+
+async function resolveReferenceLibraryTarget(token, force) {
+  const settings = referenceLibrarySettings();
+  const key = [settings.driveId, settings.folderId, settings.user.toLowerCase(), settings.refFolder.toLowerCase(),
+    fallbackLeaves().join('|').toLowerCase()].join('\n');
+  if (!force && referenceTargetCache && referenceTargetCache.key === key && referenceTargetCache.expiresAt > Date.now()) {
+    return referenceTargetCache.value;
+  }
+  if (!!settings.driveId !== !!settings.folderId) {
+    throw targetError('GRAPH_REFERENCE_FALLBACK_INCOMPLETE',
+      'Die SharePoint-REF-Ablage ist unvollständig konfiguriert.', { statusCode: 503 });
+  }
+  let value = null;
+  if (settings.driveId) {
+    // The REF root is ".../Sendungen"; its parent holds "Abliefernachweise".
+    const root = await graphGet(token, '/drives/' + encodeURIComponent(settings.driveId) + '/items/' +
+      encodeURIComponent(settings.folderId) + '?$select=id,folder,parentReference');
+    const parentId = text(root.body && root.body.parentReference && root.body.parentReference.id);
+    if (!parentId || !root.body.folder) {
+      throw targetError('GRAPH_REFERENCE_FALLBACK_PARENT_MISSING',
+        'Der übergeordnete Ordner der REF-Ablage ist nicht lesbar.', { statusCode: 404 });
+    }
+    for (const leaf of fallbackLeaves()) {
+      try {
+        const item = await graphGet(token, '/drives/' + encodeURIComponent(settings.driveId) + '/items/' +
+          encodeURIComponent(parentId) + ':/' + encodeURIComponent(leaf) + '?$select=id,name,folder,parentReference');
+        if (text(item.body && item.body.id) && item.body.folder) {
+          value = { driveId: text(item.body.parentReference && item.body.parentReference.driveId) || settings.driveId,
+            folderId: text(item.body.id), folder: leaf };
+          break;
+        }
+      } catch (error) {
+        if (!isNotFound(error)) throw error;
+      }
+    }
+  } else {
+    const parent = settings.refFolder.split('/').filter(Boolean).slice(0, -1).join('/');
+    for (const leaf of fallbackLeaves()) {
+      const path = parent ? parent + '/' + leaf : leaf;
+      try {
+        const item = await graphGet(token, '/users/' + encodeURIComponent(settings.user) + '/drive/root:/' +
+          encodedPath(path) + '?$select=id,name,folder,parentReference');
+        const driveId = text(item.body && item.body.parentReference && item.body.parentReference.driveId);
+        if (text(item.body && item.body.id) && item.body.folder && driveId) {
+          value = { driveId, folderId: text(item.body.id), folder: path };
+          break;
+        }
+      } catch (error) {
+        if (!isNotFound(error)) throw error;
+      }
+    }
+  }
+  if (!value) {
+    throw targetError('GRAPH_REFERENCE_FALLBACK_FOLDER_MISSING',
+      'Der Ordner „Abliefernachweise“ neben der REF-Ablage ist noch nicht vorhanden.', { statusCode: 404 });
+  }
+  referenceTargetCache = { key, value, expiresAt: Date.now() + 10 * 60 * 1000 };
+  return value;
+}
+
+async function uploadReferenceLibrary(buffer, fileName) {
+  const name = safeFileName(fileName);
+  let force = false;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const token = await accessToken(false);
+    const target = await resolveReferenceLibraryTarget(token, force);
+    try {
+      const result = await request('PUT', `https://graph.microsoft.com/v1.0/drives/${encodeURIComponent(target.driveId)}/items/${encodeURIComponent(target.folderId)}:/${encodeURIComponent(name)}:/content`, {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/pdf',
+        'Content-Length': buffer.length,
+        'Accept': 'application/json'
+      }, buffer, 8000);
+      const item = result.body || {};
+      const receipt = validateUploadReceipt(item, name, buffer.length);
+      return {
+        id: receipt.id,
+        name: receipt.name,
+        size: receipt.size,
+        webUrl: text(item.webUrl),
+        eTag: text(item.eTag),
+        folder: target.folder,
+        driveId: target.driveId,
+        target: 'reference-library',
+        attempts: attempt
+      };
+    } catch (error) {
+      referenceTargetCache = null;
+      if (attempt === 1 && isNotFound(error)) { force = true; continue; }
+      throw error;
+    }
+  }
+  return null;
+}
+
+async function uploadPdf(buffer, fileName, options) {
+  const environment = text(options && options.environment);
+  try {
+    return await uploadConfiguredTarget(buffer, fileName);
+  } catch (error) {
+    if (!referenceFallbackAllowed(error, environment)) throw error;
+    let fallback = null;
+    try {
+      fallback = await uploadReferenceLibrary(buffer, fileName);
+    } catch (fallbackError) {
+      if (text(fallbackError && fallbackError.code) === 'GRAPH_UPLOAD_RECEIPT_INVALID') throw fallbackError;
+      error.referenceFallbackCode = text(fallbackError && fallbackError.code).replace(/[^A-Za-z0-9_.-]/g, '').slice(0, 70);
+      throw error;
+    }
+    if (fallback) return fallback;
+    throw error;
+  }
+}
+
 // RC1685: Graph /content normally answers 302 with a short-lived
 // preauthenticated SharePoint URL. Never forward the Graph bearer token.
 function approvedGraphDownload(location, base) {
@@ -930,7 +1101,8 @@ async function verifyPdf(buffer, item) {
 // RC1687: OIDC-protected, READ-ONLY diagnosis of the configured Graph target.
 // Never emit tenant/user, drive/folder IDs, raw paths, tokens or Graph messages.
 // Every probe uses only GET; even a valid target is not modified.
-async function diagnoseTarget() {
+async function diagnoseTarget(options) {
+  const environment = text(options && options.environment).toLowerCase();
   const status = readiness();
   const result = {
     configured: status.configured,
@@ -998,6 +1170,17 @@ async function diagnoseTarget() {
     success('target-resolver');
   } catch (error) {
     failure('target-resolver', error);
+    // RC1750: read-only check of the existing "Abliefernachweise" folder next
+    // to the REF library, which uploads use when the configured target fails.
+    if (referenceFallbackAllowed(error, environment)) {
+      try {
+        await resolveReferenceLibraryTarget(token, true);
+        success('reference-library-abliefernachweise');
+        return Object.assign(result, { ok: true, code: 'GRAPH_DIAGNOSTIC_REFERENCE_FALLBACK_READABLE', fallback: 'reference-library' });
+      } catch (fallbackError) {
+        failure('reference-library-abliefernachweise', fallbackError);
+      }
+    }
     return Object.assign(result, { ok: false, code: 'GRAPH_DIAGNOSTIC_RESOLVER_FAILED' });
   }
   try {
