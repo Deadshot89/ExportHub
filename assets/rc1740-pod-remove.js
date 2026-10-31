@@ -31,8 +31,32 @@ function state(){try{return w.__EXPORTHUB_GET_STATE__?w.__EXPORTHUB_GET_STATE__(
 function sid(sh){return q(sh&&(sh.id||sh.shipmentId||sh.savedShipmentId))}
 function sref(sh){return q(sh&&(sh.ref||sh.reference||sh.shipmentRef||sh.sendungsreferenz)).toUpperCase()}
 function sameShipment(a,b){if(!a||!b)return false;if(a===b)return true;var ar=sref(a),br=sref(b);if(ar&&br)return ar===br;var ai=sid(a),bi=sid(b);return!!ai&&ai===bi}
+/* patchOverview looks up every card; scanning all shipments per card was O(n²) (≈800 ms at 1500 shipments).
+   During one pass a lookup index is used instead. It only lives for that pass, which does not change the state. */
+var passIndex=null;
+function buildIndex(){
+ var s=state(),idx={seq:new Map(),firstId:new Map(),firstRef:new Map(),byRef:new Map(),byId:new Map(),byIdNoRef:new Map()};
+ function put(m,k,x){var l=m.get(k);if(!l)m.set(k,l=[]);l.push(x)}
+ [].concat(arr(s.shipments),arr(s.savedShipments),[s.shipment,s.currentShipment,s.selectedShipment]).forEach(function(x){
+  if(!x||typeof x!=='object'||idx.seq.has(x))return;
+  var n=idx.seq.size,i=sid(x),r=sref(x);idx.seq.set(x,n);
+  /* empty keys too: the full scan matched an empty key against the first shipment without id or ref */
+  if(!idx.firstId.has(i))idx.firstId.set(i,x);
+  if(!idx.firstRef.has(r))idx.firstRef.set(r,x);
+  if(r)put(idx.byRef,r,x);
+  if(i){put(idx.byId,i,x);if(!r)put(idx.byIdNoRef,i,x)}
+ });
+ return idx;
+}
+function indexedCopies(key,idx){
+ var a=idx.firstId.get(key),b=idx.firstRef.get(q(key).toUpperCase()),probe=a&&b?(idx.seq.get(a)<idx.seq.get(b)?a:b):(a||b);
+ if(!probe)return[];
+ var r=sref(probe),i=sid(probe),cand=r?(idx.byRef.get(r)||[]).concat(i?(idx.byIdNoRef.get(i)||[]):[]):(i?(idx.byId.get(i)||[]):[probe]);
+ return cand.filter(function(x,n){return cand.indexOf(x)===n&&sameShipment(x,probe)}).sort(function(x,y){return idx.seq.get(x)-idx.seq.get(y)});
+}
 /* Every copy of the shipment in the browser state (list, saved list, open shipment). */
 function copies(key){
+ if(passIndex)return indexedCopies(key,passIndex);
  var s=state(),out=[],probe=null;
  [].concat(arr(s.shipments),arr(s.savedShipments),[s.shipment,s.currentShipment,s.selectedShipment]).forEach(function(x){
   if(!x||typeof x!=='object')return;
@@ -200,7 +224,9 @@ function patchOverview(){
  var cards=d.querySelectorAll('#content .rc524-shipment-card[data-shipment]');
  if(!cards.length)return false;
  injectStyle();
- cards.forEach(function(card){try{patchCard(card)}catch(e){try{console.warn('[RC1740] POD-Entfernen',e)}catch(_){}}});
+ passIndex=buildIndex();
+ try{cards.forEach(function(card){try{patchCard(card)}catch(e){try{console.warn('[RC1740] POD-Entfernen',e)}catch(_){}}})}
+ finally{passIndex=null}
  return true;
 }
 function refreshOverview(){
