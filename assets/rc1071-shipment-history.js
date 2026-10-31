@@ -140,7 +140,10 @@ function actorDisplay(actor){var raw=q(actor&&actor.name),keys=['shipmentHistory
 function roleDisplay(role){var raw=q(role),keys=['shipmentHistory.role.loading','shipmentHistory.role.driver'];for(var i=0;i<keys.length;i++){if(raw===keys[i]||raw===de(keys[i]))return tr(keys[i])}return raw}
 function detailsText(e){var d=e.details||{},parts=[];if(d.document)parts.push(detailField('document',d.documentType?documentDisplay(d.documentType):q(d.document)));if(d.fileName)parts.push(detailField('file',q(d.fileName)));if(d.oldFile||d.newFile)parts.push(detailField('file',q(d.oldFile||'—')+' → '+q(d.newFile||'—')));if(d.files)parts.push(detailField('files',q(d.files)));if(d.mailType)parts.push(detailField('mail',mailTypeDisplay(d.mailType)));if(d.to)parts.push(detailField('recipient',q(d.to)));if(d.from&&d.to)parts.push(q(d.from)+' → '+q(d.to));if(d.driver)parts.push(detailField('driver',q(d.driver)));if(d.licensePlate)parts.push(detailField('licensePlate',q(d.licensePlate)));if(Number.isFinite(Number(d.colli)))parts.push(detailField('colli',d.colli));return parts.join(' · ')}
 function viewName(){var s=state();return low(s.view||s.currentView||s.activeView||'')}
-function shipmentView(){var v=viewName();if(v)return v==='shipment'||v==='sendung'||/shipment|sendung/.test(v);try{return !!(document.querySelector('#rc380StowPlan,#rc543MailArea'))}catch(_){return false}}
+// RC1742: /shipment|sendung/ also matched shipmentoverview and shipmentsearch. On the overview the history of the last
+// draft was appended to #content, and the RC1306 layout engine then pushed the whole overview into its narrow side column.
+var HISTORY_VIEWS={shipment:1,sendung:1,shipmentview:1};
+function shipmentView(){var v=viewName();if(v)return HISTORY_VIEWS[v]===1;try{return !!(document.querySelector('#rc380StowPlan,#rc543MailArea'))}catch(_){return false}}
 function actionKeyMatch(label,key){var legacy=de(key);return label===key||(legacy!==key&&label===legacy)}
 function displayAction(e){
  var label=q(e&&e.label),l=low(label),d=e&&e.details||{},type=q(e&&e.type),doc=documentDisplay(d.documentType||d.document);
