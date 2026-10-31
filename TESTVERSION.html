@@ -2165,6 +2165,15 @@ function stateLabel(sh,lang){var en=lang==='en';return enabled(sh)?(en?'ACTIVE':
     })
   }
 
+function warningPhoneItems(list){
+              // Phone list: every shipment, oldest first, with customer and date as a second line.
+              return arr(list).map(function(s){
+                var title=itemTitle(s,'Sendung');var who=customer(s);var d=dateValue(s);
+                var sub=[who&&who!==title?who:'',d?String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.':''].filter(Boolean).join(' · ');
+                return {title:title,sub:sub,t:d?d.getTime():Infinity}
+              }).sort(function(a,b){return a.t===b.t?0:(a.t<b.t?-1:1)}).map(function(i){return {title:i.title,sub:i.sub}})
+            }
+
 function warningData(){
               var ss=shipmentOpenList();
               var used=Object.create(null);
@@ -2184,6 +2193,7 @@ function warningData(){
               var groups=[
                 {
                   id:'pod',
+                  all:pods,
                   label:'POD fehlt',
                   count:pods.length,
                   route:'shipmentoverview',
@@ -2191,6 +2201,7 @@ function warningData(){
                 },
                 {
                   id:'documents',
+                  all:docs,
                   label:'Dokumente',
                   count:docs.length,
                   route:'shipmentoverview',
@@ -2198,6 +2209,7 @@ function warningData(){
                 },
                 {
                   id:'pickup',
+                  all:pickups,
                   label:'Abholung',
                   count:pickups.length,
                   route:'shipmentoverview',
@@ -2219,7 +2231,7 @@ function warningData(){
   function ensureWarningUi(){
               var d=warningData();
               // Phone notification: the native app shows which shipments are behind the count (read-only).
-              try{window.__EXPORTHUB_WARNING_SUMMARY__={total:d.total,groups:d.groups.map(function(g){return{label:g.label,count:g.count,items:g.items.map(function(i){return i.title})}})}}catch(_){}
+              try{window.__EXPORTHUB_WARNING_SUMMARY__={total:d.total,groups:d.groups.map(function(g){return{label:g.label,count:g.count,items:warningPhoneItems(g.all||[])}})}}catch(_){}
 
               var btn=document.getElementById('rc885WarningButton');
               if(!btn){
