@@ -2217,6 +2217,8 @@ function warningData(){
 
   function ensureWarningUi(){
               var d=warningData();
+              // Phone notification: the native app shows which shipments are behind the count (read-only).
+              try{window.__EXPORTHUB_WARNING_SUMMARY__={total:d.total,groups:d.groups.map(function(g){return{label:g.label,count:g.count,items:g.items.map(function(i){return i.title})}})}}catch(_){}
 
               var btn=document.getElementById('rc885WarningButton');
               if(!btn){
