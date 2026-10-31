@@ -140,9 +140,11 @@ public final class NotificationHelper {
         int smallIcon = context.getApplicationInfo().icon;
         android.app.Notification.Builder builder = new android.app.Notification.Builder(context, channelId)
                 .setSmallIcon(smallIcon)
-                .setContentTitle(safeTitle)
-                .setContentText(safeBody)
-                .setStyle(new android.app.Notification.BigTextStyle().bigText(safeBody))
+                .setContentTitle(shadeTitle(normalizedChannel, safeTitle, safeBody))
+                .setContentText(shadeText(normalizedChannel, safeBody))
+                .setStyle(new android.app.Notification.BigTextStyle().bigText(shadeBigText(normalizedChannel, safeBody)))
+                .setSubText(environmentLabel(env))
+                .setColor(shadeColor(normalizedChannel, safeBody))
                 .setAutoCancel(true)
                 .setContentIntent(pendingIntent);
         if ("notification".equals(normalizedChannel)) builder.setGroup(taskGroup(env));
@@ -191,6 +193,8 @@ public final class NotificationHelper {
         android.app.Notification notification = new android.app.Notification.Builder(context, CHANNEL_TASKS)
                 .setSmallIcon(context.getApplicationInfo().icon)
                 .setContentTitle(title)
+                .setSubText(environmentLabel(env))
+                .setColor(0xFF0F766E)
                 .setContentText(body)
                 .setStyle(new android.app.Notification.BigTextStyle().bigText(fullBody))
                 .setAutoCancel(true)
@@ -231,6 +235,41 @@ public final class NotificationHelper {
     private static boolean notificationsAllowed(Context context) {
         return Build.VERSION.SDK_INT < 33
                 || context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    // Shade texts: a diagnostic shows its plain-language title instead of the raw technical line,
+    // so the notification itself already says what happened.
+    private static String shadeTitle(String channel, String title, String body) {
+        if (!"diagnostic".equals(channel)) return title;
+        NotificationDetailActivity.PlainDiagnostic plain = NotificationDetailActivity.PlainDiagnostic.from(body);
+        return plain.urgencyLabel() + ": " + plain.title;
+    }
+
+    private static String shadeText(String channel, String body) {
+        if ("diagnostic".equals(channel)) return NotificationDetailActivity.PlainDiagnostic.from(body).what;
+        int newline = body.indexOf('\n');
+        return newline > 0 ? body.substring(0, newline).trim() : body;
+    }
+
+    private static String shadeBigText(String channel, String body) {
+        if (!"diagnostic".equals(channel)) return body;
+        NotificationDetailActivity.PlainDiagnostic plain = NotificationDetailActivity.PlainDiagnostic.from(body);
+        return plain.what + "\n\nWas ist zu tun? " + plain.todo;
+    }
+
+    private static int shadeColor(String channel, String body) {
+        if ("warning".equals(channel)) return 0xFFD97706;
+        if (!"diagnostic".equals(channel)) return 0xFF0F766E;
+        String urgency = NotificationDetailActivity.PlainDiagnostic.from(body).urgency;
+        if ("high".equals(urgency)) return 0xFFDC2626;
+        if ("watch".equals(urgency)) return 0xFFD97706;
+        return 0xFF0D9488;
+    }
+
+    private static String environmentLabel(String env) {
+        if ("testservice".equals(env)) return "TESTSERVICE";
+        if ("demo".equals(env)) return "Demo";
+        return "Produktion";
     }
 
     static boolean isPerformanceHint(String body) {

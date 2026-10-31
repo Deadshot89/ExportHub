@@ -60,3 +60,15 @@ test('Android: Warncenter-Push nennt die Sendungen hinter der Zahl, gruppiert', 
   assert.match(detail, /"und " \+ more \+ " weitere"/);
   assert.match(helper, /notificationIntent\(context, env, normalizedChannel, safeKey, safeTitle, detailBody,/);
 });
+
+test('Android: Benachrichtigung wirkt nicht kahl – Kopfband, farbige Karten, Klartext in der Leiste', () => {
+  const detail = read('NotificationDetailActivity.java');
+  const helper = read('NotificationHelper.java');
+  assert.match(detail, /private LinearLayout header\(String channel, String body\)/);
+  assert.match(detail, /GradientDrawable\.Orientation\.TL_BR/);
+  assert.match(detail, /private LinearLayout accentCard\(LinearLayout parent, int accent, int topMargin\)/);
+  assert.match(detail, /styleButton\(close, false\)/);
+  assert.match(helper, /setContentTitle\(shadeTitle\(normalizedChannel, safeTitle, safeBody\)\)/);
+  assert.match(helper, /setSubText\(environmentLabel\(env\)\)/);
+  assert.match(helper, /setColor\(shadeColor\(normalizedChannel, safeBody\)\)/);
+});

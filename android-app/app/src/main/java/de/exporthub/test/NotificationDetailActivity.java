@@ -7,6 +7,7 @@ import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.view.Gravity;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.LinearLayout;
@@ -86,18 +87,18 @@ public final class NotificationDetailActivity extends Activity {
         scroll.setFillViewport(true);
         scroll.setBackgroundColor(COLOR_PAGE);
 
-        LinearLayout root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(16), dp(20), dp(16), dp(24));
-        root.setGravity(Gravity.TOP);
-        scroll.addView(root, new ScrollView.LayoutParams(
+        LinearLayout page = new LinearLayout(this);
+        page.setOrientation(LinearLayout.VERTICAL);
+        scroll.addView(page, new ScrollView.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
+        page.addView(header(channel, body), margins(0, 0, 0, 0));
 
-        root.addView(text("ExportHUB · " + labelForEnvironment(environment), 13f, COLOR_BRAND, true));
-
-        TextView heading = text(headingForChannel(channel), 24f, COLOR_TEXT, true);
-        root.addView(heading, margins(0, 4, 0, 0));
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding(dp(16), dp(4), dp(16), dp(24));
+        root.setGravity(Gravity.TOP);
+        page.addView(root, margins(0, 0, 0, 0));
 
         boolean diagnostic = "diagnostic".equalsIgnoreCase(channel);
         if (diagnostic) {
@@ -119,8 +120,7 @@ public final class NotificationDetailActivity extends Activity {
         // protected workspace (which would need a login and showed "nicht freigegeben" without one).
         Button close = new Button(this);
         close.setText("Schließen");
-        close.setAllCaps(false);
-        close.setTextSize(15f);
+        styleButton(close, false);
         close.setOnClickListener(v -> finish());
         LinearLayout.LayoutParams closeParams = matchWrap();
         closeParams.topMargin = dp(16);
@@ -141,8 +141,7 @@ public final class NotificationDetailActivity extends Activity {
         }
 
         PlainDiagnostic plain = PlainDiagnostic.from(body);
-        LinearLayout card = card();
-        root.addView(card, margins(0, 16, 0, 0));
+        LinearLayout card = accentCard(root, plain.urgencyColor(), 16);
 
         LinearLayout badges = row();
         badges.addView(badge(plain.urgencyLabel(), plain.urgencyColor(), plain.urgencyBackground()));
@@ -191,8 +190,7 @@ public final class NotificationDetailActivity extends Activity {
     private void addAutofixButton(LinearLayout root) {
         Button send = new Button(this);
         send.setText("An KI senden");
-        send.setAllCaps(false);
-        send.setTextSize(15f);
+        styleButton(send, true);
         TextView status = text("Die KI sucht die Ursache, testet eine Korrektur und legt einen Pull Request an. Nichts geht direkt live.",
                 12f, COLOR_MUTED, false);
         send.setOnClickListener(v -> new AlertDialog.Builder(this)
@@ -258,7 +256,17 @@ public final class NotificationDetailActivity extends Activity {
     }
 
     private void addSection(LinearLayout parent, String label, String value, boolean code) {
-        parent.addView(text(label, 12f, COLOR_MUTED, true), margins(0, 14, 0, 0));
+        LinearLayout labelRow = row();
+        View dot = new View(this);
+        GradientDrawable dotShape = new GradientDrawable();
+        dotShape.setColor(code ? COLOR_RED : COLOR_BRAND);
+        dotShape.setCornerRadius(dp(4));
+        dot.setBackground(dotShape);
+        LinearLayout.LayoutParams dotParams = new LinearLayout.LayoutParams(dp(7), dp(7));
+        dotParams.rightMargin = dp(7);
+        labelRow.addView(dot, dotParams);
+        labelRow.addView(text(label.toUpperCase(Locale.GERMANY), 11f, COLOR_MUTED, true));
+        parent.addView(labelRow, margins(0, 16, 0, 0));
         TextView valueView = text(value, code ? 17f : 16f, code ? COLOR_RED : COLOR_BODY, code);
         valueView.setTextIsSelectable(true);
         valueView.setLineSpacing(0f, 1.15f);
@@ -513,10 +521,9 @@ public final class NotificationDetailActivity extends Activity {
             return;
         }
         String summary = tasks.size() == 1 ? "1 offene Aufgabe" : tasks.size() + " offene Aufgaben";
-        root.addView(text(summary + "  ·  " + nowLabel(), 13f, COLOR_MUTED, false), margins(0, 6, 0, 0));
+        root.addView(text(summary, 15f, COLOR_TEXT, true), margins(2, 16, 0, 0));
         for (TaskItem task : tasks) {
-            LinearLayout card = card();
-            root.addView(card, margins(0, 12, 0, 0));
+            LinearLayout card = accentCard(root, priorityColor(task.priority), 10);
 
             LinearLayout badges = row();
             badges.addView(badge(task.priority + " · " + priorityLabel(task.priority),
@@ -677,11 +684,9 @@ public final class NotificationDetailActivity extends Activity {
             return;
         }
         String headline = body.split("\\r?\\n")[0].trim();
-        root.addView(text(nowLabel(), 13f, COLOR_MUTED, false), margins(0, 6, 0, 0));
-        root.addView(text(headline, 18f, COLOR_TEXT, true), margins(0, 12, 0, 0));
+        root.addView(text(headline, 15f, COLOR_TEXT, true), margins(2, 16, 0, 0));
         for (WarningGroup group : groups) {
-            LinearLayout card = card();
-            root.addView(card, margins(0, 12, 0, 0));
+            LinearLayout card = accentCard(root, COLOR_AMBER, 10);
 
             LinearLayout head = row();
             TextView label = text(group.label, 17f, COLOR_TEXT, true);
@@ -690,7 +695,7 @@ public final class NotificationDetailActivity extends Activity {
             card.addView(head);
 
             for (String item : group.items) {
-                TextView itemView = text("• " + item, 15f, COLOR_BODY, false);
+                TextView itemView = text("›  " + item, 15f, COLOR_BODY, false);
                 itemView.setTextIsSelectable(true);
                 card.addView(itemView, margins(0, 8, 0, 0));
             }
@@ -704,9 +709,7 @@ public final class NotificationDetailActivity extends Activity {
     // ---- sonstige Hinweise ----
 
     private void renderMessage(LinearLayout root, String title, String body) {
-        root.addView(text(nowLabel(), 13f, COLOR_MUTED, false), margins(0, 6, 0, 0));
-        LinearLayout card = card();
-        root.addView(card, margins(0, 14, 0, 0));
+        LinearLayout card = accentCard(root, COLOR_BRAND, 16);
         card.addView(text(title, 18f, COLOR_TEXT, true));
         TextView bodyView = text(body, 16f, COLOR_BODY, false);
         bodyView.setLineSpacing(0f, 1.18f);
@@ -722,6 +725,78 @@ public final class NotificationDetailActivity extends Activity {
         card.setPadding(dp(16), dp(14), dp(16), dp(16));
         card.setBackground(rounded(COLOR_CARD, COLOR_BORDER));
         return card;
+    }
+
+    /** White card with a coloured stripe on the left; returns the inner column to fill. */
+    private LinearLayout accentCard(LinearLayout parent, int accent, int topMargin) {
+        LinearLayout wrapper = new LinearLayout(this);
+        wrapper.setOrientation(LinearLayout.HORIZONTAL);
+        wrapper.setBackground(rounded(COLOR_CARD, COLOR_BORDER));
+        wrapper.setClipToOutline(true);
+        wrapper.setElevation(dp(2));
+        View stripe = new View(this);
+        stripe.setBackgroundColor(accent);
+        wrapper.addView(stripe, new LinearLayout.LayoutParams(dp(5), ViewGroup.LayoutParams.MATCH_PARENT));
+        LinearLayout inner = new LinearLayout(this);
+        inner.setOrientation(LinearLayout.VERTICAL);
+        inner.setPadding(dp(14), dp(14), dp(16), dp(16));
+        wrapper.addView(inner, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        parent.addView(wrapper, margins(0, topMargin, 0, 0));
+        return inner;
+    }
+
+    /** Coloured header band: icon, app/environment, heading and the time the notification was opened. */
+    private LinearLayout header(String channel, String body) {
+        int[] colors;
+        String glyph;
+        if ("diagnostic".equalsIgnoreCase(channel)) {
+            String urgency = PlainDiagnostic.from(body).urgency;
+            colors = "high".equals(urgency) ? new int[]{0xFF991B1B, 0xFFDC2626}
+                    : ("watch".equals(urgency) ? new int[]{0xFF92400E, 0xFFD97706} : new int[]{0xFF115E59, 0xFF0D9488});
+            glyph = "!";
+        } else if ("warning".equalsIgnoreCase(channel)) {
+            colors = new int[]{0xFF92400E, 0xFFD97706};
+            glyph = "!";
+        } else {
+            colors = new int[]{0xFF0F766E, 0xFF14B8A6};
+            glyph = "✓";
+        }
+        LinearLayout band = new LinearLayout(this);
+        band.setOrientation(LinearLayout.HORIZONTAL);
+        band.setGravity(Gravity.CENTER_VERTICAL);
+        band.setPadding(dp(20), dp(26), dp(20), dp(24));
+        band.setBackground(new GradientDrawable(GradientDrawable.Orientation.TL_BR, colors));
+
+        TextView icon = text(glyph, 22f, 0xFFFFFFFF, true);
+        icon.setGravity(Gravity.CENTER);
+        GradientDrawable circle = new GradientDrawable();
+        circle.setColor(0x33FFFFFF);
+        circle.setCornerRadius(dp(26));
+        icon.setBackground(circle);
+        LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(dp(52), dp(52));
+        iconParams.rightMargin = dp(14);
+        band.addView(icon, iconParams);
+
+        LinearLayout texts = new LinearLayout(this);
+        texts.setOrientation(LinearLayout.VERTICAL);
+        texts.addView(text("ExportHUB · " + labelForEnvironment(environment), 13f, 0xD9FFFFFF, true));
+        texts.addView(text(headingForChannel(channel), 24f, 0xFFFFFFFF, true));
+        texts.addView(text(nowLabel(), 13f, 0xCCFFFFFF, false));
+        band.addView(texts, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        return band;
+    }
+
+    private void styleButton(Button button, boolean primary) {
+        button.setAllCaps(false);
+        button.setTextSize(15f);
+        button.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        button.setStateListAnimator(null);
+        button.setTextColor(primary ? 0xFFFFFFFF : COLOR_BODY);
+        GradientDrawable shape = new GradientDrawable();
+        shape.setColor(primary ? COLOR_BRAND : COLOR_CARD);
+        shape.setCornerRadius(dp(12));
+        if (!primary) shape.setStroke(Math.max(1, dp(1)), 0xFFCBD5E1);
+        button.setBackground(shape);
     }
 
     private LinearLayout row() {
