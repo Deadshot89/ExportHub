@@ -32,7 +32,9 @@
   // sometimes lost the `storage` label during a state merge. The signed
   // document reference is sufficient; API auth still protects the bytes.
   if(/^rc1059\/(production|testservice)\/[a-f0-9]{2}\/[a-f0-9]{64}$/.test(name))return true;
-  return (storage==='azure'||storage==='pod')&&/^rc995\/(production|testservice)\/[a-f0-9]{64}\/automatic\/[^/]+\.pdf$/i.test(name)
+  // A signed automatic POD remains a protected Azure document even when a
+  // legacy team-state merge dropped the optional storage label.
+  return (storage==='azure'||storage==='pod'||q(file.kind).toLowerCase()==='automatic-pod')&&/^rc995\/(production|testservice)\/[a-f0-9]{64}\/automatic\/[^/]+\.pdf$/i.test(name)
  }
  function legacyUrl(file){if(!file)return'';if(typeof file==='string')return q(file);return q(file.data||file.dataUrl||file.url||file.downloadUrl||file.contentUrl||file.href||file.objectUrl||file.link)}
  function headers(){var t=token();if(!t)throw new Error(tr('document.loginRequired',null,'ExportHUB login required.'));return{Accept:'*/*','Cache-Control':'no-cache',Authorization:'Bearer '+t,'X-ExportHUB-Token':t,'X-ExportHUB-Session':t,'X-ExportHUB-Environment':environment()}}
