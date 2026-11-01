@@ -127,11 +127,25 @@ jobs:
             --disallowedTools 'WebFetch,WebSearch' \
             --max-turns 120 \
             --output-format text \
-            > .exporthub-autofix/final.txt
+            > .exporthub-autofix/final.txt || {
+            rc=$?
+            # Claude prints auth and quota errors to stdout; show them in the log and prefix a hint
+            # so the failure callback tells the reporter why nothing happened.
+            out=$(head -c 2000 .exporthub-autofix/final.txt 2>/dev/null || true)
+            if grep -qiE '401|invalid.*(api key|token)|authenticat|oauth' <<<"$out"; then
+              echo "Claude-Zugang ungültig: Secret CLAUDE_CODE_OAUTH_TOKEN prüfen (vollständiger Wert sk-ant-oat01-… aus claude setup-token). Ausgabe: $out" > .exporthub-autofix/final.txt
+            else
+              echo "Claude Code ist mit Code $rc abgebrochen. Ausgabe: ${out:-keine}" > .exporthub-autofix/final.txt
+            fi
+            cat .exporthub-autofix/final.txt
+            exit "$rc"
+          }
           test -s .exporthub-autofix/final.txt
           cat .exporthub-autofix/final.txt
           if grep -q '^BLOCKED:' .exporthub-autofix/final.txt; then
-            echo "Claude Code hat die automatische Behebung aus Sicherheitsgründen blockiert." >&2
+            # the reason goes first so ExportHUB shows it in "Meine KI-Aufträge"
+            sed -n '/^BLOCKED:/,$p' .exporthub-autofix/final.txt > /tmp/exporthub-autofix-final.txt
+            echo "Claude Code hat keine sicher belegbare Korrektur gefunden (BLOCKED, Begründung oben)." >&2
             exit 2
           fi
 

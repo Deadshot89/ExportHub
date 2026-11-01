@@ -56,6 +56,10 @@ public class EnvironmentActivity extends Activity {
     private static final String TEST_URL = "https://" + TEST_HOST + "/TESTVERSION.html";
     private static final String DEMO_URL = "https://" + TEST_HOST + "/demo.html";
     private static final String PREFS = "exporthub_environment";
+
+    static String apiBase(String environment) {
+        return "https://" + ("production".equals(normalizeEnvironment(environment)) ? PROD_HOST : TEST_HOST);
+    }
     private static final String PREF_ENV = "selected_environment";
     private static final int FILE_CHOOSER_REQUEST = 9011;
     private static final int NOTIFICATION_PERMISSION_REQUEST = 996;
@@ -496,6 +500,20 @@ public class EnvironmentActivity extends Activity {
                     title,
                     body,
                     route);
+        }
+
+        // Diagnostic push with a signed single-use ticket: the detail view can send it to the KI without a login.
+        @JavascriptInterface
+        public void notifyDiagnostic(String channel, String key, String title, String body, String route, String autofixTicket) {
+            NotificationHelper.show(
+                    EnvironmentActivity.this,
+                    selectedEnvironment,
+                    channel,
+                    key,
+                    title,
+                    body,
+                    route,
+                    autofixTicket);
         }
 
         @JavascriptInterface

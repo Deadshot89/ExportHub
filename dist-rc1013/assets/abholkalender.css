@@ -180,4 +180,15 @@
   .pickup-print-entry strong{display:block!important;font-size:9.5pt;overflow-wrap:anywhere}
   .pickup-print-entry small{display:block!important;margin-top:.7mm;font-size:7.5pt;color:#222;overflow-wrap:anywhere}
   .pickup-print-empty{display:block!important;text-align:center;color:#777;font-size:10pt;padding-top:4mm}
-}
+}/* RC1650: erledigte Abholungen farblich – FIX mit Kundennummer und abgeholte Sendungen werden grün, Teilabholungen gelb */
+.pickup-calendar{--pk-done:#15803d;--pk-done-soft:rgba(22,163,74,.20);--pk-done-line:rgba(21,128,61,.55)}
+.pickup-calendar .pickup-item.is-done{background:var(--pk-done-soft);border-color:var(--pk-done-line)}
+.pickup-calendar .pickup-item.is-done::before{background:var(--pk-done);width:6px}
+.pickup-calendar .pickup-item-shipment.is-done .pickup-badge-shipment{background:var(--pk-done);color:#fff}
+.pickup-calendar .pickup-item.is-partial{background:var(--pk-warn-soft);border-color:rgba(168,98,0,.35)}
+.pickup-calendar .pickup-item.is-partial::before{background:var(--pk-warn)}
+.pickup-calendar .pickup-fix-link{display:inline-block;margin-top:6px;padding:1px 8px;border-radius:999px;font-size:11.5px;font-weight:700;overflow-wrap:anywhere}
+.pickup-calendar .pickup-fix-link[data-pickup-fix-state="done"]{background:var(--pk-done);color:#fff}
+.pickup-calendar .pickup-fix-link[data-pickup-fix-state="partial"]{background:var(--pk-warn-soft);color:var(--pk-warn)}
+.pickup-calendar .pickup-fix-link[data-pickup-fix-state="planned"]{background:var(--pk-primary-soft);color:var(--pk-primary)}
+.pickup-calendar .pickup-form-hint{font-weight:400;font-size:12px;color:var(--pk-muted);line-height:1.4}

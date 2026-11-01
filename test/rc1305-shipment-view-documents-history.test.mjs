@@ -246,7 +246,7 @@ test('RC1616: POD document history is grouped without changing original file ind
  assert.match(buildSource,/arr\(sh&&sh\.subShipments\)\.length<2/,'Multi-truck POD files must remain separately visible');
 });
 
-test('RC1623: production build busts POD downloader cache while preserving shipment-view cache guard',()=>{assert.match(buildSource,/rc1602-official-pod-server-download\.js\?v=1623/);assert.match(buildSource,/rc1460-shipment-view-files-avis-preview\.js\?v=1616/);});
+test('RC1623: production build busts POD downloader cache while preserving shipment-view cache guard',()=>{assert.match(buildSource,/rc1602-official-pod-server-download\.js\?v=1725/);assert.match(buildSource,/rc1460-shipment-view-files-avis-preview\.js\?v=1616/);});
 
 test('RC1616: generated browser document helpers parse without invalid regular expression flags',()=>{
  const match=buildSource.match(/const docHelpers=`([\s\S]*?)`;/);

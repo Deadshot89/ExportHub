@@ -54,7 +54,7 @@ function setup({withToken=true,status=200,withDocumentRow=false,withoutStoredFil
   window.ExportHUBDocumentBlob1059={isBlobDocument:f=>!!f.blobName,fetchBlob:async f=>{storedCalls.push(f.blobName);return new Blob([corruptStoredAutomaticBlob?Buffer.from('%PDF-1.7\n'+'z'.repeat(1100)):pdf],{type:'application/pdf'})}};
   const URL={createObjectURL:()=>'/blob/server-pod',revokeObjectURL:()=>{}};
   vm.runInNewContext(source,{window,document,URL,Blob,Uint8Array,encodeURIComponent},{filename:'rc1602-pod.js'});
-  return{click,button,called,alerts,urls,downloaded,delegated,storedCalls}
+  return{click,button,called,alerts,urls,downloaded,delegated,storedCalls,sh}
 }
 
 test('RC1616: reference 8LSUHW reads the named immutable stored PDF, not a newly rendered screenshot',async()=>{
@@ -202,7 +202,8 @@ test('RC1630: missing stored original falls back to the Ladeliste & CMR renderer
  const x=setup({withoutStoredFile:true,createPodBlob:async(sh)=>{rendered.push(sh.ref);return{blob:new Blob([Buffer.from('%PDF-1.7\n'+'r'.repeat(1200))],{type:'application/pdf'})}}});
  x.click({target:{closest:()=>x.button},preventDefault(){},stopImmediatePropagation(){},stopPropagation(){}});
  await new Promise(resolve=>setTimeout(resolve,20));
- assert.match(x.called[0].url,/manifest=1/);
+ // RC1745: the website Ladeliste renderer runs first, so no server lookup is needed.
+ assert.equal(x.called.length,0);
  assert.deepEqual(rendered,['8LSUHW']);
  assert.equal(x.alerts.length,0);
  assert.ok(x.downloaded.includes('POD_8LSUHW_Ladeliste_unterschrieben.pdf'));
@@ -215,6 +216,30 @@ test('RC1630: stored original still wins over the renderer',async()=>{
  await new Promise(resolve=>setTimeout(resolve,20));
  assert.equal(rendered.length,0);
  assert.equal(x.called[0].url,'/api/pickup-pod?file=automatic-pod-test001&token=authorized-test-token');
+ assert.equal(x.alerts.length,0);
+});
+
+test('RC1745: server-signed V4 original is replaced by the website Ladeliste design',async()=>{
+ const rendered=[];
+ const hash='ab12cd34ef56ab78'+'0'.repeat(48);
+ const x=setup({withoutStoredFile:true,createPodBlob:async(sh)=>{rendered.push(sh.ref);return{blob:new Blob([Buffer.from('%PDF-1.7\n'+'w'.repeat(1200))],{type:'application/pdf'})}}});
+ x.sh.podFiles.push({id:'automatic-pod-'+hash.slice(0,16),kind:'automatic-pod',layoutVersion:'RC1600-SIGNED-LOADING-LIST-V4',source:'pickup-confirm-v3',hash,name:'POD_8LSUHW_Ladeliste_unterschrieben.pdf'});
+ x.click({target:{closest:()=>x.button},preventDefault(){},stopImmediatePropagation(){},stopPropagation(){}});
+ await new Promise(resolve=>setTimeout(resolve,20));
+ assert.deepEqual(rendered,['8LSUHW']);
+ assert.equal(x.called.length,0);
+ assert.equal(x.alerts.length,0);
+ assert.ok(x.downloaded.includes('POD_8LSUHW_Ladeliste_unterschrieben.pdf'));
+});
+
+test('RC1745: server-signed V4 original stays the fallback when the website renderer has no signature',async()=>{
+ const hash='ab12cd34ef56ab78'+'0'.repeat(48);
+ const x=setup({withoutStoredFile:true,createPodBlob:async()=>{throw new Error('Es liegt noch kein echter POD mit digitaler Unterschrift vor.')}});
+ x.sh.podFiles.push({id:'automatic-pod-'+hash.slice(0,16),kind:'automatic-pod',layoutVersion:'RC1600-SIGNED-LOADING-LIST-V4',source:'pickup-confirm-v3',hash,name:'POD_8LSUHW_Ladeliste_unterschrieben.pdf'});
+ x.click({target:{closest:()=>x.button},preventDefault(){},stopImmediatePropagation(){},stopPropagation(){}});
+ await new Promise(resolve=>setTimeout(resolve,20));
+ assert.equal(x.called.length,1);
+ assert.equal(x.called[0].url,'/api/pickup-pod?file=automatic-pod-ab12cd34ef56ab78&token=authorized-test-token');
  assert.equal(x.alerts.length,0);
 });
 

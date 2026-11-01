@@ -191,7 +191,7 @@ async function canonicalPdf(sh){
 // digital signature and never fabricates one.
 async function renderedPdf(sh,cause){
  var docs=w.ExportHUBIndex240;
- if(!docs||typeof docs.createPodBlob!=='function')throw cause;
+ if(!docs||typeof docs.createPodBlob!=='function')throw cause||Error(t('failed'));
  var out=await docs.createPodBlob(sh);
  if(!out||!out.blob||out.blob.size<1000)throw Error(t('empty'));
  return out.blob
@@ -221,9 +221,18 @@ async function handle(button){
   if(dispatchStoredDocument(sh,mode)){if(popup&&!popup.closed)popup.close();return}
   var qr=w.ExportHUBPickupPOD;
   if(qr&&typeof qr.syncOne==='function')try{await qr.syncOne(sh,true)}catch(_){}
-  var pdf;
+  var pdf=null;
+  // RC1745: a server-signed original (RC1600 V4) has the plain server layout. Show the
+  // signed loading list in the website design instead whenever the driver signature
+  // is available; the stored original stays untouched and remains the fallback.
+  var exact=originalFile(sh);
+  if(!exact||verifiedPodVariant(exact)!=='original-layout'){
+   try{pdf=await renderedPdf(sh,null)}catch(_){pdf=null}
+  }
+  if(!pdf){
   try{pdf=await canonicalPdf(sh)}
   catch(error){pdf=await renderedPdf(sh,error)}
+  }
   openPdf(pdf,sh,mode,popup)
  }catch(e){
   if(popup&&!popup.closed)popup.close();

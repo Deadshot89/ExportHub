@@ -209,14 +209,17 @@
     let nextDate=addDays(base,1);
     if(rule&&rule.type==='weekly')nextDate=addDays(base,7);else if(rule&&rule.type==='daily'){const cal=calendar({});while(!isWorkday(nextDate,cal))nextDate=addDays(nextDate,1);}
     const nextKey=rule&&rule.type==='weekly'?`${new Date(nextDate+'T00:00:00Z').getUTCFullYear()}-W${String((()=>{const d=new Date(nextDate+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+4-(d.getUTCDay()||7));const ys=new Date(Date.UTC(d.getUTCFullYear(),0,1));return Math.ceil((((d-ys)/DAY_MS)+1)/7);})()).padStart(2,'0')}`:nextDate;
-    return{...current,id:`${q(current.id)}:next:${nextKey}`,occurrenceKey:nextKey,dueAt:current.dueAt?nextDate:current.dueAt,status:'open',completedAt:'',completedBy:'',completionMode:'',createdAt:q(now),updatedAt:q(now)};
+    return{...current,id:`${q(current.id)}:next:${nextKey}`,occurrenceKey:nextKey,dueAt:current.dueAt?nextDate:current.dueAt,status:'open',done:false,completed:false,doneAt:'',doneBy:'',completedAt:'',completedBy:'',completionMode:'',createdAt:q(now),updatedAt:q(now)};
   }
+  function weeklyPlanTask(task){return task&&(task.masterTaskRC848===true||task.masterTaskRC846===true||/^MASTER:/.test(q(task.seriesId||task.recurringSeriesId))||/^M84[68]:/i.test(q(task.id)));}
   function materializeLegacy(tasks,now,seriesList){
     const canonicalSeriesIds=new Set(arr(seriesList).filter(series=>q(series&&series.id)&&obj(series&&series.rule)&&validateRule(series.rule).valid).map(series=>q(series.id)));
     const out=arr(tasks).map(clone),keys=new Set(out.map(t=>[q(t.companyId),q(t.environment),q(t.group),q(t.sourceType),q(t.sourceId),q(t.occurrenceKey)].join('|'))),generated=[];
     for(const task of out){
       if(q(task.status).toLowerCase()!=='done'||!q(task.recurrence))continue;
       if(q(task.seriesId)&&canonicalSeriesIds.has(q(task.seriesId)))continue;
+      // Wochenplan-Aufgaben (RC848) legt der Wochenstamm selbst pro Woche an; eine Kopie hier wäre eine Dublette
+      if(weeklyPlanTask(task))continue;
       const next=nextOccurrence(task,now),key=[q(next.companyId),q(next.environment),q(next.group),q(next.sourceType),q(next.sourceId),q(next.occurrenceKey)].join('|');
       if(keys.has(key))continue;keys.add(key);generated.push(next);
     }

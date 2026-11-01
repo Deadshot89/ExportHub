@@ -1,0 +1,89 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+
+const BASE = 'android-app/app/src/main/java/de/exporthub/test/';
+const read = (file) => fs.readFileSync(BASE + file, 'utf8');
+
+test('Android: Leistungshinweise werden in der App selbst nicht als Push angezeigt', () => {
+  const helper = read('NotificationHelper.java');
+  assert.match(helper, /"diagnostic"\.equals\(normalizedChannel\) && isPerformanceHint\(safeBody\)\) return false;/);
+  for (const phrase of ['Langsamer API-Aufruf', 'Langsamer XHR-Aufruf', 'Browser-Hänger', 'Long Task', 'Großer Render-Vorgang', 'Häufiges Neu-Rendern']) {
+    assert.ok(helper.includes(`text.contains("${phrase}")`), `${phrase} fehlt im App-Filter`);
+  }
+});
+
+test('Android: Fehlerdiagnose-Detail erklärt die Meldung in Klartext', () => {
+  const detail = read('NotificationDetailActivity.java');
+  assert.match(detail, /class PlainDiagnostic/);
+  for (const label of ['Was bedeutet das?', 'Was ist zu tun?', 'Wichtig', 'Beobachten', 'Harmlos', 'Technische Meldung']) {
+    assert.ok(detail.includes(`"${label}"`), `${label} fehlt in der Diagnoseansicht`);
+  }
+  // the ISO timestamp from the push is shown as a readable local time
+  assert.match(detail, /dd\.MM\.yyyy, HH:mm 'Uhr'/);
+});
+
+test('Android: Aufgaben werden als Karten mit Priorität, Referenz und Fälligkeit gezeigt', () => {
+  const detail = read('NotificationDetailActivity.java');
+  const helper = read('NotificationHelper.java');
+  const receiver = read('ReminderReceiver.java');
+  assert.match(detail, /EXTRA_NOTIFICATION_TASKS/);
+  assert.match(detail, /private void renderTasks\(/);
+  assert.match(detail, /"Referenz: "/);
+  assert.match(detail, /priorityLabel\(task\.priority\)/);
+  assert.match(helper, /putExtra\(NotificationDetailActivity\.EXTRA_NOTIFICATION_TASKS, tasksJson\)/);
+  assert.match(receiver, /detailTask\.put\("sourceRef", sourceRef\)/);
+  assert.match(receiver, /detailTask\.put\("due", dueText\)/);
+  // still read-only
+  assert.doesNotMatch(detail, /EnvironmentActivity\.class|Aufgabe öffnen|In ExportHUB öffnen/);
+});
+
+test('Android: Warncenter-Push nennt die Sendungen hinter der Zahl, gruppiert', () => {
+  const hub = fs.readFileSync('assets/exporthub-environment-hub.js', 'utf8');
+  const fnSrc = (hub.match(/function warningDetailLines\(\)\{[\s\S]*?\n\}\n/) || [])[0];
+  assert.ok(fnSrc, 'warningDetailLines fehlt');
+  const run = (summary) => new Function('window', fnSrc + 'return warningDetailLines();')({ __EXPORTHUB_WARNING_SUMMARY__: summary });
+  assert.equal(run(undefined), '');
+  const text = run({ total: 5, groups: [
+    { label: 'POD fehlt', count: 4, items: ['Sendung A', '  Kunde   B ', 'C', 'D'] },
+    { label: 'Dokumente', count: 0, items: [] },
+    { label: 'Abholung', count: 1, items: ['E'] }
+  ] });
+  assert.equal(text, '\n\nPOD fehlt: 4\n• Sendung A\n• Kunde B\n• C\n• D\n\nAbholung: 1\n• E');
+  // Every shipment is sent, with customer/date as a second line; the body stays bounded.
+  const rich = run({ total: 2, groups: [{ label: 'POD fehlt', count: 2, items: [{ title: 'IBL3ZL', sub: 'Kunde X · 28.10.' }, { title: 'ZRZSS4', sub: '' }] }] });
+  assert.equal(rich, '\n\nPOD fehlt: 2\n• IBL3ZL — Kunde X · 28.10.\n• ZRZSS4');
+  const many = run({ total: 2000, groups: [{ label: 'POD fehlt', count: 2000, items: Array.from({ length: 2000 }, (_, i) => ({ title: 'REF' + i, sub: 'Kunde mit langem Namen ' + i + ' · 01.10.' })) }] });
+  assert.ok(many.length <= 18000, 'Warncenter-Body bleibt begrenzt');
+  assert.match(many, /• REF0 — /);
+  assert.match(hub, /\+warningDetailLines\(\),route:'warnings'/);
+  for (const page of ['index.html', 'TESTVERSION.html']) {
+    assert.match(fs.readFileSync(page, 'utf8'), /window\.__EXPORTHUB_WARNING_SUMMARY__=\{total:d\.total/);
+  }
+  const detail = read('NotificationDetailActivity.java');
+  const helper = read('NotificationHelper.java');
+  assert.match(detail, /renderWarnings\(root, title, body\)/);
+  assert.match(detail, /"und " \+ more \+ " weitere"/);
+  assert.match(detail, /"Alle " \+ group\.items\.size\(\) \+ " anzeigen"/);
+  assert.match(detail, /"Weniger anzeigen"/);
+  assert.match(detail, /WARNING_PREVIEW = 5/);
+  assert.match(helper, /MAX_DETAIL_BODY = 20000/);
+  for (const page of ['index.html', 'TESTVERSION.html']) {
+    const html = fs.readFileSync(page, 'utf8');
+    assert.match(html, /items:warningPhoneItems\(g\.all\|\|\[\]\)/);
+    assert.match(html, /id:'pod',\s*all:pods,/);
+  }
+  assert.match(helper, /notificationIntent\(context, env, normalizedChannel, safeKey, safeTitle, detailBody,/);
+});
+
+test('Android: Benachrichtigung wirkt nicht kahl – Kopfband, farbige Karten, Klartext in der Leiste', () => {
+  const detail = read('NotificationDetailActivity.java');
+  const helper = read('NotificationHelper.java');
+  assert.match(detail, /private LinearLayout header\(String channel, String body\)/);
+  assert.match(detail, /GradientDrawable\.Orientation\.TL_BR/);
+  assert.match(detail, /private LinearLayout accentCard\(LinearLayout parent, int accent, int topMargin\)/);
+  assert.match(detail, /styleButton\(close, false\)/);
+  assert.match(helper, /setContentTitle\(shadeTitle\(normalizedChannel, safeTitle, safeBody\)\)/);
+  assert.match(helper, /setSubText\(environmentLabel\(env\)\)/);
+  assert.match(helper, /setColor\(shadeColor\(normalizedChannel, safeBody\)\)/);
+});

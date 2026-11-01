@@ -18,6 +18,7 @@ public final class NotificationHelper {
     private static final String TASK_SNAPSHOT_PREFIX = "task_snapshot_";
     private static final String TASK_GROUP_PREFIX = "exporthub_tasks_group_";
     private static final int MAX_TASK_SNAPSHOT = 128 * 1024;
+    private static final int MAX_TASKS_EXTRA = 48 * 1024;
 
     private NotificationHelper() {}
 
@@ -73,6 +74,17 @@ public final class NotificationHelper {
                                String title,
                                String body,
                                String route) {
+        return show(context, environment, channel, key, title, body, route, null);
+    }
+
+    public static boolean show(Context context,
+                               String environment,
+                               String channel,
+                               String key,
+                               String title,
+                               String body,
+                               String route,
+                               String autofixTicket) {
         String env = EnvironmentActivity.normalizeEnvironment(environment);
         if ("task_snapshot".equalsIgnoreCase(channel)) {
             return storeTaskSnapshot(context, env, body);
@@ -92,6 +104,10 @@ public final class NotificationHelper {
         String safeTitle = safe(title, "ExportHUB");
         String safeBody = safe(body, "ExportHUB hat einen neuen Hinweis.");
         String safeRoute = safe(route, normalizedChannel);
+        // Performance hints (slow API call, long task, large render) are not actionable on the phone.
+        // The website stops sending them too, but the app filters them as well so an older website
+        // release cannot flood the notification shade again.
+        if ("diagnostic".equals(normalizedChannel) && isPerformanceHint(safeBody)) return false;
         // A generic task-check reminder carries no actionable task details.
         // Do not interrupt users with it; real task notifications remain unchanged.
         if ("notification".equals(normalizedChannel)
@@ -107,7 +123,12 @@ public final class NotificationHelper {
         if (signature.equals(prefs.getString(dedupeKey, ""))) return false;
         prefs.edit().putString(dedupeKey, signature).apply();
 
-        Intent intent = notificationIntent(context, env, normalizedChannel, safeKey, safeTitle, safeBody, safeRoute);
+        // The detail screen gets the full text (e.g. the shipments behind a warning count); the shade keeps the short one.
+        String detailBody = safeDetail(body, safeBody);
+        Intent intent = notificationIntent(context, env, normalizedChannel, safeKey, safeTitle, detailBody, safeRoute, null);
+        if ("diagnostic".equals(normalizedChannel) && autofixTicket != null && autofixTicket.startsWith("ehaf1.") && autofixTicket.length() < 4000) {
+            intent.putExtra(NotificationDetailActivity.EXTRA_AUTOFIX_TICKET, autofixTicket);
+        }
         int notificationId = Math.abs((env + ":" + normalizedChannel + ":" + safeKey).hashCode());
         int pendingIntentRequestCode = Math.abs(("native-detail-v2:" + env + ":" + normalizedChannel + ":" + safeKey).hashCode());
         PendingIntent pendingIntent = PendingIntent.getActivity(
@@ -119,9 +140,11 @@ public final class NotificationHelper {
         int smallIcon = context.getApplicationInfo().icon;
         android.app.Notification.Builder builder = new android.app.Notification.Builder(context, channelId)
                 .setSmallIcon(smallIcon)
-                .setContentTitle(safeTitle)
-                .setContentText(safeBody)
-                .setStyle(new android.app.Notification.BigTextStyle().bigText(safeBody))
+                .setContentTitle(shadeTitle(normalizedChannel, safeTitle, safeBody))
+                .setContentText(shadeText(normalizedChannel, safeBody))
+                .setStyle(new android.app.Notification.BigTextStyle().bigText(shadeBigText(normalizedChannel, safeBody)))
+                .setSubText(environmentLabel(env))
+                .setColor(shadeColor(normalizedChannel, safeBody))
                 .setAutoCancel(true)
                 .setContentIntent(pendingIntent);
         if ("notification".equals(normalizedChannel)) builder.setGroup(taskGroup(env));
@@ -136,7 +159,9 @@ public final class NotificationHelper {
                                           String environment,
                                           String key,
                                           int count,
-                                          String highestPriority) {
+                                          String highestPriority,
+                                          String taskLines,
+                                          String tasksJson) {
         if (context == null || count < 2) return false;
         String env = EnvironmentActivity.normalizeEnvironment(environment);
         ensureChannels(context);
@@ -146,14 +171,18 @@ public final class NotificationHelper {
         String priority = safe(highestPriority, "P4");
         String title = "ExportHUB Aufgaben";
         String body = count + " offene Aufgaben · höchste Priorität " + priority;
-        String signature = safeKey + "|" + body;
+        // The summary lists every task, so the whole content is readable in the notification itself.
+        String lines = taskLines == null ? "" : taskLines.trim();
+        if (lines.length() > 4000) lines = lines.substring(0, 4000) + "\n…";
+        String fullBody = lines.isEmpty() ? body : body + "\n" + lines;
+        String signature = safeKey + "|" + fullBody;
 
         SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         String dedupeKey = "last:" + env + ":notification:summary:" + safeKey;
         if (signature.equals(prefs.getString(dedupeKey, ""))) return false;
         prefs.edit().putString(dedupeKey, signature).apply();
 
-        Intent intent = notificationIntent(context, env, "notification", safeKey, title, body, "tasks");
+        Intent intent = notificationIntent(context, env, "notification", safeKey, title, fullBody, "tasks", tasksJson);
         int requestCode = Math.abs(("native-summary-v1:" + env + ":" + safeKey).hashCode());
         PendingIntent pendingIntent = PendingIntent.getActivity(
                 context,
@@ -164,8 +193,10 @@ public final class NotificationHelper {
         android.app.Notification notification = new android.app.Notification.Builder(context, CHANNEL_TASKS)
                 .setSmallIcon(context.getApplicationInfo().icon)
                 .setContentTitle(title)
+                .setSubText(environmentLabel(env))
+                .setColor(0xFF0F766E)
                 .setContentText(body)
-                .setStyle(new android.app.Notification.BigTextStyle().bigText(body))
+                .setStyle(new android.app.Notification.BigTextStyle().bigText(fullBody))
                 .setAutoCancel(true)
                 .setContentIntent(pendingIntent)
                 .setGroup(taskGroup(env))
@@ -185,7 +216,8 @@ public final class NotificationHelper {
                                              String key,
                                              String title,
                                              String body,
-                                             String route) {
+                                             String route,
+                                             String tasksJson) {
         Intent intent = new Intent(context, NotificationDetailActivity.class);
         intent.setAction("de.exporthub.OPEN_NOTIFICATION.NATIVE_DETAIL_V2." + environment + "." + channel + "." + key);
         intent.putExtra(EnvironmentActivity.EXTRA_ENVIRONMENT, environment);
@@ -193,6 +225,9 @@ public final class NotificationHelper {
         intent.putExtra(NotificationDetailActivity.EXTRA_NOTIFICATION_BODY, body);
         intent.putExtra(NotificationDetailActivity.EXTRA_NOTIFICATION_CHANNEL, channel);
         intent.putExtra(NotificationDetailActivity.EXTRA_NOTIFICATION_ROUTE, route);
+        if (tasksJson != null && !tasksJson.isEmpty() && tasksJson.length() <= MAX_TASKS_EXTRA) {
+            intent.putExtra(NotificationDetailActivity.EXTRA_NOTIFICATION_TASKS, tasksJson);
+        }
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         return intent;
     }
@@ -202,8 +237,62 @@ public final class NotificationHelper {
                 || context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
     }
 
+    // Shade texts: a diagnostic shows its plain-language title instead of the raw technical line,
+    // so the notification itself already says what happened.
+    private static String shadeTitle(String channel, String title, String body) {
+        if (!"diagnostic".equals(channel)) return title;
+        NotificationDetailActivity.PlainDiagnostic plain = NotificationDetailActivity.PlainDiagnostic.from(body);
+        return plain.urgencyLabel() + ": " + plain.title;
+    }
+
+    private static String shadeText(String channel, String body) {
+        if ("diagnostic".equals(channel)) return NotificationDetailActivity.PlainDiagnostic.from(body).what;
+        int newline = body.indexOf('\n');
+        return newline > 0 ? body.substring(0, newline).trim() : body;
+    }
+
+    private static String shadeBigText(String channel, String body) {
+        if (!"diagnostic".equals(channel)) return body;
+        NotificationDetailActivity.PlainDiagnostic plain = NotificationDetailActivity.PlainDiagnostic.from(body);
+        return plain.what + "\n\nWas ist zu tun? " + plain.todo;
+    }
+
+    private static int shadeColor(String channel, String body) {
+        if ("warning".equals(channel)) return 0xFFD97706;
+        if (!"diagnostic".equals(channel)) return 0xFF0F766E;
+        String urgency = NotificationDetailActivity.PlainDiagnostic.from(body).urgency;
+        if ("high".equals(urgency)) return 0xFFDC2626;
+        if ("watch".equals(urgency)) return 0xFFD97706;
+        return 0xFF0D9488;
+    }
+
+    private static String environmentLabel(String env) {
+        if ("testservice".equals(env)) return "TESTSERVICE";
+        if ("demo".equals(env)) return "Demo";
+        return "Produktion";
+    }
+
+    static boolean isPerformanceHint(String body) {
+        String text = body == null ? "" : body;
+        return text.contains("Langsamer API-Aufruf")
+                || text.contains("Langsamer XHR-Aufruf")
+                || text.contains("Browser-Hänger")
+                || text.contains("Long Task")
+                || text.contains("Großer Render-Vorgang")
+                || text.contains("Häufiges Neu-Rendern");
+    }
+
     private static String taskGroup(String environment) {
         return TASK_GROUP_PREFIX + environment;
+    }
+
+    // Large enough for every shipment of a full Warncenter list (about 200 lines).
+    private static final int MAX_DETAIL_BODY = 20000;
+
+    private static String safeDetail(String value, String fallback) {
+        String v = value == null ? "" : value.trim();
+        if (v.isEmpty()) return fallback;
+        return v.length() > MAX_DETAIL_BODY ? v.substring(0, MAX_DETAIL_BODY) : v;
     }
 
     private static String safe(String value, String fallback) {

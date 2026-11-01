@@ -58,7 +58,10 @@
  async function response(file){
   var apiUrl=isBlobDocument(file)?endpoint(file):protectedApiUrl(legacyUrl(file));
   if(!apiUrl)throw new Error(tr('document.invalidReference',null,'Invalid ExportHUB document reference.'));
-  var r=await w.fetch(apiUrl,{method:'GET',headers:headers(),credentials:'same-origin',cache:'no-store',redirect:'manual'});
+  // The ExportHUB token travels in the headers. Without cookies Azure treats the
+  // call like the anonymous RC1702 gate probe instead of redirecting a stale
+  // Microsoft sign-in cookie to login.
+  var r=await w.fetch(apiUrl,{method:'GET',headers:headers(),credentials:'omit',cache:'no-store',redirect:'manual'});
   if(redirectedToLogin(r)){
    var e=new Error(tr('document.apiRedirect',null,'Der Dokumentenserver hat zur Anmeldung umgeleitet. Die bestehende ExportHUB-Sitzung bleibt erhalten; der Lieferschein wurde nicht heruntergeladen.'));
    e.code='DOCUMENT_API_LOGIN_REDIRECT';throw e;
@@ -91,7 +94,17 @@
  async function open(file,options){
   options=options||{};
   if(!isBlobDocument(file)&&!protectedApiUrl(legacyUrl(file))){var old=legacyUrl(file);if(!old)throw new Error(tr('document.noContent',null,'No file content is available for this document.'));clickUrl(old,options.name||file&&file.name,options.download===true);return true}
-  var blob=await fetchBlob(file),url=w.URL.createObjectURL(blob);clickUrl(url,options.name||file&&file.name,options.download===true);w.setTimeout(function(){try{w.URL.revokeObjectURL(url)}catch(_){}},120000);return true
+  // Reserve the tab while the click activation is still valid: after the
+  // authenticated fetch a target=_blank click is treated as a popup and blocked.
+  var tab=null;
+  if(options.download!==true&&typeof w.open==='function'){try{tab=w.open('about:blank','_blank')}catch(_){tab=null}}
+  var blob,url;
+  try{blob=await fetchBlob(file)}catch(e){closeTab(tab);throw e}
+  url=w.URL.createObjectURL(blob);
+  if(tab&&!tab.closed){try{tab.opener=null}catch(_){}try{tab.location.href=url}catch(_){closeTab(tab);clickUrl(url,options.name||file&&file.name,false)}}
+  else clickUrl(url,options.name||file&&file.name,options.download===true);
+  w.setTimeout(function(){try{w.URL.revokeObjectURL(url)}catch(_){}},120000);return true
  }
+ function closeTab(tab){try{if(tab&&!tab.closed)tab.close()}catch(_){}}
  w.ExportHUBDocumentBlob1059={version:'RC1231',environment:environment,isBlobDocument:isBlobDocument,blobName:blobName,legacyUrl:legacyUrl,protectedApiUrl:protectedApiUrl,headers:headers,endpoint:endpoint,fetchBlob:fetchBlob,fetchBytes:fetchBytes,open:open};
 })(window);

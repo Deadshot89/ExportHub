@@ -74,7 +74,8 @@ for(const rowsCount of [1,12]){
     }
     if(rowsCount>=6){
       expect(result.measured.gridDisplay).toBe('grid');
-      expect(result.measured.gridColumns,'Viele Lieferscheine stehen im PDF zweispaltig').toBe(2);
+      // 2026-10-30 (Tobias): zehn Lieferscheine pro Spalte, hier 24 -> 3 Spalten.
+      expect(result.measured.gridColumns,'Viele Lieferscheine stehen im PDF zu zehnt pro Spalte').toBe(Math.ceil(rowsCount*2/10));
     }
   });
 }

@@ -8,7 +8,7 @@
 
   function extractDocumentReferences(value){
     const input=String(value==null?'':value);
-    const pattern=/\b(DNC|SIDE)\s*(?:[-_:]\s*)?([0-9]{6,20})\b/gi;
+    const pattern=/(?<![A-Za-z0-9])(DNC|SIDE)\s*(?:[-_:]\s*)?([0-9]{6,20})(?![0-9])/gi;
     const seen=new Set();
     const out=[];
     let match;
@@ -102,7 +102,60 @@
     return byteString(bytes);
   }
 
-  function textStrings(source){
+  function utf16Hex(value){
+    const raw=String(value||'');let out='';
+    for(let i=0;i+3<raw.length;i+=4)out+=String.fromCharCode(parseInt(raw.slice(i,i+4),16)||0);
+    return out;
+  }
+
+  // Generated PDFs (D365 SalesPackingSlip, browsers, Office) write glyph ids
+  // through CID fonts; only the font's ToUnicode CMap turns them into text.
+  function parseToUnicode(source){
+    const input=String(source||'');
+    if(input.indexOf('begincmap')<0)return null;
+    const space=/begincodespacerange\s*<([0-9A-Fa-f]+)>/.exec(input);
+    const width=space?Math.max(1,Math.min(4,Math.floor(space[1].length/2))):2;
+    const map=new Map();
+    let block,entry;
+    const chars=/beginbfchar([\s\S]*?)endbfchar/g;
+    while((block=chars.exec(input))){
+      const pair=/<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]*)>/g;
+      while((entry=pair.exec(block[1])))map.set(parseInt(entry[1],16),utf16Hex(entry[2]));
+    }
+    const ranges=/beginbfrange([\s\S]*?)endbfrange/g;
+    while((block=ranges.exec(input))){
+      const range=/<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>\s*(?:<([0-9A-Fa-f]*)>|\[([^\]]*)\])/g;
+      while((entry=range.exec(block[1]))){
+        const lo=parseInt(entry[1],16),hi=Math.min(parseInt(entry[2],16),lo+4096);
+        if(entry[3]!==undefined){
+          const base=entry[3],head=base.slice(0,-4),last=parseInt(base.slice(-4),16)||0;
+          for(let code=lo;code<=hi;code++)map.set(code,utf16Hex(head)+String.fromCharCode(last+code-lo));
+        }else{
+          const list=String(entry[4]||'').match(/<([0-9A-Fa-f]*)>/g)||[];
+          list.forEach(function(item,index){if(lo+index<=hi)map.set(lo+index,utf16Hex(item.slice(1,-1)));});
+        }
+      }
+    }
+    return map.size?{width,map}:null;
+  }
+
+  function decodeWithCmap(bytes,cmap){
+    let out='';
+    for(let i=0;i+cmap.width<=bytes.length;i+=cmap.width){
+      let code=0;
+      for(let j=0;j<cmap.width;j++)code=code*256+bytes[i+j];
+      out+=cmap.map.get(code)||'';
+    }
+    return out;
+  }
+
+  function literalBytes(value){
+    const raw=decodePdfString(value),out=new Uint8Array(raw.length);
+    for(let i=0;i<raw.length;i++)out[i]=raw.charCodeAt(i)&255;
+    return out;
+  }
+
+  function textStrings(source,cmaps){
     const input=String(source||''),out=[];
     const literal=/\((?:\\.|[^\\)])*\)/gs;
     let match;
@@ -121,6 +174,15 @@
         if(value)chunks.push(value);
       }
       if(chunks.length>1){out.push(chunks.join(' '));out.push(chunks.join(''));}
+      for(const cmap of cmaps||[]){
+        const decoded=[],glyphs=/\((?:\\.|[^\\)])*\)|<([0-9A-Fa-f\s]{2,})>/g;
+        while((part=glyphs.exec(match[1]))){
+          const bytes=part[0][0]==='('?literalBytes(part[0].slice(1,-1)):hexBytes(part[1]);
+          const value=decodeWithCmap(bytes,cmap);
+          if(value)decoded.push(value);
+        }
+        if(decoded.length){out.push(decoded.join(''));out.push(decoded.join(' '));}
+      }
     }
     return out;
   }
@@ -165,8 +227,8 @@
       }
       marker.lastIndex=end+'endstream'.length;
     }
-    const parts=[];
-    for(const source of sources)parts.push.apply(parts,textStrings(source));
+    const cmaps=sources.map(parseToUnicode).filter(Boolean),parts=[];
+    for(const source of sources)parts.push.apply(parts,textStrings(source,cmaps));
     return parts.join('\n');
   }
 

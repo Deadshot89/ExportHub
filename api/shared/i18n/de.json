@@ -266,5 +266,10 @@
   "api.abdAnalysis.forbidden": "Für die ABD-Auswertung ist Bearbeitungsrecht im ABD-Bereich erforderlich.",
   "api.abdAnalysis.actionInvalid": "Unbekannte ABD-Auswertungsaktion.",
   "api.avis.manualAppointmentCreated": "Abholung manuell gebucht",
-  "api.avis.manualAppointmentChanged": "Manuelle Abholung geändert"
+  "api.avis.manualAppointmentChanged": "Manuelle Abholung geändert",
+  "api.reference.docKindInvalid": "Unbekannte Dokumentart.",
+  "api.reference.docTypeInvalid": "Erlaubt sind PDF, Bilder (JPG/PNG), Excel (XLSX/XLS/CSV), Word (DOCX/DOC), TXT und E-Mails (MSG/EML).",
+  "api.reference.docEmpty": "Die Datei ist leer oder ungültig.",
+  "api.reference.docTooLarge": "Die Datei ist größer als 15 MB.",
+  "api.reference.docSignatureInvalid": "Der Dateiinhalt passt nicht zum Dateityp."
 }

@@ -94,10 +94,14 @@ const RC1705_SOP_HELP_STYLE_TAG='<link id="exporthub-rc1705-sop-help-style" rel=
 const RC1705_SOP_HELP_SCRIPT_TAG='<script id="exporthub-rc1705-sop-help-script" defer src="/assets/rc1705-context-sop-help.js?v=1705"></script>';
 const RC1650_DIAG_PLAIN_I18N_TAG='<script id="exporthub-rc1650-diagnostics-plain-i18n" defer src="/assets/i18n/rc1650-diagnostics-plain.js?v=1650"></script>';
 const RC1650_DIAG_PLAIN_SCRIPT_TAG='<script id="exporthub-rc1650-diagnostics-plain-script" defer src="/assets/rc1650-diagnostics-plain.js?v=1650"></script>';
+const RC1725_BUILD_STAMP_I18N_TAG='<script id="exporthub-rc1725-build-stamp-i18n" defer src="/assets/i18n/rc1725-build-stamp.js?v=1725"></script>';
+const RC1725_BUILD_STAMP_SCRIPT_TAG='<script id="exporthub-rc1725-build-stamp-script" defer src="/assets/rc1725-build-stamp.js?v=1725"></script>';
+const RC1740_POD_REMOVE_I18N_TAG='<script id="exporthub-rc1740-pod-remove-i18n" defer src="/assets/i18n/rc1740-pod-remove.js?v=1740"></script>';
+const RC1740_POD_REMOVE_SCRIPT_TAG='<script id="exporthub-rc1740-pod-remove-script" defer src="/assets/rc1740-pod-remove.js?v=1740"></script>';
 // Web Push: phone notifications without website login (assets/web-push, api/web-push)
 const WEB_PUSH_MANIFEST_TAG='<link id="exporthub-web-push-manifest" rel="manifest" href="/assets/web-push/manifest.json">';
 const WEB_PUSH_I18N_TAG='<script id="exporthub-web-push-i18n" defer src="/assets/i18n/web-push.js?v=1701"></script>';
-const WEB_PUSH_SCRIPT_TAG='<script id="exporthub-web-push-client" defer src="/assets/web-push/client.js?v=1700"></script>';
+const WEB_PUSH_SCRIPT_TAG='<script id="exporthub-web-push-client" defer src="/assets/web-push/client.js?v=1702"></script>';
 const RC1577_POD_AUDIT_I18N_TAG='<script id="exporthub-rc1577-pod-audit-i18n" defer src="/assets/i18n/rc1577-pod-quality-audit.js?v=1577"></script>';
 const RC1577_POD_AUDIT_SCRIPT_TAG='<script id="exporthub-rc1577-pod-audit-script" defer src="/assets/rc1577-pod-quality-audit.js?v=1596"></script>';
 const RC1596_POD_FOLDER_SCRIPT_TAG='<script id="exporthub-rc1596-pod-folder-reconnect" defer src="/assets/rc1596-pod-folder-reconnect.js?v=1596"></script>';
@@ -268,6 +272,14 @@ function patchRc1558DashboardOverview(html,file){
   html=injectDeferredRuntimeInHead(html,RC1650_DIAG_PLAIN_I18N_TAG,'exporthub-rc1650-diagnostics-plain-i18n');
   html=injectDeferredRuntimeInHead(html,RC1650_DIAG_PLAIN_SCRIPT_TAG,'exporthub-rc1650-diagnostics-plain-script');
   if(!html.includes('i18n/rc1650-diagnostics-plain.js?v=1650')||!html.includes('/assets/rc1650-diagnostics-plain.js?v=1650'))throw new Error(file+': RC1650 Fehlerdiagnose-Klartext fehlt');
+  // RC1725 deployed build stamp (release date + commit) next to the version in login, Update page and Release-Center
+  html=injectDeferredRuntimeInHead(html,RC1725_BUILD_STAMP_I18N_TAG,'exporthub-rc1725-build-stamp-i18n');
+  html=injectDeferredRuntimeInHead(html,RC1725_BUILD_STAMP_SCRIPT_TAG,'exporthub-rc1725-build-stamp-script');
+  if(!html.includes('i18n/rc1725-build-stamp.js?v=1725')||!html.includes('/assets/rc1725-build-stamp.js?v=1725'))throw new Error(file+': RC1725 Build-Stand fehlt');
+  // RC1740 remove an uploaded POD from a shipment (overview card) so a new POD can be uploaded
+  html=injectDeferredRuntimeInHead(html,RC1740_POD_REMOVE_I18N_TAG,'exporthub-rc1740-pod-remove-i18n');
+  html=injectDeferredRuntimeInHead(html,RC1740_POD_REMOVE_SCRIPT_TAG,'exporthub-rc1740-pod-remove-script');
+  if(!html.includes('i18n/rc1740-pod-remove.js?v=1740')||!html.includes('/assets/rc1740-pod-remove.js?v=1740'))throw new Error(file+': RC1740 POD entfernen fehlt');
   return html;
 }
 
@@ -530,7 +542,7 @@ function patchWebPush(html,file){
   html=injectDeferredRuntimeInHead(html,WEB_PUSH_MANIFEST_TAG,'exporthub-web-push-manifest');
   html=injectDeferredRuntimeInHead(html,WEB_PUSH_I18N_TAG,'exporthub-web-push-i18n');
   html=injectDeferredRuntimeInHead(html,WEB_PUSH_SCRIPT_TAG,'exporthub-web-push-client');
-  if(!html.includes('/assets/web-push/manifest.json')||!html.includes('/assets/web-push/client.js?v=1700'))throw new Error(file+': Web Push fehlt');
+  if(!html.includes('/assets/web-push/manifest.json')||!html.includes('/assets/web-push/client.js?v=1702'))throw new Error(file+': Web Push fehlt');
   return html;
 }
 
@@ -1610,6 +1622,8 @@ function patchHtml(file){
   html=html.replace(/rc1460-shipment-view-files-avis-preview\.js\?v=1460/g,'rc1460-shipment-view-files-avis-preview.js?v=1616');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-av-upload-i18n" defer src="/assets/i18n/av-upload.js?v=1"></script>','exporthub-av-upload-i18n');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-av-upload" defer src="/assets/av-upload.js?v=1"></script>','exporthub-av-upload');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-shipment-doc-upload-i18n" defer src="/assets/i18n/shipment-document-upload.js?v=1"></script>','exporthub-shipment-doc-upload-i18n');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-shipment-doc-upload" defer src="/assets/shipment-document-upload.js?v=1"></script>','exporthub-shipment-doc-upload');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1126-customer-delete" defer src="/assets/rc1126-customer-delete.js?v=1387"></script>','exporthub-rc1126-customer-delete');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1113-stowplan-persist" defer src="/assets/rc1113-stowplan-persist.js?v=1113"></script>','exporthub-rc1113-stowplan-persist');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1114-shipping-neutral" defer src="/assets/rc1114-shipping-neutral.js?v=1386"></script>','exporthub-rc1114-shipping-neutral');
@@ -1789,9 +1803,15 @@ for(const rel of [
   'assets/i18n/rc1660-shipment-sop-popup.js',
   'assets/rc1650-diagnostics-plain.js',
   'assets/i18n/rc1650-diagnostics-plain.js',
+  'assets/rc1725-build-stamp.js',
+  'assets/i18n/rc1725-build-stamp.js',
+  'assets/rc1740-pod-remove.js',
+  'assets/i18n/rc1740-pod-remove.js',
   'assets/rc1460-shipment-view-files-avis-preview.js',
   'assets/i18n/av-upload.js',
   'assets/av-upload.js',
+  'assets/i18n/shipment-document-upload.js',
+  'assets/shipment-document-upload.js',
   'assets/i18n/web-push.js',
   'assets/web-push/client.js',
   'assets/web-push/sw.js',
@@ -1886,6 +1906,51 @@ for(const file of ['index.html','TESTVERSION.html','demo.html']){
     if(!controller.tag.test(html))throw new Error(file+': RC1680 POD-Sicherungscontroller fehlt: '+controller.id);
     html=html.replace(controller.tag,controller.source);
   }
+  fs.writeFileSync(target,html);
+}
+// RC1731 Lager-Gewicht: Lager-Controller und Lager-Styles sind kanonisch in
+// index.html. TESTSERVICE/demo-Snapshots bekommen dieselbe Lageransicht mit
+// Gewicht je Sendung, je Location und gesamt.
+const rc1731Canonical=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
+const rc1731Blocks=[
+  {tag:/<script id="rc504-warehouse-controller">[\s\S]*?<\/script>/,marker:'function warehouseWeight(sh){'},
+  {tag:/<style id="rc504-warehouse-style">[\s\S]*?<\/style>/,marker:'.rc504-zone-weight{'}
+].map(({tag,marker})=>{
+  const source=rc1731Canonical.match(tag);
+  if(!source||!source[0].includes(marker))throw new Error('RC1731: kanonischer Lager-Block fehlt: '+marker);
+  return{tag,source:source[0],marker};
+});
+const rc1731MobileOld='  .rc504-shipment-meta{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:4px!important}';
+const rc1731MobileNew='  .rc504-shipment-meta{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:4px!important}';
+for(const file of ['index.html','TESTVERSION.html','demo.html']){
+  const target=path.join(OUT,file);
+  let html=fs.readFileSync(target,'utf8');
+  for(const block of rc1731Blocks){
+    if(html.split(block.tag).length!==2)throw new Error(file+': RC1731 Lager-Block nicht eindeutig: '+block.marker);
+    html=html.replace(block.tag,()=>block.source);
+  }
+  html=html.split(rc1731MobileOld).join(rc1731MobileNew);
+  if(!html.includes('function warehouseWeight(sh){')||!html.includes('Gewicht im Lager'))throw new Error(file+': RC1731 Lager-Gewicht fehlt');
+  fs.writeFileSync(target,html);
+}
+// RC1741 Menü ohne Flackern: die Menüprüfung (RC325 menuValid/normalizeMenu) ist kanonisch in
+// index.html. In alten Snapshots zählte sie die Zusatzknöpfe Packmeldungen/Verpackungen als Fehler,
+// baute das Menü bei jedem Rendern neu und warf diese Knöpfe kurz hinaus.
+const rc1741Canonical=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
+const rc1741Start='function menuValid(nav){',rc1741End='\nfunction buildMenu(){';
+const rc1741SourceStart=rc1741Canonical.lastIndexOf('\n',rc1741Canonical.indexOf('var ADDON_BUTTONS='))+1;
+const rc1741SourceEnd=rc1741Canonical.indexOf(rc1741End,rc1741SourceStart);
+if(rc1741SourceStart<=0||rc1741SourceEnd<=rc1741SourceStart||!rc1741Canonical.slice(rc1741SourceStart,rc1741SourceEnd).includes(rc1741Start))throw new Error('RC1741: kanonische Menüprüfung fehlt');
+const rc1741Source=rc1741Canonical.slice(rc1741SourceStart,rc1741SourceEnd);
+for(const file of ['index.html','TESTVERSION.html','demo.html']){
+  const target=path.join(OUT,file);
+  let html=fs.readFileSync(target,'utf8');
+  if(!html.includes('var ADDON_BUTTONS=')){
+    const targetStart=html.indexOf(rc1741Start),targetEnd=html.indexOf(rc1741End,targetStart);
+    if(targetStart<0||targetEnd<=targetStart||html.indexOf(rc1741Start,targetStart+rc1741Start.length)>=0)throw new Error(file+': RC1741 Menüprüfung nicht eindeutig');
+    html=html.slice(0,targetStart)+rc1741Source+html.slice(targetEnd);
+  }
+  if(!html.includes('function addonButton(b){'))throw new Error(file+': RC1741 Menü-Zusatzknöpfe fehlen');
   fs.writeFileSync(target,html);
 }
 for(const file of ['index.html','TESTVERSION.html','demo.html']){

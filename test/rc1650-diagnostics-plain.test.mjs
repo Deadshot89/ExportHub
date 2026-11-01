@@ -109,3 +109,39 @@ test('RC1579: der IT-Stellvertreter übernimmt Farben mit !important, damit er i
   assert.match(js, /--rc1579-proxy-icon-fg/);
   assert.match(css, /\[data-rc1579-proxy\] \.index308-nav-icon::before\{background-color:var\(--rc1579-proxy-icon-fg,currentColor\)!important/);
 });
+
+test('RC1650: nach dem Melden gibt es eine Rückmeldung und bei fertigem Fix einen Link zum Pull Request (2026-10-29)', () => {
+  const pr = 'https://github.com/Deadshot89/ExportHub/pull/1234';
+  assert.equal(plain.prUrl({ runUrl: pr }), pr);
+  assert.equal(plain.prUrl({ runUrl: 'https://github.com/Deadshot89/ExportHub/actions/runs/1' }), '', 'ein Lauf ist kein PR');
+  assert.equal(plain.prUrl({ runUrl: 'https://evil.example/Deadshot89/ExportHub/pull/1' }), '', 'nur Links ins eigene Repository');
+  assert.equal(plain.jobState({ autofix: { status: 'testing', runUrl: pr } }), 'pr');
+  assert.equal(plain.jobState({ autofix: { status: 'running', runUrl: pr } }), 'running');
+  assert.equal(plain.jobState({ autofix: { status: 'failed' } }), 'failed');
+  assert.equal(plain.jobState({ resolvedAt: '2026-10-29T10:00:00Z', autofix: { status: 'testing', runUrl: pr } }), 'fixed');
+  const ui = fs.readFileSync(new URL('../assets/rc1650-diagnostics-plain.js', import.meta.url), 'utf8');
+  assert.match(ui, /class="btn rc1650-pr"/, 'Button „Pull Request öffnen“');
+  assert.match(ui, /track\(/, 'gemeldete Aufträge werden verfolgt');
+  assert.match(ui, /function notifyDone\(/, 'Meldung, sobald es ein Ergebnis gibt');
+  for (const [lang, pack] of Object.entries(packs)) {
+    for (const key of ['job_pr', 'openPr', 'openRun', 'close', 'done_pr', 'done_fixed', 'done_failed']) {
+      assert.ok(pack[key], `${lang}.${key}`);
+    }
+    assert.match(pack.reportSent, /\{id\}/, `${lang}.reportSent nennt den Auftrag`);
+  }
+});
+
+test('RC1650: Abbruchgrund wird lesbar angezeigt, ohne doppelt maskierte Zeichen (2026-10-30)', () => {
+  const ui = fs.readFileSync(new URL('../assets/rc1650-diagnostics-plain.js', import.meta.url), 'utf8');
+  assert.match(ui, /replace\(\/&\(#39\|#x27\|quot\|lt\|gt\|amp\);\/g/);
+  const wf = fs.readFileSync(new URL('../.github/workflows/diagnostic-autofix.yml', import.meta.url), 'utf8');
+  assert.match(wf, /sed -n '\/\^BLOCKED:\/,\$p' \.exporthub-autofix\/final\.txt > \/tmp\/exporthub-autofix-final\.txt/);
+  assert.doesNotMatch(wf, /aus Sicherheitsgründen blockiert/);
+});
+
+test('RC1650: „An KI senden“ gibt es direkt in „Zuerst ansehen“ (2026-10-30)', () => {
+  const ui = fs.readFileSync(new URL('../assets/rc1650-diagnostics-plain.js', import.meta.url), 'utf8');
+  assert.match(ui, /data-rc1650-ai-top="'\+esc\(i\.group\.key\)/, 'Button pro Zeile');
+  assert.match(ui, /if\(b\.hasAttribute\('data-rc1650-ai-top'\)\)aiFromTop\(b\)/);
+  assert.match(ui, /function aiFromTop\(btn\)\{[\s\S]*?startAi\(el,btn\)/, 'öffnet den Eintrag und sendet über denselben Weg');
+});

@@ -24,8 +24,9 @@ test('Diagnose-Benachrichtigung öffnet native Detailansicht statt WebView', () 
   assert.match(manifest, /\.NotificationDetailActivity/);
   assert.doesNotMatch(detail, /WebView/);
   assert.match(detail, /ExportHUB Fehlerdiagnose/);
-  assert.match(detail, /In ExportHUB öffnen/);
-  assert.match(detail, /EnvironmentActivity/);
+  // read-only since 2026-10-30: the diagnostic detail shows the content and only offers "Schließen"
+  assert.doesNotMatch(detail, /In ExportHUB öffnen/);
+  assert.match(detail, /EnvironmentActivity\.EXTRA_ENVIRONMENT/);
 });
 
 test('normale ExportHUB-Navigation bleibt geschützt und getrennt', () => {
@@ -33,8 +34,8 @@ test('normale ExportHUB-Navigation bleibt geschützt und getrennt', () => {
   const detail = read(BASE + 'NotificationDetailActivity.java');
   assert.match(helper, /NotificationDetailActivity\.class/);
   assert.match(detail, /EXTRA_ENVIRONMENT/);
-  assert.match(detail, /EXTRA_ROUTE/);
-  assert.match(detail, /startActivity\(intent\)/);
+  assert.match(detail, /EXTRA_NOTIFICATION_ROUTE/);
+  assert.doesNotMatch(detail, /startActivity\(/);
   assert.doesNotMatch(detail, /CookieManager|addJavascriptInterface|loadUrl/);
 });
 
