@@ -38,7 +38,7 @@ test('RC1569 jede Kachel liefert genau die Datensätze, die sie zählt',()=>{
 test('RC1569 Kachel-Klick öffnet die Funktion mit Filter, Filter wird live angewendet und wieder entfernt',()=>{
   assert.match(runtime,/var k=target\.closest\('\[data-rc1558-kpi\]'\);if\(k\)\{e\.preventDefault\(\);startDrill\(k\.getAttribute\('data-rc1558-kpi'\),k\.getAttribute\('data-rc1558-route'\)\);return\}/);
   assert.match(runtime,/if\(view!==drill\.view\)\{if\(drill\.seen\)clearDrill\(\);return\}/,'Bereichswechsel hebt den Filter auf');
-  assert.match(runtime,/w\.toggleTaskCard\(\{preventDefault:function\(\)\{\},stopPropagation:function\(\)\{\}\},id\)/,'Erledigt nutzt den normalen Aufgabenweg');
+  assert.match(runtime,/runtime\.setTaskStatus\(task,'done',\{state:currentState\}\)/,'Erledigt wird über die Aufgaben-Runtime gespeichert');
   assert.match(runtime,/if\(drill&&drill\.cache&&now-drill\.cache\.at<400\)return drill\.cache\.records;/,'Filtermenge höchstens alle 400 ms neu berechnet');
   assert.match(css,/body\[data-rc1569-drill="shipments"\] #content \[data-rc1569-out="1"\]\{display:none!important\}/);
   assert.match(css,/body\[data-rc1569-drill="tasks"\] #content > :not\(#rc1569Drill\):not\(\.page-head\)\{display:none!important\}/);

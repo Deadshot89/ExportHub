@@ -30,7 +30,7 @@ includes('dist-rc1112/production-version.js',"__EXPORTHUB_PRODUCTION_VERSION_PRO
 // Gemeinsame Buildbasis: historische Funktions- und Cache-Verträge bleiben vor jedem Deploy zwingend.
 for(const file of pages){
   includes(file,'assets/rc1016-mobile-navigation.js?v=1400');
-  includes(file,'assets/rc1014-task-runtime.js?v=1359');
+  includes(file,'assets/rc1014-task-runtime.js?v=1725');
   includes(file,'assets/rc1014-shipment-overview.js?v=1370');
   includes(file,'assets/rc1014-shipment-overview.css?v=1370');
   includes(file,'assets/rc1065-registration-cc.js?v=1093');

@@ -117,7 +117,7 @@ test('RC1152: Runtime enthält echte Aufgabenansicht statt Direktöffnung der Se
 
 test('RC1312: aktiver RC1112 Build cache-bustet Aufgaben-Reiter und Runtime',()=>{
   const build=fs.readFileSync('.github/rc1112/build-three-env.mjs','utf8');
-  assert.match(build,/rc1014-task-runtime\.js\?v=1359/);
+  assert.match(build,/rc1014-task-runtime\.js\?v=1725/);
   assert.match(build,/rc1014-task-ui\.css\?v=1312/);
   assert.match(build,/taskdetail/);
   assert.match(build,/Aufgabenansicht/);
