@@ -34,7 +34,9 @@ module.exports=async function(context,req){
   if(blobEnvironment(blobName)!==environment)throw error('ENVIRONMENT_MISMATCH',apiI18n.t(req,'api.document.environmentMismatch'),409);
   const cs=connectionString();if(!cs)throw error('STORAGE_NOT_CONFIGURED',apiI18n.t(req,'api.common.storageNotConfigured'),503);
   const service=createBlobServiceClient(cs),containerName=validPickupPodBlobName(blobName)?POD_CONTAINER:DOCUMENT_CONTAINER,container=service.getContainerClient(containerName),blob=container.getBlockBlobClient(blobName),downloaded=await readBuffer(blob);
-  context.res={status:200,headers:{'Content-Type':downloaded.contentType,'Content-Length':String(downloaded.buffer.length),'Cache-Control':'private, no-store','Content-Disposition':'inline; filename="document"','X-Content-Type-Options':'nosniff'},body:downloaded.buffer};
+  // isRaw: like pickup-pod/container-document, the Functions host must send the
+  // PDF bytes unchanged instead of serializing the Buffer body.
+  context.res={status:200,isRaw:true,headers:{'Content-Type':downloaded.contentType,'Content-Length':String(downloaded.buffer.length),'Cache-Control':'private, no-store','Content-Disposition':'inline; filename="document"','X-Content-Type-Options':'nosniff'},body:downloaded.buffer};
  }catch(e){
   try{context.log&&context.log.error&&context.log.error('ExportHUB document API error',e&&e.code,e&&e.message)}catch(_){}
   context.res=json(Number(e&&e.status||e&&e.statusCode||500),{ok:false,code:e&&e.code||'SERVER_ERROR',message:e&&e.message||apiI18n.t(req,'api.document.loadFailed')});

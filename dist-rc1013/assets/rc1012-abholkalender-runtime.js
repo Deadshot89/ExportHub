@@ -195,4 +195,18 @@ html,body{margin:0;padding:0;background:#fff;color:#111;font-family:Arial,Helvet
     });
     return true;
   };
+
+  // RC1650: a pickup confirmed elsewhere (driver QR, other device) turns the entry green without leaving the view
+  if (typeof window.addEventListener === 'function') {
+    let refreshTimer = 0;
+    const refreshShipments = function(){
+      refreshTimer = 0;
+      const calendar = window.ExportHubPickupCalendar;
+      if (!calendar || typeof calendar.setShipments !== 'function') return;
+      try { calendar.setShipments(shipments()); } catch (_) {}
+    };
+    ['exporthub:sync','exporthub:pickup-updated','exporthub:shipment-saved'].forEach(function(name){
+      window.addEventListener(name,function(){ if (!refreshTimer && typeof window.setTimeout === 'function') refreshTimer = window.setTimeout(refreshShipments,300); });
+    });
+  }
 })(typeof window !== 'undefined' ? window : globalThis);

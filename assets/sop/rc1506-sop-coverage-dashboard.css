@@ -80,19 +80,18 @@
 }
 @media (max-width:420px){.rc1506-kpis{grid-template-columns:1fr}.rc1506-table td{grid-template-columns:1fr}.rc1506-table td::before{margin-bottom:-3px}}
 
-@media (prefers-color-scheme:dark){
-  .rc1506-dashboard{
-    --rc1506-surface:var(--surface,#141821);
-    --rc1506-surface-soft:var(--surface-soft,#1b202b);
-    --rc1506-text:var(--text,#f3f5f8);
-    --rc1506-muted:var(--muted,#a8b0bf);
-    --rc1506-border:var(--border,#343b49);
-    --rc1506-focus:var(--primary,#7aa2ff);
-    --rc1506-red:#ff8a80;
-    --rc1506-yellow:#ffd166;
-    --rc1506-green:#72d6a1;
-    --rc1506-blue:#8cb4ff;
-    --rc1506-purple:#c7a7ff;
-    box-shadow:none;
-  }
+/* Dunkle Variante nur im Design Neon Night (nicht nach Betriebssystem-Dunkelmodus). */
+html[data-eh-design="neon"] .rc1506-dashboard{
+  --rc1506-surface:var(--surface,#141821);
+  --rc1506-surface-soft:var(--surface-soft,#1b202b);
+  --rc1506-text:var(--text,#f3f5f8);
+  --rc1506-muted:var(--muted,#a8b0bf);
+  --rc1506-border:var(--border,#343b49);
+  --rc1506-focus:var(--primary,#7aa2ff);
+  --rc1506-red:#ff8a80;
+  --rc1506-yellow:#ffd166;
+  --rc1506-green:#72d6a1;
+  --rc1506-blue:#8cb4ff;
+  --rc1506-purple:#c7a7ff;
+  box-shadow:none;
 }

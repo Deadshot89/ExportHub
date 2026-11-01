@@ -274,6 +274,52 @@ async function finalizeAutofix(payload,env){
  return {ok:true,jobId,diagnosticId:id,status:'fixed',record:sanitize(record)};
 }
 
+// Phone tickets (2026-10-30, Tobias): a diagnostic push on the phone carries a signed, single-use ticket so it can
+// be sent to the autofix without logging in. The ticket is minted only for a logged-in global admin, binds the
+// diagnostic text and the environment, expires after 48 h and dies with a password change (authVersion).
+const PHONE_TICKET_TTL_MS=48*3600*1000;
+function phoneTicketKey(){return crypto.createHash('sha256').update('ExportHUB autofix phone ticket|'+signingSecret()).digest()}
+function phoneTicketDescription(payload){
+ const area=text(payload.area).replace(/\s+/g,' ').slice(0,160),message=text(payload.message).replace(/\s+/g,' ').slice(0,600);
+ const category=lower(payload.category).slice(0,40),level=lower(payload.level).slice(0,20),at=text(payload.at).slice(0,40),count=Math.max(1,Math.min(1e6,Number(payload.count)||1));
+ return {area,message,category,level,at,count};
+}
+async function phoneTicket(req,payload,env){
+ const admin=await validateGlobalAdmin(req,payload,env);
+ if(!autofixEnabled())throw error('AUTOFIX_DISABLED','api.autofix.disabledReason',409);
+ const d=phoneTicketDescription(payload);if(d.message.length<3)throw error('AUTOFIX_DESCRIPTION_TOO_SHORT','Die Fehlermeldung fehlt.',400);
+ const body={purpose:'exporthub-autofix-phone',v:1,env,uid:text(admin.id),av:Number(admin.authVersion||0),exp:Date.now()+PHONE_TICKET_TTL_MS,n:crypto.randomBytes(9).toString('base64url'),d};
+ const raw=Buffer.from(JSON.stringify(body),'utf8').toString('base64url');
+ return {ok:true,ticket:'ehaf1.'+raw+'.'+crypto.createHmac('sha256',phoneTicketKey()).update(raw).digest('base64url'),expiresAt:new Date(body.exp).toISOString(),environment:env};
+}
+function verifyPhoneTicket(value,env){
+ const parts=text(value).split('.');if(parts.length!==3||parts[0]!=='ehaf1')return null;
+ const expected=crypto.createHmac('sha256',phoneTicketKey()).update(parts[1]).digest('base64url');if(!safeEqual(expected,parts[2]))return null;
+ let p;try{p=JSON.parse(Buffer.from(parts[1],'base64url').toString('utf8'))}catch(_){return null}
+ if(!p||p.purpose!=='exporthub-autofix-phone'||Number(p.v||0)!==1||p.env!==env||!p.uid||!p.n||!p.d||Number(p.exp||0)<=Date.now())return null;
+ return p;
+}
+async function requestFromPhone(req,payload,env){
+ const t=verifyPhoneTicket(payload.ticket,env);if(!t)throw error('AUTOFIX_TICKET_INVALID','Diese Benachrichtigung kann nicht mehr an die KI gesendet werden (abgelaufen oder ungültig).',401);
+ if(!autofixEnabled())throw error('AUTOFIX_DISABLED','api.autofix.disabledReason',409);
+ const read=await readJson(teamBlob(env),{state:{}},false),doc=read.value||{},users=Array.isArray(doc.users)?doc.users:Array.isArray(doc.state&&doc.state.users)?doc.state.users:[];
+ const admin=users.find(u=>text(u&&u.id)===text(t.uid));
+ if(!admin||!isActive(admin)||!isAdmin(admin)||Number(admin.authVersion||0)!==Number(t.av||0))throw error('GLOBAL_ADMIN_REQUIRED','api.autofix.adminRequired',403);
+ const d=diagBlob(env),diag=await readJson(d,{records:[]},false),rows=Array.isArray(diag.value&&diag.value.records)?diag.value.records:[];
+ if(rows.some(r=>r&&r.phoneTicket===t.n))throw error('AUTOFIX_TICKET_USED','Diese Benachrichtigung wurde bereits an die KI gesendet.',409);
+ const x=t.d,description=['Reported from a phone notification:',x.message,'Area: '+(x.area||'-'),'Type: '+[x.level,x.category].filter(Boolean).join(' / '),'Count: '+x.count,x.at?'Time: '+x.at:''].filter(Boolean).join('\n');
+ const at=now(),id='MAN-'+Date.now().toString(36).toUpperCase()+'-'+crypto.randomBytes(3).toString('hex').toUpperCase();
+ const record={id,seq:0,at,lastAt:at,level:x.level==='warning'?'warning':'error',category:'manual',area:x.area||'Handy-Benachrichtigung',message:description.slice(0,4000),details:{source:'phone',originalCategory:x.category,originalAt:x.at},count:1,user:text(admin.name||admin.user).slice(0,120),userId:text(admin.id).slice(0,100),deviceId:'',clientVersion:'android',environment:env,manual:true,phoneTicket:t.n};
+ for(let attempt=0;attempt<MAX_RETRIES;attempt++){
+  const cur=attempt?await readJson(d,{schemaVersion:1,revision:0,records:[]},false):diag,docD=cur.value&&typeof cur.value==='object'?cur.value:{schemaVersion:1,revision:0,records:[]},list=Array.isArray(docD.records)?docD.records.slice():[];
+  if(list.some(r=>r&&r.phoneTicket===t.n))throw error('AUTOFIX_TICKET_USED','Diese Benachrichtigung wurde bereits an die KI gesendet.',409);
+  list.push(record);
+  try{await uploadJson(d,Object.assign({},docD,{schemaVersion:1,revision:Number(docD.revision||0)+1,updatedAt:now(),records:list}),cur.etag);break}
+  catch(e){if(e&&(e.statusCode===409||e.statusCode===412)&&attempt<MAX_RETRIES-1)continue;throw e}
+ }
+ try{await appendAudit(env,'DIAGNOSTIC_PHONE_REPORTED',text(admin.name||admin.user),{diagnosticId:id,area:record.area})}catch(_){}
+ return requestAutofix(req,{diagnosticId:id},env,admin);
+}
 module.exports=async function(context,req){
  if(req.method==='OPTIONS'){context.res={status:204,headers:{'Cache-Control':'no-store','Allow':'POST, OPTIONS'},body:''};return}
  if(req.method!=='POST'){context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED',message:apiI18n.t(req,'api.common.postOnly')});return}
@@ -282,6 +328,8 @@ module.exports=async function(context,req){
   let result;
   if(action==='request')result=await requestAutofix(req,payload,env);
   else if(action==='request-manual')result=await requestManualAutofix(req,payload,env);
+  else if(action==='phone-ticket')result=await phoneTicket(req,payload,env);
+  else if(action==='request-phone')result=await requestFromPhone(req,payload,env);
   else if(action==='claim'){if(!(await callbackAuthorized(req,WORKFLOW)))throw error('AUTOFIX_CALLBACK_UNAUTHORIZED','api.autofix.callbackUnauthorized',401);result=await claim(payload,env)}
   else if(action==='workflow-status'){if(!(await callbackAuthorized(req,WORKFLOW)))throw error('AUTOFIX_CALLBACK_UNAUTHORIZED','api.autofix.callbackUnauthorized',401);result=await workflowStatus(payload,env)}
   else if(action==='finalize'){if(!(await githubOidcAuthorized(req,RC1496_AUTOFIX_FINALIZE_WORKFLOW,['workflow_run'])))throw error('AUTOFIX_CALLBACK_UNAUTHORIZED','api.autofix.callbackUnauthorized',401);result=await finalizeAutofix(payload,env)}

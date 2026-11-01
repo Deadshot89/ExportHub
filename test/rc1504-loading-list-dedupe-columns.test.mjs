@@ -54,12 +54,22 @@ test('RC1504: DNC-Nummer und gleichnamige PDF-Datei teilen denselben Deduplizier
   assert.notEqual(api.canonicalDeliveryKey('Lieferschein A.pdf'),api.canonicalDeliveryKey('Lieferschein B.pdf'));
 });
 
-test('RC1504: Lieferscheine wechseln exakt ab sechs Eintraegen auf zwei Spalten',()=>{
+test('RC1504: Lieferscheine stehen zu zehnt pro Spalte nebeneinander',()=>{
   assert.equal(typeof api.documentColumnCount,'function');
   assert.equal(api.documentColumnCount(0),1);
-  assert.equal(api.documentColumnCount(5),1);
-  assert.equal(api.documentColumnCount(6),2);
-  assert.equal(api.documentColumnCount(30),2);
+  assert.equal(api.documentColumnCount(10),1);
+  assert.equal(api.documentColumnCount(11),2);
+  assert.equal(api.documentColumnCount(20),2);
+  assert.equal(api.documentColumnCount(28),3);
+  assert.equal(api.documentColumnCount(40),4);
+});
+
+test('Lieferscheine laufen in jeder Spalte von oben nach unten, die letzte Spalte bleibt kürzer',()=>{
+  // 12 entries, 2 columns, 10 rows: row-major cells read 0,10 | 1,11 | 2,-1 ...
+  const slots=Array.from(api.columnMajorSlots(12,2));
+  assert.deepEqual(slots.slice(0,6),[0,10,1,11,2,-1]);
+  assert.equal(slots.filter(x=>x>=0).length,12);
+  assert.deepEqual(Array.from(api.columnMajorSlots(3,1)),[0,1,2]);
 });
 
 test('RC1504: Druck-Wrapper normalisiert das Dokumentraster vor der Bild-4-Wiederherstellung',()=>{
@@ -74,7 +84,7 @@ test('RC1504: zwei Spalten gelten nur im Druck und veraendern die Bildschirmansi
   assert.doesNotMatch(source,/grid\.style\.setProperty\('display','grid','important'\)/);
 });
 
-test('RC1504: Grid-Normalisierung entfernt DNC-Dubletten, behaelt normale PDF-Namen und markiert sechs Eintraege zweispaltig',()=>{
+test('RC1504: Grid-Normalisierung entfernt DNC-Dubletten, behaelt normale PDF-Namen und laesst sechs Eintraege in einer Spalte',()=>{
   const h=gridHarness([
     'DNC3019222063.pdf','DNC3019222063',
     'Lieferschein 1.pdf','Lieferschein 2.pdf','Lieferschein 3.pdf','Lieferschein 4.pdf','Lieferschein 5.pdf'
@@ -84,10 +94,15 @@ test('RC1504: Grid-Normalisierung entfernt DNC-Dubletten, behaelt normale PDF-Na
   assert.equal(h.items[0].textContent,'DNC3019222063');
   assert.equal(h.items[1].removed,true);
   assert.equal(h.items[2].textContent,'Lieferschein 1.pdf');
-  assert.equal(h.attributes['data-rc1504-document-columns'],'2');
+  assert.equal(h.attributes['data-rc1504-document-columns'],'1');
   assert.ok(h.removedProperties.includes('display'));
   assert.ok(h.removedProperties.includes('flex-direction'));
   assert.ok(h.removedProperties.includes('align-items'));
   assert.equal(h.inserted.length,1);
   assert.match(h.inserted[0].textContent,/@media print\{/);
+});
+
+test('Ladeliste wird bei vielen Lieferscheinen nicht kleiner, weil höchstens zehn Zeilen entstehen',()=>{
+  const source=fs.readFileSync('assets/rc1305-loading-list-print.js','utf8');
+  assert.match(source,/var documentRows=Math\.ceil\(Math\.min\(documentCount,10\)\/2\);/);
 });

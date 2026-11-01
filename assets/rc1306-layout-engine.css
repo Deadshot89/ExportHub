@@ -342,6 +342,31 @@ html[data-eh-layout-mode="neon"] .rc1306-generic-primary{
   .rc1306-business-workspace{grid-template-columns:150px minmax(0,1fr) 300px}
   .rc1306-neon-workspace{grid-template-columns:160px minmax(0,1fr) 280px}
 }
+/* Prüfung 29.10.2026: Mit Seitenleiste bleibt bei 1121–1599 px Fensterbreite zu wenig Platz für drei Spalten
+   (Felder überlappten, Colli-Tabelle abgeschnitten). Die Colli-/ABD-Spalte rückt unter das Formular. */
+@media(min-width:1121px) and (max-width:1599px){
+  .rc1306-business-workspace{grid-template-columns:150px minmax(0,1fr)}
+  .rc1306-neon-workspace{grid-template-columns:160px minmax(0,1fr)}
+  /* Reihenfolge wie die Schritte: 1–2 Kunde/Sendung, 3 Colli (+ ABD-Frage), danach Dokumente, Stauplan, Mail, Speichern */
+  .rc1306-business-center,
+  .rc1306-neon-core{display:contents}
+  :is(.rc1306-business-workspace,.rc1306-neon-workspace)>:is(.rc1306-process-nav,.rc1306-neon-command){grid-column:1;grid-row:1/span 4;align-self:start}
+  .rc1306-business-center>.rc1306-zone--identity,
+  .rc1306-neon-core>.rc1306-neon-core-top{grid-column:2;grid-row:1}
+  .rc1306-business-rail,
+  .rc1306-neon-telemetry{
+    position:static!important;
+    grid-column:2;
+    grid-row:2;
+    grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);
+    align-items:start;
+  }
+  .rc1306-business-center>.rc1306-zone--execution,
+  .rc1306-neon-core>.rc1306-neon-core-bottom{grid-column:2;grid-row:3}
+  .rc1306-business-center>.rc1306-zone--output{grid-column:2;grid-row:4}
+  .rc1306-glass-mosaic>.rc1306-glass-card:is(:has(#rc363BlockCustomer),:has(#rc363BlockShipment)){grid-column:span 6}
+  .rc1306-glass-mosaic>.rc1306-glass-card:has(#rc573ColliCard){grid-column:span 12}
+}
 @media(max-width:1120px){
   .rc1306-business-workspace,
   .rc1306-neon-workspace{
@@ -420,3 +445,6 @@ html[data-eh-layout-mode="neon"] .rc1306-generic-primary{
     display:block!important;
   }
 }
+
+/* Prüfung 29.10.2026: Der Colli-Inhalt wandert in die Arbeitsfläche; die zurückbleibende leere Kopfkarte ausblenden. */
+html[data-eh-layout-mode]:not([data-eh-layout-mode="classic"]) #content .rc894-full-stack>#rc363BlockColli:has(>.rc363-process-body:empty):not(:has(#rc573ColliCard)){display:none!important}

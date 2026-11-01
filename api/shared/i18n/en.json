@@ -266,5 +266,10 @@
   "api.abdAnalysis.forbidden": "Edit permission for the export declaration area is required for this analysis.",
   "api.abdAnalysis.actionInvalid": "Unknown export declaration analysis action.",
   "api.avis.manualAppointmentCreated": "Pickup booked manually",
-  "api.avis.manualAppointmentChanged": "Manual pickup changed"
+  "api.avis.manualAppointmentChanged": "Manual pickup changed",
+  "api.reference.docKindInvalid": "Unknown document type.",
+  "api.reference.docTypeInvalid": "Allowed are PDF, images (JPG/PNG), Excel (XLSX/XLS/CSV), Word (DOCX/DOC), TXT and e-mails (MSG/EML).",
+  "api.reference.docEmpty": "The file is empty or invalid.",
+  "api.reference.docTooLarge": "The file is larger than 15 MB.",
+  "api.reference.docSignatureInvalid": "The file content does not match the file type."
 }

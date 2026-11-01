@@ -13,6 +13,8 @@ import {hardenCustomerSaveHtml} from '../../scripts/rc1600-customer-save-readbac
 import {hardenAckMergeSaveHtml} from '../../scripts/rc1627-ack-merge-save.mjs';
 import {patchRc1662SavedShipmentDeltaHtml} from '../../scripts/rc1662-abd-saved-shipment-delta.mjs';
 import {patchRc1602PodBrowserHtml} from '../../scripts/rc1602-pod-browser-pagination.mjs';
+import {patchRc1716PodBatchHtml} from '../../scripts/rc1716-pod-batch-completeness.mjs';
+import {patchRc1718PrintIframeHtml} from '../../scripts/rc1718-qr-print-iframe-pages.mjs';
 
 const ROOT=process.cwd();
 const SRC=path.join(ROOT,'dist-rc1048');
@@ -52,9 +54,9 @@ const RC1303_LOGIN_FIRST_PAINT_STYLE=`<style id="exporthub-rc1303-login-first-pa
 #login #loginMicrosoftAccountSwitchBtn,#login #adminRecoveryBtn{min-height:34px!important;margin-top:6px!important;padding:5px 8px!important}
 @media(max-width:600px){#login .login-card{width:min(100%,440px)!important;padding:18px 16px 16px!important}#login .logo{width:54px!important;height:54px!important;border-radius:17px!important;font-size:20px!important}#login h1{font-size:27px!important;margin-bottom:12px!important}#login .eh-login-environment{margin-bottom:12px!important}#login .eh-login-environment button{min-height:58px!important;padding:9px 10px!important}}
 </style>`;
-const RC1267_I18N_TAG='<script id="exporthub-rc1267-i18n" defer src="/assets/rc1267-i18n.js?v=1466"></script>';
+const RC1267_I18N_TAG='<script id="exporthub-rc1267-i18n" defer src="/assets/rc1267-i18n.js?v=1667"></script>';
 const RC1206_SHIPPING_ID='exporthub-rc1206-shipping-rules';
-const RC1206_SHIPPING_TAG='<script id="'+RC1206_SHIPPING_ID+'" defer src="/assets/rc1206-shipping-rules.js?v=1419"></script>';
+const RC1206_SHIPPING_TAG='<script id="'+RC1206_SHIPPING_ID+'" defer src="/assets/rc1206-shipping-rules.js?v=1715"></script>';
 const RC1296_BROWSER_TITLE='ExportHUB360';
 const RC1296_FAVICON_TAG='<link id="exporthub360-favicon" rel="icon" type="image/svg+xml" href="/assets/exporthub360-favicon.svg?v=1296">';
 const RC1304_THEME_STYLE_TAG='<link id="exporthub-rc1304-theme-style" rel="stylesheet" href="/assets/rc1304-theme-switcher.css?v=1306">';
@@ -78,7 +80,7 @@ const CUSTOMER_FOLDER_SCRIPT_TAG='<script id="exporthub-customer-folder-script" 
 const RC1577_OVERVIEW_COMPACT_STYLE_TAG='<link id="exporthub-rc1577-overview-compact" rel="stylesheet" href="/assets/rc1577-shipment-overview-compact.css?v=1577">';
 const RC1558_OVERVIEW_STYLE_TAG='<link id="exporthub-rc1558-overview-style" rel="stylesheet" href="/assets/rc1558-dashboard-overview.css?v=1666">';
 const RC1558_OVERVIEW_I18N_TAG='<script id="exporthub-rc1558-overview-i18n" defer src="/assets/i18n/rc1558-dashboard-overview.js?v=1666"><\/script>';
-const RC1558_OVERVIEW_SCRIPT_TAG='<script id="exporthub-rc1558-overview-script" defer src="/assets/rc1558-dashboard-overview.js?v=1666"><\/script>';
+const RC1558_OVERVIEW_SCRIPT_TAG='<script id="exporthub-rc1558-overview-script" defer src="/assets/rc1558-dashboard-overview.js?v=1667"><\/script>';
 const RC1570_TASKS_STYLE_TAG='<link id="exporthub-rc1570-tasks-style" rel="stylesheet" href="/assets/rc1570-tasks-focus.css?v=1570">';
 const RC1570_TASKS_I18N_TAG='<script id="exporthub-rc1570-tasks-i18n" defer src="/assets/i18n/rc1570-tasks-focus.js?v=1570"></script>';
 const RC1570_TASKS_SCRIPT_TAG='<script id="exporthub-rc1570-tasks-script" defer src="/assets/rc1570-tasks-focus.js?v=1571"></script>';
@@ -88,12 +90,18 @@ const RC1630_SELF_CORRECT_SCRIPT_TAG='<script id="exporthub-rc1630-self-correct-
 const RC1660_SHIPMENT_SOP_STYLE_TAG='<link id="exporthub-rc1660-shipment-sop-style" rel="stylesheet" href="/assets/rc1660-shipment-sop-popup.css?v=1660">';
 const RC1660_SHIPMENT_SOP_I18N_TAG='<script id="exporthub-rc1660-shipment-sop-i18n" defer src="/assets/i18n/rc1660-shipment-sop-popup.js?v=1660"></script>';
 const RC1660_SHIPMENT_SOP_SCRIPT_TAG='<script id="exporthub-rc1660-shipment-sop-script" defer src="/assets/rc1660-shipment-sop-popup.js?v=1660"></script>';
+const RC1705_SOP_HELP_STYLE_TAG='<link id="exporthub-rc1705-sop-help-style" rel="stylesheet" href="/assets/rc1705-context-sop-help.css?v=1705">';
+const RC1705_SOP_HELP_SCRIPT_TAG='<script id="exporthub-rc1705-sop-help-script" defer src="/assets/rc1705-context-sop-help.js?v=1705"></script>';
 const RC1650_DIAG_PLAIN_I18N_TAG='<script id="exporthub-rc1650-diagnostics-plain-i18n" defer src="/assets/i18n/rc1650-diagnostics-plain.js?v=1650"></script>';
 const RC1650_DIAG_PLAIN_SCRIPT_TAG='<script id="exporthub-rc1650-diagnostics-plain-script" defer src="/assets/rc1650-diagnostics-plain.js?v=1650"></script>';
+const RC1725_BUILD_STAMP_I18N_TAG='<script id="exporthub-rc1725-build-stamp-i18n" defer src="/assets/i18n/rc1725-build-stamp.js?v=1725"></script>';
+const RC1725_BUILD_STAMP_SCRIPT_TAG='<script id="exporthub-rc1725-build-stamp-script" defer src="/assets/rc1725-build-stamp.js?v=1725"></script>';
+const RC1740_POD_REMOVE_I18N_TAG='<script id="exporthub-rc1740-pod-remove-i18n" defer src="/assets/i18n/rc1740-pod-remove.js?v=1740"></script>';
+const RC1740_POD_REMOVE_SCRIPT_TAG='<script id="exporthub-rc1740-pod-remove-script" defer src="/assets/rc1740-pod-remove.js?v=1740"></script>';
 // Web Push: phone notifications without website login (assets/web-push, api/web-push)
 const WEB_PUSH_MANIFEST_TAG='<link id="exporthub-web-push-manifest" rel="manifest" href="/assets/web-push/manifest.json">';
 const WEB_PUSH_I18N_TAG='<script id="exporthub-web-push-i18n" defer src="/assets/i18n/web-push.js?v=1701"></script>';
-const WEB_PUSH_SCRIPT_TAG='<script id="exporthub-web-push-client" defer src="/assets/web-push/client.js?v=1700"></script>';
+const WEB_PUSH_SCRIPT_TAG='<script id="exporthub-web-push-client" defer src="/assets/web-push/client.js?v=1702"></script>';
 const RC1577_POD_AUDIT_I18N_TAG='<script id="exporthub-rc1577-pod-audit-i18n" defer src="/assets/i18n/rc1577-pod-quality-audit.js?v=1577"></script>';
 const RC1577_POD_AUDIT_SCRIPT_TAG='<script id="exporthub-rc1577-pod-audit-script" defer src="/assets/rc1577-pod-quality-audit.js?v=1596"></script>';
 const RC1596_POD_FOLDER_SCRIPT_TAG='<script id="exporthub-rc1596-pod-folder-reconnect" defer src="/assets/rc1596-pod-folder-reconnect.js?v=1596"></script>';
@@ -233,7 +241,7 @@ function patchRc1558DashboardOverview(html,file){
   if(!html.includes(RC1558_WORKSPACE_EXPORT))throw new Error(file+': RC1558 RC885-Workspace-Export fehlt');
   if(!html.includes('rc1558-dashboard-overview.css?v=1666'))throw new Error(file+': RC1558 Dashboard-Übersicht-CSS fehlt');
   if(!html.includes('i18n/rc1558-dashboard-overview.js?v=1666'))throw new Error(file+': RC1558 Dashboard-Übersicht-I18n fehlt');
-  if(!html.includes('rc1558-dashboard-overview.js?v=1666'))throw new Error(file+': RC1558 Dashboard-Übersicht-Runtime fehlt');
+  if(!html.includes('rc1558-dashboard-overview.js?v=1667'))throw new Error(file+': RC1558 Dashboard-Übersicht-Runtime fehlt');
   // RC1570 task focus view (overdue/today first, new-task form, working task detail view)
   html=injectDeferredRuntimeInHead(html,RC1570_TASKS_STYLE_TAG,'exporthub-rc1570-tasks-style');
   html=injectDeferredRuntimeInHead(html,RC1570_TASKS_I18N_TAG,'exporthub-rc1570-tasks-i18n');
@@ -256,10 +264,22 @@ function patchRc1558DashboardOverview(html,file){
   html=injectDeferredRuntimeInHead(html,RC1660_SHIPMENT_SOP_I18N_TAG,'exporthub-rc1660-shipment-sop-i18n');
   html=injectDeferredRuntimeInHead(html,RC1660_SHIPMENT_SOP_SCRIPT_TAG,'exporthub-rc1660-shipment-sop-script');
   if(!html.includes('rc1660-shipment-sop-popup.css?v=1660')||!html.includes('i18n/rc1660-shipment-sop-popup.js?v=1660')||!html.includes('/assets/rc1660-shipment-sop-popup.js?v=1660'))throw new Error(file+': RC1660 SOP-Popup fehlt');
+  // RC1705: show the standard SOP in every new shipment and contextual help in all workspaces.
+  html=injectDeferredRuntimeInHead(html,RC1705_SOP_HELP_STYLE_TAG,'exporthub-rc1705-sop-help-style');
+  html=injectDeferredRuntimeInHead(html,RC1705_SOP_HELP_SCRIPT_TAG,'exporthub-rc1705-sop-help-script');
+  if(!html.includes('/assets/rc1705-context-sop-help.js?v=1705')||!html.includes('/assets/rc1705-context-sop-help.css?v=1705'))throw new Error(file+': RC1705 SOP-Hilfe fehlt');
   // RC1650 Fehlerdiagnose in Klartext (explanations, urgency, AI fix from a message)
   html=injectDeferredRuntimeInHead(html,RC1650_DIAG_PLAIN_I18N_TAG,'exporthub-rc1650-diagnostics-plain-i18n');
   html=injectDeferredRuntimeInHead(html,RC1650_DIAG_PLAIN_SCRIPT_TAG,'exporthub-rc1650-diagnostics-plain-script');
   if(!html.includes('i18n/rc1650-diagnostics-plain.js?v=1650')||!html.includes('/assets/rc1650-diagnostics-plain.js?v=1650'))throw new Error(file+': RC1650 Fehlerdiagnose-Klartext fehlt');
+  // RC1725 deployed build stamp (release date + commit) next to the version in login, Update page and Release-Center
+  html=injectDeferredRuntimeInHead(html,RC1725_BUILD_STAMP_I18N_TAG,'exporthub-rc1725-build-stamp-i18n');
+  html=injectDeferredRuntimeInHead(html,RC1725_BUILD_STAMP_SCRIPT_TAG,'exporthub-rc1725-build-stamp-script');
+  if(!html.includes('i18n/rc1725-build-stamp.js?v=1725')||!html.includes('/assets/rc1725-build-stamp.js?v=1725'))throw new Error(file+': RC1725 Build-Stand fehlt');
+  // RC1740 remove an uploaded POD from a shipment (overview card) so a new POD can be uploaded
+  html=injectDeferredRuntimeInHead(html,RC1740_POD_REMOVE_I18N_TAG,'exporthub-rc1740-pod-remove-i18n');
+  html=injectDeferredRuntimeInHead(html,RC1740_POD_REMOVE_SCRIPT_TAG,'exporthub-rc1740-pod-remove-script');
+  if(!html.includes('i18n/rc1740-pod-remove.js?v=1740')||!html.includes('/assets/rc1740-pod-remove.js?v=1740'))throw new Error(file+': RC1740 POD entfernen fehlt');
   return html;
 }
 
@@ -459,8 +479,11 @@ function patchRc1303LoginExperience(html,file){
 }
 
 function patchRc1206ShippingRules(html,file){
+  // RC1715: vorhandene Script-IDs dürfen den alten Cache-Key nicht erhalten.
+  // Drei-Umgebungen-Build muss den Browser auf die neue Versandkosten-Runtime zwingen.
+  html=html.replace(/(src=["']\/assets\/rc1206-shipping-rules\.js\?v=)[^"']+(["'])/g,'$1'+'1715'+'$2');
   html=injectDeferredRuntimeInHead(html,RC1206_SHIPPING_TAG,RC1206_SHIPPING_ID);
-  if(!html.includes('rc1206-shipping-rules.js?v=1419'))throw new Error(file+': RC1419 Versandkosten-Runtime fehlt');
+  if(!html.includes('rc1206-shipping-rules.js?v=1715'))throw new Error(file+': RC1715 Versandkosten-Cache-Key fehlt');
   return html;
 }
 
@@ -519,7 +542,7 @@ function patchWebPush(html,file){
   html=injectDeferredRuntimeInHead(html,WEB_PUSH_MANIFEST_TAG,'exporthub-web-push-manifest');
   html=injectDeferredRuntimeInHead(html,WEB_PUSH_I18N_TAG,'exporthub-web-push-i18n');
   html=injectDeferredRuntimeInHead(html,WEB_PUSH_SCRIPT_TAG,'exporthub-web-push-client');
-  if(!html.includes('/assets/web-push/manifest.json')||!html.includes('/assets/web-push/client.js?v=1700'))throw new Error(file+': Web Push fehlt');
+  if(!html.includes('/assets/web-push/manifest.json')||!html.includes('/assets/web-push/client.js?v=1702'))throw new Error(file+': Web Push fehlt');
   return html;
 }
 
@@ -1396,7 +1419,7 @@ function mergeReferenceDocs(live,fallback){
 
 function patchRc1283LoadingListSearch(html,file){
   const anchor="async function downloadDocument(mode,button){";
-  const bridge=`window.__EXPORTHUB_RC1283_OPEN_LOAD1__=function(sh,printNow){try{if(!sh)throw new Error('Keine Ladeliste ausgewählt.');var child=window.open('about:blank','_blank','width=1180,height=860');if(!child){alert('Das Ladelistenfenster wurde vom Browser blockiert.');return false}var styles=Array.from(document.querySelectorAll('style,link[rel="stylesheet"]')).map(function(n){return n.outerHTML}).join(''),body=loadHtml(sh,true),title='Ladeliste '+esc(sref(sh)||sid(sh));child.opener=null;child.document.open();child.document.write('<!doctype html><html lang="de"><head><meta charset="utf-8"><title>'+title+'</title>'+styles+'<style>@page{size:A4 portrait;margin:8mm}html,body{background:#fff!important}body{margin:0;padding:0}.rc390-page,.rc352-page{margin:0 auto!important;box-shadow:none!important}</style></head><body>'+body+'</body></html>');child.document.close();if(printNow){var run=function(){try{child.focus();child.print()}catch(e){console.error('RC1283 Ladeliste drucken',e)}};if(child.document.readyState==='complete')setTimeout(run,250);else child.addEventListener('load',function(){setTimeout(run,200)},{once:true})}return true}catch(e){console.error('RC1283 Ladeliste öffnen/drucken',e);alert('Ladeliste konnte nicht geöffnet werden: '+String(e&&e.message||e));return false}}\nwindow.__EXPORTHUB_RC1283_DOWNLOAD_LOAD1__=async function(sh){try{if(!sh)throw new Error('Keine Ladeliste ausgewählt.');var out=await createPdf('load1',sh),name=('Ladeliste_'+(sref(sh)||sid(sh)||'Sendung')+'.pdf').replace(/[^A-Za-z0-9._-]+/g,'_');downloadBlob(out.blob,name);return true}catch(e){console.error('RC1283 Ladeliste herunterladen',e);alert('Ladeliste konnte nicht heruntergeladen werden: '+String(e&&e.message||e));return false}}`;
+  const bridge=`window.__EXPORTHUB_RC1283_OPEN_LOAD1__=function(sh,printNow){try{if(!sh)throw new Error('Keine Ladeliste ausgewählt.');var child=window.open('about:blank','_blank','width=1180,height=860');if(!child){alert('Das Ladelistenfenster wurde vom Browser blockiert.');return false}var styles=Array.from(document.querySelectorAll('style,link[rel="stylesheet"]')).map(function(n){return n.outerHTML}).join(''),body=loadHtml(sh,true),title='Ladeliste '+esc(sref(sh)||sid(sh));child.opener=null;child.document.open();child.document.write('<!doctype html><html lang="de"><head><meta charset="utf-8"><title>'+title+'</title>'+styles+'<style>@page{size:A4 portrait;margin:0}html,body{background:#fff!important}body{margin:0!important;padding:0!important}.rc390-page,.rc352-page{margin:0 auto!important;box-shadow:none!important}.rc390-page:last-child,.rc352-page:last-child{break-after:auto!important;page-break-after:auto!important}</style></head><body>'+body+'</body></html>');child.document.close();if(printNow){var run=function(){try{child.focus();child.print()}catch(e){console.error('RC1283 Ladeliste drucken',e)}};if(child.document.readyState==='complete')setTimeout(run,250);else child.addEventListener('load',function(){setTimeout(run,200)},{once:true})}return true}catch(e){console.error('RC1283 Ladeliste öffnen/drucken',e);alert('Ladeliste konnte nicht geöffnet werden: '+String(e&&e.message||e));return false}}\nwindow.__EXPORTHUB_RC1283_DOWNLOAD_LOAD1__=async function(sh){try{if(!sh)throw new Error('Keine Ladeliste ausgewählt.');var out=await createPdf('load1',sh),name=('Ladeliste_'+(sref(sh)||sid(sh)||'Sendung')+'.pdf').replace(/[^A-Za-z0-9._-]+/g,'_');downloadBlob(out.blob,name);return true}catch(e){console.error('RC1283 Ladeliste herunterladen',e);alert('Ladeliste konnte nicht heruntergeladen werden: '+String(e&&e.message||e));return false}}`;
   const count=html.split(anchor).length-1;
   if(!html.includes('__EXPORTHUB_RC1283_OPEN_LOAD1__')){
     if(count!==1)throw new Error(file+': RC1283 Ladelisten-Druckanker '+count+'x gefunden');
@@ -1599,6 +1622,8 @@ function patchHtml(file){
   html=html.replace(/rc1460-shipment-view-files-avis-preview\.js\?v=1460/g,'rc1460-shipment-view-files-avis-preview.js?v=1616');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-av-upload-i18n" defer src="/assets/i18n/av-upload.js?v=1"></script>','exporthub-av-upload-i18n');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-av-upload" defer src="/assets/av-upload.js?v=1"></script>','exporthub-av-upload');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-shipment-doc-upload-i18n" defer src="/assets/i18n/shipment-document-upload.js?v=1"></script>','exporthub-shipment-doc-upload-i18n');
+  html=injectDeferredRuntimeInHead(html,'<script id="exporthub-shipment-doc-upload" defer src="/assets/shipment-document-upload.js?v=1"></script>','exporthub-shipment-doc-upload');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1126-customer-delete" defer src="/assets/rc1126-customer-delete.js?v=1387"></script>','exporthub-rc1126-customer-delete');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1113-stowplan-persist" defer src="/assets/rc1113-stowplan-persist.js?v=1113"></script>','exporthub-rc1113-stowplan-persist');
   html=injectDeferredRuntimeInHead(html,'<script id="exporthub-rc1114-shipping-neutral" defer src="/assets/rc1114-shipping-neutral.js?v=1386"></script>','exporthub-rc1114-shipping-neutral');
@@ -1772,12 +1797,21 @@ for(const rel of [
   'assets/i18n/rc1630-self-correct.js',
   'assets/rc1660-shipment-sop-popup.css',
   'assets/rc1660-shipment-sop-popup.js',
+  'assets/rc1705-context-sop-help.css',
+  'assets/rc1705-context-sop-help.js',
+  'assets/training-center/catalog/employee-sops.json',
   'assets/i18n/rc1660-shipment-sop-popup.js',
   'assets/rc1650-diagnostics-plain.js',
   'assets/i18n/rc1650-diagnostics-plain.js',
+  'assets/rc1725-build-stamp.js',
+  'assets/i18n/rc1725-build-stamp.js',
+  'assets/rc1740-pod-remove.js',
+  'assets/i18n/rc1740-pod-remove.js',
   'assets/rc1460-shipment-view-files-avis-preview.js',
   'assets/i18n/av-upload.js',
   'assets/av-upload.js',
+  'assets/i18n/shipment-document-upload.js',
+  'assets/shipment-document-upload.js',
   'assets/i18n/web-push.js',
   'assets/web-push/client.js',
   'assets/web-push/sw.js',
@@ -1874,13 +1908,59 @@ for(const file of ['index.html','TESTVERSION.html','demo.html']){
   }
   fs.writeFileSync(target,html);
 }
+// RC1731 Lager-Gewicht: Lager-Controller und Lager-Styles sind kanonisch in
+// index.html. TESTSERVICE/demo-Snapshots bekommen dieselbe Lageransicht mit
+// Gewicht je Sendung, je Location und gesamt.
+const rc1731Canonical=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
+const rc1731Blocks=[
+  {tag:/<script id="rc504-warehouse-controller">[\s\S]*?<\/script>/,marker:'function warehouseWeight(sh){'},
+  {tag:/<style id="rc504-warehouse-style">[\s\S]*?<\/style>/,marker:'.rc504-zone-weight{'}
+].map(({tag,marker})=>{
+  const source=rc1731Canonical.match(tag);
+  if(!source||!source[0].includes(marker))throw new Error('RC1731: kanonischer Lager-Block fehlt: '+marker);
+  return{tag,source:source[0],marker};
+});
+const rc1731MobileOld='  .rc504-shipment-meta{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:4px!important}';
+const rc1731MobileNew='  .rc504-shipment-meta{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:4px!important}';
+for(const file of ['index.html','TESTVERSION.html','demo.html']){
+  const target=path.join(OUT,file);
+  let html=fs.readFileSync(target,'utf8');
+  for(const block of rc1731Blocks){
+    if(html.split(block.tag).length!==2)throw new Error(file+': RC1731 Lager-Block nicht eindeutig: '+block.marker);
+    html=html.replace(block.tag,()=>block.source);
+  }
+  html=html.split(rc1731MobileOld).join(rc1731MobileNew);
+  if(!html.includes('function warehouseWeight(sh){')||!html.includes('Gewicht im Lager'))throw new Error(file+': RC1731 Lager-Gewicht fehlt');
+  fs.writeFileSync(target,html);
+}
+// RC1741 Menü ohne Flackern: die Menüprüfung (RC325 menuValid/normalizeMenu) ist kanonisch in
+// index.html. In alten Snapshots zählte sie die Zusatzknöpfe Packmeldungen/Verpackungen als Fehler,
+// baute das Menü bei jedem Rendern neu und warf diese Knöpfe kurz hinaus.
+const rc1741Canonical=fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
+const rc1741Start='function menuValid(nav){',rc1741End='\nfunction buildMenu(){';
+const rc1741SourceStart=rc1741Canonical.lastIndexOf('\n',rc1741Canonical.indexOf('var ADDON_BUTTONS='))+1;
+const rc1741SourceEnd=rc1741Canonical.indexOf(rc1741End,rc1741SourceStart);
+if(rc1741SourceStart<=0||rc1741SourceEnd<=rc1741SourceStart||!rc1741Canonical.slice(rc1741SourceStart,rc1741SourceEnd).includes(rc1741Start))throw new Error('RC1741: kanonische Menüprüfung fehlt');
+const rc1741Source=rc1741Canonical.slice(rc1741SourceStart,rc1741SourceEnd);
+for(const file of ['index.html','TESTVERSION.html','demo.html']){
+  const target=path.join(OUT,file);
+  let html=fs.readFileSync(target,'utf8');
+  if(!html.includes('var ADDON_BUTTONS=')){
+    const targetStart=html.indexOf(rc1741Start),targetEnd=html.indexOf(rc1741End,targetStart);
+    if(targetStart<0||targetEnd<=targetStart||html.indexOf(rc1741Start,targetStart+rc1741Start.length)>=0)throw new Error(file+': RC1741 Menüprüfung nicht eindeutig');
+    html=html.slice(0,targetStart)+rc1741Source+html.slice(targetEnd);
+  }
+  if(!html.includes('function addonButton(b){'))throw new Error(file+': RC1741 Menü-Zusatzknöpfe fehlen');
+  fs.writeFileSync(target,html);
+}
 for(const file of ['index.html','TESTVERSION.html','demo.html']){
   const target=path.join(OUT,file);
   const hardened=hardenCustomerSaveHtml(patchRc1662SavedShipmentDeltaHtml(fs.readFileSync(target,'utf8'),file));
-  const paginated=patchRc1602PodBrowserHtml(hardenAckMergeSaveHtml(hardened));
+  const paginated=patchRc1716PodBatchHtml(patchRc1602PodBrowserHtml(hardenAckMergeSaveHtml(hardened)),file);
+  const rc1718Printed=patchRc1718PrintIframeHtml(paginated,file);
   const oldContacts='assets/rc1092-customer-mail-contacts.js?v=1399';
-  if(!paginated.includes(oldContacts))throw new Error(file+': RC1600 Kontaktcache-Anker fehlt');
-  fs.writeFileSync(target,paginated.replace(oldContacts,'assets/rc1092-customer-mail-contacts.js?v=1600'));
+  if(!rc1718Printed.includes(oldContacts))throw new Error(file+': RC1600 Kontaktcache-Anker fehlt');
+  fs.writeFileSync(target,rc1718Printed.replace(oldContacts,'assets/rc1092-customer-mail-contacts.js?v=1600'));
 }
 // RC1267 public pages: central language runtime must load before the legacy compatibility runtime.
 for(const file of ['customer-avis.html','pickup.html','location.html','pod-notfall.html']){

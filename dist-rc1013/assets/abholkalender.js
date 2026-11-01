@@ -75,6 +75,57 @@
     const status = String(sh.pickupStatus || sh.shipmentStatus || sh.processStatus || sh.status || '').trim().toLocaleLowerCase('de-DE');
     return /^(?:abgeholt|pod vorhanden|abgeschlossen|archiviert|storniert|picked up|pod available|completed|archived|cancelled)$/.test(status);
   }
+  // RC1650: picked-up shipments stay in the calendar (green) on the day they were collected
+  function shipmentCancelled(shipment){
+    const status = String(shipment && (shipment.pickupStatus || shipment.shipmentStatus || shipment.processStatus || shipment.status) || '').trim().toLocaleLowerCase('de-DE');
+    return /^(?:storniert|cancelled|canceled|gelöscht|deleted)$/.test(status);
+  }
+  function shipmentCollectedDate(shipment){
+    const sh = shipment && typeof shipment === 'object' ? shipment : {};
+    for (const key of ['pickedUpAt','pickupConfirmedAt','qrPickupConfirmedAt','pickupCompletedAt','actualPickupAt','actualPickupDate','collectedAt']) {
+      const raw = String(sh[key] == null ? '' : sh[key]).trim();
+      if (!raw) continue;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+      const at = new Date(raw);
+      if (!Number.isNaN(at.getTime())) return dateKeyLocal(at);
+    }
+    return '';
+  }
+  function shipmentDoneDate(shipment){
+    return shipmentCollectedDate(shipment) || shipmentPickupDate(shipment);
+  }
+  // customer numbers: several per field (comma, semicolon), compared without spaces, case and leading zeros
+  function customerNumberKeys(value){
+    const out = [];
+    for (const part of String(value == null ? '' : value).split(/[,;\n]+/)) {
+      let key = part.trim().toLowerCase().replace(/\s+/g,'');
+      if (/^\d+$/.test(key)) key = key.replace(/^0+(?=\d)/,'');
+      if (key && !out.includes(key)) out.push(key);
+    }
+    return out;
+  }
+  function shipmentCustomerNumbers(shipment){
+    const sh = shipment && typeof shipment === 'object' ? shipment : {};
+    const customer = sh.customer && typeof sh.customer === 'object' ? sh.customer : {};
+    const out = [];
+    for (const value of [sh.customerAccount,sh.customerNumber,sh.customerNo,sh.kundennummer,sh.account,sh.customerId,customer.customerNumber,customer.account]) {
+      if (value == null || typeof value === 'object') continue;
+      for (const key of customerNumberKeys(value)) if (!out.includes(key)) out.push(key);
+    }
+    return out;
+  }
+  function fixedPickupStatus(item, dayShipments, doneShipments){
+    const numbers = customerNumberKeys(item && item.customerNumber);
+    if (!numbers.length) return {state:'', refs:[]};
+    const matches = shipment => shipmentCustomerNumbers(shipment).some(key => numbers.includes(key));
+    const done = doneShipments.filter(matches);
+    if (done.some(shipment => !shipmentColliState(shipment).partial)) return {state:'done', refs:done.map(shipmentRefText)};
+    const open = dayShipments.filter(matches);
+    if (done.length || open.some(shipment => shipmentColliState(shipment).partial)) return {state:'partial', refs:done.concat(open).map(shipmentRefText)};
+    if (open.length) return {state:'planned', refs:open.map(shipmentRefText)};
+    return {state:'', refs:[]};
+  }
+  function shipmentRefText(shipment){ return String(shipment && (shipment.reference || shipment.ref || shipment.shipmentRef || shipment.id) || '').trim(); }
   function shipmentIdentity(shipment){
     const sh = shipment && typeof shipment === 'object' ? shipment : {};
     for (const key of ['id','shipmentId','reference','ref','shipmentRef','referenceNumber','referenceNo']) {
@@ -98,10 +149,12 @@
   function itemsForDate(fixedPickups, shipments, date){
     const weekday = date.getDay();
     const dateKey = dateKeyLocal(date);
-    return {
-      fixed: weekday >= 1 && weekday <= 5 ? fixedPickups.filter(item => item && item.active !== false && Number(item.weekday) === weekday) : [],
-      shipments: shipments.filter(shipment => shipmentPickupDate(shipment) === dateKey && !shipmentIsCompleted(shipment))
-    };
+    const fixed = weekday >= 1 && weekday <= 5 ? fixedPickups.filter(item => item && item.active !== false && Number(item.weekday) === weekday) : [];
+    const open = shipments.filter(shipment => shipmentPickupDate(shipment) === dateKey && !shipmentIsCompleted(shipment));
+    const doneShipments = shipments.filter(shipment => shipment && shipmentIsCompleted(shipment) && !shipmentCancelled(shipment) && shipmentDoneDate(shipment) === dateKey);
+    const fixedStatus = {};
+    for (const item of fixed) fixedStatus[String(item.id)] = fixedPickupStatus(item,open,doneShipments);
+    return { fixed, shipments: open, doneShipments, fixedStatus };
   }
   function buildCalendarModel(input){
     const options = input && typeof input === 'object' ? input : {};
@@ -123,13 +176,15 @@
         date,
         dateKey,
         fixed: source.fixed,
-        shipments: source.shipments
+        shipments: source.shipments,
+        doneShipments: source.doneShipments,
+        fixedStatus: source.fixedStatus
       });
     }
 
     const jsWeekday = todayDate.getDay();
     const regular = jsWeekday >= 1 && jsWeekday <= 5;
-    const todaySource = regular ? itemsForDate(fixedPickups,shipments,todayDate) : {fixed:[],shipments:[]};
+    const todaySource = regular ? itemsForDate(fixedPickups,shipments,todayDate) : {fixed:[],shipments:[],doneShipments:[],fixedStatus:{}};
     const weekEnd = days.length ? days[days.length-1].date : monday;
     return {
       weekOffset,
@@ -143,7 +198,9 @@
         date: todayDate,
         dateKey: dateKeyLocal(todayDate),
         fixed: todaySource.fixed,
-        shipments: todaySource.shipments
+        shipments: todaySource.shipments,
+        doneShipments: todaySource.doneShipments,
+        fixedStatus: todaySource.fixedStatus
       } : {
         regular: false,
         weekday: null,
@@ -151,7 +208,9 @@
         date: todayDate,
         dateKey: dateKeyLocal(todayDate),
         fixed: [],
-        shipments: []
+        shipments: [],
+        doneShipments: [],
+        fixedStatus: {}
       }
     };
   }
@@ -216,6 +275,7 @@
     const collis = shipmentColliState(shipment);
     if (collis.complete) return tr('pickupCalendar.status.pickedUp');
     if (collis.partial) return tr('pickupCalendar.status.partial');
+    if (shipmentIsCompleted(shipment) && !shipmentCancelled(shipment)) return tr('pickupCalendar.status.pickedUp');
     const raw=String(shipment && (shipment.pickupStatus || shipment.status) || '').trim();
     return raw || tr('pickupCalendar.status.registered');
   }
@@ -239,12 +299,18 @@
     }
     return false;
   }
-  function renderFixCard(item, manage){
+  function renderFixCard(item, manage, status){
     const noteValue = item ? localized(item,'note') : '';
     const note = noteValue ? `<div class="pickup-item-note">${esc(noteValue)}</div>` : '';
     const inactive = item && item.active === false ? ` <span class="pickup-muted">${esc(tr('pickupCalendar.card.inactive'))}</span>` : '';
+    const numberValue = String(item && item.customerNumber || '').trim();
+    const number = manage && numberValue ? `<div class="pickup-item-note">${esc(tr('pickupCalendar.label.customerNumber'))}: ${esc(numberValue)}</div>` : '';
+    const linkState = status && status.state ? status.state : '';
+    const linkKey = {done:'pickupCalendar.fix.done',partial:'pickupCalendar.fix.partial',planned:'pickupCalendar.fix.planned'}[linkState];
+    const refs = status && status.refs && status.refs.length ? ` · ${esc(status.refs.join(', '))}` : '';
+    const link = linkKey ? `<div class="pickup-fix-link" data-pickup-fix-state="${linkState}">${linkState==='done'?'✓ ':''}${esc(tr(linkKey))}${refs}</div>` : '';
     const actions = manage ? `<div class="pickup-item-actions"><button type="button" class="pickup-btn" data-pickup-action="edit" data-pickup-id="${esc(item.id)}">${esc(tr('pickupCalendar.action.edit'))}</button><button type="button" class="pickup-btn" data-pickup-action="toggle" data-pickup-id="${esc(item.id)}">${esc(tr(item.active === false ? 'pickupCalendar.action.reactivate' : 'pickupCalendar.action.deactivate'))}</button></div>` : '';
-    return `<article class="pickup-item pickup-item-fix${item && item.active === false ? ' is-inactive' : ''}"><div class="pickup-item-head"><span class="pickup-badge pickup-badge-fix">FIX</span><strong>${esc(item && item.siteLabel)}</strong>${inactive}</div>${note}${actions}</article>`;
+    return `<article class="pickup-item pickup-item-fix${item && item.active === false ? ' is-inactive' : ''}${linkState ? ' is-'+linkState : ''}"><div class="pickup-item-head"><span class="pickup-badge pickup-badge-fix">FIX</span><strong>${esc(item && item.siteLabel)}</strong>${inactive}</div>${note}${number}${link}${actions}</article>`;
   }
   function renderShipmentCard(shipment){
     const collis = shipmentColliState(shipment);
@@ -252,7 +318,8 @@
     const colli = collis.expected > 0 ? `<div class="pickup-colli"><span>${esc(tr('pickupCalendar.colli.total'))}: <strong>${collis.expected}</strong></span><span>${esc(tr('pickupCalendar.colli.collected'))}: <strong>${collis.collected}</strong></span><span>${esc(tr('pickupCalendar.colli.remaining'))}: <strong>${collis.remaining}</strong></span></div>` : '';
     const open = key ? `<div class="pickup-item-actions"><button type="button" class="pickup-btn pickup-btn-link" data-pickup-action="open-shipment" data-pickup-shipment-key="${esc(key)}">${esc(tr('pickupCalendar.action.openShipment'))}</button></div>` : '';
     const customer = shipmentCustomer(shipment);
-    return `<article class="pickup-item pickup-item-shipment"><div class="pickup-item-head"><span class="pickup-badge pickup-badge-shipment">${esc(tr('pickupCalendar.badge.shipment'))}</span><strong>${esc(shipmentRef(shipment))}</strong></div><div class="pickup-item-grid"><span class="pickup-customer">${esc(tr('pickupCalendar.label.customer'))}: <strong>${esc(customer)}</strong></span><span class="pickup-carrier">${esc(shipmentCarrier(shipment))}</span><span class="pickup-status" data-pickup-state="${collis.complete?'done':collis.partial?'partial':'open'}">${esc(shipmentStatus(shipment))}</span></div>${colli}${open}</article>`;
+    const doneClass = shipmentIsCompleted(shipment) && !collis.partial ? ' is-done' : collis.partial ? ' is-partial' : '';
+    return `<article class="pickup-item pickup-item-shipment${doneClass}"><div class="pickup-item-head"><span class="pickup-badge pickup-badge-shipment">${esc(tr('pickupCalendar.badge.shipment'))}</span><strong>${esc(shipmentRef(shipment))}</strong></div><div class="pickup-item-grid"><span class="pickup-customer">${esc(tr('pickupCalendar.label.customer'))}: <strong>${esc(customer)}</strong></span><span class="pickup-carrier">${esc(shipmentCarrier(shipment))}</span><span class="pickup-status" data-pickup-state="${collis.partial?'partial':collis.complete||doneClass===' is-done'?'done':'open'}">${doneClass===' is-done'?'✓ ':''}${esc(shipmentStatus(shipment))}</span></div>${colli}${open}</article>`;
   }
   function renderSection(title, items, renderer, emptyText){
     return `<section class="pickup-source"><h4>${esc(title)}</h4>${items.length ? items.map(renderer).join('') : `<div class="pickup-empty">${esc(emptyText)}</div>`}</section>`;
@@ -261,26 +328,29 @@
     if (!model.today.regular) {
       return `<section class="pickup-today"><div class="pickup-section-title"><div><span class="pickup-eyebrow">${esc(tr('pickupCalendar.today'))}</span><h3>${formatDate(model.today.date)}</h3></div></div><div class="pickup-weekend-note">${esc(tr('pickupCalendar.nonWorkingDay'))}</div></section>`;
     }
-    return `<section class="pickup-today"><div class="pickup-section-title"><div><span class="pickup-eyebrow">${esc(tr('pickupCalendar.today'))}</span><h3>${esc(model.today.label)} · ${formatDate(model.today.date)}</h3></div><span class="pickup-count">${esc(tr('pickupCalendar.entries',{count:model.today.fixed.length + model.today.shipments.length}))}</span></div><div class="pickup-today-grid">${renderSection(tr('pickupCalendar.section.fixedPickups'),model.today.fixed,item=>renderFixCard(item,false),tr('pickupCalendar.empty.fixedPickup'))}${renderSection(tr('pickupCalendar.section.registeredShipments'),model.today.shipments,renderShipmentCard,tr('pickupCalendar.empty.registeredShipment'))}</div></section>`;
+    return `<section class="pickup-today"><div class="pickup-section-title"><div><span class="pickup-eyebrow">${esc(tr('pickupCalendar.today'))}</span><h3>${esc(model.today.label)} · ${formatDate(model.today.date)}</h3></div><span class="pickup-count">${esc(tr('pickupCalendar.entries',{count:model.today.fixed.length + model.today.shipments.length + (model.today.doneShipments||[]).length}))}</span></div><div class="pickup-today-grid">${renderSection(tr('pickupCalendar.section.fixedPickups'),model.today.fixed,item=>renderFixCard(item,false,(model.today.fixedStatus||{})[String(item && item.id)]),tr('pickupCalendar.empty.fixedPickup'))}${renderSection(tr('pickupCalendar.section.registeredShipments'),model.today.shipments.concat(model.today.doneShipments||[]),renderShipmentCard,tr('pickupCalendar.empty.registeredShipment'))}</div></section>`;
   }
   function renderDay(day, todayKey){
-    const total = day.fixed.length + day.shipments.length;
+    const done = day.doneShipments || [];
+    const total = day.fixed.length + day.shipments.length + done.length;
     const isToday = !!todayKey && day.dateKey === todayKey;
-    const entries = total ? `<div class="pickup-source">${day.fixed.map(item=>renderFixCard(item,false)).join('')}${day.shipments.map(renderShipmentCard).join('')}</div>` : `<div class="pickup-empty pickup-day-empty">${esc(tr('pickupCalendar.empty.none'))}</div>`;
+    const entries = total ? `<div class="pickup-source">${day.fixed.map(item=>renderFixCard(item,false,(day.fixedStatus||{})[String(item && item.id)])).join('')}${day.shipments.map(renderShipmentCard).join('')}${done.map(renderShipmentCard).join('')}</div>` : `<div class="pickup-empty pickup-day-empty">${esc(tr('pickupCalendar.empty.none'))}</div>`;
     return `<section class="pickup-day${isToday?' is-today':''}${total?'':' is-empty'}"${isToday?' aria-current="date"':''}><header><span class="pickup-day-name">${esc(day.label)}</span><small>${formatDate(day.date)}</small>${total?`<span class="pickup-day-count" aria-label="${esc(tr('pickupCalendar.entries',{count:total}))}">${total}</span>`:''}</header>${entries}</section>`;
   }
-  function renderPrintFixed(item){
-    return `<div class="pickup-print-entry"><strong>${esc(item && item.siteLabel)}</strong></div>`;
+  function renderPrintFixed(item, status){
+    const done = status && status.state === 'done';
+    return `<div class="pickup-print-entry${done?' pickup-print-entry-done':''}"><strong>${done?'✓ ':''}${esc(item && item.siteLabel)}</strong></div>`;
   }
-  function renderPrintShipment(shipment){
+  function renderPrintShipment(shipment, done){
     const collis = shipmentColliState(shipment);
     const ref = shipmentRef(shipment);
-    return `<div class="pickup-print-entry pickup-print-entry-confirmed"><strong>${esc(shipmentCustomer(shipment))}</strong><small>${esc(tr('pickupCalendar.print.reference'))}: ${esc(ref)} · ${esc(tr('pickupCalendar.print.quantity'))}: ${collis.expected}</small></div>`;
+    return `<div class="pickup-print-entry pickup-print-entry-confirmed${done?' pickup-print-entry-done':''}"><strong>${done?'✓ ':''}${esc(shipmentCustomer(shipment))}</strong><small>${esc(tr('pickupCalendar.print.reference'))}: ${esc(ref)} · ${esc(tr('pickupCalendar.print.quantity'))}: ${collis.expected}</small></div>`;
   }
   function renderPrintDay(day){
     const entries = [];
-    for (const item of day.fixed || []) entries.push(renderPrintFixed(item));
+    for (const item of day.fixed || []) entries.push(renderPrintFixed(item,(day.fixedStatus||{})[String(item && item.id)]));
     for (const shipment of day.shipments || []) entries.push(renderPrintShipment(shipment));
+    for (const shipment of day.doneShipments || []) entries.push(renderPrintShipment(shipment,true));
     return `<section class="pickup-print-day"><h3>${esc(day.label)}</h3><div class="pickup-print-date">${formatDate(day.date)}</div><div class="pickup-print-entries">${entries.length ? entries.join('') : '<span class="pickup-print-empty">—</span>'}</div></section>`;
   }
   function renderPrintWeek(model){
@@ -315,12 +385,12 @@
   function renderForm(state){
     if (!state.canEdit) return '';
     const edit = state.editingFix;
-    const selected = edit || {siteLabel:'',weekday:1,note:'',active:true};
+    const selected = edit || {siteLabel:'',customerNumber:'',weekday:1,note:'',active:true};
     const options = [1,2,3,4,5].map(day=>`<option value="${day}"${Number(selected.weekday)===day?' selected':''}>${esc(weekdayLabel(day))}</option>`).join('');
     const inactive = state.fixedPickups.filter(item=>item && item.active === false);
     const list = state.fixedPickups.length ? state.fixedPickups.map(item=>renderFixCard(item,true)).join('') : `<div class="pickup-empty">${esc(tr('pickupCalendar.empty.noFixedCreated'))}</div>`;
     const inactiveHint = inactive.length ? tr(inactive.length===1?'pickupCalendar.inactiveHint.one':'pickupCalendar.inactiveHint.many',{count:inactive.length}) : '';
-    return `<section class="pickup-admin"><div class="pickup-section-title"><div><span class="pickup-eyebrow">${esc(tr('pickupCalendar.admin'))}</span><h3>${esc(tr('pickupCalendar.admin.manageFixed'))}</h3></div><button type="button" class="pickup-btn pickup-primary" data-pickup-action="new">${esc(tr('pickupCalendar.action.newFixed'))}</button></div>${state.saveError?`<div class="pickup-error">${esc(state.saveError)}</div>`:''}${edit?`<form class="pickup-form" data-pickup-form="fix"><input type="hidden" name="id" value="${esc(edit.id||'')}"><label>${esc(tr('pickupCalendar.field.locationCustomer'))}<input name="siteLabel" maxlength="180" required value="${esc(selected.siteLabel||'')}"></label><label>${esc(tr('pickupCalendar.field.weekday'))}<select name="weekday" required>${options}</select></label><label class="pickup-form-wide">${esc(tr('pickupCalendar.field.note'))}<textarea name="note" maxlength="500" rows="3">${esc(selected.note||'')}</textarea></label><label class="pickup-check"><input name="active" type="checkbox"${selected.active!==false?' checked':''}> ${esc(tr('pickupCalendar.field.active'))}</label><div class="pickup-form-actions"><button type="submit" class="pickup-btn pickup-primary">${esc(tr('pickupCalendar.action.save'))}</button><button type="button" class="pickup-btn" data-pickup-action="cancel">${esc(tr('pickupCalendar.action.cancel'))}</button></div></form>`:''}<div class="pickup-admin-list">${list}</div>${inactiveHint?`<p class="pickup-admin-hint">${esc(inactiveHint)}</p>`:''}</section>`;
+    return `<section class="pickup-admin"><div class="pickup-section-title"><div><span class="pickup-eyebrow">${esc(tr('pickupCalendar.admin'))}</span><h3>${esc(tr('pickupCalendar.admin.manageFixed'))}</h3></div><button type="button" class="pickup-btn pickup-primary" data-pickup-action="new">${esc(tr('pickupCalendar.action.newFixed'))}</button></div>${state.saveError?`<div class="pickup-error">${esc(state.saveError)}</div>`:''}${edit?`<form class="pickup-form" data-pickup-form="fix"><input type="hidden" name="id" value="${esc(edit.id||'')}"><label>${esc(tr('pickupCalendar.field.locationCustomer'))}<input name="siteLabel" maxlength="180" required value="${esc(selected.siteLabel||'')}"></label><label>${esc(tr('pickupCalendar.field.weekday'))}<select name="weekday" required>${options}</select></label><label class="pickup-form-wide">${esc(tr('pickupCalendar.field.customerNumber'))}<input name="customerNumber" maxlength="120" autocomplete="off" value="${esc(selected.customerNumber||'')}"><small class="pickup-form-hint">${esc(tr('pickupCalendar.field.customerNumberHint'))}</small></label><label class="pickup-form-wide">${esc(tr('pickupCalendar.field.note'))}<textarea name="note" maxlength="500" rows="3">${esc(selected.note||'')}</textarea></label><label class="pickup-check"><input name="active" type="checkbox"${selected.active!==false?' checked':''}> ${esc(tr('pickupCalendar.field.active'))}</label><div class="pickup-form-actions"><button type="submit" class="pickup-btn pickup-primary">${esc(tr('pickupCalendar.action.save'))}</button><button type="button" class="pickup-btn" data-pickup-action="cancel">${esc(tr('pickupCalendar.action.cancel'))}</button></div></form>`:''}<div class="pickup-admin-list">${list}</div>${inactiveHint?`<p class="pickup-admin-hint">${esc(inactiveHint)}</p>`:''}</section>`;
   }
   function render(rootElement, state, today){
     if (!rootElement || !state) return;
@@ -419,7 +489,7 @@
         if (shipment) triggerOpenShipment(shipment,mountedOptions);
         return;
       }
-      if (action === 'new') mountedState.editingFix = {id:'',siteLabel:'',weekday:1,note:'',active:true};
+      if (action === 'new') mountedState.editingFix = {id:'',siteLabel:'',customerNumber:'',weekday:1,note:'',active:true};
       if (action === 'cancel') { mountedState.editingFix = null; mountedState.saveError = null; }
       if (action === 'edit') {
         const item = findFix(id);
@@ -440,6 +510,7 @@
       const id = String(fields.get('id') || '');
       const payload = {
         siteLabel: String(fields.get('siteLabel') || '').trim(),
+        customerNumber: String(fields.get('customerNumber') || '').trim(),
         weekday: Number(fields.get('weekday')),
         note: String(fields.get('note') || '').trim(),
         active: fields.get('active') === 'on'
@@ -465,6 +536,8 @@
     mountedState.shipments = Array.isArray(shipments) ? shipments : [];
     mountedState.shipmentError = errorMessage ? String(errorMessage) : null;
     mountedState.shipmentLoading = false;
+    // an open FIX form keeps what was typed; the new shipments show with the next render
+    if (mountedState.editingFix) return;
     render(mountedRoot,mountedState,mountedOptions && mountedOptions.today);
   }
   function setShipmentLoading(loading){
@@ -478,6 +551,10 @@
     shipmentPickupDate,
     shipmentColliState,
     shipmentIsCompleted,
+    shipmentCollectedDate,
+    shipmentCustomerNumbers,
+    customerNumberKeys,
+    fixedPickupStatus,
     shipmentIdentity,
     triggerOpenShipment,
     weekdayLabel,

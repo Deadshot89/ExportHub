@@ -172,7 +172,13 @@ function installMailWrapper(){
  if(current.__rc1018===true){wrapper=current;base=current.__base1018||base;patchMailUi();return true}
  base=current;wrapper=Object.freeze(Object.assign({},current,{version:VERSION,injectMailBody:rc1018InjectMailBody,__rc1018:true,__base1018:current}));window.ExportHUBCustomerAvis706=wrapper;window.ExportHUBCustomerAvis705=wrapper;patchMailUi();return true
 }
-function refresh(){if(typeof requestAnimationFrame==='function')requestAnimationFrame(function(){ensureLanguageSwitch();syncProfileSiteLanguage();installMailWrapper();patchMailUi()});else{ensureLanguageSwitch();syncProfileSiteLanguage();installMailWrapper();patchMailUi()}}
+var refreshPending=false;
+function refresh(){
+ if(refreshPending)return;
+ refreshPending=true;
+ var run=function(){refreshPending=false;ensureLanguageSwitch();syncProfileSiteLanguage();installMailWrapper();patchMailUi()};
+ if(typeof requestAnimationFrame==='function')requestAnimationFrame(run);else run();
+}
 function boot(){ensureLanguageSwitch();syncProfileSiteLanguage();installMailWrapper();refresh()}
 
 window.ExportHUBRC1018MailLanguage=Object.freeze({version:'RC1112',resolveLanguage:resolveLanguage,resolveMode:resolveMode,stripAvisBlocks:stripAvisBlocks,stripShipmentDetails:stripShipmentDetails,stripCompactAvisLink:stripCompactAvisLink,buildDetailsBody:buildDetailsBody,buildAvisBody:buildAvisBody,buildOwnAvisBody:buildOwnAvisBody,localizedAvisUrl:localizedAvisUrl,composeMail:composeMail,setSiteLanguage:setSiteLanguage,profileLanguage:profileLanguage,translations:translations});

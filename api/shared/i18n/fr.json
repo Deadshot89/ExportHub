@@ -266,5 +266,10 @@
   "api.abdAnalysis.forbidden": "Un droit de modification dans la zone ABD est requis pour l’analyse.",
   "api.abdAnalysis.actionInvalid": "Action d’analyse ABD inconnue.",
   "api.avis.manualAppointmentCreated": "Enlèvement réservé manuellement",
-  "api.avis.manualAppointmentChanged": "Enlèvement manuel modifié"
+  "api.avis.manualAppointmentChanged": "Enlèvement manuel modifié",
+  "api.reference.docKindInvalid": "Type de document inconnu.",
+  "api.reference.docTypeInvalid": "Sont autorisés : PDF, images (JPG/PNG), Excel (XLSX/XLS/CSV), Word (DOCX/DOC), TXT et e-mails (MSG/EML).",
+  "api.reference.docEmpty": "Le fichier est vide ou invalide.",
+  "api.reference.docTooLarge": "Le fichier dépasse 15 Mo.",
+  "api.reference.docSignatureInvalid": "Le contenu du fichier ne correspond pas au type de fichier."
 }

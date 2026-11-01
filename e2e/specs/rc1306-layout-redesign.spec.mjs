@@ -106,19 +106,27 @@ test('RC1306: Modern Business uses process rail, work canvas and status rail',as
   const businessGeometry=await page.evaluate(()=>{
     const box=selector=>document.querySelector(selector)?.getBoundingClientRect();
     const nav=box('.rc1306-business-workspace > .rc1306-process-nav');
-    const center=box('.rc1306-business-center');
+    // The center zone may be display:contents (1121-1599 px), so measure its first zone.
+    const center=box('.rc1306-business-center > .rc1306-zone--identity');
+    const execution=box('.rc1306-business-center > .rc1306-zone--execution');
     const rail=box('.rc1306-business-rail');
-    return nav&&center&&rail?{
+    return nav&&center&&rail&&execution?{
       navX:nav.x,centerX:center.x,railX:rail.x,
-      navY:nav.y,centerY:center.y,railY:rail.y,
+      navY:nav.y,centerY:center.y,railY:rail.y,executionY:execution.y,
       navW:nav.width,centerW:center.width,railW:rail.width
     }:null;
   });
   expect(businessGeometry).not.toBeNull();
   const businessViewport=page.viewportSize()?.width||1366;
-  if(businessViewport>1120){
+  if(businessViewport>=1600){
     expect(businessGeometry.navX).toBeLessThan(businessGeometry.centerX);
     expect(businessGeometry.centerX).toBeLessThan(businessGeometry.railX);
+  }else if(businessViewport>1120){
+    // Laptop: process rail left, Colli/ABD rail below Kunde/Sendung and above Dokumente (step order).
+    expect(businessGeometry.navX).toBeLessThan(businessGeometry.centerX);
+    expect(Math.abs(businessGeometry.centerX-businessGeometry.railX)).toBeLessThan(4);
+    expect(businessGeometry.centerY).toBeLessThan(businessGeometry.railY);
+    expect(businessGeometry.railY).toBeLessThan(businessGeometry.executionY);
   }else{
     expect(businessGeometry.navY).toBeLessThan(businessGeometry.centerY);
     expect(businessGeometry.centerY).toBeLessThan(businessGeometry.railY);
@@ -154,7 +162,7 @@ test('RC1306: Glass uses twelve-column mosaic with reordered functional modules'
     expect(new Set(glassGeometry.map(row=>Math.round(row.x))).size).toBe(1);
     expect(glassGeometry[0].y).toBeLessThan(glassGeometry[1].y);
     expect(glassGeometry[1].y).toBeLessThan(glassGeometry[2].y);
-  }else if(glassViewport<=1120){
+  }else if(glassViewport<1600){
     expect(glassGeometry[0].x).toBeLessThan(glassGeometry[1].x);
     expect(Math.abs(glassGeometry[0].y-glassGeometry[1].y)).toBeLessThan(4);
     expect(glassGeometry[2].y).toBeGreaterThan(glassGeometry[0].y);
@@ -180,19 +188,26 @@ test('RC1306: Neon Night uses command rail, core workspace and telemetry rail',a
   const neonGeometry=await page.evaluate(()=>{
     const box=selector=>document.querySelector(selector)?.getBoundingClientRect();
     const command=box('.rc1306-neon-command');
-    const core=box('.rc1306-neon-core');
+    // The core may be display:contents (1121-1599 px), so measure its first block.
+    const core=box('.rc1306-neon-core > .rc1306-neon-core-top');
+    const coreBottom=box('.rc1306-neon-core > .rc1306-neon-core-bottom');
     const telemetry=box('.rc1306-neon-telemetry');
-    return command&&core&&telemetry?{
+    return command&&core&&telemetry&&coreBottom?{
       commandX:command.x,coreX:core.x,telemetryX:telemetry.x,
-      commandY:command.y,coreY:core.y,telemetryY:telemetry.y,
+      commandY:command.y,coreY:core.y,telemetryY:telemetry.y,coreBottomY:coreBottom.y,
       commandW:command.width,coreW:core.width,telemetryW:telemetry.width
     }:null;
   });
   expect(neonGeometry).not.toBeNull();
   const neonViewport=page.viewportSize()?.width||1366;
-  if(neonViewport>1120){
+  if(neonViewport>=1600){
     expect(neonGeometry.commandX).toBeLessThan(neonGeometry.coreX);
     expect(neonGeometry.coreX).toBeLessThan(neonGeometry.telemetryX);
+  }else if(neonViewport>1120){
+    expect(neonGeometry.commandX).toBeLessThan(neonGeometry.coreX);
+    expect(Math.abs(neonGeometry.coreX-neonGeometry.telemetryX)).toBeLessThan(4);
+    expect(neonGeometry.coreY).toBeLessThan(neonGeometry.telemetryY);
+    expect(neonGeometry.telemetryY).toBeLessThan(neonGeometry.coreBottomY);
   }else{
     expect(neonGeometry.commandY).toBeLessThan(neonGeometry.coreY);
     expect(neonGeometry.coreY).toBeLessThan(neonGeometry.telemetryY);

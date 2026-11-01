@@ -21,6 +21,9 @@ on:
       - 'assets/rc1049-abd-avis-policy.js'
       - 'test/rc1207-ups-toolbox.test.mjs'
       - 'test/rc1548-shipping-cost-autofill.test.mjs'
+      - 'test/rc1684-shipping-country-packaging-regression.test.mjs'
+      - 'test/rc1715-shipping-country-manual-render.test.mjs'
+      - 'test/diagnose-render-loops.test.mjs'
       - 'test/rc1549-live-browser-timeout-budget.test.mjs'
       - 'test/rc1551-multi-truck-response-match.test.mjs'
       - 'assets/rc1014-task-runtime.js'
@@ -46,6 +49,8 @@ jobs:
         run: node --test test/rc1585-managed-registration.test.mjs test/rc1585-abd-saved-promotion.test.mjs test/taskplanner-v2-workflow.test.mjs test/taskplanner-v2-workflow-bindings.test.mjs test/rc1550-abd-completed-upload.test.mjs test/rc1617-abd-upload-failure-feedback.test.mjs test/rc1619-abd-fail-closed-rollback.test.mjs
       - name: RC1548 Versandkosten Autoübernahme Regression
         run: node --test test/rc1548-shipping-cost-autofill.test.mjs
+      - name: RC1715 Zielland Verpackung Cache und Render-Schleifen Regression
+        run: node --test test/rc1684-shipping-country-packaging-regression.test.mjs test/rc1715-shipping-country-manual-render.test.mjs test/diagnose-render-loops.test.mjs
       - name: RC1549 Live-Browser Zeitbudget Regression
         run: node --test test/rc1549-live-browser-timeout-budget.test.mjs
       - name: RC1551 Mehr-LKW Response-Zuordnung Regression

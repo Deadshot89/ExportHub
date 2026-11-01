@@ -30,7 +30,7 @@ const STYLE_TAGS=[
   '<link id="exporthub-pack-notification-avis-style" rel="stylesheet" href="/assets/pack-notification-avis.css?v=1">'
 ];
 const DOCUMENT_SCRIPT_TAGS=[
-  '<script id="exporthub-document-reference-normalizer" defer src="/assets/document-reference-normalizer.js?v=2"></script>',
+  '<script id="exporthub-document-reference-normalizer" defer src="/assets/document-reference-normalizer.js?v=3"></script>',
   '<script id="exporthub-document-upload-normalizer" defer src="/assets/document-upload-normalizer.js?v=1"></script>'
 ];
 const PACK_SCRIPT_TAGS=[

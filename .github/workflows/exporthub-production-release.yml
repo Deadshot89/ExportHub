@@ -23,16 +23,21 @@ concurrency:
 
 jobs:
   production_release:
+    if: >-
+      github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' &&
+      github.actor == 'Deadshot89' && github.triggering_actor == 'Deadshot89' &&
+      inputs.release_sha == github.sha && inputs.confirm_production == 'PRODUCTION FREIGEBEN'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
       RELEASE_SHA: ${{ inputs.release_sha }}
+      CONFIRM_PRODUCTION: ${{ inputs.confirm_production }}
     steps:
       - name: RC1505 Production-Freigabe bestätigen
         shell: bash
         run: |
           set -euo pipefail
-          if [ "${{ inputs.confirm_production }}" != 'PRODUCTION FREIGEBEN' ]; then
+          if [ "$CONFIRM_PRODUCTION" != 'PRODUCTION FREIGEBEN' ]; then
             echo 'Production-Freigabe abgelehnt: Bestätigungstext stimmt nicht exakt.'
             exit 1
           fi
@@ -55,6 +60,12 @@ jobs:
           git rev-parse "${RELEASE_SHA}^{commit}" >/dev/null
           if ! git merge-base --is-ancestor "$RELEASE_SHA" origin/main; then
             echo 'Production-Freigabe abgelehnt: release_sha ist kein Commit aus main.'
+            exit 1
+          fi
+          # RC1718: Ein älterer Release-SHA darf neuere, bereits veröffentlichte Änderungen nicht zurückrollen.
+          latest_main_sha="$(git rev-parse FETCH_HEAD)"
+          if [ "$RELEASE_SHA" != "$latest_main_sha" ]; then
+            echo "::error title=RC1718 Veralteter Produktionsrelease::SHA $RELEASE_SHA ist nicht aktueller main-HEAD $latest_main_sha. Main-Verifikation abwarten und den aktuellen main-Commit freigeben."
             exit 1
           fi
           checked_out="$(git rev-parse HEAD)"
@@ -164,6 +175,12 @@ jobs:
           git fetch --no-tags origin main
           if ! git merge-base --is-ancestor "$RELEASE_SHA" origin/main; then
             echo 'RC1381: freigegebener SHA ist nicht mehr aus main erreichbar; Production-Deploy wird blockiert.'
+            exit 1
+          fi
+          # RC1718: Main kann während des umfangreichen Release-Tests weiterlaufen.
+          latest_main_sha="$(git rev-parse FETCH_HEAD)"
+          if [ "$RELEASE_SHA" != "$latest_main_sha" ]; then
+            echo "::error title=RC1718 Stale Deploy verhindert::Neuester main-HEAD ist $latest_main_sha, aber Release-SHA lautet $RELEASE_SHA. Kein Downgrade auf Produktion."
             exit 1
           fi
           echo "RC1505: Production-Promotion bleibt SHA-fest auf $RELEASE_SHA."

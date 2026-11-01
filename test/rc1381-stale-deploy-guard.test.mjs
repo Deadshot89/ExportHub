@@ -27,3 +27,25 @@ test('RC1505: Production stale-deploy guard lebt nur im manuellen Production-Rel
   const prodDeploy=flow.indexOf('Deploy ExportHUB production');
   assert.ok(prodGuard>=0&&prodDeploy>prodGuard,'Produktions-Guard muss vor dem Deploy stehen');
 });
+
+test('RC1718: älteren main-Commit vor Release und unmittelbar vor Azure-Upload blockieren',()=>{
+  const flow=read(productionPath);
+  const first=flow.slice(
+    flow.indexOf('RC1505 Release-SHA und main-Herkunft verifizieren'),
+    flow.indexOf('RC1505 Erfolgreiche Main Verification für Release-SHA verlangen')
+  );
+  const beforeDeploy=flow.slice(
+    flow.indexOf('RC1381 PRODUCTION stale-deploy guard'),
+    flow.indexOf('RC1505 SHA unmittelbar vor Production-Upload erneut prüfen')
+  );
+  assert.ok(first.length>0&&beforeDeploy.length>0,'beide Guards müssen existieren');
+  for (const block of [first,beforeDeploy]) {
+    assert.match(block,/git fetch --no-tags origin main/,'main vor der SHA-Prüfung aktualisieren');
+    assert.match(block,/latest_main_sha="\$\(git rev-parse FETCH_HEAD\)"/,'exakten Remote-main-HEAD bestimmen');
+    assert.match(block,/if \[ "\$RELEASE_SHA" != "\$latest_main_sha" \]; then/,'ältere release_sha ablehnen');
+    assert.match(block,/exit 1/,'bei veralteter Freigabe ohne Upload abbrechen');
+  }
+  assert.match(beforeDeploy,/RC1718 Stale Deploy verhindert/);
+  assert.ok(flow.indexOf('RC1381 PRODUCTION stale-deploy guard')<flow.indexOf('Deploy ExportHUB production'));
+  assert.match(flow,/PRODUCTION FREIGEBEN/,'manuelle Production-Freigabe bleibt Pflicht');
+});
