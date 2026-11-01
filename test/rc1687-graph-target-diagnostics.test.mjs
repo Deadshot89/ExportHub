@@ -120,9 +120,9 @@ test('RC1687: OIDC gate precedes diagnostics; daily probes run only in authorize
   const graph=fs.readFileSync(new URL('../api/shared/graph-drive.js',import.meta.url),'utf8');
   const workflow=fs.readFileSync(new URL('../.github/workflows/rc1144-pod-backup-reconcile.yml',import.meta.url),'utf8');
   assert.ok(api.indexOf('githubOidcAuthorized(req)')<api.indexOf('payload.graphTargetDiagnostic === true'));
-  assert.match(api,/const diagnostic = await graphDrive\.diagnoseTarget\(\)/);
+  assert.match(api,/const diagnostic = await graphDrive\.diagnoseTarget\(\{ environment \}\)/);
   assert.match(api,/diagnosticOnly: true/);
-  assert.ok(graph.indexOf('async function diagnoseTarget()')<graph.lastIndexOf('module.exports ='));
+  assert.ok(graph.indexOf('async function diagnoseTarget(options)')<graph.lastIndexOf('module.exports ='));
   assert.ok(workflow.includes('graphTargetDiagnostic'));
   assert.match(workflow,/github\.event\.schedule == '17 2 \* \* \*'/);
   assert.match(workflow,/if: \$\{\{ false \}\}/);
