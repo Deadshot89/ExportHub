@@ -21,7 +21,10 @@ Momentaufnahme vom 2026-11-01. Branch und lokale Änderungen immer mit `git stat
 - Ungetrackt: `dist-rc1012/`, `.ai-memory/`.
 
 ## Tests
-- Teststand: nicht geprüft.
+- `npm test` bricht lokal auf `main` (`d1d57529`) schon im `pretest` ab: `scripts/rc1495-legacy-qr-persistence-hotfix.mjs` meldet "RC1498 vorhandene Builder-Patchfunktion konnte nicht sicher aktualisiert werden". Das gilt auch bei kurzem Pfad. Ursache ungeklärt (Vermutung: Hotfix passt nicht mehr zum geänderten Builder).
+- Das `pretest` schreibt Hotfixes in tracked Dateien (i18n, `customer-avis.html`, `api/package.json`). Nicht im Hauptordner mit uncommitteten Änderungen ausführen, sondern nur in einem Wegwerf-Worktree und danach zurücksetzen.
+- CI nutzt `npm test` nicht. `rc1002-main-contract.yml` und der Azure-Workflow starten gezielte Dateien mit `node --test` sowie `npm run test:security` und `test:accessibility`. Die zuletzt gelesenen Läufe auf `main` (2026-11-01) waren grün, u. a. RC1112 Main Contract und Security Secret Scan.
+- Für einzelne Prüfungen: `node --test test/<datei>` direkt, ohne `pretest`.
 
 ## Serena
 - Config `~/.serena/serena_config.yml`: fehlender Schlüssel `projects` ergänzt, Backup `serena_config.yml.bak-2026-11-01`.
