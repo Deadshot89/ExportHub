@@ -3,6 +3,8 @@
   const q=v=>String(v==null?'':v).trim();
   const arr=v=>Array.isArray(v)?v:[];
   let pending=null;
+  // A saved event can precede the authoritative shared-state insert.
+  let deferredSavedEvent=null,deferredRetryBusy=false;
 
   function sharedState(){
     try{if(typeof root.__EXPORTHUB_GET_STATE__==='function')return root.__EXPORTHUB_GET_STATE__()||{};}catch(_){}
@@ -213,7 +215,11 @@
     }
     applyRowsToMountedForm(doc,shipmentRows(prefill));
     applyTextsToMountedForm(doc,prefill);
-    const state=sharedState(),draft=state.shipment||state.currentShipment||state.selectedShipment;if(draft&&typeof draft==='object'){
+    // Only populate a new, unsaved draft or the already linked Pack draft.
+    // A previous editor snapshot must never receive this Pack's PDFs.
+    const state=sharedState(),candidates=[state.shipment,state.currentShipment,state.selectedShipment];
+    const draft=ownedPendingDraft(state,prefill)||candidates.find(item=>eligibleNewDraft(state,item));
+    if(draft){
       if(manualWithoutIdentity&&prefill.customerName)draft.customerSearch=prefill.customerName;
       draft.packNotificationId=prefill.packNotificationId;draft.packNotificationRef=prefill.packNotificationRef;draft.packNotificationCustomer={id:prefill.customerId,account:prefill.customerAccount,name:prefill.customerName,source:prefill.customerSource};draft.packNotificationPrefill={deliveryNoteReference:prefill.deliveryNoteReference,packageType:prefill.packageType,packageCount:prefill.packageCount,totalWeight:prefill.totalWeight,rows:prefill.rows,note:prefill.note};
       draft.deliveryFiles=mergeDocuments(draft.deliveryFiles,prefill.deliveryFiles);
@@ -288,10 +294,31 @@
   // drop deliveryFiles while leaving the visible package inputs unchanged.
   // RC1679: restore only existing, verified Pack Blob references on the same
   // explicit Pack owner; never infer ownership from a reused shipment ID.
+  function ownedPendingDraft(state,prefill){
+    const nid=q(prefill&&prefill.packNotificationId),nref=q(prefill&&prefill.packNotificationRef);
+    if(!nid||!nref)return null;
+    // Never let a stale editor snapshot hide the actual active Pack draft.
+    return [state&&state.shipment,state&&state.currentShipment,state&&state.selectedShipment]
+      .find(draft=>draft&&q(draft.packNotificationId)===nid&&q(draft.packNotificationRef)===nref)||null;
+  }
+  // Fresh shipment creation deliberately allocates a six-character REF before
+  // saving. A REF by itself does not mean this draft belongs to a saved shipment.
+  // Only the canonical fresh-draft marker can permit a generated REF, and an
+  // existing persisted shipment with the same ID/REF must always win the guard.
+  function eligibleNewDraft(state,draft){
+    if(!draft||typeof draft!=='object'||q(draft.packNotificationId)||q(draft.packNotificationRef))return false;
+    const identifiers=record=>[record&&record.id,record&&record.shipmentId,record&&record.ref,
+      record&&record.reference,record&&record.shipmentRef].map(value=>q(value).toUpperCase()).filter(Boolean);
+    const ids=identifiers(draft);
+    if(!ids.length)return true;
+    if(draft.__rc562Fresh!==true)return false;
+    return ![...arr(state&&state.shipments),...arr(state&&state.savedShipments),
+      ...arr(state&&state.sharedShipments)].some(saved=>
+        saved===draft||identifiers(saved).some(id=>ids.includes(id)));
+  }
   function keepPendingDocuments(prefill){
-    const state=sharedState(),draft=state.shipment||state.currentShipment||state.selectedShipment;
-    if(!draft||!q(prefill&&prefill.packNotificationId)||!q(prefill&&prefill.packNotificationRef))return false;
-    if(q(draft.packNotificationId)!==q(prefill.packNotificationId)||q(draft.packNotificationRef)!==q(prefill.packNotificationRef))return false;
+    const state=sharedState(),draft=ownedPendingDraft(state,prefill);
+    if(!draft)return false;
     const expected=arr(prefill.deliveryFiles).filter(hasDocumentContent);
     if(!expected.length)return false;
     const merged=mergeDocuments(draft.deliveryFiles,expected);
@@ -308,11 +335,8 @@
     const section=doc.getElementById('rc363BlockDocuments');
     if(!section||typeof section.querySelector!=='function')return false;
     const previous=section.querySelector('#rc1680PackDeliveryFiles');
-    const state=sharedState(),draft=state.shipment||state.currentShipment||state.selectedShipment;
-    const owned=!!(draft&&q(prefill&&prefill.packNotificationId)&&q(prefill&&prefill.packNotificationRef)
-      &&q(draft.packNotificationId)===q(prefill.packNotificationId)
-      &&q(draft.packNotificationRef)===q(prefill.packNotificationRef));
-    const files=owned?arr(draft.deliveryFiles).filter(file=>file&&
+    const state=sharedState(),draft=ownedPendingDraft(state,prefill);
+    const files=draft?arr(draft.deliveryFiles).filter(file=>file&&
       q(file.source)==='pack_notification'&&
       q(file.packNotificationId)===q(prefill.packNotificationId)&&
       q(file.packNotificationRef)===q(prefill.packNotificationRef)&&hasDocumentContent(file)):[];
@@ -339,9 +363,8 @@
       const feedback=doc.createElement('span');feedback.setAttribute('role','status');
       const openFile=async(download)=>{
         try{
-          const currentState=sharedState(),current=currentState.shipment||currentState.currentShipment||currentState.selectedShipment;
-          if(!current||q(current.packNotificationId)!==q(prefill.packNotificationId)||
-            q(current.packNotificationRef)!==q(prefill.packNotificationRef))throw Error('Pack ownership changed');
+          const currentState=sharedState(),current=ownedPendingDraft(currentState,prefill);
+          if(!current)throw Error('Pack ownership changed');
           const chosen=arr(current.deliveryFiles).find(item=>item&&
             q(item.blobName||item.id)===q(file.blobName||file.id)&&
             q(item.packNotificationId)===q(prefill.packNotificationId)&&
@@ -350,7 +373,8 @@
           const reader=root.ExportHUBDocumentBlob1059;
           if(!chosen||!reader||typeof reader.open!=='function')throw Error('Original document is unavailable');
           feedback.textContent=t(download?'documentViewer.download':'documentViewer.open',download?'Download':'Open')+' …';
-          await reader.open(chosen,{name:q(chosen.name),download});
+          const opened=await reader.open(chosen,{name:q(chosen.name),download});
+          if(opened===false)throw Error('Original document download failed');
           feedback.textContent='';
         }catch(_){feedback.textContent=t('documentViewer.openFailed','The document could not be opened.');}
       };
@@ -376,7 +400,7 @@
     setTimeout(()=>keepRows(prefill,check+1),200);
   }
   function startNew(notification){
-    const prefill=shipmentPrefill(notification);pending={notificationId:q(notification.id),prefill};root.__EXPORTHUB_PACK_SHIPMENT_PREFILL__=prefill;
+    const prefill=shipmentPrefill(notification);pending={notificationId:q(notification.id),prefill};deferredSavedEvent=null;root.__EXPORTHUB_PACK_SHIPMENT_PREFILL__=prefill;
     let freshStarted=false;
     try{const shipmentApi=root.ExportHUBShipment420;if(shipmentApi&&typeof shipmentApi.startNewShipment==='function'){shipmentApi.startNewShipment();freshStarted=true;}}catch(_){}
     if(!freshStarted)try{if(typeof root.setView==='function')root.setView('shipment');}catch(_){}
@@ -390,7 +414,7 @@
   }
   async function onShipmentSaved(event){
     scheduleSync();
-    if(!pending)return;const state=sharedState(),notification=notificationById(state,pending.notificationId);if(!notification){pending=null;return;}
+    if(!pending)return;const state=sharedState(),notification=notificationById(state,pending.notificationId);if(!notification){pending=null;deferredSavedEvent=null;return;}
     const detail=event&&event.detail||{},source=detail.shipment||findShipmentForNotification(state,notification);
     // Some save events provide the authoritative REF beside the shipment
     // snapshot. Do not discard it when the snapshot itself only has an ID.
@@ -399,18 +423,35 @@
     // Contradictory REFs must not trigger cross-shipment PDF handoff.
     if(snapshotRef&&eventRef&&snapshotRef!==eventRef)return false;
     const sourceRef=snapshotRef||eventRef;
-    const savedRows=persistedShipments(state,Object.assign({},source||{},{ref:sourceRef}),notification);
-    // Do not attach PDFs only to a detached event payload. The committed
-    // shipment row (and any persisted aliases) must receive the real blob link.
-    if(!savedRows.length||!shipmentId(savedRows[0]))return false;
-    // An unrelated save event or previously linked REF must never take over
-    // an in-flight pack notification, even if technical shipment IDs overlap.
+    // Never remember an event owned by another Pack notification.
     const belongsToAnotherPack=row=>
       (q(row&&row.packNotificationId)&&q(row.packNotificationId)!==q(notification.id))||
       (q(row&&row.packNotificationRef)&&q(row.packNotificationRef)!==q(notification.reference));
-    if(belongsToAnotherPack(source)||savedRows.some(belongsToAnotherPack))return false;
+    if(belongsToAnotherPack(source))return false;
     const prefill=shipmentPrefill(notification);
     if(arr(notification.documents).length!==prefill.deliveryFiles.length)return false;
+    const savedRows=persistedShipments(state,Object.assign({},source||{},{ref:sourceRef}),notification);
+    // A save event may fire BEFORE the persisted row is added to shared
+    // state. Hold only its verified ID/REF temporarily and retry once
+    // authoritative state data arrives. Never attach to a detached payload.
+    if(!savedRows.length||!shipmentId(savedRows[0])){
+      if((detail.shipment||eventRef)&&(sourceRef||shipmentId(source))){
+        const previous=deferredSavedEvent,sourceId=shipmentId(source);
+        // A refresh retry must not restart the five-minute safety window.
+        const same=previous&&q(previous.notificationId)===q(notification.id)
+          &&q(previous.detail&&previous.detail.shipment&&previous.detail.shipment.id)===sourceId
+          &&q((previous.detail&&previous.detail.ref)||(previous.detail&&previous.detail.shipment&&previous.detail.shipment.ref)).toUpperCase()===sourceRef;
+        deferredSavedEvent={notificationId:q(notification.id),at:same?previous.at:Date.now(),detail:{
+          shipment:{id:sourceId,ref:snapshotRef,
+            packNotificationId:q(source&&source.packNotificationId),
+            packNotificationRef:q(source&&source.packNotificationRef)},
+          ref:eventRef
+        }};
+      }
+      return false;
+    }
+    // A saved REF, ID alias or other Pack owner must never receive this PDF.
+    if(savedRows.some(belongsToAnotherPack))return false;
     const task=arr(state&&state.tasks).find(t=>q(t&&t.sourceType)==='pack_notification'&&q(t&&t.sourceId)===q(notification.id));
     const notificationBefore={shipmentId:notification.shipmentId,shipmentRef:notification.shipmentRef,status:notification.status,updatedAt:notification.updatedAt};
     const snapshots=savedRows.map(saved=>({saved,before:{packNotificationId:saved.packNotificationId,packNotificationRef:saved.packNotificationRef,packNotificationLinkedAt:saved.packNotificationLinkedAt,deliveryFiles:saved.deliveryFiles}}));
@@ -424,16 +465,34 @@
       if(task&&taskBefore){for(const [key,value] of Object.entries(taskBefore)){if(value===undefined)delete task[key];else task[key]=value;}}
       return false;
     }
-    pending=null;root.__EXPORTHUB_PACK_SHIPMENT_PREFILL__=null;return true;
+    pending=null;deferredSavedEvent=null;root.__EXPORTHUB_PACK_SHIPMENT_PREFILL__=null;return true;
+  }
+  // A customer/location refresh can replace the current draft after the initial
+  // three-second prefill window. Keep restoring only the matching Pack owner
+  // for the entire pending handoff, including after a remote state refresh.
+  function retryDeferredSavedEvent(){
+    const saved=deferredSavedEvent;
+    if(!saved||deferredRetryBusy)return false;
+    if(!pending||q(pending.notificationId)!==q(saved.notificationId)||Date.now()-saved.at>300000){
+      deferredSavedEvent=null;return false;
+    }
+    deferredRetryBusy=true;
+    void Promise.resolve(onShipmentSaved({detail:saved.detail})).catch(()=>{}).finally(()=>{deferredRetryBusy=false;});
+    return true;
+  }
+  function refreshPendingDocuments(){
+    if(!pending||!pending.prefill)return false;
+    keepPendingDocuments(pending.prefill);
+    return renderPendingLieferscheine(pending.prefill);
   }
   function install(){
     if(typeof root.addEventListener!=='function'||root.__packShipmentBridgeInstalled)return false;root.__packShipmentBridgeInstalled=true;
     root.addEventListener('exporthub:pack-create-shipment',event=>begin(event&&event.detail&&event.detail.notificationId));
     root.addEventListener('exporthub:shipment-saved',onShipmentSaved);
-    // Native customer/location re-render may replace the documents block after
-    // the initial fill. Recreate only the same owned Pack list when that occurs.
-    root.addEventListener('exporthub:rendered',()=>{if(pending&&pending.prefill)renderPendingLieferscheine(pending.prefill);});
-    ['exporthub:shipment-updated','exporthub:state-loaded','exporthub:sync'].forEach(name=>root.addEventListener(name,scheduleSync));
+    // Rehydrate real original PDFs before rendering the attachment controls;
+    // do not stop after the short-lived row/dimension stabilization timer.
+    root.addEventListener('exporthub:rendered',()=>{refreshPendingDocuments();retryDeferredSavedEvent();});
+    ['exporthub:shipment-updated','exporthub:state-loaded','exporthub:sync'].forEach(name=>root.addEventListener(name,()=>{refreshPendingDocuments();retryDeferredSavedEvent();scheduleSync();}));
     scheduleSync();return true;
   }
 
