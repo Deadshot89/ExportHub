@@ -29,3 +29,9 @@ test('RC1244: Android-Benachrichtigungen und Diagnose-Timer bleiben bei vorhande
 test('RC1244: Browser-Hub bleibt syntaktisch gültig',()=>{
   execFileSync(process.execPath,['--check','assets/exporthub-environment-hub.js'],{stdio:'pipe'});
 });
+
+test('Leistungshinweise (category performance) erzeugen keine Handy-Benachrichtigung', () => {
+  assert.match(source, /function phoneDiagnostic\(r\)\{[^\n]*!=='performance'/);
+  assert.match(source, /if\(!rec\|\|!phoneDiagnostic\(rec\)\)return false;/);
+  assert.match(source, /const critical=rows\.filter\(phoneDiagnostic\);/);
+});

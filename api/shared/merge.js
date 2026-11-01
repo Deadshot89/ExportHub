@@ -659,6 +659,12 @@ function pickupTokenPodFile(file) {
   return /\/api\/pickup-pod(?:$|[?&#])/i.test(url);
 }
 
+const POD_CONTENT_KEYS = ['data', 'dataUrl', 'url', 'downloadUrl', 'href', 'contentUrl', 'base64', 'content', 'fileData'];
+
+function removedPodFile(file) {
+  return /^(?:deleted|removed)$/.test(lower(file && file.status));
+}
+
 function podFileIdentity(file, index) {
   return lower(text(file && (
     file.id || file.remoteId || file.hash || file.blobName || file.storageBlobName ||
@@ -676,6 +682,23 @@ function mergePodFilesProtected(serverList, incomingList) {
       const current = map.get(key);
       if (!current) {
         map.set(key, item);
+        return;
+      }
+      // RC1740: a POD removed by a user stays removed. A stale copy of the
+      // active file must not bring it back; only an explicit later restore
+      // (restoredAt after deletedAt) revives it.
+      if (removedPodFile(current) !== removedPodFile(item)) {
+        const dead = removedPodFile(current) ? current : item;
+        const live = dead === current ? item : current;
+        const restoredAt = Date.parse(live.restoredAt || '') || 0;
+        const deletedAt = Date.parse(dead.deletedAt || '') || 0;
+        if (restoredAt && restoredAt > deletedAt) {
+          map.set(key, live);
+        } else {
+          const merged = Object.assign({}, live, dead);
+          POD_CONTENT_KEYS.forEach((k) => { if (!(k in dead)) delete merged[k]; });
+          map.set(key, merged);
+        }
         return;
       }
       const currentDurable = durablePodFile(current);

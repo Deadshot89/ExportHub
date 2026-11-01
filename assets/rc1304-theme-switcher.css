@@ -1703,3 +1703,117 @@ html[data-eh-design="neon"][data-eh-design] body #content :is(.rc1152-task-eyebr
 html[data-eh-design="neon"][data-eh-design] body #content .rc1315-direct-print-setup{color:#67e8f9!important}
 /* Funktionstest 22.10.2026: Classic hat eine helle Seitenleiste; die alte helle Benutzerzeile war darauf kaum lesbar */
 html[data-eh-design="classic"] .sidebar .brand span#brandUserLine{color:#3d5a78!important}
+
+/* Prüfung 29.10.2026: Laptopbreiten 901–1180 px (z. B. 1366 px bei 125 % Windows-Skalierung).
+   Die Spalte der Seitenleiste (--pc-side-width) passte nicht zur echten Breite der Seitenleiste:
+   Klassisch lag die 280-px-Leiste über dem Inhalt, die anderen Designs ließen neben der 82-px-Leiste 164 px leer. */
+@media (min-width:901px) and (max-width:1180px){
+  html[data-eh-design="classic"] body[data-eh-theme] .sidebar{width:var(--pc-side-width)!important}
+}
+@media (min-width:901px) and (max-width:1100px){
+  html[data-eh-design]:not([data-eh-design="classic"]) body[data-eh-theme]{--pc-side-width:82px}
+  html[data-eh-design="glass"] body[data-eh-theme]{--pc-side-width:106px}
+}
+@media (min-width:1101px) and (max-width:1180px){
+  html[data-eh-design]:not([data-eh-design="classic"]) body[data-eh-theme]{--pc-side-width:280px}
+  html[data-eh-design="glass"] body[data-eh-theme]{--pc-side-width:304px}
+}
+
+/* Prüfung 29.10.2026: Lesbarkeit (WCAG AA, mindestens 4,5:1 für normalen Text) */
+html[data-eh-design="classic"] body[data-eh-theme]{--pc-muted:#56687a;--pc-danger:#b54848}
+html[data-eh-design="modern"] body[data-eh-theme][data-eh-design]{--pc-muted:#556578}
+html[data-eh-design="glass"] body[data-eh-theme][data-eh-design]{--pc-muted:#56697d;--pc-primary:#4763e6;--pc-icon-text:#4763e6}
+html[data-eh-design]:not([data-eh-design="neon"]) body[data-eh-theme] :is(.danger,button.danger,.btn-danger):not(.ghost){background:#b54848!important;border-color:#b54848!important}
+html[data-eh-design] body[data-eh-theme] .pack-admin-open-station{background:#c2410c!important;border-color:#c2410c!important}
+
+/* Prüfung 29.10.2026: Neon Night – Bereiche, deren helle Flächen und dunkle Schrift noch durchschienen */
+html[data-eh-design="neon"][data-eh-design][data-eh-design] #ehThemeSelect,
+html[data-eh-design="neon"][data-eh-design][data-eh-design] #languageSelect{color:#e7f4ff!important;background:#0b1728!important}
+html[data-eh-design="neon"][data-eh-design][data-eh-design] #ehThemeSelect option,
+html[data-eh-design="neon"][data-eh-design][data-eh-design] #languageSelect option{color:#e7f4ff;background:#0b1728}
+html[data-eh-design="neon"] .tpv2-task-card.is-overdue{background:#2a1422!important;color:#fecaca!important;border-color:#f87171!important}
+html[data-eh-design="neon"] .tpv2-overdue-section{background:#1d1424!important}
+html[data-eh-design="neon"] :is(.rc1007-sop-overview,.rc1007-sop-document){--sop-border:#294866;--sop-soft:#10233a;--sop-text:#e5eef8;--sop-muted:#9fb3c8;--sop-accent:#7cc4ff}
+html[data-eh-design="neon"] #content .rc1009-sop-list-item{color:#e5eef8!important}
+html[data-eh-design="neon"] #content .rc1009-sop-list-item :is(strong,b){color:#f6fbff!important}
+html[data-eh-design="neon"] #content .rc1009-sop-list-item.active{background:#14325a!important}
+html[data-eh-design="neon"] #content .rc1009-sop-list-item.active small{color:#cfe3f5!important}
+html[data-eh-design="neon"] #content .rc1502-sop-editor-summary>div{background:#10233a!important;border-color:#294866!important}
+html[data-eh-design="neon"] #content .rc1502-sop-editor-summary span{color:#9fb3c8!important}
+html[data-eh-design="neon"] #content .rc1502-sop-editor-summary strong{color:#f6fbff!important}
+html[data-eh-design="neon"] #content .rc1570-scope button[aria-pressed="true"]{color:#07111f!important}
+html[data-eh-design="neon"] #content :is(.rc1502-sop-editor-badge,.rc1502-sop-zoom-button){background:#0e1d31!important;border-color:#294866!important;color:#e5eef8!important}
+
+/* Phase 2 (30.10.2026): Kopfzeile in einer Zeile – seltene Aktionen (POD-Sicherung, Backup, Import, Drucken) im Menü „Mehr“ */
+.eh-topbar-more{position:relative;display:inline-block}
+.eh-topbar-more>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.eh-topbar-more>summary::-webkit-details-marker{display:none}
+.eh-topbar-more>summary::after{content:"";width:6px;height:6px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-2px) rotate(45deg);transition:transform .15s}
+.eh-topbar-more[open]>summary::after{transform:translateY(1px) rotate(-135deg)}
+html[data-eh-design] body[data-eh-theme] .topbar .eh-topbar-more>.eh-topbar-more-menu{position:absolute;right:0;top:calc(100% + 6px);z-index:2147482000;display:grid!important;grid-template-columns:1fr!important;gap:4px!important;min-width:190px;width:max-content!important;padding:6px!important;border:1px solid var(--pc-line,#dce5ef);border-radius:12px;background:var(--pc-surface,#fff);color:var(--pc-text,#172033);box-shadow:0 18px 40px rgba(15,23,42,.18)}
+html[data-eh-design] body[data-eh-theme] .topbar .eh-topbar-more-menu>button{width:100%!important;max-width:none!important;justify-content:flex-start!important;text-align:left!important;white-space:nowrap!important;padding:9px 12px!important;font-size:13px!important}
+html[data-eh-design="neon"] body[data-eh-theme] .topbar .eh-topbar-more>.eh-topbar-more-menu{background:#0c192a;border-color:#294866;color:#e5eef8;box-shadow:0 18px 40px rgba(0,0,0,.45)}
+@media (min-width:901px){
+  html[data-eh-design] body[data-eh-theme][data-eh-theme] .topbar{display:flex!important;flex-wrap:nowrap!important;align-items:center!important;gap:10px!important;min-height:0!important;padding:10px 12px!important}
+  html[data-eh-design] body[data-eh-theme] .topbar .eh-topbar-main{display:flex!important;flex:1 1 auto!important;min-width:150px!important;width:auto!important;gap:8px!important}
+  html[data-eh-design] body[data-eh-theme] .topbar .eh-topbar-main>.search{flex:1 1 auto!important;min-width:0!important;width:auto!important}
+  html[data-eh-design] body[data-eh-theme] .topbar :is(.eh-topbar-tools,.eh-topbar-options,.eh-topbar-actions){display:flex!important;flex:0 0 auto!important;flex-wrap:nowrap!important;align-items:center!important;gap:8px!important;width:auto!important;min-width:0!important;grid-template-columns:none!important}
+  html[data-eh-design] body[data-eh-theme] .topbar :is(.eh-topbar-actions>button,.eh-topbar-more>summary){width:auto!important;white-space:nowrap!important}
+}
+/* Laptop: ohne das Wort „Design“ passt alles in eine Zeile neben das Warncenter */
+@media (min-width:901px) and (max-width:1440px){
+  html[data-eh-design] body[data-eh-theme] .topbar #ehThemeSwitch>span{display:none!important}
+}
+@media (min-width:901px) and (max-width:1180px){
+  html[data-eh-design] body[data-eh-theme] .topbar #languageSelect{width:104px!important;min-width:0!important}
+  html[data-eh-design] body[data-eh-theme] .topbar #ehThemeSwitch{min-width:0!important;width:auto!important;padding-left:6px!important;padding-right:6px!important}
+  html[data-eh-design] body[data-eh-theme] .topbar #ehThemeSelect{width:132px!important;min-width:0!important}
+  html[data-eh-design] body[data-eh-theme] .topbar .eh-topbar-main{min-width:170px!important}
+}
+/* Handy: POD-Sicherung, Backup, Import und Drucken sind dort schon ausgeblendet – kein leeres Menü „Mehr“ */
+@media (max-width:900px){
+  html[data-eh-design] body[data-eh-theme] .topbar .eh-topbar-more{display:none!important}
+}
+/* Neon Night (31.10.2026): Flächen, die noch hell waren. Im SOP-Dokument und unter „Ladeliste & CMR“ stand dort
+   heller Text auf Weiß. Nur Bildschirm – der Ausdruck einer SOP bleibt weiß. */
+@media screen{
+  html[data-eh-design="neon"] #content :is(.rc1007-sop-section,.rc1007-sop-meta,.rc1009-sop-detail,.rc1009-sop-sidebar,.rc1007-sop-card,.rc1007-sop-doc-actions){background:#0d1a2c!important;border-color:#294866!important;color:#e5eef8!important}
+  html[data-eh-design="neon"] #content :is(.rc1007-sop-meta-cell){border-color:#294866!important}
+  html[data-eh-design="neon"] #content .rc1007-sop-meta-cell span{color:#9fb3c8!important}
+  html[data-eh-design="neon"] #content :is(.rc1007-sop-meta-cell strong,.rc1007-sop-section :is(h2,h3,h4,strong),.rc1009-sop-detail>summary){color:#f6fbff!important}
+  html[data-eh-design="neon"] #content .rc1009-sop-detail>summary{background:#10233a!important}
+  html[data-eh-design="neon"] #content .rc1007-sop-step-number{background:#14325a!important;color:#7cc4ff!important}
+  html[data-eh-design="neon"] #content rect.rc1007-sop-flow-node{fill:#10233a!important;stroke:#315777!important}
+  html[data-eh-design="neon"] #content text.rc1007-sop-flow-number{fill:#7cc4ff!important}
+  html[data-eh-design="neon"] #content text.rc1007-sop-flow-label{fill:#e5eef8!important}
+  html[data-eh-design="neon"] #content .rc1502-sop-expected-result{background:#0f2a1c!important;color:#c9f2d6!important}
+  html[data-eh-design="neon"] #content .rc1007-sop-status{background:#14325a!important;color:#e5eef8!important}
+  /* Sendungsübersicht: Gruppenleiste; Sendung erstellen: Verpackungsauswahl */
+  html[data-eh-design="neon"] #content .rc543-overview-group-head{background:#10233a!important;border-color:#294866!important;color:#e5eef8!important}
+  html[data-eh-design="neon"] #content .rc543-overview-group-head :is(b,strong){color:#f6fbff!important}
+  html[data-eh-design="neon"] #content .rc543-overview-group-head .rc543-overview-group-arrow{color:#7cc4ff!important}
+  html[data-eh-design="neon"] #content .rc543-overview-group-head .rc548-overview-drag{background:#0e1d31!important;border-color:#294866!important;color:#7cc4ff!important}
+  html[data-eh-design="neon"] #content .rc682-packaging-toggle{background:#0b1728!important;border-color:#315777!important;color:#e5eef8!important}
+  /* Ladeliste & CMR: Aktionen, Reiter und Fläche um die Dokumentvorschau; das Dokument selbst bleibt Papier */
+  html[data-eh-design="neon"] #content :is(#rc576DocumentActions,#rc576DocumentTabs){background:#0d1a2c!important;border-color:#294866!important}
+  html[data-eh-design="neon"] #content #rc576DocumentTabs button:not(.active):not([aria-selected="true"]){background:#0e1d31!important;border-color:#294866!important;color:#e5eef8!important}
+  html[data-eh-design="neon"] #content #rc576DocumentStage{background:#0b1728!important;border-color:#294866!important}
+  html[data-eh-design="neon"] #content #rc576NoShipment{background:#0d1a2c!important;border-color:#315777!important;color:#aac1d7!important}
+  /* Versandkosten-Hinweis, Kundenordner AVIS-Status, Academy/Prüfungen */
+  html[data-eh-design="neon"] #content #rc376UpsAuto.warn{background:#2a2210!important;border-color:#6b4f12!important;color:#fcd38a!important}
+  html[data-eh-design="neon"] #content .rc1092-avis-state{background:#0f2a1c!important;color:#86efac!important}
+  html[data-eh-design="neon"] #content :is(.rc299-professions,.rc299-year,.rc299-tabs)>button,html[data-eh-design="neon"] #content .rc299-option{background:#0e1d31!important;border-color:#294866!important;color:#e5eef8!important}
+  html[data-eh-design="neon"] #content :is(.rc299-professions,.rc299-year,.rc299-tabs)>button :is(b,strong,h3,h4){color:#f6fbff!important}
+  html[data-eh-design="neon"] #content :is(.rc299-professions,.rc299-year,.rc299-tabs)>button span:not(.rc299-badge){color:#aac1d7!important}
+  html[data-eh-design="neon"] #content :is(.rc299-professions,.rc299-year,.rc299-tabs)>button.active{background:#14325a!important;border-color:#22d3ee!important}
+}
+/* Dashboard-Kacheln: Wörter wie „Ausgangsvermerke“ nicht mitten im Wort umbrechen (Glass, schmale Laptops) */
+html[data-eh-design] body[data-eh-theme] #content .rc1558-kpi :is(.rc1558-kpi-sub,.rc1558-kpi-label,span){overflow-wrap:break-word!important;word-break:normal!important;hyphens:auto!important}
+/* Handy: Design-Namen ausgeschrieben, Sprache wieder wählbar (war unter 560 px ausgeblendet) */
+@media (max-width:560px){
+  html[data-eh-design] body[data-eh-theme] .topbar .eh-topbar-options{grid-template-columns:minmax(96px,auto) minmax(0,1fr)!important}
+  html[data-eh-design] body[data-eh-theme] .topbar #languageSelect{display:block!important;width:100%!important;min-width:0!important}
+  html[data-eh-design] body[data-eh-theme] .topbar #ehThemeSwitch{min-width:0!important;grid-template-columns:minmax(0,1fr)!important}
+  html[data-eh-design] body[data-eh-theme] .topbar #ehThemeSwitch>span{display:none!important}
+  html[data-eh-design] body[data-eh-theme] .topbar #ehThemeSelect{width:100%!important;min-width:0!important}
+}

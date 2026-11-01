@@ -383,3 +383,11 @@ html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#conten
   html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]){grid-template-rows:minmax(0,1fr) clamp(130px,30%,200px)!important}
 }
 html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) .rc1558-list{align-content:start!important}
+
+/* RC1742 no jumping tiles: the task planner mounts its "Aufgabenübersicht" card into #content a timer after the
+   dashboard rendered (~150 ms). In the one-page grid it became a third row: on opening the dashboard the overview
+   shrank and every tile jumped up, after a fresh load it was squeezed to 0 px. The one-page dashboard has two rows
+   (overview with "Meine Aufgaben" + tile row), so the card stays out here; below the fit width it still shows.
+   The SOP editor holder (its box is hidden on the dashboard, 0 px) is appended late too and added a 10 px gap row. */
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) > #taskplannerV2DashboardProjection,
+html body[data-rc1558-overview="1"][data-rc1569-fit="1"] #content#content#content:not([data-rc1371-editing="1"]) > #rc46SopEditorHolder{display:none!important}

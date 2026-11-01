@@ -81,7 +81,7 @@ function extractPdfText(buffer){
   return parts.join('\n');
 }
 function extractDocumentReferences(value){
-  const input=String(value==null?'':value),pattern=/\b(DNC|SIDE)\s*(?:[-_:]\s*)?([0-9]{6,20})\b/gi,seen=new Set(),out=[];
+  const input=String(value==null?'':value),pattern=/(?<![A-Za-z0-9])(DNC|SIDE)\s*(?:[-_:]\s*)?([0-9]{6,20})(?![0-9])/gi,seen=new Set(),out=[];
   let match;
   while((match=pattern.exec(input))){
     const type=String(match[1]||'').toUpperCase(),number=String(match[2]||''),canonical=type+number;

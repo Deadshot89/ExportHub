@@ -23,7 +23,17 @@ function findCard(root,re){return cardFor(findLabel(root,re),root)}
 function innermost(root,re){var all=Array.from(root.querySelectorAll('div,span'));return all.find(function(el){var t=q(el.textContent);if(!t||!re.test(t))return false;return !Array.from(el.children||[]).some(function(ch){return re.test(q(ch.textContent))})})||null}
 function existingFiles(body){var raw=q(body&&body.textContent),hits=raw.match(/[A-Za-z0-9][A-Za-z0-9_.() -]*?\.pdf/gi)||[],out=[],seen={};hits.forEach(function(name){name=q(name);var key=canonicalDeliveryKey(name);if(!key||seen[key])return;seen[key]=1;out.push(printName(name))});return out}
 function splitPdfNames(v){var raw=fileName(v),hits=raw.match(/[A-Za-z0-9][A-Za-z0-9_.() -]*?\.pdf/gi)||[];return hits.length?hits.map(q):(raw?[raw]:[])}
-function deliveryFiles(sh){var fields=['deliveryFiles','deliveryNotesFiles','deliveryNoteFiles','deliveryNotes','lieferscheine'],out=[],seen={};function add(v){splitPdfNames(v).forEach(function(name){var key=canonicalDeliveryKey(name);if(!key||seen[key])return;seen[key]=1;out.push(printName(name))})}fields.forEach(function(field){arr(sh&&sh[field]).forEach(function(item){add(item);if(item&&typeof item==='object')arr(item.files).forEach(add)})});if(!out.length)arr(sh&&sh.documents).forEach(function(item){var kind=q(item&&(item.type||item.category||item.group||item.documentType)).toLowerCase();if(kind&&!/delivery|lieferschein|dnc/.test(kind))return;add(item)});return out}
+function deliveryReference(v){var ref=q(v&&typeof v==='object'&&v.documentReference).toUpperCase();return /^(?:DNC|SIDE)[0-9]{6,20}$/.test(ref)?ref:''}
+function isReferenceName(v){return /^(?:DNC|SIDE)[0-9]{6,20}(?:\.pdf)?$/i.test(q(v))}
+// Invoices are not delivery notes, and ERP file names only repeat what the
+// DNC/SIDE references already say, so neither belongs on the print list.
+function columnMajorSlots(count,columns){var n=Math.max(0,Number(count)||0),cols=Math.max(1,Number(columns)||1),rows=Math.ceil(n/cols)>10?Math.ceil(n/cols):Math.min(n,10),out=[];if(cols===1){for(var i=0;i<n;i++)out.push(i);return out}for(var r=0;r<rows;r++)for(var c=0;c<cols;c++){var idx=c*rows+r;out.push(idx<n?idx:-1)}while(out.length&&out[out.length-1]===-1)out.pop();return out}
+function printableDeliveryFiles(files){
+ var list=arr(files).filter(function(name){return !/invoice|rechnung/i.test(q(name))});
+ if(!list.some(isReferenceName))return list;
+ return list.filter(function(name){return !/^Sales(?:PackingSlip|Invoice)[-_ ]/i.test(q(name))});
+}
+function deliveryFiles(sh){var fields=['deliveryFiles','deliveryNotesFiles','deliveryNoteFiles','deliveryNotes','lieferscheine'],out=[],seen={};function push(name){var key=canonicalDeliveryKey(name);if(!key||seen[key])return;seen[key]=1;out.push(printName(name))}function add(v){var ref=deliveryReference(v);if(ref){push(ref);return}splitPdfNames(v).forEach(push)}fields.forEach(function(field){arr(sh&&sh[field]).forEach(function(item){add(item);if(item&&typeof item==='object')arr(item.files).forEach(add)})});if(!out.length)arr(sh&&sh.documents).forEach(function(item){var kind=q(item&&(item.type||item.category||item.group||item.documentType)).toLowerCase();if(kind&&!/delivery|lieferschein|dnc/.test(kind))return;add(item)});return printableDeliveryFiles(out)}
 // Pack notifications already carry the authoritative, stored PDF list.
 // Do not re-append a stale technical SalesPackingSlip name from the old
 // HTML field: it is not an independent, downloadable delivery note.
@@ -33,7 +43,7 @@ function deliveryFilesForPrint(sh,legacyText){
  existingFiles({textContent:q(legacyText)}).forEach(function(name){
   if(!files.some(function(x){return canonicalDeliveryKey(x)===canonicalDeliveryKey(name)}))files.push(printName(name));
  });
- return files;
+ return printableDeliveryFiles(files);
 }
 function shrinkInlineFonts(root,deltaPt){
  if(!root||!deltaPt)return;
@@ -53,7 +63,10 @@ function rc1547ApplySinglePageFit(root){
   positionCount=root.querySelectorAll('[data-position-row],[data-colli-row],[data-package-row],.rc390-load-row,.rc352-load-row').length
  }
  var documentCount=root.querySelectorAll('[data-rc1293-packing-slip]').length;
- var effective=positionCount+Math.ceil(documentCount/2),extra=Math.max(0,effective-5);
+ // Delivery notes stand ten per column side by side, so the list is never
+ // taller than ten rows; counting every note made long lists print tiny.
+ var documentRows=Math.ceil(Math.min(documentCount,10)/2);
+ var effective=positionCount+documentRows,extra=Math.max(0,effective-5);
  var scale=extra?Math.max(.34,1/(1+extra*.045)):1;
  root.setAttribute('data-rc1547-single-page','1');
  root.setAttribute('data-rc1547-position-count',String(positionCount));
@@ -73,11 +86,14 @@ function enhanceDocuments(root,sh){
  var density=files.length>24?'ultra':(files.length>15?'dense':'normal');card.setAttribute('data-rc1363-document-density',density);
  var metrics=density==='ultra'?{gap:'.1mm',pad:'.1mm .2mm',font:'5.2pt',line:'.95',border:'.2mm'}:(density==='dense'?{gap:'.18mm',pad:'.15mm .25mm',font:'5.6pt',line:'1',border:'.25mm'}:{gap:'.35mm',pad:'.25mm .35mm',font:'6.2pt',line:'1.05',border:'.3mm'});
  var grid=body||d.createElement('div');if(body)grid.removeAttribute('style');
- var cover=!!(root.classList&&(root.classList.contains('rc390-cover')||root.classList.contains('rc352-cover'))),columns=!cover&&files.length>=6?2:1;
+ var cover=!!(root.classList&&(root.classList.contains('rc390-cover')||root.classList.contains('rc352-cover'))),shortNames=files.every(function(name){return q(name).length<=20}),columns=Math.min(8,Math.max(1,Math.ceil(files.length/10)));
+ if(cover&&shortNames&&files.length<=40)metrics={gap:'.6mm 1.5mm',pad:'.35mm .9mm',font:'7.4pt',line:'1.1',border:'.3mm'};
  grid.classList.add('rc1305-document-grid','rc1293-packing-slip-grid');grid.setAttribute('data-rc1305-document-grid','1');grid.setAttribute('data-rc1293-packing-slip-grid','1');grid.setAttribute('data-rc1363-document-density',density);grid.setAttribute('data-rc1504-document-columns',String(columns));
- grid.style.cssText=(columns===2?'display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;align-items:start!important;':'display:flex!important;flex-direction:column!important;align-items:flex-start!important;')+'gap:'+metrics.gap+'!important;min-width:0!important;width:100%!important;max-width:100%!important;overflow:visible!important;box-sizing:border-box!important';grid.innerHTML='';
+ grid.style.cssText=(columns>1?'display:grid!important;grid-template-columns:repeat('+columns+',minmax(0,1fr))!important;align-items:start!important;':'display:flex!important;flex-direction:column!important;align-items:flex-start!important;')+'gap:'+metrics.gap+'!important;min-width:0!important;width:100%!important;max-width:100%!important;overflow:visible!important;box-sizing:border-box!important';grid.innerHTML='';
+ function appendGap(){var gap=d.createElement('span');gap.setAttribute('data-rc1305-document-slot','empty');gap.setAttribute('aria-hidden','true');grid.appendChild(gap)}
  function appendDoc(name,emptyState){var item=d.createElement('span');item.className=(emptyState?'rc1305-document-empty':'rc1305-document-item')+' rc1293-packing-slip';item.setAttribute('data-rc1293-packing-slip','1');item.style.cssText='display:inline-flex!important;align-items:center!important;align-self:flex-start!important;flex:0 1 auto!important;width:fit-content!important;min-width:0!important;max-width:100%!important;padding:'+metrics.pad+'!important;border:'+metrics.border+' solid #2563eb!important;border-radius:1.2mm!important;background:#eff6ff!important;color:#0f2942!important;font-size:'+metrics.font+'!important;line-height:'+metrics.line+'!important;font-weight:650!important;overflow-wrap:anywhere!important;word-break:break-word!important;break-inside:avoid!important;page-break-inside:avoid!important;box-sizing:border-box!important';item.textContent=name;grid.appendChild(item)}
- if(files.length)files.forEach(function(name){appendDoc(name,false)});
+ // Ten names per column, read top to bottom, columns side by side.
+ if(files.length)columnMajorSlots(files.length,columns).forEach(function(idx){if(idx>=0)appendDoc(files[idx],false);else appendGap()});
  else appendDoc(tr('loadingListPrint.noDeliveryNotes'),true);
  if(!body)card.appendChild(grid);
  return true
@@ -234,7 +250,7 @@ function style(){
  /* QR quick print: document pages are full A4; no separate footer sheet. */
  '@page rcDocument{size:A4 portrait;margin:0}'+
  '@media print{.rc390-page,.rc352-page{page:rcDocument!important}.rc390-page:last-child,.rc352-page:last-child{break-after:auto!important;page-break-after:auto!important}}'+
- '@media print{[data-rc1503-pickup-field],.rc1503-pickup-value,.rc1503-signature-value{break-inside:avoid!important;page-break-inside:avoid!important}[data-rc1504-document-columns="2"]{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;align-items:start!important}.rc1305-pickup-summary{margin-top:1.6mm!important}.rc1305-pickup-banner{padding:1.5mm 2.2mm!important;font-size:8.2pt!important}.rc1305-pickup-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:1mm!important;padding:1.6mm!important}.rc1305-pickup-signature{grid-column:auto!important;min-height:12mm!important}.rc1305-pickup-signature>strong{min-height:9mm!important;max-height:12mm!important}.rc1305-signature-image{max-height:11mm!important}.rc1305-document-grid,.rc1305-pickup-summary,.rc1305-pickup-grid,.rc1305-pickup-item,.rc1315-print-qr{break-inside:avoid!important;page-break-inside:avoid!important}}';
+ '@media print{[data-rc1503-pickup-field],.rc1503-pickup-value,.rc1503-signature-value{break-inside:avoid!important;page-break-inside:avoid!important}[data-rc1504-document-columns="2"]{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;align-items:start!important}[data-rc1504-document-columns="3"]{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;align-items:start!important}[data-rc1504-document-columns="4"]{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;align-items:start!important}[data-rc1504-document-columns="5"]{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;align-items:start!important}[data-rc1504-document-columns="6"]{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;align-items:start!important}[data-rc1504-document-columns="7"]{display:grid!important;grid-template-columns:repeat(7,minmax(0,1fr))!important;align-items:start!important}[data-rc1504-document-columns="8"]{display:grid!important;grid-template-columns:repeat(8,minmax(0,1fr))!important;align-items:start!important}.rc1305-pickup-summary{margin-top:1.6mm!important}.rc1305-pickup-banner{padding:1.5mm 2.2mm!important;font-size:8.2pt!important}.rc1305-pickup-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:1mm!important;padding:1.6mm!important}.rc1305-pickup-signature{grid-column:auto!important;min-height:12mm!important}.rc1305-pickup-signature>strong{min-height:9mm!important;max-height:12mm!important}.rc1305-signature-image{max-height:11mm!important}.rc1305-document-grid,.rc1305-pickup-summary,.rc1305-pickup-grid,.rc1305-pickup-item,.rc1315-print-qr{break-inside:avoid!important;page-break-inside:avoid!important}}';
  (d.head||d.documentElement).appendChild(st)
 }
 style();

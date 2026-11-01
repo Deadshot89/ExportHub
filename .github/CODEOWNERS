@@ -1,0 +1,5 @@
+# Routing only: require code-owner review in repository settings to enforce it.
+/AGENTS.md @Deadshot89
+/CLAUDE.md @Deadshot89
+/.github/ @Deadshot89
+/docs/agent-collaboration.md @Deadshot89

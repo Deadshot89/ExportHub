@@ -20,13 +20,35 @@ function sendAndroid(payload){
   if(prev===sig)return false;
   try{window.ExportHUBAndroid.notify(payload.channel,payload.key,payload.title,payload.body,payload.route);sessionStorage.setItem(storageKey,sig);return true}catch(_){return false}
 }
+// The phone shows which shipments are behind the warning count: per group "Label: N" and every
+// shipment as "• title" or "• title — Kunde · Datum". The native detail screen renders these lines
+// as cards (first five visible, the rest behind "Alle anzeigen").
+function warningDetailLines(){
+  const sum=window.__EXPORTHUB_WARNING_SUMMARY__;
+  if(!sum||!Array.isArray(sum.groups))return'';
+  const clean=v=>String(v==null?'':v).replace(/\s+/g,' ').trim().slice(0,120);
+  const limit=18000;
+  let out='';
+  sum.groups.forEach(g=>{
+    const count=Number(g&&g.count)||0;if(!count)return;
+    out+='\n\n'+clean(g.label)+': '+count;
+    (Array.isArray(g.items)?g.items:[]).some(t=>{
+      const title=clean(t&&typeof t==='object'?t.title:t);if(!title)return false;
+      const sub=t&&typeof t==='object'?clean(t.sub):'';
+      const line='\n• '+title+(sub?' — '+sub:'');
+      if(out.length+line.length>limit)return true;
+      out+=line;return false;
+    });
+  });
+  return out;
+}
 function notifyAndroid(){
   if(!androidBridgeReady())return false;
   // Task reminders are task-specific and are delivered only by the RC1014
   // snapshot -> native ReminderReceiver path. A notification-center count is
   // not actionable and must never create a generic Android task push.
   const warningCount=countOf(['[data-rc885-warning-count]','#rc885WarningCount','#rc885WarningDrawer [data-count]','.rc885-warning-count']);
-  if(warningCount>0)sendAndroid({channel:'warning',key:`warnings:${warningCount}`,title:tr('android.warningsTitle',null,'ExportHUB Warning Center'),body:tr(warningCount===1?'android.warningOpenOne':'android.warningOpenMany',{count:warningCount},warningCount+' operational shipment warning(s) open.'),route:'warnings'});
+  if(warningCount>0)sendAndroid({channel:'warning',key:`warnings:${warningCount}`,title:tr('android.warningsTitle',null,'ExportHUB Warning Center'),body:tr(warningCount===1?'android.warningOpenOne':'android.warningOpenMany',{count:warningCount},warningCount+' operational shipment warning(s) open.')+warningDetailLines(),route:'warnings'});
 }
 function diagnosticMarkerKey(){return `exporthub-native-diagnostic-last:${currentEnvironment()}`;}
 function readDiagnosticMarker(){
@@ -44,6 +66,9 @@ function writeDiagnosticMarker(record,cloud){
   const at=Date.parse(atText)||Date.now();
   try{localStorage.setItem(diagnosticMarkerKey(),JSON.stringify({id,at,atText}));return true}catch(_){return false}
 }
+// Performance hints (slow API call, long task, large render) stay in the Fehlerdiagnose page but never
+// reach the phone: they are frequent, not actionable there, and flooded the notification shade.
+function phoneDiagnostic(r){const level=String(r&&r.level||'').toLowerCase();return (level==='error'||level==='warning')&&String(r&&r.category||'').toLowerCase()!=='performance'}
 function diagnosticPayload(record,count=1){
   const rec=record||{};
   const area=String(rec.area||'System').replace(/\s+/g,' ').trim().slice(0,80);
@@ -63,8 +88,8 @@ function notifyDiagnostic(event){
   const store=window.__EXPORTHUB_DIAG863_STORE__;
   const records=store&&Array.isArray(store.records)?store.records:[];
   const rec=records.length?records[records.length-1]:null;
-  if(!rec)return false;
-  const sent=sendAndroid(diagnosticPayload(rec,1));
+  if(!rec||!phoneDiagnostic(rec))return false;
+  const sent=sendDiagnosticAndroid(rec,1);
   if(sent)writeDiagnosticMarker(rec,cloud);
   return sent;
 }
@@ -75,7 +100,7 @@ async function pollCentralDiagnostics(force){
   if(!cloud||typeof cloud.isGlobalAdmin!=='function'||!cloud.isGlobalAdmin()||typeof cloud.refresh!=='function'||typeof cloud.recentRecords!=='function')return false;
   try{await cloud.refresh(true)}catch(_){return false}
   let rows=[];try{rows=cloud.recentRecords(120)||[]}catch(_){return false}
-  const critical=rows.filter(r=>{const level=String(r&&r.level||'').toLowerCase();return level==='error'||level==='warning'});
+  const critical=rows.filter(phoneDiagnostic);
   if(!critical.length)return false;
   const marker=readDiagnosticMarker();
   let fresh=[];
@@ -89,9 +114,23 @@ async function pollCentralDiagnostics(force){
   }
   if(!fresh.length)return false;
   const latest=fresh[fresh.length-1];
-  const sent=sendAndroid(diagnosticPayload(latest,fresh.length));
+  const sent=sendDiagnosticAndroid(latest,fresh.length);
   if(sent)writeDiagnosticMarker(latest,cloud);
   return sent;
+}
+// 2026-10-30 (Tobias): a diagnostic push carries a signed single-use ticket so the phone can send the error to the
+// KI without logging in. Older apps without notifyDiagnostic keep the plain notification.
+function sendDiagnosticAndroid(rec,count){
+  const payload=diagnosticPayload(rec,count),bridge=window.ExportHUBAndroid,sc=window.ExportHUBSelfCorrect;
+  if(!bridge||typeof bridge.notifyDiagnostic!=='function'||!sc||typeof sc.phoneTicket!=='function')return sendAndroid(payload);
+  const storageKey=`exporthub-native-notify:${currentEnvironment()}:${payload.channel}`,sig=String(payload.key||'')+'|'+String(payload.body||'');
+  let prev='';try{prev=sessionStorage.getItem(storageKey)||''}catch(_){ }
+  if(prev===sig)return false;
+  try{sessionStorage.setItem(storageKey,sig)}catch(_){ }
+  const r=rec||{},send=ticket=>{try{bridge.notifyDiagnostic(payload.channel,payload.key,payload.title,payload.body,payload.route,ticket||'')}catch(_){ }};
+  const ticket=Promise.resolve().then(()=>sc.phoneTicket({area:r.area,message:r.message,category:r.category,level:r.level,count:Number(count>1?count:r.count||1),at:r.lastAt||r.at})).then(x=>x&&x.ticket||'',()=>'');
+  Promise.race([ticket,new Promise(done=>setTimeout(()=>done(''),5000))]).then(send);
+  return true;
 }
 function requestedRouteSpec(){
   let raw='';try{raw=String(new URLSearchParams(location.search).get('ehRoute')||'').trim()}catch(_){return null}

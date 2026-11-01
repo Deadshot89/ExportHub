@@ -1,11 +1,16 @@
 name: RC1458 Production OIDC Recovery
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/rc1458-production-oidc-recovery.yml'
   workflow_dispatch:
+    inputs:
+      release_sha:
+        description: 'Exakter freigegebener main-Commit (40 Zeichen)'
+        required: true
+        type: string
+      confirm_production:
+        description: 'Exakt eingeben: PRODUCTION FREIGEBEN'
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -17,6 +22,10 @@ concurrency:
 
 jobs:
   recover_production:
+    if: >-
+      github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' &&
+      github.actor == 'Deadshot89' && github.triggering_actor == 'Deadshot89' &&
+      inputs.release_sha == github.sha && inputs.confirm_production == 'PRODUCTION FREIGEBEN'
     runs-on: ubuntu-latest
     timeout-minutes: 75
     steps:

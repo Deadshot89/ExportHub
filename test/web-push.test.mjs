@@ -226,6 +226,12 @@ test('Web Push: Build bindet Client und Manifest ein (nicht in der Demo), Servic
   // read-only notification: tapping opens only the login-free message page, never the website, no action buttons
   const click=sw.slice(sw.indexOf("addEventListener('notificationclick'"),sw.indexOf("addEventListener('pushsubscriptionchange'"));
   assert.match(click,/openWindow\(target\)/);
+  // iOS cold start: the worker leaves a hand-off that client.js turns into a jump to the message page
+  assert.match(click,/caches\.open\(OPEN_CACHE\)/);
+  const clientJs=fs.readFileSync('assets/web-push/client.js','utf8');
+  assert.match(clientJs,/function openTappedMessage\(\)/);
+  assert.match(clientJs,/w\.location\.replace\(INBOX \+ '\?m=' \+ encodeURIComponent/);
+  assert.match(fs.readFileSync('assets/web-push/inbox.js','utf8'),/c\.delete\('\/assets\/web-push\/__open'\)/);
   assert.match(click,/new URL\(INBOX_PATH \+ '\?m=' \+ encodeURIComponent\(data\.id \|\| ''\), self\.location\.origin\)/);
   assert.doesNotMatch(click,/data\.open|data\.url/);
   assert.match(sw,/var INBOX_PATH = '\/assets\/web-push\/inbox\.html';/);

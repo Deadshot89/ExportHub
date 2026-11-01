@@ -534,7 +534,7 @@ function m365Enabled() {
 async function copyToDrive(accessKey, environment, record, pdf, file) {
   const attemptAt = store.now();
   try {
-    const result = await graphDrive.uploadPdf(pdf, file && file.name || fileNameFor(record));
+    const result = await graphDrive.uploadPdf(pdf, file && file.name || fileNameFor(record), { environment });
     // RC1685: metadata is not a proof of the stored PDF bytes. Before marking
     // SharePoint saved, GET the exact Graph item and compare SHA-256 of original.
     const verified = await graphDrive.verifyPdf(pdf, result);

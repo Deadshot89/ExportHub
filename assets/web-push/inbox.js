@@ -69,6 +69,8 @@ var selector=document.getElementById('language');
 if(selector)selector.addEventListener('change',function(){if(ui&&ui.setLanguage)ui.setLanguage(selector.value);refresh()});
 window.addEventListener('exporthub:webpush-language-changed',refresh);
 refresh();load();
+// The tap already landed here: drop the hand-off so a later ExportHUB start is not redirected.
+try{if(window.caches)caches.open('exporthub-web-push-open').then(function(c){return c.delete('/assets/web-push/__open')}).catch(function(){})}catch(_){}
 if('serviceWorker' in navigator&&navigator.serviceWorker.addEventListener)navigator.serviceWorker.addEventListener('message',load);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)load()});
 })();

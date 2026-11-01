@@ -1,0 +1,53 @@
+name: Agent Safety Review
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review, edited, auto_merge_enabled]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: agent-safety-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: Read-only PR risk review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # No checkout, PR code execution, AI call, comment or write token.
+      - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            const {owner, repo} = context.repo;
+            const pull_number = context.issue.number;
+            const {data: pr} = await github.rest.pulls.get({owner, repo, pull_number});
+            const files = await github.paginate(github.rest.pulls.listFiles, {owner, repo, pull_number, per_page: 100});
+            const protectedFiles = files.filter(f => /^(?:\.github\/|AGENTS\.md$|CLAUDE\.md$|infra\/)|(?:^|\/)staticwebapp.*\.json$/.test(f.filename));
+            await core.summary.addHeading('Agent safety review').addRaw('Head SHA: ' + pr.head.sha + '\n\n').addRaw('No AI provider was called. Existing application tests and owner review remain required.\n\n').addTable([
+              [{data: 'Check', header: true}, {data: 'Result', header: true}],
+              ['Target branch', pr.base.ref],
+              ['Auto-merge', pr.auto_merge ? 'BLOCKED: disable auto-merge' : 'Disabled on this PR'],
+              ['Sensitive configuration changes', String(protectedFiles.length) + ' — owner must inspect the Files changed tab'],
+              ['Merge / Azure production', 'Requires explicit Deadshot89 approval; this workflow cannot merge or deploy']
+            ]).write();
+            if (pr.base.ref !== 'main') core.setFailed('Unexpected target branch');
+            if (pr.auto_merge) core.setFailed('Auto-merge is forbidden by owner policy');
+            if (files.length >= 3000) core.setFailed('Large diff requires manual audit; GitHub file listing can be truncated');
+  contracts:
+    name: Offline production approval contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - run: node --test .github/agent-safety/production-approval.test.mjs
