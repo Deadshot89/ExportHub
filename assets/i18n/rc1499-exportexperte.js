@@ -299,7 +299,7 @@ function t(key,lang,vars){
   var selected=normalize(lang||language()),pack=packs[selected]||packs.de,value=pack[key]||packs.de[key]||String(key||'');
   return interpolate(value,vars)
 }
-var handoffObserver=null;
+var handoffObserver=null,handoffAttempts=0,handoffRetryTimer=null;
 function handoffNeeded(){
   var d=root.document,box=d&&d.querySelector&&d.querySelector('[data-rc1294-results]');
   return !!(box&&!box.hidden&&box.querySelector&&box.querySelector('.rc1294-document'))
@@ -309,12 +309,23 @@ function disconnectHandoffObserver(){
 }
 function ensureHandoff(){
   try{if(root.ExportHUBRC1499Handoff&&typeof root.ExportHUBRC1499Handoff.prepare==='function'){disconnectHandoffObserver();return true}}catch(_){}
+  // RC1761: a missing script must not cause an unbounded 404 / DOM observer loop.
+  if(handoffRetryTimer||handoffAttempts>=3)return false;
   var d=root.document;if(!d||!d.createElement)return false;
   var existing=d.getElementById('exporthub-rc1499-handoff');if(existing)return false;
   try{
+    handoffAttempts++;
     var s=d.createElement('script');s.id='exporthub-rc1499-handoff';s.src='/assets/rc1499-exportexperte-handoff.js?v=1499';s.async=true;
-    s.addEventListener('load',function(){disconnectHandoffObserver()},{once:true});
-    s.addEventListener('error',function(){try{s.remove()}catch(_){}},{once:true});
+    s.addEventListener('load',function(){handoffAttempts=0;disconnectHandoffObserver()},{once:true});
+    s.addEventListener('error',function(){
+      if(handoffAttempts<3&&typeof root.setTimeout==='function'){
+        handoffRetryTimer=root.setTimeout(function(){
+          handoffRetryTimer=null;
+          if(handoffNeeded())ensureHandoff()
+        },1200)
+      }else disconnectHandoffObserver();
+      try{s.remove()}catch(_){}
+    },{once:true});
     (d.head||d.documentElement).appendChild(s);return true
   }catch(_){return false}
 }
