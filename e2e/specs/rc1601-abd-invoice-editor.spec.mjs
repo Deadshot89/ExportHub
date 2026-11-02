@@ -72,6 +72,11 @@ test('RC1601: Rechnung per Upload korrigieren, validieren und als PDF exportiere
  await expect(editor.locator('[data-field="itemNumber"]')).toHaveValue('CAP-10');
  await editor.locator('[data-rc1549-header="senderAddress"]').fill('Essentra Components GmbH, 41334 Nettetal, Germany');
  await editor.locator('[data-rc1549-header="recipientAddress"]').fill('Dock Road 18, Liverpool, United Kingdom');
+ await editor.locator('[data-rc1549-header="senderEori"]').fill('DE123456789123456');
+ await editor.locator('[data-rc1549-header="senderVatId"]').fill('DE123456789');
+ await editor.locator('[data-rc1549-header="exportReason"]').fill('Free replacement goods');
+ await editor.locator('[data-rc1549-header="incoterm"]').fill('DAP');
+ await editor.locator('[data-rc1549-header="incotermPlace"]').fill('Liverpool, UK');
  await editor.locator('[data-field="quantity"]').fill('20');
  await expect(editor.locator('[data-field="value"]')).toHaveValue('100.00');
  await editor.locator('[data-rc1549-logo]').setInputFiles({name:'essentra.png',mimeType:'image/png',buffer:png});
@@ -85,6 +90,10 @@ test('RC1601: Rechnung per Upload korrigieren, validieren und als PDF exportiere
  expect(exports[0].format).toBe('proforma');
  expect(exports[0].snapshot.header.senderAddress).toContain('Nettetal');
  expect(exports[0].snapshot.header.recipientAddress).toContain('Liverpool');
+ expect(exports[0].snapshot.header.senderEori).toBe('DE123456789123456');
+ expect(exports[0].snapshot.header.senderVatId).toBe('DE123456789');
+ expect(exports[0].snapshot.header.exportReason).toBe('Free replacement goods');
+ expect(exports[0].snapshot.header.incoterm).toBe('DAP');
  expect(exports[0].snapshot.positions[0].quantity).toBe(20);
  expect(exports[0].snapshot.positions[0].value).toBe(100);
  expect(exports[0].snapshot.logoDataUri).toMatch(/^data:image\/png;base64,/);
