@@ -83,6 +83,9 @@ test('P0 AV: 1 Klick speichert Azure-AV, schließt Aufgabe trotz Graph User not 
   const downloaded=await request('GET','ABC123',{query:{itemId:success.file.id}});
   assert.equal(downloaded.status,200);
   assert.equal(Buffer.from(downloaded.body).toString(),Buffer.from(body.data,'base64').toString());
+  const archiveStore=require('../api/shared/av-blob-store.js');
+  await assert.rejects(archiveStore.read('ABC123','testservice',success.file.id),e=>e.code==='AV_FILE_NOT_FOUND',
+   'TESTSERVICE darf einen Produktions-AV nicht lesen');
   const crossRef=await request('GET','DEF456',{query:{itemId:success.file.id}});
   assert.equal(crossRef.status,404);
   assert.equal(JSON.parse(crossRef.body).code,'AV_FILE_NOT_FOUND');
