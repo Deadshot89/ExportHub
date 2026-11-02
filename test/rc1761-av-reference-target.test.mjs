@@ -34,10 +34,13 @@ test('P0 AV: fehlender Graph-User wird vor dem Upload als REF-Zielkonfigurations
  }
 });
 
-test('P0 AV: API übergibt beim AV-Upload die Umgebung und bei REF-Downloads die SharePoint-Drive-ID',()=>{
+test('P0 AV: Upload ist Azure-first, Aufgabenabschluss unabhängig vom OneDrive-User und REF-Downloads bleiben Drive-ID-sicher',()=>{
  const api=fs.readFileSync('api/reference-files/index.js','utf8');
- assert.match(api,/referenceFolder\.upload\(ref,file\.name,file\.buffer,file\.mimeType,publicAccess\.environment\(req,payload\)\)/);
- assert.match(api,/url=target\?GRAPH_BASE\+'\/drives\/'\+encodeURIComponent\(target\.driveId\)/);
+ assert.match(api,/const saved=await avBlob\.save\(ref,environment,name,file\.buffer,file\.mimeType\)/);
+ assert.match(api,/referenceFolder\.upload\(ref,name,file\.buffer,file\.mimeType,environment\)/);
+ assert.match(api,/avCheckApi\.mutateTeamState\(environment,state/);
+ assert.match(api,/const read=await avBlob\.read\(ref,env,itemId\)/);
+ assert.match(api,/GRAPH_BASE\+'\/drives\/'\+encodeURIComponent\(target\.driveId\)/);
  assert.match(api,/referenceFolder\.getFolder\(ref,environment\)/);
 });
 

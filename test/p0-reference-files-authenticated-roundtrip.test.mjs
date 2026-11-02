@@ -18,7 +18,8 @@ test('P0: authenticated REF list and nested PDF download work end-to-end, withou
  const hits=[];
  const blob={download:async()=>({etag:'\"fixture\"',readableStreamBody:Readable.from([Buffer.from(JSON.stringify(auth))])})};
  const teamBlob={download:async()=>({etag:'\"fixture\"',readableStreamBody:Readable.from([Buffer.from(JSON.stringify(team))])})};
- const mockContainer={getBlockBlobClient:name=>name==='auth-sessions.json'?blob:teamBlob};
+ const mockContainer={getBlockBlobClient:name=>name==='auth-sessions.json'?blob:teamBlob,
+  listBlobsFlat:async function*(){/* no Azure AV fixture in this legacy Graph roundtrip */}};
  const sdk={BlobServiceClient:{fromConnectionString:()=>({getContainerClient:()=>mockContainer})}};
  const res=(status,body)=>({status,ok:status>=200&&status<300,json:async()=>body,headers:{get:()=>null}});
  try{

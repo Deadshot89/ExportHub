@@ -5,6 +5,7 @@ const https = require('https');
 const store = require('../shared/pickup-store');
 const avCheck = require('../shared/av-check');
 const referenceFolder = require('../shared/reference-folder-upload');
+const avBlob = require('../shared/av-blob-store');
 
 const REPO = 'Deadshot89/ExportHub';
 const WORKFLOW = 'av-check.yml';
@@ -86,7 +87,23 @@ function createHandler(deps = {}) {
   const authorize = deps.authorize || githubOidcAuthorized;
   const readState = deps.readState || readTeamState;
   const mutateState = deps.mutateState || mutateTeamState;
-  const listFiles = deps.listFiles || referenceFolder.listFiles;
+  const listFiles = deps.listFiles || (async (reference, environment, required) => {
+    // Persisted AVs remain independently verifiable even while OneDrive is down.
+    const azure = await avBlob.list(reference, environment);
+    let graph = [];
+    try { graph = await referenceFolder.listFiles(reference, environment); }
+    catch (e) {
+      // Never create an AV-missing task from a partial archive when Graph cannot be read.
+      if (azure.filter(f => avCheck.isAvFileName(f.name)).length < required) throw e;
+    }
+    const seen = new Set(), files = [];
+    for (const file of azure.concat(graph)) {
+      const name = text(file && file.name).toLowerCase();
+      if (!name || seen.has(name)) continue;
+      seen.add(name);files.push(file);
+    }
+    return files;
+  });
   const graphConfigured = deps.graphConfigured || (environment => { try { referenceFolder.config(); referenceFolder.assertTargetForEnvironment(environment); return true; } catch (_) { return false; } });
   const now = deps.now || (() => new Date());
   return async function(req) {
@@ -109,7 +126,7 @@ function createHandler(deps = {}) {
       const selected = all.slice(0, limit);
       const checks = [], errors = [];
       for (const item of selected) {
-        try { checks.push({ reference: item.reference, result: await avCheck.checkReference(item.reference, ref => listFiles(ref, environment)) }); }
+        try { checks.push({ reference: item.reference, result: await avCheck.checkReference(item.reference, ref => listFiles(ref, environment, item.requiredAvCount)) }); }
         catch (e) { errors.push({ reference: item.reference, code: text(e && e.code) || 'REFERENCE_FOLDER_LIST_FAILED' }); }
       }
       const applied = await mutateState(environment, current => {
@@ -142,3 +159,6 @@ module.exports = async function(context, req) {
 };
 module.exports.createHandler = createHandler;
 module.exports.environmentOf = environmentOf;
+// Shared CAS team-state writer: authenticated AV uploads close tasks immediately after durable readback.
+module.exports.mutateTeamState = mutateTeamState;
+module.exports.readTeamState = readTeamState;

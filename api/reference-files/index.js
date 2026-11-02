@@ -4,6 +4,8 @@ const {BlobServiceClient}=require('@azure/storage-blob');
 const apiI18n=require('../shared/i18n');
 const referenceFolder=require('../shared/reference-folder-upload');
 const avCheck=require('../shared/av-check');
+const avBlob=require('../shared/av-blob-store');
+const avCheckApi=require('../av-check/index');
 const publicAccess=require('../shared/public-access-store');
 
 const TEAM_CONTAINER=process.env.EXPORTHUB_STORAGE_CONTAINER||process.env.EXPORTHUB_CONTAINER||'exporthub-data';
@@ -110,8 +112,105 @@ const DOC_TYPES={'.pdf':'application/pdf','.jpg':'image/jpeg','.jpeg':'image/jpe
 function docSignatureOk(ext,buf){if(ext in AV_TYPES)return signatureOk(ext,buf);if(ext==='.xlsx'||ext==='.xlsm'||ext==='.docx')return buf.length>=4&&buf[0]===0x50&&buf[1]===0x4b&&buf[2]===0x03&&buf[3]===0x04;if(ext==='.xls'||ext==='.doc'||ext==='.msg')return buf.length>=8&&buf.subarray(0,8).equals(Buffer.from([0xd0,0xcf,0x11,0xe0,0xa1,0xb1,0x1a,0xe1]));if(ext==='.csv'||ext==='.txt'||ext==='.eml')return !buf.subarray(0,4096).includes(0);return false}
 function documentStamp(now){const d=now instanceof Date?now:new Date(),p=n=>String(n).padStart(2,'0');return d.getUTCFullYear()+p(d.getUTCMonth()+1)+p(d.getUTCDate())+'-'+p(d.getUTCHours())+p(d.getUTCMinutes())+p(d.getUTCSeconds())}
 function documentUploadFile(ref,payload,now){const kindKey=lower(payload.kind||'sonstiges'),label=DOC_KINDS[kindKey];if(!label)throw error('DOCUMENT_KIND_INVALID','api.reference.docKindInvalid',400);const original=referenceFolder.safeFileName(payload.fileName||payload.name||''),m=original.toLowerCase().match(/(\.[a-z0-9]+)$/),ext=m?m[1]:'',expected=DOC_TYPES[ext];if(!expected)throw error('DOCUMENT_FILE_TYPE_INVALID','api.reference.docTypeInvalid',400);const raw=text(payload.data).replace(/^data:[^,]*,/,'');if(!raw||!/^[A-Za-z0-9+/]+={0,2}$/.test(raw))throw error('DOCUMENT_FILE_EMPTY','api.reference.docEmpty',400);const buffer=Buffer.from(raw,'base64');if(!buffer.length)throw error('DOCUMENT_FILE_EMPTY','api.reference.docEmpty',400);if(buffer.length>DOC_MAX_BYTES)throw error('DOCUMENT_FILE_TOO_LARGE','api.reference.docTooLarge',413);if(!docSignatureOk(ext,buffer))throw error('DOCUMENT_FILE_SIGNATURE_INVALID','api.reference.docSignatureInvalid',400);const name=referenceFolder.safeFileName(label+'_'+ref+'_'+documentStamp(now)+'_'+original);return{name,buffer,mimeType:expected,kind:kindKey}}
-async function handleUpload(req){await validateSession(req);const payload=requestBody(req),action=lower(payload.action),ref=refValue(payload.reference);if(action==='upload-av'){const file=avUploadFile(ref,payload),saved=await referenceFolder.upload(ref,file.name,file.buffer,file.mimeType,publicAccess.environment(req,payload));return json(200,{ok:true,reference:ref,file:{id:saved.id,name:saved.name,size:saved.size}})}if(action==='upload-document'){const file=documentUploadFile(ref,payload),saved=await referenceFolder.upload(ref,file.name,file.buffer,file.mimeType,publicAccess.environment(req,payload));return json(200,{ok:true,reference:ref,file:{id:saved.id,name:saved.name,size:saved.size,kind:file.kind}})}throw error('ACTION_INVALID','Unbekannte Aktion.',400)}
-module.exports=async function(context,req){try{if(req.method==='OPTIONS'){context.res=json(204,{}, {Allow:'GET, POST, OPTIONS'});return}if(req.method==='POST'){context.res=await handleUpload(req);return}if(req.method!=='GET'){context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED',message:apiI18n.t(req,'api.common.getOnly')},{Allow:'GET, POST, OPTIONS'});return}await validateSession(req);const ref=refValue(req.query&&req.query.reference);let listed;try{listed=await listFiles(ref,req)}catch(graphError){if(graphError&&graphError.code==='GRAPH_NOT_CONFIGURED'){context.res=json(200,{ok:true,available:false,code:'GRAPH_NOT_CONFIGURED',message:localizedError(req,graphError),reference:ref,folderPath:folderPath(ref),folderMissing:false,files:[]});return}throw graphError}const itemId=text(req.query&&req.query.itemId);if(!itemId){context.res=json(200,{ok:true,available:true,reference:ref,folderPath:listed.folderPath,folderMissing:listed.folderMissing,files:listed.files});return}const item=listed.files.find(f=>f.id===itemId);if(!item)throw error('FILE_NOT_FOUND','api.reference.fileNotFound',404);if(Number(item.size||0)>MAX_FILE_BYTES)throw error('FILE_TOO_LARGE','api.reference.fileTooLarge',413);const env=publicAccess.environment(req,{}),target=referenceFolder.exactTarget(env),url=target?GRAPH_BASE+'/drives/'+encodeURIComponent(target.driveId)+'/items/'+encodeURIComponent(item.id)+'/content':GRAPH_BASE+'/users/'+encodeURIComponent(DRIVE_USER)+'/drive/items/'+encodeURIComponent(item.id)+'/content',res=await graphFetch(url,{headers:{Accept:'*/*'}});if(!res.ok)throw error('GRAPH_FILE_FAILED','api.reference.fileLoadFailed',res.status>=500?502:res.status);const buffer=Buffer.from(await res.arrayBuffer()),mode=lower(req.query&&req.query.mode)==='download'?'download':'inline';context.res={status:200,headers:{'Content-Type':item.mimeType||res.headers.get('content-type')||'application/octet-stream','Content-Length':String(buffer.length),'Content-Disposition':disposition(item.name,mode,req),'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'},body:buffer};}catch(e){if(!(e&&e.code==='GRAPH_NOT_CONFIGURED'))context.log&&context.log.error&&context.log.error('reference-files',e&&e.code,e&&e.message);context.res=json(e.status||500,{ok:false,code:e.code||'SERVER_ERROR',message:localizedError(req,e)||apiI18n.t(req,'api.reference.readFailed')})}}
+
+function uniqueAvName(ref,name){
+ // Never overwrite another AV (one shipment can have several ABDs/AVs).
+ return referenceFolder.safeFileName('AV_'+ref+'_'+Date.now()+'_'+crypto.randomBytes(4).toString('hex')+'_'+name);
+}
+function mergeAvLists(a,b){
+ const map=new Map();
+ for(const file of [...a,...b]){
+  if(!file||!avCheck.isAvFileName(file.name))continue;
+  const key=text(file.name).toLowerCase();
+  if(!map.has(key))map.set(key,file);
+ }
+ return Array.from(map.values());
+}
+async function reflectedAvTask(ref,environment){
+ const azure=await avBlob.list(ref,environment);
+ let graph=[],graphError=null;
+ try{graph=await referenceFolder.listFiles(ref,environment)}catch(e){graphError=e}
+ const found=mergeAvLists(azure,graph),when=new Date();
+ return avCheckApi.mutateTeamState(environment,state=>{
+  const match=avCheck.candidates(state,when).find(x=>x.reference===ref);
+  const required=match&&match.requiredAvCount||0;
+  // If Graph is offline, a partial Azure count cannot prove AVs are absent.
+  if(graphError&&found.length<required){
+   return{changed:false,progress:{status:'unverified',required,found:found.length}};
+  }
+  const progress=avCheck.applyResult(state,ref,{avFiles:found},when);
+  return{changed:true,progress};
+ });
+}
+async function handleUpload(req){
+ await validateSession(req);
+ const payload=requestBody(req),action=lower(payload.action),ref=refValue(payload.reference);
+ const environment=publicAccess.environment(req,payload);
+ if(action==='upload-av'){
+  const file=avUploadFile(ref,payload),name=uniqueAvName(ref,file.name);
+  // Azure is the durable primary AV copy: no Microsoft user/Graph dependency.
+  const saved=await avBlob.save(ref,environment,name,file.buffer,file.mimeType);
+  let sharepointSaved=false,sharepointItemId='',sharepointError='';
+  try{
+   const graphSaved=await referenceFolder.upload(ref,name,file.buffer,file.mimeType,environment);
+   sharepointSaved=true;sharepointItemId=text(graphSaved.id);
+  }catch(e){sharepointError=text(e&&e.code)||'GRAPH_UNAVAILABLE'}
+  let progress=null,taskUpdatePending=false;
+  try{const reflected=await reflectedAvTask(ref,environment);progress=reflected.progress||null}
+  catch(e){taskUpdatePending=true}
+  return json(200,{ok:true,reference:ref,file:{id:saved.id,name:saved.name,size:saved.size,storage:'azure-av'},
+   sharepointSaved,sharepointItemId,sharepointError,
+   taskCompleted:!!(progress&&progress.status==='present'),closedTasks:progress&&progress.closedTasks||0,
+   avStatus:progress&&progress.status||'pending',taskUpdatePending});
+ }
+ if(action==='upload-document'){
+  const file=documentUploadFile(ref,payload),saved=await referenceFolder.upload(ref,file.name,file.buffer,file.mimeType,environment);
+  return json(200,{ok:true,reference:ref,file:{id:saved.id,name:saved.name,size:saved.size,kind:file.kind}});
+ }
+ throw error('ACTION_INVALID','Unbekannte Aktion.',400);
+}
+module.exports=async function(context,req){
+ try{
+  if(req.method==='OPTIONS'){context.res=json(204,{}, {Allow:'GET, POST, OPTIONS'});return}
+  if(req.method==='POST'){context.res=await handleUpload(req);return}
+  if(req.method!=='GET'){context.res=json(405,{ok:false,code:'METHOD_NOT_ALLOWED',message:apiI18n.t(req,'api.common.getOnly')},{Allow:'GET, POST, OPTIONS'});return}
+  await validateSession(req);
+  const ref=refValue(req.query&&req.query.reference),env=publicAccess.environment(req,{});
+  const itemId=text(req.query&&req.query.itemId),mode=lower(req.query&&req.query.mode)==='download'?'download':'inline';
+  // Read exact reference-scoped Azure AV files even if OneDrive is offline.
+  if(/^avblob:/.test(itemId)){
+   const read=await avBlob.read(ref,env,itemId);
+   context.res={status:200,isRaw:true,headers:{'Content-Type':read.file.mimeType,
+    'Content-Length':String(read.buffer.length),'Content-Disposition':disposition(read.file.name,mode,req),
+    'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'},body:read.buffer};return;
+  }
+  const azure=await avBlob.list(ref,env);
+  let listed,graphError=null;
+  try{listed=await listFiles(ref,req)}
+  catch(e){graphError=e;if(!azure.length)throw e;listed={files:[],folderPath:folderPath(ref),folderMissing:false,folderWebUrl:''}}
+  const files=Array.from(listed.files||[]);
+  for(const file of azure){if(!files.some(f=>text(f.name).toLowerCase()===text(file.name).toLowerCase()))
+   files.push({id:file.id,name:file.name,size:file.size,mimeType:file.mimeType,createdDateTime:file.createdDateTime,
+     lastModifiedDateTime:file.lastModifiedDateTime,storage:'azure-av'});}
+  if(!itemId){context.res=json(200,{ok:true,available:true,reference:ref,folderPath:listed.folderPath,
+    folderMissing:listed.folderMissing&&!azure.length,sharepointAvailable:!graphError,files});return}
+  const item=files.find(f=>f.id===itemId);
+  if(!item)throw error('FILE_NOT_FOUND','api.reference.fileNotFound',404);
+  if(Number(item.size||0)>MAX_FILE_BYTES)throw error('FILE_TOO_LARGE','api.reference.fileTooLarge',413);
+  const target=referenceFolder.exactTarget(env);
+  const url=target?GRAPH_BASE+'/drives/'+encodeURIComponent(target.driveId)+'/items/'+encodeURIComponent(item.id)+'/content'
+    :GRAPH_BASE+'/users/'+encodeURIComponent(DRIVE_USER)+'/drive/items/'+encodeURIComponent(item.id)+'/content';
+  const res=await graphFetch(url,{headers:{Accept:'*/*'}});
+  if(!res.ok)throw error('GRAPH_FILE_FAILED','api.reference.fileLoadFailed',res.status>=500?502:res.status);
+  const buffer=Buffer.from(await res.arrayBuffer());
+  context.res={status:200,isRaw:true,headers:{'Content-Type':item.mimeType||res.headers.get('content-type')||'application/octet-stream',
+    'Content-Length':String(buffer.length),'Content-Disposition':disposition(item.name,mode,req),
+    'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'},body:buffer};
+ }catch(e){
+  if(!(e&&e.code==='GRAPH_NOT_CONFIGURED'))context.log&&context.log.error&&context.log.error('reference-files',e&&e.code,e&&e.message);
+  context.res=json(e.status||500,{ok:false,code:e.code||'SERVER_ERROR',message:localizedError(req,e)||apiI18n.t(req,'api.reference.readFailed')});
+ }
+}
 
 module.exports.avUploadFile=avUploadFile;
 module.exports.documentUploadFile=documentUploadFile;
