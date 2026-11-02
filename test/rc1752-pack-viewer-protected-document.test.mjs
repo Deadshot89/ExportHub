@@ -9,7 +9,7 @@ function emitted(){
   assert.ok(begin>=0,'RC1305 production viewer transform missing');
   const end=build.indexOf('\n`',begin+1);
   assert.ok(end>begin,'viewer template end missing');
-  return build.slice(begin+1,end);
+  return vm.runInNewContext(build.slice(begin,end+2));
 }
 function harness(){
   const fetched=[],legacy=[],original={name:'DNC3019227808.pdf',blobName:'rc1059/testservice/aa/'+('a'.repeat(64)),storage:'blob'};
