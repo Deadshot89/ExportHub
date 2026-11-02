@@ -35,3 +35,12 @@ test('RC1760: saved ABD search is view-only and reuses existing item actions',()
   assert.match(invoiceRuntime,/mountManual\(\);enhanceSavedAbdLayout\(\);enhanceUploaded\(\)/);
   assert.doesNotMatch(invoiceRuntime,/function enhanceSavedAbdLayout\(\)\{[\s\S]*?(?:queueSave|flushSave|fetch\(|deleteAbd|saveAbd)\(/);
 });
+
+test('RC1760: saved ABD search and result count use localized strings in all six languages',()=>{
+  for(const lang of ['de','en','pl','es','fr','it']){
+    assert.match(invoiceRuntime,new RegExp('\\b'+lang+':\\{savedAbdSearchLabel:'));
+  }
+  assert.match(invoiceRuntime,/input\.placeholder=t\('savedAbdSearchPlaceholder'\)/);
+  assert.match(invoiceRuntime,/input\.setAttribute\('aria-label',t\('savedAbdSearchAria'\)\)/);
+  assert.match(invoiceRuntime,/count\.textContent=cards\.length\?t\('savedAbdSearchCount'\)/);
+});
