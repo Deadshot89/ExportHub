@@ -6,7 +6,7 @@ const calendarCss=fs.readFileSync('assets/abholkalender.css','utf8');
 const layoutCss=fs.readFileSync('assets/rc1560-full-width.css','utf8');
 const invoiceRuntime=fs.readFileSync('assets/rc1549-abd-proforma.js','utf8');
 
-test('RC1760: today's fixed and shipment sections do not reserve unequal columns',()=>{
+test("RC1760: today's fixed and shipment sections do not reserve unequal columns",()=>{
   assert.match(calendarCss,/RC1760 – Abholkalender/);
   assert.match(calendarCss,/\.pickup-today-grid\s*\{[\s\S]*?grid-template-columns:minmax\(0,1fr\)/);
   assert.match(calendarCss,/\.pickup-today-grid\s*>\s*\.pickup-source\s*\{[\s\S]*?repeat\(3,minmax\(0,1fr\)\)/);
