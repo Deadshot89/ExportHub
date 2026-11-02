@@ -15,7 +15,7 @@
   <script defer src="/assets/rc1555-packaging-store.js?v=1555"></script>
   <script defer src="/assets/packaging-catalog.js?v=1555"></script>
   <script defer src="/assets/document-reference-normalizer.js?v=3"></script>
-  <script defer src="/assets/pack-notification.js?v=4"></script>
+  <script defer src="/assets/pack-notification.js?v=5"></script>
 </head>
 <body>
   <main class="pack-shell" aria-labelledby="packTitle">
@@ -76,13 +76,13 @@
               </div>
               <div id="packCustomerSelected" class="pack-customer-selected" hidden></div>
             </div>
-            <label>Packstücktyp *
+            <label>Verpackung (Vorauswahl) *
               <select id="packPackageType" name="packageType" required>
                 <option value="">Bitte wählen</option>
               </select>
             </label>
             <div class="pack-count-field">
-              <label for="packPackageCount">Anzahl Packstücke *</label>
+              <label for="packPackageCount">Collis gesamt *</label>
               <div class="pack-stepper">
                 <button id="packCountMinus" type="button" aria-label="Ein Packstück weniger">−</button>
                 <input id="packPackageCount" name="packageCount" type="number" min="1" max="99" step="1" value="1" inputmode="numeric" required>
@@ -94,8 +94,9 @@
         </section>
 
         <section id="packStepDimensions" class="pack-section" data-pack-section="dimensions">
-          <div class="pack-section-head"><div><h2><span class="pack-step-no" aria-hidden="true">2</span><span>Maße</span></h2><p>Länge × Breite × Höhe je Packstück in cm. Hinterlegte Grundmaße werden automatisch übernommen und können bei Bedarf korrigiert werden.</p></div><button id="packCopyDimensions" class="pack-secondary pack-copy-dimensions" type="button" hidden>Maße von Packstück 1 für alle übernehmen</button></div>
+          <div class="pack-section-head"><div><h2><span class="pack-step-no" aria-hidden="true">2</span><span>Maße</span></h2><p>Wähle für jedes Colli die Verpackungsart und prüfe die Maße in cm. Du kannst unterschiedliche Paletten und Kartons in einer Meldung kombinieren.</p></div><button id="packCopyDimensions" class="pack-secondary pack-copy-dimensions" type="button" hidden>Maße für Collis gleicher Verpackungsart übernehmen</button></div>
           <div id="packPackageRows" class="pack-package-list"></div>
+          <button id="packAddColli" class="pack-secondary pack-add-colli" type="button">+ Weiteres Colli hinzufügen</button>
         </section>
 
         <section id="packStepDocuments" class="pack-section" data-pack-section="documents">
