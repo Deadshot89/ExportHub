@@ -12,44 +12,48 @@ function extract(source,startToken,endToken,context){
  return vm.runInNewContext(source.slice(start,end)+'\n'+startToken.split('(')[0].replace(/^async function /,'').replace(/^function /,''),context);
 }
 
-test('RC1674: QR home becomes visible even while optional draft-list and packaging reads are pending',async()=>{
+test('RC1674: authorized read-only QR validation opens home without waiting for optional packaging',async()=>{
  const els={home:{hidden:true},loading:{hidden:false}};
- let unblockDraft,packagingCalled=false,homeVisibleWhenPackaging=false;
- const pendingDraft=new Promise(resolve=>{unblockDraft=resolve});
+ let releasePackaging,reads=0,sessionCalls=0,packagingCalled=false;
+ const pendingPackaging=new Promise(resolve=>{releasePackaging=resolve});
  const context={
   clearError(){},state:{stationToken:''},tokenFromPath:()=> 'E2E-PACK-SAFE',
-  ensureSession:async()=>{},loadPackagingMaster:async()=>{packagingCalled=true;homeVisibleWhenPackaging=!els.home.hidden},
-  showHome:async()=>{els.home.hidden=false;await pendingDraft},
+  ensureSession:async()=>{sessionCalls++;throw Error('SESSION_UNAVAILABLE')},
+  loadDrafts:async()=>{reads++},
+  loadPackagingMaster:async()=>{packagingCalled=true;await pendingPackaging},
+  showHome:async(verified)=>{assert.equal(verified,true);els.home.hidden=false},
   els,showError:()=>{throw Error('unexpected UI error')},tr:()=> 'error'
  };
  const start=extract(pack,'async function startPage(){','\n  async function submit(',context);
  const action=start();
  await new Promise(resolve=>setImmediate(resolve));
- assert.equal(els.home.hidden,false,'Optional reads must not keep QR home hidden');
- assert.equal(els.loading.hidden,true,'Session creation finished, loading state is cleared');
- assert.equal(packagingCalled,true,'A stalled draft-list must not delay independent packaging data');
- assert.equal(homeVisibleWhenPackaging,true,'Home must be visible before starting optional packaging');
- unblockDraft();
+ assert.equal(reads,1,'QR token is checked through the read-only draft endpoint');
+ assert.equal(sessionCalls,0,'home must not attempt writing a new session');
+ assert.equal(els.home.hidden,false,'authorized home appears before optional packaging finishes');
+ assert.equal(els.loading.hidden,true);
+ assert.equal(packagingCalled,true);
+ releasePackaging();
  await action;
- assert.equal(packagingCalled,true,'Packaging master still loads after home appears');
 });
 
-test('RC1674: a failed mandatory Pack station session never becomes a valid home',async()=>{
+test('RC1674: failed read-only QR validation stays fail-closed even if no session has been requested',async()=>{
  const els={home:{hidden:true},loading:{hidden:false}};
- let error='',optionalCalled=false;
+ let error='',optionalCalled=false,sessionCalls=0;
  const context={
-  clearError(){},state:{stationToken:''},tokenFromPath:()=> 'E2E-PACK-SAFE',
-  ensureSession:async()=>{throw Error('SESSION_UNAVAILABLE')},
+  clearError(){},state:{stationToken:''},tokenFromPath:()=> 'INVALID-PACK-QR',
+  ensureSession:async()=>{sessionCalls++;throw Error('SESSION_UNAVAILABLE')},
+  loadDrafts:async()=>{throw Error('PACK_STATION_INVALID')},
   loadPackagingMaster:async()=>{optionalCalled=true},
   showHome:async()=>{els.home.hidden=false},els,
   showError:value=>{error=value},tr:()=> 'error'
  };
  const start=extract(pack,'async function startPage(){','\n  async function submit(',context);
  await start();
- assert.equal(els.home.hidden,true,'Mandatory session failure must stay fail-closed');
+ assert.equal(els.home.hidden,true,'invalid QR must never be shown as a valid home');
  assert.equal(els.loading.hidden,true);
  assert.equal(optionalCalled,false);
- assert.equal(error,'SESSION_UNAVAILABLE');
+ assert.equal(sessionCalls,0,'invalid QR should not create a write session');
+ assert.equal(error,'PACK_STATION_INVALID');
 });
 
 function metadata(blob){
