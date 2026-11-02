@@ -11,9 +11,11 @@ function loadFunction(){
  assert.ok(start>=0&&end>start,'Reference folder listFiles must exist');
  return source.slice(start,end);
 }
-function mock(items){
+function mock(items,exactTarget=null){
  const hits=[],context={
   GRAPH_BASE:'https://graph.microsoft.com/v1.0',DRIVE_USER:'service@example.invalid',
+  publicAccess:{environment:()=> 'production'},
+  referenceFolder:{exactTarget:()=>exactTarget,getFolder:async()=>exactTarget?{id:'refchild',webUrl:'https://example.invalid/refchild'}:null},
   folderPath:ref=>'003 Export/ExportHub/Sendungen/'+ref,
   encPath:path=>path.split('/').map(encodeURIComponent).join('/'),
   text:v=>String(v??'').trim(),
@@ -21,7 +23,7 @@ function mock(items){
   error:(code,message,status,vars)=>Object.assign(new Error(message),{code,status,vars}),
   graphFetch:async url=>{
    hits.push(url);
-   const key=url.includes('/drive/items/')?decodeURIComponent(url.split('/drive/items/')[1].split('/children')[0]):'root';
+   const key=url.includes('/drives/')?decodeURIComponent(url.split('/items/')[1].split('/children')[0]):url.includes('/drive/items/')?decodeURIComponent(url.split('/drive/items/')[1].split('/children')[0]):'root';
    const item=items[key];
    if(!item)return{status:404,ok:false,json:async()=>({})};
    return{status:item.status||200,ok:!item.status||item.status<400,json:async()=>item.body||{value:item.value||[]}};
@@ -80,4 +82,27 @@ test('P0: deeper unscanned folders result in an explicit limit error instead of 
  for(const [key,next] of [['a','b'],['b','c'],['c','d'],['d','e']])data[key]={value:[{id:next,folder:{}}]};
  const h=mock(data);
  await assert.rejects(h.list(),e=>e.code==='GRAPH_REFERENCE_DEPTH_LIMIT'&&e.status===503);
+});
+
+test('P0 AV: die SharePoint-ID wird für REF-Dateiliste und Unterordner verwendet, nicht der ungültige User',async()=>{
+ const fake=mock({
+  refchild:{value:[{id:'subfolder',name:'Zoll',folder:{}},{id:'av',name:'AV_ABC123.pdf',size:42,file:{mimeType:'application/pdf'}}]},
+  subfolder:{value:[{id:'other',name:'ABD.pdf',size:30,file:{mimeType:'application/pdf'}}]}
+ },{driveId:'verified-drive',folderId:'verified-root'});
+ const data=await fake.list();
+ assert.equal(data.folderMissing,false);
+ assert.deepEqual(Array.from(data.files,x=>x.name).sort(),['ABD.pdf','AV_ABC123.pdf']);
+ assert.ok(fake.hits.some(url=>url.includes('/drives/verified-drive/items/refchild/children')));
+ assert.ok(fake.hits.some(url=>url.includes('/drives/verified-drive/items/subfolder/children')));
+ assert.ok(fake.hits.every(url=>!url.includes('/users/')),'kein User-Drive-Lookup bei verifiziertem SharePoint-Ziel');
+});
+
+test('P0 AV: User not found ist ein Konfigurationsfehler, kein fehlender REF-Ordner',async()=>{
+ const fake=mock({root:{status:404,body:{error:{message:'User not found'}}}});
+ await assert.rejects(fake.list(),e=>e.code==='GRAPH_REFERENCE_USER_NOT_FOUND'&&e.status===503);
+});
+
+test('P0 AV: verschwindet ein zuvor bestätigter SharePoint-REF-Ordner, wird kein falscher leerer Ordner gemeldet',async()=>{
+ const fake=mock({}, {driveId:'verified-drive',folderId:'verified-root'});
+ await assert.rejects(fake.list(),e=>e.code==='GRAPH_REFERENCE_FOLDER_LIST_INCOMPLETE');
 });
