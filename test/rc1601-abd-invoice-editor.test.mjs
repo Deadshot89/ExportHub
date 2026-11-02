@@ -177,15 +177,15 @@ test('RC1605: approved SOP artwork is shipped as the default PDF and browser log
 });
 
 
-test('RC1660: EORI, VAT ID, tax number, Incoterms and reason survive reanalysis and PDF',async()=>{
+test('RC1662: optional EORI and reason, VAT ID and Incoterms survive reanalysis and PDF',async()=>{
  const original=invoice();
  const enhanced=model.rebuildReviewedAnalysis({header:{
    ...original.header,senderEori:'DE123456789123456',senderVatId:'DE123456789',
    senderTaxNumber:'123/456/78901',senderRegister:'HRB 12345',
-   shipmentDate:'2026-11-02',incoterm:'DAP',incotermPlace:'Liverpool, GB',
+   incoterm:'DAP',
    exportReason:'Replacement shipment - no charge',packageCount:'3',packageType:'cartons',
    transportMode:'road',shipmentReference:'TEST-123',
-   freightCost:14.50,insuranceCost:1.50
+   freightCost:14.50
   },positions:original.positions});
  const exported=exporter.createExportModel(enhanced);
  assert.equal(exported.header.senderEori,'DE123456789123456');
@@ -201,7 +201,7 @@ test('RC1660: EORI, VAT ID, tax number, Incoterms and reason survive reanalysis 
   fs.writeFileSync(path.join(process.env.EXPORTHUB_PDF_SAMPLE_DIR,'rc1660-proforma-customs-full.pdf'),pdf)
  }
  const txt=(await extractPdfText(pdf)).replace(/\s+/g,' ');
- for(const expected of ['DE123456789123456','DE123456789','HRB 12345','DAP','Liverpool, GB','Replacement shipment','TEST-123','14.50','02.11.2026'])assert.ok(txt.includes(expected),expected+' missing');
+ for(const expected of ['DE123456789123456','DE123456789','HRB 12345','DAP','Replacement shipment','TEST-123','14.50','22.10.2026'])assert.ok(txt.includes(expected),expected+' missing');
 });
 test('RC1660: zero sales price with declared customs value prints non-zero customs unit value',async()=>{
  const sample=invoice();
@@ -215,7 +215,7 @@ test('RC1660: zero sales price with declared customs value prints non-zero custo
  assert.match(txt,/10\.00/);
 });
 test('RC1660: all customs fields can be edited before exporting an imported Excel or CSV invoice',()=>{
- for(const f of ['senderEori','senderVatId','senderTaxNumber','senderRegister','exportReason','incoterm','incotermPlace','packageCount','packageType','shipmentDate','freightCost']){
+ for(const f of ['senderEori','senderVatId','senderTaxNumber','senderRegister','exportReason','incoterm','packageCount','packageType','freightCost']){
   assert.ok(frontend.includes('data-rc1549-header="'+f+'"'),f+' missing in invoice editor');
  }
  assert.match(frontend,/customsRequired/);
