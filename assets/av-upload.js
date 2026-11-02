@@ -61,7 +61,7 @@ async function upload(file,button){
     var data=await readBase64(file);
     var res=await fetch('/api/reference-files',{method:'POST',headers:requestHeaders(),credentials:'same-origin',cache:'no-store',body:JSON.stringify({action:'upload-av',reference:ref,fileName:file.name,mimeType:file.type,data:data})}),body={};
     try{body=await res.json()}catch(_){}
-    if(!res.ok||body.ok===false)throw new Error(q(body.message)||('HTTP '+res.status));
+    if(!res.ok||body.ok!==true||q(body.reference).toUpperCase()!==ref||!body.file||!q(body.file.id)||!q(body.file.name))throw new Error(q(body.message)||('AV-Upload wurde vom Server nicht bestätigt.'));
     setLabel(button,t('done'),false);
     statusNotice(button,body);
     reflectCompletedTask(ref,body);
