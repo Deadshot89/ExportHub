@@ -248,13 +248,13 @@ function setMode(mode,skipShipmentPrefill){
   var header=host.querySelector('.rc626-head h2');
   if(header)header.textContent=xtr('workspaceTitle');
   var form=host.querySelector(':scope > .rc626-grid2');
-  if(form){form.id='rc1294AbdForm';form.hidden=mode==='invoice'||mode==='saved'}
+  if(form){form.id='rc1294AbdForm';form.setAttribute('role','tabpanel');form.hidden=mode==='invoice'||mode==='saved'}
   var history=host.querySelector('.rc1760-abd-history');
-  if(history){history.id='rc1294SavedRequests';history.hidden=mode!=='saved'}
+  if(history){history.id='rc1294SavedRequests';history.setAttribute('role','tabpanel');history.hidden=mode!=='saved'}
  }
  if(p){
   var invoice=p.querySelector('[data-rc1294-invoice-panel]'),buttons=p.querySelectorAll('[data-rc1294-mode]');
-  if(invoice)invoice.hidden=mode!=='invoice';
+  if(invoice){invoice.setAttribute('role','tabpanel');invoice.hidden=mode!=='invoice'}
   for(var i=0;i<buttons.length;i++){
    var active=buttons[i].getAttribute('data-rc1294-mode')===mode;
    buttons[i].setAttribute('aria-pressed',active?'true':'false');
@@ -305,6 +305,21 @@ function mount(){
  function keepFileEventLocal(e){var f=e.target&&e.target.closest&&e.target.closest('[data-rc1294-files]');if(!f)return false;e.stopPropagation();if(e.type==='change')pendingFiles=Array.from(f.files||[]);return true}
  p.addEventListener('input',keepFileEventLocal);
  p.addEventListener('change',function(e){if(keepFileEventLocal(e))return;var input=e.target&&e.target.closest&&e.target.closest('[data-rc1499-edit-hs],[data-rc1499-edit-origin],[data-rc1499-edit-value]');if(input)applyReviewEdit(input)});
+ // Arrow keys move tab focus without unexpectedly importing shipment data.
+ // Enter/Space (native button activation) applies the focused workspace.
+ p.addEventListener('keydown',function(e){
+  var key=e.key;
+  if(key!=='ArrowRight'&&key!=='ArrowLeft'&&key!=='Home'&&key!=='End')return;
+  var active=e.target&&e.target.closest&&e.target.closest('[data-rc1294-mode]');
+  if(!active)return;
+  var tabs=Array.prototype.slice.call(p.querySelectorAll('[data-rc1294-mode]'));
+  var index=tabs.indexOf(active);if(index<0||!tabs.length)return;
+  var next=key==='Home'?0:key==='End'?tabs.length-1:(index+(key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;
+  e.preventDefault();
+  active.setAttribute('tabindex','-1');
+  tabs[next].setAttribute('tabindex','0');
+  tabs[next].focus()
+ });
  p.addEventListener('click',function(e){
   var mode=e.target&&e.target.closest&&e.target.closest('[data-rc1294-mode]');if(mode){e.preventDefault();setMode(mode.getAttribute('data-rc1294-mode'));return}
   var confirm=e.target&&e.target.closest&&e.target.closest('[data-rc1499-confirm]');if(confirm){e.preventDefault();confirmReviewPosition(confirm);return}
