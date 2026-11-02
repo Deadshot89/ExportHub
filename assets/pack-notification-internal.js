@@ -212,7 +212,7 @@
   }
   function factHtml(name,label,value){return `<div class="pack-internal-fact"><span class="pack-internal-fact-icon">${icon(name)}</span><span><small>${esc(label)}</small><strong>${esc(value)}</strong></span></div>`;}
   function detailHtml(model){
-    const packages=`${model.packageCount}${model.packageType?` · ${model.packageType}`:''}`;
+    const counts=new Map();for(const row of model.packages){const type=q(row&&(row.packagingType||row.packageType))||q(model.packageType);if(type)counts.set(type,(counts.get(type)||0)+1);}const detail=Array.from(counts,([type,n])=>`${n} × ${type}`).join(' · ');const packages=`${model.packageCount}${detail?` · ${detail}`:(model.packageType?` · ${model.packageType}`:'')}`;
     return `<div class="pack-internal-shell">
       <header class="pack-internal-detail-head"><button type="button" class="btn pack-internal-ghost" data-pack-action="back">${esc(tr('pack.internal.backToInbox'))}</button><div><span class="pack-internal-eyebrow">${esc(tr('pack.internal.eyebrow',{reference:model.reference}))}</span><h1>${esc(model.customer||tr('pack.title'))}</h1></div><span class="pack-internal-detail-head-side"><span class="pack-internal-status" data-status="${esc(model.status)}">${esc(statusLabel(model.status))}</span>${q(model.status).toLowerCase()==='cancelled'?'':`<button type="button" class="btn primary pack-internal-primary" data-pack-action="shipment">${esc(model.shipmentId?tr('pack.internal.openShipment'):tr('pack.internal.createShipment'))}</button>`}</span></header>
       <div class="pack-internal-facts">${factHtml('box',tr('pack.internal.packages'),packages)}${factHtml('weight',tr('pack.internal.totalWeight'),`${model.totalWeight} kg`)}${factHtml('station',tr('pack.internal.station'),model.stationName||'–')}${factHtml('clock',tr('pack.internal.reported'),formatDate(model.createdAt))}</div>
@@ -237,7 +237,7 @@
     for(let i=0;i<count;i+=1){
       const p=packages[i]||packages[packages.length-1]||{};
       const field=(dim,label)=>`<label><span>${esc(tr(label))}</span><input type="number" inputmode="decimal" min="0" step="0.1" data-pack-edit-dim="${dim}" value="${esc(p[dim])}"></label>`;
-      rows.push(`<div class="pack-internal-edit-package" data-pack-edit-package="${i}"><strong>${esc(tr('pack.packageNumber',{number:i+1}))}</strong>${field('length','pack.lengthRequired')}${field('width','pack.widthRequired')}${field('height','pack.heightRequired')}</div>`);
+      rows.push(`<div class="pack-internal-edit-package" data-pack-edit-package="${i}"><strong>${esc(tr('pack.packageNumber',{number:i+1}))}</strong><small>${esc(q(p.packagingType||p.packageType))}</small>${field('length','pack.lengthRequired')}${field('width','pack.widthRequired')}${field('height','pack.heightRequired')}</div>`);
     }
     return rows.join('');
   }
