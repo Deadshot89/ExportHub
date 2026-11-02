@@ -1,0 +1,37 @@
+name: RC1754 Mehrfach-Wochentage Gate
+on:
+  pull_request:
+    paths:
+      - 'assets/rc1570-tasks-focus.js'
+      - 'assets/rc1570-tasks-focus.css'
+      - 'assets/i18n/rc1570-tasks-focus.js'
+      - 'test/rc1754-task-multi-weekdays.test.mjs'
+      - '.github/rc1112/build-three-env.mjs'
+      - '.github/workflows/rc1754-task-weekdays-gate.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Validate syntax
+        run: |
+          node --check assets/rc1570-tasks-focus.js
+          node --check assets/i18n/rc1570-tasks-focus.js
+      - name: Multi-weekday and recurrence regressions
+        run: |
+          node --test --test-concurrency=1 test/rc1754-task-multi-weekdays.test.mjs test/taskplanner-v2-recurrence.test.mjs test/taskplanner-v2-lifecycle-recurrence.test.mjs test/rc1570-tasks-focus.test.mjs
+      - name: Build all release candidates
+        run: |
+          node .github/rc1112/build-three-env.mjs
+          test -s dist-rc1112/assets/rc1570-tasks-focus.js
+          test -s dist-rc1112/assets/i18n/rc1570-tasks-focus.js
+          grep -q 'rc1570-tasks-focus.js?v=1754' dist-rc1112/index.html
+          grep -q 'rc1570-tasks-focus.js?v=1754' dist-rc1112/TESTVERSION.html
+      - name: No production deployment
+        run: echo 'Branch verification only, no deployment'
