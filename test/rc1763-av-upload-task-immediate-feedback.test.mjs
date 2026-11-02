@@ -11,14 +11,14 @@ function fixture(response){
   {id:'task:av-missing:XYZ789',sourceType:'av_missing',linkedShipmentRef:'XYZ789',status:'offen',done:false},
   {id:'manual-ABC123',sourceType:'manual',linkedShipmentRef:'ABC123',status:'offen',done:false}
  ];
- const state={tasks},events=[],requests=[];
+ const state={tasks},events=[],requests=[],alerts=[];
  const window={
   __EXPORTHUB_RC776_VIEW_SHIPMENT__:{ref:'ABC123'},
   __EXPORTHUB_GET_STATE__:()=>state,
   ExportHUBClean:{runtime:{authToken:'fake-session-token'}},
   CustomEvent:class CustomEvent{constructor(type,options){this.type=type;this.detail=options.detail}},
   dispatchEvent:event=>{events.push(event);return true},
-  alert:msg=>{throw Error('Unexpected alert: '+msg)},
+  alert:msg=>{alerts.push(msg)},
   ExportHUBShipmentView:{refreshReferenceFiles:()=>{events.push({type:'refreshReferenceFiles'})}}
  };
  const document={body:{},querySelector:()=>null,addEventListener:()=>{}};
@@ -27,11 +27,11 @@ function fixture(response){
  }
  const fetch=async(url,opts)=>{
   requests.push({url,opts});
-  return{ok:true,status:200,json:async()=>response};
+  return{ok:true,status:200,json:async()=>({reference:'ABC123',file:{id:'avblob:stored',name:'AV_ABC123.pdf'},...response})};
  };
  const sandbox={window,document,FileReader,fetch,setTimeout:()=>0,console};
  vm.runInNewContext(SCRIPT,sandbox,{filename:'assets/av-upload.js'});
- return{window,state,events,requests};
+ return{window,state,events,requests,alerts};
 }
 
 test('P0 AV: verified server task completion immediately updates only the matching local AV task',async()=>{
@@ -62,5 +62,23 @@ test('P0 AV: partial or pending server confirmation never completes a task in th
   assert.equal(await f.window.ExportHUBAvUpload.upload({name:'AV.pdf',size:200,type:'application/pdf'},null),true);
   assert.equal(f.state.tasks[0].done,false);
   assert.equal(f.events.some(e=>e.type==='exporthub:tasks-updated'),false);
+ }
+});
+
+test('P0 AV: HTTP 200 alone does not prove that an AV was saved',async()=>{
+ for(const response of [
+  {ok:false,taskCompleted:true},
+  {ok:undefined,taskCompleted:true},
+  {ok:true,reference:'XYZ789',taskCompleted:true},
+  {ok:true,file:null,taskCompleted:true},
+  {ok:true,file:{id:'',name:'AV_ABC123.pdf'},taskCompleted:true},
+  {ok:true,file:{id:'avblob:stored'},taskCompleted:true}
+ ]){
+  const f=fixture(response);
+  const result=await f.window.ExportHUBAvUpload.upload({name:'AV.pdf',size:200,type:'application/pdf'},null);
+  assert.equal(result,false,'upload must fail closed without complete acknowledgement');
+  assert.equal(f.state.tasks[0].done,false);
+  assert.equal(f.events.some(e=>e.type==='exporthub:tasks-updated'),false);
+  assert.equal(f.alerts.length,1,'show an error instead of reporting success');
  }
 });
