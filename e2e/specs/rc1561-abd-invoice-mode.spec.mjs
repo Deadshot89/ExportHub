@@ -12,6 +12,25 @@ test('RC1561: Rechnungsanalyse behält Modus und Dateien, wenn die ABD-Ansicht n
 
   const panel=page.locator('[data-rc1294-abd-analysis="1"]');
   await expect(panel).toBeVisible({timeout:10_000});
+  const legacyForm=page.locator('#rc1294AbdForm');
+  const savedRequests=page.locator('#rc1294SavedRequests');
+  await expect(legacyForm).toBeVisible();
+  await expect(savedRequests).toBeHidden();
+
+  await panel.locator('[data-rc1294-mode="invoice"]').click();
+  await expect(panel.locator('[data-rc1294-invoice-panel]')).toBeVisible();
+  await expect(legacyForm).toBeHidden();
+  await expect(savedRequests).toBeHidden();
+
+  await panel.locator('[data-rc1294-mode="saved"]').click();
+  await expect(savedRequests).toBeVisible();
+  await expect(legacyForm).toBeHidden();
+  await expect(panel.locator('[data-rc1294-invoice-panel]')).toBeHidden();
+
+  await panel.locator('[data-rc1294-mode="manual"]').click();
+  await expect(legacyForm).toBeVisible();
+  await expect(savedRequests).toBeHidden();
+
   await panel.locator('[data-rc1294-mode="invoice"]').click();
   await expect(panel.locator('[data-rc1294-invoice-panel]')).toBeVisible();
 
