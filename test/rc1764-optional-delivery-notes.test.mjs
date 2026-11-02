@@ -73,13 +73,13 @@ test('RC1764: pack pages and all translations describe delivery notes as optiona
  for(const path of ['pack.html','assets/pack.html']){
   const html=read(path);
   assert.match(html,/id="packDocumentsOptional"/);
-  assert.doesNotMatch(html,/id="packDocuments"[^>]*\\srequired(?:\\s|>)/);
+  assert.doesNotMatch(html,/id="packDocuments"[^>]*\srequired(?:\s|>)/);
  }
  const js=read('assets/pack-notification.js');
- assert.match(js,/function valid\\(\\)/);
- assert.doesNotMatch(js,/return state\\.documents\\.length>0/);
- assert.doesNotMatch(js,/if\\(!documentsOk\\)items\\.push/);
- assert.match(js,/els\\.deliveryHelp\\.textContent=tr\\('pack\\.deliveryNotesHelp'\\)/);
+ assert.match(js,/function valid\(\)/);
+ assert.doesNotMatch(js,/return state\.documents\.length>0/);
+ assert.doesNotMatch(js,/if\(!documentsOk\)items\.push/);
+ assert.match(js,/els\.deliveryHelp\.textContent=tr\('pack\.deliveryNotesHelp'\)/);
  const root={};
  vm.runInNewContext(read('assets/i18n/pack-notification.js'),{window:root,globalThis:root});
  vm.runInNewContext(read('assets/i18n/pack-notification-draft-bridge.js'),{window:root,globalThis:root});
