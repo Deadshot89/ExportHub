@@ -2,6 +2,7 @@
 // Independent, private Azure AV archive. Graph/OneDrive failures must not erase a
 // valid uploaded AV or block its associated ExportHUB task.
 const crypto=require('crypto');
+const {isolationConfig}=require('./testservice-auth-isolation');
 const {BlobServiceClient}=require('@azure/storage-blob');
 const CONTAINER=process.env.EXPORTHUB_DOCUMENT_CONTAINER||'exporthub-documents';
 const MAX_FILES=500;
@@ -10,7 +11,13 @@ function err(code,message,status=503){const e=new Error(message);e.code=code;e.s
 function environment(value){return text(value).toLowerCase()==='testservice'?'testservice':'production'}
 function refValue(value){const ref=text(value).toUpperCase();if(!/^[A-Z0-9]{6}$/.test(ref))throw err('INVALID_REFERENCE','Ungültige Sendungsreferenz.',400);return ref}
 function connectionString(){return process.env.EXPORTHUB_STORAGE_CONNECTION_STRING||process.env.EXPORTHUB_STORAGE_CONNECTION||process.env.EXPORTHUB_AZURE_STORAGE_CONNECTION_STRING||process.env.AzureWebJobsStorage||''}
-function client(){const cs=connectionString();if(!cs)throw err('STORAGE_NOT_CONFIGURED','Der ExportHUB-Dokumentenspeicher ist nicht konfiguriert.');return BlobServiceClient.fromConnectionString(cs).getContainerClient(CONTAINER)}
+function client(env='production'){
+ const isolated=environment(env)==='testservice'?isolationConfig():{enabled:false};
+ const cs=isolated.enabled?isolated.connectionString:connectionString();
+ if(!cs)throw err('STORAGE_NOT_CONFIGURED','Der ExportHUB-Dokumentenspeicher ist nicht konfiguriert.');
+ // TESTSERVICE AVs must remain in the isolated storage account when opted in.
+ return BlobServiceClient.fromConnectionString(cs).getContainerClient(CONTAINER);
+}
 function prefix(ref,env){return 'av-v1/'+environment(env)+'/'+refValue(ref)+'/'}
 function filename(name){const value=text(name);if(!value||value.length>180||/[\\/\r\n\x00-\x1f]/.test(value))throw err('AV_NAME_INVALID','Ungültiger AV-Dateiname.',400);return value}
 function fileId(uuid){return 'avblob:'+uuid}
@@ -23,7 +30,7 @@ function fileFromBlob(blob,p){
  return{id,name,size:Number(blob.properties&&blob.properties.contentLength||0),mimeType:text(blob.properties&&blob.properties.contentType)||'application/octet-stream',createdDateTime:blob.properties&&blob.properties.createdOn||null,lastModifiedDateTime:blob.properties&&blob.properties.lastModified||null,storage:'azure-av',blobName:blob.name};
 }
 async function list(ref,env){
- const c=client(),p=prefix(ref,env),files=[];
+ const c=client(env),p=prefix(ref,env),files=[];
  try{
  for await(const entry of c.listBlobsFlat({prefix:p})){
   const file=fileFromBlob(entry,p);
@@ -41,7 +48,7 @@ async function list(ref,env){
 async function save(ref,env,name,bytes,mimeType){
  const r=refValue(ref),n=filename(name),buffer=Buffer.from(bytes||[]);
  if(!buffer.length||buffer.length>15*1024*1024)throw err('AV_FILE_INVALID','Die AV-Datei ist leer oder zu groß.',400);
- const c=client();await c.createIfNotExists();
+ const c=client(env);await c.createIfNotExists();
  const id=crypto.randomBytes(16).toString('hex'),blobName=prefix(r,env)+id+'/'+encodeURIComponent(n);
  const blob=c.getBlockBlobClient(blobName),hash=crypto.createHash('sha256').update(buffer).digest('hex');
  await blob.uploadData(buffer,{conditions:{ifNoneMatch:'*'},blobHTTPHeaders:{blobContentType:text(mimeType)||'application/octet-stream',blobCacheControl:'private, no-store'},metadata:{reference:r,environment:environment(env),kind:'av',sha256:hash}});
@@ -55,7 +62,7 @@ async function read(ref,env,id){
  if(!/^avblob:[0-9a-f]{32}$/.test(text(id)))throw err('AV_FILE_INVALID','Ungültige AV-Dateikennung.',400);
  const files=await list(ref,env),file=files.find(f=>f.id===id);
  if(!file)throw err('AV_FILE_NOT_FOUND','Ausgangsvermerk in dieser Sendung nicht gefunden.',404);
- const blob=client().getBlockBlobClient(file.blobName),bytes=Buffer.from(await blob.downloadToBuffer());
+ const blob=client(env).getBlockBlobClient(file.blobName),bytes=Buffer.from(await blob.downloadToBuffer());
  if(bytes.length!==file.size)throw err('AV_FILE_READBACK_FAILED','Die gespeicherte AV-Datei ist unvollständig.',502);
  return{file,buffer:bytes};
 }
