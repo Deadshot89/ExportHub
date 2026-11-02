@@ -330,7 +330,7 @@ test('RC1294 P2: ABD-Bereich routet sicher in PDF/XLSX/CSV-Rechnungsanalyse',asy
 
   const panel=page.locator('[data-rc1294-abd-analysis="1"]');
   await expect(panel).toBeVisible({timeout:10_000});
-  await expect(panel).toContainText(/ABD-Datenimport|Positionsprüfung|Export declaration/i);
+  await expect(panel).toContainText(/Arbeitsbereich auswählen|Choose a workspace|Zgłoszenia eksportowe|Solicitudes guardadas|Rechnung analysieren/i);
   const invoicePanel=panel.locator('[data-rc1294-invoice-panel]');
   const invoiceMode=panel.locator('[data-rc1294-mode="invoice"]');
   const input=panel.locator('[data-rc1294-files]');
@@ -343,7 +343,8 @@ test('RC1294 P2: ABD-Bereich routet sicher in PDF/XLSX/CSV-Rechnungsanalyse',asy
   await expect(input).toHaveAttribute('multiple','');
   await expect(input).toHaveAttribute('accept',/\.pdf.*\.xlsx.*\.csv/i);
   await expect(panel.locator('[data-rc1294-start]')).toBeVisible();
-  await expect(page.locator('#rc626Abd')).toContainText(/ABD-Anfrage erstellen/i);
+  await expect(page.locator('#rc626Abd .rc626-head h2')).toContainText(/ABD & Rechnungen|Export declarations & invoices/i);
+  await expect(page.locator('#rc1294AbdForm')).toBeHidden();
   await assertNoSourceLeak(page);
   await assertNoHorizontalOverflow(page);
   await assertRuntimeClean(runtime,testInfo);

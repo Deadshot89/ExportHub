@@ -51,6 +51,10 @@ function prepare(input){
   };
   var legacy=root.ExportHUBRC626;
   if(!legacy||typeof legacy.openAbd!=='function'){pending=null;throw new Error('ABD_HANDOFF_LEGACY_UNAVAILABLE')}
+  // RC1761: an invoice handoff must reveal the existing ABD form instead of
+  // leaving the user on the invoice-only tab after RC626 replaces the page.
+  var tabs=root.ExportHUBRC1294ABDAnalysis;
+  if(tabs&&typeof tabs.setMode==='function')tabs.setMode('manual',true);
   legacy.openAbd();
   try{
     if(typeof root.CustomEvent==='function'&&root.document&&typeof root.document.dispatchEvent==='function')root.document.dispatchEvent(new root.CustomEvent('exporthub:abd-analysis-prepared',{detail:clone(pending)}));

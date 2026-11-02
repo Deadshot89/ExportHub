@@ -2,6 +2,9 @@
 'use strict';
 var packs=Object.freeze({
   de:Object.freeze({
+    workspaceTitle:'ABD & Rechnungen',
+    tabIntro:'Arbeitsbereich auswählen – nur die passenden Felder werden angezeigt.',
+    savedMode:'Gespeicherte Anfragen',
     entryTitle:'Exportexperte · ABD erstellen',
     entryHelp:'Wähle den passenden Einstieg. Der bestehende manuelle und sendungsbezogene ABD-Ablauf bleibt unverändert. Die Rechnungsanalyse führt dich durch die Positionsprüfung.',
     entryAria:'ABD-Einstieg auswählen',
@@ -46,6 +49,9 @@ var packs=Object.freeze({
     prepareAbdBlocked:'Erst alle Positionen prüfen und die Differenz auf 0 setzen.'
   }),
   en:Object.freeze({
+    workspaceTitle:'Export declarations & invoices',
+    tabIntro:'Choose a workspace – only the relevant fields are shown.',
+    savedMode:'Saved requests',
     entryTitle:'Export expert · create export declaration',
     entryHelp:'Choose the appropriate entry point. The existing manual and shipment-based export declaration flows remain unchanged.',
     entryAria:'Select export declaration entry point',
@@ -90,6 +96,9 @@ var packs=Object.freeze({
     prepareAbdBlocked:'Review all items first and reduce the difference to 0.'
   }),
   pl:Object.freeze({
+    workspaceTitle:'Zgłoszenia eksportowe i faktury',
+    tabIntro:'Wybierz obszar pracy – wyświetlane są tylko odpowiednie pola.',
+    savedMode:'Zapisane wnioski',
     entryTitle:'Ekspert eksportowy · utwórz ABD',
     entryHelp:'Wybierz odpowiedni sposób rozpoczęcia. Dotychczasowy ręczny proces ABD oraz proces z wysyłki pozostają bez zmian.',
     entryAria:'Wybierz sposób rozpoczęcia ABD',
@@ -134,6 +143,9 @@ var packs=Object.freeze({
     prepareAbdBlocked:'Najpierw sprawdź wszystkie pozycje i ustaw różnicę na 0.'
   }),
   es:Object.freeze({
+    workspaceTitle:'Declaraciones de exportación y facturas',
+    tabIntro:'Selecciona una sección – solo se muestran los campos necesarios.',
+    savedMode:'Solicitudes guardadas',
     entryTitle:'Experto de exportación · crear ABD',
     entryHelp:'Elige el punto de entrada adecuado. Los procesos ABD manual y basado en el envío existentes permanecen sin cambios.',
     entryAria:'Seleccionar entrada de ABD',
@@ -178,6 +190,9 @@ var packs=Object.freeze({
     prepareAbdBlocked:'Revisa primero todas las partidas y lleva la diferencia a 0.'
   }),
   fr:Object.freeze({
+    workspaceTitle:'Déclarations d\'exportation et factures',
+    tabIntro:'Choisissez une section – seuls les champs utiles sont affichés.',
+    savedMode:'Demandes enregistrées',
     entryTitle:'Expert export · créer un ABD',
     entryHelp:'Choisissez le point d’entrée adapté. Les processus ABD manuel et basé sur l’expédition existants restent inchangés.',
     entryAria:'Sélectionner le point d’entrée ABD',
@@ -222,6 +237,9 @@ var packs=Object.freeze({
     prepareAbdBlocked:'Vérifiez d’abord toutes les positions et ramenez l’écart à 0.'
   }),
   it:Object.freeze({
+    workspaceTitle:'Dichiarazioni di esportazione e fatture',
+    tabIntro:'Scegli una sezione – vengono mostrati solo i campi pertinenti.',
+    savedMode:'Richieste salvate',
     entryTitle:'Esperto export · crea ABD',
     entryHelp:'Scegli il punto di ingresso appropriato. I processi ABD manuale e basato sulla spedizione esistenti rimangono invariati.',
     entryAria:'Seleziona il punto di ingresso ABD',
@@ -281,7 +299,7 @@ function t(key,lang,vars){
   var selected=normalize(lang||language()),pack=packs[selected]||packs.de,value=pack[key]||packs.de[key]||String(key||'');
   return interpolate(value,vars)
 }
-var handoffObserver=null;
+var handoffObserver=null,handoffAttempts=0,handoffRetryTimer=null;
 function handoffNeeded(){
   var d=root.document,box=d&&d.querySelector&&d.querySelector('[data-rc1294-results]');
   return !!(box&&!box.hidden&&box.querySelector&&box.querySelector('.rc1294-document'))
@@ -291,12 +309,23 @@ function disconnectHandoffObserver(){
 }
 function ensureHandoff(){
   try{if(root.ExportHUBRC1499Handoff&&typeof root.ExportHUBRC1499Handoff.prepare==='function'){disconnectHandoffObserver();return true}}catch(_){}
+  // RC1761: a missing script must not cause an unbounded 404 / DOM observer loop.
+  if(handoffRetryTimer||handoffAttempts>=3)return false;
   var d=root.document;if(!d||!d.createElement)return false;
   var existing=d.getElementById('exporthub-rc1499-handoff');if(existing)return false;
   try{
+    handoffAttempts++;
     var s=d.createElement('script');s.id='exporthub-rc1499-handoff';s.src='/assets/rc1499-exportexperte-handoff.js?v=1499';s.async=true;
-    s.addEventListener('load',function(){disconnectHandoffObserver()},{once:true});
-    s.addEventListener('error',function(){try{s.remove()}catch(_){}},{once:true});
+    s.addEventListener('load',function(){handoffAttempts=0;disconnectHandoffObserver()},{once:true});
+    s.addEventListener('error',function(){
+      if(handoffAttempts<3&&typeof root.setTimeout==='function'){
+        handoffRetryTimer=root.setTimeout(function(){
+          handoffRetryTimer=null;
+          if(handoffNeeded())ensureHandoff()
+        },1200)
+      }else disconnectHandoffObserver();
+      try{s.remove()}catch(_){}
+    },{once:true});
     (d.head||d.documentElement).appendChild(s);return true
   }catch(_){return false}
 }
