@@ -347,7 +347,27 @@ export async function assertNoHorizontalOverflow(page,tolerance=4){
     clientWidth:document.documentElement.clientWidth,
     bodyScrollWidth:document.body?.scrollWidth||0
   }));
-  expect(dims.scrollWidth,`Horizontales Overflow: ${JSON.stringify(dims)}`).toBeLessThanOrEqual(dims.clientWidth+tolerance);
+  // RC1764: collect geometry only on failure. This never changes the tolerance
+  // and avoids logging customer data or all DOM text into Actions output.
+  if(dims.scrollWidth>dims.clientWidth+tolerance){
+    const offenders=await page.evaluate(()=>{
+      const viewport=document.documentElement.clientWidth;
+      const nodes=Array.from(document.querySelectorAll('body *'));
+      return nodes.map(el=>{
+        const box=el.getBoundingClientRect();
+        if(box.width<1||box.height<1||box.right<=viewport+4)return null;
+        const css=getComputedStyle(el);
+        return {
+          tag:el.tagName.toLowerCase(),id:el.id||'',
+          className:typeof el.className==='string'?el.className.slice(0,100):'',
+          right:Math.round(box.right),left:Math.round(box.left),
+          width:Math.round(box.width),overflowX:css.overflowX,
+          minWidth:css.minWidth,display:css.display
+        };
+      }).filter(Boolean).sort((a,b)=>b.right-a.right).slice(0,16);
+    });
+    expect(dims.scrollWidth,`Horizontales Overflow: ${JSON.stringify({dims,offenders})}`).toBeLessThanOrEqual(dims.clientWidth+tolerance);
+  }
 }
 
 export function attachRuntimeGuards(page,testInfo){
