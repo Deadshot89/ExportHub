@@ -6,8 +6,9 @@ const src=fs.readFileSync('assets/rc1294-abd-self-service.js','utf8');
 
 test('RC1561: Modus und gewählte Dateien liegen außerhalb des Panels und überleben ein Neuzeichnen',()=>{
   assert.match(src,/var currentMode='manual',pendingFiles=\[\];/);
-  assert.match(src,/currentMode=mode==='invoice'\?'invoice':'manual';/);
-  assert.match(src,/if\(currentMode==='invoice'\)\{\s*setMode\('invoice'\);/);
+  assert.match(src,/currentMode=mode;/,'All four ABD modes must survive the view re-render');
+  assert.match(src,/setMode\(currentMode,true\);/,'Re-render must restore the tab without repeating shipment prefill');
+  assert.match(src,/if\(currentMode==='invoice'&&pendingFiles\.length\)/,'Invoice uploads remain in memory');
 });
 
 test('RC1561: Ereignisse der Dateiauswahl laufen nicht in die ABD-Ansicht weiter',()=>{
