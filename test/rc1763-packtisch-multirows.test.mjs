@@ -21,6 +21,21 @@ test('RC1763 packers can explicitly add multiple separately typed packing rows o
  assert.match(js,/packageTypeId:entry\?entry\.id:''/,'per-line packaging master ID must reach backend');
 });
 
+test('RC1763 shipment creation carries each pack row type into the shipment editor',async()=>{
+ const vm=await import('node:vm'),window={};
+ vm.runInNewContext(file('assets/pack-notification-shipment.js'),{window,globalThis:window});
+ const bridge=window.ExportHUBPackShipment;
+ assert.ok(bridge,'shipment prefill bridge must be available');
+ const prefill=bridge.shipmentPrefill({packageType:'Euro Palette',packageCount:2,totalWeight:150,packages:[
+  {packageNo:1,packageType:'Euro Palette',length:120,width:80,height:140},
+  {packageNo:2,packageType:'Transportkiste',length:60,width:40,height:50}
+ ]});
+ assert.deepEqual(Array.from(prefill.rows,x=>x.packaging),['Euro Palette','Transportkiste']);
+ const grouped=bridge.shipmentRows(prefill);
+ assert.deepEqual(Array.from(grouped,x=>x.type),['Euro Palette','Transportkiste']);
+ assert.equal(grouped.length,2,'different packaging cannot be merged into one shipment row');
+});
+
 test('RC1763 API draft and submit normalize each row without losing packaging selection',()=>{
  const base={packageType:'Euro Palette',packageTypeId:'P1',packageCount:2,totalWeight:150,customer:'Testkunde',stationToken:'X',sessionId:'S',idempotencyKey:'I',documents:[{name:'ls.pdf',mimeType:'application/pdf',data:'data:application/pdf;base64,'+Buffer.from('%PDF-1.4\n%%EOF').toString('base64')}],packages:[
   {packageType:'Euro Palette',packageTypeId:'P1',length:120,width:80,height:140},
