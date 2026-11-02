@@ -60,6 +60,12 @@ async function getFolder(reference,environment='production'){
   : GRAPH_BASE+'/users/'+encodeURIComponent(DRIVE_USER)+'/drive/root:/'+encPath(path)+'?$select=id,name,webUrl';
  const res=await graph(url);
  if(res.status===404){
+  if(!target){
+   const graphBody=await res.json().catch(()=>({}));
+   const graphMessage=text(graphBody&&graphBody.error&&graphBody.error.message||graphBody&&graphBody.message);
+   if(/\buser\s+not\s+found\b|\buser\s+does\s+not\s+exist\b/i.test(graphMessage))
+    throw error('GRAPH_REFERENCE_USER_NOT_FOUND','Der für die REF-Ablage hinterlegte Microsoft-365-Benutzer wurde nicht gefunden. Bitte das SharePoint-Ziel über EXPORTHUB_REFERENCE_DRIVE_ID und EXPORTHUB_REFERENCE_FOLDER_ID konfigurieren.',503);
+  }
   if(target){
    // A 404 for a REF child is only a missing shipment folder when the exact
    // parent is itself readable. Never silently treat a wrong library as empty.
@@ -179,4 +185,4 @@ async function listFiles(reference,environment='production'){
 }
 // Used by the photo writer before the first Azure write. No network request.
 function assertTargetForEnvironment(environment){exactTarget(environment);return true}
-module.exports={GRAPH_BASE,REFERENCE_FOLDER,DRIVE_USER,refValue,safeFileName,folderPath,ensureFolder,upload,listFiles,config,assertTargetForEnvironment};
+module.exports={GRAPH_BASE,REFERENCE_FOLDER,DRIVE_USER,refValue,safeFileName,folderPath,exactTarget,getFolder,ensureFolder,upload,listFiles,config,assertTargetForEnvironment};
