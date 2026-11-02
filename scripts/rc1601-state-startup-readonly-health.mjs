@@ -2,7 +2,7 @@
 /**
  * RC1601 / P0 #836 – public, read-only Azure Team-State diagnostic.
  *
- * Only GET /api/exporthub-state?mode=ping and ?mode=health are requested.
+ * Only fixed GET /api/exporthub-health plus state ?mode=ping and ?mode=health are requested.
  * Both target URLs are fixed to the official Azure Static Web Apps host.
  * No cookies, tokens, request body, retries, writes, state data or customer
  * information are ever sent or logged.
@@ -13,7 +13,7 @@
 import { pathToFileURL } from 'node:url';
 
 export const PRODUCTION_BASE = 'https://wonderful-forest-0f315e310.7.azurestaticapps.net';
-export const ALLOWED_MODES = Object.freeze(['ping', 'health']);
+export const ALLOWED_MODES = Object.freeze(['functions', 'ping', 'health']);
 
 const BOOL_FIELDS = Object.freeze([
   'ok', 'routeReachable', 'storageChecked', 'storageConfigured',
@@ -30,6 +30,11 @@ const validSizeRow = row => row && typeof row === 'object' && Number.isFinite(ro
 export function safeSummary(body, mode) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) return {};
   const summary = { mode };
+  if (mode === 'functions' && body.service === 'exporthub-health') summary.service = 'exporthub-health';
+  if (mode === 'functions' && body.deployment && typeof body.deployment === 'object') {
+    if (typeof body.deployment.verified === 'boolean') summary.deploymentVerified = body.deployment.verified;
+    if (['production','testservice'].includes(body.deployment.environment)) summary.deploymentEnvironment = body.deployment.environment;
+  }
   // Fixed allowlist: never output container, blob path, storageSource, error text,
   // customer names, IDs, users, documents, URL or arbitrary payload fields.
   for (const key of BOOL_FIELDS) {
@@ -72,14 +77,14 @@ export async function probeMode(mode, {
   schedule = setTimeout,
   cancel = clearTimeout
 } = {}) {
-  if (!ALLOWED_MODES.includes(mode)) throw new TypeError('Only read-only ping and health modes are allowed');
+  if (!ALLOWED_MODES.includes(mode)) throw new TypeError('Only read-only functions, ping and health modes are allowed');
   const started = now();
   const controller = new AbortController();
   let timedOut = false;
   const timer = schedule(() => { timedOut = true; controller.abort(); }, timeoutMs);
   try {
-    const target = new URL('/api/exporthub-state', PRODUCTION_BASE);
-    target.searchParams.set('mode', mode);
+    const target = new URL(mode === 'functions' ? '/api/exporthub-health' : '/api/exporthub-state', PRODUCTION_BASE);
+    if (mode !== 'functions') target.searchParams.set('mode', mode);
     const response = await fetchImpl(target.toString(), {
       method: 'GET', headers: { Accept: 'application/json', 'Cache-Control': 'no-store' },
       cache: 'no-store', redirect: 'error', signal: controller.signal,
@@ -93,8 +98,11 @@ export async function probeMode(mode, {
       return { mode, httpStatus: response.status, elapsedMs, errorCode: 'NON_JSON_RESPONSE' };
     }
     const metrics = safeSummary(parsed, mode);
-    const good = response.status === 200 && metrics.ok === true && metrics.environment === 'production' &&
+    const functionReady = metrics.service === 'exporthub-health' && metrics.deploymentVerified === true &&
+      metrics.deploymentEnvironment === 'production';
+    const stateReady = metrics.environment === 'production' &&
       (mode !== 'health' || (metrics.storageReachable === true && metrics.teamStateReadable === true));
+    const good = response.status === 200 && metrics.ok === true && (mode === 'functions' ? functionReady : stateReady);
     return {
       mode, httpStatus: response.status, elapsedMs, ...metrics,
       ok: good,
