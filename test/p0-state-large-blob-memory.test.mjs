@@ -88,3 +88,34 @@ test('P0 #1159: metadata fallback keeps conditional upload and fails closed on o
   const denied=Object.assign(new Error('Forbidden'),{statusCode:403});
   await assert.rejects(()=>uploadJson({upload:async()=>{throw denied;}},{state:{}},null),error=>error===denied);
 });
+
+import { RestBlobClient } from '../api/shared/blob-rest.js';
+
+test('P0 #1159: large state upload opts out of a blind second 20-second REST PUT',async()=>{
+  const source=fs.readFileSync(new URL('../api/exporthub-state/index.js',import.meta.url),'utf8');
+  const begin=source.indexOf('async function uploadJson('),end=source.indexOf('function isStorageWriteConflict(',begin);
+  const uploadJson=new Function('Buffer',source.slice(begin,end)+'; return uploadJson;')(Buffer);
+  const args=[];
+  const blob={upload:async(raw,bytes,opts)=>{args.push({bytes,opts,isBuffer:Buffer.isBuffer(raw)});return {etag:'"ok"'};}};
+  await uploadJson(blob,{schemaVersion:3,revision:1,state:{big:'x'.repeat(16*1024*1024)}},'"etag-1"');
+  assert.equal(args[0].opts.transportAttempts,1);
+  assert.equal(args[0].opts.conditions.ifMatch,'"etag-1"');
+  assert.equal(args[0].isBuffer,true);
+  args.length=0;
+  await uploadJson(blob,{schemaVersion:3,revision:2,state:{small:'abc'}},'"etag-2"');
+  assert.equal(args[0].opts.transportAttempts,undefined,'small writes retain existing retry behavior');
+});
+
+test('P0 #1159: REST Blob PUT with transportAttempts=1 never sends a second ambiguous upload',async()=>{
+  const originalFetch=globalThis.fetch;
+  let count=0;
+  globalThis.fetch=async()=>{count++;return{
+    ok:false,status:503,headers:new Headers({'x-ms-error-code':'ServerBusy'}),
+    text:async()=>'<Error><Code>ServerBusy</Code></Error>'
+  };};
+  try{
+    const client=new RestBlobClient({sas:'sig=fake',endpoint:'https://example.invalid'},'container','state.json');
+    await assert.rejects(client.upload(Buffer.from('abc'),3,{transportAttempts:1}),error=>error.statusCode===503);
+    assert.equal(count,1);
+  }finally{globalThis.fetch=originalFetch;}
+});
