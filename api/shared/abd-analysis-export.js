@@ -25,16 +25,13 @@ function cleanHeader(header){
   senderVatId:safeText(source.senderVatId,80),
   senderTaxNumber:safeText(source.senderTaxNumber,80),
   senderRegister:safeText(source.senderRegister,180),
-  shipmentDate:safeText(source.shipmentDate,80),
   incoterm:safeText(source.incoterm,80),
-  incotermPlace:safeText(source.incotermPlace,80),
   exportReason:safeText(source.exportReason,200),
   packageCount:safeText(source.packageCount,80),
   packageType:safeText(source.packageType,80),
   transportMode:safeText(source.transportMode,80),
   shipmentReference:safeText(source.shipmentReference,120),
   freightCost:money(source.freightCost),
-  insuranceCost:money(source.insuranceCost),
   invoiceTotal:money(source.invoiceTotal),
   currency:safeText(source.currency,3).toUpperCase()
  }
