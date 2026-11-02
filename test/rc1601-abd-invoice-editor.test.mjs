@@ -182,7 +182,6 @@ test('RC1660: EORI, VAT ID, tax number, Incoterms and reason survive reanalysis 
  const enhanced=model.rebuildReviewedAnalysis({header:{
    ...original.header,senderEori:'DE123456789123456',senderVatId:'DE123456789',
    senderTaxNumber:'123/456/78901',senderRegister:'HRB 12345',
-   recipientEori:'GB123456789012',recipientVatId:'GB123456789',
    shipmentDate:'2026-11-02',incoterm:'DAP',incotermPlace:'Liverpool, GB',
    exportReason:'Replacement shipment - no charge',packageCount:'3',packageType:'cartons',
    transportMode:'road',shipmentReference:'TEST-123',
@@ -216,8 +215,23 @@ test('RC1660: zero sales price with declared customs value prints non-zero custo
  assert.match(txt,/10\.00/);
 });
 test('RC1660: all customs fields can be edited before exporting an imported Excel or CSV invoice',()=>{
- for(const f of ['senderEori','senderVatId','senderTaxNumber','senderRegister','recipientEori','recipientVatId','exportReason','incoterm','incotermPlace','packageCount','packageType','shipmentDate','freightCost']){
+ for(const f of ['senderEori','senderVatId','senderTaxNumber','senderRegister','exportReason','incoterm','incotermPlace','packageCount','packageType','shipmentDate','freightCost']){
   assert.ok(frontend.includes('data-rc1549-header="'+f+'"'),f+' missing in invoice editor');
  }
  assert.match(frontend,/customsRequired/);
+});
+test('RC1661: Essentra defaults from source invoice and no consignee tax IDs',async()=>{
+  const layout=fs.readFileSync('api/shared/abd-proforma-layout.js','utf8');
+  for(const data of ['Montel-Allee 3','D-41334 Nettetal','DE301601416','115/5711/1576','HRB 20649, Amtsgericht Krefeld'])assert.ok(frontend.includes(data),data+' missing from sender defaults');
+  assert.match(frontend,/senderEori:''/,'EORI absent from source invoice must stay blank');
+  assert.doesNotMatch(frontend,/data-rc1549-header="recipient(Eori|VatId)"/);
+  assert.doesNotMatch(layout,/header\.recipient(Eori|VatId)/);
+  const original=invoice();
+  const enhanced=model.rebuildReviewedAnalysis({header:{...original.header,recipientEori:'GB123456789012',recipientVatId:'GB123456789'},positions:original.positions});
+  const exported=exporter.createExportModel(enhanced);
+  assert.ok(!Object.hasOwn(exported.header,'recipientEori'));
+  assert.ok(!Object.hasOwn(exported.header,'recipientVatId'));
+  const text=(await extractPdfText(await exporter.createProformaPdf(enhanced))).replace(/\s+/g,' ');
+  assert.ok(!text.includes('GB123456789012'));
+  assert.ok(!text.includes('GB123456789'));
 });
