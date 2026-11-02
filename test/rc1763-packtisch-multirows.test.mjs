@@ -8,11 +8,17 @@ const store=require('../api/shared/pack-notification-store.js');
 const file=path=>fs.readFileSync(path,'utf8');
 
 test('RC1763 packers can explicitly add multiple separately typed packing rows on both public pack pages',()=>{
+ const versions=[];
  for(const path of ['pack.html','assets/pack.html']){
   const html=file(path);
   assert.match(html,/id="packAddPackage"/,'the add row button must be visible');
-  assert.match(html,/pack-notification\.js\?v=7/,'new client must bypass stale browser cache');
+  const tag=html.match(/<script\b[^>]*\bsrc="\/assets\/pack-notification\.js\?v=(\d+)"[^>]*><\/script>/);
+  assert.ok(tag,'the current pack-notification client must be loaded with a versioned URL');
+  const version=Number(tag[1]);
+  assert.ok(Number.isSafeInteger(version)&&version>=7,'client cache version must never regress below RC1763 v7');
+  versions.push(version);
  }
+ assert.equal(versions[0],versions[1],'both public pack pages must load the same client revision');
  const js=file('assets/pack-notification.js');
  assert.match(js,/data-pack-type/,'each row needs its own canonical package selector');
  assert.match(js,/data-pack-remove/,'each line can be removed');
