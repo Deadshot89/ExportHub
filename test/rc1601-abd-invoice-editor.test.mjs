@@ -175,3 +175,43 @@ test('RC1605: approved SOP artwork is shipped as the default PDF and browser log
  assert.match(integrator,/assets\/essentra-company-logo\.png/);
  assert.match(frontend,/img\.src=logoDataUri\|\|'\/assets\/essentra-company-logo\.png'/);
 });
+
+
+test('RC1660: EORI, VAT ID, tax number, Incoterms and reason survive reanalysis and PDF',async()=>{
+ const original=invoice();
+ const enhanced=model.rebuildReviewedAnalysis({header:{
+   ...original.header,senderEori:'DE123456789123456',senderVatId:'DE123456789',
+   senderTaxNumber:'123/456/78901',senderRegister:'HRB 12345',
+   recipientEori:'GB123456789012',recipientVatId:'GB123456789',
+   shipmentDate:'2026-11-02',incoterm:'DAP',incotermPlace:'Liverpool, GB',
+   exportReason:'Replacement shipment - no charge',packageCount:'3',packageType:'cartons',
+   transportMode:'road',shipmentReference:'TEST-123',
+   freightCost:14.50,insuranceCost:1.50
+  },positions:original.positions});
+ const exported=exporter.createExportModel(enhanced);
+ assert.equal(exported.header.senderEori,'DE123456789123456');
+ assert.equal(exported.header.senderVatId,'DE123456789');
+ assert.equal(exported.header.senderTaxNumber,'123/456/78901');
+ assert.equal(exported.header.exportReason,'Replacement shipment - no charge');
+ assert.equal(exported.header.freightCost,14.50);
+ const pdf=await exporter.createProformaPdf(enhanced);
+ const txt=(await extractPdfText(pdf)).replace(/\\s+/g,' ');
+ for(const expected of ['DE123456789123456','DE123456789','HRB 12345','DAP','Liverpool, GB','Replacement shipment','TEST-123','14.50','02.11.2026'])assert.ok(txt.includes(expected),expected+' missing');
+});
+test('RC1660: zero sales price with declared customs value prints non-zero customs unit value',async()=>{
+ const sample=invoice();
+ sample.positions[0].quantity=5000;
+ sample.positions[0].unitPrice=0;
+ sample.positions[0].value=10;
+ sample.groups[0].value=10;
+ sample.totals={...sample.totals,invoiceTotal:10,accountedTotal:10,groupedTotal:10,difference:0};
+ const txt=await extractPdfText(await exporter.createProformaPdf(sample));
+ assert.match(txt,/0\\.002000/);
+ assert.match(txt,/10\\.00/);
+});
+test('RC1660: all customs fields can be edited before exporting an imported Excel or CSV invoice',()=>{
+ for(const f of ['senderEori','senderVatId','senderTaxNumber','senderRegister','recipientEori','recipientVatId','exportReason','incoterm','incotermPlace','packageCount','packageType','shipmentDate','freightCost']){
+  assert.ok(frontend.includes('data-rc1549-header="'+f+'"'),f+' missing in invoice editor');
+ }
+ assert.match(frontend,/customsRequired/);
+});
