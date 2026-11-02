@@ -1,8 +1,8 @@
 (function(){
 'use strict';
-// AV-Upload in der Sendungsansicht: legt den Ausgangsvermerk direkt im REF-Ordner ab.
-// Die AV-Prüfung (/api/av-check) erkennt ihn dort und schließt eine offene
-// Aufgabe "Ausgangsvermerk nicht vorhanden" automatisch.
+// AV-Upload in der Sendungsansicht: speichert AVs zuerst im sicheren Azure-Archiv.
+// Nach bestätigter Server-Antwort wird die lokale Aufgabenansicht sofort aktualisiert;
+// die separate OneDrive-REF-Ablage kann fehlschlagen, ohne die Aufgabe zu blockieren.
 if(window.__EXPORTHUB_AV_UPLOAD__)return;window.__EXPORTHUB_AV_UPLOAD__=true;
 var MAX_BYTES=15*1024*1024,busy=false,scheduled=false;
 function q(v){return String(v==null?'':v).trim()}
@@ -29,6 +29,29 @@ function statusNotice(button,body){
   if(!notice){notice=document.createElement('span');notice.setAttribute('data-av-upload-status','1');notice.setAttribute('role','status');notice.className='rc786-av-upload-status';host.appendChild(notice)}
   notice.textContent=body.taskUpdatePending?t('taskPending'):(body.taskCompleted?(body.sharepointSaved?t('taskCompleted'):t('taskCompletedMirrorPending')):t('taskOpen'));
 }
+function reflectCompletedTask(ref,body){
+  // Never mark a task completed until the server confirms the durable AV
+  // archive and the transactional task update. This only patches the visible
+  // in-memory projection: the server has already persisted the authoritative state.
+  if(!body||body.taskCompleted!==true||body.taskUpdatePending===true)return 0;
+  var state=null;try{state=typeof window.__EXPORTHUB_GET_STATE__==='function'?window.__EXPORTHUB_GET_STATE__():null}catch(_){}
+  if(!state||!Array.isArray(state.tasks))return 0;
+  var ids=[],now=new Date().toISOString();
+  state.tasks.forEach(function(task){
+    if(!task||q(task.sourceType)!=='av_missing')return;
+    if(q(task.linkedShipmentRef||task.sourceRef).toUpperCase()!==ref)return;
+    if(task.done===true&&task.completed===true)return;
+    task.status='erledigt';task.done=true;task.completed=true;
+    task.doneAt=now;task.completedAt=now;task.doneBy='AV-Prüfung';task.completedBy='AV-Prüfung';
+    task.autoCompletedByAvCheck=true;task.updatedAt=now;
+    ids.push(q(task.id));
+  });
+  if(ids.length){try{
+    if(typeof window.dispatchEvent==='function'&&typeof window.CustomEvent==='function')
+      window.dispatchEvent(new window.CustomEvent('exporthub:tasks-updated',{detail:{reason:'AV-Upload bestätigt',reference:ref,taskIds:ids}}));
+  }catch(_){}}
+  return ids.length;
+}
 async function upload(file,button){
   var ref=refOf(currentShipment());
   if(!ref||!file)return false;
@@ -41,6 +64,7 @@ async function upload(file,button){
     if(!res.ok||body.ok===false)throw new Error(q(body.message)||('HTTP '+res.status));
     setLabel(button,t('done'),false);
     statusNotice(button,body);
+    reflectCompletedTask(ref,body);
     setTimeout(function(){setLabel(button,t('idle'),false)},4000);
     var view=window.ExportHUBShipmentView;if(view&&typeof view.refreshReferenceFiles==='function')view.refreshReferenceFiles();
     return true;
