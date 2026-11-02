@@ -128,9 +128,9 @@ async function renderInvoice(model,logoData){
   if(!items.length)return;
   if(y<FOOT+80)newPage();
   section('VERSAND- UND ZOLLANGABEN / SHIPPING & CUSTOMS');
-  const gap=16,col=(CONTENT-gap)/2;
-  for(let i=0;i<items.length;i+=2){
-   const pair=items.slice(i,i+2),wrapped=pair.map(item=>linesFor(bold,item[1],8,col-12,6));
+  const gap=12,col=(CONTENT-2*gap)/3;
+  for(let i=0;i<items.length;i+=3){
+   const pair=items.slice(i,i+3),wrapped=pair.map(item=>linesFor(bold,item[1],8,col-12,6));
    const rowHeight=17+11*Math.max(...wrapped.map(a=>a.length));
    if(y-rowHeight<FOOT+20)newPage();
    pair.forEach((item,j)=>{
