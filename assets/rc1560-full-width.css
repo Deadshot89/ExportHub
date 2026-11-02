@@ -22,3 +22,203 @@
 /* RC1566: the canonical page head still renders the developer label "privatePill" (untranslated key)
    as last pill in ten views (Aufgaben, Sendung erstellen, Zoll, Archiv …) – it carries no information */
 html body #content .page-head > span.pill.blue:last-child{display:none!important}
+
+
+/* RC1760 – fachliche ABD-Masken statt endlos breiter Vollbild-Formulare.
+   Isoliert auf #rc626Abd und den vorhandenen Rechnungseditor. */
+@media screen {
+  #content #rc626Abd {
+    box-sizing:border-box;
+    width:100%;
+    max-width:1480px;
+    min-width:0;
+    margin:0 auto;
+    gap:18px;
+    font-size:14px;
+  }
+  #content #rc626Abd .rc626-head h2 {font-size:clamp(22px,2vw,28px)}
+  #content #rc626Abd > .rc626-grid2 {
+    display:grid;
+    grid-template-columns:minmax(0,1.08fr) minmax(0,0.92fr);
+    gap:18px;
+    align-items:start;
+  }
+  #content #rc626Abd > .rc626-grid2 > section {min-width:0}
+  #content #rc626Abd .card {
+    min-width:0;
+    padding:clamp(14px,1.5vw,22px);
+    border-radius:14px;
+  }
+  #content #rc626Abd .card h3 {
+    font-size:17px;
+    line-height:1.3;
+    margin-bottom:14px;
+  }
+  #content #rc626Abd .field {
+    min-width:0;
+    font-size:13px;
+    line-height:1.35;
+  }
+  #content #rc626Abd .field input,
+  #content #rc626Abd .field select,
+  #content #rc626Abd .field textarea {
+    box-sizing:border-box;
+    min-width:0;
+    width:100%;
+    min-height:40px;
+    font-size:14px;
+  }
+  #content #rc626Abd .rc626-colli-row {
+    padding:12px;
+    margin:10px 0;
+    border-radius:12px;
+  }
+  #content #rc626Abd .rc626-template {
+    min-height:190px;
+    max-height:280px;
+    font-size:13px;
+    line-height:1.55;
+  }
+  #content #rc626Abd .rc626-preview {
+    min-height:0;
+    max-height:320px;
+    overflow:auto;
+    padding:16px;
+    font-size:13px;
+    line-height:1.6;
+    border-radius:12px;
+  }
+  #content #rc626Abd .rc626-list {
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:12px;
+    margin-top:14px;
+  }
+  #content #rc626Abd .rc626-item {
+    min-width:0;
+    padding:14px;
+    border-radius:12px;
+    border-color:var(--pc-line,#dbe4ef);
+    box-shadow:0 1px 3px rgba(15,35,65,.045);
+  }
+  #content #rc626Abd .rc626-item-head {
+    align-items:center;
+    gap:12px;
+  }
+  #content #rc626Abd .rc626-item-head b {
+    font-size:15px;
+    overflow-wrap:anywhere;
+  }
+  #content #rc626Abd .rc626-item .toolbar {
+    display:flex;
+    gap:6px;
+    flex-wrap:wrap;
+    margin-top:10px;
+  }
+  #content #rc626Abd .rc626-item .toolbar > :is(button,label) {
+    min-height:34px;
+    font-size:12.5px;
+    white-space:normal;
+  }
+  #content #rc626Abd .rc1760-abd-history {
+    min-width:0;
+  }
+  #content #rc626Abd .rc1760-search {
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:8px 14px;
+    margin:8px 0 16px;
+    font-size:13px;
+    font-weight:700;
+  }
+  #content #rc626Abd .rc1760-search input {
+    box-sizing:border-box;
+    width:min(100%,420px);
+    min-height:42px;
+    padding:9px 12px;
+    border:1px solid var(--pc-line,#cbd5e1);
+    border-radius:9px;
+    background:var(--pc-card-bg,#fff);
+    color:var(--pc-text,#0f172a);
+    font-size:14px;
+  }
+  #content #rc626Abd .rc1760-search input:focus-visible {
+    outline:2px solid var(--pc-primary,#2563eb);
+    outline-offset:2px;
+  }
+  #content #rc626Abd .rc626-item[hidden] {display:none!important}
+  /* Rechnung/Proforma: statt fünf winzigen Eingabespalten vier lesbare. */
+  #content #rc1549AbdManual {
+    min-width:0;
+    margin-top:18px;
+    padding:20px;
+    border:1px solid var(--pc-line,#dbe4ef);
+    border-left:4px solid #0f766e;
+    border-radius:13px;
+    background:var(--pc-card-bg,#fff);
+  }
+  #content #rc1549AbdManual .rc1549-head {
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:12px;
+    margin:16px 0;
+  }
+  #content #rc1549AbdManual .rc1549-head label {
+    min-width:0;
+    font-size:13px;
+    gap:6px;
+  }
+  #content #rc1549AbdManual .rc1549-head :is(input,textarea) {
+    min-width:0;
+    width:100%;
+    font-size:14px;
+    line-height:1.45;
+  }
+  #content #rc1549AbdManual .rc1549-subhead {
+    font-size:14px;
+    margin-top:12px;
+    padding-bottom:9px;
+  }
+  #content #rc1549AbdManual .rc1549-scroll {
+    max-width:100%;
+    overflow-x:auto;
+    scrollbar-gutter:stable;
+    border-radius:10px;
+  }
+  #content #rc1549AbdManual .rc1549-scroll table {
+    width:100%;
+    min-width:1250px;
+    font-size:13px;
+  }
+  #content #rc1549AbdManual .rc1549-scroll :is(th,td) {
+    padding:8px;
+    line-height:1.4;
+  }
+  #content #rc1549AbdManual .rc1549-scroll input {
+    font-size:13px;
+    min-height:34px;
+  }
+  #content #rc1549AbdManual .rc1549-metrics {
+    grid-template-columns:repeat(4,minmax(0,1fr));
+  }
+}
+@media screen and (max-width:1190px) {
+  #content #rc626Abd > .rc626-grid2 {
+    grid-template-columns:minmax(0,1fr);
+  }
+  #content #rc626Abd .rc626-list {grid-template-columns:repeat(2,minmax(0,1fr))}
+  #content #rc1549AbdManual .rc1549-head {grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media screen and (max-width:680px) {
+  #content #rc626Abd .rc626-list,
+  #content #rc626Abd .rc626-grid2,
+  #content #rc1549AbdManual .rc1549-head,
+  #content #rc1549AbdManual .rc1549-metrics {
+    grid-template-columns:minmax(0,1fr);
+  }
+  #content #rc626Abd .rc626-item-head {align-items:flex-start}
+  #content #rc1549AbdManual {padding:12px}
+  #content #rc1549AbdManual .rc1549-head label.rc1549-address {grid-column:auto}
+  #content #rc626Abd .rc1760-search input {width:100%}
+}
