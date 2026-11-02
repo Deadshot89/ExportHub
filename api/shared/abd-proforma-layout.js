@@ -231,7 +231,7 @@ async function renderInvoice(model,logoData){
    y-=20;rule(y+5)
   }
  }
- startPageContent();itemsSection(false);
+ startPageContent();if(y<FOOT+105)newPage();itemsSection(false);
  for(const position of positions)detailRow(position);
  summary();grouped();
  const pages=pdf.getPages();
