@@ -4,6 +4,7 @@
 const crypto = require('crypto');
 const { isDeepStrictEqual } = require('node:util');
 const { createBlobServiceClient } = require('../shared/blob-rest');
+const { collectReadableBytes } = require('../shared/collect-readable-bytes');
 const { mergeState, sanitizeState, pruneTombstones, clone, isLocalOnlyKey } = require('../shared/merge');
 const { isTransientStorageWriteError } = require('../shared/state-save-retry');
 const { externalizeDocumentCollections, DOCUMENT_CONTAINER, DOCUMENT_FIELDS, legacyDocumentInventory } = require('../shared/document-blob-store');
@@ -131,14 +132,14 @@ function parseStoredJson(raw,name){
 }
 async function readJson(blob,fallback,repairAuth=false){
  try{
-  const r=await blob.download(0),chunks=[];for await(const c of r.readableStreamBody)chunks.push(Buffer.from(c));
-  const rawBuffer=Buffer.concat(chunks);
+  const r=await blob.download(0);
+  const rawBuffer=await collectReadableBytes(r.readableStreamBody);
   try{const v=parseStoredJson(rawBuffer.toString('utf8'),blob&&blob.name);return {value:v==null?clone(fallback):v,etag:r.etag||null,bytes:rawBuffer.length}}
   catch(e){e.etag=r.etag||null;if(repairAuth)return {value:clone(fallback),etag:r.etag||null,repairedInvalidJson:true,bytes:rawBuffer.length};throw e}
  }catch(e){if(e&&e.statusCode===404)return {value:clone(fallback),etag:null,bytes:0};throw e}
 }
 async function uploadJson(blob,value,etag){
- const raw=JSON.stringify(value),bytes=Buffer.byteLength(raw),conditions=etag?{ifMatch:etag}:{ifNoneMatch:'*'},base={blobHTTPHeaders:{blobContentType:'application/json; charset=utf-8'},conditions};
+ const raw=Buffer.from(JSON.stringify(value)),bytes=raw.length,conditions=etag?{ifMatch:etag}:{ifNoneMatch:'*'},base={blobHTTPHeaders:{blobContentType:'application/json; charset=utf-8'},conditions};
  const metadata={schema:String(value.schemaVersion||3),revision:String(value.revision||0),updatedepoch:String(Date.parse(value.updatedAt||'')||Date.now()),clientversion:String(value.clientVersion||'').replace(/[^A-Za-z0-9_.-]/g,'').slice(0,80)};
  try{const uploaded=await blob.upload(raw,bytes,Object.assign({},base,{metadata}));return Object.assign({},uploaded||{},{bytes})}
  catch(e){
