@@ -247,6 +247,9 @@ function setMode(mode,skipShipmentPrefill){
   host.setAttribute('data-rc1294-mode',mode);
   var header=host.querySelector('.rc626-head h2');
   if(header)header.textContent=xtr('workspaceTitle');
+  // New ABD belongs to the creation workspace, not invoice analysis or history.
+  var createButton=host.querySelector('.rc626-head > button[onclick*="newAbd"]');
+  if(createButton)createButton.hidden=mode==='invoice'||mode==='saved';
   var form=host.querySelector(':scope > .rc626-grid2');
   if(form){form.id='rc1294AbdForm';form.setAttribute('role','tabpanel');form.hidden=mode==='invoice'||mode==='saved'}
   var history=host.querySelector('.rc1760-abd-history');
