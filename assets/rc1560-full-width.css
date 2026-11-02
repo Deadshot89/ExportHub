@@ -222,3 +222,53 @@ html body #content .page-head > span.pill.blue:last-child{display:none!important
   #content #rc1549AbdManual .rc1549-head label.rc1549-address {grid-column:auto}
   #content #rc626Abd .rc1760-search input {width:100%}
 }
+
+
+/* RC1761 – exklusiver ABD-Reiterinhalt: keine wiederholte ABD-Maske
+   unter Rechnungsanalyse oder gespeicherten Vorgängen. */
+@media screen {
+  #content #rc626Abd[data-rc1294-mode="invoice"] > .rc626-grid2,
+  #content #rc626Abd[data-rc1294-mode="saved"] > .rc626-grid2,
+  #content #rc626Abd > .rc626-grid2[hidden],
+  #content #rc626Abd .rc1294-invoice-panel[hidden],
+  #content #rc626Abd .rc1760-abd-history[hidden] {
+    display:none!important;
+  }
+  #content #rc626Abd[data-rc1294-mode]:not([data-rc1294-mode="saved"]) > .rc1760-abd-history {
+    display:none!important;
+  }
+  #content #rc626Abd[data-rc1294-mode="saved"] > .rc1760-abd-history:not([hidden]) {
+    display:block;
+  }
+  #content #rc626Abd .rc1294-router {
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    padding-bottom:2px;
+  }
+  #content #rc626Abd .rc1294-router button {
+    flex:0 0 auto;
+    min-width:132px;
+  }
+  #content #rc626Abd .rc1294-router button[aria-selected="true"] {
+    border-color:var(--pc-primary,#2563eb)!important;
+    background:var(--pc-primary,#1d4ed8)!important;
+    color:#fff!important;
+  }
+  #content #rc626Abd .rc1294-abd {
+    margin:0 0 18px;
+    border:1px solid var(--pc-line,#dbe4ef);
+    border-radius:12px;
+    background:var(--pc-card-bg,#fff);
+    box-shadow:none;
+  }
+  #content #rc626Abd .rc1294-intro {
+    color:var(--pc-muted,#475569);
+  }
+}
+@media screen and (max-width:680px) {
+  #content #rc626Abd .rc1294-router button {
+    flex:1 1 calc(50% - 8px);
+    min-width:0;
+  }
+}
