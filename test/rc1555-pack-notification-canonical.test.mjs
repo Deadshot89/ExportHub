@@ -81,7 +81,9 @@ test('RC1555 QR submit accepts active packaging without preset dimensions when a
   const notification=f.state().packNotifications[0];
   assert.equal(notification.packagingTypeId,'PKG-NODIM');
   assert.deepEqual(notification.packagingSnapshot,{name:'Neue Sonderverpackung',code:'NEWBOX',description:'Maße werden beim Packen erfasst',lengthCm:null,widthCm:null,heightCm:null,ldm:null});
-  assert.deepEqual(notification.packages,[{packageNo:1,length:77,width:66,height:55,unit:'cm'}]);
+  assert.equal(notification.packages[0].packagingType,'Neue Sonderverpackung');
+  assert.equal(notification.packages[0].packagingTypeId,'PKG-NODIM');
+  assert.deepEqual([notification.packages[0].length,notification.packages[0].width,notification.packages[0].height],[77,66,55]);
 });
 
 test('RC1555 QR submit rejects inactive or unknown packaging instead of trusting client text',async()=>{
@@ -99,4 +101,60 @@ test('RC1555 canonical resolver keeps legacy no-space aliases such as Europalett
   assert.equal(resolved.packageType,'Euro Palette');
   assert.equal(resolved.packagingSnapshot.lengthCm,120);
   assert.equal(resolved.packagingSnapshot.widthCm,80);
+});
+test('mixed colli: different master packaging types are stored per piece with independent dimensions and snapshots',async()=>{
+  const f=fixture(),session=await f.handler(request('session',{stationToken:f.token}));
+  const packages=[
+    {packageNo:1,packagingType:'Spezialbox A',packagingTypeId:'PKG-BOX-A',length:88,width:55,height:44},
+    {packageNo:2,packagingType:'Neue Sonderverpackung',packagingTypeId:'PKG-NODIM',length:72,width:50,height:31},
+    {packageNo:3,packagingType:'Spezialbox A',packagingTypeId:'PKG-BOX-A',length:88,width:55,height:66}
+  ];
+  const res=await f.handler(request('submit',submitPayload(f.token,session.body.sessionId,{packageCount:3,packages})));
+  assert.equal(res.status,201,JSON.stringify(res.body));
+  const saved=f.state().packNotifications[0];
+  assert.equal(saved.packageCount,3);
+  assert.deepEqual(saved.packages.map(p=>p.packagingType),['Spezialbox A','Neue Sonderverpackung','Spezialbox A']);
+  assert.deepEqual(saved.packages.map(p=>p.packagingTypeId),['PKG-BOX-A','PKG-NODIM','PKG-BOX-A']);
+  assert.deepEqual(saved.packages.map(p=>p.height),[44,31,66]);
+  assert.equal(saved.packages[1].packagingSnapshot.name,'Neue Sonderverpackung');
+  assert.equal(saved.packages[0].packagingSnapshot.name,'Spezialbox A');
+});
+
+test('mixed colli: saved draft retains distinct packaging and dimensions on reopen',async()=>{
+  const f=fixture(),session=await f.handler(request('session',{stationToken:f.token}));
+  const draft={
+    customer:'Testkunde',customerSource:'manual',packageType:'Spezialbox A',packageTypeId:'PKG-BOX-A',
+    packageCount:2,totalWeight:90,packages:[
+      {packagingType:'Spezialbox A',packagingTypeId:'PKG-BOX-A',length:88,width:55,height:44},
+      {packagingType:'Neue Sonderverpackung',packagingTypeId:'PKG-NODIM',length:77,width:66,height:55}
+    ],documents:[pdf()]
+  };
+  const saved=await f.handler(request('draft-save',{stationToken:f.token,sessionId:session.body.sessionId,draft}));
+  assert.equal(saved.status,200,JSON.stringify(saved.body));
+  const reopened=await f.handler(request('draft-get',{stationToken:f.token,draftId:saved.body.draft.id}));
+  assert.equal(reopened.status,200);
+  assert.deepEqual(reopened.body.draft.packages.map(p=>p.packagingTypeId),['PKG-BOX-A','PKG-NODIM']);
+  assert.deepEqual(reopened.body.draft.packages.map(p=>p.width),[55,66]);
+});
+
+test('mixed colli: inactive packaging is rejected even if top-level default is active',async()=>{
+  const f=fixture(),session=await f.handler(request('session',{stationToken:f.token}));
+  const res=await f.handler(request('submit',submitPayload(f.token,session.body.sessionId,{
+    packageCount:2,packages:[
+      {packagingType:'Spezialbox A',packagingTypeId:'PKG-BOX-A',length:88,width:55,height:44},
+      {packagingType:'Alte Kiste',packagingTypeId:'PKG-INACTIVE',length:70,width:50,height:40}
+    ]
+  })));
+  assert.equal(res.status,409);
+  assert.equal(res.body.code,'PACK_PACKAGE_TYPE_INACTIVE');
+  assert.equal(f.state().packNotifications.length,0);
+});
+
+test('mixed colli: old one-type QR clients still resolve the selected top-level packaging for every piece',async()=>{
+  const f=fixture(),session=await f.handler(request('session',{stationToken:f.token}));
+  const res=await f.handler(request('submit',submitPayload(f.token,session.body.sessionId,{
+    packageCount:2,packages:[{length:88,width:55,height:44},{length:88,width:55,height:44}]
+  })));
+  assert.equal(res.status,201,JSON.stringify(res.body));
+  assert.deepEqual(f.state().packNotifications[0].packages.map(p=>p.packagingTypeId),['PKG-BOX-A','PKG-BOX-A']);
 });
