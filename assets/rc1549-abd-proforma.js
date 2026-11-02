@@ -364,10 +364,47 @@ function bindObserver(){
   return true
  }catch(_){disconnectObserver();return false}
 }
+/* RC1760: existing ABD cards stay intact; only move their view below the form
+   and provide a local, non-persistent search. */
+function enhanceSavedAbdLayout(){
+ var d=root.document,abd=d&&d.getElementById('rc626Abd');
+ if(!abd)return false;
+ var columns=abd.querySelector(':scope > .rc626-grid2');
+ if(!columns||columns.children.length<2)return false;
+ var right=columns.children[1],history=abd.querySelector('.rc1760-abd-history');
+ if(!history){
+  var direct=right&&right.children||[];
+  for(var i=0;i<direct.length;i++){
+   var heading=direct[i]&&direct[i].querySelector&&direct[i].querySelector('h3');
+   if(heading&&/Gespeicherte ABD-Anfragen/i.test(q(heading.textContent))){history=direct[i];break}
+  }
+ }
+ if(!history)return false;
+ history.classList.add('rc1760-abd-history');
+ if(history.parentNode===right&&columns.parentNode)columns.parentNode.insertBefore(history,columns.nextSibling);
+ if(!history.querySelector('.rc1760-search')){
+  var label=d.createElement('label');label.className='rc1760-search';label.appendChild(d.createTextNode('Suchen'));
+  var input=d.createElement('input');input.type='search';input.placeholder='Referenz, Kunde oder Status';
+  input.setAttribute('aria-label','Gespeicherte ABD-Anfragen durchsuchen');
+  label.appendChild(input);
+  var count=d.createElement('span');count.setAttribute('role','status');count.setAttribute('aria-live','polite');label.appendChild(count);
+  var heading=history.querySelector('h3');
+  if(heading&&heading.nextSibling)history.insertBefore(label,heading.nextSibling);else history.appendChild(label);
+  var filter=function(){
+   var term=q(input.value).toLocaleLowerCase('de-DE');
+   var cards=Array.prototype.slice.call(history.querySelectorAll('.rc626-list > .rc626-item'));
+   var visible=0;cards.forEach(function(card){card.hidden=!!term&&!q(card.textContent).toLocaleLowerCase('de-DE').includes(term);if(!card.hidden)visible++});
+   count.textContent=cards.length?visible+' von '+cards.length+' Anfragen':'';
+  };
+  input.addEventListener('input',filter);
+  filter();
+ }
+ return true
+}
 function enhance(){
  var h=host(),entry=h&&h.querySelector('[data-rc1294-mode="invoice"]');
  if(entry){var title=t('invoiceTitle');if(entry.textContent!==title)entry.textContent=title}
- mountManual();enhanceUploaded();bindObserver();return true
+ mountManual();enhanceSavedAbdLayout();enhanceUploaded();bindObserver();return true
 }
 function schedule(){if(timer)return;timer=root.setTimeout?root.setTimeout(function(){timer=0;enhance()},0):0;if(!root.setTimeout)enhance()}
 function activate(){schedule()}
