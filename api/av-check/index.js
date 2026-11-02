@@ -6,6 +6,7 @@ const store = require('../shared/pickup-store');
 const avCheck = require('../shared/av-check');
 const referenceFolder = require('../shared/reference-folder-upload');
 const avBlob = require('../shared/av-blob-store');
+const authStore = require('../shared/auth-store');
 
 const REPO = 'Deadshot89/ExportHub';
 const WORKFLOW = 'av-check.yml';
@@ -66,12 +67,12 @@ async function githubOidcAuthorized(req) {
 }
 
 async function readTeamState(environment) {
-  const c = await store.clients(environment), blob = c.team.getBlockBlobClient(environment === 'testservice' ? store.TEST_TEAM_BLOB : store.TEAM_BLOB_BASE);
+  const c = await authStore.clientsForEnvironment(environment), blob = c.team;
   const loaded = await store.readJson(blob, null), doc = loaded.value || {};
   return doc.state && typeof doc.state === 'object' ? doc.state : {};
 }
 async function mutateTeamState(environment, mutator) {
-  const c = await store.clients(environment), blob = c.team.getBlockBlobClient(environment === 'testservice' ? store.TEST_TEAM_BLOB : store.TEAM_BLOB_BASE);
+  const c = await authStore.clientsForEnvironment(environment), blob = c.team;
   for (let i = 0; i < TEAM_MAX_RETRIES; i++) {
     const loaded = await store.readJson(blob, null), doc = loaded.value || { schemaVersion: 3, revision: 0, state: {}, users: [] };
     doc.state = doc.state && typeof doc.state === 'object' ? doc.state : {};
