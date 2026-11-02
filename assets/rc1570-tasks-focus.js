@@ -287,6 +287,46 @@ function customerNo(task){return q(task&&(task.customerNumber||task.linkedAccoun
 function noteOf(task){return q(task&&(task.note||task.notes||task.comment||task.description))}
 function isoDate(task){var d=parseDate(task&&(task.plannedDate||task.dueDate||task.dueAt||task.date||task.targetDate));return d&&!(isWeekly(task)&&!q(task.plannedDate||task.dueDate||task.dueAt))?dayKey(d):''}
 function weekdayIndex(task){var i=WEEKDAYS.indexOf(low(task&&(task.day||task.originalDay||task.weekday)));return i}
+function weeklyDays(task){
+ var x=task||{},series=arr(state().taskSeries).find(function(s){return q(s&&s.id)===q(x.seriesId)});
+ var stored=series&&series.rule&&series.rule.type==='weekly'?series.rule.weekdays:x.weekdays;
+ var days=arr(stored).map(Number).filter(function(d){return Number.isInteger(d)&&d>=1&&d<=7}).map(function(d){return d===7?0:d});
+ if(!days.length){var old=weekdayIndex(x);if(old>=0)days=[old]}
+ return Array.from(new Set(days)).sort(function(a,b){return (a||7)-(b||7)})
+}
+function retireSeriesDays(s,id,days){
+ var keep=new Set(days),today=dayKey(new Date());
+ arr(s.tasks).forEach(function(row){
+  if(q(row&&row.seriesId)!==id||!q(row.occurrenceKey).startsWith(id+'|'))return;
+  var date=q(row.originalOccurrenceDate)||q(row.occurrenceKey).slice(id.length+1),day=parseDate(date),weekday=day?day.getDay()||7:0;
+  if(!date||date<today||q(row.status)==='in_progress'||row.manualOverride===true)return;
+  if(keep.has(weekday)){if(row.status==='cancelled'&&row.cancelReason==='rc1570_schedule_change'){row.status='planned';delete row.cancelReason;delete row.cancelledAt;row.updatedAt=new Date().toISOString();}return;}
+  if(isDone(row))return;
+  row.status='cancelled';row.cancelReason='rc1570_schedule_change';row.cancelledAt=new Date().toISOString();row.updatedAt=row.cancelledAt;
+ })
+}
+function syncWeeklySeries(s,task,v){
+ if(!Array.isArray(s.taskSeries))s.taskSeries=[];
+ var id=q(task.seriesId)||'rc1570-series:'+taskId(task),index=s.taskSeries.findIndex(function(row){return q(row&&row.id)===id}),old=index>=0?s.taskSeries[index]:null;
+ var days=Array.from(new Set(arr(v.weekdays).map(Number).filter(function(n){return Number.isInteger(n)&&n>=0&&n<=6}).map(function(n){return n||7}))).sort(function(a,b){return a-b});
+ if(!days.length)return false;
+ var template=Object.assign({},task);
+ ['id','isTemplate','template','recurringTemplate','repeatTemplate','isRecurringTemplate','occurrenceKey','originalOccurrenceDate','completedAt','completedBy','doneAt','doneBy','createdAt','updatedAt','status','done','completed','history','dueAt','dueDate','plannedAt','plannedDate','date'].forEach(function(k){delete template[k]});
+ template.sourceType='manual';template.isTemplate=false;template.recurrence='';
+ var entry=Object.assign({},old||{},{id:id,title:task.title,area:task.area,owner:task.owner,customerName:task.customerName,priority:task.priority,
+   startDate:q(old&&old.startDate)||dayKey(new Date()),dueTime:q(v.time)||'16:15',holidayPolicy:q(old&&old.holidayPolicy)||'manual_decision',
+   rule:{type:'weekly',intervalWeeks:1,weekdays:days},task:template});
+ if(index>=0)s.taskSeries[index]=entry;else s.taskSeries.push(entry);
+ retireSeriesDays(s,id,days);
+ task.seriesId=id;task.weekdays=days;if(!q(task.occurrenceKey))task.isTemplate=true;
+ var engine=w.ExportHUBTaskRecurrenceV2,cal=engine&&typeof engine.calendar==='function'?engine.calendar(s.taskCalendar||{}):null;
+ if(engine&&typeof engine.materialize==='function'&&cal){
+   var until=new Date();until.setDate(until.getDate()+14);
+   var output=engine.materialize({series:[entry],tasks:s.tasks,calendar:cal,now:new Date().toISOString(),range:{start:dayKey(new Date()),end:dayKey(until)}});
+   if(output&&Array.isArray(output.tasks))s.tasks=output.tasks;
+ }
+ return true
+}
 function findUser(name){var n=low(name);if(!n)return null;return users().find(function(u){return [u.id,u.name,u.displayName,u.user,u.username,u.login].map(low).indexOf(n)>=0})||null}
 function openTaskView(mode,id){tv.mode=mode;tv.id=q(id);tv.error='';try{var rt=w.ExportHUBRC1014TaskRuntime,task=id&&findTask(id);if(task&&rt&&typeof rt.rememberTaskDetail==='function')rt.rememberTaskDetail(task)}catch(_){}if(view()==='taskdetail'){lastView='';renderTaskView(true)}else route('taskdetail')}
 function openDetail(id){if(!findTask(id))return;openTaskView('show',id)}
@@ -309,8 +349,9 @@ function applyForm(task,v,isNew){
   task.area=v.area;task.category=v.area;
   if(v.owner&&(isNew||v.owner!==ownerName(task,users()))){var u=findUser(v.owner),key=u?q(u.id||u.user||u.name):v.owner;task.owner=u?q(u.name||u.displayName||u.user)||v.owner:v.owner;task.assignedToName=task.owner;task.assignedTo=key;task.assignee=key;task.originalAssignee=key;task.effectiveAssignee=key}
   if(v.weekly){
-    task.day=dayNames('de')[v.weekday];task.recurrence='weekly';
-    ['dueAt','dueDate','plannedDate','date','targetDate'].forEach(function(k){if(k in task)task[k]=''});
+    var selected=arr(v.weekdays).length?v.weekdays:[Number.isInteger(Number(v.weekday))&&Number(v.weekday)>=0&&Number(v.weekday)<=6?Number(v.weekday):Math.max(0,weekdayIndex(task))];
+    task.day=dayNames('de')[selected[0]];task.weekdays=selected.map(function(d){return Number(d)||7});task.recurrence='weekly';
+    if(!q(task.occurrenceKey))['dueAt','dueDate','plannedDate','date','targetDate'].forEach(function(k){if(k in task)task[k]=''});
   }else{
     var before=isoDate(task);
     task.dueDate=v.date;task.plannedDate=v.date;task.date=v.date;task.targetDate=v.date;task.dueAt=v.date?(v.date+(v.time?'T'+v.time+':00':'')):'';
@@ -333,10 +374,11 @@ function saveForm(form){
   if(!canWrite()){alert(t('noRights'));return false}
   var f=form.elements,v={
     title:q(f.title.value),area:q(f.area.value),owner:q(f.owner.value),weekly:form.querySelector('[name="repeat"]:checked').value==='weekly',
-    date:q(f.date.value),weekday:Number(f.weekday.value),time:q(f.time.value),priority:q(f.priority.value),status:q(f.status.value)||'open',
+    date:q(f.date.value),weekdays:Array.from(form.querySelectorAll('[name="weekdays"]:checked')).map(function(node){return Number(node.value)}),time:q(f.time.value),priority:q(f.priority.value),status:q(f.status.value)||'open',
     customer:q(f.customer.value),customerNo:q(f.customerNo.value),autoDone:f.autoDone?f.autoDone.checked:true,ref:q(f.ref.value),note:String(f.note.value||'').trim()
   };
   if(!v.title){tv.error=t('required');renderTaskView(true);return false}
+  if(v.weekly&&!v.weekdays.length){tv.error=t('fWeekdaysRequired');var feedback=form.querySelector('.rc1570-error');if(feedback){feedback.hidden=false;feedback.textContent=tv.error}else renderTaskView(true);return false}
   // some designs turn the date picker into a text field (TT.MM.JJJJ); store ISO either way
   if(!v.weekly&&v.date){var pd=parseDate(v.date);if(!pd||pd.getFullYear()<2000||pd.getFullYear()>2100){tv.error=t('badDate');renderTaskView(true);return false}v.date=dayKey(pd)}
   var s=state(),isNew=tv.mode==='new',task=isNew?null:findTask(tv.id);
@@ -347,6 +389,8 @@ function saveForm(form){
     if(!Array.isArray(s.tasks))s.tasks=[];s.tasks.push(task)
   }
   applyForm(task,v,isNew);
+  if(v.weekly)syncWeeklySeries(s,task,v);
+  else if(q(task.seriesId).indexOf('rc1570-series:')===0){retireSeriesDays(s,q(task.seriesId),[]);s.taskSeries=arr(s.taskSeries).filter(function(x){return q(x&&x.id)!==q(task.seriesId)});task.seriesId='';task.weekdays=[];task.isTemplate=false;task.recurrence='';}
   tv.mode='show';tv.id=taskId(task);tv.error='';tv.saved=isNew?t('saved'):t('updated');
   persist(isNew?'RC1570 task created':'RC1570 task saved',tv.id);
   lastHtml='';renderTaskView(true);
@@ -355,8 +399,8 @@ function saveForm(form){
 }
 function field(label,html,wide){return'<label class="rc1570-field'+(wide?' rc1570-wide':'')+'"><span>'+esc(label)+'</span>'+html+'</label>'}
 function formHtml(task){
-  var x=task||{},me=q(currentUser().name||currentUser().displayName||currentUser().user),weekly=task?isWeekly(x)&&!q(x.plannedDate||x.dueDate||x.dueAt):false;
-  var date=task?isoDate(x):dayKey(new Date()),wd=task&&weekdayIndex(x)>=0?weekdayIndex(x):new Date().getDay(),p=q(x.priority).toUpperCase(),st=task?statusOf(x):'open';
+  var x=task||{},me=q(currentUser().name||currentUser().displayName||currentUser().user),weekly=task?(low(x.recurrence)==='weekly'||(isWeekly(x)&&(!q(x.plannedDate||x.dueDate||x.dueAt)||arr(state().taskSeries).some(function(s){return q(s&&s.id)===q(x.seriesId)&&s.rule&&s.rule.type==='weekly'})))):false;
+  var date=task?isoDate(x):dayKey(new Date()),selectedDays=task?weeklyDays(x):[new Date().getDay()],p=q(x.priority).toUpperCase(),st=task?statusOf(x):'open';
   var prios=['P0','P1','P2','P3','P4'];if(p&&!/^P\d$/.test(p))p='';
   return'<form class="rc1570-tv-form" novalidate data-rc1570-tv-form="1"><h2>'+esc(task?t('editTitle'):t('formTitle'))+'</h2>'+
     field(t('fTitle'),'<input name="title" required maxlength="160" autocomplete="off" value="'+esc(task?title(x):'')+'">',true)+
@@ -364,7 +408,7 @@ function formHtml(task){
     field(t('fOwner'),'<input name="owner" list="rc1570Owners" maxlength="80" value="'+esc(task?ownerName(x,users()):me)+'"><datalist id="rc1570Owners">'+knownOwners().map(function(o){return'<option value="'+esc(o)+'">'}).join('')+'</datalist>')+
     '<fieldset class="rc1570-field rc1570-wide"><legend>'+esc(t('fWhen'))+'</legend><div class="rc1570-when">'+
       '<label><input type="radio" name="repeat" value="once"'+(weekly?'':' checked')+'> '+esc(t('fOnce'))+'</label><input type="date" name="date" value="'+esc(date)+'">'+
-      '<label><input type="radio" name="repeat" value="weekly"'+(weekly?' checked':'')+'> '+esc(t('fWeekly'))+'</label><select name="weekday">'+[1,2,3,4,5,6,0].map(function(i){return'<option value="'+i+'"'+(i===wd?' selected':'')+'>'+esc(dayNames(lang())[i])+'</option>'}).join('')+'</select></div></fieldset>'+
+      '<label><input type="radio" name="repeat" value="weekly"'+(weekly?' checked':'')+'> '+esc(t('fWeekly'))+'</label><div class="rc1570-weekdays" role="group" aria-label="'+esc(t('fWeekdays'))+'">'+[1,2,3,4,5,6,0].map(function(i){return'<label class="rc1570-weekday"><input type="checkbox" name="weekdays" value="'+i+'"'+(selectedDays.indexOf(i)>=0?' checked':'')+'><span>'+esc(dayNames(lang())[i])+'</span></label>'}).join('')+'</div></div></fieldset>'+
     field(t('fTime'),'<input type="time" name="time" value="'+esc(q(x.time))+'">')+
     field(t('fPriority'),'<select name="priority"><option value="Normal"'+(p?'':' selected')+'>'+esc(t('pNormal'))+'</option>'+prios.map(function(v){return'<option value="'+v+'"'+(v===p?' selected':'')+'>'+v+'</option>'}).join('')+'</select>')+
     field(t('fStatus'),'<select name="status">'+['open','in_progress','done'].map(function(v){return'<option value="'+v+'"'+(v===st?' selected':'')+'>'+esc(t({open:'stOpen',in_progress:'stInProgress',done:'done'}[v]))+'</option>'}).join('')+'</select>')+
@@ -377,9 +421,9 @@ function formHtml(task){
     '<div class="rc1570-form-actions"><button type="submit" class="btn">'+esc(task?t('saveChanges'):t('save'))+'</button><button type="button" class="ghost" data-rc1570-tv="cancel">'+esc(t('cancel'))+'</button></div></form>'
 }
 function detailHtml(task){
-  var x=task,us=users(),d=taskDate(x),st=statusOf(x),rf=ref(x),rows=[
+  var x=task,us=users(),d=taskDate(x),st=statusOf(x),rf=ref(x),days=weeklyDays(x),rows=[
     [t('fArea'),q(x.area||x.category)||area(x)],[t('fOwner'),ownerName(x,us)],
-    [t('fDue'),d?fmtDate(d)+(isWeekly(x)?' · ↻ '+t('weekly'):''):t('noDate')],[t('fTimeShort'),q(x.time)],
+    [t('fDue'),isWeekly(x)&&days.length?'↻ '+days.map(function(i){return dayNames(lang())[i]}).join(' + '):(d?fmtDate(d):t('noDate'))],[t('fTimeShort'),q(x.time)],
     [t('fPriority'),priority(x)||t('pNormal')],[t('filter_customer'),customer(x)],[t('fCustomerNoShort'),customerNo(x)],[t('fRefShort'),rf]
   ];
   if(q(x.doneByShipmentRef))rows.push([t('fDoneByShipment'),q(x.doneByShipmentRef)]);
@@ -531,6 +575,6 @@ function install(){
   setInterval(function(){if(!d.hidden&&view()==='tasks')schedule()},60000)
 }
 
-w.ExportHUBTasksFocus1570=Object.freeze({version:VERSION,buildModel:buildModel,renderHtml:renderHtml,setFilter:setFilter,resetFilters:resetFilters,taskDate:taskDate,isMine:isMine,workGroup:workGroup,refresh:refreshNow,openForm:openForm,openTask:openDetail,editTask:edit,taskViewHtml:taskViewHtml,applyForm:applyForm,_tv:tv});
+w.ExportHUBTasksFocus1570=Object.freeze({version:VERSION,buildModel:buildModel,weeklyDays:weeklyDays,syncWeeklySeries:syncWeeklySeries,retireSeriesDays:retireSeriesDays,renderHtml:renderHtml,setFilter:setFilter,resetFilters:resetFilters,taskDate:taskDate,isMine:isMine,workGroup:workGroup,refresh:refreshNow,openForm:openForm,openTask:openDetail,editTask:edit,taskViewHtml:taskViewHtml,applyForm:applyForm,_tv:tv});
 install();
 })(window);
