@@ -25,8 +25,6 @@ function cleanHeader(header){
   senderVatId:safeText(source.senderVatId,80),
   senderTaxNumber:safeText(source.senderTaxNumber,80),
   senderRegister:safeText(source.senderRegister,180),
-  recipientEori:safeText(source.recipientEori,80),
-  recipientVatId:safeText(source.recipientVatId,80),
   shipmentDate:safeText(source.shipmentDate,80),
   incoterm:safeText(source.incoterm,80),
   incotermPlace:safeText(source.incotermPlace,80),
