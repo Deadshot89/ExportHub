@@ -100,7 +100,7 @@ async function renderInvoice(model,logoData){
  function printAddress(){
   const gap=13,col=(CONTENT-gap)/2;
   const sender=addressCard(header.senderName||header.customer||'Essentra Components GmbH',header.senderAddress,M,col,[['EORI',header.senderEori],['USt-IdNr. / VAT ID',header.senderVatId],['Steuer-Nr.',header.senderTaxNumber],['Handelsregister',header.senderRegister]]);
-  const receiver=addressCard(header.recipient,header.recipientAddress,M+col+gap,col,[['EORI',header.recipientEori],['VAT ID',header.recipientVatId]]);
+  const receiver=addressCard(header.recipient,header.recipientAddress,M+col+gap,col);
   const boxHeight=Math.max(sender.height,receiver.height);
   if(boxHeight>345)fail('ABD_PDF_TEXT_OVERFLOW');
   const leftY=y-boxHeight;
