@@ -17,6 +17,7 @@ on:
       - 'test/rc1753-packtisch-unabhaengig-von-anfragen.test.mjs'
       - 'test/rc1755-pack-session-http500-guard.test.mjs'
       - 'test/rc1763-packtisch-multirows.test.mjs'
+      - 'test/rc1764-optional-delivery-notes.test.mjs'
       - 'test/rc1674-pack-home-meta-fallback.test.mjs'
       - 'test/packaging-catalog.test.mjs'
       - 'test/document-reference-normalizer.test.mjs'
@@ -40,6 +41,7 @@ on:
       - 'test/rc1753-packtisch-unabhaengig-von-anfragen.test.mjs'
       - 'test/rc1755-pack-session-http500-guard.test.mjs'
       - 'test/rc1763-packtisch-multirows.test.mjs'
+      - 'test/rc1764-optional-delivery-notes.test.mjs'
       - 'test/rc1674-pack-home-meta-fallback.test.mjs'
       - 'test/packaging-catalog.test.mjs'
       - 'test/document-reference-normalizer.test.mjs'
@@ -67,7 +69,7 @@ jobs:
         run: |
           node --test --test-concurrency=1 test/pack-notification-*.test.mjs test/packaging-catalog.test.mjs test/document-reference-normalizer.test.mjs
           node --test --test-concurrency=1 test/rc1753-packtisch-unabhaengig-von-anfragen.test.mjs test/rc1501-pack-navigation-qr-admin.test.mjs test/packtisch-schnellerfassung.test.mjs
-          node --test --test-concurrency=1 test/rc1755-pack-session-http500-guard.test.mjs test/pack-notification-page.test.mjs test/rc1555-packaging-client.test.mjs test/rc1674-pack-home-meta-fallback.test.mjs test/rc1763-packtisch-multirows.test.mjs
+          node --test --test-concurrency=1 test/rc1755-pack-session-http500-guard.test.mjs test/pack-notification-page.test.mjs test/rc1555-packaging-client.test.mjs test/rc1674-pack-home-meta-fallback.test.mjs test/rc1763-packtisch-multirows.test.mjs test/rc1764-optional-delivery-notes.test.mjs
           node --test --test-concurrency=1 test/rc1059-document-blob-store.test.mjs test/rc1293-packing-slip-wrap.test.mjs test/rc1315-loading-list-quick-print.test.mjs
       - name: JavaScript syntax
         run: |
