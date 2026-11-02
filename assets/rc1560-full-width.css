@@ -73,6 +73,9 @@ html body #content .page-head > span.pill.blue:last-child{display:none!important
     margin:10px 0;
     border-radius:12px;
   }
+  /* RC1764: three input fields plus one action need four real tracks,
+     not RC626's five-track grid that reserves a fifth empty column. */
+  #content #rc626Abd .rc626-colli-grid > .field {min-width:0}
   #content #rc626Abd .rc626-template {
     min-height:190px;
     max-height:280px;
@@ -201,6 +204,11 @@ html body #content .page-head > span.pill.blue:last-child{display:none!important
   }
   #content #rc1549AbdManual .rc1549-metrics {
     grid-template-columns:repeat(4,minmax(0,1fr));
+  }
+}
+@media screen and (min-width:1191px) {
+  #content #rc626Abd .rc626-colli-grid {
+    grid-template-columns:minmax(0,2fr) minmax(0,.85fr) minmax(0,1.35fr) auto;
   }
 }
 @media screen and (max-width:1190px) {
