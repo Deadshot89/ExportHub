@@ -47,10 +47,14 @@ test('draft-save rejects Lieferschein metadata without original PDF bytes',async
 
 test('draft delivery-note files use the central blob document storage path',()=>{const documents=require('../api/shared/document-blob-store.js');assert.ok(documents.ROOT_COLLECTIONS.includes('packDrafts'));});
 
-test('submit stays fail-closed when no delivery-note document is uploaded',async()=>{
+test('submit creates a Packmeldung and task without any delivery note',async()=>{
   const f=fixture(),sid=await session(f,f.tokenA);
-  const res=await f.handler(request('submit',completePayload(f.tokenA,sid,{documents:[],deliveryNoteReference:'DNC3019222063'})));
-  assert.equal(res.status,400,JSON.stringify(res.body));assert.equal(res.body.code,'PACK_DOCUMENT_REQUIRED');
+  const res=await f.handler(request('submit',completePayload(f.tokenA,sid,{documents:[],deliveryNoteReference:''})));
+  assert.equal(res.status,201,JSON.stringify(res.body));
+  assert.equal(f.state().packNotifications.length,1);
+  assert.deepEqual(f.state().packNotifications[0].documents,[]);
+  assert.equal(f.state().packNotifications[0].deliveryNoteReference,'');
+  assert.ok(f.state().tasks.some(row=>row.sourceType==='pack_notification'),'an optional file must not stop task creation');
 });
 
 test('submit accepts the current upload contract and persists the notification',async()=>{
@@ -59,10 +63,11 @@ test('submit accepts the current upload contract and persists the notification',
   assert.equal(res.status,201,JSON.stringify(res.body));assert.equal(f.state().packNotifications.length,1);assert.equal(f.state().packNotifications[0].documents.length,1);
 });
 
-test('Essentra submit also keeps the current mandatory delivery-note upload contract',async()=>{
+test('Essentra submit likewise accepts empty delivery notes and reference',async()=>{
   const f=fixture(),sid=await session(f,f.tokenA);
   const res=await f.handler(request('submit',completePayload(f.tokenA,sid,{customer:'Essentra Components GmbH',customerId:'essentra-de',customerAccount:'9000003004',documents:[],deliveryNoteReference:''})));
-  assert.equal(res.status,400,JSON.stringify(res.body));assert.equal(res.body.code,'PACK_DOCUMENT_REQUIRED');
+  assert.equal(res.status,201,JSON.stringify(res.body));
+  assert.equal(f.state().packNotifications[0].documents.length,0);
 });
 
 test('submitting an existing draft closes it so it disappears from the open-draft overview',async()=>{
@@ -73,7 +78,7 @@ test('submitting an existing draft closes it so it disappears from the open-draf
   assert.equal(res.status,201,JSON.stringify(res.body));const listed=await f.handler(request('draft-list',{stationToken:f.tokenB}));assert.equal(listed.body.drafts.length,0);assert.equal(f.state().packDrafts.find(x=>x.id===draftId).status,'submitted');
 });
 
-test('public QR page keeps draft actions while preserving the current mandatory delivery-note upload contract',()=>{
+test('public QR page keeps draft actions with optional delivery-note uploads',()=>{
   const html=fs.readFileSync('pack.html','utf8'),client=fs.readFileSync('assets/pack-notification.js','utf8'),draftI18n=fs.readFileSync('assets/i18n/pack-notification-drafts.js','utf8');
   assert.match(html,/id="packHome"/);assert.match(html,/id="packNewShipment"/);assert.match(html,/id="packDraftGrid"/);assert.match(html,/id="packSaveDraft"/);
   assert.doesNotMatch(html,/id="packDeliveryNoteReference"/);
