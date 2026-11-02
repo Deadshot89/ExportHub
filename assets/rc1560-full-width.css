@@ -250,6 +250,7 @@ html body #content .page-head > span.pill.blue:last-child{display:none!important
     flex:0 0 auto;
     min-width:132px;
   }
+  #content #rc626Abd .rc626-head > button[hidden] {display:none!important}
   #content #rc626Abd .rc1294-router button[aria-selected="true"] {
     border-color:var(--pc-primary,#2563eb)!important;
     background:var(--pc-primary,#1d4ed8)!important;
