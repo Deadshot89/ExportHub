@@ -38,7 +38,7 @@ test('RC1760: saved ABD search is view-only and reuses existing item actions',()
 
 test('RC1760: saved ABD search and result count use localized strings in all six languages',()=>{
   for(const lang of ['de','en','pl','es','fr','it']){
-    assert.match(invoiceRuntime,new RegExp('\\b'+lang+':\\{invoiceTitle:[^\\n]+,savedAbdSearchLabel:'));
+    assert.match(invoiceRuntime,new RegExp('\\b'+lang+':\\{invoiceTitle:[^\\n]+,\\s*savedAbdSearchLabel:\\s*'));
   }
   assert.match(invoiceRuntime,/input\.placeholder=t\('savedAbdSearchPlaceholder'\)/);
   assert.match(invoiceRuntime,/input\.setAttribute\('aria-label',t\('savedAbdSearchAria'\)\)/);
