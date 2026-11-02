@@ -195,6 +195,8 @@ test('RC1660: EORI, VAT ID, tax number, Incoterms and reason survive reanalysis 
  assert.equal(exported.header.exportReason,'Replacement shipment - no charge');
  assert.equal(exported.header.freightCost,14.50);
  const pdf=await exporter.createProformaPdf(enhanced);
+ const pdfDoc=await require('../api/node_modules/pdf-lib').PDFDocument.load(pdf);
+ assert.equal(pdfDoc.getPageCount(),1,'short complete proforma must print on one A4 page');
  if(process.env.EXPORTHUB_PDF_SAMPLE_DIR){
   fs.mkdirSync(process.env.EXPORTHUB_PDF_SAMPLE_DIR,{recursive:true});
   fs.writeFileSync(path.join(process.env.EXPORTHUB_PDF_SAMPLE_DIR,'rc1660-proforma-customs-full.pdf'),pdf)
