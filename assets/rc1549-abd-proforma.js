@@ -436,6 +436,10 @@ function enhanceSavedAbdLayout(){
  if(!history)return false;
  history.classList.add('rc1760-abd-history');
  if(history.parentNode===right&&columns.parentNode)columns.parentNode.insertBefore(history,columns.nextSibling);
+ // RC1761: the saved-request list is a separate workspace, never a second
+ // permanently visible block under the manual and invoice forms.
+ history.id='rc1294SavedRequests';
+ history.hidden=abd.getAttribute('data-rc1294-mode')!=='saved';
  if(!history.querySelector('.rc1760-search')){
   var label=d.createElement('label');label.className='rc1760-search';label.appendChild(d.createTextNode(t('savedAbdSearchLabel')));
   var input=d.createElement('input');input.type='search';input.placeholder=t('savedAbdSearchPlaceholder');
