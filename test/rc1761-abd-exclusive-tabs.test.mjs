@@ -18,12 +18,13 @@ function harness(){
    get active(){return active}};
  }
  const buttons=['manual','shipment','invoice','saved'].map(tab);
- const form={hidden:false,id:'',setAttribute(){}},history={hidden:true,id:'',setAttribute(){}},invoice={hidden:true,setAttribute(){}},heading={textContent:'ABD-Anfrage erstellen'};
+ const form={hidden:false,id:'',setAttribute(){}},history={hidden:true,id:'',setAttribute(){}},invoice={hidden:true,setAttribute(){}},heading={textContent:'ABD-Anfrage erstellen'},createButton={hidden:false};
  const panel={querySelector(s){if(s==='[data-rc1294-invoice-panel]')return invoice;return null},
   querySelectorAll(s){return s==='[data-rc1294-mode]'?buttons:[]}};
  const host={setAttribute(key,value){attrs[key]=value},getAttribute(key){return attrs[key]},
   querySelector(selector){
    return selector==='.rc626-head h2'?heading:
+     selector==='.rc626-head > button[onclick*="newAbd"]'?createButton:
      selector===':scope > .rc626-grid2'?form:
      selector==='.rc1760-abd-history'?history:null;
   }};
@@ -36,13 +37,14 @@ function harness(){
  const window={document,addEventListener(){},
   ExportHUBRC626:{openAbd(fromShipment){assert.equal(fromShipment,true);calls++}}};
  vm.runInNewContext(source,{window,document,console,Intl,URL,setTimeout,clearTimeout,Uint8Array,btoa(){return''}});
- return {api:window.ExportHUBRC1294ABDAnalysis,form,history,invoice,heading,buttons,attrs,get calls(){return calls}};
+ return {api:window.ExportHUBRC1294ABDAnalysis,form,history,invoice,heading,createButton,buttons,attrs,get calls(){return calls}};
 }
 
 test('RC1761: only selected ABD workspace is visible',()=>{
  const h=harness();
  h.api.setMode('invoice');
  assert.equal(h.form.hidden,true,'legacy ABD form must disappear in invoice tab');
+ assert.equal(h.createButton.hidden,true,'new ABD action must not appear in invoice tab');
  assert.equal(h.invoice.hidden,false,'invoice analysis must remain visible');
  assert.equal(h.history.hidden,true);
  assert.equal(h.attrs['data-rc1294-mode'],'invoice');
@@ -52,10 +54,12 @@ test('RC1761: only selected ABD workspace is visible',()=>{
  assert.equal(h.form.hidden,true);
  assert.equal(h.invoice.hidden,true);
  assert.equal(h.history.hidden,false,'saved request list has its own tab');
+ assert.equal(h.createButton.hidden,true,'history tab must not repeat the create action');
  assert.equal(h.buttons[3].getAttribute('aria-pressed'),'true');
 
  h.api.setMode('manual');
  assert.equal(h.form.hidden,false,'manual form must return without rerendering its data');
+ assert.equal(h.createButton.hidden,false,'new ABD action belongs to manual creation');
  assert.equal(h.invoice.hidden,true);
  assert.equal(h.history.hidden,true);
  assert.equal(h.calls,0);
