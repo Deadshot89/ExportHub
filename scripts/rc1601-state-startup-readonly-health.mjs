@@ -92,10 +92,10 @@ export async function probeMode(mode, {
     });
     const elapsedMs = Math.round(now() - started);
     const raw = await response.text();
-    if (raw.length > MAX_RESPONSE_BYTES) return { mode, httpStatus: response.status, elapsedMs, errorCode: 'RESPONSE_TOO_LARGE' };
+    if (raw.length > MAX_RESPONSE_BYTES) return { mode, httpStatus: response.status, elapsedMs, ok: false, errorCode: 'RESPONSE_TOO_LARGE' };
     let parsed;
     try { parsed = JSON.parse(raw); } catch (_) {
-      return { mode, httpStatus: response.status, elapsedMs, errorCode: 'NON_JSON_RESPONSE' };
+      return { mode, httpStatus: response.status, elapsedMs, ok: false, errorCode: 'NON_JSON_RESPONSE' };
     }
     const metrics = safeSummary(parsed, mode);
     const functionReady = metrics.service === 'exporthub-health' && metrics.deploymentVerified === true &&
