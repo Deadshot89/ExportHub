@@ -18,7 +18,7 @@ function harness(){
    get active(){return active}};
  }
  const buttons=['manual','shipment','invoice','saved'].map(tab);
- const form={hidden:false,id:''},history={hidden:true,id:''},invoice={hidden:true},heading={textContent:'ABD-Anfrage erstellen'};
+ const form={hidden:false,id:'',setAttribute(){}},history={hidden:true,id:'',setAttribute(){}},invoice={hidden:true,setAttribute(){}},heading={textContent:'ABD-Anfrage erstellen'};
  const panel={querySelector(s){if(s==='[data-rc1294-invoice-panel]')return invoice;return null},
   querySelectorAll(s){return s==='[data-rc1294-mode]'?buttons:[]}};
  const host={setAttribute(key,value){attrs[key]=value},getAttribute(key){return attrs[key]},
