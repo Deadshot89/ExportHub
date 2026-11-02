@@ -5,9 +5,9 @@ import { ALLOWED_MODES, PRODUCTION_BASE, safeSummary, probeMode, runProbe } from
 const success = (data, status=200) => ({ status, text: async()=>JSON.stringify(data) });
 const production = { ok:true, environment:'production', version:'RC1458', routeReachable:true };
 
-test('RC1601: fixed production host, strictly read-only ping and health modes',async()=>{
+test('RC1601: fixed production host, strictly read-only functions, ping and health probes',async()=>{
   assert.equal(PRODUCTION_BASE,'https://wonderful-forest-0f315e310.7.azurestaticapps.net');
-  assert.deepEqual(ALLOWED_MODES,['ping','health']);
+  assert.deepEqual(ALLOWED_MODES,['functions','ping','health']);
   await assert.rejects(()=>probeMode('save'),/Only read-only/);
 });
 
@@ -55,6 +55,29 @@ test('RC1601: GET only, no credentials and a single request per health mode',asy
   assert.equal(result.teamReadMs,451);
 });
 
+test('P0 #1159: separate Functions host probe distinguishes backend outages from state storage errors',async()=>{
+  const requests=[];
+  const healthy={ok:true,service:'exporthub-health',deployment:{verified:true,environment:'production',buildId:'DONT_PRINT_BUILD_ID'}};
+  const result=await probeMode('functions',{fetchImpl:async(url,options)=>{requests.push({url,options});return success(healthy)}});
+  assert.equal(result.ok,true);
+  assert.equal(result.service,'exporthub-health');
+  assert.equal(result.deploymentVerified,true);
+  assert.equal(result.deploymentEnvironment,'production');
+  assert.equal(requests.length,1);
+  assert.equal(requests[0].url,PRODUCTION_BASE+'/api/exporthub-health');
+  assert.equal(requests[0].options.method,'GET');
+  assert.equal(requests[0].options.credentials,'omit');
+  assert.equal(requests[0].options.body,undefined);
+  assert.ok(!JSON.stringify(result).includes('DONT_PRINT_BUILD_ID'));
+  const failed=await probeMode('functions',{fetchImpl:async()=>({status:500,text:async()=> 'Backend call failure SECRET'})});
+  assert.equal(failed.ok,false);
+  assert.equal(failed.httpStatus,500);
+  assert.equal(failed.errorCode,'NON_JSON_RESPONSE');
+  assert.ok(!JSON.stringify(failed).includes('SECRET'));
+  const unverified=await probeMode('functions',{fetchImpl:async()=>success({ok:true,service:'exporthub-health',deployment:{verified:false,environment:'production'}})});
+  assert.equal(unverified.ok,false);
+});
+
 test('RC1601: ping 200 is not proof of Azure Storage health',async()=>{
   const ping=await probeMode('ping',{fetchImpl:async()=>success(production)});
   assert.equal(ping.ok,true);
@@ -99,5 +122,5 @@ test('RC1601: summary indicates failure when one of two required modes is unheal
     write:line=>lines.push(line)
   });
   assert.equal(exitCode,1);
-  assert.equal(lines.length,2);
+  assert.equal(lines.length,3);
 });
