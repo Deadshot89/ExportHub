@@ -16,6 +16,8 @@ function fail(code){const error=new Error(code);error.code=code;error.status=400
 function money(value){return value==null?'--':Number(value).toFixed(2)}
 function metric(value){return value==null?'--':Number(value).toFixed(3)}
 function number(value){return value==null?'--':String(Number(value))}
+function displayDate(value){const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(printable(value));return m?m[3]+'.'+m[2]+'.'+m[1]:printable(value)}
+function customsUnitValue(p){const q=Number(p.quantity),v=Number(p.value);if(!(q>0)||!Number.isFinite(v))return '--';const u=v/q;return u>0&&u<0.01?u.toFixed(6):u.toFixed(4)}
 function linesFor(font,value,size,width,maxLines=25){
  const words=printable(value).split(/\s+/).filter(Boolean),lines=[];let current='';
  function push(){if(current){lines.push(current);current=''}}
@@ -88,15 +90,16 @@ async function renderInvoice(model,logoData){
   for(let i=0;i<parts.length;i++)put(parts[i],x,start-i*12,{size,width:maxWidth});
   return parts.length
  }
- function addressCard(name,address,x,width){
+ function addressCard(name,address,x,width,identifiers){
   const interior=width-24;
   const nameLines=linesFor(bold,name||'--',8.7,interior,15);
   const addressLines=linesFor(normal,address||'--',8.0,interior,30);
-  return {nameLines,addressLines,height:Math.max(94,23+nameLines.length*13+addressLines.length*12+12)}
+  const idLines=(identifiers||[]).filter(x=>x[1]).flatMap(x=>linesFor(normal,x[0]+': '+x[1],7.3,interior,5));
+   return {nameLines,addressLines,idLines,height:Math.max(94,23+nameLines.length*13+addressLines.length*12+(idLines.length?idLines.length*11+9:0)+12)}
  }
  function printAddress(){
   const gap=13,col=(CONTENT-gap)/2;
-  const sender=addressCard(header.senderName||header.customer||'Essentra Components GmbH',header.senderAddress,M,col);
+  const sender=addressCard(header.senderName||header.customer||'Essentra Components GmbH',header.senderAddress,M,col,[['EORI',header.senderEori],['USt-IdNr. / VAT ID',header.senderVatId],['Steuer-Nr.',header.senderTaxNumber],['Handelsregister',header.senderRegister]]);
   const receiver=addressCard(header.recipient,header.recipientAddress,M+col+gap,col);
   const boxHeight=Math.max(sender.height,receiver.height);
   if(boxHeight>345)fail('ABD_PDF_TEXT_OVERFLOW');
@@ -108,15 +111,40 @@ async function renderInvoice(model,logoData){
    for(const l of entry.nameLines){put(l,x+12,yy,{size:8.7,bold:true,width:col-24});yy-=13}
    yy-=3;
    for(const l of entry.addressLines){put(l,x+12,yy,{size:8,width:col-24});yy-=12}
+    if(entry.idLines.length){yy-=6;for(const l of entry.idLines){put(l,x+12,yy,{size:7.3,color:muted,width:col-24});yy-=11}}
   }
   y=leftY-25
+ }
+ function shippingInfo(){
+  const items=[
+   ['AUSFUHRGRUND / EXPORT REASON',header.exportReason],
+   ['INCOTERMS 2020',header.incoterm],
+   ['PACKSTUECKE / PACKAGES',[header.packageCount,header.packageType].filter(Boolean).join(' ')],
+   ['TRANSPORT / SHIPPING',header.transportMode],['REFERENZ / REFERENCE',header.shipmentReference],
+   ['FRACHT / FREIGHT',header.freightCost==null?'':money(header.freightCost)+' '+currency]
+  ].filter(item=>printable(item[1]));
+  if(!items.length)return;
+  if(y<FOOT+80)newPage();
+  section('VERSAND- UND ZOLLANGABEN / SHIPPING & CUSTOMS');
+  const gap=12,col=(CONTENT-2*gap)/3;
+  for(let i=0;i<items.length;i+=3){
+   const pair=items.slice(i,i+3),wrapped=pair.map(item=>linesFor(bold,item[1],8,col-12,6));
+   const rowHeight=17+11*Math.max(...wrapped.map(a=>a.length));
+   if(y-rowHeight<FOOT+20)newPage();
+   pair.forEach((item,j)=>{
+    const x=M+j*(col+gap);put(item[0],x,y,{size:6.8,bold:true,color:muted,width:col});
+    wrapped[j].forEach((value,k)=>put(value,x,y-14-k*11,{size:8,bold:true,width:col-12}))
+   });
+   y-=rowHeight
+  }
+  y-=8
  }
  function startPageContent(){
   newPage();
   const metaY=y;
   const fields=[
    {x:M,label:'PROFORMA-NR.',value:header.invoiceNumber||'--',w:178},
-   {x:M+200,label:'DATUM',value:header.invoiceDate||'--',w:112},
+   {x:M+200,label:'DATUM',value:displayDate(header.invoiceDate)||'--',w:112},
    {x:M+341,label:'BESTIMMUNGSLAND',value:header.destinationCountry||'--',w:CONTENT-341}
   ];
   for(const f of fields){
@@ -125,14 +153,14 @@ async function renderInvoice(model,logoData){
    valueLines.forEach((t,i)=>put(t,f.x,metaY-15-i*12,{size:9,bold:true,width:f.w}))
   }
   y=metaY-45;
-  printAddress();
+  printAddress();shippingInfo();
  }
  function itemHeader(){
   page.drawRectangle({x:M,y:y-22,width:CONTENT,height:27,color:pale});
   put('POS.',M+5,y-12,{size:7,bold:true,width:24});
   put('ARTIKEL / WARENBESCHREIBUNG',M+36,y-12,{size:7,bold:true,width:220});
   putRight('MENGE',M+318,y-12,{size:7,bold:true,width:55});
-  putRight('PREIS',M+381,y-12,{size:7,bold:true,width:52});
+  putRight('ZOLL/EINH.',M+381,y-12,{size:7,bold:true,width:52});
   putRight('WERT',M+451,y-12,{size:7,bold:true,width:68});
   put('HS / COO',M+461,y-12,{size:7,bold:true,width:CONTENT-463});
   y-=33;
@@ -154,7 +182,7 @@ async function renderInvoice(model,logoData){
   if(p.position)put(p.position,M+5,yy,{size:7.5,bold:true,width:25});
   desc.forEach((t,i)=>put(t,M+36,yy-i*11,{size:8,width:217}));
   putRight(number(p.quantity)+(p.unit?' '+printable(p.unit):''),M+318,yy,{size:7.2,width:55});
-  putRight(money(p.unitPrice),M+381,yy,{size:7.2,width:52});
+  putRight(customsUnitValue(p),M+381,yy,{size:7.2,width:52});
   putRight(money(p.value),M+451,yy,{size:8,bold:true,width:68});
   put(hs,M+461,yy,{size:7.5,bold:true,width:CONTENT-463});
   put(coo,M+461,yy-13,{size:7.2,width:CONTENT-463});
@@ -167,7 +195,7 @@ async function renderInvoice(model,logoData){
   section('RECHNUNGSZUSAMMENFASSUNG');
   const top=y;
   page.drawRectangle({x:M,y:top-94,width:CONTENT,height:101,color:pale,borderColor:line,borderWidth:0.7});
-  put('WARENWERT GESAMT',M+15,top-21,{size:9,bold:true,width:230});
+  put('WARENWERT (ZOLLZWECKE)',M+15,top-21,{size:9,bold:true,width:230});
   putRight(money(totals.invoiceTotal)+' '+currency,R-16,top-22,{size:14,bold:true,width:210});
   page.drawLine({start:{x:M+15,y:top-36},end:{x:R-15,y:top-36},thickness:0.7,color:line});
   put('Nettogewicht',M+15,top-57,{size:8,color:muted,width:120});
@@ -201,7 +229,7 @@ async function renderInvoice(model,logoData){
    y-=20;rule(y+5)
   }
  }
- startPageContent();itemsSection(false);
+ startPageContent();if(y<FOOT+105)newPage();itemsSection(false);
  for(const position of positions)detailRow(position);
  summary();grouped();
  const pages=pdf.getPages();

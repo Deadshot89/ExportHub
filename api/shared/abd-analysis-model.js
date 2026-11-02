@@ -24,6 +24,17 @@ function normalizeHeader(header){
   recipient:text(source.recipient).slice(0,160),
   recipientAddress:text(source.recipientAddress).slice(0,500),
   destinationCountry:text(source.destinationCountry).slice(0,80),
+  senderEori:text(source.senderEori).slice(0,80),
+  senderVatId:text(source.senderVatId).slice(0,80),
+  senderTaxNumber:text(source.senderTaxNumber).slice(0,80),
+  senderRegister:text(source.senderRegister).slice(0,180),
+  incoterm:text(source.incoterm).slice(0,80),
+  exportReason:text(source.exportReason).slice(0,200),
+  packageCount:text(source.packageCount).slice(0,80),
+  packageType:text(source.packageType).slice(0,80),
+  transportMode:text(source.transportMode).slice(0,80),
+  shipmentReference:text(source.shipmentReference).slice(0,120),
+  freightCost:money(numberOrNull(source.freightCost)),
   invoiceTotal:money(numberOrNull(source.invoiceTotal)),
   currency:text(source.currency).toUpperCase().slice(0,3)
  }

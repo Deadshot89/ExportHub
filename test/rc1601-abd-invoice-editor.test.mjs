@@ -175,3 +175,84 @@ test('RC1605: approved SOP artwork is shipped as the default PDF and browser log
  assert.match(integrator,/assets\/essentra-company-logo\.png/);
  assert.match(frontend,/img\.src=logoDataUri\|\|'\/assets\/essentra-company-logo\.png'/);
 });
+
+
+test('RC1662: optional EORI and reason, VAT ID and Incoterms survive reanalysis and PDF',async()=>{
+ const original=invoice();
+ const enhanced=model.rebuildReviewedAnalysis({header:{
+   ...original.header,senderEori:'DE123456789123456',senderVatId:'DE123456789',
+   senderTaxNumber:'123/456/78901',senderRegister:'HRB 12345',
+   incoterm:'DAP',
+   exportReason:'Replacement shipment - no charge',packageCount:'3',packageType:'cartons',
+   transportMode:'road',shipmentReference:'TEST-123',
+   freightCost:14.50
+  },positions:original.positions});
+ const exported=exporter.createExportModel(enhanced);
+ assert.equal(exported.header.senderEori,'DE123456789123456');
+ assert.equal(exported.header.senderVatId,'DE123456789');
+ assert.equal(exported.header.senderTaxNumber,'123/456/78901');
+ assert.equal(exported.header.exportReason,'Replacement shipment - no charge');
+ assert.equal(exported.header.freightCost,14.50);
+ const pdf=await exporter.createProformaPdf(enhanced);
+ const pdfDoc=await require('../api/node_modules/pdf-lib').PDFDocument.load(pdf);
+ assert.equal(pdfDoc.getPageCount(),1,'short complete proforma must print on one A4 page');
+ if(process.env.EXPORTHUB_PDF_SAMPLE_DIR){
+  fs.mkdirSync(process.env.EXPORTHUB_PDF_SAMPLE_DIR,{recursive:true});
+  fs.writeFileSync(path.join(process.env.EXPORTHUB_PDF_SAMPLE_DIR,'rc1660-proforma-customs-full.pdf'),pdf)
+ }
+ const txt=(await extractPdfText(pdf)).replace(/\s+/g,' ');
+ for(const expected of ['DE123456789123456','DE123456789','HRB 12345','DAP','Replacement shipment','TEST-123','14.50','22.10.2026'])assert.ok(txt.includes(expected),expected+' missing');
+});
+test('RC1660: zero sales price with declared customs value prints non-zero customs unit value',async()=>{
+ const sample=invoice();
+ sample.positions[0].quantity=5000;
+ sample.positions[0].unitPrice=0;
+ sample.positions[0].value=10;
+ sample.groups[0].value=10;
+ sample.totals={...sample.totals,invoiceTotal:10,accountedTotal:10,groupedTotal:10,difference:0};
+ const txt=await extractPdfText(await exporter.createProformaPdf(sample));
+ assert.match(txt,/0\.002000/);
+ assert.match(txt,/10\.00/);
+});
+test('RC1660: all customs fields can be edited before exporting an imported Excel or CSV invoice',()=>{
+ for(const f of ['senderEori','senderVatId','senderTaxNumber','senderRegister','exportReason','incoterm','packageCount','packageType','freightCost']){
+  assert.ok(frontend.includes('data-rc1549-header="'+f+'"'),f+' missing in invoice editor');
+ }
+ assert.match(frontend,/customsRequired/);
+});
+test('RC1661: Essentra defaults from source invoice and no consignee tax IDs',async()=>{
+  const layout=fs.readFileSync('api/shared/abd-proforma-layout.js','utf8');
+  for(const data of ['Montel-Allee 3','D-41334 Nettetal','DE301601416','115/5711/1576','HRB 20649, Amtsgericht Krefeld'])assert.ok(frontend.includes(data),data+' missing from sender defaults');
+  assert.match(frontend,/senderEori:''/,'EORI absent from source invoice must stay blank');
+  assert.doesNotMatch(frontend,/data-rc1549-header="recipient(Eori|VatId)"/);
+  assert.doesNotMatch(layout,/header\.recipient(Eori|VatId)/);
+  const original=invoice();
+  const enhanced=model.rebuildReviewedAnalysis({header:{...original.header,recipientEori:'GB123456789012',recipientVatId:'GB123456789'},positions:original.positions});
+  const exported=exporter.createExportModel(enhanced);
+  assert.ok(!Object.hasOwn(exported.header,'recipientEori'));
+  assert.ok(!Object.hasOwn(exported.header,'recipientVatId'));
+  const text=(await extractPdfText(await exporter.createProformaPdf(enhanced))).replace(/\s+/g,' ');
+  assert.ok(!text.includes('GB123456789012'));
+  assert.ok(!text.includes('GB123456789'));
+});
+
+test('RC1662: EORI and export reason may be empty and unwanted PDF fields disappear',async()=>{
+ const layout=fs.readFileSync('api/shared/abd-proforma-layout.js','utf8');
+ assert.match(frontend,/EORI des Ausführers \(freiwillig\)/);
+ assert.match(frontend,/Ausfuhrgrund \(freiwillig\)/);
+ assert.doesNotMatch(frontend,/!q\(h\.exportReason\)|!header\.exportReason/);
+ const raw=invoice();
+ const input=model.rebuildReviewedAnalysis({header:{...raw.header,senderEori:'',exportReason:'',shipmentDate:'2026-11-04',incotermPlace:'Berlin',insuranceCost:8.19},positions:raw.positions});
+ const output=exporter.createExportModel(input);
+ assert.equal(output.header.senderEori,'');
+ assert.equal(output.header.exportReason,'');
+ for(const field of ['shipmentDate','incotermPlace','insuranceCost']){
+  assert.doesNotMatch(frontend,new RegExp('data-rc1549-header="'+field+'"'));
+  assert.doesNotMatch(layout,new RegExp('header\\.'+field));
+  assert.ok(!Object.hasOwn(output.header,field));
+ }
+ const pdf=await exporter.createProformaPdf(input);
+ const txt=(await extractPdfText(pdf)).replace(/\s+/g,' ');
+ for(const field of ['LIEFERDATUM','SHIPMENT DATE','BENANNTER ORT','NAMED PLACE','VERSICHERUNG','INSURANCE','19 %'])assert.ok(!txt.includes(field),field);
+ assert.match(txt,/PROFORMA INVOICE/);
+});

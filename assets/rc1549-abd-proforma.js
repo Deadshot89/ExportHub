@@ -38,7 +38,7 @@ function showLogoPreview(){
  if(remove)remove.hidden=!logoDataUri
 }
 restoreLogo();
-var headerDraft={invoiceNumber:'',invoiceDate:'',senderName:'Essentra Components GmbH',senderAddress:'',recipient:'',recipientAddress:'',destinationCountry:'',currency:'EUR'};
+var headerDraft={invoiceNumber:'',invoiceDate:'',senderName:'Essentra Components GmbH',senderAddress:'Montel-Allee 3\nD-41334 Nettetal\nGermany',recipient:'',recipientAddress:'',destinationCountry:'',senderEori:'',senderVatId:'DE301601416',senderTaxNumber:'115/5711/1576',senderRegister:'HRB 20649, Amtsgericht Krefeld',incoterm:'',exportReason:'',packageCount:'',packageType:'',transportMode:'',shipmentReference:'',freightCost:'',currency:'EUR'};
 var packs={
  de:{title:'Positionen manuell erfassen',help:'Alternativ zum Dokument- oder Excel-Upload kannst du die Warenpositionen hier direkt erfassen. Alle Wege verwenden dieselbe ABD-Prüflogik.',number:'Proforma-Nr.',date:'Datum',recipient:'Empfänger',country:'Empfängerland',currency:'Währung',add:'Position hinzufügen',create:'Positionen auswerten',proforma:'Proforma-PDF herunterladen',item:'Artikel',description:'Warenbeschreibung',qty:'Menge',unit:'Einheit',unitPrice:'Einzelpreis',value:'Warenwert',net:'Netto kg',gross:'Brutto kg',volume:'Volumen m³',hs:'HS-Code',origin:'Herkunftsland',actions:'Aktionen',remove:'Entfernen',duplicate:'Duplizieren',summary:'Manuelle Auswertung',total:'Warenwert gesamt',groups:'Zollzusammenfassung',required:'Bitte mindestens eine vollständige Warenposition erfassen.',recipientRequired:'Bitte Empfänger eintragen.',ready:'Auswertung vollständig. Proforma kann erstellt werden.',review:'Bitte markierte Pflichtangaben ergänzen.',error:'Aktion fehlgeschlagen.'},
  en:{title:'Enter items manually',help:'As an alternative to document or Excel upload, enter goods items here. All routes use the same export-declaration validation.',number:'Proforma no.',date:'Date',recipient:'Recipient',country:'Destination country',currency:'Currency',add:'Add item',create:'Validate items',proforma:'Download proforma PDF',item:'Item',description:'Goods description',qty:'Quantity',unit:'Unit',unitPrice:'Unit price',value:'Goods value',net:'Net kg',gross:'Gross kg',volume:'Volume m³',hs:'HS code',origin:'Country of origin',actions:'Actions',remove:'Remove',duplicate:'Duplicate',summary:'Manual analysis',total:'Total goods value',groups:'Customs summary',required:'Enter at least one complete goods item.',recipientRequired:'Enter a recipient.',ready:'Analysis complete. Proforma can be created.',review:'Complete the marked required data.',error:'Action failed.'},
@@ -55,6 +55,14 @@ var extras={
  fr:{invoiceTitle:'Créer une facture pour la déclaration d’exportation',editorHelp:'Importer et corriger les données d’une facture ou tout saisir manuellement.',sender:'Expéditeur / société',senderAddress:'Adresse de l’expéditeur',recipientAddress:'Adresse du destinataire',editUpload:'Modifier dans la facture',importSuccess:'Positions importées. Vérifiez les adresses et marchandises.',addressesRequired:'Saisissez les deux adresses complètes.',invalidPosition:'Vérifiez quantités, valeurs, poids, code SH et origine.',uploadEmpty:'Aucune position trouvée.',logoMissingHint:'Logo Essentra issu du modèle SOP. Vous pouvez le remplacer.',logoLoadedHint:'Ce logo sera utilisé dans le PDF et enregistré sur cet appareil.',logoRemove:'Restaurer le logo par défaut',logoRemoved:'Logo par défaut restauré.'},
  it:{invoiceTitle:'Crea fattura per dichiarazione di esportazione',editorHelp:'Importa e correggi le voci caricate oppure inserisci tutto manualmente.',sender:'Mittente / azienda',senderAddress:'Indirizzo mittente',recipientAddress:'Indirizzo destinatario',editUpload:'Modifica nella fattura',importSuccess:'Voci importate. Controlla indirizzi e merci.',addressesRequired:'Inserisci entrambi gli indirizzi completi.',invalidPosition:'Controlla quantità, valori, pesi, codice HS e origine.',uploadEmpty:'Nessuna voce trovata.',logoMissingHint:'Logo Essentra dal modello SOP. Puoi sostituirlo qui.',logoLoadedHint:'Questo logo sarà usato nel PDF e salvato sul dispositivo.',logoRemove:'Ripristina logo predefinito',logoRemoved:'Logo predefinito ripristinato.'}
 };
+var customsLabels={
+ de:{companyDetails:'Firmen- und Steuerdaten',shippingDetails:'Versand- und Zollangaben',senderEori:'EORI des Ausführers (freiwillig)',senderVatId:'USt-IdNr.',senderTaxNumber:'Steuernummer (freiwillig)',senderRegister:'Handelsregister / Sitz',incoterm:'Incoterms 2020',exportReason:'Ausfuhrgrund (freiwillig)',packageCount:'Anzahl Packstücke',packageType:'Verpackungsart',transportMode:'Versandart',shipmentReference:'Sendungs-/Bestellreferenz',freightCost:'Frachtkosten (freiwillig)',customsRequired:'Bitte Bestimmungsland als zweistelligen ISO-Code (z. B. GB) und gültige freiwillige EORI-/Frachtangaben erfassen.',customsHelp:'Bei kostenloser Ware realistischen Warenwert für Zollzwecke angeben. Der PDF-Einzelwert wird aus Warenwert / Menge berechnet.'},
+ en:{companyDetails:'Company and tax details',shippingDetails:'Shipping and customs',senderEori:'Exporter EORI (optional)',senderVatId:'Exporter VAT ID',senderTaxNumber:'Tax number (optional)',senderRegister:'Company registration / seat',incoterm:'Incoterms 2020',exportReason:'Reason for export (optional)',packageCount:'Number of packages',packageType:'Packaging type',transportMode:'Shipping method',shipmentReference:'Shipment / order reference',freightCost:'Freight costs (optional)',customsRequired:'Enter a 2-letter destination country (e.g. GB) and valid optional EORI/freight values.',customsHelp:'Declare a realistic customs value even for free goods. PDF unit customs value = declared goods value / quantity.'},
+ pl:{companyDetails:"Dane firmy i podatkowe",shippingDetails:"Wysyłka i odprawa celna",senderEori:'EORI eksportera (opcjonalnie)',senderVatId:"NIP UE / VAT ID",senderTaxNumber:"Numer podatkowy (opcjonalnie)",senderRegister:"Rejestr firmy / siedziba",incoterm:"Incoterms 2020",exportReason:'Powód wywozu (opcjonalnie)',packageCount:"Liczba opakowań",packageType:"Rodzaj opakowań",transportMode:"Transport",shipmentReference:"Nr wysyłki / zamówienia",freightCost:"Koszt transportu",customsRequired:'Podaj kraj ISO-2 oraz prawidłowe opcjonalne EORI i koszty transportu.',customsHelp:"Dla towarów bezpłatnych należy podać rzeczywistą wartość celną."},
+ es:{companyDetails:"Datos fiscales y de empresa",shippingDetails:"Envío y aduanas",senderEori:'EORI del exportador (opcional)',senderVatId:"NIF-IVA del exportador",senderTaxNumber:"Número fiscal (opcional)",senderRegister:"Registro mercantil",incoterm:"Incoterms 2020",exportReason:'Motivo de exportación (opcional)',packageCount:"Número de bultos",packageType:"Tipo de embalaje",transportMode:"Transporte",shipmentReference:"Referencia de envío",freightCost:"Gastos de transporte",customsRequired:'Indica país ISO-2 y, opcionalmente, EORI y costes de transporte válidos.',customsHelp:"Para mercancía gratuita indica su valor aduanero real."},
+ fr:{companyDetails:"Société et fiscalité",shippingDetails:"Transport et douane",senderEori:"EORI de l'exportateur (facultatif)",senderVatId:"TVA intracommunautaire",senderTaxNumber:"Numéro fiscal (facultatif)",senderRegister:"Immatriculation société",incoterm:"Incoterms 2020",exportReason:"Motif d'exportation (facultatif)",packageCount:"Nombre de colis",packageType:"Type d'emballage",transportMode:"Mode de transport",shipmentReference:"Référence d'expédition",freightCost:"Frais de transport",customsRequired:'Saisir le pays ISO-2 et, si renseignés, un EORI et des frais de transport valides.',customsHelp:"Indiquer une valeur en douane réaliste, même pour des marchandises gratuites."},
+ it:{companyDetails:"Dati aziendali e fiscali",shippingDetails:"Spedizione e dogana",senderEori:"EORI dell'esportatore (facoltativo)",senderVatId:"Partita IVA",senderTaxNumber:"Codice fiscale (facoltativo)",senderRegister:"Registro imprese",incoterm:"Incoterms 2020",exportReason:'Motivo esportazione (facoltativo)',packageCount:"Numero colli",packageType:"Tipo imballaggio",transportMode:"Trasporto",shipmentReference:"Riferimento spedizione",freightCost:"Costi trasporto",customsRequired:'Inserire paese ISO-2 e, se presenti, EORI e spese di trasporto validi.',customsHelp:"Per merci gratuite dichiarare un valore doganale realistico."}
+};
 var logoKeys={logo:'abd.invoice.logo',logoOk:'abd.invoice.logoLoaded',logoInvalid:'abd.invoice.logoInvalid'};
 function q(value){return String(value==null?'':value).trim()}
 function esc(value){return q(value).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -64,6 +72,8 @@ function language(){
 function t(key){
  var lang=language(),local=extras[lang]&&extras[lang][key]||packs[lang][key];
  if(local)return local;
+ if(customsLabels[lang]&&customsLabels[lang][key])return customsLabels[lang][key];
+ if(customsLabels.en[key])return customsLabels.en[key];
  if(logoKeys[key]){
   try{var i=root.ExportHUBI18n,translated=i&&typeof i.t==='function'?i.t(logoKeys[key],null,lang):'';
    if(translated&&translated!==logoKeys[key])return translated
@@ -109,10 +119,12 @@ function ready(snapshot){
  snapshot=snapshot&&typeof snapshot==='object'?snapshot:{};var review=snapshot.review||{},totals=snapshot.totals||{},groups=Array.isArray(snapshot.groups)?snapshot.groups:[],unassigned=Array.isArray(snapshot.unassigned)?snapshot.unassigned:[];
  return review.complete===true&&number(totals.difference)===0&&groups.length>0&&unassigned.length===0
 }
+function validEori(value){return !q(value)||/^[A-Z]{2}[A-Z0-9]{1,15}$/.test(q(value).toUpperCase())}
 function readyInvoice(snapshot){
  if(!ready(snapshot))return false;
  var h=snapshot&&snapshot.header||{},positions=Array.isArray(snapshot.positions)?snapshot.positions:[];
  if(!q(h.senderName||h.customer)||!q(h.senderAddress)||!q(h.recipient)||!q(h.recipientAddress))return false;
+ if(!/^[A-Z]{2}$/.test(q(h.destinationCountry).toUpperCase())||!validEori(h.senderEori))return false;
  return positions.length>0&&positions.every(function(p){
   var quantity=number(p.quantity),net=number(p.netMassKg),gross=number(p.grossMassKg),value=number(p.value);
   return quantity>0&&value!=null&&value>=0&&net!=null&&net>=0&&gross!=null&&gross>=net&&/^[0-9]{6,10}$/.test(q(p.commodityCode))&&/^[A-Z]{2}$/.test(q(p.originCountry).toUpperCase())
@@ -161,7 +173,7 @@ function fillHeader(){
 }
 function headerValues(){
  var p=manualPanel(),get=function(name){var el=p&&p.querySelector('[data-rc1549-header="'+name+'"]');return q(el?el.value:headerDraft[name])};
- return{invoiceNumber:get('invoiceNumber'),invoiceDate:get('invoiceDate'),customer:get('senderName'),senderName:get('senderName'),senderAddress:get('senderAddress'),recipient:get('recipient'),recipientAddress:get('recipientAddress'),destinationCountry:get('destinationCountry'),currency:(get('currency')||'EUR').toUpperCase().slice(0,3)}
+ return{invoiceNumber:get('invoiceNumber'),invoiceDate:get('invoiceDate'),customer:get('senderName'),senderName:get('senderName'),senderAddress:get('senderAddress'),recipient:get('recipient'),recipientAddress:get('recipientAddress'),destinationCountry:get('destinationCountry').toUpperCase(),senderEori:get('senderEori'),senderVatId:get('senderVatId'),senderTaxNumber:get('senderTaxNumber'),senderRegister:get('senderRegister'),incoterm:get('incoterm'),exportReason:get('exportReason'),packageCount:get('packageCount'),packageType:get('packageType'),transportMode:get('transportMode'),shipmentReference:get('shipmentReference'),freightCost:get('freightCost'),currency:(get('currency')||'EUR').toUpperCase().slice(0,3)}
 }
 function normalizeRows(){
  var currency=headerValues().currency;
@@ -182,6 +194,12 @@ async function analyzeManual(button){
  if(busy)return false;var header=headerValues(),positions=normalizeRows();
  if(!header.senderName||!header.recipient){setStatus(t('recipientRequired'),'bad');return false}
  if(!header.senderAddress||!header.recipientAddress){setStatus(t('addressesRequired'),'bad');return false}
+ if(!/^[A-Z]{2}$/.test(header.destinationCountry)||!validEori(header.senderEori)){
+  setStatus(t('customsRequired'),'bad');return false
+ }
+ if((header.freightCost!==''&&!(number(header.freightCost)>=0))){
+  setStatus(t('customsRequired'),'bad');return false
+ }
  if(!positions.length){setStatus(t('required'),'bad');return false}
  if(positions.some(function(p){return !(p.quantity>0)||p.value==null||p.value<0||p.netMassKg==null||p.netMassKg<0||p.grossMassKg==null||p.grossMassKg<p.netMassKg||!/^[0-9]{6,10}$/.test(p.commodityCode)||!/^[A-Z]{2}$/.test(p.originCountry)||!(p.itemNumber||p.description)})){setStatus(t('invalidPosition'),'bad');return false}
  var total=positions.reduce(function(sum,row){return sum+Number(row.value||0)},0);header.invoiceTotal=Math.round(total*100)/100;
@@ -206,7 +224,7 @@ function importUploaded(index){
   return item
  });
  var header=source.header||{};
- ['invoiceNumber','recipient','recipientAddress','destinationCountry','currency'].forEach(function(key){if(q(header[key]))headerDraft[key]=q(header[key])});
+ ['invoiceNumber','recipient','recipientAddress','destinationCountry','currency','senderEori','senderVatId','senderTaxNumber','senderRegister','incoterm','exportReason','packageCount','packageType','transportMode','shipmentReference','freightCost'].forEach(function(key){if(q(header[key]))headerDraft[key]=q(header[key])});
  if(q(header.senderName))headerDraft.senderName=q(header.senderName);
  if(q(header.senderAddress))headerDraft.senderAddress=q(header.senderAddress);
  if(uploadDate(header.invoiceDate))headerDraft.invoiceDate=uploadDate(header.invoiceDate);
@@ -236,6 +254,7 @@ function ensureStyle(){
  var d=root.document;if(!d||!d.createElement||d.getElementById('rc1549AbdProformaStyle'))return;
  var style=d.createElement('style');style.id='rc1549AbdProformaStyle';style.textContent='.rc1549-manual{margin-top:16px;padding:14px;border:1px solid #a7f3d0;border-left:4px solid #0f766e;border-radius:12px;background:rgba(240,253,250,.82);color:var(--text,#0f172a)}.rc1549-manual h4{margin:0 0 4px}.rc1549-manual>p{margin:0;color:var(--muted,#475569);font-size:13px}.rc1549-head{display:grid;grid-template-columns:repeat(5,minmax(120px,1fr));gap:8px;margin:12px 0}.rc1549-head label{display:grid;gap:4px;font-size:11px;font-weight:700;color:var(--muted,#475569)}.rc1549-head input{box-sizing:border-box;width:100%;min-height:38px;padding:7px 8px;border:1px solid #94a3b8;border-radius:8px;background:var(--card,#fff);color:var(--text,#0f172a)}.rc1549-scroll{overflow:auto;border:1px solid #cbd5e1;border-radius:10px;background:var(--card,#fff)}.rc1549-scroll table{border-collapse:collapse;width:100%;min-width:1510px;font-size:11px}.rc1549-scroll th,.rc1549-scroll td{padding:6px;border-bottom:1px solid #e2e8f0;text-align:left;vertical-align:top}.rc1549-scroll th{background:rgba(248,250,252,.96);color:#334155;position:sticky;top:0;z-index:1}.rc1549-scroll input{box-sizing:border-box;width:100%;min-width:76px;padding:6px;border:1px solid #cbd5e1;border-radius:6px;background:var(--card,#fff);color:var(--text,#0f172a)}.rc1549-scroll td.rc1549-wide input{min-width:230px}.rc1549-row-actions{display:flex;gap:4px}.rc1549-row-actions button{min-width:34px;padding:5px 7px}.rc1549-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.rc1549-status{margin-top:10px;padding:8px 10px;border-radius:8px;background:#eff6ff;font-size:12px;font-weight:700}.rc1549-status[data-kind="ok"]{background:#ecfdf5;color:#065f46}.rc1549-status[data-kind="warn"]{background:#fff7ed;color:#9a3412}.rc1549-status[data-kind="bad"]{background:#fef2f2;color:#991b1b}.rc1549-result{margin-top:12px;padding:12px;border:1px solid #99f6e4;border-radius:10px;background:var(--card,#fff)}.rc1549-result-head{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.rc1549-result-head small{display:block;color:#64748b}.rc1549-result-head strong{display:block}.rc1549-metrics{display:grid;grid-template-columns:repeat(4,minmax(120px,1fr));gap:8px;margin:10px 0}.rc1549-metrics>div{display:grid;gap:3px;padding:8px;border:1px solid #dbeafe;border-radius:8px}.rc1549-metrics span{font-size:11px;color:#64748b}@media(max-width:1000px){.rc1549-head{grid-template-columns:1fr 1fr}.rc1549-metrics{grid-template-columns:1fr 1fr}}@media(max-width:560px){.rc1549-head,.rc1549-metrics{grid-template-columns:1fr}.rc1549-actions>*{width:100%}}';
  style.textContent+='.rc1549-logo-preview{display:flex;align-items:center;gap:12px;margin-top:8px;padding:9px;border:1px solid #cbd5e1;border-radius:8px;background:var(--card,#fff)}.rc1549-logo-preview img{display:block;max-width:194px;max-height:56px;width:auto;height:auto;object-fit:contain}.rc1549-logo-preview img[hidden]{display:none}.rc1549-logo-preview span{flex:1;min-width:160px;font-size:12px;color:var(--muted,#475569)}.rc1549-logo-preview button[hidden]{display:none}';
+ style.textContent+='.rc1549-subhead{grid-column:1/-1;margin-top:8px;padding:9px 0 5px;border-bottom:1px solid #cbd5e1;font-size:12px;font-weight:800;letter-spacing:.02em;color:var(--text,#0f172a)}';
  style.textContent+='.rc1549-logo{padding:9px 0 12px}.rc1549-logo input{display:block;margin-top:5px;max-width:100%}.rc1549-head textarea{box-sizing:border-box;width:100%;min-height:64px;resize:vertical;padding:8px;border:1px solid #94a3b8;border-radius:8px;background:var(--card,#fff);color:var(--text,#0f172a);font:inherit}.rc1549-head label.rc1549-address{grid-column:span 2}.rc1549-manual input:focus-visible,.rc1549-manual textarea:focus-visible{outline:2px solid #2563eb;outline-offset:2px}@media(max-width:1000px){.rc1549-head label.rc1549-address{grid-column:auto}}';
  (d.head||d.documentElement).appendChild(style)
 }
@@ -253,7 +272,22 @@ function mountManual(){
   '<label>'+esc(t('sender'))+'<input data-rc1549-header="senderName" maxlength="160"></label>'+
   '<label class="rc1549-address">'+esc(t('senderAddress'))+'<textarea data-rc1549-header="senderAddress" maxlength="500" rows="3"></textarea></label>'+
   '<label>'+esc(t('recipient'))+'<input data-rc1549-header="recipient" maxlength="160"></label>'+
-  '<label class="rc1549-address">'+esc(t('recipientAddress'))+'<textarea data-rc1549-header="recipientAddress" maxlength="500" rows="3"></textarea></label></div>'+
+  '<label class="rc1549-address">'+esc(t('recipientAddress'))+'<textarea data-rc1549-header="recipientAddress" maxlength="500" rows="3"></textarea></label>'+
+  '<div class="rc1549-subhead">'+esc(t('companyDetails'))+'</div>'+
+  '<label>'+esc(t('senderEori'))+'<input type="text" data-rc1549-header="senderEori" maxlength="120" placeholder="DE…"></label>'+
+  '<label>'+esc(t('senderVatId'))+'<input type="text" data-rc1549-header="senderVatId" maxlength="120" placeholder=""></label>'+
+  '<label>'+esc(t('senderTaxNumber'))+'<input type="text" data-rc1549-header="senderTaxNumber" maxlength="120" placeholder=""></label>'+
+  '<label>'+esc(t('senderRegister'))+'<input type="text" data-rc1549-header="senderRegister" maxlength="120" placeholder=""></label>'+
+  '<div class="rc1549-subhead">'+esc(t('shippingDetails'))+'</div>'+
+  '<label>'+esc(t('exportReason'))+'<input type="text" data-rc1549-header="exportReason" maxlength="120" placeholder="Samples / Replacement / Return"></label>'+
+  '<label>'+esc(t('incoterm'))+'<input type="text" data-rc1549-header="incoterm" maxlength="120" placeholder="FCA / DAP / EXW"></label>'+
+  '<label>'+esc(t('packageCount'))+'<input type="text" data-rc1549-header="packageCount" maxlength="120" placeholder=""></label>'+
+  '<label>'+esc(t('packageType'))+'<input type="text" data-rc1549-header="packageType" maxlength="120" placeholder=""></label>'+
+  '<label>'+esc(t('transportMode'))+'<input type="text" data-rc1549-header="transportMode" maxlength="120" placeholder=""></label>'+
+  '<label>'+esc(t('shipmentReference'))+'<input type="text" data-rc1549-header="shipmentReference" maxlength="120" placeholder=""></label>'+
+  '<label>'+esc(t('freightCost'))+'<input type="text" data-rc1549-header="freightCost" maxlength="120" placeholder=""></label>'+
+  '</div>'+
+  '<p class="rc1549-customs-hint">'+esc(t('customsHelp'))+'</p>'+
   '<div class="rc1549-logo"><label>'+esc(t('logo'))+' <input type="file" data-rc1549-logo accept="image/png,image/jpeg,.png,.jpg,.jpeg"></label><div class="rc1549-logo-preview"><img data-rc1549-logo-image hidden alt="Essentra Components Logo"><span data-rc1549-logo-hint></span><button type="button" class="ghost" data-rc1549-logo-clear hidden>'+esc(t('logoRemove'))+'</button></div></div>'+
   '<div class="rc1549-scroll"><table><thead><tr><th>'+esc(t('item'))+'</th><th>'+esc(t('description'))+'</th><th>'+esc(t('qty'))+'</th><th>'+esc(t('unit'))+'</th><th>'+esc(t('unitPrice'))+'</th><th>'+esc(t('value'))+'</th><th>'+esc(t('net'))+'</th><th>'+esc(t('gross'))+'</th><th>'+esc(t('volume'))+'</th><th>'+esc(t('hs'))+'</th><th>'+esc(t('origin'))+'</th><th>'+esc(t('actions'))+'</th></tr></thead><tbody data-rc1549-manual-list></tbody></table></div>'+
   '<div class="rc1549-actions"><button type="button" class="ghost" data-rc1549-manual-add>+ '+esc(t('add'))+'</button><button type="button" class="btn" data-rc1549-manual-create>'+esc(t('create'))+'</button></div>'+
