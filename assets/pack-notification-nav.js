@@ -66,7 +66,7 @@
   function click(event){const node=event.target&&event.target.closest&&event.target.closest('[data-pack-notifications-nav]');if(!node)return;event.preventDefault();event.stopPropagation();if(typeof event.stopImmediatePropagation==='function')event.stopImmediatePropagation();openInbox();}
   function currentView(){try{return String(doc.body&&doc.body.getAttribute('data-exporthub-view')||'').toLowerCase();}catch(_){return'';}}
   function repairAfterViewChange(){clearTimeout(timer);timer=setTimeout(()=>{const node=ensureEntry();// RC1572: the app's own nav handler may switch to packnotifications before our click handler runs
-      const active=currentView()==='packnotifications';setActive(active);if(active){const api=runtime();if(api&&typeof api.renderPackInbox==='function'&&!doc.getElementById('packNotificationInbox'))api.renderPackInbox();decorateAdmins();}},30);}
+      const view=currentView(),inbox=view==='packnotifications',detail=view==='packnotification';setActive(inbox||detail);if(inbox){const api=runtime();if(api&&typeof api.renderPackInbox==='function'&&!doc.getElementById('packNotificationInbox'))api.renderPackInbox();decorateAdmins();}else if(detail){ensureStationAdmin().then(admin=>{if(admin&&typeof admin.decorateDetail==='function')admin.decorateDetail();});}},30);}
   function install(){
     if(doc.__exporthubPackNavInstalled)return true;doc.__exporthubPackNavInstalled=true;ensureEntry();doc.addEventListener('click',click,true);
     // The core router renders a view through window[view]; without one it drew the legacy dashboard first and the
