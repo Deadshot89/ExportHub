@@ -263,11 +263,14 @@ function setMode(mode,skipShipmentPrefill){
    buttons[i].classList.toggle('active',active)
   }
  }
- if(mode==='shipment'&&!skipShipmentPrefill){
-  try{
-   if(w.ExportHUBRC626&&typeof w.ExportHUBRC626.openAbd==='function')w.ExportHUBRC626.openAbd(true);
-   else setStatus(xtr('shipmentUnavailable'),'bad')
-  }catch(e){setStatus(q(e&&e.message)||tr('errors.generic'),'bad')}
+ if(mode==='shipment'){
+  // Only a user-initiated switch calls the existing shipment prefill.
+  if(!skipShipmentPrefill){
+   try{
+    if(w.ExportHUBRC626&&typeof w.ExportHUBRC626.openAbd==='function')w.ExportHUBRC626.openAbd(true);
+    else setStatus(xtr('shipmentUnavailable'),'bad')
+   }catch(e){setStatus(q(e&&e.message)||tr('errors.generic'),'bad')}
+  }
  }
  return false
 }
