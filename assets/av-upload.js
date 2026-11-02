@@ -23,6 +23,12 @@ function ensureButton(){
 function scheduleEnsure(){if(scheduled)return;scheduled=true;(window.requestAnimationFrame||setTimeout)(ensureButton)}
 function readBase64(file){return new Promise(function(resolve,reject){var r=new FileReader();r.onload=function(){var s=String(r.result||''),i=s.indexOf(',');resolve(i>=0?s.slice(i+1):s)};r.onerror=function(){reject(r.error||new Error('read'))};r.readAsDataURL(file)})}
 function setLabel(button,label,disabled){if(!button)return;button.textContent=label;button.disabled=!!disabled}
+function statusNotice(button,body){
+  var host=button&&button.parentElement;if(!host)return;
+  var notice=host.querySelector('[data-av-upload-status]');
+  if(!notice){notice=document.createElement('span');notice.setAttribute('data-av-upload-status','1');notice.setAttribute('role','status');notice.className='rc786-av-upload-status';host.appendChild(notice)}
+  notice.textContent=body.taskUpdatePending?t('taskPending'):(body.taskCompleted?(body.sharepointSaved?t('taskCompleted'):t('taskCompletedMirrorPending')):t('taskOpen'));
+}
 async function upload(file,button){
   var ref=refOf(currentShipment());
   if(!ref||!file)return false;
@@ -34,6 +40,7 @@ async function upload(file,button){
     try{body=await res.json()}catch(_){}
     if(!res.ok||body.ok===false)throw new Error(q(body.message)||('HTTP '+res.status));
     setLabel(button,t('done'),false);
+    statusNotice(button,body);
     setTimeout(function(){setLabel(button,t('idle'),false)},4000);
     var view=window.ExportHUBShipmentView;if(view&&typeof view.refreshReferenceFiles==='function')view.refreshReferenceFiles();
     return true;
