@@ -547,11 +547,11 @@ function fitNow(){try{fit()}catch(err){try{console.warn('RC1569 fit',err)}catch(
 function removeDashboardLieferavis(root){
   if(!root||!isDashboard()||typeof root.querySelectorAll!=='function')return 0;
   var removed=0,routePattern=/^(?:avis|lieferavis|customeravis|customer-avis)$/i;
-  var labelPattern=/^(?:lieferavis|kundenavis)(?:\\s+(?:öffnen|erstellen|bearbeiten))?(?:\\s*\\(\\d+\\))?$/i;
+  var labelPattern=/^(?:lieferavis|kundenavis)(?:\s+(?:öffnen|erstellen|bearbeiten))?(?:\s*\(\d+\))?$/i;
   function isAvis(el){
     var attrs=['data-view','data-route','data-module','data-dashboard-widget','data-widget-id'];
     for(var i=0;i<attrs.length;i++){if(routePattern.test(q(el.getAttribute&&el.getAttribute(attrs[i]))))return true}
-    return labelPattern.test(q(el.textContent).replace(/\\s+/g,' '))
+    return labelPattern.test(q(el.textContent).replace(/\s+/g,' '))
   }
   // Whole dedicated cards first; ordinary shipment/task cards must remain intact.
   Array.prototype.forEach.call(root.querySelectorAll('.rc205-dashboard-grid [data-dashboard-widget],.rc205-dashboard-grid [data-widget-id],:scope > [data-dashboard-widget],:scope > [data-widget-id]'),function(card){
