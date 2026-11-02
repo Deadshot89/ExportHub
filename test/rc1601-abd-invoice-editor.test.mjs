@@ -235,3 +235,24 @@ test('RC1661: Essentra defaults from source invoice and no consignee tax IDs',as
   assert.ok(!text.includes('GB123456789012'));
   assert.ok(!text.includes('GB123456789'));
 });
+
+test('RC1662: EORI and export reason may be empty and unwanted PDF fields disappear',async()=>{
+ const layout=fs.readFileSync('api/shared/abd-proforma-layout.js','utf8');
+ assert.match(frontend,/EORI des Ausführers \(freiwillig\)/);
+ assert.match(frontend,/Ausfuhrgrund \(freiwillig\)/);
+ assert.doesNotMatch(frontend,/!q\(h\.exportReason\)|!header\.exportReason/);
+ const raw=invoice();
+ const input=model.rebuildReviewedAnalysis({header:{...raw.header,senderEori:'',exportReason:'',shipmentDate:'2026-11-04',incotermPlace:'Berlin',insuranceCost:8.19},positions:raw.positions});
+ const output=exporter.createExportModel(input);
+ assert.equal(output.header.senderEori,'');
+ assert.equal(output.header.exportReason,'');
+ for(const field of ['shipmentDate','incotermPlace','insuranceCost']){
+  assert.doesNotMatch(frontend,new RegExp('data-rc1549-header="'+field+'"'));
+  assert.doesNotMatch(layout,new RegExp('header\\.'+field));
+  assert.ok(!Object.hasOwn(output.header,field));
+ }
+ const pdf=await exporter.createProformaPdf(input);
+ const txt=(await extractPdfText(pdf)).replace(/\s+/g,' ');
+ for(const field of ['LIEFERDATUM','SHIPMENT DATE','BENANNTER ORT','NAMED PLACE','VERSICHERUNG','INSURANCE','19 %'])assert.ok(!txt.includes(field),field);
+ assert.match(txt,/PROFORMA INVOICE/);
+});
