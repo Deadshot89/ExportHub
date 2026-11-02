@@ -115,6 +115,32 @@ async function renderInvoice(model,logoData){
   }
   y=leftY-25
  }
+ function shippingInfo(){
+  const items=[
+   ['LIEFERDATUM / SHIPMENT DATE',displayDate(header.shipmentDate)],
+   ['AUSFUHRGRUND / EXPORT REASON',header.exportReason],
+   ['INCOTERMS 2020',header.incoterm],['BENANNTER ORT / NAMED PLACE',header.incotermPlace],
+   ['PACKSTUECKE / PACKAGES',[header.packageCount,header.packageType].filter(Boolean).join(' ')],
+   ['TRANSPORT / SHIPPING',header.transportMode],['REFERENZ / REFERENCE',header.shipmentReference],
+   ['FRACHT / FREIGHT',header.freightCost==null?'':money(header.freightCost)+' '+currency],
+   ['VERSICHERUNG / INSURANCE',header.insuranceCost==null?'':money(header.insuranceCost)+' '+currency]
+  ].filter(item=>printable(item[1]));
+  if(!items.length)return;
+  if(y<FOOT+80)newPage();
+  section('VERSAND- UND ZOLLANGABEN / SHIPPING & CUSTOMS');
+  const gap=16,col=(CONTENT-gap)/2;
+  for(let i=0;i<items.length;i+=2){
+   const pair=items.slice(i,i+2),wrapped=pair.map(item=>linesFor(bold,item[1],8,col-12,6));
+   const rowHeight=20+11*Math.max(...wrapped.map(a=>a.length));
+   if(y-rowHeight<FOOT+20)newPage();
+   pair.forEach((item,j)=>{
+    const x=M+j*(col+gap);put(item[0],x,y,{size:6.8,bold:true,color:muted,width:col});
+    wrapped[j].forEach((value,k)=>put(value,x,y-14-k*11,{size:8,bold:true,width:col-12}))
+   });
+   y-=rowHeight+6
+  }
+  y-=8
+ }
  function startPageContent(){
   newPage();
   const metaY=y;
@@ -129,7 +155,7 @@ async function renderInvoice(model,logoData){
    valueLines.forEach((t,i)=>put(t,f.x,metaY-15-i*12,{size:9,bold:true,width:f.w}))
   }
   y=metaY-45;
-  printAddress();
+  printAddress();shippingInfo();
  }
  function itemHeader(){
   page.drawRectangle({x:M,y:y-22,width:CONTENT,height:27,color:pale});
