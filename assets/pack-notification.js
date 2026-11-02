@@ -42,7 +42,7 @@
     height:row.querySelector('[data-dim="height"]')?.value||''
   }));
   const prior=Array.isArray(savedPackages)?savedPackages:current,options=mergePackagingOptions();
-  const markup='<option value="">Bitte wählen</option>'+options.map(item=>`<option value="${escapeHtml(item.label)}" data-packaging-id="${escapeHtml(item.id)}">${escapeHtml(item.label)}</option>`).join('');
+  const markup=`<option value="">${escapeHtml(tr('pack.select'))}</option>`+options.map(item=>`<option value="${escapeHtml(item.label)}" data-packaging-id="${escapeHtml(item.id)}">${escapeHtml(item.label)}</option>`).join('');
   els.rows.innerHTML='';
   for(let i=0;i<count;i++){
     const raw=prior[i]||{};
@@ -55,7 +55,7 @@
     };
     const row=document.createElement('article');
     row.className='pack-package';row.dataset.packPackage=String(i+1);
-    row.innerHTML=`<h3>${escapeHtml(tr('pack.packageNumber',{number:i+1}))}</h3><div class="pack-package-grid"><label class="pack-package-type-field">Verpackungsart *<select data-pack-row-type required>${markup}</select></label><label>${escapeHtml(tr('pack.lengthRequired'))}<input data-dim="length" type="number" min="0.01" step="0.01" inputmode="decimal" value="${escapeHtml(dimensions.l)}" required></label><label>${escapeHtml(tr('pack.widthRequired'))}<input data-dim="width" type="number" min="0.01" step="0.01" inputmode="decimal" value="${escapeHtml(dimensions.w)}" required></label><label>${escapeHtml(tr('pack.heightRequired'))}<input data-dim="height" type="number" min="0.01" step="0.01" inputmode="decimal" value="${escapeHtml(dimensions.h)}" required></label></div>`;
+    row.innerHTML=`<h3>${escapeHtml(tr('pack.packageNumber',{number:i+1}))}</h3><div class="pack-package-grid"><label class="pack-package-type-field">${escapeHtml(tr('pack.rowType'))}<select data-pack-row-type required>${markup}</select></label><label>${escapeHtml(tr('pack.lengthRequired'))}<input data-dim="length" type="number" min="0.01" step="0.01" inputmode="decimal" value="${escapeHtml(dimensions.l)}" required></label><label>${escapeHtml(tr('pack.widthRequired'))}<input data-dim="width" type="number" min="0.01" step="0.01" inputmode="decimal" value="${escapeHtml(dimensions.w)}" required></label><label>${escapeHtml(tr('pack.heightRequired'))}<input data-dim="height" type="number" min="0.01" step="0.01" inputmode="decimal" value="${escapeHtml(dimensions.h)}" required></label></div>`;
     els.rows.appendChild(row);
     row.querySelector('[data-pack-row-type]').value=selected?selected.label:(entry?entry.label:'');
   }
