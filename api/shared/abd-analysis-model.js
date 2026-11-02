@@ -28,8 +28,6 @@ function normalizeHeader(header){
   senderVatId:text(source.senderVatId).slice(0,80),
   senderTaxNumber:text(source.senderTaxNumber).slice(0,80),
   senderRegister:text(source.senderRegister).slice(0,180),
-  recipientEori:text(source.recipientEori).slice(0,80),
-  recipientVatId:text(source.recipientVatId).slice(0,80),
   shipmentDate:text(source.shipmentDate).slice(0,80),
   incoterm:text(source.incoterm).slice(0,80),
   incotermPlace:text(source.incotermPlace).slice(0,80),
