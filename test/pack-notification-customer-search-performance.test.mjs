@@ -82,7 +82,7 @@ test('failed customer-state loads are not cached; next query retries cleanly',as
 
 test('client invalidates stale searches, caches repeat terms and ships updated asset version',()=>{
   const client=fs.readFileSync(new URL('../assets/pack-notification.js',import.meta.url),'utf8');
-  assert.match(client,/state\.customerQuerySeq\+\+;clearTimeout\(state\.customerSearchTimer\)/,'input must invalidate outstanding replies even below 2 characters');
+  assert.match(client,/const seq=\+\+state\.customerQuerySeq;clearTimeout\(state\.customerSearchTimer\)/,'input must invalidate outstanding replies even below 2 characters');
   assert.match(client,/function selectCustomer\(customer\)\{clearTimeout\(state\.customerSearchTimer\);state\.customerQuerySeq\+\+/);
   assert.match(client,/customerResultsCache:new Map\(\)/);
   assert.match(client,/Date\.now\(\)-cached\.at<45000/);
