@@ -195,6 +195,10 @@ test('RC1660: EORI, VAT ID, tax number, Incoterms and reason survive reanalysis 
  assert.equal(exported.header.exportReason,'Replacement shipment - no charge');
  assert.equal(exported.header.freightCost,14.50);
  const pdf=await exporter.createProformaPdf(enhanced);
+ if(process.env.EXPORTHUB_PDF_SAMPLE_DIR){
+  fs.mkdirSync(process.env.EXPORTHUB_PDF_SAMPLE_DIR,{recursive:true});
+  fs.writeFileSync(path.join(process.env.EXPORTHUB_PDF_SAMPLE_DIR,'rc1660-proforma-customs-full.pdf'),pdf)
+ }
  const txt=(await extractPdfText(pdf)).replace(/\s+/g,' ');
  for(const expected of ['DE123456789123456','DE123456789','HRB 12345','DAP','Liverpool, GB','Replacement shipment','TEST-123','14.50','02.11.2026'])assert.ok(txt.includes(expected),expected+' missing');
 });
