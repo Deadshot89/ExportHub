@@ -131,13 +131,13 @@ async function renderInvoice(model,logoData){
   const gap=16,col=(CONTENT-gap)/2;
   for(let i=0;i<items.length;i+=2){
    const pair=items.slice(i,i+2),wrapped=pair.map(item=>linesFor(bold,item[1],8,col-12,6));
-   const rowHeight=20+11*Math.max(...wrapped.map(a=>a.length));
+   const rowHeight=17+11*Math.max(...wrapped.map(a=>a.length));
    if(y-rowHeight<FOOT+20)newPage();
    pair.forEach((item,j)=>{
     const x=M+j*(col+gap);put(item[0],x,y,{size:6.8,bold:true,color:muted,width:col});
     wrapped[j].forEach((value,k)=>put(value,x,y-14-k*11,{size:8,bold:true,width:col-12}))
    });
-   y-=rowHeight+6
+   y-=rowHeight
   }
   y-=8
  }
