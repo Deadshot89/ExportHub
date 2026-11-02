@@ -195,7 +195,7 @@ test('RC1660: EORI, VAT ID, tax number, Incoterms and reason survive reanalysis 
  assert.equal(exported.header.exportReason,'Replacement shipment - no charge');
  assert.equal(exported.header.freightCost,14.50);
  const pdf=await exporter.createProformaPdf(enhanced);
- const txt=(await extractPdfText(pdf)).replace(/\\s+/g,' ');
+ const txt=(await extractPdfText(pdf)).replace(/\s+/g,' ');
  for(const expected of ['DE123456789123456','DE123456789','HRB 12345','DAP','Liverpool, GB','Replacement shipment','TEST-123','14.50','02.11.2026'])assert.ok(txt.includes(expected),expected+' missing');
 });
 test('RC1660: zero sales price with declared customs value prints non-zero customs unit value',async()=>{
@@ -206,8 +206,8 @@ test('RC1660: zero sales price with declared customs value prints non-zero custo
  sample.groups[0].value=10;
  sample.totals={...sample.totals,invoiceTotal:10,accountedTotal:10,groupedTotal:10,difference:0};
  const txt=await extractPdfText(await exporter.createProformaPdf(sample));
- assert.match(txt,/0\\.002000/);
- assert.match(txt,/10\\.00/);
+ assert.match(txt,/0\.002000/);
+ assert.match(txt,/10\.00/);
 });
 test('RC1660: all customs fields can be edited before exporting an imported Excel or CSV invoice',()=>{
  for(const f of ['senderEori','senderVatId','senderTaxNumber','senderRegister','recipientEori','recipientVatId','exportReason','incoterm','incotermPlace','packageCount','packageType','shipmentDate','freightCost']){
