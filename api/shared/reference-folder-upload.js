@@ -154,7 +154,15 @@ async function listFiles(reference,environment='production'){
     // A missing root on the initial request is an absent REF folder.
     // A vanished subfolder or pagination link means the scan is incomplete:
     // do not create false AV-missing tasks from partial Graph reads.
-    if(task.depth===0&&pages===0)return[];
+    if(task.depth===0&&pages===0){
+     if(!target){
+      const graphBody=await res.json().catch(()=>({}));
+      const graphMessage=text(graphBody&&graphBody.error&&graphBody.error.message||graphBody&&graphBody.message);
+      if(/\buser\s+not\s+found\b|\buser\s+does\s+not\s+exist\b/i.test(graphMessage))
+       throw error('GRAPH_REFERENCE_USER_NOT_FOUND','Der für die REF-Ablage hinterlegte Microsoft-365-Benutzer wurde nicht gefunden. Bitte das SharePoint-Ziel über EXPORTHUB_REFERENCE_DRIVE_ID und EXPORTHUB_REFERENCE_FOLDER_ID konfigurieren.',503);
+     }
+     return[];
+    }
     throw error('GRAPH_REFERENCE_FOLDER_LIST_INCOMPLETE','Der REF-Ordner änderte sich während der AV-Prüfung. Bitte später erneut vollständig prüfen.',503);
    }
    let data={};try{data=await res.json()}catch(_){}
