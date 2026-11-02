@@ -64,7 +64,7 @@ function createHandler(deps={}){const mutateState=deps.mutateState||defaultMutat
       packStations:(Array.isArray(state&&state.packStations)?state.packStations:[]).map(s=>({id:s.id,name:s.name,tokenHash:s.tokenHash,active:s.active})),
       customers:(Array.isArray(state&&state.customers)?state.customers:[]).map(s=>({id:text(s&&s.id),account:text(s&&(s.account||s.customerNumber)),name:text(s&&(s.name||s.customerName))}))
     };
-    if(customerCacheTtlMs>0)customerCache.set(customerCacheKey(environment),{snapshot,expiresAt:customerCacheNow()+customerCacheTtlMs});
+    customerCache.set(customerCacheKey(environment),{snapshot,expiresAt:customerCacheNow()+customerCacheTtlMs});
     return snapshot;
   }
   async function customerSearchState(environment){
