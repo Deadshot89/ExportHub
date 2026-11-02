@@ -141,6 +141,9 @@ async function readJson(blob,fallback,repairAuth=false){
 async function uploadJson(blob,value,etag){
  const raw=Buffer.from(JSON.stringify(value)),bytes=raw.length,conditions=etag?{ifMatch:etag}:{ifNoneMatch:'*'},base={blobHTTPHeaders:{blobContentType:'application/json; charset=utf-8'},conditions};
  const metadata={schema:String(value.schemaVersion||3),revision:String(value.revision||0),updatedepoch:String(Date.parse(value.updatedAt||'')||Date.now()),clientversion:String(value.clientVersion||'').replace(/[^A-Za-z0-9_.-]/g,'').slice(0,80)};
+ // Avoid two 20-second identical PUTs for large Team-State snapshots. An
+ // ambiguous write is resolved by saveMerged using fresh ETag + operationId.
+ if(bytes>=16*1024*1024)base.transportAttempts=1;
  try{const uploaded=await blob.upload(raw,bytes,Object.assign({},base,{metadata}));return Object.assign({},uploaded||{},{bytes})}
  catch(e){
   const code=String(e&&e.code||e&&e.details&&e.details.errorCode||'');
