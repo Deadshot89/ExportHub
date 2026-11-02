@@ -117,13 +117,11 @@ async function renderInvoice(model,logoData){
  }
  function shippingInfo(){
   const items=[
-   ['LIEFERDATUM / SHIPMENT DATE',displayDate(header.shipmentDate)],
    ['AUSFUHRGRUND / EXPORT REASON',header.exportReason],
-   ['INCOTERMS 2020',header.incoterm],['BENANNTER ORT / NAMED PLACE',header.incotermPlace],
+   ['INCOTERMS 2020',header.incoterm],
    ['PACKSTUECKE / PACKAGES',[header.packageCount,header.packageType].filter(Boolean).join(' ')],
    ['TRANSPORT / SHIPPING',header.transportMode],['REFERENZ / REFERENCE',header.shipmentReference],
-   ['FRACHT / FREIGHT',header.freightCost==null?'':money(header.freightCost)+' '+currency],
-   ['VERSICHERUNG / INSURANCE',header.insuranceCost==null?'':money(header.insuranceCost)+' '+currency]
+   ['FRACHT / FREIGHT',header.freightCost==null?'':money(header.freightCost)+' '+currency]
   ].filter(item=>printable(item[1]));
   if(!items.length)return;
   if(y<FOOT+80)newPage();
