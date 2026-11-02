@@ -14,6 +14,7 @@ on:
       - 'api/shared/pdf-document-reference.js'
       - 'api/shared/document-blob-store.js'
       - 'test/pack-notification-*.test.mjs'
+      - 'test/rc1753-packtisch-unabhaengig-von-anfragen.test.mjs'
       - 'test/packaging-catalog.test.mjs'
       - 'test/document-reference-normalizer.test.mjs'
       - '.github/packmeldungen/**'
@@ -33,6 +34,7 @@ on:
       - 'api/shared/document-blob-store.js'
       - 'staticwebapp*.config.json'
       - 'test/pack-notification-*.test.mjs'
+      - 'test/rc1753-packtisch-unabhaengig-von-anfragen.test.mjs'
       - 'test/packaging-catalog.test.mjs'
       - 'test/document-reference-normalizer.test.mjs'
       - 'test/rc1059-document-blob-store.test.mjs'
@@ -58,6 +60,7 @@ jobs:
       - name: Packmeldungen unit and document contracts
         run: |
           node --test --test-concurrency=1 test/pack-notification-*.test.mjs test/packaging-catalog.test.mjs test/document-reference-normalizer.test.mjs
+          node --test --test-concurrency=1 test/rc1753-packtisch-unabhaengig-von-anfragen.test.mjs test/rc1501-pack-navigation-qr-admin.test.mjs test/packtisch-schnellerfassung.test.mjs
           node --test --test-concurrency=1 test/rc1059-document-blob-store.test.mjs test/rc1293-packing-slip-wrap.test.mjs test/rc1315-loading-list-quick-print.test.mjs
       - name: JavaScript syntax
         run: |

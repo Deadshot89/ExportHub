@@ -335,7 +335,7 @@
     const host=doc.getElementById('content')||doc.querySelector('main');if(!host)return false;
     host.innerHTML='';const section=doc.createElement('section');section.id='packNotificationDetail';section.className='pack-internal-detail';section.innerHTML=detailHtml(model);
     let busy=false;
-    const showEdit=(draft,errorText)=>{section.innerHTML=editHtml(model,draft,errorText);};
+    const showEdit=(draft,errorText)=>{section.innerHTML=editHtml(model,draft,errorText);try{root.ExportHUBPackStationAdmin&&root.ExportHUBPackStationAdmin.decorateDetail&&root.ExportHUBPackStationAdmin.decorateDetail();}catch(_){}};
     const reopen=()=>{const fresh=notificationById(sharedState(),model.notificationId);if(fresh)openNotificationDetail(fresh);};
     section.addEventListener('change',event=>{const target=event.target;if(!target||target.getAttribute('name')!=='packageCount')return;const draft=collectEditForm(section);if(draft)showEdit(draft,'');});
     section.addEventListener('click',async event=>{
@@ -350,7 +350,7 @@
       else if(action==='edit-save'){if(busy)return;busy=true;const draft=collectEditForm(section);const result=await saveEdit(model.notificationId,draft);busy=false;if(result.ok)reopen();else showEdit(draft,editErrorText(result));}
       else if(action==='cancel'){if(busy)return;if(typeof root.confirm==='function'&&!root.confirm(tr('pack.internal.cancelConfirm',{reference:model.reference})))return;busy=true;const result=await cancelAndPersist(model.notificationId);busy=false;if(result.ok)reopen();else if(typeof root.alert==='function')root.alert(editErrorText(result));}
     });
-    host.appendChild(section);try{doc.body.setAttribute('data-exporthub-view','packnotification');}catch(_){}return true;
+    host.appendChild(section);try{doc.body.setAttribute('data-exporthub-view','packnotification');}catch(_){}try{root.ExportHUBPackStationAdmin&&root.ExportHUBPackStationAdmin.decorateDetail&&root.ExportHUBPackStationAdmin.decorateDetail();}catch(_){}return true;
   }
   function openTaskDetail(task){const notification=findNotification(sharedState(),task);if(!notification)return false;return openNotificationDetail(notification);}
   function currentView(){try{return q(root.document&&root.document.body&&root.document.body.getAttribute('data-exporthub-view')).toLowerCase()||q(sharedState().view).toLowerCase();}catch(_){return'';}}
