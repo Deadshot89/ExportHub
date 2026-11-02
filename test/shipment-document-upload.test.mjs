@@ -62,7 +62,8 @@ test('Dokument-Upload ist in Build, Routing und Sendungsansicht eingebunden',()=
   assert.match(asset,/action:'upload-document'/);
   assert.match(asset,/multiple/);
   const api=fs.readFileSync('api/reference-files/index.js','utf8');
-  assert.match(api,/action==='upload-document'[\s\S]{0,300}publicAccess\.environment\(req,payload\)/);
+  assert.match(api,/const environment=publicAccess\.environment\(req,payload\)/);
+  assert.match(api,/action==='upload-document'[\s\S]{0,350}referenceFolder\.upload\(ref,file\.name,file\.buffer,file\.mimeType,environment\)/);
   const i18n=fs.readFileSync('assets/i18n/shipment-document-upload.js','utf8');
   for(const l of ['de','en','pl','es','fr','it'])assert.match(i18n,new RegExp('\\n '+l+':\\{button:'));
 });
