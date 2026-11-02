@@ -39,7 +39,7 @@ test('pack notification locale runtime translates public, AVIS, internal and dra
   assert.equal(runtime.t('pack.packageNumber',{number:3},'en'),'Package 3');
   assert.equal(runtime.t('pack.draft.packageCountLabel',{},'de'),'Anzahl Paletten');
   assert.equal(runtime.t('pack.draft.packageCountLabel',{},'en'),'Number of pallets');
-  assert.equal(runtime.t('pack.draft.deliveryRequirement',{},'de'),'Mindestens einen Lieferschein hochladen.');
+  assert.equal(runtime.t('pack.draft.deliveryRequirement',{},'de'),'Lieferscheine sind optional. Auch ohne Datei kann die Packmeldung gesendet werden.');
 });
 
 test('public and internal builds load pack locale runtime before pack UI runtimes',()=>{

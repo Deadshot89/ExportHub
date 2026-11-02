@@ -81,7 +81,7 @@ test('RC1555 QR submit accepts active packaging without preset dimensions when a
   const notification=f.state().packNotifications[0];
   assert.equal(notification.packagingTypeId,'PKG-NODIM');
   assert.deepEqual(notification.packagingSnapshot,{name:'Neue Sonderverpackung',code:'NEWBOX',description:'Maße werden beim Packen erfasst',lengthCm:null,widthCm:null,heightCm:null,ldm:null});
-  assert.deepEqual(notification.packages,[{packageNo:1,length:77,width:66,height:55,unit:'cm'}]);
+  assert.deepEqual(notification.packages,[{packageNo:1,packageType:'Neue Sonderverpackung',packageTypeId:'PKG-NODIM',length:77,width:66,height:55,unit:'cm',packagingTypeId:'PKG-NODIM',packagingSnapshot:notification.packagingSnapshot}]);
 });
 
 test('RC1555 QR submit rejects inactive or unknown packaging instead of trusting client text',async()=>{

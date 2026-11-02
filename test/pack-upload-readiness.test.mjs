@@ -5,9 +5,9 @@ import vm from 'node:vm';
 
 function loadClient(normalizePdfFile){
   const html=fs.readFileSync('assets/pack-notification.js','utf8');
-  const entry='  populatePackageTypes();startPage();\n})();';
-  assert.ok(html.endsWith(entry),'Pack-Client Test-Einstiegspunkt fehlt');
-  const script=html.slice(0,-entry.length)+'  window.__testFileToData=fileToData;\n})();';
+  const entry=html.lastIndexOf('  populatePackageTypes();');
+  assert.ok(entry>=0&&html.trimEnd().endsWith('})();'),'Pack-Client Test-Einstiegspunkt fehlt');
+  const script=html.slice(0,entry)+'  window.__testFileToData=fileToData;\n})();';
   const control={
     addEventListener(){},querySelectorAll(){return[];},
     classList:{add(){},remove(){},toggle(){}},

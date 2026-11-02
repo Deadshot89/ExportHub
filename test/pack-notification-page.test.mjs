@@ -18,7 +18,7 @@ test('public qr pack page is standalone and keeps the current mandatory delivery
   assert.doesNotMatch(html,/id="login"|ehLoginProduction|sidebar|main-navigation/i);
 });
 
-test('pack client creates one fresh session per page instance and locks logical submit without reviving removed reference input',()=>{
+test('pack client creates a server session at first write and locks logical submit without reviving removed reference input',()=>{
   const js=read('assets/pack-notification.js');
   assert.match(js,/crypto\.randomUUID/);
   assert.match(js,/api\('session'/);
@@ -29,7 +29,48 @@ test('pack client creates one fresh session per page instance and locks logical 
   assert.match(js,/documents/);
   assert.doesNotMatch(js,/packDeliveryNoteReference|deliveryRef/);
   assert.match(js,/deliveryNoteReference:derivedDocumentReference\(\)/);
-  assert.match(js,/return state\.documents\.length>0/);
+  assert.doesNotMatch(js,/return state\.documents\.length>0/,'uploaded documents may not be a condition for submit');
+  assert.match(js,/const documentsOk=state\.documents\.length>0/,'document progress is informational only');
+  assert.doesNotMatch(js,/if\(!documentsOk\)items\.push/,'missing documents must not appear in mandatory steps');
+});
+
+test('pack homepage remains usable without session writes and only creates a session on save/submit',()=>{
+  const js=read('assets/pack-notification.js');
+  const block=(name,next)=>{const start=js.indexOf('async function '+name+'(');assert.ok(start>=0,'missing '+name);const end=js.indexOf('function '+next+'(',start+16);assert.ok(end>start,'missing delimiter '+next);return js.slice(start,end)};
+  const page=block('startPage','submit');
+  assert.doesNotMatch(page,/await ensureSession\(\)/,'initial page render must not write sessions');
+  assert.match(page,/await loadDrafts\(\)/,'token must be verified through read-only API before opening home');
+  assert.match(page,/Promise\.all\(\[showHome\(true\),loadPackagingMaster\(\)\]\)/);
+  const newShipment=block('openNewShipment','openDraft');
+  assert.doesNotMatch(newShipment,/ensureSession\(\)/,'opening new form must not need storage writes');
+  const draft=block('openDraft','saveDraft');
+  assert.doesNotMatch(draft,/ensureSession\(\)/,'opening an existing draft is read-only');
+  const save=block('saveDraft','startPage'),submit=block('submit','refreshLanguage');
+  assert.match(save,/await ensureSession\(\)/,'draft persistence requires server session');
+  assert.match(submit,/await ensureSession\(\)/,'submitting to ExportHUB360 requires server session');
+});
+
+test('pack homepage renders with valid QR even if creating a writable session would fail',async()=>{
+  const js=read('assets/pack-notification.js');
+  const match=js.match(/async function startPage\(\)\{[\s\S]*?\}(?=\s*async function submit)/);
+  assert.ok(match,'Packtisch startPage implementation should be present');
+  let sessionCalls=0,loaded=0,shown=0,verified=0,error='';
+  const state={stationToken:''},els={loading:{hidden:false}};
+  const start=new Function('clearError','state','tokenFromPath','els','showError','tr','ensureSession','loadDrafts','showHome','loadPackagingMaster',
+    match[0]+'; return startPage;')(
+      ()=>{},state,()=>'VALID-PACKTISCH-TOKEN',els,
+      msg=>{error=msg},key=>key,
+      async()=>{sessionCalls++;throw new Error('HTTP 500')},
+      async()=>{verified++},async(flag)=>{assert.equal(flag,true);shown++},async()=>{loaded++}
+    );
+  await start();
+  assert.equal(els.loading.hidden,true);
+  assert.equal(state.stationToken,'VALID-PACKTISCH-TOKEN');
+  assert.equal(sessionCalls,0,'initial page must not call the write-session endpoint');
+  assert.equal(verified,1,'QR token is checked via read-only draft-list before home');
+  assert.equal(shown,1,'Packtisch home should show despite any session-write outage');
+  assert.equal(loaded,1,'packaging remains loaded');
+  assert.equal(error,'');
 });
 
 test('pack page supports responsive package rows and confirmation state',()=>{
@@ -73,7 +114,7 @@ test('pack PDF rename change preserves valid semicolon-terminated quote escaping
   assert.match(js,/&quot;/,'double quotes must remain escaped as &quot;');
 });
 
-test('static web app routes /pack/* to the deployable public pack asset and excludes it from SPA fallback',()=>{const config=JSON.parse(read('staticwebapp.config.json')),route=config.routes.find(r=>r.route==='/pack/*'),direct=config.routes.find(r=>r.route==='/pack.html'),asset=read('assets/pack.html');assert.ok(route);assert.equal(route.rewrite,'/assets/pack.html');assert.equal(direct&&direct.rewrite,'/assets/pack.html');assert.ok(Array.isArray(route.allowedRoles)&&route.allowedRoles.includes('anonymous'));assert.ok(config.navigationFallback.exclude.includes('/pack/*'));assert.ok(config.navigationFallback.exclude.includes('/pack.html'));assert.match(asset,/ExportHUB360 · Packmeldung/);assert.match(asset,/id="packForm"/);assert.match(asset,/\/assets\/document-reference-normalizer\.js\?v=3/);assert.match(asset,/\/assets\/pack-notification\.js\?v=4/);});
+test('static web app routes /pack/* to the deployable public pack asset and excludes it from SPA fallback',()=>{const config=JSON.parse(read('staticwebapp.config.json')),route=config.routes.find(r=>r.route==='/pack/*'),direct=config.routes.find(r=>r.route==='/pack.html'),asset=read('assets/pack.html');assert.ok(route);assert.equal(route.rewrite,'/assets/pack.html');assert.equal(direct&&direct.rewrite,'/assets/pack.html');assert.ok(Array.isArray(route.allowedRoles)&&route.allowedRoles.includes('anonymous'));assert.ok(config.navigationFallback.exclude.includes('/pack/*'));assert.ok(config.navigationFallback.exclude.includes('/pack.html'));assert.match(asset,/ExportHUB360 · Packmeldung/);assert.match(asset,/id="packForm"/);assert.match(asset,/\/assets\/document-reference-normalizer\.js\?v=3/);assert.match(asset,/\/assets\/pack-notification\.js\?v=7/);});
 
 test('pack document selection never waits forever for optional PDF text detection',()=>{
   const js=read('assets/pack-notification.js');
@@ -85,5 +126,5 @@ test('pack document selection never waits forever for optional PDF text detectio
   assert.match(js,/const data=await readFileDataUrl\(file\)/);
   assert.match(js,/const naming=await optionalPdfNaming\(file\)/);
   assert.match(js,/MAX_PACK_DOCUMENT_BYTES=10\*1024\*1024/);
-  assert.match(html,/pack-notification\.js\?v=4/,'deployed pack asset must load the new client');
+  assert.match(html,/pack-notification\.js\?v=7/,'deployed pack asset must load the new client');
 });

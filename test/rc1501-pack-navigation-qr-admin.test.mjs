@@ -62,6 +62,7 @@ test('RC1501 deployable pack page keeps translated draft controls strict-i18n cl
   }
   assert.match(client,/els\.saveDraft\.textContent=tr\(['"]pack\.draft\.save['"]\)/,'packSaveDraft must be translated before the form becomes visible');
   assert.match(client,/els\.hint\.textContent=tr\(['"]pack\.draft\.ready['"]\)/,'ready validation hint must use i18n');
-  assert.match(client,/els\.hint\.textContent=tr\(['"]pack\.draft\.deliveryRequirement['"]\)/,'delivery-note validation hint must use i18n');
+  assert.doesNotMatch(client,/els\.hint\.textContent=tr\(['"]pack\.draft\.deliveryRequirement['"]\)/,'optional delivery notes must not be displayed as an outstanding requirement');
+  assert.match(client,/els\.deliveryHelp\.textContent=tr\(['"]pack\.deliveryNotesHelp['"]\)/,'optional delivery-note help must still be translated');
   assert.match(client,/els\.hint\.textContent=tr\(['"]pack\.draft\.validation['"]\)/,'general validation hint must use i18n');
 });
