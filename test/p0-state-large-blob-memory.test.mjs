@@ -41,3 +41,50 @@ test('P0 #1159: state reader consumes the collector and writes one Buffer withou
   assert.match(source,/operationId&&recentOperations\.some/);
   assert.match(source,/isStorageWriteConflict\(e\)/);
 });
+
+test('P0 #1159: real uploadJson encodes Unicode once and keeps Azure ETag preconditions',async()=>{
+  const source=fs.readFileSync(new URL('../api/exporthub-state/index.js',import.meta.url),'utf8');
+  const start=source.indexOf('async function uploadJson(');
+  const end=source.indexOf('function isStorageWriteConflict(',start);
+  assert.ok(start>0&&end>start);
+  const uploadJson=new Function('Buffer',source.slice(start,end)+'; return uploadJson;')(Buffer);
+  const writes=[];
+  const blob={upload:async(raw,bytes,options)=>{
+    writes.push({raw,bytes,options});
+    return{etag:'"new-etag"'};
+  }};
+  const data={schemaVersion:3,revision:7,updatedAt:'2026-11-02T15:00:00.000Z',
+    clientVersion:'RC1458',state:{shipments:[{ref:'TEST01',note:'Größe – 日本語'}]}};
+  const result=await uploadJson(blob,data,'"previous-etag"');
+  assert.equal(writes.length,1,'one logical write');
+  assert.ok(Buffer.isBuffer(writes[0].raw),'REST transport receives Buffer without another copy');
+  assert.equal(writes[0].bytes,Buffer.byteLength(JSON.stringify(data),'utf8'));
+  assert.deepEqual(JSON.parse(writes[0].raw.toString('utf8')),data);
+  assert.equal(writes[0].options.conditions.ifMatch,'"previous-etag"');
+  assert.equal(writes[0].options.metadata.revision,'7');
+  assert.equal(result.etag,'"new-etag"');
+
+  writes.length=0;
+  await uploadJson(blob,data,null);
+  assert.equal(writes[0].options.conditions.ifNoneMatch,'*');
+});
+
+test('P0 #1159: metadata fallback keeps conditional upload and fails closed on other errors',async()=>{
+  const source=fs.readFileSync(new URL('../api/exporthub-state/index.js',import.meta.url),'utf8');
+  const start=source.indexOf('async function uploadJson('),end=source.indexOf('function isStorageWriteConflict(',start);
+  const uploadJson=new Function('Buffer',source.slice(start,end)+'; return uploadJson;')(Buffer);
+  const calls=[];
+  const blob={upload:async(raw,bytes,options)=>{
+    calls.push({raw,bytes,options});
+    if(calls.length===1){const error=new Error('InvalidMetadata');error.statusCode=400;throw error;}
+    return{etag:'"ok"'};
+  }};
+  const saved=await uploadJson(blob,{schemaVersion:3,revision:1,state:{}},'"old"');
+  assert.equal(saved.etag,'"ok"');
+  assert.equal(calls.length,2);
+  assert.strictEqual(calls[0].raw,calls[1].raw);
+  assert.equal(calls[0].options.conditions.ifMatch,'"old"');
+  assert.equal(calls[1].options.conditions.ifMatch,'"old"');
+  const denied=Object.assign(new Error('Forbidden'),{statusCode:403});
+  await assert.rejects(()=>uploadJson({upload:async()=>{throw denied;}},{state:{}},null),error=>error===denied);
+});
