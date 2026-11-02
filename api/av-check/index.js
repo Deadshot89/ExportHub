@@ -105,6 +105,7 @@ function createHandler(deps = {}) {
     return files;
   });
   const graphConfigured = deps.graphConfigured || (environment => { try { referenceFolder.config(); referenceFolder.assertTargetForEnvironment(environment); return true; } catch (_) { return false; } });
+  const listArchivedFiles = deps.listArchivedFiles || avBlob.list;
   const now = deps.now || (() => new Date());
   return async function(req) {
     if (req.method === 'OPTIONS') return { status: 204, body: {} };
@@ -113,8 +114,10 @@ function createHandler(deps = {}) {
       if (!await authorize(req)) throw error('WORKFLOW_REQUIRED', 'Die AV-Prüfung darf nur durch den signierten ExportHUB-Workflow ausgeführt werden.', 403);
       const payload = body(req), environment = environmentOf(req, payload);
       const limit = Math.min(100, Math.max(1, Math.round(Number(payload.limit) || 40)));
-      // Ohne Graph-Zugriff kann kein REF-Ordner gelesen werden; dann keine Aufgaben erzeugen.
-      if (!graphConfigured(environment)) return { status: 503, body: { ok: false, code: 'GRAPH_NOT_CONFIGURED', environment, graphConfigured: false, checked: 0, results: [] } };
+      // Without a configured Graph target, the verified Azure AV archive can still
+      // close existing AV tasks. Never infer that an AV is missing from an
+      // incomplete archive or absent OneDrive access.
+      const graphReady = graphConfigured(environment);
       const minAgeMs = Math.max(0, Number(payload.minAgeMinutes == null ? 30 : payload.minAgeMinutes) || 0) * 60 * 1000;
       const at = now(), state = await readState(environment);
       // Gerade erst geprüfte REFs überspringen, damit Folge-Batches eines Laufs weiterkommen.
@@ -126,16 +129,30 @@ function createHandler(deps = {}) {
       const selected = all.slice(0, limit);
       const checks = [], errors = [];
       for (const item of selected) {
-        try { checks.push({ reference: item.reference, result: await avCheck.checkReference(item.reference, ref => listFiles(ref, environment, item.requiredAvCount)) }); }
-        catch (e) { errors.push({ reference: item.reference, code: text(e && e.code) || 'REFERENCE_FOLDER_LIST_FAILED' }); }
+        try {
+          if (!graphReady) {
+            const archived = await listArchivedFiles(item.reference, environment);
+            const verified = Array.isArray(archived) ? archived.filter(f => avCheck.isAvFileName(f && f.name)) : [];
+            if (item.requiredAvCount < 1 || verified.length < item.requiredAvCount)
+              throw error('GRAPH_NOT_CONFIGURED', 'Der REF-Ordner ist nicht erreichbar und das Azure-Archiv beweist keinen vollständigen AV-Bestand.', 503);
+            checks.push({ reference: item.reference, result: await avCheck.checkReference(item.reference, async () => verified) });
+          } else {
+            checks.push({ reference: item.reference, result: await avCheck.checkReference(item.reference, ref => listFiles(ref, environment, item.requiredAvCount)) });
+          }
+        } catch (e) { errors.push({ reference: item.reference, code: text(e && e.code) || 'REFERENCE_FOLDER_LIST_FAILED' }); }
       }
+      // No independently verified AV means fail closed, never create a missing task.
+      if (!graphReady && !checks.length) return { status: 503, body: {
+        ok: false, code: 'GRAPH_NOT_CONFIGURED', environment, graphConfigured: false,
+        checked: 0, errorCount: errors.length, errors, results: []
+      } };
       const applied = await mutateState(environment, current => {
         const results = checks.map(c => avCheck.applyResult(current, c.reference, c.result, at));
         return { changed: results.length > 0, results };
       });
       const results = applied.results || [];
       return { status: 200, body: {
-        ok: errors.length === 0, environment, graphConfigured: true, dueDays: avCheck.AV_DUE_DAYS,
+        ok: errors.length === 0, environment, graphConfigured: graphReady, dueDays: avCheck.AV_DUE_DAYS,
         candidates: all.length, checked: checks.length, remaining: Math.max(0, all.length - selected.length),
         present: results.filter(r => r.status === 'present').length,
         missing: results.filter(r => r.status === 'missing').length,
