@@ -70,6 +70,13 @@ test('RC1601: Rechnung per Upload korrigieren, validieren und als PDF exportiere
  const editor=page.locator('#rc1549AbdManual');
  await expect(editor.locator('tbody tr')).toHaveCount(1);
  await expect(editor.locator('[data-field="itemNumber"]')).toHaveValue('CAP-10');
+ await expect(editor.locator('[data-rc1549-header="senderAddress"]')).toHaveValue(/Montel-Allee 3/);
+ await expect(editor.locator('[data-rc1549-header="senderVatId"]')).toHaveValue('DE301601416');
+ await expect(editor.locator('[data-rc1549-header="senderTaxNumber"]')).toHaveValue('115/5711/1576');
+ await expect(editor.locator('[data-rc1549-header="senderRegister"]')).toHaveValue('HRB 20649, Amtsgericht Krefeld');
+ await expect(editor.locator('[data-rc1549-header="senderEori"]')).toHaveValue('');
+ await expect(editor.locator('[data-rc1549-header="recipientEori"]')).toHaveCount(0);
+ await expect(editor.locator('[data-rc1549-header="recipientVatId"]')).toHaveCount(0);
  await editor.locator('[data-rc1549-header="senderAddress"]').fill('Essentra Components GmbH, 41334 Nettetal, Germany');
  await editor.locator('[data-rc1549-header="recipientAddress"]').fill('Dock Road 18, Liverpool, United Kingdom');
  await editor.locator('[data-rc1549-header="senderEori"]').fill('DE123456789123456');
