@@ -83,7 +83,7 @@ test('RC1761: invoice handoff returns to manual ABD and CSS respects hidden pane
 test('RC1761: workspace labels are translated in all six supported languages',()=>{
  const context={window:{},console};context.globalThis=context;
  vm.runInNewContext(i18n,context);
- const packs=context.ExportHUBRC1499I18n.packs;
+ const packs=context.window.ExportHUBRC1499I18n.packs;
  for(const code of ['de','en','pl','es','fr','it']){
   assert.ok(packs[code].workspaceTitle);
   assert.ok(packs[code].savedMode);
