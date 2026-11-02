@@ -24,11 +24,17 @@ function fileFromBlob(blob,p){
 }
 async function list(ref,env){
  const c=client(),p=prefix(ref,env),files=[];
+ try{
  for await(const entry of c.listBlobsFlat({prefix:p})){
   const file=fileFromBlob(entry,p);
   if(!file)continue;
   if(files.length>=MAX_FILES)throw err('AV_ARCHIVE_LIMIT','Zu viele Ausgangsvermerke für eine vollständige Prüfung.');
   files.push(file);
+ }
+ }catch(e){
+  // Before the first AV upload the private container may not exist yet.
+  if(Number(e&&e.statusCode)===404&&/^(ContainerNotFound|ResourceNotFound)$/i.test(text(e&&e.code)))return[];
+  throw e;
  }
  return files;
 }
