@@ -29,7 +29,9 @@ test('pack client creates a server session at first write and locks logical subm
   assert.match(js,/documents/);
   assert.doesNotMatch(js,/packDeliveryNoteReference|deliveryRef/);
   assert.match(js,/deliveryNoteReference:derivedDocumentReference\(\)/);
-  assert.match(js,/return state\.documents\.length>0/);
+  assert.doesNotMatch(js,/return state\\.documents\\.length>0/,'uploaded documents may not be a condition for submit');
+  assert.match(js,/const documentsOk=state\\.documents\\.length>0/,'document progress is informational only');
+  assert.doesNotMatch(js,/if\\(!documentsOk\\)items\\.push/,'missing documents must not appear in mandatory steps');
 });
 
 test('pack homepage remains usable without session writes and only creates a session on save/submit',()=>{
