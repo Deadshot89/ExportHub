@@ -37,3 +37,7 @@
 .pack-success-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
 @media (pointer:coarse){input,select,textarea,.pack-primary,.pack-secondary,.pack-stepper button,.pack-progress button{min-height:48px}}
 @media(max-width:640px){input,select,textarea{font-size:16px;min-height:48px}.pack-start{min-height:76px;font-size:20px}.pack-home-head{align-items:flex-start}#packForm .pack-package-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.pack-progress{margin:8px -12px 0;padding:8px 12px}.pack-progress button{justify-content:center;padding:6px}.pack-progress button>span:last-child{font-size:11px}.pack-section-head{flex-direction:column;align-items:stretch}.pack-copy-dimensions{width:100%;white-space:normal}.pack-stepper{grid-template-columns:52px minmax(0,1fr) 52px}.pack-actions{margin:0 -12px -20px}.pack-success-actions{display:grid}}
+
+/* Mixed-Colli: package type occupies its own full-width line; additional rows remain thumb-friendly. */
+.pack-package-type-field{grid-column:1/-1}
+.pack-add-colli{width:100%;min-height:40px;margin-top:9px;border:1px dashed #83b6d5;background:#f3f9fd;color:#075985;font-weight:850}
