@@ -61,3 +61,44 @@ test('P0 AV: Zuordnung der SharePoint-REF-Ziele bleibt eindeutig und TESTSERVICE
   tests.forEach((n,i)=>oldTest[i]===undefined?delete process.env[n]:process.env[n]=oldTest[i]);
  }
 });
+
+test('P0 AV: die automatische AV-Prüfung darf einen fehlenden Graph-User nicht als fehlenden Ausgangsvermerk melden',async()=>{
+ const before=names.map(n=>process.env[n]),originalFetch=globalThis.fetch,urls=[];
+ try{
+  Object.assign(process.env,{EXPORTHUB_GRAPH_TENANT_ID:'test',EXPORTHUB_GRAPH_CLIENT_ID:'test',EXPORTHUB_GRAPH_CLIENT_SECRET:'test',EXPORTHUB_REFERENCE_DRIVE_USER:'missing@example.invalid'});
+  delete process.env.EXPORTHUB_REFERENCE_DRIVE_ID;
+  delete process.env.EXPORTHUB_REFERENCE_FOLDER_ID;
+  delete require.cache[modulePath];
+  const store=require(modulePath);
+  globalThis.fetch=async url=>{
+   const u=String(url);urls.push(u);
+   if(u.includes('login.microsoftonline.com'))return{ok:true,status:200,json:async()=>({access_token:'synthetic',expires_in:3600})};
+   return{ok:false,status:404,json:async()=>({error:{code:'Request_ResourceNotFound',message:'User not found'}})};
+  };
+  await assert.rejects(store.listFiles('ABC123'),e=>e.code==='GRAPH_REFERENCE_USER_NOT_FOUND'&&e.status===503);
+  assert.ok(urls.some(u=>u.includes('/users/')),'der defekte Graph-Pfad wurde geprüft');
+ }finally{
+  globalThis.fetch=originalFetch;
+  names.forEach((n,i)=>before[i]===undefined?delete process.env[n]:process.env[n]=before[i]);
+  delete require.cache[modulePath];
+ }
+});
+
+test('P0 AV: tatsächlich fehlender Legacy-REF-Ordner bleibt ohne falschen User-Fehler leer',async()=>{
+ const before=names.map(n=>process.env[n]),originalFetch=globalThis.fetch;
+ try{
+  Object.assign(process.env,{EXPORTHUB_GRAPH_TENANT_ID:'test',EXPORTHUB_GRAPH_CLIENT_ID:'test',EXPORTHUB_GRAPH_CLIENT_SECRET:'test'});
+  delete process.env.EXPORTHUB_REFERENCE_DRIVE_ID;
+  delete process.env.EXPORTHUB_REFERENCE_FOLDER_ID;
+  delete require.cache[modulePath];
+  const store=require(modulePath);
+  globalThis.fetch=async url=>String(url).includes('login.microsoftonline.com')
+   ?{ok:true,status:200,json:async()=>({access_token:'synthetic',expires_in:3600})}
+   :{ok:false,status:404,json:async()=>({error:{code:'itemNotFound',message:'Item not found'}})};
+  assert.deepEqual(await store.listFiles('ABC123'),[]);
+ }finally{
+  globalThis.fetch=originalFetch;
+  names.forEach((n,i)=>before[i]===undefined?delete process.env[n]:process.env[n]=before[i]);
+  delete require.cache[modulePath];
+ }
+});
