@@ -14,7 +14,7 @@ test('Packtisch: Schritte, Stepper, Kamera und Maße übernehmen sind auf beiden
     assert.match(html,/id="packCopyDimensions"[^>]*hidden/,file);
     assert.match(html,/id="packCamera"[^>]*accept="image\/\*"[^>]*capture="environment"/,file);
     assert.match(html,/id="packNextShipment"/,file);
-    assert.match(html,/pack-notification\.css\?v=2/,file);
+    assert.match(html,/pack-notification\.css\?v=3/,file);
   }
 });
 
@@ -40,7 +40,7 @@ test('Packtisch: neue Texte gibt es in allen sechs Sprachen',()=>{
   const win={};const ctx=vm.createContext({window:win,globalThis:win});
   vm.runInContext(read('assets/i18n/pack-notification.js'),ctx);
   const packs=win.ExportHUBPackI18n.packs;
-  const keys=['pack.countDecrease','pack.countIncrease','pack.copyDimensions','pack.takePhoto','pack.takePhotoHint','pack.nextShipment','pack.missing','pack.missing.customerConfirm','pack.missing.packageType','pack.missing.weight','pack.draft.openCount'];
+  const keys=['pack.countDecrease','pack.countIncrease','pack.copyDimensions','pack.takePhoto','pack.takePhotoHint','pack.nextShipment','pack.missing','pack.missing.customerConfirm','pack.missing.packageType','pack.missing.weight','pack.draft.openCount','pack.addPackage'];
   for(const lang of ['de','en','pl','es','fr','it'])for(const key of keys)assert.ok(packs[lang][key],lang+': '+key);
   for(const lang of ['de','en','pl','es','fr','it'])assert.match(packs[lang]['pack.missing'],/\{\{items\}\}/,lang);
 });
