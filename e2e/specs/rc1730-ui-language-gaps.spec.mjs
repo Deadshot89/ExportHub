@@ -10,9 +10,9 @@ const VIEWS=['dashboard','tasks','packnotifications','pickupcalendar','notificat
 
 // identical in English on purpose (brand, product names, technical terms, ids)
 const SAME_IN_ENGLISH=new Set(['ExportHUB','Dashboard','Administration','Backup','Import','Status','Name','(Optional)','optional','Route','Zone','Tests','Reports','Academy','Audit','Logout','Browser','Sales','Management','Administrator','Update ExportHUB','ABD:','DOM & Fast-View','no-referrer / noindex','ABCD123456','0000','📊 Dashboard']);
-// demo data, people, ids, file names, numbers with units; dates are formatted separately (not by the packs)
+// demo data, people, ids (including six-character alphabetic shipment REFs), file names, numbers with units; dates are formatted separately (not by the packs)
 const DEMO_PEOPLE=new Set(['Demo Administrator','Sevastian Marcu','Daniel Ollmann']);
-const isData=text=>DEMO_PEOPLE.has(text)||/DEMO\d|Fake|example\.invalid|demo[.-]|\.pdf$|^\/|^Code \d+$|^Lane \d+$|^Fuel [\d.,]+ %$|^[a-z]+$|^[A-Z]\d{3,} · [A-Z]{2}$|^[\d\s.,:%€+–-]+(kg|cm|m)?$|^EURO Pal$|^[A-Z0-9]{2,4}$|^(?=.*\d)[A-Z0-9]{5,8}$|^(Mo|Di|Mi|Do|Fr|Sa|So)\., \d/.test(text);
+const isData=text=>DEMO_PEOPLE.has(text)||/DEMO\d|Fake|example\.invalid|demo[.-]|\.pdf$|^\/|^Code \d+$|^Lane \d+$|^Fuel [\d.,]+ %$|^[a-z]+$|^[A-Z]\d{3,} · [A-Z]{2}$|^[\d\s.,:%€+–-]+(kg|cm|m)?$|^EURO Pal$|^[A-Z0-9]{2,4}$|^[A-Z0-9]{6}$|^(?=.*\d)[A-Z0-9]{5,8}$|^(Mo|Di|Mi|Do|Fr|Sa|So)\., \d/.test(text);
 
 function collect(page){
   return page.evaluate(()=>{
