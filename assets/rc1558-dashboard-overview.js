@@ -542,6 +542,33 @@ function fit(){
 }
 function fitNow(){try{fit()}catch(err){try{console.warn('RC1569 fit',err)}catch(_){}}}
 
+/* The customer-facing Lieferavis belongs to the shipment workflow, not the dashboard.
+   Remove only its dashboard shortcut/widget; never touch AV records, notifications or shipment details. */
+function removeDashboardLieferavis(root){
+  if(!root||!isDashboard()||typeof root.querySelectorAll!=='function')return 0;
+  var removed=0,routePattern=/^(?:avis|lieferavis|customeravis|customer-avis)$/i;
+  var labelPattern=/^(?:lieferavis|kundenavis)(?:\\s+(?:öffnen|erstellen|bearbeiten))?(?:\\s*\\(\\d+\\))?$/i;
+  function isAvis(el){
+    var attrs=['data-view','data-route','data-module','data-dashboard-widget','data-widget-id'];
+    for(var i=0;i<attrs.length;i++){if(routePattern.test(q(el.getAttribute&&el.getAttribute(attrs[i]))))return true}
+    return labelPattern.test(q(el.textContent).replace(/\\s+/g,' '))
+  }
+  // Whole dedicated cards first; ordinary shipment/task cards must remain intact.
+  Array.prototype.forEach.call(root.querySelectorAll('.rc205-dashboard-grid [data-dashboard-widget],.rc205-dashboard-grid [data-widget-id],:scope > [data-dashboard-widget],:scope > [data-widget-id]'),function(card){
+    if(!card||!card.parentNode)return;
+    var id=q(card.getAttribute('data-dashboard-widget')||card.getAttribute('data-widget-id'));
+    if(routePattern.test(id)){card.remove();removed++}
+  });
+  // Quick-access links only: never filter general tasks or attention notifications.
+  Array.prototype.forEach.call(root.querySelectorAll('.rc205-quick-card a,.rc205-quick-card button,.rc1371-quick-access a,.rc1371-quick-access button,.rc205-dashboard-grid .rc205-quick-access a,.rc205-dashboard-grid .rc205-quick-access button'),function(link){
+    if(!link||!link.parentNode||!isAvis(link))return;
+    var item=link.closest&&link.closest('li,.rc205-quick-item,.rc205-quick-link');
+    if(item&&item.parentNode&&item.querySelectorAll('a,button').length===1)item.remove();else link.remove();
+    removed++
+  });
+  return removed
+}
+
 function refresh(){
   var d=w.document,api=workspace(),root=hostRoot(),existing=d&&d.getElementById(SECTION_ID);
   if(!d||!api||!root||!isDashboard()){
@@ -570,6 +597,7 @@ function refresh(){
   bind(section);
   applyTiles(root,arr(state.shipments));
   bindTiles(root);
+  removeDashboardLieferavis(root);
   d.body.setAttribute(BODY_FLAG,'1');
   fitNow();
   d.body.removeAttribute(FALLBACK_FLAG);
@@ -605,7 +633,7 @@ function install(){
   if(typeof w.MutationObserver==='function'&&d.body)new w.MutationObserver(mountIfMissing).observe(d.body,{attributes:true,attributeFilter:['data-exporthub-view','data-current-view']});
   var check=function(){
     if(d.hidden)return;observe();
-    mountIfMissing()
+    mountIfMissing();if(isDashboard())removeDashboardLieferavis(hostRoot())
   };
   d.addEventListener('visibilitychange',check);
   if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',check);else check();
