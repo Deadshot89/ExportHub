@@ -83,7 +83,6 @@ test('RC1601: Rechnung per Upload korrigieren, validieren und als PDF exportiere
  await editor.locator('[data-rc1549-header="senderVatId"]').fill('DE123456789');
  await editor.locator('[data-rc1549-header="exportReason"]').fill('Free replacement goods');
  await editor.locator('[data-rc1549-header="incoterm"]').fill('DAP');
- await editor.locator('[data-rc1549-header="incotermPlace"]').fill('Liverpool, UK');
  await editor.locator('[data-field="quantity"]').fill('20');
  await expect(editor.locator('[data-field="value"]')).toHaveValue('100.00');
  await editor.locator('[data-rc1549-logo]').setInputFiles({name:'essentra.png',mimeType:'image/png',buffer:png});
@@ -104,5 +103,19 @@ test('RC1601: Rechnung per Upload korrigieren, validieren und als PDF exportiere
  expect(exports[0].snapshot.positions[0].quantity).toBe(20);
  expect(exports[0].snapshot.positions[0].value).toBe(100);
  expect(exports[0].snapshot.logoDataUri).toMatch(/^data:image\/png;base64,/);
+ await expect(editor.locator('[data-rc1549-header="shipmentDate"]')).toHaveCount(0);
+ await expect(editor.locator('[data-rc1549-header="incotermPlace"]')).toHaveCount(0);
+ await expect(editor.locator('[data-rc1549-header="insuranceCost"]')).toHaveCount(0);
+ await editor.locator('[data-rc1549-header="senderEori"]').fill('');
+ await editor.locator('[data-rc1549-header="exportReason"]').fill('');
+ await editor.locator('[data-rc1549-manual-create]').click();
+ await expect(editor.locator('[data-rc1549-result] [data-rc1549-proforma]')).toBeEnabled({timeout:15_000});
+ const [secondDownload]=await Promise.all([page.waitForEvent('download'),editor.locator('[data-rc1549-result] [data-rc1549-proforma]').click()]);
+ expect(secondDownload.suggestedFilename()).toBe('Proforma-Browser.pdf');
+ const allExports=await page.evaluate(()=>window.__rc1601Exports);
+ expect(allExports).toHaveLength(2);
+ expect(allExports[1].snapshot.header.senderEori).toBe('');
+ expect(allExports[1].snapshot.header.exportReason).toBe('');
+ for(const key of ['shipmentDate','incotermPlace','insuranceCost'])expect(allExports[1].snapshot.header).not.toHaveProperty(key);
  expect(pageErrors).toEqual([]);
 });
