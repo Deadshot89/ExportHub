@@ -272,15 +272,15 @@ function mountManual(){
   '<label>'+esc(t('sender'))+'<input data-rc1549-header="senderName" maxlength="160"></label>'+
   '<label class="rc1549-address">'+esc(t('senderAddress'))+'<textarea data-rc1549-header="senderAddress" maxlength="500" rows="3"></textarea></label>'+
   '<label>'+esc(t('recipient'))+'<input data-rc1549-header="recipient" maxlength="160"></label>'+
-  '<label class="rc1549-address">'+esc(t('recipientAddress'))+'<textarea data-rc1549-header="recipientAddress" maxlength="500" rows="3"></textarea></label>'+ 
-  '<div class="rc1549-subhead">'+esc(t('companyDetails'))+'</div>'+ 
+  '<label class="rc1549-address">'+esc(t('recipientAddress'))+'<textarea data-rc1549-header="recipientAddress" maxlength="500" rows="3"></textarea></label>'+
+  '<div class="rc1549-subhead">'+esc(t('companyDetails'))+'</div>'+
   '<label>'+esc(t('senderEori'))+'<input type="text" data-rc1549-header="senderEori" maxlength="120" placeholder="DE…"></label>'+
   '<label>'+esc(t('senderVatId'))+'<input type="text" data-rc1549-header="senderVatId" maxlength="120" placeholder=""></label>'+
   '<label>'+esc(t('senderTaxNumber'))+'<input type="text" data-rc1549-header="senderTaxNumber" maxlength="120" placeholder=""></label>'+
   '<label>'+esc(t('senderRegister'))+'<input type="text" data-rc1549-header="senderRegister" maxlength="120" placeholder=""></label>'+
   '<label>'+esc(t('recipientEori'))+'<input type="text" data-rc1549-header="recipientEori" maxlength="120" placeholder=""></label>'+
   '<label>'+esc(t('recipientVatId'))+'<input type="text" data-rc1549-header="recipientVatId" maxlength="120" placeholder=""></label>'+
-  '<div class="rc1549-subhead">'+esc(t('shippingDetails'))+'</div>'+ 
+  '<div class="rc1549-subhead">'+esc(t('shippingDetails'))+'</div>'+
   '<label>'+esc(t('shipmentDate'))+'<input type="date" data-rc1549-header="shipmentDate" maxlength="120" placeholder=""></label>'+
   '<label>'+esc(t('exportReason'))+'<input type="text" data-rc1549-header="exportReason" maxlength="120" placeholder="Samples / Replacement / Return"></label>'+
   '<label>'+esc(t('incoterm'))+'<input type="text" data-rc1549-header="incoterm" maxlength="120" placeholder="FCA / DAP / EXW"></label>'+
@@ -292,7 +292,7 @@ function mountManual(){
   '<label>'+esc(t('freightCost'))+'<input type="text" data-rc1549-header="freightCost" maxlength="120" placeholder=""></label>'+
   '<label>'+esc(t('insuranceCost'))+'<input type="text" data-rc1549-header="insuranceCost" maxlength="120" placeholder=""></label>'+
   '</div>'+
-  '<p class="rc1549-customs-hint">'+esc(t('customsHelp'))+'</p>'+ 
+  '<p class="rc1549-customs-hint">'+esc(t('customsHelp'))+'</p>'+
   '<div class="rc1549-logo"><label>'+esc(t('logo'))+' <input type="file" data-rc1549-logo accept="image/png,image/jpeg,.png,.jpg,.jpeg"></label><div class="rc1549-logo-preview"><img data-rc1549-logo-image hidden alt="Essentra Components Logo"><span data-rc1549-logo-hint></span><button type="button" class="ghost" data-rc1549-logo-clear hidden>'+esc(t('logoRemove'))+'</button></div></div>'+
   '<div class="rc1549-scroll"><table><thead><tr><th>'+esc(t('item'))+'</th><th>'+esc(t('description'))+'</th><th>'+esc(t('qty'))+'</th><th>'+esc(t('unit'))+'</th><th>'+esc(t('unitPrice'))+'</th><th>'+esc(t('value'))+'</th><th>'+esc(t('net'))+'</th><th>'+esc(t('gross'))+'</th><th>'+esc(t('volume'))+'</th><th>'+esc(t('hs'))+'</th><th>'+esc(t('origin'))+'</th><th>'+esc(t('actions'))+'</th></tr></thead><tbody data-rc1549-manual-list></tbody></table></div>'+
   '<div class="rc1549-actions"><button type="button" class="ghost" data-rc1549-manual-add>+ '+esc(t('add'))+'</button><button type="button" class="btn" data-rc1549-manual-create>'+esc(t('create'))+'</button></div>'+
