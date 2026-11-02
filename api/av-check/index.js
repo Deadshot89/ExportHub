@@ -142,3 +142,6 @@ module.exports = async function(context, req) {
 };
 module.exports.createHandler = createHandler;
 module.exports.environmentOf = environmentOf;
+// Shared CAS team-state writer: authenticated AV uploads close tasks immediately after durable readback.
+module.exports.mutateTeamState = mutateTeamState;
+module.exports.readTeamState = readTeamState;
