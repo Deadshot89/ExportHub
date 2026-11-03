@@ -91,6 +91,26 @@ test('P0: an actual ABD document still requires AV even for a Dutch destination'
   assert.equal(av.candidates(state,new Date()).length,1);
 });
 
+test('P0: an issued ABD plus legacy status placeholders requires only one AV',()=>{
+  const sh={id:'S-NL',ref:'ZVYH89',destinationCountry:'NL',
+    abdFiles:[{name:'ABD_ZVYH89.pdf'},'vorhanden',{name:'Erledigt'}],
+    abdDocuments:['offen',{name:'fertig'}]};
+  const state={shipments:[sh],tasks:[]};
+  assert.equal(av.shipmentHasAbd(state,sh),true);
+  assert.equal(av.requiredAvCount(state,sh),1);
+  const found=av.applyResult(state,'ZVYH89',{avFiles:[{name:'AV_ZVYH89.pdf'}]},new Date());
+  assert.equal(found.status,'present');
+  assert.equal(sh.avRequiredCount,1);
+  assert.equal(sh.avFoundCount,1);
+});
+
+test('P0: actual ABD document stays counted when a placeholder appears first',()=>{
+  const sh={id:'S-NL',ref:'ZVYH89',abdFiles:['erledigt',{name:'ABD_ZVYH89.pdf'}]};
+  const state={shipments:[sh],tasks:[]};
+  assert.equal(av.shipmentHasAbd(state,sh),true);
+  assert.equal(av.requiredAvCount(state,sh),1);
+});
+
 test('P0: historical false AV alarm is closed when no issued ABD exists',()=>{
   const sh={id:'S-NL',ref:'ZVYH89',abdStatus:'Erledigt'};
   const task={id:av.taskId('ZVYH89'),sourceType:'av_missing',sourceRef:'ZVYH89',
