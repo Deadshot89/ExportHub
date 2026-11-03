@@ -289,7 +289,13 @@
     return Number.isInteger(weekday)&&weekday>=1&&weekday<=7?addDays(week,weekday-1):'';
   }
   function operationalSignature(group,pick,abd){
-    return [group,q(pick&&pick.id),operationalTaskDate(pick),q(abd&&abd.id),operationalTaskDate(abd)].join('|');
+    // Explicit approval is for this occurrence *and* its planning revision.
+    // Moving a step away and then back to its old date still needs new approval.
+    const moved=task=>arr(task&&task.history).filter(entry=>
+      ['manual_move','week_plan_applied','rescheduled'].includes(q(entry&&entry.action).toLowerCase())
+    ).length;
+    return [group,q(pick&&pick.id),operationalTaskDate(pick),moved(pick),
+      q(abd&&abd.id),operationalTaskDate(abd),moved(abd)].join('|');
   }
   function inspectOperationalPlan(input={}){
     const tasks=arr(input.tasks),shipments=arr(input.shipments),fixedPickups=arr(input.fixedPickups);
