@@ -173,3 +173,20 @@ test('RC1537: Planer ergänzt den Pick-Wochenstamm nur im echten gemeinsamen Sta
   assert.match(target.innerHTML,/UK Pick/,'Pick-Tag muss in nächster Woche erscheinen');
   assert.equal(state.tasks.length,1,'Materialisierung nutzt die kanonische Aufgabenliste');
 });
+
+test('RC1771 Deepfix: erster Monatsaufruf materialisiert alle sechs sichtbaren Pick-Wochen',()=>{
+  const context=loadPlanner(),ui=context.ExportHUBTaskUIV2;
+  const state={tasks:[]},weeks=[];
+  context.__EXPORTHUB_GET_STATE__=()=>state;
+  context.ExportHUBTaskMasterRC848={ensureWeek(date){
+    weeks.push(date);
+    if(date==='2026-11-23')state.tasks.push({id:'M848:mo-p-uk:2026-W48',title:'UK Picken',
+      status:'offen',area:'Picken',masterTaskRC848:true,weekKey:'2026-W48',day:'Montag'});
+  }};
+  const target={innerHTML:''};
+  ui.renderPlannerPage(target,{state,runtime:{prepareTasks(tasks){return tasks;}},now:'2026-11-03T10:00:00+01:00',view:'month'});
+  assert.deepEqual(weeks,['2026-10-26','2026-11-02','2026-11-09','2026-11-16','2026-11-23','2026-11-30']);
+  const marker=target.innerHTML.indexOf('data-day-summary="2026-11-23"');
+  assert.ok(marker>=0,'23.11. ist im Monatskalender');
+  assert.match(target.innerHTML.slice(marker,marker+200),/<span>1<\/span>/,'Pick der späten Monatswoche wird gezählt');
+});
