@@ -37,7 +37,7 @@ test('P1 #999: both workflows pause after repeat Graph failure but keep hard Sha
     [/SUPPRESS_DRIVE_BACKFILL="\$suppress_drive_backfill"/g,2],
     [/suppressDriveBackfill:!reference&&process\.env\.SUPPRESS_DRIVE_BACKFILL==='1'/g,2],
     [/codes\.includes\('GRAPH_DIRECT_PATH_TARGET_FAILED'\)/g,2],
-    [/graph_target_failure_streak -ge 2/g,2],
+    [/if \[ "\$graph_target_failure_streak" -ge 2 \]/g,2],
     [/suppress_drive_backfill=1/g,2],
     [/exit 10/g,2],
     [/if \[ "\$verdict" = "done" \]; then/g,2]
