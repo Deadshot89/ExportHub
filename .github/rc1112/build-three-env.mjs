@@ -1715,6 +1715,20 @@ function patchHtml(file){
   // RC1768: The deploy builder starts from RC1048 HTML. Without this patch
   // it silently restores RC886's cookie override despite correct root HTML.
   html=patchRc1768PackDocumentCredentials(html,file);
+  // RC1770: embed scoped ABD history CSS into each built HTML environment.
+  // External CSS requests can be aborted during SPA view changes and invalidate
+  // unrelated print/runtime browser checks; inline CSS introduces no new fetch.
+  const abdCss='assets/rc1770-abd-history-responsive.css';
+  const abdCssFile=path.join(ROOT,abdCss);
+  if(!fs.existsSync(abdCssFile))throw new Error(file+': RC1770 ABD style missing');
+  const abdCssText=fs.readFileSync(abdCssFile,'utf8');
+  if(!abdCssText.includes('#rc626Abd .rc626-item-head')||/<\/style/i.test(abdCssText))throw new Error(file+': RC1770 invalid scoped ABD style');
+  if(!html.includes('id="rc1770-abd-history-style"')){
+    const endHead=/<\/head>/i.exec(html);
+    if(!endHead)throw new Error(file+': RC1770 head missing');
+    const tag='<style id="rc1770-abd-history-style">\n'+abdCssText+'\n</style>';
+    html=html.slice(0,endHead.index)+tag+'\n'+html.slice(endHead.index);
+  }
   fs.writeFileSync(target,html);
 }
 
