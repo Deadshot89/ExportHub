@@ -17,7 +17,17 @@
     if(!api||typeof api.isWorkday!=='function')throw new Error('TaskPlanner V2 Recurrence fehlt');
     return api;
   }
-  function dayKey(value){return core().dayKey(value);}
+  function dayKey(value){
+    // Never use Date.parse for German DD.MM.YYYY: browsers can treat 03.11 as March 11.
+    const valueText=q(value),match=valueText.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})(?=$|[ T])/);
+    if(match){
+      const d=Number(match[1]),m=Number(match[2]),y=Number(match[3]);
+      const check=new Date(Date.UTC(y,m-1,d));
+      if(check.getUTCFullYear()!==y||check.getUTCMonth()!==m-1||check.getUTCDate()!==d)return'';
+      return String(y).padStart(4,'0')+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    }
+    return core().dayKey(value);
+  }
   function addDays(value,amount){
     const d=dayKey(value);if(!d)return'';
     const [y,m,day]=d.split('-').map(Number),date=new Date(Date.UTC(y,m-1,day));
