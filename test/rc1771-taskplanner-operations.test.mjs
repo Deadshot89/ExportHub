@@ -113,3 +113,43 @@ test('RC1771: Wochenplanentwurf warnt vor geplanter ABD-Kollision ohne vorzeitig
   assert.doesNotMatch(target.innerHTML,/data-tpv2-abd-approve=/,'Vorschau darf nicht für noch unveränderte Daten freigeben');
   assert.equal(state.tasks[0].plannedAt,'2026-11-02T09:00:00','Vorschau darf reale Aufgabe nicht verschieben');
 });
+
+test('RC1771 Deepfix: Serienkunden Picken und ABD werden mit Kundennummer und Ursprungswoche gekoppelt',()=>{
+  const api=load().ExportHUBTaskPlannerV2;
+  const tasks=[
+    {id:'M848:mo-p-uk:2026-W45',title:'UK',area:'Picken',status:'offen',weekKey:'2026-W45',
+      customerNumber:'004711',masterTaskRC848:true,plannedAt:'2026-11-03T09:00:00'},
+    {id:'M848:di-a-uk:2026-W45',title:'UK',area:'ABD erstellen',status:'offen',weekKey:'2026-W45',
+      customerNumber:'4711',masterTaskRC848:true,plannedAt:'2026-11-03T10:00:00'}
+  ];
+  const before=api.inspectOperationalPlan({tasks});
+  assert.equal(before.warnings[0].type,'abd_same_day');
+  assert.equal(before.warnings[0].groupId,'CUSTOMER:4711:2026-W45');
+  const approved=api.approveSameDayAbd(tasks,{taskId:tasks[1].id,actorId:'u1'});
+  assert.equal(approved.changed,true);
+  assert.equal(api.inspectOperationalPlan({tasks:approved.tasks}).warnings.length,0);
+});
+test('RC1771 Deepfix: mehrere Kundenkonten oder doppelte ABDs werden nicht blind zugeordnet',()=>{
+  const api=load().ExportHUBTaskPlannerV2;
+  const tasks=[
+    {id:'p',title:'UK',area:'Picken',weekKey:'2026-W45',customerNumber:'4711,815',plannedAt:'2026-11-03'},
+    {id:'abd1',title:'UK',area:'ABD',weekKey:'2026-W45',customerNumber:'4711',plannedAt:'2026-11-03'},
+    {id:'abd2',title:'UK',area:'ABD',weekKey:'2026-W45',customerNumber:'4711',plannedAt:'2026-11-03'}
+  ];
+  const inspected=api.inspectOperationalPlan({tasks});
+  assert.equal(inspected.unlinkedTasks,1,'mehrere Konten nicht eindeutig verknüpft');
+  assert.equal(inspected.warnings[0].type,'ambiguous_link');
+  assert.equal(api.approveSameDayAbd(tasks,{taskId:'abd1',actorId:'u1'}).changed,false);
+});
+test('RC1771 Deepfix: fester Abholtag bei Serienkunde wird ohne Sendungsanlage geprüft',()=>{
+  const api=load().ExportHUBTaskPlannerV2;
+  const tasks=[
+    {id:'p',title:'UK',area:'Picken',weekKey:'2026-W45',customerNumber:'004711',plannedAt:'2026-11-04T09:00:00'},
+    {id:'a',title:'UK',area:'ABD erstellen',weekKey:'2026-W45',customerNumber:'4711',plannedAt:'2026-11-05T10:00:00'}
+  ];
+  const fixedPickups=[{id:'F',active:true,weekday:3,customerNumber:'4711, 0815'}];
+  const inspection=api.inspectOperationalPlan({tasks,shipments:[],fixedPickups,fixedPickupDataLoaded:true});
+  assert.ok(inspection.warnings.some(w=>w.type==='fixed_pickup_conflict'));
+  assert.equal(inspection.matchedPickupGroups,0,'keine Sendung wurde erfunden');
+  assert.equal(inspection.hasFixedPickupData,true);
+});
