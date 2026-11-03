@@ -304,8 +304,8 @@
     for(const task of tasks){
       if(!task)continue;
       const kind=operationalKind(task),status=q(task.status).toLowerCase();
-      const cancelled=['cancelled','canceled','storniert'].includes(status);
-      const done=task.done===true||task.completed===true||['done','erledigt','completed'].includes(status);
+      const cancelled=['cancelled','canceled','storniert','deleted','gelöscht'].includes(status);
+      const done=task.done===true||task.completed===true||['done','erledigt','completed','abgeschlossen','archiviert'].includes(status);
       // A completed pick is still a prerequisite for an open customs task.
       // It must not reappear as an open card, but its date remains relevant.
       if(cancelled||(done&&kind!=='pick'))continue;
