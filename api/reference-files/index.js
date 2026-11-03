@@ -14,7 +14,8 @@ const TEAM_BLOB=process.env.EXPORTHUB_STORAGE_BLOB||process.env.EXPORTHUB_STATE_
 const AUTH_BLOB=process.env.EXPORTHUB_AUTH_BLOB||'auth-sessions.json';
 const GRAPH_BASE='https://graph.microsoft.com/v1.0';
 const REFERENCE_FOLDER=(process.env.EXPORTHUB_REFERENCE_FOLDER||'003 Export/ExportHub/Sendungen').replace(/^\/+|\/+$/g,'');
-const DRIVE_USER=process.env.EXPORTHUB_REFERENCE_DRIVE_USER||process.env.EXPORTHUB_POD_DRIVE_USER||'tobiaslimberg@essentra.com';
+// RC1772: legacy user mode requires an explicit configuration, never a personal default.
+const DRIVE_USER=(process.env.EXPORTHUB_REFERENCE_DRIVE_USER||process.env.EXPORTHUB_POD_DRIVE_USER||'').trim();
 const MAX_FILE_BYTES=35*1024*1024;
 const AV_MAX_BYTES=15*1024*1024;
 const AV_TYPES={'.pdf':'application/pdf','.jpg':'image/jpeg','.jpeg':'image/jpeg','.png':'image/png'};
@@ -46,9 +47,9 @@ async function validateSession(req){
   throw error('SESSION_ENVIRONMENT_MISMATCH','Die Anmeldung gehört zu einer anderen ExportHUB-Umgebung.',403);
  return{user:validated.user,team:validated.team,session:validated.session};
 }
-function graphConfig(){const tenant=text(process.env.EXPORTHUB_GRAPH_TENANT_ID),clientId=text(process.env.EXPORTHUB_GRAPH_CLIENT_ID),secret=text(process.env.EXPORTHUB_GRAPH_CLIENT_SECRET);if(!tenant||!clientId||!secret||!DRIVE_USER)throw error('GRAPH_NOT_CONFIGURED','api.reference.graphNotConfigured',503);return{tenant,clientId,secret}}
-async function graphToken(){if(graphTokenCache&&graphTokenCache.expiresAt>Date.now()+60000)return graphTokenCache.token;const c=graphConfig(),form=new URLSearchParams({client_id:c.clientId,client_secret:c.secret,scope:'https://graph.microsoft.com/.default',grant_type:'client_credentials'}),res=await fetch('https://login.microsoftonline.com/'+encodeURIComponent(c.tenant)+'/oauth2/v2.0/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:form.toString()});let data={};try{data=await res.json()}catch(_){}if(!res.ok||!data.access_token)throw error('GRAPH_AUTH_FAILED',data.error_description||'api.reference.graphAuthFailed',502);graphTokenCache={token:data.access_token,expiresAt:Date.now()+Math.max(300,Number(data.expires_in||3600))*1000};return graphTokenCache.token}
-async function graphFetch(url,options){const token=await graphToken(),opts=Object.assign({},options||{}),headers=Object.assign({Authorization:'Bearer '+token,Accept:'application/json'},opts.headers||{});opts.headers=headers;const res=await fetch(url,opts);return res}
+function graphConfig(environment='production'){const target=referenceFolder.exactTarget(environment),tenant=text(process.env.EXPORTHUB_GRAPH_TENANT_ID),clientId=text(process.env.EXPORTHUB_GRAPH_CLIENT_ID),secret=text(process.env.EXPORTHUB_GRAPH_CLIENT_SECRET);if(!tenant||!clientId||!secret||(!DRIVE_USER&&!target))throw error('GRAPH_NOT_CONFIGURED','api.reference.graphNotConfigured',503);return{tenant,clientId,secret}}
+async function graphToken(environment='production'){const c=graphConfig(environment);if(graphTokenCache&&graphTokenCache.expiresAt>Date.now()+60000)return graphTokenCache.token;const form=new URLSearchParams({client_id:c.clientId,client_secret:c.secret,scope:'https://graph.microsoft.com/.default',grant_type:'client_credentials'}),res=await fetch('https://login.microsoftonline.com/'+encodeURIComponent(c.tenant)+'/oauth2/v2.0/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:form.toString()});let data={};try{data=await res.json()}catch(_){}if(!res.ok||!data.access_token)throw error('GRAPH_AUTH_FAILED',data.error_description||'api.reference.graphAuthFailed',502);graphTokenCache={token:data.access_token,expiresAt:Date.now()+Math.max(300,Number(data.expires_in||3600))*1000};return graphTokenCache.token}
+async function graphFetch(url,options,environment='production'){const token=await graphToken(environment),opts=Object.assign({},options||{}),headers=Object.assign({Authorization:'Bearer '+token,Accept:'application/json'},opts.headers||{});opts.headers=headers;const res=await fetch(url,opts);return res}
 function encPath(path){return String(path||'').split('/').filter(Boolean).map(encodeURIComponent).join('/')}
 function refValue(v){const ref=text(v).toUpperCase();if(!/^[A-Z0-9]{6}$/.test(ref))throw error('INVALID_REFERENCE','api.reference.invalidReference',400);return ref}
 function folderPath(ref){return REFERENCE_FOLDER+'/'+ref}
@@ -71,7 +72,7 @@ async function listFiles(ref,req){
   if(++visited>MAX_FOLDERS)throw error('GRAPH_REFERENCE_FOLDER_SCAN_LIMIT','Der Referenzordner enthält zu viele Unterordner für eine vollständige Dateiprüfung.',503);
   const task=pending.shift();let url=task.url,pages=0;
   while(url&&pages<6){
-   const res=await graphFetch(url);
+   const res=await graphFetch(url,undefined,environment);
    if(res.status===404){
     if(task.depth===0){
      if(target)throw error('GRAPH_REFERENCE_FOLDER_LIST_INCOMPLETE','Der zuvor geprüfte SharePoint-REF-Ordner ist nicht mehr lesbar.',503);
@@ -211,7 +212,7 @@ module.exports=async function(context,req){
   const target=referenceFolder.exactTarget(env);
   const url=target?GRAPH_BASE+'/drives/'+encodeURIComponent(target.driveId)+'/items/'+encodeURIComponent(item.id)+'/content'
     :GRAPH_BASE+'/users/'+encodeURIComponent(DRIVE_USER)+'/drive/items/'+encodeURIComponent(item.id)+'/content';
-  const res=await graphFetch(url,{headers:{Accept:'*/*'}});
+  const res=await graphFetch(url,{headers:{Accept:'*/*'}},env);
   if(!res.ok)throw error('GRAPH_FILE_FAILED','api.reference.fileLoadFailed',res.status>=500?502:res.status);
   const buffer=Buffer.from(await res.arrayBuffer());
   context.res={status:200,isRaw:true,headers:{'Content-Type':item.mimeType||res.headers.get('content-type')||'application/octet-stream',
