@@ -131,8 +131,25 @@
       };
     }
 
+    function ensurePickWeeks(ctx,liveState){
+      const master=root.ExportHUBTaskMasterRC848;
+      if(!master||typeof master.ensureWeek!=='function')return;
+      // The legacy seed operates on the application's shared state. Never
+      // seed into another session or an isolated planner/test context.
+      let shared=null;
+      try{shared=typeof root.__EXPORTHUB_GET_STATE__==='function'?root.__EXPORTHUB_GET_STATE__():null;}catch(_){}
+      if(shared!==liveState)return;
+      const start=mondayOf(ctx.weekStart||ctx.now||new Date());
+      for(const date of [start,addDays(start,7)]){
+        try{master.ensureWeek(date,false);}catch(error){
+          try{if(root.console&&typeof root.console.warn==='function')root.console.warn('Pick-Wochenstamm konnte nicht geladen werden',date,error);}catch(_){}
+        }
+      }
+    }
+
     function canonicalContext(ctx={}){
       const liveState=liveStateOf(ctx),runtime=runtimeOf(ctx),persist=persistFor(ctx,liveState);
+      ensurePickWeeks(ctx,liveState);
       let tasks=arr(liveState.tasks);
       if(runtime&&typeof runtime.prepareTasks==='function'){
         tasks=arr(runtime.prepareTasks(tasks,{...ctx,state:liveState,persist}));
