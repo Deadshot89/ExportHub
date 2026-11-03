@@ -358,13 +358,61 @@ test('RC1772: Speditions-Druck ist eine reine Benutzeraktion, ohne Mail oder aut
   }}};
   root.print=()=>{prints++;};
   root.addEventListener=(name,fn)=>{events[name]=fn;};
-  const target={innerHTML:'',querySelector(){return null;},addEventListener(name,fn){handlers[name]=fn;}};
+  const printClasses=new Set(),sheet={getAttribute(key){return key==='data-tpv2-carrier-group'?'S123':'';},
+    classList:{toggle(name,yes){if(yes)printClasses.add(name);else printClasses.delete(name);},
+      remove(name){printClasses.delete(name);}}};
+  const target={innerHTML:'',querySelector(){return null;},querySelectorAll(){return [sheet];},
+    addEventListener(name,fn){handlers[name]=fn;}};
   root.ExportHUBTaskUIV2.renderPlannerPage(target,{state,weekStart:'2026-11-02',now:'2026-11-03T09:00:00+01:00'});
-  const button={closest(selector){return selector==='[data-tpv2-print-carrier]'?button:null;}};
+  const button={closest(selector){return selector==='[data-tpv2-print-carrier]'?button:null;},
+    getAttribute(key){return key==='data-tpv2-print-carrier'?'S123':'';}};
   await handlers.click({target:button});
   assert.equal(prints,1);
   assert.equal(classes.has('tpv2-print-carrier'),true);
+  assert.equal(printClasses.has('is-print-target'),true);
   events.afterprint();
   assert.equal(classes.has('tpv2-print-carrier'),false);
+  assert.equal(printClasses.has('is-print-target'),false);
   assert.equal(JSON.stringify(state),before,'Druck darf keine Sendung verändern');
+});
+
+test('RC1772: zwei Speditionen erhalten getrennte Ausdrucke ohne fremde Sendungsdaten',async()=>{
+  const root=load(),state={tasks:[
+    task('pick-1','Picken','2026-11-03','SHIP-1'),
+    task('abd-1','ABD erstellen','2026-11-03','SHIP-1'),
+    task('pick-2','Picken','2026-11-03','SHIP-2'),
+    task('abd-2','ABD erstellen','2026-11-03','SHIP-2')
+  ],shipments:[
+    {id:'SHIP-1',pickupDate:'2026-11-03'},
+    {id:'SHIP-2',pickupDate:'2026-11-03'}
+  ]};
+  const classes=new Set(),handlers={},prints=[];let afterPrint=null;
+  root.document={body:{classList:{
+    add(name){classes.add(name);},
+    remove(name){classes.delete(name);}
+  }}};
+  root.addEventListener=(name,fn)=>{if(name==='afterprint')afterPrint=fn;};
+  const selected=new Set(),sheets=['SHIP-1','SHIP-2'].map(group=>({
+    getAttribute(name){return name==='data-tpv2-carrier-group'?group:'';},
+    classList:{
+      toggle(name,enabled){if(name==='is-print-target'){if(enabled)selected.add(group);else selected.delete(group);}},
+      remove(name){if(name==='is-print-target')selected.delete(group);}
+    }
+  }));
+  root.print=()=>prints.push([...selected]);
+  const target={innerHTML:'',querySelector(){return null;},
+    querySelectorAll(){return sheets;},addEventListener(name,fn){handlers[name]=fn;}};
+  root.ExportHUBTaskUIV2.renderPlannerPage(target,{state,weekStart:'2026-11-02',now:'2026-11-03T09:00:00+01:00'});
+  assert.match(target.innerHTML,/data-tpv2-carrier-group="SHIP-1"/);
+  assert.match(target.innerHTML,/data-tpv2-carrier-group="SHIP-2"/);
+  assert.doesNotMatch(target.innerHTML.split('</header>')[0],/data-tpv2-print-carrier=/,'Bei mehreren Empfängern kein globaler Sammeldruck-Button');
+  const button={closest(selector){return selector==='[data-tpv2-print-carrier]'?button:null;},
+    getAttribute(name){return name==='data-tpv2-print-carrier'?'SHIP-1':'';}};
+  await handlers.click({target:button});
+  assert.equal(prints.length,1);
+  assert.equal(prints[0].join(','),'SHIP-1');
+  afterPrint();
+  assert.equal(selected.size,0);
+  assert.equal(classes.has('tpv2-print-carrier'),false);
+  assert.equal(state.shipments[1].pickupDate,'2026-11-03');
 });
