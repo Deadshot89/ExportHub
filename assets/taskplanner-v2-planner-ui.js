@@ -116,9 +116,18 @@
       const date=taskDay(task);
       return dayKey(task.plannedAt||task.dueAt)?task:{...task,plannedAt:date+'T09:00:00'};
     });
-    const visible=projected.concat(donePicks).filter(task=>{
+    const candidates=projected.concat(donePicks);
+    const inPeriod=task=>{
       const date=taskDay(task);return date>=first&&date<=last;
-    });
+    };
+    // A moved picking task and its customs document can end up in different
+    // calendar weeks. Keep the full identified occurrence in the inspection
+    // whenever at least one step belongs to the visible period.
+    const visibleLinks=new Set(candidates.filter(inPeriod)
+      .map(task=>typeof api.operationalLink==='function'?api.operationalLink(task):'').filter(Boolean));
+    const visible=candidates.filter(task=>inPeriod(task)||(
+      typeof api.operationalLink==='function'&&visibleLinks.has(api.operationalLink(task))
+    ));
     return api.inspectOperationalPlan({
       tasks:visible,shipments:distinct,
       fixedPickups:arr(ctx.fixedPickups||state.fixedPickups),
