@@ -64,8 +64,15 @@
     return addDays(weekOneMonday,(number-1)*7+weekday-1);
   }
   function scheduledTasks(ctx){
-    return arr(ctx&&ctx.state&&ctx.state.tasks).filter(t=>activeTask(t)&&taskDay(t)
-      &&t.isTemplate!==true&&t.seriesTemplate!==true);
+    return arr(ctx&&ctx.state&&ctx.state.tasks)
+      .filter(t=>activeTask(t)&&taskDay(t)&&t.isTemplate!==true&&t.seriesTemplate!==true)
+      .map(task=>{
+        // Only enrich the in-memory view; source tasks and task history stay untouched.
+        const date=taskDay(task);
+        return dayKey(task.plannedAt||task.dueAt)?task:{
+          ...task,plannedAt:date+'T00:00:00',dueAt:date+'T16:15:00'
+        };
+      });
   }
   function isOverdue(task,now){try{return activeTask(task)&&core().derive(task,now).overdue===true;}catch(_){return false;}}
   function sorted(tasks,now){
