@@ -313,3 +313,16 @@ test('RC1771 Deepfix: ungültiges deutsches Datum wird nicht als gültige Planun
   root.ExportHUBTaskUIV2.renderWorkweek(target,{state:{tasks},weekStart:'2026-02-23',now:'2026-02-24T08:00:00+01:00'});
   assert.doesNotMatch(target.innerHTML,/data-task-id="pick-invalid"/);
 });
+
+test('RC1771 Deepfix: deutsche Uhrzeit bleibt beim Planen erhalten',()=>{
+  const root=load(),state={tasks:[
+    {id:'pick-time',title:'Picken',status:'open',shipmentRef:'S-DE-TIME',plannedAt:'03.11.2026 09:30'},
+    {id:'abd-time',title:'ABD erstellen',status:'open',shipmentRef:'S-DE-TIME',plannedAt:'03.11.2026 14:45'}
+  ]},target={innerHTML:''};
+  root.ExportHUBTaskUIV2.renderWorkweek(target,{state,weekStart:'2026-11-02',now:'2026-11-03T08:00:00+01:00'});
+  assert.match(target.innerHTML,/is-abd-exception/);
+  assert.match(target.innerHTML,/09:30/);
+  assert.match(target.innerHTML,/14:45/);
+  assert.equal(root.ExportHUBTaskPlannerV2.inspectOperationalPlan({tasks:state.tasks}).byTaskId['abd-time'].date,'2026-11-03');
+  assert.equal(state.tasks[0].plannedAt,'03.11.2026 09:30','Originalangabe bleibt unverändert');
+});
