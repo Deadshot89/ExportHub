@@ -106,8 +106,17 @@
     const ym=monthView?monthOf(ctx):null;
     const first=monthView?`${ym.year}-${String(ym.month).padStart(2,'0')}-01`:mondayOf(ctx.weekStart||nowOf(ctx));
     const last=monthView?`${ym.year}-${String(ym.month).padStart(2,'0')}-${String(new Date(Date.UTC(ym.year,ym.month,0)).getUTCDate()).padStart(2,'0')}`:addDays(first,11);
-    // Historical overdue tasks remain in the task list, never the current plan's warnings.
-    const visible=projected.filter(task=>{
+    // Completed pick operations are prerequisites for still-open ABD work,
+    // but never reappear as open tasks or as historical overdue warnings.
+    const donePicks=arr(state.tasks).filter(task=>{
+      const status=q(task&&task.status).toLowerCase();
+      return task&&(task.done===true||task.completed===true||['done','erledigt','completed'].includes(status))
+        &&api.operationalKind(task)==='pick'&&taskDay(task);
+    }).map(task=>{
+      const date=taskDay(task);
+      return dayKey(task.plannedAt||task.dueAt)?task:{...task,plannedAt:date+'T09:00:00'};
+    });
+    const visible=projected.concat(donePicks).filter(task=>{
       const date=taskDay(task);return date>=first&&date<=last;
     });
     return api.inspectOperationalPlan({
