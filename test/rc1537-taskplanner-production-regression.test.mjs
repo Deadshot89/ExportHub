@@ -118,7 +118,8 @@ test('RC1537: Planner-Tageszusammenfassung interpoliert Platzhalter auch bei roh
   const target={innerHTML:''};
   ui.renderPlannerPage(target,{state,runtime,weekStart:'2026-10-12',now:'2026-10-14T10:00:00+02:00'});
   assert.doesNotMatch(target.innerHTML,/\{(?:count|critical|overdue)\}/,'sichtbare Platzhalter dürfen nicht stehen bleiben');
-  assert.match(target.innerHTML,/Heute: 1 Aufgaben · 1 kritisch · 0 überfällig/);
+  assert.doesNotMatch(target.innerHTML,/data-tpv2-overdue|Heute: 1 Aufgaben/,'Planer ist keine Aufgaben- und Überfällig-Liste');
+  assert.match(target.innerHTML,/data-tpv2-workweek/);
 });
 
 test('RC1537: Planner-DnD besitzt einen Persist-Fallback und schreibt den Move in den echten State',()=>{
@@ -153,4 +154,22 @@ test('RC1537: Release-Wiring liefert den Canonical-Source-Hotfix nach dem Planne
   const source=fs.readFileSync('scripts/taskplanner-v2-pretest.mjs','utf8');
   assert.match(source,/rc1537-taskplanner-canonical-source\.js/,'RC1537 Asset muss vom Release-Builder kopiert werden');
   assert.match(source,/exporthub-taskplanner-rc1537-canonical-source/,'RC1537 Script-Tag muss im Release-Wiring vorhanden sein');
+});
+
+test('RC1537: Planer ergänzt den Pick-Wochenstamm nur im echten gemeinsamen State',()=>{
+  const context=loadPlanner(),ui=context.ExportHUBTaskUIV2;
+  const state={tasks:[]},weeks=[];
+  context.__EXPORTHUB_GET_STATE__=()=>state;
+  context.ExportHUBTaskMasterRC848={ensureWeek(date){
+    weeks.push(date);
+    if(date==='2026-11-09')state.tasks.push({
+      id:'M848:mo-p-uk:2026-W46',title:'UK Pick',status:'open',
+      area:'Picken',masterTaskRC848:true,weekKey:'2026-W46',day:'Montag'
+    });
+  }};
+  const target={innerHTML:''};
+  ui.renderPlannerPage(target,{state,runtime:{prepareTasks(tasks){return tasks;}},weekStart:'2026-11-02',now:'2026-11-03T12:00:00+01:00'});
+  assert.deepEqual(weeks,['2026-11-02','2026-11-09']);
+  assert.match(target.innerHTML,/UK Pick/,'Pick-Tag muss in nächster Woche erscheinen');
+  assert.equal(state.tasks.length,1,'Materialisierung nutzt die kanonische Aufgabenliste');
 });

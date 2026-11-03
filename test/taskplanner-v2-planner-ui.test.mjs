@@ -219,22 +219,21 @@ test('Wochennavigation blättert vorwärts und nicht vor die aktuelle Woche',asy
   assert.match(target.innerHTML,/data-tpv2-drop-date="2026-10-12"/);
 });
 
-test('Wochenspalten markieren Feiertage, Karten nennen die Tage der Überfälligkeit',()=>{
+test('Wochenspalten markieren Feiertage ohne separate Überfällig-Liste',()=>{
   const {ExportHUBTaskUIV2:ui}=load(),target=root();
   const state={tasks:[task('late','2026-12-14',{title:'Lange überfällig',dueAt:'2026-12-14T16:15:00+01:00'})]};
   ui.renderPlannerPage(target,{state,weekStart:'2026-12-21',now:'2026-12-21T10:00:00+01:00'});
-  assert.match(target.innerHTML,/class="tpv2-day is-nonwork" data-tpv2-drop-date="2026-12-25"[\s\S]*?1\. Weihnachtstag/);
-  assert.match(target.innerHTML,/7 days overdue/);
+  assert.match(target.innerHTML,/data-tpv2-drop-date="2026-12-25"[\s\S]*?1\. Weihnachtstag/);
+  assert.doesNotMatch(target.innerHTML,/data-tpv2-overdue|Lange überfällig|7 days overdue/);
 });
 
-test('Aufgaben ohne Termin stehen im eigenen Bereich',()=>{
+test('Der Planer zeigt nur datierte Aufgaben ohne die Rubrik Ohne Termin',()=>{
   const {ExportHUBTaskUIV2:ui}=load(),target=root();
-  const state={tasks:[{id:'free',title:'Irgendwann',status:'open',priority:'P2'},task('dated','2026-10-13')]};
+  const state={tasks:[{id:'free',title:'Irgendwann',status:'open',priority:'P2'},task('dated','2026-10-13',{title:'Fest terminierte Aufgabe'})]};
   ui.renderPlannerPage(target,{state,weekStart:'2026-10-12',now:'2026-10-12T08:00:00+02:00'});
-  const section=target.innerHTML.slice(target.innerHTML.indexOf('data-tpv2-unplanned'));
-  assert.match(section,/Irgendwann/);
-  assert.ok(target.innerHTML.indexOf('data-tpv2-unplanned')>=0);
-  assert.doesNotMatch(section.slice(0,section.indexOf('data-week-scope')),/data-task-id="dated"/);
+  assert.doesNotMatch(target.innerHTML,/data-tpv2-unplanned|data-task-id="free"|data-tpv2-overdue/);
+  assert.match(target.innerHTML,/Fest terminierte Aufgabe/);
+  assert.equal(state.tasks.length,2,'Ausblenden darf keine Aufgaben löschen');
 });
 
 test('Klick ohne Tageswechsel verschiebt nichts, Alt+Pfeil verschiebt per Tastatur',()=>{
@@ -335,4 +334,23 @@ test('Kompakt/Detailliert wird pro Benutzer gespeichert und auf den Planer angew
   const fresh=plannerTarget(),{ExportHUBTaskUIV2:ui}=load();
   ui.renderPlannerPage(fresh,{state,weekStart:'2026-10-12',now:'2026-10-12T08:00:00+02:00',user:{id:'u1'}});
   assert.match(fresh.innerHTML,/data-density="compact"/);
+});
+
+test('RC848 Pick-Tage erscheinen auch mit nur Wochenkennung und Wochentag',()=>{
+  const {ExportHUBTaskUIV2:ui}=load(),target=root();
+  const state={tasks:[
+    {id:'M848:mo-p-uk:2026-W46',title:'UK picken',status:'offen',area:'Picken',masterTaskRC848:true,weekKey:'2026-W46',day:'Montag'},
+    {id:'M848:di-p-china:2026-W46',title:'China picken',status:'open',area:'Picken',masterTaskRC848:true,weekKey:'2026-W46',day:'Dienstag'},
+    {id:'ohne',title:'Ungeplante Packmeldung',status:'open'}
+  ]};
+  ui.renderWorkweek(target,{state,weekStart:'2026-11-02',now:'2026-11-03T12:00:00+01:00'});
+  assert.match(target.innerHTML,/data-tpv2-drop-date="2026-11-09"[\s\S]*?UK picken/);
+  assert.match(target.innerHTML,/data-tpv2-drop-date="2026-11-10"[\s\S]*?China picken/);
+  assert.doesNotMatch(target.innerHTML,/Ungeplante Packmeldung|data-tpv2-unplanned/);
+  assert.equal(state.tasks[0].plannedAt,undefined,'Ansicht ändert keine persistenten Datumsfelder');
+  const month=root();
+  ui.renderMonth(month,{state,year:2026,month:11,now:'2026-11-03T12:00:00+01:00'});
+  const monday=month.innerHTML.indexOf('data-day-summary="2026-11-09"');
+  assert.ok(monday>=0);
+  assert.match(month.innerHTML.slice(monday,monday+180),/<span>1<\/span>/,'Pick im Monatszähler');
 });

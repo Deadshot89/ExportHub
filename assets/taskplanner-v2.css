@@ -242,3 +242,48 @@ html[data-eh-design="neon"] .tpv2-reminders li{background:#10233a;color:#e5eef8}
     max-height:calc(100vh - 112px);overflow-y:auto;
   }
 }
+
+
+/* RC1771: Planungskonflikte werden nur im Planer hervorgehoben. */
+.tpv2-planner .tpv2-task-card.is-abd-exception{
+  border:2px solid #d97706;
+  background:color-mix(in srgb,#ffedd5 54%,var(--tpv2-surface));
+  box-shadow:0 0 0 2px rgba(217,119,6,.13);
+}
+.tpv2-planner .tpv2-abd-warning{background:#ffedd5;color:#92400e}
+.tpv2-planner .tpv2-abd-alert{font-size:12px;line-height:1.4;margin:6px 0;color:#92400e;font-weight:700}
+.tpv2-planner .tpv2-approve-abd{border-color:#d97706;color:#92400e;min-height:38px;font-size:12px;align-self:flex-start}
+.tpv2-operational-warnings{display:grid;gap:8px;padding:12px 16px;border:1px solid var(--tpv2-border);border-radius:14px;background:var(--tpv2-surface)}
+.tpv2-operational-warnings>header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.tpv2-operational-warnings>header>span{color:var(--tpv2-muted);font-size:12px}
+.tpv2-operational-warnings ul{display:grid;gap:7px;list-style:none;margin:0;padding:0}
+.tpv2-operational-warnings li{display:flex;flex-wrap:wrap;gap:5px 10px;padding:8px 10px;background:#ffedd5;border-left:4px solid #d97706;border-radius:8px;color:#92400e;font-size:12px}
+.tpv2-operational-warnings li[data-rule-type="pickup_notification"],
+.tpv2-operational-warnings li[data-rule-type="fixed_pickup_conflict"]{background:#fee2e2;border-left-color:#b91c1c;color:#7f1d1d}
+.tpv2-operational-warnings li>span{font-weight:700}
+.tpv2-operational-unverified{font-size:12px;color:var(--tpv2-muted);margin:0}
+@media print{
+  @page{size:A4 landscape;margin:10mm}
+  body.tpv2-print-plan{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+  body.tpv2-print-plan *{visibility:hidden!important}
+  body.tpv2-print-plan .tpv2-planner,
+  body.tpv2-print-plan .tpv2-planner *{visibility:visible!important}
+  body.tpv2-print-plan .tpv2-planner{position:absolute!important;inset:0 auto auto 0!important;width:100%!important;max-width:none!important;box-shadow:none!important;background:#fff!important;color:#111827!important;padding:0!important}
+  body.tpv2-print-plan .tpv2-planner-head [data-tpv2-view],
+  body.tpv2-print-plan .tpv2-planner-head [data-tpv2-density],
+  body.tpv2-print-plan [data-tpv2-print-plan],
+  body.tpv2-print-plan .tpv2-weekplan-toolbar,
+  body.tpv2-print-plan .tpv2-weekplan-actions,
+  body.tpv2-print-plan .tpv2-nav,
+  body.tpv2-print-plan .tpv2-planner-detail-host,
+  body.tpv2-print-plan .tpv2-approve-abd{display:none!important}
+  body.tpv2-print-plan .tpv2-planner-view{overflow:visible!important}
+  body.tpv2-print-plan .tpv2-workweeks{display:block!important}
+  body.tpv2-print-plan .tpv2-week{break-inside:avoid;page-break-inside:avoid;margin:0 0 12px!important;padding:8px!important}
+  body.tpv2-print-plan .tpv2-week-grid{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;overflow:visible!important;gap:6px!important}
+  body.tpv2-print-plan .tpv2-day{min-width:0!important;break-inside:avoid!important}
+  body.tpv2-print-plan .tpv2-task-card{padding:6px!important;break-inside:avoid!important;box-shadow:none!important}
+  body.tpv2-print-plan .tpv2-task-card h3{font-size:11px!important}
+  body.tpv2-print-plan .tpv2-task-card .tpv2-task-meta{font-size:9px!important}
+  body.tpv2-print-plan .tpv2-planner-head{margin-bottom:8px!important}
+}

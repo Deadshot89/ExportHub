@@ -38,8 +38,42 @@
     const key=dayKey(value)||dayKey(new Date()),d=new Date(key+'T12:00:00Z'),day=d.getUTCDay()||7;
     d.setUTCDate(d.getUTCDate()-(day-1));return d.toISOString().slice(0,10);
   }
-  function activeTask(task){const status=q(task&&task.status).toLowerCase();return !['done','cancelled'].includes(status)&&!q(task&&task.archivedAt);}
-  function taskDay(task){return dayKey(task&&((task.plannedAt||task.dueAt||task.date||task.day)));}
+  function activeTask(task){
+    const status=q(task&&task.status).toLowerCase();
+    return !!task&&!['done','erledigt','completed','cancelled','canceled','storniert'].includes(status)
+      &&task.done!==true&&task.completed!==true&&!q(task.archivedAt);
+  }
+  // RC848 weekly picks may have only an ISO week and weekday. The planner
+  // resolves these existing occurrences without saving duplicate tasks.
+  function taskDay(task){
+    if(!task)return'';
+    for(const value of [task.plannedAt,task.plannedDate,task.dueAt,task.dueDate,task.scheduledDate,task.date]){
+      const key=dayKey(value);
+      if(key)return key;
+    }
+    if(!(task.masterTaskRC848===true||task.masterTaskRC846===true||/^M84[68]:/.test(q(task.id))))return'';
+    const week=q(task.weekKey||task.occurrenceKey).match(/^(\d{4})-W(\d{1,2})$/);
+    const weekdays={montag:1,dienstag:2,mittwoch:3,donnerstag:4,freitag:5,samstag:6,sonntag:7,
+      monday:1,tuesday:2,wednesday:3,thursday:4,friday:5,saturday:6,sunday:7};
+    const weekday=weekdays[q(task.day||task.weekday).toLowerCase()]||Number(task.weekday);
+    if(!week||!Number.isInteger(weekday)||weekday<1||weekday>7)return'';
+    const year=Number(week[1]),number=Number(week[2]);
+    if(number<1||number>53)return'';
+    const jan4=new Date(Date.UTC(year,0,4,12));
+    const weekOneMonday=addDays(jan4.toISOString().slice(0,10),1-(jan4.getUTCDay()||7));
+    return addDays(weekOneMonday,(number-1)*7+weekday-1);
+  }
+  function scheduledTasks(ctx){
+    return arr(ctx&&ctx.state&&ctx.state.tasks)
+      .filter(t=>activeTask(t)&&taskDay(t)&&t.isTemplate!==true&&t.seriesTemplate!==true)
+      .map(task=>{
+        // Only enrich the in-memory view; source tasks and task history stay untouched.
+        const date=taskDay(task);
+        return dayKey(task.plannedAt||task.dueAt)?task:{
+          ...task,plannedAt:date+'T00:00:00',dueAt:date+'T16:15:00'
+        };
+      });
+  }
   function isOverdue(task,now){try{return activeTask(task)&&core().derive(task,now).overdue===true;}catch(_){return false;}}
   function sorted(tasks,now){
     const list=arr(tasks);
@@ -51,15 +85,63 @@
   function interpolateFallback(template,vars){let text=String(template||'');for(const [name,value] of Object.entries(vars||{}))text=text.replaceAll('{'+name+'}',String(value));return text;}
   function translated(key,vars,fallback){const value=tr(key,vars,'');return value&&value!==key?value:interpolateFallback(fallback,vars);}
 
+
+  function inspectionFor(ctx={},draft=null){
+    const api=planner(),state=obj(ctx.state)?ctx.state:{};
+    if(typeof api.inspectOperationalPlan!=='function')return{warnings:[],byTaskId:{}};
+    const shipments=arr(state.shipments).concat(arr(state.savedShipments));
+    const seen=new Set(),distinct=shipments.filter(sh=>{
+      const id=q(sh&&(sh.id||sh.shipmentId||sh.reference||sh.ref));
+      if(!id)return true;if(seen.has(id))return false;seen.add(id);return true;
+    });
+    const nextDates=new Map(arr(draft&&draft.items)
+      .filter(item=>q(item&&item.taskId)&&q(item&&item.plannedDate))
+      .map(item=>[q(item.taskId),q(item.plannedDate)]));
+    const projected=scheduledTasks(ctx).map(task=>{
+      const date=nextDates.get(q(task.id));
+      if(!date||taskDay(task)===date)return task;
+      return{...task,plannedAt:plannedAtForDate(task,date),plannedDate:date};
+    });
+    return api.inspectOperationalPlan({
+      tasks:projected,shipments:distinct,
+      fixedPickups:arr(ctx.fixedPickups||state.fixedPickups),
+      fixedPickupDataLoaded:ctx.fixedPickupDataLoaded===true||Array.isArray(state.fixedPickups),
+      calendar:calendarOf(ctx)
+    });
+  }
+  function operationalWarningsHtml(ctx={}){
+    const inspection=ctx.operationInspection||inspectionFor(ctx);
+    const warnings=arr(inspection.warnings),pickup=warnings.filter(w=>w.type==='pickup_notification'||w.type==='fixed_pickup_conflict');
+    const sameDay=warnings.filter(w=>w.type==='abd_same_day');
+    const other=warnings.filter(w=>!['pickup_notification','fixed_pickup_conflict','abd_same_day'].includes(w.type));
+    const entries=[...pickup,...sameDay,...other];
+    const lines=entries.map(w=>'<li data-rule-type="'+esc(w.type)+'"><strong>'+esc(w.groupId||w.shipmentRef||'')+'</strong> '+esc(w.message)
+      +(w.bookedDate?'<span>'+esc(translated('taskV2.ops.pickupDate',null,'Pickup:'))+' '+esc(w.bookedDate)+(w.earliestDate?' · '+esc(translated('taskV2.ops.earliest',null,'earliest'))+' '+esc(w.earliestDate):'')+'</span>':'')
+      +(w.recommendedDate?'<span>'+esc(translated('taskV2.ops.recommended',null,'Suggested:'))+' '+esc(w.recommendedDate)+'</span>':'')+'</li>').join('');
+    const noPickupData=!inspection.hasPickupData||!inspection.hasFixedPickupData||inspection.unlinkedTasks>0||inspection.groupsInspected>inspection.matchedPickupGroups;
+    return '<section class="tpv2-operational-warnings" data-tpv2-operational-warnings><header><strong>'+esc(ctx.weekDraft?translated('taskV2.planner.planTitle',null,'Week plan draft'):translated('taskV2.ops.title',null,'Dependencies and pickup calendar'))+'</strong><span>'
+      +(entries.length?esc(translated('taskV2.ops.warningCount',{count:entries.length},'{count} notices')):esc(translated('taskV2.ops.noConflicts',null,'No detected scheduling conflicts')))+'</span></header>'
+      +(lines?'<ul>'+lines+'</ul>':'')
+      +(noPickupData?'<p class="tpv2-operational-unverified" role="status">'+esc(translated('taskV2.ops.unverified',null,'Pickup calendar not fully verified:'))+' '+(!inspection.hasPickupData?esc(translated('taskV2.ops.shipmentsMissing',null,'Shipment data missing.'))+' ':'')
+        +(!inspection.hasFixedPickupData?esc(translated('taskV2.ops.fixedMissing',null,'Fixed pickup days not loaded.'))+' ':'')
+        +(inspection.unlinkedTasks>0?esc(translated('taskV2.ops.unlinked',{count:inspection.unlinkedTasks},'{count} tasks without a shipment link.'))+' ':'')
+        +(inspection.groupsInspected>inspection.matchedPickupGroups?esc(translated('taskV2.ops.unmatched',{count:inspection.groupsInspected-inspection.matchedPickupGroups},'{count} operations without a matching shipment.')):'')+'</p>':'')+'</section>';
+  }
+
   function taskCardHtml(raw,ctx={}){
     const task=typeof base.detailModel==='function'?base.detailModel(raw,ctx):raw;
-    const overdue=isOverdue(task,ctx.now),classes='tpv2-task-card'+(overdue?' is-overdue':'');
+    const overdue=ctx.planningView===true?false:isOverdue(task,ctx.now);
+    const warning=!ctx.weekDraft&&ctx.operationInspection&&ctx.operationInspection.byTaskId&&ctx.operationInspection.byTaskId[q(task.id)];
+    const orange=warning&&warning.type==='abd_same_day'&&!ctx.weekDraft;
+    const classes='tpv2-task-card'+(overdue?' is-overdue':'')+(orange?' is-abd-exception':'');
     let overdueDays=0;if(overdue){try{overdueDays=Number(core().derive(task,nowOf(ctx)).overdueDays)||0;}catch(_){}}
     const overdueText=overdueDays>0?translated('taskV2.overdueDays',{count:overdueDays},'{count} days overdue'):translated('taskV2.planner.overdue',null,'Overdue');
     return `<article class="${classes}" data-task-id="${esc(task.id)}" data-priority="${esc(task.priority)}" data-status="${esc(task.status)}" tabindex="0" role="button" aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight">
-      <div class="tpv2-task-card-head"><span class="tpv2-priority">${esc(task.priority||'P2')}</span>${overdue?`<span class="tpv2-badge tpv2-overdue">${esc(overdueText)}</span>`:''}</div>
+      <div class="tpv2-task-card-head"><span class="tpv2-priority">${esc(task.priority||'P2')}</span>${overdue?`<span class="tpv2-badge tpv2-overdue">${esc(overdueText)}</span>`:''}${orange?'<span class="tpv2-badge tpv2-abd-warning">'+esc(translated('taskV2.ops.abdReview',null,'Check customs'))+'</span>':''}</div>
       <h3>${esc(task.title||translated('taskV2.task',null,'Task'))}</h3>
       <p class="tpv2-task-customer">${esc(task.customerName||'')}</p>
+      ${orange?'<p class="tpv2-abd-alert" role="alert">'+esc(warning.message)+(warning.recommendedDate?' '+esc(translated('taskV2.ops.recommended',null,'Suggested:'))+' '+esc(warning.recommendedDate):'')+'</p><button type="button" class="tpv2-button tpv2-button-secondary tpv2-approve-abd" data-tpv2-abd-approve="'+esc(task.id)+'">'+esc(translated('taskV2.ops.approve',null,'Approve exception'))+'</button>':''}
+      ${warning&&!orange?'<p class="tpv2-abd-alert" role="alert">'+esc(warning.message)+'</p>':''}
       <div class="tpv2-task-meta"><span>${esc(task.status||'open')}</span><span>${esc(q(task.dueAt).slice(0,16).replace('T',' · '))}</span></div>
     </article>`;
   }
@@ -81,7 +163,7 @@
 
   function weekDayHtml(date,tasks,ctx,scope){
     const weekday=new Intl.DateTimeFormat(undefined,{weekday:'short',day:'2-digit',month:'2-digit'}).format(new Date(date+'T12:00:00Z'));
-    const cards=sorted(tasks,ctx.now).map(t=>taskCardHtml(t,ctx)).join(''),label=nonWorkLabel(nonWorkOf(date,ctx));
+    const cards=sorted(tasks,ctx.now).map(t=>taskCardHtml(t,{...ctx,planningView:true})).join(''),label=nonWorkLabel(nonWorkOf(date,ctx));
     const cls='tpv2-day'+(label?' is-nonwork':'')+(date===dayKey(nowOf(ctx))?' is-today':'');
     return `<section class="${cls}" data-tpv2-drop-date="${esc(date)}" data-i218-drop-date="${esc(date)}" data-week-scope="${esc(scope)}"><header><strong>${esc(weekday)}</strong><span>${tasks.length}</span></header>${label?`<p class="tpv2-day-nonwork" data-tpv2-nonwork>${esc(label)}</p>`:''}<div class="tpv2-day-tasks">${cards}</div></section>`;
   }
@@ -89,7 +171,7 @@
     const state=obj(ctx.state)?ctx.state:{tasks:[]},days=Array.from({length:5},(_,i)=>addDays(start,i));
     const label=scope==='next'?translated('taskV2.planner.nextWeek',null,'Next week'):translated('taskV2.planner.currentWeek',null,'Current week');
     const cls='tpv2-week'+(scope==='next'?' tpv2-week-next':'');
-    const active=arr(state.tasks).filter(t=>activeTask(t)&&!isOverdue(t,ctx.now));
+    const active=scheduledTasks(ctx);
     return `<section class="${cls}" data-week-scope="${scope}"><header class="tpv2-week-head"><h2>${esc(label)}</h2><span>${esc(start)} – ${esc(addDays(start,4))}</span></header><div class="tpv2-week-grid">${days.map(date=>weekDayHtml(date,active.filter(t=>taskDay(t)===date),ctx,scope)).join('')}</div></section>`;
   }
   function unplannedHtml(ctx={}){
@@ -102,9 +184,10 @@
   }
   function workweekHtml(ctx={}){
     const start=mondayOf(ctx.weekStart||nowOf(ctx)),draft=ctx.weekDraft||null;
+    if(!ctx.operationInspection)ctx={...ctx,operationInspection:inspectionFor(ctx)};
     const overload=draft&&draft.overloaded===true?`<div class="tpv2-overload" data-tpv2-overload role="status">${esc(translated('taskV2.planner.overload',null,'This week is overloaded.'))}</div>`:'';
     const nav=ctx.navigation===true?navHtml('week',`${start} – ${addDays(start,11)}`,start>mondayOf(nowOf(ctx))):'';
-    return `<div class="tpv2-workweeks" data-tpv2-workweek>${nav}${overload}${unplannedHtml(ctx)}${weekSectionHtml(start,'current',ctx)}${weekSectionHtml(addDays(start,7),'next',ctx)}</div>`;
+    return `<div class="tpv2-workweeks" data-tpv2-workweek>${nav}${overload}${weekSectionHtml(start,'current',ctx)}${weekSectionHtml(addDays(start,7),'next',ctx)}</div>`;
   }
   function renderWorkweek(target,ctx={}){if(!target)throw new Error('Planner workweek target missing');target.innerHTML=workweekHtml(ctx);return target;}
 
@@ -114,13 +197,14 @@
   }
   function shiftMonth(ym,delta){const d=new Date(Date.UTC(ym.year,ym.month-1+delta,1));return{year:d.getUTCFullYear(),month:d.getUTCMonth()+1};}
   function monthDayHtml(date,ctx){
-    const state=obj(ctx.state)?ctx.state:{tasks:[]},tasks=sorted(arr(state.tasks).filter(t=>activeTask(t)&&taskDay(t)===date),ctx.now);
+    const tasks=sorted(scheduledTasks(ctx).filter(t=>taskDay(t)===date),ctx.now);if(!ctx.operationInspection)ctx={...ctx,operationInspection:inspectionFor(ctx)};
     const title=new Intl.DateTimeFormat(undefined,{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(date+'T12:00:00Z')),label=nonWorkLabel(nonWorkOf(date,ctx));
-    return `<section class="tpv2-month-detail" data-tpv2-month-detail="${esc(date)}"><header><h3>${esc(title)}</h3>${label?`<span class="tpv2-day-nonwork">${esc(label)}</span>`:''}<button type="button" class="tpv2-button tpv2-button-secondary" data-tpv2-month-day-close>${esc(translated('taskV2.planner.close',null,'Close'))}</button></header>${tasks.length?`<div class="tpv2-month-detail-grid">${tasks.map(t=>taskCardHtml(t,ctx)).join('')}</div>`:`<p class="tpv2-empty">${esc(translated('taskV2.planner.noTasksDay',null,'No open tasks on this day'))}</p>`}</section>`;
+    return `<section class="tpv2-month-detail" data-tpv2-month-detail="${esc(date)}"><header><h3>${esc(title)}</h3>${label?`<span class="tpv2-day-nonwork">${esc(label)}</span>`:''}<button type="button" class="tpv2-button tpv2-button-secondary" data-tpv2-month-day-close>${esc(translated('taskV2.planner.close',null,'Close'))}</button></header>${tasks.length?`<div class="tpv2-month-detail-grid">${tasks.map(t=>taskCardHtml(t,{...ctx,planningView:true})).join('')}</div>`:`<p class="tpv2-empty">${esc(translated('taskV2.planner.noTasksDay',null,'No open tasks on this day'))}</p>`}</section>`;
   }
   function monthHtml(ctx={}){
+    if(!ctx.operationInspection)ctx={...ctx,operationInspection:inspectionFor(ctx)};
     const now=nowOf(ctx),today=dayKey(now),{year,month}=monthOf(ctx);
-    const projection=planner().monthProjection({tasks:arr(ctx.state&&ctx.state.tasks),year,month,now,calendar:calendarOf(ctx)});
+    const projection=planner().monthProjection({tasks:scheduledTasks(ctx),year,month,now,calendar:calendarOf(ctx)});
     const byDate=new Map(arr(projection&&projection.days).map(row=>[q(row.date),row])),days=new Date(Date.UTC(year,month,0)).getUTCDate(),cells=[];
     const first=new Date(Date.UTC(year,month-1,1)).getUTCDay()||7,weekdayFmt=new Intl.DateTimeFormat(undefined,{weekday:'short'});
     const heads=Array.from({length:7},(_,i)=>`<span class="tpv2-month-weekday" aria-hidden="true">${esc(weekdayFmt.format(new Date(Date.UTC(2024,0,1+i,12))))}</span>`).join('');
@@ -129,7 +213,7 @@
       const key=`${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`,row=byDate.get(key)||{taskCount:0,overdueCount:0,criticalCount:0,doneCount:0};
       const reason=row.nonWorkReason||null,label=nonWorkLabel(reason),cls='tpv2-month-day'+(key===today?' is-today':'')+(reason?(reason.type==='weekend'?' is-weekend':' is-nonwork'):'')+(key===q(ctx.monthDay)?' is-selected':'');
       const status=(row.criticalCount?`<i class="tpv2-dot is-critical" title="P0">${row.criticalCount}</i>`:'')+(row.doneCount?`<i class="tpv2-dot is-done">${row.doneCount}</i>`:'');
-      cells.push(`<button type="button" class="${cls}" data-day-summary="${key}" aria-label="${esc(key+(label?' · '+label:''))}" aria-pressed="${key===q(ctx.monthDay)}"><strong>${day}</strong><span>${row.taskCount}</span>${label?`<small>${esc(label)}</small>`:''}${status?`<b class="tpv2-month-status">${status}</b>`:''}${row.overdueCount?`<em>${row.overdueCount}</em>`:''}</button>`);
+      cells.push(`<button type="button" class="${cls}" data-day-summary="${key}" aria-label="${esc(key+(label?' · '+label:''))}" aria-pressed="${key===q(ctx.monthDay)}"><strong>${day}</strong><span>${row.taskCount}</span>${label?`<small>${esc(label)}</small>`:''}${status?`<b class="tpv2-month-status">${status}</b>`:''}</button>`);
     }
     const label=`${String(month).padStart(2,'0')}/${year}`,nav=ctx.navigation===true?navHtml('month',label,true):`<span>${label}</span>`;
     const detail=q(ctx.monthDay)&&q(ctx.monthDay).startsWith(`${year}-${String(month).padStart(2,'0')}-`)?monthDayHtml(q(ctx.monthDay),ctx):'';
@@ -147,7 +231,7 @@
   });
   function weekPlanDraft(ctx,mode){
     const state=obj(ctx&&ctx.state)?ctx.state:{tasks:[]};
-    return planner().buildWeekDraft({tasks:arr(state.tasks),weekStart:mondayOf(ctx.weekStart||nowOf(ctx)),now:nowOf(ctx),calendar:ctx.calendar,recalculate:mode==='recalculate'||mode==='override',allowManualOverride:mode==='override'});
+    return planner().buildWeekDraft({tasks:scheduledTasks(ctx),weekStart:mondayOf(ctx.weekStart||nowOf(ctx)),now:nowOf(ctx),calendar:ctx.calendar,recalculate:mode==='recalculate'||mode==='override',allowManualOverride:mode==='override'});
   }
   function weekPlanSummary(draft){
     const items=arr(draft&&draft.items),base=planner().weekSummary(draft),start=q(draft&&draft.weekStart),end=q(draft&&draft.weekEnd);
@@ -185,7 +269,7 @@
   }
 
   function runtimeOf(ctx){return ctx&&ctx.runtime||root.ExportHUBRC1014TaskRuntime||null;}
-  function userIdOf(ctx){const u=ctx&&ctx.user;return q(u&&(u.id||u.userId||u.username)||ctx&&ctx.userId);}
+  function userIdOf(ctx){const u=ctx&&(ctx.user||ctx.currentUser||ctx.state&&ctx.state.currentUser);return q(u&&(u.id||u.userId||u.username||u.user)||ctx&&(ctx.userId||ctx.currentUserId||ctx.state&&ctx.state.currentUserId));}
   function actionContext(ctx={}){
     const next={...(ctx||{})};
     if(!obj(next.state))next.state={tasks:[]};
@@ -239,7 +323,11 @@
     function moveTo(taskId,date){
       const state=obj(ctx.state)?ctx.state:{tasks:[]},task=arr(state.tasks).find(t=>q(t&&t.id)===taskId);if(!task||!date||taskDay(task)===date)return false;
       const runtime=runtimeOf(ctx),move=runtime&&(typeof runtime.moveTaskOccurrence==='function'?runtime.moveTaskOccurrence:(runtime.plannerV2&&runtime.plannerV2.moveTaskOccurrence));if(typeof move!=='function')return false;
-      move(taskId,plannedAtForDate(task,date),{...ctx,state});return true;
+      const result=move(taskId,plannedAtForDate(task,date),{...ctx,state});
+      if(result&&result.changed!==false&&typeof target.querySelector==='function'){
+        renderFresh(target,{...(target.__tpv2Ctx||ctx),state,view:'workweek'});
+      }
+      return !result||result.changed!==false;
     }
     const down=e=>{const card=taskFrom(e&&e.target);activeCard=card||null;activeId=readId(card)||activeId;startX=Number(e&&e.clientX)||0;startY=Number(e&&e.clientY)||0;dragging=false;};
     const moveHandler=e=>{
@@ -285,13 +373,20 @@
       try{draft=weekPlanDraft(ctx,mode);weekPlan=weekPlanHtml(draft,mode,ctx);}
       catch(error){weekPlan=`<p class="tpv2-weekplan-note" role="alert">${esc(error&&error.message||error)}</p>`;}
     }
-    const viewCtx=draft?{...ctx,weekDraft:draft}:ctx;
+    const viewCtx=draft?{...ctx,weekDraft:draft,operationInspection:inspectionFor(ctx,draft)}:{...ctx,operationInspection:inspectionFor(ctx)};
     const density=q(ctx.density)==='compact'?'compact':'detailed';
     return `<section class="tpv2-planner" data-taskplanner-v2-planner data-view="${current}" data-density="${density}">
-      <header class="tpv2-planner-head"><div><span class="tpv2-eyebrow">TaskPlanner V2</span><h1>${esc(translated('taskV2.planner.title',null,'Task planner'))}</h1></div><div class="tpv2-view-toggle" role="group" data-tpv2-density-toggle><button type="button" data-tpv2-density="compact" aria-pressed="${density==='compact'}">${esc(translated('taskV2.view.compact',null,'Compact'))}</button><button type="button" data-tpv2-density="detailed" aria-pressed="${density==='detailed'}">${esc(translated('taskV2.view.detailed',null,'Detailed'))}</button></div><div class="tpv2-view-toggle" role="group"><button type="button" data-tpv2-view="workweek" aria-pressed="${current==='workweek'}">${esc(translated('taskV2.planner.workweek',null,'Workweek'))}</button><button type="button" data-tpv2-view="month" aria-pressed="${current==='month'}">${esc(translated('taskV2.planner.month',null,'Month'))}</button></div></header>
-      ${dailySummaryHtml(ctx)}${current==='workweek'?weekPlanToolbarHtml()+weekPlan:''}${overdueHtml(ctx)}<div class="tpv2-planner-view" data-tpv2-planner-view>${current==='month'?monthHtml(ctx):workweekHtml(viewCtx)}</div>
+      <header class="tpv2-planner-head"><div><span class="tpv2-eyebrow">TaskPlanner V2</span><h1>${esc(translated('taskV2.planner.title',null,'Task planner'))}</h1></div><button type="button" class="tpv2-button tpv2-button-secondary" data-tpv2-print-plan>${esc(translated('taskV2.ops.print',null,'Print weekly plan / PDF'))}</button><div class="tpv2-view-toggle" role="group" data-tpv2-density-toggle><button type="button" data-tpv2-density="compact" aria-pressed="${density==='compact'}">${esc(translated('taskV2.view.compact',null,'Compact'))}</button><button type="button" data-tpv2-density="detailed" aria-pressed="${density==='detailed'}">${esc(translated('taskV2.view.detailed',null,'Detailed'))}</button></div><div class="tpv2-view-toggle" role="group"><button type="button" data-tpv2-view="workweek" aria-pressed="${current==='workweek'}">${esc(translated('taskV2.planner.workweek',null,'Workweek'))}</button><button type="button" data-tpv2-view="month" aria-pressed="${current==='month'}">${esc(translated('taskV2.planner.month',null,'Month'))}</button></div></header>
+      ${operationalWarningsHtml(viewCtx)}${current==='workweek'?weekPlanToolbarHtml()+weekPlan:''}<div class="tpv2-planner-view" data-tpv2-planner-view>${current==='month'?monthHtml(ctx):workweekHtml(viewCtx)}</div>
       <div class="tpv2-planner-detail-host" data-tpv2-detail-host></div>
     </section>`;
+  }
+  function renderFresh(target,ctx){
+    // Internal navigation must pass through the canonical-source wrapper too:
+    // it is responsible for loading the newly viewed Pick weeks.
+    const ui=root.ExportHUBTaskUIV2;
+    return ui&&typeof ui.renderPlannerPage==='function'&&ui.renderPlannerPage!==renderPlannerPage
+      ?ui.renderPlannerPage(target,ctx):renderPlannerPage(target,ctx);
   }
   function renderPlannerPage(target,ctx={}){
     if(!target)throw new Error('Planner target missing');
@@ -302,7 +397,35 @@
     const weekStart=q(target.__tpv2WeekStart)||ctx.weekStart;
     let density=q(target.__tpv2Density);
     if(!density){try{density=typeof base.viewPreference==='function'&&userIdOf(actionContext(ctx))?base.viewPreference(actionContext(ctx)):'';}catch(_){density='';}}
-    target.innerHTML=plannerPageHtml({...ctx,weekStart,weekPlanMode:mode,navigation:true,year:ym.year,month:ym.month,monthDay,density},view);
+    const fixedScope=q(ctx.companyId||ctx.state&&ctx.state.companyId||ctx.state&&ctx.state.currentCompanyId)+'|'
+      +q(ctx.environment||ctx.state&&ctx.state.environment||root.__EXPORTHUB_FORCED_ENVIRONMENT__||'production');
+    if(target.__tpv2FixedPickupScope!==fixedScope){
+      target.__tpv2FixedPickupScope=fixedScope;
+      target.__tpv2FixedPickupFetchStarted=false;
+      target.__tpv2FixedPickupLoaded=false;
+      target.__tpv2FixedPickups=null;
+    }
+    target.innerHTML=plannerPageHtml({...ctx,weekStart,weekPlanMode:mode,navigation:true,year:ym.year,month:ym.month,monthDay,density,
+      fixedPickups:target.__tpv2FixedPickups||ctx.fixedPickups,
+      fixedPickupDataLoaded:target.__tpv2FixedPickupLoaded===true||ctx.fixedPickupDataLoaded===true},view);
+    if(!target.__tpv2FixedPickupFetchStarted&&typeof root.fetch==='function'&&root.location){
+      target.__tpv2FixedPickupFetchStarted=true;
+      const company=q(ctx.companyId||ctx.state&&ctx.state.companyId||ctx.state&&ctx.state.currentCompanyId);
+      const environment=q(ctx.environment||ctx.state&&ctx.state.environment||root.__EXPORTHUB_FORCED_ENVIRONMENT__||'production');
+      const requestedScope=fixedScope;
+      const headers={'Accept':'application/json','Content-Type':'application/json','X-ExportHUB-Environment':environment};
+      if(company)headers['X-ExportHUB-Company-Id']=company;
+      try{
+        root.fetch('/api/fixed-pickups?includeInactive=1',{method:'GET',credentials:'same-origin',headers})
+          .then(response=>{if(!response.ok)throw Error('Abholkalender nicht verfügbar');return response.json();})
+          .then(data=>{if(data&&data.ok===false)throw Error('Pickup calendar unavailable');
+            if(target.__tpv2FixedPickupScope!==requestedScope||target.isConnected===false)return;
+            target.__tpv2FixedPickups=arr(data&&data.items);target.__tpv2FixedPickupLoaded=true;
+            renderFresh(target,{...(target.__tpv2Ctx||ctx),view:target.__tpv2View});
+          })
+          .catch(()=>{if(target.__tpv2FixedPickupScope===requestedScope)target.__tpv2FixedPickupLoaded=false;});
+      }catch(_){}
+    }
     if(target.__tpv2DndCleanup){try{target.__tpv2DndCleanup();}catch(_){}}
     target.__tpv2DndCleanup=view==='workweek'?bindPlannerDnD(target,{...ctx,weekStart,state:ctx.state||{},runtime:runtimeOf(ctx)}):null;
     if(typeof target.addEventListener==='function'&&!target.__tpv2ViewBound){
@@ -314,15 +437,36 @@
       });
       target.addEventListener('click',async event=>{
         const eventTarget=event&&event.target,closest=selector=>eventTarget&&typeof eventTarget.closest==='function'?eventTarget.closest(selector):null;
+        const printButton=closest('[data-tpv2-print-plan]');
+        if(printButton){
+          const document=root.document;
+          if(document&&document.body&&document.body.classList&&typeof root.print==='function'){
+            document.body.classList.add('tpv2-print-plan');
+            const reset=()=>document.body.classList.remove('tpv2-print-plan');
+            try{if(typeof root.addEventListener==='function')root.addEventListener('afterprint',reset,{once:true});root.print();}
+            catch(_){reset();}
+          }
+          return;
+        }
+        const approveButton=closest('[data-tpv2-abd-approve]');
+        if(approveButton){
+          const taskId=q(approveButton.getAttribute('data-tpv2-abd-approve'));
+          const resolved=actionContext(target.__tpv2Ctx||ctx),actorId=userIdOf(resolved);
+          if(!actorId)return;
+          const result=planner().approveSameDayAbd(resolved.state.tasks,{taskId,actorId,at:nowOf(resolved)});
+          if(result&&result.changed){resolved.state.tasks=result.tasks;resolved.persist(result.tasks);
+            renderFresh(target,{...resolved,view:target.__tpv2View});}
+          return;
+        }
         const viewButton=closest('[data-tpv2-view]');
-        if(viewButton){const next=q(viewButton.getAttribute('data-tpv2-view'));if(['workweek','month'].includes(next)){target.__tpv2View=next;renderPlannerPage(target,{...(target.__tpv2Ctx||ctx),view:next});}return;}
+        if(viewButton){const next=q(viewButton.getAttribute('data-tpv2-view'));if(['workweek','month'].includes(next)){target.__tpv2View=next;renderFresh(target,{...(target.__tpv2Ctx||ctx),view:next});}return;}
         const detailHost=typeof target.querySelector==='function'?target.querySelector('[data-tpv2-detail-host]'):null,currentCtx=target.__tpv2Ctx||ctx;
         const densityButton=closest('[data-tpv2-density]');
         if(densityButton){
           const next=q(densityButton.getAttribute('data-tpv2-density'))==='compact'?'compact':'detailed',resolved=actionContext(currentCtx);
           target.__tpv2Density=next;
           if(userIdOf(resolved)&&typeof base.setViewPreference==='function'){try{base.setViewPreference(next,resolved);}catch(_){}}
-          renderPlannerPage(target,{...currentCtx,view:target.__tpv2View});return;
+          renderFresh(target,{...currentCtx,view:target.__tpv2View});return;
         }
         const navButton=closest('[data-tpv2-nav]');
         if(navButton){
@@ -332,21 +476,21 @@
             let next=action==='week-today'?floor:addDays(current,action==='week-next'?7:-7);if(next<floor)next=floor;
             const legacy=root.ExportHUBIndex218;
             if(legacy&&typeof legacy.setWeek==='function'&&!target.__tpv2WeekStart){legacy.setWeek(next);return;}
-            target.__tpv2WeekStart=next;renderPlannerPage(target,{...currentCtx,view:'workweek'});return;
+            target.__tpv2WeekStart=next;renderFresh(target,{...currentCtx,view:'workweek',weekStart:next});return;
           }
           const ym=action==='month-today'?monthOf({now}):shiftMonth(target.__tpv2Month||monthOf(currentCtx),action==='month-next'?1:-1);
           target.__tpv2Month=ym;target.__tpv2MonthDay='';
-          renderPlannerPage(target,{...currentCtx,view:'month',year:ym.year,month:ym.month,monthDay:''});return;
+          renderFresh(target,{...currentCtx,view:'month',year:ym.year,month:ym.month,monthDay:''});return;
         }
         const monthDayButton=closest('[data-day-summary]');
         if(monthDayButton){
           const date=q(monthDayButton.getAttribute('data-day-summary')),selected=date===q(target.__tpv2MonthDay)?'':date;
-          renderPlannerPage(target,{...currentCtx,view:'month',monthDay:selected});return;
+          renderFresh(target,{...currentCtx,view:'month',monthDay:selected});return;
         }
-        if(closest('[data-tpv2-month-day-close]')){renderPlannerPage(target,{...currentCtx,view:'month',monthDay:''});return;}
+        if(closest('[data-tpv2-month-day-close]')){renderFresh(target,{...currentCtx,view:'month',monthDay:''});return;}
         const weekPlanButton=closest('[data-tpv2-weekplan]');
         if(weekPlanButton){
-          const action=q(weekPlanButton.getAttribute('data-tpv2-weekplan')),rerender=mode=>renderPlannerPage(target,{...currentCtx,view:'workweek',weekPlanMode:mode});
+          const action=q(weekPlanButton.getAttribute('data-tpv2-weekplan')),rerender=mode=>renderFresh(target,{...currentCtx,view:'workweek',weekPlanMode:mode});
           if(action==='plan'||action==='recalculate'||action==='override'){rerender(action);return;}
           if(action==='discard'){rerender('');return;}
           if(action==='apply'){
@@ -370,8 +514,8 @@
           if(action==='reminder-toggle'&&taskId&&typeof base.toggleTaskReminder==='function'){const result=base.toggleTaskReminder(taskId,actionButton.getAttribute('data-time'),'enabled',actionContext(currentCtx));if(result&&result.changed)reopen();return;}
           if(action==='comment-add'&&taskId&&typeof base.addComment==='function'){const input=field('data-tpv2-comment-input'),result=base.addComment(taskId,input&&input.value,actionContext(currentCtx));if(result&&result.changed)reopen();return;}
           if(action==='save-template'&&taskId&&typeof base.saveTaskAsTemplate==='function'){const result=base.saveTaskAsTemplate(taskId,actionContext(currentCtx));if(result&&result.changed)reopen(translated('taskV2.templateSaved',null,'Template saved'));return;}
-          if(action==='complete'&&taskId&&typeof base.completeTask==='function'){const input=field('data-tpv2-complete-comment'),result=base.completeTask(taskId,{comment:q(input&&input.value)},actionContext(currentCtx));if(result&&result.changed)renderPlannerPage(target,{...currentCtx,view:target.__tpv2View});return;}
-          if(action==='cancel'&&taskId&&typeof base.cancelTask==='function'){const result=base.cancelTask(taskId,actionContext(currentCtx));if(result&&result.changed)renderPlannerPage(target,{...currentCtx,view:target.__tpv2View});return;}
+          if(action==='complete'&&taskId&&typeof base.completeTask==='function'){const input=field('data-tpv2-complete-comment'),result=base.completeTask(taskId,{comment:q(input&&input.value)},actionContext(currentCtx));if(result&&result.changed)renderFresh(target,{...currentCtx,view:target.__tpv2View});return;}
+          if(action==='cancel'&&taskId&&typeof base.cancelTask==='function'){const result=base.cancelTask(taskId,actionContext(currentCtx));if(result&&result.changed)renderFresh(target,{...currentCtx,view:target.__tpv2View});return;}
         }
         const card=closest('.tpv2-task-card[data-task-id]');
         if(card&&detailHost&&typeof base.renderDetail==='function'){const taskId=q(card.getAttribute&&card.getAttribute('data-task-id'));if(taskId)openDetail(target,detailHost,taskId,currentCtx,card);}

@@ -189,7 +189,185 @@
     return{year,month,days};
   }
 
+
+  function operationalText(key,fallback){
+    try{
+      const i18n=root.ExportHUBI18n;
+      if(i18n&&typeof i18n.t==='function'){
+        const translated=i18n.t(key);
+        if(translated&&translated!==key)return translated;
+      }
+    }catch(_){}
+    return fallback;
+  }
+
+  // RC1771: Task and pickup-calendar coordination. Pure inspection first:
+  // no pickup date, customs document or task is changed by this projection.
+  function operationalKind(task){
+    const text=[task&&task.area,task&&task.group,task&&task.taskType,task&&task.title]
+      .map(x=>q(x).toLowerCase()).join(' ');
+    if(/(?:\babd\b|ausfuhrbegleitdokument|customs declaration)/i.test(text))return'abd';
+    if(/(?:\bpicken\b|\bpicking\b|\bpicks\b|\bpick\b)/i.test(text))return'pick';
+    if(/(?:anmeld|registration|avisier)/i.test(text))return'registration';
+    return'';
+  }
+  function operationalLink(task){
+    const candidates=[
+      task&&task.planningGroupId,task&&task.linkedShipmentId,
+      task&&task.shipmentId,task&&task.linkedShipmentRef,
+      task&&task.shipmentRef,task&&task.sourceRef,
+      task&&q(task.sourceId)!==q(task.id)?task.sourceId:'',
+      task&&task.reference
+    ];
+    for(const value of candidates){
+      const key=q(value).toUpperCase();
+      if(key&&key!=='UNDEFINED'&&!/^MANAGED:|^MASTER:|^M848:/.test(key))return key;
+    }
+    return'';
+  }
+  function shipmentIdentity(shipment){
+    for(const key of ['id','shipmentId','reference','ref','shipmentRef','referenceNumber','referenceNo']){
+      const value=q(shipment&&shipment[key]).toUpperCase();
+      if(value)return value;
+    }
+    return'';
+  }
+  function shipmentPickupDay(shipment){
+    for(const key of ['plannedPickupDate','pickupDate','pickdate']){
+      const day=dayKey(shipment&&shipment[key]);if(day)return day;
+    }
+    return'';
+  }
+  function shipmentCustomerNumber(shipment){
+    const customer=shipment&&shipment.customer||{};
+    return q(shipment&&(shipment.customerNumber||shipment.customerAccount||shipment.customerNo||shipment.kundennummer)
+      ||customer.customerNumber||customer.account).replace(/\s+/g,'').replace(/^0+(?=\d)/,'').toUpperCase();
+  }
+  function operationalTaskDate(task){
+    return dayKey(task&&(task.plannedAt||task.plannedDate||task.dueAt||task.dueDate||task.date));
+  }
+  function operationalSignature(group,pick,abd){
+    return [group,q(pick&&pick.id),operationalTaskDate(pick),q(abd&&abd.id),operationalTaskDate(abd)].join('|');
+  }
+  function inspectOperationalPlan(input={}){
+    const tasks=arr(input.tasks),shipments=arr(input.shipments),fixedPickups=arr(input.fixedPickups);
+    const warnings=[],byTaskId={},groups=new Map(),cal=input.calendar||recurrence().calendar({});
+    let unlinkedTasks=0,matchedPickupGroups=0;
+    for(const task of tasks){
+      if(!task||terminal(task)||task.done===true||task.completed===true)continue;
+      const kind=operationalKind(task),link=operationalLink(task);
+      if(!kind||!operationalTaskDate(task))continue;
+      if(!link){unlinkedTasks++;continue;}
+      if(!groups.has(link))groups.set(link,{key:link,pick:[],abd:[],registration:[]});
+      groups.get(link)[kind].push(task);
+    }
+    const lookupShipment=key=>shipments.find(sh=>shipmentIdentity(sh)===key
+      ||[sh&&sh.id,sh&&sh.reference,sh&&sh.ref,sh&&sh.shipmentRef].some(v=>q(v).toUpperCase()===key));
+    for(const group of groups.values()){
+      // A shipment can have several individual operations. Do not silently
+      // select one if multiple candidates make the dependency ambiguous.
+      const pick=group.pick.length===1?group.pick[0]:null;
+      const abd=group.abd.length===1?group.abd[0]:null;
+      const registration=group.registration.length===1?group.registration[0]:null;
+      const shipment=lookupShipment(group.key),pickDay=operationalTaskDate(pick),abdDay=operationalTaskDate(abd),registrationDay=operationalTaskDate(registration);
+      if(shipment)matchedPickupGroups++;
+      const related=[...group.pick,...group.abd,...group.registration];
+      if(group.pick.length>1||group.abd.length>1||group.registration.length>1){
+        warnings.push({type:'ambiguous_link',groupId:group.key,taskIds:related.map(t=>q(t.id)),message:operationalText('taskV2.ops.ambiguous','Multiple operations for the same shipment: verify assignment.')});
+        continue;
+      }
+      if(pick&&shipment&&!abd&&[
+        shipment.requiresAbd,shipment.abdRequired,shipment.customsRequired,
+        shipment.customsDeclarationRequired
+      ].some(value=>value===true)){
+        const warning={type:'abd_missing',groupId:group.key,taskId:q(pick.id),
+          message:operationalText('taskV2.ops.abdMissing','A customs document is required but no customs task is linked.')};
+        warnings.push(warning);byTaskId[q(pick.id)]=warning;
+      }
+      if(pick&&abd){
+        const signature=operationalSignature(group.key,pick,abd);
+        const acknowledgment=abd.planningSameDayAbdApproval;
+        const confirmed=acknowledgment&&acknowledgment.signature===signature&&q(acknowledgment.by)&&q(acknowledgment.at);
+        if(pickDay===abdDay&&!confirmed){
+          const warning={type:'abd_same_day',groupId:group.key,taskId:q(abd.id),pickId:q(pick.id),
+            date:abdDay,signature,recommendedDate:nextWorkdayAfter(pickDay,cal),message:operationalText('taskV2.ops.abdSameDay','Customs document on picking day — explicit approval required.')};
+          warnings.push(warning);byTaskId[q(abd.id)]=warning;
+        }else if(abdDay<pickDay){
+          const warning={type:'abd_before_pick',groupId:group.key,taskId:q(abd.id),pickId:q(pick.id),
+            date:abdDay,recommendedDate:nextWorkdayAfter(pickDay,cal),message:operationalText('taskV2.ops.abdBeforePick','Customs document is scheduled before picking. Check the sequence.')};
+          warnings.push(warning);byTaskId[q(abd.id)]=warning;
+        }
+      }
+      if(registration){
+        const prerequisite=abdDay||pickDay;
+        if(prerequisite&&registrationDay<prerequisite){
+          const warning={type:'registration_before_ready',groupId:group.key,taskId:q(registration.id),
+            date:registrationDay,recommendedDate:prerequisite,message:operationalText('taskV2.ops.registrationBefore','Registration is scheduled before the required picking/customs step.')};
+          warnings.push(warning);byTaskId[q(registration.id)]=warning;
+        }
+      }
+      if(shipment){
+        const booked=shipmentPickupDay(shipment);
+        const lastMilestone=[pickDay,abdDay,registrationDay].filter(Boolean).sort().at(-1)||'';
+        if(booked&&lastMilestone){
+          const earliest=nextWorkdayAfter(lastMilestone,cal);
+          if(booked<earliest){
+            const warning={type:'pickup_notification',groupId:group.key,shipmentRef:group.key,
+              bookedDate:booked,earliestDate:earliest,taskIds:related.map(t=>q(t.id)),
+              message:operationalText('taskV2.ops.pickupWarning','Booked pickup is at risk. Notify the carrier and reconfirm the collection date.')};
+            warnings.push(warning);
+            for(const task of related)if(!byTaskId[q(task.id)])byTaskId[q(task.id)]=warning;
+          }
+        }
+        const customer=shipmentCustomerNumber(shipment);
+        if(customer){
+          const fixed=fixedPickups.filter(f=>f&&f.active!==false
+            &&q(f.customerNumber).replace(/\s+/g,'').replace(/^0+(?=\d)/,'').toUpperCase()===customer);
+          const last=[pickDay,abdDay,registrationDay].filter(Boolean).sort().at(-1)||'';
+          if(last&&fixed.length&&!booked){
+            const earliest=[pickDay,abdDay,registrationDay].filter(Boolean).sort()[0];
+            const earliestWeekday=(new Date(earliest+'T12:00:00Z').getUTCDay()||7);
+            for(const item of fixed){
+              const fixedWeekday=Number(item.weekday);
+              if(!Number.isInteger(fixedWeekday)||fixedWeekday<1||fixedWeekday>5)continue;
+              const daysTo=(fixedWeekday-earliestWeekday+7)%7;
+              const fixedDate=addDays(earliest,daysTo);
+              if(last>=fixedDate){
+                warnings.push({type:'fixed_pickup_conflict',groupId:group.key,shipmentRef:group.key,bookedDate:fixedDate,
+                  message:operationalText('taskV2.ops.fixedPickupNoBooking','The scheduled fixed collection day is not feasible. Notify the carrier.')});
+              }
+            }
+          }
+          if(last&&fixed.length&&booked){
+            const bookedWeekday=(new Date(booked+'T12:00:00Z').getUTCDay()||7);
+            if(fixed.some(f=>Number(f.weekday)===bookedWeekday)&&last>=booked){
+              warnings.push({type:'fixed_pickup_conflict',groupId:group.key,shipmentRef:group.key,bookedDate:booked,
+                message:operationalText('taskV2.ops.fixedPickupWarning','Fixed collection day is at risk after replanning. Notify the carrier.')});
+            }
+          }
+        }
+      }
+    }
+    return{warnings,byTaskId,groupsInspected:groups.size,unlinkedTasks,matchedPickupGroups,hasPickupData:shipments.length>0,
+      hasFixedPickupData:input.fixedPickupDataLoaded===true};
+  }
+  function approveSameDayAbd(tasks,request={}){
+    const taskId=q(request.taskId),actorId=q(request.actorId),at=q(request.at)||new Date().toISOString();
+    if(!taskId||!actorId)return{changed:false,reason:'Benutzer oder Aufgabe fehlt.'};
+    const inspection=inspectOperationalPlan({tasks,shipments:arr(request.shipments),calendar:request.calendar});
+    const warning=inspection.byTaskId[taskId];
+    if(!warning||warning.type!=='abd_same_day')return{changed:false,reason:'Keine offene ABD-Ausnahme für dieses Vorkommen.'};
+    const updated=arr(tasks).map(task=>{
+      if(q(task&&task.id)!==taskId)return task;
+      const confirmation={signature:warning.signature,by:actorId,at};
+      const history=arr(task.history).concat([{action:'same_day_abd_confirmed',at,source:'manual',
+        by:actorId,after:{signature:warning.signature,plannedDate:warning.date}}]);
+      return{...task,planningSameDayAbdApproval:confirmation,history,updatedAt:at};
+    });
+    return{changed:true,tasks:updated,approval:{taskId,at,by:actorId,signature:warning.signature}};
+  }
+
   root.ExportHUBTaskPlannerV2=Object.freeze({
-    version:'2.0',orderTasks,validateDependencies,buildWeekDraft,applyWeekDraft,recalculateWeek,weekSummary,monthProjection
+    version:'2.0',inspectOperationalPlan,approveSameDayAbd,operationalKind,operationalLink,validateDependencies,orderTasks,buildWeekDraft,applyWeekDraft,recalculateWeek,weekSummary,monthProjection
   });
 })(globalThis);
