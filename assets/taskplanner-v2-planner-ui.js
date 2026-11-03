@@ -32,7 +32,17 @@
     return fallback||key;
   }
   function nowOf(ctx){return q(ctx&&ctx.now)||new Date().toISOString();}
-  function dayKey(value){return core().dayKey(value);}
+  function dayKey(value){
+    // Never use Date.parse for German DD.MM.YYYY: browsers can treat 03.11 as March 11.
+    const valueText=q(value),match=valueText.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})(?=$|[ T])/);
+    if(match){
+      const d=Number(match[1]),m=Number(match[2]),y=Number(match[3]);
+      const check=new Date(Date.UTC(y,m-1,d));
+      if(check.getUTCFullYear()!==y||check.getUTCMonth()!==m-1||check.getUTCDate()!==d)return'';
+      return String(y).padStart(4,'0')+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    }
+    return core().dayKey(value);
+  }
   function addDays(date,days){const d=new Date(q(date)+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+Number(days||0));return d.toISOString().slice(0,10);}
   function mondayOf(value){
     const key=dayKey(value)||dayKey(new Date()),d=new Date(key+'T12:00:00Z'),day=d.getUTCDay()||7;
