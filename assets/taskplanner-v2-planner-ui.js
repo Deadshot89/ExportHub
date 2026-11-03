@@ -108,7 +108,8 @@
     const other=warnings.filter(w=>!['pickup_notification','fixed_pickup_conflict','abd_same_day'].includes(w.type));
     const entries=[...pickup,...sameDay,...other];
     const lines=entries.map(w=>'<li data-rule-type="'+esc(w.type)+'"><strong>'+esc(w.groupId||w.shipmentRef||'')+'</strong> '+esc(w.message)
-      +(w.bookedDate?'<span>'+esc(translated('taskV2.ops.pickupDate',null,'Pickup:'))+' '+esc(w.bookedDate)+(w.earliestDate?' · '+esc(translated('taskV2.ops.earliest',null,'earliest'))+' '+esc(w.earliestDate):'')+'</span>':'')+'</li>').join('');
+      +(w.bookedDate?'<span>'+esc(translated('taskV2.ops.pickupDate',null,'Pickup:'))+' '+esc(w.bookedDate)+(w.earliestDate?' · '+esc(translated('taskV2.ops.earliest',null,'earliest'))+' '+esc(w.earliestDate):'')+'</span>':'')
+      +(w.recommendedDate?'<span>'+esc(translated('taskV2.ops.recommended',null,'Suggested:'))+' '+esc(w.recommendedDate)+'</span>':'')+'</li>').join('');
     const noPickupData=!inspection.hasPickupData||!inspection.hasFixedPickupData||inspection.unlinkedTasks>0||inspection.groupsInspected>inspection.matchedPickupGroups;
     return '<section class="tpv2-operational-warnings" data-tpv2-operational-warnings><header><strong>'+esc(translated('taskV2.ops.title',null,'Dependencies and pickup calendar'))+'</strong><span>'
       +(entries.length?esc(translated('taskV2.ops.warningCount',{count:entries.length},'{count} notices')):esc(translated('taskV2.ops.noConflicts',null,'No detected scheduling conflicts')))+'</span></header>'
@@ -131,7 +132,7 @@
       <div class="tpv2-task-card-head"><span class="tpv2-priority">${esc(task.priority||'P2')}</span>${overdue?`<span class="tpv2-badge tpv2-overdue">${esc(overdueText)}</span>`:''}${orange?'<span class="tpv2-badge tpv2-abd-warning">'+esc(translated('taskV2.ops.abdReview',null,'Check customs'))+'</span>':''}</div>
       <h3>${esc(task.title||translated('taskV2.task',null,'Task'))}</h3>
       <p class="tpv2-task-customer">${esc(task.customerName||'')}</p>
-      ${orange?'<p class="tpv2-abd-alert" role="alert">'+esc(warning.message)+'</p><button type="button" class="tpv2-button tpv2-button-secondary tpv2-approve-abd" data-tpv2-abd-approve="'+esc(task.id)+'">'+esc(translated('taskV2.ops.approve',null,'Approve exception'))+'</button>':''}
+      ${orange?'<p class="tpv2-abd-alert" role="alert">'+esc(warning.message)+(warning.recommendedDate?' '+esc(translated('taskV2.ops.recommended',null,'Suggested:'))+' '+esc(warning.recommendedDate):'')+'</p><button type="button" class="tpv2-button tpv2-button-secondary tpv2-approve-abd" data-tpv2-abd-approve="'+esc(task.id)+'">'+esc(translated('taskV2.ops.approve',null,'Approve exception'))+'</button>':''}
       ${warning&&!orange?'<p class="tpv2-abd-alert" role="alert">'+esc(warning.message)+'</p>':''}
       <div class="tpv2-task-meta"><span>${esc(task.status||'open')}</span><span>${esc(q(task.dueAt).slice(0,16).replace('T',' · '))}</span></div>
     </article>`;
