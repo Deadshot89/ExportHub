@@ -76,7 +76,7 @@ jobs:
             verdict="$(node -e "
               const fs=require('fs');let v={};try{v=JSON.parse(fs.readFileSync(process.argv[1],'utf8')||'{}')}catch(_){}
               const status=Number(process.argv[2]||0);
-              // RC1772: individual shipment references are private and must not
+              // RC1773: individual shipment references are private and must not
               // be copied into Actions logs from Graph/REF error arrays.
               const errorCodes={};
               for(const item of Array.isArray(v.errors)?v.errors:[]){
