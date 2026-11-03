@@ -789,6 +789,8 @@ async function reconcilePendingBackups(environment, options) {
   const limit = Math.min(25, Math.max(1, Math.round(Number(options.limit) || 10)));
   const minAgeMs = Math.max(0, Number(options.minAgeMs) || 0);
   const reference = text(options.reference).toUpperCase();
+  // No suppression for reference-specific POD proof.
+  const suppressDriveBackfill = options.suppressDriveBackfill === true && !reference;
   const clients = await store.clients(environment);
   const prefix = 'rc995/' + environment + '/records/';
   const continuationToken = text(options.continuationToken);
@@ -930,7 +932,7 @@ async function reconcilePendingBackups(environment, options) {
   const relinkBudget = reference ? limit : Math.min(1, remainingRemoteBudget);
   const selectedRelinks = teamRelinkCandidates.slice(relinkSkipCount, relinkSkipCount + relinkBudget);
   remainingRemoteBudget = Math.max(0, remainingRemoteBudget - selectedRelinks.length);
-  const driveBackfillBudget = reference ? Math.min(limit, remainingRemoteBudget) : Math.min(1, remainingRemoteBudget);
+  const driveBackfillBudget = suppressDriveBackfill ? 0 : (reference ? Math.min(limit, remainingRemoteBudget) : Math.min(1, remainingRemoteBudget));
   const selectedDriveCandidates = driveBackfillCandidates.slice(0, driveBackfillBudget);
   const selectedCandidates = selectedRequiredCandidates.concat(selectedDriveCandidates);
   const requiredEligible = requiredCandidates.length;
@@ -1088,6 +1090,7 @@ async function reconcilePendingBackups(environment, options) {
     driveBackfillEligible,
     driveBackfillSelected,
     driveBackfillSkippedRecent,
+    driveBackfillSuppressed: suppressDriveBackfill,
     teamRelinkEligible: teamRelinkCandidates.length,
     teamRelinkedCount,
     teamRelinkSkippedCount,
