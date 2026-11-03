@@ -354,7 +354,10 @@
         doneAt:next==='done'?now:'',doneBy:next==='done'?user:'',updatedAt:now
       };
       const clean=root.ExportHUBClean;
-      if(typeof ctx.persist==='function')await Promise.resolve(ctx.persist(items));
+      if(typeof ctx.persist==='function'){
+        const persisted=await Promise.resolve(ctx.persist(items));
+        if(persisted===false)throw new Error('TASK_STATUS_SAVE_NOT_CONFIRMED');
+      }
       if(clean&&typeof clean.queueSave==='function'){
         const queued=await Promise.resolve(clean.queueSave('Aufgabenstatus geändert'));
         if(queued===false)throw new Error('QUEUE_SAVE_REJECTED');
