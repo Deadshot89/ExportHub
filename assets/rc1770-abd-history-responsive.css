@@ -1,0 +1,19 @@
+/* RC1770 – Responsive ABD history: keep long text and status visible within each card.
+   Scoped to ABD, with no global overflow masking or clipped document text. */
+#rc626Abd .rc626-grid2 > section {
+  min-width: 0;
+}
+#rc626Abd .rc626-item-head {
+  min-width: 0;
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+#rc626Abd .rc626-item-head > div {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+#rc626Abd .rc626-item-head > .pill {
+  flex: 0 0 auto;
+  max-width: 100%;
+}

@@ -1715,6 +1715,16 @@ function patchHtml(file){
   // RC1768: The deploy builder starts from RC1048 HTML. Without this patch
   // it silently restores RC886's cookie override despite correct root HTML.
   html=patchRc1768PackDocumentCredentials(html,file);
+  // RC1770: ship one scoped ABD history stylesheet in all three environments.
+  // Preserve the strict overflow browser assertion; never hide overflow globally.
+  const abdCss='assets/rc1770-abd-history-responsive.css';
+  if(!fs.existsSync(path.join(ROOT,abdCss)))throw new Error(file+': RC1770 ABD style missing');
+  if(!html.includes('data-rc1770-abd-history-css')){
+    const endHead=/<\/head>/i.exec(html);
+    if(!endHead)throw new Error(file+': RC1770 head missing');
+    const tag='<link rel="stylesheet" href="/'+abdCss+'?v=1770" data-rc1770-abd-history-css>';
+    html=html.slice(0,endHead.index)+tag+'\n'+html.slice(endHead.index);
+  }
   fs.writeFileSync(target,html);
 }
 
