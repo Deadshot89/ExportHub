@@ -232,7 +232,10 @@ function applyTaskLedger(tasks, ledger) {
       task.completedAt, task.doneAt
     ].reduce((latest, value) => Math.max(latest, Date.parse(value || '') || 0), 0);
     const legacyStatusAt = Date.parse(task.updatedAt || task._syncUpdatedAt || '') || 0;
-    if (Math.max(explicitStatusAt, legacyStatusAt) > ledgerAt) return task;
+    // When a task was explicitly updated at exactly the same millisecond as
+    // its compatibility ledger, keep the task's richer status (in_progress).
+    // Older legacy tasks still accept a newer ledger entry.
+    if ((explicitStatusAt > 0 && explicitStatusAt >= ledgerAt) || legacyStatusAt > ledgerAt) return task;
     const done = record.status === 'erledigt' || record.done === true;
     const next = Object.assign({}, task, {
       status: done ? 'erledigt' : 'offen',
