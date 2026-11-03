@@ -235,7 +235,10 @@ function applyTaskLedger(tasks, ledger) {
     // When a task was explicitly updated at exactly the same millisecond as
     // its compatibility ledger, keep the task's richer status (in_progress).
     // Older legacy tasks still accept a newer ledger entry.
-    if ((explicitStatusAt > 0 && explicitStatusAt >= ledgerAt) || legacyStatusAt > ledgerAt) return task;
+    // When an explicit status timestamp exists, unrelated later edits of
+    // title/note must not defeat a newer status-ledger decision.
+    // Fall back to overall updatedAt only for genuinely legacy tasks.
+    if (explicitStatusAt > 0 ? explicitStatusAt >= ledgerAt : legacyStatusAt > ledgerAt) return task;
     const done = record.status === 'erledigt' || record.done === true;
     const next = Object.assign({}, task, {
       status: done ? 'erledigt' : 'offen',
