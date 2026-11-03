@@ -30,7 +30,7 @@ test('RC1772: AV-triggered POD jobs can never enter mutating reconciliation',()=
   for(const section of sections){
     assert.match(section,/github\.event\.workflow_run\.name != 'ExportHUB AV-Prüfung' \|\| github\.event\.workflow_run\.conclusion == 'failure'/);
     assert.equal(occurrences(section,avEvent),1,'AV failed -> diagnostic only');
-    assert.equal(occurrences(section,avSkip),1,'AV event -> never run reconciliation');
+    assert.equal(occurrences(section,avSkip),2,'both job guard and reconciliation step must block AV-only events');
     assert.match(section,/graphTargetDiagnostic[\\"]*:[\\"]*true/);
   }
   assert.match(pod,/pod_integrity_audit:\s*\n[\s\S]*?if: \$\{\{ false \}\}/);
