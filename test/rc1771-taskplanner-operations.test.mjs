@@ -333,7 +333,7 @@ test('RC1772: Speditionsmitteilung als nicht versendeten PDF-Druckentwurf anzeig
   root.ExportHUBTaskUIV2.renderPlannerPage(target,{state,weekStart:'2026-11-02',now:'2026-11-03T09:00:00+01:00'});
   assert.match(target.innerHTML,/data-tpv2-print-carrier/);
   assert.match(target.innerHTML,/data-tpv2-carrier-notice/);
-  assert.match(target.innerHTML,/DRAFT.*not sent to carrier/);
+  assert.match(target.innerHTML,/DRAFT.*Not sent to the carrier/);
   assert.match(target.innerHTML,/03\.11\.2026/);
   assert.match(target.innerHTML,/04\.11\.2026/);
   assert.equal(JSON.stringify(state),prior,'Druckentwurf darf keine Buchungen oder Aufgaben ändern');
