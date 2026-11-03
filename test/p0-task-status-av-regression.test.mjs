@@ -211,6 +211,8 @@ test('P0: failed task save restores pre-existing status ledger exactly',async()=
   await assert.rejects(win.ExportHUBRC1014TaskRuntime.setTaskStatus(state.tasks[0],'done',
     {state,currentUserId:'test-user'}),/TASK_STATUS_SAVE_NOT_CONFIRMED/);
   assert.equal(state.tasks[0].status,'open');
-  assert.deepEqual(state.taskStatusLedger['id:managed:spanien:2026-10-26'],previous);
+  // The runtime runs in vm.runInNewContext; spread into the test realm
+  // before deepStrictEqual so equivalent values do not fail on VM prototypes.
+  assert.deepEqual({...state.taskStatusLedger['id:managed:spanien:2026-10-26']},previous);
   assert.equal(state.taskStatusLedger['id:other'].done,true);
 });
