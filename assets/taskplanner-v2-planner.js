@@ -205,6 +205,7 @@
       task&&task.planningGroupId,task&&task.linkedShipmentId,
       task&&task.shipmentId,task&&task.linkedShipmentRef,
       task&&task.shipmentRef,task&&task.sourceRef,
+      task&&task.sourceId!==task&&task.id?task&&task.sourceId:'',
       task&&task.reference
     ];
     for(const value of candidates){
@@ -261,6 +262,14 @@
         warnings.push({type:'ambiguous_link',groupId:group.key,taskIds:related.map(t=>q(t.id)),message:'Mehrere Vorgänge zur selben Sendung: Zuordnung prüfen.'});
         continue;
       }
+      if(pick&&shipment&&!abd&&[
+        shipment.requiresAbd,shipment.abdRequired,shipment.customsRequired,
+        shipment.customsDeclarationRequired
+      ].some(value=>value===true)){
+        const warning={type:'abd_missing',groupId:group.key,taskId:q(pick.id),
+          message:'Für diese Sendung ist ein ABD erforderlich, aber kein ABD-Termin verknüpft.'};
+        warnings.push(warning);byTaskId[q(pick.id)]=warning;
+      }
       if(pick&&abd){
         const signature=operationalSignature(group.key,pick,abd);
         const acknowledgment=abd.planningSameDayAbdApproval;
@@ -301,6 +310,20 @@
           const fixed=fixedPickups.filter(f=>f&&f.active!==false
             &&q(f.customerNumber).replace(/\s+/g,'').replace(/^0+(?=\d)/,'').toUpperCase()===customer);
           const last=[pickDay,abdDay,registrationDay].filter(Boolean).sort().at(-1)||'';
+          if(last&&fixed.length&&!booked){
+            const earliest=[pickDay,abdDay,registrationDay].filter(Boolean).sort()[0];
+            const earliestWeekday=(new Date(earliest+'T12:00:00Z').getUTCDay()||7);
+            for(const item of fixed){
+              const fixedWeekday=Number(item.weekday);
+              if(!Number.isInteger(fixedWeekday)||fixedWeekday<1||fixedWeekday>5)continue;
+              const daysTo=(fixedWeekday-earliestWeekday+7)%7;
+              const fixedDate=addDays(earliest,daysTo);
+              if(last>=fixedDate){
+                warnings.push({type:'fixed_pickup_conflict',groupId:group.key,shipmentRef:group.key,bookedDate:fixedDate,
+                  message:'Fester Abholtag kann nach dieser Planung nicht eingehalten werden. Spedition informieren.'});
+              }
+            }
+          }
           if(last&&fixed.length&&booked){
             const bookedWeekday=(new Date(booked+'T12:00:00Z').getUTCDay()||7);
             if(fixed.some(f=>Number(f.weekday)===bookedWeekday)&&last>=booked){
