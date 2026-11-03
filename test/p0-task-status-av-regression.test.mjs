@@ -37,6 +37,27 @@ test('P0: newer status-ledger entry still takes precedence over older task',()=>
   assert.equal(state.tasks[0].done,true);
 });
 
+test('P0: in-progress remains in-progress after same-timestamp Azure ledger merge',()=>{
+  const active={id:'task-2',title:'Pick-Aufgabe',status:'in_progress',done:false,
+    statusUpdatedAt:newAt,updatedAt:newAt,_syncUpdatedAt:newAt};
+  const state=merge.mergeState({
+    tasks:[active],
+    taskStatusLedger:{'id:task-2':{status:'offen',done:false,updatedAt:newAt}}
+  },{tasks:[active]});
+  assert.equal(state.tasks[0].status,'in_progress');
+  assert.equal(state.tasks[0].done,false);
+});
+
+test('P0: strictly newer legacy ledger still overrides an older in-progress task',()=>{
+  const active={id:'task-3',title:'Pick-Aufgabe',status:'in_progress',done:false,
+    statusUpdatedAt:oldAt,updatedAt:oldAt};
+  const state=merge.mergeState({
+    tasks:[active],
+    taskStatusLedger:{'id:task-3':{status:'erledigt',done:true,doneAt:newAt,updatedAt:newAt}}
+  },{tasks:[active]});
+  assert.equal(state.tasks[0].done,true);
+});
+
 test('P0: stale ABD flags on Dutch EU shipment never create missing-AV upload task',()=>{
   const sh={id:'S-NL',ref:'ZVYH89',customerName:'Gebr. Kraan Rondkart. BV',
     destinationCountry:'NL',abdRequired:false,abdPresent:true,abdStatus:'Erledigt',
