@@ -1637,6 +1637,7 @@
   "taskV2.ops.approve": "Approve exception",
   "taskV2.ops.print": "Print weekly plan / PDF",
   "taskV2.ops.pickupDate": "Pickup:",
+  "taskV2.ops.recommended": "Suggested:",
   "taskV2.ops.earliest": "earliest",
   "taskV2.ops.ambiguous": "Multiple operations for the same shipment: verify assignment.",
   "taskV2.ops.abdMissing": "A customs document is required but no customs task is linked.",
