@@ -90,7 +90,7 @@ test('P0 AV: die automatische AV-Prüfung darf einen fehlenden Graph-User nicht 
 test('P0 AV: tatsächlich fehlender Legacy-REF-Ordner bleibt ohne falschen User-Fehler leer',async()=>{
  const before=names.map(n=>process.env[n]),originalFetch=globalThis.fetch;
  try{
-  Object.assign(process.env,{EXPORTHUB_GRAPH_TENANT_ID:'test',EXPORTHUB_GRAPH_CLIENT_ID:'test',EXPORTHUB_GRAPH_CLIENT_SECRET:'test'});
+  Object.assign(process.env,{EXPORTHUB_GRAPH_TENANT_ID:'test',EXPORTHUB_GRAPH_CLIENT_ID:'test',EXPORTHUB_GRAPH_CLIENT_SECRET:'test',EXPORTHUB_REFERENCE_DRIVE_USER:'synthetic-ref@example.invalid'});
   delete process.env.EXPORTHUB_REFERENCE_DRIVE_ID;
   delete process.env.EXPORTHUB_REFERENCE_FOLDER_ID;
   delete require.cache[modulePath];
