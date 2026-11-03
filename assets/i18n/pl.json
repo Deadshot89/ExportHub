@@ -1637,6 +1637,7 @@
   "taskV2.ops.approve": "Potwierdź wyjątek",
   "taskV2.ops.print": "Drukuj plan tygodnia / PDF",
   "taskV2.ops.pickupDate": "Odbiór:",
+  "taskV2.ops.recommended": "Zalecane:",
   "taskV2.ops.earliest": "najwcześniej",
   "taskV2.ops.ambiguous": "Kilka operacji dla tej samej przesyłki: sprawdź powiązanie.",
   "taskV2.ops.abdMissing": "Wymagany dokument celny, ale nie przypisano zadania ABD.",
