@@ -116,6 +116,9 @@ module.exports = async function(context, req) {
       reference,
       limit,
       continuationToken: text(payload.continuationToken),
+      // OIDC-only: pause optional Graph uploads after repeated target failures;
+      // always continue required Azure POD archival.
+      suppressDriveBackfill: drainAll && payload.suppressDriveBackfill === true,
       // Per-scan temporary cursor only, never persisted to POD or team state.
       relinkSkipCount: environment === 'testservice' && drainAll
         ? Math.min(100, Math.max(0, Math.floor(Number(payload.relinkSkipCount) || 0)))

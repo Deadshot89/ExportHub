@@ -118,6 +118,8 @@ jobs:
           continuation_token=''
           relink_skip_count=0
           optional_drive_pending_batches=0
+          graph_target_failure_streak=0
+          suppress_drive_backfill=0
           blocked_ambiguous_relink_batches=0
           for batch in $(seq 1 200); do
             # RC1711: Long POD scans outlive short-lived GitHub OIDC credentials.
@@ -133,7 +135,7 @@ jobs:
             fi
             previous_continuation_token="$continuation_token"
             previous_relink_skip_count="$relink_skip_count"
-            payload="$(CONTINUATION_TOKEN="$continuation_token" RELINK_SKIP_COUNT="$relink_skip_count" node -e "const reference=String(process.env.TARGET_REFERENCE||'').trim().toUpperCase();process.stdout.write(JSON.stringify({environment:process.env.TARGET_ENV,limit:25,scanPageSize:10,reference,drainAll:!reference,continuationToken:String(process.env.CONTINUATION_TOKEN||''),relinkSkipCount:Math.max(0,Math.min(10,Math.floor(Number(process.env.RELINK_SKIP_COUNT)||0)))}))")"
+            payload="$(CONTINUATION_TOKEN="$continuation_token" SUPPRESS_DRIVE_BACKFILL="$suppress_drive_backfill" RELINK_SKIP_COUNT="$relink_skip_count" node -e "const reference=String(process.env.TARGET_REFERENCE||'').trim().toUpperCase();process.stdout.write(JSON.stringify({environment:process.env.TARGET_ENV,limit:25,scanPageSize:10,reference,drainAll:!reference,suppressDriveBackfill:!reference&&process.env.SUPPRESS_DRIVE_BACKFILL==='1',continuationToken:String(process.env.CONTINUATION_TOKEN||''),relinkSkipCount:Math.max(0,Math.min(10,Math.floor(Number(process.env.RELINK_SKIP_COUNT)||0)))}))")"
             response_file="$(mktemp)"
             http_code="$(
               curl -sS -L -o "$response_file" -w '%{http_code}' \
@@ -153,7 +155,7 @@ jobs:
                 const drivePendingCodes=Array.from(new Set((Array.isArray(v.drivePending)?v.drivePending:[]).map(x=>String(x&&x.error||'').split(':',1)[0].trim()).filter(Boolean))).slice(0,10);
                 const driveProviderCodes=Array.from(new Set((Array.isArray(v.drivePending)?v.drivePending:[]).map(x=>String(x&&x.providerCode||'').replace(/[^A-Za-z0-9_.-]/g,'').slice(0,80)).filter(Boolean))).slice(0,10);
                 const errorCodes=Array.from(new Set((Array.isArray(v.errors)?v.errors:[]).map(x=>String(x&&x.code||'').trim()).filter(Boolean))).slice(0,10);
-                const safe={batch:Number(process.argv[2]||0),httpStatus:status,code:v.code,message:v.message,environment:v.environment,reference:v.reference,backupMode:v.backupMode,drainAll:v.drainAll,graphConfigured:v.graphConfigured,missing:Array.isArray(v.missing)?v.missing:[],targetFolder:v.targetFolder,scanned:v.scanned,scanPageSize:v.scanPageSize,scanComplete:v.scanComplete,eligible:v.eligible,selected:v.selected,skippedRecent:v.skippedRecent,driveBackfillEligible:v.driveBackfillEligible,driveBackfillSelected:v.driveBackfillSelected,driveBackfillSkippedRecent:v.driveBackfillSkippedRecent,teamRelinkBlockedCount:v.teamRelinkBlockedCount,teamRelinkBlockedCodes:v.teamRelinkBlockedCodes,needsManualReview:v.needsManualReview,savedCount:v.savedCount,alreadySavedCount:v.alreadySavedCount,pendingCount:v.pendingCount,driveSavedCount:v.driveSavedCount,drivePendingCount:v.drivePendingCount,errorCount:v.errorCount,verifiedCount:v.verifiedCount,repairedStateCount:v.repairedStateCount,integrityChecks:v.integrityChecks,remoteWorkBudget:v.remoteWorkBudget,pageWorkDeferred:v.pageWorkDeferred,requiredWorkDeferred:v.requiredWorkDeferred,optionalDriveWorkDeferred:v.optionalDriveWorkDeferred,pendingCodes,drivePendingCodes,driveProviderCodes,errorCodes,target:v.target&&{reference:v.target.reference,status:v.target.status,matchedCount:v.target.matchedCount,podReadyCount:v.target.podReadyCount,alreadySavedCount:v.target.alreadySavedCount,savedNowCount:v.target.savedNowCount,pendingCount:v.target.pendingCount,errorCount:v.target.errorCount}};
+                const safe={batch:Number(process.argv[2]||0),httpStatus:status,code:v.code,message:v.message,environment:v.environment,reference:v.reference,backupMode:v.backupMode,drainAll:v.drainAll,graphConfigured:v.graphConfigured,missing:Array.isArray(v.missing)?v.missing:[],targetFolder:v.targetFolder,scanned:v.scanned,scanPageSize:v.scanPageSize,scanComplete:v.scanComplete,eligible:v.eligible,selected:v.selected,skippedRecent:v.skippedRecent,driveBackfillEligible:v.driveBackfillEligible,driveBackfillSelected:v.driveBackfillSelected,driveBackfillSkippedRecent:v.driveBackfillSkippedRecent,teamRelinkBlockedCount:v.teamRelinkBlockedCount,teamRelinkBlockedCodes:v.teamRelinkBlockedCodes,needsManualReview:v.needsManualReview,savedCount:v.savedCount,alreadySavedCount:v.alreadySavedCount,pendingCount:v.pendingCount,driveSavedCount:v.driveSavedCount,drivePendingCount:v.drivePendingCount,errorCount:v.errorCount,verifiedCount:v.verifiedCount,repairedStateCount:v.repairedStateCount,integrityChecks:v.integrityChecks,remoteWorkBudget:v.remoteWorkBudget,pageWorkDeferred:v.pageWorkDeferred,requiredWorkDeferred:v.requiredWorkDeferred,optionalDriveWorkDeferred:v.optionalDriveWorkDeferred,driveBackfillSuppressed:v.driveBackfillSuppressed,pendingCodes,drivePendingCodes,driveProviderCodes,errorCodes,target:v.target&&{reference:v.target.reference,status:v.target.status,matchedCount:v.target.matchedCount,podReadyCount:v.target.podReadyCount,alreadySavedCount:v.target.alreadySavedCount,savedNowCount:v.target.savedNowCount,pendingCount:v.target.pendingCount,errorCount:v.target.errorCount}};
                 console.error('TESTSERVICE POD reconcile',JSON.stringify(safe));
                 if(status<200||status>=300||!v.ok||Number(v.errorCount||0)>0||Number(v.pendingCount||0)>0)process.exit(3);
                 if(v.reference){if(!v.target||!['already-saved','saved-now'].includes(v.target.status))process.exit(5);process.stdout.write('done');return}
@@ -178,6 +180,18 @@ jobs:
               blocked_ambiguous_relink_batches=$((blocked_ambiguous_relink_batches + 1))
             fi
 
+            # Pause ONLY optional Graph retries after two missing target reports.
+            # Required Azure archival continues; next scheduled run retries Graph.
+            graph_target_failure="$(printf '%s\n' "$result" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{let v={};try{v=JSON.parse(s||'{}')}catch(_){};const codes=(Array.isArray(v.drivePending)?v.drivePending:[]).map(x=>String(x&&x.error||'').split(':',1)[0].trim());process.stdout.write(codes.includes('GRAPH_DIRECT_PATH_TARGET_FAILED')?'1':'0')})")"
+            if [ "$graph_target_failure" = '1' ]; then
+              graph_target_failure_streak=$((graph_target_failure_streak + 1))
+            elif [ "$suppress_drive_backfill" != '1' ]; then
+              graph_target_failure_streak=0
+            fi
+            if [ "$graph_target_failure_streak" -ge 2 ] && [ "$suppress_drive_backfill" != '1' ] && [ -z "$TARGET_REFERENCE" ]; then
+              suppress_drive_backfill=1
+              echo '::warning title=POD Graph-Ziel nicht erreichbar::Optionaler Graph-Backfill für diesen Scan pausiert. Azure-POD-Archiv wird weiter geprüft; SharePoint bleibt ausstehend und der Workflow schlägt weiterhin fehl.'
+            fi
             if [ "$verdict" = "done" ]; then
               if [ "$optional_drive_pending_batches" -gt 0 ]; then
                 echo "::error title=POD Microsoft-365 archive incomplete::SharePoint copies remain pending in $optional_drive_pending_batches scanned batches; Azure archive drain succeeded, but the required independent copy is incomplete. See issue #999."
@@ -289,6 +303,8 @@ jobs:
 
           continuation_token=''
           optional_drive_pending_batches=0
+          graph_target_failure_streak=0
+          suppress_drive_backfill=0
           for batch in $(seq 1 200); do
             # RC1711: Long POD scans outlive short-lived GitHub OIDC credentials.
             # Renew periodically using GitHub's signed token endpoint; never log the JWT
@@ -302,7 +318,7 @@ jobs:
               )"
             fi
             previous_continuation_token="$continuation_token"
-            payload="$(CONTINUATION_TOKEN="$continuation_token" node -e "const reference=String(process.env.TARGET_REFERENCE||'').trim().toUpperCase();process.stdout.write(JSON.stringify({environment:process.env.TARGET_ENV,limit:25,scanPageSize:10,reference,drainAll:!reference,continuationToken:String(process.env.CONTINUATION_TOKEN||'')}))")"
+            payload="$(CONTINUATION_TOKEN="$continuation_token" SUPPRESS_DRIVE_BACKFILL="$suppress_drive_backfill" node -e "const reference=String(process.env.TARGET_REFERENCE||'').trim().toUpperCase();process.stdout.write(JSON.stringify({environment:process.env.TARGET_ENV,limit:25,scanPageSize:10,reference,drainAll:!reference,suppressDriveBackfill:!reference&&process.env.SUPPRESS_DRIVE_BACKFILL==='1',continuationToken:String(process.env.CONTINUATION_TOKEN||'')}))")"
             response_file="$(mktemp)"
             http_code="$(
               curl -sS -L -o "$response_file" -w '%{http_code}' \
@@ -322,7 +338,7 @@ jobs:
                 const drivePendingCodes=Array.from(new Set((Array.isArray(v.drivePending)?v.drivePending:[]).map(x=>String(x&&x.error||'').split(':',1)[0].trim()).filter(Boolean))).slice(0,10);
                 const driveProviderCodes=Array.from(new Set((Array.isArray(v.drivePending)?v.drivePending:[]).map(x=>String(x&&x.providerCode||'').replace(/[^A-Za-z0-9_.-]/g,'').slice(0,80)).filter(Boolean))).slice(0,10);
                 const errorCodes=Array.from(new Set((Array.isArray(v.errors)?v.errors:[]).map(x=>String(x&&x.code||'').trim()).filter(Boolean))).slice(0,10);
-                const safe={batch:Number(process.argv[2]||0),httpStatus:status,code:v.code,message:v.message,environment:v.environment,reference:v.reference,backupMode:v.backupMode,drainAll:v.drainAll,graphConfigured:v.graphConfigured,missing:Array.isArray(v.missing)?v.missing:[],targetFolder:v.targetFolder,scanned:v.scanned,scanPageSize:v.scanPageSize,scanComplete:v.scanComplete,eligible:v.eligible,selected:v.selected,skippedRecent:v.skippedRecent,driveBackfillEligible:v.driveBackfillEligible,driveBackfillSelected:v.driveBackfillSelected,driveBackfillSkippedRecent:v.driveBackfillSkippedRecent,savedCount:v.savedCount,alreadySavedCount:v.alreadySavedCount,pendingCount:v.pendingCount,driveSavedCount:v.driveSavedCount,drivePendingCount:v.drivePendingCount,errorCount:v.errorCount,verifiedCount:v.verifiedCount,repairedStateCount:v.repairedStateCount,integrityChecks:v.integrityChecks,remoteWorkBudget:v.remoteWorkBudget,pageWorkDeferred:v.pageWorkDeferred,requiredWorkDeferred:v.requiredWorkDeferred,optionalDriveWorkDeferred:v.optionalDriveWorkDeferred,pendingCodes,drivePendingCodes,driveProviderCodes,errorCodes,target:v.target&&{reference:v.target.reference,status:v.target.status,matchedCount:v.target.matchedCount,podReadyCount:v.target.podReadyCount,alreadySavedCount:v.target.alreadySavedCount,savedNowCount:v.target.savedNowCount,pendingCount:v.target.pendingCount,errorCount:v.target.errorCount}};
+                const safe={batch:Number(process.argv[2]||0),httpStatus:status,code:v.code,message:v.message,environment:v.environment,reference:v.reference,backupMode:v.backupMode,drainAll:v.drainAll,graphConfigured:v.graphConfigured,missing:Array.isArray(v.missing)?v.missing:[],targetFolder:v.targetFolder,scanned:v.scanned,scanPageSize:v.scanPageSize,scanComplete:v.scanComplete,eligible:v.eligible,selected:v.selected,skippedRecent:v.skippedRecent,driveBackfillEligible:v.driveBackfillEligible,driveBackfillSelected:v.driveBackfillSelected,driveBackfillSkippedRecent:v.driveBackfillSkippedRecent,savedCount:v.savedCount,alreadySavedCount:v.alreadySavedCount,pendingCount:v.pendingCount,driveSavedCount:v.driveSavedCount,drivePendingCount:v.drivePendingCount,errorCount:v.errorCount,verifiedCount:v.verifiedCount,repairedStateCount:v.repairedStateCount,integrityChecks:v.integrityChecks,remoteWorkBudget:v.remoteWorkBudget,pageWorkDeferred:v.pageWorkDeferred,requiredWorkDeferred:v.requiredWorkDeferred,optionalDriveWorkDeferred:v.optionalDriveWorkDeferred,driveBackfillSuppressed:v.driveBackfillSuppressed,pendingCodes,drivePendingCodes,driveProviderCodes,errorCodes,target:v.target&&{reference:v.target.reference,status:v.target.status,matchedCount:v.target.matchedCount,podReadyCount:v.target.podReadyCount,alreadySavedCount:v.target.alreadySavedCount,savedNowCount:v.target.savedNowCount,pendingCount:v.target.pendingCount,errorCount:v.target.errorCount}};
                 console.error('PRODUCTION POD reconcile',JSON.stringify(safe));
                 if(status<200||status>=300||!v.ok||Number(v.errorCount||0)>0||Number(v.pendingCount||0)>0)process.exit(4);
                 if(v.reference){if(!v.target||!['already-saved','saved-now'].includes(v.target.status))process.exit(6);process.stdout.write('done');return}
@@ -339,6 +355,18 @@ jobs:
               optional_drive_pending_batches=$((optional_drive_pending_batches + 1))
             fi
 
+            # Pause ONLY optional Graph retries after two missing target reports.
+            # Required Azure archival continues; next scheduled run retries Graph.
+            graph_target_failure="$(printf '%s\n' "$result" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{let v={};try{v=JSON.parse(s||'{}')}catch(_){};const codes=(Array.isArray(v.drivePending)?v.drivePending:[]).map(x=>String(x&&x.error||'').split(':',1)[0].trim());process.stdout.write(codes.includes('GRAPH_DIRECT_PATH_TARGET_FAILED')?'1':'0')})")"
+            if [ "$graph_target_failure" = '1' ]; then
+              graph_target_failure_streak=$((graph_target_failure_streak + 1))
+            elif [ "$suppress_drive_backfill" != '1' ]; then
+              graph_target_failure_streak=0
+            fi
+            if [ "$graph_target_failure_streak" -ge 2 ] && [ "$suppress_drive_backfill" != '1' ] && [ -z "$TARGET_REFERENCE" ]; then
+              suppress_drive_backfill=1
+              echo '::warning title=POD Graph-Ziel nicht erreichbar::Optionaler Graph-Backfill für diesen Scan pausiert. Azure-POD-Archiv wird weiter geprüft; SharePoint bleibt ausstehend und der Workflow schlägt weiterhin fehl.'
+            fi
             if [ "$verdict" = "done" ]; then
               if [ "$optional_drive_pending_batches" -gt 0 ]; then
                 echo "::error title=POD Microsoft-365 archive incomplete::SharePoint copies remain pending in $optional_drive_pending_batches scanned batches; Azure archive drain succeeded, but the required independent copy is incomplete. See issue #999."

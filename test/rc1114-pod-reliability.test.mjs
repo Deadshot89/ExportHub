@@ -107,7 +107,9 @@ test('RC1410: offene POD-Backups werden fair ausgewählt und teilen ein hartes R
   assert.match(archive,/const requiredBackupBudget = reference \? limit : remainingRemoteBudget/);
   assert.match(archive,/const selectedRequiredCandidates = requiredCandidates\.slice\(0, requiredBackupBudget\)/);
   assert.match(archive,/const driveBackfillCandidates = candidates\.filter\(candidate => candidate\.driveOnly\)/);
-  assert.match(archive,/const driveBackfillBudget = reference \? Math\.min\(limit, remainingRemoteBudget\) : Math\.min\(1, remainingRemoteBudget\)/);
+  // Required Azure candidates keep priority; only optional Graph work may be paused.
+  assert.match(archive,/const suppressDriveBackfill = options\.suppressDriveBackfill === true && !reference/);
+  assert.match(archive,/const driveBackfillBudget = suppressDriveBackfill \? 0 : \(reference \? Math\.min\(limit, remainingRemoteBudget\) : Math\.min\(1, remainingRemoteBudget\)\)/);
   assert.match(archive,/const selectedCandidates = selectedRequiredCandidates\.concat\(selectedDriveCandidates\)/);
   assert.doesNotMatch(archive,/if \(candidates\.length >= limit\) break/);
 });
