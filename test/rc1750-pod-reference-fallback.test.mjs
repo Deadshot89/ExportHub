@@ -144,3 +144,39 @@ test('RC1750: Kopie im Ausweichordner wird nur nach Rücklesen mit gleichem SHA-
   assert.match(archive,/graphDrive\.uploadPdf\(pdf,[^\n]*\{ environment \}\)/);
   assert.match(archive,/graphDrive\.verifyPdf\(pdf, result\)/);
 });
+
+test('RC1771: fehlender REF-Benutzer darf nicht als fehlender POD-Geschwisterordner ausgegeben werden',async()=>{
+  setEnv({EXPORTHUB_REFERENCE_DRIVE_USER:'missing-ref-user@essentra.com'});
+  const graph=fresh();
+  await withFakeHttps(call=>brokenPodDrive(call)||notFound,async calls=>{
+    const result=await graph.diagnoseTarget({environment:'production'});
+    assert.equal(result.ok,false);
+    assert.equal(result.code,'GRAPH_DIAGNOSTIC_RESOLVER_FAILED');
+    assert.ok(result.checks.some(check=>check.stage==='reference-library-abliefernachweise' &&
+      check.providerCode==='GRAPH_REFERENCE_FALLBACK_ROOT_UNREADABLE'));
+    assert.ok(calls.some(call=>call.method==='GET' &&
+      call.path.includes('/users/missing-ref-user@essentra.com/drive/root:/003 Export/ExportHub/Sendungen?')));
+    assert.ok(!calls.some(call=>call.method!=='GET'&&call.hostname==='graph.microsoft.com'),
+      'Fallback-Diagnose bleibt ausschließlich lesend');
+    assert.ok(!JSON.stringify(result).includes('missing-ref-user@essentra.com'));
+  });
+});
+
+test('RC1771: lesbare REF-Wurzel und fehlender Geschwisterordner werden separat gemeldet',async()=>{
+  setEnv({EXPORTHUB_REFERENCE_DRIVE_USER:'export@essentra.com'});
+  const graph=fresh();
+  await withFakeHttps(call=>{
+    const broken=brokenPodDrive(call);
+    if(broken)return broken;
+    if(call.method==='GET'&&call.path.startsWith(
+      '/v1.0/users/export@essentra.com/drive/root:/003 Export/ExportHub/Sendungen?'))
+      return {status:200,body:{id:'ref-root',folder:{},parentReference:{driveId:'ref-drive'}}};
+    return notFound;
+  },async calls=>{
+    const result=await graph.diagnoseTarget({environment:'production'});
+    assert.equal(result.ok,false);
+    assert.ok(result.checks.some(check=>check.stage==='reference-library-abliefernachweise' &&
+      check.providerCode==='GRAPH_REFERENCE_FALLBACK_FOLDER_MISSING'));
+    assert.ok(!calls.some(call=>call.method!=='GET'&&call.hostname==='graph.microsoft.com'));
+  });
+});
