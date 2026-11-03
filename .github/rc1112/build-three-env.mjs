@@ -489,7 +489,7 @@ function patchRc1206ShippingRules(html,file){
 }
 
 function patchMainCountryDetection(html,file){
-  const linesAnchor=" var lines=raw.split(/[\\n,;|]+/).map(q).filter(Boolean);";
+  const linesAnchor=" var lines=raw.split(/[\n,;|]+/).map(q).filter(Boolean);";
   const italyRule=" var italian=raw.match(/\\b([0-9]{5})\\b[\\s\\S]*\\b([A-Za-z]{2})\\s*$/),itProvinces='|AG|AL|AN|AO|AP|AQ|AR|AT|AV|BA|BG|BI|BL|BN|BO|BR|BS|BT|BZ|CA|CB|CE|CH|CI|CL|CN|CO|CR|CS|CT|CZ|EN|FC|FE|FG|FI|FM|FR|GE|GO|GR|IM|IS|KR|LC|LE|LI|LO|LT|LU|MB|MC|ME|MI|MN|MO|MS|MT|NA|NO|NU|OR|PA|PC|PD|PE|PG|PI|PN|PO|PR|PT|PU|PV|PZ|RA|RC|RE|RG|RI|RM|RN|RO|SA|SI|SO|SP|SR|SS|SU|SV|TA|TE|TN|TO|TP|TR|TS|TV|UD|VA|VB|VC|VE|VI|VR|VS|VT|VV|';if(italian&&itProvinces.indexOf('|'+String(italian[2]).toUpperCase()+'|')>=0)return countryName('IT');\n";
   const count=html.split(linesAnchor).length-1;
   if(count!==1)throw new Error(file+': RC1237 countryFromAddress-Anker '+count+'x gefunden');
@@ -692,7 +692,7 @@ function patchDeckblattHighVisibility(html,file){
   });
   html=html.replace(/(\.rc352-cover-ref span\{[^}]*?)color:#fff/g,'$1color:#111827');
   html=html.replace(/(\.rc352-cover-ref strong\{)color:#fff!important/g,'$1color:#111827!important');
-  html=html.replace(/}\\n\.rc352-qr-slot\.empty/g,'}\n.rc352-qr-slot.empty');
+  html=html.replace(/}\n\.rc352-qr-slot\.empty/g,'}\n.rc352-qr-slot.empty');
   if(!covers)throw new Error(file+': RC1133 Deckblatt-Grundfläche nicht gefunden');
   if(!refs)throw new Error(file+': RC1133 Deckblatt-Referenzfeld nicht gefunden');
   return html
@@ -725,12 +725,12 @@ function patchRc1203ActualDeckblatt(html,file){
   if(block.split(refOld).length-1!==1)throw new Error(file+': RC1281 Referenz-Anker nicht eindeutig');
   block=block.replace(refOld,refNew);
 
-  const dataOld=`<div class="rc390-card"><div class="rc390-label">Sendungsdaten</div><div class="rc390-txt">Zielland: '+esc(country(sh))+'\\nAnzahl: `;
-  const dataNew=`<div class="rc390-card" data-rc1281-created-date="1"><div class="rc390-label">Sendungsdaten</div><div class="rc390-txt"><b>Erstellt am: '+esc(created||'–')+'</b>\\nZielland: '+esc(country(sh))+'\\nAnzahl: `;
+  const dataOld=`<div class="rc390-card"><div class="rc390-label">Sendungsdaten</div><div class="rc390-txt">Zielland: '+esc(country(sh))+'\nAnzahl: `;
+  const dataNew=`<div class="rc390-card" data-rc1281-created-date="1"><div class="rc390-label">Sendungsdaten</div><div class="rc390-txt"><b>Erstellt am: '+esc(created||'–')+'</b>\nZielland: '+esc(country(sh))+'\nAnzahl: `;
   if(block.split(dataOld).length-1!==1)throw new Error(file+': RC1281 Sendungsdaten-Anker nicht eindeutig');
   block=block.replace(dataOld,dataNew);
 
-  const dncOld=`<div class="rc390-card" style="grid-column:1/-1"><div class="rc390-label">Lieferscheine / DNCs</div><div class="rc390-txt">'+esc(d.join('\\n')||'–')+'</div></div></div><div class="rc390-cover-qr`;
+  const dncOld=`<div class="rc390-card" style="grid-column:1/-1"><div class="rc390-label">Lieferscheine / DNCs</div><div class="rc390-txt">'+esc(d.join('\n')||'–')+'</div></div></div><div class="rc390-cover-qr`;
   const dncNew=`<div class="rc390-card rc1293-packing-slip-card" data-rc1293-packing-slip-card="1" style="grid-column:1/-1"><div class="rc390-label">Lieferscheine / DNCs</div><div class="rc390-txt rc1293-packing-slip-grid" data-rc1293-packing-slip-grid="1" style="display:grid!important;grid-template-columns:repeat(auto-fit,minmax(36mm,1fr))!important;gap:2mm!important;align-items:stretch!important">'+(d.length?d.map(function(item){return '<span class="rc1293-packing-slip" data-rc1293-packing-slip="1" style="display:flex!important;align-items:center!important;min-width:0!important;padding:1.5mm 2mm!important;border:.4mm solid #cbd5e1!important;border-radius:2mm!important;background:#fff!important;font-size:8.5pt!important;line-height:1.12!important;font-weight:750!important;overflow-wrap:anywhere!important;word-break:break-word!important;break-inside:avoid!important;page-break-inside:avoid!important">'+esc(item)+'</span>'}).join(''):'<span class="rc1293-packing-slip" data-rc1293-packing-slip="1">–</span>')+'</div></div><div class="rc390-card rc1203-cover-remark" data-rc1203-cover-remark="1" style="grid-column:1/-1;border:1mm solid #cbd5e1!important;border-left:3mm solid #e5b51d!important;background:#fffdf5!important;color:#1f2937!important;padding:3.5mm 4mm!important;min-height:18mm!important;max-height:28mm!important;overflow:hidden!important;margin-bottom:5mm!important;break-inside:avoid!important;page-break-inside:avoid!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important"><div class="rc390-label" style="font-size:9pt!important;font-weight:800!important;text-transform:uppercase!important;letter-spacing:.25mm!important;color:#1f2937!important">Bemerkung</div><div class="rc390-txt" style="font-size:10pt!important;line-height:1.18!important;font-weight:700!important;white-space:pre-wrap!important;color:#1f2937!important">'+esc(sh.remark||sh.remarks||sh.bemerkung||sh.comments||sh.comment||sh.note||sh.notes||'–')+'</div></div></div><div class="rc390-cover-qr`;
   if(block.split(dncOld).length-1!==1)throw new Error(file+': RC1281 Bemerkungs-Anker nicht eindeutig');
   block=block.replace(dncOld,dncNew);
@@ -1695,7 +1695,7 @@ function patchHtml(file){
   if(!html.includes('assets/rc1177-release-notes.js?v='+VISIBLE_NUMBER))throw new Error(file+': '+VISIBLE_VERSION+' Änderungshinweise Cache-Key fehlt');
   if(!/\.rc352-cover\{[^}]*border:10mm solid #08245d!important;[^}]*border-top-width:18mm!important;/.test(html))throw new Error(file+': RC1133 Deckblatt-Rahmen fehlt');
   if(!/\.rc352-cover-ref\{(?=[^}]*background:#facc15)(?=[^}]*border:3mm solid #111827)[^}]*\}/.test(html))throw new Error(file+': RC1159 Deckblatt-Referenzfeld ist nicht ausreichend hervorgehoben');
-  if(/\\\\n\.rc352-qr-slot\.empty/.test(html))throw new Error(file+': RC1133 Deckblatt-CSS enthält literalen \\n-Text');
+  if(/\\\n\.rc352-qr-slot\.empty/.test(html))throw new Error(file+': RC1133 Deckblatt-CSS enthält literalen \n-Text');
   if(file==='demo.html'){
     if(!html.includes("namedTest=/-testservice\\./i.test(h)&&window.__EXPORTHUB_DEMO_MODE__!==true;"))throw new Error(file+': RC1131 Demo/Testservice-Origin nicht getrennt');
     if(!html.includes('if(window.__EXPORTHUB_DEMO_MODE__===true)return;'))throw new Error(file+': RC1131 Testportal-Runtime ist in Demo noch aktiv');
@@ -1715,14 +1715,18 @@ function patchHtml(file){
   // RC1768: The deploy builder starts from RC1048 HTML. Without this patch
   // it silently restores RC886's cookie override despite correct root HTML.
   html=patchRc1768PackDocumentCredentials(html,file);
-  // RC1770: ship one scoped ABD history stylesheet in all three environments.
-  // Preserve the strict overflow browser assertion; never hide overflow globally.
+  // RC1770: embed scoped ABD history CSS into each built HTML environment.
+  // External CSS requests can be aborted during SPA view changes and invalidate
+  // unrelated print/runtime browser checks; inline CSS introduces no new fetch.
   const abdCss='assets/rc1770-abd-history-responsive.css';
-  if(!fs.existsSync(path.join(ROOT,abdCss)))throw new Error(file+': RC1770 ABD style missing');
-  if(!html.includes('data-rc1770-abd-history-css')){
+  const abdCssFile=path.join(ROOT,abdCss);
+  if(!fs.existsSync(abdCssFile))throw new Error(file+': RC1770 ABD style missing');
+  const abdCssText=fs.readFileSync(abdCssFile,'utf8');
+  if(!abdCssText.includes('#rc626Abd .rc626-item-head')||/<\/style/i.test(abdCssText))throw new Error(file+': RC1770 invalid scoped ABD style');
+  if(!html.includes('id="rc1770-abd-history-style"')){
     const endHead=/<\/head>/i.exec(html);
     if(!endHead)throw new Error(file+': RC1770 head missing');
-    const tag='<link rel="stylesheet" href="/'+abdCss+'?v=1770" data-rc1770-abd-history-css>';
+    const tag='<style id="rc1770-abd-history-style">\n'+abdCssText+'\n</style>';
     html=html.slice(0,endHead.index)+tag+'\n'+html.slice(endHead.index);
   }
   fs.writeFileSync(target,html);
