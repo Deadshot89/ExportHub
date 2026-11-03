@@ -40,7 +40,7 @@
   }
   function activeTask(task){
     const status=q(task&&task.status).toLowerCase();
-    return !!task&&!['done','erledigt','completed','cancelled','canceled','storniert'].includes(status)
+    return !!task&&!['done','erledigt','completed','abgeschlossen','archiviert','cancelled','canceled','storniert','deleted','gelöscht'].includes(status)
       &&task.done!==true&&task.completed!==true&&!q(task.archivedAt);
   }
   // RC848 weekly picks may have only an ISO week and weekday. The planner
