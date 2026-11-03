@@ -46,6 +46,23 @@ test('P0: stale ABD flags on Dutch EU shipment never create missing-AV upload ta
   assert.deepEqual(av.candidates(state,new Date()),[]);
 });
 
+test('P0: status words in old ABD fields are not proof of an issued document',()=>{
+  const sh={id:'S-NL',ref:'ZVYH89',destinationCountry:'NL',
+    abdPresent:true,abdStatus:'Erledigt',abd:'Erledigt',abdFile:'fertig',
+    abdRef:'erstellt',mrn:'done',abdFiles:['vorhanden'],
+    abdDocuments:[{name:'Erledigt'}],documents:[{type:'ABD',name:'fertig'}]};
+  const state={shipments:[sh],tasks:[]};
+  assert.equal(av.shipmentHasAbd(state,sh),false);
+  assert.deepEqual(av.candidates(state,new Date()),[]);
+});
+
+test('P0: real legacy ABD filename remains valid evidence',()=>{
+  const sh={id:'S-NL',ref:'ZVYH89',destinationCountry:'NL',abd:'ABD_ZVYH89.pdf'};
+  const state={shipments:[sh],tasks:[]};
+  assert.equal(av.shipmentHasAbd(state,sh),true);
+  assert.equal(av.candidates(state,new Date()).length,1);
+});
+
 test('P0: an actual ABD document still requires AV even for a Dutch destination',()=>{
   const sh={id:'S-NL',ref:'ZVYH89',destinationCountry:'NL',abdFiles:[{name:'ABD_ZVYH89.pdf'}]};
   const state={shipments:[sh],tasks:[]};
