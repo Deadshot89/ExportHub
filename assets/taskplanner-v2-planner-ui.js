@@ -108,15 +108,15 @@
     const other=warnings.filter(w=>!['pickup_notification','fixed_pickup_conflict','abd_same_day'].includes(w.type));
     const entries=[...pickup,...sameDay,...other];
     const lines=entries.map(w=>'<li data-rule-type="'+esc(w.type)+'"><strong>'+esc(w.groupId||w.shipmentRef||'')+'</strong> '+esc(w.message)
-      +(w.bookedDate?'<span>Abholung: '+esc(w.bookedDate)+(w.earliestDate?' · frühestens '+esc(w.earliestDate):'')+'</span>':'')+'</li>').join('');
+      +(w.bookedDate?'<span>'+esc(translated('taskV2.ops.pickupDate',null,'Pickup:'))+' '+esc(w.bookedDate)+(w.earliestDate?' · '+esc(translated('taskV2.ops.earliest',null,'earliest'))+' '+esc(w.earliestDate):'')+'</span>':'')+'</li>').join('');
     const noPickupData=!inspection.hasPickupData||!inspection.hasFixedPickupData||inspection.unlinkedTasks>0||inspection.groupsInspected>inspection.matchedPickupGroups;
-    return '<section class="tpv2-operational-warnings" data-tpv2-operational-warnings aria-label="Planungsprüfung"><header><strong>Abhängigkeiten und Abholkalender</strong><span>'
-      +(entries.length?esc(String(entries.length)+' Hinweise'):'Keine erkannten Terminkonflikte')+'</span></header>'
+    return '<section class="tpv2-operational-warnings" data-tpv2-operational-warnings><header><strong>'+esc(translated('taskV2.ops.title',null,'Dependencies and pickup calendar'))+'</strong><span>'
+      +(entries.length?esc(translated('taskV2.ops.warningCount',{count:entries.length},'{count} notices')):esc(translated('taskV2.ops.noConflicts',null,'No detected scheduling conflicts')))+'</span></header>'
       +(lines?'<ul>'+lines+'</ul>':'')
-      +(noPickupData?'<p class="tpv2-operational-unverified" role="status">Abholkalender nicht vollständig geprüft: '+(!inspection.hasPickupData?'Sendungen fehlen. ':'')
-        +(!inspection.hasFixedPickupData?'Feste Abholtage nicht geladen. ':'')
-        +(inspection.unlinkedTasks>0?esc(String(inspection.unlinkedTasks))+' Aufgaben ohne eindeutige Sendungsverknüpfung. ':'')
-        +(inspection.groupsInspected>inspection.matchedPickupGroups?esc(String(inspection.groupsInspected-inspection.matchedPickupGroups))+' Vorgänge ohne zugeordnete Sendung.':'')+'</p>':'')+'</section>';
+      +(noPickupData?'<p class="tpv2-operational-unverified" role="status">'+esc(translated('taskV2.ops.unverified',null,'Pickup calendar not fully verified:'))+' '+(!inspection.hasPickupData?esc(translated('taskV2.ops.shipmentsMissing',null,'Shipment data missing.'))+' ':'')
+        +(!inspection.hasFixedPickupData?esc(translated('taskV2.ops.fixedMissing',null,'Fixed pickup days not loaded.'))+' ':'')
+        +(inspection.unlinkedTasks>0?esc(translated('taskV2.ops.unlinked',{count:inspection.unlinkedTasks},'{count} tasks without a shipment link.'))+' ':'')
+        +(inspection.groupsInspected>inspection.matchedPickupGroups?esc(translated('taskV2.ops.unmatched',{count:inspection.groupsInspected-inspection.matchedPickupGroups},'{count} operations without a matching shipment.')):'')+'</p>':'')+'</section>';
   }
 
   function taskCardHtml(raw,ctx={}){
@@ -128,10 +128,10 @@
     let overdueDays=0;if(overdue){try{overdueDays=Number(core().derive(task,nowOf(ctx)).overdueDays)||0;}catch(_){}}
     const overdueText=overdueDays>0?translated('taskV2.overdueDays',{count:overdueDays},'{count} days overdue'):translated('taskV2.planner.overdue',null,'Overdue');
     return `<article class="${classes}" data-task-id="${esc(task.id)}" data-priority="${esc(task.priority)}" data-status="${esc(task.status)}" tabindex="0" role="button" aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight">
-      <div class="tpv2-task-card-head"><span class="tpv2-priority">${esc(task.priority||'P2')}</span>${overdue?`<span class="tpv2-badge tpv2-overdue">${esc(overdueText)}</span>`:''}${orange?'<span class="tpv2-badge tpv2-abd-warning">ABD prüfen</span>':''}</div>
+      <div class="tpv2-task-card-head"><span class="tpv2-priority">${esc(task.priority||'P2')}</span>${overdue?`<span class="tpv2-badge tpv2-overdue">${esc(overdueText)}</span>`:''}${orange?'<span class="tpv2-badge tpv2-abd-warning">'+esc(translated('taskV2.ops.abdReview',null,'Check customs'))+'</span>':''}</div>
       <h3>${esc(task.title||translated('taskV2.task',null,'Task'))}</h3>
       <p class="tpv2-task-customer">${esc(task.customerName||'')}</p>
-      ${orange?'<p class="tpv2-abd-alert" role="alert">'+esc(warning.message)+'</p><button type="button" class="tpv2-button tpv2-button-secondary tpv2-approve-abd" data-tpv2-abd-approve="'+esc(task.id)+'">Ausnahme bestätigen</button>':''}
+      ${orange?'<p class="tpv2-abd-alert" role="alert">'+esc(warning.message)+'</p><button type="button" class="tpv2-button tpv2-button-secondary tpv2-approve-abd" data-tpv2-abd-approve="'+esc(task.id)+'">'+esc(translated('taskV2.ops.approve',null,'Approve exception'))+'</button>':''}
       ${warning&&!orange?'<p class="tpv2-abd-alert" role="alert">'+esc(warning.message)+'</p>':''}
       <div class="tpv2-task-meta"><span>${esc(task.status||'open')}</span><span>${esc(q(task.dueAt).slice(0,16).replace('T',' · '))}</span></div>
     </article>`;
@@ -367,7 +367,7 @@
     const viewCtx=draft?{...ctx,weekDraft:draft,operationInspection:inspectionFor(ctx)}:{...ctx,operationInspection:inspectionFor(ctx)};
     const density=q(ctx.density)==='compact'?'compact':'detailed';
     return `<section class="tpv2-planner" data-taskplanner-v2-planner data-view="${current}" data-density="${density}">
-      <header class="tpv2-planner-head"><div><span class="tpv2-eyebrow">TaskPlanner V2</span><h1>${esc(translated('taskV2.planner.title',null,'Task planner'))}</h1></div><button type="button" class="tpv2-button tpv2-button-secondary" data-tpv2-print-plan>Wochenplan drucken / PDF</button><div class="tpv2-view-toggle" role="group" data-tpv2-density-toggle><button type="button" data-tpv2-density="compact" aria-pressed="${density==='compact'}">${esc(translated('taskV2.view.compact',null,'Compact'))}</button><button type="button" data-tpv2-density="detailed" aria-pressed="${density==='detailed'}">${esc(translated('taskV2.view.detailed',null,'Detailed'))}</button></div><div class="tpv2-view-toggle" role="group"><button type="button" data-tpv2-view="workweek" aria-pressed="${current==='workweek'}">${esc(translated('taskV2.planner.workweek',null,'Workweek'))}</button><button type="button" data-tpv2-view="month" aria-pressed="${current==='month'}">${esc(translated('taskV2.planner.month',null,'Month'))}</button></div></header>
+      <header class="tpv2-planner-head"><div><span class="tpv2-eyebrow">TaskPlanner V2</span><h1>${esc(translated('taskV2.planner.title',null,'Task planner'))}</h1></div><button type="button" class="tpv2-button tpv2-button-secondary" data-tpv2-print-plan>${esc(translated('taskV2.ops.print',null,'Print weekly plan / PDF'))}</button><div class="tpv2-view-toggle" role="group" data-tpv2-density-toggle><button type="button" data-tpv2-density="compact" aria-pressed="${density==='compact'}">${esc(translated('taskV2.view.compact',null,'Compact'))}</button><button type="button" data-tpv2-density="detailed" aria-pressed="${density==='detailed'}">${esc(translated('taskV2.view.detailed',null,'Detailed'))}</button></div><div class="tpv2-view-toggle" role="group"><button type="button" data-tpv2-view="workweek" aria-pressed="${current==='workweek'}">${esc(translated('taskV2.planner.workweek',null,'Workweek'))}</button><button type="button" data-tpv2-view="month" aria-pressed="${current==='month'}">${esc(translated('taskV2.planner.month',null,'Month'))}</button></div></header>
       ${operationalWarningsHtml(viewCtx)}${current==='workweek'?weekPlanToolbarHtml()+weekPlan:''}<div class="tpv2-planner-view" data-tpv2-planner-view>${current==='month'?monthHtml(ctx):workweekHtml(viewCtx)}</div>
       <div class="tpv2-planner-detail-host" data-tpv2-detail-host></div>
     </section>`;
