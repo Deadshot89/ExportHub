@@ -102,8 +102,16 @@
       if(!date||taskDay(task)===date)return task;
       return{...task,plannedAt:plannedAtForDate(task,date),plannedDate:date};
     });
+    const monthView=q(ctx.view)==='month';
+    const ym=monthView?monthOf(ctx):null;
+    const first=monthView?`${ym.year}-${String(ym.month).padStart(2,'0')}-01`:mondayOf(ctx.weekStart||nowOf(ctx));
+    const last=monthView?`${ym.year}-${String(ym.month).padStart(2,'0')}-${String(new Date(Date.UTC(ym.year,ym.month,0)).getUTCDate()).padStart(2,'0')}`:addDays(first,11);
+    // Historical overdue tasks remain in the task list, never the current plan's warnings.
+    const visible=projected.filter(task=>{
+      const date=taskDay(task);return date>=first&&date<=last;
+    });
     return api.inspectOperationalPlan({
-      tasks:projected,shipments:distinct,
+      tasks:visible,shipments:distinct,
       fixedPickups:arr(ctx.fixedPickups||state.fixedPickups),
       fixedPickupDataLoaded:ctx.fixedPickupDataLoaded===true||Array.isArray(state.fixedPickups),
       calendar:calendarOf(ctx)
@@ -202,7 +210,7 @@
     return `<section class="tpv2-month-detail" data-tpv2-month-detail="${esc(date)}"><header><h3>${esc(title)}</h3>${label?`<span class="tpv2-day-nonwork">${esc(label)}</span>`:''}<button type="button" class="tpv2-button tpv2-button-secondary" data-tpv2-month-day-close>${esc(translated('taskV2.planner.close',null,'Close'))}</button></header>${tasks.length?`<div class="tpv2-month-detail-grid">${tasks.map(t=>taskCardHtml(t,{...ctx,planningView:true})).join('')}</div>`:`<p class="tpv2-empty">${esc(translated('taskV2.planner.noTasksDay',null,'No open tasks on this day'))}</p>`}</section>`;
   }
   function monthHtml(ctx={}){
-    if(!ctx.operationInspection)ctx={...ctx,operationInspection:inspectionFor(ctx)};
+    if(!ctx.operationInspection)ctx={...ctx,view:'month',operationInspection:inspectionFor({...ctx,view:'month'})};
     const now=nowOf(ctx),today=dayKey(now),{year,month}=monthOf(ctx);
     const projection=planner().monthProjection({tasks:scheduledTasks(ctx),year,month,now,calendar:calendarOf(ctx)});
     const byDate=new Map(arr(projection&&projection.days).map(row=>[q(row.date),row])),days=new Date(Date.UTC(year,month,0)).getUTCDate(),cells=[];
