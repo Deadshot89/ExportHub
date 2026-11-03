@@ -90,3 +90,26 @@ test('RC1771: orange ABD-Karte mit Bestätigungsaktion und Abholkalenderwarnung'
   assert.ok(state.tasks.find(t=>t.id==='abd').planningSameDayAbdApproval);
   assert.doesNotMatch(target.innerHTML,/is-abd-exception/);
 });
+
+test('RC1771: feste Speditionsabholung wird auch ohne individuelle Abholbuchung geprüft',()=>{
+  const api=load().ExportHUBTaskPlannerV2;
+  const tasks=[task('pick','Picken','2026-11-03'),task('abd','ABD erstellen','2026-11-04')];
+  const shipments=[{id:'S123',customerNumber:'00123'}];
+  const fixedPickups=[{weekday:3,customerNumber:'123',active:true}];
+  const result=api.inspectOperationalPlan({tasks,shipments,fixedPickups,fixedPickupDataLoaded:true});
+  assert.ok(result.warnings.some(w=>w.type==='fixed_pickup_conflict'));
+  assert.equal(result.warnings.some(w=>w.type==='pickup_notification'),false);
+});
+test('RC1771: Wochenplanentwurf warnt vor geplanter ABD-Kollision ohne vorzeitige Bestätigung',()=>{
+  const root=load(),state={tasks:[
+    {...task('pick','Picken','2026-11-02'),dueAt:'2026-11-03T16:00:00'},
+    task('abd','ABD erstellen','2026-11-03')
+  ]};
+  const target={innerHTML:''};
+  root.ExportHUBTaskUIV2.renderPlannerPage(target,{state,weekStart:'2026-11-02',
+    weekPlanMode:'recalculate',now:'2026-11-02T10:00:00+01:00'});
+  assert.match(target.innerHTML,/data-mode="recalculate"/);
+  assert.match(target.innerHTML,/data-rule-type="abd_same_day"/);
+  assert.doesNotMatch(target.innerHTML,/data-tpv2-abd-approve=/,'Vorschau darf nicht für noch unveränderte Daten freigeben');
+  assert.equal(state.tasks[0].plannedAt,'2026-11-02T09:00:00','Vorschau darf reale Aufgabe nicht verschieben');
+});
