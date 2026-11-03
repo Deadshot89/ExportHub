@@ -15,6 +15,7 @@ import {patchRc1662SavedShipmentDeltaHtml} from '../../scripts/rc1662-abd-saved-
 import {patchRc1602PodBrowserHtml} from '../../scripts/rc1602-pod-browser-pagination.mjs';
 import {patchRc1716PodBatchHtml} from '../../scripts/rc1716-pod-batch-completeness.mjs';
 import {patchRc1718PrintIframeHtml} from '../../scripts/rc1718-qr-print-iframe-pages.mjs';
+import {patchRc1768PackDocumentCredentials} from '../../scripts/rc1768-pack-document-credentials.mjs';
 
 const ROOT=process.cwd();
 const SRC=path.join(ROOT,'dist-rc1048');
@@ -1711,6 +1712,9 @@ function patchHtml(file){
     if(!headOpen||!html.slice(headOpen.index+headOpen[0].length).trimStart().startsWith('<script id="exporthub-rc1666-public-pickup-redirect">'))throw new Error(file+': RC1666 redirect not first executable head script');
   }
 
+  // RC1768: The deploy builder starts from RC1048 HTML. Without this patch
+  // it silently restores RC886's cookie override despite correct root HTML.
+  html=patchRc1768PackDocumentCredentials(html,file);
   fs.writeFileSync(target,html);
 }
 
