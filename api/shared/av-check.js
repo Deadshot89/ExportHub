@@ -53,22 +53,21 @@ function abdRequestsFor(state,sh){
 // A status flag such as "ABD erledigt" or a cached abdPresent boolean is not
 // evidence of an actually issued customs document. Such stale flags occur on
 // historic EU shipments and must never create mandatory AV upload tasks.
+const ABD_STATUS_ONLY=/^(?:true|false|ja|nein|yes|no|done|completed|erledigt|fertig|vorhanden|erstellt|abgeschlossen|pflicht|erforderlich|offen|pending|wartet|in bearbeitung|none|null|undefined|n.a|kein|keine|—|-)$/i;
+function hasDocumentValue(value){
+  const v=text(value);
+  return !!v&&!ABD_STATUS_ONLY.test(v);
+}
+function fileEvidence(file){
+  if(typeof file==='string')return hasDocumentValue(file);
+  return !!(file&&typeof file==='object'&&[
+    file.name,file.fileName,file.filename,file.blobName,
+    file.storageBlobName,file.storagePath,file.documentId,file.id,
+    file.url,file.fileUrl
+  ].some(hasDocumentValue));
+}
 function hasIssuedAbdEvidence(record){
   if(!record||typeof record!=='object')return false;
-  // Bare status strings are not customs documents, paths, or MRNs.
-  const statusOnly=/^(?:true|false|ja|nein|yes|no|done|completed|erledigt|fertig|vorhanden|erstellt|abgeschlossen|pflicht|erforderlich|offen|pending|wartet|in bearbeitung|none|null|undefined|n.a|kein|keine|—|-)$/i;
-  const hasDocumentValue=value=>{
-    const v=text(value);
-    return !!v&&!statusOnly.test(v);
-  };
-  const fileEvidence=file=>{
-    if(typeof file==='string')return hasDocumentValue(file);
-    return !!(file&&typeof file==='object'&&hasDocumentValue(
-      file.name||file.fileName||file.filename||file.blobName||
-      file.storageBlobName||file.storagePath||file.documentId||file.id||
-      file.url||file.fileUrl
-    ));
-  };
   for(const key of ['abdFiles','abdDocuments','abds']){
     if(Array.isArray(record[key])&&record[key].some(fileEvidence))return true;
   }
@@ -111,7 +110,9 @@ function requiredAvCount(state,sh,indexedCopies){
     for(const field of ['abdFiles','abdDocuments','abds']){
       const files=record&&record[field];
       for(const file of (Array.isArray(files)?files:[])){
-        if(!file)continue;
+        // A legacy placeholder is not a document and must never increase the
+        // count of AVs required for a real ABD in another field.
+        if(!fileEvidence(file))continue;
         const key=typeof file==='string'?text(file):text(file.name||file.fileName||file.blobName||file.storageBlobName||file.storagePath||file.id);
         if(!key){unnamed++;continue;}
         const name=key.toLowerCase();
