@@ -86,7 +86,7 @@
   function translated(key,vars,fallback){const value=tr(key,vars,'');return value&&value!==key?value:interpolateFallback(fallback,vars);}
 
 
-  function inspectionFor(ctx={}){
+  function inspectionFor(ctx={},draft=null){
     const api=planner(),state=obj(ctx.state)?ctx.state:{};
     if(typeof api.inspectOperationalPlan!=='function')return{warnings:[],byTaskId:{}};
     const shipments=arr(state.shipments).concat(arr(state.savedShipments));
@@ -94,8 +94,16 @@
       const id=q(sh&&(sh.id||sh.shipmentId||sh.reference||sh.ref));
       if(!id)return true;if(seen.has(id))return false;seen.add(id);return true;
     });
+    const nextDates=new Map(arr(draft&&draft.items)
+      .filter(item=>q(item&&item.taskId)&&q(item&&item.plannedDate))
+      .map(item=>[q(item.taskId),q(item.plannedDate)]));
+    const projected=scheduledTasks(ctx).map(task=>{
+      const date=nextDates.get(q(task.id));
+      if(!date||taskDay(task)===date)return task;
+      return{...task,plannedAt:plannedAtForDate(task,date),plannedDate:date};
+    });
     return api.inspectOperationalPlan({
-      tasks:scheduledTasks(ctx),shipments:distinct,
+      tasks:projected,shipments:distinct,
       fixedPickups:arr(ctx.fixedPickups||state.fixedPickups),
       fixedPickupDataLoaded:ctx.fixedPickupDataLoaded===true||Array.isArray(state.fixedPickups),
       calendar:calendarOf(ctx)
@@ -111,7 +119,7 @@
       +(w.bookedDate?'<span>'+esc(translated('taskV2.ops.pickupDate',null,'Pickup:'))+' '+esc(w.bookedDate)+(w.earliestDate?' · '+esc(translated('taskV2.ops.earliest',null,'earliest'))+' '+esc(w.earliestDate):'')+'</span>':'')
       +(w.recommendedDate?'<span>'+esc(translated('taskV2.ops.recommended',null,'Suggested:'))+' '+esc(w.recommendedDate)+'</span>':'')+'</li>').join('');
     const noPickupData=!inspection.hasPickupData||!inspection.hasFixedPickupData||inspection.unlinkedTasks>0||inspection.groupsInspected>inspection.matchedPickupGroups;
-    return '<section class="tpv2-operational-warnings" data-tpv2-operational-warnings><header><strong>'+esc(translated('taskV2.ops.title',null,'Dependencies and pickup calendar'))+'</strong><span>'
+    return '<section class="tpv2-operational-warnings" data-tpv2-operational-warnings><header><strong>'+esc(ctx.weekDraft?translated('taskV2.planner.planTitle',null,'Week plan draft'):translated('taskV2.ops.title',null,'Dependencies and pickup calendar'))+'</strong><span>'
       +(entries.length?esc(translated('taskV2.ops.warningCount',{count:entries.length},'{count} notices')):esc(translated('taskV2.ops.noConflicts',null,'No detected scheduling conflicts')))+'</span></header>'
       +(lines?'<ul>'+lines+'</ul>':'')
       +(noPickupData?'<p class="tpv2-operational-unverified" role="status">'+esc(translated('taskV2.ops.unverified',null,'Pickup calendar not fully verified:'))+' '+(!inspection.hasPickupData?esc(translated('taskV2.ops.shipmentsMissing',null,'Shipment data missing.'))+' ':'')
@@ -365,7 +373,7 @@
       try{draft=weekPlanDraft(ctx,mode);weekPlan=weekPlanHtml(draft,mode,ctx);}
       catch(error){weekPlan=`<p class="tpv2-weekplan-note" role="alert">${esc(error&&error.message||error)}</p>`;}
     }
-    const viewCtx=draft?{...ctx,weekDraft:draft,operationInspection:inspectionFor(ctx)}:{...ctx,operationInspection:inspectionFor(ctx)};
+    const viewCtx=draft?{...ctx,weekDraft:draft,operationInspection:inspectionFor(ctx,draft)}:{...ctx,operationInspection:inspectionFor(ctx)};
     const density=q(ctx.density)==='compact'?'compact':'detailed';
     return `<section class="tpv2-planner" data-taskplanner-v2-planner data-view="${current}" data-density="${density}">
       <header class="tpv2-planner-head"><div><span class="tpv2-eyebrow">TaskPlanner V2</span><h1>${esc(translated('taskV2.planner.title',null,'Task planner'))}</h1></div><button type="button" class="tpv2-button tpv2-button-secondary" data-tpv2-print-plan>${esc(translated('taskV2.ops.print',null,'Print weekly plan / PDF'))}</button><div class="tpv2-view-toggle" role="group" data-tpv2-density-toggle><button type="button" data-tpv2-density="compact" aria-pressed="${density==='compact'}">${esc(translated('taskV2.view.compact',null,'Compact'))}</button><button type="button" data-tpv2-density="detailed" aria-pressed="${density==='detailed'}">${esc(translated('taskV2.view.detailed',null,'Detailed'))}</button></div><div class="tpv2-view-toggle" role="group"><button type="button" data-tpv2-view="workweek" aria-pressed="${current==='workweek'}">${esc(translated('taskV2.planner.workweek',null,'Workweek'))}</button><button type="button" data-tpv2-view="month" aria-pressed="${current==='month'}">${esc(translated('taskV2.planner.month',null,'Month'))}</button></div></header>
