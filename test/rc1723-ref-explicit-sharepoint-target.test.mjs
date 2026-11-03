@@ -6,7 +6,7 @@ const require=createRequire(import.meta.url);
 const MODULE='../api/shared/reference-folder-upload.js';
 const KEYS=[
  'EXPORTHUB_GRAPH_TENANT_ID','EXPORTHUB_GRAPH_CLIENT_ID','EXPORTHUB_GRAPH_CLIENT_SECRET',
- 'EXPORTHUB_REFERENCE_DRIVE_ID','EXPORTHUB_REFERENCE_FOLDER_ID'
+ 'EXPORTHUB_REFERENCE_DRIVE_ID','EXPORTHUB_REFERENCE_FOLDER_ID','EXPORTHUB_REFERENCE_DRIVE_USER'
 ];
 const config={EXPORTHUB_GRAPH_TENANT_ID:'synthetic-tenant',
  EXPORTHUB_GRAPH_CLIENT_ID:'synthetic-client',
@@ -95,6 +95,7 @@ test('RC1723: legacy user-drive mode remains the default when exact IDs are abse
   for(const [key,value] of Object.entries(config))process.env[key]=value;
   delete process.env.EXPORTHUB_REFERENCE_DRIVE_ID;
   delete process.env.EXPORTHUB_REFERENCE_FOLDER_ID;
+  process.env.EXPORTHUB_REFERENCE_DRIVE_USER='synthetic-ref@example.invalid';
   const moduleFile=require.resolve(MODULE);delete require.cache[moduleFile];
   const store=require(moduleFile);
   globalThis.fetch=async(url,options={})=>{
