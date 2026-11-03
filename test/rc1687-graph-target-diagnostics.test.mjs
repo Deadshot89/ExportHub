@@ -163,7 +163,7 @@ test('RC1688: manual diagnostic dispatch cannot execute either mutating POD back
     const start=workflow.indexOf('- name: '+name);
     assert.ok(start>0, 'reconcile step exists: '+name);
     const preceding=workflow.slice(start,start+440);
-    assert.match(preceding,/if: \$\{\{ github\.event_name != 'workflow_dispatch' \|\| inputs\.graphTargetDiagnostic != true \}\}/);
+    assert.match(preceding,/if: \$\{\{ \(github\.event_name != 'workflow_dispatch' \|\| inputs\.graphTargetDiagnostic != true\) && \(github\.event_name != 'workflow_run' \|\| github\.event\.workflow_run\.name != 'ExportHUB AV-Prüfung'\) \}\}/, 'manual diagnostic and AV workflow-run must both block POD mutations');
   }
   assert.ok((workflow.match(/inputs\.graphTargetDiagnostic != true/g)||[]).length===2);
   assert.match(workflow,/graphTargetDiagnostic:[\s\S]*?type: boolean/);
