@@ -205,7 +205,7 @@
       task&&task.planningGroupId,task&&task.linkedShipmentId,
       task&&task.shipmentId,task&&task.linkedShipmentRef,
       task&&task.shipmentRef,task&&task.sourceRef,
-      task&&task.sourceId!==task&&task.id?task&&task.sourceId:'',
+      task&&q(task.sourceId)!==q(task.id)?task.sourceId:'',
       task&&task.reference
     ];
     for(const value of candidates){
