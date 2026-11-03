@@ -178,6 +178,11 @@
         +(inspection.groupsInspected>inspection.matchedPickupGroups?esc(translated('taskV2.ops.unmatched',{count:inspection.groupsInspected-inspection.matchedPickupGroups},'{count} operations without a matching shipment.')):'')+'</p>':'')+'</section>';
   }
 
+  function formatPlannedDate(value){
+    const raw=q(value),match=raw.match(/^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}:\d{2}))?/);
+    if(!match)return raw;
+    return match[3]+'.'+match[2]+'.'+match[1]+(match[4]&&match[4]!=='00:00'?' · '+match[4]:'');
+  }
   function taskCardHtml(raw,ctx={}){
     const task=typeof base.detailModel==='function'?base.detailModel(raw,ctx):raw;
     const overdue=ctx.planningView===true?false:isOverdue(task,ctx.now);
@@ -192,7 +197,7 @@
       <p class="tpv2-task-customer">${esc(task.customerName||'')}</p>
       ${orange?'<p class="tpv2-abd-alert" role="alert">'+esc(warning.message)+(warning.recommendedDate?' '+esc(translated('taskV2.ops.recommended',null,'Suggested:'))+' '+esc(warning.recommendedDate):'')+'</p><button type="button" class="tpv2-button tpv2-button-secondary tpv2-approve-abd" data-tpv2-abd-approve="'+esc(task.id)+'">'+esc(translated('taskV2.ops.approve',null,'Approve exception'))+'</button>':''}
       ${warning&&!orange?'<p class="tpv2-abd-alert" role="alert">'+esc(warning.message)+'</p>':''}
-      <div class="tpv2-task-meta"><span>${esc(task.status||'open')}</span><span>${esc(q(task.dueAt).slice(0,16).replace('T',' · '))}</span></div>
+      <div class="tpv2-task-meta"><span>${esc(task.status||'open')}</span><span>${esc(formatPlannedDate(task.plannedAt||task.dueAt))}</span></div>
     </article>`;
   }
 
