@@ -38,8 +38,35 @@
     const key=dayKey(value)||dayKey(new Date()),d=new Date(key+'T12:00:00Z'),day=d.getUTCDay()||7;
     d.setUTCDate(d.getUTCDate()-(day-1));return d.toISOString().slice(0,10);
   }
-  function activeTask(task){const status=q(task&&task.status).toLowerCase();return !['done','cancelled'].includes(status)&&!q(task&&task.archivedAt);}
-  function taskDay(task){return dayKey(task&&((task.plannedAt||task.dueAt||task.date||task.day)));}
+  function activeTask(task){
+    const status=q(task&&task.status).toLowerCase();
+    return !!task&&!['done','erledigt','completed','cancelled','canceled','storniert'].includes(status)
+      &&task.done!==true&&task.completed!==true&&!q(task.archivedAt);
+  }
+  // RC848 weekly picks may have only an ISO week and weekday. The planner
+  // resolves these existing occurrences without saving duplicate tasks.
+  function taskDay(task){
+    if(!task)return'';
+    for(const value of [task.plannedAt,task.plannedDate,task.dueAt,task.dueDate,task.scheduledDate,task.date]){
+      const key=dayKey(value);
+      if(key)return key;
+    }
+    if(!(task.masterTaskRC848===true||task.masterTaskRC846===true||/^M84[68]:/.test(q(task.id))))return'';
+    const week=q(task.weekKey||task.occurrenceKey).match(/^(\d{4})-W(\d{1,2})$/);
+    const weekdays={montag:1,dienstag:2,mittwoch:3,donnerstag:4,freitag:5,samstag:6,sonntag:7,
+      monday:1,tuesday:2,wednesday:3,thursday:4,friday:5,saturday:6,sunday:7};
+    const weekday=weekdays[q(task.day||task.weekday).toLowerCase()]||Number(task.weekday);
+    if(!week||!Number.isInteger(weekday)||weekday<1||weekday>7)return'';
+    const year=Number(week[1]),number=Number(week[2]);
+    if(number<1||number>53)return'';
+    const jan4=new Date(Date.UTC(year,0,4,12));
+    const weekOneMonday=addDays(jan4.toISOString().slice(0,10),1-(jan4.getUTCDay()||7));
+    return addDays(weekOneMonday,(number-1)*7+weekday-1);
+  }
+  function scheduledTasks(ctx){
+    return arr(ctx&&ctx.state&&ctx.state.tasks).filter(t=>activeTask(t)&&taskDay(t)
+      &&t.isTemplate!==true&&t.seriesTemplate!==true);
+  }
   function isOverdue(task,now){try{return activeTask(task)&&core().derive(task,now).overdue===true;}catch(_){return false;}}
   function sorted(tasks,now){
     const list=arr(tasks);
@@ -53,7 +80,7 @@
 
   function taskCardHtml(raw,ctx={}){
     const task=typeof base.detailModel==='function'?base.detailModel(raw,ctx):raw;
-    const overdue=isOverdue(task,ctx.now),classes='tpv2-task-card'+(overdue?' is-overdue':'');
+    const overdue=ctx.planningView===true?false:isOverdue(task,ctx.now),classes='tpv2-task-card'+(overdue?' is-overdue':'');
     let overdueDays=0;if(overdue){try{overdueDays=Number(core().derive(task,nowOf(ctx)).overdueDays)||0;}catch(_){}}
     const overdueText=overdueDays>0?translated('taskV2.overdueDays',{count:overdueDays},'{count} days overdue'):translated('taskV2.planner.overdue',null,'Overdue');
     return `<article class="${classes}" data-task-id="${esc(task.id)}" data-priority="${esc(task.priority)}" data-status="${esc(task.status)}" tabindex="0" role="button" aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight">
@@ -81,7 +108,7 @@
 
   function weekDayHtml(date,tasks,ctx,scope){
     const weekday=new Intl.DateTimeFormat(undefined,{weekday:'short',day:'2-digit',month:'2-digit'}).format(new Date(date+'T12:00:00Z'));
-    const cards=sorted(tasks,ctx.now).map(t=>taskCardHtml(t,ctx)).join(''),label=nonWorkLabel(nonWorkOf(date,ctx));
+    const cards=sorted(tasks,ctx.now).map(t=>taskCardHtml(t,{...ctx,planningView:true})).join(''),label=nonWorkLabel(nonWorkOf(date,ctx));
     const cls='tpv2-day'+(label?' is-nonwork':'')+(date===dayKey(nowOf(ctx))?' is-today':'');
     return `<section class="${cls}" data-tpv2-drop-date="${esc(date)}" data-i218-drop-date="${esc(date)}" data-week-scope="${esc(scope)}"><header><strong>${esc(weekday)}</strong><span>${tasks.length}</span></header>${label?`<p class="tpv2-day-nonwork" data-tpv2-nonwork>${esc(label)}</p>`:''}<div class="tpv2-day-tasks">${cards}</div></section>`;
   }
@@ -89,7 +116,7 @@
     const state=obj(ctx.state)?ctx.state:{tasks:[]},days=Array.from({length:5},(_,i)=>addDays(start,i));
     const label=scope==='next'?translated('taskV2.planner.nextWeek',null,'Next week'):translated('taskV2.planner.currentWeek',null,'Current week');
     const cls='tpv2-week'+(scope==='next'?' tpv2-week-next':'');
-    const active=arr(state.tasks).filter(t=>activeTask(t)&&!isOverdue(t,ctx.now));
+    const active=scheduledTasks(ctx);
     return `<section class="${cls}" data-week-scope="${scope}"><header class="tpv2-week-head"><h2>${esc(label)}</h2><span>${esc(start)} – ${esc(addDays(start,4))}</span></header><div class="tpv2-week-grid">${days.map(date=>weekDayHtml(date,active.filter(t=>taskDay(t)===date),ctx,scope)).join('')}</div></section>`;
   }
   function unplannedHtml(ctx={}){
@@ -104,7 +131,7 @@
     const start=mondayOf(ctx.weekStart||nowOf(ctx)),draft=ctx.weekDraft||null;
     const overload=draft&&draft.overloaded===true?`<div class="tpv2-overload" data-tpv2-overload role="status">${esc(translated('taskV2.planner.overload',null,'This week is overloaded.'))}</div>`:'';
     const nav=ctx.navigation===true?navHtml('week',`${start} – ${addDays(start,11)}`,start>mondayOf(nowOf(ctx))):'';
-    return `<div class="tpv2-workweeks" data-tpv2-workweek>${nav}${overload}${unplannedHtml(ctx)}${weekSectionHtml(start,'current',ctx)}${weekSectionHtml(addDays(start,7),'next',ctx)}</div>`;
+    return `<div class="tpv2-workweeks" data-tpv2-workweek>${nav}${overload}${weekSectionHtml(start,'current',ctx)}${weekSectionHtml(addDays(start,7),'next',ctx)}</div>`;
   }
   function renderWorkweek(target,ctx={}){if(!target)throw new Error('Planner workweek target missing');target.innerHTML=workweekHtml(ctx);return target;}
 
@@ -114,13 +141,13 @@
   }
   function shiftMonth(ym,delta){const d=new Date(Date.UTC(ym.year,ym.month-1+delta,1));return{year:d.getUTCFullYear(),month:d.getUTCMonth()+1};}
   function monthDayHtml(date,ctx){
-    const state=obj(ctx.state)?ctx.state:{tasks:[]},tasks=sorted(arr(state.tasks).filter(t=>activeTask(t)&&taskDay(t)===date),ctx.now);
+    const tasks=sorted(scheduledTasks(ctx).filter(t=>taskDay(t)===date),ctx.now);
     const title=new Intl.DateTimeFormat(undefined,{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(date+'T12:00:00Z')),label=nonWorkLabel(nonWorkOf(date,ctx));
-    return `<section class="tpv2-month-detail" data-tpv2-month-detail="${esc(date)}"><header><h3>${esc(title)}</h3>${label?`<span class="tpv2-day-nonwork">${esc(label)}</span>`:''}<button type="button" class="tpv2-button tpv2-button-secondary" data-tpv2-month-day-close>${esc(translated('taskV2.planner.close',null,'Close'))}</button></header>${tasks.length?`<div class="tpv2-month-detail-grid">${tasks.map(t=>taskCardHtml(t,ctx)).join('')}</div>`:`<p class="tpv2-empty">${esc(translated('taskV2.planner.noTasksDay',null,'No open tasks on this day'))}</p>`}</section>`;
+    return `<section class="tpv2-month-detail" data-tpv2-month-detail="${esc(date)}"><header><h3>${esc(title)}</h3>${label?`<span class="tpv2-day-nonwork">${esc(label)}</span>`:''}<button type="button" class="tpv2-button tpv2-button-secondary" data-tpv2-month-day-close>${esc(translated('taskV2.planner.close',null,'Close'))}</button></header>${tasks.length?`<div class="tpv2-month-detail-grid">${tasks.map(t=>taskCardHtml(t,{...ctx,planningView:true})).join('')}</div>`:`<p class="tpv2-empty">${esc(translated('taskV2.planner.noTasksDay',null,'No open tasks on this day'))}</p>`}</section>`;
   }
   function monthHtml(ctx={}){
     const now=nowOf(ctx),today=dayKey(now),{year,month}=monthOf(ctx);
-    const projection=planner().monthProjection({tasks:arr(ctx.state&&ctx.state.tasks),year,month,now,calendar:calendarOf(ctx)});
+    const projection=planner().monthProjection({tasks:scheduledTasks(ctx),year,month,now,calendar:calendarOf(ctx)});
     const byDate=new Map(arr(projection&&projection.days).map(row=>[q(row.date),row])),days=new Date(Date.UTC(year,month,0)).getUTCDate(),cells=[];
     const first=new Date(Date.UTC(year,month-1,1)).getUTCDay()||7,weekdayFmt=new Intl.DateTimeFormat(undefined,{weekday:'short'});
     const heads=Array.from({length:7},(_,i)=>`<span class="tpv2-month-weekday" aria-hidden="true">${esc(weekdayFmt.format(new Date(Date.UTC(2024,0,1+i,12))))}</span>`).join('');
@@ -129,7 +156,7 @@
       const key=`${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`,row=byDate.get(key)||{taskCount:0,overdueCount:0,criticalCount:0,doneCount:0};
       const reason=row.nonWorkReason||null,label=nonWorkLabel(reason),cls='tpv2-month-day'+(key===today?' is-today':'')+(reason?(reason.type==='weekend'?' is-weekend':' is-nonwork'):'')+(key===q(ctx.monthDay)?' is-selected':'');
       const status=(row.criticalCount?`<i class="tpv2-dot is-critical" title="P0">${row.criticalCount}</i>`:'')+(row.doneCount?`<i class="tpv2-dot is-done">${row.doneCount}</i>`:'');
-      cells.push(`<button type="button" class="${cls}" data-day-summary="${key}" aria-label="${esc(key+(label?' · '+label:''))}" aria-pressed="${key===q(ctx.monthDay)}"><strong>${day}</strong><span>${row.taskCount}</span>${label?`<small>${esc(label)}</small>`:''}${status?`<b class="tpv2-month-status">${status}</b>`:''}${row.overdueCount?`<em>${row.overdueCount}</em>`:''}</button>`);
+      cells.push(`<button type="button" class="${cls}" data-day-summary="${key}" aria-label="${esc(key+(label?' · '+label:''))}" aria-pressed="${key===q(ctx.monthDay)}"><strong>${day}</strong><span>${row.taskCount}</span>${label?`<small>${esc(label)}</small>`:''}${status?`<b class="tpv2-month-status">${status}</b>`:''}</button>`);
     }
     const label=`${String(month).padStart(2,'0')}/${year}`,nav=ctx.navigation===true?navHtml('month',label,true):`<span>${label}</span>`;
     const detail=q(ctx.monthDay)&&q(ctx.monthDay).startsWith(`${year}-${String(month).padStart(2,'0')}-`)?monthDayHtml(q(ctx.monthDay),ctx):'';
@@ -147,7 +174,7 @@
   });
   function weekPlanDraft(ctx,mode){
     const state=obj(ctx&&ctx.state)?ctx.state:{tasks:[]};
-    return planner().buildWeekDraft({tasks:arr(state.tasks),weekStart:mondayOf(ctx.weekStart||nowOf(ctx)),now:nowOf(ctx),calendar:ctx.calendar,recalculate:mode==='recalculate'||mode==='override',allowManualOverride:mode==='override'});
+    return planner().buildWeekDraft({tasks:scheduledTasks(ctx),weekStart:mondayOf(ctx.weekStart||nowOf(ctx)),now:nowOf(ctx),calendar:ctx.calendar,recalculate:mode==='recalculate'||mode==='override',allowManualOverride:mode==='override'});
   }
   function weekPlanSummary(draft){
     const items=arr(draft&&draft.items),base=planner().weekSummary(draft),start=q(draft&&draft.weekStart),end=q(draft&&draft.weekEnd);
@@ -289,7 +316,7 @@
     const density=q(ctx.density)==='compact'?'compact':'detailed';
     return `<section class="tpv2-planner" data-taskplanner-v2-planner data-view="${current}" data-density="${density}">
       <header class="tpv2-planner-head"><div><span class="tpv2-eyebrow">TaskPlanner V2</span><h1>${esc(translated('taskV2.planner.title',null,'Task planner'))}</h1></div><div class="tpv2-view-toggle" role="group" data-tpv2-density-toggle><button type="button" data-tpv2-density="compact" aria-pressed="${density==='compact'}">${esc(translated('taskV2.view.compact',null,'Compact'))}</button><button type="button" data-tpv2-density="detailed" aria-pressed="${density==='detailed'}">${esc(translated('taskV2.view.detailed',null,'Detailed'))}</button></div><div class="tpv2-view-toggle" role="group"><button type="button" data-tpv2-view="workweek" aria-pressed="${current==='workweek'}">${esc(translated('taskV2.planner.workweek',null,'Workweek'))}</button><button type="button" data-tpv2-view="month" aria-pressed="${current==='month'}">${esc(translated('taskV2.planner.month',null,'Month'))}</button></div></header>
-      ${dailySummaryHtml(ctx)}${current==='workweek'?weekPlanToolbarHtml()+weekPlan:''}${overdueHtml(ctx)}<div class="tpv2-planner-view" data-tpv2-planner-view>${current==='month'?monthHtml(ctx):workweekHtml(viewCtx)}</div>
+      ${current==='workweek'?weekPlanToolbarHtml()+weekPlan:''}<div class="tpv2-planner-view" data-tpv2-planner-view>${current==='month'?monthHtml(ctx):workweekHtml(viewCtx)}</div>
       <div class="tpv2-planner-detail-host" data-tpv2-detail-host></div>
     </section>`;
   }
