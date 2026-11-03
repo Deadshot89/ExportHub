@@ -87,6 +87,11 @@ test('P0 #1159: metadata fallback keeps conditional upload and fails closed on o
   assert.equal(calls[1].options.conditions.ifMatch,'"old"');
   const denied=Object.assign(new Error('Forbidden'),{statusCode:403});
   await assert.rejects(()=>uploadJson({upload:async()=>{throw denied;}},{state:{}},null),error=>error===denied);
+  const badRequest=Object.assign(new Error('Invalid input size'),{statusCode:400,code:'OutOfRangeInput'});
+  let rejectedCalls=0;
+  await assert.rejects(()=>uploadJson({upload:async()=>{rejectedCalls++;throw badRequest;}},
+    {state:{shipments:[{ref:'SYNTHETIC',note:'Large state'}]}},'"old"'),error=>error===badRequest);
+  assert.equal(rejectedCalls,1,'unrelated Azure 400 must never retry the full team-state PUT');
 });
 
 import { RestBlobClient } from '../api/shared/blob-rest.js';
