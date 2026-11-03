@@ -167,7 +167,8 @@
     const entries=[...pickup,...sameDay,...other];
     const lines=entries.map(w=>'<li data-rule-type="'+esc(w.type)+'"><strong>'+esc(w.groupId||w.shipmentRef||'')+'</strong> '+esc(w.message)
       +(w.bookedDate?'<span>'+esc(translated('taskV2.ops.pickupDate',null,'Pickup:'))+' '+esc(w.bookedDate)+(w.earliestDate?' · '+esc(translated('taskV2.ops.earliest',null,'earliest'))+' '+esc(w.earliestDate):'')+'</span>':'')
-      +(w.recommendedDate?'<span>'+esc(translated('taskV2.ops.recommended',null,'Suggested:'))+' '+esc(w.recommendedDate)+'</span>':'')+'</li>').join('');
+      +(w.recommendedDate?'<span>'+esc(translated('taskV2.ops.recommended',null,'Suggested:'))+' '+esc(w.recommendedDate)+'</span>':'')
+      +((w.type==='pickup_notification'||w.type==='fixed_pickup_conflict')?'<button type="button" class="tpv2-button tpv2-button-secondary" data-tpv2-print-carrier="'+esc(w.groupId||w.shipmentRef)+'">'+esc(translated('taskV2.carrier.print',null,'Carrier notice / PDF'))+'</button>':'')+'</li>').join('');
     const noPickupData=!inspection.hasPickupData||!inspection.hasFixedPickupData||inspection.unlinkedTasks>0||inspection.groupsInspected>inspection.matchedPickupGroups;
     return '<section class="tpv2-operational-warnings" data-tpv2-operational-warnings><header><strong>'+esc(ctx.weekDraft?translated('taskV2.planner.planTitle',null,'Week plan draft'):translated('taskV2.ops.title',null,'Dependencies and pickup calendar'))+'</strong><span>'
       +(entries.length?esc(translated('taskV2.ops.warningCount',{count:entries.length},'{count} notices')):esc(translated('taskV2.ops.noConflicts',null,'No detected scheduling conflicts')))+'</span></header>'
@@ -200,20 +201,33 @@
     const warnings=carrierWarnings(ctx.operationInspection||inspectionFor(ctx));
     if(!warnings.length)return'';
     const text=(key,fallback)=>esc(translated('taskV2.carrier.'+key,null,fallback));
-    const rows=warnings.map(w=>'<tr><td>'+esc(w.shipmentRef||w.groupId||'')+'</td>'
-      +'<td>'+esc(formatPlannedDate(w.bookedDate||''))+'</td>'
-      +'<td>'+esc(formatPlannedDate(w.earliestDate||''))+'</td>'
-      +'<td>'+esc(w.message)+'</td></tr>').join('');
-    return '<section class="tpv2-carrier-print-sheet" data-tpv2-carrier-notice aria-label="'+text('title','Carrier notification draft')+'">'
-      +'<header><h2>'+text('title','Carrier notification draft')+'</h2><p>'+text('notSent','DRAFT – Not sent to the carrier')+'</p></header>'
-      +'<p>'+text('recipient','Carrier / contact:')+' ______________________________</p>'
-      +'<table><thead><tr><th>'+text('reference','Shipment / customer')+'</th>'
-      +'<th>'+text('oldDate','Existing pickup date')+'</th>'
-      +'<th>'+text('earliest','Earliest suggested date')+'</th>'
-      +'<th>'+text('reason','Reason for coordination')+'</th></tr></thead><tbody>'+rows+'</tbody></table>'
-      +'<p>'+text('request','Please coordinate and confirm any necessary pickup changes with the carrier. The existing booking has not been changed automatically.')+'</p>'
-      +'<p>'+text('confirmation','Carrier contacted / confirmed on:')+' ______________________________</p>'
-      +'</section>';
+    const groups=new Map();
+    for(const warning of warnings){
+      const key=q(warning.groupId||warning.shipmentRef);
+      if(!key)continue;
+      if(!groups.has(key))groups.set(key,[]);
+      groups.get(key).push(warning);
+    }
+    return Array.from(groups,([key,items])=>{
+      const rows=items.map(w=>{
+        const customer=q(w.shipmentRef||w.groupId),match=customer.match(/^CUSTOMER:([^:]+):(\d{4}-W\d{1,2})$/);
+        const label=match?match[1]+' · '+match[2]:customer;
+        return'<tr><td>'+esc(label)+'</td>'
+          +'<td>'+esc(formatPlannedDate(w.bookedDate||''))+'</td>'
+          +'<td>'+esc(formatPlannedDate(w.earliestDate||''))+'</td>'
+          +'<td>'+esc(w.message)+'</td></tr>';
+      }).join('');
+      return '<section class="tpv2-carrier-print-sheet" data-tpv2-carrier-notice data-tpv2-carrier-group="'+esc(key)+'" aria-label="'+text('title','Carrier notification draft')+'">'
+        +'<header><h2>'+text('title','Carrier notification draft')+'</h2><p>'+text('notSent','DRAFT – Not sent to the carrier')+'</p></header>'
+        +'<p>'+text('recipient','Carrier / contact:')+' ______________________________</p>'
+        +'<table><thead><tr><th>'+text('reference','Shipment / customer')+'</th>'
+        +'<th>'+text('oldDate','Existing pickup date')+'</th>'
+        +'<th>'+text('earliest','Earliest suggested date')+'</th>'
+        +'<th>'+text('reason','Reason for coordination')+'</th></tr></thead><tbody>'+rows+'</tbody></table>'
+        +'<p>'+text('request','Please coordinate and confirm any necessary pickup changes with the carrier. The existing booking has not been changed automatically.')+'</p>'
+        +'<p>'+text('confirmation','Carrier contacted / confirmed on:')+' ______________________________</p>'
+        +'</section>';
+    }).join('');
   }
 
   function taskCardHtml(raw,ctx={}){
@@ -469,8 +483,8 @@
     }
     const viewCtx=draft?{...ctx,weekDraft:draft,operationInspection:inspectionFor(ctx,draft)}:{...ctx,operationInspection:inspectionFor(ctx)};
     const density=q(ctx.density)==='compact'?'compact':'detailed';
-    const hasCarrierNotice=carrierWarnings(viewCtx.operationInspection).length>0;
-    const carrierButton=hasCarrierNotice?'<button type="button" class="tpv2-button tpv2-button-secondary" data-tpv2-print-carrier>'+esc(translated('taskV2.carrier.print',null,'Carrier notice / PDF'))+'</button>':'';
+    const carrierGroups=Array.from(new Set(carrierWarnings(viewCtx.operationInspection).map(w=>q(w.groupId||w.shipmentRef)).filter(Boolean)));
+    const carrierButton=carrierGroups.length===1?'<button type="button" class="tpv2-button tpv2-button-secondary" data-tpv2-print-carrier="'+esc(carrierGroups[0])+'">'+esc(translated('taskV2.carrier.print',null,'Carrier notice / PDF'))+'</button>':'';
     return `<section class="tpv2-planner" data-taskplanner-v2-planner data-view="${current}" data-density="${density}">
       <header class="tpv2-planner-head"><div><span class="tpv2-eyebrow">TaskPlanner V2</span><h1>${esc(translated('taskV2.planner.title',null,'Task planner'))}</h1></div><button type="button" class="tpv2-button tpv2-button-secondary" data-tpv2-print-plan>${esc(translated('taskV2.ops.print',null,'Print weekly plan / PDF'))}</button>${carrierButton}<div class="tpv2-view-toggle" role="group" data-tpv2-density-toggle><button type="button" data-tpv2-density="compact" aria-pressed="${density==='compact'}">${esc(translated('taskV2.view.compact',null,'Compact'))}</button><button type="button" data-tpv2-density="detailed" aria-pressed="${density==='detailed'}">${esc(translated('taskV2.view.detailed',null,'Detailed'))}</button></div><div class="tpv2-view-toggle" role="group"><button type="button" data-tpv2-view="workweek" aria-pressed="${current==='workweek'}">${esc(translated('taskV2.planner.workweek',null,'Workweek'))}</button><button type="button" data-tpv2-view="month" aria-pressed="${current==='month'}">${esc(translated('taskV2.planner.month',null,'Month'))}</button></div></header>
       ${operationalWarningsHtml(viewCtx)}${current==='workweek'?weekPlanToolbarHtml()+weekPlan:''}<div class="tpv2-planner-view" data-tpv2-planner-view>${current==='month'?monthHtml(ctx):workweekHtml(viewCtx)}</div>
@@ -536,10 +550,23 @@
         const eventTarget=event&&event.target,closest=selector=>eventTarget&&typeof eventTarget.closest==='function'?eventTarget.closest(selector):null;
         const carrierPrintButton=closest('[data-tpv2-print-carrier]');
         if(carrierPrintButton){
-          const document=root.document;
+          const document=root.document,group=q(carrierPrintButton.getAttribute('data-tpv2-print-carrier'));
+          const sheets=typeof target.querySelectorAll==='function'
+            ?Array.from(target.querySelectorAll('[data-tpv2-carrier-group]')):[];
+          let found=false;
+          for(const sheet of sheets){
+            const selected=!!group&&q(sheet.getAttribute('data-tpv2-carrier-group'))===group;
+            if(sheet.classList)sheet.classList.toggle('is-print-target',selected);
+            if(selected)found=true;
+          }
+          // Never print a combined sheet if the requested recipient is missing.
+          if(!found)return;
           if(document&&document.body&&document.body.classList&&typeof root.print==='function'){
             document.body.classList.add('tpv2-print-carrier');
-            const reset=()=>document.body.classList.remove('tpv2-print-carrier');
+            const reset=()=>{
+              document.body.classList.remove('tpv2-print-carrier');
+              for(const sheet of sheets)if(sheet.classList)sheet.classList.remove('is-print-target');
+            };
             try{if(typeof root.addEventListener==='function')root.addEventListener('afterprint',reset,{once:true});root.print();}
             catch(_){reset();}
           }
