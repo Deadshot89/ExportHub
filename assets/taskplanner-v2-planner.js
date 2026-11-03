@@ -211,6 +211,38 @@
     if(/(?:anmeld|registration|avisier)/i.test(text))return'registration';
     return'';
   }
+  // RC1650 already stores customer numbers on recurring weekly tasks.
+  // Only a single account + a stable week key is safe for pairing pick/ABD.
+  function accountKeys(value){
+    const values=arr(value).length?arr(value):[value],keys=[];
+    for(const item of values)for(const part of q(item).split(/[,;\n]+/)){
+      let key=q(part).replace(/\s+/g,'').toUpperCase();
+      if(/^\d+$/.test(key))key=key.replace(/^0+(?=\d)/,'');
+      if(key&&!keys.includes(key))keys.push(key);
+    }
+    return keys;
+  }
+  function isoWeekOf(value){
+    const start=monday(value);if(!start)return'';
+    const thursday=addDays(start,3),year=Number(thursday.slice(0,4)),anchor=monday(year+'-01-04');
+    const week=1+Math.round((Date.parse(start+'T12:00:00Z')-Date.parse(anchor+'T12:00:00Z'))/604800000);
+    return year+'-W'+String(week).padStart(2,'0');
+  }
+  function isoWeekMonday(week){
+    const m=q(week).match(/^(\d{4})-W(\d{1,2})$/);if(!m)return'';
+    const start=monday(m[1]+'-01-04');return addDays(start,7*(Number(m[2])-1));
+  }
+  function weeklyCustomerGroup(task){
+    const weekly=task&&(task.masterTaskRC848===true||task.masterTaskRC846===true
+      ||q(task.weekKey)||q(task.createdForWeek)||q(task.weeklySeriesId)
+      ||/week|woch/i.test(q(task.recurrence)));
+    if(!weekly)return'';
+    const accounts=accountKeys(task.customerNumber||task.linkedAccount||task.customerAccount||task.account);
+    if(accounts.length!==1)return'';
+    const explicit=q(task.weekKey||task.createdForWeek);
+    const week=/^\d{4}-W\d{1,2}$/.test(explicit)?explicit:isoWeekOf(operationalTaskDate(task));
+    return week?'CUSTOMER:'+accounts[0]+':'+week:'';
+  }
   function operationalLink(task){
     const candidates=[
       task&&task.planningGroupId,task&&task.linkedShipmentId,
@@ -223,7 +255,7 @@
       const key=q(value).toUpperCase();
       if(key&&key!=='UNDEFINED'&&!/^MANAGED:|^MASTER:|^M848:/.test(key))return key;
     }
-    return'';
+    return weeklyCustomerGroup(task);
   }
   function shipmentIdentity(shipment){
     for(const key of ['id','shipmentId','reference','ref','shipmentRef','referenceNumber','referenceNo']){
@@ -269,7 +301,8 @@
       const pick=group.pick.length===1?group.pick[0]:null;
       const abd=group.abd.length===1?group.abd[0]:null;
       const registration=group.registration.length===1?group.registration[0]:null;
-      const shipment=lookupShipment(group.key),pickDay=operationalTaskDate(pick),abdDay=operationalTaskDate(abd),registrationDay=operationalTaskDate(registration);
+      const shipment=lookupShipment(group.key),customerGroup=group.key.match(/^CUSTOMER:([^:]+):(\d{4}-W\d{1,2})$/),
+        pickDay=operationalTaskDate(pick),abdDay=operationalTaskDate(abd),registrationDay=operationalTaskDate(registration);
       if(shipment)matchedPickupGroups++;
       const related=[...group.pick,...group.abd,...group.registration];
       if(group.pick.length>1||group.abd.length>1||group.registration.length>1){
@@ -306,6 +339,25 @@
           warnings.push(warning);byTaskId[q(registration.id)]=warning;
         }
       }
+      // A recurring customer task can exist before a shipment is created.
+      // Compare it with the fixed carrier day, without inventing a booking.
+      if(customerGroup&&!shipment){
+        const weekStart=isoWeekMonday(customerGroup[2]),customer=customerGroup[1];
+        const lastMilestone=[pickDay,abdDay,registrationDay].filter(Boolean).sort().at(-1)||'';
+        if(weekStart&&lastMilestone){
+          for(const fixed of fixedPickups){
+            const weekday=Number(fixed&&fixed.weekday);
+            if(!fixed||fixed.active===false||!Number.isInteger(weekday)||weekday<1||weekday>5
+              ||!accountKeys(fixed.customerNumber).includes(customer))continue;
+            const booked=addDays(weekStart,weekday-1);
+            if(lastMilestone>=booked){
+              warnings.push({type:'fixed_pickup_conflict',groupId:group.key,shipmentRef:'',bookedDate:booked,
+                taskIds:related.map(t=>q(t.id)),
+                message:operationalText('taskV2.ops.fixedPickupNoBooking','The scheduled fixed collection day is not feasible. Notify the carrier.')});
+            }
+          }
+        }
+      }
       if(shipment){
         const booked=shipmentPickupDay(shipment);
         const lastMilestone=[pickDay,abdDay,registrationDay].filter(Boolean).sort().at(-1)||'';
@@ -322,7 +374,7 @@
         const customer=shipmentCustomerNumber(shipment);
         if(customer){
           const fixed=fixedPickups.filter(f=>f&&f.active!==false
-            &&q(f.customerNumber).replace(/\s+/g,'').replace(/^0+(?=\d)/,'').toUpperCase()===customer);
+            &&accountKeys(f.customerNumber).includes(customer));
           const last=[pickDay,abdDay,registrationDay].filter(Boolean).sort().at(-1)||'';
           if(last&&fixed.length&&!booked){
             const earliest=[pickDay,abdDay,registrationDay].filter(Boolean).sort()[0];
