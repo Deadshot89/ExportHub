@@ -32,7 +32,10 @@ test('RC1395: fehlgeschlagene optionale Drive-Kopie bleibt sichtbar, blockiert a
 
 
 test('RC1410: optionales Drive-Backfill nutzt nur das verbleibende gemeinsame Remote-Budget',()=>{
-  assert.match(archive,/const driveBackfillBudget = reference \? Math\.min\(limit, remainingRemoteBudget\) : Math\.min\(1, remainingRemoteBudget\)/);
+  // The optional Drive budget may be zero during a signed maintenance cooldown;
+  // mandatory Azure repair candidates always retain first priority.
+  assert.match(archive,/const suppressDriveBackfill = options\.suppressDriveBackfill === true && !reference/);
+  assert.match(archive,/const driveBackfillBudget = suppressDriveBackfill \? 0 : \(reference \? Math\.min\(limit, remainingRemoteBudget\) : Math\.min\(1, remainingRemoteBudget\)\)/);
   assert.match(archive,/const selectedDriveCandidates = driveBackfillCandidates\.slice\(0, driveBackfillBudget\)/);
   assert.match(archive,/const selectedCandidates = selectedRequiredCandidates\.concat\(selectedDriveCandidates\)/);
   assert.match(archive,/const requiredSelected = selectedRequiredCandidates\.length/);
