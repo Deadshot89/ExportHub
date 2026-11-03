@@ -109,12 +109,14 @@
     const entries=[...pickup,...sameDay,...other];
     const lines=entries.map(w=>'<li data-rule-type="'+esc(w.type)+'"><strong>'+esc(w.groupId||w.shipmentRef||'')+'</strong> '+esc(w.message)
       +(w.bookedDate?'<span>Abholung: '+esc(w.bookedDate)+(w.earliestDate?' · frühestens '+esc(w.earliestDate):'')+'</span>':'')+'</li>').join('');
-    const noPickupData=!inspection.hasPickupData||!inspection.hasFixedPickupData;
+    const noPickupData=!inspection.hasPickupData||!inspection.hasFixedPickupData||inspection.unlinkedTasks>0||inspection.groupsInspected>inspection.matchedPickupGroups;
     return '<section class="tpv2-operational-warnings" data-tpv2-operational-warnings aria-label="Planungsprüfung"><header><strong>Abhängigkeiten und Abholkalender</strong><span>'
       +(entries.length?esc(String(entries.length)+' Hinweise'):'Keine erkannten Terminkonflikte')+'</span></header>'
       +(lines?'<ul>'+lines+'</ul>':'')
       +(noPickupData?'<p class="tpv2-operational-unverified" role="status">Abholkalender nicht vollständig geprüft: '+(!inspection.hasPickupData?'Sendungen fehlen. ':'')
-        +(!inspection.hasFixedPickupData?'Feste Abholtage nicht geladen.':'')+'</p>':'')+'</section>';
+        +(!inspection.hasFixedPickupData?'Feste Abholtage nicht geladen. ':'')
+        +(inspection.unlinkedTasks>0?esc(String(inspection.unlinkedTasks))+' Aufgaben ohne eindeutige Sendungsverknüpfung. ':'')
+        +(inspection.groupsInspected>inspection.matchedPickupGroups?esc(String(inspection.groupsInspected-inspection.matchedPickupGroups))+' Vorgänge ohne zugeordnete Sendung.':'')+'</p>':'')+'</section>';
   }
 
   function taskCardHtml(raw,ctx={}){
