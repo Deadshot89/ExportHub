@@ -221,6 +221,18 @@ function applyTaskLedger(tasks, ledger) {
       if (!record || (Date.parse(candidate.updatedAt || '') || 0) >= (Date.parse(record.updatedAt || '') || 0)) record = candidate;
     }
     if (!record) return task;
+    // A legacy taskStatusLedger entry is a fallback, not an instruction to undo
+    // a newer status change from Tasks V2, RC1570 or a signed background check.
+    // Otherwise a completed task reappears after the next Azure read/merge.
+    const ledgerAt = Date.parse(record.updatedAt || '') || 0;
+    const explicitStatusAt = [
+      task.statusUpdatedAt,
+      task._syncFields && task._syncFields.status && task._syncFields.status.updatedAt,
+      task._syncFields && task._syncFields.done && task._syncFields.done.updatedAt,
+      task.completedAt, task.doneAt
+    ].reduce((latest, value) => Math.max(latest, Date.parse(value || '') || 0), 0);
+    const legacyStatusAt = Date.parse(task.updatedAt || task._syncUpdatedAt || '') || 0;
+    if (Math.max(explicitStatusAt, legacyStatusAt) > ledgerAt) return task;
     const done = record.status === 'erledigt' || record.done === true;
     const next = Object.assign({}, task, {
       status: done ? 'erledigt' : 'offen',
