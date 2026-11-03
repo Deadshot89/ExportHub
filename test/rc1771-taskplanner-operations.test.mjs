@@ -242,3 +242,32 @@ test('RC1771 Deepfix: erledigtes Picken bleibt eine ABD-Abhängigkeit und wird n
   assert.doesNotMatch(target.innerHTML,/is-abd-exception/);
   assert.equal(state.tasks[0].status,'done','Pick-Abschluss bleibt erhalten');
 });
+
+test('RC1771 Deepfix: Wochenwechsel bewahrt ABD-Konflikt der gleichen Ursprungswoche',()=>{
+  const root=load(),state={tasks:[
+    {id:'p',title:'Picken',shipmentRef:'CROSS',status:'open',plannedAt:'2026-11-09T09:00:00'},
+    {id:'a',title:'ABD erstellen',shipmentRef:'CROSS',status:'open',plannedAt:'2026-11-06T10:00:00'}
+  ]};
+  const prev={innerHTML:''},next={innerHTML:''};
+  root.ExportHUBTaskUIV2.renderPlannerPage(prev,{state,weekStart:'2026-11-02',now:'2026-11-03T10:00:00+01:00'});
+  root.ExportHUBTaskUIV2.renderPlannerPage(next,{state,weekStart:'2026-11-09',now:'2026-11-03T10:00:00+01:00'});
+  assert.match(prev.innerHTML,/data-rule-type="abd_before_pick"/,'ABD in Vorwoche muss warnen');
+  assert.match(next.innerHTML,/data-rule-type="abd_before_pick"/,'Pick in Folgewoche muss warnen');
+  assert.equal(state.tasks[0].plannedAt,'2026-11-09T09:00:00');
+});
+test('RC1771 Deepfix: ABD-Bestätigung wird nach Hin- und Rückverschieben wieder ungültig',()=>{
+  const api=load().ExportHUBTaskPlannerV2,tasks=scenario();
+  const approved=api.approveSameDayAbd(tasks,{taskId:'abd',actorId:'u1',at:'2026-11-03T09:00:00Z'}).tasks;
+  assert.equal(api.inspectOperationalPlan({tasks:approved}).byTaskId.abd,undefined);
+  const moved=approved.map(t=>t.id==='pick'?{
+    ...t,plannedAt:'2026-11-04T09:00:00',
+    history:[...(t.history||[]),{action:'manual_move',at:'2026-11-03T10:00:00Z'}]
+  }:t);
+  const restored=moved.map(t=>t.id==='pick'?{
+    ...t,plannedAt:'2026-11-03T09:00:00',
+    history:[...(t.history||[]),{action:'manual_move',at:'2026-11-03T11:00:00Z'}]
+  }:t);
+  const check=api.inspectOperationalPlan({tasks:restored});
+  assert.equal(check.byTaskId.abd.type,'abd_same_day');
+  assert.ok(check.byTaskId.abd.signature!==approved[1].planningSameDayAbdApproval.signature);
+});
