@@ -1637,6 +1637,7 @@
   "taskV2.ops.approve": "Ausnahme bestätigen",
   "taskV2.ops.print": "Wochenplan drucken / PDF",
   "taskV2.ops.pickupDate": "Abholung:",
+  "taskV2.ops.recommended": "Empfohlen:",
   "taskV2.ops.earliest": "frühestens",
   "taskV2.ops.ambiguous": "Mehrere Vorgänge zur selben Sendung: Zuordnung prüfen.",
   "taskV2.ops.abdMissing": "Für diese Sendung ist ein ABD erforderlich, aber kein ABD-Termin verknüpft.",
