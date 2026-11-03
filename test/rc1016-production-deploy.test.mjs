@@ -40,7 +40,7 @@ test('RC1016 Bestandsschutz prüft die damaligen Funktionen und Sicherheitsregre
     '.github/rc1000/rc1000-production-pickup.test.mjs'
   ])assert.ok(main.includes(required),`${required} fehlt in der Main Verification`);
   assert.match(release,/assets\/rc1016-mobile-navigation\.js\?v=1400/);
-  assert.match(release,/assets\/rc1014-task-runtime\.js\?v=1359/,'Release-Vertrag muss den RC1359 Aufgaben-Runtime-Cache-Key verwenden');
+  assert.match(release,/assets\/rc1014-task-runtime\.js\?v=1725/,'Release-Vertrag muss den RC1725 Aufgaben-Runtime-Cache-Key verwenden');
   assert.match(release,/assets\/rc1014-shipment-overview\.js\?v=1370/,'Release-Vertrag muss den RC1370 Shipment-Overview-Cache-Key verwenden');
   assert.match(release,/assets\/rc1014-shipment-overview\.css\?v=1370/,'Release-Vertrag muss auch den RC1370 Overview-CSS-Cache-Key verwenden');
   assert.match(release,/assets\/rc1015-lieferavis-mail-flow\.js\?v=1383/);
