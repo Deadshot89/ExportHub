@@ -326,3 +326,45 @@ test('RC1771 Deepfix: deutsche Uhrzeit bleibt beim Planen erhalten',()=>{
   assert.equal(root.ExportHUBTaskPlannerV2.inspectOperationalPlan({tasks:state.tasks}).byTaskId['abd-time'].date,'2026-11-03');
   assert.equal(state.tasks[0].plannedAt,'03.11.2026 09:30','Originalangabe bleibt unverändert');
 });
+
+test('RC1772: Speditionsmitteilung als nicht versendeten PDF-Druckentwurf anzeigen',()=>{
+  const root=load(),state={tasks:scenario(),shipments:[{id:'S123',pickupDate:'2026-11-03'}]};
+  const prior=JSON.stringify(state),target={innerHTML:''};
+  root.ExportHUBTaskUIV2.renderPlannerPage(target,{state,weekStart:'2026-11-02',now:'2026-11-03T09:00:00+01:00'});
+  assert.match(target.innerHTML,/data-tpv2-print-carrier/);
+  assert.match(target.innerHTML,/data-tpv2-carrier-notice/);
+  assert.match(target.innerHTML,/DRAFT.*not sent to carrier/);
+  assert.match(target.innerHTML,/03\.11\.2026/);
+  assert.match(target.innerHTML,/04\.11\.2026/);
+  assert.equal(JSON.stringify(state),prior,'Druckentwurf darf keine Buchungen oder Aufgaben ändern');
+});
+test('RC1772: kein Speditions-Druck ohne Abholkonflikt',()=>{
+  const root=load(),state={tasks:[
+    task('pick','Picken','2026-11-02'),
+    task('abd','ABD erstellen','2026-11-03')
+  ],shipments:[{id:'S123',pickupDate:'2026-11-04'}]};
+  const target={innerHTML:''};
+  root.ExportHUBTaskUIV2.renderPlannerPage(target,{state,weekStart:'2026-11-02',now:'2026-11-02T09:00:00+01:00'});
+  assert.doesNotMatch(target.innerHTML,/data-tpv2-print-carrier/);
+  assert.doesNotMatch(target.innerHTML,/data-tpv2-carrier-notice/);
+});
+test('RC1772: Speditions-Druck ist eine reine Benutzeraktion, ohne Mail oder automatische Buchung',async()=>{
+  const root=load(),state={tasks:scenario(),shipments:[{id:'S123',pickupDate:'2026-11-03'}]},
+    before=JSON.stringify(state),events={},classes=new Set(),handlers={};
+  let prints=0;
+  root.document={body:{classList:{
+    add(name){classes.add(name);},
+    remove(name){classes.delete(name);}
+  }}};
+  root.print=()=>{prints++;};
+  root.addEventListener=(name,fn)=>{events[name]=fn;};
+  const target={innerHTML:'',querySelector(){return null;},addEventListener(name,fn){handlers[name]=fn;}};
+  root.ExportHUBTaskUIV2.renderPlannerPage(target,{state,weekStart:'2026-11-02',now:'2026-11-03T09:00:00+01:00'});
+  const button={closest(selector){return selector==='[data-tpv2-print-carrier]'?button:null;}};
+  await handlers.click({target:button});
+  assert.equal(prints,1);
+  assert.equal(classes.has('tpv2-print-carrier'),true);
+  events.afterprint();
+  assert.equal(classes.has('tpv2-print-carrier'),false);
+  assert.equal(JSON.stringify(state),before,'Druck darf keine Sendung verändern');
+});
