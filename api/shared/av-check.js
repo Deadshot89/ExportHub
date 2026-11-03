@@ -56,14 +56,14 @@ function abdRequestsFor(state,sh){
 function hasIssuedAbdEvidence(record){
   if(!record||typeof record!=='object')return false;
   // Bare status strings are not customs documents, paths, or MRNs.
-  const statusOnly=/^(?:true|false|ja|nein|yes|no|done|completed|erledigt|fertig|vorhanden|erstellt|abgeschlossen|pflicht|erforderlich|offen|pending|wartet|in bearbeitung|none|null|undefined|n\\/?a|kein|keine|—|-)$/i;
+  const statusOnly=/^(?:true|false|ja|nein|yes|no|done|completed|erledigt|fertig|vorhanden|erstellt|abgeschlossen|pflicht|erforderlich|offen|pending|wartet|in bearbeitung|none|null|undefined|n.a|kein|keine|—|-)$/i;
   const hasDocumentValue=value=>{
     const v=text(value);
     return !!v&&!statusOnly.test(v);
   };
   const fileEvidence=file=>{
     if(typeof file==='string')return hasDocumentValue(file);
-    return !!(file&&typeof file==='object'&&text(
+    return !!(file&&typeof file==='object'&&hasDocumentValue(
       file.name||file.fileName||file.filename||file.blobName||
       file.storageBlobName||file.storagePath||file.documentId||file.id||
       file.url||file.fileUrl
