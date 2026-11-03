@@ -85,15 +85,52 @@
   function interpolateFallback(template,vars){let text=String(template||'');for(const [name,value] of Object.entries(vars||{}))text=text.replaceAll('{'+name+'}',String(value));return text;}
   function translated(key,vars,fallback){const value=tr(key,vars,'');return value&&value!==key?value:interpolateFallback(fallback,vars);}
 
+
+  function inspectionFor(ctx={}){
+    const api=planner(),state=obj(ctx.state)?ctx.state:{};
+    if(typeof api.inspectOperationalPlan!=='function')return{warnings:[],byTaskId:{}};
+    const shipments=arr(state.shipments).concat(arr(state.savedShipments));
+    const seen=new Set(),distinct=shipments.filter(sh=>{
+      const id=q(sh&&(sh.id||sh.shipmentId||sh.reference||sh.ref));
+      if(!id)return true;if(seen.has(id))return false;seen.add(id);return true;
+    });
+    return api.inspectOperationalPlan({
+      tasks:scheduledTasks(ctx),shipments:distinct,
+      fixedPickups:arr(ctx.fixedPickups||state.fixedPickups),
+      fixedPickupDataLoaded:ctx.fixedPickupDataLoaded===true||Array.isArray(state.fixedPickups),
+      calendar:calendarOf(ctx)
+    });
+  }
+  function operationalWarningsHtml(ctx={}){
+    const inspection=ctx.operationInspection||inspectionFor(ctx);
+    const warnings=arr(inspection.warnings),pickup=warnings.filter(w=>w.type==='pickup_notification'||w.type==='fixed_pickup_conflict');
+    const sameDay=warnings.filter(w=>w.type==='abd_same_day');
+    const other=warnings.filter(w=>!['pickup_notification','fixed_pickup_conflict','abd_same_day'].includes(w.type));
+    const entries=[...pickup,...sameDay,...other];
+    const lines=entries.map(w=>'<li data-rule-type="'+esc(w.type)+'"><strong>'+esc(w.groupId||w.shipmentRef||'')+'</strong> '+esc(w.message)
+      +(w.bookedDate?'<span>Abholung: '+esc(w.bookedDate)+(w.earliestDate?' · frühestens '+esc(w.earliestDate):'')+'</span>':'')+'</li>').join('');
+    const noPickupData=!inspection.hasPickupData||!inspection.hasFixedPickupData;
+    return '<section class="tpv2-operational-warnings" data-tpv2-operational-warnings aria-label="Planungsprüfung"><header><strong>Abhängigkeiten und Abholkalender</strong><span>'
+      +(entries.length?esc(String(entries.length)+' Hinweise'):'Keine erkannten Terminkonflikte')+'</span></header>'
+      +(lines?'<ul>'+lines+'</ul>':'')
+      +(noPickupData?'<p class="tpv2-operational-unverified" role="status">Abholkalender nicht vollständig geprüft: '+(!inspection.hasPickupData?'Sendungen fehlen. ':'')
+        +(!inspection.hasFixedPickupData?'Feste Abholtage nicht geladen.':'')+'</p>':'')+'</section>';
+  }
+
   function taskCardHtml(raw,ctx={}){
     const task=typeof base.detailModel==='function'?base.detailModel(raw,ctx):raw;
-    const overdue=ctx.planningView===true?false:isOverdue(task,ctx.now),classes='tpv2-task-card'+(overdue?' is-overdue':'');
+    const overdue=ctx.planningView===true?false:isOverdue(task,ctx.now);
+    const warning=ctx.operationInspection&&ctx.operationInspection.byTaskId&&ctx.operationInspection.byTaskId[q(task.id)];
+    const orange=warning&&warning.type==='abd_same_day';
+    const classes='tpv2-task-card'+(overdue?' is-overdue':'')+(orange?' is-abd-exception':'');
     let overdueDays=0;if(overdue){try{overdueDays=Number(core().derive(task,nowOf(ctx)).overdueDays)||0;}catch(_){}}
     const overdueText=overdueDays>0?translated('taskV2.overdueDays',{count:overdueDays},'{count} days overdue'):translated('taskV2.planner.overdue',null,'Overdue');
     return `<article class="${classes}" data-task-id="${esc(task.id)}" data-priority="${esc(task.priority)}" data-status="${esc(task.status)}" tabindex="0" role="button" aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight">
-      <div class="tpv2-task-card-head"><span class="tpv2-priority">${esc(task.priority||'P2')}</span>${overdue?`<span class="tpv2-badge tpv2-overdue">${esc(overdueText)}</span>`:''}</div>
+      <div class="tpv2-task-card-head"><span class="tpv2-priority">${esc(task.priority||'P2')}</span>${overdue?`<span class="tpv2-badge tpv2-overdue">${esc(overdueText)}</span>`:''}${orange?'<span class="tpv2-badge tpv2-abd-warning">ABD prüfen</span>':''}</div>
       <h3>${esc(task.title||translated('taskV2.task',null,'Task'))}</h3>
       <p class="tpv2-task-customer">${esc(task.customerName||'')}</p>
+      ${orange?'<p class="tpv2-abd-alert" role="alert">'+esc(warning.message)+'</p><button type="button" class="tpv2-button tpv2-button-secondary tpv2-approve-abd" data-tpv2-abd-approve="'+esc(task.id)+'">Ausnahme bestätigen</button>':''}
+      ${warning&&!orange?'<p class="tpv2-abd-alert" role="alert">'+esc(warning.message)+'</p>':''}
       <div class="tpv2-task-meta"><span>${esc(task.status||'open')}</span><span>${esc(q(task.dueAt).slice(0,16).replace('T',' · '))}</span></div>
     </article>`;
   }
@@ -136,6 +173,7 @@
   }
   function workweekHtml(ctx={}){
     const start=mondayOf(ctx.weekStart||nowOf(ctx)),draft=ctx.weekDraft||null;
+    if(!ctx.operationInspection)ctx={...ctx,operationInspection:inspectionFor(ctx)};
     const overload=draft&&draft.overloaded===true?`<div class="tpv2-overload" data-tpv2-overload role="status">${esc(translated('taskV2.planner.overload',null,'This week is overloaded.'))}</div>`:'';
     const nav=ctx.navigation===true?navHtml('week',`${start} – ${addDays(start,11)}`,start>mondayOf(nowOf(ctx))):'';
     return `<div class="tpv2-workweeks" data-tpv2-workweek>${nav}${overload}${weekSectionHtml(start,'current',ctx)}${weekSectionHtml(addDays(start,7),'next',ctx)}</div>`;
@@ -148,11 +186,12 @@
   }
   function shiftMonth(ym,delta){const d=new Date(Date.UTC(ym.year,ym.month-1+delta,1));return{year:d.getUTCFullYear(),month:d.getUTCMonth()+1};}
   function monthDayHtml(date,ctx){
-    const tasks=sorted(scheduledTasks(ctx).filter(t=>taskDay(t)===date),ctx.now);
+    const tasks=sorted(scheduledTasks(ctx).filter(t=>taskDay(t)===date),ctx.now);if(!ctx.operationInspection)ctx={...ctx,operationInspection:inspectionFor(ctx)};
     const title=new Intl.DateTimeFormat(undefined,{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(date+'T12:00:00Z')),label=nonWorkLabel(nonWorkOf(date,ctx));
     return `<section class="tpv2-month-detail" data-tpv2-month-detail="${esc(date)}"><header><h3>${esc(title)}</h3>${label?`<span class="tpv2-day-nonwork">${esc(label)}</span>`:''}<button type="button" class="tpv2-button tpv2-button-secondary" data-tpv2-month-day-close>${esc(translated('taskV2.planner.close',null,'Close'))}</button></header>${tasks.length?`<div class="tpv2-month-detail-grid">${tasks.map(t=>taskCardHtml(t,{...ctx,planningView:true})).join('')}</div>`:`<p class="tpv2-empty">${esc(translated('taskV2.planner.noTasksDay',null,'No open tasks on this day'))}</p>`}</section>`;
   }
   function monthHtml(ctx={}){
+    if(!ctx.operationInspection)ctx={...ctx,operationInspection:inspectionFor(ctx)};
     const now=nowOf(ctx),today=dayKey(now),{year,month}=monthOf(ctx);
     const projection=planner().monthProjection({tasks:scheduledTasks(ctx),year,month,now,calendar:calendarOf(ctx)});
     const byDate=new Map(arr(projection&&projection.days).map(row=>[q(row.date),row])),days=new Date(Date.UTC(year,month,0)).getUTCDate(),cells=[];
@@ -319,11 +358,11 @@
       try{draft=weekPlanDraft(ctx,mode);weekPlan=weekPlanHtml(draft,mode,ctx);}
       catch(error){weekPlan=`<p class="tpv2-weekplan-note" role="alert">${esc(error&&error.message||error)}</p>`;}
     }
-    const viewCtx=draft?{...ctx,weekDraft:draft}:ctx;
+    const viewCtx=draft?{...ctx,weekDraft:draft,operationInspection:inspectionFor(ctx)}:{...ctx,operationInspection:inspectionFor(ctx)};
     const density=q(ctx.density)==='compact'?'compact':'detailed';
     return `<section class="tpv2-planner" data-taskplanner-v2-planner data-view="${current}" data-density="${density}">
-      <header class="tpv2-planner-head"><div><span class="tpv2-eyebrow">TaskPlanner V2</span><h1>${esc(translated('taskV2.planner.title',null,'Task planner'))}</h1></div><div class="tpv2-view-toggle" role="group" data-tpv2-density-toggle><button type="button" data-tpv2-density="compact" aria-pressed="${density==='compact'}">${esc(translated('taskV2.view.compact',null,'Compact'))}</button><button type="button" data-tpv2-density="detailed" aria-pressed="${density==='detailed'}">${esc(translated('taskV2.view.detailed',null,'Detailed'))}</button></div><div class="tpv2-view-toggle" role="group"><button type="button" data-tpv2-view="workweek" aria-pressed="${current==='workweek'}">${esc(translated('taskV2.planner.workweek',null,'Workweek'))}</button><button type="button" data-tpv2-view="month" aria-pressed="${current==='month'}">${esc(translated('taskV2.planner.month',null,'Month'))}</button></div></header>
-      ${current==='workweek'?weekPlanToolbarHtml()+weekPlan:''}<div class="tpv2-planner-view" data-tpv2-planner-view>${current==='month'?monthHtml(ctx):workweekHtml(viewCtx)}</div>
+      <header class="tpv2-planner-head"><div><span class="tpv2-eyebrow">TaskPlanner V2</span><h1>${esc(translated('taskV2.planner.title',null,'Task planner'))}</h1></div><button type="button" class="tpv2-button tpv2-button-secondary" data-tpv2-print-plan>Wochenplan drucken / PDF</button><div class="tpv2-view-toggle" role="group" data-tpv2-density-toggle><button type="button" data-tpv2-density="compact" aria-pressed="${density==='compact'}">${esc(translated('taskV2.view.compact',null,'Compact'))}</button><button type="button" data-tpv2-density="detailed" aria-pressed="${density==='detailed'}">${esc(translated('taskV2.view.detailed',null,'Detailed'))}</button></div><div class="tpv2-view-toggle" role="group"><button type="button" data-tpv2-view="workweek" aria-pressed="${current==='workweek'}">${esc(translated('taskV2.planner.workweek',null,'Workweek'))}</button><button type="button" data-tpv2-view="month" aria-pressed="${current==='month'}">${esc(translated('taskV2.planner.month',null,'Month'))}</button></div></header>
+      ${operationalWarningsHtml(viewCtx)}${current==='workweek'?weekPlanToolbarHtml()+weekPlan:''}<div class="tpv2-planner-view" data-tpv2-planner-view>${current==='month'?monthHtml(ctx):workweekHtml(viewCtx)}</div>
       <div class="tpv2-planner-detail-host" data-tpv2-detail-host></div>
     </section>`;
   }
@@ -343,7 +382,25 @@
     const weekStart=q(target.__tpv2WeekStart)||ctx.weekStart;
     let density=q(target.__tpv2Density);
     if(!density){try{density=typeof base.viewPreference==='function'&&userIdOf(actionContext(ctx))?base.viewPreference(actionContext(ctx)):'';}catch(_){density='';}}
-    target.innerHTML=plannerPageHtml({...ctx,weekStart,weekPlanMode:mode,navigation:true,year:ym.year,month:ym.month,monthDay,density},view);
+    target.innerHTML=plannerPageHtml({...ctx,weekStart,weekPlanMode:mode,navigation:true,year:ym.year,month:ym.month,monthDay,density,
+      fixedPickups:target.__tpv2FixedPickups||ctx.fixedPickups,
+      fixedPickupDataLoaded:target.__tpv2FixedPickupLoaded===true||ctx.fixedPickupDataLoaded===true},view);
+    if(!target.__tpv2FixedPickupFetchStarted&&typeof root.fetch==='function'&&root.location){
+      target.__tpv2FixedPickupFetchStarted=true;
+      const company=q(ctx.companyId||ctx.state&&ctx.state.companyId||ctx.state&&ctx.state.currentCompanyId);
+      const environment=q(ctx.environment||ctx.state&&ctx.state.environment||root.__EXPORTHUB_FORCED_ENVIRONMENT__||'production');
+      const headers={'Accept':'application/json','Content-Type':'application/json','X-ExportHUB-Environment':environment};
+      if(company)headers['X-ExportHUB-Company-Id']=company;
+      try{
+        root.fetch('/api/fixed-pickups?includeInactive=1',{method:'GET',credentials:'same-origin',headers})
+          .then(response=>{if(!response.ok)throw Error('Abholkalender nicht verfügbar');return response.json();})
+          .then(data=>{if(data&&data.ok===false)throw Error('Abholkalender nicht verfügbar');
+            target.__tpv2FixedPickups=arr(data&&data.items);target.__tpv2FixedPickupLoaded=true;
+            renderFresh(target,{...(target.__tpv2Ctx||ctx),view:target.__tpv2View});
+          })
+          .catch(()=>{target.__tpv2FixedPickupLoaded=false;});
+      }catch(_){}
+    }
     if(target.__tpv2DndCleanup){try{target.__tpv2DndCleanup();}catch(_){}}
     target.__tpv2DndCleanup=view==='workweek'?bindPlannerDnD(target,{...ctx,weekStart,state:ctx.state||{},runtime:runtimeOf(ctx)}):null;
     if(typeof target.addEventListener==='function'&&!target.__tpv2ViewBound){
@@ -355,6 +412,27 @@
       });
       target.addEventListener('click',async event=>{
         const eventTarget=event&&event.target,closest=selector=>eventTarget&&typeof eventTarget.closest==='function'?eventTarget.closest(selector):null;
+        const printButton=closest('[data-tpv2-print-plan]');
+        if(printButton){
+          const document=root.document;
+          if(document&&document.body&&document.body.classList&&typeof root.print==='function'){
+            document.body.classList.add('tpv2-print-plan');
+            const reset=()=>document.body.classList.remove('tpv2-print-plan');
+            try{if(typeof root.addEventListener==='function')root.addEventListener('afterprint',reset,{once:true});root.print();}
+            catch(_){reset();}
+          }
+          return;
+        }
+        const approveButton=closest('[data-tpv2-abd-approve]');
+        if(approveButton){
+          const taskId=q(approveButton.getAttribute('data-tpv2-abd-approve'));
+          const resolved=actionContext(target.__tpv2Ctx||ctx),actorId=userIdOf(resolved);
+          if(!actorId)return;
+          const result=planner().approveSameDayAbd(resolved.state.tasks,{taskId,actorId,at:nowOf(resolved)});
+          if(result&&result.changed){resolved.state.tasks=result.tasks;resolved.persist(result.tasks);
+            renderFresh(target,{...resolved,view:target.__tpv2View});}
+          return;
+        }
         const viewButton=closest('[data-tpv2-view]');
         if(viewButton){const next=q(viewButton.getAttribute('data-tpv2-view'));if(['workweek','month'].includes(next)){target.__tpv2View=next;renderFresh(target,{...(target.__tpv2Ctx||ctx),view:next});}return;}
         const detailHost=typeof target.querySelector==='function'?target.querySelector('[data-tpv2-detail-host]'):null,currentCtx=target.__tpv2Ctx||ctx;
