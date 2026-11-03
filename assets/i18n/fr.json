@@ -1637,6 +1637,7 @@
   "taskV2.ops.approve": "Confirmer l'exception",
   "taskV2.ops.print": "Imprimer le planning hebdomadaire / PDF",
   "taskV2.ops.pickupDate": "Enlèvement :",
+  "taskV2.ops.recommended": "Conseillé :",
   "taskV2.ops.earliest": "au plus tôt",
   "taskV2.ops.ambiguous": "Plusieurs opérations pour une même expédition : vérifier l'association.",
   "taskV2.ops.abdMissing": "Un document douanier est requis, mais aucune tâche ABD n'est liée.",
