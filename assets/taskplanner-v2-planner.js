@@ -17,7 +17,17 @@
     if(!api||typeof api.isWorkday!=='function')throw new Error('TaskPlanner V2 Recurrence fehlt');
     return api;
   }
-  function dayKey(value){return core().dayKey(value);}
+  function dayKey(value){
+    // Never use Date.parse for German DD.MM.YYYY: browsers can treat 03.11 as March 11.
+    const valueText=q(value),match=valueText.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})(?=$|[ T])/);
+    if(match){
+      const d=Number(match[1]),m=Number(match[2]),y=Number(match[3]);
+      const check=new Date(Date.UTC(y,m-1,d));
+      if(check.getUTCFullYear()!==y||check.getUTCMonth()!==m-1||check.getUTCDate()!==d)return'';
+      return String(y).padStart(4,'0')+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    }
+    return core().dayKey(value);
+  }
   function addDays(value,amount){
     const d=dayKey(value);if(!d)return'';
     const [y,m,day]=d.split('-').map(Number),date=new Date(Date.UTC(y,m-1,day));
@@ -211,6 +221,38 @@
     if(/(?:anmeld|registration|avisier)/i.test(text))return'registration';
     return'';
   }
+  // RC1650 already stores customer numbers on recurring weekly tasks.
+  // Only a single account + a stable week key is safe for pairing pick/ABD.
+  function accountKeys(value){
+    const values=arr(value).length?arr(value):[value],keys=[];
+    for(const item of values)for(const part of q(item).split(/[,;\n]+/)){
+      let key=q(part).replace(/\s+/g,'').toUpperCase();
+      if(/^\d+$/.test(key))key=key.replace(/^0+(?=\d)/,'');
+      if(key&&!keys.includes(key))keys.push(key);
+    }
+    return keys;
+  }
+  function isoWeekOf(value){
+    const start=monday(value);if(!start)return'';
+    const thursday=addDays(start,3),year=Number(thursday.slice(0,4)),anchor=monday(year+'-01-04');
+    const week=1+Math.round((Date.parse(start+'T12:00:00Z')-Date.parse(anchor+'T12:00:00Z'))/604800000);
+    return year+'-W'+String(week).padStart(2,'0');
+  }
+  function isoWeekMonday(week){
+    const m=q(week).match(/^(\d{4})-W(\d{1,2})$/);if(!m)return'';
+    const start=monday(m[1]+'-01-04');return addDays(start,7*(Number(m[2])-1));
+  }
+  function weeklyCustomerGroup(task){
+    const weekly=task&&(task.masterTaskRC848===true||task.masterTaskRC846===true
+      ||q(task.weekKey)||q(task.createdForWeek)||q(task.weeklySeriesId)
+      ||/week|woch/i.test(q(task.recurrence)));
+    if(!weekly)return'';
+    const accounts=accountKeys(task.customerNumber||task.linkedAccount||task.customerAccount||task.account);
+    if(accounts.length!==1)return'';
+    const explicit=q(task.weekKey||task.createdForWeek);
+    const week=/^\d{4}-W\d{1,2}$/.test(explicit)?explicit:isoWeekOf(operationalTaskDate(task));
+    return week?'CUSTOMER:'+accounts[0]+':'+week:'';
+  }
   function operationalLink(task){
     const candidates=[
       task&&task.planningGroupId,task&&task.linkedShipmentId,
@@ -223,7 +265,7 @@
       const key=q(value).toUpperCase();
       if(key&&key!=='UNDEFINED'&&!/^MANAGED:|^MASTER:|^M848:/.test(key))return key;
     }
-    return'';
+    return weeklyCustomerGroup(task);
   }
   function shipmentIdentity(shipment){
     for(const key of ['id','shipmentId','reference','ref','shipmentRef','referenceNumber','referenceNo']){
@@ -244,18 +286,40 @@
       ||customer.customerNumber||customer.account).replace(/\s+/g,'').replace(/^0+(?=\d)/,'').toUpperCase();
   }
   function operationalTaskDate(task){
-    return dayKey(task&&(task.plannedAt||task.plannedDate||task.dueAt||task.dueDate||task.date));
+    const dated=dayKey(task&&(task.plannedAt||task.plannedDate||task.dueAt||task.dueDate||task.date));
+    if(dated)return dated;
+    // Legacy RC848 recurring tasks may contain only a week key and weekday.
+    // The approval engine must resolve the same occurrence as the planner UI.
+    const week=isoWeekMonday(task&&(task.weekKey||task.createdForWeek));
+    if(!week)return'';
+    const weekdays={montag:1,dienstag:2,mittwoch:3,donnerstag:4,freitag:5,samstag:6,sonntag:7,
+      monday:1,tuesday:2,wednesday:3,thursday:4,friday:5,saturday:6,sunday:7};
+    const label=q(task&&(task.day||task.weekday)).toLowerCase();
+    const weekday=weekdays[label]||Number(label);
+    return Number.isInteger(weekday)&&weekday>=1&&weekday<=7?addDays(week,weekday-1):'';
   }
   function operationalSignature(group,pick,abd){
-    return [group,q(pick&&pick.id),operationalTaskDate(pick),q(abd&&abd.id),operationalTaskDate(abd)].join('|');
+    // Explicit approval is for this occurrence *and* its planning revision.
+    // Moving a step away and then back to its old date still needs new approval.
+    const moved=task=>arr(task&&task.history).filter(entry=>
+      ['manual_move','week_plan_applied','rescheduled'].includes(q(entry&&entry.action).toLowerCase())
+    ).length;
+    return [group,q(pick&&pick.id),operationalTaskDate(pick),moved(pick),
+      q(abd&&abd.id),operationalTaskDate(abd),moved(abd)].join('|');
   }
   function inspectOperationalPlan(input={}){
     const tasks=arr(input.tasks),shipments=arr(input.shipments),fixedPickups=arr(input.fixedPickups);
     const warnings=[],byTaskId={},groups=new Map(),cal=input.calendar||recurrence().calendar({});
     let unlinkedTasks=0,matchedPickupGroups=0;
     for(const task of tasks){
-      if(!task||terminal(task)||task.done===true||task.completed===true)continue;
-      const kind=operationalKind(task),link=operationalLink(task);
+      if(!task)continue;
+      const kind=operationalKind(task),status=q(task.status).toLowerCase();
+      const cancelled=['cancelled','canceled','storniert','deleted','gelöscht'].includes(status);
+      const done=task.done===true||task.completed===true||['done','erledigt','completed','abgeschlossen','archiviert'].includes(status);
+      // A completed pick is still a prerequisite for an open customs task.
+      // It must not reappear as an open card, but its date remains relevant.
+      if(cancelled||(done&&kind!=='pick'))continue;
+      const link=operationalLink(task);
       if(!kind||!operationalTaskDate(task))continue;
       if(!link){unlinkedTasks++;continue;}
       if(!groups.has(link))groups.set(link,{key:link,pick:[],abd:[],registration:[]});
@@ -269,16 +333,18 @@
       const pick=group.pick.length===1?group.pick[0]:null;
       const abd=group.abd.length===1?group.abd[0]:null;
       const registration=group.registration.length===1?group.registration[0]:null;
-      const shipment=lookupShipment(group.key),pickDay=operationalTaskDate(pick),abdDay=operationalTaskDate(abd),registrationDay=operationalTaskDate(registration);
+      const shipment=lookupShipment(group.key),customerGroup=group.key.match(/^CUSTOMER:([^:]+):(\d{4}-W\d{1,2})$/),
+        pickDay=operationalTaskDate(pick),abdDay=operationalTaskDate(abd),registrationDay=operationalTaskDate(registration);
       if(shipment)matchedPickupGroups++;
       const related=[...group.pick,...group.abd,...group.registration];
       if(group.pick.length>1||group.abd.length>1||group.registration.length>1){
         warnings.push({type:'ambiguous_link',groupId:group.key,taskIds:related.map(t=>q(t.id)),message:operationalText('taskV2.ops.ambiguous','Multiple operations for the same shipment: verify assignment.')});
         continue;
       }
-      if(pick&&shipment&&!abd&&[
-        shipment.requiresAbd,shipment.abdRequired,shipment.customsRequired,
-        shipment.customsDeclarationRequired
+      if(pick&&!abd&&[
+        pick.requiresAbd,pick.abdRequired,pick.customsRequired,pick.customsDeclarationRequired,
+        shipment&&shipment.requiresAbd,shipment&&shipment.abdRequired,
+        shipment&&shipment.customsRequired,shipment&&shipment.customsDeclarationRequired
       ].some(value=>value===true)){
         const warning={type:'abd_missing',groupId:group.key,taskId:q(pick.id),
           message:operationalText('taskV2.ops.abdMissing','A customs document is required but no customs task is linked.')};
@@ -306,6 +372,25 @@
           warnings.push(warning);byTaskId[q(registration.id)]=warning;
         }
       }
+      // A recurring customer task can exist before a shipment is created.
+      // Compare it with the fixed carrier day, without inventing a booking.
+      if(customerGroup&&!shipment){
+        const weekStart=isoWeekMonday(customerGroup[2]),customer=customerGroup[1];
+        const lastMilestone=[pickDay,abdDay,registrationDay].filter(Boolean).sort().at(-1)||'';
+        if(weekStart&&lastMilestone){
+          for(const fixed of fixedPickups){
+            const weekday=Number(fixed&&fixed.weekday);
+            if(!fixed||fixed.active===false||!Number.isInteger(weekday)||weekday<1||weekday>5
+              ||!accountKeys(fixed.customerNumber).includes(customer))continue;
+            const booked=addDays(weekStart,weekday-1);
+            if(lastMilestone>=booked){
+              warnings.push({type:'fixed_pickup_conflict',groupId:group.key,shipmentRef:'',bookedDate:booked,
+                taskIds:related.map(t=>q(t.id)),
+                message:operationalText('taskV2.ops.fixedPickupNoBooking','The scheduled fixed collection day is not feasible. Notify the carrier.')});
+            }
+          }
+        }
+      }
       if(shipment){
         const booked=shipmentPickupDay(shipment);
         const lastMilestone=[pickDay,abdDay,registrationDay].filter(Boolean).sort().at(-1)||'';
@@ -322,7 +407,7 @@
         const customer=shipmentCustomerNumber(shipment);
         if(customer){
           const fixed=fixedPickups.filter(f=>f&&f.active!==false
-            &&q(f.customerNumber).replace(/\s+/g,'').replace(/^0+(?=\d)/,'').toUpperCase()===customer);
+            &&accountKeys(f.customerNumber).includes(customer));
           const last=[pickDay,abdDay,registrationDay].filter(Boolean).sort().at(-1)||'';
           if(last&&fixed.length&&!booked){
             const earliest=[pickDay,abdDay,registrationDay].filter(Boolean).sort()[0];

@@ -354,3 +354,20 @@ test('RC848 Pick-Tage erscheinen auch mit nur Wochenkennung und Wochentag',()=>{
   assert.ok(monday>=0);
   assert.match(month.innerHTML.slice(monday,monday+180),/<span>1<\/span>/,'Pick im Monatszähler');
 });
+
+test('RC1771 Deepfix: Wochenplan darf Aufgaben der folgenden Woche nicht in die aktuelle ziehen',async()=>{
+  const {ExportHUBTaskUIV2:ui}=load(),target=plannerTarget(),calls=[];
+  const state={tasks:[
+    task('current','2026-11-02',{title:'Picken diese Woche',dueAt:'2026-11-04T16:15:00+01:00'}),
+    task('next','2026-11-09',{title:'Picken nächste Woche',dueAt:'2026-11-10T16:15:00+01:00'})
+  ]};
+  const runtime={applyWeekPlan(draft){calls.push(draft);return{changed:true};}};
+  ui.renderPlannerPage(target,{state,runtime,now:'2026-11-02T09:00:00+01:00',weekStart:'2026-11-02',weekPlanMode:'recalculate'});
+  assert.match(target.innerHTML,/Picken nächste Woche/,'die nächste Woche bleibt sichtbar');
+  assert.match(target.innerHTML,/<li><strong>1<\/strong><span>Planned this week/,'nur aktuelle Woche zählt im Entwurf');
+  await target.handlers.click({target:button('data-tpv2-weekplan','apply')});
+  assert.equal(calls.length,1,'aktueller Wochenentwurf wurde übernommen');
+  assert.deepEqual(Array.from(calls[0].items,row=>row.taskId),['current']);
+  assert.ok(!calls[0].items.some(row=>row.taskId==='next'),'nächste Woche darf nicht verschoben werden');
+  assert.equal(state.tasks[1].plannedAt,'2026-11-09T09:00:00+02:00');
+});

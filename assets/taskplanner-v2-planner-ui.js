@@ -32,7 +32,17 @@
     return fallback||key;
   }
   function nowOf(ctx){return q(ctx&&ctx.now)||new Date().toISOString();}
-  function dayKey(value){return core().dayKey(value);}
+  function dayKey(value){
+    // Never use Date.parse for German DD.MM.YYYY: browsers can treat 03.11 as March 11.
+    const valueText=q(value),match=valueText.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})(?=$|[ T])/);
+    if(match){
+      const d=Number(match[1]),m=Number(match[2]),y=Number(match[3]);
+      const check=new Date(Date.UTC(y,m-1,d));
+      if(check.getUTCFullYear()!==y||check.getUTCMonth()!==m-1||check.getUTCDate()!==d)return'';
+      return String(y).padStart(4,'0')+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    }
+    return core().dayKey(value);
+  }
   function addDays(date,days){const d=new Date(q(date)+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+Number(days||0));return d.toISOString().slice(0,10);}
   function mondayOf(value){
     const key=dayKey(value)||dayKey(new Date()),d=new Date(key+'T12:00:00Z'),day=d.getUTCDay()||7;
@@ -40,7 +50,7 @@
   }
   function activeTask(task){
     const status=q(task&&task.status).toLowerCase();
-    return !!task&&!['done','erledigt','completed','cancelled','canceled','storniert'].includes(status)
+    return !!task&&!['done','erledigt','completed','abgeschlossen','archiviert','cancelled','canceled','storniert','deleted','gelöscht'].includes(status)
       &&task.done!==true&&task.completed!==true&&!q(task.archivedAt);
   }
   // RC848 weekly picks may have only an ISO week and weekday. The planner
@@ -68,9 +78,23 @@
       .filter(t=>activeTask(t)&&taskDay(t)&&t.isTemplate!==true&&t.seriesTemplate!==true)
       .map(task=>{
         // Only enrich the in-memory view; source tasks and task history stay untouched.
-        const date=taskDay(task);
-        return dayKey(task.plannedAt||task.dueAt)?task:{
-          ...task,plannedAt:date+'T00:00:00',dueAt:date+'T16:15:00'
+        const date=taskDay(task),copy={...task};
+        for(const [field,time] of [
+          ['plannedAt','00:00'],['plannedDate','00:00'],['dueAt','16:15'],
+          ['dueDate','16:15'],['scheduledDate','00:00'],['date','00:00']
+        ]){
+          const value=q(copy[field]);
+          const german=value.match(/^(\d{1,2}\.\d{1,2}\.\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+          if(german){
+            const iso=dayKey(german[1]),hour=german[2]===undefined?Number(time.slice(0,2)):Number(german[2]),
+              minute=german[3]===undefined?Number(time.slice(3,5)):Number(german[3]),second=Number(german[4]||0);
+            if(iso&&hour>=0&&hour<=23&&minute>=0&&minute<=59&&second>=0&&second<=59){
+              copy[field]=iso+'T'+String(hour).padStart(2,'0')+':'+String(minute).padStart(2,'0')+':'+String(second).padStart(2,'0');
+            }
+          }
+        }
+        return dayKey(copy.plannedAt||copy.dueAt)?copy:{
+          ...copy,plannedAt:date+'T00:00:00',dueAt:date+'T16:15:00'
         };
       });
   }
@@ -102,8 +126,34 @@
       if(!date||taskDay(task)===date)return task;
       return{...task,plannedAt:plannedAtForDate(task,date),plannedDate:date};
     });
+    const monthView=q(ctx.view)==='month';
+    const ym=monthView?monthOf(ctx):null;
+    const first=monthView?`${ym.year}-${String(ym.month).padStart(2,'0')}-01`:mondayOf(ctx.weekStart||nowOf(ctx));
+    const last=monthView?`${ym.year}-${String(ym.month).padStart(2,'0')}-${String(new Date(Date.UTC(ym.year,ym.month,0)).getUTCDate()).padStart(2,'0')}`:addDays(first,11);
+    // Completed pick operations are prerequisites for still-open ABD work,
+    // but never reappear as open tasks or as historical overdue warnings.
+    const donePicks=arr(state.tasks).filter(task=>{
+      const status=q(task&&task.status).toLowerCase();
+      return task&&(task.done===true||task.completed===true||['done','erledigt','completed'].includes(status))
+        &&api.operationalKind(task)==='pick'&&taskDay(task);
+    }).map(task=>{
+      const date=taskDay(task);
+      return dayKey(task.plannedAt||task.dueAt)?task:{...task,plannedAt:date+'T09:00:00'};
+    });
+    const candidates=projected.concat(donePicks);
+    const inPeriod=task=>{
+      const date=taskDay(task);return date>=first&&date<=last;
+    };
+    // A moved picking task and its customs document can end up in different
+    // calendar weeks. Keep the full identified occurrence in the inspection
+    // whenever at least one step belongs to the visible period.
+    const visibleLinks=new Set(candidates.filter(inPeriod)
+      .map(task=>typeof api.operationalLink==='function'?api.operationalLink(task):'').filter(Boolean));
+    const visible=candidates.filter(task=>inPeriod(task)||(
+      typeof api.operationalLink==='function'&&visibleLinks.has(api.operationalLink(task))
+    ));
     return api.inspectOperationalPlan({
-      tasks:projected,shipments:distinct,
+      tasks:visible,shipments:distinct,
       fixedPickups:arr(ctx.fixedPickups||state.fixedPickups),
       fixedPickupDataLoaded:ctx.fixedPickupDataLoaded===true||Array.isArray(state.fixedPickups),
       calendar:calendarOf(ctx)
@@ -117,7 +167,8 @@
     const entries=[...pickup,...sameDay,...other];
     const lines=entries.map(w=>'<li data-rule-type="'+esc(w.type)+'"><strong>'+esc(w.groupId||w.shipmentRef||'')+'</strong> '+esc(w.message)
       +(w.bookedDate?'<span>'+esc(translated('taskV2.ops.pickupDate',null,'Pickup:'))+' '+esc(w.bookedDate)+(w.earliestDate?' · '+esc(translated('taskV2.ops.earliest',null,'earliest'))+' '+esc(w.earliestDate):'')+'</span>':'')
-      +(w.recommendedDate?'<span>'+esc(translated('taskV2.ops.recommended',null,'Suggested:'))+' '+esc(w.recommendedDate)+'</span>':'')+'</li>').join('');
+      +(w.recommendedDate?'<span>'+esc(translated('taskV2.ops.recommended',null,'Suggested:'))+' '+esc(w.recommendedDate)+'</span>':'')
+      +((w.type==='pickup_notification'||w.type==='fixed_pickup_conflict')?'<button type="button" class="tpv2-button tpv2-button-secondary" data-tpv2-print-carrier="'+esc(w.groupId||w.shipmentRef)+'">'+esc(translated('taskV2.carrier.print',null,'Carrier notice / PDF'))+'</button>':'')+'</li>').join('');
     const noPickupData=!inspection.hasPickupData||!inspection.hasFixedPickupData||inspection.unlinkedTasks>0||inspection.groupsInspected>inspection.matchedPickupGroups;
     return '<section class="tpv2-operational-warnings" data-tpv2-operational-warnings><header><strong>'+esc(ctx.weekDraft?translated('taskV2.planner.planTitle',null,'Week plan draft'):translated('taskV2.ops.title',null,'Dependencies and pickup calendar'))+'</strong><span>'
       +(entries.length?esc(translated('taskV2.ops.warningCount',{count:entries.length},'{count} notices')):esc(translated('taskV2.ops.noConflicts',null,'No detected scheduling conflicts')))+'</span></header>'
@@ -126,6 +177,57 @@
         +(!inspection.hasFixedPickupData?esc(translated('taskV2.ops.fixedMissing',null,'Fixed pickup days not loaded.'))+' ':'')
         +(inspection.unlinkedTasks>0?esc(translated('taskV2.ops.unlinked',{count:inspection.unlinkedTasks},'{count} tasks without a shipment link.'))+' ':'')
         +(inspection.groupsInspected>inspection.matchedPickupGroups?esc(translated('taskV2.ops.unmatched',{count:inspection.groupsInspected-inspection.matchedPickupGroups},'{count} operations without a matching shipment.')):'')+'</p>':'')+'</section>';
+  }
+
+  function formatPlannedDate(value){
+    const raw=q(value),match=raw.match(/^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}:\d{2}))?/);
+    if(!match)return raw;
+    return match[3]+'.'+match[2]+'.'+match[1]+(match[4]&&match[4]!=='00:00'?' · '+match[4]:'');
+  }
+
+  // Render only the affected carrier dates. This is a print draft, not a
+  // booking change or an outbound email.
+  function carrierWarnings(inspection){
+    const selected=arr(inspection&&inspection.warnings)
+      .filter(w=>w&&(w.type==='pickup_notification'||w.type==='fixed_pickup_conflict'))
+      .sort((a,b)=>(a.type==='pickup_notification'?0:1)-(b.type==='pickup_notification'?0:1));
+    const seen=new Set();
+    return selected.filter(w=>{
+      const key=q(w.groupId||w.shipmentRef)+'|'+q(w.bookedDate);
+      if(seen.has(key))return false;seen.add(key);return true;
+    });
+  }
+  function carrierNoticeHtml(ctx={}){
+    const warnings=carrierWarnings(ctx.operationInspection||inspectionFor(ctx));
+    if(!warnings.length)return'';
+    const text=(key,fallback)=>esc(translated('taskV2.carrier.'+key,null,fallback));
+    const groups=new Map();
+    for(const warning of warnings){
+      const key=q(warning.groupId||warning.shipmentRef);
+      if(!key)continue;
+      if(!groups.has(key))groups.set(key,[]);
+      groups.get(key).push(warning);
+    }
+    return Array.from(groups,([key,items])=>{
+      const rows=items.map(w=>{
+        const customer=q(w.shipmentRef||w.groupId),match=customer.match(/^CUSTOMER:([^:]+):(\d{4}-W\d{1,2})$/);
+        const label=match?match[1]+' · '+match[2]:customer;
+        return'<tr><td>'+esc(label)+'</td>'
+          +'<td>'+esc(formatPlannedDate(w.bookedDate||''))+'</td>'
+          +'<td>'+esc(formatPlannedDate(w.earliestDate||''))+'</td>'
+          +'<td>'+esc(w.message)+'</td></tr>';
+      }).join('');
+      return '<section class="tpv2-carrier-print-sheet" data-tpv2-carrier-notice data-tpv2-carrier-group="'+esc(key)+'" aria-label="'+text('title','Carrier notification draft')+'">'
+        +'<header><h2>'+text('title','Carrier notification draft')+'</h2><p>'+text('notSent','DRAFT – Not sent to the carrier')+'</p></header>'
+        +'<p>'+text('recipient','Carrier / contact:')+' ______________________________</p>'
+        +'<table><thead><tr><th>'+text('reference','Shipment / customer')+'</th>'
+        +'<th>'+text('oldDate','Existing pickup date')+'</th>'
+        +'<th>'+text('earliest','Earliest suggested date')+'</th>'
+        +'<th>'+text('reason','Reason for coordination')+'</th></tr></thead><tbody>'+rows+'</tbody></table>'
+        +'<p>'+text('request','Please coordinate and confirm any necessary pickup changes with the carrier. The existing booking has not been changed automatically.')+'</p>'
+        +'<p>'+text('confirmation','Carrier contacted / confirmed on:')+' ______________________________</p>'
+        +'</section>';
+    }).join('');
   }
 
   function taskCardHtml(raw,ctx={}){
@@ -142,7 +244,7 @@
       <p class="tpv2-task-customer">${esc(task.customerName||'')}</p>
       ${orange?'<p class="tpv2-abd-alert" role="alert">'+esc(warning.message)+(warning.recommendedDate?' '+esc(translated('taskV2.ops.recommended',null,'Suggested:'))+' '+esc(warning.recommendedDate):'')+'</p><button type="button" class="tpv2-button tpv2-button-secondary tpv2-approve-abd" data-tpv2-abd-approve="'+esc(task.id)+'">'+esc(translated('taskV2.ops.approve',null,'Approve exception'))+'</button>':''}
       ${warning&&!orange?'<p class="tpv2-abd-alert" role="alert">'+esc(warning.message)+'</p>':''}
-      <div class="tpv2-task-meta"><span>${esc(task.status||'open')}</span><span>${esc(q(task.dueAt).slice(0,16).replace('T',' · '))}</span></div>
+      <div class="tpv2-task-meta"><span>${esc(task.status||'open')}</span><span>${esc(formatPlannedDate(task.plannedAt||task.dueAt))}</span></div>
     </article>`;
   }
 
@@ -202,7 +304,7 @@
     return `<section class="tpv2-month-detail" data-tpv2-month-detail="${esc(date)}"><header><h3>${esc(title)}</h3>${label?`<span class="tpv2-day-nonwork">${esc(label)}</span>`:''}<button type="button" class="tpv2-button tpv2-button-secondary" data-tpv2-month-day-close>${esc(translated('taskV2.planner.close',null,'Close'))}</button></header>${tasks.length?`<div class="tpv2-month-detail-grid">${tasks.map(t=>taskCardHtml(t,{...ctx,planningView:true})).join('')}</div>`:`<p class="tpv2-empty">${esc(translated('taskV2.planner.noTasksDay',null,'No open tasks on this day'))}</p>`}</section>`;
   }
   function monthHtml(ctx={}){
-    if(!ctx.operationInspection)ctx={...ctx,operationInspection:inspectionFor(ctx)};
+    if(!ctx.operationInspection)ctx={...ctx,view:'month',operationInspection:inspectionFor({...ctx,view:'month'})};
     const now=nowOf(ctx),today=dayKey(now),{year,month}=monthOf(ctx);
     const projection=planner().monthProjection({tasks:scheduledTasks(ctx),year,month,now,calendar:calendarOf(ctx)});
     const byDate=new Map(arr(projection&&projection.days).map(row=>[q(row.date),row])),days=new Date(Date.UTC(year,month,0)).getUTCDate(),cells=[];
@@ -230,8 +332,14 @@
     deadline_outside_week:['taskV2.planner.conflictDeadline','Deadline cannot be met this week']
   });
   function weekPlanDraft(ctx,mode){
-    const state=obj(ctx&&ctx.state)?ctx.state:{tasks:[]};
-    return planner().buildWeekDraft({tasks:scheduledTasks(ctx),weekStart:mondayOf(ctx.weekStart||nowOf(ctx)),now:nowOf(ctx),calendar:ctx.calendar,recalculate:mode==='recalculate'||mode==='override',allowManualOverride:mode==='override'});
+    const start=mondayOf(ctx.weekStart||nowOf(ctx)),end=addDays(start,4);
+    // A weekly draft may change only the selected workweek.
+    // Recurrences for a later week must never be pulled into this one.
+    const inWeek=scheduledTasks(ctx).filter(t=>{
+      const date=taskDay(t);
+      return date>=start&&date<=end;
+    });
+    return planner().buildWeekDraft({tasks:inWeek,weekStart:start,now:nowOf(ctx),calendar:ctx.calendar,recalculate:mode==='recalculate'||mode==='override',allowManualOverride:mode==='override'});
   }
   function weekPlanSummary(draft){
     const items=arr(draft&&draft.items),base=planner().weekSummary(draft),start=q(draft&&draft.weekStart),end=q(draft&&draft.weekEnd);
@@ -375,10 +483,13 @@
     }
     const viewCtx=draft?{...ctx,weekDraft:draft,operationInspection:inspectionFor(ctx,draft)}:{...ctx,operationInspection:inspectionFor(ctx)};
     const density=q(ctx.density)==='compact'?'compact':'detailed';
+    const carrierGroups=Array.from(new Set(carrierWarnings(viewCtx.operationInspection).map(w=>q(w.groupId||w.shipmentRef)).filter(Boolean)));
+    const carrierButton=carrierGroups.length===1?'<button type="button" class="tpv2-button tpv2-button-secondary" data-tpv2-print-carrier="'+esc(carrierGroups[0])+'">'+esc(translated('taskV2.carrier.print',null,'Carrier notice / PDF'))+'</button>':'';
     return `<section class="tpv2-planner" data-taskplanner-v2-planner data-view="${current}" data-density="${density}">
-      <header class="tpv2-planner-head"><div><span class="tpv2-eyebrow">TaskPlanner V2</span><h1>${esc(translated('taskV2.planner.title',null,'Task planner'))}</h1></div><button type="button" class="tpv2-button tpv2-button-secondary" data-tpv2-print-plan>${esc(translated('taskV2.ops.print',null,'Print weekly plan / PDF'))}</button><div class="tpv2-view-toggle" role="group" data-tpv2-density-toggle><button type="button" data-tpv2-density="compact" aria-pressed="${density==='compact'}">${esc(translated('taskV2.view.compact',null,'Compact'))}</button><button type="button" data-tpv2-density="detailed" aria-pressed="${density==='detailed'}">${esc(translated('taskV2.view.detailed',null,'Detailed'))}</button></div><div class="tpv2-view-toggle" role="group"><button type="button" data-tpv2-view="workweek" aria-pressed="${current==='workweek'}">${esc(translated('taskV2.planner.workweek',null,'Workweek'))}</button><button type="button" data-tpv2-view="month" aria-pressed="${current==='month'}">${esc(translated('taskV2.planner.month',null,'Month'))}</button></div></header>
+      <header class="tpv2-planner-head"><div><span class="tpv2-eyebrow">TaskPlanner V2</span><h1>${esc(translated('taskV2.planner.title',null,'Task planner'))}</h1></div><button type="button" class="tpv2-button tpv2-button-secondary" data-tpv2-print-plan>${esc(translated('taskV2.ops.print',null,'Print weekly plan / PDF'))}</button>${carrierButton}<div class="tpv2-view-toggle" role="group" data-tpv2-density-toggle><button type="button" data-tpv2-density="compact" aria-pressed="${density==='compact'}">${esc(translated('taskV2.view.compact',null,'Compact'))}</button><button type="button" data-tpv2-density="detailed" aria-pressed="${density==='detailed'}">${esc(translated('taskV2.view.detailed',null,'Detailed'))}</button></div><div class="tpv2-view-toggle" role="group"><button type="button" data-tpv2-view="workweek" aria-pressed="${current==='workweek'}">${esc(translated('taskV2.planner.workweek',null,'Workweek'))}</button><button type="button" data-tpv2-view="month" aria-pressed="${current==='month'}">${esc(translated('taskV2.planner.month',null,'Month'))}</button></div></header>
       ${operationalWarningsHtml(viewCtx)}${current==='workweek'?weekPlanToolbarHtml()+weekPlan:''}<div class="tpv2-planner-view" data-tpv2-planner-view>${current==='month'?monthHtml(ctx):workweekHtml(viewCtx)}</div>
       <div class="tpv2-planner-detail-host" data-tpv2-detail-host></div>
+      ${carrierNoticeHtml(viewCtx)}
     </section>`;
   }
   function renderFresh(target,ctx){
@@ -437,6 +548,30 @@
       });
       target.addEventListener('click',async event=>{
         const eventTarget=event&&event.target,closest=selector=>eventTarget&&typeof eventTarget.closest==='function'?eventTarget.closest(selector):null;
+        const carrierPrintButton=closest('[data-tpv2-print-carrier]');
+        if(carrierPrintButton){
+          const document=root.document,group=q(carrierPrintButton.getAttribute('data-tpv2-print-carrier'));
+          const sheets=typeof target.querySelectorAll==='function'
+            ?Array.from(target.querySelectorAll('[data-tpv2-carrier-group]')):[];
+          let found=false;
+          for(const sheet of sheets){
+            const selected=!!group&&q(sheet.getAttribute('data-tpv2-carrier-group'))===group;
+            if(sheet.classList)sheet.classList.toggle('is-print-target',selected);
+            if(selected)found=true;
+          }
+          // Never print a combined sheet if the requested recipient is missing.
+          if(!found)return;
+          if(document&&document.body&&document.body.classList&&typeof root.print==='function'){
+            document.body.classList.add('tpv2-print-carrier');
+            const reset=()=>{
+              document.body.classList.remove('tpv2-print-carrier');
+              for(const sheet of sheets)if(sheet.classList)sheet.classList.remove('is-print-target');
+            };
+            try{if(typeof root.addEventListener==='function')root.addEventListener('afterprint',reset,{once:true});root.print();}
+            catch(_){reset();}
+          }
+          return;
+        }
         const printButton=closest('[data-tpv2-print-plan]');
         if(printButton){
           const document=root.document;
