@@ -296,8 +296,14 @@
     const warnings=[],byTaskId={},groups=new Map(),cal=input.calendar||recurrence().calendar({});
     let unlinkedTasks=0,matchedPickupGroups=0;
     for(const task of tasks){
-      if(!task||terminal(task)||task.done===true||task.completed===true)continue;
-      const kind=operationalKind(task),link=operationalLink(task);
+      if(!task)continue;
+      const kind=operationalKind(task),status=q(task.status).toLowerCase();
+      const cancelled=['cancelled','canceled','storniert'].includes(status);
+      const done=task.done===true||task.completed===true||['done','erledigt','completed'].includes(status);
+      // A completed pick is still a prerequisite for an open customs task.
+      // It must not reappear as an open card, but its date remains relevant.
+      if(cancelled||(done&&kind!=='pick'))continue;
+      const link=operationalLink(task);
       if(!kind||!operationalTaskDate(task))continue;
       if(!link){unlinkedTasks++;continue;}
       if(!groups.has(link))groups.set(link,{key:link,pick:[],abd:[],registration:[]});
