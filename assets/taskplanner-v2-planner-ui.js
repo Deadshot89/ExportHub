@@ -389,6 +389,14 @@
     const weekStart=q(target.__tpv2WeekStart)||ctx.weekStart;
     let density=q(target.__tpv2Density);
     if(!density){try{density=typeof base.viewPreference==='function'&&userIdOf(actionContext(ctx))?base.viewPreference(actionContext(ctx)):'';}catch(_){density='';}}
+    const fixedScope=q(ctx.companyId||ctx.state&&ctx.state.companyId||ctx.state&&ctx.state.currentCompanyId)+'|'
+      +q(ctx.environment||ctx.state&&ctx.state.environment||root.__EXPORTHUB_FORCED_ENVIRONMENT__||'production');
+    if(target.__tpv2FixedPickupScope!==fixedScope){
+      target.__tpv2FixedPickupScope=fixedScope;
+      target.__tpv2FixedPickupFetchStarted=false;
+      target.__tpv2FixedPickupLoaded=false;
+      target.__tpv2FixedPickups=null;
+    }
     target.innerHTML=plannerPageHtml({...ctx,weekStart,weekPlanMode:mode,navigation:true,year:ym.year,month:ym.month,monthDay,density,
       fixedPickups:target.__tpv2FixedPickups||ctx.fixedPickups,
       fixedPickupDataLoaded:target.__tpv2FixedPickupLoaded===true||ctx.fixedPickupDataLoaded===true},view);
@@ -396,16 +404,18 @@
       target.__tpv2FixedPickupFetchStarted=true;
       const company=q(ctx.companyId||ctx.state&&ctx.state.companyId||ctx.state&&ctx.state.currentCompanyId);
       const environment=q(ctx.environment||ctx.state&&ctx.state.environment||root.__EXPORTHUB_FORCED_ENVIRONMENT__||'production');
+      const requestedScope=fixedScope;
       const headers={'Accept':'application/json','Content-Type':'application/json','X-ExportHUB-Environment':environment};
       if(company)headers['X-ExportHUB-Company-Id']=company;
       try{
         root.fetch('/api/fixed-pickups?includeInactive=1',{method:'GET',credentials:'same-origin',headers})
           .then(response=>{if(!response.ok)throw Error('Abholkalender nicht verfügbar');return response.json();})
-          .then(data=>{if(data&&data.ok===false)throw Error('Abholkalender nicht verfügbar');
+          .then(data=>{if(data&&data.ok===false)throw Error('Pickup calendar unavailable');
+            if(target.__tpv2FixedPickupScope!==requestedScope||target.isConnected===false)return;
             target.__tpv2FixedPickups=arr(data&&data.items);target.__tpv2FixedPickupLoaded=true;
             renderFresh(target,{...(target.__tpv2Ctx||ctx),view:target.__tpv2View});
           })
-          .catch(()=>{target.__tpv2FixedPickupLoaded=false;});
+          .catch(()=>{if(target.__tpv2FixedPickupScope===requestedScope)target.__tpv2FixedPickupLoaded=false;});
       }catch(_){}
     }
     if(target.__tpv2DndCleanup){try{target.__tpv2DndCleanup();}catch(_){}}
