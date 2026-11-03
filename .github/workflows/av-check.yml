@@ -76,7 +76,14 @@ jobs:
             verdict="$(node -e "
               const fs=require('fs');let v={};try{v=JSON.parse(fs.readFileSync(process.argv[1],'utf8')||'{}')}catch(_){}
               const status=Number(process.argv[2]||0);
-              console.error('AV-Prüfung',process.env.TARGET_ENV,JSON.stringify({httpStatus:status,code:v.code,message:v.message,graphConfigured:v.graphConfigured,candidates:v.candidates,checked:v.checked,remaining:v.remaining,present:v.present,missing:v.missing,createdTasks:v.createdTasks,closedTasks:v.closedTasks,errorCount:v.errorCount,errors:v.errors}));
+              // RC1772: individual shipment references are private and must not
+              // be copied into Actions logs from Graph/REF error arrays.
+              const errorCodes={};
+              for(const item of Array.isArray(v.errors)?v.errors:[]){
+                const code=String(item&&item.code||'UNKNOWN').replace(/[^A-Za-z0-9_.-]/g,'').slice(0,70)||'UNKNOWN';
+                errorCodes[code]=(errorCodes[code]||0)+1;
+              }
+              console.error('AV-Prüfung',process.env.TARGET_ENV,JSON.stringify({httpStatus:status,code:v.code,graphConfigured:v.graphConfigured,candidates:v.candidates,checked:v.checked,remaining:v.remaining,present:v.present,missing:v.missing,createdTasks:v.createdTasks,closedTasks:v.closedTasks,errorCount:v.errorCount,errorCodes}));
               if(status<200||status>=300||!v.ok)process.exit(3);
               process.stdout.write(Number(v.remaining||0)>0?'again':'done');
             " "$response_file" "$http_code")"
