@@ -327,6 +327,13 @@
       <div class="tpv2-planner-detail-host" data-tpv2-detail-host></div>
     </section>`;
   }
+  function renderFresh(target,ctx){
+    // Internal navigation must pass through the canonical-source wrapper too:
+    // it is responsible for loading the newly viewed Pick weeks.
+    const ui=root.ExportHUBTaskUIV2;
+    return ui&&typeof ui.renderPlannerPage==='function'&&ui.renderPlannerPage!==renderPlannerPage
+      ?ui.renderPlannerPage(target,ctx):renderPlannerPage(target,ctx);
+  }
   function renderPlannerPage(target,ctx={}){
     if(!target)throw new Error('Planner target missing');
     const view=q(ctx.view||target.__tpv2View)==='month'?'month':'workweek';target.__tpv2View=view;target.__tpv2Ctx=ctx;
@@ -349,14 +356,14 @@
       target.addEventListener('click',async event=>{
         const eventTarget=event&&event.target,closest=selector=>eventTarget&&typeof eventTarget.closest==='function'?eventTarget.closest(selector):null;
         const viewButton=closest('[data-tpv2-view]');
-        if(viewButton){const next=q(viewButton.getAttribute('data-tpv2-view'));if(['workweek','month'].includes(next)){target.__tpv2View=next;renderPlannerPage(target,{...(target.__tpv2Ctx||ctx),view:next});}return;}
+        if(viewButton){const next=q(viewButton.getAttribute('data-tpv2-view'));if(['workweek','month'].includes(next)){target.__tpv2View=next;renderFresh(target,{...(target.__tpv2Ctx||ctx),view:next});}return;}
         const detailHost=typeof target.querySelector==='function'?target.querySelector('[data-tpv2-detail-host]'):null,currentCtx=target.__tpv2Ctx||ctx;
         const densityButton=closest('[data-tpv2-density]');
         if(densityButton){
           const next=q(densityButton.getAttribute('data-tpv2-density'))==='compact'?'compact':'detailed',resolved=actionContext(currentCtx);
           target.__tpv2Density=next;
           if(userIdOf(resolved)&&typeof base.setViewPreference==='function'){try{base.setViewPreference(next,resolved);}catch(_){}}
-          renderPlannerPage(target,{...currentCtx,view:target.__tpv2View});return;
+          renderFresh(target,{...currentCtx,view:target.__tpv2View});return;
         }
         const navButton=closest('[data-tpv2-nav]');
         if(navButton){
@@ -366,21 +373,21 @@
             let next=action==='week-today'?floor:addDays(current,action==='week-next'?7:-7);if(next<floor)next=floor;
             const legacy=root.ExportHUBIndex218;
             if(legacy&&typeof legacy.setWeek==='function'&&!target.__tpv2WeekStart){legacy.setWeek(next);return;}
-            target.__tpv2WeekStart=next;renderPlannerPage(target,{...currentCtx,view:'workweek'});return;
+            target.__tpv2WeekStart=next;renderFresh(target,{...currentCtx,view:'workweek',weekStart:next});return;
           }
           const ym=action==='month-today'?monthOf({now}):shiftMonth(target.__tpv2Month||monthOf(currentCtx),action==='month-next'?1:-1);
           target.__tpv2Month=ym;target.__tpv2MonthDay='';
-          renderPlannerPage(target,{...currentCtx,view:'month',year:ym.year,month:ym.month,monthDay:''});return;
+          renderFresh(target,{...currentCtx,view:'month',year:ym.year,month:ym.month,monthDay:''});return;
         }
         const monthDayButton=closest('[data-day-summary]');
         if(monthDayButton){
           const date=q(monthDayButton.getAttribute('data-day-summary')),selected=date===q(target.__tpv2MonthDay)?'':date;
-          renderPlannerPage(target,{...currentCtx,view:'month',monthDay:selected});return;
+          renderFresh(target,{...currentCtx,view:'month',monthDay:selected});return;
         }
-        if(closest('[data-tpv2-month-day-close]')){renderPlannerPage(target,{...currentCtx,view:'month',monthDay:''});return;}
+        if(closest('[data-tpv2-month-day-close]')){renderFresh(target,{...currentCtx,view:'month',monthDay:''});return;}
         const weekPlanButton=closest('[data-tpv2-weekplan]');
         if(weekPlanButton){
-          const action=q(weekPlanButton.getAttribute('data-tpv2-weekplan')),rerender=mode=>renderPlannerPage(target,{...currentCtx,view:'workweek',weekPlanMode:mode});
+          const action=q(weekPlanButton.getAttribute('data-tpv2-weekplan')),rerender=mode=>renderFresh(target,{...currentCtx,view:'workweek',weekPlanMode:mode});
           if(action==='plan'||action==='recalculate'||action==='override'){rerender(action);return;}
           if(action==='discard'){rerender('');return;}
           if(action==='apply'){
@@ -404,8 +411,8 @@
           if(action==='reminder-toggle'&&taskId&&typeof base.toggleTaskReminder==='function'){const result=base.toggleTaskReminder(taskId,actionButton.getAttribute('data-time'),'enabled',actionContext(currentCtx));if(result&&result.changed)reopen();return;}
           if(action==='comment-add'&&taskId&&typeof base.addComment==='function'){const input=field('data-tpv2-comment-input'),result=base.addComment(taskId,input&&input.value,actionContext(currentCtx));if(result&&result.changed)reopen();return;}
           if(action==='save-template'&&taskId&&typeof base.saveTaskAsTemplate==='function'){const result=base.saveTaskAsTemplate(taskId,actionContext(currentCtx));if(result&&result.changed)reopen(translated('taskV2.templateSaved',null,'Template saved'));return;}
-          if(action==='complete'&&taskId&&typeof base.completeTask==='function'){const input=field('data-tpv2-complete-comment'),result=base.completeTask(taskId,{comment:q(input&&input.value)},actionContext(currentCtx));if(result&&result.changed)renderPlannerPage(target,{...currentCtx,view:target.__tpv2View});return;}
-          if(action==='cancel'&&taskId&&typeof base.cancelTask==='function'){const result=base.cancelTask(taskId,actionContext(currentCtx));if(result&&result.changed)renderPlannerPage(target,{...currentCtx,view:target.__tpv2View});return;}
+          if(action==='complete'&&taskId&&typeof base.completeTask==='function'){const input=field('data-tpv2-complete-comment'),result=base.completeTask(taskId,{comment:q(input&&input.value)},actionContext(currentCtx));if(result&&result.changed)renderFresh(target,{...currentCtx,view:target.__tpv2View});return;}
+          if(action==='cancel'&&taskId&&typeof base.cancelTask==='function'){const result=base.cancelTask(taskId,actionContext(currentCtx));if(result&&result.changed)renderFresh(target,{...currentCtx,view:target.__tpv2View});return;}
         }
         const card=closest('.tpv2-task-card[data-task-id]');
         if(card&&detailHost&&typeof base.renderDetail==='function'){const taskId=q(card.getAttribute&&card.getAttribute('data-task-id'));if(taskId)openDetail(target,detailHost,taskId,currentCtx,card);}
