@@ -2055,4 +2055,13 @@ integrateAbdProforma(ROOT,OUT);
 // Must stay last: hashes the files exactly as they are shipped.
 fingerprintAssets({root:ROOT,out:OUT});
 
+// RC1768 must be verified against shipped output, not root source files.
+for (const file of ['index.html','TESTVERSION.html','demo.html']) {
+  const shipped=fs.readFileSync(path.join(OUT,file),'utf8');
+  if (!shipped.includes("nextInit.credentials = init && init.credentials === 'omit' ? 'omit' : 'same-origin';") ||
+      shipped.includes("nextInit.credentials = 'same-origin';")) {
+    throw new Error('RC1768: '+file+' would reintroduce Microsoft login redirects for PDF downloads');
+  }
+}
+
 console.log('RC1112 build pipeline ready: sichtbare Produktversion '+VISIBLE_VERSION+' auf geprüfter RC1048-Basis, RC1194 sichere Kundenportal-Key-Diagnose aktiv.');
