@@ -962,9 +962,29 @@ async function resolveReferenceLibraryTarget(token, force) {
       }
     }
   }
+  // RC1771: a 404 from the legacy /users/... path can mean an invalid user or
+  // an unreadable REF root, not a missing sibling folder. Probe the configured
+  // REF root only after every safe sibling lookup failed; no writes or guesses.
+  if (!value && !settings.driveId) {
+    try {
+      const root = await graphGet(token, '/users/' + encodeURIComponent(settings.user) +
+        '/drive/root:/' + encodedPath(settings.refFolder) + '?$select=id,folder');
+      if (!text(root.body && root.body.id) || !root.body.folder) {
+        throw targetError('GRAPH_REFERENCE_FALLBACK_ROOT_UNREADABLE',
+          'Die konfigurierte REF-Wurzel konnte nicht als Ordner bestätigt werden.', { statusCode: 404 });
+      }
+    } catch (error) {
+      if (text(error && error.code) === 'GRAPH_REFERENCE_FALLBACK_ROOT_UNREADABLE') throw error;
+      if (isNotFound(error) || Number(error && error.statusCode) === 403) {
+        throw targetError('GRAPH_REFERENCE_FALLBACK_ROOT_UNREADABLE',
+          'Die konfigurierte REF-Wurzel ist für die Graph-App nicht lesbar.', error);
+      }
+      throw error;
+    }
+  }
   if (!value) {
     throw targetError('GRAPH_REFERENCE_FALLBACK_FOLDER_MISSING',
-      'Der Ordner „Abliefernachweise“ neben der REF-Ablage ist noch nicht vorhanden.', { statusCode: 404 });
+      'Der Ordner „Abliefernachweise“ ist neben der lesbaren REF-Ablage nicht erreichbar.', { statusCode: 404 });
   }
   referenceTargetCache = { key, value, expiresAt: Date.now() + 10 * 60 * 1000 };
   return value;
