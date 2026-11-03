@@ -144,7 +144,11 @@
       let shared=null;
       try{shared=typeof root.__EXPORTHUB_GET_STATE__==='function'?root.__EXPORTHUB_GET_STATE__():null;}catch(_){}
       if(shared!==liveState)return;
-      const year=Number(ctx.year),month=Number(ctx.month);
+      const today=dateKey(ctx.now||new Date());
+      const year=Number(ctx.year)||Number(today.slice(0,4));
+      const month=Number(ctx.month)||Number(today.slice(5,7));
+      // A first switch to "Month" has no explicit year/month yet.
+      // Materialize every visible ISO week for that month, not just the first two.
       const monthSelected=q(ctx.view)==='month'&&year>=2000&&month>=1&&month<=12;
       const start=monthSelected?mondayOf(String(year)+'-'+String(month).padStart(2,'0')+'-01'):mondayOf(ctx.weekStart||ctx.now||new Date());
       const dates=monthSelected?Array.from({length:6},(_,i)=>addDays(start,i*7)):[start,addDays(start,7)];
