@@ -241,10 +241,12 @@
   function inspectOperationalPlan(input={}){
     const tasks=arr(input.tasks),shipments=arr(input.shipments),fixedPickups=arr(input.fixedPickups);
     const warnings=[],byTaskId={},groups=new Map(),cal=input.calendar||recurrence().calendar({});
+    let unlinkedTasks=0,matchedPickupGroups=0;
     for(const task of tasks){
       if(!task||terminal(task)||task.done===true||task.completed===true)continue;
       const kind=operationalKind(task),link=operationalLink(task);
-      if(!kind||!link||!operationalTaskDate(task))continue;
+      if(!kind||!operationalTaskDate(task))continue;
+      if(!link){unlinkedTasks++;continue;}
       if(!groups.has(link))groups.set(link,{key:link,pick:[],abd:[],registration:[]});
       groups.get(link)[kind].push(task);
     }
@@ -257,6 +259,7 @@
       const abd=group.abd.length===1?group.abd[0]:null;
       const registration=group.registration.length===1?group.registration[0]:null;
       const shipment=lookupShipment(group.key),pickDay=operationalTaskDate(pick),abdDay=operationalTaskDate(abd),registrationDay=operationalTaskDate(registration);
+      if(shipment)matchedPickupGroups++;
       const related=[...group.pick,...group.abd,...group.registration];
       if(group.pick.length>1||group.abd.length>1||group.registration.length>1){
         warnings.push({type:'ambiguous_link',groupId:group.key,taskIds:related.map(t=>q(t.id)),message:'Mehrere Vorgänge zur selben Sendung: Zuordnung prüfen.'});
@@ -334,7 +337,7 @@
         }
       }
     }
-    return{warnings,byTaskId,groupsInspected:groups.size,hasPickupData:shipments.length>0,
+    return{warnings,byTaskId,groupsInspected:groups.size,unlinkedTasks,matchedPickupGroups,hasPickupData:shipments.length>0,
       hasFixedPickupData:input.fixedPickupDataLoaded===true};
   }
   function approveSameDayAbd(tasks,request={}){
