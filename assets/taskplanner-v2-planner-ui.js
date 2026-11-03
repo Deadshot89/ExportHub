@@ -230,8 +230,14 @@
     deadline_outside_week:['taskV2.planner.conflictDeadline','Deadline cannot be met this week']
   });
   function weekPlanDraft(ctx,mode){
-    const state=obj(ctx&&ctx.state)?ctx.state:{tasks:[]};
-    return planner().buildWeekDraft({tasks:scheduledTasks(ctx),weekStart:mondayOf(ctx.weekStart||nowOf(ctx)),now:nowOf(ctx),calendar:ctx.calendar,recalculate:mode==='recalculate'||mode==='override',allowManualOverride:mode==='override'});
+    const start=mondayOf(ctx.weekStart||nowOf(ctx)),end=addDays(start,4);
+    // A weekly draft may change only the selected workweek.
+    // Recurrences for a later week must never be pulled into this one.
+    const inWeek=scheduledTasks(ctx).filter(t=>{
+      const date=taskDay(t);
+      return date>=start&&date<=end;
+    });
+    return planner().buildWeekDraft({tasks:inWeek,weekStart:start,now:nowOf(ctx),calendar:ctx.calendar,recalculate:mode==='recalculate'||mode==='override',allowManualOverride:mode==='override'});
   }
   function weekPlanSummary(draft){
     const items=arr(draft&&draft.items),base=planner().weekSummary(draft),start=q(draft&&draft.weekStart),end=q(draft&&draft.weekEnd);
