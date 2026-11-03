@@ -190,6 +190,17 @@
   }
 
 
+  function operationalText(key,fallback){
+    try{
+      const i18n=root.ExportHUBI18n;
+      if(i18n&&typeof i18n.t==='function'){
+        const translated=i18n.t(key);
+        if(translated&&translated!==key)return translated;
+      }
+    }catch(_){}
+    return fallback;
+  }
+
   // RC1771: Task and pickup-calendar coordination. Pure inspection first:
   // no pickup date, customs document or task is changed by this projection.
   function operationalKind(task){
@@ -262,7 +273,7 @@
       if(shipment)matchedPickupGroups++;
       const related=[...group.pick,...group.abd,...group.registration];
       if(group.pick.length>1||group.abd.length>1||group.registration.length>1){
-        warnings.push({type:'ambiguous_link',groupId:group.key,taskIds:related.map(t=>q(t.id)),message:'Mehrere Vorgänge zur selben Sendung: Zuordnung prüfen.'});
+        warnings.push({type:'ambiguous_link',groupId:group.key,taskIds:related.map(t=>q(t.id)),message:operationalText('taskV2.ops.ambiguous','Multiple operations for the same shipment: verify assignment.')});
         continue;
       }
       if(pick&&shipment&&!abd&&[
@@ -270,7 +281,7 @@
         shipment.customsDeclarationRequired
       ].some(value=>value===true)){
         const warning={type:'abd_missing',groupId:group.key,taskId:q(pick.id),
-          message:'Für diese Sendung ist ein ABD erforderlich, aber kein ABD-Termin verknüpft.'};
+          message:operationalText('taskV2.ops.abdMissing','A customs document is required but no customs task is linked.')};
         warnings.push(warning);byTaskId[q(pick.id)]=warning;
       }
       if(pick&&abd){
@@ -279,11 +290,11 @@
         const confirmed=acknowledgment&&acknowledgment.signature===signature&&q(acknowledgment.by)&&q(acknowledgment.at);
         if(pickDay===abdDay&&!confirmed){
           const warning={type:'abd_same_day',groupId:group.key,taskId:q(abd.id),pickId:q(pick.id),
-            date:abdDay,signature,message:'ABD am selben Tag wie Picken – ausdrückliche Bestätigung erforderlich.'};
+            date:abdDay,signature,message:operationalText('taskV2.ops.abdSameDay','Customs document on picking day — explicit approval required.')};
           warnings.push(warning);byTaskId[q(abd.id)]=warning;
         }else if(abdDay<pickDay){
           const warning={type:'abd_before_pick',groupId:group.key,taskId:q(abd.id),pickId:q(pick.id),
-            date:abdDay,message:'ABD liegt vor dem Picken: Terminfolge prüfen.'};
+            date:abdDay,message:operationalText('taskV2.ops.abdBeforePick','Customs document is scheduled before picking. Check the sequence.')};
           warnings.push(warning);byTaskId[q(abd.id)]=warning;
         }
       }
@@ -291,7 +302,7 @@
         const prerequisite=abdDay||pickDay;
         if(prerequisite&&registrationDay<prerequisite){
           const warning={type:'registration_before_ready',groupId:group.key,taskId:q(registration.id),
-            date:registrationDay,message:'Anmeldung liegt vor dem notwendigen Picken/ABD.'};
+            date:registrationDay,message:operationalText('taskV2.ops.registrationBefore','Registration is scheduled before the required picking/customs step.')};
           warnings.push(warning);byTaskId[q(registration.id)]=warning;
         }
       }
@@ -303,7 +314,7 @@
           if(booked<earliest){
             const warning={type:'pickup_notification',groupId:group.key,shipmentRef:group.key,
               bookedDate:booked,earliestDate:earliest,taskIds:related.map(t=>q(t.id)),
-              message:'Gebuchter Abholtermin gefährdet. Spedition informieren und Abholung neu bestätigen.'};
+              message:operationalText('taskV2.ops.pickupWarning','Booked pickup is at risk. Notify the carrier and reconfirm the collection date.')};
             warnings.push(warning);
             for(const task of related)if(!byTaskId[q(task.id)])byTaskId[q(task.id)]=warning;
           }
@@ -323,7 +334,7 @@
               const fixedDate=addDays(earliest,daysTo);
               if(last>=fixedDate){
                 warnings.push({type:'fixed_pickup_conflict',groupId:group.key,shipmentRef:group.key,bookedDate:fixedDate,
-                  message:'Fester Abholtag kann nach dieser Planung nicht eingehalten werden. Spedition informieren.'});
+                  message:operationalText('taskV2.ops.fixedPickupNoBooking','The scheduled fixed collection day is not feasible. Notify the carrier.')});
               }
             }
           }
@@ -331,7 +342,7 @@
             const bookedWeekday=(new Date(booked+'T12:00:00Z').getUTCDay()||7);
             if(fixed.some(f=>Number(f.weekday)===bookedWeekday)&&last>=booked){
               warnings.push({type:'fixed_pickup_conflict',groupId:group.key,shipmentRef:group.key,bookedDate:booked,
-                message:'Fester Abholtag ist nach der Umplanung gefährdet – Spedition informieren.'});
+                message:operationalText('taskV2.ops.fixedPickupWarning','Fixed collection day is at risk after replanning. Notify the carrier.')});
             }
           }
         }
