@@ -58,6 +58,21 @@ test('P0: strictly newer legacy ledger still overrides an older in-progress task
   assert.equal(state.tasks[0].done,true);
 });
 
+test('P0: a newer reopening ledger wins over unrelated later task note edits',()=>{
+  const middleAt='2026-10-28T10:00:00.000Z';
+  const laterAt='2026-10-28T12:00:00.000Z';
+  const task={id:'task-note',title:'Aufgabe mit geänderter Notiz',note:'Später bearbeitet',
+    status:'done',done:true,statusUpdatedAt:oldAt,completedAt:oldAt,
+    updatedAt:laterAt,_syncUpdatedAt:laterAt};
+  const merged=merge.mergeState({
+    tasks:[task],
+    taskStatusLedger:{'id:task-note':{status:'offen',done:false,updatedAt:middleAt}}
+  },{tasks:[task]});
+  assert.equal(merged.tasks[0].status,'offen');
+  assert.equal(merged.tasks[0].done,false);
+  assert.equal(merged.tasks[0].note,'Später bearbeitet');
+});
+
 test('P0: stale ABD flags on Dutch EU shipment never create missing-AV upload task',()=>{
   const sh={id:'S-NL',ref:'ZVYH89',customerName:'Gebr. Kraan Rondkart. BV',
     destinationCountry:'NL',abdRequired:false,abdPresent:true,abdStatus:'Erledigt',
