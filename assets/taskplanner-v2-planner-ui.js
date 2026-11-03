@@ -78,9 +78,19 @@
       .filter(t=>activeTask(t)&&taskDay(t)&&t.isTemplate!==true&&t.seriesTemplate!==true)
       .map(task=>{
         // Only enrich the in-memory view; source tasks and task history stay untouched.
-        const date=taskDay(task);
-        return dayKey(task.plannedAt||task.dueAt)?task:{
-          ...task,plannedAt:date+'T00:00:00',dueAt:date+'T16:15:00'
+        const date=taskDay(task),copy={...task};
+        for(const [field,time] of [
+          ['plannedAt','00:00'],['plannedDate','00:00'],['dueAt','16:15'],
+          ['dueDate','16:15'],['scheduledDate','00:00'],['date','00:00']
+        ]){
+          const value=q(copy[field]);
+          if(/^\d{1,2}\.\d{1,2}\.\d{4}$/.test(value)){
+            const iso=dayKey(value);
+            if(iso)copy[field]=iso+'T'+time+':00';
+          }
+        }
+        return dayKey(copy.plannedAt||copy.dueAt)?copy:{
+          ...copy,plannedAt:date+'T00:00:00',dueAt:date+'T16:15:00'
         };
       });
   }
