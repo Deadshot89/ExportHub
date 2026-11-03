@@ -115,8 +115,13 @@
 
     function liveStateOf(ctx){
       const state=obj(ctx&&ctx.state)?ctx.state:{tasks:[]};
-      if(!Array.isArray(state.tasks))state.tasks=[];
-      return state;
+      let shared=null;
+      try{shared=typeof root.__EXPORTHUB_GET_STATE__==='function'?root.__EXPORTHUB_GET_STATE__():null;}catch(_){}
+      // Internal V2 navigation carries a shallow display copy. Reattach it
+      // to the same canonical task list instead of reseeding a detached copy.
+      const live=obj(shared)&&(shared===state||shared.tasks===state.tasks)?shared:state;
+      if(!Array.isArray(live.tasks))live.tasks=[];
+      return live;
     }
 
     function persistFor(ctx,liveState){
@@ -139,8 +144,11 @@
       let shared=null;
       try{shared=typeof root.__EXPORTHUB_GET_STATE__==='function'?root.__EXPORTHUB_GET_STATE__():null;}catch(_){}
       if(shared!==liveState)return;
-      const start=mondayOf(ctx.weekStart||ctx.now||new Date());
-      for(const date of [start,addDays(start,7)]){
+      const year=Number(ctx.year),month=Number(ctx.month);
+      const monthSelected=q(ctx.view)==='month'&&year>=2000&&month>=1&&month<=12;
+      const start=monthSelected?mondayOf(String(year)+'-'+String(month).padStart(2,'0')+'-01'):mondayOf(ctx.weekStart||ctx.now||new Date());
+      const dates=monthSelected?Array.from({length:6},(_,i)=>addDays(start,i*7)):[start,addDays(start,7)];
+      for(const date of dates){
         try{master.ensureWeek(date,false);}catch(error){
           try{if(root.console&&typeof root.console.warn==='function')root.console.warn('Pick-Wochenstamm konnte nicht geladen werden',date,error);}catch(_){}
         }
