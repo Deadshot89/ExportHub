@@ -147,7 +147,10 @@ async function uploadJson(blob,value,etag){
  try{const uploaded=await blob.upload(raw,bytes,Object.assign({},base,{metadata}));return Object.assign({},uploaded||{},{bytes})}
  catch(e){
   const code=String(e&&e.code||e&&e.details&&e.details.errorCode||'');
-  if(Number(e&&e.statusCode||0)===400||/InvalidMetadata|InvalidHeader/i.test(code)){const uploaded=await blob.upload(raw,bytes,base);return Object.assign({},uploaded||{},{bytes})}
+  // Only retry without metadata when Azure explicitly rejects metadata/headers.
+  // An unrelated 400 on a 65 MB team-state must not trigger a blind second PUT.
+  const metadataError=/(?:InvalidMetadata|InvalidHeader(?:Value)?)/i.test(code)||/(?:InvalidMetadata|InvalidHeader(?:Value)?)/i.test(String(e&&e.message||''));
+  if(Number(e&&e.statusCode||0)===400&&metadataError){const uploaded=await blob.upload(raw,bytes,base);return Object.assign({},uploaded||{},{bytes})}
   throw e;
  }
 }
