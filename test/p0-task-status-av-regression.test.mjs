@@ -171,7 +171,7 @@ test('P0: unconfirmed Azure save must roll back task and ledger',async()=>{
     state,currentUserId:'test-user'
   }),/TASK_STATUS_SAVE_NOT_CONFIRMED/);
   assert.equal(state.tasks[0].status,'open');
-  assert.equal(state.taskStatusLedger['id:managed:spanien:2026-10-26'],undefined);
+  assert.equal(state.taskStatusLedger,undefined);
 });
 
 test('P0: direct persistence callback returning false must not confirm task',async()=>{
@@ -194,5 +194,23 @@ test('P0: direct persistence callback returning false must not confirm task',asy
   assert.equal(attempts,1);
   assert.equal(state.tasks[0].status,'open');
   assert.equal(state.tasks[0].done,undefined);
-  assert.equal(state.taskStatusLedger['id:managed:spanien:2026-10-26'],undefined);
+  assert.equal(state.taskStatusLedger,undefined);
+});
+
+test('P0: failed task save restores pre-existing status ledger exactly',async()=>{
+  const fs=(await import('node:fs')).default;
+  const vm=(await import('node:vm')).default;
+  const win={document:null,ExportHUBClean:{queueSave:async()=>true,flushSave:async()=>false},
+    addEventListener(){},dispatchEvent(){},setTimeout(){return 1;},clearTimeout(){},
+    location:{hostname:'example.azurestaticapps.net',pathname:'/'}};
+  vm.runInNewContext(fs.readFileSync('assets/rc1014-task-runtime.js','utf8'),
+    {globalThis:win,console,Date,Intl,CustomEvent:function(){}});
+  const previous={status:'offen',done:false,updatedAt:'2026-10-27T08:00:00.000Z'};
+  const state={tasks:[{id:'managed:spanien:2026-10-26',title:'Essentra Spanien anmelden',status:'open'}],
+    taskStatusLedger:{'id:managed:spanien:2026-10-26':{...previous},'id:other':{status:'erledigt',done:true}}};
+  await assert.rejects(win.ExportHUBRC1014TaskRuntime.setTaskStatus(state.tasks[0],'done',
+    {state,currentUserId:'test-user'}),/TASK_STATUS_SAVE_NOT_CONFIRMED/);
+  assert.equal(state.tasks[0].status,'open');
+  assert.deepEqual(state.taskStatusLedger['id:managed:spanien:2026-10-26'],previous);
+  assert.equal(state.taskStatusLedger['id:other'].done,true);
 });
