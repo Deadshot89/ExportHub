@@ -331,6 +331,7 @@
     if(!['done','open','in_progress'].includes(next))return false;
     const before=cloneJson(target);
     const ledgerKey='id:'+id.toLowerCase().replace(/\s+/g,' ').replace(/[^a-z0-9äöüß|:_-]+/gi,'');
+    const hadLedger=Object.prototype.hasOwnProperty.call(state,'taskStatusLedger');
     const existingLedger=state.taskStatusLedger&&typeof state.taskStatusLedger==='object'?state.taskStatusLedger:{};
     const previousLedger=existingLedger[ledgerKey]===undefined?undefined:cloneJson(existingLedger[ledgerKey]);
     try{
@@ -371,8 +372,9 @@
     }catch(error){
       for(const key of Object.keys(target))delete target[key];
       Object.assign(target,before);
-      if(previousLedger===undefined)delete state.taskStatusLedger[ledgerKey];
-      else state.taskStatusLedger[ledgerKey]=previousLedger;
+      if(previousLedger===undefined)delete existingLedger[ledgerKey];
+      else existingLedger[ledgerKey]=previousLedger;
+      if(!hadLedger)delete state.taskStatusLedger;
       try{if(root.ExportHUBClean&&typeof root.ExportHUBClean.operationStatus==='function')root.ExportHUBClean.operationStatus(tr('portal.saveFailed'),'bad');}catch(_){}
       throw error;
     }
