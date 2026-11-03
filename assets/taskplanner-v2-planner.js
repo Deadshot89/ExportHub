@@ -290,11 +290,11 @@
         const confirmed=acknowledgment&&acknowledgment.signature===signature&&q(acknowledgment.by)&&q(acknowledgment.at);
         if(pickDay===abdDay&&!confirmed){
           const warning={type:'abd_same_day',groupId:group.key,taskId:q(abd.id),pickId:q(pick.id),
-            date:abdDay,signature,message:operationalText('taskV2.ops.abdSameDay','Customs document on picking day — explicit approval required.')};
+            date:abdDay,signature,recommendedDate:nextWorkdayAfter(pickDay,cal),message:operationalText('taskV2.ops.abdSameDay','Customs document on picking day — explicit approval required.')};
           warnings.push(warning);byTaskId[q(abd.id)]=warning;
         }else if(abdDay<pickDay){
           const warning={type:'abd_before_pick',groupId:group.key,taskId:q(abd.id),pickId:q(pick.id),
-            date:abdDay,message:operationalText('taskV2.ops.abdBeforePick','Customs document is scheduled before picking. Check the sequence.')};
+            date:abdDay,recommendedDate:nextWorkdayAfter(pickDay,cal),message:operationalText('taskV2.ops.abdBeforePick','Customs document is scheduled before picking. Check the sequence.')};
           warnings.push(warning);byTaskId[q(abd.id)]=warning;
         }
       }
@@ -302,7 +302,7 @@
         const prerequisite=abdDay||pickDay;
         if(prerequisite&&registrationDay<prerequisite){
           const warning={type:'registration_before_ready',groupId:group.key,taskId:q(registration.id),
-            date:registrationDay,message:operationalText('taskV2.ops.registrationBefore','Registration is scheduled before the required picking/customs step.')};
+            date:registrationDay,recommendedDate:prerequisite,message:operationalText('taskV2.ops.registrationBefore','Registration is scheduled before the required picking/customs step.')};
           warnings.push(warning);byTaskId[q(registration.id)]=warning;
         }
       }
