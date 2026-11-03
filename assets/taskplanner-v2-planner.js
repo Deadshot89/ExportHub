@@ -276,7 +276,17 @@
       ||customer.customerNumber||customer.account).replace(/\s+/g,'').replace(/^0+(?=\d)/,'').toUpperCase();
   }
   function operationalTaskDate(task){
-    return dayKey(task&&(task.plannedAt||task.plannedDate||task.dueAt||task.dueDate||task.date));
+    const dated=dayKey(task&&(task.plannedAt||task.plannedDate||task.dueAt||task.dueDate||task.date));
+    if(dated)return dated;
+    // Legacy RC848 recurring tasks may contain only a week key and weekday.
+    // The approval engine must resolve the same occurrence as the planner UI.
+    const week=isoWeekMonday(task&&(task.weekKey||task.createdForWeek));
+    if(!week)return'';
+    const weekdays={montag:1,dienstag:2,mittwoch:3,donnerstag:4,freitag:5,samstag:6,sonntag:7,
+      monday:1,tuesday:2,wednesday:3,thursday:4,friday:5,saturday:6,sunday:7};
+    const label=q(task&&(task.day||task.weekday)).toLowerCase();
+    const weekday=weekdays[label]||Number(label);
+    return Number.isInteger(weekday)&&weekday>=1&&weekday<=7?addDays(week,weekday-1):'';
   }
   function operationalSignature(group,pick,abd){
     return [group,q(pick&&pick.id),operationalTaskDate(pick),q(abd&&abd.id),operationalTaskDate(abd)].join('|');
@@ -309,9 +319,10 @@
         warnings.push({type:'ambiguous_link',groupId:group.key,taskIds:related.map(t=>q(t.id)),message:operationalText('taskV2.ops.ambiguous','Multiple operations for the same shipment: verify assignment.')});
         continue;
       }
-      if(pick&&shipment&&!abd&&[
-        shipment.requiresAbd,shipment.abdRequired,shipment.customsRequired,
-        shipment.customsDeclarationRequired
+      if(pick&&!abd&&[
+        pick.requiresAbd,pick.abdRequired,pick.customsRequired,pick.customsDeclarationRequired,
+        shipment&&shipment.requiresAbd,shipment&&shipment.abdRequired,
+        shipment&&shipment.customsRequired,shipment&&shipment.customsDeclarationRequired
       ].some(value=>value===true)){
         const warning={type:'abd_missing',groupId:group.key,taskId:q(pick.id),
           message:operationalText('taskV2.ops.abdMissing','A customs document is required but no customs task is linked.')};
