@@ -285,3 +285,31 @@ test('RC1771 Deepfix: abgeschlossene und archivierte Aufgaben tauchen im Plan ni
   assert.doesNotMatch(target.innerHTML,/Archivierte Aufgabe/);
   assert.equal(state.tasks.length,3,'Quellaufgaben bleiben unverändert');
 });
+
+test('RC1771 Deepfix: deutsches Datum 03.11.2026 bleibt November, nicht März',()=>{
+  const root=load(),api=root.ExportHUBTaskPlannerV2;
+  const tasks=[
+    {id:'pick-de',title:'Picken',shipmentRef:'DE-DATE',status:'open',plannedAt:'03.11.2026'},
+    {id:'abd-de',title:'ABD erstellen',shipmentRef:'DE-DATE',status:'open',plannedAt:'03.11.2026'}
+  ];
+  const warning=api.inspectOperationalPlan({tasks});
+  assert.equal(warning.byTaskId['abd-de'].type,'abd_same_day');
+  assert.equal(warning.byTaskId['abd-de'].date,'2026-11-03');
+  const target={innerHTML:''};
+  const state={tasks};
+  root.ExportHUBTaskUIV2.renderWorkweek(target,{state,weekStart:'2026-11-02',now:'2026-11-03T09:00:00+01:00'});
+  assert.match(target.innerHTML,/Picken/);
+  assert.match(target.innerHTML,/is-abd-exception/);
+  assert.equal(tasks[0].plannedAt,'03.11.2026','Quellformat unverändert');
+});
+test('RC1771 Deepfix: ungültiges deutsches Datum wird nicht als gültige Planung interpretiert',()=>{
+  const root=load(),api=root.ExportHUBTaskPlannerV2;
+  const tasks=[
+    {id:'pick-invalid',title:'Picken',shipmentRef:'BAD-DATE',status:'open',plannedAt:'31.02.2026'},
+    {id:'abd-invalid',title:'ABD erstellen',shipmentRef:'BAD-DATE',status:'open',plannedAt:'31.02.2026'}
+  ];
+  assert.equal(api.inspectOperationalPlan({tasks}).warnings.length,0);
+  const target={innerHTML:''};
+  root.ExportHUBTaskUIV2.renderWorkweek(target,{state:{tasks},weekStart:'2026-02-23',now:'2026-02-24T08:00:00+01:00'});
+  assert.doesNotMatch(target.innerHTML,/data-task-id="pick-invalid"/);
+});
