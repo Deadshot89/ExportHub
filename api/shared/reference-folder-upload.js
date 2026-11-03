@@ -2,7 +2,8 @@
 
 const GRAPH_BASE='https://graph.microsoft.com/v1.0';
 const REFERENCE_FOLDER=(process.env.EXPORTHUB_REFERENCE_FOLDER||'003 Export/ExportHub/Sendungen').replace(/^\/+|\/+$/g,'');
-const DRIVE_USER=process.env.EXPORTHUB_REFERENCE_DRIVE_USER||process.env.EXPORTHUB_POD_DRIVE_USER||'tobiaslimberg@essentra.com';
+// RC1772: never silently target a personal OneDrive. Legacy user mode must be explicitly configured.
+const DRIVE_USER=(process.env.EXPORTHUB_REFERENCE_DRIVE_USER||process.env.EXPORTHUB_POD_DRIVE_USER||'').trim();
 let tokenCache=null;
 
 function text(v){return String(v==null?'':v).trim()}
@@ -33,23 +34,25 @@ function exactTarget(environment='production'){
  return driveId?{driveId,folderId}:null;
 }
 function exactBase(target){return GRAPH_BASE+'/drives/'+encodeURIComponent(target.driveId)}
-function config(){
- const target=exactTarget();
+function config(environment='production'){
+ const target=exactTarget(environment);
  const tenant=text(process.env.EXPORTHUB_GRAPH_TENANT_ID),clientId=text(process.env.EXPORTHUB_GRAPH_CLIENT_ID),secret=text(process.env.EXPORTHUB_GRAPH_CLIENT_SECRET);
  if(!tenant||!clientId||!secret||(!DRIVE_USER&&!target))throw error('GRAPH_NOT_CONFIGURED','Der Microsoft-Graph-Zugriff für die Ref-Ordner ist serverseitig nicht vollständig konfiguriert.',503);
  return{tenant,clientId,secret};
 }
-async function token(){
+async function token(environment='production'){
+ // Validate the selected environment even when an access token is cached.
+ const c=config(environment);
  if(tokenCache&&tokenCache.expiresAt>Date.now()+60000)return tokenCache.value;
- const c=config(),form=new URLSearchParams({client_id:c.clientId,client_secret:c.secret,scope:'https://graph.microsoft.com/.default',grant_type:'client_credentials'});
+ const form=new URLSearchParams({client_id:c.clientId,client_secret:c.secret,scope:'https://graph.microsoft.com/.default',grant_type:'client_credentials'});
  const res=await fetch('https://login.microsoftonline.com/'+encodeURIComponent(c.tenant)+'/oauth2/v2.0/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:form.toString()});
  let data={};try{data=await res.json()}catch(_){}
  if(!res.ok||!data.access_token)throw error('GRAPH_AUTH_FAILED',data.error_description||'Microsoft Graph konnte nicht authentifiziert werden.',502);
  tokenCache={value:data.access_token,expiresAt:Date.now()+Math.max(300,Number(data.expires_in||3600))*1000};
  return tokenCache.value;
 }
-async function graph(url,options={}){
- const auth=await token(),opts=Object.assign({},options),headers=Object.assign({Authorization:'Bearer '+auth,Accept:'application/json'},opts.headers||{});opts.headers=headers;
+async function graph(url,options={},environment='production'){
+ const auth=await token(environment),opts=Object.assign({},options),headers=Object.assign({Authorization:'Bearer '+auth,Accept:'application/json'},opts.headers||{});opts.headers=headers;
  return fetch(url,opts);
 }
 function folderPath(reference){return REFERENCE_FOLDER+'/'+refValue(reference)}
@@ -58,7 +61,7 @@ async function getFolder(reference,environment='production'){
  const url=target
   ? exactBase(target)+'/items/'+encodeURIComponent(target.folderId)+':/'+encodeURIComponent(ref)+'?$select=id,name,webUrl,folder,parentReference'
   : GRAPH_BASE+'/users/'+encodeURIComponent(DRIVE_USER)+'/drive/root:/'+encPath(path)+'?$select=id,name,webUrl';
- const res=await graph(url);
+ const res=await graph(url,{},environment);
  if(res.status===404){
   if(!target){
    const graphBody=await res.json().catch(()=>({}));
@@ -69,7 +72,7 @@ async function getFolder(reference,environment='production'){
   if(target){
    // A 404 for a REF child is only a missing shipment folder when the exact
    // parent is itself readable. Never silently treat a wrong library as empty.
-   const root=await graph(exactBase(target)+'/items/'+encodeURIComponent(target.folderId)+'?$select=id,folder');
+   const root=await graph(exactBase(target)+'/items/'+encodeURIComponent(target.folderId)+'?$select=id,folder',{},environment);
    const meta=await root.json().catch(()=>({}));
    if(!root.ok||text(meta.id)!==target.folderId||!meta.folder)throw error('GRAPH_REFERENCE_EXACT_TARGET_UNREADABLE','Die konfigurierte SharePoint-Dokumentbibliothek oder der Stammordner ist für die Graph-App nicht erreichbar.',503);
   }
@@ -85,7 +88,7 @@ async function ensureFolder(reference,environment='production'){
  const ref=refValue(reference),existing=await getFolder(ref,environment);if(existing)return existing;
  const target=exactTarget(environment);
  const url=target?exactBase(target)+'/items/'+encodeURIComponent(target.folderId)+'/children':GRAPH_BASE+'/users/'+encodeURIComponent(DRIVE_USER)+'/drive/root:/'+encPath(REFERENCE_FOLDER)+':/children';
- const res=await graph(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:ref,folder:{},'@microsoft.graph.conflictBehavior':'fail'})});
+ const res=await graph(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:ref,folder:{},'@microsoft.graph.conflictBehavior':'fail'})},environment);
  if(res.status===409){const found=await getFolder(ref,environment);if(found)return found}
  let data={};try{data=await res.json()}catch(_){}
  if(!res.ok)throw error('GRAPH_REFERENCE_FOLDER_CREATE_FAILED',data.error&&data.error.message||'api.reference.folderCreateFailed',res.status>=500?502:res.status,{status:res.status});
@@ -100,7 +103,7 @@ async function verifyUploadedFile(itemId,file,size,folderId,environment='product
  const url=target?exactBase(target)+'/items/'+encodeURIComponent(itemId)+'?$select=id,name,size,parentReference,file':GRAPH_BASE+'/users/'+encodeURIComponent(DRIVE_USER)+'/drive/items/'+encodeURIComponent(itemId)+'?$select=id,name,size,parentReference,file';
  for(let attempt=0;attempt<3;attempt++){
   try{
-   const res=await graph(url),data=await res.json().catch(()=>({}));
+   const res=await graph(url,{},environment),data=await res.json().catch(()=>({}));
    if(res.ok&&text(data.id)===itemId&&text(data.name)===file&&
       Number.isSafeInteger(data.size)&&data.size===size&&
       text(data.parentReference&&data.parentReference.id)===folderId&&data.file){
@@ -121,7 +124,7 @@ async function upload(reference,name,buffer,mimeType,environment='production'){
  if(!folderId)throw error('GRAPH_REFERENCE_FOLDER_UNVERIFIED','Der REF-Ordner wurde von Microsoft Graph nicht eindeutig bestätigt.',502);
  const target=exactTarget(environment),path=folderPath(ref)+'/'+file;
  const url=target?exactBase(target)+'/items/'+encodeURIComponent(folderId)+':/'+encodeURIComponent(file)+':/content':GRAPH_BASE+'/users/'+encodeURIComponent(DRIVE_USER)+'/drive/root:/'+encPath(path)+':/content';
- const res=await graph(url,{method:'PUT',headers:{'Content-Type':text(mimeType)||'application/octet-stream','Content-Length':String(buffer.length),Accept:'application/json'},body:buffer});
+ const res=await graph(url,{method:'PUT',headers:{'Content-Type':text(mimeType)||'application/octet-stream','Content-Length':String(buffer.length),Accept:'application/json'},body:buffer},environment);
  let data={};try{data=await res.json()}catch(_){}
  if(!res.ok)throw error('GRAPH_REFERENCE_FILE_UPLOAD_FAILED',data.error&&data.error.message||'api.reference.fileUploadFailed',res.status>=500?502:res.status,{status:res.status});
  // A successful HTTP response without a matching Drive item is not proof
@@ -149,7 +152,7 @@ async function listFiles(reference,environment='production'){
   if(++visited>MAX_FOLDERS)throw error('GRAPH_REFERENCE_FOLDER_SCAN_LIMIT','Der REF-Ordner enthält zu viele Unterordner für eine vollständige AV-Prüfung.',503);
   const task=pending.shift();let url=task.url,pages=0;
   while(url&&pages<6){
-   const res=await graph(url);
+   const res=await graph(url,{},environment);
    if(res.status===404){
     // A missing root on the initial request is an absent REF folder.
     // A vanished subfolder or pagination link means the scan is incomplete:
