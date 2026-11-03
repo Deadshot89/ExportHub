@@ -258,7 +258,7 @@
   }
 
   function runtimeOf(ctx){return ctx&&ctx.runtime||root.ExportHUBRC1014TaskRuntime||null;}
-  function userIdOf(ctx){const u=ctx&&ctx.user;return q(u&&(u.id||u.userId||u.username)||ctx&&ctx.userId);}
+  function userIdOf(ctx){const u=ctx&&(ctx.user||ctx.currentUser||ctx.state&&ctx.state.currentUser);return q(u&&(u.id||u.userId||u.username||u.user)||ctx&&(ctx.userId||ctx.currentUserId||ctx.state&&ctx.state.currentUserId));}
   function actionContext(ctx={}){
     const next={...(ctx||{})};
     if(!obj(next.state))next.state={tasks:[]};
@@ -312,7 +312,11 @@
     function moveTo(taskId,date){
       const state=obj(ctx.state)?ctx.state:{tasks:[]},task=arr(state.tasks).find(t=>q(t&&t.id)===taskId);if(!task||!date||taskDay(task)===date)return false;
       const runtime=runtimeOf(ctx),move=runtime&&(typeof runtime.moveTaskOccurrence==='function'?runtime.moveTaskOccurrence:(runtime.plannerV2&&runtime.plannerV2.moveTaskOccurrence));if(typeof move!=='function')return false;
-      move(taskId,plannedAtForDate(task,date),{...ctx,state});return true;
+      const result=move(taskId,plannedAtForDate(task,date),{...ctx,state});
+      if(result&&result.changed!==false&&typeof target.querySelector==='function'){
+        renderFresh(target,{...(target.__tpv2Ctx||ctx),state,view:'workweek'});
+      }
+      return !result||result.changed!==false;
     }
     const down=e=>{const card=taskFrom(e&&e.target);activeCard=card||null;activeId=readId(card)||activeId;startX=Number(e&&e.clientX)||0;startY=Number(e&&e.clientY)||0;dragging=false;};
     const moveHandler=e=>{
