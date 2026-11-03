@@ -153,3 +153,25 @@ test('RC1771 Deepfix: fester Abholtag bei Serienkunde wird ohne Sendungsanlage g
   assert.equal(inspection.matchedPickupGroups,0,'keine Sendung wurde erfunden');
   assert.equal(inspection.hasFixedPickupData,true);
 });
+
+test('RC1771 Deepfix: Serienkunde zeigt orange ABD-Karte mit aktiver Bestätigung im Wochenplan',async()=>{
+  const root=load();
+  const state={tasks:[
+    {id:'M848:mo-p-uk:2026-W45',title:'UK',area:'Picken',status:'open',
+      masterTaskRC848:true,weekKey:'2026-W45',customerNumber:'04711',plannedAt:'2026-11-03T09:00:00'},
+    {id:'M848:di-a-uk:2026-W45',title:'UK',area:'ABD erstellen',status:'open',
+      masterTaskRC848:true,weekKey:'2026-W45',customerNumber:'4711',plannedAt:'2026-11-03T10:00:00'}
+  ]};
+  let persisted=0;const handlers={},target={innerHTML:'',querySelector:()=>null,
+    addEventListener(type,fn){handlers[type]=fn;}};
+  root.ExportHUBTaskUIV2.renderPlannerPage(target,{state,weekStart:'2026-11-02',now:'2026-11-03T12:00:00+01:00',
+    user:{id:'u1'},persist(next){state.tasks=next;persisted++;}});
+  assert.match(target.innerHTML,/is-abd-exception/);
+  assert.match(target.innerHTML,/data-tpv2-abd-approve="M848:di-a-uk:2026-W45"/);
+  const control={getAttribute:key=>key==='data-tpv2-abd-approve'?'M848:di-a-uk:2026-W45':null};
+  control.closest=sel=>sel==='[data-tpv2-abd-approve]'?control:null;
+  await handlers.click({target:control});
+  assert.equal(persisted,1);
+  assert.doesNotMatch(target.innerHTML,/is-abd-exception/);
+  assert.equal(state.tasks[1].planningSameDayAbdApproval.by,'u1');
+});
