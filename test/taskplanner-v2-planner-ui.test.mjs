@@ -367,7 +367,7 @@ test('RC1771 Deepfix: Wochenplan darf Aufgaben der folgenden Woche nicht in die 
   assert.match(target.innerHTML,/<li><strong>1<\/strong><span>Planned this week/,'nur aktuelle Woche zählt im Entwurf');
   await target.handlers.click({target:button('data-tpv2-weekplan','apply')});
   assert.equal(calls.length,1,'aktueller Wochenentwurf wurde übernommen');
-  assert.deepEqual(calls[0].items.map(row=>row.taskId),['current']);
+  assert.deepEqual(Array.from(calls[0].items,row=>row.taskId),['current']);
   assert.ok(!calls[0].items.some(row=>row.taskId==='next'),'nächste Woche darf nicht verschoben werden');
   assert.equal(state.tasks[1].plannedAt,'2026-11-09T09:00:00+02:00');
 });
