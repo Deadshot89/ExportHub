@@ -175,3 +175,20 @@ test('RC1771 Deepfix: Serienkunde zeigt orange ABD-Karte mit aktiver Bestätigun
   assert.doesNotMatch(target.innerHTML,/is-abd-exception/);
   assert.equal(state.tasks[1].planningSameDayAbdApproval.by,'u1');
 });
+
+test('RC1771 Deepfix: historische überfällige Vorgänge erzeugen keine Warnungen im aktuellen Plan',()=>{
+  const root=load(),state={tasks:[
+    task('old-pick','Picken','2026-10-20','OLD'),
+    task('old-abd','ABD erstellen','2026-10-20','OLD'),
+    task('this-week','Picken','2026-11-03','NEW')
+  ]};
+  const target={innerHTML:''};
+  root.ExportHUBTaskUIV2.renderPlannerPage(target,{state,weekStart:'2026-11-02',now:'2026-11-03T12:00:00+01:00'});
+  assert.match(target.innerHTML,/this-week/);
+  assert.doesNotMatch(target.innerHTML,/data-rule-type="abd_same_day"/);
+  assert.doesNotMatch(target.innerHTML,/data-tpv2-overdue/);
+  assert.equal(state.tasks.length,3,'historische Aufgaben bleiben gespeichert');
+  const month={innerHTML:''};
+  root.ExportHUBTaskUIV2.renderPlannerPage(month,{state,view:'month',year:2026,month:11,now:'2026-11-03T12:00:00+01:00'});
+  assert.doesNotMatch(month.innerHTML,/data-rule-type="abd_same_day"/);
+});
