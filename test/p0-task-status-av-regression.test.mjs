@@ -173,3 +173,26 @@ test('P0: unconfirmed Azure save must roll back task and ledger',async()=>{
   assert.equal(state.tasks[0].status,'open');
   assert.equal(state.taskStatusLedger['id:managed:spanien:2026-10-26'],undefined);
 });
+
+test('P0: direct persistence callback returning false must not confirm task',async()=>{
+  const fs=(await import('node:fs')).default;
+  const vm=(await import('node:vm')).default;
+  const win={document:null,addEventListener(){},dispatchEvent(){},
+    setTimeout(){return 1;},clearTimeout(){},
+    location:{hostname:'example.azurestaticapps.net',pathname:'/'}};
+  vm.runInNewContext(fs.readFileSync('assets/rc1014-task-runtime.js','utf8'),
+    {globalThis:win,console,Date,Intl,CustomEvent:function(){}});
+  const state={tasks:[{id:'managed:spanien:2026-10-26',title:'Essentra Spanien anmelden',status:'open'}]};
+  let attempts=0;
+  await assert.rejects(
+    win.ExportHUBRC1014TaskRuntime.setTaskStatus(state.tasks[0],'done',{
+      state,currentUserId:'test-user',
+      persist:async()=>{attempts++;return false;}
+    }),
+    /TASK_STATUS_SAVE_NOT_CONFIRMED/
+  );
+  assert.equal(attempts,1);
+  assert.equal(state.tasks[0].status,'open');
+  assert.equal(state.tasks[0].done,undefined);
+  assert.equal(state.taskStatusLedger['id:managed:spanien:2026-10-26'],undefined);
+});
