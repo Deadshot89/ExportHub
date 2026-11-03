@@ -218,3 +218,27 @@ test('RC1771 Deepfix: ausdrückliche ABD-Pflicht auf Pick-Aufgabe wird ohne Send
   const check=api.inspectOperationalPlan({tasks,shipments:[]});
   assert.equal(check.byTaskId[tasks[0].id].type,'abd_missing');
 });
+
+test('RC1771 Deepfix: erledigtes Picken bleibt eine ABD-Abhängigkeit und wird nicht als offen gezeigt',async()=>{
+  const root=load(),api=root.ExportHUBTaskPlannerV2;
+  const state={tasks:[
+    {id:'M848:di-p-uk:2026-W45',title:'UK',area:'Picken',customerNumber:'4711',
+      weekKey:'2026-W45',day:'Dienstag',masterTaskRC848:true,status:'done',done:true},
+    {id:'M848:di-a-uk:2026-W45',title:'UK',area:'ABD erstellen',customerNumber:'04711',
+      weekKey:'2026-W45',day:'Dienstag',masterTaskRC848:true,status:'offen'}
+  ]};
+  const warning=api.inspectOperationalPlan({tasks:state.tasks});
+  assert.equal(warning.byTaskId[state.tasks[1].id].type,'abd_same_day');
+  const target={innerHTML:'',querySelector:()=>null,handlers:{},addEventListener(type,fn){this.handlers[type]=fn;}};
+  let saved=0;
+  root.ExportHUBTaskUIV2.renderPlannerPage(target,{state,weekStart:'2026-11-02',
+    now:'2026-11-03T10:00:00+01:00',user:{id:'u1'},persist(next){state.tasks=next;saved++;}});
+  assert.match(target.innerHTML,/is-abd-exception/,'offenes ABD bleibt orange');
+  assert.doesNotMatch(target.innerHTML,/data-task-id="M848:di-p-uk:2026-W45"/,'erledigtes Picken wird nicht als offene Karte angezeigt');
+  const control={getAttribute:key=>key==='data-tpv2-abd-approve'?state.tasks[1].id:null};
+  control.closest=selector=>selector==='[data-tpv2-abd-approve]'?control:null;
+  await target.handlers.click({target:control});
+  assert.equal(saved,1);
+  assert.doesNotMatch(target.innerHTML,/is-abd-exception/);
+  assert.equal(state.tasks[0].status,'done','Pick-Abschluss bleibt erhalten');
+});
