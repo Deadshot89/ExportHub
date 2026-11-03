@@ -1637,6 +1637,7 @@
   "taskV2.ops.approve": "Confirmar excepción",
   "taskV2.ops.print": "Imprimir plan semanal / PDF",
   "taskV2.ops.pickupDate": "Recogida:",
+  "taskV2.ops.recommended": "Recomendado:",
   "taskV2.ops.earliest": "como pronto",
   "taskV2.ops.ambiguous": "Varias operaciones de la misma expedición: revisar asignación.",
   "taskV2.ops.abdMissing": "Se requiere documento aduanero, pero no hay tarea ABD vinculada.",
