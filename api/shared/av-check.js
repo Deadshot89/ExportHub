@@ -55,8 +55,14 @@ function abdRequestsFor(state,sh){
 // historic EU shipments and must never create mandatory AV upload tasks.
 function hasIssuedAbdEvidence(record){
   if(!record||typeof record!=='object')return false;
+  // Bare status strings are not customs documents, paths, or MRNs.
+  const statusOnly=/^(?:true|false|ja|nein|yes|no|done|completed|erledigt|fertig|vorhanden|erstellt|abgeschlossen|pflicht|erforderlich|offen|pending|wartet|in bearbeitung|none|null|undefined|n\\/?a|kein|keine|—|-)$/i;
+  const hasDocumentValue=value=>{
+    const v=text(value);
+    return !!v&&!statusOnly.test(v);
+  };
   const fileEvidence=file=>{
-    if(typeof file==='string')return !!text(file);
+    if(typeof file==='string')return hasDocumentValue(file);
     return !!(file&&typeof file==='object'&&text(
       file.name||file.fileName||file.filename||file.blobName||
       file.storageBlobName||file.storagePath||file.documentId||file.id||
@@ -70,7 +76,7 @@ function hasIssuedAbdEvidence(record){
   if(fileEvidence(record.abd))return true;
   if(['abdRef','abdReference','abdMrn','mrn'].some(key=>{
     const v=text(record[key]);
-    return !!v&&!/^(false|true|nein|ja|none|n\/a|kein|keine|-|pflicht|erforderlich)$/i.test(v);
+    return hasDocumentValue(v);
   }))return true;
   const docs=[...(Array.isArray(record.documents)?record.documents:[]),
     ...(Array.isArray(record.generatedDocuments)?record.generatedDocuments:[])];
