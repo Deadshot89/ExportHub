@@ -84,9 +84,13 @@
           ['dueDate','16:15'],['scheduledDate','00:00'],['date','00:00']
         ]){
           const value=q(copy[field]);
-          if(/^\d{1,2}\.\d{1,2}\.\d{4}$/.test(value)){
-            const iso=dayKey(value);
-            if(iso)copy[field]=iso+'T'+time+':00';
+          const german=value.match(/^(\d{1,2}\.\d{1,2}\.\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+          if(german){
+            const iso=dayKey(german[1]),hour=german[2]===undefined?Number(time.slice(0,2)):Number(german[2]),
+              minute=german[3]===undefined?Number(time.slice(3,5)):Number(german[3]),second=Number(german[4]||0);
+            if(iso&&hour>=0&&hour<=23&&minute>=0&&minute<=59&&second>=0&&second<=59){
+              copy[field]=iso+'T'+String(hour).padStart(2,'0')+':'+String(minute).padStart(2,'0')+':'+String(second).padStart(2,'0');
+            }
           }
         }
         return dayKey(copy.plannedAt||copy.dueAt)?copy:{
