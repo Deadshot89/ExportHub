@@ -82,7 +82,7 @@ test('RC1771: orange ABD-Karte mit Bestätigungsaktion und Abholkalenderwarnung'
     now:'2026-11-03T12:00:00+01:00',user:{id:'u1'},persist(next){writes++;state.tasks=next;}});
   assert.match(target.innerHTML,/is-abd-exception/);
   assert.match(target.innerHTML,/data-tpv2-abd-approve="abd"/);
-  assert.match(target.innerHTML,/Spedition informieren/);
+  assert.match(target.innerHTML,/data-rule-type="pickup_notification"/);
   const button={getAttribute:key=>key==='data-tpv2-abd-approve'?'abd':null,
     closest:sel=>sel==='[data-tpv2-abd-approve]'?button:null};
   await handlers.click({target:button});
