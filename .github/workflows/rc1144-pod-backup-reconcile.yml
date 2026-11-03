@@ -4,7 +4,7 @@ on:
   workflow_run:
     workflows:
       - ExportHUB Production Release
-      # RC1772: failed AV checks prove a possible shared REF/Graph outage.
+      # RC1773: failed AV checks prove a possible shared REF/Graph outage.
       # Trigger read-only POD target diagnostics; never start POD reconciliation.
       - ExportHUB AV-Prüfung
     types:
