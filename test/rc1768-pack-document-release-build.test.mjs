@@ -12,12 +12,20 @@ for (const file of environments) {
     // Critical: RC1112 copies dist-rc1048 first. Root index/TESTVERSION
     // already had RC1702 but the deploy artifact still restored RC886.
     const base=fs.readFileSync('dist-rc1048/'+file,'utf8');
-    assert.equal(base.split(OLD).length-1,1,'known RC1048 legacy wrapper must be exercised');
-    const built=patchRc1768PackDocumentCredentials(base,file);
+    const oldCount=base.split(OLD).length-1,correctCount=base.split(FIXED).length-1;
+    assert.equal(oldCount+correctCount,1,'RC886 must have exactly one credentials override');
+    // The full npm pretest rebuilds dist-rc1048 before this test. That
+    // regeneration may already include RC1702, while a clean git checkout
+    // still contains the legacy override. Exercise the old branch explicitly.
+    const legacy=oldCount===1?base:base.replace(FIXED,OLD);
+    assert.equal(legacy.split(OLD).length-1,1,'regression fixture must reproduce old RC886');
+    const built=patchRc1768PackDocumentCredentials(legacy,file);
     assert.equal(built.split(FIXED).length-1,1);
     assert.equal(built.includes(OLD),false);
-    assert.equal(built,base.replace(OLD,FIXED),'do not alter unrelated API requests or layout');
+    assert.equal(built,legacy.replace(OLD,FIXED),'do not alter unrelated API requests or layout');
     assert.equal(patchRc1768PackDocumentCredentials(built,file),built,'idempotent build');
+    const liveBuild=patchRc1768PackDocumentCredentials(base,file);
+    assert.equal(liveBuild,base.replace(OLD,FIXED),'current generated source must remain safe');
   });
 }
 
