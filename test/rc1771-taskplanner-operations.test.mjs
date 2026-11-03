@@ -271,3 +271,17 @@ test('RC1771 Deepfix: ABD-Bestätigung wird nach Hin- und Rückverschieben wiede
   assert.equal(check.byTaskId.abd.type,'abd_same_day');
   assert.ok(check.byTaskId.abd.signature!==approved[1].planningSameDayAbdApproval.signature);
 });
+
+test('RC1771 Deepfix: abgeschlossene und archivierte Aufgaben tauchen im Plan nicht wieder auf',()=>{
+  const root=load(),state={tasks:[
+    {id:'old-complete',title:'Erledigte Aufgabe',status:'Abgeschlossen',plannedAt:'2026-11-03T09:00:00'},
+    {id:'old-archive',title:'Archivierte Aufgabe',status:'Archiviert',plannedAt:'2026-11-04T09:00:00'},
+    {id:'open',title:'Picken aktuell',status:'offen',plannedAt:'2026-11-03T09:00:00'}
+  ]};
+  const target={innerHTML:''};
+  root.ExportHUBTaskUIV2.renderWorkweek(target,{state,weekStart:'2026-11-02',now:'2026-11-03T11:00:00+01:00'});
+  assert.match(target.innerHTML,/Picken aktuell/);
+  assert.doesNotMatch(target.innerHTML,/Erledigte Aufgabe/);
+  assert.doesNotMatch(target.innerHTML,/Archivierte Aufgabe/);
+  assert.equal(state.tasks.length,3,'Quellaufgaben bleiben unverändert');
+});
