@@ -131,7 +131,7 @@
   function taskCardHtml(raw,ctx={}){
     const task=typeof base.detailModel==='function'?base.detailModel(raw,ctx):raw;
     const overdue=ctx.planningView===true?false:isOverdue(task,ctx.now);
-    const warning=ctx.operationInspection&&ctx.operationInspection.byTaskId&&ctx.operationInspection.byTaskId[q(task.id)];
+    const warning=!ctx.weekDraft&&ctx.operationInspection&&ctx.operationInspection.byTaskId&&ctx.operationInspection.byTaskId[q(task.id)];
     const orange=warning&&warning.type==='abd_same_day'&&!ctx.weekDraft;
     const classes='tpv2-task-card'+(overdue?' is-overdue':'')+(orange?' is-abd-exception':'');
     let overdueDays=0;if(overdue){try{overdueDays=Number(core().derive(task,nowOf(ctx)).overdueDays)||0;}catch(_){}}
