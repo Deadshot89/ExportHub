@@ -294,10 +294,12 @@ html[data-eh-design="neon"] .tpv2-reminders li{background:#10233a;color:#e5eef8}
 @media print{
   body.tpv2-print-carrier{print-color-adjust:exact;-webkit-print-color-adjust:exact}
   body.tpv2-print-carrier *{visibility:hidden!important}
-  body.tpv2-print-carrier .tpv2-planner{overflow:visible!important}
-  body.tpv2-print-carrier .tpv2-carrier-print-sheet,
-  body.tpv2-print-carrier .tpv2-carrier-print-sheet *{visibility:visible!important}
-  body.tpv2-print-carrier .tpv2-carrier-print-sheet{
+  body.tpv2-print-carrier .tpv2-planner{position:absolute!important;top:0!important;left:0!important;width:100%!important;overflow:visible!important}
+  body.tpv2-print-carrier .tpv2-planner > :not(.tpv2-carrier-print-sheet){display:none!important}
+  body.tpv2-print-carrier .tpv2-carrier-print-sheet:not(.is-print-target){display:none!important}
+  body.tpv2-print-carrier .tpv2-carrier-print-sheet.is-print-target,
+  body.tpv2-print-carrier .tpv2-carrier-print-sheet.is-print-target *{visibility:visible!important}
+  body.tpv2-print-carrier .tpv2-carrier-print-sheet.is-print-target{
     display:block!important;position:absolute!important;top:0!important;left:0!important;
     width:100%!important;max-width:none!important;padding:0!important;margin:0!important;
     font-family:Arial,Helvetica,sans-serif!important;color:#111827!important;background:#fff!important
