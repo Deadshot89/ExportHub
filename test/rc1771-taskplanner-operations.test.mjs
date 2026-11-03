@@ -192,3 +192,29 @@ test('RC1771 Deepfix: historische überfällige Vorgänge erzeugen keine Warnung
   root.ExportHUBTaskUIV2.renderPlannerPage(month,{state,view:'month',year:2026,month:11,now:'2026-11-03T12:00:00+01:00'});
   assert.doesNotMatch(month.innerHTML,/data-rule-type="abd_same_day"/);
 });
+
+test('RC1771 Deepfix: ABD-Bestätigung funktioniert bei legacy Woche/Tag ohne Datumsfeld',()=>{
+  const api=load().ExportHUBTaskPlannerV2;
+  const tasks=[
+    {id:'M848:di-p-uk:2026-W45',title:'UK',area:'Picken',customerNumber:'4711',
+      weekKey:'2026-W45',day:'Dienstag',masterTaskRC848:true,status:'offen'},
+    {id:'M848:di-a-uk:2026-W45',title:'UK',area:'ABD erstellen',customerNumber:'004711',
+      weekKey:'2026-W45',day:'Dienstag',masterTaskRC848:true,status:'offen'}
+  ];
+  const check=api.inspectOperationalPlan({tasks});
+  assert.equal(check.byTaskId[tasks[1].id].type,'abd_same_day');
+  assert.equal(check.byTaskId[tasks[1].id].date,'2026-11-03');
+  const approved=api.approveSameDayAbd(tasks,{taskId:tasks[1].id,actorId:'u1'});
+  assert.equal(approved.changed,true,'Bestätigung darf nicht an fehlendem plannedAt scheitern');
+  assert.ok(approved.tasks[1].planningSameDayAbdApproval);
+  assert.equal(api.inspectOperationalPlan({tasks:approved.tasks}).warnings.length,0);
+  assert.equal(tasks[0].plannedAt,undefined,'Altdaten bleiben unverändert');
+});
+test('RC1771 Deepfix: ausdrückliche ABD-Pflicht auf Pick-Aufgabe wird ohne Sendungsanlage erkannt',()=>{
+  const api=load().ExportHUBTaskPlannerV2;
+  const tasks=[{id:'M848:mo-p-non-eu:2026-W45',title:'Nicht-EU Kunde',
+    area:'Picken',customerNumber:'4711',weekKey:'2026-W45',day:'Montag',
+    masterTaskRC848:true,abdRequired:true,status:'open'}];
+  const check=api.inspectOperationalPlan({tasks,shipments:[]});
+  assert.equal(check.byTaskId[tasks[0].id].type,'abd_missing');
+});
