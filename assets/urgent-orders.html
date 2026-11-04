@@ -120,9 +120,15 @@ function token(){
 async function api(action,payload){
  const headers={'Content-Type':'application/json','Accept':'application/json'};
  const t=token();if(t)headers['X-ExportHUB-Token']=t;
- const response=await fetch(ENDPOINT,{method:'POST',credentials:'same-origin',cache:'no-store',headers,body:JSON.stringify(Object.assign({action},payload||{}))});
- let result;try{result=await response.json()}catch(_){throw new Error('Serverantwort ist ungültig.')}
- if(!response.ok||result.ok===false){const error=new Error(result.message||'HTTP '+response.status);error.status=response.status;throw error}
+ let response;
+ try{response=await fetch(ENDPOINT,{method:'POST',credentials:'same-origin',cache:'no-store',headers,body:JSON.stringify(Object.assign({action},payload||{}))});}
+ catch(_){throw new Error(localeV2('networkError','Keine Verbindung zum Urgent-Order-Dienst. Bitte erneut versuchen.'));}
+ let result;try{result=await response.json()}catch(_){throw new Error(localeV2('networkError','Die Serverantwort ist ungültig. Bitte erneut versuchen.'));}
+ if(!response.ok||result.ok===false){
+  const code=/^[A-Z][A-Z0-9_]{2,60}$/.test(String(result.code||''))?result.code:'';
+  const error=new Error((result.message||'HTTP '+response.status)+(code?' (Code: '+code+')':''));
+  error.status=response.status;error.code=code;throw error;
+ }
  return result;
 }
 function setMessage(id,message,kind){const e=$(id);e.textContent=message||'';e.dataset.kind=kind||'';}
@@ -243,7 +249,9 @@ async function refresh(){
   render();
  }catch(e){
   $('access').hidden=false;$('access').textContent=e.status===401?'Bitte zuerst in ExportHUB360 anmelden. Der Zugriff auf CS-Aufträge ist nicht öffentlich.':e.message;
-  $('createButton').disabled=true;$('saveProfile').disabled=true;$('orders').innerHTML='<div class="empty">Aufträge können ohne gültige Berechtigung nicht geladen werden.</div>';
+  $('createButton').disabled=true;$('saveProfile').disabled=true;
+  $('orders').innerHTML='<div class="empty" role="alert"><p>'+escapeHtml(e.status===401?'Anmeldung erforderlich. Bitte zu ExportHUB zurückkehren und anmelden.':e.message)+'</p><button class="btn alt small" type="button" id="retryInternalList">'+escapeHtml(localeV2('retry','Erneut versuchen'))+'</button></div>';
+  $('retryInternalList').addEventListener('click',refresh);
  }
 }
 async function submit(ev){
