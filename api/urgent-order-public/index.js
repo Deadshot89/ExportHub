@@ -3,6 +3,7 @@
 const crypto=require('node:crypto');
 const internal=require('../urgent-orders/index');
 const model=require('../shared/urgent-orders');
+const apiI18n=require('../shared/i18n');
 const guard=new Map();
 const MAX_ORDERS=3000,MAX_REPORTER_ORDERS=100,MAX_PUBLIC_CREATES_PER_DAY=200;
 function txt(v,max=250){return String(v==null?'':v).trim().slice(0,max);}
@@ -111,7 +112,7 @@ module.exports=async function(context,req){
    URGENT_CAPACITY:'Der Dienst hat seine Kapazitätsgrenze erreicht. Bitte die Logistik informieren.'
   };
   const message=serviceError
-   ?safeMessages[publicCode]||'Urgent Order ist momentan nicht verfügbar. Bitte erneut versuchen und bei Wiederholung die Logistik informieren.'
+   ?safeMessages[publicCode]||apiI18n.t(req,'api.urgent.serverError')
    :e&&e.message||'Ungültige Anfrage.';
   context.res=json(responseStatus,{ok:false,code:publicCode,message,retryable:serviceError&&publicCode!=='URGENT_WRITE_UNVERIFIED'});
  }

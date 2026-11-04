@@ -74,7 +74,7 @@ main{max-width:1440px;margin:0 auto;padding:24px clamp(14px,2.5vw,36px) 64px}h1{
 <div class="layout">
 <section class="panel" id="internalCreatePanel" hidden aria-labelledby="formTitle"><div class="workspace-heading"><h2 id="formTitle" data-i18n="urgentOrderV2.formTitle">Neue Anfrage erfassen</h2><p data-i18n="urgentOrderV2.formIntro">Auftrag und Warenfluss erfassen. Die Anfragen erscheinen separat im passenden Reiter.</p></div>
 <p class="hintbar" data-i18n="urgentOrderV2.manualNotice">* Pflichtfelder · CS-Prüfungen basieren auf manueller Bestätigung, nicht auf D365-Livedaten.</p>
-<form id="newOrder" novalidate><nav class="wizard-track" aria-label="Schritte"><span data-internal-mark="1" aria-current="step"><b>1</b><span data-i18n="urgentOrderV2.stepBasics">Auftragsdaten</span></span><span data-internal-mark="2"><b>2</b><span data-i18n="urgentOrderV2.stepChecks">Artikel & Prüfung</span></span><span data-internal-mark="3"><b>3</b><span data-i18n="urgentOrderV2.stepConfirm">Bestätigen</span></span></nav><div data-internal-step="1">
+<form id="newOrder" novalidate><nav class="wizard-track" aria-label="Schritte"><span data-internal-mark="1" aria-current="step"><b>1</b><span data-i18n="urgentOrderV2.stepBasics">Auftragsdaten</span></span><span data-internal-mark="2"><b>2</b><span data-i18n="urgentOrderV2.stepChecks">Artikel & Prüfungen</span></span><span data-internal-mark="3"><b>3</b><span data-i18n="urgentOrderV2.stepConfirm">Bestätigen</span></span></nav><div data-internal-step="1">
 <div class="form-grid">
 <p class="wide info-note" data-i18n="urgentOrderV2.internalHelp">Im internen Formular erfasst du Lageraufträge mit vorhandener Ware. Für Direktumschlag nutze das Meldeformular.</p>
 <label class="field">Auftragsnummer *<input name="orderNumber" placeholder="SO3002" autocomplete="off" required maxlength="40"></label>
@@ -86,7 +86,7 @@ main{max-width:1440px;margin:0 auto;padding:24px clamp(14px,2.5vw,36px) 64px}h1{
 <div class="btn-row"><button type="button" id="saveProfile" class="btn alt small">E-Mail für mein Login speichern</button><span class="help" id="profileHint">Zuordnung erfolgt zum angemeldeten ExportHUB-Benutzer.</span></div>
 </div><div data-internal-step="2" hidden><div style="margin-top:18px;display:flex;justify-content:space-between;gap:10px;align-items:center"><h3>Artikel / Lines *</h3><button class="btn flat small" type="button" id="addLine" data-i18n="urgentOrderV2.addItem">+ Artikel hinzufügen</button></div>
 <div id="lineFields"></div>
-</div><div data-internal-step="3" hidden><div class="wizard-review"><h3 data-i18n="urgentOrderV2.stepConfirm">Bestätigen</h3><p data-i18n="urgentOrderV2.reviewIntro">Prüfe die Angaben. Anschließend wird die Anfrage für die Logistik gespeichert.</p><p id="internalWizardReview" role="status"></p></div><div class="btn-row"><button class="btn" id="createButton" type="submit" data-i18n="urgentOrderV2.sendRequest">Urgent Order melden</button></div></div><div class="wizard-actions"><button type="button" class="btn alt" id="internalWizardBack" hidden data-i18n="urgentOrderV2.previous">Zurück</button><span></span><button type="button" class="btn" id="internalWizardNext" data-i18n="urgentOrderV2.next">Weiter</button></div><div id="createMessage" class="message" role="status" aria-live="polite"></div>
+</div><div data-internal-step="3" hidden><div class="wizard-review"><h3 data-i18n="urgentOrderV2.stepConfirm">Bestätigen</h3><p data-i18n="urgentOrderV2.reviewIntro">Bitte alle Angaben kontrollieren. Nach dem Speichern ist die Anfrage nachverfolgbar.</p><p id="internalWizardReview" role="status"></p></div><div class="btn-row"><button class="btn" id="createButton" type="submit" data-i18n="urgentOrderV2.sendRequest">Urgent Order melden</button></div></div><div class="wizard-actions"><button type="button" class="btn alt" id="internalWizardBack" hidden data-i18n="urgentOrderV2.previous">Zurück</button><span></span><button type="button" class="btn" id="internalWizardNext" data-i18n="urgentOrderV2.next">Weiter</button></div><div id="createMessage" class="message" role="status" aria-live="polite"></div>
 </form></section>
 <section class="panel" id="internalListPanel" aria-labelledby="listTitle">
 <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap"><h2 id="listTitle" data-i18n="urgentOrderV2.tabOpen">Offene Anfragen</h2><button type="button" class="btn alt small" id="refresh" data-i18n="urgentOrderV2.refresh">Aktualisieren</button></div>
@@ -183,7 +183,7 @@ function nextInternalStep(){
  if(internalStep===2){
   const items=formItems();
   if(items.some(x=>!x.line&&!x.article)){setMessage('createMessage',localeV2('missingArticle','Line oder Artikelnummer fehlt.'),'error');return;}
-  if(items.some(x=>(x.pickableStock===false||x.holdsClear===false||(x.minibag&&x.minibagLeadtime===false))&&x.exceptionReason.length<8)){setMessage('createMessage',localeV2('explainException','Bei negativer Prüfung mindestens 8 Zeichen Begründung eingeben.'),'error');return;}
+  if(items.some(x=>(x.pickableStock===false||x.holdsClear===false||(x.minibag&&x.minibagLeadtime===false))&&x.exceptionReason.length<8)){setMessage('createMessage',localeV2('explainException','Bei einer negativen Prüfung ist eine Begründung mit mindestens 8 Zeichen erforderlich.'),'error');return;}
  }
  setMessage('createMessage','','');showInternalStep(internalStep+1);
 }
@@ -199,6 +199,10 @@ function filtered(){
  return orders.filter(o=>(currentTab==='closed'?isClosedOrder(o):!isClosedOrder(o))&&(!p||o.priority===p)&&(!d||o.delivery===d)&&(!s||(s==='exception'?(o.items||[]).some(x=>x.checkResult==='exception'):(o.items||[]).some(x=>x.status===s)))&&(!q||[o.orderNumber,o.email,...(o.items||[]).flatMap(x=>[x.line,x.article])].some(v=>txt(v).toLowerCase().includes(q)))).sort((a,b)=>rank(a)-rank(b)||txt(b.updatedAt).localeCompare(txt(a.updatedAt)));
 }
 function statusSummary(o){const list=[...new Set((o.items||[]).map(x=>x.status))];return list.length===1?list[0]:'Gemischt'}
+function localizedLoginRequired(){
+ const fallback="Bitte zuerst in ExportHUB360 anmelden. Der Zugriff auf CS-Aufträge ist nicht öffentlich.";
+ try{const i=window.ExportHUBI18n;const value=i&&i.t('urgentOrder.ui.036',null,i.language());return value&&value!=='urgentOrder.ui.036'?value:fallback;}catch(_){return fallback;}
+}
 function localeV2(key,fallback){try{const x=window.ExportHUBI18n,name='urgentOrderV2.'+key;const y=x&&x.t(name,null,x.language());return y&&y!==name?y:fallback;}catch(_){return fallback;}}
 function showView(view){activeView=view;currentTab=view==='closed'?'closed':'open';$('internalCreatePanel').hidden=view!=='new';$('internalListPanel').hidden=view==='new';for(const [id,key] of [['internalNew','new'],['internalOpen','open'],['internalClosed','closed']]){$(id).setAttribute('aria-selected',view===key?'true':'false');$(id).tabIndex=view===key?0:-1;}$('listTitle').textContent=view==='closed'?localeV2('tabClosed','Geschlossene Anfragen'):localeV2('tabOpen','Offene Anfragen');}
 function priorityText(code){const fallback=({P1:'P1 · Sondertransport',P2:'P2 · Express Lieferung',P3:'P3 · Backlog',P4:'P4 · Auftrag von Heute'})[code]||code;try{const i=window.ExportHUBI18n,v=i&&i.t('urgentOrderV2.'+code,null,i.language());return v&&v!=='urgentOrderV2.'+code?v:fallback;}catch(_){return fallback;}}
@@ -250,7 +254,8 @@ async function refresh(){
  }catch(e){
   $('access').hidden=false;$('access').textContent=e.status===401?'Bitte zuerst in ExportHUB360 anmelden. Der Zugriff auf CS-Aufträge ist nicht öffentlich.':e.message;
   $('createButton').disabled=true;$('saveProfile').disabled=true;
-  $('orders').innerHTML='<div class="empty" role="alert"><p>'+escapeHtml(e.status===401?'Anmeldung erforderlich. Bitte zu ExportHUB zurückkehren und anmelden.':e.message)+'</p><button class="btn alt small" type="button" id="retryInternalList">'+escapeHtml(localeV2('retry','Erneut versuchen'))+'</button></div>';
+  const authMessage=e.status===401?localizedLoginRequired():e.message;
+  $('orders').innerHTML='<div class="empty" role="alert"><p>'+escapeHtml(authMessage)+'</p><button class="btn alt small" type="button" id="retryInternalList">'+escapeHtml(localeV2('retry','Erneut versuchen'))+'</button></div>';
   $('retryInternalList').addEventListener('click',refresh);
  }
 }
@@ -263,7 +268,7 @@ async function submit(ev){
  if(items.some(x=>(x.pickableStock===false||x.holdsClear===false||(x.minibag&&x.minibagLeadtime===false))&&x.exceptionReason.length<8)){setMessage('createMessage','Bei negativer Prüfung mindestens 8 Zeichen Begründung eintragen.','error');return;}
  const body={orderNumber:form.elements.orderNumber.value,delivery:form.elements.delivery.value,priority:form.elements.priority.value,email:form.elements.email.value,language:form.elements.language.value,items};
  $('createButton').disabled=true;setMessage('createMessage','Speichere Auftrag …','');
- try{const r=await api('create',body);setMessage('createMessage',r.order.orderNumber+' wurde sicher gespeichert.','ok');form.reset();$('lineFields').innerHTML='';lineField();showInternalStep(1);$('csEmail').value=r.profile.email;$('csLanguage').value=r.profile.language;await refresh();showView('open');render();setMessage('listMessage',r.order.orderNumber+' · '+localeV2('saved','Anfrage gespeichert.'),'ok');}
+ try{const r=await api('create',body);setMessage('createMessage',r.order.orderNumber+' wurde sicher gespeichert.','ok');form.reset();$('lineFields').innerHTML='';lineField();showInternalStep(1);$('csEmail').value=r.profile.email;$('csLanguage').value=r.profile.language;await refresh();showView('open');render();setMessage('listMessage',r.order.orderNumber+' · '+localeV2('saved','Anfrage gespeichert. Bitte den Überwachungslink sichern.'),'ok');}
  catch(e){setMessage('createMessage',e.message,'error');}
  finally{$('createButton').disabled=false;}
 }
