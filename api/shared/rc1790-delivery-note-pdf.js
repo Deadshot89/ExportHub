@@ -82,13 +82,22 @@ function wrap(font,value,size,width,max=80){
  if(lines.length>max)fail('DELIVERY_NOTE_TEXT_OVERFLOW');
  return lines.length?lines:[''];
 }
+function addressLines(font,value,size,width,max=25){
+ const lines=[];
+ for(const sourceLine of safe(value,800).split(/\r?\n/)){
+  if(!sourceLine.trim())continue;
+  lines.push(...wrap(font,sourceLine,size,width,max));
+  if(lines.length>max)fail('DELIVERY_NOTE_TEXT_OVERFLOW');
+ }
+ return lines.length?lines:[''];
+}
 async function createDeliveryNotePdf(snapshot){
  const data=modelFrom(snapshot),h=data.header,pdf=await PDFDocument.create();
  const normal=await pdf.embedFont(StandardFonts.Helvetica),bold=await pdf.embedFont(StandardFonts.HelveticaBold);
  const logoData=fs.readFileSync(path.join(__dirname,'essentra-company-logo.png'));
  const logo=await pdf.embedPng(logoData);
- pdf.setTitle('Lieferschein '+h.documentNumber);pdf.setAuthor('ExportHUB360');
- pdf.setSubject('Manuell erstellter Lieferschein, DNC-Nummer nicht mit D365 abgeglichen');
+ pdf.setTitle('Lieferschein '+h.documentNumber);pdf.setAuthor('Essentra Components GmbH');
+ pdf.setSubject('Essentra Lieferschein / Delivery Note');
  let page,y;
  function put(value,x,yy,size=8,isBold=false,width=CONTENT,color=ink){
   const s=printable(value),font=isBold?bold:normal;
@@ -110,7 +119,7 @@ async function createDeliveryNotePdf(snapshot){
  }
  function section(label){put(label,LEFT,y,9,true,CONTENT,accent);y-=15;rule(y);y-=15}
  function addressBlock(label,name,address,x,width){
-  const nameLines=wrap(bold,name,9,width-24,10),lines=wrap(normal,address,8,width-24,25);
+  const nameLines=wrap(bold,name,9,width-24,10),lines=addressLines(normal,address,8,width-24,25);
   return {label,nameLines,lines,height:Math.max(100,40+nameLines.length*12+lines.length*11)};
  }
  function addresses(){
@@ -168,9 +177,9 @@ async function createDeliveryNotePdf(snapshot){
   y-=38;
  }
  function itemRow(item){
-  const sku=wrap(normal,item.itemNumber||'-',8,90,16),desc=wrap(normal,item.description,8,231,40);
+  const sku=wrap(normal,item.itemNumber||'-',8,90,16),desc=wrap(normal,item.description,8,231,40),unitLines=wrap(normal,item.unit,8,46,8);
   const order=item.orderPosition?wrap(normal,'Bestellpos.: '+item.orderPosition,7,231,7):[];
-  const height=Math.max(32,13+Math.max(sku.length*11,desc.length*11+order.length*10)+8);
+  const height=Math.max(32,13+Math.max(sku.length*11,desc.length*11+order.length*10,unitLines.length*11)+8);
   if(height>HEIGHT-220)fail('DELIVERY_NOTE_TEXT_OVERFLOW');
   if(y-height<BOTTOM+20){addPage();tableHead(true)}
   const yy=y;
@@ -179,7 +188,7 @@ async function createDeliveryNotePdf(snapshot){
   desc.forEach((s,i)=>put(s,LEFT+142,yy-i*11,8,false,231));
   order.forEach((s,i)=>put(s,LEFT+142,yy-desc.length*11-2-i*10,7,false,231,muted));
   put(String(item.quantity),RIGHT-101,yy,8,true,57);
-  put(item.unit,RIGHT-50,yy,8,false,50);
+  unitLines.forEach((line,i)=>put(line,RIGHT-50,yy-i*11,8,false,50));
   y-=height;rule(y+5);y-=6;
  }
  function conclusion(){
