@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {createRequire} from 'node:module';
+import vm from 'node:vm';
 
 const require=createRequire(import.meta.url);
 const knowledge=require('../api/shared/customs-knowledge.js');
@@ -89,4 +90,48 @@ test('Zoll KI 2.0: alte Offline-KI mit EXW-/FCA-/DAP-/DDP-Antwort ohne neue Prov
  assert.match(ui,/ddp:|ddp\s*:/);
  const offline=ui.slice(ui.indexOf('function legacyIncotermsAnswer'),ui.indexOf('function show(active)'));
  assert.doesNotMatch(offline,/fetch\s*\(/);
+});
+
+
+test('Zoll KI 2.0: Klick auf historisches KI-fragen-Feld rendert eine EXW-Fachantwort',()=>{
+ const runtime=fs.readFileSync(new URL('../assets/rc1532-customs-ai.js',import.meta.url),'utf8');
+ function node(tag){
+  let own='';
+  const n={tagName:tag,children:[],attributes:{},className:'',
+   appendChild(child){this.children.push(child);return child},
+   removeChild(child){this.children.splice(this.children.indexOf(child),1);return child},
+   get firstChild(){return this.children[0]||null},
+   set textContent(value){own=String(value);this.children.length=0},
+   get textContent(){return own+this.children.map(child=>child.textContent||'').join('')},
+   setAttribute(key,value){this.attributes[key]=String(value)}
+  };
+  n.classList={add(){},contains(){return false},toggle(){}};
+  return n;
+ }
+ const textarea={value:question},answer=node('div');
+ let clickListener=null;
+ const document={
+  getElementById(id){if(id==='zollAiQuestion')return textarea;if(id==='zollAiAnswer')return answer;return null},
+  createElement:node,
+  createTextNode(value){const item=node('#text');item.textContent=value;return item},
+  addEventListener(name,listener,capture){if(name==='click'&&capture)clickListener=listener}
+ };
+ const window={document,addEventListener(){},ExportHUBRC1532I18n:{language(){return 'de'},t(key){return key}}};
+ vm.runInNewContext(runtime,{window},{timeout:1000});
+ assert.equal(typeof clickListener,'function');
+ let prevented=false,stopped=false;
+ clickListener({target:{closest(){return {}}},preventDefault(){prevented=true},stopImmediatePropagation(){stopped=true}});
+ assert.equal(prevented,true);assert.equal(stopped,true);
+ assert.match(answer.textContent,/EXW/);
+ assert.match(answer.textContent,/Käufer organisiert/);
+ assert.match(answer.textContent,/EU-Ausführer/);
+ assert.match(answer.textContent,/ICC/);
+ assert.doesNotMatch(answer.textContent,/Passende Wissensbereiche/);
+
+ textarea.value='Was ist der Unterschied zwischen EXW und FCA?';
+ clickListener({target:{closest(){return {}}},preventDefault(){},stopImmediatePropagation(){}});
+ assert.match(answer.textContent,/EXW/);
+ assert.match(answer.textContent,/FCA/);
+ assert.match(answer.textContent,/Käufer organisiert/);
+ assert.match(answer.textContent,/Verkäufer organisiert/);
 });
