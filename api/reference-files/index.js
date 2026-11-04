@@ -74,7 +74,9 @@ async function listFiles(ref,req){
   while(url&&pages<6){
    const res=await graphFetch(url,undefined,environment);
    if(res.status===404){
-    if(task.depth===0){
+    // A missing initial root may be legitimate; a missing child or later
+    // page makes the scan incomplete and must never look like an empty REF.
+    if(task.depth===0&&pages===0){
      if(target)throw error('GRAPH_REFERENCE_FOLDER_LIST_INCOMPLETE','Der zuvor geprüfte SharePoint-REF-Ordner ist nicht mehr lesbar.',503);
      const graphBody=await res.json().catch(()=>({}));
      const graphMessage=text(graphBody&&graphBody.error&&graphBody.error.message||graphBody&&graphBody.message);
@@ -82,20 +84,24 @@ async function listFiles(ref,req){
       throw error('GRAPH_REFERENCE_USER_NOT_FOUND','Der für die REF-Ablage hinterlegte Microsoft-365-Benutzer wurde nicht gefunden. Bitte das SharePoint-Ziel über EXPORTHUB_REFERENCE_DRIVE_ID und EXPORTHUB_REFERENCE_FOLDER_ID konfigurieren.',503);
      return{files:[],folderPath:path,folderMissing:true,folderWebUrl:''};
     }
-    url='';break; // The child folder may have been removed while listing the parent.
+    throw error('GRAPH_REFERENCE_FOLDER_LIST_INCOMPLETE','Die REF-Dateiliste ist unvollständig, weil ein Unterordner oder eine Ergebnisseite nicht mehr erreichbar ist.',503);
    }
    let data={};try{data=await res.json()}catch(_){}
    if(!res.ok)throw error('GRAPH_LIST_FAILED',data.error&&data.error.message||'api.reference.listFailed',res.status>=500?502:res.status,{status:res.status});
-   for(const item of Array.isArray(data.value)?data.value:[]){
+   if(!Array.isArray(data.value))throw error('GRAPH_REFERENCE_FOLDER_LIST_INVALID','Microsoft Graph hat keine gültige REF-Dateiliste geliefert.',502);
+   for(const item of data.value){
     if(!item)continue;
     const id=text(item.id);
     if(item.file){
-     if(!id||seenFiles.has(id))continue;
+     if(!id||!text(item.name))throw error('GRAPH_REFERENCE_FOLDER_LIST_INVALID','Microsoft Graph lieferte ungültige Datei-Metadaten.',502);
+     if(seenFiles.has(id))continue;
      if(files.length>=MAX_FILES)throw error('GRAPH_REFERENCE_FILE_LIMIT','Der Referenzordner enthält zu viele Dateien für eine vollständige Dateiprüfung.',503);
      seenFiles.add(id);
      files.push({id,name:text(item.name)||apiI18n.t(req,'api.reference.document'),size:Number(item.size||0),mimeType:text(item.file&&item.file.mimeType)||'application/octet-stream',createdDateTime:item.createdDateTime||null,lastModifiedDateTime:item.lastModifiedDateTime||null,webUrl:text(item.webUrl)});
      if(!folderWebUrl&&item.parentReference&&item.parentReference.path)folderWebUrl=text(item.parentReference.path);
-    }else if(item.folder&&id&&!seenFolders.has(id)){
+    }else if(item.folder){
+     if(!id)throw error('GRAPH_REFERENCE_FOLDER_LIST_INVALID','Microsoft Graph lieferte einen Unterordner ohne ID.',502);
+     if(seenFolders.has(id))continue;
      if(task.depth>=MAX_DEPTH)throw error('GRAPH_REFERENCE_DEPTH_LIMIT','Der Referenzordner enthält weitere Unterordner, die nicht vollständig geprüft werden konnten.',503);
      seenFolders.add(id);
      pending.push({url:target?driveBase+encodeURIComponent(id)+'/children?$top=200&$select='+encodeURIComponent(select):GRAPH_BASE+'/users/'+encodeURIComponent(DRIVE_USER)+'/drive/items/'+encodeURIComponent(id)+'/children?$top=200&$select='+encodeURIComponent(select),depth:task.depth+1});
