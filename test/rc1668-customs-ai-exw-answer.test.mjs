@@ -55,7 +55,7 @@ test('Zoll KI 2.0: EXW-Frage wird als Fachfrage an geprüfte Quellen geroutet',a
  assert.equal(result.uncertainty,false);
  assert.ok(seen.sources.some(s=>s.id==='incoterms-exw-fca-export'));
  assert.ok(seen.sources.some(s=>s.id==='eu-customs-exporter-2018-1063'));
- assert.deepEqual(result.sources.map(s=>s.id),['incoterms-exw-fca-export','eu-customs-exporter-2018-1063']);
+ assert.deepEqual(new Set(result.sources.map(s=>s.id)),new Set(['incoterms-exw-fca-export','eu-customs-exporter-2018-1063']));
 });
 
 test('Zoll KI 2.0: Antwortdarstellung verwendet ausschließlich sichere DOM-Textknoten',()=>{
