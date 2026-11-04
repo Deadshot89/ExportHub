@@ -3,7 +3,7 @@
 const GRAPH_BASE='https://graph.microsoft.com/v1.0';
 const REFERENCE_FOLDER=(process.env.EXPORTHUB_REFERENCE_FOLDER||'003 Export/ExportHub/Sendungen').replace(/^\/+|\/+$/g,'');
 // RC1774: never silently target a personal OneDrive. Legacy user mode must be explicitly configured.
-const DRIVE_USER=(process.env.EXPORTHUB_REFERENCE_DRIVE_USER||process.env.EXPORTHUB_POD_DRIVE_USER||'').trim();
+const DRIVE_USER=(process.env.EXPORTHUB_REFERENCE_DRIVE_USER||'').trim();
 let tokenCache=null;
 
 function text(v){return String(v==null?'':v).trim()}
