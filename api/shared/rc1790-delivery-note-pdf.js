@@ -202,7 +202,7 @@ async function createDeliveryNotePdf(snapshot){
  const pages=pdf.getPages();
  pages.forEach((p,index)=>{
   p.drawLine({start:{x:LEFT,y:47},end:{x:RIGHT,y:47},color:border,thickness:0.7});
-  const footer='Manuell erstellt in ExportHUB360 - keine automatische D365-Pruefung';
+  const footer='Essentra Components GmbH | Lieferschein / Delivery Note';
   p.drawText(footer,{x:LEFT,y:31,font:normal,size:7,color:muted});
   const number='Seite '+(index+1)+' / '+pages.length;
   p.drawText(number,{x:RIGHT-bold.widthOfTextAtSize(number,8),y:31,font:bold,size:8,color:ink});
