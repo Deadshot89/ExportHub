@@ -86,7 +86,7 @@ test('Zoll-KI: Zollwissen und ABD nutzen dieselbe API statt eines parallelen Off
  assert.match(ui,/if\(!knowledge\)\{/);
  assert.doesNotMatch(ui,/function legacyIncotermsAnswer/);
  assert.equal((ui.match(/root\.fetch\('\/api\/customs-ai'/g)||[]).length,1);
- assert.match(ui,/dieselbe KI-Implementierung/);
+ assert.match(ui,/gemeinsame KI-Implementierung/);
 });
 
 test('Zoll-KI: Klick in Zollwissen fragt die zentrale API ohne ABD- oder Rechnungsdaten und zeigt Quellen',async()=>{
@@ -121,7 +121,7 @@ test('Zoll-KI: Klick in Zollwissen fragt die zentrale API ohne ABD- oder Rechnun
   addEventListener(name,listener,capture){if(name==='click'&&capture&&!clickListener)clickListener=listener}
  };
  const window={document,addEventListener(){},
-  ExportHUBRC1532I18n:{language(){return 'de'},t(key){return key}},
+  ExportHUBRC1532I18n:{language(){return 'de'},t(key){return key==='knowledgeIntro'?'Hier keine Sendungs- oder Rechnungsdaten':key}},
   fetch:async(url,options)=>{calls.push({url,options});return {ok:true,text:async()=>JSON.stringify(result)}}
  };
  vm.runInNewContext(runtime,{window,URL},{timeout:1000});
