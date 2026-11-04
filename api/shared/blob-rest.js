@@ -36,7 +36,7 @@ function sharedKeyAuthorization(config,method,url,headers){const h=normalizeHead
 function encodePath(name){return String(name||'').split('/').map(seg=>encodeURIComponent(seg)).join('/');}
 function responseMetadata(headers){const out={};headers.forEach((v,k)=>{if(k.toLowerCase().startsWith('x-ms-meta-'))out[k.slice(10).toLowerCase()]=v});return out;}
 async function parseAzureError(res){let raw='';try{raw=await res.text()}catch(_){}const code=xmlValue(raw,'Code')||res.headers.get('x-ms-error-code')||('HTTP_'+res.status);const msg=xmlValue(raw,'Message')||raw.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim()||('Azure Blob HTTP '+res.status);return makeError(res.status,code,msg);}
-async function doFetch(config,method,url,headers={},body=null,attempts=STORAGE_ATTEMPTS){
+async function doFetch(config,method,url,headers={},body=null,attempts=STORAGE_ATTEMPTS,consume=null){
   const target=new URL(url.toString());
   if(config.sas){const sas=new URLSearchParams(config.sas);sas.forEach((v,k)=>{if(!target.searchParams.has(k))target.searchParams.append(k,v)})}
   let last=null;
@@ -45,11 +45,13 @@ async function doFetch(config,method,url,headers={},body=null,attempts=STORAGE_A
     if(!config.sas)h.authorization=sharedKeyAuthorization(config,method,target,h);
     const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),STORAGE_TIMEOUT_MS);
     try{
-      const res=await fetch(target,{method,headers:h,body,signal:controller.signal});clearTimeout(timer);
-      if(res.ok)return res;
+      const res=await fetch(target,{method,headers:h,body,signal:controller.signal});
+      // Keep the deadline active until a read has consumed the response body.
+      if(res.ok)return consume?await consume(res):res;
       const err=await parseAzureError(res);last=err;
       if(!TRANSIENT.has(res.status)||attempt===attempts)throw err;
-    }catch(e){clearTimeout(timer);if(e&&e.name==='AbortError')e=makeError(504,'STORAGE_TIMEOUT','Azure Blob antwortete nicht innerhalb von '+STORAGE_TIMEOUT_MS+' ms.');last=e;if((e&&e.statusCode&&!TRANSIENT.has(Number(e.statusCode)))||attempt===attempts)throw e;}
+    }catch(e){if(controller.signal.aborted||(e&&e.name==='AbortError'))e=makeError(504,'STORAGE_TIMEOUT','Azure Blob antwortete nicht innerhalb von '+STORAGE_TIMEOUT_MS+' ms.');last=e;if((e&&e.statusCode&&!TRANSIENT.has(Number(e.statusCode)))||attempt===attempts)throw e;}
+    finally{clearTimeout(timer);}
     await new Promise(r=>setTimeout(r,Math.min(1600,250*attempt)));
   }
   throw last||makeError(503,'StorageRequestFailed','Azure Blob konnte nicht erreicht werden.');
@@ -100,7 +102,7 @@ class RestBlobClient{
   url(){const u=new URL(this.config.endpoint+'/'+encodeURIComponent(this.containerName)+'/'+encodePath(this.name));if(this.versionId)u.searchParams.set('versionid',this.versionId);else if(this.snapshot)u.searchParams.set('snapshot',this.snapshot);return u;}
   withVersion(v){return new RestBlobClient(this.config,this.containerName,this.name,String(v||''),'');}
   withSnapshot(v){return new RestBlobClient(this.config,this.containerName,this.name,'',String(v||''));}
-  async download(offset=0){const headers={};if(Number(offset)>0)headers.range='bytes='+Number(offset)+'-';const res=await doFetch(this.config,'GET',this.url(),headers,null,STORAGE_ATTEMPTS);const buf=Buffer.from(await res.arrayBuffer());return {etag:res.headers.get('etag'),lastModified:res.headers.get('last-modified')?new Date(res.headers.get('last-modified')):null,contentType:res.headers.get('content-type')||'',metadata:responseMetadata(res.headers),readableStreamBody:Readable.from(buf)};}
+  async download(offset=0){const headers={};if(Number(offset)>0)headers.range='bytes='+Number(offset)+'-';return doFetch(this.config,'GET',this.url(),headers,null,STORAGE_ATTEMPTS,async res=>{const buf=Buffer.from(await res.arrayBuffer());return {etag:res.headers.get('etag'),lastModified:res.headers.get('last-modified')?new Date(res.headers.get('last-modified')):null,contentType:res.headers.get('content-type')||'',metadata:responseMetadata(res.headers),readableStreamBody:Readable.from(buf)};});}
   async getProperties(){const res=await doFetch(this.config,'HEAD',this.url(),{},null,STORAGE_ATTEMPTS);const length=res.headers.get('content-length');return {etag:res.headers.get('etag'),lastModified:res.headers.get('last-modified')?new Date(res.headers.get('last-modified')):null,metadata:responseMetadata(res.headers),contentLength:length!==null&&/^\d+$/.test(length)&&Number.isSafeInteger(Number(length))?Number(length):undefined};}
   async upload(content,length,options={}){const buf=Buffer.isBuffer(content)?content:Buffer.from(content);const headers={'x-ms-blob-type':'BlockBlob','content-length':String(Number(length)>=0?Number(length):buf.length)};const ct=options&&options.blobHTTPHeaders&&options.blobHTTPHeaders.blobContentType;if(ct)headers['content-type']=ct;const cond=options&&options.conditions||{};if(cond.ifMatch)headers['if-match']=cond.ifMatch;if(cond.ifNoneMatch)headers['if-none-match']=cond.ifNoneMatch;Object.keys(options&&options.metadata||{}).forEach(k=>{const v=options.metadata[k];if(v!==undefined&&v!==null)headers['x-ms-meta-'+String(k).toLowerCase()]=String(v)});// Large-state writes opt out of transport-level repeat PUTs. The state merger
     // performs an authoritative ETag/operationId readback before any retry.
@@ -112,7 +114,7 @@ class RestContainerClient{
   async createIfNotExists(){const u=new URL(this.config.endpoint+'/'+encodeURIComponent(this.containerName));u.searchParams.set('restype','container');try{const res=await doFetch(this.config,'PUT',u,{},null,STORAGE_ATTEMPTS);return {succeeded:true,created:true,etag:res.headers.get('etag')}}catch(e){const status=Number(e&&e.statusCode||0),code=String(e&&e.code||'');if(status===409&&/ContainerAlreadyExists/i.test(code))return {succeeded:true,created:false};throw e}}
   getBlockBlobClient(name){return new RestBlobClient(this.config,this.containerName,name);}
   getBlobClient(name){return new RestBlobClient(this.config,this.containerName,name);}
-  async *listBlobsFlat(options={}){let marker='';do{const u=new URL(this.config.endpoint+'/'+encodeURIComponent(this.containerName));u.searchParams.set('restype','container');u.searchParams.set('comp','list');u.searchParams.set('maxresults','5000');if(options.prefix)u.searchParams.set('prefix',String(options.prefix));if(marker)u.searchParams.set('marker',marker);const include=[];if(options.includeSnapshots)include.push('snapshots');if(options.includeMetadata)include.push('metadata');if(options.includeVersions)include.push('versions');if(options.includeDeleted)include.push('deleted');if(options.includeDeletedWithVersions)include.push('deletedwithversions');if(include.length)u.searchParams.set('include',include.join(','));const res=await doFetch(this.config,'GET',u,{},null,STORAGE_ATTEMPTS);const parsed=parseListXml(await res.text());for(const item of parsed.items)yield item;marker=parsed.nextMarker||'';}while(marker);}
+  async *listBlobsFlat(options={}){let marker='';do{const u=new URL(this.config.endpoint+'/'+encodeURIComponent(this.containerName));u.searchParams.set('restype','container');u.searchParams.set('comp','list');u.searchParams.set('maxresults','5000');if(options.prefix)u.searchParams.set('prefix',String(options.prefix));if(marker)u.searchParams.set('marker',marker);const include=[];if(options.includeSnapshots)include.push('snapshots');if(options.includeMetadata)include.push('metadata');if(options.includeVersions)include.push('versions');if(options.includeDeleted)include.push('deleted');if(options.includeDeletedWithVersions)include.push('deletedwithversions');if(include.length)u.searchParams.set('include',include.join(','));const xml=await doFetch(this.config,'GET',u,{},null,STORAGE_ATTEMPTS,res=>res.text());const parsed=parseListXml(xml);for(const item of parsed.items)yield item;marker=parsed.nextMarker||'';}while(marker);}
 }
 class RestBlobServiceClient{
  constructor(config){this.config=config;}
@@ -121,8 +123,8 @@ class RestBlobServiceClient{
   const url=new URL(this.config.endpoint+'/');
   url.searchParams.set('restype','service');
   url.searchParams.set('comp','properties');
-  const res=await doFetch(this.config,'GET',url,{},null,1);
-  return parseBlobDeleteRetentionPolicy(await res.text());
+  const xml=await doFetch(this.config,'GET',url,{},null,1,res=>res.text());
+  return parseBlobDeleteRetentionPolicy(xml);
  }
 }
 function createBlobServiceClient(connectionString){return new RestBlobServiceClient(parseConnectionString(connectionString));}
