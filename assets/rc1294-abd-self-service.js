@@ -10,17 +10,154 @@ function q(v){return String(v==null?'':v).trim()}
 function esc(v){return q(v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function lang(){try{return w.ExportHUBI18n&&w.ExportHUBI18n.language?w.ExportHUBI18n.language():'de'}catch(_){return'de'}}
 function tr(key,vars,fallback){try{var i=w.ExportHUBI18n;if(i&&typeof i.t==='function'){var value=i.t(key,vars,lang());if(value&&value!==key)return value}}catch(_){}return fallback||key}
-function xtr(key,vars){try{var i=w.ExportHUBRC1499I18n;if(i&&typeof i.t==='function')return i.t(key,lang(),vars)}catch(_){}return key}
+// RC1786: The invoice file picker must work even when its optional translation asset fails to load.
+var languageFallback={
+ de:{
+  workspaceTitle:'ABD & Rechnungen',
+  tabIntro:'Arbeitsbereich auswählen – nur die passenden Felder werden angezeigt.',
+  savedMode:'Gespeicherte Anfragen',
+  entryAria:'ABD-Einstieg auswählen',
+  manualMode:'Manuell',
+  shipmentMode:'Aus Sendung',
+  invoiceMode:'Rechnung analysieren',
+  invoiceHelp:'Rechnung hochladen, prüfen und nach HS-Code plus Ursprungsland gruppieren.',
+  previewOnly:'Erkannte Zollangaben immer prüfen. Es werden keine HS-Codes oder Ursprungsländer erfunden.',
+  chooseFiles:'Dateien auswählen',
+  start:'Analyse starten',
+  groups:'HS/Ursprung-Gruppen',
+  documentSingle:'Dokument',
+  documentPlural:'Dokumente',
+  openShort:'offen'
+ },
+ en:{
+  workspaceTitle:'Export declarations & invoices',
+  tabIntro:'Choose a workspace – only the relevant fields are shown.',
+  savedMode:'Saved requests',
+  entryAria:'Select export declaration entry point',
+  manualMode:'Manual',
+  shipmentMode:'From shipment',
+  invoiceMode:'Analyze invoice',
+  invoiceHelp:'Upload and review an invoice, then group it by HS code and country of origin.',
+  previewOnly:'Always verify detected customs data. HS codes and countries of origin are never invented.',
+  chooseFiles:'Select files',
+  start:'Start analysis',
+  groups:'HS/origin groups',
+  documentSingle:'Document',
+  documentPlural:'Documents',
+  openShort:'open'
+ },
+ pl:{
+  workspaceTitle:'Zgłoszenia eksportowe i faktury',
+  tabIntro:'Wybierz obszar pracy – wyświetlane są tylko odpowiednie pola.',
+  savedMode:'Zapisane wnioski',
+  entryAria:'Wybierz sposób rozpoczęcia ABD',
+  manualMode:'Ręcznie',
+  shipmentMode:'Z wysyłki',
+  invoiceMode:'Analizuj fakturę',
+  invoiceHelp:'Prześlij i sprawdź fakturę, a następnie pogrupuj dane według kodu HS i kraju pochodzenia.',
+  previewOnly:'Zawsze sprawdzaj rozpoznane dane celne. Kody HS ani kraje pochodzenia nie są wymyślane.',
+  chooseFiles:'Wybierz pliki',
+  start:'Rozpocznij analizę',
+  groups:'Grupy HS/pochodzenie',
+  documentSingle:'Dokument',
+  documentPlural:'Dokumenty',
+  openShort:'otwarte'
+ },
+ es:{
+  workspaceTitle:'Declaraciones de exportación y facturas',
+  tabIntro:'Selecciona una sección – solo se muestran los campos necesarios.',
+  savedMode:'Solicitudes guardadas',
+  entryAria:'Seleccionar entrada de ABD',
+  manualMode:'Manual',
+  shipmentMode:'Desde envío',
+  invoiceMode:'Analizar factura',
+  invoiceHelp:'Carga y revisa una factura y agrupa los datos por código HS y país de origen.',
+  previewOnly:'Verifica siempre los datos aduaneros detectados. Nunca se inventan códigos HS ni países de origen.',
+  chooseFiles:'Seleccionar archivos',
+  start:'Iniciar análisis',
+  groups:'Grupos HS/origen',
+  documentSingle:'Documento',
+  documentPlural:'Documentos',
+  openShort:'abiertas'
+ },
+ fr:{
+  workspaceTitle:'Déclarations d\'exportation et factures',
+  tabIntro:'Choisissez une section – seuls les champs utiles sont affichés.',
+  savedMode:'Demandes enregistrées',
+  entryAria:'Sélectionner le point d’entrée ABD',
+  manualMode:'Manuel',
+  shipmentMode:'Depuis l’expédition',
+  invoiceMode:'Analyser la facture',
+  invoiceHelp:'Téléversez et contrôlez une facture, puis regroupez les données par code SH et pays d’origine.',
+  previewOnly:'Vérifiez toujours les données douanières détectées. Aucun code SH ni pays d’origine n’est inventé.',
+  chooseFiles:'Sélectionner des fichiers',
+  start:'Démarrer l’analyse',
+  groups:'Groupes SH/origine',
+  documentSingle:'Document',
+  documentPlural:'Documents',
+  openShort:'ouvertes'
+ },
+ it:{
+  workspaceTitle:'Dichiarazioni di esportazione e fatture',
+  tabIntro:'Scegli una sezione – vengono mostrati solo i campi pertinenti.',
+  savedMode:'Richieste salvate',
+  entryAria:'Seleziona il punto di ingresso ABD',
+  manualMode:'Manuale',
+  shipmentMode:'Da spedizione',
+  invoiceMode:'Analizza fattura',
+  invoiceHelp:'Carica e verifica una fattura, quindi raggruppa i dati per codice HS e paese di origine.',
+  previewOnly:'Verifica sempre i dati doganali rilevati. I codici HS e i paesi di origine non vengono mai inventati.',
+  chooseFiles:'Seleziona file',
+  start:'Avvia analisi',
+  groups:'Gruppi HS/origine',
+  documentSingle:'Documento',
+  documentPlural:'Documenti',
+  openShort:'aperte'
+ }
+};
+function xtr(key,vars){
+ try{var i=w.ExportHUBRC1499I18n;if(i&&typeof i.t==='function'){var value=i.t(key,lang(),vars);if(value&&value!==key)return value}}catch(_){}
+ var pack=languageFallback[String(lang()).toLowerCase().slice(0,2)]||languageFallback.de;
+ return pack[key]||key
+}
+function refreshLabelsAfterI18n(){
+ // RC1786: never remove an already mounted panel; RC1549's manual editor lives inside it.
+ // Remounting here would destroy the editor and the selected native FileList.
+ var p=panel();if(!p){schedule();return}
+ var intro=p.querySelector('.rc1294-intro');
+ if(intro)intro.textContent=xtr('tabIntro');
+ var tabs=p.querySelectorAll('[data-rc1294-mode]');
+ for(var i=0;i<tabs.length;i++)tabs[i].textContent=xtr(tabs[i].getAttribute('data-rc1294-mode')+'Mode');
+ var invoice=p.querySelector('[data-rc1294-invoice-panel]');
+ if(invoice){
+  var title=invoice.querySelector('h4'),help=invoice.querySelector('p'),note=invoice.querySelector('.rc1294-note'),label=invoice.querySelector('.rc1294-file span'),start=invoice.querySelector('[data-rc1294-start]');
+  if(title)title.textContent=xtr('invoiceMode');
+  if(help)help.textContent=xtr('invoiceHelp');
+  if(note)note.textContent=xtr('previewOnly');
+  if(label)label.textContent=xtr('chooseFiles');
+  if(start)start.textContent=xtr('start')
+ }
+ var host=d.getElementById('rc626Abd'),heading=host&&host.querySelector('.rc626-head h2');
+ if(heading)heading.textContent=xtr('workspaceTitle')
+}
 function ensureFeatureI18n(){
  try{if(w.ExportHUBRC1499I18n&&typeof w.ExportHUBRC1499I18n.t==='function')return true}catch(_){}
- if(d.getElementById('exporthub-rc1499-i18n'))return false;
+ var existing=d.getElementById('exporthub-rc1499-i18n');
+ if(existing){
+  if(!existing.__rc1786LoadObserved){
+   existing.__rc1786LoadObserved=true;
+   existing.addEventListener('load',refreshLabelsAfterI18n,{once:true})
+  }
+  return true
+ }
  try{
-  var s=d.createElement('script');s.id='exporthub-rc1499-i18n';s.src='/assets/i18n/rc1499-exportexperte.js?v=1499';s.defer=true;
-  s.addEventListener('load',function(){schedule()},{once:true});
+  var s=d.createElement('script');s.id='exporthub-rc1499-i18n';s.src='/assets/i18n/rc1499-exportexperte.js?v=1786';s.defer=true;
+  s.addEventListener('load',refreshLabelsAfterI18n,{once:true});
   s.addEventListener('error',function(){try{s.remove()}catch(_){}},{once:true});
   (d.head||d.documentElement).appendChild(s)
  }catch(_){}
- return false
+ // Translation errors must not prevent the invoice file picker from mounting.
+ return true
 }
 function authToken(){
  try{var rt=w.ExportHUBClean&&w.ExportHUBClean.runtime||{},t=q(rt.authToken||rt.sessionToken);if(t)return t}catch(_){}
@@ -37,6 +174,10 @@ async function post(payload){
  var parsed=true;try{data=raw?JSON.parse(raw):{}}catch(_){parsed=false;data={message:raw}}
  // RC1626: a 2xx without a JSON body is a platform error, not a missing upload id.
  if(res.ok&&(!parsed||!raw)){var bad=new Error('HTTP '+res.status+' ohne gültige API-Antwort ('+q(res.headers&&res.headers.get&&res.headers.get('content-type'))+'): '+q(raw).slice(0,120));bad.code='ABD_ANALYSIS_INVALID_RESPONSE';throw bad}
+ if(!res.ok&&(res.status===404||res.status===405)){
+  var missing=new Error('Der Datei-Upload-Dienst ist auf diesem ExportHUB-Server nicht verfügbar (HTTP '+res.status+'). Die veröffentlichte Version muss geprüft werden.');
+  missing.code='ABD_UPLOAD_ROUTE_UNAVAILABLE';throw missing
+ }
  if(!res.ok&&res.status!==202){var e=new Error(q(data.message)||('HTTP '+res.status));e.code=q(data.code);throw e}
  return{status:res.status,data:data}
 }
@@ -289,7 +430,7 @@ function ensureStyle(){
 function mount(){
  var host=d.getElementById('rc626Abd');if(!host)return false;
  var old=d.getElementById('rc1294AbdAnalysis');if(old)return true;
- if(!ensureFeatureI18n())return false;
+ ensureFeatureI18n();
  ensureStyle();
  var p=d.createElement('section');p.id='rc1294AbdAnalysis';p.className='rc1294-abd';p.setAttribute('data-rc1294-abd-analysis','1');
  p.innerHTML='<p class="rc1294-intro">'+esc(xtr('tabIntro'))+'</p>'+
