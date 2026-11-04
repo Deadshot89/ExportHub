@@ -26,7 +26,8 @@ function publicOrder(order){
   createdAt:order.createdAt,updatedAt:order.updatedAt,
   items:(order.items||[]).map(x=>({
    id:x.id,line:x.line,article:x.article,quantity:x.quantity,status:x.status,
-   checkResult:x.checkResult,minibag:!!x.minibag,newArticle:!!x.newArticle
+   checkResult:x.checkResult,minibag:!!x.minibag,newArticle:!!x.newArticle,
+   problemNote:x.status==='Problem'?txt(x.problemNote,1000):''
   }))
  };
 }
