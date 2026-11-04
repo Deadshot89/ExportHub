@@ -151,3 +151,11 @@ test('RC1790: customer PDF metadata contains no internal application or ERP deta
  assert.match(pdf.getSubject(),/Delivery Note/);
  assert.ok(!/ExportHUB|D365|nicht abgeglichen/i.test([pdf.getAuthor(),pdf.getSubject()].join(' ')));
 });
+
+test('RC1790: article input lengths match backend and UI prevents excessive rows',()=>{
+ for(const item of ['itemNumber:100','description:500','quantity:32','unit:24','orderPosition:50']){
+  assert.ok(frontend.includes(item),'Missing field max length '+item);
+ }
+ assert.match(frontend,/if\(items\.length>=250\)return/);
+ assert.match(frontend,/if\(items\.length<250&&items\[ci\]\)/);
+});
