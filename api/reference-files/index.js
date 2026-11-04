@@ -15,7 +15,7 @@ const AUTH_BLOB=process.env.EXPORTHUB_AUTH_BLOB||'auth-sessions.json';
 const GRAPH_BASE='https://graph.microsoft.com/v1.0';
 const REFERENCE_FOLDER=(process.env.EXPORTHUB_REFERENCE_FOLDER||'003 Export/ExportHub/Sendungen').replace(/^\/+|\/+$/g,'');
 // RC1774: legacy user mode requires an explicit configuration, never a personal default.
-const DRIVE_USER=(process.env.EXPORTHUB_REFERENCE_DRIVE_USER||process.env.EXPORTHUB_POD_DRIVE_USER||'').trim();
+const DRIVE_USER=(process.env.EXPORTHUB_REFERENCE_DRIVE_USER||'').trim();
 const MAX_FILE_BYTES=35*1024*1024;
 const AV_MAX_BYTES=15*1024*1024;
 const AV_TYPES={'.pdf':'application/pdf','.jpg':'image/jpeg','.jpeg':'image/jpeg','.png':'image/png'};
