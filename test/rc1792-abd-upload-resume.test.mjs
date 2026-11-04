@@ -57,10 +57,32 @@ test('RC1792: malicious or expired scans cannot resume or bypass Defender',async
  }
 });
 
-test('RC1792: pending scan is shown as scanning, never falsely as a failed upload',()=>{
- const onPending=src.indexOf("if(e&&e.code==='ABD_SCAN_PENDING')fileLine(");
- assert.ok(onPending>0);
- assert.match(src.slice(onPending,onPending+220),/xtr\('scanPendingNote'\),'scan'/);
+test('RC1792: pending and delayed scans stay scanning while terminal errors show failure',async()=>{
+ const begin=src.indexOf('async function start(){'),end=src.indexOf('async function reanalyzeDocument(',begin);
+ assert.ok(begin>=0&&end>begin);
+ for(const fixture of [
+  {error:{code:'ABD_SCAN_PENDING'},message:'scanPendingNote',kind:'scan',resume:true},
+  {error:{code:'ABD_SCAN_PENDING',scanDelayed:true},message:'scanDelayedNote',kind:'scan',resume:true},
+  {error:{code:'ABD_MALWARE_DETECTED',message:'blocked'},message:'blocked',kind:'bad',resume:false}
+ ]){
+  const rows=[],button={},file={name:'invoice.csv'},rendered=[];
+  const scope={
+   busy:false,pendingFiles:[],
+   panel:()=>({querySelector:selector=>selector==='[data-rc1294-files]'?{files:[file]}:button}),
+   clearStatus:()=>{},resultBox:()=>null,setStatus:()=>{},
+   analyzeFile:async()=>{throw fixture.error},
+   fileLine:(name,message,kind)=>rows.push({name,message,kind}),
+   xtr:key=>key,tr:key=>key,q:value=>String(value||''),
+   renderResults:results=>rendered.push(results.length),hasPendingUploads:()=>fixture.resume
+  };
+  vm.runInNewContext(src.slice(begin,end)+'\nthis.startUpload=start;',scope);
+  assert.equal(await scope.startUpload(),false,'A pending or blocked upload has no ready analysis');
+  assert.deepEqual(rows.at(-1),{name:'invoice.csv',message:fixture.message,kind:fixture.kind});
+  assert.deepEqual(rendered,[0],'No scan error can produce ready results');
+  assert.equal(button.disabled,false,'Status checking remains available');
+  assert.equal(button.textContent,fixture.resume?'resumeScan':'start');
+  assert.equal(scope.pendingFiles[0],file,'The original file survives the form redraw');
+ }
  assert.match(src,/pendingFiles=files\.slice\(\)/,'File objects survive an ABD form redraw');
  assert.match(src,/button\.textContent=hasPendingUploads\(\)\?xtr\('resumeScan'\):xtr\('start'\)/);
  assert.match(src,/if\(start\)start\.textContent=hasPendingUploads\(\)\?xtr\('resumeScan'\):xtr\('start'\)/);
