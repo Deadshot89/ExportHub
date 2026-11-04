@@ -47,6 +47,18 @@ main{max-width:1440px;margin:0 auto;padding:24px clamp(14px,2.5vw,36px) 64px}h1{
 @media(prefers-color-scheme:dark){.info-note{background:#243d58;border-color:#456787;color:#d2e5ff}}
 
 .urgent-hero{background:linear-gradient(125deg,#e6f2ff,#fafcff 70%);border:1px solid #d3e5fa;border-radius:20px;padding:28px 30px;margin-bottom:19px;position:relative;overflow:hidden}.urgent-hero:after{content:'';position:absolute;right:-45px;top:-75px;width:230px;height:230px;border:36px solid #2563eb0b;border-radius:50%;pointer-events:none}.urgent-hero h1{position:relative;letter-spacing:-.045em;font-size:clamp(27px,3.3vw,40px)}.urgent-hero .intro{position:relative;max-width:780px;margin:8px 0 0;line-height:1.68;font-size:14px}.hero-kicker{position:relative;display:block;color:#2465a8;font-weight:900;font-size:10px;letter-spacing:.15em;margin:0 0 10px}@media(max-width:600px){.urgent-hero{padding:20px 17px}}@media(prefers-color-scheme:dark){.urgent-hero{background:linear-gradient(120deg,#203955,#14273b);border-color:#355572}.hero-kicker{color:#a4cbfa}}
+
+/* Urgent 2.1: responsive, focused operations workspace */
+.urgent-hero{padding:19px 25px;margin-bottom:13px}.urgent-hero h1{font-size:clamp(25px,2.5vw,34px)}.urgent-hero .intro{max-width:780px;margin-bottom:0}
+.stats{grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:8px 0 13px}.stat{padding:11px 15px;border-radius:11px}.stat b{font-size:23px}
+.workspace-nav{position:sticky;top:0;z-index:12;backdrop-filter:blur(12px);margin:13px 0}.workspace-nav .workspace-tab{flex:1 1 175px}
+.layout>.panel{padding:clamp(18px,2.6vw,27px)}.form-grid{gap:10px}.filters{gap:7px}
+.wizard-track{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;border-bottom:1px solid var(--line);padding-bottom:17px}.wizard-track>span{display:flex;align-items:center;gap:10px;border-radius:11px;padding:9px;color:var(--muted);font-size:12px;font-weight:800}
+.wizard-track b{width:30px;height:30px;flex-shrink:0;display:grid;place-items:center;border-radius:9px;background:var(--bg);border:1px solid var(--line)}.wizard-track>span[aria-current="step"]{background:#1e61c3;color:#fff}.wizard-track>span[aria-current="step"] b{background:#ffffff22;border-color:#ffffff55}
+[data-internal-step]{padding-top:16px}[data-internal-step][hidden]{display:none!important}.wizard-review{padding:17px 19px;border-radius:14px;border:1px solid #bad4f1;background:#eef6ff}
+.wizard-review h3{margin:0 0 8px}.wizard-review p{line-height:1.6}.wizard-review #internalWizardReview{font-weight:800;color:#245a9e}.wizard-actions{display:flex;align-items:center;gap:10px;margin:15px 0 4px;padding-top:13px;border-top:1px solid var(--line)}.wizard-actions>span{flex:1}
+@media(max-width:750px){.workspace-nav{position:static}.wizard-track>span{flex-direction:column;text-align:center;gap:4px;font-size:11px}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.wizard-actions button{flex:1}}
+@media(prefers-color-scheme:dark){.wizard-review{background:#1c334e;border-color:#416483}.wizard-review #internalWizardReview{color:#d4e8ff}}
 </style>
 <script src="/assets/rc1267-i18n.js" defer></script>
 </head>
@@ -62,7 +74,7 @@ main{max-width:1440px;margin:0 auto;padding:24px clamp(14px,2.5vw,36px) 64px}h1{
 <div class="layout">
 <section class="panel" id="internalCreatePanel" hidden aria-labelledby="formTitle"><div class="workspace-heading"><h2 id="formTitle" data-i18n="urgentOrderV2.formTitle">Neue Anfrage erfassen</h2><p data-i18n="urgentOrderV2.formIntro">Auftrag und Warenfluss erfassen. Die Anfragen erscheinen separat im passenden Reiter.</p></div>
 <p class="hintbar" data-i18n="urgentOrderV2.manualNotice">* Pflichtfelder · CS-Prüfungen basieren auf manueller Bestätigung, nicht auf D365-Livedaten.</p>
-<form id="newOrder">
+<form id="newOrder" novalidate><nav class="wizard-track" aria-label="Schritte"><span data-internal-mark="1" aria-current="step"><b>1</b><span data-i18n="urgentOrderV2.stepBasics">Auftragsdaten</span></span><span data-internal-mark="2"><b>2</b><span data-i18n="urgentOrderV2.stepChecks">Artikel & Prüfung</span></span><span data-internal-mark="3"><b>3</b><span data-i18n="urgentOrderV2.stepConfirm">Bestätigen</span></span></nav><div data-internal-step="1">
 <div class="form-grid">
 <p class="wide info-note" data-i18n="urgentOrderV2.internalHelp">Im internen Formular erfasst du Lageraufträge mit vorhandener Ware. Für Direktumschlag nutze das Meldeformular.</p>
 <label class="field">Auftragsnummer *<input name="orderNumber" placeholder="SO3002" autocomplete="off" required maxlength="40"></label>
@@ -72,10 +84,9 @@ main{max-width:1440px;margin:0 auto;padding:24px clamp(14px,2.5vw,36px) 64px}h1{
 <label class="field wide">CS-E-Mail-Adresse *<input id="csEmail" name="email" type="email" autocomplete="email" placeholder="name@firma.com" maxlength="254" required></label>
 </div>
 <div class="btn-row"><button type="button" id="saveProfile" class="btn alt small">E-Mail für mein Login speichern</button><span class="help" id="profileHint">Zuordnung erfolgt zum angemeldeten ExportHUB-Benutzer.</span></div>
-<div style="margin-top:18px;display:flex;justify-content:space-between;gap:10px;align-items:center"><h3>Artikel / Lines *</h3><button class="btn flat small" type="button" id="addLine" data-i18n="urgentOrderV2.addItem">+ Artikel hinzufügen</button></div>
+</div><div data-internal-step="2" hidden><div style="margin-top:18px;display:flex;justify-content:space-between;gap:10px;align-items:center"><h3>Artikel / Lines *</h3><button class="btn flat small" type="button" id="addLine" data-i18n="urgentOrderV2.addItem">+ Artikel hinzufügen</button></div>
 <div id="lineFields"></div>
-<div class="btn-row"><button class="btn" id="createButton" type="submit">Urgent Order melden</button></div>
-<div id="createMessage" class="message" role="status" aria-live="polite"></div>
+</div><div data-internal-step="3" hidden><div class="wizard-review"><h3 data-i18n="urgentOrderV2.stepConfirm">Bestätigen</h3><p data-i18n="urgentOrderV2.reviewIntro">Prüfe die Angaben. Anschließend wird die Anfrage für die Logistik gespeichert.</p><p id="internalWizardReview" role="status"></p></div><div class="btn-row"><button class="btn" id="createButton" type="submit" data-i18n="urgentOrderV2.sendRequest">Urgent Order melden</button></div></div><div class="wizard-actions"><button type="button" class="btn alt" id="internalWizardBack" hidden data-i18n="urgentOrderV2.previous">Zurück</button><span></span><button type="button" class="btn" id="internalWizardNext" data-i18n="urgentOrderV2.next">Weiter</button></div><div id="createMessage" class="message" role="status" aria-live="polite"></div>
 </form></section>
 <section class="panel" id="internalListPanel" aria-labelledby="listTitle">
 <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap"><h2 id="listTitle" data-i18n="urgentOrderV2.tabOpen">Offene Anfragen</h2><button type="button" class="btn alt small" id="refresh" data-i18n="urgentOrderV2.refresh">Aktualisieren</button></div>
@@ -148,6 +159,28 @@ function formItems(){
   return{line:get('line').value.trim(),article:get('article').value.trim(),quantity:Number(get('quantity').value),minibag:get('minibag').checked,pickableStock:check('pickableStock'),holdsClear:check('holdsClear'),minibagLeadtime:get('minibag').checked?check('minibagLeadtime'):null,exceptionReason:get('exceptionReason').value.trim()};
  });
 }
+
+let internalStep=1;
+function showInternalStep(step){
+ internalStep=Math.max(1,Math.min(3,step));
+ for(const block of document.querySelectorAll('[data-internal-step]'))block.hidden=Number(block.dataset.internalStep)!==internalStep;
+ for(const mark of document.querySelectorAll('[data-internal-mark]')){if(Number(mark.dataset.internalMark)===internalStep)mark.setAttribute('aria-current','step');else mark.removeAttribute('aria-current');}
+ $('internalWizardBack').hidden=internalStep===1;$('internalWizardNext').hidden=internalStep===3;
+ if(internalStep===3){
+  const form=$('newOrder'),items=formItems();
+  $('internalWizardReview').textContent=form.elements.orderNumber.value.trim()+' · '+priorityText(form.elements.priority.value)+' · '+items.length+' '+localeV2('positions','Positionen')+' · '+form.elements.email.value.trim();
+ }
+}
+function nextInternalStep(){
+ const panel=document.querySelector('[data-internal-step="'+internalStep+'"]');
+ for(const field of panel.querySelectorAll('input,select,textarea'))if(field.willValidate&&!field.checkValidity()){field.reportValidity();field.focus();return;}
+ if(internalStep===2){
+  const items=formItems();
+  if(items.some(x=>!x.line&&!x.article)){setMessage('createMessage',localeV2('missingArticle','Line oder Artikelnummer fehlt.'),'error');return;}
+  if(items.some(x=>(x.pickableStock===false||x.holdsClear===false||(x.minibag&&x.minibagLeadtime===false))&&x.exceptionReason.length<8)){setMessage('createMessage',localeV2('explainException','Bei negativer Prüfung mindestens 8 Zeichen Begründung eingeben.'),'error');return;}
+ }
+ setMessage('createMessage','','');showInternalStep(internalStep+1);
+}
 function stat(id,val){$(id).textContent=val;}
 function renderStats(){
  stat('statTotal',orders.length);stat('statP1',orders.filter(o=>o.priority==='P1').length);
@@ -215,13 +248,14 @@ async function refresh(){
 }
 async function submit(ev){
  ev.preventDefault();const form=$('newOrder');
- if(!form.reportValidity())return;
+ if(internalStep!==3){showInternalStep(1);return;}
+ if(!form.reportValidity()){showInternalStep(1);return;}
  const items=formItems();
  if(items.some(x=>!x.line&&!x.article)){setMessage('createMessage','Bei jeder Position Line oder Artikelnummer eintragen.','error');return;}
  if(items.some(x=>(x.pickableStock===false||x.holdsClear===false||(x.minibag&&x.minibagLeadtime===false))&&x.exceptionReason.length<8)){setMessage('createMessage','Bei negativer Prüfung mindestens 8 Zeichen Begründung eintragen.','error');return;}
  const body={orderNumber:form.elements.orderNumber.value,delivery:form.elements.delivery.value,priority:form.elements.priority.value,email:form.elements.email.value,language:form.elements.language.value,items};
  $('createButton').disabled=true;setMessage('createMessage','Speichere Auftrag …','');
- try{const r=await api('create',body);setMessage('createMessage',r.order.orderNumber+' wurde sicher gespeichert.','ok');form.reset();$('lineFields').innerHTML='';lineField();$('csEmail').value=r.profile.email;$('csLanguage').value=r.profile.language;await refresh();showView('open');render();}
+ try{const r=await api('create',body);setMessage('createMessage',r.order.orderNumber+' wurde sicher gespeichert.','ok');form.reset();$('lineFields').innerHTML='';lineField();showInternalStep(1);$('csEmail').value=r.profile.email;$('csLanguage').value=r.profile.language;await refresh();showView('open');render();}
  catch(e){setMessage('createMessage',e.message,'error');}
  finally{$('createButton').disabled=false;}
 }
@@ -257,7 +291,8 @@ async function copyDraft(){
  if(!$('mailSubject').value){setMessage('mailMessage','Bitte zuerst einen Entwurf erzeugen.','error');return;}
  try{await navigator.clipboard.writeText(v);setMessage('mailMessage','E-Mail-Entwurf kopiert.','ok')}catch(e){setMessage('mailMessage','Kopieren nicht möglich. Bitte Text markieren.','error')}
 }
-$('newOrder').addEventListener('submit',submit);$('saveProfile').addEventListener('click',profile);$('addLine').addEventListener('click',lineField);$('refresh').addEventListener('click',refresh);
+$('newOrder').addEventListener('submit',submit);
+$('internalWizardNext').addEventListener('click',nextInternalStep);$('internalWizardBack').addEventListener('click',()=>showInternalStep(internalStep-1));$('saveProfile').addEventListener('click',profile);$('addLine').addEventListener('click',lineField);$('refresh').addEventListener('click',refresh);
 for(const [id,view] of [['internalNew','new'],['internalOpen','open'],['internalClosed','closed']])$(id).addEventListener('click',()=>{showView(view);render();});
 ['search','filterPriority','filterDelivery','filterStatus'].forEach(id=>$(id).addEventListener(id==='search'?'input':'change',render));
 $('closeMail').addEventListener('click',closeDraft);$('generateMail').addEventListener('click',generateDraft);$('openMailer').addEventListener('click',mailto);$('copyMail').addEventListener('click',copyDraft);
@@ -266,7 +301,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('mailOverlay').h
 window.addEventListener('exporthub:language-changed',render);
 $('urgentPublicFormLink').href=urgentPublicOrigin()+'/urgent-order';
 $('urgentBackToHub').href=urgentPublicOrigin()+'/';
-lineField();refresh();
+lineField();showInternalStep(1);refresh();
 })();
 </script>
 </body>
