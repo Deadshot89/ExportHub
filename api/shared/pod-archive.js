@@ -170,6 +170,14 @@ async function resolvePodDeliveryNotes(record,clients,environment){
   }
   return best.length?Object.assign({},record,{deliveryNotes:best}):record;
 }
+function podRowsOf(record) {
+  // Same persisted row aliases accepted by pickup-init. Keep canonical rows
+  // authoritative and never reconstruct missing details from aggregate totals.
+  for (const key of ['rows', 'colli', 'collis', 'packages', 'packageRows']) {
+    if (Array.isArray(record && record[key]) && record[key].length) return record[key];
+  }
+  return [];
+}
 async function createPodPdf(record, signatureBuffer, signatureType) {
   const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
   const pdf = await PDFDocument.create();
@@ -198,7 +206,7 @@ async function createPodPdf(record, signatureBuffer, signatureType) {
   card('Empfaenger / Kunde',value(record.recipient,record.customer),x+259,706,252,65);
   card('Transport / Anmeldung',value(record.carrierName,record.speditionName,record.carrier,record.spedition),x,629,247,56);
   card('Lieferadresse',value(record.address),x+259,629,252,56);
-  const rows=Array.isArray(record.rows)?record.rows:[];
+  const rows=podRowsOf(record);
   let y=557;
   page.drawRectangle({x,y:y-25,width,height:25,color:pale,borderColor:border,borderWidth:.7});
   draw('POS.',x+8,y-16,8,bold);draw('VERPACKUNG',x+48,y-16,8,bold);draw('ANZAHL',x+230,y-16,8,bold);draw('GEWICHT KG',x+335,y-16,8,bold);
@@ -1131,6 +1139,7 @@ module.exports = {
   isCurrentAutomaticPod,
   fileNameFor,
   createPodPdf,
+  podRowsOf,
   resolvePodDeliveryNotes,
   ensureAutomaticPod,
   createShareLink,
