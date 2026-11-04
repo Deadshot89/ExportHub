@@ -168,7 +168,7 @@ test('Zoll KI 2.0: Provider fordert tatsächliche Quellen-ID statt nicht existie
  assert.deepEqual(response.citations,['incoterms-exw-fca-export']);
  const prompt=body.input[0].content[0].text;
  assert.match(prompt,/Beispiel \[\[incoterms-exw-fca-export\]\]/);
- assert.match(prompt,/Verwende keine/);
+ assert.match(prompt,/Erfinde keine Quell-IDs/);
  assert.doesNotMatch(prompt,/\[\[S1\]\]/);
  assert.doesNotMatch(JSON.stringify(body),/test-only-secret/);
 });
