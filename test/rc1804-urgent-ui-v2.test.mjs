@@ -103,6 +103,6 @@ test('public request rendering calls the actual translation helper, including dy
 test('status updates report feedback inside the visible request list, not the hidden creation form',()=>{
  const source=script(internalHtml);
  assert.match(internalHtml,/id="listMessage" class="message" role="status"/);
- assert.match(source,/setMessage\('listMessage','Status gespeichert\.'/);
+ assert.match(source,/setMessage\('listMessage',localeV2\('statusSaved'/);
  assert.match(source,/catch\(e\)\{select\.value=previous\|\|'Open';setMessage\('listMessage',e\.message,'error'\)/);
 });

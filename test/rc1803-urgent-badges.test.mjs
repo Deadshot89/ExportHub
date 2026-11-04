@@ -14,8 +14,8 @@ test('public tabs show separate visible pill counts for open and closed requests
  assert.match(publicPage,/\.tab\[aria-selected="true"\] \.request-count/);
  assert.match(js,/orders\.filter\(o=>!closed\(o\)\)\.length/);
  assert.match(js,/done=orders\.length-open/);
- assert.match(js,/getAttribute|setAttribute\('aria-label','Offen, '/);
- assert.match(js,/setAttribute\('aria-label','Geschlossen, '/);
+ assert.match(js,/setAttribute\('aria-label',localeV2\('tabOpen','Offene Anfragen'\)/);
+ assert.match(js,/setAttribute\('aria-label',localeV2\('tabClosed','Geschlossene Anfragen'\)/);
 });
 test('internal tabs count all visible requests, independent of search and line count',()=>{
  const js=inline(internalPage);
@@ -23,8 +23,8 @@ test('internal tabs count all visible requests, independent of search and line c
  assert.match(internalPage,/\.tabbar \.request-count\{/);
  assert.match(js,/orders\.filter\(isClosedOrder\)\.length/);
  assert.match(js,/orders\.length-n/);
- assert.match(js,/setAttribute\('aria-label','Offen, '/);
- assert.match(js,/setAttribute\('aria-label','Geschlossen, '/);
+ assert.match(js,/setAttribute\('aria-label',localeV2\('tabOpen','Offene Anfragen'\)/);
+ assert.match(js,/setAttribute\('aria-label',localeV2\('tabClosed','Geschlossene Anfragen'\)/);
 });
 test('navigation counter uses authenticated, privacy-preserving counts endpoint',()=>{
  assert.doesNotThrow(()=>new vm.Script(menu));
