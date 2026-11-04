@@ -89,16 +89,19 @@ function createOrder(raw,actor,now=new Date().toISOString()){
 }
 function canManage(user){if(user&&user.globalAdmin===true)return true;const r=user&&user.rights||{};return ['shipmentoverview'].some(k=>{const x=r[k]||{};return x.edit===true||x.admin===true||x.functionAdmin===true||['edit','admin'].includes(String(x.level||x.access||'').toLowerCase());});}
 function canRead(order,user){return canManage(user)||text(order&&order.createdBy&&order.createdBy.id)===text(user&&user.id);}
-function setItemStatus(order,itemId,status,user,now=new Date().toISOString()){
+function setItemStatus(order,itemId,status,user,now=new Date().toISOString(),note=''){
  if(!canManage(user))throw problem('URGENT_FORBIDDEN','Nur die Logistik darf Positionen aktualisieren.',403);
  if(!STATUSES.includes(status))throw problem('URGENT_STATUS_INVALID','Ungültiger Status.');
  const item=(order.items||[]).find(x=>x.id===itemId);
  if(!item)throw problem('URGENT_ITEM_NOT_FOUND','Position nicht gefunden.',404);
  if(item.status===status)return false;
  const previous=item.status;
+ const problemNote=status==='Problem'?text(note,1000):'';
+ if(status==='Problem'&&problemNote.length<8)throw problem('URGENT_PROBLEM_NOTE_REQUIRED','Bei Status Problem ist eine Beschreibung mit mindestens 8 Zeichen erforderlich.');
+ if(status==='Problem')item.problemNote=problemNote;
  item.status=status;item.updatedAt=now;order.updatedAt=now;
  order.history=Array.isArray(order.history)?order.history:[];
- order.history.push({at:now,actorId:text(user.id),event:'status',itemId,previous,status});
+ order.history.push({at:now,actorId:text(user.id),event:'status',itemId,previous,status,...(problemNote?{problemNote}:{})});
  if(order.history.length>200)order.history=order.history.slice(-200);
  return true;
 }
