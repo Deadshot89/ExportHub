@@ -26,6 +26,15 @@ header{background:#10243a;color:#fff;padding:17px max(18px,calc((100vw - 1390px)
 .tab[aria-selected="true"] .request-count{background:#225cc0;border-color:#225cc0;color:#fff}
 .tab[data-has-open="true"][aria-selected="false"] .request-count{background:#ffecdc;border-color:#f7c69c;color:#9a4808}
 @media(prefers-color-scheme:dark){.tab .request-count{background:#334761;border-color:#4e6787;color:#edf5ff}.tab[aria-selected="true"] .request-count{background:#4f92ff;border-color:#4f92ff;color:#081a31}.tab[data-has-open="true"][aria-selected="false"] .request-count{background:#68452d;border-color:#96704e;color:#ffe3bf}}
+
+/* Urgent 2.0: one workspace at a time */
+header{background:linear-gradient(110deg,#092442,#1b4e86)}main{max-width:1180px;padding-top:31px}h1{font-size:clamp(30px,3vw,40px)}.intro{max-width:690px;line-height:1.65}
+.workspace-nav{display:flex;flex-wrap:wrap;gap:9px;background:var(--surface);border:1px solid var(--line);border-radius:17px;padding:10px;margin:10px 0 22px;box-shadow:0 12px 36px #1b49751a}
+.workspace-nav .workspace-tab{display:inline-flex;align-items:center;gap:8px;justify-content:center;border:1px solid transparent;min-height:50px;font-weight:800;border-radius:11px;padding:10px 17px;color:var(--sub)}.workspace-nav .workspace-tab[aria-selected=true]{background:#245fc3;color:#fff;border-color:#245fc3}.workspace-nav .workspace-tab[aria-selected=true] .request-count{background:#fff;color:#1b4c95;border-color:#fff}
+.board{display:block}.board>.panel{width:100%;padding:clamp(19px,3.5vw,34px);border-radius:19px;box-shadow:0 15px 45px #1c487518}.workspace-heading{padding-bottom:16px;margin-bottom:18px;border-bottom:1px solid var(--line)}.workspace-heading h2{font-size:24px;margin:0 0 6px}.workspace-heading p{margin:0;font-size:13px}
+.request-type{padding:16px;border-radius:13px;border:1px solid #c7daf3;background:#f3f8ff}.request-type label{font-size:13px;font-weight:800;color:#285b9a}.type-explanation{border-radius:10px;padding:10px 12px;background:#e8f1ff;border:1px solid #d2e3fa}.type-explanation p{margin:0;font-size:12px;line-height:1.6;color:#28527e}
+@media(max-width:640px){.workspace-nav{padding:7px}.workspace-nav .workspace-tab{flex:1 1 100%}.board>.panel{padding:16px}}
+@media(prefers-color-scheme:dark){.request-type,.type-explanation{background:#203857;border-color:#405d80}.request-type label,.type-explanation p{color:#daeaff}}
 </style>
 <script src="/assets/rc1267-i18n.js" defer></script>
 </head>
@@ -34,12 +43,13 @@ header{background:#10243a;color:#fff;padding:17px max(18px,calc((100vw - 1390px)
 <main>
 <h1>Urgent Order melden</h1><p class="intro">Dringende Aufträge erfassen, Lieferungen prüfen und die eigenen Anfragen ohne Anmeldung verfolgen.</p>
 <div class="tracking" id="tracking" hidden><strong>Dein persönlicher Überwachungslink</strong><p class="muted">Diesen Link aufbewahren. Jeder mit diesem Link kann deine gemeldeten Anfragen sehen. Nicht weiterleiten.</p><code id="trackingUrl"></code><div class="actions" style="margin-top:10px"><button type="button" id="copyLink" class="btn secondary small">Link kopieren</button></div></div>
+<nav class="workspace-nav tabrow" role="tablist" aria-label="Arbeitsbereiche"><button type="button" class="tab workspace-tab" id="tabNew" role="tab" aria-selected="true"><span data-i18n="urgentOrderV2.tabNew">Neue Anfrage</span></button><button type="button" class="tab workspace-tab" id="tabOpen" role="tab" aria-selected="false"><span data-i18n="urgentOrderV2.tabOpen">Offene Anfragen</span> <span id="countOpen" class="request-count" aria-hidden="true">0</span></button><button type="button" class="tab workspace-tab" id="tabClosed" role="tab" aria-selected="false"><span data-i18n="urgentOrderV2.tabClosed">Geschlossene Anfragen</span> <span id="countClosed" class="request-count" aria-hidden="true">0</span></button></nav>
 <div class="board">
-<section class="panel"><h2>Neue Anfrage</h2><form id="reportForm" class="stack">
-<div class="pair"><label class="field">Auftragsnummer *<input name="orderNumber" required maxlength="40" placeholder="SO3002" autocomplete="off"></label><label class="field">Priorität *<select name="priority"><option value="P1">P1 · Kritisch</option><option value="P2">P2 · Sehr dringend</option><option value="P3">P3 · Dringend</option><option value="P4">P4 · Priorisiert</option></select></label></div>
+<section class="panel" id="createPanel"><div class="workspace-heading"><h2 data-i18n="urgentOrderV2.formTitle">Neue Anfrage erfassen</h2><p data-i18n="urgentOrderV2.formIntro">Auftrag und Warenfluss erfassen. Die Anfragen erscheinen separat im passenden Reiter.</p></div><form id="reportForm" class="stack">
+<div class="pair"><label class="field">Auftragsnummer *<input name="orderNumber" required maxlength="40" placeholder="SO3002" autocomplete="off"></label><label class="field"><span data-i18n="urgentOrderV2.priorityLabel">Priorität / Anfragegrund *</span><select name="priority"><option value="P1" data-i18n="urgentOrderV2.P1">P1 · Sondertransport</option><option value="P2" data-i18n="urgentOrderV2.P2">P2 · Express Lieferung</option><option value="P3" data-i18n="urgentOrderV2.P3">P3 · Backlog</option><option value="P4" data-i18n="urgentOrderV2.P4">P4 · Auftrag von Heute</option></select></label></div>
 <div class="pair"><label class="field">Lieferart *<select name="delivery" required><option value="DRP">DRP</option><option value="DIRECT">Direktlieferung</option></select></label><label class="field">E-Mail-Sprache *<select name="language"><option value="de">Deutsch</option><option value="en">English</option></select></label></div>
 <label class="field">E-Mail-Adresse des Melders *<input name="email" required type="email" maxlength="254" autocomplete="email" placeholder="name@firma.com"></label>
-<label class="field">Art der Anfrage *<select name="orderType" id="orderType"><option value="STANDARD">Urgent Order – Ware vorhanden</option><option value="DIRECT_OUTBOUND">Direktumschlag – Ware kommt und geht sofort</option></select></label>
+<div class="field request-type"><label for="orderType" data-i18n="urgentOrderV2.typeLabel">Art der Anfrage *</label><select id="orderType" name="orderType" aria-describedby="typeExplanation"><option value="STANDARD" data-i18n="urgentOrderV2.typeStandard">Lagerauftrag – Ware ist bereits verfügbar</option><option value="DIRECT_OUTBOUND" data-i18n="urgentOrderV2.typeDirect">Direktumschlag – Ware trifft erst ein</option></select><div class="type-explanation" id="typeExplanation"><p id="typeStandardHelp" data-i18n="urgentOrderV2.typeStandardHelp">Die Ware ist bereits im Lager. Sie soll bevorzugt bearbeitet oder versendet werden.</p><p id="typeDirectHelp" hidden data-i18n="urgentOrderV2.typeDirectHelp">Die Ware wird erst angeliefert und soll danach unmittelbar weitergeschickt werden. Bitte Ankunft und Versandart eintragen.</p></div></div>
 <div id="directFields" class="section" hidden><h3>Ankunft und Weiterversand</h3>
 <div class="stack">
 <label class="field">Geplante Ankunft bei uns * (deutsche Ortszeit)<input name="arrivalAt" type="datetime-local"></label>
@@ -54,9 +64,9 @@ header{background:#10243a;color:#fff;padding:17px max(18px,calc((100vw - 1390px)
 <div class="section"><div class="actions" style="justify-content:space-between"><h3>Artikel / Lines *</h3><button class="btn secondary small" type="button" id="addLine">+ Position</button></div><div id="lines" class="stack"></div></div>
 <div class="actions"><button class="btn" id="submitOrder" type="submit">Anfrage verbindlich melden</button></div><div id="reportMessage" class="message" role="status" aria-live="polite"></div>
 </form></section>
-<section class="panel"><div class="actions" style="justify-content:space-between"><h2 style="margin:0">Meine Anfragen</h2><button type="button" id="refresh" class="btn secondary small">Aktualisieren</button></div>
+<section class="panel" id="listPanel" hidden><div class="actions" style="justify-content:space-between"><h2 style="margin:0" id="listTitle" data-i18n="urgentOrderV2.tabOpen">Offene Anfragen</h2><button type="button" id="refresh" class="btn secondary small">Aktualisieren</button></div>
 <p class="muted">Nur Anfragen, die zu diesem persönlichen Überwachungslink gehören, sind sichtbar.</p>
-<div class="tabrow" role="tablist" aria-label="Anfragen filtern"><button id="tabOpen" type="button" class="tab" role="tab" aria-selected="true">Offen <span id="countOpen" class="request-count" aria-hidden="true">0</span></button><button id="tabClosed" type="button" class="tab" role="tab" aria-selected="false">Geschlossen <span id="countClosed" class="request-count" aria-hidden="true">0</span></button></div>
+
 <div class="filterbar"><input id="search" type="search" placeholder="SO oder Artikel suchen" aria-label="Suche"><select id="priorityFilter" aria-label="Priorität"><option value="">Alle Prioritäten</option><option>P1</option><option>P2</option><option>P3</option><option>P4</option></select></div>
 <div id="orders" aria-live="polite"><div class="empty">Noch keine Anfragen vorhanden. Nach der ersten Meldung erhältst du deinen persönlichen Link.</div></div>
 </section></div>
@@ -67,7 +77,7 @@ header{background:#10243a;color:#fff;padding:17px max(18px,calc((100vw - 1390px)
 const ENDPOINT='/api/urgent-order-public';
 const STATUS=['Open','Waved','In Progress','Problem','Loaded','Shipped','Invoiced'];
 const $=id=>document.getElementById(id);
-let secret='',orders=[],tab='open';
+let secret='',orders=[],tab='open',activeView='new';
 const str=v=>String(v==null?'':v);
 const esc=v=>str(v).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 function accessFromHash(){
@@ -104,6 +114,7 @@ function lineCard(){
 }
 function syncType(){
  const direct=$('orderType').value==='DIRECT_OUTBOUND';
+ $('typeStandardHelp').hidden=direct;$('typeDirectHelp').hidden=!direct;
  $('directFields').hidden=!direct;
  $('directFields').querySelectorAll('input,select').forEach(i=>{
   if(['arrivalAt','arrivalMode','arrivalProvider','dispatchMethod','deliveryNotePresent','asnWorking','holdsClear'].includes(i.name))i.required=direct;
@@ -140,14 +151,16 @@ function buildPayload(){
 }
 function humanStatus(o){const unique=[...new Set((o.items||[]).map(x=>x.status))];return unique.length===1?unique[0]:'Gemischt';}
 function closed(o){return o.items&&o.items.length>0&&o.items.every(x=>x.status==='Invoiced')}
+function showView(view){activeView=view;tab=view==='closed'?'closed':'open';$('createPanel').hidden=view!=='new';$('listPanel').hidden=view==='new';for(const [id,key] of [['tabNew','new'],['tabOpen','open'],['tabClosed','closed']]){$(id).setAttribute('aria-selected',view===key?'true':'false');$(id).tabIndex=view===key?0:-1;}$('listTitle').textContent=view==='closed'?'Geschlossene Anfragen':'Offene Anfragen';}
 function render(){
+ showView(activeView);
  const open=orders.filter(o=>!closed(o)).length,done=orders.length-open;
  $('countOpen').textContent=open;$('countClosed').textContent=done;
  $('tabOpen').setAttribute('aria-label','Offen, '+open+' Anfragen');
  $('tabClosed').setAttribute('aria-label','Geschlossen, '+done+' Anfragen');
  $('tabOpen').dataset.hasOpen=open>0?'true':'false';
- $('tabOpen').setAttribute('aria-selected',tab==='open'?'true':'false');
- $('tabClosed').setAttribute('aria-selected',tab==='closed'?'true':'false');
+ $('tabOpen').setAttribute('aria-selected',activeView==='open'?'true':'false');
+ $('tabClosed').setAttribute('aria-selected',activeView==='closed'?'true':'false');
  const q=$('search').value.trim().toLowerCase(),p=$('priorityFilter').value;
  const rows=orders.filter(o=>(tab==='closed'?closed(o):!closed(o))&&(!p||o.priority===p)&&(!q||[o.orderNumber,...(o.items||[]).flatMap(x=>[x.line,x.article])].some(x=>str(x).toLowerCase().includes(q))))
   .sort((a,b)=>({P1:1,P2:2,P3:3,P4:4}[a.priority]||5)-({P1:1,P2:2,P3:3,P4:4}[b.priority]||5)||str(b.createdAt).localeCompare(str(a.createdAt)));
@@ -187,7 +200,7 @@ async function submit(ev){
   $('reportForm').reset();$('lines').innerHTML='';lineCard();
   $('reportForm').elements.email.value=mail;$('reportForm').elements.language.value=lang;
   syncType();activateLink();await refresh();
-  tab='open';render();showMessage('Anfrage '+data.order.orderNumber+' gespeichert. Bitte den Überwachungslink sichern.','ok');
+  showView('open');render();showMessage('Anfrage '+data.order.orderNumber+' gespeichert. Bitte den Überwachungslink sichern.','ok');
  }catch(e){showMessage(e.message,'error');}
  finally{$('submitOrder').disabled=false;}
 }
@@ -200,7 +213,7 @@ $('orderType').addEventListener('change',syncType);
 $('addLine').addEventListener('click',lineCard);
 $('copyLink').addEventListener('click',copyLink);
 $('refresh').addEventListener('click',refresh);
-for(const [id,tabValue] of [['tabOpen','open'],['tabClosed','closed']])$(id).addEventListener('click',()=>{tab=tabValue;render();});
+for(const [id,view] of [['tabNew','new'],['tabOpen','open'],['tabClosed','closed']])$(id).addEventListener('click',()=>{showView(view);render();});
 for(const id of ['search','priorityFilter'])$(id).addEventListener(id==='search'?'input':'change',render);
 window.addEventListener('hashchange',()=>{secret=accessFromHash();refresh();});
 secret=accessFromHash();lineCard();syncType();refresh();
