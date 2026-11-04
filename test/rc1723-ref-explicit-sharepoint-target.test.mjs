@@ -116,3 +116,29 @@ test('RC1723: legacy user-drive mode remains the default when exact IDs are abse
   delete require.cache[require.resolve(MODULE)];
  }
 });
+
+test('RC1774: verified SharePoint REF folder vanishes before children read -> fail closed',async()=>{
+ const before=KEYS.map(key=>process.env[key]),oldFetch=globalThis.fetch,urls=[];
+ try{
+  for(const [key,value] of Object.entries(config))process.env[key]=value;
+  const moduleFile=require.resolve(MODULE);delete require.cache[moduleFile];
+  const store=require(moduleFile);
+  globalThis.fetch=async(url,options={})=>{
+   const u=String(url),method=options.method||'GET';urls.push(method+' '+u);
+   if(u.includes('/oauth2/'))return response(200,{access_token:'synthetic',expires_in:3600});
+   if(u.includes('/items/'+encodeURIComponent(config.EXPORTHUB_REFERENCE_FOLDER_ID)+':/ABC123?'))return response(200,REF);
+   if(u.includes('/items/'+encodeURIComponent(REF.id)+'/children'))return response(404,{error:{code:'ResourceNotFound'}});
+   throw Error('Unexpected Graph URL '+u);
+  };
+  await assert.rejects(store.listFiles(reference),error=>
+   error.code==='GRAPH_REFERENCE_FOLDER_LIST_INCOMPLETE'&&error.status===503);
+  assert.ok(urls.some(url=>url.includes('/items/'+encodeURIComponent(REF.id)+'/children')),
+   'the REF child-list request was actually attempted');
+  assert.ok(urls.filter(url=>url.includes('graph.microsoft.com')).every(url=>url.startsWith('GET ')),
+   'a vanished REF folder may not trigger Graph writes');
+ }finally{
+  globalThis.fetch=oldFetch;
+  KEYS.forEach((key,i)=>before[i]===undefined?delete process.env[key]:process.env[key]=before[i]);
+  delete require.cache[require.resolve(MODULE)];
+ }
+});
