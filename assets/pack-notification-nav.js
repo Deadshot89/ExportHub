@@ -122,7 +122,7 @@
    node.type='button';
    // Reuse native sidebar typography and sizing, never inherit Packmeldungen-specific classes.
    var nativeEntry=tasks&&tasks.parentNode===nav?tasks:anchor;
-   var inherited=String(nativeEntry.className||'').replace(/\\b(?:active|is-active|pack-notification-nav-entry|pack-notification-nav-fallback|urgent-orders-nav-entry)\\b/g,'').trim();
+   var inherited=String(nativeEntry.className||'').replace(/\b(?:active|is-active|pack-notification-nav-entry|pack-notification-nav-fallback|urgent-orders-nav-entry)\b/g,'').trim();
    node.className=(inherited?inherited+' ':'')+'urgent-orders-nav-entry';
    node.setAttribute('data-exporthub-urgent-nav','');
    node.setAttribute('aria-label','Urgent Order');
