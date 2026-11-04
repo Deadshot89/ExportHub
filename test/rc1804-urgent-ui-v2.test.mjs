@@ -246,3 +246,90 @@ test('old Urgent Order URLs redirect only their own page and preserve token frag
  }
  assert.match(source,/if\(redirectLegacyUrgentHost\(\)\)return;/);
 });
+
+
+test('urgent sidebar entry keeps native styling and stays below Packmeldungen after redraw',()=>{
+ const menu=read('assets/pack-notification-nav.js');
+ const start=menu.indexOf('/* Urgent Order: sidebar add-on immediately below Packmeldungen');
+ const end=menu.indexOf('/* Urgent Order: a lightweight, permission-scoped open-request count',start);
+ assert.ok(start>=0&&end>start,'dedicated navigation module must exist');
+ const source=menu.slice(start,end);
+ const handlers={},timers=[],navigation=[];
+ const node=(name,attrs={})=>{
+  const n={tagName:name,attributes:{...attrs},children:[],parentNode:null,className:'',innerHTML:'',style:{setProperty(){}},setAttribute(k,v){this.attributes[k]=v;},
+   getAttribute(k){return this.attributes[k]??null;},addEventListener(k,f){this['on'+k]=f;},
+   appendChild(c){return this.insertBefore(c,null);},
+   insertBefore(c,ref){
+    if(c.parentNode){const old=c.parentNode.children.indexOf(c);if(old>=0)c.parentNode.children.splice(old,1);}
+    let index=ref?this.children.indexOf(ref):-1;if(index<0)index=this.children.length;
+    this.children.splice(index,0,c);c.parentNode=this;return c;
+   },
+   get nextSibling(){if(!this.parentNode)return null;return this.parentNode.children[this.parentNode.children.indexOf(this)+1]||null;},
+   querySelector(selector){
+    const clauses=selector.split(',').map(v=>v.trim());
+    const matches=c=>clauses.some(clause=>{
+     const m=clause.match(/^\\[([a-z-]+)(?:="([^"]+)")?\\]$/);
+     return m&&(m[1] in c.attributes)&&(m[2]===undefined||c.attributes[m[1]]===m[2]);
+    });
+    const stack=[...this.children];
+    while(stack.length){const c=stack.shift();if(matches(c))return c;stack.unshift(...c.children);}
+    return null;
+   }};
+  return n;
+ };
+ const nav=node('nav'),head=node('head'),body=node('body');
+ const dashboard=node('button',{'data-view':'dashboard'}),tasks=node('button',{'data-view':'tasks'}),pack=node('button',{'data-pack-notifications-nav':''});
+ tasks.className='index305-menu-entry active';
+ pack.className='pack-notification-nav-entry index305-menu-entry';
+ nav.appendChild(dashboard);nav.appendChild(tasks);nav.appendChild(pack);
+ let currentNav=nav;
+ const doc={
+  head,documentElement:head,body,readyState:'complete',hidden:false,
+  querySelector(sel){
+   if(sel==='#nav')return currentNav;
+   if(sel==='[data-exporthub-urgent-nav]')return nav.querySelector(sel)||body.querySelector(sel);
+   return null;
+  },
+  getElementById(id){return head.children.find(c=>c.id===id)||null;},
+  createElement(tag){return node(tag);},addEventListener(){}
+ };
+ const win={
+  document:doc,location:{hostname:'exporthub360.de',assign(url){navigation.push(url);}},
+  addEventListener(name,fn){handlers[name]=fn;},setInterval(fn){timers.push(fn);}
+ };
+ vm.runInNewContext(source,{window:win,globalThis:win});
+ let urgent=nav.querySelector('[data-exporthub-urgent-nav]');
+ assert.ok(urgent,'urgent entry must be inserted');
+ assert.deepEqual(nav.children.map(n=>n===dashboard?'dashboard':n===tasks?'tasks':n===pack?'pack':'urgent'),['dashboard','tasks','pack','urgent']);
+ assert.ok(urgent.className.includes('index305-menu-entry'),'inherit existing menu typography');
+ assert.equal(urgent.className.includes('active'),false,'must not inherit active state');
+ assert.equal(urgent.className.includes('pack-notification-nav-entry'),false,'must not inherit Packmeldungen styling');
+ assert.match(urgent.innerHTML,/index308-nav-icon urgent-orders-nav-icon/);
+ assert.match(urgent.innerHTML,/<svg /,'use a native-style SVG icon instead of a text exclamation mark');
+ assert.match(urgent.innerHTML,/index308-nav-label urgent-orders-nav-label/);
+ assert.equal((head.children.filter(n=>n.id==='exporthub-urgent-nav-style')).length,1);
+ urgent.onclick({preventDefault(){},stopImmediatePropagation(){}});
+ assert.equal(navigation[0],'https://wonderful-forest-0f315e310.7.azurestaticapps.net/assets/urgent-orders.html');
+ // Simulate a sidebar redraw: the old button appears ahead of Dashboard again.
+ nav.insertBefore(urgent,dashboard);
+ handlers['exporthub:rendered']();
+ assert.deepEqual(nav.children.map(n=>n===dashboard?'dashboard':n===tasks?'tasks':n===pack?'pack':'urgent'),['dashboard','tasks','pack','urgent']);
+ assert.strictEqual(nav.querySelector('[data-exporthub-urgent-nav]'),urgent,'reuse the badge owner and click handler');
+ timers[0]();
+ assert.equal(nav.children.length,4,'no duplicate entries on periodic reconciliation');
+ // If Packmeldungen is temporarily absent, fall back to Aufgaben and relocate once it returns.
+ nav.children.splice(nav.children.indexOf(pack),1);pack.parentNode=null;
+ timers[0]();
+ assert.equal(tasks.nextSibling,urgent);
+ nav.insertBefore(pack,urgent);timers[0]();
+ assert.equal(pack.nextSibling,urgent);
+ // Even an accidentally misplaced entry is moved back to the real sidebar.
+ nav.children.splice(nav.children.indexOf(urgent),1);urgent.parentNode=null;body.appendChild(urgent);
+ timers[0]();
+ assert.equal(pack.nextSibling,urgent);
+ // Don't create a floating button above Dashboard while the real menu isn't available.
+ currentNav=null;nav.children.splice(nav.children.indexOf(urgent),1);urgent.parentNode=null;
+ const count=nav.children.length;
+ timers[0]();
+ assert.equal(nav.children.length,count);
+});
