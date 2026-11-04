@@ -54,7 +54,9 @@ test('New item validates master data and process steps, even for future arrivals
 });
 test('Problem is open; only all Invoiced is closed',()=>{
  const o=model.createOrder(base(),actor);
- model.setItemStatus(o,o.items[0].id,'Problem',logistics);
+ assert.throws(()=>model.setItemStatus(o,o.items[0].id,'Problem',logistics),/Beschreibung/);
+ model.setItemStatus(o,o.items[0].id,'Problem',logistics,undefined,'ASN wurde nicht bestätigt');
+ assert.equal(o.items[0].problemNote,'ASN wurde nicht bestätigt');
  assert.equal(o.items[0].status,'Problem');
  assert.equal(model.isClosed(o),false);
  model.setItemStatus(o,o.items[0].id,'Shipped',logistics);
