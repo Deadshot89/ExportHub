@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import analyzer from '../api/shared/abd-analysis.js';
 import d365 from '../api/shared/abd-d365-import.js';
 import model from '../api/shared/abd-analysis-model.js';
@@ -37,4 +38,53 @@ test('RC1784: 70 shipped rows stay in 46 packing slips, 29 recipient groups',()=
  assert.equal(result.deliveryDocuments.reduce((n,d)=>n+d.positions.length,0),70);
  assert.equal(result.deliveryDocuments[0].positions[0].value,3.525);
  assert.equal(result.deliveryDocuments[0].positions[0].commodityCode,'3926909790');
+});
+
+
+test('RC1785: D365 with 501 shipped positions fails closed instead of dropping rows',()=>{
+ const head=['PACKINGSLIPID','DELIVERYADDRESSNAME','FORMATTEDDELVERYADDRESS','DELIVERYADDRESSCOUNTRYREGIONISOCODE','ITEMNUMBER','QTY','SHIPPEDAMOUNT','COMMODITYCODE','ORIGCOUNTRYREGIONID'];
+ const rows=[head];
+ for(let i=0;i<500;i++)rows.push(['SLIP1','Recipient A','Road 1','GB','Item'+i,'1','2,50','3926909790','DEU']);
+ rows.push(['SLIP1','Recipient A','Road 1','GB','Not shipped','0','0','3926909790','DEU']);
+ const accepted=d365.d365Invoice(rows,'500-items.txt',analyzer,model);
+ assert.equal(accepted.positions.length,500);
+ assert.equal(accepted.deliveryDocuments[0].positions.length,500);
+ rows.push(['SLIP1','Recipient A','Road 1','GB','Item 501','1','2,50','3926909790','DEU']);
+ assert.throws(()=>d365.d365Invoice(rows,'501-items.txt',analyzer,model),e=>e.code==='ABD_D365_POSITION_LIMIT'&&e.status===422);
+});
+
+test('RC1785: XLSX parsing rejects sheets above the old 1000-row cutoff instead of truncating',()=>{
+ const api=fs.readFileSync('api/abd-analysis/index.js','utf8');
+ assert.match(api,/ws\.actualRowCount>1000\)throw error\('ABD_XLSX_ROW_LIMIT'/);
+ assert.match(api,/Excel-Datei enthält mehr als 1\.000 Datenzeilen/);
+});
+
+
+test('RC1785: multi-sheet Excel workbooks never silently omit data',()=>{
+ const api=fs.readFileSync('api/abd-analysis/index.js','utf8');
+ assert.match(api,/nonemptySheets\.length>12/,'Excess worksheets must be rejected');
+ assert.match(api,/d365Positions\.length&&objects\.length/,'Mixed D365 and conventional sheets must fail closed');
+ assert.match(api,/d365Positions\.length>500\|\|objects\.length>500/,'Aggregate line counts must fail closed across all worksheets');
+ for(const code of ['ABD_XLSX_SHEET_LIMIT','ABD_XLSX_MIXED_FORMAT','ABD_XLSX_POSITION_LIMIT'])assert.ok(api.includes(code),code+' error is missing');
+});
+
+
+test('RC1785: generic delimited imports reject over-limit position totals',()=>{
+ const api=fs.readFileSync('api/abd-analysis/index.js','utf8');
+ const from=api.indexOf('function analyzeCsv('),to=api.indexOf('async function analyzeWithOcr(',from);
+ assert.ok(from>=0&&to>from,'Delimited analyzer entrypoint missing');
+ const parser=api.slice(from,to);
+ const guard=parser.indexOf('ABD_TABULAR_POSITION_LIMIT'),analyze=parser.indexOf('analyzer.analyzeObjects(objects)');
+ assert.ok(guard>=0&&guard<analyze,'Generic CSV/TXT/TSV must reject >500 positions before analysis truncation');
+ assert.match(parser,/objects\.length>500/);
+});
+
+test('RC1785: the 501st standard CSV or Excel position is observable to safety guards',()=>{
+ const matrix=[['Artikelnummer','Warenbeschreibung']];
+ for(let i=0;i<501;i++)matrix.push(['SKU-'+i,'A valid goods description '+i]);
+ assert.equal(analyzer.matrixToObjects(matrix,'standard.csv').length,500,'Normal parser keeps existing 500-row contract');
+ assert.equal(analyzer.matrixToObjects(matrix,'standard.csv',501).length,501,'Importer can see the extra position before rejecting');
+ const api=fs.readFileSync('api/abd-analysis/index.js','utf8');
+ assert.ok(api.includes("analyzer.matrixToObjects(matrix,name+' · '+ws.name,501)"),'XLSX branch requests overflow sentinel');
+ assert.ok(api.includes("analyzer.matrixToObjects(matrix,name,501)"),'CSV/TXT/TSV branch requests overflow sentinel');
 });
