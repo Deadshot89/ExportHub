@@ -131,9 +131,10 @@ async function ask(question){
  * Nur kuratierte Incoterms-Fälle werden hier übersteuert. Keine zusätzlichen Provider-Aufrufe.
  * Andere Fragen bleiben am bisherigen Offline-Handler. */
 function legacyIncotermsAnswer(raw){
- var question=q(raw),lower=question.toLowerCase(),match=lower.match(/\b(exw|fca|dap|ddp)\b/),type=match&&match[1];
- if(!type&&/\bab\s*werk\b/.test(lower))type='exw';
- if(!type)return null;
+ var question=q(raw),lower=question.toLowerCase(),matches=lower.match(/\b(?:exw|fca|dap|ddp)\b/g)||[],types=Array.from(new Set(matches));
+ if(/\bab\s*werk\b/.test(lower)&&!types.includes('exw'))types.push('exw');
+ if(!types.length)return null;
+ var type=types[0];
  var labels={
   exw:{name:'EXW (Ab Werk)',organization:'Der Käufer organisiert und bezahlt grundsätzlich die Ausfuhrformalitäten.',cost:'Grundsätzlich Käufer, soweit nichts Abweichendes vereinbart wurde.',check:'Klären, wer die Ausfuhranmeldung veranlasst und welcher EU-ansässige Beteiligte rechtlich Ausführer sein kann.'},
   fca:{name:'FCA (Frei Frachtführer)',organization:'Der Verkäufer organisiert und bezahlt grundsätzlich die Ausfuhrfreimachung.',cost:'Grundsätzlich Verkäufer für die Ausfuhrformalitäten; der Käufer trägt die Einfuhrabwicklung.',check:'Zulässigen EU-Ausführer und Anmelder/Vertreter sowie den benannten FCA-Lieferort prüfen.'},
@@ -141,6 +142,14 @@ function legacyIncotermsAnswer(raw){
   ddp:{name:'DDP (Geliefert verzollt)',organization:'Der Verkäufer übernimmt vertraglich sowohl Ausfuhr- als auch Einfuhrformalitäten.',cost:'Grundsätzlich Verkäufer einschließlich Einfuhrabgaben.',check:'Besonders prüfen, ob der Verkäufer im Bestimmungsland rechtlich die Einfuhrabfertigung vornehmen lassen darf.'}
  };
  var item=labels[type],icc='legacy-incoterms-icc',eu='legacy-incoterms-eu';
+ if(types.length>1){
+  var compared=['## Kurzantwort','Die genannten Incoterms unterscheiden sich bei den Zollformalitäten:'];
+  types.forEach(function(code){var rule=labels[code];compared.push('- **'+rule.name+':** '+rule.organization)});
+  compared.push('','## Was gilt unabhängig von der Klausel?','- **EU-Ausführer:** Die zollrechtlich zulässige Person muss gesondert geprüft werden. [['+eu+']].','- **Anmelder:** Anmeldung durch den Anmelder oder einen Zollvertreter; Kosten nach der vereinbarten Klausel und ergänzenden Abreden.','', '## Vorgehen im Warenausgang','1. Vereinbarte Incoterms-Klausel und benannten Ort verbindlich feststellen.','2. EU-Ausführer, Anmelder und mögliche Zollvertretung bestimmen.','3. Erforderliche Zollüberlassung und Dokumente vor Versand prüfen.');
+  return{ok:true,mode:'offline-rule',answer:compared.join('\n'),uncertainty:true,checkedAt:'2026-11-04',sources:[
+    {id:icc,title:'ICC – Incoterms 2020 / Export Clearance',sourceName:'International Chamber of Commerce',sourceUrl:'https://iccwbo.org/wp-content/uploads/sites/3/2025/04/2025.04_Using_Incoterms_to-Manage_Tariff_Risks.pdf',checkedAt:'2026-11-04'},
+    {id:eu,title:'EU-Kommission – Wer ist Ausführer?',sourceName:'Europäische Kommission',sourceUrl:'https://taxation-customs.ec.europa.eu/document/download/5943739d-85d5-4e82-b2bd-fe1b8f7a8403_en',checkedAt:'2026-11-04'}]}
+ }
  var answer=[
   '## Kurzantwort',
   'Bei **'+item.name+'** gilt: '+item.organization+' [['+icc+']].',
