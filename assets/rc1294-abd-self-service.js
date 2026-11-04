@@ -177,7 +177,9 @@ async function start(){
   for(var i=0;i<files.length;i++){
    fileLine(files[i].name,tr('abd.analysis.waiting'),'info');
    try{
-    var result=await analyzeFile(files[i]);results.push(result);fileLine(files[i].name,(result.analysis&&result.analysis.positions||[]).length+' Position(en)','ok')
+    var result=await analyzeFile(files[i]),analysis=result&&result.analysis||{},documents=Array.isArray(analysis.deliveryDocuments)?analysis.deliveryDocuments:[];
+    if(documents.length){documents.forEach(function(doc){results.push({ok:true,status:'ready',analysis:doc})});fileLine(files[i].name,documents.length+' getrennte Lieferscheine / '+(analysis.positions||[]).length+' Positionen','ok')}
+    else{results.push(result);fileLine(files[i].name,(analysis.positions||[]).length+' Position(en)','ok')}
    }catch(e){fileLine(files[i].name,q(e&&e.message)||tr('errors.generic'),'bad')}
   }
   renderResults(results);
@@ -299,7 +301,7 @@ function mount(){
   '<div id="rc1294InvoicePanel" class="rc1294-invoice-panel" data-rc1294-invoice-panel hidden><h4>'+esc(xtr('invoiceMode'))+'</h4>'+
    '<p>'+esc(xtr('invoiceHelp'))+'</p>'+
    '<div class="rc1294-note">'+esc(xtr('previewOnly'))+'</div>'+
-   '<div class="rc1294-controls"><label class="rc1294-file"><span>'+esc(xtr('chooseFiles'))+'</span><input type="file" multiple data-rc1294-files accept=".pdf,.jpg,.jpeg,.png,.xlsx,.csv,application/pdf,image/jpeg,image/png,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"></label>'+
+   '<div class="rc1294-controls"><label class="rc1294-file"><span>'+esc(xtr('chooseFiles'))+'</span><input type="file" multiple data-rc1294-files accept=".pdf,.jpg,.jpeg,.png,.xlsx,.csv,.txt,.tsv,application/pdf,image/jpeg,image/png,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,text/plain,text/tab-separated-values"></label>'+
    '<button type="button" class="btn" data-rc1294-start>'+esc(xtr('start'))+'</button></div>'+
    '<div class="rc1294-status" data-rc1294-status hidden></div><div class="rc1294-results" data-rc1294-results hidden></div></div>';
  var head=host.querySelector('.rc626-head');if(head&&head.parentNode)head.parentNode.insertBefore(p,head.nextSibling);else host.insertBefore(p,host.firstChild);
