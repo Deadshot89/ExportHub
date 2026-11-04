@@ -108,9 +108,15 @@ function flag(select){const v=select.value;return v==='true'?true:v==='false'?fa
 function statusClass(v){return 's-'+str(v==='Gemischt'?'Mixed':v).replace(/[^A-Za-z]/g,'');}
 function showMessage(message,kind){$('reportMessage').textContent=message||'';$('reportMessage').dataset.state=kind||'';}
 async function api(action,params){
- const response=await fetch(ENDPOINT,{method:'POST',cache:'no-store',credentials:'same-origin',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({action,...(params||{})})});
- let data;try{data=await response.json();}catch(_){throw new Error('Antwort vom Server ist ungültig.');}
- if(!response.ok||data.ok===false){const e=new Error(data.message||'Fehler bei der Meldung.');e.status=response.status;throw e;}return data;
+ let response;
+ try{response=await fetch(ENDPOINT,{method:'POST',cache:'no-store',credentials:'same-origin',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({action,...(params||{})})});}
+ catch(_){throw new Error(localeV2('networkError','Keine Verbindung zum Urgent-Order-Dienst. Bitte die Internetverbindung prüfen und erneut versuchen.'));}
+ let data;try{data=await response.json();}catch(_){throw new Error(localeV2('networkError','Der Urgent-Order-Dienst liefert keine gültige Antwort. Bitte erneut versuchen.'));}
+ if(!response.ok||data.ok===false){
+  const code=/^(?:URGENT_[A-Z0-9_]+|TEST_AUTH_ISOLATION_[A-Z0-9_]+)$/.test(String(data.code||''))?data.code:'';
+  const e=new Error((data.message||localeV2('networkError','Die Anfrage konnte nicht verarbeitet werden.'))+(code?' (Code: '+code+')':''));
+  e.status=response.status;e.code=code;throw e;
+ }return data;
 }
 function localizeLineChoices(box){
  const opts={'':'chooseCheck','true':'yes','false':'no'};
@@ -241,7 +247,7 @@ function activateLink(){
 async function refresh(){
  if(!secret){orders=[];render();return;}
  try{const data=await api('list',{accessToken:secret});orders=data.orders||[];render();activateLink();}
- catch(e){const errorText=localeV2('loadError','Die Anfragen können mit diesem Link nicht geladen werden.');$('orders').innerHTML='<div class="empty">'+esc(errorText)+' '+esc(e.message)+'</div>';}
+ catch(e){const errorText=localeV2('loadError','Die Anfragen können mit diesem Link nicht geladen werden.');$('orders').innerHTML='<div class="empty" role="alert"><p>'+esc(errorText)+' '+esc(e.message)+'</p><button type="button" class="btn secondary small" id="retryPublicList">'+esc(localeV2('retry','Erneut versuchen'))+'</button></div>';$('retryPublicList').addEventListener('click',refresh);}
 }
 async function submit(ev){
  ev.preventDefault();
