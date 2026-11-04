@@ -288,5 +288,16 @@
   "api.urgent.qtyLabel": "Ilość",
   "api.urgent.statusLabel": "Stan",
   "api.urgent.serverError": "Nie udało się przetworzyć pilnego zamówienia. Spróbuj ponownie później.",
-  "api.urgent.invalidRequest": "Nieprawidłowe żądanie."
+  "api.urgent.invalidRequest": "Nieprawidłowe żądanie.",
+  "api.urgent.arrivalAt": "Planowany przyjazd:",
+  "api.urgent.arrivalMode": "Transport przychodzący:",
+  "api.urgent.arrivalCarrier": "Przewoźnik dostawy:",
+  "api.urgent.outboundMethod": "Rodzaj wysyłki:",
+  "api.urgent.requestedDispatch": "Planowana wysyłka:",
+  "api.urgent.express": "Ekspres",
+  "api.urgent.specialTransport": "Transport specjalny",
+  "api.urgent.truck": "Ciężarówka",
+  "api.urgent.parcel": "Przesyłka kurierska",
+  "api.urgent.courier": "Kurier",
+  "api.urgent.otherTransport": "Inny"
 }
