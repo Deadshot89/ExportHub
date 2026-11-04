@@ -75,3 +75,34 @@ test('RC1792: translation fallback contains resume guidance across all six local
   assert.ok(scope.locales[lang].scanPendingNote,lang+' upload status missing');
  }
 });
+
+test('RC1793: delayed Defender result remains resumable and shows diagnostic instead of a false upload failure',async()=>{
+ const start=src.indexOf('async function poll(upload,fileName){'),end=src.indexOf('async function analyzeFile(file){',start);
+ assert.ok(start>=0&&end>start);
+ const reported=[];
+ let requests=0;
+ const scope={
+  post:async()=>{requests++;return{data:{status:'scanning',diagnosticCode:'ABD_DEFENDER_RESULT_DELAYED'}}},
+  fileLine:(name,message,kind)=>reported.push({name,message,kind}),
+  xtr:key=>key,
+  tr:key=>key,
+  q:value=>String(value||''),
+  delay:async()=>{}
+ };
+ vm.runInNewContext(src.slice(start,end)+'\nthis.pollStatus=poll;',scope);
+ await assert.rejects(scope.pollStatus({id:'existing-safe-upload-id'},'invoice.csv'),error=>error.code==='ABD_SCAN_PENDING'&&error.scanDelayed===true);
+ assert.equal(requests,45);
+ assert.equal(reported.some(row=>row.message==='scanDelayedNote'&&row.kind==='scan'),true);
+ assert.match(src,/e\.scanDelayed\?'scanDelayedNote':'scanPendingNote'/);
+});
+
+test('RC1793: delayed-scan guidance is translated in all six locale packs',()=>{
+ const feature=fs.readFileSync('assets/i18n/rc1499-exportexperte.js','utf8');
+ const start=src.indexOf('var languageFallback={'),end=src.indexOf('function xtr(',start);
+ const scope={};
+ vm.runInNewContext(src.slice(start,end)+'\nthis.locales=languageFallback;',scope);
+ for(const locale of ['de','en','pl','es','fr','it']){
+  assert.ok(scope.locales[locale].scanDelayedNote,locale+' offline warning missing');
+ }
+ assert.equal((feature.match(/scanDelayedNote:/g)||[]).length,6,'Feature translation pack must match all six languages');
+});
