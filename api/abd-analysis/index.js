@@ -170,7 +170,13 @@ async function status(req,current,environment,payload){
  const created=props&&props.createdOn?new Date(props.createdOn).getTime():Number(props&&props.metadata&&props.metadata.uploadedAt||0);
  if(created&&Date.now()-created>MAX_AGE_MS){await blob.deleteIfExists();throw error('ABD_UPLOAD_EXPIRED',apiI18n.t(req,'api.abdAnalysis.uploadExpired'),410)}
  const tagResult=await blob.getTags(),scan=pdfSecurity.scanResultFromTags(tagResult&&tagResult.tags||{});
- if(scan.status==='pending')return{httpStatus:202,body:{ok:true,status:'scanning',provider:'Microsoft Defender for Storage',scanResult:scan.result||''}};
+ if(scan.status==='pending'){
+  // RC1793: a delayed/missing Defender result must never be interpreted as clean.
+  // Surface a non-sensitive diagnostic so staff can distinguish a stalled scan
+  // from a failed upload, without deleting or releasing the quarantine blob.
+  const ageSeconds=created?Math.max(0,Math.floor((Date.now()-created)/1000)):0;
+  return{httpStatus:202,body:{ok:true,status:'scanning',provider:'Microsoft Defender for Storage',scanResult:scan.result||'',...(ageSeconds>=120?{diagnosticCode:'ABD_DEFENDER_RESULT_DELAYED',scanAgeSeconds:ageSeconds}:{})}}
+ }
  if(scan.status!=='clean'){
   await blob.deleteIfExists();
   const malicious=scan.status==='malicious';

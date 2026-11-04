@@ -132,3 +132,31 @@ test('RC1294: geänderte JavaScript-Dateien sind syntaktisch gültig',async()=>{
  const {execFileSync}=await import('node:child_process');
  for(const file of ['api/shared/abd-analysis.js','api/abd-analysis/index.js','assets/rc1294-abd-self-service.js','.github/rc1112/build-three-env.mjs'])execFileSync(process.execPath,['--check',file],{stdio:'pipe'});
 });
+
+test('RC1793 API: missing Defender scan tag after 120 s reports delay, never grants invoice analysis',async()=>{
+ const fx=loadEndpoint();
+ try{
+  const csv='Pos;Warenbeschreibung;HS Code\n1;Teil A;39269097';
+  const upload=await fx.call({action:'upload',file:{name:'delayed.csv',type:'text/csv',base64:Buffer.from(csv).toString('base64')}});
+  assert.equal(upload.status,202);
+  const rec=[...fx.records.values()][0];
+  let status=await fx.call({action:'status',uploadId:upload.body.upload.id});
+  assert.equal(status.status,202);
+  assert.equal(status.body.status,'scanning');
+  assert.equal(status.body.diagnosticCode,undefined,'Normal scan progress must not show configuration warning');
+  rec.createdOn=new Date(Date.now()-125000);
+  status=await fx.call({action:'status',uploadId:upload.body.upload.id});
+  assert.equal(status.status,202,'No Defender clean result means no analysis');
+  assert.equal(status.body.ok,true);
+  assert.equal(status.body.status,'scanning');
+  assert.equal(status.body.diagnosticCode,'ABD_DEFENDER_RESULT_DELAYED');
+  assert.ok(status.body.scanAgeSeconds>=120);
+  assert.equal(rec.deleted,false,'Slow or unconfigured scan does not delete quarantine data');
+  assert.equal(status.body.analysis,undefined,'No data before clean scan');
+  rec.tags['Malware scanning scan result']='No threats found';
+  status=await fx.call({action:'status',uploadId:upload.body.upload.id});
+  assert.equal(status.status,200);
+  assert.equal(status.body.status,'ready');
+  assert.equal(rec.deleted,true);
+ }finally{fx.restore()}
+});
