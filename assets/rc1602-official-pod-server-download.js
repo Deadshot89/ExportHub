@@ -109,7 +109,7 @@ async function storedSignedBlob(sh,options){
   var manualPod=manual&&/\.pdf$/i.test(name);
   // Bulk original backups must never replace a missing digital original with
   // a manual attachment, even when its filename resembles a signed load list.
-  if(options&&options.signedOnly===true&&(manual||(!signed&&!automatic)))return;
+  if(options&&options.signedOnly===true&&(manual||/manual-upload|user-upload/.test(kind)||(!signed&&!automatic)))return;
   if(signed||automatic||manualPod)files.push({file:f,priority:signed?3:automatic?2:1})
  })});
  files.sort(function(a,b){return b.priority-a.priority});

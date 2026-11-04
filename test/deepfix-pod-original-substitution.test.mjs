@@ -32,6 +32,12 @@ test('manual upload with a signed-looking filename cannot count as a digital ori
   assert.equal(result,null);
 });
 
+test('legacy manual POD kind without a manualUpload flag cannot impersonate a signed original',async()=>{
+  const result=await api({manual:pdf('MANUAL')}).storedSignedBlob({ref:'ABC123',podFiles:[
+    {...manual,manualUpload:false,name:'POD_ABC123_Ladeliste_mit_Unterschrift.pdf'}]},{signedOnly:true});
+  assert.equal(result,null);
+});
+
 test('signed-only retrieval preserves original bytes and ordinary manual viewing remains available',async()=>{
   const signed=pdf('SIGNED'),uploaded=pdf('MANUAL'),reader=api({original:signed,manual:uploaded});
   const result=await reader.storedSignedBlob({ref:'ABC123',podFiles:[manual,original]},{signedOnly:true});
