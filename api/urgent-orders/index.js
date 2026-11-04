@@ -87,7 +87,7 @@ async function execute(req,user,refs){
   const id=model.text(p.id,90),itemId=model.text(p.itemId,90),status=model.text(p.status,30);
   return write(refs,doc=>{
    const order=findOrder(doc,id);
-   model.setItemStatus(order,itemId,status,user,now);
+   model.setItemStatus(order,itemId,status,user,now,model.text(p.note,1000));
    return{order};
   });
  }
