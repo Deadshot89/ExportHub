@@ -5,8 +5,8 @@ import vm from 'node:vm';
 
 const source=fs.readFileSync('assets/rc1059-document-blob.js','utf8');
 const file={name:'DNC3019222063.pdf',storage:'blob',blobName:'rc1059/testservice/aa/'+('a'.repeat(64))};
-function viewer({runtime={},session,reply}={}){
- const calls=[],clicks=[];
+function viewer({runtime={},session,reply,popup=false}={}){
+ const calls=[],clicks=[],popups=[];
  const hostname='ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net';
  const w={
   location:{hostname,origin:'https://'+hostname,href:'https://'+hostname+'/index.html'},
@@ -16,9 +16,14 @@ function viewer({runtime={},session,reply}={}){
   document:{createElement(){return{href:'',download:'',click(){clicks.push({href:this.href,download:this.download})},remove(){}}},body:{appendChild(){}}},
   URL:{createObjectURL(){return'blob:pack-original'},revokeObjectURL(){}},
   setTimeout(){},
+  open:popup?(url,target)=>{
+    const tab={closed:false,location:{href:url},opener:w,close(){this.closed=true}};
+    popups.push({tab,url,target});
+    return tab;
+  }:undefined,
  };
  vm.runInNewContext(source,{window:w,URL});
- return{api:w.ExportHUBDocumentBlob1059,calls,clicks};
+ return{api:w.ExportHUBDocumentBlob1059,calls,clicks,popups};
 }
 
 test('RC1702: Packmeldung retrieves original PDF with authenticated session restored from same tab',async()=>{
@@ -160,4 +165,44 @@ test('RC1705: non-PDF image attachments remain readable through the shared authe
  const result=await api.fetchBlob(img);
  assert.equal(result.type,'image/jpeg');
  assert.equal(result.size,4);
+});
+
+test('P0: Packmeldung Öffnen reserves one preview tab before protected PDF request completes',async()=>{
+ let completeFetch;
+ const deferred=new Promise(resolve=>{completeFetch=resolve});
+ const {api,calls,clicks,popups}=viewer({
+  session:{token:'VALID-TAB',user:{id:'u-2'},environment:'testservice'},
+  reply:deferred,popup:true
+ });
+ const opening=api.open(file,{name:'DNC3019222063.pdf',download:false});
+ // A browser popup must be reserved synchronously within the user's click.
+ assert.equal(popups.length,1);
+ assert.equal(popups[0].url,'about:blank');
+ assert.equal(popups[0].target,'_blank');
+ assert.equal(popups[0].tab.location.href,'about:blank');
+ assert.equal(calls.length,1);
+ assert.equal(calls[0].options.credentials,'omit');
+ assert.equal(calls[0].options.headers.Authorization,'Bearer VALID-TAB');
+ completeFetch({
+  ok:true,status:200,redirected:false,type:'basic',
+  url:'https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net/api/exporthub-document',
+  headers:{get(){return'application/pdf'}},
+  async blob(){return new Blob(['%PDF-1.7 Original Pack'],{type:'application/pdf'})}
+ });
+ assert.equal(await opening,true);
+ assert.equal(popups[0].tab.location.href,'blob:pack-original');
+ assert.equal(popups[0].tab.closed,false);
+ assert.deepEqual(clicks,[],'preview may not silently fall back to a naked download URL');
+});
+
+test('P0: failed PDF session redirect closes reserved Packmeldung preview tab',async()=>{
+ const {api,clicks,popups}=viewer({
+  session:{token:'VALID-TAB',user:{id:'u-2'},environment:'testservice'},
+  reply:{ok:false,status:0,type:'opaqueredirect',redirected:false,url:''},popup:true
+ });
+ await assert.rejects(api.open(file,{name:file.name,download:false}),
+  err=>err.code==='DOCUMENT_API_LOGIN_REDIRECT');
+ assert.equal(popups.length,1);
+ assert.equal(popups[0].tab.closed,true);
+ assert.deepEqual(clicks,[],'Microsoft login page must never open as a Lieferschein');
 });
