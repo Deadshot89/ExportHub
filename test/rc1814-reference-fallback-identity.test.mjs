@@ -75,3 +75,28 @@ test('RC1814: Graph and Blob originals and unproven inline versions remain disti
   [{name,file:h.files[0]},{name,file:h.files[1]},...inline]);
  assert.equal(docs.length,6);
 });
+
+for(const field of ['hash','sha256','versionId','snapshot','eTag'])test('RC1814: known '+field+' distinctions on one Blob path survive fallback collection',()=>{
+ const h=harness(),base=h.files[0];
+ h.shipment.deliveryFiles=[];
+ // lieferscheine is discovered by addFields rather than the canonical GROUPS.
+ const value=x=>field==='hash'||field==='sha256'?x.repeat(64):'version-'+x;
+ h.shipment.lieferscheine=[{...base,[field]:value('a')},{...base,[field]:value('b')}];
+ const docs=h.context.shipmentAssociatedDocs(h.shipment,[]);
+ assert.equal(docs.length,2,'same Blob path cannot erase a known version/hash difference');
+ assert.equal(h.context.shipmentAssociatedDocs(h.shipment,docs).length,2);
+});
+
+test('RC1814: Graph item with different known eTags remains two versions',()=>{
+ const h=harness(),base={name:'SAME.pdf',source:'referenceFolder',itemId:'GRAPH-SAME'};
+ const docs=h.context.mergeReferenceDocs([{...base,eTag:'etag-a'},{...base,eTag:'etag-b'},
+  {...base,eTag:'etag-a'}],[]);
+ assert.equal(docs.length,2);
+});
+
+test('RC1814: missing version evidence never collapses a known Blob version',()=>{
+ const h=harness(),known={...h.files[0],sha256:'a'.repeat(64)},unknown={...known};
+ delete unknown.sha256;
+ const docs=h.context.mergeReferenceDocs([],[{file:known},{file:unknown},{file:{...known}}]);
+ assert.equal(docs.length,2);
+});

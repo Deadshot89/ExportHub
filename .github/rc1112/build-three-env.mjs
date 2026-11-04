@@ -1320,10 +1320,7 @@ function shipmentAssociatedDocs(sh,prior){
   if(!file)return;
   var entry={file:file,group:group,field:field,index:index,name:fileName(file,group+' '+(index+1)),url:fileUrl(file)};
   try{
-   var doc=normalizeFallback(entry),key=q(doc&&doc.file&&doc.file.blobName),name=low(q(doc&&doc.name));
-   // The canonical document collector may already expose this same file.
-   // Deduplicate only an identical stored Blob + name, never by a recycled shipment ID.
-   if(key&&out.some(function(existing){return low(q(existing&&existing.name))===name&&q(existing&&existing.file&&existing.file.blobName)===key}))return;
+   var doc=normalizeFallback(entry);
    out.push(doc)
   }catch(_){}
  }
@@ -1371,10 +1368,14 @@ function mergeReferenceDocs(live,fallback){
  // legitimately have the same name. Deduplicate only proven identical items.
  function identity(d){
   if(!d)return '';
+  var f=d.file||d;
+  // Preserve known content/version distinctions even when a storage path is reused.
+  // Missing evidence also stays separate from a known version, never guessed by name.
+  var version=JSON.stringify([q(f.sha256||d.sha256).toLowerCase(),q(f.hash||d.hash).toLowerCase(),q(f.versionId||d.versionId),q(f.snapshot||d.snapshot),q(f.eTag||d.eTag)]);
   var item=q(d.itemId||d.file&&d.file.itemId);
-  if(d.source==='referenceFolder'&&item)return 'graph:'+item;
+  if(d.source==='referenceFolder'&&item)return 'graph:'+item+':'+version;
   var blob=q(d.file&&d.file.blobName||d.blobName);
-  if(blob)return 'blob:'+blob;
+  if(blob)return 'blob:'+blob+':'+version;
   return ''
  }
  var out=[],seen=Object.create(null);
