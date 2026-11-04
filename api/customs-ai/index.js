@@ -12,10 +12,18 @@ function text(value,max=400){return String(value==null?'':value).trim().slice(0,
 function lower(value){return text(value).toLowerCase()}
 function response(status,body){return{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'},body:JSON.stringify(body)}}
 function error(code,message,status=400){const e=new Error(message);e.code=code;e.status=status;return e}
-function allowed(user){
- if(auth.isAdmin&&auth.isAdmin(user))return true;
- const rights=user&&user.rights&&user.rights.abd||{},level=lower(rights.level||rights.access);
+function hasReadRight(user,module){
+ const rights=user&&user.rights&&user.rights[module]||{},level=lower(rights.level||rights.access);
  return !!(rights.read===true||rights.view===true||rights.edit===true||rights.admin===true||rights.functionAdmin===true||['read','view','edit','admin'].includes(level))
+}
+function hasBusinessContext(payload){
+ // Presence, not just truthiness: even an empty ABD analysis is a privileged request.
+ return ['reference','destinationCountry','abdRequest','invoiceAnalysis'].some(key=>Object.prototype.hasOwnProperty.call(payload||{},key))
+}
+function allowed(user,requiresAbdContext){
+ if(auth.isAdmin&&auth.isAdmin(user))return true;
+ if(requiresAbdContext)return hasReadRight(user,'abd');
+ return hasReadRight(user,'customs')||hasReadRight(user,'abd')
 }
 function userKey(user){return text(user&&(user.id||user.userId||user.username||user.email||user.name),180)||'authenticated-session'}
 function consumeRate(key,now=Date.now()){
@@ -30,12 +38,14 @@ module.exports=async function(context,req){
  if(req.method!=='POST'){context.res=response(405,{ok:false,code:'METHOD_NOT_ALLOWED',answer:apiI18n.t(req,'api.customsAi.methodNotAllowed')});return}
  try{
   const current=await auth.validateSession(req);
-  if(!current||!allowed(current.user))throw error('CUSTOMS_AI_FORBIDDEN',apiI18n.t(req,'api.customsAi.forbidden'),403);
+  if(!current||!current.user)throw error('CUSTOMS_AI_FORBIDDEN',apiI18n.t(req,'api.customsAi.forbidden'),403);
+  const payload=auth.body(req);
+  if(!allowed(current.user,hasBusinessContext(payload)))throw error('CUSTOMS_AI_FORBIDDEN',apiI18n.t(req,'api.customsAi.forbidden'),403);
   const rate=consumeRate(userKey(current.user));
   if(!rate.allowed){
    context.res=response(429,{ok:false,code:'RATE_LIMITED',answer:apiI18n.t(req,'api.customsAi.rateLimited'),recoverable:true,retryAfterSeconds:Math.max(1,Math.ceil(rate.retryAfterMs/1000))});return
   }
-  const payload=auth.body(req),question=String(payload&&payload.question==null?'':payload.question),language=apiI18n.language(req,payload);
+  const question=String(payload&&payload.question==null?'':payload.question);
   if(question.length>2000){context.res=response(400,{ok:false,code:'QUESTION_TOO_LONG',answer:apiI18n.t(req,'api.customsAi.questionTooLong',null,payload),recoverable:true});return}
   const result=await service.answerCustomsQuestion({
    question,
