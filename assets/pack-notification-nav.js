@@ -139,10 +139,11 @@
   }else if(!node.getAttribute||node.getAttribute('data-urgent-nav-design')!=='2'){
    // Upgrade old menu buttons in place; retain the live counter node and its state.
    var badge=node.querySelector&&node.querySelector('[data-urgent-open-count]');
+   var previousLabel=node.getAttribute&&String(node.getAttribute('aria-label')||'');
    var reference=tasks&&tasks.parentNode===nav?tasks:anchor;
    var classes=String(reference.className||'').replace(/\b(?:active|is-active|pack-notification-nav-entry|pack-notification-nav-fallback|urgent-orders-nav-entry)\b/g,'').trim();
    node.className=(classes?classes+' ':'')+'urgent-orders-nav-entry';
-   node.setAttribute('aria-label','Urgent Order');
+   node.setAttribute('aria-label',badge&&/^Urgent Order: [0-9]+ offene Anfragen$/.test(previousLabel)?previousLabel:'Urgent Order');
    node.setAttribute('title','Urgent Order');
    node.setAttribute('data-menu-accent',URGENT_ACCENT);
    node.style.setProperty('--menu-accent',URGENT_ACCENT);
