@@ -54,7 +54,7 @@ function buildUserInput(question,context,sources){
   '',
   'VERIFIZIERTE QUELLEN:',verified||'Keine verifizierte Quelle für diese Frage verfügbar.',
   '',
-  'ZITIERREGEL: Verwende für belegte Aussagen ausschließlich Marker im Format [[S1]], [[S2]] usw. Nutze nur IDs aus VERIFIZIERTE QUELLEN. Wenn keine Quelle passt, sage ausdrücklich, dass die Wissensbasis nicht ausreicht.'
+  'ZITIERREGEL: Übernimm die exakte ID aus der eckigen Quellenüberschrift in VERIFIZIERTE QUELLEN unverändert und setze sie in doppelte eckige Klammern: '+(sources.length?'Beispiel [['+sources[0].id+']].':'Ohne Quellen keine Zitate.')+' Erfinde keine Quell-IDs oder laufenden Nummern wie S1/S2, sofern diese nicht wirklich in der Liste stehen. Belege jede tragende Zollbehauptung mit einer sachlich passenden Quelle; fehlt sie, benenne den fehlenden Beleg ausdrücklich.'
  ].join('\n')
 }
 function extractAnswer(payload){

@@ -34,11 +34,15 @@ test('Funktionstest 22.10.: Geänderte Assets bekommen neue Cache-Versionen',()=
   assert.match(builder,/rc1304-theme-switcher\.css\?v=1306/);
   assert.match(builder,/rc1306-layout-engine\.js\?v=1306\.1/);
   assert.match(builder,/rc1570-tasks-focus\.js\?v=1754/);
-  assert.match(fs.readFileSync('.github/rc1532/build-three-env.mjs','utf8'),/rc1532-customs-ai\.js\?v=1533/);
+  const customsBuild=fs.readFileSync('.github/rc1532/build-three-env.mjs','utf8');
+  assert.match(customsBuild,/rc1532-customs-ai\.js\?v=1669/);
+  assert.match(customsBuild,/rc1532-customs-ai\.css\?v=1668/);
 });
 
 test('Funktionstest 22.10.: KI-Zollexperte zeigt bei Fehlern nicht „Belegt“',()=>{
-  assert.match(customsAi,/var uncertain=!!\(result&&\(result\.uncertainty\|\|result\.ok===false\)\);/);
+  assert.match(customsAi,/var grounded=!!\(result&&result\.ok===true/);
+  assert.match(customsAi,/var uncertain=!grounded;/);
+  assert.match(customsAi,/result\.evidence==='invoice-analysis'/);
   assert.match(customsAi,/if\(!response\.ok\)\{body\.ok=false;/);
 });
 

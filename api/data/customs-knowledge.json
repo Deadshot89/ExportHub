@@ -88,5 +88,135 @@
     "checkedAt": "2026-10-14",
     "status": "published",
     "updatedAt": "2026-10-14"
+  },
+  {
+    "id": "incoterms-exw-fca-export",
+    "slug": "incoterms-exw-fca-ausfuhrformalitaeten",
+    "title": "Incoterms 2020: EXW und FCA – wer organisiert die Ausfuhr?",
+    "summary": "Bei EXW führt und bezahlt nach der Lieferklausel grundsätzlich der Käufer die Ausfuhrformalitäten; bei FCA ist der Verkäufer für die Ausfuhrfreimachung zuständig. Vertragsrechtliche Aufgaben sind von der Rolle des zollrechtlichen Ausführers zu unterscheiden.",
+    "content": "EXW (Ex Works) bedeutet Bereitstellung am benannten Ort; die Ware wird dort nicht zur Ausfuhr freigemacht. Der Käufer organisiert und bezahlt bei erforderlicher Ausfuhr die Formalitäten, während der Verkäufer Informationen und Unterlagen im vereinbarten Rahmen bereitstellt. Bei FCA erfolgt die Ausfuhrfreimachung durch den Verkäufer. Die ICC weist darauf hin, dass EXW vor allem für Inlandsgeschäfte geeignet ist. Wer als Ausführer in der EU-Zollanmeldung genannt werden darf und wer die Anmeldung technisch abgibt, ergibt sich nicht allein aus EXW oder FCA.",
+    "topics": [
+      "incoterms",
+      "exw",
+      "fca",
+      "ab werk",
+      "ausfuhr",
+      "abd",
+      "ausfuhranmeldung",
+      "ausfuhrabwicklung",
+      "export clearance",
+      "verantwortlichkeit",
+      "wer muss",
+      "kaeufer",
+      "verkaeufer",
+      "versender"
+    ],
+    "countries": [
+      "EU",
+      "DE",
+      "RS"
+    ],
+    "sourceName": "International Chamber of Commerce – Incoterms 2020 Checklist",
+    "sourceUrl": "https://library.iccwbo.org/content/clp/Others/incoterms_2020_checklist_2024-update.pdf",
+    "publishedAt": "",
+    "checkedAt": "2026-11-04",
+    "updatedAt": "2026-11-04",
+    "status": "published"
+  },
+  {
+    "id": "eu-customs-exporter-2018-1063",
+    "slug": "eu-zollrechtlicher-ausfuehrer",
+    "title": "EU-Zollrecht: Wer darf als Ausführer in der Ausfuhranmeldung stehen?",
+    "summary": "Zollrechtlicher Ausführer ist grundsätzlich ein in der EU ansässiger Beteiligter mit Entscheidungsbefugnis über die Ausfuhr oder, nach der Auffangregel, ein in der EU ansässiger Vertragspartner. EXW oder der bloße Versand aus Deutschland bestimmen den Ausführer nicht automatisch.",
+    "content": "Art. 1 Nr. 19 der Delegierten Verordnung (EU) 2015/2446 in der Fassung der Verordnung (EU) 2018/1063 regelt die Ausführereigenschaft. Bei Unternehmensausfuhren ist grundsätzlich eine Ansässigkeit im Zollgebiet der Union erforderlich; maßgeblich sind Entscheidungsbefugnis und Entscheidung zur Ausfuhr oder die gesetzliche Auffangregel für einen ansässigen Vertragspartner. Ein serbischer Käufer ohne EU-Ansässigkeit kann deshalb normalerweise nicht selbst als EU-zollrechtlicher Ausführer eingetragen werden. Der deutsche Verkäufer ist trotz EXW nicht ohne Prüfung automatisch Ausführer. Die Beteiligten müssen die zulässige Ausführerrolle vor Anmeldung klären.",
+    "topics": [
+      "ausfuehrer",
+      "exporter",
+      "zollrechtlicher ausfuehrer",
+      "incoterms",
+      "exw",
+      "abd",
+      "ausfuhr",
+      "eu ansaessig",
+      "serbien",
+      "ausfuhranmeldung",
+      "versender",
+      "kaeufer"
+    ],
+    "countries": [
+      "EU",
+      "DE",
+      "RS"
+    ],
+    "sourceName": "Europäische Kommission – Definition des Ausführers (Art. 1 Nr. 19 UZK-DA)",
+    "sourceUrl": "https://taxation-customs.ec.europa.eu/document/download/5943739d-85d5-4e82-b2bd-fe1b8f7a8403_en",
+    "publishedAt": "",
+    "checkedAt": "2026-11-04",
+    "updatedAt": "2026-11-04",
+    "status": "published"
+  },
+  {
+    "id": "eu-export-declarant-representation",
+    "slug": "ausfuhranmeldung-anmelder-vertreter",
+    "title": "Ausfuhranmeldung: Anmelder und Zollvertreter unterscheiden",
+    "summary": "Die Ausfuhranmeldung kann der Anmelder selbst oder ein für ihn tätiger Zollvertreter abgeben. Zollrechtlicher Ausführer, Anmelder, ausführende Spedition und Kostenträger können unterschiedliche Beteiligte sein.",
+    "content": "Die Zollanmeldung wird durch den Anmelder oder dessen Vertreter abgegeben; bei direkter Vertretung erfolgt die Anmeldung im Namen des Vertretenen, bei indirekter Vertretung im eigenen Namen für fremde Rechnung. Die Rolle des Anmelders unterscheidet sich von der Person des zollrechtlichen Ausführers. Eine Spedition oder Zollagentur kann zur Abgabe der Anmeldung beauftragt werden. Bei EXW ist die Frage nach der vertraglichen Kostenpflicht gesondert von der korrekten zollrechtlichen Rolle zu beantworten. Das Ausfuhrbegleitdokument ist nicht mit der Beauftragung einer Spedition gleichzusetzen.",
+    "topics": [
+      "anmelder",
+      "zollvertreter",
+      "vertretung",
+      "spedition",
+      "zollagentur",
+      "ausfuhranmeldung",
+      "abd",
+      "exw",
+      "serbien",
+      "wer erstellt",
+      "anmeldung",
+      "eori"
+    ],
+    "countries": [
+      "EU",
+      "DE",
+      "RS"
+    ],
+    "sourceName": "Spanische Steuer- und Zollverwaltung (AEAT) – AES P1 Export FAQ",
+    "sourceUrl": "https://sede.agenciatributaria.gob.es/Sede/en_gb/aduanas/entrada-salida-mercancias/exportacion/sistema-electronico-exportacion-aes-p1.html?faqId=751cb74473cb7810VgnVCM100000dc381e0aRCRD",
+    "publishedAt": "",
+    "checkedAt": "2026-11-04",
+    "updatedAt": "2026-11-04",
+    "status": "published"
+  },
+  {
+    "id": "incoterms-dap-ddp-clearance",
+    "slug": "incoterms-dap-ddp-zollabwicklung",
+    "title": "Incoterms 2020: DAP und DDP – Ausfuhr, Einfuhr und Kosten",
+    "summary": "Bei DAP übernimmt der Verkäufer die Ausfuhrformalitäten; der Käufer die Einfuhrformalitäten und Einfuhrabgaben. Bei DDP übernimmt grundsätzlich der Verkäufer sowohl die Ausfuhr- als auch die Einfuhrabwicklung einschließlich Einfuhrabgaben.",
+    "content": "Gemäß Incoterms 2020 trägt bei DAP (Delivered at Place) der Verkäufer die vereinbarte Beförderung bis zum benannten Ort sowie die Ausfuhrabwicklung; der Käufer trägt Einfuhrformalitäten, Zölle und in der Regel das Entladen. Bei DDP (Delivered Duty Paid) übernimmt der Verkäufer Ausfuhr und Einfuhr einschließlich der dabei anfallenden Abgaben; DDP kann schwierig sein, wenn er im Bestimmungsland nicht als Importeur handeln darf. Bei FCA und anderen F- bzw. C-Klauseln trägt grundsätzlich der Verkäufer die Ausfuhrfreimachung, der Käufer die Einfuhrfreimachung. Entscheidend bleiben vereinbarte Klausel und Ort sowie die tatsächlich anwendbaren Zollvorschriften.",
+    "topics": [
+      "incoterms",
+      "dap",
+      "ddp",
+      "ausfuhr",
+      "einfuhr",
+      "abd",
+      "ausfuhranmeldung",
+      "zollabwicklung",
+      "import",
+      "export",
+      "kosten",
+      "verantwortlichkeit"
+    ],
+    "countries": [
+      "EU",
+      "DE",
+      "RS"
+    ],
+    "sourceName": "International Chamber of Commerce – Using Incoterms to Manage Tariff Risks (2025)",
+    "sourceUrl": "https://iccwbo.org/wp-content/uploads/sites/3/2025/04/2025.04_Using_Incoterms_to-Manage_Tariff_Risks.pdf",
+    "publishedAt": "",
+    "checkedAt": "2026-11-04",
+    "updatedAt": "2026-11-04",
+    "status": "published"
   }
 ]

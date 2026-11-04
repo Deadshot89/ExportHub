@@ -51,23 +51,76 @@ function formatContext(snapshot){
  return parts.join(' · ')
 }
 function refreshContext(){var box=d.querySelector('[data-rc1532-context]');if(!box)return;var snapshot=latestSnapshot(),value=formatContext(snapshot);setText(box,value||tr('noContext'));if(box.classList.contains('is-empty')!==!value)box.classList.toggle('is-empty',!value)}
+/* Nur sichere HTTPS-Quellen als Links ausgeben, auch bei widersprüchlichen API-Daten. */
+function safeSourceUrl(value){
+ var raw=q(value);if(!raw)return'';
+ try{var url=new URL(raw);return url.protocol==='https:'&&url.hostname&&!url.username&&!url.password?url.href:''}catch(_){return''}
+}
 function renderSources(host,result){
  clear(host);var sources=Array.isArray(result&&result.sources)?result.sources:[];
  if(result&&result.evidence==='invoice-analysis'){var local=el('div','rc1532-source rc1532-source-local');local.appendChild(el('strong','',tr('analysis')));host.appendChild(local)}
- sources.forEach(function(source){
-  var card=el('div','rc1532-source'),link=el('a','',q(source.title)||q(source.sourceName)||source.id||tr('sources'));
-  link.href=q(source.sourceUrl)||'#';link.target='_blank';link.rel='noopener noreferrer';
-  card.appendChild(link);
+ sources.forEach(function(row,index){
+  var source=row||{},card=el('div','rc1532-source'),label=q(source.title)||q(source.sourceName)||source.id||tr('sources'),url=safeSourceUrl(source.sourceUrl);
+  card.id=sourceAnchorId(source.id);
+  card.appendChild(el('span','rc1532-source-index','['+(index+1)+']'));
+  if(url){var link=el('a','',label);link.href=url;link.target='_blank';link.rel='noopener noreferrer';card.appendChild(link)}
+  else card.appendChild(el('strong','',label));
   var meta=[];if(q(source.sourceName))meta.push(q(source.sourceName));if(q(source.checkedAt))meta.push(tr('checked')+': '+q(source.checkedAt));
   if(meta.length)card.appendChild(el('div','rc1532-source-meta',meta.join(' · ')));
   host.appendChild(card)
  });
  if(!sources.length&&!(result&&result.evidence==='invoice-analysis'))host.appendChild(el('div','rc1532-source-empty',tr('noSources')))
 }
+/* Sicheres Rendering: nur DOM-Textknoten und begrenzte Markdown-Abschnitte, niemals Modell-HTML. */
+/* Zitierverweise verlinken nur bereits serverseitig validierte Quellen; kein Modell-HTML. */
+function sourceAnchorId(id){return 'rc1532-cite-'+String(id||'').replace(/[^A-Za-z0-9_-]/g,'-')}
+function appendAnswerInline(node,line,citations){
+ var parts=String(line||'').split(/(\*\*[^*\n]+\*\*|\[\[[A-Za-z0-9._:-]{1,48}\]\])/g);
+ for(var i=0;i<parts.length;i++){
+  var part=parts[i];if(!part)continue;
+  if(/^\*\*[^*]+\*\*$/.test(part)){node.appendChild(el('strong','',part.slice(2,-2)));continue}
+  var marker=part.match(/^\[\[([A-Za-z0-9._:-]{1,48})\]\]$/),source=marker&&citations[marker[1]];
+  if(marker){
+   if(source){var link=el('a','rc1532-citation','['+source.number+']');link.href='#'+source.id;link.setAttribute('aria-label',tr('sources')+' '+source.number);node.appendChild(link)}
+   else node.appendChild(d.createTextNode('[?]'));
+   continue
+  }
+  node.appendChild(d.createTextNode(part))
+ }
+}
+function renderAnswer(host,raw,sources){
+ clear(host);
+ var citations=Object.create(null),rows=Array.isArray(sources)?sources:[];
+ for(var j=0;j<rows.length;j++){var source=rows[j]||{},id=q(source.id);if(id&&safeSourceUrl(source.sourceUrl))citations[id]={number:j+1,id:sourceAnchorId(id)}}
+ var lines=String(raw||'').replace(/\r\n?/g,'\n').split('\n'),paragraph=null,list=null,listType='';
+ for(var i=0;i<lines.length;i++){
+  var line=q(lines[i]);if(!line){paragraph=null;list=null;listType='';continue}
+  var heading=line.match(/^#{1,3}\s+(.+)$/);
+  if(heading){
+   paragraph=null;list=null;listType='';
+   var h=el('h6','rc1532-answer-section');appendAnswerInline(h,heading[1],citations);host.appendChild(h);continue
+  }
+  var bullet=line.match(/^(?:[-*]\s+|\d+[.)]\s+)(.+)$/);
+  if(bullet){
+   paragraph=null;
+   var kind=/^\d+[.)]\s+/.test(line)?'ol':'ul';
+   if(!list||kind!==listType){list=d.createElement(kind);list.className='rc1532-answer-list';host.appendChild(list);listType=kind}
+   var li=d.createElement('li');appendAnswerInline(li,bullet[1],citations);list.appendChild(li);continue
+  }
+  list=null;listType='';
+  if(!paragraph){paragraph=el('p','rc1532-answer-paragraph');host.appendChild(paragraph)}
+  else paragraph.appendChild(d.createTextNode(' '));
+  appendAnswerInline(paragraph,line,citations)
+ }
+}
 function renderResult(result){
  var answer=d.querySelector('[data-rc1532-answer]'),sourceBox=d.querySelector('[data-rc1532-sources]'),badge=d.querySelector('[data-rc1532-badge]'),checked=d.querySelector('[data-rc1532-checked]');if(!answer||!sourceBox)return;
- answer.textContent=q(result&&result.answer)||tr('error');
- var uncertain=!!(result&&(result.uncertainty||result.ok===false));badge.textContent=uncertain?tr('uncertain'):tr('grounded');badge.className='rc1532-badge '+(uncertain?'is-warning':'is-ok');
+ renderAnswer(answer,q(result&&result.answer)||tr('error'),result&&result.sources);
+ var sourceRows=Array.isArray(result&&result.sources)?result.sources:[];
+ var hasSources=sourceRows.some(function(source){return source&&q(source.id)&&safeSourceUrl(source.sourceUrl)});
+ var invoiceSourced=!!(result&&result.mode==='deterministic'&&result.evidence==='invoice-analysis');
+ var grounded=!!(result&&result.ok===true&&result.uncertainty===false&&(hasSources||invoiceSourced));
+ var uncertain=!grounded;badge.textContent=uncertain?tr('uncertain'):tr('grounded');badge.className='rc1532-badge '+(uncertain?'is-warning':'is-ok');
  checked.textContent=q(result&&result.checkedAt)?tr('checked')+': '+q(result.checkedAt):'';
  renderSources(sourceBox,result||{});
  answer.parentNode.hidden=false
@@ -83,6 +136,66 @@ async function ask(question){
   renderResult(body);if(status){status.hidden=true;status.textContent=''}
  }catch(error){renderResult({ok:false,uncertainty:true,answer:q(error&&error.message)||tr('error'),sources:[]});if(status){status.hidden=true;status.textContent=''}}
  finally{busy=false;if(button)button.disabled=false;refreshContext()}
+}
+/* Der historische Tab „Zollwissen → KI fragen“ ist ein reiner Offline-Suchassistent.
+ * Nur kuratierte Incoterms-Fälle werden hier übersteuert. Keine zusätzlichen Provider-Aufrufe.
+ * Andere Fragen bleiben am bisherigen Offline-Handler. */
+function legacyIncotermsAnswer(raw){
+ var question=q(raw),lower=question.toLowerCase(),matches=lower.match(/\b(?:exw|fca|dap|ddp)\b/g)||[],types=Array.from(new Set(matches));
+ if(/\bab\s*werk\b/.test(lower)&&!types.includes('exw'))types.push('exw');
+ if(!types.length)return null;
+ var type=types[0];
+ var labels={
+  exw:{name:'EXW (Ab Werk)',organization:'Der Käufer organisiert und bezahlt grundsätzlich die Ausfuhrformalitäten.',cost:'Grundsätzlich Käufer, soweit nichts Abweichendes vereinbart wurde.',check:'Klären, wer die Ausfuhranmeldung veranlasst und welcher EU-ansässige Beteiligte rechtlich Ausführer sein kann.'},
+  fca:{name:'FCA (Frei Frachtführer)',organization:'Der Verkäufer organisiert und bezahlt grundsätzlich die Ausfuhrfreimachung.',cost:'Grundsätzlich Verkäufer für die Ausfuhrformalitäten; der Käufer trägt die Einfuhrabwicklung.',check:'Zulässigen EU-Ausführer und Anmelder/Vertreter sowie den benannten FCA-Lieferort prüfen.'},
+  dap:{name:'DAP (Geliefert benannter Ort)',organization:'Der Verkäufer organisiert die Ausfuhrformalitäten; der Käufer übernimmt die Einfuhrabfertigung.',cost:'Verkäufer für die Ausfuhr, Käufer für Einfuhrformalitäten und Einfuhrabgaben.',check:'Ausfuhrfreigabe, benannten Bestimmungsort und Zuständigkeit für die Einfuhr prüfen.'},
+  ddp:{name:'DDP (Geliefert verzollt)',organization:'Der Verkäufer übernimmt vertraglich sowohl Ausfuhr- als auch Einfuhrformalitäten.',cost:'Grundsätzlich Verkäufer einschließlich Einfuhrabgaben.',check:'Besonders prüfen, ob der Verkäufer im Bestimmungsland rechtlich die Einfuhrabfertigung vornehmen lassen darf.'}
+ };
+ var item=labels[type],icc='legacy-incoterms-icc',eu='legacy-incoterms-eu',decl='legacy-incoterms-anmelder';
+ if(types.length>1){
+  var compared=['## Kurzantwort','Die genannten Incoterms unterscheiden sich bei den Zollformalitäten:'];
+  types.forEach(function(code){var rule=labels[code];compared.push('- **'+rule.name+':** '+rule.organization+' [['+icc+']].')});
+  compared.push('','## Was gilt unabhängig von der Klausel?','- **EU-Ausführer:** Die zollrechtlich zulässige Person muss gesondert geprüft werden. [['+eu+']].','- **Anmelder:** Anmeldung durch den Anmelder oder einen Zollvertreter; Kosten nach der vereinbarten Klausel und ergänzenden Abreden. [['+decl+']].','', '## Vorgehen im Warenausgang','1. Vereinbarte Incoterms-Klausel und benannten Ort verbindlich feststellen.','2. EU-Ausführer, Anmelder und mögliche Zollvertretung bestimmen.','3. Erforderliche Zollüberlassung und Dokumente vor Versand prüfen.');
+  return{ok:true,mode:'offline-rule',answer:compared.join('\n'),uncertainty:true,checkedAt:'2026-11-04',sources:[
+    {id:icc,title:'ICC – Incoterms 2020 / Export Clearance',sourceName:'International Chamber of Commerce',sourceUrl:'https://iccwbo.org/wp-content/uploads/sites/3/2025/04/2025.04_Using_Incoterms_to-Manage_Tariff_Risks.pdf',checkedAt:'2026-11-04'},
+    {id:eu,title:'EU-Kommission – Wer ist Ausführer?',sourceName:'Europäische Kommission',sourceUrl:'https://taxation-customs.ec.europa.eu/document/download/5943739d-85d5-4e82-b2bd-fe1b8f7a8403_en',checkedAt:'2026-11-04'},
+    {id:decl,title:'AEAT – Wer gibt die Ausfuhranmeldung ab?',sourceName:'Spanische Zollverwaltung (EU-Rechtsgrundlagen)',sourceUrl:'https://sede.agenciatributaria.gob.es/Sede/en_gb/aduanas/entrada-salida-mercancias/exportacion/sistema-electronico-exportacion-aes-p1.html?faqId=751cb74473cb7810VgnVCM100000dc381e0aRCRD',checkedAt:'2026-11-04'}]}
+ }
+ var answer=[
+  '## Kurzantwort',
+  'Bei **'+item.name+'** gilt: '+item.organization+' [['+icc+']].',
+  '',
+  '## Wer macht was?',
+  '- **Organisation und Kosten:** '+item.cost+' [['+icc+']].',
+  '- **Zollrechtlicher EU-Ausführer:** Unabhängig vom Incoterm anhand der EU-Regeln festlegen; allein der deutsche Versender ist nicht automatisch Ausführer. [['+eu+']].',
+  '- **Anmelder/Vertreter:** Die elektronische Zollanmeldung kann der zuständige Anmelder oder ein beauftragter Zollvertreter abgeben. [['+decl+']].',
+  '',
+  '## Vorgehen im Warenausgang',
+  '1. '+item.check,
+  '2. Prüfen, ob für diese Sendung eine elektronische Ausfuhranmeldung erforderlich ist.',
+  '3. Falls erforderlich: Überlassung zur Ausfuhr und zugehörige MRN/ABD vor Freigabe kontrollieren; Ausgangsnachweis später sichern.',
+  '',
+  '## Noch zu klären',
+  '- Wer ist als EU-Ausführer zulässig, wer beauftragt die Zollagentur und welche Vertragsabreden gelten?'
+ ].join('\n');
+ return{ok:true,mode:'offline-rule',answer:answer,uncertainty:true,checkedAt:'2026-11-04',
+  sources:[
+   {id:icc,title:'ICC – Incoterms 2020 / Export Clearance',sourceName:'International Chamber of Commerce',sourceUrl:'https://iccwbo.org/wp-content/uploads/sites/3/2025/04/2025.04_Using_Incoterms_to-Manage_Tariff_Risks.pdf',checkedAt:'2026-11-04'},
+   {id:eu,title:'EU-Kommission – Wer ist Ausführer?',sourceName:'Europäische Kommission',sourceUrl:'https://taxation-customs.ec.europa.eu/document/download/5943739d-85d5-4e82-b2bd-fe1b8f7a8403_en',checkedAt:'2026-11-04'},
+    {id:decl,title:'AEAT – Wer gibt die Ausfuhranmeldung ab?',sourceName:'Spanische Zollverwaltung (EU-Rechtsgrundlagen)',sourceUrl:'https://sede.agenciatributaria.gob.es/Sede/en_gb/aduanas/entrada-salida-mercancias/exportacion/sistema-electronico-exportacion-aes-p1.html?faqId=751cb74473cb7810VgnVCM100000dc381e0aRCRD',checkedAt:'2026-11-04'}
+  ]}
+}
+function legacyCustomsIntercept(event){
+ var target=event&&event.target,button=target&&target.closest&&target.closest('#rc821ZollBody button[onclick="askZollAi()"]');
+ if(!button)return;
+ var area=d.getElementById('zollAiQuestion'),host=d.getElementById('zollAiAnswer'),result=legacyIncotermsAnswer(area&&area.value);
+ if(!host||!result)return;
+ event.preventDefault();event.stopImmediatePropagation();
+ clear(host);host.classList.add('rc1532-legacy-answer');
+ host.appendChild(el('div','rc1532-legacy-notice','Offline-Schnellhilfe aus geprüften Quellen · keine Live-Zollfreigabe'));
+ var answer=el('div','rc1532-answer');renderAnswer(answer,result.answer,result.sources);host.appendChild(answer);
+ host.appendChild(el('h6','rc1532-legacy-sources-heading',tr('sources')));
+ var sources=el('div','rc1532-sources');renderSources(sources,result);host.appendChild(sources)
 }
 function show(active){var ai=d.querySelector('[data-rc1532-ai-panel]');if(ai)ai.hidden=!active;if(active)refreshContext()}
 function bindModes(host,button){
@@ -113,6 +226,7 @@ function schedule(){if(timer)return;timer=root.setTimeout?root.setTimeout(functi
 function observe(){if(!d||!root.MutationObserver)return;var host=d.getElementById('rc626Abd')||d.body;if(!host)return;try{if(observer)observer.disconnect();observer=new root.MutationObserver(schedule);observer.observe(host,{childList:true,subtree:true})}catch(_){}}
 function remount(){schedule();observe()}
 function remountLanguage(){try{var ai=d&&d.querySelector&&d.querySelector('[data-rc1532-ai-panel]');if(ai&&ai.parentNode)ai.parentNode.removeChild(ai)}catch(_){}schedule()}
+if(d&&typeof d.addEventListener==='function')d.addEventListener('click',legacyCustomsIntercept,true);
 root.ExportHUBRC1532CustomsAI=Object.freeze({mount:mount,ask:ask,latestSnapshot:latestSnapshot});
 ensureFeatureI18n();mount();observe();
 if(typeof root.addEventListener==='function'){
