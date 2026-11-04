@@ -15,7 +15,7 @@ function ensureFeatureI18n(){
  if(!d||!d.createElement)return false;
  if(d.getElementById('exporthub-rc1532-i18n'))return false;
  try{
-  var s=d.createElement('script');s.id='exporthub-rc1532-i18n';s.src='/assets/i18n/rc1532-customs-ai.js?v=1532';s.defer=true;
+  var s=d.createElement('script');s.id='exporthub-rc1532-i18n';s.src='/assets/i18n/rc1532-customs-ai.js?v=1670';s.defer=true;
   s.addEventListener('load',schedule,{once:true});
   s.addEventListener('error',function(){try{s.remove()}catch(_){}},{once:true});
   (d.head||d.documentElement).appendChild(s);return false
@@ -132,7 +132,7 @@ function renderResult(result){
 async function ask(question,entry){
  var knowledge=entry==='knowledge';
  question=q(question);
- if(!question){if(knowledge)renderKnowledgeResult({ok:false,uncertainty:true,answer:'Bitte eine Frage eingeben.',sources:[]});return}
+ if(!question){if(knowledge)renderKnowledgeResult({ok:false,uncertainty:true,answer:tr('knowledgeEmpty'),sources:[]});return}
  if(busy)return;
  busy=true;
  var button=knowledge?d.querySelector('#rc821ZollBody button[onclick="askZollAi()"]'):d.querySelector('[data-rc1532-ask]');
@@ -168,9 +168,9 @@ function updateLegacyView(){
  if(field.maxLength!==2000)field.maxLength=2000;
  var card=field.closest&&field.closest('.card');if(!card||!card.querySelector)return;
  var title=card.querySelector('h3'),description=card.querySelector('p'),button=card.querySelector('button[onclick="askZollAi()"]');
- if(title)setText(title,'Zoll-KI · Fachfragen');
- if(description)setText(description,'Derselbe KI-Zollexperte wie bei ABD erstellen. Hier werden nur deine Frage und geprüfte Zollquellen verwendet – keine Sendungs- oder Rechnungsdaten. Antworten sind Beratung, keine Zollfreigabe.');
- if(button)setText(button,'Zoll-KI fragen')
+ if(title)setText(title,tr('knowledgeTitle'));
+ if(description)setText(description,tr('knowledgeIntro'));
+ if(button)setText(button,tr('knowledgeAsk'))
 }
 function renderKnowledgeResult(result){
  var host=d.getElementById('zollAiAnswer');if(!host)return;
@@ -200,7 +200,7 @@ function bindModes(host,button){
  var others=host.querySelectorAll('[data-rc1294-mode]');for(var i=0;i<others.length;i++){if(others[i]===button||others[i].__rc1532HideBound)continue;others[i].__rc1532HideBound=true;others[i].addEventListener('click',function(){show(false)})}
 }
 function mount(){
- if(!d)return false;updateLegacyView();if(!featureI18n()){ensureFeatureI18n();return false}
+ if(!d)return false;if(!featureI18n()){ensureFeatureI18n();return false}updateLegacyView()
  var host=panel();if(!host)return false;var router=host.querySelector('.rc1294-router');if(!router)return false;
  var button=host.querySelector('[data-rc1532-ai-tab]');
  if(!button){button=d.createElement('button');button.type='button';button.setAttribute('data-rc1294-mode','ai');button.setAttribute('data-rc1532-ai-tab','');button.setAttribute('aria-pressed','false');button.textContent=tr('tab');router.appendChild(button)}else setText(button,tr('tab'));
