@@ -37,6 +37,14 @@ header{background:linear-gradient(110deg,#092442,#1b4e86)}main{max-width:1180px;
 @media(prefers-color-scheme:dark){.request-type,.type-explanation{background:#203857;border-color:#405d80}.request-type label,.type-explanation p{color:#daeaff}}
 
 .urgent-hero{background:linear-gradient(125deg,#e6f2ff,#fafcff 70%);border:1px solid #d3e5fa;border-radius:20px;padding:28px 30px;margin-bottom:19px;position:relative;overflow:hidden}.urgent-hero:after{content:'';position:absolute;right:-45px;top:-75px;width:230px;height:230px;border:36px solid #2563eb0b;border-radius:50%;pointer-events:none}.urgent-hero h1{position:relative;letter-spacing:-.045em;font-size:clamp(27px,3.3vw,40px)}.urgent-hero .intro{position:relative;max-width:780px;margin:8px 0 0;line-height:1.68;font-size:14px}.hero-kicker{position:relative;display:block;color:#2465a8;font-weight:900;font-size:10px;letter-spacing:.15em;margin:0 0 10px}@media(max-width:600px){.urgent-hero{padding:20px 17px}}@media(prefers-color-scheme:dark){.urgent-hero{background:linear-gradient(120deg,#203955,#14273b);border-color:#355572}.hero-kicker{color:#a4cbfa}}
+
+.urgent-hero{padding:21px 25px;margin-bottom:12px}.urgent-hero h1{font-size:clamp(26px,2.5vw,34px)}
+.workspace-nav{position:sticky;top:0;z-index:11;backdrop-filter:blur(12px);margin:9px 0 15px}.workspace-nav .workspace-tab{flex:1 1 175px}.board>.panel{padding:clamp(18px,2.7vw,28px)}
+.wizard-track{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:0 0 17px;border-bottom:1px solid var(--line)}.wizard-track>span{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:11px;font-size:12px;font-weight:750;color:var(--sub)}
+.wizard-track b{width:29px;height:29px;flex-shrink:0;display:grid;place-items:center;border:1px solid var(--line);border-radius:9px;background:var(--page)}.wizard-track>span[aria-current="step"]{background:var(--blue);color:#fff}.wizard-track>span[aria-current="step"] b{background:#ffffff25;border-color:#ffffff55}
+[data-wizard-step]{padding-top:16px}[data-wizard-step][hidden]{display:none!important}.wizard-review{border:1px solid #b4ccee;background:#eef5ff;border-radius:14px;padding:17px}.wizard-review p{line-height:1.6}.wizard-review #wizardReview{font-weight:800;color:#205287}.wizard-actions{display:flex;gap:9px;align-items:center;padding-top:16px;border-top:1px solid var(--line)}.wizard-actions>span{flex:1}
+@media(max-width:670px){.workspace-nav{position:static}.wizard-track>span{flex-direction:column;text-align:center;gap:4px;font-size:11px}.wizard-actions button{flex:1}}
+@media(prefers-color-scheme:dark){.wizard-review{background:#213b58;border-color:#446a95}.wizard-review #wizardReview{color:#d4e8ff}}
 </style>
 <script src="/assets/rc1267-i18n.js" defer></script>
 </head>
@@ -47,7 +55,7 @@ header{background:linear-gradient(110deg,#092442,#1b4e86)}main{max-width:1180px;
 <div class="tracking" id="tracking" hidden><strong data-i18n="urgentOrderV2.trackingTitle">Dein persönlicher Überwachungslink</strong><p class="muted" data-i18n="urgentOrderV2.trackingHelp">Diesen Link aufbewahren. Jeder mit diesem Link kann deine gemeldeten Anfragen sehen. Nicht weiterleiten.</p><code id="trackingUrl"></code><div class="actions" style="margin-top:10px"><button type="button" id="copyLink" class="btn secondary small" data-i18n="urgentOrderV2.copyLink">Link kopieren</button></div></div>
 <nav class="workspace-nav tabrow" role="tablist" aria-label="Arbeitsbereiche"><button type="button" class="tab workspace-tab" id="tabNew" role="tab" aria-selected="true"><span data-i18n="urgentOrderV2.tabNew">Neue Anfrage</span></button><button type="button" class="tab workspace-tab" id="tabOpen" role="tab" aria-selected="false"><span data-i18n="urgentOrderV2.tabOpen">Offene Anfragen</span> <span id="countOpen" class="request-count" aria-hidden="true">0</span></button><button type="button" class="tab workspace-tab" id="tabClosed" role="tab" aria-selected="false"><span data-i18n="urgentOrderV2.tabClosed">Geschlossene Anfragen</span> <span id="countClosed" class="request-count" aria-hidden="true">0</span></button></nav>
 <div class="board">
-<section class="panel" id="createPanel"><div class="workspace-heading"><h2 data-i18n="urgentOrderV2.formTitle">Neue Anfrage erfassen</h2><p data-i18n="urgentOrderV2.formIntro">Auftrag und Warenfluss erfassen. Die Anfragen erscheinen separat im passenden Reiter.</p></div><form id="reportForm" class="stack">
+<section class="panel" id="createPanel"><div class="workspace-heading"><h2 data-i18n="urgentOrderV2.formTitle">Neue Anfrage erfassen</h2><p data-i18n="urgentOrderV2.formIntro">Auftrag und Warenfluss erfassen. Die Anfragen erscheinen separat im passenden Reiter.</p></div><form id="reportForm" class="stack" novalidate><nav class="wizard-track" aria-label="Schritte"><span data-wizard-mark="1" aria-current="step"><b>1</b><span data-i18n="urgentOrderV2.stepBasics">Auftragsdaten</span></span><span data-wizard-mark="2"><b>2</b><span data-i18n="urgentOrderV2.stepChecks">Artikel & Prüfung</span></span><span data-wizard-mark="3"><b>3</b><span data-i18n="urgentOrderV2.stepConfirm">Bestätigen</span></span></nav><div data-wizard-step="1">
 <div class="pair"><label class="field"><span data-i18n="urgentOrderV2.orderNumber">Auftragsnummer *</span><input name="orderNumber" required maxlength="40" placeholder="SO3002" autocomplete="off"></label><label class="field"><span data-i18n="urgentOrderV2.priorityLabel">Priorität / Anfragegrund *</span><select name="priority"><option value="P1" data-i18n="urgentOrderV2.P1">P1 · Sondertransport</option><option value="P2" data-i18n="urgentOrderV2.P2">P2 · Express Lieferung</option><option value="P3" data-i18n="urgentOrderV2.P3">P3 · Backlog</option><option value="P4" data-i18n="urgentOrderV2.P4">P4 · Auftrag von Heute</option></select></label></div>
 <div class="pair"><label class="field">Lieferart *<select name="delivery" required><option value="DRP">DRP</option><option value="DIRECT" data-i18n="urgentOrderV2.directDelivery">Direktlieferung</option></select></label><label class="field">E-Mail-Sprache *<select name="language"><option value="de">Deutsch</option><option value="en">English</option></select></label></div>
 <label class="field"><span data-i18n="urgentOrderV2.reporterEmail">E-Mail-Adresse des Melders *</span><input name="email" required type="email" maxlength="254" autocomplete="email" placeholder="name@firma.com"></label>
@@ -63,8 +71,8 @@ header{background:linear-gradient(110deg,#092442,#1b4e86)}main{max-width:1180px;
 <div class="check"><label for="orderHoldsClear">Weder Don't Process noch Credit Hold? *</label><select name="holdsClear" id="orderHoldsClear"><option value="" data-i18n="urgentOrderV2.chooseCheck">Bitte prüfen</option><option value="true" data-i18n="urgentOrderV2.yes">Ja</option><option value="false" data-i18n="urgentOrderV2.no">Nein</option></select></div>
 <label class="field">Begründung bei negativer Prüfung<textarea name="exceptionReason" placeholder="Problem oder Ausnahme erläutern"></textarea></label>
 </div></div>
-<div class="section"><div class="actions" style="justify-content:space-between"><h3>Artikel / Lines *</h3><button class="btn secondary small" type="button" id="addLine">+ Position</button></div><div id="lines" class="stack"></div></div>
-<div class="actions"><button class="btn" id="submitOrder" type="submit">Anfrage verbindlich melden</button></div><div id="reportMessage" class="message" role="status" aria-live="polite"></div>
+</div><div data-wizard-step="2" hidden><div class="section"><div class="actions" style="justify-content:space-between"><h3>Artikel / Lines *</h3><button class="btn secondary small" type="button" id="addLine">+ Position</button></div><div id="lines" class="stack"></div></div>
+</div><div data-wizard-step="3" hidden><div class="wizard-review"><h3 data-i18n="urgentOrderV2.stepConfirm">Bestätigen</h3><p data-i18n="urgentOrderV2.reviewIntro">Kontrolliere die Angaben. Nach dem Speichern erhältst du deinen persönlichen Trackinglink.</p><p id="wizardReview" role="status"></p></div><div class="actions"><button class="btn" id="submitOrder" type="submit" data-i18n="urgentOrderV2.sendRequest">Anfrage verbindlich melden</button></div></div><div class="wizard-actions"><button type="button" class="btn secondary" id="wizardBack" hidden data-i18n="urgentOrderV2.previous">Zurück</button><span></span><button type="button" class="btn" id="wizardNext" data-i18n="urgentOrderV2.next">Weiter</button></div><div id="reportMessage" class="message" role="status" aria-live="polite"></div>
 </form></section>
 <section class="panel" id="listPanel" hidden><div class="actions" style="justify-content:space-between"><h2 style="margin:0" id="listTitle" data-i18n="urgentOrderV2.tabOpen">Offene Anfragen</h2><button type="button" id="refresh" class="btn secondary small" data-i18n="urgentOrderV2.refresh">Aktualisieren</button></div>
 <p class="muted" data-i18n="urgentOrderV2.listScope">Nur Anfragen, die zu diesem persönlichen Überwachungslink gehören, sind sichtbar.</p>
@@ -169,6 +177,25 @@ function buildPayload(){
   email:x.email.value.trim(),language:x.language.value,orderType:x.orderType.value,
   directOutbound:directOutbound(form),items:items()};
 }
+
+let wizardStep=1;
+function showWizardStep(step){
+ wizardStep=Math.max(1,Math.min(3,step));
+ for(const block of document.querySelectorAll('[data-wizard-step]'))block.hidden=Number(block.dataset.wizardStep)!==wizardStep;
+ for(const marker of document.querySelectorAll('[data-wizard-mark]')){if(Number(marker.dataset.wizardMark)===wizardStep)marker.setAttribute('aria-current','step');else marker.removeAttribute('aria-current');}
+ $('wizardBack').hidden=wizardStep===1;$('wizardNext').hidden=wizardStep===3;
+ if(wizardStep===3){const p=buildPayload();$('wizardReview').textContent=p.orderNumber+' · '+priorityText(p.priority)+' · '+p.items.length+' '+localeV2('positions','Positionen')+' · '+(p.orderType==='DIRECT_OUTBOUND'?localeV2('directShort','Direktumschlag'):'Lagerauftrag');}
+}
+function nextWizardStep(){
+ const section=document.querySelector('[data-wizard-step="'+wizardStep+'"]');
+ for(const control of section.querySelectorAll('input,select,textarea')){if(control.willValidate&&!control.checkValidity()){control.reportValidity();control.focus();return;}}
+ if(wizardStep===2){
+  const p=buildPayload();
+  if(p.items.some(x=>!x.line&&!x.article)){showMessage(localeV2('missingArticle','Line oder Artikelnummer fehlt.'),'error');return;}
+  if(p.items.some(x=>(x.pickableStock===false||x.holdsClear===false||(x.minibag&&x.minibagLeadtime===false)||(x.newArticle&&(x.articleDataCorrect===false||x.processCompliant===false)))&&x.exceptionReason.length<8)){showMessage(localeV2('explainException','Bei negativer Prüfung mindestens 8 Zeichen Begründung eingeben.'),'error');return;}
+ }
+ showMessage('','');showWizardStep(wizardStep+1);
+}
 function humanStatus(o){const unique=[...new Set((o.items||[]).map(x=>x.status))];return unique.length===1?unique[0]:'Gemischt';}
 function closed(o){return o.items&&o.items.length>0&&o.items.every(x=>x.status==='Invoiced')}
 function localeV2(key,fallback){try{const x=window.ExportHUBI18n,name='urgentOrderV2.'+key;const y=x&&x.t(name,null,x.language());return y&&y!==name?y:fallback;}catch(_){return fallback;}}
@@ -218,7 +245,8 @@ async function refresh(){
 }
 async function submit(ev){
  ev.preventDefault();
- if(!$('reportForm').reportValidity())return;
+ if(wizardStep!==3){showWizardStep(1);return;}
+ if(!$('reportForm').reportValidity()){showWizardStep(1);return;}
  const p=buildPayload();
  if(p.items.some(x=>!x.line&&!x.article)){showMessage('Line oder Artikelnummer fehlt.','error');return;}
  const invalid=p.items.some(x=>(x.pickableStock===false||x.holdsClear===false||(x.minibag&&x.minibagLeadtime===false)||(x.newArticle&&(x.articleDataCorrect===false||x.processCompliant===false)))&&x.exceptionReason.length<8);
@@ -232,7 +260,7 @@ async function submit(ev){
   const mail=$('reportForm').elements.email.value,lang=$('reportForm').elements.language.value;
   $('reportForm').reset();$('lines').innerHTML='';lineCard();
   $('reportForm').elements.email.value=mail;$('reportForm').elements.language.value=lang;
-  syncType();activateLink();await refresh();
+  syncType();showWizardStep(1);activateLink();await refresh();
   showView('open');render();showMessage(data.order.orderNumber+' · '+localeV2('saved','Anfrage gespeichert. Bitte den Überwachungslink sichern.'),'ok');
  }catch(e){showMessage(e.message,'error');}
  finally{$('submitOrder').disabled=false;}
@@ -242,6 +270,7 @@ async function copyLink(){
  catch(_){showMessage('Link konnte nicht kopiert werden. Bitte manuell markieren.','error');}
 }
 $('reportForm').addEventListener('submit',submit);
+$('wizardNext').addEventListener('click',nextWizardStep);$('wizardBack').addEventListener('click',()=>showWizardStep(wizardStep-1));
 $('orderType').addEventListener('change',syncType);
 $('addLine').addEventListener('click',lineCard);
 $('copyLink').addEventListener('click',copyLink);
@@ -250,7 +279,7 @@ for(const [id,view] of [['tabNew','new'],['tabOpen','open'],['tabClosed','closed
 for(const id of ['search','priorityFilter'])$(id).addEventListener(id==='search'?'input':'change',render);
 window.addEventListener('hashchange',()=>{secret=accessFromHash();refresh();});
 window.addEventListener('exporthub:language-changed',render);
-secret=accessFromHash();lineCard();syncType();refresh();
+secret=accessFromHash();lineCard();syncType();showWizardStep(1);refresh();
 })();
 </script>
 </body>
