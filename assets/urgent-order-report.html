@@ -94,25 +94,33 @@ async function api(action,params){
  let data;try{data=await response.json();}catch(_){throw new Error('Antwort vom Server ist ungültig.');}
  if(!response.ok||data.ok===false){const e=new Error(data.message||'Fehler bei der Meldung.');e.status=response.status;throw e;}return data;
 }
+function localizeLineChoices(box){
+ const opts={'':'chooseCheck','true':'yes','false':'no'};
+ for(const option of box.querySelectorAll('select option')){
+  const key=opts[option.value];if(!key)continue;
+  option.setAttribute('data-i18n','urgentOrderV2.'+key);
+  option.textContent=localeV2(key,option.textContent);
+ }
+}
 function lineCard(){
  const box=document.createElement('div');box.className='line uo-line';
  box.innerHTML='<div class="line-head"><strong data-i18n="urgentOrderV2.itemHeading">Artikel / Line</strong><button class="btn danger small" type="button" data-remove>Entfernen</button></div>'+
  '<div class="pair"><label class="field">Line-Nummer<input data-field="line" maxlength="70" placeholder="10"></label><label class="field">Artikelnummer<input data-field="article" maxlength="120"></label></div>'+
  '<label class="field" style="margin-top:9px">Menge *<input data-field="quantity" type="number" min="1" max="10000000" step="1" value="1" required></label>'+
- '<div class="check" style="margin-top:10px" data-pickable><label>Genügend Bestand auf pickbarer Location? *</label><select data-field="pickableStock"><option value="" data-i18n="urgentOrderV2.chooseCheck">Bitte prüfen</option><option value="true" data-i18n="urgentOrderV2.yes">Ja</option><option value="false" data-i18n="urgentOrderV2.no">Nein</option></select></div>'+
- '<div class="check" style="margin-top:9px"><label>Weder Don’t Process noch Credit Hold? *</label><select data-field="holdsClear" required><option value="" data-i18n="urgentOrderV2.chooseCheck">Bitte prüfen</option><option value="true" data-i18n="urgentOrderV2.yes">Ja</option><option value="false" data-i18n="urgentOrderV2.no">Nein</option></select></div>'+
+ '<div class="check" style="margin-top:10px" data-pickable><label>Genügend Bestand auf pickbarer Location? *</label><select data-field="pickableStock"><option value="">Bitte prüfen</option><option value="true">Ja</option><option value="false">Nein</option></select></div>'+
+ '<div class="check" style="margin-top:9px"><label>Weder Don’t Process noch Credit Hold? *</label><select data-field="holdsClear" required><option value="">Bitte prüfen</option><option value="true">Ja</option><option value="false">Nein</option></select></div>'+
  '<label class="linecheck" style="margin-top:10px"><input type="checkbox" data-field="newArticle"> Neuer Artikel</label>'+
  '<div data-newarticle hidden class="stack" style="margin-top:10px">'+
- '<div class="check"><label>Artikelstammdaten korrekt? *</label><select data-field="articleDataCorrect"><option value="" data-i18n="urgentOrderV2.chooseCheck">Bitte prüfen</option><option value="true" data-i18n="urgentOrderV2.yes">Ja</option><option value="false" data-i18n="urgentOrderV2.no">Nein</option></select></div>'+
- '<div class="check"><label>Vorgeschriebener Prozess eingehalten? *</label><select data-field="processCompliant"><option value="" data-i18n="urgentOrderV2.chooseCheck">Bitte prüfen</option><option value="true" data-i18n="urgentOrderV2.yes">Ja</option><option value="false" data-i18n="urgentOrderV2.no">Nein</option></select></div></div>'+
+ '<div class="check"><label>Artikelstammdaten korrekt? *</label><select data-field="articleDataCorrect"><option value="">Bitte prüfen</option><option value="true">Ja</option><option value="false">Nein</option></select></div>'+
+ '<div class="check"><label>Vorgeschriebener Prozess eingehalten? *</label><select data-field="processCompliant"><option value="">Bitte prüfen</option><option value="true">Ja</option><option value="false">Nein</option></select></div></div>'+
  '<label class="linecheck" style="margin-top:10px"><input type="checkbox" data-field="minibag"> Minibag</label>'+
- '<div data-minibag hidden class="check" style="margin-top:10px"><label>10 Tage Minibag-Leadtime eingehalten? *</label><select data-field="minibagLeadtime"><option value="" data-i18n="urgentOrderV2.chooseCheck">Bitte prüfen</option><option value="true" data-i18n="urgentOrderV2.yes">Ja</option><option value="false" data-i18n="urgentOrderV2.no">Nein</option></select></div>'+
+ '<div data-minibag hidden class="check" style="margin-top:10px"><label>10 Tage Minibag-Leadtime eingehalten? *</label><select data-field="minibagLeadtime"><option value="">Bitte prüfen</option><option value="true">Ja</option><option value="false">Nein</option></select></div>'+
  '<label class="field" style="margin-top:10px">Begründung bei negativer Prüfung<textarea data-field="exceptionReason"></textarea></label>';
  box.querySelector('[data-remove]').addEventListener('click',()=>{box.remove();if(!$('lines').children.length)lineCard()});
  for(const [check,wrap] of [['newArticle','newarticle'],['minibag','minibag']]){
   box.querySelector('[data-field="'+check+'"]').addEventListener('change',e=>{const el=box.querySelector('[data-'+wrap+']');el.hidden=!e.target.checked;el.querySelectorAll('select').forEach(s=>{s.required=e.target.checked;if(!e.target.checked)s.value='';});});
  }
- $('lines').appendChild(box);syncType();
+ localizeLineChoices(box);$('lines').appendChild(box);syncType();
 }
 function syncType(){
  const direct=$('orderType').value==='DIRECT_OUTBOUND';

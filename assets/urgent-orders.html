@@ -114,19 +114,27 @@ function priority(n){return STATUS.indexOf(n)>=0?n:'Open';}
 function isClosedOrder(o){return !!((o.items||[]).length&&(o.items||[]).every(x=>x.status==='Invoiced'));}
 function statusText(code){const ids={Open:'statusOpen',Waved:'statusWaved','In Progress':'statusInProgress',Problem:'statusProblem',Loaded:'statusLoaded',Shipped:'statusShipped',Invoiced:'statusInvoiced',Gemischt:'statusMixed',Mixed:'statusMixed'};const fallback={Open:'Offen',Waved:'Welle freigegeben','In Progress':'In Bearbeitung',Problem:'Problem',Loaded:'Verladen',Shipped:'Versendet',Invoiced:'Fakturiert',Gemischt:'Gemischt',Mixed:'Gemischt'};return localeV2(ids[code]||'',fallback[code]||code);}
 function statusBadge(v){return '<span class="state-pill state-'+escapeHtml(txt(v).replace(/[^A-Za-zäöüÄÖÜ]/g,''))+'">'+escapeHtml(statusText(v))+'</span>';}
+function localizeLineChoices(box){
+ const opts={'':'chooseCheck','true':'yes','false':'no'};
+ for(const option of box.querySelectorAll('select option')){
+  const key=opts[option.value];if(!key)continue;
+  option.setAttribute('data-i18n','urgentOrderV2.'+key);
+  option.textContent=localeV2(key,option.textContent);
+ }
+}
 function lineField(){
  const box=document.createElement('div');box.className='line-card uo-item';
  box.innerHTML='<div class="head"><strong>Position</strong><button type="button" class="btn danger small" data-remove>Entfernen</button></div>'+
  '<div class="form-grid"><label class="field">Line-Nummer<input data-field="line" placeholder="z. B. 10" maxlength="70"></label><label class="field">Artikelnummer<input data-field="article" placeholder="z. B. 123456" maxlength="120"></label><label class="field">Menge *<input data-field="quantity" type="number" min="1" max="10000000" step="1" value="1" required></label></div>'+
  '<label class="inline-check"><input type="checkbox" data-field="minibag"> Minibag</label>'+
- '<div class="checks"><label class="check-row">Genügend Bestand auf pickbarer Location? *<select required data-field="pickableStock"><option value="" data-i18n="urgentOrderV2.chooseCheck">Bitte prüfen</option><option value="true" data-i18n="urgentOrderV2.yes">Ja</option><option value="false" data-i18n="urgentOrderV2.no">Nein</option></select></label>'+
- '<label class="check-row">Weder Don’t Process noch Credit Hold? *<select required data-field="holdsClear"><option value="" data-i18n="urgentOrderV2.chooseCheck">Bitte prüfen</option><option value="true" data-i18n="urgentOrderV2.yes">Ja</option><option value="false" data-i18n="urgentOrderV2.no">Nein</option></select></label>'+
- '<label class="check-row" data-leadtime hidden>10 Tage Minibag-Leadtime eingehalten? *<select data-field="minibagLeadtime"><option value="" data-i18n="urgentOrderV2.chooseCheck">Bitte prüfen</option><option value="true" data-i18n="urgentOrderV2.yes">Ja</option><option value="false" data-i18n="urgentOrderV2.no">Nein</option></select></label>'+
+ '<div class="checks"><label class="check-row">Genügend Bestand auf pickbarer Location? *<select required data-field="pickableStock"><option value="">Bitte prüfen</option><option value="true">Ja</option><option value="false">Nein</option></select></label>'+
+ '<label class="check-row">Weder Don’t Process noch Credit Hold? *<select required data-field="holdsClear"><option value="">Bitte prüfen</option><option value="true">Ja</option><option value="false">Nein</option></select></label>'+
+ '<label class="check-row" data-leadtime hidden>10 Tage Minibag-Leadtime eingehalten? *<select data-field="minibagLeadtime"><option value="">Bitte prüfen</option><option value="true">Ja</option><option value="false">Nein</option></select></label>'+
  '<label class="field">Begründung bei negativer Prüfung<textarea data-field="exceptionReason" placeholder="Welche Ausnahme oder welches Hindernis liegt vor?"></textarea></label></div>';
  box.querySelector('[data-remove]').addEventListener('click',()=>{box.remove();if(!document.querySelector('.uo-item'))lineField()});
  const min=box.querySelector('[data-field="minibag"]'),lead=box.querySelector('[data-leadtime]');
  min.addEventListener('change',()=>{lead.hidden=!min.checked;lead.querySelector('select').required=min.checked;if(!min.checked)lead.querySelector('select').value='';});
- $('lineFields').appendChild(box);
+ localizeLineChoices(box);$('lineFields').appendChild(box);
 }
 function formItems(){
  return [...document.querySelectorAll('.uo-item')].map(box=>{

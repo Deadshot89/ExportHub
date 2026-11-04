@@ -110,7 +110,7 @@ test('status updates report feedback inside the visible request list, not the hi
 test('all human-readable dropdown choices have explicit six-language translations',()=>{
  const langs=['de','en','pl','es','fr','it'];
  const packs=langs.map(l=>JSON.parse(read('assets/i18n/'+l+'.json')));
- const all=[publicHtml,internalHtml].join('\\n');
+ const all=[publicHtml,internalHtml].map(page=>page.split('<script>')[0]).join('\\n');
  for(const label of ['Bitte auswählen','Bitte prüfen','Ja','Nein','Direktlieferung','Lkw','Paketdienst','Kurier','Sonstiges','Alle Prioritäten','Alle Stufen','Alle Lieferarten','Alle Status']){
   const re=new RegExp('<option[^>]*>'+label+'<\\/option>','g');
   for(const match of all.matchAll(re))assert.match(match[0],/data-i18n="urgentOrderV2\.[A-Za-z0-9]+"/,'untranslated dropdown '+label);
@@ -120,4 +120,8 @@ test('all human-readable dropdown choices have explicit six-language translation
    for(let i=0;i<packs.length;i++)assert.ok(packs[i][match[1]],langs[i]+' missing '+match[1]);
   }
  }
+ assert.match(publicHtml,/function localizeLineChoices\\(/);
+ assert.match(internalHtml,/function localizeLineChoices\\(/);
+ for(const html of [publicHtml,internalHtml])assert.match(html,/option.setAttribute\\('data-i18n','urgentOrderV2\\.'\\+key\\)/);
+
 });
