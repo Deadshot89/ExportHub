@@ -97,7 +97,22 @@ function isSignedTestserviceE2E(token){
   );
 }
 
+function hasExportHubCredential(req){
+  const headers=req&&req.headers||{};
+  const dedicated=auth.text(headers['x-exporthub-token']||headers['X-ExportHUB-Token']||
+    headers['x-exporthub-session']||headers['X-ExportHUB-Session']||'');
+  if(dedicated)return true;
+  if(typeof auth.cookieToken==='function'&&auth.cookieToken(req))return true;
+  // Azure Static Web Apps can inject its own Authorization bearer. Only the
+  // ExportHUB-specific signed bearer form counts as an explicit application
+  // credential for endpoints that opt in to the strict anonymous probe.
+  const authorization=String(headers.authorization||headers.Authorization||'').trim();
+  return /^Bearer\\s+ehs1\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$/.test(authorization);
+}
+
 async function validateSession(req, options = {}){
+  if(options.requireExportHubToken===true&&!hasExportHubCredential(req))
+    throw auth.error('AUTH_REQUIRED',apiI18n.t(req,'api.common.authRequired'),401);
   if (!supportsFastPath()) return auth.validateSession(req, options);
   const token = auth.bearer(req);
   if (!token) throw auth.error('AUTH_REQUIRED', apiI18n.t(req,'api.common.authRequired'), 401);
@@ -123,4 +138,4 @@ async function validateSession(req, options = {}){
   return { token, session, user, team, source: resolved.source, authDoc, teamDoc };
 }
 
-module.exports = Object.assign({}, auth, { clients, validateSession, isSource });
+module.exports = Object.assign({}, auth, { clients, validateSession, hasExportHubCredential, isSource });
