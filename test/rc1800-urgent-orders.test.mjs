@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import fs from 'node:fs';
+import vm from 'node:vm';
 const require=createRequire(import.meta.url);
 const orders=require('../api/shared/urgent-orders.js');
 const user={id:'CS-17',name:'Customer Service'};
@@ -60,6 +61,9 @@ test('frontend and API are dedicated, authenticated and do not automatically sen
  const html=fs.readFileSync(new URL('../urgent-orders.html',import.meta.url),'utf8');
  const api=fs.readFileSync(new URL('../api/urgent-orders/index.js',import.meta.url),'utf8');
  const config=JSON.parse(fs.readFileSync(new URL('../api/urgent-orders/function.json',import.meta.url),'utf8'));
+ const script=html.match(/<script>([\s\S]*?)<\/script>/);
+ assert.ok(script,'inline UI script is available');
+ assert.doesNotThrow(()=>new vm.Script(script[1]),'browser script is valid JavaScript');
  assert.equal(config.bindings[0].route,'urgent-orders');
  assert.match(api,/await auth\.validateSession\(req\)/);
  assert.match(api,/URGENT_ORDER_EXISTS/);
