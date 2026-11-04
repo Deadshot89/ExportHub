@@ -188,7 +188,7 @@ module.exports=async function(context,req){
  if(req.method==='OPTIONS'){context.res={status:204,headers:{Allow:'POST, OPTIONS','Cache-Control':'no-store'},body:''};return}
  if(req.method!=='POST'){context.res=response(405,{ok:false,code:'METHOD_NOT_ALLOWED',message:apiI18n.t(req,'api.common.postOnly')});return}
  try{
-  const current=await auth.validateSession(req);if(!allowed(current.user))throw error('ABD_ANALYSIS_FORBIDDEN',apiI18n.t(req,'api.abdAnalysis.forbidden'),403);
+  const current=await auth.validateSession(req,{requireExportHubToken:true});if(!allowed(current.user))throw error('ABD_ANALYSIS_FORBIDDEN',apiI18n.t(req,'api.abdAnalysis.forbidden'),403);
   const payload=auth.body(req),environment=auth.environmentFromRequest(req),action=lower(payload.action);
   if(action==='upload')context.res=response(202,await upload(req,current,environment,payload));
   else if(action==='status'){const result=await status(req,current,environment,payload);context.res=response(result.httpStatus,result.body)}
