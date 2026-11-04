@@ -141,14 +141,15 @@ function legacyIncotermsAnswer(raw){
   dap:{name:'DAP (Geliefert benannter Ort)',organization:'Der Verkäufer organisiert die Ausfuhrformalitäten; der Käufer übernimmt die Einfuhrabfertigung.',cost:'Verkäufer für die Ausfuhr, Käufer für Einfuhrformalitäten und Einfuhrabgaben.',check:'Ausfuhrfreigabe, benannten Bestimmungsort und Zuständigkeit für die Einfuhr prüfen.'},
   ddp:{name:'DDP (Geliefert verzollt)',organization:'Der Verkäufer übernimmt vertraglich sowohl Ausfuhr- als auch Einfuhrformalitäten.',cost:'Grundsätzlich Verkäufer einschließlich Einfuhrabgaben.',check:'Besonders prüfen, ob der Verkäufer im Bestimmungsland rechtlich die Einfuhrabfertigung vornehmen lassen darf.'}
  };
- var item=labels[type],icc='legacy-incoterms-icc',eu='legacy-incoterms-eu';
+ var item=labels[type],icc='legacy-incoterms-icc',eu='legacy-incoterms-eu',decl='legacy-incoterms-anmelder';
  if(types.length>1){
   var compared=['## Kurzantwort','Die genannten Incoterms unterscheiden sich bei den Zollformalitäten:'];
   types.forEach(function(code){var rule=labels[code];compared.push('- **'+rule.name+':** '+rule.organization+' [['+icc+']].')});
-  compared.push('','## Was gilt unabhängig von der Klausel?','- **EU-Ausführer:** Die zollrechtlich zulässige Person muss gesondert geprüft werden. [['+eu+']].','- **Anmelder:** Anmeldung durch den Anmelder oder einen Zollvertreter; Kosten nach der vereinbarten Klausel und ergänzenden Abreden.','', '## Vorgehen im Warenausgang','1. Vereinbarte Incoterms-Klausel und benannten Ort verbindlich feststellen.','2. EU-Ausführer, Anmelder und mögliche Zollvertretung bestimmen.','3. Erforderliche Zollüberlassung und Dokumente vor Versand prüfen.');
+  compared.push('','## Was gilt unabhängig von der Klausel?','- **EU-Ausführer:** Die zollrechtlich zulässige Person muss gesondert geprüft werden. [['+eu+']].','- **Anmelder:** Anmeldung durch den Anmelder oder einen Zollvertreter; Kosten nach der vereinbarten Klausel und ergänzenden Abreden. [['+decl+']].','', '## Vorgehen im Warenausgang','1. Vereinbarte Incoterms-Klausel und benannten Ort verbindlich feststellen.','2. EU-Ausführer, Anmelder und mögliche Zollvertretung bestimmen.','3. Erforderliche Zollüberlassung und Dokumente vor Versand prüfen.');
   return{ok:true,mode:'offline-rule',answer:compared.join('\n'),uncertainty:true,checkedAt:'2026-11-04',sources:[
     {id:icc,title:'ICC – Incoterms 2020 / Export Clearance',sourceName:'International Chamber of Commerce',sourceUrl:'https://iccwbo.org/wp-content/uploads/sites/3/2025/04/2025.04_Using_Incoterms_to-Manage_Tariff_Risks.pdf',checkedAt:'2026-11-04'},
-    {id:eu,title:'EU-Kommission – Wer ist Ausführer?',sourceName:'Europäische Kommission',sourceUrl:'https://taxation-customs.ec.europa.eu/document/download/5943739d-85d5-4e82-b2bd-fe1b8f7a8403_en',checkedAt:'2026-11-04'}]}
+    {id:eu,title:'EU-Kommission – Wer ist Ausführer?',sourceName:'Europäische Kommission',sourceUrl:'https://taxation-customs.ec.europa.eu/document/download/5943739d-85d5-4e82-b2bd-fe1b8f7a8403_en',checkedAt:'2026-11-04'},
+    {id:decl,title:'AEAT – Wer gibt die Ausfuhranmeldung ab?',sourceName:'Spanische Zollverwaltung (EU-Rechtsgrundlagen)',sourceUrl:'https://sede.agenciatributaria.gob.es/Sede/en_gb/aduanas/entrada-salida-mercancias/exportacion/sistema-electronico-exportacion-aes-p1.html?faqId=751cb74473cb7810VgnVCM100000dc381e0aRCRD',checkedAt:'2026-11-04'}]}
  }
  var answer=[
   '## Kurzantwort',
@@ -157,7 +158,7 @@ function legacyIncotermsAnswer(raw){
   '## Wer macht was?',
   '- **Organisation und Kosten:** '+item.cost+' [['+icc+']].',
   '- **Zollrechtlicher EU-Ausführer:** Unabhängig vom Incoterm anhand der EU-Regeln festlegen; allein der deutsche Versender ist nicht automatisch Ausführer. [['+eu+']].',
-  '- **Anmelder/Vertreter:** Die elektronische Zollanmeldung kann der zuständige Anmelder oder ein beauftragter Zollvertreter abgeben.',
+  '- **Anmelder/Vertreter:** Die elektronische Zollanmeldung kann der zuständige Anmelder oder ein beauftragter Zollvertreter abgeben. [['+decl+']].',
   '',
   '## Vorgehen im Warenausgang',
   '1. '+item.check,
@@ -170,7 +171,8 @@ function legacyIncotermsAnswer(raw){
  return{ok:true,mode:'offline-rule',answer:answer,uncertainty:true,checkedAt:'2026-11-04',
   sources:[
    {id:icc,title:'ICC – Incoterms 2020 / Export Clearance',sourceName:'International Chamber of Commerce',sourceUrl:'https://iccwbo.org/wp-content/uploads/sites/3/2025/04/2025.04_Using_Incoterms_to-Manage_Tariff_Risks.pdf',checkedAt:'2026-11-04'},
-   {id:eu,title:'EU-Kommission – Wer ist Ausführer?',sourceName:'Europäische Kommission',sourceUrl:'https://taxation-customs.ec.europa.eu/document/download/5943739d-85d5-4e82-b2bd-fe1b8f7a8403_en',checkedAt:'2026-11-04'}
+   {id:eu,title:'EU-Kommission – Wer ist Ausführer?',sourceName:'Europäische Kommission',sourceUrl:'https://taxation-customs.ec.europa.eu/document/download/5943739d-85d5-4e82-b2bd-fe1b8f7a8403_en',checkedAt:'2026-11-04'},
+    {id:decl,title:'AEAT – Wer gibt die Ausfuhranmeldung ab?',sourceName:'Spanische Zollverwaltung (EU-Rechtsgrundlagen)',sourceUrl:'https://sede.agenciatributaria.gob.es/Sede/en_gb/aduanas/entrada-salida-mercancias/exportacion/sistema-electronico-exportacion-aes-p1.html?faqId=751cb74473cb7810VgnVCM100000dc381e0aRCRD',checkedAt:'2026-11-04'}
   ]}
 }
 function legacyCustomsIntercept(event){
