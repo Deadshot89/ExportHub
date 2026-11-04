@@ -135,3 +135,11 @@ test('Zoll KI 2.0: Klick auf historisches KI-fragen-Feld rendert eine EXW-Fachan
  assert.match(answer.textContent,/Käufer organisiert/);
  assert.match(answer.textContent,/Verkäufer organisiert/);
 });
+
+
+test('Zoll KI 2.0: geänderte Zoll-KI-Assets erhalten neue Cache-Version für TESTSERVICE und Produktion',()=>{
+ const build=fs.readFileSync(new URL('../.github/rc1532/build-three-env.mjs',import.meta.url),'utf8');
+ assert.match(build,/rc1532-customs-ai\\.css\\?v=1668/);
+ assert.match(build,/rc1532-customs-ai\\.js\\?v=1668/);
+ assert.doesNotMatch(build,/rc1532-customs-ai\\.(?:css|js)\\?v=153[23]/);
+});
