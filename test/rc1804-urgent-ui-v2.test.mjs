@@ -168,3 +168,30 @@ test('internal urgent-order navigation uses wonderful-forest for production and 
  const testservice='https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net';
  assert.equal(check('ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net',testservice),testservice);
 });
+
+
+test('canonical tracking link preserves real capability token when activated and copied',()=>{
+ const source=script(publicHtml);
+ const functions=[
+  source.slice(source.indexOf('function accessFromHash(){'),source.indexOf('\nfunction flag(',source.indexOf('function accessFromHash(){'))),
+  source.slice(source.indexOf('function urgentTrackingBase(){'),source.indexOf('\nasync function refresh(){',source.indexOf('function urgentTrackingBase(){')))
+ ];
+ assert.ok(functions.every(s=>s.startsWith('function ')),'public URL helpers must be extractable');
+ const token='uro_'+'B'.repeat(43);
+ for(const [hostname,origin,expected] of [
+  ['exporthub360.com','https://exporthub360.com','https://wonderful-forest-0f315e310.7.azurestaticapps.net'],
+  ['www.exporthub360.de','https://www.exporthub360.de','https://wonderful-forest-0f315e310.7.azurestaticapps.net'],
+  ['wonderful-forest-0f315e310.7.azurestaticapps.net','https://wonderful-forest-0f315e310.7.azurestaticapps.net','https://wonderful-forest-0f315e310.7.azurestaticapps.net'],
+  ['ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net','https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net','https://ashy-grass-065b7b803-testservice.westeurope.6.azurestaticapps.net']
+ ]){
+  const elements=new Map();
+  const $=id=>{if(!elements.has(id))elements.set(id,{hidden:true,textContent:''});return elements.get(id);};
+  const ctx=vm.createContext({location:{hostname,origin,hash:'#access='+token},secret:token,$,Set,encodeURIComponent});
+  vm.runInContext(functions.join('\n'),ctx);
+  assert.equal(ctx.accessFromHash(),token,'existing hash token remains readable');
+  vm.runInContext('activateLink()',ctx);
+  assert.equal($('tracking').hidden,false,'tracking controls become visible');
+  assert.equal($('trackingUrl').textContent,expected+'/urgent-order#access='+token);
+ }
+ assert.match(source,/clipboard\.writeText\(\$\('trackingUrl'\)\.textContent\)/);
+});
