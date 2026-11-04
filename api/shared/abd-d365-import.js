@@ -44,10 +44,15 @@ function isD365(matrix){
 function d365Invoice(matrix,name,analyzer,analysisModel){
  if(!isD365(matrix))return null;
  const columns=d365Columns(matrix[0]),shipments=new Map(),allPositions=[];
- for(let i=1;i<matrix.length&&allPositions.length<500;i++){
+ for(let i=1;i<matrix.length;i++){
   const row=matrix[i];const get=key=>str(row[columns[key]]);
   const quantity=decimal(get('QTY'),analyzer);
   if(!(quantity>0))continue; // A backorder without shipped pieces is not an invoice line.
+  // Never publish an apparently complete proforma after truncating shipped lines.
+  if(allPositions.length>=500){
+   const e=new Error('D365-Export enthält mehr als 500 versendete Positionen. Bitte die Datei nach Lieferscheinen aufteilen.');
+   e.code='ABD_D365_POSITION_LIMIT';e.status=422;throw e;
+  }
   const value=decimal(get('SHIPPEDAMOUNT'),analyzer);
   const fallback=decimal(get('LINEAMOUNT'),analyzer);
   // Never silently use the ordered line amount for a partially shipped backorder.
