@@ -16,3 +16,10 @@
 .rc1532-citation:hover{text-decoration:underline}.rc1532-citation:focus-visible{outline:2px solid var(--primary,#2563eb);outline-offset:2px}
 .rc1532-source-index{display:inline-block;margin-right:7px;font-size:12px;font-weight:850;color:var(--muted,#475569)}
 .rc1532-source:target{outline:2px solid var(--primary,#2563eb);outline-offset:2px}
+
+/* Historischer Offline-Tab: ausgewählte Incoterm-Fragen ohne Provider-Aufruf erklären. */
+.rc1532-legacy-answer{display:grid;gap:11px;min-width:0;overflow-wrap:anywhere}
+.rc1532-legacy-notice{font-size:12px;font-weight:750;color:var(--muted,#64748b);padding:8px 10px;border:1px solid var(--border,#cbd5e1);border-radius:9px}
+.rc1532-legacy-sources-heading{margin:3px 0 0;font-size:13px;font-weight:850;color:var(--text,#0f172a)}
+.rc1532-legacy-answer .rc1532-sources{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+@media(max-width:700px){.rc1532-legacy-answer .rc1532-sources{grid-template-columns:minmax(0,1fr)}}
