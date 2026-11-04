@@ -152,12 +152,12 @@
    const headers={'Content-Type':'application/json','Accept':'application/json'};
    if(authToken)headers['X-ExportHUB-Token']=authToken;
    const response=await w.fetch('/api/urgent-orders',{method:'POST',credentials:'same-origin',cache:'no-store',
-    headers,body:JSON.stringify({action:'list'})});
+    headers,body:JSON.stringify({action:'counts'})});
    if(!response.ok)throw new Error('URGENT_COUNT_UNAVAILABLE');
    const data=await response.json();
-   if(data.ok!==true||!Array.isArray(data.orders))throw new Error('URGENT_COUNT_INVALID');
-   const count=data.orders.filter(o=>!(Array.isArray(o.items)&&o.items.length>0&&o.items.every(x=>x.status==='Invoiced'))).length;
-   // The authenticated API returns only orders visible to this current login.
+   if(data.ok!==true||!Number.isSafeInteger(data.open)||data.open<0)throw new Error('URGENT_COUNT_INVALID');
+   const count=data.open;
+   // Only authorized aggregate counts cross the network: no order/customer data.
    const current=ensureBadge();if(!current)return;
    current.badge.textContent=String(count);
    current.badge.dataset.hasOpen=count>0?'true':'false';

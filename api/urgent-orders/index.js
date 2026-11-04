@@ -68,6 +68,17 @@ async function execute(req,user,refs){
   const doc=normalize((await auth.readJson(refs.blob,empty())).value);
   return{orders:visibleOrders(doc,user),profile:doc.profiles[model.text(user.id)]||null,canManage:model.canManage(user),environment:refs.environment};
  }
+ if(action==='counts'){
+  // Return only authorized aggregate values. Menu polling must never transfer
+  // private order lines, reporter emails or exception notes.
+  const doc=normalize((await auth.readJson(refs.blob,empty())).value);
+  let open=0,closed=0;
+  for(const order of doc.orders){
+   if(!model.canRead(order,user))continue;
+   if(model.isClosed(order))closed++;else open++;
+  }
+  return{open,closed,total:open+closed,environment:refs.environment};
+ }
  if(action==='create'){
   const created=model.createOrder(p,identity(user),now);
   return write(refs,doc=>{
