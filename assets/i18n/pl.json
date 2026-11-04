@@ -2453,12 +2453,15 @@
   "urgentOrderV2.statusOpen": "Otwarte",
   "urgentOrderV2.statusWaved": "Fala zwolniona",
   "urgentOrderV2.statusInProgress": "W realizacji",
-  "urgentOrderV2.statusProblem": "Problem",
+  "urgentOrderV2.statusProblem": "Problem z realizacją",
   "urgentOrderV2.statusLoaded": "Załadowano",
   "urgentOrderV2.statusShipped": "Wysłano",
   "urgentOrderV2.statusInvoiced": "Zafakturowano",
   "urgentOrderV2.statusMixed": "Mieszany",
   "urgentOrderV2.statusPositions": "Pozycje",
   "urgentOrderV2.statusQuantity": "Ilość",
-  "urgentOrderV2.statusLine": "Pozycja"
+  "urgentOrderV2.statusLine": "Pozycja",
+  "urgentOrderV2.arrivalRef": "Referencja dostawy / śledzenie",
+  "urgentOrderV2.noHolds": "Brak blokady Don't Process lub Credit Hold? *",
+  "urgentOrderV2.problemDescription": "Opis problemu *"
 }

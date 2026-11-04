@@ -2460,5 +2460,8 @@
   "urgentOrderV2.statusMixed": "Mixte",
   "urgentOrderV2.statusPositions": "Positions",
   "urgentOrderV2.statusQuantity": "Quantité",
-  "urgentOrderV2.statusLine": "Ligne"
+  "urgentOrderV2.statusLine": "Ligne",
+  "urgentOrderV2.arrivalRef": "Référence de livraison / suivi",
+  "urgentOrderV2.noHolds": "Aucun blocage Don't Process ou Credit Hold ? *",
+  "urgentOrderV2.problemDescription": "Description du problème *"
 }

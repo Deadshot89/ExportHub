@@ -2460,5 +2460,8 @@
   "urgentOrderV2.statusMixed": "Misto",
   "urgentOrderV2.statusPositions": "Posizioni",
   "urgentOrderV2.statusQuantity": "Quantità",
-  "urgentOrderV2.statusLine": "Riga"
+  "urgentOrderV2.statusLine": "Riga",
+  "urgentOrderV2.arrivalRef": "Riferimento consegna / tracciamento",
+  "urgentOrderV2.noHolds": "Nessun blocco Don't Process o Credit Hold? *",
+  "urgentOrderV2.problemDescription": "Descrizione del problema *"
 }
