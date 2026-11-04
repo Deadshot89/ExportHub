@@ -258,6 +258,12 @@ jobs:
           echo "RC1553: PRODUCTION deployment identity stimmt nicht mit RELEASE_SHA=$RELEASE_SHA ueberein." >&2
           exit 1
 
+      - name: RC1787 ABD-Datei-Upload API Routing PRODUCTION prüfen
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/rc1787-abd-upload-route-smoke.mjs production "$RELEASE_SHA"
+
       - name: RC1598 POD-Audit-API Live-Routing PRODUCTION
         shell: bash
         run: |
