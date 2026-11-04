@@ -19,7 +19,10 @@ function publicSiteEnvironment(url){
   if(!raw)return'';
   const value=new URL(/^[a-z]+:\/\//i.test(raw)?raw:'https://'+raw);
   const hostname=value.hostname.toLowerCase();
-  if(hostname.endsWith('.azurestaticapps.net'))return hostname.includes('-testservice.')?'testservice':'production';
+  // Only the designated Urgent Order production site may select production data.
+  // Unknown Azure PR/preview hosts must never silently become production.
+  if(hostname==='wonderful-forest-0f315e310.7.azurestaticapps.net')return'production';
+  if(hostname.endsWith('.azurestaticapps.net')&&hostname.includes('-testservice.'))return'testservice';
   if(hostname==='exporthub360.com'||hostname==='www.exporthub360.com'||hostname==='exporthub360.de'||hostname==='www.exporthub360.de')return'production';
  }catch(_){}
  return'';
