@@ -58,3 +58,14 @@ Stand 04.11.2026 · Prüfzweig feature/urgent-orders-cs-workflow · keine Produk
 - Schutz: Eingabelimit, serverseitige Datenvalidierung, begrenzte Meldemenge, in-memory Rate-Limit; vor Produktion ist zusätzlich ein persistenter/globaler Missbrauchsschutz zu prüfen. Kein öffentliches Verzeichnis aller SOs.
 - Interne Logistik sieht die zusammengeführten öffentlichen und internen Urgent Orders über ihre eigene authentifizierte Oberfläche.
 - TESTSERVICE/Produktion bleiben getrennt. Kein Merge/Deployment ohne eigenständige Freigabe.
+
+
+## Deepfix – Sicherheit und Testabnahme
+- Das öffentliche Formular erzeugt 256-Bit-Token und hält im Storage nur ihren SHA-256-Hash vor; die API stellt ausschließlich tokengebundene Lese- und neue Melderequests bereit.
+- Das temporäre pro-IP-Limit ist nicht die einzige Schranke: zusätzlich gilt eine **atomare, per Azure Blob-ETag geschützte Tagesobergrenze von 200 anonymen Neumeldungen pro Umgebung**. Die Schranke gilt über mehrere Azure-Instanzen hinweg.
+- Unbekannte Host- oder widersprüchliche Azure-Umgebungsangaben werden für diesen Endpunkt fail-closed zurückgewiesen; ein frei manipulierbarer Origin-Header allein reicht nicht zum Auswählen eines Storage-Namespace.
+- Neue Artikel ohne Artikelnummer werden bereits in der Modellvalidierung zurückgewiesen.
+- Der Status Problem ist für jede Position separat möglich und in der internen Auswahl sowie im öffentlichen Verlauf farbig sichtbar.
+- Neues Verhaltenstestmodul: `test/rc1802-urgent-public-behavior.test.mjs` (getrennte Melder, linkgebundene Einsicht, fehlender/falscher Link, keine öffentlichen Statusmutationen, Weitergabe des internen Problemstatus, tägliche Obergrenze, Umgebungs-Mismatch).
+- Die Seite bindet die zentrale sechssprachige i18n-Runtime ein; die Quellprüfung der neuen UI-Dateien ergibt nach der Sprachpaketregistrierung keine neuen unregistrierten deutschen Literale.
+- **Vor Livegang:** GitHub-CI vollständig grün, Testservice-E2E mit echtem Azure-Blob-Speichern/Lesen und Link aus anderem Browser testen; Test- und Produktionsisolation auf realen Host-Headern bestätigen; prüfen, ob der 200/Tag-Cap fachlich passt. Bis dahin bleibt PR #1183 Draft, kein Deployment.
